@@ -2,7 +2,7 @@
 
 (load-component "common.scm")
 
-(use-module '{reflection texttools ezrecords bench/miscfns})
+(use-module '{reflection texttools ezrecords bench/miscfns stringfmts})
 
 (define swapf
   (macro expr 
@@ -19,21 +19,77 @@
 (applytester 'scheme procedure-module if)
 (applytester 'ezrecords procedure-module defrecord)
 
+(define (arity-test x (y 3)) (+ x y))
+(define (arity-test2 x y (q 3) . z) (+ x y))
+
 (define-tester (contains-string pat)
   (lambda (filename) (search pat filename)))
 
 (applytester "factr" procedure-name factr)
 (applytester 1 procedure-arity factr)
+(applytester 1 procedure-min-arity factr)
+(applytester 1 procedure-min-arity car)
+(applytester 2 procedure-arity arity-test)
+(applytester 1 procedure-min-arity arity-test)
+(applytester #f procedure-arity arity-test2)
+(applytester 2 procedure-min-arity arity-test2)
+
+(applytest '(x (y 3)) lambda-args arity-test)
+;; (set-lambda-args! arity-test '(x (y 5)))
+;; (applytest '(x (y 5)) lambda-args arity-test)
+
+(errtest (procedure-arity if))
+(errtest (procedure-arity defrecord))
+(errtest (procedure-arity 99))
+(errtest (procedure-arity "string"))
+
+(applytester-pred string? procedure-documentation arity-test)
+(evaltest 'void (set-procedure-documentation! arity-test "testing arity"))
+(applytester "testing arity" procedure-documentation arity-test)
+
+(applytest #t procedure-tailable? arity-test)
+(evaltest 'void (set-procedure-tailable! arity-test #f))
+(applytest #f procedure-tailable? arity-test)
+(evaltest 'void (set-procedure-tailable! arity-test #t))
+
+(applytester-pred pair? lambda-start arity-test2)
+(applytest 'define car (lambda-source arity-test2))
+;;; TODO: This breaks
+(applytest 'define car lambda-source arity-test2)
+
+(set-lambda-source! arity-test2 (cons 'defslambda (cdr (lambda-source arity-test2))))
+(applytest 'defslambda car (lambda-source arity-test2))
+
+(errtest (lambda-start car))
+(errtest (lambda-start "string"))
+(errtest (lambda-source car))
+(errtest (lambda-source "string"))
+(errtest (lambda-body car))
+(errtest (lambda-body "string"))
+(errtest (lambda-args car))
+(errtest (lambda-args "string"))
+
 (applytester-pred (contains-string "miscfns.scm") procedure-filename factr)
+(applytester-pred (contains-string "ezrecords") procedure-filename defrecord)
 (errtest (procedure-name 3))
 (errtest (procedure-name "procedure"))
 
 (applytester #f procedure-symbol (lambda (x) (1+ x)))
 (applytester-pred procedure? procedure-id (lambda (x) (1+ x)))
 (applytester '|CAR| procedure-id car)
+(applytester '|IF| procedure-id if)
 (applytester 'contains-string procedure-id contains-string)
 (applytester "expr" procedure-name swapf)
 (applytester swapf procedure-id swapf)
+
+(applytest #f reflect/get arity-test 'testprop)
+(applytest #t reflect/store! arity-test 'testprop "value")
+(applytest "value" reflect/get arity-test 'testprop)
+(applytest #t reflect/add! arity-test 'testprop "more")
+(applytest {"more" "value"} reflect/get arity-test 'testprop)
+
+(applytest-pred table? reflect/attribs arity-test)
+(errtest (reflect/attribs "string"))
 
 (applytester-pred (contains-string "conditionals.c") procedure-filename if)
 (applytester-pred (contains-string "miscfns.scm") module-source (get-module 'bench/miscfns))
@@ -45,6 +101,10 @@
 
 (defslambda (syncit x y) (lineout "Syncing " x " with " y))
 (defambda (nelts c) (choice-size c))
+
+(applytester #t synchronized? syncit)
+(applytester #f synchronized? car)
+(applytester #f synchronized? contains-string)
 
 (applytester-pred (contains-string "engine.scm") get-source (get-module 'engine))
 (applytester-pred (contains-string "sqlite.") get-source (get-module 'sqlite))
@@ -65,6 +125,8 @@
 (applytester #f non-deterministic? car)
 (applytester #t non-deterministic? intersection)
 (applytester #t non-deterministic? nelts)
+(errtest (non-deterministic? "string"))
+(errtest (non-deterministic? if))
 
 (applytester #t module? (get-module 'bench/miscfns))
 (applytester #f module? 'bench/miscfns)
@@ -74,9 +136,27 @@
 (applytester #f module? (make-hashtable))
 (applytester #t module? #[%moduleid dont-trust-me])
 
+(evaltest #t (hashtable? (wherefrom 'textmatch)))
+(evaltest #t (module? (wherefrom '$size)))
+
+(evaltest 5 (macroexpand defrecord 5))
+(evaltest #t (pair? (macroexpand defrecord '(defrecord foo x y))))
+(errtest (pair? (macroexpand car '(defrecord foo x y))))
+
+(applytester-pred ambiguous? module-bindings (get-module 'regex))
+(applytester-pred string? module-source (get-module 'regex))
+(applytester-pred hashtable? module-table (get-module 'regex))
+(applytester-pred #f module-environment (get-module 'regex))
+
+(applytester-pred string? module-source (get-module 'bench/miscfns))
 (applytester-pred hashtable? module-table (get-module 'bench/miscfns))
 (applytester-pred ambiguous? module-bindings (get-module 'bench/miscfns))
 (applytester-pred hashtable? module-environment (get-module 'bench/miscfns))
+
+(evaltest-pred ambiguous? (getmodules (%env)))
+(evaltest-pred ambiguous? (getmodules))
+(evaltest {} (reject (getmodules) symbol?))
+(evaltest {} (reject (getmodules (%env)) symbol?))
 
 (applytester-pred ambiguous? apropos "get")
 
@@ -132,3 +212,4 @@
 (errtest (defimport rrzy (get-module 'reflection)))
 (errtest (defimport rrzy (get-module 'bench/miscfns)))
 (errtest (defimport rrzy 'nosuchmodule))
+

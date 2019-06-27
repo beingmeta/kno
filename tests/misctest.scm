@@ -187,6 +187,20 @@
 	   sorted sort-seq-sample
 	   (lambda (x) (elt x -1)))
 
+(applytest #(("thirty" "three")
+	     #("thirty" "one" "hundred")
+	     #("thirty" "three" "hundred" "five")
+	     "thirty-eight"
+	     "thirty-one")
+	   rsorted sort-seq-sample
+	   (lambda (x) (elt x -1)))
+
+;; (errtest (sorted sort-seq-sample (lambda (x) (elt x 900))))
+;; (errtest (rsorted sort-seq-sample (lambda (x) (elt x 900))))
+
+(applytest #() sorted {})
+(applytest #() sorted {} car)
+
 ;;;; Test writing of DTypes to disk files
 
 (dtype->file 33 "thirtythree")
@@ -231,8 +245,29 @@
     ,(vector 3.4 3.5 100000000000.05 .000000000000000001)
     ,@'((test) "te \" \" st" "" test #() b c)))
 
+(applytest #t string? (stringout (pprint dtype-test-obj)))
+(applytest #t string? (stringout (listdata dtype-test-obj)))
+(applytest #t string? (stringout (pprint sort-sample)))
+(applytest #t string? (stringout (listdata sort-sample)))
+(applytest #t string? (stringout (pprint sort-seq-sample)))
+(applytest #t string? (stringout (listdata sort-seq-sample)))
+
 (applytest 309 dtype->file dtype-test-obj "test.dtype")
 (applytest dtype-test-obj file->dtype "test.dtype")
+
+(applytest 9 length "Foo\|bar\x0030;\&middot;")
+(errtest (string->lisp "@abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz"))
+(errtest (string->lisp "@123/456/789"))
+(errtest (string->lisp "@123/kef"))
+(errtest (string->lisp "@kef"))
+
+(applytest 12 length #"ab\n\a\b\\\f\h\t\r\z\#")
+(applytest 14 length #"ab\n\a\b\\\f\h\t\r\z\#\035\013")
+(errtest (string->lisp #"ab\n\a\b\\\f\h\t\r\z\#\035\013\090"))
+(errtest (string->lisp "#\"ab\n\a\b\\\f\h\t\r\z\#\035\013\x2g;\""))
+;; TODO: These don't error and they should
+;;(errtest (string->lisp "#\"xyz\x2g\""))
+;; (errtest (string->lisp "#\"ab\n\a\b\\\f\h\t\r\z\#\035\013\xg2;\""))
 
 ;;; These are various regression tests for some GC problems
 

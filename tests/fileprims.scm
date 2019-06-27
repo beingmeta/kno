@@ -53,6 +53,9 @@
 (applytest from-text (file->dtype dtype-file))
 (applytest from-text (file->dtype (open-dtype-input dtype-file)))
 
+(applytest #t string? (stringout (pprint (read (open-input-file text-file)))))
+(applytest #t string? (stringout (listdata (read (open-input-file text-file)))))
+
 (when (file-exists? temp-dtype-file) (remove-file temp-dtype-file))
 (when (file-exists? temp-ztype-file) (remove-file temp-ztype-file))
 

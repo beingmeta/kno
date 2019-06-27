@@ -2,7 +2,7 @@
 
 (load-component "common.scm")
 
-(use-module 'ezrecords)
+(use-module '{ezrecords stringfmts})
 
 (define textmatch (get (get-module 'texttools) 'textmatch))
 
@@ -59,24 +59,35 @@
 
 (test-opcodes)
 
-(define-tester (test-bindings (p 3) (q) (z #default) (g #f))
+(define-tester (test-bindings (p 3) (q) (z #default) (g #f) (r))
   (evaltest #f (void? p))
   (evaltest #t (void? q))
   (evaltest #f (default? p))
   (evaltest #t (default? z))
+  (errtest (setfalse! "g"))
   (errtest (setfalse! g))
   (errtest (setfalse! g (* 8 'p)))
+  (errtest (setfalse! gzt 9))
   (evaltest 'void (setfalse! g 17))
+  (evaltest 'void (setfalse! p 17))
   (errtest (default! q (* p 'p)))
-  (errtest (default! r 9))
   (errtest (default!))
+  (errtest (default! "r"))
   (errtest (default! r))
+  (errtest (default! r (* p 'p)))
   (default! q (* p p))
   (evaltest 17 g)
   (evaltest #f (symbol-bound-in? 'x #[a 3 b 4]))
   (evaltest #t (symbol-bound-in? 'a #[a 3 b 4]))
   (evaltest #t (symbol-bound-in? 'p (%env)))
+  (evaltest #f (symbol-bound-in? 'z (%env)))
+  (evaltest #f (symbol-bound-in? 'r (%env)))
   (evaltest #f (symbol-bound-in? 'xyzddr (%env)))
+  (errtest (symbol-bound-in? "x" #[a 3 b 4]))
+  (errtest (symbol-bound-in? 'z #("x" y "z")))
+  (errtest (default))
+  (errtest (default r))
+  (evaltest 5 (default r (+ 2 3)))
   (let ((x (+ p p))
 	(y (+ q q))
 	(vals {}))
@@ -84,12 +95,16 @@
     (set+! vals y)
     (set+! vals p)
     (set+! vals q)
+    (errtest (set+! altvals q))
     (errtest (set+! vals (* p 'p)))
     vals))
 
 (test-bindings)
 
 (errtest (let ((foo #f)) (set+! notbound 3)))
+
+;; Read-only environment
+(errtest (set! $num 3))
 
 ;;; Using define-tester on this breaks things because of the internal
 ;;; macros which get expanded like functions
@@ -103,7 +118,7 @@
 	(bad-swapf (macro expr 
 		     (let ((arg1 (get-arg expr 1))
 			   (arg2 (get-arg expr 2)))
-		       `(let ((xtmp ,arg1))
+		       `(let ((xtmp ,argI))
 			  (set! ,arg1 ,arg2)
 			  (set! ,arg2 tmp)))))
 	(x 3)
@@ -134,6 +149,7 @@
 
 (evaltest 3 (quote 3))
 (evaltest 3 (eval (list 'quote 3)))
+(evaltest 3 (eval (list quote 3)))
 
 (errtest {(+ 2 3) (+ 2 'a) (+ 3 9)})
 (errtest ({1+ if} 3))
@@ -175,10 +191,16 @@
 (evaltest #f (unbound? unbound?))
 (evaltest #t (unbound? xyzayzdrs))
 
+(errtest (unbound?))
+(errtest (default? ayxxa))
+
 (define x23f9b #f)
 
 (errtest (letrec))
 (errtest (letrec 3))
+(errtest (letrec ((z (+ 3 'p))) 3))
+(errtest (letrec ((z)) 3))
+(errtest (letrec ((z (if #f 3))) 3))
 (errtest (reverse '(a b c . d)))
 
 (evaltest #t (void? (set! x23f9b #t)))
@@ -186,6 +208,7 @@
 (evaltest #t (void? (void)))
 (evaltest #t (void? (void (+ 2 3))))
 (evaltest #t (void? (void (+ 2 3) (cons "foo" "bar"))))
+(errtest (void (+ 2 "a") (cons "foo" "bar")))
 
 (evaltest #t (default? #default))
 (evaltest #f (default? 99))
@@ -211,17 +234,19 @@
 (applytester #f applicable? '(lambda (x) (1+ X)))
 (applytester #f applicable? #(lambda (x) (1+ X)))
 
-
 (evaltest #t (defined? broken))
 (evaltest #f (defined? xyzayzdrs))
 (errtest (defined? 9))
 (errtest (defined? "nein"))
 
 (applytester #t environment? (%env))
+(applytester #f environment? #(x y))
+(applytester #f environment? #[x 3 y 4])
 (applytester #t symbol-bound-in? 'x23f9b (%env))
 (applytester #f symbol-bound-in? 'xyzayzdrs (%env))
 
 (evaltest #t (symbol-bound? 'x23f9b))
+(evaltest #t (symbol-bound? 'x23f9b #f))
 (evaltest #f (symbol-bound? 'xyzayzdrs))
 (evaltest #t (let ((xyzayzdrs 9)) (symbol-bound? 'xyzayzdrs)))
 (evaltest #t (let ((xyzayzdrs 9)) (symbol-bound? 'x23f9b)))
@@ -238,6 +263,11 @@
 
 (errtest (apply {+ - 5} (list 3 4)))
 (errtest (apply {+ - car} (list 3 4)))
+(errtest (apply {+ - if} (list 3 4)))
+
+(define some-vec #("a" "b" "c"))
+(errtest (elt some-vec))
+(errtest (elt some-vec 1 'z))
 
 (errtest (symbol-bound?))
 (errtest (symbol-bound? xyzayzdrs))
@@ -370,6 +400,12 @@
 (applytest-pred integer? hashptr "thirtythree")
 (applytest-pred integer? hashptr '(a b))
 
+(applytest-pred integer? hash-lisp '(a b))
+(applytest-pred integer? hash-lisp (timestamp))
+(applytest-pred integer? hash-lisp (getuuid))
+(applytest-pred integer? hash-lisp #(a b c))
+(applytest-pred integer? hash-lisp (vector 'a "a" (timestamp) (getuuid)))
+
 ;;;; Structure eval tests
 
 (evaltest #(3 4 5) #.(3 4 (+ 4 1)))
@@ -398,6 +434,7 @@
 (errtest (lambda))
 (errtest (ambda))
 (errtest (slambda))
+(errtest (sambda))
 (errtest (define))
 (errtest (define foo))
 (errtest (define "foo"))
@@ -499,8 +536,22 @@
 
 (errtest (tryif (= 3 3) (fail) (define foo 3)))
 
+(errtest (let ((x 3)) (define q 9)))
 (errtest (let ((x 3)) (define-local car)))
 (errtest (let ((x 3)) (define-init y 9)))
+(errtest (let ((x 3)) (defslambda (y z) 3)))
+(errtest (let ((x 3)) (defamba (y z) 3)))
+
+(errtest (define zzy (+ 3 "four")))
+
+;;; XAPPLY
+
+(applytest 8 xapply (lambda (x y) (+ x y)) #[x 3 y 5 z 9])
+(applytest "foobar" xapply (lambda (x y) (glom x y)) #[x "foo" z "baz" y "bar"])
+
+;;; Thunks
+
+(applytester 3 (thunk (+ 2 1)))
 
 ;;; Lambda stuff
 
@@ -517,6 +568,10 @@
 (applytester #f equal? test-nlambda test-nlambda-copy)
 (applytester 5 test-nlambda-copy 3 2)
 
+(define test-other-nlambda
+  (nlambda "test" (x y) (+ x y)))
+(errtest (nlambda '(test) (x y) (+ x y)))
+
 (define test-def (def (td x y) (+ x y)))
 (applytester #t applicable? test-def)
 (applytester #t procedure? test-def)
@@ -526,6 +581,9 @@
 (applytester "td" procedure-name test-def)
 (applytester 'td procedure-symbol test-def)
 (evaltest #f (bound? testfn))
+(errtest (def "fcn" (+ 2 3)))
+(errtest (def fcn (+ 2 3)))
+(errtest (def (3 x) (+ 2 3)))
 
 (define test-defsync (defsync (td x y) (+ x y)))
 (applytester #t applicable? test-defsync)
@@ -576,6 +634,32 @@
 
 (applytester #t packet? (dtype->packet [x 3 y (+ 2 3)]))
 
+;;; DEFIMPORT
+
+(errtest (defimport))
+(errtest (defimport bar))
+(errtest (defimport "foo" bar))
+(errtest (defimport foo 'nomodule))
+(errtest (defimport $num$ 'stringfmts))
+
+(define (test-docstrings x y)
+  "This takes two arguments"
+  "They can be anything"
+  "It adds them"
+  (+ x y))
+(applytest 
+ "`(test-docstrings x y)`\nThis takes two arguments\nThey can be anything\nIt adds them"
+ documentation test-docstrings)
+(set! test-docstrings #f)
+(define-tester (test-docstrings x y . more)
+  "This takes at least two arguments"
+  "They can be anything"
+  "It adds them and conses them to all the others"
+  (cons (+ x y) more))
+(applytest 
+ "`(test-docstrings x y [more...])`\nThis takes at least two arguments\nThey can be anything\nIt adds them and conses them to all the others"
+ documentation test-docstrings)
+(set! test-docstrings #f)
 
 ;;; Withenv tests
 
@@ -587,6 +671,10 @@
 (withenv #[x 9] (applytest 10 1+ x))
 (withenv [x 9] (applytest 10 1+ x))
 
+(errtest (withenv))
+(errtest (withenv ((x 3) (y 4) (z))))
+(errtest (withenv ((x 3) (y 4) z)))
+
 ;;; Loading stuff
 
 (dynamic-load "sqlite")
@@ -594,6 +682,8 @@
 (errtest (dynamic-load 'sqlite))
 
 (config 'used_modules)
+
+(reload-module 'ezrecords)
 
 ;;; All done
 

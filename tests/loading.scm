@@ -57,6 +57,11 @@
   (load-latest (get-component "data/loadok.scm"))
   (applytester 5 get-load-ok-count))
 
+(begin (sleep 2)
+  (set-file-modtime! (get-component "data/loadok.scm") (timestamp))
+  (load-latest)
+  (applytester 6 get-load-ok-count))
+
 (evaltest 1
 	  (withenv #f 
 	    (load->env (get-component "data/loadok.scm") (%env))

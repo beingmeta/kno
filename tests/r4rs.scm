@@ -446,8 +446,14 @@
 (applytester #t exact? 3)
 (applytester #f inexact? 3)
 ;; Added
+(applytester #t exact? 3+5i)
+(applytester #t inexact? 3+5.0i)
+(applytester #f exact? 3+5.0i)
+(applytester #f inexact? 3+5i)
 (applytester #f nan? 3)
 (applytester #t nan? "three")
+(applytester #t nan? (/ 9.9 0))
+(applytester #f nan? 9.9)
 
 (applytester #t = 22 22 22)
 (applytester #t = 22 22)
@@ -464,6 +470,12 @@
 (applytester #t <= -1 2 3 4 4 5 6 7)
 (applytester #f < 1 3 2)
 (applytester #f >= 1 3 2)
+;;; Added
+(applytester #f != 1 1)
+(applytester #f != 1/2 1/2)
+(applytester #f != 1/2 2/4)
+(applytester #t != 1/2 1/3)
+(applytester #t != 3 9)
 
 (applytester #t zero? 0)
 (applytester #f zero? 1)

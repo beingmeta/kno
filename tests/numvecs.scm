@@ -51,5 +51,27 @@
 	  (onerror (v⋅ (floatvec 1 2 3) (intvec 1 2 3 4))
 	    (lambda (ex) 'error)))
 
+(applytest #(5 7 9) + #(1 2 3) #(4 5 6))
+(applytest #(-3 -3 -3) - #(1 2 3) #(4 5 6))
+(applytest 32 * #(1 2 3) #(4 5 6))
 
+(do-choices (convert {->longvec ->shortvec ->intvec ->floatvec ->doublevec})
+  (applytest (convert #(5 7 9)) + (convert #(1 2 3)) (convert #(4 5 6)))
+  (applytest (convert #(-3 -3 -3)) - (convert #(1 2 3)) (convert #(4 5 6))))
 
+(applytest 3 * 3)
+(applytest 3.0 * 3.0)
+(applytest 3+5i * 3+5i)
+(applytest 3.0+5i * 3.0+5i)
+
+(applytest 3 + 3)
+(applytest 3.0 + 3.0)
+;;; TODO: aborts
+;;(applytest 3+5i + 3+5i)
+;;(applytest 3.0+5i + 3.0+5i)
+
+(applytest -3 - 3)
+(applytest -3.0 - 3.0)
+;;; TODO: aborts
+;;(applytest -3-5i - 3+5i)
+;;(applytest -3.0-5i - 3.0+5i)

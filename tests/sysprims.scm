@@ -50,11 +50,35 @@
 (applytester {} hostaddrs "beingmeta.cox")
 
 (applytester #t check-version 5)
-(applytester #t check-version 5 0)
+(applytester #t check-version 5 0 0)
 (applytester #f check-version 5 1)
 (applytester #f check-version 6)
 
+(applytester #t require-version 5)
+(applytester #t require-version 5 0)
+
+(applytester #f check-version 5 0 2)
+(errtest (require-version 5 0 2))
 (errtest (require-version 6))
 (errtest (require-version 5 1))
+
+(errtest (check-version "5"))
+(errtest (check-version 5 "0"))
+(errtest (check-version 5 0 "1"))
+
+;;;; Pointer locks, etc
+
+(define ptrlock-vec #("foo" "bar" "baz"))
+(define ptrlock-string #("foo" "bar" "baz"))
+(applytest #t = (ptrlock ptrlock-vec) (ptrlock ptrlock-vec))
+(applytest #t > (+ (if (= (ptrlock "foo") (ptrlock "foo")) 0 1)
+		   (if (= (ptrlock "telephone") (ptrlock "telephone")) 0 1)
+		   (if (= (ptrlock #"packet") (ptrlock #"packet")) 0 1))
+	   0)
+
+;;; Config stuff
+
+(applytest #t equal? (config 'loadpath) (config 'loadpath))
+
 
 (test-finished "SYSPRIMS")

@@ -22,6 +22,9 @@
 (define numbers '())
 (define addnumber
   (slambda (n) (set! numbers (cons n numbers))))
+;;; slambdas never get copied
+(applytest #t eq? addnumber (deep-copy addnumber))
+
 (define sleep-base 0.01)
 (define-tester (addrange start (len 10))
   (dotimes (i len)
@@ -71,6 +74,7 @@
     (set+! threads (spawn (addrange 0)))
     (applytest-pred string? lisp->string (pick-one threads))
     (thread/join threads)
+    (thread/cancel! (pick-one threads))
     (applytest 20 length numbers)
     (applytest #f check-ordered numbers)
     (message "TEST-SPAWN: " numbers)))
@@ -169,6 +173,9 @@
     (evaltest "here" (thread/cache 'alpha "here"))
     (applytest #t thread/bound? 'alpha)
     (applytest "here" thread/get 'alpha)
+    (evaltest 'void (thread/add! 'options "green"))
+    (evaltest 'void (thread/add! 'options "blue"))
+    (applytest {"blue" "green"} thread/get 'options)
     (errtest (thread/cache 33))
     (errtest (thread/cache 33 39))
     (thread/reset-vars!)))
@@ -270,7 +277,7 @@
 (errtest (sset! foo))
 (errtest (sset! sset-value (+ 3 "four")))
 
-(errtest (let ((x 3)) (sset! y (+ y 3))))
+(errtest (let ((x 3)) (sset! zyyy 9)))
 
 ;;; Actual tests
 

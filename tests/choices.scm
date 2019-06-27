@@ -174,6 +174,33 @@
 (applytester {10.5 11 12} pick> (choice 5 6.3 7 10.5 11 12) 9)
 
 (applytester @1/0 pickoids (choice "foo" 8 @1/0))
+(applytester {@1/0 @1/88} pickoids (choice "foo" 8 @1/0 @1/88))
+(applytester {@1/0 @1/88} pickoids (choice @1/0 @1/88))
+
+(applytester '{foo bar} picksyms (choice 'bar "foo" 8 'foo))
+(applytester '{foo bar} picksyms (choice 'bar (fail) 'foo))
+
+(applytester '{"foo" "baz"} pickstrings (choice 'bar "foo" 8 'foo "baz"))
+(applytester '{"foo" "baz"} pickstrings (choice "foo" (fail) "baz"))
+(applytester '{foo bar} picksyms (choice 'bar (fail) 'foo))
+
+(applytester #(a "b") pickvecs (choice #(a "b") 'foo "foo" 8))
+(applytester {#(a "b") #("c" d)} pickvecs (choice #(a "b") 'foo "foo" #("c" d) 8))
+(applytester {#(a "b") #("c" d)} pickvecs (choice #(a "b") (fail) #("c" d) (fail)))
+
+(applytester '(a . "b") pickpairs (choice '(a . "b") 'foo "foo" 8))
+(applytester {'(a . "b") '("c" . d)} pickpairs (choice '(a . "b") 'foo "foo" '("c" . d) 8))
+(applytester {'(a . "b") '("c" . d)} pickpairs (choice '(a . "b") (fail) '("c" . d) (fail)))
+
+(applytester 8 picknums (choice "foo" 8 @1/0))
+(applytester {8 1.5 1/2} picknums (choice "foo" 8 @1/0 1.5 1/2))
+(applytester {8 1.5 1/2} picknums (choice (fail) 8 (fail) 1.5 1/2))
+
+(define z1 #[b "b"])
+(applytester z1 pickmaps (choice #(a "b") z1 'foo "foo" 8))
+(applytester {z1 #[a "a"]} pickmaps (choice #(a "b") z1 'foo "foo" #("c" d) #[a "a"] 8))
+
+
 
 ;;; Reduce-choice tests
 
@@ -209,9 +236,9 @@
   (cons (qc x) (qc y)))
 (evaltester '(3 . 4) (makepair 3 4))
 (evaltester '{} (makepair 3 {}))
-(evaltester '(3 . {}) (makepair 3 #{}))
+(evaltester '(3 . {}) (makepair 3 '#{}))
 
-;;; Set operations
+;;; Set . operations
 
 (define-tester (set-same? x y) (identical? (elts x) (elts y)))
 (define-tester (set-overlaps? x y) (overlaps? (elts x) (elts y)))
@@ -243,6 +270,7 @@
 (applytester #() choice->vector {})
 (applytester #("a" "b") choice->vector {"a" "b"})
 (applytester #("a") choice->vector "a")
+(applytest #("one" "eight" "eleven") choice->vector {"one" "eleven" "eight"} length)
 
 (applytester {} pick-one {})
 
@@ -252,12 +280,19 @@
 (evaltester {} (try-choices (e {} i) (tryif (odd? e) e)))
 (evaltester {} (try-choices (e {4 6 8 9} i) (if (> e 5) (break) (if (odd? e) e (fail)))))
 
-(errtest (trychoices))
-(errtest (trychoices (e)))
-(errtest (trychoices (e {4 6 8 9}) . noexprs))
-(errtest (trychoices (e {9 nosuchvalue}) e))
+(errtest (try-choices))
+(errtest (try-choices (e)))
+(errtest (try-choices (e {4 6 8 9}) . noexprs))
+(errtest (try-choices (e {9 nosuchvalue}) e))
+(errtest (try-choices (e {4 6 8 9} i) (tryif (odd? e) (string->symbol e))))
 
 (evaltester {101 102 103} (for-choices (e {1 2 3} i) (+ e 100)))
+
+(evaltester {"foobar" "zbar" "dbar"}
+	    (let ((string {"foo" "z" "d"}))
+	      (for-choices string (glom string "bar"))))
+(errtest (let ((string {"foo" "z" "d"}))
+	   (for-choices xyzzys (glom string "bar"))))
 
 (errtest (do-choices (e {1 2 3} i) (+ e "delta")))
 (errtest (do-choices (e {1 2 3}) . err))
@@ -270,6 +305,25 @@
 (errtest (do-choices (e {3 unbound}) . err))
 (errtest (do-choices (e)))
 (errtest (do-choices))
+(errtest (do-choices ("e" {1 2 3}) . err))
+(errtest (do-choices (e {1 2 3} "i" ) . err))
+(errtest (do-choices (e (+ 2 "three") ) e))
+
+(errtest (for-choices (e {1 2 3}) . err))
+(errtest (for-choices (e {3 unbound}) . err))
+(errtest (for-choices (e {3 unbound}) e))
+(errtest (for-choices (e {3 5}) . err))
+(errtest (for-choices (e)))
+(errtest (for-choices))
+
+(errtest (filter-choices (e {1 2 3}) (string->symbol e)))
+(errtest (filter-choices (e {1 2 3}) . err))
+(errtest (filter-choices (e {3 unbound}) . err))
+(errtest (filter-choices (e {3 unbound}) e))
+(errtest (filter-choices (e {3 5}) . err))
+(errtest (filter-choices (e)))
+(errtest (filter-choices))
+
 
 (evaltester 2 (filter-choices (e {1 2 3} i) (even? e)))
 (evaltester {1 3} (filter-choices (e {1 2 3} i) (odd? e)))
@@ -278,6 +332,81 @@
 
 (evaltester {4 6} (for-choices (e {4 6 8 9} i) (if (> e 6) (break) e)))
 (errtest (for-choices (e {4 6 'eight 9} i) (+ e 1)))
+
+;;; Choice refs
+
+(applytest 2 %choiceref {0 1 2 3 4} 2)
+(errtest (%choiceref {} 5))
+(errtest (%choiceref {0 1 2 3 4} "two"))
+(errtest (%choiceref {0 1 2 3 4} 11))
+
+;;; Smallest and largest
+
+(applytest "eleven" largest {"one" "two" "eleven" "eight"} length)
+(applytest {"one" "two"} smallest {"one" "two" "eleven" "eight"} length)
+
+(applytest {"thirteen" "fourteen"} 
+	   largest {"one" "two" "eleven" "eight" "thirteen" "fourteen"} 
+	   length)
+(define (bad-magnitude string)
+  (elt (length string) 3))
+
+(errtest (largest {"one" "two" "eleven" "eight" "thirteen" "fourteen"} 
+		  bad-magnitude))
+(errtest (smallest {"one" "two" "eleven" "eight" "thirteen" "fourteen"} 
+		   bad-magnitude))
+
+;;; QChoices
+
+(evaltest #t (eval `(qchoice? #{a b c})))
+(evaltest #{} (qchoice (fail) (fail) (fail)))
+(evaltest {} (qchoicex (fail) (fail) (fail)))
+
+;;; IFEXISTS
+
+(evaltest 3 (ifexists 3))
+(evaltest {3 4} (ifexists (choice 3 4)))
+(evaltest 'void (ifexists (fail)))
+(errtest (ifexists))
+(errtest (ifexists (* 3 "four")))
+
+(evaltest 3 (whenexists 3))
+(evaltest {3 4} (whenexists (choice 3 4)))
+(evaltest 'void (whenexists (fail)))
+(errtest (whenexists))
+(evaltest 'void (whenexists (* 3 "four")))
+
+(applytest #t exists even? {3 4 5})
+(applytest #f exists odd? {2 4 6})
+(applytest #f exists odd? {2 4 6})
+
+(applytest #t exists empty-string? {3 "four" " "})
+(applytest #f exists empty-string? {3 "four" "five"})
+
+(errtest (exists if {3 "four" "five"}))
+(errtest (exists 3 {3 "four" "five"}))
+
+(applytest #t exists > {3 4 5} 4)
+(applytest #f exists > {3 4 5} 7)
+(errtest (exists > {3 4 5} (2+ 3)))
+
+(applytest #t exists string>=? {"zebra" "apple" "bee"} "mandolin")
+(applytest #f exists string>=? {"fish" "apple" "bee"} "mandolin")
+(applytest #f exists > {3 4 5} 7)
+
+;;; Other stuff
+
+(applytest {0 1 2 3 4} getrange 0 5)
+(applytest {0 1 2 3 4} getrange 5 0)
+(applytest {-5 -4 -3 -2 -1} getrange -5 0)
+
+;;; Select
+
+(applytest {115 116 117 118 119} pick-max (getrange 0 120) 5)
+(applytest {0 1 2 3 4} pick-min (getrange 0 120) 5)
+
+(applytest #(119 118  117 116 115) max/sorted (getrange 0 120) 5)
+(applytest #(0 1 2 3 4) min/sorted (getrange 0 120) 5)
 
 ;;; Bigger sets
 
