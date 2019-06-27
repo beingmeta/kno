@@ -401,35 +401,6 @@ static lispval fcnidp(lispval x)
   else return KNO_FALSE;
 }
 
-static lispval opcodep(lispval x)
-{
-  if (KNO_OPCODEP(x))
-    return KNO_TRUE;
-  else return KNO_FALSE;
-}
-
-static lispval make_opcode(lispval x)
-{
-  if ( (KNO_UINTP(x)) && ((KNO_FIX2INT(x)) < KNO_IMMEDIATE_MAX) )
-    return KNO_OPCODE(FIX2INT(x));
-  else return kno_err(kno_RangeError,"make_opcode",NULL,x);
-}
-
-static lispval coderefp(lispval x)
-{
-  if (KNO_CODEREFP(x))
-    return KNO_TRUE;
-  else return KNO_FALSE;
-}
-
-static lispval make_coderef(lispval x)
-{
-  if ( (KNO_UINTP(x)) && ((KNO_FIX2INT(x)) < KNO_IMMEDIATE_MAX) ) {
-    int off = FIX2INT(x);
-    return KNO_ENCODEREF(off);}
-  else return kno_err(kno_RangeError,"make_coderef",NULL,x);
-}
-
 static lispval booleanp(lispval x)
 {
   if ((KNO_TRUEP(x)) || (FALSEP(x)))
@@ -652,8 +623,6 @@ KNO_EXPORT void kno_init_coreprims_c()
   kno_idefn(kno_scheme_module,kno_make_cprim1("PROPER-LIST?",proper_listp,1));
   kno_idefn(kno_scheme_module,kno_make_cprim1("VECTOR?",vectorp,1));
   kno_idefn(kno_scheme_module,kno_make_cprim1("CHARACTER?",characterp,1));
-  kno_idefn(kno_scheme_module,kno_make_cprim1("OPCODE?",opcodep,1));
-  kno_idefn(kno_scheme_module,kno_make_cprim1("CODEREF?",coderefp,1));
   kno_idefn(kno_scheme_module,kno_make_cprim1("EXCEPTION?",exceptionp,1));
   kno_defalias(kno_scheme_module,"ERROR?","EXCEPTION?");
   kno_idefn(kno_scheme_module,kno_make_cprim1("APPLICABLE?",applicablep,1));
@@ -671,13 +640,6 @@ KNO_EXPORT void kno_init_coreprims_c()
   kno_idefn(kno_scheme_module,kno_make_cprim1("CONS?",consp,1));
   kno_idefn(kno_scheme_module,kno_make_cprim1("CONSED?",consp,1));
   kno_idefn(kno_scheme_module,kno_make_cprim1("TYPEOF",typeof_prim,1));
-
-  kno_idefn(kno_scheme_module,
-           kno_make_cprim1x("MAKE-OPCODE",make_opcode,1,
-                           kno_fixnum_type,VOID));
-  kno_idefn1(kno_scheme_module,"MAKE-CODEREF",make_coderef,1,
-            "(MAKE-CODEREF <fixnum>)\nReturns a coderef object",
-            kno_fixnum_type,KNO_VOID);
 
   kno_idefn(kno_scheme_module,kno_make_cprim1("PROCEDURE-NAME",procedure_name,1));
 

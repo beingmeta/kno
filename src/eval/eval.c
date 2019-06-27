@@ -199,10 +199,25 @@ static ssize_t write_coderef_dtype(struct KNO_OUTBUF *out,lispval x)
   return n_bytes;
 }
 
+static lispval make_coderef(lispval x)
+{
+  if ( (KNO_UINTP(x)) && ((KNO_FIX2INT(x)) < KNO_IMMEDIATE_MAX) ) {
+    int off = FIX2INT(x);
+    return KNO_ENCODEREF(off);}
+  else return kno_err(kno_RangeError,"make_coderef",NULL,x);
+}
+
 /* Opcodes */
 
 u8_string kno_opcode_names[0x800]={NULL};
 int kno_opcodes_length = 0x800;
+
+static lispval opcodep(lispval x)
+{
+  if (KNO_OPCODEP(x))
+    return KNO_TRUE;
+  else return KNO_FALSE;
+}
 
 static void set_opcode_name(lispval opcode,u8_string name)
 {
@@ -230,6 +245,13 @@ static lispval name2opcode_prim(lispval arg)
   else if (STRINGP(arg))
     return kno_get_opcode(CSTRING(arg));
   else return kno_type_error(_("opcode name"),"name2opcode_prim",arg);
+}
+
+static lispval make_opcode(lispval x)
+{
+  if ( (KNO_UINTP(x)) && ((KNO_FIX2INT(x)) < KNO_IMMEDIATE_MAX) )
+    return KNO_OPCODE(FIX2INT(x));
+  else return kno_err(kno_RangeError,"make_opcode",NULL,x);
 }
 
 static int unparse_opcode(u8_output out,lispval opcode)
@@ -1060,7 +1082,7 @@ static lispval unboundp_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval symbol = kno_get_arg(expr,1);
   if (!(SYMBOLP(symbol)))
-    return kno_err(kno_SyntaxError,"boundp_evalfn",NULL,kno_incref(expr));
+    return kno_err(kno_SyntaxError,"unboundp_evalfn",NULL,kno_incref(expr));
   else {
     lispval val = kno_symeval(symbol,env);
     if (KNO_ABORTED(val))
@@ -1954,6 +1976,9 @@ static void init_localfns()
   kno_idefn1(kno_scheme_module,"CODEREF?",coderefp_prim,1,
              "(CODEREF? *nelts*) returns #t if *arg* is a coderef",
              -1,VOID);
+  kno_idefn1(kno_scheme_module,"MAKE-CODEREF",make_coderef,1,
+            "(MAKE-CODEREF <fixnum>)\nReturns a coderef object",
+            kno_fixnum_type,KNO_VOID);
 
   kno_idefn(kno_scheme_module,kno_make_cprim1("NAME->OPCODE",name2opcode_prim,1));
   kno_idefn(kno_scheme_module,kno_make_cprim1("NAME->OPCODE",name2opcode_prim,1));
@@ -1962,6 +1987,10 @@ static void init_localfns()
              "or #f it's valid but anonymous, and errors if it is "
              "not an opcode or invalid",
              kno_opcode_type,VOID);
+  kno_idefn(kno_scheme_module,
+           kno_make_cprim1x("MAKE-OPCODE",make_opcode,1,
+                           kno_fixnum_type,VOID));
+  kno_idefn(kno_scheme_module,kno_make_cprim1("OPCODE?",opcodep,1));
 
   kno_idefn(kno_scheme_module,
             kno_make_ndprim(kno_make_cprim2("%CHOICEREF",choiceref_prim,2)));
