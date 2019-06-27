@@ -499,7 +499,8 @@ SCHEME_MODULES=src/stdlib/*.scm \
 	src/stdlib/dropbox/*.scm src/stdlib/twilio/*.scm \
 	src/stdlib/misc/*.scm src/stdlib/tests/*.scm \
 	src/stdlib/domutils/*.scm src/stdlib/knodules/*.scm \
-	src/stdlib/textindex/*.scm src/stdlib/jwt/*.scm
+	src/stdlib/textindex/*.scm src/stdlib/jwt/*.scm \
+	src/stdlib/bench/*.scm
 
 # These might be neccessary on MacOS
 CMODULE_DEPENDS=lib/libknocore@suffix@.@shared_suffix@	\
@@ -1598,7 +1599,7 @@ $(DESTDIR)@unpackage_dir@:
 upstartdirs: $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets
 
 EXT_MODULE_DIRS=xhtml domutils textindex morph misc tests knodules knoml \
-		jwt aws facebook paypal twitter twilio dropbox google
+		jwt aws facebook paypal twitter twilio dropbox google bench
 
 EXT_MODULE_DATA=textindex/data knodules/data aws/templates morph/data
 
