@@ -735,6 +735,7 @@ KNO_EXPORT lispval kno_index_keys(kno_index ix)
   if (ix->index_handler->fetchkeys) {
     int n_fetched = 0; init_cache_level(ix);
     lispval *fetched = ix->index_handler->fetchkeys(ix,&n_fetched);
+    if (n_fetched < 0) return KNO_ERROR;
     int n_replaced = ix->index_stores.table_n_keys;
     int n_added = ix->index_adds.table_n_keys;
     if (n_fetched == 0) {
