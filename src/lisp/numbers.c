@@ -2604,7 +2604,10 @@ int kno_numcompare(lispval x,lispval y)
     return KNO_ERR(17,kno_TypeError,"compare","object is not a number",y);
   else if ((COMPLEXP(x)) || (COMPLEXP(x))) {
     double magx = todouble(x), magy = todouble(y);
-    return signum(magx-magy);}
+    double diff = magx-magy;
+    if (diff == 0) return 0;
+    else if (diff>0) return 1;
+    else return-1;}
   else {
     lispval difference = kno_subtract(x,y);
     int sgn = signum(difference);
