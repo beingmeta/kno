@@ -237,7 +237,7 @@ static lispval minus1(lispval x)
     kno_double iv = KNO_FLONUM(x); iv = iv-1;
     return kno_make_flonum(iv);}
   else {
-    lispval args[2]; args[0]=x; args[1]=KNO_INT(-1);
+    lispval args[2] = { x, KNO_INT(-1) };
     return plus_lexpr(2,args);}
 }
 
