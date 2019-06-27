@@ -103,12 +103,13 @@ tidy testclean cleantests cleantest:
 # Test targets
 
 all_tests alltests: tidy
-	make libtests
+	make libtests cmodules tables dbs framedbs
 	make optimize_modules
 	make cmdtests
 	@${header} "■■■■■■■■ Done with alltests"
 
-libtests: scheme optscheme cmodules slotmaps tables pools indexes framedbs
+libtests: scheme optscheme slotmaps
+dbs: pools indexes
 cmdtests:
 	@echo "# ■■■■■■■■ Running command line tests ${RUNCONF}"
 	@echo "# ■■■ Various stderr log messages or termination warnings are normal"
