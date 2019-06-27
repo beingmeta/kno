@@ -79,7 +79,8 @@
     (message "TEST-SPAWN: " numbers)))
 
 (define-tester (look-busy n (start (elapsed-time)))
-  (dotimes (i (* n 200))
+  (sleep 1)
+  (dotimes (i (* n 500))
     (when (zero? (random 5)) (thread/yield)))
   (elapsed-time start))
 
@@ -110,13 +111,13 @@
     (message "TEST-THREAD/CALL: " numbers)))
 
 (define-tester (test-threadids)
-  (let ((sleep1 (thread/call look-busy 1))
-	(sleep2 (thread/call look-busy 1)))
+  (let ((busy1 (thread/call look-busy 3))
+	(busy2 (thread/call look-busy 3)))
     (look-busy 2)
-    (applytest sleep2 find-thread (thread-id sleep2))
-    (applytest #t inexact? (thread/finish sleep1))
-    (thread/wait! sleep2)
-    (applytest #t inexact? (thread/result sleep2))))
+    (applytest busy1 find-thread (thread-id busy1))
+    (applytest #t inexact? (thread/finish busy2))
+    (thread/wait! busy2)
+    (applytest #t inexact? (thread/result busy2))))
 
 ;;;; Lock testing
 
