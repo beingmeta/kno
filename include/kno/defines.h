@@ -60,6 +60,11 @@
 #define KNO_USE_DTBLOCK 0
 #endif
 
+/* Whether to enable using paths rather than symbols for module specs */
+#ifndef KNO_PATHMODS_ENABLED
+#define KNO_PATHMODS_ENABLED 0
+#endif
+
 #define KNO_WRITETHROUGH_THREADCACHE 1
 
 #ifndef NO_ELSE

@@ -47,6 +47,9 @@
 /* Define if profiling is enabled.  */
 #undef KNO_PROFILING_ENABLED
 
+/* Define to have frame operations prefetch when possible */
+#undef KNO_PATHMODS_ENABLED
+
 /* Define if you have the <pthread.h> header file.  */
 #undef HAVE_PTHREAD_H
 
