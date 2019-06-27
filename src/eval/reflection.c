@@ -39,14 +39,6 @@ static lispval lambdap(lispval x)
   else return KNO_FALSE;
 }
 
-static lispval applicablep(lispval x)
-{
-  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
-  if (KNO_APPLICABLEP(x))
-    return KNO_TRUE;
-  else return KNO_FALSE;
-}
-
 static lispval evalfnp(lispval x)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
@@ -335,7 +327,7 @@ static lispval reflect_store(lispval x,lispval attrib,lispval value)
     int rv = kno_store(attribs,attrib,value);
     if (rv<0) return KNO_ERROR;
     else if (rv==0) return KNO_FALSE;
-    else return KNO_INT(rv);}
+    else return KNO_TRUE;}
   else return KNO_ERROR;
 }
 
@@ -348,7 +340,7 @@ static lispval reflect_add(lispval x,lispval attrib,lispval value)
     int rv = kno_add(attribs,attrib,value);
     if (rv<0) return KNO_ERROR;
     else if (rv==0) return KNO_FALSE;
-    else return KNO_INT(rv);}
+    else return KNO_TRUE;}
   else return KNO_ERROR;
 }
 
@@ -985,10 +977,6 @@ KNO_EXPORT void kno_init_reflection_c()
 
   kno_idefn1(module,"MACRO?",macrop,1,
             "Returns true if its argument is an evaluator macro",
-            -1,VOID);
-  kno_idefn1(module,"APPLICABLE?",applicablep,1,
-            "Returns true if its argument is applicable "
-            "(can be passed to apply, used as a function, etc",
             -1,VOID);
 
   kno_idefn1(module,"COMPOUND-PROCEDURE?",lambdap,1,
