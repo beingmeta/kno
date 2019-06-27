@@ -487,8 +487,7 @@ static lispval set_lambda_source(lispval arg,lispval new_source)
     proc->lambda_source = kno_incref(new_source);
     kno_decref(source);
     return VOID;}
-  else return kno_type_error
-         ("lambda","set_lambda_source",x);
+  else return kno_type_error("lambda","set_lambda_source",x);
 }
 
 static lispval set_lambda_optimizer(lispval arg,lispval optimizer)
