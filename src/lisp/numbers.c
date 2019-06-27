@@ -1971,7 +1971,7 @@ static int hash_flonum(lispval x,unsigned int (*fn)(lispval))
   return asint%256001281;
 }
 
-/* Utility fucntions and macros. */
+/* Utility functions and macros. */
 
 
 #define COMPLEXP(x) (TYPEP((x),kno_complex_type))
@@ -2024,9 +2024,11 @@ static lispval simplify_bigint(kno_bigint bi)
 {
   if (kno_bigint_fits_in_word_p(bi,KNO_FIXNUM_BITS,1)) {
     long long intval = kno_bigint_to_long(bi);
-    kno_decref((lispval)bi);
+    u8_free(bi);
     return KNO_INT(intval);}
-  else return (lispval)bi;
+  else {
+    KNO_INIT_CONS(bi,kno_bigint_type);
+    return (lispval)bi;}
 }
 
 /* Making complex and rational numbers */
@@ -2065,12 +2067,23 @@ lispval kno_make_complex(lispval real,lispval imag)
   return make_complex(real,imag);
 }
 
+static int hash_complex(lispval x,unsigned int (*fn)(lispval))
+{
+  struct KNO_COMPLEX *r = kno_consptr(kno_complex,x,kno_complex_type);
+  unsigned int rhash = fn(r->realpart);
+  unsigned int ihash = fn(r->imagpart);
+  return hash_combine(rhash,ihash);
+}
+
+/* Rational numbers */
+
 static long long fix_gcd (long long x, long long y);
 static lispval int_gcd(lispval x,lispval y);
 static lispval int_lcm (lispval x, lispval y);
 
-static lispval make_rational(lispval num,lispval denom)
+static lispval make_rational(lispval num_arg,lispval denom_arg)
 {
+  lispval num = num_arg, denom = denom_arg;
   struct KNO_RATIONAL *result;
   if ((FIXNUMP(denom)) && ((FIX2INT(denom))==0))
     return kno_err(kno_DivideByZero,"make_rational",NULL,num);
@@ -2095,6 +2108,8 @@ static lispval make_rational(lispval num,lispval denom)
   KNO_INIT_CONS(result,kno_rational_type);
   result->numerator = num;
   result->denominator = denom;
+  if (num != num_arg) kno_decref(num_arg);
+  if (denom != denom_arg) kno_decref(denom_arg);
   return (lispval) result;
 }
 
@@ -2109,6 +2124,14 @@ lispval kno_make_rational(lispval num,lispval denom)
 {
   kno_incref(num); kno_incref(denom);
   return make_rational(num,denom);
+}
+
+static int hash_rational(lispval x,unsigned int (*fn)(lispval))
+{
+  struct KNO_RATIONAL *r = kno_consptr(struct KNO_RATIONAL *,x,kno_rational_type);
+  unsigned int nhash = fn(r->numerator);
+  unsigned int dhash = fn(r->denominator);
+  return hash_combine(nhash,dhash);
 }
 
 static long long fix_gcd (long long x, long long y)
@@ -2290,8 +2313,8 @@ lispval kno_plus(lispval x,lispval y)
     else {
       kno_bigint bx = tobigint(x), by = tobigint(y);
       kno_bigint result = kno_bigint_add(bx,by);
-      if (!(KNO_BIGINTP(x))) kno_decref((lispval)bx);
-      if (!(KNO_BIGINTP(y))) kno_decref((lispval)by);
+      if (x != (lispval)bx) u8_free(bx);
+      if (y != (lispval)by) u8_free(by);
       return simplify_bigint(result);}}
 }
 
@@ -2311,7 +2334,8 @@ lispval kno_multiply(lispval x,lispval y)
          switch to bigints */
       kno_bigint bx = tobigint(x), by = tobigint(y);
       kno_bigint bresult = kno_bigint_multiply(bx,by);
-      kno_decref((lispval)bx); kno_decref((lispval)by);
+      if (x != (lispval)bx) u8_free(bx);
+      if (y != (lispval)by) u8_free(by);
       return simplify_bigint(bresult);}
     else result = ix*iy;
     if ((result<KNO_MAX_FIXNUM) && (result>KNO_MIN_FIXNUM))
@@ -2364,8 +2388,8 @@ lispval kno_multiply(lispval x,lispval y)
     else {
       kno_bigint bx = tobigint(x), by = tobigint(y);
       kno_bigint result = kno_bigint_multiply(bx,by);
-      if (!(KNO_BIGINTP(x))) kno_decref((lispval)bx);
-      if (!(KNO_BIGINTP(y))) kno_decref((lispval)by);
+      if (x != (lispval)bx) u8_free(bx);
+      if (y != (lispval)by) u8_free(by);
       return simplify_bigint(result);}}
 }
 
@@ -2415,8 +2439,8 @@ lispval kno_subtract(lispval x,lispval y)
   else {
     kno_bigint bx = tobigint(x), by = tobigint(y);
     kno_bigint result = kno_bigint_subtract(bx,by);
-    if (!(KNO_BIGINTP(x))) kno_decref((lispval)bx);
-    if (!(KNO_BIGINTP(y))) kno_decref((lispval)by);
+    if (x != (lispval)bx) u8_free(bx);
+    if (y != (lispval)by) u8_free(by);
     return simplify_bigint(result);}
 }
 
@@ -2501,8 +2525,8 @@ lispval kno_quotient(lispval x,lispval y)
   else if ((INTEGERP(x)) && (INTEGERP(y))) {
     kno_bigint bx = tobigint(x), by = tobigint(y);
     kno_bigint result = kno_bigint_quotient(bx,by);
-    if (!(KNO_BIGINTP(x))) kno_decref((lispval)bx);
-    if (!(KNO_BIGINTP(y))) kno_decref((lispval)by);
+    if (x != (lispval)bx) u8_free(bx);
+    if (y != (lispval)by) u8_free(by);
     return simplify_bigint(result);}
   else if (INTEGERP(x))
     return kno_type_error(_("integer"),"kno_quotient",y);
@@ -2519,8 +2543,8 @@ lispval kno_remainder(lispval x,lispval y)
   else if ((INTEGERP(x)) && (INTEGERP(y))) {
     kno_bigint bx = tobigint(x), by = tobigint(y);
     kno_bigint result = kno_bigint_remainder(bx,by);
-    if (!(KNO_BIGINTP(x))) kno_decref((lispval)bx);
-    if (!(KNO_BIGINTP(y))) kno_decref((lispval)by);
+    if (x != (lispval)bx) u8_free(bx);
+    if (y != (lispval)by) u8_free(by);
     return simplify_bigint(result);}
   else if (INTEGERP(x))
     return kno_type_error(_("integer"),"kno_remainder",y);
@@ -3487,10 +3511,8 @@ static lispval unpack_bigint(ssize_t n,unsigned char *packet)
   kno_bigint bi = kno_digit_stream_to_bigint
     (n_digits,(bigint_producer)read_bigint_byte,(void *)&scan,256,packet[0]);
   u8_free(packet);
-  if (bi) {
-    if (n_digits>8)
-      return (lispval)bi;
-    else return simplify_bigint(bi);}
+  if (bi)
+    return simplify_bigint(bi);
   else return VOID;
 }
 
@@ -3730,6 +3752,8 @@ void kno_init_numbers_c()
   kno_hashfns[kno_bigint_type]=hash_bigint;
   kno_hashfns[kno_flonum_type]=hash_flonum;
   kno_hashfns[kno_numeric_vector_type]=hash_numeric_vector;
+  kno_hashfns[kno_rational_type]=hash_rational;
+  kno_hashfns[kno_complex_type]=hash_complex;
 
   kno_dtype_writers[kno_bigint_type]=write_bigint_dtype;
   kno_dtype_writers[kno_flonum_type]=write_flonum_dtype;
