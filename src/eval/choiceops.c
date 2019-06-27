@@ -41,7 +41,7 @@ static lispval parse_control_spec
   else {
     lispval var = kno_get_arg(control_expr,0), ivar = kno_get_arg(control_expr,2);
     lispval val_expr = kno_get_arg(control_expr,1), val;
-    if (VOIDP(control_expr))
+    if (VOIDP(var))
       return kno_err(kno_TooFewExpressions,NULL,NULL,expr);
     else if (VOIDP(val_expr))
       return kno_err(kno_TooFewExpressions,NULL,NULL,control_expr);
@@ -394,7 +394,10 @@ static lispval largest_evalfn(lispval elts,lispval magnitude)
   lispval top = EMPTY, top_score = VOID;
   DO_CHOICES(elt,elts) {
     lispval score = getmagnitude(elt,magnitude);
-    if (KNO_ABORTED(score)) return score;
+    if (KNO_ABORTED(score)) {
+      kno_decref(top);
+      kno_decref(top_score);
+      return score;}
     else if (VOIDP(top_score))
       if (EMPTYP(score)) {}
       else {
@@ -677,8 +680,11 @@ static lispval whenexists_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   if (VOIDP(to_eval))
     return kno_err(kno_SyntaxError,"whenexists_evalfn",NULL,expr);
   else value = kno_eval(to_eval,env);
-  if (KNO_ABORTED(value)) return VOID;
-  else if (EMPTYP(value)) return VOID;
+  if (KNO_ABORTED(value)) {
+    kno_clear_errors(0);
+    return VOID;}
+  else if (EMPTYP(value))
+    return VOID;
   else return value;
 }
 
@@ -756,6 +762,7 @@ static lispval difference_lexpr(int n,lispval *args)
 
 /* Prechoice elements */
 
+#if 0
 static lispval choicevec_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval sub_expr = kno_get_arg(expr,1);
@@ -798,6 +805,7 @@ static lispval choicevec_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       lispval data[1]={result};
       return kno_make_vector(1,data);}}
 }
+#endif
 
 /* Conversion functions */
 
@@ -1485,7 +1493,7 @@ KNO_EXPORT void kno_init_choicefns_c()
   kno_def_evalfn(kno_scheme_module,"FILTER-CHOICES","",filterchoices_evalfn);
   kno_defalias(kno_scheme_module,"?∀","FILTER-CHOICES");
 
-  kno_def_evalfn(kno_scheme_module,"CHOICEVEC","",choicevec_evalfn);
+  /* kno_def_evalfn(kno_scheme_module,"CHOICEVEC","",choicevec_evalfn); */
 
   kno_def_evalfn(kno_scheme_module,"DO-SUBSETS","",dosubsets_evalfn);
 
