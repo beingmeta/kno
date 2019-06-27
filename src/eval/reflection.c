@@ -183,15 +183,17 @@ static lispval set_procedure_documentation(lispval x,lispval doc)
   kno_ptr_type proctype = KNO_PTR_TYPE(proc);
   if (kno_functionp[proctype]) {
     struct KNO_FUNCTION *f = KNO_DTYPE2FCN(x);
-    if ( (f->fcn_doc) && (f->fcn_free_doc) )
-      u8_free(f->fcn_doc);
+    u8_string to_free = ( (f->fcn_doc) && (f->fcn_free_doc) ) ?
+      (f->fcn_doc) : (NULL);
     f->fcn_doc = u8_strdup(CSTRING(doc));
     f->fcn_free_doc = 1;
+    if (to_free) u8_free(to_free);
     return VOID;}
   else if (TYPEP(proc,kno_evalfn_type)) {
     struct KNO_EVALFN *sf = GETEVALFN(proc);
-    if (sf->evalfn_documentation) u8_free(sf->evalfn_documentation);
+    u8_string prev = sf->evalfn_documentation;
     sf->evalfn_documentation = u8_strdup(CSTRING(doc));
+    if (prev) u8_free(sf->evalfn_documentation);
     return VOID;}
   else return kno_err("Not Handled","set_procedure_documentation",NULL,x);
 }
@@ -325,9 +327,9 @@ static lispval reflect_store(lispval x,lispval attrib,lispval value)
     return attribs;
   else if (TABLEP(attribs)) {
     int rv = kno_store(attribs,attrib,value);
-    if (rv<0) return KNO_ERROR;
-    else if (rv==0) return KNO_FALSE;
-    else return KNO_TRUE;}
+    if (rv<0)
+      return KNO_ERROR;
+    else return KNO_VOID;}
   else return KNO_ERROR;
 }
 
@@ -338,9 +340,9 @@ static lispval reflect_add(lispval x,lispval attrib,lispval value)
     return attribs;
   else if (TABLEP(attribs)) {
     int rv = kno_add(attribs,attrib,value);
-    if (rv<0) return KNO_ERROR;
-    else if (rv==0) return KNO_FALSE;
-    else return KNO_TRUE;}
+    if (rv<0)
+      return KNO_ERROR;
+    else return KNO_VOID;}
   else return KNO_ERROR;
 }
 
@@ -351,9 +353,9 @@ static lispval reflect_drop(lispval x,lispval attrib,lispval value)
     return attribs;
   else if (TABLEP(attribs)) {
     int rv = kno_drop(attribs,attrib,value);
-    if (rv<0) return KNO_ERROR;
-    else if (rv==0) return KNO_FALSE;
-    else return KNO_INT(rv);}
+    if (rv<0)
+      return KNO_ERROR;
+    else return KNO_VOID;}
   else return KNO_ERROR;
 }
 
