@@ -296,7 +296,7 @@
     ;; (dtype->file listval "listval.dtype")
     ;; (dtype->file (get frame 'contents-as-list) "cal.dtype")
     (logwarn |Watch|
-      "listval=" ($histref listval) ", contents=" ($histref (get frame 'contents-as-list)))
+      "listval=" ($histval listval) ", contents=" ($histval (get frame 'contents-as-list)))
     (evaltest #t (equal? listval (get frame 'contents-as-list)))
     (applytest #t test frame 'contents-as-list listval)
     (applytest listval get frame 'contents-as-list)
