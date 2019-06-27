@@ -513,6 +513,9 @@ KNO_EXPORT lispval copy_lambda(lispval c,int flags)
     if (lambda->fcn_typeinfo)
       fresh->fcn_typeinfo = copy_intvec(lambda->fcn_typeinfo,arity,NULL);
 
+    if (lambda->lambda_env)
+      fresh->lambda_env = kno_copy_env(lambda->lambda_env);
+
     fresh->fcn_attribs = VOID;
     fresh->lambda_arglist = kno_copier(lambda->lambda_arglist,flags);
     fresh->lambda_body = kno_copier(lambda->lambda_body,flags);
@@ -524,7 +527,7 @@ KNO_EXPORT lispval copy_lambda(lispval c,int flags)
     if (lambda->fcn_defaults)
       fresh->fcn_defaults = kno_copy_vec(lambda->fcn_defaults,arity,NULL,flags);
     if (lambda->lambda_inits) {
-      fresh->lambda_inits = kno_copy_vec(lambda->lambda_inits,arity,NULL,flags);}
+      fresh->lambda_inits = kno_copy_vec(lambda->lambda_inits,n_vars,NULL,flags);}
 
     fresh->lambda_start = fresh->lambda_body;
     fresh->lambda_consblock = NULL;
@@ -574,10 +577,17 @@ static lispval nlambda_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   if ((VOIDP(name_expr))||(VOIDP(arglist)))
     return kno_err(kno_TooFewExpressions,"NLAMBDA",NULL,expr);
   else name = kno_eval(name_expr,env);
-  if (SYMBOLP(name)) namestring = SYM_NAME(name);
-  else if (STRINGP(name)) namestring = CSTRING(name);
-  else return kno_type_error("procedure name (string or symbol)",
-                            "nlambda_evalfn",name);
+  if (KNO_ABORTED(name))
+    return name;
+  else if (SYMBOLP(name))
+    namestring = SYM_NAME(name);
+  else if (STRINGP(name))
+    namestring = CSTRING(name);
+  else {
+    lispval err = kno_type_error("procedure name (string or symbol)",
+                                 "nlambda_evalfn",name);
+    kno_decref(name);
+    return err;}
   proc=make_lambda(namestring,arglist,body,env,1,0,0);
   KNO_SET_LAMBDA_SOURCE(proc,expr);
   return proc;

@@ -1064,7 +1064,7 @@ static lispval boundp_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval symbol = kno_get_arg(expr,1);
   if (!(SYMBOLP(symbol)))
-    return kno_err(kno_SyntaxError,"boundp_evalfn",NULL,kno_incref(expr));
+    return kno_err(kno_SyntaxError,"boundp_evalfn",NULL,expr);
   else {
     lispval val = kno_symeval(symbol,env);
     if (KNO_ABORTED(val))
@@ -1082,7 +1082,7 @@ static lispval unboundp_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval symbol = kno_get_arg(expr,1);
   if (!(SYMBOLP(symbol)))
-    return kno_err(kno_SyntaxError,"unboundp_evalfn",NULL,kno_incref(expr));
+    return kno_err(kno_SyntaxError,"unboundp_evalfn",NULL,expr);
   else {
     lispval val = kno_symeval(symbol,env);
     if (KNO_ABORTED(val))
@@ -1627,7 +1627,7 @@ u8_string kno_get_documentation(lispval x)
         u8_printf(&out," [%ls...]",SYM_NAME(scan));
       lambda->fcn_doc = out.u8_outbuf;
       lambda->fcn_free_doc = 1;
-      return out.u8_outbuf;}}
+      return u8_strdup(out.u8_outbuf);}}
   else if (kno_functionp[proctype]) {
     struct KNO_FUNCTION *f = KNO_DTYPE2FCN(proc);
     return u8_strdup(f->fcn_doc);}
@@ -1640,7 +1640,8 @@ u8_string kno_get_documentation(lispval x)
 static lispval get_documentation(lispval x)
 {
   u8_string doc = kno_get_documentation(x);
-  if (doc) return lispval_string(doc);
+  if (doc)
+    return kno_lispstring(doc);
   else return KNO_FALSE;
 }
 
