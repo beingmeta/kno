@@ -1686,7 +1686,7 @@ static void finish_threads()
   int n = i; i=0; while (i<n) {
     pthread_kill(thread_ids[i],kno_thread_sigint);
     i++;}
-#if HAVE_PTHREAD_TRYJOIN
+#if HAVE_PTHREAD_TRYJOIN_NP
   /* 'Join' any threads which have finished */
   i=0; while (i<n) {
     if (live[i]) {
@@ -1725,7 +1725,7 @@ static void finish_threads()
   /* Detach all the recalcitrants and latecomers */
   {u8_lock_mutex(&thread_ring_lock);
     struct KNO_THREAD *scan = thread_ring;
-    int i= 0; while (scan) {
+    while (scan) {
       struct KNO_THREAD *tstruct = (kno_thread) scan;
       if ( (tstruct->tid > 0) ||
 	   (tstruct->finished < 0) ) {
