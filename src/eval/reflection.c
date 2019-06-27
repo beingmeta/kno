@@ -69,19 +69,19 @@ static lispval procedure_name(lispval x)
   if (KNO_FUNCTIONP(x)) {
     struct KNO_FUNCTION *f = KNO_DTYPE2FCN(x);
     if (f->fcn_name)
-      return lispval_string(f->fcn_name);
+      return kno_mkstring(f->fcn_name);
     else return KNO_FALSE;}
   else if (KNO_APPLICABLEP(x))
     return KNO_FALSE;
   else if (TYPEP(x,kno_evalfn_type)) {
     struct KNO_EVALFN *sf = GETEVALFN(x);
     if (sf->evalfn_name)
-      return lispval_string(sf->evalfn_name);
+      return kno_mkstring(sf->evalfn_name);
     else return KNO_FALSE;}
   else if (TYPEP(x,kno_macro_type)) {
     struct KNO_MACRO *m = (kno_macro) x;
     if (m->macro_name)
-      return lispval_string(m->macro_name);
+      return kno_mkstring(m->macro_name);
     else return KNO_FALSE;}
   else return kno_type_error(_("function"),"procedure_name",x);
 }
@@ -92,17 +92,17 @@ static lispval procedure_filename(lispval x)
   if (KNO_FUNCTIONP(x)) {
     struct KNO_FUNCTION *f = KNO_XFUNCTION(x);
     if (f->fcn_filename)
-      return lispval_string(f->fcn_filename);
+      return kno_mkstring(f->fcn_filename);
     else return KNO_FALSE;}
   else if (TYPEP(x,kno_evalfn_type)) {
     struct KNO_EVALFN *sf = GETEVALFN(x);
     if (sf->evalfn_filename)
-      return lispval_string(sf->evalfn_filename);
+      return kno_mkstring(sf->evalfn_filename);
     else return KNO_FALSE;}
   else if (TYPEP(x,kno_macro_type)) {
     struct KNO_MACRO *m = (kno_macro) x;
     if (m->macro_filename)
-      return lispval_string(m->macro_filename);
+      return kno_mkstring(m->macro_filename);
     else return KNO_FALSE;}
   else return kno_type_error(_("function"),"procedure_filename",x);
 }
@@ -173,7 +173,7 @@ static lispval procedure_documentation(lispval x)
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
   u8_string doc = kno_get_documentation(x);
   if (doc)
-    return kno_lispstring(doc);
+    return kno_wrapstring(doc);
   else return KNO_FALSE;
 }
 

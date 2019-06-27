@@ -165,7 +165,7 @@ KNO_EXPORT lispval *kno_handle_argv(int argc,char **argv,
       u8_string arg = u8_fromlibc(carg), eq = strchr(arg,'=');
       u8_printf(&cmdargs,"(%d)\t%s\n",i,arg);
       if (i>0) u8_putc(&cmdline,' '); u8_puts(&cmdline,arg);
-      KNO_VECTOR_SET(raw_args,i,lispval_string(arg));
+      KNO_VECTOR_SET(raw_args,i,kno_mkstring(arg));
       /* Don't include argv[0] in the arglists */
       if ( (i==0) || (arg_mask[i]) ) {
         /* Skip first and masked args */
@@ -175,7 +175,7 @@ KNO_EXPORT lispval *kno_handle_argv(int argc,char **argv,
       else i++;
       if ((eq!=NULL) && (eq>arg) && (*(eq-1)!='\\')) {
         int retval = (arg!=NULL) ? (kno_config_assignment(arg)) : (-1);
-        KNO_VECTOR_SET(config_args,config_i,lispval_string(arg));
+        KNO_VECTOR_SET(config_args,config_i,kno_mkstring(arg));
         config_i++;
         if (retval<0) {
           u8_log(LOG_CRIT,"FailedConfig",
@@ -185,7 +185,7 @@ KNO_EXPORT lispval *kno_handle_argv(int argc,char **argv,
         else u8_log(LOG_INFO,kno_ArgvConfig,"   %s",arg);
         u8_free(arg);
         continue;}
-      string_arg = lispval_string(arg);
+      string_arg = kno_mkstring(arg);
       /* Note that kno_parse_arg should always return at least a lisp
          string */
       lisp_arg = kno_parse_arg(arg);
@@ -233,7 +233,7 @@ static void add_source_file(u8_string s,void *vp)
 {
   lispval *valp = (lispval *)vp;
   lispval val = *valp;
-  CHOICE_ADD(val,lispval_string(s));
+  CHOICE_ADD(val,kno_mkstring(s));
   *valp = val;
 }
 
@@ -485,7 +485,7 @@ KNO_EXPORT int kno_config_rlimit_set(lispval ignored,lispval v,void *vptr)
 
 static lispval config_getappid(lispval var,void *data)
 {
-  return lispval_string(u8_appid());
+  return kno_mkstring(u8_appid());
 }
 
 static int config_setappid(lispval var,lispval val,void *data)
@@ -510,7 +510,7 @@ static lispval config_getppid(lispval var,void *data)
 
 static lispval config_getsessionid(lispval var,void *data)
 {
-  return lispval_string(u8_sessionid());
+  return kno_mkstring(u8_sessionid());
 }
 
 static int config_setsessionid(lispval var,lispval val,void *data)
@@ -617,7 +617,7 @@ KNO_EXPORT u8_string kno_runbase_filename(u8_string suffix)
 static lispval config_getrunbase(lispval var,void *data)
 {
   if (runbase == NULL) return KNO_FALSE;
-  else return lispval_string(runbase);
+  else return kno_mkstring(runbase);
 }
 
 static int config_setrunbase(lispval var,lispval val,void *data)

@@ -54,8 +54,7 @@
 
 (applytester-pred pair? lambda-start arity-test2)
 (applytest 'define car (lambda-source arity-test2))
-;;; TODO: This breaks
-(applytest 'define car lambda-source arity-test2)
+(errtest (applytest 'define car lambda-source arity-test2))
 
 (set-lambda-source! arity-test2 (cons 'defslambda (cdr (lambda-source arity-test2))))
 (applytest 'defslambda car (lambda-source arity-test2))
@@ -83,9 +82,9 @@
 (applytester swapf procedure-id swapf)
 
 (applytest #f reflect/get arity-test 'testprop)
-(applytest #t reflect/store! arity-test 'testprop "value")
+(applytest 'void reflect/store! arity-test 'testprop "value")
 (applytest "value" reflect/get arity-test 'testprop)
-(applytest #t reflect/add! arity-test 'testprop "more")
+(applytest 'void reflect/add! arity-test 'testprop "more")
 (applytest {"more" "value"} reflect/get arity-test 'testprop)
 
 (applytest-pred table? reflect/attribs arity-test)
@@ -146,15 +145,15 @@
 (applytester-pred ambiguous? module-bindings (get-module 'regex))
 (applytester-pred string? module-source (get-module 'regex))
 (applytester-pred hashtable? module-table (get-module 'regex))
-(applytester-pred #f module-environment (get-module 'regex))
+(applytester #f module-environment (get-module 'regex))
 
 (applytester-pred string? module-source (get-module 'bench/miscfns))
 (applytester-pred hashtable? module-table (get-module 'bench/miscfns))
 (applytester-pred ambiguous? module-bindings (get-module 'bench/miscfns))
 (applytester-pred hashtable? module-environment (get-module 'bench/miscfns))
 
-(evaltest-pred ambiguous? (getmodules (%env)))
-(evaltest-pred ambiguous? (getmodules))
+(applytest #t ambiguous? (getmodules (%env)))
+(applytest #t ambiguous? (getmodules))
 (evaltest {} (reject (getmodules) symbol?))
 (evaltest {} (reject (getmodules (%env)) symbol?))
 

@@ -140,7 +140,7 @@ static lispval dosegment(u8_string string,lispval separators)
           sepstring = sep; brk = try;}}
       else return kno_type_error(_("string"),"dosegment",sep);
     if (brk == NULL) {
-      pair = kno_conspair(lispval_string(scan),NIL);
+      pair = kno_conspair(kno_mkstring(scan),NIL);
       *resultp = pair;
       return result;}
     pair = kno_conspair(kno_substring(scan,brk),NIL);
@@ -330,7 +330,7 @@ KNO_EXPORT lispval kno_words2list(u8_string string,int keep_punct)
              (spantype == wordspan)) {
       lispval newcons;
       lispval extraction =
-        ((scan) ? (kno_substring(last,scan)) : (lispval_string(last)));
+        ((scan) ? (kno_substring(last,scan)) : (kno_mkstring(last)));
       newcons = kno_conspair(extraction,NIL);
       *lastp = newcons; lastp = &(KNO_CDR(newcons));
       if (scan == NULL) break;
@@ -363,7 +363,7 @@ KNO_EXPORT lispval kno_words2vector(u8_string string,int keep_punct)
           wordsv = u8_realloc_n(wordsv,newmax,lispval);
           max = newmax;}}
       wordsv[n++]=((scan) ? (kno_substring(last,scan)) :
-                   (lispval_string(last)));
+                   (kno_mkstring(last)));
       if (scan == NULL) break;
       last = scan; scan = skip_span(last,&spantype);}
     else {
@@ -528,7 +528,7 @@ static lispval seq2phrase_ndhelper
 (u8_string base,lispval seq,int start,int end,int dospace)
 {
   if (start == end)
-    return kno_lispstring(u8_strdup(base));
+    return kno_wrapstring(u8_strdup(base));
   else {
     lispval elt = kno_seq_elt(seq,start), results = EMPTY;
     struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,128);
@@ -636,7 +636,7 @@ KNO_EXPORT u8_byte *kno_stem_english_word(const u8_byte *original);
 static lispval stem_prim(lispval arg)
 {
   u8_byte *stemmed = kno_stem_english_word(CSTRING(arg));
-  return kno_lispstring(stemmed);
+  return kno_wrapstring(stemmed);
 }
 
 /* Disemvoweling */
@@ -1104,7 +1104,7 @@ static lispval textrewrite(lispval pattern,lispval string,
   if ((off<0) || (lim<0))
     return kno_err(kno_RangeError,"textrewrite",NULL,VOID);
   else if ((lim-off)==0)
-    return lispval_string("");
+    return kno_mkstring("");
   else {
     lispval extract_results = kno_text_extract
       (pattern,NULL,CSTRING(string),off,lim,0);
@@ -1135,7 +1135,7 @@ static lispval textsubst(lispval string,
   if ((off<0) || (lim<0))
     return kno_err(kno_RangeError,"textsubst",NULL,VOID);
   else if ((lim-off)==0)
-    return lispval_string("");
+    return kno_mkstring("");
   else {
     int start = kno_text_search(pattern,NULL,data,off,lim,0), last = off;
     if (start>=0) {
@@ -2312,14 +2312,14 @@ static lispval unslashify_prim(lispval string,lispval offset,lispval limit_arg,
 static lispval soundex_prim(lispval string,lispval packetp)
 {
   if (FALSEP(packetp))
-    return kno_lispstring(kno_soundex(CSTRING(string)));
+    return kno_wrapstring(kno_soundex(CSTRING(string)));
   else return kno_init_packet(NULL,4,kno_soundex(CSTRING(string)));
 }
 
 static lispval metaphone_prim(lispval string,lispval packetp)
 {
   if (FALSEP(packetp))
-    return kno_lispstring(kno_metaphone(CSTRING(string),0));
+    return kno_wrapstring(kno_metaphone(CSTRING(string),0));
   else {
     u8_string dblm = kno_metaphone(CSTRING(string),0);
     return kno_init_packet(NULL,strlen(dblm),dblm);}
@@ -2328,7 +2328,7 @@ static lispval metaphone_prim(lispval string,lispval packetp)
 static lispval metaphone_plus_prim(lispval string,lispval packetp)
 {
   if (FALSEP(packetp))
-    return kno_lispstring(kno_metaphone(CSTRING(string),1));
+    return kno_wrapstring(kno_metaphone(CSTRING(string),1));
   else {
     u8_string dblm = kno_metaphone(CSTRING(string),1);
     return kno_init_packet(NULL,strlen(dblm),dblm);}

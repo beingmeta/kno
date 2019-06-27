@@ -87,13 +87,13 @@ static lispval dtserverp(lispval arg)
 static lispval dtserver_id(lispval arg)
 {
   struct KNO_DTSERVER *dts = (struct KNO_DTSERVER *) arg;
-  return lispval_string(dts->dtserverid);
+  return kno_mkstring(dts->dtserverid);
 }
 
 static lispval dtserver_address(lispval arg)
 {
   struct KNO_DTSERVER *dts = (struct KNO_DTSERVER *) arg;
-  return lispval_string(dts->dtserver_addr);
+  return kno_mkstring(dts->dtserver_addr);
 }
 
 static lispval dteval(lispval server,lispval expr)

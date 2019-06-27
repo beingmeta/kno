@@ -183,10 +183,10 @@ static lispval stack2lisp(struct KNO_STACK *stack,struct KNO_STACK *inner)
     if (icrumb > KNO_MAX_FIXNUM) icrumb = icrumb%KNO_MAX_FIXNUM;
     stack->stack_crumb=icrumb;}
   lispval crumb = KNO_INT(icrumb);
-  if (stack->stack_src) srcfile = lispval_string(stack->stack_src);
+  if (stack->stack_src) srcfile = kno_mkstring(stack->stack_src);
   if (stack->stack_type) type = kno_intern(stack->stack_type);
   if (stack->stack_label) label = kno_intern(stack->stack_label);
-  if (stack->stack_status) status = lispval_string(stack->stack_status);
+  if (stack->stack_status) status = kno_mkstring(stack->stack_status);
   if ( (tidy_stack_frames) &&
        (IS_EVAL_EXPR(source)) &&
        (IS_EVAL_EXPR(stack->stack_source)) ) {

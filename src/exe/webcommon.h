@@ -265,7 +265,7 @@ static int urllog_set(lispval var,lispval val,void *data)
 static lispval urllog_get(lispval var,void *data)
 {
   if (urllog)
-    return lispval_string(urllogname);
+    return kno_mkstring(urllogname);
   else return KNO_FALSE;
 }
 
@@ -300,7 +300,7 @@ static int reqlog_set(lispval var,lispval val,void *data)
                             30000)) {
       u8_string logstart=
         u8_mkstring("# Log open %*lt for %s",u8_sessionid());
-      lispval logstart_entry = kno_lispstring(logstart);
+      lispval logstart_entry = kno_wrapstring(logstart);
       kno_endpos(reqlog);
       reqlogname = u8_strdup(filename);
       kno_write_dtype(kno_writebuf(reqlog),logstart_entry);
@@ -324,7 +324,7 @@ static int reqlog_set(lispval var,lispval val,void *data)
 static lispval reqlog_get(lispval var,void *data)
 {
   if (reqlog)
-    return lispval_string(reqlogname);
+    return kno_mkstring(reqlogname);
   else return KNO_FALSE;
 }
 
@@ -377,7 +377,7 @@ static void dolog
                                 len,exectime,u8_elapsed_time());
       fputs(tmp,urllog); u8_free(tmp);}
     if ((reqlog) && (reqloglevel>2))
-      kno_store(cgidata,response_symbol,lispval_string(response));
+      kno_store(cgidata,response_symbol,kno_mkstring(response));
     if ((reqlog) && (reqloglevel>1))
       kno_write_dtype(kno_writebuf(reqlog),cgidata);}
   u8_unlock_mutex(&log_lock);
@@ -397,7 +397,7 @@ static lispval preload_get(lispval var,void *ignored)
   lispval results = KNO_EMPTY_LIST; struct KNO_PRELOAD_LIST *scan;
   u8_lock_mutex(&preload_lock);
   scan = preloads; while (scan) {
-    results = kno_conspair(lispval_string(scan->preload_filename),results);
+    results = kno_conspair(kno_mkstring(scan->preload_filename),results);
     scan = scan->next_preload;}
   u8_unlock_mutex(&preload_lock);
   return results;
@@ -875,7 +875,7 @@ static lispval webcommon_adjust_docroot(lispval cgidata,u8_string docroot)
     lispval incoming_docroot = kno_get(cgidata,document_root,KNO_VOID);
     if (KNO_STRINGP(incoming_docroot)) {
       lispval scriptname = kno_get(cgidata,script_filename,KNO_VOID);
-      lispval lisp_docroot = lispval_string(docroot);
+      lispval lisp_docroot = kno_mkstring(docroot);
       kno_store(cgidata,document_root,lisp_docroot);
       if ((KNO_STRINGP(scriptname))&&
           ((strncmp(KNO_CSTRING(scriptname),KNO_CSTRING(incoming_docroot),

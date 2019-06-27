@@ -66,7 +66,7 @@ const u8_byte *parse_headers(lispval s,const u8_byte *start,const u8_byte *end)
         vstart = line_end+1;
       else {
         lispval slotval=
-          kno_lispstring(u8_mime_convert
+          kno_wrapstring(u8_mime_convert
                          (hstream.u8_outbuf,hstream.u8_write));
         kno_add(s,slotid,slotval); kno_decref(slotval); hstart = line_end+1;
         break;}}

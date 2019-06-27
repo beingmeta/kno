@@ -383,10 +383,10 @@ static lispval lisp_get_component(lispval string,lispval base)
 {
   if (VOIDP(base)) {
     u8_string fullpath = get_component(CSTRING(string));
-    return kno_lispstring(fullpath);}
+    return kno_wrapstring(fullpath);}
   else {
     u8_string thepath = u8_realpath(CSTRING(string),CSTRING(base));
-    return kno_lispstring(thepath);}
+    return kno_wrapstring(thepath);}
 }
 
 static lispval path_macro(lispval expr,kno_lexenv env,kno_stack ptr)
@@ -540,7 +540,7 @@ static lispval get_config_files(lispval var,void U8_MAYBE_UNUSED *data)
   struct KNO_CONFIG_RECORD *scan; lispval result = NIL;
   u8_lock_mutex(&config_file_lock);
   scan = config_records; while (scan) {
-    result = kno_conspair(lispval_string(scan->config_filename),result);
+    result = kno_conspair(kno_mkstring(scan->config_filename),result);
     scan = scan->loaded_after;}
   u8_unlock_mutex(&config_file_lock);
   return result;

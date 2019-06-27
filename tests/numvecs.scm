@@ -66,12 +66,10 @@
 
 (applytest 3 + 3)
 (applytest 3.0 + 3.0)
-;;; TODO: aborts
-;;(applytest 3+5i + 3+5i)
-;;(applytest 3.0+5i + 3.0+5i)
+(applytest 3+5i + 3+5i)
+(applytest 3.0+5i + 3.0+5i)
 
 (applytest -3 - 3)
 (applytest -3.0 - 3.0)
-;;; TODO: aborts
-;;(applytest -3-5i - 3+5i)
-;;(applytest -3.0-5i - 3.0+5i)
+(applytest -3-5i - 3+5i)
+(applytest -3.0-5i - 3.0+5i)

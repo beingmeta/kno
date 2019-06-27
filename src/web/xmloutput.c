@@ -863,7 +863,7 @@ static lispval doanchor_star_evalfn(lispval expr,kno_lexenv env,kno_stack _stack
     if (has_class_attrib(attribs))
       kno_incref(attribs);
     else attribs = kno_conspair(kno_intern("class"),
-                             kno_conspair(lispval_string(class),kno_incref(attribs)));
+                             kno_conspair(kno_mkstring(class),kno_incref(attribs)));
     tmpout.u8_write = tmpout.u8_outbuf;
     u8_printf(&tmpout,"%s:@%x/%x",uri,KNO_OID_HI(addr),(KNO_OID_LO(addr)));
     attribs = kno_conspair

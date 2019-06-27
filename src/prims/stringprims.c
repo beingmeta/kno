@@ -489,7 +489,7 @@ static lispval string_stdspace(lispval string,lispval keep_vertical_arg)
     else {white = 0; u8_putc(&out,c);}}
   if (out.u8_write == out.u8_outbuf) {
     u8_free(out.u8_outbuf);
-    return lispval_string("");}
+    return kno_mkstring("");}
   else if (white) {out.u8_write[-1]='\0'; out.u8_write--;}
   return kno_stream2string(&out);
 }
@@ -515,7 +515,7 @@ static lispval string_stdstring(lispval string)
         u8_putc(&out,bc);}}
     if (out.u8_write == out.u8_outbuf) {
       u8_free(out.u8_outbuf);
-      return lispval_string("");}
+      return kno_mkstring("");}
     else if (white) {out.u8_write[-1]='\0'; out.u8_write--;}
     return kno_stream2string(&out);}
   else return kno_type_error("string","string_stdstring",string);
@@ -543,7 +543,7 @@ static lispval stdobj(lispval string)
         u8_putc(&out,bc);}}
     if (out.u8_write == out.u8_outbuf) {
       u8_free(out.u8_outbuf);
-      return lispval_string("");}
+      return kno_mkstring("");}
     else if (white) {out.u8_write[-1]='\0'; out.u8_write--;}
     return kno_stream2string(&out);}
   else return kno_incref(string);
@@ -564,7 +564,7 @@ static lispval string_basestring(lispval string)
       u8_putc(&out,bc);}
     if (out.u8_write == out.u8_outbuf) {
       u8_free(out.u8_outbuf);
-      return lispval_string("");}
+      return kno_mkstring("");}
     return kno_stream2string(&out);}
   else return kno_type_error("string","string_basestring",string);
 }
@@ -1452,7 +1452,7 @@ DCLPRIM2("PACKET->STRING",packet2string,MAX_ARGS(2)|MIN_ARGS(1),
 static lispval packet2string(lispval packet,lispval encoding)
 {
   if (KNO_PACKET_LENGTH(packet)==0)
-    return lispval_string("");
+    return kno_mkstring("");
   else {
     struct U8_OUTPUT out;
     const u8_byte *scan = KNO_PACKET_DATA(packet);

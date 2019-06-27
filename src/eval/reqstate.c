@@ -46,16 +46,16 @@ static lispval reqgetvar(lispval cgidata,lispval var)
         kno_decref(parsed); return val;}}
     else if (*data == ':')
       if (data[1]=='\0')
-        return lispval_string(data);
+        return kno_mkstring(data);
       else {
         lispval arg = kno_parse(data+1);
         if (KNO_ABORTP(arg)) {
           u8_log(LOG_WARN,kno_ParseArgError,"Bad colon spec arg '%s'",arg);
           kno_clear_errors(1);
-          return lispval_string(data);}
+          return kno_mkstring(data);}
         else return arg;}
     else if (*data == '\\') {
-      lispval shorter = lispval_string(data+1);
+      lispval shorter = kno_mkstring(data+1);
       kno_decref(val);
       return shorter;}
     else return val;}
@@ -66,7 +66,7 @@ static lispval reqgetvar(lispval cgidata,lispval var)
         kno_incref(v); CHOICE_ADD(result,v);}
       else {
         u8_string data = CSTRING(v); lispval parsed = v;
-        if (*data=='\\') parsed = lispval_string(data+1);
+        if (*data=='\\') parsed = kno_mkstring(data+1);
         else if ((*data==':')&&(data[1]=='\0')) {kno_incref(parsed);}
         else if (*data==':')
           parsed = kno_parse(data+1);

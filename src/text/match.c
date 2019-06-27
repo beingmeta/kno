@@ -594,7 +594,7 @@ static lispval textract
   else if (EMPTYP(pat)) return EMPTY;
   else if (STRINGP(pat))
     if ((STRLEN(pat)) == 0) {
-      return kno_conspair(KNO_INT(off),lispval_string(""));}
+      return kno_conspair(KNO_INT(off),kno_mkstring(""));}
     else if (off == lim)
       return EMPTY;
     else {
@@ -641,7 +641,7 @@ static lispval textract
         int next = forward_char(string,off);
         U8_INIT_FIXED_OUTPUT(&str,16,buf);
         u8_putc(&str,code);
-        return kno_conspair(KNO_INT(next),lispval_string(buf));}
+        return kno_conspair(KNO_INT(next),kno_mkstring(buf));}
       else return EMPTY;}}
   else if (VECTORP(pat)) {
     lispval seq_matches = extract_sequence

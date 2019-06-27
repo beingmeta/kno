@@ -279,7 +279,7 @@ static int loadfile_config_set(lispval var,lispval vals,void *d)
       u8_string loadpath = (!(strchr(CSTRING(val),':'))) ?
 	(u8_abspath(CSTRING(val),NULL)) :
 	(u8_strdup(CSTRING(val)));
-      loadfile_list = kno_conspair(kno_lispstring(loadpath),loadfile_list);}}
+      loadfile_list = kno_conspair(kno_wrapstring(loadpath),loadfile_list);}}
   else {
     KNO_DO_CHOICES(val,vals) {
       u8_string loadpath = (!(strchr(CSTRING(val),':'))) ?

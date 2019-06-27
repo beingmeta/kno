@@ -263,14 +263,14 @@ static lispval sqldb_proc_query(lispval sqldb)
 {
   struct KNO_SQLDB_PROC *xdbp = KNO_GET_CONS
     (sqldb,kno_sqldb_proc_type,struct KNO_SQLDB_PROC *);
-  return lispval_string(xdbp->sqldb_qtext);
+  return kno_mkstring(xdbp->sqldb_qtext);
 }
 
 static lispval sqldb_proc_spec(lispval sqldb)
 {
   struct KNO_SQLDB_PROC *xdbp = KNO_GET_CONS
     (sqldb,kno_sqldb_proc_type,struct KNO_SQLDB_PROC *);
-  return lispval_string(xdbp->sqldb_spec);
+  return kno_mkstring(xdbp->sqldb_spec);
 }
 
 static lispval sqldb_proc_db(lispval sqldb)

@@ -68,7 +68,6 @@
   (let ((threads {}))
     (set! numbers '())
     (set+! threads (spawn (begin (sleep 1) (addrange 10))))
-    ;; TODO: Cycle in thread environment which contains the threads?
     (applytest #t thread? threads)
     (applytest #t exists? (config 'ALLTHREADS))
     (set+! threads (spawn (addrange 0)))

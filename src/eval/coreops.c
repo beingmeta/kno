@@ -425,8 +425,8 @@ static lispval falsep(lispval x)
 static lispval typeof_prim(lispval x)
 {
   kno_ptr_type t = KNO_PRIM_TYPE(x);
-  if (kno_type_names[t]) return lispval_string(kno_type_names[t]);
-  else return lispval_string("??");
+  if (kno_type_names[t]) return kno_mkstring(kno_type_names[t]);
+  else return kno_mkstring("??");
 }
 
 #define GETEVALFN(x) ((kno_evalfn)(kno_fcnid_ref(x)))
@@ -435,12 +435,12 @@ static lispval procedure_name(lispval x)
   if (KNO_APPLICABLEP(x)) {
     struct KNO_FUNCTION *f = KNO_DTYPE2FCN(x);
     if (f->fcn_name)
-      return lispval_string(f->fcn_name);
+      return kno_mkstring(f->fcn_name);
     else return KNO_FALSE;}
   else if (TYPEP(x,kno_evalfn_type)) {
     struct KNO_EVALFN *sf = GETEVALFN(x);
     if (sf->evalfn_name)
-      return lispval_string(sf->evalfn_name);
+      return kno_mkstring(sf->evalfn_name);
     else return KNO_FALSE;}
   else return kno_type_error(_("function"),"procedure_name",x);
 }
@@ -476,16 +476,16 @@ static lispval lisp_tolisp(lispval arg)
   if (STRINGP(arg)) {
     u8_string string=CSTRING(arg);
     if ( (KNO_STRLEN(arg)>64) || (strchr(string,' ')) )
-      return lispval_string(string);
+      return kno_mkstring(string);
     else {
       u8_string scan=string;
       int c=u8_sgetc(&scan);
       while (*scan) {
         if (u8_isspace(c))
-          return lispval_string(string);
+          return kno_mkstring(string);
         else c=u8_sgetc(&scan);}
       if ( (c>0) && (u8_isspace(c)) )
-        return lispval_string(string);
+        return kno_mkstring(string);
       else return kno_parse(string);}}
   else return kno_incref(arg);
 }
@@ -500,12 +500,12 @@ static lispval lisp_parse_arg(lispval string)
 static lispval lisp_unparse_arg(lispval obj)
 {
   u8_string s = kno_unparse_arg(obj);
-  return kno_lispstring(s);
+  return kno_wrapstring(s);
 }
 
 static lispval lisp_symbol2string(lispval sym)
 {
-  return lispval_string(SYM_NAME(sym));
+  return kno_mkstring(SYM_NAME(sym));
 }
 
 static lispval lisp_string2symbol(lispval s)

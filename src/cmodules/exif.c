@@ -26,12 +26,12 @@ static lispval exif2lisp(ExifEntry *exentry)
 {
   switch (exentry->format) {
   case EXIF_FORMAT_ASCII:
-    if (exentry->size<8) return lispval_string(exentry->data);
+    if (exentry->size<8) return kno_mkstring(exentry->data);
     else if (memcmp(exentry->data,"ASCII\0\0\0",8)==0)
-      return lispval_string(exentry->data+8);
+      return kno_mkstring(exentry->data+8);
     else if (memcmp(exentry->data,"\0\0\0\0\0\0\0\0",8)==0)
       return kno_make_packet(NULL,exentry->size-8,exentry->data+8);
-    else return lispval_string(exentry->data);
+    else return kno_mkstring(exentry->data);
   case EXIF_FORMAT_BYTE: case EXIF_FORMAT_SBYTE: {
     int n = exentry->components, i = 0;
     lispval *lispdata = u8_alloc_n(n,lispval);

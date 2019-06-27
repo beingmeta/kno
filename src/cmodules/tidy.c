@@ -214,12 +214,12 @@ static lispval tidy_prim_helper(lispval string,lispval opts,lispval diag,
     if (!(KNO_VOIDP(result))) {}
     else if (rc<0)
       result = kno_err(kno_TidyError,"tidy_prim/output",errbuf.bp,KNO_VOID);
-    else result = lispval_string(outbuf.bp);
+    else result = kno_mkstring(outbuf.bp);
     if ((!((KNO_VOIDP(diag))||(KNO_FALSEP(diag))))&&((rc>0)||(rc<0))) {
       int drc = tidyRunDiagnostics(tdoc);
       if (drc<0) u8_log(LOG_CRIT,"TIDY/diagfail","%s",errbuf.bp);
       else if (KNO_APPLICABLEP(diag)) {
-        lispval arg = lispval_string(errbuf.bp);
+        lispval arg = kno_mkstring(errbuf.bp);
         lispval dresult = kno_apply(diag,1,&arg);
         if (KNO_ABORTP(dresult)) {
           kno_decref(result); result = dresult;}

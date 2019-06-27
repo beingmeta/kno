@@ -124,7 +124,7 @@ static int open_knosqlite(struct KNO_SQLITE *knosqlptr)
     if (retval) {
       u8_string msg = u8_strdup(sqlite3_errmsg(db));
       kno_seterr(SQLiteError,"open_sqlite",msg,
-                lispval_string(knosqlptr->sqlitefile));
+                kno_mkstring(knosqlptr->sqlitefile));
       if (db) {closedb(db); knosqlptr->sqlitedb = NULL;}
       u8_unlock_mutex(&(knosqlptr->sqlite_lock));
       return -1;}
@@ -615,9 +615,9 @@ static lispval sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,lispval colinfo)
              (strcasecmp(decltype,"DATE")==0))) {
           struct U8_XTIME xt; time_t retval = sqlite_time_to_xtime(textval,&xt);
           if (retval<0) retval = u8_rfc822_to_xtime((u8_string)textval,&xt);
-          if (retval<0) value = lispval_string((u8_string)textval);
+          if (retval<0) value = kno_mkstring((u8_string)textval);
           else value = kno_make_timestamp(&xt);}
-        else value = lispval_string((unsigned char *)textval);
+        else value = kno_mkstring((unsigned char *)textval);
         break;}
       case SQLITE_BLOB: {
         int n_bytes = sqlite3_column_bytes(stmt,j);

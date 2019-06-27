@@ -671,8 +671,8 @@ static lispval xmlevalify(u8_string encoded)
     if (u8_isalpha(c))
       result = kno_conspair(xmleval_tag,parse_infix(string+1));
     else result = kno_conspair(xmleval_tag,kno_parse(string+1));}
-  else if (string[0]=='\\') result = lispval_string(string+1);
-  else result = lispval_string(string);
+  else if (string[0]=='\\') result = kno_mkstring(string+1);
+  else result = kno_mkstring(string);
   if (string!=encoded) u8_free(string);
   return result;
 }
@@ -680,8 +680,8 @@ static lispval xmlevalify(u8_string encoded)
 static lispval xmldtypify(u8_string string)
 {
   if (string[0]==':') return kno_parse(string+1);
-  else if (string[0]=='\\') return lispval_string(string+1);
-  else return lispval_string(string);
+  else if (string[0]=='\\') return kno_mkstring(string+1);
+  else return kno_mkstring(string);
 }
 
 static lispval parse_attribname(u8_string string)
@@ -703,14 +703,14 @@ KNO_EXPORT int kno_xmleval_attribfn
   lispval slotval = ((!(val))?(slotid):
                   ((val[0]=='\0')||(val[0]=='#')||
                    (slotid == if_symbol))?
-                  (lispval_string(val)):
+                  (kno_mkstring(val)):
                   (quote>0) ? (xmlevalify(val)) :
                   (xmldtypify(val)));
   lispval attrib_entry = VOID;
   if ((KNO_ABORTED(slotval))||(VOIDP(slotval))||
       (KNO_EOFP(slotval))||(KNO_EODP(slotval))||
       (KNO_EOXP(slotval)))
-    slotval = lispval_string(val);
+    slotval = kno_mkstring(val);
   if (EMPTYP(xml->xml_attribs)) kno_init_xml_attribs(xml);
   xml->xml_bits = xml->xml_bits|KNO_XML_HASDATA;
   if (slotid == if_symbol) {
@@ -722,11 +722,11 @@ KNO_EXPORT int kno_xmleval_attribfn
   if (namespace) {
     kno_add(xml->xml_attribs,parse_attribname(attrib_name),slotval);
     attrib_entry=
-      kno_make_nvector(3,lispval_string(name),
+      kno_make_nvector(3,kno_mkstring(name),
                       kno_make_qid(attrib_name,namespace),
                       kno_incref(slotval));}
   else attrib_entry=
-         kno_make_nvector(3,lispval_string(name),KNO_FALSE,kno_incref(slotval));
+         kno_make_nvector(3,kno_mkstring(name),KNO_FALSE,kno_incref(slotval));
   kno_add(xml->xml_attribs,attribids,slotid);
   kno_add(xml->xml_attribs,attribs_slotid,attrib_entry);
   kno_decref(attrib_entry); kno_decref(slotval);
@@ -970,7 +970,7 @@ static KNO_XML *handle_knoml_pi
           scheme_env->env_parent = kno_make_export_env(module,scheme_env->env_parent);}
         i++;}
       else if ((strncmp(attribs[i],"piescape=",9))==0) {
-        lispval arg = kno_lispstring(get_pi_string(attribs[i]+9));
+        lispval arg = kno_wrapstring(get_pi_string(attribs[i]+9));
         kno_lexenv xml_env = get_xml_env(xml);
         lispval cur = kno_symeval(piescape_symbol,xml_env);
         if (VOIDP(cur))
@@ -982,7 +982,7 @@ static KNO_XML *handle_knoml_pi
         if (xml_env) kno_decref((lispval)xml_env);
         i++;}
       else if ((strncmp(attribs[i],"xattrib=",8))==0) {
-        lispval arg = kno_lispstring(get_pi_string(attribs[i]+7));
+        lispval arg = kno_wrapstring(get_pi_string(attribs[i]+7));
         kno_lexenv xml_env = get_xml_env(xml);
         kno_bind_value(xattrib_overlay,arg,xml_env);
         kno_decref(arg);

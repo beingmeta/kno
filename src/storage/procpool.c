@@ -385,7 +385,7 @@ static kno_pool open_procpool(u8_string source,kno_storage_flags flags,lispval o
     (NULL);
   struct KNO_PROCPOOL_METHODS *methods =
     (struct KNO_PROCPOOL_METHODS *) (typeinfo->type_data);
-  lispval source_arg = lispval_string(source);
+  lispval source_arg = kno_mkstring(source);
   lispval args[] = { source_arg, opts };
   lispval lp = kno_apply(methods->openfn,2,args);
   kno_decref(args[0]);
@@ -398,7 +398,7 @@ static kno_pool procpool_create(u8_string spec,void *type_data,
                                kno_storage_flags storage_flags,
                                lispval opts)
 {
-  lispval spec_arg = lispval_string(spec);
+  lispval spec_arg = kno_mkstring(spec);
   struct KNO_PROCPOOL_METHODS *methods =
     (struct KNO_PROCPOOL_METHODS *) type_data;
   lispval args[] = { spec_arg, opts };

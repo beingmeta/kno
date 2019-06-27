@@ -153,7 +153,7 @@ void handle_content_type(char *value,lispval table)
   major_type = kno_parse(value);
   kno_store(table,KNOSYM_TYPE,major_type);
   if (slash) *slash='/';
-  full_type = lispval_string(value);
+  full_type = kno_mkstring(value);
   kno_add(table,KNOSYM_TYPE,full_type); *end = endbyte;
   kno_decref(major_type); kno_decref(full_type);
   if ((chset = (strstr(value,"charset=")))) {
@@ -162,7 +162,7 @@ void handle_content_type(char *value,lispval table)
       chset++; chset_end = strchr(chset,'"');}
     else chset_end = strchr(chset,';');
     if (chset_end) *chset_end='\0';
-    chset_val = lispval_string(chset);
+    chset_val = kno_mkstring(chset);
     kno_store(table,charset_symbol,chset_val);
     kno_decref(chset_val);}
 }
@@ -187,7 +187,7 @@ static size_t handle_header(void *ptr,size_t size,size_t n,void *data)
     slotid = kno_parse(copy);
     if (KNO_EQ(slotid,content_type_symbol)) {
       handle_content_type(valstart,val);
-      hval = lispval_string(valstart);
+      hval = kno_mkstring(valstart);
       add = 0;}
     else if ((KNO_EQ(slotid,content_length_symbol)) ||
              (KNO_EQ(slotid,response_code_slotid))) {
@@ -200,13 +200,13 @@ static size_t handle_header(void *ptr,size_t size,size_t n,void *data)
       u8_init_xtime(&xt,moment,u8_second,0,0,0);
       hval = kno_make_timestamp(&xt);
       add = 0;}
-    else hval = lispval_string(valstart);
+    else hval = kno_mkstring(valstart);
     if (add) kno_add(val,slotid,hval);
     else kno_store(val,slotid,hval);
     kno_decref(hval);
     u8_free(copy);}
   else {
-    hval = lispval_string(copy);
+    hval = kno_mkstring(copy);
     kno_add(val,header_symbol,hval);
     kno_decref(hval);
     u8_free(copy);}
@@ -222,7 +222,7 @@ KNO_INLINE_FCN lispval addtexttype(lispval type)
 
 static void decl_text_type(u8_string string)
 {
-  lispval stringval = lispval_string(string);
+  lispval stringval = kno_mkstring(string);
   CHOICE_ADD(text_types,stringval);
 }
 
@@ -671,7 +671,7 @@ static lispval set_curlopt
   else if (KNO_EQ(opt,content_type_symbol))
     if (STRINGP(val)) {
       u8_string ctype_header = u8_mkstring("Content-type: %s",CSTRING(val));
-      lispval hval = kno_lispstring(ctype_header);
+      lispval hval = kno_wrapstring(ctype_header);
       curl_add_headers(ch,hval);
       kno_decref(hval);}
     else return kno_type_error(_("string"),"set_curl_handle/content-type",val);
@@ -839,11 +839,11 @@ static lispval handlefetchresult(struct KNO_CURL_HANDLE *h,lispval result,
           u8_convert(enc,1,&out,&scan,data->bytes+data->size);
           cval = kno_block_string(out.u8_write-out.u8_outbuf,out.u8_outbuf);}
         else if (strstr(data->bytes,"\r\n"))
-          cval = kno_lispstring(u8_convert_crlfs(data->bytes));
-        else cval = kno_lispstring(u8_valid_copy(data->bytes));}
+          cval = kno_wrapstring(u8_convert_crlfs(data->bytes));
+        else cval = kno_wrapstring(u8_valid_copy(data->bytes));}
       else if (strstr(data->bytes,"\r\n"))
-        cval = kno_lispstring(u8_convert_crlfs(data->bytes));
-      else cval = kno_lispstring(u8_valid_copy(data->bytes));
+        cval = kno_wrapstring(u8_convert_crlfs(data->bytes));
+      else cval = kno_wrapstring(u8_valid_copy(data->bytes));
       u8_free(data->bytes);
       kno_decref(chset);}
   else {
@@ -854,7 +854,7 @@ static lispval handlefetchresult(struct KNO_CURL_HANDLE *h,lispval result,
     char *urlbuf; long filetime;
     CURLcode rv = curl_easy_getinfo(h->handle,CURLINFO_EFFECTIVE_URL,&urlbuf);
     if (rv == CURLE_OK) {
-      lispval eurl = lispval_string(urlbuf);
+      lispval eurl = kno_mkstring(urlbuf);
       kno_add(result,eurl_slotid,eurl);
       kno_decref(eurl);}
     rv = curl_easy_getinfo(h->handle,CURLINFO_FILETIME,&filetime);
@@ -1548,7 +1548,7 @@ static u8_string url_source_fn(int fetch,u8_string uri,u8_string enc_name,
           (enc,KNO_PACKET_DATA(content),
            KNO_PACKET_DATA(content)+KNO_PACKET_LENGTH(content));
         kno_decref(content);
-        content = lispval_string(string_form);}
+        content = kno_mkstring(string_form);}
       if (STRINGP(content)) {
         lispval eurl = kno_get(result,eurl_slotid,VOID);
         lispval filetime = kno_get(result,filetime_slotid,VOID);

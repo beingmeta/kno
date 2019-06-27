@@ -1641,7 +1641,7 @@ static lispval get_documentation(lispval x)
 {
   u8_string doc = kno_get_documentation(x);
   if (doc)
-    return kno_lispstring(doc);
+    return kno_wrapstring(doc);
   else return KNO_FALSE;
 }
 

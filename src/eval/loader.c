@@ -148,7 +148,7 @@ static int load_source_module(lispval spec,void *ignored)
       kno_decref(load_result);
       return -1;}
     else {
-      lispval module_filename = lispval_string(module_source);
+      lispval module_filename = kno_mkstring(module_source);
       kno_register_module_x(module_filename,load_result,0);
       /* Store non symbolic specifiers as module identifiers */
       if (STRINGP(spec))
@@ -160,7 +160,7 @@ static int load_source_module(lispval spec,void *ignored)
           kno_add(lexenv->env_exports,source_symbol,module_filename);}
       /* Register the module under its filename too. */
       if (strchr(module_source,':') == NULL) {
-        lispval abspath_key = kno_lispstring(u8_abspath(module_source,NULL));
+        lispval abspath_key = kno_wrapstring(u8_abspath(module_source,NULL));
         kno_register_module_x(abspath_key,load_result,0);
         kno_decref(abspath_key);}
       kno_decref(module_filename);
@@ -562,7 +562,7 @@ int kno_load_latest(u8_string filename,kno_lexenv env,u8_string base)
     return loads;}
   else {
     u8_string abspath = u8_abspath(filename,base);
-    lispval lisp_abspath = lispval_string(abspath);
+    lispval lisp_abspath = kno_mkstring(abspath);
     lispval loadstamps =
       kno_get(env->env_bindings,loadstamps_symbol,EMPTY);
     lispval entry = get_entry(lisp_abspath,loadstamps);
@@ -740,8 +740,8 @@ KNO_EXPORT void kno_init_loader_c()
 
   /* Setup load paths */
   {u8_string path = u8_getenv("KNO_INIT_LOADPATH");
-    lispval v = ((path) ? (kno_lispstring(path)) :
-                 (lispval_string(KNO_DEFAULT_LOADPATH)));
+    lispval v = ((path) ? (kno_wrapstring(path)) :
+                 (kno_mkstring(KNO_DEFAULT_LOADPATH)));
     loadpath_config_set(kno_intern("loadpath"),v,&loadpath);
     kno_decref(v);}
 

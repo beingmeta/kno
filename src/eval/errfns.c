@@ -291,7 +291,7 @@ static lispval exception_details(lispval x)
   struct KNO_EXCEPTION *xo=
     kno_consptr(struct KNO_EXCEPTION *,x,kno_exception_type);
   if (xo->ex_details)
-    return lispval_string(xo->ex_details);
+    return kno_mkstring(xo->ex_details);
   else return KNO_FALSE;
 }
 
@@ -354,7 +354,7 @@ static lispval exception_sessionid(lispval x)
   struct KNO_EXCEPTION *xo=
     kno_consptr(struct KNO_EXCEPTION *,x,kno_exception_type);
   if (xo->ex_session >= 0)
-    return lispval_string(xo->ex_session);
+    return kno_mkstring(xo->ex_session);
   else return KNO_FALSE;
 }
 
@@ -415,11 +415,11 @@ static lispval exception2slotmap(lispval x,lispval with_stack_arg)
     kno_store(result,thread_symbol,threadnum);
     kno_decref(threadnum);}
   if (xo->ex_details) {
-    lispval details_string = lispval_string(xo->ex_details);
+    lispval details_string = kno_mkstring(xo->ex_details);
     kno_store(result,details_symbol,details_string);
     kno_decref(details_string);}
   if (xo->ex_session) {
-    lispval details_string = lispval_string(xo->ex_session);
+    lispval details_string = kno_mkstring(xo->ex_session);
     kno_store(result,session_symbol,details_string);
     kno_decref(details_string);}
   if (!(KNO_VOIDP(xo->ex_context)))
@@ -546,7 +546,7 @@ static lispval exception_summary(lispval x,lispval with_irritant)
   else if (cond)
     summary = u8_mkstring("#@%%! %s",cond);
   else summary = u8_mkstring("#@%%! %s","Weird anonymous error");
-  return_value = lispval_string(summary);
+  return_value = kno_mkstring(summary);
   u8_free(summary);
   return return_value;
 }

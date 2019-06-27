@@ -1262,10 +1262,10 @@ static lispval pool_label(lispval arg,lispval use_source)
   if (p == NULL)
     return kno_type_error(_("pool spec"),"pool_label",arg);
   else if (p->pool_label)
-    return lispval_string(p->pool_label);
+    return kno_mkstring(p->pool_label);
   else if (FALSEP(use_source)) return KNO_FALSE;
   else if (p->pool_source)
-    return lispval_string(p->pool_source);
+    return kno_mkstring(p->pool_source);
   else return KNO_FALSE;
 }
 
@@ -1275,13 +1275,13 @@ static lispval pool_id(lispval arg)
   if (p == NULL)
     return kno_type_error(_("pool spec"),"pool_id",arg);
   else if (p->pool_label)
-    return lispval_string(p->pool_label);
+    return kno_mkstring(p->pool_label);
   else if (p->poolid)
-    return lispval_string(p->poolid);
+    return kno_mkstring(p->poolid);
   else if (p->pool_source)
-    return lispval_string(p->pool_source);
+    return kno_mkstring(p->pool_source);
   else if (p->pool_prefix)
-    return lispval_string(p->pool_prefix);
+    return kno_mkstring(p->pool_prefix);
   else return KNO_FALSE;
 }
 
@@ -1291,9 +1291,9 @@ static lispval pool_source(lispval arg)
   if (p == NULL)
     return kno_type_error(_("pool spec"),"pool_label",arg);
   else if (p->pool_source)
-    return lispval_string(p->pool_source);
+    return kno_mkstring(p->pool_source);
   else if (p->poolid)
-    return lispval_string(p->pool_source);
+    return kno_mkstring(p->pool_source);
   else return KNO_FALSE;
 }
 
@@ -1303,7 +1303,7 @@ static lispval pool_prefix(lispval arg)
   if (p == NULL)
     return kno_type_error(_("pool spec"),"pool_label",arg);
   else if (p->pool_prefix)
-    return lispval_string(p->pool_prefix);
+    return kno_mkstring(p->pool_prefix);
   else return KNO_FALSE;
 }
 
@@ -1864,9 +1864,9 @@ static lispval index_id(lispval arg)
   if (ix == NULL)
     return kno_type_error(_("index spec"),"index_id",arg);
   else if (ix->indexid)
-    return lispval_string(ix->indexid);
+    return kno_mkstring(ix->indexid);
   else if (ix->index_source)
-    return lispval_string(ix->index_source);
+    return kno_mkstring(ix->index_source);
   else return KNO_FALSE;
 }
 
@@ -1876,7 +1876,7 @@ static lispval index_source_prim(lispval arg)
   if (p == NULL)
     return kno_type_error(_("index spec"),"index_label",arg);
   else if (p->index_source)
-    return lispval_string(p->index_source);
+    return kno_mkstring(p->index_source);
   else return KNO_FALSE;
 }
 
@@ -1994,7 +1994,7 @@ static lispval index_source(lispval ix_arg)
   if (ix == NULL)
     return kno_type_error("index","index_source",ix_arg);
   else if (ix->index_source)
-    return lispval_string(ix->index_source);
+    return kno_mkstring(ix->index_source);
   else return EMPTY;
 }
 
@@ -3066,7 +3066,7 @@ static lispval sumframe_prim(lispval frames,lispval slotids)
     if (OIDP(frame)) {
       KNO_OID addr = KNO_OID_ADDR(frame);
       u8_string s = u8_mkstring("@%x/%x",KNO_OID_HI(addr),KNO_OID_LO(addr));
-      lispval idstring = kno_lispstring(s);
+      lispval idstring = kno_wrapstring(s);
       if (kno_add(slotmap,id_symbol,idstring)<0) {
         kno_decref(results); kno_decref(idstring);
         return KNO_ERROR;}

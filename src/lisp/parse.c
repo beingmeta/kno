@@ -182,13 +182,20 @@ static int read_escape(u8_input in)
   case '\\': return '\\';
   case '\'': return '\'';
   case 'x': {
-    u8_byte buf[16]; int len;
-    u8_string parsed = u8_gets_x(buf,16,in,";",&len);
-    if (parsed) {
+    u8_byte buf[20]; int len = 0;
+    int c = u8_getc(in);
+    while ( (c>=0) && (isxdigit(c)) && (len<16) ) {
+      buf[len++]=c;
+      c=u8_getc(in);}
+    if (c == ';') {
       int code = -1;
       if (sscanf(buf,"%x",&code)<1) code = -1;
       return code;}
-    else return KNO_ERR2(-1,kno_BadEscapeSequence,"parse_unicode_escape");}
+    else {
+      if (c < 0x80) buf[len++]=c;
+      buf[len++]='\0';
+      return KNO_ERR3(-1,kno_BadEscapeSequence,"parse_unicode_escape(\\x)",
+                      buf);}}
   case 'u': {
     char buf[16]; int nc = u8_probec(in), len;
     if (nc=='{') {
@@ -267,7 +274,7 @@ int kno_add_constname(u8_string s,lispval value)
     else return -1;}
   else {
     u8_string d= (*s == '#') ? (u8_downcase(s+1)) : (u8_downcase(s));
-    lispval string=lispval_string(d);
+    lispval string=kno_mkstring(d);
     struct KNO_KEYVAL *added=
       kno_sortvec_insert(string,&constnames,
                         &n_constnames,&constnames_len,MAX_CONSTNAMES,
@@ -1432,7 +1439,7 @@ lispval kno_read_arg(u8_input in)
     int nextc=u8_probec(in);
     if (nextc<0) {
       char buf[2]="a"; buf[0]=c;
-      return lispval_string(buf);}
+      return kno_mkstring(buf);}
     else return kno_parser(in);}
   else if ( (c == '.') ||
             (c == '+') ||

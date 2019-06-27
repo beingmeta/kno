@@ -317,7 +317,7 @@ static lispval make_qid(u8_string eltname,u8_string namespace)
     U8_OUTPUT out; U8_INIT_OUTPUT(&out,32);
     u8_printf(&out,"{%s}%s",namespace,eltname);
     return kno_stream2string(&out);}
-  else return lispval_string(eltname);
+  else return kno_mkstring(eltname);
 }
 
 KNO_EXPORT lispval kno_make_qid(u8_string eltname,u8_string namespace)
@@ -386,14 +386,14 @@ static int process_nsattrib(KNO_XML *xml,u8_string name,u8_string val)
   if (EMPTYP(xml->xml_attribs)) init_node_attribs(xml);
   if (hasprefix("xmlns",name))
     if (strlen(name)==5) {
-      lispval nsval = lispval_string(val);
+      lispval nsval = kno_mkstring(val);
       xml->xml_namespace = u8_strdup(val);
       kno_add(xml->xml_attribs,xmlns_symbol,nsval);
       kno_decref(nsval);
       return 1;}
     else if ((nsprefix = (strchr(name,':')))) {
       lispval entry=
-        kno_conspair(lispval_string(nsprefix+1),lispval_string(val));
+        kno_conspair(kno_mkstring(nsprefix+1),kno_mkstring(val));
       ns_add(xml,nsprefix+1,val);
       kno_add(xml->xml_attribs,xmlns_symbol,entry);
       kno_decref(entry);
@@ -452,7 +452,7 @@ static void set_elt_name(KNO_XML *xml,u8_string name)
   lispval lispname = nsref2slotid(eltname);
   lispval qlispname = nsref2slotid(name);
   if ((ns) && ((xml->xml_bits&KNO_XML_NSFREE)==0)) {
-    lispval namespace = lispval_string(ns);
+    lispval namespace = kno_mkstring(ns);
     lispval qname = make_qid(eltname,ns);
     kno_store(xml->xml_attribs,rawtag_symbol,kno_intern(name));
     kno_add(xml->xml_attribs,namespace_symbol,namespace);
@@ -746,7 +746,7 @@ KNO_XML *kno_xml_push
 static lispval kno_lispify(u8_string arg)
 {
   if (*arg==':') return kno_parse(arg+1);
-  else return lispval_string(arg);
+  else return kno_mkstring(arg);
 }
 
 static lispval parse_attribname(u8_string string)
@@ -756,7 +756,7 @@ static lispval parse_attribname(u8_string string)
   else {
     u8_log(LOG_WARNING,"BadAttribName",
            "Trouble parsing attribute name %s",string);
-    return lispval_string(string);}
+    return kno_mkstring(string);}
 }
 
 static lispval attribids;
@@ -768,7 +768,7 @@ int kno_default_attribfn(KNO_XML *xml,u8_string name,u8_string val,int quote)
   lispval slotid = parse_attribname(name);
   lispval slotval = ((val)?
                   (((val[0]=='\0')||(val[0]=='#')) ?
-                   (lispval_string(val)) :
+                   (kno_mkstring(val)) :
                    (quote<0) ? (kno_lispify(val)) :
                    (kno_convert_entities(val,NULL))) :
                   (KNO_FALSE));
@@ -779,10 +779,10 @@ int kno_default_attribfn(KNO_XML *xml,u8_string name,u8_string val,int quote)
   if (namespace) {
     kno_add(xml->xml_attribs,parse_attribname(attrib_name),slotval);
     attrib_entry=
-      kno_make_nvector(3,lispval_string(name),make_qid(attrib_name,namespace),
+      kno_make_nvector(3,kno_mkstring(name),make_qid(attrib_name,namespace),
                       slotval);}
   else attrib_entry=
-         kno_make_nvector(3,lispval_string(name),KNO_FALSE,slotval);
+         kno_make_nvector(3,kno_mkstring(name),KNO_FALSE,slotval);
   kno_add(xml->xml_attribs,attribids,slotid);
   kno_add(xml->xml_attribs,attribs_symbol,attrib_entry);
   kno_decref(attrib_entry);

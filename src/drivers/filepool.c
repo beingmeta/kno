@@ -902,7 +902,7 @@ static lispval file_pool_ctl(kno_pool p,lispval op,int n,lispval *args)
     if (n==0) {
       if (!(fp->pool_label))
         return KNO_FALSE;
-      else return lispval_string(fp->pool_label);}
+      else return kno_mkstring(fp->pool_label);}
     else {
       lispval label = args[0];
       if (STRINGP(label))

@@ -2071,7 +2071,7 @@ static lispval bigpool_ctl(kno_pool p,lispval op,int n,lispval *args)
     if (n == 0) {
       if (p->pool_label)
         return KNO_FALSE;
-      else return lispval_string(p->pool_label);}
+      else return kno_mkstring(p->pool_label);}
     else if ( (n==1) && ( (KNO_STRINGP(args[0])) || (KNO_FALSEP(args[0]))) ) {
       if ( (p->pool_flags)&(KNO_STORAGE_READ_ONLY) )
         return kno_err(kno_ReadOnlyPool,"bigpool_ctl/label",p->poolid,args[0]);
@@ -2177,7 +2177,7 @@ static lispval bigpool_ctl(kno_pool p,lispval op,int n,lispval *args)
   else if (op == kno_load_op) {
     lispval loadval = args[0];
     if (KNO_UINTP(loadval)) {
-      lispval sessionid = lispval_string(u8_sessionid());
+      lispval sessionid = kno_mkstring(u8_sessionid());
       lispval timestamp = kno_make_timestamp(NULL);
       lispval record = kno_make_nvector(3,kno_incref(args[0]),timestamp,sessionid);
       kno_store(((lispval)(&(p->pool_metadata))),

@@ -287,7 +287,7 @@ static struct KNO_POOL_HANDLER netpool_handler={
 static void init_client_id()
 {
   u8_lock_mutex(&client_id_lock);
-  if (VOIDP(client_id)) client_id = lispval_string(u8_sessionid());
+  if (VOIDP(client_id)) client_id = kno_mkstring(u8_sessionid());
   u8_unlock_mutex(&client_id_lock);
 }
 

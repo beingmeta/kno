@@ -81,13 +81,13 @@ static lispval config_get_module_loc(lispval var,void *which_arg)
 #endif
   switch (which) {
   case LOCAL_MODULES:
-    return lispval_string(KNO_LOCAL_MODULE_DIR);
+    return kno_mkstring(KNO_LOCAL_MODULE_DIR);
   case INSTALLED_MODULES:
-    return lispval_string(KNO_INSTALLED_MODULE_DIR);
+    return kno_mkstring(KNO_INSTALLED_MODULE_DIR);
   case STDLIB_MODULES:
-    return lispval_string(KNO_STDLIB_MODULE_DIR);
+    return kno_mkstring(KNO_STDLIB_MODULE_DIR);
   case UNPACKAGE_DIR:
-    return lispval_string(KNO_UNPACKAGE_DIR);
+    return kno_mkstring(KNO_UNPACKAGE_DIR);
   default:
     return kno_err("Bad call","config_get_module_loc",NULL,VOID);}
 }

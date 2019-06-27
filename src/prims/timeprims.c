@@ -1085,7 +1085,7 @@ static lispval secs2string(lispval secs,lispval prec_arg)
     u8_printf(&out,"negative "); reduce = -seconds;}
   else if (seconds==0) {
     u8_free(out.u8_outbuf);
-    return lispval_string("0 seconds");}
+    return kno_mkstring("0 seconds");}
   else reduce = seconds;
   years = (int)floor(reduce/(365*24*3600));
   reduce = reduce-years*(365*24*3600);
@@ -1205,7 +1205,7 @@ static lispval secs2short(lispval secs)
     u8_printf(&out,"negative "); reduce = -seconds;}
   else if (seconds==0) {
     u8_free(out.u8_outbuf);
-    return lispval_string("0 seconds");}
+    return kno_mkstring("0 seconds");}
   else reduce = seconds;
   days = (int) (floor(reduce/(24*3600)));
   reduce = reduce-days*(3600*24);

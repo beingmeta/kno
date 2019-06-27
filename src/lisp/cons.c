@@ -404,11 +404,11 @@ lispval kno_block_string(int len,u8_string string)
 }
 
 KNO_EXPORT
-/* lispval_string:
+/* kno_mkstring:
     Arguments: a C string (u8_string)
     Returns: a lisp string
   */
-lispval lispval_string(u8_string string)
+lispval kno_mkstring(u8_string string)
 {
   return kno_make_string(NULL,-1,string);
 }

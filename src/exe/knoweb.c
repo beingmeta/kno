@@ -1668,7 +1668,7 @@ static void shutdown_servlet(u8_condition reason)
 static lispval servlet_status_string()
 {
   u8_string status = u8_server_status(&kno_servlet,NULL,0);
-  return kno_lispstring(status);
+  return kno_wrapstring(status);
 }
 
 /* Making sure you can write the socket file */

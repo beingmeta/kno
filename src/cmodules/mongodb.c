@@ -3029,7 +3029,7 @@ static void add_to_mongo_opmap(u8_string keystring)
                       MONGO_OPMAP_MAX,
                       1);
   if (entry)
-    entry->kv_val = lispval_string(keystring);
+    entry->kv_val = kno_mkstring(keystring);
   else u8_logf(LOG_ERR,"Couldn't add %s to the mongo opmap",keystring);
 }
 
@@ -3119,21 +3119,21 @@ static lispval mongodb_dbname(lispval arg)
 {
   struct KNO_MONGODB_DATABASE *db = getdb(arg,"mongodb_dbname");
   if (db == NULL) return KNO_ERROR_VALUE;
-  else return lispval_string(db->dbname);
+  else return kno_mkstring(db->dbname);
 }
 
 static lispval mongodb_spec(lispval arg)
 {
   struct KNO_MONGODB_DATABASE *db = getdb(arg,"mongodb_spec");
   if (db == NULL) return KNO_ERROR_VALUE;
-  else return lispval_string(db->dbspec);
+  else return kno_mkstring(db->dbspec);
 }
 
 static lispval mongodb_uri(lispval arg)
 {
   struct KNO_MONGODB_DATABASE *db = getdb(arg,"mongodb_uri");
   if (db == NULL) return KNO_ERROR_VALUE;
-  else return lispval_string(db->dburi);
+  else return kno_mkstring(db->dburi);
 }
 
 static lispval mongodb_getopts(lispval arg)
@@ -3241,7 +3241,7 @@ static void add_string(lispval result,lispval field,u8_string value)
 {
   if (value == NULL) return;
   else {
-    lispval stringval = lispval_string(value);
+    lispval stringval = kno_mkstring(value);
     kno_add(result,field,stringval);
     kno_decref(stringval);
     return;}

@@ -56,7 +56,7 @@ DCLPRIM("GETHOSTNAME",hostname_prim,0,
         "Gets the assigned name for this computer")
 static lispval hostname_prim()
 {
-  return kno_lispstring(u8_gethostname());
+  return kno_wrapstring(u8_gethostname());
 }
 
 DCLPRIM1("HOSTADDRS",hostaddrs_prim,0,
@@ -96,7 +96,7 @@ static lispval getenv_prim(lispval var)
   u8_string enval = u8_getenv(CSTRING(var));
   if (enval == NULL)
     return KNO_FALSE;
-  else return kno_lispstring(enval);
+  else return kno_wrapstring(enval);
 }
 
 static lispval getenv_macro(lispval expr,kno_lexenv env,kno_stack ptr)
@@ -108,7 +108,7 @@ static lispval getenv_macro(lispval expr,kno_lexenv env,kno_stack ptr)
       (u8_getenv(CSTRING(var)));
     if (enval == NULL)
       return KNO_FALSE;
-    else return kno_lispstring(enval);}
+    else return kno_wrapstring(enval);}
   else return kno_err(kno_TypeError,"getenv_macro","string or symbol",var);
 }
 
@@ -565,7 +565,7 @@ static lispval getprocstring_prim()
 {
   unsigned char buf[128];
   unsigned char *pinfo = u8_procinfo(buf);
-  return lispval_string(pinfo);
+  return kno_mkstring(pinfo);
 }
 
 DCLPRIM("MEMUSAGE",memusage_prim,0,

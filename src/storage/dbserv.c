@@ -335,7 +335,7 @@ static void update_server_lock_file()
 static lispval config_get_locksfile(lispval var,void U8_MAYBE_UNUSED *data)
 {
   if (locks_filename) return KNO_FALSE;
-  else return lispval_string(locks_filename);
+  else return kno_mkstring(locks_filename);
 }
 
 static int config_set_locksfile(lispval var,lispval val,void U8_MAYBE_UNUSED *data)
@@ -600,7 +600,7 @@ static lispval server_pool_data(lispval session_id)
     lispval ro = (U8_BITP(p->pool_flags,KNO_STORAGE_READ_ONLY)) ? (KNO_FALSE) : (KNO_TRUE);
     elts[i++]=
       ((p->pool_label) ?
-       (kno_make_list(4,base,capacity,ro,lispval_string(p->pool_label))) :
+       (kno_make_list(4,base,capacity,ro,kno_mkstring(p->pool_label))) :
        (kno_make_list(3,base,capacity,ro)));}
   return kno_wrap_vector(len,elts);
 }

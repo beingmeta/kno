@@ -1099,7 +1099,7 @@ static lispval itoa_prim(lispval arg,lispval base_arg)
       else if (base==16) u8_uitoa16(n,buf);
       else return kno_type_error("16,10,or 8","itoa_prim",base_arg);}
     else return kno_type_error("smallish bigint","itoa_prim",arg);}
-  return lispval_string(buf);
+  return kno_mkstring(buf);
 }
 
 /* string/int conversions */
@@ -1117,7 +1117,7 @@ static lispval inexact2string(lispval x,lispval precision)
       else if (sprintf(buf,cmd,KNO_FLONUM(x)) < 1) {
         u8_seterr("Bad precision","inexact2string",NULL);
         return KNO_ERROR_VALUE;}
-      return lispval_string(buf);}
+      return kno_mkstring(buf);}
     else return kno_type_error("fixnum","inexact2string",precision);
   else {
     U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
@@ -1142,12 +1142,12 @@ static lispval number2locale(lispval x,lispval precision)
       char buf[128]; char cmd[16];
       sprintf(cmd,"%%'.%df",prec);
       sprintf(buf,cmd,KNO_FLONUM(x));
-      return lispval_string(buf);}
+      return kno_mkstring(buf);}
     else return kno_type_error("fixnum","inexact2string",precision);
   else if (FIXNUMP(x)) {
     long long i_val = FIX2INT(x);
     char tmpbuf[32];
-    return lispval_string(u8_itoa10(i_val,tmpbuf));}
+    return kno_mkstring(u8_itoa10(i_val,tmpbuf));}
   else {
     U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
     kno_unparse(&out,x);

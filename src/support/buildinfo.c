@@ -25,7 +25,7 @@ static lispval _kno_features_symbol;
 
 static void config_string_helper(u8_string var,u8_string val)
 {
-  lispval string=lispval_string(val);
+  lispval string=kno_mkstring(val);
   kno_store(build_info,kno_intern(var),string);
   kno_decref(string);
 }

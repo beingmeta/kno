@@ -361,7 +361,7 @@ KNO_EXPORT int kno_register_pool(kno_pool p)
 static void register_pool_label(kno_pool p)
 {
   u8_string base = u8_string_subst(p->pool_label,"/","_"), dot;
-  lispval full = lispval_string(base);
+  lispval full = kno_mkstring(base);
   lispval lisp_arg = kno_pool2lisp(p);
   lispval probe = kno_hashtable_get(&poolid_table,full,EMPTY);
   if (EMPTYP(probe))
@@ -2487,7 +2487,7 @@ KNO_EXPORT lispval kno_default_poolctl(kno_pool p,lispval op,int n,lispval *args
     if (n==0) {
       if (!(p->pool_label))
         return KNO_FALSE;
-      else return lispval_string(p->pool_label);}
+      else return kno_mkstring(p->pool_label);}
     else return KNO_FALSE;}
   else if (op == KNOSYM_OPTS)  {
     lispval opts = p->pool_opts;

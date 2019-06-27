@@ -1457,14 +1457,14 @@ static lispval seq2packet(lispval seq)
 static lispval x2string(lispval seq)
 {
   if (SYMBOLP(seq))
-    return lispval_string(SYM_NAME(seq));
+    return kno_mkstring(SYM_NAME(seq));
   else if (KNO_CHARACTERP(seq)) {
     int c = KNO_CHAR2CODE(seq);
     U8_OUTPUT out; u8_byte buf[16];
     U8_INIT_STATIC_OUTPUT_BUF(out,16,buf);
     u8_putc(&out,c);
-    return lispval_string(out.u8_outbuf);}
-  else if (NILP(seq)) return lispval_string("");
+    return kno_mkstring(out.u8_outbuf);}
+  else if (NILP(seq)) return kno_mkstring("");
   else if (STRINGP(seq)) return kno_incref(seq);
   else if (KNO_SEQUENCEP(seq)) {
     U8_OUTPUT out;

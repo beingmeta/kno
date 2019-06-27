@@ -1124,8 +1124,8 @@ int main(int argc,char **argv)
      environment. */
   kno_setapp(server_spec,state_dir);
   if (source_file) {
-    lispval interpreter = kno_lispstring(u8_fromlibc(argv[0]));
-    lispval src = kno_lispstring(u8_realpath(source_file,NULL));
+    lispval interpreter = kno_wrapstring(u8_fromlibc(argv[0]));
+    lispval src = kno_wrapstring(u8_realpath(source_file,NULL));
     kno_set_config("INTERPRETER",interpreter);
     kno_set_config("SOURCE",src);
     kno_decref(interpreter); kno_decref(src);}

@@ -284,9 +284,9 @@ static lispval get_colvalue
     int ret = SQLGetData(stmt,i+1,SQL_C_CHAR,data,colsize+1,&clen);
     if (SQL_SUCCEEDED(ret)) {
       if (clen*2<colsize) {
-        result = lispval_string(data);
+        result = kno_mkstring(data);
         u8_free(data);}
-      else result = kno_lispstring(data);
+      else result = kno_wrapstring(data);
       break;}
     else return stmt_error(stmt,"get_colvalue",0);}
   case SQL_BIGINT: {

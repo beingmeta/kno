@@ -190,7 +190,7 @@ static lispval portid_prim(lispval port_arg)
   if (KNO_PORTP(port_arg)) {
     struct KNO_PORT *port = (struct KNO_PORT *)port_arg;
     if (port->port_id)
-      return lispval_string(port->port_id);
+      return kno_mkstring(port->port_id);
     else return KNO_FALSE;}
   else return kno_type_error(_("port"),"portid",port_arg);
 }

@@ -84,8 +84,7 @@
 (define yesterday (timestamp+ (* 3600 -24)))
 (define b-uuid (getuuid 42 yesterday))
 (applytest 42 (uuid-node b-uuid))
-;;(applytest yesterday (uuid-time b-uuid))
-;;; TODO: Need to see why this doesn't work
+(applytest yesterday (uuid-time b-uuid))
 
 (applytest-pred string? timestring)
 (applytest "02:05:00" secs->short (+ (* 3600 2) (* 60 5)))

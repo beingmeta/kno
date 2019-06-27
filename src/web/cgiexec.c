@@ -60,15 +60,15 @@ static lispval try_parse(u8_string buf)
 {
   lispval val = kno_parse((buf[0]==':')?(buf+1):(buf));
   if (KNO_ABORTP(val)) {
-    kno_decref(val); return lispval_string(buf);}
+    kno_decref(val); return kno_mkstring(buf);}
   else return val;
 }
 
 static lispval buf2lisp(char *buf,int isascii)
 {
   if (buf[0]!=':')
-    if (isascii) return lispval_string(buf);
-    else return kno_lispstring(u8_valid_copy(buf));
+    if (isascii) return kno_mkstring(buf);
+    else return kno_wrapstring(u8_valid_copy(buf));
   else if (isascii) return try_parse(buf);
   else {
     u8_string s = u8_valid_copy(buf);
@@ -89,8 +89,8 @@ static lispval buf2slotid(char *buf,int isascii)
 
 static lispval buf2string(char *buf,int isascii)
 {
-  if (isascii) return lispval_string(buf);
-  else return kno_lispstring(u8_valid_copy(buf));
+  if (isascii) return kno_mkstring(buf);
+  else return kno_wrapstring(u8_valid_copy(buf));
 }
 
 static void emit_uri_value(u8_output out,lispval val)
@@ -386,7 +386,7 @@ static void parse_query_string(kno_slotmap c,const char *data,int len)
     isascii = 1;
     scan++;}
   else if (!(VOIDP(slotid))) {
-    lispval str = lispval_string("");
+    lispval str = kno_mkstring("");
     kno_slotmap_add(c,slotid,str);
     kno_decref(str);}
   if (q->n_slots) {
@@ -429,7 +429,7 @@ static void convert_cookie_arg(kno_slotmap c)
       if ((VOIDP(slotid)) && (*scan=='=')) {
         /* There's an assignment going on. */
         *write++='\0';
-        name = lispval_string(buf);
+        name = kno_mkstring(buf);
         if ((buf[0]=='_')||(strncmp(buf,"HTTP",4)==0)) badcookie = 1;
         else badcookie = 0;
         if (isascii) slotid = kno_parse(buf);
@@ -727,7 +727,7 @@ static lispval clearcookie
     return kno_type_error("symbol","setcookie",var);
   else {
     lispval cookiedata;
-    lispval val = lispval_string("");
+    lispval val = kno_mkstring("");
     time_t past = time(NULL)-(3600*24*7*50);
     lispval expires = kno_time2timestamp(past);
     if (VOIDP(domain)) domain = KNO_FALSE;
@@ -1088,16 +1088,16 @@ static lispval cgigetvar(lispval cgidata,lispval var)
         kno_decref(parsed); return val;}}
     else if (*data == ':')
       if (data[1]=='\0')
-        return lispval_string(data);
+        return kno_mkstring(data);
       else {
         lispval arg = kno_parse(data+1);
         if (KNO_ABORTP(arg)) {
           u8_log(LOG_WARN,kno_ParseArgError,"Bad colon spec arg '%s'",arg);
           kno_clear_errors(1);
-          return lispval_string(data);}
+          return kno_mkstring(data);}
         else return arg;}
     else if (*data == '\\') {
-      lispval shorter = lispval_string(data+1);
+      lispval shorter = kno_mkstring(data+1);
       kno_decref(val);
       return shorter;}
     else return val;}
@@ -1108,7 +1108,7 @@ static lispval cgigetvar(lispval cgidata,lispval var)
         kno_incref(v); CHOICE_ADD(result,v);}
       else {
         u8_string data = CSTRING(v); lispval parsed = v;
-        if (*data=='\\') parsed = lispval_string(data+1);
+        if (*data=='\\') parsed = kno_mkstring(data+1);
         else if ((*data==':')&&(data[1]=='\0')) {kno_incref(parsed);}
         else if (*data==':')
           parsed = kno_parse(data+1);
@@ -1421,8 +1421,8 @@ KNO_EXPORT void kno_init_cgiexec_c()
   class_symbol = kno_intern("class");
 
   post_data_slotid = kno_intern("post_data");
-  multipart_form_data = lispval_string("multipart/form-data");
-  www_form_urlencoded = lispval_string("application/x-www-form-urlencoded");
+  multipart_form_data = kno_mkstring("multipart/form-data");
+  www_form_urlencoded = kno_mkstring("application/x-www-form-urlencoded");
 
   filename_slotid = kno_intern("filename");
   name_slotid = kno_intern("name");

@@ -1989,7 +1989,7 @@ static lispval x2vec_getclusters_prim(lispval arg,lispval n_clusters,lispval n_r
   vocab_i=0; while (vocab_i<vocab_size) {
     int cluster_id=word2cluster[vocab_i]; 
     if (cluster_id<n) {
-      lispval string=lispval_string(vocab[vocab_i].word);
+      lispval string=kno_mkstring(vocab[vocab_i].word);
       kno_hashset_add_raw(sets[cluster_id],string); 
       kno_decref(string);}
     else {

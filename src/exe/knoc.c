@@ -904,7 +904,7 @@ int main(int argc,char **argv)
   /* This is argv[0], the name of the executable by which we
      entered knoc. */
   {
-    lispval interpval = kno_lispstring(u8_fromlibc(argv[0]));
+    lispval interpval = kno_wrapstring(u8_fromlibc(argv[0]));
     kno_set_config("INTERPRETER",interpval);
     kno_decref(interpval);}
 

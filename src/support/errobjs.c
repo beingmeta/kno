@@ -588,7 +588,7 @@ static ssize_t write_exception_dtype(struct KNO_OUTBUF *out,lispval x)
     KNO_VECTOR_SET(vector,1,kno_intern(caller));}
   else {KNO_VECTOR_SET(vector,1,KNO_FALSE);}
   if (details) {
-    KNO_VECTOR_SET(vector,2,lispval_string(details));}
+    KNO_VECTOR_SET(vector,2,kno_mkstring(details));}
   else {KNO_VECTOR_SET(vector,2,KNO_FALSE);}
   KNO_VECTOR_SET(vector,3,kno_incref(irritant));
   if (!(VOIDP(backtrace)))

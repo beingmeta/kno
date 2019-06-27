@@ -431,8 +431,8 @@ static void init_dloadpath()
 {
   u8_string tmp = u8_getenv("KNO_INIT_DLOADPATH"); lispval strval;
   if (tmp == NULL)
-    strval = lispval_string(KNO_DEFAULT_DLOADPATH);
-  else strval = kno_lispstring(tmp);
+    strval = kno_mkstring(KNO_DEFAULT_DLOADPATH);
+  else strval = kno_wrapstring(tmp);
   dloadpath = kno_init_pair(NULL,strval,dloadpath);
   if ((tmp)||(trace_dload)||(getenv("KNO_DLOAD:TRACE")))
     u8_log(LOG_INFO,"DynamicLoadPath","Initialized to %q",
@@ -870,7 +870,7 @@ static lispval get_source(lispval arg)
   lispval ids = KNO_EMPTY;
   if (KNO_VOIDP(arg)) {
     u8_string path = kno_sourcebase();
-    if (path) return lispval_string(path);
+    if (path) return kno_mkstring(path);
     else return KNO_FALSE;}
   else if (KNO_LEXENVP(arg)) {
     kno_lexenv envptr = kno_consptr(kno_lexenv,arg,kno_lexenv_type);
@@ -906,7 +906,7 @@ static lispval get_source(lispval arg)
   else if (TYPEP(arg,kno_evalfn_type)) {
     struct KNO_EVALFN *sf = (kno_evalfn) kno_fcnid_ref(arg);
     if (sf->evalfn_filename)
-      return lispval_string(sf->evalfn_filename);
+      return kno_mkstring(sf->evalfn_filename);
     else return KNO_FALSE;}
   else if (KNO_TYPEP(arg,kno_macro_type)) {
     struct KNO_FUNCTION *f = (kno_function) kno_fcnid_ref(arg);

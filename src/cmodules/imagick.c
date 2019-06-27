@@ -250,7 +250,7 @@ static lispval imagick_table_get(lispval knomagick,lispval field,lispval dflt)
   MagickWand *wand = wrapper->wand;
   if (KNO_EQ(field,format)) {
     const char *fmt = MagickGetImageFormat(wand);
-    return lispval_string((char *)fmt);}
+    return kno_mkstring((char *)fmt);}
 #if (MagickLibVersion>0x670)
   else if (KNO_EQ(field,resolution)) {
     double x = 0, y = 0;

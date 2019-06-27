@@ -150,7 +150,7 @@ static lispval zipmake_prim(lispval filename)
 static lispval zipfilename_prim(lispval zipfile)
 {
   struct KNO_ZIPFILE *zf = kno_consptr(kno_zipfile,zipfile,kno_zipfile_type);
-  return lispval_string(zf->filename);
+  return kno_mkstring(zf->filename);
 }
 
 static lispval close_zipfile(lispval zipfile)
@@ -431,7 +431,7 @@ static lispval zipgetfiles_prim(lispval zipfile)
       u8_string name = (u8_string)zip_get_name(zf->zip,i,0);
       if (!(name)) i++;
       else {
-        lispval lname = lispval_string(name);
+        lispval lname = kno_mkstring(name);
         KNO_ADD_TO_CHOICE(files,lname);
         i++;}}
     u8_unlock_mutex(&(zf->zipfile_lock));

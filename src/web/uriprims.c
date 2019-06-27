@@ -151,7 +151,7 @@ lispval kno_parse_uri(u8_string uri,lispval base)
     assign_substring(f,scheme_symbol,start,colon);
     start = colon+1;}
   if (default_portno<0) {
-    kno_add(f,pathstring_symbol,lispval_string(start));
+    kno_add(f,pathstring_symbol,kno_mkstring(start));
     return f;}
   if ((start[0]=='/') && (start[1]=='/')) {
     u8_string atsign = strchr(start,'@');
@@ -415,9 +415,9 @@ static lispval mkuripath_prim(lispval dirname,lispval name)
     else {
       memcpy(buf,dir,host_len); buf[host_len]='\0'; dir = buf;}}
   if (VOIDP(config_val))
-    return kno_lispstring(u8_mkpath(dir,namestring));
+    return kno_wrapstring(u8_mkpath(dir,namestring));
   else {
-    lispval result = kno_lispstring(u8_mkpath(dir,namestring));
+    lispval result = kno_wrapstring(u8_mkpath(dir,namestring));
     kno_decref(config_val);
     return result;}
 }

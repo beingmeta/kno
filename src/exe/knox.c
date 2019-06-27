@@ -319,7 +319,7 @@ int do_main(int argc,char **argv,
   kno_idefn((lispval)env,kno_make_cprimn("CHAIN",chain_prim,0));
 
   if (source_file) {
-    lispval src = kno_lispstring(u8_realpath(source_file,NULL));
+    lispval src = kno_wrapstring(u8_realpath(source_file,NULL));
     result = kno_load_source(source_file,env,NULL);
 
     kno_set_config("SOURCE",src);
@@ -416,7 +416,7 @@ int main(int argc,char **argv)
   U8_SETBITS(_stack->stack_flags,KNO_STACK_FREE_LABEL);
 
   if (source_file)
-    exec_script = kno_lispstring(source_file);
+    exec_script = kno_wrapstring(source_file);
 
   retval = do_main(argc,argv,exe_name,source_file,args,n_args);
 

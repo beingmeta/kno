@@ -394,16 +394,16 @@ static lispval filestring_prim(lispval filename,lispval enc)
   if ((VOIDP(enc))||(FALSEP(enc))) {
     u8_string data = u8_filestring(CSTRING(filename),"UTF-8");
     if (data)
-      return kno_lispstring(data);
+      return kno_wrapstring(data);
     else return KNO_ERROR;}
   else if (KNO_TRUEP(enc)) {
     u8_string data = u8_filestring(CSTRING(filename),"auto");
-    if (data) return kno_lispstring(data);
+    if (data) return kno_wrapstring(data);
     else return KNO_ERROR;}
   else if (STRINGP(enc)) {
     u8_string data = u8_filestring(CSTRING(filename),CSTRING(enc));
     if (data)
-      return kno_lispstring(data);
+      return kno_wrapstring(data);
     else return KNO_ERROR;}
   else return kno_err(kno_UnknownEncoding,"FILESTRING",NULL,enc);
 }
@@ -491,7 +491,7 @@ static lispval file_abspath(lispval arg,lispval wd)
   if (VOIDP(wd))
     result = u8_abspath(CSTRING(arg),NULL);
   else result = u8_abspath(CSTRING(arg),CSTRING(wd));
-  if (result) return kno_lispstring(result);
+  if (result) return kno_wrapstring(result);
   else return KNO_ERROR;
 }
 
@@ -501,7 +501,7 @@ static lispval file_realpath(lispval arg,lispval wd)
   if (VOIDP(wd))
     result = u8_realpath(CSTRING(arg),NULL);
   else result = u8_realpath(CSTRING(arg),CSTRING(wd));
-  if (result) return kno_lispstring(result);
+  if (result) return kno_wrapstring(result);
   else return KNO_ERROR;
 }
 
@@ -511,7 +511,7 @@ static lispval file_readlink(lispval arg,lispval abs,lispval err)
   if (FALSEP(abs))
     result = u8_getlink(CSTRING(arg),0);
   else result = u8_getlink(CSTRING(arg),1);
-  if (result) return kno_lispstring(result);
+  if (result) return kno_wrapstring(result);
   else if (KNO_TRUEP(err))
     return KNO_ERROR;
   else {
@@ -522,10 +522,10 @@ static lispval file_readlink(lispval arg,lispval abs,lispval err)
 static lispval path_basename(lispval arg,lispval suffix)
 {
   if ((VOIDP(suffix)) || (FALSEP(suffix)))
-    return kno_lispstring(u8_basename(CSTRING(arg),NULL));
+    return kno_wrapstring(u8_basename(CSTRING(arg),NULL));
   else if (STRINGP(suffix))
-    return kno_lispstring(u8_basename(CSTRING(arg),CSTRING(suffix)));
-  else return kno_lispstring(u8_basename(CSTRING(arg),"*"));
+    return kno_wrapstring(u8_basename(CSTRING(arg),CSTRING(suffix)));
+  else return kno_wrapstring(u8_basename(CSTRING(arg),"*"));
 }
 
 static lispval path_suffix(lispval arg,lispval dflt)
@@ -534,15 +534,15 @@ static lispval path_suffix(lispval arg,lispval dflt)
   u8_string slash = strrchr(s,'/');
   u8_string dot = strrchr(s,'.');
   if ((dot)&&((!(slash))||(slash<dot)))
-    return lispval_string(dot);
+    return kno_mkstring(dot);
   else if (VOIDP(dflt))
-    return lispval_string("");
+    return kno_mkstring("");
   else return kno_incref(dflt);
 }
 
 static lispval path_dirname(lispval arg)
 {
-  return kno_lispstring(u8_dirname(CSTRING(arg)));
+  return kno_wrapstring(u8_dirname(CSTRING(arg)));
 }
 
 static lispval path_location(lispval arg)
@@ -572,9 +572,9 @@ static lispval mkpath_prim(lispval dirname,lispval name)
   else return kno_type_error
          (_("string or string CONFIG var"),"mkpath_prim",dirname);
   if (VOIDP(config_val))
-    return kno_lispstring(u8_mkpath(dir,namestring));
+    return kno_wrapstring(u8_mkpath(dir,namestring));
   else {
-    lispval result = kno_lispstring(u8_mkpath(dir,namestring));
+    lispval result = kno_wrapstring(u8_mkpath(dir,namestring));
     kno_decref(config_val);
     return result;}
 }
@@ -583,7 +583,7 @@ static lispval mkpath_prim(lispval dirname,lispval name)
 
 static lispval runfile_prim(lispval suffix)
 {
-  return kno_lispstring(kno_runbase_filename(CSTRING(suffix)));
+  return kno_wrapstring(kno_runbase_filename(CSTRING(suffix)));
 }
 
 /* Making directories */
@@ -642,11 +642,11 @@ static char *get_tmpdir()
 static lispval temproot_get(lispval sym,void *ignore)
 {
   if (tempdir_template)
-    return lispval_string(tempdir_template);
+    return kno_mkstring(tempdir_template);
   else {
     char *tmpdir = get_tmpdir();
     u8_string tmp = u8_mkpath(tmpdir,"knotempXXXXXX");
-    lispval result = lispval_string(tmp);
+    lispval result = kno_mkstring(tmp);
     u8_free(tmp);
     return result;}
 }
@@ -969,7 +969,7 @@ static lispval file_size(lispval filename)
 static lispval file_owner(lispval filename)
 {
   u8_string name = u8_file_owner(CSTRING(filename));
-  if (name) return kno_lispstring(name);
+  if (name) return kno_wrapstring(name);
   else return KNO_ERROR;
 }
 
@@ -1011,7 +1011,7 @@ static lispval set_file_access_prim(lispval filename,
 static lispval getcwd_prim()
 {
   u8_string wd = u8_getcwd();
-  if (wd) return kno_lispstring(wd);
+  if (wd) return kno_wrapstring(wd);
   else return KNO_ERROR;
 }
 
@@ -1031,7 +1031,7 @@ static lispval getfiles_prim(lispval dirname,lispval fullpath)
     u8_getfiles(CSTRING(dirname),(!(FALSEP(fullpath)))), *scan = contents;
   if (contents == NULL) return KNO_ERROR;
   else while (*scan) {
-    lispval string = kno_lispstring(*scan);
+    lispval string = kno_wrapstring(*scan);
     CHOICE_ADD(results,string);
     scan++;}
   u8_free(contents);
@@ -1045,7 +1045,7 @@ static lispval getdirs_prim(lispval dirname,lispval fullpath)
     u8_getdirs(CSTRING(dirname),(!(FALSEP(fullpath)))), *scan = contents;
   if (contents == NULL) return KNO_ERROR;
   else while (*scan) {
-    lispval string = kno_lispstring(*scan);
+    lispval string = kno_wrapstring(*scan);
     CHOICE_ADD(results,string);
     scan++;}
   u8_free(contents);
@@ -1060,7 +1060,7 @@ static lispval getlinks_prim(lispval dirname,lispval fullpath)
     *scan = contents;
   if (contents == NULL) return KNO_ERROR;
   else while (*scan) {
-    lispval string = kno_lispstring(*scan);
+    lispval string = kno_wrapstring(*scan);
     CHOICE_ADD(results,string);
     scan++;}
   u8_free(contents);
@@ -1075,7 +1075,7 @@ static lispval readdir_prim(lispval dirname,lispval fullpath)
     *scan = contents;
   if (contents == NULL) return KNO_ERROR;
   else while (*scan) {
-    lispval string = kno_lispstring(*scan);
+    lispval string = kno_wrapstring(*scan);
     CHOICE_ADD(results,string);
     scan++;}
   u8_free(contents);
@@ -1541,7 +1541,7 @@ KNO_EXPORT void stackdump_dump(u8_string dump)
 static lispval stackdump_config_get(lispval var,void *ignored)
 {
   if (stackdump_filename)
-    return lispval_string(stackdump_filename);
+    return kno_mkstring(stackdump_filename);
   else return KNO_FALSE;
 }
 static int stackdump_config_set(lispval var,lispval val,void *ignored)

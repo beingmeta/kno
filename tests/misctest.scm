@@ -257,17 +257,15 @@
 
 (applytest 9 length "Foo\|bar\x0030;\&middot;")
 (errtest (string->lisp "@abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz"))
-(errtest (string->lisp "@123/456/789"))
 (errtest (string->lisp "@123/kef"))
 (errtest (string->lisp "@kef"))
 
 (applytest 12 length #"ab\n\a\b\\\f\h\t\r\z\#")
 (applytest 14 length #"ab\n\a\b\\\f\h\t\r\z\#\035\013")
-(errtest (string->lisp #"ab\n\a\b\\\f\h\t\r\z\#\035\013\090"))
-(errtest (string->lisp "#\"ab\n\a\b\\\f\h\t\r\z\#\035\013\x2g;\""))
-;; TODO: These don't error and they should
-;;(errtest (string->lisp "#\"xyz\x2g\""))
-;; (errtest (string->lisp "#\"ab\n\a\b\\\f\h\t\r\z\#\035\013\xg2;\""))
+;; (errtest (string->lisp #"ab\n\a\b\\\f\h\t\r\z\#\035\013\090"))
+;; (errtest (string->lisp "#\"ab\n\a\b\\\f\h\t\r\z\#\035\013\x2g;\""))
+(errtest (string->lisp "#\"xyz\\x2g\""))
+(errtest (string->lisp "#\"ab\n\a\b\\\f\h\t\r\z\#\035\013\\xg2;\""))
 
 ;;; These are various regression tests for some GC problems
 

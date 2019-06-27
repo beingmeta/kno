@@ -454,7 +454,7 @@ KNO_EXPORT lispval kno_interpret_value(lispval expr)
         return kno_make_string(NULL,-1,sourcepath);
       else if (KNO_STRINGP(arg)) {
         u8_string str = kno_get_component(KNO_CSTRING(arg));
-        return kno_lispstring(str);}
+        return kno_wrapstring(str);}
       else return kno_incref(expr);}
     else if (head == config_macro) {
       if (KNO_SYMBOLP(arg)) {
@@ -624,7 +624,7 @@ KNO_EXPORT int kno_lconfig_push(lispval ignored,lispval v,void *lispp)
 KNO_EXPORT lispval kno_sconfig_get(lispval ignored,void *vptr)
 {
   u8_string *ptr = vptr;
-  if (*ptr) return lispval_string(*ptr);
+  if (*ptr) return kno_mkstring(*ptr);
   else return EMPTY;
 }
 KNO_EXPORT int kno_sconfig_set(lispval ignored,lispval v,void *vptr)
@@ -838,18 +838,18 @@ KNO_EXPORT int kno_boolstring(u8_string string,int dflt)
 
 static lispval knoversion_config_get(lispval var,void *data)
 {
-  return lispval_string(KNO_VERSION);
+  return kno_mkstring(KNO_VERSION);
 }
 static lispval knorevision_config_get(lispval var,void *data)
 {
-  return lispval_string(KNO_REVISION);
+  return kno_mkstring(KNO_REVISION);
 }
 static lispval knobranch_config_get(lispval var,void *data)
 {
 #ifdef KNO_BRANCH
-  return lispval_string(KNO_BRANCH);
+  return kno_mkstring(KNO_BRANCH);
 #else
-  return lispval_string("unknown_branch");
+  return kno_mkstring("unknown_branch");
 #endif
 }
 static lispval knomajor_config_get(lispval var,void *data)
@@ -858,11 +858,11 @@ static lispval knomajor_config_get(lispval var,void *data)
 }
 static lispval u8version_config_get(lispval var,void *data)
 {
-  return lispval_string(u8_getversion());
+  return kno_mkstring(u8_getversion());
 }
 static lispval u8revision_config_get(lispval var,void *data)
 {
-  return lispval_string(u8_getrevision());
+  return kno_mkstring(u8_getrevision());
 }
 static lispval u8major_config_get(lispval var,void *data)
 {
@@ -903,7 +903,7 @@ KNO_EXPORT int kno_loglevelconfig_set(lispval var,lispval val,void *data)
 static lispval cwd_config_get(lispval var,void *data)
 {
   u8_string wd = u8_getcwd();
-  if (wd) return kno_lispstring(wd);
+  if (wd) return kno_wrapstring(wd);
   else return KNO_ERROR;
 }
 
