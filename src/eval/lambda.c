@@ -644,8 +644,7 @@ static lispval sambda_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 static lispval thunk_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval body = kno_get_body(expr,1);
-  lispval proc = VOID;
-  return make_lambda(NULL,NIL,body,env,0,0,0);
+  lispval proc = make_lambda(NULL,NIL,body,env,0,0,0);
   KNO_SET_LAMBDA_SOURCE(proc,expr);
   return proc;
 }
@@ -684,12 +683,16 @@ static lispval define_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
         return value;
       else if (kno_bind_value(var,value,env)>=0) {
         lispval fvalue = (KNO_FCNIDP(value))?(kno_fcnid_ref(value)):(value);
-        if (KNO_FUNCTIONP(fvalue)) init_definition(fvalue,expr,env);
-        if (KNO_MACROP(fvalue)) {
+        if (KNO_FUNCTIONP(fvalue))
+          init_definition(fvalue,expr,env);
+        else if (KNO_MACROP(fvalue)) {
           struct KNO_MACRO *macro = (kno_macro) fvalue;
           if (KNO_VOIDP(macro->macro_moduleid)) {
             macro->macro_moduleid =
-              kno_get(env->env_bindings,moduleid_symbol,KNO_VOID);}}
+              kno_get(env->env_bindings,moduleid_symbol,KNO_VOID);}
+          if (macro->macro_name == NULL)
+            macro->macro_name = u8_strdup(KNO_SYMBOL_NAME(var));}
+        else NO_ELSE;
         kno_decref(value);
         return VOID;}
       else {
@@ -707,11 +710,6 @@ static lispval define_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       else if (kno_bind_value(fn_name,value,env)>=0) {
         lispval fvalue = (KNO_FCNIDP(value))?(kno_fcnid_ref(value)):(value);
         if (KNO_FUNCTIONP(fvalue)) init_definition(fvalue,expr,env);
-        if (KNO_MACROP(fvalue)) {
-          struct KNO_MACRO *macro = (kno_macro) fvalue;
-          if (KNO_VOIDP(macro->macro_moduleid)) {
-            macro->macro_moduleid =
-              kno_get(env->env_bindings,moduleid_symbol,KNO_VOID);}}
         kno_decref(value);
         return VOID;}
       else {
