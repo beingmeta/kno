@@ -1381,10 +1381,13 @@ kno_fetch_chunk_ref(struct KNO_STREAM *stream,
       result.off = ((((ll)((word2)&(0xFF000000)))<<8)|word1);
       result.size = (ll)((word2)&(0x00FFFFFF));}
       break;
-    case KNO_B64:
-      result.off = kno_read_8bytes(in);
+    case KNO_B64: {
+      unsigned int word1, word2;
+      word1 = kno_read_4bytes(in);
+      word2 = kno_read_4bytes(in);
+      result.off = (kno_off_t) ((((kno_ll)word1)<<32)|(((kno_ll)word2)));
       result.size = kno_read_4bytes(in);
-      break;
+      break;}
     default:
       u8_logf(LOG_CRIT,"InvalidOffsetType",
               "Invalid offset type 0x%x for data stream %s",
@@ -1411,7 +1414,10 @@ kno_fetch_chunk_ref(struct KNO_STREAM *stream,
       result.size = (ll)((word2)&(0x00FFFFFF));
       break;}
     case KNO_B64:
-      result.off = kno_read_8bytes(in);
+      unsigned int word1, word2;
+      word1 = kno_read_4bytes(in);
+      word2 = kno_read_4bytes(in);
+      result.off = (kno_off_t) ((((kno_ll)word1)<<32)|(((kno_ll)word2)));
       result.size = kno_read_4bytes(in);
       break;
     default:

@@ -3112,7 +3112,11 @@ static int update_hashindex_ondisk
       unsigned int bucket_no = bucket_locs[i].bucketno;
       unsigned int bucket_pos = bucket_start+bytes_in_bucket*bucket_no;
       kno_start_write(head,bucket_pos);
-      kno_write_8bytes(outstream,bucket_locs[i].bck_ref.off);
+      unsigned long long off = bucket_locs[i].bck_ref.off;
+      unsigned int word1 = ((off)>>32) & 0xFFFFFFFF;
+      unsigned int word2 = (off) & 0xFFFFFFFF;
+      kno_write_4bytes(outstream,word1);
+      kno_write_4bytes(outstream,word2);
       kno_write_4bytes(outstream,bucket_locs[i].bck_ref.size);
       i++;}}
   else if (hx->index_offtype == KNO_B32) {
