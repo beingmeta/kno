@@ -4,6 +4,8 @@
 
 (config! 'loadpath (get-component "data"))
 
+(unless (has-suffix (config 'exe) "/knoc") (config! 'logloaderrs #f))
+
 (use-module '{stringfmts testcapi})
 
 (errtest (load-component "data/parsefail.scm"))

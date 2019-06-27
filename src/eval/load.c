@@ -26,7 +26,7 @@ u8_condition FileLoad=_("File Load"), FileDone=_("File Done");
 u8_condition LoadEval=_("Load Eval");
 u8_condition LoadConfig=_("Loading config");
 
-static int trace_load = 0, trace_load_eval = 0;
+static int trace_load = 0, trace_load_eval = 0, log_load_errs = 1;
 
 static lispval after_symbol, traceloadeval_symbol, postload_symbol;
 
@@ -94,7 +94,7 @@ KNO_EXPORT lispval kno_load_stream(u8_input loadstream,kno_lexenv env,
   if (errno) {
     u8_log(LOG_WARN,u8_UnexpectedErrno,
            "Dangling errno value %d (%s) before loading %s",
-           errno,u8_strerror(errno),sourcebase);
+	   errno,u8_strerror(errno),sourcebase);
     errno = 0;}
   KNO_PUSH_STACK(load_stack,"loadsource",u8_strdup(sourcebase),VOID);
   U8_SETBITS(load_stack->stack_flags,KNO_STACK_FREE_LABEL);
@@ -122,11 +122,12 @@ KNO_EXPORT lispval kno_load_stream(u8_input loadstream,kno_lexenv env,
       if (KNO_ABORTP(result)) {
         if (KNO_TROUBLEP(result)) {
           u8_exception ex = u8_current_exception;
-          u8_log(LOG_ERR,ex->u8x_cond,
-                 "Error (%s:%s) in %s while evaluating %q",
-                 ((ex->u8x_context)?(ex->u8x_context):((u8_string)"")),
-                 ((ex->u8x_details)?(ex->u8x_details):((u8_string)"")),
-                 sourcebase,expr);}
+	  if (log_load_errs)
+	    u8_log(LOG_ERR,ex->u8x_cond,
+		   "Error (%s:%s) in %s while evaluating %q",
+		   ((ex->u8x_context)?(ex->u8x_context):((u8_string)"")),
+		   ((ex->u8x_details)?(ex->u8x_details):((u8_string)"")),
+		   sourcebase,expr);}
         kno_restore_sourcebase(outer_sourcebase);
         kno_decref(last_expr); last_expr = VOID;
         kno_decref(expr);
@@ -674,6 +675,8 @@ KNO_EXPORT void kno_init_load_c()
                       get_config_files,add_opt_config_file,NULL);
   kno_register_config("TRACELOAD","Trace file load starts and ends",
                       kno_boolconfig_get,kno_boolconfig_set,&trace_load);
+  kno_register_config("LOGLOADERRS","Whether to log errors during file loading",
+                      kno_boolconfig_get,kno_boolconfig_set,&log_load_errs);
   kno_register_config("TRACELOADCONFIG","Trace config file loading",
                       kno_boolconfig_get,kno_boolconfig_set,&trace_config_load);
   kno_register_config("TRACELOADEVAL","Trace expressions while loading files",
