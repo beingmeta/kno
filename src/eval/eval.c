@@ -1358,9 +1358,9 @@ static lispval withenv(lispval expr,kno_lexenv env,
         kno_seterr(kno_SyntaxError,cxt,NULL,expr);
         abort = 1;
         KNO_STOP_DO_CHOICES;
-        break;}
-      kno_decref(keys);
-      if (abort) return KNO_ERROR;}}
+	break;}}
+    kno_decref(keys);
+    if (abort) return KNO_ERROR;}
   else return kno_err(kno_SyntaxError,cxt,NULL,expr);
   /* Execute the body */ {
     lispval result = VOID;

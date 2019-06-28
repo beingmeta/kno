@@ -674,6 +674,8 @@
 (errtest (withenv))
 (errtest (withenv ((x 3) (y 4) (z))))
 (errtest (withenv ((x 3) (y 4) z)))
+(errtest (withenv foo (+ 3 9)))
+(errtest (withenv "bar" (+ 3 9)))
 
 ;;; Loading stuff
 
