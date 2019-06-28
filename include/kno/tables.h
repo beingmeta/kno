@@ -83,8 +83,10 @@ KNO_EXPORT lispval kno_table_skim(lispval table,lispval maxval,lispval scope);
 
 KNO_EXPORT void kno_display_table(u8_output out,lispval table,lispval keys);
 
+KNO_EXPORT int _KNO_TABLEP(lispval x);
+
 #if KNO_EXTREME_PROFILING
-KNO_EXPORT int KNO_TABLEP(lispval x);
+#define KNO_TABLEP _KNO_TABLEP
 #else
 #define KNO_TABLEP(x)                                                  \
   ( (KNO_OIDP(x)) ? (1) :                                              \

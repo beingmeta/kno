@@ -43,8 +43,10 @@ KNO_EXPORT lispval kno_removeif(lispval test,lispval sequence,int invert);
 KNO_EXPORT int kno_generic_position(lispval key,lispval x,int start,int end);
 KNO_EXPORT int kno_generic_search(lispval subseq,lispval seq,int start,int end);
 
+KNO_EXPORT int _KNO_SEQUENCEP(lispval x);
+
 #if KNO_EXTREME_PROFILING
-KNO_EXPORT int KNO_SEQUENCEP(lispval x);
+#define KNO_SEQUENCEP _KNO_SEQUENCEP
 #else
 #define KNO_SEQUENCEP(x)                                           \
   ( (KNO_CONSP(x)) ?                                               \

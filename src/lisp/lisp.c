@@ -51,7 +51,7 @@ u8_condition kno_ThreadInterrupted=_("Thread interrupted");
 
 /* External functional versions of common macros */
 
-KNO_EXPORT kno_ptr_type KNO_PTR_TYPE(lispval x)
+KNO_EXPORT kno_ptr_type _KNO_PTR_TYPE(lispval x)
 {
   int type_field = (KNO_PTR_MANIFEST_TYPE(x));
   switch (type_field) {
@@ -64,7 +64,7 @@ KNO_EXPORT kno_ptr_type KNO_PTR_TYPE(lispval x)
   }
 }
 
-KNO_EXPORT int KNO_TYPEP(lispval ptr,int type)
+KNO_EXPORT int _KNO_TYPEP(lispval ptr,int type)
 {
   if (type < 0x04)
     return ( ( (ptr) & (0x3) ) == type);
@@ -79,7 +79,7 @@ KNO_EXPORT int KNO_TYPEP(lispval ptr,int type)
   else return 0;
 }
 
-KNO_EXPORT lispval KNO_INT2LISP(long long intval)
+KNO_EXPORT lispval _KNO_INT2LISP(long long intval)
 {
   if   ( (intval > KNO_MAX_FIXNUM) ||
          (intval < KNO_MIN_FIXNUM) )
@@ -87,21 +87,21 @@ KNO_EXPORT lispval KNO_INT2LISP(long long intval)
   else return KNO_INT2FIX(intval);
 }
 
-KNO_EXPORT int KNO_ABORTP(lispval x)
+KNO_EXPORT int _KNO_ABORTP(lispval x)
 {
   return ( (KNO_TYPEP(x,kno_constant_type)) &&
            (KNO_GET_IMMEDIATE(x,kno_constant_type)>6) &&
            (KNO_GET_IMMEDIATE(x,kno_constant_type)<=16));
 }
 
-KNO_EXPORT int KNO_ERRORP(lispval x)
+KNO_EXPORT int _KNO_ERRORP(lispval x)
 {
   return (((KNO_TYPEP(x,kno_constant_type)) &&
            (KNO_GET_IMMEDIATE(x,kno_constant_type)>6) &&
            (KNO_GET_IMMEDIATE(x,kno_constant_type)<15)));
 }
 
-KNO_EXPORT int KNO_SEQUENCEP(lispval x)
+KNO_EXPORT int _KNO_SEQUENCEP(lispval x)
 {
   if (KNO_CONSP(x))
     if ( (KNO_CONSPTR_TYPE(x) >= kno_string_type) &&
@@ -123,7 +123,7 @@ KNO_EXPORT int KNO_SEQUENCEP(lispval x)
   else return 0;
 }
 
-KNO_EXPORT int KNO_TABLEP(lispval x)
+KNO_EXPORT int _KNO_TABLEP(lispval x)
 {
   if (KNO_OIDP(x)) return 1;
   else if (KNO_CONSP(x)) {

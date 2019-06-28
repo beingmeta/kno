@@ -1220,6 +1220,26 @@ static int config_add_profiled(lispval var,lispval val,void *data)
   else return KNO_ERR(-1,"Not a function","config_add_profiled",NULL,val);
 }
 
+/* External functional versions of common macros */
+
+static int APPLICABLE_TYPEP(int typecode)
+{
+  if ( ((typecode) >= kno_cprim_type) &&
+       ((typecode) <= kno_dtproc_type) )
+    return 1;
+  else return ( (kno_applyfns[typecode]) != NULL);
+}
+KNO_EXPORT int _KNO_APPLICABLE_TYPEP(int typecode)
+{
+  return APPLICABLE_TYPEP(typecode);
+}
+KNO_EXPORT int _KNO_APPLICABLEP(lispval x)
+{
+  if (KNO_TYPEP(x,kno_fcnid_type))
+    return (APPLICABLE_TYPEP(KNO_FCNID_TYPE(x)));
+  else return APPLICABLE_TYPEP(KNO_PRIM_TYPE(x));
+}
+
 /* Initializations */
 
 KNO_EXPORT void kno_init_apply_c()

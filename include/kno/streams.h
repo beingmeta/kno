@@ -190,7 +190,7 @@ KNO_EXPORT kno_inbuf kno_open_block(kno_stream s,kno_inbuf in,
                                  kno_off_t offset,ssize_t count,
                                  int stream_locked);
 
-#if KNO_INLINE_BUFIO
+#if ( (KNO_INLINE_BUFIO) && (!(KNO_EXTREME_PROFILING)) )
 
 KNO_FASTOP kno_off_t kno_getpos(kno_stream s)
 {

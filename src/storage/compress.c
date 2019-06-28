@@ -9,8 +9,8 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define KNO_INLINE_BUFIO 1
-#define KNO_INLINE_STREAMIO 1
+#define KNO_INLINE_BUFIO KNO_DO_INLINE
+#define KNO_INLINE_STREAMIO KNO_DO_INLINE
 #include "kno/components/storage_layer.h"
 
 #include "kno/knosource.h"
