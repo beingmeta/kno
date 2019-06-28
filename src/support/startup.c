@@ -265,15 +265,15 @@ static int n_atexit_handlers = 0;
 
 static lispval config_atexit_get(lispval var,void *data)
 {
-  struct KNO_ATEXIT *scan; int i = 0; lispval result;
+  struct KNO_ATEXIT *scan; int i = 0;
   u8_lock_mutex(&atexit_handlers_lock);
-  result = kno_make_vector(n_atexit_handlers,NULL);
+  lispval result = kno_make_vector(n_atexit_handlers,NULL);
   scan = atexit_handlers; while (scan) {
-    lispval handler = scan->exitfn_handler, result;
+    lispval handler = scan->exitfn_handler, entry;
     if (KNO_VOIDP(scan->exitfn_name))
-      result=kno_incref(handler);
-    else result=kno_make_pair(scan->exitfn_name,handler);
-    KNO_VECTOR_SET(result,i,result);
+      entry=kno_incref(handler);
+    else entry=kno_make_pair(scan->exitfn_name,handler);
+    KNO_VECTOR_SET(result,i,entry);
     scan = scan->exitfn_next;
     i++;}
   u8_unlock_mutex(&atexit_handlers_lock);
