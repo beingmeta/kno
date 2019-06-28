@@ -1963,23 +1963,23 @@ staging/gcovr/all.html: src/lisp/cons.gcda staging/gcovr
 	gcovr ${GCOVR_FLAGS} -r . --html --html-details -o $@
 staging/gcovr/core.html: src/lisp/cons.gcda staging/gcovr
 	gcovr ${GCOVR_FLAGS} -r . \
-		-f src/lisp -f src/support -f src/apply -f src/eval \
+		-f src/lisp -f src/support -f src/apply -f src/eval -f include \
 		--html --html-details -o $@
 staging/gcovr/storage.html: src/lisp/cons.gcda staging/gcovr
 	gcovr ${GCOVR_FLAGS} -r . \
-		-f src/storage -f src/drivers \
+		-f src/storage -f src/drivers -f include \
 		--html --html-details -o $@
 staging/gcovr/prims.html: src/lisp/cons.gcda staging/gcovr
-	gcovr ${GCOVR_FLAGS} -r . -f src/prims \
+	gcovr ${GCOVR_FLAGS} -r . -f src/prims -f include \
 		--html --html-details -o $@
 staging/gcovr/cmodules.html: src/lisp/cons.gcda staging/gcovr
-	gcovr ${GCOVR_FLAGS} -r . -f src/cmodules \
+	gcovr ${GCOVR_FLAGS} -r . -f src/cmodules -f include \
 		--html --html-details -o $@
 staging/gcovr/text.html: src/lisp/cons.gcda staging/gcovr
-	gcovr ${GCOVR_FLAGS} -r . -f src/text \
+	gcovr ${GCOVR_FLAGS} -r . -f src/text -f include \
 		--html --html-details -o $@
 staging/gcovr/web.html: src/lisp/cons.gcda staging/gcovr
-	gcovr ${GCOVR_FLAGS} -r . -f src/text \
+	gcovr ${GCOVR_FLAGS} -r . -f src/text -f include \
 		--html --html-details -o $@
 
 src/lisp/cons.gcda: lib/libknocore.a
