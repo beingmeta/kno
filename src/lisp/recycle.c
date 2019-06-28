@@ -157,7 +157,7 @@ static void recycle_rawptr(struct KNO_RAW_CONS *c)
   if (rawptr->idstring) u8_free(rawptr->idstring);
   rawptr->ptrval   = NULL;
   rawptr->idstring = NULL;
-  kno_decref(rawptr->raw_typespec);
+  kno_decref(rawptr->raw_typetag);
   u8_free(c);
 }
 

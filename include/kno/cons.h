@@ -836,7 +836,7 @@ typedef struct KNO_RAWPTR {
   KNO_CONS_HEADER;
   void *ptrval;
   u8_string typestring, idstring;
-  lispval raw_typespec;
+  lispval raw_typetag;
   kno_raw_recyclefn recycler;} KNO_RAWPTR;
 typedef struct KNO_RAWPTR *kno_rawptr;
 

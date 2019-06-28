@@ -72,7 +72,7 @@ u8_condition kno_InvalidNumericLiteral=_("Invalid numeric literal");
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wshift-negative-value"
 
-#if KNO_AVOID_MACROS
+#if KNO_EXTREME_PROFILING
 lispval kno_max_fixnum;
 lispval kno_min_fixnum;
 #else
@@ -3765,7 +3765,7 @@ void kno_init_numbers_c()
 
   bigint_magic_modulus = kno_long_to_bigint(256001281);
 
-#if KNO_AVOID_MACROS
+#if KNO_EXTREME_PROFILING
   kno_max_fixnum = KNO_INT(KNO_MAX_FIXNUM);
   kno_min_fixnum = KNO_INT(KNO_MIN_FIXNUM);
 #endif

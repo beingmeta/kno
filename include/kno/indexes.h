@@ -355,7 +355,7 @@ KNO_FASTOP lispval kno_index_get(kno_index ix,lispval key)
 #endif
   if (ix->index_cache_level==0) cached = KNO_VOID;
   else if ((KNO_PAIRP(key)) && (!(KNO_VOIDP(ix->index_covers_slotids))) &&
-      (!(atomic_choice_containsp(KNO_CAR(key),ix->index_covers_slotids))))
+      (!(kno_contains_atomp(KNO_CAR(key),ix->index_covers_slotids))))
     return KNO_EMPTY_CHOICE;
   else cached = kno_hashtable_get(&(ix->index_cache),key,KNO_VOID);
   if (KNO_VOIDP(cached)) cached = kno_index_fetch(ix,key);
@@ -425,7 +425,7 @@ KNO_FASTOP int kno_index_add(kno_index ix_arg,lispval key,lispval value)
            (KNO_EXPECT_TRUE(KNO_PAIRP(key))) &&
            (KNO_EXPECT_TRUE((KNO_OIDP(KNO_CAR(key))) ||
                            (KNO_SYMBOLP(KNO_CAR(key)))))) {
-    if (!(atomic_choice_containsp(KNO_CAR(key),ix->index_covers_slotids))) {
+    if (!(kno_contains_atomp(KNO_CAR(key),ix->index_covers_slotids))) {
       kno_decref(ix->index_covers_slotids);
       ix->index_covers_slotids = KNO_VOID;}}
   else NO_ELSE;

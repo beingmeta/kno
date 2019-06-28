@@ -9,11 +9,10 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define KNO_PROVIDE_FASTEVAL 1
-#define KNO_INLINE_CHOICES 1
-#define KNO_INLINE_TABLES 1
-#define KNO_FAST_CHOICE_CONTAINSP 1
-
+#define KNO_PROVIDE_FASTEVAL (!(KNO_AVOID_CHOICES))
+#define KNO_INLINE_CHOICES (!(KNO_AVOID_CHOICES))
+#define KNO_INLINE_TABLES (!(KNO_AVOID_CHOICES))
+#define KNO_FAST_CHOICE_CONTAINSP (!(KNO_AVOID_CHOICES))
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"

@@ -297,7 +297,7 @@ KNO_EXPORT lispval kno_wrap_pointer(void *ptrval,
   KNO_INIT_CONS(rawptr,kno_rawptr_type);
   rawptr->ptrval = ptrval;
   rawptr->recycler = recycler;
-  rawptr->raw_typespec = typespec; kno_incref(typespec);
+  rawptr->raw_typetag = typespec; kno_incref(typespec);
   if (SYMBOLP(typespec))
     rawptr->typestring = SYM_NAME(typespec);
 #if 0 /* This just seems like a bad idea */

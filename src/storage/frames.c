@@ -9,11 +9,11 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define KNO_INLINE_POOLS 1
-#define KNO_INLINE_INDEXES 1
-#define KNO_INLINE_TABLES 1
-#define KNO_INLINE_CHOICES 1
-#define KNO_INLINE_IPEVAL 1
+#define KNO_INLINE_POOLS KNO_DO_INLINE
+#define KNO_INLINE_INDEXES KNO_DO_INLINE
+#define KNO_INLINE_TABLES KNO_DO_INLINE
+#define KNO_INLINE_CHOICES KNO_DO_INLINE
+#define KNO_INLINE_IPEVAL KNO_DO_INLINE
 #include "kno/components/storage_layer.h"
 
 #include "kno/knosource.h"

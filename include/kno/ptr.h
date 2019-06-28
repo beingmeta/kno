@@ -342,19 +342,8 @@ KNO_FASTOP U8_MAYBE_UNUSED int _KNO_ISDTYPE(lispval x){ return 1;}
 #define KNO_IMM_TYPE(x) ((((LISPVAL(x))>>25)&0x7F)+0x4)
 #define KNO_IMMEDIATE_MAX (1<<24)
 
-#if KNO_AVOID_MACROS
-static U8_MAYBE_UNUSED kno_ptr_type KNO_PTR_TYPE(lispval x)
-{
-  int type_field = (KNO_PTR_MANIFEST_TYPE(x));
-  switch (type_field) {
-  case kno_cons_type: {
-    struct KNO_CONS *cons = (struct KNO_CONS *)x;
-    return KNO_CONS_TYPE(cons);}
-  case kno_immediate_type:
-    return KNO_IMMEDIATE_TYPE(x);
-  default: return type_field;
-  }
-}
+#if KNO_EXTREME_PROFILING
+KNO_EXPORT kno_ptr_type KNO_PTR_TYPE(lispval x);
 #else
 #define KNO_PTR_TYPE(x) \
   (((KNO_PTR_MANIFEST_TYPE(LISPVAL(x)))>1) ? (KNO_PTR_MANIFEST_TYPE(x)) :  \
@@ -363,21 +352,8 @@ static U8_MAYBE_UNUSED kno_ptr_type KNO_PTR_TYPE(lispval x)
 #endif
 #define KNO_PRIM_TYPE(x)         (KNO_PTR_TYPE(x))
 
-#if KNO_AVOID_MACROS
-static U8_MAYBE_UNUSED int KNO_TYPEP(lispval ptr,int type)
-{
-  if (type < 0x04)
-    return ( ( (ptr) & (0x3) ) == type);
-  else if (type >= 0x84)
-    if ( (KNO_CONSP(ptr)) && (KNO_CONSPTR_TYPE(ptr) == type) )
-      return 1;
-    else return 0;
-  else if (type >= 0x04)
-    if ( (KNO_IMMEDIATEP(ptr)) && (KNO_IMM_TYPE(ptr) == type ) )
-      return 1;
-    else return 0;
-  else return 0;
-}
+#if KNO_EXTREME_PROFILING
+KNO_EXPORT int KNO_TYPEP(lispval ptr,int type);
 #else
 #define KNO_TYPEP(ptr,type)                                       \
   ((type >= 0x84) ? ( (KNO_CONSP(ptr)) && (KNO_CONSPTR_TYPE(ptr) == type) ) :   \
@@ -577,14 +553,8 @@ KNO_EXPORT lispval kno_make_bigint(long long intval);
 
 /* The sizeof check here avoids *tautological* range errors
    when n can't be too big for a fixnum. */
-#if KNO_AVOID_MACROS
-static U8_MAYBE_UNUSED lispval KNO_INT2LISP(long long intval)
-{
-  if   ( (intval > KNO_MAX_FIXNUM) ||
-         (intval < KNO_MIN_FIXNUM) )
-    return kno_make_bigint(intval);
-  else return KNO_INT2FIX(intval);
-}
+#if KNO_EXTREME_PROFILING
+KNO_EXPORT lispval KNO_INT2LISP(long long intval);
 #else
 #define KNO_INT2LISP(n)               \
   ( (sizeof(n) < KNO_FIXNUM_BYTES) ?                      \
@@ -703,19 +673,9 @@ KNO_EXPORT lispval kno_register_constant(u8_string name);
 #define KNO_ERROR     (KNO_ERROR_VALUE)
 #define KNO_EMPTYP(x) (KNO_EMPTY_CHOICEP(x))
 
-#if KNO_AVOID_MACROS
-static U8_MAYBE_UNUSED int KNO_ABORTP(lispval x)
-{
-  return ( (KNO_TYPEP(x,kno_constant_type)) &&
-           (KNO_GET_IMMEDIATE(x,kno_constant_type)>6) &&
-           (KNO_GET_IMMEDIATE(x,kno_constant_type)<=16));
-}
-static U8_MAYBE_UNUSED int KNO_ERRORP(lispval x)
-{
-  return (((KNO_TYPEP(x,kno_constant_type)) &&
-           (KNO_GET_IMMEDIATE(x,kno_constant_type)>6) &&
-           (KNO_GET_IMMEDIATE(x,kno_constant_type)<15)));
-}
+#if KNO_EXTREME_PROFILING
+KNO_EXPORT int KNO_ABORTP(lispval x);
+KNO_EXPORT int KNO_ERRORP(lispval x);
 #else
 #define KNO_ABORTP(x) \
   (((KNO_TYPEP(x,kno_constant_type)) && \

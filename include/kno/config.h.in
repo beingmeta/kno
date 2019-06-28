@@ -27,7 +27,7 @@
 #undef KNO_AVOID_INLINE
 
 /* Whether to suppress inline declarations  */
-#undef KNO_AVOID_MACROS
+#undef KNO_EXTREME_PROFILING
 
 /* Whether you can use the stdatomic.h header file */
 #undef HAVE_STDATOMIC_H

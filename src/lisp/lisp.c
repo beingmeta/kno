@@ -49,6 +49,101 @@ lispval kno_current_thread = KNO_VOID;
 u8_condition kno_ThreadTerminated=_("Thread terminated");
 u8_condition kno_ThreadInterrupted=_("Thread interrupted");
 
+/* External functional versions of common macros */
+
+KNO_EXPORT kno_ptr_type KNO_PTR_TYPE(lispval x)
+{
+  int type_field = (KNO_PTR_MANIFEST_TYPE(x));
+  switch (type_field) {
+  case kno_cons_type: {
+    struct KNO_CONS *cons = (struct KNO_CONS *)x;
+    return KNO_CONS_TYPE(cons);}
+  case kno_immediate_type:
+    return KNO_IMMEDIATE_TYPE(x);
+  default: return type_field;
+  }
+}
+
+KNO_EXPORT int KNO_TYPEP(lispval ptr,int type)
+{
+  if (type < 0x04)
+    return ( ( (ptr) & (0x3) ) == type);
+  else if (type >= 0x84)
+    if ( (KNO_CONSP(ptr)) && (KNO_CONSPTR_TYPE(ptr) == type) )
+      return 1;
+    else return 0;
+  else if (type >= 0x04)
+    if ( (KNO_IMMEDIATEP(ptr)) && (KNO_IMM_TYPE(ptr) == type ) )
+      return 1;
+    else return 0;
+  else return 0;
+}
+
+KNO_EXPORT lispval KNO_INT2LISP(long long intval)
+{
+  if   ( (intval > KNO_MAX_FIXNUM) ||
+         (intval < KNO_MIN_FIXNUM) )
+    return kno_make_bigint(intval);
+  else return KNO_INT2FIX(intval);
+}
+
+KNO_EXPORT int KNO_ABORTP(lispval x)
+{
+  return ( (KNO_TYPEP(x,kno_constant_type)) &&
+           (KNO_GET_IMMEDIATE(x,kno_constant_type)>6) &&
+           (KNO_GET_IMMEDIATE(x,kno_constant_type)<=16));
+}
+
+KNO_EXPORT int KNO_ERRORP(lispval x)
+{
+  return (((KNO_TYPEP(x,kno_constant_type)) &&
+           (KNO_GET_IMMEDIATE(x,kno_constant_type)>6) &&
+           (KNO_GET_IMMEDIATE(x,kno_constant_type)<15)));
+}
+
+KNO_EXPORT int KNO_SEQUENCEP(lispval x)
+{
+  if (KNO_CONSP(x))
+    if ( (KNO_CONSPTR_TYPE(x) >= kno_string_type) &&
+         (KNO_CONSPTR_TYPE(x) <= kno_pair_type) )
+      return 1;
+    else if ( (kno_seqfns[KNO_CONSPTR_TYPE(x)] != NULL ) &&
+              ( (kno_seqfns[KNO_CONSPTR_TYPE(x)]->sequencep == NULL ) ||
+                (kno_seqfns[KNO_CONSPTR_TYPE(x)]->sequencep(x)) ) )
+      return 1;
+    else return 0;
+  else if (KNO_IMMEDIATEP(x))
+    if (x == KNO_EMPTY_LIST)
+      return 1;
+    else if ( (kno_seqfns[KNO_IMMEDIATE_TYPE(x)] != NULL ) &&
+              ( (kno_seqfns[KNO_IMMEDIATE_TYPE(x)]->sequencep == NULL ) ||
+                (kno_seqfns[KNO_IMMEDIATE_TYPE(x)]->sequencep(x)) ) )
+      return 1;
+    else return 0;
+  else return 0;
+}
+
+KNO_EXPORT int KNO_TABLEP(lispval x)
+{
+  if (KNO_OIDP(x)) return 1;
+  else if (KNO_CONSP(x)) {
+    if ( ( KNO_CONSPTR_TYPE(x) >= kno_slotmap_type) &&
+         ( KNO_CONSPTR_TYPE(x) <= kno_hashset_type) )
+      return 1;
+    else if ( (kno_tablefns[KNO_CONSPTR_TYPE(x)] != NULL ) &&
+              ( (kno_tablefns[KNO_CONSPTR_TYPE(x)]->tablep == NULL ) ||
+                (kno_tablefns[KNO_CONSPTR_TYPE(x)]->tablep(x)) ) )
+      return 1;
+    else return 0;}
+  else if (KNO_IMMEDIATEP(x)) {
+    if ( (kno_tablefns[KNO_IMMEDIATE_TYPE(x)] != NULL ) &&
+         ( (kno_tablefns[KNO_IMMEDIATE_TYPE(x)]->tablep == NULL ) ||
+           (kno_tablefns[KNO_IMMEDIATE_TYPE(x)]->tablep(x)) ) )
+      return 1;
+    else return 0;}
+  else return 0;
+}
+
 /* Initialization procedures */
 
 extern void kno_init_choices_c(void);

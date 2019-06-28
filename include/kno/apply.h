@@ -539,7 +539,7 @@ lispval kno_stack_ndapply(struct KNO_STACK *stack,lispval fn,int n_args,lispval 
 #define kno_ndapply(fn,n_args,argv) (kno_stack_ndapply(kno_stackptr,fn,n_args,argv))
 #define kno_dapply(fn,n_args,argv) (kno_stack_dapply(kno_stackptr,fn,n_args,argv))
 
-#if KNO_AVOID_MACROS
+#if KNO_EXTREME_PROFILING
 static U8_MAYBE_UNUSED int KNO_APPLICABLE_TYPEP(int typecode)
 {
   if ( ((typecode) >= kno_cprim_type) &&

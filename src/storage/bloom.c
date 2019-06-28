@@ -8,8 +8,8 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define KNO_INLINE_CHOICES 1
-#define KNO_INLINE_TABLES 1
+#define KNO_INLINE_CHOICES KNO_DO_INLINE
+#define KNO_INLINE_TABLES KNO_DO_INLINE
 #include "kno/components/storage_layer.h"
 
 #include "kno/knosource.h"

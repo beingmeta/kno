@@ -76,9 +76,9 @@ extern int kno_storage_loglevel;
 static int hashindex_loglevel = -1;
 #define U8_LOGLEVEL (kno_int_default(hashindex_loglevel,(kno_storage_loglevel-1)))
 
-#define KNO_INLINE_BUFIO 1
-#define KNO_INLINE_CHOICES 1
-#define KNO_FAST_CHOICE_CONTAINSP 1
+#define KNO_INLINE_BUFIO (!(KNO_AVOID_CHOICES))
+#define KNO_INLINE_CHOICES (!(KNO_AVOID_CHOICES))
+#define KNO_FAST_CHOICE_CONTAINSP (!(KNO_AVOID_CHOICES))
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"

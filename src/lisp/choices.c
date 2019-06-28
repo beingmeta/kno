@@ -423,6 +423,30 @@ lispval _kno_add_to_choice(lispval current,lispval v)
   return _add_to_choice(current,v);
 }
 
+KNO_EXPORT
+/* _kno_prechoice_add:
+     Arguments: a prechoice pointer and a lisp pointer
+     Returns: a dtype pointer
+   Adds the value into the prechoice, without incref'ing it
+
+*/
+void _kno_prechoice_add(struct KNO_PRECHOICE *ch,lispval v)
+{
+  kno_prechoice_add(ch,v);
+}
+
+KNO_EXPORT
+/* _kno_contains_atomp:
+     Arguments: a prechoice pointer and a lisp pointer
+     Returns: a dtype pointer
+   Adds the value into the prechoice, without incref'ing it
+
+*/
+int _kno_contains_atomp(lispval x,lispval ch)
+{
+  return kno_contains_atomp(x,ch);
+}
+
 /* Converting prechoices to choices */
 
 /* PRECHOICEs are accumulating choices which accumulate values.  PRECHOICEs

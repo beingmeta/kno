@@ -9,7 +9,7 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define KNO_INLINE_CHOICES 1
+#define KNO_INLINE_CHOICES KNO_DO_INLINE
 #define KNO_INLINE_TABLES 1
 
 #include "kno/knosource.h"
@@ -559,7 +559,7 @@ KNO_EXPORT lispval kno_slotmap_values(struct KNO_SLOTMAP *sm)
   while (scan < limit) {
     lispval value=(scan++)->kv_val;
     if (CONSP(value)) {kno_incref(value);}
-    _prechoice_add(prechoice,value);}
+    kno_prechoice_add(prechoice,value);}
   if (unlock) u8_rw_unlock(&sm->table_rwlock);
   /* Note that we can assume that the choice is sorted because the keys are. */
   return kno_simplify_choice(results);
@@ -592,7 +592,7 @@ KNO_EXPORT lispval kno_slotmap_assocs(struct KNO_SLOTMAP *sm)
     lispval key=scan->kv_key, value=scan->kv_val;
     lispval assoc=kno_init_pair(NULL,key,value);
     kno_incref(key); kno_incref(value); scan++;
-    _prechoice_add(prechoice,assoc);}
+    kno_prechoice_add(prechoice,assoc);}
   if (unlock) u8_rw_unlock(&sm->table_rwlock);
   return kno_simplify_choice(results);
 }
@@ -2723,7 +2723,7 @@ KNO_EXPORT lispval kno_hashtable_values(struct KNO_HASHTABLE *ptr)
           if ((VOIDP(value))||(EMPTYP(value))) {
             kvscan++; continue;}
           kno_incref(value);
-          _prechoice_add(prechoice,value);
+          kno_prechoice_add(prechoice,value);
           kvscan++;}
         scan++;}
       else scan++;}
@@ -2759,7 +2759,7 @@ KNO_EXPORT lispval kno_hashtable_assocs(struct KNO_HASHTABLE *ptr)
             kvscan++; continue;}
           kno_incref(key); kno_incref(value);
           assoc=kno_init_pair(NULL,key,value);
-          _prechoice_add(prechoice,assoc);
+          kno_prechoice_add(prechoice,assoc);
           kvscan++;}
         scan++;}
       else scan++;}

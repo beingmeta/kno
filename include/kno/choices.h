@@ -199,6 +199,8 @@ KNO_EXPORT lispval kno_make_prechoice(lispval x,lispval y);
 KNO_EXPORT lispval kno_init_prechoice(struct KNO_PRECHOICE *ch,int lim,int uselock);
 KNO_EXPORT struct KNO_CHOICE *kno_cleanup_choice(struct KNO_CHOICE *ch,unsigned int flags);
 KNO_EXPORT lispval _kno_add_to_choice(lispval current,lispval add);
+KNO_EXPORT void _kno_prechoice_add(struct KNO_PRECHOICE *ch,lispval v);
+KNO_EXPORT int _kno_contains_atomp(lispval x,lispval ch);
 KNO_EXPORT lispval kno_merge_choices(struct KNO_CHOICE **choices,int n_choices);
 KNO_EXPORT int _kno_choice_size(lispval x);
 KNO_EXPORT lispval _kno_make_simple_choice(lispval x);
@@ -313,6 +315,7 @@ static void _prechoice_add(struct KNO_PRECHOICE *ch,lispval v)
   if (ch->prechoice_uselock)
     u8_unlock_mutex(&(ch->prechoice_lock));
 }
+#define kno_prechoice_add _prechoice_add
 static U8_MAYBE_UNUSED lispval _add_to_choice(lispval current,lispval new)
 {
   KNO_PTR_CHECK1(new,"_add_to_choice");
@@ -342,7 +345,7 @@ static U8_MAYBE_UNUSED lispval _add_to_choice(lispval current,lispval new)
 #define KNO_ADD_TO_CHOICE(x,v) x=_add_to_choice(x,v)
 /* This does a simple binary search of a sorted choice vector made up,
    solely of atoms.  */
-static U8_MAYBE_UNUSED int atomic_choice_containsp(lispval x,lispval ch)
+static U8_MAYBE_UNUSED int _choice_contains_atomp(lispval x,lispval ch)
 {
   if (KNO_ATOMICP(ch)) return (x==ch);
   else {
@@ -357,11 +360,14 @@ static U8_MAYBE_UNUSED int atomic_choice_containsp(lispval x,lispval ch)
       else bottom=middle+1;}
     return 0;}
 }
+#define kno_contains_atomp _choice_contains_atomp
 #else
+#define kno_prechoice_add _kno_prechoice_add
 #define KNO_ADD_TO_CHOICE(x,v)                    \
    if (KNO_DEBUG_BADPTRP(v))                      \
      _kno_bad_pointer(v,(u8_context)"KNO_ADD_TO_CHOICE"); \
    else x=_kno_add_to_choice(x,v)
+#define kno_contains_atomp _kno_contains_atomp
 #endif
 
 #if KNO_FAST_CHOICE_CONTAINSP
@@ -391,6 +397,47 @@ static U8_MAYBE_UNUSED int fast_choice_containsp(lispval x,struct KNO_CHOICE *ch
 }
 #endif
 
+static U8_MAYBE_UNUSED void
+kno_dochoices_helper(lispval *_valp,
+                     const lispval **scan,
+                     const lispval **limit,
+                     lispval *singlev,
+                     int *need_gcp)
+{
+  lispval _val = *_valp;
+  if (KNO_PRECHOICEP(_val)) {
+    *need_gcp=1;
+    _val=kno_make_simple_choice(_val);}
+  if (KNO_CHOICEP(_val)) {
+    *scan=KNO_CHOICE_DATA(_val);
+    *limit=KNO_CHOICE_DATA(_val)+KNO_CHOICE_SIZE(_val);}
+  else if (KNO_EMPTY_CHOICEP(_val)) {
+    *scan=singlev+1;
+    *limit=singlev+1;}
+  else if (KNO_QCHOICEP(_val)) {
+    singlev[0] = KNO_XQCHOICE(_val)->qchoiceval;
+    _val = singlev[0];
+    kno_incref(_val);
+    *need_gcp = 1;
+    *scan=singlev;
+    *limit=singlev+1;}
+  else {
+    singlev[0]=_val;
+    *scan=singlev;
+    *limit=singlev+1;}
+  *_valp = _val;
+}
+
+#if KNO_EXTREME_PROFILING
+#define KNO_DO_CHOICES(elt,valexpr) \
+  lispval elt, _val=valexpr, _singlev[1]; \
+  const lispval *_scan, *_limit;          \
+  int _need_gc=0; \
+  KNO_PTR_CHECK1(_val,"KNO_DO_CHOICES");              \
+  kno_dochoices_helper(&_val,&_scan,&_limit,_singlev,&_need_gc); \
+  while ((_scan<_limit) ? (elt=*(_scan++)) : \
+         ((_need_gc) ? (kno_decref(_val),0) : (0)))
+#else
 #define KNO_DO_CHOICES(elt,valexpr) \
   lispval elt, _val=valexpr, _singlev[1]; \
   const lispval *_scan, *_limit;          \
@@ -410,6 +457,7 @@ static U8_MAYBE_UNUSED int fast_choice_containsp(lispval x,struct KNO_CHOICE *ch
      _singlev[0]=_val; _scan=_singlev; _limit=_scan+1;} \
   while ((_scan<_limit) ? (elt=*(_scan++)) : \
          ((_need_gc) ? (kno_decref(_val),0) : (0)))
+#endif
 
 #define KNO_STOP_DO_CHOICES \
    if (_need_gc) kno_decref(_val)

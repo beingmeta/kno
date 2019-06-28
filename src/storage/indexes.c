@@ -10,8 +10,8 @@
 #endif
 
 #define KNO_INLINE_INDEXES 1
-#define KNO_INLINE_CHOICES 1
-#define KNO_INLINE_IPEVAL 1
+#define KNO_INLINE_CHOICES KNO_DO_INLINE
+#define KNO_INLINE_IPEVAL KNO_DO_INLINE
 #include "kno/components/storage_layer.h"
 
 #include "kno/knosource.h"
@@ -855,7 +855,7 @@ KNO_EXPORT lispval _kno_index_get(kno_index ix,lispval key)
     if (!(VOIDP(cached))) return cached;}
   if (ix->index_cache_level == 0) cached = VOID;
   else if ((PAIRP(key)) && (!(VOIDP(ix->index_covers_slotids))) &&
-           (!(atomic_choice_containsp(KNO_CAR(key),ix->index_covers_slotids))))
+           (!(kno_contains_atomp(KNO_CAR(key),ix->index_covers_slotids))))
     return EMPTY;
   else cached = kno_hashtable_get(&(ix->index_cache),key,VOID);
   if (VOIDP(cached))
@@ -884,7 +884,7 @@ static void extend_slotids(kno_index ix,const lispval *keys,int n)
     lispval key = keys[i++], slotid;
     if (PAIRP(key)) slotid = KNO_CAR(key); else continue;
     if ((OIDP(slotid)) || (SYMBOLP(slotid))) {
-      if (atomic_choice_containsp(slotid,slotids)) continue;
+      if (kno_contains_atomp(slotid,slotids)) continue;
       else {kno_decref(slotids); ix->index_covers_slotids = VOID;}}}
 }
 

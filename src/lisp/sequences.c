@@ -9,8 +9,8 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define KNO_INLINE_CHOICES 1
-#define KNO_INLINE_FCNIDS 1
+#define KNO_INLINE_CHOICES KNO_DO_INLINE
+#define KNO_INLINE_FCNIDS KNO_DO_INLINE
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"

@@ -28,8 +28,8 @@
 (define ffi_elapsed (ffi/proc "u8_elapsed_time" #f 'double))
 (applytest-pred flonum? ffi_elapsed)
 
-(define ffi_getenv (ffi/proc "getenv" #f #[basetype ptr typespec envstring] 'string))
-(define ffi_strdup (ffi/proc "_u8_strdup" #f #[basetype string mallocd #t] #[basetype ptr typespec envstring]))
+(define ffi_getenv (ffi/proc "getenv" #f #[basetype ptr typetag envstring] 'string))
+(define ffi_strdup (ffi/proc "_u8_strdup" #f #[basetype string mallocd #t] #[basetype ptr typetag envstring]))
 
 (when (getenv "USER")
   (applytest (getenv "USER") ffi_strdup (ffi_getenv "USER"))

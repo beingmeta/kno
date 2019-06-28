@@ -36,7 +36,7 @@ static lispval ulong_symbol, long_symbol, uchar_symbol, char_symbol;
 static lispval string_symbol, packet_symbol, ptr_symbol, cons_symbol;
 static lispval float_symbol, double_symbol, size_t_symbol, lisp_symbol;
 static lispval lispref_symbol, strcpy_symbol, void_symbol, mallocd_symbol;
-static lispval byte_symbol, basetype_symbol, typespec_symbol;
+static lispval byte_symbol, basetype_symbol, typetag_symbol;
 static lispval ffi_result_symbol, time_t_symbol, null_symbol;
 static lispval nullable_symbol;
 
@@ -214,13 +214,13 @@ static int handle_ffi_arg(lispval arg,lispval spec,
   else if ( basetype == ptr_symbol) {
     if (KNO_PRIM_TYPEP(arg,kno_rawptr_type)) {
       struct KNO_RAWPTR *raw=(kno_rawptr)arg;
-      lispval typespec = kno_get(spec,typespec_symbol,KNO_VOID);
-      if ( KNO_EQUALP(typespec,raw->raw_typespec) )
+      lispval typetag = kno_get(spec,typetag_symbol,KNO_VOID);
+      if ( KNO_EQUALP(typetag,raw->raw_typetag) )
         *valptr=raw->ptrval;
-      else if (KNO_SYMBOLP(typespec))
-        return ffi_type_error(KNO_SYMBOL_NAME(typespec),arg);
+      else if (KNO_SYMBOLP(typetag))
+        return ffi_type_error(KNO_SYMBOL_NAME(typetag),arg);
       else {
-        kno_decref(typespec);
+        kno_decref(typetag);
         return ffi_type_error("tagged pointer",arg);}}
     else if ( (nullable) &&
               ( (FALSEP(arg)) || (DEFAULTP(arg)) ||
@@ -367,8 +367,8 @@ KNO_EXPORT lispval kno_ffi_call(struct KNO_FUNCTION *fn,int n,lispval *args)
         return kno_incref(result);
       else return result;}
     else if ( (KNO_TABLEP(return_spec)) &&
-              (kno_test(return_spec,typespec_symbol,KNO_VOID )) ) {
-      lispval return_type = kno_get(return_spec,typespec_symbol,KNO_VOID);
+              (kno_test(return_spec,typetag_symbol,KNO_VOID )) ) {
+      lispval return_type = kno_get(return_spec,typetag_symbol,KNO_VOID);
       if ( ! (VOIDP(return_type)) ) {}
       else if (fn->fcn_name)
         return_type = kno_intern(fn->fcn_name);
@@ -604,7 +604,7 @@ static void init_symbols()
   mallocd_symbol = kno_intern("mallocd");
 
   basetype_symbol = kno_intern("basetype");
-  typespec_symbol = kno_intern("typespec");
+  typetag_symbol = kno_intern("typetag");
 
   ffi_result_symbol = kno_intern("result");
 }
