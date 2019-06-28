@@ -74,6 +74,8 @@ static int set_prompt(lispval ignored,lispval v,void *vptr)
   else return KNO_ERR(-1,kno_TypeError,"set_prompt",_("prompt is not a string"),v);
 }
 
+static int use_void_marker = 0;
+
 #include "main.c"
 
 #define KNO_MAX_COMMAND_LENGTH 128
@@ -197,7 +199,11 @@ static int output_result(struct U8_OUTPUT *out,lispval result,
 {
   int detail = (showall) ? (-(1+((result_max_elts)/2))) : (result_max_elts);
   if (width < 0) width = console_width;
-  if (KNO_VOIDP(result)) return 0;
+  if (KNO_VOIDP(result)) {
+    if (use_void_marker) {
+      u8_puts(out,"#|<void|#\n");
+      return 1;}
+    else return 0;}
   if (KNO_OIDP(result)) {
     kno_pool p = kno_oid2pool(result);
     if (p) {
@@ -948,6 +954,10 @@ int main(int argc,char **argv)
   kno_register_config
     ("EDITLINE",_("Whether to use EDITLINE for the console"),
      kno_boolconfig_get,kno_boolconfig_set,&use_editline);
+
+  kno_register_config
+    ("VOIDMARKER",_("Emit void marker (#|<void|#) when void is returned"),
+     kno_boolconfig_get,kno_boolconfig_set,&use_void_marker);
 
   /* This is the REPL value history, not the editline history */
   kno_histinit(0);
