@@ -1955,16 +1955,40 @@ gcovr.text: src/lisp/cons.gcda
 	gcovr ${GCOVR_FLAGS} -r . -o gcovr.text
 gcovr.html: src/lisp/cons.gcda
 	gcovr ${GCOVR_FLAGS} -r . --html -o gcovr.html
-staging/gcovr/details.html: src/lisp/cons.gcda staging/gcovr
-	gcovr ${GCOVR_FLAGS} -r . --html --html-details -o staging/gcovr/details.html
+
 staging/gcovr:
 	if test ! -d staging/gcovr; then mkdir staging/gcovr; fi
+
+staging/gcovr/all.html: src/lisp/cons.gcda staging/gcovr
+	gcovr ${GCOVR_FLAGS} -r . --html --html-details -o $@
+staging/gcovr/core.html: src/lisp/cons.gcda staging/gcovr
+	gcovr ${GCOVR_FLAGS} -r . \
+		-f src/lisp -f src/support -f src/apply -f src/eval \
+		--html --html-details -o $@
+staging/gcovr/storage.html: src/lisp/cons.gcda staging/gcovr
+	gcovr ${GCOVR_FLAGS} -r . \
+		-f src/storage -f src/drivers \
+		--html --html-details -o $@
+staging/gcovr/prims.html: src/lisp/cons.gcda staging/gcovr
+	gcovr ${GCOVR_FLAGS} -r . -f src/prims \
+		--html --html-details -o $@
+staging/gcovr/cmodules.html: src/lisp/cons.gcda staging/gcovr
+	gcovr ${GCOVR_FLAGS} -r . -f src/cmodules \
+		--html --html-details -o $@
+staging/gcovr/text.html: src/lisp/cons.gcda staging/gcovr
+	gcovr ${GCOVR_FLAGS} -r . -f src/text \
+		--html --html-details -o $@
+staging/gcovr/web.html: src/lisp/cons.gcda staging/gcovr
+	gcovr ${GCOVR_FLAGS} -r . -f src/text \
+		--html --html-details -o $@
 
 src/lisp/cons.gcda: lib/libknocore.a
 	find . -name "*.gcda" -exec rm '{}' \;
 	cd tests; make libtests;
 
-gcovr_details: staging/gcovr/details.html
+gcovr_html: staging/gcovr/all.html staging/gcovr/core.html staging/gcovr/storage.html \
+	staging/gcovr/prims.html staging/gcovr/text.html staging/gcovr/web.html \
+	staging/gcovr/cmodules.html
 
 .PHONY: lcov_html gcovr_details
 
