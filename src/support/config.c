@@ -985,6 +985,20 @@ KNO_EXPORT lispval kno_tblconfig_get(lispval var,void *data)
   return kno_incref(table);
 }
 
+/* Miscellaneous configs */
+
+static lispval elapsed_config_get(lispval var,void *data)
+{
+  double e = u8_elapsed_time();
+  return kno_make_flonum(e);
+}
+
+static lispval hostname_config_get(lispval var,void *data)
+{
+  u8_string hostname = u8_gethostname();
+  return kno_wrapstring(hostname);
+}
+
 /* Initialization */
 
 void kno_init_config_c()
@@ -1041,6 +1055,17 @@ void kno_init_config_c()
   kno_register_config
     ("CWD",_("Get/set the current working directory"),
      cwd_config_get,cwd_config_set,NULL);
+
+  kno_register_config
+    ("DIRECTORY",_("Get/set the current working directory"),
+     cwd_config_get,cwd_config_set,NULL);
+
+  kno_register_config
+    ("ELAPSED",_("Get the time elapsed since this process started"),
+     elapsed_config_get,NULL,NULL);
+  kno_register_config
+    ("HOSTNAME",_("Get hostname of the computer running KNO"),
+     hostname_config_get,NULL,NULL);
 
   kno_register_config("FIXMAX","The maximum fixnum value",
                      kno_lconfig_get,kno_readonly_config_set,
