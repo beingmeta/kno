@@ -1565,7 +1565,7 @@ static unsigned int hash_elts(lispval *x,unsigned int n);
 
 static unsigned int hash_lisp(lispval x)
 {
-  enum KNO_PTR_TYPE ptr_type = KNO_PTR_MANIFEST_TYPE(x);
+  kno_ptr_type ptr_type = KNO_PTR_MANIFEST_TYPE(x);
   if (ptr_type == kno_cons_type) {
     struct KNO_CONS *cons = (struct KNO_CONS *)x;
     ptr_type = KNO_CONS_TYPE(cons);
