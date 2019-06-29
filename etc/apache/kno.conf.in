@@ -1,8 +1,8 @@
-<IfModule !knoweb_module>
-  LoadModule knoweb_module      @apache_modules_dir@/mod_knoweb.so
+<IfModule !kno_module>
+  LoadModule kno_module      @apache_modules_dir@/mod_kno.so
 </IfModule>
-<IfModule mod_knoweb.c>
-        AddHandler knoweb .knocgi .knoxml
+<IfModule mod_kno.c>
+        AddHandler kno .knocgi .knoxml
 	KnoExecutable @prefix@/bin/knoweb
 	KnoUser @webuser@
 	KnoGroup @admin_group@

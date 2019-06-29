@@ -19,7 +19,7 @@ override_dh_auto_configure:
                 --with-malloc=jemalloc
 
 override_dh_auto_install:
-	make DESTDIR=$$(pwd)/debian/tmp install install-knoweb install-i18n \
+	make DESTDIR=$$(pwd)/debian/tmp install install-mod_kno install-i18n \
 		setup-upstart setup-sysv setup-systemd setup-logrotate
 
 override_dh_install:

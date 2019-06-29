@@ -1133,7 +1133,7 @@ if test ! -z "$APXS"; then
   else apache_modinfo=$apache_conf_dir;
   fi;
 else
-  echo "Warning: No apache development environment, can't build mod_knoweb"
+  echo "Warning: No apache development environment, can't build mod_kno"
 fi
 
 dnl Allow overrides of APXS apacheinfo and apachelib
@@ -2054,8 +2054,8 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   etc/systemd/kno.service
 	   etc/macos/OSXStartupItem/KNO
 	   etc/macos/KNO.plist
-	   etc/apache/knoweb.conf 
-	   etc/apache/knoweb.load
+	   etc/apache/kno.conf 
+	   etc/apache/kno.load
 	   etc/install-script 
 	   dist/kno-4.3.spec],
 	   [chmod a+x etc/kno* tests/*test])

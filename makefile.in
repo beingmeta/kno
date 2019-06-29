@@ -1386,7 +1386,7 @@ dist/debs.signed: dist/debs.built
 			sysv-kno_@KNO_VERSION@*.deb  		\
 			upstart-kno_@KNO_VERSION@*.deb  	\
 			systemd-kno_@KNO_VERSION@*.deb  	\
-			libapache2-mod-knoweb_@KNO_VERSION@*.deb  \
+			libapache2-mod-kno_@KNO_VERSION@*.deb  \
 			elpa-knoc_@KNO_VERSION@*.deb  \
 			../dist) &&                             \
 	touch dist/debs.signed;
@@ -1398,7 +1398,7 @@ dist/debsource.signed: dist/debsource.built
 			sysv-kno_@KNO_VERSION@*.deb  		\
 			upstart-kno_@KNO_VERSION@*.deb  	\
 			systemd-kno_@KNO_VERSION@*.deb  	\
-			libapache2-mod-knoweb_@KNO_VERSION@*.deb  \
+			libapache2-mod-kno_@KNO_VERSION@*.deb  \
 			elpa-knoc_@KNO_VERSION@*.deb  \
 			../dist) &&                             \
 	touch dist/debsource.signed;
@@ -1411,7 +1411,7 @@ dist/debsource.done: dist/debsource.signed
 
 install-debian install-debs debinstall installdebs: dist/debs.done
 	@cd dist; @SUDO@ dpkg -i kno*@KNO_VERSION@*.deb \
-		elpa-knoc*@KNO_VERSION@*.deb libapache2-mod-knoweb_@KNO_VERSION@*.deb \
+		elpa-knoc*@KNO_VERSION@*.deb libapache2-mod-kno_@KNO_VERSION@*.deb \
 		systemd-kno_@KNO_VERSION@*.deb
 
 update-local-apt-repo: dist/debs.done
@@ -1805,31 +1805,31 @@ build-setup.redhat:
 
 .PHONY: debian-build-setup rpm-build-setup
 
-# The mod_knoweb module
+# The mod_kno module
 
-src/apache2/mod_knoweb.so: src/apache2/mod_knoweb.c @abs_top_srcdir@/fileinfo
-	@$(ECHO) "#define _FILEINFO \""`@abs_top_srcdir@/fileinfo src/apache2/mod_knoweb.c .`"\"" \
-		> src/apache2/mod_knoweb_fileinfo.h
+src/apache2/mod_kno.so: src/apache2/mod_kno.c @abs_top_srcdir@/fileinfo
+	@$(ECHO) "#define _FILEINFO \""`@abs_top_srcdir@/fileinfo src/apache2/mod_kno.c .`"\"" \
+		> src/apache2/mod_kno_fileinfo.h
 	${APXS} -DUSEDTBLOCK=@USEDTBLOCK@ -DDEBUG_KNOWEB=$(DEBUG_KNOWEB) \
-		-c src/apache2/mod_knoweb.c
+		-c src/apache2/mod_kno.c
 
-mod_knoweb: src/apache2/mod_knoweb.so
+mod_kno: src/apache2/mod_kno.so
 
 # For OSX, try this
-# apxs -Wc,'-arch x86_64' -Wl,'-arch x86_64'  -a -i -c src/apache2/mod_knoweb.c
-install-knoweb: src/apache2/mod_knoweb.so $(DESTDIR)@apache_modinfo@ \
+# apxs -Wc,'-arch x86_64' -Wl,'-arch x86_64'  -a -i -c src/apache2/mod_kno.c
+install-mod_kno: src/apache2/mod_kno.so $(DESTDIR)@apache_modinfo@ \
 	$(DESTDIR)@apache_modules_dir@ $(DESTDIR)@servlet_logdir@
-	@cd etc/apache; $(SYSINSTALL) @install_file_opts@ knoweb.conf \
+	@cd etc/apache; $(SYSINSTALL) @install_file_opts@ kno.conf \
 			$(DESTDIR)@apache_modinfo@;
-	@cd etc/apache; $(SYSINSTALL) @install_file_opts@ knoweb.load \
+	@cd etc/apache; $(SYSINSTALL) @install_file_opts@ kno.load \
 			$(DESTDIR)@apache_modinfo@;
 	@$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
-			-d $(DESTDIR)@rundir@/knoweb;
-	@cd src/apache2; if test -f mod_knoweb.so; \
-		then $(SUINSTALL) ${APXS} -i mod_knoweb.so; \
-		else $(SUINSTALL) ${APXS} -i mod_knoweb.la; \
+			-d $(DESTDIR)@rundir@/kno/servlets;
+	@cd src/apache2; if test -f mod_kno.so; \
+		then $(SUINSTALL) ${APXS} -i mod_kno.so; \
+		else $(SUINSTALL) ${APXS} -i mod_kno.la; \
 		fi
-	@echo Installed knoweb module with @rundir@/knoweb @logdir@/knoweb
+	@echo Installed knoweb module with @rundir@/kno/servlets @logdir@/kno/servlets
 
 $(DESTDIR)@apache_modules_dir@:
 	@$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
@@ -1838,20 +1838,20 @@ $(DESTDIR)@apache_modinfo@:
 	@$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
 		-d $(DESTDIR)@apache_modinfo@
 
-update-knoweb: src/apache2/mod_knoweb.so $(DESTDIR)@apache_modinfo@ \
+update-mod_kno: src/apache2/mod_kno.so $(DESTDIR)@apache_modinfo@ \
 		$(DESTDIR)@apache_modules_dir@
-	@$(MSG) "STOPPING and STARTING Apache to INSTALL NEW mod_knoweb"
+	@$(MSG) "STOPPING and STARTING Apache to INSTALL NEW mod_kno"
 	@$(MSG) "THIS REQUIRES sudo PRIVILEGES; you may be prompted for your password"
 	sudo apachectl stop
-	cd etc/apache; sudo ${INSTALL} @install_file_opts@ knoweb.conf knoweb.load \
+	cd etc/apache; sudo ${INSTALL} @install_file_opts@ kno.conf kno.load \
 			$(DESTDIR)@apache_modinfo@;
 	$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
-			-d $(DESTDIR)@rundir@/knoweb;
+			-d $(DESTDIR)@rundir@/kno/servlets;
 	$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
-			-d $(DESTDIR)@logdir@/knoweb;
-	cd src/apache2; if test -f mod_knoweb.so; \
-		then sudo ${APXS} -i mod_knoweb.so; \
-		else sudo ${APXS} -i mod_knoweb.la; fi
+			-d $(DESTDIR)@logdir@/kno/servlets;
+	cd src/apache2; if test -f mod_kno.so; \
+		then sudo ${APXS} -i mod_kno.so; \
+		else sudo ${APXS} -i mod_kno.la; fi
 	sleep 5; sudo apachectl start
 
 # Test targets
@@ -2013,7 +2013,7 @@ DIY/mongo-c-driver/built:
 update-modules:
 	git submodule update --remote --merge src/stdlib
 
-.PHONY: knoweb update-knoweb install-knoweb update-modules
+.PHONY: mod_kno update-mod_kno install-mod_kno update-modules
 
 # Tracking revision information
 
