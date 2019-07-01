@@ -127,7 +127,7 @@ static lispval pickoids_opcode(lispval arg1)
 {
   if (OIDP(arg1)) return arg1;
   else if (EMPTYP(arg1)) return arg1;
-  else if ((CHOICEP(arg1)) || (PRECHOICEP(arg1))) {
+  else if (CHOICEP(arg1)) {
     lispval choice, results = EMPTY;
     int free_choice = 0, all_oids = 1;
     if (CHOICEP(arg1)) choice = arg1;
@@ -152,7 +152,7 @@ static lispval pickoids_opcode(lispval arg1)
 
 static lispval pickstrings_opcode(lispval arg1)
 {
-  if ((CHOICEP(arg1)) || (PRECHOICEP(arg1))) {
+  if (CHOICEP(arg1)) {
     lispval choice, results = EMPTY;
     int free_choice = 0, all_strings = 1;
     if (CHOICEP(arg1))
@@ -184,7 +184,7 @@ static lispval pickstrings_opcode(lispval arg1)
 static lispval picknums_opcode(lispval arg1)
 {
   if (EMPTYP(arg1)) return arg1;
-  else if ((CHOICEP(arg1)) || (PRECHOICEP(arg1))) {
+  else if (CHOICEP(arg1)) {
     lispval choice, results = EMPTY;
     int free_choice = 0, all_nums = 1;
     if (CHOICEP(arg1))
@@ -219,7 +219,7 @@ static lispval pickmaps_opcode(lispval arg1)
 {
   if (EMPTYP(arg1))
     return arg1;
-  else if ((CHOICEP(arg1)) || (PRECHOICEP(arg1))) {
+  else if (CHOICEP(arg1)) {
     lispval choice, results = EMPTY;
     int free_choice = 0, all_nums = 1;
     if (CHOICEP(arg1))
@@ -337,8 +337,6 @@ static lispval nd1_call(lispval opcode,lispval arg1)
     if (CHOICEP(arg1)) {
       kno_incref(arg1);
       return kno_init_qchoice(NULL,arg1);}
-    else if (PRECHOICEP(arg1))
-      return kno_init_qchoice(NULL,kno_make_simple_choice(arg1));
     else if (EMPTYP(arg1))
       return kno_init_qchoice(NULL,EMPTY);
     else return kno_incref(arg1);
@@ -346,11 +344,6 @@ static lispval nd1_call(lispval opcode,lispval arg1)
     if (CHOICEP(arg1)) {
       int sz = KNO_CHOICE_SIZE(arg1);
       return KNO_INT(sz);}
-    else if (PRECHOICEP(arg1)) {
-      lispval simple = kno_make_simple_choice(arg1);
-      int size = KNO_CHOICE_SIZE(simple);
-      kno_decref(simple);
-      return KNO_INT(size);}
     else if (EMPTYP(arg1))
       return KNO_INT(0);
     else return KNO_INT(1);
@@ -1024,8 +1017,6 @@ static lispval handle_table_opcode(lispval opcode,lispval expr,
       return KNO_VOID;
     default:
       return kno_err("BadOpcode","handle_table_opcode",NULL,expr);}}
-  else if (KNO_PRECHOICEP(subject))
-    subject = kno_simplify_choice(subject);
   else NO_ELSE;
   if (KNO_EXPECT_FALSE(!(KNO_TABLEP(subject)))) {
     kno_seterr("NotATable","handle_table_opcode",NULL,subject);
@@ -1037,8 +1028,6 @@ static lispval handle_table_opcode(lispval opcode,lispval expr,
   if (KNO_ABORTP(slotid)) {
     kno_decref(subject);
     return slotid;}
-  else if (KNO_PRECHOICEP(slotid))
-    slotid = kno_simplify_choice(slotid);
   else NO_ELSE;
   lispval value_arg = (KNO_PAIRP(args)) ? (pop_arg(args)) : (KNO_VOID);
   lispval value = (KNO_VOIDP(value_arg)) ? (KNO_VOID) :
@@ -1046,8 +1035,6 @@ static lispval handle_table_opcode(lispval opcode,lispval expr,
   if (KNO_ABORTP(value)) {
     kno_decref(subject); kno_decref(slotid);
     return value;}
-  else if (KNO_PRECHOICEP(value))
-    value = kno_simplify_choice(value);
   else NO_ELSE;
   lispval result = KNO_VOID;
   switch (opcode) {

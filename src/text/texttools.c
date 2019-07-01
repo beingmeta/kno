@@ -77,8 +77,8 @@ KNO_FASTOP size_t getlongmatch(lispval matches)
   if (EMPTYP(matches)) return -1;
   else if (FIXNUMP(matches))
     return FIX2INT(matches);
-  else if ((CHOICEP(matches)) ||
-           (PRECHOICEP(matches))) {
+  else if ( (CHOICEP(matches))||
+            (PRECHOICEP(matches)) ) {
     u8_byteoff max = -1;
     DO_CHOICES(match,matches) {
       u8_byteoff ival = kno_getint(match);

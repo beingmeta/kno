@@ -864,7 +864,7 @@ DEFPRIM("HASHSET-ADD!",hashset_add,MAX_ARGS(2)|MIN_ARGS(2)|NDCALL,
 {
   if (KNO_EMPTYP(hs))
     return KNO_EMPTY;
-  else if ( (CHOICEP(hs)) || (PRECHOICEP(hs)) ) {
+  else if (CHOICEP(hs)) {
     lispval results = EMPTY;
     DO_CHOICES(h,hs) {
       if (!(KNO_TYPEP(hs,kno_hashset_type))) {

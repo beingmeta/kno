@@ -528,12 +528,6 @@ static lispval singletonp(lispval x)
     return KNO_FALSE;
   else if (EMPTYP(x))
     return KNO_FALSE;
-  else if (KNO_PRECHOICEP(x)) {
-    lispval simple = kno_make_simple_choice(x);
-    int not_single = ( (EMPTYP(simple)) || (CHOICEP(simple)) );
-    kno_decref(simple);
-    if (not_single) return KNO_FALSE;
-    else return KNO_TRUE;}
   else return KNO_TRUE;
 }
 
@@ -543,13 +537,6 @@ static lispval ambiguousp(lispval x) /* TODO: Wasted effort around here */
     return KNO_FALSE;
   else if (CHOICEP(x))
     return KNO_TRUE;
-  else if (KNO_PRECHOICEP(x)) {
-    lispval simple = kno_make_simple_choice(x);
-    int ambig=KNO_CHOICEP(simple);
-    kno_decref(simple);
-    if (ambig)
-      return KNO_TRUE;
-    else return KNO_FALSE;}
   else return KNO_FALSE;
 }
 
@@ -558,12 +545,6 @@ static lispval singleton(lispval x)
   if (EMPTYP(x)) return x;
   else if (CHOICEP(x))
     return EMPTY;
-  else if (KNO_PRECHOICEP(x)) {
-    lispval simple=kno_make_simple_choice(x);
-    if (KNO_CHOICEP(simple)) {
-      kno_decref(simple);
-      return EMPTY;}
-    else return simple;}
   else return kno_incref(x);
 }
 
@@ -575,15 +556,6 @@ static lispval choice_max(lispval x,lispval lim)
     if (KNO_CHOICE_SIZE(x)>max_size)
       return EMPTY;
     else return kno_incref(x);}
-  else if (KNO_PRECHOICEP(x)) {
-    lispval simple = kno_make_simple_choice(x);
-    if (CHOICEP(simple)) {
-      int max_size = kno_getint(lim);
-      if (KNO_CHOICE_SIZE(simple)>max_size) {
-        kno_decref(simple);
-        return EMPTY;}
-      else return simple;}
-    else return simple;}
   else return kno_incref(x);
 }
 
@@ -659,7 +631,7 @@ static int test_exists(struct KNO_FUNCTION *fn,int i,int n,
       return kno_interr(val);}
     kno_decref(val);
     return 1;}
-  else if ((CHOICEP(nd_args[i])) || (PRECHOICEP(nd_args[i]))) {
+  else if (CHOICEP(nd_args[i])) {
     DO_CHOICES(v,nd_args[i]) {
       d_args[i]=v; int retval = test_exists(fn,i+1,n,nd_args,d_args);
       if (retval != 0) {
@@ -722,7 +694,7 @@ static int test_forall(struct KNO_FUNCTION *fn,int i,int n,lispval *nd_args,lisp
       return kno_interr(val);
     kno_decref(val);
     return 1;}
-  else if ((CHOICEP(nd_args[i])) || (PRECHOICEP(nd_args[i]))) {
+  else if (CHOICEP(nd_args[i])) {
     DO_CHOICES(v,nd_args[i]) {
       int retval;
       d_args[i]=v;
@@ -782,25 +754,6 @@ static lispval choicevec_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       else {
         kno_incref_vec((lispval *)elts,size);
         return vector;}}
-    else if (KNO_PRECHOICEP(result)) {
-      struct KNO_PRECHOICE *pch = (kno_prechoice) result;
-      int n = pch->prechoice_size;
-      lispval vec = kno_make_vector(n,NULL);
-      lispval *write = KNO_VECTOR_ELTS(vec);
-      lispval *scan = pch->prechoice_data, *limit = pch->prechoice_limit;
-      while (scan<limit) {
-        lispval add = *scan++;
-        if (KNO_CHOICEP(add)) {
-          int n_adds = KNO_CHOICE_SIZE(add);
-          const lispval *add_elts = KNO_CHOICE_ELTS(add);
-          memmove(write,add_elts,n_adds*LISPVAL_LEN);
-          if (! (KNO_ATOMIC_CHOICEP(add)) )
-            kno_incref_vec((lispval *)add_elts,n);}
-        else if (EMPTYP(add)) {}
-        else {
-          *write++=add;
-          kno_incref(add);}}
-      return vec;}
     else {
       lispval data[1]={result};
       return kno_make_vector(1,data);}}
@@ -814,11 +767,6 @@ static lispval choice2vector(lispval x,lispval sortspec)
   kno_compare_flags flags = kno_get_compare_flags(sortspec);
   if (EMPTYP(x))
     return kno_empty_vector(0);
-  else if (PRECHOICEP(x)) {
-    lispval normal = kno_make_simple_choice(x);
-    lispval result = choice2vector(normal,sortspec);
-    kno_decref(normal);
-    return result;}
   else if (CHOICEP(x)) {
     int i = 0, n = KNO_CHOICE_SIZE(x);
     struct KNO_CHOICE *ch = (kno_choice)x;
@@ -990,7 +938,7 @@ static lispval samplen(lispval x,lispval count)
     int howmany = kno_getint(count);
     if (howmany<=0)
       return EMPTY;
-    else if (! ( (KNO_CHOICEP(x)) || (KNO_PRECHOICEP(x)) ) )
+    else if (! (KNO_CHOICEP(x)) )
       return kno_incref(x);
     else {
       lispval normal = kno_make_simple_choice(x);
@@ -1022,7 +970,7 @@ static lispval pickn(lispval x,lispval count,lispval offset)
       return EMPTY;
     else if (x == EMPTY)
       return EMPTY;
-    else if ( (KNO_CHOICEP(x)) || (KNO_PRECHOICEP(x))) {
+    else if (KNO_CHOICEP(x)) {
       lispval normal = kno_make_simple_choice(x);
       int start=0, n = KNO_CHOICE_SIZE(normal);
       if (n<=howmany)
@@ -1234,104 +1182,80 @@ static lispval entries2choice(struct KNO_SORT_ENTRY *entries,int n)
 static lispval nmax_prim(lispval choices,lispval karg,lispval keyfn)
 {
   if (KNO_UINTP(karg)) {
-    if (KNO_PRECHOICEP(choices)) {
-      lispval norm = kno_make_simple_choice(choices);
-      lispval result = nmax_prim(norm,karg,keyfn);
-      kno_decref(norm);
-      return result;}
+    size_t k = FIX2INT(karg);
+    size_t n = KNO_CHOICE_SIZE(choices);
+    if (n==1)
+      return kno_make_vector(1,&choices);
     else {
-      size_t k = FIX2INT(karg);
-      size_t n = KNO_CHOICE_SIZE(choices);
-      if (n==1)
-        return kno_make_vector(1,&choices);
-      else {
-        struct KNO_SORT_ENTRY *entries = u8_alloc_n(k,struct KNO_SORT_ENTRY);
-        ssize_t count = select_helper(choices,keyfn,k,1,entries);
-        return entries2choice(entries,count);}}}
+      struct KNO_SORT_ENTRY *entries = u8_alloc_n(k,struct KNO_SORT_ENTRY);
+      ssize_t count = select_helper(choices,keyfn,k,1,entries);
+      return entries2choice(entries,count);}}
   else return kno_type_error(_("fixnum"),"nmax_prim",karg);
 }
 
 static lispval nmax2vec_prim(lispval choices,lispval karg,lispval keyfn)
 {
   if (KNO_UINTP(karg)) {
-    if (KNO_PRECHOICEP(choices)) {
-      lispval norm = kno_make_simple_choice(choices);
-      lispval result = nmax_prim(norm,karg,keyfn);
-      kno_decref(norm);
-      return result;}
+    size_t k = FIX2INT(karg);
+    size_t n = KNO_CHOICE_SIZE(choices);
+    if (n==0) return kno_make_vector(0,NULL);
+    else if (n==1) {
+      kno_incref(choices);
+      return kno_make_vector(0,&choices);}
     else {
-      size_t k = FIX2INT(karg);
-      size_t n = KNO_CHOICE_SIZE(choices);
-      if (n==0) return kno_make_vector(0,NULL);
-      else if (n==1) {
-        kno_incref(choices);
-        return kno_make_vector(0,&choices);}
-      else {
-        ssize_t n_entries = (n<k) ? (n) : (k);
-        struct KNO_SORT_ENTRY *entries =
-          u8_alloc_n(n_entries,struct KNO_SORT_ENTRY);
-        ssize_t count = select_helper(choices,keyfn,k,1,entries);
-        lispval vec = kno_make_vector(count,NULL);
-        int i = 0; while (i<count) {
-          lispval elt = entries[i].sortval;
-          int vec_off = count-1-i;
-          kno_incref(elt);
-          kno_decref(entries[i].sortkey);
-          KNO_VECTOR_SET(vec,vec_off,elt);
-          i++;}
-        u8_free(entries);
-        return vec;}}}
+      ssize_t n_entries = (n<k) ? (n) : (k);
+      struct KNO_SORT_ENTRY *entries =
+        u8_alloc_n(n_entries,struct KNO_SORT_ENTRY);
+      ssize_t count = select_helper(choices,keyfn,k,1,entries);
+      lispval vec = kno_make_vector(count,NULL);
+      int i = 0; while (i<count) {
+        lispval elt = entries[i].sortval;
+        int vec_off = count-1-i;
+        kno_incref(elt);
+        kno_decref(entries[i].sortkey);
+        KNO_VECTOR_SET(vec,vec_off,elt);
+        i++;}
+      u8_free(entries);
+      return vec;}}
   else return kno_type_error(_("fixnum"),"nmax_prim",karg);
 }
 
 static lispval nmin_prim(lispval choices,lispval karg,lispval keyfn)
 {
   if (KNO_UINTP(karg)) {
-    if (KNO_PRECHOICEP(choices)) {
-      lispval norm = kno_make_simple_choice(choices);
-      lispval result = nmax_prim(norm,karg,keyfn);
-      kno_decref(norm);
-      return result;}
+    size_t k = FIX2INT(karg);
+    size_t n = KNO_CHOICE_SIZE(choices);
+    if (n<=k) return kno_incref(choices);
     else {
-      size_t k = FIX2INT(karg);
-      size_t n = KNO_CHOICE_SIZE(choices);
-      if (n<=k) return kno_incref(choices);
-      else {
-        struct KNO_SORT_ENTRY *entries = u8_alloc_n(k,struct KNO_SORT_ENTRY);
-        ssize_t count = select_helper(choices,keyfn,k,0,entries);
-        return entries2choice(entries,count);}}}
+      struct KNO_SORT_ENTRY *entries = u8_alloc_n(k,struct KNO_SORT_ENTRY);
+      ssize_t count = select_helper(choices,keyfn,k,0,entries);
+      return entries2choice(entries,count);}}
   else return kno_type_error(_("fixnum"),"nmax_prim",karg);
 }
 
 static lispval nmin2vec_prim(lispval choices,lispval karg,lispval keyfn)
 {
   if (KNO_UINTP(karg)) {
-    if (KNO_PRECHOICEP(choices)) {
-      lispval norm = kno_make_simple_choice(choices);
-      lispval result = nmin_prim(norm,karg,keyfn);
-      kno_decref(norm);
-      return result;}
+    size_t k = FIX2INT(karg);
+    size_t n = KNO_CHOICE_SIZE(choices);
+    if (n==0) return kno_make_vector(0,NULL);
+    else if (n==1) {
+      kno_incref(choices);
+      return kno_make_vector(0,&choices);}
     else {
-      size_t k = FIX2INT(karg);
-      size_t n = KNO_CHOICE_SIZE(choices);
-      if (n==0) return kno_make_vector(0,NULL);
-      else if (n==1) {
-        kno_incref(choices);
-        return kno_make_vector(0,&choices);}
-      else {
-        ssize_t n_entries = (n<k) ? (n) : (k);
-        struct KNO_SORT_ENTRY *entries =
-          u8_alloc_n(n_entries,struct KNO_SORT_ENTRY);
-        ssize_t count = select_helper(choices,keyfn,k,0,entries);
-        lispval vec = kno_make_vector(count,NULL);
-        int i = 0; while (i<count) {
-          kno_decref(entries[i].sortkey);
-          kno_incref(entries[i].sortval);
-          KNO_VECTOR_SET(vec,i,entries[i].sortval);
-          i++;}
-        u8_free(entries);
-        return vec;}}}
-    else return kno_type_error(_("fixnum"),"nmax_prim",karg);
+      ssize_t n_entries = (n<k) ? (n) : (k);
+      struct KNO_SORT_ENTRY *entries =
+        u8_alloc_n(n_entries,struct KNO_SORT_ENTRY);
+      ssize_t count = select_helper(choices,keyfn,k,0,entries);
+      lispval vec = kno_make_vector(count,NULL);
+      int i = 0; while (i<count) {
+        kno_decref(entries[i].sortkey);
+        kno_incref(entries[i].sortval);
+        KNO_VECTOR_SET(vec,i,entries[i].sortval);
+        i++;}
+      u8_free(entries);
+      return vec;}}
+  else return kno_type_error(_("fixnum"),"nmax_prim",karg);
 }
 
 /* GETRANGE */

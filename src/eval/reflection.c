@@ -753,7 +753,7 @@ static lispval getmodules_evalfn(lispval expr,kno_lexenv call_env,kno_stack _sta
   while (env) {
     if (kno_test(env->env_bindings,moduleid_symbol,VOID)) {
       lispval ids = kno_get(env->env_bindings,moduleid_symbol,VOID);
-      if ((CHOICEP(ids))||(PRECHOICEP(ids))) {
+      if (CHOICEP(ids)) {
         DO_CHOICES(id,ids) {
           if (SYMBOLP(id)) {CHOICE_ADD(modules,id);}}}
       else if (SYMBOLP(ids)) {CHOICE_ADD(modules,ids);}

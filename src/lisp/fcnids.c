@@ -55,9 +55,8 @@ KNO_EXPORT lispval kno_register_fcnid(lispval x)
     int i = 0, n = KNO_FCNID_BLOCKSIZE;
     while (i<n) block[i++]=NULL;
     _kno_fcnids[serialno/KNO_FCNID_BLOCKSIZE]=block;}
-  kno_incref(x);
   _kno_fcnids[serialno/KNO_FCNID_BLOCKSIZE][serialno%KNO_FCNID_BLOCKSIZE]=
-    (struct KNO_CONS *)x;
+    (struct KNO_CONS *) (kno_make_simple_choice(x));
   u8_unlock_mutex(&_kno_fcnid_lock);
   if (KNO_FUNCTIONP(x)) {
     struct KNO_FUNCTION *f = (kno_function)x;
@@ -94,8 +93,7 @@ KNO_EXPORT lispval kno_set_fcnid(lispval id,lispval value)
         if (current == ((kno_cons)value)) {
           u8_unlock_mutex(&_kno_fcnid_lock);
           return id;}
-        block[block_off]=(kno_cons)value;
-        kno_incref(value);
+        block[block_off]=(kno_cons) kno_make_simple_choice(value);
         fcn->fcnid = id;
         if (!(_kno_leak_fcnids)) {
           /* This is dangerous if, for example, a module is being reloaded

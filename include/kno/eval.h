@@ -268,7 +268,7 @@ KNO_FASTOP lispval kno_lexref(lispval lexref,kno_lexenv env_arg)
     if (KNO_EXPECT_TRUE(KNO_SCHEMAPP(bindings))) {
       struct KNO_SCHEMAP *s = (struct KNO_SCHEMAP *)bindings;
       if ( across < s->schema_length)
-        return kno_incref(s->schema_values[across]);}}
+        return kno_make_simple_choice(s->schema_values[across]);}}
   lispval env_ptr = (lispval) env_arg;
   u8_byte errbuf[64];
   return kno_err("Bad lexical reference","kno_lexref",

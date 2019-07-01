@@ -742,11 +742,8 @@ static lispval get_headval(lispval head,kno_lexenv env,kno_stack eval_stack,
     *gc_headval=1;}
   else headval=head;
   if (KNO_ABORTED(headval)) return headval;
-  else if (KNO_FCNIDP(headval)) {
+  else if (KNO_FCNIDP(headval))
     headval=kno_fcnid_ref(headval);
-    if (PRECHOICEP(headval)) {
-      headval=kno_make_simple_choice(headval);
-      *gc_headval=1;}}
   else NO_ELSE;
   return headval;
 }
@@ -872,7 +869,6 @@ static lispval eval_apply(u8_string fname,
       if (gc_args) kno_decref_vec(argbuf,arg_i);
       return arg_val;}
     else if (CONSP(arg_val)) {
-      if (KNO_PRECHOICEP(arg_val)) arg_val = kno_simplify_choice(arg_val);
       if ( (nd_args == 0) && (CHOICEP(arg_val)) )
         nd_args = 1;
       else if ( (qc_args == 0) && (QCHOICEP(arg_val)) )
@@ -890,8 +886,8 @@ static lispval eval_apply(u8_string fname,
   if ( (tail) && (lambda) && (kno_optimize_tail_calls) &&
        (! ((d_prim) && (nd_args)) ) )
     result=kno_tail_call(fn,arg_i,argbuf);
-  else if ((CHOICEP(fn)) || (PRECHOICEP(fn)) ||
-           ((d_prim) && ( (nd_args) || (qc_args) ) ))
+  else if ( (CHOICEP(fn)) ||
+	    ((d_prim) && ( (nd_args) || (qc_args) ) ) )
     result=kno_ndcall(stack,fn,arg_i,argbuf);
   else if (gc_args)
     result=kno_dcall(stack,fn,arg_i,argbuf);
@@ -946,8 +942,6 @@ static lispval opcode_eval(lispval opcode,lispval expr,
       return kno_err(kno_VoidArgument,"OPCODE_APPLY",opcode_name(opcode),arg);
     else if (PRED_TRUE(args == KNO_EMPTY_LIST)) {}
     else return kno_err(kno_TooManyArgs,"opcode_eval",opcode_name(opcode),expr);
-    if (KNO_PRECHOICEP(val))
-      val = kno_simplify_choice(val);
     /* Get results */
     if ( (!(nd_call)) && (KNO_EMPTY_CHOICEP(val)) )
       results = KNO_EMPTY_CHOICE;
@@ -1780,25 +1774,19 @@ static lispval choiceref_prim(lispval arg,lispval off)
       struct KNO_CHOICE *ch = (kno_choice)arg;
       if (i>ch->choice_size) {
 	u8_byte buf[50];
-	kno_seterr(kno_RangeError,"choiceref_prim",
-		   u8_sprintf(buf,50,"%lld",i),
-		   arg);
-	return KNO_ERROR;}
+	return kno_err(kno_RangeError,"choiceref_prim",
+		       u8_sprintf(buf,50,"%lld",i),
+		       arg);}
       else {
 	lispval elt = KNO_XCHOICE_DATA(ch)[i];
 	return kno_incref(elt);}}
-    else if (PRECHOICEP(arg)) {
-      lispval simplified = kno_make_simple_choice(arg);
-      lispval result = choiceref_prim(simplified,off);
-      kno_decref(simplified);
-      return result;}
     else if (i == 0)
       return kno_incref(arg);
     else {
       u8_byte buf[50];
-      kno_seterr(kno_RangeError,"choiceref_prim",
-		 u8_sprintf(buf,50,"%lld",i),arg);
-      return KNO_ERROR;}}
+      return kno_err(kno_RangeError,"choiceref_prim",
+		     u8_sprintf(buf,50,"%lld",i),
+		     arg);}}
   else return kno_type_error("fixnum","choiceref_prim",off);
 }
 
@@ -2173,7 +2161,7 @@ KNO_EXPORT int kno_init_scheme()
        application environment. Consequently, it needs to be called
        before setting up any kno_atexit handlers which might use the
        application environment. */
-    kno_setup_app_env();
+    kno_setup_app_env();}
 
-    return kno_scheme_initialized;}
+  return kno_scheme_initialized;
 }

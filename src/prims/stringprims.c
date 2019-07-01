@@ -1297,7 +1297,7 @@ static int check_yesp(u8_string arg,lispval strings,int ignorecase)
     KNO_DOLIST(s,strings) {
       if (strmatch(arg,s,ignorecase)) return 1;}
     return 0;}
-  else if ((CHOICEP(strings))||(PRECHOICEP(strings))) {
+  else if (CHOICEP(strings)) {
     DO_CHOICES(s,strings) {
       if (strmatch(arg,s,ignorecase)) {
         KNO_STOP_DO_CHOICES;

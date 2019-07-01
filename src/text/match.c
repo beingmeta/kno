@@ -375,7 +375,7 @@ void kno_add_match_operator
 static lispval get_longest_match(lispval matches)
 {
   if (KNO_ABORTED(matches)) return matches;
-  else if ((CHOICEP(matches)) || (PRECHOICEP(matches))) {
+  else if (CHOICEP(matches)) {
     u8_byteoff max = -1;
     DO_CHOICES(match,matches) {
       u8_byteoff ival = kno_getint(match);
@@ -412,7 +412,7 @@ lispval kno_text_domatch
          string,off,lim);
       if (mlen < 0) return EMPTY;
       else return KNO_INT(mlen);}
-  else if ((CHOICEP(pat)) || (PRECHOICEP(pat))) {
+  else if (CHOICEP(pat)) {
     if (flags&(KNO_MATCH_BE_GREEDY)) {
       u8_byteoff max = -1;
       DO_CHOICES(each,pat) {
@@ -450,7 +450,7 @@ lispval kno_text_domatch
           kno_decref(answers);
           return answer;}
         CHOICE_ADD(answers,answer);}
-      return answers;}}
+      return kno_simplify_choice(answers);}}
   else if (KNO_CHARACTERP(pat)) {
     if (off == lim) return EMPTY;
     else {
@@ -521,9 +521,11 @@ static lispval match_sequence
         return npos;}
       CHOICE_ADD(next,npos);}
     kno_decref(state);
-    if (EMPTYP(next)) 
+    if (EMPTYP(next))
       return EMPTY;
-    else {state = next; i++;}}
+    else {
+      state = kno_simplify_choice(next);
+      i++;}}
   return state;
 }
 
@@ -562,13 +564,13 @@ static lispval extract_text(u8_string string,u8_byteoff start,lispval ends)
         kno_conspair(each_end,kno_extract_string
                     (NULL,string+start,string+kno_getint(each_end)));
       CHOICE_ADD(answers,extraction);}
-  return answers;
+  return kno_simplify_choice(answers);
 }
 
 static lispval get_longest_extractions(lispval extractions)
 {
   if (KNO_ABORTED(extractions)) return extractions;
-  else if ((CHOICEP(extractions)) || (PRECHOICEP(extractions))) {
+  else if (CHOICEP(extractions)) {
     lispval largest = EMPTY; u8_byteoff max = -1;
     DO_CHOICES(extraction,extractions) {
       u8_byteoff ival = kno_getint(KNO_CAR(extraction));
@@ -580,7 +582,7 @@ static lispval get_longest_extractions(lispval extractions)
         kno_decref(largest); largest = kno_incref(extraction);
         max = ival;}}
     kno_decref(extractions);
-    return largest;}
+    return kno_simplify_choice(largest);}
   else return extractions;
 }
 
@@ -603,7 +605,7 @@ static lispval textract
                    string,off,lim);
       if (mlen<0) return EMPTY;
       else return extract_text(string,off,KNO_INT(mlen));}
-  else if ((CHOICEP(pat)) || (QCHOICEP(pat)) || (PRECHOICEP(pat))) {
+  else if ((CHOICEP(pat)) || (QCHOICEP(pat))) {
     lispval answers = EMPTY;
     DO_CHOICES(epat,pat) {
       lispval extractions = textract(epat,next,env,string,off,lim,flags);
@@ -622,10 +624,9 @@ static lispval textract
           break;}}
       if (KNO_ABORTED(answers)) {
         kno_decref(extractions);
-        return answers;}
+        return kno_simplify_choice(answers);}
       else {kno_decref(extractions);}}
-    if ((flags&KNO_MATCH_BE_GREEDY) &&
-        ((CHOICEP(answers)) || (PRECHOICEP(answers)))) {
+    if ((flags&KNO_MATCH_BE_GREEDY) && (CHOICEP(answers))) {
       /* get_longest_extracts frees (decrefs) answers if it doesn't
          return them */
       lispval result = get_longest_extractions(answers);
@@ -688,7 +689,7 @@ static lispval textract
           CHOICE_ADD(answers,extraction);}
         kno_decref(lengths);
         kno_decref(v);
-        return answers;}}}
+        return kno_simplify_choice(answers);}}}
   else if (TYPEP(pat,kno_txclosure_type)) {
     struct KNO_TXCLOSURE *txc = (kno_txclosure)pat;
     return textract(txc->kno_txpattern,next,txc->kno_txenv,string,off,lim,flags);}
@@ -746,7 +747,7 @@ static lispval extract_sequence
               CHOICE_ADD(results,result);}
             kno_decref(remainders);}}}
       kno_decref(sub_matches);
-      return results;}}
+      return kno_simplify_choice(results);}}
 }
 
 static lispval lists_to_vectors(lispval lists)
@@ -763,7 +764,7 @@ static lispval lists_to_vectors(lispval lists)
       i++; scan = KNO_CDR(scan);}
     elt = kno_conspair(lsize,vec);
     CHOICE_ADD(answer,elt);}
-  return answer;
+  return kno_simplify_choice(answer);
 }
 
 /** Match repeatedly **/
@@ -799,12 +800,12 @@ static lispval match_repeatedly
     if (flags&KNO_MATCH_BE_GREEDY)
       if (EMPTYP(next_state)) {
         kno_decref(state);
-        return match_points;}
+        return kno_simplify_choice(match_points);}
       else {
         kno_decref(match_points);
         match_points = kno_incref(next_state);
         kno_decref(state);
-        state = next_state;
+        state = kno_simplify_choice(next_state);
         count++;}
     else if (EMPTYP(next_state))
       if (count == 0)
@@ -817,9 +818,11 @@ static lispval match_repeatedly
           return EMPTY;}
       else {
         kno_decref(state);
-        return match_points;}
+        return kno_simplify_choice(match_points);}
     else {
-      kno_decref(state); count++; state = next_state;}}
+      kno_decref(state);
+      count++;
+      state = kno_simplify_choice(next_state);}}
 }
 
 static lispval extract_repeatedly
@@ -861,7 +864,7 @@ static lispval extract_repeatedly
           lispval pair = kno_conspair(size,singleton);
           CHOICE_ADD(choices,pair);}}}
   kno_decref(top);
-  return choices;
+  return kno_simplify_choice(choices);
 }
 
 /** Match operations **/
@@ -919,7 +922,7 @@ static lispval extract_star
           kno_conspair(size,kno_conspair(KNOSYM_STAR,kno_incref(data)));
         CHOICE_ADD(answer,pair);}
       kno_decref(extractions);
-      return answer;}}
+      return kno_simplify_choice(answer);}}
 }
 
 static lispval match_plus
@@ -958,7 +961,7 @@ static lispval extract_plus
         kno_conspair(size,kno_conspair(KNOSYM_PLUS,kno_incref(data)));
       CHOICE_ADD(answer,pair);}
     kno_decref(extractions);
-    return answer;}
+    return kno_simplify_choice(answer);}
 }
 
 static lispval match_opt
@@ -1016,7 +1019,7 @@ static lispval match_not
         CHOICE_ADD(result,KNO_INT(i));
         i = forward_char(string,i);}
       CHOICE_ADD(result,KNO_INT(i));
-      return result;}}
+      return kno_simplify_choice(result);}}
 }
 
 static u8_byteoff search_not
@@ -1191,7 +1194,7 @@ static lispval label_extract
         addval = kno_conspair(size,xtract);
         CHOICE_ADD(answers,addval);}
       kno_decref(extractions);
-      return answers;}}
+      return kno_simplify_choice(answers);}}
 }
 
 static lispval subst_match 
@@ -1232,7 +1235,7 @@ static lispval subst_extract
       DO_CHOICES(match,matches) {
         int matchlen = kno_getint(match);
         lispval matched = kno_substring(string+off,string+matchlen);
-        if ((CHOICEP(expanded))||(PRECHOICEP(expanded))) {
+        if (CHOICEP(expanded)) {
           DO_CHOICES(subst_arg,expanded) {
             lispval new_args = kno_conspair(kno_incref(matched),kno_incref(subst_arg));
             lispval new_subst = kno_conspair(subst_symbol,new_args);
@@ -1247,7 +1250,7 @@ static lispval subst_extract
           CHOICE_ADD(answers,answer);}}
       kno_decref(expanded);
       kno_decref(matches);
-      return answers;}}
+      return kno_simplify_choice(answers);}}
 }
 
 static lispval expand_subst_args(lispval args,kno_lexenv env)
@@ -1262,8 +1265,7 @@ static lispval expand_subst_args(lispval args,kno_lexenv env)
     lispval cdrchoices = expand_subst_args(KNO_CDR(args),env);
     /* Avoid the multiplication of conses by reusing ARGS if it
        hasn't exploded or changed. */
-    if ((CHOICEP(carchoices))||(PRECHOICEP(carchoices))||
-        (CHOICEP(cdrchoices))||(PRECHOICEP(cdrchoices))) {
+    if  ((CHOICEP(carchoices))||(CHOICEP(cdrchoices))) {
       lispval conses = EMPTY;
       DO_CHOICES(car,carchoices) {
         DO_CHOICES(cdr,cdrchoices) {
@@ -1272,7 +1274,7 @@ static lispval expand_subst_args(lispval args,kno_lexenv env)
           CHOICE_ADD(conses,cons);}}
       kno_decref(carchoices);
       kno_decref(cdrchoices);
-      return conses;}
+      return kno_simplify_choice(conses);}
     else if ((KNO_EQUAL(carchoices,KNO_CAR(args)))&&
              (KNO_EQUAL(cdrchoices,KNO_CDR(args)))) {
       kno_decref(carchoices);
@@ -1284,7 +1286,7 @@ static lispval expand_subst_args(lispval args,kno_lexenv env)
     DO_CHOICES(elt,args) {
       lispval cv = expand_subst_args(elt,env);
       CHOICE_ADD(changed,cv);}
-    return changed;}
+    return kno_simplify_choice(changed);}
   else return kno_incref(args);
 }
 
@@ -1395,7 +1397,7 @@ static lispval word_match
           kno_incref(offset); kno_decref(core_result); 
           return kno_err(kno_InternalMatchError,"word_match",NULL,offset);}}}
     kno_decref(core_result);
-    return final_results;}
+    return kno_simplify_choice(final_results);}
 }
 
 static u8_byteoff get_next_candidate
@@ -1463,7 +1465,7 @@ static lispval word_extract
       lispval pair = kno_conspair(end,substring);
       CHOICE_ADD(answers,pair);}
     kno_decref(ends);
-    return answers;}
+    return kno_simplify_choice(answers);}
 }
 
 /* Matching chunks */
@@ -1504,7 +1506,7 @@ static lispval chunk_extract
       lispval pair = kno_conspair(end,substring);
       CHOICE_ADD(answers,pair);}
     kno_decref(ends);
-    return answers;}
+    return kno_simplify_choice(answers);}
 }
 
 /** CHOICE matching **/
@@ -1528,7 +1530,8 @@ static lispval match_choice
     KNO_DOLIST(elt,KNO_CDR(pat)) {
       kno_incref(elt);
       CHOICE_ADD(choice,elt);}
-    if (EMPTYP(choice)) return EMPTY;
+    if (EMPTYP(choice))
+      return EMPTY;
     else {
       lispval result = kno_text_matcher(choice,env,string,off,lim,flags);
       kno_decref(choice);
@@ -1549,7 +1552,8 @@ static u8_byteoff search_choice
     KNO_DOLIST(elt,KNO_CDR(pat)) {
       kno_incref(elt);
       CHOICE_ADD(choice,elt);}
-    if (EMPTYP(choice)) return -1;
+    if (EMPTYP(choice))
+      return -1;
     else {
       u8_byteoff result = kno_text_search(choice,env,string,off,lim,flags);
       kno_decref(choice);
@@ -1569,7 +1573,8 @@ static lispval extract_choice
     KNO_DOLIST(elt,KNO_CDR(pat)) {
       kno_incref(elt);
       CHOICE_ADD(choice,elt);}
-    if (EMPTYP(choice)) return EMPTY;
+    if (EMPTYP(choice))
+      return EMPTY;
     else {
       lispval result = textract(choice,next,env,string,off,lim,flags);
       kno_decref(choice);
@@ -2210,7 +2215,7 @@ static lispval isspace_plus_match
   if (last == string) return EMPTY;
   else if ((flags)&(KNO_MATCH_BE_GREEDY))
     return get_longest_match(match_points);
-  else return match_points;
+  else return kno_simplify_choice(match_points);
 }
 static u8_byteoff isspace_search
   (lispval pat,kno_lexenv env,
@@ -2296,7 +2301,7 @@ static lispval ishspace_plus_match
   if (last == string) return EMPTY;
   else if ((flags)&(KNO_MATCH_BE_GREEDY))
     return get_longest_match(match_points);
-  else return match_points;
+  else return kno_simplify_choice(match_points);
 }
 static u8_byteoff ishspace_search
   (lispval pat,kno_lexenv env,
@@ -2339,7 +2344,7 @@ static lispval vspace_plus_match
   if (last == string) return EMPTY;
   else if ((flags)&(KNO_MATCH_BE_GREEDY))
     return get_longest_match(match_points);
-  else return match_points;
+  else return kno_simplify_choice(match_points);
 }
 static u8_byteoff vspace_search
   (lispval pat,kno_lexenv env,
@@ -2421,7 +2426,7 @@ static lispval isalnum_plus_match
       ch = string_ref(string+off);}
     if ((flags)&(KNO_MATCH_BE_GREEDY))
       return get_longest_match(match_points);
-    else return match_points;}
+    else return kno_simplify_choice(match_points);}
   else return EMPTY;
 }
 static u8_byteoff isalnum_search
@@ -2461,7 +2466,7 @@ static lispval isword_plus_match
       ch = string_ref(string+off);}
     if ((flags)&(KNO_MATCH_BE_GREEDY))
       return get_longest_match(match_points);
-    else return match_points;}
+    else return kno_simplify_choice(match_points);}
   else return EMPTY;
 }
 static u8_byteoff isword_search
@@ -2502,7 +2507,7 @@ static lispval isdigit_plus_match
       ch = string_ref(string+off);}
     if ((flags)&(KNO_MATCH_BE_GREEDY))
       return get_longest_match(match_points);
-    else return match_points;}
+    else return kno_simplify_choice(match_points);}
   else return EMPTY;
 }
 static u8_byteoff isdigit_search
@@ -2541,7 +2546,7 @@ static lispval isxdigit_plus_match
       ch = string_ref(string+off);}
     if ((flags)&(KNO_MATCH_BE_GREEDY))
       return get_longest_match(match_points);
-    else return match_points;}
+    else return kno_simplify_choice(match_points);}
   else return EMPTY;
 }
 static u8_byteoff isxdigit_search
@@ -2580,7 +2585,7 @@ static lispval isodigit_plus_match
       ch = string_ref(string+off);}
     if ((flags)&(KNO_MATCH_BE_GREEDY))
       return get_longest_match(match_points);
-    else return match_points;}
+    else return kno_simplify_choice(match_points);}
   else return EMPTY;
 }
 static u8_byteoff isodigit_search
@@ -2619,7 +2624,7 @@ static lispval isalpha_plus_match
       ch = string_ref(string+off);}
     if ((flags)&(KNO_MATCH_BE_GREEDY))
       return get_longest_match(match_points);
-    else return match_points;}
+    else return kno_simplify_choice(match_points);}
   else return EMPTY;
 }
 static u8_byteoff isalpha_search
@@ -2658,7 +2663,7 @@ static lispval ispunct_plus_match
       ch = string_ref(string+off);}
     if ((flags)&(KNO_MATCH_BE_GREEDY))
       return get_longest_match(match_points);
-    else return match_points;}
+    else return kno_simplify_choice(match_points);}
   else return EMPTY;
 }
 static u8_byteoff ispunct_search
@@ -2698,7 +2703,7 @@ static lispval isprint_plus_match
       ch = string_ref(string+off);}
     if ((flags)&(KNO_MATCH_BE_GREEDY))
       return get_longest_match(match_points);
-    else return match_points;}
+    else return kno_simplify_choice(match_points);}
   else return EMPTY;
 }
 static u8_byteoff isprint_search
@@ -2737,7 +2742,7 @@ static lispval iscntrl_plus_match
       ch = string_ref(string+off);}
     if ((flags)&(KNO_MATCH_BE_GREEDY))
       return get_longest_match(match_points);
-    else return match_points;}
+    else return kno_simplify_choice(match_points);}
   else return EMPTY;
 }
 static u8_byteoff iscntrl_search
@@ -2778,7 +2783,7 @@ static lispval islower_plus_match
       ch = string_ref(string+off);}
     if ((flags)&(KNO_MATCH_BE_GREEDY))
       return get_longest_match(match_points);
-    else return match_points;}
+    else return kno_simplify_choice(match_points);}
   else return EMPTY;
 }
 static u8_byteoff islower_search
@@ -2821,7 +2826,7 @@ static lispval isnotlower_plus_match
       ch = string_ref(string+off);}
     if ((flags)&(KNO_MATCH_BE_GREEDY))
       return get_longest_match(match_points);
-    else return match_points;}
+    else return kno_simplify_choice(match_points);}
   else return EMPTY;
 }
 static u8_byteoff isnotlower_search
@@ -2862,7 +2867,7 @@ static lispval isupper_plus_match
       ch = string_ref(string+off);}
     if ((flags)&(KNO_MATCH_BE_GREEDY))
       return get_longest_match(match_points);
-    else return match_points;}
+    else return kno_simplify_choice(match_points);}
   else return EMPTY;
 }
 static u8_byteoff isupper_search
@@ -2905,7 +2910,7 @@ static lispval isnotupper_plus_match
       ch = string_ref(string+off);}
     if ((flags)&(KNO_MATCH_BE_GREEDY))
       return get_longest_match(match_points);
-    else return match_points;}
+    else return kno_simplify_choice(match_points);}
   else return EMPTY;
 }
 static u8_byteoff isnotupper_search
@@ -3324,7 +3329,7 @@ static lispval capword_match
       CHOICE_ADD(matches,KNO_INT(last-string));}}
   if (greedy)
     return get_longest_match(matches);
-  else return matches;
+  else return kno_simplify_choice(matches);
 }
 
 static u8_byteoff capword_search
@@ -3433,7 +3438,8 @@ static lispval hashset_match
           (NULL,string+off,string+kno_getint(possibility));
         lispval xformed = match_apply(xform,"HASHSET-MATCH",env,1,&origin);
         if (kno_hashset_get(h,xformed)) {
-          kno_incref(possibility); CHOICE_ADD(results,possibility);}
+          kno_incref(possibility);
+          CHOICE_ADD(results,possibility);}
         kno_decref(xformed); kno_decref(origin);}}
     kno_decref(iresults);
     return get_longest_match(results);}
@@ -3481,7 +3487,9 @@ static lispval hashset_not_match
     lispval results = EMPTY;
     DO_CHOICES(possibility,iresults)
       if (hashset_strget(h,string+off,kno_getint(possibility)-off)) {}
-      else {kno_incref(possibility); CHOICE_ADD(results,possibility);}
+      else {
+        kno_incref(possibility);
+        CHOICE_ADD(results,possibility);}
     kno_decref(iresults);
     return get_longest_match(results);}
   else {
@@ -3497,8 +3505,10 @@ static lispval hashset_not_match
           kno_decref(results);
           return xformed;}
         else if ((!(STRINGP(xformed)))||(!(kno_hashset_get(h,xformed)))) {
-          kno_incref(possibility); CHOICE_ADD(results,possibility);}
-        kno_decref(xformed); kno_decref(origin);}}
+          kno_incref(possibility);
+          CHOICE_ADD(results,possibility);}
+        kno_decref(xformed);
+        kno_decref(origin);}}
     kno_decref(iresults);
     return get_longest_match(results);}
 }
@@ -3548,8 +3558,10 @@ static lispval applytest_match
           (NULL,string+off,string+kno_getint(possibility));
         lispval match = kno_apply(proc,1,&substring);
         if (!((FALSEP(match))||(EMPTYP(match))||(VOIDP(match)))) {
-          kno_incref(possibility); CHOICE_ADD(results,possibility);}
-        kno_decref(substring); kno_decref(match);}}
+          kno_incref(possibility);
+          CHOICE_ADD(results,possibility);}
+        kno_decref(substring);
+        kno_decref(match);}}
     kno_decref(iresults);
     if (flags&KNO_MATCH_BE_GREEDY)
       return get_longest_match(results);
@@ -3655,7 +3667,7 @@ static lispval minlen_match
         int rint = FIX2INT(r); int diff = rint-off;
         if (diff>=min_len) {CHOICE_ADD(results,r);}}}
     kno_decref(inner_results);
-    return results;}
+    return kno_simplify_choice(results);}
 }
 
 static u8_byteoff minlen_search
@@ -3796,7 +3808,7 @@ u8_byteoff kno_text_search
         else if (*s < 0x80) s++;
         else s = u8_substring(s,1);}
       return -1;}}
-  else if ((CHOICEP(pat)) || (PRECHOICEP(pat))) {
+  else if (CHOICEP(pat)) {
     int nlim = lim, loc = -1;
     DO_CHOICES(epat,pat) {
       u8_byteoff nxt = kno_text_search(epat,env,string,off,lim,flags);

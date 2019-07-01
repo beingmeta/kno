@@ -433,7 +433,7 @@ static ssize_t write_dtypes(lispval dtypes,struct KNO_STREAM *out)
   KNO_INIT_BYTE_OUTBUF(&tmp,tmpbuf,1000);
   if ( (out->stream_flags) & KNO_STREAM_LOUDSYMS )
     tmp.buf_flags |= KNO_FIX_DTSYMS;
-  if ((CHOICEP(dtypes))||(PRECHOICEP(dtypes))) {
+  if (CHOICEP(dtypes)) {
     /* This writes out the objects sequentially, writing into memory
        first and then to disk, to reduce the danger of malformed
        DTYPEs on the disk. */

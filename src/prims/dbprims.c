@@ -1493,7 +1493,7 @@ static lispval pool_prefetch_prim(lispval pool,lispval oids)
     if (kno_prefetch_oids(oids)>=0)
       return KNO_TRUE;
     else return KNO_ERROR;}
-  else if (! ( (CHOICEP(pool)) || (PRECHOICEP(pool)) ) ) {
+  else if (! (CHOICEP(pool)) ) {
     kno_pool p=kno_lisp2pool(pool);
     if (p==NULL)
       return KNO_ERROR_VALUE;

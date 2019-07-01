@@ -63,8 +63,6 @@ static lispval quasiquote_list(lispval obj,kno_lexenv env,int level)
               kno_decref(head);
               return KNO_ERROR;}
             else {
-              if (PRECHOICEP(splice_at_end))
-                splice_at_end=kno_simplify_choice(splice_at_end);
               *tail = splice_at_end;
               return head;}}
           else {
@@ -89,9 +87,7 @@ static lispval quasiquote_list(lispval obj,kno_lexenv env,int level)
           new_elt = kno_eval(KNO_CADR(elt),env);
           if (VOIDP(new_elt))
             new_elt = kno_err(kno_VoidArgument,"quasiquote_list",
-                             NULL,KNO_CADR(elt));
-          else if (PRECHOICEP(new_elt))
-            new_elt=kno_simplify_choice(new_elt);}
+                             NULL,KNO_CADR(elt));}
         else {
           lispval embed = kno_quasiquote(KNO_CADR(elt),env,level-1);
           if (KNO_ABORTED(embed))
@@ -103,8 +99,6 @@ static lispval quasiquote_list(lispval obj,kno_lexenv env,int level)
       else if (KNO_EQ(KNO_CAR(elt),unquotestar))
         if (level==1) {
           lispval insertion = kno_eval(KNO_CADR(elt),env);
-          if (PRECHOICEP(insertion))
-            insertion=kno_simplify_choice(insertion);
           if (KNO_ABORTED(insertion)) {
               kno_decref(head);
               return insertion;}
@@ -187,8 +181,6 @@ static lispval quasiquote_vector(lispval obj,kno_lexenv env,int level)
           (PAIRP(KNO_CDR(elt))))
         if (level==1) {
           lispval insertion = kno_eval(KNO_CADR(elt),env); int addlen = 0;
-          if (PRECHOICEP(insertion))
-            insertion=kno_simplify_choice(insertion);
           if (KNO_ABORTED(insertion)) {
             int k = 0; while (k<j) {kno_decref(newelts[k]); k++;}
             u8_free(newelts);
@@ -269,12 +261,10 @@ static lispval quasiquote_slotmap(lispval obj,kno_lexenv env,int level)
     if ((PAIRP(value))||
         (VECTORP(value))||
         (SLOTMAPP(value))||
-        (CHOICEP(value))||
-        (PRECHOICEP(value))) {
+        (CHOICEP(value))) {
       lispval qval = kno_quasiquote(value,env,level);
       if (KNO_ABORTED(qval)) {
         kno_decref(result); return qval;}
-      if (PRECHOICEP(qval)) qval = kno_simplify_choice(qval);
       kno_slotmap_store(new_slotmap,slotid,qval);
       kno_decref(qval);
       i++;}
@@ -312,8 +302,6 @@ lispval kno_quasiquote(lispval obj,kno_lexenv env,int level)
     else if (KNO_EQ(KNO_CAR(obj),unquote))
       if (level==1) {
         lispval result=kno_eval(KNO_CAR(KNO_CDR(obj)),env);
-        if (PRECHOICEP(result))
-          result=kno_simplify_choice(result);
         return result;}
       else {
         lispval embed = kno_quasiquote(KNO_CADR(obj),env,level-1);
