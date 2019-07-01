@@ -428,7 +428,7 @@ indextests indexes: fileindexes hashindexes memindexes
 
 framedb:
 	@${header} "■■■■■■■■ Running frame/database tests, ${TESTBASE} ${TESTSIZE} ${RUNCONF}";
-	rm -rf ${TESTBASE}db.pool ${TESTBASE}db.index
+	rm -rf ${TESTBASE}*.pool ${TESTBASE}*.index
 	@${RUN} ${KNOX} framedb.scm ${TESTBASE}db init \
 		COUNT=${TESTSIZE} ${FRAMEDB_FILES} \
 		${RUNCONF};

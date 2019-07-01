@@ -255,7 +255,7 @@
 (applytest 309 dtype->file dtype-test-obj "test.dtype")
 (applytest dtype-test-obj file->dtype "test.dtype")
 
-(applytest 9 length "Foo\|bar\x0030;\&middot;")
+(applytest 8 length "Foo\|bar\&middot;")
 (errtest (string->lisp "@abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz"))
 (errtest (string->lisp "@123/kef"))
 (errtest (string->lisp "@kef"))

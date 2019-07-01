@@ -1,3 +1,5 @@
+;;; -*- Mode: scheme; text-encoding: utf-8; -*-
+
 (use-module '{fileio logger texttools varconfig})
 
 (load-component "common.scm")
