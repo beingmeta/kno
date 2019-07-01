@@ -459,7 +459,7 @@ static lispval qchoicex_prim(int n,lispval *args)
   if (EMPTYP(presults))
     return presults;
   else if (CHOICEP(presults))
-    return kno_init_qchoice(NULL,presults);
+   return kno_init_qchoice(NULL,presults);
   else return presults;
 }
 
@@ -494,7 +494,7 @@ static lispval ifexists_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   if (VOIDP(value_expr))
     return kno_err(kno_SyntaxError,"ifexists_evalfn",NULL,expr);
   else if (!(NILP(KNO_CDR(KNO_CDR(expr)))))
-    return kno_err(kno_SyntaxError,"ifexists_evalfn",NULL,expr);
+   return kno_err(kno_SyntaxError,"ifexists_evalfn",NULL,expr);
   else value = kno_eval(value_expr,env);
   if (KNO_ABORTED(value))
     return value;
@@ -1358,10 +1358,14 @@ static lispval pick_gt_prim(lispval items,lispval num,lispval checktype)
 {
   lispval lower_bound = VOID;
   DO_CHOICES(n,num) {
-    if (!(NUMBERP(n)))
-      return kno_type_error("number","pick_gt_prim",n);
-    else if (VOIDP(lower_bound)) lower_bound = n;
-    else if (kno_numcompare(n,lower_bound)<0) lower_bound = n;}
+    if (!(NUMBERP(n))) {
+      KNO_STOP_DO_CHOICES;
+      return kno_type_error("number","pick_gt_prim",n);}
+    else if (VOIDP(lower_bound))
+      lower_bound = n;
+    else if (kno_numcompare(n,lower_bound)<0)
+      lower_bound = n;
+    else NO_ELSE;}
   {
     lispval results = EMPTY;
     DO_CHOICES(item,items)
@@ -1370,8 +1374,10 @@ static lispval pick_gt_prim(lispval items,lispval num,lispval checktype)
           kno_incref(item);
           CHOICE_ADD(results,item);}
         else {}
-      else if (checktype == KNO_TRUE)
-        return kno_type_error("number","pick_gt_prim",item);
+      else if (checktype == KNO_TRUE) {
+        KNO_STOP_DO_CHOICES;
+        kno_decref(results);
+        return kno_type_error("number","pick_gt_prim",item);}
       else {}
     return results;
   }

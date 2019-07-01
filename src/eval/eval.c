@@ -741,8 +741,7 @@ static lispval get_headval(lispval head,kno_lexenv env,kno_stack eval_stack,
     headval=simplify_value(headval);
     *gc_headval=1;}
   else headval=head;
-  if (KNO_ABORTED(headval))
-    return headval;
+  if (KNO_ABORTED(headval)) return headval;
   else if (KNO_FCNIDP(headval)) {
     headval=kno_fcnid_ref(headval);
     if (PRECHOICEP(headval)) {
@@ -1732,9 +1731,8 @@ static lispval check_version_prim(int n,lispval *args)
   if (rv<0) return KNO_ERROR;
   else if (rv) {
     int i = 3; while (i<n) {
-      if (!(FIXNUMP(args[i]))) {
-        kno_seterr(kno_TypeError,"check_version_prim",NULL,args[i]);
-        return -1;}
+      if (!(FIXNUMP(args[i])))
+	return kno_err(kno_TypeError,"check_version_prim",NULL,args[i]);
       else i++;}
     return KNO_TRUE;}
   else return KNO_FALSE;
@@ -1781,14 +1779,14 @@ static lispval choiceref_prim(lispval arg,lispval off)
     else if (CHOICEP(arg)) {
       struct KNO_CHOICE *ch = (kno_choice)arg;
       if (i>ch->choice_size) {
-        u8_byte buf[50];
-        kno_seterr(kno_RangeError,"choiceref_prim",
-                   u8_sprintf(buf,50,"%lld",i),
-                   arg);
-        return KNO_ERROR;}
+	u8_byte buf[50];
+	kno_seterr(kno_RangeError,"choiceref_prim",
+		   u8_sprintf(buf,50,"%lld",i),
+		   arg);
+	return KNO_ERROR;}
       else {
-        lispval elt = KNO_XCHOICE_DATA(ch)[i];
-        return kno_incref(elt);}}
+	lispval elt = KNO_XCHOICE_DATA(ch)[i];
+	return kno_incref(elt);}}
     else if (PRECHOICEP(arg)) {
       lispval simplified = kno_make_simple_choice(arg);
       lispval result = choiceref_prim(simplified,off);
@@ -1799,7 +1797,7 @@ static lispval choiceref_prim(lispval arg,lispval off)
     else {
       u8_byte buf[50];
       kno_seterr(kno_RangeError,"choiceref_prim",
-                 u8_sprintf(buf,50,"%lld",i),kno_incref(arg));
+		 u8_sprintf(buf,50,"%lld",i),arg);
       return KNO_ERROR;}}
   else return kno_type_error("fixnum","choiceref_prim",off);
 }
@@ -2027,13 +2025,14 @@ static void init_localfns()
   kno_idefn(kno_scheme_module,
             kno_make_cprim1("USE-THREADCACHE",use_threadcache_prim,0));
 
-  kno_idefn(kno_scheme_module,kno_make_cprimn("TCACHECALL",tcachecall,1));
+  kno_idefn(kno_scheme_module,kno_make_cprimn("THREAD/CACHECALL",tcachecall,1));
   kno_idefn(kno_scheme_module,kno_make_cprimn("CACHECALL",cachecall,1));
   kno_idefn(kno_scheme_module,kno_make_cprimn("CACHECALL/PROBE",cachecall_probe,1));
   kno_idefn(kno_scheme_module,kno_make_cprimn("CACHEDCALL?",cachedcallp,1));
   kno_idefn(kno_scheme_module,
             kno_make_cprim1("CLEAR-CALLCACHE!",clear_callcache,0));
-  kno_defalias(kno_scheme_module,"CACHEPOINT","TCACHECALL");
+  kno_defalias(kno_scheme_module,"TCACHECALL","THREAD/CACHECALL");
+  kno_defalias(kno_scheme_module,"CACHEPOINT","THREAD/CACHECALL");
 
   kno_def_evalfn(kno_scheme_module,"VOID","",void_evalfn);
   kno_def_evalfn(kno_scheme_module,"!!!NULL!!!","",null_evalfn);

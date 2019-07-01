@@ -44,7 +44,8 @@ static lispval aggregate_fetch(kno_index ix,lispval key)
       value = kno_index_get(each,key);
     else value = each->index_handler->fetch(each,key);
     if (KNO_ABORTP(value)) {
-      kno_decref(combined); kno_unlock_index(aix);
+      kno_decref(combined);
+      kno_unlock_index(aix);
       return value;}
     else {CHOICE_ADD(combined,value);}}
   kno_unlock_index(aix);
@@ -220,6 +221,8 @@ KNO_EXPORT int kno_add_to_aggregate_index(kno_aggregate_index aix,kno_index add)
       if (aix->ax_indexes[i] == add)
         return 0;
       else i++;
+    if (add == ((kno_index)aix))
+      return 0;
     kno_lock_index(aix);
     if ( (aix->ax_n_allocd == 0) || (aix->ax_indexes == NULL) ) {
       int size = 4;

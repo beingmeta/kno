@@ -101,7 +101,7 @@ static lispval oddp(lispval x)
     lispval remainder = kno_remainder(x,KNO_INT(2));
     if (KNO_ABORTP(remainder)) return remainder;
     else if (FIXNUMP(remainder))
-      if (KNO_INT(remainder))
+      if (KNO_FIX2INT(remainder))
         return KNO_TRUE;
       else return KNO_FALSE;
     else {
@@ -122,7 +122,7 @@ static lispval evenp(lispval x)
     if (KNO_ABORTP(remainder))
       return remainder;
     else if (FIXNUMP(remainder))
-      if (KNO_INT(remainder))
+      if (KNO_FIX2INT(remainder))
         return KNO_FALSE;
       else return KNO_TRUE;
     else {
@@ -525,6 +525,13 @@ static lispval exact2inexact(lispval x)
 static lispval inexact2exact(lispval x)
 {
   return kno_make_exact(x);
+}
+
+static lispval toflonum(lispval x)
+{
+  if (KNO_TYPEP(x,kno_complex_type))
+    return kno_err("BadFlonumCoercion","toflonum",NULL,x);
+  else return kno_make_inexact(x);
 }
 
 static lispval toexact(lispval x,lispval direction)
@@ -1256,6 +1263,8 @@ KNO_EXPORT void kno_init_arith_c()
   kno_idefn(kno_scheme_module,kno_make_cprim1("EXACT->INEXACT",exact2inexact,1));
   kno_idefn(kno_scheme_module,kno_make_cprim1("INEXACT->EXACT",inexact2exact,1));
   kno_idefn(kno_scheme_module,kno_make_cprim2("->EXACT",toexact,1));
+  kno_idefn(kno_scheme_module,kno_make_cprim1("->INEXACT",exact2inexact,1));
+  kno_idefn(kno_scheme_module,kno_make_cprim1("->FLONUM",toflonum,1));
 
   kno_idefn(kno_scheme_module,kno_make_cprim1("REAL-PART",real_part_prim,1));
   kno_idefn(kno_scheme_module,kno_make_cprim1("IMAG-PART",imag_part_prim,1));

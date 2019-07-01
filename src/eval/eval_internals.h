@@ -155,22 +155,6 @@ KNO_FASTOP int check_bindexprs(lispval bindexprs,lispval *why_not)
   else return -1;
 }
 
-KNO_FASTOP kno_lexenv make_dynamic_env(int n,kno_lexenv parent)
-{
-  int i = 0;
-  struct KNO_LEXENV *e = u8_alloc(struct KNO_LEXENV);
-  lispval *vars = u8_alloc_n(n,lispval);
-  lispval *vals = u8_alloc_n(n,lispval);
-  lispval schemap = kno_make_schemap(NULL,n,KNO_SCHEMAP_PRIVATE,vars,vals);
-  while (i<n) {vars[i]=VOID; vals[i]=VOID; i++;}
-  KNO_INIT_FRESH_CONS(e,kno_lexenv_type);
-  e->env_copy = e;
-  e->env_bindings = schemap;
-  e->env_exports = VOID;
-  e->env_parent = kno_copy_env(parent);
-  return e;
-}
-
 /* Emacs local variables
    ;;;  Local variables: ***
    ;;;  compile-command: "make -C ../.. debugging;" ***

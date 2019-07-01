@@ -406,10 +406,7 @@ KNO_EXPORT void recycle_lambda(struct KNO_RAW_CONS *c)
 
   if (lambda->lambda_synchronized)
     u8_destroy_mutex(&(lambda->lambda_lock));
-  if (lambda->lambda_consblock) {
-    lispval bc = (lispval)(lambda->lambda_consblock);
-    lambda->lambda_consblock = NULL;
-    kno_decref(bc);}
+
   /* Put these last to help with debugging, when needed */
   if (lambda->fcn_name) u8_free(lambda->fcn_name);
   if (lambda->fcn_filename) u8_free(lambda->fcn_filename);
@@ -868,7 +865,7 @@ static int walk_lambda(kno_walker walker,lispval obj,void *walkdata,
 
 /* Unparsing fcnids referring to lambdas */
 
-static int unparse_extended_fcnid(u8_output out,lispval x)
+static int better_unparse_fcnid(u8_output out,lispval x)
 {
   lispval lp = kno_fcnid_ref(x);
   if (TYPEP(lp,kno_lambda_type)) {
@@ -1013,7 +1010,7 @@ KNO_EXPORT void kno_init_lambdas_c()
   kno_recyclers[kno_lambda_type]=recycle_lambda;
   kno_walkers[kno_lambda_type]=walk_lambda;
 
-  kno_unparsers[kno_fcnid_type]=unparse_extended_fcnid;
+  kno_unparsers[kno_fcnid_type]=better_unparse_fcnid;
 
   kno_dtype_writers[kno_lambda_type] = write_lambda_dtype;
   kno_copiers[kno_lambda_type] = copy_lambda;

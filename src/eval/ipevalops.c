@@ -31,6 +31,22 @@ struct IPEVAL_STRUCT {
   kno_lexenv ipv_env;};
 #endif
 
+KNO_FASTOP kno_lexenv make_dynamic_env(int n,kno_lexenv parent)
+{
+  int i = 0;
+  struct KNO_LEXENV *e = u8_alloc(struct KNO_LEXENV);
+  lispval *vars = u8_alloc_n(n,lispval);
+  lispval *vals = u8_alloc_n(n,lispval);
+  lispval schemap = kno_make_schemap(NULL,n,KNO_SCHEMAP_PRIVATE,vars,vals);
+  while (i<n) {vars[i]=VOID; vals[i]=VOID; i++;}
+  KNO_INIT_FRESH_CONS(e,kno_lexenv_type);
+  e->env_copy = e;
+  e->env_bindings = schemap;
+  e->env_exports = VOID;
+  e->env_parent = kno_copy_env(parent);
+  return e;
+}
+
 /* IPEVAL binding */
 
 #if KNO_IPEVAL_ENABLED

@@ -28,7 +28,7 @@ static lispval iter_var;
 static lispval while_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval test_expr = kno_get_arg(expr,1);
-  lispval body = kno_get_body(expr,1);
+  lispval body = kno_get_body(expr,2);
   lispval result = VOID;
   if (VOIDP(test_expr))
     return kno_err(kno_TooFewExpressions,"WHILE",NULL,expr);
@@ -51,7 +51,7 @@ static lispval while_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 static lispval until_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval test_expr = kno_get_arg(expr,1);
-  lispval body = kno_get_body(expr,1);
+  lispval body = kno_get_body(expr,2);
   lispval result = VOID;
   if (VOIDP(test_expr))
     return kno_err(kno_TooFewExpressions,"UNTIL",NULL,expr);
@@ -84,16 +84,14 @@ static lispval parse_control_spec
     lispval var = kno_get_arg(control_expr,0);
     lispval ivar = kno_get_arg(control_expr,2);
     lispval val_expr = kno_get_arg(control_expr,1), val;
-    if (VOIDP(control_expr))
-      return kno_err(kno_TooFewExpressions,"DO...",NULL,expr);
-    else if (VOIDP(val_expr))
+    if (VOIDP(val_expr))
       return kno_err(kno_TooFewExpressions,"DO...",NULL,control_expr);
     else if (!(SYMBOLP(var)))
       return kno_err(kno_SyntaxError,
-                    _("identifier is not a symbol"),NULL,control_expr);
+                     _("identifier is not a symbol"),NULL,control_expr);
     else if (!((VOIDP(ivar)) || (SYMBOLP(ivar))))
       return kno_err(kno_SyntaxError,
-                    _("identifier is not a symbol"),NULL,control_expr);
+                     _("identifier is not a symbol"),NULL,control_expr);
     val = fast_eval(val_expr,env);
     if (KNO_ABORTED(val))
       return val;
@@ -112,9 +110,7 @@ static lispval dotimes_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     return kno_err(kno_SyntaxError,"dotimes_evalfn",NULL,expr);
   lispval var, limit_val=
     parse_control_spec(expr,&var,NULL,env,_stack);;
-  if (KNO_ABORTED(var))
-    return var;
-  else if (KNO_ABORTED(limit_val))
+  if (KNO_ABORTED(limit_val))
     return limit_val;
   else if (!(KNO_UINTP(limit_val))) {
     lispval err = kno_type_error("fixnum","dotimes_evalfn",limit_val);
@@ -149,9 +145,7 @@ static lispval doseq_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     return kno_err(kno_SyntaxError,"doseq_evalfn",NULL,expr);
   lispval seq = parse_control_spec(expr,&var,&count_var,env,_stack);
   lispval pairscan = VOID;
-  if (KNO_ABORTED(var))
-    return var;
-  else if (KNO_ABORTED(seq))
+  if (KNO_ABORTED(seq))
     return seq;
   else if (EMPTYP(seq))
     return VOID;
@@ -202,9 +196,7 @@ static lispval forseq_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     return kno_err(kno_SyntaxError,"forseq_evalfn",NULL,expr);
   lispval var, count_var = VOID, *results, result=VOID;
   lispval seq = parse_control_spec(expr,&var,&count_var,env,_stack);
-  if (KNO_ABORTED(var))
-    return var;
-  else if (KNO_ABORTED(seq))
+  if (KNO_ABORTED(seq))
     return seq;
   else if (EMPTYP(seq))
     return EMPTY;
@@ -269,9 +261,7 @@ static lispval tryseq_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     return kno_err(kno_SyntaxError,"tryseq_evalfn",NULL,expr);
   lispval var, count_var = VOID;
   lispval seq = parse_control_spec(expr,&var,&count_var,env,_stack);
-  if (KNO_ABORTED(var))
-    return var;
-  else if (KNO_ABORTED(seq))
+  if (KNO_ABORTED(seq))
     return seq;
   else if (EMPTYP(seq))
     return EMPTY;
@@ -331,9 +321,7 @@ static lispval dolist_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   lispval var, count_var = VOID;
   lispval seq = parse_control_spec(expr,&var,&count_var,env,_stack);
   lispval pairscan = VOID;
-  if (KNO_ABORTED(var))
-    return var;
-  else if (KNO_ABORTED(seq))
+  if (KNO_ABORTED(seq))
     return seq;
   else if (EMPTYP(seq))
     return VOID;

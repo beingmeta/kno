@@ -138,14 +138,72 @@ static lispval modules_testcapi()
   else return KNO_INT(errors);
 }
 
+KNO_DCLPRIM("EVAL/TESTCAPI",eval_testcapi,MAX_ARGS(0)|MIN_ARGS(0),
+	    "Run various tests of the module C API which are "
+	    "difficult to do directly from scheme")
+static lispval eval_testcapi()
+{
+  int errors = 0;
+  {
+    kno_lexenv env = kno_working_lexenv();
+    lispval invalid_opcode = KNO_OPCODE(2000);
+    u8_string unparsed = kno_lisp2string(invalid_opcode);
+    if (strstr(unparsed,"invalid")==NULL) {
+      u8_log(LOGERR,"FailedCAPI","kno_lisp2string(invalid_opcode): %s:%d",
+	     __FILE__,__LINE__);
+      errors++;}
+    u8_free(unparsed);
+
+    lispval expr = kno_make_list(2,kno_intern("opcode-name"),invalid_opcode);
+    lispval result = kno_eval(expr,env);
+   if (!(KNO_ABORTP(result))) {
+      u8_log(LOGERR,"NoError","Expr %q returned %q",expr,result);
+      errors++;}
+    lispval eval_choice = KNO_EMPTY_CHOICE;
+    KNO_ADD_TO_CHOICE(eval_choice,expr);
+    KNO_ADD_TO_CHOICE(eval_choice,kno_intern("opcode-name"));
+    eval_choice = kno_simplify_choice(eval_choice);
+    if (!(kno_choice_evalp(expr))) {
+      u8_log(LOGERR,"FailedCAPI","kno_choice_evalp(expr)=0: %s:%d",
+	     __FILE__,__LINE__);
+      errors++;}
+    if (!(kno_choice_evalp(KNO_INT(8)))) {
+      u8_log(LOGERR,"FailedCAPI","kno_choice_evalp(num)=0: %s:%d",
+	     __FILE__,__LINE__);
+      errors++;}
+    if (!(kno_choice_evalp(kno_intern("opcode-name")))) {
+      u8_log(LOGERR,"FailedCAPI","kno_choice_evalp(sym)=0: %s:%d",
+	     __FILE__,__LINE__);
+      errors++;}
+    if (!(kno_choice_evalp(eval_choice))) {
+      u8_log(LOGERR,"FailedCAPI","kno_choice_evalp(echoice)=0: %s:%d",
+	     __FILE__,__LINE__);
+      errors++;}
+    KNO_ADD_TO_CHOICE(eval_choice,KNO_INT(42));
+    if (kno_choice_evalp(eval_choice)) {
+      u8_log(LOGERR,"FailedCAPI","kno_choice_evalp(nechoice)=1: %s:%d",
+	     __FILE__,__LINE__);
+      errors++;}
+    KNO_ADD_TO_CHOICE(eval_choice,KNO_INT(42));
+    eval_choice = kno_simplify_choice(eval_choice);
+    kno_decref(invalid_opcode);
+    kno_decref(eval_choice);
+    kno_decref(result);}
+  if (errors == 0)
+    return KNO_FALSE;
+  else return KNO_INT(errors);
+}
+
 KNO_EXPORT int kno_init_testcapi()
 {
   if (testcapi_init) return 0;
-  lispval testcapi_module = kno_new_cmodule("testcapi",0,kno_init_testcapi);
+  lispval testcapi_module =
+    kno_new_cmodule_x("testcapi",0,kno_init_testcapi,__FILE__);
   /* u8_register_source_file(_FILEINFO); */
 
   KNO_DECL_PRIM(regex_testcapi,0,testcapi_module);
   KNO_DECL_PRIM(modules_testcapi,0,testcapi_module);
+  KNO_DECL_PRIM(eval_testcapi,0,testcapi_module);
 
   u8_register_source_file(_FILEINFO);
 

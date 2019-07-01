@@ -1,8 +1,8 @@
-;;; -*- Mode: Scheme; text-encoding: latin-1 -*-
+;;; -*- Mode: Scheme; text-encoding: utf-8 -*-
 
 (load-component "common.scm")
 
-(use-module '{reflection varconfig})
+(use-module '{reflection varconfig stringformats})
 
 (define configured-value #f)
 (varconfig! confvar configured-value #t)

@@ -34,3 +34,7 @@
 (when (getenv "USER")
   (applytest (getenv "USER") ffi_strdup (ffi_getenv "USER"))
   (applytest-pred string? lisp->string (ffi_getenv "USER")))
+
+(applytest #t ffi/found? "u8_cons_list" "libu8.so")
+(applytest #f ffi/found? "u8_xons_list" "libu8.so")
+(applytest #f ffi/found? "u8_cons_list" "lizu8.so")

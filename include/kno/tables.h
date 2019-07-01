@@ -290,7 +290,8 @@ static U8_MAYBE_UNUSED lispval kno_slotmap_get
   KNO_CHECK_TYPE_RETDTYPE(sm,kno_slotmap_type);
   if ((KNO_XSLOTMAP_USELOCKP(sm))&&
       (!(KNO_XSLOTMAP_READONLYP(sm)))) {
-    u8_read_lock(&sm->table_rwlock); unlock = 1;}
+    u8_read_lock(&sm->table_rwlock);
+    unlock = 1;}
   size = KNO_XSLOTMAP_NUSED(sm);
   result = kno_keyvec_get(key,sm->sm_keyvals,size);
   if (result) {

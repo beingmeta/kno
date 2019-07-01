@@ -4,6 +4,8 @@
 
 (config! 'CHECKDTSIZE #t)
 
+(config! 'maxelts -1)
+
 (define dbsource #f)
 (define testpool #f)
 (define testindex #f)
@@ -72,8 +74,9 @@
 		     (make-index file opts)))))))))
 
 (defambda (combine-indexes indexes)
-  (if (< (choice-size indexes) 2) indexes
-      (make-aggregate-index indexes)))
+  (if (< (choice-size indexes) 2)
+      indexes
+      (%wc make-aggregate-index indexes)))
 
 (define (initdb source (opts #f))
   (unless testpool
@@ -295,8 +298,9 @@
     ;; (%watch "TESTLIST" "\nLISTAVAL" listval "\nSTORED" (get frame 'contents-as-list))
     ;; (dtype->file listval "listval.dtype")
     ;; (dtype->file (get frame 'contents-as-list) "cal.dtype")
-    (logwarn |Watch|
-      "listval=" ($histval listval) ", contents=" ($histval (get frame 'contents-as-list)))
+    (unless (equal? listval (get frame 'contents-as-list))
+      (logwarn |Watch|
+	"listval=" ($histval listval) ", contents=" ($histval (get frame 'contents-as-list))))
     (evaltest #t (equal? listval (get frame 'contents-as-list)))
     (applytest #t test frame 'contents-as-list listval)
     (applytest listval get frame 'contents-as-list)

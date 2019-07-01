@@ -2,7 +2,7 @@
 
 (load-component "common.scm")
 
-(use-module '{ezrecords stringfmts})
+(use-module '{ezrecords reflection stringfmts})
 
 (define textmatch (get (get-module 'texttools) 'textmatch))
 
@@ -62,6 +62,7 @@
 (define-tester (test-bindings (p 3) (q) (z #default) (g #f) (r))
   (evaltest #f (void? p))
   (evaltest #t (void? q))
+  (evaltest #t (void? (void)))
   (evaltest #f (default? p))
   (evaltest #t (default? z))
   (errtest (setfalse! "g"))
@@ -87,7 +88,13 @@
   (errtest (symbol-bound-in? 'z #("x" y "z")))
   (errtest (default))
   (errtest (default r))
+  (evaltest 9 (default krrr 9))
   (evaltest 5 (default r (+ 2 3)))
+  (errtest (define zayyx 5))
+  (errtest (define-init zayyx 5))
+  (errtest (define (zaayx) 3))
+  (errtest (defambda (zaayx) 3))
+  (errtest (defslambda (zaayx) 3))
   (let ((x (+ p p))
 	(y (+ q q))
 	(vals {}))
@@ -132,6 +139,49 @@
 
 (test-macros)
 
+(define (test-fcnids)
+  (let ((lambda-id (fcnid/register test-macros))
+	(prim-id (fcnid/register car))
+	(plus-id (fcnid/register +))
+	(n2s-id (fcnid/register number->string))
+	(evalfn-id (fcnid/register if)))
+    (applytest-pred string? lisp->string lambda-id)
+    (applytest-pred string? lisp->string prim-id)
+    (applytest-pred string? lisp->string plus-id)
+    (applytest-pred string? lisp->string n2s-id)
+    (applytest-pred string? lisp->string evalfn-id)
+    (applytest-pred string? lisp->string evalfn-id)))
+
+(test-fcnids)
+
+;;; Typeof testing
+
+(applytest "string" typeof "string")
+(applytest "symbol" typeof 'symbol)
+(applytest "packet" typeof #"data")
+(applytest "secret" typeof #*"data")
+(applytest "pair" typeof '(a . b))
+(applytest "pair" typeof '(a b))
+(applytest "vector" typeof #(a b))
+(applytest "bigint" typeof (* 1000000000 4 1000000000 4))
+(applytest "bigint" typeof (* -1000000000 4 1000000000 4))
+(applytest "fixnum" typeof 1000000)
+(applytest "fixnum" typeof -1000000)
+(applytest "rational" typeof 1/3)
+(applytest "flonum" typeof 0.3333)
+(applytest "constant" typeof #f)
+(applytest "constant" typeof #t)
+(evaltest "choice" (typeof #{"one" "two" 3}))
+(applytest {"fixnum" "string"} typeof #{"one" "two" 3})
+(applytest "builtin function" typeof car)
+(applytest "lambda procedure" typeof test-macros)
+
+;;; Error in default args
+
+(define (add32 x (y (+ 3 'a))) (+ x y))
+(applytest 10 add32 7 3)
+(errtest (add32 7))
+
 ;;; Reflection like tests
 
 (applytester #t string? (lisp->string if))
@@ -152,12 +202,15 @@
 (evaltest 3 (eval (list quote 3)))
 
 (errtest {(+ 2 3) (+ 2 'a) (+ 3 9)})
+(errtest (eval (list quote)))
 (errtest ({1+ if} 3))
 
 (define (broken x y)
   (fizzbin x))
 
 (evaltest #t (onerror (+ 3 "three") (lambda (ex) (exception? ex))))
+(applytest #f exception? 3)
+(applytest #f exception? "three")
 
 (applytester "broken" procedure-name broken)
 (applytester "IF" procedure-name if)
@@ -198,10 +251,13 @@
 
 (errtest (letrec))
 (errtest (letrec 3))
+(errtest (letrec (()) 3))
 (errtest (letrec ((z (+ 3 'p))) 3))
 (errtest (letrec ((z)) 3))
 (errtest (letrec ((z (if #f 3))) 3))
 (errtest (reverse '(a b c . d)))
+
+(evaltest 7 (letrec ((x 3) (y 4) (f (lambda (x y) (+ x y))) (z (f x y))) z))
 
 (evaltest #t (void? (set! x23f9b #t)))
 (evaltest #f (void? (not x23f9b)))
@@ -275,6 +331,7 @@
 (applytester #t string? (documentation test-opcodes))
 
 (errtest (%choiceref #{a "b" c} 8))
+(errtest (%choiceref "a" 1))
 (evaltest 5 (%choiceref (qc {5 (symbol->string '{a b c})}) 0))
 
 (applytester 0 compare 5 5)
@@ -380,6 +437,7 @@
 (applytester 33.3333 ->lisp "33.3333")
 (applytester "two words" ->lisp "two words")
 (applytester "separated\tby\twords" ->lisp "separated\tby\twords")
+(applytester "separated\tby\twords " ->lisp "separated\tby\twords ")
 (applytester @1/8 ->lisp "@1/8")
 (applytester 3 ->lisp 3)
 (applytester @1/8 ->lisp @1/8)
@@ -437,14 +495,18 @@
 (errtest (sambda))
 (errtest (define))
 (errtest (define foo))
-(errtest (define "foo"))
 (errtest (define ("foo")))
+(errtest (define "foo"))
 (errtest (defslambda))
 (errtest (defslambda foo))
 (errtest (defslambda ("foo")))
+(errtest (defslambda "foo"))
 (errtest (defambda))
 (errtest (defambda foo))
 (errtest (defambda ("foo")))
+(errtest (defambda "foo"))
+
+(evaltest 7 (let* ((x 3) (y 4) (f (lambda (x y) (+ x y))) (z (f x y))) z))
 
 (errtest (begin . exprs))
 (errtest (dotimes (i 18) . exprs))
@@ -467,15 +529,24 @@
 (errtest (dotimes (i) i))
 (errtest (dolist (e) i))
 (errtest (doseq (e) i))
+(errtest (forseq (e) i))
+(errtest (dotimes (i "3") i))
+(errtest (dotimes (i (+ 9 "nine")) i))
 (errtest (dotimes ("i" 3) i))
 (errtest (dolist ("e" '(x y)) i))
 (errtest (doseq ("e" #(x y)) i))
+(errtest (tryseq ("e" #(x y)) i))
+(errtest (forseq ("e" #(x y)) i))
 (errtest (dotimes (i "three") i))
 (errtest (dolist ("e" #(x y)) e))
 (errtest (doseq ("e" 'xyseq) e))
+(errtest (forseq ("e" 'xyseq) e))
+(errtest (doseq (e 'xyseq) e))
+(errtest (forseq (e 'xyseq) e))
 (errtest (dotimes (i 3) (+ i "one")))
 (errtest (dolist (e '(a b c)) (string->symbol e)))
 (errtest (doseq (e #(a b c)) (string->symbol e)))
+(errtest (forseq (e #(a b c)) (string->symbol e)))
 (errtest (dolist (e '#(a b c)) (symbol->string e)))
 (errtest (tryseq))
 (errtest (tryseq ()))
@@ -485,11 +556,17 @@
 (errtest (tryseq (e #(a b c)) (string->symbol e)))
 (errtest (tryseq (e (append 'z #(a b c))) (string->symbol e)))
 (errtest (while))
+(errtest (while (set! x 3) x))
+(errtest (until (set! x 3) x))
 (errtest (while . broke))
 (errtest (while (= 3 "three")))
+(errtest (while (= 3 3) . body))
 (errtest (until))
 (errtest (until . broke))
 (errtest (until (= 3 "three")))
+(errtest (until (= 3 3.0) . body))
+
+(evaltest 'void (doseq (x {}) x))
 
 (errtest (prog1))
 (errtest (prog1 (+ 2 "x") (* 3 9)))
@@ -511,6 +588,7 @@
 (errtest (if (= 3 3)))
 (errtest (when))
 (errtest (unless))
+(evaltest 'void (unless (fail) (error |NotSignalled|)))
 (errtest (tryif))
 
 (errtest (when (= 3 "three")))
@@ -571,6 +649,9 @@
 (define test-other-nlambda
   (nlambda "test" (x y) (+ x y)))
 (errtest (nlambda '(test) (x y) (+ x y)))
+(errtest (nlambda))
+(errtest (nlambda "fcn"))
+(errtest (nlambda (glom "fcn" usename)))
 
 (define test-def (def (td x y) (+ x y)))
 (applytester #t applicable? test-def)
@@ -618,13 +699,15 @@
 
 ;;;; Testing COND apply
 
-(define-tester (tester x)
+(define-tester (cond-tester x)
   (cond ((number? x) x)
 	((string? x) => list) 
-	((symbol? x) => messedup)))
-(applytester 9 tester 9)
-(applytester '(#t) tester "string")
-(errtest (tester 'symbol))
+	((symbol? x) => messedup)
+	(else =>)))
+(applytester 9 cond-tester 9)
+(applytester '(#t) cond-tester "string")
+(errtest (cond-tester 'symbol))
+(errtest (cond-tester '(pair)))
 
 ;;; Some more tests
 
@@ -679,6 +762,7 @@
 
 ;;; Loading stuff
 
+(dynamic-load (abspath "../lib/kno/sqlite.so"))
 (dynamic-load "sqlite")
 (errtest (dynamic-load "sqheavy" #t))
 (errtest (dynamic-load 'sqlite))

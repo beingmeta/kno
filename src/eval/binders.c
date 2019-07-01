@@ -258,101 +258,86 @@ static lispval letrec_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 
 static lispval do_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
+  int n = -1;
+  lispval do_result = VOID;
   lispval bindexprs = kno_get_arg(expr,1);
   lispval exitexprs = kno_get_arg(expr,2);
   lispval testexpr = kno_get_arg(exitexprs,0), testval = VOID;
+  lispval body = kno_get_body(expr,3);
   if (PRED_FALSE(! ( (bindexprs == KNO_NIL) || (PAIRP(bindexprs)) ) ))
+    return kno_err(kno_BindSyntaxError,"DO",NULL,expr);
+  if (PRED_FALSE(! ( (body == KNO_NIL) || (PAIRP(body)) ) ))
     return kno_err(kno_BindSyntaxError,"DO",NULL,expr);
   else if (VOIDP(exitexprs))
     return kno_err(kno_BindSyntaxError,"DO",NULL,expr);
+  else if ((n = check_bindexprs(bindexprs,&do_result))<0)
+    return do_result;
   else {
-    lispval _vars[16], _vals[16], _updaters[16], _tmp[16];
-    lispval *updaters, *vars, *vals, *tmp, result = VOID;
-    int i = 0, n = 0;
-    struct KNO_SCHEMAP bindings;
-    struct KNO_LEXENV envstruct, *inner_env;
-    if ((n = check_bindexprs(bindexprs,&result))<0) return result;
-    else if (n>16) {
-      lispval bindings; struct KNO_SCHEMAP *sm;
-      inner_env = make_dynamic_env(n,env);
-      bindings = inner_env->env_bindings; sm = (struct KNO_SCHEMAP *)bindings;
-      vars = sm->table_schema; vals = sm->schema_values;
-      updaters = u8_alloc_n(n,lispval);
-      tmp = u8_alloc_n(n,lispval);}
-    else {
-      inner_env = init_static_env(n,env,&bindings,&envstruct,_vars,_vals);
-      vars=_vars; vals=_vals; updaters=_updaters; tmp=_tmp;}
+    INIT_STACK_ENV(_stack,do_env,env,n);
+    lispval updaters[n], tmp[n];
+    int i = 0;
     /* Do the initial bindings */
     {KNO_DOLIST(bindexpr,bindexprs) {
       lispval var = kno_get_arg(bindexpr,0);
       lispval value_expr = kno_get_arg(bindexpr,1);
       lispval update_expr = kno_get_arg(bindexpr,2);
       lispval value = kno_eval(value_expr,env);
-      if (KNO_ABORTED(value)) {
-        /* When there's an error here, there's no need to bind. */
-        kno_free_lexenv(inner_env);
-        if (n>16) {u8_free(tmp); u8_free(updaters);}
-        return value;}
+      if (KNO_ABORTED(value))
+        _return value;
       else {
-        vars[i]=var; vals[i]=value; updaters[i]=update_expr;
+        do_env_vars[i]=var;
+        do_env_vals[i]=value;
+        updaters[i]=update_expr;
+        tmp[i]=KNO_VOID;
         i++;}}}
     /* First test */
-    testval = kno_eval(testexpr,inner_env);
-    if (KNO_ABORTED(testval)) {
-      if (n>16) {u8_free(tmp); u8_free(updaters);}
-      return testval;}
+    testval = kno_eval(testexpr,do_env);
+    if (KNO_ABORTED(testval))
+      _return testval;
     /* The iteration itself */
     while (FALSEP(testval)) {
-      int i = 0; lispval body = kno_get_body(expr,3);
+      int i = 0;
       /* Execute the body */
       KNO_DOLIST(bodyexpr,body) {
-        lispval result = fast_eval(bodyexpr,inner_env);
-        if (KNO_ABORTED(result)) {
-          if (n>16) {u8_free(tmp); u8_free(updaters);}
-          return result;}
+        lispval result = fast_eval(bodyexpr,do_env);
+        if (KNO_ABORTED(result))
+          _return result;
         else kno_decref(result);}
       /* Do an update, storing new values in tmp[] to be consistent. */
       while (i < n) {
-        if (!(VOIDP(updaters[i])))
-          tmp[i]=kno_eval(updaters[i],inner_env);
-        else tmp[i]=kno_incref(vals[i]);
-        if (KNO_ABORTED(tmp[i])) {
+        lispval new_val = (VOIDP(updaters[i])) ? (kno_incref(do_env_vals[i])) :
+          (kno_eval(updaters[i],do_env));
+        if (KNO_ABORTED(new_val)) {
           /* GC the updated values you've generated so far.
              Note that tmp[i] (the exception) is not freed. */
           kno_decref_vec(tmp,i);
-          /* Free the temporary arrays if neccessary */
-          if (n>16) {u8_free(tmp); u8_free(updaters);}
-          /* Return the error result, adding the expr and environment. */
-          return tmp[i];}
-        else i++;}
+          _return new_val;}
+        else tmp[i++] = new_val;}
       /* Now, free the current values and replace them with the values
          from tmp[]. */
       i = 0; while (i < n) {
-        lispval val = vals[i];
+        lispval val = do_env_vals[i];
         if ((CONSP(val))&&(KNO_MALLOCD_CONSP((kno_cons)val))) {
           kno_decref(val);}
-        vals[i]=tmp[i];
+        do_env_vals[i] = tmp[i];
         i++;}
-      /* Free the testval and evaluate it again. */
+      /* Decref/recycle any dynamic copis of the environment */
+      if (_do_env.env_copy) {
+        kno_recycle_lexenv(_do_env.env_copy);
+        _do_env.env_copy = NULL;}
+      /* Free the old testval and evaluate it again. */
       kno_decref(testval);
-      if (envstruct.env_copy) {
-        kno_recycle_lexenv(envstruct.env_copy);
-        envstruct.env_copy = NULL;}
-      testval = kno_eval(testexpr,inner_env);
-      if (KNO_ABORTED(testval)) {
-        /* If necessary, free the temporary arrays. */
-        if (n>16) {u8_free(tmp); u8_free(updaters);}
-        return testval;}}
+      testval = kno_eval(testexpr,do_env);
+      if (KNO_ABORTED(testval))
+        _return testval;}
     /* Now we're done, so we set result to testval. */
-    result = testval;
+    do_result = testval;
     if (PAIRP(KNO_CDR(exitexprs))) {
-      kno_decref(result);
-      result = eval_inner_body(":DO",SYM_NAME(vars[0]),exitexprs,1,
-                         inner_env,_stack);}
+      kno_decref(do_result);
+      do_result = eval_inner_body(":DO",SYM_NAME(do_env_vars[0]),
+                                  exitexprs,1,do_env,_stack);}
     /* Free the environment. */
-    kno_free_lexenv(&envstruct);
-    if (n>16) {u8_free(tmp); u8_free(updaters);}
-    return result;}
+    _return do_result;}
 }
 
 /* DEFINE-LOCAL */
@@ -367,8 +352,7 @@ static lispval define_local_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     return kno_err(kno_TooFewExpressions,"DEFINE-LOCAL",NULL,expr);
   else if (SYMBOLP(var)) {
     lispval inherited = kno_symeval(var,env->env_parent);
-    if (KNO_ABORTED(inherited))
-      return inherited;
+    if (KNO_ABORTED(inherited)) return inherited;
     else if (VOIDP(inherited))
       return kno_err(kno_UnboundIdentifier,"DEFINE-LOCAL",
                      SYM_NAME(var),var);
@@ -449,28 +433,32 @@ static lispval define_import_evalfn(lispval expr,kno_lexenv env,
 
   if (KNO_VOIDP(import_name)) import_name = var;
 
+  int decref_module = 0;
   lispval module_spec = kno_stack_eval(module_expr,env,_stack,0);
   if (KNO_ABORTP(module_spec)) return module_spec;
 
-  lispval module = ( (KNO_HASHTABLEP(module_spec)) || (KNO_LEXENVP(module_spec)) ) ?
-    (kno_incref(module_spec)) : (kno_find_module(module_spec,0));
-  if (KNO_ABORTP(module)) {
-    kno_decref(module_spec);
-    return module;}
+  lispval module = module_spec;
+  if (! ( (KNO_HASHTABLEP(module_spec)) || (KNO_LEXENVP(module_spec)) ) ) {
+    module = kno_find_module(module_spec,0);
+    decref_module=1;}
+
+  lispval result = KNO_VOID;
+  if (KNO_ABORTP(module)) return module;
   else if (KNO_TABLEP(module)) {
     lispval import_value = kno_get(module,import_name,KNO_VOID);
-    if (KNO_ABORTP(import_value)) {
-      kno_decref(module); kno_decref(module_spec);
-      return import_value;}
+    if (KNO_ABORTP(import_value))
+      result = import_value;
     else if (KNO_VOIDP(import_value)) {
-      kno_decref(module); kno_decref(module_spec);
-      return kno_err("UndefinedImport","define_import",
-                    KNO_SYMBOL_NAME(import_name),
-                    module);}
-    kno_bind_value(var,import_value,env);
-    kno_decref(module);
+      result = kno_err("UndefinedImport","define_import",
+                       KNO_SYMBOL_NAME(import_name),
+                       module);}
+    else if (kno_bind_value(var,import_value,env) < 0)
+      result = KNO_ERROR;
+    else NO_ELSE;
+    if (decref_module) kno_decref(module);
+    kno_decref(module_spec);
     kno_decref(import_value);
-    return KNO_VOID;}
+    return result;}
   else {
     kno_decref(module_spec);
     return kno_err("NotAModule","define_import_evalfn",NULL,module);}

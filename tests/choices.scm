@@ -172,6 +172,9 @@
 
 (applytester {10 11 12} pick> (choice 5 6 7 10 11 12) 9)
 (applytester {10.5 11 12} pick> (choice 5 6.3 7 10.5 11 12) 9)
+(applytester {10.5 11 12} pick> (choice "string" 5 6.3 7 10.5 11 12) 9)
+(errtest (pick> {1 2 "three"} "one"))
+(errtest (pick> (choice "string" 5 6.3 7 10.5 11 12) 9 #t))
 
 (applytester @1/0 pickoids (choice "foo" 8 @1/0))
 (applytester {@1/0 @1/88} pickoids (choice "foo" 8 @1/0 @1/88))
@@ -199,8 +202,6 @@
 (define z1 #[b "b"])
 (applytester z1 pickmaps (choice #(a "b") z1 'foo "foo" 8))
 (applytester {z1 #[a "a"]} pickmaps (choice #(a "b") z1 'foo "foo" #("c" d) #[a "a"] 8))
-
-
 
 ;;; Reduce-choice tests
 
@@ -266,6 +267,9 @@
 
 (applytester {"a" "b" "c"} simplify {"a" "b" "c"})
 (applytester #t sometrue (= 3 {1 2 3}))
+(applytester #f sometrue (fail))
+(applytester #f sometrue #f)
+(applytester #t sometrue 3)
 
 (applytester #() choice->vector {})
 (applytester #("a" "b") choice->vector {"a" "b"})
@@ -304,6 +308,7 @@
 (errtest (do-choices (e {1 2 3}) . err))
 (errtest (do-choices (e {3 unbound}) . err))
 (errtest (do-choices (e)))
+(errtest (do-choices ("e" {3 "four"}) e))
 (errtest (do-choices))
 (errtest (do-choices ("e" {1 2 3}) . err))
 (errtest (do-choices (e {1 2 3} "i" ) . err))
@@ -314,6 +319,8 @@
 (errtest (for-choices (e {3 unbound}) e))
 (errtest (for-choices (e {3 5}) . err))
 (errtest (for-choices (e)))
+(errtest (for-choices ("e" {3 "four"}) e))
+(errtest (for-choices (e {1 2 3} "i" ) . err))
 (errtest (for-choices))
 
 (errtest (filter-choices (e {1 2 3}) (string->symbol e)))
@@ -321,9 +328,12 @@
 (errtest (filter-choices (e {3 unbound}) . err))
 (errtest (filter-choices (e {3 unbound}) e))
 (errtest (filter-choices (e {3 5}) . err))
+(errtest (filter-choices ("e" {3 "four"}) e))
 (errtest (filter-choices (e)))
+(errtest (filter-choices (e {1 2 3} "i" ) . err))
 (errtest (filter-choices))
 
+(evaltest {} (filter-choices (s (difference "foo" "foo")) s))
 
 (evaltester 2 (filter-choices (e {1 2 3} i) (even? e)))
 (evaltester {1 3} (filter-choices (e {1 2 3} i) (odd? e)))
@@ -361,6 +371,9 @@
 (evaltest #t (eval `(qchoice? #{a b c})))
 (evaltest #{} (qchoice (fail) (fail) (fail)))
 (evaltest {} (qchoicex (fail) (fail) (fail)))
+(evaltest #{"foo" "bar" "baz"} (qchoicex "foo" {"bar" "baz"} "foo"))
+
+(errtest (qchoice?))
 
 ;;; IFEXISTS
 
@@ -369,6 +382,7 @@
 (evaltest 'void (ifexists (fail)))
 (errtest (ifexists))
 (errtest (ifexists (* 3 "four")))
+(errtest (ifexists (* 3 "four") "nine"))
 
 (evaltest 3 (whenexists 3))
 (evaltest {3 4} (whenexists (choice 3 4)))
@@ -376,29 +390,36 @@
 (errtest (whenexists))
 (evaltest 'void (whenexists (* 3 "four")))
 
-(applytest #t exists even? {3 4 5})
-(applytest #f exists odd? {2 4 6})
-(applytest #f exists odd? {2 4 6})
+(define (exists-tests (existsfn exists))
+  (applytest #t existsfn even? {3 4 5})
+  (applytest #f existsfn odd? {2 4 6})
+  (applytest #f existsfn odd? {2 4 6})
 
-(applytest #t exists empty-string? {3 "four" " "})
-(applytest #f exists empty-string? {3 "four" "five"})
+  (applytest #t existsfn empty-string? {3 "four" " "})
+  (applytest #f existsfn empty-string? {3 "four" "five"})
 
-(errtest (exists if {3 "four" "five"}))
-(errtest (exists 3 {3 "four" "five"}))
+  (errtest (existsfn if {3 "four" "five"}))
+  (errtest (existsfn 3 {3 "four" "five"}))
 
-(applytest #t exists > {3 4 5} 4)
-(applytest #f exists > {3 4 5} 7)
-(errtest (exists > {3 4 5} (2+ 3)))
+  (applytest #t existsfn > {3 4 5} 4)
+  (applytest #f existsfn > {3 4 5} 7)
+  (errtest (existsfn > {3 4 5} (2+ 3)))
 
-(applytest #t exists string>=? {"zebra" "apple" "bee"} "mandolin")
-(applytest #f exists string>=? {"fish" "apple" "bee"} "mandolin")
-(applytest #f exists > {3 4 5} 7)
+  (applytest #t existsfn string>=? {"zebra" "apple" "bee"} "mandolin")
+  (applytest #f existsfn string>=? {"fish" "apple" "bee"} "mandolin")
+  (applytest #f existsfn > {3 4 5} 7))
+(exists-tests)
+(exists-tests sometrue)
 
 ;;; Other stuff
 
+(applytest {0 1 2 3 4} getrange 5)
 (applytest {0 1 2 3 4} getrange 0 5)
 (applytest {0 1 2 3 4} getrange 5 0)
 (applytest {-5 -4 -3 -2 -1} getrange -5 0)
+(errtest (getrange "x"))
+(errtest (getrange "zero" "eight"))
+(errtest (getrange 0  "eight"))
 
 ;;; Select
 

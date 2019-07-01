@@ -488,8 +488,10 @@ DCLPRIM2("$HISTVAL",histval_prim,MIN_ARGS(1),
 static lispval histval_prim(lispval x,lispval label)
 {
   lispval history = kno_thread_get(KNOSYM_HISTORY_THREADVAL);
-  if (VOIDP(history))
-    return VOID;
+  if (VOIDP(history)) {
+    U8_OUTPUT *out = u8_current_output;
+    u8_printf(out,"%q",x);
+    return VOID;}
   else {
     U8_OUTPUT *out = u8_current_output;
     lispval ref = kno_history_add(history,x,label);
