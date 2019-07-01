@@ -631,7 +631,7 @@ KNO_FASTOP lispval apply_fcn(struct KNO_STACK *stack,
 }
 
 KNO_EXPORT lispval kno_dcall(struct KNO_STACK *_stack,
-                           lispval fn,int n,lispval *argvec)
+                             lispval fn,int n,lispval *argvec)
 {
   u8_byte namebuf[60], numbuf[32];
   u8_string fname="apply";
@@ -727,7 +727,7 @@ KNO_EXPORT lispval kno_dcall(struct KNO_STACK *_stack,
       if (errno) {u8_graberrno("kno_apply",fname);}
       else kno_seterr(kno_UnknownError,"kno_apply",fname,VOID);}
     kno_pop_stack(apply_stack);
-    return result;}
+    return kno_simplify_choice(result);}
   else {
     u8_string limit=u8_mkstring("%lld",kno_stack_limit);
     lispval depth=KNO_INT2LISP(u8_stack_depth());
@@ -757,8 +757,9 @@ static lispval ndcall_loop
       return value;}
     else {
       value = kno_finish_call(value);
-      if (KNO_ABORTP(value)) return value;
-      KNO_ADD_RESULT(*results,value);}}
+      if (KNO_ABORTP(value))
+        return value;
+      else {KNO_ADD_RESULT(*results,value);}}}
   else if ((!(CHOICEP(nd_args[i]))) ||
            ((typeinfo)&&(typeinfo[i]==kno_choice_type))) {
     d_args[i]=nd_args[i];
@@ -786,7 +787,7 @@ static lispval ndapply1(kno_stack _stack,
       return r;}
     else {KNO_ADD_RESULT(results,r);}}
   kno_pop_stack(_stack);
-  return results;
+  return kno_simplify_choice(results);
 }
 
 static lispval ndapply2(kno_stack _stack,
@@ -808,7 +809,7 @@ static lispval ndapply2(kno_stack _stack,
       KNO_STOP_DO_CHOICES;
       break;}}
   kno_pop_stack(_stack);
-  return results;
+  return kno_simplify_choice(results);
 }
 
 static lispval ndapply3(kno_stack _stack,
@@ -834,7 +835,7 @@ static lispval ndapply3(kno_stack _stack,
       KNO_STOP_DO_CHOICES;
       break;}}
   kno_pop_stack(_stack);
-  return results;
+  return kno_simplify_choice(results);
 }
 
 static lispval ndapply4(kno_stack _stack,
@@ -865,7 +866,7 @@ static lispval ndapply4(kno_stack _stack,
       KNO_STOP_DO_CHOICES;
       break;}}
   kno_pop_stack(_stack);
-  return results;
+  return kno_simplify_choice(results);
 }
 
 KNO_EXPORT lispval kno_ndcall(struct KNO_STACK *_stack,
@@ -887,7 +888,7 @@ KNO_EXPORT lispval kno_ndcall(struct KNO_STACK *_stack,
         return r;}
       else {CHOICE_ADD(results,r);}}
     kno_pop_stack(ndapply_stack);
-    return results;}
+    return kno_simplify_choice(results);}
   else {
     kno_ptr_type fntype = KNO_PTR_TYPE(handler);
     if (kno_functionp[fntype]) {
@@ -927,8 +928,9 @@ KNO_EXPORT lispval kno_ndcall(struct KNO_STACK *_stack,
         u8_condition ex = (n>f->fcn_arity) ? (kno_TooManyArgs) :
           (kno_TooFewArgs);
         return kno_err(ex,"kno_ndapply",f->fcn_name,LISP_CONS(f));}}
-    else if (kno_applyfns[fntype])
-      return (kno_applyfns[fntype])(handler,n,args);
+    else if (kno_applyfns[fntype]) {
+      lispval r = (kno_applyfns[fntype])(handler,n,args);
+      return kno_simplify_choice(r);}
     else return kno_type_error("Applicable","kno_ndapply",handler);
   }
 }
@@ -1115,7 +1117,7 @@ KNO_EXPORT lispval _kno_finish_call(lispval call)
         break;}
       else if (KNO_ABORTP(next))
         return next;}
-    return result;}
+    return kno_simplify_choice(result);}
   else return call;
 }
 static int unparse_tail_call(struct U8_OUTPUT *out,lispval x)

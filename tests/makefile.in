@@ -87,13 +87,13 @@ fresh: clean
 
 # Clean targets
 
-clean: tidy
+clean: cleanlogs
 	rm -f $(TESTBIN)
 	find . -name "vgcore.*" -writable | xargs rm -f
 	find . -name "*.pid" -writable | xargs rm -f
 	rm -rf mongodb/dbdata;
 
-tidy testclean cleantests cleantest:
+cleanlogs testclean cleantests cleantest:
 	rm -rf *.log *.err *.done *.finished *.pid *.died *.elapsed *.cmd *.started
 	rm -rf tmp* utf8-temp* memoization.index *.dtype
 	rm -rf *.pool *.index *.flexpool *.flexindex
@@ -102,7 +102,7 @@ tidy testclean cleantests cleantest:
 
 # Test targets
 
-all_tests alltests: tidy
+all_tests alltests: cleanlogs
 	make libtests cmodules tables dbs framedbs
 	make optimize_modules
 	make cmdtests

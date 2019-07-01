@@ -117,7 +117,7 @@
 	   (body (cdr (cdr expr))))
       (if (<= (length control-spec) 3)
 	  `(,mt-apply 
-	    (,mt/threadcount ,n-threads-arg)
+	    5 ;; (,mt/threadcount ,n-threads-arg)
 	    (lambda (,arg) ,@body)
 	    (qc ,choice-generator))
 	  (let ((blockproc (get-arg control-spec 3 #f))
