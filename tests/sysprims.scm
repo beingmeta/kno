@@ -78,14 +78,14 @@
 		   (if (= (ptrlock "telephone") (ptrlock "telephone")) 0 1)
 		   (if (= (ptrlock #"packet") (ptrlock #"packet")) 0 1))
 	   0)
-(applytest #t > (+ (if (= (ptrlock "foo" 17) (ptrlock "foo" 17)) 0 1)
-		   (if (= (ptrlock "telephone" 17) (ptrlock "telephone" 17)) 0 1)
-		   (if (= (ptrlock #"packet" 17) (ptrlock #"packet" 17)) 0 1))
+(applytest #t > (+ (if (= (ptrlock "foo" 811) (ptrlock "foo" 811)) 0 1)
+		   (if (= (ptrlock "telephone" 811) (ptrlock "telephone" 811)) 0 1)
+		   (if (= (ptrlock #"packet" 811) (ptrlock #"packet" 811)) 0 1))
 	   0)
 (applytest 0 + 
-	   (if (= (ptrlock "foo" 42) (ptrlock "foo" 17)) 1 0)
-	   (if (= (ptrlock "telephone" 42) (ptrlock "telephone" 17)) 1 0)
-	   (if (= (ptrlock #"packet" 42) (ptrlock #"packet" 17)) 1 0))
+	   (if (= (ptrlock "foo" 777) (ptrlock "foo" 811)) 1 0)
+	   (if (= (ptrlock "telephone" 777) (ptrlock "telephone" 811)) 1 0)
+	   (if (= (ptrlock #"packet" 777) (ptrlock #"packet" 811)) 1 0))
 
 ;;; Config stuff
 
