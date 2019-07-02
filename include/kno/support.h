@@ -20,7 +20,8 @@ KNO_EXPORT int kno_trace_config;
 
 KNO_EXPORT int kno_thread_sigint;
 
-#define KNO_CONFIG_ALREADY_MODIFIED 1
+#define KNO_CONFIG_ALREADY_MODIFIED 0x01
+#define KNO_CONFIG_SINGLE_VALUE     0x02
 
 typedef struct KNO_CONFIG_HANDLER {
   lispval configname;
@@ -40,7 +41,9 @@ typedef struct KNO_CONFIG_FINDER *kno_config_finders;
 
 KNO_EXPORT lispval kno_config_get(u8_string var);
 KNO_EXPORT int kno_set_config(u8_string var,lispval val);
+KNO_EXPORT int kno_set_config_sym(lispval symbol,lispval val);
 KNO_EXPORT int kno_default_config(u8_string var,lispval val);
+KNO_EXPORT int kno_default_config_sym(lispval symbol,lispval val);
 KNO_EXPORT int kno_set_config_consed(u8_string var,lispval val);
 #define kno_config_set(var,val) kno_set_config(var,val)
 #define kno_config_set_consed(var,val) kno_set_config_consed(var,val)
@@ -102,9 +105,10 @@ KNO_EXPORT int kno_register_config
    void *data);
 KNO_EXPORT int kno_register_config_x
 (u8_string var,u8_string doc,
-   lispval (*getfn)(lispval,void *),
-   int (*setfn)(lispval,lispval,void *),
-   void *data,int (*reuse)(struct KNO_CONFIG_HANDLER *scan));
+ lispval (*getfn)(lispval,void *),
+ int (*setfn)(lispval,lispval,void *),
+ void *data,int flags,
+ int (*reuse)(struct KNO_CONFIG_HANDLER *scan));
 KNO_EXPORT lispval kno_all_configs(int with_docs);
 
 KNO_EXPORT void kno_config_lock(int lock);

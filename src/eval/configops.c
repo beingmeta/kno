@@ -24,10 +24,14 @@
 
 #include <libu8/libu8io.h>
 #include <libu8/u8filefns.h>
+#include <libu8/u8pathfns.h>
 
 #include <errno.h>
 #include <math.h>
+u8_condition LoadConfig=_("Loading config");
+u8_condition UnconfiguredSource;
 
+/* Core functions */
 
 static lispval config_get(lispval vars,lispval dflt,lispval valfn)
 {
@@ -71,6 +75,8 @@ static lispval config_get(lispval vars,lispval dflt,lispval valfn)
   if ( (VOIDP(result)) || (EMPTYP(result)) )
     if (VOIDP(dflt))
       return KNO_FALSE;
+    else if (TYPEP(dflt,kno_promise_type))
+      return kno_force_promise(dflt);
     else return kno_incref(dflt);
   else return result;
 }
@@ -101,7 +107,7 @@ static lispval set_config(int n,lispval *args)
   return VOID;
 }
 
-static lispval config_default(lispval var,lispval val)
+static lispval set_default_config(lispval var,lispval val)
 {
   int retval;
   if (STRINGP(var))
@@ -168,7 +174,7 @@ static lispval config_def(lispval var,lispval handler,lispval docstring)
   retval = kno_register_config_x
     (SYM_NAME(var),
      ((STRINGP(docstring)) ? (CSTRING(docstring)) : (NULL)),
-     lconfig_get,lconfig_set,(void *) handler,
+     lconfig_get,lconfig_set,(void *) handler,0,
      reuse_lconfig);
   if (retval<0) {
     kno_decref(handler);
@@ -181,15 +187,215 @@ static int reuse_lconfig(struct KNO_CONFIG_HANDLER *e){
     return 1;}
   else return 0;}
 
+/* Loading config files */
+
+static int trace_config_load = 0;
+
+KNO_EXPORT int kno_load_config(u8_string sourceid)
+{
+  struct U8_INPUT stream; int retval;
+  u8_string sourcebase = NULL, outer_sourcebase;
+  u8_string content = kno_get_source(sourceid,NULL,&sourcebase,NULL);
+  if (content == NULL) return -1;
+  else if (sourcebase) {
+    outer_sourcebase = kno_bind_sourcebase(sourcebase);}
+  else outer_sourcebase = NULL;
+  U8_INIT_STRING_INPUT((&stream),-1,content);
+  if ( (trace_config_load) || (kno_trace_config) )
+    u8_log(LOG_WARN,LoadConfig,
+           "Loading config %s (%d bytes)",sourcebase,u8_strlen(content));
+  retval = kno_read_config(&stream);
+  if ( (trace_config_load) || (kno_trace_config) )
+    u8_log(LOG_WARN,LoadConfig,"Loaded config %s",sourcebase);
+  if (sourcebase) {
+    kno_restore_sourcebase(outer_sourcebase);
+    u8_free(sourcebase);}
+  u8_free(content);
+  return retval;
+}
+
+KNO_EXPORT int kno_load_default_config(u8_string sourceid)
+{
+  struct U8_INPUT stream; int retval;
+  u8_string sourcebase = NULL, outer_sourcebase;
+  u8_string content = kno_get_source(sourceid,NULL,&sourcebase,NULL);
+  if (content == NULL) return -1;
+  else if (sourcebase) {
+    outer_sourcebase = kno_bind_sourcebase(sourcebase);}
+  else outer_sourcebase = NULL;
+  U8_INIT_STRING_INPUT((&stream),-1,content);
+  if ( (trace_config_load) || (kno_trace_config) )
+    u8_log(LOG_WARN,LoadConfig,
+           "Loading default config %s (%d bytes)",sourcebase,u8_strlen(content));
+  retval = kno_read_default_config(&stream);
+  if ( (trace_config_load) || (kno_trace_config) )
+    u8_log(LOG_WARN,LoadConfig,"Loaded default config %s",sourcebase);
+  if (sourcebase) {
+    kno_restore_sourcebase(outer_sourcebase);
+    u8_free(sourcebase);}
+  u8_free(content);
+  return retval;
+}
+
+/* From Scheme */
+
+static lispval lisp_load_config(lispval arg)
+{
+  if (STRINGP(arg)) {
+    u8_string abspath = u8_abspath(CSTRING(arg),NULL);
+    int retval = kno_load_config(abspath);
+    u8_free(abspath);
+    if (retval<0)
+      return KNO_ERROR;
+    else return KNO_INT(retval);}
+  else if (SYMBOLP(arg)) {
+    lispval config_val = kno_config_get(SYM_NAME(arg));
+    if (STRINGP(config_val)) {
+      lispval result = lisp_load_config(config_val);
+      kno_decref(config_val);
+      return result;}
+    else if (VOIDP(config_val))
+      return kno_err(UnconfiguredSource,"lisp_load_config",
+                     "this source is not configured",
+                     arg);
+    else return kno_err(UnconfiguredSource,"lisp_load_config",
+                        "this source source is misconfigured",
+                        config_val);}
+  else return kno_type_error
+         ("path or config symbol","lisp_load_config",arg);
+}
+
+static lispval lisp_load_default_config(lispval arg)
+{
+  if (STRINGP(arg)) {
+    u8_string abspath = u8_abspath(CSTRING(arg),NULL);
+    int retval = kno_load_default_config(abspath);
+    u8_free(abspath);
+    if (retval<0)
+      return KNO_ERROR;
+    else return KNO_INT(retval);}
+  else if (SYMBOLP(arg)) {
+    lispval config_val = kno_config_get(SYM_NAME(arg));
+    if (STRINGP(config_val)) {
+      lispval result = lisp_load_default_config(config_val);
+      kno_decref(config_val);
+      return result;}
+    else if (VOIDP(config_val))
+      return kno_err(UnconfiguredSource,"lisp_load_default_config",
+                     "this source is not configured",
+                     arg);
+    else return kno_err(UnconfiguredSource,"lisp_load_default_config",
+                        "this source is misconfigured",
+                        config_val);}
+  else return kno_type_error
+         ("path or config symbol","lisp_load_default_config",arg);
+}
+
+static lispval lisp_read_config(lispval arg)
+{
+  struct U8_INPUT in; int retval;
+  U8_INIT_STRING_INPUT(&in,STRLEN(arg),CSTRING(arg));
+  retval = kno_read_config(&in);
+  if (retval<0) return KNO_ERROR;
+  else return KNO_INT2LISP(retval);
+}
+
+/* Config config */
+
+static u8_mutex config_file_lock;
+
+static KNO_CONFIG_RECORD *config_records = NULL, *config_stack = NULL;
+
+static lispval get_config_files(lispval var,void U8_MAYBE_UNUSED *data)
+{
+  struct KNO_CONFIG_RECORD *scan; lispval result = NIL;
+  u8_lock_mutex(&config_file_lock);
+  scan = config_records; while (scan) {
+    result = kno_conspair(kno_mkstring(scan->config_filename),result);
+    scan = scan->loaded_after;}
+  u8_unlock_mutex(&config_file_lock);
+  return result;
+}
+
+static int add_config_file_helper(lispval var,lispval val,
+                                  void U8_MAYBE_UNUSED *data,
+                                  int isopt,int isdflt)
+{
+  if (!(STRINGP(val))) return -1;
+  else if (STRLEN(val)==0) return 0;
+  else {
+    int retval;
+    struct KNO_CONFIG_RECORD on_stack, *scan, *newrec;
+    u8_string sourcebase = kno_sourcebase();
+    u8_string pathname = u8_abspath(CSTRING(val),sourcebase);
+    u8_lock_mutex(&config_file_lock);
+    scan = config_stack; while (scan) {
+      if (strcmp(scan->config_filename,pathname)==0) {
+        u8_unlock_mutex(&config_file_lock);
+        if ( (kno_trace_config) || (trace_config_load) )
+          u8_log(LOGINFO,LoadConfig,
+                 "Skipping redundant reload of %s from the config %q",
+                 KNO_CSTRING(val),var);
+        u8_free(pathname);
+        return 0;}
+      else scan = scan->loaded_after;}
+    if ( (kno_trace_config) || (trace_config_load) )
+      u8_log(LOGWARN,LoadConfig,
+             "Loading the config file %s in response to a %q directive",
+             KNO_CSTRING(val),var);
+    memset(&on_stack,0,sizeof(struct KNO_CONFIG_RECORD));
+    on_stack.config_filename = pathname;
+    on_stack.loaded_after = config_stack;
+    config_stack = &on_stack;
+    u8_unlock_mutex(&config_file_lock);
+    if (isdflt)
+      retval = kno_load_default_config(pathname);
+    else retval = kno_load_config(pathname);
+    u8_lock_mutex(&config_file_lock);
+    if (retval<0) {
+      if (isopt) {
+        u8_free(pathname); config_stack = on_stack.loaded_after;
+        u8_unlock_mutex(&config_file_lock);
+        u8_pop_exception();
+        return 0;}
+      u8_free(pathname); config_stack = on_stack.loaded_after;
+      u8_unlock_mutex(&config_file_lock);
+      return retval;}
+    newrec = u8_alloc(struct KNO_CONFIG_RECORD);
+    newrec->config_filename = pathname;
+    newrec->loaded_after = config_records;
+    config_records = newrec;
+    config_stack = on_stack.loaded_after;
+    u8_unlock_mutex(&config_file_lock);
+    return retval;}
+}
+
+static int add_config_file(lispval var,lispval val,void U8_MAYBE_UNUSED *data)
+{
+  return add_config_file_helper(var,val,data,0,0);
+}
+
+static int add_opt_config_file(lispval var,lispval val,void U8_MAYBE_UNUSED *data)
+{
+  return add_config_file_helper(var,val,data,1,0);
+}
+
+static int add_default_config_file(lispval var,lispval val,void U8_MAYBE_UNUSED *data)
+{
+  return add_config_file_helper(var,val,data,1,1);
+}
+
 /* Initialization */
 
 KNO_EXPORT void kno_init_configops_c()
 {
   u8_register_source_file(_FILEINFO);
 
+  u8_init_mutex(&config_file_lock);
+
   kno_idefn3(kno_scheme_module,"CONFIG",config_get,KNO_NEEDS_1_ARG,
-	     "CONFIG *name* *default* *valfn*)\n"
-	     "Gets the configuration value named *name*, returning *default* "
+	     "`(CONFIG *name* [*default*=#f] [*valfn*])`\n"
+	     "Gets the configuration setting named *name*, returning *default* "
 	     "if it isn't defined. *valfn*, if provided is either a function "
 	     "to call on the retrieved value or #t to indicate that string "
 	     "values should be parsed as lisp",
@@ -201,15 +407,55 @@ KNO_EXPORT void kno_init_configops_c()
 		 "environment",
 		 config_macro);
 
-  kno_idefn(kno_scheme_module,
-	    kno_make_ndprim(kno_make_cprimn("SET-CONFIG!",set_config,2)));
-  kno_defalias(kno_scheme_module,"CONFIG!","SET-CONFIG!");
-  kno_idefn(kno_scheme_module,
-	    kno_make_ndprim(kno_make_cprim2("CONFIG-DEFAULT!",config_default,2)));
+  kno_idefnN(kno_scheme_module,"CONFIG!",set_config,KNO_NEEDS_2_ARGS,
+	     "`(CONFIG! *name1* *value1* *name2* *value2* ...)`\n"
+	     "Sets each configuration setting *name_i* to *value_i*. "
+	     "This invokes the config *handler* defined for *name_i* if "
+	     "there is one.");
+
+  kno_idefn2(kno_scheme_module,"CONFIG-DEFAULT!",
+	     set_default_config,KNO_NEEDS_2_ARGS,
+	     "`(CONFIG-DEFAULT! *name* *value*)`\n"
+	     "Sets the configuration value named *name* to *value* if "
+	     "it has not yet been specified for the current process. "
+	     "This invokes the config *handler* defined for *name* if "
+	     "it has been defined. ",
+	     -1,KNO_VOID,-1,KNO_VOID);
+
+  kno_idefn2(kno_scheme_module,"FIND_CONFIGS",
+	     find_configs,KNO_NEEDS_2_ARGS,
+	     "`(FIND-CONFIGS *pattern* *withdocs*)`\n"
+	     "Finds all config settings matching *pattern* and returns "
+	     "their names (symbols). *pattern* is a string or regex and "
+	     "a setting matches *pattern* if a match can be found in the name "
+	     "of the setting. The second argument, if specified and true, "
+	     "returns the matches as pairs of names and docstrings.",
+	     -1,KNO_VOID,-1,KNO_VOID);
+
   kno_idefn(kno_scheme_module,kno_make_cprim2("FIND-CONFIGS",find_configs,1));
   kno_defalias(kno_scheme_module,"CONFIG?","FIND-CONFIGS");
 
   DECL_PRIM(config_def,3,kno_scheme_module);
+
+  kno_idefn(kno_scheme_module,
+            kno_make_cprim1x("READ-CONFIG",lisp_read_config,1,
+                             kno_string_type,VOID));
+  kno_idefn(kno_scheme_module,
+            kno_make_cprim1x("LOAD-CONFIG",lisp_load_config,1,
+                             -1,VOID));
+  kno_idefn(kno_scheme_module,
+            kno_make_cprim1x("LOAD-DEFAULT-CONFIG",lisp_load_default_config,1,
+                             -1,VOID));
+
+  kno_register_config("CONFIG","Add a CONFIG file/URI to process",
+                      get_config_files,add_config_file,NULL);
+  kno_register_config("DEFAULTS","Add a CONFIG file/URI to process as defaults",
+                      get_config_files,add_default_config_file,NULL);
+  kno_register_config("OPTCONFIG","Add an optional CONFIG file/URI to process",
+                      get_config_files,add_opt_config_file,NULL);
+  kno_register_config("TRACELOADCONFIG","Trace config file loading",
+                      kno_boolconfig_get,kno_boolconfig_set,&trace_config_load);
+
 
 }
 
