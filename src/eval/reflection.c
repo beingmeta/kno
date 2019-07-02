@@ -743,12 +743,17 @@ static lispval wherefrom_evalfn(lispval expr,kno_lexenv call_env,
 
 static lispval getmodules_evalfn(lispval expr,kno_lexenv call_env,kno_stack _stack)
 {
-  lispval env_arg = kno_eval(kno_get_arg(expr,1),call_env), modules = EMPTY;
+  lispval env_arg = kno_eval(kno_get_arg(expr,1),call_env);
+  lispval modules = EMPTY;
   kno_lexenv env = call_env;
   if (VOIDP(env_arg)) {}
   else if (TYPEP(env_arg,kno_lexenv_type))
     env = kno_consptr(kno_lexenv,env_arg,kno_lexenv_type);
-  else return kno_type_error(_("environment"),"wherefrom",env_arg);
+  else {
+    lispval err =
+      kno_type_error(_("environment"),"wherefrom",env_arg);
+    kno_decref(env_arg);
+    return err;}
   if (env->env_copy) env = env->env_copy;
   while (env) {
     if (kno_test(env->env_bindings,moduleid_symbol,VOID)) {
