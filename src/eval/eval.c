@@ -357,7 +357,8 @@ static ssize_t write_evalfn_dtype(struct KNO_OUTBUF *out,lispval x)
 KNO_EXPORT void recycle_evalfn(struct KNO_RAW_CONS *c)
 {
   struct KNO_EVALFN *sf = (struct KNO_EVALFN *)c;
-  u8_free(sf->evalfn_name);
+  if (sf->evalfn_name) u8_free(sf->evalfn_name);
+  if (sf->evalfn_documentation) u8_free(sf->evalfn_documentation);
   if (!(KNO_STATIC_CONSP(c))) u8_free(c);
 }
 
