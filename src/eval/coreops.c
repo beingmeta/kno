@@ -429,6 +429,26 @@ static lispval typeof_prim(lispval x)
   else return kno_mkstring("??");
 }
 
+static lispval taggedp_prim(lispval x,lispval tag)
+{
+  kno_ptr_type typecode = KNO_PRIM_TYPE(x);
+  if (typecode == kno_compound_type) 
+    if (VOIDP(tag))
+      return KNO_TRUE;
+    else if (tag == KNO_COMPOUND_TAG(x))
+      return KNO_TRUE;
+    else return KNO_FALSE;
+  else if (typecode == kno_rawptr_type) {
+    kno_rawptr raw = (kno_rawptr) x;
+    if (VOIDP(tag))
+      return KNO_TRUE;
+    else if (tag == raw->raw_typetag)
+      return KNO_TRUE;
+    else return KNO_FALSE;}
+  else return KNO_FALSE;
+}
+
+
 #define GETEVALFN(x) ((kno_evalfn)(kno_fcnid_ref(x)))
 static lispval procedure_name(lispval x)
 {
@@ -640,6 +660,7 @@ KNO_EXPORT void kno_init_coreprims_c()
   kno_idefn(kno_scheme_module,kno_make_cprim1("CONS?",consp,1));
   kno_idefn(kno_scheme_module,kno_make_cprim1("CONSED?",consp,1));
   kno_idefn(kno_scheme_module,kno_make_cprim1("TYPEOF",typeof_prim,1));
+  kno_idefn(kno_scheme_module,kno_make_cprim2("TAGGED?",taggedp_prim,1));
 
   kno_idefn(kno_scheme_module,kno_make_cprim1("PROCEDURE-NAME",procedure_name,1));
 
