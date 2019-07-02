@@ -108,9 +108,9 @@ static lispval quasiquote_list(lispval obj,kno_lexenv env,int level)
             return KNO_ERROR;}
           else if (NILP(insertion)) {}
           else if (PAIRP(insertion)) {
-            lispval scan = insertion, last = VOID;
-            while (PAIRP(scan)) {last = scan; scan = KNO_CDR(scan);}
-            if (!(PAIRP(last))) {
+            lispval scan = insertion;
+            while (PAIRP(scan)) {scan = KNO_CDR(scan);}
+            if (scan != KNO_NIL) {
               u8_string details_string = u8_mkstring("RESULT=%q",elt);
               lispval err;
               err = kno_err(kno_SyntaxError,
@@ -153,7 +153,8 @@ static lispval quasiquote_list(lispval obj,kno_lexenv env,int level)
       else new_elt = kno_quasiquote(elt,env,level);
     else new_elt = kno_quasiquote(elt,env,level);
     if (KNO_ABORTED(new_elt)) {
-      kno_decref(head); return new_elt;}
+      kno_decref(head);
+      return new_elt;}
     new_tail = kno_conspair(new_elt,NIL);
     tailcons = KNO_CONSPTR(kno_pair,new_tail);
     *tail = new_tail; tail = &(tailcons->cdr);
@@ -178,7 +179,7 @@ static lispval quasiquote_vector(lispval obj,kno_lexenv env,int level)
       lispval elt = VEC_REF(obj,i);
       if ((PAIRP(elt)) &&
           (KNO_EQ(KNO_CAR(elt),unquotestar)) &&
-          (PAIRP(KNO_CDR(elt))))
+          (PAIRP(KNO_CDR(elt)))) {
         if (level==1) {
           lispval insertion = kno_eval(KNO_CADR(elt),env); int addlen = 0;
           if (KNO_ABORTED(insertion)) {
@@ -186,7 +187,8 @@ static lispval quasiquote_vector(lispval obj,kno_lexenv env,int level)
             u8_free(newelts);
             return insertion;}
           else if (VOIDP(insertion)) {
-            kno_seterr(kno_VoidArgument,"quasiquote_vector",NULL,KNO_CADR(elt));
+            kno_seterr(kno_VoidArgument,"quasiquote_vector",
+                       NULL,KNO_CADR(elt));
             int k = 0; while (k<j) {kno_decref(newelts[k]); k++;}
             u8_free(newelts);
             return KNO_ERROR;}
@@ -224,18 +226,22 @@ static lispval quasiquote_vector(lispval obj,kno_lexenv env,int level)
           kno_decref(insertion);}
         else {
           lispval new_elt = kno_quasiquote(elt,env,level-1);
-          if (KNO_ABORTED(new_elt)) {
+          if ( (KNO_ABORTED(new_elt)) || (KNO_VOIDP(new_elt)) ) {
             int k = 0; while (k<j) {kno_decref(newelts[k]); k++;}
             u8_free(newelts);
-            return new_elt;}
+            if (VOIDP(new_elt))
+              kno_seterr(kno_VoidArgument,"quasiquote_vector",NULL,elt);
+            return KNO_ERROR;}
           newelts[j]=new_elt;
-          i++; j++;}
+          i++; j++;}}
       else {
         lispval new_elt = kno_quasiquote(elt,env,level);
-        if (KNO_ABORTED(new_elt)) {
+        if ( (KNO_ABORTED(new_elt)) || (KNO_VOIDP(new_elt)) ) {
           int k = 0; while (k<j) {kno_decref(newelts[k]); k++;}
           u8_free(newelts);
-          return new_elt;}
+          if (VOIDP(new_elt))
+            kno_seterr(kno_VoidArgument,"quasiquote_vector",NULL,elt);
+          return KNO_ERROR;}
         newelts[j]=new_elt;
         i++; j++;}}
     result = kno_make_vector(j,newelts);
@@ -289,7 +295,8 @@ static lispval quasiquote_choice(lispval obj,kno_lexenv env,int level)
 KNO_EXPORT
 lispval kno_quasiquote(lispval obj,kno_lexenv env,int level)
 {
-  if (KNO_ABORTED(obj)) return obj;
+  if (KNO_ABORTED(obj))
+    return obj;
   else if (PAIRP(obj))
     if (KNO_BAD_UNQUOTEP(obj))
       return kno_err(kno_SyntaxError,"malformed UNQUOTE",NULL,obj);
