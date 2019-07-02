@@ -984,6 +984,8 @@ KNO_EXPORT void lispval_sort(lispval *v,size_t n,kno_compare_flags flags);
 #define DOLIST     KNO_DOLIST
 #define CHOICE_ADD KNO_ADD_TO_CHOICE
 #define EQ         KNO_EQ
+#define ABORTP(x)  (KNO_ABORTP(x))
+#define ABORTED(x) (KNO_ABORTED(x))
 #define STRLEN(x)  (KNO_STRLEN(x))
 #define CSTRING(x) (KNO_CSTRING(x))
 #define VEC_LEN(x)  (KNO_VECTOR_LENGTH(x))
