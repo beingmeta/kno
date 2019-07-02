@@ -1178,7 +1178,7 @@ lispval kno_parser(u8_input in)
           u8_putc(labelout,'#');
           ch = u8_getc(in);
           while ( ( ch >= 0 ) && (label_length < 42) &&
-                  (strchr("{(\":'`#",ch) == NULL) ) {
+                  (strchr("{([\":'`#",ch) == NULL) ) {
             int uch = u8_tolower(ch);
             u8_putc(labelout,uch);
             ch = u8_getc(in);
