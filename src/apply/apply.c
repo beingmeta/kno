@@ -704,8 +704,9 @@ KNO_EXPORT lispval kno_dcall(struct KNO_STACK *_stack,
                           n_waits,n_contests,n_faults);}
       else if (f) {
         result=apply_fcn(apply_stack,fname,f,n,argvec);
-        if (!(PRED_TRUE(KNO_CHECK_PTR(result))))
-          return kno_badptr_err(result,"kno_deterministic_apply",fname);
+        if (!(PRED_TRUE(KNO_CHECK_PTR(result)))) {
+          result = kno_badptr_err(result,"kno_deterministic_apply",fname);
+          trouble = 1;}
         else if ( (KNO_TAILCALLP(result)) && (f->fcn_notail) )
           result=kno_finish_call(result);}
       else result=kno_applyfns[ftype](fn,n,argvec);
