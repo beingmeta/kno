@@ -78,6 +78,34 @@ static lispval force_promise_prim(lispval promise)
   else return kno_incref(promise);
 }
 
+KNO_EXPORT lispval kno_force_promise(lispval promise)
+{
+  if (KNO_TYPEP(promise,kno_promise_type)) {
+    struct KNO_PROMISE *p = (kno_promise) promise;
+    if (p->promise_value)
+      return kno_incref(p->promise_value);
+    else {
+      u8_lock_mutex(&p->promise_lock);
+      if (p->promise_value) {
+	u8_unlock_mutex(&p->promise_lock);
+	return kno_incref(p->promise_value);}
+      lispval result = kno_stack_eval
+	(p->promise_expr,p->promise_env,kno_stackptr,0);
+      if (KNO_ABORTED(result)) {
+	u8_exception ex = u8_current_exception;
+	/* p->promise_value = kno_simple_exception(ex); */
+	p->promise_value = kno_simple_exception(ex);
+	p->promise_broken = 1;}
+      else p->promise_value = kno_incref(result);
+      lispval consumers = p->promise_consumers;
+      p->promise_consumers = KNO_EMPTY;
+      u8_unlock_mutex(&p->promise_lock);
+      /* This should handle consumers somehow, TBD */
+      kno_decref(consumers);
+      return result;}}
+  else return kno_incref(promise);
+}
+
 DCLPRIM2("PROMISE/PROBE",probe_promise_prim,MIN_ARGS(1),
 	 "`(PROMISE/PROBE *promise* *marker*)` returns the value promised by "
 	 "*promise* if it has been resolved. If *promise* has "

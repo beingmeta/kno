@@ -397,6 +397,8 @@ typedef struct KNO_PROMISE {
   lispval promise_consumers;} KNO_PROMISE;
 typedef struct KNO_PROMISE *kno_promise;
 
+KNO_EXPORT lispval kno_force_promise(lispval promise);
+
 /* Basic thread eval/apply functions */
 
 KNO_EXPORT kno_thread kno_thread_call(lispval *,lispval,int,lispval *,int);
