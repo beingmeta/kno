@@ -70,7 +70,7 @@
 (applytest 'define car (lambda-source arity-test2))
 (errtest (applytest 'define car lambda-source arity-test2))
 (optimize! arity-test2)
-(applytester-pred pair? lambda-start arity-test2)
+(applytester pair? lambda-start arity-test2)
 
 (set-lambda-source! arity-test2 (cons 'defslambda (cdr (lambda-source arity-test2))))
 (applytest 'defslambda car (lambda-source arity-test2))
