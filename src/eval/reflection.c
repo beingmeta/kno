@@ -284,17 +284,15 @@ static lispval get_proc_attribs(lispval x,int create)
     if ((attribs == KNO_NULL)||(!(TABLEP(attribs))))
       f->fcn_attribs = attribs = kno_init_slotmap(NULL,4,NULL);
     return attribs;}
-  else if (create) {
-    kno_seterr("NoAttribs","get_proc_attribs",NULL,x);
-    return KNO_ERROR;}
-  else return VOID;
+  else return kno_type_error("function","get_proc_attribs",x);
 }
 
 static lispval get_procedure_attribs(lispval x)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
   lispval attribs = get_proc_attribs(x,1);
-  if (KNO_ABORTP(attribs)) return attribs;
+  if (KNO_ABORTP(attribs))
+    return attribs;
   else kno_incref(attribs);
   return attribs;
 }
@@ -315,7 +313,9 @@ static lispval set_procedure_attribs(lispval x,lispval value)
 static lispval reflect_get(lispval x,lispval attrib)
 {
   lispval attribs = get_proc_attribs(x,0);
-  if (TABLEP(attribs))
+  if (ABORTP(attribs))
+    return attribs;
+  else if (TABLEP(attribs))
     return kno_get(attribs,attrib,KNO_FALSE);
   else return KNO_FALSE;
 }
