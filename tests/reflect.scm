@@ -34,9 +34,17 @@
 (applytester #f procedure-arity arity-test2)
 (applytester 2 procedure-min-arity arity-test2)
 
+(errtest (procedure-min-arity "foo"))
+
+(errtest (apropos 99))
+
+(errtest (set-lambda-args! "foo" '(x (y 5))))
+(errtest (set-lambda-body! "foo" '(x (y 5))))
+(errtest (optimize-lambda-args! "foo" '(x (y 5))))
+
 (applytest '(x (y 3)) lambda-args arity-test)
-;; (set-lambda-args! arity-test '(x (y 5)))
-;; (applytest '(x (y 5)) lambda-args arity-test)
+(set-lambda-args! arity-test '(x (y 5)))
+(applytest '(x (y 5)) lambda-args arity-test)
 
 (errtest (procedure-arity if))
 (errtest (procedure-arity defrecord))
@@ -47,14 +55,22 @@
 (evaltest 'void (set-procedure-documentation! arity-test "testing arity"))
 (applytester "testing arity" procedure-documentation arity-test)
 
+(evaltest 'void (set-procedure-documentation! if "branch"))
+(applytester "branch" procedure-documentation if)
+
 (applytest #t procedure-tailable? arity-test)
 (evaltest 'void (set-procedure-tailable! arity-test #f))
 (applytest #f procedure-tailable? arity-test)
 (evaltest 'void (set-procedure-tailable! arity-test #t))
 
+(errtest (procedure-tailable? if))
+(errtest (procedure-tailable? "three"))
+
 (applytester-pred pair? lambda-start arity-test2)
 (applytest 'define car (lambda-source arity-test2))
 (errtest (applytest 'define car lambda-source arity-test2))
+(optimize! arity-test2)
+(applytester-pred pair? lambda-start arity-test2)
 
 (set-lambda-source! arity-test2 (cons 'defslambda (cdr (lambda-source arity-test2))))
 (applytest 'defslambda car (lambda-source arity-test2))
@@ -87,6 +103,10 @@
 (applytest 'void reflect/add! arity-test 'testprop "more")
 (applytest {"more" "value"} reflect/get arity-test 'testprop)
 
+(errtest (reflect/store! "foo" 'bar value))
+(errtest (reflect/add! "foo" 'bar value))
+(errtest (reflect/get "foo" 'bar))
+
 (applytest-pred table? reflect/attribs arity-test)
 (errtest (reflect/attribs "string"))
 
@@ -112,6 +132,8 @@
 (applytester-pred (contains-string "iterators.c") get-source dolist)
 (applytester-pred string? get-source swapf)
 
+(errtest (module-source))
+
 (applytester #t applicable? syncit)
 (applytester #t applicable? contains-string)
 (applytester #f applicable? if)
@@ -119,6 +141,9 @@
 
 (applytester #t synchronized? syncit)
 (applytester #f synchronized? contains-string)
+
+(errtest (synchronized? "s"))
+(errtest (synchronized? 33))
 
 (applytester #f non-deterministic? syncit)
 (applytester #f non-deterministic? car)
@@ -146,16 +171,23 @@
 (applytester-pred string? module-source (get-module 'regex))
 (applytester-pred hashtable? module-table (get-module 'regex))
 (applytester #f module-environment (get-module 'regex))
+(errtest (module-bindings "foo"))
+(errtest (module-table "foo"))
+(errtest (wherefrom "foo"))
+(errtest (module-table))
+(errtest (wherefrom))
 
 (applytester-pred string? module-source (get-module 'bench/miscfns))
 (applytester-pred hashtable? module-table (get-module 'bench/miscfns))
 (applytester-pred ambiguous? module-bindings (get-module 'bench/miscfns))
 (applytester-pred hashtable? module-environment (get-module 'bench/miscfns))
+(errtest (module-source "foo"))
 
 (applytest #t ambiguous? (getmodules (%env)))
 (applytest #t ambiguous? (getmodules))
 (evaltest {} (reject (getmodules) symbol?))
 (evaltest {} (reject (getmodules (%env)) symbol?))
+(errtest (getmodules "foo"))
 
 (applytester-pred ambiguous? apropos "get")
 
@@ -212,3 +244,25 @@
 (errtest (defimport rrzy (get-module 'bench/miscfns)))
 (errtest (defimport rrzy 'nosuchmodule))
 
+;;;; Profiling
+
+(applytest #f reflect/profiled? arity-test)
+(evaltest #t (reflect/profile! arity-test))
+(applytest #t reflect/profiled? arity-test)
+
+(define (ctest3 i) (1+ i))
+(reflect/profile! ctest3)
+(dotimes (i 10) (ctest3 i))
+(let ((info (profile/getcalls ctest3)))
+  [fcn (profile/fcn info)
+   time (profile/time info)
+   utime (profile/utime info)
+   stime (profile/stime info)
+   waits (profile/waits info)
+   contests (profile/contests info)
+   faults (profile/faults info)
+   nsecs (profile/nsecs info)
+   ncalls (profile/ncalls info)
+   nitems (profile/nitems info)])
+
+(evaltest #t (ambiguous? (getmodules)))

@@ -1,5 +1,7 @@
 ;;; -*- Mode: Scheme; -*-
 
+(define (%postload) (message "We're loaded"))
+
 (module-export! 'get-loadok-count)
 
 (define-init load-ok-count 0)
@@ -9,4 +11,6 @@
 (define (get-load-ok-count) load-ok-count)
 
 (message "Loaded loadok, count=" load-ok-count)
+
+
 
