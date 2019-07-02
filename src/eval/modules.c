@@ -289,11 +289,10 @@ lispval kno_find_module(lispval spec,int err)
       kno_decref(loadstamp);
       return module;}}
   else {
-    struct MODULE_LOADER *scan = module_loaders;
-    if ((SYMBOLP(spec)) || (STRINGP(spec))) {}
-    else {
+    if (! ((SYMBOLP(spec)) || (STRINGP(spec))) ) {
       clearloadlock(spec);
       return kno_type_error(_("module name"),"kno_find_module",spec);}
+    struct MODULE_LOADER *scan = module_loaders;
     while (scan) {
       int retval = scan->loader(spec,scan->data);
       if (retval>0) {

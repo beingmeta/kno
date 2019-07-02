@@ -189,7 +189,7 @@ static u8_string get_module_source(lispval spec)
   else if (STRINGP(spec)) {
     u8_string spec_data = CSTRING(spec);
     if (strchr(spec_data,':') == NULL) {
-      u8_string abspath = u8_abspath(CSTRING(spec),NULL);
+      u8_string abspath = kno_get_component(CSTRING(spec));
       if (u8_file_existsp(abspath))
         return abspath;
       else {
@@ -199,7 +199,7 @@ static u8_string get_module_source(lispval spec)
       u8_string use_path = NULL;
       if (kno_probe_source(spec_data,&use_path,NULL)) {
         if (use_path) return use_path;
-        else return u8_strdup(spec_data);}
+	else return u8_strdup(spec_data);}
       else return NULL;}}
   else return NULL;
 }
