@@ -1035,7 +1035,7 @@ KNO_EXPORT void kno_new_evalfn(lispval mod,u8_string name,
   f->evalfn_name = u8_strdup(name);
   f->evalfn_handler = fn;
   f->evalfn_filename = filename;
-  f->evalfn_documentation = doc;
+  f->evalfn_documentation = u8_strdup(doc);
   kno_store(mod,kno_getsym(name),LISP_CONS(f));
   f->evalfn_moduleid = kno_get(mod,moduleid_symbol,KNO_VOID);
   kno_decref(LISP_CONS(f));
