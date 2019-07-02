@@ -94,6 +94,7 @@ clean: cleanlogs
 	rm -rf mongodb/dbdata;
 
 cleanlogs testclean cleantests cleantest:
+	rm -rf state/*
 	rm -rf *.log *.err *.done *.finished *.pid *.died *.elapsed *.cmd *.started
 	rm -rf tmp* utf8-temp* memoization.index *.dtype
 	rm -rf *.pool *.index *.flexpool *.flexindex
@@ -117,7 +118,7 @@ cmdtests:
 
 static-tests: schemetests optscheme loadmods optmods slotmaps tables pools indexes framedbs
 schemetest schemetests scheme: r4rs exceptions choices sequences breaks numbers regex \
-	reflect hashsets eval loading quasiquote promises ffi config opts\
+	reflect hashsets eval loading quasiquote promises ffi configs opts\
 	picktest cachecall texttools webtools timefns sysprims startup stringprims \
 	threads i18n misc gctests profiling \
 	fileprims xml

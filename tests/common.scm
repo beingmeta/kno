@@ -1,8 +1,8 @@
 ;;; Put this out before doing anything
-;; (fileout (get-component (mkpath "data" (glom (getppid) "." (getpid)  ".started"))) 
-;;   (config 'sessionid) "\n" (config 'cmdline))
-(fileout (glom (getppid) "." (getpid)  ".started") 
+(fileout (get-component (mkpath "state" (glom (getppid) "." (getpid)  ".started"))) 
   (config 'sessionid) "\n" (config 'cmdline))
+;; (fileout (glom (getppid) "." (getpid)  ".started") 
+;;   (config 'sessionid) "\n" (config 'cmdline))
 
 (use-module '{reflection varconfig optimize logger})
 

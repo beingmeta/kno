@@ -1864,7 +1864,7 @@ tests: testclean
 	 echo "#### Can't test primitives on protected files, enable with 'make private_files'"; \
 	 fi;
 	@DATE=`date +%d%b%yT%T`; make -s -C tests -k -j && \
-	 sort tests/timing.log -k 2 > tests/logs/timing-$${DATE}.log;
+	 sort tests/state/timing.log -k 2 > tests/logs/timing-$${DATE}.log;
 	@if test ! -f tests/data/private.text; then \
 	 echo "#### Can't test primitives on protected files, enable with 'make private_files'"; \
 	 fi;
@@ -1874,7 +1874,7 @@ tests.log: tests/knox tests/makefile.in makefile
 	@make -s -C tests testclean 2>&1 > tests/testclean.log
 	@DATE=`date +%d%b%yT%T`; make -s -C tests -k -j 2>&1 > tests.log && \
 	 cp tests.log tests/logs/tests-$${DATE}.log; \
-	 sort tests/timing.log -k 2 > tests/logs/timing-$${DATE}.log;
+	 sort tests/state/timing.log -k 2 > tests/logs/timing-$${DATE}.log;
 
 libtests.log: tests/knox tests/makefile.in
 	@echo "#### Running libtests, output in" $@ "BUILD=${BUILDMODE} LINKED=${LINKEDWITH}"
@@ -1896,7 +1896,7 @@ tests/leaktests.log: tests/knox tests/makefile.in
 	@echo "#### Running leak tests, output in" $@ "BUILD=${BUILDMODE} LINKED=${LINKEDWITH}"
 	@make -s -C tests testclean 2>&1 > tests/testclean.log
 	@DATE=`date +%d%b%yT%T`; make -s -C tests -k -j leaktests 2>&1 > leaktests.log && \
-	cp leaktests.log tests/logs/leaktests-`date +%d%b%yT%T`.log;
+	cp tests/leaktests.log tests/logs/leaktests-`date +%d%b%yT%T`.log;
 leaktests: leaktests.log
 
 tests/schemetests.log: tests/knox tests/makefile.in
