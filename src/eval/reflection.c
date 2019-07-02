@@ -193,7 +193,7 @@ static lispval set_procedure_documentation(lispval x,lispval doc)
     struct KNO_EVALFN *sf = GETEVALFN(proc);
     u8_string prev = sf->evalfn_documentation;
     sf->evalfn_documentation = u8_strdup(CSTRING(doc));
-    if (prev) u8_free(sf->evalfn_documentation);
+    if (prev) u8_free(prev);
     return VOID;}
   else return kno_err("Not Handled","set_procedure_documentation",NULL,x);
 }

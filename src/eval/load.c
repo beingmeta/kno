@@ -161,11 +161,6 @@ KNO_EXPORT lispval kno_load_stream(u8_input loadstream,kno_lexenv env,
       /* This is now also the result */
       result = expr;
       kno_incref(expr);}
-    else if (KNO_ABORTP(expr)) {
-      kno_decref(result);
-      result = expr;
-      kno_incref(expr);
-      expr = VOID;}
     else {}
     /* Clear the stack status */
     load_stack->stack_status=NULL;

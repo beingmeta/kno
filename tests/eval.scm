@@ -154,7 +154,8 @@
     (applytest string? lisp->string plus-id)
     (applytest string? lisp->string n2s-id)
     (applytest string? lisp->string evalfn-id)
-    (applytest string? lisp->string evalfn-id)))
+    (applytest string? lisp->string evalfn-id))
+    (applytest-pred fcnid? fcnid/register prim-id))
 
 (test-fcnids)
 
