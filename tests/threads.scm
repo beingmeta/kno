@@ -71,7 +71,7 @@
     (applytest #t thread? threads)
     (applytest #t exists? (config 'ALLTHREADS))
     (set+! threads (spawn (addrange 0)))
-    (applytest-pred string? lisp->string (pick-one threads))
+    (applytest string? lisp->string (pick-one threads))
     (thread/join threads)
     (thread/cancel! (pick-one threads))
     (applytest 20 length numbers)
@@ -124,7 +124,7 @@
 (define num #f)
 (define numlock (make-condvar))
 
-(applytest-pred string? lisp->string numlock)
+(applytest string? lisp->string numlock)
 
 (define-tester (change-num numlock (n (nrandom 1)))
   (sync/lock! numlock)
@@ -140,7 +140,7 @@
     (evaltest n num)))
 
 (define-tester (test-synchro-locks (numlock (make-mutex)) (nthreads 8))
-  (when numlock (applytest-pred string? lisp->string numlock))
+  (when numlock (applytest string? lisp->string numlock))
   (let ((num #f))
     (let ((change-num (lambda (lock newval)
 			(when lock (sync/lock! lock))
@@ -150,11 +150,11 @@
 			  (when lock (sync/release! lock))))))
       (thread/wait! (thread/call change-num numlock (nrandom))))))
 (define-tester (test-synchro-locks (numlock (make-mutex)) (nthreads 8))
-  (when numlock (applytest-pred string? lisp->string numlock))
+  (when numlock (applytest string? lisp->string numlock))
   (thread/wait! (thread/call change-num numlock (nrandom))))
 
 (define-tester (test-with-lock (numlock (make-mutex)) (nthreads 8))
-  (when numlock (applytest-pred string? lisp->string numlock))
+  (when numlock (applytest string? lisp->string numlock))
   (thread/wait! (thread/call change-num-with-lock numlock (nrandom))))
 
 ;;;; Test fluid variables
@@ -314,9 +314,9 @@
   (applytest #f synchronizer? change-num-recklessly)
   (applytest #f thread? 3)
 
-  (applytest-pred string? lisp->string condvar)
-  (applytest-pred string? lisp->string mutex)
-  (applytest-pred string? lisp->string rwlock)
+  (applytest string? lisp->string condvar)
+  (applytest string? lisp->string mutex)
+  (applytest string? lisp->string rwlock)
   
     ;;; This doesn't seem to be working right
   

@@ -26,14 +26,14 @@
 (applytest #t timestamp? (ffi_time #f))
 
 (define ffi_elapsed (ffi/proc "u8_elapsed_time" #f 'double))
-(applytest-pred flonum? ffi_elapsed)
+(applytest flonum? ffi_elapsed)
 
 (define ffi_getenv (ffi/proc "getenv" #f #[basetype ptr typetag envstring] 'string))
 (define ffi_strdup (ffi/proc "_u8_strdup" #f #[basetype string mallocd #t] #[basetype ptr typetag envstring]))
 
 (when (getenv "USER")
   (applytest (getenv "USER") ffi_strdup (ffi_getenv "USER"))
-  (applytest-pred string? lisp->string (ffi_getenv "USER")))
+  (applytest string? lisp->string (ffi_getenv "USER")))
 
 (applytest #t ffi/found? "u8_cons_list" "libu8.so")
 (applytest #f ffi/found? "u8_xons_list" "libu8.so")

@@ -14,9 +14,9 @@
 (applytest 9 config 'z:two-words)
 (applytest 9 config 'z:two_words)
 
-(applytest-pred fixnum? config 'pid)
-(applytest-pred fixnum? config 'ppid)
-(applytest-pred string? config 'hostname)
+(applytest fixnum? config 'pid)
+(applytest fixnum? config 'ppid)
+(applytest string? config 'hostname)
 
 (define test-val 17)
 (define test-val-mods 0)

@@ -461,9 +461,9 @@
 
 (define asecret #*"keepitsafe")
 
-(applytest-pred secret? glom "thering" asecret)
-(applytest-pred secret? glom asecret "thering")
-(applytest-pred secret? slice asecret 0 2)
+(applytest secret? glom "thering" asecret)
+(applytest secret? glom asecret "thering")
+(applytest secret? slice asecret 0 2)
 (applytester 10 length asecret)
 
 (errtest (elt asecret 3))
@@ -609,11 +609,11 @@
   (when numeric
     (applytest #t every? number? seq)
     (applytest #t some? number? seq)
-    (applytest-pred sequence? map 1+ seq)
+    (applytest sequence? map 1+ seq)
     (applytest 'void for-each 1+ seq)
     (evaltest (largest (elts seq)) (apply max (->list seq)))
     (evaltest (smallest (elts seq)) (apply min (->list seq))))
-  (applytest-pred string? lisp->string seq)
+  (applytest string? lisp->string seq)
   (applytest (elt seq 0) first seq)
   (applytest (elt seq 1) second seq)
   (applytest (elt seq 2) third seq)
@@ -630,7 +630,7 @@
     (errtest (fifth (slice seq 0 4)))
     (errtest (sixth (slice seq 0 5)))
     (errtest (seventh (slice seq 0 6))))
-  (applytest-pred ambiguous? elts seq))
+  (applytest ambiguous? elts seq))
 
 (define vec #("three" "four" "five" "six" "seven" "eight" "nine" 
 	      "ten" "eleven" "twelve" "thirteen"))

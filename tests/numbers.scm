@@ -119,13 +119,13 @@
 
 (applytest #t odd? (+ onebig 7))
 
-(applytest-pred flonum? exact->inexact onebig)
-(applytest-pred flonum? /~ onebig)
-(applytest-pred flonum? /~ 1 onebig)
-(applytest-pred flonum? * onebig 1.0)
-(applytest-pred flonum? * onebig 1.0)
-(applytest-pred flonum? + onebig 1.0)
-(applytest-pred flonum? - onebig 1.0)
+(applytest flonum? exact->inexact onebig)
+(applytest flonum? /~ onebig)
+(applytest flonum? /~ 1 onebig)
+(applytest flonum? * onebig 1.0)
+(applytest flonum? * onebig 1.0)
+(applytest flonum? + onebig 1.0)
+(applytest flonum? - onebig 1.0)
 
 (applytest 1.0 * onebig (/~ onebig))
 
@@ -138,7 +138,7 @@
 (applytest (/~ 5) /~ 1 5)
 (applytest (/~ 10) /~ 2 20)
 
-(applytest-pred flonum? ->flonum 1/3)
+(applytest flonum? ->flonum 1/3)
 
 (applytest 3.0+5.0i ->inexact 3+5i)
 (errtest (->flonum 3+5i))

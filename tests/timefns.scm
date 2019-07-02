@@ -86,7 +86,7 @@
 (applytest 42 (uuid-node b-uuid))
 (applytest yesterday (uuid-time b-uuid))
 
-(applytest-pred string? timestring)
+(applytest string? timestring)
 (applytest "02:05:00" secs->short (+ (* 3600 2) (* 60 5)))
 (applytest "1104d-02:05:00"
 	   secs->short (+ (* 3600 24 365 3) (* 3600 24 9) (* 3600 2) (* 60 5)))
@@ -145,8 +145,8 @@
   (applytest #t future? tomorrow 0.5)
   (applytest #t < (elapsed-time moment) 2)
   (applytest #t < (elapsed-time (->exact (+ moment 1.0))) 2)
-  (applytest-pred flonum? difftime moment)
-  (applytest-pred flonum? difftime (elapsed-time) moment)
+  (applytest flonum? difftime moment)
+  (applytest flonum? difftime (elapsed-time) moment)
   (applytest bday parser/roundtrip bday)
   ;; OS dependent?
   ;; (applytest "Mon 03 Dec 1979 03:15:00 AM EST" get bday 'string)
@@ -203,9 +203,9 @@
   (applytest precision get (timestamp precision) 'precision))
 (doseq (precision *precisions* i)
   (let ((time (timestamp precision)))
-    (applytest-pred number? get time precision)
+    (applytest number? get time precision)
     (doseq (valid (slice *precisions* 0 i))
-      (applytest-pred number? get time valid))
+      (applytest number? get time valid))
     (doseq (invalid (slice *precisions* i))
       (applytest {} get time valid))))
 |#

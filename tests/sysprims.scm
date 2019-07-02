@@ -19,7 +19,7 @@
 	     (applytester #t inexact? cmp))
 	    ((vector? v)
 	     (applytester #t vector? cmp)))))
-  (applytest-pred flonum? cpusage usage))
+  (applytest flonum? cpusage usage))
 
 (applytester #t table? (uname))
 (applytester #t string? (get (uname) 'osname))
@@ -45,8 +45,8 @@
 (define (ip-addr? string)
   (and (string? string) (textmatch ipv4 string)))
 
-(applytest-pred string? gethostname)
-(applytest-pred ip-addr? hostaddrs "beingmeta.com")
+(applytest string? gethostname)
+(applytest ip-addr? hostaddrs "beingmeta.com")
 (applytester {} hostaddrs "beingmeta.cox")
 
 (applytester #t check-version 5)

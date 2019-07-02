@@ -34,8 +34,8 @@
     (applytester #t coderef? coderef)
     (applytester #f coderef? '(code))
     (applytester #f coderef? 0xc0de)
-    (applytest-pred string? lisp->string coderef)
-    (applytest-pred packet? dtype->packet coderef)
+    (applytest string? lisp->string coderef)
+    (applytest packet? dtype->packet coderef)
     (applytester #t coderef? coderef)
     (applytester 16 %coderefval coderef)))
 
@@ -49,8 +49,8 @@
 	(bad-opcode (make-opcode 1666)))
     (errtest (name->opcode 0x334))
     (errtest (make-opcode 3192))
-    (applytest-pred string? (lisp->string op4))
-    (applytest-pred string? (lisp->string bad-opcode))
+    (applytest string? (lisp->string op4))
+    (applytest string? (lisp->string bad-opcode))
     (applytester #t opcode? (name->opcode "op_until"))
     (applytester #t opcode? bad-opcode)
     (applytester #f opcode? "op_until")
@@ -134,9 +134,9 @@
 			  (set! ,arg2 tmp)))))
 	(x 3)
 	(y 4))
-    (applytest-pred string? lisp->string swapf)
+    (applytest string? lisp->string swapf)
     ;; From ezrecords, coverage for macros defined in module
-    (applytest-pred string? lisp->string defrecord)
+    (applytest string? lisp->string defrecord)
     (swapf x y)
     (applytest -1 - y x)
     (errtest (bad-swapf x y))))
@@ -149,12 +149,12 @@
 	(plus-id (fcnid/register +))
 	(n2s-id (fcnid/register number->string))
 	(evalfn-id (fcnid/register if)))
-    (applytest-pred string? lisp->string lambda-id)
-    (applytest-pred string? lisp->string prim-id)
-    (applytest-pred string? lisp->string plus-id)
-    (applytest-pred string? lisp->string n2s-id)
-    (applytest-pred string? lisp->string evalfn-id)
-    (applytest-pred string? lisp->string evalfn-id)))
+    (applytest string? lisp->string lambda-id)
+    (applytest string? lisp->string prim-id)
+    (applytest string? lisp->string plus-id)
+    (applytest string? lisp->string n2s-id)
+    (applytest string? lisp->string evalfn-id)
+    (applytest string? lisp->string evalfn-id)))
 
 (test-fcnids)
 
@@ -339,26 +339,26 @@
 (evaltest 5 (%choiceref (qc {5 (symbol->string '{a b c})}) 0))
 
 (applytester 0 compare 5 5)
-(applytest-pred positive? compare 5 4)
-(applytest-pred negative? compare 4 5)
+(applytest positive? compare 5 4)
+(applytest negative? compare 4 5)
 
 (applytester 0 compare 'five 'five)
 (applytester 0 compare "five" "five")
-(applytest-pred positive? compare "six" "five")
-(applytest-pred negative? compare "five" "six")
+(applytest positive? compare "six" "five")
+(applytest negative? compare "five" "six")
 
 (applytester 0 compare '(5 3) '(5 3))
-(applytest-pred negative? compare '(5 3) '(6 3))
-(applytest-pred positive? compare '(5 4) '(5 3))
+(applytest negative? compare '(5 3) '(6 3))
+(applytest positive? compare '(5 4) '(5 3))
 
 (applytester 0 compare #(5 3) #(5 3))
-(applytest-pred negative? compare #(5 3) #(6 3))
-(applytest-pred positive? compare #(5 4) #(5 3))
+(applytest negative? compare #(5 3) #(6 3))
+(applytest positive? compare #(5 4) #(5 3))
 
 
 (applytester 0 compare/quick 5 5)
-(applytest-pred positive? compare/quick 5 4)
-(applytest-pred negative? compare/quick 4 5)
+(applytest positive? compare/quick 5 4)
+(applytest negative? compare/quick 4 5)
 
 (applytester 0 compare/quick 'five 'five)
 (applytester 0 compare/quick "five" "five")
@@ -454,19 +454,19 @@
 
 (applytester "#!5" hashref #f)
 (applytester "#!86" hashref 33)
-(applytest-pred string? hashref "foo")
-(applytest-pred string? hashref '(x y))
+(applytest string? hashref "foo")
+(applytest string? hashref '(x y))
 
-(applytest-pred fixnum? hashptr 33)
-(applytest-pred fixnum? hashptr 'thirtythree)
-(applytest-pred integer? hashptr "thirtythree")
-(applytest-pred integer? hashptr '(a b))
+(applytest fixnum? hashptr 33)
+(applytest fixnum? hashptr 'thirtythree)
+(applytest integer? hashptr "thirtythree")
+(applytest integer? hashptr '(a b))
 
-(applytest-pred integer? hash-lisp '(a b))
-(applytest-pred integer? hash-lisp (timestamp))
-(applytest-pred integer? hash-lisp (getuuid))
-(applytest-pred integer? hash-lisp #(a b c))
-(applytest-pred integer? hash-lisp (vector 'a "a" (timestamp) (getuuid)))
+(applytest integer? hash-lisp '(a b))
+(applytest integer? hash-lisp (timestamp))
+(applytest integer? hash-lisp (getuuid))
+(applytest integer? hash-lisp #(a b c))
+(applytest integer? hash-lisp (vector 'a "a" (timestamp) (getuuid)))
 
 ;;;; Structure eval tests
 
@@ -480,7 +480,7 @@
 (define (return-void) (void))
 (applytester 'void return-void)
 
-(applytest-pred packet? dtype->packet return-void)
+(applytest packet? dtype->packet return-void)
 
 ;;; Largest
 

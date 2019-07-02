@@ -1,4 +1,6 @@
 ;;; Put this out before doing anything
+;; (fileout (get-component (mkpath "data" (glom (getppid) "." (getpid)  ".started"))) 
+;;   (config 'sessionid) "\n" (config 'cmdline))
 (fileout (glom (getppid) "." (getpid)  ".started") 
   (config 'sessionid) "\n" (config 'cmdline))
 
@@ -72,18 +74,6 @@
 	`(let ((fcn (ambda ,arglist (,fn-form ,@arglist))))
 	   (optimize-procedure! fcn)
 	   (applytest ,result-form fcn ,@args-forms)))))
-  (define applytester-pred
-    (macro expr
-      (let* ((predicate-form (second expr))
-	     (fn-form (third expr))
-	     (args-forms (slice expr 3))
-	     (n-args (length args-forms))
-	     (arglist (temp-arglist n-args)))
-	`(let ((_predicate ,predicate-form)
-	       (_fcn (ambda ,arglist (,fn-form ,@arglist))))
-	   (optimize-procedure! _fcn)
-	   (optimize-procedure! _predicate)
-	   (applytest-pred _predicate _fcn ,@args-forms)))))
   (define evaltester
     (macro expr
       `(let ((fcn (lambda () ,(third expr))))
@@ -112,7 +102,6 @@
 
 (unless (config 'testoptimized #f)
   (define applytester applytest)
-  (define applytester-pred applytest-pred)
   (define evaltester evaltest)
   (define errtester errtest)
   (define define-tester define)

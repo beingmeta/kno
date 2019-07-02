@@ -43,7 +43,7 @@
 (errtest (procedure-arity 99))
 (errtest (procedure-arity "string"))
 
-(applytester-pred string? procedure-documentation arity-test)
+(applytester string? procedure-documentation arity-test)
 (evaltest 'void (set-procedure-documentation! arity-test "testing arity"))
 (applytester "testing arity" procedure-documentation arity-test)
 
@@ -52,7 +52,7 @@
 (applytest #f procedure-tailable? arity-test)
 (evaltest 'void (set-procedure-tailable! arity-test #t))
 
-(applytester-pred pair? lambda-start arity-test2)
+(applytester pair? lambda-start arity-test2)
 (applytest 'define car (lambda-source arity-test2))
 (errtest (applytest 'define car lambda-source arity-test2))
 
@@ -68,13 +68,13 @@
 (errtest (lambda-args car))
 (errtest (lambda-args "string"))
 
-(applytester-pred (contains-string "miscfns.scm") procedure-filename factr)
-(applytester-pred (contains-string "ezrecords") procedure-filename defrecord)
+(applytester (contains-string "miscfns.scm") procedure-filename factr)
+(applytester (contains-string "ezrecords") procedure-filename defrecord)
 (errtest (procedure-name 3))
 (errtest (procedure-name "procedure"))
 
 (applytester #f procedure-symbol (lambda (x) (1+ x)))
-(applytester-pred procedure? procedure-id (lambda (x) (1+ x)))
+(applytester procedure? procedure-id (lambda (x) (1+ x)))
 (applytester '|CAR| procedure-id car)
 (applytester '|IF| procedure-id if)
 (applytester 'contains-string procedure-id contains-string)
@@ -87,13 +87,13 @@
 (applytest 'void reflect/add! arity-test 'testprop "more")
 (applytest {"more" "value"} reflect/get arity-test 'testprop)
 
-(applytest-pred table? reflect/attribs arity-test)
+(applytest table? reflect/attribs arity-test)
 (errtest (reflect/attribs "string"))
 
-(applytester-pred (contains-string "conditionals.c") procedure-filename if)
-(applytester-pred (contains-string "miscfns.scm") module-source (get-module 'bench/miscfns))
+(applytester (contains-string "conditionals.c") procedure-filename if)
+(applytester (contains-string "miscfns.scm") module-source (get-module 'bench/miscfns))
 ;;; This doesn't return the correct value
-(applytester-pred string? module-source (get-module 'reflection))
+(applytester string? module-source (get-module 'reflection))
 (errtest (module-source 5))
 (applytester #f module-source #[])
 (applytester #f module-source (make-hashtable))
@@ -105,12 +105,12 @@
 (applytester #f synchronized? car)
 (applytester #f synchronized? contains-string)
 
-(applytester-pred (contains-string "engine.scm") get-source (get-module 'engine))
-(applytester-pred (contains-string "sqlite.") get-source (get-module 'sqlite))
-(applytester-pred (contains-string "engine.scm") get-source (get (get-module 'engine) 'engine/run))
-(applytester-pred (contains-string "sqlite.") get-source (get (get-module 'sqlite) 'sqlite/open))
-(applytester-pred (contains-string "iterators.c") get-source dolist)
-(applytester-pred string? get-source swapf)
+(applytester (contains-string "engine.scm") get-source (get-module 'engine))
+(applytester (contains-string "sqlite.") get-source (get-module 'sqlite))
+(applytester (contains-string "engine.scm") get-source (get (get-module 'engine) 'engine/run))
+(applytester (contains-string "sqlite.") get-source (get (get-module 'sqlite) 'sqlite/open))
+(applytester (contains-string "iterators.c") get-source dolist)
+(applytester string? get-source swapf)
 
 (applytester #t applicable? syncit)
 (applytester #t applicable? contains-string)
@@ -142,26 +142,26 @@
 (evaltest #t (pair? (macroexpand defrecord '(defrecord foo x y))))
 (errtest (pair? (macroexpand car '(defrecord foo x y))))
 
-(applytester-pred ambiguous? module-bindings (get-module 'regex))
-(applytester-pred string? module-source (get-module 'regex))
-(applytester-pred hashtable? module-table (get-module 'regex))
+(applytester ambiguous? module-bindings (get-module 'regex))
+(applytester string? module-source (get-module 'regex))
+(applytester hashtable? module-table (get-module 'regex))
 (applytester #f module-environment (get-module 'regex))
 
-(applytester-pred string? module-source (get-module 'bench/miscfns))
-(applytester-pred hashtable? module-table (get-module 'bench/miscfns))
-(applytester-pred ambiguous? module-bindings (get-module 'bench/miscfns))
-(applytester-pred hashtable? module-environment (get-module 'bench/miscfns))
+(applytester string? module-source (get-module 'bench/miscfns))
+(applytester hashtable? module-table (get-module 'bench/miscfns))
+(applytester ambiguous? module-bindings (get-module 'bench/miscfns))
+(applytester hashtable? module-environment (get-module 'bench/miscfns))
 
 (applytest #t ambiguous? (getmodules (%env)))
 (applytest #t ambiguous? (getmodules))
 (evaltest {} (reject (getmodules) symbol?))
 (evaltest {} (reject (getmodules (%env)) symbol?))
 
-(applytester-pred ambiguous? apropos "get")
+(applytester ambiguous? apropos "get")
 
-(applytester-pred ambiguous? module-exports 'bench/miscfns)
-(applytester-pred ambiguous? module-exports (get-module 'bench/miscfns))
-(applytester-pred ambiguous? module-exports (get-module 'reflection))
+(applytester ambiguous? module-exports 'bench/miscfns)
+(applytester ambiguous? module-exports (get-module 'bench/miscfns))
+(applytester ambiguous? module-exports (get-module 'reflection))
 (errtest (module-exports #f))
 (applytester '{x y} module-exports #[x 3 y 4])
 (errtest (module-exports "bench/miscfns"))
