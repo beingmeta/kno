@@ -1965,6 +1965,18 @@ staging/gcovr/core.html: src/lisp/cons.gcda staging/gcovr
 	gcovr ${GCOVR_FLAGS} -r . \
 		-f src/lisp -f src/support -f src/apply -f src/eval -f include \
 		--html --html-details -o $@
+staging/gcovr/eval.html: src/lisp/cons.gcda staging/gcovr
+	gcovr ${GCOVR_FLAGS} -r . -f src/eval \
+		--html --html-details -o $@
+staging/gcovr/lisp.html: src/lisp/cons.gcda staging/gcovr
+	gcovr ${GCOVR_FLAGS} -r . -f src/lisp \
+		--html --html-details -o $@
+staging/gcovr/support.html: src/lisp/cons.gcda staging/gcovr
+	gcovr ${GCOVR_FLAGS} -r . -f src/support \
+		--html --html-details -o $@
+staging/gcovr/apply.html: src/lisp/cons.gcda staging/gcovr
+	gcovr ${GCOVR_FLAGS} -r . -f src/apply \
+		--html --html-details -o $@
 staging/gcovr/storage.html: src/lisp/cons.gcda staging/gcovr
 	gcovr ${GCOVR_FLAGS} -r . \
 		-f src/storage -f src/drivers -f include \
@@ -1988,7 +2000,8 @@ src/lisp/cons.gcda: lib/libknocore.a
 
 gcovr_html: staging/gcovr/all.html staging/gcovr/core.html staging/gcovr/storage.html \
 	staging/gcovr/prims.html staging/gcovr/text.html staging/gcovr/web.html \
-	staging/gcovr/cmodules.html
+	staging/gcovr/cmodules.html staging/gcovr/lisp.html staging/gcovr/support.html \
+	staging/gcovr/apply.html staging/gcovr/eval.html
 
 .PHONY: lcov_html gcovr_details
 
