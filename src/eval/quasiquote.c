@@ -183,27 +183,37 @@ static lispval quasiquote_vector(lispval obj,kno_lexenv env,int level)
         if (level==1) {
           lispval insertion = kno_eval(KNO_CADR(elt),env); int addlen = 0;
           if (KNO_ABORTED(insertion)) {
-            int k = 0; while (k<j) {kno_decref(newelts[k]); k++;}
+            kno_decref_vec(newelts,j);
             u8_free(newelts);
             return insertion;}
           else if (VOIDP(insertion)) {
             kno_seterr(kno_VoidArgument,"quasiquote_vector",
                        NULL,KNO_CADR(elt));
-            int k = 0; while (k<j) {kno_decref(newelts[k]); k++;}
+            kno_decref_vec(newelts,j);
             u8_free(newelts);
             return KNO_ERROR;}
           if (NILP(insertion)) {}
           else if (PAIRP(insertion)) {
             lispval scan = insertion; while (PAIRP(scan)) {
               scan = KNO_CDR(scan); addlen++;}
-            if (!(NILP(scan)))
-              return kno_err(kno_SyntaxError,
-                            "splicing UNQUOTE for an improper list",
-                            NULL,insertion);}
-          else if (VECTORP(insertion)) addlen = VEC_LEN(insertion);
-          else return kno_err(kno_SyntaxError,
-                             "splicing UNQUOTE for an improper list",
-                             NULL,insertion);
+            if (!(NILP(scan))) {
+              kno_seterr(kno_SyntaxError,
+                         "splicing UNQUOTE for an improper list",
+                         NULL,insertion);
+              kno_decref_vec(newelts,j);
+              u8_free(newelts);
+              kno_decref(insertion);
+              return KNO_ERROR;}}
+          else if (VECTORP(insertion))
+            addlen = VEC_LEN(insertion);
+          else {
+            kno_decref_vec(newelts,j);
+            u8_free(newelts);
+            kno_seterr(kno_SyntaxError,
+                       "splicing UNQUOTE for an improper list",
+                       NULL,insertion);
+            kno_decref(insertion);
+            return KNO_ERROR;}
           if (addlen==0) {
             i++; kno_decref(insertion); continue;}
           newelts = u8_realloc_n(newelts,newlen+addlen,lispval);
