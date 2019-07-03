@@ -71,7 +71,8 @@ static int set_prompt(lispval ignored,lispval v,void *vptr)
       *ptr = u8_strdup(data);
     else *ptr = u8_string_append("#|",data,"|# ",NULL);
     return 1;}
-  else return KNO_ERR(-1,kno_TypeError,"set_prompt",_("prompt is not a string"),v);
+  else return KNO_ERR(-1,kno_TypeError,"set_prompt",
+                      _("prompt is not a string"),v);
 }
 
 static int use_void_marker = 0;
@@ -221,6 +222,14 @@ static int output_result(struct U8_OUTPUT *out,lispval result,
       return 1;}}
   u8_puts(out,"#|=>| ");
   kno_list_object(out,result,NULL,histref,"      ",oid_listfn,width,detail);
+#if 0
+  if (console_width > 40) {
+    U8_FIXED_OUTPUT(oneline,3*(console_width/4));
+    kno_unparse(&oneline,result);
+    if ( ( (oneline.u8_streaminfo) & (U8_STREAM_OVERFLOW) ) ||
+         ( (strchr(oneline.u8_outbuf,'\n')) ) )
+    else u8_puts(out,oneline.u8_outbuf);}
+#endif
   u8_putc(out,'\n');
   u8_flush(out);
   return 1;
