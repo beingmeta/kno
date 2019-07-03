@@ -57,7 +57,7 @@ int unpack_history(lispval history,
 
 KNO_EXPORT lispval kno_history_ref(lispval history,lispval ref)
 {
-  if (! ( (KNO_FIXNUMP(ref)) || (KNO_STRINGP(ref)) || (KNO_SYMBOLP(ref)) ) )
+  if (! (KNO_FIXNUMP(ref)) )
     return kno_err("InvalidHistoryReference","kno_history_ref",NULL,ref);
   lispval roots=KNO_VOID;
   int top = unpack_history(history,&roots,NULL,NULL,NULL);
@@ -73,33 +73,6 @@ KNO_EXPORT lispval kno_history_getrefs(lispval history,lispval val)
   if (top<0)
     return KNO_ERROR_VALUE;
   else return hashtable_get(vals,val,KNO_VOID);
-}
-
-#define named_rootp(x) ( (KNO_STRINGP(x)) || (KNO_SYMBOLP(x)) )
-
-static int better_refp(lispval ref,lispval best)
-{
-  if (KNO_VOIDP(best))
-    return 1;
-  else if ( (KNO_STRINGP(best)) || (KNO_SYMBOLP(best)) )
-    return 0;
-  else if ( (KNO_STRINGP(ref)) || (KNO_SYMBOLP(ref)) )
-    return 1;
-  else if (KNO_FIXNUMP(ref))
-    return 0;
-  else if (KNO_FIXNUMP(best))
-    return 1;
-  else if ( (KNO_COMPOUND_TYPEP(ref,histref_typetag)) &&
-            (KNO_COMPOUND_TYPEP(best,histref_typetag)) ) {
-    lispval ref_root = KNO_COMPOUND_REF(ref,0);
-    lispval best_root = KNO_COMPOUND_REF(best,0);
-    if  (named_rootp(ref_root)) {
-      if (!(named_rootp(best_root)))
-        return 1;}
-    if (named_rootp(best_root))
-      return 0;
-    else return ( (KNO_COMPOUND_LENGTH(ref)) < (KNO_COMPOUND_LENGTH(best)) );}
-  else return best;
 }
 
 KNO_EXPORT lispval kno_history_add(lispval history,lispval val,lispval ref)
@@ -141,12 +114,21 @@ KNO_EXPORT lispval kno_history_add(lispval history,lispval val,lispval ref)
   else NO_ELSE;
   lispval cur = kno_hashtable_get((kno_hashtable)vals,val_key,KNO_EMPTY);
   if ( (KNO_CHOICEP(val)) || (KNO_PRECHOICEP(val)) ) {
-    kno_decref(val_key); val_key=KNO_VOID;}
+    kno_decref(val_key);
+    val_key=KNO_VOID;}
   if (KNO_PRECHOICEP(cur)) cur = kno_simplify_choice(cur);
   if (KNO_CHOICEP(cur)) {
     lispval best = KNO_VOID;
     KNO_DO_CHOICES(cur_ref,cur) {
-      if (better_refp(cur_ref,best)) best = cur_ref;}
+      if (VOIDP(best))
+        best = cur_ref;
+      else if ( (FIXNUMP(best)) && (FIXNUMP(cur_ref)) ) {
+        long long b_val = KNO_FIX2INT(best);
+        long long c_val = KNO_FIX2INT(cur_ref);
+        if (c_val < b_val) best = cur_ref;}
+      else if (FIXNUMP(cur_ref))
+        best = cur_ref;
+      else NO_ELSE;}
     kno_incref(best);
     kno_decref(cur);
     return best;}
@@ -245,7 +227,8 @@ lispval kno_get_histref(lispval elts)
                          path);
         else {
           lispval new_scan = KNO_CHOICE_ELTS(scan)[off];
-          kno_incref(new_scan); kno_decref(scan);
+          kno_incref(new_scan);
+          kno_decref(scan);
           scan=new_scan;}}
       else if (KNO_PAIRP(scan)) {
         lispval base = scan, lst = base;
@@ -299,17 +282,6 @@ lispval kno_get_histref(lispval elts)
         kno_decref(scan);
         scan = KNO_VOID;
         return err;}}
-    else if (path == KNOSYM_EQUALS) {
-      if ( (KNO_PAIRP(paths)) &&
-           ( (KNO_STRINGP(KNO_CAR(paths))) ||
-             (KNO_SYMBOLP(KNO_CAR(paths))) ) ) {
-        lispval next = KNO_CAR(paths);
-        kno_history_add(history,scan,next);
-        paths=KNO_CDR(paths);}
-      else {
-        kno_seterr("InvalidHistRef","histref_evalfn",NULL,root);
-        kno_decref(root);
-        return KNO_ERROR;}}
     else if ( (KNO_SYMBOLP(path)) || (KNO_OIDP(path)) ) {
       if (KNO_TABLEP(scan)) {
         lispval v = (OIDP(scan)) ? (kno_frame_get(scan,path)) :
