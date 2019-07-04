@@ -142,11 +142,15 @@ KNO_EXPORT int kno_set_config_sym(lispval symbol,lispval val)
   while (scan)
     if (KNO_EQ(scan->configname,symbol)) {
       scan->configflags = scan->configflags|KNO_CONFIG_ALREADY_MODIFIED;
-      retval = scan->config_set_method(symbol,val,scan->configdata);
       if (kno_trace_config)
         u8_log(LOG_WARN,"ConfigSet",
                "Using handler to configure %s with %q",
                SYM_NAME(symbol),val);
+      retval = scan->config_set_method(symbol,val,scan->configdata);
+      if (retval<0) {
+        u8_log(LOG_ERR,"ConfigSet","Error running %s handler on %q",
+               SYM_NAME(symbol),val);
+        kno_clear_errors(1);}
       break;}
     else scan = scan->config_next;
   if ((!(scan))&&(kno_trace_config))
