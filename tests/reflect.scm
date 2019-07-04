@@ -266,3 +266,7 @@
    nitems (profile/nitems info)])
 
 (evaltest #t (ambiguous? (getmodules)))
+
+(evaltest "reflect.scm" (with-sourcebase #f (get-component "reflect.scm")))
+(evaltest "/tmp/reflect.scm" (with-sourcebase "/tmp" (get-component "reflect.scm")))
+

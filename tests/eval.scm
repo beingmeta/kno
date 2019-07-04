@@ -148,13 +148,15 @@
 	(prim-id (fcnid/register car))
 	(plus-id (fcnid/register +))
 	(n2s-id (fcnid/register number->string))
-	(evalfn-id (fcnid/register if)))
+	(evalfn-id (fcnid/register if))
+	(list-id (fcnid/register list)))
     (applytest string? lisp->string lambda-id)
     (applytest string? lisp->string prim-id)
     (applytest string? lisp->string plus-id)
     (applytest string? lisp->string n2s-id)
     (applytest string? lisp->string evalfn-id)
     (applytest string? lisp->string evalfn-id)
+    (applytest string? lisp->string list-id)
     (applytest fcnid? fcnid/register prim-id)))
 
 (test-fcnids)
@@ -627,15 +629,6 @@
 
 (errtest (define zzy (+ 3 "four")))
 
-;;; XAPPLY
-
-(applytest 8 xapply (lambda (x y) (+ x y)) #[x 3 y 5 z 9])
-(applytest "foobar" xapply (lambda (x y) (glom x y)) #[x "foo" z "baz" y "bar"])
-
-;;; Thunks
-
-(applytester 3 (thunk (+ 2 1)))
-
 ;;; Lambda stuff
 
 (define test-nlambda
@@ -701,18 +694,6 @@
 (applytester "foosomething" test-sappend-copy "foo")
 (errtest (test-sappend-copy))
 (errtest (test-sappend-copy 'foo))
-
-;;;; Testing COND apply
-
-(define-tester (cond-tester x)
-  (cond ((number? x) x)
-	((string? x) => list) 
-	((symbol? x) => messedup)
-	(else =>)))
-(applytester 9 cond-tester 9)
-(applytester '(#t) cond-tester "string")
-(errtest (cond-tester 'symbol))
-(errtest (cond-tester '(pair)))
 
 ;;; Some more tests
 

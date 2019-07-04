@@ -118,6 +118,7 @@ cmdtests:
 
 static-tests: schemetests optscheme loadmods optmods slotmaps tables pools indexes framedbs
 schemetest schemetests scheme: r4rs exceptions choices sequences breaks numbers regex \
+        lambda conditionals binders \
 	reflect hashsets eval loading quasiquote promises ffi configs opts appenv \
 	picktest cachecall texttools webtools timefns sysprims startup stringprims \
 	threads i18n misc gctests profiling \
@@ -136,6 +137,7 @@ optscheme:
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes sysprims.scm ${RUNCONF}
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes i18n.scm ${RUNCONF}
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes fileprims.scm ${RUNCONF}
+	@${RUN} ${KNOX} TESTOPTIMIZED=yes lambda.scm ${RUNCONF}
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes numbers.scm ${RUNCONF}
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes regex.scm ${RUNCONF}
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes threads.scm ${RUNCONF}
@@ -176,6 +178,15 @@ numbers:
 regex:
 	@${RUN} ${KNOX} regex.scm ${RUNCONF}
 	@${header} "■■■■ Completed regex tests ${RUNCONF}"
+lambda:
+	@${RUN} ${KNOX} lambda.scm ${RUNCONF}
+	@${header} "■■■■ Completed lamdba tests ${RUNCONF}"
+conditionals:
+	@${RUN} ${KNOX} lambda.scm ${RUNCONF}
+	@${header} "■■■■ Completed conditionals tests ${RUNCONF}"
+binders:
+	@${RUN} ${KNOX} binders.scm ${RUNCONF}
+	@${header} "■■■■ Completed binders tests ${RUNCONF}"
 eval:
 	@${RUN} ${KNOX} eval.scm ${RUNCONF}
 	@${header} "■■■■ Completed miscellaneous eval tests ${RUNCONF}"
