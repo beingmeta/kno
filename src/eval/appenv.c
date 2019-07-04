@@ -35,6 +35,7 @@
 #include <libu8/u8filefns.h>
 #include <libu8/u8pathfns.h>
 #include <libu8/u8printf.h>
+#include <libu8/u8contour.h>
 
 #include <math.h>
 #include <pthread.h>
@@ -44,6 +45,10 @@ kno_lexenv kno_app_env=NULL;
 static lispval init_list = NIL;
 static lispval module_list = NIL;
 static lispval loadfile_list = NIL;
+static lispval inits_done = NIL;
+static lispval inits_failed = NIL;
+
+static u8_mutex init_lock;
 
 /* The "application" environment */
 
@@ -85,16 +90,24 @@ KNO_EXPORT void kno_setup_app_env()
 static int run_init(lispval init,kno_lexenv env)
 {
   lispval v = KNO_VOID;
-  if (KNO_APPLICABLEP(init)) {
-    if (KNO_FUNCTIONP(init)) {
-      struct KNO_FUNCTION *f = (kno_function) init;
-      v = (f->fcn_arity == 0) ?
-	(kno_apply(init,0,NULL)) :
-	(kno_apply(init,1,(lispval *)(&env)));}
-    else v = kno_apply(init,0,NULL);}
-  else if (KNO_PAIRP(init))
-    v = kno_eval(init,env);
-  else NO_ELSE;
+  {U8_WITH_CONTOUR("run_init",0) {
+      u8_lock_mutex(&init_lock);
+      if (KNO_APPLICABLEP(init)) {
+	if (KNO_FUNCTIONP(init)) {
+	  struct KNO_FUNCTION *f = (kno_function) init;
+	  v = (f->fcn_arity == 0) ?
+	    (kno_apply(init,0,NULL)) :
+	    (kno_apply(init,1,(lispval *)(&env)));}
+	else v = kno_apply(init,0,NULL);}
+      else if (KNO_PAIRP(init))
+	v = kno_eval(init,env);
+      else NO_ELSE;
+      if (KNO_ABORTP(v))
+	inits_failed = kno_conspair(kno_incref(init),inits_failed);
+      else inits_done = kno_conspair(kno_incref(init),inits_done);
+      U8_ON_UNWIND
+	u8_unlock_mutex(&init_lock);
+      u8_pop_contour(&_u8_contour_struct);}}
   if (KNO_ABORTP(v)) {
     u8_exception ex = u8_erreify();
     u8_log(LOGCRIT,"InitFailed",
@@ -303,7 +316,9 @@ static lispval loadfile_config_get(lispval var,void *d)
 
 static lispval inits_config_get(lispval var,void *d)
 {
-  return kno_incref(init_list);
+  if (kno_app_env)
+    return kno_copy(inits_done);
+  else return kno_copy(init_list);
 }
 
 static int inits_config_set(lispval var,lispval inits,void *d)
@@ -317,8 +332,6 @@ static int inits_config_set(lispval var,lispval inits,void *d)
     KNO_DO_CHOICES(init,inits) {
       int rv = run_init(init,kno_app_env);
       if (rv > 0) {
-	kno_incref(init);
-	init_list = kno_conspair(init,init_list);
 	run_count++;}}}
   return run_count;
 }
@@ -350,9 +363,20 @@ KNO_EXPORT void kno_init_eval_appenv_c()
      or executables may define their own. */
   kno_autoload_config("APPMODS","APPLOAD","APPEVAL");
 
+  kno_register_config("INITS:FAILED",
+		      _("Init expressions or functions which failed"),
+		      kno_lconfig_get,NULL,&inits_failed);
+  kno_register_config("INITS:DONE",
+		      _("Init expressions or functions which failed"),
+		      kno_lconfig_get,NULL,&inits_done);
+  kno_register_config("INITS:QUEUED",
+		      _("Init expressions or functions which failed"),
+		      kno_lconfig_get,NULL,&init_list);
+
   kno_idefn0(kno_scheme_module,"%APPENV",appenv_prim,
 	    "Returns the base 'application environment' for the "
 	    "current instance");
   u8_init_mutex(&app_cleanup_lock);
+  u8_init_mutex(&init_lock);
 }
 
