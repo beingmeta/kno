@@ -326,7 +326,10 @@ static lispval load_component_evalfn(lispval expr,kno_lexenv env,kno_stack _stac
 
 static lispval lisp_get_component(lispval string,lispval base)
 {
-  if (VOIDP(base)) {
+  if (VOIDP(string)) {
+    u8_string source_base = kno_sourcebase();
+    return knostring(source_base);}
+  else if (VOIDP(base)) {
     u8_string fullpath = get_component(CSTRING(string));
     return kno_wrapstring(fullpath);}
   else {
@@ -445,8 +448,8 @@ KNO_EXPORT void kno_init_load_c()
              "to the arguments, returns the output as a string");
 
   kno_idefn(kno_scheme_module,
-            kno_make_cprim2x("GET-COMPONENT",lisp_get_component,1,
-                             kno_string_type,VOID,
+            kno_make_cprim2x("GET-COMPONENT",lisp_get_component,0,
+			     kno_string_type,VOID,
                              kno_string_type,VOID));
 
   kno_def_evalfn(kno_scheme_module,"#PATH",
