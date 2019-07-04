@@ -960,6 +960,42 @@ static lispval profile_nitems(lispval profile)
   else return kno_type_error("call profile","profile_nitems",profile);
 }
 
+/* with sourcebase */
+
+static lispval with_sourcebase_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
+{
+  lispval usebase_expr = kno_get_arg(expr,1);
+  lispval body = kno_get_body(expr,2);
+  if (VOIDP(usebase_expr))
+    return kno_err(kno_SyntaxError,"with_sourcebase_evalfn",NULL,expr);
+  if (!(PAIRP(body)))
+    return kno_err(kno_SyntaxError,"with_sourcebase_evalfn",NULL,expr);
+
+  lispval usebase = kno_stack_eval(usebase_expr,env,stack,0);
+  u8_string temp_base;
+  if (KNO_ABORTP(usebase))
+    return usebase;
+  else if (KNO_STRINGP(usebase))
+    temp_base = KNO_CSTRING(usebase);
+  else if (KNO_FALSEP(usebase))
+    temp_base = NULL;
+  else {
+    lispval err = kno_err("Sourcebase not string or #f","WITH-SOURCEBASE",NULL,
+                          usebase);
+    kno_decref(usebase);
+    return err;}
+
+  lispval result = VOID;
+  u8_string old_base = NULL;
+  U8_UNWIND_PROTECT("with-sourcebase",0) {
+    old_base = kno_bind_sourcebase(temp_base);
+    result = kno_eval_exprs(body,env,stack,0);}
+  U8_ON_UNWIND {
+    kno_restore_sourcebase(old_base);
+    kno_decref(usebase);}
+  U8_END_UNWIND;
+  return result;
+}
 /* Getting all modules */
 
 static lispval get_all_modules_prim()
@@ -1194,6 +1230,7 @@ KNO_EXPORT void kno_init_reflection_c()
 
   kno_def_evalfn(module,"WHEREFROM","",wherefrom_evalfn);
   kno_def_evalfn(module,"GETMODULES","",getmodules_evalfn);
+  kno_def_evalfn(module,"WITH-SOURCEBASE","",with_sourcebase_evalfn);
 
   kno_finish_module(module);
 }

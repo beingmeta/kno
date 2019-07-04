@@ -629,6 +629,7 @@ lispval pair_eval(lispval head,lispval expr,kno_lexenv env,
     if (fresh_stack) {
       /* These are evalfns which do all the evaluating themselves */
       if (handler->evalfn_name) eval_stack->stack_label=handler->evalfn_name;
+
       result = handler->evalfn_handler(expr,env,eval_stack);}
     else {
       KNO_NEW_STACK(eval_stack,kno_evalstack_type,handler->evalfn_name,expr);
