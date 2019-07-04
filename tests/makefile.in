@@ -190,6 +190,7 @@ configs:
 	@${header} "■■■■ Completed config system tests ${RUNCONF}"
 appenv:
 	@${RUN} ${KNOX} TRACECONFIG=yes TRACELOAD=yes CONFIG=data/appenv.cfg ${RUNCONF}
+	@ BIZZARO=yes ${RUN} ${KNOX} TRACECONFIG=yes TRACELOAD=yes APPMODS=nomagic ${RUNCONF}
 	@${header} "■■■■ Completed appenv tests ${RUNCONF}"
 opts:
 	@${RUN} ${KNOX} opts.scm ${RUNCONF}

@@ -11,6 +11,18 @@ KEEPTIMES=no
 KEEPLOGS=no
 COMBOLOG=state/success.log
 
+if [ -z "${BIZZARO}" ]; then
+    SUCCESS_MSG="SUCCESS"
+    FAILURE_MSG="FAILURE"
+    SUCCESS_VAL="yes"
+    FAILURE_VAL="no"
+else
+    SUCCESS_MSG="FAILURE"
+    FAILURE_MSG="SUCCESS"
+    SUCCESS_VAL="no"
+    FAILURE_VAL="yes"
+fi;
+
 if [ ! -z "${DEBUGGING}" ]; then
     echo "Testing: @test_env@ ${PROGNAME} $* LOGTIME=${LOGTIME} > ${LOGFILE}";
 fi;
@@ -25,22 +37,22 @@ fi;
 . ./testenv.sh
 
 if [ "${LOGFILE}" != "none" ]; then
-    if @test_env@ ${PROGNAME} $* LOGTIME=${LOGTIME} > ${LOGFILE}; then
-	MSG="SUCCESS"
-	SUCCESS=yes
+    if @test_env@ ${PROGNAME} $* LOGTIME=${LOGTIME} > ${LOGFILE} 2>&1; then
+	MSG=${SUCCESS_MSG}
+	SUCCESS=${SUCCESS_VAL}
     else
-	MSG="FAILURE"
+	MSG=${FAILURE_MSG}
 	COMBOLOG=state/failure.log
-	SUCCESS=no
+	SUCCESS=${FAILURE_VAL}
     fi;
 else
     if @test_env@ ${PROGNAME} $* LOGTIME=${LOGTIME}; then
-	MSG="SUCCESS"
-	SUCCESS=yes
+	MSG=${SUCCESS_MSG}
+	SUCCESS=${SUCCESS_VAL}
     else
-	MSG="FAILURE"
+	MSG=${FAILURE_MSG}
 	COMBOLOG=state/failure.log
-	SUCCESS=no
+	SUCCESS=${FAILURE_VAL}
     fi;
 fi;
 
