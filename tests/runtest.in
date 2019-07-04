@@ -4,7 +4,19 @@ if test $# -eq 0; then
    echo "Usage: runtest <program> [args...]";
    exit;
 fi
-PROGNAME=$1; shift;
+case $1 in
+    *.scm)
+	PROGNAME=./knox;
+	;;
+    *.knox)
+	PROGNAME=./knox;
+	;;
+    *)
+	PROGNAME=$1; shift;
+	;;
+esac
+
+
 LOGFILE=${USELOG:-state/$$.log}
 LOGTIME=state/t$$.elapsed
 KEEPTIMES=no

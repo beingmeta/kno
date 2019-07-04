@@ -12,4 +12,10 @@ else
     echo "Can't find runenv.sh!";
     exit;
 fi;
-MEMCHECKING=yes ASAN_SYMBOLIZER_PATH= ASAN_OPTIONS=malloc_context_size=20 LSAN_OPTIONS=report_objects=1  $* DLOAD:TRACE=yes
+EXEC_PROG=
+case $1 in
+    *.scm)
+	EXEC_PROG=./knox
+esac
+
+MEMCHECKING=yes ASAN_SYMBOLIZER_PATH= ASAN_OPTIONS=malloc_context_size=20 LSAN_OPTIONS=report_objects=1  ${EXEC_PROG} $* DLOAD:TRACE=yes
