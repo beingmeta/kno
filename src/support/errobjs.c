@@ -502,9 +502,9 @@ void kno_sum_exception(U8_OUTPUT *out,u8_exception ex)
 
 KNO_EXPORT u8_string kno_errstring(u8_exception ex)
 {
-  struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,128);
   if (ex == NULL) ex = u8_current_exception;
   if (ex == NULL) return NULL;
+  struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,128);
   sum_exception(&out,ex);
   lispval backtrace = KNO_U8X_STACK(ex);
   if (!(KNO_VOIDP(backtrace)))

@@ -318,11 +318,15 @@ _make_lambda(u8_string name,
     if (name) u8_free(s->fcn_name);
     u8_free(s);
     return KNO_ERROR;}
+  if (! (n_vars) ) {
+    s->lambda_vars = NULL;
+    s->lambda_inits = NULL;}
   lispval scan = arglist;
   while (PAIRP(scan)) {
     lispval argspec = KNO_CAR(scan);
     if (SYMBOLP(argspec)) {
-      min_args++; scan=KNO_CDR(scan);}
+      scan=KNO_CDR(scan);
+      min_args++;}
     else {
       while (PAIRP(scan)) scan=KNO_CDR(scan);}}
   if (NILP(scan))
@@ -333,12 +337,8 @@ _make_lambda(u8_string name,
   s->fcn_xcall = 1;
   s->fcn_handler.fnptr = NULL;
   s->fcn_typeinfo = NULL;
-  if (n_vars)
-    kno_set_lambda_schema(s,arglist);
-  else {
-    s->lambda_vars = NULL;
-    s->lambda_inits = NULL;}
-  s->fcn_defaults = NULL; s->fcn_filename = NULL;
+  s->fcn_defaults = NULL;
+  s->fcn_filename = NULL;
   s->fcn_attribs = VOID;
   s->fcnid = VOID;
   if (incref) {
@@ -390,8 +390,9 @@ KNO_EXPORT void recycle_lambda(struct KNO_RAW_CONS *c)
   int mallocd = KNO_MALLOCD_CONSP(c), n_vars = lambda->lambda_n_vars;
   if (lambda->fcn_typeinfo) u8_free(lambda->fcn_typeinfo);
   if (lambda->fcn_defaults) u8_free(lambda->fcn_defaults);
-  if ( (lambda->fcn_doc) && (lambda->fcn_free_doc) )
+  if ( (lambda->fcn_doc) && (lambda->fcn_free_doc) ) {
     u8_free(lambda->fcn_doc);
+    lambda->fcn_doc = NULL;}
   if (lambda->fcn_attribs) kno_decref(lambda->fcn_attribs);
   if (lambda->fcn_moduleid) kno_decref(lambda->fcn_moduleid);
   kno_decref(lambda->lambda_arglist);
@@ -506,6 +507,10 @@ KNO_EXPORT lispval copy_lambda(lispval c,int flags)
     /* This sets a new reference count or declares it static */
     KNO_INIT_CONS(fresh,kno_lambda_type);
 
+    if (lambda->fcn_doc) {
+      if (lambda->fcn_free_doc)
+        fresh->fcn_doc = u8_strdup(lambda->fcn_doc);
+      else fresh->fcn_doc = lambda->fcn_doc;}
     if (lambda->fcn_name) fresh->fcn_name = u8_strdup(lambda->fcn_name);
     if (lambda->fcn_filename)
       fresh->fcn_filename = u8_strdup(lambda->fcn_filename);

@@ -116,7 +116,8 @@ int set_config(lispval symbol,lispval val)
     lispval cdr = kno_make_pair(current,NIL);
     lispval pairpair = kno_make_pair(val,cdr);
     int rv = kno_store(configuration_table,symbol,pairpair);
-    kno_decref(cdr); kno_decref(pairpair);
+    kno_decref(cdr);
+    kno_decref(pairpair);
     return rv;}
 }
 
@@ -148,20 +149,17 @@ KNO_EXPORT int kno_set_config_sym(lispval symbol,lispval val)
                SYM_NAME(symbol),val);
       retval = scan->config_set_method(symbol,val,scan->configdata);
       if (retval<0) {
-        u8_log(LOG_ERR,"ConfigSet","Error running %s handler on %q",
-               SYM_NAME(symbol),val);
+        u8_string errsum = kno_errstring(NULL);
+        u8_log(LOG_WARN,kno_ConfigError,"Config handler error %q=%q: %s",
+               symbol,val,errsum);
+        if (errsum) u8_free(errsum);
         kno_clear_errors(1);}
       break;}
     else scan = scan->config_next;
   if ((!(scan))&&(kno_trace_config))
     u8_log(LOG_WARN,"ConfigSet","Configuring %s with %q",
            SYM_NAME(symbol),val);
-  set_config(symbol,val);
-  if (retval<0) {
-    u8_string errsum = kno_errstring(NULL);
-    u8_log(LOG_WARN,kno_ConfigError,"Config error %q=%q: %s",
-           symbol,val,errsum);
-    u8_free(errsum);}
+  if (retval>=0) set_config(symbol,val);
   return retval;
 }
 
