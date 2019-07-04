@@ -90,7 +90,7 @@ KNO_EXPORT void kno_setup_app_env()
 static int run_init(lispval init,kno_lexenv env)
 {
   lispval v = KNO_VOID;
-  {U8_WITH_CONTOUR("run_init",0) {
+  {U8_UNWIND_PROTECT("run_init",0) {
       u8_lock_mutex(&init_lock);
       if (KNO_APPLICABLEP(init)) {
 	if (KNO_FUNCTIONP(init)) {
@@ -107,7 +107,7 @@ static int run_init(lispval init,kno_lexenv env)
       else inits_done = kno_conspair(kno_incref(init),inits_done);
       U8_ON_UNWIND
 	u8_unlock_mutex(&init_lock);
-      u8_pop_contour(&_u8_contour_struct);}}
+      U8_END_UNWIND;}}
   if (KNO_ABORTP(v)) {
     u8_exception ex = u8_erreify();
     u8_log(LOGCRIT,"InitFailed",
