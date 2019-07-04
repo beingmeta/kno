@@ -198,6 +198,7 @@ KNO_EXPORT int kno_slotmap_drop
 KNO_EXPORT int kno_slotmap_delete
   (struct KNO_SLOTMAP *sm,lispval key);
 KNO_EXPORT lispval kno_slotmap_keys(struct KNO_SLOTMAP *sm);
+KNO_EXPORT lispval kno_slotmap_assocs(struct KNO_SLOTMAP *sm);
 KNO_EXPORT int kno_sort_slotmap(lispval slotmap,int sorted);
 
 #define kno_empty_slotmap() (kno_init_slotmap(NULL,0,NULL))
@@ -432,6 +433,7 @@ KNO_EXPORT int kno_schemap_add
 KNO_EXPORT int kno_schemap_drop
   (struct KNO_SCHEMAP *sm,lispval key,lispval value);
 KNO_EXPORT lispval kno_schemap_keys(struct KNO_SCHEMAP *ht);
+KNO_EXPORT lispval kno_schemap_assocs(struct KNO_SCHEMAP *ht);
 KNO_EXPORT lispval *kno_register_schema(int n,lispval *v);
 KNO_EXPORT void kno_sort_schema(int n,lispval *v);
 

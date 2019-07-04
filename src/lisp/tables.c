@@ -1411,6 +1411,41 @@ KNO_EXPORT lispval kno_schemap_keys(struct KNO_SCHEMAP *sm)
                                  KNO_CHOICE_INCREF|KNO_CHOICE_DOSORT);}}
 }
 
+KNO_EXPORT lispval kno_schemap_assocs(struct KNO_SCHEMAP *sm)
+{
+  KNO_CHECK_TYPE_RETDTYPE(sm,kno_schemap_type);
+  {
+    int size=KNO_XSCHEMAP_SIZE(sm), unlock = 0;
+   if (size==0)
+      return EMPTY;
+    if (sm->table_uselock) {
+      u8_read_lock(&(sm->table_rwlock));
+      unlock = 1;}
+    /* It *might* have changed */
+    size=KNO_XSCHEMAP_SIZE(sm);
+    if (size==0)
+      return EMPTY;
+    if (size==1) {
+      lispval result = kno_init_pair(NULL,
+                                     kno_incref(sm->table_schema[0]),
+                                     kno_incref(sm->schema_values[0]));
+      if (unlock) u8_rw_unlock(&(sm->table_rwlock));
+      return result;}
+    else {
+      struct KNO_CHOICE *ch=kno_alloc_choice(size);
+      lispval *write = (lispval *) KNO_XCHOICE_ELTS(ch);
+      int i = 0; while (i<size) {
+        lispval assoc =  kno_init_pair
+          (NULL,kno_incref(sm->table_schema[i]),
+           kno_incref(sm->schema_values[i]));
+        *write++ = assoc;
+        i++;}
+      if (unlock) u8_rw_unlock(&(sm->table_rwlock));
+      return kno_init_choice(ch,size,sm->table_schema,
+                             KNO_CHOICE_INCREF|KNO_CHOICE_DOSORT);}
+  }
+}
+
 static void recycle_schemap(struct KNO_RAW_CONS *c)
 {
   int unlock = 0;
@@ -4335,6 +4370,8 @@ KNO_EXPORT lispval kno_getassocs(lispval arg)
     return kno_hashtable_assocs(KNO_XHASHTABLE(arg));
   else if (TYPEP(arg,kno_slotmap_type))
     return kno_slotmap_assocs(KNO_XSLOTMAP(arg));
+  else if (TYPEP(arg,kno_schemap_type))
+    return kno_schemap_assocs(KNO_XSCHEMAP(arg));
   else if (CHOICEP(arg)) {
     lispval results=EMPTY;
     DO_CHOICES(table,arg) {
