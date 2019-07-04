@@ -118,7 +118,7 @@ cmdtests:
 
 static-tests: schemetests optscheme loadmods optmods slotmaps tables pools indexes framedbs
 schemetest schemetests scheme: r4rs exceptions choices sequences breaks numbers regex \
-	reflect hashsets eval loading quasiquote promises ffi configs opts\
+	reflect hashsets eval loading quasiquote promises ffi configs opts appenv \
 	picktest cachecall texttools webtools timefns sysprims startup stringprims \
 	threads i18n misc gctests profiling \
 	fileprims xml
@@ -188,6 +188,9 @@ promises:
 configs:
 	@${RUN} ${KNOX} configs.scm ${RUNCONF}
 	@${header} "■■■■ Completed config system tests ${RUNCONF}"
+appenv:
+	@${RUN} ${KNOX} TRACECONFIG=yes TRACELOAD=yes CONFIG=data/appenv.cfg ${RUNCONF}
+	@${header} "■■■■ Completed appenv tests ${RUNCONF}"
 opts:
 	@${RUN} ${KNOX} opts.scm ${RUNCONF}
 	@${header} "■■■■ Completed opts tests ${RUNCONF}"
