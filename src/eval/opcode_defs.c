@@ -793,7 +793,7 @@ static lispval until_opcode(lispval expr,kno_lexenv env,kno_stack stack)
   if (KNO_ABORTED(test_val))
     return test_val;
   else while (FALSEP(test_val)) {
-      lispval body_result=eval_body(loop_body,env,stack,0);
+      lispval body_result=eval_body(loop_body,env,stack,"UNTIL",NULL,0);
       if (KNO_BROKEP(body_result))
         return KNO_FALSE;
       else if (KNO_ABORTED(body_result))
@@ -956,7 +956,7 @@ static lispval bindop(lispval op,
       env_copy=bound->env_copy; bound=env_copy;
       values=((kno_schemap)(bound->env_bindings))->schema_values;}
     values[i++]=val;}
-  lispval result = eval_body(body,bound,bind_stack,tail);
+  lispval result = eval_body(body,bound,bind_stack,"#BINDOP",NULL,tail);
   kno_pop_stack(bind_stack);
   return result;
 }
@@ -981,7 +981,7 @@ static lispval vector_bindop(lispval op,
       env_copy=bound->env_copy; bound=env_copy;
       values=((kno_schemap)(bound->env_bindings))->schema_values;}
     values[i++]=val;}
-  lispval result = eval_body(body,bound,bind_stack,tail);
+  lispval result = eval_body(body,bound,bind_stack,"#VECTORBIND",NULL,tail);
   kno_pop_stack(bind_stack);
   return result;
 }
@@ -1130,7 +1130,7 @@ static lispval handle_special_opcode(lispval opcode,lispval args,lispval expr,
     reset_env_op(env);
     return VOID;}
   case KNO_BEGIN_OPCODE:
-    return eval_body(KNO_CDR(expr),env,_stack,tail);
+    return eval_body(KNO_CDR(expr),env,_stack,"#BEGINOP",NULL,tail);
   case KNO_UNTIL_OPCODE:
     return until_opcode(expr,env,_stack);
 

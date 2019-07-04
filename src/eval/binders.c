@@ -174,8 +174,9 @@ static lispval let_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
           letenv_vars[i]=var;
           letenv_vals[i]=value;
           i++;}}}
-    result = eval_inner_body
-      (":LET",SYM_NAME(letenv_vars[0]),expr,2,letenv,_stack);
+    result = eval_body(kno_get_body(expr,2),letenv,_stack,
+                       ":LET",SYM_NAME(letenv_vars[0]),
+                       1);
     _return result;}
 }
 
@@ -209,9 +210,8 @@ static lispval letstar_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
           letseq_vars[i]=var;
           letseq_vals[i]=value;}
         i++;}}
-    result = eval_inner_body(":LET*",
-                       SYM_NAME(letseq_vars[0]),
-                       expr,2,letseq,_stack);
+    result = eval_body(kno_get_body(expr,2),letseq,_stack,
+                       ":LET*",SYM_NAME(letseq_vars[0]),1);
     _return result;}
 }
 
@@ -248,9 +248,9 @@ static lispval letrec_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
           letrec_vars[i]=var;
           letrec_vals[i]=value;}
         i++;}}
-    result = eval_inner_body(":LETREC",
-                             SYM_NAME(letrec_vars[0]),
-                             expr,2,letrec,_stack);
+    result = eval_body(kno_get_body(expr,2),letrec,_stack,
+                       ":LETREC",SYM_NAME(letrec_vars[0]),
+                       1);
     _return result;}
 }
 
@@ -334,8 +334,9 @@ static lispval do_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     do_result = testval;
     if (PAIRP(KNO_CDR(exitexprs))) {
       kno_decref(do_result);
-      do_result = eval_inner_body(":DO",SYM_NAME(do_env_vars[0]),
-                                  exitexprs,1,do_env,_stack);}
+      do_result = eval_body(kno_get_body(exitexprs,1),do_env,_stack,
+                            ":DO",SYM_NAME(do_env_vars[0]),
+                            1);}
     /* Free the environment. */
     _return do_result;}
 }

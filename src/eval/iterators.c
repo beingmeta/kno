@@ -362,12 +362,13 @@ static lispval dolist_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 
 static lispval begin_evalfn(lispval begin_expr,kno_lexenv env,kno_stack _stack)
 {
-  return eval_inner_body("BEGIN",NULL,begin_expr,1,env,_stack);
+  return eval_body(KNO_CDR(begin_expr),env,_stack,"BEGIN",NULL,1);
 }
 
 static lispval onbreak_evalfn(lispval begin_expr,kno_lexenv env,kno_stack _stack)
 {
-  lispval result = eval_inner_body("ONBREAK",NULL,begin_expr,2,env,_stack);
+  lispval result = eval_body(kno_get_body(begin_expr,2),env,_stack,
+                             "ONBREAK",NULL,1);
   if (KNO_BREAKP(result))
     result = fast_stack_eval(kno_get_arg(begin_expr,1),env,_stack);
   return result;

@@ -43,30 +43,27 @@ KNO_FASTOP lispval _pop_arg(lispval *scan)
 #define simplify_value(v) \
   ( (KNO_PRECHOICEP(v)) ? (kno_simplify_choice(v)) : (v) )
 
-KNO_FASTOP lispval eval_body(lispval body,kno_lexenv env,kno_stack stack,int tail)
+KNO_FASTOP lispval eval_body(lispval body,kno_lexenv env,kno_stack stack,
+                             u8_context cxt,u8_string label,
+                             int tail)
 {
-  while (PAIRP(body)) {
-    lispval subex = pop_arg(body);
-    if (PAIRP(body)) {
-      lispval v = stack_eval(subex,env,stack);
-      if (KNO_ABORTED(v))
-        return v;
-      else kno_decref(v);}
-    else return _kno_fast_eval(subex,env,stack,tail);}
-  return KNO_VOID;
-}
-
-KNO_FASTOP lispval eval_inner_body(u8_context cxt,u8_string label,
-                                   lispval expr,int offset,
-                                   kno_lexenv inner_env,
-                                   struct KNO_STACK *_stack)
-{
-  lispval body = kno_get_body(expr,offset);
   if (KNO_EMPTY_LISTP(body))
     return KNO_VOID;
   else if (!(KNO_PAIRP(body)))
-    return kno_err(kno_SyntaxError,"eval_body",label,expr);
-  else return eval_body(body,inner_env,_stack,1);
+    return kno_err(kno_SyntaxError,
+                   ( (cxt) && (label) ) ? (cxt) :
+                   ((u8_string)"eval_inner_body"),
+                   (label) ? (label) : (cxt) ? (cxt) : (NULL),
+                   body);
+  else while (PAIRP(body)) {
+      lispval subex = pop_arg(body);
+      if (PAIRP(body)) {
+        lispval v = stack_eval(subex,env,stack);
+        if (KNO_ABORTED(v))
+          return v;
+        else kno_decref(v);}
+      else return _kno_fast_eval(subex,env,stack,tail);}
+  return KNO_VOID;
 }
 
 #define KNO_VOID_RESULT(result)                          \

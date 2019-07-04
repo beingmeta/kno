@@ -808,8 +808,8 @@ static lispval with_log_context_evalfn(lispval expr,kno_lexenv env,kno_stack _st
         (KNO_STRINGP(label)) ? (KNO_CSTRING(label)) : (NULL);
       kno_thread_set(logcxt_symbol,label);
       u8_set_log_context(local_context);
-      lispval result=eval_inner_body("with_log_context",KNO_CSTRING(label),
-                               expr,2,env,_stack);
+      lispval result=eval_body(kno_get_body(expr,2),env,_stack,
+                               "with_log_context",KNO_CSTRING(label),1);
       kno_thread_set(logcxt_symbol,outer_lisp_context);
       u8_set_log_context(outer_context);
       kno_decref(label);

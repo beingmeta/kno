@@ -380,7 +380,7 @@ KNO_EXPORT int kno_choice_evalp(lispval x)
 KNO_EXPORT
 lispval kno_eval_exprs(lispval body,kno_lexenv env,kno_stack stack,int tail)
 {
-  return eval_body(body,env,stack,tail);
+  return eval_body(body,env,stack,"kno_eval_exprs",NULL,tail);
 }
 
 
