@@ -189,8 +189,10 @@ configs:
 	@${RUN} ${KNOX} configs.scm ${RUNCONF}
 	@${header} "■■■■ Completed config system tests ${RUNCONF}"
 appenv:
-	@${RUN} ${KNOX} TRACECONFIG=yes TRACELOAD=yes CONFIG=data/appenv.cfg ${RUNCONF}
+	@${RUN} ${KNOX} TRACECONFIG=yes TRACELOAD=yes CONFIG=data/appenv.cfg \
+		APPMODS=logctl APPMODS=gpath\;parsetime ${RUNCONF}
 	@ BIZZARO=yes ${RUN} ${KNOX} TRACECONFIG=yes TRACELOAD=yes APPMODS=nomagic ${RUNCONF}
+	@ BIZZARO=yes ${RUN} ${KNOX} TRACECONFIG=yes TRACELOAD=yes APPLOAD=data/nomagic.scm ${RUNCONF}
 	@${header} "■■■■ Completed appenv tests ${RUNCONF}"
 opts:
 	@${RUN} ${KNOX} opts.scm ${RUNCONF}
@@ -868,3 +870,9 @@ hyphenate:
 crypto cryptotest:
 	@${RUN} ${KNOX} crypto.scm ${RUNCONF}
 	@${header} "■■■■ Completed crypto tests ${RUNCONF}"
+
+#   ;;;  Local variables: ***
+#   ;;;  compile-command: "cd ..; ./config.status;" ***
+#   ;;;  indent-tabs-mode: nil ***
+#   ;;;  End: ***
+
