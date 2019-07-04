@@ -51,7 +51,7 @@ static int debug_maxelts = 32, debug_maxchars = 80;
 
 static char *configs[MAX_CONFIGS], *exe_arg = NULL, *file_arg = NULL;
 static int n_configs = 0;
-static int no_stdin = 0;
+static int interpret_stdin = 0;
 
 static int chain_fast_exit=1;
 
@@ -248,10 +248,9 @@ int do_main(int argc,char **argv,
      kno_sconfig_get,kno_sconfig_set,
      &stop_file);
   kno_register_config
-    ("NOSTDIN",
-     _("Don't read source from STDIN when needed"),
+    ("LOADSTDIN",_("Read additional source from STDIN"),
      kno_boolconfig_get,kno_boolconfig_set,
-     &no_stdin);
+     &interpret_stdin);
   kno_register_config
     ("MAIN",
      _("The name of the (main) routine for this file"),
@@ -325,15 +324,9 @@ int do_main(int argc,char **argv,
     kno_set_config("SOURCE",src);
 
     kno_decref(src);}
-  else if (no_stdin) {
-    int i = 0;
-    fprintf(stderr,"argc=%d\n",argc);
-    while (i<argc) {
-      fprintf(stderr,"argv[%d]=%s\n",i,argv[i]);
-      i++;}
-    fprintf(stderr,"Usage: %s filename [config = val]*\n",exe_name);
-    exit(EXIT_FAILURE);}
-  else result = load_stdin(env);
+  else if (interpret_stdin)
+    result = load_stdin(env);
+  else result = KNO_VOID;
 
   if (!(kno_be_vewy_quiet)) {
     double startup_time = u8_elapsed_time()-kno_load_start;
@@ -346,12 +339,31 @@ int do_main(int argc,char **argv,
                u8_appid(),startup_time,units,kno_n_pools,
                kno_n_primary_indexes+kno_n_secondary_indexes);}
 
+  if ( (!(KNO_ABORTP(result))) && (!(SYMBOLP(main_symbol))) ) {
+    kno_decref(result);
+    result = kno_err("BadMain","knox.main()",source_file,main_symbol);}
+
   if (!(KNO_ABORTP(result))) {
     main_proc = kno_symeval(main_symbol,env);
-    if ( (KNO_VOIDP(main_proc)) && (main_symbol == real_main) ) {
-      /* Nothing to do */
-      kno_decref(result);
-      result = KNO_VOID;}
+    if (KNO_VOIDP(main_proc)) {
+      if (source_file == NULL) {
+        int i = 0;
+        if (main_symbol == real_main)
+          fprintf(stderr,
+                  "Error: %s no filename specified or (MAIN) defined",
+                  exe_name);
+        else fprintf(stderr,
+                     "Error: %s no filename specified or main (%s) defined",
+                     exe_name,KNO_SYMBOL_NAME(main_symbol));
+        while (i<argc) {
+          fprintf(stderr,"argv[%d]=%s\n",i,argv[i]);
+          i++;}
+        fprintf(stderr,"Usage: %s filename [config = val]*\n",exe_name);
+        result = kno_err("No MAIN","main()",NULL,main_symbol);}
+      else {
+        /* Nothing to do */
+        kno_decref(result);
+        result = KNO_VOID;}}
     else if (KNO_APPLICABLEP(main_proc)) {
       kno_decref(result);
       result = kno_apply(main_proc,n_args,args);
@@ -360,7 +372,9 @@ int do_main(int argc,char **argv,
       u8_log(LOGWARN,"BadMain",
              "The main procedure for %s (%q) isn't applicable",
              ((source_file) ? (source_file) : (U8S("stdin")) ),
-             main_proc);}}
+             main_proc);
+      result = kno_err("BadMain","main()",KNO_SYMBOL_NAME(main_symbol),
+                       main_proc);}}
   if (source_file) source_file = NULL;
   if (KNO_TROUBLEP(result)) {
     U8_OUTPUT out; U8_INIT_OUTPUT(&out,2000);
