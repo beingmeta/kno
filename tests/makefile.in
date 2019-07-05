@@ -184,6 +184,9 @@ lambda:
 conditionals:
 	@${RUN} ${KNOX} lambda.scm ${RUNCONF}
 	@${header} "■■■■ Completed conditionals tests ${RUNCONF}"
+iterators:
+	@${RUN} ${KNOX} iterators.scm ${RUNCONF}
+	@${header} "■■■■ Completed iterators tests ${RUNCONF}"
 binders:
 	@${RUN} ${KNOX} binders.scm ${RUNCONF}
 	@${header} "■■■■ Completed binders tests ${RUNCONF}"
