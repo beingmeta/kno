@@ -357,7 +357,7 @@ CMODULE_OBJS=src/cmodules/odbc.o src/cmodules/sqlite.o \
 	     src/cmodules/crypto.o src/cmodules/zlib.o \
 	     src/cmodules/qrcode.o src/cmodules/exif.o \
 	     src/cmodules/imagick.o src/cmodules/libarchive.o \
-	     src/cmodules/ziptools.o \
+	     src/cmodules/ziptools.o src/cmodules/testcapi.o \
 	     src/cmodules/hyphenate.o \
 	     ${SUNDOWN_OBJS} ${TIDY_OBJECTS}
 
