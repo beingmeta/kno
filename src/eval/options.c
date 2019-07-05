@@ -40,95 +40,6 @@
 #include <pthread.h>
 #include <errno.h>
 
-static lispval getopt_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
-{
-  lispval opts = kno_stack_eval(kno_get_arg(expr,1),env,_stack,0);
-  if (KNO_ABORTED(opts))
-    return opts;
-  else {
-    lispval keys = kno_eval(kno_get_arg(expr,2),env);
-    if (KNO_ABORTED(keys)) {
-      kno_decref(opts); return keys;}
-    else {
-      lispval results = EMPTY;
-      DO_CHOICES(opt,opts) {
-        DO_CHOICES(key,keys) {
-          lispval v = kno_getopt(opt,key,VOID);
-          if (KNO_ABORTED(v)) {
-            kno_decref(results); results = v;
-            KNO_STOP_DO_CHOICES;}
-          else if (!(VOIDP(v))) {CHOICE_ADD(results,v);}}
-        if (KNO_ABORTED(results)) {KNO_STOP_DO_CHOICES;}}
-      kno_decref(keys);
-      kno_decref(opts);
-      if (KNO_ABORTED(results)) {
-        return results;}
-      else if (EMPTYP(results)) {
-        lispval dflt_expr = kno_get_arg(expr,3);
-        if (VOIDP(dflt_expr)) return KNO_FALSE;
-        else return kno_stack_eval(dflt_expr,env,_stack,0);}
-      else return simplify_value(results);}}
-}
-static lispval tryopt_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
-{
-  lispval opts = kno_stack_eval(kno_get_arg(expr,1),env,_stack,0);
-  lispval default_expr = kno_get_arg(expr,3);
-  if ( (KNO_ABORTED(opts)) || (!(KNO_TABLEP(opts))) ) {
-    if (KNO_ABORTED(opts)) kno_clear_errors(0);
-    if (KNO_VOIDP(default_expr)) {
-      return KNO_FALSE;}
-    else if (!(KNO_EVALP(default_expr)))
-      return kno_incref(default_expr);
-    else return kno_stack_eval(default_expr,env,_stack,0);}
-  else {
-    lispval keys = kno_eval(kno_get_arg(expr,2),env);
-    if (KNO_ABORTED(keys)) {
-      kno_decref(opts);
-      return keys;}
-    else {
-      lispval results = EMPTY;
-      DO_CHOICES(opt,opts) {
-        DO_CHOICES(key,keys) {
-          lispval v = kno_getopt(opt,key,VOID);
-          if (KNO_ABORTED(v)) {
-            kno_clear_errors(0);
-            kno_decref(results);
-            results = KNO_EMPTY_CHOICE;
-            KNO_STOP_DO_CHOICES;
-            break;}
-          else if (!(VOIDP(v))) {CHOICE_ADD(results,v);}}
-        if (KNO_ABORTED(results)) {KNO_STOP_DO_CHOICES;}}
-      kno_decref(keys); kno_decref(opts);
-      if (KNO_ABORTED(results)) { /* Not sure this ever happens */
-        kno_clear_errors(0);
-        results=KNO_EMPTY_CHOICE;}
-      if (EMPTYP(results)) {
-        lispval dflt_expr = kno_get_arg(expr,3);
-        if (VOIDP(dflt_expr))
-          return KNO_FALSE;
-        else if (!(KNO_EVALP(dflt_expr)))
-          return kno_incref(dflt_expr);
-        else return kno_stack_eval(dflt_expr,env,_stack,0);}
-      else return simplify_value(results);}}
-}
-static lispval getopt_prim(lispval opts,lispval keys,lispval dflt)
-{
-  lispval results = EMPTY;
-  DO_CHOICES(opt,opts) {
-    DO_CHOICES(key,keys) {
-      lispval v = kno_getopt(opt,key,VOID);
-      if (!(VOIDP(v))) {CHOICE_ADD(results,v);}}}
-  if (EMPTYP(results)) {
-    kno_incref(dflt); return dflt;}
-  else return simplify_value(results);
-}
-static lispval testopt_prim(lispval opts,lispval key,lispval val)
-{
-  if (kno_testopt(opts,key,val))
-    return KNO_TRUE;
-  else return KNO_FALSE;
-}
-
 static int optionsp(lispval arg)
 {
   if ( (KNO_FALSEP(arg)) || (KNO_NILP(arg)) || (KNO_EMPTYP(arg)) )
@@ -149,6 +60,106 @@ static int optionsp(lispval arg)
     return 1;
   else return 0;
 }
+
+static lispval getopt_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+{
+  lispval opts_arg = kno_get_arg(expr,1);
+  if (KNO_VOIDP(opts_arg))
+    return kno_err(kno_SyntaxError,"getopt_evalfn/arg1",NULL,expr);
+  lispval opts = kno_stack_eval(opts_arg,env,_stack,0);
+  if (KNO_ABORTED(opts))
+    return opts;
+  else {
+    lispval keys_arg = kno_get_arg(expr,2);
+    if (KNO_VOIDP(keys_arg)) {
+      kno_decref(opts);
+      return kno_err(kno_SyntaxError,"getopt_evalfn/arg2",NULL,expr);}
+    lispval keys = kno_eval(keys_arg,env);
+    if (KNO_ABORTED(keys)) {
+      kno_decref(opts);
+      return keys;}
+    else {
+      lispval results = EMPTY;
+      DO_CHOICES(opt,opts) {
+        DO_CHOICES(key,keys) {
+          lispval v = kno_getopt(opt,key,VOID);
+          if (KNO_ABORTED(v)) {
+            kno_decref(results); results = v;
+            KNO_STOP_DO_CHOICES;}
+          else if (!(VOIDP(v))) {CHOICE_ADD(results,v);}}
+        if (KNO_ABORTED(results)) {KNO_STOP_DO_CHOICES;}}
+      kno_decref(keys);
+      kno_decref(opts);
+      if (KNO_ABORTED(results)) {
+        return results;}
+      else if (EMPTYP(results)) {
+        lispval dflt_expr = kno_get_arg(expr,3);
+        if (VOIDP(dflt_expr)) return KNO_FALSE;
+        else return kno_stack_eval(dflt_expr,env,_stack,0);}
+      else return simplify_value(results);}}
+}
+#if 0
+static lispval tryopt_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+{
+  lispval opts_arg = kno_get_arg(expr,1);
+  if (KNO_VOIDP(opts_arg))
+    return kno_err(kno_SyntaxError,"getopt_evalfn/arg1",NULL,expr);
+  lispval opts = kno_stack_eval(opts_arg,env,_stack,0);
+  if (KNO_ABORTED(opts)) return opts;
+  lispval default_expr = kno_get_arg(expr,3);
+  lispval keys_arg = kno_get_arg(expr,2);
+  if (KNO_VOIDP(keys_arg)) {
+    kno_decref(opts);
+    return kno_err(kno_SyntaxError,"getopt_evalfn/arg2",NULL,expr);}
+  lispval keys = kno_eval(keys_arg,env);
+  if (KNO_ABORTED(keys)) {
+    kno_decref(opts);
+    return keys;}
+  else {
+    lispval results = EMPTY;
+    DO_CHOICES(opt,opts) {
+      DO_CHOICES(key,keys) {
+	lispval v = kno_getopt(opt,key,VOID);
+	if (KNO_ABORTED(v)) {
+	  kno_clear_errors(0);
+	  kno_decref(results);
+	  results = KNO_EMPTY_CHOICE;
+	  KNO_STOP_DO_CHOICES;
+	  break;}
+	else if (!(VOIDP(v))) {CHOICE_ADD(results,v);}}
+      if (KNO_ABORTED(results)) {KNO_STOP_DO_CHOICES;}}
+    kno_decref(keys); kno_decref(opts);
+    if (KNO_ABORTED(results)) { /* Not sure this ever happens */
+      kno_clear_errors(0);
+      results=KNO_EMPTY_CHOICE;}
+    if (EMPTYP(results)) {
+      lispval dflt_expr = kno_get_arg(expr,3);
+      if (VOIDP(dflt_expr))
+	return KNO_FALSE;
+      else if (!(KNO_EVALP(dflt_expr)))
+	return kno_incref(dflt_expr);
+      else return kno_stack_eval(dflt_expr,env,_stack,0);}
+    else return simplify_value(results);}
+}
+#endif
+static lispval getopt_prim(lispval opts,lispval keys,lispval dflt)
+{
+  lispval results = EMPTY;
+  DO_CHOICES(opt,opts) {
+    DO_CHOICES(key,keys) {
+      lispval v = kno_getopt(opt,key,VOID);
+      if (!(VOIDP(v))) {CHOICE_ADD(results,v);}}}
+  if (EMPTYP(results)) {
+    kno_incref(dflt); return dflt;}
+  else return simplify_value(results);
+}
+static lispval testopt_prim(lispval opts,lispval key,lispval val)
+{
+  if (kno_testopt(opts,key,val))
+    return KNO_TRUE;
+  else return KNO_FALSE;
+}
+
 static lispval optionsp_prim(lispval opts)
 {
   if (optionsp(opts))
@@ -186,10 +197,7 @@ static lispval opts_plus_prim(int n,lispval *args)
 	new_front = 1;}
       if (i < n) {
         lispval optval = args[i++];
-        if (KNO_QCHOICEP(optval)) {
-          struct KNO_QCHOICE *qc = (kno_qchoice) optval;
-          kno_add(front,arg,qc->qchoiceval);}
-        else kno_add(front,arg,optval);}
+	kno_add(front,arg,optval);}
       else kno_store(front,arg,KNO_TRUE);}}
   if (KNO_VOIDP(front))
     return back;
@@ -217,6 +225,7 @@ KNO_EXPORT void kno_init_eval_getopt_c()
                 "If *opts* or *name* are choices, this only returns *default* "
                 "if none of the alternatives yield results.",
                  getopt_evalfn);
+#if 0
   kno_def_evalfn(kno_scheme_module,"TRYOPT",
                 "`(TRYOPT *opts* *name* [*default*=#f])` returns any *name* "
                 "option defined in *opts* or *default* otherwise. Any errors "
@@ -225,6 +234,7 @@ KNO_EXPORT void kno_init_eval_getopt_c()
                 "if none of the alternatives yield results. Note that the "
                 "*default*, if evaluated, may signal an error.",
                 tryopt_evalfn);
+#endif
   kno_idefn3(kno_scheme_module,"%GETOPT",getopt_prim,KNO_NEEDS_2_ARGS|KNO_NDCALL,
             "`(%GETOPT *opts* *name* [*default*=#f])` gets any *name* option "
             "from opts, returning *default* if there isn't any. This is a real "
