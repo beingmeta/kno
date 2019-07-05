@@ -55,14 +55,21 @@ KNO_FASTOP lispval eval_body(lispval body,kno_lexenv env,kno_stack stack,
                    ((u8_string)"eval_inner_body"),
                    (label) ? (label) : (cxt) ? (cxt) : (NULL),
                    body);
-  else while (PAIRP(body)) {
-      lispval subex = pop_arg(body);
-      if (PAIRP(body)) {
+  lispval scan = body;
+  while (PAIRP(scan)) {
+      lispval subex = pop_arg(scan);
+      if (PAIRP(scan)) {
         lispval v = stack_eval(subex,env,stack);
         if (KNO_ABORTED(v))
           return v;
         else kno_decref(v);}
-      else return _kno_fast_eval(subex,env,stack,tail);}
+      else if (KNO_EMPTY_LISTP(scan))
+        return _kno_fast_eval(subex,env,stack,tail);
+      else return kno_err(kno_SyntaxError,
+                          ( (cxt) && (label) ) ? (cxt) :
+                          ((u8_string)"eval_inner_body"),
+                          (label) ? (label) : (cxt) ? (cxt) : (NULL),
+                          body);}
   return KNO_VOID;
 }
 

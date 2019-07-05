@@ -129,11 +129,11 @@ static lispval bind_default_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   lispval symbol = kno_get_arg(expr,1);
   lispval value_expr = kno_get_arg(expr,2);
   if (!(SYMBOLP(symbol)))
-    return kno_err(kno_SyntaxError,"bind_default_evalfn",NULL,kno_incref(expr));
+    return kno_err(kno_SyntaxError,"bind_default_evalfn",NULL,expr);
   else if (VOIDP(value_expr))
-    return kno_err(kno_SyntaxError,"bind_default_evalfn",NULL,kno_incref(expr));
+    return kno_err(kno_SyntaxError,"bind_default_evalfn",NULL,expr);
   else if (env == NULL)
-    return kno_err(kno_SyntaxError,"bind_default_evalfn",NULL,kno_incref(expr));
+    return kno_err(kno_SyntaxError,"bind_default_evalfn",NULL,expr);
   else {
     lispval val = kno_get(env->env_bindings,symbol,VOID);
     if ((VOIDP(val))||(val == KNO_UNBOUND)||(val == KNO_DEFAULT_VALUE)) {
@@ -268,7 +268,7 @@ static lispval do_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     return kno_err(kno_BindSyntaxError,"DO",NULL,expr);
   if (PRED_FALSE(! ( (body == KNO_NIL) || (PAIRP(body)) ) ))
     return kno_err(kno_BindSyntaxError,"DO",NULL,expr);
-  else if (VOIDP(exitexprs))
+  else if (!(PAIRP(exitexprs)))
     return kno_err(kno_BindSyntaxError,"DO",NULL,expr);
   else if ((n = check_bindexprs(bindexprs,&do_result))<0)
     return do_result;
@@ -280,6 +280,8 @@ static lispval do_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     {KNO_DOLIST(bindexpr,bindexprs) {
       lispval var = kno_get_arg(bindexpr,0);
       lispval value_expr = kno_get_arg(bindexpr,1);
+      if ( (!(SYMBOLP(var))) || (KNO_VOIDP(value_expr)) )
+        return kno_err(kno_SyntaxError,"do_evalfn",NULL,expr);
       lispval update_expr = kno_get_arg(bindexpr,2);
       lispval value = kno_eval(value_expr,env);
       if (KNO_ABORTED(value))
@@ -332,11 +334,13 @@ static lispval do_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
         _return testval;}
     /* Now we're done, so we set result to testval. */
     do_result = testval;
-    if (PAIRP(KNO_CDR(exitexprs))) {
+    if (KNO_EMPTYP(testval)) {}
+    else if (!(KNO_EMPTY_LISTP(KNO_CDR(exitexprs)))) {
       kno_decref(do_result);
       do_result = eval_body(kno_get_body(exitexprs,1),do_env,_stack,
                             ":DO",SYM_NAME(do_env_vars[0]),
                             1);}
+    else NO_ELSE;
     /* Free the environment. */
     _return do_result;}
 }
@@ -391,8 +395,7 @@ static lispval define_init_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       if (bound>0) {
         kno_decref(init_value);
         return VOID;}
-      else if (bound<0) return KNO_ERROR;
-      else return kno_err(kno_BindError,"DEFINE-INIT",SYM_NAME(var),var);}}
+      else return KNO_ERROR;}}
   else return kno_err(kno_NotAnIdentifier,"DEFINE_INIT",NULL,var);
 }
 
