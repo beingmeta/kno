@@ -441,6 +441,13 @@ KNO_EXPORT lispval kno_make_ndprim(lispval prim);
 #define KNO_NDPRIM(cname,scm_name, ...)          \
   static lispval cname(__VA_ARGS__)
 
+#define KNO_CPRIMP(x) (KNO_TYPEP(x,kno_cprim_type))
+#define KNO_XCPRIM(x)                                      \
+  ((KNO_CPRIMP(x)) ?                                                 \
+   ((struct KNO_CPRIM *)(KNO_CONS_DATA(kno_fcnid_ref(x)))) :         \
+   ((struct KNO_CPRIM *)(u8_raise(kno_TypeError,"function",NULL),NULL)))
+
+
 /* Definining functions in tables. */
 
 KNO_EXPORT void kno_defn(lispval table,lispval fcn);

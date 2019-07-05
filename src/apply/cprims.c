@@ -32,14 +32,14 @@
 
 int unparse_cprim(u8_output out,lispval x)
 {
-  struct KNO_FUNCTION *fcn = (kno_function)x;
+  struct KNO_CPRIM *fcn = (kno_cprim)x;
   u8_string filename = fcn->fcn_filename, space;
   lispval moduleid = fcn->fcn_moduleid;
   u8_string modname =
     (KNO_SYMBOLP(moduleid)) ? (KNO_SYMBOL_NAME(moduleid)) : (NULL);
   u8_byte arity[64]=""; u8_byte codes[64]="";
   u8_byte tmpbuf[32], numbuf[32], namebuf[100];
-  u8_string name = fcn->fcn_name, sig = kno_fcn_sig(fcn,namebuf);
+  u8_string name = fcn->fcn_name, sig = kno_fcn_sig((kno_function)fcn,namebuf);
   if (sig == NULL) sig = "";
   if ((filename)&&(filename[0]=='\0'))
     filename = NULL;
@@ -83,7 +83,7 @@ int unparse_cprim(u8_output out,lispval x)
 }
 static void recycle_cprim(struct KNO_RAW_CONS *c)
 {
-  struct KNO_FUNCTION *fn = (struct KNO_FUNCTION *)c;
+  struct KNO_CPRIM *fn = (struct KNO_CPRIM *)c;
   if ( (fn->fcn_typeinfo) && (fn->fcn_free_typeinfo) )
     u8_free(fn->fcn_typeinfo);
   if ( (fn->fcn_defaults) && (fn->fcn_free_defaults) )
@@ -96,7 +96,7 @@ static void recycle_cprim(struct KNO_RAW_CONS *c)
 static ssize_t cprim_dtype(struct KNO_OUTBUF *out,lispval x)
 {
   int n_elts=0;
-  struct KNO_FUNCTION *fcn = (struct KNO_FUNCTION *)x;
+  struct KNO_CPRIM *fcn = (struct KNO_CPRIM *)x;
   unsigned char buf[200], *tagname="%CPRIM";
   struct KNO_OUTBUF tmp = { 0 };
   KNO_INIT_OUTBUF(&tmp,buf,200,0);
@@ -126,7 +126,7 @@ static ssize_t cprim_dtype(struct KNO_OUTBUF *out,lispval x)
 
 /* Creating cprims */
 
-static struct KNO_FUNCTION *make_cprim(u8_string name,
+static struct KNO_CPRIM *make_cprim(u8_string name,
                                        u8_string cname,
                                        u8_string filename,
                                        u8_string doc,
@@ -142,18 +142,18 @@ static struct KNO_FUNCTION *make_cprim(u8_string name,
      reduce cache/page misses. We might need to worry about how we're
      figuring out these pointers for non-word-aligned architectures, but
      let's not worry about that for now. */
-  size_t alloc_size = sizeof(struct KNO_FUNCTION) +
+  size_t alloc_size = sizeof(struct KNO_CPRIM) +
     ( (typeinfo) ? (sizeof(unsigned int)*arity) : (0) ) +
     ( (defaults) ? (sizeof(lispval)*arity) : (0) );
   void *block = u8_malloc(alloc_size);
-  struct KNO_FUNCTION *f = (struct KNO_FUNCTION *) block;
+  struct KNO_CPRIM *f = (struct KNO_CPRIM *) block;
   unsigned int *prim_typeinfo = (typeinfo) ?
-    ((unsigned int *) (block+sizeof(struct KNO_FUNCTION))) :
+    ((unsigned int *) (block+sizeof(struct KNO_CPRIM))) :
     ((unsigned int *)NULL);
   lispval *prim_defaults = ( (defaults) && (typeinfo) ) ?
-    ((lispval *) (block+sizeof(struct KNO_FUNCTION)+(sizeof(unsigned int)*arity))) :
+    ((lispval *) (block+sizeof(struct KNO_CPRIM)+(sizeof(unsigned int)*arity))) :
     (defaults) ?
-    ((lispval *) (block+sizeof(struct KNO_FUNCTION)) ) :
+    ((lispval *) (block+sizeof(struct KNO_CPRIM)) ) :
     ((lispval *)NULL);
   KNO_INIT_FRESH_CONS(f,kno_cprim_type);
   f->fcn_name = name;
@@ -183,7 +183,7 @@ static struct KNO_FUNCTION *make_cprim(u8_string name,
 
 /* Declaring functions */
 
-static struct KNO_FUNCTION *init_cprim(u8_string name,u8_string cname,
+static struct KNO_CPRIM *init_cprim(u8_string name,u8_string cname,
                                        int arity,
                                        u8_string filename,
                                        u8_string doc,
@@ -198,7 +198,7 @@ static struct KNO_FUNCTION *init_cprim(u8_string name,u8_string cname,
 KNO_EXPORT void kno_defprimN(lispval module,kno_cprimn fn,
                              struct KNO_CPRIM_INFO *info)
 {
-  struct KNO_FUNCTION *prim = init_cprim
+  struct KNO_CPRIM *prim = init_cprim
     (info->pname,info->cname,
      info->arity,info->filename,
      info->docstring,info->flags,
@@ -214,7 +214,7 @@ KNO_EXPORT void kno_defprim0(lispval module,kno_cprim0 fn,
                              int typeinfo[0],
                              lispval defaults[0])
 {
-  struct KNO_FUNCTION *prim = init_cprim
+  struct KNO_CPRIM *prim = init_cprim
     (info->pname,info->cname,info->arity,info->filename,info->docstring,info->flags,
      (unsigned int *)typeinfo,( lispval *)defaults);
   prim->fcn_handler.call0 = fn;
@@ -228,7 +228,7 @@ KNO_EXPORT void kno_defprim1(lispval module,kno_cprim1 fn,
                              int typeinfo[1],
                              lispval defaults[1])
 {
-  struct KNO_FUNCTION *prim = init_cprim
+  struct KNO_CPRIM *prim = init_cprim
     (info->pname,info->cname,info->arity,info->filename,info->docstring,info->flags,
      (unsigned int *)typeinfo,( lispval *)defaults);
   prim->fcn_handler.call1 = fn;
@@ -242,7 +242,7 @@ KNO_EXPORT void kno_defprim2(lispval module,kno_cprim2 fn,
                              int typeinfo[2],
                              lispval defaults[2])
 {
-  struct KNO_FUNCTION *prim = init_cprim
+  struct KNO_CPRIM *prim = init_cprim
     (info->pname,info->cname,info->arity,info->filename,info->docstring,info->flags,
      (unsigned int *)typeinfo,( lispval *)defaults);
   prim->fcn_handler.call2 = fn;
@@ -256,7 +256,7 @@ KNO_EXPORT void kno_defprim3(lispval module,kno_cprim3 fn,
                              int typeinfo[3],
                              lispval defaults[3])
 {
-  struct KNO_FUNCTION *prim = init_cprim
+  struct KNO_CPRIM *prim = init_cprim
     (info->pname,info->cname,info->arity,info->filename,info->docstring,info->flags,
      (unsigned int *)typeinfo,( lispval *)defaults);
   prim->fcn_handler.call3 = fn;
@@ -270,7 +270,7 @@ KNO_EXPORT void kno_defprim4(lispval module,kno_cprim4 fn,
                              int typeinfo[4],
                              lispval defaults[4])
 {
-  struct KNO_FUNCTION *prim = init_cprim
+  struct KNO_CPRIM *prim = init_cprim
     (info->pname,info->cname,info->arity,info->filename,info->docstring,info->flags,
      (unsigned int *)typeinfo,( lispval *)defaults);
   prim->fcn_handler.call4 = fn;
@@ -284,7 +284,7 @@ KNO_EXPORT void kno_defprim5(lispval module,kno_cprim5 fn,
                              int typeinfo[5],
                              lispval defaults[5])
 {
-  struct KNO_FUNCTION *prim = init_cprim
+  struct KNO_CPRIM *prim = init_cprim
     (info->pname,info->cname,info->arity,info->filename,info->docstring,info->flags,
      (unsigned int *)typeinfo,( lispval *)defaults);
   prim->fcn_handler.call5 = fn;
@@ -298,7 +298,7 @@ KNO_EXPORT void kno_defprim6(lispval module,kno_cprim6 fn,
                              int typeinfo[6],
                              lispval defaults[6])
 {
-  struct KNO_FUNCTION *prim = init_cprim
+  struct KNO_CPRIM *prim = init_cprim
     (info->pname,info->cname,info->arity,info->filename,info->docstring,info->flags,
      (unsigned int *)typeinfo,( lispval *)defaults);
   prim->fcn_handler.call6 = fn;
@@ -312,7 +312,7 @@ KNO_EXPORT void kno_defprim7(lispval module,kno_cprim7 fn,
                              int typeinfo[7],
                              lispval defaults[7])
 {
-  struct KNO_FUNCTION *prim = init_cprim
+  struct KNO_CPRIM *prim = init_cprim
     (info->pname,info->cname,info->arity,info->filename,info->docstring,info->flags,
      (unsigned int *)typeinfo,( lispval *)defaults);
   prim->fcn_handler.call7 = fn;
@@ -326,7 +326,7 @@ KNO_EXPORT void kno_defprim8(lispval module,kno_cprim8 fn,
                              int typeinfo[8],
                              lispval defaults[8])
 {
-  struct KNO_FUNCTION *prim = init_cprim
+  struct KNO_CPRIM *prim = init_cprim
     (info->pname,info->cname,info->arity,info->filename,info->docstring,info->flags,
      (unsigned int *)typeinfo,( lispval *)defaults);
   prim->fcn_handler.call8 = fn;
@@ -340,7 +340,7 @@ KNO_EXPORT void kno_defprim9(lispval module,kno_cprim9 fn,
                              int typeinfo[9],
                              lispval defaults[9])
 {
-  struct KNO_FUNCTION *prim = init_cprim
+  struct KNO_CPRIM *prim = init_cprim
     (info->pname,info->cname,info->arity,info->filename,info->docstring,info->flags,
      (unsigned int *)typeinfo,( lispval *)defaults);
   prim->fcn_handler.call9 = fn;
@@ -354,7 +354,7 @@ KNO_EXPORT void kno_defprim10(lispval module,kno_cprim10 fn,
                               int typeinfo[10],
                               lispval defaults[10])
 {
-  struct KNO_FUNCTION *prim = init_cprim
+  struct KNO_CPRIM *prim = init_cprim
     (info->pname,info->cname,info->arity,info->filename,info->docstring,info->flags,
      (unsigned int *)typeinfo,( lispval *)defaults);
   prim->fcn_handler.call10 = fn;
@@ -368,7 +368,7 @@ KNO_EXPORT void kno_defprim11(lispval module,kno_cprim11 fn,
                               int typeinfo[11],
                               lispval defaults[11])
 {
-  struct KNO_FUNCTION *prim = init_cprim
+  struct KNO_CPRIM *prim = init_cprim
     (info->pname,info->cname,info->arity,info->filename,info->docstring,info->flags,
      (unsigned int *)typeinfo,( lispval *)defaults);
   prim->fcn_handler.call11 = fn;
@@ -382,7 +382,7 @@ KNO_EXPORT void kno_defprim12(lispval module,kno_cprim12 fn,
                               int typeinfo[12],
                               lispval defaults[12])
 {
-  struct KNO_FUNCTION *prim = init_cprim
+  struct KNO_CPRIM *prim = init_cprim
     (info->pname,info->cname,info->arity,info->filename,info->docstring,info->flags,
      (unsigned int *)typeinfo,( lispval *)defaults);
   prim->fcn_handler.call12 = fn;
@@ -396,7 +396,7 @@ KNO_EXPORT void kno_defprim13(lispval module,kno_cprim13 fn,
                               int typeinfo[13],
                               lispval defaults[13])
 {
-  struct KNO_FUNCTION *prim = init_cprim
+  struct KNO_CPRIM *prim = init_cprim
     (info->pname,info->cname,info->arity,info->filename,info->docstring,info->flags,
      (unsigned int *)typeinfo,( lispval *)defaults);
   prim->fcn_handler.call13 = fn;
@@ -410,7 +410,7 @@ KNO_EXPORT void kno_defprim14(lispval module,kno_cprim14 fn,
                               int typeinfo[14],
                               lispval defaults[14])
 {
-  struct KNO_FUNCTION *prim = init_cprim
+  struct KNO_CPRIM *prim = init_cprim
     (info->pname,info->cname,info->arity,info->filename,info->docstring,info->flags,
      (unsigned int *)typeinfo,( lispval *)defaults);
   prim->fcn_handler.call14 = fn;
@@ -424,7 +424,7 @@ KNO_EXPORT void kno_defprim15(lispval module,kno_cprim15 fn,
                               int typeinfo[15],
                               lispval defaults[15])
 {
-  struct KNO_FUNCTION *prim = init_cprim
+  struct KNO_CPRIM *prim = init_cprim
     (info->pname,info->cname,info->arity,info->filename,info->docstring,info->flags,
      (unsigned int *)typeinfo,( lispval *)defaults);
   prim->fcn_handler.call15 = fn;
@@ -459,7 +459,7 @@ KNO_EXPORT lispval kno_new_cprimn
 (u8_string name,u8_string cname,u8_string filename,u8_string doc,
  kno_cprimn fn,int min_arity,int ndcall,int xcall)
 {
-  struct KNO_FUNCTION *f =
+  struct KNO_CPRIM *f =
     make_cprim(name,cname,filename,doc,
                (KNO_MAX_ARGS(-1)) |
                (KNO_MIN_ARGS(min_arity)) |
@@ -474,7 +474,7 @@ KNO_EXPORT lispval kno_new_cprim0
 (u8_string name,u8_string cname,u8_string filename,u8_string doc,
  kno_cprim0 fn,int xcall)
 {
-  struct KNO_FUNCTION *f=(struct KNO_FUNCTION *)
+  struct KNO_CPRIM *f=(struct KNO_CPRIM *)
     make_cprim(name,cname,filename,doc,KNO_FNFLAGS(0,0,0,xcall),NULL,NULL);
   f->fcn_handler.call0 = fn;
   return LISP_CONS(f);
@@ -487,7 +487,7 @@ KNO_EXPORT lispval kno_new_cprim1
 {
   int typeinfo[1] = { type0 };
   lispval defaults[1] = { dflt0 };
-  struct KNO_FUNCTION *f=(struct KNO_FUNCTION *)
+  struct KNO_CPRIM *f=(struct KNO_CPRIM *)
     make_cprim(name,cname,filename,doc,KNO_FNFLAGS(1,min_arity,ndcall,xcall),
                typeinfo,defaults);
   f->fcn_handler.call1 = fn;
@@ -502,7 +502,7 @@ KNO_EXPORT lispval kno_new_cprim2
 {
   int typeinfo[2] = { type0, type1 };
   lispval defaults[2] = { dflt0, dflt1 };
-  struct KNO_FUNCTION *f=(struct KNO_FUNCTION *)
+  struct KNO_CPRIM *f=(struct KNO_CPRIM *)
     make_cprim(name,cname,filename,doc,KNO_FNFLAGS(2,min_arity,ndcall,xcall),
                typeinfo,defaults);
   f->fcn_handler.call2 = fn;
@@ -517,7 +517,7 @@ KNO_EXPORT lispval kno_new_cprim3
 {
   int typeinfo[3] = { type0, type1, type2 };
   lispval defaults[3] = { dflt0, dflt1, dflt2 };
-  struct KNO_FUNCTION *f=(struct KNO_FUNCTION *)
+  struct KNO_CPRIM *f=(struct KNO_CPRIM *)
     make_cprim(name,cname,filename,doc,KNO_FNFLAGS(3,min_arity,ndcall,xcall),
                typeinfo,defaults);
   f->fcn_handler.call3 = fn;
@@ -533,7 +533,7 @@ KNO_EXPORT lispval kno_new_cprim4
 {
   int typeinfo[4] = { type0, type1, type2, type3 };
   lispval defaults[4] = { dflt0, dflt1, dflt2, dflt3 };
-  struct KNO_FUNCTION *f=(struct KNO_FUNCTION *)
+  struct KNO_CPRIM *f=(struct KNO_CPRIM *)
     make_cprim(name,cname,filename,doc,KNO_FNFLAGS(4,min_arity,ndcall,xcall),
                typeinfo,defaults);
   f->fcn_handler.call4 = fn;
@@ -549,7 +549,7 @@ KNO_EXPORT lispval kno_new_cprim5
 {
   int typeinfo[5] = { type0, type1, type2, type3, type4 };
   lispval defaults[5] = { dflt0, dflt1, dflt2, dflt3, dflt4 };
-  struct KNO_FUNCTION *f=(struct KNO_FUNCTION *)
+  struct KNO_CPRIM *f=(struct KNO_CPRIM *)
     make_cprim(name,cname,filename,doc,KNO_FNFLAGS(5,min_arity,ndcall,xcall),
                typeinfo,defaults);
   f->fcn_handler.call5 = fn;
@@ -566,7 +566,7 @@ KNO_EXPORT lispval kno_new_cprim6
 {
   int typeinfo[6] = { type0, type1, type2, type3, type4, type5 };
   lispval defaults[6] = { dflt0, dflt1, dflt2, dflt3, dflt4, dflt5 };
-  struct KNO_FUNCTION *f=(struct KNO_FUNCTION *)
+  struct KNO_CPRIM *f=(struct KNO_CPRIM *)
     make_cprim(name,cname,filename,doc,KNO_FNFLAGS(6,min_arity,ndcall,xcall),
                typeinfo,defaults);
   f->fcn_handler.call6 = fn;
@@ -584,7 +584,7 @@ KNO_EXPORT lispval kno_new_cprim7
   int typeinfo[7] = { type0, type1, type2, type3, type4, type5,
                       type6 };
   lispval defaults[7] = { dflt0, dflt1, dflt2, dflt3, dflt4, dflt5, dflt6 };
-  struct KNO_FUNCTION *f=(struct KNO_FUNCTION *)
+  struct KNO_CPRIM *f=(struct KNO_CPRIM *)
     make_cprim(name,cname,filename,doc,KNO_FNFLAGS(7,min_arity,ndcall,xcall),
                typeinfo,defaults);
   f->fcn_handler.call7 = fn;
@@ -604,7 +604,7 @@ KNO_EXPORT lispval kno_new_cprim8
     { type0, type1, type2, type3, type4, type5, type6, type7 };
   lispval defaults[8] =
     { dflt0, dflt1, dflt2, dflt3, dflt4, dflt5, dflt6, dflt7 };
-  struct KNO_FUNCTION *f=(struct KNO_FUNCTION *)
+  struct KNO_CPRIM *f=(struct KNO_CPRIM *)
     make_cprim(name,cname,filename,doc,KNO_FNFLAGS(8,min_arity,ndcall,xcall),
                typeinfo,defaults);
   f->fcn_handler.call8 = fn;
@@ -624,7 +624,7 @@ KNO_EXPORT lispval kno_new_cprim9
     { type0, type1, type2, type3, type4, type5, type6, type7, type8 };
   lispval defaults[9] =
     { dflt0, dflt1, dflt2, dflt3, dflt4, dflt5, dflt6, dflt7, dflt8 };
-  struct KNO_FUNCTION *f=(struct KNO_FUNCTION *)
+  struct KNO_CPRIM *f=(struct KNO_CPRIM *)
     make_cprim(name,cname,filename,doc,KNO_FNFLAGS(9,min_arity,ndcall,xcall),
                typeinfo,defaults);
   f->fcn_handler.call9 = fn;
@@ -645,7 +645,7 @@ KNO_EXPORT lispval kno_new_cprim10
     { type0, type1, type2, type3, type4, type5, type6, type7, type8, type9 };
   lispval defaults[10] =
     { dflt0, dflt1, dflt2, dflt3, dflt4, dflt5, dflt6, dflt7, dflt8, dflt9 };
-  struct KNO_FUNCTION *f=(struct KNO_FUNCTION *)
+  struct KNO_CPRIM *f=(struct KNO_CPRIM *)
     make_cprim(name,cname,filename,doc,KNO_FNFLAGS(10,min_arity,ndcall,xcall),
                typeinfo,defaults);
   f->fcn_handler.call10 = fn;
@@ -668,7 +668,7 @@ KNO_EXPORT lispval kno_new_cprim11
   lispval defaults[11] =
     { dflt0, dflt1, dflt2, dflt3, dflt4, dflt5, dflt6, dflt7, dflt8, dflt9,
       dflt10};
-  struct KNO_FUNCTION *f=(struct KNO_FUNCTION *)
+  struct KNO_CPRIM *f=(struct KNO_CPRIM *)
     make_cprim(name,cname,filename,doc,KNO_FNFLAGS(11,min_arity,ndcall,xcall),
                typeinfo,defaults);
   f->fcn_handler.call11 = fn;
@@ -692,7 +692,7 @@ KNO_EXPORT lispval kno_new_cprim12
   lispval defaults[12] =
     { dflt0, dflt1, dflt2, dflt3, dflt4, dflt5, dflt6, dflt7, dflt8, dflt9,
       dflt10, dflt11};
-  struct KNO_FUNCTION *f=(struct KNO_FUNCTION *)
+  struct KNO_CPRIM *f=(struct KNO_CPRIM *)
     make_cprim(name,cname,filename,doc,KNO_FNFLAGS(12,min_arity,ndcall,xcall),
                typeinfo,defaults);
   f->fcn_handler.call12 = fn;
@@ -716,7 +716,7 @@ KNO_EXPORT lispval kno_new_cprim13
   lispval defaults[13] =
     { dflt0, dflt1, dflt2, dflt3, dflt4, dflt5, dflt6, dflt7, dflt8, dflt9,
       dflt10, dflt11, dflt12};
-  struct KNO_FUNCTION *f=(struct KNO_FUNCTION *)
+  struct KNO_CPRIM *f=(struct KNO_CPRIM *)
     make_cprim(name,cname,filename,doc,KNO_FNFLAGS(13,min_arity,ndcall,xcall),
                typeinfo,defaults);
   f->fcn_handler.call13 = fn;
@@ -741,7 +741,7 @@ KNO_EXPORT lispval kno_new_cprim14
   lispval defaults[14] =
     { dflt0, dflt1, dflt2, dflt3, dflt4, dflt5, dflt6, dflt7, dflt8, dflt9,
       dflt10, dflt11, dflt12, dflt13};
-  struct KNO_FUNCTION *f=(struct KNO_FUNCTION *)
+  struct KNO_CPRIM *f=(struct KNO_CPRIM *)
     make_cprim(name,cname,filename,doc,KNO_FNFLAGS(14,min_arity,ndcall,xcall),
                typeinfo,defaults);
   f->fcn_handler.call14 = fn;
@@ -766,7 +766,7 @@ KNO_EXPORT lispval kno_new_cprim15
   lispval defaults[15] =
     { dflt0, dflt1, dflt2, dflt3, dflt4, dflt5, dflt6, dflt7, dflt8, dflt9,
       dflt10, dflt11, dflt12, dflt13, dflt14};
-  struct KNO_FUNCTION *f=(struct KNO_FUNCTION *)
+  struct KNO_CPRIM *f=(struct KNO_CPRIM *)
     make_cprim(name,cname,filename,doc,KNO_FNFLAGS(15,min_arity,ndcall,xcall),
                typeinfo,defaults);
   f->fcn_handler.call15 = fn;
