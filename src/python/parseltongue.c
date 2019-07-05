@@ -335,7 +335,7 @@ static lispval py2lisp(PyObject *o)
   else if (o==Py_True)
     return KNO_TRUE;
   else if (PyInt_Check(o))
-    return KNO_INT2DTYPE(PyInt_AS_LONG(o));
+    return KNO_INT2LISP(PyInt_AS_LONG(o));
   else if (PyFloat_Check(o))
     return kno_init_double(NULL,PyFloat_AsDouble(o));
   else if (PyLong_Check(o)) {
@@ -344,10 +344,10 @@ static lispval py2lisp(PyObject *o)
     int sign=_PyLong_Sign(o);
     if (bitlen<32) {
       long lval=PyLong_AsLong(o);
-      return KNO_INT2DTYPE(lval);}
+      return KNO_INT2LISP(lval);}
     else if (bitlen<64) {
       long long lval=PyLong_AsLongLong(o);
-      return KNO_INT2DTYPE(lval);}
+      return KNO_INT2LISP(lval);}
     else {
       PyLongObject *plo=(PyLongObject *)o;
       unsigned char bytes[bytelen];
@@ -362,14 +362,14 @@ static lispval py2lisp(PyObject *o)
   else if (PyString_Check(o)) {
     PyObject *u8=PyString_AsEncodedObject(o,"utf8","none");
     if (u8) {
-      lispval v = lispval_string((u8_string)PyString_AS_STRING(u8));
+      lispval v = knostring((u8_string)PyString_AS_STRING(u8));
       Py_DECREF(u8);
       return v;}
     else return kno_err("InvalidPythonString","py2lisp",NULL,KNO_VOID);}
   else if (PyUnicode_Check(o)) {
     PyObject *utf8 = PyUnicode_AsUTF8String(o);
     if (utf8) {
-      lispval v = lispval_string((u8_string)PyBytes_AS_STRING(utf8));
+      lispval v = knostring((u8_string)PyBytes_AS_STRING(utf8));
       Py_DECREF(utf8);
       return v;}
     else return kno_err("InvalidPythonString","py2lisp",NULL,KNO_VOID);}
@@ -378,7 +378,7 @@ static lispval py2lisp(PyObject *o)
   else if (PyUnicode_Check(o)) {
     PyObject *utf8 = PyUnicode_AsUTF8String(o);
     if (utf8) {
-      lispval v = lispval_string((u8_string)PyBytes_AS_STRING(utf8));
+      lispval v = knostring((u8_string)PyBytes_AS_STRING(utf8));
       Py_DECREF(utf8);
       return v;}
     else return kno_err("InvalidPythonString","py2lisp",NULL,KNO_VOID);}
@@ -473,7 +473,7 @@ static lispval py2lispx(PyObject *o)
   else if (o==Py_True)
     return KNO_TRUE;
   else if (PyInt_Check(o))
-    return KNO_INT2DTYPE(PyInt_AS_LONG(o));
+    return KNO_INT2LISP(PyInt_AS_LONG(o));
   else if (PyFloat_Check(o))
     return kno_init_double(NULL,PyFloat_AsDouble(o));
   else if (PyLong_Check(o)) {
@@ -482,10 +482,10 @@ static lispval py2lispx(PyObject *o)
     int sign=_PyLong_Sign(o);
     if (bitlen<32) {
       long lval=PyLong_AsLong(o);
-      return KNO_INT2DTYPE(lval);}
+      return KNO_INT2LISP(lval);}
     else if (bitlen<64) {
       long long lval=PyLong_AsLongLong(o);
-      return KNO_INT2DTYPE(lval);}
+      return KNO_INT2LISP(lval);}
     else {
       PyLongObject *plo=(PyLongObject *)o;
       unsigned char bytes[bytelen];
@@ -1382,7 +1382,7 @@ static lispval pyexec(lispval pystring)
   gstate=PyGILState_Ensure();
   result=PyRun_SimpleString(KNO_STRDATA(pystring));
   PyGILState_Release(gstate);
-  return KNO_INT2DTYPE(result);
+  return KNO_INT2LISP(result);
 }
 
 static lispval pystring(lispval obj)
