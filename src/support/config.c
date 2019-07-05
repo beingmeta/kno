@@ -142,7 +142,7 @@ KNO_EXPORT int kno_set_config_sym(lispval symbol,lispval val)
   struct KNO_CONFIG_HANDLER *scan = config_handlers;
   while (scan)
     if (KNO_EQ(scan->configname,symbol)) {
-      scan->configflags = scan->configflags|KNO_CONFIG_ALREADY_MODIFIED;
+      scan->configflags |= KNO_CONFIG_ALREADY_MODIFIED;
       if (kno_trace_config)
         u8_log(LOG_WARN,"ConfigSet",
                "Using handler to configure %s with %q",
@@ -175,8 +175,9 @@ KNO_EXPORT int kno_default_config_sym(lispval symbol,lispval val)
   struct KNO_CONFIG_HANDLER *scan = config_handlers;
   while (scan)
     if (KNO_EQ(scan->configname,symbol)) {
-      if ((scan->configflags)&(KNO_CONFIG_ALREADY_MODIFIED)) return 0;
-      scan->configflags = scan->configflags|KNO_CONFIG_ALREADY_MODIFIED;
+      if ( (scan->configflags) & (KNO_CONFIG_ALREADY_MODIFIED) )
+        return 0;
+      scan->configflags |= KNO_CONFIG_ALREADY_MODIFIED;
       retval = scan->config_set_method(symbol,val,scan->configdata);
       if (kno_trace_config)
         u8_log(LOG_WARN,"ConfigSet",
@@ -279,6 +280,7 @@ KNO_EXPORT int kno_register_config_x
     while (PAIRP(scan)) { last = KNO_CAR(scan); scan = KNO_CDR(scan); }
     retval = setfn(symbol,last,data);}
   else retval = setfn(symbol,current,data);
+  scan->configflags |= KNO_CONFIG_ALREADY_MODIFIED;
   kno_decref(current);
   return retval;
 }
