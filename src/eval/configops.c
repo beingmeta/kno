@@ -422,8 +422,8 @@ KNO_EXPORT void kno_init_configops_c()
 	     "it has been defined. ",
 	     -1,KNO_VOID,-1,KNO_VOID);
 
-  kno_idefn2(kno_scheme_module,"FIND_CONFIGS",
-	     find_configs,KNO_NEEDS_2_ARGS,
+  kno_idefn2(kno_scheme_module,"FIND-CONFIGS",
+	     find_configs,KNO_NEEDS_1_ARG,
 	     "`(FIND-CONFIGS *pattern* *withdocs*)`\n"
 	     "Finds all config settings matching *pattern* and returns "
 	     "their names (symbols). *pattern* is a string or regex and "
@@ -432,7 +432,6 @@ KNO_EXPORT void kno_init_configops_c()
 	     "returns the matches as pairs of names and docstrings.",
 	     -1,KNO_VOID,-1,KNO_VOID);
 
-  kno_idefn(kno_scheme_module,kno_make_cprim2("FIND-CONFIGS",find_configs,1));
   kno_defalias(kno_scheme_module,"CONFIG?","FIND-CONFIGS");
 
   DECL_PRIM(config_def,3,kno_scheme_module);
