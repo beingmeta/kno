@@ -880,14 +880,9 @@ int main(int argc,char **argv)
 
   if (dotload) {
     u8_string home_config = u8_realpath("~/.knoconfig",NULL);
-    u8_string cwd_config = u8_realpath(".knoconfig",NULL);
-    int not_in_kansas = strcmp(home_config,cwd_config);
     dotloader("~/.knoconfig",NULL);
-    if (not_in_kansas) dotloader(".knoconfig",NULL);
     dotloader("~/.knoc",env);
-    if (not_in_kansas) dotloader(".knoc",env);
-    u8_free(home_config);
-    u8_free(cwd_config);}
+    u8_free(home_config);}
   else u8_message("Warning: .knoconfig/.knoc files are suppressed");
 
   kno_autoload_config("LOADMOD","LOADFILE","INITS");
