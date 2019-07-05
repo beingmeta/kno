@@ -245,18 +245,20 @@ static lispval load_source_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     lispval config_val = kno_config_get(SYM_NAME(source));
     if (STRINGP(config_val)) {
       u8_log(LOG_NOTICE,"Config","Loading %s = %s",
-             SYM_NAME(source),
-             CSTRING(config_val));
+	     SYM_NAME(source),
+	     CSTRING(config_val));
       source = config_val;}
     else if (VOIDP(config_val)) {
       return kno_err(UnconfiguredSource,"load_source",
-                     "this source is not configured",
-                     source_expr);}
+		     "this source is not configured",
+		     source_expr);}
     else return kno_err(UnconfiguredSource,"load_source",
-                        "this source is misconfigured",
-                        config_val);}
-  if (!(STRINGP(source)))
-    return kno_type_error("filename","LOAD",source);
+			"this source is misconfigured",
+			config_val);}
+  if (!(STRINGP(source))) {
+    lispval err = kno_type_error("filename","LOAD",source);
+    kno_decref(source);
+    return err;}
   encval = kno_eval(encname_expr,env);
   if (VOIDP(encval)) encname="auto";
   else if (STRINGP(encval))
@@ -275,7 +277,7 @@ static lispval load_into_env_prim(lispval source,lispval envarg,lispval resultfn
   lispval result = VOID; kno_lexenv env;
   if (!((VOIDP(resultfn))||(KNO_APPLICABLEP(resultfn))))
     return kno_type_error("callback procedure","LOAD->ENV",envarg);
-  if ((VOIDP(envarg))||(KNO_TRUEP(envarg)))
+  if ( (VOIDP(envarg)) || (KNO_TRUEP(envarg)) || (KNO_DEFAULTP(envarg)))
     env = kno_working_lexenv();
   else if (KNO_LEXENVP(envarg)) {
     env = (kno_lexenv)envarg;
@@ -283,12 +285,17 @@ static lispval load_into_env_prim(lispval source,lispval envarg,lispval resultfn
   else if (TABLEP(envarg))
     env = kno_new_lexenv(envarg);
   else return kno_type_error("environment","LOAD->ENV",envarg);
-  result = kno_load_source(CSTRING(source),env,NULL);
+  if (KNO_STRINGP(source))
+    result = kno_load_source(CSTRING(source),env,NULL);
+  else return kno_type_error("pathname","load_into_env_prim",source);
   if (KNO_ABORTP(result)) {
     kno_decref((lispval)env);
     return result;}
   if (KNO_APPLICABLEP(resultfn)) {
-    lispval tmp = kno_apply(resultfn,1,&result);
+    lispval tmp = (KNO_VOIDP(result)) ?
+      (kno_apply(resultfn,0,NULL)) :
+      (kno_apply(resultfn,1,&result));
+    if (KNO_ABORTP(tmp)) kno_clear_errors(1);
     kno_decref(tmp);}
   kno_decref(result);
   return (lispval) env;
@@ -304,8 +311,10 @@ static lispval load_component_evalfn(lispval expr,kno_lexenv env,kno_stack _stac
   else source = kno_eval(source_expr,env);
   if (KNO_ABORTP(source))
     return source;
-  else if (!(STRINGP(source)))
-    return kno_type_error("filename","LOAD-COMPONENT",source);
+  else if (!(STRINGP(source))) {
+    lispval err = kno_type_error("filename","LOAD-COMPONENT",source);
+    kno_decref(source);
+    return err;}
   encval = kno_eval(encname_expr,env);
   if (VOIDP(encval)) encname="auto";
   else if (STRINGP(encval))
@@ -436,7 +445,7 @@ KNO_EXPORT void kno_init_load_c()
   kno_defn(kno_scheme_module,
            kno_make_cprim3x("LOAD->ENV",load_into_env_prim,1,
                             kno_string_type,VOID,
-                            kno_lexenv_type,VOID,
+                            -1,VOID,
                             -1,VOID));
 
   kno_idefnN(kno_scheme_module,"KNO/RUN-FILE",

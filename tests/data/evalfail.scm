@@ -7,4 +7,4 @@
 (define (return-slotmap x y)
   (irritant #[x x y y] |JustJoking|))
 
-(return-slotmap)
+(return-slotmap 8 9)
