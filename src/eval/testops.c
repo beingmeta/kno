@@ -130,7 +130,9 @@ static lispval applytest(int n,lispval *args)
     struct KNO_FUNCTION *f = (kno_function) expected;
     if (f->fcn_arity == 1)
       predicate=expected;
-    else if ( (f->fcn_arity > 1) && (n >= 3) ) {
+    else if ( ( (f->fcn_arity > 1) || (f->fcn_arity < 0) ) &&
+	      (f->fcn_min_arity < 3) &&
+	      (n >= 3) ) {
       predicate=expected;
       predicate_arg = args[1];
       fn = args[2];
