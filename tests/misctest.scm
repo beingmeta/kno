@@ -4,9 +4,6 @@
 
 (use-module '{reflection varconfig stringformats})
 
-(define configured-value #f)
-(varconfig! confvar configured-value #t)
-
 (optimization-leaks)
 
 (applytest #t procedure? car)
@@ -566,12 +563,6 @@
 (applytest 15 _plus15 5 5 5)
 (applytest 75 _plus15 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5)
 
-;;; Check for config setting
-
-(evaltest 88 configured-value)
-(evaltest "quux" (config 'foo))
-(evaltest "baz" (config 'xconf))
-
 ;;; Assoc errors
 
 (errtest (assq))
@@ -596,6 +587,29 @@
 (errtest (memq 'x "string"))
 (errtest (memv 'x "string"))
 (errtest (member 'x "string"))
+
+;;; Tests of testops
+
+(define (void-cruiser x)
+  (if (< x 3) x))
+
+(applytest > 3 * 3 3)
+(applytest 'err * 3 "three")
+(applytest 2 void-cruiser 2)
+(applytest 'void void-cruiser 9)
+
+(evaltest 'err (+ 3 "two"))
+(evaltest 'void (if #f 3))
+
+(define (bad-predicate x) (irritant x 'just-because))
+(define (bad-relation x y) (irritant (cons x y) 'just-because))
+
+(errtest (evaltest 9 (+ 4 "five")))
+
+(errtest (applytest bad-predicate + 2 3))
+(errtest (applytest bad-relation 9 + 2 3))
+
+(errtest (evaltest))
 
 ;;; Gather errors
 

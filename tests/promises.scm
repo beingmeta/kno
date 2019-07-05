@@ -81,6 +81,31 @@
 (set! promise5 #f)
 (set! promise6 #f)
 
+(errtest (delay))
+(applytest promise? (delay (+ 2 3)))
+(applytest promise? (delay 5))
+(applytest "five" force "five")
+(applytest 5 force (delay 5))
+(applytest 5 force (delay (+ 2 3)))
+(applytest "five" promise/probe "five")
+
+(define bad-promise (delay (+ 3 "three")))
+(errtest (force bad-promise))
+(applytest exception? force bad-promise)
+
+(define deliveries 0)
+(define multi-promise (delay (begin (set! deliveries (1+ deliveries)) deliveries)))
+(applytest 1 force multi-promise)
+(applytest 1 force multi-promise)
+
+(define common-counter 0)
+
+(define (counter-proc)
+  (set! common-counter (1+ common-counter))
+  common-counter)
+(define counter-promise (delay (counter-proc)))
+(evaltest 1 (parallel (force counter-promise) (force counter-promise) (force counter-promise)))
+
 ;;; All done
 
 (test-finished "PROMISES")

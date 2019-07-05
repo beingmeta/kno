@@ -128,7 +128,8 @@ optscheme:
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes r4rs.scm ${RUNCONF}
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes choices.scm ${RUNCONF}
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes sequences.scm ${RUNCONF}
-	@${RUN} ${KNOX} TESTOPTIMIZED=yes misctest.scm ${RUNCONF} FOO=quux "CONFVAR=88;XCONF=baz"
+	@${RUN} ${KNOX} TESTOPTIMIZED=yes misctest.scm ${RUNCONF}
+	@${RUN} ${KNOX} TESTOPTIMIZED=yes configs.scm ${RUNCONF} FOO=quux "CONFVAR=88;XCONF=baz"
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes reflect.scm ${RUNCONF}
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes exceptions.scm ${RUNCONF}
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes picktest.scm ${RUNCONF}
@@ -200,7 +201,7 @@ promises:
 	@${RUN} ${KNOX} promises.scm ${RUNCONF}
 	@${header} "■■■■ Completed promises tests ${RUNCONF}"
 configs:
-	@${RUN} ${KNOX} configs.scm ${RUNCONF}
+	@${RUN} ${KNOX} configs.scm ${RUNCONF} FOO=quux "CONFVAR=88;XCONF=baz"
 	@${header} "■■■■ Completed config system tests ${RUNCONF}"
 appenv:
 	@${RUN} ${KNOX} TRACECONFIG=yes TRACELOAD=yes CONFIG=data/appenv.cfg \
@@ -265,7 +266,7 @@ fileprims:
 	@${RUN} ${KNOX} fileprims.scm ${RUNCONF}
 	@${header} "■■■■ Completed fileprim tests ${RUNCONF}"
 misc misctest:
-	@${RUN} ${KNOX} misctest.scm ${RUNCONF} FOO=quux "CONFVAR=88;XCONF=baz"
+	@${RUN} ${KNOX} misctest.scm ${RUNCONF}
 	@${header} "■■■■ Completed misc tests ${RUNCONF}"
 gctests:
 	@${RUN} ${KNOX} gctests.scm ${RUNCONF}

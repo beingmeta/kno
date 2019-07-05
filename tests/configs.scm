@@ -39,3 +39,38 @@
 (set! test-val-readonly #t)
 (errtest (config! 'TEST_VAL 42))
 
+;;; Check for config setting
+
+(define configured-value #f)
+(varconfig! confvar configured-value #t)
+(evaltest 88 configured-value)
+
+(evaltest "quux" (config 'foo))
+(evaltest "baz" (config 'xconf))
+
+(applytest "quux" config "foo")
+(applytest "quux" config "FOO")
+(applytest 'err config 88)
+(applytest "quux" config 'foo 88)
+(applytest 'quux config 'foo 88 #t)
+
+(config! 'badexpr "(+ 2")
+(applytest 9 config 'badexpr 9 #t)
+
+(define (bad-valfn x) (error 'just-because))
+
+(applytest 9 config 'badexpr 9 bad-valfn)
+
+(applytest 89 config 'confvar 0 1+)
+
+(applytest 89 1+ #:config:confvar)
+
+(config! "BAZ" 89.7)
+(applytest 89.7 config 'baz)
+(applytest 89.7 config "baz")
+(applytest 'err config 89.7)
+
+(config-default! 'confvar 99)
+(applytest 88 config "confvar" 9)
+
+(applytest overlaps? '{|PID| |PPID|} find-configs "pid")
