@@ -17,6 +17,7 @@
 #include "kno/eval.h"
 #include "kno/ports.h"
 #include "kno/webtools.h"
+#include "kno/cprims.h"
 
 #include <libu8/u8xfiles.h>
 #include <libu8/u8stringfns.h>
@@ -530,6 +531,18 @@ static int add_query_param(u8_output out,lispval name,lispval value,int nocolon)
 
 /* URI encoding */
 
+KNO_DCLPRIM3("URIENCODE",uriencode_prim,MIN_ARGS(1)|KNO_NDCALL,
+             "(uriencode *val* [*chars*] [*upper*]) encodes a value "
+             "for use as a URI component (e.g. translating space "
+             "into '%20'.) "
+             "If *val* is a string, packet, or secret it is encoded "
+             "directly, otherwise it is unparsed into a string which "
+             "is then encoded. *chars*, if specified, indicates "
+             "additional characters to be escaped beyond (+%=&#;) "
+             "which are automatically escaped. If *upper* is not falsy, "
+             "generated hex escapes are generated with uppercase letters "
+             "(e.g. %A0 rather than %a0).",
+             -1,VOID,kno_string_type,VOID,-1,VOID);
 static lispval uriencode_prim(lispval string,lispval escape,lispval uparg)
 {
   u8_string input; int free_input = 0;
@@ -557,6 +570,18 @@ static lispval uriencode_prim(lispval string,lispval escape,lispval uparg)
   else return kno_stream2string(&out);
 }
 
+KNO_DCLPRIM2("FORM->URISTRING",form_encode_prim,MIN_ARGS(1),
+             "(uriencode *val* [*chars*] [*upper*]) encodes a value "
+             "for use as a URI component (e.g. translating space "
+             "into '%20'.) "
+             "If *val* is a string, packet, or secret it is encoded "
+             "directly, otherwise it is unparsed into a string which "
+             "is then encoded. *chars*, if specified, indicates "
+             "additional characters to be escaped beyond (+%=&#;) "
+             "which are automatically escaped. If *upper* is not falsy, "
+             "generated hex escapes are generated with uppercase letters "
+             "(e.g. %A0 rather than %a0).",
+             -1,VOID,-1,VOID);
 static lispval form_encode_prim(lispval table,lispval opts)
 {
   int keep_secret=0;
@@ -583,6 +608,11 @@ static lispval form_encode_prim(lispval table,lispval opts)
 
 static int xdigit_weight(int c);
 
+KNO_DCLPRIM1("URIDECODE",uridecode_prim,MIN_ARGS(1),
+             "`(URIDECODE *string*)` returns a copy of *string* "
+             "with all uri-encoded references converted back into "
+             "their normal equivalents",
+             -1,VOID);
 static lispval uridecode_prim(lispval string)
 {
   int len = STRLEN(string), c;
@@ -741,7 +771,6 @@ static lispval knoscripturlplus(int n,lispval *args)
 KNO_EXPORT void kno_init_urifns_c()
 {
   lispval module = kno_new_module("WEBTOOLS",(0));
-  lispval safe_module = kno_new_module("WEBTOOLS",(1));
 
   scheme_symbol = kno_intern("scheme");
   userinfo_symbol = kno_intern("userinfo");
@@ -780,32 +809,9 @@ KNO_EXPORT void kno_init_urifns_c()
                                   -1,VOID,kno_string_type,VOID));
 
   /* This is the non-deterministic version */
-  lispval uriencode_proc=
-    kno_new_cprim3("URIENCODE",_FILEINFO,
-                  "(uriencode *val* [*chars*] [*upper*]) encodes a value "
-                  "for use as a URI component (e.g. translating space "
-                  "into '%20'.) "
-                  "If *val* is a string, packet, or secret it is encoded "
-                  "directly, otherwise it is unparsed into a string which "
-                  "is then encoded. *chars*, if specified, indicates "
-                  "additional characters to be escaped beyond (+%=&#;) "
-                  "which are automatically escaped. If *upper* is not falsy, "
-                  "generated hex escapes are generated with uppercase letters "
-                  "(e.g. %A0 rather than %a0).",
-                  uriencode_prim,1,1,0,
-                  -1,VOID,
-                  kno_string_type,VOID,
-                  -1,VOID);
-  lispval form_encode_proc=
-    kno_new_cprim2("FORM->URISTRING",_FILEINFO,
-                  "(FORM->URISTRING *form* [*opts*]) encodes a table as an "
-                  "application/x-www-url-encoded string.",
-                  form_encode_prim,1,0,0,
-                  -1,VOID,-1,VOID);
-
-  lispval uridecode_proc=
-    kno_make_cprim1x("URIDECODE",uridecode_prim,1,
-                    kno_string_type,VOID);
+  DECL_PRIM(uriencode_prim,3,module);
+  DECL_PRIM(uridecode_prim,1,module);
+  DECL_PRIM(form_encode_prim,2,module);
 
   lispval oid2id_proc=
     kno_make_cprim2x("OID2ID",oid2id,1,kno_oid_type,VOID,-1,VOID);
@@ -818,10 +824,6 @@ KNO_EXPORT void kno_init_urifns_c()
   lispval knoscripturlplus_proc=
     kno_make_ndprim(kno_make_cprimn("KNOSCRIPTURL+",knoscripturlplus,2));
 
-  kno_defn(module,uriencode_proc);
-  kno_defn(module,uridecode_proc);
-  kno_defn(module,form_encode_proc);
-
   kno_defn(module,oid2id_proc);
   kno_defn(module,scripturl_proc);
   kno_defn(module,scripturlplus_proc);
@@ -831,18 +833,6 @@ KNO_EXPORT void kno_init_urifns_c()
   kno_store(module,kno_intern("scripturl+"),scripturlplus_proc);
   kno_store(module,kno_intern("knoscripturl"),knoscripturl_proc);
   kno_store(module,kno_intern("knoscripturl+"),knoscripturlplus_proc);
-
-  kno_idefn(safe_module,form_encode_proc);
-  kno_idefn(safe_module,uriencode_proc);
-  kno_idefn(safe_module,uridecode_proc);
-
-  kno_idefn(safe_module,oid2id_proc);
-  kno_idefn(safe_module,scripturl_proc);
-  kno_idefn(safe_module,scripturlplus_proc);
-  kno_idefn(safe_module,knoscripturl_proc);
-  kno_idefn(safe_module,knoscripturlplus_proc);
-
-  kno_store(safe_module,kno_intern("scripturl+"),scripturlplus_proc);
 
   u8_register_source_file(_FILEINFO);
 }

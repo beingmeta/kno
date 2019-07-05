@@ -32,14 +32,14 @@
 
 #define KNO_DEFPRIM_DECL(pname,cname,flags,docstring)              \
   static struct KNO_CPRIM_INFO cname ## _info = {                        \
-    pname, _FILEINFO " L#" STRINGIFY(__LINE__),                         \
+    pname, # cname, _FILEINFO " L#" STRINGIFY(__LINE__),                         \
     docstring, ((flags)&0x7f), flags};                                  \
   static U8_MAYBE_UNUSED int *cname ## _typeinfo = NULL;                \
   static U8_MAYBE_UNUSED lispval *cname ## _defaults = NULL
 
 #define KNO_DCLPRIM(pname,cname,flags,docstring)                         \
   static struct KNO_CPRIM_INFO cname ## _info = {                        \
-    pname, _FILEINFO " L#" STRINGIFY(__LINE__),                         \
+    pname, # cname, _FILEINFO " L#" STRINGIFY(__LINE__),                         \
     docstring, ((flags)&0x7f), flags};                                  \
   static U8_MAYBE_UNUSED int *cname ## _typeinfo = NULL;                \
   static U8_MAYBE_UNUSED lispval *cname ## _defaults = NULL;
@@ -50,7 +50,7 @@
 
 #define KNO_DCLPRIM1(pname,cname,flags,docstring,t1,d1)                  \
   static struct KNO_CPRIM_INFO cname ## _info = {                        \
-    pname, _FILEINFO " L#" STRINGIFY(__LINE__), docstring, 1, flags};   \
+    pname, # cname, _FILEINFO " L#" STRINGIFY(__LINE__), docstring, 1, flags};   \
   static U8_MAYBE_UNUSED int cname## _typeinfo[1] = { t1 };             \
   static U8_MAYBE_UNUSED lispval cname ## _defaults[1] = { d1 };
 
@@ -60,7 +60,7 @@
 
 #define KNO_DCLPRIM2(pname,cname,flags,docstring,t1,d1,t2,d2)            \
   static struct KNO_CPRIM_INFO cname ## _info = {                        \
-    pname, _FILEINFO " L#" STRINGIFY(__LINE__), docstring, 2, flags};   \
+    pname, # cname, _FILEINFO " L#" STRINGIFY(__LINE__), docstring, 2, flags};   \
   static U8_MAYBE_UNUSED int cname## _typeinfo[2] = { t1, t2 };         \
   static U8_MAYBE_UNUSED lispval cname ## _defaults[2] = { d1, d2 };
 
@@ -70,7 +70,7 @@
 
 #define KNO_DCLPRIM3(pname,cname,flags,docstring,t1,d1,t2,d2,t3,d3)      \
   static struct KNO_CPRIM_INFO cname ## _info = {                        \
-    pname, _FILEINFO " L#" STRINGIFY(__LINE__), docstring, 3, flags};   \
+    pname, # cname, _FILEINFO " L#" STRINGIFY(__LINE__), docstring, 3, flags};   \
   static U8_MAYBE_UNUSED int cname## _typeinfo[3] = { t1, t2, t3 };     \
   static U8_MAYBE_UNUSED lispval cname ## _defaults[3] = { d1, d2, d3 };
 
@@ -80,7 +80,7 @@
 
 #define KNO_DCLPRIM4(pname,cname,flags,docstring,t1,d1,t2,d2,t3,d3,t4,d4) \
   static struct KNO_CPRIM_INFO cname ## _info = {                        \
-    pname, _FILEINFO " L#" STRINGIFY(__LINE__), docstring, 4, flags};   \
+    pname, # cname, _FILEINFO " L#" STRINGIFY(__LINE__), docstring, 4, flags};   \
   static U8_MAYBE_UNUSED int cname## _typeinfo[4] = { t1, t2, t3, t4 }; \
   static U8_MAYBE_UNUSED lispval cname ## _defaults[4] = { d1, d2, d3, d4 };
 
@@ -91,7 +91,7 @@
 #define KNO_DCLPRIM5(pname,cname,flags,docstring,                        \
                     t1,d1,t2,d2,t3,d3,t4,d4,t5,d5)                      \
   static struct KNO_CPRIM_INFO cname ## _info = {                        \
-    pname, _FILEINFO " L#" STRINGIFY(__LINE__), docstring, 5, flags};   \
+    pname, # cname, _FILEINFO " L#" STRINGIFY(__LINE__), docstring, 5, flags};   \
   static U8_MAYBE_UNUSED int cname## _typeinfo[5] = { t1, t2, t3, t4, t5 }; \
   static U8_MAYBE_UNUSED lispval cname ## _defaults[5] = { d1, d2, d3, d4, d5 };
 #define KNO_DEFPRIM5(pname,cname,flags,docstring,                        \
@@ -104,7 +104,7 @@
 #define KNO_DCLPRIM6(pname,cname,flags,docstring,                        \
                     t1,d1,t2,d2,t3,d3,t4,d4,t5,d5,t6,d6)                \
   static struct KNO_CPRIM_INFO cname ## _info = {                        \
-    pname, _FILEINFO " L#" STRINGIFY(__LINE__), docstring, 6, flags};   \
+    pname, # cname, _FILEINFO " L#" STRINGIFY(__LINE__), docstring, 6, flags};   \
   static U8_MAYBE_UNUSED int cname## _typeinfo[6] = { t1, t2, t3, t4, t5, t6 }; \
   static U8_MAYBE_UNUSED lispval cname ## _defaults[6] = { d1, d2, d3, d4, d5, d6 };
 
@@ -143,7 +143,7 @@
 #define KNO_DCLPRIM9(pname,cname,flags,docstring,t1,d1,t2,d2,            \
                     t3,d3,t4,d4,t5,d5,t6,d6,t7,d7,t8,d8,t9,d9)          \
   static struct KNO_CPRIM_INFO cname ## _info = {                        \
-    pname, _FILEINFO " L#" STRINGIFY(__LINE__), docstring, 9, flags};   \
+    pname, # cname, _FILEINFO " L#" STRINGIFY(__LINE__), docstring, 9, flags};   \
   static U8_MAYBE_UNUSED int cname## _typeinfo[9] =                     \
     { t1, t2, t3, t4, t5, t6, t7, t8, t9 };                             \
   static U8_MAYBE_UNUSED lispval cname ## _defaults[9] =                \
@@ -158,7 +158,7 @@
 #define KNO_DCLPRIM10(pname,cname,flags,docstring,t1,d1,t2,d2,           \
                      t3,d3,t4,d4,t5,d5,t6,d6,t7,d7,t8,d8,t9,d9,t10,d10) \
   static struct KNO_CPRIM_INFO cname ## _info = {                        \
-    pname, _FILEINFO " L#" STRINGIFY(__LINE__), docstring, 10, flags};  \
+    pname, # cname, _FILEINFO " L#" STRINGIFY(__LINE__), docstring, 10, flags};  \
   static U8_MAYBE_UNUSED int cname## _typeinfo[10] =                    \
     { t1, t2, t3, t4, t5, t6, t7, t8, t9, t10 };                        \
   static U8_MAYBE_UNUSED lispval cname ## _defaults[7] =                \
@@ -174,7 +174,7 @@
                      t3,d3,t4,d4,t5,d5,t6,d6,t7,d7,t8,d8,t9,d9,         \
                      t10,d10,t11,d11)                                   \
   static struct KNO_CPRIM_INFO cname ## _info = {                        \
-    pname, _FILEINFO " L#" STRINGIFY(__LINE__), docstring, 11, flags};  \
+    pname, # cname, _FILEINFO " L#" STRINGIFY(__LINE__), docstring, 11, flags};  \
   static U8_MAYBE_UNUSED int cname## _typeinfo[11] =                    \
     { t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11 };                   \
   static U8_MAYBE_UNUSED lispval cname ## _defaults[7] =                \
@@ -192,7 +192,7 @@
                      t3,d3,t4,d4,t5,d5,t6,d6,t7,d7,t8,d8,t9,d9,         \
                      t10,d10,t11,d11,t12,d12)                           \
   static struct KNO_CPRIM_INFO cname ## _info = {                        \
-    pname, _FILEINFO " L#" STRINGIFY(__LINE__), docstring, 12, flags};  \
+    pname, # cname, _FILEINFO " L#" STRINGIFY(__LINE__), docstring, 12, flags};  \
   static U8_MAYBE_UNUSED int cname## _typeinfo[12] =                    \
     { t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12 };              \
   static U8_MAYBE_UNUSED lispval cname ## _defaults[7] =                \
@@ -210,7 +210,7 @@
                      t3,d3,t4,d4,t5,d5,t6,d6,t7,d7,t8,d8,t9,d9,         \
                      t10,d10,t11,d11,t12,d12,t13,d13)                   \
   static struct KNO_CPRIM_INFO cname ## _info = {                        \
-    pname, _FILEINFO " L#" STRINGIFY(__LINE__), docstring, 13, flags};  \
+    pname, # cname, _FILEINFO " L#" STRINGIFY(__LINE__), docstring, 13, flags};  \
   static U8_MAYBE_UNUSED int cname## _typeinfo[12] =                    \
     { t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13 };         \
   static U8_MAYBE_UNUSED lispval cname ## _defaults[7] =                \
@@ -228,7 +228,7 @@
                      t3,d3,t4,d4,t5,d5,t6,d6,t7,d7,t8,d8,t9,d9,         \
                      t10,d10,t11,d11,t12,d12,t13,d13,t14,d14)           \
   static struct KNO_CPRIM_INFO cname ## _info = {                        \
-    pname, _FILEINFO " L#" STRINGIFY(__LINE__), docstring, 14, flags};  \
+    pname, # cname, _FILEINFO " L#" STRINGIFY(__LINE__), docstring, 14, flags};  \
   static U8_MAYBE_UNUSED int cname## _typeinfo[12] =                    \
     { t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14 };    \
   static U8_MAYBE_UNUSED lispval cname ## _defaults[7] =                \
@@ -246,7 +246,7 @@
                      t3,d3,t4,d4,t5,d5,t6,d6,t7,d7,t8,d8,t9,d9,         \
                      t10,d10,t11,d11,t12,d12,t13,d13,t14,d14,t15,d15)   \
   static struct KNO_CPRIM_INFO cname ## _info = {                        \
-    pname, _FILEINFO " L#" STRINGIFY(__LINE__), docstring, 15, flags};  \
+    pname, # cname, _FILEINFO " L#" STRINGIFY(__LINE__), docstring, 15, flags};  \
   static U8_MAYBE_UNUSED int cname## _typeinfo[12] =                    \
     { t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15 }; \
   static U8_MAYBE_UNUSED lispval cname ## _defaults[7] =                \

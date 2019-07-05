@@ -177,195 +177,202 @@ struct KNO_FUNCTION {
   KNO_FUNCTION_FIELDS;
 };
 
+struct KNO_CPRIM {
+  KNO_FUNCTION_FIELDS;
+  u8_string cprim_name;
+};
+typedef struct KNO_CPRIM KNO_CPRIM;
+typedef struct KNO_CPRIM *kno_cprim;
+
 typedef struct KNO_CPRIM_INFO {
-  u8_string pname, filename, docstring;
+  u8_string pname, cname, filename, docstring;
   int arity, flags;} KNO_CPRIM_INFO;
 
 KNO_EXPORT u8_string kno_fcn_sig(struct KNO_FUNCTION *fcn,u8_byte namebuf[100]);
 
-KNO_EXPORT lispval kno_new_cprimn(u8_string name,u8_string filename,u8_string doc,kno_cprimn fn,int min_arity,int ndcall,int xcall);
-KNO_EXPORT lispval kno_new_cprim0(u8_string name,u8_string filename,u8_string doc,kno_cprim0 fn,int xcall);
-KNO_EXPORT lispval kno_new_cprim1(u8_string name,u8_string filename,u8_string doc,kno_cprim1 fn,int min_arity,int ndcall,int xcall,int type0,lispval dflt0);
-KNO_EXPORT lispval kno_new_cprim2(u8_string name,u8_string filename,u8_string doc,kno_cprim2 fn,int min_arity,int ndcall,int call,int type0,lispval dflt0,int type1,lispval dflt1);
-KNO_EXPORT lispval kno_new_cprim3(u8_string name,u8_string filename,u8_string doc,kno_cprim3 fn,int min_arity,int ndcall,int call,int type0,lispval dflt0,int type1,lispval dflt1,int type2,lispval dflt2);
-KNO_EXPORT lispval kno_new_cprim4(u8_string name,u8_string filename,u8_string doc,kno_cprim4 fn,int min_arity,int ndcall,int call,int type0,lispval dflt0,int type1,lispval dflt1,int type2,lispval dflt2,int type3,lispval dflt3);
-KNO_EXPORT lispval kno_new_cprim5(u8_string name,u8_string filename,u8_string doc,kno_cprim5 fn,int min_arity,int ndcall,int call,int type0,lispval dflt0,int type1,lispval dflt1,int type2,lispval dflt2,int type3,lispval dflt3,int type4,lispval dflt4);
-KNO_EXPORT lispval kno_new_cprim6(u8_string name,u8_string filename,u8_string doc,kno_cprim6 fn,int min_arity,int ndcall,int call,int type0,lispval dflt0,int type1,lispval dflt1,int type2,lispval dflt2,int type3,lispval dflt3,int type4,lispval dflt4,int type5,lispval dflt5);
-KNO_EXPORT lispval kno_new_cprim7(u8_string name,u8_string filename,u8_string doc,kno_cprim7 fn,int min_arity,int ndcall,int call,int type0,lispval dflt0,int type1,lispval dflt1,int type2,lispval dflt2,int type3,lispval dflt3,int type4,lispval dflt4,int type5,lispval dflt5,int type6,lispval dflt6);
-KNO_EXPORT lispval kno_new_cprim8(u8_string name,u8_string filename,u8_string doc,kno_cprim8 fn,int min_arity,int ndcall,int call,int type0,lispval dflt0,int type1,lispval dflt1,int type2,lispval dflt2,int type3,lispval dflt3,int type4,lispval dflt4,int type5,lispval dflt5,int type6,lispval dflt6,int type7,lispval dflt7);
-KNO_EXPORT lispval kno_new_cprim9(u8_string name,u8_string filename,u8_string doc,kno_cprim9 fn,int min_arity,int ndcall,int call,int type0,lispval dflt0,int type1,lispval dflt1,int type2,lispval dflt2,int type3,lispval dflt3,int type4,lispval dflt4,int type5,lispval dflt5,int type6,lispval dflt6,int type7,lispval dflt7,int type8,lispval dflt8);
-KNO_EXPORT lispval kno_new_cprim10(u8_string name,u8_string filename,u8_string doc,kno_cprim10 fn,int min_arity,int ndcall,int call,int type0,lispval dflt0,int type1,lispval dflt1,int type2,lispval dflt2,int type3,lispval dflt3,int type4,lispval dflt4,int type5,lispval dflt5,int type6,lispval dflt6,int type7,lispval dflt7,int type8,lispval dflt8,int type9,lispval dflt9);
-KNO_EXPORT lispval kno_new_cprim11(u8_string name,u8_string filename,u8_string doc,kno_cprim11 fn,int min_arity,int ndcall,int call,int type0,lispval dflt0,int type1,lispval dflt1,int type2,lispval dflt2,int type3,lispval dflt3,int type4,lispval dflt4,int type5,lispval dflt5,int type6,lispval dflt6,int type7,lispval dflt7,int type8,lispval dflt8,int type9,lispval dflt9,int type10,lispval dflt10);KNO_EXPORT lispval kno_new_cprim12(u8_string name,u8_string filename,u8_string doc,kno_cprim12 fn,int min_arity,int ndcall,int call,int type0,lispval dflt0,int type1,lispval dflt1,int type2,lispval dflt2,int type3,lispval dflt3,int type4,lispval dflt4,int type5,lispval dflt5,int type6,lispval dflt6,int type7,lispval dflt7,int type8,lispval dflt8,int type9,lispval dflt9,int type10,lispval dflt10,int type11,lispval dflt11);
-KNO_EXPORT lispval kno_new_cprim13(u8_string name,u8_string filename,u8_string doc,kno_cprim13 fn,int min_arity,int ndcall,int call,int type0,lispval dflt0,int type1,lispval dflt1,int type2,lispval dflt2,int type3,lispval dflt3,int type4,lispval dflt4,int type5,lispval dflt5,int type6,lispval dflt6,int type7,lispval dflt7,int type8,lispval dflt8,int type9,lispval dflt9,int type10,lispval dflt10,int type11,lispval dflt11,int type12,lispval dflt12);
-KNO_EXPORT lispval kno_new_cprim14(u8_string name,u8_string filename,u8_string doc,kno_cprim14 fn,int min_arity,int ndcall,int call,int type0,lispval dflt0,int type1,lispval dflt1,int type2,lispval dflt2,int type3,lispval dflt3,int type4,lispval dflt4,int type5,lispval dflt5,int type6,lispval dflt6,int type7,lispval dflt7,int type8,lispval dflt8,int type9,lispval dflt9,int type10,lispval dflt10,int type11,lispval dflt11,int type12,lispval dflt12,int type13,lispval dflt13);
-KNO_EXPORT lispval kno_new_cprim15(u8_string name,u8_string filename,u8_string doc,kno_cprim15 fn,int min_arity,int ndcall,int call,int type0,lispval dflt0,int type1,lispval dflt1,int type2,lispval dflt2,int type3,lispval dflt3,int type4,lispval dflt4,int type5,lispval dflt5,int type6,lispval dflt6,int type7,lispval dflt7,int type8,lispval dflt8,int type9,lispval dflt9,int type10,lispval dflt10,int type11,lispval dflt11,int type12,lispval dflt12,int type13,lispval dflt13,int type14,lispval dflt14);
+KNO_EXPORT lispval kno_new_cprimn(u8_string name,u8_string cname,u8_string filename,u8_string doc,kno_cprimn fn,int min_arity,int ndcall,int xcall);
+KNO_EXPORT lispval kno_new_cprim0(u8_string name,u8_string cname,u8_string filename,u8_string doc,kno_cprim0 fn,int xcall);
+KNO_EXPORT lispval kno_new_cprim1(u8_string name,u8_string cname,u8_string filename,u8_string doc,kno_cprim1 fn,int min_arity,int ndcall,int xcall,int type0,lispval dflt0);
+KNO_EXPORT lispval kno_new_cprim2(u8_string name,u8_string cname,u8_string filename,u8_string doc,kno_cprim2 fn,int min_arity,int ndcall,int call,int type0,lispval dflt0,int type1,lispval dflt1);
+KNO_EXPORT lispval kno_new_cprim3(u8_string name,u8_string cname,u8_string filename,u8_string doc,kno_cprim3 fn,int min_arity,int ndcall,int call,int type0,lispval dflt0,int type1,lispval dflt1,int type2,lispval dflt2);
+KNO_EXPORT lispval kno_new_cprim4(u8_string name,u8_string cname,u8_string filename,u8_string doc,kno_cprim4 fn,int min_arity,int ndcall,int call,int type0,lispval dflt0,int type1,lispval dflt1,int type2,lispval dflt2,int type3,lispval dflt3);
+KNO_EXPORT lispval kno_new_cprim5(u8_string name,u8_string cname,u8_string filename,u8_string doc,kno_cprim5 fn,int min_arity,int ndcall,int call,int type0,lispval dflt0,int type1,lispval dflt1,int type2,lispval dflt2,int type3,lispval dflt3,int type4,lispval dflt4);
+KNO_EXPORT lispval kno_new_cprim6(u8_string name,u8_string cname,u8_string filename,u8_string doc,kno_cprim6 fn,int min_arity,int ndcall,int call,int type0,lispval dflt0,int type1,lispval dflt1,int type2,lispval dflt2,int type3,lispval dflt3,int type4,lispval dflt4,int type5,lispval dflt5);
+KNO_EXPORT lispval kno_new_cprim7(u8_string name,u8_string cname,u8_string filename,u8_string doc,kno_cprim7 fn,int min_arity,int ndcall,int call,int type0,lispval dflt0,int type1,lispval dflt1,int type2,lispval dflt2,int type3,lispval dflt3,int type4,lispval dflt4,int type5,lispval dflt5,int type6,lispval dflt6);
+KNO_EXPORT lispval kno_new_cprim8(u8_string name,u8_string cname,u8_string filename,u8_string doc,kno_cprim8 fn,int min_arity,int ndcall,int call,int type0,lispval dflt0,int type1,lispval dflt1,int type2,lispval dflt2,int type3,lispval dflt3,int type4,lispval dflt4,int type5,lispval dflt5,int type6,lispval dflt6,int type7,lispval dflt7);
+KNO_EXPORT lispval kno_new_cprim9(u8_string name,u8_string cname,u8_string filename,u8_string doc,kno_cprim9 fn,int min_arity,int ndcall,int call,int type0,lispval dflt0,int type1,lispval dflt1,int type2,lispval dflt2,int type3,lispval dflt3,int type4,lispval dflt4,int type5,lispval dflt5,int type6,lispval dflt6,int type7,lispval dflt7,int type8,lispval dflt8);
+KNO_EXPORT lispval kno_new_cprim10(u8_string name,u8_string cname,u8_string filename,u8_string doc,kno_cprim10 fn,int min_arity,int ndcall,int call,int type0,lispval dflt0,int type1,lispval dflt1,int type2,lispval dflt2,int type3,lispval dflt3,int type4,lispval dflt4,int type5,lispval dflt5,int type6,lispval dflt6,int type7,lispval dflt7,int type8,lispval dflt8,int type9,lispval dflt9);
+KNO_EXPORT lispval kno_new_cprim11(u8_string name,u8_string cname,u8_string filename,u8_string doc,kno_cprim11 fn,int min_arity,int ndcall,int call,int type0,lispval dflt0,int type1,lispval dflt1,int type2,lispval dflt2,int type3,lispval dflt3,int type4,lispval dflt4,int type5,lispval dflt5,int type6,lispval dflt6,int type7,lispval dflt7,int type8,lispval dflt8,int type9,lispval dflt9,int type10,lispval dflt10);KNO_EXPORT lispval kno_new_cprim12(u8_string name,u8_string cname,u8_string filename,u8_string doc,kno_cprim12 fn,int min_arity,int ndcall,int call,int type0,lispval dflt0,int type1,lispval dflt1,int type2,lispval dflt2,int type3,lispval dflt3,int type4,lispval dflt4,int type5,lispval dflt5,int type6,lispval dflt6,int type7,lispval dflt7,int type8,lispval dflt8,int type9,lispval dflt9,int type10,lispval dflt10,int type11,lispval dflt11);
+KNO_EXPORT lispval kno_new_cprim13(u8_string name,u8_string cname,u8_string filename,u8_string doc,kno_cprim13 fn,int min_arity,int ndcall,int call,int type0,lispval dflt0,int type1,lispval dflt1,int type2,lispval dflt2,int type3,lispval dflt3,int type4,lispval dflt4,int type5,lispval dflt5,int type6,lispval dflt6,int type7,lispval dflt7,int type8,lispval dflt8,int type9,lispval dflt9,int type10,lispval dflt10,int type11,lispval dflt11,int type12,lispval dflt12);
+KNO_EXPORT lispval kno_new_cprim14(u8_string name,u8_string cname,u8_string filename,u8_string doc,kno_cprim14 fn,int min_arity,int ndcall,int call,int type0,lispval dflt0,int type1,lispval dflt1,int type2,lispval dflt2,int type3,lispval dflt3,int type4,lispval dflt4,int type5,lispval dflt5,int type6,lispval dflt6,int type7,lispval dflt7,int type8,lispval dflt8,int type9,lispval dflt9,int type10,lispval dflt10,int type11,lispval dflt11,int type12,lispval dflt12,int type13,lispval dflt13);
+KNO_EXPORT lispval kno_new_cprim15(u8_string name,u8_string cname,u8_string filename,u8_string doc,kno_cprim15 fn,int min_arity,int ndcall,int call,int type0,lispval dflt0,int type1,lispval dflt1,int type2,lispval dflt2,int type3,lispval dflt3,int type4,lispval dflt4,int type5,lispval dflt5,int type6,lispval dflt6,int type7,lispval dflt7,int type8,lispval dflt8,int type9,lispval dflt9,int type10,lispval dflt10,int type11,lispval dflt11,int type12,lispval dflt12,int type13,lispval dflt13,int type14,lispval dflt14);
 
-KNO_EXPORT lispval kno_init_cprim2(u8_string name,u8_string filename,u8_string doc,kno_cprim2 fn,int flags,
+KNO_EXPORT lispval kno_init_cprim2(u8_string name,u8_string cname,u8_string filename,u8_string doc,kno_cprim2 fn,int flags,
                                  int types[2],lispval dflts[2]);
 
 #define kno_make_cprimn(name,fn,min_arity)               \
-  kno_new_cprimn(name,_FILEINFO,NULL,fn,min_arity,0,0)
+  kno_new_cprimn(name,# fn,_FILEINFO,NULL,fn,min_arity,0,0)
 #define kno_make_cprimN(name,fn,min_arity)               \
-  kno_new_cprimn(name,_FILEINFO,NULL,fn,min_arity,0,0)
+  kno_new_cprimn(name,# fn,_FILEINFO,NULL,fn,min_arity,0,0)
 
 #define kno_make_cprim0(name,fn)                 \
-  kno_new_cprim0(name,_FILEINFO,NULL,fn,0)
+  kno_new_cprim0(name,# fn,_FILEINFO,NULL,fn,0)
 #define kno_make_cprim1(name,fn,flags)                                     \
-  kno_new_cprim1(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0, \
+  kno_new_cprim1(name,# fn,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0, \
                 -1,KNO_VOID)
 #define kno_make_cprim2(name,fn,flags)                                     \
-  kno_new_cprim2(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0, \
+  kno_new_cprim2(name,# fn,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0, \
                 -1,KNO_VOID,-1,KNO_VOID)
 #define kno_make_cprim3(name,fn,flags)                                     \
-  kno_new_cprim3(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0, \
+  kno_new_cprim3(name,# fn,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0, \
                 -1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID)
 #define kno_make_cprim4(name,fn,flags)                                     \
-  kno_new_cprim4(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0, \
+  kno_new_cprim4(name,# fn,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0, \
                 -1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID)
 #define kno_make_cprim5(name,fn,flags)                                     \
-  kno_new_cprim5(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0, \
+  kno_new_cprim5(name,# fn,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0, \
                 -1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID)
 #define kno_make_cprim6(name,fn,flags)                                     \
-  kno_new_cprim6(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0, \
+  kno_new_cprim6(name,# fn,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0, \
                 -1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID, \
                 -1,KNO_VOID)
 #define kno_make_cprim7(name,fn,flags)                                     \
-  kno_new_cprim7(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0, \
+  kno_new_cprim7(name,# fn,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0, \
                 -1,KNO_VOID-1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID,  \
                 -1,KNO_VOID,-1,KNO_VOID)
 #define kno_make_cprim8(name,fn,flags)                                     \
-  kno_new_cprim8(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0, \
+  kno_new_cprim8(name,# fn,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0, \
                 -1,KNO_VOID-1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID,  \
                 -1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID)
 #define kno_make_cprim9(name,fn,flags)                                     \
-  kno_new_cprim9(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0, \
+  kno_new_cprim9(name,# fn,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0, \
                 -1,KNO_VOID-1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID,  \
                 -1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID)
 #define kno_make_cprim10(name,fn,flags)                                    \
-  kno_new_cprim10(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0, \
+  kno_new_cprim10(name,# fn,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0, \
                  -1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID, \
                  -1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID)
 #define kno_make_cprim11(name,fn,flags)                                    \
-  kno_new_cprim11(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0, \
+  kno_new_cprim11(name,# fn,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0, \
                  -1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID, \
                  -1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID, \
                  -1,KNO_VOID)
 #define kno_make_cprim12(name,fn,flags)                                    \
-  kno_new_cprim12(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0, \
+  kno_new_cprim12(name,# fn,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0, \
                  -1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID, \
                  -1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID, \
                  -1,KNO_VOID,-1,KNO_VOID)
 #define kno_make_cprim13(name,fn,flags)                                    \
-  kno_new_cprim13(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0, \
+  kno_new_cprim13(name,# fn,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0, \
                  -1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID, \
                  -1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID, \
                  -1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID,-1)
 #define kno_make_cprim14(name,fn,flags)                                    \
-  kno_new_cprim14(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0, \
+  kno_new_cprim14(name,# fn,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0, \
                  -1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID, \
                  -1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID, \
                  -1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID)
 #define kno_make_cprim15(name,fn,flags)                                    \
-  kno_new_cprim15(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0, \
+  kno_new_cprim15(name,# fn,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0, \
                  -1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID, \
                  -1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID, \
                  -1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID)
 
 #define kno_make_cprim1x(name,fn,flags,...)                                \
-  kno_new_cprim1(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0,__VA_ARGS__)
+  kno_new_cprim1(name,# fn,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0,__VA_ARGS__)
 #define kno_make_cprim2x(name,fn,flags,...)                                \
-  kno_new_cprim2(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0,__VA_ARGS__)
+  kno_new_cprim2(name,# fn,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0,__VA_ARGS__)
 #define kno_make_cprim3x(name,fn,flags,...)                                \
-  kno_new_cprim3(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0,__VA_ARGS__)
+  kno_new_cprim3(name,# fn,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0,__VA_ARGS__)
 #define kno_make_cprim4x(name,fn,flags,...)                                \
-  kno_new_cprim4(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0,__VA_ARGS__)
+  kno_new_cprim4(name,# fn,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0,__VA_ARGS__)
 #define kno_make_cprim5x(name,fn,flags,...)                                \
-  kno_new_cprim5(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0,__VA_ARGS__)
+  kno_new_cprim5(name,# fn,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0,__VA_ARGS__)
 #define kno_make_cprim6x(name,fn,flags,...)                                \
-  kno_new_cprim6(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0,__VA_ARGS__)
+  kno_new_cprim6(name,# fn,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0,__VA_ARGS__)
 #define kno_make_cprim7x(name,fn,flags,...)                                \
-  kno_new_cprim7(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0,__VA_ARGS__)
+  kno_new_cprim7(name,# fn,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0,__VA_ARGS__)
 #define kno_make_cprim8x(name,fn,flags,...)                                \
-  kno_new_cprim8(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0,__VA_ARGS__)
+  kno_new_cprim8(name,# fn,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0,__VA_ARGS__)
 #define kno_make_cprim9x(name,fn,flags,...)                                \
-  kno_new_cprim9(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0,__VA_ARGS__)
+  kno_new_cprim9(name,# fn,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0,__VA_ARGS__)
 #define kno_make_cprim10x(name,fn,flags,...)                               \
-  kno_new_cprim10(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0,__VA_ARGS__)
+  kno_new_cprim10(name,# fn,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0,__VA_ARGS__)
 #define kno_make_cprim11x(name,fn,flags,...)                               \
-  kno_new_cprim11(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0,__VA_ARGS__)
+  kno_new_cprim11(name,# fn,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0,__VA_ARGS__)
 #define kno_make_cprim12x(name,fn,flags,...)                               \
-  kno_new_cprim12(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0,__VA_ARGS__)
+  kno_new_cprim12(name,# fn,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0,__VA_ARGS__)
 #define kno_make_cprim13x(name,fn,flags,...)                               \
-  kno_new_cprim13(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0,__VA_ARGS__)
+  kno_new_cprim13(name,# fn,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0,__VA_ARGS__)
 #define kno_make_cprim14x(name,fn,flags,...)                               \
-  kno_new_cprim14(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0,__VA_ARGS__)
+  kno_new_cprim14(name,# fn,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0,__VA_ARGS__)
 #define kno_make_cprim15x(name,fn,flags,...)                               \
-  kno_new_cprim15(name,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0,__VA_ARGS__)
+  kno_new_cprim15(name,# fn,_FILEINFO,NULL,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0,__VA_ARGS__)
 
 #define kno_idefnN(module,name,fn,flags,doc)                               \
   kno_idefn(module,kno_new_cprimn                                         \
-           (name,_FILEINFO,doc,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0))
+           (name,# fn,_FILEINFO,doc,fn,((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0))
 
 #define kno_idefn0(module,name,fn,doc)                           \
-  kno_idefn(module,kno_new_cprim0(name,_FILEINFO,doc,fn,0))
+  kno_idefn(module,kno_new_cprim0(name,# fn,_FILEINFO,doc,fn,0))
 #define kno_idefn1(module,name,fn,flags,doc,...)                           \
-  kno_idefn(module,kno_new_cprim1(name,_FILEINFO,doc,fn,((flags)&(0x7F)),   \
+  kno_idefn(module,kno_new_cprim1(name,# fn,_FILEINFO,doc,fn,((flags)&(0x7F)),   \
                                 ((flags)&(KNO_NDCALL)),0,                      \
                                 __VA_ARGS__))
 #define kno_idefn2(module,name,fn,flags,doc,...)           \
-  kno_idefn(module,kno_new_cprim2(name,_FILEINFO,doc,fn,                  \
+  kno_idefn(module,kno_new_cprim2(name,# fn,_FILEINFO,doc,fn,                  \
                                 ((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0,       \
                                 __VA_ARGS__))
 #define kno_idefn3(module,name,fn,flags,doc,...)           \
-  kno_idefn(module,kno_new_cprim3(name,_FILEINFO,doc,fn,                  \
+  kno_idefn(module,kno_new_cprim3(name,# fn,_FILEINFO,doc,fn,                  \
                                 ((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0,       \
                                 __VA_ARGS__))
 #define kno_idefn4(module,name,fn,flags,doc,...)           \
-  kno_idefn(module,kno_new_cprim4(name,_FILEINFO,doc,fn,                  \
+  kno_idefn(module,kno_new_cprim4(name,# fn,_FILEINFO,doc,fn,                  \
                                 ((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0,       \
                                 __VA_ARGS__))
 #define kno_idefn5(module,name,fn,flags,doc,...)           \
-  kno_idefn(module,kno_new_cprim5(name,_FILEINFO,doc,fn,                  \
+  kno_idefn(module,kno_new_cprim5(name,# fn,_FILEINFO,doc,fn,                  \
                                 ((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0,       \
                                 __VA_ARGS__))
 #define kno_idefn6(module,name,fn,flags,doc,...)           \
-  kno_idefn(module,kno_new_cprim6(name,_FILEINFO,doc,fn,                  \
+  kno_idefn(module,kno_new_cprim6(name,# fn,_FILEINFO,doc,fn,                  \
                                 ((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0,       \
                                 __VA_ARGS__))
 #define kno_idefn7(module,name,fn,flags,doc,...)           \
-  kno_idefn(module,kno_new_cprim7(name,_FILEINFO,doc,fn,                  \
+  kno_idefn(module,kno_new_cprim7(name,# fn,_FILEINFO,doc,fn,                  \
                                 ((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0,       \
                                 __VA_ARGS__))
 #define kno_idefn8(module,name,fn,flags,doc,...)           \
-  kno_idefn(module,kno_new_cprim8(name,_FILEINFO,doc,fn,                  \
+  kno_idefn(module,kno_new_cprim8(name,# fn,_FILEINFO,doc,fn,                  \
                                 ((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0,       \
                                 __VA_ARGS__))
 #define kno_idefn9(module,name,fn,flags,doc,...)           \
-  kno_idefn(module,kno_new_cprim9(name,_FILEINFO,doc,fn,                  \
+  kno_idefn(module,kno_new_cprim9(name,# fn,_FILEINFO,doc,fn,                  \
                                 ((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0,       \
                                 __VA_ARGS__))
 #define kno_idefn10(module,name,fn,flags,doc,...)          \
-  kno_idefn(module,kno_new_cprim10(name,_FILEINFO,doc,fn,                 \
+  kno_idefn(module,kno_new_cprim10(name,# fn,_FILEINFO,doc,fn,                 \
                                  ((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0,      \
                                  __VA_ARGS__))
 #define kno_idefn11(module,name,fn,flags,doc,...)                          \
-  kno_idefn(module,kno_new_cprim11(name,_FILEINFO,doc,fn,                 \
+  kno_idefn(module,kno_new_cprim11(name,# fn,_FILEINFO,doc,fn,                 \
                                  ((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0,      \
                                  __VA_ARGS__))
 #define kno_idefn12(module,name,fn,flags,doc,...)          \
-  kno_idefn(module,kno_new_cprim12(name,_FILEINFO,doc,fn,                 \
+  kno_idefn(module,kno_new_cprim12(name,# fn,_FILEINFO,doc,fn,                 \
                                  ((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0,      \
                                  __VA_ARGS__))
 #define kno_idefn13(module,name,fn,flags,doc,...)          \
-  kno_idefn(module,kno_new_cprim13(name,_FILEINFO,doc,fn,                 \
+  kno_idefn(module,kno_new_cprim13(name,# fn,_FILEINFO,doc,fn,                 \
                                  ((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0,      \
                                  __VA_ARGS__))
 #define kno_idefn14(module,name,fn,flags,doc,...)          \
-  kno_idefn(module,kno_new_cprim14(name,_FILEINFO,doc,fn,                 \
+  kno_idefn(module,kno_new_cprim14(name,# fn,_FILEINFO,doc,fn,                 \
                                  ((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0,      \
                                  __VA_ARGS__))
 #define kno_idefn15(module,name,fn,flags,doc,...)                          \
-  kno_idefn(module,kno_new_cprim15(name,_FILEINFO,doc,fn,                 \
+  kno_idefn(module,kno_new_cprim15(name,# fn,_FILEINFO,doc,fn,                 \
                                  ((flags)&(0x7F)),((flags)&(KNO_NDCALL)),0,      \
                                  __VA_ARGS__))
 

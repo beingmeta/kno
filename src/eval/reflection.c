@@ -12,6 +12,7 @@
 #include "kno/lisp.h"
 #include "kno/compounds.h"
 #include "kno/eval.h"
+#include "kno/ffi.h"
 #include "kno/profiles.h"
 
 #include "libu8/u8streamio.h"
@@ -84,6 +85,22 @@ static lispval procedure_name(lispval x)
       return kno_mkstring(m->macro_name);
     else return KNO_FALSE;}
   else return kno_type_error(_("function"),"procedure_name",x);
+}
+
+static lispval procedure_cname(lispval x)
+{
+  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
+  if (KNO_TYPEP(x,kno_cprim_type)) {
+    struct KNO_CPRIM *f = (kno_cprim) x;
+    if (f->cprim_name)
+      return knostring(f->cprim_name);
+    else return KNO_FALSE;}
+  else if (KNO_TYPEP(x,kno_ffi_type)) {
+    struct KNO_FFI_PROC *f = (kno_ffi_proc) x;
+    if (f->fcn_name)
+      return knostring(f->fcn_name);
+    else return KNO_FALSE;}
+  else return KNO_FALSE;
 }
 
 static lispval procedure_filename(lispval x)
@@ -1044,6 +1061,9 @@ KNO_EXPORT void kno_init_reflection_c()
             "",
             -1,VOID);
   kno_idefn1(module,"PROCEDURE-NAME",procedure_name,1,
+            "",
+            -1,VOID);
+  kno_idefn1(module,"PROCEDURE-CNAME",procedure_cname,1,
             "",
             -1,VOID);
   kno_idefn1(module,"PROCEDURE-FILENAME",procedure_filename,1,
