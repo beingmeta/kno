@@ -209,6 +209,26 @@ KNO_EXPORT u8_string kno_get_component(u8_string spec);
 KNO_EXPORT u8_string kno_bind_sourcebase(u8_string sourcebase);
 KNO_EXPORT void kno_restore_sourcebase(u8_string sourcebase);
 
+/* Checking errnos */
+
+#if KNO_PROFILING
+#define KNO_CHECK_ERRNO(action,cxt)
+#define KNO_CHECK_ERRNO_OBJ(obj,cxt)
+#else
+#define KNO_CHECK_ERRNO(action,cxt)             \
+  if (errno) {                                  \
+    int errnum = errno; errno = 0;               \
+    u8_log(LOG_WARN,u8_UnexpectedErrno,          \
+           "Dangling errno value %d (%s) %s %s", \
+           errnum,u8_strerror(errnum),cxt,action);}
+#define KNO_CHECK_ERRNO_OBJ(obj,cxt)             \
+  if (errno) {                                  \
+    int errnum = errno; errno = 0;               \
+    u8_log(LOG_WARN,u8_UnexpectedErrno,          \
+           "Dangling errno value %d (%s) %s %q", \
+           errnum,u8_strerror(errnum),cxt,obj);}
+#endif
+
 #endif /* #ifndef KNO_SUPPORT_H */
 
 /* Emacs local variables
