@@ -225,10 +225,11 @@ static lispval filterchoices_evalfn(lispval expr,kno_lexenv env,kno_stack _stack
         lispval result = kno_simplify_choice(results);
         _return result;}
       else if (KNO_ABORTED(val)) {
+        kno_decref(results);
         _return val;}
       else if (!(FALSEP(val))) {
-        CHOICE_ADD(results,elt);
         kno_incref(elt);
+        CHOICE_ADD(results,elt);
         break;}
       else NO_ELSE;}
     reset_env(filterchoices);
