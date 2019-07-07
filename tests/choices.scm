@@ -554,6 +554,68 @@
 (applytest #("use-threadcache" "table-minimize!" "test-u8raise" "config-def!" "max-fixnum")
 	   rsorted string-choice length)
 (define (bad-stringkeyfn x) (+ x 9))
+(define (mixed-length x (len)) (set! len (length x)) (if (even? len) len (- len)))
+
+(applytest "use-threadcache" largest string-choice)
+(applytest { "table-minimize!" "use-threadcache" } largest string-choice length)
+(applytest "config-def!" smallest string-choice)
+(applytest "max-fixnum" smallest string-choice length)
+
+(applytest "test-u8raise" largest string-choice mixed-length)
+(applytest { "table-minimize!" "use-threadcache" } smallest string-choice mixed-length)
+
+(applytest 'err largest string-choice bad-stringkeyfn)
+(applytest 'err smallest string-choice bad-stringkeyfn)
+
+(define length-slotmap 
+  (let ((map #[]))
+    (do-choices (string string-choice)
+      (store! map string (length string)))
+    map))
+(dbg)
+(define length-schemap 
+  (let ((map #[]))
+    (do-choices (string string-choice)
+      (store! map string (length string)))
+    (->schemap map)))
+(define length-hashtable
+  (let ((map (make-hashtable)))
+    (do-choices (string string-choice)
+      (store! map string (length string)))
+    map))
+
+(applytest { "table-minimize!" "use-threadcache" } largest string-choice length-slotmap)
+(applytest "max-fixnum" smallest string-choice length-slotmap)
+(applytest { "table-minimize!" "use-threadcache" } largest string-choice length-schemap)
+(applytest "max-fixnum" smallest string-choice length-schemap)
+(applytest { "table-minimize!" "use-threadcache" } largest string-choice length-hashtable)
+(applytest "max-fixnum" smallest string-choice length-hashtable)
+
+;;;; Reduce-choice
+
+(applytest 9 (reduce-choice + {2 3 4}))
+(applytest 17 (reduce-choice + {2 3 4} 8))
+(applytest 24 (reduce-choice * {2 3 4}))
+(applytest 60 reduce-choice * {2 3 4} 1 1+)
+(applytest "foobazbar" reduce-choice glom {"foo" "bar" "baz"})
+(applytest "foobazbar" reduce-choice glom {"foo" "bar" "baz"} #f)
+(applytest (apply glom (->list (reverse (choice->vector '{foo bar baz})))) 
+	   reduce-choice glom '{foo bar baz} #f symbol->string)
+
+(applytest 63 reduce-choice + string-choice 0 length)
+(applytest 63 reduce-choice + string-choice 0 length-slotmap)
+(applytest 63 reduce-choice + string-choice 0 length-schemap)
+(applytest 63 reduce-choice + string-choice 0 length-hashtable)
+
+(applytest 'err reduce-choice if string-choice 0 length)
+(applytest 'err reduce-choice + string-choice 0 if)
+(applytest 'err reduce-choice + string-choice 0 "string")
+
+(define (bad-combine x y) (error 'just-because))
+(define (bad-part x) (error 'just-because))
+
+(applytest 'err reduce-choice bad-combine string-choice 0 length)
+(applytest 'err reduce-choice + string-choice 0 bad-part)
 
 #|
 (applytest 'err sorted string-choice bad-stringkeyfn)
