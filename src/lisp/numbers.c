@@ -2677,6 +2677,8 @@ lispval kno_make_exact(lispval x)
   kno_ptr_type xt = KNO_PTR_TYPE(x);
   if (xt == kno_flonum_type) {
     double d = KNO_FLONUM(x);
+    if ( (isnan(d)) || (isinf(d)) )
+      return kno_err("NoExactRepresentation","kno_make_exact",NULL,x);
     double f = floor(d);
     if (f == d) {
       kno_bigint ival = kno_double_to_bigint(d);
