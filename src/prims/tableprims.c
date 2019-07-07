@@ -279,7 +279,7 @@ DEFPRIM1("SCHEMAP->SLOTMAP",schemap2slotmap_prim,MAX_ARGS(1),
 }
 
 DEFPRIM1("SLOTMAP->SCHEMAP",slotmap2schemap_prim,MAX_ARGS(1),
-         "`(SLOTMAP->SCHEMAP *assocs*)` converts a schemap to a slotmap.",
+         "`(SLOTMAP->SCHEMAP *slotmap*)` converts a schemap to a slotmap.",
          kno_schemap_type,KNO_VOID)
   (lispval map)
 {
