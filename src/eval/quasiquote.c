@@ -92,6 +92,9 @@ static lispval quasiquote_list(lispval obj,kno_lexenv env,int level)
           lispval embed = kno_quasiquote(KNO_CADR(elt),env,level-1);
           if (KNO_ABORTED(embed))
             new_elt = embed;
+          else if (KNO_VOIDP(embed))
+            new_elt = kno_err(kno_VoidArgument,"quasiquote_list",
+                              NULL,KNO_CADR(elt));
           else new_elt = kno_make_list(2,unquote,embed);}
         if (KNO_ABORTED(new_elt)) {
           kno_decref(head);
@@ -319,10 +322,15 @@ lispval kno_quasiquote(lispval obj,kno_lexenv env,int level)
     else if (KNO_EQ(KNO_CAR(obj),unquote))
       if (level==1) {
         lispval result=kno_eval(KNO_CAR(KNO_CDR(obj)),env);
+        if (KNO_VOIDP(result))
+          return kno_err(kno_VoidArgument,"kno_quasiquote",NULL,obj);
         return result;}
       else {
         lispval embed = kno_quasiquote(KNO_CADR(obj),env,level-1);
-        if (KNO_ABORTED(embed)) return embed;
+        if (KNO_ABORTED(embed))
+          return embed;
+        else if (KNO_VOIDP(embed))
+          return kno_err(kno_VoidArgument,"kno_quasiquote",NULL,obj);
         else return kno_make_list(2,unquote,embed);}
     else if (KNO_EQ(KNO_CAR(obj),unquotestar))
       return kno_err(kno_SyntaxError,"UNQUOTE* (,@) in wrong context",
