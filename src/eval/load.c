@@ -90,11 +90,7 @@ KNO_EXPORT lispval kno_load_stream(u8_input loadstream,kno_lexenv env,
   double start = u8_elapsed_time();
   struct KNO_STACK *_stack = kno_stackptr;
   lispval postload = VOID;
-  if (errno) {
-    u8_log(LOG_WARN,u8_UnexpectedErrno,
-           "Dangling errno value %d (%s) before loading %s",
-	   errno,u8_strerror(errno),sourcebase);
-    errno = 0;}
+  KNO_CHECK_ERRNO(loadstream,"before loading");
   KNO_PUSH_STACK(load_stack,"loadsource",u8_strdup(sourcebase),VOID);
   U8_SETBITS(load_stack->stack_flags,KNO_STACK_FREE_LABEL);
   {
@@ -110,12 +106,8 @@ KNO_EXPORT lispval kno_load_stream(u8_input loadstream,kno_lexenv env,
       if ((trace_load_eval) ||
           (kno_test(env->env_bindings,traceloadeval_symbol,KNO_TRUE))) {
         u8_log(LOG_WARN,LoadEval,"From %s, evaluating %q",sourcebase,expr);
-        if (errno) {
-          u8_log(LOG_WARN,"UnexpectedErrno",
-                 "Dangling errno value %d (%s) before evaluating %q",
-                 errno,u8_strerror(errno),expr);
-          errno = 0;}
-        start_time = u8_elapsed_time();}
+	KNO_CHECK_ERRNO_OBJ(expr,"before evaluating");
+	start_time = u8_elapsed_time();}
       else start_time = -1.0;
       result = kno_eval(expr,env);
       if (KNO_ABORTP(result)) {
@@ -137,13 +129,10 @@ KNO_EXPORT lispval kno_load_stream(u8_input loadstream,kno_lexenv env,
         if (start_time>0)
           u8_log(LOG_WARN,LoadEval,"Took %fs to evaluate %q",
                  u8_elapsed_time()-start_time,expr);
-        if (errno) {
-          u8_log(LOG_WARN,"UnexpectedErrno",
-                 "Dangling errno value %d (%s) after evaluating %q",
-                 errno,u8_strerror(errno),expr);
-          errno = 0;}}
-      else {}
-      kno_decref(last_expr); last_expr = expr;
+	KNO_CHECK_ERRNO_OBJ(expr,"after evaluating");}
+      else NO_ELSE;
+      kno_decref(last_expr);
+      last_expr = expr;
       kno_skip_whitespace(loadstream);
       if (loadstream->u8_inlim == loadstream->u8_read)
         context_buf[0]='\0';
@@ -188,11 +177,7 @@ KNO_EXPORT lispval kno_load_stream(u8_input loadstream,kno_lexenv env,
       kno_decref(last_expr);
       expr = VOID;
       last_expr = VOID;}
-    if (errno) {
-      u8_log(LOG_WARN,"UnexpectedErrno",
-             "Dangling errno value %d (%s) after loading %s",
-             errno,u8_strerror(errno),sourcebase);
-      errno = 0;}
+    KNO_CHECK_ERRNO(sourcebase,"after loading");
     kno_pop_stack(load_stack);
     return result;}
 }
@@ -385,12 +370,7 @@ static lispval kno_run(u8_string source_file,struct U8_OUTPUT *out,
       kno_decref((lispval)env);
       kno_decref(load_result);
       if (out) u8_set_default_output(prev);
-      if (KNO_ABORTP(result)) {
-        u8_exception ex = u8_erreify();
-        lispval exception_object = kno_wrap_exception(ex);
-        u8_free_exception(ex,1);
-        return exception_object;}
-      else return result;}}
+      return result;}}
 }
 
 static lispval kno_run_file(int n,lispval *args)
@@ -409,12 +389,14 @@ static lispval kno_run_file_2string(int n,lispval *args)
     lispval result = kno_run(KNO_CSTRING(args[0]),&out,n-1,args+1);
     if (KNO_ABORTP(result)) {
       if ( (out.u8_write-out.u8_outbuf) > 0) {
-        lispval output = kno_stream_string(&out);
+	/* lispval output = kno_stream_string(&out); */
         u8_close_output(&out);
+#if 0
         kno_seterr("RunFailed","kno_run_file_2string",
-                   u8_strdup(KNO_CSTRING(args[0])),
+		   KNO_CSTRING(args[0]),
                    output);
         kno_decref(output);
+#endif
         return result;}
       else return result;}
     else {
@@ -466,10 +448,19 @@ KNO_EXPORT void kno_init_load_c()
                  "evaluates to an environment variable",
                  path_macro);
 
+  kno_register_config("LOAD:TRACE","Trace file load starts and ends",
+                      kno_boolconfig_get,kno_boolconfig_set,&trace_load);
   kno_register_config("TRACELOAD","Trace file load starts and ends",
                       kno_boolconfig_get,kno_boolconfig_set,&trace_load);
+
+  kno_register_config("LOAD:LOGERRS",
+		      "Whether to log errors during file loading",
+		      kno_boolconfig_get,kno_boolconfig_set,&log_load_errs);
   kno_register_config("LOGLOADERRS","Whether to log errors during file loading",
                       kno_boolconfig_get,kno_boolconfig_set,&log_load_errs);
+
+  kno_register_config("LOAD:LOGEVAL","Trace expressions while loading files",
+		      kno_boolconfig_get,kno_boolconfig_set,&trace_load_eval);
   kno_register_config("TRACELOADEVAL","Trace expressions while loading files",
                       kno_boolconfig_get,kno_boolconfig_set,&trace_load_eval);
 }
