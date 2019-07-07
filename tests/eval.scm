@@ -120,20 +120,29 @@
 ;;; Using define-tester on this breaks things because of the internal
 ;;; macros which get expanded like functions
 (define (test-macros)
-  (let ((swapf (macro expr 
-		 (let ((arg1 (get-arg expr 1))
-		       (arg2 (get-arg expr 2)))
-		   `(let ((tmp ,arg1))
-		      (set! ,arg1 ,arg2)
-		      (set! ,arg2 tmp)))))
-	(bad-swapf (macro expr 
-		     (let ((arg1 (get-arg expr 1))
-			   (arg2 (get-arg expr 2)))
-		       `(let ((xtmp ,argI))
-			  (set! ,arg1 ,arg2)
-			  (set! ,arg2 tmp)))))
-	(x 3)
-	(y 4))
+  (let* ((swapf (macro expr 
+		  (let ((arg1 (get-arg expr 1))
+			(arg2 (get-arg expr 2)))
+		    `(let ((tmp ,arg1))
+		       (set! ,arg1 ,arg2)
+		       (set! ,arg2 tmp)))))
+	 (bad-swapf (macro expr 
+		      (let ((arg1 (get-arg expr 1))
+			    (arg2 (get-arg expr 2)))
+			`(let ((xtmp ,argI))
+			   (set! ,arg1 ,arg2)
+			   (set! ,arg2 tmp)))))
+	 (homeless-swapf
+	  (with-sourcebase #f
+			   (macro expr 
+			     (let ((arg1 (get-arg expr 1))
+				   (arg2 (get-arg expr 2)))
+			       `(let ((tmp ,arg1))
+				  (set! ,arg1 ,arg2)
+				  (set! ,arg2 tmp))))))
+	 (x 3)
+	 (y 4))
+    (lambda (z) (+ z x))
     (applytest string? lisp->string swapf)
     ;; From ezrecords, coverage for macros defined in module
     (applytest string? lisp->string defrecord)
