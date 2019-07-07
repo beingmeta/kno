@@ -209,11 +209,16 @@ KNO_EXPORT lispval _kno_simplify_choice(lispval x);
 #define KNO_AMBIGP(x)   ((KNO_CHOICEP(x))||(KNO_PRECHOICEP(x)))
 #define KNO_UNAMBIGP(x) (!(KNO_AMBIGP(x)))
 
+KNO_EXPORT int _KNO_CHOICE_SIZE(lispval x);
+#if KNO_PROFILING
+#define KNO_CHOICE_SIZE(x) _KNO_CHOICE_SIZE(x)
+#else
 #define KNO_CHOICE_SIZE(x) \
   ((KNO_EMPTY_CHOICEP(x)) ? (0) : \
    (!(KNO_CONSP(x))) ? (1) : \
    (KNO_CHOICEP(x)) ? (KNO_XCHOICE_SIZE(KNO_XCHOICE(x))) : \
    (KNO_PRECHOICEP(x)) ? (KNO_PRECHOICE_SIZE(x)) : (1))
+#endif
 
 #if KNO_INLINE_CHOICES
 static U8_MAYBE_UNUSED int kno_choice_size(lispval x)
