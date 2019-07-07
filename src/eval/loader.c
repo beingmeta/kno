@@ -566,6 +566,10 @@ int kno_load_latest(u8_string filename,kno_lexenv env,u8_string base)
     return loads;}
   else {
     u8_string abspath = u8_abspath(filename,base);
+    if (! (u8_file_existsp(abspath)) ) {
+      kno_seterr(kno_FileNotFound,"kno_load_latest",abspath,(lispval)env);
+      u8_free(abspath);
+      return -1;}
     lispval lisp_abspath = kno_mkstring(abspath);
     lispval loadstamps =
       kno_get(env->env_bindings,loadstamps_symbol,EMPTY);
@@ -577,7 +581,7 @@ int kno_load_latest(u8_string filename,kno_lexenv env,u8_string base)
           kno_consptr(kno_timestamp,KNO_CDR(entry),kno_timestamp_type);
         time_t last_loaded = curstamp->u8xtimeval.u8_tick;
         time_t mod_time = u8_file_mtime(CSTRING(lisp_abspath));
-        if (mod_time<=last_loaded) {
+	if (mod_time<=last_loaded) {
           kno_decref(lisp_abspath);
           kno_decref(loadstamps);
           u8_free(abspath);
