@@ -35,3 +35,42 @@
 			'get%))
 
 (modules/testcapi)
+
+;;; Update modules
+
+(config! 'updatemodules 15)
+(config! 'updatemodules #f)
+
+;;; Reload testing
+
+(use-module 'reloadmod)
+(errtest (reload-module 'nosuchmod))
+(errtest (reload-module 33))
+(errtest (reload-module '(kno tests)))
+(errtest (use-module (get-component "data/nosuchmod.scm")))
+
+(lognotice |LoadPath| (config 'loadpath))
+
+(define-tester (test-reloading)
+  (let ((base (get-load-count)))
+    (applytest base get-load-count)
+    (reload-module 'reloadmod)
+    (applytest (1+ base) get-load-count)
+    (update-modules)
+    (applytest (1+ base) get-load-count)
+    (set-file-modtime! (get-source 'reloadmod) (timestamp))
+    (sleep 1)
+    (update-module 'reloadmod)
+    (errtest (update-module 'nosuchmod))
+    (errtest (update-module))
+    (applytest (+ 2 base) get-load-count)
+    (set-file-modtime! (get-source 'reloadmod) (timestamp))
+    (sleep 1)
+    (update-modules)
+    (applytest (+ 3 base) get-load-count)
+    (update-module 'reloadmod #t)))
+
+(test-reloading)
+(sleep 2)
+(test-reloading)
+

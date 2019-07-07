@@ -3,6 +3,9 @@
 (load-component "common.scm")
 
 (config! 'loadpath (get-component "data"))
+(errtest (config! 'loadpath 88))
+(errtest (config! 'loadpath 'bar))
+(errtest (config! 'loadpath '("/tmp/modules/")))
 
 (unless (has-suffix (config 'exe) "/knoc") (config! 'logloaderrs #f))
 
@@ -21,41 +24,23 @@
 
 (load-component "data/loadok.scm")
 
--(use-module 'reloadmod)
-
-(lognotice |LoadPath| (config 'loadpath))
-
-(define-tester (test-reloading)
-  (let ((base (get-load-count)))
-    (applytest base get-load-count)
-    (reload-module 'reloadmod)
-    (applytest (1+ base) get-load-count)
-    (update-modules)
-    (applytest (1+ base) get-load-count)
-    (set-file-modtime! (get-source 'reloadmod) (timestamp))
-    (sleep 1)
-    (update-module 'reloadmod)
-    (applytest (+ 2 base) get-load-count)
-    (set-file-modtime! (get-source 'reloadmod) (timestamp))
-    (sleep 1)
-    (update-modules)
-    (applytest (+ 3 base) get-load-count)))
-
-(test-reloading)
-(sleep 2)
-(test-reloading)
-
 (applytester 1 get-load-ok-count)
 
 (load (get-component  "data/loadok.scm"))
 
 (applytester 2 get-load-ok-count)
 
+(errtest (load-latest (get-component "data/parsefail.scm")))
+(dbg)
+(errtest (load-latest (get-component "data/nosuchfile.scm")))
+
 (load->env (get-component "data/loadok.scm") (%env))
 (errtest (load->env (get-component "data/parsefail.scm")))
 (errtest (load->env (get-component "data/nosuchfile.scm")))
 
 (applytester 3 get-load-ok-count)
+
+(errtest (load-latest #("path")))
 
 (begin (load-latest (get-component "data/loadok.scm"))
   (applytester 4 get-load-ok-count))
