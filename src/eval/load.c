@@ -280,7 +280,7 @@ static lispval load_into_env_prim(lispval source,lispval envarg,lispval resultfn
     result = kno_load_source(CSTRING(source),env,NULL);
   else return kno_type_error("pathname","load_into_env_prim",source);
   if (KNO_ABORTP(result)) {
-    kno_decref((lispval)env);
+    kno_recycle_lexenv(env);
     return result;}
   if (KNO_APPLICABLEP(resultfn)) {
     lispval tmp = (KNO_VOIDP(result)) ?
@@ -356,7 +356,7 @@ static lispval kno_run(u8_string source_file,struct U8_OUTPUT *out,
   kno_lexenv env = kno_working_lexenv();
   lispval load_result = kno_load_source(source_file,env,NULL);
   if (KNO_ABORTP(load_result)) {
-    kno_decref((lispval)env);
+    kno_recycle_lexenv(env);
     return load_result;}
   else {
     lispval main_proc = kno_symeval(KNOSYM_MAIN,env);
@@ -364,16 +364,20 @@ static lispval kno_run(u8_string source_file,struct U8_OUTPUT *out,
       u8_log(LOG_CRIT,"NoMain",
              "No (MAIN) was defined in '%s', returning last value",
              source_file);
+      kno_recycle_lexenv(env);
       return load_result;}
     else if (!(KNO_APPLICABLEP(main_proc))) {
       kno_seterr("BadMainProc","lisp_run_file",u8_strdup(source_file),main_proc);
-      kno_decref((lispval)env);
+      /* kno_recycle_lexenv(env); */
+      kno_recycle_lexenv(env);
       return KNO_ERROR_VALUE;}
     else {
       u8_output prev = u8_current_output;
       if (out) u8_set_default_output(out);
       lispval result = kno_dapply(main_proc,n,args);
-      kno_decref((lispval)env);
+      /* kno_recycle_lexenv(env); */
+      kno_decref(main_proc);
+      kno_recycle_lexenv(env);
       kno_decref(load_result);
       if (out) u8_set_default_output(prev);
       return result;}}
@@ -404,7 +408,9 @@ static lispval kno_run_file_2string(int n,lispval *args)
         kno_decref(output);
 #endif
         return result;}
-      else return result;}
+      else {
+	u8_close_output(&out);
+	return result;}}
     else {
       lispval output = kno_stream_string(&out);
       kno_decref(result);
