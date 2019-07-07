@@ -19,7 +19,9 @@
 (applytest "loading.scm" basename (get-component))
 (applytest "loading.scm" basename (get-source))
 
-(use-module 'reloadmod)
+(load-component "data/loadok.scm")
+
+-(use-module 'reloadmod)
 
 (lognotice |LoadPath| (config 'loadpath))
 
@@ -43,8 +45,6 @@
 (sleep 2)
 (test-reloading)
 
-(load-component "data/loadok.scm")
-
 (applytester 1 get-load-ok-count)
 
 (load (get-component  "data/loadok.scm"))
@@ -54,7 +54,6 @@
 (load->env (get-component "data/loadok.scm") (%env))
 (errtest (load->env (get-component "data/parsefail.scm")))
 (errtest (load->env (get-component "data/nosuchfile.scm")))
-
 
 (applytester 3 get-load-ok-count)
 
@@ -132,36 +131,6 @@
 (applytest 'err load->env (get-component "data/loadval.scm") #[]
 	   "notafn")
 
-
-;;; Module tests
-
-(get-module 'stringfmts)
-(get-module 'testcapi)
-
-(errtest (use-module 'badmod))
-
-(let ((mod (get-module 'stringfmts_alias)))
-  (overlaps? 'get% (get-exports mod)))
-
-(evaltest #t (applicable? (within-module 'stringfmts get%)))
-(evaltest #t (applicable? (within-module 'stringfmts quotient~)))
-(errtest (within-module 'stringfmts (quotient~)))
-
-(evaltest 5 (within-module 'stringfmts (quotient~ 17 3)))
-(errtest (within-module 'stringfmts (quotient~ 17 "three")))
-;;(errtest (within-module 'stringfmts (quotient~ 17 0)))
-
-(errtest (accessing-module 'testcapi (quotient~ zval 3)))
-
-(define zval 17)
-(errtest (within-module 'stringfmts (quotient~ zval 3)))
-(evaltest 5 (accessing-module 'stringfmts (quotient~ zval 3)))
-
-(evaltest #t (overlaps? (get-exports (get-module 'fileio)) 'open-output-file))
-(evaltest #t (overlaps? (get-exports (get-module 'stringfmts))
-			'get%))
-
-(modules/testcapi)
 
 ;;; Url loading
 

@@ -119,7 +119,7 @@ cmdtests:
 static-tests: schemetests optscheme loadmods optmods slotmaps tables pools indexes framedbs
 schemetest schemetests scheme: r4rs exceptions choices sequences breaks numbers regex \
         lambda conditionals iterators binders \
-	reflect hashsets eval loading quasiquote promises ffi configs opts appenv \
+	reflect hashsets eval loading modules quasiquote promises ffi configs opts appenv \
 	picktest cachecall texttools webtools timefns sysprims startup stringprims \
 	threads i18n misc gctests profiling \
 	fileprims xml
@@ -136,6 +136,9 @@ optscheme:
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes cachecall.scm ${RUNCONF}
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes timefns.scm ${RUNCONF}
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes sysprims.scm ${RUNCONF}
+	@${RUN} ${KNOX} TESTOPTIMIZED=yes loading.scm ${RUNCONF}
+	@${RUN} ${KNOX} TESTOPTIMIZED=yes modules.scm ${RUNCONF}
+	@${RUN} ${KNOX} TESTOPTIMIZED=yes compounds.scm ${RUNCONF}
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes i18n.scm ${RUNCONF}
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes fileprims.scm ${RUNCONF}
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes lambda.scm ${RUNCONF}
@@ -213,6 +216,13 @@ appenv:
 opts:
 	@${RUN} ${KNOX} opts.scm ${RUNCONF}
 	@${header} "■■■■ Completed opts tests ${RUNCONF}"
+modules:
+	@${RUN} ${KNOX} modules.scm ${RUNCONF}
+	@${RUN} ${KNOX} modules.scm LOAD:TRACE=yes ${RUNCONF}
+	@${header} "■■■■ Completed module tests ${RUNCONF}"
+compounds:
+	@${RUN} ${KNOX} compounds.scm ${RUNCONF}
+	@${header} "■■■■ Completed compound object tests ${RUNCONF}"
 loading:
 	@${RUN} ${KNOX} loading.scm ${RUNCONF}
 	@${RUN} ${KNOX} loading.scm LOAD:TRACE=yes ${RUNCONF}
