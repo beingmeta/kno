@@ -261,7 +261,7 @@ DEFPRIM_DECL("GETASSOCS",kno_getassocs,MAX_ARGS(1),
 
 DEFPRIM1("SCHEMAP->SLOTMAP",schemap2slotmap_prim,MAX_ARGS(1),
          "`(SCHEMAP->SLOTMAP *schemap*)` converts a schemap to a slotmap.",
-         kno_slotmap_type,KNO_VOID)
+         kno_schemap_type,KNO_VOID)
   (lispval in)
 {
   struct KNO_SCHEMAP *schemap = (kno_schemap) in;
