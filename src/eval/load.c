@@ -39,11 +39,14 @@ static u8_mutex sourcefns_lock;
 KNO_EXPORT u8_string kno_get_source
 (u8_string path,u8_string enc,u8_string *basepathp,time_t *timep)
 {
+  struct KNO_STRING _tmpstring;
+  lispval lpath = kno_init_string(&_tmpstring,-1,path);
+  KNO_INIT_STACK_CONS(&_tmpstring,kno_string_type);
   struct KNO_SOURCEFN *scan = sourcefns;
   while (scan) {
     u8_string basepath = NULL;
     u8_string data = scan->getsource
-      (1,path,enc,&basepath,timep,scan->getsource_data);
+      (1,lpath,enc,&basepath,timep,scan->getsource_data);
     if (data) {
       *basepathp = basepath;
       kno_clear_errors(0);
@@ -54,11 +57,14 @@ KNO_EXPORT u8_string kno_get_source
 KNO_EXPORT int kno_probe_source
 (u8_string path,u8_string *basepathp,time_t *timep)
 {
+  struct KNO_STRING _tmpstring;
+  lispval lpath = kno_init_string(&_tmpstring,-1,path);
+  KNO_INIT_STATIC_CONS(&_tmpstring,kno_string_type);
   struct KNO_SOURCEFN *scan = sourcefns;
   while (scan) {
     u8_string basepath = NULL;
     u8_string data = scan->getsource
-      (0,path,NULL,&basepath,timep,scan->getsource_data);
+      (0,lpath,NULL,&basepath,timep,scan->getsource_data);
     if (data) {
       *basepathp = basepath;
       kno_clear_errors(0);
@@ -67,7 +73,7 @@ KNO_EXPORT int kno_probe_source
   return 0;
 }
 KNO_EXPORT void kno_register_sourcefn
-(u8_string (*fn)(int op,u8_string,u8_string,u8_string *,time_t *,void *),
+(u8_string (*fn)(int op,lispval,u8_string,u8_string *,time_t *,void *),
  void *sourcefn_data)
 {
   struct KNO_SOURCEFN *new_entry = u8_alloc(struct KNO_SOURCEFN);

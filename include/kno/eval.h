@@ -202,7 +202,7 @@ typedef struct KNO_QCODE {
 /* Loading files and config data */
 
 typedef struct KNO_SOURCEFN {
-  u8_string (*getsource)(int op,u8_string,u8_string,u8_string *,time_t *timep,void *);
+  u8_string (*getsource)(int op,lispval,u8_string,u8_string *,time_t *timep,void *);
   void *getsource_data;
   struct KNO_SOURCEFN *getsource_next;} KNO_SOURCEFN;
 typedef struct KNO_SOURCEFN *kno_sourcefn;
@@ -210,7 +210,7 @@ typedef struct KNO_SOURCEFN *kno_sourcefn;
 KNO_EXPORT u8_string kno_get_source(u8_string,u8_string,u8_string *,time_t *);
 KNO_EXPORT int kno_probe_source(u8_string,u8_string *,time_t *);
 KNO_EXPORT void kno_register_sourcefn
-  (u8_string (*fn)(int op,u8_string,u8_string,u8_string *,time_t *,void *),
+  (u8_string (*fn)(int op,lispval,u8_string,u8_string *,time_t *,void *),
    void *sourcefn_data);
 
 KNO_EXPORT int kno_load_config(u8_string sourceid);

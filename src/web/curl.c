@@ -1527,56 +1527,60 @@ static lispval urlpostdata_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 
 /* Using URLs for code source */
 
-static u8_string url_source_fn(int fetch,u8_string uri,u8_string enc_name,
+static u8_string url_source_fn(int fetch,lispval spec,u8_string enc_name,
                                u8_string *path,time_t *timep,
                                void *ignored)
 {
-  if (((strncmp(uri,"http:",5))==0) ||
-      ((strncmp(uri,"https:",6))==0) ||
-      ((strncmp(uri,"ftp:",4))==0)) {
-    if (fetch)  {
-      lispval result = fetchurl(NULL,uri);
-      lispval content = kno_get(result,pcontent_symbol,EMPTY);
-      if (PACKETP(content)) {
-        u8_encoding enc=
-          ((enc_name == NULL)?(u8_get_default_encoding()):
-           (strcasecmp(enc_name,"auto")==0)?
-           (u8_guess_encoding(KNO_PACKET_DATA(content))):
-           (u8_get_encoding(enc_name)));
-        if (!(enc)) enc = u8_get_default_encoding();
-        u8_string string_form = u8_make_string
-          (enc,KNO_PACKET_DATA(content),
-           KNO_PACKET_DATA(content)+KNO_PACKET_LENGTH(content));
-        kno_decref(content);
-        content = kno_mkstring(string_form);}
-      if (STRINGP(content)) {
-        lispval eurl = kno_get(result,eurl_slotid,VOID);
-        lispval filetime = kno_get(result,filetime_slotid,VOID);
-        u8_string sdata = u8_strdup(CSTRING(content));
-        if ((STRINGP(eurl))&&(path)) *path = u8_strdup(CSTRING(eurl));
-        if ((TYPEP(filetime,kno_timestamp_type))&&(timep))
-          *timep = u8_mktime(&(((kno_timestamp)filetime)->u8xtimeval));
-        kno_decref(filetime); kno_decref(eurl);
-        kno_decref(content); kno_decref(result);
-        return sdata;}
+  u8_string uri = NULL;
+  if (STRINGP(spec)) {
+    uri = KNO_CSTRING(spec);
+    if (((strncmp(uri,"http:",5))==0) ||
+        ((strncmp(uri,"https:",6))==0) ||
+        ((strncmp(uri,"ftp:",4))==0)) {
+      if (fetch) {
+        lispval result = fetchurl(NULL,uri);
+        lispval content = kno_get(result,pcontent_symbol,EMPTY);
+        if (PACKETP(content)) {
+          u8_encoding enc=
+            ((enc_name == NULL)?(u8_get_default_encoding()):
+             (strcasecmp(enc_name,"auto")==0)?
+             (u8_guess_encoding(KNO_PACKET_DATA(content))):
+             (u8_get_encoding(enc_name)));
+          if (!(enc)) enc = u8_get_default_encoding();
+          u8_string string_form = u8_make_string
+            (enc,KNO_PACKET_DATA(content),
+             KNO_PACKET_DATA(content)+KNO_PACKET_LENGTH(content));
+          kno_decref(content);
+          content = kno_mkstring(string_form);}
+        if (STRINGP(content)) {
+          lispval eurl = kno_get(result,eurl_slotid,VOID);
+          lispval filetime = kno_get(result,filetime_slotid,VOID);
+          u8_string sdata = u8_strdup(CSTRING(content));
+          if ((STRINGP(eurl))&&(path)) *path = u8_strdup(CSTRING(eurl));
+          if ((TYPEP(filetime,kno_timestamp_type))&&(timep))
+            *timep = u8_mktime(&(((kno_timestamp)filetime)->u8xtimeval));
+          kno_decref(filetime); kno_decref(eurl);
+          kno_decref(content); kno_decref(result);
+          return sdata;}
+        else {
+          kno_decref(content); kno_decref(result);
+          return NULL;}}
       else {
-        kno_decref(content); kno_decref(result);
-        return NULL;}}
-    else {
-      lispval result = fetchurlhead(NULL,uri);
-      lispval status = kno_get(result,response_code_slotid,VOID);
-      if ((VOIDP(status))||
-          ((KNO_UINTP(status))&&
-           (FIX2INT(status)<200)&&
-           (FIX2INT(status)>=400)))
-        return NULL;
-      else {
-        lispval eurl = kno_get(result,eurl_slotid,VOID);
-        lispval filetime = kno_get(result,filetime_slotid,VOID);
-        if ((STRINGP(eurl))&&(path)) *path = u8_strdup(CSTRING(eurl));
-        if ((TYPEP(filetime,kno_timestamp_type))&&(timep))
-          *timep = u8_mktime(&(((kno_timestamp)filetime)->u8xtimeval));
-        return "exists";}}}
+        lispval result = fetchurlhead(NULL,uri);
+        lispval status = kno_get(result,response_code_slotid,VOID);
+        if ((VOIDP(status))||
+            ((KNO_UINTP(status))&&
+             (FIX2INT(status)<200)&&
+             (FIX2INT(status)>=400)))
+          return NULL;
+        else {
+          lispval eurl = kno_get(result,eurl_slotid,VOID);
+          lispval filetime = kno_get(result,filetime_slotid,VOID);
+          if ((STRINGP(eurl))&&(path)) *path = u8_strdup(CSTRING(eurl));
+          if ((TYPEP(filetime,kno_timestamp_type))&&(timep))
+            *timep = u8_mktime(&(((kno_timestamp)filetime)->u8xtimeval));
+          return "exists";}}}
+    else return NULL;}
   else return NULL;
 }
 

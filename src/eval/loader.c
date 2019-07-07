@@ -486,15 +486,19 @@ static int updatemodules_config_set(lispval var,lispval val,void *ignored)
 
 /* Getting file sources */
 
-static u8_string file_source_fn(int fetch,u8_string filename,u8_string encname,
+static u8_string file_source_fn(int fetch,lispval pathspec,u8_string encname,
                                 u8_string *abspath,time_t *timep,
-                                void *ignored)
+				void *ignored)
 {
-  if (strncmp(filename,"file:",5)==0)
-    filename = filename+5;
-  else if (strchr(filename,':')!=NULL)
-    return NULL;
-  else {}
+  u8_string filename = NULL;
+  if (KNO_STRINGP(pathspec)) {
+    u8_string path = KNO_CSTRING(pathspec);
+    if (strncmp(path,"file:",5)==0)
+      filename = path+5;
+    else if (strchr(path,':')!=NULL)
+      return NULL;
+    else filename = path;}
+  else return NULL;
   if (fetch) {
     u8_string data = u8_filestring(filename,encname);
     if (data) {
