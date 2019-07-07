@@ -698,10 +698,12 @@ static lispval use_module_helper(lispval expr,kno_lexenv env)
         (KNO_HASHTABLEP(module_name)) ? (kno_incref(module_name)) :
         (KNO_LEXENVP(module_name)) ? (kno_incref(module_name)) :
         (kno_find_module(module_name,1));
-      if (KNO_ABORTP(module))
-        return module;
-      else if (VOIDP(module))
-        return kno_err(kno_NoSuchModule,"USE-MODULE",NULL,module_name);
+      if ( (KNO_ABORTP(module)) || (VOIDP(module)) ) {
+          KNO_STOP_DO_CHOICES;
+          kno_decref(module_names);
+          if (VOIDP(module))
+            return kno_err(kno_NoSuchModule,"USE-MODULE",NULL,module_name);
+          else return module;}
       else if (HASHTABLEP(module)) {
         if (!(uses_bindings(env,module))) {
           kno_lexenv old_parent;
