@@ -21,7 +21,8 @@
 #include "kno/cprims.h"
 
 DEFPRIM2("COMPOUND?",compoundp,MIN_ARGS(1),
-         "`(SCHEMAP->SLOTMAP *schemap*)` converts a schemap to a slotmap.",
+         "`(COMPOUND? *obj* *tag*)` returns #f if *obj* is a compound and "
+         "(when *tag* is provided) has the typetag *tag*.",
          -1,KNO_VOID,-1,KNO_VOID)
   (lispval x,lispval tag)
 {
