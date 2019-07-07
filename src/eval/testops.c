@@ -212,7 +212,9 @@ static lispval applytest(int n,lispval *args)
 	      "Result %q passed %q for %s",result,predicate,testid);
       kno_decref(pred_result);
       return_value = KNO_TRUE;}}
-  kno_decref(result);
+  if (KNO_LEXENVP(result))
+    kno_recycle_lexenv((kno_lexenv)result);
+  else kno_decref(result);
   u8_free(testid);
   return return_value;
 }
@@ -289,7 +291,9 @@ static lispval evaltest_evalfn(lispval expr,kno_lexenv env,kno_stack s)
       u8_free(msg);}}
   kno_decref(name_value);
   kno_decref(expected);
-  kno_decref(result);
+  if (KNO_LEXENVP(result))
+    kno_recycle_lexenv((kno_lexenv)result);
+  else kno_decref(result);
   return return_value;
 }
 
