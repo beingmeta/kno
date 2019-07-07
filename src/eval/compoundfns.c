@@ -106,10 +106,12 @@ static lispval compound_ref(lispval x,lispval offset,lispval tag)
   if ((compound->compound_typetag!=tag) && (!(VOIDP(tag)))) {
     u8_string type_string = kno_lisp2string(tag);
     kno_seterr(kno_TypeError,"compound_ref",type_string,x);
+    u8_free(type_string);
     return KNO_ERROR;}
   else if (!(VOIDP(tag))) {
     u8_string type_string = kno_lisp2string(tag);
     kno_seterr(kno_RangeError,"compound_ref",type_string,off);
+    u8_free(type_string);
     return KNO_ERROR;}
   else {
     kno_seterr(kno_RangeError,"compound_ref",NULL,off);
