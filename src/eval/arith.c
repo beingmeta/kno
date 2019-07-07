@@ -904,6 +904,7 @@ static lispval quotient_prim(lispval x,lispval y)
 {
   if ((FIXNUMP(x)) && (FIXNUMP(y))) {
     long long ix = FIX2INT(x), iy = FIX2INT(y);
+    if (iy == 0) return kno_err("DivisionByZero","quotient_prim",NULL,y);
     long long q = ix/iy;
     return KNO_INT(q);}
   else return kno_quotient(x,y);
