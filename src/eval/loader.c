@@ -626,8 +626,10 @@ static lispval load_latest_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     int retval = -1;
     lispval path_expr = kno_get_arg(expr,1);
     lispval path = kno_eval(path_expr,env);
-    if (!(STRINGP(path)))
-      return kno_type_error("pathname","load_latest",path);
+    if (!(STRINGP(path))) {
+      lispval err = kno_type_error("pathname","load_latest",path);
+      kno_decref(path);
+      return err;}
     else retval = kno_load_latest(CSTRING(path),env,NULL);
     kno_decref(path);
     if (retval<0)
