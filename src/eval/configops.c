@@ -31,6 +31,18 @@
 u8_condition LoadConfig=_("Loading config");
 u8_condition UnconfiguredSource;
 
+static u8_string get_loadpath(u8_string spec)
+{
+  if (*spec == '/')
+    return u8_strdup(spec);
+  else if (((u8_string)(strstr(spec,"file:"))) == spec)
+    return u8_strdup(spec+5);
+  else if (strchr(spec,':'))
+    return u8_strdup(spec);
+  else return u8_abspath(spec,NULL);
+}
+
+
 /* Core functions */
 
 static lispval config_get(lispval vars,lispval dflt,lispval valfn)
@@ -242,7 +254,7 @@ KNO_EXPORT int kno_load_default_config(u8_string sourceid)
 static lispval lisp_load_config(lispval arg)
 {
   if (STRINGP(arg)) {
-    u8_string abspath = u8_abspath(CSTRING(arg),NULL);
+    u8_string abspath = get_loadpath(CSTRING(arg));
     int retval = kno_load_config(abspath);
     u8_free(abspath);
     if (retval<0)
@@ -268,7 +280,7 @@ static lispval lisp_load_config(lispval arg)
 static lispval lisp_load_default_config(lispval arg)
 {
   if (STRINGP(arg)) {
-    u8_string abspath = u8_abspath(CSTRING(arg),NULL);
+    u8_string abspath = get_loadpath(CSTRING(arg));
     int retval = kno_load_default_config(abspath);
     u8_free(abspath);
     if (retval<0)
