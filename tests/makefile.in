@@ -202,11 +202,12 @@ promises:
 	@${header} "■■■■ Completed promises tests ${RUNCONF}"
 configs:
 	@${RUN} ${KNOX} configs.scm ${RUNCONF} FOO=quux "CONFVAR=88;XCONF=baz"
+	@${RUN} ${KNOX} configs.scm ${RUNCONF} FOO=quux "CONFVAR=88;XCONF=baz" USEROOT=https://s3.amazonaws.com/knomods.beingmeta.com/
 	@${header} "■■■■ Completed config system tests ${RUNCONF}"
 appenv:
 	@${RUN} ${KNOX} TRACECONFIG=yes TRACELOAD=yes CONFIG=data/appenv.cfg \
 		APPMODS=logctl APPMODS=gpath\;parsetime ${RUNCONF}
-	@ BIZZARO=yes ${RUN} ${KNOX} TRACECONFIG=yes TRACELOAD=yes APPMODS=nomagic ${RUNCONF}
+	@ BIZZARO=yes ${RUN} ${KNOX} CONFIG:TRACE=yes LOAD:TRACE=yes APPMODS=nomagic ${RUNCONF}
 	@ BIZZARO=yes ${RUN} ${KNOX} TRACECONFIG=yes TRACELOAD=yes APPLOAD=data/nomagic.scm ${RUNCONF}
 	@${header} "■■■■ Completed appenv tests ${RUNCONF}"
 opts:
@@ -214,8 +215,8 @@ opts:
 	@${header} "■■■■ Completed opts tests ${RUNCONF}"
 loading:
 	@${RUN} ${KNOX} loading.scm ${RUNCONF}
-	@${RUN} ${KNOX} loading.scm TRACELOAD=yes ${RUNCONF}
-	@${RUN} ${KNOX} loading.scm TRACELOADEVAL=yes ${RUNCONF}
+	@${RUN} ${KNOX} loading.scm LOAD:TRACE=yes ${RUNCONF}
+	@${RUN} ${KNOX} loading.scm LOAD:LOGEVAL=yes ${RUNCONF}
 	@${header} "■■■■ Completed loading tests ${RUNCONF}"
 hashsets:
 	@${RUN} ${KNOX} hashsets.scm ${RUNCONF}

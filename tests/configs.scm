@@ -2,6 +2,8 @@
 
 (load-component "common.scm")
 
+(use-module 'varconfig)
+
 (define-init identity (lambda (x) x))
 
 (applytest #f config 'z)
@@ -73,4 +75,40 @@
 (config-default! 'confvar 99)
 (applytest 88 config "confvar" 9)
 
+;;; load-config
+
+(define config-root (get-component "webfiles/root"))
+(varconfig! 'useconfigroot config-root)
+
+(load-config (mkpath config-root "sample.cfg"))
+(applytest "xxx" config 'xval)
+(applytest #f config 'yval)
+(applytest "zzz" config 'zval)
+(load-default-config (mkpath config-root "default.cfg"))
+(applytest "xxx" config 'xval)
+(applytest "YYY" config 'yval)
+
 (applytest overlaps? '{|PID| |PPID|} find-configs "pid")
+
+(with-sourcebase 
+ #f (load-config (get-component "webfiles/root/sample.cfg")))
+
+(define (list-contains? l val)
+  (member val l))
+
+(config! 'config (abspath (get-component "data/load.cfg")))
+(applytest timestamp? config 'test.load.cfg)
+(applytest has-prefix (config 'cwd) config 'test.load.cfg.path)
+(applytest list-contains? (abspath (get-component "data/load.cfg")) config 'config)
+
+;;;; Optconfigs
+
+(config! 'optconfig (abspath (get-component "data/xoptional.cfg")))
+(applytest #f config 'optional.cfg)
+(config! 'optconfig (abspath (get-component "data/optional.cfg")))
+(applytest string? config 'optional.cfg)
+
+;;; READ-CONFIG
+
+(read-config (filestring (get-component "webfiles/root/sample.cfg")))
+

@@ -51,3 +51,19 @@
 
 (evaltest '{3 4 5} `{,(+ 1 2) ,(* 2 2) ,(* 5/2 2)})
 (evaltest '{(+ 1 2) (* 2 2) (* 5/2 2)} `{(+ 1 2) (* 2 2) (* 5/2 2)})
+
+(errtest `(one two . ,(error 'just-because)))
+(errtest `(one two . ,(void)))
+(errtest `(one two (three four . ,(error 'just-because))))
+(errtest `(one two (eight nine . ,(void))))
+(errtest `(one two `(three four . ,(error 'just-because))))
+(errtest `(one two `(eight nine . ,,(void))))
+
+(errtest `(one two (unquote)))
+(errtest `(one two (unquote . cdr)))
+
+(evaltest #(3 4 5) `#(3 4 ,@(list) 5))
+(errtest `#(3 4 ,@(cons 6 . cdr) 5))
+
+(evaltest #[x 3 y 9] `#[x 3 ,(string->symbol "y") ,(* 3 3)])
+(errtest `{(+ 2 3) (* 3 4) (+ 8 "eight")})

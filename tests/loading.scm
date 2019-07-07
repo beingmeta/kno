@@ -52,6 +52,9 @@
 (applytester 2 get-load-ok-count)
 
 (load->env (get-component "data/loadok.scm") (%env))
+(errtest (load->env (get-component "data/parsefail.scm")))
+(errtest (load->env (get-component "data/nosuchfile.scm")))
+
 
 (applytester 3 get-load-ok-count)
 
@@ -110,17 +113,24 @@
 ;; (applytest environment? (load->env (get-component "data/loadok.scm") #[]))
 
 (define seen #f)
-;; (applytest environment? (load->env (get-component "data/badpostload.scm") #[]
-;; 				   (lambda ((obj)) (set! seen obj))))
-;; (applytest #t equal? #[x x y y] seen)
-;; (applytest environment?
-;; 	   (load->env (get-component "data/badpostload.scm") #[]
-;; 		      (lambda ((obj)) (error 'uncool))))
-;; (applytest environment?
-;; 	   (load->env (get-component "data/loadok.scm") #[]
-;; 		      (lambda ((obj)) (unless (bound? obj) (set! seen #f)))))
-;; (applytest #t eq? seen #f)
+(applytest environment?
+	   load->env (get-component "data/loadval.scm") #[]
+	   (lambda ((obj)) (set! seen obj)))
+(applytest #t pair? seen)
+(applytest environment?
+	   load->env (get-component "data/badpostload.scm") #[]
+	   (lambda ((obj)) (error 'uncool)))
+(applytest environment?
+ 	   load->env (get-component "data/loadok.scm") #[]
+	   (lambda ((obj)) (unless (bound? obj) (set! seen #f))))
+(applytest #t eq? seen #f)
 
+(applytest 'err load->env (get-component "data/noloadok.scm") #[]
+	   (lambda ((obj)) (unless (bound? obj) (set! seen #f))))
+(applytest 'err load->env (get-component "data/loadval.scm") #[]
+	   "notafn")
+(applytest 'err load->env (get-component "data/loadval.scm") #[]
+	   "notafn")
 
 
 ;;; Module tests
@@ -153,7 +163,24 @@
 
 (modules/testcapi)
 
+;;; Url loading
+
+(load "https://s3.amazonaws.com/knomods.beingmeta.com/testload.scm")
+(evaltest #t (bound? alt-plus))
+
 ;;; Errors
 
 (errtest (load 33))
 (errtest (load))
+
+;;; Log load errors
+
+(config! 'load:logerrs #t)
+
+(errtest (load (get-component "data/evalfail.scm")))
+
+;;; RUN-FILE
+
+(applytest 3 kno/run-file (get-component "data/multiply.scm") 3 4 5)
+(applytest "60" kno/run->string (get-component "data/multiply.scm") 3 4 5)
+(applytest 'err kno/run->string (get-component "data/multiply.scm") 3 "four" 5)
