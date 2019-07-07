@@ -73,6 +73,8 @@ void kno_free_lexenv(struct KNO_LEXENV *env)
 #define kno_free_lexenv _kno_free_lexenv
 #endif
 
+KNO_EXPORT void kno_destroy_lexenv(kno_lexenv env);
+
 #endif
 
 /* Emacs local variables
