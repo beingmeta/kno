@@ -31,7 +31,6 @@
 (applytester 2 get-load-ok-count)
 
 (errtest (load-latest (get-component "data/parsefail.scm")))
-(dbg)
 (errtest (load-latest (get-component "data/nosuchfile.scm")))
 
 (load->env (get-component "data/loadok.scm") (%env))
@@ -42,17 +41,20 @@
 
 (errtest (load-latest #("path")))
 
-(begin (load-latest (get-component "data/loadok.scm"))
+(define loadok-file (get-component "data/loadok.scm"))
+
+(begin (load-latest loadok-file)
   (applytester 4 get-load-ok-count))
-(begin (load-latest (get-component "data/loadok.scm"))
+(begin (load-latest loadok-file)
   (applytester 4 get-load-ok-count))
 
-(begin (set-file-modtime! (get-component "data/loadok.scm") (timestamp))
-  (load-latest (get-component "data/loadok.scm"))
+(begin
+  (set-file-modtime! loadok-file (timestamp+ (file-modtime loadok-file) 2))
+  (load-latest loadok-file)
   (applytester 5 get-load-ok-count))
 
-(begin (sleep 2)
-  (set-file-modtime! (get-component "data/loadok.scm") (timestamp))
+(begin
+  (set-file-modtime! loadok-file (timestamp+ (file-modtime loadok-file) 2))
   (load-latest)
   (applytester 6 get-load-ok-count))
 
@@ -138,3 +140,9 @@
 (applytest 3 kno/run-file (get-component "data/multiply.scm") 3 4 5)
 (applytest "60" kno/run->string (get-component "data/multiply.scm") 3 4 5)
 (applytest 'err kno/run->string (get-component "data/multiply.scm") 3 "four" 5)
+
+;;; All done
+
+(test-finished "LOADING")
+
+
