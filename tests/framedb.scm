@@ -78,7 +78,7 @@
 (defambda (combine-indexes indexes)
   (if (< (choice-size indexes) 2)
       indexes
-      (%wc make-aggregate-index indexes)))
+      (make-aggregate-index indexes)))
 
 (define (initdb source (opts #f))
   (unless testpool
