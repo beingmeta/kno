@@ -161,7 +161,8 @@ int kno_recycle_lexenv(kno_lexenv env)
     kno_decref((lispval)env);
     return 1;}
   else {
-    int env_refs = count_envrefs(env->env_bindings,env,env_recycle_depth);
+    int env_refs = count_envrefs(env->env_bindings,env,env_recycle_depth) +
+      count_envrefs(env->env_exports,env,env_recycle_depth);
     if ( (env_refs) && ( (refcount-env_refs) <= 1 ) ) {
       struct KNO_RAW_CONS *envstruct = (struct KNO_RAW_CONS *)env;
       kno_decref(env->env_bindings);
