@@ -4,7 +4,7 @@
 
 (message "Loaded load5")
 
-(cons (config 'sessionid) (qc (%wc getfiles (dirname (get-source)))))
+(cons (config 'sessionid) (qc (getfiles (dirname (get-source)))))
 
 
 
