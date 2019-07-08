@@ -22,6 +22,7 @@ KNO_EXPORT lispval kno_raw_irritant(u8_exception ex);
 KNO_EXPORT lispval kno_get_irritant(u8_exception ex);
 KNO_EXPORT lispval kno_get_exception(u8_exception ex);
 KNO_EXPORT lispval kno_simple_exception(u8_exception ex);
+KNO_EXPORT void kno_simplify_exception(u8_exception ex);
 KNO_EXPORT struct KNO_EXCEPTION *kno_exception_object(u8_exception ex);
 
 KNO_EXPORT lispval kno_err(u8_condition,u8_context,u8_string,lispval);

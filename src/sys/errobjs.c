@@ -167,6 +167,21 @@ KNO_EXPORT lispval kno_simple_exception(u8_exception ex)
                             ex->u8x_thread);
 }
 
+KNO_EXPORT void kno_simplify_exception(u8_exception ex)
+{
+  if (ex == NULL) ex = u8_current_exception;
+  if (ex->u8x_free_xdata == kno_decref_embedded_exception) {
+    lispval exception = (lispval) ex->u8x_xdata;
+    if (KNO_EXCEPTIONP(exception)) {
+      struct KNO_EXCEPTION *exo = (kno_exception) exception;
+      lispval irritant = exo->ex_irritant;
+      kno_incref(irritant);
+      kno_decref_embedded_exception(exo);
+      ex->u8x_xdata = (void *) irritant;
+      ex->u8x_free_xdata = kno_decref_u8x_xdata;}}
+}
+
+
 /* This gets the 'actual' irritant from a u8_exception, extracting it
    from the underlying u8_condition (if that's an irritant) */
 KNO_EXPORT lispval kno_get_irritant(u8_exception ex)
