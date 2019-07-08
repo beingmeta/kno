@@ -190,6 +190,29 @@
 (applytest 10 string->number "0a" 16)
 (applytest 1/3 string->number "1/3")
 
+(applytest 55340232221128655749/3 + 1/3 300 onebig)
+(applytest -55340232221128655747/3 - 1/3 300 onebig)
+(applytest 1844674407370955161600 * 1/3 300 onebig)
+(applytest 1/16602069666338596454400 / 1/3 300 onebig)
+
+(define (close-float? x y (r))
+  (default! r
+    (sqrt (+ (* (- (real-part x) (real-part y))
+		(- (real-part x) (real-part y)))
+	     (* (- (imag-part x) (imag-part y))
+		(- (imag-part x) (imag-part y))))))
+  (< r 0.00001))
+
+(applytest close-float? 336.633333+9.000000i + 1/3 300 33.3 3+9.0i)
+(applytest close-float? -335.966667-9.000000i - 1/3 300 33.3 3+9.0i)
+(applytest close-float? 9990.000000+29970.000000i * 1/3 300 33.3 3+9.0i)
+(applytest close-float? 1.112223e-06-3.336670e-06i / 1/3 300 33.3 3+9.0i)
+
+(applytest 55340232221128655758/3+9i + 1/3 300 onebig 3+9i)
+(applytest -55340232221128655756/3-9i - 1/3 300 onebig 3+9i)
+(applytest 5534023222112865484800+16602069666338596454400i * 1/3 300 onebig 3+9i)
+(applytest 1/498062089990157893632000-1/166020696663385964544000i / 1/3 300 onebig 3+9i)
+
 (errtest (string->number 99))
 (errtest (string->number 99.5))
 
