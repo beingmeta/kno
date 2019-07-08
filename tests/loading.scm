@@ -93,30 +93,29 @@
 (load 'loadok)
 (errtest (load 'loadnotok))
 
-;; (applytest environment? (load->env (get-component "data/loadok.scm")))
-;; (applytest environment? (load->env (get-component "data/loadok.scm") #t))
-;; (applytest environment? (load->env (get-component "data/loadok.scm") #default))
-;; (applytest environment? (load->env (get-component "data/loadok.scm") #[]))
+(applytest environment? load->env (get-component "data/loadok.scm"))
+(applytest environment? load->env (get-component "data/loadok.scm") #t)
+(applytest environment? load->env (get-component "data/loadok.scm") #default)
 
 (define seen #f)
 (applytest environment?
-	   load->env (get-component "data/loadval.scm") #[]
-	   (lambda ((obj)) (set! seen obj)))
+ 	   load->env (get-component "data/loadval.scm") #default
+ 	   (lambda ((obj)) (set! seen obj)))
 (applytest #t pair? seen)
 (applytest environment?
-	   load->env (get-component "data/badpostload.scm") #[]
-	   (lambda ((obj)) (error 'uncool)))
+ 	   load->env (get-component "data/badpostload.scm") #default
+ 	   (lambda ((obj)) (error 'uncool)))
 (applytest environment?
- 	   load->env (get-component "data/loadok.scm") #[]
-	   (lambda ((obj)) (unless (bound? obj) (set! seen #f))))
-(applytest #t eq? seen #f)
+ 	   load->env (get-component "data/loadok.scm") #default
+ 	   (lambda ((obj)) (unless (bound? obj) (set! seen #f))))
+ (applytest #t eq? seen #f)
 
-(applytest 'err load->env (get-component "data/noloadok.scm") #[]
-	   (lambda ((obj)) (unless (bound? obj) (set! seen #f))))
+(applytest 'err load->env (get-component "data/noloadok.scm") #default
+ 	   (lambda ((obj)) (unless (bound? obj) (set! seen #f))))
+(applytest 'err load->env (get-component "data/loadval.scm") #default
+ 	   "notafn")
 (applytest 'err load->env (get-component "data/loadval.scm") #[]
-	   "notafn")
-(applytest 'err load->env (get-component "data/loadval.scm") #[]
-	   "notafn")
+ 	   "notafn")
 
 
 ;;; Url loading
@@ -144,5 +143,3 @@
 ;;; All done
 
 (test-finished "LOADING")
-
-

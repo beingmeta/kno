@@ -119,7 +119,7 @@ STORAGE_HEADERS=\
 DRIVERS_H=include/kno/drivers.h
 SCHEME_HEADERS=include/kno/eval.h include/kno/threads.h \
 	include/kno/opcodes.h include/kno/seqprims.h \
-	include/kno/procprims.h
+	include/kno/procprims.h include/kno/getsource.h
 LIB_HEADERS=include/kno/texttools.h include/kno/webtools.h \
 		include/kno/mongodb.h \
 	        include/kno/leveldb.h \
@@ -198,6 +198,7 @@ DBSERV_OBJS=src/storage/dbserv.o
 
 CORE_SCHEME_OBJS=\
 	src/eval/eval.o\
+	src/eval/getsource.o\
 	src/eval/debug.o\
 	src/eval/options.o\
 	src/eval/testops.o\
@@ -240,7 +241,7 @@ SCHEME_OBJS=\
 	src/prims/sqldbprims.o \
 	src/prims/fileprims.o \
 	src/prims/driverprims.o \
-	src/eval/loader.o \
+	src/eval/loadmods.o \
 	src/eval/history.o
 
 WEB_OBJS=\
@@ -445,7 +446,7 @@ KNO_SOURCES=\
 	src/prims/tableprims.c src/eval/choiceops.c               		\
 	src/prims/seqprims.c src/prims/stringprims.c                 		\
 	src/prims/fileprims.c src/prims/driverprims.c                		\
-	src/eval/loader.c                                            		\
+	src/eval/loadmods.c                                            		\
 	src/prims/timeprims.c src/prims/sysprims.c 				\
 	src/prims/sqldbprims.c                    				\
 	src/eval/reqstate.c src/eval/dteval.c src/eval/configops.c		\

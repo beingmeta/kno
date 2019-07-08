@@ -20,6 +20,7 @@
 #include "kno/frames.h"
 #include "kno/numbers.h"
 #include "kno/support.h"
+#include "kno/getsource.h"
 #include "kno/cprims.h"
 
 #include <libu8/libu8io.h>
@@ -207,7 +208,7 @@ KNO_EXPORT int kno_load_config(u8_string sourceid)
 {
   struct U8_INPUT stream; int retval;
   u8_string sourcebase = NULL, outer_sourcebase;
-  u8_string content = kno_get_source(sourceid,NULL,&sourcebase,NULL);
+  u8_string content = kno_get_source(sourceid,NULL,&sourcebase,NULL,NULL);
   if (content == NULL) return -1;
   else if (sourcebase) {
     outer_sourcebase = kno_bind_sourcebase(sourcebase);}
@@ -230,7 +231,7 @@ KNO_EXPORT int kno_load_default_config(u8_string sourceid)
 {
   struct U8_INPUT stream; int retval;
   u8_string sourcebase = NULL, outer_sourcebase;
-  u8_string content = kno_get_source(sourceid,NULL,&sourcebase,NULL);
+  u8_string content = kno_get_source(sourceid,NULL,&sourcebase,NULL,NULL);
   if (content == NULL) return -1;
   else if (sourcebase) {
     outer_sourcebase = kno_bind_sourcebase(sourcebase);}

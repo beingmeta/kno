@@ -1584,7 +1584,6 @@ static void close_u8stdio()
 static int scheme_fileio_initialized = 0;
 
 KNO_EXPORT void kno_init_driverfns_c(void);
-KNO_EXPORT void kno_init_loader_c(void);
 
 KNO_EXPORT void kno_init_fileprims_c()
 {
@@ -1873,7 +1872,6 @@ KNO_EXPORT void kno_init_schemeio()
 {
   kno_init_fileprims_c();
   kno_init_driverfns_c();
-  kno_init_loader_c();
 }
 
 /* Emacs local variables

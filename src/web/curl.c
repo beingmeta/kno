@@ -13,10 +13,12 @@
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
+#include "kno/numbers.h"
 #include "kno/tables.h"
 #include "kno/eval.h"
 #include "kno/webtools.h"
 #include "kno/ports.h"
+#include "kno/getsource.h"
 
 #include <libu8/libu8io.h>
 #include <libu8/u8stringfns.h>
@@ -1528,7 +1530,7 @@ static lispval urlpostdata_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 /* Using URLs for code source */
 
 static u8_string url_source_fn(int fetch,lispval spec,u8_string enc_name,
-                               u8_string *path,time_t *timep,
+                               u8_string *path,time_t *timep,ssize_t *sizep,
                                void *ignored)
 {
   u8_string uri = NULL;
@@ -1551,19 +1553,25 @@ static u8_string url_source_fn(int fetch,lispval spec,u8_string enc_name,
             (enc,KNO_PACKET_DATA(content),
              KNO_PACKET_DATA(content)+KNO_PACKET_LENGTH(content));
           kno_decref(content);
-          content = kno_mkstring(string_form);}
+          content = kno_wrapstring(string_form);}
         if (STRINGP(content)) {
           lispval eurl = kno_get(result,eurl_slotid,VOID);
           lispval filetime = kno_get(result,filetime_slotid,VOID);
+          lispval filesize = kno_get(result,content_length_symbol,VOID);
           u8_string sdata = u8_strdup(CSTRING(content));
           if ((STRINGP(eurl))&&(path)) *path = u8_strdup(CSTRING(eurl));
-          if ((TYPEP(filetime,kno_timestamp_type))&&(timep))
+          if ( (TYPEP(filetime,kno_timestamp_type)) && (timep) )
             *timep = u8_mktime(&(((kno_timestamp)filetime)->u8xtimeval));
-          kno_decref(filetime); kno_decref(eurl);
-          kno_decref(content); kno_decref(result);
+          if ( (sizep) && (KNO_INTEGERP(filesize) ) )
+            *sizep = kno_getint64(filesize);
+          kno_decref(filetime);
+          kno_decref(eurl);
+          kno_decref(content);
+          kno_decref(result);
           return sdata;}
         else {
-          kno_decref(content); kno_decref(result);
+          kno_decref(content);
+          kno_decref(result);
           return NULL;}}
       else {
         lispval result = fetchurlhead(NULL,uri);
@@ -1571,14 +1579,22 @@ static u8_string url_source_fn(int fetch,lispval spec,u8_string enc_name,
         if ((VOIDP(status))||
             ((KNO_UINTP(status))&&
              (FIX2INT(status)<200)&&
-             (FIX2INT(status)>=400)))
-          return NULL;
+             (FIX2INT(status)>=400))) {
+          kno_decref(result);
+          return NULL;}
         else {
           lispval eurl = kno_get(result,eurl_slotid,VOID);
           lispval filetime = kno_get(result,filetime_slotid,VOID);
+          lispval filesize = kno_get(result,content_length_symbol,VOID);
           if ((STRINGP(eurl))&&(path)) *path = u8_strdup(CSTRING(eurl));
           if ((TYPEP(filetime,kno_timestamp_type))&&(timep))
             *timep = u8_mktime(&(((kno_timestamp)filetime)->u8xtimeval));
+          if ( (sizep) && (KNO_INTEGERP(filesize)) )
+            *timep = kno_getint64(filesize);
+          kno_decref(eurl);
+          kno_decref(result);
+          kno_decref(filetime);
+          kno_decref(filesize);
           return "exists";}}}
     else return NULL;}
   else return NULL;
