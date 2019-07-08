@@ -99,14 +99,11 @@ static lispval oddp(lispval x)
     else return KNO_FALSE;}
   else if (KNO_BIGINTP(x)) {
     lispval remainder = kno_remainder(x,KNO_INT(2));
-    if (KNO_ABORTP(remainder)) return remainder;
-    else if (FIXNUMP(remainder))
-      if (KNO_FIX2INT(remainder))
-        return KNO_TRUE;
-      else return KNO_FALSE;
-    else {
-      kno_decref(remainder);
-      return KNO_FALSE;}}
+    if (KNO_ABORTP(remainder))
+      return remainder;
+    else if (KNO_FIX2INT(remainder))
+      return KNO_TRUE;
+    else return KNO_FALSE;}
   else return KNO_FALSE;
 }
 
@@ -121,13 +118,9 @@ static lispval evenp(lispval x)
     lispval remainder = kno_remainder(x,KNO_INT(2));
     if (KNO_ABORTP(remainder))
       return remainder;
-    else if (FIXNUMP(remainder))
-      if (KNO_FIX2INT(remainder))
-        return KNO_FALSE;
-      else return KNO_TRUE;
-    else {
-      kno_decref(remainder);
-      return KNO_FALSE;}}
+    else if (KNO_FIX2INT(remainder))
+      return KNO_FALSE;
+    else return KNO_TRUE;}
   else return KNO_FALSE;
 }
 
