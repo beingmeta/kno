@@ -994,8 +994,10 @@ static lispval samplen(lispval x,lispval count)
     return x;
   else if (FIXNUMP(count)) {
     int howmany = kno_getint(count);
-    if (howmany<=0)
+    if (howmany==0)
       return EMPTY;
+    else if (howmany < 0)
+      return kno_type_error("positive","samplen",count);
     else if (! (KNO_CHOICEP(x)) )
       return kno_incref(x);
     else {
@@ -1028,6 +1030,8 @@ static lispval pickn(lispval x,lispval count,lispval offset)
       return EMPTY;
     else if (x == EMPTY)
       return EMPTY;
+    else if (howmany < 0)
+      return kno_type_error("positive","pickn",count);
     else if (KNO_CHOICEP(x)) {
       lispval normal = kno_make_simple_choice(x);
       int start=0, n = KNO_CHOICE_SIZE(normal);
@@ -1040,10 +1044,7 @@ static lispval pickn(lispval x,lispval count,lispval offset)
         kno_decref(normal);
         return kno_type_error("small fixnum","pickn",offset);}
       else start = u8_random(n-howmany);
-      if (howmany<=0) {
-        kno_decref(normal);
-        return EMPTY;}
-      else if (howmany == 1) {
+      if (howmany == 1) {
         struct KNO_CHOICE *base=
           (kno_consptr(struct KNO_CHOICE *,normal,kno_choice_type));
         const lispval *read = KNO_XCHOICE_DATA(base);
