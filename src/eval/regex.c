@@ -111,14 +111,7 @@ KNO_EXPORT ssize_t kno_regex_op(enum KNO_REGEX_OP op,lispval pat,
   struct KNO_REGEX *ptr = kno_consptr(struct KNO_REGEX *,pat,kno_regex_type);
   regmatch_t results[1] = { { 0 } };
   int retval;
-  /* Convert numeric eflags value to correct flags field */
-  if (eflags==1)
-    eflags = REG_NOTBOL;
-  else if (eflags==2)
-    eflags = REG_NOTEOL;
-  else if (eflags==3)
-    eflags = REG_NOTEOL|REG_NOTBOL;
-  else eflags = 0;
+  if (len < 0) len = strlen(s);
   u8_lock_mutex(&(ptr->rx_lock));
   retval = regexec(&(ptr->rxcompiled),s,1,results,eflags);
   if (retval == REG_NOMATCH) {

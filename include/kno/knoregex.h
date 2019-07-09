@@ -12,8 +12,8 @@
 #endif
 
 enum KNO_REGEX_OP {
-  rx_search, rx_zeromatch, rx_matchlen, rx_exactmatch, rx_matchspan,
-  rx_matchstring};
+  rx_search=1, rx_zeromatch=2, rx_matchlen=3, rx_exactmatch=4, rx_matchspan=5,
+  rx_matchstring=6 };
 
 KNO_EXPORT ssize_t kno_regex_op(enum KNO_REGEX_OP op,lispval pat,
 			  u8_string s,size_t len,
