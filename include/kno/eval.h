@@ -237,8 +237,6 @@ KNO_FASTOP lispval fastget(lispval table,lispval key)
   switch (argtype) {
   case kno_schemap_type:
     return kno_schemap_get((kno_schemap)table,key,KNO_UNBOUND);
-  case kno_slotmap_type:
-    return kno_slotmap_get((kno_slotmap)table,key,KNO_UNBOUND);
   case kno_hashtable_type:
     return kno_hashtable_get((kno_hashtable)table,key,KNO_UNBOUND);
   default: return kno_get(table,key,KNO_UNBOUND);}
@@ -306,8 +304,7 @@ KNO_FASTOP lispval _kno_fast_eval(lispval x,kno_lexenv env,
       return kno_deep_copy(x);
     default:
       return kno_incref(x);}}
-  default: /* Never reached */
-    return x;
+  default: return x; /* Never reached */
   }
 }
 
