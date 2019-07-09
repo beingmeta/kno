@@ -100,39 +100,21 @@ void kno_add_module_loader(int (*loader)(lispval,void *),void *data)
 
 /* Module finding */
 
-static int loadablep(u8_string path)
+static u8_string check_module_source(u8_string name,u8_string search_path)
 {
-  if (! (u8_file_readablep(path)) )
-    return 0;
-  else {
-    char *lpath = u8_localpath(path);
-    struct stat info;
-    int rv = stat(lpath,&info);
-    u8_free(lpath);
-    if (rv != 0)
-      return 0;
-    else if ( (info.st_mode&S_IFMT) == S_IFREG )
-      return 1;
-    else return 0;}
+  unsigned char buf[1000];
+  u8_string init_sep = (u8_has_suffix(search_path,"/",0))
+    ? (U8S(""))
+    : (U8S("/"));
+  if (u8_file_existsp
+      (u8_bprintf(buf,"%s%s%s/module.scm",search_path,init_sep,name)))
+    return u8_mkstring("%s%s%s/module.scm",search_path,init_sep,name);
+  else if (u8_file_existsp(u8_bprintf(buf,"%s%s%s.scm",
+				      search_path,init_sep,name)))
+    return u8_mkstring("%s%s%s.scm",search_path,init_sep,name);
+  else return NULL;
 }
-
-static u8_string find_path_sep(u8_string path)
-{
-  u8_string loc[4];
-  loc[0] = strchr(path,':');
-  loc[1] = strchr(path,';');
-  loc[2] = strchr(path,' ');
-  loc[3] = strchr(path,',');
-  u8_string result = NULL;
-  int i = 0;
-  while (i<4) {
-    if (loc[i] == NULL) i++;
-    else if ( (result == NULL) || (loc[i] < result) )
-      result = loc[i++];
-    else i++;}
-  return result;
-}
-
+#if 0
 static u8_string check_module_source(u8_string name,u8_string search_path)
 {
   if (strchr(search_path,'%'))
@@ -161,6 +143,7 @@ static u8_string check_module_source(u8_string name,u8_string search_path)
       return u8_mkstring("%s%s%s.scm",search_path,init_sep,name);
     else return NULL;}
 }
+#endif
 
 static int load_source_module(lispval spec,void *ignored)
 {
@@ -222,7 +205,7 @@ static u8_string get_module_source(lispval spec)
     else {
       u8_string use_path = NULL;
       if (kno_probe_source(spec_data,&use_path,NULL,NULL)) {
-        if (use_path)
+	if (use_path)
 	  return use_path;
 	else return u8_strdup(spec_data);}
       else return NULL;}}
