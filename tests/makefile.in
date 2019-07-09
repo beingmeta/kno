@@ -186,7 +186,7 @@ lambda:
 	@${RUN} ${KNOX} lambda.scm ${RUNCONF}
 	@${header} "■■■■ Completed lamdba tests ${RUNCONF}"
 conditionals:
-	@${RUN} ${KNOX} lambda.scm ${RUNCONF}
+	@${RUN} ${KNOX} conditionals.scm ${RUNCONF}
 	@${header} "■■■■ Completed conditionals tests ${RUNCONF}"
 iterators:
 	@${RUN} ${KNOX} iterators.scm ${RUNCONF}
