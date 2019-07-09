@@ -138,7 +138,8 @@ static lispval applytest(int n,lispval *args)
       fn = args[2];
       argstart = args+3;
       n_args = n - 3;}
-    else return kno_err("Improper arguments","applytest",NULL,KNO_VOID);}
+    else return kno_err("Improper arguments","applytest/predicate",
+			NULL,expected);}
   else NO_ELSE;
   u8_string testid = get_testid(fn,n_args,argstart);
   lispval result = (KNO_APPLICABLEP(fn)) ? (kno_apply(fn,n_args,argstart)) :
@@ -309,8 +310,8 @@ static lispval errtest_evalfn(lispval expr,kno_lexenv env,kno_stack s)
              test_expr,ex->u8x_cond,ex->u8x_context,ex->u8x_details);
       u8_free_exception(ex,1);}
     else u8_log(LOG_NOTICE,"Missing Exception",
-                "As expected, %q generated an error, but no exception was set",
-                test_expr);
+		"As expected, %q generated an error, but no exception was set",
+		test_expr);
     return KNO_TRUE;}
   else {
     u8_string details = u8_mkstring("%q",test_expr);
