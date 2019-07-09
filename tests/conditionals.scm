@@ -28,6 +28,20 @@
 	(else => . "foo")))
 (applytest 'err cond-tester-3 '(pair))
 
+(define-tester (cond-tester-4 x)
+  (cond ((number? x) x)
+	((string? x) => list) 
+	((symbol? x) => messedup)
+	(else => (get-handler))))
+(applytest 'err cond-tester-4 '(pair))
+
+(define-tester (cond-tester-5 x)
+  (cond ((number? x) x)
+	((string? x) => list) 
+	((symbol? x) => messedup)
+	(else =>)))
+(applytest 'err cond-tester-4 '(pair))
+
 (evaltest 'err (case))
 (evaltest 'err (case 33))
 

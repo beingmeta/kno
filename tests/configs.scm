@@ -66,6 +66,8 @@
 (applytest 89 config 'confvar 0 1+)
 
 (applytest 89 1+ #:config:confvar)
+(applytest #f #:config:novar)
+(applytest #f #:config"novar")
 
 (config! "BAZ" 89.7)
 (applytest 89.7 config 'baz)
@@ -89,9 +91,12 @@
 (applytest "YYY" config 'yval)
 
 (applytest overlaps? '{|PID| |PPID|} find-configs "pid")
+(applytest overlaps? '{|PID| |PPID|} find-configs #/p+id/i)
 
 (with-sourcebase 
  #f (load-config (get-component "webfiles/root/sample.cfg")))
+(with-sourcebase 
+ #f (load-default-config (get-component "webfiles/root/sample.cfg")))
 
 (define (list-contains? l val)
   (member val l))
@@ -100,6 +105,26 @@
 (applytest timestamp? config 'test.load.cfg)
 (applytest has-prefix (config 'cwd) config 'test.load.cfg.path)
 (applytest list-contains? (abspath (get-component "data/load.cfg")) config 'config)
+
+(config! 'defaults (get-component "webfiles/root/default.cfg"))
+
+(config! 'config-config (get-component "webfiles/root/default.cfg"))
+(load-config 'config-config)
+(load-default-config 'config-config)
+
+;;; Errors
+
+(applytest 'err config! 33 88)
+(applytest 'err config-default! 33 88)
+(applytest 'err config! #"foo" 88)
+(applytest 'err config-default! #"foo" 88)
+
+
+;;; With promises
+
+(config! 'foobar5 (delay (+ 2 3)))
+(applytest 5 config 'foobar5)
+(applytest 7 config 'foobar7 (delay (+ 5 2)))
 
 ;;;; Optconfigs
 

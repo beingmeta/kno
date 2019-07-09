@@ -21,6 +21,9 @@
 (applytest #t compound? type1.1 'type1)
 (applytest #f compound? type1.1 'type2)
 
+(applytest #t tagged? type1.1 'type1)
+(applytest #f tagged? type1.1 'type2)
+
 (applytest #t compound? type2.1)
 (applytest #t compound? type2.1 'type2)
 (applytest #f compound? type2.1 'type1)

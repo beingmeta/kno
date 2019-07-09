@@ -72,8 +72,19 @@
 (optimize! arity-test2)
 (applytester pair? lambda-start arity-test2)
 
+(applytest 'err lambda-args "#packet")
+(applytest 'err lambda-env "#packet")
+(applytest 'err lambda-body "#packet")
+(applytest 'err set-lambda-args! "#packet" '(bytes))
+(applytest 'err set-lambda-source! "#packet" (cons 'defslambda (cdr (lambda-source arity-test2))))
+
 (set-lambda-source! arity-test2 (cons 'defslambda (cdr (lambda-source arity-test2))))
 (applytest 'defslambda car (lambda-source arity-test2))
+
+(define (add1 x) (1+ x))
+(applytest 3 add1 2)
+(set-lambda-body! add1 '((+ 2 x)))
+(applytest 4 add1 2)
 
 (errtest (lambda-start car))
 (errtest (lambda-start "string"))
@@ -89,6 +100,17 @@
 (errtest (procedure-name 3))
 (errtest (procedure-name "procedure"))
 
+(define nameless
+  (with-sourcebase #f
+		   (list (lambda (x) (1+ x)) 
+			 (macro expr `(+ 2 3)))))
+(applytest #f procedure-filename (elts nameless))
+(applytest 'err procedure-filename #"packet")
+(applytest 'err procedure-module #"packet")
+(applytest 'err reflect/add! #"packet" 'length 6)
+(applytest 'err reflect/drop! #"packet" 'length 6)
+(applytest 'err reflect/store! #"packet" 'length 6)
+
 (applytester #f procedure-symbol (lambda (x) (1+ x)))
 (applytester procedure? procedure-id (lambda (x) (1+ x)))
 (applytester '|CAR| procedure-id car)
@@ -97,6 +119,10 @@
 (applytester "expr" procedure-name swapf)
 (applytester swapf procedure-id swapf)
 
+(applytester #f procedure-cname factr)
+(applytester "car" procedure-cname car)
+(applytester "open_output_file" procedure-cname open-output-file)
+
 (applytest #f reflect/get arity-test 'testprop)
 (applytest 'void reflect/store! arity-test 'testprop "value")
 (applytest "value" reflect/get arity-test 'testprop)
@@ -104,6 +130,8 @@
 (applytest {"more" "value"} reflect/get arity-test 'testprop)
 
 (applytest table? reflect/attribs arity-test)
+(reflect/set-attribs! pair? #[documentation "is it a pair"])
+(applytest "is it a pair" reflect/get pair? 'documentation)
 
 (errtest (reflect/store! "foo" 'bar value))
 (errtest (reflect/add! "foo" 'bar value))
@@ -249,6 +277,8 @@
 (applytest #f reflect/profiled? arity-test)
 (evaltest #t (reflect/profile! arity-test))
 (applytest #t reflect/profiled? arity-test)
+(applytest #f reflect/profiled? car)
+(applytest #f reflect/profiled? if)
 
 (define (ctest3 i) (1+ i))
 (reflect/profile! ctest3)
@@ -265,7 +295,29 @@
    ncalls (profile/ncalls info)
    nitems (profile/nitems info)])
 
-(evaltest #t (ambiguous? (getmodules)))
+(errtest (profile/fcn #"packet"))
+(errtest (profile/time #"packet"))
+(errtest (profile/utime #"packet"))
+(errtest (profile/stime #"packet"))
+(errtest (profile/waits #"packet"))
+(errtest (profile/contests #"packet"))
+(errtest (profile/faults #"packet"))
+(errtest (profile/nsecs #"packet"))
+(errtest (profile/ncalls #"packet"))
+(errtest (profile/nitems #"packet"))
+
+(errtest (with-sourcebase))
+(errtest (with-sourcebase "foo" . cdr))
+(errtest (with-sourcebase #"foo"))
+
+(profile/reset! ctest3)
+(errtest (profile/reset! if))
+
+(errtest (profile/getcalls if))
+
+(evaltest #f (reflect/profile! arity-test #f))
+
+(applytest #t ambiguous? (getmodules))
 
 (evaltest "reflect.scm" (with-sourcebase #f (get-component "reflect.scm")))
 (evaltest "/tmp/reflect.scm" (with-sourcebase "/tmp" (get-component "reflect.scm")))

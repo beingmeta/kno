@@ -303,6 +303,7 @@
 
 (errtest (do-choices))
 (errtest (do-choices spec))
+(errtest (do-choices ()))
 (errtest (do-choices (e)))
 (errtest (do-choices (e . cdr)))
 (errtest (do-choices (e {4 6 8 9}) . noexprs))
@@ -313,6 +314,7 @@
 
 (errtest (for-choices))
 (errtest (for-choices spec))
+(errtest (for-choices ()))
 (errtest (for-choices (e)))
 (errtest (for-choices (e . cdr)))
 (errtest (for-choices (e {4 6 8 9}) . noexprs))
@@ -323,6 +325,7 @@
 
 (errtest (filter-choices))
 (errtest (filter-choices spec))
+(errtest (filter-choices ()))
 (errtest (filter-choices (e)))
 (errtest (filter-choices (e . cdr)))
 (errtest (filter-choices (e {4 6 8 9}) . noexprs))
@@ -436,6 +439,7 @@
   (applytest #t existsfn even? {3 4 5})
   (applytest #f existsfn odd? {2 4 6})
   (applytest #f existsfn odd? {2 4 6})
+  (applytest #f existsfn even? {})
 
   (applytest #t existsfn empty-string? {3 "four" " "})
   (applytest #f existsfn empty-string? {3 "four" "five"})
@@ -484,6 +488,9 @@
 (applytest #f forall = {3 4 5} {2 4 8})
 (applytest #f forall = {3 4 5} {2 4 8})
 (applytest #t forall < {3 4 5} {6 7 8})
+(applytest #t forall < {} {6 7 8})
+(applytest #f exists number? {})
+(applytest #t forall number? {})
 
 ;; We make the numbers floating point to ensure that we process the
 ;; symbol argument first
@@ -502,6 +509,10 @@
 (set+! a-random-choice (list a-random-choice))
 (set+! a-random-choice (vector a-random-choice))
 
+(applytest 'err pick-n a-random-choice -5)
+(applytest 'err pick-n a-random-choice 3 (* 1024 1024 1024 1024 17))
+(applytest {} pick-n a-random-choice 0)
+(applytest {} sample-n a-random-choice 0)
 (applytest 1 choice-size (pick-one a-random-choice))
 (applytest 3 choice-size (pick-n a-random-choice 3))
 ;; By default, this always replicates
@@ -528,10 +539,12 @@
 (applytest 'err sample-n a-random-choice "five")
 (applytest 'err sample-n a-random-choice 'five)
 (applytest 'err sample-n a-random-choice 5.0)
+(applytest 'err sample-n a-random-choice -1)
 
 (applytest 'err pick-n a-random-choice "five")
 (applytest 'err pick-n a-random-choice 'five)
 (applytest 'err pick-n a-random-choice 5.0)
+(applytest 'err pick-n a-random-choice -5)
 
 (applytest {} pick-n {} 8)
 (applytest {} sample-n {} 8)

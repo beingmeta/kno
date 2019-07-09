@@ -90,7 +90,28 @@
 	(thread2 (thread/call slowhand 7))
 	(thread3 (thread/call slowhand 10)))
     (sleep 2)
-    (thread/cancel thread2)
+    (thread/cancel! thread2)
+    ;; This should cause the thread structures to get walked when
+    ;;  the environment is freed
+    (applytest 4 (lambda (x) (+ x 2)) 2)
+    (applytest {1 10} thread/finish {thread1 thread2 thread3})))
+
+(define-tester (test-thread-signal)
+  (let ((slowhand (lambda (x) (sleep 5) x))
+	(thread1 (thread/call slowhand 1))
+	(thread2 (thread/call slowhand 7))
+	(thread3 (thread/call slowhand 10)))
+    (sleep 2)
+    (thread/signal! thread2)
+    (applytest {1 10} thread/finish {thread1 thread2 thread3})))
+
+(define-tester (test-thread-terminate)
+  (let ((slowhand (lambda (x) (sleep 5) x))
+	(thread1 (thread/call slowhand 1))
+	(thread2 (thread/call slowhand 7))
+	(thread3 (thread/call slowhand 10)))
+    (sleep 2)
+    (thread/terminate! thread2)
     (applytest {1 10} thread/finish {thread1 thread2 thread3})))
 
 (define-tester (test-thread/call (waitfn thread/join) (wait-opts #default))
@@ -256,6 +277,11 @@
   (if (<= n 0) 'one 
       (* n (errfact (-1+ n)))))
 
+;;; Signalling, terminating, and cancelling
+;;; These aren't real functional tests, they're just smoke tests
+(define (test-threadops)
+  (let ((thread1 (thread/call )))))
+
 ;;;; SSET
 
 (define sset-value 0)
@@ -375,9 +401,12 @@
 
   (errtest (thread/call "proc"))
   (errtest (thread/call))
-  (errtest (thread/call+ "proc"))
+  (errtest (thread/call+ #f "proc"))
   (errtest (thread/call+))
+  (errtest (spawn (+ 2 3) (error 'noopts)))
 
+  (errtest (thread/eval '(+ 2 3) #"not an env"))
+  (errtest (thread/eval))
   (errtest (thread/eval (cons)))
   (errtest (thread/eval (cons 'x 'y) (cons)))
   (errtest (thread/eval (cons 'x 'y) #f (cons)))
@@ -400,5 +429,5 @@
   ;;; Need to add a thread/shutdown! primitive which calls finish_threads
 
   (test-finished "THREADTEST")
-  )
 
+)
