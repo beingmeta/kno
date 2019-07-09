@@ -136,7 +136,6 @@ optscheme:
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes cachecall.scm ${RUNCONF}
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes timefns.scm ${RUNCONF}
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes sysprims.scm ${RUNCONF}
-	@${RUN} ${KNOX} TESTOPTIMIZED=yes loading.scm ${RUNCONF}
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes modules.scm ${RUNCONF}
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes compounds.scm ${RUNCONF}
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes i18n.scm ${RUNCONF}
