@@ -87,8 +87,6 @@ static int bound_in_envp(lispval symbol,kno_lexenv env)
   lispval bindings = env->env_bindings;
   if (HASHTABLEP(bindings))
     return kno_hashtable_probe((kno_hashtable)bindings,symbol);
-  else if (SLOTMAPP(bindings))
-    return kno_slotmap_test((kno_slotmap)bindings,symbol,VOID);
   else if (SCHEMAPP(bindings))
     return kno_schemap_test((kno_schemap)bindings,symbol,VOID);
   else return kno_test(bindings,symbol,VOID);
@@ -366,15 +364,11 @@ KNO_EXPORT void recycle_evalfn(struct KNO_RAW_CONS *c)
 
 KNO_EXPORT int kno_choice_evalp(lispval x)
 {
-  if (KNO_NEED_EVALP(x))
-    return 1;
-  else if (KNO_AMBIGP(x)) {
-    KNO_DO_CHOICES(e,x) {
-      if (KNO_NEED_EVALP(e)) {
-        KNO_STOP_DO_CHOICES;
-        return 1;}}
-    return 0;}
-  else return 0;
+  KNO_DO_CHOICES(e,x) {
+    if (KNO_NEED_EVALP(e)) {
+      KNO_STOP_DO_CHOICES;
+      return 1;}}
+  return 0;
 }
 
 KNO_EXPORT
@@ -549,11 +543,13 @@ lispval kno_stack_eval(lispval expr,kno_lexenv env,
       return result;}
     case kno_choice_type:
       return choice_eval(expr,env,_stack,tail);
+#if 0
     case kno_prechoice_type: {
       lispval normalized = kno_make_simple_choice(expr);
       lispval result = kno_stack_eval(normalized,env,_stack,tail);
       kno_decref(normalized);
       return result;}
+#endif
     case kno_slotmap_type:
       return kno_deep_copy(expr);
     case kno_schemap_type: {
@@ -727,12 +723,13 @@ static lispval get_headval(lispval head,kno_lexenv env,kno_stack eval_stack,
 {
   lispval headval = VOID;
   if (KNO_IMMEDIATEP(head)) {
-    if (KNO_OPCODEP(head))
-      return head;
-    else if (KNO_LEXREFP(head)) {
+    /* This is never reached, because we only go to get_headval if head *isn't*
+       an opcode. */
+   /* if (KNO_OPCODEP(head)) return head; else */
+    if (KNO_LEXREFP(head)) {
       headval=kno_lexref(head,env);
       if ( (KNO_CONSP(headval)) && (KNO_MALLOCD_CONSP(headval)) )
-        *gc_headval=1;}
+	*gc_headval=1;}
     else if (KNO_SYMBOLP(head)) {
       if (head == quote_symbol) return KNO_QUOTE_OPCODE;
       headval=kno_symeval(head,env);
@@ -749,8 +746,6 @@ static lispval get_headval(lispval head,kno_lexenv env,kno_stack eval_stack,
   else NO_ELSE;
   return headval;
 }
-
-static int fast_eval_args = 1;
 
 KNO_FASTOP lispval arg_eval(lispval x,kno_lexenv env,struct KNO_STACK *stack)
 {
@@ -770,9 +765,7 @@ KNO_FASTOP lispval arg_eval(lispval x,kno_lexenv env,struct KNO_STACK *stack)
     kno_ptr_type type = KNO_CONSPTR_TYPE(x);
     switch (type) {
     case kno_pair_type:
-      if (fast_eval_args)
-        return pair_eval(KNO_CAR(x),x,env,stack,0,0);
-      else return kno_stack_eval(x,env,stack,0);
+      return pair_eval(KNO_CAR(x),x,env,stack,0,0);
     case kno_choice_type: case kno_prechoice_type:
       return kno_stack_eval(x,env,stack,0);
     case kno_slotmap_type:
