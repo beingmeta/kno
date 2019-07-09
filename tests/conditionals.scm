@@ -43,6 +43,6 @@
 (applytest 'err cond-tester-4 '(pair))
 
 (evaltest 'err (case))
-(evaltest 'err (case 33))
+(evaltest 'err (case 33 ()))
 
 
