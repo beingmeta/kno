@@ -152,8 +152,7 @@ KNO_EXPORT int kno_set_config_sym(lispval symbol,lispval val)
         u8_string errsum = kno_errstring(NULL);
         u8_log(LOG_WARN,kno_ConfigError,"Config handler error %q=%q: %s",
                symbol,val,errsum);
-        if (errsum) u8_free(errsum);
-        kno_clear_errors(1);}
+        if (errsum) u8_free(errsum);}
       break;}
     else scan = scan->config_next;
   if ((!(scan))&&(kno_trace_config))
