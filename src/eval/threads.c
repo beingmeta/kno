@@ -314,6 +314,13 @@ static lispval rwlockp_prim(lispval arg)
 
 /* MUTEXes */
 
+static lispval handle_errno(u8_context caller,void *tofree)
+{
+  u8_graberrno("make_rwlock",NULL);
+  if (tofree) u8_free(tofree);
+  return KNO_ERROR;
+}
+
 DCLPRIM("MAKE-MUTEX",make_mutex,0,
 	"(MAKE-MUTEX) allocates and returns a new mutex.")
 static lispval make_mutex()
@@ -323,10 +330,7 @@ static lispval make_mutex()
   KNO_INIT_FRESH_CONS(cv,kno_synchronizer_type);
   cv->synctype = sync_mutex;
   rv = u8_init_mutex(&(cv->obj.mutex));
-  if (rv) {
-    u8_graberrno("make_mutex",NULL);
-    u8_free(cv);
-    return KNO_ERROR;}
+  if (rv) return handle_errno("make_mutex",cv);
   else return LISP_CONS(cv);
 }
 
@@ -339,10 +343,7 @@ static lispval make_rwlock()
   KNO_INIT_FRESH_CONS(cv,kno_synchronizer_type);
   cv->synctype = sync_rwlock;
   rv = u8_init_rwlock(&(cv->obj.rwlock));
-  if (rv) {
-    u8_graberrno("make_rwlock",NULL);
-    u8_free(cv);
-    return KNO_ERROR;}
+  if (rv)  return handle_errno("make_rwlock",cv);
   else return LISP_CONS(cv);
 }
 
@@ -355,14 +356,10 @@ static lispval make_condvar()
   KNO_INIT_FRESH_CONS(cv,kno_synchronizer_type);
   cv->synctype = sync_condvar;
   rv = u8_init_mutex(&(cv->obj.condvar.lock));
-  if (rv) {
-    u8_graberrno("make_condvar",NULL);
-    u8_free(cv);
-    return KNO_ERROR;}
+  if (rv) return handle_errno("make_condvar",cv);
   else rv = u8_init_condvar(&(cv->obj.condvar.cvar));
-  if (rv) {
-    u8_graberrno("make_condvar",NULL);
-    return KNO_ERROR;}
+  if (rv) u8_destroy_mutex(&(cv->obj.condvar.lock));
+  if (rv) return handle_errno("make_condvar",cv);
   return LISP_CONS(cv);
 }
 
