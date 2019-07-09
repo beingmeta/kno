@@ -224,7 +224,7 @@ static int add_modname(lispval modname)
     lispval module = kno_find_module(modname,0);
     if (KNO_ABORTP(module))
       return -1;
-    else if (KNO_VOIDP(module)) {
+    else if ( (KNO_VOIDP(module)) || (KNO_FALSEP(module)) ) {
       u8_log(LOG_WARN,kno_NoSuchModule,"module_config_set",
 	     "No module found for %q",modname);
       return -1;}
