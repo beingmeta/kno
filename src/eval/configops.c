@@ -110,26 +110,36 @@ static lispval set_config(int n,lispval *args)
   int retval, i = 0;
   if (n%2) return kno_err(kno_SyntaxError,"set_config",NULL,VOID);
   while (i<n) {
-    lispval var = args[i++], val = args[i++];
+    lispval var = args[i++], val = args[i++], use_val = val;
+    if (TYPEP(val,kno_promise_type))
+      use_val = kno_force_promise(val);
     if (STRINGP(var))
-      retval = kno_set_config(CSTRING(var),val);
+      retval = kno_set_config(CSTRING(var),use_val);
     else if (SYMBOLP(var))
-      retval = kno_set_config(SYM_NAME(var),val);
+      retval = kno_set_config(SYM_NAME(var),use_val);
     else return kno_type_error(_("string or symbol"),"set_config",var);
+    if (use_val != val) kno_decref(use_val);
     if (retval<0) return KNO_ERROR;}
   return VOID;
 }
 
 static lispval set_default_config(lispval var,lispval val)
 {
-  int retval;
+  int retval; lispval use_val = val;
+  if (TYPEP(val,kno_promise_type))
+    use_val = kno_force_promise(val);
   if (STRINGP(var))
-    retval = kno_default_config(CSTRING(var),val);
+    retval = kno_default_config(CSTRING(var),use_val);
   else if (SYMBOLP(var))
-    retval = kno_default_config(SYM_NAME(var),val);
-  else return kno_type_error(_("string or symbol"),"config_default",var);
-  if (retval<0) return KNO_ERROR;
-  else if (retval) return KNO_TRUE;
+    retval = kno_default_config(SYM_NAME(var),use_val);
+  else {
+    if (use_val != val) kno_decref(use_val);
+    return kno_type_error(_("string or symbol"),"config_default",var);}
+  if (use_val != val) kno_decref(use_val);
+  if (retval<0)
+    return KNO_ERROR;
+  else if (retval)
+    return KNO_TRUE;
   else return KNO_FALSE;
 }
 
@@ -143,7 +153,8 @@ static lispval find_configs(lispval pat,lispval raw)
     u8_string keystring=
       ((STRINGP(key))?(CSTRING(key)):(SYM_NAME(key)));
     if ((STRINGP(pat))?(strcasestr(keystring,CSTRING(pat))!=NULL):
-	(TYPEP(pat,kno_regex_type))?(kno_regex_test(pat,keystring,-1)):
+	(TYPEP(pat,kno_regex_type))?
+	(kno_regex_op(rx_search,pat,keystring,-1,REG_ICASE)>=0):
 	(0)) {
       CHOICE_ADD(results,config);
       kno_incref(config);}}
@@ -220,9 +231,9 @@ KNO_EXPORT int kno_load_config(u8_string sourceid)
   retval = kno_read_config(&stream);
   if ( (trace_config_load) || (kno_trace_config) )
     u8_log(LOG_WARN,LoadConfig,"Loaded config %s",sourcebase);
-  if (sourcebase) {
+  if ( (sourcebase) || (outer_sourcebase) ) {
     kno_restore_sourcebase(outer_sourcebase);
-    u8_free(sourcebase);}
+    if (sourcebase) u8_free(sourcebase);}
   u8_free(content);
   return retval;
 }
@@ -243,9 +254,9 @@ KNO_EXPORT int kno_load_default_config(u8_string sourceid)
   retval = kno_read_default_config(&stream);
   if ( (trace_config_load) || (kno_trace_config) )
     u8_log(LOG_WARN,LoadConfig,"Loaded default config %s",sourcebase);
-  if (sourcebase) {
+  if ( (sourcebase) || (outer_sourcebase) ) {
     kno_restore_sourcebase(outer_sourcebase);
-    u8_free(sourcebase);}
+    if (sourcebase) u8_free(sourcebase);}
   u8_free(content);
   return retval;
 }
