@@ -427,7 +427,7 @@ static lispval lambda_start(lispval arg)
     lispval start = proc->lambda_start;
     if ( (KNO_CONSP(start)) && (KNO_STATIC_CONSP(start)) )
       return kno_copier(start,KNO_DEEP_COPY);
-    else return kno_incref(proc->lambda_body);}
+    else return kno_incref(proc->lambda_start);}
   else return kno_type_error("lambda","lambda_start",x);
 }
 
@@ -447,9 +447,14 @@ static lispval set_lambda_body(lispval arg,lispval new_body)
   lispval x = kno_fcnid_ref(arg);
   if (KNO_LAMBDAP(x)) {
     struct KNO_LAMBDA *proc = (kno_lambda)kno_fcnid_ref(x);
-    lispval body = proc->lambda_body;
+    lispval old_body = proc->lambda_body;
     proc->lambda_body = kno_incref(new_body);
-    kno_decref(body);
+    kno_decref(old_body);
+    if (proc->lambda_consblock) {
+      lispval cb = (lispval) (proc->lambda_consblock);
+      kno_decref(cb);
+      proc->lambda_consblock = NULL;}
+    proc->lambda_start = new_body;
     return VOID;}
   else return kno_type_error
          ("lambda","set_lambda_body",x);
@@ -1063,6 +1068,9 @@ KNO_EXPORT void kno_init_reflection_c()
   kno_idefn1(module,"PROCEDURE-NAME",procedure_name,1,
             "",
             -1,VOID);
+  kno_idefn1(kno_scheme_module,"PROCEDURE-NAME",procedure_name,1,
+            "",
+            -1,VOID);
   kno_idefn1(module,"PROCEDURE-CNAME",procedure_cname,1,
             "",
             -1,VOID);
@@ -1199,9 +1207,9 @@ KNO_EXPORT void kno_init_reflection_c()
             "nanoseconds spent in *fcn*",
             -1,KNO_VOID);
   kno_idefn1(module,"PROFILE/RESET!",profile_reset_prim,1,
-            "`(REFLECT/PROFILE-RESET! *fcn*)` resets the profile counts "
-            "for *fcn*",
-            -1,KNO_VOID);
+             "`(PROFILE/RESET! *fcn*)` resets the profile counts "
+             "for *fcn*",
+             -1,KNO_VOID);
 
   kno_idefn1(module,"PROFILE/FCN",profile_getfcn,1,
             "`(PROFILE/FCN *profile*)` returns the function a profile describes",
