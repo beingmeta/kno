@@ -448,23 +448,6 @@ static lispval taggedp_prim(lispval x,lispval tag)
   else return KNO_FALSE;
 }
 
-
-#define GETEVALFN(x) ((kno_evalfn)(kno_fcnid_ref(x)))
-static lispval procedure_name(lispval x)
-{
-  if (KNO_APPLICABLEP(x)) {
-    struct KNO_FUNCTION *f = KNO_DTYPE2FCN(x);
-    if (f->fcn_name)
-      return kno_mkstring(f->fcn_name);
-    else return KNO_FALSE;}
-  else if (TYPEP(x,kno_evalfn_type)) {
-    struct KNO_EVALFN *sf = GETEVALFN(x);
-    if (sf->evalfn_name)
-      return kno_mkstring(sf->evalfn_name);
-    else return KNO_FALSE;}
-  else return kno_type_error(_("function"),"procedure_name",x);
-}
-
 static lispval lisp_intern(lispval symbol_name)
 {
   if (STRINGP(symbol_name))
@@ -661,8 +644,6 @@ KNO_EXPORT void kno_init_coreprims_c()
   kno_idefn(kno_scheme_module,kno_make_cprim1("CONSED?",consp,1));
   kno_idefn(kno_scheme_module,kno_make_cprim1("TYPEOF",typeof_prim,1));
   kno_idefn(kno_scheme_module,kno_make_cprim2("TAGGED?",taggedp_prim,1));
-
-  kno_idefn(kno_scheme_module,kno_make_cprim1("PROCEDURE-NAME",procedure_name,1));
 
   kno_idefn(kno_scheme_module,kno_make_cprim1("INTERN",lisp_intern,1));
   kno_idefn(kno_scheme_module,
