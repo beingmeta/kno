@@ -195,11 +195,10 @@ static lispval parse_module_spec(u8_string s)
     if (brk) {
       u8_string elt = u8_slice(s,brk);
       lispval parsed = kno_parse(elt);
-      if (KNO_ABORTP(parsed)) {
-	u8_free(elt);
-	return parsed;}
-      else return kno_init_pair(NULL,parsed,
-			       parse_module_spec(brk+1));}
+      u8_free(elt);
+      if (KNO_ABORTP(parsed))
+	return parsed;
+      else return kno_init_pair(NULL,parsed,parse_module_spec(brk+1));}
     else {
       lispval parsed = kno_parse(s);
       if (KNO_ABORTP(parsed)) return parsed;
