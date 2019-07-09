@@ -29,26 +29,46 @@ static lispval regex_testcapi()
 {
   lispval pattern = knostring("[0123456789]+");
   lispval regex = kno_make_regex(CSTRING(pattern),0);
-  lispval bad_pattern = knostring("[0123456789+");
-  lispval bad_regex = kno_make_regex(CSTRING(bad_pattern),0);
   u8_string test_string = "There were 112 different people";
   size_t test_len = strlen(test_string);
   ssize_t rv = kno_regex_op(rx_search,regex,test_string,test_len,0);
-  /* Try with different flags */
-  rv = kno_regex_op(rx_search,regex,test_string,test_len,1);
-  rv = kno_regex_op(rx_search,regex,test_string,test_len,2);
-  rv = kno_regex_op(rx_search,regex,test_string,test_len,3);
-  rv = kno_regex_op(rx_matchstring,regex,test_string,test_len,0);
-  rv = kno_regex_op(rx_matchspan,regex,test_string,test_len,0);
+  if (rv<0) {kno_clear_errors(0);}
+  rv = kno_regex_op(rx_exactmatch,regex,"3457",4,0);
+  if (rv<0) {kno_clear_errors(0);}
   rv = kno_regex_matchlen(regex,test_string,test_len);
+  if (rv<0) {kno_clear_errors(0);}
   rv = kno_regex_matchlen(regex,test_string+11,test_len-11);
+  if (rv<0) {kno_clear_errors(0);}
   rv = kno_regex_match(regex,"3333",4);
-  if (rv<0) {u8_pop_exception();}
-  rv = kno_regex_op(rx_matchlen,bad_regex,test_string,test_len,0);
-  if (rv<0) {u8_pop_exception();}
-  kno_decref(regex); kno_decref(pattern);
-  kno_decref(bad_regex); kno_decref(bad_pattern);
+  if (rv<0) {kno_clear_errors(0);}
+  rv = kno_regex_search(regex,"  abc d 3333 efg h",strlen("  abc d 3333 efg h"));;
+  if (rv<0) {kno_clear_errors(0);}
+  rv = kno_regex_test(regex,"  abc d 3333 efg h",strlen("  abc d 3333 efg h"));;
+  if (rv<0) {kno_clear_errors(0);}
+  kno_decref(regex);
+  kno_decref(pattern);
   return VOID;
+}
+
+KNO_DCLPRIM4("REGEX/RAWOP",regex_rawop,MAX_ARGS(4)|MIN_ARGS(4),
+	     "Call kno_regex_op directory",
+	     kno_fixnum_type,KNO_VOID,kno_regex_type,KNO_VOID,
+	     kno_string_type,KNO_VOID,kno_fixnum_type,KNO_VOID)
+static lispval regex_rawop(lispval code,lispval pat,lispval string,
+			   lispval flags)
+{
+  int opcode = kno_getint(code);
+  int eflags = kno_getint(flags);
+  ssize_t result = kno_regex_op((enum KNO_REGEX_OP)opcode,
+				pat,
+				KNO_CSTRING(string),
+				KNO_STRLEN(string),
+				eflags);
+  if (result == -1)
+    return KNO_FALSE;
+  else if (result == -2)
+    return KNO_ERROR;
+  else return KNO_INT(result);
 }
 
 static U8_MAYBE_UNUSED int check_error(u8_string cxt,lispval result)
@@ -194,6 +214,11 @@ static lispval eval_testcapi()
   else return KNO_INT(errors);
 }
 
+KNO_DCLPRIM("API/FORCE-PROMISE",kno_force_promise,MAX_ARGS(1)|MIN_ARGS(1),
+	    "Run various tests of the module C API which are "
+	    "difficult to do directly from scheme");
+
+
 KNO_EXPORT int kno_init_testcapi()
 {
   if (testcapi_init) return 0;
@@ -204,6 +229,8 @@ KNO_EXPORT int kno_init_testcapi()
   KNO_DECL_PRIM(regex_testcapi,0,testcapi_module);
   KNO_DECL_PRIM(modules_testcapi,0,testcapi_module);
   KNO_DECL_PRIM(eval_testcapi,0,testcapi_module);
+  KNO_DECL_PRIM(kno_force_promise,1,testcapi_module);
+  KNO_DECL_PRIM(regex_rawop,4,testcapi_module);
 
   u8_register_source_file(_FILEINFO);
 
