@@ -371,6 +371,9 @@ void sum_exception(u8_output out,u8_exception ex)
     u8_puts(out," (");
     u8_puts(out,ex->u8x_details);
     u8_puts(out,")");}
+  lispval irritant = kno_get_irritant(ex);
+  if (!(VOIDP(irritant)))
+    u8_printf(out," %q",irritant);
 }
 
 KNO_EXPORT
