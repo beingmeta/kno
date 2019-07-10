@@ -1159,7 +1159,7 @@ KNO_EXPORT void kno_init_reflection_c()
             -1,VOID);
 
   kno_idefn0(module,"ALL-MODULES",get_all_modules_prim,
-            "(ALL-MODULES) "
+             "`(ALL-MODULES)` "
             "Returns all loaded modules as an alist "
             "of module names and modules");
 
