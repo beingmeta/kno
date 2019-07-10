@@ -23,7 +23,7 @@
 #define _FILEINFO __FILE__
 #endif
 
-static lispval moduleid_symbol, source_symbol, loadstamp_symbol;
+static lispval moduleid_symbol, source_symbol, loadstamp_symbol, dlsource_symbol;
 
 u8_condition kno_NotAModule=_("Argument is not a module (table)");
 u8_condition kno_NoSuchModule=_("Can't find named module");
@@ -167,23 +167,29 @@ KNO_EXPORT lispval kno_new_module(char *name,int flags)
 KNO_EXPORT lispval kno_new_cmodule_x(char *name,int flags,void *addr,
                                      u8_string filename)
 {
-  int free_filename = 0;
   lispval mod = kno_new_module(name,flags);
+  int free_filename = 0;
 #if HAVE_DLADDR
   Dl_info  dlinfo;
   if (filename == NULL) {
     if (dladdr(addr,&dlinfo)) {
       const char *cfilename = dlinfo.dli_fname;
       if (cfilename) {
-        filename = u8_fromlibc((char *)cfilename);
-        if ( ((char *)filename) == cfilename)
-          filename = u8_strdup(filename);
-        free_filename = 1;}}}
+        u8_string u8filename = u8_fromlibc((char *)cfilename);
+        lispval strval = knostring(u8filename);
+        kno_add(mod,dlsource_symbol,strval);
+        kno_decref(strval);
+        if (filename == NULL) {
+          filename = u8filename;
+          if ( ((char *)u8filename) != cfilename)
+            free_filename = 1;}
+        else if ( ((char *)u8filename) != cfilename)
+          u8_free(u8filename);}}}
 #endif
   if (filename) {
-    lispval fname = kno_make_string(NULL,-1,filename);
-    kno_add(mod,source_symbol,fname);
+    lispval fname = knostring(filename);
     if (free_filename) u8_free(filename);
+    kno_add(mod,source_symbol,fname);
     kno_decref(fname);}
   return mod;
 }
@@ -836,6 +842,7 @@ void kno_init_module_tables()
   loadstamp_symbol = kno_intern("%loadstamp");
   moduleid_symbol = kno_intern("%moduleid");
   source_symbol = kno_intern("%source");
+  dlsource_symbol = kno_intern("%dlsource");
 
   KNO_INIT_STATIC_CONS(&module_map,kno_hashtable_type);
   kno_make_hashtable(&module_map,67);
