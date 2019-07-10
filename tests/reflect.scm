@@ -220,6 +220,8 @@
 (evaltest {} (reject (getmodules (%env)) symbol?))
 (errtest (getmodules "foo"))
 
+(applytest ambiguous? all-modules)
+
 (applytester ambiguous? apropos "get")
 
 (applytester ambiguous? module-exports 'bench/miscfns)
