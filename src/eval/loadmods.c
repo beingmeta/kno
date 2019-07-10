@@ -234,7 +234,11 @@ static lispval reload_module(lispval module)
 {
   if (STRINGP(module)) {
     int retval = load_source_module(module,NULL);
-    if (retval) return KNO_TRUE; else return KNO_FALSE;}
+    if (retval<0)
+      return KNO_ERROR;
+    else if (retval)
+      return KNO_TRUE;
+    else return KNO_FALSE;}
   else if (SYMBOLP(module)) {
     lispval resolved = kno_get_module(module);
     if (TABLEP(resolved)) {
