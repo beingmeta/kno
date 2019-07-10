@@ -44,6 +44,8 @@
 
 ;;; Reload testing
 
+(define goodmod-file  (get-component "data/goodmod.scm"))
+
 (use-module 'reloadmod)
 (errtest (reload-module 'nosuchmod))
 (errtest (reload-module 33))
@@ -51,7 +53,7 @@
 (errtest (use-module (get-component "data/nosuchmod.scm")))
 (errtest (use-module (get-component "data/badmod.scm")))
 (evaltest #t (ignore-errors 
-	      (begin (use-module (get-component "data/goodmod.scm")) #t)
+	      (begin (use-module goodmod-file) #t)
 	      #f))
 (evaltest 'void (use-module (get-component "data/splitmod.scm")))
 (config! 'splitmod:err #t)
@@ -60,6 +62,8 @@
 
 (lognotice |LoadPath| (config 'loadpath))
 
+(config! 'load:trace #t)
+
 (define-tester (test-reloading)
   (let ((base (get-load-count)))
     (applytest base get-load-count)
@@ -67,16 +71,17 @@
     (applytest (1+ base) get-load-count)
     (update-modules)
     (applytest (1+ base) get-load-count)
-    (set-file-modtime! (get-source 'reloadmod) (timestamp))
-    (sleep 1)
+    (set-file-modtime! (get-source 'reloadmod) (timestamp+ 1))
     (update-module 'reloadmod)
+    (set-file-modtime! goodmod-file (timestamp+ 4))
+    (update-module goodmod-file)
     (errtest (update-module 'nosuchmod))
     (errtest (update-module))
     (applytest (+ 2 base) get-load-count)
-    (set-file-modtime! (get-source 'reloadmod) (timestamp))
-    (sleep 1)
+    (set-file-modtime! (get-source 'reloadmod) (timestamp+ 2))
     (update-modules)
     (applytest (+ 3 base) get-load-count)
+    (set-file-modtime! (get-source 'reloadmod) (timestamp))
     (update-module 'reloadmod #t)))
 
 (test-reloading)
