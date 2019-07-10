@@ -221,6 +221,7 @@ opts:
 modules:
 	@${RUN} ${KNOX} modules.scm ${RUNCONF}
 	@${RUN} ${KNOX} modules.scm LOAD:TRACE=yes ${RUNCONF}
+	@${RUN} ${KNOX} r4rs.scm LOCKEXPORTS=yes LOCKMODULES=yes ${RUNCONF}
 	@${header} "■■■■ Completed module tests ${RUNCONF}"
 compounds:
 	@${RUN} ${KNOX} compounds.scm ${RUNCONF}
