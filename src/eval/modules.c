@@ -200,9 +200,7 @@ KNO_EXPORT lispval kno_all_modules()
 
 KNO_EXPORT int kno_discard_module(lispval name)
 {
-  lispval module = kno_hashtable_get(&module_map,name,VOID);
-  int rv = kno_hashtable_store(&module_map,name,VOID);
-  kno_decref(module);
+  int rv = kno_hashtable_drop(&module_map,name,VOID);
   return rv;
 }
 
