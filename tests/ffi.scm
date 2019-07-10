@@ -2,6 +2,8 @@
 
 (load "common.scm")
 
+(use-module 'reflection)
+
 (applytest #f ffi/found? "kumquat_lime" #f)
 
 (define ipi (ffi/proc "ffitest_ipi" #f 'long 'int 'int))
@@ -30,6 +32,8 @@
 
 (define ffi_getenv (ffi/proc "getenv" #f #[basetype ptr typetag envstring] 'string))
 (define ffi_strdup (ffi/proc "_u8_strdup" #f #[basetype string mallocd #t] #[basetype ptr typetag envstring]))
+
+(applytest "getenv" procedure-cname ffi_getenv)
 
 (when (getenv "USER")
   (applytest (getenv "USER") ffi_strdup (ffi_getenv "USER"))

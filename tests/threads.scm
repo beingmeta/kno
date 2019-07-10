@@ -67,7 +67,7 @@
 (define-tester (test-spawn)
   (let ((threads {}))
     (set! numbers '())
-    (set+! threads (spawn (begin (sleep 1) (addrange 10))))
+    (set+! threads (spawn (begin (sleep 1) (addrange 10)) #[keepenv #t]))
     (applytest #t thread? threads)
     (applytest #t exists? (config 'ALLTHREADS))
     (set+! threads (spawn (addrange 0)))
@@ -256,6 +256,23 @@
     (message "DO-CHOICES-MT-TEST: " ids)
     (applytest #t (> (choice-size ids) 1))))
 
+;;; Test with-lock errors
+
+(define (test-with-lock-errors)
+  (let ((n 5)
+	(lock (make-mutex)))
+    (with-lock lock (set! n (1+ n)))
+    (errtest
+     (with-lock lock
+       (error |Testing| test-with-lock-errors "Don't increment but keep lock")
+       (set! n (1+ n))))
+    (applytest #t = n 6)
+    (let ((taskthread
+	   (thread/call (lambda () 
+			  (with-lock lock (set! n (1+ n)))))))
+      (sleep 1)
+      (applytest #t = n 7))))
+
 ;;; Testing synchronized lambdas
 
 (define slambda-test-value #f)
@@ -385,6 +402,7 @@
   (test-with-lock change-slambda-test-value)
   (test-with-lock "string")
   (test-with-lock change-num-recklessly)
+  (test-with-lock-errors)
   
   (errtest (thread/wait "thread"))
   (errtest (thread/wait! "thread"))

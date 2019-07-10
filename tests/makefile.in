@@ -118,7 +118,7 @@ cmdtests:
 
 static-tests: schemetests optscheme loadmods optmods slotmaps tables pools indexes framedbs
 schemetest schemetests scheme: r4rs exceptions choices sequences breaks numbers regex \
-        lambda conditionals iterators binders \
+        lambda conditionals iterators binders errfns \
 	reflect hashsets eval loading modules quasiquote promises ffi configs opts appenv \
 	picktest cachecall texttools webtools timefns sysprims startup stringprims \
 	threads i18n misc gctests profiling \
@@ -136,7 +136,7 @@ optscheme:
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes cachecall.scm ${RUNCONF}
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes timefns.scm ${RUNCONF}
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes sysprims.scm ${RUNCONF}
-	@${RUN} ${KNOX} TESTOPTIMIZED=yes modules.scm ${RUNCONF}
+	#@${RUN} ${KNOX} TESTOPTIMIZED=yes modules.scm ${RUNCONF}
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes compounds.scm ${RUNCONF}
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes i18n.scm ${RUNCONF}
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes fileprims.scm ${RUNCONF}
@@ -193,6 +193,9 @@ iterators:
 binders:
 	@${RUN} ${KNOX} binders.scm ${RUNCONF}
 	@${header} "■■■■ Completed binders tests ${RUNCONF}"
+errfns:
+	@${RUN} ${KNOX} errfns.scm ${RUNCONF}
+	@${header} "■■■■ Completed errfns tests ${RUNCONF}"
 eval:
 	@${RUN} ${KNOX} eval.scm ${RUNCONF}
 	@${header} "■■■■ Completed miscellaneous eval tests ${RUNCONF}"

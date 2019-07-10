@@ -11,6 +11,7 @@
 (get-module 'stringfmts)
 (get-module 'testcapi)
 
+(errtest (use-module 'nomod))
 (errtest (use-module 'badmod))
 
 (let ((mod (get-module 'stringfmts_alias)))
@@ -48,6 +49,14 @@
 (errtest (reload-module 33))
 (errtest (reload-module '(kno tests)))
 (errtest (use-module (get-component "data/nosuchmod.scm")))
+(errtest (use-module (get-component "data/badmod.scm")))
+(evaltest #t (ignore-errors 
+	      (begin (use-module (get-component "data/goodmod.scm")) #t)
+	      #f))
+(evaltest 'void (use-module (get-component "data/splitmod.scm")))
+(config! 'splitmod:err #t)
+(evaltest 'err (reload-module (get-component "data/splitmod.scm")))
+(config! 'splitmod:err #f)
 
 (lognotice |LoadPath| (config 'loadpath))
 

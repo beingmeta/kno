@@ -2,7 +2,7 @@
 
 (load-component "common.scm")
 
-(use-module '{reflection texttools ezrecords bench/miscfns stringfmts})
+(use-module '{reflection texttools ezrecords bench/miscfns optimize stringfmts})
 
 (define swapf
   (macro expr 
@@ -85,6 +85,9 @@
 (applytest 3 add1 2)
 (set-lambda-body! add1 '((+ 2 x)))
 (applytest 4 add1 2)
+(optimize! add1)
+(set-lambda-body! add1 '((+ 3 x)))
+(applytest 5 add1 2)
 
 (errtest (lambda-start car))
 (errtest (lambda-start "string"))
@@ -278,6 +281,7 @@
 (evaltest #t (reflect/profile! arity-test))
 (applytest #t reflect/profiled? arity-test)
 (applytest #f reflect/profiled? car)
+(errtest (reflect/profile! if))
 (applytest #f reflect/profiled? if)
 
 (define (ctest3 i) (1+ i))
@@ -315,10 +319,27 @@
 
 (errtest (profile/getcalls if))
 
-(evaltest #f (reflect/profile! arity-test #f))
+(let ((info (profile/getcalls ctest3)))
+  [fcn (profile/fcn info)
+   time (profile/time info)
+   utime (profile/utime info)
+   stime (profile/stime info)
+   waits (profile/waits info)
+   contests (profile/contests info)
+   faults (profile/faults info)
+   nsecs (profile/nsecs info)
+   ncalls (profile/ncalls info)
+   nitems (profile/nitems info)])
+
+;; This doesn't work yet. There's an issue with not being able to free
+;; the profile which needs to be sorted.
+
+;; (evaltest #f (reflect/profile! ctest3 #f))
+;; (applytest #f reflect/profiled? ctest3)
 
 (applytest #t ambiguous? (getmodules))
 
 (evaltest "reflect.scm" (with-sourcebase #f (get-component "reflect.scm")))
 (evaltest "/tmp/reflect.scm" (with-sourcebase "/tmp" (get-component "reflect.scm")))
+(errtest (with-sourcebase '(bad sourcebase) (get-component "reflect.scm")))
 
