@@ -119,12 +119,42 @@
 (applytest 'err config! #"foo" 88)
 (applytest 'err config-default! #"foo" 88)
 
+;;; Errors in config-def handlers
+
+(define badconfig-var #f)
+(config! 'badconfig "(3 4")
+(errtest
+ (config-def! 'badconfig
+   (lambda (var (val))
+     (cond ((bound? val)
+	    (set! badconfig-var 
+	      (if (string? val)
+		  (string->lisp val)
+		  val)))
+	   (else badconfig-var)))))
+
+(config-def! 'badconfig2
+  (lambda (var (val))
+    (cond ((bound? val)
+	   (set! badconfig-var 
+	     (if (string? val)
+		 (string->lisp val)
+		 val)))
+	  (else badconfig-var))))
+(errtest (config! 'badconfig "(3 4"))
+
 
 ;;; With promises
 
 (config! 'foobar5 (delay (+ 2 3)))
 (applytest 5 config 'foobar5)
 (applytest 7 config 'foobar7 (delay (+ 5 2)))
+
+(config-default! 'foobar9 (delay (+ 2 3)))
+(applytest 5 config 'foobar9)
+(config-default! 'foobar5 (delay (+ 2 3 2)))
+(applytest 5 config 'foobar5)
+
 
 ;;;; Optconfigs
 

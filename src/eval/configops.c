@@ -200,9 +200,8 @@ static lispval config_def(lispval var,lispval handler,lispval docstring)
      ((STRINGP(docstring)) ? (CSTRING(docstring)) : (NULL)),
      lconfig_get,lconfig_set,(void *) handler,0,
      reuse_lconfig);
-  if (retval<0) {
-    kno_decref(handler);
-    return KNO_ERROR;}
+  if (retval<0)
+    return KNO_ERROR;
   return VOID;
 }
 static int reuse_lconfig(struct KNO_CONFIG_HANDLER *e){

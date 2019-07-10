@@ -23,13 +23,16 @@ KNO_EXPORT int kno_thread_sigint;
 #define KNO_CONFIG_ALREADY_MODIFIED 0x01
 #define KNO_CONFIG_SINGLE_VALUE     0x02
 
+typedef lispval (*kno_config_getfn)(lispval var,void *data);
+typedef int (*kno_config_setfn)(lispval var,lispval val,void *data);
+
 typedef struct KNO_CONFIG_HANDLER {
   lispval configname;
   void *configdata;
   int configflags;
   u8_string configdoc;
-  lispval (*config_get_method)(lispval var,void *data);
-  int (*config_set_method)(lispval var,lispval val,void *data);
+  kno_config_getfn config_get_method;
+  kno_config_setfn config_set_method;
   struct KNO_CONFIG_HANDLER *config_next;} KNO_CONFIG_HANDLER;
 typedef struct KNO_CONFIG_HANDLER *kno_config_handler;
 
