@@ -46,7 +46,7 @@ static u8_condition ThreadExit=_("ThreadExit");
 
 static int thread_loglevel = LOG_NOTICE;
 static int thread_log_exit = 1;
-static lispval logexit_symbol = VOID, timeout_symbol = VOID;
+static lispval logexit_symbol = VOID, timeout_symbol = VOID, keepenv_symbol = VOID;
 static lispval void_symbol = VOID;
 
 static struct sigaction sigaction_term = { 0 };
@@ -61,6 +61,11 @@ static struct sigaction sigaction_info = { 0 };
 
 #define SYNC_TYPEP(x,tp)                                        \
   ( (((struct KNO_SYNCHRONIZER *)x)->synctype) == (tp) )
+
+#define STOP_JOIN(cleanup) \
+  KNO_STOP_DO_CHOICES; \
+  kno_decref(cleanup); \
+  return KNO_ERROR
 
 /* Thread structures */
 
@@ -314,6 +319,13 @@ static lispval rwlockp_prim(lispval arg)
 
 /* MUTEXes */
 
+static lispval handle_errno(u8_context caller,void *tofree)
+{
+  u8_graberrno("make_rwlock",NULL);
+  if (tofree) u8_free(tofree);
+  return KNO_ERROR;
+}
+
 DCLPRIM("MAKE-MUTEX",make_mutex,0,
 	"(MAKE-MUTEX) allocates and returns a new mutex.")
 static lispval make_mutex()
@@ -323,10 +335,7 @@ static lispval make_mutex()
   KNO_INIT_FRESH_CONS(cv,kno_synchronizer_type);
   cv->synctype = sync_mutex;
   rv = u8_init_mutex(&(cv->obj.mutex));
-  if (rv) {
-    u8_graberrno("make_mutex",NULL);
-    u8_free(cv);
-    return KNO_ERROR;}
+  if (rv) return handle_errno("make_mutex",cv);
   else return LISP_CONS(cv);
 }
 
@@ -339,10 +348,7 @@ static lispval make_rwlock()
   KNO_INIT_FRESH_CONS(cv,kno_synchronizer_type);
   cv->synctype = sync_rwlock;
   rv = u8_init_rwlock(&(cv->obj.rwlock));
-  if (rv) {
-    u8_graberrno("make_rwlock",NULL);
-    u8_free(cv);
-    return KNO_ERROR;}
+  if (rv)  return handle_errno("make_rwlock",cv);
   else return LISP_CONS(cv);
 }
 
@@ -355,14 +361,10 @@ static lispval make_condvar()
   KNO_INIT_FRESH_CONS(cv,kno_synchronizer_type);
   cv->synctype = sync_condvar;
   rv = u8_init_mutex(&(cv->obj.condvar.lock));
-  if (rv) {
-    u8_graberrno("make_condvar",NULL);
-    u8_free(cv);
-    return KNO_ERROR;}
+  if (rv) return handle_errno("make_condvar",cv);
   else rv = u8_init_condvar(&(cv->obj.condvar.cvar));
-  if (rv) {
-    u8_graberrno("make_condvar",NULL);
-    return KNO_ERROR;}
+  if (rv) u8_destroy_mutex(&(cv->obj.condvar.lock));
+  if (rv) return handle_errno("make_condvar",cv);
   return LISP_CONS(cv);
 }
 
@@ -491,7 +493,6 @@ static lispval with_lock_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 	  if (mutex)
 	    u8_unlock_mutex(mutex);
 	  else u8_rw_unlock(rwlock);
-	  kno_decref(lck);
 	  break;}}}
     U8_ON_EXCEPTION {
       U8_CLEAR_CONTOUR();
@@ -735,7 +736,8 @@ static void *_kno_thread_main(void *data)
 	kno_incref(result);
 	*(tstruct->resultptr) = result;}
       else NO_ELSE;}
-    if (tstruct->flags&KNO_EVAL_THREAD) {
+    if ( (tstruct->flags&KNO_EVAL_THREAD) &&
+	 ( (flags & (KNO_THREAD_KEEPENV) ) == 0) ){
       lispval free_env = (lispval) tstruct->evaldata.env;
       tstruct->evaldata.env = NULL;
       kno_decref(free_env);}
@@ -877,16 +879,20 @@ static lispval threadapply_prim(int n,lispval *args)
 
 static int threadopts(lispval opts)
 {
+  int flags = 0;
   lispval logexit = kno_getopt(opts,logexit_symbol,VOID);
   if (VOIDP(logexit)) {
     if (thread_log_exit>0)
-      return KNO_THREAD_TRACE_EXIT;
-    else return KNO_THREAD_QUIET_EXIT;}
+      flags |= KNO_THREAD_TRACE_EXIT;
+    else flags |= KNO_THREAD_QUIET_EXIT;}
   else if ((FALSEP(logexit))||(KNO_ZEROP(logexit)))
-    return KNO_THREAD_QUIET_EXIT;
+    flags |= KNO_THREAD_QUIET_EXIT;
   else {
     kno_decref(logexit);
-    return KNO_THREAD_TRACE_EXIT;}
+    flags |= KNO_THREAD_TRACE_EXIT;}
+  if (kno_testopt(opts,keepenv_symbol,VOID))
+    flags |= KNO_THREAD_KEEPENV;
+  return flags;
 }
 
 DCLPRIM("THREAD/CALL+",
@@ -1168,17 +1174,15 @@ static int join_thread(struct KNO_THREAD *tstruct,
 #if HAVE_PTHREAD_TRYJOIN_NP
     rv = pthread_tryjoin_np(tstruct->tid,NULL);
 #else
-    u8_log(LOG_WARN,"NotImplemented",
-	   "No pthread_tryjoin_np support");
-    return 0;
+    kno_seterr("NoPThreadTryJoin","join_thread",NULL,VOID);
+    return -1;
 #endif
   } else {
 #if HAVE_PTHREAD_TIMEDJOIN_NP
     rv = pthread_timedjoin_np(tstruct->tid,NULL,ts);
 #else
-    u8_log(LOG_WARN,"NotImplemented",
-	   "No pthread_timedjoin_np support");
-    rv = -1;
+    kno_seterr("NoPThreadTryJoin","join_thread",NULL,VOID);
+    return -1;
 #endif
   }
   if ( (rv == 0) && (tstruct->result == KNO_NULL) ) {
@@ -1206,7 +1210,8 @@ static lispval threadjoin_prim(lispval threads,lispval U8_MAYBE_UNUSED opts)
   {DO_CHOICES(thread,threads) {
       struct KNO_THREAD *tstruct = (kno_thread)thread;
       int retval = join_thread(tstruct,waiting,&until);
-      if (retval == 0) {
+      if (retval<0) {STOP_JOIN(finished);}
+      else if (retval == 0) {
 	kno_incref(thread);
 	KNO_ADD_TO_CHOICE(finished,thread);}
       else if ( (retval == EBUSY) || (retval == ETIMEDOUT) ) {
@@ -1238,7 +1243,8 @@ static lispval threadwait_prim(lispval threads,lispval U8_MAYBE_UNUSED opts)
   {DO_CHOICES(thread,threads) {
       struct KNO_THREAD *tstruct = (kno_thread)thread;
       int retval = join_thread(tstruct,waiting,&until);
-      if (retval != 0) {
+      if (retval<0) {STOP_JOIN(unfinished);}
+      else if (retval) {
 	kno_incref(thread);
 	KNO_ADD_TO_CHOICE(unfinished,thread);
 	if ( (retval == EBUSY) || (retval == ETIMEDOUT) )
@@ -1269,7 +1275,8 @@ static lispval threadfinish_prim(lispval args,lispval opts)
 	struct KNO_THREAD *tstruct = (kno_thread)arg;
 	int waiting = get_join_wait(opts,&until);
 	int retval = join_thread(tstruct,waiting,&until);
-	if (retval == 0) {
+	if (retval<0) {STOP_JOIN(results);}
+	else if (retval == 0) {
 	  lispval result = tstruct->result;
 	  if (result == KNO_NULL) {}
 	  else if (KNO_VOIDP(result)) {
@@ -1319,7 +1326,8 @@ static lispval threadwaitbang_prim(lispval threads,lispval U8_MAYBE_UNUSED opts)
   {DO_CHOICES(thread,threads) {
       struct KNO_THREAD *tstruct = (kno_thread)thread;
       int retval = join_thread(tstruct,waiting,&until);
-      if (retval==0) {}
+      if (retval<0) {STOP_JOIN(KNO_VOID);}
+      else if (retval==0) {}
       else if ( (retval == EBUSY) || (retval == ETIMEDOUT) )
 	u8_log(LOG_INFO,ThreadReturnError,
 	       "Thread wait returned %d (%s) for %q",
@@ -1697,27 +1705,29 @@ static void finish_threads()
       else errno=0;
       i++;}
     else i++;}
-  int nsecs = (thread_grace*1000)/live_threads;
-  struct timespec limit = { 0, nsecs };
-  i=0; while (i<n) {
-    if (live[i]) {
-      pthread_t pthread = thread_ids[i];
-      if (pthread_timedjoin_np(pthread,NULL,&limit) == 0) {
-	live_threads--;
-	live[i] = 0;}
-      else errno=0;
-      i++;}
-    else i++;}
+  if (live_threads) {
+    int nsecs = (thread_grace*1000)/live_threads;
+    struct timespec limit = { 0, nsecs };
+    i=0; while (i<n) {
+      if (live[i]) {
+	pthread_t pthread = thread_ids[i];
+	if (pthread_timedjoin_np(pthread,NULL,&limit) == 0) {
+	  live_threads--;
+	  live[i] = 0;}
+	else errno=0;
+	i++;}
+      else i++;}}
   /* Get stragglers */
-  i=0; while (i<n) {
-    if (live[i]) {
-      pthread_t pthread = thread_ids[i];
-      if (pthread_tryjoin_np(pthread,NULL) == 0) {
-	live_threads--;
-	live[i] = 0;}
-      else errno=0;
-      i++;}
-    else i++;}
+  if (live_threads) {
+    i=0; while (i<n) {
+      if (live[i]) {
+	pthread_t pthread = thread_ids[i];
+	if (pthread_tryjoin_np(pthread,NULL) == 0) {
+	  live_threads--;
+	  live[i] = 0;}
+	else errno=0;
+	i++;}
+      else i++;}}
 #else
   int secs = thread_grace/1000000;
   sleep(secs);
@@ -1820,6 +1830,7 @@ KNO_EXPORT void kno_init_threads_c()
 
   timeout_symbol = kno_intern("timeout");
   logexit_symbol = kno_intern("logexit");
+  keepenv_symbol = kno_intern("keepenv");
   void_symbol = kno_intern("void");
 
   int one_synchronizer_arg[1] = { kno_synchronizer_type };

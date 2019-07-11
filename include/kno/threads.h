@@ -21,6 +21,7 @@ KNO_EXPORT kno_ptr_type kno_synchronizer_type;
 #define KNO_THREAD_TRACE_EXIT  0x0080
 #define KNO_THREAD_QUIET_EXIT  0x0100
 #define KNO_THREAD_TERMINATING 0x0200
+#define KNO_THREAD_KEEPENV     0x10000
 
 typedef struct KNO_THREAD {
   KNO_CONS_HEADER;

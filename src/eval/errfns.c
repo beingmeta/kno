@@ -74,8 +74,10 @@ static lispval error_prim(lispval condition,lispval caller,
   u8_string details = NULL; int free_details=0;
   if ((KNO_VOIDP(details_arg)) || (KNO_DEFAULTP(details_arg)))
     details=NULL;
-  else if (KNO_STRINGP(details_arg)) details=KNO_CSTRING(details_arg);
-  else if (KNO_SYMBOLP(details_arg)) details=KNO_CSTRING(details_arg);
+  else if (KNO_STRINGP(details_arg))
+    details=KNO_CSTRING(details_arg);
+  else if (KNO_SYMBOLP(details_arg))
+    details=KNO_SYMBOL_NAME(details_arg);
   else {
     details=kno_lisp2string(details_arg);
     free_details=1;}

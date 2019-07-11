@@ -2100,8 +2100,10 @@ static lispval make_rational(lispval num_arg,lispval denom_arg)
     lispval new_num = kno_quotient(num,gcd);
     lispval new_denom = kno_quotient(denom,gcd);
     kno_decref(gcd);
-    if (((FIXNUMP(new_denom)) && (FIX2INT(new_denom) == 1)))
-      return new_num;
+    if (((FIXNUMP(new_denom)) && (FIX2INT(new_denom) == 1))) {
+      if (new_num != num) kno_decref(num);
+      kno_decref(denom_arg);
+      return new_num;}
     else {num = new_num; denom = new_denom;}}
   else return kno_err(_("Non integral components"),"kno_make_rational",NULL,num);
   result = u8_alloc(struct KNO_RATIONAL);
@@ -2122,7 +2124,8 @@ static int unparse_rational(struct U8_OUTPUT *out,lispval x)
 KNO_EXPORT
 lispval kno_make_rational(lispval num,lispval denom)
 {
-  kno_incref(num); kno_incref(denom);
+  kno_incref(num);
+  kno_incref(denom);
   return make_rational(num,denom);
 }
 
@@ -2433,8 +2436,10 @@ lispval kno_subtract(lispval x,lispval y)
     new_numP2 = kno_multiply(ynum,xden);
     new_num = kno_subtract(new_numP1,new_numP2);
     result = kno_make_rational(new_num,new_denom);
-    kno_decref(new_numP1); kno_decref(new_numP2);
-    kno_decref(new_denom); kno_decref(new_num);
+    kno_decref(new_numP1);
+    kno_decref(new_numP2);
+    kno_decref(new_denom);
+    kno_decref(new_num);
     return result;}
   else {
     kno_bigint bx = tobigint(x), by = tobigint(y);
@@ -2677,6 +2682,8 @@ lispval kno_make_exact(lispval x)
   kno_ptr_type xt = KNO_PTR_TYPE(x);
   if (xt == kno_flonum_type) {
     double d = KNO_FLONUM(x);
+    if ( (isnan(d)) || (isinf(d)) )
+      return kno_err("NoExactRepresentation","kno_make_exact",NULL,x);
     double f = floor(d);
     if (f == d) {
       kno_bigint ival = kno_double_to_bigint(d);

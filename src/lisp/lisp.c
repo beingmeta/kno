@@ -144,6 +144,29 @@ KNO_EXPORT int _KNO_TABLEP(lispval x)
   else return 0;
 }
 
+KNO_EXPORT int _KNO_CHOICE_SIZE(lispval x)
+{
+  if (KNO_EMPTYP(x))
+    return 0;
+  else if (KNO_CHOICEP(x)) {
+    struct KNO_CHOICE *ch = (kno_choice) x;
+    return ch->choice_size;}
+  else return 1;
+}
+
+#if 0
+KNO_EXPORT long long _kno_getint64(lispval x)
+{
+  if (KNO_FIXNUMP(x))
+    return KNO_FIX2INT(x);
+  else if (KNO_BIGINTP(x))
+    return kno_bigint_to_long_long(x);
+  else {
+    kno_raise(kno_TypeError,"_KNO_GETINT",NULL,x);
+    return 0;}
+}
+#endif
+
 /* Initialization procedures */
 
 extern void kno_init_choices_c(void);

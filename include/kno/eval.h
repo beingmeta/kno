@@ -150,6 +150,7 @@ KNO_EXPORT lispval kno_new_cmodule_x
 
 KNO_EXPORT lispval kno_use_module(kno_lexenv env,lispval module);
 
+KNO_EXPORT int kno_log_reloads;
 
 KNO_EXPORT void kno_add_module_loader(int (*loader)(lispval,void *),void *);
 
@@ -201,18 +202,6 @@ typedef struct KNO_QCODE {
 
 /* Loading files and config data */
 
-typedef struct KNO_SOURCEFN {
-  u8_string (*getsource)(int op,u8_string,u8_string,u8_string *,time_t *timep,void *);
-  void *getsource_data;
-  struct KNO_SOURCEFN *getsource_next;} KNO_SOURCEFN;
-typedef struct KNO_SOURCEFN *kno_sourcefn;
-
-KNO_EXPORT u8_string kno_get_source(u8_string,u8_string,u8_string *,time_t *);
-KNO_EXPORT int kno_probe_source(u8_string,u8_string *,time_t *);
-KNO_EXPORT void kno_register_sourcefn
-  (u8_string (*fn)(int op,u8_string,u8_string,u8_string *,time_t *,void *),
-   void *sourcefn_data);
-
 KNO_EXPORT int kno_load_config(u8_string sourceid);
 KNO_EXPORT int kno_load_default_config(u8_string sourceid);
 KNO_EXPORT lispval kno_load_stream
@@ -248,8 +237,6 @@ KNO_FASTOP lispval fastget(lispval table,lispval key)
   switch (argtype) {
   case kno_schemap_type:
     return kno_schemap_get((kno_schemap)table,key,KNO_UNBOUND);
-  case kno_slotmap_type:
-    return kno_slotmap_get((kno_slotmap)table,key,KNO_UNBOUND);
   case kno_hashtable_type:
     return kno_hashtable_get((kno_hashtable)table,key,KNO_UNBOUND);
   default: return kno_get(table,key,KNO_UNBOUND);}
@@ -317,8 +304,7 @@ KNO_FASTOP lispval _kno_fast_eval(lispval x,kno_lexenv env,
       return kno_deep_copy(x);
     default:
       return kno_incref(x);}}
-  default: /* Never reached */
-    return x;
+  default: return x; /* Never reached */
   }
 }
 

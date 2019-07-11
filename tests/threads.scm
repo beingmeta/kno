@@ -67,7 +67,7 @@
 (define-tester (test-spawn)
   (let ((threads {}))
     (set! numbers '())
-    (set+! threads (spawn (begin (sleep 1) (addrange 10))))
+    (set+! threads (spawn (begin (sleep 1) (addrange 10)) #[keepenv #t]))
     (applytest #t thread? threads)
     (applytest #t exists? (config 'ALLTHREADS))
     (set+! threads (spawn (addrange 0)))
@@ -90,7 +90,28 @@
 	(thread2 (thread/call slowhand 7))
 	(thread3 (thread/call slowhand 10)))
     (sleep 2)
-    (thread/cancel thread2)
+    (thread/cancel! thread2)
+    ;; This should cause the thread structures to get walked when
+    ;;  the environment is freed
+    (applytest 4 (lambda (x) (+ x 2)) 2)
+    (applytest {1 10} thread/finish {thread1 thread2 thread3})))
+
+(define-tester (test-thread-signal)
+  (let ((slowhand (lambda (x) (sleep 5) x))
+	(thread1 (thread/call slowhand 1))
+	(thread2 (thread/call slowhand 7))
+	(thread3 (thread/call slowhand 10)))
+    (sleep 2)
+    (thread/signal! thread2)
+    (applytest {1 10} thread/finish {thread1 thread2 thread3})))
+
+(define-tester (test-thread-terminate)
+  (let ((slowhand (lambda (x) (sleep 5) x))
+	(thread1 (thread/call slowhand 1))
+	(thread2 (thread/call slowhand 7))
+	(thread3 (thread/call slowhand 10)))
+    (sleep 2)
+    (thread/terminate! thread2)
     (applytest {1 10} thread/finish {thread1 thread2 thread3})))
 
 (define-tester (test-thread/call (waitfn thread/join) (wait-opts #default))
@@ -235,6 +256,23 @@
     (message "DO-CHOICES-MT-TEST: " ids)
     (applytest #t (> (choice-size ids) 1))))
 
+;;; Test with-lock errors
+
+(define (test-with-lock-errors)
+  (let ((n 5)
+	(lock (make-mutex)))
+    (with-lock lock (set! n (1+ n)))
+    (errtest
+     (with-lock lock
+       (error |Testing| test-with-lock-errors "Don't increment but keep lock")
+       (set! n (1+ n))))
+    (applytest #t = n 6)
+    (let ((taskthread
+	   (thread/call (lambda () 
+			  (with-lock lock (set! n (1+ n)))))))
+      (sleep 1)
+      (applytest #t = n 7))))
+
 ;;; Testing synchronized lambdas
 
 (define slambda-test-value #f)
@@ -255,6 +293,11 @@
 (define (errfact n)
   (if (<= n 0) 'one 
       (* n (errfact (-1+ n)))))
+
+;;; Signalling, terminating, and cancelling
+;;; These aren't real functional tests, they're just smoke tests
+(define (test-threadops)
+  (let ((thread1 (thread/call )))))
 
 ;;;; SSET
 
@@ -359,6 +402,7 @@
   (test-with-lock change-slambda-test-value)
   (test-with-lock "string")
   (test-with-lock change-num-recklessly)
+  (test-with-lock-errors)
   
   (errtest (thread/wait "thread"))
   (errtest (thread/wait! "thread"))
@@ -375,9 +419,12 @@
 
   (errtest (thread/call "proc"))
   (errtest (thread/call))
-  (errtest (thread/call+ "proc"))
+  (errtest (thread/call+ #f "proc"))
   (errtest (thread/call+))
+  (errtest (spawn (+ 2 3) (error 'noopts)))
 
+  (errtest (thread/eval '(+ 2 3) #"not an env"))
+  (errtest (thread/eval))
   (errtest (thread/eval (cons)))
   (errtest (thread/eval (cons 'x 'y) (cons)))
   (errtest (thread/eval (cons 'x 'y) #f (cons)))
@@ -400,5 +447,5 @@
   ;;; Need to add a thread/shutdown! primitive which calls finish_threads
 
   (test-finished "THREADTEST")
-  )
 
+)

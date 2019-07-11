@@ -31,6 +31,7 @@
 
 (define-tester (test-coderefs)
   (let ((coderef (%coderef 16)))
+    (errtest (%coderef 33.5))
     (applytester #t coderef? coderef)
     (applytester #f coderef? '(code))
     (applytester #f coderef? 0xc0de)
@@ -49,6 +50,7 @@
 	(bad-opcode (make-opcode 1666)))
     (errtest (name->opcode 0x334))
     (errtest (make-opcode 3192))
+    (errtest (make-opcode 33.5))
     (applytest string? (lisp->string op4))
     (applytest string? (lisp->string bad-opcode))
     (applytester #t opcode? (name->opcode "op_until"))
@@ -120,20 +122,29 @@
 ;;; Using define-tester on this breaks things because of the internal
 ;;; macros which get expanded like functions
 (define (test-macros)
-  (let ((swapf (macro expr 
-		 (let ((arg1 (get-arg expr 1))
-		       (arg2 (get-arg expr 2)))
-		   `(let ((tmp ,arg1))
-		      (set! ,arg1 ,arg2)
-		      (set! ,arg2 tmp)))))
-	(bad-swapf (macro expr 
-		     (let ((arg1 (get-arg expr 1))
-			   (arg2 (get-arg expr 2)))
-		       `(let ((xtmp ,argI))
-			  (set! ,arg1 ,arg2)
-			  (set! ,arg2 tmp)))))
-	(x 3)
-	(y 4))
+  (let* ((swapf (macro expr 
+		  (let ((arg1 (get-arg expr 1))
+			(arg2 (get-arg expr 2)))
+		    `(let ((tmp ,arg1))
+		       (set! ,arg1 ,arg2)
+		       (set! ,arg2 tmp)))))
+	 (bad-swapf (macro expr 
+		      (let ((arg1 (get-arg expr 1))
+			    (arg2 (get-arg expr 2)))
+			`(let ((xtmp ,argI))
+			   (set! ,arg1 ,arg2)
+			   (set! ,arg2 tmp)))))
+	 (homeless-swapf
+	  (with-sourcebase #f
+			   (macro expr 
+			     (let ((arg1 (get-arg expr 1))
+				   (arg2 (get-arg expr 2)))
+			       `(let ((tmp ,arg1))
+				  (set! ,arg1 ,arg2)
+				  (set! ,arg2 tmp))))))
+	 (x 3)
+	 (y 4))
+    (lambda (z) (+ z x))
     (applytest string? lisp->string swapf)
     ;; From ezrecords, coverage for macros defined in module
     (applytest string? lisp->string defrecord)
@@ -745,6 +756,16 @@
 (errtest (withenv ((x 3) (y 4) z)))
 (errtest (withenv foo (+ 3 9)))
 (errtest (withenv "bar" (+ 3 9)))
+
+;;; Some more eval stuff
+
+;; Should hit eval.h fast_eval
+(applytest 3 get #[x 3 y 4] 'x)
+
+;;; Comment objects
+
+(evaltest 9 (+ 2 3 #;"this is four" 4))
+(evaltest '(+ 2 3 #;"this is four" 4) '(+ 2 3 #;"this is four" 4))
 
 ;;; Loading stuff
 

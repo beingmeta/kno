@@ -195,11 +195,10 @@ static lispval parse_module_spec(u8_string s)
     if (brk) {
       u8_string elt = u8_slice(s,brk);
       lispval parsed = kno_parse(elt);
-      if (KNO_ABORTP(parsed)) {
-	u8_free(elt);
-	return parsed;}
-      else return kno_init_pair(NULL,parsed,
-			       parse_module_spec(brk+1));}
+      u8_free(elt);
+      if (KNO_ABORTP(parsed))
+	return parsed;
+      else return kno_init_pair(NULL,parsed,parse_module_spec(brk+1));}
     else {
       lispval parsed = kno_parse(s);
       if (KNO_ABORTP(parsed)) return parsed;
@@ -224,7 +223,7 @@ static int add_modname(lispval modname)
     lispval module = kno_find_module(modname,0);
     if (KNO_ABORTP(module))
       return -1;
-    else if (KNO_VOIDP(module)) {
+    else if ( (KNO_VOIDP(module)) || (KNO_FALSEP(module)) ) {
       u8_log(LOG_WARN,kno_NoSuchModule,"module_config_set",
 	     "No module found for %q",modname);
       return -1;}

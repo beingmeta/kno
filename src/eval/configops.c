@@ -20,6 +20,7 @@
 #include "kno/frames.h"
 #include "kno/numbers.h"
 #include "kno/support.h"
+#include "kno/getsource.h"
 #include "kno/cprims.h"
 
 #include <libu8/libu8io.h>
@@ -30,6 +31,18 @@
 #include <math.h>
 u8_condition LoadConfig=_("Loading config");
 u8_condition UnconfiguredSource;
+
+static u8_string get_loadpath(u8_string spec)
+{
+  if (*spec == '/')
+    return u8_strdup(spec);
+  else if (((u8_string)(strstr(spec,"file:"))) == spec)
+    return u8_strdup(spec+5);
+  else if (strchr(spec,':'))
+    return u8_strdup(spec);
+  else return u8_abspath(spec,NULL);
+}
+
 
 /* Core functions */
 
@@ -97,26 +110,36 @@ static lispval set_config(int n,lispval *args)
   int retval, i = 0;
   if (n%2) return kno_err(kno_SyntaxError,"set_config",NULL,VOID);
   while (i<n) {
-    lispval var = args[i++], val = args[i++];
+    lispval var = args[i++], val = args[i++], use_val = val;
+    if (TYPEP(val,kno_promise_type))
+      use_val = kno_force_promise(val);
     if (STRINGP(var))
-      retval = kno_set_config(CSTRING(var),val);
+      retval = kno_set_config(CSTRING(var),use_val);
     else if (SYMBOLP(var))
-      retval = kno_set_config(SYM_NAME(var),val);
+      retval = kno_set_config(SYM_NAME(var),use_val);
     else return kno_type_error(_("string or symbol"),"set_config",var);
+    if (use_val != val) kno_decref(use_val);
     if (retval<0) return KNO_ERROR;}
   return VOID;
 }
 
 static lispval set_default_config(lispval var,lispval val)
 {
-  int retval;
+  int retval; lispval use_val = val;
+  if (TYPEP(val,kno_promise_type))
+    use_val = kno_force_promise(val);
   if (STRINGP(var))
-    retval = kno_default_config(CSTRING(var),val);
+    retval = kno_default_config(CSTRING(var),use_val);
   else if (SYMBOLP(var))
-    retval = kno_default_config(SYM_NAME(var),val);
-  else return kno_type_error(_("string or symbol"),"config_default",var);
-  if (retval<0) return KNO_ERROR;
-  else if (retval) return KNO_TRUE;
+    retval = kno_default_config(SYM_NAME(var),use_val);
+  else {
+    if (use_val != val) kno_decref(use_val);
+    return kno_type_error(_("string or symbol"),"config_default",var);}
+  if (use_val != val) kno_decref(use_val);
+  if (retval<0)
+    return KNO_ERROR;
+  else if (retval)
+    return KNO_TRUE;
   else return KNO_FALSE;
 }
 
@@ -130,7 +153,8 @@ static lispval find_configs(lispval pat,lispval raw)
     u8_string keystring=
       ((STRINGP(key))?(CSTRING(key)):(SYM_NAME(key)));
     if ((STRINGP(pat))?(strcasestr(keystring,CSTRING(pat))!=NULL):
-	(TYPEP(pat,kno_regex_type))?(kno_regex_test(pat,keystring,-1)):
+	(TYPEP(pat,kno_regex_type))?
+	(kno_regex_op(rx_search,pat,keystring,-1,REG_ICASE)>=0):
 	(0)) {
       CHOICE_ADD(results,config);
       kno_incref(config);}}
@@ -176,9 +200,8 @@ static lispval config_def(lispval var,lispval handler,lispval docstring)
      ((STRINGP(docstring)) ? (CSTRING(docstring)) : (NULL)),
      lconfig_get,lconfig_set,(void *) handler,0,
      reuse_lconfig);
-  if (retval<0) {
-    kno_decref(handler);
-    return KNO_ERROR;}
+  if (retval<0)
+    return KNO_ERROR;
   return VOID;
 }
 static int reuse_lconfig(struct KNO_CONFIG_HANDLER *e){
@@ -195,7 +218,7 @@ KNO_EXPORT int kno_load_config(u8_string sourceid)
 {
   struct U8_INPUT stream; int retval;
   u8_string sourcebase = NULL, outer_sourcebase;
-  u8_string content = kno_get_source(sourceid,NULL,&sourcebase,NULL);
+  u8_string content = kno_get_source(sourceid,NULL,&sourcebase,NULL,NULL);
   if (content == NULL) return -1;
   else if (sourcebase) {
     outer_sourcebase = kno_bind_sourcebase(sourcebase);}
@@ -207,9 +230,9 @@ KNO_EXPORT int kno_load_config(u8_string sourceid)
   retval = kno_read_config(&stream);
   if ( (trace_config_load) || (kno_trace_config) )
     u8_log(LOG_WARN,LoadConfig,"Loaded config %s",sourcebase);
-  if (sourcebase) {
+  if ( (sourcebase) || (outer_sourcebase) ) {
     kno_restore_sourcebase(outer_sourcebase);
-    u8_free(sourcebase);}
+    if (sourcebase) u8_free(sourcebase);}
   u8_free(content);
   return retval;
 }
@@ -218,7 +241,7 @@ KNO_EXPORT int kno_load_default_config(u8_string sourceid)
 {
   struct U8_INPUT stream; int retval;
   u8_string sourcebase = NULL, outer_sourcebase;
-  u8_string content = kno_get_source(sourceid,NULL,&sourcebase,NULL);
+  u8_string content = kno_get_source(sourceid,NULL,&sourcebase,NULL,NULL);
   if (content == NULL) return -1;
   else if (sourcebase) {
     outer_sourcebase = kno_bind_sourcebase(sourcebase);}
@@ -230,9 +253,9 @@ KNO_EXPORT int kno_load_default_config(u8_string sourceid)
   retval = kno_read_default_config(&stream);
   if ( (trace_config_load) || (kno_trace_config) )
     u8_log(LOG_WARN,LoadConfig,"Loaded default config %s",sourcebase);
-  if (sourcebase) {
+  if ( (sourcebase) || (outer_sourcebase) ) {
     kno_restore_sourcebase(outer_sourcebase);
-    u8_free(sourcebase);}
+    if (sourcebase) u8_free(sourcebase);}
   u8_free(content);
   return retval;
 }
@@ -242,7 +265,7 @@ KNO_EXPORT int kno_load_default_config(u8_string sourceid)
 static lispval lisp_load_config(lispval arg)
 {
   if (STRINGP(arg)) {
-    u8_string abspath = u8_abspath(CSTRING(arg),NULL);
+    u8_string abspath = get_loadpath(CSTRING(arg));
     int retval = kno_load_config(abspath);
     u8_free(abspath);
     if (retval<0)
@@ -268,7 +291,7 @@ static lispval lisp_load_config(lispval arg)
 static lispval lisp_load_default_config(lispval arg)
 {
   if (STRINGP(arg)) {
-    u8_string abspath = u8_abspath(CSTRING(arg),NULL);
+    u8_string abspath = get_loadpath(CSTRING(arg));
     int retval = kno_load_default_config(abspath);
     u8_free(abspath);
     if (retval<0)

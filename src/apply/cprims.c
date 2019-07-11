@@ -173,6 +173,7 @@ static struct KNO_CPRIM *make_cprim(u8_string name,
   f->fcn_defaults = prim_defaults;
   if (defaults) memcpy(prim_defaults,defaults,sizeof(lispval)*arity);
   f->fcnid = VOID;
+  f->cprim_name = cname;
   if ( (arity>=0) && (min_arity>arity)) {
     u8_log(LOG_CRIT,_("Bad primitive definition"),
            "Fixing primitive %s%s%s%s with min_arity=%d > arity=%d",

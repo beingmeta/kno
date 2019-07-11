@@ -26,7 +26,15 @@
 (applytester #f regex/matchspan in-atsigns test-string)
 (applytester 0 regex/search in-angles test-string)
 
+(applytester 'err regex/match in-angles test-string -5)
+(applytester 'err regex/matchlen in-angles test-string -5)
+(applytester 'err regex/matchstring in-atsigns test-string -5)
+(applytester 'err regex/search in-atsigns test-string -5)
+
 (applytester in-angles parser/roundtrip in-angles)
+
+(applytest 'err regex/match in-angles (slice test-string 0 3) "ef")
+(applytester 'err regex/matchspan in-angles test-string "ef")
 
 (errtester (regex/match 'test-string))
 (errtester (regex/match 33))
@@ -43,5 +51,20 @@
 (applytester {".p" "paragraph"} reject {"<p>" ".p" "paragraph"} in-angles)
 
 (regex/testcapi)
+
+(define regex-search 1)
+(define regex-zeromatch 2)
+(define regex-matchlen 3)
+(define regex-exactmatch 4)
+(define regex-matchspan 5)
+(define regex-matchstring 5)
+
+(applytest 1 regex/rawop regex-exactmatch in-angles "<foo>" 0)
+(applytest #f regex/rawop regex-exactmatch in-angles ">foo>" 0)
+(applytest 5 regex/rawop regex-matchlen in-angles "<foo>345" 0)
+(applytest #f regex/rawop regex-matchlen in-angles ">foo>345" 0)
+(applytest #f regex/rawop regex-exactmatch in-angles ">foo<" 0)
+(applytest 'err regex/rawop regex-matchstring in-angles "<foo>345" 0)
+(applytest 'err regex/rawop regex-matchspan in-angles "<foo>345" 0)
 
 (test-finished "regex")

@@ -119,7 +119,7 @@ STORAGE_HEADERS=\
 DRIVERS_H=include/kno/drivers.h
 SCHEME_HEADERS=include/kno/eval.h include/kno/threads.h \
 	include/kno/opcodes.h include/kno/seqprims.h \
-	include/kno/procprims.h
+	include/kno/procprims.h include/kno/getsource.h
 LIB_HEADERS=include/kno/texttools.h include/kno/webtools.h \
 		include/kno/mongodb.h \
 	        include/kno/leveldb.h \
@@ -155,12 +155,12 @@ LISP_OBJS=\
 	src/lisp/lisp.o
 
 SUPPORT_OBJS=						\
-	src/support/buildinfo.o src/support/support.o	\
-	src/support/config.o src/support/errobjs.o	\
-	src/support/logging.o src/support/getopt.o	\
-	src/support/startup.o src/support/fluid.o 	\
-	src/support/signals.o src/support/posix.o 	\
-	src/support/sourcebase.o
+	src/sys/buildinfo.o src/sys/support.o	\
+	src/sys/config.o src/sys/errobjs.o	\
+	src/sys/logging.o src/sys/getopt.o	\
+	src/sys/startup.o src/sys/fluid.o 	\
+	src/sys/signals.o src/sys/posix.o 	\
+	src/sys/sourcebase.o
 
 APPLY_OBJS=\
 	src/apply/apply.o src/apply/stacks.o 			\
@@ -198,6 +198,7 @@ DBSERV_OBJS=src/storage/dbserv.o
 
 CORE_SCHEME_OBJS=\
 	src/eval/eval.o\
+	src/eval/getsource.o\
 	src/eval/debug.o\
 	src/eval/options.o\
 	src/eval/testops.o\
@@ -240,7 +241,7 @@ SCHEME_OBJS=\
 	src/prims/sqldbprims.o \
 	src/prims/fileprims.o \
 	src/prims/driverprims.o \
-	src/eval/loader.o \
+	src/eval/loadmods.o \
 	src/eval/history.o
 
 WEB_OBJS=\
@@ -380,7 +381,7 @@ CONFDIRS=$(DESTDIR)@config_dir@ $(DESTDIR)@config_dir@/config $(DESTDIR)@share_d
 	$(DESTDIR)@stdlib_module_dir@ $(DESTDIR)@local_module_dir@
 
 CLEANDIRS=include/kno src/drivers/headers 		\
-	src/lisp src/apply src/support 			\
+	src/lisp src/apply src/sys 			\
 	src/storage src/drivers				\
 	src/eval src/prims				\
 	src/text src/web src/stdlib			\
@@ -402,10 +403,10 @@ KNO_SOURCES=\
 	src/lisp/tables.c src/lisp/compounds.c src/lisp/consblocks.c		\
         src/lisp/bufio.c src/lisp/dtread.c src/lisp/dtread.c 			\
 	src/lisp/parse.c src/lisp/unparse.c src/lisp/lisp.c 			\
-	src/support/buildinfo.c src/support/sourcebase.c			\
-	src/support/support.c src/support/config.c src/support/posix.c		\
-	src/support/errobjs.c src/support/logging.c src/support/getopt.c	\
-	src/support/startup.c src/support/fluid.c src/support/signals.c		\
+	src/sys/buildinfo.c src/sys/sourcebase.c			\
+	src/sys/support.c src/sys/config.c src/sys/posix.c		\
+	src/sys/errobjs.c src/sys/logging.c src/sys/getopt.c	\
+	src/sys/startup.c src/sys/fluid.c src/sys/signals.c		\
 	src/apply/apply.c src/apply/stacks.c src/apply/lexenv.c 		\
 	src/apply/ffi.c								\
 	src/storage/storage.c src/storage/streams.c src/storage/hashdtype.c	\
@@ -445,7 +446,7 @@ KNO_SOURCES=\
 	src/prims/tableprims.c src/eval/choiceops.c               		\
 	src/prims/seqprims.c src/prims/stringprims.c                 		\
 	src/prims/fileprims.c src/prims/driverprims.c                		\
-	src/eval/loader.c                                            		\
+	src/eval/loadmods.c                                            		\
 	src/prims/timeprims.c src/prims/sysprims.c 				\
 	src/prims/sqldbprims.c                    				\
 	src/eval/reqstate.c src/eval/dteval.c src/eval/configops.c		\
@@ -847,7 +848,7 @@ uninstall: uninstall-core
 TAGS: makefile.in configure.ac include/kno/config.h.in		\
 		tests/lisp/*.c tests/storage/*.c  			\
 		src/exe/*.c src/exe/*.h include/kno/*.h 		\
-		src/lisp/*.c src/support/*.c src/apply/*.c		\
+		src/lisp/*.c src/sys/*.c src/apply/*.c		\
 		src/storage/*.c src/drivers/*.c 			\
 		src/eval/*.c src/prims/*.c     				\
 		src/text/*.c src/web/*.c 				\
@@ -865,7 +866,7 @@ TAGS: makefile.in configure.ac include/kno/config.h.in		\
 		include/kno/components/*.h		\
 		${SRC_HEADERS};
 	@etags -o TAGS -a src/exe/*.c src/exe/*.h 
-	@etags -o TAGS -a src/lisp/*.c src/support/*.c src/apply/*.c 
+	@etags -o TAGS -a src/lisp/*.c src/sys/*.c src/apply/*.c 
 	@etags -o TAGS -a src/storage/*.c
 	@etags -o TAGS -a src/drivers/*.c src/drivers/headers/*.h
 	@etags -o TAGS -a src/eval/*.c src/prims/*.c
@@ -877,7 +878,7 @@ TAGS: makefile.in configure.ac include/kno/config.h.in		\
 
 CTAGS: makefile.in configure.ac include/kno/config.h.in	\
 	tests/lisp/*.c tests/storage/*.c tests/*.c	\
-	src/lisp/*.c src/support/*.c src/apply/*.c src/storage/*.c 		\
+	src/lisp/*.c src/sys/*.c src/apply/*.c src/storage/*.c 		\
 	src/eval/*.c src/prims/*.c src/web/*.c src/text/*.c 	\
 	include/kno/*.h ${SRC_HEADERS} etc/*.in 		\
 	include/kno/components/*.h				\
@@ -887,14 +888,14 @@ CTAGS: makefile.in configure.ac include/kno/config.h.in	\
 	      makefile.in configure.ac include/kno/config.h.in      \
 	      tests/lisp/*.c tests/apply/*.c tests/storage/*.c 		\
 	      tests/eval/*.c tests/prims/*.c src/exe/*.c src/exe/*.h	\
-	      src/lisp/*.c src/support/*.c src/storage/*.c 		\
+	      src/lisp/*.c src/sys/*.c src/storage/*.c 		\
 	      src/eval/*.c src/prims/*.c src/web/*.c src/text/*.c	\
 	      src/cmodules/*.c src/cmodules/*.h				\
 	      include/kno/*.h etc/*.in 				\
 	      include/kno/components/*.h				\
 	      ${SRC_HEADERS}
 
-CSOURCETAGS: src/lisp/*.c src/support/*.c src/apply/*.c	\
+CSOURCETAGS: src/lisp/*.c src/sys/*.c src/apply/*.c	\
 	src/storage/*.c src/eval/*.c src/prims/*.c 	\
 	src/web/*.c src/text/*.c 			\
 	src/drivers/*.c src/drivers/headers/*.h		\
@@ -1963,7 +1964,7 @@ staging/gcovr/all.html: src/lisp/cons.gcda staging/gcovr
 	gcovr ${GCOVR_FLAGS} -r . --html --html-details -o $@
 staging/gcovr/core.html: src/lisp/cons.gcda staging/gcovr
 	gcovr ${GCOVR_FLAGS} -r . \
-		-f src/lisp -f src/support -f src/apply -f src/eval -f include \
+		-f src/lisp -f src/sys -f src/apply -f src/eval -f include \
 		--html --html-details -o $@
 staging/gcovr/eval.html: src/lisp/cons.gcda staging/gcovr
 	gcovr ${GCOVR_FLAGS} -r . -f src/eval \
@@ -1972,7 +1973,7 @@ staging/gcovr/lisp.html: src/lisp/cons.gcda staging/gcovr
 	gcovr ${GCOVR_FLAGS} -r . -f src/lisp \
 		--html --html-details -o $@
 staging/gcovr/support.html: src/lisp/cons.gcda staging/gcovr
-	gcovr ${GCOVR_FLAGS} -r . -f src/support \
+	gcovr ${GCOVR_FLAGS} -r . -f src/sys \
 		--html --html-details -o $@
 staging/gcovr/apply.html: src/lisp/cons.gcda staging/gcovr
 	gcovr ${GCOVR_FLAGS} -r . -f src/apply \

@@ -118,8 +118,8 @@ cmdtests:
 
 static-tests: schemetests optscheme loadmods optmods slotmaps tables pools indexes framedbs
 schemetest schemetests scheme: r4rs exceptions choices sequences breaks numbers regex \
-        lambda conditionals iterators binders \
-	reflect hashsets eval loading quasiquote promises ffi configs opts appenv \
+        lambda conditionals iterators binders errfns \
+	reflect hashsets eval loading modules quasiquote promises ffi configs opts appenv \
 	picktest cachecall texttools webtools timefns sysprims startup stringprims \
 	threads i18n misc gctests profiling \
 	fileprims xml
@@ -136,6 +136,8 @@ optscheme:
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes cachecall.scm ${RUNCONF}
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes timefns.scm ${RUNCONF}
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes sysprims.scm ${RUNCONF}
+	#@${RUN} ${KNOX} TESTOPTIMIZED=yes modules.scm ${RUNCONF}
+	@${RUN} ${KNOX} TESTOPTIMIZED=yes compounds.scm ${RUNCONF}
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes i18n.scm ${RUNCONF}
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes fileprims.scm ${RUNCONF}
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes lambda.scm ${RUNCONF}
@@ -183,7 +185,7 @@ lambda:
 	@${RUN} ${KNOX} lambda.scm ${RUNCONF}
 	@${header} "■■■■ Completed lamdba tests ${RUNCONF}"
 conditionals:
-	@${RUN} ${KNOX} lambda.scm ${RUNCONF}
+	@${RUN} ${KNOX} conditionals.scm ${RUNCONF}
 	@${header} "■■■■ Completed conditionals tests ${RUNCONF}"
 iterators:
 	@${RUN} ${KNOX} iterators.scm ${RUNCONF}
@@ -191,6 +193,9 @@ iterators:
 binders:
 	@${RUN} ${KNOX} binders.scm ${RUNCONF}
 	@${header} "■■■■ Completed binders tests ${RUNCONF}"
+errfns:
+	@${RUN} ${KNOX} errfns.scm ${RUNCONF}
+	@${header} "■■■■ Completed errfns tests ${RUNCONF}"
 eval:
 	@${RUN} ${KNOX} eval.scm ${RUNCONF}
 	@${header} "■■■■ Completed miscellaneous eval tests ${RUNCONF}"
@@ -202,20 +207,29 @@ promises:
 	@${header} "■■■■ Completed promises tests ${RUNCONF}"
 configs:
 	@${RUN} ${KNOX} configs.scm ${RUNCONF} FOO=quux "CONFVAR=88;XCONF=baz"
+	@${RUN} ${KNOX} configs.scm ${RUNCONF} FOO=quux "CONFVAR=88;XCONF=baz" USEROOT=https://s3.amazonaws.com/knomods.beingmeta.com/
 	@${header} "■■■■ Completed config system tests ${RUNCONF}"
 appenv:
 	@${RUN} ${KNOX} TRACECONFIG=yes TRACELOAD=yes CONFIG=data/appenv.cfg \
 		APPMODS=logctl APPMODS=gpath\;parsetime ${RUNCONF}
-	@ BIZZARO=yes ${RUN} ${KNOX} TRACECONFIG=yes TRACELOAD=yes APPMODS=nomagic ${RUNCONF}
+	@ BIZZARO=yes ${RUN} ${KNOX} CONFIG:TRACE=yes LOAD:TRACE=yes APPMODS=nomagic ${RUNCONF}
 	@ BIZZARO=yes ${RUN} ${KNOX} TRACECONFIG=yes TRACELOAD=yes APPLOAD=data/nomagic.scm ${RUNCONF}
 	@${header} "■■■■ Completed appenv tests ${RUNCONF}"
 opts:
 	@${RUN} ${KNOX} opts.scm ${RUNCONF}
 	@${header} "■■■■ Completed opts tests ${RUNCONF}"
+modules:
+	@${RUN} ${KNOX} modules.scm ${RUNCONF}
+	@${RUN} ${KNOX} modules.scm LOAD:TRACE=yes ${RUNCONF}
+	@${RUN} ${KNOX} r4rs.scm LOCKEXPORTS=yes LOCKMODULES=yes ${RUNCONF}
+	@${header} "■■■■ Completed module tests ${RUNCONF}"
+compounds:
+	@${RUN} ${KNOX} compounds.scm ${RUNCONF}
+	@${header} "■■■■ Completed compound object tests ${RUNCONF}"
 loading:
 	@${RUN} ${KNOX} loading.scm ${RUNCONF}
-	@${RUN} ${KNOX} loading.scm TRACELOAD=yes ${RUNCONF}
-	@${RUN} ${KNOX} loading.scm TRACELOADEVAL=yes ${RUNCONF}
+	@${RUN} ${KNOX} loading.scm LOAD:TRACE=yes ${RUNCONF}
+	@${RUN} ${KNOX} loading.scm LOAD:LOGEVAL=yes ${RUNCONF}
 	@${header} "■■■■ Completed loading tests ${RUNCONF}"
 hashsets:
 	@${RUN} ${KNOX} hashsets.scm ${RUNCONF}

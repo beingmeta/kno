@@ -278,6 +278,50 @@ DEFPRIM1("SCHEMAP->SLOTMAP",schemap2slotmap_prim,MAX_ARGS(1),
   return kno_make_slotmap(size,size,kv);
 }
 
+DEFPRIM1("SLOTMAP->SCHEMAP",slotmap2schemap_prim,MAX_ARGS(1),
+         "`(SLOTMAP->SCHEMAP *slotmap*)` converts a schemap to a slotmap.",
+         kno_schemap_type,KNO_VOID)
+  (lispval map)
+{
+  struct KNO_SLOTMAP *slotmap = (kno_slotmap) map;
+  lispval result = kno_init_schemap(NULL,slotmap->n_slots,slotmap->sm_keyvals);
+  struct KNO_SCHEMAP *schemap = (kno_schemap) result;
+  kno_incref_vec(schemap->table_schema,schemap->schema_length);
+  kno_incref_vec(schemap->schema_values,schemap->schema_length);
+  return result;
+}
+
+DEFPRIM1("->SCHEMAP",table2schemap_prim,MAX_ARGS(1)|NDCALL,
+         "`(->SCHEMAP *assocs*)` converts a slotmap to a schemap.",
+         -1,KNO_VOID)
+  (lispval tbl)
+{
+  if (KNO_TYPEP(tbl,kno_schemap_type))
+    return kno_incref(tbl);
+  else if (KNO_TYPEP(tbl,kno_slotmap_type))
+    return slotmap2schemap_prim(tbl);
+  lispval assocs = kno_getassocs(tbl);
+  lispval keys = KNO_EMPTY;
+  {KNO_DO_CHOICES(assoc,assocs) {
+      if (KNO_PAIRP(assoc)) {
+        lispval key = KNO_CAR(assoc); kno_incref(key);
+        KNO_ADD_TO_CHOICE(keys,key);}}}
+  int n = KNO_CHOICE_SIZE(keys);
+  lispval *schema = u8_alloc_n(n,lispval);
+  lispval *values = u8_alloc_n(n,lispval);
+  {int i = 0; KNO_DO_CHOICES(key,keys) {
+      lispval val = kno_get(assocs,key,KNO_VOID);
+      if (KNO_VOIDP(val))
+        values[i] = KNO_EMPTY;
+      else values[i] = val;
+      schema[i] = kno_incref(key);
+      i++;}}
+  kno_decref(assocs);
+  kno_decref(keys);
+  struct KNO_SCHEMAP *schemap = u8_alloc(struct KNO_SCHEMAP);
+  return kno_make_schemap(schemap,n,0,schema,values);
+}
+
 /* Support for some iterated operations */
 
 typedef lispval (*reduceop)(lispval,lispval);
@@ -1085,6 +1129,8 @@ KNO_EXPORT void kno_init_tableprims_c()
   DECL_PRIM(reset_hashtable,2,kno_scheme_module);
 
   DECL_PRIM(schemap2slotmap_prim,1,kno_scheme_module);
+  DECL_PRIM(slotmap2schemap_prim,1,kno_scheme_module);
+  DECL_PRIM(table2schemap_prim,1,kno_scheme_module);
 
   /* Note that GET and TEST are actually DB functions which do inference */
   DECL_PRIM(table_get,3,kno_scheme_module);

@@ -10,6 +10,7 @@
 #include "kno/eval.h"
 #include "kno/streams.h"
 #include "kno/support.h"
+#include "kno/getsource.h"
 
 #include <libu8/libu8io.h>
 #include <libu8/u8exceptions.h>
@@ -27,59 +28,13 @@ u8_condition LoadEval=_("Load Eval");
 
 static int trace_load = 0, trace_load_eval = 0, log_load_errs = 1;
 
+int kno_log_reloads = 1;
+
 static lispval after_symbol, traceloadeval_symbol, postload_symbol;
 
 u8_condition UnconfiguredSource="Unconfigured source";
 
-/* Getting sources */
-
-static struct KNO_SOURCEFN *sourcefns = NULL;
-static u8_mutex sourcefns_lock;
-
-KNO_EXPORT u8_string kno_get_source
-(u8_string path,u8_string enc,u8_string *basepathp,time_t *timep)
-{
-  struct KNO_SOURCEFN *scan = sourcefns;
-  while (scan) {
-    u8_string basepath = NULL;
-    u8_string data = scan->getsource
-      (1,path,enc,&basepath,timep,scan->getsource_data);
-    if (data) {
-      *basepathp = basepath;
-      kno_clear_errors(0);
-      return data;}
-    else scan = scan->getsource_next;}
-  return NULL;
-}
-KNO_EXPORT int kno_probe_source
-(u8_string path,u8_string *basepathp,time_t *timep)
-{
-  struct KNO_SOURCEFN *scan = sourcefns;
-  while (scan) {
-    u8_string basepath = NULL;
-    u8_string data = scan->getsource
-      (0,path,NULL,&basepath,timep,scan->getsource_data);
-    if (data) {
-      *basepathp = basepath;
-      kno_clear_errors(0);
-      return 1;}
-    else scan = scan->getsource_next;}
-  return 0;
-}
-KNO_EXPORT void kno_register_sourcefn
-(u8_string (*fn)(int op,u8_string,u8_string,u8_string *,time_t *,void *),
- void *sourcefn_data)
-{
-  struct KNO_SOURCEFN *new_entry = u8_alloc(struct KNO_SOURCEFN);
-  u8_lock_mutex(&sourcefns_lock);
-  new_entry->getsource = fn;
-  new_entry->getsource_next = sourcefns;
-  new_entry->getsource_data = sourcefn_data;
-  sourcefns = new_entry;
-  u8_unlock_mutex(&sourcefns_lock);
-}
-
-static lispval loading_symbol;
+static lispval loading_symbol, loadstamps_symbol;
 
 #define LOAD_CONTEXT_SIZE 40
 
@@ -90,11 +45,7 @@ KNO_EXPORT lispval kno_load_stream(u8_input loadstream,kno_lexenv env,
   double start = u8_elapsed_time();
   struct KNO_STACK *_stack = kno_stackptr;
   lispval postload = VOID;
-  if (errno) {
-    u8_log(LOG_WARN,u8_UnexpectedErrno,
-           "Dangling errno value %d (%s) before loading %s",
-	   errno,u8_strerror(errno),sourcebase);
-    errno = 0;}
+  KNO_CHECK_ERRNO(loadstream,"before loading");
   KNO_PUSH_STACK(load_stack,"loadsource",u8_strdup(sourcebase),VOID);
   U8_SETBITS(load_stack->stack_flags,KNO_STACK_FREE_LABEL);
   {
@@ -110,12 +61,8 @@ KNO_EXPORT lispval kno_load_stream(u8_input loadstream,kno_lexenv env,
       if ((trace_load_eval) ||
           (kno_test(env->env_bindings,traceloadeval_symbol,KNO_TRUE))) {
         u8_log(LOG_WARN,LoadEval,"From %s, evaluating %q",sourcebase,expr);
-        if (errno) {
-          u8_log(LOG_WARN,"UnexpectedErrno",
-                 "Dangling errno value %d (%s) before evaluating %q",
-                 errno,u8_strerror(errno),expr);
-          errno = 0;}
-        start_time = u8_elapsed_time();}
+	KNO_CHECK_ERRNO_OBJ(expr,"before evaluating");
+	start_time = u8_elapsed_time();}
       else start_time = -1.0;
       result = kno_eval(expr,env);
       if (KNO_ABORTP(result)) {
@@ -137,13 +84,10 @@ KNO_EXPORT lispval kno_load_stream(u8_input loadstream,kno_lexenv env,
         if (start_time>0)
           u8_log(LOG_WARN,LoadEval,"Took %fs to evaluate %q",
                  u8_elapsed_time()-start_time,expr);
-        if (errno) {
-          u8_log(LOG_WARN,"UnexpectedErrno",
-                 "Dangling errno value %d (%s) after evaluating %q",
-                 errno,u8_strerror(errno),expr);
-          errno = 0;}}
-      else {}
-      kno_decref(last_expr); last_expr = expr;
+	KNO_CHECK_ERRNO_OBJ(expr,"after evaluating");}
+      else NO_ELSE;
+      kno_decref(last_expr);
+      last_expr = expr;
       kno_skip_whitespace(loadstream);
       if (loadstream->u8_inlim == loadstream->u8_read)
         context_buf[0]='\0';
@@ -188,11 +132,7 @@ KNO_EXPORT lispval kno_load_stream(u8_input loadstream,kno_lexenv env,
       kno_decref(last_expr);
       expr = VOID;
       last_expr = VOID;}
-    if (errno) {
-      u8_log(LOG_WARN,"UnexpectedErrno",
-             "Dangling errno value %d (%s) after loading %s",
-             errno,u8_strerror(errno),sourcebase);
-      errno = 0;}
+    KNO_CHECK_ERRNO(sourcebase,"after loading");
     kno_pop_stack(load_stack);
     return result;}
 }
@@ -203,7 +143,7 @@ KNO_EXPORT lispval kno_load_source_with_date
   struct U8_INPUT stream;
   u8_string sourcebase = NULL;
   u8_string encoding = ((enc_name)?(enc_name):((u8_string)("auto")));
-  u8_string content = kno_get_source(sourceid,encoding,&sourcebase,modtime);
+  u8_string content = kno_get_source(sourceid,encoding,&sourcebase,modtime,NULL);
   if (content == NULL)
     return KNO_ERROR;
   const u8_byte *input = content;
@@ -289,7 +229,7 @@ static lispval load_into_env_prim(lispval source,lispval envarg,lispval resultfn
     result = kno_load_source(CSTRING(source),env,NULL);
   else return kno_type_error("pathname","load_into_env_prim",source);
   if (KNO_ABORTP(result)) {
-    kno_decref((lispval)env);
+    kno_recycle_lexenv(env);
     return result;}
   if (KNO_APPLICABLEP(resultfn)) {
     lispval tmp = (KNO_VOIDP(result)) ?
@@ -298,6 +238,7 @@ static lispval load_into_env_prim(lispval source,lispval envarg,lispval resultfn
     if (KNO_ABORTP(tmp)) kno_clear_errors(1);
     kno_decref(tmp);}
   kno_decref(result);
+  /* kno_recycle_lexenv(env); */
   return (lispval) env;
 }
 
@@ -357,6 +298,135 @@ static lispval path_macro(lispval expr,kno_lexenv env,kno_stack ptr)
   else return kno_err(kno_TypeError,"path_macro","string",arg);
 }
 
+/* Latest source functions */
+
+static lispval get_entry(lispval key,lispval entries)
+{
+  lispval entry = EMPTY;
+  DO_CHOICES(each,entries)
+    if (!(PAIRP(each))) {}
+    else if (LISP_EQUAL(key,KNO_CAR(each))) {
+      entry = each;
+      KNO_STOP_DO_CHOICES;
+      break;}
+    else {}
+  return entry;
+}
+
+KNO_EXPORT
+int kno_load_latest(u8_string filename,kno_lexenv env,u8_string base)
+{
+  if (filename == NULL) {
+    int loads = 0;
+    kno_lexenv scan = env;
+    lispval result = VOID;
+    while (scan) {
+      lispval loadstamps =
+        kno_get(scan->env_bindings,loadstamps_symbol,EMPTY);
+      DO_CHOICES(entry,loadstamps) {
+        struct KNO_TIMESTAMP *loadstamp=
+          kno_consptr(kno_timestamp,KNO_CDR(entry),kno_timestamp_type);
+        time_t mod_time = u8_file_mtime(CSTRING(KNO_CAR(entry)));
+        if (mod_time>loadstamp->u8xtimeval.u8_tick) {
+          struct KNO_PAIR *pair = (struct KNO_PAIR *)entry;
+          struct KNO_TIMESTAMP *tstamp = u8_alloc(struct KNO_TIMESTAMP);
+          KNO_INIT_CONS(tstamp,kno_timestamp_type);
+          u8_init_xtime(&(tstamp->u8xtimeval),mod_time,u8_second,0,0,0);
+          kno_decref(pair->cdr);
+          pair->cdr = LISP_CONS(tstamp);
+          if (kno_log_reloads)
+            u8_log(LOG_WARN,"kno_load_latest","Reloading %s",
+                   CSTRING(KNO_CAR(entry)));
+          result = kno_load_source(CSTRING(KNO_CAR(entry)),scan,"auto");
+          if (KNO_ABORTP(result)) {
+            KNO_STOP_DO_CHOICES;
+            break;}
+          else kno_decref(result);
+          loads++;}}
+      kno_decref(loadstamps);
+      if (KNO_ABORTP(result))
+        return kno_interr(result);
+      else scan = scan->env_parent;}
+    return loads;}
+  else {
+    u8_string abspath = u8_abspath(filename,base);
+    if (! (u8_file_existsp(abspath)) ) {
+      kno_seterr(kno_FileNotFound,"kno_load_latest",abspath,(lispval)env);
+      u8_free(abspath);
+      return -1;}
+    lispval lisp_abspath = kno_mkstring(abspath);
+    lispval loadstamps =
+      kno_get(env->env_bindings,loadstamps_symbol,EMPTY);
+    lispval entry = get_entry(lisp_abspath,loadstamps);
+    lispval result = VOID;
+    if (PAIRP(entry))
+      if (TYPEP(KNO_CDR(entry),kno_timestamp_type)) {
+        struct KNO_TIMESTAMP *curstamp=
+          kno_consptr(kno_timestamp,KNO_CDR(entry),kno_timestamp_type);
+        time_t last_loaded = curstamp->u8xtimeval.u8_tick;
+        time_t mod_time = u8_file_mtime(CSTRING(lisp_abspath));
+	if (mod_time<=last_loaded) {
+          kno_decref(lisp_abspath);
+          kno_decref(loadstamps);
+          u8_free(abspath);
+          return 0;}
+        else {
+          struct KNO_PAIR *pair = (struct KNO_PAIR *)entry;
+          struct KNO_TIMESTAMP *tstamp = u8_alloc(struct KNO_TIMESTAMP);
+          KNO_INIT_CONS(tstamp,kno_timestamp_type);
+          u8_init_xtime(&(tstamp->u8xtimeval),mod_time,u8_second,0,0,0);
+          kno_decref(pair->cdr);
+          pair->cdr = LISP_CONS(tstamp);}}
+      else {
+        kno_seterr("Invalid load_latest record","load_latest",
+                   abspath,entry);
+        kno_decref(loadstamps);
+        kno_decref(lisp_abspath);
+        u8_free(abspath);
+        return -1;}
+    else {
+      time_t mod_time = u8_file_mtime(abspath);
+      struct KNO_TIMESTAMP *tstamp = u8_alloc(struct KNO_TIMESTAMP);
+      KNO_INIT_CONS(tstamp,kno_timestamp_type);
+      u8_init_xtime(&(tstamp->u8xtimeval),mod_time,u8_second,0,0,0);
+      entry = kno_conspair(kno_incref(lisp_abspath),LISP_CONS(tstamp));
+      if (EMPTYP(loadstamps))
+        kno_bind_value(loadstamps_symbol,entry,env);
+      else kno_add_value(loadstamps_symbol,entry,env);}
+    if (kno_log_reloads)
+      u8_log(LOG_WARN,"kno_load_latest","Reloading %s",abspath);
+    result = kno_load_source(abspath,env,"auto");
+    u8_free(abspath);
+    kno_decref(lisp_abspath);
+    kno_decref(loadstamps);
+    if (KNO_ABORTP(result))
+      return kno_interr(result);
+    else kno_decref(result);
+    return 1;}
+}
+
+static lispval load_latest_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+{
+  if (NILP(KNO_CDR(expr))) {
+    int loads = kno_load_latest(NULL,env,NULL);
+    return KNO_INT(loads);}
+  else {
+    int retval = -1;
+    lispval path_expr = kno_get_arg(expr,1);
+    lispval path = kno_eval(path_expr,env);
+    if (!(STRINGP(path))) {
+      lispval err = kno_type_error("pathname","load_latest",path);
+      kno_decref(path);
+      return err;}
+    else retval = kno_load_latest(CSTRING(path),env,NULL);
+    kno_decref(path);
+    if (retval<0)
+      return KNO_ERROR;
+    else if (retval)
+      return KNO_TRUE;
+    else return KNO_FALSE;}
+}
+
 /* Lisp run */
 
 static lispval kno_run(u8_string source_file,struct U8_OUTPUT *out,
@@ -365,7 +435,7 @@ static lispval kno_run(u8_string source_file,struct U8_OUTPUT *out,
   kno_lexenv env = kno_working_lexenv();
   lispval load_result = kno_load_source(source_file,env,NULL);
   if (KNO_ABORTP(load_result)) {
-    kno_decref((lispval)env);
+    kno_recycle_lexenv(env);
     return load_result;}
   else {
     lispval main_proc = kno_symeval(KNOSYM_MAIN,env);
@@ -373,24 +443,24 @@ static lispval kno_run(u8_string source_file,struct U8_OUTPUT *out,
       u8_log(LOG_CRIT,"NoMain",
              "No (MAIN) was defined in '%s', returning last value",
              source_file);
+      kno_recycle_lexenv(env);
       return load_result;}
     else if (!(KNO_APPLICABLEP(main_proc))) {
       kno_seterr("BadMainProc","lisp_run_file",u8_strdup(source_file),main_proc);
-      kno_decref((lispval)env);
+      /* kno_recycle_lexenv(env); */
+      kno_recycle_lexenv(env);
       return KNO_ERROR_VALUE;}
     else {
       u8_output prev = u8_current_output;
       if (out) u8_set_default_output(out);
       lispval result = kno_dapply(main_proc,n,args);
-      kno_decref((lispval)env);
-      kno_decref(load_result);
-      if (out) u8_set_default_output(prev);
       if (KNO_ABORTP(result)) {
-        u8_exception ex = u8_erreify();
-        lispval exception_object = kno_wrap_exception(ex);
-        u8_free_exception(ex,1);
-        return exception_object;}
-      else return result;}}
+	kno_simplify_exception(NULL);}
+      kno_decref(main_proc);
+      kno_decref(load_result);
+      kno_recycle_lexenv(env);
+      if (out) u8_set_default_output(prev);
+      return result;}}
 }
 
 static lispval kno_run_file(int n,lispval *args)
@@ -409,14 +479,18 @@ static lispval kno_run_file_2string(int n,lispval *args)
     lispval result = kno_run(KNO_CSTRING(args[0]),&out,n-1,args+1);
     if (KNO_ABORTP(result)) {
       if ( (out.u8_write-out.u8_outbuf) > 0) {
-        lispval output = kno_stream_string(&out);
+	/* lispval output = kno_stream_string(&out); */
         u8_close_output(&out);
+#if 0
         kno_seterr("RunFailed","kno_run_file_2string",
-                   u8_strdup(KNO_CSTRING(args[0])),
+		   KNO_CSTRING(args[0]),
                    output);
         kno_decref(output);
+#endif
         return result;}
-      else return result;}
+      else {
+	u8_close_output(&out);
+	return result;}}
     else {
       lispval output = kno_stream_string(&out);
       kno_decref(result);
@@ -431,10 +505,9 @@ KNO_EXPORT void kno_init_load_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  u8_init_mutex(&sourcefns_lock);
-
   after_symbol = kno_intern("afterexpr");
   loading_symbol = kno_intern("%loading");
+  loadstamps_symbol = kno_intern("%loadstamps");
   traceloadeval_symbol = kno_intern("%traceloadeval");
   postload_symbol = kno_intern("%postload");
 
@@ -461,15 +534,26 @@ KNO_EXPORT void kno_init_load_c()
 			     kno_string_type,VOID,
                              kno_string_type,VOID));
 
+  kno_def_evalfn(kno_scheme_module,"LOAD-LATEST","",load_latest_evalfn);
+
   kno_def_evalfn(kno_scheme_module,"#PATH",
                  "#:PATH\"init/foo.scm\" or #:PATH:home.scm\n"
                  "evaluates to an environment variable",
                  path_macro);
 
+  kno_register_config("LOAD:TRACE","Trace file load starts and ends",
+                      kno_boolconfig_get,kno_boolconfig_set,&trace_load);
   kno_register_config("TRACELOAD","Trace file load starts and ends",
                       kno_boolconfig_get,kno_boolconfig_set,&trace_load);
+
+  kno_register_config("LOAD:LOGERRS",
+		      "Whether to log errors during file loading",
+		      kno_boolconfig_get,kno_boolconfig_set,&log_load_errs);
   kno_register_config("LOGLOADERRS","Whether to log errors during file loading",
                       kno_boolconfig_get,kno_boolconfig_set,&log_load_errs);
+
+  kno_register_config("LOAD:LOGEVAL","Trace expressions while loading files",
+		      kno_boolconfig_get,kno_boolconfig_set,&trace_load_eval);
   kno_register_config("TRACELOADEVAL","Trace expressions while loading files",
                       kno_boolconfig_get,kno_boolconfig_set,&trace_load_eval);
 }

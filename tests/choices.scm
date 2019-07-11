@@ -173,6 +173,7 @@
 (applytester {10 11 12} pick> (choice 5 6 7 10 11 12) 9)
 (applytester {10.5 11 12} pick> (choice 5 6.3 7 10.5 11 12) 9)
 (applytester {10.5 11 12} pick> (choice "string" 5 6.3 7 10.5 11 12) 9)
+(applytester {10.5 11 12} pick> (choice "string" 5 6.3 7 10.5 11 12) {8 9})
 (errtest (pick> {1 2 "three"} "one"))
 (errtest (pick> (choice "string" 5 6.3 7 10.5 11 12) 9 #t))
 
@@ -201,6 +202,7 @@
 
 (define z1 #[b "b"])
 (applytester z1 pickmaps (choice #(a "b") z1 'foo "foo" 8))
+(applytester {z1 #[a "five"]} pickmaps (choice z1 #[a "five"]))
 (applytester {z1 #[a "a"]} pickmaps (choice #(a "b") z1 'foo "foo" #("c" d) #[a "a"] 8))
 
 ;;; Reduce-choice tests
@@ -225,6 +227,11 @@
 
 (applytester {} choice-max (nrange 1 10) 5)
 (applytester (nrange 1 5) choice-max (nrange 1 5) 5)
+(applytester 8 choice-max 8 5)
+
+(applytester (nrange 1 10) choice-min (nrange 1 10) 5)
+(applytester {} choice-min (nrange 1 4) 5)
+(applytester {} choice-min 8 5)
 
 ;;; ND apply
 
@@ -239,7 +246,7 @@
 (evaltester '{} (makepair 3 {}))
 (evaltester '(3 . {}) (makepair 3 '#{}))
 
-;;; Set . operations
+;;; Set operations
 
 (define-tester (set-same? x y) (identical? (elts x) (elts y)))
 (define-tester (set-overlaps? x y) (overlaps? (elts x) (elts y)))
@@ -285,10 +292,47 @@
 (evaltester {} (try-choices (e {4 6 8 9} i) (if (> e 5) (break) (if (odd? e) e (fail)))))
 
 (errtest (try-choices))
+(errtest (try-choices spec))
 (errtest (try-choices (e)))
+(errtest (try-choices (e . cdr)))
 (errtest (try-choices (e {4 6 8 9}) . noexprs))
 (errtest (try-choices (e {9 nosuchvalue}) e))
+(errtest (try-choices (e {4 6 8 9} . cdr) (tryif (odd? e) (string->symbol e))))
+(errtest (try-choices (e {4 6 8 9} "i") (tryif (odd? e) (string->symbol e))))
 (errtest (try-choices (e {4 6 8 9} i) (tryif (odd? e) (string->symbol e))))
+
+(errtest (do-choices))
+(errtest (do-choices spec))
+(errtest (do-choices ()))
+(errtest (do-choices (e)))
+(errtest (do-choices (e . cdr)))
+(errtest (do-choices (e {4 6 8 9}) . noexprs))
+(errtest (do-choices (e {9 nosuchvalue}) e))
+(errtest (do-choices (e {4 6 8 9} . cdr) (tryif (odd? e) (string->symbol e))))
+(errtest (do-choices (e {4 6 8 9} "i") (tryif (odd? e) (string->symbol e))))
+(errtest (do-choices (e {4 6 8 9} i) (tryif (odd? e) (string->symbol e))))
+
+(errtest (for-choices))
+(errtest (for-choices spec))
+(errtest (for-choices ()))
+(errtest (for-choices (e)))
+(errtest (for-choices (e . cdr)))
+(errtest (for-choices (e {4 6 8 9}) . noexprs))
+(errtest (for-choices (e {9 nosuchvalue}) e))
+(errtest (for-choices (e {4 6 8 9} . cdr) (tryif (odd? e) (string->symbol e))))
+(errtest (for-choices (e {4 6 8 9} "i") (tryif (odd? e) (string->symbol e))))
+(errtest (for-choices (e {4 6 8 9} i) (tryif (odd? e) (string->symbol e))))
+
+(errtest (filter-choices))
+(errtest (filter-choices spec))
+(errtest (filter-choices ()))
+(errtest (filter-choices (e)))
+(errtest (filter-choices (e . cdr)))
+(errtest (filter-choices (e {4 6 8 9}) . noexprs))
+(errtest (filter-choices (e {9 nosuchvalue}) e))
+(errtest (filter-choices (e {4 6 8 9} . cdr) (tryif (odd? e) (string->symbol e))))
+(errtest (filter-choices (e {4 6 8 9} "i") (tryif (odd? e) (string->symbol e))))
+(errtest (filter-choices (e {4 6 8 9} i) (tryif (odd? e) (string->symbol e))))
 
 (evaltester {101 102 103} (for-choices (e {1 2 3} i) (+ e 100)))
 
@@ -371,6 +415,7 @@
 (evaltest #t (eval `(qchoice? #{a b c})))
 (evaltest #{} (qchoice (fail) (fail) (fail)))
 (evaltest {} (qchoicex (fail) (fail) (fail)))
+(evaltest "string" (qchoicex "string"))
 (evaltest #{"foo" "bar" "baz"} (qchoicex "foo" {"bar" "baz"} "foo"))
 
 (errtest (qchoice?))
@@ -394,6 +439,7 @@
   (applytest #t existsfn even? {3 4 5})
   (applytest #f existsfn odd? {2 4 6})
   (applytest #f existsfn odd? {2 4 6})
+  (applytest #f existsfn even? {})
 
   (applytest #t existsfn empty-string? {3 "four" " "})
   (applytest #f existsfn empty-string? {3 "four" "five"})
@@ -421,6 +467,13 @@
 (errtest (getrange "zero" "eight"))
 (errtest (getrange 0  "eight"))
 
+;;; Getrange
+
+(applytest {0 1 2 3} getrange 0 4)
+(applytest {0 1 2 3} getrange 4)
+(applytest 'err getrange 0.9 4)
+(applytest 'err getrange 4 0.9)
+
 ;;; Select
 
 (applytest {115 116 117 118 119} pick-max (getrange 0 120) 5)
@@ -428,6 +481,176 @@
 
 (applytest #(119 118  117 116 115) max/sorted (getrange 0 120) 5)
 (applytest #(0 1 2 3 4) min/sorted (getrange 0 120) 5)
+
+;;; Exists/Forall
+
+(applytest #t exists = {3 4 5} {2 4 8})
+(applytest #f forall = {3 4 5} {2 4 8})
+(applytest #f forall = {3 4 5} {2 4 8})
+(applytest #t forall < {3 4 5} {6 7 8})
+(applytest #t forall < {} {6 7 8})
+(applytest #f exists number? {})
+(applytest #t forall number? {})
+
+;; We make the numbers floating point to ensure that we process the
+;; symbol argument first
+(applytest 'err forall < {3.0 4.0 5.0} {6.0 "seven" 8.0})
+(applytest 'err exists < {3.0 4.0 5.0} {6.0 'seven 8.0})
+(applytest 'err forall "gt" {3.0 4.0 5.0} {6.0 'seven 8.0})
+(applytest 'err exists "gt" {3.0 4.0 5.0} {6.0 'seven 8.0})
+(applytest #t forall/skiperrs < {3 4 5} {6 "seven" 8})
+(applytest #t exists/skiperrs < {3 4 5} {6 "seven" 8})
+
+;;; Pick/sample
+
+(define a-random-choice
+  '{5 "five" #(1 2 3 4 5) 3/2 6/4 11.5 symbol})
+
+(set+! a-random-choice (list a-random-choice))
+(set+! a-random-choice (vector a-random-choice))
+
+(applytest 'err pick-n a-random-choice -5)
+(applytest 'err pick-n a-random-choice 3 (* 1024 1024 1024 1024 17))
+(applytest {} pick-n a-random-choice 0)
+(applytest {} sample-n a-random-choice 0)
+(applytest 1 choice-size (pick-one a-random-choice))
+(applytest 3 choice-size (pick-n a-random-choice 3))
+;; By default, this always replicates
+(applytest (pick-n a-random-choice 3 0) pick-n a-random-choice 3 0)
+(applytest (pick-n a-random-choice 3 2) pick-n a-random-choice 3 2)
+;; These will very rarely return true, sorry :)
+(applytest #f identical? (sample-n a-random-choice 2) (sample-n a-random-choice 2))
+(applytest #t identical? (pick-n a-random-choice 3 0) (pick-n a-random-choice 3 0))
+
+(applytest a-random-choice pick-n a-random-choice 100)
+(applytest a-random-choice sample-n a-random-choice 100)
+
+(applytest overlaps? (pick-n a-random-choice 3 0) (pick-n a-random-choice 3 1))
+(applytest singleton? pick-n a-random-choice 1 3)
+(applytest singleton? pick-n a-random-choice 1 3)
+(applytest 'err pick-n a-random-choice "foo" 3)
+(applytest 'err pick-n a-random-choice 3 "one")
+(applytest "string" pick-n "string" 3)
+(applytest 'err pick-n "string" "3")
+(applytest "string" sample-n "string" 3)
+(applytest 'err sample-n "string" "3")
+(applytest 'err pick-n a-random-choice 3 "one")
+
+(applytest 'err sample-n a-random-choice "five")
+(applytest 'err sample-n a-random-choice 'five)
+(applytest 'err sample-n a-random-choice 5.0)
+(applytest 'err sample-n a-random-choice -1)
+
+(applytest 'err pick-n a-random-choice "five")
+(applytest 'err pick-n a-random-choice 'five)
+(applytest 'err pick-n a-random-choice 5.0)
+(applytest 'err pick-n a-random-choice -5)
+
+(applytest {} pick-n {} 8)
+(applytest {} sample-n {} 8)
+(applytest "string" pick-n "string" 8)
+(applytest "string" sample-n "string" 8)
+(applytest "string" pick-n "string" 1)
+(applytest "string" sample-n "string" 1)
+
+;;; Sort and select
+
+(define string-choice 
+  {"max-fixnum" "config-def!" "test-u8raise" 
+   "table-minimize!" "use-threadcache"})
+(applytest #("config-def!" "max-fixnum" "table-minimize!" "test-u8raise" "use-threadcache")
+	   sorted string-choice)
+(applytest #("max-fixnum" "config-def!" "test-u8raise" "table-minimize!" "use-threadcache")
+	   sorted string-choice length)
+(applytest #("use-threadcache" "test-u8raise" "table-minimize!" "max-fixnum" "config-def!")
+	   rsorted string-choice)
+(applytest #("use-threadcache" "table-minimize!" "test-u8raise" "config-def!" "max-fixnum")
+	   rsorted string-choice length)
+(define (bad-stringkeyfn x) (+ x 9))
+(define (mixed-length x (len)) (set! len (length x)) (if (even? len) len (- len)))
+
+(applytest "use-threadcache" largest string-choice)
+(applytest { "table-minimize!" "use-threadcache" } largest string-choice length)
+(applytest "config-def!" smallest string-choice)
+(applytest "max-fixnum" smallest string-choice length)
+
+(applytest "test-u8raise" largest string-choice mixed-length)
+(applytest { "table-minimize!" "use-threadcache" } smallest string-choice mixed-length)
+
+(applytest 'err largest string-choice bad-stringkeyfn)
+(applytest 'err smallest string-choice bad-stringkeyfn)
+
+(define length-slotmap 
+  (let ((map #[]))
+    (do-choices (string string-choice)
+      (store! map string (length string)))
+    map))
+(dbg)
+(define length-schemap 
+  (let ((map #[]))
+    (do-choices (string string-choice)
+      (store! map string (length string)))
+    (->schemap map)))
+(define length-hashtable
+  (let ((map (make-hashtable)))
+    (do-choices (string string-choice)
+      (store! map string (length string)))
+    map))
+
+(applytest { "table-minimize!" "use-threadcache" } largest string-choice length-slotmap)
+(applytest "max-fixnum" smallest string-choice length-slotmap)
+(applytest { "table-minimize!" "use-threadcache" } largest string-choice length-schemap)
+(applytest "max-fixnum" smallest string-choice length-schemap)
+(applytest { "table-minimize!" "use-threadcache" } largest string-choice length-hashtable)
+(applytest "max-fixnum" smallest string-choice length-hashtable)
+
+;;;; Reduce-choice
+
+(applytest 9 (reduce-choice + {2 3 4}))
+(applytest 17 (reduce-choice + {2 3 4} 8))
+(applytest 24 (reduce-choice * {2 3 4}))
+(applytest 60 reduce-choice * {2 3 4} 1 1+)
+(applytest "foobazbar" reduce-choice glom {"foo" "bar" "baz"})
+(applytest "foobazbar" reduce-choice glom {"foo" "bar" "baz"} #f)
+(applytest (apply glom (->list (reverse (choice->vector '{foo bar baz})))) 
+	   reduce-choice glom '{foo bar baz} #f symbol->string)
+
+(applytest 63 reduce-choice + string-choice 0 length)
+(applytest 63 reduce-choice + string-choice 0 length-slotmap)
+(applytest 63 reduce-choice + string-choice 0 length-schemap)
+(applytest 63 reduce-choice + string-choice 0 length-hashtable)
+
+(applytest 'err reduce-choice if string-choice 0 length)
+(applytest 'err reduce-choice + string-choice 0 if)
+(applytest 'err reduce-choice + string-choice 0 "string")
+
+(define (bad-combine x y) (error 'just-because))
+(define (bad-part x) (error 'just-because))
+
+(applytest 'err reduce-choice bad-combine string-choice 0 length)
+(applytest 'err reduce-choice + string-choice 0 bad-part)
+
+#|
+(applytest 'err sorted string-choice bad-stringkeyfn)
+(applytest 'err rsorted string-choice bad-stringkeyfn)
+
+(applytest #(5 4) max/sorted {1 2 3 4 5} 2)
+(applytest #(1 2) min/sorted {1 2 3 4 5} 2)
+
+(applytest #(1 2) max/sorted {1 2 3 4 5} 2 -)
+(applytest #(5 4) min/sorted {1 2 3 4 5} 2 -)
+
+(define (bad-numkeyfn x) (string-append x "bar"))
+(applytest 'err max/sorted {1 2 3 4 5} 2 bad-numkeyfn)
+(applytest 'err min/sorted {1 2 3 4 5} 2 bad-numkeyfn)
+
+(applytest 'err max/sorted {1 2 3 4 5} "two")
+(applytest 'err max/sorted {1 2 3 4 5} -5)
+(applytest 'err max/sorted {1 2 3 4 5} 2 "bad-numkeyfn")
+(applytest 'err min/sorted {1 2 3 4 5} "two")
+(applytest 'err min/sorted {1 2 3 4 5} -5)
+(applytest 'err min/sorted {1 2 3 4 5} 2 "bad-numkeyfn")
+|#
 
 ;;; Bigger sets
 

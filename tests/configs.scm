@@ -2,6 +2,8 @@
 
 (load-component "common.scm")
 
+(use-module 'varconfig)
+
 (define-init identity (lambda (x) x))
 
 (applytest #f config 'z)
@@ -64,6 +66,8 @@
 (applytest 89 config 'confvar 0 1+)
 
 (applytest 89 1+ #:config:confvar)
+(applytest #f #:config:novar)
+(applytest #f #:config"novar")
 
 (config! "BAZ" 89.7)
 (applytest 89.7 config 'baz)
@@ -73,4 +77,93 @@
 (config-default! 'confvar 99)
 (applytest 88 config "confvar" 9)
 
+;;; load-config
+
+(define config-root (get-component "webfiles/root"))
+(varconfig! 'useconfigroot config-root)
+
+(load-config (mkpath config-root "sample.cfg"))
+(applytest "xxx" config 'xval)
+(applytest #f config 'yval)
+(applytest "zzz" config 'zval)
+(load-default-config (mkpath config-root "default.cfg"))
+(applytest "xxx" config 'xval)
+(applytest "YYY" config 'yval)
+
 (applytest overlaps? '{|PID| |PPID|} find-configs "pid")
+(applytest overlaps? '{|PID| |PPID|} find-configs #/p+id/i)
+
+(with-sourcebase 
+ #f (load-config (get-component "webfiles/root/sample.cfg")))
+(with-sourcebase 
+ #f (load-default-config (get-component "webfiles/root/sample.cfg")))
+
+(define (list-contains? l val)
+  (member val l))
+
+(config! 'config (abspath (get-component "data/load.cfg")))
+(applytest timestamp? config 'test.load.cfg)
+(applytest has-prefix (config 'cwd) config 'test.load.cfg.path)
+(applytest list-contains? (abspath (get-component "data/load.cfg")) config 'config)
+
+(config! 'defaults (get-component "webfiles/root/default.cfg"))
+
+(config! 'config-config (get-component "webfiles/root/default.cfg"))
+(load-config 'config-config)
+(load-default-config 'config-config)
+
+;;; Errors
+
+(applytest 'err config! 33 88)
+(applytest 'err config-default! 33 88)
+(applytest 'err config! #"foo" 88)
+(applytest 'err config-default! #"foo" 88)
+
+;;; Errors in config-def handlers
+
+(define badconfig-var #f)
+(config! 'badconfig "(3 4")
+(errtest
+ (config-def! 'badconfig
+   (lambda (var (val))
+     (cond ((bound? val)
+	    (set! badconfig-var 
+	      (if (string? val)
+		  (string->lisp val)
+		  val)))
+	   (else badconfig-var)))))
+
+(config-def! 'badconfig2
+  (lambda (var (val))
+    (cond ((bound? val)
+	   (set! badconfig-var 
+	     (if (string? val)
+		 (string->lisp val)
+		 val)))
+	  (else badconfig-var))))
+(errtest (config! 'badconfig "(3 4"))
+
+
+;;; With promises
+
+(config! 'foobar5 (delay (+ 2 3)))
+(applytest 5 config 'foobar5)
+(applytest 7 config 'foobar7 (delay (+ 5 2)))
+
+(config-default! 'foobar9 (delay (+ 2 3)))
+(applytest 5 config 'foobar9)
+(config-default! 'foobar5 (delay (+ 2 3 2)))
+(applytest 5 config 'foobar5)
+
+
+;;;; Optconfigs
+
+(config! 'optconfig (abspath (get-component "data/xoptional.cfg")))
+(applytest #f config 'optional.cfg)
+(config! 'optconfig (abspath (get-component "data/optional.cfg")))
+(applytest string? config 'optional.cfg)
+
+;;; READ-CONFIG
+
+(read-config (filestring (get-component "webfiles/root/sample.cfg")))
+

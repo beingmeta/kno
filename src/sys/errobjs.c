@@ -101,6 +101,7 @@ static u8_exception mkerr(u8_condition c,u8_context caller,
      u8_elapsed_base(),
      u8_threadid());
   kno_incref(irritant);
+  /* if (ex) u8_free_exception(ex,1); */
   return u8_new_exception(condition,caller,u8_strdup(details),
                           (void *)exception,kno_decref_embedded_exception);
 }
@@ -165,6 +166,21 @@ KNO_EXPORT lispval kno_simple_exception(u8_exception ex)
                             u8_elapsed_base(),
                             ex->u8x_thread);
 }
+
+KNO_EXPORT void kno_simplify_exception(u8_exception ex)
+{
+  if (ex == NULL) ex = u8_current_exception;
+  if (ex->u8x_free_xdata == kno_decref_embedded_exception) {
+    lispval exception = (lispval) ex->u8x_xdata;
+    if (KNO_EXCEPTIONP(exception)) {
+      struct KNO_EXCEPTION *exo = (kno_exception) exception;
+      lispval irritant = exo->ex_irritant;
+      kno_incref(irritant);
+      kno_decref_embedded_exception(exo);
+      ex->u8x_xdata = (void *) irritant;
+      ex->u8x_free_xdata = kno_decref_u8x_xdata;}}
+}
+
 
 /* This gets the 'actual' irritant from a u8_exception, extracting it
    from the underlying u8_condition (if that's an irritant) */
@@ -355,6 +371,9 @@ void sum_exception(u8_output out,u8_exception ex)
     u8_puts(out," (");
     u8_puts(out,ex->u8x_details);
     u8_puts(out,")");}
+  lispval irritant = kno_get_irritant(ex);
+  if (!(VOIDP(irritant)))
+    u8_printf(out," %q",irritant);
 }
 
 KNO_EXPORT

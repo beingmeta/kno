@@ -152,8 +152,7 @@ KNO_EXPORT int kno_set_config_sym(lispval symbol,lispval val)
         u8_string errsum = kno_errstring(NULL);
         u8_log(LOG_WARN,kno_ConfigError,"Config handler error %q=%q: %s",
                symbol,val,errsum);
-        if (errsum) u8_free(errsum);
-        kno_clear_errors(1);}
+        if (errsum) u8_free(errsum);}
       break;}
     else scan = scan->config_next;
   if ((!(scan))&&(kno_trace_config))
@@ -225,6 +224,10 @@ KNO_EXPORT int kno_register_config_x
   lispval symbol = config_intern(var);
   lispval current = config_get(symbol);
   int retval = 0;
+  kno_config_getfn old_getfn = NULL;
+  kno_config_setfn old_setfn = NULL;
+  void *old_configdata = NULL;
+  u8_string old_configdoc = NULL;
   struct KNO_CONFIG_HANDLER *scan;
   u8_lock_mutex(&config_register_lock);
   scan = config_handlers;
@@ -234,8 +237,11 @@ KNO_EXPORT int kno_register_config_x
       if (doc) {
         /* We don't override a real docstring with a NULL docstring.
            Possibly not the right thing. */
-        if (scan->configdoc) u8_free(scan->configdoc);
+        old_configdoc = scan->configdoc;
         scan->configdoc = u8_strdup(doc);}
+      old_getfn = scan->config_get_method;
+      old_setfn = scan->config_set_method;
+      old_configdata = scan->configdata;
       scan->config_get_method = getfn;
       scan->config_set_method = setfn;
       scan->configdata = data;
@@ -245,7 +251,7 @@ KNO_EXPORT int kno_register_config_x
   if (scan == NULL) {
     scan = u8_alloc(struct KNO_CONFIG_HANDLER);
     scan->configname = symbol;
-    if (doc) scan->configdoc = u8_strdup(doc); 
+    if (doc) scan->configdoc = u8_strdup(doc);
     else scan->configdoc = NULL;
     if (flags > 0)
       scan->configflags = flags;
@@ -255,12 +261,14 @@ KNO_EXPORT int kno_register_config_x
     scan->configdata = data;
     scan->config_next = config_handlers;
     config_handlers = scan;}
+  struct KNO_CONFIG_HANDLER *config_entry = scan;
   u8_unlock_mutex(&config_register_lock);
   if (KNO_ABORTP(current)) {
     kno_clear_errors(1);
     retval = -1;}
   else if (VOIDP(current)) {}
-  else if ( (PAIRP(current)) && (!(scan->configflags&KNO_CONFIG_SINGLE_VALUE)) ) {
+  else if ( (PAIRP(current)) &&
+            (!(config_entry->configflags&KNO_CONFIG_SINGLE_VALUE)) ) {
     /* There have been multiple configuration specifications,
        so run them all backwards. */
     int n = 0;
@@ -272,14 +280,22 @@ KNO_EXPORT int kno_register_config_x
       if (retval<0) {
         u8_free(vals);
         kno_decref(current);
+        if (config_entry->configdoc) u8_free(config_entry->configdoc);
+        config_entry->configdoc = old_configdoc;
+        config_entry->configdata = old_configdata;
+        config_entry->config_get_method = old_getfn;
+        config_entry->config_set_method = old_setfn;
         return retval;}
       else retval = setfn(symbol,vals[n],data);}
-    u8_free(vals);;}
+    u8_free(vals);}
   else if (KNO_PAIRP(current)) {
     lispval last = KNO_CAR(current), scan = KNO_CDR(current);
-    while (PAIRP(scan)) { last = KNO_CAR(scan); scan = KNO_CDR(scan); }
+    while (PAIRP(scan)) {
+      last = KNO_CAR(scan);
+      scan = KNO_CDR(scan); }
     retval = setfn(symbol,last,data);}
   else retval = setfn(symbol,current,data);
+  if (old_configdoc) u8_free(old_configdoc);
   scan->configflags |= KNO_CONFIG_ALREADY_MODIFIED;
   kno_decref(current);
   return retval;

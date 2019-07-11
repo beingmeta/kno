@@ -130,7 +130,9 @@ static int envcountproc(lispval v,void *data)
         return 0;}
       else scan = scan->env_parent;
     return 0;}
-  else return 1;
+  else if (KNO_CONS_REFCOUNT(v) == 1)
+    return 1;
+  else return 0;
 }
 
 static int count_envrefs(lispval root,kno_lexenv env,int depth)
@@ -159,7 +161,8 @@ int kno_recycle_lexenv(kno_lexenv env)
     kno_decref((lispval)env);
     return 1;}
   else {
-    int env_refs = count_envrefs(env->env_bindings,env,env_recycle_depth);
+    int env_refs = count_envrefs(env->env_bindings,env,env_recycle_depth) +
+      count_envrefs(env->env_exports,env,env_recycle_depth);
     if ( (env_refs) && ( (refcount-env_refs) <= 1 ) ) {
       struct KNO_RAW_CONS *envstruct = (struct KNO_RAW_CONS *)env;
       kno_decref(env->env_bindings);
@@ -173,6 +176,14 @@ int kno_recycle_lexenv(kno_lexenv env)
       kno_decref((lispval)env);
       return 0;}}
 }
+
+KNO_EXPORT void kno_destroy_lexenv(kno_lexenv env)
+{
+  lispval bindings = env->env_bindings;
+  env->env_bindings = KNO_EMPTY;
+  kno_decref(bindings);
+}
+
 
 KNO_EXPORT
 void _kno_free_lexenv(kno_lexenv env)

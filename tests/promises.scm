@@ -2,6 +2,8 @@
 
 (load-component "common.scm")
 
+(use-module 'testcapi)
+
 ;;; Promises
 
 (define promise1 (delay (+ 2 3)))
@@ -105,6 +107,8 @@
   common-counter)
 (define counter-promise (delay (counter-proc)))
 (evaltest 1 (parallel (force counter-promise) (force counter-promise) (force counter-promise)))
+
+(applytest 5 API/FORCE-PROMISE (delay (+ 2 3)))
 
 ;;; All done
 

@@ -18,21 +18,49 @@
 #include "kno/eval.h"
 #include "kno/ports.h"
 
-static lispval compoundp(lispval x,lispval tag)
+#include "kno/cprims.h"
+
+DEFPRIM2("COMPOUND?",compoundp,MIN_ARGS(1),
+         "`(COMPOUND? *obj* *tag*)` returns #f if *obj* is a compound and "
+         "(when *tag* is provided) has the typetag *tag*.",
+         -1,KNO_VOID,-1,KNO_VOID)
+  (lispval x,lispval tag)
 {
-  if (VOIDP(tag))
-    if (KNO_COMPOUNDP(x))
-      return kno_incref(x);
-    else return KNO_FALSE;
-  else if (KNO_COMPOUNDP(x))
-    if (KNO_AMBIGP(tag)) {
-      if (kno_choice_containsp(KNO_COMPOUND_TAG(x),tag))
-        return kno_incref(x);
-      else return KNO_FALSE;}
-    else if (KNO_COMPOUND_TAG(x) == tag)
-      return kno_incref(x);
-    else return KNO_FALSE;
+  if (KNO_COMPOUNDP(x)) {
+    if (KNO_VOIDP(tag))
+      return KNO_TRUE;
+    else if (KNO_COMPOUND_TYPEP(x,tag))
+      return KNO_TRUE;
+    else return KNO_FALSE;}
   else return KNO_FALSE;
+}
+
+/* TODO: This might be faster if it were non deterministic */
+static lispval pick_compounds(lispval candidates,lispval tags)
+{
+  if (VOIDP(tags)) {
+    lispval result = KNO_EMPTY; int changes = 0;
+    {KNO_DO_CHOICES(candidate,candidates)
+        if (KNO_COMPOUNDP(candidate)) {
+          kno_incref(candidate);
+          KNO_ADD_TO_CHOICE(result,candidate);
+          changes = 1;}}
+    if (changes == 0) {
+      kno_decref(result);
+      return kno_incref(candidates);}
+    else return kno_simplify_choice(result);}
+  else {
+    lispval result = KNO_EMPTY; int changes = 0;
+    {KNO_DO_CHOICES(candidate,candidates)
+        if ( (KNO_COMPOUNDP(candidate)) &&
+             (kno_overlapp(KNO_COMPOUND_TAG(candidate),tags)) ) {
+          kno_incref(candidate);
+          KNO_ADD_TO_CHOICE(result,candidate);
+          changes = 1;}}
+    if (changes == 0) {
+      kno_decref(result);
+      return kno_incref(candidates);}
+    else return kno_simplify_choice(result);}
 }
 
 static lispval compound_tag(lispval x)
@@ -79,10 +107,12 @@ static lispval compound_ref(lispval x,lispval offset,lispval tag)
   if ((compound->compound_typetag!=tag) && (!(VOIDP(tag)))) {
     u8_string type_string = kno_lisp2string(tag);
     kno_seterr(kno_TypeError,"compound_ref",type_string,x);
+    u8_free(type_string);
     return KNO_ERROR;}
   else if (!(VOIDP(tag))) {
     u8_string type_string = kno_lisp2string(tag);
     kno_seterr(kno_RangeError,"compound_ref",type_string,off);
+    u8_free(type_string);
     return KNO_ERROR;}
   else {
     kno_seterr(kno_RangeError,"compound_ref",NULL,off);
@@ -488,12 +518,13 @@ KNO_EXPORT void kno_init_compoundfns_c()
   consfn_symbol = kno_intern("cons");
   stringfn_symbol = kno_intern("stringify");
 
-  kno_idefn2(kno_scheme_module,"COMPOUND?",compoundp,1,
-            "`(COMPOUND? *arg* [*tags*])` returns *arg* if it is "
-            "a compound and (when specified) if it's typetag "
-            "is any of *tags*.",
-            -1,KNO_VOID,-1,KNO_VOID);
+  DECL_PRIM(compoundp,2,kno_scheme_module);
   kno_defalias(kno_scheme_module,"COMPOUND-TYPE?","COMPOUND?");
+  kno_idefn2(kno_scheme_module,"PICK-COMPOUND",pick_compounds,1,
+             "`(PICK-COMPOUND *arg* [*tags*])` returns *arg* if it is "
+             "a compound and (when specified) if it's typetag "
+             "is any of *tags*.",
+             -1,KNO_VOID,-1,KNO_VOID);
   kno_idefn(kno_scheme_module,
            kno_make_cprim1x("COMPOUND-TAG",compound_tag,1,
                            kno_compound_type,VOID));

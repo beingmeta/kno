@@ -11,6 +11,3 @@
 (define (get-load-ok-count) load-ok-count)
 
 (message "Loaded loadok, count=" load-ok-count)
-
-
-
