@@ -358,15 +358,20 @@ static lispval getmagnitude(lispval val,lispval magfn)
       else return kno_get(val,magfn,EMPTY);}}
 }
 
-static lispval smallest_evalfn(lispval elts,lispval magnitude)
+static lispval smallest_prim(lispval elts,lispval magnitude)
 {
   lispval top = EMPTY, top_score = VOID;
   DO_CHOICES(elt,elts) {
     lispval score = getmagnitude(elt,magnitude);
-    if (KNO_ABORTED(score)) {
+    if ( (KNO_ABORTED(score)) || (KNO_VOIDP(score)) ) {
+      u8_byte msgbuf[100];
       kno_decref(top);
       kno_decref(top_score);
-      return score;}
+      if (VOIDP(score))
+        return kno_err(kno_VoidSortKey,"smallest_evalfn",
+                       u8_bprintf(msgbuf,"from keyfn %q",magnitude),
+                       elt);
+      else return score;}
     else if (VOIDP(top_score))
       if (EMPTYP(score)) {}
       else {
@@ -390,15 +395,20 @@ static lispval smallest_evalfn(lispval elts,lispval magnitude)
   return top;
 }
 
-static lispval largest_evalfn(lispval elts,lispval magnitude)
+static lispval largest_prim(lispval elts,lispval magnitude)
 {
   lispval top = EMPTY, top_score = VOID;
   DO_CHOICES(elt,elts) {
     lispval score = getmagnitude(elt,magnitude);
-    if (KNO_ABORTED(score)) {
+    if ( (KNO_ABORTED(score)) || (KNO_VOIDP(score)) ) {
+      u8_byte msgbuf[100];
       kno_decref(top);
       kno_decref(top_score);
-      return score;}
+      if (VOIDP(score))
+        return kno_err(kno_VoidSortKey,"largest_evalfn",
+                       u8_bprintf(msgbuf,"from keyfn %q",magnitude),
+                       elt);
+      else return score;}
     else if (VOIDP(top_score))
       if (EMPTYP(score)) {}
       else {
@@ -1109,13 +1119,17 @@ static lispval sorted_primfn(lispval choices,lispval keyfn,int reverse,
     struct KNO_SORT_ENTRY *entries = u8_big_alloc_n(n,struct KNO_SORT_ENTRY);
     DO_CHOICES(elt,choices) {
       lispval key=_kno_apply_keyfn(elt,keyfn);
-      if (KNO_ABORTED(key)) {
+      if ( (KNO_ABORTED(key)) || (KNO_VOIDP(key)) ) {
+        u8_byte msgbuf[100];
         int j = 0; while (j<i) {
           kno_decref(entries[j].sortkey);
           j++;}
-        u8_free(entries);
-        u8_free(vecdata);
-        return key;}
+        u8_big_free(entries);
+        u8_big_free(vecdata);
+        if (KNO_ABORTP(key))
+          return key;
+        else return kno_err(kno_VoidSortKey,"sorted_primfn",
+                            u8_bprintf(msgbuf,"From keyfn %q",keyfn),elt);}
       entries[i].sortval = elt;
       entries[i].sortkey = key;
       i++;}
@@ -1188,10 +1202,15 @@ static ssize_t select_helper(lispval choices,lispval keyfn,
   int k_len = 0;
   DO_CHOICES(elt,choices) {
     lispval key=_kno_apply_keyfn(elt,keyfn);
-    if (KNO_ABORTED(key)) {
+    if ( (KNO_ABORTED(key)) || (KNO_VOIDP(key)) ) {
       int j = 0; while (j<k_len) {
-        kno_decref(entries[k_len].sortkey);
+        kno_decref(entries[j].sortkey);
         j++;}
+      if (VOIDP(key)) {
+        u8_byte buf[80];
+        kno_seterr(kno_VoidSortKey,"select_helper",
+                   u8_bprintf(buf,"The keyfn %q return VOID",keyfn),
+                   elt);}
       return -1;}
     else if (k_len<k) {
       entries[k_len].sortval = elt;
@@ -1240,26 +1259,34 @@ static lispval entries2choice(struct KNO_SORT_ENTRY *entries,int n)
 
 static lispval nmax_prim(lispval choices,lispval karg,lispval keyfn)
 {
+  if ( (VOIDP(keyfn)) || (DEFAULTP(keyfn)) || (FALSEP(keyfn)) ) {}
+  else if (!(KNO_APPLICABLEP(keyfn)))
+    return kno_type_error(_("applicable"),"nmax_prim",keyfn);
   if (KNO_UINTP(karg)) {
     size_t k = FIX2INT(karg);
     size_t n = KNO_CHOICE_SIZE(choices);
-    if (n==1)
-      return kno_make_vector(1,&choices);
+    if (k == 0)
+      return KNO_EMPTY;
+    else if (n<=k)
+      return kno_incref(choices);
     else {
       struct KNO_SORT_ENTRY *entries = u8_alloc_n(k,struct KNO_SORT_ENTRY);
       ssize_t count = select_helper(choices,keyfn,k,1,entries);
-      return entries2choice(entries,count);}}
+      if (count < 0) {
+        u8_free(entries);
+        return KNO_ERROR;}
+      else return entries2choice(entries,count);}}
   else return kno_type_error(_("fixnum"),"nmax_prim",karg);
 }
 
 static lispval nmax2vec_prim(lispval choices,lispval karg,lispval keyfn)
 {
+  if ( (VOIDP(keyfn)) || (DEFAULTP(keyfn)) || (FALSEP(keyfn)) ) {}
+  else if (!(KNO_APPLICABLEP(keyfn)))
+    return kno_type_error(_("applicable"),"nmax2vecprim",keyfn);
   if (KNO_UINTP(karg)) {
     size_t k = FIX2INT(karg);
     size_t n = KNO_CHOICE_SIZE(choices);
-    if ( (VOIDP(keyfn)) || (DEFAULTP(keyfn)) || (FALSEP(keyfn)) ) {}
-    else if (!(KNO_APPLICABLEP(keyfn)))
-      return kno_type_error(_("applicable"),"nmax2vecprim",keyfn);
     if (n==0)
       return kno_make_vector(0,NULL);
     else if (n==1) {
@@ -1270,6 +1297,9 @@ static lispval nmax2vec_prim(lispval choices,lispval karg,lispval keyfn)
       struct KNO_SORT_ENTRY *entries =
         u8_alloc_n(n_entries,struct KNO_SORT_ENTRY);
       ssize_t count = select_helper(choices,keyfn,k,1,entries);
+      if (count < 0) {
+        u8_free(entries);
+        return KNO_ERROR;}
       lispval vec = kno_make_vector(count,NULL);
       int i = 0; while (i<count) {
         lispval elt = entries[i].sortval;
@@ -1285,25 +1315,34 @@ static lispval nmax2vec_prim(lispval choices,lispval karg,lispval keyfn)
 
 static lispval nmin_prim(lispval choices,lispval karg,lispval keyfn)
 {
+  if ( (VOIDP(keyfn)) || (DEFAULTP(keyfn)) || (FALSEP(keyfn)) ) {}
+  else if (!(KNO_APPLICABLEP(keyfn)))
+    return kno_type_error(_("applicable"),"nmin_prim",keyfn);
   if (KNO_UINTP(karg)) {
     size_t k = FIX2INT(karg);
     size_t n = KNO_CHOICE_SIZE(choices);
-    if (n<=k) return kno_incref(choices);
+    if (k == 0)
+      return KNO_EMPTY;
+    else if (n<=k)
+      return kno_incref(choices);
     else {
       struct KNO_SORT_ENTRY *entries = u8_alloc_n(k,struct KNO_SORT_ENTRY);
       ssize_t count = select_helper(choices,keyfn,k,0,entries);
-      return entries2choice(entries,count);}}
+      if (count < 0) {
+        u8_free(entries);
+        return KNO_ERROR;}
+      else return entries2choice(entries,count);}}
   else return kno_type_error(_("fixnum"),"nmax_prim",karg);
 }
 
 static lispval nmin2vec_prim(lispval choices,lispval karg,lispval keyfn)
 {
+  if ( (VOIDP(keyfn)) || (DEFAULTP(keyfn)) || (FALSEP(keyfn)) ) {}
+  else if (!(KNO_APPLICABLEP(keyfn)))
+    return kno_type_error(_("applicable"),"nmin2vecprim",keyfn);
   if (KNO_UINTP(karg)) {
     size_t k = FIX2INT(karg);
     size_t n = KNO_CHOICE_SIZE(choices);
-    if ( (VOIDP(keyfn)) || (DEFAULTP(keyfn)) || (FALSEP(keyfn)) ) {}
-    else if (!(KNO_APPLICABLEP(keyfn)))
-      return kno_type_error(_("applicable"),"nmax2vecprim",keyfn);
     if (n==0)
       return kno_make_vector(0,NULL);
     else if (n==1) {
@@ -1314,6 +1353,9 @@ static lispval nmin2vec_prim(lispval choices,lispval karg,lispval keyfn)
       struct KNO_SORT_ENTRY *entries =
         u8_alloc_n(n_entries,struct KNO_SORT_ENTRY);
       ssize_t count = select_helper(choices,keyfn,k,0,entries);
+      if (count<0) {
+        u8_free(entries);
+        return KNO_ERROR;}
       lispval vec = kno_make_vector(count,NULL);
       int i = 0; while (i<count) {
         kno_decref(entries[i].sortkey);
@@ -1522,9 +1564,11 @@ KNO_EXPORT void kno_init_choicefns_c()
   kno_defalias(kno_scheme_module,"∖","DIFFERENCE");
 
   kno_idefn(kno_scheme_module,
-           kno_make_ndprim(kno_make_cprim2("SMALLEST",smallest_evalfn,1)));
+            kno_make_ndprim(kno_make_cprim2("SMALLEST",smallest_prim,1)));
   kno_idefn(kno_scheme_module,
-           kno_make_ndprim(kno_make_cprim2("LARGEST",largest_evalfn,1)));
+            kno_make_ndprim(kno_make_cprim2("LARGEST",largest_prim,1)));
+
+
 
   kno_def_evalfn(kno_scheme_module,"TRY","",try_evalfn);
 
