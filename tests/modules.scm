@@ -40,6 +40,8 @@
 ;;; Update modules
 
 (config! 'updatemodules 15)
+(config! 'updatemodules 15.0)
+(config! 'updatemodules #t)
 (config! 'updatemodules #f)
 
 ;;; Reload testing
@@ -87,4 +89,13 @@
 (test-reloading)
 (sleep 2)
 (test-reloading)
+
+(define (test-webmods (prefix "file:"))
+  (withenv #f
+    (use-module "https://s3.amazonaws.com/knomods.beingmeta.com/kno/tests/testmod.scm")
+    (evaltest #t (symbol-bound? 'alt-minus))
+    (update-module  "https://s3.amazonaws.com/knomods.beingmeta.com/kno/tests/testmod.scm")
+    (update-module  "https://s3.amazonaws.com/knomods.beingmeta.com/kno/tests/testmod.scm" #t)))
+
+(test-webmods)
 

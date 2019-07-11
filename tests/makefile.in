@@ -240,6 +240,9 @@ pick picktest:
 cachecall:
 	@${RUN} ${KNOX} cachecall.scm ${RUNCONF}
 	@${header} "■■■■ Completed cachecall tests ${RUNCONF}"
+requests:
+	@${RUN} ${KNOX} requests.scm ${RUNCONF}
+	@${header} "■■■■ Completed requests tests ${RUNCONF}"
 texttools:
 	@${RUN} ${KNOX} texttools.scm ${RUNCONF}
 	@${header} "■■■■ Completed texttools tests ${RUNCONF}"

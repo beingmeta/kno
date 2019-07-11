@@ -76,6 +76,22 @@
   (applytest string? lisp->string fn))
 
 
+;;; Env reset (return to static env)
+
+(define extfn #f)
+
+(let ((x "three") (y "four") (z "zee"))
+  (set! extfn (lambda () (glom x y)))
+  (set! z "zoom")
+  (%env/reset!)
+  (applytest equal? z "zee"))
+
+(applytest "threefour" extfn)
+
+(define outer-z "eleven")
+(errtest (withenv #["outer-z" 8] (+ outer-z 3)))
+
+
 ;;; With declarations and docstrings
 
 (define (fact-iter n (result 1))

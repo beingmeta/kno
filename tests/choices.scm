@@ -272,17 +272,6 @@
 (applytester #f satisfied? (= 3 4))
 (applytester #f satisfied? (= 3 (+ {} 1)))
 
-(applytester {"a" "b" "c"} simplify {"a" "b" "c"})
-(applytester #t sometrue (= 3 {1 2 3}))
-(applytester #f sometrue (fail))
-(applytester #f sometrue #f)
-(applytester #t sometrue 3)
-
-(applytester #() choice->vector {})
-(applytester #("a" "b") choice->vector {"a" "b"})
-(applytester #("a") choice->vector "a")
-(applytest #("one" "eight" "eleven") choice->vector {"one" "eleven" "eight"} length)
-
 (applytester {} pick-one {})
 
 ;;; Try-choices
@@ -501,6 +490,35 @@
 (applytest #t forall/skiperrs < {3 4 5} {6 "seven" 8})
 (applytest #t exists/skiperrs < {3 4 5} {6 "seven" 8})
 
+(applytester {"a" "b" "c"} simplify {"a" "b" "c"})
+(applytester #t sometrue = 3 {1 2 3})
+(applytester #f sometrue = 3 (fail))
+(applytester #f sometrue = 3 {4 5})
+(applytester #t sometrue = 3 3)
+
+(define (float=? x y)
+  (if (and (flonum? x) (flonum? y))
+      (< (abs (- y x)) 0.0001)
+      (if (fixnum? x)
+	  (irritant y 'notfixnum)
+	  (irritant x 'notfixnum))))
+
+(applytester #t sometrue float=? 3.0 {1.0 2.0 3.0})
+(applytester #f sometrue float=? 3.0 (fail))
+(applytester #f sometrue float=? 3.0 {4. 5.0})
+(applytester #t sometrue float=? 3.0 3.0)
+;; This is only consistent because 3 comes first in the choice {3 4.0}
+(applytester 'err sometrue float=? 4.0 {3 4.0})
+(applytester #t sometrue/skiperrs float=? 4.0 {3 4.0})
+(applytester 'err exists float=? 4.0 {3 4.0})
+(applytester #t exists/skiperrs float=? 4.0 {3 4.0})
+
+
+(applytester #() choice->vector {})
+(applytester #("a" "b") choice->vector {"a" "b"})
+(applytester #("a") choice->vector "a")
+(applytest #("one" "eight" "eleven") choice->vector {"one" "eleven" "eight"} length)
+
 ;;; Pick/sample
 
 (define a-random-choice
@@ -566,8 +584,11 @@
 	   rsorted string-choice)
 (applytest #("use-threadcache" "table-minimize!" "test-u8raise" "config-def!" "max-fixnum")
 	   rsorted string-choice length)
-(define (bad-stringkeyfn x) (+ x 9))
+
 (define (mixed-length x (len)) (set! len (length x)) (if (even? len) len (- len)))
+
+(define (length-errfn string) (irritant string 'just-because))
+(define (length-voidfn string) (if (= 3 4) 1))
 
 (applytest "use-threadcache" largest string-choice)
 (applytest { "table-minimize!" "use-threadcache" } largest string-choice length)
@@ -577,15 +598,15 @@
 (applytest "test-u8raise" largest string-choice mixed-length)
 (applytest { "table-minimize!" "use-threadcache" } smallest string-choice mixed-length)
 
-(applytest 'err largest string-choice bad-stringkeyfn)
-(applytest 'err smallest string-choice bad-stringkeyfn)
+(applytest 'err largest string-choice length-errfn)
+(applytest 'err smallest string-choice length-errfn)
 
 (define length-slotmap 
   (let ((map #[]))
     (do-choices (string string-choice)
       (store! map string (length string)))
     map))
-(dbg)
+
 (define length-schemap 
   (let ((map #[]))
     (do-choices (string string-choice)
@@ -597,12 +618,71 @@
       (store! map string (length string)))
     map))
 
+(applytest 'err largest string-choice #"packet")
+(applytest 'err smallest string-choice #"packet")
+(applytest 'err largest string-choice length-errfn)
+(applytest 'err smallest string-choice length-errfn)
+(applytest 'err largest string-choice length-voidfn)
+(applytest 'err smallest string-choice length-voidfn)
+
+(applytest {} largest {})
+(applytest {} smallest {})
+(applytest "foo" largest "foo")
+(applytest "foo" smallest "foo")
+
 (applytest { "table-minimize!" "use-threadcache" } largest string-choice length-slotmap)
 (applytest "max-fixnum" smallest string-choice length-slotmap)
+
 (applytest { "table-minimize!" "use-threadcache" } largest string-choice length-schemap)
 (applytest "max-fixnum" smallest string-choice length-schemap)
+
 (applytest { "table-minimize!" "use-threadcache" } largest string-choice length-hashtable)
 (applytest "max-fixnum" smallest string-choice length-hashtable)
+
+(define many-strings
+  (let ((result {}))
+    (dotimes (i 50) (set+! result (make-string i #\x)))
+    result))
+(define many-strings-vec (sorted many-strings length))
+(define many-strings-len (length many-strings-vec))
+
+(applytest {} pick-min {} 4)
+(applytest {} pick-max {} 4)
+(applytest #() max/sorted {} 4)
+(applytest #() min/sorted {} 4)
+(applytest "foo" pick-max "foo" 4)
+(applytest "foo" pick-max "foo" 4)
+(applytest #("foo") max/sorted "foo" 4)
+(applytest #("foo") min/sorted "foo" 4)
+
+(applytest (elts many-strings-vec 0 4)
+	   pick-min many-strings 4 length)
+(applytest (elts many-strings-vec (- many-strings-len 4))
+	   pick-max many-strings 4 length)
+(applytest (slice many-strings-vec 0 4)
+	   min/sorted many-strings 4 length)
+(applytest (reverse (slice many-strings-vec (- many-strings-len 4)))
+	   max/sorted many-strings 4 length)
+
+(applytest 'err pick-min many-strings 4 #"packet")
+(applytest 'err pick-max many-strings 4 #"packet")
+(applytest 'err min/sorted many-strings 4 #"packet")
+(applytest 'err max/sorted many-strings 4 #"packet")
+
+(applytest 'err pick-min many-strings 4 if)
+(applytest 'err pick-max many-strings 4 if)
+(applytest 'err min/sorted many-strings 4 if)
+(applytest 'err max/sorted many-strings 4 if)
+
+(applytest 'err pick-min many-strings 4 length-errfn)
+(applytest 'err pick-max many-strings 4 length-errfn)
+(applytest 'err min/sorted many-strings 4 length-errfn)
+(applytest 'err max/sorted many-strings 4 length-errfn)
+
+(applytest 'err pick-min many-strings 4 length-voidfn)
+(applytest 'err pick-max many-strings 4 length-voidfn)
+(applytest 'err min/sorted many-strings 4 length-voidfn)
+(applytest 'err max/sorted many-strings 4 length-voidfn)
 
 ;;;; Reduce-choice
 
@@ -630,27 +710,10 @@
 (applytest 'err reduce-choice bad-combine string-choice 0 length)
 (applytest 'err reduce-choice + string-choice 0 bad-part)
 
-#|
-(applytest 'err sorted string-choice bad-stringkeyfn)
-(applytest 'err rsorted string-choice bad-stringkeyfn)
-
-(applytest #(5 4) max/sorted {1 2 3 4 5} 2)
-(applytest #(1 2) min/sorted {1 2 3 4 5} 2)
-
-(applytest #(1 2) max/sorted {1 2 3 4 5} 2 -)
-(applytest #(5 4) min/sorted {1 2 3 4 5} 2 -)
-
-(define (bad-numkeyfn x) (string-append x "bar"))
-(applytest 'err max/sorted {1 2 3 4 5} 2 bad-numkeyfn)
-(applytest 'err min/sorted {1 2 3 4 5} 2 bad-numkeyfn)
-
-(applytest 'err max/sorted {1 2 3 4 5} "two")
-(applytest 'err max/sorted {1 2 3 4 5} -5)
-(applytest 'err max/sorted {1 2 3 4 5} 2 "bad-numkeyfn")
-(applytest 'err min/sorted {1 2 3 4 5} "two")
-(applytest 'err min/sorted {1 2 3 4 5} -5)
-(applytest 'err min/sorted {1 2 3 4 5} 2 "bad-numkeyfn")
-|#
+(applytest 'err sorted string-choice length-errfn)
+(applytest 'err rsorted string-choice length-errfn)
+(applytest 'err sorted string-choice length-voidfn)
+(applytest 'err rsorted string-choice length-voidfn)
 
 ;;; Bigger sets
 
@@ -676,5 +739,9 @@
     (applytest removed2 difference removed2 usechoice)))
 
 (message "CHOICETEST successfuly completed")
+
+;;; Fix-choice should never be neccessary
+(applytest {"one" #(two) #"three"} %fixchoice {"one" #(two) #"three"})
+
 
 (test-finished "CHOICETEST")
