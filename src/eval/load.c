@@ -554,6 +554,8 @@ KNO_EXPORT void kno_init_load_c()
 
   kno_register_config("LOAD:LOGEVAL","Trace expressions while loading files",
 		      kno_boolconfig_get,kno_boolconfig_set,&trace_load_eval);
+  kno_register_config("LOAD:LOGRELOADS","Log file and module reloads",
+		      kno_boolconfig_get,kno_boolconfig_set,&kno_log_reloads);
   kno_register_config("TRACELOADEVAL","Trace expressions while loading files",
                       kno_boolconfig_get,kno_boolconfig_set,&trace_load_eval);
 }

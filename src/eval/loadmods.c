@@ -387,17 +387,16 @@ KNO_EXPORT int kno_update_file_module(u8_string module_source,int force)
 {
   struct KNO_LOAD_RECORD *scan;
   time_t mtime = (time_t) -1;
-  if (strchr(module_source,':') == NULL)
-    mtime = u8_file_mtime(module_source);
-  else if (strncasecmp(module_source,"file:",5)==0)
-    mtime = u8_file_mtime(module_source+5);
-  else {
-    int rv = kno_probe_source(module_source,NULL,&mtime,NULL);
-    if (rv<0) {
-      u8_log(LOG_WARN,kno_ReloadError,"Couldn't find %s to reload it",
-             module_source);
-      return -1;}}
-  if (mtime<0) return 0;
+  int rv = kno_probe_source(module_source,NULL,&mtime,NULL);
+  if (rv<0) {
+    u8_log(LOG_WARN,kno_ReloadError,"Couldn't find %s to reload it",
+	   module_source);
+      return -1;}
+  if ( (mtime<0) && (!(force)) ) {
+    u8_log(LOG_WARN,kno_ReloadError,
+	   "Couldn't determine load time of %s to reload it",
+	   module_source);
+    return 0;}
   u8_lock_mutex(&update_modules_lock);
   u8_lock_mutex(&load_record_lock);
   scan = load_records;

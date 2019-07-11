@@ -52,17 +52,22 @@ KNO_EXPORT int kno_probe_source
 {
   struct KNO_STRING _tmpstring;
   lispval lpath = kno_init_string(&_tmpstring,-1,path);
-  KNO_INIT_STATIC_CONS(&_tmpstring,kno_string_type);
+  KNO_INIT_STACK_CONS(&_tmpstring,kno_string_type);
   struct KNO_SOURCEFN *scan = sourcefns;
   while (scan) {
     u8_string basepath = NULL;
     u8_string data = scan->getsource
       (0,lpath,NULL,&basepath,timep,sizep,scan->getsource_data);
     if (data) {
-      *basepathp = basepath;
+      if (basepathp)
+	*basepathp = basepath;
+      else if (basepath)
+	u8_free(basepath);
       kno_clear_errors(0);
       return 1;}
-    else scan = scan->getsource_next;}
+    else {
+      if (basepath) u8_free(basepath);
+      scan = scan->getsource_next;}}
   return 0;
 }
 
