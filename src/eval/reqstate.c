@@ -153,6 +153,7 @@ static lispval reqval_prim(lispval vars,lispval dflt)
   else return kno_incref(dflt);
 }
 
+#if 0
 static lispval hashcolon_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval var = kno_get_arg(expr,1);
@@ -205,6 +206,8 @@ static lispval hashcolonquestion_evalfn(lispval expr,kno_lexenv env,kno_stack _s
     return KNO_TRUE;
   else return KNO_FALSE;
 }
+#endif
+
 
 static lispval reqtest_prim(lispval vars,lispval val)
 {
@@ -261,8 +264,10 @@ lispval reqdata_prim()
 
 static lispval withreq_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  lispval body = kno_get_body(expr,1), result = VOID;
-  kno_use_reqinfo(KNO_TRUE); kno_reqlog(1);
+  lispval reqdata_expr = kno_get_arg(expr,1);
+  lispval reqdata = kno_stack_eval(reqdata_expr,env,_stack,0);
+  lispval body = kno_get_body(expr,2), result = VOID;
+  kno_use_reqinfo(reqdata); kno_reqlog(1);
   {KNO_DOLIST(ex,body) {
       if (KNO_ABORTP(result)) {
         kno_use_reqinfo(EMPTY);
@@ -271,6 +276,7 @@ static lispval withreq_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       kno_decref(result);
       result = kno_eval(ex,env);}}
   kno_use_reqinfo(EMPTY);
+  kno_decref(reqdata);
   kno_reqlog(-1);
   return result;
 }
@@ -351,10 +357,12 @@ KNO_EXPORT void kno_init_reqstate_c()
   kno_idefn(module,kno_make_cprim2("REQ/DROP!",reqdrop_prim,1));
   kno_idefn(module,kno_make_cprim2("REQ/PUSH!",reqpush_prim,2));
   kno_idefn(module,kno_make_cprim0("REQ/LIVE?",req_livep_prim));
+#if 0
   kno_def_evalfn(module,"#:","",hashcolon_evalfn);
   kno_def_evalfn(module,"#::","",hashcoloncolon_evalfn);
   kno_def_evalfn(module,"#:$","",hashcolondollar_evalfn);
   kno_def_evalfn(module,"#:?","",hashcolonquestion_evalfn);
+#endif
 
   kno_def_evalfn(module,"REQLOG","",reqlog_evalfn);
   kno_def_evalfn(module,"REQ/LOG!","",reqlog_evalfn);
@@ -363,7 +371,6 @@ KNO_EXPORT void kno_init_reqstate_c()
 
   kno_idefn(module,kno_make_cprim0("REQ/DATA",reqdata_prim));
 
-  kno_idefn(module,kno_make_cprim0("REQ/DATA",reqdata_prim));
   kno_def_evalfn(module,"WITH/REQUEST","",withreq_evalfn);
 
 }
