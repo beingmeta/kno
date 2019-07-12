@@ -43,11 +43,10 @@ typedef struct KNO_SQLITE *kno_sqlite;
 
 typedef struct KNO_SQLITE_PROC {
   KNO_SQLDB_PROC_FIELDS;
-
   u8_mutex sqliteproc_lock;
-
   int *sqltypes;
-  sqlite3 *sqlitedb; sqlite3_stmt *stmt;} KNO_SQLITE_PROC;
+  sqlite3 *sqlitedb;
+  sqlite3_stmt *stmt;} KNO_SQLITE_PROC;
 typedef struct KNO_SQLITE_PROC *kno_sqlite_proc;
 
 static u8_condition SQLiteError=_("SQLite Error");
@@ -127,6 +126,7 @@ static int open_knosqlite(struct KNO_SQLITE *knosqlptr)
                 kno_mkstring(knosqlptr->sqlitefile));
       if (db) {closedb(db); knosqlptr->sqlitedb = NULL;}
       u8_unlock_mutex(&(knosqlptr->sqlite_lock));
+      U8_CLEAR_ERRNO();
       return -1;}
     knosqlptr->sqlitedb = db;
     if (knosqlptr->sqldb_n_procs) {
@@ -194,7 +194,9 @@ static lispval sqlite_open_prim(lispval filename,lispval colinfo,lispval options
     lispval lptr = LISP_CONS(sqlcons);
     kno_decref(lptr);
     return KNO_ERROR_VALUE;}
-  else return LISP_CONS(sqlcons);
+  else {
+    U8_CLEAR_ERRNO();
+    return LISP_CONS(sqlcons);}
 }
 
 static lispval sqlite_reopen_prim(lispval db)
@@ -318,7 +320,6 @@ static lispval sqliteexechandler(struct KNO_SQLDB *sqldb,lispval string,
 {
   if (sqldb->sqldb_handler== &sqlite_handler) {
     struct KNO_SQLITE *sdb = (struct KNO_SQLITE *)sqldb;
-    u8_lock_mutex(&(sdb->sqlite_lock));
     if (!(sdb->sqlitedb)) {
       u8_unlock_mutex(&(sdb->sqlite_lock));
       if (sqldb->sqldb_spec!=sqldb->sqldb_info)
@@ -327,7 +328,9 @@ static lispval sqliteexechandler(struct KNO_SQLDB *sqldb,lispval string,
       else u8_log(LOG_WARN,"SQLITE/REOPEN","Reopening %s",
                   sqldb->sqldb_spec);
       open_knosqlite(sdb);
-      if (!(sdb->sqlitedb)) return KNO_ERROR_VALUE;}
+      if (!(sdb->sqlitedb)) 
+        return KNO_ERROR_VALUE;}
+    u8_unlock_mutex(&(sdb->sqlite_lock));
     return sqliteexec(sdb,string,colinfo);}
   else return kno_type_error("SQLITE SQLDB","sqliteexechandler",(lispval)sqldb);
 }
@@ -354,6 +357,7 @@ static lispval sqlitemakeproc
                   dbp->sqldb_spec);
       open_knosqlite(dbp);
       if (!(dbp->sqlitedb)) return KNO_ERROR_VALUE;}
+    u8_unlock_mutex(&(dbp->sqlite_lock));
     db = dbp->sqlitedb;}
   retval = newstmt(db,sql,sql_len,&stmt);
   if (retval) {
@@ -457,7 +461,7 @@ static lispval sqlitecallproc(struct KNO_FUNCTION *fn,int n,lispval *args)
 {
   struct KNO_SQLITE_PROC *dbproc = (struct KNO_SQLITE_PROC *)fn;
   /* We use this for the lock */
-  struct KNO_SQLITE *knos = (struct KNO_SQLITE *)(dbproc->sqlitedb);
+  struct KNO_SQLITE *knos = (struct KNO_SQLITE *)(dbproc->sqldbptr);
   lispval values = KNO_EMPTY_CHOICE;
   int i = 0, ret = -1;
   if (!(knos->sqlitedb)) {
@@ -467,7 +471,10 @@ static lispval sqlitecallproc(struct KNO_FUNCTION *fn,int n,lispval *args)
     else u8_log(LOG_WARN,"SQLITE/REOPEN","Reopening %s for '%s'",
                 knos->sqldb_spec,dbproc->sqldb_qtext);
     open_knosqlite(knos);
-    if (!(knos->sqlitedb)) return KNO_ERROR_VALUE;}
+    if (!(knos->sqlitedb)) {
+      kno_seterr("SQLiteFailure","sqlitecallproc",
+                 "Couldn't reopen db for proc",(lispval)fn);
+      return KNO_ERROR_VALUE;}}
   u8_lock_mutex(&(dbproc->sqliteproc_lock));
   while (i<n) {
     lispval arg = args[i]; int dofree = 0;
@@ -531,6 +538,7 @@ static lispval sqlitecallproc(struct KNO_FUNCTION *fn,int n,lispval *args)
       kno_seterr(SQLiteError,"knosqlite_call",
                 errmsg,kno_incref((lispval)fn));
       u8_unlock_mutex(&(dbproc->sqliteproc_lock));
+      U8_CLEAR_ERRNO();
       return KNO_ERROR_VALUE;}
     i++;}
   u8_lock_mutex(&(knos->sqlite_lock));
@@ -542,6 +550,7 @@ static lispval sqlitecallproc(struct KNO_FUNCTION *fn,int n,lispval *args)
     const char *errmsg = sqlite3_errmsg(dbproc->sqlitedb);
     kno_seterr(SQLiteError,"knosqlite_call",
               errmsg,kno_incref((lispval)fn));}
+  U8_CLEAR_ERRNO();
   return values;
 }
 
