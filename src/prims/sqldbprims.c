@@ -135,10 +135,33 @@ static int unparse_sqldb(u8_output out,lispval x)
   return 1;
 }
 
+static void recycle_sqldb_core(struct KNO_SQLDB *dbp)
+{
+  if (dbp->sqldb_n_procs) {
+    int i = 0, n = dbp->sqldb_n_procs;
+    struct KNO_SQLDB_PROC **procs = dbp->sqldb_procs;
+    while (i < n) {
+      struct KNO_SQLDB_PROC *proc = procs[i];
+      if (proc) {
+        kno_decref((lispval)proc);}
+      i++;}}
+  if (dbp->sqldb_procs) {
+    u8_free(dbp->sqldb_procs);
+    dbp->sqldb_procs = NULL;}
+  dbp->sqldb_n_procs = dbp->sqldb_procslen = 0;
+  kno_decref(dbp->sqldb_colinfo);
+  kno_decref(dbp->sqldb_options);
+  if ( dbp->sqldb_spec != dbp->sqldb_info)
+    u8_free(dbp->sqldb_info);
+  u8_free(dbp->sqldb_spec);
+  u8_destroy_mutex(&(dbp->sqldb_proclock));
+}
+
 static void recycle_sqldb(struct KNO_RAW_CONS *c)
 {
   struct KNO_SQLDB *dbp = (struct KNO_SQLDB *)c;
   dbp->sqldb_handler->recycle_db(dbp);
+  recycle_sqldb_core(dbp);
   if (!(KNO_STATIC_CONSP(c))) u8_free(c);
 }
 
