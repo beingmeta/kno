@@ -3,6 +3,10 @@ usr/lib/kno
 usr/share
 usr/share/kno
 usr/share/kno/data
+usr/share/docs/kno
+usr/share/docs/kno/html
+usr/share/man/man1
+usr/share/man/man8
 usr/share/kno/config
 usr/share/kno/modules/installed
 usr/share/kno/modules/local

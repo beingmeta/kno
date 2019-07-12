@@ -1,14 +1,14 @@
 [comment]: # ( -*- Mode: markdown; -*- )
-fdexec(1) -- run a non-interactive FramerD script
+knox(1) -- run a non-interactive Kno script
 =========================================
 
 ## SYNOPSIS
 
-`fdexec` [<config>...] <file> [<config>...] [<args>...]
+`knox` [config=val]... <file> [config=val|arg]...
 
 ## DESCRIPTION
 
-This uses the FramerD interpreter to process *file* after processing
+This uses the Kno interpreter to process *file* after processing
 the designated config entries. Config entries have the form
 **setting**=*value* and may be either read by applications or execute
 *config handlers*.
@@ -17,14 +17,14 @@ If *file* defines a procedure called `MAIN`, it is called on LISP
 versions of the command line *args* (excluding config entries) 
 
 Some config entries may generate useful side-effects defined by either
-the FramerD core or loaded modules. Some useful built-in config
+the Kno core or loaded modules. Some useful built-in config
 settings are:
 
 * `CONFIG=`*config file*:
   loads a config file and processes it's entries.
 
 * `MODULES=`*module name*:
-  loads a FramerD module into the image and the default 
+  loads a Kno module into the image and the default 
   environment.
 
 * `LOGLEVEL=`*level*:
@@ -51,28 +51,29 @@ preamble on starting and reports its time and memory usage on exit.
 
 ## IMPLEMENTING SCRIPTS
 
-On Unix systems, `fdexec` can be used with a *shebang* in executable
-script files, so that FramerD source file is executable and starts with:
+On Unix systems, `knox` can be used with a *shebang* in executable
+script files, so that Kno source file is executable and starts with:
 
-`#!/usr/bin/fdexec LOGLEVEL=5`
+`#!/usr/bin/knox LOGLEVEL=5`
 
 or
 
-`#!/usr/bin/env fdexec LOGLEVEL=5`
+`#!/usr/bin/env knox LOGLEVEL=5`
 
-fdexec will read the file after processing the arguments in the
+knox will read the file after processing the arguments in the
 initial line (such as loglevel).
 
 
 ## FILES
 
-Unlike `fdconsole`, `fdexec` does not read the user's `.fdconfig`
-file, though this can be specified by the **CONFIG** config setting.
+Unlike `knoc`, the interactive Kno console, `knox` does not read the
+user's `.knoconfig` file, though this can be specified by the
+**CONFIG** config setting.
 
 ## ENVIRONMENT
 
-As with most FramerD programs, config variables for `fdexec` can be
-set through environment variables prefixed with `FD`, so `FD_LOGLEVEL`
+As with most Kno programs, config variables for `knox` can be
+set through environment variables prefixed with `KNO`, so `KNO_LOGLEVEL`
 will set the default loglevel.
 
 # AUTHOR
@@ -81,5 +82,5 @@ Ken Haase <kh@beingmeta.com>
 
 ## SEE ALSO
 
-fdexec(1), framerd_config(8)
+knoc(1), kno_config(8)
 

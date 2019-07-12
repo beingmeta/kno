@@ -1,36 +1,36 @@
 [comment]: # ( -*- Mode: markdown; -*- )
-fdconsole(1) -- invoke FramerD interpeter
+knoc(1) -- invoke Kno interpeter
 =========================================
 
 ## SYNOPSIS
 
-`fdconsole` [<config>|<file>...]
+`knoc` [<config>|<file>...]
 
 ## DESCRIPTION
 
-This command launches the FramerD console/terminal program, a
+This command launches the Kno console/terminal program, a
 read-eval-print loop which allows you to evaluate expressions and see
 their values.
 
-The arguments to `fdconsole` are either filenames or *config* entries
+The arguments to `knoc` are either filenames or *config* entries
 of the form `**setting**=*name*`.  The files are loaded and the config
 entries processed in order of appearance and config entries may
 specify multiple values for a setting.
 
-When normally started, `fdconsole` uses the **editline** library to
+When normally started, `knoc` uses the **editline** library to
 provide simple command line editing and history functions. This can be
 suppressed by the environment variables `NO_EDITLINE` or
 `INSIDE_EMACS`.
 
 Some config entries may generate useful side-effects defined by either
-the FramerD core or loaded modules. Some useful built-in config
+the Kno core or loaded modules. Some useful built-in config
 settings are:
 
 * `LOADFILE=*path*`:
   loads the file *path* during startup.
 
 * `MODULES=*module name*`:
-  loads a FramerD module into the image and the default 
+  loads a Kno module into the image and the default 
   environment.
 
 * `LOADPATH=*path*`:
@@ -54,16 +54,16 @@ preamble on starting and reports its time and memory usage on exit.
 
 ## FILES
 
-On startup, `fdconsole` normally reads an `.fdconfig` file from the
-user's home directory (if it exists). It can include `MODULES` or
-`LOADFILE` declarations. The loading of the `.fdconfig` file can be
-suppressed via the environment variable `FD_SKIP_DOTLOAD` or the
-config variable `DOTLOAD`.
+On startup, `knoc` normally reads an `.knoconfig` file from the user's
+home directory (if it exists). It can include `MODULES` or `LOADFILE`
+declarations. The loading of the `.knoconfig` file can be suppressed
+via the environment variable `KNO_SKIP_DOTLOAD` or the config variable
+`DOTLOAD`.
 
 ## ENVIRONMENT
 
-As with most FramerD programs, config variables can be set through
-environment variables prefixed with `FD`, so `FD_LOGLEVEL` will set
+As with most Kno programs, config variables can be set through
+environment variables prefixed with `KNO_`, so `KNO_LOGLEVEL` will set
 the default loglevel.
 
 # AUTHOR
@@ -72,5 +72,5 @@ Ken Haase <kh@beingmeta.com>
 
 ## SEE ALSO
 
-fdexec(1), framerd_config(8)
+knox(1), kno_config(8)
 

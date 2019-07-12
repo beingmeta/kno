@@ -1,0 +1,64 @@
+[comment]: # ( -*- Mode: markdown; -*- )
+kno_config(1) -- common config parameters to Kno exectuables
+=========================================
+
+## SYNOPSIS
+
+`some_kno_cmd` [ **config**=*val* | *arg* ]...
+
+## DESCRIPTION
+
+All kno executables, including scripts written in Knox, process their
+command line arguments in the same way. Config settings of the form
+`setting=*val*` are interspersed with argument strings. The config
+settings can be used to configure the KNO runtime, the Knox
+interpreter, external modules, or the application itself.
+
+In addition the Kno runtime attempts to parse the command line
+arguments, allowing numeric strings to be rendered as numbers, for
+example.
+
+Some useful universal config settings are:
+
+* `CONFIG=`*config file*:
+  loads a config file and processes it's entries.
+
+* `MODULES=`*module name*:
+  loads a Kno module into the image and the default 
+  environment.
+
+* `LOGLEVEL=`*level*:
+  specifies the default loglevel for notifications
+  where level is either a positive integer or symbolic name (like
+  `NOTICE` or `DEBUG` or `INFO`).
+
+* `LOADFILE=`*path*:
+  loads the file *path* during startup.
+
+* `LOADPATH=`*path*:
+  specifies a search path for modules, as a colon
+  separated list of patterns where the '%' character is replaced by
+  the module name. For example `/opt/mods/%/module.scm:/opt/mods/%:`
+  causes the system to look for a module `foo/x` in
+  `/opt/mods/foo/x/module.scm` and `/opt/mods/foo/x.scm`. Paths can be
+  relative to the current directory by starting with '.' and can also
+  include ~home directory references.
+
+## DIAGNOSTICS
+
+Returns 0 when exiting normally, 1 otherwise. It also displays a short
+preamble on starting and reports its time and memory usage on exit.
+
+## ENVIRONMENT
+
+Command line configurations always override configurations from the
+environment or file system entries.
+
+# AUTHOR
+
+Ken Haase <kh@beingmeta.com>
+
+## SEE ALSO
+
+knoc(1), knox(1)
+

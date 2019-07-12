@@ -37,6 +37,7 @@ INDENTOPTS    = -br -ce -psl -Tknodtype -Tu8_string -Tkno_stream -Tkno_inbuf \
 GCOVR_FLAGS   = -e "./src/cmodules/" -e "./src/exe/" -e "./tests/storage/"
 
 DESTDIR		=
+PACKAGE		= kno
 prefix		= @prefix@
 exec_prefix	= @exec_prefix@
 datarootdir	= @datarootdir@
@@ -46,6 +47,8 @@ LIBINSTALLDIR	= $(DESTDIR)@libdir@
 BININSTALLDIR	= $(DESTDIR)@exec_prefix@/bin
 LOCALEDIR	= $(DESTDIR)@exec_prefix@/share/locale
 DATADIR		= $(DESTDIR)@datadir@/kno/data
+MANDIR		= $(DESTDIR)@mandir@
+DOCDIR		= $(DESTDIR)@docdir@
 CMODULES	= ${LIBINSTALLDIR}/kno
 APXS		= @APXS@ -S LIBEXECDIR=$(DESTDIR)@apache_modules_dir@
 PPROF_PATH      = @GOOGLE_PPROF@
@@ -545,6 +548,11 @@ nitpicking:
 	@if test -f .malloc; then \
 	  echo With $(shell cat .malloc) malloc; fi;
 	@+make -s XCFLAGS="-Wall -Wno-unknown-pragmas ${XCFLAGS}" testbin exe cmodules etc @TAGS@
+distribution:
+	@echo Building DISTRIBUTION configuration
+	@+make -s exe cmodules etc scripts @TAGS@
+
+
 
 all: testbin debug-exe exe cmodules etc i18n @TAGS@
 packaged: exe cmodules etc i18n
@@ -677,6 +685,13 @@ etc/%: etc/%.in ./config.status
 	@echo "Configuring $@"
 	@./config.status
 
+# docs/man/%: docs/ronn/%.ronn
+# 	ronn --roff < $< > $@
+# docs/man.html/%.html: docs/ronn/%.ronn
+# 	ronn --html < $< > $@
+# docs/man.html.include/%.html: docs/ronn/%.ronn
+# 	ronn --fragment < $< > $@
+
 # We can selectively link some executables statically to avoid 
 # library dependencies with programs which will typically run as daemons
 static/%@suffix@: src/exe/%.c $(STATIC_LIBS) ${REVISION_H} ${CONFIG_H}
@@ -791,6 +806,9 @@ shared-libs: $(SHARED_LIBS)
 exe: $(EXECUTABLES) exe/.gdbinit
 static-exe: $(STATIC_EXECUTABLES)
 debug-exe: $(DEBUG_EXECUTABLES) dbg/.gdbinit
+shell-scripts: $(SHELL_SCRIPTS)
+scheme-scripts: $(SCHEME_SCRIPTS)
+scripts: shell-scripts scheme-scripts
 
 testbin: constestbin dbtestbin debug-exe etc/usememory
 constestbin: libs tests/lisp/makefile tests/lisp/.gdbinit
@@ -1269,6 +1287,21 @@ install-i18n: $(LOCALEDIR)/fr/LC_MESSAGES/kno.mo   \
 		$(LOCALEDIR)/es/LC_MESSAGES/kno.mo \
 		$(LOCALEDIR)/nl/LC_MESSAGES/kno.mo
 i18n: etc/intl/fr.gmo etc/intl/nl.gmo etc/intl/es.gmo
+
+# Documentation
+
+docs: docs/built
+
+docs/built: docs/ronn/knox.1.ronn docs/ronn/knoc.1.ronn docs/ronn/kno_config.8.ronn
+	cd docs; make && touch built
+
+$(MANDIR)/man1 $(MANDIR)/man8 $(DOCDIR)/html:
+	@$(SYSINSTALL) -d $@
+
+install-docs: $(MANDIR)/man1 $(MANDIR)/man8 $(DOCDIR)/html docs
+	@for file in docs/man/*.1; do $(SYSINSTALL) $${file} $(MANDIR)/man1; done
+	@for file in docs/man/*.8; do $(SYSINSTALL) $${file} $(MANDIR)/man8; done
+	@for file in docs/man.html/*.html; do $(SYSINSTALL) $${file} $(DOCDIR)/html; done
 
 # Packaging targets
 

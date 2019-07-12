@@ -18,8 +18,11 @@ override_dh_auto_configure:
 		--with-libscm=version			 	\
                 --with-malloc=jemalloc
 
+override_dh_make:
+	make distribution docs mod_kno
+
 override_dh_auto_install:
-	make DESTDIR=$$(pwd)/debian/tmp install install-mod_kno install-i18n \
+	make DESTDIR=$$(pwd)/debian/tmp install install-mod_kno install-i18n install-docs \
 		setup-upstart setup-sysv setup-systemd setup-logrotate
 
 override_dh_install:

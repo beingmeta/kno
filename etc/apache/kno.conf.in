@@ -2,7 +2,7 @@
   LoadModule kno_module      @apache_modules_dir@/mod_kno.so
 </IfModule>
 <IfModule mod_kno.c>
-        AddHandler kno .knocgi .knoxml
+        AddHandler kno .knocgi .knoxml .nml .cgi.scm .scm.cgi
 	KnoExecutable @prefix@/bin/knoweb
 	KnoUser @webuser@
 	KnoGroup @admin_group@
