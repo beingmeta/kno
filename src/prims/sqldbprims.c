@@ -316,7 +316,7 @@ KNO_EXPORT void kno_init_sqldbprims_c()
 
   u8_init_mutex(&sqldb_handlers_lock);
 
-  exec_enabled_symbol = kno_intern("%execok");
+  exec_enabled_symbol = kno_intern("sqlexec");
 
   kno_sqldb_type = kno_register_cons_type("SQLDB");
   kno_recyclers[kno_sqldb_type]=recycle_sqldb;
@@ -356,7 +356,7 @@ KNO_EXPORT void kno_init_sqldbprims_c()
 
   kno_register_config("SQLEXEC",
                      _("whether direct execution of SQL strings is allowed"),
-                     kno_boolconfig_get,kno_boolconfig_set,NULL);
+                     kno_boolconfig_get,kno_boolconfig_set,&exec_enabled);
 
   kno_finish_module(sqldb_module);
 }
