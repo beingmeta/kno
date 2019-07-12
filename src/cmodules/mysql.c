@@ -354,15 +354,7 @@ static void recycle_mysqldb(struct KNO_SQLDB *c)
              p->sqldb_qtext,dbp->sqldb_spec,dbp->sqldb_info);
     *write++=(lispval)p;}
   u8_unlock_mutex(&(dbp->sqldb_proclock));
-
-  i = 0; while (i<n_procs) {lispval proc = toremove[i++]; kno_decref(proc);}
-
-  u8_free(dbp->sqldb_procs);
-  kno_decref(dbp->sqldb_colinfo); kno_decref(dbp->sqldb_options);
-  u8_free(dbp->sqldb_spec); u8_free(dbp->sqldb_info);
-  u8_destroy_mutex(&(dbp->sqldb_proclock));
   u8_destroy_mutex(&(dbp->mysql_lock));
-
   mysql_close(dbp->mysqldb);
 }
 

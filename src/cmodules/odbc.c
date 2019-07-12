@@ -97,8 +97,11 @@ KNO_EXPORT lispval kno_odbc_connect(lispval spec,lispval colinfo,int interactive
     SQLSetEnvAttr(dbp->env, SQL_ATTR_ODBC_VERSION,
                   (void *) SQL_OV_ODBC3, 0);
     ret = SQLAllocHandle(SQL_HANDLE_DBC,dbp->env,&(dbp->conn));
-    dbp->sqldb_spec = u8_strdup(KNO_CSTRING(spec)); dbp->sqldb_options = KNO_VOID;
-    info = u8_malloc(512); strcpy(info,"uninitialized"); dbp->sqldb_info = info;
+    dbp->sqldb_spec = u8_strdup(KNO_CSTRING(spec));
+    dbp->sqldb_options = KNO_VOID;
+    info = u8_malloc(512);
+    strcpy(info,"uninitialized");
+    dbp->sqldb_info = info;
     u8_init_mutex(&(dbp->sqldb_proclock));
     dbp->sqldb_handler = &odbc_handler;
     if (SQL_SUCCEEDED(ret)) {
@@ -110,7 +113,8 @@ KNO_EXPORT lispval kno_odbc_connect(lispval spec,lispval colinfo,int interactive
                             (interactive==1) ? (SQL_DRIVER_COMPLETE_REQUIRED) :
                             (SQL_DRIVER_PROMPT)));
       if (SQL_SUCCEEDED(ret)) {
-        dbp->sqldb_colinfo = colinfo; kno_incref(colinfo);
+        dbp->sqldb_colinfo = colinfo;
+        kno_incref(colinfo);
         return LISP_CONS(dbp);}}}
   if (howfar>1)
     u8_seterr(ODBCError,"kno_odbc_connect",
@@ -131,7 +135,6 @@ static void recycle_odbconn(struct KNO_SQLDB *c)
   struct KNO_ODBC *dbp = (struct KNO_ODBC *)c;
   SQLFreeHandle(SQL_HANDLE_DBC,dbp->conn);
   SQLFreeHandle(SQL_HANDLE_ENV,dbp->env);
-  u8_free(dbp->sqldb_info); u8_free(dbp->sqldb_spec);
 }
 
 static lispval odbcopen(lispval spec,lispval colinfo)
@@ -219,8 +222,10 @@ static void recycle_odbcproc(struct KNO_SQLDB_PROC *c)
   kno_release_sqldb_proc((struct KNO_SQLDB_PROC *) dbproc);
   SQLFreeHandle(SQL_HANDLE_STMT,dbproc->stmt);
   kno_decref(dbproc->sqldb_colinfo);
-  u8_free(dbproc->sqldb_spec); u8_free(dbproc->sqldb_qtext);
-  u8_free(dbproc->sqltypes); kno_decref(dbproc->sqldbptr);
+  u8_free(dbproc->sqldb_spec);
+  u8_free(dbproc->sqldb_qtext);
+  u8_free(dbproc->sqltypes);
+  kno_decref(dbproc->sqldbptr);
 }
 
 /* Getting attributes from connections */
