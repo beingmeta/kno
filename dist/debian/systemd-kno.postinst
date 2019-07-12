@@ -20,7 +20,7 @@ set -e
 
 case "$1" in
     configure)
-	rm -f /lib/systemd/system/kno.service /lib/systemd/system/fdservlets.service
+	rm -f /lib/systemd/system/kno.service /lib/systemd/system/knoweb.service
 	systemctl daemon-reload
 #	systemctl enable knod
 #	systemctl enable knoweb
