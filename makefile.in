@@ -229,7 +229,7 @@ SCHEME_OBJS=\
 	src/eval/arith.o \
 	src/eval/regex.o \
 	src/eval/promises.o \
-	src/eval/reqstate.o \
+	src/eval/requests.o \
 	src/prims/dbprims.o \
 	src/prims/tableprims.o \
 	src/prims/seqprims.o \
@@ -452,7 +452,7 @@ KNO_SOURCES=\
 	src/eval/loadmods.c                                            		\
 	src/prims/timeprims.c src/prims/sysprims.c 				\
 	src/prims/sqldbprims.c                    				\
-	src/eval/reqstate.c src/eval/dteval.c src/eval/configops.c		\
+	src/eval/requests.c src/eval/dteval.c src/eval/configops.c		\
 	src/web/webtools.c src/web/json.c src/web/ldns.c            		\
 	src/web/xmloutput.c src/web/xmlinput.c src/web/xmldata.c 		\
 	src/web/xmleval.c src/web/cgiexec.c src/web/htmlout.c 			\

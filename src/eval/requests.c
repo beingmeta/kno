@@ -224,7 +224,7 @@ static lispval reqtest_prim(lispval vars,lispval val)
   return KNO_FALSE;
 }
 
-static lispval reqset_prim(lispval vars,lispval value)
+static lispval reqstore_prim(lispval vars,lispval value)
 {
   {DO_CHOICES(var,vars) {
       lispval name = ((STRINGP(var))?(kno_intern(CSTRING(var))):(var));
