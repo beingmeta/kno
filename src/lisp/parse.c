@@ -508,6 +508,7 @@ static lispval parse_string(U8_INPUT *in)
       else u8_ungetc(in,nextc);
       c = read_escape(in);
       if (c<0) {
+        kno_seterr("Unterminated string","parse_string",out.u8_outbuf,VOID);
         if ((out.u8_streaminfo)&(U8_STREAM_OWNS_BUF))
           u8_free(out.u8_outbuf);
         return KNO_PARSE_ERROR;}
@@ -554,7 +555,11 @@ static lispval parse_regex(U8_INPUT *in)
       default:
         u8_putc(&src,'\\');
         if (c>0) u8_putc(&src,c);}}
-    else if (c!='/') u8_putc(&src,c);
+    else if (c!='/')
+      u8_putc(&src,c);
+    else if (c < 0) {
+      kno_seterr("Unterminated regex","parse_regex",src.u8_outbuf,VOID);
+      break;}
     else {
       int mc = u8_getc(in);
       while ((mc<128)&&(u8_isalpha(mc))) {
@@ -616,9 +621,11 @@ static lispval parse_opaque(U8_INPUT *in)
     u8_putc(&out,c);
     c=u8_getc(in);}
   if (c<0) {
-    u8_log(LOG_WARN,"BadOpaqueExpr",
-           "No missing close char in: #<<%s",
-           out.u8_outbuf);}
+    kno_seterr("BadOpaqueExpr",
+               "No missing close char in: #<<%s",
+               out.u8_outbuf,VOID);
+    u8_close_output(&out);
+    return KNO_ERROR;}
   else if (opaque) {
     int nextc = u8_getc(in);
     if (nextc != '>') {
@@ -713,16 +720,17 @@ static lispval parse_text_packet(U8_INPUT *in)
           data[len++]=c;}}
     else data[len++]=c;
     c = u8_getc(in);}
-  if (c=='"') {
+  if (c < 0) {
+    kno_seterr("UnterminatedPacket","parse_text_packet",NULL,VOID);
+    return KNO_EOX;}
+  else if (c=='"') {
     lispval packet = kno_bytes2packet(NULL,len,data);
     u8_free(data);
     return packet;}
   else {
     u8_free(data);
-    if (c<0) return KNO_EOX;
-    else {
-      u8_seterr(kno_MissingCloseQuote,"parse_text_packet",NULL);
-      return KNO_PARSE_ERROR;}}
+    u8_seterr(kno_MissingCloseQuote,"parse_text_packet",NULL);
+    return KNO_PARSE_ERROR;}
 }
 
 static lispval parse_hex_packet(U8_INPUT *in)
@@ -744,6 +752,7 @@ static lispval parse_hex_packet(U8_INPUT *in)
     u8_free(data);
     return result;}
   else if (c<0) {
+    kno_seterr("UnterminatedPacket","parse_hex_packet",NULL,VOID);
     u8_free(data);
     return KNO_EOX;}
   else {
@@ -777,6 +786,7 @@ static lispval parse_base64_packet(U8_INPUT *in)
     data[len++]=c;
     c = u8_getc(in);}
   if (c<0) {
+    kno_seterr("UnterminatedPacket","parse_base64_packet",NULL,VOID);
     u8_free(data);
     return KNO_EOX;}
   else if (c=='"') {
@@ -889,7 +899,7 @@ static lispval parse_list(U8_INPUT *in)
   /* This starts parsing the list after a '(' has been read. */
   int ch = skip_whitespace(in); lispval head = VOID;
   if (ch<0)
-    if (ch== -1) return KNO_EOX;
+    if (ch==-1) return KNO_EOX;
     else return KNO_PARSE_ERROR;
   else if (ch == ')') {
     /* The empty list case */
@@ -1085,7 +1095,8 @@ lispval kno_parser(u8_input in)
 {
   int inchar = skip_whitespace(in);
   if (inchar<0) {
-    if (inchar== -1) return KNO_EOX;
+    if (inchar== -1)
+      return KNO_EOX;
     else return KNO_PARSE_ERROR;}
   else switch (inchar) {
     case ')': case ']': case '}': {
