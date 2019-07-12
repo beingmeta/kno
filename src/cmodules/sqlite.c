@@ -106,7 +106,8 @@ static int open_knosqlite(struct KNO_SQLITE *knosqlptr)
 {
   u8_log(LOG_WARN,"open_knosqlite",
          "Opening SQLite database %s info=%s, filename=%s",
-         knosqlptr->sqldb_spec,knosqlptr->sqldb_info,knosqlptr->sqlitefile);
+         knosqlptr->sqldb_spec,knosqlptr->sqldb_info,
+         knosqlptr->sqlitefile);
   u8_lock_mutex(&(knosqlptr->sqlite_lock));
   if (knosqlptr->sqlitedb) {
     u8_unlock_mutex(&(knosqlptr->sqlite_lock));
@@ -116,7 +117,8 @@ static int open_knosqlite(struct KNO_SQLITE *knosqlptr)
 #if HAVE_SQLITE3_V2
     int flags = getv2flags(knosqlptr->sqldb_options,knosqlptr->sqlitefile);
     if (flags<0) return flags;
-    retval = sqlite3_open_v2(knosqlptr->sqlitefile,&db,flags,knosqlptr->sqlitevfs);
+    retval = sqlite3_open_v2(knosqlptr->sqlitefile,&db,flags,
+                             knosqlptr->sqlitevfs);
 #else
     retval = sqlite3_open(knosqlptr->sqlitefile,&db);
 #endif
@@ -212,7 +214,7 @@ static lispval sqlite_reopen_prim(lispval db)
 
 static void close_knosqlite(struct KNO_SQLITE *dbp,int lock)
 {
-  u8_log(LOG_WARN,"Closing SQLITE db %s",dbp->sqldb_spec);
+  u8_log(LOG_WARN,"close_knosqlite","Closing SQLITE db %s",dbp->sqldb_spec);
   if (lock) u8_lock_mutex(&(dbp->sqlite_lock)); {
     sqlite3 *db = dbp->sqlitedb;
     struct KNO_SQLDB_PROC **scan = dbp->sqldb_procs;
@@ -238,10 +240,7 @@ static void recycle_knosqlite(struct KNO_SQLDB *c)
   struct KNO_SQLITE *dbp = (struct KNO_SQLITE *)c;
   u8_lock_mutex(&(dbp->sqlite_lock)); {
     close_knosqlite(dbp,0);
-    if (dbp->sqldb_info!=dbp->sqldb_spec) u8_free(dbp->sqldb_info);
-    u8_free(dbp->sqldb_spec);
-    kno_decref(dbp->sqldb_options);
-    kno_decref(dbp->sqldb_colinfo);
+    u8_free(dbp->sqlitefile);
     u8_destroy_mutex(&(dbp->sqlite_lock));}
 }
 
@@ -389,7 +388,6 @@ static lispval sqlitemakeproc
       j++;}
     sqlcons->sqldb_paramtypes = paramtypes;}
   sqlcons->sqldb_colinfo = merge_colinfo(dbp,colinfo);
-  kno_incref(dbp->sqldb_colinfo);
   kno_register_sqldb_proc((struct KNO_SQLDB_PROC *)sqlcons);
   return LISP_CONS(sqlcons);
 }
@@ -405,7 +403,8 @@ static lispval merge_colinfo(KNO_SQLITE *dbp,lispval colinfo)
            ((KNO_CDR(colinfo)) == (dbp->sqldb_colinfo)))
     return kno_incref(colinfo);
   else {
-    kno_incref(dbp->sqldb_colinfo); kno_incref(colinfo);
+    kno_incref(dbp->sqldb_colinfo);
+    kno_incref(colinfo);
     return kno_conspair(colinfo,dbp->sqldb_colinfo);}
 }
 
@@ -448,11 +447,14 @@ static void recycle_knosqliteproc(struct KNO_SQLDB_PROC *c)
     return;}
   close_knosqliteproc(dbp);
   kno_decref(dbp->sqldb_colinfo);
-  u8_free(dbp->sqldb_spec); u8_free(dbp->sqldb_qtext);
+  u8_free(dbp->sqldb_spec);
+  u8_free(dbp->sqldb_qtext);
   {int j = 0, lim = dbp->fcn_n_params;; while (j<lim) {
     kno_decref(dbp->sqldb_paramtypes[j]); j++;}}
-  u8_free(dbp->sqltypes); u8_free(dbp->sqldb_paramtypes);
-  kno_decref(dbp->sqldbptr); dbp->sqldbptr = KNO_VOID;
+  u8_free(dbp->sqltypes);
+  u8_free(dbp->sqldb_paramtypes);
+  kno_decref(dbp->sqldbptr);
+  dbp->sqldbptr = KNO_VOID;
 }
 
 /* Calling a SQLITE proc */
