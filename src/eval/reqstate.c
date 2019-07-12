@@ -352,7 +352,8 @@ KNO_EXPORT void kno_init_reqstate_c()
   kno_idefn(module,kno_make_ndprim(kno_make_cprim2("REQ/GET",reqget_prim,1)));
   kno_idefn(module,kno_make_ndprim(kno_make_cprim2("REQ/VAL",reqval_prim,1)));
   kno_idefn(module,kno_make_ndprim(kno_make_cprim2("REQ/TEST",reqtest_prim,1)));
-  kno_idefn(module,kno_make_ndprim(kno_make_cprim2("REQ/SET!",reqset_prim,2)));
+  kno_idefn(module,kno_make_ndprim(kno_make_cprim2("REQ/STORE!",reqstore_prim,2)));
+  kno_defalias(module,"REQ/SET!","REQ/STORE!");
   kno_idefn(module,kno_make_cprim2("REQ/ADD!",reqadd_prim,2));
   kno_idefn(module,kno_make_cprim2("REQ/DROP!",reqdrop_prim,1));
   kno_idefn(module,kno_make_cprim2("REQ/PUSH!",reqpush_prim,2));
@@ -364,8 +365,9 @@ KNO_EXPORT void kno_init_reqstate_c()
   kno_def_evalfn(module,"#:?","",hashcolonquestion_evalfn);
 #endif
 
-  kno_def_evalfn(module,"REQLOG","",reqlog_evalfn);
-  kno_def_evalfn(module,"REQ/LOG!","",reqlog_evalfn);
+  kno_def_evalfn(module,"REQ/LOG","",reqlog_evalfn);
+  kno_defalias(module,"REQLOG","REQ/LOG");
+  kno_defalias(module,"REQ/LOG!","REQ/LOG");
   kno_idefn(module,kno_make_cprim0("REQ/GETLOG",reqgetlog_prim));
   kno_idefn(module,kno_make_cprim0("REQ/LOGLEN",reqloglen_prim));
 
