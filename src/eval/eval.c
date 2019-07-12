@@ -2137,7 +2137,9 @@ static void init_eval_core()
   u8_threadcheck();
 
   kno_finish_module(kno_scheme_module);
-  kno_finish_module(kno_scheme_module);
+  kno_finish_module(kno_db_module);
+  kno_finish_module(kno_io_module);
+  kno_finish_module(kno_sys_module);
 }
 
 KNO_EXPORT int kno_load_scheme()
