@@ -686,10 +686,12 @@
 
 ;;;; Reduce-choice
 
-(applytest 9 (reduce-choice + {2 3 4}))
-(applytest 17 (reduce-choice + {2 3 4} 8))
-(applytest 24 (reduce-choice * {2 3 4}))
+(applytest 9 reduce-choice + {2 3 4})
+(applytest {3 9} reduce-choice {+ -} {2 3 4})
+(applytest 17 reduce-choice + {2 3 4} 8)
+(applytest 24 reduce-choice * {2 3 4})
 (applytest 60 reduce-choice * {2 3 4} 1 1+)
+(applytest {6 7 13 60} reduce-choice {* +} {2 3 4} 1 {1+ -1+})
 (applytest "foobazbar" reduce-choice glom {"foo" "bar" "baz"})
 (applytest "foobazbar" reduce-choice glom {"foo" "bar" "baz"} #f)
 (applytest (apply glom (->list (reverse (choice->vector '{foo bar baz})))) 
@@ -700,6 +702,9 @@
 (applytest 63 reduce-choice + string-choice 0 length-schemap)
 (applytest 63 reduce-choice + string-choice 0 length-hashtable)
 
+(applytest {11 63} reduce-choice {+ -} string-choice 0 length-hashtable)
+(applytest {11 63} reduce-choice {+ -} string-choice 0 length)
+
 (applytest 'err reduce-choice if string-choice 0 length)
 (applytest 'err reduce-choice + string-choice 0 if)
 (applytest 'err reduce-choice + string-choice 0 "string")
@@ -709,6 +714,9 @@
 
 (applytest 'err reduce-choice bad-combine string-choice 0 length)
 (applytest 'err reduce-choice + string-choice 0 bad-part)
+
+(applytest 'err reduce-choice bad-combine string-choice 0 length)
+(applytest 'err reduce-choice {+ -} string-choice 0 bad-part)
 
 (applytest 'err sorted string-choice length-errfn)
 (applytest 'err rsorted string-choice length-errfn)
@@ -738,10 +746,7 @@
     (applytest usechoice difference usechoice removed)
     (applytest removed2 difference removed2 usechoice)))
 
-(message "CHOICETEST successfuly completed")
-
 ;;; Fix-choice should never be neccessary
 (applytest {"one" #(two) #"three"} %fixchoice {"one" #(two) #"three"})
-
 
 (test-finished "CHOICETEST")

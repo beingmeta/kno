@@ -21,6 +21,38 @@
 
 #include "eval_internals.h"
 
+static lispval keyfn_get(lispval val,lispval keyfn)
+{
+  if ( (VOIDP(keyfn)) || (KNO_FALSEP(keyfn)) || (KNO_DEFAULTP(keyfn)) )
+    return kno_incref(val);
+  else if (OIDP(val))
+    return kno_frame_get(val,keyfn);
+  else {
+    kno_ptr_type type = KNO_PTR_TYPE(keyfn);
+    switch (type) {
+    case kno_hashtable_type:
+    case kno_slotmap_type:
+    case kno_schemap_type:
+      return kno_get(keyfn,val,EMPTY);
+    case kno_lambda_type:
+    case kno_cprim_type:
+      return kno_finish_call(kno_dapply(keyfn,1,&val));
+    default:
+      if (KNO_APPLICABLEP(keyfn))
+        return kno_finish_call(kno_dapply(keyfn,1,&val));
+      else if (KNO_TABLEP(keyfn))
+        return kno_get(keyfn,val,EMPTY);
+      else if (KNO_TABLEP(val))
+        return kno_get(val,keyfn,EMPTY);
+      else return KNO_EMPTY;}}
+}
+
+#define KEYFNP(x) \
+  ((VOIDP(x)) || (FALSEP(x)) || (DEFAULTP(x)) || \
+   (SYMBOLP(x)) || (OIDP(x)) ||                  \
+   (TABLEP(x)) ||                                \
+   (KNO_APPLICABLEP(x)))
+
 /* Choice iteration */
 
 static lispval parse_control_spec
@@ -239,197 +271,6 @@ static lispval filterchoices_evalfn(lispval expr,kno_lexenv env,kno_stack _stack
     filterchoices_vals[1]=VOID;
     i++;}
   _return kno_simplify_choice(results);
-}
-
-/* This iterates over the subsets of a choice and is useful for
-    dividing a large dataset into smaller chunks for processing.
-   It tries to save effort by not incref'ing elements when creating the subset.
-   It tries to stack allocate as much as possible for locality and convenience sake.
-   Note that this treats a non-choice as a choice of one element.
-   This returns VOID.  */
-static lispval dosubsets_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
-{
-  lispval body = kno_get_body(expr,2);
-  if (! (PRED_TRUE( (KNO_PAIRP(body)) || (body == KNO_NIL) )) )
-    return kno_err(kno_SyntaxError,"forchoices_evalfn",NULL,expr);
-  lispval choices, count_var, var;
-  lispval control_spec = kno_get_arg(expr,1);
-  lispval bsize; long long blocksize;
-  if (!((PAIRP(control_spec)) &&
-        (SYMBOLP(KNO_CAR(control_spec))) &&
-        (PAIRP(KNO_CDR(control_spec))) &&
-        (PAIRP(KNO_CDR(KNO_CDR(control_spec))))))
-    return kno_err(kno_SyntaxError,"dosubsets_evalfn",NULL,VOID);
-  var = KNO_CAR(control_spec);
-  count_var = kno_get_arg(control_spec,3);
-  if (!((VOIDP(count_var)) || (SYMBOLP(count_var))))
-    return kno_err(kno_SyntaxError,"dosubsets_evalfn",NULL,VOID);
-  bsize = kno_eval(KNO_CADR(KNO_CDR(control_spec)),env);
-  if (KNO_ABORTED(bsize)) return bsize;
-  else if (!(FIXNUMP(bsize)))
-    return kno_type_error("fixnum","dosubsets_evalfn",bsize);
-  else blocksize = FIX2INT(bsize);
-  choices = kno_eval(KNO_CADR(control_spec),env);
-  if (KNO_ABORTED(choices)) return choices;
-  else {KNO_SIMPLIFY_CHOICE(choices);}
-  if (EMPTYP(choices)) return VOID;
-  KNO_ADD_TO_CHOICE(_stack->stack_vals,choices);
-  INIT_STACK_ENV(_stack,dosubsets,env,2);
-  dosubsets_vars[0]=var;
-  if (SYMBOLP(count_var))
-    dosubsets_vars[1]=count_var;
-  else dosubsets_bindings.schema_length=1;
-  int i = 0, n = KNO_CHOICE_SIZE(choices), n_blocks = 1+n/blocksize;
-  int all_atomicp = ((CHOICEP(choices)) ?
-                     (KNO_ATOMIC_CHOICEP(choices)) : (0));
-  const lispval *data=
-    ((CHOICEP(choices))?(KNO_CHOICE_DATA(choices)):(NULL));
-  if ((n%blocksize)==0) n_blocks--;
-  while (i<n_blocks) {
-    lispval block;
-    if ((CHOICEP(choices)) && (n_blocks>1)) {
-      const lispval *read = &(data[i*blocksize]), *limit = read+blocksize;
-      struct KNO_CHOICE *subset = kno_alloc_choice(blocksize); int atomicp = 1;
-      lispval *write = ((lispval *)(KNO_XCHOICE_DATA(subset)));
-      if (limit>(data+n)) limit = data+n;
-      if (all_atomicp)
-        while (read<limit) *write++= *read++;
-      else while (read<limit) {
-          lispval v = *read++;
-          if (CONSP(v)) {
-            atomicp=0; kno_incref(v);}
-          *write++=v;}
-      {KNO_INIT_XCHOICE(subset,write-KNO_XCHOICE_DATA(subset),atomicp);}
-      block = (lispval)subset;}
-    else block = kno_incref(choices);
-    dosubsets_vals[0]=block;
-    dosubsets_vals[1]=KNO_INT(i);
-    {KNO_DOLIST(subexpr,body) {
-        lispval val = fast_eval(subexpr,dosubsets);
-        if (KNO_BROKEP(val)) {
-          _return VOID;}
-        else if (KNO_ABORTED(val))
-          _return val;
-        else kno_decref(val);}}
-    reset_env(dosubsets);
-    kno_decref(dosubsets_vals[0]);
-    dosubsets_vals[0]=VOID;
-    kno_decref(dosubsets_vals[1]);
-    dosubsets_vals[1]=VOID;
-    i++;}
-  _return VOID;
-}
-
-/* SMALLEST and LARGEST */
-
-static int compare_lisp(lispval x,lispval y)
-{
-  kno_ptr_type xtype = KNO_PTR_TYPE(x), ytype = KNO_PTR_TYPE(y);
-  if (xtype == ytype)
-    switch (xtype) {
-    case kno_fixnum_type: {
-      long long xval = FIX2INT(x), yval = FIX2INT(y);
-      if (xval < yval) return -1;
-      else if (xval > yval) return 1;
-      else return 0;}
-    case kno_oid_type: {
-      KNO_OID xval = KNO_OID_ADDR(x), yval = KNO_OID_ADDR(y);
-      return KNO_OID_COMPARE(xval,yval);}
-    default:
-      return KNO_FULL_COMPARE(x,y);}
-  else if (xtype<ytype) return -1;
-  else return 1;
-}
-
-static lispval getmagnitude(lispval val,lispval magfn)
-{
-  if (VOIDP(magfn))
-    return kno_incref(val);
-  else {
-    kno_ptr_type magtype = KNO_PTR_TYPE(magfn);
-    switch (magtype) {
-    case kno_hashtable_type:
-    case kno_slotmap_type:
-    case kno_schemap_type:
-      return kno_get(magfn,val,EMPTY);
-    default:
-      if (KNO_APPLICABLEP(magfn))
-        return kno_finish_call(kno_dapply(magfn,1,&val));
-      else return kno_get(val,magfn,EMPTY);}}
-}
-
-static lispval smallest_prim(lispval elts,lispval magnitude)
-{
-  lispval top = EMPTY, top_score = VOID;
-  DO_CHOICES(elt,elts) {
-    lispval score = getmagnitude(elt,magnitude);
-    if ( (KNO_ABORTED(score)) || (KNO_VOIDP(score)) ) {
-      u8_byte msgbuf[100];
-      kno_decref(top);
-      kno_decref(top_score);
-      if (VOIDP(score))
-        return kno_err(kno_VoidSortKey,"smallest_evalfn",
-                       u8_bprintf(msgbuf,"from keyfn %q",magnitude),
-                       elt);
-      else return score;}
-    else if (VOIDP(top_score))
-      if (EMPTYP(score)) {}
-      else {
-        top = kno_incref(elt);
-        top_score = score;}
-    else if (EMPTYP(score)) {}
-    else {
-      int comparison = compare_lisp(score,top_score);
-      if (comparison>0) {
-        kno_decref(score);}
-      else if (comparison == 0) {
-        kno_incref(elt);
-        CHOICE_ADD(top,elt);
-        kno_decref(score);}
-      else {
-        kno_decref(top);
-        kno_decref(top_score);
-        top = kno_incref(elt);
-        top_score = score;}}}
-  kno_decref(top_score);
-  return top;
-}
-
-static lispval largest_prim(lispval elts,lispval magnitude)
-{
-  lispval top = EMPTY, top_score = VOID;
-  DO_CHOICES(elt,elts) {
-    lispval score = getmagnitude(elt,magnitude);
-    if ( (KNO_ABORTED(score)) || (KNO_VOIDP(score)) ) {
-      u8_byte msgbuf[100];
-      kno_decref(top);
-      kno_decref(top_score);
-      if (VOIDP(score))
-        return kno_err(kno_VoidSortKey,"largest_evalfn",
-                       u8_bprintf(msgbuf,"from keyfn %q",magnitude),
-                       elt);
-      else return score;}
-    else if (VOIDP(top_score))
-      if (EMPTYP(score)) {}
-      else {
-        top = kno_incref(elt);
-        top_score = score;}
-    else if (EMPTYP(score)) {}
-    else {
-      int comparison = compare_lisp(score,top_score);
-      if (comparison<0) {
-        kno_decref(score);}
-      else if (comparison == 0) {
-        kno_incref(elt);
-        CHOICE_ADD(top,elt);
-        kno_decref(score);}
-      else {
-        kno_decref(top);
-        kno_decref(top_score);
-        top = kno_incref(elt);
-        top_score = score;}}}
-  kno_decref(top_score);
-  return top;
 }
 
 /* Choice functions */
@@ -863,119 +704,86 @@ static lispval choice2list(lispval x)
   return lst;
 }
 
-static lispval get_part(lispval x,lispval part)
+/* This iterates over the subsets of a choice and is useful for
+    dividing a large dataset into smaller chunks for processing.
+   It tries to save effort by not incref'ing elements when creating the subset.
+   It tries to stack allocate as much as possible for locality and convenience sake.
+   Note that this treats a non-choice as a choice of one element.
+   This returns VOID.  */
+static lispval dosubsets_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  if (VOIDP(part)) return kno_incref(x);
-  else if (KNO_APPLICABLEP(part))
-    return kno_apply(part,1,&x);
-  else if ((TABLEP(part)) && (!(OIDP(part))))
-    return kno_get(part,x,EMPTY);
-  else if (OIDP(x))
-    return kno_frame_get(x,part);
-  else if (TABLEP(x))
-    return kno_get(x,part,EMPTY);
-  else return EMPTY;
+  lispval body = kno_get_body(expr,2);
+  if (! (PRED_TRUE( (KNO_PAIRP(body)) || (body == KNO_NIL) )) )
+    return kno_err(kno_SyntaxError,"forchoices_evalfn",NULL,expr);
+  lispval choices, count_var, var;
+  lispval control_spec = kno_get_arg(expr,1);
+  lispval bsize; long long blocksize;
+  if (!((PAIRP(control_spec)) &&
+        (SYMBOLP(KNO_CAR(control_spec))) &&
+        (PAIRP(KNO_CDR(control_spec))) &&
+        (PAIRP(KNO_CDR(KNO_CDR(control_spec))))))
+    return kno_err(kno_SyntaxError,"dosubsets_evalfn",NULL,VOID);
+  var = KNO_CAR(control_spec);
+  count_var = kno_get_arg(control_spec,3);
+  if (!((VOIDP(count_var)) || (SYMBOLP(count_var))))
+    return kno_err(kno_SyntaxError,"dosubsets_evalfn",NULL,VOID);
+  bsize = kno_eval(KNO_CADR(KNO_CDR(control_spec)),env);
+  if (KNO_ABORTED(bsize)) return bsize;
+  else if (!(FIXNUMP(bsize)))
+    return kno_type_error("fixnum","dosubsets_evalfn",bsize);
+  else blocksize = FIX2INT(bsize);
+  choices = kno_eval(KNO_CADR(control_spec),env);
+  if (KNO_ABORTED(choices)) return choices;
+  else {KNO_SIMPLIFY_CHOICE(choices);}
+  if (EMPTYP(choices)) return VOID;
+  KNO_ADD_TO_CHOICE(_stack->stack_vals,choices);
+  INIT_STACK_ENV(_stack,dosubsets,env,2);
+  dosubsets_vars[0]=var;
+  if (SYMBOLP(count_var))
+    dosubsets_vars[1]=count_var;
+  else dosubsets_bindings.schema_length=1;
+  int i = 0, n = KNO_CHOICE_SIZE(choices), n_blocks = 1+n/blocksize;
+  int all_atomicp = ((CHOICEP(choices)) ?
+                     (KNO_ATOMIC_CHOICEP(choices)) : (0));
+  const lispval *data=
+    ((CHOICEP(choices))?(KNO_CHOICE_DATA(choices)):(NULL));
+  if ((n%blocksize)==0) n_blocks--;
+  while (i<n_blocks) {
+    lispval block;
+    if ((CHOICEP(choices)) && (n_blocks>1)) {
+      const lispval *read = &(data[i*blocksize]), *limit = read+blocksize;
+      struct KNO_CHOICE *subset = kno_alloc_choice(blocksize); int atomicp = 1;
+      lispval *write = ((lispval *)(KNO_XCHOICE_DATA(subset)));
+      if (limit>(data+n)) limit = data+n;
+      if (all_atomicp)
+        while (read<limit) *write++= *read++;
+      else while (read<limit) {
+          lispval v = *read++;
+          if (CONSP(v)) {
+            atomicp=0; kno_incref(v);}
+          *write++=v;}
+      {KNO_INIT_XCHOICE(subset,write-KNO_XCHOICE_DATA(subset),atomicp);}
+      block = (lispval)subset;}
+    else block = kno_incref(choices);
+    dosubsets_vals[0]=block;
+    dosubsets_vals[1]=KNO_INT(i);
+    {KNO_DOLIST(subexpr,body) {
+        lispval val = fast_eval(subexpr,dosubsets);
+        if (KNO_BROKEP(val)) {
+          _return VOID;}
+        else if (KNO_ABORTED(val))
+          _return val;
+        else kno_decref(val);}}
+    reset_env(dosubsets);
+    kno_decref(dosubsets_vals[0]);
+    dosubsets_vals[0]=VOID;
+    kno_decref(dosubsets_vals[1]);
+    dosubsets_vals[1]=VOID;
+    i++;}
+  _return VOID;
 }
 
-#define KNO_PARTP(x) \
-  ((SYMBOLP(x)) || (OIDP(x)) || (VOIDP(x)) || \
-   (TABLEP(x)) || (KNO_APPLICABLEP(x)))
-
-static lispval reduce_choice(lispval fn,lispval choice,lispval start,lispval part)
-{
-  if ((KNO_APPLICABLEP(fn)) && ((VOIDP(part)) || (KNO_PARTP(part)))) {
-    lispval state = kno_incref(start);
-    DO_CHOICES(each,choice) {
-      lispval items = get_part(each,part);
-      if (KNO_ABORTED(items)) {
-        KNO_STOP_DO_CHOICES;
-        kno_decref(state);
-        return items;}
-      else if (VOIDP(state))
-        state = kno_incref(items);
-      else if (EMPTYP(items)) {}
-      else if (AMBIGP(items)) {
-        DO_CHOICES(item,items) {
-          lispval rail[2], next_state;
-          rail[0]=item; rail[1]=state;
-          next_state = kno_apply(fn,2,rail);
-          if (KNO_ABORTED(next_state)) {
-            kno_decref(state);
-            kno_decref(items);
-            KNO_STOP_DO_CHOICES;
-            return next_state;}
-          kno_decref(state);
-          state = next_state;}}
-      else {
-        lispval item = items;
-        lispval rail[2], next_state;
-        rail[0]=item; rail[1]=state;
-        next_state = kno_apply(fn,2,rail);
-        if (KNO_ABORTED(next_state)) {
-          kno_decref(state);
-          kno_decref(items);
-          KNO_STOP_DO_CHOICES;
-          return next_state;}
-        kno_decref(state);
-        state = next_state;}
-      kno_decref(items);}
-    return state;}
-  else if (!(KNO_APPLICABLEP(fn)))
-    return kno_type_error(_("function"),"reduce_choice",fn);
-  else return kno_type_error(_("part"),"reduce_choice",part);
-}
-
-static lispval apply_map(lispval fn,lispval val)
-{
-  if ((VOIDP(fn)) || (FALSEP(fn)))
-    return kno_incref(val);
-  else if (KNO_APPLICABLEP(fn))
-    return kno_apply(fn,1,&val);
-  else if (TABLEP(fn))
-    return kno_get(fn,val,VOID);
-  else return kno_type_error(_("map function"),"xreduce_choice",fn);
-}
-
-static lispval xreduce_choice
-  (lispval choice,lispval reducefn,lispval mapfn,lispval start)
-{
-  if (CHOICEP(reducefn)) {
-    lispval result = EMPTY;
-    DO_CHOICES(rfn,reducefn) {
-      lispval v = xreduce_choice(choice,rfn,mapfn,start);
-      if (KNO_ABORTED(v)) {
-        kno_decref(result); KNO_STOP_DO_CHOICES;
-        return result;}
-      else {CHOICE_ADD(result,v);}}
-    return result;}
-  else if (CHOICEP(mapfn)) {
-    lispval result = EMPTY;
-    DO_CHOICES(mfn,mapfn) {
-      lispval v = xreduce_choice(choice,reducefn,mfn,start);
-      if (KNO_ABORTED(v)) {
-        kno_decref(result); KNO_STOP_DO_CHOICES;
-        return result;}
-      else {CHOICE_ADD(result,v);}}
-    return result;}
-  else if (KNO_APPLICABLEP(reducefn)) {
-    lispval state = ((VOIDP(start))?(start):(apply_map(mapfn,start)));
-    DO_CHOICES(item,choice)
-      if (KNO_ABORTED(state)) {
-        KNO_STOP_DO_CHOICES;
-        return state;}
-      else if (VOIDP(state))
-        state = apply_map(mapfn,item);
-      else {
-        lispval item_val = apply_map(mapfn,item);
-        if (!((VOIDP(item_val)) || (EMPTYP(item_val)))) {
-          lispval rail[2], next_state;
-          rail[0]=item_val; rail[1]=state;
-          next_state = kno_apply(reducefn,2,rail);
-          kno_decref(item_val); kno_decref(state);
-          state = next_state;}}
-    return state;}
-  else return kno_type_error(_("function"),"xreduce_choice",reducefn);
-}
+/* Standard kinds of reduce choice */
 
 static lispval choicesize_prim(lispval x)
 {
@@ -1082,6 +890,259 @@ static lispval pickn(lispval x,lispval count,lispval offset)
       else return EMPTY;}
     else return kno_incref(x);}
   else return kno_type_error("integer","topn",count);
+}
+
+/* SMALLEST and LARGEST */
+
+static int compare_lisp(lispval x,lispval y)
+{
+  kno_ptr_type xtype = KNO_PTR_TYPE(x), ytype = KNO_PTR_TYPE(y);
+  if (xtype == ytype)
+    switch (xtype) {
+    case kno_fixnum_type: {
+      long long xval = FIX2INT(x), yval = FIX2INT(y);
+      if (xval < yval) return -1;
+      else if (xval > yval) return 1;
+      else return 0;}
+    case kno_oid_type: {
+      KNO_OID xval = KNO_OID_ADDR(x), yval = KNO_OID_ADDR(y);
+      return KNO_OID_COMPARE(xval,yval);}
+    default:
+      return KNO_FULL_COMPARE(x,y);}
+  else if (xtype<ytype) return -1;
+  else return 1;
+}
+
+static lispval smallest_prim(lispval elts,lispval magnitude)
+{
+  if (KNO_CHOICEP(magnitude)) {
+    /* TODO: This probably isn't the right thing. If the magnitude is a choice,
+       we might want to use the smallest score as the basis for comparison.
+       But developers can also just code that on the outside by defining a
+       magnitude function which returns the largest magnitude. */
+    lispval results = KNO_EMPTY;
+    DO_CHOICES(ok,magnitude) {
+      if (KEYFNP(ok)) {
+        lispval largest = smallest_prim(elts,ok);
+        if (KNO_ABORTP(largest)) {
+          KNO_STOP_DO_CHOICES;
+          kno_decref(results);
+          return ok;}
+        else {KNO_ADD_TO_CHOICE(results,largest);}}
+      else {
+        KNO_STOP_DO_CHOICES;
+        kno_decref(results);
+        return kno_type_error("keyfn","smallest_prim",ok);}}
+    return results;}
+  else if (PRED_FALSE (! (KEYFNP(magnitude)) ) )
+    return kno_type_error("keyfn","smallest_prim",magnitude);
+  else {
+    lispval top = EMPTY, top_score = VOID;
+    DO_CHOICES(elt,elts) {
+      lispval score = keyfn_get(elt,magnitude);
+      if ( (KNO_ABORTED(score)) || (KNO_VOIDP(score)) ) {
+        u8_byte msgbuf[100];
+        kno_decref(top);
+        kno_decref(top_score);
+        if (VOIDP(score))
+          return kno_err(kno_VoidSortKey,"smallest_prim",
+                         u8_bprintf(msgbuf,"from keyfn %q",magnitude),
+                         elt);
+        else return score;}
+      else if (VOIDP(top_score))
+        if (EMPTYP(score)) {}
+        else {
+          top = kno_incref(elt);
+          top_score = score;}
+      else if (EMPTYP(score)) {}
+      else {
+        int comparison = compare_lisp(score,top_score);
+        if (comparison>0) {
+          kno_decref(score);}
+        else if (comparison == 0) {
+          kno_incref(elt);
+          CHOICE_ADD(top,elt);
+          kno_decref(score);}
+        else {
+          kno_decref(top);
+          kno_decref(top_score);
+          top = kno_incref(elt);
+          top_score = score;}}}
+    kno_decref(top_score);
+    return top;}
+}
+
+static lispval largest_prim(lispval elts,lispval magnitude)
+{
+  if (KNO_CHOICEP(magnitude)) {
+    /* TODO: This probably isn't the right thing. If the magnitude is a choice,
+       we might want to use the largest score as the basis for comparison.
+       But developers can also just code that on the outside by defining a
+       magnitude function which returns the largest magnitude. */
+    lispval results = KNO_EMPTY;
+    DO_CHOICES(ok,magnitude) {
+      if (KEYFNP(ok)) {
+        lispval largest = largest_prim(elts,ok);
+        if (KNO_ABORTP(largest)) {
+          KNO_STOP_DO_CHOICES;
+          kno_decref(results);
+          return ok;}
+        else {KNO_ADD_TO_CHOICE(results,largest);}}
+      else {
+        KNO_STOP_DO_CHOICES;
+        kno_decref(results);
+        return kno_type_error("keyfn","largest_prim",ok);}}
+    return results;}
+  else if (PRED_FALSE (! (KEYFNP(magnitude)) ) )
+    return kno_type_error("keyfn","largest_prim",magnitude);
+  else {
+    lispval top = EMPTY, top_score = VOID;
+    DO_CHOICES(elt,elts) {
+      lispval score = keyfn_get(elt,magnitude);
+      if ( (KNO_ABORTED(score)) || (KNO_VOIDP(score)) ) {
+        u8_byte msgbuf[100];
+        kno_decref(top);
+        kno_decref(top_score);
+        if (VOIDP(score))
+          return kno_err(kno_VoidSortKey,"largest_prim",
+                         u8_bprintf(msgbuf,"from keyfn %q",magnitude),
+                         elt);
+        else return score;}
+      else if (VOIDP(top_score))
+        if (EMPTYP(score)) {}
+        else {
+          top = kno_incref(elt);
+          top_score = score;}
+      else if (EMPTYP(score)) {}
+      else {
+        int comparison = compare_lisp(score,top_score);
+        if (comparison<0) {
+          kno_decref(score);}
+        else if (comparison == 0) {
+          kno_incref(elt);
+          CHOICE_ADD(top,elt);
+          kno_decref(score);}
+        else {
+          kno_decref(top);
+          kno_decref(top_score);
+          top = kno_incref(elt);
+          top_score = score;}}}
+    kno_decref(top_score);
+    return top;}
+}
+
+/* Reduce choice */
+
+static int reduce_functionp(kno_function f)
+{
+  return ( (f->fcn_min_arity == 2) ||
+           ( (f->fcn_arity < 0) && (f->fcn_min_arity < 2) ) );
+}
+
+static int reduce_operatorp(lispval f)
+{
+  if (KNO_FUNCTIONP(f))
+    return reduce_functionp((kno_function)f);
+  else if (KNO_APPLICABLEP(f))
+    return 1;
+  else return 0;
+}
+
+static int non_deterministicp(lispval fn)
+{
+  if (KNO_FUNCTIONP(fn)) {
+    kno_function f = (kno_function) fn;
+    return (f->fcn_ndcall);}
+  else if (KNO_APPLICABLEP(fn))
+    return 1;
+  else return 0;
+}
+
+static lispval inner_reduce_choice
+(lispval choice,lispval fn,lispval start,lispval keyfn);
+
+static lispval reduce_choice(lispval fn,lispval choice,lispval start,
+                             lispval keyfn)
+{
+  /* Type checking up front */
+  if (KNO_CHOICEP(fn)) {
+    KNO_DO_CHOICES(f,fn)
+      if (! (PRED_TRUE(reduce_operatorp(f))) ) {
+        KNO_STOP_DO_CHOICES;
+        return kno_type_error("reduce operator","reduce_choice",f);}}
+  else if (! (PRED_TRUE(reduce_operatorp(fn))) )
+    return kno_type_error("reduce operator","reduce_choice",fn);
+  else NO_ELSE;
+  if ( (VOIDP(keyfn)) || (FALSEP(keyfn)) || (DEFAULTP(keyfn)) ) {}
+  else if (PRED_TRUE(KEYFNP(keyfn))) {}
+  else if (KNO_CHOICEP(keyfn)) {
+    KNO_DO_CHOICES(ok,keyfn)
+      if (! (PRED_TRUE(KEYFNP(ok))) ) {
+        KNO_STOP_DO_CHOICES;
+        return kno_type_error("object key","reduce_choice",ok);}}
+  else return kno_type_error("object key","reduce_choice",keyfn);
+  return kno_simplify_choice(inner_reduce_choice(choice,fn,start,keyfn));
+}
+
+static lispval inner_reduce_choice
+(lispval choice,lispval fn,lispval start,lispval keyfn)
+{
+  if (KNO_CHOICEP(fn)) {
+    lispval results = KNO_EMPTY;
+    KNO_DO_CHOICES(f,fn) {
+      lispval reduction = inner_reduce_choice(choice,f,start,keyfn);
+      if (KNO_ABORTED(reduction)) {
+        KNO_STOP_DO_CHOICES;
+        kno_decref(results);
+        return reduction;}
+      else KNO_ADD_TO_CHOICE(results,reduction);}
+    return results;}
+  else if (KNO_CHOICEP(keyfn)) {
+    lispval results = KNO_EMPTY;
+    KNO_DO_CHOICES(ok,keyfn) {
+      lispval reduction = inner_reduce_choice(choice,fn,start,ok);
+      if (KNO_ABORTED(reduction)) {
+        KNO_STOP_DO_CHOICES;
+        kno_decref(results);
+        return reduction;}
+      else KNO_ADD_TO_CHOICE(results,reduction);}
+    return results;}
+  else {
+    int nd_reducer = non_deterministicp(fn);
+    lispval state = kno_incref(start);
+    DO_CHOICES(each,choice) {
+      lispval items = keyfn_get(each,keyfn);
+      if (KNO_ABORTED(items)) {
+        KNO_STOP_DO_CHOICES;
+        kno_decref(state);
+        return items;}
+      else if (VOIDP(state)) {
+        state = items;
+        continue;}
+      else if (EMPTYP(items)) {}
+      else if ( (! (nd_reducer) ) && (CHOICEP(items)) ) {
+        DO_CHOICES(item,items) {
+          lispval rail[2] = {item , state}, next_state;
+          next_state = kno_apply(fn,2,rail);
+          if (KNO_ABORTED(next_state)) {
+            kno_decref(state);
+            kno_decref(items);
+            KNO_STOP_DO_CHOICES;
+            return next_state;}
+          kno_decref(state);
+          state = next_state;}}
+      else {
+        lispval rail[2] = {items , state}, next_state;
+        next_state = kno_apply(fn,2,rail);
+        if (KNO_ABORTED(next_state)) {
+          kno_decref(state);
+          kno_decref(items);
+          KNO_STOP_DO_CHOICES;
+          return next_state;}
+        kno_decref(state);
+        state = next_state;}
+      kno_decref(items);}
+    return state;}
 }
 
 /* Sorting */
@@ -1644,8 +1705,6 @@ KNO_EXPORT void kno_init_choicefns_c()
            kno_make_ndprim(kno_make_cprim1("CHOICE->LIST",choice2list,1)));
   kno_idefn(kno_scheme_module,
            kno_make_ndprim(kno_make_cprim4("REDUCE-CHOICE",reduce_choice,2)));
-  kno_idefn(kno_scheme_module,
-           kno_make_ndprim(kno_make_cprim4("XREDUCE",xreduce_choice,3)));
 
   kno_idefn(kno_scheme_module,
            kno_make_ndprim(kno_make_cprim1("PICK-ONE",pickone,1)));
