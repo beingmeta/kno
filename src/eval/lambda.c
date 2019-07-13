@@ -140,6 +140,7 @@ lispval call_lambda(struct KNO_STACK *_stack,
           kno_decref_vec(vals,i);
           _return use_value;}
         else vals[i]=use_value;}
+      else vals[i] = args[i];
       i++;}
     if ( (arity < 0) && (i < n_vars) ) {
       lispval rest_arg=get_rest_arg(args+i,n-i);
