@@ -262,12 +262,12 @@ static void get_form_args(kno_slotmap c)
           /* Add the filename slot if it's an upload */
           if (kno_test(elt,filename_slotid,VOID)) {
             lispval filename = kno_get(elt,filename_slotid,EMPTY);
-            kno_add((lispval)c,intern_compound(nstring,"_FILENAME"),
+            kno_add((lispval)c,intern_compound(nstring,"_filename"),
                    filename);
             kno_decref(filename);}
           if (kno_test(elt,content_type,VOID)) {
             lispval ctype = kno_get(elt,content_type,EMPTY);
-            kno_add((lispval)c,intern_compound(nstring,"_TYPE"),ctype);
+            kno_add((lispval)c,intern_compound(nstring,"_type"),ctype);
             kno_decref(ctype);}
           if ((VOIDP(ctype)) || (kno_overlapp(ctype,KNOSYM_TEXT))) {
             if (STRINGP(content)) {

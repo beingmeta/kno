@@ -37,7 +37,7 @@ static lispval parse_fieldname(u8_string start,u8_string end)
   lispval fieldid;
   U8_INIT_STATIC_OUTPUT_BUF(out,128,buf);
   while (scan<end) {
-    int c = *scan++; u8_putc(&out,toupper(c));}
+    int c = *scan++; u8_putc(&out,tolower(c));}
   fieldid = kno_intern(out.u8_outbuf);
   u8_close((u8_stream)&out);
   return fieldid;
@@ -79,7 +79,9 @@ static void handle_parameters(lispval fields,const u8_byte *data)
 {
   const u8_byte *scan = data, *start = scan;
   int c = u8_sgetc(&scan);
-  while (u8_isspace(c)) {start = scan; c = u8_sgetc(&scan);}
+  while (u8_isspace(c)) {
+    start = scan;
+    c = u8_sgetc(&scan);}
   while (c>0) {
     u8_byte *equals = strchr(start,'=');
     if (equals == NULL) start = strchr(start,';');
