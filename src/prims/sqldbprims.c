@@ -9,7 +9,7 @@
    databases.  There are two Scheme types used by this module:
     SQLDB objects (kno_sqldb_type) are basically database connections
      implemented by CONSes whose header is identical to "struct KNO_SQLDB";
-    SQLDB procedures (kno_sqldb_proc_type) are applicable objects which
+    SQLDB procedures (kno_sqlproc_type) are applicable objects which
      correspond to prepared statements for a particular connection.  These
      procedures have (optional) column info consisting of a slotmap which
      maps column names into either OIDs or functions.  The functions are
@@ -45,7 +45,7 @@
 
 #include <libu8/u8printf.h>
 
-kno_ptr_type kno_sqldb_type, kno_sqldb_proc_type;
+kno_ptr_type kno_sqldb_type, kno_sqlproc_type;
 
 static lispval exec_enabled_symbol;
 
@@ -76,52 +76,52 @@ KNO_EXPORT int kno_register_sqldb_handler(struct KNO_SQLDB_HANDLER *h)
   return retval;
 }
 
-KNO_EXPORT int kno_register_sqldb_proc(struct KNO_SQLDB_PROC *proc)
+KNO_EXPORT int kno_register_sqlproc(struct KNO_SQLPROC *proc)
 {
   struct KNO_SQLDB *db=
     KNO_GET_CONS(proc->sqldbptr,kno_sqldb_type,struct KNO_SQLDB *);
-  u8_lock_mutex(&(db->sqldb_proclock)); {
+  u8_lock_mutex(&(db->sqlproclock)); {
     int i = 0, n = db->sqldb_n_procs;
-    struct KNO_SQLDB_PROC **dbprocs = db->sqldb_procs;
+    struct KNO_SQLPROC **dbprocs = db->sqlprocs;
     while (i<n)
       if ((dbprocs[i]) == proc) {
-        u8_unlock_mutex(&(db->sqldb_proclock));
+        u8_unlock_mutex(&(db->sqlproclock));
         return 0;}
       else i++;
-    if (i>=db->sqldb_procslen) {
-      struct KNO_SQLDB_PROC **newprocs=
-        u8_realloc(dbprocs,sizeof(struct KNO_SQLDB *)*(db->sqldb_procslen+32));
+    if (i>=db->sqlprocslen) {
+      struct KNO_SQLPROC **newprocs=
+        u8_realloc(dbprocs,sizeof(struct KNO_SQLDB *)*(db->sqlprocslen+32));
       if (newprocs == NULL) {
-        u8_unlock_mutex(&(db->sqldb_proclock));
+        u8_unlock_mutex(&(db->sqlproclock));
         u8_graberrno("kno_sqldb_register_proc",u8_strdup(db->sqldb_spec));
         return -1;}
       else {
-        db->sqldb_procs = dbprocs = newprocs;
-        db->sqldb_procslen = db->sqldb_procslen+32;}}
+        db->sqlprocs = dbprocs = newprocs;
+        db->sqlprocslen = db->sqlprocslen+32;}}
     dbprocs[i]=proc; db->sqldb_n_procs++;}
-  u8_unlock_mutex(&(db->sqldb_proclock));
+  u8_unlock_mutex(&(db->sqlproclock));
   return 1;
 }
 
-KNO_EXPORT int kno_release_sqldb_proc(struct KNO_SQLDB_PROC *proc)
+KNO_EXPORT int kno_release_sqlproc(struct KNO_SQLPROC *proc)
 {
   struct KNO_SQLDB *db=
     KNO_GET_CONS(proc->sqldbptr,kno_sqldb_type,struct KNO_SQLDB *);
   if (!(db)) {
-    u8_seterr(_("SQLDB proc without a database"),"kno_release_sqldb_proc",
+    u8_seterr(_("SQLDB proc without a database"),"kno_release_sqlproc",
               u8_strdup(proc->sqldb_qtext));
     return -1;}
-  u8_lock_mutex(&(db->sqldb_proclock)); {
+  u8_lock_mutex(&(db->sqlproclock)); {
     int n = db->sqldb_n_procs, i = n-1;
-    struct KNO_SQLDB_PROC **dbprocs = db->sqldb_procs;
+    struct KNO_SQLPROC **dbprocs = db->sqlprocs;
     while (i>=0)
       if ((dbprocs[i]) == proc) {
-        memmove(dbprocs+i,dbprocs+i+1,(n-(i+1))*sizeof(struct KNO_SQLDB_PROC *));
+        memmove(dbprocs+i,dbprocs+i+1,(n-(i+1))*sizeof(struct KNO_SQLPROC *));
         db->sqldb_n_procs--;
-        u8_unlock_mutex(&(db->sqldb_proclock));
+        u8_unlock_mutex(&(db->sqlproclock));
         return 1;}
       else i--;}
-  u8_unlock_mutex(&(db->sqldb_proclock));
+  u8_unlock_mutex(&(db->sqlproclock));
   u8_log(LOG_CRIT,"sqldb_release_proc","Release of unregistered sqldb proc");
   return 0;
 }
@@ -139,22 +139,28 @@ static void recycle_sqldb_core(struct KNO_SQLDB *dbp)
 {
   if (dbp->sqldb_n_procs) {
     int i = 0, n = dbp->sqldb_n_procs;
-    struct KNO_SQLDB_PROC **procs = dbp->sqldb_procs;
+    struct KNO_SQLPROC **procs = dbp->sqlprocs;
     while (i < n) {
-      struct KNO_SQLDB_PROC *proc = procs[i];
+      struct KNO_SQLPROC *proc = procs[i];
+      procs[i] = NULL;
       if (proc) {
-        kno_decref((lispval)proc);}
+        if (KNO_CONS_TYPE(proc) == kno_sqlproc_type)
+          u8_log(LOG_CRIT,"SQLCleanup","Dangling SQL proc for %q: %q",
+                 (lispval)dbp,(lispval)proc);
+        else u8_log(LOG_CRIT,"SQLCleanup",
+                    "Dangling non SQL proc for %q: %q",
+                    (lispval)dbp,(lispval)proc);}
       i++;}}
-  if (dbp->sqldb_procs) {
-    u8_free(dbp->sqldb_procs);
-    dbp->sqldb_procs = NULL;}
-  dbp->sqldb_n_procs = dbp->sqldb_procslen = 0;
+  if (dbp->sqlprocs) {
+    u8_free(dbp->sqlprocs);
+    dbp->sqlprocs = NULL;}
+  dbp->sqldb_n_procs = dbp->sqlprocslen = 0;
   kno_decref(dbp->sqldb_colinfo);
   kno_decref(dbp->sqldb_options);
   if ( dbp->sqldb_spec != dbp->sqldb_info)
     u8_free(dbp->sqldb_info);
   u8_free(dbp->sqldb_spec);
-  u8_destroy_mutex(&(dbp->sqldb_proclock));
+  u8_destroy_mutex(&(dbp->sqlproclock));
 }
 
 static void recycle_sqldb(struct KNO_RAW_CONS *c)
@@ -165,17 +171,17 @@ static void recycle_sqldb(struct KNO_RAW_CONS *c)
   if (!(KNO_STATIC_CONSP(c))) u8_free(c);
 }
 
-static int unparse_sqldb_proc(u8_output out,lispval x)
+static int unparse_sqlproc(u8_output out,lispval x)
 {
-  struct KNO_SQLDB_PROC *dbp = (struct KNO_SQLDB_PROC *)x;
+  struct KNO_SQLPROC *dbp = (struct KNO_SQLPROC *)x;
   u8_printf(out,"#<DBλ/%s %s: %s>",
             dbp->sqldb_handler->name,dbp->sqldb_spec,dbp->sqldb_qtext);
   return 1;
 }
 
-static void recycle_sqldb_proc(struct KNO_RAW_CONS *c)
+static void recycle_sqlproc(struct KNO_RAW_CONS *c)
 {
-  struct KNO_SQLDB_PROC *dbproc = (struct KNO_SQLDB_PROC *)c;
+  struct KNO_SQLPROC *dbproc = (struct KNO_SQLPROC *)c;
   if (dbproc->sqldb_handler == NULL)
     u8_log(LOG_WARN,_("recycle failed"),"Bad sqldb proc");
   else if (dbproc->sqldb_handler->recycle_proc) {
@@ -190,9 +196,9 @@ static void recycle_sqldb_proc(struct KNO_RAW_CONS *c)
   if (!(KNO_STATIC_CONSP(c))) u8_free(c);
 }
 
-static lispval callsqldbproc(struct KNO_FUNCTION *xdbproc,int n,lispval *args)
+static lispval callsqlproc(struct KNO_FUNCTION *xdbproc,int n,lispval *args)
 {
-  struct KNO_SQLDB_PROC *dbp = (struct KNO_SQLDB_PROC *)xdbproc;
+  struct KNO_SQLPROC *dbp = (struct KNO_SQLPROC *)xdbproc;
   return dbp->fcn_handler.xcalln(xdbproc,n,args);
 }
 
@@ -253,20 +259,20 @@ static lispval sqldb_makeproc(int n,lispval *args)
   else return VOID;
 }
 
-static lispval sqldb_proc_plus(int n,lispval *args)
+static lispval sqlproc_plus(int n,lispval *args)
 {
   lispval arg1 = args[0], result = VOID;
-  struct KNO_SQLDB_PROC *sqldbproc=
-    KNO_GET_CONS(arg1,kno_sqldb_proc_type,struct KNO_SQLDB_PROC *);
-  lispval sqldbptr = sqldbproc->sqldbptr;
+  struct KNO_SQLPROC *sqlproc=
+    KNO_GET_CONS(arg1,kno_sqlproc_type,struct KNO_SQLPROC *);
+  lispval sqldbptr = sqlproc->sqldbptr;
   struct KNO_SQLDB *sqldb=
     KNO_GET_CONS(sqldbptr,kno_sqldb_type,struct KNO_SQLDB *);
-  u8_string base_qtext = sqldbproc->sqldb_qtext, new_qtext=
+  u8_string base_qtext = sqlproc->sqldb_qtext, new_qtext=
     u8_string_append(base_qtext," ",CSTRING(args[1]),NULL);
-  lispval colinfo = sqldbproc->sqldb_colinfo;
-  int n_base_params = sqldbproc->fcn_n_params, n_params = (n-2)+n_base_params;
+  lispval colinfo = sqlproc->sqldb_colinfo;
+  int n_base_params = sqlproc->fcn_n_params, n_params = (n-2)+n_base_params;
   lispval *params = ((n_params)?(u8_alloc_n(n_params,lispval)):(NULL));
-  lispval *base_params = sqldbproc->sqldb_paramtypes, param_count = 0;
+  lispval *base_params = sqlproc->sqldb_paramtypes, param_count = 0;
   int i = n-1; while (i>=2) {
     lispval param = args[i--]; kno_incref(param);
     params[param_count++]=param;}
@@ -282,38 +288,38 @@ static lispval sqldb_proc_plus(int n,lispval *args)
 
 /* Accessors */
 
-static lispval sqldb_proc_query(lispval sqldb)
+static lispval sqlproc_query(lispval sqldb)
 {
-  struct KNO_SQLDB_PROC *xdbp = KNO_GET_CONS
-    (sqldb,kno_sqldb_proc_type,struct KNO_SQLDB_PROC *);
+  struct KNO_SQLPROC *xdbp = KNO_GET_CONS
+    (sqldb,kno_sqlproc_type,struct KNO_SQLPROC *);
   return kno_mkstring(xdbp->sqldb_qtext);
 }
 
-static lispval sqldb_proc_spec(lispval sqldb)
+static lispval sqlproc_spec(lispval sqldb)
 {
-  struct KNO_SQLDB_PROC *xdbp = KNO_GET_CONS
-    (sqldb,kno_sqldb_proc_type,struct KNO_SQLDB_PROC *);
+  struct KNO_SQLPROC *xdbp = KNO_GET_CONS
+    (sqldb,kno_sqlproc_type,struct KNO_SQLPROC *);
   return kno_mkstring(xdbp->sqldb_spec);
 }
 
-static lispval sqldb_proc_db(lispval sqldb)
+static lispval sqlproc_db(lispval sqldb)
 {
-  struct KNO_SQLDB_PROC *xdbp = KNO_GET_CONS
-    (sqldb,kno_sqldb_proc_type,struct KNO_SQLDB_PROC *);
+  struct KNO_SQLPROC *xdbp = KNO_GET_CONS
+    (sqldb,kno_sqlproc_type,struct KNO_SQLPROC *);
   return kno_incref(xdbp->sqldbptr);
 }
 
-static lispval sqldb_proc_typemap(lispval sqldb)
+static lispval sqlproc_typemap(lispval sqldb)
 {
-  struct KNO_SQLDB_PROC *xdbp = KNO_GET_CONS
-    (sqldb,kno_sqldb_proc_type,struct KNO_SQLDB_PROC *);
+  struct KNO_SQLPROC *xdbp = KNO_GET_CONS
+    (sqldb,kno_sqlproc_type,struct KNO_SQLPROC *);
   return kno_incref(xdbp->sqldb_colinfo);
 }
 
-static lispval sqldb_proc_params(lispval sqldb)
+static lispval sqlproc_params(lispval sqldb)
 {
-  struct KNO_SQLDB_PROC *xdbp = KNO_GET_CONS
-    (sqldb,kno_sqldb_proc_type,struct KNO_SQLDB_PROC *);
+  struct KNO_SQLPROC *xdbp = KNO_GET_CONS
+    (sqldb,kno_sqlproc_type,struct KNO_SQLPROC *);
   int n = xdbp->fcn_n_params;
   lispval *paramtypes = xdbp->sqldb_paramtypes;
   lispval result = kno_make_vector(n,NULL);
@@ -345,11 +351,11 @@ KNO_EXPORT void kno_init_sqldbprims_c()
   kno_recyclers[kno_sqldb_type]=recycle_sqldb;
   kno_unparsers[kno_sqldb_type]=unparse_sqldb;
 
-  kno_sqldb_proc_type = kno_register_cons_type("SQLDBPROC");
-  kno_recyclers[kno_sqldb_proc_type]=recycle_sqldb_proc;
-  kno_unparsers[kno_sqldb_proc_type]=unparse_sqldb_proc;
-  kno_applyfns[kno_sqldb_proc_type]=(kno_applyfn)callsqldbproc;
-  kno_functionp[kno_sqldb_proc_type]=1;
+  kno_sqlproc_type = kno_register_cons_type("SQLPROC");
+  kno_recyclers[kno_sqlproc_type]=recycle_sqlproc;
+  kno_unparsers[kno_sqlproc_type]=unparse_sqlproc;
+  kno_applyfns[kno_sqlproc_type]=(kno_applyfn)callsqlproc;
+  kno_functionp[kno_sqlproc_type]=1;
 
   kno_idefn3(sqldb_module,"SQLDB/EXEC",sqldb_exec,2,
             "`(SQLDB/EXEC *dbptr* *sql* *colinfo*)`",
@@ -357,25 +363,25 @@ KNO_EXPORT void kno_init_sqldbprims_c()
             kno_string_type,VOID,
             -1,VOID);
   kno_idefnN(sqldb_module,"SQLDB/PROC",sqldb_makeproc,2,
-            "`(SQLDB/PROC *dbptr* *sql* [*colinfo*] [*paraminfo*...] )`");
-  kno_idefnN(sqldb_module,"SQLDB/PROC+",sqldb_proc_plus,2,
-            "`(SQLDB/PROC *dbptr* *sql* [*colinfo*] [*paraminfo*...] )`");
+            "`(SQLDB/PROC *sqldb* *sqltext* [*colinfo*] [*paraminfo*...] )`");
+  kno_idefnN(sqldb_module,"SQLDB/PROC+",sqlproc_plus,2,
+            "`(SQLDB/PROC+ *sqlproc* *sqltext* [*colinfo*] [*paraminfo*...] )`");
 
-  kno_idefn1(sqldb_module,"SQLDB/PROC/QUERY",sqldb_proc_query,1,
+  kno_idefn1(sqldb_module,"SQLDB/PROC/QUERY",sqlproc_query,1,
             "`(SQLDB/PROC/QUERY *dbproc*)` => sqlstring",
-            kno_sqldb_proc_type,VOID);
-  kno_idefn1(sqldb_module,"SQLDB/PROC/DB",sqldb_proc_db,1,
+            kno_sqlproc_type,VOID);
+  kno_idefn1(sqldb_module,"SQLDB/PROC/DB",sqlproc_db,1,
             "`(SQLDB/PROC/DB *dbproc*)` => dbptr",
-            kno_sqldb_proc_type,VOID);
-  kno_idefn1(sqldb_module,"SQLDB/PROC/SPEC",sqldb_proc_spec,1,
+            kno_sqlproc_type,VOID);
+  kno_idefn1(sqldb_module,"SQLDB/PROC/SPEC",sqlproc_spec,1,
             "`(SQLDB/PROC/SPEC *dbproc*)` => dbspecstring",
-            kno_sqldb_proc_type,VOID);
-  kno_idefn1(sqldb_module,"SQLDB/PROC/PARAMS",sqldb_proc_params,1,
+            kno_sqlproc_type,VOID);
+  kno_idefn1(sqldb_module,"SQLDB/PROC/PARAMS",sqlproc_params,1,
             "`(SQLDB/PROC/PARAMS *dbproc*)` => paraminfo",
-            kno_sqldb_proc_type,VOID);
-  kno_idefn1(sqldb_module,"SQLDB/PROC/TYPEMAP",sqldb_proc_typemap,1,
+            kno_sqlproc_type,VOID);
+  kno_idefn1(sqldb_module,"SQLDB/PROC/TYPEMAP",sqlproc_typemap,1,
             "`(SQLDB/PROC/TYPEMAP *dbproc*)` => colinfo",
-            kno_sqldb_proc_type,VOID);
+            kno_sqlproc_type,VOID);
 
   kno_register_config("SQLEXEC",
                      _("whether direct execution of SQL strings is allowed"),

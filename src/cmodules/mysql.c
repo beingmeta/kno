@@ -102,7 +102,7 @@ typedef struct KNO_MYSQL *kno_mysql;
 union MYSQL_VALBUF { double fval; void *ptr; long lval; long long llval;};
 
 typedef struct KNO_MYSQL_PROC {
-  KNO_SQLDB_PROC_FIELDS;
+  KNO_SQLPROC_FIELDS;
   struct KNO_MYSQL *extbptr;
 
   u8_mutex mysqlproc_lock;
@@ -262,7 +262,7 @@ static int restart_connection(struct KNO_MYSQL *dbp)
     return -1;}
   else {
     int i = 0, n = dbp->sqldb_n_procs;
-    struct KNO_MYSQL_PROC **procs = (KNO_MYSQL_PROC **)dbp->sqldb_procs;
+    struct KNO_MYSQL_PROC **procs = (KNO_MYSQL_PROC **)dbp->sqlprocs;
     u8_log(LOG_WARN,"mysql/reconnect",
            "Took %ds to reconnect to MYSQL %s (%s), thread_id=%d",
            waited,dbp->sqldb_spec,dbp->sqldb_info,dbp->mysql_thread_id);
@@ -331,11 +331,11 @@ static int open_connection(struct KNO_MYSQL *dbp)
   dbp->mysql_restarted = 0;
   dbp->mysql_startup = u8_elapsed_time();
   dbp->mysql_thread_id = mysql_thread_id(db);
-  u8_lock_mutex(&(dbp->sqldb_proclock)); {
+  u8_lock_mutex(&(dbp->sqlproclock)); {
     int i = 0, n = dbp->sqldb_n_procs;
-    struct KNO_MYSQL_PROC **procs = (KNO_MYSQL_PROC **)dbp->sqldb_procs;
+    struct KNO_MYSQL_PROC **procs = (KNO_MYSQL_PROC **)dbp->sqlprocs;
     while (i<n) procs[i++]->mysqlproc_needs_init = 1;
-    u8_unlock_mutex(&(dbp->sqldb_proclock));
+    u8_unlock_mutex(&(dbp->sqlproclock));
     return 1;}
 }
 
@@ -345,15 +345,15 @@ static void recycle_mysqldb(struct KNO_SQLDB *c)
   int n_procs = dbp->sqldb_n_procs;
   lispval *toremove = u8_malloc(LISPVEC_BYTELEN(dbp->sqldb_n_procs)), *write = toremove;
   int i = 0;
-  u8_lock_mutex(&(dbp->sqldb_proclock));
+  u8_lock_mutex(&(dbp->sqlproclock));
   while (i<n_procs) {
-    struct KNO_SQLDB_PROC *p = dbp->sqldb_procs[--i];
+    struct KNO_SQLPROC *p = dbp->sqlprocs[--i];
     if (KNO_CONS_REFCOUNT(p)>1)
       u8_log(LOG_WARN,"freemysqldb",
-             "dangling pointer to sqldbproc %s on %s (%s)",
+             "dangling pointer to sqlproc %s on %s (%s)",
              p->sqldb_qtext,dbp->sqldb_spec,dbp->sqldb_info);
     *write++=(lispval)p;}
-  u8_unlock_mutex(&(dbp->sqldb_proclock));
+  u8_unlock_mutex(&(dbp->sqlproclock));
   u8_destroy_mutex(&(dbp->mysql_lock));
   mysql_close(dbp->mysqldb);
 }
@@ -419,7 +419,7 @@ static lispval open_mysql
   dbp->sqldb_spec = spec;
   dbp->sqldb_options = options; kno_incref(options);
 
-  u8_init_mutex(&dbp->sqldb_proclock);
+  u8_init_mutex(&dbp->sqlproclock);
   u8_init_mutex(&dbp->mysql_lock);
 
   /* Prep the structure */
@@ -880,9 +880,9 @@ static lispval mysqlmakeproc
 
   memset(dbproc,0,sizeof(struct KNO_MYSQL_PROC));
 
-  KNO_INIT_FRESH_CONS(dbproc,kno_sqldb_proc_type);
+  KNO_INIT_FRESH_CONS(dbproc,kno_sqlproc_type);
 
-  /* Set up fields for SQLDBPROC */
+  /* Set up fields for SQLPROC */
   dbproc->sqldb_handler = &mysql_handler;
   dbproc->sqldbptr = (lispval)dbp; kno_incref(dbproc->sqldbptr);
   dbproc->sqldb_spec = u8_strdup(dbp->sqldb_spec);
@@ -904,7 +904,7 @@ static lispval mysqlmakeproc
   dbproc->fcn_handler.xcalln = callmysqlproc;
 
   /* Register the procedure on the database's list */
-  kno_register_sqldb_proc((struct KNO_SQLDB_PROC *)dbproc);
+  kno_register_sqlproc((struct KNO_SQLPROC *)dbproc);
 
   /* This indicates that the procedure hasn't been initialized */
   dbproc->mysqlproc_n_cols = -1;
@@ -1046,11 +1046,11 @@ static int init_mysqlproc(KNO_MYSQL *dbp,struct KNO_MYSQL_PROC *dbproc)
   return RETVAL_OK;
 }
 
-static void recycle_mysqlproc(struct KNO_SQLDB_PROC *c)
+static void recycle_mysqlproc(struct KNO_SQLPROC *c)
 {
   struct KNO_MYSQL_PROC *dbproc = (struct KNO_MYSQL_PROC *)c;
   int i, lim, rv;
-  kno_release_sqldb_proc(c);
+  kno_release_sqlproc(c);
   if (dbproc->mysqlproc_stmt) {
     if ((rv = mysql_stmt_close(dbproc->mysqlproc_stmt))) {
       int mysqlerrno = mysql_stmt_errno(dbproc->mysqlproc_stmt);

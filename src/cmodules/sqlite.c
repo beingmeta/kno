@@ -42,7 +42,7 @@ typedef struct KNO_SQLITE {
 typedef struct KNO_SQLITE *kno_sqlite;
 
 typedef struct KNO_SQLITE_PROC {
-  KNO_SQLDB_PROC_FIELDS;
+  KNO_SQLPROC_FIELDS;
   u8_mutex sqliteproc_lock;
   int *sqltypes;
   sqlite3 *sqlitedb;
@@ -132,10 +132,10 @@ static int open_knosqlite(struct KNO_SQLITE *knosqlptr)
       return -1;}
     knosqlptr->sqlitedb = db;
     if (knosqlptr->sqldb_n_procs) {
-      struct KNO_SQLDB_PROC **scan = knosqlptr->sqldb_procs;
-      struct KNO_SQLDB_PROC **limit = scan+knosqlptr->sqldb_n_procs;
+      struct KNO_SQLPROC **scan = knosqlptr->sqlprocs;
+      struct KNO_SQLPROC **limit = scan+knosqlptr->sqldb_n_procs;
       while (scan<limit) {
-        struct KNO_SQLDB_PROC *edbp = *scan++;
+        struct KNO_SQLPROC *edbp = *scan++;
         struct KNO_SQLITE_PROC *sp = (struct KNO_SQLITE_PROC *)edbp;
         int retval = open_knosqliteproc(knosqlptr,sp);
         if (retval)
@@ -190,7 +190,7 @@ static lispval sqlite_open_prim(lispval filename,lispval colinfo,lispval options
   sqlcons->sqlitedb = NULL;
   sqlcons->sqlitevfs = vfs;
   u8_init_mutex(&(sqlcons->sqlite_lock));
-  u8_init_mutex(&(sqlcons->sqldb_proclock));
+  u8_init_mutex(&(sqlcons->sqlproclock));
   retval = open_knosqlite(sqlcons);
   if (retval<0) {
     lispval lptr = LISP_CONS(sqlcons);
@@ -217,8 +217,8 @@ static void close_knosqlite(struct KNO_SQLITE *dbp,int lock)
   u8_log(LOG_WARN,"close_knosqlite","Closing SQLITE db %s",dbp->sqldb_spec);
   if (lock) u8_lock_mutex(&(dbp->sqlite_lock)); {
     sqlite3 *db = dbp->sqlitedb;
-    struct KNO_SQLDB_PROC **scan = dbp->sqldb_procs;
-    struct KNO_SQLDB_PROC **limit = scan+dbp->sqldb_n_procs;
+    struct KNO_SQLPROC **scan = dbp->sqlprocs;
+    struct KNO_SQLPROC **limit = scan+dbp->sqldb_n_procs;
     while (scan<limit)
       close_knosqliteproc((struct KNO_SQLITE_PROC *)(*scan++));
     closedb(db);
@@ -366,7 +366,7 @@ static lispval sqlitemakeproc
               errmsg,kno_incref(dbptr));
     return KNO_ERROR_VALUE;}
   else sqlcons = u8_alloc(struct KNO_SQLITE_PROC);
-  KNO_INIT_FRESH_CONS(sqlcons,kno_sqldb_proc_type);
+  KNO_INIT_FRESH_CONS(sqlcons,kno_sqlproc_type);
   sqlcons->sqldb_handler = &sqlite_handler;
   sqlcons->sqlitedb = dbp->sqlitedb;
   sqlcons->sqldbptr = (lispval)dbp;
@@ -388,7 +388,7 @@ static lispval sqlitemakeproc
       j++;}
     sqlcons->sqldb_paramtypes = paramtypes;}
   sqlcons->sqldb_colinfo = merge_colinfo(dbp,colinfo);
-  kno_register_sqldb_proc((struct KNO_SQLDB_PROC *)sqlcons);
+  kno_register_sqlproc((struct KNO_SQLPROC *)sqlcons);
   return LISP_CONS(sqlcons);
 }
 
@@ -437,10 +437,10 @@ static void close_knosqliteproc(struct KNO_SQLITE_PROC *dbp)
   sqlite3_finalize(dbp->stmt); dbp->stmt = NULL;
 }
 
-static void recycle_knosqliteproc(struct KNO_SQLDB_PROC *c)
+static void recycle_knosqliteproc(struct KNO_SQLPROC *c)
 {
   struct KNO_SQLITE_PROC *dbp = (struct KNO_SQLITE_PROC *)c;
-  int retval = kno_release_sqldb_proc(c);
+  int retval = kno_release_sqlproc(c);
   if (retval<0) {
     u8_log(LOG_CRIT,"recycle_knosqliteproc","Unexpected error during GC");
     kno_clear_errors(1);

@@ -51,7 +51,7 @@ typedef struct KNO_ODBC {
 typedef struct KNO_ODBC *kno_odbc;
 
 typedef struct KNO_ODBC_PROC {
-  KNO_SQLDB_PROC_FIELDS;
+  KNO_SQLPROC_FIELDS;
 
   u8_mutex odbc_proc_lock;
 
@@ -102,7 +102,7 @@ KNO_EXPORT lispval kno_odbc_connect(lispval spec,lispval colinfo,int interactive
     info = u8_malloc(512);
     strcpy(info,"uninitialized");
     dbp->sqldb_info = info;
-    u8_init_mutex(&(dbp->sqldb_proclock));
+    u8_init_mutex(&(dbp->sqlproclock));
     dbp->sqldb_handler = &odbc_handler;
     if (SQL_SUCCEEDED(ret)) {
       howfar++;
@@ -154,7 +154,7 @@ static lispval odbcmakeproc
   int ret = 0, have_stmt = 0;
   SQLSMALLINT n_params, *sqltypes;
   struct KNO_ODBC_PROC *dbproc = u8_alloc(struct KNO_ODBC_PROC);
-  KNO_INIT_FRESH_CONS(dbproc,kno_sqldb_proc_type);
+  KNO_INIT_FRESH_CONS(dbproc,kno_sqlproc_type);
   ret = SQLAllocHandle(SQL_HANDLE_STMT, dbp->conn, &(dbproc->stmt));
   if (SQL_SUCCEEDED(ret)) have_stmt = 1;
   if (SQL_SUCCEEDED(ret))
@@ -202,7 +202,7 @@ static lispval odbcmakeproc
     int i = 0; while (i<n_params) {
       SQLDescribeParam((dbproc->stmt),i+1,&(sqltypes[i]),NULL,NULL,NULL);
       i++;}}
-  kno_register_sqldb_proc((struct KNO_SQLDB_PROC *) dbproc);
+  kno_register_sqlproc((struct KNO_SQLPROC *) dbproc);
   return LISP_CONS(dbproc);
 }
 
@@ -216,10 +216,10 @@ static lispval odbcmakeprochandler
   else return kno_type_error("ODBC SQLDB","odbcmakeprochandler",(lispval)sqldb);
 }
 
-static void recycle_odbcproc(struct KNO_SQLDB_PROC *c)
+static void recycle_odbcproc(struct KNO_SQLPROC *c)
 {
   struct KNO_ODBC_PROC *dbproc = (struct KNO_ODBC_PROC *)c;
-  kno_release_sqldb_proc((struct KNO_SQLDB_PROC *) dbproc);
+  kno_release_sqlproc((struct KNO_SQLPROC *) dbproc);
   SQLFreeHandle(SQL_HANDLE_STMT,dbproc->stmt);
   kno_decref(dbproc->sqldb_colinfo);
   u8_free(dbproc->sqldb_spec);
