@@ -745,16 +745,13 @@ typedef lispval *kno_types;
 
 KNO_EXPORT lispval kno_append(int n,lispval *sequences)
 {
-  if (n == 0) return NIL;
+  if (n == 0)
+    return NIL;
   else {
     kno_ptr_type result_type = KNO_PTR_TYPE(sequences[0]);
-    lispval result, **elts, *_elts[16], *combined;
-    int i = 0, k = 0, *lengths, _lengths[16], total_length = 0;
+    lispval result, *elts[n], *combined;
+    int i = 0, k = 0, lengths[n], total_length = 0;
     if (NILP(sequences[0])) result_type = kno_pair_type;
-    if (n>16) {
-      lengths = u8_alloc_n(n,int);
-      elts = u8_alloc_n(n,kno_types);}
-    else {lengths=_lengths; elts=_elts;}
     while (i < n) {
       lispval seq = sequences[i];
       if ((NILP(seq)) && (result_type == kno_pair_type)) {}
