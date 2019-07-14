@@ -19,4 +19,4 @@ end script
 post-stop script
 	  rm @servlet_rundir@/${SOCKET}.nospawn
 end script
-exec @prefix@/bin/knoweb ${SOCKET} CONFIG=${CONFIG}
+exec @prefix@/bin/knocgi ${SOCKET} CONFIG=${CONFIG}

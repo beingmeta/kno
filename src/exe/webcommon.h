@@ -21,7 +21,7 @@ static MU int trace_cgidata = 0;
 static MU int use_threadcache = 0;
 
 /* When non-null, this overrides the document root coming from the
-   server.  It is for cases where knoweb is running on a different
+   server.  It is for cases where knocgi is running on a different
    machine than the HTTP server. */
 static u8_string docroot = NULL;
 

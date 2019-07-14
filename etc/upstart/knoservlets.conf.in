@@ -22,11 +22,11 @@ post-start script
      do if (readlink ${sock}>/dev/null);
         then touch @servlet_rundir@/`basename ${sock}`.nospawn;
 	     LOGFILE=@servlet_logdir@/`basename ${sock} .sock`.log \
-               knoweb @servlet_rundir@/`basename ${sock}` CONFIG=`readlink ${sock}` \
+               knocgi @servlet_rundir@/`basename ${sock}` CONFIG=`readlink ${sock}` \
 	         STATEDIR=@servlet_rundir@ RESTART=1 PIDWAIT=no;
         else touch @servlet_rundir@/`basename ${sock}`.nospawn;
 	     LOGFILE=@servlet_logdir@/`basename ${sock} .sock`.log \
- 	       knoweb @servlet_rundir@er/`basename ${sock}` CONFIG=${sock} \
+ 	       knocgi @servlet_rundir@er/`basename ${sock}` CONFIG=${sock} \
 	         STATEDIR=@servlet_rundir@ RESTART=1 PIDWAIT=no; fi;
      done;
 end script

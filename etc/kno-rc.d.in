@@ -16,7 +16,7 @@
 ### END INIT INFO
 
 export KNOD=@prefix@/bin/knod
-export KNOWEB=@prefix@/bin/knoweb
+export KNOCGI=@prefix@/bin/knocgi
 export KNODAEMON_USER=@knoaemon@
 export KNODAEMON_GROUP=@admin_group@
 export WEB_USER=@webuser@

@@ -188,7 +188,7 @@ typedef struct KNO_SERVLET {
   int n_busy; /* How many sockets are currently busy */
   int n_ephemeral;
   struct KNO_SOCKET *sockets;} KNO_SERVLET;
-typedef struct KNO_SERVLET *knoservlet;
+typedef struct KNO_SERVLET *kno_servlet;
 
 module AP_MODULE_DECLARE_DATA kno_module;
 
@@ -210,7 +210,7 @@ static apr_thread_mutex_t *servlets_lock;
 
 static int use_dtblock=USEDTBLOCK;
 
-static int reset_servlet(knoservlet s,apr_pool_t *p,int locked);
+static int reset_servlet(kno_servlet s,apr_pool_t *p,int locked);
 
 char *version_num="2.4.5";
 char version_info[256];
@@ -1100,9 +1100,9 @@ static const command_rec kno_cmds[] =
   AP_INIT_TAKE2("KnoParam", servlet_param, NULL, OR_ALL,
 		"CGI parameters to pass with each request to the servlet"),
   AP_INIT_TAKE1("KnoUser", servlet_user, NULL, RSRC_CONF,
-	       "the user whom the knoservlet will run as"),
+	       "the user whom the kno_servlet will run as"),
   AP_INIT_TAKE1("KnoGroup", servlet_group, NULL, RSRC_CONF,
-	       "the group whom the knoservlet will run as"),
+	       "the group whom the kno_servlet will run as"),
 
   AP_INIT_TAKE1("KnoPrefix", socket_prefix, NULL, OR_ALL,
 	       "the prefix to be appended to socket names"),
@@ -1117,9 +1117,9 @@ static const command_rec kno_cmds[] =
   {NULL}
 };
 
-/* Launching knoservlet processes */
+/* Launching kno servlet processes */
 
-static int spawn_knoservlet (knoservlet s,request_rec *r,apr_pool_t *);
+static int spawn_servlet (kno_servlet s,request_rec *r,apr_pool_t *);
 
 #define RUN_KNO_PERMISSIONS \
  (APR_FPROT_UREAD | APR_FPROT_UWRITE | APR_FPROT_UEXECUTE | \
@@ -1176,15 +1176,15 @@ static const char *get_log_file(request_rec *r,const char *sockname) /* 2.0 */
   else return log_file;
 }
 
-static int spawn_wait(knoservlet s,request_rec *r,apr_proc_t *p);
-static int start_servlet(request_rec *r,knoservlet s,
+static int spawn_wait(kno_servlet s,request_rec *r,apr_proc_t *p);
+static int start_servlet(request_rec *r,kno_servlet s,
 			 struct KNO_DIR_CONFIG *dconfig,
 			 struct KNO_SERVER_CONFIG *sconfig);
 
-static int spawn_knoservlet(knoservlet s,request_rec *r,apr_pool_t *p) 
+static int spawn_servlet(kno_servlet s,request_rec *r,apr_pool_t *p) 
 {
   const char *sockname=s->sockname;
-  /* This launches the knoservlet process.  It probably shouldn't be used
+  /* This launches the servlet process.  It probably shouldn't be used
      when using TCP to connect, since the specified server might not be one
      we can lanuch a process on (i.e. not us) */
   const char *nospawn=apr_pstrcat(p,sockname,".nospawn",NULL);
@@ -1224,7 +1224,7 @@ static int spawn_knoservlet(knoservlet s,request_rec *r,apr_pool_t *p)
     return start_servlet(r,s,dconfig,sconfig);}
 }
 
-static int start_servlet(request_rec *r,knoservlet s,
+static int start_servlet(request_rec *r,kno_servlet s,
 			 struct KNO_DIR_CONFIG *dconfig,
 			 struct KNO_SERVER_CONFIG *sconfig)
 {
@@ -1319,10 +1319,10 @@ static int start_servlet(request_rec *r,knoservlet s,
 
   if (log_file)
     ap_log_error(APLOG_MARK,APLOG_NOTICE,OK,server,
-		 "Spawning knoservlet %s @%s>%s for %s, uid=%d, gid=%d",
+		 "Spawning kno servlet %s @%s>%s for %s, uid=%d, gid=%d",
 		 exename,sockname,log_file,r->unparsed_uri,uid,gid);
   else ap_log_error(APLOG_MARK,APLOG_NOTICE,OK,server,
-		    "Spawning knoservlet %s @%s for %s, uid=%d, gid=%d",
+		    "Spawning kno servlet %s @%s for %s, uid=%d, gid=%d",
 		    exename,sockname,r->unparsed_uri,uid,gid);
 
   *write_argv++=(char *)exename;
@@ -1445,9 +1445,9 @@ static int start_servlet(request_rec *r,knoservlet s,
     
   if (((rv=apr_procattr_create(&attr,p)) != APR_SUCCESS) ||
       ((rv=apr_procattr_cmdtype_set(attr,APR_PROGRAM)) != APR_SUCCESS) ||
-      ((rv=apr_procattr_detach_set(attr,1)) != APR_SUCCESS) ||
+      ((rv=apr_procattr_detach_set(attr,1)) != APR_SUCCESS) || 
       ((rv=apr_procattr_dir_set(attr,ap_make_dirstr_parent(p,r->filename)))
-       != APR_SUCCESS))
+       != APR_SUCCESS) )
     ap_log_rerror
       (APLOG_MARK, APLOG_ERR, rv, r,
        "couldn't set child process attributes: %s", r->filename);
@@ -1520,7 +1520,7 @@ static int start_servlet(request_rec *r,knoservlet s,
   else return retval;
 }
 
-static int spawn_wait(knoservlet s,request_rec *r,apr_proc_t *proc)
+static int spawn_wait(kno_servlet s,request_rec *r,apr_proc_t *proc)
 {
   apr_pool_t *p=((r==NULL)?(kno_pool):(r->pool));
   const char *sockname=s->sockname;
@@ -1561,7 +1561,7 @@ static int spawn_wait(knoservlet s,request_rec *r,apr_proc_t *proc)
 
 /* Maintaining the servlet table */
 
-static knoservlet get_servlet(const char *sockname)
+static kno_servlet get_servlet(const char *sockname)
 {
   int i=0; int lim=n_servlets;
   if (!(sockname)) return NULL;
@@ -1575,7 +1575,7 @@ static knoservlet get_servlet(const char *sockname)
 
 /* We never grow keep socks down, since the total is over all the
    locations referencing the servlet. */
-static knoservlet servlet_set_keep_socks(knoservlet s,int keep_socks)
+static kno_servlet servlet_set_keep_socks(kno_servlet s,int keep_socks)
 {
   if (s->keep_socks>=keep_socks) return s;
   else {
@@ -1605,7 +1605,7 @@ static knoservlet servlet_set_keep_socks(knoservlet s,int keep_socks)
 }
 
 /* Adds a servlet for sockname, setup for */
-static knoservlet add_servlet(struct request_rec *r,const char *sockname,
+static kno_servlet add_servlet(struct request_rec *r,const char *sockname,
 			     int keep_socks,int max_socks)
 {
   int i=0; int lim=n_servlets;
@@ -1645,7 +1645,7 @@ static knoservlet add_servlet(struct request_rec *r,const char *sockname,
 		    ((strchr(sockname,'@'))==NULL)&&
 		    ((strchr(sockname,'/')!=NULL)||
 		     ((strchr(sockname,':'))==NULL)));
-    knoservlet servlet=&(servlets[i]);
+    kno_servlet servlet=&(servlets[i]);
     ap_log_error(APLOG_MARK,APLOG_NOTICE,OK,r->server,
 		 "Adding new servlet for %s at #%d, keep=%d, max=%d",
 		 sockname,i,keep_socks,max_socks);
@@ -1737,7 +1737,7 @@ static int get_servlet_wait(request_rec *r);
 
 /* Opens a servlet socket, either a cached one (if given != NULL) or a
    new one (malloc) */
-static knosocket servlet_open(knoservlet s,struct KNO_SOCKET *given,request_rec *r)
+static knosocket servlet_open(kno_servlet s,struct KNO_SOCKET *given,request_rec *r)
 {
   struct KNO_SOCKET *result; apr_pool_t *pool; int one=1, dospawn=-1, wait=-1;
   if (given) pool=kno_pool; else pool=r->pool;
@@ -1774,13 +1774,13 @@ static knosocket servlet_open(knoservlet s,struct KNO_SOCKET *given,request_rec 
     if (connval<0) {
       ap_log_rerror
 	(APLOG_MARK,APLOG_CRIT,apr_get_os_error(),r,
-	 "Couldn't connect socket @ %s, spawning knoservlet",sockname);
+	 "Couldn't connect socket @ %s, spawning kno servlet",sockname);
       errno=0;
-      rv=spawn_knoservlet(s,r,kno_pool);
+      rv=spawn_servlet(s,r,kno_pool);
       if (rv<0) {
 	ap_log_rerror
 	  (APLOG_MARK,APLOG_EMERG,apr_get_os_error(),r,
-	   "Couldn't spawn knoservlet @ %s",sockname);
+	   "Couldn't spawn kno servlet @ %s",sockname);
 	close(unix_sock);
 	return NULL;}
       else if (rv)
@@ -1869,7 +1869,7 @@ static int get_servlet_wait(request_rec *r)
   else return DEFAULT_SERVLET_WAIT;
 }
 
-static knosocket servlet_connect(knoservlet s,request_rec *r)
+static knosocket servlet_connect(kno_servlet s,request_rec *r)
 {
   char infobuf[512];
   apr_thread_mutex_lock(s->lock); {
@@ -1973,7 +1973,7 @@ static knosocket servlet_connect(knoservlet s,request_rec *r)
 	return sock;}}}
 }
 
-static int servlet_recycle_socket(knoservlet servlet,knosocket sock)
+static int servlet_recycle_socket(kno_servlet servlet,knosocket sock)
 {
   char infobuf[256];
   if (!(sock->servlet)) {
@@ -2030,7 +2030,7 @@ static int servlet_recycle_socket(knoservlet servlet,knosocket sock)
     return 1;}
 }
 
-static int servlet_close_socket(knoservlet servlet,knosocket sock)
+static int servlet_close_socket(kno_servlet servlet,knosocket sock)
 {
   char infobuf[256];
   if (sock->servlet!=servlet) {
@@ -2081,7 +2081,7 @@ static int servlet_close_socket(knoservlet servlet,knosocket sock)
 
 /* Connecting to the servlet */
 
-static knoservlet request_servlet(request_rec *r)
+static kno_servlet request_servlet(request_rec *r)
 {
   const char *sockname=get_sockname(r);
   struct KNO_SERVER_CONFIG *sconfig=
@@ -2089,7 +2089,7 @@ static knoservlet request_servlet(request_rec *r)
   struct KNO_DIR_CONFIG *dconfig=
     ap_get_module_config(r->per_dir_config,&kno_module);
   int keep_socks=sconfig->keep_socks, max_socks=sconfig->max_socks;
-  knoservlet servlet;
+  kno_servlet servlet;
   if (sockname)
     ap_log_rerror(APLOG_MARK,LOGDEBUG,OK,r,
 		  "Resolving %s using servlet %s",r->unparsed_uri,sockname);
@@ -2134,7 +2134,7 @@ static apr_status_t close_servlets(void *data)
   ap_log_perror(APLOG_MARK,APLOG_NOTICE,OK,p,
 		"mod_kno closing %d open servlets",lim);
   while (i<lim) {
-    knoservlet s=&(servlets[i++]);
+    kno_servlet s=&(servlets[i++]);
     int j=0, n_socks;
     struct KNO_SOCKET *sockets;
     apr_thread_mutex_lock(s->lock);
@@ -2157,7 +2157,7 @@ static apr_status_t close_servlets(void *data)
   return OK;
 }
 
-static int reset_servlet(knoservlet s,apr_pool_t *p,int locked)
+static int reset_servlet(kno_servlet s,apr_pool_t *p,int locked)
 {
   int j=0, n_socks, n_closed=0;
   struct KNO_SOCKET *sockets;
@@ -2746,7 +2746,7 @@ static int copy_servlet_output(knosocket sockval,request_rec *r)
     return -1;}
 }
 
-static int checkabort(request_rec *r,knoservlet servlet,knosocket sock,
+static int checkabort(request_rec *r,kno_servlet servlet,knosocket sock,
 		      int started)
 {
   char infobuf[512];
@@ -2770,7 +2770,7 @@ static int kno_handler(request_rec *r)
 {
   apr_time_t started=apr_time_now(), connected, requested, computed, responded;
   BUFF *reqdata;
-  knoservlet servlet=NULL; knosocket sock=NULL;
+  kno_servlet servlet=NULL; knosocket sock=NULL;
   char *post_data, errbuf[512], infobuf[512];
   int post_size, bytes_written=0, bytes_transferred=-1;
   char *new_error=NULL, *error=NULL;
@@ -2839,9 +2839,9 @@ static int kno_handler(request_rec *r)
     r->content_type="text/html";
     ap_send_http_header(r);
     ap_rvputs(r,"<HTML>\n<HEAD>\n<TITLE>",NULL);
-    ap_rprintf(r,"Cannot start knoservlet for %s",r->filename);
+    ap_rprintf(r,"Cannot start kno servlet for %s",r->filename);
     ap_rvputs(r,"</HEAD>\n<BODY>\n<H1>",NULL);
-    ap_rprintf(r,"Cannot start knoservlet for %s",r->filename);
+    ap_rprintf(r,"Cannot start kno servlet for %s",r->filename);
     ap_rvputs(r,"</BODY>\n</HTML>",NULL);
     errno=0;
     return HTTP_SERVICE_UNAVAILABLE;}

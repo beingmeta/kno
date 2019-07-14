@@ -1047,7 +1047,7 @@ AC_DEFINE_UNQUOTED(KNO_BUGJAR_ROOT,"$bugjar")
 ### Users and Groups
 
 dnl Specifies the user which the Web server runs as
-dnl This is used to set up the directories used by knoweb
+dnl This is used to set up the directories used by knocgi
 AC_ARG_WITH(webuser,--with-webuser The user for the webserver,,with_webuser=$default_webuser)
 if test "$with_webuser" != "none"; then
    webuser=$with_webuser
@@ -1058,7 +1058,7 @@ else
 fi
 
 dnl Specifies the group which the Web server runs as
-dnl This is used to set up the directories used by knoweb
+dnl This is used to set up the directories used by knocgi
 AC_ARG_WITH(webgroup,--with-webgroup The group for the webserver,,with_webgroup=$default_webgroup)
 if test "$with_webgroup" != "none" && test "$chowning" = "yes"; then
    webgroup=$with_webgroup
@@ -2045,12 +2045,12 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   etc/kno-rc.d
 	   etc/upstart/kno.conf
 	   etc/upstart/knod.conf
-	   etc/upstart/knoweb.conf
-	   etc/upstart/ex_knoweb.conf
+	   etc/upstart/knoservlets.conf
+	   etc/upstart/ex_knoservlet.conf
 	   etc/systemd/ex_servlet.service
 	   etc/systemd/ex_daemon.service
 	   etc/systemd/knod.service
-	   etc/systemd/knoweb.service
+	   etc/systemd/knoservlets.service
 	   etc/systemd/kno.service
 	   etc/macos/OSXStartupItem/KNO
 	   etc/macos/KNO.plist

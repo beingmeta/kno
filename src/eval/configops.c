@@ -32,17 +32,21 @@
 u8_condition LoadConfig=_("Loading config");
 u8_condition UnconfiguredSource;
 
-static u8_string get_loadpath(u8_string spec)
+static u8_string get_config_path(u8_string spec)
 {
   if (*spec == '/')
     return u8_strdup(spec);
-  else if (((u8_string)(strstr(spec,"file:"))) == spec)
+  else if (((u8_string)(strstr(spec,"file:///"))) == spec)
+    return u8_strdup(spec+7);
+  else if (((u8_string)(strstr(spec,"file://"))) == spec) {
+    u8_string slash = strchr(spec+7,'/');
+    if (slash) return u8_strdup(slash);}
+  else if (((u8_string)(strstr(spec,"file:/"))) == spec)
     return u8_strdup(spec+5);
   else if (strchr(spec,':'))
     return u8_strdup(spec);
-  else return u8_abspath(spec,NULL);
+  else return u8_abspath(spec,kno_sourcebase());
 }
-
 
 /* Core functions */
 
@@ -265,7 +269,7 @@ KNO_EXPORT int kno_load_default_config(u8_string sourceid)
 static lispval lisp_load_config(lispval arg)
 {
   if (STRINGP(arg)) {
-    u8_string abspath = get_loadpath(CSTRING(arg));
+    u8_string abspath = get_config_path(CSTRING(arg));
     int retval = kno_load_config(abspath);
     u8_free(abspath);
     if (retval<0)
@@ -291,7 +295,7 @@ static lispval lisp_load_config(lispval arg)
 static lispval lisp_load_default_config(lispval arg)
 {
   if (STRINGP(arg)) {
-    u8_string abspath = get_loadpath(CSTRING(arg));
+    u8_string abspath = get_config_path(CSTRING(arg));
     int retval = kno_load_default_config(abspath);
     u8_free(abspath);
     if (retval<0)
@@ -349,8 +353,8 @@ static int add_config_file_helper(lispval var,lispval val,
   else {
     int retval;
     struct KNO_CONFIG_RECORD on_stack, *scan, *newrec;
-    u8_string sourcebase = kno_sourcebase();
-    u8_string pathname = u8_abspath(CSTRING(val),sourcebase);
+    u8_string root = kno_sourcebase();
+    u8_string pathname = u8_abspath(CSTRING(val),root);
     u8_lock_mutex(&config_file_lock);
     scan = config_stack; while (scan) {
       if (strcmp(scan->config_filename,pathname)==0) {
@@ -477,7 +481,5 @@ KNO_EXPORT void kno_init_configops_c()
                       get_config_files,add_opt_config_file,NULL);
   kno_register_config("TRACELOADCONFIG","Trace config file loading",
                       kno_boolconfig_get,kno_boolconfig_set,&trace_config_load);
-
-
 }
 

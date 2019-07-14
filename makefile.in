@@ -67,7 +67,7 @@ MACLIBTOOL	= $(CC) -dynamiclib -single_module -undefined dynamic_lookup \
 BUILD		= `pwd`
 BUILDMODE       := `cat .buildmode || echo none`
 LINKEDWITH      := `cat .malloc || echo standard libraries`
-DEBUG_KNOWEB    = 0
+DEBUG_KNOCGI    = 0
 RPMFLAGS	= @RPMFLAGS@
 RPMDIR		= @RPMDIR@
 GPG		= @GPG@
@@ -366,11 +366,11 @@ CMODULE_OBJS=src/cmodules/odbc.o src/cmodules/sqlite.o \
 	     ${SUNDOWN_OBJS} ${TIDY_OBJECTS}
 
 EXECUTABLES=exe/knox@suffix@ exe/knoc@suffix@ exe/knotask@suffix@  \
-	    exe/knoweb@suffix@ exe/knod@suffix@
+	    exe/knocgi@suffix@ exe/knod@suffix@
 STATIC_EXECUTABLES=static/kno@suffix@ static/knoc@suffix@ \
 	static/knotask@suffix@ \
-	static/knoweb@suffix@ static/knod@suffix@
-DEBUG_EXECUTABLES=dbg/knox dbg/knoc dbg/knotask dbg/knoweb dbg/knod
+	static/knocgi@suffix@ static/knod@suffix@
+DEBUG_EXECUTABLES=dbg/knox dbg/knoc dbg/knotask dbg/knocgi dbg/knod
 SHELL_SCRIPTS=etc/knosetconfig etc/knogetconfig etc/knoconfig \
 	etc/knostart etc/knostop etc/knostartall etc/knostopall \
 	etc/kno_start_daemons etc/kno_start_servlets etc/kno_stop_jobs \
@@ -460,7 +460,7 @@ KNO_SOURCES=\
 	src/text/texttools.c src/text/match.c                			\
 	src/text/porter.c src/text/phonetic.c                			\
 	src/exe/knoc.c src/exe/knox.c src/exe/knotask.c				\
-	src/exe/knoweb.c src/exe/knocgi.c src/exe/knod.c
+	src/exe/knocgi.c src/exe/knocgi.c src/exe/knod.c
 
 CMODULE_SOURCES=\
 	src/cmodules/odbc.c src/cmodules/sqlite.c 				\
@@ -781,9 +781,9 @@ src/cmodules/ext/tidy5/%.o: src/cmodules/ext/tidy5/%.c $(SUNDOWN_H_FILES)
 
 exe/knox@suffix@ exe/knotask@suffix@ exe/knoc@suffix@: \
 	$(STATIC_LIBS) $(SHARED_LIBS)
-exe/knocgi@suffix@ exe/knod@suffix@ exe/knoweb@suffix@: \
+exe/knocgi@suffix@ exe/knod@suffix@ exe/knocgi@suffix@: \
 	$(STATIC_LIBS) $(SHARED_LIBS)
-exe/knocgi@suffix@ exe/knoweb@suffix@: src/exe/webcommon.h
+exe/knocgi@suffix@ exe/knocgi@suffix@: src/exe/webcommon.h
 
 # Custom rules for making include files with CSS headers
 src/web/htmlout.o: src/web/backtrace_css.h src/web/backtrace_js.h src/web/backtrace.css src/web/backtrace.js
@@ -824,11 +824,11 @@ text-modules: @TEXT_CMODULES@
 graphics-modules: @GRAPHICS_CMODULES@
 archive-modules: @ARCHIVE_CMODULES@
 
-dbg/knoweb.webuser: dbg/knoweb
+dbg/knocgi.webuser: dbg/knocgi
 	@echo "Making" $@
-	@cp dbg/knoweb dbg/knoweb.webuser
-	@sudo chown @webuser@:@admin_group@ dbg/knoweb.webuser
-	@sudo chmod ug+s dbg/knoweb.webuser
+	@cp dbg/knocgi dbg/knocgi.webuser
+	@sudo chown @webuser@:@admin_group@ dbg/knocgi.webuser
+	@sudo chmod ug+s dbg/knocgi.webuser
 
 # Uninstall
 
@@ -957,7 +957,7 @@ clean: tidy
 	rm -f lib/kno/*@suffix@.so lib/kno/*@suffix@.so.* 
 	rm -f lib/kno/*.dylib
 	rm -f exe/kno@suffix@ exe/knotask@suffix@
-	rm -f exe/knoweb@suffix@ exe/knod@suffix@
+	rm -f exe/knocgi@suffix@ exe/knod@suffix@
 	rm -f exe/knoc@suffix@ exe/knocgi@suffix@
 	rm -f TAGS
 	cd tests/lisp; make -s clean
@@ -1844,7 +1844,7 @@ build-setup.redhat:
 src/apache2/mod_kno.so: src/apache2/mod_kno.c @abs_top_srcdir@/fileinfo
 	@$(ECHO) "#define _FILEINFO \""`@abs_top_srcdir@/fileinfo src/apache2/mod_kno.c .`"\"" \
 		> src/apache2/mod_kno_fileinfo.h
-	${APXS} -DUSEDTBLOCK=@USEDTBLOCK@ -DDEBUG_KNOWEB=$(DEBUG_KNOWEB) \
+	${APXS} -DUSEDTBLOCK=@USEDTBLOCK@ -DDEBUG_KNOCGI=$(DEBUG_KNOCGI) \
 		-c src/apache2/mod_kno.c
 
 mod_kno: src/apache2/mod_kno.so
@@ -1863,7 +1863,7 @@ install-mod_kno: src/apache2/mod_kno.so $(DESTDIR)@apache_modinfo@ \
 		then $(SUINSTALL) ${APXS} -i mod_kno.so; \
 		else $(SUINSTALL) ${APXS} -i mod_kno.la; \
 		fi
-	@echo Installed knoweb module with @rundir@/kno/servlets @logdir@/kno/servlets
+	@echo Installed knocgi module with @rundir@/kno/servlets @logdir@/kno/servlets
 
 $(DESTDIR)@apache_modules_dir@:
 	@$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \

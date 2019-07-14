@@ -14,7 +14,7 @@ usr/bin/knoc
 usr/bin/knox
 usr/bin/knod
 usr/bin/knotask
-usr/bin/knoweb
+usr/bin/knocgi
 usr/bin/repack-index
 usr/bin/repack-pool
 usr/bin/knomerge
