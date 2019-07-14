@@ -1525,7 +1525,7 @@ static int start_servlet(request_rec *r,kno_servlet s,
     else ap_log_error(APLOG_MARK, APLOG_DEBUG, rv, server,
 		      "Set process working directory to %s for '%s'",
 		      dir,r->filename);
-    rv=apr_procattr_detach_set(attr,0);
+    rv=apr_procattr_detach_set(attr,1);
     if (rv != APR_SUCCESS) {
       ap_log_error(APLOG_MARK, APLOG_ERR, rv, server,
 		   "couldn't make process detachable for '%s'", r->filename);
