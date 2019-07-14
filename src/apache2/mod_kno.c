@@ -2,7 +2,7 @@
 
 /* mod_kno.c
    Copyright (C) 2002-2012 beingmeta, inc.  All Rights Reserved
-   This is a Apache module supporting persistent FramerD servers
+   This is a Apache module supporting persistent Kno servers
 
    For Apache 2.0:
      Compile with: apxs2 -c mod_kno.c
@@ -348,7 +348,8 @@ static char *convert_path(const char *spec,char *buf)
 static apr_table_t *socketname_table;
 
 struct KNO_SERVER_CONFIG {
-  const char *server_executable;
+  const char *servlet_executable;
+  const char *servlet_dir;
   const char **config_args;
   const char **req_params;
   const char **servlet_env;
@@ -367,7 +368,8 @@ struct KNO_SERVER_CONFIG {
   int uid; int gid;};
 
 struct KNO_DIR_CONFIG {
-  const char *server_executable;
+  const char *servlet_executable;
+  const char *servlet_dir;
   const char **config_args;
   const char **req_params;
   const char **servlet_env;
@@ -400,7 +402,7 @@ static const char *get_sockname(request_rec *r)
     const char *socket_prefix=
       ((dconfig->socket_prefix) ? (dconfig->socket_prefix) :
        (sconfig->socket_prefix) ? (sconfig->socket_prefix) :
-       "/var/run/framerd/servlets/");
+       "/var/run/kno/servlets/");
 
     if ((socket_location)&&
 	((strchr(socket_location,'@'))||
@@ -431,7 +433,8 @@ static void *create_server_config(apr_pool_t *p,server_rec *s)
 {
   struct KNO_SERVER_CONFIG *config=
     apr_palloc(p,sizeof(struct KNO_SERVER_CONFIG));
-  config->server_executable=NULL;
+  config->servlet_executable=NULL;
+  config->servlet_dir=NULL;
   config->config_args=NULL;
   config->req_params=NULL;
   config->servlet_env=NULL;
@@ -485,11 +488,17 @@ static void *merge_server_config(apr_pool_t *p,void *base,void *new)
     config->use_dtblock=parent->use_dtblock;
   else config->use_dtblock=child->use_dtblock;
 
-  if (child->server_executable)
-    config->server_executable=apr_pstrdup(p,child->server_executable);
-  else if (parent->server_executable)
-    config->server_executable=apr_pstrdup(p,parent->server_executable);
-  else config->server_executable=NULL;
+  if (child->servlet_executable)
+    config->servlet_executable=apr_pstrdup(p,child->servlet_executable);
+  else if (parent->servlet_executable)
+    config->servlet_executable=apr_pstrdup(p,parent->servlet_executable);
+  else config->servlet_executable=NULL;
+  
+  if (child->servlet_dir)
+    config->servlet_dir=apr_pstrdup(p,child->servlet_dir);
+  else if (parent->servlet_dir)
+    config->servlet_dir=apr_pstrdup(p,parent->servlet_dir);
+  else config->servlet_dir=NULL;
   
   if (child->config_args) {
     const char **scan=child->config_args;
@@ -562,7 +571,8 @@ static void *create_dir_config(apr_pool_t *p,char *dir)
 {
   struct KNO_DIR_CONFIG *config=
     apr_palloc(p,sizeof(struct KNO_DIR_CONFIG));
-  config->server_executable=NULL;
+  config->servlet_executable=NULL;
+  config->servlet_dir=NULL;
   config->config_args=NULL;
   config->req_params=NULL;
   config->servlet_env=NULL;
@@ -607,11 +617,17 @@ static void *merge_dir_config(apr_pool_t *p,void *base,void *new)
     config->log_sync=parent->log_sync;
   else config->log_sync=child->log_sync;
 
-  if (child->server_executable)
-    config->server_executable=apr_pstrdup(p,child->server_executable);
-  else if (parent->server_executable)
-    config->server_executable=apr_pstrdup(p,parent->server_executable);
-  else config->server_executable=NULL;
+  if (child->servlet_executable)
+    config->servlet_executable=apr_pstrdup(p,child->servlet_executable);
+  else if (parent->servlet_executable)
+    config->servlet_executable=apr_pstrdup(p,parent->servlet_executable);
+  else config->servlet_executable=NULL;
+
+  if (child->servlet_dir)
+    config->servlet_dir=apr_pstrdup(p,child->servlet_dir);
+  else if (parent->servlet_dir)
+    config->servlet_dir=apr_pstrdup(p,parent->servlet_dir);
+  else config->servlet_dir=NULL;
 
   if (child->config_args) {
     const char **scan=child->config_args;
@@ -776,12 +792,29 @@ static const char *servlet_executable
   LOG_CONFIG(parms,arg);
   if (executable_filep(parms->pool,arg))
     if (parms->path) {
-      dconfig->server_executable=arg;
+      dconfig->servlet_executable=arg;
       return NULL;}
     else {
-      sconfig->server_executable=arg;
+      sconfig->servlet_executable=arg;
       return NULL;}
   else return "server executable is not executable";
+}
+
+static const char *servlet_dir
+   (cmd_parms *parms,void *mconfig,const char *arg)
+{
+  struct KNO_SERVER_CONFIG *sconfig=
+    ap_get_module_config(parms->server->module_config,&kno_module);
+  struct KNO_DIR_CONFIG *dconfig=mconfig;
+  LOG_CONFIG(parms,arg);
+  if (isdirectoryp(parms->pool,arg))
+    if (parms->path) {
+      dconfig->servlet_dir=arg;
+      return NULL;}
+    else {
+      sconfig->servlet_dir=arg;
+      return NULL;}
+  else return "specified servlet dir is not a directory";
 }
 
 static const char *servlet_wait(cmd_parms *parms,void *mconfig,const char *arg)
@@ -1091,6 +1124,10 @@ static const command_rec kno_cmds[] =
 		"How long to wait for servlets to start (on=5s, off=0)"),
   AP_INIT_TAKE1("KnoExecutable", servlet_executable, NULL, OR_ALL,
 		"the executable used to start a servlet"),
+  AP_INIT_TAKE1("KnoDirectory", servlet_dir, NULL, OR_ALL,
+		"the directory where servlets are started. "
+		"this is where relative config file arguments "
+		"will be resolved, for example"),
   AP_INIT_TAKE1("KnoWait", servlet_wait, NULL, OR_ALL,
 		"the number of seconds to wait for the servlet to startup"),
   AP_INIT_TAKE2("KnoConfig", servlet_config, NULL, OR_ALL,
@@ -1231,11 +1268,16 @@ static int start_servlet(request_rec *r,kno_servlet s,
   apr_pool_t *p=r->pool;
   server_rec *server=r->server;
   const char *sockname=s->sockname;
-  const char *exename=((dconfig->server_executable) ?
-		       (dconfig->server_executable) :
-		       (sconfig->server_executable) ?
-		       (sconfig->server_executable) :
-		       "/usr/bin/knoweb");
+  const char *exename=((dconfig->servlet_executable) ?
+		       (dconfig->servlet_executable) :
+		       (sconfig->servlet_executable) ?
+		       (sconfig->servlet_executable) :
+		       "/usr/bin/knocgi");
+  const char *dir=((dconfig->servlet_dir) ?
+		   (dconfig->servlet_dir) :
+		   (sconfig->servlet_dir) ?
+		   (sconfig->servlet_dir) :
+		   NULL);
   const char **server_configs=(sconfig->config_args);
   const char **dir_configs=(dconfig->config_args);
   const char **server_env=(sconfig->servlet_env);
@@ -1342,34 +1384,34 @@ static int start_servlet(request_rec *r,kno_servlet s,
     while (*scan_config) {
       if (n_configs>MAX_CONFIGS) {
 	ap_log_error(APLOG_MARK,APLOG_CRIT,OK,server,
-		     "Stopped after %d configs!	 Not passing FramerD server config %s",
+		     "Stopped after %d configs!	 Not passing Kno server config %s",
 		     n_configs,*scan_config);}
       else {
 	ap_log_error(APLOG_MARK,APLOG_INFO,OK,server,
-		     "Passing FramerD server config %s to %s for %s",
+		     "Passing Kno server config %s to %s for %s",
 		     *scan_config,exename,sockname);
 	*write_argv++=(char *)(*scan_config);}
       scan_config++;
       n_configs++;}}
   else ap_log_error(APLOG_MARK,APLOG_WARNING,OK,server,
-		    "No FramerD server configs for %s (%s)",
+		    "No Kno server configs for %s (%s)",
 		    sockname,exename);
   if (dir_configs) {
     const char **scan_config=dir_configs;
     while (*scan_config) {
       if (n_configs>MAX_CONFIGS) {
 	ap_log_error(APLOG_MARK,APLOG_CRIT,OK,server,
-		     "Stopped after %d configs!	 Not passing FramerD path config %s",
+		     "Stopped after %d configs!	 Not passing Kno path config %s",
 		     n_configs,*scan_config);}
       else {
 	ap_log_error(APLOG_MARK,APLOG_INFO,OK,server,
-		     "Passing FramerD path config %s to %s for %s",
+		     "Passing Kno path config %s to %s for %s",
 		     *scan_config,exename,sockname);
 	*write_argv++=(char *)(*scan_config);}
       scan_config++;
       n_configs++;}}
   else ap_log_error(APLOG_MARK,APLOG_WARNING,OK,server,
-		    "No FramerD dir configs for %s (%s)",
+		    "No Kno dir configs for %s (%s)",
 		    sockname,exename);
     
   {
@@ -1442,30 +1484,67 @@ static int start_servlet(request_rec *r,kno_servlet s,
   /* Make sure the socket is writable, creating directories
      if needed. */
   check_directory(p,sockname);
-    
-  if (((rv=apr_procattr_create(&attr,p)) != APR_SUCCESS) ||
-      ((rv=apr_procattr_cmdtype_set(attr,APR_PROGRAM)) != APR_SUCCESS) ||
-      ((rv=apr_procattr_detach_set(attr,1)) != APR_SUCCESS) || 
-      ((rv=apr_procattr_dir_set(attr,ap_make_dirstr_parent(p,r->filename)))
-       != APR_SUCCESS) )
-    ap_log_rerror
-      (APLOG_MARK, APLOG_ERR, rv, r,
-       "couldn't set child process attributes: %s", r->filename);
-  else ap_log_rerror
-	 (APLOG_MARK, LOGDEBUG, rv, r,
-	  "Successfully set child process attributes: %s", r->filename);
-    
+
+  int a_ok = 1;
+  rv = apr_procattr_create(&attr,p);
+  if (rv != APR_SUCCESS) {
+    ap_log_error(APLOG_MARK, APLOG_ERR, rv, server,
+		 "couldn't create proc attribs for '%s'", r->filename);
+    a_ok=0;}
+  else {
+    ap_log_error(APLOG_MARK, APLOG_DEBUG, rv, server,
+		 "Created proc attribs for '%s'", r->filename);
+    rv = apr_procattr_error_check_set(attr,1);
+    if (rv != APR_SUCCESS) {
+      ap_log_error(APLOG_MARK, APLOG_ERR, rv, server,
+		   "couldn't enable parental error checking for '%s'", 
+		   r->filename);
+      if (a_ok) a_ok=0;}
+    else ap_log_error(APLOG_MARK, APLOG_DEBUG, rv, server,
+		      "Enabled parental error checking for '%s'", r->filename);
+
+    rv = apr_procattr_cmdtype_set(attr,APR_PROGRAM);
+    if (rv != APR_SUCCESS) {
+      ap_log_error(APLOG_MARK, APLOG_ERR, rv, server,
+		   "couldn't set process cmdtype for '%s'", r->filename);
+      if (a_ok) a_ok=0;}
+    else ap_log_error(APLOG_MARK, APLOG_DEBUG, rv, server,
+		      "Set process command type '%s'", r->filename);
+    char buf[PATH_MAX], *cwd = getcwd(buf,sizeof(buf));
+    if (dir == NULL)
+      dir = ap_make_dirstr_parent(p,r->filename);
+    ap_log_error(APLOG_MARK, LOGDEBUG, OK, server,
+		 "Child directory should be %s, cwd=%s",dir,cwd);
+    rv = apr_procattr_dir_set(attr,dir);
+    if (rv != APR_SUCCESS) {
+      ap_log_error(APLOG_MARK, APLOG_ERR, rv, server,
+		   "couldn't set directory to '%s', using '%s') for '%s'",
+		   dir,cwd,r->filename);
+      if (a_ok) a_ok=0;
+      dir = cwd;}
+    else ap_log_error(APLOG_MARK, APLOG_DEBUG, rv, server,
+		      "Set process working directory to %s for '%s'",
+		      dir,r->filename);
+    rv=apr_procattr_detach_set(attr,0);
+    if (rv != APR_SUCCESS) {
+      ap_log_error(APLOG_MARK, APLOG_ERR, rv, server,
+		   "couldn't make process detachable for '%s'", r->filename);
+      if (a_ok) a_ok=0;}
+    else ap_log_error(APLOG_MARK, APLOG_DEBUG, rv, server,
+		      "Made process detachable for '%s'", r->filename);
+  }
+
   {
     const char **scanner=argv; while (scanner<write_argv) {
       if ((envp) && (scanner>=envp))
-	ap_log_rerror(APLOG_MARK, LOGDEBUG, OK, r,
+	ap_log_error(APLOG_MARK, LOGDEBUG, OK, server,
 		      "%s ENV[%ld]='%s'",
 		      exename,((long int)(scanner-argv)),*scanner);
-      else ap_log_rerror(APLOG_MARK, LOGDEBUG, OK, r,
+      else ap_log_error(APLOG_MARK, LOGDEBUG, OK, server,
 			 "%s ARG[%ld]='%s'",
 			 exename,((long int)(scanner-argv)),*scanner);
       scanner++;}}
-    
+
   if ((stat(sockname,&stat_data) == 0)&&
       (((time(NULL))-stat_data.st_mtime)>15)) {
     if (remove(sockname) == 0)
@@ -1477,7 +1556,6 @@ static int start_servlet(request_rec *r,kno_servlet s,
       if (unlock) apr_file_unlock(lockfile);
       apr_file_remove(lockname,p);
       return -1;}}
-    
   errno=0;
   rv=apr_proc_create(proc,exename,(const char **)argv,envp,attr,p);
   if (rv!=APR_SUCCESS) {
@@ -1490,17 +1568,17 @@ static int start_servlet(request_rec *r,kno_servlet s,
   else if (log_file)
     ap_log_error
       (APLOG_MARK,APLOG_NOTICE,rv,server,
-       "Spawned %s @%s (logfile=%s) for %s [rv=%d,pid=%d,uid=%d,uid=%d]",
+       "Spawned %s @%s (logfile=%s) for %s [rv=%d,pid=%d,uid=%d,uid=%d,dir=%s]",
        exename,sockname,log_file,r->unparsed_uri,rv,
-       proc->pid,uid,gid);
+       proc->pid,uid,gid,dir);
   else ap_log_error(APLOG_MARK,APLOG_NOTICE,rv,server,
-		    "Spawned %s @%s (nolog) for %s [rv=%d,pid=%d,uid=%d,gid=%d]",
-		    exename,sockname,r->unparsed_uri,rv,proc->pid,uid,gid);
+		    "Spawned %s @%s (nolog) for %s [rv=%d,pid=%d,uid=%d,gid=%d,dir=%s]",
+		    exename,sockname,r->unparsed_uri,rv,proc->pid,uid,gid,dir);
 
   {
     int exitcode; apr_exit_why_e why;
     rv=apr_proc_wait(proc,&exitcode,&why,APR_WAIT);
-    
+
     if (exitcode) {
       ap_log_error(APLOG_MARK,APLOG_CRIT,rv,server,
 		   "Servlet exited(%s) with %d: %s @%s for %s",
@@ -2751,7 +2829,7 @@ static int checkabort(request_rec *r,kno_servlet servlet,knosocket sock,
 {
   char infobuf[512];
   if (r->connection->aborted) {
-    if ((servlet)&&(sock)) {    
+    if ((servlet)&&(sock)) {
       ap_log_rerror(APLOG_MARK,APLOG_WARNING,OK,r,
 		    "Connection aborted for %s, %s %s",
 		    r->uri,((started)?("closing in-use"):("recycling")),
@@ -3047,7 +3125,7 @@ static int kno_post_config(apr_pool_t *p,
 		"mod_kno v%s starting post config for Apache 2.x (%s)",
 		version_num,_FILEINFO);
   if (sconfig->socket_prefix==NULL)
-    sconfig->socket_prefix=apr_pstrdup(p,"/var/run/framerd/servlets/");
+    sconfig->socket_prefix=apr_pstrdup(p,"/var/run/kno/servlets/");
   if (sconfig->socket_prefix[0]=='/') {
     const char *dirname=sconfig->socket_prefix;
     int retval=apr_dir_make_recursive(dirname,RUN_KNO_PERMISSIONS,p);
