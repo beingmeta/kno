@@ -1525,13 +1525,15 @@ static int start_servlet(request_rec *r,kno_servlet s,
     else ap_log_error(APLOG_MARK, APLOG_DEBUG, rv, server,
 		      "Set process working directory to %s for '%s'",
 		      dir,r->filename);
-    rv=apr_procattr_detach_set(attr,1);
+#if 0
+    rv=apr_procattr_detach_set(attr,0);
     if (rv != APR_SUCCESS) {
       ap_log_error(APLOG_MARK, APLOG_ERR, rv, server,
 		   "couldn't make process detachable for '%s'", r->filename);
       if (a_ok) a_ok=0;}
     else ap_log_error(APLOG_MARK, APLOG_DEBUG, rv, server,
 		      "Made process detachable for '%s'", r->filename);
+#endif
   }
 
   {
@@ -1588,7 +1590,7 @@ static int start_servlet(request_rec *r,kno_servlet s,
       return -1;}}
 
   /* Now wait for the socket file to exist */
-  rv=spawn_wait(s,r,proc);
+  int started = spawn_wait(s,r,proc);
 
   if (unlock) apr_file_unlock(lockfile);
   apr_file_remove(lockname,p);
