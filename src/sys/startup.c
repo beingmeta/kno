@@ -838,7 +838,7 @@ KNO_EXPORT int kno_boot_message()
   u8_xtime_to_rfc822_x(curtimeout,&xt,xt.u8_tzoff,0);
   u8_string appid = u8_appid();
   u8_log(U8_LOG_MSG,NULL,
-         _("(%s:%lld) %-s@%-s:%-s (%s)\n%s %s%s"),
+         _("(kno:%s:%lld) %-s@%-s:%-s (%s)\n%s %s%s"),
          ((appid) ? (appid) : (exe_name) ? (exe_name) : ((u8_string)"exe")),
          (unsigned long long)getpid(),
          u8_username(uid),u8_gethostname(),u8_getcwd(),
