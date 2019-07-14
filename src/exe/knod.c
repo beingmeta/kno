@@ -1038,6 +1038,19 @@ int main(int argc,char **argv)
     dup2(log_fd,1);
     dup2(log_fd,2);}
 
+  char header[] =
+    ";;====||====||====||====||====||====||====||===="
+    "||====||====||====||====||====||====||====||===="
+    "||====||====||====||====||====||====||====||===="
+    "||====||====||====||====||====||====||====||====\n";
+  ssize_t ignored = write(1,header,strlen(header));
+  if (write < 0) {
+    int err = errno; errno=0;
+    u8_log(LOG_WARN,"WriteFailed",
+           "Write to output failed errno=%d:%s",err,u8_strerror(err));}
+
+  kno_setapp(server_spec,state_dir);
+  kno_boot_message();
 
   {
     if (argc>2) {
@@ -1122,7 +1135,6 @@ int main(int argc,char **argv)
 
   /* Store server initialization information in the configuration
      environment. */
-  kno_setapp(server_spec,state_dir);
   if (source_file) {
     lispval interpreter = kno_wrapstring(u8_fromlibc(argv[0]));
     lispval src = kno_wrapstring(u8_realpath(source_file,NULL));
@@ -1133,9 +1145,6 @@ int main(int argc,char **argv)
     lispval sval = knostring(server_port);
     kno_set_config("PORT",sval);
     kno_decref(sval);}
-
-  kno_boot_message();
-  u8_now(&boot_time);
 
   pid_file = kno_runbase_filename(".pid");
   nid_file = kno_runbase_filename(".nid");

@@ -2051,6 +2051,17 @@ int main(int argc,char **argv)
     dup2(log_fd,1);
     dup2(log_fd,2);}
 
+  char header[] =
+    ";;====||====||====||====||====||====||====||===="
+    "||====||====||====||====||====||====||====||===="
+    "||====||====||====||====||====||====||====||===="
+    "||====||====||====||====||====||====||====||====\n";
+  ssize_t ignored = write(1,header,strlen(header));
+  if (write < 0) {
+    int err = errno; errno=0;
+    u8_log(LOG_WARN,"WriteFailed",
+           "Write to output failed errno=%d:%s",err,u8_strerror(err));}
+
   kno_setapp(socket_spec,NULL);
   kno_boot_message();
   u8_now(&boot_time);
