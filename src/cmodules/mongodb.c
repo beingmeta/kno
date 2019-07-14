@@ -120,11 +120,11 @@ static mongoc_client_t *get_client(KNO_MONGODB_DATABASE *server,int block)
 {
   mongoc_client_t *client;
   if (block) {
-    u8_logf(LOG_DEBUG,_("MongoDB/getclient"),
+    u8_logf(LOG_DEBUG,_("MongoDB/get_client"),
             "Getting client from server %llx (%s)",server->dbclients,server->dbspec);
     client = mongoc_client_pool_pop(server->dbclients);}
   else client = mongoc_client_pool_try_pop(server->dbclients);
-  u8_logf(LOG_DEBUG,_("MongoDB/gotclient"),
+  u8_logf(LOG_DEBUG,_("MongoDB/got_client"),
           "Got client %llx from server %llx (%s)",
           client,server->dbclients,server->dbspec);
   return client;
@@ -132,7 +132,7 @@ static mongoc_client_t *get_client(KNO_MONGODB_DATABASE *server,int block)
 
 static void release_client(KNO_MONGODB_DATABASE *server,mongoc_client_t *client)
 {
-  u8_logf(LOG_DEBUG,_("MongoDB/freeclient"),
+  u8_logf(LOG_DEBUG,_("MongoDB/release_client"),
           "Releasing client %llx to server %llx (%s)",
           client,server->dbclients,server->dbspec);
   mongoc_client_pool_push(server->dbclients,client);
@@ -288,7 +288,7 @@ static int get_write_flags(lispval val)
   else if ((KNO_UINTP(val))&&(KNO_FIX2INT(val)>0))
     return KNO_FIX2INT(val);
   else {
-    u8_logf(LOG_ERR,"mongodb/get_write_concern","Bad MongoDB write concern %q",val);
+    u8_logf(LOG_ERR,"mongodb/get_write_flags","Bad MongoDB write concern %q",val);
     return MONGOC_WRITE_CONCERN_W_DEFAULT;}
 }
 
@@ -343,7 +343,7 @@ static mongoc_read_prefs_t *get_read_prefs(lispval opts)
         const bson_t *bson = kno_lisp2bson(s,flags,opts);
         mongoc_read_prefs_add_tag(rp,bson);}
       else {
-        u8_logf(LOG_ERR,"mongodb/getreadmode",
+        u8_logf(LOG_ERR,"mongodb/get_read_prefs",
                 "Bad MongoDB read preference %q",s);}}
     kno_decref(spec);
     return rp;}
@@ -500,13 +500,13 @@ static int multislots_config_add(lispval var,lispval val,void *data)
   else if (KNO_STRINGP(val))
     sym = kno_intern(CSTRING(val));
   else {
-    kno_seterr("Not symbolic","mongodb/config_add_multislots",
+    kno_seterr("Not symbolic","mongodb/multislots_config_add",
               NULL,val);
     return -1;}
   int rv = add_vecslot(sym);
   if (rv < 0) {
     char buf[64];
-    kno_seterr("Too many multislots declared","mongodb/config_add_multislots",
+    kno_seterr("Too many multislots declared","mongodb/multislots_config_add",
               u8_sprintf(buf,sizeof(buf),"%d",MONGO_MULTISLOTS_MAX),
               val);
     return rv;}
@@ -1000,7 +1000,7 @@ static lispval mongodb_insert(lispval arg,lispval objects,lispval opts_arg)
     bson_t reply;
     bson_error_t error = { 0 };
     if ((logops)||(flags&KNO_MONGODB_LOGOPS))
-      u8_logf(LOG_NOTICE,"MongoDB/insert",
+      u8_logf(LOG_NOTICE,"mongodb_insert",
               "Inserting %d items into %q",KNO_CHOICE_SIZE(objects),arg);
     if (KNO_CHOICEP(objects)) {
       mongoc_bulk_operation_t *bulk=
@@ -1083,7 +1083,7 @@ static lispval mongodb_insert(lispval arg,lispval objects,lispval opts_arg)
     bson_error_t error;
     mongoc_write_concern_t *wc = get_write_concern(opts);
     if ((logops)||(flags&KNO_MONGODB_LOGOPS))
-      u8_logf(LOG_NOTICE,"MongoDB/insert",
+      u8_logf(LOG_NOTICE,"mongodb_insert",
               "Inserting %d items into %q",KNO_CHOICE_SIZE(objects),arg);
     if (KNO_CHOICEP(objects)) {
       mongoc_bulk_operation_t *bulk=
@@ -1163,7 +1163,7 @@ static lispval mongodb_remove(lispval arg,lispval obj,lispval opts_arg)
         kno_decref(id);}}
     else bson_append_dtype(q,"_id",3,obj,-1);
     if ((logops)||(flags&KNO_MONGODB_LOGOPS))
-      u8_logf(LOG_NOTICE,"MongoDB/remove","Removing %q items from %q",obj,arg);
+      u8_logf(LOG_NOTICE,"mongodb_remove","Removing %q items from %q",obj,arg);
     if (mongoc_collection_remove(collection,
                                  ((hasid)?
                                   (MONGOC_REMOVE_SINGLE_REMOVE):
@@ -1209,7 +1209,7 @@ static lispval mongodb_updater(lispval arg,lispval query,lispval update,
     if ((logops)||(flags&KNO_MONGODB_LOGOPS)) {
       char *qstring = bson_as_json(q,NULL);
       char *ustring = bson_as_json(u,NULL);
-      u8_logf(LOG_NOTICE,"MongoDB/update",
+      u8_logf(LOG_NOTICE,"mongodb_updater",
              "Updating matches in %q to\n%Q\n%s\n+%Q\n+%s",
               arg,query,qstring,update,ustring);
       bson_free(qstring);
@@ -1281,8 +1281,7 @@ static lispval mongodb_find(lispval arg,lispval query,lispval opts_arg)
     int sort_results = kno_testopt(opts,KNOSYM_SORTED,KNO_VOID);
     if ((logops)||(flags&KNO_MONGODB_LOGOPS)) {
       char *qstring = bson_as_json(q,NULL);
-      u8_logf(LOG_NOTICE,"MongoDB/find",
-              "Matches in %q to\n%Q\n%s",
+      u8_logf(LOG_NOTICE,"mongodb_find","Matches in %q to\n%Q\n%s",
               arg,query,qstring);
       bson_free(qstring);}
     if (q)
@@ -1366,7 +1365,7 @@ static lispval mongodb_find(lispval arg,lispval query,lispval opts_arg)
       mongoc_read_prefs_t *rp = get_read_prefs(opts);
       if ((logops)||(flags&KNO_MONGODB_LOGOPS)) {
         unsigned char *qstring = bson_as_json(q,NULL);
-        u8_logf(LOG_NOTICE,"MongoDB/find",
+        u8_logf(LOG_NOTICE,"mongodb_find",
                 "Matches in %q to\n%Q\n%s",arg,query,qstring);
         bson_free(qstring);}
       if (q) cursor = mongoc_collection_find
@@ -1443,7 +1442,7 @@ static lispval mongodb_count(lispval arg,lispval query,lispval opts_arg)
     mongoc_read_prefs_t *rp = get_read_prefs(opts);
     if ((logops)||(flags&KNO_MONGODB_LOGOPS)) {
       unsigned char *qstring = bson_as_json(q,NULL);
-      u8_logf(LOG_NOTICE,"MongoDB/count",
+      u8_logf(LOG_NOTICE,"mongodb_count",
               "Counting matches in %q to\n%Q\n%s",
               arg,query,qstring);
       bson_free(qstring);}
@@ -1498,7 +1497,7 @@ static lispval mongodb_count(lispval arg,lispval query,lispval opts_arg)
       mongoc_read_prefs_t *rp = get_read_prefs(opts);
       if ((logops)||(flags&KNO_MONGODB_LOGOPS)) {
         unsigned char *qstring = bson_as_json(q,NULL);
-        u8_logf(LOG_NOTICE,"MongoDB/find",
+        u8_logf(LOG_NOTICE,"mongodb_count",
                 "Matches in %q to \n%Q\n%s",arg,query,qstring);
         bson_free(qstring);}
       n_documents = mongoc_collection_count
@@ -1560,7 +1559,7 @@ static lispval mongodb_get(lispval arg,lispval query,lispval opts_arg)
       q = out.bson_doc;}
     if ((logops)||(flags&KNO_MONGODB_LOGOPS)) {
       unsigned char *qstring = bson_as_json(q,NULL);
-      u8_logf(LOG_NOTICE,"MongoDB/get",
+      u8_logf(LOG_NOTICE,"mongodb_get",
               "Matches in %q to \n%Q\n%s",arg,query,qstring);
       bson_free(qstring);}
     if (q)
@@ -1606,7 +1605,7 @@ static lispval mongodb_get(lispval arg,lispval query,lispval opts_arg)
       q = out.bson_doc;}
     if ((logops)||(flags&KNO_MONGODB_LOGOPS)) {
       unsigned char *qstring = bson_as_json(q,NULL);
-      u8_logf(LOG_NOTICE,"MongoDB/get",
+      u8_logf(LOG_NOTICE,"mongodb_get",
               "Matches in %q to\n%Q\n%s",
               arg,query,qstring);
       bson_free(qstring);}
@@ -1657,7 +1656,7 @@ static lispval mongodb_modify(lispval arg,lispval query,lispval update,
     if ((logops)||(flags&KNO_MONGODB_LOGOPS)) {
       unsigned char *qstring = bson_as_json(q,NULL);
       unsigned char *ustring = bson_as_json(u,NULL);
-      u8_logf(LOG_NOTICE,"MongoDB/find+modify",
+      u8_logf(LOG_NOTICE,"mongodb_modify",
               "Updating in %q to\n%Q\n%s\n+%Q\n+%s",
               arg,query,qstring,update,ustring);
       bson_free(qstring);
@@ -1863,7 +1862,7 @@ static lispval mongodb_command(int n,lispval *args)
     command = make_command(n-2,args+2);
     opts = args[1];}
   if ((logops)||(flags&KNO_MONGODB_LOGOPS)) {
-    u8_logf(LOG_DEBUG,"MongoDB/RESULTS","At %q: %q",arg,command);}
+    u8_logf(LOG_DEBUG,"mongodb_command","At %q: %q",arg,command);}
   if (KNO_TYPEP(arg,kno_mongoc_server))
     result = db_command(arg,command,opts);
   else if (KNO_TYPEP(arg,kno_mongoc_collection))
@@ -1964,7 +1963,7 @@ static lispval mongodb_simple_command(int n,lispval *args)
     command = make_command(n-2,args+2);
     opts = args[1];}
   if ((logops)||(flags&KNO_MONGODB_LOGOPS)) {
-    u8_logf(LOG_DEBUG,"MongoDB/DO","At %q: %q",arg,command);}
+    u8_logf(LOG_DEBUG,"mongodb_simple_command","At %q: %q",arg,command);}
   if (KNO_TYPEP(arg,kno_mongoc_server))
     result = db_simple_command(arg,command,opts);
   else if (KNO_TYPEP(arg,kno_mongoc_collection))
