@@ -21,7 +21,7 @@
 (defambda (index-phase1 concepts batch-state loop-state task-state)
   (let ((indexes (get loop-state 'indexes)))
     (prefetch-oids! concepts)
-    (do-choices (concept (%pick concepts '{words %words names hypernym @?genls}))
+    (do-choices (concept (%pick concepts '{words %words names hypernym genls}))
       ;; ALWAYS is transitive
       (index-frame* indexes concept always always /always)
       (index-frame indexes concept always (list (get concept always)))
@@ -72,7 +72,7 @@
 (defambda (index-phase2 concepts batch-state loop-state task-state)
   (let ((indexes (get loop-state 'indexes)))
     (prefetch-oids! concepts)
-    (do-choices (concept (%pick concepts '{words %words names hypernym @?genls}))
+    (do-choices (concept (%pick concepts '{words %words names hypernym genls}))
       (let ((s (get concept sometimes))
 	    (n (get concept never)))
 	(when (exists? s)
