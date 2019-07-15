@@ -36,16 +36,23 @@ static u8_string get_config_path(u8_string spec)
 {
   if (*spec == '/')
     return u8_strdup(spec);
-  else if (((u8_string)(strstr(spec,"file:///"))) == spec)
+  else if (((u8_string)(strstr(spec,"file:"))) == spec)
     return u8_strdup(spec+7);
-  else if (((u8_string)(strstr(spec,"file://"))) == spec) {
-    u8_string slash = strchr(spec+7,'/');
-    if (slash) return u8_strdup(slash);}
-  else if (((u8_string)(strstr(spec,"file:/"))) == spec)
-    return u8_strdup(spec+5);
-  else if (strchr(spec,':'))
+  else if (strchr(spec,':')) /* It's got a schema, assume it's absolute */
     return u8_strdup(spec);
-  else return u8_abspath(spec,kno_sourcebase());
+  else {
+    u8_string sourcebase = kno_sourcebase();
+    if (kno_sourcebase) {
+      u8_string full = u8_mkpath(sourcebase,spec);
+      if (kno_probe_source(full,NULL,NULL,NULL))
+	return full;
+      else u8_free(full);}
+    u8_string abspath = u8_abspath(spec,NULL);
+    if (u8_file_existsp(abspath))
+      return abspath;
+    else {
+      u8_free(abspath);
+      return NULL;}}
 }
 
 /* Core functions */
@@ -221,9 +228,14 @@ static int trace_config_load = 0;
 KNO_EXPORT int kno_load_config(u8_string sourceid)
 {
   struct U8_INPUT stream; int retval;
-  u8_string sourcebase = NULL, outer_sourcebase;
-  u8_string content = kno_get_source(sourceid,NULL,&sourcebase,NULL,NULL);
-  if (content == NULL) return -1;
+  u8_string sourcebase = NULL, outer_sourcebase = NULL;
+  u8_string fullpath = get_config_path(sourceid);
+  if (fullpath == NULL)
+    return KNO_ERR(-1,"MissingConfig","kno_load_config",sourceid,VOID);
+  u8_string content = kno_get_source(fullpath,NULL,&sourcebase,NULL,NULL);
+  u8_free(fullpath);
+  if (content == NULL)
+    return -1;
   else if (sourcebase) {
     outer_sourcebase = kno_bind_sourcebase(sourcebase);}
   else outer_sourcebase = NULL;
@@ -244,9 +256,14 @@ KNO_EXPORT int kno_load_config(u8_string sourceid)
 KNO_EXPORT int kno_load_default_config(u8_string sourceid)
 {
   struct U8_INPUT stream; int retval;
-  u8_string sourcebase = NULL, outer_sourcebase;
-  u8_string content = kno_get_source(sourceid,NULL,&sourcebase,NULL,NULL);
-  if (content == NULL) return -1;
+  u8_string sourcebase = NULL, outer_sourcebase = NULL;
+  u8_string fullpath = get_config_path(sourceid);
+  if (fullpath == NULL)
+    return KNO_ERR(-1,"MissingConfig","kno_load_default_config",sourceid,VOID);
+  u8_string content = kno_get_source(fullpath,NULL,&sourcebase,NULL,NULL);
+  u8_free(fullpath);
+  if (content == NULL)
+    return -1;
   else if (sourcebase) {
     outer_sourcebase = kno_bind_sourcebase(sourcebase);}
   else outer_sourcebase = NULL;
@@ -269,9 +286,7 @@ KNO_EXPORT int kno_load_default_config(u8_string sourceid)
 static lispval lisp_load_config(lispval arg)
 {
   if (STRINGP(arg)) {
-    u8_string abspath = get_config_path(CSTRING(arg));
-    int retval = kno_load_config(abspath);
-    u8_free(abspath);
+    int retval = kno_load_config(KNO_CSTRING(arg));
     if (retval<0)
       return KNO_ERROR;
     else return KNO_INT(retval);}
@@ -295,9 +310,7 @@ static lispval lisp_load_config(lispval arg)
 static lispval lisp_load_default_config(lispval arg)
 {
   if (STRINGP(arg)) {
-    u8_string abspath = get_config_path(CSTRING(arg));
-    int retval = kno_load_default_config(abspath);
-    u8_free(abspath);
+    int retval = kno_load_default_config(KNO_CSTRING(arg));
     if (retval<0)
       return KNO_ERROR;
     else return KNO_INT(retval);}
