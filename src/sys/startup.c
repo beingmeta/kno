@@ -809,15 +809,22 @@ static int boot_config()
 {
   u8_byte *config_string = (u8_byte *)u8_getenv("KNO_BOOT_CONFIG");
   u8_byte *scan, *end; int count = 0;
-  if (config_string == NULL) config_string = u8_strdup(KNO_BOOT_CONFIG);
+  if (config_string == NULL)
+    config_string = u8_strdup(KNO_BOOT_CONFIG);
   else config_string = u8_strdup(config_string);
-  scan = config_string; end = strchr(scan,';');
+  if (config_string[0] == '\0')
+    return 0;
+  scan = config_string;
+  end = strchr(scan,';');
   while (scan) {
     if (end == NULL) {
       kno_config_assignment(scan); count++;
       break;}
-    *end='\0'; kno_config_assignment(scan); count++;
-    scan = end+1; end = strchr(scan,';');}
+    *end='\0';
+    kno_config_assignment(scan);
+    count++;
+    scan = end+1;
+    end = strchr(scan,';');}
   u8_free(config_string);
   return count;
 }
