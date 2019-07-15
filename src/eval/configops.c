@@ -42,7 +42,7 @@ static u8_string get_config_path(u8_string spec)
     return u8_strdup(spec);
   else {
     u8_string sourcebase = kno_sourcebase();
-    if (kno_sourcebase) {
+    if (sourcebase) {
       u8_string full = u8_mkpath(sourcebase,spec);
       if (kno_probe_source(full,NULL,NULL,NULL))
 	return full;
