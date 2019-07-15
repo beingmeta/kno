@@ -267,6 +267,13 @@
                       cname ## _typeinfo,                       \
                       cname ## _defaults)
 
+#define KNO_LINK_PRIM(pname,cname,arity,module)                  \
+  kno_defprim ## arity(module,cname,&cname ## _info,             \
+                      cname ## _typeinfo,                       \
+                      cname ## _defaults)
+#define KNO_LINK_VARARGS(pname,cname,module)    \
+  kno_defprimN(module,cname,&cname ## _info);
+
 #define KNO_DECL_PRIM_ARGS(cname,arity,module,typeinfo,defaults) \
   kno_defprim ## arity(module,cname,&cname ## _info,typeinfo,defaults)
 
