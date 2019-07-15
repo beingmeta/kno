@@ -1396,7 +1396,15 @@ lispval kno_parse_expr(u8_input in)
   if (inchar<0)
     return KNO_EOF;
   // TODO: When this returns an error, add details from in
-  else return kno_parser(in);
+  lispval result = kno_parser(in);
+  if (KNO_ABORTED(result)) {
+    if (result == KNO_EOX) {
+      u8_exception ex = u8_current_exception;
+      if (ex == NULL)
+        kno_seterr("UnexpectedEndOfExpression","kno_parse",
+                   in->u8_inbuf,VOID);}
+    return result;}
+  else return result;
 }
 
 KNO_EXPORT
@@ -1409,7 +1417,14 @@ lispval kno_parse(u8_string s)
 {
   struct U8_INPUT stream;
   U8_INIT_STRING_INPUT((&stream),-1,s);
-  return kno_parser(&stream);
+  lispval result = kno_parser(&stream);
+  if (KNO_ABORTED(result)) {
+    if (result == KNO_EOX) {
+      u8_exception ex = u8_current_exception;
+      if (ex == NULL)
+        kno_seterr("UnexpectedEndOfExpression","kno_parse",s,VOID);}
+    return result;}
+  else return result;
 }
 
 
