@@ -1041,10 +1041,9 @@ int main(int argc,char **argv)
   char header[] =
     ";;====||====||====||====||====||====||====||===="
     "||====||====||====||====||====||====||====||===="
-    "||====||====||====||====||====||====||====||===="
     "||====||====||====||====||====||====||====||====\n";
-  ssize_t ignored = write(1,header,strlen(header));
-  if (write < 0) {
+  ssize_t written = write(1,header,strlen(header));
+  if (written < 0) {
     int err = errno; errno=0;
     u8_log(LOG_WARN,"WriteFailed",
            "Write to output failed errno=%d:%s",err,u8_strerror(err));}
