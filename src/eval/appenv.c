@@ -227,6 +227,7 @@ static int add_modname(lispval modname)
       u8_log(LOG_WARN,kno_NoSuchModule,"module_config_set",
 	     "No module found for %q",modname);
       return -1;}
+    u8_log(LOG_NOTICE,"AppConfig","Loading module %q",modname);
     lispval used = kno_use_module(kno_app_env,module);
     if (KNO_ABORTP(used)) {
       u8_log(LOG_WARN,"LoadModuleError",
@@ -241,6 +242,7 @@ static int add_modname(lispval modname)
     kno_decref(used);
     return 1;}
   else {
+    u8_log(LOG_NOTICE,"AppConfig","Will load module %q",modname);
     module_list = kno_conspair(modname,module_list);
     kno_incref(modname);
     return 0;}
@@ -291,12 +293,14 @@ static int loadfile_config_set(lispval var,lispval vals,void *d)
       u8_string loadpath = (!(strchr(CSTRING(val),':'))) ?
 	(u8_abspath(CSTRING(val),NULL)) :
 	(u8_strdup(CSTRING(val)));
+      u8_log(LOG_NOTICE,"AppConfig","Will load %s (%q)",loadpath,val);
       loadfile_list = kno_conspair(kno_wrapstring(loadpath),loadfile_list);}}
   else {
     KNO_DO_CHOICES(val,vals) {
       u8_string loadpath = (!(strchr(CSTRING(val),':'))) ?
 	(u8_abspath(CSTRING(val),NULL)) :
 	(u8_strdup(CSTRING(val)));
+      u8_log(LOG_NOTICE,"AppConfig","Loading %s (%q)",loadpath,val);
       lispval loadval = kno_load_source(loadpath,kno_app_env,NULL);
       if (KNO_ABORTP(loadval)) {
 	kno_seterr(_("load error"),"loadfile_config_set",loadpath,val);
