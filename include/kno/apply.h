@@ -146,7 +146,8 @@ typedef lispval (*kno_xprimn)(kno_function,int n,lispval *);
   u8_string fcn_name, fcn_filename;                                       \
   u8_string fcn_doc;                                                      \
   lispval fcn_moduleid;                                                   \
-  unsigned int fcn_ndcall:1, fcn_xcall:1, fcn_wrap_calls:1, fcn_notail:1; \
+  unsigned int fcn_ndcall:1, fcn_xcall:1, fcn_varargs:1;                \
+  unsigned int fcn_wrap_calls:1, fcn_notail:1;                          \
   unsigned int fcn_break:1, fcn_trace:3;                                  \
   unsigned int fcn_free_doc:1, fcn_free_typeinfo:1, fcn_free_defaults:1;  \
   lispval fcnid;                                                          \
@@ -400,6 +401,8 @@ KNO_EXPORT lispval kno_init_cprim2(u8_string name,u8_string cname,u8_string file
 
 #define KNO_XCALL   0x10000
 #define KNO_NDCALL  0x20000
+#define KNO_LEXPR   0x40000
+#define KNO_VARARGS KNO_LEXPR
 
 /* Useful macros */
 

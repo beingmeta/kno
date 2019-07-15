@@ -532,6 +532,11 @@ KNO_FASTOP int fill_arbguf(struct KNO_FUNCTION *f,int n,
 KNO_FASTOP lispval dcall(u8_string fname,kno_function f,int n,lispval *args)
 {
   if (KNO_INTERRUPTED()) return KNO_ERROR;
+  else if ( ( (f->fcn_varargs) || (f->fcn_arity < 0) ) &&
+            (f->fcn_handler.fnptr) ) {
+    if (f->fcn_xcall)
+      return f->fcn_handler.xcalln(f,n,args);
+    else return f->fcn_handler.calln(n,args);}
   else if (f->fcn_handler.fnptr)
     switch (f->fcn_arity) {
     case 0: return dcall0(f);
@@ -585,7 +590,7 @@ KNO_FASTOP lispval dcall(u8_string fname,kno_function f,int n,lispval *args)
                      args[12],args[13],args[14]);
     default:
       if (f->fcn_xcall)
-        return f->fcn_handler.calln(n,args);
+        return f->fcn_handler.xcalln(f,n,args);
       else return f->fcn_handler.calln(n,args);}
   else {
     int ctype = KNO_CONS_TYPE(f);

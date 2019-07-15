@@ -138,6 +138,7 @@ static struct KNO_CPRIM *make_cprim(u8_string name,
   int min_arity = (flags&0x8000) ? ( (flags>>8) & 0x7f) : (arity);
   int non_deterministic = flags & KNO_NDCALL;
   int extended_call = flags & KNO_XCALL;
+  int varargs = ( (arity < 0) || (flags & KNO_LEXPR) );
   /* We allocate the type/default info together with the function to
      reduce cache/page misses. We might need to worry about how we're
      figuring out these pointers for non-word-aligned architectures, but
@@ -160,6 +161,9 @@ static struct KNO_CPRIM *make_cprim(u8_string name,
   f->fcn_filename = filename;
   f->fcn_doc = doc;
   f->fcn_moduleid = KNO_VOID;
+  if (varargs)
+    f->fcn_varargs = 1;
+  else f->fcn_varargs = 0;
   if (non_deterministic)
     f->fcn_ndcall = 1;
   else f->fcn_ndcall = 0;
