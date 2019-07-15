@@ -2186,8 +2186,9 @@ int main(int argc,char **argv)
 
   if (!(load_source)) {}
   else if ((u8_has_suffix(load_source,".scm",1))||
+           (u8_has_suffix(load_source,".nml",1))||
            (u8_has_suffix(load_source,".knocgi",1))||
-           (u8_has_suffix(load_source,".nml",1))) {
+           (u8_has_suffix(load_source,".knoml",1))) {
     lispval path = knostring(load_source);
     lispval result = getcontent(path);
     kno_decref(path);
