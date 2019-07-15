@@ -1810,7 +1810,7 @@ static lispval ffi_proc(int n,lispval *args)
     else return KNO_ERROR;}
 }
 
-static lispval ffi_found_prim(lispval name,lispval modname)
+static lispval ffi_foundp_prim(lispval name,lispval modname)
 {
   void *module=NULL, *sym=NULL;
   if (STRINGP(modname)) {
@@ -1830,7 +1830,7 @@ static lispval ffi_proc(int n,lispval *args)
             u8_strdup("No FFI support is available in this build of Kno"));
   return KNO_ERROR;
 }
-static lispval ffi_found_prim(lispval name,lispval modname)
+static lispval ffi_foundp_prim(lispval name,lispval modname)
 {
   return KNO_FALSE;
 }
@@ -2032,7 +2032,7 @@ static void init_localfns()
 
   kno_idefn(kno_scheme_module,kno_make_cprimn("FFI/PROC",ffi_proc,3));
   kno_idefn(kno_scheme_module,
-            kno_make_cprim2x("FFI/FOUND?",ffi_found_prim,1,
+            kno_make_cprim2x("FFI/FOUND?",ffi_foundp_prim,1,
                              kno_string_type,VOID,
                              -1,VOID));
 
