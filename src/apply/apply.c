@@ -251,69 +251,51 @@ KNO_EXPORT struct KNO_STACK_CLEANUP *_kno_add_cleanup
 
 static lispval dcall0(struct KNO_FUNCTION *f)
 {
-  if (PRED_FALSE(f->fcn_xcall))
-    return f->fcn_handler.xcall0(f);
-  else return f->fcn_handler.call0();
+  return f->fcn_handler.call0(f);
 }
 static lispval dcall1(struct KNO_FUNCTION *f,lispval arg1)
 {
-  if (PRED_FALSE(f->fcn_xcall))
-    return f->fcn_handler.xcall1(f,arg1);
-  else return f->fcn_handler.call1(arg1);
+  return f->fcn_handler.call1(arg1);
 }
 static lispval dcall2(struct KNO_FUNCTION *f,lispval arg1,lispval arg2)
 {
-  if (PRED_FALSE(f->fcn_xcall))
-    return f->fcn_handler.xcall2(f,arg1,arg2);
-  else return f->fcn_handler.call2(arg1,arg2);
+  return f->fcn_handler.call2(arg1,arg2);
 }
 static lispval dcall3(struct KNO_FUNCTION *f,
                       lispval arg1,lispval arg2,lispval arg3)
 {
-  if (PRED_FALSE(f->fcn_xcall))
-    return f->fcn_handler.xcall3(f,arg1,arg2,arg3);
-  else return f->fcn_handler.call3(arg1,arg2,arg3);
+  return f->fcn_handler.call3(arg1,arg2,arg3);
 }
 static lispval dcall4(struct KNO_FUNCTION *f,
                       lispval arg1,lispval arg2,lispval arg3,lispval arg4)
 {
-  if (PRED_FALSE(f->fcn_xcall))
-    return f->fcn_handler.xcall4(f,arg1,arg2,arg3,arg4);
-  else return f->fcn_handler.call4(arg1,arg2,arg3,arg4);
+  return f->fcn_handler.call4(arg1,arg2,arg3,arg4);
 }
 static lispval dcall5(struct KNO_FUNCTION *f,
                       lispval arg1,lispval arg2,lispval arg3,lispval arg4,
                       lispval arg5)
 {
-  if (PRED_FALSE(f->fcn_xcall))
-    return f->fcn_handler.xcall5(f,arg1,arg2,arg3,arg4,arg5);
-  else return f->fcn_handler.call5(arg1,arg2,arg3,arg4,arg5);
+  return f->fcn_handler.call5(arg1,arg2,arg3,arg4,arg5);
 }
 static lispval dcall6(struct KNO_FUNCTION *f,
                       lispval arg1,lispval arg2,lispval arg3,lispval arg4,
                       lispval arg5,lispval arg6)
 {
-  if (PRED_FALSE(f->fcn_xcall))
-    return f->fcn_handler.xcall6(f,arg1,arg2,arg3,arg4,arg5,arg6);
-  else return f->fcn_handler.call6(arg1,arg2,arg3,arg4,arg5,arg6);
+  return f->fcn_handler.call6(arg1,arg2,arg3,arg4,arg5,arg6);
 }
 
 static lispval dcall7(struct KNO_FUNCTION *f,
                       lispval arg1,lispval arg2,lispval arg3,lispval arg4,
                       lispval arg5,lispval arg6,lispval arg7)
 {
-  if (PRED_FALSE(f->fcn_xcall))
-    return f->fcn_handler.xcall7(f,arg1,arg2,arg3,arg4,arg5,arg6,arg7);
-  else return f->fcn_handler.call7(arg1,arg2,arg3,arg4,arg5,arg6,arg7);
+  return f->fcn_handler.call7(arg1,arg2,arg3,arg4,arg5,arg6,arg7);
 }
 
 static lispval dcall8(struct KNO_FUNCTION *f,
                       lispval arg1,lispval arg2,lispval arg3,lispval arg4,
                       lispval arg5,lispval arg6,lispval arg7,lispval arg8)
 {
-  if (PRED_FALSE(f->fcn_xcall))
-    return f->fcn_handler.xcall8(f,arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8);
-  else return f->fcn_handler.call8(arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8);
+  return f->fcn_handler.call8(arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8);
 }
 
 static lispval dcall9(struct KNO_FUNCTION *f,
@@ -321,13 +303,9 @@ static lispval dcall9(struct KNO_FUNCTION *f,
                       lispval arg5,lispval arg6,lispval arg7,lispval arg8,
                       lispval arg9)
 {
-  if (PRED_FALSE(f->fcn_xcall))
-    return f->fcn_handler.xcall9(f,arg1,arg2,arg3,
-                                 arg4,arg5,arg6,
-                                 arg7,arg8,arg9);
-  else return f->fcn_handler.call9(arg1,arg2,arg3,
-                                   arg4,arg5,arg6,
-                                   arg7,arg8,arg9);
+  return f->fcn_handler.call9(arg1,arg2,arg3,
+                              arg4,arg5,arg6,
+                              arg7,arg8,arg9);
 }
 
 static lispval dcall10(struct KNO_FUNCTION *f,
@@ -336,15 +314,10 @@ static lispval dcall10(struct KNO_FUNCTION *f,
                        lispval arg7,lispval arg8,lispval arg9,
                        lispval arg10)
 {
-  if (PRED_FALSE(f->fcn_xcall))
-    return f->fcn_handler.xcall10(f,arg1,arg2,arg3,
-                                  arg4,arg5,arg6,
-                                  arg7,arg8,arg9,
-                                  arg10);
-  else return f->fcn_handler.call10(arg1,arg2,arg3,
-                                    arg4,arg5,arg6,
-                                    arg7,arg8,arg9,
-                                    arg10);
+  return f->fcn_handler.call10(arg1,arg2,arg3,
+                               arg4,arg5,arg6,
+                               arg7,arg8,arg9,
+                               arg10);
 }
 
 static lispval dcall11(struct KNO_FUNCTION *f,
@@ -353,15 +326,10 @@ static lispval dcall11(struct KNO_FUNCTION *f,
                        lispval arg7,lispval arg8,lispval arg9,
                        lispval arg10,lispval arg11)
 {
-  if (PRED_FALSE(f->fcn_xcall))
-    return f->fcn_handler.xcall11(f,arg1,arg2,arg3,
-                                  arg4,arg5,arg6,
-                                  arg7,arg8,arg9,
-                                  arg10,arg11);
-  else return f->fcn_handler.call11(arg1,arg2,arg3,
-                                    arg4,arg5,arg6,
-                                    arg7,arg8,arg9,
-                                    arg10,arg11);
+  return f->fcn_handler.call11(arg1,arg2,arg3,
+                               arg4,arg5,arg6,
+                               arg7,arg8,arg9,
+                               arg10,arg11);
 }
 
 static lispval dcall12(struct KNO_FUNCTION *f,
@@ -370,15 +338,10 @@ static lispval dcall12(struct KNO_FUNCTION *f,
                        lispval arg7,lispval arg8,lispval arg9,
                        lispval arg10,lispval arg11,lispval arg12)
 {
-  if (PRED_FALSE(f->fcn_xcall))
-    return f->fcn_handler.xcall12(f,arg1,arg2,arg3,
-                                  arg4,arg5,arg6,
-                                  arg7,arg8,arg9,
-                                  arg10,arg11,arg12);
-  else return f->fcn_handler.call12(arg1,arg2,arg3,
-                                    arg4,arg5,arg6,
-                                    arg7,arg8,arg9,
-                                    arg10,arg11,arg12);
+  return f->fcn_handler.call12(arg1,arg2,arg3,
+                               arg4,arg5,arg6,
+                               arg7,arg8,arg9,
+                               arg10,arg11,arg12);
 }
 
 static lispval dcall13(struct KNO_FUNCTION *f,
@@ -388,17 +351,11 @@ static lispval dcall13(struct KNO_FUNCTION *f,
                        lispval arg10,lispval arg11,lispval arg12,
                        lispval arg13)
 {
-  if (PRED_FALSE(f->fcn_xcall))
-    return f->fcn_handler.xcall13(f,arg1,arg2,arg3,
-                                  arg4,arg5,arg6,
-                                  arg7,arg8,arg9,
-                                  arg10,arg11,arg12,
-                                  arg13);
-  else return f->fcn_handler.call13(arg1,arg2,arg3,
-                                    arg4,arg5,arg6,
-                                    arg7,arg8,arg9,
-                                    arg10,arg11,arg12,
-                                    arg13);
+  return f->fcn_handler.call13(arg1,arg2,arg3,
+                               arg4,arg5,arg6,
+                               arg7,arg8,arg9,
+                               arg10,arg11,arg12,
+                               arg13);
 }
 
 static lispval dcall14(struct KNO_FUNCTION *f,
@@ -408,17 +365,11 @@ static lispval dcall14(struct KNO_FUNCTION *f,
                        lispval arg10,lispval arg11,lispval arg12,
                        lispval arg13,lispval arg14)
 {
-  if (PRED_FALSE(f->fcn_xcall))
-    return f->fcn_handler.xcall14(f,arg1,arg2,arg3,
-                                  arg4,arg5,arg6,
-                                  arg7,arg8,arg9,
-                                  arg10,arg11,arg12,
-                                  arg13,arg14);
-  else return f->fcn_handler.call14(arg1,arg2,arg3,
-                                    arg4,arg5,arg6,
-                                    arg7,arg8,arg9,
-                                    arg10,arg11,arg12,
-                                    arg13,arg14);
+  return f->fcn_handler.call14(arg1,arg2,arg3,
+                               arg4,arg5,arg6,
+                               arg7,arg8,arg9,
+                               arg10,arg11,arg12,
+                               arg13,arg14);
 }
 
 static lispval dcall15(struct KNO_FUNCTION *f,
@@ -428,17 +379,11 @@ static lispval dcall15(struct KNO_FUNCTION *f,
                        lispval arg10,lispval arg11,lispval arg12,
                        lispval arg13,lispval arg14,lispval arg15)
 {
-  if (PRED_FALSE(f->fcn_xcall))
-    return f->fcn_handler.xcall15(f,arg1,arg2,arg3,
-                                  arg4,arg5,arg6,
-                                  arg7,arg8,arg9,
-                                  arg10,arg11,arg12,
-                                  arg13,arg14,arg15);
-  else return f->fcn_handler.call15(arg1,arg2,arg3,
-                                    arg4,arg5,arg6,
-                                    arg7,arg8,arg9,
-                                    arg10,arg11,arg12,
-                                    arg13,arg14,arg15);
+  return f->fcn_handler.call15(arg1,arg2,arg3,
+                               arg4,arg5,arg6,
+                               arg7,arg8,arg9,
+                               arg10,arg11,arg12,
+                               arg13,arg14,arg15);
 }
 
 /* Generic calling function */
@@ -532,13 +477,16 @@ KNO_FASTOP int fill_arbguf(struct KNO_FUNCTION *f,int n,
 KNO_FASTOP lispval dcall(u8_string fname,kno_function f,int n,lispval *args)
 {
   if (KNO_INTERRUPTED()) return KNO_ERROR;
-  else if ( ( (f->fcn_varargs) || (f->fcn_arity < 0) ) &&
-            (f->fcn_handler.fnptr) ) {
+  else if (PRED_FALSE((f->fcn_handler.fnptr==NULL))) {
+    int ctype = KNO_CONS_TYPE(f);
+    if (kno_applyfns[ctype])
+      return kno_applyfns[ctype]((lispval)f,n,args);
+    else return kno_type_error("applicable","dcall",(lispval)f);}
+  else if ( (f->fcn_varargs) || (f->fcn_arity < 0) || (f->fcn_xcall) ) {
     if (f->fcn_xcall)
       return f->fcn_handler.xcalln(f,n,args);
     else return f->fcn_handler.calln(n,args);}
-  else if (f->fcn_handler.fnptr)
-    switch (f->fcn_arity) {
+  else switch (f->fcn_arity) {
     case 0: return dcall0(f);
     case 1: return dcall1(f,args[0]);
     case 2: return dcall2(f,args[0],args[1]);
@@ -592,11 +540,6 @@ KNO_FASTOP lispval dcall(u8_string fname,kno_function f,int n,lispval *args)
       if (f->fcn_xcall)
         return f->fcn_handler.xcalln(f,n,args);
       else return f->fcn_handler.calln(n,args);}
-  else {
-    int ctype = KNO_CONS_TYPE(f);
-    if (kno_applyfns[ctype])
-      return kno_applyfns[ctype]((lispval)f,n,args);
-    else return kno_type_error("applicable","dcall",(lispval)f);}
 }
 
 KNO_FASTOP lispval apply_fcn(struct KNO_STACK *stack,

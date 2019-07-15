@@ -1450,9 +1450,10 @@ static int lispenv_add(lispval e,lispval s,lispval v)
 
 /* Call/cc */
 
-static lispval call_continuation(struct KNO_FUNCTION *f,lispval arg)
+static lispval call_continuation(struct KNO_FUNCTION *f,int n,lispval *args)
 {
   struct KNO_CONTINUATION *cont = (struct KNO_CONTINUATION *)f;
+  lispval arg = args[0];
   if (cont->retval == KNO_NULL)
     return kno_err(ExpiredThrow,"call_continuation",NULL,arg);
   else if (VOIDP(cont->retval)) {
@@ -1469,7 +1470,8 @@ static lispval callcc (lispval proc)
   f->fcn_name="continuation"; f->fcn_filename = NULL;
   f->fcn_ndcall = 1; f->fcn_xcall = 1; f->fcn_arity = 1; f->fcn_min_arity = 1;
   f->fcn_typeinfo = NULL; f->fcn_defaults = NULL;
-  f->fcn_handler.xcall1 = call_continuation; f->retval = VOID;
+  f->fcn_handler.xcalln = call_continuation;
+  f->retval = VOID;
   continuation = LISP_CONS(f);
   value = kno_apply(proc,1,&continuation);
   if ((value == KNO_THROW_VALUE) && (!(VOIDP(f->retval)))) {

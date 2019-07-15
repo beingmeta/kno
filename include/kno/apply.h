@@ -164,12 +164,6 @@ typedef lispval (*kno_xprimn)(kno_function,int n,lispval *);
     kno_cprim12 call12; kno_cprim13 call13; kno_cprim14 call14;              \
     kno_cprim15 call15;                                                    \
     kno_cprimn calln;                                                      \
-    kno_xprim0 xcall0; kno_xprim1 xcall1; kno_xprim2 xcall2;                 \
-    kno_xprim3 xcall3; kno_xprim4 xcall4; kno_xprim5 xcall5;                 \
-    kno_xprim6 xcall6; kno_xprim7 xcall7; kno_xprim8 xcall8;                 \
-    kno_xprim9 xcall9; kno_xprim10 xcall10; kno_xprim11 xcall11;             \
-    kno_xprim12 xcall12; kno_xprim13 xcall13; kno_xprim14 xcall14;           \
-    kno_xprim15 xcall15;                                                   \
     kno_xprimn xcalln;                                                     \
     void *fnptr;}                                                         \
     fcn_handler
