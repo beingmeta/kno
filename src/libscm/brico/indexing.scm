@@ -42,7 +42,7 @@
 	(index-frame index frame slotid (list oidvals))
 	(when (overlaps? genslot genls*)
 	  ;; This is a faster way to get genls*
-	  (index-frame index frame slotid (?? @?specls* oidvals)))
+	  (index-frame index frame slotid (?? specls* oidvals)))
 	(when (exists? (difference genslot genls*))
 	  (index-frame index frame slotid
 		       (get oidvals (difference genslot genls*))))))))
