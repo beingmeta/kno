@@ -17,7 +17,7 @@
 
 (define (xhtml/include file (base #f) (enc #t))
   (let* ((path (if base (get-component file base) file))
-	 (content (if (has-suffix path ".nml")
+	 (content (if (has-suffix path {".nml" ".knoml" ".knoxml"})
 		      (getcontent path enc knoml/parse)
 		      (if (has-suffix path {".md" ".markdown"})
 			  (if have-sundown
