@@ -22,7 +22,7 @@
 #define _FILEINFO __FILE__
 #endif
 
-static lispval moduleid_symbol, source_symbol;
+static lispval moduleid_symbol, source_symbol, void_symbol;
 
 #define GETEVALFN(x) ((kno_evalfn)(kno_fcnid_ref(x)))
 
@@ -103,7 +103,7 @@ static lispval procedure_cname(lispval x)
   else return KNO_FALSE;
 }
 
-static lispval procedure_filename(lispval x)
+static lispval procedure_fileinfo(lispval x)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
   if (KNO_FUNCTIONP(x)) {
@@ -120,6 +120,35 @@ static lispval procedure_filename(lispval x)
     struct KNO_MACRO *m = (kno_macro) x;
     if (m->macro_filename)
       return kno_mkstring(m->macro_filename);
+    else return KNO_FALSE;}
+  else return kno_type_error(_("function"),"procedure_filename",x);
+}
+
+static lispval strip_filename(u8_string s)
+{
+  u8_string space = strchr(s,' ');
+  if (space)
+    return kno_extract_string(NULL,s,space);
+  else return knostring(s);
+}
+
+static lispval procedure_filename(lispval x)
+{
+  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
+  if (KNO_FUNCTIONP(x)) {
+    struct KNO_FUNCTION *f = KNO_XFUNCTION(x);
+    if (f->fcn_filename)
+      return strip_filename(f->fcn_filename);
+    else return KNO_FALSE;}
+  else if (TYPEP(x,kno_evalfn_type)) {
+    struct KNO_EVALFN *sf = GETEVALFN(x);
+    if (sf->evalfn_filename)
+      return strip_filename(sf->evalfn_filename);
+    else return KNO_FALSE;}
+  else if (TYPEP(x,kno_macro_type)) {
+    struct KNO_MACRO *m = (kno_macro) x;
+    if (m->macro_filename)
+      return strip_filename(m->macro_filename);
     else return KNO_FALSE;}
   else return kno_type_error(_("function"),"procedure_filename",x);
 }
@@ -279,6 +308,52 @@ static lispval procedure_min_arity(lispval x)
     int arity = f->fcn_min_arity;
     return KNO_INT(arity);}
   else return kno_type_error(_("procedure"),"procedure_min_arity",x);
+}
+
+static lispval procedure_typeinfo(lispval x)
+{
+  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
+  if (KNO_FUNCTIONP(x)) {
+    struct KNO_FUNCTION *fcn = (kno_function) x;
+    if (fcn->fcn_typeinfo) {
+      int arity = fcn->fcn_arity;
+      int *typeinfo = fcn->fcn_typeinfo;
+      lispval result = kno_make_vector(arity,NULL);
+      int i = 0; while (i<arity) {
+        int typecode = typeinfo[i];
+        if (typecode < 0) {
+          KNO_VECTOR_SET(result,i,KNO_FALSE);}
+        else {
+          u8_string name = kno_lisp_typename(typecode);
+          if (name) {
+            KNO_VECTOR_SET(result,i,knostring(name));}
+          else KNO_VECTOR_SET(result,i,KNO_INT(typecode));}
+        i++;}
+      return result;}
+    else return KNO_FALSE;}
+  else return KNO_FALSE;
+}
+
+static lispval procedure_defaults(lispval x)
+{
+  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
+  if (KNO_FUNCTIONP(x)) {
+    struct KNO_FUNCTION *fcn = (kno_function) x;
+    if (fcn->fcn_defaults) {
+      int arity = fcn->fcn_arity;
+      lispval *defaults = fcn->fcn_defaults;
+      lispval result = kno_make_vector(arity,NULL);
+      int i = 0; while (i<arity) {
+        lispval dflt = defaults[i];
+        if (VOIDP(dflt)) {
+          KNO_VECTOR_SET(result,i,void_symbol);}
+        else {
+          kno_incref(dflt);
+          KNO_VECTOR_SET(result,i,dflt);}
+        i++;}
+      return result;}
+    else return KNO_FALSE;}
+  else return KNO_FALSE;
 }
 
 /* Procedure attribs */
@@ -1023,6 +1098,7 @@ KNO_EXPORT void kno_init_reflection_c()
   moduleid_symbol = kno_intern("%moduleid");
   source_symbol = kno_intern("%source");
   call_profile_symbol = kno_intern("%callprofile");
+  void_symbol = kno_intern("%void");
 
   kno_idefn1(module,"MACRO?",macrop,1,
             "Returns true if its argument is an evaluator macro",
@@ -1059,6 +1135,9 @@ KNO_EXPORT void kno_init_reflection_c()
   kno_idefn1(module,"PROCEDURE-CNAME",procedure_cname,1,
             "",
             -1,VOID);
+  kno_idefn1(module,"PROCEDURE-FILEINFO",procedure_fileinfo,1,
+            "",
+            -1,VOID);
   kno_idefn1(module,"PROCEDURE-FILENAME",procedure_filename,1,
             "",
             -1,VOID);
@@ -1085,6 +1164,20 @@ KNO_EXPORT void kno_init_reflection_c()
             "false otherwise. By default, all procedures "
             "are tailable when called deterministically.",
             -1,VOID);
+  kno_idefn1(module,"PROCEDURE-TYPEINFO",
+             procedure_typeinfo,1,
+             "`(PROCEDURE-TYPEINFO *fcn*)` "
+             "Returns a typeinfo vector for *fcn* if it has one, "
+             "or #f. Note that this doesn't error on non-functions but "
+             "just returns #f",
+             -1,VOID);
+  kno_idefn1(module,"PROCEDURE-DEFAULTS",
+             procedure_defaults,1,
+             "`(PROCEDURE-DEFAULTS *fcn*)` "
+             "Returns a vector of default values for *fcn* if they're "
+             "specified, or #f. Note that this doesn't error on "
+             "non-functions but just returns #f",
+             -1,VOID);
   kno_idefn1(module,"PROCEDURE-ID",procedure_id,1,"",-1,VOID);
   kno_idefn1(module,"LAMBDA-ARGS",lambda_args,1,"",-1,VOID);
   kno_defalias(module,"PROCEDURE-ARGS","LAMBDA-ARGS");
