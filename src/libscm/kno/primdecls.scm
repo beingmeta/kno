@@ -4,6 +4,9 @@
 
 (use-module '{reflection texttools logger})
 
+(define add-header
+  "#include <kno/cprims.h>")
+
 (module-export! '{output-cprim-decl output-cprim-link
 		  get-cprim-decl get-cprim-link
 		  getallprimsbyfile getallprims})
@@ -12,8 +15,8 @@
   (let ((typeinfo (procedure-typeinfo f))
 	(defaults (procedure-defaults f))
 	(arity (procedure-arity f)))
-    (printout kno-prefix "DEFPRIM" (or (and typeinfo defaults arity) "")
-      "\n(\"" (downcase (procedure-name f)) "\"," (procedure-cname f) ","
+    (printout kno-prefix "DCLPRIM" (or (and typeinfo defaults arity) "")
+      "(\"" (downcase (procedure-name f)) "\"," (procedure-cname f) ","
       (get-cprim-flags f kno-prefix)
       (dolist (line (get-docstrings f) i)
 	(printout (if (= i 0) ",\n " "\n ") (write line)))
@@ -26,20 +29,21 @@
 	    (output-type (elt typeinfo i)) ","
 	    (output-default (elt defaults i))))
 	"\n"))
-    (printout ")\n")))
+    (printout ");\n")))
 
 (define (output-cprim-link f (kno-prefix "KNO_"))
   (if (procedure-arity f)
-      (printout "LINK_PRIM("
-	(downcase (procedure-name f)) "\"," (procedure-cname f) ","
+      (printout kno-prefix "LINK_PRIM("
+	"\"" (downcase (procedure-name f)) "\"," (procedure-cname f) ","
 	(procedure-arity f) "," (glom (procedure-module f) "_module") ");")
-      (printout "LINK_VARARGS("
+      (printout kno-prefix "LINK_VARARGS("
 	(downcase (procedure-name f)) "\"," (procedure-cname f) "," 
 	(glom (procedure-module f) "_module") ");")))
 
 (define (get-cprim-decl f (kno-prefix "KNO_"))
-  (stringout (output-prim-decl f kno-prefix)))
-(define (get-cprim-link f) (stringout (output-cprim-link f)))
+  (stringout kno-prefix (output-prim-decl f kno-prefix)))
+(define (get-cprim-link f (kno-prefix "KNO_"))
+  (stringout (output-cprim-link f kno-prefix)))
 
 (define type-name-map
   #[])
@@ -58,6 +62,9 @@
 	((nil? val) "KNO_EMPTY_LIST")
 	((fixnum? val)
 	 (stringout "KNO_INT(" val ")"))
+	((eq? val #\\) "KNO_CODE2CHAR('\\\\')")
+	((character? val)
+	 (stringout "KNO_CODE2CHAR('" (string val) "')"))
 	(else (logwarn |BadDefaultValue| "Couldn't render " val)
 	      "KNO_VOID")))
 
@@ -134,27 +141,45 @@
 
 (define primsbyfile (getallprimsbyfile))
 
-(define (annotate-file file)
-  (let* ((content (filestring file))
-	 (prims (get primsbyfile file))
+;;;; Getting the end of the header
+
+(define (get-header-end string)
+  (let ((start 0)
+	(pos (textsearch #((bol) "#include " (not> (eol))) string))
+	(last #f))
+    (while (and (exists? pos) pos)
+      (set! last (textmatcher #((bol) "#include " (not> (eol))) string pos))
+      (set! start last)
+      (set! pos (textsearch #((bol) "#include " (not> (eol))) string start)))
+    last))
+
+(define (annotate-file file (content))
+  (default! content (filestring file))
+  (let* ((prims (get primsbyfile file))
 	 (cprim-names (procedure-cname prims))
 	 (pattern `#((bol) (opt "static") (spaces*) "lispval" (spaces) ,cprim-names (spaces*) "("))
 	 (extract `#((bol) (opt "static") (spaces*) "lispval" (spaces) (label cprim ,cprim-names) (spaces*) "("))
+	 (header-end (get-header-end content))
 	 (declared '()))
-    (dolist (block (textslice content pattern 'prefix))
+    (printout (slice content 0 header-end))
+    (printout "\n" add-header "\n")
+    (dolist (block (textslice (slice content header-end) pattern 'prefix))
       (let ((match (text->frames extract block)))
 	(when (singleton? (get match 'cprim))
 	  (let ((cprim (pick prims procedure-cname (get match 'cprim))))
-	    (output-cprim-decl cprim)
-	    (set! declared (cons cprim declared))))
+	    (when (exists? cprim)
+	      (output-cprim-decl cprim)
+	      (set! declared (cons cprim declared)))))
 	(printout block)))
     (printout "\n\nstatic void init_cprims(){\n"
       (dolist (prim declared)
 	(printout "  " (output-cprim-link prim) "\n"))
-      "}\n")))
+      "}\n")
+    (when (exists? (difference prims (elts declared)))
+      (logwarn |NotConverted| (difference prims (elts declared))))))
 (module-export! 'annotate-file)
 
 (define (convert-file file)
-  (let ((new-content (annotate-file file)))
-    (write-file file new-content)))
+  (let ((content (filestring file)))
+    (fileout file (annotate-file file content))))
 (module-export! 'convert-file)
