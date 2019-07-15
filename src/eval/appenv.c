@@ -138,13 +138,15 @@ KNO_EXPORT void kno_set_app_env(kno_lexenv env)
     {KNO_DOLIST(modname,modules) {
 	lispval module = kno_find_module(modname,0);
 	if (KNO_ABORTP(module)) {
-	  u8_log(LOG_WARN,"LoadModuleError","Error loading module %q",modname);
+	  u8_log(LOG_WARN,"AppEnv/LoadModuleError",
+		 "Error loading module %q",modname);
 	  kno_clear_errors(1);
 	  modules_failed++;}
 	else {
 	  lispval used = kno_use_module(kno_app_env,module);
 	  if (KNO_ABORTP(used)) {
-	    u8_log(LOG_WARN,"UseModuleError","Error using module %q",module);
+	    u8_log(LOG_WARN,"AppEnv/UseModuleError",
+		   "Error using module %q",module);
 	    kno_clear_errors(1);
 	    modules_failed++;}
 	  else modules_loaded++;
@@ -155,14 +157,15 @@ KNO_EXPORT void kno_set_app_env(kno_lexenv env)
     {KNO_DOLIST(file,files) {
 	lispval loadval = kno_load_source(KNO_CSTRING(file),kno_app_env,NULL);
 	if (KNO_ABORTP(loadval)) {
-	  u8_log(LOG_WARN,"LoadError","kno_set_app_end",
+	  u8_log(LOG_WARN,"AppEnv/LoadFileError","kno_set_app_end",
 		 "Error loading %s into the application environment",
 		 KNO_CSTRING(file));
 	  kno_clear_errors(1);
 	  files_failed++;}
 	else files_loaded++;
 	kno_decref(loadval);}}
-    kno_decref(files); files=KNO_VOID;
+    kno_decref(files);
+    files=KNO_VOID;
     lispval inits = init_list;
     {KNO_DOLIST(init,inits) {
 	int rv = run_init(init,env);
@@ -170,7 +173,7 @@ KNO_EXPORT void kno_set_app_env(kno_lexenv env)
 	else if (rv<0) inits_failed++;
 	else NO_ELSE;}}
     kno_decref(inits); inits=KNO_VOID;
-    u8_log(LOG_INFO,"AppEnvLoad",
+    u8_log(LOG_INFO,"AppEnv",
 	   "%d:%d:%d modules:files:inits loaded/run, "
 	   "%d:%d:%d modules:files:init failed",
 	   modules_loaded,files_loaded,inits_run,
@@ -220,6 +223,7 @@ static u8_string get_next(u8_string pt,u8_string seps)
 static int add_modname(lispval modname)
 {
   if (kno_app_env) {
+    double started = u8_elapsed_time();
     lispval module = kno_find_module(modname,0);
     if (KNO_ABORTP(module))
       return -1;
@@ -227,8 +231,10 @@ static int add_modname(lispval modname)
       u8_log(LOG_WARN,kno_NoSuchModule,"module_config_set",
 	     "No module found for %q",modname);
       return -1;}
-    u8_log(LOG_NOTICE,"AppConfig","Loading module %q",modname);
+    u8_log(LOG_DEBUG,"AppConfig","Loading module %q",modname);
     lispval used = kno_use_module(kno_app_env,module);
+    u8_log(LOG_INFO,"AppConfig","Loaded module %q in %fs",
+	   modname,u8_elapsed_time()-started);
     if (KNO_ABORTP(used)) {
       u8_log(LOG_WARN,"LoadModuleError",
 	     "Error using module %q",module);
@@ -242,7 +248,7 @@ static int add_modname(lispval modname)
     kno_decref(used);
     return 1;}
   else {
-    u8_log(LOG_NOTICE,"AppConfig","Will load module %q",modname);
+    u8_log(LOG_INFO,"AppConfig","Will load module %q",modname);
     module_list = kno_conspair(modname,module_list);
     kno_incref(modname);
     return 0;}
@@ -293,19 +299,23 @@ static int loadfile_config_set(lispval var,lispval vals,void *d)
       u8_string loadpath = (!(strchr(CSTRING(val),':'))) ?
 	(u8_abspath(CSTRING(val),NULL)) :
 	(u8_strdup(CSTRING(val)));
-      u8_log(LOG_NOTICE,"AppConfig","Will load %s (%q)",loadpath,val);
+      u8_log(LOG_INFO,"AppConfig/",
+	     "Will load %s (%q)",loadpath,val);
       loadfile_list = kno_conspair(kno_wrapstring(loadpath),loadfile_list);}}
   else {
     KNO_DO_CHOICES(val,vals) {
+      double started = u8_elapsed_time();
       u8_string loadpath = (!(strchr(CSTRING(val),':'))) ?
 	(u8_abspath(CSTRING(val),NULL)) :
 	(u8_strdup(CSTRING(val)));
-      u8_log(LOG_NOTICE,"AppConfig","Loading %s (%q)",loadpath,val);
+      u8_log(LOG_DEBUG,"AppConfig","Loading %s (%q)",loadpath,val);
       lispval loadval = kno_load_source(loadpath,kno_app_env,NULL);
       if (KNO_ABORTP(loadval)) {
 	kno_seterr(_("load error"),"loadfile_config_set",loadpath,val);
 	return -1;}
       else {
+	u8_log(LOG_DEBUG,"AppConfig","Loaded %s (%q) in %fs",
+	       loadpath,val,u8_elapsed_time()-started);
 	loadfile_list = kno_conspair(knostring(loadpath),loadfile_list);
 	u8_free(loadpath);
 	loads++;}}}
