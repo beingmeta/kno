@@ -4,6 +4,8 @@
 
 (use-module 'reflection)
 
+(define dload-suffix (get (config 'buildinfo) '|KNO_DLOAD_SUFFIX|))
+
 (applytest #f ffi/found? "kumquat_lime" #f)
 
 (define ipi (ffi/proc "ffitest_ipi" #f 'long 'int 'int))
@@ -39,6 +41,6 @@
   (applytest (getenv "USER") ffi_strdup (ffi_getenv "USER"))
   (applytest string? lisp->string (ffi_getenv "USER")))
 
-(applytest #t ffi/found? "u8_cons_list" "libu8.so")
-(applytest #f ffi/found? "u8_xons_list" "libu8.so")
-(applytest #f ffi/found? "u8_cons_list" "lizu8.so")
+(applytest #t ffi/found? "u8_cons_list" (cons "libu8.." dload-suffix))
+(applytest #f ffi/found? "u8_xons_list" (cons "libu8." dload-suffix))
+(applytest #f ffi/found? "u8_cons_list" (cons "lizu8." dload-suffix))

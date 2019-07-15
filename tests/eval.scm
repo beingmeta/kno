@@ -771,7 +771,9 @@
 
 ;;; Loading stuff
 
-(dynamic-load (abspath "../lib/kno/sqlite.so"))
+(define dload-suffix (get (config 'buildinfo) '|KNO_DLOAD_SUFFIX|))
+
+(dynamic-load (abspath (glom "../lib/kno/sqlite." dload-suffix)))
 (dynamic-load "sqlite")
 (errtest (dynamic-load "sqheavy" #t))
 (errtest (dynamic-load 'sqlite))
