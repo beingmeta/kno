@@ -73,8 +73,8 @@ static struct KNO_THREAD *thread_ring=NULL;
 u8_mutex thread_ring_lock;
 static int n_threads = 0;
 
-kno_ptr_type kno_thread_type;
-kno_ptr_type kno_synchronizer_type;
+kno_lisp_type kno_thread_type;
+kno_lisp_type kno_synchronizer_type;
 
 static void add_thread(struct KNO_THREAD *thread)
 {

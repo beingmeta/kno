@@ -523,7 +523,7 @@ lispval kno_stack_eval(lispval expr,kno_lexenv env,
 {
   if (_stack==NULL) _stack=kno_stackptr;
   if (KNO_IMMEDIATEP(expr)) {
-    switch (KNO_PTR_TYPE(expr)) {
+    switch (KNO_LISP_TYPE(expr)) {
     case kno_lexref_type:
       return kno_lexref(expr,env);
     case kno_symbol_type: {
@@ -535,7 +535,7 @@ lispval kno_stack_eval(lispval expr,kno_lexenv env,
     default:
       return expr;}}
   else if (KNO_CONSP(expr)) {
-    kno_ptr_type ctype = KNO_CONSPTR_TYPE(expr);
+    kno_lisp_type ctype = KNO_CONSPTR_TYPE(expr);
     switch (ctype) {
     case kno_pair_type: {
       lispval result = VOID;
@@ -613,7 +613,7 @@ lispval pair_eval(lispval head,lispval expr,kno_lexenv env,
   if (gc_head) {
     KNO_ADD_TO_CHOICE(eval_stack->stack_vals,headval);}
 
-  kno_ptr_type headtype = KNO_PTR_TYPE(headval);
+  kno_lisp_type headtype = KNO_LISP_TYPE(headval);
   switch (headtype) {
   case kno_opcode_type:
     result = opcode_eval(headval,expr,env,eval_stack,tail); break;
@@ -764,7 +764,7 @@ KNO_FASTOP lispval arg_eval(lispval x,kno_lexenv env,struct KNO_STACK *stack)
       else return val;}
     else return x;
   case kno_cons_ptr_type: {
-    kno_ptr_type type = KNO_CONSPTR_TYPE(x);
+    kno_lisp_type type = KNO_CONSPTR_TYPE(x);
     switch (type) {
     case kno_pair_type:
       return pair_eval(KNO_CAR(x),x,env,stack,0,0);
@@ -1594,7 +1594,7 @@ KNO_EXPORT
 u8_string kno_get_documentation(lispval x)
 {
   lispval proc = (KNO_FCNIDP(x)) ? (kno_fcnid_ref(x)) : (x);
-  kno_ptr_type proctype = KNO_PTR_TYPE(proc);
+  kno_lisp_type proctype = KNO_LISP_TYPE(proc);
   if (proctype == kno_lambda_type) {
     struct KNO_LAMBDA *lambda = (kno_lambda)proc;
     if (lambda->fcn_doc)

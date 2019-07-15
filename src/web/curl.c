@@ -142,7 +142,7 @@ static size_t process_content_data(char *data,size_t elt_size,size_t n_elts,
   else return n_elts*elt_size;
 }
 
-kno_ptr_type kno_curl_type;
+kno_lisp_type kno_curl_type;
 
 void handle_content_type(char *value,lispval table)
 {

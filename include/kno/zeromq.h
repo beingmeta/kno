@@ -1,7 +1,7 @@
 #include <kno/lisp.h>
 #include <zmq.h>
 
-KNO_EXPORT kno_ptr_type kno_zmqsock_type;
+KNO_EXPORT kno_lisp_type kno_zmqsock_type;
 
 typedef struct KNO_ZMQSOCK {
   KNO_CONS_HEADER;

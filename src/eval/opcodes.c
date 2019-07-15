@@ -991,7 +991,7 @@ KNO_FASTOP lispval op_eval(lispval x,kno_lexenv env,
       else return val;}
     else return x;
   case kno_cons_ptr_type: {
-    kno_ptr_type cons_type = KNO_PTR_TYPE(x);
+    kno_lisp_type cons_type = KNO_LISP_TYPE(x);
     switch (cons_type) {
     case kno_pair_type: {
       lispval car = KNO_CAR(x);

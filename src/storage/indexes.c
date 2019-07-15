@@ -2349,7 +2349,7 @@ KNO_EXPORT lispval kno_default_indexctl(kno_index ix,lispval op,
 
 /* Initialize */
 
-kno_ptr_type kno_consed_index_type;
+kno_lisp_type kno_consed_index_type;
 
 static int check_index(lispval x)
 {

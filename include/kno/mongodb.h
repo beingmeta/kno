@@ -34,7 +34,7 @@
 #define KNO_MONGODB_RAWSLOT  512
 
 KNO_EXPORT u8_condition kno_MongoDB_Error, kno_MongoDB_Warning;
-KNO_EXPORT kno_ptr_type kno_mongoc_server, kno_mongoc_collection, kno_mongoc_cursor;
+KNO_EXPORT kno_lisp_type kno_mongoc_server, kno_mongoc_collection, kno_mongoc_cursor;
 
 typedef struct KNO_BSON_OUTPUT {
   bson_t *bson_doc;

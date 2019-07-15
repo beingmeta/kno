@@ -22,7 +22,7 @@ typedef struct KNO_ROCKSDB_CONS {
   KNO_CONS_HEADER;
   struct KNO_ROCKSDB rocksdb;} *kno_rocksdb_cons;
 
-KNO_EXPORT kno_ptr_type kno_rocksdb_type;
+KNO_EXPORT kno_lisp_type kno_rocksdb_type;
 
 KNO_EXPORT int kno_init_rocksdb(void) KNO_LIBINIT_FN;
 

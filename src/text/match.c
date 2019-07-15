@@ -221,7 +221,7 @@ u8_condition kno_TXInvalidPattern=_("Not a valid TX text pattern");
 u8_condition UnboundMatchSymbol=_("Unbound matcher symbol");
 u8_condition BadMatcherMethod=_("Unknown matcher symbol");
 
-kno_ptr_type kno_txclosure_type;
+kno_lisp_type kno_txclosure_type;
 
 static lispval subst_symbol;
 static lispval match_env;

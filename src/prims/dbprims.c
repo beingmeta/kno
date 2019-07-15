@@ -3269,7 +3269,7 @@ static lispval dbmodifiedp(lispval arg1,lispval arg2)
         return KNO_TRUE;
       else return KNO_FALSE;}
     else if (TABLEP(arg1)) {
-      kno_ptr_type ttype = KNO_PTR_TYPE(arg1);
+      kno_lisp_type ttype = KNO_LISP_TYPE(arg1);
       if ((kno_tablefns[ttype])&&(kno_tablefns[ttype]->modified)) {
         if ((kno_tablefns[ttype]->modified)(arg1,-1))
           return KNO_TRUE;

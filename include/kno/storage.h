@@ -91,8 +91,8 @@ KNO_EXPORT int kno_dbconn_reserve_default;
 KNO_EXPORT int kno_dbconn_cap_default;
 KNO_EXPORT int kno_dbconn_init_default;
 
-KNO_EXPORT kno_ptr_type kno_consed_index_type;
-KNO_EXPORT kno_ptr_type kno_consed_pool_type;
+KNO_EXPORT kno_lisp_type kno_consed_index_type;
+KNO_EXPORT kno_lisp_type kno_consed_pool_type;
 
 #define KNO_ETERNAL_INDEXP(x) (KNO_TYPEP(x,kno_index_type))
 #define KNO_CONSED_INDEXP(x) (KNO_TYPEP(x,kno_consed_index_type))

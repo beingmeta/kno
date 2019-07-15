@@ -62,11 +62,11 @@ KNO_EXPORT int _KNO_SEQUENCEP(lispval x);
           (kno_seqfns[KNO_IMMEDIATE_TYPE(x)]->sequencep(x)) ) ) ) :     \
     (0))
 #endif
-/* #define KNO_SEQUENCEP(x) ((KNO_EMPTY_LISTP(x)) || ((kno_seqfns[KNO_PTR_TYPE(x)])!=NULL)) */
+/* #define KNO_SEQUENCEP(x) ((KNO_EMPTY_LISTP(x)) || ((kno_seqfns[KNO_LISP_TYPE(x)])!=NULL)) */
 
 
 lispval *kno_seq_elts(lispval seq,int *len);
-lispval kno_makeseq(kno_ptr_type ctype,int n,lispval *v);
+lispval kno_makeseq(kno_lisp_type ctype,int n,lispval *v);
 
 #endif /*  KNO_SEQUENCES_H */
 

@@ -234,7 +234,7 @@ KNO_EXPORT lispval _kno_get_body(lispval expr,int i);
 #if KNO_PROVIDE_FASTEVAL
 KNO_FASTOP lispval fastget(lispval table,lispval key)
 {
-  kno_ptr_type argtype = KNO_PTR_TYPE(table);
+  kno_lisp_type argtype = KNO_LISP_TYPE(table);
   switch (argtype) {
   case kno_schemap_type:
     return kno_schemap_get((kno_schemap)table,key,KNO_UNBOUND);
@@ -296,7 +296,7 @@ KNO_FASTOP lispval _kno_fast_eval(lispval x,kno_lexenv env,
   case kno_slotmap_type:
     return kno_deep_copy(x);
   case kno_cons_ptr_type: {
-    kno_ptr_type type = KNO_CONSPTR_TYPE(x);
+    kno_lisp_type type = KNO_CONSPTR_TYPE(x);
     switch (type) {
     case kno_pair_type: case kno_choice_type: case kno_prechoice_type:
     case kno_schemap_type:

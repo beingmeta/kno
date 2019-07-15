@@ -102,7 +102,7 @@ KNO_EXPORT int _KNO_TABLEP(lispval x);
         (kno_tablefns[KNO_IMMEDIATE_TYPE(x)]->tablep(x)) ) ) :          \
     (0))
 #endif
-/* #define KNO_TABLEP(x) ( ((kno_tablefns[KNO_PTR_TYPE(x)])!=NULL)  */
+/* #define KNO_TABLEP(x) ( ((kno_tablefns[KNO_LISP_TYPE(x)])!=NULL)  */
 
 #define KNO_INIT_SMAP_SIZE 7
 #define KNO_INIT_HASH_SIZE 73

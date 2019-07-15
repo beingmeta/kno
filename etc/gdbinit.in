@@ -120,10 +120,10 @@ define lispval
 end
 
 define showtype
-  printf "type of 0x%llx is 0x%x: %s\n",((lispval)$arg0),(((($arg0)&0x03)==2)?(kno_fixnum_type):((($arg0)&0x3)==3)?(kno_oid_type):((($arg0)&0x3)==0)?((enum KNO_PTR_TYPE)(((((struct KNO_CONS *)($arg0))->conshead)&0x7F)+0x84)):((enum KNO_PTR_TYPE)(((($arg0)>>25)&0x7f)+0x04))),kno_type_names[(((($arg0)&0x03)==2)?(kno_fixnum_type):((($arg0)&0x3)==3)?(kno_oid_type):((($arg0)&0x3)==0)?((enum KNO_PTR_TYPE)(((((struct KNO_CONS *)($arg0))->conshead)&0x7F)+0x84)):((enum KNO_PTR_TYPE)(((($arg0)>>25)&0x7f)+0x04)))]
+  printf "type of 0x%llx is 0x%x: %s\n",((lispval)$arg0),(((($arg0)&0x03)==2)?(kno_fixnum_type):((($arg0)&0x3)==3)?(kno_oid_type):((($arg0)&0x3)==0)?((enum KNO_LISP_TYPE)(((((struct KNO_CONS *)($arg0))->conshead)&0x7F)+0x84)):((enum KNO_LISP_TYPE)(((($arg0)>>25)&0x7f)+0x04))),kno_type_names[(((($arg0)&0x03)==2)?(kno_fixnum_type):((($arg0)&0x3)==3)?(kno_oid_type):((($arg0)&0x3)==0)?((enum KNO_LISP_TYPE)(((((struct KNO_CONS *)($arg0))->conshead)&0x7F)+0x84)):((enum KNO_LISP_TYPE)(((($arg0)>>25)&0x7f)+0x04)))]
 end
 define showtypename
-  printf "object type is 0x%x: %s\n",_kno_ptr_type($arg0),kno_type_names[_kno_ptr_type($arg0)]
+  printf "object type is 0x%x: %s\n",_kno_lisp_type($arg0),kno_type_names[_kno_lisp_type($arg0)]
 end
 define lispout
   call _kno_lisp2stderr($arg0)
@@ -385,12 +385,12 @@ end
 
 define stackarg
   print/x _knodbg_get_stack_arg($arg0,$arg1)
-  printf "type of 0x%llx is 0x%x: %s\n",((lispval)$),(((($)&0x03)==2)?(kno_fixnum_type):((($)&0x3)==3)?(kno_oid_type):((($)&0x3)==0)?((enum KNO_PTR_TYPE)(((((struct KNO_CONS *)($))->conshead)&0x7F)+0x84)):((enum KNO_PTR_TYPE)(((($)>>25)&0x7f)+0x04))),kno_type_names[(((($)&0x03)==2)?(kno_fixnum_type):((($)&0x3)==3)?(kno_oid_type):((($)&0x3)==0)?((enum KNO_PTR_TYPE)(((((struct KNO_CONS *)($))->conshead)&0x7F)+0x84)):((enum KNO_PTR_TYPE)(((($)>>25)&0x7f)+0x04)))]
+  printf "type of 0x%llx is 0x%x: %s\n",((lispval)$),(((($)&0x03)==2)?(kno_fixnum_type):((($)&0x3)==3)?(kno_oid_type):((($)&0x3)==0)?((enum KNO_LISP_TYPE)(((((struct KNO_CONS *)($))->conshead)&0x7F)+0x84)):((enum KNO_LISP_TYPE)(((($)>>25)&0x7f)+0x04))),kno_type_names[(((($)&0x03)==2)?(kno_fixnum_type):((($)&0x3)==3)?(kno_oid_type):((($)&0x3)==0)?((enum KNO_LISP_TYPE)(((((struct KNO_CONS *)($))->conshead)&0x7F)+0x84)):((enum KNO_LISP_TYPE)(((($)>>25)&0x7f)+0x04)))]
 end
 
 define stackvar
   print/x _knodbg_get_stack_var($arg0,"$arg1")
-  printf "type of 0x%llx is 0x%x: %s\n",((lispval)$),(((($)&0x03)==2)?(kno_fixnum_type):((($)&0x3)==3)?(kno_oid_type):((($)&0x3)==0)?((enum KNO_PTR_TYPE)(((((struct KNO_CONS *)($))->conshead)&0x7F)+0x84)):((enum KNO_PTR_TYPE)(((($)>>25)&0x7f)+0x04))),kno_type_names[(((($)&0x03)==2)?(kno_fixnum_type):((($)&0x3)==3)?(kno_oid_type):((($)&0x3)==0)?((enum KNO_PTR_TYPE)(((((struct KNO_CONS *)($))->conshead)&0x7F)+0x84)):((enum KNO_PTR_TYPE)(((($)>>25)&0x7f)+0x04)))]
+  printf "type of 0x%llx is 0x%x: %s\n",((lispval)$),(((($)&0x03)==2)?(kno_fixnum_type):((($)&0x3)==3)?(kno_oid_type):((($)&0x3)==0)?((enum KNO_LISP_TYPE)(((((struct KNO_CONS *)($))->conshead)&0x7F)+0x84)):((enum KNO_LISP_TYPE)(((($)>>25)&0x7f)+0x04))),kno_type_names[(((($)&0x03)==2)?(kno_fixnum_type):((($)&0x3)==3)?(kno_oid_type):((($)&0x3)==0)?((enum KNO_LISP_TYPE)(((((struct KNO_CONS *)($))->conshead)&0x7F)+0x84)):((enum KNO_LISP_TYPE)(((($)>>25)&0x7f)+0x04)))]
 end
 
 

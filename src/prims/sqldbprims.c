@@ -45,7 +45,7 @@
 
 #include <libu8/u8printf.h>
 
-kno_ptr_type kno_sqldb_type, kno_sqlproc_type;
+kno_lisp_type kno_sqldb_type, kno_sqlproc_type;
 
 static lispval exec_enabled_symbol;
 

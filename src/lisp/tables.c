@@ -1600,11 +1600,11 @@ static unsigned int hash_elts(lispval *x,unsigned int n);
 
 static unsigned int hash_lisp(lispval x)
 {
-  kno_ptr_type ptr_type = KNO_PTR_MANIFEST_TYPE(x);
-  if (ptr_type == kno_cons_type) {
+  kno_lisp_type lisp_type = KNO_PTR_MANIFEST_TYPE(x);
+  if (lisp_type == kno_cons_type) {
     struct KNO_CONS *cons = (struct KNO_CONS *)x;
-    ptr_type = KNO_CONS_TYPE(cons);
-    switch (ptr_type) {
+    lisp_type = KNO_CONS_TYPE(cons);
+    switch (lisp_type) {
     case kno_string_type: {
       struct KNO_STRING *s = (kno_string) cons;
       return mult_hash_bytes(s->str_bytes,s->str_bytelen);}
@@ -1622,7 +1622,7 @@ static unsigned int hash_lisp(lispval x)
     case kno_compound_type: {
       struct KNO_COMPOUND *c = (kno_compound) cons;
       if (c->compound_isopaque) {
-        int ctype = KNO_PTR_TYPE(x);
+        int ctype = KNO_LISP_TYPE(x);
         if ( (ctype>0) && (ctype<N_TYPE_MULTIPLIERS) )
           return hash_mult(x,type_multipliers[ctype]);
         else return hash_mult(x,MYSTERIOUS_MULTIPLIER);}
@@ -1646,21 +1646,21 @@ static unsigned int hash_lisp(lispval x)
       struct KNO_QCHOICE *ch = (kno_qchoice) cons;
       return hash_lisp(ch->qchoiceval);}
     default: {
-      if ((ptr_type<KNO_TYPE_MAX) && (kno_hashfns[ptr_type]))
-        return kno_hashfns[ptr_type](x,kno_hash_lisp);
+      if ((lisp_type<KNO_TYPE_MAX) && (kno_hashfns[lisp_type]))
+        return kno_hashfns[lisp_type](x,kno_hash_lisp);
       else return hash_mult(x,MYSTERIOUS_MULTIPLIER);}}}
-  else if (ptr_type == kno_oid_type)
+  else if (lisp_type == kno_oid_type)
     return hash_mult(x,OID_MULTIPLIER);
-  else if (ptr_type == kno_fixnum_type)
+  else if (lisp_type == kno_fixnum_type)
     return hash_mult(x,FIXNUM_MULTIPLIER);
   else {
-   ptr_type = KNO_IMMEDIATE_TYPE(x);
-   if (ptr_type == kno_constant_type)
+   lisp_type = KNO_IMMEDIATE_TYPE(x);
+   if (lisp_type == kno_constant_type)
      return hash_mult(x,CONSTANT_MULTIPLIER);
-   else if (ptr_type == kno_symbol_type)
+   else if (lisp_type == kno_symbol_type)
      return hash_mult(x,SYMBOL_MULTIPLIER);
-   else if ((ptr_type>kno_symbol_type) && (ptr_type<N_TYPE_MULTIPLIERS))
-      return hash_mult(x,type_multipliers[ptr_type]);
+   else if ((lisp_type>kno_symbol_type) && (lisp_type<N_TYPE_MULTIPLIERS))
+      return hash_mult(x,type_multipliers[lisp_type]);
     else return hash_mult(x,MYSTERIOUS_MULTIPLIER);}
 }
 
@@ -2952,7 +2952,7 @@ KNO_EXPORT int kno_swap_hashtable(struct KNO_HASHTABLE *src,
 KNO_EXPORT int kno_static_hashtable(struct KNO_HASHTABLE *ptr,int type)
 {
   int n_conversions=0, unlock=0;
-  kno_ptr_type keeptype=(kno_ptr_type) type;
+  kno_lisp_type keeptype=(kno_lisp_type) type;
   KNO_CHECK_TYPE_RET(ptr,kno_hashtable_type);
   if (ptr->table_uselock) {
     u8_write_lock(&ptr->table_rwlock);
@@ -4036,7 +4036,7 @@ struct KNO_TABLEFNS *kno_tablefns[KNO_TYPE_MAX];
   if (PRED_FALSE((!(KNO_CHECK_PTR(arg))))) \
     _kno_bad_pointer(arg,cxt); else {}
 
-static int bad_table_call(lispval arg,kno_ptr_type type,void *handler,
+static int bad_table_call(lispval arg,kno_lisp_type type,void *handler,
                           u8_context cxt)
 {
   if (handler)
@@ -4059,7 +4059,7 @@ static int bad_table_call(lispval arg,kno_ptr_type type,void *handler,
 
 KNO_EXPORT lispval kno_get(lispval arg,lispval key,lispval dflt)
 {
-  kno_ptr_type argtype=KNO_PTR_TYPE(arg);
+  kno_lisp_type argtype=KNO_LISP_TYPE(arg);
   CHECKPTR(arg,"kno_get/table");
   CHECKPTR(key,"kno_get/key");
   CHECKPTR(key,"kno_get/dflt");
@@ -4085,7 +4085,7 @@ KNO_EXPORT lispval kno_get(lispval arg,lispval key,lispval dflt)
 
 KNO_EXPORT int kno_store(lispval arg,lispval key,lispval value)
 {
-  kno_ptr_type argtype=KNO_PTR_TYPE(arg);
+  kno_lisp_type argtype=KNO_LISP_TYPE(arg);
   CHECKPTR(arg,"kno_store/table");
   CHECKPTR(key,"kno_store/key");
   CHECKPTR(value,"kno_store/value");
@@ -4107,7 +4107,7 @@ KNO_EXPORT int kno_store(lispval arg,lispval key,lispval value)
 
 KNO_EXPORT int kno_add(lispval arg,lispval key,lispval value)
 {
-  kno_ptr_type argtype=KNO_PTR_TYPE(arg);
+  kno_lisp_type argtype=KNO_LISP_TYPE(arg);
   CHECKPTR(arg,"kno_add/table");
   CHECKPTR(key,"kno_add/key");
   CHECKPTR(value,"kno_add/value");
@@ -4152,7 +4152,7 @@ KNO_EXPORT int kno_add(lispval arg,lispval key,lispval value)
 
 KNO_EXPORT int kno_drop(lispval arg,lispval key,lispval value)
 {
-  kno_ptr_type argtype=KNO_PTR_TYPE(arg);
+  kno_lisp_type argtype=KNO_LISP_TYPE(arg);
   CHECKPTR(arg,"kno_drop/table");
   CHECKPTR(key,"kno_drop/key");
   CHECKPTR(value,"kno_drop/value");
@@ -4202,7 +4202,7 @@ KNO_EXPORT int kno_drop(lispval arg,lispval key,lispval value)
 
 KNO_EXPORT int kno_test(lispval arg,lispval key,lispval value)
 {
-  kno_ptr_type argtype=KNO_PTR_TYPE(arg);
+  kno_lisp_type argtype=KNO_LISP_TYPE(arg);
   CHECKPTR(arg,"kno_test/table");
   CHECKPTR(key,"kno_test/key");
   CHECKPTR(value,"kno_test/value");
@@ -4241,7 +4241,7 @@ KNO_EXPORT int kno_test(lispval arg,lispval key,lispval value)
 
 KNO_EXPORT int kno_getsize(lispval arg)
 {
-  kno_ptr_type argtype=KNO_PTR_TYPE(arg);
+  kno_lisp_type argtype=KNO_LISP_TYPE(arg);
   CHECKPTR(arg,"kno_getsize/table");
   if (kno_tablefns[argtype])
     if (kno_tablefns[argtype]->getsize)
@@ -4260,7 +4260,7 @@ KNO_EXPORT int kno_getsize(lispval arg)
 
 KNO_EXPORT int kno_modifiedp(lispval arg)
 {
-  kno_ptr_type argtype=KNO_PTR_TYPE(arg);
+  kno_lisp_type argtype=KNO_LISP_TYPE(arg);
   CHECKPTR(arg,"kno_modifiedp/table");
   if (kno_tablefns[argtype])
     if (kno_tablefns[argtype]->modified)
@@ -4271,7 +4271,7 @@ KNO_EXPORT int kno_modifiedp(lispval arg)
 
 KNO_EXPORT int kno_set_modified(lispval arg,int flag)
 {
-  kno_ptr_type argtype=KNO_PTR_TYPE(arg);
+  kno_lisp_type argtype=KNO_LISP_TYPE(arg);
   CHECKPTR(arg,"kno_set_modified/table");
   if (kno_tablefns[argtype])
     if (kno_tablefns[argtype]->modified)
@@ -4282,7 +4282,7 @@ KNO_EXPORT int kno_set_modified(lispval arg,int flag)
 
 KNO_EXPORT int kno_readonlyp(lispval arg)
 {
-  kno_ptr_type argtype=KNO_PTR_TYPE(arg);
+  kno_lisp_type argtype=KNO_LISP_TYPE(arg);
   CHECKPTR(arg,"kno_readonlyp/table");
   if (kno_tablefns[argtype])
     if (kno_tablefns[argtype]->readonly)
@@ -4293,7 +4293,7 @@ KNO_EXPORT int kno_readonlyp(lispval arg)
 
 KNO_EXPORT int kno_set_readonly(lispval arg,int flag)
 {
-  kno_ptr_type argtype=KNO_PTR_TYPE(arg);
+  kno_lisp_type argtype=KNO_LISP_TYPE(arg);
   CHECKPTR(arg,"kno_set_readonly/table");
   if (kno_tablefns[argtype])
     if (kno_tablefns[argtype]->readonly)
@@ -4304,7 +4304,7 @@ KNO_EXPORT int kno_set_readonly(lispval arg,int flag)
 
 KNO_EXPORT int kno_finishedp(lispval arg)
 {
-  kno_ptr_type argtype=KNO_PTR_TYPE(arg);
+  kno_lisp_type argtype=KNO_LISP_TYPE(arg);
   CHECKPTR(arg,"kno_finishedp/table");
   if (kno_tablefns[argtype])
     if (kno_tablefns[argtype]->finished)
@@ -4315,7 +4315,7 @@ KNO_EXPORT int kno_finishedp(lispval arg)
 
 KNO_EXPORT int kno_set_finished(lispval arg,int flag)
 {
-  kno_ptr_type argtype=KNO_PTR_TYPE(arg);
+  kno_lisp_type argtype=KNO_LISP_TYPE(arg);
   CHECKPTR(arg,"kno_set_finished/table");
   if (kno_tablefns[argtype])
     if (kno_tablefns[argtype]->finished)
@@ -4326,7 +4326,7 @@ KNO_EXPORT int kno_set_finished(lispval arg,int flag)
 
 KNO_EXPORT lispval kno_getkeys(lispval arg)
 {
-  kno_ptr_type argtype=KNO_PTR_TYPE(arg);
+  kno_lisp_type argtype=KNO_LISP_TYPE(arg);
   CHECKPTR(arg,"kno_getkeys/table");
   if (kno_tablefns[argtype])
     if (kno_tablefns[argtype]->keys)

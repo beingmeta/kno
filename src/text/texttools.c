@@ -792,7 +792,7 @@ static lispval columnize_prim(lispval string,lispval cols,lispval parse)
     while (field<n_fields)
       fields[field++]=kno_init_string(NULL,0,NULL);
   else while (field<n_fields) fields[field++]=KNO_FALSE;
-  lispval result=kno_makeseq(KNO_PTR_TYPE(cols),n_fields,fields);
+  lispval result=kno_makeseq(KNO_LISP_TYPE(cols),n_fields,fields);
   u8_free(fields);
   return result;
 }

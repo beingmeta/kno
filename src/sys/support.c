@@ -54,9 +54,9 @@ u8_condition kno_NoSuchFile=_("File does not exist");
 
 /* Debugging support functions */
 
-KNO_EXPORT kno_ptr_type _kno_ptr_type(lispval x)
+KNO_EXPORT kno_lisp_type _kno_lisp_type(lispval x)
 {
-  return KNO_PTR_TYPE(x);
+  return KNO_LISP_TYPE(x);
 }
 
 KNO_EXPORT lispval _kno_debug(lispval x)

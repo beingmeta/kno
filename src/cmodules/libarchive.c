@@ -44,7 +44,7 @@ static ssize_t maxbufsize = 16*1024*1024;
 #define entry_symlink archive_entry_symlink
 #endif
 
-kno_ptr_type kno_libarchive_type;
+kno_lisp_type kno_libarchive_type;
 KNO_EXPORT int kno_init_libarchive(void) KNO_LIBINIT_FN;
 
 static long long int libarchive_initialized = 0;

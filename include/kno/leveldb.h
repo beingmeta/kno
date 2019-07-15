@@ -21,7 +21,7 @@ typedef struct KNO_LEVELDB_CONS {
   KNO_CONS_HEADER;
   struct KNO_LEVELDB leveldb;} *kno_leveldb_cons;
 
-KNO_EXPORT kno_ptr_type kno_leveldb_type;
+KNO_EXPORT kno_lisp_type kno_leveldb_type;
 
 KNO_EXPORT int kno_init_leveldb(void) KNO_LIBINIT_FN;
 

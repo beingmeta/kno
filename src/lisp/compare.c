@@ -65,8 +65,8 @@ int lispval_compare(lispval x,lispval y,kno_compare_flags flags)
     /* The == case is handled by the x == y above. */
     if (xval>yval) return 1; else return -1;}
   else {
-    kno_ptr_type xtype = KNO_PTR_TYPE(x);
-    kno_ptr_type ytype = KNO_PTR_TYPE(y);
+    kno_lisp_type xtype = KNO_LISP_TYPE(x);
+    kno_lisp_type ytype = KNO_LISP_TYPE(y);
     if (KNO_NUMBER_TYPEP(xtype))
       if (KNO_NUMBER_TYPEP(ytype))
         return kno_numcompare(x,y);
@@ -155,7 +155,7 @@ int lispval_compare(lispval x,lispval y,kno_compare_flags flags)
           else if (xlen<ylen) return -1;
           else return 0;}}
       default: {
-        kno_ptr_type ctype = KNO_CONS_TYPE(KNO_CONS_DATA(x));
+        kno_lisp_type ctype = KNO_CONS_TYPE(KNO_CONS_DATA(x));
         if (kno_comparators[ctype])
           return kno_comparators[ctype](x,y,flags);
         else if (x>y) return 1;

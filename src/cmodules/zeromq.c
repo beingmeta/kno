@@ -36,7 +36,7 @@ static u8_condition ZeroMQ_WrongThread =
 
 KNO_EXPORT int kno_init_zeromq(void) KNO_LIBINIT_FN;
 
-kno_ptr_type kno_zmqsock_type;
+kno_lisp_type kno_zmqsock_type;
 
 #if DEBUG_ZEROMQ
 static u8_mutex socket_counter_lock;
@@ -1045,7 +1045,7 @@ KNO_EXPORT int kno_init_zeromq()
 
   DECL_PRIM(zeromq_shutdown_prim,0,module);
 
-  kno_ptr_type proxy_args[3] =
+  kno_lisp_type proxy_args[3] =
     { kno_zmqsock_type, kno_zmqsock_type, kno_zmqsock_type };
   DECL_PRIM_ARGS(zmq_proxy_prim,3,module,proxy_args,NULL);
 

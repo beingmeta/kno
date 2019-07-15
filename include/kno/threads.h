@@ -11,8 +11,8 @@
 #define KNO_THREADS_H_INFO "include/kno/support.h"
 #endif
 
-KNO_EXPORT kno_ptr_type kno_thread_type;
-KNO_EXPORT kno_ptr_type kno_synchronizer_type;
+KNO_EXPORT kno_lisp_type kno_thread_type;
+KNO_EXPORT kno_lisp_type kno_synchronizer_type;
 
 #define KNO_THREAD_DONE        0x0001
 #define KNO_THREAD_ERROR       0x0002

@@ -73,7 +73,7 @@ typedef struct KNO_X2VEC_WORD *x2vec_word;
 static u8_condition InvalidOpSeparator = _("Invalid opt separator");
 static int default_num_threads=2;
 
-kno_ptr_type kno_x2vec_type;
+kno_lisp_type kno_x2vec_type;
 
 static lispval hidden_size, window_symbol, hash_reduce_symbol, min_count_symbol;
 static lispval n_clusters_symbol, n_cluster_rounds_symbol;

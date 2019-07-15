@@ -132,7 +132,7 @@ KNO_EXPORT void _kno_unlock_pool_struct(kno_pool p)
 KNO_FASTOP int modify_readonly(lispval table,int val)
 {
   if (CONSP(table)) {
-    kno_ptr_type table_type = KNO_PTR_TYPE(table);
+    kno_lisp_type table_type = KNO_LISP_TYPE(table);
     switch (table_type) {
     case kno_slotmap_type: {
       struct KNO_SLOTMAP *tbl=(kno_slotmap)table;
@@ -147,7 +147,7 @@ KNO_FASTOP int modify_readonly(lispval table,int val)
       tbl->table_readonly=val;
       return 1;}
     default: {
-      kno_ptr_type typecode = KNO_PTR_TYPE(table);
+      kno_lisp_type typecode = KNO_LISP_TYPE(table);
       struct KNO_TABLEFNS *methods = kno_tablefns[typecode];
       if ( (methods) && (methods->readonly) )
         return (methods->readonly)(table,1);
@@ -158,7 +158,7 @@ KNO_FASTOP int modify_readonly(lispval table,int val)
 KNO_FASTOP int modify_modified(lispval table,int val)
 {
   if (CONSP(table)) {
-    kno_ptr_type table_type = KNO_PTR_TYPE(table);
+    kno_lisp_type table_type = KNO_LISP_TYPE(table);
     switch (table_type) {
     case kno_slotmap_type: {
       struct KNO_SLOTMAP *tbl=(kno_slotmap)table;
@@ -173,7 +173,7 @@ KNO_FASTOP int modify_modified(lispval table,int val)
       tbl->table_modified=val;
       return 1;}
     default: {
-      kno_ptr_type typecode = KNO_PTR_TYPE(table);
+      kno_lisp_type typecode = KNO_LISP_TYPE(table);
       struct KNO_TABLEFNS *methods = kno_tablefns[typecode];
       if ( (methods) && (methods->modified) )
         return (methods->modified)(table,1);
@@ -2612,7 +2612,7 @@ static lispval copy_consed_pool(lispval x,int deep)
 
 /* Initialization */
 
-kno_ptr_type kno_consed_pool_type;
+kno_lisp_type kno_consed_pool_type;
 
 static int check_pool(lispval x)
 {

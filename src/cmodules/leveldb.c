@@ -36,7 +36,7 @@
 #include "leveldb/c.h"
 #include "kno/leveldb.h"
 
-kno_ptr_type kno_leveldb_type;
+kno_lisp_type kno_leveldb_type;
 
 static ssize_t default_writebuf_size = -1;
 static ssize_t default_cache_size = -1;

@@ -67,8 +67,8 @@ U8_MAYBE_UNUSED static int _kno_sort_helper(const void *vx,const void *vy)
   const struct KNO_SORT_ENTRY *sy = (struct KNO_SORT_ENTRY *)vy;
   if (sx->sortkey == sy->sortkey) return 0;
   else {
-    kno_ptr_type xtype = KNO_PTR_TYPE(sx->sortkey);
-    kno_ptr_type ytype = KNO_PTR_TYPE(sy->sortkey);
+    kno_lisp_type xtype = KNO_LISP_TYPE(sx->sortkey);
+    kno_lisp_type ytype = KNO_LISP_TYPE(sy->sortkey);
     if (xtype == ytype)
       if (KNO_OIDP(sx->sortkey)) {
         KNO_OID xaddr = KNO_OID_ADDR(sx->sortkey);
@@ -135,8 +135,8 @@ U8_MAYBE_UNUSED static int _kno_collate_helper(const void *vx,const void *vy)
   const struct KNO_SORT_ENTRY *sy = (struct KNO_SORT_ENTRY *)vy;
   if (sx->sortkey == sy->sortkey) return 0;
   else {
-    kno_ptr_type xtype = KNO_PTR_TYPE(sx->sortkey);
-    kno_ptr_type ytype = KNO_PTR_TYPE(sy->sortkey);
+    kno_lisp_type xtype = KNO_LISP_TYPE(sx->sortkey);
+    kno_lisp_type ytype = KNO_LISP_TYPE(sy->sortkey);
     if (xtype == ytype)
       if (KNO_OIDP(sx->sortkey)) {
         KNO_OID xaddr = KNO_OID_ADDR(sx->sortkey);
@@ -180,8 +180,8 @@ U8_MAYBE_UNUSED static int _kno_lexsort_helper(const void *vx,const void *vy)
   const struct KNO_SORT_ENTRY *sy = (struct KNO_SORT_ENTRY *)vy;
   if (sx->sortkey == sy->sortkey) return 0;
   else {
-    kno_ptr_type xtype = KNO_PTR_TYPE(sx->sortkey);
-    kno_ptr_type ytype = KNO_PTR_TYPE(sy->sortkey);
+    kno_lisp_type xtype = KNO_LISP_TYPE(sx->sortkey);
+    kno_lisp_type ytype = KNO_LISP_TYPE(sy->sortkey);
     if (xtype == ytype)
       if (KNO_OIDP(sx->sortkey)) {
         KNO_OID xaddr = KNO_OID_ADDR(sx->sortkey);
@@ -225,8 +225,8 @@ U8_MAYBE_UNUSED static int _kno_lexsort_ci_helper(const void *vx,const void *vy)
   const struct KNO_SORT_ENTRY *sy = (struct KNO_SORT_ENTRY *)vy;
   if (sx->sortkey == sy->sortkey) return 0;
   else {
-    kno_ptr_type xtype = KNO_PTR_TYPE(sx->sortkey);
-    kno_ptr_type ytype = KNO_PTR_TYPE(sy->sortkey);
+    kno_lisp_type xtype = KNO_LISP_TYPE(sx->sortkey);
+    kno_lisp_type ytype = KNO_LISP_TYPE(sy->sortkey);
     if (xtype == ytype)
       if (KNO_OIDP(sx->sortkey)) {
         KNO_OID xaddr = KNO_OID_ADDR(sx->sortkey);

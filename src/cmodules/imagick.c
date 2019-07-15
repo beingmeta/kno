@@ -31,7 +31,7 @@
 #include <math.h>
 
 u8_condition MagickWandError="ImageMagicWand error";
-kno_ptr_type kno_imagick_type = 0;
+kno_lisp_type kno_imagick_type = 0;
 
 KNO_EXPORT int kno_init_imagick(void) KNO_LIBINIT_FN;
 

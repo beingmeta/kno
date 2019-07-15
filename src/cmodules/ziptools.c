@@ -28,8 +28,8 @@
 
 static u8_condition ZipFileError=_("Zip file error");
 
-KNO_EXPORT kno_ptr_type kno_zipfile_type;
-kno_ptr_type kno_zipfile_type;
+KNO_EXPORT kno_lisp_type kno_zipfile_type;
+kno_lisp_type kno_zipfile_type;
 typedef struct KNO_ZIPFILE {
   KNO_CONS_HEADER;
   u8_string filename; int flags;

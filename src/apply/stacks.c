@@ -64,7 +64,7 @@ static lispval annotate_source(lispval expr,lispval target)
   else if (! (KNO_CONSP(expr)) )
     return expr;
   else {
-    kno_ptr_type type = KNO_PTR_TYPE(expr);
+    kno_lisp_type type = KNO_LISP_TYPE(expr);
     switch (type) {
     case kno_pair_type: {
       lispval car = source_subst(KNO_CAR(expr),target);

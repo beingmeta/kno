@@ -332,7 +332,7 @@ static lispval knox_fork_wait_prim(int n,lispval *args)
 
 /* SUBJOBs */
 
-kno_ptr_type kno_subjob_type;
+kno_lisp_type kno_subjob_type;
 
 #define PIPE_FLAGS O_NONBLOCK
 #define STDOUT_FILE_MODE (S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH)

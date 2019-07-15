@@ -204,7 +204,7 @@ KNO_EXPORT ssize_t kno_write_dtype(struct KNO_OUTBUF *out,lispval x)
         kno_write_8bytes(out,val);
         return 3+1+8;}}
     case kno_immediate_ptr_type: { /* output constant */
-      kno_ptr_type itype = KNO_IMMEDIATE_TYPE(x);
+      kno_lisp_type itype = KNO_IMMEDIATE_TYPE(x);
       int data = KNO_GET_IMMEDIATE(x,itype), retval = 0;
       if (itype == kno_symbol_type) { /* output symbol */
         lispval name = kno_symbol_names[data];
@@ -397,7 +397,7 @@ KNO_EXPORT ssize_t kno_write_dtype(struct KNO_OUTBUF *out,lispval x)
       case kno_mystery_type:
         return write_mystery(out,(struct KNO_MYSTERY_DTYPE *) cons);
       default: {
-        kno_ptr_type ctype = KNO_CONS_TYPE(cons);
+        kno_lisp_type ctype = KNO_CONS_TYPE(cons);
         if ((KNO_VALID_TYPECODEP(ctype)) && (kno_dtype_writers[ctype]))
           return kno_dtype_writers[ctype](out,x);
         else if ((out->buf_flags)&(KNO_WRITE_OPAQUE))

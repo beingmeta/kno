@@ -230,7 +230,7 @@ static lispval forseq_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
         kno_decref(val);
         val = fast_eval(subexpr,forseq);
         if (KNO_BROKEP(val)) {
-          result=kno_makeseq(KNO_PTR_TYPE(seq),i,results);
+          result=kno_makeseq(KNO_LISP_TYPE(seq),i,results);
           kno_decref_vec(results,i);
           u8_free(results);
           _return result;}
@@ -245,7 +245,7 @@ static lispval forseq_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     forseq_vals[1]=VOID;
     if (islist) pairscan = KNO_CDR(pairscan);
     i++;}
-  result=kno_makeseq(KNO_PTR_TYPE(seq),lim,results);
+  result=kno_makeseq(KNO_LISP_TYPE(seq),lim,results);
   kno_decref_vec(results,i);
   u8_free(results);
   _return result;

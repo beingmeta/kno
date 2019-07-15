@@ -240,8 +240,8 @@ static void log_ptr(lispval val,lispval label_arg,lispval expr)
            KNO_OID_HI(addr),KNO_OID_LO(addr),
            U8OPTSTR(" <== ",src_string,""));}
   else if (KNO_STATICP(val)) {
-    kno_ptr_type ptype = KNO_CONS_TYPE((kno_cons)val);
-    u8_string type_name = kno_ptr_typename(ptype);
+    kno_lisp_type ptype = KNO_CONS_TYPE((kno_cons)val);
+    u8_string type_name = kno_lisp_typename(ptype);
     u8_log(U8_LOG_MSG,"Pointer/Static",
            "%s%s%s0x%llx [ T0x%llx(%s) ] == %q%s%s%s",
            U8OPTSTR("",label,": "),
@@ -250,8 +250,8 @@ static void log_ptr(lispval val,lispval label_arg,lispval expr)
            U8OPTSTR(" <== ",src_string,""));}
   else if (CONSP(val)) {
     kno_cons c = (kno_cons) val;
-    kno_ptr_type ptype = KNO_CONS_TYPE(c);
-    u8_string type_name = kno_ptr_typename(ptype);
+    kno_lisp_type ptype = KNO_CONS_TYPE(c);
+    u8_string type_name = kno_lisp_typename(ptype);
     unsigned int refcount = KNO_CONS_REFCOUNT(c);
     u8_log(U8_LOG_MSG,"Pointer/Consed",
            "%s%s%s0x%llx [ T0x%llx(%s) refs=%d ] == %q%s%s%s",

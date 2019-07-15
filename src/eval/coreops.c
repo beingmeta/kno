@@ -424,14 +424,14 @@ static lispval falsep(lispval x)
 
 static lispval typeof_prim(lispval x)
 {
-  kno_ptr_type t = KNO_PRIM_TYPE(x);
+  kno_lisp_type t = KNO_PRIM_TYPE(x);
   if (kno_type_names[t]) return kno_mkstring(kno_type_names[t]);
   else return kno_mkstring("??");
 }
 
 static lispval taggedp_prim(lispval x,lispval tag)
 {
-  kno_ptr_type typecode = KNO_PRIM_TYPE(x);
+  kno_lisp_type typecode = KNO_PRIM_TYPE(x);
   if (typecode == kno_compound_type) 
     if (VOIDP(tag))
       return KNO_TRUE;

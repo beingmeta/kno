@@ -291,8 +291,8 @@ typedef int kno_size_t;
 #define KNO_PREFETCHING_ENABLED 1
 #endif
 
-#ifndef KNO_PTR_TYPE_MACRO
-#define KNO_PTR_TYPE_MACRO 1
+#ifndef KNO_LISP_TYPE_MACRO
+#define KNO_LISP_TYPE_MACRO 1
 #endif
 
 #ifndef KNO_DEBUG_OUTBUF_SIZE

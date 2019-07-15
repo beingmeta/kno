@@ -47,7 +47,7 @@ static int auto_static_exports = 0;
 
 static int readonly_tablep(lispval arg)
 {
-  kno_ptr_type type = KNO_PTR_TYPE(arg);
+  kno_lisp_type type = KNO_LISP_TYPE(arg);
   switch (type) {
   case kno_hashtable_type:
     return KNO_HASHTABLE_READONLYP(arg);

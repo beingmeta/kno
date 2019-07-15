@@ -69,7 +69,7 @@
    index into an array.  Thus, even on 64-bit architectures, a direct
    representation of object addresses may not be desirable.
 
-   A single unified space of type codes (kno_ptr_type) combines the four
+   A single unified space of type codes (kno_lisp_type) combines the four
    base type codes with the 7-bit type codes associated with CONSes and
    IMMEDIATE pointers.  In this single space, CONS types start at 0x04 and
    IMMEDIATE types start at 0x84.  For example, dtype pairs, implemented as
@@ -79,7 +79,7 @@
    the unified space by 0x86.
 
    The built in components of the unified type space are represented
-   by the enumeration kno_ptr_type (enum KNO_PTR_TYPE).  New immediate
+   by the enumeration kno_lisp_type (enum KNO_LISP_TYPE).  New immediate
    and cons types can be allocated by kno_register_immediate_type(char
    *) and kno_register_cons_type(char *).
    */
@@ -130,7 +130,7 @@ typedef int _kno_sptr;
 
 /* Basic types */
 
-typedef enum KNO_PTR_TYPE {
+typedef enum KNO_LISP_TYPE {
   kno_any_type = -1,
 
   kno_cons_type = 0, kno_immediate_type = 1,
@@ -209,7 +209,7 @@ typedef enum KNO_PTR_TYPE {
   kno_table_type = KNO_EXTENDED_TYPECODE(3),
   kno_applicable_type = KNO_EXTENDED_TYPECODE(4)
 
-  } kno_ptr_type;
+  } kno_lisp_type;
 
 #define KNO_BUILTIN_CONS_TYPES 40
 #define KNO_BUILTIN_IMMEDIATE_TYPES 11
@@ -224,7 +224,7 @@ KNO_EXPORT int kno_register_immediate_type(char *name,kno_checkfn fn);
 
 KNO_EXPORT u8_string kno_type_names[KNO_TYPE_MAX];
 
-#define kno_ptr_typename(tc) \
+#define kno_lisp_typename(tc) \
   ( (tc<kno_next_cons_type) ? (kno_type_names[tc]) : ((u8_string)"oddtype"))
 #define kno_type2name(tc)        \
   (((tc<0)||(tc>KNO_TYPE_MAX))?  \
@@ -343,15 +343,15 @@ KNO_FASTOP U8_MAYBE_UNUSED int _KNO_ISDTYPE(lispval x){ return 1;}
 #define KNO_IMMEDIATE_MAX (1<<24)
 
 #if KNO_EXTREME_PROFILING
-KNO_EXPORT kno_ptr_type _KNO_PTR_TYPE(lispval x);
-#define KNO_PTR_TYPE _KNO_PTR_TYPE
+KNO_EXPORT kno_lisp_type _KNO_LISP_TYPE(lispval x);
+#define KNO_LISP_TYPE _KNO_LISP_TYPE
 #else
-#define KNO_PTR_TYPE(x) \
+#define KNO_LISP_TYPE(x) \
   (((KNO_PTR_MANIFEST_TYPE(LISPVAL(x)))>1) ? (KNO_PTR_MANIFEST_TYPE(x)) :  \
    ((KNO_PTR_MANIFEST_TYPE(x))==1) ? (KNO_IMMEDIATE_TYPE(x)) : \
    (x) ? (KNO_CONS_TYPE(((struct KNO_CONS *)KNO_CONS_DATA(x)))) : (-1))
 #endif
-#define KNO_PRIM_TYPE(x)         (KNO_PTR_TYPE(x))
+#define KNO_PRIM_TYPE(x)         (KNO_LISP_TYPE(x))
 
 #if KNO_EXTREME_PROFILING
 KNO_EXPORT int _KNO_TYPEP(lispval ptr,int type);
@@ -858,7 +858,7 @@ static U8_MAYBE_UNUSED lispval _kno_fcnid_ref(lispval ref)
 #endif
 
 #define KNO_FCNID_TYPEP(x,tp)    (KNO_TYPEP(kno_fcnid_ref(x),tp))
-#define KNO_FCNID_TYPE(x)        (KNO_PTR_TYPE(kno_fcnid_ref(x)))
+#define KNO_FCNID_TYPE(x)        (KNO_LISP_TYPE(kno_fcnid_ref(x)))
 
 /* Numeric macros */
 
@@ -866,7 +866,7 @@ static U8_MAYBE_UNUSED lispval _kno_fcnid_ref(lispval ref)
   ((x == kno_fixnum_type) || (x == kno_bigint_type) ||   \
    (x == kno_flonum_type) || (x == kno_rational_type) || \
    (x == kno_complex_type))
-#define KNO_NUMBERP(x) (KNO_NUMBER_TYPEP(KNO_PTR_TYPE(x)))
+#define KNO_NUMBERP(x) (KNO_NUMBER_TYPEP(KNO_LISP_TYPE(x)))
 
 /* Generic handlers */
 
@@ -1009,7 +1009,7 @@ KNO_EXPORT void lispval_sort(lispval *v,size_t n,kno_compare_flags flags);
 
 /* Debugging support */
 
-KNO_EXPORT kno_ptr_type _kno_ptr_type(lispval x);
+KNO_EXPORT kno_lisp_type _kno_lisp_type(lispval x);
 KNO_EXPORT lispval _kno_debug(lispval x);
 
 /* Pointer checking for internal debugging */

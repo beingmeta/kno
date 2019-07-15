@@ -1600,7 +1600,7 @@ DCLPRIM("GLOM",glom_lexpr,MAX_ARGS(0)|KNO_VAR_ARGS,
 static lispval glom_lexpr(int n,lispval *args)
 {
   unsigned char *result_data, *write;
-  int i = 0, sumlen = 0; kno_ptr_type result_type = 0;
+  int i = 0, sumlen = 0; kno_lisp_type result_type = 0;
   const unsigned char **strings, *stringsbuf[16];
   int *lengths, lengthsbuf[16];
   unsigned char *consed, consedbuf[16];

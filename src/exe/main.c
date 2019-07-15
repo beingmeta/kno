@@ -121,7 +121,7 @@ KNO_EXPORT void _knodbg_show_env(kno_lexenv start,int limit)
     kno_decref(keys);}
   else while ( (env) && (depth < limit) ) {
       lispval bindings = env->env_bindings;
-      kno_ptr_type btype = KNO_PTR_TYPE(bindings);
+      kno_lisp_type btype = KNO_LISP_TYPE(bindings);
       lispval name = kno_get(bindings,moduleid,KNO_VOID);
       if (KNO_VOIDP(name)) {
         lispval keys = kno_getkeys(bindings);

@@ -289,7 +289,7 @@ KNO_FASTOP unsigned int hash_lisp2(lispval x)
 #endif
   }
   else { /*  if (CONSP(x)) */
-    int ctype = KNO_PTR_TYPE(x);
+    int ctype = KNO_LISP_TYPE(x);
     switch (ctype) {
     case kno_string_type:
       return hash_string_lisp2(x);
@@ -429,7 +429,7 @@ KNO_FASTOP unsigned int hash_lisp3(lispval x)
 #endif
   }
   else { /*  if (CONSP(x)) */
-    int ctype = KNO_PTR_TYPE(x);
+    int ctype = KNO_LISP_TYPE(x);
     switch (ctype) {
     case kno_string_type:
       return hash_string_lisp2(x);

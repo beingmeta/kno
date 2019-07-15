@@ -635,12 +635,12 @@ KNO_EXPORT lispval kno_dcall(struct KNO_STACK *_stack,
 {
   u8_byte namebuf[60], numbuf[32];
   u8_string fname="apply";
-  kno_ptr_type ftype=KNO_PRIM_TYPE(fn);
+  kno_lisp_type ftype=KNO_PRIM_TYPE(fn);
   struct KNO_FUNCTION *f=NULL;
 
   if (ftype==kno_fcnid_type) {
     fn=kno_fcnid_ref(fn);
-    ftype=KNO_PTR_TYPE(fn);}
+    ftype=KNO_LISP_TYPE(fn);}
 
   if (kno_functionp[ftype]) {
     f=(struct KNO_FUNCTION *)fn;
@@ -891,7 +891,7 @@ KNO_EXPORT lispval kno_ndcall(struct KNO_STACK *_stack,
     kno_pop_stack(ndapply_stack);
     return kno_simplify_choice(results);}
   else {
-    kno_ptr_type fntype = KNO_PTR_TYPE(handler);
+    kno_lisp_type fntype = KNO_LISP_TYPE(handler);
     if (kno_functionp[fntype]) {
       struct KNO_FUNCTION *f = KNO_DTYPE2FCN(handler);
       if (f->fcn_arity == 0)
@@ -962,7 +962,7 @@ KNO_EXPORT lispval kno_call(struct KNO_STACK *_stack,
         return EMPTY;
       else if (ATOMICP(args[i])) i++;
       else {
-        kno_ptr_type argtype = KNO_PTR_TYPE(args[i]);
+        kno_lisp_type argtype = KNO_LISP_TYPE(args[i]);
         if ((argtype == kno_choice_type) ||
             (argtype == kno_prechoice_type)) {
           result = kno_ndcall(_stack,handler,n,args);

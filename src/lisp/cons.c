@@ -133,27 +133,27 @@ int kno_check_immediate(lispval x)
 
 /* CONS methods for external calls */
 
-KNO_EXPORT void _KNO_INIT_CONS(void *vptr,kno_ptr_type type)
+KNO_EXPORT void _KNO_INIT_CONS(void *vptr,kno_lisp_type type)
 {
   kno_raw_cons ptr = (kno_raw_cons)vptr;
   KNO_INIT_CONS(ptr,type);
 }
-KNO_EXPORT void _KNO_INIT_FRESH_CONS(void *vptr,kno_ptr_type type)
+KNO_EXPORT void _KNO_INIT_FRESH_CONS(void *vptr,kno_lisp_type type)
 {
   kno_raw_cons ptr = (kno_raw_cons)vptr;
   KNO_INIT_FRESH_CONS(ptr,type);
 }
-KNO_EXPORT void _KNO_INIT_STACK_CONS(void *vptr,kno_ptr_type type)
+KNO_EXPORT void _KNO_INIT_STACK_CONS(void *vptr,kno_lisp_type type)
 {
   kno_raw_cons ptr = (kno_raw_cons)vptr;
   KNO_INIT_STACK_CONS(ptr,type);
 }
-KNO_EXPORT void _KNO_INIT_STATIC_CONS(void *vptr,kno_ptr_type type)
+KNO_EXPORT void _KNO_INIT_STATIC_CONS(void *vptr,kno_lisp_type type)
 {
   kno_raw_cons ptr = (kno_raw_cons)vptr;
   KNO_INIT_STATIC_CONS(ptr,type);
 }
-KNO_EXPORT void _KNO_SET_CONS_TYPE(void *vptr,kno_ptr_type type)
+KNO_EXPORT void _KNO_SET_CONS_TYPE(void *vptr,kno_lisp_type type)
 {
   kno_raw_cons ptr = (kno_raw_cons)vptr;
   KNO_SET_CONS_TYPE(ptr,type);
@@ -223,7 +223,7 @@ int lispval_equal(lispval x,lispval y)
     else if (memcmp(KNO_PACKET_DATA(x),KNO_PACKET_DATA(y),xlen)==0)
       return 1;
     else return 0;}
-  else if (!(TYPEP(y,KNO_PTR_TYPE(x))))
+  else if (!(TYPEP(y,KNO_LISP_TYPE(x))))
     /* At this point, If the types are different, the values are
        different. */
     return 0;
@@ -258,7 +258,7 @@ int lispval_equal(lispval x,lispval y)
   else if ( (CHOICEP(x)) || (CHOICEP(y)) )
     return 0;
   else {
-    kno_ptr_type ctype = KNO_CONS_TYPE(KNO_CONS_DATA(x));
+    kno_lisp_type ctype = KNO_CONS_TYPE(KNO_CONS_DATA(x));
     if (kno_comparators[ctype])
       return (kno_comparators[ctype](x,y,1)==0);
     else return 0;}

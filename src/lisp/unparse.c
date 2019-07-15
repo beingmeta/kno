@@ -248,7 +248,7 @@ static int unparse_pair(U8_OUTPUT *out,lispval x)
     kno_unparse(out,KNO_CAR(scan));
     len++;
     scan = KNO_CDR(scan);
-    while (KNO_PTR_TYPE(scan) == kno_pair_type)
+    while (KNO_LISP_TYPE(scan) == kno_pair_type)
       if ((unparse_maxelts>0) && (len>=unparse_maxelts)) {
         if (len == unparse_maxelts) ellipsis_start = len;
         scan = KNO_CDR(scan);
@@ -328,7 +328,7 @@ int kno_unparse(u8_output out,lispval x)
     char buf[128]; sprintf(buf,"%lld",val);
     return u8_puts(out,buf);}
   case kno_immediate_type: { /* output constant */
-    kno_ptr_type itype = KNO_IMMEDIATE_TYPE(x);
+    kno_lisp_type itype = KNO_IMMEDIATE_TYPE(x);
     int data = KNO_GET_IMMEDIATE(x,itype);
     if (itype == kno_symbol_type)
       return emit_symbol_name(out,SYM_NAME(x));
@@ -354,7 +354,7 @@ int kno_unparse(u8_output out,lispval x)
       return u8_puts(out,"#null");
     else {/* output cons */
       struct KNO_CONS *cons = KNO_CONS_DATA(x);
-      kno_ptr_type ct = KNO_CONS_TYPE(cons);
+      kno_lisp_type ct = KNO_CONS_TYPE(cons);
       if ((KNO_VALID_TYPECODEP(ct)) && (kno_unparsers[ct])) {
         int uv = kno_unparsers[ct](out,x);
         if (uv<0) {

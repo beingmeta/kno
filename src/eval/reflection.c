@@ -194,7 +194,7 @@ static lispval procedure_documentation(lispval x)
 static lispval set_procedure_documentation(lispval x,lispval doc)
 {
   lispval proc = (KNO_FCNIDP(x)) ? (kno_fcnid_ref(x)) : (x);
-  kno_ptr_type proctype = KNO_PTR_TYPE(proc);
+  kno_lisp_type proctype = KNO_LISP_TYPE(proc);
   if (kno_functionp[proctype]) {
     struct KNO_FUNCTION *f = KNO_DTYPE2FCN(x);
     u8_string to_free = ( (f->fcn_doc) && (f->fcn_free_doc) ) ?
@@ -215,7 +215,7 @@ static lispval set_procedure_documentation(lispval x,lispval doc)
 static lispval procedure_tailablep(lispval x)
 {
   lispval proc = (KNO_FCNIDP(x)) ? (kno_fcnid_ref(x)) : (x);
-  kno_ptr_type proctype = KNO_PTR_TYPE(proc);
+  kno_lisp_type proctype = KNO_LISP_TYPE(proc);
   if (kno_functionp[proctype]) {
     struct KNO_FUNCTION *f = KNO_DTYPE2FCN(x);
     if (f->fcn_notail)
@@ -226,7 +226,7 @@ static lispval procedure_tailablep(lispval x)
 static lispval set_procedure_tailable(lispval x,lispval bool)
 {
   lispval proc = (KNO_FCNIDP(x)) ? (kno_fcnid_ref(x)) : (x);
-  kno_ptr_type proctype = KNO_PTR_TYPE(proc);
+  kno_lisp_type proctype = KNO_LISP_TYPE(proc);
   if (kno_functionp[proctype]) {
     struct KNO_FUNCTION *f = KNO_DTYPE2FCN(x);
     if (KNO_FALSEP(bool))
@@ -287,7 +287,7 @@ static lispval procedure_min_arity(lispval x)
 static lispval get_proc_attribs(lispval x,int create)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
-  kno_ptr_type proctype = KNO_PTR_TYPE(x);
+  kno_lisp_type proctype = KNO_LISP_TYPE(x);
   if (kno_functionp[proctype]) {
     struct KNO_FUNCTION *f = KNO_DTYPE2FCN(x);
     lispval attribs = f->fcn_attribs;
@@ -313,7 +313,7 @@ static lispval get_procedure_attribs(lispval x)
 
 static lispval set_procedure_attribs(lispval x,lispval value)
 {
-  kno_ptr_type proctype = KNO_PTR_TYPE(x);
+  kno_lisp_type proctype = KNO_LISP_TYPE(x);
   if (kno_functionp[proctype]) {
     struct KNO_FUNCTION *f = KNO_DTYPE2FCN(x);
     lispval table = f->fcn_attribs;
@@ -548,7 +548,7 @@ static lispval macroexpand(lispval expander,lispval expr)
   if (PAIRP(expr)) {
     if (TYPEP(expander,kno_macro_type)) {
       struct KNO_MACRO *macrofn = (struct KNO_MACRO *)kno_fcnid_ref(expander);
-      kno_ptr_type xformer_type = KNO_PTR_TYPE(macrofn->macro_transformer);
+      kno_lisp_type xformer_type = KNO_LISP_TYPE(macrofn->macro_transformer);
       if (kno_applyfns[xformer_type]) {
         /* These are evalfns which do all the evaluating themselves */
         lispval new_expr=

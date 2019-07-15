@@ -75,7 +75,7 @@ static int n_multislots = 0;
 static u8_mutex multislots_lock;
 
 /* These are the new cons types introducted for mongodb */
-kno_ptr_type kno_mongoc_server, kno_mongoc_collection, kno_mongoc_cursor;
+kno_lisp_type kno_mongoc_server, kno_mongoc_collection, kno_mongoc_cursor;
 
 static bool bson_append_keyval(struct KNO_BSON_OUTPUT,lispval,lispval);
 static bool bson_append_dtype(struct KNO_BSON_OUTPUT,const char *,int,
@@ -2227,7 +2227,7 @@ static bool bson_append_dtype(struct KNO_BSON_OUTPUT b,
     if (ok) ok = bson_append_document_end(out,&values);
     return ok;}
   else if (KNO_CONSP(val)) {
-    kno_ptr_type ctype = KNO_PTR_TYPE(val);
+    kno_lisp_type ctype = KNO_LISP_TYPE(val);
     switch (ctype) {
     case kno_string_type: {
       unsigned char _buf[64], *buf=_buf;

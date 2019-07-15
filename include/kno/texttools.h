@@ -91,7 +91,7 @@ KNO_EXPORT lispval kno_textclosure(lispval expr,kno_lexenv env);
 KNO_EXPORT u8_condition kno_InternalMatchError, kno_MatchSyntaxError;
 KNO_EXPORT u8_condition kno_TXInvalidPattern;
 
-KNO_EXPORT kno_ptr_type kno_txclosure_type;
+KNO_EXPORT kno_lisp_type kno_txclosure_type;
 
 /* Other texttools stuff */
 
