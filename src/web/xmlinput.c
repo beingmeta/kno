@@ -1083,7 +1083,7 @@ static lispval xmlparse_core(lispval input,int flags)
   struct U8_INPUT *in, _in;
   if (flags<0) return KNO_ERROR;
   if (KNO_PORTP(input)) {
-    struct KNO_PORT *p = kno_consptr(struct KNO_PORT *,input,kno_port_type);
+    struct KNO_PORT *p = kno_consptr(struct KNO_PORT *,input,kno_ioport_type);
     in = p->port_input;}
   else if (STRINGP(input)) {
     U8_INIT_STRING_INPUT(&_in,STRLEN(input),CSTRING(input));
@@ -1149,7 +1149,7 @@ static lispval knoml_load(lispval input,lispval sloppy)
   struct U8_INPUT *in, _in;
   if (flags<0) return KNO_ERROR;
   if (KNO_PORTP(input)) {
-    struct KNO_PORT *p = kno_consptr(struct KNO_PORT *,input,kno_port_type);
+    struct KNO_PORT *p = kno_consptr(struct KNO_PORT *,input,kno_ioport_type);
     in = p->port_input;}
   else if (STRINGP(input)) {
     U8_INIT_STRING_INPUT(&_in,STRLEN(input),CSTRING(input));
@@ -1179,7 +1179,7 @@ static lispval knoml_read(lispval input,lispval sloppy)
   struct U8_INPUT *in, _in;
   if (flags<0) return KNO_ERROR;
   if (KNO_PORTP(input)) {
-    struct KNO_PORT *p = kno_consptr(struct KNO_PORT *,input,kno_port_type);
+    struct KNO_PORT *p = kno_consptr(struct KNO_PORT *,input,kno_ioport_type);
     in = p->port_input;}
   else if ((STRINGP(input))&&(strchr(CSTRING(input),'<') == NULL))
     return knoml_load(input,sloppy);

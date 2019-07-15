@@ -40,7 +40,7 @@ u8_condition kno_UnknownEncoding=_("Unknown encoding");
 KNO_EXPORT lispval kno_make_port(U8_INPUT *in,U8_OUTPUT *out,u8_string id)
 {
   struct KNO_PORT *port = u8_alloc(struct KNO_PORT);
-  KNO_INIT_CONS(port,kno_port_type);
+  KNO_INIT_CONS(port,kno_ioport_type);
   port->port_input = in;
   port->port_output = out;
   port->port_id = id;
@@ -54,7 +54,7 @@ static u8_output get_output_port(lispval portarg)
     return u8_current_output;
   else if (KNO_PORTP(portarg)) {
     struct KNO_PORT *p=
-      kno_consptr(struct KNO_PORT *,portarg,kno_port_type);
+      kno_consptr(struct KNO_PORT *,portarg,kno_ioport_type);
     return p->port_output;}
   else return NULL;
 }
@@ -65,7 +65,7 @@ static u8_input get_input_port(lispval portarg)
     return NULL; /* get_default_output(); */
   else if (KNO_PORTP(portarg)) {
     struct KNO_PORT *p=
-      kno_consptr(struct KNO_PORT *,portarg,kno_port_type);
+      kno_consptr(struct KNO_PORT *,portarg,kno_ioport_type);
     return p->port_input;}
   else return NULL;
 }
@@ -86,7 +86,7 @@ KNO_DEFPRIM("INPUT-PORT?",input_portp,KNO_MAX_ARGS(1),
 {
   if (KNO_PORTP(arg)) {
     struct KNO_PORT *p=
-      kno_consptr(struct KNO_PORT *,arg,kno_port_type);
+      kno_consptr(struct KNO_PORT *,arg,kno_ioport_type);
     if (p->port_input)
       return KNO_TRUE;
     else return KNO_FALSE;}
@@ -100,7 +100,7 @@ KNO_DEFPRIM("OUTPUT-PORT?",output_portp,MAX_ARGS(1),
 {
   if (KNO_PORTP(arg)) {
     struct KNO_PORT *p=
-      kno_consptr(struct KNO_PORT *,arg,kno_port_type);
+      kno_consptr(struct KNO_PORT *,arg,kno_ioport_type);
     if (p->port_output)
       return KNO_TRUE;
     else return KNO_FALSE;}
@@ -1141,7 +1141,7 @@ static lispval gzip_prim(lispval arg,lispval filename,lispval comment)
 
 static int unparse_port(struct U8_OUTPUT *out,lispval x)
 {
-  struct KNO_PORT *p = kno_consptr(kno_port,x,kno_port_type);
+  struct KNO_PORT *p = kno_consptr(kno_port,x,kno_ioport_type);
   if ((p->port_input) && (p->port_output) && (p->port_id))
     u8_printf(out,"#<I/O Port (%s) #!%x>",p->port_id,x);
   else if ((p->port_input) && (p->port_output))
@@ -1195,8 +1195,8 @@ KNO_EXPORT void kno_init_portprims_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  kno_unparsers[kno_port_type]=unparse_port;
-  kno_recyclers[kno_port_type]=recycle_port;
+  kno_unparsers[kno_ioport_type]=unparse_port;
+  kno_recyclers[kno_ioport_type]=recycle_port;
 
   init_portprims_symbols();
 
@@ -1211,7 +1211,7 @@ KNO_EXPORT void kno_init_portprims_c()
   DECL_PRIM(open_output_string,0,kno_io_module);
   DECL_PRIM(open_input_string,1,kno_io_module);
 
-  int one_port_arg[1] = { kno_port_type };
+  int one_port_arg[1] = { kno_ioport_type };
   DECL_PRIM_ARGS(portid_prim,1,kno_io_module,
                  one_port_arg,NULL);
   DECL_PRIM_ARGS(portdata_prim,1,kno_io_module,

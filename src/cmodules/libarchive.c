@@ -292,7 +292,7 @@ static kno_port open_archive_input(struct archive *archive,
     in->entry_info = entry_info(entry);
   else in->entry_info = kno_make_slotmap(5,0,NULL);
   struct KNO_PORT *port = u8_alloc(struct KNO_PORT);
-  KNO_INIT_CONS(port,kno_port_type);
+  KNO_INIT_CONS(port,kno_ioport_type);
   port->port_input = (u8_input)in;
   port->port_output = NULL;
   port->port_id = u8_mkstring("%s..%s",archive_id,eltname);
@@ -412,7 +412,7 @@ static lispval archive_find(lispval obj,lispval seek)
 static lispval archive_stat(lispval port)
 {
   lispval info;
-  struct KNO_PORT *p = kno_consptr(struct KNO_PORT *,port,kno_port_type);
+  struct KNO_PORT *p = kno_consptr(struct KNO_PORT *,port,kno_ioport_type);
   struct KNO_ARCHIVE_INPUT *in = (kno_archive_input) (p->port_input);
   if (in->u8_closefn != close_archive_input)
     return kno_err("NotAnArchiveStream","archive_stat",NULL,port);
@@ -446,7 +446,7 @@ KNO_EXPORT int kno_init_libarchive()
             kno_libarchive_type,KNO_VOID,-1,KNO_FALSE);
   kno_idefn1(module,"ARCHIVE/STAT",archive_stat,1,
             "Information about an open archive stream",
-            kno_port_type,KNO_VOID);
+            kno_ioport_type,KNO_VOID);
 
 
   kno_finish_module(module);

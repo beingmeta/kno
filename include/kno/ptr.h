@@ -143,7 +143,7 @@ typedef enum KNO_LISP_TYPE {
   kno_fcnid_type = KNO_IMMEDIATE_TYPECODE(3),
   kno_lexref_type = KNO_IMMEDIATE_TYPECODE(4),
   kno_opcode_type = KNO_IMMEDIATE_TYPECODE(5),
-  kno_type_type = KNO_IMMEDIATE_TYPECODE(6),
+  kno_typeref_type = KNO_IMMEDIATE_TYPECODE(6),
   kno_coderef_type = KNO_IMMEDIATE_TYPECODE(7),
   kno_pool_type = KNO_IMMEDIATE_TYPECODE(8),
   kno_index_type = KNO_IMMEDIATE_TYPECODE(9),
@@ -191,7 +191,7 @@ typedef enum KNO_LISP_TYPE {
   /* Other types, also defined here to be constant*/
   kno_mystery_type = KNO_CONS_TYPECODE(32),
 
-  kno_port_type = KNO_CONS_TYPECODE(33),
+  kno_ioport_type = KNO_CONS_TYPECODE(33),
   kno_stream_type = KNO_CONS_TYPECODE(34),
 
   kno_regex_type = KNO_CONS_TYPECODE(35),

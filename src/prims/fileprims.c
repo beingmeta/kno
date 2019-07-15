@@ -75,7 +75,7 @@ static u8_condition SnapshotRestored=_("Snapshot Restored");
 static lispval make_port(U8_INPUT *in,U8_OUTPUT *out,u8_string id)
 {
   struct KNO_PORT *port = u8_alloc(struct KNO_PORT);
-  KNO_INIT_CONS(port,kno_port_type);
+  KNO_INIT_CONS(port,kno_ioport_type);
   port->port_input = in;
   port->port_output = out;
   port->port_id = id;
@@ -88,7 +88,7 @@ static u8_output get_output_port(lispval portarg)
     return u8_current_output;
   else if (KNO_PORTP(portarg)) {
     struct KNO_PORT *p=
-      kno_consptr(struct KNO_PORT *,portarg,kno_port_type);
+      kno_consptr(struct KNO_PORT *,portarg,kno_ioport_type);
     return p->port_output;}
   else return NULL;
 }
@@ -253,7 +253,7 @@ static lispval simple_fileout_evalfn(lispval expr,kno_lexenv env,kno_stack _stac
   U8_OUTPUT *f, *oldf; int doclose;
   if (KNO_ABORTP(filename_val)) return filename_val;
   else if (KNO_PORTP(filename_val)) {
-    KNO_PORT *port = kno_consptr(KNO_PORT *,filename_val,kno_port_type);
+    KNO_PORT *port = kno_consptr(KNO_PORT *,filename_val,kno_ioport_type);
     if (port->port_output) {
       f = port->port_output;
       doclose = 0;}
@@ -1093,7 +1093,7 @@ static lispval close_prim(lispval portarg)
     return VOID;}
   else if (KNO_PORTP(portarg)) {
     struct KNO_PORT *p=
-      kno_consptr(struct KNO_PORT *,portarg,kno_port_type);
+      kno_consptr(struct KNO_PORT *,portarg,kno_ioport_type);
     U8_OUTPUT *out = p->port_output; U8_INPUT *in = p->port_input; int closed = -1;
     if (out) {
       u8_flush(out);
@@ -1127,7 +1127,7 @@ static lispval flush_prim(lispval portarg)
       kno_consptr(struct KNO_STREAM *,portarg,kno_stream_type);
     kno_flush_stream(dts);
     return VOID;}
-  else if (TYPEP(portarg,kno_port_type)) {
+  else if (TYPEP(portarg,kno_ioport_type)) {
     U8_OUTPUT *out = get_output_port(portarg);
     u8_flush(out);
     if (out->u8_streaminfo&U8_STREAM_OWNS_SOCKET) {
@@ -1146,7 +1146,7 @@ static lispval setbuf_prim(lispval portarg,lispval insize,lispval outsize)
     return VOID;}
   else if (KNO_PORTP(portarg)) {
     struct KNO_PORT *p=
-      kno_consptr(struct KNO_PORT *,portarg,kno_port_type);
+      kno_consptr(struct KNO_PORT *,portarg,kno_ioport_type);
     if (FIXNUMP(insize)) {
       U8_INPUT *in = p->port_input;
       if ((in) && (in->u8_streaminfo&U8_STREAM_OWNS_XBUF)) {
@@ -1164,7 +1164,7 @@ static lispval getpos_prim(lispval portarg)
 {
   if (KNO_PORTP(portarg)) {
     struct KNO_PORT *p=
-      kno_consptr(struct KNO_PORT *,portarg,kno_port_type);
+      kno_consptr(struct KNO_PORT *,portarg,kno_ioport_type);
     kno_off_t result = -1;
     if (p->port_input)
       result = u8_getpos((struct U8_STREAM *)(p->port_input));
@@ -1189,7 +1189,7 @@ static lispval endpos_prim(lispval portarg)
 {
   if (KNO_PORTP(portarg)) {
     struct KNO_PORT *p=
-      kno_consptr(struct KNO_PORT *,portarg,kno_port_type);
+      kno_consptr(struct KNO_PORT *,portarg,kno_ioport_type);
     kno_off_t result = -1;
     if (p->port_input)
       result = u8_endpos((struct U8_STREAM *)(p->port_input));
@@ -1214,7 +1214,7 @@ static lispval file_progress_prim(lispval portarg)
 {
   double result = -1.0;
   struct KNO_PORT *p=
-    kno_consptr(struct KNO_PORT *,portarg,kno_port_type);
+    kno_consptr(struct KNO_PORT *,portarg,kno_ioport_type);
   if (p->port_input)
     result = u8_getprogress((struct U8_STREAM *)(p->port_input));
   else if (p->port_output)
@@ -1230,7 +1230,7 @@ static lispval setpos_prim(lispval portarg,lispval off_arg)
   if (KNO_PORTP(portarg)) {
     kno_off_t off, result;
     struct KNO_PORT *p=
-      kno_consptr(struct KNO_PORT *,portarg,kno_port_type);
+      kno_consptr(struct KNO_PORT *,portarg,kno_ioport_type);
     if (FIXNUMP(off_arg)) off = FIX2INT(off_arg);
     else if (KNO_BIGINTP(off_arg))
 #if (_FILE_OFFSET_BITS==64)
@@ -1826,7 +1826,7 @@ KNO_EXPORT void kno_init_fileprims_c()
   kno_idefn(kno_scheme_module,
            kno_make_cprim1x("ENDPOS",endpos_prim,1,-1,VOID));
   kno_idefn(kno_scheme_module,
-           kno_make_cprim1x("FILE%",file_progress_prim,1,kno_port_type,VOID));
+           kno_make_cprim1x("FILE%",file_progress_prim,1,kno_ioport_type,VOID));
 
   kno_idefn(kno_scheme_module,
            kno_make_cprim2x

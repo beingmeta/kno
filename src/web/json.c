@@ -385,7 +385,7 @@ static lispval jsonparseprim(lispval in,lispval flags_arg,lispval fieldmap)
 {
   unsigned int flags = get_json_flags(flags_arg);
   if (KNO_PORTP(in)) {
-    struct KNO_PORT *p = kno_consptr(struct KNO_PORT *,in,kno_port_type);
+    struct KNO_PORT *p = kno_consptr(struct KNO_PORT *,in,kno_ioport_type);
     U8_INPUT *in = p->port_input;
     return json_parse(in,flags,fieldmap);}
   else if (STRINGP(in)) {

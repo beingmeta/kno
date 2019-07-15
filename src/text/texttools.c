@@ -66,7 +66,7 @@ static u8_input get_input_port(lispval portarg)
     return NULL; /* get_default_output(); */
   else if (KNO_PORTP(portarg)) {
     struct KNO_PORT *p=
-      kno_consptr(struct KNO_PORT *,portarg,kno_port_type);
+      kno_consptr(struct KNO_PORT *,portarg,kno_ioport_type);
     return p->port_input;}
   else return NULL;
 }
@@ -2789,7 +2789,7 @@ void kno_init_texttools()
 
   kno_idefn3(texttools_module,"READ-MATCH",read_match,2,
             "`(READ-MATCH *port* *pattern* [*limit*])`",
-            kno_port_type,VOID,
+            kno_ioport_type,VOID,
             -1,VOID,
             -1,VOID);
 

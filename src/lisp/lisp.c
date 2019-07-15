@@ -199,8 +199,8 @@ static void init_type_names()
   kno_type_names[kno_fcnid_type]=_("fcnid");
   kno_type_names[kno_lexref_type]=_("lexref");
   kno_type_names[kno_opcode_type]=_("opcode");
-  kno_type_names[kno_type_type]=_("typeref");
-  kno_type_names[kno_coderef_type]=_("cdrcode");
+  kno_type_names[kno_typeref_type]=_("typeref");
+  kno_type_names[kno_coderef_type]=_("coderef");
   kno_type_names[kno_pool_type]=_("pool");
   kno_type_names[kno_index_type]=_("index");
   kno_type_names[kno_histref_type]=_("histref");
@@ -214,46 +214,45 @@ static void init_type_names()
   kno_type_names[kno_compound_type]=_("compound");
   kno_type_names[kno_choice_type]=_("choice");
   kno_type_names[kno_prechoice_type]=_("prechoice");
-  kno_type_names[kno_qchoice_type]=_("quoted choice");
+  kno_type_names[kno_qchoice_type]=_("qchoice");
   kno_type_names[kno_vector_type]=_("vector");
   kno_type_names[kno_matrix_type]=_("matrix");
-  kno_type_names[kno_numeric_vector_type]=_("numvec");
+  kno_type_names[kno_numeric_vector_type]=_("numeric_vector");
 
   kno_type_names[kno_slotmap_type]=_("slotmap");
   kno_type_names[kno_schemap_type]=_("schemap");
   kno_type_names[kno_hashtable_type]=_("hashtable");
   kno_type_names[kno_hashset_type]=_("hashset");
 
-  kno_type_names[kno_cprim_type]=_("builtin function");
-  kno_type_names[kno_lexenv_type]=_("environment");
+  kno_type_names[kno_cprim_type]=_("cprim");
+  kno_type_names[kno_lexenv_type]=_("lexenv");
   kno_type_names[kno_evalfn_type]=_("evalfn");
   kno_type_names[kno_macro_type]=_("macro");
   kno_type_names[kno_dtproc_type]=_("dtproc");
   kno_type_names[kno_stackframe_type]=_("stackframe");
   kno_type_names[kno_tailcall_type]=_("tailcall");
-  kno_type_names[kno_lambda_type]=_("lambda procedure");
-  kno_type_names[kno_ffi_type]=_("foreign function");
-  kno_type_names[kno_exception_type]=_("error");
+  kno_type_names[kno_lambda_type]=_("lambda");
+  kno_type_names[kno_ffi_type]=_("ffi");
+  kno_type_names[kno_exception_type]=_("exception");
 
   kno_type_names[kno_complex_type]=_("complex");
   kno_type_names[kno_rational_type]=_("rational");
   kno_type_names[kno_flonum_type]=_("flonum");
 
   kno_type_names[kno_timestamp_type]=_("timestamp");
-  kno_type_names[kno_uuid_type]=_("UUID");
+  kno_type_names[kno_uuid_type]=_("uuid");
 
   kno_type_names[kno_mystery_type]=_("mystery");
-  kno_type_names[kno_port_type]=_("ioport");
+  kno_type_names[kno_ioport_type]=_("ioport");
   kno_type_names[kno_stream_type]=_("stream");
 
   kno_type_names[kno_regex_type]=_("regex");
-  kno_type_names[kno_numeric_vector_type]=_("numeric vector");
 
   kno_type_names[kno_consblock_type]=_("consblock");
 
-  kno_type_names[kno_rawptr_type]=_("raw pointer");
-  kno_type_names[kno_dtserver_type]=_("dtype server");
-  kno_type_names[kno_bloom_filter_type]=_("bloom filter");
+  kno_type_names[kno_rawptr_type]=_("rawptr");
+  kno_type_names[kno_dtserver_type]=_("dtserver");
+  kno_type_names[kno_bloom_filter_type]=_("bloom_filter");
 }
 
 static int lisp_types_version = 101;

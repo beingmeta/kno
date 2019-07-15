@@ -45,7 +45,7 @@ static u8_output get_output_port(lispval portarg)
     return u8_current_output;
   else if (KNO_PORTP(portarg)) {
     struct KNO_PORT *p=
-      kno_consptr(struct KNO_PORT *,portarg,kno_port_type);
+      kno_consptr(struct KNO_PORT *,portarg,kno_ioport_type);
     return p->port_output;}
   else return NULL;
 }

@@ -13,7 +13,7 @@
 
 #include <libu8/libu8io.h>
 
-#define KNO_PORTP(x) (KNO_TYPEP((x),kno_port_type))
+#define KNO_PORTP(x) (KNO_TYPEP((x),kno_ioport_type))
 
 typedef struct KNO_PORT {
   KNO_CONS_HEADER;
