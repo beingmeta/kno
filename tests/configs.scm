@@ -141,8 +141,7 @@
 		 (string->lisp val)
 		 val)))
 	  (else badconfig-var))))
-(errtest (config! 'badconfig "(3 4"))
-
+(errtest (config! 'badconfig2 "(3 4"))
 
 ;;; With promises
 
