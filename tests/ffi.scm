@@ -41,6 +41,6 @@
   (applytest (getenv "USER") ffi_strdup (ffi_getenv "USER"))
   (applytest string? lisp->string (ffi_getenv "USER")))
 
-(applytest #t ffi/found? "u8_cons_list" (cons "libu8.." dload-suffix))
-(applytest #f ffi/found? "u8_xons_list" (cons "libu8." dload-suffix))
-(applytest #f ffi/found? "u8_cons_list" (cons "lizu8." dload-suffix))
+(applytest #t ffi/found? "u8_cons_list" (glom "libu8." dload-suffix))
+(applytest #f ffi/found? "u8_xons_list" (glom "libu8." dload-suffix))
+(applytest #f ffi/found? "u8_cons_list" (glom "lizu8." dload-suffix))
