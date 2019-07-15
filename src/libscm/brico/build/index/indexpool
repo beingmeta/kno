@@ -3,10 +3,10 @@ POOL=${1:-./brico/brico.pool}
 INPUTS=$(dirname ${POOL})
 OUTPUTS=${2:-./fresh/}
 if [ ! -z "${BRICOSOURCE}" ]; then
-    export FD_BRICOSOURCE=${BRICOSOURCE};
+    export KNO_BRICOSOURCE=${BRICOSOURCE};
 elif test -f ./brico/brico.pool; then
     export BRICOSOURCE=./brico/;
-    export FD_BRICOSOURCE=./brico/;
+    export KNO_BRICOSOURCE=./brico/;
 fi
 index/core.scm INDIR=${INPUTS} OUTDIR=${OUTPUTS} BRICOSOURCE=${BRICOSOURCE} ${POOL}
 index/lattices.scm INDIR=${INPUTS} OUTDIR=${OUTPUTS} BRICOSOURCE=${BRICOSOURCE} ${POOL}
