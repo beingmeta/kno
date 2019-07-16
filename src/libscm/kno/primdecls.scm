@@ -5,7 +5,7 @@
 (use-module '{reflection texttools logger})
 
 (define add-header
-  "#include <kno/cprims.h>")
+  "#include \"kno/cprims.h\"")
 
 (module-export! '{output-cprim-decl output-cprim-link
 		  get-cprim-decl get-cprim-link
@@ -46,7 +46,7 @@
     (glom (procedure-module f) "_module") ");"))
 
 (define (get-cprim-decl f (kno-prefix "KNO_"))
-  (stringout kno-prefix (output-prim-decl f kno-prefix)))
+  (stringout kno-prefix (output-cprim-decl f kno-prefix)))
 (define (get-cprim-link f (kno-prefix "KNO_"))
   (stringout (output-cprim-link f kno-prefix)))
 
@@ -151,12 +151,12 @@
 
 (define (get-header-end string)
   (let ((start 0)
-	(pos (textsearch #((bol) "#include " (not> (eol))) string))
+	(pos (textsearch #((bol) "#include \"" (not> (eol))) string))
 	(last #f))
     (while (and (exists? pos) pos)
       (set! last (textmatcher #((bol) "#include " (not> (eol))) string pos))
       (set! start last)
-      (set! pos (textsearch #((bol) "#include " (not> (eol))) string start)))
+      (set! pos (textsearch #((bol) "#include \"" (not> (eol))) string start)))
     last))
 
 (define (proc-name-length p) (length (procedure-name p)))
@@ -206,7 +206,7 @@
 		  (printout " KNO_DECL_ALIAS(\"" (car alias) "\"," (procedure-cname cp) ","
 		    (cdr alias) "_module);\n"))))))
 	(printout block)))
-    (printout "\n\nstatic void init_cprims(){\n"
+    (printout "\n\nstatic void init_local_cprims()\n{\n"
       (dolist (prim declared)
 	(if (pair? prim)
 	    (printout "  " (output-cprim-alias (car prim)) "\n")
