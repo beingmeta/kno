@@ -418,6 +418,99 @@ KNO_EXPORT void kno_defprim15(lispval module,kno_cprim15 fn,
   link_cprim(prim,info->pname,module);
 }
 
+KNO_EXPORT void kno_typedprim1(lispval module,kno_cprim1 fn,
+			       struct KNO_CPRIM_INFO *info,
+			       kno_lisp_type type1,lispval dflt1)
+{
+  unsigned int typeinfo[3] = { type1 };
+  lispval defaults[3] = { dflt1 };
+  struct KNO_CPRIM *prim = init_cprim
+    (info->pname,info->cname,info->arity,info->filename,info->docstring,info->flags,
+     (unsigned int *)typeinfo,( lispval *)defaults);
+  prim->fcn_handler.call1 = fn;
+  link_cprim(prim,info->pname,module);
+}
+
+KNO_EXPORT void kno_typedprim2(lispval module,kno_cprim2 fn,
+			       struct KNO_CPRIM_INFO *info,
+			       kno_lisp_type type1,lispval dflt1,
+			       kno_lisp_type type2,lispval dflt2)
+{
+  unsigned int typeinfo[3] = { type1, type2 };
+  lispval defaults[3] = { dflt1, dflt2 };
+  struct KNO_CPRIM *prim = init_cprim
+    (info->pname,info->cname,info->arity,info->filename,info->docstring,info->flags,
+     (unsigned int *)typeinfo,( lispval *)defaults);
+  prim->fcn_handler.call2 = fn;
+  link_cprim(prim,info->pname,module);
+}
+
+KNO_EXPORT void kno_typedprim3(lispval module,kno_cprim3 fn,
+			       struct KNO_CPRIM_INFO *info,
+			       kno_lisp_type type1,lispval dflt1,
+			       kno_lisp_type type2,lispval dflt2,
+			       kno_lisp_type type3,lispval dflt3)
+{
+  unsigned int typeinfo[3] = { type1, type2, type3 };
+  lispval defaults[3] = { dflt1, dflt2, dflt3 };
+  struct KNO_CPRIM *prim = init_cprim
+    (info->pname,info->cname,info->arity,info->filename,info->docstring,info->flags,
+     (unsigned int *)typeinfo,( lispval *)defaults);
+  prim->fcn_handler.call3 = fn;
+  link_cprim(prim,info->pname,module);
+}
+
+KNO_EXPORT void kno_typedprim4(lispval module,kno_cprim4 fn,
+			       struct KNO_CPRIM_INFO *info,
+			       kno_lisp_type type1,lispval dflt1,
+			       kno_lisp_type type2,lispval dflt2,
+			       kno_lisp_type type3,lispval dflt3,
+			       kno_lisp_type type4,lispval dflt4)
+{
+  unsigned int typeinfo[4] = { type1, type2, type3, type4 };
+  lispval defaults[4] = { dflt1, dflt2, dflt3, dflt4 };
+  struct KNO_CPRIM *prim = init_cprim
+    (info->pname,info->cname,info->arity,info->filename,info->docstring,info->flags,
+     (unsigned int *)typeinfo,( lispval *)defaults);
+  prim->fcn_handler.call4 = fn;
+  link_cprim(prim,info->pname,module);
+}
+
+KNO_EXPORT void kno_typedprim5(lispval module,kno_cprim5 fn,
+			       struct KNO_CPRIM_INFO *info,
+			       kno_lisp_type type1,lispval dflt1,
+			       kno_lisp_type type2,lispval dflt2,
+			       kno_lisp_type type3,lispval dflt3,
+			       kno_lisp_type type4,lispval dflt4,
+			       kno_lisp_type type5,lispval dflt5)
+{
+  unsigned int typeinfo[5] = { type1, type2, type3, type4, type5 };
+  lispval defaults[5] = { dflt1, dflt2, dflt3, dflt4, dflt5 };
+  struct KNO_CPRIM *prim = init_cprim
+    (info->pname,info->cname,info->arity,info->filename,info->docstring,info->flags,
+     (unsigned int *)typeinfo,( lispval *)defaults);
+  prim->fcn_handler.call5 = fn;
+  link_cprim(prim,info->pname,module);
+}
+
+KNO_EXPORT void kno_typedprim6(lispval module,kno_cprim6 fn,
+			       struct KNO_CPRIM_INFO *info,
+			       kno_lisp_type type1,lispval dflt1,
+			       kno_lisp_type type2,lispval dflt2,
+			       kno_lisp_type type3,lispval dflt3,
+			       kno_lisp_type type4,lispval dflt4,
+			       kno_lisp_type type5,lispval dflt5,
+			       kno_lisp_type type6,lispval dflt6)
+{
+  unsigned int typeinfo[6] = { type1, type2, type3, type4, type5, type6 };
+  lispval defaults[6] = { dflt1, dflt2, dflt3, dflt4, dflt5, dflt6 };
+  struct KNO_CPRIM *prim = init_cprim
+    (info->pname,info->cname,info->arity,info->filename,info->docstring,info->flags,
+     (unsigned int *)typeinfo,( lispval *)defaults);
+  prim->fcn_handler.call6 = fn;
+  link_cprim(prim,info->pname,module);
+}
+
 /* Providing type info and defaults */
 
 KNO_EXPORT u8_string kno_fcn_sig(struct KNO_FUNCTION *fcn,u8_byte namebuf[100])

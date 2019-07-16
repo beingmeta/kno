@@ -274,6 +274,45 @@
 #define KNO_LINK_VARARGS(pname,cname,module)    \
   kno_defprimN(module,cname,&cname ## _info);
 
+KNO_EXPORT void kno_typedprim1(lispval module,kno_cprim1 fn,
+                               struct KNO_CPRIM_INFO *info,
+                               kno_lisp_type type1,lispval dflt1);
+KNO_EXPORT void kno_typedprim2(lispval module,kno_cprim2 fn,
+			       struct KNO_CPRIM_INFO *info,
+			       kno_lisp_type type1,lispval dflt1,
+                               kno_lisp_type type2,lispval dflt2);
+KNO_EXPORT void kno_typedprim3(lispval module,kno_cprim3 fn,
+			       struct KNO_CPRIM_INFO *info,
+			       kno_lisp_type type1,lispval dflt1,
+			       kno_lisp_type type2,lispval dflt2,
+                               kno_lisp_type type3,lispval dflt3);
+KNO_EXPORT void kno_typedprim4(lispval module,kno_cprim4 fn,
+			       struct KNO_CPRIM_INFO *info,
+			       kno_lisp_type type1,lispval dflt1,
+			       kno_lisp_type type2,lispval dflt2,
+			       kno_lisp_type type3,lispval dflt3,
+                               kno_lisp_type type4,lispval dflt4);
+KNO_EXPORT void kno_typedprim5(lispval module,kno_cprim5 fn,
+			       struct KNO_CPRIM_INFO *info,
+			       kno_lisp_type type1,lispval dflt1,
+			       kno_lisp_type type2,lispval dflt2,
+			       kno_lisp_type type3,lispval dflt3,
+			       kno_lisp_type type4,lispval dflt4,
+                               kno_lisp_type type5,lispval dflt5);
+KNO_EXPORT void kno_typedprim6(lispval module,kno_cprim6 fn,
+			       struct KNO_CPRIM_INFO *info,
+			       kno_lisp_type type1,lispval dflt1,
+			       kno_lisp_type type2,lispval dflt2,
+			       kno_lisp_type type3,lispval dflt3,
+			       kno_lisp_type type4,lispval dflt4,
+			       kno_lisp_type type5,lispval dflt5,
+                               kno_lisp_type type6,lispval dflt6);
+
+
+#define KNO_LINK_TYPED(pname,cname,arity,module,...) \
+  kno_typedprim ## arity(module,cname,&cname ## _info, \
+                         __VA_ARGS__);
+
 #define KNO_DECL_PRIM_ARGS(cname,arity,module,typeinfo,defaults) \
   kno_defprim ## arity(module,cname,&cname ## _info,typeinfo,defaults)
 
