@@ -265,5 +265,5 @@ static void init_local_cprims()
   KNO_LINK_PRIM("hash-dtype2",lisphash2,1,driverfns_module);
   KNO_LINK_PRIM("hash-dtype1",lisphash1,1,driverfns_module);
 
-  KNO_DECL_ALIAS("hash-index-slotids",index_slotids,db_module);
+  KNO_LINK_ALIAS("hash-index-slotids",index_slotids,db_module);
 }

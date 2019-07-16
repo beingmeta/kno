@@ -2553,10 +2553,10 @@ static void init_local_cprims()
   KNO_LINK_VARARGS("shortvec",make_short_vector,kno_scheme_module);
   KNO_LINK_VARARGS("doublevec",make_double_vector,kno_scheme_module);
   KNO_LINK_VARARGS("floatvec",make_float_vector,kno_scheme_module);
-  KNO_DECL_ALIAS("length=>",has_length_gte_prim,scheme_module);
-  KNO_DECL_ALIAS("length<=",has_length_lte_prim,scheme_module);
-  KNO_DECL_ALIAS("subseq",slice_prim,scheme_module);
-  KNO_DECL_ALIAS("null?",nullp,scheme_module);
-  KNO_DECL_ALIAS("nil?",nullp,scheme_module);
-  KNO_DECL_ALIAS("onevector",onevector_prim,scheme_module);
+  KNO_LINK_ALIAS("length=>",has_length_gte_prim,scheme_module);
+  KNO_LINK_ALIAS("length<=",has_length_lte_prim,scheme_module);
+  KNO_LINK_ALIAS("subseq",slice_prim,scheme_module);
+  KNO_LINK_ALIAS("null?",nullp,scheme_module);
+  KNO_LINK_ALIAS("nil?",nullp,scheme_module);
+  KNO_LINK_ALIAS("onevector",onevector_prim,scheme_module);
 }

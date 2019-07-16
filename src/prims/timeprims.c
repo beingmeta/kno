@@ -1656,8 +1656,8 @@ static void init_local_cprims()
   KNO_LINK_PRIM("timestamp",timestamp_prim,1,kno_sys_module);
   KNO_LINK_PRIM("timestamp?",timestampp,1,kno_sys_module);
 
-  KNO_DECL_ALIAS("time-earlier?",timestamp_lesser,kno_sys_module);
-  KNO_DECL_ALIAS("time-later?",timestamp_greater,kno_sys_module);
-  KNO_DECL_ALIAS("time+",timestamp_plus,kno_sys_module);
-  KNO_DECL_ALIAS("time-",timestamp_minus,kno_sys_module);
+  KNO_LINK_ALIAS("time-earlier?",timestamp_lesser,kno_sys_module);
+  KNO_LINK_ALIAS("time-later?",timestamp_greater,kno_sys_module);
+  KNO_LINK_ALIAS("time+",timestamp_plus,kno_sys_module);
+  KNO_LINK_ALIAS("time-",timestamp_minus,kno_sys_module);
 }

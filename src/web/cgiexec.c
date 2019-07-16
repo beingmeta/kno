@@ -1535,5 +1535,5 @@ static void init_local_cprims()
   KNO_LINK_PRIM("set-cookie!",setcookie,6,webtools_module);
   KNO_LINK_PRIM("httpheader!",addhttpheader,1,webtools_module);
 
-  KNO_DECL_ALIAS("cgiparse",urldata_parse,webtools_module);
+  KNO_LINK_ALIAS("cgiparse",urldata_parse,webtools_module);
 }

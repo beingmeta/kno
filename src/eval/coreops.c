@@ -928,11 +928,11 @@ static void init_local_cprims()
   KNO_LINK_PRIM("identical?",identicalp,2,scheme_module);
 
   KNO_LINK_ALIAS("cons?",consp,scheme_module);
-  KNO_DECL_ALIAS("=?",identicalp,scheme_module);
-  KNO_DECL_ALIAS("*=?",overlapsp,scheme_module);
-  KNO_DECL_ALIAS("⊆?",containsp,scheme_module);
-  KNO_DECL_ALIAS("⊆",containsp,scheme_module);
-  KNO_DECL_ALIAS("char?",characterp,scheme_module);
-  KNO_DECL_ALIAS("error?",exceptionp,scheme_module);
+  KNO_LINK_ALIAS("=?",identicalp,scheme_module);
+  KNO_LINK_ALIAS("*=?",overlapsp,scheme_module);
+  KNO_LINK_ALIAS("⊆?",containsp,scheme_module);
+  KNO_LINK_ALIAS("⊆",containsp,scheme_module);
+  KNO_LINK_ALIAS("char?",characterp,scheme_module);
+  KNO_LINK_ALIAS("error?",exceptionp,scheme_module);
 
 }

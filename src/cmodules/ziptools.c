@@ -615,6 +615,6 @@ static void init_local_cprims()
   KNO_LINK_TYPED("zip/close!",close_zipfile,1,ziptools_module,
                  kno_zipfile_type,KNO_VOID);
 
-  KNO_DECL_ALIAS("zip/close",close_zipfile,ziptools_module);
-  KNO_DECL_ALIAS("zip/commit!",close_zipfile,ziptools_module);
+  KNO_LINK_ALIAS("zip/close",close_zipfile,ziptools_module);
+  KNO_LINK_ALIAS("zip/commit!",close_zipfile,ziptools_module);
 }

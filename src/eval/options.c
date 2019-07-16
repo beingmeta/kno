@@ -299,5 +299,5 @@ static void init_local_cprims()
   KNO_LINK_PRIM("testopt",testopt_prim,3,scheme_module);
   KNO_LINK_PRIM("%getopt",getopt_prim,3,scheme_module);
 
-  KNO_DECL_ALIAS("opt+",opts_plus_prim,scheme_module);
+  KNO_LINK_ALIAS("opt+",opts_plus_prim,scheme_module);
 }

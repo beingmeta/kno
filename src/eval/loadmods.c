@@ -816,8 +816,6 @@ KNO_EXPORT void kno_init_loadmods_c()
       libscm_path=u8_string_append(dir,"/",NULL);
       u8_free(dir);}}
 
-  DECL_PRIM(dynamic_load_prim,2,kno_sys_module);
-
   kno_register_config
     ("UPDATEMODULES","Modules to update automatically on UPDATEMODULES",
      updatemodules_config_get,updatemodules_config_set,NULL);
@@ -837,6 +835,8 @@ KNO_EXPORT void kno_init_loadmods_c()
   init_local_cprims();
 
 #if 0
+  DECL_PRIM(dynamic_load_prim,2,kno_sys_module);
+
   kno_idefn(loadmods_module,
             kno_make_cprim1("RELOAD-MODULE",reload_module,1));
   kno_idefn(loadmods_module,

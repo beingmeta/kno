@@ -560,5 +560,5 @@ static void init_local_cprims()
   KNO_LINK_VARARGS("config!",set_config,scheme_module);
   KNO_LINK_PRIM("config",config_get,3,scheme_module);
 
-  KNO_DECL_ALIAS("config?",find_configs,scheme_module);
+  KNO_LINK_ALIAS("config?",find_configs,scheme_module);
 }

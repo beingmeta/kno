@@ -2007,24 +2007,24 @@ static void init_local_cprims()
   KNO_LINK_VARARGS("choice",choice_prim,scheme_module);
   KNO_LINK_PRIM("fail",fail_prim,0,scheme_module);
 
-  KNO_DECL_ALIAS("qc",qchoice_prim,scheme_module);
-  KNO_DECL_ALIAS("qcx",qchoicex_prim,scheme_module);
-  KNO_DECL_ALIAS("fail?",emptyp,scheme_module);
-  KNO_DECL_ALIAS("∄",emptyp,scheme_module);
-  KNO_DECL_ALIAS("singleton?",singletonp,scheme_module);
-  KNO_DECL_ALIAS("sole?",singletonp,scheme_module);
-  KNO_DECL_ALIAS("ambiguous?",ambiguousp,scheme_module);
-  KNO_DECL_ALIAS("∃",sometrue_lexpr,scheme_module);
-  KNO_DECL_ALIAS("∀",forall_lexpr,scheme_module);
-  KNO_DECL_ALIAS("∪",union_lexpr,scheme_module);
-  KNO_DECL_ALIAS("∩",intersection_lexpr,scheme_module);
-  KNO_DECL_ALIAS("∖",difference_lexpr,scheme_module);
-  KNO_DECL_ALIAS("ω",choicesize_prim,scheme_module);
-  KNO_DECL_ALIAS("| |",choicesize_prim,scheme_module);
-  KNO_DECL_ALIAS("",choicesize_prim,scheme_module);
-  KNO_DECL_ALIAS("nmax",nmax_prim,scheme_module);
-  KNO_DECL_ALIAS("nmax->vector",nmax2vec_prim,scheme_module);
-  KNO_DECL_ALIAS("nmin",nmin_prim,scheme_module);
-  KNO_DECL_ALIAS("nmin->vector",nmin2vec_prim,scheme_module);
+  KNO_LINK_ALIAS("qc",qchoice_prim,scheme_module);
+  KNO_LINK_ALIAS("qcx",qchoicex_prim,scheme_module);
+  KNO_LINK_ALIAS("fail?",emptyp,scheme_module);
+  KNO_LINK_ALIAS("∄",emptyp,scheme_module);
+  KNO_LINK_ALIAS("singleton?",singletonp,scheme_module);
+  KNO_LINK_ALIAS("sole?",singletonp,scheme_module);
+  KNO_LINK_ALIAS("ambiguous?",ambiguousp,scheme_module);
+  KNO_LINK_ALIAS("∃",sometrue_lexpr,scheme_module);
+  KNO_LINK_ALIAS("∀",forall_lexpr,scheme_module);
+  KNO_LINK_ALIAS("∪",union_lexpr,scheme_module);
+  KNO_LINK_ALIAS("∩",intersection_lexpr,scheme_module);
+  KNO_LINK_ALIAS("∖",difference_lexpr,scheme_module);
+  KNO_LINK_ALIAS("ω",choicesize_prim,scheme_module);
+  KNO_LINK_ALIAS("| |",choicesize_prim,scheme_module);
+  KNO_LINK_ALIAS("",choicesize_prim,scheme_module);
+  KNO_LINK_ALIAS("nmax",nmax_prim,scheme_module);
+  KNO_LINK_ALIAS("nmax->vector",nmax2vec_prim,scheme_module);
+  KNO_LINK_ALIAS("nmin",nmin_prim,scheme_module);
+  KNO_LINK_ALIAS("nmin->vector",nmin2vec_prim,scheme_module);
 
 }

@@ -203,7 +203,7 @@
 	      (when (test aliases cp)
 		(logwarn |Aliases| "Emitting alises for " cp ": " (get aliases cp))
 		(do-choices (alias (get aliases cp))
-		  (printout " KNO_DECL_ALIAS(\"" (car alias) "\"," (procedure-cname cp) ","
+		  (printout " KNO_LINK_ALIAS(\"" (car alias) "\"," (procedure-cname cp) ","
 		    (cdr alias) "_module);\n"))))))
 	(printout block)))
     (printout "\n\nstatic void init_local_cprims()\n{\n"

@@ -30,13 +30,6 @@
 
 /* DEFPRIM */
 
-#define KNO_DEFPRIM_DECL(pname,cname,flags,docstring)              \
-  static struct KNO_CPRIM_INFO cname ## _info = {                        \
-    pname, # cname, _FILEINFO " L#" STRINGIFY(__LINE__),                         \
-    docstring, ((flags)&0x7f), flags};                                  \
-  static U8_MAYBE_UNUSED int *cname ## _typeinfo = NULL;                \
-  static U8_MAYBE_UNUSED lispval *cname ## _defaults = NULL
-
 #define KNO_DCLPRIM(pname,cname,flags,docstring)                         \
   static struct KNO_CPRIM_INFO cname ## _info = {                        \
     pname, # cname, _FILEINFO " L#" STRINGIFY(__LINE__),                         \
@@ -44,19 +37,11 @@
   static U8_MAYBE_UNUSED int *cname ## _typeinfo = NULL;                \
   static U8_MAYBE_UNUSED lispval *cname ## _defaults = NULL;
 
-#define KNO_DEFPRIM(pname,cname,flags,docstring) \
-  KNO_DCLPRIM(pname,cname,flags,docstring)       \
-  static lispval cname
-
 #define KNO_DCLPRIM1(pname,cname,flags,docstring,t1,d1)                  \
   static struct KNO_CPRIM_INFO cname ## _info = {                        \
     pname, # cname, _FILEINFO " L#" STRINGIFY(__LINE__), docstring, 1, flags};   \
   static U8_MAYBE_UNUSED int cname## _typeinfo[1] = { t1 };             \
   static U8_MAYBE_UNUSED lispval cname ## _defaults[1] = { d1 };
-
-#define KNO_DEFPRIM1(pname,cname,flags,docstring,t1,d1)                  \
-  KNO_DCLPRIM1(pname,cname,flags,docstring,t1,d1);                       \
-  static lispval cname
 
 #define KNO_DCLPRIM2(pname,cname,flags,docstring,t1,d1,t2,d2)            \
   static struct KNO_CPRIM_INFO cname ## _info = {                        \
@@ -64,19 +49,11 @@
   static U8_MAYBE_UNUSED int cname## _typeinfo[2] = { t1, t2 };         \
   static U8_MAYBE_UNUSED lispval cname ## _defaults[2] = { d1, d2 };
 
-#define KNO_DEFPRIM2(pname,cname,flags,docstring,t1,d1,t2,d2)            \
-  KNO_DCLPRIM2(pname,cname,flags,docstring,t1,d1,t2,d2);                 \
-  static lispval cname
-
 #define KNO_DCLPRIM3(pname,cname,flags,docstring,t1,d1,t2,d2,t3,d3)      \
   static struct KNO_CPRIM_INFO cname ## _info = {                        \
     pname, # cname, _FILEINFO " L#" STRINGIFY(__LINE__), docstring, 3, flags};   \
   static U8_MAYBE_UNUSED int cname## _typeinfo[3] = { t1, t2, t3 };     \
   static U8_MAYBE_UNUSED lispval cname ## _defaults[3] = { d1, d2, d3 };
-
-#define KNO_DEFPRIM3(pname,cname,flags,docstring,t1,d1,t2,d2,t3,d3)      \
-  KNO_DCLPRIM3(pname,cname,flags,docstring,t1,d1,t2,d2,t3,d3);           \
-  static lispval cname
 
 #define KNO_DCLPRIM4(pname,cname,flags,docstring,t1,d1,t2,d2,t3,d3,t4,d4) \
   static struct KNO_CPRIM_INFO cname ## _info = {                        \
@@ -84,22 +61,12 @@
   static U8_MAYBE_UNUSED int cname## _typeinfo[4] = { t1, t2, t3, t4 }; \
   static U8_MAYBE_UNUSED lispval cname ## _defaults[4] = { d1, d2, d3, d4 };
 
-#define KNO_DEFPRIM4(pname,cname,flags,docstring,t1,d1,t2,d2,t3,d3,t4,d4) \
-  KNO_DCLPRIM4(pname,cname,flags,docstring,t1,d1,t2,d2,t3,d3,t4,d4);     \
-  static lispval cname
-
 #define KNO_DCLPRIM5(pname,cname,flags,docstring,                        \
                     t1,d1,t2,d2,t3,d3,t4,d4,t5,d5)                      \
   static struct KNO_CPRIM_INFO cname ## _info = {                        \
     pname, # cname, _FILEINFO " L#" STRINGIFY(__LINE__), docstring, 5, flags};   \
   static U8_MAYBE_UNUSED int cname## _typeinfo[5] = { t1, t2, t3, t4, t5 }; \
   static U8_MAYBE_UNUSED lispval cname ## _defaults[5] = { d1, d2, d3, d4, d5 };
-#define KNO_DEFPRIM5(pname,cname,flags,docstring,                        \
-                    t1,d1,t2,d2,t3,d3,t4,d4,t5,d5)                      \
-  KNO_DCLPRIM5(pname,cname,flags,docstring,                             \
-              t1,d1,t2,d2,t3,d3,t4,d4,t5,d5);                          \
-  static lispval cname
-
 
 #define KNO_DCLPRIM6(pname,cname,flags,docstring,                        \
                     t1,d1,t2,d2,t3,d3,t4,d4,t5,d5,t6,d6)                \
@@ -108,12 +75,6 @@
   static U8_MAYBE_UNUSED int cname## _typeinfo[6] = { t1, t2, t3, t4, t5, t6 }; \
   static U8_MAYBE_UNUSED lispval cname ## _defaults[6] = { d1, d2, d3, d4, d5, d6 };
 
-#define KNO_DEFPRIM6(pname,cname,flags,docstring,                        \
-                    t1,d1,t2,d2,t3,d3,t4,d4,t5,d5,t6,d6)                \
-  KNO_DCLPRIM6(pname,cname,flags,docstring,                             \
-              t1,d1,t2,d2,t3,d3,t4,d4,t5,d5,t6,d6);                    \
-  static lispval cname
-
 #define KNO_DCLPRIM7(pname,cname,flags,docstring,t1,d1,t2,d2,t3,d3,      \
                     t4,d4,t5,d5,t6,d6,t7,d7)                            \
   static struct KNO_CPRIM_INFO cname ## _info = {                        \
@@ -121,24 +82,12 @@
   static U8_MAYBE_UNUSED int cname## _typeinfo[7] = { t1, t2, t3, t4, t5, t6, t7 }; \
   static U8_MAYBE_UNUSED lispval cname ## _defaults[7] = { d1, d2, d3, d4, d5, d6, d7 };
 
-#define KNO_DEFPRIM7(pname,cname,flags,docstring,t1,d1,t2,d2,t3,d3,      \
-                    t4,d4,t5,d5,t6,d6,t7,d7)                            \
-  KNO_DCLPRIM7(pname,cname,flags,docstring,t1,d1,t2,d2,t3,d3,            \
-              t4,d4,t5,d5,t6,d6,t7,d7);                                 \
-  static lispval cname
-
 #define KNO_DCLPRIM8(pname,cname,flags,docstring,t1,d1,t2,d2,            \
                     t3,d3,t4,d4,t5,d5,t6,d6,t7,d7,t8,d8)                \
   static struct KNO_CPRIM_INFO cname ## _info = {                        \
     pname, # cname, _FILEINFO " L#" STRINGIFY(__LINE__), docstring, 8, flags};  \
   static U8_MAYBE_UNUSED int cname## _typeinfo[8] = { t1, t2, t3, t4, t5, t6, t7, t8 }; \
   static U8_MAYBE_UNUSED lispval cname ## _defaults[8] = { d1, d2, d3, d4, d5, d6, d7, d8 };
-
-#define KNO_DEFPRIM8(pname,cname,flags,docstring,t1,d1,t2,d2,    \
-                    t3,d3,t4,d4,t5,d5,t6,d6,t7,d7,t8,d8)        \
-  KNO_DCLPRIM8(pname,cname,flags,docstring,t1,d1,t2,d2,          \
-              t3,d3,t4,d4,t5,d5,t6,d6,t7,d7,t8,d8);             \
-  static lispval cname
 
 #define KNO_DCLPRIM9(pname,cname,flags,docstring,t1,d1,t2,d2,            \
                     t3,d3,t4,d4,t5,d5,t6,d6,t7,d7,t8,d8,t9,d9)          \
@@ -149,12 +98,6 @@
   static U8_MAYBE_UNUSED lispval cname ## _defaults[9] =                \
     { d1, d2, d3, d4, d5, d6, d7, d8, d9 };
 
-#define KNO_DEFPRIM9(pname,cname,flags,docstring,t1,d1,t2,d2,   \
-  t3,d3,t4,d4,t5,d5,t6,d6,t7,d7,t8,d8,t9,d9)                   \
-  KNO_DCLPRIM9(pname,cname,flags,docstring,t1,d1,t2,d2,         \
-                t3,d3,t4,d4,t5,d5,t6,d6,t7,d7,t8,d8,t9,d9);    \
-  static lispval cname
-
 #define KNO_DCLPRIM10(pname,cname,flags,docstring,t1,d1,t2,d2,           \
                      t3,d3,t4,d4,t5,d5,t6,d6,t7,d7,t8,d8,t9,d9,t10,d10) \
   static struct KNO_CPRIM_INFO cname ## _info = {                        \
@@ -163,12 +106,6 @@
     { t1, t2, t3, t4, t5, t6, t7, t8, t9, t10 };                        \
   static U8_MAYBE_UNUSED lispval cname ## _defaults[10] =                \
     { d1, d2, d3, d4, d5, d6, d7, d8, d9, d10 };
-
-#define KNO_DEFPRIM10(pname,cname,flags,docstring,t1,d1,t2,d2,           \
-                     t3,d3,t4,d4,t5,d5,t6,d6,t7,d7,t8,d8,t9,d9,t10,d10) \
-  KNO_DCLPRIM10(pname,cname,flags,docstring,t1,d1,t2,d2,                 \
-                 t3,d3,t4,d4,t5,d5,t6,d6,t7,d7,t8,d8,t9,d9,t10,d10);    \
-  static lispval cname
 
 #define KNO_DCLPRIM11(pname,cname,flags,docstring,t1,d1,t2,d2,           \
                      t3,d3,t4,d4,t5,d5,t6,d6,t7,d7,t8,d8,t9,d9,         \
@@ -180,14 +117,6 @@
   static U8_MAYBE_UNUSED lispval cname ## _defaults[11] =                \
     { d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11 };
 
-#define KNO_DEFPRIM11(pname,cname,flags,docstring,t1,d1,t2,d2,           \
-  t3,d3,t4,d4,t5,d5,t6,d6,t7,d7,t8,d8,t9,d9,                            \
-  t10,d10,t11,d11)                                                      \
-  KNO_DCLPRIM11(pname,cname,flags,docstring,t1,d1,t2,d2,                 \
-               t3,d3,t4,d4,t5,d5,t6,d6,t7,d7,t8,d8,t9,d9;,              \
-               t10,d10,t11,d11);                                        \
-  static lispval cname
-
 #define KNO_DCLPRIM12(pname,cname,flags,docstring,t1,d1,t2,d2,           \
                      t3,d3,t4,d4,t5,d5,t6,d6,t7,d7,t8,d8,t9,d9,         \
                      t10,d10,t11,d11,t12,d12)                           \
@@ -197,14 +126,6 @@
     { t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12 };              \
   static U8_MAYBE_UNUSED lispval cname ## _defaults[12] =                \
     { d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12 };
-
-#define KNO_DEFPRIM12(pname,cname,flags,docstring,t1,d1,t2,d2,           \
-                     t3,d3,t4,d4,t5,d5,t6,d6,t7,d7,t8,d8,t9,d9,         \
-                     t10,d10,t11,d11,t12,d12)                           \
-  KNO_DCLPRIM12(pname,cname,flags,docstring,t1,d1,t2,d2,                 \
-               t3,d3,t4,d4,t5,d5,t6,d6,t7,d7,t8,d8,t9,d9,               \
-               t10,d10,t11,d11,t12,d12);                                \
-  static lispval cname
 
 #define KNO_DCLPRIM13(pname,cname,flags,docstring,t1,d1,t2,d2,           \
                      t3,d3,t4,d4,t5,d5,t6,d6,t7,d7,t8,d8,t9,d9,         \
@@ -216,14 +137,6 @@
   static U8_MAYBE_UNUSED lispval cname ## _defaults[13] =                \
     { d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13 };
 
-#define KNO_DEFPRIM13(pname,cname,flags,docstring,t1,d1,t2,d2,           \
-                     t3,d3,t4,d4,t5,d5,t6,d6,t7,d7,t8,d8,t9,d9,         \
-                     t10,d10,t11,d11,t12,d12,t13,d13)                   \
-  KNO_DCLPRIM13(pname,cname,flags,docstring,t1,d1,t2,d2,                 \
-               t3,d3,t4,d4,t5,d5,t6,d6,t7,d7,t8,d8,t9,d9,               \
-               t10,d10,t11,d11,t12,d12,t13,d13);                        \
-  static lispval cname
-
 #define KNO_DCLPRIM14(pname,cname,flags,docstring,t1,d1,t2,d2,           \
                      t3,d3,t4,d4,t5,d5,t6,d6,t7,d7,t8,d8,t9,d9,         \
                      t10,d10,t11,d11,t12,d12,t13,d13,t14,d14)           \
@@ -233,14 +146,6 @@
     { t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14 };    \
   static U8_MAYBE_UNUSED lispval cname ## _defaults[14] =                \
     { d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13, d14 };
-
-#define KNO_DEFPRIM14(pname,cname,flags,docstring,t1,d1,t2,d2,           \
-                     t3,d3,t4,d4,t5,d5,t6,d6,t7,d7,t8,d8,t9,d9,         \
-                     t10,d10,t11,d11,t12,d12,t13,d13,t14,d14)           \
-  KNO_DCLPRIM14(pname,cname,flags,docstring,t1,d1,t2,d2,                 \
-               t3,d3,t4,d4,t5,d5,t6,d6,t7,d7,t8,d8,t9,d9,               \
-               t10,d10,t11,d11,t12,d12,t13,d13,t14,d14);                \
-  static lispval cname
 
 #define KNO_DCLPRIM15(pname,cname,flags,docstring,t1,d1,t2,d2,           \
                      t3,d3,t4,d4,t5,d5,t6,d6,t7,d7,t8,d8,t9,d9,         \
@@ -252,20 +157,7 @@
   static U8_MAYBE_UNUSED lispval cname ## _defaults[15] =                \
     { d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13, d14, d15 };
 
-#define KNO_DEFPRIM15(pname,cname,flags,docstring,t1,d1,t2,d2,           \
-                     t3,d3,t4,d4,t5,d5,t6,d6,t7,d7,t8,d8,t9,d9,         \
-                     t10,d10,t11,d11,t12,d12,t13,d13,t14,d14,t15,d15)   \
-  KNO_DCLPRIM15(pname,cname,flags,docstring,t1,d1,t2,d2,                 \
-               t3,d3,t4,d4,t5,d5,t6,d6,t7,d7,t8,d8,t9,d9,               \
-               t10,d10,t11,d11,t12,d12,t13,d13,t14,d14,t15,d15);        \
-  static lispval cname
-
 /* Registering the primitives */
-
-#define KNO_DECL_PRIM(cname,arity,module)                        \
-  kno_defprim ## arity(module,cname,&cname ## _info,             \
-                      cname ## _typeinfo,                       \
-                      cname ## _defaults)
 
 #define KNO_LINK_PRIM(pname,cname,arity,module)                  \
   kno_defprim ## arity(module,cname,&cname ## _info,             \
@@ -312,26 +204,10 @@ KNO_EXPORT void kno_typedprim6(lispval module,kno_cprim6 fn,
 #define KNO_LINK_TYPED(pname,cname,arity,module,...) \
   kno_typedprim ## arity(module,cname,&cname ## _info, \
                          __VA_ARGS__);
-
-#define KNO_DECL_PRIM_ARGS(cname,arity,module,typeinfo,defaults) \
-  kno_defprim ## arity(module,cname,&cname ## _info,typeinfo,defaults)
-
-
-#define KNO_DECL_PRIM_N(cname,module)            \
-  kno_defprimN(module,cname,&cname ## _info);
-
-#define KNO_DECL_ALIAS(alias,cname,module)               \
-  kno_defalias(module,alias,cname ## _info.pname)
-
 #define KNO_LINK_ALIAS(alias,cname,module)               \
   kno_defalias(module,alias,cname ## _info.pname)
 
 #if KNO_SOURCE
-#define DECL_PRIM        KNO_DECL_PRIM
-#define DECL_PRIM_N      KNO_DECL_PRIM_N
-#define DECL_ALIAS       KNO_DECL_ALIAS
-#define DECL_PRIM_ARGS    KNO_DECL_PRIM_ARGS
-
 #define MAX_ARGS     KNO_MAX_ARGS
 #define MIN_ARGS     KNO_MIN_ARGS
 #define NDCALL       KNO_NDCALL

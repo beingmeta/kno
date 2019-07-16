@@ -443,5 +443,5 @@ static void init_local_cprims()
   KNO_LINK_PRIM("req/getlog",reqgetlog_prim,0,scheme_module);
   KNO_LINK_PRIM("req/getloglen",reqloglen_prim,0,scheme_module);
 
-  KNO_DECL_ALIAS("req/set!",reqstore_prim,scheme_module);
+  KNO_LINK_ALIAS("req/set!",reqstore_prim,scheme_module);
 }

@@ -1691,7 +1691,7 @@ static void init_local_cprims()
 
   KNO_LINK_ALIAS("lambda-args",lambda_args,reflection_module);
   KNO_LINK_ALIAS("procedure-name",procedure_name,kno_scheme_module);
-  KNO_DECL_ALIAS("procedure-args",lambda_args,reflection_module);
-  KNO_DECL_ALIAS("procedure-env",lambda_env,reflection_module);
-  KNO_DECL_ALIAS("procedure-body",lambda_body,reflection_module);
+  KNO_LINK_ALIAS("procedure-args",lambda_args,reflection_module);
+  KNO_LINK_ALIAS("procedure-env",lambda_env,reflection_module);
+  KNO_LINK_ALIAS("procedure-body",lambda_body,reflection_module);
 }

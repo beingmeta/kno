@@ -1640,7 +1640,7 @@ static void init_local_cprims()
   KNO_LINK_PRIM("POW~",lpow,2,scheme_module);
 
   KNO_LINK_ALIAS("->inexact",exact2inexact,scheme_module);
-  KNO_DECL_ALIAS("1-",minus1,scheme_module);
-  KNO_DECL_ALIAS("->0x",tohex,scheme_module);
+  KNO_LINK_ALIAS("1-",minus1,scheme_module);
+  KNO_LINK_ALIAS("->0x",tohex,scheme_module);
 }
 

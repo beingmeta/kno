@@ -1933,16 +1933,16 @@ static void init_local_cprims()
   KNO_LINK_PRIM("extend-output-file",extend_output_file,3,fileio_module);
   KNO_LINK_PRIM("open-output-file",open_output_file,3,fileio_module);
 
-  KNO_DECL_ALIAS("setbuf",setbuf_prim,fileio_module);
-  KNO_DECL_ALIAS("remove-file",remove_file_prim,fileio_module);
-  KNO_DECL_ALIAS("move-file",move_file_prim,fileio_module);
-  KNO_DECL_ALIAS("link-file",link_file_prim,fileio_module);
-  KNO_DECL_ALIAS("remove-tree",remove_tree_prim,fileio_module);
-  KNO_DECL_ALIAS("regular-file?",file_regularp,fileio_module);
-  KNO_DECL_ALIAS("directory?",file_directoryp,fileio_module);
-  KNO_DECL_ALIAS("dirname",path_dirname,fileio_module);
-  KNO_DECL_ALIAS("basename",path_basename,fileio_module);
-  KNO_DECL_ALIAS("statfs",fsinfo_prim,fileio_module);
-  KNO_DECL_ALIAS("setpos",setpos_prim,scheme_module);
+  KNO_LINK_ALIAS("setbuf",setbuf_prim,fileio_module);
+  KNO_LINK_ALIAS("remove-file",remove_file_prim,fileio_module);
+  KNO_LINK_ALIAS("move-file",move_file_prim,fileio_module);
+  KNO_LINK_ALIAS("link-file",link_file_prim,fileio_module);
+  KNO_LINK_ALIAS("remove-tree",remove_tree_prim,fileio_module);
+  KNO_LINK_ALIAS("regular-file?",file_regularp,fileio_module);
+  KNO_LINK_ALIAS("directory?",file_directoryp,fileio_module);
+  KNO_LINK_ALIAS("dirname",path_dirname,fileio_module);
+  KNO_LINK_ALIAS("basename",path_basename,fileio_module);
+  KNO_LINK_ALIAS("statfs",fsinfo_prim,fileio_module);
+  KNO_LINK_ALIAS("setpos",setpos_prim,scheme_module);
 
 }

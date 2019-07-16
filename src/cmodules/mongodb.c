@@ -3790,48 +3790,48 @@ static void init_local_cprims()
   KNO_LINK_TYPED("mongodb/dbinfo",mongodb_getinfo,2,mongodb_module,
                  kno_mongoc_server,KNO_VOID,kno_any_type,KNO_VOID);
 
-  KNO_DECL_ALIAS("mongo/oid",mongodb_oidref,mongodb_module);
-  KNO_DECL_ALIAS("mongo/open",mongodb_open,mongodb_module);
-  KNO_DECL_ALIAS("mongodb/collection",mongodb_collection,mongodb_module);
-  KNO_DECL_ALIAS("mongo/collection",mongodb_collection,mongodb_module);
-  KNO_DECL_ALIAS("mongo/insert!",mongodb_insert,mongodb_module);
-  KNO_DECL_ALIAS("mongo/insert!",mongodb_insert,mongodb_module);
-  KNO_DECL_ALIAS("mongo/remove!",mongodb_remove,mongodb_module);
-  KNO_DECL_ALIAS("mongo/update!",mongodb_update,mongodb_module);
-  KNO_DECL_ALIAS("mongo/find",mongodb_find,mongodb_module);
-  KNO_DECL_ALIAS("mongo/find",mongodb_find,mongodb_module);
-  KNO_DECL_ALIAS("mongo/get",mongodb_get,mongodb_module);
-  KNO_DECL_ALIAS("mongo/get",mongodb_get,mongodb_module);
-  KNO_DECL_ALIAS("collection/modify",mongodb_modify,mongodb_module);
-  KNO_DECL_ALIAS("mongo/modify",mongodb_modify,mongodb_module);
-  KNO_DECL_ALIAS("mongo/modify!",mongodb_modify,mongodb_module);
-  KNO_DECL_ALIAS("mongo/results",mongodb_command,mongodb_module);
-  KNO_DECL_ALIAS("mongodb/cursor",mongodb_cursor,mongodb_module);
-  KNO_DECL_ALIAS("mongo/cursor",mongodb_cursor,mongodb_module);
-  KNO_DECL_ALIAS("mongodb/cursor",mongodb_cursor,mongodb_module);
-  KNO_DECL_ALIAS("mongo/cursor",mongodb_cursor,mongodb_module);
-  KNO_DECL_ALIAS("mongo/done?",mongodb_donep,mongodb_module);
-  KNO_DECL_ALIAS("mongo/skip",mongodb_skip,mongodb_module);
+  KNO_LINK_ALIAS("mongo/oid",mongodb_oidref,mongodb_module);
+  KNO_LINK_ALIAS("mongo/open",mongodb_open,mongodb_module);
+  KNO_LINK_ALIAS("mongodb/collection",mongodb_collection,mongodb_module);
+  KNO_LINK_ALIAS("mongo/collection",mongodb_collection,mongodb_module);
+  KNO_LINK_ALIAS("mongo/insert!",mongodb_insert,mongodb_module);
+  KNO_LINK_ALIAS("mongo/insert!",mongodb_insert,mongodb_module);
+  KNO_LINK_ALIAS("mongo/remove!",mongodb_remove,mongodb_module);
+  KNO_LINK_ALIAS("mongo/update!",mongodb_update,mongodb_module);
+  KNO_LINK_ALIAS("mongo/find",mongodb_find,mongodb_module);
+  KNO_LINK_ALIAS("mongo/find",mongodb_find,mongodb_module);
+  KNO_LINK_ALIAS("mongo/get",mongodb_get,mongodb_module);
+  KNO_LINK_ALIAS("mongo/get",mongodb_get,mongodb_module);
+  KNO_LINK_ALIAS("collection/modify",mongodb_modify,mongodb_module);
+  KNO_LINK_ALIAS("mongo/modify",mongodb_modify,mongodb_module);
+  KNO_LINK_ALIAS("mongo/modify!",mongodb_modify,mongodb_module);
+  KNO_LINK_ALIAS("mongo/results",mongodb_command,mongodb_module);
+  KNO_LINK_ALIAS("mongodb/cursor",mongodb_cursor,mongodb_module);
+  KNO_LINK_ALIAS("mongo/cursor",mongodb_cursor,mongodb_module);
+  KNO_LINK_ALIAS("mongodb/cursor",mongodb_cursor,mongodb_module);
+  KNO_LINK_ALIAS("mongo/cursor",mongodb_cursor,mongodb_module);
+  KNO_LINK_ALIAS("mongo/done?",mongodb_donep,mongodb_module);
+  KNO_LINK_ALIAS("mongo/skip",mongodb_skip,mongodb_module);
 
-  KNO_DECL_ALIAS("mongo/read",mongodb_cursor_read,mongodb_module);
-  KNO_DECL_ALIAS("mongo/read->vector",mongodb_cursor_read_vector,mongodb_module);
-  KNO_DECL_ALIAS("mongo/name",mongodb_dbname,mongodb_module);
-  KNO_DECL_ALIAS("mongodb/spec",mongodb_spec,mongodb_module);
-  KNO_DECL_ALIAS("mongo/spec",mongodb_spec,mongodb_module);
-  KNO_DECL_ALIAS("mongodb/uri",mongodb_uri,mongodb_module);
-  KNO_DECL_ALIAS("mongo/uri",mongodb_uri,mongodb_module);
-  KNO_DECL_ALIAS("mongodb/opts",mongodb_getopts,mongodb_module);
-  KNO_DECL_ALIAS("mongo/opts",mongodb_getopts,mongodb_module);
-  KNO_DECL_ALIAS("mongo/getdb",mongodb_getdb,mongodb_module);
+  KNO_LINK_ALIAS("mongo/read",mongodb_cursor_read,mongodb_module);
+  KNO_LINK_ALIAS("mongo/read->vector",mongodb_cursor_read_vector,mongodb_module);
+  KNO_LINK_ALIAS("mongo/name",mongodb_dbname,mongodb_module);
+  KNO_LINK_ALIAS("mongodb/spec",mongodb_spec,mongodb_module);
+  KNO_LINK_ALIAS("mongo/spec",mongodb_spec,mongodb_module);
+  KNO_LINK_ALIAS("mongodb/uri",mongodb_uri,mongodb_module);
+  KNO_LINK_ALIAS("mongo/uri",mongodb_uri,mongodb_module);
+  KNO_LINK_ALIAS("mongodb/opts",mongodb_getopts,mongodb_module);
+  KNO_LINK_ALIAS("mongo/opts",mongodb_getopts,mongodb_module);
+  KNO_LINK_ALIAS("mongo/getdb",mongodb_getdb,mongodb_module);
 
-  KNO_DECL_ALIAS("mongo/info",mongodb_getinfo,mongodb_module);
-  KNO_DECL_ALIAS("mongo/getcollection",mongodb_getcollection,mongodb_module);
-  KNO_DECL_ALIAS("mongo?",mongodbp,mongodb_module);
+  KNO_LINK_ALIAS("mongo/info",mongodb_getinfo,mongodb_module);
+  KNO_LINK_ALIAS("mongo/getcollection",mongodb_getcollection,mongodb_module);
+  KNO_LINK_ALIAS("mongo?",mongodbp,mongodb_module);
 
-  KNO_DECL_ALIAS("collection?",mongodb_collectionp,mongodb_module);
-  KNO_DECL_ALIAS("mongo/collection?",mongodb_collectionp,mongodb_module);
-  KNO_DECL_ALIAS("cursor?",mongodb_cursorp,mongodb_module);
-  KNO_DECL_ALIAS("mongo/cursor?",mongodb_cursorp,mongodb_module);
+  KNO_LINK_ALIAS("collection?",mongodb_collectionp,mongodb_module);
+  KNO_LINK_ALIAS("mongo/collection?",mongodb_collectionp,mongodb_module);
+  KNO_LINK_ALIAS("cursor?",mongodb_cursorp,mongodb_module);
+  KNO_LINK_ALIAS("mongo/cursor?",mongodb_cursorp,mongodb_module);
 
 
 }

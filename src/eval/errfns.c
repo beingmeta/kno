@@ -1095,17 +1095,17 @@ static void init_local_cprims()
   KNO_LINK_PRIM("clear-errors!",clear_errors,0,scheme_module);
   KNO_LINK_PRIM("%err",error_prim,4,scheme_module);
 
- KNO_DECL_ALIAS("ex/cond",exception_condition,scheme_module);
- KNO_DECL_ALIAS("error-condition",exception_condition,scheme_module);
- KNO_DECL_ALIAS("ex/caller",exception_caller,scheme_module);
- KNO_DECL_ALIAS("error-caller",exception_caller,scheme_module);
- KNO_DECL_ALIAS("error-context",exception_caller,scheme_module);
- KNO_DECL_ALIAS("ex/details",exception_details,scheme_module);
- KNO_DECL_ALIAS("error-details",exception_details,scheme_module);
- KNO_DECL_ALIAS("error-irritant",exception_irritant,scheme_module);
- KNO_DECL_ALIAS("get-irritant",exception_irritant,scheme_module);
- KNO_DECL_ALIAS("error-xdata",exception_irritant,scheme_module);
- KNO_DECL_ALIAS("error-irritant?",exception_has_irritant,scheme_module);
- KNO_DECL_ALIAS("ex/stack",exception_stack,scheme_module);
- KNO_DECL_ALIAS("error-summary",exception_summary,scheme_module);
+ KNO_LINK_ALIAS("ex/cond",exception_condition,scheme_module);
+ KNO_LINK_ALIAS("error-condition",exception_condition,scheme_module);
+ KNO_LINK_ALIAS("ex/caller",exception_caller,scheme_module);
+ KNO_LINK_ALIAS("error-caller",exception_caller,scheme_module);
+ KNO_LINK_ALIAS("error-context",exception_caller,scheme_module);
+ KNO_LINK_ALIAS("ex/details",exception_details,scheme_module);
+ KNO_LINK_ALIAS("error-details",exception_details,scheme_module);
+ KNO_LINK_ALIAS("error-irritant",exception_irritant,scheme_module);
+ KNO_LINK_ALIAS("get-irritant",exception_irritant,scheme_module);
+ KNO_LINK_ALIAS("error-xdata",exception_irritant,scheme_module);
+ KNO_LINK_ALIAS("error-irritant?",exception_has_irritant,scheme_module);
+ KNO_LINK_ALIAS("ex/stack",exception_stack,scheme_module);
+ KNO_LINK_ALIAS("error-summary",exception_summary,scheme_module);
 }

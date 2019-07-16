@@ -1259,7 +1259,7 @@ static void init_local_cprims()
   KNO_LINK_PRIM("input-port?",input_portp,1,kno_io_module);
   KNO_LINK_PRIM("output-port?",output_portp,1,kno_io_module);
 
-  KNO_DECL_ALIAS("eof?",eofp,kno_io_module);
-  KNO_DECL_ALIAS("write-char",putchar_prim,kno_io_module);
+  KNO_LINK_ALIAS("eof?",eofp,kno_io_module);
+  KNO_LINK_ALIAS("write-char",putchar_prim,kno_io_module);
 
 }

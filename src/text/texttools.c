@@ -3131,6 +3131,6 @@ static void init_local_cprims()
   KNO_LINK_PRIM("decode-entities",decode_entities_prim,1,texttools_module);
   KNO_LINK_PRIM("segment",segment_prim,2,texttools_module);
 
-  KNO_DECL_ALIAS("gather->seq",textgather2list,texttools_module);
+  KNO_LINK_ALIAS("gather->seq",textgather2list,texttools_module);
 }
 

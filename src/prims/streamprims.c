@@ -957,12 +957,12 @@ static void init_local_cprims()
   KNO_LINK_PRIM("write-bytes",write_bytes,3,kno_scheme_module);
   KNO_LINK_PRIM("read-dtype",read_dtype,3,kno_scheme_module);
 
-  KNO_DECL_ALIAS("read-int",read_4bytes,scheme_module);
-  KNO_DECL_ALIAS("write-int",write_4bytes,scheme_module);
-  KNO_DECL_ALIAS("dtype->file+",add_dtypes2file,streamprims_module);
-  KNO_DECL_ALIAS("dtype->zipfile",lisp2zipfile,streamprims_module);
-  KNO_DECL_ALIAS("dtype->zipfile+",add_lisp2zipfile,streamprims_module);
-  KNO_DECL_ALIAS("zipfile->dtype",zipfile2dtype,streamprims_module);
-  KNO_DECL_ALIAS("zipfile->dtypes",zipfile2dtypes,streamprims_module);
+  KNO_LINK_ALIAS("read-int",read_4bytes,scheme_module);
+  KNO_LINK_ALIAS("write-int",write_4bytes,scheme_module);
+  KNO_LINK_ALIAS("dtype->file+",add_dtypes2file,streamprims_module);
+  KNO_LINK_ALIAS("dtype->zipfile",lisp2zipfile,streamprims_module);
+  KNO_LINK_ALIAS("dtype->zipfile+",add_lisp2zipfile,streamprims_module);
+  KNO_LINK_ALIAS("zipfile->dtype",zipfile2dtype,streamprims_module);
+  KNO_LINK_ALIAS("zipfile->dtypes",zipfile2dtypes,streamprims_module);
 
 }
