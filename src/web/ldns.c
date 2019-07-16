@@ -81,7 +81,7 @@ static lispval rdf2dtype ( ldns_rdf *field )
   }
 }
 
-KNO_DCLPRIM2("dns/get",dns_query,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+KNO_DEFPRIM2("dns/get",dns_query,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
  "`(DNS/GET *arg0* [*arg1*])` **undocumented**",
  kno_string_type,KNO_VOID,kno_symbol_type,KNO_VOID);
 static lispval dns_query(lispval domain_arg,lispval type_arg)

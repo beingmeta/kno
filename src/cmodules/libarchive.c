@@ -303,7 +303,7 @@ static kno_port open_archive_input(struct archive *archive,
 
 /* Top level functions */
 
-KNO_DCLPRIM3("archive/open",open_archive,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
+KNO_DEFPRIM3("archive/open",open_archive,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
              "Opens an archive file",
              kno_any_type,KNO_VOID,kno_any_type,KNO_FALSE,
              kno_any_type,KNO_FALSE);
@@ -388,7 +388,7 @@ static lispval entry_info(struct archive_entry *entry)
   return tbl;
 }
 
-KNO_DCLPRIM("archive/find",archive_find,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+KNO_DEFPRIM("archive/find",archive_find,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
             "Get the next archive entry (possibly matching a "
             "string or regex)");
 static lispval archive_find(lispval obj,lispval seek)
@@ -417,7 +417,7 @@ static lispval archive_find(lispval obj,lispval seek)
   else return KNO_FALSE;
 }
 
-KNO_DCLPRIM1("archive/stat",archive_stat,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+KNO_DEFPRIM1("archive/stat",archive_stat,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
              "Information about an open archive stream",
              kno_ioport_type,KNO_VOID);
 static lispval archive_stat(lispval port)

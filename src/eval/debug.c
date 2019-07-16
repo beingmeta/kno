@@ -273,7 +273,7 @@ static lispval watchptr_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   return value;
 }
 
-KNO_DCLPRIM2("%watchptrval",watchptr_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+KNO_DEFPRIM2("%watchptrval",watchptr_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
              "`(%WATCHPTRVAL *arg0* [*arg1*])` **undocumented**",
              kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval watchptr_prim(lispval val,lispval label_arg)
@@ -604,7 +604,7 @@ KNO_EXPORT int kno_record_bug(lispval ex)
   else return kno_dump_bug(ex,kno_bugdir);
 }
 
-KNO_DCLPRIM2("dump-bug",dumpbug_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+KNO_DEFPRIM2("dump-bug",dumpbug_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
              "(DUMP-BUG *err* [*to*]) "
              "writes a DType representation of *err* to either "
              "*to* or the configured BUGDIR. If *err* is #t, "
@@ -768,7 +768,7 @@ static lispval profiled_eval_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
 static int mtracing=0;
 #endif
 
-KNO_DCLPRIM1("mtrace",mtrace_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
+KNO_DEFPRIM1("mtrace",mtrace_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
              "Activates LIBC heap tracing to MALLOC_TRACE and "
              "returns true if it worked. Optional argument is a "
              "filename to set as MALLOC_TRACE",
@@ -796,7 +796,7 @@ static lispval mtrace_prim(lispval arg)
 #endif
 }
 
-KNO_DCLPRIM("muntrace",muntrace_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+KNO_DEFPRIM("muntrace",muntrace_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
             "Deactivates LIBC heap tracing, returns true if it "
             "did anything");
 static lispval muntrace_prim()
@@ -837,7 +837,7 @@ static lispval with_log_context_evalfn(lispval expr,kno_lexenv env,kno_stack _st
       return result;}}
 }
 
-KNO_DCLPRIM1("set-log-context!",set_log_context_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+KNO_DEFPRIM1("set-log-context!",set_log_context_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
              "`(SET-LOG-CONTEXT! *label*)` "
              "sets the current log context to the string or "
              "symbol *label*.",
@@ -896,7 +896,7 @@ static DONT_OPTIMIZE lispval eval7(lispval expr,kno_lexenv env,kno_stack s)
   return result;
 }
 
-KNO_DCLPRIM9("list9",list9,KNO_MAX_ARGS(9)|KNO_MIN_ARGS(0),
+KNO_DEFPRIM9("list9",list9,KNO_MAX_ARGS(9)|KNO_MIN_ARGS(0),
              "Returns a nine-element list",
              kno_any_type,KNO_FALSE,kno_any_type,KNO_FALSE,
              kno_any_type,KNO_FALSE,kno_any_type,KNO_FALSE,
@@ -916,7 +916,7 @@ static lispval list9(lispval arg1,lispval arg2,
                        kno_incref(arg9));
 }
 
-KNO_DCLPRIM4("_plus4",plus4,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(1),
+KNO_DEFPRIM4("_plus4",plus4,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(1),
              "Add numbers",
              kno_any_type,KNO_INT(0),kno_any_type,KNO_INT(0),
              kno_any_type,KNO_INT(0),kno_any_type,KNO_INT(0));
@@ -928,7 +928,7 @@ static lispval plus4(lispval arg1,lispval arg2,
   return KNO_INT(sum);
 }
 
-KNO_DCLPRIM5("_plus5",plus5,KNO_MAX_ARGS(5)|KNO_MIN_ARGS(1),
+KNO_DEFPRIM5("_plus5",plus5,KNO_MAX_ARGS(5)|KNO_MIN_ARGS(1),
              "Add numbers",
              kno_any_type,KNO_INT(0),kno_any_type,KNO_INT(0),
              kno_any_type,KNO_INT(0),kno_any_type,KNO_INT(0),
@@ -942,7 +942,7 @@ static lispval plus5(lispval arg1,lispval arg2,
   return KNO_INT(sum);
 }
 
-KNO_DCLPRIM6("_plus6",plus6,KNO_MAX_ARGS(6)|KNO_MIN_ARGS(2),
+KNO_DEFPRIM6("_plus6",plus6,KNO_MAX_ARGS(6)|KNO_MIN_ARGS(2),
              "Add numbers",
              kno_any_type,KNO_INT(0),kno_any_type,KNO_INT(0),
              kno_any_type,KNO_INT(0),kno_any_type,KNO_INT(0),
@@ -956,7 +956,7 @@ static lispval plus6(lispval arg1,lispval arg2,
   return KNO_INT(sum);
 }
 
-KNO_DCLPRIM7("_plus7",plus7,KNO_MAX_ARGS(7)|KNO_MIN_ARGS(3),
+KNO_DEFPRIM7("_plus7",plus7,KNO_MAX_ARGS(7)|KNO_MIN_ARGS(3),
              "Add numbers",
              kno_any_type,KNO_INT(0),kno_any_type,KNO_INT(0),
              kno_any_type,KNO_INT(0),kno_any_type,KNO_INT(0),
@@ -973,7 +973,7 @@ static lispval plus7(lispval arg1,lispval arg2,
   return KNO_INT(sum);
 }
 
-KNO_DCLPRIM8("_plus8",plus8,KNO_MAX_ARGS(8)|KNO_MIN_ARGS(3),
+KNO_DEFPRIM8("_plus8",plus8,KNO_MAX_ARGS(8)|KNO_MIN_ARGS(3),
              "Add numbers",
              kno_any_type,KNO_INT(0),kno_any_type,KNO_INT(0),
              kno_any_type,KNO_INT(0),kno_any_type,KNO_INT(0),
@@ -991,7 +991,7 @@ static lispval plus8(lispval arg1,lispval arg2,
   return KNO_INT(sum);
 }
 
-KNO_DCLPRIM9("_plus9",plus9,KNO_MAX_ARGS(9)|KNO_MIN_ARGS(3),
+KNO_DEFPRIM9("_plus9",plus9,KNO_MAX_ARGS(9)|KNO_MIN_ARGS(3),
              "Add numbers",
              kno_any_type,KNO_INT(0),kno_any_type,KNO_INT(0),
              kno_any_type,KNO_INT(0),kno_any_type,KNO_INT(0),
@@ -1011,7 +1011,7 @@ static lispval plus9(lispval arg1,lispval arg2,
   return KNO_INT(sum);
 }
 
-KNO_DCLPRIM10("_plus10",plus10,KNO_MAX_ARGS(10)|KNO_MIN_ARGS(3),
+KNO_DEFPRIM10("_plus10",plus10,KNO_MAX_ARGS(10)|KNO_MIN_ARGS(3),
               "Add numbers",
               kno_any_type,KNO_INT(0),kno_any_type,KNO_INT(0),
               kno_any_type,KNO_INT(0),kno_any_type,KNO_INT(0),
@@ -1033,7 +1033,7 @@ static lispval plus10(lispval arg1,lispval arg2,
   return KNO_INT(sum);
 }
 
-KNO_DCLPRIM11("_plus11",plus11,KNO_MAX_ARGS(11)|KNO_MIN_ARGS(3),
+KNO_DEFPRIM11("_plus11",plus11,KNO_MAX_ARGS(11)|KNO_MIN_ARGS(3),
               "Add numbers",
               kno_any_type,KNO_INT(0),kno_any_type,KNO_INT(0),
               kno_any_type,KNO_INT(0),kno_any_type,KNO_INT(0),
@@ -1057,7 +1057,7 @@ static lispval plus11(lispval arg1,lispval arg2,
   return KNO_INT(sum);
 }
 
-KNO_DCLPRIM12("_plus12",plus12,KNO_MAX_ARGS(12)|KNO_MIN_ARGS(3),
+KNO_DEFPRIM12("_plus12",plus12,KNO_MAX_ARGS(12)|KNO_MIN_ARGS(3),
               "Add numbers",
               kno_any_type,KNO_INT(0),kno_any_type,KNO_INT(0),
               kno_any_type,KNO_INT(0),kno_any_type,KNO_INT(0),
@@ -1082,7 +1082,7 @@ static lispval plus12(lispval arg1,lispval arg2,
   return KNO_INT(sum);
 }
 
-KNO_DCLPRIM13("_plus13",plus13,KNO_MAX_ARGS(13)|KNO_MIN_ARGS(3),
+KNO_DEFPRIM13("_plus13",plus13,KNO_MAX_ARGS(13)|KNO_MIN_ARGS(3),
               "Add numbers",
               kno_any_type,KNO_INT(0),kno_any_type,KNO_INT(0),
               kno_any_type,KNO_INT(0),kno_any_type,KNO_INT(0),
@@ -1110,7 +1110,7 @@ static lispval plus13(lispval arg1,lispval arg2,
   return KNO_INT(sum);
 }
 
-KNO_DCLPRIM14("_plus14",plus14,KNO_MAX_ARGS(14)|KNO_MIN_ARGS(3),
+KNO_DEFPRIM14("_plus14",plus14,KNO_MAX_ARGS(14)|KNO_MIN_ARGS(3),
               "Add numbers",
               kno_any_type,KNO_INT(0),kno_any_type,KNO_INT(0),
               kno_any_type,KNO_INT(0),kno_any_type,KNO_INT(0),
@@ -1139,7 +1139,7 @@ static lispval plus14(lispval arg1,lispval arg2,
   return KNO_INT(sum);
 }
 
-KNO_DCLPRIM15("_plus15",plus15,KNO_MAX_ARGS(15)|KNO_MIN_ARGS(3),
+KNO_DEFPRIM15("_plus15",plus15,KNO_MAX_ARGS(15)|KNO_MIN_ARGS(3),
               "Add numbers",
               kno_any_type,KNO_INT(0),kno_any_type,KNO_INT(0),
               kno_any_type,KNO_INT(0),kno_any_type,KNO_INT(0),

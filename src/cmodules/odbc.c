@@ -138,7 +138,7 @@ static void recycle_odbconn(struct KNO_SQLDB *c)
   SQLFreeHandle(SQL_HANDLE_ENV,dbp->env);
 }
 
-KNO_DCLPRIM2("odbc/open",odbcopen,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+KNO_DEFPRIM2("odbc/open",odbcopen,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
  "`(ODBC/OPEN *arg0* [*arg1*])` **undocumented**",
  kno_string_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval odbcopen(lispval spec,lispval colinfo)

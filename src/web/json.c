@@ -383,7 +383,7 @@ static int get_json_flags(lispval flags_arg)
   else return KNO_JSON_DEFAULTS;
 }
 
-KNO_DCLPRIM3("jsonparse",jsonparseprim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
+KNO_DEFPRIM3("jsonparse",jsonparseprim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
  "(JSONPARSE *string*) "
  "Parse the JSON in *string* into a LISP object",
  kno_any_type,KNO_VOID,kno_any_type,KNO_INT(8),
@@ -580,7 +580,7 @@ static void json_unparse(u8_output out,lispval x,int flags,lispval slotfn,
     u8_close_output(&tmpout);}
 }
 
-KNO_DCLPRIM5("jsonoutput",jsonoutput,KNO_MAX_ARGS(5)|KNO_MIN_ARGS(1),
+KNO_DEFPRIM5("jsonoutput",jsonoutput,KNO_MAX_ARGS(5)|KNO_MIN_ARGS(1),
  "Outputs a JSON representation to the standard "
  "output",
  kno_any_type,KNO_VOID,kno_any_type,KNO_INT(8),
@@ -598,7 +598,7 @@ static lispval jsonoutput(lispval x,lispval flags_arg,
   return VOID;
 }
 
-KNO_DCLPRIM5("->json",jsonstring,KNO_MAX_ARGS(5)|KNO_MIN_ARGS(1),
+KNO_DEFPRIM5("->json",jsonstring,KNO_MAX_ARGS(5)|KNO_MIN_ARGS(1),
  "(->JSON *obj* ...) "
  "returns a JSON string for the lisp object *obj*",
  kno_any_type,KNO_VOID,kno_any_type,KNO_INT(8),

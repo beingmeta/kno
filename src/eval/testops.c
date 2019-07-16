@@ -121,7 +121,7 @@ static u8_string get_testid(lispval fn,int n,lispval *args)
   return id;
 }
 
-KNO_DCLPRIM("applytest",applytest,KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
+KNO_DEFPRIM("applytest",applytest,KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
  "`(APPLYTEST *arg0* *arg1* *args...*)` **undocumented**");
 static lispval applytest(int n,lispval *args)
 {

@@ -31,7 +31,7 @@ static u8_condition zlibBufferError=_("ZLIB buffer error");
 static u8_condition zlibBadErrorCode=_("ZLIB odd error code");
 static u8_condition zlibDataError=_("Bad ZLIB input data");
 
-KNO_DCLPRIM2("zlib/compress",zlib_compress_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+KNO_DEFPRIM2("zlib/compress",zlib_compress_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
  "`(ZLIB/COMPRESS *arg0* [*arg1*])` **undocumented**",
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval zlib_compress_prim(lispval input_arg,lispval level_arg)
@@ -69,7 +69,7 @@ static lispval zlib_compress_prim(lispval input_arg,lispval level_arg)
     return kno_err(ex,"zip_prim",NULL,KNO_VOID);}
 }
 
-KNO_DCLPRIM3("zlib/uncompress",zlib_uncompress_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
+KNO_DEFPRIM3("zlib/uncompress",zlib_uncompress_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
  "`(ZLIB/UNCOMPRESS *arg0* [*arg1*] [*arg2*])` **undocumented**",
  kno_packet_type,KNO_VOID,kno_any_type,KNO_FALSE,
  kno_any_type,KNO_FALSE);

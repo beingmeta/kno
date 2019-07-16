@@ -324,7 +324,7 @@ static void recycle_rocksdb(struct KNO_RAW_CONS *c)
 
 /* Primitives */
 
-KNO_DCLPRIM2("rocksdb/open",rocksdb_open_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+KNO_DEFPRIM2("rocksdb/open",rocksdb_open_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
  "`(ROCKSDB/OPEN *arg0* [*arg1*])` **undocumented**",
  kno_string_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval rocksdb_open_prim(lispval path,lispval opts)
@@ -339,7 +339,7 @@ static lispval rocksdb_open_prim(lispval path,lispval opts)
     return KNO_ERROR_VALUE;}
 }
 
-KNO_DCLPRIM1("rocksdb?",rocksdbp_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+KNO_DEFPRIM1("rocksdb?",rocksdbp_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(ROCKSDB? *arg0*)` **undocumented**",
  kno_any_type,KNO_VOID);
 static lispval rocksdbp_prim(lispval arg)
@@ -349,7 +349,7 @@ static lispval rocksdbp_prim(lispval arg)
   else return KNO_FALSE;
 }
 
-KNO_DCLPRIM("rocksdb/close",rocksdb_close_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+KNO_DEFPRIM("rocksdb/close",rocksdb_close_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
             "`(ROCKSDB/CLOSE *arg0*)` **undocumented**");
 static lispval rocksdb_close_prim(lispval rocksdb)
 {
@@ -358,7 +358,7 @@ static lispval rocksdb_close_prim(lispval rocksdb)
   return KNO_TRUE;
 }
 
-KNO_DCLPRIM("rocksdb/reopen",rocksdb_reopen_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+KNO_DEFPRIM("rocksdb/reopen",rocksdb_reopen_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
             "`(rocksdb/reopen *db*)`");
 static lispval rocksdb_reopen_prim(lispval rocksdb)
 {
@@ -372,7 +372,7 @@ static lispval rocksdb_reopen_prim(lispval rocksdb)
 
 /* Basic operations */
 
-KNO_DCLPRIM("rocksdb/get",rocksdb_get_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+KNO_DEFPRIM("rocksdb/get",rocksdb_get_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
             "`(ROCKSDB/GET *arg0* *arg1* [*arg2*])` **undocumented**");
 static lispval rocksdb_get_prim(lispval rocksdb,lispval key,lispval opts)
 {
@@ -426,7 +426,7 @@ static lispval rocksdb_get_prim(lispval rocksdb,lispval key,lispval opts)
       return KNO_ERROR_VALUE;}}
 }
 
-KNO_DCLPRIM("rocksdb/put!",rocksdb_put_prim,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(3),
+KNO_DEFPRIM("rocksdb/put!",rocksdb_put_prim,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(3),
             "`(ROCKSDB/PUT! *arg0* *arg1* *arg2* [*arg3*])` **undocumented**");
 static lispval rocksdb_put_prim(lispval rocksdb,lispval key,lispval value,
                                lispval opts)
@@ -473,7 +473,7 @@ static lispval rocksdb_put_prim(lispval rocksdb,lispval key,lispval value,
       else return KNO_VOID;}}
 }
 
-KNO_DCLPRIM("rocksdb/drop!",rocksdb_drop_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+KNO_DEFPRIM("rocksdb/drop!",rocksdb_drop_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
             "`(ROCKSDB/DROP! *arg0* *arg1* [*arg2*])` **undocumented**");
 static lispval rocksdb_drop_prim(lispval rocksdb,lispval key,lispval opts)
 {
@@ -542,7 +542,7 @@ static struct ROCKSDB_KEYBUF *fetchn(struct KNO_ROCKSDB *db,int n,
   return results;
 }
 
-KNO_DCLPRIM("rocksdb/getn",rocksdb_getn_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+KNO_DEFPRIM("rocksdb/getn",rocksdb_getn_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
             "`(ROCKSDB/GETN *arg0* *arg1* [*arg2*])` **undocumented**");
 static lispval rocksdb_getn_prim(lispval rocksdb,lispval keys,lispval opts)
 {
@@ -747,7 +747,7 @@ static int prefix_get_iterfn(lispval key,
   return 1;
 }
 
-KNO_DCLPRIM("rocksdb/prefix/get",rocksdb_prefix_get_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+KNO_DEFPRIM("rocksdb/prefix/get",rocksdb_prefix_get_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
             "(ROCKSDB/PREFIX/GET *db* *key* [*opts*]) "
             "returns all the key/value pairs (as packets), "
             "whose keys begin with the DTYPE representation of "
@@ -764,7 +764,7 @@ static lispval rocksdb_prefix_get_prim(lispval rocksdb,lispval key,lispval opts)
   else return results;
 }
 
-KNO_DCLPRIM("rocksdb/prefix/getn",rocksdb_prefix_getn_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+KNO_DEFPRIM("rocksdb/prefix/getn",rocksdb_prefix_getn_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
             "(ROCKSDB/PREFIX/GET *db* *key* [*opts*]) "
             "returns all the key/value pairs (as packets), "
             "whose keys begin with the DTYPE representation of "
@@ -864,7 +864,7 @@ static int index_get_iterfn(lispval key,
     else return accumulate_values(values,1,&v);}
 }
 
-KNO_DCLPRIM("rocksdb/index/get",rocksdb_index_get_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+KNO_DEFPRIM("rocksdb/index/get",rocksdb_index_get_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
  "(ROCKSDB/INDEX/GET *db* *key* [*opts*]) "
  "gets values associated with *key* in *db*, using "
  "the rocksdb database as an index and options "
@@ -995,7 +995,7 @@ static ssize_t rocksdb_adder(struct KNO_ROCKSDB *db,lispval key,
 }
 
 
-KNO_DCLPRIM("rocksdb/index/add!",rocksdb_index_add_prim,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(3),
+KNO_DEFPRIM("rocksdb/index/add!",rocksdb_index_add_prim,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(3),
  "(ROCKSDB/INDEX/ADD! *db* *key* *value [*opts*]) "
  "Saves *values* in *db*, associating them with "
  "*key* and using the rocksdb database as an index "
@@ -2353,7 +2353,7 @@ static struct KNO_INDEX_HANDLER rocksdb_index_handler={
 
 /* Scheme primitives */
 
-KNO_DCLPRIM2("rocksdb/use-pool",use_rocksdb_pool_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+KNO_DEFPRIM2("rocksdb/use-pool",use_rocksdb_pool_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
  "`(ROCKSDB/USE-POOL *arg0* [*arg1*])` **undocumented**",
  kno_string_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval use_rocksdb_pool_prim(lispval path,lispval opts)
@@ -2362,7 +2362,7 @@ static lispval use_rocksdb_pool_prim(lispval path,lispval opts)
   return kno_pool2lisp(pool);
 }
 
-KNO_DCLPRIM4("rocksdb/make-pool",make_rocksdb_pool_prim,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(3),
+KNO_DEFPRIM4("rocksdb/make-pool",make_rocksdb_pool_prim,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(3),
  "`(ROCKSDB/MAKE-POOL *arg0* *arg1* *arg2* [*arg3*])` **undocumented**",
  kno_string_type,KNO_VOID,kno_oid_type,KNO_VOID,
  kno_fixnum_type,KNO_VOID,kno_any_type,KNO_VOID);

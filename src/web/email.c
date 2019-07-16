@@ -44,7 +44,7 @@ static void get_mailinfo(lispval headers,u8_string *host,u8_string *domain,u8_st
   if (STRINGP(mailfrom_spec)) *from = CSTRING(mailfrom_spec);
 }
 
-KNO_DCLPRIM5("smtp",smtp_function,KNO_MAX_ARGS(5)|KNO_MIN_ARGS(3),
+KNO_DEFPRIM5("smtp",smtp_function,KNO_MAX_ARGS(5)|KNO_MIN_ARGS(3),
  "`(SMTP *arg0* *arg1* *arg2* [*arg3*] [*arg4*])` **undocumented**",
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,

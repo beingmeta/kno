@@ -1127,7 +1127,7 @@ static lispval xmlparse_core(lispval input,int flags)
   return result;
 }
 
-KNO_DCLPRIM2("xmlparse",xmlparse,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+KNO_DEFPRIM2("xmlparse",xmlparse,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
  "`(XMLPARSE *arg0* [*arg1*])` **undocumented**",
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval xmlparse(lispval input,lispval options)
@@ -1146,7 +1146,7 @@ static lispval xmlparse(lispval input,lispval options)
 
 /* Parsing KNOML */
 
-KNO_DCLPRIM2("knoml/load",knoml_load,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+KNO_DEFPRIM2("knoml/load",knoml_load,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
  "`(KNOML/LOAD *arg0* [*arg1*])` **undocumented**",
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval knoml_load(lispval input,lispval sloppy)
@@ -1179,7 +1179,7 @@ static lispval knoml_load(lispval input,lispval sloppy)
   else return KNO_ERROR;
 }
 
-KNO_DCLPRIM2("knoml/parse",knoml_read,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+KNO_DEFPRIM2("knoml/parse",knoml_read,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
  "`(KNOML/PARSE *arg0* [*arg1*])` **undocumented**",
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval knoml_read(lispval input,lispval sloppy)

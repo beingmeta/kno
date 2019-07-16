@@ -37,7 +37,7 @@
 
 static lispval fixsyms_symbol;
 
-KNO_DCLPRIM3("read-dtype",read_dtype,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
+KNO_DEFPRIM3("read-dtype",read_dtype,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
  "(READ-DTYPE *stream* [*off*] [*len*]) "
  "reads the dtype representation store at *off* in "
  "*stream*. If *off* is not provided, it reads from "
@@ -75,7 +75,7 @@ static lispval read_dtype(lispval stream,lispval pos,lispval len)
     return object;}
 }
 
-KNO_DCLPRIM3("write-bytes",write_bytes,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+KNO_DEFPRIM3("write-bytes",write_bytes,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
  "(WRITE-BYTES *obj* *stream* [*pos*]) "
  "writes the bytes in *obj* to *stream* at *pos*. "
  "*obj* is a string or a packet and *pos* defaults "
@@ -130,7 +130,7 @@ static lispval write_bytes(lispval object,lispval stream,lispval pos)
     return KNO_INT(n_bytes);}
 }
 
-KNO_DCLPRIM4("write-dtype",write_dtype,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
+KNO_DEFPRIM4("write-dtype",write_dtype,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
  "(WRITE-DTYPE *obj* *stream* [*pos*] [*max*]) "
  "writes a dtype representation of *obj* to "
  "*stream* at file position *pos* *(defaults to the "
@@ -200,7 +200,7 @@ static lispval write_dtype(lispval object,lispval stream,
     return KNO_INT(n_bytes);}
 }
 
-KNO_DCLPRIM2("read-4bytes",read_4bytes,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+KNO_DEFPRIM2("read-4bytes",read_4bytes,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
  "(READ-4BYTES *stream* [*pos*]) "
  "reads a bigendian 4-byte integer from *stream* at "
  "*pos* (or the current location, if none)",
@@ -216,7 +216,7 @@ static lispval read_4bytes(lispval stream,lispval pos)
   else return KNO_INT(ival);
 }
 
-KNO_DCLPRIM2("read-8bytes",read_8bytes,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+KNO_DEFPRIM2("read-8bytes",read_8bytes,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
  "(READ-8BYTES *stream* [*pos*]) "
  "reads a bigendian 8-byte integer from *stream* at "
  "*pos* (or the current location, if none)",
@@ -233,7 +233,7 @@ static lispval read_8bytes(lispval stream,lispval pos)
   else return KNO_INT(ival);
 }
 
-KNO_DCLPRIM3("read-bytes",read_bytes,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+KNO_DEFPRIM3("read-bytes",read_bytes,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
  "(READ-BYTES *stream* *n*] [*pos*]) "
  "reads *n bytes from *stream* at *pos* (or the "
  "current location, if none)",
@@ -288,7 +288,7 @@ static lispval read_bytes(lispval stream,lispval n,lispval pos)
   else return kno_init_packet(NULL,n_bytes,bytes);
 }
 
-KNO_DCLPRIM3("write-4bytes",write_4bytes,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+KNO_DEFPRIM3("write-4bytes",write_4bytes,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
  "(WRITE-4BYTES *intval* *stream* [*pos*]) "
  "writes a bigendian 4-byte integer to *stream* at "
  "*pos* (or the current location, if none)",
@@ -308,7 +308,7 @@ static lispval write_4bytes(lispval object,lispval stream,lispval pos)
   else return KNO_INT(n_bytes);
 }
 
-KNO_DCLPRIM3("write-8bytes",write_8bytes,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+KNO_DEFPRIM3("write-8bytes",write_8bytes,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
  "(WRITE-8BYTES *intval* *stream* [*pos*]) "
  "writes a bigendian 8-byte integer to *stream* at "
  "*pos* (or the current location, if none)",
@@ -338,7 +338,7 @@ static lispval write_8bytes(lispval object,lispval stream,lispval pos)
   else return KNO_INT(n_bytes);
 }
 
-KNO_DCLPRIM1("zread-dtype",zread_dtype,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+KNO_DEFPRIM1("zread-dtype",zread_dtype,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(ZREAD-DTYPE *arg0*)` **undocumented**",
  kno_stream_type,KNO_VOID);
 static lispval zread_dtype(lispval stream)
@@ -350,7 +350,7 @@ static lispval zread_dtype(lispval stream)
   else return object;
 }
 
-KNO_DCLPRIM2("zwrite-dtype",zwrite_dtype,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+KNO_DEFPRIM2("zwrite-dtype",zwrite_dtype,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
  "`(ZWRITE-DTYPE *arg0* *arg1*)` **undocumented**",
  kno_any_type,KNO_VOID,kno_stream_type,KNO_VOID);
 static lispval zwrite_dtype(lispval object,lispval stream)
@@ -362,7 +362,7 @@ static lispval zwrite_dtype(lispval object,lispval stream)
   else return KNO_INT(bytes);
 }
 
-KNO_DCLPRIM2("zwrite-dtypes",zwrite_dtypes,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+KNO_DEFPRIM2("zwrite-dtypes",zwrite_dtypes,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
  "`(ZWRITE-DTYPES *arg0* *arg1*)` **undocumented**",
  kno_any_type,KNO_VOID,kno_stream_type,KNO_VOID);
 static lispval zwrite_dtypes(lispval object,lispval stream)
@@ -374,7 +374,7 @@ static lispval zwrite_dtypes(lispval object,lispval stream)
   else return KNO_INT(bytes);
 }
 
-KNO_DCLPRIM1("zread-int",zread_int,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+KNO_DEFPRIM1("zread-int",zread_int,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(ZREAD-INT *arg0*)` **undocumented**",
  kno_stream_type,KNO_VOID);
 static lispval zread_int(lispval stream)
@@ -385,7 +385,7 @@ static lispval zread_int(lispval stream)
   return KNO_INT(ival);
 }
 
-KNO_DCLPRIM2("zwrite-int",zwrite_int,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+KNO_DEFPRIM2("zwrite-int",zwrite_int,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
  "`(ZWRITE-INT *arg0* *arg1*)` **undocumented**",
  kno_any_type,KNO_VOID,kno_stream_type,KNO_VOID);
 static lispval zwrite_int(lispval object,lispval stream)
@@ -402,7 +402,7 @@ static lispval zwrite_int(lispval object,lispval stream)
 
 static lispval lisp2zipfile(lispval object,lispval filename,lispval bufsiz);
 
-KNO_DCLPRIM3("dtype->file",lisp2file,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+KNO_DEFPRIM3("dtype->file",lisp2file,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
  "`(DTYPE->FILE *arg0* *arg1* [*arg2*])` **undocumented**",
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
  kno_any_type,KNO_VOID);
@@ -455,7 +455,7 @@ static lispval lisp2file(lispval object,lispval filename,lispval bufsiz)
   else return kno_type_error(_("string"),"lisp2file",filename);
 }
 
-KNO_DCLPRIM3("dtype->zfile",lisp2zipfile,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+KNO_DEFPRIM3("dtype->zfile",lisp2zipfile,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	     "`(DTYPE->ZFILE *arg0* *arg1* [*arg2*])` **undocumented**",
 	     kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
 	     kno_any_type,KNO_VOID);
@@ -557,7 +557,7 @@ static ssize_t write_dtypes(lispval dtypes,struct KNO_STREAM *out)
 
 static lispval add_lisp2zipfile(lispval object,lispval filename);
 
-KNO_DCLPRIM2("dtypes->file+",add_dtypes2file,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+KNO_DEFPRIM2("dtypes->file+",add_dtypes2file,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
  "`(DTYPES->FILE+ *arg0* *arg1*)` **undocumented**",
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval add_dtypes2file(lispval object,lispval filename)
@@ -589,7 +589,7 @@ static lispval add_dtypes2file(lispval object,lispval filename)
   else return kno_type_error(_("string"),"add_dtypes2file",filename);
 }
 
-KNO_DCLPRIM2("dtype->zfile+",add_lisp2zipfile,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+KNO_DEFPRIM2("dtype->zfile+",add_lisp2zipfile,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
  "`(DTYPE->ZFILE+ *arg0* *arg1*)` **undocumented**",
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval add_lisp2zipfile(lispval object,lispval filename)
@@ -623,7 +623,7 @@ static lispval add_lisp2zipfile(lispval object,lispval filename)
 
 static lispval zipfile2dtype(lispval filename);
 
-KNO_DCLPRIM1("file->dtype",file2dtype,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+KNO_DEFPRIM1("file->dtype",file2dtype,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(FILE->DTYPE *arg0*)` **undocumented**",
  kno_any_type,KNO_VOID);
 static lispval file2dtype(lispval filename)
@@ -639,7 +639,7 @@ static lispval file2dtype(lispval filename)
   else return kno_type_error(_("string"),"read_dtype",filename);
 }
 
-KNO_DCLPRIM1("zfile->dtype",zipfile2dtype,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+KNO_DEFPRIM1("zfile->dtype",zipfile2dtype,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(ZFILE->DTYPE *arg0*)` **undocumented**",
  kno_any_type,KNO_VOID);
 static lispval zipfile2dtype(lispval filename)
@@ -664,7 +664,7 @@ static lispval zipfile2dtype(lispval filename)
 
 static lispval zipfile2dtypes(lispval filename);
 
-KNO_DCLPRIM1("file->dtypes",file2dtypes,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+KNO_DEFPRIM1("file->dtypes",file2dtypes,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(FILE->DTYPES *arg0*)` **undocumented**",
  kno_any_type,KNO_VOID);
 static lispval file2dtypes(lispval filename)
@@ -696,7 +696,7 @@ static lispval file2dtypes(lispval filename)
   else return kno_type_error(_("string"),"file2dtypes",filename);
 }
 
-KNO_DCLPRIM1("zfile->dtypes",zipfile2dtypes,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+KNO_DEFPRIM1("zfile->dtypes",zipfile2dtypes,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(ZFILE->DTYPES *arg0*)` **undocumented**",
  kno_any_type,KNO_VOID);
 static lispval zipfile2dtypes(lispval filename)
@@ -717,7 +717,7 @@ static lispval zipfile2dtypes(lispval filename)
   else return kno_type_error(_("string"),"zipfile2dtypes",filename);;
 }
 
-KNO_DCLPRIM2("open-dtype-output",open_dtype_output_file,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+KNO_DEFPRIM2("open-dtype-output",open_dtype_output_file,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
  "`(OPEN-DTYPE-OUTPUT *arg0* [*arg1*])` **undocumented**",
  kno_string_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval open_dtype_output_file(lispval fname,lispval opts)
@@ -738,7 +738,7 @@ static lispval open_dtype_output_file(lispval fname,lispval opts)
     return KNO_ERROR;}
 }
 
-KNO_DCLPRIM2("open-dtype-input",open_dtype_input_file,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+KNO_DEFPRIM2("open-dtype-input",open_dtype_input_file,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
  "`(OPEN-DTYPE-INPUT *arg0* [*arg1*])` **undocumented**",
  kno_string_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval open_dtype_input_file(lispval fname,lispval opts)
@@ -757,7 +757,7 @@ static lispval open_dtype_input_file(lispval fname,lispval opts)
     else return KNO_ERROR_VALUE;}
 }
 
-KNO_DCLPRIM1("extend-dtype-file",extend_dtype_file,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+KNO_DEFPRIM1("extend-dtype-file",extend_dtype_file,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(EXTEND-DTYPE-FILE *arg0*)` **undocumented**",
  kno_string_type,KNO_VOID);
 static lispval extend_dtype_file(lispval fname)
@@ -774,7 +774,7 @@ static lispval extend_dtype_file(lispval fname)
     return (lispval) stream;}
 }
 
-KNO_DCLPRIM1("dtype-stream?",streamp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+KNO_DEFPRIM1("dtype-stream?",streamp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(DTYPE-STREAM? *arg0*)` **undocumented**",
  kno_any_type,KNO_VOID);
 static lispval streamp(lispval arg)
@@ -784,7 +784,7 @@ static lispval streamp(lispval arg)
   else return KNO_FALSE;
 }
 
-KNO_DCLPRIM1("dtype-input?",dtype_inputp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+KNO_DEFPRIM1("dtype-input?",dtype_inputp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(DTYPE-INPUT? *arg0*)` **undocumented**",
  kno_any_type,KNO_VOID);
 static lispval dtype_inputp(lispval arg)
@@ -797,7 +797,7 @@ static lispval dtype_inputp(lispval arg)
   else return KNO_FALSE;
 }
 
-KNO_DCLPRIM1("dtype-output?",dtype_outputp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+KNO_DEFPRIM1("dtype-output?",dtype_outputp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(DTYPE-OUTPUT? *arg0*)` **undocumented**",
  kno_any_type,KNO_VOID);
 static lispval dtype_outputp(lispval arg)
@@ -812,7 +812,7 @@ static lispval dtype_outputp(lispval arg)
 
 /* Streampos prim */
 
-KNO_DCLPRIM2("streampos",streampos_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+KNO_DEFPRIM2("streampos",streampos_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
  "(STREAMPOS *stream* [*setpos*]) "
  "gets or sets the position of *stream*",
  kno_stream_type,KNO_VOID,kno_any_type,KNO_VOID);
@@ -846,7 +846,7 @@ static lispval streampos_prim(lispval stream_arg,lispval pos)
 
 /* Truncate prim */
 
-KNO_DCLPRIM2("ftruncate",ftruncate_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+KNO_DEFPRIM2("ftruncate",ftruncate_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
  "(FTRUNCATE *nameorstream* *newsize*) "
  "truncates a file (name or stream) to a particular "
  "length",

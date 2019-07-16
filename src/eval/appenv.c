@@ -182,7 +182,7 @@ KNO_EXPORT void kno_set_app_env(kno_lexenv env)
 	   modules_failed,files_failed,inits_failed);}
 }
 
-KNO_DCLPRIM("%appenv",appenv_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+KNO_DEFPRIM("%appenv",appenv_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
  "Returns the base 'application environment' for "
  "the current instance");
 static lispval appenv_prim()

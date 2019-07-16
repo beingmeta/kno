@@ -30,7 +30,7 @@ static lispval baseoids_symbol;
 
 /* Hashing functions */
 
-KNO_DCLPRIM1("hash-dtype1",lisphash1,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+KNO_DEFPRIM1("hash-dtype1",lisphash1,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(HASH-DTYPE1 *arg0*)` **undocumented**",
  kno_any_type,KNO_VOID);
 static lispval lisphash1(lispval x)
@@ -38,7 +38,7 @@ static lispval lisphash1(lispval x)
   int hash = kno_hash_lisp1(x);
   return KNO_INT(hash);
 }
-KNO_DCLPRIM1("hash-dtype2",lisphash2,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+KNO_DEFPRIM1("hash-dtype2",lisphash2,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(HASH-DTYPE2 *arg0*)` **undocumented**",
  kno_any_type,KNO_VOID);
 static lispval lisphash2(lispval x)
@@ -47,7 +47,7 @@ static lispval lisphash2(lispval x)
   return KNO_INT(hash);
 }
 
-KNO_DCLPRIM1("hash-dtype3",lisphash3,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+KNO_DEFPRIM1("hash-dtype3",lisphash3,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(HASH-DTYPE3 *arg0*)` **undocumented**",
  kno_any_type,KNO_VOID);
 static lispval lisphash3(lispval x)
@@ -56,7 +56,7 @@ static lispval lisphash3(lispval x)
   return KNO_INT(hash);
 }
 
-KNO_DCLPRIM1("hash-dtype-rep",lisphashdtype,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+KNO_DEFPRIM1("hash-dtype-rep",lisphashdtype,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(HASH-DTYPE-REP *arg0*)` **undocumented**",
  kno_any_type,KNO_VOID);
 static lispval lisphashdtype(lispval x)
@@ -67,7 +67,7 @@ static lispval lisphashdtype(lispval x)
 
 /* Various OPS */
 
-KNO_DCLPRIM1("index-slotids",index_slotids,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+KNO_DEFPRIM1("index-slotids",index_slotids,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(INDEX-SLOTIDS *arg0*)` **undocumented**",
  kno_any_type,KNO_VOID);
 static lispval index_slotids(lispval index_arg)
@@ -78,7 +78,7 @@ static lispval index_slotids(lispval index_arg)
   else return kno_index_ctl(ix,kno_slotids_op,0,NULL);
 }
 
-KNO_DCLPRIM("indexctl",indexctl_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+KNO_DEFPRIM("indexctl",indexctl_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
  "`(INDEXCTL *arg0* *arg1* *args...*)` **undocumented**");
 static lispval indexctl_prim(int n,lispval *args)
 {
@@ -104,7 +104,7 @@ static lispval indexctl_prim(int n,lispval *args)
   else return kno_index_ctl(ix,args[1],n-2,args+2);
 }
 
-KNO_DCLPRIM("indexctl/default",indexctl_default_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+KNO_DEFPRIM("indexctl/default",indexctl_default_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
  "`(INDEXCTL/DEFAULT *arg0* *arg1* *args...*)` **undocumented**");
 static lispval indexctl_default_prim(int n,lispval *args)
 {
@@ -116,7 +116,7 @@ static lispval indexctl_default_prim(int n,lispval *args)
   else return kno_default_indexctl(ix,args[1],n-2,args+2);
 }
 
-KNO_DCLPRIM("poolctl",poolctl_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+KNO_DEFPRIM("poolctl",poolctl_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
  "`(POOLCTL *arg0* *arg1* *args...*)` **undocumented**");
 static lispval poolctl_prim(int n,lispval *args)
 {
@@ -142,7 +142,7 @@ static lispval poolctl_prim(int n,lispval *args)
   else return kno_pool_ctl(p,args[1],n-2,args+2);
 }
 
-KNO_DCLPRIM("poolctl/default",poolctl_default_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+KNO_DEFPRIM("poolctl/default",poolctl_default_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
  "`(POOLCTL/DEFAULT *arg0* *arg1* *args...*)` **undocumented**");
 static lispval poolctl_default_prim(int n,lispval *args)
 {
@@ -156,7 +156,7 @@ static lispval poolctl_default_prim(int n,lispval *args)
 
 /* DBCTL */
 
-KNO_DCLPRIM("dbctl",dbctl_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
+KNO_DEFPRIM("dbctl",dbctl_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
  "(DBCTL *dbref* *op* ... *args*) "
  "performs an operation *op* on the pool or index "
  "*dbref* with *args*. *op* is a symbol and *dbref* "
@@ -196,7 +196,7 @@ static lispval dbctl_prim(int n,lispval *args)
 
 /* ALCOR bindings */
 
-KNO_DCLPRIM3("alcor/save!",alcor_save_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3),
+KNO_DEFPRIM3("alcor/save!",alcor_save_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3),
  "(ALCOR/SAVE! src head len) "
  "copies the first *len* bytes of *src* into *head*",
  kno_string_type,KNO_VOID,kno_string_type,KNO_VOID,
@@ -210,7 +210,7 @@ static lispval alcor_save_prim(lispval source,lispval head,lispval size_arg)
   else return KNO_INT(rv);
 }
 
-KNO_DCLPRIM2("alcor/apply!",alcor_apply_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+KNO_DEFPRIM2("alcor/apply!",alcor_apply_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
  "(ALCOR/APPLY! head src) "
  "copies *head* into the beginning of *src* (all "
  "but the last 8 bytes) and truncates *src* to the "
