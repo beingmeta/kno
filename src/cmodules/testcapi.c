@@ -24,8 +24,8 @@ KNO_EXPORT int kno_init_testcapi(void) KNO_LIBINIT_FN;
 static long long int testcapi_init = 0;
 
 DEFPRIM("regex/testcapi",regex_testcapi,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
- "Run various tests of the C API for regexes which "
- "are difficult to do directly from scheme");
+	"Run various tests of the C API for regexes which "
+	"are difficult to do directly from scheme");
 static lispval regex_testcapi()
 {
   lispval pattern = knostring("[0123456789]+");
@@ -52,9 +52,9 @@ static lispval regex_testcapi()
 }
 
 DEFPRIM4("regex/rawop",regex_rawop,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(4),
- "Call kno_regex_op directory",
- kno_fixnum_type,KNO_VOID,kno_regex_type,KNO_VOID,
- kno_string_type,KNO_VOID,kno_fixnum_type,KNO_VOID);
+	 "Call kno_regex_op directory",
+	 kno_fixnum_type,KNO_VOID,kno_regex_type,KNO_VOID,
+	 kno_string_type,KNO_VOID,kno_fixnum_type,KNO_VOID);
 static lispval regex_rawop(lispval code,lispval pat,lispval string,
 			   lispval flags)
 {
@@ -137,8 +137,8 @@ static U8_MAYBE_UNUSED int check_resultp
 static U8_MAYBE_UNUSED int lexenvp(lispval x) { return (KNO_LEXENVP(x)); }
 
 DEFPRIM("modules/testcapi",modules_testcapi,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
- "Run various tests of the module C API which are "
- "difficult to do directly from scheme");
+	"Run various tests of the module C API which are "
+	"difficult to do directly from scheme");
 static lispval modules_testcapi()
 {
   int errors = 0;
@@ -160,8 +160,8 @@ static lispval modules_testcapi()
 }
 
 DEFPRIM("eval/testcapi",eval_testcapi,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
- "Run various tests of the module C API which are "
- "difficult to do directly from scheme");
+	"Run various tests of the module C API which are "
+	"difficult to do directly from scheme");
 static lispval eval_testcapi()
 {
   int errors = 0;
@@ -177,7 +177,7 @@ static lispval eval_testcapi()
 
     lispval expr = kno_make_list(2,kno_intern("opcode-name"),invalid_opcode);
     lispval result = kno_eval(expr,env);
-   if (!(KNO_ABORTP(result))) {
+    if (!(KNO_ABORTP(result))) {
       u8_log(LOGERR,"NoError","Expr %q returned %q",expr,result);
       errors++;}
     lispval eval_choice = KNO_EMPTY_CHOICE;
@@ -216,8 +216,8 @@ static lispval eval_testcapi()
 }
 
 DEFPRIM("API/FORCE-PROMISE",kno_force_promise,MAX_ARGS(1)|MIN_ARGS(1),
-	    "Run various tests of the module C API which are "
-	    "difficult to do directly from scheme");
+	"Run various tests of the module C API which are "
+	"difficult to do directly from scheme");
 
 
 static lispval testcapi_module;

@@ -80,7 +80,7 @@ static u8_mutex multislots_lock;
 
 static bool bson_append_keyval(struct KNO_BSON_OUTPUT,lispval,lispval);
 static bool bson_append_dtype(struct KNO_BSON_OUTPUT,const char *,int,
-                              lispval,int);
+			      lispval,int);
 static lispval idsym, maxkey, minkey;
 static lispval oidtag, mongofun, mongouser, mongomd5;
 static lispval bsonflags, raw, slotify, slotifyin, slotifyout, softfailsym;
@@ -93,8 +93,8 @@ static lispval nearestsym, poolmaxsym;
 static lispval mongovec_symbol;
 
 DEFPRIM1("mongodb/oid",mongodb_oidref,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-             "`(MONGODB/OID *arg0*)` **undocumented**",
-             kno_any_type,KNO_VOID);
+	 "`(MONGODB/OID *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval mongodb_oidref(lispval oid)
 {
   if (KNO_OIDP(oid)) {
@@ -125,20 +125,20 @@ static mongoc_client_t *get_client(KNO_MONGODB_DATABASE *server,int block)
   mongoc_client_t *client;
   if (block) {
     u8_logf(LOG_DEBUG,_("MongoDB/get_client"),
-            "Getting client from server %llx (%s)",server->dbclients,server->dbspec);
+	    "Getting client from server %llx (%s)",server->dbclients,server->dbspec);
     client = mongoc_client_pool_pop(server->dbclients);}
   else client = mongoc_client_pool_try_pop(server->dbclients);
   u8_logf(LOG_DEBUG,_("MongoDB/got_client"),
-          "Got client %llx from server %llx (%s)",
-          client,server->dbclients,server->dbspec);
+	  "Got client %llx from server %llx (%s)",
+	  client,server->dbclients,server->dbspec);
   return client;
 }
 
 static void release_client(KNO_MONGODB_DATABASE *server,mongoc_client_t *client)
 {
   u8_logf(LOG_DEBUG,_("MongoDB/release_client"),
-          "Releasing client %llx to server %llx (%s)",
-          client,server->dbclients,server->dbspec);
+	  "Releasing client %llx to server %llx (%s)",
+	  client,server->dbclients,server->dbspec);
   mongoc_client_pool_push(server->dbclients,client);
 }
 
@@ -185,7 +185,7 @@ U8_MAYBE_UNUSED static bson_t *get_projection(lispval opts,int flags)
     kno_decref(projection);
     return fields;}
   else if ( (KNO_SYMBOLP(projection)) ||
-            (KNO_STRINGP(projection)) ) {
+	    (KNO_STRINGP(projection)) ) {
     struct KNO_KEYVAL kv[1];
     kv[0].kv_key = projection;
     kv[0].kv_val = KNO_INT(1);
@@ -199,13 +199,13 @@ U8_MAYBE_UNUSED static bson_t *get_projection(lispval opts,int flags)
     struct KNO_KEYVAL kv[len];
     KNO_DO_CHOICES(field,projection) {
       if ( (KNO_STRINGP(field)) )
-        kno_incref(field);
+	kno_incref(field);
       else if (KNO_SYMBOLP(field)) {}
       else field=VOID;
       if (!(KNO_VOIDP(field))) {
-        kv[i].kv_key = field;
-        kv[i].kv_val = KNO_INT(1);
-        i++;}}
+	kv[i].kv_key = field;
+	kv[i].kv_val = KNO_INT(1);
+	i++;}}
     lispval map = kno_make_slotmap(i,i,kv);
     bson_t *fields = kno_lisp2bson(map,flags,opts);
     kno_decref(map);
@@ -328,7 +328,7 @@ static int getreadmode(lispval val)
     return MONGOC_READ_NEAREST;
   else {
     u8_logf(LOG_ERR,"mongodb/getreadmode",
-            "Bad MongoDB read mode %q",val);
+	    "Bad MongoDB read mode %q",val);
     return MONGOC_READ_PRIMARY;}
 }
 
@@ -341,14 +341,14 @@ static mongoc_read_prefs_t *get_read_prefs(lispval opts)
     int flags = getflags(opts,mongodb_defaults);
     KNO_DO_CHOICES(s,spec) {
       if (KNO_SYMBOLP(s)) {
-        int p = getreadmode(s);
-        mongoc_read_prefs_set_mode(rp,p);}
+	int p = getreadmode(s);
+	mongoc_read_prefs_set_mode(rp,p);}
       else if (KNO_TABLEP(s)) {
-        const bson_t *bson = kno_lisp2bson(s,flags,opts);
-        mongoc_read_prefs_add_tag(rp,bson);}
+	const bson_t *bson = kno_lisp2bson(s,flags,opts);
+	mongoc_read_prefs_add_tag(rp,bson);}
       else {
-        u8_logf(LOG_ERR,"mongodb/get_read_prefs",
-                "Bad MongoDB read preference %q",s);}}
+	u8_logf(LOG_ERR,"mongodb/get_read_prefs",
+		"Bad MongoDB read preference %q",s);}}
     kno_decref(spec);
     return rp;}
 }
@@ -402,15 +402,15 @@ static U8_MAYBE_UNUSED bson_t *get_search_opts(lispval opts,int flags,int for_fi
       fields.bson_opts = opts;
       fields.bson_fieldmap = out.bson_fieldmap;
       if ( (KNO_SLOTMAPP(projection)) || (KNO_SCHEMAPP(projection)) )
-        kno_bson_output(fields,projection);
+	kno_bson_output(fields,projection);
       else if (KNO_SYMBOLP(projection))
-        bson_append_keyval(fields,projection,KNO_INT(1));
+	bson_append_keyval(fields,projection,KNO_INT(1));
       else if (KNO_STRINGP(projection))
-        bson_append_keyval(fields,projection,KNO_INT(1));
+	bson_append_keyval(fields,projection,KNO_INT(1));
       else if (KNO_CHOICEP(projection)) {
-        KNO_DO_CHOICES(key,projection) {
-          if ( (KNO_SYMBOLP(key)) || (KNO_STRINGP(key)) )
-            bson_append_keyval(fields,key,KNO_INT(1));}}
+	KNO_DO_CHOICES(key,projection) {
+	  if ( (KNO_SYMBOLP(key)) || (KNO_STRINGP(key)) )
+	    bson_append_keyval(fields,key,KNO_INT(1));}}
       else {}
       bson_append_document_end(doc,&proj);}
     else {
@@ -474,8 +474,8 @@ static int add_vecslot(lispval slot)
     int i = 0, n = n_multislots;
     while (i<n)
       if (multislots[i] == slot) {
-        u8_unlock_mutex(&multislots_lock);
-        return i;}
+	u8_unlock_mutex(&multislots_lock);
+	return i;}
       else i++;
     if (i >= MONGO_MULTISLOTS_MAX) {
       u8_unlock_mutex(&multislots_lock);
@@ -505,14 +505,14 @@ static int multislots_config_add(lispval var,lispval val,void *data)
     sym = kno_intern(CSTRING(val));
   else {
     kno_seterr("Not symbolic","mongodb/multislots_config_add",
-               NULL,val);
+	       NULL,val);
     return -1;}
   int rv = add_vecslot(sym);
   if (rv < 0) {
     char buf[64];
     kno_seterr("Too many multislots declared","mongodb/multislots_config_add",
-               u8_sprintf(buf,sizeof(buf),"%d",MONGO_MULTISLOTS_MAX),
-               val);
+	       u8_sprintf(buf,sizeof(buf),"%d",MONGO_MULTISLOTS_MAX),
+	       val);
     return rv;}
   else return rv;
 }
@@ -592,9 +592,9 @@ static void escape_uri(u8_output out,u8_string s,int len)
   u8_string lim = ((len<0)?(NULL):(s+len));
   while ((lim)?(s<lim):(*s))
     if (((*s)>=0x80)||(isspace(*s))||
-        (*s=='+')||(*s=='%')||(*s=='=')||
-        (*s=='&')||(*s=='#')||(*s==';')||
-        (!((isalnum(*s))||(strchr("-_.~",*s)!=NULL)))) {
+	(*s=='+')||(*s=='%')||(*s=='=')||
+	(*s=='&')||(*s=='#')||(*s==';')||
+	(!((isalnum(*s))||(strchr("-_.~",*s)!=NULL)))) {
       char buf[8];
       sprintf(buf,"%%%02x",*s);
       u8_puts(out,buf); s++;}
@@ -611,14 +611,14 @@ static mongoc_uri_t *setup_mongoc_uri(mongoc_uri_t *info,lispval opts)
        ((KNO_VOIDP(dbarg)) || (KNO_FALSEP(dbarg)) || (KNO_DEFAULTP(dbarg)) ) ) {}
   else if ((KNO_VOIDP(dbarg)) || (KNO_FALSEP(dbarg)) || (KNO_DEFAULTP(dbarg)) ) {
     kno_seterr("NoDBName","setup_mongoc_uri",
-               mongoc_uri_get_string(info),KNO_VOID);
+	       mongoc_uri_get_string(info),KNO_VOID);
     kno_decref(dbarg);
     return NULL;}
 #if HAVE_MONGOC_URI_SET_DATABASE
   else if (!(KNO_STRINGP(dbarg))) {
     kno_seterr("Invalid MongoDBName","setup_mongoc_uri",
-               mongoc_uri_get_string(info),
-               dbarg);
+	       mongoc_uri_get_string(info),
+	       dbarg);
     kno_decref(dbarg);
     return NULL;}
   else if ( (dbname) && (strcmp(dbname,KNO_CSTRING(dbarg))) ) {}
@@ -627,14 +627,14 @@ static mongoc_uri_t *setup_mongoc_uri(mongoc_uri_t *info,lispval opts)
 #else
   else if (dbname == NULL) {
     kno_seterr("NoDBName","setup_mongoc_uri",
-               mongoc_uri_get_string(info),KNO_VOID);
+	       mongoc_uri_get_string(info),KNO_VOID);
     kno_decref(dbarg);
     return NULL;}
   else if ( (KNO_STRINGP(dbarg)) && (strcmp(dbname,KNO_CSTRING(dbarg))) == 0) {}
   else {
     kno_seterr("CantSetDB","setup_mongoc_uri",
-               "Can't set/modify database in this version of MongoDB",
-               KNO_VOID);
+	       "Can't set/modify database in this version of MongoDB",
+	       KNO_VOID);
     kno_decref(dbarg);
     return NULL;}
 #endif
@@ -722,8 +722,8 @@ static u8_string mongodb_check(mongoc_client_pool_t *client_pool)
 /* This returns a MongoDB server object which wraps a MongoDB client
    pool. */
 DEFPRIM2("mongodb/open",mongodb_open,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-             "`(MONGODB/OPEN *arg0* [*arg1*])` **undocumented**",
-             kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(MONGODB/OPEN *arg0* [*arg1*])` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval mongodb_open(lispval arg,lispval opts)
 {
   mongoc_client_pool_t *client_pool;
@@ -740,11 +740,11 @@ static lispval mongodb_open(lispval arg,lispval opts)
     if (KNO_VOIDP(conf_val))
       return kno_type_error("MongoDB URI config","mongodb_open",arg);
     else if ((KNO_STRINGP(conf_val))||
-             (KNO_TYPEP(conf_val,kno_secret_type))) {
+	     (KNO_TYPEP(conf_val,kno_secret_type))) {
       info = mongoc_uri_info(KNO_CSTRING(conf_val),&error);
       kno_decref(conf_val);}
     else return kno_type_error("MongoDB URI config val",
-                               KNO_SYMBOL_NAME(arg),conf_val);}
+			       KNO_SYMBOL_NAME(arg),conf_val);}
   else return kno_type_error("MongoDB URI","mongodb_open",arg);
 
   if (info == NULL)
@@ -837,13 +837,13 @@ static u8_string get_connection_spec(mongoc_uri_t *info)
 }
 
 static int setup_ssl(mongoc_ssl_opt_t *ssl_opts,
-                     mongoc_uri_t *info,
-                     lispval opts)
+		     mongoc_uri_t *info,
+		     lispval opts)
 {
   if ( (mongoc_uri_get_ssl(info)) ||
        (boolopt(opts,sslsym,default_ssl)) ||
        ( (kno_testopt(opts,cafilesym,KNO_VOID)) &&
-         (!(kno_testopt(opts,cafilesym,KNO_FALSE)))) ) {
+	 (!(kno_testopt(opts,cafilesym,KNO_FALSE)))) ) {
     const mongoc_ssl_opt_t *default_opts = mongoc_ssl_opt_get_default();
     memcpy(ssl_opts,default_opts,sizeof(mongoc_ssl_opt_t));
     ssl_opts->pem_file = fileopt(opts,certfile,default_certfile);
@@ -852,10 +852,10 @@ static int setup_ssl(mongoc_ssl_opt_t *ssl_opts,
     ssl_opts->ca_dir = fileopt(opts,cadirsym,default_cadir);
     ssl_opts->crl_file = fileopt(opts,crlsym,NULL);
     return (!((ssl_opts->pem_file == NULL)&&
-              (ssl_opts->pem_pwd == NULL)&&
-              (ssl_opts->ca_file == NULL)&&
-              (ssl_opts->ca_dir == NULL)&&
-              (ssl_opts->crl_file == NULL)));}
+	      (ssl_opts->pem_pwd == NULL)&&
+	      (ssl_opts->ca_file == NULL)&&
+	      (ssl_opts->ca_dir == NULL)&&
+	      (ssl_opts->crl_file == NULL)));}
   else return 0;
 }
 
@@ -867,11 +867,11 @@ static int setup_ssl(mongoc_ssl_opt_t *ssl_opts,
    but that each use of the collection will pop a client from the pool
    and create a collection with that client. */
 DEFPRIM3("collection/open",mongodb_collection,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
-             "`(COLLECTION/OPEN *arg0* [*arg1*] [*arg2*])` **undocumented**",
-             kno_any_type,KNO_VOID,kno_string_type,KNO_VOID,
-             kno_any_type,KNO_VOID);
+	 "`(COLLECTION/OPEN *arg0* [*arg1*] [*arg2*])` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_string_type,KNO_VOID,
+	 kno_any_type,KNO_VOID);
 static lispval mongodb_collection(lispval server,lispval name_arg,
-                                  lispval opts_arg)
+				  lispval opts_arg)
 {
   struct KNO_MONGODB_COLLECTION *result;
   struct KNO_MONGODB_DATABASE *srv;
@@ -883,8 +883,8 @@ static lispval mongodb_collection(lispval server,lispval name_arg,
     opts = combine_opts(opts_arg,srv->dbopts);
     kno_incref(server);}
   else if ((KNO_STRINGP(server))||
-           (KNO_SYMBOLP(server))||
-           (KNO_TYPEP(server,kno_secret_type))) {
+	   (KNO_SYMBOLP(server))||
+	   (KNO_TYPEP(server,kno_secret_type))) {
     lispval consed = mongodb_open(server,opts_arg);
     if (KNO_ABORTP(consed)) return consed;
     server = consed; srv = (struct KNO_MONGODB_DATABASE *)consed;
@@ -919,7 +919,7 @@ static int unparse_collection(struct U8_OUTPUT *out,lispval x)
   struct KNO_MONGODB_DATABASE *db=
     (struct KNO_MONGODB_DATABASE *) (coll->domain_db);
   u8_printf(out,"#<MongoDB/Collection %s/%s/%s>",
-            db->dbspec,db->dbname,coll->collection_name);
+	    db->dbspec,db->dbname,coll->collection_name);
   return 1;
 }
 
@@ -928,8 +928,8 @@ static int unparse_collection(struct U8_OUTPUT *out,lispval x)
 /*  This is where the collection actually gets created based on
     a client popped from the client pool for the server. */
 mongoc_collection_t *open_collection(struct KNO_MONGODB_COLLECTION *domain,
-                                     mongoc_client_t **clientp,
-                                     int flags)
+				     mongoc_client_t **clientp,
+				     int flags)
 {
   struct KNO_MONGODB_DATABASE *server=
     (struct KNO_MONGODB_DATABASE *)(domain->domain_db);
@@ -966,8 +966,8 @@ static void client_done(lispval arg,mongoc_client_t *client)
 
 /* This destroys the collection returns a client to a client pool. */
 static void collection_done(mongoc_collection_t *collection,
-                            mongoc_client_t *client,
-                            struct KNO_MONGODB_COLLECTION *domain)
+			    mongoc_client_t *client,
+			    struct KNO_MONGODB_COLLECTION *domain)
 {
   struct KNO_MONGODB_DATABASE *server=
     (kno_mongodb_database)domain->domain_db;
@@ -979,9 +979,9 @@ static void collection_done(mongoc_collection_t *collection,
 
 #if HAVE_MONGOC_BULK_OPERATION_WITH_OPTS
 DEFPRIM3("collection/insert!",mongodb_insert,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-             "(COLLECTION/INSERT! *collection* *objects* *opts*) **undocumented**",
-             kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
-             kno_any_type,KNO_FALSE);
+	 "(COLLECTION/INSERT! *collection* *objects* *opts*) **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
+	 kno_any_type,KNO_FALSE);
 static lispval mongodb_insert(lispval arg,lispval objects,lispval opts_arg)
 {
   if (KNO_EMPTY_CHOICEP(arg))
@@ -993,11 +993,11 @@ static lispval mongodb_insert(lispval arg,lispval objects,lispval opts_arg)
     KNO_DO_CHOICES(collection,arg) {
       lispval rv = mongodb_insert(collection,objects,opts_arg);
       if (KNO_ABORTP(rv)) {
-        kno_decref(results);
-        KNO_STOP_DO_CHOICES;
-        return rv;}
+	kno_decref(results);
+	KNO_STOP_DO_CHOICES;
+	return rv;}
       else {
-        KNO_ADD_TO_CHOICE(results,rv);}}
+	KNO_ADD_TO_CHOICE(results,rv);}}
     return results;}
   else if (!(KNO_TYPEP(arg,kno_mongoc_collection)))
     return kno_type_error(_("MongoDB collection"),"mongodb_insert",arg);
@@ -1016,47 +1016,47 @@ static lispval mongodb_insert(lispval arg,lispval objects,lispval opts_arg)
     bson_error_t error = { 0 };
     if ((logops)||(flags&KNO_MONGODB_LOGOPS))
       u8_logf(LOG_NOTICE,"mongodb_insert",
-              "Inserting %d items into %q",KNO_CHOICE_SIZE(objects),arg);
+	      "Inserting %d items into %q",KNO_CHOICE_SIZE(objects),arg);
     if (KNO_CHOICEP(objects)) {
       mongoc_bulk_operation_t *bulk=
-        mongoc_collection_create_bulk_operation_with_opts
-        (collection,bulkopts);
+	mongoc_collection_create_bulk_operation_with_opts
+	(collection,bulkopts);
       KNO_DO_CHOICES(elt,objects) {
-        bson_t *doc = kno_lisp2bson(elt,flags,opts);
-        if (doc) {
-          mongoc_bulk_operation_insert(bulk,doc);
-          bson_destroy(doc);}}
+	bson_t *doc = kno_lisp2bson(elt,flags,opts);
+	if (doc) {
+	  mongoc_bulk_operation_insert(bulk,doc);
+	  bson_destroy(doc);}}
       retval = mongoc_bulk_operation_execute(bulk,&reply,&error);
       mongoc_bulk_operation_destroy(bulk);
       if (retval) {
-        result = kno_bson2dtype(&reply,flags,opts);}
+	result = kno_bson2dtype(&reply,flags,opts);}
       else {
-        u8_byte buf[1000];
-        if (errno) u8_graberrno("mongodb_insert",NULL);
-        kno_seterr(kno_MongoDB_Error,"mongodb_insert",
-                   u8_sprintf(buf,1000,"%s (%s>%s)",
-                              error.message,db->dburi,domain->collection_name),
-                   kno_incref(objects));
-        result = KNO_ERROR_VALUE;}
+	u8_byte buf[1000];
+	if (errno) u8_graberrno("mongodb_insert",NULL);
+	kno_seterr(kno_MongoDB_Error,"mongodb_insert",
+		   u8_sprintf(buf,1000,"%s (%s>%s)",
+			      error.message,db->dburi,domain->collection_name),
+		   kno_incref(objects));
+	result = KNO_ERROR_VALUE;}
       bson_destroy(&reply);}
     else {
       bson_t *doc = kno_lisp2bson(objects,flags,opts);
       mongoc_write_concern_t *wc = get_write_concern(opts);
 
       retval = (doc==NULL) ? (0) :
-        (mongoc_collection_insert
-         (collection,MONGOC_INSERT_NONE,doc,wc,&error));
+	(mongoc_collection_insert
+	 (collection,MONGOC_INSERT_NONE,doc,wc,&error));
       if (retval) {
-        result = KNO_TRUE;}
+	result = KNO_TRUE;}
       else {
-        u8_byte buf[1000];
-        if (doc) bson_destroy(doc);
-        if (errno) u8_graberrno("mongodb_insert",NULL);
-        kno_seterr(kno_MongoDB_Error,"mongodb_insert",
-                   u8_sprintf(buf,1000,"%s (%s>%s)",
-                              error.message,db->dburi,domain->collection_name),
-                   kno_incref(objects));
-        result = KNO_ERROR_VALUE;}
+	u8_byte buf[1000];
+	if (doc) bson_destroy(doc);
+	if (errno) u8_graberrno("mongodb_insert",NULL);
+	kno_seterr(kno_MongoDB_Error,"mongodb_insert",
+		   u8_sprintf(buf,1000,"%s (%s>%s)",
+			      error.message,db->dburi,domain->collection_name),
+		   kno_incref(objects));
+	result = KNO_ERROR_VALUE;}
       if (wc) mongoc_write_concern_destroy(wc);}
     collection_done(collection,client,domain);}
   else result = KNO_ERROR_VALUE;
@@ -1066,9 +1066,9 @@ static lispval mongodb_insert(lispval arg,lispval objects,lispval opts_arg)
 }
 #else
 DEFPRIM3("collection/insert!",mongodb_insert,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-             "(COLLECTION/INSERT! *collection* *objects* *opts*) **undocumented**",
-             kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
-             kno_any_type,KNO_FALSE);
+	 "(COLLECTION/INSERT! *collection* *objects* *opts*) **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
+	 kno_any_type,KNO_FALSE);
 static lispval mongodb_insert(lispval arg,lispval objects,lispval opts_arg)
 {
   if (KNO_EMPTY_CHOICEP(arg))
@@ -1080,11 +1080,11 @@ static lispval mongodb_insert(lispval arg,lispval objects,lispval opts_arg)
     KNO_DO_CHOICES(collection,arg) {
       lispval rv = mongodb_insert(collection,objects,opts_arg);
       if (KNO_ABORTP(rv)) {
-        kno_decref(results);
-        KNO_STOP_DO_CHOICES;
-        return rv;}
+	kno_decref(results);
+	KNO_STOP_DO_CHOICES;
+	return rv;}
       else {
-        KNO_ADD_TO_CHOICE(results,rv);}}
+	KNO_ADD_TO_CHOICE(results,rv);}}
     return results;}
   else if (!(KNO_TYPEP(arg,kno_mongoc_collection)))
     return kno_type_error(_("MongoDB collection"),"mongodb_insert",arg);
@@ -1103,43 +1103,43 @@ static lispval mongodb_insert(lispval arg,lispval objects,lispval opts_arg)
     mongoc_write_concern_t *wc = get_write_concern(opts);
     if ((logops)||(flags&KNO_MONGODB_LOGOPS))
       u8_logf(LOG_NOTICE,"mongodb_insert",
-              "Inserting %d items into %q",KNO_CHOICE_SIZE(objects),arg);
+	      "Inserting %d items into %q",KNO_CHOICE_SIZE(objects),arg);
     if (KNO_CHOICEP(objects)) {
       mongoc_bulk_operation_t *bulk=
-        mongoc_collection_create_bulk_operation(collection,true,wc);
+	mongoc_collection_create_bulk_operation(collection,true,wc);
       KNO_DO_CHOICES(elt,objects) {
-        bson_t *doc = kno_lisp2bson(elt,flags,opts);
-        if (doc) {
-          mongoc_bulk_operation_insert(bulk,doc);
-          bson_destroy(doc);}}
+	bson_t *doc = kno_lisp2bson(elt,flags,opts);
+	if (doc) {
+	  mongoc_bulk_operation_insert(bulk,doc);
+	  bson_destroy(doc);}}
       retval = mongoc_bulk_operation_execute(bulk,&reply,&error);
       mongoc_bulk_operation_destroy(bulk);
       if (retval) {
-        result = kno_bson2dtype(&reply,flags,opts);}
+	result = kno_bson2dtype(&reply,flags,opts);}
       else {
-        u8_byte buf[1000];
-        if (errno) u8_graberrno("mongodb_insert",NULL);
-        kno_seterr(kno_MongoDB_Error,"mongodb_insert",
-                   u8_sprintf(buf,1000,"%s (%s>%s)",
-                              error.message,db->dburi,domain->collection_name),
-                   kno_incref(objects));
-        result = KNO_ERROR_VALUE;}
+	u8_byte buf[1000];
+	if (errno) u8_graberrno("mongodb_insert",NULL);
+	kno_seterr(kno_MongoDB_Error,"mongodb_insert",
+		   u8_sprintf(buf,1000,"%s (%s>%s)",
+			      error.message,db->dburi,domain->collection_name),
+		   kno_incref(objects));
+	result = KNO_ERROR_VALUE;}
       bson_destroy(&reply);}
     else {
       bson_t *doc = kno_lisp2bson(objects,flags,opts);
       retval = (doc==NULL) ? (0) :
-        (mongoc_collection_insert(collection,MONGOC_INSERT_NONE,doc,wc,&error));
+	(mongoc_collection_insert(collection,MONGOC_INSERT_NONE,doc,wc,&error));
       if (retval) {
-        result = KNO_TRUE;}
+	result = KNO_TRUE;}
       else {
-        u8_byte buf[1000];
-        if (doc) bson_destroy(doc);
-        if (errno) u8_graberrno("mongodb_insert",NULL);
-        kno_seterr(kno_MongoDB_Error,"mongodb_insert",
-                   u8_sprintf(buf,1000,"%s (%s>%s)",
-                              error.message,db->dburi,domain->collection_name),
-                   kno_incref(objects));
-        result = KNO_ERROR_VALUE;}}
+	u8_byte buf[1000];
+	if (doc) bson_destroy(doc);
+	if (errno) u8_graberrno("mongodb_insert",NULL);
+	kno_seterr(kno_MongoDB_Error,"mongodb_insert",
+		   u8_sprintf(buf,1000,"%s (%s>%s)",
+			      error.message,db->dburi,domain->collection_name),
+		   kno_incref(objects));
+	result = KNO_ERROR_VALUE;}}
     if (wc) mongoc_write_concern_destroy(wc);
     collection_done(collection,client,domain);}
   else result = KNO_ERROR_VALUE;
@@ -1150,7 +1150,7 @@ static lispval mongodb_insert(lispval arg,lispval objects,lispval opts_arg)
 #endif
 
 DEFPRIM("collection/remove!",mongodb_remove,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-             "`(COLLECTION/REMOVE! *arg0* *arg1* [*arg2*])` **undocumented**");
+	"`(COLLECTION/REMOVE! *arg0* *arg1* [*arg2*])` **undocumented**");
 static lispval mongodb_remove(lispval arg,lispval obj,lispval opts_arg)
 {
   lispval result = KNO_VOID;
@@ -1172,31 +1172,31 @@ static lispval mongodb_remove(lispval arg,lispval obj,lispval opts_arg)
     else if (KNO_TABLEP(obj)) {
       lispval id = kno_get(obj,idsym,KNO_VOID);
       /* If the selector has an _id field, we always want to remove a single
-         record (there should be only one); otherwise we may remove multiple.
-         Passing MONGOC_REMOVE_SINGLE_REMOVE allows the search for matches to
-         stop sooner on the MongoDB side. */
+	 record (there should be only one); otherwise we may remove multiple.
+	 Passing MONGOC_REMOVE_SINGLE_REMOVE allows the search for matches to
+	 stop sooner on the MongoDB side. */
       if (KNO_VOIDP(id)) {
-        q.bson_fieldmap = kno_getopt(opts,fieldmap_symbol,KNO_VOID);
-        kno_bson_output(q,obj);
-        hasid = 0;}
+	q.bson_fieldmap = kno_getopt(opts,fieldmap_symbol,KNO_VOID);
+	kno_bson_output(q,obj);
+	hasid = 0;}
       else {
-        bson_append_dtype(q,"_id",3,id,-1);
-        kno_decref(id);}}
+	bson_append_dtype(q,"_id",3,id,-1);
+	kno_decref(id);}}
     else bson_append_dtype(q,"_id",3,obj,-1);
     if ((logops)||(flags&KNO_MONGODB_LOGOPS))
       u8_logf(LOG_NOTICE,"mongodb_remove","Removing %q items from %q",obj,arg);
     if (mongoc_collection_remove(collection,
-                                 ((hasid)?
-                                  (MONGOC_REMOVE_SINGLE_REMOVE):
-                                  (MONGOC_REMOVE_NONE)),
-                                 q.bson_doc,wc,&error)) {
+				 ((hasid)?
+				  (MONGOC_REMOVE_SINGLE_REMOVE):
+				  (MONGOC_REMOVE_NONE)),
+				 q.bson_doc,wc,&error)) {
       result = KNO_TRUE;}
     else {
       u8_byte buf[1000];
       kno_seterr(kno_MongoDB_Error,"mongodb_remove",
-                 u8_sprintf(buf,1000,"%s (%s>%s)",
-                            error.message,db->dburi,domain->collection_name),
-                 kno_incref(obj));
+		 u8_sprintf(buf,1000,"%s (%s>%s)",
+			    error.message,db->dburi,domain->collection_name),
+		 kno_incref(obj));
       result = KNO_ERROR_VALUE;}
     collection_done(collection,client,domain);
     if (wc) mongoc_write_concern_destroy(wc);
@@ -1208,8 +1208,8 @@ static lispval mongodb_remove(lispval arg,lispval obj,lispval opts_arg)
 }
 
 static lispval mongodb_updater(lispval arg,lispval query,lispval update,
-                               mongoc_update_flags_t add_update_flags,
-                               lispval opts_arg)
+			       mongoc_update_flags_t add_update_flags,
+			       lispval opts_arg)
 {
   struct KNO_MONGODB_COLLECTION *domain = (struct KNO_MONGODB_COLLECTION *)arg;
   struct KNO_MONGODB_DATABASE *db = DOMAIN2DB(domain);
@@ -1231,8 +1231,8 @@ static lispval mongodb_updater(lispval arg,lispval query,lispval update,
       char *qstring = bson_as_json(q,NULL);
       char *ustring = bson_as_json(u,NULL);
       u8_logf(LOG_NOTICE,"mongodb_updater",
-              "Updating matches in %q to\n%Q\n%s\n+%Q\n+%s",
-              arg,query,qstring,update,ustring);
+	      "Updating matches in %q to\n%Q\n%s\n+%Q\n+%s",
+	      arg,query,qstring,update,ustring);
       bson_free(qstring);
       bson_free(ustring);}
     if ((q)&&(u))
@@ -1245,25 +1245,25 @@ static lispval mongodb_updater(lispval arg,lispval query,lispval update,
     if (success) return KNO_TRUE;
     else if (no_error) {
       if ((q)&&(u))
-        u8_logf(LOG_ERR,"mongodb_update",
-                "Error on %s>%s: %s\n\twith query\nquery =  %q\nupdate =  %q\nflags = %q",
-                db->dburi,domain->collection_name,error.message,query,update,opts);
+	u8_logf(LOG_ERR,"mongodb_update",
+		"Error on %s>%s: %s\n\twith query\nquery =  %q\nupdate =  %q\nflags = %q",
+		db->dburi,domain->collection_name,error.message,query,update,opts);
       else u8_logf(LOG_ERR,"mongodb_update",
-                   "Error on %s>%s:  %s\n\twith query\nquery =  %q\nupdate =  %q\nflags = %q",
-                   db->dburi,domain->collection_name,error.message,query,update,opts);
+		   "Error on %s>%s:  %s\n\twith query\nquery =  %q\nupdate =  %q\nflags = %q",
+		   db->dburi,domain->collection_name,error.message,query,update,opts);
       return KNO_FALSE;}
     else if ((q)&&(u)) {
       u8_byte buf[1000];
       kno_seterr(kno_MongoDB_Error,"mongodb_update/call",
-                 u8_sprintf(buf,1000,"%s (%s>%s)",
-                            error.message,db->dburi,domain->collection_name),
-                 kno_make_pair(query,update));}
+		 u8_sprintf(buf,1000,"%s (%s>%s)",
+			    error.message,db->dburi,domain->collection_name),
+		 kno_make_pair(query,update));}
     else {
       u8_byte buf[1000];
       kno_seterr(kno_BSON_Error,"mongodb_update/prep",
-                 u8_sprintf(buf,1000,"%s (%s>%s)",
-                            error.message,db->dburi,domain->collection_name),
-                 kno_make_pair(query,update));}
+		 u8_sprintf(buf,1000,"%s (%s>%s)",
+			    error.message,db->dburi,domain->collection_name),
+		 kno_make_pair(query,update));}
     return KNO_ERROR_VALUE;}
   else {
     kno_decref(opts);
@@ -1271,25 +1271,25 @@ static lispval mongodb_updater(lispval arg,lispval query,lispval update,
 }
 
 DEFPRIM("collection/update!",mongodb_update,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
-             "(COLLECTION/UPDATE! *collection* *object* *opts*) **undocumented**");
+	"(COLLECTION/UPDATE! *collection* *object* *opts*) **undocumented**");
 static lispval mongodb_update(lispval arg,lispval query,lispval update,
-                              lispval opts_arg)
+			      lispval opts_arg)
 {
   return mongodb_updater(arg,query,update,0,opts_arg);
 }
 
 
 DEFPRIM("collection/upsert!",mongodb_upsert,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
-             "(COLLECTION/UPSERT! *collection* *object* *opts*) **undocumented**");
+	"(COLLECTION/UPSERT! *collection* *object* *opts*) **undocumented**");
 static lispval mongodb_upsert(lispval arg,lispval query,lispval update,
-                              lispval opts_arg)
+			      lispval opts_arg)
 {
   return mongodb_updater(arg,query,update,(MONGOC_UPDATE_UPSERT),opts_arg);
 }
 
 #if HAVE_MONGOC_OPTS_FUNCTIONS
 DEFPRIM("collection/find",mongodb_find,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-             "`(COLLECTION/FIND *arg0* *arg1* [*arg2*])` **undocumented**");
+	"`(COLLECTION/FIND *arg0* *arg1* [*arg2*])` **undocumented**");
 static lispval mongodb_find(lispval arg,lispval query,lispval opts_arg)
 {
   struct KNO_MONGODB_COLLECTION *domain = (struct KNO_MONGODB_COLLECTION *)arg;
@@ -1309,48 +1309,48 @@ static lispval mongodb_find(lispval arg,lispval query,lispval opts_arg)
     if ((logops)||(flags&KNO_MONGODB_LOGOPS)) {
       char *qstring = bson_as_json(q,NULL);
       u8_logf(LOG_NOTICE,"mongodb_find","Matches in %q to\n%Q\n%s",
-              arg,query,qstring);
+	      arg,query,qstring);
       bson_free(qstring);}
     if (q)
       cursor = mongoc_collection_find_with_opts(collection,q,findopts,rp);
     if (cursor) {
       while (mongoc_cursor_next(cursor,&doc)) {
-        /* u8_string json = bson_as_json(doc,NULL); */
-        lispval r = kno_bson2dtype((bson_t *)doc,flags,opts);
-        if (KNO_ABORTP(r)) {
-          kno_decref(results);
-          free_dtype_vec(vec,n);
-          results = KNO_ERROR_VALUE;
-          sort_results = 0;
-          break;}
-        else if (sort_results) {
-          if (n>=max) {
-            if (!(grow_dtype_vec(&vec,n,&max))) {
-              free_dtype_vec(vec,n);
-              results = KNO_ERROR_VALUE;
-              sort_results = 0;
-              break;}}
-          vec[n++]=r;}
-        else {
-          KNO_ADD_TO_CHOICE(results,r);}}
+	/* u8_string json = bson_as_json(doc,NULL); */
+	lispval r = kno_bson2dtype((bson_t *)doc,flags,opts);
+	if (KNO_ABORTP(r)) {
+	  kno_decref(results);
+	  free_dtype_vec(vec,n);
+	  results = KNO_ERROR_VALUE;
+	  sort_results = 0;
+	  break;}
+	else if (sort_results) {
+	  if (n>=max) {
+	    if (!(grow_dtype_vec(&vec,n,&max))) {
+	      free_dtype_vec(vec,n);
+	      results = KNO_ERROR_VALUE;
+	      sort_results = 0;
+	      break;}}
+	  vec[n++]=r;}
+	else {
+	  KNO_ADD_TO_CHOICE(results,r);}}
       bson_error_t err;
       bool trouble = (KNO_ABORTP(results)) ? (1) :
-        (mongoc_cursor_error(cursor,&err));
+	(mongoc_cursor_error(cursor,&err));
       if (trouble) {
-        free_dtype_vec(vec,n);
-        if (! (KNO_ABORTP(results)) )
-          grab_mongodb_error(&err,"mongodb_find");
-        mongoc_cursor_destroy(cursor);
-        kno_decref(opts);
-        return KNO_ERROR;}
+	free_dtype_vec(vec,n);
+	if (! (KNO_ABORTP(results)) )
+	  grab_mongodb_error(&err,"mongodb_find");
+	mongoc_cursor_destroy(cursor);
+	kno_decref(opts);
+	return KNO_ERROR;}
       else mongoc_cursor_destroy(cursor);}
     else {
       u8_byte buf[1000];
       kno_seterr(kno_MongoDB_Error,"mongodb_find",
-                 u8_sprintf(buf,1000,
-                            "couldn't get query cursor over %q with options:\n%Q",
-                            arg,opts),
-                 kno_incref(query));
+		 u8_sprintf(buf,1000,
+			    "couldn't get query cursor over %q with options:\n%Q",
+			    arg,opts),
+		 kno_incref(query));
       results = KNO_ERROR_VALUE;}
     if (rp) mongoc_read_prefs_destroy(rp);
     if (q) bson_destroy(q);
@@ -1371,7 +1371,7 @@ static lispval mongodb_find(lispval arg,lispval query,lispval opts_arg)
 }
 #else
 DEFPRIM("collection/find",mongodb_find,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-             "`(COLLECTION/FIND *arg0* *arg1* [*arg2*])` **undocumented**");
+	"`(COLLECTION/FIND *arg0* *arg1* [*arg2*])` **undocumented**");
 static lispval mongodb_find(lispval arg,lispval query,lispval opts_arg)
 {
   struct KNO_MONGODB_COLLECTION *domain = (struct KNO_MONGODB_COLLECTION *)arg;
@@ -1393,38 +1393,38 @@ static lispval mongodb_find(lispval arg,lispval query,lispval opts_arg)
       bson_t *fields = get_projection(opts,flags);
       mongoc_read_prefs_t *rp = get_read_prefs(opts);
       if ((logops)||(flags&KNO_MONGODB_LOGOPS)) {
-        unsigned char *qstring = bson_as_json(q,NULL);
-        u8_logf(LOG_NOTICE,"mongodb_find",
-                "Matches in %q to\n%Q\n%s",arg,query,qstring);
-        bson_free(qstring);}
+	unsigned char *qstring = bson_as_json(q,NULL);
+	u8_logf(LOG_NOTICE,"mongodb_find",
+		"Matches in %q to\n%Q\n%s",arg,query,qstring);
+	bson_free(qstring);}
       if (q) cursor = mongoc_collection_find
-               (collection,MONGOC_QUERY_NONE,
-                KNO_FIX2INT(skip_arg),
-                KNO_FIX2INT(limit_arg),
-                KNO_FIX2INT(batch_arg),
-                q,
-                fields,
-                rp);
+	       (collection,MONGOC_QUERY_NONE,
+		KNO_FIX2INT(skip_arg),
+		KNO_FIX2INT(limit_arg),
+		KNO_FIX2INT(batch_arg),
+		q,
+		fields,
+		rp);
       if (cursor) {
-        while (mongoc_cursor_next(cursor,&doc)) {
-          /* u8_string json = bson_as_json(doc,NULL); */
-          lispval r = kno_bson2dtype((bson_t *)doc,flags,opts);
-          if (KNO_ABORTP(r)) {
-            kno_decref(results);
-            free_dtype_vec(vec,n);
-            results = KNO_ERROR_VALUE;
-            sort_results = 0;}
-          else if (sort_results) {
-            if (n>=max) {
-              if (!(grow_dtype_vec(&vec,n,&max))) {
-                free_dtype_vec(vec,n);
-                results = KNO_ERROR_VALUE;
-                sort_results = 0;
-                break;}}
-            vec[n++]=r;}
-          else {
-            KNO_ADD_TO_CHOICE(results,r);}}
-        mongoc_cursor_destroy(cursor);}
+	while (mongoc_cursor_next(cursor,&doc)) {
+	  /* u8_string json = bson_as_json(doc,NULL); */
+	  lispval r = kno_bson2dtype((bson_t *)doc,flags,opts);
+	  if (KNO_ABORTP(r)) {
+	    kno_decref(results);
+	    free_dtype_vec(vec,n);
+	    results = KNO_ERROR_VALUE;
+	    sort_results = 0;}
+	  else if (sort_results) {
+	    if (n>=max) {
+	      if (!(grow_dtype_vec(&vec,n,&max))) {
+		free_dtype_vec(vec,n);
+		results = KNO_ERROR_VALUE;
+		sort_results = 0;
+		break;}}
+	    vec[n++]=r;}
+	  else {
+	    KNO_ADD_TO_CHOICE(results,r);}}
+	mongoc_cursor_destroy(cursor);}
       else results = kno_err(kno_MongoDB_Error,"mongodb_find","couldn't get cursor",opts);
       if (rp) mongoc_read_prefs_destroy(rp);
       if (q) bson_destroy(q);
@@ -1452,7 +1452,7 @@ static lispval mongodb_find(lispval arg,lispval query,lispval opts_arg)
 
 #if HAVE_MONGOC_COUNT_DOCUMENTS
 DEFPRIM("collection/count",mongodb_count,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-             "`(COLLECTION/COUNT *arg0* *arg1* [*arg2*])` **undocumented**");
+	"`(COLLECTION/COUNT *arg0* *arg1* [*arg2*])` **undocumented**");
 static lispval mongodb_count(lispval arg,lispval query,lispval opts_arg)
 {
   struct KNO_MONGODB_COLLECTION *domain = (struct KNO_MONGODB_COLLECTION *)arg;
@@ -1474,8 +1474,8 @@ static lispval mongodb_count(lispval arg,lispval query,lispval opts_arg)
     if ((logops)||(flags&KNO_MONGODB_LOGOPS)) {
       unsigned char *qstring = bson_as_json(q,NULL);
       u8_logf(LOG_NOTICE,"mongodb_count",
-              "Counting matches in %q to\n%Q\n%s",
-              arg,query,qstring);
+	      "Counting matches in %q to\n%Q\n%s",
+	      arg,query,qstring);
       bson_free(qstring);}
     n_documents = mongoc_collection_count_documents
       (collection,q,findopts,rp,NULL,&error);
@@ -1484,12 +1484,12 @@ static lispval mongodb_count(lispval arg,lispval query,lispval opts_arg)
     else {
       u8_byte buf[1000];
       kno_seterr(kno_MongoDB_Error,"mongodb_count",
-                 u8_sprintf(buf,1000,
-                            "(%s) couldn't count documents in %s matching\n"
-                            "%Q\n given options:\n%Q",
-                            error.message,domain->collection_name,
-                            query,opts),
-                 kno_incref(query));
+		 u8_sprintf(buf,1000,
+			    "(%s) couldn't count documents in %s matching\n"
+			    "%Q\n given options:\n%Q",
+			    error.message,domain->collection_name,
+			    query,opts),
+		 kno_incref(query));
       result = KNO_ERROR_VALUE;}
     if (rp) mongoc_read_prefs_destroy(rp);
     if (q) bson_destroy(q);
@@ -1505,7 +1505,7 @@ static lispval mongodb_count(lispval arg,lispval query,lispval opts_arg)
 }
 #else
 DEFPRIM("collection/count",mongodb_count,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-             "`(COLLECTION/COUNT *arg0* *arg1* [*arg2*])` **undocumented**");
+	"`(COLLECTION/COUNT *arg0* *arg1* [*arg2*])` **undocumented**");
 static lispval mongodb_count(lispval arg,lispval query,lispval opts_arg)
 {
   struct KNO_MONGODB_COLLECTION *domain = (struct KNO_MONGODB_COLLECTION *)arg;
@@ -1529,27 +1529,27 @@ static lispval mongodb_count(lispval arg,lispval query,lispval opts_arg)
       bson_t *fields = get_projection(opts,flags);
       mongoc_read_prefs_t *rp = get_read_prefs(opts);
       if ((logops)||(flags&KNO_MONGODB_LOGOPS)) {
-        unsigned char *qstring = bson_as_json(q,NULL);
-        u8_logf(LOG_NOTICE,"mongodb_count",
-                "Matches in %q to \n%Q\n%s",arg,query,qstring);
-        bson_free(qstring);}
+	unsigned char *qstring = bson_as_json(q,NULL);
+	u8_logf(LOG_NOTICE,"mongodb_count",
+		"Matches in %q to \n%Q\n%s",arg,query,qstring);
+	bson_free(qstring);}
       n_documents = mongoc_collection_count
-        (collection,MONGOC_QUERY_NONE,
-         q,
-         KNO_FIX2INT(skip_arg),
-         KNO_FIX2INT(limit_arg),
-         rp,
-         &err);
+	(collection,MONGOC_QUERY_NONE,
+	 q,
+	 KNO_FIX2INT(skip_arg),
+	 KNO_FIX2INT(limit_arg),
+	 rp,
+	 &err);
       if (n_documents >= 0)
-        result = KNO_INT(n_documents);
+	result = KNO_INT(n_documents);
       else {
-        u8_byte buf[1000];
-        if (errno) u8_graberrno("mongodb_count",NULL);
-        kno_seterr(kno_MongoDB_Error,"mongodb_count",
-                   u8_sprintf(buf,1000,"%s (%s>%s)",
-                              err.message,db->dburi,domain->collection_name),
-                   kno_incref(query));
-        result = KNO_ERROR_VALUE;}
+	u8_byte buf[1000];
+	if (errno) u8_graberrno("mongodb_count",NULL);
+	kno_seterr(kno_MongoDB_Error,"mongodb_count",
+		   u8_sprintf(buf,1000,"%s (%s>%s)",
+			      err.message,db->dburi,domain->collection_name),
+		   kno_incref(query));
+	result = KNO_ERROR_VALUE;}
       if (rp) mongoc_read_prefs_destroy(rp);
       if (q) bson_destroy(q);
       if (fields) bson_destroy(fields);}
@@ -1569,7 +1569,7 @@ static lispval mongodb_count(lispval arg,lispval query,lispval opts_arg)
 
 #if HAVE_MONGOC_OPTS_FUNCTIONS
 DEFPRIM("collection/get",mongodb_get,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-             "`(COLLECTION/GET *arg0* *arg1* [*arg2*])` **undocumented**");
+	"`(COLLECTION/GET *arg0* *arg1* [*arg2*])` **undocumented**");
 static lispval mongodb_get(lispval arg,lispval query,lispval opts_arg)
 {
   lispval result = KNO_EMPTY_CHOICE;
@@ -1595,7 +1595,7 @@ static lispval mongodb_get(lispval arg,lispval query,lispval opts_arg)
     if ((logops)||(flags&KNO_MONGODB_LOGOPS)) {
       unsigned char *qstring = bson_as_json(q,NULL);
       u8_logf(LOG_NOTICE,"mongodb_get",
-              "Matches in %q to \n%Q\n%s",arg,query,qstring);
+	      "Matches in %q to \n%Q\n%s",arg,query,qstring);
       bson_free(qstring);}
     if (q)
       cursor = mongoc_collection_find_with_opts(collection,q,findopts,rp);
@@ -1617,7 +1617,7 @@ static lispval mongodb_get(lispval arg,lispval query,lispval opts_arg)
 }
 #else
 DEFPRIM("collection/get",mongodb_get,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-             "`(COLLECTION/GET *arg0* *arg1* [*arg2*])` **undocumented**");
+	"`(COLLECTION/GET *arg0* *arg1* [*arg2*])` **undocumented**");
 static lispval mongodb_get(lispval arg,lispval query,lispval opts_arg)
 {
   lispval result = KNO_EMPTY_CHOICE;
@@ -1643,11 +1643,11 @@ static lispval mongodb_get(lispval arg,lispval query,lispval opts_arg)
     if ((logops)||(flags&KNO_MONGODB_LOGOPS)) {
       unsigned char *qstring = bson_as_json(q,NULL);
       u8_logf(LOG_NOTICE,"mongodb_get",
-              "Matches in %q to\n%Q\n%s",
-              arg,query,qstring);
+	      "Matches in %q to\n%Q\n%s",
+	      arg,query,qstring);
       bson_free(qstring);}
     if (q) cursor = mongoc_collection_find
-             (collection,MONGOC_QUERY_NONE,0,1,0,q,fields,NULL);
+	     (collection,MONGOC_QUERY_NONE,0,1,0,q,fields,NULL);
     if ((cursor)&&(mongoc_cursor_next(cursor,&doc))) {
       result = kno_bson2dtype((bson_t *)doc,flags,opts);}
     if (cursor) mongoc_cursor_destroy(cursor);
@@ -1670,9 +1670,9 @@ static lispval mongodb_get(lispval arg,lispval query,lispval opts_arg)
 static int getnewopt(lispval opts,int dflt);
 
 DEFPRIM("collection/modify!",mongodb_modify,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(3),
-             "`(COLLECTION/MODIFY! *arg0* *arg1* *arg2* [*arg3*])` **undocumented**");
+	"`(COLLECTION/MODIFY! *arg0* *arg1* *arg2* [*arg3*])` **undocumented**");
 static lispval mongodb_modify(lispval arg,lispval query,lispval update,
-                              lispval opts_arg)
+			      lispval opts_arg)
 {
   struct KNO_MONGODB_COLLECTION *domain = (struct KNO_MONGODB_COLLECTION *)arg;
   struct KNO_MONGODB_DATABASE *db = DOMAIN2DB(domain);
@@ -1696,26 +1696,26 @@ static lispval mongodb_modify(lispval arg,lispval query,lispval update,
       unsigned char *qstring = bson_as_json(q,NULL);
       unsigned char *ustring = bson_as_json(u,NULL);
       u8_logf(LOG_NOTICE,"mongodb_modify",
-              "Updating in %q to\n%Q\n%s\n+%Q\n+%s",
-              arg,query,qstring,update,ustring);
+	      "Updating in %q to\n%Q\n%s\n+%Q\n+%s",
+	      arg,query,qstring,update,ustring);
       bson_free(qstring);
       bson_free(ustring);}
     bson_t reply; bson_error_t error = { 0 };
     if (mongoc_collection_find_and_modify
-        (collection,
-         q,kno_lisp2bson(sort,flags,opts),
-         u,kno_lisp2bson(fields,flags,opts),
-         ((KNO_FALSEP(remove))?(false):(true)),
-         ((KNO_FALSEP(upsert))?(false):(true)),
-         ((return_new)?(true):(false)),
-         &reply,&error)) {
+	(collection,
+	 q,kno_lisp2bson(sort,flags,opts),
+	 u,kno_lisp2bson(fields,flags,opts),
+	 ((KNO_FALSEP(remove))?(false):(true)),
+	 ((KNO_FALSEP(upsert))?(false):(true)),
+	 ((return_new)?(true):(false)),
+	 &reply,&error)) {
       result = kno_bson2dtype(&reply,flags,opts);}
     else {
       u8_byte buf[1000];
       kno_seterr(kno_MongoDB_Error,"mongodb_modify",
-                 u8_sprintf(buf,1000,"%s (%s>%s)",
-                            error.message,db->dburi,domain->collection_name),
-                 kno_make_pair(query,update));
+		 u8_sprintf(buf,1000,"%s (%s>%s)",
+			    error.message,db->dburi,domain->collection_name),
+		 kno_make_pair(query,update));
       result = KNO_ERROR_VALUE;}
     collection_done(collection,client,domain);
     if (q) bson_destroy(q);
@@ -1769,7 +1769,7 @@ static lispval make_command(int n,lispval *values)
       lispval value = values[i*2+1];
       keyvals[i].kv_key=kno_incref(key);
       if (KNO_VECTORP(value))
-        keyvals[i].kv_val=make_mongovec(value);
+	keyvals[i].kv_val=make_mongovec(value);
       else keyvals[i].kv_val=kno_incref(value);
       i++;}
     return result;}
@@ -1794,26 +1794,26 @@ static lispval collection_command(lispval arg,lispval command,lispval opts_arg)
       lispval limit_arg = kno_getopt(opts,limitsym,KNO_FIXZERO);
       lispval batch_arg = kno_getopt(opts,batchsym,KNO_FIXZERO);
       if ((KNO_UINTP(skip_arg))&&
-          (KNO_UINTP(limit_arg))&&
-          (KNO_UINTP(batch_arg))) {
-        if (logcmds) {
-          u8_log(LOG_INFO,"MongoDBCommand",
-                 "For %q:\n  COMMAND: %Q",arg,command);}
-        mongoc_cursor_t *cursor = mongoc_collection_command
-          (collection,MONGOC_QUERY_EXHAUST,
-           (KNO_FIX2INT(skip_arg)),
-           (KNO_FIX2INT(limit_arg)),
-           (KNO_FIX2INT(batch_arg)),
-           cmd,flds,NULL);
-        if (cursor) {
-          U8_CLEAR_ERRNO();
-          while ((cursor) && (mongoc_cursor_next(cursor,&doc))) {
-            lispval r = kno_bson2dtype((bson_t *)doc,flags,opts);
-            KNO_ADD_TO_CHOICE(results,r);}
-          mongoc_cursor_destroy(cursor);}
-        else results=KNO_ERROR_VALUE;}
+	  (KNO_UINTP(limit_arg))&&
+	  (KNO_UINTP(batch_arg))) {
+	if (logcmds) {
+	  u8_log(LOG_INFO,"MongoDBCommand",
+		 "For %q:\n  COMMAND: %Q",arg,command);}
+	mongoc_cursor_t *cursor = mongoc_collection_command
+	  (collection,MONGOC_QUERY_EXHAUST,
+	   (KNO_FIX2INT(skip_arg)),
+	   (KNO_FIX2INT(limit_arg)),
+	   (KNO_FIX2INT(batch_arg)),
+	   cmd,flds,NULL);
+	if (cursor) {
+	  U8_CLEAR_ERRNO();
+	  while ((cursor) && (mongoc_cursor_next(cursor,&doc))) {
+	    lispval r = kno_bson2dtype((bson_t *)doc,flags,opts);
+	    KNO_ADD_TO_CHOICE(results,r);}
+	  mongoc_cursor_destroy(cursor);}
+	else results=KNO_ERROR_VALUE;}
       else results = kno_err(kno_TypeError,"collection_command",
-                             "bad skip/limit/batch",opts);
+			     "bad skip/limit/batch",opts);
       mongoc_collection_destroy(collection);
       client_done(arg,client);
       if (cmd) bson_destroy(cmd);
@@ -1828,7 +1828,7 @@ static lispval collection_command(lispval arg,lispval command,lispval opts_arg)
 }
 
 static lispval db_command(lispval arg,lispval command,
-                          lispval opts_arg)
+			  lispval opts_arg)
 {
   struct KNO_MONGODB_DATABASE *srv = (struct KNO_MONGODB_DATABASE *)arg;
   int flags = getflags(opts_arg,srv->dbflags);
@@ -1846,31 +1846,31 @@ static lispval db_command(lispval arg,lispval command,
       lispval limit_arg = kno_getopt(opts,limitsym,KNO_FIXZERO);
       lispval batch_arg = kno_getopt(opts,batchsym,KNO_FIXZERO);
       if ((KNO_UINTP(skip_arg))&&
-          (KNO_UINTP(limit_arg))&&
-          (KNO_UINTP(batch_arg))) {
-        if (logcmds) {
-          unsigned char *cmdstring = bson_as_json(cmd,NULL);
-          u8_log(LOG_INFO,"MongoDBCommand",
-                 "For %q:\n  COMMAND: %Q\n  JSON:%s",
-                 arg,command,cmdstring);
-          bson_free(cmdstring);}
-        mongoc_cursor_t *cursor = mongoc_client_command
-          (client,srv->dbname,MONGOC_QUERY_EXHAUST,
-           (KNO_FIX2INT(skip_arg)),
-           (KNO_FIX2INT(limit_arg)),
-           (KNO_FIX2INT(batch_arg)),
-           cmd,flds,NULL);
-        if (cursor) {
-          U8_CLEAR_ERRNO();
-          while (mongoc_cursor_next(cursor,&doc)) {
-            lispval r = kno_bson2dtype((bson_t *)doc,flags,opts);
-            KNO_ADD_TO_CHOICE(results,r);}
-          mongoc_cursor_destroy(cursor);}
-        else {
-          kno_decref(results);
-          results=KNO_ERROR_VALUE;}}
+	  (KNO_UINTP(limit_arg))&&
+	  (KNO_UINTP(batch_arg))) {
+	if (logcmds) {
+	  unsigned char *cmdstring = bson_as_json(cmd,NULL);
+	  u8_log(LOG_INFO,"MongoDBCommand",
+		 "For %q:\n  COMMAND: %Q\n  JSON:%s",
+		 arg,command,cmdstring);
+	  bson_free(cmdstring);}
+	mongoc_cursor_t *cursor = mongoc_client_command
+	  (client,srv->dbname,MONGOC_QUERY_EXHAUST,
+	   (KNO_FIX2INT(skip_arg)),
+	   (KNO_FIX2INT(limit_arg)),
+	   (KNO_FIX2INT(batch_arg)),
+	   cmd,flds,NULL);
+	if (cursor) {
+	  U8_CLEAR_ERRNO();
+	  while (mongoc_cursor_next(cursor,&doc)) {
+	    lispval r = kno_bson2dtype((bson_t *)doc,flags,opts);
+	    KNO_ADD_TO_CHOICE(results,r);}
+	  mongoc_cursor_destroy(cursor);}
+	else {
+	  kno_decref(results);
+	  results=KNO_ERROR_VALUE;}}
       else results = kno_err(kno_TypeError,"collection_command",
-                             "bad skip/limit/batch",opts);
+			     "bad skip/limit/batch",opts);
       kno_decref(skip_arg);
       kno_decref(limit_arg);
       kno_decref(batch_arg);
@@ -1886,7 +1886,7 @@ static lispval db_command(lispval arg,lispval command,
 }
 
 DEFPRIM("mongodb/results",mongodb_command,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
-            "`(MONGODB/RESULTS *arg0* *arg1* *args...*)` **undocumented**");
+	"`(MONGODB/RESULTS *arg0* *arg1* *args...*)` **undocumented**");
 static lispval mongodb_command(int n,lispval *args)
 {
   lispval arg = args[0], opts = KNO_VOID, command = KNO_VOID, result = KNO_VOID;
@@ -1914,7 +1914,7 @@ static lispval mongodb_command(int n,lispval *args)
 }
 
 static lispval collection_simple_command(lispval arg,lispval command,
-                                         lispval opts_arg)
+					 lispval opts_arg)
 {
   struct KNO_MONGODB_COLLECTION *domain = (struct KNO_MONGODB_COLLECTION *)arg;
   int flags = getflags(opts_arg,domain->domain_flags);
@@ -1927,24 +1927,24 @@ static lispval collection_simple_command(lispval arg,lispval command,
     if (collection) {
       bson_t response; bson_error_t error;
       if (logcmds) {
-        unsigned char *cmd_string = bson_as_json(cmd,NULL);
-        u8_log(LOG_INFO,"MongoDBCollectionSimpleCommand",
-               "For %q:\n  COMMAND: %Q\n JSON=%s",
-               arg,command,cmd_string);
-        bson_free(cmd_string);}
+	unsigned char *cmd_string = bson_as_json(cmd,NULL);
+	u8_log(LOG_INFO,"MongoDBCollectionSimpleCommand",
+	       "For %q:\n  COMMAND: %Q\n JSON=%s",
+	       arg,command,cmd_string);
+	bson_free(cmd_string);}
       if (mongoc_collection_command_simple
-          (collection,cmd,NULL,&response,&error)) {
-        lispval result = kno_bson2dtype(&response,flags,opts);
-        collection_done(collection,client,domain);
-        bson_destroy(cmd);
-        kno_decref(opts);
-        return result;}
+	  (collection,cmd,NULL,&response,&error)) {
+	lispval result = kno_bson2dtype(&response,flags,opts);
+	collection_done(collection,client,domain);
+	bson_destroy(cmd);
+	kno_decref(opts);
+	return result;}
       else {
-        grab_mongodb_error(&error,"collection_simple_command");
-        collection_done(collection,client,domain);
-        bson_destroy(cmd);
-        kno_decref(opts);
-        return KNO_ERROR_VALUE;}}
+	grab_mongodb_error(&error,"collection_simple_command");
+	collection_done(collection,client,domain);
+	bson_destroy(cmd);
+	kno_decref(opts);
+	return KNO_ERROR_VALUE;}}
     else {
       bson_destroy(cmd);
       kno_decref(opts);
@@ -1955,7 +1955,7 @@ static lispval collection_simple_command(lispval arg,lispval command,
 }
 
 static lispval db_simple_command(lispval arg,lispval command,
-                                 lispval opts_arg)
+				 lispval opts_arg)
 {
   struct KNO_MONGODB_DATABASE *srv = (struct KNO_MONGODB_DATABASE *)arg;
   int flags = getflags(opts_arg,srv->dbflags);
@@ -1966,31 +1966,31 @@ static lispval db_simple_command(lispval arg,lispval command,
     bson_t *cmd = kno_lisp2bson(command,flags,opts);
     if (cmd) {
       if (logcmds) {
-        unsigned char *cmd_string = bson_as_json(cmd,NULL);
-        u8_log(LOG_INFO,"MongoDBSimpleCommand",
-               "For %q:\n  COMMAND: %Q\n  JSON: %s",
-               arg,command,cmd_string);
-        bson_free(cmd_string);}
+	unsigned char *cmd_string = bson_as_json(cmd,NULL);
+	u8_log(LOG_INFO,"MongoDBSimpleCommand",
+	       "For %q:\n  COMMAND: %Q\n  JSON: %s",
+	       arg,command,cmd_string);
+	bson_free(cmd_string);}
       if (mongoc_client_command_simple
-          (client,srv->dbname,cmd,NULL,&response,&error)) {
-        lispval result = kno_bson2dtype(&response,flags,opts);
-        client_done(arg,client);
-        bson_destroy(cmd);
-        kno_decref(opts);
-        return result;}
+	  (client,srv->dbname,cmd,NULL,&response,&error)) {
+	lispval result = kno_bson2dtype(&response,flags,opts);
+	client_done(arg,client);
+	bson_destroy(cmd);
+	kno_decref(opts);
+	return result;}
       else {
-        grab_mongodb_error(&error,"db_simple_command");
-        client_done(arg,client);
-        bson_destroy(cmd);
-        kno_decref(opts);
-        return KNO_ERROR_VALUE;}}
+	grab_mongodb_error(&error,"db_simple_command");
+	client_done(arg,client);
+	bson_destroy(cmd);
+	kno_decref(opts);
+	return KNO_ERROR_VALUE;}}
     else {
       return KNO_ERROR_VALUE;}}
   else return KNO_ERROR_VALUE;
 }
 
 DEFPRIM("mongodb/cmd",mongodb_simple_command,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
-            "`(MONGODB/CMD *arg0* *arg1* *args...*)` **undocumented**");
+	"`(MONGODB/CMD *arg0* *arg1* *args...*)` **undocumented**");
 static lispval mongodb_simple_command(int n,lispval *args)
 {
   lispval arg = args[0], opts = KNO_VOID, command = KNO_VOID, result = KNO_VOID;
@@ -2020,9 +2020,9 @@ static lispval mongodb_simple_command(int n,lispval *args)
 
 #if HAVE_MONGOC_OPTS_FUNCTIONS
 DEFPRIM3("cursor/open",mongodb_cursor,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-             "`(CURSOR/OPEN *arg0* *arg1* [*arg2*])` **undocumented**",
-             kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
-             kno_any_type,KNO_VOID);
+	 "`(CURSOR/OPEN *arg0* *arg1* [*arg2*])` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
+	 kno_any_type,KNO_VOID);
 static lispval mongodb_cursor(lispval arg,lispval query,lispval opts_arg)
 {
   struct KNO_MONGODB_COLLECTION *domain = (struct KNO_MONGODB_COLLECTION *)arg;
@@ -2064,9 +2064,9 @@ static lispval mongodb_cursor(lispval arg,lispval query,lispval opts_arg)
 }
 #else
 DEFPRIM3("cursor/open",mongodb_cursor,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-             "`(CURSOR/OPEN *arg0* *arg1* [*arg2*])` **undocumented**",
-             kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
-             kno_any_type,KNO_VOID);
+	 "`(CURSOR/OPEN *arg0* *arg1* [*arg2*])` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
+	 kno_any_type,KNO_VOID);
 static lispval mongodb_cursor(lispval arg,lispval query,lispval opts_arg)
 {
   struct KNO_MONGODB_COLLECTION *domain = (struct KNO_MONGODB_COLLECTION *)arg;
@@ -2142,7 +2142,7 @@ static int unparse_cursor(struct U8_OUTPUT *out,lispval x)
   struct KNO_MONGODB_COLLECTION *domain = CURSOR2DOMAIN(cursor);
   struct KNO_MONGODB_DATABASE *db = DOMAIN2DB(domain);
   u8_printf(out,"#<MongoDB/Cursor '%s/%s' %q>",
-            db->dbname,domain->collection_name,cursor->cursor_query);
+	    db->dbname,domain->collection_name,cursor->cursor_query);
   return 1;
 }
 
@@ -2164,7 +2164,7 @@ static int cursor_advance(struct KNO_MONGODB_CURSOR *c,u8_context caller)
 }
 
 DEFPRIM("cursor/done?",mongodb_donep,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-            "`(CURSOR/DONE? *arg0*)` **undocumented**");
+	"`(CURSOR/DONE? *arg0*)` **undocumented**");
 static lispval mongodb_donep(lispval cursor)
 {
   struct KNO_MONGODB_CURSOR *c = (struct KNO_MONGODB_CURSOR *)cursor;
@@ -2179,7 +2179,7 @@ static lispval mongodb_donep(lispval cursor)
 }
 
 DEFPRIM("cursor/skip",mongodb_skip,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-            "`(CURSOR/SKIP *arg0* [*arg1*])` **undocumented**");
+	"`(CURSOR/SKIP *arg0* [*arg1*])` **undocumented**");
 static lispval mongodb_skip(lispval cursor,lispval howmany)
 {
   struct KNO_MONGODB_CURSOR *c = (struct KNO_MONGODB_CURSOR *)cursor;
@@ -2193,7 +2193,7 @@ static lispval mongodb_skip(lispval cursor,lispval howmany)
 }
 
 static lispval mongodb_cursor_reader(lispval cursor,lispval howmany,
-                                     lispval opts_arg,int sorted)
+				     lispval opts_arg,int sorted)
 {
   struct KNO_MONGODB_CURSOR *c = (struct KNO_MONGODB_CURSOR *)cursor;
   if (!(KNO_UINTP(howmany)))
@@ -2224,20 +2224,20 @@ static lispval mongodb_cursor_reader(lispval cursor,lispval howmany,
       lispval r = kno_bson2dtype((bson_t *)doc,flags,opts);
       if (!(KNO_VOIDP(opts_arg))) kno_decref(opts);
       if (KNO_ABORTP(r)) {
-        kno_decref_elts(vec,i);
-        return KNO_ERROR;}
+	kno_decref_elts(vec,i);
+	return KNO_ERROR;}
       else vec[i++] = r;}
     if (i < n) {
       bson_error_t err;
       int cursor_err = mongoc_cursor_error(scan,&err);
       if (cursor_err) {
-        grab_mongodb_error(&err,"mongodb");
-        kno_decref_vec(vec,i);
-        return KNO_ERROR;}
+	grab_mongodb_error(&err,"mongodb");
+	kno_decref_vec(vec,i);
+	return KNO_ERROR;}
       else c->cursor_done=1;}
     if (sorted) {
       if (i == 0)
-        return kno_make_vector(0,NULL);
+	return kno_make_vector(0,NULL);
       else return kno_make_vector(i,vec);}
     else if (i == 0)
       return KNO_EMPTY_CHOICE;
@@ -2247,18 +2247,18 @@ static lispval mongodb_cursor_reader(lispval cursor,lispval howmany,
 }
 
 DEFPRIM("cursor/read",mongodb_cursor_read,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
-             "`(CURSOR/READ *arg0* [*arg1*] [*arg2*])` **undocumented**");
+	"`(CURSOR/READ *arg0* [*arg1*] [*arg2*])` **undocumented**");
 static lispval mongodb_cursor_read(lispval cursor,lispval howmany,
-                                   lispval opts_arg)
+				   lispval opts_arg)
 {
   return mongodb_cursor_reader(cursor,howmany,opts_arg,-1);
 }
 
 
 DEFPRIM("cursor/readvec",mongodb_cursor_read_vector,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
-            "`(CURSOR/READVEC *arg0* [*arg1*] [*arg2*])` **undocumented**");
+	"`(CURSOR/READVEC *arg0* [*arg1*] [*arg2*])` **undocumented**");
 static lispval mongodb_cursor_read_vector(lispval cursor,lispval howmany,
-                                          lispval opts_arg)
+					  lispval opts_arg)
 {
   return mongodb_cursor_reader(cursor,howmany,opts_arg,1);
 }
@@ -2266,9 +2266,9 @@ static lispval mongodb_cursor_read_vector(lispval cursor,lispval howmany,
 /* BSON output functions */
 
 static bool bson_append_dtype(struct KNO_BSON_OUTPUT b,
-                              const char *key,int keylen,
-                              lispval val,
-                              int flags)
+			      const char *key,int keylen,
+			      lispval val,
+			      int flags)
 {
   bool ok = true;
   bson_t *out = b.bson_doc;
@@ -2282,7 +2282,7 @@ static bool bson_append_dtype(struct KNO_BSON_OUTPUT b,
     wrapper_out.bson_opts = b.bson_opts;
     wrapper_out.bson_fieldmap = b.bson_fieldmap;
     if (ok) ok = bson_append_dtype
-              (wrapper_out,"0",1,val,(flags&(~KNO_MONGODB_VECSLOT)));
+	      (wrapper_out,"0",1,val,(flags&(~KNO_MONGODB_VECSLOT)));
     if (ok) ok = bson_append_document_end(out,&values);
     return ok;}
   else if (KNO_CONSP(val)) {
@@ -2292,16 +2292,16 @@ static bool bson_append_dtype(struct KNO_BSON_OUTPUT b,
       unsigned char _buf[64], *buf=_buf;
       u8_string str = KNO_CSTRING(val); int len = KNO_STRLEN(val);
       if ((flags&KNO_MONGODB_COLONIZE)&&
-          ((isdigit(str[0]))||(strchr(":(#@",str[0])!=NULL))) {
-        if (len>62) buf = u8_malloc(len+2);
-        buf[0]='\\'; strncpy(buf+1,str,len); buf[len+1]='\0';
-        ok = bson_append_utf8(out,key,keylen,buf,len+1);
-        if (buf!=_buf) u8_free(buf);}
+	  ((isdigit(str[0]))||(strchr(":(#@",str[0])!=NULL))) {
+	if (len>62) buf = u8_malloc(len+2);
+	buf[0]='\\'; strncpy(buf+1,str,len); buf[len+1]='\0';
+	ok = bson_append_utf8(out,key,keylen,buf,len+1);
+	if (buf!=_buf) u8_free(buf);}
       else ok = bson_append_utf8(out,key,keylen,str,len);
       break;}
     case kno_packet_type:
       ok = bson_append_binary(out,key,keylen,BSON_SUBTYPE_BINARY,
-                              KNO_PACKET_DATA(val),KNO_PACKET_LENGTH(val));
+			      KNO_PACKET_DATA(val),KNO_PACKET_LENGTH(val));
       break;
     case kno_flonum_type: {
       double d = KNO_FLONUM(val);
@@ -2310,23 +2310,23 @@ static bool bson_append_dtype(struct KNO_BSON_OUTPUT b,
     case kno_bigint_type: {
       kno_bigint b = kno_consptr(kno_bigint,val,kno_bigint_type);
       if (kno_bigint_fits_in_word_p(b,32,1)) {
-        long int b32 = kno_bigint_to_long(b);
-        ok = bson_append_int32(out,key,keylen,b32);}
+	long int b32 = kno_bigint_to_long(b);
+	ok = bson_append_int32(out,key,keylen,b32);}
       else if (kno_bigint_fits_in_word_p(b,65,1)) {
-        long long int b64 = kno_bigint_to_long_long(b);
-        ok = bson_append_int64(out,key,keylen,b64);}
+	long long int b64 = kno_bigint_to_long_long(b);
+	ok = bson_append_int64(out,key,keylen,b64);}
       else {
-        u8_logf(LOG_CRIT,kno_MongoDB_Warning,
-                "Can't save bigint value %q",val);
-        ok = bson_append_int32(out,key,keylen,0);}
+	u8_logf(LOG_CRIT,kno_MongoDB_Warning,
+		"Can't save bigint value %q",val);
+	ok = bson_append_int32(out,key,keylen,0);}
       break;}
     case kno_timestamp_type: {
       struct KNO_TIMESTAMP *knot=
-        kno_consptr(struct KNO_TIMESTAMP* ,val,kno_timestamp_type);
+	kno_consptr(struct KNO_TIMESTAMP* ,val,kno_timestamp_type);
       unsigned long long millis = (knot->u8xtimeval.u8_tick*1000)+
-        ((knot->u8xtimeval.u8_prec>u8_second)?
-         (knot->u8xtimeval.u8_nsecs/1000000):
-         (0));
+	((knot->u8xtimeval.u8_prec>u8_second)?
+	 (knot->u8xtimeval.u8_nsecs/1000000):
+	 (0));
       ok = bson_append_date_time(out,key,keylen,millis);
       break;}
     case kno_uuid_type: {
@@ -2341,10 +2341,10 @@ static bool bson_append_dtype(struct KNO_BSON_OUTPUT b,
       rout.bson_doc = &arr; rout.bson_flags = b.bson_flags;
       rout.bson_opts = b.bson_opts; rout.bson_fieldmap = b.bson_fieldmap;
       if (ok) {
-        int i = 0; KNO_DO_CHOICES(v,val) {
-          sprintf(buf,"%d",i++);
-          ok = bson_append_dtype(rout,buf,strlen(buf),v,b.bson_flags);
-          if (!(ok)) KNO_STOP_DO_CHOICES;}}
+	int i = 0; KNO_DO_CHOICES(v,val) {
+	  sprintf(buf,"%d",i++);
+	  ok = bson_append_dtype(rout,buf,strlen(buf),v,b.bson_flags);
+	  if (!(ok)) KNO_STOP_DO_CHOICES;}}
       bson_append_document_end(out,&arr);
       break;}
     case kno_vector_type: {
@@ -2355,24 +2355,24 @@ static bool bson_append_dtype(struct KNO_BSON_OUTPUT b,
       lispval *data = vec->vec_elts;
       int wrap_vector = ((flags&KNO_MONGODB_CHOICEVALS)&&(key[0]!='$'));
       if (wrap_vector) {
-        ok = bson_append_array_begin(out,key,keylen,&ch);
-        if (ok) ok = bson_append_array_begin(&ch,"0",1,&arr);
-        else break;}
+	ok = bson_append_array_begin(out,key,keylen,&ch);
+	if (ok) ok = bson_append_array_begin(&ch,"0",1,&arr);
+	else break;}
       else ok = bson_append_array_begin(out,key,keylen,&arr);
       if (ok) {
-        doc_started = 1;
-        memset(&rout,0,sizeof(struct KNO_BSON_OUTPUT));
-        rout.bson_doc = &arr; rout.bson_flags = b.bson_flags;
-        rout.bson_opts = b.bson_opts; rout.bson_fieldmap = b.bson_fieldmap;
-        while (i<lim) {
-          lispval v = data[i]; sprintf(buf,"%d",i++);
-          ok = bson_append_dtype(rout,buf,strlen(buf),v,-1);
-          if (!(ok)) break;}}
+	doc_started = 1;
+	memset(&rout,0,sizeof(struct KNO_BSON_OUTPUT));
+	rout.bson_doc = &arr; rout.bson_flags = b.bson_flags;
+	rout.bson_opts = b.bson_opts; rout.bson_fieldmap = b.bson_fieldmap;
+	while (i<lim) {
+	  lispval v = data[i]; sprintf(buf,"%d",i++);
+	  ok = bson_append_dtype(rout,buf,strlen(buf),v,-1);
+	  if (!(ok)) break;}}
       else break;
       if (!(doc_started)) break;
       else if (wrap_vector) {
-        bson_append_array_end(&ch,&arr);
-        bson_append_array_end(out,&ch);}
+	bson_append_array_end(&ch,&arr);
+	bson_append_array_end(out,&ch);}
       else bson_append_array_end(out,&arr);
       break;}
     case kno_slotmap_type: case kno_hashtable_type: case kno_schemap_type: {
@@ -2382,15 +2382,15 @@ static bool bson_append_dtype(struct KNO_BSON_OUTPUT b,
       ok = bson_append_document_begin(out,key,keylen,&doc);
       int doc_started = ok;
       if (ok) {
-        memset(&rout,0,sizeof(struct KNO_BSON_OUTPUT));
-        rout.bson_doc = &doc; rout.bson_flags = b.bson_flags;
-        rout.bson_opts = b.bson_opts; rout.bson_fieldmap = b.bson_fieldmap;
-        KNO_DO_CHOICES(key,keys) {
-          lispval value = kno_get(val,key,KNO_VOID);
-          if (!(KNO_VOIDP(value))) {
-            ok = bson_append_keyval(rout,key,value);
-            kno_decref(value);
-            if (!(ok)) KNO_STOP_DO_CHOICES;}}}
+	memset(&rout,0,sizeof(struct KNO_BSON_OUTPUT));
+	rout.bson_doc = &doc; rout.bson_flags = b.bson_flags;
+	rout.bson_opts = b.bson_opts; rout.bson_fieldmap = b.bson_fieldmap;
+	KNO_DO_CHOICES(key,keys) {
+	  lispval value = kno_get(val,key,KNO_VOID);
+	  if (!(KNO_VOIDP(value))) {
+	    ok = bson_append_keyval(rout,key,value);
+	    kno_decref(value);
+	    if (!(ok)) KNO_STOP_DO_CHOICES;}}}
       kno_decref(keys);
       if (doc_started) bson_append_document_end(out,&doc);
       break;}
@@ -2409,12 +2409,12 @@ static bool bson_append_dtype(struct KNO_BSON_OUTPUT b,
       bson_t doc;
       ok = bson_append_document_begin(out,key,keylen,&doc);
       if (ok) {
-        rout.bson_doc = &doc; rout.bson_flags = b.bson_flags;
-        rout.bson_opts = b.bson_opts; rout.bson_fieldmap = b.bson_fieldmap;
-        ok = bson_append_dtype(rout,":|>car>|",8,pair->car,-1);
-        if (ok) {
-          ok = bson_append_dtype(rout,":|>cdr>|",8,pair->cdr,-1);
-          if (ok) bson_append_document_end(out,&doc);}}
+	rout.bson_doc = &doc; rout.bson_flags = b.bson_flags;
+	rout.bson_opts = b.bson_opts; rout.bson_fieldmap = b.bson_fieldmap;
+	ok = bson_append_dtype(rout,":|>car>|",8,pair->car,-1);
+	if (ok) {
+	  ok = bson_append_dtype(rout,":|>cdr>|",8,pair->cdr,-1);
+	  if (ok) bson_append_document_end(out,&doc);}}
       break;}
     case kno_compound_type: {
       struct KNO_COMPOUND *compound = KNO_XCOMPOUND(val);
@@ -2424,44 +2424,44 @@ static bool bson_append_dtype(struct KNO_BSON_OUTPUT b,
       struct KNO_BSON_OUTPUT rout;
       bson_t doc;
       if (tag == oidtag) {
-        lispval packet = elts[0];
-        bson_oid_t oid;
-        bson_oid_init_from_data(&oid,KNO_PACKET_DATA(packet));
-        ok = bson_append_oid(out,key,keylen,&oid);
-        break;}
+	lispval packet = elts[0];
+	bson_oid_t oid;
+	bson_oid_init_from_data(&oid,KNO_PACKET_DATA(packet));
+	ok = bson_append_oid(out,key,keylen,&oid);
+	break;}
       else if (tag == mongovec_symbol)
-        ok = bson_append_array_begin(out,key,keylen,&doc);
+	ok = bson_append_array_begin(out,key,keylen,&doc);
       else if ( (tag == mongo_timestamp_tag) && (len == 2) &&
-                (KNO_INTEGERP(KNO_COMPOUND_REF(val,1))) &&
-                (KNO_TYPEP(KNO_COMPOUND_REF(val,0),kno_timestamp_type)) ) {
-        struct KNO_TIMESTAMP *ts = (kno_timestamp)KNO_COMPOUND_REF(val,0);
-        ok = bson_append_timestamp(b.bson_doc,key,keylen,
-                                   ts->u8xtimeval.u8_tick,
-                                   kno_getint(KNO_COMPOUND_REF(val,1)));
-        break;}
+		(KNO_INTEGERP(KNO_COMPOUND_REF(val,1))) &&
+		(KNO_TYPEP(KNO_COMPOUND_REF(val,0),kno_timestamp_type)) ) {
+	struct KNO_TIMESTAMP *ts = (kno_timestamp)KNO_COMPOUND_REF(val,0);
+	ok = bson_append_timestamp(b.bson_doc,key,keylen,
+				   ts->u8xtimeval.u8_tick,
+				   kno_getint(KNO_COMPOUND_REF(val,1)));
+	break;}
       else ok = bson_append_document_begin(out,key,keylen,&doc);
       /* Initialize the substream */
       memset(&rout,0,sizeof(struct KNO_BSON_OUTPUT));
       rout.bson_doc = &doc; rout.bson_flags = b.bson_flags;
       rout.bson_opts = b.bson_opts; rout.bson_fieldmap = b.bson_fieldmap;
       if (tag == mongovec_symbol) {
-        /* Output a vector */
-        lispval *scan = elts, *limit = scan+len; int i = 0;
-        while (scan<limit) {
-          u8_byte buf[16]; sprintf(buf,"%d",i);
-          ok = bson_append_dtype(rout,buf,strlen(buf),*scan,-1);
-          scan++; i++;
-          if (!(ok)) break;}}
+	/* Output a vector */
+	lispval *scan = elts, *limit = scan+len; int i = 0;
+	while (scan<limit) {
+	  u8_byte buf[16]; sprintf(buf,"%d",i);
+	  ok = bson_append_dtype(rout,buf,strlen(buf),*scan,-1);
+	  scan++; i++;
+	  if (!(ok)) break;}}
       else {
-        /* Or a tagged object */
-        int i = 0;
-        ok = bson_append_dtype(rout,"%knotag",6,tag,-1);
-        if (ok) while (i<len) {
-            char buf[16]; sprintf(buf,"%d",i);
-            ok = bson_append_dtype(rout,buf,strlen(buf),elts[i++],-1);
-            if (!(ok)) break;}}
+	/* Or a tagged object */
+	int i = 0;
+	ok = bson_append_dtype(rout,"%knotag",6,tag,-1);
+	if (ok) while (i<len) {
+	    char buf[16]; sprintf(buf,"%d",i);
+	    ok = bson_append_dtype(rout,buf,strlen(buf),elts[i++],-1);
+	    if (!(ok)) break;}}
       if (tag == mongovec_symbol)
-        bson_append_array_end(out,&doc);
+	bson_append_array_end(out,&doc);
       else bson_append_document_end(out,&doc);
       break;}
     default: {
@@ -2469,10 +2469,10 @@ static bool bson_append_dtype(struct KNO_BSON_OUTPUT b,
       U8_INIT_OUTPUT_BUF(&vout,128,buf);
       vout.u8_streaminfo |= U8_STREAM_VERBOSE;
       if (flags&KNO_MONGODB_COLONIZE)
-        u8_printf(&vout,":%q",val);
+	u8_printf(&vout,":%q",val);
       else kno_unparse(&vout,val);
       ok = bson_append_utf8(out,key,keylen,vout.u8_outbuf,
-                            vout.u8_write-vout.u8_outbuf);
+			    vout.u8_write-vout.u8_outbuf);
       u8_close((u8_stream)&vout);}}
     return ok;}
   else if (KNO_INTP(val))
@@ -2496,11 +2496,11 @@ static bool bson_append_dtype(struct KNO_BSON_OUTPUT b,
       size_t pname_len = strlen(pname);
       U8_STATIC_OUTPUT(keyout,pname_len*2);
       int c = u8_sgetc(&scan); while (c>=0) {
-        c = u8_tolower(c);
-        u8_putc(&keyout,c);
-        c = u8_sgetc(&scan);}
+	c = u8_tolower(c);
+	u8_putc(&keyout,c);
+	c = u8_sgetc(&scan);}
       return bson_append_utf8
-        (out,key,keylen,keyout.u8_outbuf,u8_outlen(&keyout));}
+	(out,key,keylen,keyout.u8_outbuf,u8_outlen(&keyout));}
     else if (flags&KNO_MONGODB_COLONIZE_OUT) {
       u8_string pname = KNO_SYMBOL_NAME(val);
       u8_byte _buf[512], *buf=_buf;
@@ -2508,9 +2508,9 @@ static bool bson_append_dtype(struct KNO_BSON_OUTPUT b,
       if (len>510) buf = u8_malloc(len+2);
       buf[0]=':'; strcpy(buf+1,pname);
       if (buf!=_buf) {
-        bool rval = bson_append_utf8(out,key,keylen,buf,len+1);
-        u8_free(buf);
-        return rval;}
+	bool rval = bson_append_utf8(out,key,keylen,buf,len+1);
+	u8_free(buf);
+	return rval;}
       else return bson_append_utf8(out,key,keylen,buf,len+1);}
     else return bson_append_utf8(out,key,keylen,KNO_SYMBOL_NAME(val),-1);}
   else if (KNO_CHARACTERP(val)) {
@@ -2523,7 +2523,7 @@ static bool bson_append_dtype(struct KNO_BSON_OUTPUT b,
       U8_INIT_OUTPUT_BUF(&vout,16,buf);
       u8_putc(&vout,code);
       return bson_append_utf8(out,key,keylen,vout.u8_outbuf,
-                              vout.u8_write-vout.u8_outbuf);}}
+			      vout.u8_write-vout.u8_outbuf);}}
   else switch (val) {
     case KNO_TRUE: case KNO_FALSE:
       return bson_append_bool(out,key,keylen,(val == KNO_TRUE));
@@ -2532,10 +2532,10 @@ static bool bson_append_dtype(struct KNO_BSON_OUTPUT b,
       U8_INIT_OUTPUT_BUF(&vout,128,buf);
       vout.u8_streaminfo |= U8_STREAM_VERBOSE;
       if (flags&KNO_MONGODB_COLONIZE)
-        u8_printf(&vout,":%q",val);
+	u8_printf(&vout,":%q",val);
       else kno_unparse(&vout,val);
       rv = bson_append_utf8(out,key,keylen,vout.u8_outbuf,
-                            vout.u8_write-vout.u8_outbuf);
+			    vout.u8_write-vout.u8_outbuf);
       u8_close((u8_stream)&vout);
       return rv;}}
 }
@@ -2562,19 +2562,19 @@ static bool bson_append_keyval(KNO_BSON_OUTPUT b,lispval key,lispval val)
   if (KNO_SYMBOLP(key)) {
     if (flags&KNO_MONGODB_SLOTIFY) {
       struct KNO_KEYVAL *opmap = kno_sortvec_get
-        (key,mongo_opmap,mongo_opmap_size);
+	(key,mongo_opmap,mongo_opmap_size);
       if (KNO_EXPECT_FALSE(opmap!=NULL))  {
-        if (KNO_STRINGP(opmap->kv_val)) {
-          lispval mapped = opmap->kv_val;
-          keystring = KNO_CSTRING(mapped);
-          keylen = KNO_STRLEN(mapped);}}
+	if (KNO_STRINGP(opmap->kv_val)) {
+	  lispval mapped = opmap->kv_val;
+	  keystring = KNO_CSTRING(mapped);
+	  keylen = KNO_STRLEN(mapped);}}
       if (keystring == NULL) {
-        u8_string pname = KNO_SYMBOL_NAME(key);
-        const u8_byte *scan = pname; int c;
-        while ((c = u8_sgetc(&scan))>=0) {
-          u8_putc(&keyout,u8_tolower(c));}
-        keystring = keyout.u8_outbuf;
-        keylen = keyout.u8_write-keyout.u8_outbuf;}}
+	u8_string pname = KNO_SYMBOL_NAME(key);
+	const u8_byte *scan = pname; int c;
+	while ((c = u8_sgetc(&scan))>=0) {
+	  u8_putc(&keyout,u8_tolower(c));}
+	keystring = keyout.u8_outbuf;
+	keylen = keyout.u8_write-keyout.u8_outbuf;}}
     else {
       keystring = KNO_SYMBOL_NAME(key);
       keylen = strlen(keystring);}
@@ -2582,20 +2582,20 @@ static bool bson_append_keyval(KNO_BSON_OUTPUT b,lispval key,lispval val)
       lispval mapfn = kno_get(fieldmap,key,KNO_VOID);
       if (KNO_VOIDP(mapfn)) {}
       else if (KNO_APPLICABLEP(mapfn))
-        store_value = kno_apply(mapfn,1,&val);
+	store_value = kno_apply(mapfn,1,&val);
       else if (KNO_TABLEP(mapfn))
-        store_value = kno_get(mapfn,val,KNO_VOID);
+	store_value = kno_get(mapfn,val,KNO_VOID);
       else if (KNO_TRUEP(mapfn)) {
-        struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,256);
-        out.u8_streaminfo |= U8_STREAM_VERBOSE;
-        kno_unparse(&out,val);
-        store_value = kno_stream2string(&out);}
+	struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,256);
+	out.u8_streaminfo |= U8_STREAM_VERBOSE;
+	kno_unparse(&out,val);
+	store_value = kno_stream2string(&out);}
       else {}}}
   else if (KNO_STRINGP(key)) {
     keystring = KNO_CSTRING(key);
     if ((flags&KNO_MONGODB_SLOTIFY)&&
-        ((isdigit(keystring[0]))||
-         (strchr(":(#@",keystring[0])!=NULL))) {
+	((isdigit(keystring[0]))||
+	 (strchr(":(#@",keystring[0])!=NULL))) {
       u8_putc(&keyout,'\\'); u8_puts(&keyout,(u8_string)keystring);
       keystring = keyout.u8_outbuf;
       keylen = keyout.u8_write-keyout.u8_outbuf;}
@@ -2603,7 +2603,7 @@ static bool bson_append_keyval(KNO_BSON_OUTPUT b,lispval key,lispval val)
   else {
     keyout.u8_write = keyout.u8_outbuf;
     if ((flags&KNO_MONGODB_SLOTIFY)&&
-        (!((KNO_OIDP(key))||(KNO_VECTORP(key))||(KNO_PAIRP(key)))))
+	(!((KNO_OIDP(key))||(KNO_VECTORP(key))||(KNO_PAIRP(key)))))
       u8_putc(&keyout,':');
     kno_unparse(&keyout,key);
     keystring = keyout.u8_outbuf;
@@ -2639,15 +2639,15 @@ KNO_EXPORT lispval kno_bson_output(struct KNO_BSON_OUTPUT out,lispval obj)
       lispval elt = elts[i]; u8_byte buf[16];
       sprintf(buf,"%d",i++);
       if (ok)
-        ok = bson_append_dtype(out,buf,strlen(buf),elt,-1);
+	ok = bson_append_dtype(out,buf,strlen(buf),elt,-1);
       else break;}}
   else if (KNO_CHOICEP(obj)) {
     int i = 0; KNO_DO_CHOICES(elt,obj) {
       u8_byte buf[16]; sprintf(buf,"%d",i++);
       if (ok) ok = bson_append_dtype(out,buf,strlen(buf),elt,-1);
       else {
-        KNO_STOP_DO_CHOICES;
-        break;}}}
+	KNO_STOP_DO_CHOICES;
+	break;}}}
   else if (KNO_SLOTMAPP(obj)) {
     struct KNO_SLOTMAP *smap = (kno_slotmap) obj;
     int i = 0, n = smap->n_slots;
@@ -2672,10 +2672,10 @@ KNO_EXPORT lispval kno_bson_output(struct KNO_BSON_OUTPUT out,lispval obj)
   else if (KNO_TABLEP(obj)) {
     lispval keys = kno_getkeys(obj);
     {KNO_DO_CHOICES(key,keys) {
-        lispval val = kno_get(obj,key,KNO_VOID);
-        if (ok) ok = bson_append_keyval(out,key,val);
-        kno_decref(val);
-        if (!(ok)) break;}}
+	lispval val = kno_get(obj,key,KNO_VOID);
+	if (ok) ok = bson_append_keyval(out,key,val);
+	kno_decref(val);
+	if (!(ok)) break;}}
     kno_decref(keys);}
   else if (KNO_COMPOUNDP(obj)) {
     struct KNO_COMPOUND *compound = KNO_XCOMPOUND(obj);
@@ -2685,17 +2685,17 @@ KNO_EXPORT lispval kno_bson_output(struct KNO_BSON_OUTPUT out,lispval obj)
     if (tag == mongovec_symbol) {
       lispval *scan = elts, *limit = scan+len; int i = 0;
       while (scan<limit) {
-        u8_byte buf[16]; sprintf(buf,"%d",i);
-        ok = bson_append_dtype(out,buf,strlen(buf),*scan,-1);
-        i++; scan++;
-        if (!(ok)) break;}}
+	u8_byte buf[16]; sprintf(buf,"%d",i);
+	ok = bson_append_dtype(out,buf,strlen(buf),*scan,-1);
+	i++; scan++;
+	if (!(ok)) break;}}
     else {
       int i = 0;
       ok = bson_append_dtype(out,"%knotag",6,tag,0);
       if (ok) while (i<len) {
-          char buf[16]; sprintf(buf,"%d",i);
-          ok = bson_append_dtype(out,buf,strlen(buf),elts[i++],-1);
-          if (!(ok)) break;}}}
+	  char buf[16]; sprintf(buf,"%d",i);
+	  ok = bson_append_dtype(out,buf,strlen(buf),elts[i++],-1);
+	  if (!(ok)) break;}}}
   if (!(ok)) {
     kno_seterr("BSONError","kno_bson_output",NULL,obj);
     return KNO_ERROR_VALUE;}
@@ -2750,7 +2750,7 @@ static lispval bson_read_vector(KNO_BSON_INPUT b,int flags);
 static lispval bson_read_choice(KNO_BSON_INPUT b,int flags);
 
 static void bson_read_step(KNO_BSON_INPUT b,int flags,
-                           lispval into,lispval *loc)
+			   lispval into,lispval *loc)
 {
   int symslot = 0;
   bson_iter_t *in = b.bson_iter;
@@ -2810,23 +2810,23 @@ static void bson_read_step(KNO_BSON_INPUT b,int flags,
       value = kno_parse_arg((u8_string)(bytes));
     else if ( (flags&KNO_MONGODB_COLONIZE) && (bytes[0]=='\\'))
       value = kno_make_string(NULL,((len>0)?(len-1):(-1)),
-                              (unsigned char *)bytes+1);
+			      (unsigned char *)bytes+1);
     else if (flags&KNO_MONGODB_SYMSLOT) {
       if ( (bytes[0] == ':') || (bytes[0] == '@') ||
-           (bytes[0] == '#') )
-        value = kno_parse_arg((u8_string)(bytes));
+	   (bytes[0] == '#') )
+	value = kno_parse_arg((u8_string)(bytes));
       else value = kno_make_string(NULL,((len>0)?(len):(-1)),
-                                   (unsigned char *)bytes);}
+				   (unsigned char *)bytes);}
     else value = kno_make_string(NULL,((len>0)?(len):(-1)),
-                                 (unsigned char *)bytes);
+				 (unsigned char *)bytes);
     if (KNO_ABORTED(value)) {
       u8_exception ex = u8_current_exception;
       u8_log(LOGWARN,"MongoDBParseError","%s<%s> (%s): %s",
-             ex->u8x_cond,ex->u8x_context,
-             ex->u8x_details,bytes);
+	     ex->u8x_cond,ex->u8x_context,
+	     ex->u8x_details,bytes);
       kno_clear_errors(1);
       value = kno_make_string(NULL,((len>0)?(len):(-1)),
-                              (unsigned char *)bytes);}
+			      (unsigned char *)bytes);}
     break;}
   case BSON_TYPE_BINARY: {
     int len; bson_subtype_t st; const unsigned char *data;
@@ -2839,13 +2839,13 @@ static void bson_read_step(KNO_BSON_INPUT b,int flags,
     else {
       lispval packet = kno_make_packet(NULL,len,(unsigned char *)data);
       if (st == BSON_SUBTYPE_BINARY)
-        value = packet;
+	value = packet;
       else if (st == BSON_SUBTYPE_USER)
-        value = kno_init_compound(NULL,mongouser,0,1,packet);
+	value = kno_init_compound(NULL,mongouser,0,1,packet);
       else if (st == BSON_SUBTYPE_MD5)
-        value = kno_init_compound(NULL,mongomd5,0,1,packet);
+	value = kno_init_compound(NULL,mongomd5,0,1,packet);
       else if (st == BSON_SUBTYPE_FUNCTION)
-        value = kno_init_compound(NULL,mongofun,0,1,packet);
+	value = kno_init_compound(NULL,mongofun,0,1,packet);
       else value = packet;}
     break;}
   case BSON_TYPE_INT32:
@@ -2860,9 +2860,9 @@ static void bson_read_step(KNO_BSON_INPUT b,int flags,
     if ((bytes[0]==0)&&(bytes[1]==0)&&(bytes[2]==0)&&(bytes[3]==0)) {
       KNO_OID dtoid;
       unsigned int hi=
-        (((((bytes[4]<<8)|(bytes[5]))<<8)|(bytes[6]))<<8)|(bytes[7]);
+	(((((bytes[4]<<8)|(bytes[5]))<<8)|(bytes[6]))<<8)|(bytes[7]);
       unsigned int lo=
-        (((((bytes[8]<<8)|(bytes[9]))<<8)|(bytes[10]))<<8)|(bytes[11]);
+	(((((bytes[8]<<8)|(bytes[9]))<<8)|(bytes[10]))<<8)|(bytes[11]);
       memset(&dtoid,0,sizeof(dtoid));
       KNO_SET_OID_HI(dtoid,hi); KNO_SET_OID_LO(dtoid,lo);
       value = kno_make_oid(dtoid);}
@@ -2879,7 +2879,7 @@ static void bson_read_step(KNO_BSON_INPUT b,int flags,
     struct KNO_TIMESTAMP *ts = u8_alloc(struct KNO_TIMESTAMP);
     KNO_INIT_CONS(ts,kno_timestamp_type);
     u8_init_xtime(&(ts->u8xtimeval),millis/1000,u8_millisecond,
-                  ((millis%1000)*1000000),0,0);
+		  ((millis%1000)*1000000),0,0);
     value = (lispval)ts;
     break;}
   case BSON_TYPE_TIMESTAMP: {
@@ -2901,56 +2901,56 @@ static void bson_read_step(KNO_BSON_INPUT b,int flags,
       r.bson_opts = b.bson_opts; r.bson_fieldmap = b.bson_fieldmap;
       value = kno_init_slotmap(NULL,0,NULL);
       while (bson_iter_next(&child))
-        bson_read_step(r,flags,value,NULL);
+	bson_read_step(r,flags,value,NULL);
       if (kno_test(value,dotcar_symbol,KNO_VOID)) {
-        lispval car = kno_get(value,dotcar_symbol,KNO_VOID);
-        lispval cdr = kno_get(value,dotcdr_symbol,KNO_VOID);
-        kno_decref(value);
-        value = kno_init_pair(NULL,car,cdr);}
+	lispval car = kno_get(value,dotcar_symbol,KNO_VOID);
+	lispval cdr = kno_get(value,dotcdr_symbol,KNO_VOID);
+	kno_decref(value);
+	value = kno_init_pair(NULL,car,cdr);}
       else if (kno_test(value,knotag_symbol,KNO_VOID)) {
-        lispval tag = kno_get(value,knotag_symbol,KNO_VOID), compound;
-        struct KNO_COMPOUND_TYPEINFO *entry = kno_lookup_compound(tag);
-        lispval fields[16] = { KNO_VOID }, keys = kno_getkeys(value);
-        int max = -1, i = 0, n, ok = 1;
-        {KNO_DO_CHOICES(key,keys) {
-            if (KNO_FIXNUMP(key)) {
-              long long index = KNO_FIX2INT(key);
-              if ((index<0) || (index>=16)) {
-                i = 0; while (i<16) {
-                  lispval value = fields[i++];
-                  kno_decref(value);}
-                u8_logf(LOG_ERR,kno_BSON_Compound_Overflow,
-                        "Compound of type %q: %q",tag,value);
-                KNO_STOP_DO_CHOICES;
-                ok = 0;
-                break;}
-              if (index>max) max = index;
-              fields[index]=kno_get(value,key,KNO_VOID);}}}
-        if (ok) {
-          n = max+1;
-          if ((entry)&&(entry->compound_parser))
-            compound = entry->compound_parser(n,fields,entry);
-          else {
-            struct KNO_COMPOUND *c=
-              u8_malloc(sizeof(struct KNO_COMPOUND)+(n*LISPVAL_LEN));
-            lispval *cdata = &(c->compound_0);
-            kno_init_compound(c,tag,0,0);
-            c->compound_length = n;
-            memcpy(cdata,fields,n);
-            compound = LISP_CONS(c);}
-          kno_decref(value);
-          value = compound;}
-        kno_decref(keys);
-        kno_decref(tag);}
+	lispval tag = kno_get(value,knotag_symbol,KNO_VOID), compound;
+	struct KNO_COMPOUND_TYPEINFO *entry = kno_lookup_compound(tag);
+	lispval fields[16] = { KNO_VOID }, keys = kno_getkeys(value);
+	int max = -1, i = 0, n, ok = 1;
+	{KNO_DO_CHOICES(key,keys) {
+	    if (KNO_FIXNUMP(key)) {
+	      long long index = KNO_FIX2INT(key);
+	      if ((index<0) || (index>=16)) {
+		i = 0; while (i<16) {
+		  lispval value = fields[i++];
+		  kno_decref(value);}
+		u8_logf(LOG_ERR,kno_BSON_Compound_Overflow,
+			"Compound of type %q: %q",tag,value);
+		KNO_STOP_DO_CHOICES;
+		ok = 0;
+		break;}
+	      if (index>max) max = index;
+	      fields[index]=kno_get(value,key,KNO_VOID);}}}
+	if (ok) {
+	  n = max+1;
+	  if ((entry)&&(entry->compound_parser))
+	    compound = entry->compound_parser(n,fields,entry);
+	  else {
+	    struct KNO_COMPOUND *c=
+	      u8_malloc(sizeof(struct KNO_COMPOUND)+(n*LISPVAL_LEN));
+	    lispval *cdata = &(c->compound_0);
+	    kno_init_compound(c,tag,0,0);
+	    c->compound_length = n;
+	    memcpy(cdata,fields,n);
+	    compound = LISP_CONS(c);}
+	  kno_decref(value);
+	  value = compound;}
+	kno_decref(keys);
+	kno_decref(tag);}
       else {}}
     else if (BSON_ITER_HOLDS_ARRAY(in)) {
       int choicevals = (flags&KNO_MONGODB_CHOICEVALS);
       if ( (choicevals) && (symslot) )
-        value = bson_read_choice(b,flags);
+	value = bson_read_choice(b,flags);
       else value = bson_read_vector(b,flags);}
     else {
       u8_logf(LOG_ERR,kno_BSON_Input_Error,
-              "Can't handle BSON type %d",bt);
+	      "Can't handle BSON type %d",bt);
       return;}}
   if (!(KNO_VOIDP(b.bson_fieldmap))) {
     struct KNO_STRING _tempkey;
@@ -3026,9 +3026,9 @@ static lispval bson_read_choice(KNO_BSON_INPUT b,int flags)
     u8_free(data);
     return KNO_EMPTY_CHOICE;}
   else return kno_make_choice
-         (write-data,data,
-          KNO_CHOICE_DOSORT|KNO_CHOICE_COMPRESS|
-          KNO_CHOICE_FREEDATA|KNO_CHOICE_REALLOC);
+	 (write-data,data,
+	  KNO_CHOICE_DOSORT|KNO_CHOICE_COMPRESS|
+	  KNO_CHOICE_FREEDATA|KNO_CHOICE_REALLOC);
 }
 
 KNO_EXPORT lispval kno_bson2dtype(bson_t *in,int flags,lispval opts)
@@ -3050,7 +3050,7 @@ KNO_EXPORT lispval kno_bson2dtype(bson_t *in,int flags,lispval opts)
 }
 
 DEFPRIM("mongovec",mongovec_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(0)|KNO_NDCALL,
-            "`(MONGOVEC *args...*)` **undocumented**");
+	"`(MONGOVEC *args...*)` **undocumented**");
 static lispval mongovec_lexpr(int n,lispval *values)
 {
   return kno_init_compound_from_elts
@@ -3058,8 +3058,8 @@ static lispval mongovec_lexpr(int n,lispval *values)
 }
 
 DEFPRIM1("->mongovec",make_mongovec,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-             "`(->MONGOVEC *arg0*)` **undocumented**",
-             kno_vector_type,KNO_VOID);
+	 "`(->MONGOVEC *arg0*)` **undocumented**",
+	 kno_vector_type,KNO_VOID);
 static lispval make_mongovec(lispval vec)
 {
   lispval *elts = KNO_VECTOR_ELTS(vec);
@@ -3069,8 +3069,8 @@ static lispval make_mongovec(lispval vec)
 }
 
 DEFPRIM1("mongovec?",mongovecp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-             "`(MONGOVEC? *arg0*)` **undocumented**",
-             kno_any_type,KNO_VOID);
+	 "`(MONGOVEC? *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval mongovecp(lispval arg)
 {
   if (KNO_COMPOUND_TYPEP(arg,mongovec_symbol))
@@ -3090,10 +3090,10 @@ static void add_to_mongo_opmap(u8_string keystring)
   lispval key = kno_getsym(keystring);
   struct KNO_KEYVAL *entry=
     kno_sortvec_insert(key,&mongo_opmap,
-                       &mongo_opmap_size,
-                       &mongo_opmap_space,
-                       MONGO_OPMAP_MAX,
-                       1);
+		       &mongo_opmap_size,
+		       &mongo_opmap_space,
+		       MONGO_OPMAP_MAX,
+		       1);
   if (entry)
     entry->kv_val = kno_mkstring(keystring);
   else u8_logf(LOG_ERR,"Couldn't add %s to the mongo opmap",keystring);
@@ -3182,8 +3182,8 @@ static struct KNO_MONGODB_DATABASE *getdb(lispval arg,u8_context cxt)
 }
 
 DEFPRIM1("mongodb/dbname",mongodb_dbname,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-             "`(MONGODB/DBNAME *arg0*)` **undocumented**",
-             kno_any_type,KNO_VOID);
+	 "`(MONGODB/DBNAME *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval mongodb_dbname(lispval arg)
 {
   struct KNO_MONGODB_DATABASE *db = getdb(arg,"mongodb_dbname");
@@ -3192,8 +3192,8 @@ static lispval mongodb_dbname(lispval arg)
 }
 
 DEFPRIM1("mongodb/dbspec",mongodb_spec,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-             "`(MONGODB/DBSPEC *arg0*)` **undocumented**",
-             kno_any_type,KNO_VOID);
+	 "`(MONGODB/DBSPEC *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval mongodb_spec(lispval arg)
 {
   struct KNO_MONGODB_DATABASE *db = getdb(arg,"mongodb_spec");
@@ -3202,8 +3202,8 @@ static lispval mongodb_spec(lispval arg)
 }
 
 DEFPRIM1("mongodb/dburi",mongodb_uri,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-             "`(MONGODB/DBURI *arg0*)` **undocumented**",
-             kno_any_type,KNO_VOID);
+	 "`(MONGODB/DBURI *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval mongodb_uri(lispval arg)
 {
   struct KNO_MONGODB_DATABASE *db = getdb(arg,"mongodb_uri");
@@ -3212,8 +3212,8 @@ static lispval mongodb_uri(lispval arg)
 }
 
 DEFPRIM1("mongodb/getopts",mongodb_getopts,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-             "`(MONGODB/GETOPTS *arg0*)` **undocumented**",
-             kno_any_type,KNO_VOID);
+	 "`(MONGODB/GETOPTS *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval mongodb_getopts(lispval arg)
 {
   lispval opts = KNO_VOID;
@@ -3236,8 +3236,8 @@ static lispval mongodb_getopts(lispval arg)
 }
 
 DEFPRIM1("mongodb/getdb",mongodb_getdb,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-             "`(MONGODB/GETDB *arg0*)` **undocumented**",
-             kno_any_type,KNO_VOID);
+	 "`(MONGODB/GETDB *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval mongodb_getdb(lispval arg)
 {
   struct KNO_MONGODB_COLLECTION *collection = NULL;
@@ -3256,8 +3256,8 @@ static lispval mongodb_getdb(lispval arg)
 }
 
 DEFPRIM1("collection/name",mongodb_collection_name,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-             "`(COLLECTION/NAME *arg0*)` **undocumented**",
-             kno_any_type,KNO_VOID);
+	 "`(COLLECTION/NAME *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval mongodb_collection_name(lispval arg)
 {
   struct KNO_MONGODB_COLLECTION *collection = NULL;
@@ -3290,8 +3290,8 @@ static int mongodb_getflags(lispval arg)
 }
 
 DEFPRIM1("mongodb/getcollection",mongodb_getcollection,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-             "`(MONGODB/GETCOLLECTION *arg0*)` **undocumented**",
-             kno_any_type,KNO_VOID);
+	 "`(MONGODB/GETCOLLECTION *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval mongodb_getcollection(lispval arg)
 {
   if (KNO_TYPEP(arg,kno_mongoc_collection))
@@ -3304,8 +3304,8 @@ static lispval mongodb_getcollection(lispval arg)
 }
 
 DEFPRIM1("mongodb?",mongodbp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-             "`(MONGODB? *arg0*)` **undocumented**",
-             kno_any_type,KNO_VOID);
+	 "`(MONGODB? *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval mongodbp(lispval arg)
 {
   if (KNO_TYPEP(arg,kno_mongoc_server))
@@ -3314,8 +3314,8 @@ static lispval mongodbp(lispval arg)
 }
 
 DEFPRIM1("mongodb/collection?",mongodb_collectionp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-             "`(MONGODB/COLLECTION? *arg0*)` **undocumented**",
-             kno_any_type,KNO_VOID);
+	 "`(MONGODB/COLLECTION? *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval mongodb_collectionp(lispval arg)
 {
   if (KNO_TYPEP(arg,kno_mongoc_collection))
@@ -3324,8 +3324,8 @@ static lispval mongodb_collectionp(lispval arg)
 }
 
 DEFPRIM1("mongodb/cursor?",mongodb_cursorp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-             "`(MONGODB/CURSOR? *arg0*)` **undocumented**",
-             kno_any_type,KNO_VOID);
+	 "`(MONGODB/CURSOR? *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval mongodb_cursorp(lispval arg)
 {
   if (KNO_TYPEP(arg,kno_mongoc_cursor))
@@ -3344,7 +3344,7 @@ static void add_string(lispval result,lispval field,u8_string value)
 }
 
 DEFPRIM("mongodb/dbinfo",mongodb_getinfo,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-            "`(MONGODB/DBINFO *arg0* [*arg1*])` **undocumented**");
+	"`(MONGODB/DBINFO *arg0* [*arg1*])` **undocumented**");
 static lispval mongodb_getinfo(lispval mongodb,lispval field)
 {
   lispval result = kno_make_slotmap(10,0,NULL);
@@ -3389,10 +3389,10 @@ void mongoc_logger(mongoc_log_level_t l,const char *d,const char *m,void *u)
   if (u8l <= LOG_CRIT)
     u8_logger(u8l,d,m);
   else if ((mongodb_loglevel >= 0)&&
-           (u8l <= mongodb_loglevel))
+	   (u8l <= mongodb_loglevel))
     u8_logger(-u8l,d,m);
   else if ((mongodb_ignore_loglevel >= 0)&&
-           (u8l > mongodb_ignore_loglevel))
+	   (u8l > mongodb_ignore_loglevel))
     return;
   else u8_logger(u8l,d,m);
 }
@@ -3529,48 +3529,48 @@ KNO_EXPORT int kno_init_mongodb()
   init_local_cprims();
 
   kno_register_config("MONGODB:FLAGS",
-                      "Default flags (fixnum) for MongoDB/BSON processing",
-                      kno_intconfig_get,kno_intconfig_set,&mongodb_defaults);
+		      "Default flags (fixnum) for MongoDB/BSON processing",
+		      kno_intconfig_get,kno_intconfig_set,&mongodb_defaults);
 
   kno_register_config("MONGODB:LOGLEVEL",
-                      "Default flags (fixnum) for MongoDB/BSON processing",
-                      kno_intconfig_get,kno_loglevelconfig_set,
-                      &mongodb_loglevel);
+		      "Default flags (fixnum) for MongoDB/BSON processing",
+		      kno_intconfig_get,kno_loglevelconfig_set,
+		      &mongodb_loglevel);
   kno_register_config("MONGO:MAXLOG",
-                      "Controls which log messages are always discarded",
-                      kno_intconfig_get,kno_loglevelconfig_set,
-                      &mongodb_ignore_loglevel);
+		      "Controls which log messages are always discarded",
+		      kno_intconfig_get,kno_loglevelconfig_set,
+		      &mongodb_ignore_loglevel);
   kno_register_config("MONGODB:LOGOPS",
-                      "Whether to log mongodb operations",
-                      kno_boolconfig_get,kno_boolconfig_set,&logops);
+		      "Whether to log mongodb operations",
+		      kno_boolconfig_get,kno_boolconfig_set,&logops);
   kno_register_config("MONGODB:LOGCMDS",
-                      "Whether to log mongodb commands",
-                      kno_boolconfig_get,kno_boolconfig_set,&logcmds);
+		      "Whether to log mongodb commands",
+		      kno_boolconfig_get,kno_boolconfig_set,&logcmds);
 
   kno_register_config("MONGODB:SSL",
-                      "Whether to default to SSL for MongoDB connections",
-                      kno_boolconfig_get,kno_boolconfig_set,
-                      &default_ssl);
+		      "Whether to default to SSL for MongoDB connections",
+		      kno_boolconfig_get,kno_boolconfig_set,
+		      &default_ssl);
   kno_register_config("MONGODB:CERT",
-                      "Default certificate file to use for mongodb",
-                      kno_sconfig_get,kno_realpath_config_set,
-                      &default_certfile);
+		      "Default certificate file to use for mongodb",
+		      kno_sconfig_get,kno_realpath_config_set,
+		      &default_certfile);
   kno_register_config("MONGODB:CAFILE",
-                      "Default certificate file for use with MongoDB",
-                      kno_sconfig_get,kno_realpath_config_set,
-                      &default_cafile);
+		      "Default certificate file for use with MongoDB",
+		      kno_sconfig_get,kno_realpath_config_set,
+		      &default_cafile);
   kno_register_config("MONGODB:CADIR",
-                      "Default certificate file directory for use with MongoDB",
-                      kno_sconfig_get,kno_realdir_config_set,
-                      &default_cadir);
+		      "Default certificate file directory for use with MongoDB",
+		      kno_sconfig_get,kno_realdir_config_set,
+		      &default_cadir);
 
   kno_register_config("MONGODB:MULTISLOTS",
-                      "Which slots should always have vector values",
-                      multislots_config_get,multislots_config_add,NULL);
+		      "Which slots should always have vector values",
+		      multislots_config_get,multislots_config_add,NULL);
   kno_register_config("MONGODB:VECSLOTS",
-                      "Alias for MONGODB:MULTISLOTS: Which slots should "
-                      "always have vector values",
-                      multislots_config_get,multislots_config_add,NULL);
+		      "Alias for MONGODB:MULTISLOTS: Which slots should "
+		      "always have vector values",
+		      multislots_config_get,multislots_config_add,NULL);
 
   add_vecslot(kno_intern("$each"));
   add_vecslot(kno_intern("$in"));
@@ -3591,9 +3591,9 @@ KNO_EXPORT int kno_init_mongodb()
 
   mongoc_log_set_handler(mongoc_logger,NULL);
   kno_register_config("MONGO:VERSION",
-                      "The MongoDB C library version string",
-                      kno_sconfig_get,NULL,
-                      &mongoc_version);
+		      "The MongoDB C library version string",
+		      kno_sconfig_get,NULL,
+		      &mongoc_version);
 
   u8_register_source_file(_FILEINFO);
 
@@ -3646,50 +3646,50 @@ static void init_local_cprims()
   KNO_LINK_PRIM("mongodb/oid",mongodb_oidref,1,mongodb_module);
 
   KNO_LINK_TYPED("collection/remove!",mongodb_remove,3,mongodb_module,
-                 kno_mongoc_collection,KNO_VOID,kno_any_type,KNO_VOID,
-                 kno_any_type,KNO_VOID);
+		 kno_mongoc_collection,KNO_VOID,kno_any_type,KNO_VOID,
+		 kno_any_type,KNO_VOID);
   KNO_LINK_TYPED("collection/update!",mongodb_update,4,mongodb_module,
-                 kno_mongoc_collection,KNO_VOID,kno_any_type,KNO_VOID,
-                 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+		 kno_mongoc_collection,KNO_VOID,kno_any_type,KNO_VOID,
+		 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
   KNO_LINK_TYPED("collection/upsert!",mongodb_upsert,4,mongodb_module,
-                 kno_mongoc_collection,KNO_VOID,kno_any_type,KNO_VOID,
-                 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+		 kno_mongoc_collection,KNO_VOID,kno_any_type,KNO_VOID,
+		 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
   KNO_LINK_TYPED("collection/find",mongodb_find,3,mongodb_module,
-                 kno_mongoc_collection,KNO_VOID,kno_any_type,KNO_VOID,
-                 kno_any_type,KNO_VOID);
+		 kno_mongoc_collection,KNO_VOID,kno_any_type,KNO_VOID,
+		 kno_any_type,KNO_VOID);
   KNO_LINK_TYPED("collection/find",mongodb_find,3,mongodb_module,
-                 kno_mongoc_collection,KNO_VOID,kno_any_type,KNO_VOID,
-                 kno_any_type,KNO_VOID);
+		 kno_mongoc_collection,KNO_VOID,kno_any_type,KNO_VOID,
+		 kno_any_type,KNO_VOID);
   KNO_LINK_TYPED("collection/count",mongodb_count,3,mongodb_module,
-                 kno_mongoc_collection,KNO_VOID,kno_any_type,KNO_VOID,
-                 kno_any_type,KNO_VOID);
+		 kno_mongoc_collection,KNO_VOID,kno_any_type,KNO_VOID,
+		 kno_any_type,KNO_VOID);
   KNO_LINK_TYPED("collection/count",mongodb_count,3,mongodb_module,
-                 kno_mongoc_collection,KNO_VOID,kno_any_type,KNO_VOID,
-                 kno_any_type,KNO_VOID);
+		 kno_mongoc_collection,KNO_VOID,kno_any_type,KNO_VOID,
+		 kno_any_type,KNO_VOID);
   KNO_LINK_TYPED("collection/get",mongodb_get,3,mongodb_module,
-                 kno_mongoc_collection,KNO_VOID,kno_any_type,KNO_VOID,
-                 kno_any_type,KNO_VOID);
+		 kno_mongoc_collection,KNO_VOID,kno_any_type,KNO_VOID,
+		 kno_any_type,KNO_VOID);
   KNO_LINK_TYPED("collection/get",mongodb_get,3,mongodb_module,
-                 kno_mongoc_collection,KNO_VOID,kno_any_type,KNO_VOID,
-                 kno_any_type,KNO_VOID);
+		 kno_mongoc_collection,KNO_VOID,kno_any_type,KNO_VOID,
+		 kno_any_type,KNO_VOID);
   KNO_LINK_TYPED("collection/modify!",mongodb_modify,4,mongodb_module,
-                 kno_mongoc_collection,KNO_VOID,kno_any_type,KNO_VOID,
-                 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+		 kno_mongoc_collection,KNO_VOID,kno_any_type,KNO_VOID,
+		 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 
   KNO_LINK_TYPED("cursor/done?",mongodb_donep,1,mongodb_module,
-                 kno_mongoc_cursor,KNO_VOID);
+		 kno_mongoc_cursor,KNO_VOID);
   KNO_LINK_TYPED("cursor/skip",mongodb_skip,2,mongodb_module,
-                 kno_mongoc_cursor,KNO_VOID,kno_fixnum_type,KNO_INT(1));
+		 kno_mongoc_cursor,KNO_VOID,kno_fixnum_type,KNO_INT(1));
 
 
   KNO_LINK_TYPED("cursor/read",mongodb_cursor_read,3,mongodb_module,
-                 kno_mongoc_cursor,KNO_VOID,kno_fixnum_type,KNO_INT(1),
-                 kno_any_type,KNO_VOID);
+		 kno_mongoc_cursor,KNO_VOID,kno_fixnum_type,KNO_INT(1),
+		 kno_any_type,KNO_VOID);
   KNO_LINK_TYPED("cursor/readvec",mongodb_cursor_read_vector,3,mongodb_module,
-                 kno_mongoc_cursor,KNO_VOID,kno_fixnum_type,KNO_INT(1),
-                 kno_any_type,KNO_VOID);
+		 kno_mongoc_cursor,KNO_VOID,kno_fixnum_type,KNO_INT(1),
+		 kno_any_type,KNO_VOID);
   KNO_LINK_TYPED("mongodb/dbinfo",mongodb_getinfo,2,mongodb_module,
-                 kno_mongoc_server,KNO_VOID,kno_any_type,KNO_VOID);
+		 kno_mongoc_server,KNO_VOID,kno_any_type,KNO_VOID);
 
   KNO_LINK_ALIAS("mongo/oid",mongodb_oidref,mongodb_module);
   KNO_LINK_ALIAS("mongo/open",mongodb_open,mongodb_module);

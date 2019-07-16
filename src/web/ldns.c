@@ -82,8 +82,8 @@ static lispval rdf2dtype ( ldns_rdf *field )
 }
 
 DEFPRIM2("dns/get",dns_query,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "`(DNS/GET *arg0* [*arg1*])` **undocumented**",
- kno_string_type,KNO_VOID,kno_symbol_type,KNO_VOID);
+	 "`(DNS/GET *arg0* [*arg1*])` **undocumented**",
+	 kno_string_type,KNO_VOID,kno_symbol_type,KNO_VOID);
 static lispval dns_query(lispval domain_arg,lispval type_arg)
 {
   lispval results = EMPTY;
@@ -98,29 +98,29 @@ static lispval dns_query(lispval domain_arg,lispval type_arg)
 
   if (!(p)) {}
   else {
-      ldns_rr_list *result_list =
-        ldns_pkt_rr_list_by_type( p, rr_type, LDNS_SECTION_ANSWER );
-      if (!(result_list)) {}
-      else {
-        size_t i = 0, lim = result_list->_rr_count;
-        ldns_rr **records = result_list->_rrs;
-        while ( i < lim ) {
-          ldns_rr *record = records[i++];
-          size_t n_fields = record->_rd_count;
-          ldns_rdf **fields = record->_rdata_fields;
-          if (n_fields == 0)  {} /* does this ever happen? */
-          else if (n_fields == 1)  {
-            lispval value = rdf2dtype( fields[0] );
-            CHOICE_ADD(results,value);}
-          else {
-            lispval vec = kno_empty_vector(n_fields);
-            int j = 0; while (j < n_fields) {
-              ldns_rdf *field = fields[j];
-              lispval value = rdf2dtype( field );
-              KNO_VECTOR_SET( vec, j, value);
-              j++;}
-            CHOICE_ADD(results,vec);}}
-        ldns_rr_list_deep_free( result_list );}}
+    ldns_rr_list *result_list =
+      ldns_pkt_rr_list_by_type( p, rr_type, LDNS_SECTION_ANSWER );
+    if (!(result_list)) {}
+    else {
+      size_t i = 0, lim = result_list->_rr_count;
+      ldns_rr **records = result_list->_rrs;
+      while ( i < lim ) {
+	ldns_rr *record = records[i++];
+	size_t n_fields = record->_rd_count;
+	ldns_rdf **fields = record->_rdata_fields;
+	if (n_fields == 0)  {} /* does this ever happen? */
+	else if (n_fields == 1)  {
+	  lispval value = rdf2dtype( fields[0] );
+	  CHOICE_ADD(results,value);}
+	else {
+	  lispval vec = kno_empty_vector(n_fields);
+	  int j = 0; while (j < n_fields) {
+	    ldns_rdf *field = fields[j];
+	    lispval value = rdf2dtype( field );
+	    KNO_VECTOR_SET( vec, j, value);
+	    j++;}
+	  CHOICE_ADD(results,vec);}}
+      ldns_rr_list_deep_free( result_list );}}
 
   ldns_rdf_deep_free( domain );
   ldns_resolver_deep_free( res );

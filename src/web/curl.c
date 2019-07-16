@@ -115,7 +115,7 @@ static size_t copy_content_data(char *data,size_t size,size_t n,void *vdbuf)
     int need_space = dbuf->size+size*n, new_limit = dbuf->limit;
     while (new_limit<need_space) {
       if (new_limit >= 65536)
-        new_limit = new_limit+65536;
+	new_limit = new_limit+65536;
       else new_limit = new_limit*2;}
     newptr = u8_realloc((char *)dbuf->bytes,new_limit);
     dbuf->bytes = newptr;
@@ -127,14 +127,14 @@ static size_t copy_content_data(char *data,size_t size,size_t n,void *vdbuf)
 }
 
 static size_t process_content_data(char *data,size_t elt_size,size_t n_elts,
-                                   void *vdhandler)
+				   void *vdhandler)
 {
   // TODO: Possibly return CURL_READFUNC_PAUSE and CURL_WRITEFUNC_PAUSE
   lispval *state = (lispval *) vdhandler;
   lispval handler=state[0], result=state[1];
   u8_logf(LOG_INFO,"ProcessContentData",
-          "Using %q to process %lld bytes into %q",
-          handler,n_elts*elt_size,result);
+	  "Using %q to process %lld bytes into %q",
+	  handler,n_elts*elt_size,result);
   int data_len=n_elts*elt_size;
   lispval packet=kno_make_packet(NULL,data_len,data);
   lispval argvec[2]={packet,result};
@@ -201,11 +201,11 @@ static size_t handle_header(void *ptr,size_t size,size_t n,void *data)
       hval = kno_mkstring(valstart);
       add = 0;}
     else if ((KNO_EQ(slotid,content_length_symbol)) ||
-             (KNO_EQ(slotid,response_code_slotid))) {
+	     (KNO_EQ(slotid,response_code_slotid))) {
       hval = kno_parse(valstart);
       add = 0;}
     else if ((KNO_EQ(slotid,date_symbol)) ||
-             (KNO_EQ(slotid,last_modified_symbol))) {
+	     (KNO_EQ(slotid,last_modified_symbol))) {
       time_t now, moment = curl_getdate(valstart,&now);
       struct U8_XTIME xt;
       u8_init_xtime(&xt,moment,u8_second,0,0,0);
@@ -225,8 +225,8 @@ static size_t handle_header(void *ptr,size_t size,size_t n,void *data)
 }
 
 DEFPRIM1("add-text_type!",addtexttype,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-             "`(ADD-TEXT_TYPE! *arg0*)` **undocumented**",
-             kno_any_type,KNO_VOID);
+	 "`(ADD-TEXT_TYPE! *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 KNO_INLINE_FCN lispval addtexttype(lispval type)
 {
   kno_incref(type);
@@ -249,7 +249,7 @@ KNO_INLINE_FCN struct KNO_CURL_HANDLE *curl_err(u8_string cxt,int code)
 }
 
 static int _curl_set(u8_string cxt,struct KNO_CURL_HANDLE *h,
-                     CURLoption option,void *v)
+		     CURLoption option,void *v)
 {
   CURLcode retval = curl_easy_setopt(h->handle,option,v);
   if (retval) {
@@ -261,15 +261,15 @@ static int _curl_set(u8_string cxt,struct KNO_CURL_HANDLE *h,
 }
 
 static int _curl_set2dtype(u8_string cxt,struct KNO_CURL_HANDLE *h,
-                           CURLoption option,
-                           lispval f,lispval slotid)
+			   CURLoption option,
+			   lispval f,lispval slotid)
 {
   lispval v = kno_get(f,slotid,VOID);
   if (KNO_ABORTP(v))
     return kno_interr(v);
   else if ((STRINGP(v))||
-           (PACKETP(v))||
-           (TYPEP(v,kno_secret_type))) {
+	   (PACKETP(v))||
+	   (TYPEP(v,kno_secret_type))) {
     CURLcode retval = curl_easy_setopt(h->handle,option,CSTRING(v));
     if (retval) {
       u8_string details=u8_fromlibc((char *)curl_easy_strerror(retval));
@@ -314,31 +314,31 @@ static int curl_add_headers(kno_curl_handle ch,lispval val)
     else if (PAIRP(v)) {
       lispval car = KNO_CAR(v), cdr = KNO_CDR(v); u8_string hdr = NULL;
       if ((SYMBOLP(car)) && (STRINGP(cdr)))
-        hdr = u8_mkstring("%s: %s",SYM_NAME(car),CSTRING(cdr));
+	hdr = u8_mkstring("%s: %s",SYM_NAME(car),CSTRING(cdr));
       else if ((STRINGP(car)) && (STRINGP(cdr)))
-        hdr = u8_mkstring("%s: %s",CSTRING(car),CSTRING(cdr));
+	hdr = u8_mkstring("%s: %s",CSTRING(car),CSTRING(cdr));
       else if (SYMBOLP(car))
-        hdr = u8_mkstring("%s: %q",SYM_NAME(car),cdr);
+	hdr = u8_mkstring("%s: %q",SYM_NAME(car),cdr);
       else if (STRINGP(car))
-        hdr = u8_mkstring("%s: %q",CSTRING(car),cdr);
+	hdr = u8_mkstring("%s: %q",CSTRING(car),cdr);
       else hdr = u8_mkstring("%q: %q",car,cdr);
       retval = curl_add_header(ch,hdr,NULL);
       u8_free(hdr);}
     else if (SLOTMAPP(v)) {
       lispval keys = kno_getkeys(v);
       DO_CHOICES(key,keys) {
-        if ((retval>=0)&&((STRINGP(key))||(SYMBOLP(key)))) {
-          lispval kval = kno_get(v,key,EMPTY); u8_string hdr = NULL;
-          if (SYMBOLP(key)) {
-            if (STRINGP(kval))
-              hdr = u8_mkstring("%s: %s",SYM_NAME(key),CSTRING(kval));
-            else hdr = u8_mkstring("%s: %q",SYM_NAME(key),kval);}
-          else if (STRINGP(kval))
-            hdr = u8_mkstring("%s: %s",CSTRING(key),CSTRING(kval));
-          else hdr = u8_mkstring("%s: %q",CSTRING(key),kval);
-          retval = curl_add_header(ch,hdr,NULL);
-          u8_free(hdr);
-          kno_decref(kval);}}
+	if ((retval>=0)&&((STRINGP(key))||(SYMBOLP(key)))) {
+	  lispval kval = kno_get(v,key,EMPTY); u8_string hdr = NULL;
+	  if (SYMBOLP(key)) {
+	    if (STRINGP(kval))
+	      hdr = u8_mkstring("%s: %s",SYM_NAME(key),CSTRING(kval));
+	    else hdr = u8_mkstring("%s: %q",SYM_NAME(key),kval);}
+	  else if (STRINGP(kval))
+	    hdr = u8_mkstring("%s: %s",CSTRING(key),CSTRING(kval));
+	  else hdr = u8_mkstring("%s: %q",CSTRING(key),kval);
+	  retval = curl_add_header(ch,hdr,NULL);
+	  u8_free(hdr);
+	  kno_decref(kval);}}
       kno_decref(keys);}
     else {}
   return retval;
@@ -373,9 +373,9 @@ struct KNO_CURL_HANDLE *kno_open_curl_handle()
   int rv = 0;
   struct KNO_CURL_HANDLE *h = u8_alloc(struct KNO_CURL_HANDLE);
 
-#define curl_set(hl,o,v) \
+#define curl_set(hl,o,v)						\
   if ( (rv >= 0) && (_curl_set("kno_open_curl_handle",hl,o,(void *)v)) ) rv=-1;
-#define curl_set2dtype(hl,o,f,s) \
+#define curl_set2dtype(hl,o,f,s)					\
   if ( (rv>=0) && (_curl_set2dtype("kno_open_curl_handle",hl,o,f,s)) ) rv = -1;
 
   KNO_INIT_CONS(h,kno_curl_type);
@@ -392,8 +392,8 @@ struct KNO_CURL_HANDLE *kno_open_curl_handle()
   if ( (rv >= 0) && (curl_loglevel > LOG_NOTIFY) ) {
     curl_easy_setopt(h->handle,CURLOPT_VERBOSE,1);}
   /*
-  memset(h->curl_errbuf,0,sizeof(h->curl_errbuf));
-  curl_easy_setopt(h,CURLOPT_ERRORBUFFER,(h->curl_errbuf));
+    memset(h->curl_errbuf,0,sizeof(h->curl_errbuf));
+    curl_easy_setopt(h,CURLOPT_ERRORBUFFER,(h->curl_errbuf));
   */
   curl_set(h,CURLOPT_NOPROGRESS,1);
   curl_set(h,CURLOPT_FILETIME,(long)1);
@@ -432,7 +432,7 @@ struct KNO_CURL_HANDLE *kno_open_curl_handle()
     curl_set2dtype(h,CURLOPT_CONNECTTIMEOUT,curl_defaults,timeout_symbol);
 
   if (rv >= 0) {
-   lispval http_headers = kno_get(curl_defaults,header_symbol,EMPTY);
+    lispval http_headers = kno_get(curl_defaults,header_symbol,EMPTY);
     curl_add_headers(h,http_headers);
     kno_decref(http_headers);}
 
@@ -451,9 +451,9 @@ static char *getcurlerror(char *buf,int code)
 {
   return (char *) curl_easy_strerror(code);
   /*
-  if (*buf=='\0')
+    if (*buf=='\0')
     return (char *) curl_easy_strerror(code);
-  else return buf;
+    else return buf;
   */
 }
 
@@ -486,8 +486,8 @@ static int unparse_curl_handle(u8_output out,lispval x)
 }
 
 DEFPRIM1("curl-handle?",curlhandlep,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(CURL-HANDLE? *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(CURL-HANDLE? *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval curlhandlep(lispval arg)
 {
   if (TYPEP(arg,kno_curl_type)) return KNO_TRUE;
@@ -495,13 +495,13 @@ static lispval curlhandlep(lispval arg)
 }
 
 DEFPRIM1("curl/reset!",curlreset,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-             "`(CURL/RESET! *arg0*)` **undocumented**",
-             kno_any_type,KNO_VOID);
+	 "`(CURL/RESET! *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval curlreset(lispval arg)
 {
   if (!(TYPEP(arg,kno_curl_type)))
     return kno_type_error("CurlHandle","curlreset",arg);
-  
+
   struct KNO_CURL_HANDLE *ch = (struct KNO_CURL_HANDLE *)arg;
 
   curl_easy_reset(ch->handle);
@@ -516,7 +516,7 @@ static lispval curlreset(lispval arg)
 }
 
 static lispval set_curlopt
-  (struct KNO_CURL_HANDLE *ch,lispval opt,lispval val)
+(struct KNO_CURL_HANDLE *ch,lispval opt,lispval val)
 {
   if (KNO_EQ(opt,referer_symbol))
     if (STRINGP(val))
@@ -600,7 +600,7 @@ static lispval set_curlopt
   else if (KNO_EQ(opt,accept_timeout_symbol)) {
     if (FIXNUMP(val)) {
       curl_easy_setopt(ch->handle,CURLOPT_ACCEPTTIMEOUT_MS,
-                       (1000*FIX2INT(val)));}
+		       (1000*FIX2INT(val)));}
     else if (KNO_FLONUMP(val)) {
       double secs = KNO_FLONUM(val);
       long int msecs = (long int)floor(secs*1000);
@@ -610,43 +610,43 @@ static lispval set_curlopt
     if ((STRINGP(val))&&(STRLEN(val)>0)) {
       kno_incref(val); CHOICE_ADD(ch->initdata,val);
       curl_easy_setopt(ch->handle,CURLOPT_DNS_SERVERS,
-                       CSTRING(val));}
+		       CSTRING(val));}
     else if ((FALSEP(val))||(STRINGP(val))) {
       curl_easy_setopt(ch->handle,CURLOPT_DNS_SERVERS,NULL);}
     else if (SYMBOLP(val)) {
       lispval cval = kno_config_get(SYM_NAME(val));
       if (!(STRINGP(cval)))
-        return kno_type_error("string config","set_curlopt/dns",val);
+	return kno_type_error("string config","set_curlopt/dns",val);
       kno_incref(cval); CHOICE_ADD(ch->initdata,cval);
       curl_easy_setopt(ch->handle,CURLOPT_DNS_SERVERS,
-                       CSTRING(cval));}
+		       CSTRING(cval));}
     else return kno_type_error("string","set_curlopt/dns",val);}
   else if (KNO_EQ(opt,dnsip_symbol)) {
     if ((STRINGP(val))&&(STRLEN(val)>0)) {
       kno_incref(val); CHOICE_ADD(ch->initdata,val);
       if (strchr(CSTRING(val),':')) {
-        curl_easy_setopt(ch->handle,CURLOPT_DNS_LOCAL_IP6,
-                         CSTRING(val));}
+	curl_easy_setopt(ch->handle,CURLOPT_DNS_LOCAL_IP6,
+			 CSTRING(val));}
       else {
-        curl_easy_setopt(ch->handle,CURLOPT_DNS_LOCAL_IP4,
-                         CSTRING(val));}}
+	curl_easy_setopt(ch->handle,CURLOPT_DNS_LOCAL_IP4,
+			 CSTRING(val));}}
     else if ((FALSEP(val))||(STRINGP(val))) {
       curl_easy_setopt(ch->handle,CURLOPT_DNS_LOCAL_IP4,NULL);
       curl_easy_setopt(ch->handle,CURLOPT_DNS_LOCAL_IP6,NULL);}
     else if (SYMBOLP(val)) {
       lispval cval = kno_config_get(SYM_NAME(val));
       if (!(STRINGP(cval)))
-        return kno_type_error("string config","set_curlopt/dns",val);
+	return kno_type_error("string config","set_curlopt/dns",val);
       kno_incref(cval); CHOICE_ADD(ch->initdata,cval);
       if (STRLEN(cval)==0) {
-        curl_easy_setopt(ch->handle,CURLOPT_DNS_LOCAL_IP4,NULL);
-        curl_easy_setopt(ch->handle,CURLOPT_DNS_LOCAL_IP6,NULL);}
+	curl_easy_setopt(ch->handle,CURLOPT_DNS_LOCAL_IP4,NULL);
+	curl_easy_setopt(ch->handle,CURLOPT_DNS_LOCAL_IP6,NULL);}
       else if (strchr(CSTRING(cval),':')) {
-        curl_easy_setopt(ch->handle,CURLOPT_DNS_LOCAL_IP6,
-                         CSTRING(cval));}
+	curl_easy_setopt(ch->handle,CURLOPT_DNS_LOCAL_IP6,
+			 CSTRING(cval));}
       else {
-        curl_easy_setopt(ch->handle,CURLOPT_DNS_LOCAL_IP4,
-                         CSTRING(cval));}}
+	curl_easy_setopt(ch->handle,CURLOPT_DNS_LOCAL_IP4,
+			 CSTRING(cval));}}
     else return kno_type_error("string","set_curlopt/dns",val);}
   else if (KNO_EQ(opt,dns_cachelife_symbol)) {
     if (KNO_TRUEP(val)) {
@@ -655,7 +655,7 @@ static lispval set_curlopt
       curl_easy_setopt(ch->handle,CURLOPT_DNS_CACHE_TIMEOUT,0);}
     else if (FIXNUMP(val)) {
       curl_easy_setopt(ch->handle,CURLOPT_DNS_CACHE_TIMEOUT,
-                       FIX2INT(val));}
+		       FIX2INT(val));}
     else if (KNO_FLONUMP(val)) {
       double secs = KNO_FLONUM(val);
       long int msecs = (long int)floor(secs);
@@ -665,7 +665,7 @@ static lispval set_curlopt
     if (KNO_TRUEP(val)) {
       curl_easy_setopt(ch->handle,CURLOPT_FOLLOWLOCATION,1);
       if (max_redirects > 0)
-        curl_easy_setopt(ch->handle,CURLOPT_MAXREDIRS,max_redirects);}
+	curl_easy_setopt(ch->handle,CURLOPT_MAXREDIRS,max_redirects);}
     else if ( (KNO_FIXNUMP(val)) && ((KNO_FIX2INT(val))>0) ) {
       long long count = KNO_FIX2INT(val);
       curl_easy_setopt(ch->handle,CURLOPT_FOLLOWLOCATION,1);
@@ -699,7 +699,7 @@ static lispval set_curlopt
       kno_decref(hval);}
     else return kno_type_error(_("string"),"set_curl_handle/content-type",val);
   else return kno_err(_("Unknown CURL option"),"set_curl_handle",
-                     NULL,opt);
+		      NULL,opt);
   if (CONSP(val)) {
     kno_incref(val); CHOICE_ADD(ch->initdata,val);}
   return KNO_TRUE;
@@ -754,11 +754,11 @@ static lispval fetchurl(struct KNO_CURL_HANDLE *h,u8_string urltext)
 }
 
 static lispval streamurl(struct KNO_CURL_HANDLE *h,
-                        u8_string urltext,
-                        lispval handler,
-                        const unsigned char *payload_type,
-                        const unsigned char *payload,
-                        size_t payload_size)
+			 u8_string urltext,
+			 lispval handler,
+			 const unsigned char *payload_type,
+			 const unsigned char *payload,
+			 size_t payload_size)
 {
   OUTBUF rdbuf;
   CURLcode retval;
@@ -830,7 +830,7 @@ static lispval fetchurlhead(struct KNO_CURL_HANDLE *h,u8_string urltext)
 }
 
 static lispval handlefetchresult(struct KNO_CURL_HANDLE *h,lispval result,
-                                INBUF *data)
+				 INBUF *data)
 {
   lispval cval; long http_response = 0;
   int retval = curl_easy_getinfo(h->handle,CURLINFO_RESPONSE_CODE,&http_response);
@@ -848,24 +848,24 @@ static lispval handlefetchresult(struct KNO_CURL_HANDLE *h,lispval result,
     buf[data->size]='\0';}
   if (data->size<0) cval = EMPTY;
   else if ((kno_test(result,KNOSYM_TYPE,text_types))&&
-           (!(kno_test(result,content_encoding_symbol,VOID))))
+	   (!(kno_test(result,content_encoding_symbol,VOID))))
     if (data->size==0)
       cval = kno_block_string(data->size,data->bytes);
     else {
       lispval chset = kno_get(result,charset_symbol,VOID);
       if (STRINGP(chset)) {
-        U8_OUTPUT out;
-        u8_encoding enc = u8_get_encoding(CSTRING(chset));
-        if (enc) {
-          const unsigned char *scan = data->bytes;
-          U8_INIT_OUTPUT(&out,data->size);
-          u8_convert(enc,1,&out,&scan,data->bytes+data->size);
-          cval = kno_block_string(out.u8_write-out.u8_outbuf,out.u8_outbuf);}
-        else if (strstr(data->bytes,"\r\n"))
-          cval = kno_wrapstring(u8_convert_crlfs(data->bytes));
-        else cval = kno_wrapstring(u8_valid_copy(data->bytes));}
+	U8_OUTPUT out;
+	u8_encoding enc = u8_get_encoding(CSTRING(chset));
+	if (enc) {
+	  const unsigned char *scan = data->bytes;
+	  U8_INIT_OUTPUT(&out,data->size);
+	  u8_convert(enc,1,&out,&scan,data->bytes+data->size);
+	  cval = kno_block_string(out.u8_write-out.u8_outbuf,out.u8_outbuf);}
+	else if (strstr(data->bytes,"\r\n"))
+	  cval = kno_wrapstring(u8_convert_crlfs(data->bytes));
+	else cval = kno_wrapstring(u8_valid_copy(data->bytes));}
       else if (strstr(data->bytes,"\r\n"))
-        cval = kno_wrapstring(u8_convert_crlfs(data->bytes));
+	cval = kno_wrapstring(u8_convert_crlfs(data->bytes));
       else cval = kno_wrapstring(u8_valid_copy(data->bytes));
       u8_free(data->bytes);
       kno_decref(chset);}
@@ -903,9 +903,9 @@ static lispval curl_arg(lispval arg,u8_context cxt)
       lispval values = kno_get(arg,key,VOID);
       lispval setval = set_curlopt(h,key,values);
       if (KNO_ABORTP(setval)) {
-        kno_decref(keys);
-        recycle_curl_handle((kno_raw_cons)h);
-        return setval;}
+	kno_decref(keys);
+	recycle_curl_handle((kno_raw_cons)h);
+	return setval;}
       kno_decref(values);}
     kno_decref(keys);
     return (lispval)h;}
@@ -917,8 +917,8 @@ static lispval curl_arg(lispval arg,u8_context cxt)
 /* Primitives */
 
 DEFPRIM2("urlget",urlget,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "`(URLGET *arg0* [*arg1*])` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(URLGET *arg0* [*arg1*])` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval urlget(lispval url,lispval curl)
 {
   lispval result, conn = curl_arg(curl,"urlget");
@@ -935,17 +935,17 @@ static lispval urlget(lispval url,lispval curl)
 }
 
 DEFPRIM4("urlstream",urlstream,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(1),
- "(URLSTREAM *url* *handler* [*curl*]) "
- "opens the remote URL *url* and calls *handler* on "
- "packets of data from the stream. A second "
- "argument to *handler* is a slotmap which will be "
- "returned when the *handler* either errs or "
- "returns #F",
- kno_string_type,KNO_VOID,kno_any_type,KNO_VOID,
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "(URLSTREAM *url* *handler* [*curl*]) "
+	 "opens the remote URL *url* and calls *handler* on "
+	 "packets of data from the stream. A second "
+	 "argument to *handler* is a slotmap which will be "
+	 "returned when the *handler* either errs or "
+	 "returns #F",
+	 kno_string_type,KNO_VOID,kno_any_type,KNO_VOID,
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval urlstream(lispval url,lispval handler,
-                         lispval payload,
-                         lispval curl)
+			 lispval payload,
+			 lispval curl)
 {
   if (!(KNO_APPLICABLEP(handler)))
     return kno_type_error("applicable","urlstream",handler);
@@ -957,20 +957,20 @@ static lispval urlstream(lispval url,lispval handler,
     result = kno_type_error("string","urlget",url);}
   else if (VOIDP(payload))
     result = streamurl((kno_curl_handle)conn,CSTRING(url),
-                       handler,NULL,NULL,0);
+		       handler,NULL,NULL,0);
   else {
     result = streamurl((kno_curl_handle)conn,CSTRING(url),
-                       handler,CSTRING(payload),
-                       "application/x-www-urlform-encoded",
-                       STRLEN(payload));}
+		       handler,CSTRING(payload),
+		       "application/x-www-urlform-encoded",
+		       STRLEN(payload));}
   if (conn == curl) reset_curl_handle((kno_curl_handle)conn);
   kno_decref(conn);
   return result;
 }
 
 DEFPRIM2("urlhead",urlhead,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "`(URLHEAD *arg0* [*arg1*])` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(URLHEAD *arg0* [*arg1*])` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval urlhead(lispval url,lispval curl)
 {
   lispval result, conn = curl_arg(curl,"urlhead");
@@ -986,9 +986,9 @@ static lispval urlhead(lispval url,lispval curl)
 }
 
 DEFPRIM4("urlput",urlput,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
- "`(URLPUT *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(URLPUT *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval urlput(lispval url,lispval content,lispval ctype,lispval curl)
 {
   lispval conn;
@@ -1045,8 +1045,8 @@ static lispval urlput(lispval url,lispval content,lispval ctype,lispval curl)
 /* Getting content */
 
 DEFPRIM2("urlcontent",urlcontent,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "`(URLCONTENT *arg0* [*arg1*])` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(URLCONTENT *arg0* [*arg1*])` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval urlcontent(lispval url,lispval curl)
 {
   lispval result, conn = curl_arg(curl,"urlcontent"), content;
@@ -1065,9 +1065,9 @@ static lispval urlcontent(lispval url,lispval curl)
 }
 
 DEFPRIM3("urlxml",urlxml,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
- "`(URLXML *arg0* [*arg1*] [*arg2*])` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
- kno_any_type,KNO_VOID);
+	 "`(URLXML *arg0* [*arg1*] [*arg2*])` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
+	 kno_any_type,KNO_VOID);
 static lispval urlxml(lispval url,lispval xmlopt,lispval curl)
 {
   INBUF data;
@@ -1118,7 +1118,7 @@ static lispval urlxml(lispval url,lispval xmlopt,lispval curl)
       cval = kno_init_packet(NULL,data.size,data.bytes);
     else cval = EMPTY;}
   else if ((kno_test(result,KNOSYM_TYPE,text_types))&&
-           (!(kno_test(result,content_encoding_symbol,VOID)))) {
+	   (!(kno_test(result,content_encoding_symbol,VOID)))) {
     U8_INPUT in; u8_string buf;
     struct KNO_XML xmlnode, *xmlret;
     lispval chset = kno_get(result,charset_symbol,VOID);
@@ -1126,37 +1126,37 @@ static lispval urlxml(lispval url,lispval xmlopt,lispval curl)
       U8_OUTPUT out;
       u8_encoding enc = u8_get_encoding(CSTRING(chset));
       if (enc) {
-        const unsigned char *scan = data.bytes;
-        U8_INIT_OUTPUT(&out,data.size);
-        u8_convert(enc,1,&out,&scan,data.bytes+data.size);
-        u8_free(data.bytes);
-        buf = out.u8_outbuf;
-        U8_INIT_STRING_INPUT(&in,out.u8_write-out.u8_outbuf,out.u8_outbuf);}
+	const unsigned char *scan = data.bytes;
+	U8_INIT_OUTPUT(&out,data.size);
+	u8_convert(enc,1,&out,&scan,data.bytes+data.size);
+	u8_free(data.bytes);
+	buf = out.u8_outbuf;
+	U8_INIT_STRING_INPUT(&in,out.u8_write-out.u8_outbuf,out.u8_outbuf);}
       else {
-        U8_INIT_STRING_INPUT(&in,data.size,data.bytes); buf = data.bytes;}}
+	U8_INIT_STRING_INPUT(&in,data.size,data.bytes); buf = data.bytes;}}
     else {
       U8_INIT_STRING_INPUT(&in,data.size,data.bytes); buf = data.bytes;}
     if (http_response>=300) {
       kno_seterr("HTTP error response","urlxml",CSTRING(url),
-                kno_init_string(NULL,in.u8_inlim-in.u8_inbuf,in.u8_inbuf));
+		 kno_init_string(NULL,in.u8_inlim-in.u8_inbuf,in.u8_inbuf));
       if (conn == curl) reset_curl_handle((kno_curl_handle)conn);
       kno_decref(conn);
       return KNO_ERROR;}
     kno_init_xml_node(&xmlnode,NULL,CSTRING(url));
     xmlnode.xml_bits = flags;
     xmlret = kno_walk_xml(&in,kno_default_contentfn,NULL,NULL,NULL,
-                       kno_default_popfn,
-                       &xmlnode);
+			  kno_default_popfn,
+			  &xmlnode);
     if (conn == curl) reset_curl_handle((kno_curl_handle)conn);
     kno_decref(conn);
     if (xmlret) {
       {KNO_DOLIST(elt,xmlret->xml_head) {
-        if (SLOTMAPP(elt)) {
-          lispval name = kno_get(elt,name_symbol,EMPTY);
-          if (SYMBOLP(name)) kno_add(result,name,elt);
-          else if ((CHOICEP(name)) || (PRECHOICEP(name))) {
-            DO_CHOICES(nm,name) {
-              if (SYMBOLP(nm)) kno_add(result,nm,elt);}}}}}
+	  if (SLOTMAPP(elt)) {
+	    lispval name = kno_get(elt,name_symbol,EMPTY);
+	    if (SYMBOLP(name)) kno_add(result,name,elt);
+	    else if ((CHOICEP(name)) || (PRECHOICEP(name))) {
+	      DO_CHOICES(nm,name) {
+		if (SYMBOLP(nm)) kno_add(result,nm,elt);}}}}}
       kno_store(result,pcontent_symbol,xmlret->xml_head);
       u8_free(buf); kno_decref(xmlret->xml_head);
       return result;}
@@ -1179,8 +1179,8 @@ static lispval urlxml(lispval url,lispval xmlopt,lispval curl)
 static lispval responsetest(lispval response,int min,int max)
 {
   lispval status = ((TABLEP(response))?
-                    (kno_get(response,response_code_slotid,VOID)):
-                    (FIXNUMP(response))?(response):(VOID));
+		    (kno_get(response,response_code_slotid,VOID)):
+		    (FIXNUMP(response))?(response):(VOID));
   if ((KNO_UINTP(status))&&
       ((FIX2INT(status))>=min)&&
       ((FIX2INT(status))<max))
@@ -1191,130 +1191,130 @@ static lispval responsetest(lispval response,int min,int max)
 }
 
 DEFPRIM1("response/ok?",responseokp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(RESPONSE/OK? *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(RESPONSE/OK? *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval responseokp(lispval response)
 {
   return responsetest(response,200,300);
 }
 
 DEFPRIM1("response/redirect?",responseredirectp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(RESPONSE/REDIRECT? *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(RESPONSE/REDIRECT? *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval responseredirectp(lispval response)
 {
   return responsetest(response,300,400);
 }
 
 DEFPRIM1("response/error?",responseanyerrorp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(RESPONSE/ERROR? *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(RESPONSE/ERROR? *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval responseanyerrorp(lispval response)
 {
   return responsetest(response,400,600);
 }
 
 DEFPRIM1("response/myerror?",responsemyerrorp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(RESPONSE/MYERROR? *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(RESPONSE/MYERROR? *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval responsemyerrorp(lispval response)
 {
   return responsetest(response,400,500);
 }
 
 DEFPRIM1("response/servererror?",responseservererrorp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(RESPONSE/SERVERERROR? *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(RESPONSE/SERVERERROR? *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval responseservererrorp(lispval response)
 {
   return responsetest(response,500,600);
 }
 
 DEFPRIM1("response/unauthorized?",responseunauthorizedp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(RESPONSE/UNAUTHORIZED? *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(RESPONSE/UNAUTHORIZED? *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval responseunauthorizedp(lispval response)
 {
   return responsetest(response,401,402);
 }
 
 DEFPRIM1("response/forbidden?",responseforbiddenp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(RESPONSE/FORBIDDEN? *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(RESPONSE/FORBIDDEN? *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval responseforbiddenp(lispval response)
 {
   return responsetest(response,401,405);
 }
 
 DEFPRIM1("response/timeout?",responsetimeoutp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(RESPONSE/TIMEOUT? *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(RESPONSE/TIMEOUT? *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval responsetimeoutp(lispval response)
 {
   return responsetest(response,408,409);
 }
 
 DEFPRIM1("response/badmethod?",responsebadmethodp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(RESPONSE/BADMETHOD? *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(RESPONSE/BADMETHOD? *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval responsebadmethodp(lispval response)
 {
   return responsetest(response,405,406);
 }
 
 DEFPRIM1("response/notfound?",responsenotfoundp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(RESPONSE/NOTFOUND? *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(RESPONSE/NOTFOUND? *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval responsenotfoundp(lispval response)
 {
   return responsetest(response,404,405);
 }
 
 DEFPRIM1("response/gone?",responsegonep,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(RESPONSE/GONE? *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(RESPONSE/GONE? *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval responsegonep(lispval response)
 {
   return responsetest(response,410,411);
 }
 
 DEFPRIM1("response/status",responsestatusprim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(RESPONSE/STATUS *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(RESPONSE/STATUS *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval responsestatusprim(lispval response)
 {
   lispval status = ((TABLEP(response))?
-                    (kno_get(response,response_code_slotid,VOID)):
-                    (FIXNUMP(response))?(response):(VOID));
+		    (kno_get(response,response_code_slotid,VOID)):
+		    (FIXNUMP(response))?(response):(VOID));
   if (!(FIXNUMP(status))) {
     kno_decref(status);
     return kno_type_error("HTTP response","responsestatusprim",response);}
   else return status;
 }
 DEFPRIM3("response/status?",testresponseprim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
- "`(RESPONSE/STATUS? *arg0* *arg1* [*arg2*])` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
- kno_any_type,KNO_VOID);
+	 "`(RESPONSE/STATUS? *arg0* *arg1* [*arg2*])` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
+	 kno_any_type,KNO_VOID);
 static lispval testresponseprim(lispval response,lispval arg1,lispval arg2)
 {
   if (KNO_AMBIGP(response)) {
     DO_CHOICES(r,response) {
       lispval result = testresponseprim(r,arg1,arg2);
       if (KNO_TRUEP(result)) {
-        KNO_STOP_DO_CHOICES;
-        return result;}
+	KNO_STOP_DO_CHOICES;
+	return result;}
       kno_decref(result);}
     return KNO_FALSE;}
   else {
     lispval status = ((TABLEP(response))?
-                      (kno_get(response,response_code_slotid,VOID)):
-                      (FIXNUMP(response))?(response):(VOID));
+		      (kno_get(response,response_code_slotid,VOID)):
+		      (FIXNUMP(response))?(response):(VOID));
     if (!(FIXNUMP(status))) {
       if (TABLEP(response)) kno_decref(status);
       return KNO_FALSE;}
     if (VOIDP(arg2)) {
       if (kno_choice_containsp(status,arg1))
-        return KNO_TRUE;
+	return KNO_TRUE;
       else return KNO_FALSE;}
     else if ((KNO_UINTP(arg1))&&(KNO_UINTP(arg2))) {
       int min = FIX2INT(arg1), max = FIX2INT(arg2);
@@ -1329,9 +1329,9 @@ static lispval testresponseprim(lispval response,lispval arg1,lispval arg2)
 /* Opening URLs with options */
 
 DEFPRIM3("curl/setopt!",curlsetopt,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
- "`(CURL/SETOPT! *arg0* *arg1* [*arg2*])` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
- kno_any_type,KNO_VOID);
+	 "`(CURL/SETOPT! *arg0* *arg1* [*arg2*])` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
+	 kno_any_type,KNO_VOID);
 static lispval curlsetopt(lispval handle,lispval opt,lispval value)
 {
   if (FALSEP(handle)) {
@@ -1346,7 +1346,7 @@ static lispval curlsetopt(lispval handle,lispval opt,lispval value)
 }
 
 DEFPRIM("curl/open",curlopen,KNO_VAR_ARGS|KNO_MIN_ARGS(0),
- "`(CURL/OPEN *args...*)` **undocumented**");
+	"`(CURL/OPEN *args...*)` **undocumented**");
 static lispval curlopen(int n,lispval *args)
 {
   if (n==0)
@@ -1357,15 +1357,15 @@ static lispval curlopen(int n,lispval *args)
     DO_CHOICES(key,keys) {
       lispval v = kno_get(spec,key,VOID);
       if (!(VOIDP(v))) {
-        lispval setval = set_curlopt(ch,key,v);
-        if (KNO_ABORTP(setval)) {
-          lispval conn = (lispval) ch;
-          KNO_STOP_DO_CHOICES;
-          kno_decref(keys);
-          kno_decref(conn);
-          kno_decref(v);
-          return setval;}
-        else kno_decref(setval);}
+	lispval setval = set_curlopt(ch,key,v);
+	if (KNO_ABORTP(setval)) {
+	  lispval conn = (lispval) ch;
+	  KNO_STOP_DO_CHOICES;
+	  kno_decref(keys);
+	  kno_decref(conn);
+	  kno_decref(v);
+	  return setval;}
+	else kno_decref(setval);}
       kno_decref(v);}
     kno_decref(keys);
     return (lispval) ch;}
@@ -1377,9 +1377,9 @@ static lispval curlopen(int n,lispval *args)
     while (i<n) {
       lispval setv = set_curlopt(ch,args[i],args[i+1]);
       if (KNO_ABORTP(setv)) {
-        lispval conn = (lispval) ch;
-        kno_decref(conn);
-        return setv;}
+	lispval conn = (lispval) ch;
+	kno_decref(conn);
+	return setv;}
       i = i+2;}
     return (lispval) ch;}
 }
@@ -1387,7 +1387,7 @@ static lispval curlopen(int n,lispval *args)
 /* Posting */
 
 DEFPRIM("urlpost",urlpost,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
- "`(URLPOST *arg0* *args...*)` **undocumented**");
+	"`(URLPOST *arg0* *args...*)` **undocumented**");
 static lispval urlpost(int n,lispval *args)
 {
   INBUF data; CURLcode retval;
@@ -1420,12 +1420,12 @@ static lispval urlpost(int n,lispval *args)
       size_t length = STRLEN(args[start]);
       curl_easy_setopt(h->handle,CURLOPT_POSTFIELDSIZE,length);
       curl_easy_setopt(h->handle,CURLOPT_POSTFIELDS,
-                       (char *) (CSTRING(args[start])));}
+		       (char *) (CSTRING(args[start])));}
     else if (PACKETP(args[start])) {
       size_t length = KNO_PACKET_LENGTH(args[start]);
       curl_easy_setopt(h->handle,CURLOPT_POSTFIELDSIZE,length);
       curl_easy_setopt(h->handle,CURLOPT_POSTFIELDS,
-                       ((char *)(KNO_PACKET_DATA(args[start]))));}
+		       ((char *)(KNO_PACKET_DATA(args[start]))));}
     else if (TABLEP(args[start])) {
       /* Construct form data */
       lispval postdata = args[start];
@@ -1433,48 +1433,48 @@ static lispval urlpost(int n,lispval *args)
       struct U8_OUTPUT nameout; u8_byte _buf[128]; int initnameout = 1;
       struct curl_httppost *last = NULL;
       DO_CHOICES(key,keys) {
-        lispval val = kno_get(postdata,key,VOID);
-        u8_string keyname = NULL; size_t keylen; int nametype = CURLFORM_PTRNAME;
-        if (EMPTYP(val)) continue;
-        else if (SYMBOLP(key)) {
-          keyname = SYM_NAME(key); keylen = strlen(keyname);}
-        else if (STRINGP(key)) {
-          keyname = CSTRING(key); keylen = STRLEN(key);}
-        else {
-          if (initnameout) {
-            U8_INIT_STATIC_OUTPUT_BUF(nameout,128,_buf); initnameout = 0;}
-          else nameout.u8_write = nameout.u8_outbuf;
-          kno_unparse(&nameout,key);
-          keyname = nameout.u8_outbuf;
-          keylen = (nameout.u8_write-nameout.u8_outbuf)+1;
-          nametype = CURLFORM_COPYNAME;}
-        if (keyname == NULL) {
-          curl_formfree(post); kno_decref(conn);
-          if (!(initnameout)) u8_close_output(&nameout);
-          return kno_err(kno_TypeError,"CURLPOST",u8_strdup("bad form var"),key);}
-        else if (STRINGP(val)) {
-          curl_formadd(&post,&last,
-                       nametype,keyname,CURLFORM_NAMELENGTH,keylen,
-                       CURLFORM_PTRCONTENTS,CSTRING(val),
-                       CURLFORM_CONTENTSLENGTH,((size_t)STRLEN(val)),
-                       CURLFORM_END);}
-        else if (PACKETP(val))
-          curl_formadd(&post,&last,
-                       nametype,keyname,CURLFORM_NAMELENGTH,keylen,
-                       CURLFORM_PTRCONTENTS,KNO_PACKET_DATA(val),
-                       CURLFORM_CONTENTSLENGTH,((size_t)KNO_PACKET_LENGTH(val)),
-                       CURLFORM_END);
-        else {
-          U8_OUTPUT out; U8_INIT_OUTPUT(&out,128);
-          kno_unparse(&out,val);
-          curl_formadd(&post,&last,
-                       nametype,keyname,CURLFORM_NAMELENGTH,keylen,
-                       CURLFORM_COPYCONTENTS,out.u8_outbuf,
-                       CURLFORM_CONTENTSLENGTH,
-                       ((size_t)(out.u8_write-out.u8_outbuf)),
-                       CURLFORM_END);
-          u8_free(out.u8_outbuf);}
-        kno_decref(val);}
+	lispval val = kno_get(postdata,key,VOID);
+	u8_string keyname = NULL; size_t keylen; int nametype = CURLFORM_PTRNAME;
+	if (EMPTYP(val)) continue;
+	else if (SYMBOLP(key)) {
+	  keyname = SYM_NAME(key); keylen = strlen(keyname);}
+	else if (STRINGP(key)) {
+	  keyname = CSTRING(key); keylen = STRLEN(key);}
+	else {
+	  if (initnameout) {
+	    U8_INIT_STATIC_OUTPUT_BUF(nameout,128,_buf); initnameout = 0;}
+	  else nameout.u8_write = nameout.u8_outbuf;
+	  kno_unparse(&nameout,key);
+	  keyname = nameout.u8_outbuf;
+	  keylen = (nameout.u8_write-nameout.u8_outbuf)+1;
+	  nametype = CURLFORM_COPYNAME;}
+	if (keyname == NULL) {
+	  curl_formfree(post); kno_decref(conn);
+	  if (!(initnameout)) u8_close_output(&nameout);
+	  return kno_err(kno_TypeError,"CURLPOST",u8_strdup("bad form var"),key);}
+	else if (STRINGP(val)) {
+	  curl_formadd(&post,&last,
+		       nametype,keyname,CURLFORM_NAMELENGTH,keylen,
+		       CURLFORM_PTRCONTENTS,CSTRING(val),
+		       CURLFORM_CONTENTSLENGTH,((size_t)STRLEN(val)),
+		       CURLFORM_END);}
+	else if (PACKETP(val))
+	  curl_formadd(&post,&last,
+		       nametype,keyname,CURLFORM_NAMELENGTH,keylen,
+		       CURLFORM_PTRCONTENTS,KNO_PACKET_DATA(val),
+		       CURLFORM_CONTENTSLENGTH,((size_t)KNO_PACKET_LENGTH(val)),
+		       CURLFORM_END);
+	else {
+	  U8_OUTPUT out; U8_INIT_OUTPUT(&out,128);
+	  kno_unparse(&out,val);
+	  curl_formadd(&post,&last,
+		       nametype,keyname,CURLFORM_NAMELENGTH,keylen,
+		       CURLFORM_COPYCONTENTS,out.u8_outbuf,
+		       CURLFORM_CONTENTSLENGTH,
+		       ((size_t)(out.u8_write-out.u8_outbuf)),
+		       CURLFORM_END);
+	  u8_free(out.u8_outbuf);}
+	kno_decref(val);}
       if (!(initnameout)) u8_close_output(&nameout);
       curl_easy_setopt(h->handle, CURLOPT_HTTPPOST, post);
       kno_decref(keys);}
@@ -1482,7 +1482,7 @@ static lispval urlpost(int n,lispval *args)
       if (conn == curl) reset_curl_handle((kno_curl_handle)conn);
       kno_decref(conn);
       return kno_err(kno_TypeError,"CURLPOST",u8_strdup("postdata"),
-                    args[start]);}
+		     args[start]);}
     retval = curl_easy_perform(h->handle);
     if (post) curl_formfree(post);}
   else {
@@ -1495,47 +1495,47 @@ static lispval urlpost(int n,lispval *args)
       u8_string keyname = NULL; size_t keylen; int nametype = CURLFORM_PTRNAME;
       if (EMPTYP(val)) {i = i+2; continue;}
       else if (SYMBOLP(key)) {
-        keyname = SYM_NAME(key); keylen = strlen(keyname);}
+	keyname = SYM_NAME(key); keylen = strlen(keyname);}
       else if (STRINGP(key)) {
-        keyname = CSTRING(key); keylen = STRLEN(key);}
+	keyname = CSTRING(key); keylen = STRLEN(key);}
       else {
-        if (initnameout) {
-          U8_INIT_STATIC_OUTPUT_BUF(nameout,128,_buf);
-          initnameout = 0;}
-        else nameout.u8_write = nameout.u8_outbuf;
-        kno_unparse(&nameout,key);
-        keyname = nameout.u8_outbuf;
-        keylen = nameout.u8_write-nameout.u8_outbuf;
-        nametype = CURLFORM_COPYNAME;}
+	if (initnameout) {
+	  U8_INIT_STATIC_OUTPUT_BUF(nameout,128,_buf);
+	  initnameout = 0;}
+	else nameout.u8_write = nameout.u8_outbuf;
+	kno_unparse(&nameout,key);
+	keyname = nameout.u8_outbuf;
+	keylen = nameout.u8_write-nameout.u8_outbuf;
+	nametype = CURLFORM_COPYNAME;}
       i = i+2;
       if (keyname == NULL) {
-        if (!(initnameout)) u8_close_output(&nameout);
-        curl_formfree(post);
-        if (conn == curl) reset_curl_handle((kno_curl_handle)conn);
-        kno_decref(conn);
-        return kno_err(kno_TypeError,"CURLPOST",u8_strdup("bad form var"),key);}
+	if (!(initnameout)) u8_close_output(&nameout);
+	curl_formfree(post);
+	if (conn == curl) reset_curl_handle((kno_curl_handle)conn);
+	kno_decref(conn);
+	return kno_err(kno_TypeError,"CURLPOST",u8_strdup("bad form var"),key);}
       else if (STRINGP(val))
-        curl_formadd(&post,&last,
-                     nametype,keyname,CURLFORM_NAMELENGTH,keylen,
-                     CURLFORM_PTRCONTENTS,CSTRING(val),
-                     CURLFORM_CONTENTSLENGTH,((size_t)STRLEN(val)),
-                     CURLFORM_END);
+	curl_formadd(&post,&last,
+		     nametype,keyname,CURLFORM_NAMELENGTH,keylen,
+		     CURLFORM_PTRCONTENTS,CSTRING(val),
+		     CURLFORM_CONTENTSLENGTH,((size_t)STRLEN(val)),
+		     CURLFORM_END);
       else if (PACKETP(val))
-        curl_formadd(&post,&last,
-                     nametype,keyname,CURLFORM_NAMELENGTH,keylen,
-                     CURLFORM_PTRCONTENTS,KNO_PACKET_DATA(val),
-                     CURLFORM_CONTENTSLENGTH,((size_t)KNO_PACKET_LENGTH(val)),
-                     CURLFORM_END);
+	curl_formadd(&post,&last,
+		     nametype,keyname,CURLFORM_NAMELENGTH,keylen,
+		     CURLFORM_PTRCONTENTS,KNO_PACKET_DATA(val),
+		     CURLFORM_CONTENTSLENGTH,((size_t)KNO_PACKET_LENGTH(val)),
+		     CURLFORM_END);
       else {
-        U8_OUTPUT out; U8_INIT_OUTPUT(&out,128);
-        kno_unparse(&out,val);
-        curl_formadd(&post,&last,
-                     nametype,keyname,CURLFORM_NAMELENGTH,keylen,
-                     CURLFORM_COPYCONTENTS,out.u8_outbuf,
-                     CURLFORM_CONTENTSLENGTH,
-                     ((size_t)(out.u8_write-out.u8_outbuf)),
-                     CURLFORM_END);
-        u8_free(out.u8_outbuf);}}
+	U8_OUTPUT out; U8_INIT_OUTPUT(&out,128);
+	kno_unparse(&out,val);
+	curl_formadd(&post,&last,
+		     nametype,keyname,CURLFORM_NAMELENGTH,keylen,
+		     CURLFORM_COPYCONTENTS,out.u8_outbuf,
+		     CURLFORM_CONTENTSLENGTH,
+		     ((size_t)(out.u8_write-out.u8_outbuf)),
+		     CURLFORM_END);
+	u8_free(out.u8_outbuf);}}
     if (!(initnameout)) u8_close_output(&nameout);
     curl_easy_setopt(h->handle, CURLOPT_HTTPPOST, post);
     retval = curl_easy_perform(h->handle);
@@ -1625,78 +1625,78 @@ static lispval urlpostdata_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 /* Using URLs for code source */
 
 static u8_string url_source_fn(int fetch,lispval spec,u8_string enc_name,
-                               u8_string *path,time_t *timep,ssize_t *sizep,
-                               void *ignored)
+			       u8_string *path,time_t *timep,ssize_t *sizep,
+			       void *ignored)
 {
   u8_string uri = NULL;
   if (STRINGP(spec)) {
     uri = KNO_CSTRING(spec);
     if (((strncmp(uri,"http:",5))==0) ||
-        ((strncmp(uri,"https:",6))==0) ||
-        ((strncmp(uri,"ftp:",4))==0)) {
+	((strncmp(uri,"https:",6))==0) ||
+	((strncmp(uri,"ftp:",4))==0)) {
       if (fetch) {
-        lispval result = fetchurl(NULL,uri);
-        lispval content = kno_get(result,pcontent_symbol,EMPTY);
-        if (PACKETP(content)) {
-          u8_encoding enc=
-            ((enc_name == NULL)?(u8_get_default_encoding()):
-             (strcasecmp(enc_name,"auto")==0)?
-             (u8_guess_encoding(KNO_PACKET_DATA(content))):
-             (u8_get_encoding(enc_name)));
-          if (!(enc)) enc = u8_get_default_encoding();
-          u8_string string_form = u8_make_string
-            (enc,KNO_PACKET_DATA(content),
-             KNO_PACKET_DATA(content)+KNO_PACKET_LENGTH(content));
-          kno_decref(content);
-          content = kno_wrapstring(string_form);}
-        if (STRINGP(content)) {
-          lispval eurl = kno_get(result,eurl_slotid,VOID);
-          lispval filetime = kno_get(result,filetime_slotid,VOID);
-          lispval filesize = kno_get(result,content_length_symbol,VOID);
-          u8_string sdata = u8_strdup(CSTRING(content));
-          if ((STRINGP(eurl))&&(path)) *path = u8_strdup(CSTRING(eurl));
-          if ( (TYPEP(filetime,kno_timestamp_type)) && (timep) )
-            *timep = u8_mktime(&(((kno_timestamp)filetime)->u8xtimeval));
-          if ( (sizep) && (KNO_INTEGERP(filesize) ) )
-            *sizep = kno_getint64(filesize);
-          kno_decref(filetime);
-          kno_decref(eurl);
-          kno_decref(content);
-          kno_decref(result);
-          return sdata;}
-        else {
-          kno_decref(content);
-          kno_decref(result);
-          return NULL;}}
+	lispval result = fetchurl(NULL,uri);
+	lispval content = kno_get(result,pcontent_symbol,EMPTY);
+	if (PACKETP(content)) {
+	  u8_encoding enc=
+	    ((enc_name == NULL)?(u8_get_default_encoding()):
+	     (strcasecmp(enc_name,"auto")==0)?
+	     (u8_guess_encoding(KNO_PACKET_DATA(content))):
+	     (u8_get_encoding(enc_name)));
+	  if (!(enc)) enc = u8_get_default_encoding();
+	  u8_string string_form = u8_make_string
+	    (enc,KNO_PACKET_DATA(content),
+	     KNO_PACKET_DATA(content)+KNO_PACKET_LENGTH(content));
+	  kno_decref(content);
+	  content = kno_wrapstring(string_form);}
+	if (STRINGP(content)) {
+	  lispval eurl = kno_get(result,eurl_slotid,VOID);
+	  lispval filetime = kno_get(result,filetime_slotid,VOID);
+	  lispval filesize = kno_get(result,content_length_symbol,VOID);
+	  u8_string sdata = u8_strdup(CSTRING(content));
+	  if ((STRINGP(eurl))&&(path)) *path = u8_strdup(CSTRING(eurl));
+	  if ( (TYPEP(filetime,kno_timestamp_type)) && (timep) )
+	    *timep = u8_mktime(&(((kno_timestamp)filetime)->u8xtimeval));
+	  if ( (sizep) && (KNO_INTEGERP(filesize) ) )
+	    *sizep = kno_getint64(filesize);
+	  kno_decref(filetime);
+	  kno_decref(eurl);
+	  kno_decref(content);
+	  kno_decref(result);
+	  return sdata;}
+	else {
+	  kno_decref(content);
+	  kno_decref(result);
+	  return NULL;}}
       else {
-        lispval result = fetchurlhead(NULL,uri);
-        lispval status = kno_get(result,response_code_slotid,VOID);
-        if ((VOIDP(status))||
-            ((KNO_UINTP(status))&&
-             (FIX2INT(status)<200)&&
-             (FIX2INT(status)>=400))) {
-          kno_decref(result);
-          return NULL;}
-        else {
-          lispval eurl = kno_get(result,eurl_slotid,VOID);
-          lispval filetime = kno_get(result,filetime_slotid,VOID);
-          lispval filesize = kno_get(result,content_length_symbol,VOID);
-          if ((STRINGP(eurl))&&(path)) *path = u8_strdup(CSTRING(eurl));
-          if ((TYPEP(filetime,kno_timestamp_type))&&(timep))
-            *timep = u8_mktime(&(((kno_timestamp)filetime)->u8xtimeval));
-          if ( (sizep) && (KNO_INTEGERP(filesize)) )
-            *timep = kno_getint64(filesize);
-          kno_decref(eurl);
-          kno_decref(result);
-          kno_decref(filetime);
-          kno_decref(filesize);
-          return "exists";}}}
+	lispval result = fetchurlhead(NULL,uri);
+	lispval status = kno_get(result,response_code_slotid,VOID);
+	if ((VOIDP(status))||
+	    ((KNO_UINTP(status))&&
+	     (FIX2INT(status)<200)&&
+	     (FIX2INT(status)>=400))) {
+	  kno_decref(result);
+	  return NULL;}
+	else {
+	  lispval eurl = kno_get(result,eurl_slotid,VOID);
+	  lispval filetime = kno_get(result,filetime_slotid,VOID);
+	  lispval filesize = kno_get(result,content_length_symbol,VOID);
+	  if ((STRINGP(eurl))&&(path)) *path = u8_strdup(CSTRING(eurl));
+	  if ((TYPEP(filetime,kno_timestamp_type))&&(timep))
+	    *timep = u8_mktime(&(((kno_timestamp)filetime)->u8xtimeval));
+	  if ( (sizep) && (KNO_INTEGERP(filesize)) )
+	    *timep = kno_getint64(filesize);
+	  kno_decref(eurl);
+	  kno_decref(result);
+	  kno_decref(filetime);
+	  kno_decref(filesize);
+	  return "exists";}}}
     else return NULL;}
   else return NULL;
 }
 
 /* This is largely based on code from
-     http://curl.haxx.se/libcurl/c/threaded-ssl.html
+   http://curl.haxx.se/libcurl/c/threaded-ssl.html
    to handle problems with multi-threaded https: calls.
 */
 

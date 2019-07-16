@@ -187,8 +187,8 @@ KNO_EXPORT void kno_set_app_env(kno_lexenv env)
 }
 
 DEFPRIM("%appenv",appenv_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
- "Returns the base 'application environment' for "
- "the current instance");
+	"Returns the base 'application environment' for "
+	"the current instance");
 static lispval appenv_prim()
 {
   if (kno_app_env)
@@ -360,8 +360,8 @@ static int inits_config_set(lispval var,lispval inits,void *d)
 
 KNO_EXPORT
 void kno_autoload_config(u8_string module_inits,
-			u8_string file_inits,
-			u8_string run_inits)
+			 u8_string file_inits,
+			 u8_string run_inits)
 {
   kno_register_config
     (module_inits,_("Which modules to load into the application environment"),

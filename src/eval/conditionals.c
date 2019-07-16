@@ -54,19 +54,19 @@ static lispval tryif_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     lispval value = VOID; kno_decref(test_result);
     {lispval try_clauses = kno_get_body(expr,2);
       KNO_DOLIST(clause,try_clauses) {
-        kno_decref(value); value = kno_eval(clause,env);
-        if (KNO_ABORTED(value)) return value;
-        else if (VOIDP(value)) {
-          kno_seterr(kno_VoidArgument,"tryif_evalfn",NULL,clause);
-          return KNO_ERROR;}
-        else if (!(EMPTYP(value)))
-          return value;}}
+	kno_decref(value); value = kno_eval(clause,env);
+	if (KNO_ABORTED(value)) return value;
+	else if (VOIDP(value)) {
+	  kno_seterr(kno_VoidArgument,"tryif_evalfn",NULL,clause);
+	  return KNO_ERROR;}
+	else if (!(EMPTYP(value)))
+	  return value;}}
     return value;}
 }
 
 DEFPRIM1("not",not_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(NOT *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(NOT *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval not_prim(lispval arg)
 {
   if (FALSEP(arg)) return KNO_TRUE; else return KNO_FALSE;
@@ -87,25 +87,25 @@ static lispval cond_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     else if (FALSEP(test_val)) {}
     else {
       lispval applyp = ((PAIRP(KNO_CDR(clause))) &&
-                      (KNO_EQ(KNO_CAR(KNO_CDR(clause)),apply_marker)));
+			(KNO_EQ(KNO_CAR(KNO_CDR(clause)),apply_marker)));
       if (applyp)
-        if (PAIRP(KNO_CDR(KNO_CDR(clause)))) {
-          lispval fnexpr = KNO_CAR(KNO_CDR(KNO_CDR(clause)));
-          lispval fn = kno_eval(fnexpr,env);
-          if (KNO_ABORTED(fn)) {
-            kno_decref(test_val);
-            return fn;}
-          else if (KNO_APPLICABLEP(fn)) {
-            lispval retval = kno_apply(fn,1,&test_val);
-            kno_decref(test_val); kno_decref(fn);
-            return retval;}
-          else {
-            kno_decref(test_val);
-            return kno_type_error("function","cond_evalfn",fn);}}
-        else return kno_err(kno_SyntaxError,"cond_evalfn","apply syntax",expr);
+	if (PAIRP(KNO_CDR(KNO_CDR(clause)))) {
+	  lispval fnexpr = KNO_CAR(KNO_CDR(KNO_CDR(clause)));
+	  lispval fn = kno_eval(fnexpr,env);
+	  if (KNO_ABORTED(fn)) {
+	    kno_decref(test_val);
+	    return fn;}
+	  else if (KNO_APPLICABLEP(fn)) {
+	    lispval retval = kno_apply(fn,1,&test_val);
+	    kno_decref(test_val); kno_decref(fn);
+	    return retval;}
+	  else {
+	    kno_decref(test_val);
+	    return kno_type_error("function","cond_evalfn",fn);}}
+	else return kno_err(kno_SyntaxError,"cond_evalfn","apply syntax",expr);
       else {
-        kno_decref(test_val);
-        return eval_body(KNO_CDR(clause),env,_stack,"COND",NULL,0);}}}
+	kno_decref(test_val);
+	return eval_body(KNO_CDR(clause),env,_stack,"COND",NULL,0);}}}
   return VOID;
 }
 
@@ -119,15 +119,15 @@ static lispval case_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   else {
     KNO_DOLIST(clause,KNO_CDR(KNO_CDR(expr)))
       if (PAIRP(clause))
-        if (PAIRP(KNO_CAR(clause))) {
-          lispval keys = KNO_CAR(clause);
-          KNO_DOLIST(key,keys)
-            if (KNO_EQ(keyval,key))
-              return eval_body(KNO_CDR(clause),env,_stack,"CASE",NULL,0);}
-        else if (KNO_EQ(KNO_CAR(clause),else_symbol)) {
-          kno_decref(keyval);
-          return kno_eval_exprs(KNO_CDR(clause),env,_stack,1);}
-        else return kno_err(kno_SyntaxError,"case_evalfn",NULL,clause);
+	if (PAIRP(KNO_CAR(clause))) {
+	  lispval keys = KNO_CAR(clause);
+	  KNO_DOLIST(key,keys)
+	    if (KNO_EQ(keyval,key))
+	      return eval_body(KNO_CDR(clause),env,_stack,"CASE",NULL,0);}
+	else if (KNO_EQ(KNO_CAR(clause),else_symbol)) {
+	  kno_decref(keyval);
+	  return kno_eval_exprs(KNO_CDR(clause),env,_stack,1);}
+	else return kno_err(kno_SyntaxError,"case_evalfn",NULL,clause);
       else return kno_err(kno_SyntaxError,"case_evalfn",NULL,clause);
     return VOID;}
 }
@@ -199,34 +199,34 @@ KNO_EXPORT void kno_init_conditionals_c()
   init_local_cprims();
 
   kno_def_evalfn(kno_scheme_module,"IF",
-                "(IF *test* *then* [*else*]) "
-                "returns *then* if *test* is neither #f or {}\n"
-                "and *else* (if provided) when *test* is #f. "
-                "Returns VOID otherwise.",
-                if_evalfn);
+		 "(IF *test* *then* [*else*]) "
+		 "returns *then* if *test* is neither #f or {}\n"
+		 "and *else* (if provided) when *test* is #f. "
+		 "Returns VOID otherwise.",
+		 if_evalfn);
   kno_def_evalfn(kno_scheme_module,"TRYIF","",tryif_evalfn);
   kno_def_evalfn(kno_scheme_module,"COND","",cond_evalfn);
   kno_def_evalfn(kno_scheme_module,"CASE","",case_evalfn);
   kno_def_evalfn(kno_scheme_module,"WHEN",
-                "(WHEN *test* *clauses*...) returns VOID and "
-                "evaluates *clauses* in order if *test* is not "
-                "#f or {}",
-                when_evalfn);
+		 "(WHEN *test* *clauses*...) returns VOID and "
+		 "evaluates *clauses* in order if *test* is not "
+		 "#f or {}",
+		 when_evalfn);
   kno_def_evalfn(kno_scheme_module,"UNLESS",
-                "(WHEN *test* *clauses*...) returns VOID and "
-                "evaluates *clauses* in order if *test* is #f.",
-                unless_evalfn);
+		 "(WHEN *test* *clauses*...) returns VOID and "
+		 "evaluates *clauses* in order if *test* is #f.",
+		 unless_evalfn);
   kno_def_evalfn(kno_scheme_module,"AND",
-                "(AND *clauses*..) evaluates *clauses* in order "
-                "until one returns either #f or {}, which is then "
-                "returned. If none return #f or #{}, return the result "
-                "of the last clause",
-                and_evalfn);
+		 "(AND *clauses*..) evaluates *clauses* in order "
+		 "until one returns either #f or {}, which is then "
+		 "returned. If none return #f or #{}, return the result "
+		 "of the last clause",
+		 and_evalfn);
   kno_def_evalfn(kno_scheme_module,"OR",
-                "(OR *clauses*..) evaluates *clauses* in order, "
-                "returning the first non #f value. If a clause returns {} "
-                "it is returned immediately.",
-                or_evalfn);
+		 "(OR *clauses*..) evaluates *clauses* in order, "
+		 "returning the first non #f value. If a clause returns {} "
+		 "it is returned immediately.",
+		 or_evalfn);
 }
 
 static void init_local_cprims()

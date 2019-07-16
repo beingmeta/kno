@@ -122,7 +122,7 @@ static u8_string get_testid(lispval fn,int n,lispval *args)
 }
 
 DEFPRIM("applytest",applytest,KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
- "`(APPLYTEST *arg0* *arg1* *args...*)` **undocumented**");
+	"`(APPLYTEST *arg0* *arg1* *args...*)` **undocumented**");
 static lispval applytest(int n,lispval *args)
 {
   lispval expected = args[0], return_value;
@@ -280,18 +280,18 @@ static lispval evaltest_evalfn(lispval expr,kno_lexenv env,kno_stack s)
       int got_ref = (historyp) ? (kno_histpush(result)) : (-1);
       int expect_ref = (historyp) ? (kno_histpush(expected)) : (-1);
       u8_string msg =
-        ((got_ref>0) || (expect_ref>0)) ?
-        (u8_mkstring("%s%s%s%q"
-                     "\n returned   %q (#%d)"
-                     "\n instead of %q (#%d)",
-                     U8OPTSTR("(",name,") "),testexpr,
-                     result,got_ref,
-                     expected,expect_ref)) :
-        (u8_mkstring("%s%s%s%q"
-                     "\n returned   %q"
-                     "\n instead of %q",
-                     U8OPTSTR("(",name,") "),testexpr,
-                     result,expected));
+	((got_ref>0) || (expect_ref>0)) ?
+	(u8_mkstring("%s%s%s%q"
+		     "\n returned   %q (#%d)"
+		     "\n instead of %q (#%d)",
+		     U8OPTSTR("(",name,") "),testexpr,
+		     result,got_ref,
+		     expected,expect_ref)) :
+	(u8_mkstring("%s%s%s%q"
+		     "\n returned   %q"
+		     "\n instead of %q",
+		     U8OPTSTR("(",name,") "),testexpr,
+		     result,expected));
       return_value = kno_err(TestFailed,"evaltest",msg,result);
       u8_free(msg);}}
   kno_decref(name_value);
@@ -310,8 +310,8 @@ static lispval errtest_evalfn(lispval expr,kno_lexenv env,kno_stack s)
     u8_exception ex = u8_erreify();
     if (ex) {
       u8_log(LOG_INFO,"ExpectedError",
-             "As expected, %q generated the error %s <%s> (%s)",
-             test_expr,ex->u8x_cond,ex->u8x_context,ex->u8x_details);
+	     "As expected, %q generated the error %s <%s> (%s)",
+	     test_expr,ex->u8x_cond,ex->u8x_context,ex->u8x_details);
       u8_free_exception(ex,1);}
     else u8_log(LOG_NOTICE,"Missing Exception",
 		"As expected, %q generated an error, but no exception was set",

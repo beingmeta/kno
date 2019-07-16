@@ -74,7 +74,7 @@ kno_walk_tree(lispval roots,lispval slotids,kno_tree_walkfn walk,void *data)
 
 KNO_EXPORT int
 kno_collect_tree(struct KNO_HASHSET *h,
-                lispval roots,lispval slotids)
+                 lispval roots,lispval slotids)
 {
   DO_CHOICES(root,roots)
     if (keep_walking(h,root,slotids,NULL,NULL)<0)

@@ -25,8 +25,8 @@
 static lispval name_slotid, content_slotid;
 
 DEFPRIM2("xmlattrib",xmlattrib,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
- "`(XMLATTRIB *arg0* *arg1*)` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(XMLATTRIB *arg0* *arg1*)` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval xmlattrib(lispval doc,lispval attrib_id)
 {
   if (SLOTMAPP(doc))
@@ -55,8 +55,8 @@ static void xmlget_helper(lispval *result,lispval doc,lispval eltid,int cons)
 }
 
 DEFPRIM2("xmlget",xmlget,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
- "`(XMLGET *arg0* *arg1*)` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(XMLGET *arg0* *arg1*)` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval xmlget(lispval doc,lispval attrib_id)
 {
   lispval results = EMPTY;
@@ -74,8 +74,8 @@ static int listlen(lispval l)
 }
 
 DEFPRIM2("xmlget/sorted",xmlget_sorted,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
- "`(XMLGET/SORTED *arg0* *arg1*)` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(XMLGET/SORTED *arg0* *arg1*)` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval xmlget_sorted(lispval doc,lispval attrib_id)
 {
   lispval results = NIL;
@@ -94,8 +94,8 @@ static lispval xmlget_sorted(lispval doc,lispval attrib_id)
 }
 
 DEFPRIM2("xmlget/first",xmlget_first,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
- "`(XMLGET/FIRST *arg0* *arg1*)` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(XMLGET/FIRST *arg0* *arg1*)` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval xmlget_first(lispval doc,lispval attrib_id)
 {
   lispval results = NIL;
@@ -113,8 +113,8 @@ static lispval xmlget_first(lispval doc,lispval attrib_id)
 
 /* This returns the content field as parsed. */
 DEFPRIM2("xmlconents",xmlcontents,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "`(XMLCONENTS *arg0* [*arg1*])` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(XMLCONENTS *arg0* [*arg1*])` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval xmlcontents(lispval doc,lispval attrib_id)
 {
   if ((CHOICEP(doc)) || (PRECHOICEP(doc))) {
@@ -134,7 +134,7 @@ static lispval xmlcontents(lispval doc,lispval attrib_id)
     KNO_DOELTS(docelt,doc,count) {
       lispval contents = xmlcontents(docelt,attrib_id);
       if (!(NILP(contents))) {
-        CHOICE_ADD(results,contents);}}
+	CHOICE_ADD(results,contents);}}
     return results;}
   else {
     lispval value = kno_get(doc,attrib_id,NIL);
@@ -145,8 +145,8 @@ static lispval xmlcontents(lispval doc,lispval attrib_id)
 
 /* This returns the content field as parsed. */
 DEFPRIM2("xmlempty?",xmlemptyp,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "`(XMLEMPTY? *arg0* [*arg1*])` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(XMLEMPTY? *arg0* [*arg1*])` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval xmlemptyp(lispval elt,lispval attribid)
 {
   if (VOIDP(attribid)) attribid = content_slotid;
@@ -155,9 +155,9 @@ static lispval xmlemptyp(lispval elt,lispval attribid)
   else {
     lispval content = kno_get(elt,attribid,NIL);
     if ((NILP(content)) ||
-        (EMPTYP(content))||
-        ((VECTORP(content))&&
-         (VEC_LEN(content)==0)))
+	(EMPTYP(content))||
+	((VECTORP(content))&&
+	 (VEC_LEN(content)==0)))
       return KNO_TRUE;
     else {
       kno_decref(content);
@@ -166,8 +166,8 @@ static lispval xmlemptyp(lispval elt,lispval attribid)
 
 /* This returns the content field as a string. */
 DEFPRIM2("xmlcontent",xmlcontent,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "`(XMLCONTENT *arg0* [*arg1*])` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(XMLCONTENT *arg0* [*arg1*])` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval xmlcontent(lispval doc,lispval attrib_id)
 {
   if ((CHOICEP(doc)) || (PRECHOICEP(doc))) {
@@ -182,11 +182,11 @@ static lispval xmlcontent(lispval doc,lispval attrib_id)
     else if ((PAIRP(doc))||(VECTORP(doc))) {
       struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,256);
       {KNO_DOELTS(docelt,doc,count) {
-          if (STRINGP(docelt))
-            u8_putn(&out,CSTRING(docelt),STRLEN(docelt));
-          else if ((OIDP(docelt)) || (SLOTMAPP(docelt)))
-            kno_unparse_xml(&out,docelt,NULL);
-          else kno_unparse(&out,docelt);}}
+	  if (STRINGP(docelt))
+	    u8_putn(&out,CSTRING(docelt),STRLEN(docelt));
+	  else if ((OIDP(docelt)) || (SLOTMAPP(docelt)))
+	    kno_unparse_xml(&out,docelt,NULL);
+	  else kno_unparse(&out,docelt);}}
       return kno_stream2string(&out);}
     else if ((OIDP(doc)) || (SLOTMAPP(doc))) {
       lispval content = kno_get(doc,content_slotid,NIL);
@@ -199,7 +199,7 @@ static lispval xmlcontent(lispval doc,lispval attrib_id)
     KNO_DOELTS(docelt,doc,count) {
       lispval contents = xmlcontent(docelt,attrib_id);
       if (!(NILP(contents))) {
-        CHOICE_ADD(results,contents);}}
+	CHOICE_ADD(results,contents);}}
     return results;}
   else {
     lispval value = kno_get(doc,attrib_id,NIL);

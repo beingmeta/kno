@@ -137,10 +137,10 @@ static u8_string check_module_source(u8_string name,u8_string search_path)
       ? (U8S(""))
       : (U8S("/"));
     if (u8_file_existsp
-        (u8_bprintf(buf,"%s%s%s/module.scm",search_path,init_sep,name)))
+	(u8_bprintf(buf,"%s%s%s/module.scm",search_path,init_sep,name)))
       return u8_mkstring("%s%s%s/module.scm",search_path,init_sep,name);
     else if (u8_file_existsp(u8_bprintf(buf,"%s%s%s.scm",
-                                        search_path,init_sep,name)))
+					search_path,init_sep,name)))
       return u8_mkstring("%s%s%s.scm",search_path,init_sep,name);
     else return NULL;}
 }
@@ -160,17 +160,17 @@ static int load_source_module(lispval spec,void *ignored)
       kno_register_module_x(module_filename,load_result,0);
       /* Store non symbolic specifiers as module identifiers */
       if (STRINGP(spec))
-        kno_add(load_result,source_symbol,spec);
+	kno_add(load_result,source_symbol,spec);
       if (KNO_LEXENVP(load_result)) {
-        kno_lexenv lexenv = (kno_lexenv) load_result;
-        kno_add(load_result,source_symbol,module_filename);
-        if (KNO_TABLEP(lexenv->env_exports))
-          kno_add(lexenv->env_exports,source_symbol,module_filename);}
+	kno_lexenv lexenv = (kno_lexenv) load_result;
+	kno_add(load_result,source_symbol,module_filename);
+	if (KNO_TABLEP(lexenv->env_exports))
+	  kno_add(lexenv->env_exports,source_symbol,module_filename);}
       /* Register the module under its filename too. */
       if (strchr(module_source,':') == NULL) {
-        lispval abspath_key = kno_wrapstring(u8_abspath(module_source,NULL));
-        kno_register_module_x(abspath_key,load_result,0);
-        kno_decref(abspath_key);}
+	lispval abspath_key = kno_wrapstring(u8_abspath(module_source,NULL));
+	kno_register_module_x(abspath_key,load_result,0);
+	kno_decref(abspath_key);}
       kno_decref(module_filename);
       u8_free(module_source);
       kno_decref(load_result);
@@ -188,10 +188,10 @@ static u8_string get_module_source(lispval spec)
       return module_source;}
     KNO_DOLIST(elt,loadpath) {
       if (STRINGP(elt)) {
-        module_source = check_module_source(name,CSTRING(elt));
-        if (module_source) {
-          u8_free(name);
-          return module_source;}}}
+	module_source = check_module_source(name,CSTRING(elt));
+	if (module_source) {
+	  u8_free(name);
+	  return module_source;}}}
     u8_free(name);
     return NULL;}
   else if (STRINGP(spec)) {
@@ -199,10 +199,10 @@ static u8_string get_module_source(lispval spec)
     if (strchr(spec_data,':') == NULL) {
       u8_string abspath = kno_get_component(CSTRING(spec));
       if (u8_file_existsp(abspath))
-        return abspath;
+	return abspath;
       else {
-        u8_free(abspath);
-        return NULL;}}
+	u8_free(abspath);
+	return NULL;}}
     else {
       u8_string use_path = NULL;
       if (kno_probe_source(spec_data,&use_path,NULL,NULL)) {
@@ -232,8 +232,8 @@ static lispval load_source_for_module(lispval spec,u8_string module_source)
 }
 
 DEFPRIM1("reload-module",reload_module,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(RELOAD-MODULE *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(RELOAD-MODULE *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval reload_module(lispval module)
 {
   if (STRINGP(module)) {
@@ -250,7 +250,7 @@ static lispval reload_module(lispval module)
       kno_decref(resolved);
       return result;}
     else return kno_err(kno_TypeError,"reload_module",
-                        "module name or path",module);}
+			"module name or path",module);}
   else if (TABLEP(module)) {
     lispval ids = kno_get(module,source_symbol,EMPTY), source = VOID;
     DO_CHOICES(id,ids) {
@@ -262,9 +262,9 @@ static lispval reload_module(lispval module)
     else {
       kno_decref(ids);
       return kno_err(kno_ReloadError,"reload_module",
-                     "Couldn't find source",module);}}
+		     "Couldn't find source",module);}}
   else return kno_err(kno_TypeError,"reload_module",
-                      "module name or path",module);
+		      "module name or path",module);
 }
 
 /* Automatic module reloading */
@@ -288,15 +288,15 @@ static void add_load_record
   struct KNO_LOAD_RECORD *scan;
   u8_lock_mutex(&load_record_lock);
   scan = load_records; while (scan)
-                         if ((strcmp(filename,scan->loadfile))==0) {
-                           if (env!=scan->loadenv) {
-                             kno_incref((lispval)env);
-                             kno_decref((lispval)(scan->loadenv));
-                             scan->loadenv = env;}
-                           scan->file_modtime = mtime;
-                           u8_unlock_mutex(&load_record_lock);
-                           return;}
-                         else scan = scan->prev_loaded;
+			 if ((strcmp(filename,scan->loadfile))==0) {
+			   if (env!=scan->loadenv) {
+			     kno_incref((lispval)env);
+			     kno_decref((lispval)(scan->loadenv));
+			     scan->loadenv = env;}
+			   scan->file_modtime = mtime;
+			   u8_unlock_mutex(&load_record_lock);
+			   return;}
+			 else scan = scan->prev_loaded;
   scan = u8_alloc(struct KNO_LOAD_RECORD);
   scan->loadfile = u8_strdup(filename);
   scan->file_modtime = mtime;
@@ -333,18 +333,18 @@ KNO_EXPORT int kno_update_file_modules(int force)
       time_t mtime;
       /* Don't automatically update non-local loads */
       if (strchr(scan->loadfile,':')!=NULL) {
-        scan = scan->prev_loaded; continue;}
+	scan = scan->prev_loaded; continue;}
       else mtime = u8_file_mtime(scan->loadfile);
       if (mtime>scan->file_modtime) {
-        struct KNO_MODULE_RELOAD *toreload = u8_alloc(struct KNO_MODULE_RELOAD);
-        toreload->loadfile = scan->loadfile;
-        toreload->loadenv = scan->loadenv;
-        toreload->loadarg = scan->loadarg;
-        toreload->load_record = scan;
-        toreload->file_modtime = -1;
-        toreload->prev_loaded = reloads;
-        rscan = reloads = toreload;
-        scan->reloading = 1;}
+	struct KNO_MODULE_RELOAD *toreload = u8_alloc(struct KNO_MODULE_RELOAD);
+	toreload->loadfile = scan->loadfile;
+	toreload->loadenv = scan->loadenv;
+	toreload->loadarg = scan->loadarg;
+	toreload->load_record = scan;
+	toreload->file_modtime = -1;
+	toreload->prev_loaded = reloads;
+	rscan = reloads = toreload;
+	scan->reloading = 1;}
       scan = scan->prev_loaded;}
     u8_unlock_mutex(&load_record_lock);
     /* Now iterate over the modules you're reloading, actually calling
@@ -356,28 +356,28 @@ KNO_EXPORT int kno_update_file_modules(int force)
       time_t mtime = u8_file_mtime(this->loadfile);
       rscan = this->prev_loaded;
       if (kno_log_reloads)
-        u8_log(LOG_WARN,"kno_update_file_modules","Reloading %q from %s",
-               this->loadarg,filename);
+	u8_log(LOG_WARN,"kno_update_file_modules","Reloading %q from %s",
+	       this->loadarg,filename);
 
       load_result = kno_load_source(filename,env,"auto");
 
       if (KNO_ABORTP(load_result)) {
-        u8_log(LOG_CRIT,"update_file_modules","Error reloading %q from %s",
-               this->loadarg,filename);
-        kno_clear_errors(1);}
+	u8_log(LOG_CRIT,"update_file_modules","Error reloading %q from %s",
+	       this->loadarg,filename);
+	kno_clear_errors(1);}
       else {
-        if (kno_log_reloads)
-          u8_log(LOG_WARN,"kno_update_file_modules","Reloaded %q from %s",
-                 this->loadarg,filename);
-        kno_decref(load_result); n_reloads++;
-        this->file_modtime = mtime;}}
+	if (kno_log_reloads)
+	  u8_log(LOG_WARN,"kno_update_file_modules","Reloaded %q from %s",
+		 this->loadarg,filename);
+	kno_decref(load_result); n_reloads++;
+	this->file_modtime = mtime;}}
     u8_lock_mutex(&load_record_lock);
     /* Update the load records with the new modtimes, freeing along
        the way */
     rscan = reloads; while (rscan) {
       module_reload this = rscan;
       if (this->file_modtime>0) {
-        this->load_record->file_modtime = this->file_modtime;}
+	this->load_record->file_modtime = this->file_modtime;}
       this->load_record->reloading = 0;
       rscan = this->prev_loaded;
       u8_free(this);}
@@ -395,7 +395,7 @@ KNO_EXPORT int kno_update_file_module(u8_string module_source,int force)
   if (rv<0) {
     u8_log(LOG_WARN,kno_ReloadError,"Couldn't find %s to reload it",
 	   module_source);
-      return -1;}
+    return -1;}
   if ( (mtime<0) && (!(force)) ) {
     u8_log(LOG_WARN,kno_ReloadError,
 	   "Couldn't determine load time of %s to reload it",
@@ -417,9 +417,9 @@ KNO_EXPORT int kno_update_file_module(u8_string module_source,int force)
     u8_unlock_mutex(&update_modules_lock);
     /* Maybe, this should load it. */
     kno_seterr(kno_ReloadError,"kno_update_file_module",
-               u8_sprintf(buf,200,_("The file %s has never been loaded"),
-                          module_source),
-               VOID);
+	       u8_sprintf(buf,200,_("The file %s has never been loaded"),
+			  module_source),
+	       VOID);
     return -1;}
   else if ((!(force))&&(mtime<=scan->file_modtime)) {
     u8_unlock_mutex(&load_record_lock);
@@ -431,12 +431,12 @@ KNO_EXPORT int kno_update_file_module(u8_string module_source,int force)
     lispval load_result;
     if (kno_log_reloads)
       u8_log(LOG_WARN,"kno_update_file_module","Reloading %s",
-             scan->loadfile);
+	     scan->loadfile);
     load_result = kno_load_source
       (scan->loadfile,scan->loadenv,"auto");
     if (KNO_ABORTP(load_result)) {
       kno_seterr(kno_ReloadError,"kno_reload_modules",
-                 scan->loadfile,load_result);
+		 scan->loadfile,load_result);
       u8_lock_mutex(&load_record_lock);
       scan->reloading = 0;
       u8_unlock_mutex(&load_record_lock);
@@ -453,8 +453,8 @@ KNO_EXPORT int kno_update_file_module(u8_string module_source,int force)
 }
 
 DEFPRIM1("update-modules",update_modules_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
- "`(UPDATE-MODULES [*arg0*])` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(UPDATE-MODULES [*arg0*])` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval update_modules_prim(lispval flag)
 {
   if (kno_update_file_modules((!FALSEP(flag)))<0)
@@ -463,8 +463,8 @@ static lispval update_modules_prim(lispval flag)
 }
 
 DEFPRIM2("update-module",update_module_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "`(UPDATE-MODULE *arg0* [*arg1*])` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_FALSE);
+	 "`(UPDATE-MODULE *arg0* [*arg1*])` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_FALSE);
 static lispval update_module_prim(lispval spec,lispval force)
 {
   if (FALSEP(force)) {
@@ -473,11 +473,11 @@ static lispval update_module_prim(lispval spec,lispval force)
       int retval = kno_update_file_module(module_source,0);
       u8_free(module_source);
       if (retval)
-        return KNO_TRUE;
+	return KNO_TRUE;
       else return KNO_FALSE;}
     else return kno_err(kno_ReloadError,"update_module_prim",
-                        _("Module does not exist"),
-                        spec);}
+			_("Module does not exist"),
+			spec);}
   else return load_source_module(spec,NULL);
 }
 
@@ -545,38 +545,38 @@ static int loadpath_config_set(lispval var,lispval vals,void *d)
     else {
       u8_string pathstring = CSTRING(val);
       if (strchr(pathstring,'%')) {
-        add_paths = kno_init_pair(NULL,kno_incref(val),add_paths);}
+	add_paths = kno_init_pair(NULL,kno_incref(val),add_paths);}
       else {
-        size_t len = 0;
-        u8_string start = pathstring;
-        while (start) {
-          u8_byte buf[1000];
-          u8_string next = strchr(start,':');
-          if (next) {
-            strncpy(buf,start,next-start);
-            len = next-start;}
-          else {
-            strcpy(buf,start);
-            len = strlen(start);}
-          if (len == 0) {
-            if (next)
-              start=next+1;
-            else start=NULL;
-            continue;}
-          else if (buf[len-1] == '/')
-            buf[len]='\0';
-          else {
-            buf[len]='/'; len++;
-            buf[len]='\0';}
-          add_paths = kno_init_pair(NULL,knostring(buf),add_paths);
-          if (next)
-            start=next+1;
-          else start=NULL;}}}}
+	size_t len = 0;
+	u8_string start = pathstring;
+	while (start) {
+	  u8_byte buf[1000];
+	  u8_string next = strchr(start,':');
+	  if (next) {
+	    strncpy(buf,start,next-start);
+	    len = next-start;}
+	  else {
+	    strcpy(buf,start);
+	    len = strlen(start);}
+	  if (len == 0) {
+	    if (next)
+	      start=next+1;
+	    else start=NULL;
+	    continue;}
+	  else if (buf[len-1] == '/')
+	    buf[len]='\0';
+	  else {
+	    buf[len]='/'; len++;
+	    buf[len]='\0';}
+	  add_paths = kno_init_pair(NULL,knostring(buf),add_paths);
+	  if (next)
+	    start=next+1;
+	  else start=NULL;}}}}
   lispval *pathref = (lispval *) d;
   lispval cur_path = *pathref, path = kno_incref(cur_path);
   {KNO_DOLIST(path_elt,add_paths) {
       if (! ( (KNO_PAIRP(path)) && (KNO_EQUALP(path_elt,KNO_CAR(path))) ) ) {
-        path = kno_init_pair(NULL,kno_incref(path_elt),path);}}}
+	path = kno_init_pair(NULL,kno_incref(path_elt),path);}}}
   *pathref = path;
   kno_decref(add_paths);
   kno_decref(cur_path);
@@ -593,16 +593,16 @@ static lispval loadpath_config_get(lispval var,void *d)
 /* Design for avoiding the module loading race condition */
 
 /* Have a list of modules being sought; a function kno_need_module
-    locks a mutex and does a kno_get_module.  If it gets non-void,
-    it unlikes its mutext and returns it.  Otherwise, if the module is
-    on the list, it waits on the condvar and tries again (get and
-    then list) it wakes up.  If the module isn't on the list,
-    it puts it on the list, unlocks its mutex and returns
-    VOID, indicating that its caller can try to load it.
-    Finishing a module pops it off of the seeking list.
-    If loading the module fails, it's also popped off of
-    the seeking list.
-  And while we're at it, it looks like finish_module should
+   locks a mutex and does a kno_get_module.  If it gets non-void,
+   it unlikes its mutext and returns it.  Otherwise, if the module is
+   on the list, it waits on the condvar and tries again (get and
+   then list) it wakes up.  If the module isn't on the list,
+   it puts it on the list, unlocks its mutex and returns
+   VOID, indicating that its caller can try to load it.
+   Finishing a module pops it off of the seeking list.
+   If loading the module fails, it's also popped off of
+   the seeking list.
+   And while we're at it, it looks like finish_module should
    wake up the loadstamp condvar!
 */
 
@@ -656,7 +656,7 @@ static void init_dloadpath()
   dloadpath = kno_init_pair(NULL,strval,dloadpath);
   if ((tmp)||(trace_dload)||(getenv("KNO_DLOAD:TRACE")))
     u8_log(LOG_INFO,"DynamicLoadPath","Initialized to %q",
-           dloadpath);
+	   dloadpath);
 }
 
 static int load_dynamic_module(lispval spec,void *data)
@@ -671,29 +671,29 @@ static int load_dynamic_module(lispval spec,void *data)
       alt_name = u8_mkstring("%ls.%s",pname,KNO_DLOAD_SUFFIX);
     KNO_DOLIST(elt,dloadpath) {
       if (STRINGP(elt)) {
-        u8_string module_filename = u8_find_file(name,CSTRING(elt),NULL);
-        if ((!(module_filename))&&(alt_name))
-          module_filename = u8_find_file(alt_name,CSTRING(elt),NULL);
-        if (module_filename) {
-          void *mod = u8_dynamic_load(module_filename);
-          if (mod == NULL) {
-            u8_log(LOG_WARN,_("FailedModule"),
-                   "Failed to load module file %s for %q",
-                   module_filename,spec);}
-          else if (trace_dload) {
-            u8_log(LOGF_NOTICE,_("DynamicLoad"),
-                   "Loaded module %q from %s",spec,module_filename);}
-          else {}
-          if (errno) {
-            u8_log(LOG_WARN,u8_UnexpectedErrno,
-                   "Leftover errno %d (%s) from loading %s",
-                   errno,u8_strerror(errno),pname);
-            errno = 0;}
-          u8_threadcheck();
-          u8_free(module_filename);
-          u8_free(name);
-          if (alt_name) u8_free(alt_name);
-          if (mod) return 1; else return -1;}}}
+	u8_string module_filename = u8_find_file(name,CSTRING(elt),NULL);
+	if ((!(module_filename))&&(alt_name))
+	  module_filename = u8_find_file(alt_name,CSTRING(elt),NULL);
+	if (module_filename) {
+	  void *mod = u8_dynamic_load(module_filename);
+	  if (mod == NULL) {
+	    u8_log(LOG_WARN,_("FailedModule"),
+		   "Failed to load module file %s for %q",
+		   module_filename,spec);}
+	  else if (trace_dload) {
+	    u8_log(LOGF_NOTICE,_("DynamicLoad"),
+		   "Loaded module %q from %s",spec,module_filename);}
+	  else {}
+	  if (errno) {
+	    u8_log(LOG_WARN,u8_UnexpectedErrno,
+		   "Leftover errno %d (%s) from loading %s",
+		   errno,u8_strerror(errno),pname);
+	    errno = 0;}
+	  u8_threadcheck();
+	  u8_free(module_filename);
+	  u8_free(name);
+	  if (alt_name) u8_free(alt_name);
+	  if (mod) return 1; else return -1;}}}
     if (alt_name) u8_free(alt_name);
     u8_free(name);
     u8_threadcheck();
@@ -702,12 +702,12 @@ static int load_dynamic_module(lispval spec,void *data)
 }
 
 DEFPRIM2("dynamic-load",dynamic_load_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "`(DYNAMIC-LOAD *modname* [*err*])` "
- "loads a dynamic module into KNO. If *modname* (a "
- "string) is a path (includes a '/'), it is loaded "
- "directly. Otherwise, it looks for an dynamic "
- "module file in the default search path.",
- kno_string_type,KNO_VOID,kno_any_type,KNO_FALSE);
+	 "`(DYNAMIC-LOAD *modname* [*err*])` "
+	 "loads a dynamic module into KNO. If *modname* (a "
+	 "string) is a path (includes a '/'), it is loaded "
+	 "directly. Otherwise, it looks for an dynamic "
+	 "module file in the default search path.",
+	 kno_string_type,KNO_VOID,kno_any_type,KNO_FALSE);
 static lispval dynamic_load_prim(lispval arg,lispval err)
 {
   u8_string name = KNO_STRING_DATA(arg);
@@ -718,12 +718,12 @@ static lispval dynamic_load_prim(lispval arg,lispval err)
   else {
     KNO_DOLIST(elt,dloadpath) {
       if (STRINGP(elt)) {
-        u8_string module_name = u8_find_file(name,CSTRING(elt),NULL);
-        if (module_name) {
-          void *mod = u8_dynamic_load(module_name);
-          u8_free(module_name);
-          if (mod) return KNO_TRUE;
-          else return KNO_ERROR;}}}
+	u8_string module_name = u8_find_file(name,CSTRING(elt),NULL);
+	if (module_name) {
+	  void *mod = u8_dynamic_load(module_name);
+	  u8_free(module_name);
+	  if (mod) return KNO_TRUE;
+	  else return KNO_ERROR;}}}
     if ( (KNO_FALSEP(err)) || (KNO_VOIDP(err)) )
       return KNO_FALSE;
     else return kno_err("ModuleNotFound","dynamic_load_prim",NULL,arg);}
@@ -759,16 +759,16 @@ lispval kno_find_module(lispval spec,int err)
     while (scan) {
       int retval = scan->loader(spec,scan->data);
       if (retval>0) {
-        clear_module_load_lock(spec);
-        module = kno_get_module(spec);
-        if (VOIDP(module)) {
-          return kno_err(MissingModule,"kno_find_module",modname,spec);}
-        kno_finish_module(module);
-        return module;}
+	clear_module_load_lock(spec);
+	module = kno_get_module(spec);
+	if (VOIDP(module)) {
+	  return kno_err(MissingModule,"kno_find_module",modname,spec);}
+	kno_finish_module(module);
+	return module;}
       else if (retval<0) {
-        kno_discard_module(spec);
-        clear_module_load_lock(spec);
-        return KNO_ERROR;}
+	kno_discard_module(spec);
+	clear_module_load_lock(spec);
+	return KNO_ERROR;}
       else scan = scan->next;}
     clear_module_load_lock(spec);
     if (err)
@@ -803,7 +803,7 @@ KNO_EXPORT void kno_init_loadmods_c()
   /* Setup load paths */
   {u8_string path = u8_getenv("KNO_INIT_LOADPATH");
     lispval v = ((path) ? (kno_wrapstring(path)) :
-                 (kno_mkstring(KNO_DEFAULT_LOADPATH)));
+		 (kno_mkstring(KNO_DEFAULT_LOADPATH)));
     loadpath_config_set(kno_intern("loadpath"),v,&loadpath);
     kno_decref(v);}
 
@@ -837,14 +837,14 @@ KNO_EXPORT void kno_init_loadmods_c()
   kno_add_module_loader(load_dynamic_module,NULL);
   init_dloadpath();
   kno_register_config("DLOADPATH",
-                     "Add directories for dynamic compiled modules",
-                     kno_lconfig_get,kno_lconfig_push,&dloadpath);
+		      "Add directories for dynamic compiled modules",
+		      kno_lconfig_get,kno_lconfig_push,&dloadpath);
   kno_register_config("DLOAD:PATH",
-                     "Add directories for dynamic compiled modules",
-                     kno_lconfig_get,kno_lconfig_push,&dloadpath);
+		      "Add directories for dynamic compiled modules",
+		      kno_lconfig_get,kno_lconfig_push,&dloadpath);
   kno_register_config("DLOAD:TRACE",
-                     "Whether to announce the loading of dynamic modules",
-                     kno_boolconfig_get,kno_boolconfig_set,&trace_dload);
+		      "Whether to announce the loading of dynamic modules",
+		      kno_boolconfig_get,kno_boolconfig_set,&trace_dload);
 
   kno_finish_module(loadmods_module);
 }

@@ -156,10 +156,10 @@ static lispval oid_server_changes(lispval sid,lispval xid)
       get_changes(&oid_changelog,FIX2INT(xid),&new_syncstamp);
     if (FALSEP(changes))
       return kno_make_list(1,kno_make_list(2,KNO_INT(init_timestamp),
-                                         KNO_INT(new_syncstamp)));
+                                           KNO_INT(new_syncstamp)));
     else return kno_conspair(kno_make_list(2,KNO_INT(init_timestamp),
-                                         KNO_INT(new_syncstamp)),
-                            changes);}
+                                           KNO_INT(new_syncstamp)),
+                             changes);}
 }
 
 static lispval iserver_changes(lispval sid,lispval xid)
@@ -171,10 +171,10 @@ static lispval iserver_changes(lispval sid,lispval xid)
       get_changes(&index_changelog,FIX2INT(xid),&new_syncstamp);
     if (FALSEP(changes))
       return kno_make_list(1,kno_make_list(2,KNO_INT(init_timestamp),
-                                         KNO_INT(new_syncstamp)));
+                                           KNO_INT(new_syncstamp)));
     else return kno_conspair(kno_make_list(2,KNO_INT(init_timestamp),
-                                         KNO_INT(new_syncstamp)),
-                            changes);}
+                                           KNO_INT(new_syncstamp)),
+                             changes);}
 }
 
 static lispval ixserver_changes(lispval index,lispval sid,lispval xid)
@@ -188,10 +188,10 @@ static lispval ixserver_changes(lispval index,lispval sid,lispval xid)
     lispval changes = get_changes(clog,FIX2INT(xid),&new_syncstamp);
     if (FALSEP(changes))
       return kno_make_list(1,kno_make_list(2,KNO_INT(init_timestamp),
-                                         KNO_INT(new_syncstamp)));
+                                           KNO_INT(new_syncstamp)));
     else return kno_conspair(kno_make_list(2,KNO_INT(init_timestamp),
-                                         KNO_INT(new_syncstamp)),
-                            changes);}
+                                           KNO_INT(new_syncstamp)),
+                             changes);}
 }
 
 /** OID Locking **/
@@ -947,25 +947,25 @@ void kno_init_dbserv_c()
             NULL));
 
   kno_register_config("SERVEPOOLS","OID pools to be served",
-                     get_served_pools,
-                     serve_pool,
-                     NULL);
+                      get_served_pools,
+                      serve_pool,
+                      NULL);
   kno_register_config("PRIMARYPOOL","OID pool where new OIDs are allocated",
-                     get_primary_pool,
-                     serve_primary_pool,
-                     NULL);
+                      get_primary_pool,
+                      serve_primary_pool,
+                      NULL);
   kno_register_config("SERVEINDEXES","indexes to be served",
-                     get_served_indexes,
-                     serve_index,
-                     NULL);
+                      get_served_indexes,
+                      serve_index,
+                      NULL);
   kno_register_config("DBSERV:LOGLEVEL","the dbserv loglevel",
-                     kno_intconfig_get,
-                     kno_loglevelconfig_set,
-                     &dbserv_loglevel);
+                      kno_intconfig_get,
+                      kno_loglevelconfig_set,
+                      &dbserv_loglevel);
   kno_register_config("LOCKSFILE","location of the persistent locks file",
-                     config_get_locksfile,
-                     config_set_locksfile,
-                     NULL);
+                      config_get_locksfile,
+                      config_set_locksfile,
+                      NULL);
 
   primary_index = kno_make_aggregate_index(KNO_FALSE,32,0,NULL);
 

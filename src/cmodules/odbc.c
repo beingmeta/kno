@@ -108,11 +108,11 @@ KNO_EXPORT lispval kno_odbc_connect(lispval spec,lispval colinfo,int interactive
     if (SQL_SUCCEEDED(ret)) {
       howfar++;
       ret = SQLDriverConnect(dbp->conn,sqldialog,
-                           (char *)KNO_CSTRING(spec),KNO_STRLEN(spec),
-                           info,512,NULL,
-                           ((interactive==0) ? (SQL_DRIVER_NOPROMPT) :
-                            (interactive==1) ? (SQL_DRIVER_COMPLETE_REQUIRED) :
-                            (SQL_DRIVER_PROMPT)));
+                             (char *)KNO_CSTRING(spec),KNO_STRLEN(spec),
+                             info,512,NULL,
+                             ((interactive==0) ? (SQL_DRIVER_NOPROMPT) :
+                              (interactive==1) ? (SQL_DRIVER_COMPLETE_REQUIRED) :
+                              (SQL_DRIVER_PROMPT)));
       if (SQL_SUCCEEDED(ret)) {
         dbp->sqldb_colinfo = colinfo;
         kno_incref(colinfo);
@@ -139,8 +139,8 @@ static void recycle_odbconn(struct KNO_SQLDB *c)
 }
 
 DEFPRIM2("odbc/open",odbcopen,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "`(ODBC/OPEN *arg0* [*arg1*])` **undocumented**",
- kno_string_type,KNO_VOID,kno_any_type,KNO_VOID);
+         "`(ODBC/OPEN *arg0* [*arg1*])` **undocumented**",
+         kno_string_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval odbcopen(lispval spec,lispval colinfo)
 {
   return kno_odbc_connect(spec,colinfo,-1);
@@ -151,9 +151,9 @@ static lispval odbcopen(lispval spec,lispval colinfo)
 static lispval callodbcproc(struct KNO_FUNCTION *fn,int n,lispval *args);
 
 static lispval odbcmakeproc
-  (struct KNO_ODBC *dbp,
-   u8_string stmt,int stmt_len,
-   lispval colinfo,int n,lispval *args)
+(struct KNO_ODBC *dbp,
+ u8_string stmt,int stmt_len,
+ lispval colinfo,int n,lispval *args)
 {
   int ret = 0, have_stmt = 0;
   SQLSMALLINT n_params, *sqltypes;
@@ -211,9 +211,9 @@ static lispval odbcmakeproc
 }
 
 static lispval odbcmakeprochandler
-  (struct KNO_SQLDB *sqldb,
-   u8_string stmt,int stmt_len,
-   lispval colinfo,int n,lispval *ptypes)
+(struct KNO_SQLDB *sqldb,
+ u8_string stmt,int stmt_len,
+ lispval colinfo,int n,lispval *ptypes)
 {
   if (sqldb->sqldb_handler== &odbc_handler)
     return odbcmakeproc((kno_odbc)sqldb,stmt,stmt_len,colinfo,n,ptypes);
@@ -284,7 +284,7 @@ static lispval stmt_error(SQLHSTMT stmt,const u8_string cxt,int free_stmt)
 }
 
 static lispval get_colvalue
-  (SQLHSTMT stmt,int i,int sqltype,int colsize,lispval typeinfo)
+(SQLHSTMT stmt,int i,int sqltype,int colsize,lispval typeinfo)
 {
   lispval result = KNO_VOID;
   switch (sqltype) {
@@ -341,7 +341,7 @@ static lispval get_colvalue
 static lispval merge_symbol;
 
 static lispval get_stmt_results
-  (SQLHSTMT stmt,const u8_string cxt,int free_stmt,lispval typeinfo)
+(SQLHSTMT stmt,const u8_string cxt,int free_stmt,lispval typeinfo)
 {
   struct U8_OUTPUT out;
   lispval results; int i = 0, ret; SQLSMALLINT n_cols;
@@ -370,8 +370,8 @@ static lispval get_stmt_results
     SQLSMALLINT sqldigits, namelen;
     SQLSMALLINT nullok;
     ret = SQLDescribeCol(stmt,i+1,
-                       name,sizeof(name),&namelen,
-                       &sqltype,&colsize,&sqldigits,&nullok);
+                         name,sizeof(name),&namelen,
+                         &sqltype,&colsize,&sqldigits,&nullok);
     if (!(SQL_SUCCEEDED(ret))) {
       if (!(KNO_VOIDP(typeinfo))) {
         int j = 0; while (j<i) {kno_decref(colinfo[j]); j++;}}
@@ -442,7 +442,7 @@ static lispval odbcexec(struct KNO_ODBC *dbp,lispval string,lispval colinfo)
 }
 
 static lispval odbcexechandler
-  (struct KNO_SQLDB *sqldb,lispval string,lispval colinfo)
+(struct KNO_SQLDB *sqldb,lispval string,lispval colinfo)
 {
   if (sqldb->sqldb_handler== &odbc_handler)
     return odbcexec((kno_odbc)sqldb,string,colinfo);

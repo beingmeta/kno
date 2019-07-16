@@ -99,16 +99,16 @@ static u8_output get_output_port(lispval portarg)
 /* Opening files */
 
 DEFPRIM3("open-output-file",open_output_file,
-	     KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
-	     "`(open-output-file *filename* [*encoding*] [*escape*])` "
-	     "returns an output port, writing to the beginning "
-	     "of the text file *filename* using *encoding*. If "
-	     "*escape* is specified, it can be the character & "
-	     "or \\, which causes special characters to be "
-	     "output as either entity escaped or unicode "
-	     "escaped sequences.",
-	     kno_string_type,KNO_VOID,kno_any_type,KNO_VOID,
-	     kno_character_type,KNO_VOID);
+	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
+	 "`(open-output-file *filename* [*encoding*] [*escape*])` "
+	 "returns an output port, writing to the beginning "
+	 "of the text file *filename* using *encoding*. If "
+	 "*escape* is specified, it can be the character & "
+	 "or \\, which causes special characters to be "
+	 "output as either entity escaped or unicode "
+	 "escaped sequences.",
+	 kno_string_type,KNO_VOID,kno_any_type,KNO_VOID,
+	 kno_character_type,KNO_VOID);
 static lispval open_output_file(lispval fname,lispval opts,lispval escape_char)
 {
   struct U8_XOUTPUT *f;
@@ -138,15 +138,15 @@ static lispval open_output_file(lispval fname,lispval opts,lispval escape_char)
 }
 
 DEFPRIM3("extend-output-file",extend_output_file,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
-	     "`(extend-output-file *filename* [*encoding*] [*escape*])` "
-	     "returns an output port, writing to the end of the "
-	     "text file *filename* using *encoding*. If "
-	     "*escape* is specified, it can be the character & "
-	     "or \\, which causes special characters to be "
-	     "output as either entity escaped or unicode "
-	     "escaped sequences.",
-	     kno_string_type,KNO_VOID,kno_any_type,KNO_VOID,
-	     kno_character_type,KNO_VOID);
+	 "`(extend-output-file *filename* [*encoding*] [*escape*])` "
+	 "returns an output port, writing to the end of the "
+	 "text file *filename* using *encoding*. If "
+	 "*escape* is specified, it can be the character & "
+	 "or \\, which causes special characters to be "
+	 "output as either entity escaped or unicode "
+	 "escaped sequences.",
+	 kno_string_type,KNO_VOID,kno_any_type,KNO_VOID,
+	 kno_character_type,KNO_VOID);
 static lispval extend_output_file(lispval fname,lispval opts,lispval escape_char)
 {
   struct U8_XOUTPUT *f;
@@ -176,12 +176,12 @@ static lispval extend_output_file(lispval fname,lispval opts,lispval escape_char
 }
 
 DEFPRIM2("open-input-file",open_input_file,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "`(open-input-file *filename* [*encoding*])` "
- "returns an input port for the text file "
- "*filename*, translating from *encoding*. If "
- "*encoding* is not specified, the file is opened "
- "as a UTF-8 file.",
- kno_string_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(open-input-file *filename* [*encoding*])` "
+	 "returns an input port for the text file "
+	 "*filename*, translating from *encoding*. If "
+	 "*encoding* is not specified, the file is opened "
+	 "as a UTF-8 file.",
+	 kno_string_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval open_input_file(lispval fname,lispval opts)
 {
   struct U8_XINPUT *f;
@@ -208,9 +208,9 @@ static lispval open_input_file(lispval fname,lispval opts)
 }
 
 DEFPRIM3("write-file",writefile_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
- "`(WRITE-FILE *arg0* *arg1* [*arg2*])` **undocumented**",
- kno_string_type,KNO_VOID,kno_any_type,KNO_VOID,
- kno_any_type,KNO_VOID);
+	 "`(WRITE-FILE *arg0* *arg1* [*arg2*])` **undocumented**",
+	 kno_string_type,KNO_VOID,kno_any_type,KNO_VOID,
+	 kno_any_type,KNO_VOID);
 static lispval writefile_prim(lispval filename,lispval object,lispval enc)
 {
   int len = 0; const unsigned char *bytes; int free_bytes = 0;
@@ -241,11 +241,11 @@ static lispval writefile_prim(lispval filename,lispval object,lispval enc)
     while (to_write>0) {
       ssize_t n_bytes = fwrite(bytes+off,1,to_write,f);
       if (n_bytes<0) {
-        u8_graberr(errno,"writefile_prim",u8_strdup(CSTRING(filename)));
-        return KNO_ERROR;}
+	u8_graberr(errno,"writefile_prim",u8_strdup(CSTRING(filename)));
+	return KNO_ERROR;}
       else {
-        to_write = to_write-n_bytes;
-        off = off+n_bytes;}}
+	to_write = to_write-n_bytes;
+	off = off+n_bytes;}}
     fclose(f);}
   else if ((KNO_TRUEP(enc)) || (STRINGP(enc))) {
     struct U8_TEXT_ENCODING *encoding=
@@ -257,8 +257,8 @@ static lispval writefile_prim(lispval filename,lispval object,lispval enc)
     else {
       U8_XOUTPUT *out = u8_open_output_file(CSTRING(filename),encoding,-1,-1);
       if (out == NULL) {
-        if (free_bytes) u8_free(bytes);
-        return kno_reterr(OpenFailed,"writefile_prim",NULL,filename);}
+	if (free_bytes) u8_free(bytes);
+	return kno_reterr(OpenFailed,"writefile_prim",NULL,filename);}
       u8_putn((u8_output)out,bytes,len);
       u8_close((u8_stream)out);}}
   else {
@@ -311,9 +311,9 @@ static lispval simple_fileout_evalfn(lispval expr,kno_lexenv env,kno_stack _stac
       lispval value = fast_eval(ex,env);
       if (printout_helper(f,value)) kno_decref(value);
       else {
-        u8_set_default_output(oldf);
-        kno_decref(filename_val);
-        return value;}}}
+	u8_set_default_output(oldf);
+	kno_decref(filename_val);
+	return value;}}}
   if (oldf) u8_set_default_output(oldf);
   if (doclose) u8_close_output(f);
   else u8_flush(f);
@@ -333,7 +333,7 @@ static lispval simple_system_evalfn(lispval expr,kno_lexenv env,kno_stack _stack
       if (KNO_ABORTP(value)) return value;
       else if (VOIDP(value)) continue;
       else if (STRINGP(value))
-        u8_printf(&out,"%s",CSTRING(value));
+	u8_printf(&out,"%s",CSTRING(value));
       else u8_printf(&out,"%q",value);
       kno_decref(value);}}
   result = system(out.u8_outbuf); u8_free(out.u8_outbuf);
@@ -345,8 +345,8 @@ static lispval simple_system_evalfn(lispval expr,kno_lexenv env,kno_stack _stack
 static lispval noblock_symbol, nodelay_symbol;
 
 DEFPRIM2("open-socket",open_socket_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "`(OPEN-SOCKET *arg0* [*arg1*])` **undocumented**",
- kno_string_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(OPEN-SOCKET *arg0* [*arg1*])` **undocumented**",
+	 kno_string_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval open_socket_prim(lispval spec,lispval opts)
 {
 
@@ -368,8 +368,8 @@ static lispval open_socket_prim(lispval spec,lispval opts)
 /* More file manipulation */
 
 DEFPRIM2("remove-file!",remove_file_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "`(REMOVE-FILE! *arg0* [*arg1*])` **undocumented**",
- kno_string_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(REMOVE-FILE! *arg0* [*arg1*])` **undocumented**",
+	 kno_string_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval remove_file_prim(lispval arg,lispval must_exist)
 {
   u8_string filename = CSTRING(arg);
@@ -387,8 +387,8 @@ static lispval remove_file_prim(lispval arg,lispval must_exist)
 }
 
 DEFPRIM2("remove-tree!",remove_tree_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "`(REMOVE-TREE! *arg0* [*arg1*])` **undocumented**",
- kno_string_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(REMOVE-TREE! *arg0* [*arg1*])` **undocumented**",
+	 kno_string_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval remove_tree_prim(lispval arg,lispval must_exist)
 {
   u8_string filename = CSTRING(arg);
@@ -406,9 +406,9 @@ static lispval remove_tree_prim(lispval arg,lispval must_exist)
 }
 
 DEFPRIM3("move-file!",move_file_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
- "`(MOVE-FILE! *arg0* *arg1* [*arg2*])` **undocumented**",
- kno_string_type,KNO_VOID,kno_string_type,KNO_VOID,
- kno_any_type,KNO_VOID);
+	 "`(MOVE-FILE! *arg0* *arg1* [*arg2*])` **undocumented**",
+	 kno_string_type,KNO_VOID,kno_string_type,KNO_VOID,
+	 kno_any_type,KNO_VOID);
 static lispval move_file_prim(lispval from,lispval to,lispval must_exist)
 {
   u8_string fromname = CSTRING(from);
@@ -423,9 +423,9 @@ static lispval move_file_prim(lispval from,lispval to,lispval must_exist)
 }
 
 DEFPRIM3("link-file!",link_file_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
- "`(LINK-FILE! *arg0* *arg1* [*arg2*])` **undocumented**",
- kno_string_type,KNO_VOID,kno_string_type,KNO_VOID,
- kno_any_type,KNO_VOID);
+	 "`(LINK-FILE! *arg0* *arg1* [*arg2*])` **undocumented**",
+	 kno_string_type,KNO_VOID,kno_string_type,KNO_VOID,
+	 kno_any_type,KNO_VOID);
 static lispval link_file_prim(lispval from,lispval to,lispval must_exist)
 {
   u8_string fromname = CSTRING(from);
@@ -442,11 +442,11 @@ static lispval link_file_prim(lispval from,lispval to,lispval must_exist)
 /* FILESTRING */
 
 DEFPRIM2("filestring",filestring_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "(FILESTRING *file* [*encoding*]) "
- "returns the contents of a text file. The "
- "*encoding*, if provided, specifies the character "
- "encoding, which defaults to UTF-8",
- kno_string_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "(FILESTRING *file* [*encoding*]) "
+	 "returns the contents of a text file. The "
+	 "*encoding*, if provided, specifies the character "
+	 "encoding, which defaults to UTF-8",
+	 kno_string_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval filestring_prim(lispval filename,lispval enc)
 {
   if ((VOIDP(enc))||(FALSEP(enc))) {
@@ -467,9 +467,9 @@ static lispval filestring_prim(lispval filename,lispval enc)
 }
 
 DEFPRIM1("filedata",filedata_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "(FILEDATA *file*) "
- "returns the contents of *file* as a packet.",
- kno_string_type,KNO_VOID);
+	 "(FILEDATA *file*) "
+	 "returns the contents of *file* as a packet.",
+	 kno_string_type,KNO_VOID);
 static lispval filedata_prim(lispval filename)
 {
   int len = -1;
@@ -479,10 +479,10 @@ static lispval filedata_prim(lispval filename)
 }
 
 DEFPRIM1("filecontent",filecontent_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "Returns the contents of a named file, trying to "
- "be intelligent about returning a string or packet "
- "depending on the probably file type",
- kno_string_type,KNO_VOID);
+	 "Returns the contents of a named file, trying to "
+	 "be intelligent about returning a string or packet "
+	 "depending on the probably file type",
+	 kno_string_type,KNO_VOID);
 static lispval filecontent_prim(lispval filename)
 {
   int len = -1;
@@ -500,8 +500,8 @@ static lispval filecontent_prim(lispval filename)
 /* File information */
 
 DEFPRIM1("file-exists?",file_existsp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(FILE-EXISTS? *arg0*)` **undocumented**",
- kno_string_type,KNO_VOID);
+	 "`(FILE-EXISTS? *arg0*)` **undocumented**",
+	 kno_string_type,KNO_VOID);
 static lispval file_existsp(lispval arg)
 {
   if (u8_file_existsp(CSTRING(arg)))
@@ -510,8 +510,8 @@ static lispval file_existsp(lispval arg)
 }
 
 DEFPRIM1("file-regular?",file_regularp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(FILE-REGULAR? *arg0*)` **undocumented**",
- kno_string_type,KNO_VOID);
+	 "`(FILE-REGULAR? *arg0*)` **undocumented**",
+	 kno_string_type,KNO_VOID);
 static lispval file_regularp(lispval arg)
 {
   if (! (u8_file_existsp(CSTRING(arg))) )
@@ -524,8 +524,8 @@ static lispval file_regularp(lispval arg)
 }
 
 DEFPRIM1("file-readable?",file_readablep,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(FILE-READABLE? *arg0*)` **undocumented**",
- kno_string_type,KNO_VOID);
+	 "`(FILE-READABLE? *arg0*)` **undocumented**",
+	 kno_string_type,KNO_VOID);
 static lispval file_readablep(lispval arg)
 {
   if (u8_file_readablep(CSTRING(arg)))
@@ -534,8 +534,8 @@ static lispval file_readablep(lispval arg)
 }
 
 DEFPRIM1("file-writable?",file_writablep,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(FILE-WRITABLE? *arg0*)` **undocumented**",
- kno_string_type,KNO_VOID);
+	 "`(FILE-WRITABLE? *arg0*)` **undocumented**",
+	 kno_string_type,KNO_VOID);
 static lispval file_writablep(lispval arg)
 {
   if (u8_file_writablep(CSTRING(arg)))
@@ -544,8 +544,8 @@ static lispval file_writablep(lispval arg)
 }
 
 DEFPRIM1("file-directory?",file_directoryp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(FILE-DIRECTORY? *arg0*)` **undocumented**",
- kno_string_type,KNO_VOID);
+	 "`(FILE-DIRECTORY? *arg0*)` **undocumented**",
+	 kno_string_type,KNO_VOID);
 static lispval file_directoryp(lispval arg)
 {
   if (u8_directoryp(CSTRING(arg)))
@@ -554,8 +554,8 @@ static lispval file_directoryp(lispval arg)
 }
 
 DEFPRIM1("file-symlink?",file_symlinkp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(FILE-SYMLINK? *arg0*)` **undocumented**",
- kno_string_type,KNO_VOID);
+	 "`(FILE-SYMLINK? *arg0*)` **undocumented**",
+	 kno_string_type,KNO_VOID);
 static lispval file_symlinkp(lispval arg)
 {
   if (u8_symlinkp(CSTRING(arg)))
@@ -564,8 +564,8 @@ static lispval file_symlinkp(lispval arg)
 }
 
 DEFPRIM1("file-socket?",file_socketp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(FILE-SOCKET? *arg0*)` **undocumented**",
- kno_string_type,KNO_VOID);
+	 "`(FILE-SOCKET? *arg0*)` **undocumented**",
+	 kno_string_type,KNO_VOID);
 static lispval file_socketp(lispval arg)
 {
   if (u8_socketp(CSTRING(arg)))
@@ -574,8 +574,8 @@ static lispval file_socketp(lispval arg)
 }
 
 DEFPRIM2("abspath",file_abspath,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "`(ABSPATH *arg0* [*arg1*])` **undocumented**",
- kno_string_type,KNO_VOID,kno_string_type,KNO_VOID);
+	 "`(ABSPATH *arg0* [*arg1*])` **undocumented**",
+	 kno_string_type,KNO_VOID,kno_string_type,KNO_VOID);
 static lispval file_abspath(lispval arg,lispval wd)
 {
   u8_string result;
@@ -587,8 +587,8 @@ static lispval file_abspath(lispval arg,lispval wd)
 }
 
 DEFPRIM2("realpath",file_realpath,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "`(REALPATH *arg0* [*arg1*])` **undocumented**",
- kno_string_type,KNO_VOID,kno_string_type,KNO_VOID);
+	 "`(REALPATH *arg0* [*arg1*])` **undocumented**",
+	 kno_string_type,KNO_VOID,kno_string_type,KNO_VOID);
 static lispval file_realpath(lispval arg,lispval wd)
 {
   u8_string result;
@@ -600,9 +600,9 @@ static lispval file_realpath(lispval arg,lispval wd)
 }
 
 DEFPRIM3("readlink",file_readlink,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
- "`(READLINK *arg0* [*arg1*] [*arg2*])` **undocumented**",
- kno_string_type,KNO_VOID,kno_any_type,KNO_VOID,
- kno_any_type,KNO_VOID);
+	 "`(READLINK *arg0* [*arg1*] [*arg2*])` **undocumented**",
+	 kno_string_type,KNO_VOID,kno_any_type,KNO_VOID,
+	 kno_any_type,KNO_VOID);
 static lispval file_readlink(lispval arg,lispval abs,lispval err)
 {
   u8_string result;
@@ -618,8 +618,8 @@ static lispval file_readlink(lispval arg,lispval abs,lispval err)
 }
 
 DEFPRIM2("path-basename",path_basename,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "`(PATH-BASENAME *arg0* [*arg1*])` **undocumented**",
- kno_string_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(PATH-BASENAME *arg0* [*arg1*])` **undocumented**",
+	 kno_string_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval path_basename(lispval arg,lispval suffix)
 {
   if ((VOIDP(suffix)) || (FALSEP(suffix)))
@@ -630,8 +630,8 @@ static lispval path_basename(lispval arg,lispval suffix)
 }
 
 DEFPRIM2("path-suffix",path_suffix,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "`(PATH-SUFFIX *arg0* [*arg1*])` **undocumented**",
- kno_string_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(PATH-SUFFIX *arg0* [*arg1*])` **undocumented**",
+	 kno_string_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval path_suffix(lispval arg,lispval dflt)
 {
   u8_string s = CSTRING(arg);
@@ -645,16 +645,16 @@ static lispval path_suffix(lispval arg,lispval dflt)
 }
 
 DEFPRIM1("path-dirname",path_dirname,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(PATH-DIRNAME *arg0*)` **undocumented**",
- kno_string_type,KNO_VOID);
+	 "`(PATH-DIRNAME *arg0*)` **undocumented**",
+	 kno_string_type,KNO_VOID);
 static lispval path_dirname(lispval arg)
 {
   return kno_wrapstring(u8_dirname(CSTRING(arg)));
 }
 
 DEFPRIM1("path-location",path_location,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(PATH-LOCATION *arg0*)` **undocumented**",
- kno_string_type,KNO_VOID);
+	 "`(PATH-LOCATION *arg0*)` **undocumented**",
+	 kno_string_type,KNO_VOID);
 static lispval path_location(lispval arg)
 {
   u8_string path = CSTRING(arg);
@@ -664,8 +664,8 @@ static lispval path_location(lispval arg)
 }
 
 DEFPRIM2("mkpath",mkpath_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
- "`(MKPATH *arg0* *arg1*)` **undocumented**",
- kno_any_type,KNO_VOID,kno_string_type,KNO_VOID);
+	 "`(MKPATH *arg0* *arg1*)` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_string_type,KNO_VOID);
 static lispval mkpath_prim(lispval dirname,lispval name)
 {
   lispval config_val = VOID; u8_string dir = NULL, namestring = NULL;
@@ -683,7 +683,7 @@ static lispval mkpath_prim(lispval dirname,lispval name)
       kno_decref(config_val);
       return kno_type_error(_("string CONFIG var"),"mkpath_prim",dirname);}}
   else return kno_type_error
-         (_("string or string CONFIG var"),"mkpath_prim",dirname);
+	 (_("string or string CONFIG var"),"mkpath_prim",dirname);
   if (VOIDP(config_val))
     return kno_wrapstring(u8_mkpath(dir,namestring));
   else {
@@ -695,8 +695,8 @@ static lispval mkpath_prim(lispval dirname,lispval name)
 /* Getting the runbase for a script file */
 
 DEFPRIM1("runfile",runfile_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(RUNFILE *arg0*)` **undocumented**",
- kno_string_type,KNO_VOID);
+	 "`(RUNFILE *arg0*)` **undocumented**",
+	 kno_string_type,KNO_VOID);
 static lispval runfile_prim(lispval suffix)
 {
   return kno_wrapstring(kno_runbase_filename(CSTRING(suffix)));
@@ -705,8 +705,8 @@ static lispval runfile_prim(lispval suffix)
 /* Making directories */
 
 DEFPRIM2("mkdir",mkdir_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "`(MKDIR *arg0* [*arg1*])` **undocumented**",
- kno_string_type,KNO_VOID,kno_fixnum_type,KNO_VOID);
+	 "`(MKDIR *arg0* [*arg1*])` **undocumented**",
+	 kno_string_type,KNO_VOID,kno_fixnum_type,KNO_VOID);
 static lispval mkdir_prim(lispval dirname,lispval mode_arg)
 {
   mode_t mode=
@@ -724,8 +724,8 @@ static lispval mkdir_prim(lispval dirname,lispval mode_arg)
 }
 
 DEFPRIM1("rmdir",rmdir_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(RMDIR *arg0*)` **undocumented**",
- kno_string_type,KNO_VOID);
+	 "`(RMDIR *arg0*)` **undocumented**",
+	 kno_string_type,KNO_VOID);
 static lispval rmdir_prim(lispval dirname)
 {
   int retval = u8_rmdir(CSTRING(dirname));
@@ -737,8 +737,8 @@ static lispval rmdir_prim(lispval dirname)
 }
 
 DEFPRIM2("mkdirs",mkdirs_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "`(MKDIRS *arg0* [*arg1*])` **undocumented**",
- kno_string_type,KNO_VOID,kno_fixnum_type,KNO_VOID);
+	 "`(MKDIRS *arg0* [*arg1*])` **undocumented**",
+	 kno_string_type,KNO_VOID,kno_fixnum_type,KNO_VOID);
 static lispval mkdirs_prim(lispval pathname,lispval mode_arg)
 {
   mode_t mode=
@@ -784,7 +784,7 @@ static int temproot_set(lispval sym,lispval value,void *ignore)
     return -1;}
   if ((CSTRING(value)[0])!='/')
     u8_log(LOG_WARN,"BADTEMPLATE",
-           "Setting template to a relative file path");
+	   "Setting template to a relative file path");
   template = u8_strdup(CSTRING(value));
   tempdir_template = template;
   if (old_template) u8_free(old_template);
@@ -832,7 +832,7 @@ static void remove_tempdirs()
   int n_keep = KNO_CHOICE_SIZE(keeptemp);
   if ((n_files)&&(n_keep))
     u8_log(LOG_NOTICE,"TEMPFILES","Removing %d=%d-%d temporary directories",
-           n_files-n_keep,n_files,n_keep);
+	   n_files-n_keep,n_files,n_keep);
   else if (n_files)
     u8_log(LOG_NOTICE,"TEMPFILES","Removing %d temporary directories",n_files);
   else return;
@@ -840,10 +840,10 @@ static void remove_tempdirs()
     lispval to_remove = kno_difference(tempdirs,keeptemp);
     DO_CHOICES(tmpfile,to_remove) {
       if (STRINGP(tmpfile)) {
-        u8_log(LOG_DEBUG,"TEMPFILES","Removing directory %s",
-               CSTRING(tmpfile));
-        if (u8_directoryp(CSTRING(tmpfile)))
-          u8_rmtree(CSTRING(tmpfile));}}
+	u8_log(LOG_DEBUG,"TEMPFILES","Removing directory %s",
+	       CSTRING(tmpfile));
+	if (u8_directoryp(CSTRING(tmpfile)))
+	  u8_rmtree(CSTRING(tmpfile));}}
     kno_decref(tempdirs); kno_decref(keeptemp); kno_decref(to_remove);
     tempdirs = EMPTY; keeptemp = EMPTY;
     u8_unlock_mutex(&tempdirs_lock);}
@@ -858,8 +858,8 @@ KNO_EXPORT u8_string kno_tempdir(u8_string spec,int keep)
 }
 
 DEFPRIM2("tempdir",tempdir_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(0),
- "`(TEMPDIR [*arg0*] [*arg1*])` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_FALSE);
+	 "`(TEMPDIR [*arg0*] [*arg1*])` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_FALSE);
 static lispval tempdir_prim(lispval template_arg,lispval keep)
 {
   if ((VOIDP(template_arg))||
@@ -870,13 +870,13 @@ static lispval tempdir_prim(lispval template_arg,lispval keep)
     if (dirname == NULL) return KNO_ERROR;
     else return kno_init_string(NULL,-1,dirname);}
   return kno_type_error("tempdir template (string, symbol, or #f)",
-                       "tempdir_prim",
-                       template_arg);
+			"tempdir_prim",
+			template_arg);
 }
 
 DEFPRIM2("tempdir/done",tempdir_done_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(0),
- "`(TEMPDIR/DONE [*arg0*] [*arg1*])` **undocumented**",
- kno_string_type,KNO_VOID,kno_any_type,KNO_FALSE);
+	 "`(TEMPDIR/DONE [*arg0*] [*arg1*])` **undocumented**",
+	 kno_string_type,KNO_VOID,kno_any_type,KNO_FALSE);
 static lispval tempdir_done_prim(lispval tempdir,lispval force_arg)
 {
   int force = (!(FALSEP(force_arg))), doit = 0;
@@ -885,31 +885,31 @@ static lispval tempdir_done_prim(lispval tempdir,lispval force_arg)
     lispval cur_tempdirs = tempdirs; lispval cur_keep = keeptemp;
     if (kno_overlapp(tempdir,cur_tempdirs)) {
       if (kno_overlapp(tempdir,cur_keep)) {
-        if (force) {
-          u8_log(LOG_WARN,"Forced temp deletion",
-                 "Forcing deletion of directory %s, declared for safekeeping",dirname);
-          keeptemp = kno_difference(cur_keep,tempdir);
-          tempdirs = kno_difference(cur_tempdirs,tempdir);
-          kno_decref(cur_keep); kno_decref(cur_tempdirs);
-          doit = 1;}
-        else u8_log(LOG_WARN,_("Keeping temp directory"),
-                    "The directory %s is declared for safekeeping, leaving",dirname);}
+	if (force) {
+	  u8_log(LOG_WARN,"Forced temp deletion",
+		 "Forcing deletion of directory %s, declared for safekeeping",dirname);
+	  keeptemp = kno_difference(cur_keep,tempdir);
+	  tempdirs = kno_difference(cur_tempdirs,tempdir);
+	  kno_decref(cur_keep); kno_decref(cur_tempdirs);
+	  doit = 1;}
+	else u8_log(LOG_WARN,_("Keeping temp directory"),
+		    "The directory %s is declared for safekeeping, leaving",dirname);}
       else {
-        u8_log(LOG_INFO,_("Deleting temp directory"),
-               "Explicitly deleting temporary directory %s",dirname);
-        tempdirs = kno_difference(cur_tempdirs,tempdir);
-        kno_decref(cur_tempdirs);
-        doit = 1;}}
+	u8_log(LOG_INFO,_("Deleting temp directory"),
+	       "Explicitly deleting temporary directory %s",dirname);
+	tempdirs = kno_difference(cur_tempdirs,tempdir);
+	kno_decref(cur_tempdirs);
+	doit = 1;}}
     else if (!(u8_directoryp(dirname)))
       u8_log(LOG_WARN,_("Weird temp directory"),
-             "The temporary directory %s is neither declared or existing",dirname);
+	     "The temporary directory %s is neither declared or existing",dirname);
     else if (force) {
       u8_log(LOG_WARN,"Forced temp delete",
-             "Forcing deletion of the undeclared temporary directory %s",dirname);
+	     "Forcing deletion of the undeclared temporary directory %s",dirname);
       doit = 1;}
     else u8_log(LOG_WARN,"Unknown temp directory",
-                "The directory %s is not a known temporary directory, leaving",
-                CSTRING(tempdir));
+		"The directory %s is not a known temporary directory, leaving",
+		CSTRING(tempdir));
     u8_unlock_mutex(&tempdirs_lock);}
   if (doit) {
     int retval = u8_rmtree(dirname);
@@ -920,8 +920,8 @@ static lispval tempdir_done_prim(lispval tempdir,lispval force_arg)
 }
 
 DEFPRIM1("tempdir?",is_tempdir_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
- "`(TEMPDIR? [*arg0*])` **undocumented**",
- kno_string_type,KNO_VOID);
+	 "`(TEMPDIR? [*arg0*])` **undocumented**",
+	 kno_string_type,KNO_VOID);
 static lispval is_tempdir_prim(lispval tempdir)
 {
   u8_lock_mutex(&tempdirs_lock); {
@@ -1032,8 +1032,8 @@ static lispval make_timestamp(time_t tick)
 }
 
 DEFPRIM1("file-modtime",file_modtime,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(FILE-MODTIME *arg0*)` **undocumented**",
- kno_string_type,KNO_VOID);
+	 "`(FILE-MODTIME *arg0*)` **undocumented**",
+	 kno_string_type,KNO_VOID);
 static lispval file_modtime(lispval filename)
 {
   time_t mtime = u8_file_mtime(CSTRING(filename));
@@ -1042,8 +1042,8 @@ static lispval file_modtime(lispval filename)
 }
 
 DEFPRIM2("set-file-modtime!",set_file_modtime,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "`(SET-FILE-MODTIME! *arg0* [*arg1*])` **undocumented**",
- kno_string_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(SET-FILE-MODTIME! *arg0* [*arg1*])` **undocumented**",
+	 kno_string_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval set_file_modtime(lispval filename,lispval timestamp)
 {
   time_t mtime=
@@ -1061,8 +1061,8 @@ static lispval set_file_modtime(lispval filename,lispval timestamp)
 }
 
 DEFPRIM1("file-accesstime",file_atime,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(FILE-ACCESSTIME *arg0*)` **undocumented**",
- kno_string_type,KNO_VOID);
+	 "`(FILE-ACCESSTIME *arg0*)` **undocumented**",
+	 kno_string_type,KNO_VOID);
 static lispval file_atime(lispval filename)
 {
   time_t mtime = u8_file_atime(CSTRING(filename));
@@ -1071,8 +1071,8 @@ static lispval file_atime(lispval filename)
 }
 
 DEFPRIM2("set-file-atime!",set_file_atime,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "`(SET-FILE-ATIME! *arg0* [*arg1*])` **undocumented**",
- kno_string_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(SET-FILE-ATIME! *arg0* [*arg1*])` **undocumented**",
+	 kno_string_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval set_file_atime(lispval filename,lispval timestamp)
 {
   time_t atime=
@@ -1090,8 +1090,8 @@ static lispval set_file_atime(lispval filename,lispval timestamp)
 }
 
 DEFPRIM1("file-creationtime",file_ctime,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(FILE-CREATIONTIME *arg0*)` **undocumented**",
- kno_string_type,KNO_VOID);
+	 "`(FILE-CREATIONTIME *arg0*)` **undocumented**",
+	 kno_string_type,KNO_VOID);
 static lispval file_ctime(lispval filename)
 {
   time_t mtime = u8_file_ctime(CSTRING(filename));
@@ -1100,8 +1100,8 @@ static lispval file_ctime(lispval filename)
 }
 
 DEFPRIM1("file-mode",file_mode,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(FILE-MODE *arg0*)` **undocumented**",
- kno_string_type,KNO_VOID);
+	 "`(FILE-MODE *arg0*)` **undocumented**",
+	 kno_string_type,KNO_VOID);
 static lispval file_mode(lispval filename)
 {
   int mode = u8_file_mode(CSTRING(filename));
@@ -1110,8 +1110,8 @@ static lispval file_mode(lispval filename)
 }
 
 DEFPRIM1("file-size",file_size,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(FILE-SIZE *arg0*)` **undocumented**",
- kno_string_type,KNO_VOID);
+	 "`(FILE-SIZE *arg0*)` **undocumented**",
+	 kno_string_type,KNO_VOID);
 static lispval file_size(lispval filename)
 {
   ssize_t size = u8_file_size(CSTRING(filename));
@@ -1122,8 +1122,8 @@ static lispval file_size(lispval filename)
 }
 
 DEFPRIM1("file-owner",file_owner,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(FILE-OWNER *arg0*)` **undocumented**",
- kno_string_type,KNO_VOID);
+	 "`(FILE-OWNER *arg0*)` **undocumented**",
+	 kno_string_type,KNO_VOID);
 static lispval file_owner(lispval filename)
 {
   u8_string name = u8_file_owner(CSTRING(filename));
@@ -1132,14 +1132,14 @@ static lispval file_owner(lispval filename)
 }
 
 DEFPRIM4("set-file-access!",set_file_access_prim,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
- "(SET-FILE-ACCESS! *file* [*mode*] [*group*] [*owner*]) "
- "sets the mode/group/owner of a file",
- kno_string_type,KNO_VOID,kno_fixnum_type,KNO_VOID,
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "(SET-FILE-ACCESS! *file* [*mode*] [*group*] [*owner*]) "
+	 "sets the mode/group/owner of a file",
+	 kno_string_type,KNO_VOID,kno_fixnum_type,KNO_VOID,
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval set_file_access_prim(lispval filename,
-                                    lispval owner,
-                                    lispval group,
-                                    lispval mode_arg)
+				    lispval owner,
+				    lispval group,
+				    lispval mode_arg)
 {
   mode_t mode = (KNO_FIXNUMP(mode_arg)) ? (KNO_FIX2INT(mode_arg)) : -1;
   u8_uid uid; u8_gid gid=-1;
@@ -1149,8 +1149,8 @@ static lispval set_file_access_prim(lispval filename,
     uid = u8_getuid(KNO_CSTRING(owner));
     if (uid<0) {
       kno_seterr("UnknownUser","set_file_access_prim",
-                u8_strdup(KNO_CSTRING(owner)),
-                VOID);
+		 u8_strdup(KNO_CSTRING(owner)),
+		 VOID);
       return KNO_ERROR;}}
   else return kno_type_error("username","set_file_access_prim",owner);
   if (KNO_FIXNUMP(group))
@@ -1159,8 +1159,8 @@ static lispval set_file_access_prim(lispval filename,
     gid = u8_getgid(KNO_CSTRING(group));
     if (gid<0) {
       kno_seterr("UnknownGroup","set_file_access_prim",
-                u8_strdup(KNO_CSTRING(group)),
-                VOID);
+		 u8_strdup(KNO_CSTRING(group)),
+		 VOID);
       return KNO_ERROR;}}
   else return kno_type_error("groupname","set_file_access_prim",group);
   int rv = u8_set_access_x(KNO_CSTRING(filename),uid,gid,mode);
@@ -1172,7 +1172,7 @@ static lispval set_file_access_prim(lispval filename,
 /* Current directory information */
 
 DEFPRIM("getcwd",getcwd_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
- "`(GETCWD)` **undocumented**");
+	"`(GETCWD)` **undocumented**");
 static lispval getcwd_prim()
 {
   u8_string wd = u8_getcwd();
@@ -1181,8 +1181,8 @@ static lispval getcwd_prim()
 }
 
 DEFPRIM1("setcwd",setcwd_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(SETCWD *arg0*)` **undocumented**",
- kno_string_type,KNO_VOID);
+	 "`(SETCWD *arg0*)` **undocumented**",
+	 kno_string_type,KNO_VOID);
 static lispval setcwd_prim(lispval dirname)
 {
   if (u8_setcwd(CSTRING(dirname))<0)
@@ -1193,8 +1193,8 @@ static lispval setcwd_prim(lispval dirname)
 /* Directory listings */
 
 DEFPRIM2("getfiles",getfiles_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "`(GETFILES *arg0* [*arg1*])` **undocumented**",
- kno_string_type,KNO_VOID,kno_any_type,KNO_TRUE);
+	 "`(GETFILES *arg0* [*arg1*])` **undocumented**",
+	 kno_string_type,KNO_VOID,kno_any_type,KNO_TRUE);
 static lispval getfiles_prim(lispval dirname,lispval fullpath)
 {
   lispval results = EMPTY;
@@ -1202,16 +1202,16 @@ static lispval getfiles_prim(lispval dirname,lispval fullpath)
     u8_getfiles(CSTRING(dirname),(!(FALSEP(fullpath)))), *scan = contents;
   if (contents == NULL) return KNO_ERROR;
   else while (*scan) {
-    lispval string = kno_wrapstring(*scan);
-    CHOICE_ADD(results,string);
-    scan++;}
+      lispval string = kno_wrapstring(*scan);
+      CHOICE_ADD(results,string);
+      scan++;}
   u8_free(contents);
   return results;
 }
 
 DEFPRIM2("getdirs",getdirs_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "`(GETDIRS *arg0* [*arg1*])` **undocumented**",
- kno_string_type,KNO_VOID,kno_any_type,KNO_TRUE);
+	 "`(GETDIRS *arg0* [*arg1*])` **undocumented**",
+	 kno_string_type,KNO_VOID,kno_any_type,KNO_TRUE);
 static lispval getdirs_prim(lispval dirname,lispval fullpath)
 {
   lispval results = EMPTY;
@@ -1219,16 +1219,16 @@ static lispval getdirs_prim(lispval dirname,lispval fullpath)
     u8_getdirs(CSTRING(dirname),(!(FALSEP(fullpath)))), *scan = contents;
   if (contents == NULL) return KNO_ERROR;
   else while (*scan) {
-    lispval string = kno_wrapstring(*scan);
-    CHOICE_ADD(results,string);
-    scan++;}
+      lispval string = kno_wrapstring(*scan);
+      CHOICE_ADD(results,string);
+      scan++;}
   u8_free(contents);
   return results;
 }
 
 DEFPRIM2("getlinks",getlinks_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "`(GETLINKS *arg0* [*arg1*])` **undocumented**",
- kno_string_type,KNO_VOID,kno_any_type,KNO_TRUE);
+	 "`(GETLINKS *arg0* [*arg1*])` **undocumented**",
+	 kno_string_type,KNO_VOID,kno_any_type,KNO_TRUE);
 static lispval getlinks_prim(lispval dirname,lispval fullpath)
 {
   lispval results = EMPTY;
@@ -1237,16 +1237,16 @@ static lispval getlinks_prim(lispval dirname,lispval fullpath)
     *scan = contents;
   if (contents == NULL) return KNO_ERROR;
   else while (*scan) {
-    lispval string = kno_wrapstring(*scan);
-    CHOICE_ADD(results,string);
-    scan++;}
+      lispval string = kno_wrapstring(*scan);
+      CHOICE_ADD(results,string);
+      scan++;}
   u8_free(contents);
   return results;
 }
 
 DEFPRIM2("readdir",readdir_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "`(READDIR *arg0* [*arg1*])` **undocumented**",
- kno_string_type,KNO_VOID,kno_any_type,KNO_TRUE);
+	 "`(READDIR *arg0* [*arg1*])` **undocumented**",
+	 kno_string_type,KNO_VOID,kno_any_type,KNO_TRUE);
 static lispval readdir_prim(lispval dirname,lispval fullpath)
 {
   lispval results = EMPTY;
@@ -1255,9 +1255,9 @@ static lispval readdir_prim(lispval dirname,lispval fullpath)
     *scan = contents;
   if (contents == NULL) return KNO_ERROR;
   else while (*scan) {
-    lispval string = kno_wrapstring(*scan);
-    CHOICE_ADD(results,string);
-    scan++;}
+      lispval string = kno_wrapstring(*scan);
+      CHOICE_ADD(results,string);
+      scan++;}
   u8_free(contents);
   return results;
 }
@@ -1265,8 +1265,8 @@ static lispval readdir_prim(lispval dirname,lispval fullpath)
 /* File flush function */
 
 DEFPRIM1("close",close_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
- "`(CLOSE [*arg0*])` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(CLOSE [*arg0*])` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval close_prim(lispval portarg)
 {
   if (TYPEP(portarg,kno_stream_type)) {
@@ -1281,25 +1281,25 @@ static lispval close_prim(lispval portarg)
     if (out) {
       u8_flush(out);
       if (out->u8_streaminfo&U8_STREAM_OWNS_SOCKET) {
-        U8_XOUTPUT *xout = (U8_XOUTPUT *)out;
-        if (xout->u8_xfd<0) {}
-        else {
-          closed = xout->u8_xfd; fsync(xout->u8_xfd); close(xout->u8_xfd);
-          xout->u8_xfd = -1;}}}
+	U8_XOUTPUT *xout = (U8_XOUTPUT *)out;
+	if (xout->u8_xfd<0) {}
+	else {
+	  closed = xout->u8_xfd; fsync(xout->u8_xfd); close(xout->u8_xfd);
+	  xout->u8_xfd = -1;}}}
     if (in) {
       u8_flush(out);
       if (in->u8_streaminfo&U8_STREAM_OWNS_SOCKET) {
-        U8_XINPUT *xin = (U8_XINPUT *)in;
-        if (xin->u8_xfd<0) { /* already closed. warn? */ }
-        else if (closed!=xin->u8_xfd) {
-          close(xin->u8_xfd); xin->u8_xfd = -1;}}}
+	U8_XINPUT *xin = (U8_XINPUT *)in;
+	if (xin->u8_xfd<0) { /* already closed. warn? */ }
+	else if (closed!=xin->u8_xfd) {
+	  close(xin->u8_xfd); xin->u8_xfd = -1;}}}
     return VOID;}
   else return kno_type_error("port","close_prim",portarg);
 }
 
 DEFPRIM1("flush-output",flush_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
- "`(FLUSH-OUTPUT [*arg0*])` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(FLUSH-OUTPUT [*arg0*])` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval flush_prim(lispval portarg)
 {
   if ((VOIDP(portarg))||
@@ -1324,11 +1324,11 @@ static lispval flush_prim(lispval portarg)
 }
 
 DEFPRIM3("setbuf!",setbuf_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
- "`(SETBUF! *port/stream* *insize* *outsize*)` "
- "sets the input and output buffer sizes for a port "
- "or stream.",
- kno_any_type,KNO_VOID,kno_any_type,KNO_FALSE,
- kno_any_type,KNO_FALSE);
+	 "`(SETBUF! *port/stream* *insize* *outsize*)` "
+	 "sets the input and output buffer sizes for a port "
+	 "or stream.",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_FALSE,
+	 kno_any_type,KNO_FALSE);
 static lispval setbuf_prim(lispval portarg,lispval insize,lispval outsize)
 {
   if (TYPEP(portarg,kno_stream_type)) {
@@ -1342,19 +1342,19 @@ static lispval setbuf_prim(lispval portarg,lispval insize,lispval outsize)
     if (FIXNUMP(insize)) {
       U8_INPUT *in = p->port_input;
       if ((in) && (in->u8_streaminfo&U8_STREAM_OWNS_XBUF)) {
-        u8_xinput_setbuf((struct U8_XINPUT *)in,FIX2INT(insize));}}
+	u8_xinput_setbuf((struct U8_XINPUT *)in,FIX2INT(insize));}}
 
     if (FIXNUMP(outsize)) {
       U8_OUTPUT *out = p->port_output;
       if ((out) && (out->u8_streaminfo&U8_STREAM_OWNS_XBUF)) {
-        u8_xoutput_setbuf((struct U8_XOUTPUT *)out,FIX2INT(outsize));}}
+	u8_xoutput_setbuf((struct U8_XOUTPUT *)out,FIX2INT(outsize));}}
     return VOID;}
   else return kno_type_error("port/stream","setbuf_prim",portarg);
 }
 
 DEFPRIM1("getpos",getpos_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(GETPOS *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(GETPOS *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval getpos_prim(lispval portarg)
 {
   if (KNO_PORTP(portarg)) {
@@ -1381,8 +1381,8 @@ static lispval getpos_prim(lispval portarg)
 }
 
 DEFPRIM1("endpos",endpos_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(ENDPOS *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(ENDPOS *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval endpos_prim(lispval portarg)
 {
   if (KNO_PORTP(portarg)) {
@@ -1409,8 +1409,8 @@ static lispval endpos_prim(lispval portarg)
 }
 
 DEFPRIM1("file%",file_progress_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(FILE% *arg0*)` **undocumented**",
- kno_ioport_type,KNO_VOID);
+	 "`(FILE% *arg0*)` **undocumented**",
+	 kno_ioport_type,KNO_VOID);
 static lispval file_progress_prim(lispval portarg)
 {
   double result = -1.0;
@@ -1427,8 +1427,8 @@ static lispval file_progress_prim(lispval portarg)
 }
 
 DEFPRIM2("setpos!",setpos_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
- "`(SETPOS! *arg0* *arg1*)` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(SETPOS! *arg0* *arg1*)` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval setpos_prim(lispval portarg,lispval off_arg)
 {
   if (KNO_PORTP(portarg)) {
@@ -1477,8 +1477,8 @@ static lispval setpos_prim(lispval portarg,lispval off_arg)
 static void statfs_set(lispval,u8_string,long long int,long long int);
 
 DEFPRIM1("fsinfo",fsinfo_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(FSINFO *arg0*)` **undocumented**",
- kno_string_type,KNO_VOID);
+	 "`(FSINFO *arg0*)` **undocumented**",
+	 kno_string_type,KNO_VOID);
 static lispval fsinfo_prim(lispval arg)
 {
   u8_string path = CSTRING(arg); struct statfs info;
@@ -1512,7 +1512,7 @@ static lispval fsinfo_prim(lispval arg)
     return result;}
 }
 static void statfs_set(lispval r,u8_string name,
-                       long long int val,long long int mul)
+		       long long int val,long long int mul)
 {
   lispval slotid = kno_intern(name);
   lispval lval = KNO_INT2LISP(val);
@@ -1526,8 +1526,8 @@ static void statfs_set(lispval r,u8_string name,
 }
 #else
 DEFPRIM1("fsinfo",fsinfo_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(FSINFO *arg0*)` **undocumented**",
- kno_string_type,KNO_VOID);
+	 "`(FSINFO *arg0*)` **undocumented**",
+	 kno_string_type,KNO_VOID);
 static lispval fsinfo_prim(lispval arg)
 {
   return kno_err("statfs unavailable","fsinfo_prim",NULL,VOID);
@@ -1545,9 +1545,9 @@ static lispval snapshotvars, snapshotconfig, snapshotfile, configinfo;
 
 KNO_EXPORT
 /* kno_snapshot:
-     Arguments: an environment pointer and a filename (u8_string)
-     Returns: an int (<0 on error)
- Saves a snapshot of the environment into the designated file.
+   Arguments: an environment pointer and a filename (u8_string)
+   Returns: an int (<0 on error)
+   Saves a snapshot of the environment into the designated file.
 */
 int kno_snapshot(kno_lexenv env,u8_string filename)
 {
@@ -1562,28 +1562,28 @@ int kno_snapshot(kno_lexenv env,u8_string filename)
     if (VOIDP(vars)) vars = EMPTY;
     if (VOIDP(configvars)) configvars = EMPTY;
     {DO_CHOICES(sym,vars)
-       if (SYMBOLP(sym)) {
-         lispval val = kno_symeval(sym,env);
-         if (VOIDP(val))
-           u8_log(LOG_WARN,SnapshotTrouble,
-                  "The snapshot variable %q is unbound",sym);
-         else kno_add(slotmap,sym,val);
-         kno_decref(val);}
-       else {
-         kno_decref(slotmap);
-         return kno_type_error("symbol","kno_snapshot",sym);}}
+	if (SYMBOLP(sym)) {
+	  lispval val = kno_symeval(sym,env);
+	  if (VOIDP(val))
+	    u8_log(LOG_WARN,SnapshotTrouble,
+		   "The snapshot variable %q is unbound",sym);
+	  else kno_add(slotmap,sym,val);
+	  kno_decref(val);}
+	else {
+	  kno_decref(slotmap);
+	  return kno_type_error("symbol","kno_snapshot",sym);}}
     {DO_CHOICES(sym,configvars)
-       if (SYMBOLP(sym)) {
-         lispval val = kno_config_get(SYM_NAME(sym));
-         lispval config_entry = kno_conspair(sym,val);
-         if (VOIDP(val))
-           u8_log(LOG_WARN,SnapshotTrouble,
-                  "The snapshot config %q is not set",sym);
-         else kno_add(slotmap,configinfo,config_entry);
-         kno_decref(val);}
-       else {
-         kno_decref(slotmap);
-         return kno_type_error("symbol","kno_snapshot",sym);}}
+	if (SYMBOLP(sym)) {
+	  lispval val = kno_config_get(SYM_NAME(sym));
+	  lispval config_entry = kno_conspair(sym,val);
+	  if (VOIDP(val))
+	    u8_log(LOG_WARN,SnapshotTrouble,
+		   "The snapshot config %q is not set",sym);
+	  else kno_add(slotmap,configinfo,config_entry);
+	  kno_decref(val);}
+	else {
+	  kno_decref(slotmap);
+	  return kno_type_error("symbol","kno_snapshot",sym);}}
     out = kno_open_file(filename,KNO_FILE_CREATE);
     if (out == NULL) {
       kno_decref(slotmap);
@@ -1591,17 +1591,17 @@ int kno_snapshot(kno_lexenv env,u8_string filename)
     else bytes = kno_write_dtype(kno_writebuf(out),slotmap);
     kno_close_stream(out,KNO_STREAM_CLOSE_FULL);
     u8_log(LOG_INFO,SnapshotSaved,
-           "Saved snapshot of %d items to %s",
-           KNO_SLOTMAP_NUSED(slotmap),filename);
+	   "Saved snapshot of %d items to %s",
+	   KNO_SLOTMAP_NUSED(slotmap),filename);
     kno_decref(slotmap);
     return bytes;}
 }
 
 KNO_EXPORT
 /* kno_snapback:
-     Arguments: an environment pointer and a filename (u8_string)
-     Returns: an int (<0 on error)
- Restores a snapshot from the designated file into the environment
+   Arguments: an environment pointer and a filename (u8_string)
+   Returns: an int (<0 on error)
+   Restores a snapshot from the designated file into the environment
 */
 int kno_snapback(kno_lexenv env,u8_string filename)
 {
@@ -1618,34 +1618,34 @@ int kno_snapback(kno_lexenv env,u8_string filename)
     DO_CHOICES(key,keys) {
       lispval v = kno_get(slotmap,key,VOID);
       if (KNO_EQ(key,configinfo)) {
-        DO_CHOICES(config_entry,v)
-          if ((PAIRP(config_entry)) &&
-              (SYMBOLP(KNO_CAR(config_entry))))
-            if (kno_set_config(SYM_NAME(KNO_CAR(config_entry)),
-                              KNO_CDR(config_entry)) <0) {
-              kno_decref(v); kno_decref(keys); kno_decref(slotmap);
-              return -1;}
-            else actions++;
-          else {
-            kno_seterr(kno_TypeError,"kno_snapback",
-                      "saved config entry",
-                      kno_incref(config_entry));
-            kno_decref(v); kno_decref(keys); kno_decref(slotmap);
-            return -1;}}
+	DO_CHOICES(config_entry,v)
+	  if ((PAIRP(config_entry)) &&
+	      (SYMBOLP(KNO_CAR(config_entry))))
+	    if (kno_set_config(SYM_NAME(KNO_CAR(config_entry)),
+			       KNO_CDR(config_entry)) <0) {
+	      kno_decref(v); kno_decref(keys); kno_decref(slotmap);
+	      return -1;}
+	    else actions++;
+	  else {
+	    kno_seterr(kno_TypeError,"kno_snapback",
+		       "saved config entry",
+		       kno_incref(config_entry));
+	    kno_decref(v); kno_decref(keys); kno_decref(slotmap);
+	    return -1;}}
       else {
-        int setval = kno_assign_value(key,v,env);
-        if (setval==0)
-          setval = kno_bind_value(key,v,env);
-        if (setval<0) {
-          kno_decref(v); kno_decref(keys);
-          return -1;}}
+	int setval = kno_assign_value(key,v,env);
+	if (setval==0)
+	  setval = kno_bind_value(key,v,env);
+	if (setval<0) {
+	  kno_decref(v); kno_decref(keys);
+	  return -1;}}
       kno_decref(v);}
     kno_decref(keys);}
   else {
     return kno_reterr(kno_TypeError,"kno_snapback", u8_strdup("slotmap"),
-                     slotmap);}
+		      slotmap);}
   u8_log(LOG_INFO,SnapshotRestored,"Restored snapshot of %d items from %s",
-         KNO_SLOTMAP_NUSED(slotmap),filename);
+	 KNO_SLOTMAP_NUSED(slotmap),filename);
   kno_decref(slotmap);
   return actions;
 }
@@ -1729,13 +1729,13 @@ KNO_EXPORT void stackdump_dump(u8_string dump)
     else {
       stackdump_file = fopen(stackdump_filename,"w");
       if (stackdump_file == NULL) {
-        u8_log(LOG_CRIT,StackDumpEvent,"Couldn't open stackdump file %s",stackdump_filename);
-        u8_free(stackdump_filename);
-        stackdump_filename = NULL;
-        u8_unlock_mutex(&stackdump_lock);
-        return;}
+	u8_log(LOG_CRIT,StackDumpEvent,"Couldn't open stackdump file %s",stackdump_filename);
+	u8_free(stackdump_filename);
+	stackdump_filename = NULL;
+	u8_unlock_mutex(&stackdump_lock);
+	return;}
       else {
-        u8_log(LOG_NOTIFY,StackDumpEvent,"Opened stackdump file %s",stackdump_filename);}}}
+	u8_log(LOG_NOTIFY,StackDumpEvent,"Opened stackdump file %s",stackdump_filename);}}}
   U8_INIT_OUTPUT(&out,256);
   u8_printf(&out,"pid=%d elapsed=%f (%*liUGt)",getpid(),u8_elapsed_time());
   fprintf(stackdump_file,">>>>>> %s\n",out.u8_outbuf);
@@ -1758,10 +1758,10 @@ static int stackdump_config_set(lispval var,lispval val,void *ignored)
 {
   if ((STRINGP(val)) || (FALSEP(val)) || (KNO_TRUEP(val))) {
     u8_string filename = ((STRINGP(val)) ? (CSTRING(val)) :
-                        (KNO_TRUEP(val)) ? ((u8_string)"stackdump.log") : (NULL));
+			  (KNO_TRUEP(val)) ? ((u8_string)"stackdump.log") : (NULL));
     if (stackdump_filename == filename) return 0;
     else if ((stackdump_filename) && (filename) &&
-             (strcmp(stackdump_filename,filename)==0))
+	     (strcmp(stackdump_filename,filename)==0))
       return 0;
     u8_lock_mutex(&stackdump_lock);
     if (stackdump_file) {
@@ -1772,7 +1772,7 @@ static int stackdump_config_set(lispval var,lispval val,void *ignored)
     if (filename) {
       stackdump_filename = u8_strdup(filename);
       /* kno_dump_exception = stackdump_dump; */
-}
+    }
     u8_unlock_mutex(&stackdump_lock);
     return 1;}
   else {

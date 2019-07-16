@@ -29,8 +29,8 @@ static lispval moduleid_symbol, source_symbol, void_symbol;
 #define GETEVALFN(x) ((kno_evalfn)(kno_fcnid_ref(x)))
 
 DEFPRIM1("macro?",macrop,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "Returns true if its argument is an evaluator macro",
- kno_any_type,KNO_VOID);
+	 "Returns true if its argument is an evaluator macro",
+	 kno_any_type,KNO_VOID);
 static lispval macrop(lispval x)
 {
   if (TYPEP(x,kno_macro_type)) return KNO_TRUE;
@@ -38,8 +38,8 @@ static lispval macrop(lispval x)
 }
 
 DEFPRIM1("compound-procedure?",lambdap,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(COMPOUND-PROCEDURE? *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(COMPOUND-PROCEDURE? *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval lambdap(lispval x)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
@@ -49,8 +49,8 @@ static lispval lambdap(lispval x)
 }
 
 DEFPRIM1("special-form?",evalfnp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(SPECIAL-FORM? *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(SPECIAL-FORM? *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval evalfnp(lispval x)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
@@ -60,8 +60,8 @@ static lispval evalfnp(lispval x)
 }
 
 DEFPRIM1("primitive?",primitivep,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(PRIMITIVE? *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(PRIMITIVE? *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval primitivep(lispval x)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
@@ -71,8 +71,8 @@ static lispval primitivep(lispval x)
 }
 
 DEFPRIM1("procedure?",procedurep,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(PROCEDURE? *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(PROCEDURE? *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval procedurep(lispval x)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
@@ -82,8 +82,8 @@ static lispval procedurep(lispval x)
 }
 
 DEFPRIM1("procedure-name",procedure_name,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(PROCEDURE-NAME *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(PROCEDURE-NAME *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval procedure_name(lispval x)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
@@ -108,8 +108,8 @@ static lispval procedure_name(lispval x)
 }
 
 DEFPRIM1("procedure-cname",procedure_cname,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(PROCEDURE-CNAME *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(PROCEDURE-CNAME *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval procedure_cname(lispval x)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
@@ -127,8 +127,8 @@ static lispval procedure_cname(lispval x)
 }
 
 DEFPRIM1("procedure-fileinfo",procedure_fileinfo,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(PROCEDURE-FILEINFO *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(PROCEDURE-FILEINFO *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval procedure_fileinfo(lispval x)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
@@ -159,8 +159,8 @@ static lispval strip_filename(u8_string s)
 }
 
 DEFPRIM1("procedure-filename",procedure_filename,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(PROCEDURE-FILENAME *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(PROCEDURE-FILENAME *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval procedure_filename(lispval x)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
@@ -183,8 +183,8 @@ static lispval procedure_filename(lispval x)
 }
 
 DEFPRIM1("procedure-module",procedure_moduleid,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(PROCEDURE-MODULE *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(PROCEDURE-MODULE *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval procedure_moduleid(lispval x)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
@@ -207,8 +207,8 @@ static lispval procedure_moduleid(lispval x)
 }
 
 DEFPRIM1("procedure-symbol",procedure_symbol,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(PROCEDURE-SYMBOL *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(PROCEDURE-SYMBOL *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval procedure_symbol(lispval x)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
@@ -231,8 +231,8 @@ static lispval procedure_symbol(lispval x)
 }
 
 DEFPRIM1("procedure-id",procedure_id,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(PROCEDURE-ID *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(PROCEDURE-ID *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval procedure_id(lispval x)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
@@ -250,8 +250,8 @@ static lispval procedure_id(lispval x)
 }
 
 DEFPRIM1("procedure-documentation",procedure_documentation,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(PROCEDURE-DOCUMENTATION *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(PROCEDURE-DOCUMENTATION *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval procedure_documentation(lispval x)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
@@ -262,8 +262,8 @@ static lispval procedure_documentation(lispval x)
 }
 
 DEFPRIM2("set-procedure-documentation!",set_procedure_documentation,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
- "`(SET-PROCEDURE-DOCUMENTATION! *arg0* *arg1*)` **undocumented**",
- kno_any_type,KNO_VOID,kno_string_type,KNO_VOID);
+	 "`(SET-PROCEDURE-DOCUMENTATION! *arg0* *arg1*)` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_string_type,KNO_VOID);
 static lispval set_procedure_documentation(lispval x,lispval doc)
 {
   lispval proc = (KNO_FCNIDP(x)) ? (kno_fcnid_ref(x)) : (x);
@@ -286,11 +286,11 @@ static lispval set_procedure_documentation(lispval x,lispval doc)
 }
 
 DEFPRIM1("procedure-tailable?",procedure_tailablep,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(PROCEDURE-TAILABLE? *fcn*)` "
- "Returns true if *fcn* can be tail called, and "
- "false otherwise. By default, all procedures are "
- "tailable when called deterministically.",
- kno_any_type,KNO_VOID);
+	 "`(PROCEDURE-TAILABLE? *fcn*)` "
+	 "Returns true if *fcn* can be tail called, and "
+	 "false otherwise. By default, all procedures are "
+	 "tailable when called deterministically.",
+	 kno_any_type,KNO_VOID);
 static lispval procedure_tailablep(lispval x)
 {
   lispval proc = (KNO_FCNIDP(x)) ? (kno_fcnid_ref(x)) : (x);
@@ -303,8 +303,8 @@ static lispval procedure_tailablep(lispval x)
   else return kno_err("Not Handled","procedure_tailablep",NULL,x);
 }
 DEFPRIM2("set-procedure-tailable!",set_procedure_tailable,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
- "`(SET-PROCEDURE-TAILABLE! *arg0* *arg1*)` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(SET-PROCEDURE-TAILABLE! *arg0* *arg1*)` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval set_procedure_tailable(lispval x,lispval bool)
 {
   lispval proc = (KNO_FCNIDP(x)) ? (kno_fcnid_ref(x)) : (x);
@@ -319,8 +319,8 @@ static lispval set_procedure_tailable(lispval x,lispval bool)
 }
 
 DEFPRIM1("procedure-arity",procedure_arity,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(PROCEDURE-ARITY *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(PROCEDURE-ARITY *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval procedure_arity(lispval x)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
@@ -333,8 +333,8 @@ static lispval procedure_arity(lispval x)
 }
 
 DEFPRIM1("non-deterministic?",non_deterministicp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(NON-DETERMINISTIC? *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(NON-DETERMINISTIC? *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval non_deterministicp(lispval x)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
@@ -347,8 +347,8 @@ static lispval non_deterministicp(lispval x)
 }
 
 DEFPRIM1("synchronized?",synchronizedp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(SYNCHRONIZED? *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(SYNCHRONIZED? *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval synchronizedp(lispval x)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
@@ -363,8 +363,8 @@ static lispval synchronizedp(lispval x)
 }
 
 DEFPRIM1("procedure-min-arity",procedure_min_arity,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(PROCEDURE-MIN-ARITY *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(PROCEDURE-MIN-ARITY *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval procedure_min_arity(lispval x)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
@@ -376,11 +376,11 @@ static lispval procedure_min_arity(lispval x)
 }
 
 DEFPRIM1("procedure-typeinfo",procedure_typeinfo,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(PROCEDURE-TYPEINFO *fcn*)` "
- "Returns a typeinfo vector for *fcn* if it has "
- "one, or #f. Note that this doesn't error on "
- "non-functions but just returns #f",
- kno_any_type,KNO_VOID);
+	 "`(PROCEDURE-TYPEINFO *fcn*)` "
+	 "Returns a typeinfo vector for *fcn* if it has "
+	 "one, or #f. Note that this doesn't error on "
+	 "non-functions but just returns #f",
+	 kno_any_type,KNO_VOID);
 static lispval procedure_typeinfo(lispval x)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
@@ -391,26 +391,26 @@ static lispval procedure_typeinfo(lispval x)
       int *typeinfo = fcn->fcn_typeinfo;
       lispval result = kno_make_vector(arity,NULL);
       int i = 0; while (i<arity) {
-        int typecode = typeinfo[i];
-        if (typecode < 0) {
-          KNO_VECTOR_SET(result,i,KNO_FALSE);}
-        else {
-          u8_string name = kno_lisp_typename(typecode);
-          if (name) {
-            KNO_VECTOR_SET(result,i,knostring(name));}
-          else KNO_VECTOR_SET(result,i,KNO_INT(typecode));}
-        i++;}
+	int typecode = typeinfo[i];
+	if (typecode < 0) {
+	  KNO_VECTOR_SET(result,i,KNO_FALSE);}
+	else {
+	  u8_string name = kno_lisp_typename(typecode);
+	  if (name) {
+	    KNO_VECTOR_SET(result,i,knostring(name));}
+	  else KNO_VECTOR_SET(result,i,KNO_INT(typecode));}
+	i++;}
       return result;}
     else return KNO_FALSE;}
   else return KNO_FALSE;
 }
 
 DEFPRIM1("procedure-defaults",procedure_defaults,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(PROCEDURE-DEFAULTS *fcn*)` "
- "Returns a vector of default values for *fcn* if "
- "they're specified, or #f. Note that this doesn't "
- "error on non-functions but just returns #f",
- kno_any_type,KNO_VOID);
+	 "`(PROCEDURE-DEFAULTS *fcn*)` "
+	 "Returns a vector of default values for *fcn* if "
+	 "they're specified, or #f. Note that this doesn't "
+	 "error on non-functions but just returns #f",
+	 kno_any_type,KNO_VOID);
 static lispval procedure_defaults(lispval x)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
@@ -421,13 +421,13 @@ static lispval procedure_defaults(lispval x)
       lispval *defaults = fcn->fcn_defaults;
       lispval result = kno_make_vector(arity,NULL);
       int i = 0; while (i<arity) {
-        lispval dflt = defaults[i];
-        if (VOIDP(dflt)) {
-          KNO_VECTOR_SET(result,i,void_symbol);}
-        else {
-          kno_incref(dflt);
-          KNO_VECTOR_SET(result,i,dflt);}
-        i++;}
+	lispval dflt = defaults[i];
+	if (VOIDP(dflt)) {
+	  KNO_VECTOR_SET(result,i,void_symbol);}
+	else {
+	  kno_incref(dflt);
+	  KNO_VECTOR_SET(result,i,dflt);}
+	i++;}
       return result;}
     else return KNO_FALSE;}
   else return KNO_FALSE;
@@ -445,7 +445,7 @@ static lispval get_proc_attribs(lispval x,int create)
     lispval attribs = f->fcn_attribs;
     if (!(create)) {
       if ((attribs!=KNO_NULL)&&(TABLEP(attribs)))
-        return attribs;
+	return attribs;
       else return VOID;}
     if ((attribs == KNO_NULL)||(!(TABLEP(attribs))))
       f->fcn_attribs = attribs = kno_init_slotmap(NULL,4,NULL);
@@ -454,8 +454,8 @@ static lispval get_proc_attribs(lispval x,int create)
 }
 
 DEFPRIM1("reflect/attribs",get_procedure_attribs,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(REFLECT/ATTRIBS *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(REFLECT/ATTRIBS *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval get_procedure_attribs(lispval x)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
@@ -467,8 +467,8 @@ static lispval get_procedure_attribs(lispval x)
 }
 
 DEFPRIM2("reflect/set-attribs!",set_procedure_attribs,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
- "`(REFLECT/SET-ATTRIBS! *arg0* *arg1*)` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(REFLECT/SET-ATTRIBS! *arg0* *arg1*)` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval set_procedure_attribs(lispval x,lispval value)
 {
   kno_lisp_type proctype = KNO_LISP_TYPE(x);
@@ -479,12 +479,12 @@ static lispval set_procedure_attribs(lispval x,lispval value)
     f->fcn_attribs = kno_incref(value);
     return VOID;}
   else return kno_err("Not Handled","set_procedure_documentation",
-                     NULL,x);
+		      NULL,x);
 }
 
 DEFPRIM2("reflect/get",reflect_get,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
- "Returns a meta-property of a procedure",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "Returns a meta-property of a procedure",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval reflect_get(lispval x,lispval attrib)
 {
   lispval attribs = get_proc_attribs(x,0);
@@ -495,9 +495,9 @@ static lispval reflect_get(lispval x,lispval attrib)
 }
 
 DEFPRIM3("reflect/store!",reflect_store,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3),
- "`(REFLECT/STORE! *arg0* *arg1* *arg2*)` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
- kno_any_type,KNO_VOID);
+	 "`(REFLECT/STORE! *arg0* *arg1* *arg2*)` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
+	 kno_any_type,KNO_VOID);
 static lispval reflect_store(lispval x,lispval attrib,lispval value)
 {
   lispval attribs = get_proc_attribs(x,1);
@@ -511,9 +511,9 @@ static lispval reflect_store(lispval x,lispval attrib,lispval value)
 }
 
 DEFPRIM3("reflect/add!",reflect_add,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3),
- "`(REFLECT/ADD! *arg0* *arg1* *arg2*)` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
- kno_any_type,KNO_VOID);
+	 "`(REFLECT/ADD! *arg0* *arg1* *arg2*)` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
+	 kno_any_type,KNO_VOID);
 static lispval reflect_add(lispval x,lispval attrib,lispval value)
 {
   lispval attribs = get_proc_attribs(x,1);
@@ -527,9 +527,9 @@ static lispval reflect_add(lispval x,lispval attrib,lispval value)
 }
 
 DEFPRIM3("reflect/drop!",reflect_drop,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
- "`(REFLECT/DROP! *arg0* *arg1* [*arg2*])` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
- kno_any_type,KNO_VOID);
+	 "`(REFLECT/DROP! *arg0* *arg1* [*arg2*])` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
+	 kno_any_type,KNO_VOID);
 static lispval reflect_drop(lispval x,lispval attrib,lispval value)
 {
   lispval attribs = get_proc_attribs(x,1);
@@ -545,8 +545,8 @@ static lispval reflect_drop(lispval x,lispval attrib,lispval value)
 /* LAMBDA functions */
 
 DEFPRIM1("lambda-args",lambda_args,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(LAMBDA-ARGS *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(LAMBDA-ARGS *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval lambda_args(lispval arg)
 {
   lispval x = kno_fcnid_ref(arg);
@@ -554,12 +554,12 @@ static lispval lambda_args(lispval arg)
     struct KNO_LAMBDA *proc = (kno_lambda)x;
     return kno_incref(proc->lambda_arglist);}
   else return kno_type_error
-         ("lambda","lambda_args",x);
+	 ("lambda","lambda_args",x);
 }
 
 DEFPRIM2("set-lambda-args!",set_lambda_args,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
- "`(SET-LAMBDA-ARGS! *arg0* *arg1*)` **undocumented**",
- kno_lambda_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(SET-LAMBDA-ARGS! *arg0* *arg1*)` **undocumented**",
+	 kno_lambda_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval set_lambda_args(lispval arg,lispval new_arglist)
 {
   lispval x = kno_fcnid_ref(arg);
@@ -570,12 +570,12 @@ static lispval set_lambda_args(lispval arg,lispval new_arglist)
     kno_decref(arglist);
     return VOID;}
   else return kno_type_error
-         ("lambda","set_lambda_args",x);
+	 ("lambda","set_lambda_args",x);
 }
 
 DEFPRIM1("lambda-env",lambda_env,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(LAMBDA-ENV *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(LAMBDA-ENV *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval lambda_env(lispval arg)
 {
   lispval x = kno_fcnid_ref(arg);
@@ -586,8 +586,8 @@ static lispval lambda_env(lispval arg)
 }
 
 DEFPRIM1("lambda-body",lambda_body,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(LAMBDA-BODY *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(LAMBDA-BODY *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval lambda_body(lispval arg)
 {
   lispval x = kno_fcnid_ref(arg);
@@ -598,8 +598,8 @@ static lispval lambda_body(lispval arg)
 }
 
 DEFPRIM1("lambda-start",lambda_start,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(LAMBDA-START *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(LAMBDA-START *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval lambda_start(lispval arg)
 {
   lispval x = kno_fcnid_ref(arg);
@@ -613,8 +613,8 @@ static lispval lambda_start(lispval arg)
 }
 
 DEFPRIM1("lambda-source",lambda_source,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(LAMBDA-SOURCE *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(LAMBDA-SOURCE *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval lambda_source(lispval arg)
 {
   lispval x = kno_fcnid_ref(arg);
@@ -626,8 +626,8 @@ static lispval lambda_source(lispval arg)
 }
 
 DEFPRIM2("set-lambda-body!",set_lambda_body,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
- "`(SET-LAMBDA-BODY! *arg0* *arg1*)` **undocumented**",
- kno_lambda_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(SET-LAMBDA-BODY! *arg0* *arg1*)` **undocumented**",
+	 kno_lambda_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval set_lambda_body(lispval arg,lispval new_body)
 {
   lispval x = kno_fcnid_ref(arg);
@@ -643,13 +643,13 @@ static lispval set_lambda_body(lispval arg,lispval new_body)
     proc->lambda_start = new_body;
     return VOID;}
   else return kno_type_error
-         ("lambda","set_lambda_body",x);
+	 ("lambda","set_lambda_body",x);
 }
 
 DEFPRIM2("optimize-lambda-body!",optimize_lambda_body,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
- "(OPTIMIZE-LAMBDA-BODY! *lambda*) "
- "updates the consblock body of a procedure",
- kno_lambda_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "(OPTIMIZE-LAMBDA-BODY! *lambda*) "
+	 "updates the consblock body of a procedure",
+	 kno_lambda_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval optimize_lambda_body(lispval arg,lispval new_body)
 {
   lispval x = kno_fcnid_ref(arg);
@@ -657,34 +657,34 @@ static lispval optimize_lambda_body(lispval arg,lispval new_body)
     struct KNO_LAMBDA *proc = (kno_lambda)x;
     if (KNO_FALSEP(new_body)) {
       if (proc->lambda_consblock) {
-        lispval cb = (lispval) (proc->lambda_consblock);
-        proc->lambda_consblock = NULL;
-        kno_decref(cb);}
+	lispval cb = (lispval) (proc->lambda_consblock);
+	proc->lambda_consblock = NULL;
+	kno_decref(cb);}
       proc->lambda_start = proc->lambda_body;}
     else {
       lispval new_consblock = (KNO_TRUEP(new_body)) ?
-        (kno_make_consblock(proc->lambda_body)) :
-        (kno_make_consblock(new_body));
+	(kno_make_consblock(proc->lambda_body)) :
+	(kno_make_consblock(new_body));
       if (ABORTED(new_consblock)) return new_consblock;
       else if (KNO_TYPEP(new_consblock,kno_consblock_type)) {
-        struct KNO_CONSBLOCK *cb = (kno_consblock) new_consblock;
-        proc->lambda_start = cb->consblock_head;}
+	struct KNO_CONSBLOCK *cb = (kno_consblock) new_consblock;
+	proc->lambda_start = cb->consblock_head;}
       else proc->lambda_start = new_consblock;
       if (proc->lambda_consblock) {
-        lispval cb = (lispval) (proc->lambda_consblock);
-        kno_decref(cb);}
+	lispval cb = (lispval) (proc->lambda_consblock);
+	kno_decref(cb);}
       if (KNO_TYPEP(new_consblock,kno_consblock_type))
-        proc->lambda_consblock = (kno_consblock) new_consblock;
+	proc->lambda_consblock = (kno_consblock) new_consblock;
       else proc->lambda_consblock = NULL;}
     return VOID;}
   else return kno_type_error("lambda","optimize_lambda_body",x);
 }
 
 DEFPRIM2("optimize-lambda-args!",optimize_lambda_args,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
- "(OPTIMIZE-LAMBDA-ARGS! *lambda*) "
- "updates the parsed vars and defaults for lambda "
- "procedure",
- kno_lambda_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "(OPTIMIZE-LAMBDA-ARGS! *lambda*) "
+	 "updates the parsed vars and defaults for lambda "
+	 "procedure",
+	 kno_lambda_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval optimize_lambda_args(lispval arg,lispval new_args)
 {
   lispval x = kno_fcnid_ref(arg);
@@ -697,8 +697,8 @@ static lispval optimize_lambda_args(lispval arg,lispval new_args)
 }
 
 DEFPRIM2("set-lambda-source!",set_lambda_source,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
- "`(SET-LAMBDA-SOURCE! *arg0* *arg1*)` **undocumented**",
- kno_lambda_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(SET-LAMBDA-SOURCE! *arg0* *arg1*)` **undocumented**",
+	 kno_lambda_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval set_lambda_source(lispval arg,lispval new_source)
 {
   lispval x = kno_fcnid_ref(arg);
@@ -712,8 +712,8 @@ static lispval set_lambda_source(lispval arg,lispval new_source)
 }
 
 DEFPRIM2("set-lambda-optimizer!",set_lambda_optimizer,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
- "`(SET-LAMBDA-OPTIMIZER! *arg0* *arg1*)` **undocumented**",
- kno_lambda_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(SET-LAMBDA-OPTIMIZER! *arg0* *arg1*)` **undocumented**",
+	 kno_lambda_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval set_lambda_optimizer(lispval arg,lispval optimizer)
 {
   lispval x = kno_fcnid_ref(arg);
@@ -726,14 +726,14 @@ static lispval set_lambda_optimizer(lispval arg,lispval optimizer)
     proc->lambda_optimizer = optimizer;
     return VOID;}
   else return kno_type_error
-         ("lambda","set_lambda_optimizer",x);
+	 ("lambda","set_lambda_optimizer",x);
 }
 
 /* Function IDs */
 
 DEFPRIM1("fcnid/ref",fcnid_refprim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	     "`(FCNID/REF *arg0*)` **undocumented**",
-	     kno_fcnid_type,KNO_VOID);
+	 "`(FCNID/REF *arg0*)` **undocumented**",
+	 kno_fcnid_type,KNO_VOID);
 static lispval fcnid_refprim(lispval arg)
 {
   lispval result = kno_fcnid_ref(arg);
@@ -742,8 +742,8 @@ static lispval fcnid_refprim(lispval arg)
 }
 
 DEFPRIM1("fcnid/register",fcnid_registerprim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(FCNID/REGISTER *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(FCNID/REGISTER *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval fcnid_registerprim(lispval value)
 {
   if (KNO_FCNIDP(value))
@@ -752,8 +752,8 @@ static lispval fcnid_registerprim(lispval value)
 }
 
 DEFPRIM2("fcnid/set!",fcnid_setprim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	     "`(FCNID/SET! *arg0* [*arg1*])` **undocumented**",
-	     kno_fcnid_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(FCNID/SET! *arg0* [*arg1*])` **undocumented**",
+	 kno_fcnid_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval fcnid_setprim(lispval arg,lispval value)
 {
   return kno_set_fcnid(arg,value);
@@ -762,8 +762,8 @@ static lispval fcnid_setprim(lispval arg,lispval value)
 /* Macro expand */
 
 DEFPRIM2("macroexpand",macroexpand,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
- "`(MACROEXPAND *arg0* *arg1*)` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(MACROEXPAND *arg0* *arg1*)` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval macroexpand(lispval expander,lispval expr)
 {
   if (PAIRP(expr)) {
@@ -771,12 +771,12 @@ static lispval macroexpand(lispval expander,lispval expr)
       struct KNO_MACRO *macrofn = (struct KNO_MACRO *)kno_fcnid_ref(expander);
       kno_lisp_type xformer_type = KNO_LISP_TYPE(macrofn->macro_transformer);
       if (kno_applyfns[xformer_type]) {
-        /* These are evalfns which do all the evaluating themselves */
-        lispval new_expr=
-          kno_dcall(kno_stackptr,kno_fcnid_ref(macrofn->macro_transformer),1,&expr);
-        new_expr = kno_finish_call(new_expr);
-        if (ABORTED(new_expr)) return kno_err(kno_SyntaxError,_("macro expansion"),NULL,new_expr);
-        else return new_expr;}
+	/* These are evalfns which do all the evaluating themselves */
+	lispval new_expr=
+	  kno_dcall(kno_stackptr,kno_fcnid_ref(macrofn->macro_transformer),1,&expr);
+	new_expr = kno_finish_call(new_expr);
+	if (ABORTED(new_expr)) return kno_err(kno_SyntaxError,_("macro expansion"),NULL,new_expr);
+	else return new_expr;}
       else return kno_err(kno_InvalidMacro,NULL,macrofn->macro_name,expr);}
     else return kno_type_error("macro","macroexpand",expander);}
   else return kno_incref(expr);
@@ -785,8 +785,8 @@ static lispval macroexpand(lispval expander,lispval expr)
 /* Apropos */
 
 DEFPRIM1("apropos",apropos_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(APROPOS *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(APROPOS *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval apropos_prim(lispval arg)
 {
   u8_string seeking; lispval all, results = EMPTY;
@@ -795,8 +795,8 @@ static lispval apropos_prim(lispval arg)
   else return kno_type_error(_("string or symbol"),"apropos",arg);
   all = kno_all_symbols();
   {DO_CHOICES(sym,all) {
-    u8_string name = SYM_NAME(sym);
-    if (strstr(name,seeking)) {CHOICE_ADD(results,sym);}}}
+      u8_string name = SYM_NAME(sym);
+      if (strstr(name,seeking)) {CHOICE_ADD(results,sym);}}}
   kno_decref(all);
   return results;
 }
@@ -804,9 +804,9 @@ static lispval apropos_prim(lispval arg)
 /* Module bindings */
 
 DEFPRIM1("module-bindings",module_bindings,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "Returns the symbols bound in a module's "
- "environment",
- kno_any_type,KNO_VOID);
+	 "Returns the symbols bound in a module's "
+	 "environment",
+	 kno_any_type,KNO_VOID);
 static lispval module_bindings(lispval arg)
 {
   if (KNO_LEXENVP(arg)) {
@@ -818,9 +818,9 @@ static lispval module_bindings(lispval arg)
 }
 
 DEFPRIM1("module-source",module_getsource,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "Returns the source (a string) from which module "
- "was loaded",
- kno_any_type,KNO_VOID);
+	 "Returns the source (a string) from which module "
+	 "was loaded",
+	 kno_any_type,KNO_VOID);
 static lispval module_getsource(lispval arg)
 {
   lispval ids = KNO_EMPTY;
@@ -838,17 +838,17 @@ static lispval module_getsource(lispval arg)
   else {
     KNO_DO_CHOICES(id,ids) {
       if (KNO_STRINGP(id)) {
-        kno_incref(id);
-        kno_decref(ids);
-        KNO_STOP_DO_CHOICES;
-        return id;}}
+	kno_incref(id);
+	kno_decref(ids);
+	KNO_STOP_DO_CHOICES;
+	return id;}}
     return KNO_FALSE;}
 }
 
 DEFPRIM1("module-table",module_table,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "Returns the table used for getting symbols from "
- "this module",
- kno_any_type,KNO_VOID);
+	 "Returns the table used for getting symbols from "
+	 "this module",
+	 kno_any_type,KNO_VOID);
 static lispval module_table(lispval arg)
 {
   if (KNO_LEXENVP(arg)) {
@@ -862,23 +862,23 @@ static lispval module_table(lispval arg)
 }
 
 DEFPRIM1("module-environment",module_environment,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "Returns the table used for this module's internal "
- "environment",
- kno_any_type,KNO_VOID);
+	 "Returns the table used for this module's internal "
+	 "environment",
+	 kno_any_type,KNO_VOID);
 static lispval module_environment(lispval arg)
 {
   if (KNO_LEXENVP(arg)) {
     kno_lexenv envptr = kno_consptr(kno_lexenv,arg,kno_lexenv_type);
     if ( ( (envptr->env_bindings) != (envptr->env_exports) ) &&
-         (KNO_TABLEP(envptr->env_bindings)) )
+	 (KNO_TABLEP(envptr->env_bindings)) )
       return kno_incref(envptr->env_bindings);
     else return KNO_FALSE;}
   else return KNO_FALSE;
 }
 
 DEFPRIM1("module?",modulep,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(MODULE? *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(MODULE? *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval modulep(lispval arg)
 {
   if (KNO_LEXENVP(arg)) {
@@ -895,8 +895,8 @@ static lispval modulep(lispval arg)
 }
 
 DEFPRIM1("module-exports",module_exports,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "Returns the symbols exported from a module",
- kno_any_type,KNO_VOID);
+	 "Returns the symbols exported from a module",
+	 kno_any_type,KNO_VOID);
 static lispval module_exports(lispval arg)
 {
   if (KNO_LEXENVP(arg)) {
@@ -930,7 +930,7 @@ static lispval local_bindings_evalfn(lispval expr,kno_lexenv env,kno_stack _stac
 /* Finding where a symbol comes from */
 
 static lispval wherefrom_evalfn(lispval expr,kno_lexenv call_env,
-                                kno_stack _stack)
+				kno_stack _stack)
 {
   lispval symbol_arg = kno_get_arg(expr,1);
   lispval symbol = kno_eval(symbol_arg,call_env);
@@ -944,22 +944,22 @@ static lispval wherefrom_evalfn(lispval expr,kno_lexenv call_env,
     else {
       env_val = kno_eval(env_arg,call_env);
       if (KNO_ABORTED(env_val))
-        return env_val;
+	return env_val;
       else if (TYPEP(env_val,kno_lexenv_type)) {
-        env = kno_consptr(kno_lexenv,env_val,kno_lexenv_type);
-        decref_env = 1;}
+	env = kno_consptr(kno_lexenv,env_val,kno_lexenv_type);
+	decref_env = 1;}
       else  {
-        lispval err = kno_type_error(_("environment"),"wherefrom",env_val);
-        kno_decref(env_val);
-        return err;}}
+	lispval err = kno_type_error(_("environment"),"wherefrom",env_val);
+	kno_decref(env_val);
+	return err;}}
     lispval lookup = kno_get_arg(expr,3);
     if (!(KNO_VOIDP(lookup))) {
       lookup = kno_eval(lookup,call_env);
       if (KNO_ABORTED(lookup)) {
-        if (decref_env) kno_decref(env_val);
-        return lookup;}
+	if (decref_env) kno_decref(env_val);
+	return lookup;}
       else if (KNO_FALSEP(lookup))
-        lookup_ids = 0;
+	lookup_ids = 0;
       else lookup_ids = 1;
       kno_decref(lookup);}
     if (env->env_copy)
@@ -967,25 +967,25 @@ static lispval wherefrom_evalfn(lispval expr,kno_lexenv call_env,
     else scan = env;
     while (scan) {
       if (kno_test(scan->env_bindings,symbol,VOID)) {
-        lispval bindings = scan->env_bindings;
-        if (!(CONSP(bindings))) return KNO_FALSE;
-        lispval id = kno_get(bindings,moduleid_symbol,KNO_VOID);
-        if ( (KNO_SYMBOLP(id)) &&
-             ( (lookup_ids) || (!(KNO_MALLOCD_CONSP((kno_cons)bindings))) ) ) {
-          lispval mod = kno_get_module(id);
-          if ( (KNO_ABORTP(mod)) || (KNO_TABLEP(mod))  ) {
-            if (decref_env) kno_decref(env_val);
-            return mod;}
-          else kno_decref(mod);}
-        if (KNO_MALLOCD_CONSP((kno_cons)bindings)) {
-          lispval result = (lispval) scan;
-          kno_incref(result);
-          if (decref_env) kno_decref(env_val);
-          return result;}
-        else return KNO_FALSE;}
+	lispval bindings = scan->env_bindings;
+	if (!(CONSP(bindings))) return KNO_FALSE;
+	lispval id = kno_get(bindings,moduleid_symbol,KNO_VOID);
+	if ( (KNO_SYMBOLP(id)) &&
+	     ( (lookup_ids) || (!(KNO_MALLOCD_CONSP((kno_cons)bindings))) ) ) {
+	  lispval mod = kno_get_module(id);
+	  if ( (KNO_ABORTP(mod)) || (KNO_TABLEP(mod))  ) {
+	    if (decref_env) kno_decref(env_val);
+	    return mod;}
+	  else kno_decref(mod);}
+	if (KNO_MALLOCD_CONSP((kno_cons)bindings)) {
+	  lispval result = (lispval) scan;
+	  kno_incref(result);
+	  if (decref_env) kno_decref(env_val);
+	  return result;}
+	else return KNO_FALSE;}
       scan = scan->env_parent;
       if ((scan) && (scan->env_copy))
-        scan = scan->env_copy;}
+	scan = scan->env_copy;}
     if (decref_env) kno_decref(env_val);
     return KNO_FALSE;}
   else {
@@ -1014,8 +1014,8 @@ static lispval getmodules_evalfn(lispval expr,kno_lexenv call_env,kno_stack _sta
     if (kno_test(env->env_bindings,moduleid_symbol,VOID)) {
       lispval ids = kno_get(env->env_bindings,moduleid_symbol,VOID);
       if (CHOICEP(ids)) {
-        DO_CHOICES(id,ids) {
-          if (SYMBOLP(id)) {CHOICE_ADD(modules,id);}}}
+	DO_CHOICES(id,ids) {
+	  if (SYMBOLP(id)) {CHOICE_ADD(modules,id);}}}
       else if (SYMBOLP(ids)) {CHOICE_ADD(modules,ids);}
       else {}}
     env = env->env_parent;
@@ -1027,20 +1027,20 @@ static lispval getmodules_evalfn(lispval expr,kno_lexenv call_env,kno_stack _sta
 /* CONSBLOCKS */
 
 DEFPRIM1("consblock",make_consblock,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "(CONSBLOCK *obj*) "
- "returns a consblock structure which copies *obj* "
- "into a static contiguous block of memory.",
- kno_any_type,KNO_VOID);
+	 "(CONSBLOCK *obj*) "
+	 "returns a consblock structure which copies *obj* "
+	 "into a static contiguous block of memory.",
+	 kno_any_type,KNO_VOID);
 static lispval make_consblock(lispval obj)
 {
   return kno_make_consblock(obj);
 }
 
 DEFPRIM1("consblock-origin",consblock_original,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "(CONSBLOCK-ORIGIN *consblock*) "
- "returns the original object from which a "
- "consblock was generated.",
- kno_consblock_type,KNO_VOID);
+	 "(CONSBLOCK-ORIGIN *consblock*) "
+	 "returns the original object from which a "
+	 "consblock was generated.",
+	 kno_consblock_type,KNO_VOID);
 static lispval consblock_original(lispval obj)
 {
   struct KNO_CONSBLOCK *cb = (kno_consblock) obj;
@@ -1048,9 +1048,9 @@ static lispval consblock_original(lispval obj)
 }
 
 DEFPRIM1("consblock-head",consblock_head,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "(CONSBLOCK-HEAD *consblock*) "
- "returns the head of the consblock",
- kno_consblock_type,KNO_VOID);
+	 "(CONSBLOCK-HEAD *consblock*) "
+	 "returns the head of the consblock",
+	 kno_consblock_type,KNO_VOID);
 static lispval consblock_head(lispval obj)
 {
   struct KNO_CONSBLOCK *cb = (kno_consblock) obj;
@@ -1060,10 +1060,10 @@ static lispval consblock_head(lispval obj)
 /* Profiling */
 
 DEFPRIM2("reflect/profile!",profile_fcn_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "`(REFLECT/PROFILE! *fcn* *boolean*)`"
- "Enables profiling for the function *fcn* or if "
- "*boolean* is false, disable profiling for *fcn*",
- kno_any_type,KNO_VOID,kno_any_type,KNO_TRUE);
+	 "`(REFLECT/PROFILE! *fcn* *boolean*)`"
+	 "Enables profiling for the function *fcn* or if "
+	 "*boolean* is false, disable profiling for *fcn*",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_TRUE);
 static lispval profile_fcn_prim(lispval fcn,lispval bool)
 {
   if (KNO_FUNCTIONP(fcn)) {
@@ -1071,18 +1071,18 @@ static lispval profile_fcn_prim(lispval fcn,lispval bool)
     if (KNO_FALSEP(bool)) {
       struct KNO_PROFILE *profile = f->fcn_profile;
       if (profile)
-        return kno_err("NotYetImplemented","profile_fcn_prim",
-                       "Unprofiling of functions isn't yet supported",
-                       fcn);}
+	return kno_err("NotYetImplemented","profile_fcn_prim",
+		       "Unprofiling of functions isn't yet supported",
+		       fcn);}
     else f->fcn_profile = kno_make_profile(f->fcn_name);
     return KNO_TRUE;}
   else return kno_type_error("function","profile_fcn",fcn);
 }
 
 DEFPRIM1("profile/reset!",profile_reset_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(PROFILE/RESET! *fcn*)` "
- "resets the profile counts for *fcn*",
- kno_any_type,KNO_VOID);
+	 "`(PROFILE/RESET! *fcn*)` "
+	 "resets the profile counts for *fcn*",
+	 kno_any_type,KNO_VOID);
 static lispval profile_reset_prim(lispval fcn)
 {
   if (KNO_FUNCTIONP(fcn)) {
@@ -1105,12 +1105,12 @@ static lispval profile_reset_prim(lispval fcn)
 }
 
 DEFPRIM1("reflect/profiled?",profiledp_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(REFLECT/PROFILED? *arg*)`"
- "Returns true if *arg* is being profiled, and "
- "false otherwise. It also returns false if the "
- "argument is not a function or not a function "
- "which supports profiling.",
- kno_any_type,KNO_VOID);
+	 "`(REFLECT/PROFILED? *arg*)`"
+	 "Returns true if *arg* is being profiled, and "
+	 "false otherwise. It also returns false if the "
+	 "argument is not a function or not a function "
+	 "which supports profiling.",
+	 kno_any_type,KNO_VOID);
 static lispval profiledp_prim(lispval fcn)
 {
   if (KNO_FUNCTIONP(fcn)) {
@@ -1124,11 +1124,11 @@ static lispval profiledp_prim(lispval fcn)
 static lispval call_profile_symbol;
 
 DEFPRIM1("profile/getcalls",getcalls_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(PROFILE/GETCALLS *fcn*)`"
- "Returns the profile information for *fcn*, a "
- "vector of *fcn*, the number of calls, the number "
- "of nanoseconds spent in *fcn*",
- kno_any_type,KNO_VOID);
+	 "`(PROFILE/GETCALLS *fcn*)`"
+	 "Returns the profile information for *fcn*, a "
+	 "vector of *fcn*, the number of calls, the number "
+	 "of nanoseconds spent in *fcn*",
+	 kno_any_type,KNO_VOID);
 static lispval getcalls_prim(lispval fcn)
 {
   if (KNO_FUNCTIONP(fcn)) {
@@ -1170,9 +1170,9 @@ static lispval getcalls_prim(lispval fcn)
 /* Accessors */
 
 DEFPRIM1("profile/fcn",profile_getfcn,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(PROFILE/FCN *profile*)` "
- "returns the function a profile describes",
- kno_any_type,KNO_VOID);
+	 "`(PROFILE/FCN *profile*)` "
+	 "returns the function a profile describes",
+	 kno_any_type,KNO_VOID);
 static lispval profile_getfcn(lispval profile)
 {
   if (KNO_COMPOUND_TYPEP(profile,call_profile_symbol)) {
@@ -1182,10 +1182,10 @@ static lispval profile_getfcn(lispval profile)
   else return kno_type_error("call profile","profile_getfcn",profile);
 }
 DEFPRIM1("profile/time",profile_gettime,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(PROFILE/TIME *profile*)` "
- "returns the number of seconds spent in the "
- "profiled function",
- kno_any_type,KNO_VOID);
+	 "`(PROFILE/TIME *profile*)` "
+	 "returns the number of seconds spent in the "
+	 "profiled function",
+	 kno_any_type,KNO_VOID);
 static lispval profile_gettime(lispval profile)
 {
   if (KNO_COMPOUND_TYPEP(profile,call_profile_symbol)) {
@@ -1195,10 +1195,10 @@ static lispval profile_gettime(lispval profile)
   else return kno_type_error("call profile","profile_gettime",profile);
 }
 DEFPRIM1("profile/utime",profile_getutime,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(PROFILE/UTIME *profile*)` "
- "returns the number of seconds of user time spent "
- "in the profiled function",
- kno_any_type,KNO_VOID);
+	 "`(PROFILE/UTIME *profile*)` "
+	 "returns the number of seconds of user time spent "
+	 "in the profiled function",
+	 kno_any_type,KNO_VOID);
 static lispval profile_getutime(lispval profile)
 {
   if (KNO_COMPOUND_TYPEP(profile,call_profile_symbol)) {
@@ -1208,10 +1208,10 @@ static lispval profile_getutime(lispval profile)
   else return kno_type_error("call profile","profile_getutime",profile);
 }
 DEFPRIM1("profile/stime",profile_getstime,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(PROFILE/STIME *profile*)` "
- "returns the number of seconds of system time "
- "spent in the profiled function",
- kno_any_type,KNO_VOID);
+	 "`(PROFILE/STIME *profile*)` "
+	 "returns the number of seconds of system time "
+	 "spent in the profiled function",
+	 kno_any_type,KNO_VOID);
 static lispval profile_getstime(lispval profile)
 {
   if (KNO_COMPOUND_TYPEP(profile,call_profile_symbol)) {
@@ -1221,11 +1221,11 @@ static lispval profile_getstime(lispval profile)
   else return kno_type_error("call profile","profile_getstime",profile);
 }
 DEFPRIM1("profile/waits",profile_getwaits,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(PROFILE/WAITS *profile*)` "
- "returns the number of voluntary context switches "
- "(usually when waiting for something) during the "
- "execution of the profiled function",
- kno_any_type,KNO_VOID);
+	 "`(PROFILE/WAITS *profile*)` "
+	 "returns the number of voluntary context switches "
+	 "(usually when waiting for something) during the "
+	 "execution of the profiled function",
+	 kno_any_type,KNO_VOID);
 static lispval profile_getwaits(lispval profile)
 {
   if (KNO_COMPOUND_TYPEP(profile,call_profile_symbol)) {
@@ -1235,11 +1235,11 @@ static lispval profile_getwaits(lispval profile)
   else return kno_type_error("call profile","profile_getwaits",profile);
 }
 DEFPRIM1("profile/contests",profile_getcontests,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(PROFILE/CONTESTS *profile*)` "
- "returns the number of involuntary context "
- "switches (often indicating contested resources) "
- "during the execution of the profiled function",
- kno_any_type,KNO_VOID);
+	 "`(PROFILE/CONTESTS *profile*)` "
+	 "returns the number of involuntary context "
+	 "switches (often indicating contested resources) "
+	 "during the execution of the profiled function",
+	 kno_any_type,KNO_VOID);
 static lispval profile_getcontests(lispval profile)
 {
   if (KNO_COMPOUND_TYPEP(profile,call_profile_symbol)) {
@@ -1249,10 +1249,10 @@ static lispval profile_getcontests(lispval profile)
   else return kno_type_error("call profile","profile_getcontests",profile);
 }
 DEFPRIM1("profile/faults",profile_getfaults,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(PROFILE/FAULTS *profile*)` "
- "returns the number of (major) page faults during "
- "the execution of the profiled function",
- kno_any_type,KNO_VOID);
+	 "`(PROFILE/FAULTS *profile*)` "
+	 "returns the number of (major) page faults during "
+	 "the execution of the profiled function",
+	 kno_any_type,KNO_VOID);
 static lispval profile_getfaults(lispval profile)
 {
   if (KNO_COMPOUND_TYPEP(profile,call_profile_symbol)) {
@@ -1262,10 +1262,10 @@ static lispval profile_getfaults(lispval profile)
   else return kno_type_error("call profile","profile_getfaults",profile);
 }
 DEFPRIM1("profile/nsecs",profile_nsecs,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(PROFILE/NSECS *profile*)` "
- "returns the number of nanoseconds spent in the "
- "profiled function",
- kno_any_type,KNO_VOID);
+	 "`(PROFILE/NSECS *profile*)` "
+	 "returns the number of nanoseconds spent in the "
+	 "profiled function",
+	 kno_any_type,KNO_VOID);
 static lispval profile_nsecs(lispval profile)
 {
   if (KNO_COMPOUND_TYPEP(profile,call_profile_symbol)) {
@@ -1275,10 +1275,10 @@ static lispval profile_nsecs(lispval profile)
   else return kno_type_error("call profile","profile_nsecs",profile);
 }
 DEFPRIM1("profile/ncalls",profile_ncalls,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(PROFILE/FAULTS *profile*)` "
- "returns the number of calls to the profiled "
- "function",
- kno_any_type,KNO_VOID);
+	 "`(PROFILE/FAULTS *profile*)` "
+	 "returns the number of calls to the profiled "
+	 "function",
+	 kno_any_type,KNO_VOID);
 static lispval profile_ncalls(lispval profile)
 {
   if (KNO_COMPOUND_TYPEP(profile,call_profile_symbol)) {
@@ -1288,10 +1288,10 @@ static lispval profile_ncalls(lispval profile)
   else return kno_type_error("call profile","profile_ncalls",profile);
 }
 DEFPRIM1("profile/nitems",profile_nitems,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(PROFILE/FAULTS *profile*)` "
- "returns the number of items noted as processed by "
- "the profiled function",
- kno_any_type,KNO_VOID);
+	 "`(PROFILE/FAULTS *profile*)` "
+	 "returns the number of items noted as processed by "
+	 "the profiled function",
+	 kno_any_type,KNO_VOID);
 static lispval profile_nitems(lispval profile)
 {
   if (KNO_COMPOUND_TYPEP(profile,call_profile_symbol)) {
@@ -1321,7 +1321,7 @@ static lispval with_sourcebase_evalfn(lispval expr,kno_lexenv env,kno_stack stac
     temp_base = NULL;
   else {
     lispval err = kno_err("Sourcebase not string or #f","WITH-SOURCEBASE",NULL,
-                          usebase);
+			  usebase);
     kno_decref(usebase);
     return err;}
 
@@ -1339,9 +1339,9 @@ static lispval with_sourcebase_evalfn(lispval expr,kno_lexenv env,kno_stack stac
 /* Getting all modules */
 
 DEFPRIM("all-modules",get_all_modules_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
- "`(ALL-MODULES)` "
- "Returns all loaded modules as an alist of module "
- "names and modules");
+	"`(ALL-MODULES)` "
+	"Returns all loaded modules as an alist of module "
+	"names and modules");
 static lispval get_all_modules_prim()
 {
   return kno_all_modules();

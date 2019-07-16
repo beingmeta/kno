@@ -217,7 +217,7 @@ static int output_result(struct U8_OUTPUT *out,lispval result,
       /* Just list the value */
       u8_printf(out,"#|=>| %q\n#|frame\n  ",result);
       kno_list_object(out,v,label,histref,"  ",oid_listfn,width,
-                     (showall)?(-4):(7));
+                      (showall)?(-4):(7));
       u8_printf(out,"\n|#\n");
       u8_flush(out);
       return 1;}}
@@ -318,17 +318,17 @@ static lispval history_prim()
   skip whitepsace
   if at :({#" call parse_arg and wrap in quasiquote if needed;
   if at , just call read;
-otherwise read string until space,
-    using \ and | as escapes;
+  otherwise read string until space,
+  using \ and | as escapes;
 
   Model A: just combine command name (as symbol) with args into an expression
   Model B; model A, but add a suffix/prefix to command name (e.g. foo-command)
   Model C: return a rail and lookup the command handler, gather
-   arguments (with prompts) as needed.
+  arguments (with prompts) as needed.
 
   Using temp file state.
   Have ==foo store the last value into the file FOO.dtype
-   in a temporary directory (KNOCTMP)
+  in a temporary directory (KNOCTMP)
   Have #=foo fetch that value if it exists.
 
 */
@@ -362,7 +362,7 @@ static lispval read_command(u8_input in,int iscmd,kno_lexenv env)
         else u8_putc(&argout,ac);
         ac = u8_getc(in);}
       arg = kno_init_string(NULL,argout.u8_write-argout.u8_outbuf,
-                           argout.u8_outbuf);}
+                            argout.u8_outbuf);}
     if (n >= KNO_MAX_COMMAND_LENGTH) {
       kno_decref_vec(cmds,n);
       return kno_err("TooManyCommandArgs","stream_read",NULL,KNO_VOID);}
@@ -428,7 +428,7 @@ static lispval stream_read(u8_input in,kno_lexenv env)
           else u8_putc(&argout,ac);
           ac = u8_getc(in);}
         arg = kno_init_string(NULL,argout.u8_write-argout.u8_outbuf,
-                             argout.u8_outbuf);}
+                              argout.u8_outbuf);}
       if (n >= KNO_MAX_COMMAND_LENGTH) {
         kno_decref_vec(cmds,n);
         return kno_err("TooManyCommandArgs","stream_read",NULL,KNO_VOID);}
@@ -542,8 +542,8 @@ static lispval that_symbol, histref_symbol;
 static void dump_backtrace(u8_exception ex,u8_string dumpfile)
 {
   u8_string abspath = ((dumpfile)?
-                     (u8_abspath(dumpfile,NULL)):
-                     (kno_tempdir(NULL,0)));
+                       (u8_abspath(dumpfile,NULL)):
+                       (kno_tempdir(NULL,0)));
   if (u8_directoryp(abspath)) {
     changemode(abspath,0755);
     if (html_backtrace) {
@@ -781,9 +781,9 @@ int main(int argc,char **argv)
 
   /* Register configuration parameters */
   kno_register_config("SHOWTIME",_("Threshold for displaying execution time"),
-                     kno_dblconfig_get,kno_dblconfig_set,&showtime_threshold);
+                      kno_dblconfig_get,kno_dblconfig_set,&showtime_threshold);
   kno_register_config("PROMPT",_("Eval prompt (within #||#s)"),
-                     kno_sconfig_get,set_prompt,&eval_prompt);
+                      kno_sconfig_get,set_prompt,&eval_prompt);
   kno_register_config
     ("DBGMAXCHARS",
      _("Max number of string characters to display in debug message"),
@@ -904,8 +904,8 @@ int main(int argc,char **argv)
       exit(-1);}
     newstream = u8_alloc(struct KNO_STREAM);
     kno_init_stream(newstream,source_file,sock,
-                   KNO_STREAM_SOCKET|KNO_STREAM_DOSYNC,
-                   kno_network_bufsize);
+                    KNO_STREAM_SOCKET|KNO_STREAM_DOSYNC,
+                    kno_network_bufsize);
     kno_use_pool(source_file,0,VOID);
     kno_use_index(source_file,0,VOID);
     eval_server = newstream;}
@@ -1054,8 +1054,8 @@ int main(int argc,char **argv)
     finish_icache = kno_index_cache_load();
     if (((PAIRP(expr))&&
          (!((KNO_CHECK_PTR(result)==0) ||
-           (VOIDP(result)) || (EMPTYP(result)) ||
-           (KNO_TRUEP(result)) || (FALSEP(result)) ||
+            (VOIDP(result)) || (EMPTYP(result)) ||
+            (KNO_TRUEP(result)) || (FALSEP(result)) ||
             (KNO_ABORTP(result)) || (FIXNUMP(result))))) ||
         (KNO_OIDP(expr)) || (KNO_CHOICEP(expr)) ||
         (KNO_VECTORP(expr)) || (KNO_COMPOUNDP(expr)) ||

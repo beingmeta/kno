@@ -188,7 +188,7 @@ static lispval logif_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   if (KNO_ABORTP(test_expr)) return test_expr;
   else if (PRED_FALSE(STRINGP(test_expr)))
     return kno_reterr(kno_SyntaxError,"logif_evalfn",
-                     _("LOGIF condition expression cannot be a string"),expr);
+                      _("LOGIF condition expression cannot be a string"),expr);
   else value = fast_eval(test_expr,env);
   if (KNO_ABORTP(value)) return value;
   else if ( (FALSEP(value)) || (VOIDP(value)) ||
@@ -234,7 +234,7 @@ static lispval logifplus_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   if (KNO_ABORTP(test_expr)) return test_expr;
   else if (PRED_FALSE(STRINGP(test_expr)))
     return kno_reterr(kno_SyntaxError,"logif_evalfn",
-                     _("LOGIF condition expression cannot be a string"),expr);
+                      _("LOGIF condition expression cannot be a string"),expr);
   else value = fast_eval(test_expr,env);
   if (KNO_ABORTP(value))
     return value;
@@ -247,10 +247,10 @@ static lispval logifplus_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     return loglevel_arg;
   else if (VOIDP(loglevel_arg))
     return kno_reterr(kno_SyntaxError,"logif_plus_evalfn",
-                     _("LOGIF+ loglevel invalid"),expr);
+                      _("LOGIF+ loglevel invalid"),expr);
   else if (!(KNO_FIXNUMP(loglevel_arg)))
     return kno_reterr(kno_TypeError,"logif_plus_evalfn",
-                     _("LOGIF+ loglevel invalid"),loglevel_arg);
+                      _("LOGIF+ loglevel invalid"),loglevel_arg);
   else {
     lispval body = kno_get_body(expr,3);
     U8_OUTPUT *out = u8_open_output_string(1024);
@@ -320,7 +320,7 @@ void kno_print_backtrace(U8_OUTPUT *out,u8_exception ex,int width)
 }
 
 KNO_EXPORT void kno_log_backtrace(u8_exception ex,int level,u8_condition label,
-                                int width)
+                                  int width)
 {
   u8_exception scan = ex;
   while (scan) {
@@ -348,9 +348,9 @@ void kno_summarize_backtrace(U8_OUTPUT *out,u8_exception ex)
 /* Table showing primitives */
 
 DEFPRIM3("%show",lisp_show_table,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1)|KNO_NDCALL,
- "Shows a table",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
- kno_any_type,KNO_VOID);
+         "Shows a table",
+         kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
+         kno_any_type,KNO_VOID);
 static lispval lisp_show_table(lispval tables,lispval slotids,lispval portarg)
 {
   U8_OUTPUT *out = get_output_port(portarg);
@@ -361,14 +361,14 @@ static lispval lisp_show_table(lispval tables,lispval slotids,lispval portarg)
       U8_OUTPUT *tmp = u8_open_output_string(1024);
       u8_printf(out,"%q\n",table);
       {DO_CHOICES(slotid,slotids) {
-        lispval values = kno_frame_get(table,slotid);
-        tmp->u8_write = tmp->u8_outbuf; *(tmp->u8_outbuf)='\0';
-        u8_printf(tmp,"   %q:   %q\n",slotid,values);
-        if (u8_strlen(tmp->u8_outbuf)<80) u8_puts(out,tmp->u8_outbuf);
-        else {
-          u8_printf(out,"   %q:\n",slotid);
-          {DO_CHOICES(value,values) u8_printf(out,"      %q\n",value);}}
-        kno_decref(values);}}
+          lispval values = kno_frame_get(table,slotid);
+          tmp->u8_write = tmp->u8_outbuf; *(tmp->u8_outbuf)='\0';
+          u8_printf(tmp,"   %q:   %q\n",slotid,values);
+          if (u8_strlen(tmp->u8_outbuf)<80) u8_puts(out,tmp->u8_outbuf);
+          else {
+            u8_printf(out,"   %q:\n",slotid);
+            {DO_CHOICES(value,values) u8_printf(out,"      %q\n",value);}}
+          kno_decref(values);}}
       u8_close((u8_stream)tmp);}
     else kno_display_table(out,table,slotids);
   u8_flush(out);

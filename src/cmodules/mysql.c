@@ -55,13 +55,13 @@ static u8_string dupstring(lispval x)
   else return NULL;
 }
 
-#define NEED_RESTART(err)                               \
+#define NEED_RESTART(err)				  \
   ((err == CR_SERVER_GONE_ERROR) ||                       \
    (err == ER_NORMAL_SHUTDOWN) ||                         \
    (err == ER_SERVER_SHUTDOWN) ||                         \
    (err == ER_SHUTDOWN_COMPLETE) ||                       \
    (err == CR_SERVER_LOST))
-#define NEED_RESET(err)                                 \
+#define NEED_RESET(err)					  \
   ((err == CR_COMMANDS_OUT_OF_SYNC) ||                    \
    (err == CR_NO_PREPARE_STMT)||                          \
    (err == ER_UNKNOWN_STMT_HANDLER)||                     \
@@ -139,7 +139,7 @@ static lispval merge_colinfo(KNO_MYSQL *dbp,lispval colinfo)
   else if (colinfo == dbp->sqldb_colinfo)
     return kno_incref(colinfo);
   else if ((KNO_PAIRP(colinfo))&&
-           ((KNO_CDR(colinfo)) == (dbp->sqldb_colinfo)))
+	   ((KNO_CDR(colinfo)) == (dbp->sqldb_colinfo)))
     return kno_incref(colinfo);
   else {
     kno_incref(dbp->sqldb_colinfo); kno_incref(colinfo);
@@ -185,25 +185,25 @@ static int setup_connection(struct KNO_MYSQL *dbp)
     if (KNO_FIXNUMP(wtoval)) wtimeout = KNO_FIX2INT(wtoval);
     else wtimeout = timeout;
     if (!((KNO_VOIDP(sslca))&&(KNO_VOIDP(sslcert))&&
-          (KNO_VOIDP(sslkey))&&(KNO_VOIDP(sslcadir))&&
-          (KNO_VOIDP(sslciphers)))) {
+	  (KNO_VOIDP(sslkey))&&(KNO_VOIDP(sslcadir))&&
+	  (KNO_VOIDP(sslciphers)))) {
       if (!((KNO_VOIDP(sslca))||(KNO_STRINGP(sslca))))
-        return kno_type_error("SSLCA","open_mysql",sslca);
+	return kno_type_error("SSLCA","open_mysql",sslca);
       else if (!((KNO_VOIDP(sslcert))||(KNO_STRINGP(sslcert))))
-        return kno_type_error("SSLCERT","open_mysql",sslcert);
+	return kno_type_error("SSLCERT","open_mysql",sslcert);
       else if (!((KNO_VOIDP(sslkey))||(KNO_STRINGP(sslkey))))
-        return kno_type_error("SSLKEY","open_mysql",sslkey);
+	return kno_type_error("SSLKEY","open_mysql",sslkey);
       else if (!((KNO_VOIDP(sslcadir))||(KNO_STRINGP(sslcadir))))
-        return kno_type_error("SSLCADIR","open_mysql",sslcadir);
+	return kno_type_error("SSLCADIR","open_mysql",sslcadir);
       else if (!((KNO_VOIDP(sslciphers))||(KNO_STRINGP(sslciphers))))
-        return kno_type_error("SSLCIPHERS","open_mysql",sslciphers);
+	return kno_type_error("SSLCIPHERS","open_mysql",sslciphers);
       else retval = mysql_ssl_set
-             (dbp->mysqldb,
-              ((KNO_VOIDP(sslkey))?(NULL):(KNO_CSTRING(sslkey))),
-              ((KNO_VOIDP(sslcert))?(NULL):(KNO_CSTRING(sslcert))),
-              ((KNO_VOIDP(sslca))?(NULL):(KNO_CSTRING(sslca))),
-              ((KNO_VOIDP(sslcadir))?(NULL):(KNO_CSTRING(sslcadir))),
-              ((KNO_VOIDP(sslciphers))?(NULL):(KNO_CSTRING(sslciphers))));}}
+	     (dbp->mysqldb,
+	      ((KNO_VOIDP(sslkey))?(NULL):(KNO_CSTRING(sslkey))),
+	      ((KNO_VOIDP(sslcert))?(NULL):(KNO_CSTRING(sslcert))),
+	      ((KNO_VOIDP(sslca))?(NULL):(KNO_CSTRING(sslca))),
+	      ((KNO_VOIDP(sslcadir))?(NULL):(KNO_CSTRING(sslcadir))),
+	      ((KNO_VOIDP(sslciphers))?(NULL):(KNO_CSTRING(sslciphers))));}}
 #ifdef MYSQL_OPT_SSL_MODE
   if (retval == RETVAL_OK) {
     retval = mysql_options(dbp->mysqldb,MYSQL_OPT_SSL_MODE,&ssl_mode);}
@@ -237,16 +237,16 @@ static int restart_connection(struct KNO_MYSQL *dbp)
   while ((db == NULL)&&(waited<restart_wait)) {
     u8_lock_mutex(&mysql_connect_lock); {
       db = mysql_real_connect
-        (dbp->mysqldb,dbp->mysql_hostname,
-         dbp->mysql_username,dbp->mysql_passwd,dbp->mysql_dbstring,
-         dbp->mysql_portno,dbp->mysql_sockname,dbp->mysql_flags);
+	(dbp->mysqldb,dbp->mysql_hostname,
+	 dbp->mysql_username,dbp->mysql_passwd,dbp->mysql_dbstring,
+	 dbp->mysql_portno,dbp->mysql_sockname,dbp->mysql_flags);
       u8_unlock_mutex(&mysql_connect_lock);}
     if ((db == NULL)&&(mysql_errno(dbp->mysqldb) == CR_ALREADY_CONNECTED)) {
       u8_log(LOG_WARN,"mysql/restart_connection",
-             "Already connected to %s (%s) with id=%d/%d",
-             dbp->sqldb_spec,dbp->sqldb_info,
-             dbp->mysql_thread_id,
-             mysql_thread_id(dbp->mysqldb));
+	     "Already connected to %s (%s) with id=%d/%d",
+	     dbp->sqldb_spec,dbp->sqldb_info,
+	     dbp->mysql_thread_id,
+	     mysql_thread_id(dbp->mysqldb));
       db = dbp->mysqldb;}
     else if (db == NULL) {
       sleep(restart_sleep);
@@ -257,21 +257,21 @@ static int restart_connection(struct KNO_MYSQL *dbp)
     const char *msg = mysql_error(db); int err = mysql_errno(dbp->mysqldb);
     lispval conn = (lispval) dbp; kno_incref(conn);
     u8_log(LOG_CRIT,"mysql/reconnect",
-           "Failed after %ds to reconnect to MYSQL %s (%s), final err %s (%d)",
-           waited,dbp->sqldb_spec,dbp->sqldb_info,msg,err);
+	   "Failed after %ds to reconnect to MYSQL %s (%s), final err %s (%d)",
+	   waited,dbp->sqldb_spec,dbp->sqldb_info,msg,err);
     kno_seterr(MySQL_Error,"restart_connection",msg,conn);
     return -1;}
   else {
     int i = 0, n = dbp->sqldb_n_procs;
     struct KNO_MYSQL_PROC **procs = (KNO_MYSQL_PROC **)dbp->sqlprocs;
     u8_log(LOG_WARN,"mysql/reconnect",
-           "Took %ds to reconnect to MYSQL %s (%s), thread_id=%d",
-           waited,dbp->sqldb_spec,dbp->sqldb_info,dbp->mysql_thread_id);
+	   "Took %ds to reconnect to MYSQL %s (%s), thread_id=%d",
+	   waited,dbp->sqldb_spec,dbp->sqldb_info,dbp->mysql_thread_id);
     dbp->mysql_thread_id = thread_id = mysql_thread_id(db);
     u8_log(LOG_WARN,"myql/reconnect",
-           "Reconnect #%d for MYSQL with %s (%s) rv=%d, thread_id=%d",
-           dbp->mysql_restart_count+1,dbp->sqldb_spec,dbp->sqldb_info,retval,
-           thread_id);
+	   "Reconnect #%d for MYSQL with %s (%s) rv=%d, thread_id=%d",
+	   dbp->mysql_restart_count+1,dbp->sqldb_spec,dbp->sqldb_info,retval,
+	   thread_id);
 
     /* Flag all the sqlprocs (prepared statements) as needing to be
        reinitialized. */
@@ -287,9 +287,9 @@ static int restart_connection(struct KNO_MYSQL *dbp)
     dbp->mysql_thread_id = mysql_thread_id(dbp->mysqldb);
 
     u8_log(LOG_WARN,"myql/reconnect",
-           "Reconnect #%d MYSQL connection #%d with %s (%s)",
-           dbp->mysql_restart_count,dbp->mysql_thread_id,
-           dbp->sqldb_spec,dbp->sqldb_info);
+	   "Reconnect #%d MYSQL connection #%d with %s (%s)",
+	   dbp->mysql_restart_count,dbp->mysql_thread_id,
+	   dbp->sqldb_spec,dbp->sqldb_info);
 
     return RETVAL_OK;}
 }
@@ -351,8 +351,8 @@ static void recycle_mysqldb(struct KNO_SQLDB *c)
     struct KNO_SQLPROC *p = dbp->sqlprocs[--i];
     if (KNO_CONS_REFCOUNT(p)>1)
       u8_log(LOG_WARN,"freemysqldb",
-             "dangling pointer to sqlproc %s on %s (%s)",
-             p->sqldb_qtext,dbp->sqldb_spec,dbp->sqldb_info);
+	     "dangling pointer to sqlproc %s on %s (%s)",
+	     p->sqldb_qtext,dbp->sqldb_spec,dbp->sqldb_info);
     *write++=(lispval)p;}
   u8_unlock_mutex(&(dbp->sqlproclock));
   u8_destroy_mutex(&(dbp->mysql_lock));
@@ -360,15 +360,15 @@ static void recycle_mysqldb(struct KNO_SQLDB *c)
 }
 
 DEFPRIM2("mysql/refresh",refresh_mysqldb,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-             "`(MYSQL/REFRESH *dbptr* *flags*)` **undocumented**",
-             kno_sqldb_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(MYSQL/REFRESH *dbptr* *flags*)` **undocumented**",
+	 kno_sqldb_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval refresh_mysqldb(lispval c,lispval flags)
 {
   struct KNO_MYSQL *dbp = (struct KNO_MYSQL *)c;
 
   int retval = mysql_refresh(dbp->mysqldb,
-                           REFRESH_GRANT|REFRESH_TABLES|REFRESH_HOSTS|
-                           REFRESH_STATUS|REFRESH_THREADS);
+			     REFRESH_GRANT|REFRESH_TABLES|REFRESH_HOSTS|
+			     REFRESH_STATUS|REFRESH_THREADS);
   if (retval) {
     const char *errmsg = mysql_error(&(dbp->_mysqldb));
     return kno_err(MySQL_Error,"mysql/refresh",(u8_string)errmsg,((lispval)c));}
@@ -381,14 +381,14 @@ static lispval refresh_mysqldb(lispval c,lispval flags)
    In theory, we could have the dbname be optional, but for now we'll
    require it.  */
 DEFPRIM6("mysql/open",open_mysql,KNO_MAX_ARGS(6)|KNO_MIN_ARGS(1),
- "`(MYSQL/OPEN *host* *dbname* *colmap* *user* *pass* *opts*)` **undocumented**",
- kno_string_type,KNO_VOID,kno_string_type,KNO_VOID,
- kno_any_type,KNO_VOID,kno_string_type,KNO_VOID,
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(MYSQL/OPEN *host* *dbname* *colmap* *user* *pass* *opts*)` **undocumented**",
+	 kno_string_type,KNO_VOID,kno_string_type,KNO_VOID,
+	 kno_any_type,KNO_VOID,kno_string_type,KNO_VOID,
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval open_mysql
-  (lispval hostname,lispval dbname,lispval colinfo,
-   lispval user,lispval password,
-   lispval options)
+(lispval hostname,lispval dbname,lispval colinfo,
+ lispval user,lispval password,
+ lispval options)
 {
   const char *host, *username, *passwd, *dbstring, *sockname, *spec;
   int portno = 0, flags = 0, retval;
@@ -439,8 +439,8 @@ static lispval open_mysql
 
   dbp->sqldb_info=
     u8_mkstring("%s;client %s",
-                mysql_get_host_info(dbp->mysqldb),
-                mysql_get_client_info());
+		mysql_get_host_info(dbp->mysqldb),
+		mysql_get_client_info());
   dbp->mysql_startup = u8_elapsed_time();
 
   return LISP_CONS(dbp);
@@ -505,11 +505,11 @@ static void outbound_setup(MYSQL_BIND *outval)
    for a statement given prepared bindings.  We use a limited typespace and
    rely on most of the magic happening inside the MySQL client library.
    The main tricky case here is TEXT/BLOB values (see below) which
-     we wait to retrieve.
+   we wait to retrieve.
    One potential optimization would be to go ahead and preallocate buffers
-     for those columns when their size is known or constrained.  */
+   for those columns when their size is known or constrained.  */
 static lispval outbound_get(MYSQL_STMT *stmt,MYSQL_BIND *bindings,
-                           my_bool *isnull,int column)
+			    my_bool *isnull,int column)
 {
   MYSQL_BIND *outval = &(bindings[column]);
   if (isnull[column]) return KNO_EMPTY_CHOICE;
@@ -555,7 +555,7 @@ static lispval outbound_get(MYSQL_STMT *stmt,MYSQL_BIND *bindings,
     struct U8_XTIME xt;
     MYSQL_TIME *mt = (MYSQL_TIME *)outval->buffer;
     if (!((mt->year)||(mt->month)||(mt->day)||
-          (mt->hour)||(mt->minute)||(mt->second)))
+	  (mt->hour)||(mt->minute)||(mt->second)))
       return KNO_EMPTY_CHOICE;
     memset(&xt,0,sizeof(xt));
     xt.u8_year = mt->year;
@@ -579,8 +579,8 @@ static lispval outbound_get(MYSQL_STMT *stmt,MYSQL_BIND *bindings,
 /* This gets all the values returned by a statement, using
    prepared buffers for outbound variables and known column names. */
 static lispval get_stmt_values
-  (MYSQL_STMT *stmt,lispval colinfo,int n_cols,
-   lispval *mysqlproc_colnames,MYSQL_BIND *outbound,my_bool *isnullbuf)
+(MYSQL_STMT *stmt,lispval colinfo,int n_cols,
+ lispval *mysqlproc_colnames,MYSQL_BIND *outbound,my_bool *isnullbuf)
 {
   lispval results = KNO_EMPTY_CHOICE;
   lispval mergefn = kno_getopt(colinfo,merge_symbol,KNO_VOID);
@@ -607,65 +607,65 @@ static lispval get_stmt_values
       lispval value = outbound_get(stmt,outbound,isnullbuf,i);
       /* Convert outbound variables via colmaps if specified. */
       if (KNO_EMPTY_CHOICEP(value)) /* NULL value, don't convert */
-        if (noempty) {i++; continue;}
-        else kv[n_slots].kv_val = value;
+	if (noempty) {i++; continue;}
+	else kv[n_slots].kv_val = value;
       else if (KNO_VOIDP(colmaps[i]))
-        kv[n_slots].kv_val = value;
+	kv[n_slots].kv_val = value;
       else if (KNO_APPLICABLEP(colmaps[i])) {
-        kv[n_slots].kv_val = kno_apply(colmaps[i],1,&value);
-        kno_decref(value);}
+	kv[n_slots].kv_val = kno_apply(colmaps[i],1,&value);
+	kno_decref(value);}
       else if (KNO_OIDP(colmaps[i])) {
-        if (KNO_STRINGP(value)) {
-          kv[n_slots].kv_val = kno_parse(KNO_CSTRING(value));}
-        else {
-          KNO_OID base = KNO_OID_ADDR(colmaps[i]);
-          int offset = kno_getint(value);
-          if (offset<0) kv[n_slots].kv_val = value;
-          else if (offset==0) {
-            /* Some fields with OIDS use a zero value to indicate no
-               value (empty choice), so we handle that here. */
-            if (noempty) {i++; continue;}
-            else kv[n_slots].kv_val = KNO_EMPTY_CHOICE;}
-          else {
-            KNO_OID baseplus = KNO_OID_PLUS(base,offset);
-            kv[n_slots].kv_val = kno_make_oid(baseplus);}}
-        kno_decref(value);}
+	if (KNO_STRINGP(value)) {
+	  kv[n_slots].kv_val = kno_parse(KNO_CSTRING(value));}
+	else {
+	  KNO_OID base = KNO_OID_ADDR(colmaps[i]);
+	  int offset = kno_getint(value);
+	  if (offset<0) kv[n_slots].kv_val = value;
+	  else if (offset==0) {
+	    /* Some fields with OIDS use a zero value to indicate no
+	       value (empty choice), so we handle that here. */
+	    if (noempty) {i++; continue;}
+	    else kv[n_slots].kv_val = KNO_EMPTY_CHOICE;}
+	  else {
+	    KNO_OID baseplus = KNO_OID_PLUS(base,offset);
+	    kv[n_slots].kv_val = kno_make_oid(baseplus);}}
+	kno_decref(value);}
       else if (colmaps[i]==KNO_TRUE)
-        if (KNO_STRINGP(value)) {
-          if (KNO_STRLEN(value))
-            kv[n_slots].kv_val = kno_parse(KNO_CSTRING(value));
-          else kv[n_slots].kv_val = KNO_EMPTY_CHOICE;
-          kno_decref(value);}
-        else kv[n_slots].kv_val = value;
+	if (KNO_STRINGP(value)) {
+	  if (KNO_STRLEN(value))
+	    kv[n_slots].kv_val = kno_parse(KNO_CSTRING(value));
+	  else kv[n_slots].kv_val = KNO_EMPTY_CHOICE;
+	  kno_decref(value);}
+	else kv[n_slots].kv_val = value;
       else if (KNO_TYPEP(colmaps[i],kno_secret_type)) {
-        if ((KNO_STRINGP(value))||(KNO_PACKETP(value)))
-          KNO_SET_CONS_TYPE(value,kno_secret_type);
-        kv[n_slots].kv_val = value;}
+	if ((KNO_STRINGP(value))||(KNO_PACKETP(value)))
+	  KNO_SET_CONS_TYPE(value,kno_secret_type);
+	kv[n_slots].kv_val = value;}
       else if (KNO_TYPEP(colmaps[i],kno_uuid_type))
-        if ((KNO_PACKETP(value))||(KNO_STRINGP(value))) {
-          struct KNO_UUID *uuid = u8_alloc(struct KNO_UUID);
-          const unsigned char *data=
-            ((KNO_PACKETP(value))?
-             (KNO_PACKET_DATA(value)):
-             (KNO_CSTRING(value)));
-          unsigned char *uuidbytes;
-          KNO_INIT_CONS(uuid,kno_uuid_type);
-          uuidbytes = uuid->uuid16;
-          memcpy(uuidbytes,data,16);
-          kno_decref(value);
-          kv[n_slots].kv_val = LISP_CONS(uuid);}
-        else kv[n_slots].kv_val = value;
+	if ((KNO_PACKETP(value))||(KNO_STRINGP(value))) {
+	  struct KNO_UUID *uuid = u8_alloc(struct KNO_UUID);
+	  const unsigned char *data=
+	    ((KNO_PACKETP(value))?
+	     (KNO_PACKET_DATA(value)):
+	     (KNO_CSTRING(value)));
+	  unsigned char *uuidbytes;
+	  KNO_INIT_CONS(uuid,kno_uuid_type);
+	  uuidbytes = uuid->uuid16;
+	  memcpy(uuidbytes,data,16);
+	  kno_decref(value);
+	  kv[n_slots].kv_val = LISP_CONS(uuid);}
+	else kv[n_slots].kv_val = value;
       else if (KNO_EQ(colmaps[i],boolean_symbol)) {
-        if (KNO_FIXNUMP(value)) {
-          int ival = KNO_FIX2INT(value);
-          if (ival) kv[n_slots].kv_val = KNO_TRUE;
-          else kv[n_slots].kv_val = KNO_FALSE;}
-        else {kv[n_slots].kv_val = value;}}
+	if (KNO_FIXNUMP(value)) {
+	  int ival = KNO_FIX2INT(value);
+	  if (ival) kv[n_slots].kv_val = KNO_TRUE;
+	  else kv[n_slots].kv_val = KNO_FALSE;}
+	else {kv[n_slots].kv_val = value;}}
       else kv[n_slots].kv_val = value;
       kv[n_slots].kv_key = mysqlproc_colnames[i];
       if (KNO_ABORTP(kv[n_slots].kv_val)) {
-        result = kv[n_slots].kv_val;
-        break;}
+	result = kv[n_slots].kv_val;
+	break;}
       n_slots++;
       i++;}
     /* How to merge values.  Currently, if MERGEFN is #t
@@ -686,18 +686,18 @@ static lispval get_stmt_values
     else if ((KNO_SYMBOLP(mergefn))||(KNO_OIDP(mergefn))) {
       int j = 0; result = KNO_EMPTY_CHOICE;
       while (j<n_slots) {
-        if (kv[j].kv_key == mergefn) {
-          result = kv[j].kv_val;
-          kno_decref(kv[j].kv_key);
-          j++;}
-        else {
-          kno_decref(kv[j].kv_key);
-          kno_decref(kv[j].kv_val);
-          j++;}}
+	if (kv[j].kv_key == mergefn) {
+	  result = kv[j].kv_val;
+	  kno_decref(kv[j].kv_key);
+	  j++;}
+	else {
+	  kno_decref(kv[j].kv_key);
+	  kno_decref(kv[j].kv_val);
+	  j++;}}
       u8_free(kv);}
     else if ((KNO_VOIDP(mergefn)) ||
-             (KNO_FALSEP(mergefn)) ||
-             (KNO_TRUEP(mergefn)))
+	     (KNO_FALSEP(mergefn)) ||
+	     (KNO_TRUEP(mergefn)))
       result = kno_init_slotmap(NULL,n_slots,kv);
     else if (!(KNO_APPLICABLEP(mergefn))) {
       result = kno_type_error("applicable","mysql/get_stmt_values",mergefn);}
@@ -735,8 +735,8 @@ static lispval get_stmt_values
 /* This inits the vectors used when converting results from statement
    execution. */
 static int init_stmt_results
-  (MYSQL_STMT *stmt,MYSQL_BIND **outboundptr,lispval **mysqlproc_colnamesptr,
-   my_bool **isnullbuf)
+(MYSQL_STMT *stmt,MYSQL_BIND **outboundptr,lispval **mysqlproc_colnamesptr,
+ my_bool **isnullbuf)
 {
   int n_cols = mysql_stmt_field_count(stmt);
   if (n_cols>0) {
@@ -763,17 +763,17 @@ static int init_stmt_results
       /* Synchronize the signed and unsigned fields to get error handling. */
       if ((fields[i].flags)&(UNSIGNED_FLAG)) outbound[i].is_unsigned = 1;
       /* TEXT fields are confusingly labelled with MYSQL_TYPE_BLOB.
-         We check the BINARY flag and set the corresponding MYSQL_BIND
-         buffer type to MYSQL_TYPE_STRING or MYSQL_TYPE_BLOB as
-         appropriate. */
+	 We check the BINARY flag and set the corresponding MYSQL_BIND
+	 buffer type to MYSQL_TYPE_STRING or MYSQL_TYPE_BLOB as
+	 appropriate. */
       if (fields[i].type == MYSQL_TYPE_BLOB)
-        if ((fields[i].flags)&(BINARY_FLAG))
-          outbound[i].buffer_type = fields[i].type;
-        else outbound[i].buffer_type = MYSQL_TYPE_STRING;
+	if ((fields[i].flags)&(BINARY_FLAG))
+	  outbound[i].buffer_type = fields[i].type;
+	else outbound[i].buffer_type = MYSQL_TYPE_STRING;
       else if (fields[i].type == MYSQL_TYPE_STRING)
-        if (fields[i].charsetnr==63)
-          outbound[i].buffer_type = MYSQL_TYPE_BLOB;
-        else outbound[i].buffer_type = MYSQL_TYPE_STRING;
+	if (fields[i].charsetnr==63)
+	  outbound[i].buffer_type = MYSQL_TYPE_BLOB;
+	else outbound[i].buffer_type = MYSQL_TYPE_STRING;
       else outbound[i].buffer_type = fields[i].type;
       outbound_setup(&(outbound[i]));
       outbound[i].is_null = &(nullbuf[i]);
@@ -798,7 +798,7 @@ static int init_stmt_results
    use raw C types consistent with prepared statements, rather than
    using the converted strings from mysql_fetch_row.  */
 static lispval mysqlexec(struct KNO_MYSQL *dbp,lispval string,
-                        lispval colinfo_arg,int reconn)
+			 lispval colinfo_arg,int reconn)
 {
   MYSQL *db = dbp->mysqldb;
   MYSQL_BIND *outbound = NULL;
@@ -825,7 +825,7 @@ static lispval mysqlexec(struct KNO_MYSQL *dbp,lispval string,
   if (retval == RETVAL_OK) {
     if (n_cols==0) results = KNO_VOID;
     else results = get_stmt_values(stmt,colinfo,n_cols,mysqlproc_colnames,
-                                 outbound,isnullbuf);}
+				   outbound,isnullbuf);}
   /* Clean up */
   i = 0; while (i<n_cols) {
     if (outbound[i].buffer) {
@@ -846,9 +846,9 @@ static lispval mysqlexec(struct KNO_MYSQL *dbp,lispval string,
     if ((reconn>0)&&(NEED_RESTART(mysqlerrno))) {
       int rv = restart_connection(dbp);
       if (rv != RETVAL_OK) {
-        u8_unlock_mutex(&(dbp->mysql_lock));
-        kno_decref(results);
-        return KNO_ERROR_VALUE;}
+	u8_unlock_mutex(&(dbp->mysql_lock));
+	kno_decref(results);
+	return KNO_ERROR_VALUE;}
       u8_unlock_mutex(&(dbp->mysql_lock));
       return mysqlexec(dbp,string,colinfo_arg,reconn-1);}
     else {
@@ -860,7 +860,7 @@ static lispval mysqlexec(struct KNO_MYSQL *dbp,lispval string,
 }
 
 static lispval mysqlexechandler
-  (struct KNO_SQLDB *sqldb,lispval string,lispval colinfo)
+(struct KNO_SQLDB *sqldb,lispval string,lispval colinfo)
 {
   if (sqldb->sqldb_handler== &mysql_handler)
     return mysqlexec((kno_mysql)sqldb,string,colinfo,1);
@@ -872,9 +872,9 @@ static lispval mysqlexechandler
 static int default_lazy_init = 0;
 
 static lispval mysqlmakeproc
-  (struct KNO_MYSQL *dbp,
-   u8_string stmt,int stmt_len,
-   lispval colinfo,int n,lispval *ptypes)
+(struct KNO_MYSQL *dbp,
+ u8_string stmt,int stmt_len,
+ lispval colinfo,int n,lispval *ptypes)
 {
   MYSQL *db = dbp->mysqldb; int retval = 0;
   struct KNO_MYSQL_PROC *dbproc = u8_alloc(struct KNO_MYSQL_PROC);
@@ -937,14 +937,14 @@ static lispval mysqlmakeproc
 
 /* This is the handler stored in the method table */
 static lispval mysqlmakeprochandler
-  (struct KNO_SQLDB *sqldb,
-   u8_string stmt,int stmt_len,
-   lispval colinfo,int n,lispval *ptypes)
+(struct KNO_SQLDB *sqldb,
+ u8_string stmt,int stmt_len,
+ lispval colinfo,int n,lispval *ptypes)
 {
   if (sqldb->sqldb_handler== &mysql_handler)
     return mysqlmakeproc((kno_mysql)sqldb,stmt,stmt_len,colinfo,n,ptypes);
   else return kno_type_error("MYSQL SQLDB","mysqlmakeprochandler",
-                            (lispval)sqldb);
+			     (lispval)sqldb);
 }
 
 /* Various MYSQLPROC functions */
@@ -956,8 +956,8 @@ static int init_mysqlproc(KNO_MYSQL *dbp,struct KNO_MYSQL_PROC *dbproc)
   int retval = 0, n_cols = dbproc->mysqlproc_n_cols, n_params;
   u8_condition error_phase="init_mysqlproc";
   u8_log(LOG_DEBUG,"MySQLproc/init","%lx: %s",
-         KNO_LONGVAL(dbproc),
-         dbproc->mysqlproc_string);
+	 KNO_LONGVAL(dbproc),
+	 dbproc->mysqlproc_string);
 
   /* Reinitialize these structures in case there have been schema
      changes. */
@@ -965,11 +965,11 @@ static int init_mysqlproc(KNO_MYSQL *dbp,struct KNO_MYSQL_PROC *dbproc)
     MYSQL_BIND *outbound = dbproc->mysqlproc_outbound;
     int i = 0; while (i<n_cols) {
       if (outbound[i].buffer) {
-        u8_free(outbound[i].buffer);
-        outbound[i].buffer = NULL;}
+	u8_free(outbound[i].buffer);
+	outbound[i].buffer = NULL;}
       if (outbound[i].length) {
-        u8_free(outbound[i].length);
-        outbound[i].length = NULL;}
+	u8_free(outbound[i].length);
+	outbound[i].length = NULL;}
       i++;}
     if (outbound) u8_free(outbound);
     dbproc->mysqlproc_outbound = NULL;}
@@ -995,9 +995,9 @@ static int init_mysqlproc(KNO_MYSQL *dbp,struct KNO_MYSQL_PROC *dbproc)
     if (dbproc->mysqlproc_stmt) {
       error_phase="init_mysqlproc/stmt_prepare";
       retval = mysql_stmt_prepare
-        (dbproc->mysqlproc_stmt,
-         dbproc->mysqlproc_string,
-         dbproc->mysqlproc_string_len);}}
+	(dbproc->mysqlproc_stmt,
+	 dbproc->mysqlproc_string,
+	 dbproc->mysqlproc_string_len);}}
 
   if (retval) {
     const char *errmsg = mysql_stmt_error(dbproc->mysqlproc_stmt);
@@ -1005,9 +1005,9 @@ static int init_mysqlproc(KNO_MYSQL *dbp,struct KNO_MYSQL_PROC *dbproc)
     return retval;}
 
   n_cols = init_stmt_results(dbproc->mysqlproc_stmt,
-                           &(dbproc->mysqlproc_outbound),
-                           &(dbproc->mysqlproc_colnames),
-                           &(dbproc->mysqlproc_isnullbuf));
+			     &(dbproc->mysqlproc_outbound),
+			     &(dbproc->mysqlproc_colnames),
+			     &(dbproc->mysqlproc_isnullbuf));
 
   if (n_cols<0) return -1;
 
@@ -1022,12 +1022,12 @@ static int init_mysqlproc(KNO_MYSQL *dbp,struct KNO_MYSQL_PROC *dbproc)
     while (i<n_params) ptypes[i++]=KNO_VOID;
     while (i<init_n) {
       /* We make this a warning rather than an error, because we don't
-         need that information.  Note that this should only generate a warning
-         the first time that the statement is created. */
+	 need that information.  Note that this should only generate a warning
+	 the first time that the statement is created. */
       lispval ptype = init_ptypes[i++];
       if (KNO_VOIDP(ptype)) {}
       else u8_log(LOG_WARN,UnusedType,"Parameter type %hq is not used for %s",
-                  ptype,dbproc->sqldb_qtext);
+		  ptype,dbproc->sqldb_qtext);
       kno_decref(ptype);}
     dbproc->sqldb_paramtypes = ptypes; dbproc->fcn_n_params = n_params;
     if (init_ptypes) u8_free(init_ptypes);}
@@ -1036,8 +1036,8 @@ static int init_mysqlproc(KNO_MYSQL *dbp,struct KNO_MYSQL_PROC *dbproc)
      (this could happen if there were schema changes) */
   if ((dbproc->mysqlproc_n_cols>=0)&&(n_cols!=dbproc->mysqlproc_n_cols)) {
     u8_log(LOG_WARN,ServerReset,
-           "The number of columns for query '%s' on %s (%s) has changed",
-           dbproc->sqldb_qtext,dbp->sqldb_spec,dbp->sqldb_info);}
+	   "The number of columns for query '%s' on %s (%s) has changed",
+	   dbproc->sqldb_qtext,dbp->sqldb_spec,dbp->sqldb_info);}
   dbproc->mysqlproc_n_cols = n_cols;
 
   /* Check that the number of parameters has not changed
@@ -1066,7 +1066,7 @@ static void recycle_mysqlproc(struct KNO_SQLPROC *c)
       const char *errmsg = mysql_stmt_error(dbproc->mysqlproc_stmt);
       dbproc->mysqlproc_stmt = NULL;
       u8_log(LOG_WARN,MySQL_Error,"Error (%d:%d) closing statement %s: %s",
-             rv,mysqlerrno,dbproc->mysqlproc_string,errmsg);}}
+	     rv,mysqlerrno,dbproc->mysqlproc_string,errmsg);}}
   kno_decref(dbproc->sqldb_colinfo);
 
   if (dbproc->mysqlproc_valbuf) u8_free(dbproc->mysqlproc_valbuf);
@@ -1077,11 +1077,11 @@ static void recycle_mysqlproc(struct KNO_SQLPROC *c)
   if (dbproc->mysqlproc_outbound) {
     i = 0; lim = dbproc->mysqlproc_n_cols; while (i<lim) {
       if (dbproc->mysqlproc_outbound[i].buffer) {
-        u8_free(dbproc->mysqlproc_outbound[i].buffer);
-        dbproc->mysqlproc_outbound[i].buffer = NULL;}
+	u8_free(dbproc->mysqlproc_outbound[i].buffer);
+	dbproc->mysqlproc_outbound[i].buffer = NULL;}
       if (dbproc->mysqlproc_outbound[i].length) {
-        u8_free(dbproc->mysqlproc_outbound[i].length);
-        dbproc->mysqlproc_outbound[i].length = NULL;}
+	u8_free(dbproc->mysqlproc_outbound[i].length);
+	dbproc->mysqlproc_outbound[i].length = NULL;}
       i++;}
     u8_free(dbproc->mysqlproc_outbound);}
 
@@ -1136,8 +1136,8 @@ static lispval applymysqlproc(kno_function fn,int n,lispval *args,int reconn)
   u8_lock_mutex(&(dbproc->mysqlproc_lock)); proclock = 1;
 
   u8_log(LOG_DEBUG,"MySQLproc/call","%lx: %s",
-         KNO_LONGVAL(dbproc),
-         dbproc->mysqlproc_string);
+	 KNO_LONGVAL(dbproc),
+	 dbproc->mysqlproc_string);
 
   /* Initialize it if it needs it */
   if (dbproc->mysqlproc_needs_init) {
@@ -1155,7 +1155,7 @@ static lispval applymysqlproc(kno_function fn,int n,lispval *args,int reconn)
     if (n!=n_params) {
       u8_unlock_mutex(&(dbproc->mysqlproc_lock));
       if (n<n_params)
-        return kno_err(kno_TooFewArgs,"applymysqlproc",fn->fcn_name,KNO_VOID);
+	return kno_err(kno_TooFewArgs,"applymysqlproc",fn->fcn_name,KNO_VOID);
       else return kno_err(kno_TooManyArgs,"applymysqlproc",fn->fcn_name,KNO_VOID);}
 
     if (n_params>4) argbuf = u8_alloc_n(n_params,lispval);
@@ -1168,16 +1168,16 @@ static lispval applymysqlproc(kno_function fn,int n,lispval *args,int reconn)
       /* Use the ptypes to map application arguments into SQL. */
       if (KNO_VOIDP(ptypes[i])) argbuf[i]=KNO_VOID;
       else if ((KNO_OIDP(arg)) && (KNO_OIDP(ptypes[i]))) {
-        KNO_OID addr = KNO_OID_ADDR(arg);
-        KNO_OID base = KNO_OID_ADDR(ptypes[i]);
-        unsigned long long offset = KNO_OID_DIFFERENCE(addr,base);
-        argbuf[i]=arg = KNO_INT(offset);}
+	KNO_OID addr = KNO_OID_ADDR(arg);
+	KNO_OID base = KNO_OID_ADDR(ptypes[i]);
+	unsigned long long offset = KNO_OID_DIFFERENCE(addr,base);
+	argbuf[i]=arg = KNO_INT(offset);}
       else if (KNO_APPLICABLEP(ptypes[i])) {
-        argbuf[i]=arg = kno_apply(ptypes[i],1,&arg);}
+	argbuf[i]=arg = kno_apply(ptypes[i],1,&arg);}
       else if (KNO_TRUEP(ptypes[i])) {
-        struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,32);
-        kno_unparse(&out,arg);
-        argbuf[i]=kno_init_string(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);}
+	struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,32);
+	kno_unparse(&out,arg);
+	argbuf[i]=kno_init_string(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);}
       else argbuf[i]=KNO_VOID;
 
       /* Set this in case it was different for a previous call. */
@@ -1185,137 +1185,137 @@ static lispval applymysqlproc(kno_function fn,int n,lispval *args,int reconn)
 
       /* Now set up the bindings */
       if (KNO_FIXNUMP(arg)) {
-        inbound[i].is_unsigned = 0;
-        inbound[i].buffer_type = MYSQL_TYPE_LONG;
-        inbound[i].buffer = &(valbuf[i].lval);
-        inbound[i].buffer_length = sizeof(int);
-        inbound[i].length = NULL;
-        valbuf[i].lval = kno_getint(arg);}
+	inbound[i].is_unsigned = 0;
+	inbound[i].buffer_type = MYSQL_TYPE_LONG;
+	inbound[i].buffer = &(valbuf[i].lval);
+	inbound[i].buffer_length = sizeof(int);
+	inbound[i].length = NULL;
+	valbuf[i].lval = kno_getint(arg);}
       else if (KNO_OIDP(arg)) {
-        KNO_OID addr = KNO_OID_ADDR(arg);
-        inbound[i].is_unsigned = 1;
-        inbound[i].buffer_type = MYSQL_TYPE_LONGLONG;
-        inbound[i].buffer = &(valbuf[i].llval);
-        inbound[i].buffer_length = sizeof(unsigned long long);
-        inbound[i].length = NULL;
-        valbuf[i].llval = addr;}
+	KNO_OID addr = KNO_OID_ADDR(arg);
+	inbound[i].is_unsigned = 1;
+	inbound[i].buffer_type = MYSQL_TYPE_LONGLONG;
+	inbound[i].buffer = &(valbuf[i].llval);
+	inbound[i].buffer_length = sizeof(unsigned long long);
+	inbound[i].length = NULL;
+	valbuf[i].llval = addr;}
       else if (KNO_BIGINTP(arg)) {
-        long long lv = kno_bigint_to_long_long((kno_bigint)arg);
-        inbound[i].is_unsigned = 0;
-        inbound[i].buffer_type = MYSQL_TYPE_LONGLONG;
-        inbound[i].buffer = &(valbuf[i].llval);
-        inbound[i].buffer_length = sizeof(long long);
-        inbound[i].length = NULL;
-        valbuf[i].llval = lv;}
+	long long lv = kno_bigint_to_long_long((kno_bigint)arg);
+	inbound[i].is_unsigned = 0;
+	inbound[i].buffer_type = MYSQL_TYPE_LONGLONG;
+	inbound[i].buffer = &(valbuf[i].llval);
+	inbound[i].buffer_length = sizeof(long long);
+	inbound[i].length = NULL;
+	valbuf[i].llval = lv;}
       else if (KNO_FLONUMP(arg)) {
-        inbound[i].buffer_type = MYSQL_TYPE_DOUBLE;
-        inbound[i].buffer = &(valbuf[i].fval);
-        inbound[i].buffer_length = sizeof(double);
-        inbound[i].length = NULL;
-        valbuf[i].fval = KNO_FLONUM(arg);}
+	inbound[i].buffer_type = MYSQL_TYPE_DOUBLE;
+	inbound[i].buffer = &(valbuf[i].fval);
+	inbound[i].buffer_length = sizeof(double);
+	inbound[i].length = NULL;
+	valbuf[i].fval = KNO_FLONUM(arg);}
       else if (KNO_STRINGP(arg)) {
-        inbound[i].buffer_type = MYSQL_TYPE_STRING;
-        inbound[i].buffer = (u8_byte *)KNO_CSTRING(arg);
-        inbound[i].buffer_length = KNO_STRLEN(arg);
-        inbound[i].length = &(inbound[i].buffer_length);}
+	inbound[i].buffer_type = MYSQL_TYPE_STRING;
+	inbound[i].buffer = (u8_byte *)KNO_CSTRING(arg);
+	inbound[i].buffer_length = KNO_STRLEN(arg);
+	inbound[i].length = &(inbound[i].buffer_length);}
       else if (KNO_SYMBOLP(arg)) {
-        u8_string pname = KNO_SYMBOL_NAME(arg);
-        inbound[i].buffer_type = MYSQL_TYPE_STRING;
-        inbound[i].buffer = (u8_byte *)pname;
-        inbound[i].buffer_length = strlen(pname);
-        inbound[i].length = &(inbound[i].buffer_length);}
+	u8_string pname = KNO_SYMBOL_NAME(arg);
+	inbound[i].buffer_type = MYSQL_TYPE_STRING;
+	inbound[i].buffer = (u8_byte *)pname;
+	inbound[i].buffer_length = strlen(pname);
+	inbound[i].length = &(inbound[i].buffer_length);}
       else if (KNO_PACKETP(arg)) {
-        inbound[i].buffer_type = MYSQL_TYPE_BLOB;
-        inbound[i].buffer = (u8_byte *)KNO_PACKET_DATA(arg);
-        inbound[i].buffer_length = KNO_PACKET_LENGTH(arg);
-        inbound[i].length = &(inbound[i].buffer_length);}
+	inbound[i].buffer_type = MYSQL_TYPE_BLOB;
+	inbound[i].buffer = (u8_byte *)KNO_PACKET_DATA(arg);
+	inbound[i].buffer_length = KNO_PACKET_LENGTH(arg);
+	inbound[i].length = &(inbound[i].buffer_length);}
       else if (KNO_TYPEP(arg,kno_uuid_type)) {
-        struct KNO_UUID *uuid = KNO_CONSPTR(kno_uuid,arg);
-        inbound[i].buffer_type = MYSQL_TYPE_BLOB;
-        inbound[i].buffer = &(uuid->uuid16);
-        inbound[i].buffer_length = 16;
-        inbound[i].length = NULL;}
+	struct KNO_UUID *uuid = KNO_CONSPTR(kno_uuid,arg);
+	inbound[i].buffer_type = MYSQL_TYPE_BLOB;
+	inbound[i].buffer = &(uuid->uuid16);
+	inbound[i].buffer_length = 16;
+	inbound[i].length = NULL;}
       else if (KNO_TYPEP(arg,kno_timestamp_type)) {
-        struct KNO_TIMESTAMP *tm = KNO_CONSPTR(kno_timestamp,arg);
-        MYSQL_TIME *mt = u8_alloc(MYSQL_TIME);
-        struct U8_XTIME *xt = &(tm->u8xtimeval), gmxtime; time_t tick;
-        memset(mt,0,sizeof(MYSQL_TIME));
-        if (n_mstimes<4) mstimes[n_mstimes++]=mt;
-        if ((xt->u8_tzoff)||(xt->u8_dstoff)) {
-          /* If it's not UTC, we need to convert it. */
-          tick = xt->u8_tick;
-          u8_init_xtime(&gmxtime,tick,xt->u8_prec,xt->u8_nsecs,0,0);
-          xt = &gmxtime;}
-        inbound[i].buffer = mt;
-        inbound[i].buffer_type=
-          ((xt->u8_prec>u8_day) ?
-           (MYSQL_TYPE_DATETIME) :
-           (MYSQL_TYPE_DATE));
-        mt->year = xt->u8_year;
-        mt->month = xt->u8_mon+1;
-        mt->day = xt->u8_mday;
-        mt->hour = xt->u8_hour;
-        mt->minute = xt->u8_min;
-        mt->second = xt->u8_sec;}
+	struct KNO_TIMESTAMP *tm = KNO_CONSPTR(kno_timestamp,arg);
+	MYSQL_TIME *mt = u8_alloc(MYSQL_TIME);
+	struct U8_XTIME *xt = &(tm->u8xtimeval), gmxtime; time_t tick;
+	memset(mt,0,sizeof(MYSQL_TIME));
+	if (n_mstimes<4) mstimes[n_mstimes++]=mt;
+	if ((xt->u8_tzoff)||(xt->u8_dstoff)) {
+	  /* If it's not UTC, we need to convert it. */
+	  tick = xt->u8_tick;
+	  u8_init_xtime(&gmxtime,tick,xt->u8_prec,xt->u8_nsecs,0,0);
+	  xt = &gmxtime;}
+	inbound[i].buffer = mt;
+	inbound[i].buffer_type=
+	  ((xt->u8_prec>u8_day) ?
+	   (MYSQL_TYPE_DATETIME) :
+	   (MYSQL_TYPE_DATE));
+	mt->year = xt->u8_year;
+	mt->month = xt->u8_mon+1;
+	mt->day = xt->u8_mday;
+	mt->hour = xt->u8_hour;
+	mt->minute = xt->u8_min;
+	mt->second = xt->u8_sec;}
       else if ((KNO_TRUEP(arg)) || (KNO_FALSEP(arg))) {
-        inbound[i].is_unsigned = 0;
-        inbound[i].buffer_type = MYSQL_TYPE_LONG;
-        inbound[i].buffer = &(valbuf[i].lval);
-        inbound[i].buffer_length = sizeof(int);
-        inbound[i].length = NULL;
-        if (KNO_TRUEP(arg)) valbuf[i].lval = 1;
-        else valbuf[i].lval = 0;}
+	inbound[i].is_unsigned = 0;
+	inbound[i].buffer_type = MYSQL_TYPE_LONG;
+	inbound[i].buffer = &(valbuf[i].lval);
+	inbound[i].buffer_length = sizeof(int);
+	inbound[i].length = NULL;
+	if (KNO_TRUEP(arg)) valbuf[i].lval = 1;
+	else valbuf[i].lval = 0;}
       else if ((KNO_EMPTY_CHOICEP(arg))|| (KNO_EMPTY_QCHOICEP(arg))) {
-        my_bool *bp = (my_bool *)&(valbuf[i].lval);
-        inbound[i].is_null = bp;
-        inbound[i].buffer = NULL;
-        inbound[i].buffer_length = sizeof(int);
-        inbound[i].length = NULL;
-        *bp = 1;}
+	my_bool *bp = (my_bool *)&(valbuf[i].lval);
+	inbound[i].is_null = bp;
+	inbound[i].buffer = NULL;
+	inbound[i].buffer_length = sizeof(int);
+	inbound[i].length = NULL;
+	*bp = 1;}
       /* This catches cases where the conversion process produces an
-         error. */
+	 error. */
       else if (KNO_ABORTP(arg)) {
-        int j = 0;
-        while (j<i) {kno_decref(argbuf[j]); j++;}
-        if (argbuf!=_argbuf) u8_free(argbuf);
-        if (dblock) {u8_unlock_mutex(&(dbp->mysql_lock)); dblock = 0;}
-        if (proclock) {u8_unlock_mutex(&(dbproc->mysqlproc_lock)); proclock = 0;}
-        return KNO_ERROR_VALUE;}
+	int j = 0;
+	while (j<i) {kno_decref(argbuf[j]); j++;}
+	if (argbuf!=_argbuf) u8_free(argbuf);
+	if (dblock) {u8_unlock_mutex(&(dbp->mysql_lock)); dblock = 0;}
+	if (proclock) {u8_unlock_mutex(&(dbproc->mysqlproc_lock)); proclock = 0;}
+	return KNO_ERROR_VALUE;}
       else if (KNO_TRUEP(ptypes[i])) {
-        /* If the ptype is #t, try to convert it into a string,
-           and catch it if you have an error. */
-        struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,32);
-        if (kno_unparse(&out,arg)<0) {
-          int j = 0;
-          kno_seterr(MySQL_NoConvert,"applymysqlproc",
-                    dbproc->sqldb_qtext,kno_incref(arg));
-          while (j<i) {kno_decref(argbuf[i]); i++;}
-          j = 0; while (j<n_mstimes) {u8_free(mstimes[j]); j++;}
-          if (argbuf!=_argbuf) u8_free(argbuf);
-          if (dblock) {u8_unlock_mutex(&(dbp->mysql_lock)); dblock = 0;}
-          if (proclock)  {u8_unlock_mutex(&(dbproc->mysqlproc_lock)); proclock = 0;}
-          return KNO_ERROR_VALUE;}
-        else {
-          u8_byte *as_string = out.u8_outbuf;
-          int stringlen = out.u8_write-out.u8_outbuf;
-          inbound[i].buffer_type = MYSQL_TYPE_STRING;
-          inbound[i].buffer = as_string;
-          inbound[i].buffer_length = stringlen;
-          inbound[i].length = NULL;
-          /* We put the consed string into the argbug as a Lisp
-             string so that we'll free it when we're done. */
-          argbuf[i]=kno_init_string(NULL,stringlen,as_string);}}
+	/* If the ptype is #t, try to convert it into a string,
+	   and catch it if you have an error. */
+	struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,32);
+	if (kno_unparse(&out,arg)<0) {
+	  int j = 0;
+	  kno_seterr(MySQL_NoConvert,"applymysqlproc",
+		     dbproc->sqldb_qtext,kno_incref(arg));
+	  while (j<i) {kno_decref(argbuf[i]); i++;}
+	  j = 0; while (j<n_mstimes) {u8_free(mstimes[j]); j++;}
+	  if (argbuf!=_argbuf) u8_free(argbuf);
+	  if (dblock) {u8_unlock_mutex(&(dbp->mysql_lock)); dblock = 0;}
+	  if (proclock)  {u8_unlock_mutex(&(dbproc->mysqlproc_lock)); proclock = 0;}
+	  return KNO_ERROR_VALUE;}
+	else {
+	  u8_byte *as_string = out.u8_outbuf;
+	  int stringlen = out.u8_write-out.u8_outbuf;
+	  inbound[i].buffer_type = MYSQL_TYPE_STRING;
+	  inbound[i].buffer = as_string;
+	  inbound[i].buffer_length = stringlen;
+	  inbound[i].length = NULL;
+	  /* We put the consed string into the argbug as a Lisp
+	     string so that we'll free it when we're done. */
+	  argbuf[i]=kno_init_string(NULL,stringlen,as_string);}}
       else {
-        int j;
-        /* Finally, if we can't convert the value, we error. */
-        kno_seterr(MySQL_NoConvert,"applymysqlproc",
-                  dbproc->sqldb_qtext,kno_incref(arg));
-        j = 0; while (j<n_mstimes) {u8_free(mstimes[j]); j++;}
-        j = 0; while (j<i) {kno_decref(argbuf[j]); j++;}
-        if (argbuf!=_argbuf) u8_free(argbuf);
-        if (dblock) {u8_unlock_mutex(&(dbp->mysql_lock)); dblock = 0;}
-        if (proclock)  {u8_unlock_mutex(&(dbproc->mysqlproc_lock)); proclock = 0;}
-        return KNO_ERROR_VALUE;}
+	int j;
+	/* Finally, if we can't convert the value, we error. */
+	kno_seterr(MySQL_NoConvert,"applymysqlproc",
+		   dbproc->sqldb_qtext,kno_incref(arg));
+	j = 0; while (j<n_mstimes) {u8_free(mstimes[j]); j++;}
+	j = 0; while (j<i) {kno_decref(argbuf[j]); j++;}
+	if (argbuf!=_argbuf) u8_free(argbuf);
+	if (dblock) {u8_unlock_mutex(&(dbp->mysql_lock)); dblock = 0;}
+	if (proclock)  {u8_unlock_mutex(&(dbproc->mysqlproc_lock)); proclock = 0;}
+	return KNO_ERROR_VALUE;}
       i++;}}
   n_bound = i;
 
@@ -1332,8 +1332,8 @@ static lispval applymysqlproc(kno_function fn,int n,lispval *args,int reconn)
     u8_lock_mutex(&(dbp->mysql_lock)); dblock = 1;
     if (dbproc->mysqlproc_needs_init) {
       /* Once more, if there's been a restart before we get the lock,
-         set retry = 1 and pretend to fail.  Once we have the lock, we
-         no longer have to worry about restarts. */
+	 set retry = 1 and pretend to fail.  Once we have the lock, we
+	 no longer have to worry about restarts. */
       retval = -1; retry = 1;}
     else retval = eretval = mysql_stmt_execute(dbproc->mysqlproc_stmt);}
 
@@ -1350,11 +1350,11 @@ static lispval applymysqlproc(kno_function fn,int n,lispval *args,int reconn)
   if (retval == RETVAL_OK) {
     if (dbproc->mysqlproc_n_cols) {
       values = get_stmt_values(dbproc->mysqlproc_stmt,
-                             dbproc->sqldb_colinfo,
-                             dbproc->mysqlproc_n_cols,
-                             dbproc->mysqlproc_colnames,
-                             dbproc->mysqlproc_outbound,
-                             dbproc->mysqlproc_isnullbuf);
+			       dbproc->sqldb_colinfo,
+			       dbproc->mysqlproc_n_cols,
+			       dbproc->mysqlproc_colnames,
+			       dbproc->mysqlproc_outbound,
+			       dbproc->mysqlproc_isnullbuf);
       mysql_stmt_free_result(dbproc->mysqlproc_stmt);}
     else {
       /* We could possibly do something with this */
@@ -1366,12 +1366,12 @@ static lispval applymysqlproc(kno_function fn,int n,lispval *args,int reconn)
     mysqlerrno = mysql_stmt_errno(dbproc->mysqlproc_stmt);
     mysqlerrmsg = mysql_stmt_error(dbproc->mysqlproc_stmt);
     u8_log(LOG_WARN,
-           ((sretval)?("applymysqlprocproc/store"):
-            (eretval)?("applymysqlprocproc/exec"):
-            (bretval)?("applymysqlprocproc/bind"):
-            ("applymysqlproc")),
-           "MYSQL error '%s' (%d) for %s at %s",
-           mysqlerrmsg,mysqlerrno,dbproc->mysqlproc_string,dbp->sqldb_spec);
+	   ((sretval)?("applymysqlprocproc/store"):
+	    (eretval)?("applymysqlprocproc/exec"):
+	    (bretval)?("applymysqlprocproc/bind"):
+	    ("applymysqlproc")),
+	   "MYSQL error '%s' (%d) for %s at %s",
+	   mysqlerrmsg,mysqlerrno,dbproc->mysqlproc_string,dbp->sqldb_spec);
     /* mysql_stmt_reset(dbproc->mysqlproc_stmt); */
 
     /* Figure out if we're going to retry */
@@ -1394,22 +1394,22 @@ static lispval applymysqlproc(kno_function fn,int n,lispval *args,int reconn)
     if (proclock) {u8_unlock_mutex(&(dbproc->mysqlproc_lock)); proclock = 0;}
     if (!(bretval == RETVAL_OK))
       u8_seterr(MySQL_Error,"mysqlproc/bind",
-                u8_mkstring("%s (%d)",mysqlerrmsg,mysqlerrno));
+		u8_mkstring("%s (%d)",mysqlerrmsg,mysqlerrno));
     else if (!(eretval == RETVAL_OK))
       u8_seterr(MySQL_Error,"mysqlproc/exec",
-                u8_mkstring("%s (%d)",mysqlerrmsg,mysqlerrno));
+		u8_mkstring("%s (%d)",mysqlerrmsg,mysqlerrno));
     else if (!(sretval == RETVAL_OK))
       u8_seterr(MySQL_Error,"mysqlproc/store",
-                u8_mkstring("%s (%d)",mysqlerrmsg,mysqlerrno));
+		u8_mkstring("%s (%d)",mysqlerrmsg,mysqlerrno));
     else u8_seterr(MySQL_Error,"mysqlproc",
-                   u8_mkstring("%s (%d)",mysqlerrmsg,mysqlerrno));
+		   u8_mkstring("%s (%d)",mysqlerrmsg,mysqlerrno));
     return KNO_ERROR_VALUE;}
   else if (retry) {
     if (!(dblock)) {u8_lock_mutex(&(dbp->mysql_lock)); dblock = 1;}
     if ( (dbproc->mysqlproc_needs_init) && (!(NEED_RESTART(mysqlerrno))) ) {
       retval = init_mysqlproc(dbp,dbproc);
       if (retval!=RETVAL_OK)
-        retval = restart_connection(dbp);}
+	retval = restart_connection(dbp);}
     else retval = restart_connection(dbp);
     if (dblock) {u8_unlock_mutex(&(dbp->mysql_lock)); dblock = 0;}
     if (proclock) {u8_unlock_mutex(&(dbproc->mysqlproc_lock)); proclock = 0;}
@@ -1417,7 +1417,7 @@ static lispval applymysqlproc(kno_function fn,int n,lispval *args,int reconn)
       mysqlerrno = mysql_errno(dbp->mysqldb);
       mysqlerrmsg = mysql_error(dbp->mysqldb);
       u8_seterr(MySQL_Error,"mysqlproc/restart",
-                u8_mkstring("%s (%d)",mysqlerrmsg,mysqlerrno));
+		u8_mkstring("%s (%d)",mysqlerrmsg,mysqlerrno));
       return KNO_ERROR_VALUE;}
     else return applymysqlproc(fn,n,args,reconn-1);}
   else {
@@ -1475,9 +1475,9 @@ KNO_EXPORT int kno_init_mysql()
   kno_register_sqldb_handler(&mysql_handler);
 
   init_local_cprims();
-  
+
   mysql_initialized = u8_millitime();
-  
+
   boolean_symbol = kno_intern("boolean");
   merge_symbol = kno_intern("%merge");
   noempty_symbol = kno_intern("%noempty");

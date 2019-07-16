@@ -31,8 +31,8 @@ static long long int crypto_init = 0;
 lispval (*unpacker)(unsigned char *,size_t len);
 
 static lispval doencrypt(lispval data,lispval key,
-                        u8_string ciphername,lispval iv,
-                        int dtype)
+                         u8_string ciphername,lispval iv,
+                         int dtype)
 {
   struct KNO_OUTBUF tmp = { 0 };
   const unsigned char *payload; size_t payload_len; int free_payload = 0;
@@ -55,8 +55,8 @@ static lispval doencrypt(lispval data,lispval key,
     iv_len = KNO_PACKET_LENGTH(iv);}
   else {ivdata = NULL; iv_len = 0;}
   outbuf = u8_encrypt(payload,payload_len,(char *)ciphername,
-                    KNO_PACKET_DATA(key),KNO_PACKET_LENGTH(key),
-                    ivdata,iv_len,&outlen);
+                      KNO_PACKET_DATA(key),KNO_PACKET_LENGTH(key),
+                      ivdata,iv_len,&outlen);
   if (outbuf) {
     if (free_payload) u8_free(payload);
     return kno_init_packet(NULL,outlen,outbuf);}
@@ -64,9 +64,9 @@ static lispval doencrypt(lispval data,lispval key,
 }
 
 DEFPRIM4("encrypt",encrypt_prim,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
- "`(ENCRYPT *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+         "`(ENCRYPT *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
+         kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
+         kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval encrypt_prim(lispval data,lispval key,lispval cipher,lispval iv)
 {
   u8_string ciphername = NULL;
@@ -77,9 +77,9 @@ static lispval encrypt_prim(lispval data,lispval key,lispval cipher,lispval iv)
   return doencrypt(data,key,ciphername,iv,0);
 }
 DEFPRIM4("encrypt-dtype",encrypt_dtype_prim,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
- "`(ENCRYPT-DTYPE *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+         "`(ENCRYPT-DTYPE *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
+         kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
+         kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval encrypt_dtype_prim(lispval data,lispval key,lispval cipher,lispval iv)
 {
   u8_string ciphername;
@@ -91,9 +91,9 @@ static lispval encrypt_dtype_prim(lispval data,lispval key,lispval cipher,lispva
 }
 
 DEFPRIM4("decrypt",decrypt_prim,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
- "`(DECRYPT *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+         "`(DECRYPT *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
+         kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
+         kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval decrypt_prim(lispval data,lispval key,lispval cipher,lispval iv)
 {
   const unsigned char *payload; size_t payload_len;
@@ -120,9 +120,9 @@ static lispval decrypt_prim(lispval data,lispval key,lispval cipher,lispval iv)
 }
 
 DEFPRIM4("decrypt->string",decrypt2string_prim,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
- "`(DECRYPT->STRING *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+         "`(DECRYPT->STRING *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
+         kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
+         kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval decrypt2string_prim(lispval data,lispval key,lispval cipher,lispval iv)
 {
   const unsigned char *payload; size_t payload_len;
@@ -140,17 +140,17 @@ static lispval decrypt2string_prim(lispval data,lispval key,lispval cipher,lispv
   else {ivdata = NULL; iv_len = 0;}
   payload = KNO_PACKET_DATA(data); payload_len = KNO_PACKET_LENGTH(data);
   outbuf = u8_decrypt(payload,payload_len,ciphername,
-                    KNO_PACKET_DATA(key),KNO_PACKET_LENGTH(key),
-                    ivdata,iv_len,&outlen);
+                      KNO_PACKET_DATA(key),KNO_PACKET_LENGTH(key),
+                      ivdata,iv_len,&outlen);
   if (outbuf)
     return kno_init_string(NULL,outlen,outbuf);
   else return KNO_ERROR_VALUE;
 }
 
 DEFPRIM4("decrypt->dtype",decrypt2dtype_prim,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
- "`(DECRYPT->DTYPE *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+         "`(DECRYPT->DTYPE *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
+         kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
+         kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval decrypt2dtype_prim(lispval data,lispval key,lispval cipher,lispval iv)
 {
   const unsigned char *payload; size_t payload_len;
@@ -168,8 +168,8 @@ static lispval decrypt2dtype_prim(lispval data,lispval key,lispval cipher,lispva
   else {ivdata = NULL; iv_len = 0;}
   payload = KNO_PACKET_DATA(data); payload_len = KNO_PACKET_LENGTH(data);
   outbuf = u8_decrypt(payload,payload_len,ciphername,
-                    KNO_PACKET_DATA(key),KNO_PACKET_LENGTH(key),
-                    ivdata,iv_len,&outlen);
+                      KNO_PACKET_DATA(key),KNO_PACKET_LENGTH(key),
+                      ivdata,iv_len,&outlen);
   if (outbuf) {
     struct KNO_INBUF in = { 0 };
     lispval result;
@@ -181,20 +181,20 @@ static lispval decrypt2dtype_prim(lispval data,lispval key,lispval cipher,lispva
 }
 
 DEFPRIM1("random-packet",random_packet_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(RANDOM-PACKET *arg0*)` **undocumented**",
- kno_fixnum_type,KNO_VOID);
+         "`(RANDOM-PACKET *arg0*)` **undocumented**",
+         kno_fixnum_type,KNO_VOID);
 KNO_EXPORT lispval random_packet_prim(lispval arg)
 {
   if (KNO_UINTP(arg))
     return kno_init_packet(NULL,KNO_FIX2INT(arg),
-                          u8_random_vector(KNO_FIX2INT(arg)));
+                           u8_random_vector(KNO_FIX2INT(arg)));
   else return kno_type_error("uint","random_packet_prim",arg);
 }
 
 
 DEFPRIM2("fill-packet",fill_packet_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "`(FILL-PACKET *arg0* [*arg1*])` **undocumented**",
- kno_fixnum_type,KNO_VOID,kno_any_type,KNO_VOID);
+         "`(FILL-PACKET *arg0* [*arg1*])` **undocumented**",
+         kno_fixnum_type,KNO_VOID,kno_any_type,KNO_VOID);
 KNO_EXPORT lispval fill_packet_prim(lispval len,lispval init)
 {
   lispval result; unsigned char *bytes;

@@ -7,27 +7,27 @@
 
 /* The external DB module provides simple access to external SQL
    databases.  There are two Scheme types used by this module:
-    SQLDB objects (kno_sqldb_type) are basically database connections
-     implemented by CONSes whose header is identical to "struct KNO_SQLDB";
-    SQLDB procedures (kno_sqlproc_type) are applicable objects which
-     correspond to prepared statements for a particular connection.  These
-     procedures have (optional) column info consisting of a slotmap which
-     maps column names into either OIDs or functions.  The functions are
-     used to convert values of said column and the OIDs are used as base values
-     to convert integer values to OIDs.  SQLDB procedures also have
-     "parameter maps" which are used to process application parameters
-     into parameters to be bound to the corresponding statement.
+   SQLDB objects (kno_sqldb_type) are basically database connections
+   implemented by CONSes whose header is identical to "struct KNO_SQLDB";
+   SQLDB procedures (kno_sqlproc_type) are applicable objects which
+   correspond to prepared statements for a particular connection.  These
+   procedures have (optional) column info consisting of a slotmap which
+   maps column names into either OIDs or functions.  The functions are
+   used to convert values of said column and the OIDs are used as base values
+   to convert integer values to OIDs.  SQLDB procedures also have
+   "parameter maps" which are used to process application parameters
+   into parameters to be bound to the corresponding statement.
 
-    Implementing a given database bridge consists of defining functions for:
-     (a) executing a SQL string on the connection;
-     (b) creating an SQLDB proc from the connection;
-     (c) recycling this kind of SQLDB connection
-     (d) recycling this kind of SQLDB procedure
+   Implementing a given database bridge consists of defining functions for:
+   (a) executing a SQL string on the connection;
+   (b) creating an SQLDB proc from the connection;
+   (c) recycling this kind of SQLDB connection
+   (d) recycling this kind of SQLDB procedure
 
    The actual access is implemented by loadable modules which generally
-    register a handler (though they don't have to) and provides a function
-    for opening an SQLDB connection which can then be used for executing
-    queries and generating SQLDB procedures.
+   register a handler (though they don't have to) and provides a function
+   for opening an SQLDB connection which can then be used for executing
+   queries and generating SQLDB procedures.
 */
 
 #ifndef _FILEINFO
@@ -215,17 +215,17 @@ static int check_exec_enabled(lispval opts)
 }
 
 /*
-FDPRIM(sqldb_exec,"SQLDB/EXEC",3,KNO_NEEDS_3ARGS,
-       "`(sqldb/exec *dbptr* *sql_string* [*colinfo*])` "
-       "executes *sql_string* on database *dbptr*, using "
-       "*colinfo* to convert arguments and results.",
-       kno_sqldb_type,KNO_VOID,kno_string_type,KNO_VOID,-1,KNO_VOID,
-       (lispval db,lispval query,lispval colinfo))
+  FDPRIM(sqldb_exec,"SQLDB/EXEC",3,KNO_NEEDS_3ARGS,
+  "`(sqldb/exec *dbptr* *sql_string* [*colinfo*])` "
+  "executes *sql_string* on database *dbptr*, using "
+  "*colinfo* to convert arguments and results.",
+  kno_sqldb_type,KNO_VOID,kno_string_type,KNO_VOID,-1,KNO_VOID,
+  (lispval db,lispval query,lispval colinfo))
 */
 DEFPRIM3("sqldb/exec",sqldb_exec,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
- "`(SQLDB/EXEC *dbptr* *sql* *colinfo*)` **undocumented**",
- kno_sqldb_type,KNO_VOID,kno_string_type,KNO_VOID,
- kno_any_type,KNO_VOID);
+         "`(SQLDB/EXEC *dbptr* *sql* *colinfo*)` **undocumented**",
+         kno_sqldb_type,KNO_VOID,kno_string_type,KNO_VOID,
+         kno_any_type,KNO_VOID);
 static lispval sqldb_exec(lispval db,lispval query,lispval colinfo)
 {
   struct KNO_SQLDB *sqldb = KNO_GET_CONS(db,kno_sqldb_type,struct KNO_SQLDB *);
@@ -234,11 +234,11 @@ static lispval sqldb_exec(lispval db,lispval query,lispval colinfo)
        (check_exec_enabled(sqldb->sqldb_options))))
     return sqldb->sqldb_handler->execute(sqldb,query,colinfo);
   else return kno_err(_("Direct SQL execution disabled"),"sqldb_exec",
-                     CSTRING(query),db);
+                      CSTRING(query),db);
 }
 
 DEFPRIM("sqldb/proc",sqldb_makeproc,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
- "`(SQLDB/PROC *sqldb* *sqltext* [*colinfo*] [*paraminfo*...] )` **undocumented**");
+        "`(SQLDB/PROC *sqldb* *sqltext* [*colinfo*] [*paraminfo*...] )` **undocumented**");
 static lispval sqldb_makeproc(int n,lispval *args)
 {
   if (PRED_TRUE
@@ -265,7 +265,7 @@ static lispval sqldb_makeproc(int n,lispval *args)
 }
 
 DEFPRIM("sqldb/proc+",sqlproc_plus,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
- "`(SQLDB/PROC+ *sqlproc* *sqltext* [*colinfo*] [*paraminfo*...] )` **undocumented**");
+        "`(SQLDB/PROC+ *sqlproc* *sqltext* [*colinfo*] [*paraminfo*...] )` **undocumented**");
 static lispval sqlproc_plus(int n,lispval *args)
 {
   lispval arg1 = args[0], result = VOID;
@@ -296,9 +296,9 @@ static lispval sqlproc_plus(int n,lispval *args)
 /* Accessors */
 
 DEFPRIM1("sqldb/proc/query",sqlproc_query,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(SQLDB/PROC/QUERY *dbproc*)` "
- "=> sqlstring",
- kno_sqlproc_type,KNO_VOID);
+         "`(SQLDB/PROC/QUERY *dbproc*)` "
+         "=> sqlstring",
+         kno_sqlproc_type,KNO_VOID);
 static lispval sqlproc_query(lispval sqldb)
 {
   struct KNO_SQLPROC *xdbp = KNO_GET_CONS
@@ -307,9 +307,9 @@ static lispval sqlproc_query(lispval sqldb)
 }
 
 DEFPRIM1("sqldb/proc/spec",sqlproc_spec,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(SQLDB/PROC/SPEC *dbproc*)` "
- "=> dbspecstring",
- kno_sqlproc_type,KNO_VOID);
+         "`(SQLDB/PROC/SPEC *dbproc*)` "
+         "=> dbspecstring",
+         kno_sqlproc_type,KNO_VOID);
 static lispval sqlproc_spec(lispval sqldb)
 {
   struct KNO_SQLPROC *xdbp = KNO_GET_CONS
@@ -318,9 +318,9 @@ static lispval sqlproc_spec(lispval sqldb)
 }
 
 DEFPRIM1("sqldb/proc/db",sqlproc_db,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(SQLDB/PROC/DB *dbproc*)` "
- "=> dbptr",
- kno_sqlproc_type,KNO_VOID);
+         "`(SQLDB/PROC/DB *dbproc*)` "
+         "=> dbptr",
+         kno_sqlproc_type,KNO_VOID);
 static lispval sqlproc_db(lispval sqldb)
 {
   struct KNO_SQLPROC *xdbp = KNO_GET_CONS
@@ -329,9 +329,9 @@ static lispval sqlproc_db(lispval sqldb)
 }
 
 DEFPRIM1("sqldb/proc/typemap",sqlproc_typemap,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(SQLDB/PROC/TYPEMAP *dbproc*)` "
- "=> colinfo",
- kno_sqlproc_type,KNO_VOID);
+         "`(SQLDB/PROC/TYPEMAP *dbproc*)` "
+         "=> colinfo",
+         kno_sqlproc_type,KNO_VOID);
 static lispval sqlproc_typemap(lispval sqldb)
 {
   struct KNO_SQLPROC *xdbp = KNO_GET_CONS
@@ -340,9 +340,9 @@ static lispval sqlproc_typemap(lispval sqldb)
 }
 
 DEFPRIM1("sqldb/proc/params",sqlproc_params,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(SQLDB/PROC/PARAMS *dbproc*)` "
- "=> paraminfo",
- kno_sqlproc_type,KNO_VOID);
+         "`(SQLDB/PROC/PARAMS *dbproc*)` "
+         "=> paraminfo",
+         kno_sqlproc_type,KNO_VOID);
 static lispval sqlproc_params(lispval sqldb)
 {
   struct KNO_SQLPROC *xdbp = KNO_GET_CONS
@@ -385,8 +385,8 @@ KNO_EXPORT void kno_init_sqldbprims_c()
 
   init_local_cprims();
   kno_register_config("SQLEXEC",
-                     _("whether direct execution of SQL strings is allowed"),
-                     kno_boolconfig_get,kno_boolconfig_set,&exec_enabled);
+                      _("whether direct execution of SQL strings is allowed"),
+                      kno_boolconfig_get,kno_boolconfig_set,&exec_enabled);
 
   kno_finish_module(sqldb_module);
 }

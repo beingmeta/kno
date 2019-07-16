@@ -38,15 +38,15 @@
 static lispval fixsyms_symbol;
 
 DEFPRIM3("read-dtype",read_dtype,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
- "(READ-DTYPE *stream* [*off*] [*len*]) "
- "reads the dtype representation store at *off* in "
- "*stream*. If *off* is not provided, it reads from "
- "the current position of the stream; if *len* is "
- "provided, it is a maximum size of the dtype "
- "representation and is used to prefetch bytes from "
- "the file when possible.",
- kno_stream_type,KNO_VOID,kno_fixnum_type,KNO_VOID,
- kno_fixnum_type,KNO_VOID);
+	 "(READ-DTYPE *stream* [*off*] [*len*]) "
+	 "reads the dtype representation store at *off* in "
+	 "*stream*. If *off* is not provided, it reads from "
+	 "the current position of the stream; if *len* is "
+	 "provided, it is a maximum size of the dtype "
+	 "representation and is used to prefetch bytes from "
+	 "the file when possible.",
+	 kno_stream_type,KNO_VOID,kno_fixnum_type,KNO_VOID,
+	 kno_fixnum_type,KNO_VOID);
 static lispval read_dtype(lispval stream,lispval pos,lispval len)
 {
   struct KNO_STREAM *ds=
@@ -76,18 +76,18 @@ static lispval read_dtype(lispval stream,lispval pos,lispval len)
 }
 
 DEFPRIM3("write-bytes",write_bytes,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
- "(WRITE-BYTES *obj* *stream* [*pos*]) "
- "writes the bytes in *obj* to *stream* at *pos*. "
- "*obj* is a string or a packet and *pos* defaults "
- "to the current file position of the stream.",
- kno_any_type,KNO_VOID,kno_stream_type,KNO_VOID,
- kno_any_type,KNO_VOID);
+	 "(WRITE-BYTES *obj* *stream* [*pos*]) "
+	 "writes the bytes in *obj* to *stream* at *pos*. "
+	 "*obj* is a string or a packet and *pos* defaults "
+	 "to the current file position of the stream.",
+	 kno_any_type,KNO_VOID,kno_stream_type,KNO_VOID,
+	 kno_any_type,KNO_VOID);
 static lispval write_bytes(lispval object,lispval stream,lispval pos)
 {
   struct KNO_STREAM *ds=
     kno_consptr(struct KNO_STREAM *,stream,kno_stream_type);
   if (! ( (KNO_VOIDP(pos)) ||
-          ( (KNO_INTEGERP(pos)) && (kno_numcompare(pos,KNO_FIXZERO) >= 0))) )
+	  ( (KNO_INTEGERP(pos)) && (kno_numcompare(pos,KNO_FIXZERO) >= 0))) )
     return kno_err(kno_TypeError,"write_bytes","filepos",pos);
   const unsigned char *bytes = NULL;
   ssize_t n_bytes = -1;
@@ -131,23 +131,23 @@ static lispval write_bytes(lispval object,lispval stream,lispval pos)
 }
 
 DEFPRIM4("write-dtype",write_dtype,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
- "(WRITE-DTYPE *obj* *stream* [*pos*] [*max*]) "
- "writes a dtype representation of *obj* to "
- "*stream* at file position *pos* *(defaults to the "
- "current file position of the stream). *max*, if "
- "provided, is the maximum size of *obj*'s DType "
- "representation. It is an error if the object has "
- "a larger representation and the value may also be "
- "used for allocating temporary buffers, etc.",
- kno_any_type,KNO_VOID,kno_stream_type,KNO_VOID,
- kno_fixnum_type,KNO_VOID,kno_fixnum_type,KNO_VOID);
+	 "(WRITE-DTYPE *obj* *stream* [*pos*] [*max*]) "
+	 "writes a dtype representation of *obj* to "
+	 "*stream* at file position *pos* *(defaults to the "
+	 "current file position of the stream). *max*, if "
+	 "provided, is the maximum size of *obj*'s DType "
+	 "representation. It is an error if the object has "
+	 "a larger representation and the value may also be "
+	 "used for allocating temporary buffers, etc.",
+	 kno_any_type,KNO_VOID,kno_stream_type,KNO_VOID,
+	 kno_fixnum_type,KNO_VOID,kno_fixnum_type,KNO_VOID);
 static lispval write_dtype(lispval object,lispval stream,
-                           lispval pos,lispval max_bytes)
+			   lispval pos,lispval max_bytes)
 {
   struct KNO_STREAM *ds=
     kno_consptr(struct KNO_STREAM *,stream,kno_stream_type);
   if (! ( (KNO_VOIDP(pos)) ||
-          ( (KNO_INTEGERP(pos)) && (kno_numcompare(pos,KNO_FIXZERO) >= 0))) )
+	  ( (KNO_INTEGERP(pos)) && (kno_numcompare(pos,KNO_FIXZERO) >= 0))) )
     return kno_err(kno_TypeError,"write_bytes","filepos",pos);
   long long byte_len = (KNO_VOIDP(max_bytes)) ? (-1) : (KNO_FIX2INT(max_bytes));
   unsigned char *bytes = NULL;
@@ -161,9 +161,9 @@ static lispval write_dtype(lispval object,lispval stream,
     ssize_t max_len = kno_getint(max_bytes);
     if ( (out.bufwrite-out.buffer) > max_len) {
       kno_seterr("TooBig","write_dtype",
-                u8_mkstring("The object's DType representation was longer "
-                            "than %lld bytes",max_len),
-                object);
+		 u8_mkstring("The object's DType representation was longer "
+			     "than %lld bytes",max_len),
+		 object);
       kno_close_outbuf(&out);
       return KNO_ERROR;}}
   if (KNO_VOIDP(pos)) {
@@ -201,10 +201,10 @@ static lispval write_dtype(lispval object,lispval stream,
 }
 
 DEFPRIM2("read-4bytes",read_4bytes,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "(READ-4BYTES *stream* [*pos*]) "
- "reads a bigendian 4-byte integer from *stream* at "
- "*pos* (or the current location, if none)",
- kno_stream_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "(READ-4BYTES *stream* [*pos*]) "
+	 "reads a bigendian 4-byte integer from *stream* at "
+	 "*pos* (or the current location, if none)",
+	 kno_stream_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval read_4bytes(lispval stream,lispval pos)
 {
   struct KNO_STREAM *ds=
@@ -217,10 +217,10 @@ static lispval read_4bytes(lispval stream,lispval pos)
 }
 
 DEFPRIM2("read-8bytes",read_8bytes,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "(READ-8BYTES *stream* [*pos*]) "
- "reads a bigendian 8-byte integer from *stream* at "
- "*pos* (or the current location, if none)",
- kno_stream_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "(READ-8BYTES *stream* [*pos*]) "
+	 "reads a bigendian 8-byte integer from *stream* at "
+	 "*pos* (or the current location, if none)",
+	 kno_stream_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval read_8bytes(lispval stream,lispval pos)
 {
   struct KNO_STREAM *ds=
@@ -234,11 +234,11 @@ static lispval read_8bytes(lispval stream,lispval pos)
 }
 
 DEFPRIM3("read-bytes",read_bytes,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
- "(READ-BYTES *stream* *n*] [*pos*]) "
- "reads *n bytes from *stream* at *pos* (or the "
- "current location, if none)",
- kno_stream_type,KNO_VOID,kno_any_type,KNO_VOID,
- kno_any_type,KNO_VOID);
+	 "(READ-BYTES *stream* *n*] [*pos*]) "
+	 "reads *n bytes from *stream* at *pos* (or the "
+	 "current location, if none)",
+	 kno_stream_type,KNO_VOID,kno_any_type,KNO_VOID,
+	 kno_any_type,KNO_VOID);
 static lispval read_bytes(lispval stream,lispval n,lispval pos)
 {
   struct KNO_STREAM *ds=
@@ -276,7 +276,7 @@ static lispval read_bytes(lispval stream,lispval n,lispval pos)
     int rv = munmap(mapbuf,map_len);
     if (rv<0) {
       u8_log(LOG_CRIT,kno_failed_unmap,
-             "Couldn't unmap buffer for %s (0x%llx)",ds->streamid,ds);}
+	     "Couldn't unmap buffer for %s (0x%llx)",ds->streamid,ds);}
     else return kno_init_packet(NULL,n_bytes,bytes);}
 #endif
   kno_lock_stream(ds);
@@ -289,11 +289,11 @@ static lispval read_bytes(lispval stream,lispval n,lispval pos)
 }
 
 DEFPRIM3("write-4bytes",write_4bytes,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
- "(WRITE-4BYTES *intval* *stream* [*pos*]) "
- "writes a bigendian 4-byte integer to *stream* at "
- "*pos* (or the current location, if none)",
- kno_any_type,KNO_VOID,kno_stream_type,KNO_VOID,
- kno_any_type,KNO_VOID);
+	 "(WRITE-4BYTES *intval* *stream* [*pos*]) "
+	 "writes a bigendian 4-byte integer to *stream* at "
+	 "*pos* (or the current location, if none)",
+	 kno_any_type,KNO_VOID,kno_stream_type,KNO_VOID,
+	 kno_any_type,KNO_VOID);
 static lispval write_4bytes(lispval object,lispval stream,lispval pos)
 {
   struct KNO_STREAM *ds=
@@ -309,11 +309,11 @@ static lispval write_4bytes(lispval object,lispval stream,lispval pos)
 }
 
 DEFPRIM3("write-8bytes",write_8bytes,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
- "(WRITE-8BYTES *intval* *stream* [*pos*]) "
- "writes a bigendian 8-byte integer to *stream* at "
- "*pos* (or the current location, if none)",
- kno_any_type,KNO_VOID,kno_stream_type,KNO_VOID,
- kno_any_type,KNO_VOID);
+	 "(WRITE-8BYTES *intval* *stream* [*pos*]) "
+	 "writes a bigendian 8-byte integer to *stream* at "
+	 "*pos* (or the current location, if none)",
+	 kno_any_type,KNO_VOID,kno_stream_type,KNO_VOID,
+	 kno_any_type,KNO_VOID);
 static lispval write_8bytes(lispval object,lispval stream,lispval pos)
 {
   struct KNO_STREAM *ds=
@@ -339,8 +339,8 @@ static lispval write_8bytes(lispval object,lispval stream,lispval pos)
 }
 
 DEFPRIM1("zread-dtype",zread_dtype,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(ZREAD-DTYPE *arg0*)` **undocumented**",
- kno_stream_type,KNO_VOID);
+	 "`(ZREAD-DTYPE *arg0*)` **undocumented**",
+	 kno_stream_type,KNO_VOID);
 static lispval zread_dtype(lispval stream)
 {
   struct KNO_STREAM *ds=
@@ -351,8 +351,8 @@ static lispval zread_dtype(lispval stream)
 }
 
 DEFPRIM2("zwrite-dtype",zwrite_dtype,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
- "`(ZWRITE-DTYPE *arg0* *arg1*)` **undocumented**",
- kno_any_type,KNO_VOID,kno_stream_type,KNO_VOID);
+	 "`(ZWRITE-DTYPE *arg0* *arg1*)` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_stream_type,KNO_VOID);
 static lispval zwrite_dtype(lispval object,lispval stream)
 {
   struct KNO_STREAM *ds=
@@ -363,8 +363,8 @@ static lispval zwrite_dtype(lispval object,lispval stream)
 }
 
 DEFPRIM2("zwrite-dtypes",zwrite_dtypes,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
- "`(ZWRITE-DTYPES *arg0* *arg1*)` **undocumented**",
- kno_any_type,KNO_VOID,kno_stream_type,KNO_VOID);
+	 "`(ZWRITE-DTYPES *arg0* *arg1*)` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_stream_type,KNO_VOID);
 static lispval zwrite_dtypes(lispval object,lispval stream)
 {
   struct KNO_STREAM *ds=
@@ -375,8 +375,8 @@ static lispval zwrite_dtypes(lispval object,lispval stream)
 }
 
 DEFPRIM1("zread-int",zread_int,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(ZREAD-INT *arg0*)` **undocumented**",
- kno_stream_type,KNO_VOID);
+	 "`(ZREAD-INT *arg0*)` **undocumented**",
+	 kno_stream_type,KNO_VOID);
 static lispval zread_int(lispval stream)
 {
   struct KNO_STREAM *ds=
@@ -386,8 +386,8 @@ static lispval zread_int(lispval stream)
 }
 
 DEFPRIM2("zwrite-int",zwrite_int,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
- "`(ZWRITE-INT *arg0* *arg1*)` **undocumented**",
- kno_any_type,KNO_VOID,kno_stream_type,KNO_VOID);
+	 "`(ZWRITE-INT *arg0* *arg1*)` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_stream_type,KNO_VOID);
 static lispval zwrite_int(lispval object,lispval stream)
 {
   struct KNO_STREAM *ds=
@@ -403,9 +403,9 @@ static lispval zwrite_int(lispval object,lispval stream)
 static lispval lisp2zipfile(lispval object,lispval filename,lispval bufsiz);
 
 DEFPRIM3("dtype->file",lisp2file,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
- "`(DTYPE->FILE *arg0* *arg1* [*arg2*])` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
- kno_any_type,KNO_VOID);
+	 "`(DTYPE->FILE *arg0* *arg1* [*arg2*])` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
+	 kno_any_type,KNO_VOID);
 static lispval lisp2file(lispval object,lispval filename,lispval bufsiz)
 {
   if ((STRINGP(filename))&&
@@ -430,8 +430,8 @@ static lispval lisp2file(lispval object,lispval filename,lispval bufsiz)
     int rv = u8_movefile(temp_name,CSTRING(filename));
     if (rv<0) {
       u8_log(LOG_WARN,"MoveFailed",
-             "Couldn't move the completed file into %s, leaving in %s",
-             CSTRING(filename),temp_name);
+	     "Couldn't move the completed file into %s, leaving in %s",
+	     CSTRING(filename),temp_name);
       u8_seterr("MoveFailed","lisp2file",u8_strdup(CSTRING(filename)));
       u8_free(temp_name);
       return KNO_ERROR_VALUE;}
@@ -450,15 +450,15 @@ static lispval lisp2file(lispval object,lispval filename,lispval bufsiz)
       bytes=kno_stream_write(stream,bytes,tmp.buffer);
       kno_close_outbuf(&tmp);
       if (bytes<0)
-        return KNO_ERROR;
+	return KNO_ERROR;
       else return KNO_INT(bytes);}}
   else return kno_type_error(_("string"),"lisp2file",filename);
 }
 
 DEFPRIM3("dtype->zfile",lisp2zipfile,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	     "`(DTYPE->ZFILE *arg0* *arg1* [*arg2*])` **undocumented**",
-	     kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
-	     kno_any_type,KNO_VOID);
+	 "`(DTYPE->ZFILE *arg0* *arg1* [*arg2*])` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
+	 kno_any_type,KNO_VOID);
 static lispval lisp2zipfile(lispval object,lispval filename,lispval bufsiz)
 {
   if (STRINGP(filename)) {
@@ -495,7 +495,7 @@ static lispval lisp2zipfile(lispval object,lispval filename,lispval bufsiz)
       bytes=kno_stream_write(stream,bytes,tmp.buffer);
       kno_close_outbuf(&tmp);
       if (bytes<0)
-        return KNO_ERROR;
+	return KNO_ERROR;
       else return KNO_INT(bytes);}}
   else return kno_type_error(_("string"),"lisp2zipfile",filename);
 }
@@ -519,20 +519,20 @@ static ssize_t write_dtypes(lispval dtypes,struct KNO_STREAM *out)
     DO_CHOICES(dtype,dtypes) {
       ssize_t write_size=0;
       if ( (flushp(tmp)) ) {
-        write_size=kno_stream_write(out,tmp.bufwrite-tmp.buffer,tmp.buffer);
-        tmp.bufwrite=tmp.buffer;}
+	write_size=kno_stream_write(out,tmp.bufwrite-tmp.buffer,tmp.buffer);
+	tmp.bufwrite=tmp.buffer;}
       if (write_size>=0) {
-        ssize_t dtype_size=kno_write_dtype(&tmp,dtype);
-        if (dtype_size<0)
-          write_size=dtype_size;
-        else if (flushp(tmp)) {
-          write_size=kno_stream_write(out,tmp.bufwrite-tmp.buffer,tmp.buffer);
-          tmp.bufwrite=tmp.buffer;}
-        else write_size=dtype_size;}
+	ssize_t dtype_size=kno_write_dtype(&tmp,dtype);
+	if (dtype_size<0)
+	  write_size=dtype_size;
+	else if (flushp(tmp)) {
+	  write_size=kno_stream_write(out,tmp.bufwrite-tmp.buffer,tmp.buffer);
+	  tmp.bufwrite=tmp.buffer;}
+	else write_size=dtype_size;}
       if (write_size<0) {
-        rv=write_size;
-        KNO_STOP_DO_CHOICES;
-        break;}
+	rv=write_size;
+	KNO_STOP_DO_CHOICES;
+	break;}
       else bytes=bytes+write_size;}
     if (tmp.bufwrite > tmp.buffer) {
       ssize_t written = kno_stream_write(out,tmp.bufwrite-tmp.buffer,tmp.buffer);
@@ -547,10 +547,10 @@ static ssize_t write_dtypes(lispval dtypes,struct KNO_STREAM *out)
     if (start>=0) {
       int rv = ftruncate(out->stream_fileno,start);
       if (rv<0) {
-        int got_err = errno; errno=0;
-        u8_log(LOG_WARN,"TruncateFailed",
-               "Couldn't undo write to %s (errno=%d:%s)",
-               out->streamid,got_err,u8_strerror(got_err));}}
+	int got_err = errno; errno=0;
+	u8_log(LOG_WARN,"TruncateFailed",
+	       "Couldn't undo write to %s (errno=%d:%s)",
+	       out->streamid,got_err,u8_strerror(got_err));}}
     return rv;}
   else return bytes;
 }
@@ -558,8 +558,8 @@ static ssize_t write_dtypes(lispval dtypes,struct KNO_STREAM *out)
 static lispval add_lisp2zipfile(lispval object,lispval filename);
 
 DEFPRIM2("dtypes->file+",add_dtypes2file,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
- "`(DTYPES->FILE+ *arg0* *arg1*)` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(DTYPES->FILE+ *arg0* *arg1*)` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval add_dtypes2file(lispval object,lispval filename)
 {
   if ((STRINGP(filename))&&
@@ -590,8 +590,8 @@ static lispval add_dtypes2file(lispval object,lispval filename)
 }
 
 DEFPRIM2("dtype->zfile+",add_lisp2zipfile,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
- "`(DTYPE->ZFILE+ *arg0* *arg1*)` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(DTYPE->ZFILE+ *arg0* *arg1*)` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval add_lisp2zipfile(lispval object,lispval filename)
 {
   if (STRINGP(filename)) {
@@ -624,8 +624,8 @@ static lispval add_lisp2zipfile(lispval object,lispval filename)
 static lispval zipfile2dtype(lispval filename);
 
 DEFPRIM1("file->dtype",file2dtype,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(FILE->DTYPE *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(FILE->DTYPE *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval file2dtype(lispval filename)
 {
   if (STRINGP(filename))
@@ -640,8 +640,8 @@ static lispval file2dtype(lispval filename)
 }
 
 DEFPRIM1("zfile->dtype",zipfile2dtype,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(ZFILE->DTYPE *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(ZFILE->DTYPE *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval zipfile2dtype(lispval filename)
 {
   if (STRINGP(filename)) {
@@ -665,8 +665,8 @@ static lispval zipfile2dtype(lispval filename)
 static lispval zipfile2dtypes(lispval filename);
 
 DEFPRIM1("file->dtypes",file2dtypes,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(FILE->DTYPES *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(FILE->DTYPES *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval file2dtypes(lispval filename)
 {
   if ((STRINGP(filename))&&
@@ -676,8 +676,8 @@ static lispval file2dtypes(lispval filename)
   else if (STRINGP(filename)) {
     struct KNO_STREAM _in, *in =
       kno_init_file_stream(&_in,CSTRING(filename),KNO_FILE_READ,
-                          ( (KNO_USE_MMAP) ? (KNO_STREAM_MMAPPED) : (0)),
-                          ( (KNO_USE_MMAP) ? (0) : (kno_filestream_bufsize)));
+			   ( (KNO_USE_MMAP) ? (KNO_STREAM_MMAPPED) : (0)),
+			   ( (KNO_USE_MMAP) ? (0) : (kno_filestream_bufsize)));
     lispval results = EMPTY, object = VOID;
     if (in == NULL)
       return KNO_ERROR;
@@ -685,20 +685,20 @@ static lispval file2dtypes(lispval filename)
       kno_inbuf inbuf = kno_readbuf(in);
       object = kno_read_dtype(inbuf);
       while (!(KNO_EODP(object))) {
-        if (KNO_ABORTP(object)) {
-          kno_decref(results);
-          kno_close_stream(in,KNO_STREAM_FREEDATA);
-          return object;}
-        CHOICE_ADD(results,object);
-        object = kno_read_dtype(inbuf);}
+	if (KNO_ABORTP(object)) {
+	  kno_decref(results);
+	  kno_close_stream(in,KNO_STREAM_FREEDATA);
+	  return object;}
+	CHOICE_ADD(results,object);
+	object = kno_read_dtype(inbuf);}
       kno_close_stream(in,KNO_STREAM_FREEDATA);
       return results;}}
   else return kno_type_error(_("string"),"file2dtypes",filename);
 }
 
 DEFPRIM1("zfile->dtypes",zipfile2dtypes,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(ZFILE->DTYPES *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(ZFILE->DTYPES *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval zipfile2dtypes(lispval filename)
 {
   if (STRINGP(filename)) {
@@ -710,16 +710,16 @@ static lispval zipfile2dtypes(lispval filename)
       kno_inbuf inbuf = kno_readbuf(in);
       object = kno_zread_dtype(inbuf);
       while (!(KNO_EODP(object))) {
-        CHOICE_ADD(results,object);
-        object = kno_zread_dtype(inbuf);}
+	CHOICE_ADD(results,object);
+	object = kno_zread_dtype(inbuf);}
       kno_close_stream(in,KNO_STREAM_CLOSE_FULL);
       return results;}}
   else return kno_type_error(_("string"),"zipfile2dtypes",filename);;
 }
 
 DEFPRIM2("open-dtype-output",open_dtype_output_file,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "`(OPEN-DTYPE-OUTPUT *arg0* [*arg1*])` **undocumented**",
- kno_string_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(OPEN-DTYPE-OUTPUT *arg0* [*arg1*])` **undocumented**",
+	 kno_string_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval open_dtype_output_file(lispval fname,lispval opts)
 {
   u8_string filename = CSTRING(fname);
@@ -739,8 +739,8 @@ static lispval open_dtype_output_file(lispval fname,lispval opts)
 }
 
 DEFPRIM2("open-dtype-input",open_dtype_input_file,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "`(OPEN-DTYPE-INPUT *arg0* [*arg1*])` **undocumented**",
- kno_string_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(OPEN-DTYPE-INPUT *arg0* [*arg1*])` **undocumented**",
+	 kno_string_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval open_dtype_input_file(lispval fname,lispval opts)
 {
   u8_string filename = CSTRING(fname);
@@ -751,15 +751,15 @@ static lispval open_dtype_input_file(lispval fname,lispval opts)
     struct KNO_STREAM *stream = kno_open_file(filename,KNO_STREAM_READ_ONLY);
     if (stream) {
       if ( (KNO_CONSP(opts)) && (kno_testopt(opts,fixsyms_symbol,VOID)) ) {
-        stream->stream_flags |= KNO_STREAM_LOUDSYMS;}
+	stream->stream_flags |= KNO_STREAM_LOUDSYMS;}
       U8_CLEAR_ERRNO();
       return (lispval) stream;}
     else return KNO_ERROR_VALUE;}
 }
 
 DEFPRIM1("extend-dtype-file",extend_dtype_file,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(EXTEND-DTYPE-FILE *arg0*)` **undocumented**",
- kno_string_type,KNO_VOID);
+	 "`(EXTEND-DTYPE-FILE *arg0*)` **undocumented**",
+	 kno_string_type,KNO_VOID);
 static lispval extend_dtype_file(lispval fname)
 {
   u8_string filename = CSTRING(fname);
@@ -775,8 +775,8 @@ static lispval extend_dtype_file(lispval fname)
 }
 
 DEFPRIM1("dtype-stream?",streamp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(DTYPE-STREAM? *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(DTYPE-STREAM? *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval streamp(lispval arg)
 {
   if (TYPEP(arg,kno_stream_type))
@@ -785,8 +785,8 @@ static lispval streamp(lispval arg)
 }
 
 DEFPRIM1("dtype-input?",dtype_inputp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(DTYPE-INPUT? *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(DTYPE-INPUT? *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval dtype_inputp(lispval arg)
 {
   if (TYPEP(arg,kno_stream_type)) {
@@ -798,8 +798,8 @@ static lispval dtype_inputp(lispval arg)
 }
 
 DEFPRIM1("dtype-output?",dtype_outputp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(DTYPE-OUTPUT? *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(DTYPE-OUTPUT? *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval dtype_outputp(lispval arg)
 {
   if (TYPEP(arg,kno_stream_type)) {
@@ -813,9 +813,9 @@ static lispval dtype_outputp(lispval arg)
 /* Streampos prim */
 
 DEFPRIM2("streampos",streampos_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "(STREAMPOS *stream* [*setpos*]) "
- "gets or sets the position of *stream*",
- kno_stream_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "(STREAMPOS *stream* [*setpos*]) "
+	 "gets or sets the position of *stream*",
+	 kno_stream_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval streampos_prim(lispval stream_arg,lispval pos)
 {
   struct KNO_STREAM *stream = (kno_stream)stream_arg;
@@ -828,29 +828,29 @@ static lispval streampos_prim(lispval stream_arg,lispval pos)
     if (intval<0) {
       kno_off_t target = maxpos-(intval+1);
       if ((target>=0)&&(target<maxpos)) {
-        kno_off_t result = kno_setpos(stream,target);
-        if (result<0) return KNO_ERROR;
-        else return KNO_INT(result);}
+	kno_off_t result = kno_setpos(stream,target);
+	if (result<0) return KNO_ERROR;
+	else return KNO_INT(result);}
       else {
-        kno_seterr(_("Out of file range"),"streampos_prim",stream->streamid,pos);
-        return KNO_ERROR;}}
+	kno_seterr(_("Out of file range"),"streampos_prim",stream->streamid,pos);
+	return KNO_ERROR;}}
     else if (intval<maxpos) {
       kno_off_t result = kno_setpos(stream,intval);
       if (result<0) return KNO_ERROR;
       else return KNO_INT(result);}
     else {
-        kno_seterr(_("Out of file range"),"streampos_prim",stream->streamid,pos);
-        return KNO_ERROR;}}
+      kno_seterr(_("Out of file range"),"streampos_prim",stream->streamid,pos);
+      return KNO_ERROR;}}
   else return kno_type_error("stream position","streampos_prim",pos);
 }
 
 /* Truncate prim */
 
 DEFPRIM2("ftruncate",ftruncate_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
- "(FTRUNCATE *nameorstream* *newsize*) "
- "truncates a file (name or stream) to a particular "
- "length",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "(FTRUNCATE *nameorstream* *newsize*) "
+	 "truncates a file (name or stream) to a particular "
+	 "length",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval ftruncate_prim(lispval arg,lispval offset)
 {
   off_t new_len = -1;
@@ -859,7 +859,7 @@ static lispval ftruncate_prim(lispval arg,lispval offset)
   else if (kno_numcompare(offset,KNO_FIXZERO)<0)
     return kno_type_error("positive integer","ftruncate_prim",offset);
   else if ( (KNO_BIGINTP(new_len)) &&
-            ( ! (kno_bigint_fits_in_word_p((kno_bigint)arg,sizeof(new_len),1)) ) )
+	    ( ! (kno_bigint_fits_in_word_p((kno_bigint)arg,sizeof(new_len),1)) ) )
     return kno_type_error("file size","ftruncate_prim",offset);
   else new_len = kno_getint64(arg);
   if (KNO_STRINGP(arg)) {
@@ -885,16 +885,16 @@ static lispval ftruncate_prim(lispval arg,lispval offset)
       if (old_pos > new_len) kno_setpos(s,new_len);
       int rv = ftruncate(fd,new_len);
       if (rv<0) {
-        u8_graberr(errno,"ftruncate_prim",u8_strdup(KNO_CSTRING(arg)));
-        kno_setpos(s,old_pos);
-        kno_unlock_stream(s);
-        return KNO_ERROR_VALUE;}
+	u8_graberr(errno,"ftruncate_prim",u8_strdup(KNO_CSTRING(arg)));
+	kno_setpos(s,old_pos);
+	kno_unlock_stream(s);
+	return KNO_ERROR_VALUE;}
       else {
-        s->stream_maxpos=new_len;
-        if (s->stream_flags & KNO_STREAM_MMAPPED)
-          kno_reopen_file_stream(s,-1,-1);
-        kno_unlock_stream(s);
-        return offset;}}}
+	s->stream_maxpos=new_len;
+	if (s->stream_flags & KNO_STREAM_MMAPPED)
+	  kno_reopen_file_stream(s,-1,-1);
+	kno_unlock_stream(s);
+	return offset;}}}
   else return kno_type_error("Filename or stream","ftruncate_prim",arg);
 }
 

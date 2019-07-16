@@ -46,8 +46,8 @@ static lispval znumerr(u8_context cxt,int zerrno,u8_string path)
   u8_byte buf[1024];
   zip_error_to_str(buf,1024,errno,zerrno);
   return kno_err(ZipFileError,cxt,
-                u8_mkstring("(%s) %s",path,buf),
-                KNO_VOID);
+		 u8_mkstring("(%s) %s",path,buf),
+		 KNO_VOID);
 }
 
 static lispval ziperr(u8_context cxt,kno_zipfile zf,lispval irritant)
@@ -59,7 +59,7 @@ static lispval ziperr(u8_context cxt,kno_zipfile zf,lispval irritant)
 }
 
 static lispval zfilerr(u8_context cxt,kno_zipfile zf,struct zip_file *zfile,
-                      lispval irritant)
+		       lispval irritant)
 {
   u8_string details=
     u8_mkstring("(%s) %s",zf->filename,zip_file_strerror(zfile));
@@ -83,7 +83,7 @@ static int unparse_zipfile(struct U8_OUTPUT *out,lispval x)
 {
   struct KNO_ZIPFILE *zf = (struct KNO_ZIPFILE *)x;
   u8_printf(out,"#<ZIPFILE '%s'%s>",
-            zf->filename,((zf->closed)?(" closed"):""));
+	    zf->filename,((zf->closed)?(" closed"):""));
   return 1;
 }
 
@@ -109,8 +109,8 @@ static lispval zipreopen(struct KNO_ZIPFILE *zf,int locked)
 }
 
 DEFPRIM1("zipfile?",iszipfile_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-             "`(ZIPFILE? *arg0*)` **undocumented**",
-             kno_any_type,KNO_VOID);
+	 "`(ZIPFILE? *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval iszipfile_prim(lispval arg)
 {
   if (KNO_TYPEP(arg,kno_zipfile_type)) return KNO_TRUE;
@@ -142,8 +142,8 @@ static lispval zipopen(u8_string path,int zflags,int oflags)
       return znumerr("open_zipfile",errflag,abspath);}}
 }
 DEFPRIM2("zip/open",zipopen_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-             "`(ZIP/OPEN *arg0* [*arg1*])` **undocumented**",
-             kno_string_type,KNO_VOID,kno_any_type,KNO_FALSE);
+	 "`(ZIP/OPEN *arg0* [*arg1*])` **undocumented**",
+	 kno_string_type,KNO_VOID,kno_any_type,KNO_FALSE);
 static lispval zipopen_prim(lispval filename,lispval create)
 {
   if ((KNO_FALSEP(create))||(KNO_VOIDP(create)))
@@ -151,15 +151,15 @@ static lispval zipopen_prim(lispval filename,lispval create)
   else return zipopen(KNO_CSTRING(filename),ZIP_CHECKCONS,ZIP_CREATE);
 }
 DEFPRIM1("zip/make",zipmake_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-             "`(ZIP/MAKE *arg0*)` **undocumented**",
-             kno_string_type,KNO_VOID);
+	 "`(ZIP/MAKE *arg0*)` **undocumented**",
+	 kno_string_type,KNO_VOID);
 static lispval zipmake_prim(lispval filename)
 {
   return zipopen(KNO_CSTRING(filename),0,ZIP_CREATE|ZIP_EXCL);
 }
 
 DEFPRIM("zip/filename",zipfilename_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-            "`(ZIP/FILENAME *arg0*)` **undocumented**");
+	"`(ZIP/FILENAME *arg0*)` **undocumented**");
 static lispval zipfilename_prim(lispval zipfile)
 {
   struct KNO_ZIPFILE *zf = kno_consptr(kno_zipfile,zipfile,kno_zipfile_type);
@@ -167,7 +167,7 @@ static lispval zipfilename_prim(lispval zipfile)
 }
 
 DEFPRIM("zip/close!",close_zipfile,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-            "`(ZIP/CLOSE! *arg0*)` **undocumented**");
+	"`(ZIP/CLOSE! *arg0*)` **undocumented**");
 static lispval close_zipfile(lispval zipfile)
 {
   struct KNO_ZIPFILE *zf = kno_consptr(kno_zipfile,zipfile,kno_zipfile_type);
@@ -187,7 +187,7 @@ static lispval close_zipfile(lispval zipfile)
 }
 
 DEFPRIM("zip/open?",zipfile_openp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-            "`(ZIP/OPEN? *arg0*)` **undocumented**");
+	"`(ZIP/OPEN? *arg0*)` **undocumented**");
 static lispval zipfile_openp(lispval zipfile)
 {
   struct KNO_ZIPFILE *zf = kno_consptr(kno_zipfile,zipfile,kno_zipfile_type);
@@ -198,7 +198,7 @@ static lispval zipfile_openp(lispval zipfile)
 /* Adding to zip files */
 
 static long long int zipadd
-  (struct KNO_ZIPFILE *zf,u8_string name,struct zip_source *zsource)
+(struct KNO_ZIPFILE *zf,u8_string name,struct zip_source *zsource)
 {
   long long int index = zip_name_locate(zf->zip,name,0), retval = -1;
   if (index<0) retval = index = zip_add(zf->zip,name,zsource);
@@ -208,9 +208,9 @@ static long long int zipadd
 }
 
 DEFPRIM("zip/add!",zipadd_prim,KNO_MAX_ARGS(5)|KNO_MIN_ARGS(3),
-            "`(ZIP/ADD! *arg0* *arg1* *arg2* [*arg3*] [*arg4*])` **undocumented**");
+	"`(ZIP/ADD! *arg0* *arg1* *arg2* [*arg3*] [*arg4*])` **undocumented**");
 static lispval zipadd_prim(lispval zipfile,lispval filename,lispval value,
-                          lispval comment,lispval compress)
+			   lispval comment,lispval compress)
 {
   struct KNO_ZIPFILE *zf = kno_consptr(kno_zipfile,zipfile,kno_zipfile_type);
   u8_string fname = KNO_CSTRING(filename);
@@ -245,23 +245,23 @@ static lispval zipadd_prim(lispval zipfile,lispval filename,lispval value,
     int retval = -1;
     if (KNO_STRINGP(comment))
       retval = zip_set_file_comment
-        (zf->zip,index,KNO_CSTRING(comment),KNO_STRLEN(comment));
+	(zf->zip,index,KNO_CSTRING(comment),KNO_STRLEN(comment));
     else if (KNO_PACKETP(comment))
       retval = zip_set_file_comment
-        (zf->zip,index,KNO_PACKET_DATA(comment),
-         KNO_PACKET_LENGTH(comment));
+	(zf->zip,index,KNO_PACKET_DATA(comment),
+	 KNO_PACKET_LENGTH(comment));
     else {
       struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,128);
       kno_unparse(&out,comment);
       retval = zip_set_file_comment(zf->zip,index,out.u8_outbuf,
-                                  out.u8_write-out.u8_outbuf);}
+				    out.u8_write-out.u8_outbuf);}
     if (retval<0) {
       u8_unlock_mutex(&(zf->zipfile_lock));
       return ziperr("zipadd/comment",zf,(lispval)zf);}}
 #else
   if (!(KNO_FALSEP(comment))) {
     u8_log(LOG_WARNING,"zipadd/comment",
-           "available libzip doesn't support comment fields");}
+	   "available libzip doesn't support comment fields");}
 #endif
 #if (HAVE_ZIP_SET_FILE_COMPRESSION)
   if (KNO_FALSEP(compress)) {
@@ -272,14 +272,14 @@ static lispval zipadd_prim(lispval zipfile,lispval filename,lispval value,
 #else
   if (KNO_FALSEP(compress)) {
     u8_log(LOG_WARNING,"zipadd/compress",
-           "available libzip doesn't support uncompressed fields");}
+	   "available libzip doesn't support uncompressed fields");}
 #endif
   u8_unlock_mutex(&(zf->zipfile_lock));
   return KNO_INT(index);
 }
 
 DEFPRIM("zip/drop!",zipdrop_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-            "`(ZIP/DROP! *arg0* *arg1*)` **undocumented**");
+	"`(ZIP/DROP! *arg0* *arg1*)` **undocumented**");
 static lispval zipdrop_prim(lispval zipfile,lispval filename)
 {
   struct KNO_ZIPFILE *zf = kno_consptr(kno_zipfile,zipfile,kno_zipfile_type);
@@ -316,7 +316,7 @@ static int istext(u8_byte *buf,int size)
 }
 
 DEFPRIM("zip/get",zipget_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-            "`(ZIP/GET *arg0* *arg1* [*arg2*])` **undocumented**");
+	"`(ZIP/GET *arg0* *arg1* [*arg2*])` **undocumented**");
 static lispval zipget_prim(lispval zipfile,lispval filename,lispval isbinary)
 {
   struct KNO_ZIPFILE *zf = kno_consptr(kno_zipfile,zipfile,kno_zipfile_type);
@@ -354,7 +354,7 @@ static lispval zipget_prim(lispval zipfile,lispval filename,lispval isbinary)
     buf[zstat.size]='\0';
     if (KNO_VOIDP(isbinary)) {
       if (istext(buf,size))
-        return kno_init_string(NULL,size,buf);
+	return kno_init_string(NULL,size,buf);
       else return kno_init_packet(NULL,size,buf);}
     else if (KNO_TRUEP(isbinary))
       return kno_init_packet(NULL,size,buf);
@@ -365,7 +365,7 @@ static lispval zipget_prim(lispval zipfile,lispval filename,lispval isbinary)
 }
 
 DEFPRIM("zip/exists?",zipexists_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-            "`(ZIP/EXISTS? *arg0* *arg1*)` **undocumented**");
+	"`(ZIP/EXISTS? *arg0* *arg1*)` **undocumented**");
 static lispval zipexists_prim(lispval zipfile,lispval filename)
 {
   struct KNO_ZIPFILE *zf = kno_consptr(kno_zipfile,zipfile,kno_zipfile_type);
@@ -387,7 +387,7 @@ static lispval zipexists_prim(lispval zipfile,lispval filename)
 }
 
 DEFPRIM("zip/modtime",zipmodtime_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-             "`(ZIP/MODTIME *arg0* *arg1*)` **undocumented**");
+	"`(ZIP/MODTIME *arg0* *arg1*)` **undocumented**");
 static lispval zipmodtime_prim(lispval zipfile,lispval filename)
 {
   struct KNO_ZIPFILE *zf = kno_consptr(kno_zipfile,zipfile,kno_zipfile_type);
@@ -416,7 +416,7 @@ static lispval zipmodtime_prim(lispval zipfile,lispval filename)
 }
 
 DEFPRIM("zip/getsize",zipgetsize_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-            "`(ZIP/GETSIZE *arg0* *arg1*)` **undocumented**");
+	"`(ZIP/GETSIZE *arg0* *arg1*)` **undocumented**");
 static lispval zipgetsize_prim(lispval zipfile,lispval filename)
 {
   struct KNO_ZIPFILE *zf = kno_consptr(kno_zipfile,zipfile,kno_zipfile_type);
@@ -445,7 +445,7 @@ static lispval zipgetsize_prim(lispval zipfile,lispval filename)
 }
 
 DEFPRIM("zip/getfiles",zipgetfiles_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-            "`(ZIP/GETFILES *arg0*)` **undocumented**");
+	"`(ZIP/GETFILES *arg0*)` **undocumented**");
 static lispval zipgetfiles_prim(lispval zipfile)
 {
   struct KNO_ZIPFILE *zf = kno_consptr(kno_zipfile,zipfile,kno_zipfile_type);
@@ -462,15 +462,15 @@ static lispval zipgetfiles_prim(lispval zipfile)
       u8_string name = (u8_string)zip_get_name(zf->zip,i,0);
       if (!(name)) i++;
       else {
-        lispval lname = kno_mkstring(name);
-        KNO_ADD_TO_CHOICE(files,lname);
-        i++;}}
+	lispval lname = kno_mkstring(name);
+	KNO_ADD_TO_CHOICE(files,lname);
+	i++;}}
     u8_unlock_mutex(&(zf->zipfile_lock));
     return files;}
 }
 
 DEFPRIM("zip/features",zipfeatures_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
- "`(ZIP/FEATURES)` **undocumented**");
+	"`(ZIP/FEATURES)` **undocumented**");
 static lispval zipfeatures_prim()
 {
   lispval result = KNO_EMPTY_CHOICE;
@@ -497,7 +497,7 @@ static lispval ziptools_module;
 KNO_EXPORT int kno_init_ziptools()
 {
   if (ziptools_init) return 0;
-  
+
   ziptools_init = u8_millitime();
   ziptools_module =
     kno_new_cmodule("ziptools",0,kno_init_ziptools);
@@ -525,32 +525,32 @@ static void init_local_cprims()
   KNO_LINK_PRIM("zipfile?",iszipfile_prim,1,ziptools_module);
 
   KNO_LINK_TYPED("zip/open?",zipfile_openp,1,ziptools_module,
-                 kno_zipfile_type,KNO_VOID);
+		 kno_zipfile_type,KNO_VOID);
 
   KNO_LINK_TYPED("zip/add!",zipadd_prim,5,ziptools_module,
-                 kno_zipfile_type,KNO_VOID,kno_string_type,KNO_VOID,
-                 kno_any_type,KNO_VOID,kno_any_type,KNO_FALSE,
-                 kno_any_type,KNO_TRUE);
+		 kno_zipfile_type,KNO_VOID,kno_string_type,KNO_VOID,
+		 kno_any_type,KNO_VOID,kno_any_type,KNO_FALSE,
+		 kno_any_type,KNO_TRUE);
 
   KNO_LINK_TYPED("zip/drop!",zipdrop_prim,2,ziptools_module,
-                 kno_zipfile_type,KNO_VOID,kno_string_type,KNO_VOID);
+		 kno_zipfile_type,KNO_VOID,kno_string_type,KNO_VOID);
   KNO_LINK_TYPED("zip/get",zipget_prim,3,ziptools_module,
-                 kno_zipfile_type,KNO_VOID,
-                 kno_string_type,KNO_VOID,
-                 kno_any_type,KNO_VOID);
+		 kno_zipfile_type,KNO_VOID,
+		 kno_string_type,KNO_VOID,
+		 kno_any_type,KNO_VOID);
 
   KNO_LINK_TYPED("zip/filename",zipfilename_prim,1,ziptools_module,
-                 kno_zipfile_type,KNO_VOID);
+		 kno_zipfile_type,KNO_VOID);
   KNO_LINK_TYPED("zip/getfiles",zipgetfiles_prim,1,ziptools_module,
-                 kno_zipfile_type,KNO_VOID);
+		 kno_zipfile_type,KNO_VOID);
   KNO_LINK_TYPED("zip/getsize",zipgetsize_prim,2,ziptools_module,
-                 kno_zipfile_type,KNO_VOID,kno_string_type,KNO_VOID);
+		 kno_zipfile_type,KNO_VOID,kno_string_type,KNO_VOID);
   KNO_LINK_TYPED("zip/modtime",zipmodtime_prim,2,ziptools_module,
-                 kno_zipfile_type,KNO_VOID,kno_string_type,KNO_VOID);
+		 kno_zipfile_type,KNO_VOID,kno_string_type,KNO_VOID);
   KNO_LINK_TYPED("zip/exists?",zipexists_prim,2,ziptools_module,
-                 kno_zipfile_type,KNO_VOID,kno_string_type,KNO_VOID);
+		 kno_zipfile_type,KNO_VOID,kno_string_type,KNO_VOID);
   KNO_LINK_TYPED("zip/close!",close_zipfile,1,ziptools_module,
-                 kno_zipfile_type,KNO_VOID);
+		 kno_zipfile_type,KNO_VOID);
 
   KNO_LINK_ALIAS("zip/close",close_zipfile,ziptools_module);
   KNO_LINK_ALIAS("zip/commit!",close_zipfile,ziptools_module);

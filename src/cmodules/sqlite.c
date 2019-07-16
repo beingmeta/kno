@@ -106,9 +106,9 @@ static lispval execok_symbol, privatecache_symbol, vfs_symbol;
 static int open_knosqlite(struct KNO_SQLITE *knosqlptr)
 {
   u8_log(LOG_WARN,"open_knosqlite",
-         "Opening SQLite database %s info=%s, filename=%s",
-         knosqlptr->sqldb_spec,knosqlptr->sqldb_info,
-         knosqlptr->sqlitefile);
+	 "Opening SQLite database %s info=%s, filename=%s",
+	 knosqlptr->sqldb_spec,knosqlptr->sqldb_info,
+	 knosqlptr->sqlitefile);
   u8_lock_mutex(&(knosqlptr->sqlite_lock));
   if (knosqlptr->sqlitedb) {
     u8_unlock_mutex(&(knosqlptr->sqlite_lock));
@@ -119,14 +119,14 @@ static int open_knosqlite(struct KNO_SQLITE *knosqlptr)
     int flags = getv2flags(knosqlptr->sqldb_options,knosqlptr->sqlitefile);
     if (flags<0) return flags;
     retval = sqlite3_open_v2(knosqlptr->sqlitefile,&db,flags,
-                             knosqlptr->sqlitevfs);
+			     knosqlptr->sqlitevfs);
 #else
     retval = sqlite3_open(knosqlptr->sqlitefile,&db);
 #endif
     if (retval) {
       u8_string msg = u8_strdup(sqlite3_errmsg(db));
       kno_seterr(SQLiteError,"open_sqlite",msg,
-                 kno_mkstring(knosqlptr->sqlitefile));
+		 kno_mkstring(knosqlptr->sqlitefile));
       if (db) {closedb(db); knosqlptr->sqlitedb = NULL;}
       u8_unlock_mutex(&(knosqlptr->sqlite_lock));
       U8_CLEAR_ERRNO();
@@ -136,20 +136,20 @@ static int open_knosqlite(struct KNO_SQLITE *knosqlptr)
       struct KNO_SQLPROC **scan = knosqlptr->sqlprocs;
       struct KNO_SQLPROC **limit = scan+knosqlptr->sqldb_n_procs;
       while (scan<limit) {
-        struct KNO_SQLPROC *edbp = *scan++;
-        struct KNO_SQLITE_PROC *sp = (struct KNO_SQLITE_PROC *)edbp;
-        int retval = open_knosqliteproc(knosqlptr,sp);
-        if (retval)
-          u8_log(LOG_CRIT,"sqlite_opendb","Error '%s' updating query '%s'",
-                 sqlite3_errmsg(db),sp->sqldb_qtext);}}
+	struct KNO_SQLPROC *edbp = *scan++;
+	struct KNO_SQLITE_PROC *sp = (struct KNO_SQLITE_PROC *)edbp;
+	int retval = open_knosqliteproc(knosqlptr,sp);
+	if (retval)
+	  u8_log(LOG_CRIT,"sqlite_opendb","Error '%s' updating query '%s'",
+		 sqlite3_errmsg(db),sp->sqldb_qtext);}}
     u8_unlock_mutex(&(knosqlptr->sqlite_lock));
     return 1;}
 }
 
 DEFPRIM3("sqlite/open",sqlite_open_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
-             "`(SQLITE/OPEN *arg0* [*arg1*] [*arg2*])` **undocumented**",
-             kno_string_type,KNO_VOID,kno_any_type,KNO_VOID,
-             kno_any_type,KNO_VOID);
+	 "`(SQLITE/OPEN *arg0* [*arg1*] [*arg2*])` **undocumented**",
+	 kno_string_type,KNO_VOID,kno_any_type,KNO_VOID,
+	 kno_any_type,KNO_VOID);
 static lispval sqlite_open_prim(lispval filename,lispval colinfo,lispval options)
 {
   struct KNO_SQLITE *sqlcons; int retval;
@@ -172,17 +172,17 @@ static lispval sqlite_open_prim(lispval filename,lispval colinfo,lispval options
 
   if (sharedcache)
     u8_log(LOG_WARN,"sqlite_open",
-           "the sqlite3_open_v2 shared cache option is not available");
+	   "the sqlite3_open_v2 shared cache option is not available");
   if (privcache)
     u8_log(LOG_WARN,"sqlite_open",
-           "the sqlite3_open_v2 private cache option is not available");
+	   "the sqlite3_open_v2 private cache option is not available");
   if ((!(readcreate))&&(!(u8_file_existsp(KNO_CSTRING(filename))))) {
     u8_seterr(kno_NoSuchFile,"opensqlite",u8_strdup(KNO_CSTRING(filename)));
     return KNO_ERROR_VALUE;}
 
   if (vfs)
     u8_log(LOG_WARN,"sqlite_open",
-           "the sqlite3_open_v2 vfs methods are not available");
+	   "the sqlite3_open_v2 vfs methods are not available");
 #endif
 
   sqlcons = u8_alloc(struct KNO_SQLITE);
@@ -207,8 +207,8 @@ static lispval sqlite_open_prim(lispval filename,lispval colinfo,lispval options
 }
 
 DEFPRIM1("sqlite/reopen",sqlite_reopen_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-             "`(SQLITE/REOPEN *arg0*)` **undocumented**",
-             kno_sqldb_type,KNO_VOID);
+	 "`(SQLITE/REOPEN *arg0*)` **undocumented**",
+	 kno_sqldb_type,KNO_VOID);
 static lispval sqlite_reopen_prim(lispval db)
 {
   struct KNO_SQLDB *sqldb = kno_consptr(struct KNO_SQLDB *,db,kno_sqldb_type);
@@ -235,8 +235,8 @@ static void close_knosqlite(struct KNO_SQLITE *dbp,int lock)
 }
 
 DEFPRIM1("sqlite/close",sqlite_close_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-             "`(SQLITE/CLOSE *arg0*)` **undocumented**",
-             kno_sqldb_type,KNO_VOID);
+	 "`(SQLITE/CLOSE *arg0*)` **undocumented**",
+	 kno_sqldb_type,KNO_VOID);
 static lispval sqlite_close_prim(lispval db)
 {
   struct KNO_SQLDB *sqldb = kno_consptr(struct KNO_SQLDB *,db,kno_sqldb_type);
@@ -312,7 +312,7 @@ static lispval sqliteexec(struct KNO_SQLITE *knos,lispval string,lispval colinfo
     if (KNO_ABORTP(values)) {
       errmsg = sqlite3_errmsg(dbp);
       kno_seterr(SQLiteError,"knosqlite_call",
-                 errmsg,kno_incref(string));}
+		 errmsg,kno_incref(string));}
     sqlite3_finalize(stmt);
     u8_unlock_mutex(&(knos->sqlite_lock));
     return values;}
@@ -326,20 +326,20 @@ static lispval sqliteexec(struct KNO_SQLITE *knos,lispval string,lispval colinfo
 }
 
 static lispval sqliteexechandler(struct KNO_SQLDB *sqldb,lispval string,
-                                 lispval colinfo)
+				 lispval colinfo)
 {
   if (sqldb->sqldb_handler== &sqlite_handler) {
     struct KNO_SQLITE *sdb = (struct KNO_SQLITE *)sqldb;
     if (!(sdb->sqlitedb)) {
       u8_unlock_mutex(&(sdb->sqlite_lock));
       if (sqldb->sqldb_spec!=sqldb->sqldb_info)
-        u8_log(LOG_WARN,"SQLITE/REOPEN","Reopening %s (%s)",
-               sqldb->sqldb_spec,sqldb->sqldb_info);
+	u8_log(LOG_WARN,"SQLITE/REOPEN","Reopening %s (%s)",
+	       sqldb->sqldb_spec,sqldb->sqldb_info);
       else u8_log(LOG_WARN,"SQLITE/REOPEN","Reopening %s",
-                  sqldb->sqldb_spec);
+		  sqldb->sqldb_spec);
       open_knosqlite(sdb);
       if (!(sdb->sqlitedb))
-        return KNO_ERROR_VALUE;}
+	return KNO_ERROR_VALUE;}
     u8_unlock_mutex(&(sdb->sqlite_lock));
     return sqliteexec(sdb,string,colinfo);}
   else return kno_type_error("SQLITE SQLDB","sqliteexechandler",(lispval)sqldb);
@@ -361,10 +361,10 @@ static lispval sqlitemakeproc
     if (!(dbp->sqlitedb)) {
       u8_unlock_mutex(&(dbp->sqlite_lock));
       if (dbp->sqldb_spec!=dbp->sqldb_info)
-        u8_log(LOG_WARN,"SQLITE/REOPEN","Reopening %s (%s)",
-               dbp->sqldb_spec,dbp->sqldb_info);
+	u8_log(LOG_WARN,"SQLITE/REOPEN","Reopening %s (%s)",
+	       dbp->sqldb_spec,dbp->sqldb_info);
       else u8_log(LOG_WARN,"SQLITE/REOPEN","Reopening %s",
-                  dbp->sqldb_spec);
+		  dbp->sqldb_spec);
       open_knosqlite(dbp);
       if (!(dbp->sqlitedb)) return KNO_ERROR_VALUE;}
     u8_unlock_mutex(&(dbp->sqlite_lock));
@@ -374,7 +374,7 @@ static lispval sqlitemakeproc
     lispval dbptr = (lispval)dbp;
     const char *errmsg = sqlite3_errmsg(db);
     kno_seterr(SQLiteError,"knosqlite_call",
-               errmsg,kno_incref(dbptr));
+	       errmsg,kno_incref(dbptr));
     return KNO_ERROR_VALUE;}
   else sqlcons = u8_alloc(struct KNO_SQLITE_PROC);
   KNO_INIT_FRESH_CONS(sqlcons,kno_sqlproc_type);
@@ -411,7 +411,7 @@ static lispval merge_colinfo(KNO_SQLITE *dbp,lispval colinfo)
   else if (colinfo == dbp->sqldb_colinfo)
     return kno_incref(colinfo);
   else if ((KNO_PAIRP(colinfo))&&
-           ((KNO_CDR(colinfo)) == (dbp->sqldb_colinfo)))
+	   ((KNO_CDR(colinfo)) == (dbp->sqldb_colinfo)))
     return kno_incref(colinfo);
   else {
     kno_incref(dbp->sqldb_colinfo);
@@ -426,7 +426,7 @@ static lispval sqlitemakeprochandler
   if (sqldb->sqldb_handler== &sqlite_handler)
     return sqlitemakeproc((kno_sqlite)sqldb,sql,sql_len,colinfo,n,ptypes);
   else return kno_type_error
-         ("SQLITE SQLDB","sqlitemakeprochandler",(lispval)sqldb);
+	 ("SQLITE SQLDB","sqlitemakeprochandler",(lispval)sqldb);
 }
 
 static int open_knosqliteproc(struct KNO_SQLITE *knosqlptr,struct KNO_SQLITE_PROC *knop)
@@ -480,24 +480,24 @@ static lispval sqlitecallproc(struct KNO_FUNCTION *fn,int n,lispval *args)
   if (!(knos->sqlitedb)) {
     if (knos->sqldb_spec!=knos->sqldb_info)
       u8_log(LOG_WARN,"SQLITE/REOPEN","Reopening %s (%s) for '%s'",
-             knos->sqldb_spec,knos->sqldb_info,dbproc->sqldb_qtext);
+	     knos->sqldb_spec,knos->sqldb_info,dbproc->sqldb_qtext);
     else u8_log(LOG_WARN,"SQLITE/REOPEN","Reopening %s for '%s'",
-                knos->sqldb_spec,dbproc->sqldb_qtext);
+		knos->sqldb_spec,dbproc->sqldb_qtext);
     open_knosqlite(knos);
     if (!(knos->sqlitedb)) {
       kno_seterr("SQLiteFailure","sqlitecallproc",
-                 "Couldn't reopen db for proc",(lispval)fn);
+		 "Couldn't reopen db for proc",(lispval)fn);
       return KNO_ERROR_VALUE;}}
   u8_lock_mutex(&(dbproc->sqliteproc_lock));
   while (i<n) {
     lispval arg = args[i]; int dofree = 0;
     if (!(KNO_VOIDP(dbproc->sqldb_paramtypes[i])))
       if (KNO_APPLICABLEP(dbproc->sqldb_paramtypes[i])) {
-        arg = kno_apply(dbproc->sqldb_paramtypes[i],1,&arg);
-        if (KNO_ABORTP(arg)) {
-          u8_unlock_mutex(&(dbproc->sqliteproc_lock));
-          return arg;}
-        else dofree = 1;}
+	arg = kno_apply(dbproc->sqldb_paramtypes[i],1,&arg);
+	if (KNO_ABORTP(arg)) {
+	  u8_unlock_mutex(&(dbproc->sqliteproc_lock));
+	  return arg;}
+	else dofree = 1;}
     if (KNO_EMPTY_CHOICEP(arg)) {
       ret = sqlite3_bind_null(dbproc->stmt,i+1);}
     else if (KNO_INTP(arg)) {
@@ -508,48 +508,48 @@ static lispval sqlitecallproc(struct KNO_FUNCTION *fn,int n,lispval *args)
       ret = sqlite3_bind_double(dbproc->stmt,i+1,floval);}
     else if (KNO_TYPEP(arg,kno_string_type))
       ret = sqlite3_bind_text
-        (dbproc->stmt,i+1,KNO_CSTRING(arg),KNO_STRLEN(arg),SQLITE_TRANSIENT);
+	(dbproc->stmt,i+1,KNO_CSTRING(arg),KNO_STRLEN(arg),SQLITE_TRANSIENT);
     else if (KNO_TYPEP(arg,kno_packet_type))
       ret = sqlite3_bind_blob
-        (dbproc->stmt,i+1,
-         KNO_PACKET_DATA(arg),KNO_PACKET_LENGTH(arg),
-         SQLITE_TRANSIENT);
+	(dbproc->stmt,i+1,
+	 KNO_PACKET_DATA(arg),KNO_PACKET_LENGTH(arg),
+	 SQLITE_TRANSIENT);
     else if (KNO_OIDP(arg)) {
       if (KNO_OIDP(dbproc->sqldb_paramtypes[i])) {
-        KNO_OID addr = KNO_OID_ADDR(arg);
-        KNO_OID base = KNO_OID_ADDR(dbproc->sqldb_paramtypes[i]);
-        unsigned long offset = KNO_OID_DIFFERENCE(addr,base);
-        ret = sqlite3_bind_int(dbproc->stmt,i+1,offset);}
+	KNO_OID addr = KNO_OID_ADDR(arg);
+	KNO_OID base = KNO_OID_ADDR(dbproc->sqldb_paramtypes[i]);
+	unsigned long offset = KNO_OID_DIFFERENCE(addr,base);
+	ret = sqlite3_bind_int(dbproc->stmt,i+1,offset);}
       else {
-        KNO_OID addr = KNO_OID_ADDR(arg);
-        ret = sqlite3_bind_int64(dbproc->stmt,i+1,addr);}}
+	KNO_OID addr = KNO_OID_ADDR(arg);
+	ret = sqlite3_bind_int64(dbproc->stmt,i+1,addr);}}
     else if (KNO_TYPEP(arg,kno_timestamp_type)) {
       struct U8_OUTPUT out; u8_byte buf[64]; U8_INIT_FIXED_OUTPUT(&out,64,buf);
       struct KNO_TIMESTAMP *tstamp=
-        kno_consptr(struct KNO_TIMESTAMP *,arg,kno_timestamp_type);
+	kno_consptr(struct KNO_TIMESTAMP *,arg,kno_timestamp_type);
       if ((tstamp->u8xtimeval.u8_tzoff)||(tstamp->u8xtimeval.u8_dstoff)) {
-        u8_xtime_to_iso8601_x
-          (&out,&(tstamp->u8xtimeval),U8_ISO8601_NOZONE|U8_ISO8601_UTC);
-        u8_puts(&out," localtime");}
+	u8_xtime_to_iso8601_x
+	  (&out,&(tstamp->u8xtimeval),U8_ISO8601_NOZONE|U8_ISO8601_UTC);
+	u8_puts(&out," localtime");}
       else u8_xtime_to_iso8601_x
-             (&out,&(tstamp->u8xtimeval),U8_ISO8601_NOZONE|U8_ISO8601_UTC);
+	     (&out,&(tstamp->u8xtimeval),U8_ISO8601_NOZONE|U8_ISO8601_UTC);
       ret = sqlite3_bind_text
-        (dbproc->stmt,i+1,
-         out.u8_outbuf,out.u8_write-out.u8_outbuf,
-         SQLITE_TRANSIENT);}
+	(dbproc->stmt,i+1,
+	 out.u8_outbuf,out.u8_write-out.u8_outbuf,
+	 SQLITE_TRANSIENT);}
     else {
       struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,128);
       kno_unparse(&out,arg);
       ret = sqlite3_bind_text
-        (dbproc->stmt,i+1,
-         out.u8_outbuf,out.u8_write-out.u8_outbuf,
-         SQLITE_TRANSIENT);
+	(dbproc->stmt,i+1,
+	 out.u8_outbuf,out.u8_write-out.u8_outbuf,
+	 SQLITE_TRANSIENT);
       u8_free(out.u8_outbuf);}
     if (dofree) kno_decref(arg);
     if (ret) {
       const char *errmsg = sqlite3_errmsg(dbproc->sqlitedb);
       kno_seterr(SQLiteError,"knosqlite_call",
-                 errmsg,kno_incref((lispval)fn));
+		 errmsg,kno_incref((lispval)fn));
       u8_unlock_mutex(&(dbproc->sqliteproc_lock));
       U8_CLEAR_ERRNO();
       return KNO_ERROR_VALUE;}
@@ -562,7 +562,7 @@ static lispval sqlitecallproc(struct KNO_FUNCTION *fn,int n,lispval *args)
   if (KNO_ABORTP(values)) {
     const char *errmsg = sqlite3_errmsg(dbproc->sqlitedb);
     kno_seterr(SQLiteError,"knosqlite_call",
-               errmsg,kno_incref((lispval)fn));}
+	       errmsg,kno_incref((lispval)fn));}
   U8_CLEAR_ERRNO();
   return values;
 }
@@ -582,7 +582,7 @@ static lispval sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,lispval colinfo)
   int i = 0, n_cols = sqlite3_column_count(stmt), retval;
   struct U8_OUTPUT out;
   if (!((KNO_VOIDP(mergefn)) || (KNO_TRUEP(mergefn)) ||
-        (KNO_FALSEP(mergefn)) || (KNO_APPLICABLEP(mergefn))))
+	(KNO_FALSEP(mergefn)) || (KNO_APPLICABLEP(mergefn))))
     return kno_type_error("%MERGE","sqlite_values",mergefn);
   if (n_cols==0) {
     int retval = sqlite3_step(stmt);
@@ -612,71 +612,71 @@ static lispval sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,lispval colinfo)
     int j = 0; while (j<n_cols) {
       int coltype = sqlite3_column_type(stmt,j); lispval value;
       if (coltype<0) {
-        int k = 0; while (k<j) {kno_decref(kv[k].kv_val);  k++;}
-        u8_free(kv);
-        kno_decref(results); u8_free(out.u8_outbuf);
-        return KNO_ERROR_VALUE;}
+	int k = 0; while (k<j) {kno_decref(kv[k].kv_val);  k++;}
+	u8_free(kv);
+	kno_decref(results); u8_free(out.u8_outbuf);
+	return KNO_ERROR_VALUE;}
       kv[j].kv_key = colnames[j];
       switch (coltype) {
       case SQLITE_INTEGER: {
-        long long intval = sqlite3_column_int(stmt,j);
-        const char *decltype = sqlite3_column_decltype(stmt,j);
-        if ((decltype)&&
-            ((strcasecmp(decltype,"DATETIME")==0)||
-             (strcasecmp(decltype,"DATE")==0)))
-          value = kno_time2timestamp((time_t)intval);
-        else value = KNO_INT(intval);
-        break;}
+	long long intval = sqlite3_column_int(stmt,j);
+	const char *decltype = sqlite3_column_decltype(stmt,j);
+	if ((decltype)&&
+	    ((strcasecmp(decltype,"DATETIME")==0)||
+	     (strcasecmp(decltype,"DATE")==0)))
+	  value = kno_time2timestamp((time_t)intval);
+	else value = KNO_INT(intval);
+	break;}
       case SQLITE_FLOAT:
-        value = kno_init_double(NULL,sqlite3_column_double(stmt,j)); break;
+	value = kno_init_double(NULL,sqlite3_column_double(stmt,j)); break;
       case SQLITE_TEXT: {
-        const char *decltype = sqlite3_column_decltype(stmt,j);
-        const char *textval = sqlite3_column_text(stmt,j);
-        if ((decltype)&&
-            ((strcasecmp(decltype,"DATETIME")==0)||
-             (strcasecmp(decltype,"DATE")==0))) {
-          struct U8_XTIME xt; time_t retval = sqlite_time_to_xtime(textval,&xt);
-          if (retval<0) retval = u8_rfc822_to_xtime((u8_string)textval,&xt);
-          if (retval<0) value = kno_mkstring((u8_string)textval);
-          else value = kno_make_timestamp(&xt);}
-        else value = kno_mkstring((unsigned char *)textval);
-        break;}
+	const char *decltype = sqlite3_column_decltype(stmt,j);
+	const char *textval = sqlite3_column_text(stmt,j);
+	if ((decltype)&&
+	    ((strcasecmp(decltype,"DATETIME")==0)||
+	     (strcasecmp(decltype,"DATE")==0))) {
+	  struct U8_XTIME xt; time_t retval = sqlite_time_to_xtime(textval,&xt);
+	  if (retval<0) retval = u8_rfc822_to_xtime((u8_string)textval,&xt);
+	  if (retval<0) value = kno_mkstring((u8_string)textval);
+	  else value = kno_make_timestamp(&xt);}
+	else value = kno_mkstring((unsigned char *)textval);
+	break;}
       case SQLITE_BLOB: {
-        int n_bytes = sqlite3_column_bytes(stmt,j);
-        const unsigned char *blob = sqlite3_column_blob(stmt,j);
-        value = kno_make_packet(NULL,n_bytes,(unsigned char *)blob);
-        break;}
+	int n_bytes = sqlite3_column_bytes(stmt,j);
+	const unsigned char *blob = sqlite3_column_blob(stmt,j);
+	value = kno_make_packet(NULL,n_bytes,(unsigned char *)blob);
+	break;}
       case SQLITE_NULL: default:
-        value = KNO_EMPTY_CHOICE; break;}
+	value = KNO_EMPTY_CHOICE; break;}
       if (KNO_VOIDP(colmaps[j]))
-        kv[j].kv_val = value;
+	kv[j].kv_val = value;
       else if (KNO_APPLICABLEP(colmaps[j])) {
-        kv[j].kv_val = kno_apply(colmaps[j],1,&value);
-        kno_decref(value);}
+	kv[j].kv_val = kno_apply(colmaps[j],1,&value);
+	kno_decref(value);}
       else if (KNO_OIDP(colmaps[j]))
-        if (KNO_STRINGP(value)) {
-          kv[j].kv_val = kno_parse(KNO_CSTRING(value));
-          kno_decref(value);}
-        else {
-          KNO_OID base = KNO_OID_ADDR(colmaps[j]);
-          int offset = kno_getint(value);
-          if (offset<0) kv[j].kv_val = value;
-          else {
-            kv[j].kv_val = kno_make_oid(base+offset);
-            kno_decref(value);}}
+	if (KNO_STRINGP(value)) {
+	  kv[j].kv_val = kno_parse(KNO_CSTRING(value));
+	  kno_decref(value);}
+	else {
+	  KNO_OID base = KNO_OID_ADDR(colmaps[j]);
+	  int offset = kno_getint(value);
+	  if (offset<0) kv[j].kv_val = value;
+	  else {
+	    kv[j].kv_val = kno_make_oid(base+offset);
+	    kno_decref(value);}}
       else if (colmaps[j]==KNO_TRUE)
-        if (KNO_STRINGP(value)) {
-          kv[j].kv_val = kno_parse(KNO_CSTRING(value));
-          kno_decref(value);}
-        else kv[j].kv_val = value;
+	if (KNO_STRINGP(value)) {
+	  kv[j].kv_val = kno_parse(KNO_CSTRING(value));
+	  kno_decref(value);}
+	else kv[j].kv_val = value;
       else kv[j].kv_val = value;
       j++;}
     if ((n_cols==1) && (KNO_TRUEP(mergefn))) {
       result = kv[0].kv_val;
       u8_free(kv);}
     else if ((KNO_VOIDP(mergefn)) ||
-             (KNO_FALSEP(mergefn)) ||
-             (KNO_TRUEP(mergefn)))
+	     (KNO_FALSEP(mergefn)) ||
+	     (KNO_TRUEP(mergefn)))
       result = kno_init_slotmap(NULL,n_cols,kv);
     else {
       lispval tmp_slotmap = kno_init_slotmap(NULL,n_cols,kv);
@@ -685,33 +685,33 @@ static lispval sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,lispval colinfo)
     if (sorted) {
       if (KNO_ABORTP(result)) {}
       else if (rn>=rmax) {
-        int new_max = ((rmax>=65536)?(rmax+65536):(rmax*2));
-        lispval *newv = u8_realloc(resultsv,LISPVEC_BYTELEN(new_max));
-        if (newv == NULL) {
-          int delta = (new_max-rmax)/2;
-          while ((newv == NULL)&&(delta>=1)) {
-            new_max = rmax+delta; delta = delta/2;
-            newv = u8_realloc(resultsv,LISPVEC_BYTELEN(new_max));}
-          if (!(newv)) {
-            kno_decref(result);
-            kno_seterr(kno_OutOfMemory,"sqlite_step",NULL,KNO_VOID);
-            result = KNO_ERROR_VALUE;}
-          else {resultsv = newv; rmax = new_max;}}}
+	int new_max = ((rmax>=65536)?(rmax+65536):(rmax*2));
+	lispval *newv = u8_realloc(resultsv,LISPVEC_BYTELEN(new_max));
+	if (newv == NULL) {
+	  int delta = (new_max-rmax)/2;
+	  while ((newv == NULL)&&(delta>=1)) {
+	    new_max = rmax+delta; delta = delta/2;
+	    newv = u8_realloc(resultsv,LISPVEC_BYTELEN(new_max));}
+	  if (!(newv)) {
+	    kno_decref(result);
+	    kno_seterr(kno_OutOfMemory,"sqlite_step",NULL,KNO_VOID);
+	    result = KNO_ERROR_VALUE;}
+	  else {resultsv = newv; rmax = new_max;}}}
       resultsv[rn++]=result;}
     else {
       KNO_ADD_TO_CHOICE(results,result);}
     if (KNO_ABORTP(result)) {
       if (sorted) {
-        int k = 0; while (k<rn) {
-          lispval v = resultsv[k++]; kno_decref(v);}
-        kno_decref(results);
-        u8_free(resultsv);
-        results = result;
-        break;}
+	int k = 0; while (k<rn) {
+	  lispval v = resultsv[k++]; kno_decref(v);}
+	kno_decref(results);
+	u8_free(resultsv);
+	results = result;
+	break;}
       else {
-        kno_decref(results);
-        results = result;
-        break;}}}
+	kno_decref(results);
+	results = result;
+	break;}}}
   if (retval!=SQLITE_DONE) {
 #if HAVE_SQLITE3_V2
     const char *msg = sqlite3_errstr(retval);
@@ -719,7 +719,7 @@ static lispval sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,lispval colinfo)
 #endif
     kno_decref(results); if (sorted) {
       int k = 0; while (k<rn) {
-        lispval v = resultsv[k++]; kno_decref(v);}
+	lispval v = resultsv[k++]; kno_decref(v);}
       kno_decref(results);
       u8_free(resultsv);
       resultsv = NULL;}
@@ -748,22 +748,22 @@ static time_t sqlite_time_to_xtime(const char *s,struct U8_XTIME *xtp)
     /* Assume odd, vaugely human-friendly format that uses space
        rather than T to separate the time */
     n_elts = sscanf(s,"%04u-%02hhu-%02hhu %02hhu:%02hhu:%02hhu.%u",
-                    &xtp->u8_year,&xtp->u8_mon,
-                    &xtp->u8_mday,&xtp->u8_hour,
-                    &xtp->u8_min,&xtp->u8_sec,
-                    &nsecs);
+		    &xtp->u8_year,&xtp->u8_mon,
+		    &xtp->u8_mday,&xtp->u8_hour,
+		    &xtp->u8_min,&xtp->u8_sec,
+		    &nsecs);
   else n_elts = sscanf(s,"%04u-%02hhu-%02hhuT%02hhu:%02hhu:%02hhu.%u",
-                       &xtp->u8_year,&xtp->u8_mon,
-                       &xtp->u8_mday,&xtp->u8_hour,
-                       &xtp->u8_min,&xtp->u8_sec,
-                       &nsecs);
+		       &xtp->u8_year,&xtp->u8_mon,
+		       &xtp->u8_mday,&xtp->u8_hour,
+		       &xtp->u8_min,&xtp->u8_sec,
+		       &nsecs);
   if ((n_elts == 1)&&(len>4)) {
     /* Assume basic format */
     n_elts = sscanf(s,"%04u%02hhu%02hhuT%02hhu%02hhu%02hhu.%u",
-                    &xtp->u8_year,&xtp->u8_mon,
-                    &xtp->u8_mday,&xtp->u8_hour,
-                    &xtp->u8_min,&xtp->u8_sec,
-                    &nsecs);
+		    &xtp->u8_year,&xtp->u8_mon,
+		    &xtp->u8_mday,&xtp->u8_hour,
+		    &xtp->u8_min,&xtp->u8_sec,
+		    &nsecs);
     pos = basicpos;}
   /* Give up if you can't parse anything */
   if (n_elts == 0) return (time_t) -1;

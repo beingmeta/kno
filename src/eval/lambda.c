@@ -162,8 +162,8 @@ lispval call_lambda(struct KNO_STACK *_stack,
 }
 
 KNO_EXPORT lispval kno_apply_lambda(struct KNO_STACK *stack,
-                                struct KNO_LAMBDA *fn,
-                                int n,lispval *args)
+                                    struct KNO_LAMBDA *fn,
+                                    int n,lispval *args)
 {
   return call_lambda(stack,fn,n,args);
 }
@@ -180,23 +180,23 @@ KNO_EXPORT int kno_set_lambda_schema(struct KNO_LAMBDA *s,lispval args)
   if (scan == KNO_EMPTY_LIST) {
     arity = 0; min_arity = 0;}
   else while (KNO_PAIRP(scan)) {
-    lispval arg = KNO_CAR(scan);
-    if (KNO_SYMBOLP(arg)) {}
-    else if (KNO_PAIRP(arg)) {
-      if ( (KNO_SYMBOLP(KNO_CAR(arg))) &&
-           ( (KNO_CDR(arg) == KNO_EMPTY_LIST) ||
-             (KNO_PAIRP(KNO_CDR(arg))) ) ) {
-        if (min_arity < 0) min_arity = i;
-        has_inits =1;}
+      lispval arg = KNO_CAR(scan);
+      if (KNO_SYMBOLP(arg)) {}
+      else if (KNO_PAIRP(arg)) {
+        if ( (KNO_SYMBOLP(KNO_CAR(arg))) &&
+             ( (KNO_CDR(arg) == KNO_EMPTY_LIST) ||
+               (KNO_PAIRP(KNO_CDR(arg))) ) ) {
+          if (min_arity < 0) min_arity = i;
+          has_inits =1;}
+        else {
+          kno_seterr(kno_SyntaxError,"lambda",s->fcn_name,args);
+          return -1;}}
       else {
         kno_seterr(kno_SyntaxError,"lambda",s->fcn_name,args);
-        return -1;}}
-    else {
-        kno_seterr(kno_SyntaxError,"lambda",s->fcn_name,args);
         return -1;}
-    scan = KNO_CDR(scan);
-    n_vars++;
-    i++;}
+      scan = KNO_CDR(scan);
+      n_vars++;
+      i++;}
   if (min_arity < 0) min_arity = i;
   if (KNO_EMPTY_LISTP(scan))
     arity = i;
@@ -269,12 +269,12 @@ static lispval process_docstring(struct KNO_LAMBDA *s,u8_string name,
           if (SYMBOLP(arg))
             u8_printf(&docstream," %ls",SYM_NAME(arg));
           else if ((PAIRP(arg))&&(SYMBOLP(KNO_CAR(arg))))
-          u8_printf(&docstream," [%ls]",SYM_NAME(KNO_CAR(arg)));
-        else u8_puts(&docstream," ??");
-        scan = KNO_CDR(scan);}
-      if (SYMBOLP(scan))
-        u8_printf(&docstream," [%ls...]",SYM_NAME(scan));
-      u8_puts(&docstream,")`\n");}
+            u8_printf(&docstream," [%ls]",SYM_NAME(KNO_CAR(arg)));
+          else u8_puts(&docstream," ??");
+          scan = KNO_CDR(scan);}
+        if (SYMBOLP(scan))
+          u8_printf(&docstream," [%ls...]",SYM_NAME(scan));
+        u8_puts(&docstream,")`\n");}
       u8_puts(&docstream,docstring);}
     else {
       u8_putc(&docstream,'\n');
@@ -777,7 +777,7 @@ static lispval defslambda_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       else {
         kno_decref(value);
         return kno_err(kno_BindError,"DEFINE-SYNCHRONIZED",
-                      SYM_NAME(var),var);}}}
+                       SYM_NAME(var),var);}}}
   else return kno_err(kno_NotAnIdentifier,"DEFINE-SYNCHRONIZED",NULL,var);
 }
 
@@ -814,15 +814,15 @@ static lispval tail_symbol;
 
 KNO_EXPORT
 /* kno_xapply_lambda:
-     Arguments: a pointer to an lambda, a void* data pointer, and a function
-      of a void* pointer and a dtype pointer
-     Returns: the application result
-  This uses an external function to get parameter values from some
-  other data structure (cast as a void* pointer).  This is used, for instance,
-  to expose CGI data fields as arguments to a main function, or to
-  apply XML attributes and elements similarly. */
+   Arguments: a pointer to an lambda, a void* data pointer, and a function
+   of a void* pointer and a dtype pointer
+   Returns: the application result
+   This uses an external function to get parameter values from some
+   other data structure (cast as a void* pointer).  This is used, for instance,
+   to expose CGI data fields as arguments to a main function, or to
+   apply XML attributes and elements similarly. */
 lispval kno_xapply_lambda
-  (struct KNO_LAMBDA *fn,void *data,lispval (*getval)(void *,lispval))
+(struct KNO_LAMBDA *fn,void *data,lispval (*getval)(void *,lispval))
 {
   KNO_SETUP_NAMED_STACK(_stack,kno_stackptr,"xapply",fn->fcn_name,(lispval)fn);
   int n = fn->lambda_n_vars;
@@ -838,7 +838,7 @@ lispval kno_xapply_lambda
     argval = getval(data,argname);
     if (KNO_ABORTED(argval))
       _return argval;
-    else if (( (VOIDP(argval)) || (argval == KNO_DEFAULT_VALUE) || 
+    else if (( (VOIDP(argval)) || (argval == KNO_DEFAULT_VALUE) ||
                (EMPTYP(argval)) ) &&
              (PAIRP(argspec)) &&
              (PAIRP(KNO_CDR(argspec)))) {
@@ -882,9 +882,9 @@ static lispval xapplygetval(void *xobj,lispval var)
 }
 
 DEFPRIM3("xapply",xapply_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
- "`(XAPPLY *arg0* *arg1* [*arg2*])` **undocumented**",
- kno_lambda_type,KNO_VOID,kno_any_type,KNO_VOID,
- kno_any_type,KNO_VOID);
+         "`(XAPPLY *arg0* *arg1* [*arg2*])` **undocumented**",
+         kno_lambda_type,KNO_VOID,kno_any_type,KNO_VOID,
+         kno_any_type,KNO_VOID);
 static lispval xapply_prim(lispval proc,lispval obj,lispval getfn)
 {
   struct KNO_LAMBDA *lambda = kno_consptr(kno_lambda,proc,kno_lambda_type);
@@ -902,14 +902,14 @@ static lispval xapply_prim(lispval proc,lispval obj,lispval getfn)
 /* Walking an lambda */
 
 static int walk_lambda(kno_walker walker,lispval obj,void *walkdata,
-                      kno_walk_flags flags,int depth)
+                       kno_walk_flags flags,int depth)
 {
   struct KNO_LAMBDA *lambda = (kno_lambda)obj;
   lispval env = (lispval)lambda->lambda_env;
   if (kno_walk(walker,lambda->lambda_body,walkdata,flags,depth-1)<0)
     return -1;
   else if (kno_walk(walker,lambda->lambda_arglist,
-                   walkdata,flags,depth-1)<0)
+                    walkdata,flags,depth-1)<0)
     return -1;
   else if ( (!(KNO_STATICP(env))) &&
             (kno_walk(walker,env,walkdata,flags,depth-1)<0) )
@@ -1008,7 +1008,7 @@ static int better_unparse_fcnid(u8_output out,lispval x)
   return 1;
 }
 
-#define BUFOUT_FLAGS \
+#define BUFOUT_FLAGS                                                    \
   (KNO_IS_WRITING|KNO_BUFFER_NO_FLUSH|KNO_USE_DTYPEV2|KNO_WRITE_OPAQUE)
 
 static ssize_t write_lambda_dtype(struct KNO_OUTBUF *out,lispval x)
@@ -1082,14 +1082,14 @@ KNO_EXPORT void kno_init_lambdas_c()
   kno_def_evalfn(kno_scheme_module,"DEFAMBDA","",defambda_evalfn);
 
   kno_def_evalfn(kno_scheme_module,"DEF",
-                "Returns a named lambda procedure",
-                def_evalfn);
+                 "Returns a named lambda procedure",
+                 def_evalfn);
   kno_def_evalfn(kno_scheme_module,"DEFAMB",
-                "Returns a named non-determinstic lambda procedure",
-                defamb_evalfn);
+                 "Returns a named non-determinstic lambda procedure",
+                 defamb_evalfn);
   kno_def_evalfn(kno_scheme_module,"DEFSYNC",
-                "Returns a named synchronized lambda procedure",
-                defsync_evalfn);
+                 "Returns a named synchronized lambda procedure",
+                 defsync_evalfn);
 }
 
 /* Emacs local variables

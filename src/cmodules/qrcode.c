@@ -101,41 +101,41 @@ static lispval write_png_packet(QRcode *qrcode,lispval opts)
     KNO_INIT_BYTE_OUTPUT(&buf,2048);
     png_set_write_fn(png_ptr,(void *)&buf,packet_write_data,packet_flush_data);
     png_set_IHDR(png_ptr, info_ptr,
-                 fullwidth,fullwidth,1,
-                 PNG_COLOR_TYPE_GRAY,
-                 PNG_INTERLACE_NONE,
-                 PNG_COMPRESSION_TYPE_DEFAULT,
-                 PNG_FILTER_TYPE_DEFAULT);
+		 fullwidth,fullwidth,1,
+		 PNG_COLOR_TYPE_GRAY,
+		 PNG_INTERLACE_NONE,
+		 PNG_COMPRESSION_TYPE_DEFAULT,
+		 PNG_FILTER_TYPE_DEFAULT);
     png_write_info(png_ptr, info_ptr);
 
     /* Write top margin */
     memset(row,0xFF,rowlen);
     {int i = 0; while (i<(margin*dotsize)) {
-        png_write_row(png_ptr,row); i++;}}
+	png_write_row(png_ptr,row); i++;}}
 
     /* Write the content */
     {int vscan = 0;
       unsigned char *read = qrcode->data;
       while (vscan<qrheight) {
-        char *write = row+((margin*dotsize)/8); /* margin offset */
-        int bitoff = 7-((margin*dotsize)%8), dotscan = 0;
-        int hscan = 0;
-        memset(row,0xFF,(fullwidth+7)/8);
-        while (hscan<qrwidth) {
-          unsigned char qrdot = *read++;
-          dotscan = 0; while (dotscan<dotsize) {
-            *write = (*write)^((qrdot&0x01)<<bitoff);
-            bitoff--; if (bitoff<0) {write++; bitoff = 7;}
-            dotscan++;}
-          hscan++;}
-        dotscan = 0; while (dotscan<dotsize) {
-          png_write_row(png_ptr, row); dotscan++;}
-        vscan++;}}
+	char *write = row+((margin*dotsize)/8); /* margin offset */
+	int bitoff = 7-((margin*dotsize)%8), dotscan = 0;
+	int hscan = 0;
+	memset(row,0xFF,(fullwidth+7)/8);
+	while (hscan<qrwidth) {
+	  unsigned char qrdot = *read++;
+	  dotscan = 0; while (dotscan<dotsize) {
+	    *write = (*write)^((qrdot&0x01)<<bitoff);
+	    bitoff--; if (bitoff<0) {write++; bitoff = 7;}
+	    dotscan++;}
+	  hscan++;}
+	dotscan = 0; while (dotscan<dotsize) {
+	  png_write_row(png_ptr, row); dotscan++;}
+	vscan++;}}
 
     /* Write bottom margin */
     memset(row,0xFF,rowlen);
     {int i = 0; while (i<(margin*dotsize)) {
-        png_write_row(png_ptr,row); i++;}}
+	png_write_row(png_ptr,row); i++;}}
 
     png_write_end(png_ptr, NULL);
     png_destroy_write_struct(&png_ptr, &info_ptr);
@@ -151,8 +151,8 @@ static lispval write_png_packet(QRcode *qrcode,lispval opts)
 }
 
 DEFPRIM2("qrencode",qrencode_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "`(QRENCODE *arg0* [*arg1*])` **undocumented**",
- kno_string_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(QRENCODE *arg0* [*arg1*])` **undocumented**",
+	 kno_string_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval qrencode_prim(lispval string,lispval opts)
 {
   lispval level_arg = kno_getopt(opts,robustness_symbol,KNO_FALSE);

@@ -41,15 +41,15 @@ static lispval keyfn_get(lispval val,lispval keyfn)
       return kno_finish_call(kno_dapply(keyfn,1,&val));
     default:
       if (KNO_APPLICABLEP(keyfn))
-        return kno_finish_call(kno_dapply(keyfn,1,&val));
+	return kno_finish_call(kno_dapply(keyfn,1,&val));
       else if (KNO_TABLEP(keyfn))
-        return kno_get(keyfn,val,EMPTY);
+	return kno_get(keyfn,val,EMPTY);
       else if (KNO_TABLEP(val))
-        return kno_get(val,keyfn,EMPTY);
+	return kno_get(val,keyfn,EMPTY);
       else return KNO_EMPTY;}}
 }
 
-#define KEYFNP(x) \
+#define KEYFNP(x)				 \
   ((VOIDP(x)) || (FALSEP(x)) || (DEFAULTP(x)) || \
    (SYMBOLP(x)) || (OIDP(x)) ||                  \
    (TABLEP(x)) ||                                \
@@ -81,10 +81,10 @@ static lispval parse_control_spec
       return kno_err(kno_TooFewExpressions,NULL,NULL,control_expr);
     else if (!(SYMBOLP(var)))
       return kno_err(kno_SyntaxError,
-                    _("identifier is not a symbol"),NULL,control_expr);
+		     _("identifier is not a symbol"),NULL,control_expr);
     else if (!((VOIDP(ivar)) || (SYMBOLP(ivar))))
       return kno_err(kno_SyntaxError,
-                    _("identifier is not a symbol"),NULL,control_expr);
+		     _("identifier is not a symbol"),NULL,control_expr);
     val = fast_eval(val_expr,env);
     if (KNO_ABORTED(val)) {
       *iter_var = VOID;
@@ -119,12 +119,12 @@ static lispval dochoices_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     dochoices_vals[0]=kno_incref(elt);
     dochoices_vals[1]=KNO_INT(i);
     {KNO_DOLIST(step,steps) {
-        lispval val = fast_eval(step,dochoices);
-        if (KNO_BROKEP(val))
-          _return KNO_VOID;
-        else if (KNO_ABORTED(val)) {
-          _return val;}
-        else kno_decref(val);}}
+	lispval val = fast_eval(step,dochoices);
+	if (KNO_BROKEP(val))
+	  _return KNO_VOID;
+	else if (KNO_ABORTED(val)) {
+	  _return val;}
+	else kno_decref(val);}}
     reset_env(dochoices);
     kno_decref(dochoices_vals[0]);
     dochoices_vals[0]=VOID;
@@ -163,9 +163,9 @@ static lispval trychoices_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       kno_decref(val);
       val = fast_eval(step,trychoices);
       if (KNO_BROKEP(val))
-        _return EMPTY;
+	_return EMPTY;
       else if (KNO_ABORTED(val))
-        _return val;}
+	_return val;}
     reset_env(trychoices);
     kno_decref(trychoices_vals[0]);
     trychoices_vals[0]=VOID;
@@ -177,7 +177,7 @@ static lispval trychoices_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 }
 
 /* This iterates over a set of choices, evaluating its body for each value, and
-    accumulating the results of those evaluations.
+   accumulating the results of those evaluations.
    It tries to stack allocate as much as possible for locality and convenience sake.
    Note that this treats a non-choice as a choice of one element.
    It returns the combined results of its body's execution. */
@@ -208,11 +208,11 @@ static lispval forchoices_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       kno_decref(val);
       val = fast_eval(step,forchoices);
       if (KNO_BROKEP(val)) {
-        lispval result = kno_simplify_choice(results);
-        _return result;}
+	lispval result = kno_simplify_choice(results);
+	_return result;}
       else if (KNO_ABORTED(val)) {
-        kno_decref(results);
-        _return val;}
+	kno_decref(results);
+	_return val;}
       else NO_ELSE;}
     CHOICE_ADD(results,val);
     reset_env(forchoices);
@@ -225,7 +225,7 @@ static lispval forchoices_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 }
 
 /* This iterates over a set of choices, evaluating its third subexpression for each value, and
-    accumulating those values for which the body returns true.
+   accumulating those values for which the body returns true.
    It tries to stack allocate as much as possible for locality and convenience sake.
    Note that this treats a non-choice as a choice of one element.
    It returns the subset of values which pass the body. */
@@ -256,15 +256,15 @@ static lispval filterchoices_evalfn(lispval expr,kno_lexenv env,kno_stack _stack
       kno_decref(val);
       val = fast_eval(step,filterchoices);
       if (KNO_BROKEP(val)) {
-        lispval result = kno_simplify_choice(results);
-        _return result;}
+	lispval result = kno_simplify_choice(results);
+	_return result;}
       else if (KNO_ABORTED(val)) {
-        kno_decref(results);
-        _return val;}
+	kno_decref(results);
+	_return val;}
       else if (!(FALSEP(val))) {
-        kno_incref(elt);
-        CHOICE_ADD(results,elt);
-        break;}
+	kno_incref(elt);
+	CHOICE_ADD(results,elt);
+	break;}
       else NO_ELSE;}
     reset_env(filterchoices);
     kno_decref(filterchoices_vals[0]);
@@ -278,14 +278,14 @@ static lispval filterchoices_evalfn(lispval expr,kno_lexenv env,kno_stack _stack
 /* Choice functions */
 
 DEFPRIM("fail",fail_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
- "`(FAIL)` **undocumented**");
+	"`(FAIL)` **undocumented**");
 static lispval fail_prim()
 {
   return EMPTY;
 }
 
 DEFPRIM("choice",choice_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(0)|KNO_NDCALL,
- "`(CHOICE *args...*)` **undocumented**");
+	"`(CHOICE *args...*)` **undocumented**");
 static lispval choice_prim(int n,lispval *args)
 {
   int i = 0; lispval results = EMPTY;
@@ -296,7 +296,7 @@ static lispval choice_prim(int n,lispval *args)
 }
 
 DEFPRIM("qchoice",qchoice_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(0)|KNO_NDCALL,
- "`(QCHOICE *args...*)` **undocumented**");
+	"`(QCHOICE *args...*)` **undocumented**");
 static lispval qchoice_prim(int n,lispval *args)
 {
   int i = 0; lispval results = EMPTY, presults;
@@ -310,7 +310,7 @@ static lispval qchoice_prim(int n,lispval *args)
 }
 
 DEFPRIM("qchoicex",qchoicex_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(0)|KNO_NDCALL,
- "`(QCHOICEX *args...*)` **undocumented**");
+	"`(QCHOICEX *args...*)` **undocumented**");
 static lispval qchoicex_prim(int n,lispval *args)
 {
   int i = 0; lispval results = EMPTY, presults;
@@ -321,7 +321,7 @@ static lispval qchoicex_prim(int n,lispval *args)
   if (EMPTYP(presults))
     return presults;
   else if (CHOICEP(presults))
-   return kno_init_qchoice(NULL,presults);
+    return kno_init_qchoice(NULL,presults);
   else return presults;
 }
 
@@ -356,7 +356,7 @@ static lispval ifexists_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   if (VOIDP(value_expr))
     return kno_err(kno_SyntaxError,"ifexists_evalfn",NULL,expr);
   else if (!(NILP(KNO_CDR(KNO_CDR(expr)))))
-   return kno_err(kno_SyntaxError,"ifexists_evalfn",NULL,expr);
+    return kno_err(kno_SyntaxError,"ifexists_evalfn",NULL,expr);
   else value = kno_eval(value_expr,env);
   if (KNO_ABORTED(value))
     return value;
@@ -368,16 +368,16 @@ static lispval ifexists_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 /* Predicates */
 
 DEFPRIM1("empty?",emptyp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
- "`(EMPTY? *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(EMPTY? *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval emptyp(lispval x)
 {
   if (EMPTYP(x)) return KNO_TRUE; else return KNO_FALSE;
 }
 
 DEFPRIM1("satisfied?",satisfiedp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
- "`(SATISFIED? *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(SATISFIED? *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval satisfiedp(lispval x)
 {
   if (EMPTYP(x)) return KNO_FALSE;
@@ -386,16 +386,16 @@ static lispval satisfiedp(lispval x)
 }
 
 DEFPRIM1("exists?",existsp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
- "`(EXISTS? *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(EXISTS? *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval existsp(lispval x)
 {
   if (EMPTYP(x)) return KNO_FALSE; else return KNO_TRUE;
 }
 
 DEFPRIM1("unique?",singletonp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
- "`(UNIQUE? *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(UNIQUE? *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval singletonp(lispval x)
 {
   if (CHOICEP(x))
@@ -406,8 +406,8 @@ static lispval singletonp(lispval x)
 }
 
 DEFPRIM1("amb?",ambiguousp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
- "`(AMB? *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(AMB? *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval ambiguousp(lispval x) /* TODO: Wasted effort around here */
 {
   if (EMPTYP(x))
@@ -418,8 +418,8 @@ static lispval ambiguousp(lispval x) /* TODO: Wasted effort around here */
 }
 
 DEFPRIM1("singleton",singleton,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
- "`(SINGLETON *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(SINGLETON *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval singleton(lispval x)
 {
   if (EMPTYP(x)) return x;
@@ -429,8 +429,8 @@ static lispval singleton(lispval x)
 }
 
 DEFPRIM2("choice-max",choice_max,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
- "`(CHOICE-MAX *arg0* *arg1*)` **undocumented**",
- kno_any_type,KNO_VOID,kno_fixnum_type,KNO_VOID);
+	 "`(CHOICE-MAX *arg0* *arg1*)` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_fixnum_type,KNO_VOID);
 static lispval choice_max(lispval x,lispval lim)
 {
   if (EMPTYP(x)) return x;
@@ -443,8 +443,8 @@ static lispval choice_max(lispval x,lispval lim)
 }
 
 DEFPRIM2("choice-min",choice_min,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
- "`(CHOICE-MIN *arg0* *arg1*)` **undocumented**",
- kno_any_type,KNO_VOID,kno_fixnum_type,KNO_VOID);
+	 "`(CHOICE-MIN *arg0* *arg1*)` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_fixnum_type,KNO_VOID);
 static lispval choice_min(lispval x,lispval lim)
 {
   if (EMPTYP(x)) return x;
@@ -457,8 +457,8 @@ static lispval choice_min(lispval x,lispval lim)
 }
 
 DEFPRIM1("simplify",simplify,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
- "`(SIMPLIFY *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(SIMPLIFY *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval simplify(lispval x)
 {
   return kno_make_simple_choice(x);
@@ -487,8 +487,8 @@ static lispval qchoicep_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 #define PASS_ERRS 0
 
 static int test_exists(struct KNO_FUNCTION *fn,
-                       int i,int n,lispval *nd_args,lispval *d_args,
-                       int skip_errs)
+		       int i,int n,lispval *nd_args,lispval *d_args,
+		       int skip_errs)
 {
   if (i == n) {
     lispval val = kno_finish_call(kno_dapply((lispval)fn,n,d_args));
@@ -503,13 +503,13 @@ static int test_exists(struct KNO_FUNCTION *fn,
       d_args[i]=v;
       int retval = test_exists(fn,i+1,n,nd_args,d_args,skip_errs);
       if (retval > 0) {
-        KNO_STOP_DO_CHOICES;
-        return retval;}
+	KNO_STOP_DO_CHOICES;
+	return retval;}
       else if ( (retval < 0) && (skip_errs) )
-        kno_clear_errors(0);
+	kno_clear_errors(0);
       else if (retval < 0) {
-        KNO_STOP_DO_CHOICES;
-        return retval;}
+	KNO_STOP_DO_CHOICES;
+	return retval;}
       else continue;}
     return 0;}
   else {
@@ -520,42 +520,42 @@ static int test_exists(struct KNO_FUNCTION *fn,
 static lispval exists_helper(int n,lispval *nd_args,int skip_errs)
 {
   int i = 0; while (i<n)
-    if (EMPTYP(nd_args[i]))
-      return KNO_FALSE;
-    else i++;
+	       if (EMPTYP(nd_args[i]))
+		 return KNO_FALSE;
+	       else i++;
   lispval d_args[n-1];
   {DO_CHOICES(fcn,nd_args[0])
       if (KNO_APPLICABLEP(fcn)) {}
       else {
-        KNO_STOP_DO_CHOICES;
-        return kno_type_error(_("function"),"exists_helper",nd_args[0]);}}
+	KNO_STOP_DO_CHOICES;
+	return kno_type_error(_("function"),"exists_helper",nd_args[0]);}}
   {DO_CHOICES(fcn,nd_args[0]) {
       struct KNO_FUNCTION *f = (kno_function)fcn;
       int retval = test_exists(f,0,n-1,nd_args+1,d_args,skip_errs);
       if (retval == 0) continue;
       KNO_STOP_DO_CHOICES;
       if (retval<0)
-        return KNO_ERROR;
+	return KNO_ERROR;
       else return KNO_TRUE;}}
   return KNO_FALSE;
 }
 
 DEFPRIM("exists",exists_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
- "`(EXISTS *arg0* *args...*)` **undocumented**");
+	"`(EXISTS *arg0* *args...*)` **undocumented**");
 static lispval exists_lexpr(int n,lispval *nd_args)
 {
   return exists_helper(n,nd_args,PASS_ERRS);
 }
 
 DEFPRIM("exists/skiperrs",exists_skiperrs,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
- "`(EXISTS/SKIPERRS *arg0* *args...*)` **undocumented**");
+	"`(EXISTS/SKIPERRS *arg0* *args...*)` **undocumented**");
 static lispval exists_skiperrs(int n,lispval *nd_args)
 {
   return exists_helper(n,nd_args,SKIP_ERRS);
 }
 
 DEFPRIM("sometrue",sometrue_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
- "`(SOMETRUE *arg0* *args...*)` **undocumented**");
+	"`(SOMETRUE *arg0* *args...*)` **undocumented**");
 static lispval sometrue_lexpr(int n,lispval *nd_args)
 {
   if (n==1)
@@ -568,7 +568,7 @@ static lispval sometrue_lexpr(int n,lispval *nd_args)
 }
 
 DEFPRIM("sometrue/skiperrs",sometrue_skiperrs,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
- "`(SOMETRUE/SKIPERRS *arg0* *args...*)` **undocumented**");
+	"`(SOMETRUE/SKIPERRS *arg0* *args...*)` **undocumented**");
 static lispval sometrue_skiperrs(int n,lispval *nd_args)
 {
   if (n==1)
@@ -583,8 +583,8 @@ static lispval sometrue_skiperrs(int n,lispval *nd_args)
 /* FORALL */
 
 static int test_forall(struct KNO_FUNCTION *fn,int i,int n,
-                       lispval *nd_args,lispval *d_args,
-                       int skip_errs)
+		       lispval *nd_args,lispval *d_args,
+		       int skip_errs)
 {
   if (i == n) {
     lispval val = kno_finish_call(kno_dapply((lispval)fn,n,d_args));
@@ -603,10 +603,10 @@ static int test_forall(struct KNO_FUNCTION *fn,int i,int n,
       retval = test_forall(fn,i+1,n,nd_args,d_args,skip_errs);
       if (retval > 0) continue;
       if ( (retval < 0) && (skip_errs) )
-        kno_clear_errors(0);
+	kno_clear_errors(0);
       else {
-        KNO_STOP_DO_CHOICES;
-        return retval;}}
+	KNO_STOP_DO_CHOICES;
+	return retval;}}
     return 1;}
   else {
     d_args[i]=nd_args[i];
@@ -630,35 +630,35 @@ static lispval whenexists_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 static lispval forall_helper(int n,lispval *nd_args,int skip_errs)
 {
   int i = 0; while (i<n)
-    if (EMPTYP(nd_args[i])) return KNO_TRUE;
-    else i++;
+	       if (EMPTYP(nd_args[i])) return KNO_TRUE;
+	       else i++;
   {DO_CHOICES(fcn,nd_args[0])
       if (KNO_APPLICABLEP(fcn)) {}
       else {
-        KNO_STOP_DO_CHOICES;
-        return kno_type_error(_("function"),"forall_helper",nd_args[0]);}}
+	KNO_STOP_DO_CHOICES;
+	return kno_type_error(_("function"),"forall_helper",nd_args[0]);}}
   lispval d_args[n-1];
   {DO_CHOICES(fcn,nd_args[0]) {
       struct KNO_FUNCTION *f = KNO_XFUNCTION(fcn);
       int retval = test_forall(f,0,n-1,nd_args+1,d_args,skip_errs);
       if ( (retval < 0) && (skip_errs == 0) )
-        return KNO_ERROR;
+	return KNO_ERROR;
       else if (retval == 0) {
-        KNO_STOP_DO_CHOICES;
-        return KNO_FALSE;}
+	KNO_STOP_DO_CHOICES;
+	return KNO_FALSE;}
       else {}}}
   return KNO_TRUE;
 }
 
 DEFPRIM("forall",forall_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
- "`(FORALL *arg0* *args...*)` **undocumented**");
+	"`(FORALL *arg0* *args...*)` **undocumented**");
 static lispval forall_lexpr(int n,lispval *nd_args)
 {
   return forall_helper(n,nd_args,PASS_ERRS);
 }
 
 DEFPRIM("forall/skiperrs",forall_skiperrs,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
- "`(FORALL/SKIPERRS *arg0* *args...*)` **undocumented**");
+	"`(FORALL/SKIPERRS *arg0* *args...*)` **undocumented**");
 static lispval forall_skiperrs(int n,lispval *nd_args)
 {
   return forall_helper(n,nd_args,SKIP_ERRS);
@@ -667,32 +667,32 @@ static lispval forall_skiperrs(int n,lispval *nd_args)
 /* Set operations */
 
 DEFPRIM("union",union_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
- "`(UNION *arg0* *args...*)` **undocumented**");
+	"`(UNION *arg0* *args...*)` **undocumented**");
 static lispval union_lexpr(int n,lispval *args)
 {
   return kno_simplify_choice(kno_union(args,n));
 }
 DEFPRIM("intersection",intersection_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
- "`(INTERSECTION *arg0* *args...*)` **undocumented**");
+	"`(INTERSECTION *arg0* *args...*)` **undocumented**");
 static lispval intersection_lexpr(int n,lispval *args)
 {
   return kno_simplify_choice(kno_intersection(args,n));
 }
 DEFPRIM("difference",difference_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
- "`(DIFFERENCE *arg0* *args...*)` **undocumented**");
+	"`(DIFFERENCE *arg0* *args...*)` **undocumented**");
 static lispval difference_lexpr(int n,lispval *args)
 {
   lispval result = kno_incref(args[0]); int i = 1;
   if (EMPTYP(result))
     return result;
   else while (i<n) {
-    lispval new = kno_difference(result,args[i]);
-    if (EMPTYP(new)) {
-      kno_decref(result);
-      return EMPTY;}
-    else {kno_decref(result);
-      result = new;}
-    i++;}
+      lispval new = kno_difference(result,args[i]);
+      if (EMPTYP(new)) {
+	kno_decref(result);
+	return EMPTY;}
+      else {kno_decref(result);
+	result = new;}
+      i++;}
   return kno_simplify_choice(result);
 }
 
@@ -714,10 +714,10 @@ static lispval choicevec_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       int size = ch->choice_size;
       lispval vector = kno_make_vector(size,(lispval *)elts);
       if (ch->choice_isatomic)
-        return vector;
+	return vector;
       else {
-        kno_incref_vec((lispval *)elts,size);
-        return vector;}}
+	kno_incref_vec((lispval *)elts,size);
+	return vector;}}
     else {
       lispval data[1]={result};
       return kno_make_vector(1,data);}}
@@ -727,8 +727,8 @@ static lispval choicevec_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 /* Conversion functions */
 
 DEFPRIM2("choice->vector",choice2vector,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
- "`(CHOICE->VECTOR *arg0* [*arg1*])` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(CHOICE->VECTOR *arg0* [*arg1*])` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval choice2vector(lispval x,lispval sortspec)
 {
   kno_compare_flags flags = kno_get_compare_flags(sortspec);
@@ -743,8 +743,8 @@ static lispval choice2vector(lispval x,lispval sortspec)
     if (KNO_XCHOICE_ATOMICP(ch))
       memcpy(vector_elts,choice_elts,LISPVEC_BYTELEN(n));
     else while (i<n) {
-        vector_elts[i]=kno_incref(choice_elts[i]);
-        i++;}
+	vector_elts[i]=kno_incref(choice_elts[i]);
+	i++;}
     if ((VOIDP(sortspec))||(FALSEP(sortspec)))
       return vector;
     else {
@@ -756,8 +756,8 @@ static lispval choice2vector(lispval x,lispval sortspec)
 }
 
 DEFPRIM1("choice->list",choice2list,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
- "`(CHOICE->LIST *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(CHOICE->LIST *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval choice2list(lispval x)
 {
   lispval lst = NIL;
@@ -766,7 +766,7 @@ static lispval choice2list(lispval x)
 }
 
 /* This iterates over the subsets of a choice and is useful for
-    dividing a large dataset into smaller chunks for processing.
+   dividing a large dataset into smaller chunks for processing.
    It tries to save effort by not incref'ing elements when creating the subset.
    It tries to stack allocate as much as possible for locality and convenience sake.
    Note that this treats a non-choice as a choice of one element.
@@ -780,9 +780,9 @@ static lispval dosubsets_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   lispval control_spec = kno_get_arg(expr,1);
   lispval bsize; long long blocksize;
   if (!((PAIRP(control_spec)) &&
-        (SYMBOLP(KNO_CAR(control_spec))) &&
-        (PAIRP(KNO_CDR(control_spec))) &&
-        (PAIRP(KNO_CDR(KNO_CDR(control_spec))))))
+	(SYMBOLP(KNO_CAR(control_spec))) &&
+	(PAIRP(KNO_CDR(control_spec))) &&
+	(PAIRP(KNO_CDR(KNO_CDR(control_spec))))))
     return kno_err(kno_SyntaxError,"dosubsets_evalfn",NULL,VOID);
   var = KNO_CAR(control_spec);
   count_var = kno_get_arg(control_spec,3);
@@ -805,7 +805,7 @@ static lispval dosubsets_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   else dosubsets_bindings.schema_length=1;
   int i = 0, n = KNO_CHOICE_SIZE(choices), n_blocks = 1+n/blocksize;
   int all_atomicp = ((CHOICEP(choices)) ?
-                     (KNO_ATOMIC_CHOICEP(choices)) : (0));
+		     (KNO_ATOMIC_CHOICEP(choices)) : (0));
   const lispval *data=
     ((CHOICEP(choices))?(KNO_CHOICE_DATA(choices)):(NULL));
   if ((n%blocksize)==0) n_blocks--;
@@ -817,24 +817,24 @@ static lispval dosubsets_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       lispval *write = ((lispval *)(KNO_XCHOICE_DATA(subset)));
       if (limit>(data+n)) limit = data+n;
       if (all_atomicp)
-        while (read<limit) *write++= *read++;
+	while (read<limit) *write++= *read++;
       else while (read<limit) {
-          lispval v = *read++;
-          if (CONSP(v)) {
-            atomicp=0; kno_incref(v);}
-          *write++=v;}
+	  lispval v = *read++;
+	  if (CONSP(v)) {
+	    atomicp=0; kno_incref(v);}
+	  *write++=v;}
       {KNO_INIT_XCHOICE(subset,write-KNO_XCHOICE_DATA(subset),atomicp);}
       block = (lispval)subset;}
     else block = kno_incref(choices);
     dosubsets_vals[0]=block;
     dosubsets_vals[1]=KNO_INT(i);
     {KNO_DOLIST(subexpr,body) {
-        lispval val = fast_eval(subexpr,dosubsets);
-        if (KNO_BROKEP(val)) {
-          _return VOID;}
-        else if (KNO_ABORTED(val))
-          _return val;
-        else kno_decref(val);}}
+	lispval val = fast_eval(subexpr,dosubsets);
+	if (KNO_BROKEP(val)) {
+	  _return VOID;}
+	else if (KNO_ABORTED(val))
+	  _return val;
+	else kno_decref(val);}}
     reset_env(dosubsets);
     kno_decref(dosubsets_vals[0]);
     dosubsets_vals[0]=VOID;
@@ -847,8 +847,8 @@ static lispval dosubsets_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 /* Standard kinds of reduce choice */
 
 DEFPRIM1("choice-size",choicesize_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
- "`(CHOICE-SIZE *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(CHOICE-SIZE *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval choicesize_prim(lispval x)
 {
   int n = KNO_CHOICE_SIZE(x);
@@ -856,8 +856,8 @@ static lispval choicesize_prim(lispval x)
 }
 
 DEFPRIM1("pick-one",pickone,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
- "`(PICK-ONE *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(PICK-ONE *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval pickone(lispval x)
 {
   lispval normal = kno_make_simple_choice(x), chosen = EMPTY;
@@ -874,8 +874,8 @@ static lispval pickone(lispval x)
 }
 
 DEFPRIM2("sample-n",samplen,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
- "`(SAMPLE-N *arg0* [*arg1*])` **undocumented**",
- kno_any_type,KNO_VOID,kno_fixnum_type,KNO_INT(10));
+	 "`(SAMPLE-N *arg0* [*arg1*])` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_fixnum_type,KNO_INT(10));
 static lispval samplen(lispval x,lispval count)
 {
   if (EMPTYP(x))
@@ -893,27 +893,27 @@ static lispval samplen(lispval x,lispval count)
       lispval results = EMPTY;
       int n = KNO_CHOICE_SIZE(normal);
       if (n<=howmany)
-        return normal;
+	return normal;
       else {
-        unsigned char *used=u8_zalloc_n(n,unsigned char);
-        const lispval *data = KNO_CHOICE_DATA(normal);
-        int j = 0; while (j<howmany) {
-          int i = u8_random(n);
-          if (!(used[i])) {
-            lispval elt=data[i]; kno_incref(elt);
-            CHOICE_ADD(results,data[i]);
-            used[i]=1;
-            j++;}}
-        kno_decref(normal);
-        u8_free(used);
-        return kno_simplify_choice(results);}}}
+	unsigned char *used=u8_zalloc_n(n,unsigned char);
+	const lispval *data = KNO_CHOICE_DATA(normal);
+	int j = 0; while (j<howmany) {
+	  int i = u8_random(n);
+	  if (!(used[i])) {
+	    lispval elt=data[i]; kno_incref(elt);
+	    CHOICE_ADD(results,data[i]);
+	    used[i]=1;
+	    j++;}}
+	kno_decref(normal);
+	u8_free(used);
+	return kno_simplify_choice(results);}}}
   else return kno_type_error("integer","samplen",count);
 }
 
 DEFPRIM3("pick-n",pickn,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
- "`(PICK-N *arg0* *arg1* [*arg2*])` **undocumented**",
- kno_any_type,KNO_VOID,kno_fixnum_type,KNO_VOID,
- kno_fixnum_type,KNO_VOID);
+	 "`(PICK-N *arg0* *arg1* [*arg2*])` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_fixnum_type,KNO_VOID,
+	 kno_fixnum_type,KNO_VOID);
 static lispval pickn(lispval x,lispval count,lispval offset)
 {
   if (FIXNUMP(count)) {
@@ -928,39 +928,39 @@ static lispval pickn(lispval x,lispval count,lispval offset)
       lispval normal = kno_make_simple_choice(x);
       int start=0, n = KNO_CHOICE_SIZE(normal);
       if (n<=howmany)
-        return normal;
+	return normal;
       else if (KNO_UINTP(offset)) {
-        start = FIX2INT(offset);
-        if ((n-start)<howmany) howmany = n-start;}
+	start = FIX2INT(offset);
+	if ((n-start)<howmany) howmany = n-start;}
       else if ((FIXNUMP(offset))||(KNO_BIGINTP(offset))) {
-        kno_decref(normal);
-        return kno_type_error("small fixnum","pickn",offset);}
+	kno_decref(normal);
+	return kno_type_error("small fixnum","pickn",offset);}
       else start = u8_random(n-howmany);
       if (howmany == 1) {
-        struct KNO_CHOICE *base=
-          (kno_consptr(struct KNO_CHOICE *,normal,kno_choice_type));
-        const lispval *read = KNO_XCHOICE_DATA(base);
-        lispval one = read[start];
-        return kno_incref(one);}
+	struct KNO_CHOICE *base=
+	  (kno_consptr(struct KNO_CHOICE *,normal,kno_choice_type));
+	const lispval *read = KNO_XCHOICE_DATA(base);
+	lispval one = read[start];
+	return kno_incref(one);}
       else if (n) {
-        struct KNO_CHOICE *base=
-          (kno_consptr(struct KNO_CHOICE *,normal,kno_choice_type));
-        struct KNO_CHOICE *result = kno_alloc_choice(howmany);
-        const lispval *read = KNO_XCHOICE_DATA(base)+start;
-        lispval *write = (lispval *)KNO_XCHOICE_DATA(result);
-        if (KNO_XCHOICE_ATOMICP(base)) {
-          memcpy(write,read,LISPVEC_BYTELEN(howmany));
-          kno_decref(normal);
-          return kno_init_choice(result,howmany,NULL,KNO_CHOICE_ISATOMIC);}
-        else {
-          int atomicp = 1; const lispval *readlim = read+howmany;
-          while (read<readlim) {
-            lispval v = *read++;
-            if (ATOMICP(v)) *write++=v;
-            else {atomicp = 0; kno_incref(v); *write++=v;}}
-          kno_decref(normal);
-          return kno_init_choice(result,howmany,NULL,
-                                ((atomicp)?(KNO_CHOICE_ISATOMIC):(0)));}}
+	struct KNO_CHOICE *base=
+	  (kno_consptr(struct KNO_CHOICE *,normal,kno_choice_type));
+	struct KNO_CHOICE *result = kno_alloc_choice(howmany);
+	const lispval *read = KNO_XCHOICE_DATA(base)+start;
+	lispval *write = (lispval *)KNO_XCHOICE_DATA(result);
+	if (KNO_XCHOICE_ATOMICP(base)) {
+	  memcpy(write,read,LISPVEC_BYTELEN(howmany));
+	  kno_decref(normal);
+	  return kno_init_choice(result,howmany,NULL,KNO_CHOICE_ISATOMIC);}
+	else {
+	  int atomicp = 1; const lispval *readlim = read+howmany;
+	  while (read<readlim) {
+	    lispval v = *read++;
+	    if (ATOMICP(v)) *write++=v;
+	    else {atomicp = 0; kno_incref(v); *write++=v;}}
+	  kno_decref(normal);
+	  return kno_init_choice(result,howmany,NULL,
+				 ((atomicp)?(KNO_CHOICE_ISATOMIC):(0)));}}
       else return EMPTY;}
     else return kno_incref(x);}
   else return kno_type_error("integer","topn",count);
@@ -988,8 +988,8 @@ static int compare_lisp(lispval x,lispval y)
 }
 
 DEFPRIM2("smallest",smallest_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
- "`(SMALLEST *arg0* [*arg1*])` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(SMALLEST *arg0* [*arg1*])` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval smallest_prim(lispval elts,lispval magnitude)
 {
   if (KNO_CHOICEP(magnitude)) {
@@ -1000,16 +1000,16 @@ static lispval smallest_prim(lispval elts,lispval magnitude)
     lispval results = KNO_EMPTY;
     DO_CHOICES(ok,magnitude) {
       if (KEYFNP(ok)) {
-        lispval largest = smallest_prim(elts,ok);
-        if (KNO_ABORTP(largest)) {
-          KNO_STOP_DO_CHOICES;
-          kno_decref(results);
-          return ok;}
-        else {KNO_ADD_TO_CHOICE(results,largest);}}
+	lispval largest = smallest_prim(elts,ok);
+	if (KNO_ABORTP(largest)) {
+	  KNO_STOP_DO_CHOICES;
+	  kno_decref(results);
+	  return ok;}
+	else {KNO_ADD_TO_CHOICE(results,largest);}}
       else {
-        KNO_STOP_DO_CHOICES;
-        kno_decref(results);
-        return kno_type_error("keyfn","smallest_prim",ok);}}
+	KNO_STOP_DO_CHOICES;
+	kno_decref(results);
+	return kno_type_error("keyfn","smallest_prim",ok);}}
     return results;}
   else if (PRED_FALSE (! (KEYFNP(magnitude)) ) )
     return kno_type_error("keyfn","smallest_prim",magnitude);
@@ -1018,40 +1018,40 @@ static lispval smallest_prim(lispval elts,lispval magnitude)
     DO_CHOICES(elt,elts) {
       lispval score = keyfn_get(elt,magnitude);
       if ( (KNO_ABORTED(score)) || (KNO_VOIDP(score)) ) {
-        u8_byte msgbuf[100];
-        kno_decref(top);
-        kno_decref(top_score);
-        if (VOIDP(score))
-          return kno_err(kno_VoidSortKey,"smallest_prim",
-                         u8_bprintf(msgbuf,"from keyfn %q",magnitude),
-                         elt);
-        else return score;}
+	u8_byte msgbuf[100];
+	kno_decref(top);
+	kno_decref(top_score);
+	if (VOIDP(score))
+	  return kno_err(kno_VoidSortKey,"smallest_prim",
+			 u8_bprintf(msgbuf,"from keyfn %q",magnitude),
+			 elt);
+	else return score;}
       else if (VOIDP(top_score))
-        if (EMPTYP(score)) {}
-        else {
-          top = kno_incref(elt);
-          top_score = score;}
+	if (EMPTYP(score)) {}
+	else {
+	  top = kno_incref(elt);
+	  top_score = score;}
       else if (EMPTYP(score)) {}
       else {
-        int comparison = compare_lisp(score,top_score);
-        if (comparison>0) {
-          kno_decref(score);}
-        else if (comparison == 0) {
-          kno_incref(elt);
-          CHOICE_ADD(top,elt);
-          kno_decref(score);}
-        else {
-          kno_decref(top);
-          kno_decref(top_score);
-          top = kno_incref(elt);
-          top_score = score;}}}
+	int comparison = compare_lisp(score,top_score);
+	if (comparison>0) {
+	  kno_decref(score);}
+	else if (comparison == 0) {
+	  kno_incref(elt);
+	  CHOICE_ADD(top,elt);
+	  kno_decref(score);}
+	else {
+	  kno_decref(top);
+	  kno_decref(top_score);
+	  top = kno_incref(elt);
+	  top_score = score;}}}
     kno_decref(top_score);
     return top;}
 }
 
 DEFPRIM2("largest",largest_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
- "`(LARGEST *arg0* [*arg1*])` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(LARGEST *arg0* [*arg1*])` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval largest_prim(lispval elts,lispval magnitude)
 {
   if (KNO_CHOICEP(magnitude)) {
@@ -1062,16 +1062,16 @@ static lispval largest_prim(lispval elts,lispval magnitude)
     lispval results = KNO_EMPTY;
     DO_CHOICES(ok,magnitude) {
       if (KEYFNP(ok)) {
-        lispval largest = largest_prim(elts,ok);
-        if (KNO_ABORTP(largest)) {
-          KNO_STOP_DO_CHOICES;
-          kno_decref(results);
-          return ok;}
-        else {KNO_ADD_TO_CHOICE(results,largest);}}
+	lispval largest = largest_prim(elts,ok);
+	if (KNO_ABORTP(largest)) {
+	  KNO_STOP_DO_CHOICES;
+	  kno_decref(results);
+	  return ok;}
+	else {KNO_ADD_TO_CHOICE(results,largest);}}
       else {
-        KNO_STOP_DO_CHOICES;
-        kno_decref(results);
-        return kno_type_error("keyfn","largest_prim",ok);}}
+	KNO_STOP_DO_CHOICES;
+	kno_decref(results);
+	return kno_type_error("keyfn","largest_prim",ok);}}
     return results;}
   else if (PRED_FALSE (! (KEYFNP(magnitude)) ) )
     return kno_type_error("keyfn","largest_prim",magnitude);
@@ -1080,33 +1080,33 @@ static lispval largest_prim(lispval elts,lispval magnitude)
     DO_CHOICES(elt,elts) {
       lispval score = keyfn_get(elt,magnitude);
       if ( (KNO_ABORTED(score)) || (KNO_VOIDP(score)) ) {
-        u8_byte msgbuf[100];
-        kno_decref(top);
-        kno_decref(top_score);
-        if (VOIDP(score))
-          return kno_err(kno_VoidSortKey,"largest_prim",
-                         u8_bprintf(msgbuf,"from keyfn %q",magnitude),
-                         elt);
-        else return score;}
+	u8_byte msgbuf[100];
+	kno_decref(top);
+	kno_decref(top_score);
+	if (VOIDP(score))
+	  return kno_err(kno_VoidSortKey,"largest_prim",
+			 u8_bprintf(msgbuf,"from keyfn %q",magnitude),
+			 elt);
+	else return score;}
       else if (VOIDP(top_score))
-        if (EMPTYP(score)) {}
-        else {
-          top = kno_incref(elt);
-          top_score = score;}
+	if (EMPTYP(score)) {}
+	else {
+	  top = kno_incref(elt);
+	  top_score = score;}
       else if (EMPTYP(score)) {}
       else {
-        int comparison = compare_lisp(score,top_score);
-        if (comparison<0) {
-          kno_decref(score);}
-        else if (comparison == 0) {
-          kno_incref(elt);
-          CHOICE_ADD(top,elt);
-          kno_decref(score);}
-        else {
-          kno_decref(top);
-          kno_decref(top_score);
-          top = kno_incref(elt);
-          top_score = score;}}}
+	int comparison = compare_lisp(score,top_score);
+	if (comparison<0) {
+	  kno_decref(score);}
+	else if (comparison == 0) {
+	  kno_incref(elt);
+	  CHOICE_ADD(top,elt);
+	  kno_decref(score);}
+	else {
+	  kno_decref(top);
+	  kno_decref(top_score);
+	  top = kno_incref(elt);
+	  top_score = score;}}}
     kno_decref(top_score);
     return top;}
 }
@@ -1116,7 +1116,7 @@ static lispval largest_prim(lispval elts,lispval magnitude)
 static int reduce_functionp(kno_function f)
 {
   return ( (f->fcn_min_arity == 2) ||
-           ( (f->fcn_arity < 0) && (f->fcn_min_arity < 2) ) );
+	   ( (f->fcn_arity < 0) && (f->fcn_min_arity < 2) ) );
 }
 
 static int reduce_operatorp(lispval f)
@@ -1142,18 +1142,18 @@ static lispval inner_reduce_choice
 (lispval choice,lispval fn,lispval start,lispval keyfn);
 
 DEFPRIM4("reduce-choice",reduce_choice,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2)|KNO_NDCALL,
- "`(REDUCE-CHOICE *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(REDUCE-CHOICE *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval reduce_choice(lispval fn,lispval choice,lispval start,
-                             lispval keyfn)
+			     lispval keyfn)
 {
   /* Type checking up front */
   if (KNO_CHOICEP(fn)) {
     KNO_DO_CHOICES(f,fn)
       if (! (PRED_TRUE(reduce_operatorp(f))) ) {
-        KNO_STOP_DO_CHOICES;
-        return kno_type_error("reduce operator","reduce_choice",f);}}
+	KNO_STOP_DO_CHOICES;
+	return kno_type_error("reduce operator","reduce_choice",f);}}
   else if (! (PRED_TRUE(reduce_operatorp(fn))) )
     return kno_type_error("reduce operator","reduce_choice",fn);
   else NO_ELSE;
@@ -1162,8 +1162,8 @@ static lispval reduce_choice(lispval fn,lispval choice,lispval start,
   else if (KNO_CHOICEP(keyfn)) {
     KNO_DO_CHOICES(ok,keyfn)
       if (! (PRED_TRUE(KEYFNP(ok))) ) {
-        KNO_STOP_DO_CHOICES;
-        return kno_type_error("object key","reduce_choice",ok);}}
+	KNO_STOP_DO_CHOICES;
+	return kno_type_error("object key","reduce_choice",ok);}}
   else return kno_type_error("object key","reduce_choice",keyfn);
   return kno_simplify_choice(inner_reduce_choice(choice,fn,start,keyfn));
 }
@@ -1176,9 +1176,9 @@ static lispval inner_reduce_choice
     KNO_DO_CHOICES(f,fn) {
       lispval reduction = inner_reduce_choice(choice,f,start,keyfn);
       if (KNO_ABORTED(reduction)) {
-        KNO_STOP_DO_CHOICES;
-        kno_decref(results);
-        return reduction;}
+	KNO_STOP_DO_CHOICES;
+	kno_decref(results);
+	return reduction;}
       else KNO_ADD_TO_CHOICE(results,reduction);}
     return results;}
   else if (KNO_CHOICEP(keyfn)) {
@@ -1186,9 +1186,9 @@ static lispval inner_reduce_choice
     KNO_DO_CHOICES(ok,keyfn) {
       lispval reduction = inner_reduce_choice(choice,fn,start,ok);
       if (KNO_ABORTED(reduction)) {
-        KNO_STOP_DO_CHOICES;
-        kno_decref(results);
-        return reduction;}
+	KNO_STOP_DO_CHOICES;
+	kno_decref(results);
+	return reduction;}
       else KNO_ADD_TO_CHOICE(results,reduction);}
     return results;}
   else {
@@ -1197,34 +1197,34 @@ static lispval inner_reduce_choice
     DO_CHOICES(each,choice) {
       lispval items = keyfn_get(each,keyfn);
       if (KNO_ABORTED(items)) {
-        KNO_STOP_DO_CHOICES;
-        kno_decref(state);
-        return items;}
+	KNO_STOP_DO_CHOICES;
+	kno_decref(state);
+	return items;}
       else if (VOIDP(state)) {
-        state = items;
-        continue;}
+	state = items;
+	continue;}
       else if (EMPTYP(items)) {}
       else if ( (! (nd_reducer) ) && (CHOICEP(items)) ) {
-        DO_CHOICES(item,items) {
-          lispval rail[2] = {item , state}, next_state;
-          next_state = kno_apply(fn,2,rail);
-          if (KNO_ABORTED(next_state)) {
-            kno_decref(state);
-            kno_decref(items);
-            KNO_STOP_DO_CHOICES;
-            return next_state;}
-          kno_decref(state);
-          state = next_state;}}
+	DO_CHOICES(item,items) {
+	  lispval rail[2] = {item , state}, next_state;
+	  next_state = kno_apply(fn,2,rail);
+	  if (KNO_ABORTED(next_state)) {
+	    kno_decref(state);
+	    kno_decref(items);
+	    KNO_STOP_DO_CHOICES;
+	    return next_state;}
+	  kno_decref(state);
+	  state = next_state;}}
       else {
-        lispval rail[2] = {items , state}, next_state;
-        next_state = kno_apply(fn,2,rail);
-        if (KNO_ABORTED(next_state)) {
-          kno_decref(state);
-          kno_decref(items);
-          KNO_STOP_DO_CHOICES;
-          return next_state;}
-        kno_decref(state);
-        state = next_state;}
+	lispval rail[2] = {items , state}, next_state;
+	next_state = kno_apply(fn,2,rail);
+	if (KNO_ABORTED(next_state)) {
+	  kno_decref(state);
+	  kno_decref(items);
+	  KNO_STOP_DO_CHOICES;
+	  return next_state;}
+	kno_decref(state);
+	state = next_state;}
       kno_decref(items);}
     return state;}
 }
@@ -1254,7 +1254,7 @@ static enum SORTFN get_sortfn(lispval arg)
 }
 
 static lispval sorted_primfn(lispval choices,lispval keyfn,int reverse,
-                             enum SORTFN sortfn)
+			     enum SORTFN sortfn)
 {
   if (EMPTYP(choices))
     return kno_empty_vector(0);
@@ -1265,16 +1265,16 @@ static lispval sorted_primfn(lispval choices,lispval keyfn,int reverse,
     DO_CHOICES(elt,choices) {
       lispval key=_kno_apply_keyfn(elt,keyfn);
       if ( (KNO_ABORTED(key)) || (KNO_VOIDP(key)) ) {
-        u8_byte msgbuf[100];
-        int j = 0; while (j<i) {
-          kno_decref(entries[j].sortkey);
-          j++;}
-        u8_big_free(entries);
-        u8_big_free(vecdata);
-        if (KNO_ABORTP(key))
-          return key;
-        else return kno_err(kno_VoidSortKey,"sorted_primfn",
-                            u8_bprintf(msgbuf,"From keyfn %q",keyfn),elt);}
+	u8_byte msgbuf[100];
+	int j = 0; while (j<i) {
+	  kno_decref(entries[j].sortkey);
+	  j++;}
+	u8_big_free(entries);
+	u8_big_free(vecdata);
+	if (KNO_ABORTP(key))
+	  return key;
+	else return kno_err(kno_VoidSortKey,"sorted_primfn",
+			    u8_bprintf(msgbuf,"From keyfn %q",keyfn),elt);}
       entries[i].sortval = elt;
       entries[i].sortkey = key;
       i++;}
@@ -1295,13 +1295,13 @@ static lispval sorted_primfn(lispval choices,lispval keyfn,int reverse,
       qsort(entries,n,sizeof(struct KNO_SORT_ENTRY),_kno_collate_helper);
       break;}
     i = 0; j = n-1; if (reverse) while (i < n) {
-      kno_decref(entries[i].sortkey);
-      vecdata[j]=kno_incref(entries[i].sortval);
-      i++; j--;}
+	kno_decref(entries[i].sortkey);
+	vecdata[j]=kno_incref(entries[i].sortval);
+	i++; j--;}
     else while (i < n) {
-      kno_decref(entries[i].sortkey);
-      vecdata[i]=kno_incref(entries[i].sortval);
-      i++;}
+	kno_decref(entries[i].sortkey);
+	vecdata[i]=kno_incref(entries[i].sortval);
+	i++;}
     u8_big_free(entries);
     return kno_cons_vector(NULL,n,1,vecdata);}
   else {
@@ -1311,19 +1311,19 @@ static lispval sorted_primfn(lispval choices,lispval keyfn,int reverse,
 }
 
 DEFPRIM3("sorted",sorted_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1)|KNO_NDCALL,
- "(SORTED *choice* *keyfn* *sortfn*)"
- ", returns a sorted vector of items in *choice*. "
- "If provided, *keyfn* is specified a property "
- "(slot, function, table-mapping, etc) is compared "
- "instead of the object itself. *sortfn* can be "
- "NORMAL (#f), LEXICAL, or COLLATE to specify "
- "whether comparison of strings is done "
- "lexicographically or using the locale's COLLATE "
- "rules.",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
- kno_any_type,KNO_VOID);
+	 "(SORTED *choice* *keyfn* *sortfn*)"
+	 ", returns a sorted vector of items in *choice*. "
+	 "If provided, *keyfn* is specified a property "
+	 "(slot, function, table-mapping, etc) is compared "
+	 "instead of the object itself. *sortfn* can be "
+	 "NORMAL (#f), LEXICAL, or COLLATE to specify "
+	 "whether comparison of strings is done "
+	 "lexicographically or using the locale's COLLATE "
+	 "rules.",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
+	 kno_any_type,KNO_VOID);
 static lispval sorted_prim(lispval choices,lispval keyfn,
-                           lispval sortfn_arg)
+			   lispval sortfn_arg)
 {
   enum SORTFN sortfn;
   if ( (keyfn == lexical_symbol) || (keyfn == pointer_symbol) ||
@@ -1335,27 +1335,27 @@ static lispval sorted_prim(lispval choices,lispval keyfn,
 }
 
 DEFPRIM3("rsorted",rsorted_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1)|KNO_NDCALL,
- "(RSORTED *choice* *keyfn* *sortfn*)"
- ", returns a sorted vector of items in *choice*. "
- "If provided, *keyfn* is specified a property "
- "(slot, function, table-mapping, etc) is compared "
- "instead of the object itself. *sortfn* can be "
- "NORMAL (#f), LEXICAL, or COLLATE to specify "
- "whether comparison of strings is done "
- "lexicographically or using the locale's COLLATE "
- "rules.",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
- kno_any_type,KNO_VOID);
+	 "(RSORTED *choice* *keyfn* *sortfn*)"
+	 ", returns a sorted vector of items in *choice*. "
+	 "If provided, *keyfn* is specified a property "
+	 "(slot, function, table-mapping, etc) is compared "
+	 "instead of the object itself. *sortfn* can be "
+	 "NORMAL (#f), LEXICAL, or COLLATE to specify "
+	 "whether comparison of strings is done "
+	 "lexicographically or using the locale's COLLATE "
+	 "rules.",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
+	 kno_any_type,KNO_VOID);
 static lispval rsorted_prim(lispval choices,lispval keyfn,
-                            lispval sortfn_arg)
+			    lispval sortfn_arg)
 {
   enum SORTFN sortfn = get_sortfn(sortfn_arg);
   return sorted_primfn(choices,keyfn,1,sortfn);
 }
 
 DEFPRIM2("lexsorted",lexsorted_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
- "`(LEXSORTED *arg0* [*arg1*])` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(LEXSORTED *arg0* [*arg1*])` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval lexsorted_prim(lispval choices,lispval keyfn)
 {
   return sorted_primfn(choices,keyfn,0,COLLATED_SORT);
@@ -1364,8 +1364,8 @@ static lispval lexsorted_prim(lispval choices,lispval keyfn)
 /* Selection */
 
 static ssize_t select_helper(lispval choices,lispval keyfn,
-                             size_t k,int maximize,
-                             struct KNO_SORT_ENTRY *entries)
+			     size_t k,int maximize,
+			     struct KNO_SORT_ENTRY *entries)
 {
 #define BETTERP(x) ((maximize)?((x)>0):((x)<0))
 #define IS_BETTER(x,y) (BETTERP(KNO_QCOMPARE((x),(y))))
@@ -1376,13 +1376,13 @@ static ssize_t select_helper(lispval choices,lispval keyfn,
     lispval key=_kno_apply_keyfn(elt,keyfn);
     if ( (KNO_ABORTED(key)) || (KNO_VOIDP(key)) ) {
       int j = 0; while (j<k_len) {
-        kno_decref(entries[j].sortkey);
-        j++;}
+	kno_decref(entries[j].sortkey);
+	j++;}
       if (VOIDP(key)) {
-        u8_byte buf[80];
-        kno_seterr(kno_VoidSortKey,"select_helper",
-                   u8_bprintf(buf,"The keyfn %q return VOID",keyfn),
-                   elt);}
+	u8_byte buf[80];
+	kno_seterr(kno_VoidSortKey,"select_helper",
+		   u8_bprintf(buf,"The keyfn %q return VOID",keyfn),
+		   elt);}
       return -1;}
     else if (k_len<k) {
       entries[k_len].sortval = elt;
@@ -1390,20 +1390,20 @@ static ssize_t select_helper(lispval choices,lispval keyfn,
       k_len++;}
     else {
       /* If we get here, we've got k filled up and have the
-         'minimal' value set aside. We iterate through the rest of
-         the choice and only add a value (replacing the minimal
-         one) if its better than the minimal one. */
+	 'minimal' value set aside. We iterate through the rest of
+	 the choice and only add a value (replacing the minimal
+	 one) if its better than the minimal one. */
       qsort(entries,k,sizeof(struct KNO_SORT_ENTRY),_kno_sort_helper);
       worst = entries[worst_off].sortkey;
       if (IS_BETTER(key,worst)) {
-        kno_decref(worst);
-        entries[worst_off].sortval = elt;
-        entries[worst_off].sortkey = key;
-        /* This could be done faster by either by just finding
-           where to insert it, either by iterating O(n) or binary
-           search O(log n). */
-        qsort(entries,k,sizeof(struct KNO_SORT_ENTRY),_kno_sort_helper);
-        worst = entries[worst_off].sortkey;}
+	kno_decref(worst);
+	entries[worst_off].sortval = elt;
+	entries[worst_off].sortkey = key;
+	/* This could be done faster by either by just finding
+	   where to insert it, either by iterating O(n) or binary
+	   search O(log n). */
+	qsort(entries,k,sizeof(struct KNO_SORT_ENTRY),_kno_sort_helper);
+	worst = entries[worst_off].sortkey;}
       else kno_decref(key);}}
   return k_len;
 #undef BETTERP
@@ -1430,9 +1430,9 @@ static lispval entries2choice(struct KNO_SORT_ENTRY *entries,int n)
 }
 
 DEFPRIM3("pick-max",nmax_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
- "`(PICK-MAX *arg0* *arg1* [*arg2*])` **undocumented**",
- kno_any_type,KNO_VOID,kno_fixnum_type,KNO_VOID,
- kno_any_type,KNO_VOID);
+	 "`(PICK-MAX *arg0* *arg1* [*arg2*])` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_fixnum_type,KNO_VOID,
+	 kno_any_type,KNO_VOID);
 static lispval nmax_prim(lispval choices,lispval karg,lispval keyfn)
 {
   if ( (VOIDP(keyfn)) || (DEFAULTP(keyfn)) || (FALSEP(keyfn)) ) {}
@@ -1449,16 +1449,16 @@ static lispval nmax_prim(lispval choices,lispval karg,lispval keyfn)
       struct KNO_SORT_ENTRY *entries = u8_alloc_n(k,struct KNO_SORT_ENTRY);
       ssize_t count = select_helper(choices,keyfn,k,1,entries);
       if (count < 0) {
-        u8_free(entries);
-        return KNO_ERROR;}
+	u8_free(entries);
+	return KNO_ERROR;}
       else return entries2choice(entries,count);}}
   else return kno_type_error(_("fixnum"),"nmax_prim",karg);
 }
 
 DEFPRIM3("max/sorted",nmax2vec_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
- "`(MAX/SORTED *arg0* *arg1* [*arg2*])` **undocumented**",
- kno_any_type,KNO_VOID,kno_fixnum_type,KNO_VOID,
- kno_any_type,KNO_VOID);
+	 "`(MAX/SORTED *arg0* *arg1* [*arg2*])` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_fixnum_type,KNO_VOID,
+	 kno_any_type,KNO_VOID);
 static lispval nmax2vec_prim(lispval choices,lispval karg,lispval keyfn)
 {
   if ( (VOIDP(keyfn)) || (DEFAULTP(keyfn)) || (FALSEP(keyfn)) ) {}
@@ -1475,28 +1475,28 @@ static lispval nmax2vec_prim(lispval choices,lispval karg,lispval keyfn)
     else {
       ssize_t n_entries = (n<k) ? (n) : (k);
       struct KNO_SORT_ENTRY *entries =
-        u8_alloc_n(n_entries,struct KNO_SORT_ENTRY);
+	u8_alloc_n(n_entries,struct KNO_SORT_ENTRY);
       ssize_t count = select_helper(choices,keyfn,k,1,entries);
       if (count < 0) {
-        u8_free(entries);
-        return KNO_ERROR;}
+	u8_free(entries);
+	return KNO_ERROR;}
       lispval vec = kno_make_vector(count,NULL);
       int i = 0; while (i<count) {
-        lispval elt = entries[i].sortval;
-        int vec_off = count-1-i;
-        kno_incref(elt);
-        kno_decref(entries[i].sortkey);
-        KNO_VECTOR_SET(vec,vec_off,elt);
-        i++;}
+	lispval elt = entries[i].sortval;
+	int vec_off = count-1-i;
+	kno_incref(elt);
+	kno_decref(entries[i].sortkey);
+	KNO_VECTOR_SET(vec,vec_off,elt);
+	i++;}
       u8_free(entries);
       return vec;}}
   else return kno_type_error(_("fixnum"),"nmax_prim",karg);
 }
 
 DEFPRIM3("pick-min",nmin_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
- "`(PICK-MIN *arg0* *arg1* [*arg2*])` **undocumented**",
- kno_any_type,KNO_VOID,kno_fixnum_type,KNO_VOID,
- kno_any_type,KNO_VOID);
+	 "`(PICK-MIN *arg0* *arg1* [*arg2*])` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_fixnum_type,KNO_VOID,
+	 kno_any_type,KNO_VOID);
 static lispval nmin_prim(lispval choices,lispval karg,lispval keyfn)
 {
   if ( (VOIDP(keyfn)) || (DEFAULTP(keyfn)) || (FALSEP(keyfn)) ) {}
@@ -1513,16 +1513,16 @@ static lispval nmin_prim(lispval choices,lispval karg,lispval keyfn)
       struct KNO_SORT_ENTRY *entries = u8_alloc_n(k,struct KNO_SORT_ENTRY);
       ssize_t count = select_helper(choices,keyfn,k,0,entries);
       if (count < 0) {
-        u8_free(entries);
-        return KNO_ERROR;}
+	u8_free(entries);
+	return KNO_ERROR;}
       else return entries2choice(entries,count);}}
   else return kno_type_error(_("fixnum"),"nmax_prim",karg);
 }
 
 DEFPRIM3("min/sorted",nmin2vec_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
- "`(MIN/SORTED *arg0* *arg1* [*arg2*])` **undocumented**",
- kno_any_type,KNO_VOID,kno_fixnum_type,KNO_VOID,
- kno_any_type,KNO_VOID);
+	 "`(MIN/SORTED *arg0* *arg1* [*arg2*])` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_fixnum_type,KNO_VOID,
+	 kno_any_type,KNO_VOID);
 static lispval nmin2vec_prim(lispval choices,lispval karg,lispval keyfn)
 {
   if ( (VOIDP(keyfn)) || (DEFAULTP(keyfn)) || (FALSEP(keyfn)) ) {}
@@ -1539,17 +1539,17 @@ static lispval nmin2vec_prim(lispval choices,lispval karg,lispval keyfn)
     else {
       ssize_t n_entries = (n<k) ? (n) : (k);
       struct KNO_SORT_ENTRY *entries =
-        u8_alloc_n(n_entries,struct KNO_SORT_ENTRY);
+	u8_alloc_n(n_entries,struct KNO_SORT_ENTRY);
       ssize_t count = select_helper(choices,keyfn,k,0,entries);
       if (count<0) {
-        u8_free(entries);
-        return KNO_ERROR;}
+	u8_free(entries);
+	return KNO_ERROR;}
       lispval vec = kno_make_vector(count,NULL);
       int i = 0; while (i<count) {
-        kno_decref(entries[i].sortkey);
-        kno_incref(entries[i].sortval);
-        KNO_VECTOR_SET(vec,i,entries[i].sortval);
-        i++;}
+	kno_decref(entries[i].sortkey);
+	kno_incref(entries[i].sortval);
+	KNO_VECTOR_SET(vec,i,entries[i].sortval);
+	i++;}
       u8_free(entries);
       return vec;}}
   else return kno_type_error(_("fixnum"),"nmax_prim",karg);
@@ -1558,8 +1558,8 @@ static lispval nmin2vec_prim(lispval choices,lispval karg,lispval keyfn)
 /* GETRANGE */
 
 DEFPRIM2("getrange",getrange_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "`(GETRANGE *arg0* [*arg1*])` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(GETRANGE *arg0* [*arg1*])` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval getrange_prim(lispval arg1,lispval endval)
 {
   long long start, end; lispval results = EMPTY;
@@ -1579,9 +1579,9 @@ static lispval getrange_prim(lispval arg1,lispval endval)
 }
 
 DEFPRIM3("pick>",pick_gt_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1)|KNO_NDCALL,
- "`(PICK> *arg0* [*arg1*] [*arg2*])` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_INT(0),
- kno_any_type,KNO_FALSE);
+	 "`(PICK> *arg0* [*arg1*] [*arg2*])` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_INT(0),
+	 kno_any_type,KNO_FALSE);
 static lispval pick_gt_prim(lispval items,lispval num,lispval checktype)
 {
   lispval lower_bound = VOID;
@@ -1598,22 +1598,22 @@ static lispval pick_gt_prim(lispval items,lispval num,lispval checktype)
     lispval results = EMPTY;
     DO_CHOICES(item,items)
       if (NUMBERP(item))
-        if (kno_numcompare(item,lower_bound)>0) {
-          kno_incref(item);
-          CHOICE_ADD(results,item);}
-        else {}
+	if (kno_numcompare(item,lower_bound)>0) {
+	  kno_incref(item);
+	  CHOICE_ADD(results,item);}
+	else {}
       else if (checktype == KNO_TRUE) {
-        KNO_STOP_DO_CHOICES;
-        kno_decref(results);
-        return kno_type_error("number","pick_gt_prim",item);}
+	KNO_STOP_DO_CHOICES;
+	kno_decref(results);
+	return kno_type_error("number","pick_gt_prim",item);}
       else {}
     return results;
   }
 }
 
 DEFPRIM1("pickoids",pick_oids_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
- "`(PICKOIDS *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(PICKOIDS *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval pick_oids_prim(lispval items)
 {
   lispval results = EMPTY; int no_change = 1;
@@ -1628,8 +1628,8 @@ static lispval pick_oids_prim(lispval items)
 }
 
 DEFPRIM1("picksyms",pick_syms_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
- "`(PICKSYMS *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(PICKSYMS *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval pick_syms_prim(lispval items)
 {
   lispval results = EMPTY; int no_change = 1;
@@ -1644,8 +1644,8 @@ static lispval pick_syms_prim(lispval items)
 }
 
 DEFPRIM1("pickstrings",pick_strings_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
- "`(PICKSTRINGS *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(PICKSTRINGS *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval pick_strings_prim(lispval items)
 {
   /* I don't think we need to worry about getting a PRECHOICE here. */
@@ -1662,8 +1662,8 @@ static lispval pick_strings_prim(lispval items)
 }
 
 DEFPRIM1("pickvecs",pick_vecs_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
- "`(PICKVECS *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(PICKVECS *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval pick_vecs_prim(lispval items)
 {
   /* I don't think we need to worry about getting a PRECHOICE here. */
@@ -1680,8 +1680,8 @@ static lispval pick_vecs_prim(lispval items)
 }
 
 DEFPRIM1("pickpairs",pick_pairs_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
- "`(PICKPAIRS *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(PICKPAIRS *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval pick_pairs_prim(lispval items)
 {
   /* I don't think we need to worry about getting a PRECHOICE here. */
@@ -1698,8 +1698,8 @@ static lispval pick_pairs_prim(lispval items)
 }
 
 DEFPRIM1("picknums",pick_nums_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
- "`(PICKNUMS *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(PICKNUMS *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval pick_nums_prim(lispval items)
 {
   lispval results = EMPTY; int no_change = 1;
@@ -1717,8 +1717,8 @@ static lispval pick_nums_prim(lispval items)
 }
 
 DEFPRIM1("pickmaps",pick_maps_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
- "`(PICKMAPS *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(PICKMAPS *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval pick_maps_prim(lispval items)
 {
   lispval results = EMPTY; int no_change = 1;

@@ -46,7 +46,7 @@ KNO_EXPORT lispval kno_open_dtserver(u8_string server,int bufsiz)
       server_addr = u8_strdup(CSTRING(server_id));
     else  {
       kno_seterr(ServerUndefined,"open_server",
-                dts->dtserverid,server_id);
+		 dts->dtserverid,server_id);
       u8_free(dts);
       return -1;}}
   else server_addr = u8_strdup(server);
@@ -61,7 +61,7 @@ KNO_EXPORT lispval kno_open_dtserver(u8_string server,int bufsiz)
     u8_free(dts->dtserver_addr);
     u8_free(dts);
     return kno_err(kno_ConnectionFailed,"kno_open_dtserver",
-                  u8_strdup(server),VOID);}
+		   u8_strdup(server),VOID);}
   /* Otherwise, close the socket */
   else close(socket);
   /* And create a connection pool */
@@ -79,9 +79,9 @@ KNO_EXPORT lispval kno_open_dtserver(u8_string server,int bufsiz)
 }
 
 DEFPRIM1("dtserver?",dtserverp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "Returns true if it's argument is a dtype server "
- "object",
- kno_any_type,KNO_VOID);
+	 "Returns true if it's argument is a dtype server "
+	 "object",
+	 kno_any_type,KNO_VOID);
 static lispval dtserverp(lispval arg)
 {
   if (TYPEP(arg,kno_dtserver_type))
@@ -90,9 +90,9 @@ static lispval dtserverp(lispval arg)
 }
 
 DEFPRIM1("dtserver-id",dtserver_id,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "Returns the ID of a dtype server (the argument "
- "used to create it)",
- kno_dtserver_type,KNO_VOID);
+	 "Returns the ID of a dtype server (the argument "
+	 "used to create it)",
+	 kno_dtserver_type,KNO_VOID);
 static lispval dtserver_id(lispval arg)
 {
   struct KNO_DTSERVER *dts = (struct KNO_DTSERVER *) arg;
@@ -100,8 +100,8 @@ static lispval dtserver_id(lispval arg)
 }
 
 DEFPRIM1("dtserver-address",dtserver_address,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "Returns the address (host/port) of a dtype server",
- kno_dtserver_type,KNO_VOID);
+	 "Returns the address (host/port) of a dtype server",
+	 kno_dtserver_type,KNO_VOID);
 static lispval dtserver_address(lispval arg)
 {
   struct KNO_DTSERVER *dts = (struct KNO_DTSERVER *) arg;
@@ -109,8 +109,8 @@ static lispval dtserver_address(lispval arg)
 }
 
 DEFPRIM2("dteval",dteval,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
- "`(DTEVAL *arg0* *arg1*)` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(DTEVAL *arg0* *arg1*)` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval dteval(lispval server,lispval expr)
 {
   if (TYPEP(server,kno_dtserver_type))  {
@@ -128,7 +128,7 @@ static lispval dteval(lispval server,lispval expr)
 }
 
 DEFPRIM("dtcall",dtcall,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
- "`(DTCALL *arg0* *arg1* *args...*)` **undocumented**");
+	"`(DTCALL *arg0* *arg1* *args...*)` **undocumented**");
 static lispval dtcall(int n,lispval *args)
 {
   lispval server; lispval request = NIL, result; int i = n-1;
@@ -151,13 +151,13 @@ static lispval dtcall(int n,lispval *args)
 }
 
 DEFPRIM2("open-dtserver",open_dtserver,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "`(OPEN-DTSERVER *arg0* [*arg1*])` **undocumented**",
- kno_string_type,KNO_VOID,kno_fixnum_type,KNO_VOID);
+	 "`(OPEN-DTSERVER *arg0* [*arg1*])` **undocumented**",
+	 kno_string_type,KNO_VOID,kno_fixnum_type,KNO_VOID);
 static lispval open_dtserver(lispval server,lispval bufsiz)
 {
   return kno_open_dtserver(CSTRING(server),
-                             ((VOIDP(bufsiz)) ? (-1) :
-                              (FIX2INT(bufsiz))));
+			   ((VOIDP(bufsiz)) ? (-1) :
+			    (FIX2INT(bufsiz))));
 }
 
 /* Initialization */

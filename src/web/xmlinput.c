@@ -24,10 +24,10 @@
 #include <ctype.h>
 
 /* TODO:
-    Make XML parsing record the markup string as the %raw slot.
-    Record %rawname when parsing.
-    Check that PIs get their whole body recorded.
-    Handle commments and CDATA. */
+   Make XML parsing record the markup string as the %raw slot.
+   Record %rawname when parsing.
+   Check that PIs get their whole body recorded.
+   Handle commments and CDATA. */
 
 static lispval make_slotmap()
 {
@@ -60,10 +60,10 @@ static u8_string deentify(u8_string arg,u8_string lim)
       const u8_byte *end = NULL;
       int code = u8_parse_entity(scan,&end);
       if (code<=0) {
-        u8_putc(&out,c); c = u8_sgetc(&scan);}
+	u8_putc(&out,c); c = u8_sgetc(&scan);}
       else {
-        u8_putc(&out,code); scan = end;
-        c = u8_sgetc(&scan);}}
+	u8_putc(&out,code); scan = end;
+	c = u8_sgetc(&scan);}}
     else {u8_putc(&out,c); c = u8_sgetc(&scan);}
   return out.u8_outbuf;
 }
@@ -84,10 +84,10 @@ KNO_EXPORT lispval kno_convert_entities(u8_string arg,u8_string lim)
       const u8_byte *end = NULL;
       int code = u8_parse_entity(scan,&end);
       if (code<=0) {
-        u8_putc(&out,c); c = u8_sgetc(&scan);}
+	u8_putc(&out,c); c = u8_sgetc(&scan);}
       else {
-        u8_putc(&out,code); scan = end;
-        c = u8_sgetc(&scan);}}
+	u8_putc(&out,code); scan = end;
+	c = u8_sgetc(&scan);}}
     else {u8_putc(&out,c); c = u8_sgetc(&scan);}
   return kno_stream2string(&out);
 }
@@ -125,7 +125,7 @@ static int check_pair(u8_string outer,u8_string inner,struct CLOSERULES *rules)
 {
   while (rules->inner)
     if ((strcasecmp(inner,rules->inner)==0)&&
-        (strcasecmp(outer,rules->outer)==0))
+	(strcasecmp(outer,rules->outer)==0))
       return 1;
     else rules++;
   return 0;
@@ -140,11 +140,11 @@ static int egetc(u8_string *s)
     if (**s=='&')
       if (strncmp(*s,"&nbsp;",6)==0) {*s = *s+6; return ' ';}
       else {
-        const u8_byte *end = NULL;
-        int code = u8_parse_entity((*s)+1,&end);
-        if (code>0) {
-          *s = end; return code;}
-        else {(*s)++; return '&';}}
+	const u8_byte *end = NULL;
+	int code = u8_parse_entity((*s)+1,&end);
+	if (code>0) {
+	  *s = end; return code;}
+	else {(*s)++; return '&';}}
     else {
       int c = **s; (*s)++; return c;}
   else return u8_sgetc(s);
@@ -174,11 +174,11 @@ static int block_elementp(u8_string name)
   return 0;
 }
 
-
+
 /* Reading from a stream while keeping a growing buffer around. */
 
 static u8_string readbuf
-  (U8_INPUT *in,u8_byte **bufp,size_t *bufsizp,size_t *sizep,char *eos)
+(U8_INPUT *in,u8_byte **bufp,size_t *bufsizp,size_t *sizep,char *eos)
 {
   u8_byte *buf = *bufp; size_t bufsiz = *bufsizp; int sz = 0;
   u8_string data = u8_gets_x(buf,bufsiz,in,eos,&sz);
@@ -201,7 +201,7 @@ static u8_string readbuf
 }
 
 static u8_string read_xmltag(u8_input in,u8_byte **buf,
-                             size_t *bufsizep,size_t *sizep)
+			     size_t *bufsizep,size_t *sizep)
 {
   struct U8_OUTPUT out;
   U8_INIT_OUTPUT_BUF(&out,*bufsizep,*buf);
@@ -214,18 +214,18 @@ static u8_string read_xmltag(u8_input in,u8_byte **buf,
     else u8_putc(&out,c);
     if (c=='\'') {
       while ((c = u8_getc(in))) {
-        if ((c<0)||(c=='\'')) break;
-        else u8_putc(&out,c);}
+	if ((c<0)||(c=='\'')) break;
+	else u8_putc(&out,c);}
       if (c<0) return NULL;
       else u8_putc(&out,c);
       c = u8_getc(in);}
     else if (c=='"') {
       while ((c = u8_getc(in))) {
-          if ((c<0)||(c=='"')) break;
-          else u8_putc(&out,c);}
-        if (c<0) return NULL;
-        else u8_putc(&out,c);
-        c = u8_getc(in);}
+	if ((c<0)||(c=='"')) break;
+	else u8_putc(&out,c);}
+      if (c<0) return NULL;
+      else u8_putc(&out,c);
+      c = u8_getc(in);}
     else c = u8_getc(in);}
   *buf = out.u8_outbuf;
   *bufsizep = out.u8_outlim-out.u8_outbuf;
@@ -235,9 +235,9 @@ static u8_string read_xmltag(u8_input in,u8_byte **buf,
 
 KNO_EXPORT
 void *kno_walk_markup(U8_INPUT *in,
-                     void *(*contentfn)(void *,u8_string),
-                     void *(*markupfn)(void *,u8_string),
-                     void *data)
+		      void *(*contentfn)(void *,u8_string),
+		      void *(*markupfn)(void *,u8_string),
+		      void *data)
 {
   u8_byte *buf = u8_malloc(1024); size_t bufsiz = 1024, size = bufsiz;
   while (1) {
@@ -353,24 +353,24 @@ static u8_string ns_get(KNO_XML *xml,u8_string s,u8_string *nsp)
   u8_byte *colon = strchr(s,':');
   if (colon == NULL) {
     KNO_XML *scan = xml; while (scan)
-      if (scan->xml_namespace) {
-        *nsp = scan->xml_namespace; return s;}
-      else scan = scan->xml_parent;
+			   if (scan->xml_namespace) {
+			     *nsp = scan->xml_namespace; return s;}
+			   else scan = scan->xml_parent;
     *nsp = NULL;
     return s;}
   else {
     int prefix_len = (colon-s)+1;
     KNO_XML *scan = xml; while (scan)
-      if (scan->xml_nsmap) {
-        int i = 0, len = scan->xml_size;
-        u8_string *nsmap = scan->xml_nsmap;
-        while (i<len)
-          if (strncmp(s,nsmap[i],prefix_len)==0) {
-            *nsp = nsmap[i]+prefix_len;
-            return colon+1;}
-          else i++;
-        scan = scan->xml_parent;}
-      else scan = scan->xml_parent;
+			   if (scan->xml_nsmap) {
+			     int i = 0, len = scan->xml_size;
+			     u8_string *nsmap = scan->xml_nsmap;
+			     while (i<len)
+			       if (strncmp(s,nsmap[i],prefix_len)==0) {
+				 *nsp = nsmap[i]+prefix_len;
+				 return colon+1;}
+			       else i++;
+			     scan = scan->xml_parent;}
+			   else scan = scan->xml_parent;
     *nsp = NULL;
     return s;}
 }
@@ -394,7 +394,7 @@ static int process_nsattrib(KNO_XML *xml,u8_string name,u8_string val)
       return 1;}
     else if ((nsprefix = (strchr(name,':')))) {
       lispval entry=
-        kno_conspair(kno_mkstring(nsprefix+1),kno_mkstring(val));
+	kno_conspair(kno_mkstring(nsprefix+1),kno_mkstring(val));
       ns_add(xml,nsprefix+1,val);
       kno_add(xml->xml_attribs,xmlns_symbol,entry);
       kno_decref(entry);
@@ -424,15 +424,15 @@ static void add_content(struct KNO_XML *node,lispval item)
   if ((STRINGP(item)) &&
       (((KNO_STRING_LENGTH(item))==0) ||
        ((node->xml_bits&KNO_XML_CRUSHSPACE)&&
-        (allspacep(CSTRING(item)))))) {
+	(allspacep(CSTRING(item)))))) {
     kno_decref(item);
     return;}
   else {
     lispval entry;
     if (STRINGP(item)) {
       int parse_entities=
-        (((node->xml_bits)&(KNO_XML_DECODE_ENTITIES)) &&
-         (strchr(CSTRING(item),'&')!=NULL));
+	(((node->xml_bits)&(KNO_XML_DECODE_ENTITIES)) &&
+	 (strchr(CSTRING(item),'&')!=NULL));
       entry = item2list(item,parse_entities);}
     else entry = kno_make_list(1,item);
     if (node->xml_content_tail == NULL) {
@@ -470,8 +470,8 @@ static void set_elt_name(KNO_XML *xml,u8_string name)
 
 KNO_EXPORT
 int kno_parse_xmltag(u8_byte **scanner,u8_byte *end,
-                     const u8_byte **attribs,int max_attribs,
-                     int sloppy)
+		     const u8_byte **attribs,int max_attribs,
+		     int sloppy)
 {
   int n_attribs = 0;
   u8_byte *scan = *scanner, *elt_start = scan;
@@ -484,68 +484,68 @@ int kno_parse_xmltag(u8_byte **scanner,u8_byte *end,
     if (isspace(*scan)) {
       u8_byte *item_end = scan;
       /* Skip (and ignore) whitespace; spaces outside of quotes
-         or not after or before = are always 'attribute' breaks */
+	 or not after or before = are always 'attribute' breaks */
       while ((scan<end) && (isspace(*scan))) scan++;
       /* This = is part of an attribute */
       if (*scan=='=') {
-        scan++; /* Skip the whitespace after the = */
-        while ((scan<end) && (isspace(*scan))) scan++;
-        /* We're still in the attribute */
-        continue;}
+	scan++; /* Skip the whitespace after the = */
+	while ((scan<end) && (isspace(*scan))) scan++;
+	/* We're still in the attribute */
+	continue;}
       else {
-        /* The space really ends the attribute, so NUL terminate it and
-           add it to *attribs */
-        *item_end='\0'; attribs[n_attribs++]=elt_start;
-        if (n_attribs>=max_attribs) {
-          *scanner = scan; return n_attribs;}
-        elt_start = scan;}}
+	/* The space really ends the attribute, so NUL terminate it and
+	   add it to *attribs */
+	*item_end='\0'; attribs[n_attribs++]=elt_start;
+	if (n_attribs>=max_attribs) {
+	  *scanner = scan; return n_attribs;}
+	elt_start = scan;}}
     else if (*scan=='\'') {
       /* Scan a single quoted value, waiting for an unprotected
-         single quote */
+	 single quote */
       u8_byte *aend = strchr(scan+1,'\'');
       if ((aend)&&(aend<end)) scan = aend+1; /* got one */
       else if (sloppy) {
-        /* Not closed, but sloppy is okay, so we just go up to the
-           first space after the opening quote.  We could be more
-           clever (looking for xxx=, for exampe) but let's not.  */
-        const u8_byte *lookahead = scan;
-        int c = u8_sgetc(&lookahead);
-        while ((c>0)&&(!(u8_isspace(c)))&&(lookahead<end)) {
-          scan = (u8_byte *)lookahead;
-          c = u8_sgetc(&lookahead);}}
+	/* Not closed, but sloppy is okay, so we just go up to the
+	   first space after the opening quote.  We could be more
+	   clever (looking for xxx=, for exampe) but let's not.  */
+	const u8_byte *lookahead = scan;
+	int c = u8_sgetc(&lookahead);
+	while ((c>0)&&(!(u8_isspace(c)))&&(lookahead<end)) {
+	  scan = (u8_byte *)lookahead;
+	  c = u8_sgetc(&lookahead);}}
       else {
-        kno_seterr3(kno_XMLParseError,"unclosed quote in attribute",
-                   xmlsnip(*scanner));
-        return -1;}}
+	kno_seterr3(kno_XMLParseError,"unclosed quote in attribute",
+		    xmlsnip(*scanner));
+	return -1;}}
     else if (*scan=='"') {
       /* This is the exact same logic as above, but scanning for
-         a double quote rather than a single quote. */
+	 a double quote rather than a single quote. */
       u8_byte *aend = strchr(scan+1,'"');
       /* Scan, ignoring escaped single quotes */
       if ((aend)&&(aend<end)) scan = aend+1; /* got one */
       else if (sloppy) {
-        /* Not closed, but sloppy is okay, so we just go up to the
-           first space after the opening quote.  We could be more
-           clever (looking for xxx=, for exampe) but let's not.  */
-        const u8_byte *lookahead = scan;
-        int c = u8_sgetc(&lookahead);
-        if (lookahead == end) scan = (u8_byte *)lookahead;
-        else while ((c>0)&&(!(u8_isspace(c)))&&(lookahead<end)) {
-            scan = (u8_byte *)lookahead;
-            c = u8_sgetc(&lookahead);}}
+	/* Not closed, but sloppy is okay, so we just go up to the
+	   first space after the opening quote.  We could be more
+	   clever (looking for xxx=, for exampe) but let's not.  */
+	const u8_byte *lookahead = scan;
+	int c = u8_sgetc(&lookahead);
+	if (lookahead == end) scan = (u8_byte *)lookahead;
+	else while ((c>0)&&(!(u8_isspace(c)))&&(lookahead<end)) {
+	    scan = (u8_byte *)lookahead;
+	    c = u8_sgetc(&lookahead);}}
       else {
-        kno_seterr3(kno_XMLParseError,"unclosed quote in attribute",
-                   xmlsnip(*scanner));
-        return -1;}}
+	kno_seterr3(kno_XMLParseError,"unclosed quote in attribute",
+		    xmlsnip(*scanner));
+	return -1;}}
     else if (*scan=='=') {
       /* Skip whitespace after an = sign */
       const u8_byte *start=++scan, *next = start;
       int c = u8_sgetc(&next);
       while ((c>0)&&(u8_isspace(c))&&(scan<end)) {
-        scan = (u8_byte *)next;
-        c = u8_sgetc(&next);}
+	scan = (u8_byte *)next;
+	c = u8_sgetc(&next);}
       /* If you ran over (no value for =), just take the
-         string up to the = */
+	 string up to the = */
       if (scan>=end) scan = (u8_byte *)start;}
     else if (*scan=='\0') scan++;
     else u8_sgetc((u8_string *)&scan);
@@ -556,8 +556,8 @@ int kno_parse_xmltag(u8_byte **scanner,u8_byte *end,
 /* Old name, keeping around until the next ABI update */
 KNO_EXPORT
 int kno_parse_element(u8_byte **scanner,u8_byte *end,
-                     const u8_byte **elts,int max_elts,
-                     int sloppy)
+		      const u8_byte **elts,int max_elts,
+		      int sloppy)
 {
   return kno_parse_xmltag(scanner,end,elts,max_elts,sloppy);
 }
@@ -589,10 +589,10 @@ kno_xmlelt_type kno_get_markup_type(u8_string buf,int len,int html)
     else elt_type = xmldoctype;
   else if (buf[len-1]=='/') elt_type = xmlempty;
   else if ((html) &&
-           ((tagmatchp(buf,"img")) || (tagmatchp(buf,"base")) ||
-            (tagmatchp(buf,"br")) || (tagmatchp(buf,"hr")) ||
-            (tagmatchp(buf,"meta")) || (tagmatchp(buf,"link")) ||
-            (tagmatchp(buf,"input")) || (tagmatchp(buf,"textarea")))) {
+	   ((tagmatchp(buf,"img")) || (tagmatchp(buf,"base")) ||
+	    (tagmatchp(buf,"br")) || (tagmatchp(buf,"hr")) ||
+	    (tagmatchp(buf,"meta")) || (tagmatchp(buf,"link")) ||
+	    (tagmatchp(buf,"input")) || (tagmatchp(buf,"textarea")))) {
     elt_type = xmlempty; }
   else if (!(isalpha(*start))) return -1;
   else elt_type = xmlopen;
@@ -604,7 +604,7 @@ kno_xmlelt_type kno_get_markup_type(u8_string buf,int len,int html)
 /* Attribute processing */
 
 static void process_attribs(int (*attribfn)(KNO_XML *,u8_string,u8_string,int),
-                            KNO_XML *xml,u8_string *attribs,int n)
+			    KNO_XML *xml,u8_string *attribs,int n)
 {
   int i = 0; while (i< n) {
     u8_byte *item = (u8_byte *)attribs[i++], *end = item+strlen(item)-1;
@@ -613,21 +613,21 @@ static void process_attribs(int (*attribfn)(KNO_XML *,u8_string,u8_string,int),
     if (equals) {
       const u8_byte *scan = item; int c = u8_sgetc(&scan);
       /* Find the end of the name, ignoring any whitespace before
-         the equals sign. */
+	 the equals sign. */
       while ((scan<=equals)&&(c>=0)) {
-        /* When we exit the loop, we've got the end of the attrib name */
-        if (!((c==' ')||(c=='\n')||(c=='\r')||(u8_isspace(c))))
-          name_end = (u8_byte *)scan;
-        c = u8_sgetc(&scan);}
+	/* When we exit the loop, we've got the end of the attrib name */
+	if (!((c==' ')||(c=='\n')||(c=='\r')||(u8_isspace(c))))
+	  name_end = (u8_byte *)scan;
+	c = u8_sgetc(&scan);}
       c = u8_sgetc(&scan); /* c=='=' */
       /* Now get the value, skipping whitespace and unwrapping quotes */
       if (u8_isspace(c)) {
-        while ((c==' ')||(c=='\n')||(c=='\r')||(u8_isspace(c))) {
-          val = scan; c = u8_sgetc(&scan);}}
+	while ((c==' ')||(c=='\n')||(c=='\r')||(u8_isspace(c))) {
+	  val = scan; c = u8_sgetc(&scan);}}
       else val = equals+1;
       /* We don't have to worry about where the item ends
-         (that was handled by kno_parse_xmltag) but we do need to
-         strip off any quotes. */
+	 (that was handled by kno_parse_xmltag) but we do need to
+	 strip off any quotes. */
       if ((c=='"')||(c=='\'')) {quote = c; val++;}
       *name_end='\0';
       if (*end == quote) *end='\0';
@@ -706,8 +706,8 @@ KNO_XML *kno_default_popfn(KNO_XML *node)
       add_content(node->xml_parent,kno_incref(node->xml_attribs));
     node->xml_parent->xml_bits = node->xml_parent->xml_bits|KNO_XML_HASDATA;
     if ((PAIRP(node->xml_head)) &&
-        (!((node->xml_bits)&KNO_XML_HASDATA)) &&
-        (!(PAIRP(KNO_CDR(node->xml_head)))))
+	(!((node->xml_bits)&KNO_XML_HASDATA)) &&
+	(!(PAIRP(KNO_CDR(node->xml_head)))))
       kno_add(node->xml_parent->xml_attribs,slotid,KNO_CAR(node->xml_head));
     else kno_add(node->xml_parent->xml_attribs,slotid,node->xml_attribs);}
   return node->xml_parent;
@@ -726,16 +726,16 @@ static void cleanup_attribs(lispval table)
     while (scan < limit) {
       lispval val = scan->kv_val;
       if (PRECHOICEP(val))
-        scan->kv_val = kno_simplify_choice(val);
+	scan->kv_val = kno_simplify_choice(val);
       scan++;}
     if (unlock) u8_rw_unlock(&sm->table_rwlock);}
 }
 
 KNO_EXPORT
 KNO_XML *kno_xml_push
-  (KNO_XML *newnode,KNO_XML *node,kno_xmlelt_type type,
-   int (*attribfn)(KNO_XML *,u8_string,u8_string,int),
-   u8_string *elts,int n_elts)
+(KNO_XML *newnode,KNO_XML *node,kno_xmlelt_type type,
+ int (*attribfn)(KNO_XML *,u8_string,u8_string,int),
+ u8_string *elts,int n_elts)
 {
   u8_string name = u8_strdup(elts[0]);
   init_node(newnode,node,name);
@@ -756,7 +756,7 @@ static lispval parse_attribname(u8_string string)
   if ((SYMBOLP(parsed))||(OIDP(parsed))) return parsed;
   else {
     u8_log(LOG_WARNING,"BadAttribName",
-           "Trouble parsing attribute name %s",string);
+	   "Trouble parsing attribute name %s",string);
     return kno_mkstring(string);}
 }
 
@@ -768,11 +768,11 @@ int kno_default_attribfn(KNO_XML *xml,u8_string name,u8_string val,int quote)
   u8_string namespace, attrib_name = ns_get(xml,name,&namespace);
   lispval slotid = parse_attribname(name);
   lispval slotval = ((val)?
-                  (((val[0]=='\0')||(val[0]=='#')) ?
-                   (kno_mkstring(val)) :
-                   (quote<0) ? (kno_lispify(val)) :
-                   (kno_convert_entities(val,NULL))) :
-                  (KNO_FALSE));
+		     (((val[0]=='\0')||(val[0]=='#')) ?
+		      (kno_mkstring(val)) :
+		      (quote<0) ? (kno_lispify(val)) :
+		      (kno_convert_entities(val,NULL))) :
+		     (KNO_FALSE));
   lispval attrib_entry = VOID;
   if (EMPTYP(xml->xml_attribs)) init_node_attribs(xml);
   xml->xml_bits = xml->xml_bits|KNO_XML_HASDATA;
@@ -781,9 +781,9 @@ int kno_default_attribfn(KNO_XML *xml,u8_string name,u8_string val,int quote)
     kno_add(xml->xml_attribs,parse_attribname(attrib_name),slotval);
     attrib_entry=
       kno_make_nvector(3,kno_mkstring(name),make_qid(attrib_name,namespace),
-                      slotval);}
+		       slotval);}
   else attrib_entry=
-         kno_make_nvector(3,kno_mkstring(name),KNO_FALSE,slotval);
+	 kno_make_nvector(3,kno_mkstring(name),KNO_FALSE,slotval);
   kno_add(xml->xml_attribs,attribids,slotid);
   kno_add(xml->xml_attribs,attribs_symbol,attrib_entry);
   kno_decref(attrib_entry);
@@ -793,20 +793,20 @@ int kno_default_attribfn(KNO_XML *xml,u8_string name,u8_string val,int quote)
 /* This attribute function always stores strings and never parses the args. */
 
 static KNO_XML *autoclose(KNO_XML *node,u8_string name,
-                         KNO_XML *(*popfn)(KNO_XML *))
+			  KNO_XML *(*popfn)(KNO_XML *))
 {
   KNO_XML *scan = node->xml_parent; while (scan)
-    if (strcmp(scan->xml_eltname,name)==0) {
-      KNO_XML *freescan = node, *retval, *next;
-      while (freescan) {
-        if (freescan == scan) break;
-        if ((retval = popfn(freescan))!=freescan->xml_parent)
-          return retval;
-        next = freescan->xml_parent;
-        free_node(freescan,1);
-        freescan = next;}
-      return scan;}
-    else scan = scan->xml_parent;
+				      if (strcmp(scan->xml_eltname,name)==0) {
+					KNO_XML *freescan = node, *retval, *next;
+					while (freescan) {
+					  if (freescan == scan) break;
+					  if ((retval = popfn(freescan))!=freescan->xml_parent)
+					    return retval;
+					  next = freescan->xml_parent;
+					  free_node(freescan,1);
+					  freescan = next;}
+					return scan;}
+				      else scan = scan->xml_parent;
   return scan;
 }
 
@@ -815,10 +815,10 @@ static KNO_XML *autoclose(KNO_XML *node,u8_string name,
 static
 /* This is the inner step of the XML parsing loop. */
 KNO_XML *xmlstep(KNO_XML *node,kno_xmlelt_type type,
-                u8_string *elts,int n_elts,
-                int (*attribfn)(KNO_XML *,u8_string,u8_string,int),
-                KNO_XML *(*pushfn)(KNO_XML *,kno_xmlelt_type,u8_string *,int),
-                KNO_XML *(*popfn)(KNO_XML *))
+		 u8_string *elts,int n_elts,
+		 int (*attribfn)(KNO_XML *,u8_string,u8_string,int),
+		 KNO_XML *(*pushfn)(KNO_XML *,kno_xmlelt_type,u8_string *,int),
+		 KNO_XML *(*popfn)(KNO_XML *))
 {
   switch (type) {
   case xmlempty:
@@ -826,11 +826,11 @@ KNO_XML *xmlstep(KNO_XML *node,kno_xmlelt_type type,
       struct KNO_XML *newnode = pushfn(node,type,elts,n_elts);
       if (EMPTYP(node->xml_attribs)) init_node_attribs(node);
       if (newnode != node) {
-        struct KNO_XML *retnode;
-        retnode = popfn(newnode);
-        if (retnode!=newnode)
-          free_node(newnode,1);
-        return retnode;}
+	struct KNO_XML *retnode;
+	retnode = popfn(newnode);
+	if (retnode!=newnode)
+	  free_node(newnode,1);
+	return retnode;}
       else {}
       return node;}
     else {
@@ -844,43 +844,43 @@ KNO_XML *xmlstep(KNO_XML *node,kno_xmlelt_type type,
       return retnode;}
   case xmlclose:
     if ((((node->xml_bits)&(KNO_XML_FOLDCASE)) ?
-         (strcasecmp(node->xml_eltname,elts[0])) :
-         (strcmp(node->xml_eltname,elts[0])))
-        ==0) {
+	 (strcasecmp(node->xml_eltname,elts[0])) :
+	 (strcmp(node->xml_eltname,elts[0])))
+	==0) {
       struct KNO_XML *retnode;
       if (EMPTYP(node->xml_attribs)) init_node_attribs(node);
       if ((NILP(node->xml_head)) &&
-          (!(node->xml_bits&KNO_XML_NOEMPTY)))
-        node->xml_head = kno_conspair(kno_init_string(NULL,0,NULL),NIL);
+	  (!(node->xml_bits&KNO_XML_NOEMPTY)))
+	node->xml_head = kno_conspair(kno_init_string(NULL,0,NULL),NIL);
       retnode = popfn(node);
       if (retnode!=node)
-        free_node(node,1);
+	free_node(node,1);
       return retnode;}
     else if ((node->xml_bits&KNO_XML_EMPTY_CLOSE) && (elts[0][0]=='\0')) {
       struct KNO_XML *retnode;
       if (EMPTYP(node->xml_attribs)) init_node_attribs(node);
       retnode = popfn(node);
       if (retnode!=node)
-        free_node(node,1);
+	free_node(node,1);
       return retnode;}
     else {
       u8_byte buf[100];
       if (node->xml_bits&KNO_XML_AUTOCLOSE) {
-        KNO_XML *closenode = NULL;
-        if (EMPTYP(node->xml_attribs)) init_node_attribs(node);
-        closenode = autoclose(node,elts[0],popfn);
-        if (closenode) {
-          struct KNO_XML *retnode;
-          retnode = popfn(closenode);
-          if (retnode!=closenode)
-            free_node(closenode,1);
-          return retnode;}}
+	KNO_XML *closenode = NULL;
+	if (EMPTYP(node->xml_attribs)) init_node_attribs(node);
+	closenode = autoclose(node,elts[0],popfn);
+	if (closenode) {
+	  struct KNO_XML *retnode;
+	  retnode = popfn(closenode);
+	  if (retnode!=closenode)
+	    free_node(closenode,1);
+	  return retnode;}}
       if ((node->xml_bits)&(KNO_XML_BADCLOSE))
-        return node;
+	return node;
       else kno_seterr(kno_XMLParseError,"inconsistent close tag",
-                     u8_sprintf(buf,100,"</%s> closes <%s>",
-                                elts[0],node->xml_eltname),
-                     VOID);
+		      u8_sprintf(buf,100,"</%s> closes <%s>",
+				 elts[0],node->xml_eltname),
+		      VOID);
       return NULL;}
   case xmlopen:
     if (pushfn) return pushfn(node,type,elts,n_elts);
@@ -888,17 +888,17 @@ KNO_XML *xmlstep(KNO_XML *node,kno_xmlelt_type type,
       KNO_XML *newnode = u8_alloc(struct KNO_XML);
       u8_string name = u8_strdup(elts[0]);
       if ((node->xml_bits&KNO_XML_ISHTML) &&
-          (check_pair(node->xml_eltname,elts[0],html_autoclose))) {
-        KNO_XML *popped = popfn(node);
-        if (popped!=node)
-          free_node(node,1);
-        node = popped;}
+	  (check_pair(node->xml_eltname,elts[0],html_autoclose))) {
+	KNO_XML *popped = popfn(node);
+	if (popped!=node)
+	  free_node(node,1);
+	node = popped;}
       else if (((node->xml_bits)&(KNO_XML_INPARA))&&
-               (block_elementp(elts[0]))) {
-        while ((node) && ((node->xml_bits)&(KNO_XML_INPARA))) {
-          KNO_XML *popped = popfn(node);
-          if (popped!=node) free_node(node,1);
-          node = popped;}}
+	       (block_elementp(elts[0]))) {
+	while ((node) && ((node->xml_bits)&(KNO_XML_INPARA))) {
+	  KNO_XML *popped = popfn(node);
+	  if (popped!=node) free_node(node,1);
+	  node = popped;}}
       init_node(newnode,node,name);
       process_attribs(attribfn,newnode,elts+1,n_elts-1);
       init_node_attribs(newnode);
@@ -909,12 +909,12 @@ KNO_XML *xmlstep(KNO_XML *node,kno_xmlelt_type type,
 
 KNO_EXPORT
 void *kno_walk_xml(U8_INPUT *in,
-                  void (*contentfn)(KNO_XML *,u8_string,int),
-                  KNO_XML *(*pifn)(U8_INPUT *,KNO_XML *,u8_string,int),
-                  int (*attribfn)(KNO_XML *,u8_string,u8_string,int),
-                  KNO_XML *(*pushfn)(KNO_XML *,kno_xmlelt_type,u8_string *,int),
-                  KNO_XML *(*popfn)(KNO_XML *),
-                  KNO_XML *root)
+		   void (*contentfn)(KNO_XML *,u8_string,int),
+		   KNO_XML *(*pifn)(U8_INPUT *,KNO_XML *,u8_string,int),
+		   int (*attribfn)(KNO_XML *,u8_string,u8_string,int),
+		   KNO_XML *(*pushfn)(KNO_XML *,kno_xmlelt_type,u8_string *,int),
+		   KNO_XML *(*popfn)(KNO_XML *),
+		   KNO_XML *root)
 {
   ssize_t bufsize = 1024, size = bufsize;
   KNO_XML *node = root;
@@ -926,7 +926,7 @@ void *kno_walk_xml(U8_INPUT *in,
       return NULL;}
     else if ((rbuf = readbuf(in,&buf,&bufsize,&size,"<")) == NULL) {
       if (contentfn)
-        contentfn(node,in->u8_read,in->u8_inlim-in->u8_read);
+	contentfn(node,in->u8_read,in->u8_inlim-in->u8_read);
       break;}
     else if (size<0) {
       kno_seterr3(kno_XMLParseError,"end of input",xmlsnip(in->u8_read));
@@ -942,51 +942,51 @@ void *kno_walk_xml(U8_INPUT *in,
     if (type == xmlpi) {
       KNO_XML *result;
       if (pifn) {
-        if ((result = pifn(in,node,buf,size)) == NULL)
-          return NULL;}
+	if ((result = pifn(in,node,buf,size)) == NULL)
+	  return NULL;}
       else result = NULL;
       if (result) node = result;
       else if (contentfn) {
-        u8_string reconstituted=
-          u8_string_append("<",buf,">",NULL);
-        contentfn(node,reconstituted,size+2);
-        u8_free(reconstituted);}}
+	u8_string reconstituted=
+	  u8_string_append("<",buf,">",NULL);
+	contentfn(node,reconstituted,size+2);
+	u8_free(reconstituted);}}
     else if (type == xmlcomment) {
       const u8_byte *remainder = NULL; u8_byte *combined;
       int combined_len, more_data = 0;
       if (strcmp((buf+size-2),"--"))
-        /* If the markup end isn't --, we still need to find the
-           content end (plus more content) */
-        remainder = u8_gets_x(NULL,0,in,"-->",&more_data);
+	/* If the markup end isn't --, we still need to find the
+	   content end (plus more content) */
+	remainder = u8_gets_x(NULL,0,in,"-->",&more_data);
       if (more_data)
-        combined_len = size+more_data+4;
+	combined_len = size+more_data+4;
       else combined_len = size+2;
       combined = u8_malloc(combined_len+1);
       memcpy(combined,"<",1);
       memcpy(combined+1,buf,size);
       if (more_data) {
-        memcpy(combined+1+size,remainder,more_data);
-        memcpy(combined+1+size+more_data,"-->",4);
-        u8_free(remainder);}
+	memcpy(combined+1+size,remainder,more_data);
+	memcpy(combined+1+size+more_data,"-->",4);
+	u8_free(remainder);}
       else memcpy(combined+1+size,">",2);
       if (contentfn)
-        contentfn(node,combined,combined_len);
+	contentfn(node,combined,combined_len);
       u8_free(combined);}
     else if (type == xmlcdata) {
       const u8_byte *remainder = NULL; u8_byte *combined;
       int more_data = 0, combined_len;
       if (strcmp((buf+size-2),"]]"))
-        remainder = u8_gets_x(NULL,0,in,"]]>",&more_data);
+	remainder = u8_gets_x(NULL,0,in,"]]>",&more_data);
       if (more_data) combined_len = size+more_data+5;
       else combined_len = size+2;
       combined = u8_malloc(combined_len+1);
       memcpy(combined,"<",1);
       memcpy(combined+1,buf,size);
       if (more_data) {
-        memcpy(combined+1+size,">",1);
-        memcpy(combined+1+size+1,remainder,more_data);
-        memcpy(combined+1+size+1+more_data,"]]>",4);
-        u8_free(remainder);}
+	memcpy(combined+1+size,">",1);
+	memcpy(combined+1+size+1,remainder,more_data);
+	memcpy(combined+1+size+1+more_data,"]]>",4);
+	u8_free(remainder);}
       else memcpy(combined+1+size,">",2);
       if (contentfn) contentfn(node,combined,combined_len);
       u8_free(combined);}
@@ -994,26 +994,26 @@ void *kno_walk_xml(U8_INPUT *in,
       if (strchr(buf,'<')) {}
       else if (pifn) node = pifn(in,node,buf,size);
       else if (contentfn) {
-        u8_string reconstituted=
-          u8_string_append("<",buf,">",NULL);
-        contentfn(node,reconstituted,size+2);
-        u8_free(reconstituted);}}
+	u8_string reconstituted=
+	  u8_string_append("<",buf,">",NULL);
+	contentfn(node,reconstituted,size+2);
+	u8_free(reconstituted);}}
     else {
       u8_byte *scan = buf;
       const u8_byte *_elts[32], **elts=_elts;
       int n_elts;
       if ((type == xmlempty)&&(buf[size-1]=='/')) {
-        buf[size-1]='\0'; size--;}
+	buf[size-1]='\0'; size--;}
       n_elts = kno_parse_xmltag
-        (&scan,buf+size,elts,32,((node->xml_bits)&(KNO_XML_BADATTRIB)));
+	(&scan,buf+size,elts,32,((node->xml_bits)&(KNO_XML_BADATTRIB)));
       if (n_elts<0) {
-        kno_seterr3(kno_XMLParseError,"xmlstep",xmlsnip(scan));
-        u8_free(buf);
-        return NULL;}
+	kno_seterr3(kno_XMLParseError,"xmlstep",xmlsnip(scan));
+	u8_free(buf);
+	return NULL;}
       node = xmlstep(node,type,elts,n_elts,attribfn,pushfn,popfn);}
     if (node == NULL) break;}
   while ((node)&&(node!=root)&&
-         ((node->xml_bits)&(KNO_XML_AUTOCLOSE))) {
+	 ((node->xml_bits)&(KNO_XML_AUTOCLOSE))) {
     struct KNO_XML *next = popfn(node);
     free_node(node,1);
     if (next) node = next; else break;}
@@ -1075,7 +1075,7 @@ KNO_EXPORT int kno_xmlparseoptions(lispval x)
     return -1;}
 }
 
-#define FORCE_CLOSE_FLAGS \
+#define FORCE_CLOSE_FLAGS					\
   ((KNO_XML_AUTOCLOSE)|(KNO_XML_BADCLOSE)|(KNO_XML_ISHTML))
 
 static lispval xmlparse_core(lispval input,int flags)
@@ -1095,20 +1095,20 @@ static lispval xmlparse_core(lispval input,int flags)
   else return kno_type_error(_("string or port"),"xmlparse",input);
   init_node(root,NULL,u8_strdup("top")); xml_root.xml_bits = flags;
   retval = kno_walk_xml(in,kno_default_contentfn,NULL,NULL,NULL,
-                     kno_default_popfn,
-                     root);
+			kno_default_popfn,
+			root);
   if (retval == NULL) {
     size_t errpos=_in.u8_read-_in.u8_inbuf;
     kno_seterr("XMLPARSE error","xmlparse_core",NULL,KNO_INT(errpos));
     free_node(root,0);
     return KNO_ERROR;}
   else if ( (retval!=root) &&
-            (!(((retval->xml_bits) & (FORCE_CLOSE_FLAGS)) ||
-               ((root->xml_bits)  & (FORCE_CLOSE_FLAGS)) ))) {
+	    (!(((retval->xml_bits) & (FORCE_CLOSE_FLAGS)) ||
+	       ((root->xml_bits)  & (FORCE_CLOSE_FLAGS)) ))) {
     struct KNO_XML *cleanup = retval, *next;
     while ((cleanup)&&(cleanup!=root)) {
       kno_seterr("XMLPARSE error","xmlparse_core",cleanup->xml_eltname,
-                cleanup->xml_attribs);
+		 cleanup->xml_attribs);
       next = cleanup->xml_parent;
       free_node(cleanup,1);
       cleanup = next;}
@@ -1128,8 +1128,8 @@ static lispval xmlparse_core(lispval input,int flags)
 }
 
 DEFPRIM2("xmlparse",xmlparse,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
- "`(XMLPARSE *arg0* [*arg1*])` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(XMLPARSE *arg0* [*arg1*])` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval xmlparse(lispval input,lispval options)
 {
   if (CHOICEP(input)) {
@@ -1147,8 +1147,8 @@ static lispval xmlparse(lispval input,lispval options)
 /* Parsing KNOML */
 
 DEFPRIM2("knoml/load",knoml_load,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
- "`(KNOML/LOAD *arg0* [*arg1*])` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(KNOML/LOAD *arg0* [*arg1*])` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval knoml_load(lispval input,lispval sloppy)
 {
   int flags = KNO_XML_KEEP_RAW;
@@ -1180,8 +1180,8 @@ static lispval knoml_load(lispval input,lispval sloppy)
 }
 
 DEFPRIM2("knoml/parse",knoml_read,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
- "`(KNOML/PARSE *arg0* [*arg1*])` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(KNOML/PARSE *arg0* [*arg1*])` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval knoml_read(lispval input,lispval sloppy)
 {
   int flags = KNO_XML_KEEP_RAW;
@@ -1193,7 +1193,7 @@ static lispval knoml_read(lispval input,lispval sloppy)
     in = p->port_input;}
   else if ((STRINGP(input))&&(strchr(CSTRING(input),'<') == NULL))
     return knoml_load(input,sloppy);
- else if (STRINGP(input)) {
+  else if (STRINGP(input)) {
     U8_INIT_STRING_INPUT(&_in,STRLEN(input),CSTRING(input));
     in = &_in;}
   else if (PACKETP(input)) {

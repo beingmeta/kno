@@ -45,12 +45,12 @@ static void get_mailinfo(lispval headers,u8_string *host,u8_string *domain,u8_st
 }
 
 DEFPRIM5("smtp",smtp_function,KNO_MAX_ARGS(5)|KNO_MIN_ARGS(3),
- "`(SMTP *arg0* *arg1* *arg2* [*arg3*] [*arg4*])` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
- kno_any_type,KNO_VOID);
+	 "`(SMTP *arg0* *arg1* *arg2* [*arg3*] [*arg4*])` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
+	 kno_any_type,KNO_VOID);
 static lispval smtp_function(lispval dest,lispval headers,lispval content,
-                            lispval ctype,lispval mailinfo)
+			     lispval ctype,lispval mailinfo)
 {
   u8_string mailhost = mailhost_dflt, maildomain = maildomain_dflt;
   u8_string mailfrom = mailfrom_dflt;
@@ -75,8 +75,8 @@ static lispval smtp_function(lispval dest,lispval headers,lispval content,
   else get_mailinfo(mailinfo,&mailhost,&maildomain,&mailfrom);
   if (mailfrom == NULL) mailfrom="kno";
   retval = u8_smtp(mailhost,maildomain,mailfrom,CSTRING(dest),
-                 ((STRINGP(ctype))?(CSTRING(ctype)):(NULL)),
-                 n_headers,&mh,CSTRING(content),STRLEN(content));
+		   ((STRINGP(ctype))?(CSTRING(ctype)):(NULL)),
+		   n_headers,&mh,CSTRING(content),STRLEN(content));
   while (n_to_free>0) {u8_free(to_free[--n_to_free]);}
   u8_free(mh); u8_free(to_free);
   if (retval<0)
@@ -117,15 +117,15 @@ static lispval mailout_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       else mh[i].label = NULL;
       if (STRINGP(value)) mh[i].value = CSTRING(value);
       else {
-        u8_string data = kno_lisp2string(value);
-        to_free[n_to_free++]=data;
-        mh[i].value = data;}
+	u8_string data = kno_lisp2string(value);
+	to_free[n_to_free++]=data;
+	mh[i].value = data;}
       i++;}}
   U8_INIT_OUTPUT(&out,1024);
   result = kno_printout_to(&out,body,env);
   retval = u8_smtp(mailhost,maildomain,mailfrom,
-                 CSTRING(dest),NULL,n_headers,&mh,
-                 out.u8_outbuf,out.u8_write-out.u8_outbuf);
+		   CSTRING(dest),NULL,n_headers,&mh,
+		   out.u8_outbuf,out.u8_write-out.u8_outbuf);
   while (n_to_free>0) {u8_free(to_free[--n_to_free]);}
   u8_free(mh); u8_free(to_free); u8_free(out.u8_outbuf);
   kno_decref(header_fields); kno_decref(headers);
@@ -149,11 +149,11 @@ void kno_init_email_c()
   kno_def_evalfn(webtools_module,"MAILOUT","",mailout_evalfn);
 
   kno_register_config("MAILHOST",_("SMTP host"),
-                     kno_sconfig_get,kno_sconfig_set,&mailhost_dflt);
+		      kno_sconfig_get,kno_sconfig_set,&mailhost_dflt);
   kno_register_config("MAILDOMAIN",_("SMTP default domain"),
-                     kno_sconfig_get,kno_sconfig_set,&maildomain_dflt);
+		      kno_sconfig_get,kno_sconfig_set,&maildomain_dflt);
   kno_register_config("MAILFROM",_("SMTP default from"),
-                     kno_sconfig_get,kno_sconfig_set,&mailfrom_dflt);
+		      kno_sconfig_get,kno_sconfig_set,&mailfrom_dflt);
 
   u8_register_source_file(_FILEINFO);
 }

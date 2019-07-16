@@ -69,11 +69,11 @@ typedef struct KNO_ARCHIVE_INPUT {
   struct archive *inport_archive;} *kno_archive_input;
 
 static u8_string archive_errmsg(u8_byte *buf,size_t len,
-                                struct KNO_ARCHIVE *archive)
+				struct KNO_ARCHIVE *archive)
 {
   return u8_sprintf(buf,len,"(%s)%s",
-                    archive->archive_spec,
-                    archive_error_string(archive->kno_archive));
+		    archive->archive_spec,
+		    archive_error_string(archive->kno_archive));
 }
 
 static lispval new_archive(lispval spec,lispval opts)
@@ -95,17 +95,17 @@ static lispval new_archive(lispval spec,lispval opts)
       (archive,((void *)KNO_PACKET_DATA(spec)),KNO_PACKET_LENGTH(spec));
     if (status == ARCHIVE_OK)
       use_spec = u8_mkstring("%lldB@0x%llx",
-                             KNO_PACKET_LENGTH(spec),
-                             KNO_LONGVAL( KNO_PACKET_DATA (spec) ));}
+			     KNO_PACKET_LENGTH(spec),
+			     KNO_LONGVAL( KNO_PACKET_DATA (spec) ));}
   else {
     kno_seterr("InvalidArchiveSpec","new_archive",
-               archive_error_string(archive),spec);
+	       archive_error_string(archive),spec);
     archive_read_close(archive);
     return KNO_ERROR_VALUE;}
   if (status < 0) {
     kno_seterr("LibArchiveError","new_archive",
-               archive_error_string(archive),
-               spec);
+	       archive_error_string(archive),
+	       spec);
     archive_read_close(archive);
     return KNO_ERROR_VALUE;}
   else {
@@ -122,7 +122,7 @@ static lispval new_archive(lispval spec,lispval opts)
 }
 
 static  int archive_seek(struct KNO_ARCHIVE *archive,lispval seek,
-                         struct archive_entry **entryp)
+			 struct archive_entry **entryp)
 {
   struct archive_entry *entry;
   u8_byte msgbuf[1000];
@@ -135,30 +135,30 @@ static  int archive_seek(struct KNO_ARCHIVE *archive,lispval seek,
     else if  (seek_count > 0) {
       seek_count--;}
     else if ( (KNO_VOIDP(seek)) || (KNO_FALSEP(seek)) ||
-              (KNO_DEFAULTP(seek)) || (KNO_TRUEP(seek)) ) {
+	      (KNO_DEFAULTP(seek)) || (KNO_TRUEP(seek)) ) {
       if (entryp) *entryp = entry;
       return 1;}
     else if (KNO_STRINGP(seek)) {
       if (strcmp(KNO_CSTRING(seek),entry_pathname(entry)) == 0) {
-        if (entryp) *entryp = entry;
-        return 1;}}
+	if (entryp) *entryp = entry;
+	return 1;}}
     else if (KNO_TYPEP(seek,kno_regex_type)) {
       u8_string name = entry_pathname(entry);
       ssize_t match = kno_regex_op(rx_exactmatch,seek,name,strlen(name),0);
       if (match>0) {
-        if (entryp) *entryp = entry;
-        return 1;}}
+	if (entryp) *entryp = entry;
+	return 1;}}
     else {
       kno_seterr("BadSeekSpec","archive_seek",
-                 archive_errmsg(msgbuf,1000,archive),
-                 seek);
+		 archive_errmsg(msgbuf,1000,archive),
+		 seek);
       return -1;}
     rv = archive_read_next_header(archive->kno_archive,&entry);}
   if (rv == ARCHIVE_OK) {}
   return 0;
   kno_seterr("ArchiveError","archive_find",
-             archive_errmsg(msgbuf,1000,archive),
-             seek);
+	     archive_errmsg(msgbuf,1000,archive),
+	     seek);
   return -1;
 }
 
@@ -226,7 +226,7 @@ static int read_from_archive(struct U8_INPUT *raw_input)
   if (space == 0) {
     if (raw_input->u8_bufsz >= maxbufsize) {
       u8_seterr("ArchiveBufferOverflow","read_from_archive",
-                u8_mkstring("%s@%lld",in->archive_id,raw_input->u8_bufsz));
+		u8_mkstring("%s@%lld",in->archive_id,raw_input->u8_bufsz));
       return -1;}
     u8_grow_input_stream(raw_input,-1);
     space = in->u8_bufsz - (in->u8_inlim-in->u8_inbuf);}
@@ -242,41 +242,41 @@ static int read_from_archive(struct U8_INPUT *raw_input)
   else {
     if (rv == ARCHIVE_FATAL) {
       u8_seterr("ArchiveError","read_from_archive",
-                u8_mkstring("%s@%s:%s",
-                            archive_error_string(archive),
-                            in->archive_eltname,
-                            in->archive_id));
+		u8_mkstring("%s@%s:%s",
+			    archive_error_string(archive),
+			    in->archive_eltname,
+			    in->archive_id));
       return -1;}
     else if (rv == ARCHIVE_WARN) {
       u8_log(LOG_WARN,"ArchiveRead","%s from %s",
-             archive_error_string(archive),
-             u8_mkstring("%s@%s:%s",
-                         archive_error_string(archive),
-                         in->archive_eltname,
-                         in->archive_id));
+	     archive_error_string(archive),
+	     u8_mkstring("%s@%s:%s",
+			 archive_error_string(archive),
+			 in->archive_eltname,
+			 in->archive_id));
       return space;}
     else if (rv == ARCHIVE_RETRY) {
       u8_seterr("ArchiveTimeout","read_from_archive",
-                u8_mkstring("%s@%s:%s",
-                            archive_error_string(archive),
-                            in->archive_eltname,
-                            in->archive_id));
+		u8_mkstring("%s@%s:%s",
+			    archive_error_string(archive),
+			    in->archive_eltname,
+			    in->archive_id));
       return -1;}
     else {
       u8_seterr("BadArchiveReturnValue","read_from_archive",
-                u8_mkstring("%s@%s:%s",
-                            archive_error_string(archive),
-                            in->archive_eltname,
-                            in->archive_id));
+		u8_mkstring("%s@%s:%s",
+			    archive_error_string(archive),
+			    in->archive_eltname,
+			    in->archive_id));
       return -1;}}
 }
 
 static lispval entry_info(struct archive_entry *entry);
 
 static kno_port open_archive_input(struct archive *archive,
-                                   u8_string archive_id,
-                                   u8_string eltname,
-                                   struct archive_entry *entry)
+				   u8_string archive_id,
+				   u8_string eltname,
+				   struct archive_entry *entry)
 {
   struct KNO_ARCHIVE_INPUT *in = u8_alloc(struct KNO_ARCHIVE_INPUT);
   U8_INIT_INPUT_X((u8_input)in,30000,NULL,U8_STREAM_MALLOCD);
@@ -304,9 +304,9 @@ static kno_port open_archive_input(struct archive *archive,
 /* Top level functions */
 
 DEFPRIM3("archive/open",open_archive,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
-             "Opens an archive file",
-             kno_any_type,KNO_VOID,kno_any_type,KNO_FALSE,
-             kno_any_type,KNO_FALSE);
+	 "Opens an archive file",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_FALSE,
+	 kno_any_type,KNO_FALSE);
 static lispval open_archive(lispval spec,lispval path,lispval opts)
 {
   if ( (KNO_STRINGP(opts)) && (KNO_TABLEP(path)) ) {
@@ -322,12 +322,12 @@ static lispval open_archive(lispval spec,lispval path,lispval opts)
     if (rv<0) return KNO_ERROR_VALUE;
     else if (rv == 0) {
       if (kno_testopt(opts,KNOSYM_DROP,KNO_TRUE)) {
-        u8_byte msgbuf[1000];
-        kno_seterr("NotFound","open_archive",
-                   archive_errmsg(msgbuf,1000,archive),
-                   path);
-        kno_decref(spec);
-        return KNO_ERROR;}
+	u8_byte msgbuf[1000];
+	kno_seterr("NotFound","open_archive",
+		   archive_errmsg(msgbuf,1000,archive),
+		   path);
+	kno_decref(spec);
+	return KNO_ERROR;}
       else return KNO_FALSE;}
     u8_byte buf[64];
     u8_string pathname =
@@ -336,9 +336,9 @@ static lispval open_archive(lispval spec,lispval path,lispval opts)
       ((u8_string)"root");
     kno_port inport =
       open_archive_input(archive->kno_archive,
-                         archive->archive_spec,
-                         pathname,
-                         entry);
+			 archive->archive_spec,
+			 pathname,
+			 entry);
     KNO_ADD_TO_CHOICE(inport->port_lisprefs,archive_ptr);
     return LISPVAL(inport);}
   else if ( (KNO_FALSEP(path)) || (KNO_VOIDP(path)) || (KNO_DEFAULTP(path)) )
@@ -389,15 +389,15 @@ static lispval entry_info(struct archive_entry *entry)
 }
 
 DEFPRIM("archive/find",archive_find,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-            "Get the next archive entry (possibly matching a "
-            "string or regex)");
+	"Get the next archive entry (possibly matching a "
+	"string or regex)");
 static lispval archive_find(lispval obj,lispval seek)
 {
   struct KNO_ARCHIVE *archive = (struct KNO_ARCHIVE *) obj;
   struct archive_entry *entry;
   if (! ( (KNO_VOIDP(seek)) || (KNO_FALSEP(seek)) || (KNO_TRUEP(seek)) ||
-          (KNO_STRINGP(seek)) || (KNO_TYPEP(seek,kno_regex_type)) ||
-          (KNO_UINTP(seek))) )
+	  (KNO_STRINGP(seek)) || (KNO_TYPEP(seek,kno_regex_type)) ||
+	  (KNO_UINTP(seek))) )
     return kno_err("InvalidArchivePathSpec","archive_find",NULL,seek);
   if (KNO_TRUEP(seek)) {
     if (KNO_VOIDP(archive->archive_cur))
@@ -418,8 +418,8 @@ static lispval archive_find(lispval obj,lispval seek)
 }
 
 DEFPRIM1("archive/stat",archive_stat,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-             "Information about an open archive stream",
-             kno_ioport_type,KNO_VOID);
+	 "Information about an open archive stream",
+	 kno_ioport_type,KNO_VOID);
 static lispval archive_stat(lispval port)
 {
   lispval info;
@@ -465,6 +465,6 @@ static void init_local_cprims()
   KNO_LINK_PRIM("archive/open",open_archive,3,libarchive_module);
 
   KNO_LINK_TYPED("archive/find",archive_find,2,libarchive_module,
-                 kno_libarchive_type,KNO_VOID,
-                 kno_any_type,KNO_FALSE);
+		 kno_libarchive_type,KNO_VOID,
+		 kno_any_type,KNO_FALSE);
 }

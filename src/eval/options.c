@@ -49,16 +49,16 @@ static int optionsp(lispval arg)
   else if (KNO_AMBIGP(arg)) {
     KNO_DO_CHOICES(elt,arg) {
       if (! (optionsp(elt)) ) {
-        KNO_STOP_DO_CHOICES;
-        return 0;}}
+	KNO_STOP_DO_CHOICES;
+	return 0;}}
     return 1;}
   else if (KNO_PAIRP(arg)) {
     if (optionsp(KNO_CAR(arg)))
       return optionsp(KNO_CDR(arg));
     else return 0;}
   else if ( (KNO_TABLEP(arg)) &&
-            (!(KNO_POOLP(arg))) &&
-            (!(KNO_INDEXP(arg))) )
+	    (!(KNO_POOLP(arg))) &&
+	    (!(KNO_INDEXP(arg))) )
     return 1;
   else return 0;
 }
@@ -83,21 +83,21 @@ static lispval getopt_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     else {
       lispval results = EMPTY;
       DO_CHOICES(opt,opts) {
-        DO_CHOICES(key,keys) {
-          lispval v = kno_getopt(opt,key,VOID);
-          if (KNO_ABORTED(v)) {
-            kno_decref(results); results = v;
-            KNO_STOP_DO_CHOICES;}
-          else if (!(VOIDP(v))) {CHOICE_ADD(results,v);}}
-        if (KNO_ABORTED(results)) {KNO_STOP_DO_CHOICES;}}
+	DO_CHOICES(key,keys) {
+	  lispval v = kno_getopt(opt,key,VOID);
+	  if (KNO_ABORTED(v)) {
+	    kno_decref(results); results = v;
+	    KNO_STOP_DO_CHOICES;}
+	  else if (!(VOIDP(v))) {CHOICE_ADD(results,v);}}
+	if (KNO_ABORTED(results)) {KNO_STOP_DO_CHOICES;}}
       kno_decref(keys);
       kno_decref(opts);
       if (KNO_ABORTED(results)) {
-        return results;}
+	return results;}
       else if (EMPTYP(results)) {
-        lispval dflt_expr = kno_get_arg(expr,3);
-        if (VOIDP(dflt_expr)) return KNO_FALSE;
-        else return kno_stack_eval(dflt_expr,env,_stack,0);}
+	lispval dflt_expr = kno_get_arg(expr,3);
+	if (VOIDP(dflt_expr)) return KNO_FALSE;
+	else return kno_stack_eval(dflt_expr,env,_stack,0);}
       else return simplify_value(results);}}
 }
 #if 0
@@ -145,14 +145,14 @@ static lispval tryopt_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 }
 #endif
 DEFPRIM3("%getopt",getopt_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
- "`(%GETOPT *opts* *name* [*default*=#f])` "
- "gets any *name* option from opts, returning "
- "*default* if there isn't any. This is a real "
- "procedure (unlike `GETOPT`) so that *default* "
- "will be evaluated even if the option exists and "
- "is returned.",
- kno_any_type,KNO_VOID,kno_symbol_type,KNO_VOID,
- kno_any_type,KNO_FALSE);
+	 "`(%GETOPT *opts* *name* [*default*=#f])` "
+	 "gets any *name* option from opts, returning "
+	 "*default* if there isn't any. This is a real "
+	 "procedure (unlike `GETOPT`) so that *default* "
+	 "will be evaluated even if the option exists and "
+	 "is returned.",
+	 kno_any_type,KNO_VOID,kno_symbol_type,KNO_VOID,
+	 kno_any_type,KNO_FALSE);
 static lispval getopt_prim(lispval opts,lispval keys,lispval dflt)
 {
   lispval results = EMPTY;
@@ -165,11 +165,11 @@ static lispval getopt_prim(lispval opts,lispval keys,lispval dflt)
   else return simplify_value(results);
 }
 DEFPRIM3("testopt",testopt_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
- "`(TESTOPT *opts* *name* [*value*])` "
- "returns true if the option *name* is specified in "
- "*opts* and it includes *value* (if provided).",
- kno_any_type,KNO_VOID,kno_symbol_type,KNO_VOID,
- kno_any_type,KNO_VOID);
+	 "`(TESTOPT *opts* *name* [*value*])` "
+	 "returns true if the option *name* is specified in "
+	 "*opts* and it includes *value* (if provided).",
+	 kno_any_type,KNO_VOID,kno_symbol_type,KNO_VOID,
+	 kno_any_type,KNO_VOID);
 static lispval testopt_prim(lispval opts,lispval key,lispval val)
 {
   if (kno_testopt(opts,key,val))
@@ -178,9 +178,9 @@ static lispval testopt_prim(lispval opts,lispval key,lispval val)
 }
 
 DEFPRIM1("opts?",optionsp_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
- "`(OPTS? *opts*)` "
- "returns true if *opts* is a valid options object.",
- kno_any_type,KNO_VOID);
+	 "`(OPTS? *opts*)` "
+	 "returns true if *opts* is a valid options object.",
+	 kno_any_type,KNO_VOID);
 static lispval optionsp_prim(lispval opts)
 {
   if (optionsp(opts))
@@ -189,9 +189,9 @@ static lispval optionsp_prim(lispval opts)
 }
 #define nulloptsp(v) ( (v == KNO_FALSE) || (v == KNO_DEFAULT) )
 DEFPRIM("opts+",opts_plus_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(0)|KNO_NDCALL,
- "`(OPTS+ *add* *opts*)` "
- "or `(OPTS+ *optname* *value* *opts*) returns a "
- "new options object (a pair).");
+	"`(OPTS+ *add* *opts*)` "
+	"or `(OPTS+ *optname* *value* *opts*) returns a "
+	"new options object (a pair).");
 static lispval opts_plus_prim(int n,lispval *args)
 {
   int i = 0, new_front = 0;
@@ -209,19 +209,19 @@ static lispval opts_plus_prim(int n,lispval *args)
     if (KNO_TABLEP(arg)) {
       kno_incref(arg);
       if (KNO_FALSEP(back))
-        back = arg;
+	back = arg;
       else {
-        if (!(KNO_VOIDP(front))) {
-          back = kno_init_pair(NULL,front,back);
-          front=KNO_VOID;}
-        back = kno_init_pair(NULL,arg,back);}}
+	if (!(KNO_VOIDP(front))) {
+	  back = kno_init_pair(NULL,front,back);
+	  front=KNO_VOID;}
+	back = kno_init_pair(NULL,arg,back);}}
     else if ( (nulloptsp(arg)) || (KNO_EMPTYP(arg)) ) {}
     else {
       if (KNO_VOIDP(front)) {
 	front = kno_make_slotmap(n,0,NULL);
 	new_front = 1;}
       if (i < n) {
-        lispval optval = args[i++];
+	lispval optval = args[i++];
 	kno_add(front,arg,optval);}
       else kno_store(front,arg,KNO_TRUE);}}
   if (KNO_VOIDP(front))
@@ -245,20 +245,20 @@ KNO_EXPORT void kno_init_eval_getopt_c()
   u8_register_source_file(_FILEINFO);
 
   kno_def_evalfn(kno_scheme_module,"GETOPT",
-                "`(GETOPT *opts* *name* [*default*=#f])` returns any *name* "
-                "option defined in *opts* or *default* otherwise. "
-                "If *opts* or *name* are choices, this only returns *default* "
-                "if none of the alternatives yield results.",
-                 getopt_evalfn);
+		 "`(GETOPT *opts* *name* [*default*=#f])` returns any *name* "
+		 "option defined in *opts* or *default* otherwise. "
+		 "If *opts* or *name* are choices, this only returns *default* "
+		 "if none of the alternatives yield results.",
+		 getopt_evalfn);
 #if 0
   kno_def_evalfn(kno_scheme_module,"TRYOPT",
-                "`(TRYOPT *opts* *name* [*default*=#f])` returns any *name* "
-                "option defined in *opts* or *default* otherwise. Any errors "
-                "during option resolution are ignored. "
-                "If *opts* or *name* are choices, this only returns *default* "
-                "if none of the alternatives yield results. Note that the "
-                "*default*, if evaluated, may signal an error.",
-                tryopt_evalfn);
+		 "`(TRYOPT *opts* *name* [*default*=#f])` returns any *name* "
+		 "option defined in *opts* or *default* otherwise. Any errors "
+		 "during option resolution are ignored. "
+		 "If *opts* or *name* are choices, this only returns *default* "
+		 "if none of the alternatives yield results. Note that the "
+		 "*default*, if evaluated, may signal an error.",
+		 tryopt_evalfn);
 #endif
 
   init_local_cprims();

@@ -42,13 +42,13 @@ static lispval exif2lisp(ExifEntry *exentry)
     unsigned char *exifdata = exentry->data;
     if (exentry->format == EXIF_FORMAT_SBYTE)
       while (i < n) {
-        char ival = exifdata[i];
-        lispdata[i]=KNO_SHORT2DTYPE(ival);
-        i++;}
+	char ival = exifdata[i];
+	lispdata[i]=KNO_SHORT2DTYPE(ival);
+	i++;}
     else while (i < n) {
-      unsigned char ival = exifdata[i];
-      lispdata[i]=KNO_USHORT2DTYPE(ival);
-      i++;}
+	unsigned char ival = exifdata[i];
+	lispdata[i]=KNO_USHORT2DTYPE(ival);
+	i++;}
     if (n==1) {
       lispval retval = lispdata[0]; u8_free(lispdata);
       return retval;}
@@ -61,13 +61,13 @@ static lispval exif2lisp(ExifEntry *exentry)
     unsigned char *exifdata = exentry->data;
     if (exentry->format == EXIF_FORMAT_SSHORT)
       while (i < n) {
-        short ival = exif_get_short(exifdata+(i*item_size),o);
-        lispdata[i]=KNO_SHORT2DTYPE(ival);
-        i++;}
+	short ival = exif_get_short(exifdata+(i*item_size),o);
+	lispdata[i]=KNO_SHORT2DTYPE(ival);
+	i++;}
     else while (i < n) {
-      unsigned short ival = exif_get_short(exifdata+(i*item_size),o);
-      lispdata[i]=KNO_USHORT2DTYPE(ival);
-      i++;}
+	unsigned short ival = exif_get_short(exifdata+(i*item_size),o);
+	lispdata[i]=KNO_USHORT2DTYPE(ival);
+	i++;}
     if (n==1) {
       lispval retval = lispdata[0]; u8_free(lispdata);
       return retval;}
@@ -80,13 +80,13 @@ static lispval exif2lisp(ExifEntry *exentry)
     unsigned char *exifdata = exentry->data;
     if (exentry->format == EXIF_FORMAT_SLONG)
       while (i < n) {
-        long int ival = exif_get_long(exifdata+(i*item_size),o);
-        lispdata[i]=KNO_INT(ival);
-        i++;}
+	long int ival = exif_get_long(exifdata+(i*item_size),o);
+	lispdata[i]=KNO_INT(ival);
+	i++;}
     else while (i < n) {
-      unsigned long int ival = exif_get_long(exifdata+(i*item_size),o);
-      lispdata[i]=KNO_INT(ival);
-      i++;}
+	unsigned long int ival = exif_get_long(exifdata+(i*item_size),o);
+	lispdata[i]=KNO_INT(ival);
+	i++;}
     if (n==1) {
       lispval retval = lispdata[0]; u8_free(lispdata);
       return retval;}
@@ -99,15 +99,15 @@ static lispval exif2lisp(ExifEntry *exentry)
     unsigned char *exifdata = exentry->data;
     if (exentry->format == EXIF_FORMAT_SRATIONAL)
       while (i < n) {
-        ExifSRational v = exif_get_srational(exifdata+(i*item_size),o);
-        double ratio = ((double)(v.numerator))/((double)(v.denominator));
-        lispdata[i]=kno_init_double(NULL,ratio);
-        i++;}
+	ExifSRational v = exif_get_srational(exifdata+(i*item_size),o);
+	double ratio = ((double)(v.numerator))/((double)(v.denominator));
+	lispdata[i]=kno_init_double(NULL,ratio);
+	i++;}
     else while (i < n) {
-      ExifRational v = exif_get_rational(exifdata+(i*item_size),o);
-        double ratio = ((double)(v.numerator))/((double)(v.denominator));
-        lispdata[i]=kno_init_double(NULL,ratio);
-        i++;}
+	ExifRational v = exif_get_rational(exifdata+(i*item_size),o);
+	double ratio = ((double)(v.numerator))/((double)(v.denominator));
+	lispdata[i]=kno_init_double(NULL,ratio);
+	i++;}
     if (n==1) {
       lispval retval = lispdata[0]; int i = 1;
       while (i<n) {kno_decref(lispdata[i]); i++;}
@@ -122,124 +122,124 @@ struct KNO_HASHTABLE exif_tagmap;
 
 static struct TAGINFO {
   int tagid; char *tagname; lispval tagsym;} taginfo[]= {
-    /* {EXIF_TAG_NEW_SUBFILE_TYPE, "NewSubfileType",KNO_VOID}, */
-    {EXIF_TAG_INTEROPERABILITY_INDEX, "InteroperabilityIndex",KNO_VOID},
-    {EXIF_TAG_INTEROPERABILITY_VERSION, "InteroperabilityVersion",KNO_VOID},
-    {EXIF_TAG_IMAGE_WIDTH, "ImageWidth",KNO_VOID},
-    {EXIF_TAG_IMAGE_LENGTH, "ImageLength",KNO_VOID},
-    {EXIF_TAG_FILL_ORDER, "FillOrder",KNO_VOID},
-    {EXIF_TAG_DOCUMENT_NAME, "DocumentName",KNO_VOID},
-    {EXIF_TAG_IMAGE_DESCRIPTION, "ImageDescription",KNO_VOID},
-    {EXIF_TAG_MAKE, "Make",KNO_VOID},
-    {EXIF_TAG_MODEL, "Model",KNO_VOID},
-    {EXIF_TAG_STRIP_OFFSETS, "StripOffsets",KNO_VOID},
-    {EXIF_TAG_ORIENTATION, "Orientation",KNO_VOID},
-    {EXIF_TAG_SAMPLES_PER_PIXEL, "SamplesPerPixel",KNO_VOID},
-    {EXIF_TAG_ROWS_PER_STRIP, "RowsPerStrip",KNO_VOID},
-    {EXIF_TAG_STRIP_BYTE_COUNTS, "StripByteCounts",KNO_VOID},
-    {EXIF_TAG_X_RESOLUTION, "XResolution",KNO_VOID},
-    {EXIF_TAG_Y_RESOLUTION, "YResolution",KNO_VOID},
-    {EXIF_TAG_PLANAR_CONFIGURATION, "PlanarConfiguration",KNO_VOID},
-    {EXIF_TAG_RESOLUTION_UNIT, "ResolutionUnit",KNO_VOID},
-    {EXIF_TAG_TRANSFER_FUNCTION, "TransferFunction",KNO_VOID},
-    {EXIF_TAG_SOFTWARE, "Software",KNO_VOID},
-    {EXIF_TAG_DATE_TIME, "DateTime",KNO_VOID},
-    {EXIF_TAG_ARTIST, "Artist",KNO_VOID},
-    {EXIF_TAG_WHITE_POINT, "WhitePoint",KNO_VOID},
-    {EXIF_TAG_PRIMARY_CHROMATICITIES, "PrimaryChromaticities",KNO_VOID},
-    {EXIF_TAG_TRANSFER_RANGE, "TransferRange",KNO_VOID},
-    /* {EXIF_TAG_SUB_IFDS, "SubIFDs",KNO_VOID}, */
-    {EXIF_TAG_JPEG_PROC, "JPEGProc",KNO_VOID},
-    {EXIF_TAG_JPEG_INTERCHANGE_FORMAT, "JPEGInterchangeFormat",KNO_VOID},
-    {EXIF_TAG_JPEG_INTERCHANGE_FORMAT_LENGTH,
-     "JPEGInterchangeFormatLength",KNO_VOID},
-    {EXIF_TAG_YCBCR_COEFFICIENTS, "YCbCrCoefficients",KNO_VOID},
-    {EXIF_TAG_YCBCR_SUB_SAMPLING, "YCbCrSubSampling",KNO_VOID},
-    {EXIF_TAG_YCBCR_POSITIONING, "YCbCrPositioning",KNO_VOID},
-    {EXIF_TAG_REFERENCE_BLACK_WHITE, "ReferenceBlackWhite",KNO_VOID},
-    /* {EXIF_TAG_XML_PACKET, "XMLPacket",KNO_VOID}, */
-    {EXIF_TAG_RELATED_IMAGE_FILE_FORMAT, "RelatedImageFileFormat",KNO_VOID},
-    {EXIF_TAG_RELATED_IMAGE_WIDTH, "RelatedImageWidth",KNO_VOID},
-    {EXIF_TAG_RELATED_IMAGE_LENGTH, "RelatedImageLength",KNO_VOID},
-    {EXIF_TAG_CFA_REPEAT_PATTERN_DIM, "CFARepeatPatternDim",KNO_VOID},
-    {EXIF_TAG_CFA_PATTERN, "CFAPattern",KNO_VOID},
-    {EXIF_TAG_BATTERY_LEVEL, "BatteryLevel",KNO_VOID},
-    {EXIF_TAG_COPYRIGHT, "Copyright",KNO_VOID},
-    {EXIF_TAG_EXPOSURE_TIME, "ExposureTime",KNO_VOID},
-    {EXIF_TAG_FNUMBER, "FNumber",KNO_VOID},
-    {EXIF_TAG_IPTC_NAA, "IPTC/NAA",KNO_VOID},
-    /* {EXIF_TAG_IMAGE_RESOURCES, "ImageResources",KNO_VOID}, */
-    {EXIF_TAG_EXIF_IFD_POINTER, "ExifIFDPointer",KNO_VOID},
-    {EXIF_TAG_INTER_COLOR_PROFILE, "InterColorProfile",KNO_VOID},
-    {EXIF_TAG_EXPOSURE_PROGRAM, "ExposureProgram",KNO_VOID},
-    {EXIF_TAG_SPECTRAL_SENSITIVITY, "SpectralSensitivity",KNO_VOID},
-    {EXIF_TAG_GPS_INFO_IFD_POINTER, "GPSInfoIFDPointer",KNO_VOID},
+  /* {EXIF_TAG_NEW_SUBFILE_TYPE, "NewSubfileType",KNO_VOID}, */
+  {EXIF_TAG_INTEROPERABILITY_INDEX, "InteroperabilityIndex",KNO_VOID},
+  {EXIF_TAG_INTEROPERABILITY_VERSION, "InteroperabilityVersion",KNO_VOID},
+  {EXIF_TAG_IMAGE_WIDTH, "ImageWidth",KNO_VOID},
+  {EXIF_TAG_IMAGE_LENGTH, "ImageLength",KNO_VOID},
+  {EXIF_TAG_FILL_ORDER, "FillOrder",KNO_VOID},
+  {EXIF_TAG_DOCUMENT_NAME, "DocumentName",KNO_VOID},
+  {EXIF_TAG_IMAGE_DESCRIPTION, "ImageDescription",KNO_VOID},
+  {EXIF_TAG_MAKE, "Make",KNO_VOID},
+  {EXIF_TAG_MODEL, "Model",KNO_VOID},
+  {EXIF_TAG_STRIP_OFFSETS, "StripOffsets",KNO_VOID},
+  {EXIF_TAG_ORIENTATION, "Orientation",KNO_VOID},
+  {EXIF_TAG_SAMPLES_PER_PIXEL, "SamplesPerPixel",KNO_VOID},
+  {EXIF_TAG_ROWS_PER_STRIP, "RowsPerStrip",KNO_VOID},
+  {EXIF_TAG_STRIP_BYTE_COUNTS, "StripByteCounts",KNO_VOID},
+  {EXIF_TAG_X_RESOLUTION, "XResolution",KNO_VOID},
+  {EXIF_TAG_Y_RESOLUTION, "YResolution",KNO_VOID},
+  {EXIF_TAG_PLANAR_CONFIGURATION, "PlanarConfiguration",KNO_VOID},
+  {EXIF_TAG_RESOLUTION_UNIT, "ResolutionUnit",KNO_VOID},
+  {EXIF_TAG_TRANSFER_FUNCTION, "TransferFunction",KNO_VOID},
+  {EXIF_TAG_SOFTWARE, "Software",KNO_VOID},
+  {EXIF_TAG_DATE_TIME, "DateTime",KNO_VOID},
+  {EXIF_TAG_ARTIST, "Artist",KNO_VOID},
+  {EXIF_TAG_WHITE_POINT, "WhitePoint",KNO_VOID},
+  {EXIF_TAG_PRIMARY_CHROMATICITIES, "PrimaryChromaticities",KNO_VOID},
+  {EXIF_TAG_TRANSFER_RANGE, "TransferRange",KNO_VOID},
+  /* {EXIF_TAG_SUB_IFDS, "SubIFDs",KNO_VOID}, */
+  {EXIF_TAG_JPEG_PROC, "JPEGProc",KNO_VOID},
+  {EXIF_TAG_JPEG_INTERCHANGE_FORMAT, "JPEGInterchangeFormat",KNO_VOID},
+  {EXIF_TAG_JPEG_INTERCHANGE_FORMAT_LENGTH,
+   "JPEGInterchangeFormatLength",KNO_VOID},
+  {EXIF_TAG_YCBCR_COEFFICIENTS, "YCbCrCoefficients",KNO_VOID},
+  {EXIF_TAG_YCBCR_SUB_SAMPLING, "YCbCrSubSampling",KNO_VOID},
+  {EXIF_TAG_YCBCR_POSITIONING, "YCbCrPositioning",KNO_VOID},
+  {EXIF_TAG_REFERENCE_BLACK_WHITE, "ReferenceBlackWhite",KNO_VOID},
+  /* {EXIF_TAG_XML_PACKET, "XMLPacket",KNO_VOID}, */
+  {EXIF_TAG_RELATED_IMAGE_FILE_FORMAT, "RelatedImageFileFormat",KNO_VOID},
+  {EXIF_TAG_RELATED_IMAGE_WIDTH, "RelatedImageWidth",KNO_VOID},
+  {EXIF_TAG_RELATED_IMAGE_LENGTH, "RelatedImageLength",KNO_VOID},
+  {EXIF_TAG_CFA_REPEAT_PATTERN_DIM, "CFARepeatPatternDim",KNO_VOID},
+  {EXIF_TAG_CFA_PATTERN, "CFAPattern",KNO_VOID},
+  {EXIF_TAG_BATTERY_LEVEL, "BatteryLevel",KNO_VOID},
+  {EXIF_TAG_COPYRIGHT, "Copyright",KNO_VOID},
+  {EXIF_TAG_EXPOSURE_TIME, "ExposureTime",KNO_VOID},
+  {EXIF_TAG_FNUMBER, "FNumber",KNO_VOID},
+  {EXIF_TAG_IPTC_NAA, "IPTC/NAA",KNO_VOID},
+  /* {EXIF_TAG_IMAGE_RESOURCES, "ImageResources",KNO_VOID}, */
+  {EXIF_TAG_EXIF_IFD_POINTER, "ExifIFDPointer",KNO_VOID},
+  {EXIF_TAG_INTER_COLOR_PROFILE, "InterColorProfile",KNO_VOID},
+  {EXIF_TAG_EXPOSURE_PROGRAM, "ExposureProgram",KNO_VOID},
+  {EXIF_TAG_SPECTRAL_SENSITIVITY, "SpectralSensitivity",KNO_VOID},
+  {EXIF_TAG_GPS_INFO_IFD_POINTER, "GPSInfoIFDPointer",KNO_VOID},
 #if 0
-    {EXIF_TAG_GPS_LATITUDE_REF, "GPSLatitudeRef",KNO_VOID},
-    {EXIF_TAG_GPS_LATITUDE, "GPSLatitude",KNO_VOID},
-    {EXIF_TAG_GPS_LONGITUDE_REF, "GPSLongitudeRef",KNO_VOID},
-    {EXIF_TAG_GPS_LONGITUDE, "GPSLongitude",KNO_VOID},
+  {EXIF_TAG_GPS_LATITUDE_REF, "GPSLatitudeRef",KNO_VOID},
+  {EXIF_TAG_GPS_LATITUDE, "GPSLatitude",KNO_VOID},
+  {EXIF_TAG_GPS_LONGITUDE_REF, "GPSLongitudeRef",KNO_VOID},
+  {EXIF_TAG_GPS_LONGITUDE, "GPSLongitude",KNO_VOID},
 #endif
-    {EXIF_TAG_ISO_SPEED_RATINGS, "ISOSpeedRatings",KNO_VOID},
-    {EXIF_TAG_EXIF_VERSION, "ExifVersion",KNO_VOID},
-    {EXIF_TAG_DATE_TIME_ORIGINAL, "DateTimeOriginal",KNO_VOID},
-    {EXIF_TAG_DATE_TIME_DIGITIZED, "DateTimeDigitized",KNO_VOID},
-    {EXIF_TAG_COMPONENTS_CONFIGURATION, "ComponentsConfiguration",KNO_VOID},
-    {EXIF_TAG_COMPRESSED_BITS_PER_PIXEL, "CompressedBitsPerPixel",KNO_VOID},
-    {EXIF_TAG_SHUTTER_SPEED_VALUE, "ShutterSpeedValue",KNO_VOID},
-    {EXIF_TAG_APERTURE_VALUE, "ApertureValue",KNO_VOID},
-    {EXIF_TAG_BRIGHTNESS_VALUE, "BrightnessValue",KNO_VOID},
-    {EXIF_TAG_EXPOSURE_BIAS_VALUE, "ExposureBiasValue",KNO_VOID},
-    {EXIF_TAG_MAX_APERTURE_VALUE, "MaxApertureValue",KNO_VOID},
-    {EXIF_TAG_SUBJECT_DISTANCE, "SubjectDistance",KNO_VOID},
-    {EXIF_TAG_METERING_MODE, "MeteringMode",KNO_VOID},
-    {EXIF_TAG_LIGHT_SOURCE, "LightSource",KNO_VOID},
-    {EXIF_TAG_FLASH, "Flash",KNO_VOID},
-    {EXIF_TAG_FOCAL_LENGTH, "FocalLength",KNO_VOID},
-    {EXIF_TAG_MAKER_NOTE, "MakerNote",KNO_VOID},
-    {EXIF_TAG_USER_COMMENT, "UserComment",KNO_VOID},
-    {EXIF_TAG_SUB_SEC_TIME, "SubsecTime",KNO_VOID},
-    {EXIF_TAG_SUB_SEC_TIME_ORIGINAL, "SubSecTimeOriginal",KNO_VOID},
-    {EXIF_TAG_SUB_SEC_TIME_DIGITIZED, "SubSecTimeDigitized",KNO_VOID},
-    {EXIF_TAG_FLASH_PIX_VERSION, "FlashPixVersion",KNO_VOID},
-    {EXIF_TAG_COLOR_SPACE, "ColorSpace",KNO_VOID},
-    {EXIF_TAG_PIXEL_X_DIMENSION, "PixelXDimension",KNO_VOID},
-    {EXIF_TAG_PIXEL_Y_DIMENSION, "PixelYDimension",KNO_VOID},
-    {EXIF_TAG_RELATED_SOUND_FILE, "RelatedSoundFile",KNO_VOID},
-    {EXIF_TAG_INTEROPERABILITY_IFD_POINTER, "InteroperabilityIFDPointer",KNO_VOID},
-    {EXIF_TAG_FLASH_ENERGY, "FlashEnergy",KNO_VOID},
-    {EXIF_TAG_SPATIAL_FREQUENCY_RESPONSE, "SpatialFrequencyResponse",KNO_VOID},
-    {EXIF_TAG_FOCAL_PLANE_X_RESOLUTION, "FocalPlaneXResolution",KNO_VOID},
-    {EXIF_TAG_FOCAL_PLANE_Y_RESOLUTION, "FocalPlaneYResolution",KNO_VOID},
-    {EXIF_TAG_FOCAL_PLANE_RESOLUTION_UNIT, "FocalPlaneResolutionUnit",KNO_VOID},
-    {EXIF_TAG_SUBJECT_LOCATION, "SubjectLocation",KNO_VOID},
-    {EXIF_TAG_EXPOSURE_INDEX, "ExposureIndex",KNO_VOID},
-    {EXIF_TAG_SENSING_METHOD, "SensingMethod",KNO_VOID},
-    {EXIF_TAG_FILE_SOURCE, "FileSource",KNO_VOID},
-    {EXIF_TAG_SCENE_TYPE, "SceneType",KNO_VOID},
-    {EXIF_TAG_NEW_CFA_PATTERN, "CFAPattern",KNO_VOID},
-    {EXIF_TAG_SUBJECT_AREA, "SubjectArea",KNO_VOID},
+  {EXIF_TAG_ISO_SPEED_RATINGS, "ISOSpeedRatings",KNO_VOID},
+  {EXIF_TAG_EXIF_VERSION, "ExifVersion",KNO_VOID},
+  {EXIF_TAG_DATE_TIME_ORIGINAL, "DateTimeOriginal",KNO_VOID},
+  {EXIF_TAG_DATE_TIME_DIGITIZED, "DateTimeDigitized",KNO_VOID},
+  {EXIF_TAG_COMPONENTS_CONFIGURATION, "ComponentsConfiguration",KNO_VOID},
+  {EXIF_TAG_COMPRESSED_BITS_PER_PIXEL, "CompressedBitsPerPixel",KNO_VOID},
+  {EXIF_TAG_SHUTTER_SPEED_VALUE, "ShutterSpeedValue",KNO_VOID},
+  {EXIF_TAG_APERTURE_VALUE, "ApertureValue",KNO_VOID},
+  {EXIF_TAG_BRIGHTNESS_VALUE, "BrightnessValue",KNO_VOID},
+  {EXIF_TAG_EXPOSURE_BIAS_VALUE, "ExposureBiasValue",KNO_VOID},
+  {EXIF_TAG_MAX_APERTURE_VALUE, "MaxApertureValue",KNO_VOID},
+  {EXIF_TAG_SUBJECT_DISTANCE, "SubjectDistance",KNO_VOID},
+  {EXIF_TAG_METERING_MODE, "MeteringMode",KNO_VOID},
+  {EXIF_TAG_LIGHT_SOURCE, "LightSource",KNO_VOID},
+  {EXIF_TAG_FLASH, "Flash",KNO_VOID},
+  {EXIF_TAG_FOCAL_LENGTH, "FocalLength",KNO_VOID},
+  {EXIF_TAG_MAKER_NOTE, "MakerNote",KNO_VOID},
+  {EXIF_TAG_USER_COMMENT, "UserComment",KNO_VOID},
+  {EXIF_TAG_SUB_SEC_TIME, "SubsecTime",KNO_VOID},
+  {EXIF_TAG_SUB_SEC_TIME_ORIGINAL, "SubSecTimeOriginal",KNO_VOID},
+  {EXIF_TAG_SUB_SEC_TIME_DIGITIZED, "SubSecTimeDigitized",KNO_VOID},
+  {EXIF_TAG_FLASH_PIX_VERSION, "FlashPixVersion",KNO_VOID},
+  {EXIF_TAG_COLOR_SPACE, "ColorSpace",KNO_VOID},
+  {EXIF_TAG_PIXEL_X_DIMENSION, "PixelXDimension",KNO_VOID},
+  {EXIF_TAG_PIXEL_Y_DIMENSION, "PixelYDimension",KNO_VOID},
+  {EXIF_TAG_RELATED_SOUND_FILE, "RelatedSoundFile",KNO_VOID},
+  {EXIF_TAG_INTEROPERABILITY_IFD_POINTER, "InteroperabilityIFDPointer",KNO_VOID},
+  {EXIF_TAG_FLASH_ENERGY, "FlashEnergy",KNO_VOID},
+  {EXIF_TAG_SPATIAL_FREQUENCY_RESPONSE, "SpatialFrequencyResponse",KNO_VOID},
+  {EXIF_TAG_FOCAL_PLANE_X_RESOLUTION, "FocalPlaneXResolution",KNO_VOID},
+  {EXIF_TAG_FOCAL_PLANE_Y_RESOLUTION, "FocalPlaneYResolution",KNO_VOID},
+  {EXIF_TAG_FOCAL_PLANE_RESOLUTION_UNIT, "FocalPlaneResolutionUnit",KNO_VOID},
+  {EXIF_TAG_SUBJECT_LOCATION, "SubjectLocation",KNO_VOID},
+  {EXIF_TAG_EXPOSURE_INDEX, "ExposureIndex",KNO_VOID},
+  {EXIF_TAG_SENSING_METHOD, "SensingMethod",KNO_VOID},
+  {EXIF_TAG_FILE_SOURCE, "FileSource",KNO_VOID},
+  {EXIF_TAG_SCENE_TYPE, "SceneType",KNO_VOID},
+  {EXIF_TAG_NEW_CFA_PATTERN, "CFAPattern",KNO_VOID},
+  {EXIF_TAG_SUBJECT_AREA, "SubjectArea",KNO_VOID},
 #if 0
-    {EXIF_TAG_TIFF_EP_STANDARD_ID, "TIFF/EPStandardID",KNO_VOID},
+  {EXIF_TAG_TIFF_EP_STANDARD_ID, "TIFF/EPStandardID",KNO_VOID},
 #endif
-    {EXIF_TAG_CUSTOM_RENDERED, "CustomRendered",KNO_VOID},
-    {EXIF_TAG_EXPOSURE_MODE, "ExposureMode",KNO_VOID},
-    {EXIF_TAG_WHITE_BALANCE, "WhiteBalance",KNO_VOID},
-    {EXIF_TAG_DIGITAL_ZOOM_RATIO, "DigitalZoomRatio",KNO_VOID},
-    {EXIF_TAG_FOCAL_LENGTH_IN_35MM_FILM, "FocalLengthIn35mmFilm",KNO_VOID},
-    {EXIF_TAG_SCENE_CAPTURE_TYPE, "SceneCaptureType",KNO_VOID},
-    {EXIF_TAG_GAIN_CONTROL, "GainControl",KNO_VOID},
-    {EXIF_TAG_CONTRAST, "Contrast",KNO_VOID},
-    {EXIF_TAG_SATURATION, "Saturation",KNO_VOID},
-    {EXIF_TAG_SHARPNESS, "Sharpness",KNO_VOID},
-    {EXIF_TAG_DEVICE_SETTING_DESCRIPTION, "DeviceSettingDescription",KNO_VOID},
-    {EXIF_TAG_SUBJECT_DISTANCE_RANGE, "SubjectDistanceRange",KNO_VOID},
-    {EXIF_TAG_IMAGE_UNIQUE_ID, "ImageUniqueID",KNO_VOID},
-    {0, NULL,KNO_VOID}};
+  {EXIF_TAG_CUSTOM_RENDERED, "CustomRendered",KNO_VOID},
+  {EXIF_TAG_EXPOSURE_MODE, "ExposureMode",KNO_VOID},
+  {EXIF_TAG_WHITE_BALANCE, "WhiteBalance",KNO_VOID},
+  {EXIF_TAG_DIGITAL_ZOOM_RATIO, "DigitalZoomRatio",KNO_VOID},
+  {EXIF_TAG_FOCAL_LENGTH_IN_35MM_FILM, "FocalLengthIn35mmFilm",KNO_VOID},
+  {EXIF_TAG_SCENE_CAPTURE_TYPE, "SceneCaptureType",KNO_VOID},
+  {EXIF_TAG_GAIN_CONTROL, "GainControl",KNO_VOID},
+  {EXIF_TAG_CONTRAST, "Contrast",KNO_VOID},
+  {EXIF_TAG_SATURATION, "Saturation",KNO_VOID},
+  {EXIF_TAG_SHARPNESS, "Sharpness",KNO_VOID},
+  {EXIF_TAG_DEVICE_SETTING_DESCRIPTION, "DeviceSettingDescription",KNO_VOID},
+  {EXIF_TAG_SUBJECT_DISTANCE_RANGE, "SubjectDistanceRange",KNO_VOID},
+  {EXIF_TAG_IMAGE_UNIQUE_ID, "ImageUniqueID",KNO_VOID},
+  {0, NULL,KNO_VOID}};
 
 DEFPRIM2("exif-get",exif_get,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "`(EXIF-GET *arg0* [*arg1*])` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(EXIF-GET *arg0* [*arg1*])` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval exif_get(lispval x,lispval prop)
 {
   ExifData *exdata;
@@ -258,9 +258,9 @@ static lispval exif_get(lispval x,lispval prop)
     while (scan->tagname) {
       ExifEntry *exentry = exif_data_get_entry(exdata,scan->tagid);
       if (exentry) {
-        lispval val = exif2lisp(exentry);
-        kno_add(slotmap,scan->tagsym,val);
-        kno_decref(val);}
+	lispval val = exif2lisp(exentry);
+	kno_add(slotmap,scan->tagsym,val);
+	kno_decref(val);}
       scan++;}
     return slotmap;}
   else {

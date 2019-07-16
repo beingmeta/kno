@@ -96,17 +96,17 @@ static lispval chain_prim(int n,lispval *args)
     cargv[cargc++]=exe_arg;
     cargv[cargc++]=file_arg;
     i = 0; while (i<n)
-      if (KNO_STRINGP(args[i])) {
-        u8_printf(&argstring," %s",CSTRING(args[i]));
-        cargv[cargc]=u8_tolibc(CSTRING(args[i]));
-        i++; cargc++;}
-      else {
-        u8_string as_string = kno_lisp2string(args[i]);
-        char *libc_string = u8_tolibc(as_string);
-        u8_printf(&argstring," %s",as_string);
-        u8_free(as_string);
-        cargv[cargc]=libc_string;
-        i++; cargc++;}
+             if (KNO_STRINGP(args[i])) {
+               u8_printf(&argstring," %s",CSTRING(args[i]));
+               cargv[cargc]=u8_tolibc(CSTRING(args[i]));
+               i++; cargc++;}
+             else {
+               u8_string as_string = kno_lisp2string(args[i]);
+               char *libc_string = u8_tolibc(as_string);
+               u8_printf(&argstring," %s",as_string);
+               u8_free(as_string);
+               cargv[cargc]=libc_string;
+               i++; cargc++;}
     u8_puts(&argstring," LOGAPPEND=yes");
     cargv[cargc++]=u8_strdup("LOGAPPEND=yes");
     i = 0; while (i<n_configs) {
@@ -321,8 +321,8 @@ int do_main(int argc,char **argv,
                  n,wait_for_file);}}}
 
   DEFPRIM("CHAIN",chain_prim,KNO_VAR_ARGS|MIN_ARGS(0),
-              "Resets the current process to a fresh instance of "
-              "knox");
+          "Resets the current process to a fresh instance of "
+          "knox");
   KNO_LINK_PRIM("CHAIN",chain_prim,0,(lispval)env);
 
   init_local_cprims();

@@ -62,16 +62,16 @@ const u8_byte *parse_headers(lispval s,const u8_byte *start,const u8_byte *end)
       const u8_byte *line_end = strchr(vstart,'\n');
       if (line_end>end) line_end = end;
       if (line_end[-1]=='\r')
-        u8_putn(&hstream,vstart,(line_end-vstart)-1);
+	u8_putn(&hstream,vstart,(line_end-vstart)-1);
       else u8_putn(&hstream,vstart,(line_end-vstart));
       if ((line_end) && ((line_end[1]==' ') || (line_end[1]=='\t')))
-        vstart = line_end+1;
+	vstart = line_end+1;
       else {
-        lispval slotval=
-          kno_wrapstring(u8_mime_convert
-                         (hstream.u8_outbuf,hstream.u8_write));
-        kno_add(s,slotid,slotval); kno_decref(slotval); hstart = line_end+1;
-        break;}}
+	lispval slotval=
+	  kno_wrapstring(u8_mime_convert
+			 (hstream.u8_outbuf,hstream.u8_write));
+	kno_add(s,slotid,slotval); kno_decref(slotval); hstart = line_end+1;
+	break;}}
     if (*hstart=='\n') return hstart+1;
     else if ((*hstart=='\r') && (hstart[1]=='\n')) return hstart+2;}
   return end;
@@ -129,7 +129,7 @@ lispval kno_handle_compound_mime_field(lispval fields,lispval slotid,lispval ori
 }
 
 static lispval convert_data(const char *start,const char *end,
-                           lispval dataenc,int could_be_string)
+			    lispval dataenc,int could_be_string)
 {
   lispval result = VOID; char *data; int len;
   /* First do any conversion you need to do. */
@@ -151,7 +151,7 @@ static lispval convert_data(const char *start,const char *end,
 }
 
 static lispval convert_text(const char *start,const char *end,
-                           lispval dataenc,lispval charenc)
+			    lispval dataenc,lispval charenc)
 {
   int len; u8_encoding encoding;
   const u8_byte *data, *scan, *data_end;
@@ -180,7 +180,7 @@ static lispval convert_text(const char *start,const char *end,
 }
 
 static lispval convert_content(const char *start,const char *end,
-                              lispval majtype,lispval dataenc,lispval charenc)
+			       lispval majtype,lispval dataenc,lispval charenc)
 {
   if (end == NULL) end = start+strlen(start);
   if ((STRINGP(charenc)) || (KNO_EQ(majtype,KNOSYM_TEXT)))
@@ -189,17 +189,17 @@ static lispval convert_content(const char *start,const char *end,
 }
 
 static const char *find_boundary(const char *boundary,const char *scan,
-                                 size_t len,size_t blen,
-                                 int at_start)
+				 size_t len,size_t blen,
+				 int at_start)
 {
   char *next;
   if ((at_start)&&(len>(blen-2))&&
       (memcmp(scan,boundary+2,blen-2)==0))
     return scan;
   else while ((len>blen)&&(next = memchr(scan,'\n',len-blen)))
-         if ((next[-1]=='\r')&&(memcmp(next-1,boundary,blen)==0))
-           return next-1;
-         else {len = len-((next+1)-scan); scan = (next+1);}
+	 if ((next[-1]=='\r')&&(memcmp(next-1,boundary,blen)==0))
+	   return next-1;
+	 else {len = len-((next+1)-scan); scan = (next+1);}
   return NULL;
 }
 
@@ -223,28 +223,28 @@ lispval kno_parse_multipart_mime(lispval slotmap,const char *start,const char *e
   start = scan; scan = find_boundary(boundary,start,end-start,boundary_len,1);
   if (scan == NULL) {
     kno_store(slotmap,preamble_slotid,
-             convert_content(start,scan,majtype,dataenc,charenc));
+	      convert_content(start,scan,majtype,dataenc,charenc));
     kno_store(slotmap,parts_slotid,NIL);}
   else {
     lispval *point = &parts;
     if (scan>start)
       kno_store(slotmap,preamble_slotid,
-               convert_content(scan,end,majtype,dataenc,charenc));
+		convert_content(scan,end,majtype,dataenc,charenc));
     start = scan+boundary_len;
     while (start<end) {
       lispval new_pair;
       if (strncmp(start,"--",2)==0) break;
       /* Ignore the opening CRLF of the encapsulation */
       else if ((start[0]=='\r')&&(start[1]=='\n'))
-        start = start+2;
+	start = start+2;
       else if (start[0]=='\n')
-        start = start+1;
+	start = start+1;
       /* Find the end of the encapsluation */
       scan = find_boundary(boundary,start,end-start,boundary_len,0);
       if (scan)
-        new_pair = kno_conspair(kno_parse_mime(start,scan),NIL);
+	new_pair = kno_conspair(kno_parse_mime(start,scan),NIL);
       else new_pair=
-             kno_conspair(kno_parse_mime(start,end),NIL);
+	     kno_conspair(kno_parse_mime(start,end),NIL);
       *point = new_pair; point = &(KNO_CDR(new_pair));
       if (scan == NULL)  break;
       else start = scan+boundary_len;}
@@ -277,16 +277,16 @@ lispval kno_parse_mime(const char *start,const char *end)
 }
 
 DEFPRIM1("parse-mime",parse_mime_data,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(PARSE-MIME *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(PARSE-MIME *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval parse_mime_data(lispval arg)
 {
   if (PACKETP(arg))
     return kno_parse_mime(KNO_PACKET_DATA(arg),
-                         KNO_PACKET_DATA(arg)+KNO_PACKET_LENGTH(arg));
+			  KNO_PACKET_DATA(arg)+KNO_PACKET_LENGTH(arg));
   else if (STRINGP(arg))
     return kno_parse_mime(CSTRING(arg),
-                         CSTRING(arg)+STRLEN(arg));
+			  CSTRING(arg)+STRLEN(arg));
   else return kno_type_error(_("mime data"),"parse_mime_data",arg);
 }
 

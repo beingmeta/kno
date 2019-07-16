@@ -59,7 +59,7 @@ static lispval parse_error(u8_output out,lispval result,int report)
   kno_clear_errors(report);
   kno_decref(result);
   return kno_make_string(NULL,out->u8_write-out->u8_outbuf,
-                        out->u8_outbuf);
+			 out->u8_outbuf);
 }
 
 static lispval convert_value(lispval fn,lispval val,int free,int warn)
@@ -73,16 +73,16 @@ static lispval convert_value(lispval fn,lispval val,int free,int warn)
       lispval *elts = VEC_DATA(val);
       int i = 0, lim = VEC_LEN(val);
       while (i<lim) {
-        lispval cval = convert_value(eltfn,elts[i],0,warn);
-        if (KNO_ABORTP(cval)) {
-          kno_clear_errors(warn); kno_incref(elts[i]);
-          CHOICE_ADD(results,elts[i]);}
-        else if (VOIDP(cval)) {
-          kno_incref(elts[i]);
-          CHOICE_ADD(results,elts[i]);}
-        else {
-          CHOICE_ADD(results,cval);}
-        i++;}
+	lispval cval = convert_value(eltfn,elts[i],0,warn);
+	if (KNO_ABORTP(cval)) {
+	  kno_clear_errors(warn); kno_incref(elts[i]);
+	  CHOICE_ADD(results,elts[i]);}
+	else if (VOIDP(cval)) {
+	  kno_incref(elts[i]);
+	  CHOICE_ADD(results,elts[i]);}
+	else {
+	  CHOICE_ADD(results,cval);}
+	i++;}
       kno_decref(val);
       return results;}
     else return convert_value(eltfn,val,1,warn);}
@@ -120,8 +120,8 @@ static lispval json_parse(U8_INPUT *in,int flags,lispval fieldmap)
   else if (c=='\'') {
     if ( (flags) & (KNO_JSON_STRICT) )
       return kno_err("BadJSON","json_parse",
-                    "unexpected ' in strict mode",
-                    KNO_VOID);
+		     "unexpected ' in strict mode",
+		     KNO_VOID);
     else return json_string(in,flags);}
   else return json_atom(in,0);
 }
@@ -200,8 +200,8 @@ static lispval json_intern(U8_INPUT *in,int flags)
     return result;}
   else {
     lispval result = (((good_symbol)&&(out.u8_write-out.u8_outbuf))?
-                      (kno_parse(out.u8_outbuf)):
-                      (kno_stream_string(&out)));
+		      (kno_parse(out.u8_outbuf)):
+		      (kno_stream_string(&out)));
     if (KNO_ABORTP(result))
       result = parse_error(&out,result,flags&KNO_JSON_VERBOSE);
     if (out.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(out.u8_outbuf);
@@ -213,8 +213,8 @@ static lispval json_key(U8_INPUT *in,int flags,lispval fieldmap)
   int c = skip_whitespace(in);
   if ( (c=='\'') && ( (flags) & (KNO_JSON_STRICT) ) )
     return kno_err("BadJSON","json_parse",
-                  "unexpected ' in strict mode",
-                  KNO_VOID);
+		   "unexpected ' in strict mode",
+		   KNO_VOID);
   else if ( (c=='"') || (c=='\'') )
     if (flags&KNO_JSON_SYMBOLIZE)
       return json_intern(in,flags);
@@ -225,8 +225,8 @@ static lispval json_key(U8_INPUT *in,int flags,lispval fieldmap)
       lispval mapped = kno_get(fieldmap,stringkey,VOID);
       if (VOIDP(mapped)) return stringkey;
       else {
-        kno_decref(stringkey);
-        return mapped;}}
+	kno_decref(stringkey);
+	return mapped;}}
   else if (((c=='{')||(c=='['))&&(!(flags&KNO_JSON_ANYKEY))) {
     kno_seterr("Invalid JSON key","json_key",NULL,VOID);
     return KNO_PARSE_ERROR;}
@@ -265,19 +265,19 @@ static lispval json_vector(U8_INPUT *in,int flags,lispval fieldmap)
     else {
       lispval elt;
       if (n_elts == max_elts)  {
-        int new_max = max_elts*2;
-        lispval *newelts = u8_realloc(elts,LISPVEC_BYTELEN(new_max));
-        if (newelts) {elts = newelts; max_elts = new_max;}
-        else {
-          u8_seterr(kno_MallocFailed,"json_vector",NULL);
-          break;}}
+	int new_max = max_elts*2;
+	lispval *newelts = u8_realloc(elts,LISPVEC_BYTELEN(new_max));
+	if (newelts) {elts = newelts; max_elts = new_max;}
+	else {
+	  u8_seterr(kno_MallocFailed,"json_vector",NULL);
+	  break;}}
       elts[n_elts++]=elt = json_parse(in,flags,fieldmap);
       if (KNO_ABORTP(elt)) break;
       c = skip_whitespace(in);}}
   i = 0; while (i<n_elts) {kno_decref(elts[i]); i++;}
   return kno_err(JSON_Error,"json_vector",
-                u8_strdup(in->u8_inbuf+good_pos),
-                VOID);
+		 u8_strdup(in->u8_inbuf+good_pos),
+		 VOID);
 }
 
 static lispval json_table(U8_INPUT *in,int flags,lispval fieldmap)
@@ -297,28 +297,28 @@ static lispval json_table(U8_INPUT *in,int flags,lispval fieldmap)
       c = u8_getc(in); c = skip_whitespace(in);}
     else {
       if (n_elts == max_elts)  {
-        int new_max = max_elts*2;
-        struct KNO_KEYVAL *newelts=
-          u8_realloc(kv,KNO_KEYVAL_LEN*new_max);
-        if (newelts) {kv = newelts; max_elts = new_max;}
-        else {
-          u8_seterr(kno_MallocFailed,"json_table",NULL);
-          break;}}
+	int new_max = max_elts*2;
+	struct KNO_KEYVAL *newelts=
+	  u8_realloc(kv,KNO_KEYVAL_LEN*new_max);
+	if (newelts) {kv = newelts; max_elts = new_max;}
+	else {
+	  u8_seterr(kno_MallocFailed,"json_table",NULL);
+	  break;}}
       kv[n_elts].kv_key = json_key(in,flags,fieldmap);
       if (KNO_ABORTP(kv[n_elts].kv_key)) break;
       c = skip_whitespace(in);
       if (c==':') c = u8_getc(in);
       else return KNO_EOD;
       if ((VOIDP(fieldmap))||(CONSP(kv[n_elts].kv_key)))
-        kv[n_elts].kv_val = json_parse(in,flags,fieldmap);
+	kv[n_elts].kv_val = json_parse(in,flags,fieldmap);
       else {
-        lispval handler = kno_get(fieldmap,kv[n_elts].kv_key,VOID);
-        if (VOIDP(handler))
-          kv[n_elts].kv_val = json_parse(in,flags,fieldmap);
-        else
-          kv[n_elts].kv_val =
-            convert_value(handler,json_parse(in,flags,fieldmap),
-                          1,(flags&KNO_JSON_VERBOSE));}
+	lispval handler = kno_get(fieldmap,kv[n_elts].kv_key,VOID);
+	if (VOIDP(handler))
+	  kv[n_elts].kv_val = json_parse(in,flags,fieldmap);
+	else
+	  kv[n_elts].kv_val =
+	    convert_value(handler,json_parse(in,flags,fieldmap),
+			  1,(flags&KNO_JSON_VERBOSE));}
       if (KNO_ABORTP(kv[n_elts].kv_val)) break;
       n_elts++; c = skip_whitespace(in);}}
   i = 0; while (i<n_elts) {
@@ -384,10 +384,10 @@ static int get_json_flags(lispval flags_arg)
 }
 
 DEFPRIM3("jsonparse",jsonparseprim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
- "(JSONPARSE *string*) "
- "Parse the JSON in *string* into a LISP object",
- kno_any_type,KNO_VOID,kno_any_type,KNO_INT(8),
- kno_any_type,KNO_VOID);
+	 "(JSONPARSE *string*) "
+	 "Parse the JSON in *string* into a LISP object",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_INT(8),
+	 kno_any_type,KNO_VOID);
 static lispval jsonparseprim(lispval in,lispval flags_arg,lispval fieldmap)
 {
   unsigned int flags = get_json_flags(flags_arg);
@@ -426,15 +426,15 @@ static void json_escape(u8_output out,u8_string s)
       case '"': u8_putc(out,'"'); break;
       case '\\': u8_putc(out,'\\'); break;
       default:
-        if (c>=128) {
-          long uc = u8_sgetc(&scan);
-          sprintf(buf,"u%04x",(unsigned int)uc);
-          u8_puts(out,buf);
-          start = scan; continue;}
-        else {
-          sprintf(buf,"u%04x",c);
-          u8_puts(out,buf);
-          break;}}
+	if (c>=128) {
+	  long uc = u8_sgetc(&scan);
+	  sprintf(buf,"u%04x",(unsigned int)uc);
+	  u8_puts(out,buf);
+	  start = scan; continue;}
+	else {
+	  sprintf(buf,"u%04x",c);
+	  u8_puts(out,buf);
+	  break;}}
       scan++; start = scan;}
     else scan++;}
   if (scan>start) u8_putn(out,start,scan-start);
@@ -458,17 +458,17 @@ static void json_lower(u8_output out,u8_string s)
 }
 
 static int json_slotval(u8_output out,lispval key,lispval value,int flags,
-                        lispval slotfn,lispval oidfn,lispval miscfn)
+			lispval slotfn,lispval oidfn,lispval miscfn)
 {
   if (VOIDP(value)) return 0;
   else {
     lispval slotname = ((VOIDP(slotfn))?(VOID):(kno_apply(slotfn,1,&key)));
     if (VOIDP(slotname))
       if ((SYMBOLP(key))&&(flags&KNO_JSON_SYMBOLIZE)) {
-        u8_string pname = SYM_NAME(key);
-        if (!(flags&KNO_JSON_IDKEY)) u8_putc(out,'"');
-        json_lower(out,pname);
-        if (!(flags&KNO_JSON_IDKEY)) u8_putc(out,'"');}
+	u8_string pname = SYM_NAME(key);
+	if (!(flags&KNO_JSON_IDKEY)) u8_putc(out,'"');
+	json_lower(out,pname);
+	if (!(flags&KNO_JSON_IDKEY)) u8_putc(out,'"');}
       else json_unparse(out,key,flags,oidfn,slotfn,miscfn);
     else if (STRINGP(slotname)) {
       u8_putc(out,'"');
@@ -483,17 +483,17 @@ static int json_slotval(u8_output out,lispval key,lispval value,int flags,
 }
 
 static void json_unparse(u8_output out,lispval x,int flags,lispval slotfn,
-                         lispval oidfn,lispval miscfn)
+			 lispval oidfn,lispval miscfn)
 {
   if (FIXNUMP(x))
     u8_printf(out,"%lld",FIX2INT(x));
   else if (OIDP(x)) {
     lispval oidval = ((VOIDP(oidfn))?(VOID):
-                   (kno_finish_call(kno_dapply(oidfn,1,&x))));
+		      (kno_finish_call(kno_dapply(oidfn,1,&x))));
     if (VOIDP(oidval)) {
       KNO_OID addr = KNO_OID_ADDR(x);
       if (flags)
-        u8_printf(out,"\":@%x/%x\"",KNO_OID_HI(addr),KNO_OID_LO(addr));
+	u8_printf(out,"\":@%x/%x\"",KNO_OID_HI(addr),KNO_OID_LO(addr));
       else u8_printf(out,"\"@%x/%x\"",KNO_OID_HI(addr),KNO_OID_LO(addr));}
     else json_unparse(out,oidval,flags,slotfn,oidfn,miscfn);
     kno_decref(oidval);}
@@ -515,9 +515,9 @@ static void json_unparse(u8_output out,lispval x,int flags,lispval slotfn,
     int i = 0; int lim = VEC_LEN(x);
     if (lim==0) u8_putc(out,'[');
     else while (i<lim) {
-        if (i>0) u8_putc(out,','); else u8_putc(out,'[');
-        json_unparse(out,VEC_REF(x,i),flags,slotfn,oidfn,miscfn);
-        i++;}
+	if (i>0) u8_putc(out,','); else u8_putc(out,'[');
+	json_unparse(out,VEC_REF(x,i),flags,slotfn,oidfn,miscfn);
+	i++;}
     u8_putc(out,']');}
   else if ((CHOICEP(x))||(PRECHOICEP(x))) {
     int elt_count = 0; DO_CHOICES(e,x) {
@@ -532,13 +532,13 @@ static void json_unparse(u8_output out,lispval x,int flags,lispval slotfn,
     if (flags&KNO_JSON_TICKS)
       if (tm->u8xtimeval.u8_tick<0)  u8_puts(out,"-1"); /* Invalid time */
       else if (flags&KNO_JSON_TICKLETS) {
-        double dtick = ((unsigned long long)tm->u8xtimeval.u8_tick)+
-          (tm->u8xtimeval.u8_nsecs)*0.000000001;
-        u8_printf(out,"%f",dtick);}
+	double dtick = ((unsigned long long)tm->u8xtimeval.u8_tick)+
+	  (tm->u8xtimeval.u8_nsecs)*0.000000001;
+	u8_printf(out,"%f",dtick);}
       else {
-        unsigned long long llval = 
-          (unsigned long long)(tm->u8xtimeval.u8_tick);
-        u8_printf(out,"%llu",llval);}
+	unsigned long long llval =
+	  (unsigned long long)(tm->u8xtimeval.u8_tick);
+	u8_printf(out,"%llu",llval);}
     else if (flags&KNO_JSON_COLONIZE)
       u8_printf(out,"\":#T%iSXGt\"",&(tm->u8xtimeval));
     else if (tm->u8xtimeval.u8_tick<0)  u8_puts(out,"\"invalid time\""); /* Invalid time */
@@ -554,12 +554,12 @@ static void json_unparse(u8_output out,lispval x,int flags,lispval slotfn,
     if (EMPTYP(keys)) u8_puts(out,"{}");
     else {
       int elt_count = 0; DO_CHOICES(key,keys) {
-        lispval value = kno_get(x,key,VOID);
-        if (!(VOIDP(value))) {
-          if (elt_count>0) u8_putc(out,',');
-          else u8_puts(out,"{");
-          if (json_slotval(out,key,value,flags,slotfn,oidfn,miscfn)) elt_count++;
-          kno_decref(value);}}
+	lispval value = kno_get(x,key,VOID);
+	if (!(VOIDP(value))) {
+	  if (elt_count>0) u8_putc(out,',');
+	  else u8_puts(out,"{");
+	  if (json_slotval(out,key,value,flags,slotfn,oidfn,miscfn)) elt_count++;
+	  kno_decref(value);}}
       u8_puts(out,"}");}}
   else if (EMPTYP(x)) u8_puts(out,"[]");
   else if (KNO_TRUEP(x)) u8_puts(out,"true");
@@ -567,7 +567,7 @@ static void json_unparse(u8_output out,lispval x,int flags,lispval slotfn,
   else {
     u8_byte buf[256]; struct U8_OUTPUT tmpout;
     lispval tval = ((VOIDP(miscfn))?(VOID):
-                 (kno_finish_call(kno_dapply(miscfn,1,&x))));
+		    (kno_finish_call(kno_dapply(miscfn,1,&x))));
     U8_INIT_STATIC_OUTPUT_BUF(tmpout,256,buf);
     tmpout.u8_streaminfo |= U8_STREAM_VERBOSE;
     if (VOIDP(tval))
@@ -581,13 +581,13 @@ static void json_unparse(u8_output out,lispval x,int flags,lispval slotfn,
 }
 
 DEFPRIM5("jsonoutput",jsonoutput,KNO_MAX_ARGS(5)|KNO_MIN_ARGS(1),
- "Outputs a JSON representation to the standard "
- "output",
- kno_any_type,KNO_VOID,kno_any_type,KNO_INT(8),
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
- kno_any_type,KNO_VOID);
+	 "Outputs a JSON representation to the standard "
+	 "output",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_INT(8),
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
+	 kno_any_type,KNO_VOID);
 static lispval jsonoutput(lispval x,lispval flags_arg,
-                         lispval slotfn,lispval oidfn,lispval miscfn)
+			  lispval slotfn,lispval oidfn,lispval miscfn)
 {
   u8_output out = u8_current_output;
   int flags = get_json_flags(flags_arg);
@@ -599,13 +599,13 @@ static lispval jsonoutput(lispval x,lispval flags_arg,
 }
 
 DEFPRIM5("->json",jsonstring,KNO_MAX_ARGS(5)|KNO_MIN_ARGS(1),
- "(->JSON *obj* ...) "
- "returns a JSON string for the lisp object *obj*",
- kno_any_type,KNO_VOID,kno_any_type,KNO_INT(8),
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
- kno_any_type,KNO_VOID);
+	 "(->JSON *obj* ...) "
+	 "returns a JSON string for the lisp object *obj*",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_INT(8),
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
+	 kno_any_type,KNO_VOID);
 static lispval jsonstring(lispval x,lispval flags_arg,lispval slotfn,
-                         lispval oidfn,lispval miscfn)
+			  lispval oidfn,lispval miscfn)
 {
   struct U8_OUTPUT tmpout;
   int flags = get_json_flags(flags_arg);

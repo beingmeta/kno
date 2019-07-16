@@ -252,41 +252,41 @@ static void get_form_args(kno_slotmap c)
       kno_decref(postdata);
       /* Convert the parts */
       {KNO_DOLIST(elt,parts) {
-        lispval namestring = kno_get(elt,name_slotid,VOID);
-        if (STRINGP(namestring)) {
-          u8_string nstring = KNO_STRING_DATA(namestring);
-          lispval namesym = kno_parse(nstring);
-          lispval partsym = intern_compound("__",nstring);
-          lispval ctype = kno_get(elt,content_type,VOID);
-          lispval content = kno_get((lispval)elt,content_slotid,EMPTY);
-          /* Add the part itself in the _name slotid */
-          kno_add((lispval)c,partsym,elt);
-          /* Add the filename slot if it's an upload */
-          if (kno_test(elt,filename_slotid,VOID)) {
-            lispval filename = kno_get(elt,filename_slotid,EMPTY);
-            kno_add((lispval)c,intern_compound(nstring,"_filename"),
-                   filename);
-            kno_decref(filename);}
-          if (kno_test(elt,content_type,VOID)) {
-            lispval ctype = kno_get(elt,content_type,EMPTY);
-            kno_add((lispval)c,intern_compound(nstring,"_type"),ctype);
-            kno_decref(ctype);}
-          if ((VOIDP(ctype)) || (kno_overlapp(ctype,KNOSYM_TEXT))) {
-            if (STRINGP(content)) {
-              u8_string chars = CSTRING(content); int len = STRLEN(content);
-              /* Remove trailing \r\n from the MIME field */
-              if ((len>1) && (chars[len-1]=='\n')) {
-                lispval new_content;
-                if (chars[len-2]=='\r')
-                  new_content = kno_substring(chars,chars+len-2);
-                else new_content = kno_substring(chars,chars+len-1);
-                kno_add((lispval)c,namesym,new_content);
-                kno_decref(new_content);}
+          lispval namestring = kno_get(elt,name_slotid,VOID);
+          if (STRINGP(namestring)) {
+            u8_string nstring = KNO_STRING_DATA(namestring);
+            lispval namesym = kno_parse(nstring);
+            lispval partsym = intern_compound("__",nstring);
+            lispval ctype = kno_get(elt,content_type,VOID);
+            lispval content = kno_get((lispval)elt,content_slotid,EMPTY);
+            /* Add the part itself in the _name slotid */
+            kno_add((lispval)c,partsym,elt);
+            /* Add the filename slot if it's an upload */
+            if (kno_test(elt,filename_slotid,VOID)) {
+              lispval filename = kno_get(elt,filename_slotid,EMPTY);
+              kno_add((lispval)c,intern_compound(nstring,"_filename"),
+                      filename);
+              kno_decref(filename);}
+            if (kno_test(elt,content_type,VOID)) {
+              lispval ctype = kno_get(elt,content_type,EMPTY);
+              kno_add((lispval)c,intern_compound(nstring,"_type"),ctype);
+              kno_decref(ctype);}
+            if ((VOIDP(ctype)) || (kno_overlapp(ctype,KNOSYM_TEXT))) {
+              if (STRINGP(content)) {
+                u8_string chars = CSTRING(content); int len = STRLEN(content);
+                /* Remove trailing \r\n from the MIME field */
+                if ((len>1) && (chars[len-1]=='\n')) {
+                  lispval new_content;
+                  if (chars[len-2]=='\r')
+                    new_content = kno_substring(chars,chars+len-2);
+                  else new_content = kno_substring(chars,chars+len-1);
+                  kno_add((lispval)c,namesym,new_content);
+                  kno_decref(new_content);}
+                else kno_add((lispval)c,namesym,content);}
               else kno_add((lispval)c,namesym,content);}
-            else kno_add((lispval)c,namesym,content);}
-          else kno_add((lispval)c,namesym,content);
-          kno_decref(content); kno_decref(ctype);}
-        kno_decref(namestring);}}
+            else kno_add((lispval)c,namesym,content);
+            kno_decref(content); kno_decref(ctype);}
+          kno_decref(namestring);}}
       kno_decref(parts);}
     else if (kno_test((lispval)c,cgi_content_type,www_form_urlencoded)) {
       lispval qval = kno_slotmap_get(c,post_data_slotid,VOID);
@@ -484,7 +484,7 @@ static void convert_cookie_arg(kno_slotmap c)
       else value = buf2lisp(buf,isascii);
       if (VOIDP(slotid))
         u8_log(LOG_WARN,_("malformed cookie"),"strange cookie syntax: \"%s\"",
-                CSTRING(qval));
+               CSTRING(qval));
       else {
         lispval cookiedata = kno_make_nvector(2,name,kno_incref(value));
         if (badcookie)
@@ -530,10 +530,10 @@ KNO_EXPORT int kno_parse_cgidata(lispval data)
     kno_slotmap_drop(cgidata,content_length,VOID);
     kno_decref(clen);}
   {DO_CHOICES(handler,cgi_prepfns) {
-    if (KNO_APPLICABLEP(handler)) {
-      lispval value = kno_apply(handler,1,&data);
-      kno_decref(value);}
-    else u8_log(LOG_WARN,"Not Applicable","Invalid CGI prep handler %q",handler);}}
+      if (KNO_APPLICABLEP(handler)) {
+        lispval value = kno_apply(handler,1,&data);
+        kno_decref(value);}
+      else u8_log(LOG_WARN,"Not Applicable","Invalid CGI prep handler %q",handler);}}
   if (!(kno_slotmap_test(cgidata,KNOSYM_PCTID,KNO_VOID))) {
     lispval req_uri = kno_slotmap_get(cgidata,request_uri,KNO_VOID);
     if (KNO_STRINGP(req_uri)) kno_slotmap_store(cgidata,KNOSYM_PCTID,req_uri);
@@ -562,7 +562,7 @@ static void add_remote_info(lispval cgidata)
             ((STRINGP(remote_agent)) ? (CSTRING(remote_agent)) : ((u8_string)"noagent")));
   remote_string=
     kno_init_string(NULL,remote.u8_write-remote.u8_outbuf,
-                   remote.u8_outbuf);
+                    remote.u8_outbuf);
   kno_store(cgidata,remote_info_symbol,remote_string);
   kno_decref(remote_user); kno_decref(remote_ident); kno_decref(remote_host);
   kno_decref(remote_addr); kno_decref(remote_agent);
@@ -572,7 +572,7 @@ static void add_remote_info(lispval cgidata)
 /* Generating headers */
 
 static lispval do_xmlout(U8_OUTPUT *out,lispval body,
-                        kno_lexenv env,kno_stack _stack)
+                         kno_lexenv env,kno_stack _stack)
 {
   U8_OUTPUT *prev = u8_current_output;
   u8_set_default_output(out);
@@ -608,8 +608,8 @@ static lispval httpheader(lispval expr,kno_lexenv env,kno_stack _stack)
 }
 
 DEFPRIM1("httpheader!",addhttpheader,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(HTTPHEADER! *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+         "`(HTTPHEADER! *arg0*)` **undocumented**",
+         kno_any_type,KNO_VOID);
 static lispval addhttpheader(lispval header)
 {
   kno_req_add(http_headers,header);
@@ -693,14 +693,14 @@ static int handle_cookie(U8_OUTPUT *out,lispval cgidata,lispval cookie)
 }
 
 DEFPRIM6("set-cookie!",setcookie,KNO_MAX_ARGS(6)|KNO_MIN_ARGS(2),
- "`(SET-COOKIE! *arg0* *arg1* [*arg2*] [*arg3*] [*arg4*] [*arg5*])` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+         "`(SET-COOKIE! *arg0* *arg1* [*arg2*] [*arg3*] [*arg4*] [*arg5*])` **undocumented**",
+         kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
+         kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
+         kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval setcookie
-  (lispval var,lispval val,
-   lispval domain,lispval path,
-   lispval expires,lispval secure)
+(lispval var,lispval val,
+ lispval domain,lispval path,
+ lispval expires,lispval secure)
 {
   if (!((SYMBOLP(var)) || (STRINGP(var)) || (OIDP(var))))
     return kno_type_error("symbol","setcookie",var);
@@ -715,7 +715,7 @@ static lispval setcookie
       kno_incref(expires);
     else if ((FIXNUMP(expires))||(KNO_BIGINTP(expires))) {
       long long ival = ((FIXNUMP(expires))?(FIX2INT(expires)):
-                      (kno_bigint_to_long_long((kno_bigint)expires)));
+                        (kno_bigint_to_long_long((kno_bigint)expires)));
       time_t expval;
       if ((ival<0)||(ival<(24*3600*365*20))) expval = (time(NULL))+ival;
       else expval = (time_t)ival;
@@ -723,19 +723,19 @@ static lispval setcookie
     else return kno_type_error("timestamp","setcookie",expires);
     cookiedata=
       kno_make_nvector(6,kno_incref(var),kno_incref(val),
-                      kno_incref(domain),kno_incref(path),
-                      expires,kno_incref(secure));
+                       kno_incref(domain),kno_incref(path),
+                       expires,kno_incref(secure));
     setcookiedata(cookiedata,VOID);
     kno_decref(cookiedata);
     return VOID;}
 }
 
 DEFPRIM4("clear-cookie!",clearcookie,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(1),
- "`(CLEAR-COOKIE! *arg0* [*arg1*] [*arg2*] [*arg3*])` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+         "`(CLEAR-COOKIE! *arg0* [*arg1*] [*arg2*] [*arg3*])` **undocumented**",
+         kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
+         kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval clearcookie
-  (lispval var,lispval domain,lispval path,lispval secure)
+(lispval var,lispval domain,lispval path,lispval secure)
 {
   if (!((SYMBOLP(var)) || (STRINGP(var)) || (OIDP(var))))
     return kno_type_error("symbol","setcookie",var);
@@ -748,8 +748,8 @@ static lispval clearcookie
     if (VOIDP(path)) path = KNO_FALSE;
     cookiedata=
       kno_make_nvector(6,kno_incref(var),val,
-                      kno_incref(domain),kno_incref(path),
-                      expires,kno_incref(secure));
+                       kno_incref(domain),kno_incref(path),
+                       expires,kno_incref(secure));
     setcookiedata(cookiedata,VOID);
     kno_decref(cookiedata);
     return VOID;}
@@ -758,8 +758,8 @@ static lispval clearcookie
 /* HTML Header functions */
 
 DEFPRIM2("stylesheet!",add_stylesheet,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "`(STYLESHEET! *arg0* [*arg1*])` **undocumented**",
- kno_string_type,KNO_VOID,kno_string_type,KNO_VOID);
+         "`(STYLESHEET! *arg0* [*arg1*])` **undocumented**",
+         kno_string_type,KNO_VOID,kno_string_type,KNO_VOID);
 static lispval add_stylesheet(lispval stylesheet,lispval type)
 {
   lispval header_string = VOID;
@@ -776,8 +776,8 @@ static lispval add_stylesheet(lispval stylesheet,lispval type)
 }
 
 DEFPRIM1("javascript!",add_javascript,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(JAVASCRIPT! *arg0*)` **undocumented**",
- kno_string_type,KNO_VOID);
+         "`(JAVASCRIPT! *arg0*)` **undocumented**",
+         kno_string_type,KNO_VOID);
 static lispval add_javascript(lispval url)
 {
   lispval header_string = VOID;
@@ -912,8 +912,8 @@ KNO_EXPORT int kno_output_http_headers(U8_OUTPUT *out,lispval cgidata)
         u8_putn(out,KNO_PACKET_DATA(header),KNO_PACKET_LENGTH(header));
         u8_putn(out,"\r\n",2);}}
   {DO_CHOICES(cookie,cookies)
-     if (handle_cookie(out,cgidata,cookie)<0)
-       u8_log(LOG_WARN,CGIDataInconsistency,"Bad cookie data: %q",cookie);}
+      if (handle_cookie(out,cgidata,cookie)<0)
+        u8_log(LOG_WARN,CGIDataInconsistency,"Bad cookie data: %q",cookie);}
   if (STRINGP(redirect))
     u8_printf(out,"Location: %s\r\n",CSTRING(redirect));
   else if ((STRINGP(sendfile))&&(kno_sendfile_header)) {
@@ -972,8 +972,8 @@ static lispval attrib_merge_classes(lispval attribs,lispval classes)
       classes = KNO_CDR(classes);}
     {lispval old = KNO_CAR(class_cons);
       KNO_RPLACA(class_cons,kno_make_string
-                (NULL,classout.u8_write-classout.u8_outbuf,
-                 classout.u8_outbuf));
+                 (NULL,classout.u8_write-classout.u8_outbuf,
+                  classout.u8_outbuf));
       kno_decref(old);
       u8_close((u8_stream)&classout);}
     return attribs;}
@@ -987,7 +987,7 @@ static lispval attrib_merge_classes(lispval attribs,lispval classes)
           i++;
           u8_puts(&classout,CSTRING(class));}}}
     return kno_conspair(class_symbol,
-                       kno_conspair(kno_stream_string(&classout),attribs));}
+                        kno_conspair(kno_stream_string(&classout),attribs));}
 }
 
 KNO_EXPORT
@@ -1051,7 +1051,7 @@ int kno_output_xml_preface(U8_OUTPUT *out,lispval cgidata)
 }
 
 DEFPRIM("body!",set_body_attribs,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
- "`(BODY! *arg0* *args...*)` **undocumented**");
+        "`(BODY! *arg0* *args...*)` **undocumented**");
 static lispval set_body_attribs(int n,lispval *args)
 {
   if ((n==1)&&(args[0]==KNO_FALSE)) {
@@ -1065,8 +1065,8 @@ static lispval set_body_attribs(int n,lispval *args)
 }
 
 DEFPRIM1("bodyclass!",add_body_class,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(BODYCLASS! *arg0*)` **undocumented**",
- kno_string_type,KNO_VOID);
+         "`(BODYCLASS! *arg0*)` **undocumented**",
+         kno_string_type,KNO_VOID);
 static lispval add_body_class(lispval classname)
 {
   kno_req_push(body_classes_slotid,classname);
@@ -1074,8 +1074,8 @@ static lispval add_body_class(lispval classname)
 }
 
 DEFPRIM1("htmlclass!",add_html_class,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(HTMLCLASS! *arg0*)` **undocumented**",
- kno_string_type,KNO_VOID);
+         "`(HTMLCLASS! *arg0*)` **undocumented**",
+         kno_string_type,KNO_VOID);
 static lispval add_html_class(lispval classname)
 {
   kno_req_push(html_classes_slotid,classname);
@@ -1092,7 +1092,7 @@ static lispval cgigetvar(lispval cgidata,lispval var)
     ((SYMBOLP(var))&&((SYM_NAME(var))[0]=='%'));
   lispval name = ((noparse)?(kno_intern(SYM_NAME(var)+1)):(var));
   lispval val = ((TABLEP(cgidata))?(kno_get(cgidata,name,VOID)):
-              (kno_req_get(name,VOID)));
+                 (kno_req_get(name,VOID)));
   if (VOIDP(val)) return val;
   else if ((noparse)&&(STRINGP(val))) return val;
   else if (STRINGP(val)) {
@@ -1171,7 +1171,7 @@ static int U8_MAYBE_UNUSED cgiexecstep(void *data)
     call->outlen = call->cgiout->u8_write-call->cgiout->u8_outbuf;
   else call->cgiout->u8_write = call->cgiout->u8_outbuf+call->outlen;
   value = kno_xapply_lambda((kno_lambda)proc,(void *)cgidata,
-                          (lispval (*)(void *,lispval))cgigetvar);
+                            (lispval (*)(void *,lispval))cgigetvar);
   value = kno_finish_call(value);
   call->result = value;
   return 1;
@@ -1207,7 +1207,7 @@ KNO_EXPORT lispval kno_cgiexec(lispval proc,lispval cgidata)
 #endif
     if (!(ipeval)) {
       value = kno_xapply_lambda((kno_lambda)proc,(void *)cgidata,
-                            (lispval (*)(void *,lispval))cgigetvar);
+                                (lispval (*)(void *,lispval))cgigetvar);
       value = kno_finish_call(value);}
 #if KNO_IPEVAL_ENABLED
     else {
@@ -1223,8 +1223,8 @@ KNO_EXPORT lispval kno_cgiexec(lispval proc,lispval cgidata)
 /* Parsing query strings */
 
 DEFPRIM1("urldata/parse",urldata_parse,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(URLDATA/PARSE *arg0*)` **undocumented**",
- kno_string_type,KNO_VOID);
+         "`(URLDATA/PARSE *arg0*)` **undocumented**",
+         kno_string_type,KNO_VOID);
 static lispval urldata_parse(lispval qstring)
 {
   lispval smap = kno_empty_slotmap();
@@ -1277,8 +1277,8 @@ lispval kno_mapurl(lispval uri)
 }
 
 DEFPRIM1("mapurl",mapurl,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(MAPURL *arg0*)` **undocumented**",
- kno_string_type,KNO_VOID);
+         "`(MAPURL *arg0*)` **undocumented**",
+         kno_string_type,KNO_VOID);
 static lispval mapurl(lispval uri)
 {
   lispval result = kno_mapurl(uri);

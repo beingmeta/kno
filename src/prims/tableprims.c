@@ -250,13 +250,13 @@ static lispval table_test(lispval table,lispval key,lispval val)
 
 
 DEFPRIM("GETKEYS",kno_getkeys,MAX_ARGS(1),
-             "`(GETKEYS *table*)` returns all the keys in *table*.");
+        "`(GETKEYS *table*)` returns all the keys in *table*.");
 DEFPRIM("GETVALUES",kno_getvalues,MAX_ARGS(1),
-            "`(GETVALUES *table*)` returns all the values associated with "
-            "all of the keys in *table*.");
+        "`(GETVALUES *table*)` returns all the values associated with "
+        "all of the keys in *table*.");
 DEFPRIM("GETASSOCS",kno_getassocs,MAX_ARGS(1),
-            "`(GETASSOCS *table*)` returns (key . values) pairs for all "
-            "of the keys in *table*.");
+        "`(GETASSOCS *table*)` returns (key . values) pairs for all "
+        "of the keys in *table*.");
 
 /* Converting schemaps to slotmaps */
 
@@ -355,7 +355,7 @@ static lispval table_increment(lispval table,lispval keys,lispval increment)
     else if (EMPTYP(keys))
       return VOID;
     else if (kno_hashtable_op(KNO_XHASHTABLE(table),kno_table_increment,keys,
-                             increment)<0)
+                              increment)<0)
       return KNO_ERROR;
     else return VOID;
   else if (TABLEP(table)) {
@@ -403,7 +403,7 @@ static lispval table_increment_existing(lispval table,lispval keys,lispval incre
     else if (EMPTYP(keys))
       return VOID;
     else if (kno_hashtable_op(KNO_XHASHTABLE(table),kno_table_increment,keys,
-                             increment)<0)
+                              increment)<0)
       return KNO_ERROR;
     else return VOID;
   else if (TABLEP(table)) {
@@ -1094,17 +1094,17 @@ static lispval hashtable_merge(lispval dest,lispval src)
 }
 
 DEFPRIM("PLIST->TABLE",kno_plist_to_slotmap,MAX_ARGS(1),
-             "`(PLIST->TABLE *plist*)` returns a slotmap from a plist "
-             "(property list) of the form "
-             "(key1 value1 key2 value2 ... )");
+        "`(PLIST->TABLE *plist*)` returns a slotmap from a plist "
+        "(property list) of the form "
+        "(key1 value1 key2 value2 ... )");
 DEFPRIM("ALIST->TABLE",kno_alist_to_slotmap,MAX_ARGS(1),
-             "`(ALIST->TABLE *list*)` returns a slotmap from an alist "
-             "(association list) of the form "
-             "((key1 . value1) (key2 . value2) ... )");
+        "`(ALIST->TABLE *list*)` returns a slotmap from an alist "
+        "(association list) of the form "
+        "((key1 . value1) (key2 . value2) ... )");
 DEFPRIM("BLIST->TABLE",kno_blist_to_slotmap,MAX_ARGS(1),
-             "`(BLIST->TABLE *list*)` returns a slotmap from a blist "
-             "(binding list) of the form "
-             "((key1  value1) (key2 value2) ... )");
+        "`(BLIST->TABLE *list*)` returns a slotmap from a blist "
+        "(binding list) of the form "
+        "((key1  value1) (key2 value2) ... )");
 
 /* Initialization code */
 

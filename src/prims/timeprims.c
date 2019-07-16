@@ -74,7 +74,7 @@ static int get_precision(lispval sym)
   else if ( (KNO_EQ(sym,month_symbol)) || (KNO_EQ(sym,months_symbol)) )
     return (int) u8_month;
   else if ( (KNO_EQ(sym,date_symbol)) || (KNO_EQ(sym,day_symbol)) ||
-            (KNO_EQ(sym,days_symbol)) )
+	    (KNO_EQ(sym,days_symbol)) )
     return (int) u8_day;
   else if ( (KNO_EQ(sym,hours_symbol)) || (KNO_EQ(sym,hour_symbol)) )
     return (int) u8_hour;
@@ -96,8 +96,8 @@ static int get_precision(lispval sym)
 }
 
 DEFPRIM1("timestamp?",timestampp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(TIMESTAMP? *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(TIMESTAMP? *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval timestampp(lispval arg)
 {
   if (TYPEP(arg,kno_timestamp_type))
@@ -106,8 +106,8 @@ static lispval timestampp(lispval arg)
 }
 
 DEFPRIM1("timestamp",timestamp_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
- "`(TIMESTAMP [*arg0*])` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(TIMESTAMP [*arg0*])` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval timestamp_prim(lispval arg)
 {
   struct KNO_TIMESTAMP *tm = u8_alloc(struct KNO_TIMESTAMP);
@@ -142,8 +142,8 @@ static lispval timestamp_prim(lispval arg)
   else if (TYPEP(arg,kno_timestamp_type)) {
     struct KNO_TIMESTAMP *fdt = (struct KNO_TIMESTAMP *)arg;
     u8_local_xtime(&(tm->u8xtimeval),
-                   fdt->u8xtimeval.u8_tick,fdt->u8xtimeval.u8_prec,
-                   fdt->u8xtimeval.u8_nsecs);
+		   fdt->u8xtimeval.u8_tick,fdt->u8xtimeval.u8_prec,
+		   fdt->u8xtimeval.u8_nsecs);
     return LISP_CONS(tm);}
   else if (KNO_BIGINTP(arg)) {
 #if (SIZEOF_TIME_T == 8)
@@ -165,8 +165,8 @@ static lispval timestamp_prim(lispval arg)
 }
 
 DEFPRIM1("gmtimestamp",gmtimestamp_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
- "`(GMTIMESTAMP [*arg0*])` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(GMTIMESTAMP [*arg0*])` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval gmtimestamp_prim(lispval arg)
 {
   struct KNO_TIMESTAMP *tm = u8_alloc(struct KNO_TIMESTAMP);
@@ -182,8 +182,8 @@ static lispval gmtimestamp_prim(lispval arg)
     else {
       time_t tick = ftm->u8xtimeval.u8_tick;
       if (ftm->u8xtimeval.u8_prec>u8_second)
-        u8_init_xtime(&(tm->u8xtimeval),tick,ftm->u8xtimeval.u8_prec,
-                      ftm->u8xtimeval.u8_nsecs,0,0);
+	u8_init_xtime(&(tm->u8xtimeval),tick,ftm->u8xtimeval.u8_prec,
+		      ftm->u8xtimeval.u8_nsecs,0,0);
       else u8_init_xtime(&(tm->u8xtimeval),tick,ftm->u8xtimeval.u8_prec,0,0,0);
       return LISP_CONS(tm);}}
   else if (STRINGP(arg)) {
@@ -198,7 +198,7 @@ static lispval gmtimestamp_prim(lispval arg)
       return kno_type_error("timestamp arg","timestamp_prim",arg);}
     if ((tm->u8xtimeval.u8_tzoff!=0)||(tm->u8xtimeval.u8_dstoff!=0))
       u8_init_xtime(&(tm->u8xtimeval),moment,tm->u8xtimeval.u8_prec,
-                    tm->u8xtimeval.u8_nsecs,0,0);
+		    tm->u8xtimeval.u8_nsecs,0,0);
     return LISP_CONS(tm);}
   else if (SYMBOLP(arg)) {
     int prec_val = get_precision(arg);
@@ -249,8 +249,8 @@ static struct KNO_TIMESTAMP *get_timestamp(lispval arg,int *freeit)
       *freeit = 1;
       return tm;}}
   else if ((FIXNUMP(arg))||
-           ((KNO_BIGINTP(arg))&&
-            (kno_modest_bigintp((kno_bigint)arg)))) {
+	   ((KNO_BIGINTP(arg))&&
+	    (kno_modest_bigintp((kno_bigint)arg)))) {
     struct KNO_TIMESTAMP *tm = u8_alloc(struct KNO_TIMESTAMP);
     long long int tick; time_t moment;
     if (FIXNUMP(arg))
@@ -260,10 +260,10 @@ static struct KNO_TIMESTAMP *get_timestamp(lispval arg,int *freeit)
     if (tick<31536000L) {
       moment = u8_now(&(tm->u8xtimeval));
       if (moment > 0)
-        u8_xtime_plus(&(tm->u8xtimeval),FIX2INT(arg));
+	u8_xtime_plus(&(tm->u8xtimeval),FIX2INT(arg));
       else {
-        u8_free(tm); *freeit=0;
-        return NULL;}}
+	u8_free(tm); *freeit=0;
+	return NULL;}}
     else if (u8_init_xtime(&(tm->u8xtimeval),tick,u8_second,0,0,0) == NULL) {
       u8_free(tm); *freeit=0;
       return NULL;}
@@ -312,24 +312,24 @@ static lispval timestamp_plus_helper(lispval arg1,lispval arg2,int neg)
 }
 
 DEFPRIM2("timestamp+",timestamp_plus,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "`(TIMESTAMP+ *arg0* [*arg1*])` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(TIMESTAMP+ *arg0* [*arg1*])` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval timestamp_plus(lispval arg1,lispval arg2)
 {
   return timestamp_plus_helper(arg1,arg2,0);
 }
 
 DEFPRIM2("timestamp-",timestamp_minus,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "`(TIMESTAMP- *arg0* [*arg1*])` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(TIMESTAMP- *arg0* [*arg1*])` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval timestamp_minus(lispval arg1,lispval arg2)
 {
   return timestamp_plus_helper(arg1,arg2,1);
 }
 
 DEFPRIM2("difftime",timestamp_diff,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "`(DIFFTIME *arg0* [*arg1*])` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(DIFFTIME *arg0* [*arg1*])` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval timestamp_diff(lispval timestamp1,lispval timestamp2)
 {
   if ((KNO_FLONUMP(timestamp1))&&(VOIDP(timestamp2))) {
@@ -358,23 +358,23 @@ static lispval timestamp_diff(lispval timestamp1,lispval timestamp2)
 }
 
 DEFPRIM1("time-until",time_until,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(TIME-UNTIL *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(TIME-UNTIL *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval time_until(lispval arg)
 {
   return timestamp_diff(arg,VOID);
 }
 DEFPRIM1("time-since",time_since,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(TIME-SINCE *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(TIME-SINCE *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval time_since(lispval arg)
 {
   return timestamp_diff(VOID,arg);
 }
 
 DEFPRIM2("time>?",timestamp_greater,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "`(TIME>? *arg0* [*arg1*])` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(TIME>? *arg0* [*arg1*])` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval timestamp_greater(lispval timestamp1,lispval timestamp2)
 {
   int free1 = 0;
@@ -405,8 +405,8 @@ static lispval timestamp_greater(lispval timestamp1,lispval timestamp2)
 }
 
 DEFPRIM2("time<?",timestamp_lesser,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "`(TIME<? *arg0* [*arg1*])` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(TIME<? *arg0* [*arg1*])` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval timestamp_lesser(lispval timestamp1,lispval timestamp2)
 {
   int free1 = 0;
@@ -455,8 +455,8 @@ int kno_cmp_now(lispval timestamp,double thresh)
 }
 
 DEFPRIM2("future?",futurep,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "`(FUTURE? *arg0* [*arg1*])` **undocumented**",
- kno_any_type,KNO_VOID,kno_flonum_type,KNO_VOID);
+	 "`(FUTURE? *arg0* [*arg1*])` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_flonum_type,KNO_VOID);
 static lispval futurep(lispval timestamp,lispval thresh_arg)
 {
   int thresh = (KNO_FLONUMP(thresh_arg)) ?
@@ -468,8 +468,8 @@ static lispval futurep(lispval timestamp,lispval thresh_arg)
 }
 
 DEFPRIM2("past?",pastp,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "`(PAST? *arg0* [*arg1*])` **undocumented**",
- kno_any_type,KNO_VOID,kno_flonum_type,KNO_VOID);
+	 "`(PAST? *arg0* [*arg1*])` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_flonum_type,KNO_VOID);
 static lispval pastp(lispval timestamp,lispval thresh_arg)
 {
   int thresh = (KNO_FLONUMP(thresh_arg)) ?
@@ -483,8 +483,8 @@ static lispval pastp(lispval timestamp,lispval thresh_arg)
 /* Lisp access */
 
 DEFPRIM1("elapsed-time",elapsed_time,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
- "`(ELAPSED-TIME [*arg0*])` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(ELAPSED-TIME [*arg0*])` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval elapsed_time(lispval arg)
 {
   double elapsed = u8_elapsed_time();
@@ -543,7 +543,7 @@ static lispval xtime_get(struct U8_XTIME *xt,lispval slotid,int reterr)
       return KNO_INT(xt->u8_year);
     else if (reterr)
       return kno_err(kno_ImpreciseTimestamp,"xtime_get",
-                     SYM_NAME(slotid),VOID);
+		     SYM_NAME(slotid),VOID);
     else return EMPTY;
   else if (KNO_EQ(slotid,fullstring_symbol))
     if (xt->u8_prec>=u8_day)
@@ -552,11 +552,11 @@ static lispval xtime_get(struct U8_XTIME *xt,lispval slotid,int reterr)
       return use_strftime("%A %d %B %Y %z",xt);
     else if (reterr)
       return kno_err(kno_ImpreciseTimestamp,"xtime_get",
-                     SYM_NAME(slotid),VOID);
+		     SYM_NAME(slotid),VOID);
     else return EMPTY;
   else if ((KNO_EQ(slotid,iso_symbol)) ||
-           (KNO_EQ(slotid,isostring_symbol)) ||
-           (KNO_EQ(slotid,iso8601_symbol))) {
+	   (KNO_EQ(slotid,isostring_symbol)) ||
+	   (KNO_EQ(slotid,iso8601_symbol))) {
     struct U8_OUTPUT out;
     U8_INIT_OUTPUT(&out,128);
     u8_xtime_to_iso8601(&out,xt);
@@ -622,183 +622,183 @@ static lispval xtime_get(struct U8_XTIME *xt,lispval slotid,int reterr)
       return KNO_BYTE2DTYPE(xt->u8_mon);
     else if (reterr)
       return kno_err(kno_ImpreciseTimestamp,"xtime_get",
-                     SYM_NAME(slotid),VOID);
+		     SYM_NAME(slotid),VOID);
     else return EMPTY;
   else if (KNO_EQ(slotid,monthid_symbol))
     if (xt->u8_prec>=u8_month)
       if (xt->u8_mon<12)
-        return monthids[xt->u8_mon];
+	return monthids[xt->u8_mon];
       else if (reterr)
-        return kno_err(kno_InvalidTimestamp,"xtime_get",
-                       SYM_NAME(slotid),VOID);
+	return kno_err(kno_InvalidTimestamp,"xtime_get",
+		       SYM_NAME(slotid),VOID);
       else return EMPTY;
     else if (reterr)
       return kno_err(kno_ImpreciseTimestamp,"xtime_get",
-                     SYM_NAME(slotid),VOID);
+		     SYM_NAME(slotid),VOID);
     else return EMPTY;
   else if (KNO_EQ(slotid,shortmonth_symbol))
     if (xt->u8_prec>=u8_month)
       return use_strftime("%b",xt);
     else if (reterr)
       return kno_err(kno_ImpreciseTimestamp,"xtime_get",
-                     SYM_NAME(slotid),VOID);
+		     SYM_NAME(slotid),VOID);
     else return EMPTY;
   else if (KNO_EQ(slotid,longmonth_symbol))
     if (xt->u8_prec>=u8_month)
       return use_strftime("%B",xt);
     else if (reterr)
       return kno_err(kno_ImpreciseTimestamp,"xtime_get",
-                     SYM_NAME(slotid),VOID);
+		     SYM_NAME(slotid),VOID);
     else return EMPTY;
   else if (KNO_EQ(slotid,dowid_symbol))
     if (xt->u8_prec>u8_month)
       if (xt->u8_wday<7)
-        return dowids[xt->u8_wday];
+	return dowids[xt->u8_wday];
       else if (reterr)
-        return kno_err(kno_InvalidTimestamp,"xtime_get",
-                       SYM_NAME(slotid),VOID);
+	return kno_err(kno_InvalidTimestamp,"xtime_get",
+		       SYM_NAME(slotid),VOID);
       else return EMPTY;
     else if (reterr)
       return kno_err(kno_ImpreciseTimestamp,"xtime_get",
-                     SYM_NAME(slotid),VOID);
+		     SYM_NAME(slotid),VOID);
     else return EMPTY;
   else if (KNO_EQ(slotid,shortday_symbol))
     if (xt->u8_prec>u8_month)
       return use_strftime("%a",xt);
     else if (reterr)
       return kno_err(kno_ImpreciseTimestamp,"xtime_get",
-                     SYM_NAME(slotid),VOID);
+		     SYM_NAME(slotid),VOID);
     else return EMPTY;
   else if (KNO_EQ(slotid,longday_symbol))
     if (xt->u8_prec>u8_month)
       return use_strftime("%A",xt);
     else if (reterr)
       return kno_err(kno_ImpreciseTimestamp,"xtime_get",
-                     SYM_NAME(slotid),VOID);
+		     SYM_NAME(slotid),VOID);
     else return EMPTY;
   else if (KNO_EQ(slotid,hms_symbol))
     if (xt->u8_prec>=u8_hour)
       return use_strftime("%T",xt);
     else if (reterr)
       return kno_err(kno_ImpreciseTimestamp,"xtime_get",
-                     SYM_NAME(slotid),VOID);
+		     SYM_NAME(slotid),VOID);
     else return EMPTY;
   else if (KNO_EQ(slotid,timestring_symbol))
     if (xt->u8_prec>=u8_hour)
       return use_strftime("%X",xt);
     else if (reterr)
       return kno_err(kno_ImpreciseTimestamp,"xtime_get",
-                     SYM_NAME(slotid),VOID);
+		     SYM_NAME(slotid),VOID);
     else return EMPTY;
   else if (KNO_EQ(slotid,string_symbol))
     if (xt->u8_prec>=u8_second)
       return use_strftime("%c",xt);
     else if (reterr)
       return kno_err(kno_ImpreciseTimestamp,"xtime_get",
-                     SYM_NAME(slotid),VOID);
+		     SYM_NAME(slotid),VOID);
     else return EMPTY;
   else if (KNO_EQ(slotid,shortstring_symbol)) {
     u8_byte buf[128]; struct U8_OUTPUT out;
     U8_INIT_FIXED_OUTPUT(&out,128,buf);
     if (xt->u8_prec<u8_hour)
       u8_printf(&out,"%d%s%d",
-                xt->u8_mday,month_names[xt->u8_mon],xt->u8_year);
+		xt->u8_mday,month_names[xt->u8_mon],xt->u8_year);
     else u8_printf
-           (&out,"%d%s%d %02d:%02d:%02d%s",
-            xt->u8_mday,month_names[xt->u8_mon],xt->u8_year,
-            ((xt->u8_hour>12)?((xt->u8_hour)%12):(xt->u8_hour)),
-            xt->u8_min,xt->u8_sec,
-            ((xt->u8_hour>=12)?("PM"):("AM")));
+	   (&out,"%d%s%d %02d:%02d:%02d%s",
+	    xt->u8_mday,month_names[xt->u8_mon],xt->u8_year,
+	    ((xt->u8_hour>12)?((xt->u8_hour)%12):(xt->u8_hour)),
+	    xt->u8_min,xt->u8_sec,
+	    ((xt->u8_hour>=12)?("PM"):("AM")));
     return kno_make_string(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);}
   else if (KNO_EQ(slotid,short_symbol)) {
     u8_byte buf[128]; struct U8_OUTPUT out;
     U8_INIT_FIXED_OUTPUT(&out,128,buf);
     if (xt->u8_prec<u8_hour)
       u8_printf(&out,"%d%s%d",
-                xt->u8_mday,month_names[xt->u8_mon],xt->u8_year);
+		xt->u8_mday,month_names[xt->u8_mon],xt->u8_year);
     else u8_printf
-           (&out,"%d%s%d %02d:%02d%s",
-            xt->u8_mday,month_names[xt->u8_mon],xt->u8_year,
-            ((xt->u8_hour>12)?((xt->u8_hour)%12):(xt->u8_hour)),
-            xt->u8_min,((xt->u8_hour>=12)?("PM"):("AM")));
+	   (&out,"%d%s%d %02d:%02d%s",
+	    xt->u8_mday,month_names[xt->u8_mon],xt->u8_year,
+	    ((xt->u8_hour>12)?((xt->u8_hour)%12):(xt->u8_hour)),
+	    xt->u8_min,((xt->u8_hour>=12)?("PM"):("AM")));
     return kno_make_string(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);}
   else if (KNO_EQ(slotid,datestring_symbol))
     if (xt->u8_prec>=u8_hour)
       return use_strftime("%x",xt);
     else if (reterr)
       return kno_err(kno_ImpreciseTimestamp,"xtime_get",
-                     SYM_NAME(slotid),VOID);
+		     SYM_NAME(slotid),VOID);
     else return EMPTY;
   else if (KNO_EQ(slotid,dmy_symbol))
     if (xt->u8_prec>=u8_day) {
       if (xt->u8_mon<12) {
-        char buf[64];
-        sprintf(buf,"%d%s%04d",xt->u8_mday,
-                month_names[xt->u8_mon],xt->u8_year);
-        return kno_make_string(NULL,-1,buf);}
+	char buf[64];
+	sprintf(buf,"%d%s%04d",xt->u8_mday,
+		month_names[xt->u8_mon],xt->u8_year);
+	return kno_make_string(NULL,-1,buf);}
       else if (reterr)
-        return kno_err(kno_InvalidTimestamp,"xtime_get",
-                       SYM_NAME(slotid),VOID);
+	return kno_err(kno_InvalidTimestamp,"xtime_get",
+		       SYM_NAME(slotid),VOID);
       else return EMPTY;}
     else if (reterr)
       return kno_err(kno_ImpreciseTimestamp,"xtime_get",
-                     SYM_NAME(slotid),VOID);
+		     SYM_NAME(slotid),VOID);
     else return EMPTY;
   else if (KNO_EQ(slotid,dm_symbol))
     if (xt->u8_prec>=u8_day)
       if (xt->u8_mon<12) {
-        char buf[64];
-        sprintf(buf,"%d%s",xt->u8_mday,month_names[xt->u8_mon]);
-        return kno_make_string(NULL,-1,buf);}
+	char buf[64];
+	sprintf(buf,"%d%s",xt->u8_mday,month_names[xt->u8_mon]);
+	return kno_make_string(NULL,-1,buf);}
       else if (reterr)
-        return kno_err(kno_InvalidTimestamp,"xtime_get",
-                       SYM_NAME(slotid),VOID);
+	return kno_err(kno_InvalidTimestamp,"xtime_get",
+		       SYM_NAME(slotid),VOID);
       else return EMPTY;
     else if (reterr)
       return kno_err(kno_ImpreciseTimestamp,"xtime_get",
-                     SYM_NAME(slotid),VOID);
+		     SYM_NAME(slotid),VOID);
     else return EMPTY;
   else if (KNO_EQ(slotid,my_symbol))
     if (xt->u8_prec>=u8_month)
       if (xt->u8_mon<12) {
-        char buf[64];
-        sprintf(buf,"%s%d",month_names[xt->u8_mon],xt->u8_year);
-        return kno_make_string(NULL,-1,buf);}
+	char buf[64];
+	sprintf(buf,"%s%d",month_names[xt->u8_mon],xt->u8_year);
+	return kno_make_string(NULL,-1,buf);}
       else if (reterr)
-        return kno_err(kno_InvalidTimestamp,"xtime_get",
-                       SYM_NAME(slotid),VOID);
+	return kno_err(kno_InvalidTimestamp,"xtime_get",
+		       SYM_NAME(slotid),VOID);
       else return EMPTY;
     else if (reterr)
       return kno_err(kno_ImpreciseTimestamp,"xtime_get",
-                     SYM_NAME(slotid),VOID);
+		     SYM_NAME(slotid),VOID);
     else return EMPTY;
   else if (KNO_EQ(slotid,date_symbol))
     if (xt->u8_prec>=u8_day)
       return KNO_BYTE2DTYPE(xt->u8_mday);
     else if (reterr)
       return kno_err(kno_ImpreciseTimestamp,"xtime_get",
-                     SYM_NAME(slotid),VOID);
+		     SYM_NAME(slotid),VOID);
     else return EMPTY;
   else if (KNO_EQ(slotid,hours_symbol))
     if (xt->u8_prec>=u8_hour)
       return KNO_BYTE2DTYPE(xt->u8_hour);
     else if (reterr)
       return kno_err(kno_ImpreciseTimestamp,"xtime_get",
-                     SYM_NAME(slotid),VOID);
+		     SYM_NAME(slotid),VOID);
     else return EMPTY;
   else if (KNO_EQ(slotid,minutes_symbol))
     if (xt->u8_prec>=u8_minute)
       return KNO_BYTE2DTYPE(xt->u8_min);
     else if (reterr)
       return kno_err(kno_ImpreciseTimestamp,"xtime_get",
-                     SYM_NAME(slotid),VOID);
+		     SYM_NAME(slotid),VOID);
     else return EMPTY;
   else if (KNO_EQ(slotid,seconds_symbol))
     if (xt->u8_prec>=u8_second)
       return KNO_BYTE2DTYPE(xt->u8_sec);
     else if (reterr)
       return kno_err(kno_ImpreciseTimestamp,"xtime_get",
-                     SYM_NAME(slotid),VOID);
+		     SYM_NAME(slotid),VOID);
     else return EMPTY;
   else if (KNO_EQ(slotid,tzoff_symbol))
     return KNO_SHORT2DTYPE(xt->u8_tzoff);
@@ -812,7 +812,7 @@ static lispval xtime_get(struct U8_XTIME *xt,lispval slotid,int reterr)
       return KNO_INT((long)tick);}
     else if (reterr)
       return kno_err(kno_ImpreciseTimestamp,"xtime_get",
-                     SYM_NAME(slotid),VOID);
+		     SYM_NAME(slotid),VOID);
     else return EMPTY;
   else if (KNO_EQ(slotid,prim_tick_symbol)) {
     time_t tick = xt->u8_tick;
@@ -823,24 +823,24 @@ static lispval xtime_get(struct U8_XTIME *xt,lispval slotid,int reterr)
       return kno_init_double(NULL,dsecs+(dnsecs/1000000000.0));}
     else if (reterr)
       return kno_err(kno_ImpreciseTimestamp,"xtime_get",
-                     SYM_NAME(slotid),VOID);
+		     SYM_NAME(slotid),VOID);
     else return EMPTY;
   else if ((KNO_EQ(slotid,nanoseconds_symbol)) ||
-           (KNO_EQ(slotid,microseconds_symbol)) ||
-           (KNO_EQ(slotid,milliseconds_symbol)))
+	   (KNO_EQ(slotid,microseconds_symbol)) ||
+	   (KNO_EQ(slotid,milliseconds_symbol)))
     if (xt->u8_prec>=u8_second) {
       unsigned int nsecs = xt->u8_nsecs;
       if (KNO_EQ(slotid,nanoseconds_symbol))
-        return KNO_INT(nsecs);
+	return KNO_INT(nsecs);
       else {
-        unsigned int reduce=
-          ((KNO_EQ(slotid,microseconds_symbol)) ? (1000) :(1000000));
-        unsigned int half_reduce = reduce/2;
-        unsigned int retval = ((nsecs/reduce)+((nsecs%reduce)>=half_reduce));
-        return KNO_INT(retval);}}
+	unsigned int reduce=
+	  ((KNO_EQ(slotid,microseconds_symbol)) ? (1000) :(1000000));
+	unsigned int half_reduce = reduce/2;
+	unsigned int retval = ((nsecs/reduce)+((nsecs%reduce)>=half_reduce));
+	return KNO_INT(retval);}}
     else if (reterr)
       return kno_err(kno_ImpreciseTimestamp,"xtime_get",
-                     SYM_NAME(slotid),VOID);
+		     SYM_NAME(slotid),VOID);
     else return EMPTY;
   else if (KNO_EQ(slotid,precision_symbol))
     switch (xt->u8_prec) {
@@ -859,34 +859,34 @@ static lispval xtime_get(struct U8_XTIME *xt,lispval slotid,int reterr)
       lispval results = EMPTY;
       int mon = xt->u8_mon+1;
       if ((mon>=12) || (mon<4)) {
-        CHOICE_ADD(results,winter_symbol);}
+	CHOICE_ADD(results,winter_symbol);}
       if ((mon>=3) && (mon<6)) {
-        CHOICE_ADD(results,spring_symbol);}
+	CHOICE_ADD(results,spring_symbol);}
       if ((mon>5) && (mon<10)) {
-        CHOICE_ADD(results,summer_symbol);}
+	CHOICE_ADD(results,summer_symbol);}
       if ((mon>8) && (mon<12)) {
-        CHOICE_ADD(results,autumn_symbol);}
+	CHOICE_ADD(results,autumn_symbol);}
       return results;}
     else if (reterr)
       return kno_err(kno_ImpreciseTimestamp,"xtime_get",
-                     SYM_NAME(slotid),VOID);
+		     SYM_NAME(slotid),VOID);
     else return EMPTY;
   else if (KNO_EQ(slotid,time_of_day_symbol))
     if (xt->u8_prec>=u8_hour) {
       lispval results = EMPTY;
       int hr = xt->u8_hour;
       if ((hr<5) || (hr>20)) {
-        CHOICE_ADD(results,nighttime_symbol);}
+	CHOICE_ADD(results,nighttime_symbol);}
       if ((hr>=5) && (hr<12)) {
-        CHOICE_ADD(results,morning_symbol);}
+	CHOICE_ADD(results,morning_symbol);}
       if ((hr>=12) && (hr<19)) {
-        CHOICE_ADD(results,afternoon_symbol);}
+	CHOICE_ADD(results,afternoon_symbol);}
       if ((hr>16) && (hr<22)) {
-        CHOICE_ADD(results,evening_symbol);}
+	CHOICE_ADD(results,evening_symbol);}
       return results;}
     else if (reterr)
       return kno_err(kno_ImpreciseTimestamp,"xtime_get",
-                     SYM_NAME(slotid),VOID);
+		     SYM_NAME(slotid),VOID);
     else return EMPTY;
   else if (reterr)
     return kno_err(kno_NoSuchKey,"timestamp",NULL,slotid);
@@ -902,27 +902,27 @@ static int xtime_set(struct U8_XTIME *xt,lispval slotid,lispval value)
     else return kno_reterr(kno_TypeError,"xtime_set",u8_strdup(_("year")),value);
   else if (KNO_EQ(slotid,month_symbol))
     if ((FIXNUMP(value)) &&
-        (FIX2INT(value)>0) && (FIX2INT(value)<13))
+	(FIX2INT(value)>0) && (FIX2INT(value)<13))
       xt->u8_mon = FIX2INT(value)-1;
     else return kno_reterr(kno_TypeError,"xtime_set",u8_strdup(_("month")),value);
   else if (KNO_EQ(slotid,date_symbol))
     if ((FIXNUMP(value)) &&
-        (FIX2INT(value)>0) && (FIX2INT(value)<32))
+	(FIX2INT(value)>0) && (FIX2INT(value)<32))
       xt->u8_mday = FIX2INT(value);
     else return kno_reterr(kno_TypeError,"xtime_set",u8_strdup(_("date")),value);
   else if (KNO_EQ(slotid,hours_symbol))
     if ((FIXNUMP(value)) &&
-        (FIX2INT(value)>=0) && (FIX2INT(value)<32))
+	(FIX2INT(value)>=0) && (FIX2INT(value)<32))
       xt->u8_hour = FIX2INT(value);
     else return kno_reterr(kno_TypeError,"xtime_set",u8_strdup(_("hours")),value);
   else if (KNO_EQ(slotid,minutes_symbol))
     if ((FIXNUMP(value)) &&
-        (FIX2INT(value)>=0) && (FIX2INT(value)<60))
+	(FIX2INT(value)>=0) && (FIX2INT(value)<60))
       xt->u8_min = FIX2INT(value);
     else return kno_reterr(kno_TypeError,"xtime_set",u8_strdup(_("minutes")),value);
   else if (KNO_EQ(slotid,seconds_symbol))
     if ((FIXNUMP(value)) &&
-        (FIX2INT(value)>=0) && (FIX2INT(value)<60))
+	(FIX2INT(value)>=0) && (FIX2INT(value)<60))
       xt->u8_sec = FIX2INT(value);
     else return kno_reterr(kno_TypeError,"xtime_set",u8_strdup(_("seconds")),value);
   else if (KNO_EQ(slotid,gmtoff_symbol)) {
@@ -961,7 +961,7 @@ static int xtime_set(struct U8_XTIME *xt,lispval slotid,lispval value)
       u8_apply_tzspec(xt,CSTRING(value));
       return 0;}
     else return kno_reterr(kno_TypeError,"xtime_set",
-                           u8_strdup(_("timezone string")),value);}
+			   u8_strdup(_("timezone string")),value);}
   rv = u8_mktime(xt);
   if (rv<0) return rv;
   else if (xt->u8_tick == tick) return 0;
@@ -994,9 +994,9 @@ static lispval timestamp_getkeys(lispval timestamp)
 }
 
 DEFPRIM3("modtime",modtime_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
- "`(MODTIME *arg0* [*arg1*] [*arg2*])` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
- kno_any_type,KNO_VOID);
+	 "`(MODTIME *arg0* [*arg1*] [*arg2*])` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
+	 kno_any_type,KNO_VOID);
 static lispval modtime_prim(lispval slotmap,lispval base,lispval togmt)
 {
   lispval result;
@@ -1017,9 +1017,9 @@ static lispval modtime_prim(lispval slotmap,lispval base,lispval togmt)
     DO_CHOICES(key,keys) {
       lispval val = kno_get(slotmap,key,VOID);
       if (xtime_set(xt,key,val)<0) {
-        result = KNO_ERROR;
-        KNO_STOP_DO_CHOICES;
-        break;}
+	result = KNO_ERROR;
+	KNO_STOP_DO_CHOICES;
+	break;}
       else {}}
     if (KNO_ABORTP(result)) return result;
     else if (FALSEP(togmt)) {
@@ -1033,7 +1033,7 @@ static lispval modtime_prim(lispval slotmap,lispval base,lispval togmt)
 }
 
 DEFPRIM("mktime",mktime_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(0),
- "`(MKTIME *args...*)` **undocumented**");
+	"`(MKTIME *args...*)` **undocumented**");
 static lispval mktime_lexpr(int n,lispval *args)
 {
   lispval base; struct U8_XTIME *xt; int scan = 0;
@@ -1043,8 +1043,8 @@ static lispval mktime_lexpr(int n,lispval *args)
       base = kno_deep_copy(spec);
     else if ((FIXNUMP(spec))||(KNO_BIGINTP(spec))) {
       time_t moment = (time_t)
-        ((FIXNUMP(spec))?(FIX2INT(spec)):
-         (kno_bigint_to_long_long((kno_bigint)spec)));
+	((FIXNUMP(spec))?(FIX2INT(spec)):
+	 (kno_bigint_to_long_long((kno_bigint)spec)));
       base = kno_time2timestamp(moment);}
     else return kno_type_error(_("time base"),"mktime_lexpr",spec);}
   else base = kno_make_timestamp(NULL);
@@ -1059,21 +1059,21 @@ static lispval mktime_lexpr(int n,lispval *args)
 /* Miscellanous time utilities */
 
 DEFPRIM("timestring",timestring,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
- "`(TIMESTRING)` **undocumented**");
+	"`(TIMESTRING)` **undocumented**");
 static lispval timestring()
 {
   struct U8_XTIME onstack; struct U8_OUTPUT out;
   u8_local_xtime(&onstack,-1,u8_second,0);
   U8_INIT_OUTPUT(&out,16);
   u8_printf(&out,"%02d:%02d:%02d",
-            onstack.u8_hour,
-            onstack.u8_min,
-            onstack.u8_sec);
+	    onstack.u8_hour,
+	    onstack.u8_min,
+	    onstack.u8_sec);
   return kno_stream2string(&out);
 }
 
 DEFPRIM("time",time_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
- "`(TIME)` **undocumented**");
+	"`(TIME)` **undocumented**");
 static lispval time_prim()
 {
   time_t now = time(NULL);
@@ -1084,7 +1084,7 @@ static lispval time_prim()
 }
 
 DEFPRIM("millitime",millitime_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
- "`(MILLITIME)` **undocumented**");
+	"`(MILLITIME)` **undocumented**");
 static lispval millitime_prim()
 {
   long long now = u8_millitime();
@@ -1095,7 +1095,7 @@ static lispval millitime_prim()
 }
 
 DEFPRIM("microtime",microtime_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
- "`(MICROTIME)` **undocumented**");
+	"`(MICROTIME)` **undocumented**");
 static lispval microtime_prim()
 {
   long long now = u8_microtime();
@@ -1120,8 +1120,8 @@ static lispval now_macro(lispval expr,kno_lexenv env,kno_stack ptr)
 /* Counting seconds */
 
 DEFPRIM2("secs->string",secs2string,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "`(SECS->STRING *arg0* [*arg1*])` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_INT(3));
+	 "`(SECS->STRING *arg0* [*arg1*])` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_INT(3));
 static lispval secs2string(lispval secs,lispval prec_arg)
 {
   struct U8_OUTPUT out;
@@ -1249,8 +1249,8 @@ static lispval secs2string(lispval secs,lispval prec_arg)
 }
 
 DEFPRIM1("secs->short",secs2short,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(SECS->SHORT *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(SECS->SHORT *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval secs2short(lispval secs)
 {
   struct U8_OUTPUT out;
@@ -1288,8 +1288,8 @@ static lispval secs2short(lispval secs)
 
 #if ((HAVE_SLEEP) || (HAVE_NANOSLEEP))
 DEFPRIM1("sleep",sleep_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(SLEEP *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(SLEEP *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
 lispval sleep_prim(lispval arg)
 {
   if (FIXNUMP(arg)) {
@@ -1316,7 +1316,7 @@ lispval sleep_prim(lispval arg)
       return kno_type_error(_("positive time interval"),"sleep_prim",arg);
     if (ival!=(int)floval)
       u8_log(LOG_WARN,"UnsupportedSleepPrecision",
-             "This system doesnt' have fine-grained sleep precision");
+	     "This system doesnt' have fine-grained sleep precision");
     sleep(ival);
     return KNO_TRUE;
 #endif
@@ -1365,8 +1365,8 @@ static void init_id_tables()
 /* UUID functions */
 
 DEFPRIM1("uuid?",uuidp_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
- "`(UUID? [*arg0*])` **undocumented**",
- kno_any_type,KNO_VOID);
+	 "`(UUID? [*arg0*])` **undocumented**",
+	 kno_any_type,KNO_VOID);
 static lispval uuidp_prim(lispval x)
 {
   if (TYPEP(x,kno_uuid_type)) return KNO_TRUE;
@@ -1374,8 +1374,8 @@ static lispval uuidp_prim(lispval x)
 }
 
 DEFPRIM2("getuuid",getuuid_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(0),
- "`(GETUUID [*arg0*] [*arg1*])` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "`(GETUUID [*arg0*] [*arg1*])` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval getuuid_prim(lispval nodeid,lispval tptr)
 {
   struct U8_XTIME *xt = NULL;
@@ -1386,7 +1386,7 @@ static lispval getuuid_prim(lispval nodeid,lispval tptr)
     u8_string start = CSTRING(nodeid);
     KNO_INIT_CONS(uuid,kno_uuid_type);
     if ((start[0]==':')&&(start[1]=='#')&&
-        (start[2]=='U')&&(isxdigit(start[3])))
+	(start[2]=='U')&&(isxdigit(start[3])))
       start = start+3;
     else if ((start[0]=='#')&&(start[1]=='U')&&(isxdigit(start[2])))
       start = start+2;
@@ -1424,8 +1424,8 @@ static lispval getuuid_prim(lispval nodeid,lispval tptr)
 }
 
 DEFPRIM1("uuid-time",uuidtime_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(UUID-TIME *arg0*)` **undocumented**",
- kno_uuid_type,KNO_VOID);
+	 "`(UUID-TIME *arg0*)` **undocumented**",
+	 kno_uuid_type,KNO_VOID);
 static lispval uuidtime_prim(lispval uuid_arg)
 {
   struct KNO_UUID *uuid = kno_consptr(struct KNO_UUID *,uuid_arg,kno_uuid_type);
@@ -1439,8 +1439,8 @@ static lispval uuidtime_prim(lispval uuid_arg)
 }
 
 DEFPRIM1("uuid-node",uuidnode_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(UUID-NODE *arg0*)` **undocumented**",
- kno_uuid_type,KNO_VOID);
+	 "`(UUID-NODE *arg0*)` **undocumented**",
+	 kno_uuid_type,KNO_VOID);
 static lispval uuidnode_prim(lispval uuid_arg)
 {
   struct KNO_UUID *uuid = kno_consptr(struct KNO_UUID *,uuid_arg,kno_uuid_type);
@@ -1451,8 +1451,8 @@ static lispval uuidnode_prim(lispval uuid_arg)
 }
 
 DEFPRIM1("uuid->string",uuidstring_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(UUID->STRING *arg0*)` **undocumented**",
- kno_uuid_type,KNO_VOID);
+	 "`(UUID->STRING *arg0*)` **undocumented**",
+	 kno_uuid_type,KNO_VOID);
 static lispval uuidstring_prim(lispval uuid_arg)
 {
   struct KNO_UUID *uuid = kno_consptr(struct KNO_UUID *,uuid_arg,kno_uuid_type);
@@ -1460,8 +1460,8 @@ static lispval uuidstring_prim(lispval uuid_arg)
 }
 
 DEFPRIM1("uuid->packet",uuidpacket_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(UUID->PACKET *arg0*)` **undocumented**",
- kno_uuid_type,KNO_VOID);
+	 "`(UUID->PACKET *arg0*)` **undocumented**",
+	 kno_uuid_type,KNO_VOID);
 static lispval uuidpacket_prim(lispval uuid_arg)
 {
   struct KNO_UUID *uuid = kno_consptr(struct KNO_UUID *,uuid_arg,kno_uuid_type);
@@ -1616,8 +1616,8 @@ KNO_EXPORT void kno_init_timeprims_c()
   init_local_cprims();
 
   kno_def_evalfn(kno_sys_module,"#NOW",
-                 "#:NOW:YEAR\n evaluates to a field of the current time",
-                 now_macro);
+		 "#:NOW:YEAR\n evaluates to a field of the current time",
+		 now_macro);
 
 #if 0 /* ((HAVE_SLEEP) || (HAVE_NANOSLEEP)) */
   kno_idefn(kno_sys_module,kno_make_cprim1("SLEEP",sleep_prim,1));
