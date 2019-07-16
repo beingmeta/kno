@@ -869,6 +869,8 @@ KNO_EXPORT void kno_init_errfns_c()
 {
   u8_register_source_file(_FILEINFO);
 
+  init_local_cprims();
+
   kno_def_evalfn(kno_scheme_module,"ERROR",
                 "(error *condition* *caller* [*irritant*] details...) "
                 "signals an error\n"
@@ -912,6 +914,8 @@ KNO_EXPORT void kno_init_errfns_c()
                 "reporting and clearing any errors.\n"
                 "Returns *errval* or #f if any errors occur.",
                 ignore_errors_evalfn);
+  kno_def_evalfn(kno_scheme_module,"DYNAMIC-WIND","",dynamic_wind_evalfn);
+  kno_def_evalfn(kno_scheme_module,"UNWIND-PROTECT","",unwind_protect_evalfn);
   /* Deprecated, from old error system */
   kno_def_evalfn(kno_scheme_module,"NEWERR","",irritant_evalfn);
 
@@ -1009,9 +1013,6 @@ KNO_EXPORT void kno_init_errfns_c()
   kno_defalias(kno_scheme_module,"ERROR-XDATA","ERROR-IRRITANT");
   kno_defalias(kno_scheme_module,"ERROR-IRRITANT?","EXCEPTION-IRRITANT?");
 
-  kno_def_evalfn(kno_scheme_module,"DYNAMIC-WIND","",dynamic_wind_evalfn);
-  kno_def_evalfn(kno_scheme_module,"UNWIND-PROTECT","",unwind_protect_evalfn);
-
   kno_idefn1(kno_scheme_module,"STACK-DEPTH",stack_entry_depth,1,
             "Returns the depth of a stack entry",
             kno_compound_type,KNO_VOID);
@@ -1060,7 +1061,7 @@ KNO_EXPORT void kno_init_errfns_c()
 
 }
 
-static void init_cprims()
+static void init_local_cprims()
 {
   lispval scheme_module = kno_scheme_module;
 

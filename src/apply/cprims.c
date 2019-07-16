@@ -30,6 +30,8 @@
 
 #include <stdarg.h>
 
+static lispval moduleid_symbol;
+
 int unparse_cprim(u8_output out,lispval x)
 {
   struct KNO_CPRIM *fcn = (kno_cprim)x;
@@ -200,6 +202,18 @@ static struct KNO_CPRIM *init_cprim(u8_string name,u8_string cname,
                     typeinfo,defaults);
 }
 
+static void link_cprim(struct KNO_CPRIM *cprim,u8_string pname,lispval module)
+{
+  int rv = kno_store(module,kno_getsym(pname),(lispval)cprim);
+  if (rv>0) {
+    if ( (KNO_NULLP(cprim->fcn_moduleid)) ||
+         (KNO_VOIDP(cprim->fcn_moduleid)) ) {
+      lispval moduleid = kno_get(module,moduleid_symbol,KNO_VOID);
+      if (!(KNO_VOIDP(moduleid)))
+        cprim->fcn_moduleid=moduleid;}
+    kno_decref((lispval)cprim);}
+}
+
 KNO_EXPORT void kno_defprimN(lispval module,kno_cprimn fn,
                              struct KNO_CPRIM_INFO *info)
 {
@@ -209,9 +223,7 @@ KNO_EXPORT void kno_defprimN(lispval module,kno_cprimn fn,
      info->docstring,info->flags,
      (unsigned int *)NULL,( lispval *)NULL);
   prim->fcn_handler.calln = fn;
-  lispval primval = (lispval) prim;
-  kno_store(module,kno_getsym(info->pname),primval);
-  kno_decref(primval);
+  link_cprim(prim,info->pname,module);
 }
 
 KNO_EXPORT void kno_defprim0(lispval module,kno_cprim0 fn,
@@ -223,9 +235,7 @@ KNO_EXPORT void kno_defprim0(lispval module,kno_cprim0 fn,
     (info->pname,info->cname,info->arity,info->filename,info->docstring,info->flags,
      (unsigned int *)typeinfo,( lispval *)defaults);
   prim->fcn_handler.call0 = fn;
-  lispval primval = (lispval) prim;
-  kno_store(module,kno_getsym(info->pname),primval);
-  kno_decref(primval);
+  link_cprim(prim,info->pname,module);
 }
 
 KNO_EXPORT void kno_defprim1(lispval module,kno_cprim1 fn,
@@ -237,9 +247,7 @@ KNO_EXPORT void kno_defprim1(lispval module,kno_cprim1 fn,
     (info->pname,info->cname,info->arity,info->filename,info->docstring,info->flags,
      (unsigned int *)typeinfo,( lispval *)defaults);
   prim->fcn_handler.call1 = fn;
-  lispval primval = (lispval) prim;
-  kno_store(module,kno_getsym(info->pname),primval);
-  kno_decref(primval);
+  link_cprim(prim,info->pname,module);
 }
 
 KNO_EXPORT void kno_defprim2(lispval module,kno_cprim2 fn,
@@ -251,9 +259,7 @@ KNO_EXPORT void kno_defprim2(lispval module,kno_cprim2 fn,
     (info->pname,info->cname,info->arity,info->filename,info->docstring,info->flags,
      (unsigned int *)typeinfo,( lispval *)defaults);
   prim->fcn_handler.call2 = fn;
-  lispval primval = (lispval) prim;
-  kno_store(module,kno_getsym(info->pname),primval);
-  kno_decref(primval);
+  link_cprim(prim,info->pname,module);
 }
 
 KNO_EXPORT void kno_defprim3(lispval module,kno_cprim3 fn,
@@ -265,9 +271,7 @@ KNO_EXPORT void kno_defprim3(lispval module,kno_cprim3 fn,
     (info->pname,info->cname,info->arity,info->filename,info->docstring,info->flags,
      (unsigned int *)typeinfo,( lispval *)defaults);
   prim->fcn_handler.call3 = fn;
-  lispval primval = (lispval) prim;
-  kno_store(module,kno_getsym(info->pname),primval);
-  kno_decref(primval);
+  link_cprim(prim,info->pname,module);
 }
 
 KNO_EXPORT void kno_defprim4(lispval module,kno_cprim4 fn,
@@ -279,9 +283,7 @@ KNO_EXPORT void kno_defprim4(lispval module,kno_cprim4 fn,
     (info->pname,info->cname,info->arity,info->filename,info->docstring,info->flags,
      (unsigned int *)typeinfo,( lispval *)defaults);
   prim->fcn_handler.call4 = fn;
-  lispval primval = (lispval) prim;
-  kno_store(module,kno_getsym(info->pname),primval);
-  kno_decref(primval);
+  link_cprim(prim,info->pname,module);
 }
 
 KNO_EXPORT void kno_defprim5(lispval module,kno_cprim5 fn,
@@ -293,9 +295,7 @@ KNO_EXPORT void kno_defprim5(lispval module,kno_cprim5 fn,
     (info->pname,info->cname,info->arity,info->filename,info->docstring,info->flags,
      (unsigned int *)typeinfo,( lispval *)defaults);
   prim->fcn_handler.call5 = fn;
-  lispval primval = (lispval) prim;
-  kno_store(module,kno_getsym(info->pname),primval);
-  kno_decref(primval);
+  link_cprim(prim,info->pname,module);
 }
 
 KNO_EXPORT void kno_defprim6(lispval module,kno_cprim6 fn,
@@ -307,9 +307,7 @@ KNO_EXPORT void kno_defprim6(lispval module,kno_cprim6 fn,
     (info->pname,info->cname,info->arity,info->filename,info->docstring,info->flags,
      (unsigned int *)typeinfo,( lispval *)defaults);
   prim->fcn_handler.call6 = fn;
-  lispval primval = (lispval) prim;
-  kno_store(module,kno_getsym(info->pname),primval);
-  kno_decref(primval);
+  link_cprim(prim,info->pname,module);
 }
 
 KNO_EXPORT void kno_defprim7(lispval module,kno_cprim7 fn,
@@ -321,9 +319,7 @@ KNO_EXPORT void kno_defprim7(lispval module,kno_cprim7 fn,
     (info->pname,info->cname,info->arity,info->filename,info->docstring,info->flags,
      (unsigned int *)typeinfo,( lispval *)defaults);
   prim->fcn_handler.call7 = fn;
-  lispval primval = (lispval) prim;
-  kno_store(module,kno_getsym(info->pname),primval);
-  kno_decref(primval);
+  link_cprim(prim,info->pname,module);
 }
 
 KNO_EXPORT void kno_defprim8(lispval module,kno_cprim8 fn,
@@ -335,9 +331,7 @@ KNO_EXPORT void kno_defprim8(lispval module,kno_cprim8 fn,
     (info->pname,info->cname,info->arity,info->filename,info->docstring,info->flags,
      (unsigned int *)typeinfo,( lispval *)defaults);
   prim->fcn_handler.call8 = fn;
-  lispval primval = (lispval) prim;
-  kno_store(module,kno_getsym(info->pname),primval);
-  kno_decref(primval);
+  link_cprim(prim,info->pname,module);
 }
 
 KNO_EXPORT void kno_defprim9(lispval module,kno_cprim9 fn,
@@ -349,9 +343,7 @@ KNO_EXPORT void kno_defprim9(lispval module,kno_cprim9 fn,
     (info->pname,info->cname,info->arity,info->filename,info->docstring,info->flags,
      (unsigned int *)typeinfo,( lispval *)defaults);
   prim->fcn_handler.call9 = fn;
-  lispval primval = (lispval) prim;
-  kno_store(module,kno_getsym(info->pname),primval);
-  kno_decref(primval);
+  link_cprim(prim,info->pname,module);
 }
 
 KNO_EXPORT void kno_defprim10(lispval module,kno_cprim10 fn,
@@ -363,9 +355,7 @@ KNO_EXPORT void kno_defprim10(lispval module,kno_cprim10 fn,
     (info->pname,info->cname,info->arity,info->filename,info->docstring,info->flags,
      (unsigned int *)typeinfo,( lispval *)defaults);
   prim->fcn_handler.call10 = fn;
-  lispval primval = (lispval) prim;
-  kno_store(module,kno_getsym(info->pname),primval);
-  kno_decref(primval);
+  link_cprim(prim,info->pname,module);
 }
 
 KNO_EXPORT void kno_defprim11(lispval module,kno_cprim11 fn,
@@ -377,9 +367,7 @@ KNO_EXPORT void kno_defprim11(lispval module,kno_cprim11 fn,
     (info->pname,info->cname,info->arity,info->filename,info->docstring,info->flags,
      (unsigned int *)typeinfo,( lispval *)defaults);
   prim->fcn_handler.call11 = fn;
-  lispval primval = (lispval) prim;
-  kno_store(module,kno_getsym(info->pname),primval);
-  kno_decref(primval);
+  link_cprim(prim,info->pname,module);
 }
 
 KNO_EXPORT void kno_defprim12(lispval module,kno_cprim12 fn,
@@ -391,9 +379,7 @@ KNO_EXPORT void kno_defprim12(lispval module,kno_cprim12 fn,
     (info->pname,info->cname,info->arity,info->filename,info->docstring,info->flags,
      (unsigned int *)typeinfo,( lispval *)defaults);
   prim->fcn_handler.call12 = fn;
-  lispval primval = (lispval) prim;
-  kno_store(module,kno_getsym(info->pname),primval);
-  kno_decref(primval);
+  link_cprim(prim,info->pname,module);
 }
 
 KNO_EXPORT void kno_defprim13(lispval module,kno_cprim13 fn,
@@ -405,9 +391,7 @@ KNO_EXPORT void kno_defprim13(lispval module,kno_cprim13 fn,
     (info->pname,info->cname,info->arity,info->filename,info->docstring,info->flags,
      (unsigned int *)typeinfo,( lispval *)defaults);
   prim->fcn_handler.call13 = fn;
-  lispval primval = (lispval) prim;
-  kno_store(module,kno_getsym(info->pname),primval);
-  kno_decref(primval);
+  link_cprim(prim,info->pname,module);
 }
 
 KNO_EXPORT void kno_defprim14(lispval module,kno_cprim14 fn,
@@ -419,9 +403,7 @@ KNO_EXPORT void kno_defprim14(lispval module,kno_cprim14 fn,
     (info->pname,info->cname,info->arity,info->filename,info->docstring,info->flags,
      (unsigned int *)typeinfo,( lispval *)defaults);
   prim->fcn_handler.call14 = fn;
-  lispval primval = (lispval) prim;
-  kno_store(module,kno_getsym(info->pname),primval);
-  kno_decref(primval);
+  link_cprim(prim,info->pname,module);
 }
 
 KNO_EXPORT void kno_defprim15(lispval module,kno_cprim15 fn,
@@ -433,9 +415,7 @@ KNO_EXPORT void kno_defprim15(lispval module,kno_cprim15 fn,
     (info->pname,info->cname,info->arity,info->filename,info->docstring,info->flags,
      (unsigned int *)typeinfo,( lispval *)defaults);
   prim->fcn_handler.call15 = fn;
-  lispval primval = (lispval) prim;
-  kno_store(module,kno_getsym(info->pname),primval);
-  kno_decref(primval);
+  link_cprim(prim,info->pname,module);
 }
 
 /* Providing type info and defaults */
@@ -789,6 +769,10 @@ KNO_EXPORT void kno_init_cprims_c()
 {
   u8_register_source_file(_FILEINFO);
 
+  init_local_cprims();
+
+  moduleid_symbol = kno_intern("%moduleid");
+
   kno_functionp[kno_cprim_type]=1;
 
   kno_unparsers[kno_cprim_type]=unparse_cprim;
@@ -796,9 +780,7 @@ KNO_EXPORT void kno_init_cprims_c()
   kno_dtype_writers[kno_cprim_type]=cprim_dtype;
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
+static void init_local_cprims()
+{
+  
+}

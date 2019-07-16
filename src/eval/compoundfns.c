@@ -682,12 +682,12 @@ static void init_local_cprims()
 {
   lispval scheme_module = kno_scheme_module;
 
+  KNO_LINK_PRIM("compound?",compoundp,2,scheme_module);
   KNO_LINK_PRIM("compound-set-stringfn!",compound_set_stringfn_prim,2,scheme_module);
   KNO_LINK_PRIM("compound-set-consfn!",compound_set_consfn_prim,2,scheme_module);
   KNO_LINK_PRIM("compound-metatdata",compound_metadata_prim,2,scheme_module);
   KNO_LINK_PRIM("compound-set-corelen!",compound_set_corelen_prim,2,scheme_module);
   KNO_LINK_PRIM("compound-corelen",compound_corelen_prim,1,scheme_module);
-  KNO_LINK_ALIAS("vector->compound",seq2compound,scheme_module);
   KNO_LINK_PRIM("sequence->compound",seq2compound,5,scheme_module);
   KNO_LINK_VARARGS("make-opaque-mutable-compound",make_opaque_mutable_compound,scheme_module);
   KNO_LINK_VARARGS("make-mutable-compound",make_mutable_compound,scheme_module);
@@ -702,5 +702,8 @@ static void init_local_cprims()
   KNO_LINK_PRIM("compound-length",compound_length,1,scheme_module);
   KNO_LINK_PRIM("compound-tag",compound_tag,1,scheme_module);
   KNO_LINK_PRIM("pick-compound",pick_compounds,2,scheme_module);
+
+  KNO_LINK_ALIAS("compound-type?",compoundp,scheme_module);
+  KNO_LINK_ALIAS("vector->compound",seq2compound,scheme_module);
 }
 

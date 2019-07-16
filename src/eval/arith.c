@@ -265,8 +265,8 @@ static lispval plus1(lispval x)
     return plus_lexpr(2,args);}
 }
 KNO_DCLPRIM1("-1+",minus1,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(-1+ *arg0*)` **undocumented**",
- kno_any_type,KNO_VOID);
+	     "`(-1+ *arg0*)` **undocumented**",
+	     kno_any_type,KNO_VOID);
 static lispval minus1(lispval x)
 {
   if (FIXNUMP(x)) {
@@ -697,6 +697,10 @@ arithdef2("POW",lpow,pow);
 
 KNO_DCLPRIM1("cos",lcos,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(COS *arg0*)` **undocumented**",
+ kno_any_type,KNO_VOID);
+
+KNO_DCLPRIM1("lsqrt",lsqrt,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(SQRT *arg0*)` **undocumented**",
  kno_any_type,KNO_VOID);
 
 KNO_DCLPRIM1("acos",lacos,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
@@ -1425,6 +1429,8 @@ KNO_EXPORT void kno_init_arith_c()
 {
   u8_register_source_file(_FILEINFO);
 
+  init_local_cprims();
+
 #if 0
   arithdef("SQRT",lsqrt,sqrt);
   arithdef("COS",lcos,cos);
@@ -1553,15 +1559,7 @@ KNO_EXPORT void kno_init_arith_c()
 
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
-
-
-static void init_cprims()
+static void init_local_cprims()
 {
   lispval scheme_module = kno_scheme_module;
 
@@ -1599,7 +1597,6 @@ static void init_cprims()
   KNO_LINK_PRIM("->exact",toexact,2,scheme_module);
   KNO_LINK_PRIM("->flonum",toflonum,1,scheme_module);
   KNO_LINK_PRIM("inexact->exact",inexact2exact,1,scheme_module);
-  KNO_LINK_ALIAS("->inexact",exact2inexact,scheme_module);
   KNO_LINK_PRIM("exact->inexact",exact2inexact,1,scheme_module);
   KNO_LINK_PRIM("imag-part",imag_part_prim,1,scheme_module);
   KNO_LINK_PRIM("real-part",real_part_prim,1,scheme_module);
@@ -1629,6 +1626,20 @@ static void init_cprims()
   KNO_LINK_PRIM("fixnum?",fixnump,1,scheme_module);
   KNO_LINK_PRIM("complex?",complexp,1,scheme_module);
 
+  KNO_LINK_PRIM("SQRT",lsqrt,1,scheme_module);
+  KNO_LINK_PRIM("COS",lcos,1,scheme_module);
+  KNO_LINK_PRIM("ACOS",lacos,1,scheme_module);
+  KNO_LINK_PRIM("SIN",lsin,1,scheme_module);
+  KNO_LINK_PRIM("ASIN",lasin,1,scheme_module);
+  KNO_LINK_PRIM("ATAN",latan,1,scheme_module);
+  KNO_LINK_PRIM("TAN",ltan,1,scheme_module);
+  KNO_LINK_PRIM("LOG",llog,1,scheme_module);
+  KNO_LINK_PRIM("EXP",lexp,1,scheme_module);
+
+  KNO_LINK_PRIM("ATAN2",latan2,2,scheme_module);
+  KNO_LINK_PRIM("POW~",lpow,2,scheme_module);
+
+  KNO_LINK_ALIAS("->inexact",exact2inexact,scheme_module);
   KNO_DECL_ALIAS("1-",minus1,scheme_module);
   KNO_DECL_ALIAS("->0x",tohex,scheme_module);
 }

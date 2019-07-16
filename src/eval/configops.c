@@ -481,6 +481,12 @@ KNO_EXPORT void kno_init_configops_c()
 
   init_local_cprims();
 
+  kno_def_evalfn(kno_scheme_module,"#CONFIG",
+		 "#:CONFIG\"KNOVERSION\" or #:CONFIG:LOADPATH\n"
+		 "evaluates to a value from the current configuration "
+		 "environment",
+		 config_macro);
+
 #if 0
   kno_idefn3(kno_scheme_module,"CONFIG",config_get,KNO_NEEDS_1_ARG,
 	     "`(CONFIG *name* [*default*=#f] [*valfn*])`\n"
@@ -489,12 +495,6 @@ KNO_EXPORT void kno_init_configops_c()
 	     "to call on the retrieved value or #t to indicate that string "
 	     "values should be parsed as lisp",
 	     -1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID);
-
-  kno_def_evalfn(kno_scheme_module,"#CONFIG",
-		 "#:CONFIG\"KNOVERSION\" or #:CONFIG:LOADPATH\n"
-		 "evaluates to a value from the current configuration "
-		 "environment",
-		 config_macro);
 
   kno_idefnN(kno_scheme_module,"CONFIG!",set_config,KNO_NEEDS_2_ARGS,
 	     "`(CONFIG! *name1* *value1* *name2* *value2* ...)`\n"

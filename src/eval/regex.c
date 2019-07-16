@@ -293,6 +293,8 @@ KNO_EXPORT int kno_init_regex_c()
   regex_init = 1;
   regex_module = kno_new_cmodule("regex",0,kno_init_regex_c);
 
+  init_local_cprims();
+
 #if 0
   kno_idefn(regex_module,
             kno_make_cprim3x("REGEX",make_regex,1,

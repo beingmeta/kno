@@ -399,7 +399,7 @@ KNO_EXPORT void kno_defprim15(lispval module,kno_cprim15 fn,
                             int typeinfo[15],
                             lispval defaults[15]);
 
-static void init_local_cprims(void);
+static U8_MAYBE_UNUSED void init_local_cprims(void);
 
 #endif /* KNO_CPRIMS_H */
 

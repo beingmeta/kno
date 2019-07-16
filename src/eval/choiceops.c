@@ -1786,11 +1786,6 @@ KNO_EXPORT void kno_init_choicefns_c()
             kno_make_ndprim(kno_make_cprim2("SMALLEST",smallest_prim,1)));
   kno_idefn(kno_scheme_module,
             kno_make_ndprim(kno_make_cprim2("LARGEST",largest_prim,1)));
-
-
-
-  kno_def_evalfn(kno_scheme_module,"TRY","",try_evalfn);
-
   {
     lispval empty_prim=
       kno_make_ndprim(kno_make_cprim1("EMPTY?",emptyp,1));
@@ -1799,7 +1794,8 @@ KNO_EXPORT void kno_init_choicefns_c()
     kno_store(kno_scheme_module,kno_intern("∄"),empty_prim);
   }
 
-  kno_def_evalfn(kno_scheme_module,"IFEXISTS","",ifexists_evalfn);
+
+
 
   kno_idefn(kno_scheme_module,
            kno_make_ndprim(kno_make_cprim1("SATISFIED?",satisfiedp,1)));
@@ -1833,8 +1829,6 @@ KNO_EXPORT void kno_init_choicefns_c()
            kno_make_ndprim(kno_make_cprimn("FORALL/SKIPERRS",forall_skiperrs,1)));
 
 
-  kno_def_evalfn(kno_scheme_module,"WHENEXISTS","",whenexists_evalfn);
-
   {
     lispval unique_prim=
       kno_make_ndprim(kno_make_cprim1("UNIQUE?",singletonp,1));
@@ -1843,6 +1837,11 @@ KNO_EXPORT void kno_init_choicefns_c()
     kno_store(kno_scheme_module,kno_intern("sole?"),unique_prim);}
 
 #endif
+
+  kno_def_evalfn(kno_scheme_module,"TRY","",try_evalfn);
+  kno_def_evalfn(kno_scheme_module,"IFEXISTS","",ifexists_evalfn);
+
+  kno_def_evalfn(kno_scheme_module,"WHENEXISTS","",whenexists_evalfn);
 
   kno_def_evalfn(kno_scheme_module,"QCHOICE?","",qchoicep_evalfn);
 

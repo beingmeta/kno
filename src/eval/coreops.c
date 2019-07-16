@@ -32,29 +32,24 @@
 
 /* Standard predicates */
 
-/***FDDOC[2]** SCHEME EQUAL?
- * *x* an object
- * *y* an object
+KNO_DCLPRIM2("identical?",identicalp,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	     "`(IDENTICAL? *arg0* *arg1*)` is the non-deterministic version "
+	     "of EQUAL? and returns true if its arguments (which can be "
+	     "choices) have the same structure and elements.",
+	     kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+static lispval identicalp(lispval x,lispval y)
+{
+  if (KNO_EQ(x,y)) return KNO_TRUE;
+  else if (LISP_EQUAL(x,y)) return KNO_TRUE;
+  else return KNO_FALSE;
+}
 
- Returns true if *x* and *y* are the same, based
- on a recursive comparison on all builtin object types
- except for hashtables and hashsets.
-
- Numeric objects are compared numerically, so '(equal? 0 0.0)'
-
- 'EQUAL?' is not comprehensive, so if called on choices, it may
- return both #t and #f or fail altogether.
-
- 'EQUAL?' calls the lispval_compare to do it's work, returning #t for a
- return value of 0.
-
- For custom types, this calls the 'kno_comparefn' found in
- 'kno_comparators[*typecode*]', which should return -1, 0, or 1.
-
-*/
-KNO_DCLPRIM2("identical?",equalp,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
- "`(IDENTICAL? *arg0* *arg1*)` **undocumented**",
- kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+KNO_DCLPRIM2("equal?",equalp,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	     "`(EQUAL? *arg0* *arg1*)` returns true if its arguments "
+	     "have the same structure and elements. If its arguments are "
+	     "choices, this compares all pairings and may return true, false, "
+	     "or both.",
+	     kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval equalp(lispval x,lispval y)
 {
   if (KNO_EQ(x,y)) return KNO_TRUE;
@@ -929,10 +924,10 @@ static void init_local_cprims()
   KNO_LINK_PRIM("deep-copy",deepcopy,1,scheme_module);
   KNO_LINK_PRIM("compare/quick",quickcomparefn,2,scheme_module);
   KNO_LINK_PRIM("compare",comparefn,2,scheme_module);
-  KNO_LINK_ALIAS("equal?",equalp,scheme_module);
-  KNO_LINK_PRIM("identical?",equalp,2,scheme_module);
+  KNO_LINK_PRIM("equal?",equalp,2,scheme_module);
+  KNO_LINK_PRIM("identical?",identicalp,2,scheme_module);
 
-  KNO_DECL_ALIAS("=?",equalp,scheme_module);
+  KNO_DECL_ALIAS("=?",identicalp,scheme_module);
   KNO_DECL_ALIAS("*=?",overlapsp,scheme_module);
   KNO_DECL_ALIAS("⊆?",containsp,scheme_module);
   KNO_DECL_ALIAS("⊆",containsp,scheme_module);
