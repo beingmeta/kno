@@ -11,6 +11,7 @@
 #include "kno/streams.h"
 #include "kno/support.h"
 #include "kno/getsource.h"
+#include "kno/cprims.h"
 
 #include <libu8/libu8io.h>
 #include <libu8/u8exceptions.h>
@@ -18,7 +19,6 @@
 #include <libu8/u8streamio.h>
 #include <libu8/u8pathfns.h>
 #include <libu8/u8filefns.h>
-#include <kno/cprims.h>
 
 
 #ifndef _FILEINFO

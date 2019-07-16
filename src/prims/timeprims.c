@@ -19,6 +19,7 @@
 #include "kno/indexes.h"
 #include "kno/frames.h"
 #include "kno/numbers.h"
+#include "kno/cprims.h"
 
 #include <libu8/libu8io.h>
 #include <libu8/u8timefns.h>
@@ -31,7 +32,6 @@
 
 #if ((HAVE_SYS_UTSNAME_H)&&(HAVE_UNAME))
 #include <sys/utsname.h>
-#include <kno/cprims.h>
 
 #endif
 

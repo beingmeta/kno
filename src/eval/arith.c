@@ -15,6 +15,7 @@
 #include "kno/lisp.h"
 #include "kno/eval.h"
 #include "kno/numbers.h"
+#include "kno/cprims.h"
 
 #define REALP(x) \
   ((FIXNUMP(x)) || (KNO_FLONUMP(x)) || (KNO_BIGINTP(x)) || (KNO_RATIONALP(x)))
@@ -26,7 +27,6 @@
 #include <stdio.h> /* For sprintf */
 #include <errno.h>
 #include <math.h>
-#include <kno/cprims.h>
 
 
 DEFPRIM1("complex?",complexp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),

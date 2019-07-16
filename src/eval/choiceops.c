@@ -18,9 +18,9 @@
 #include "kno/numbers.h"
 #include "kno/frames.h"
 #include "kno/sorting.h"
+#include "kno/cprims.h"
 
 #include "eval_internals.h"
-#include <kno/cprims.h>
 
 
 static lispval keyfn_get(lispval val,lispval keyfn)

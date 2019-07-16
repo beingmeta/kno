@@ -27,7 +27,6 @@
 
 #include <errno.h>
 #include <math.h>
-#include <kno/cprims.h>
 
 
 /* Standard predicates */

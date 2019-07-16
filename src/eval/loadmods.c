@@ -59,7 +59,6 @@
 #include <sys/vfs.h>
 #elif ((HAVE_SYS_FSTAT_H)&&(HAVE_STATFS))
 #include <sys/statfs.h>
-#include <kno/cprims.h>
 
 #endif
 

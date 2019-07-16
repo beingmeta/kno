@@ -15,6 +15,7 @@
 #include "kno/eval.h"
 #include "kno/webtools.h"
 #include "kno/ports.h"
+#include "kno/cprims.h"
 
 #include <libu8/libu8io.h>
 #include <libu8/u8stringfns.h>
@@ -22,7 +23,6 @@
 #include <libu8/u8netfns.h>
 
 #include <ldns/ldns.h>
-#include <kno/cprims.h>
 
 
 static int dns_initialized = 0;

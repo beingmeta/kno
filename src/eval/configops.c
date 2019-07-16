@@ -29,7 +29,7 @@
 
 #include <errno.h>
 #include <math.h>
-#include <kno/cprims.h>
+#include "kno/cprims.h"
 
 u8_condition LoadConfig=_("Loading config");
 u8_condition UnconfiguredSource;

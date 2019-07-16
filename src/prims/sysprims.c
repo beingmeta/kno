@@ -20,7 +20,6 @@
 #include "kno/indexes.h"
 #include "kno/frames.h"
 #include "kno/numbers.h"
-
 #include "kno/cprims.h"
 
 #include <libu8/libu8io.h>
@@ -46,7 +45,6 @@
 
 #if ((HAVE_SYS_SYSINFO_H)&&(HAVE_SYSINFO))
 #include <sys/sysinfo.h>
-#include <kno/cprims.h>
 
 #endif
 

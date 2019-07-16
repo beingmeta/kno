@@ -14,11 +14,11 @@
 #include "kno/knosource.h"
 #include "kno/lisp.h"
 #include "kno/eval.h"
+#include "kno/cprims.h"
 #include "eval_internals.h"
 #include "kno/storage.h"
 
 #include <libu8/u8printf.h>
-#include <kno/cprims.h>
 
 
 u8_condition kno_BadArglist=_("Malformed argument list");

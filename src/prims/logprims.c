@@ -22,12 +22,12 @@
 #include "kno/dtypeio.h"
 #include "kno/ports.h"
 #include "kno/pprint.h"
+#include "kno/cprims.h"
 
 #include <libu8/u8streamio.h>
 #include <libu8/u8crypto.h>
 
 #include <zlib.h>
-#include <kno/cprims.h>
 
 
 static int printout_helper(U8_OUTPUT *out,lispval x)

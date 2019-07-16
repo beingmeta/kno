@@ -17,13 +17,13 @@
 #include "kno/eval.h"
 #include "kno/ports.h"
 #include "kno/webtools.h"
+#include "kno/cprims.h"
 
 #include <libu8/u8xfiles.h>
 #include <libu8/u8convert.h>
 #include <libu8/u8netfns.h>
 
 #include <ctype.h>
-#include <kno/cprims.h>
 
 
 /* MAIL output operations */

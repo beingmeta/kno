@@ -28,6 +28,7 @@
 #include "kno/ports.h"
 #include "kno/dtcall.h"
 #include "kno/ffi.h"
+#include "kno/cprims.h"
 
 #include "eval_internals.h"
 
@@ -40,7 +41,6 @@
 #include <math.h>
 #include <pthread.h>
 #include <errno.h>
-#include <kno/cprims.h>
 
 
 kno_lexenv kno_app_env=NULL;

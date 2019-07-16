@@ -23,7 +23,6 @@
 #include "kno/ports.h"
 #include "kno/fileprims.h"
 #include "kno/procprims.h"
-
 #include "kno/cprims.h"
 
 #include <libu8/u8pathfns.h>
@@ -70,7 +69,6 @@
 #include <sys/vfs.h>
 #elif ((HAVE_SYS_FSTAT_H)&&(HAVE_STATFS))
 #include <sys/statfs.h>
-#include <kno/cprims.h>
 
 #endif
 

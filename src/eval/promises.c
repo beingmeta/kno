@@ -22,7 +22,6 @@
 #include <libu8/libu8io.h>
 
 #include <sys/types.h>
-#include <kno/cprims.h>
 
 
 /* Promises, Delays, etc */

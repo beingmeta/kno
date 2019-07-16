@@ -40,11 +40,11 @@
 #include "kno/lisp.h"
 #include "kno/eval.h"
 #include "kno/storage.h"
+#include "kno/cprims.h"
 
 #include "kno/sqldb.h"
 
 #include <libu8/u8printf.h>
-#include <kno/cprims.h>
 
 static lispval exec_enabled_symbol;
 

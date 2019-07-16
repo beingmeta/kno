@@ -31,6 +31,7 @@
 #include "kno/dtcall.h"
 #include "kno/history.h"
 #include "kno/ffi.h"
+#include "kno/cprims.h"
 
 #include "eval_internals.h"
 
@@ -42,7 +43,6 @@
 #include <math.h>
 #include <pthread.h>
 #include <errno.h>
-#include <kno/cprims.h>
 
 
 static lispval err_testfail = KNO_TRUE;

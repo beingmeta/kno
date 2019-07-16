@@ -17,11 +17,11 @@
 #include "kno/tables.h"
 #include "kno/ports.h"
 #include "kno/webtools.h"
+#include "kno/cprims.h"
 
 #include <libu8/u8xfiles.h>
 
 #include <ctype.h>
-#include <kno/cprims.h>
 
 #define KNO_JSON_ANYKEY    2  /* Allow compound table keys */
 #define KNO_JSON_IDKEY     4  /* Allow raw identifiers as table keys */

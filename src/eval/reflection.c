@@ -14,10 +14,10 @@
 #include "kno/eval.h"
 #include "kno/ffi.h"
 #include "kno/profiles.h"
+#include "kno/cprims.h"
 
 #include "libu8/u8streamio.h"
 #include "libu8/u8printf.h"
-#include <kno/cprims.h>
 
 
 #ifndef _FILEINFO

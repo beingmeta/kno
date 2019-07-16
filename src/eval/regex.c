@@ -18,11 +18,11 @@
 #include "kno/frames.h"
 #include "kno/numbers.h"
 #include "kno/knoregex.h"
+#include "kno/cprims.h"
 
 #include <libu8/libu8io.h>
 
 #include <sys/types.h>
-#include <kno/cprims.h>
 
 
 u8_condition kno_RegexBadOp=_("Invalid Regex operation");

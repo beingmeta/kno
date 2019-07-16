@@ -39,8 +39,6 @@
 #include <pthread.h>
 #include <errno.h>
 #include <time.h>
-#include <kno/cprims.h>
-
 
 static u8_condition ThreadReturnError=_("ThreadError");
 static u8_condition ThreadBacktrace=_("ThreadBacktrace");

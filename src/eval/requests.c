@@ -19,9 +19,9 @@
 #include "kno/streams.h"
 #include "kno/dtypeio.h"
 #include "kno/ports.h"
+#include "kno/cprims.h"
 
 #include <ctype.h>
-#include <kno/cprims.h>
 
 
 static lispval reqgetvar(lispval cgidata,lispval var)

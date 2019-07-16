@@ -19,8 +19,6 @@
 
 #include <libu8/libu8.h>
 #include <libu8/u8convert.h>
-#include <kno/cprims.h>
-
 
 static u8_string StrSearchKey=_("string search/key");
 

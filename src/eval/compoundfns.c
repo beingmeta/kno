@@ -19,7 +19,6 @@
 #include "kno/ports.h"
 
 #include "kno/cprims.h"
-#include <kno/cprims.h>
 
 
 DEFPRIM2("compound?",compoundp,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),

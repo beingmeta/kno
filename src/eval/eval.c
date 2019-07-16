@@ -29,7 +29,6 @@
 #include "kno/opcodes.h"
 #include "kno/dbprims.h"
 #include "kno/ffi.h"
-
 #include "kno/cprims.h"
 
 #include "eval_internals.h"
@@ -1945,8 +1944,6 @@ static lispval ffi_foundp_prim(lispval name,lispval modname)
 void kno_init_module_tables(void);
 
 #include "opcode_names.h"
-#include <kno/cprims.h>
-
 
 static void init_types_and_tables()
 {

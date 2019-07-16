@@ -27,9 +27,9 @@
 #include "kno/sequences.h"
 #include "kno/dbprims.h"
 #include "kno/numbers.h"
+#include "kno/cprims.h"
 
 #include "libu8/u8printf.h"
-#include <kno/cprims.h>
 
 
 static lispval pools_symbol, indexes_symbol, id_symbol, drop_symbol;

@@ -17,7 +17,6 @@
 
 #if HAVE_DLFCN_H
 #include <dlfcn.h>
-#include <kno/cprims.h>
 
 #endif
 

@@ -22,13 +22,13 @@
 #include "kno/streams.h"
 #include "kno/dtypeio.h"
 #include "kno/ports.h"
+#include "kno/cprims.h"
 
 #include <libu8/u8streamio.h>
 #include <libu8/u8crypto.h>
 #include <libu8/u8filefns.h>
 
 #include <zlib.h>
-#include <kno/cprims.h>
 
 
 #ifndef KNO_DTWRITE_SIZE

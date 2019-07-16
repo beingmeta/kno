@@ -23,14 +23,12 @@
 #include "kno/ports.h"
 #include "kno/pprint.h"
 #include "kno/history.h"
-
 #include "kno/cprims.h"
 
 #include <libu8/u8streamio.h>
 #include <libu8/u8crypto.h>
 
 #include <zlib.h>
-#include <kno/cprims.h>
 
 
 u8_condition kno_UnknownEncoding=_("Unknown encoding");

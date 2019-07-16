@@ -21,13 +21,13 @@
 #include "kno/eval.h"
 #include "kno/seqprims.h"
 #include "kno/sorting.h"
+#include "kno/cprims.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8stringfns.h>
 #include <libu8/u8printf.h>
 
 #include <limits.h>
-#include <kno/cprims.h>
 
 
 static u8_condition SequenceMismatch=_("Mismatch of sequence lengths");

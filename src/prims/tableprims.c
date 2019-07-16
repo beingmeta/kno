@@ -22,7 +22,6 @@
 #include "kno/indexes.h"
 #include "kno/frames.h"
 #include "kno/numbers.h"
-#include <kno/cprims.h>
 
 
 DEFPRIM("TABLE?",tablep,MAX_ARGS(1),

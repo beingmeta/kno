@@ -19,11 +19,11 @@
 #include "kno/ports.h"
 #include "kno/sequences.h"
 #include "kno/drivers.h"
+#include "kno/cprims.h"
 
 #include <libu8/u8pathfns.h>
 #include <libu8/u8filefns.h>
 #include <libu8/u8stringfns.h>
-#include <kno/cprims.h>
 
 
 static lispval baseoids_symbol;
