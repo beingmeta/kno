@@ -29,6 +29,8 @@
 
 #include <errno.h>
 #include <math.h>
+#include <kno/cprims.h>
+
 
 /* Remote evaluation */
 
@@ -77,6 +79,10 @@ KNO_EXPORT lispval kno_open_dtserver(u8_string server,int bufsiz)
   return LISP_CONS(dts);
 }
 
+KNO_DCLPRIM1("dtserver?",dtserverp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "Returns true if it's argument is a dtype server "
+ "object",
+ kno_any_type,KNO_VOID);
 static lispval dtserverp(lispval arg)
 {
   if (TYPEP(arg,kno_dtserver_type))
@@ -84,18 +90,28 @@ static lispval dtserverp(lispval arg)
   else return KNO_FALSE;
 }
 
+KNO_DCLPRIM1("dtserver-id",dtserver_id,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "Returns the ID of a dtype server (the argument "
+ "used to create it)",
+ kno_dtserver_type,KNO_VOID);
 static lispval dtserver_id(lispval arg)
 {
   struct KNO_DTSERVER *dts = (struct KNO_DTSERVER *) arg;
   return kno_mkstring(dts->dtserverid);
 }
 
+KNO_DCLPRIM1("dtserver-address",dtserver_address,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "Returns the address (host/port) of a dtype server",
+ kno_dtserver_type,KNO_VOID);
 static lispval dtserver_address(lispval arg)
 {
   struct KNO_DTSERVER *dts = (struct KNO_DTSERVER *) arg;
   return kno_mkstring(dts->dtserver_addr);
 }
 
+KNO_DCLPRIM2("dteval",dteval,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+ "`(DTEVAL *arg0* *arg1*)` **undocumented**",
+ kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval dteval(lispval server,lispval expr)
 {
   if (TYPEP(server,kno_dtserver_type))  {
@@ -112,6 +128,8 @@ static lispval dteval(lispval server,lispval expr)
   else return kno_type_error(_("server"),"dteval",server);
 }
 
+KNO_DCLPRIM("dtcall",dtcall,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+ "`(DTCALL *arg0* *arg1* *args...*)` **undocumented**");
 static lispval dtcall(int n,lispval *args)
 {
   lispval server; lispval request = NIL, result; int i = n-1;
@@ -133,6 +151,9 @@ static lispval dtcall(int n,lispval *args)
   return result;
 }
 
+KNO_DCLPRIM2("open-dtserver",open_dtserver,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+ "`(OPEN-DTSERVER *arg0* [*arg1*])` **undocumented**",
+ kno_string_type,KNO_VOID,kno_fixnum_type,KNO_VOID);
 static lispval open_dtserver(lispval server,lispval bufsiz)
 {
   return kno_open_dtserver(CSTRING(server),
@@ -146,6 +167,9 @@ KNO_EXPORT void kno_init_dteval_c()
 {
   u8_register_source_file(_FILEINFO);
 
+  init_local_cprims();
+
+#if 0
   kno_idefn(kno_scheme_module,kno_make_cprim2("DTEVAL",dteval,2));
   kno_idefn(kno_scheme_module,kno_make_cprimn("DTCALL",dtcall,2));
   kno_idefn(kno_scheme_module,kno_make_cprim2x("OPEN-DTSERVER",open_dtserver,1,
@@ -162,4 +186,18 @@ KNO_EXPORT void kno_init_dteval_c()
             dtserver_address,KNO_NEEDS_1_ARG,
             "Returns the address (host/port) of a dtype server",
             kno_dtserver_type,VOID);
+#endif
+}
+
+
+static void init_local_cprims()
+{
+  lispval scheme_module = kno_scheme_module;
+
+  KNO_LINK_PRIM("open-dtserver",open_dtserver,2,scheme_module);
+  KNO_LINK_VARARGS("dtcall",dtcall,scheme_module);
+  KNO_LINK_PRIM("dteval",dteval,2,scheme_module);
+  KNO_LINK_PRIM("dtserver-address",dtserver_address,1,scheme_module);
+  KNO_LINK_PRIM("dtserver-id",dtserver_id,1,scheme_module);
+  KNO_LINK_PRIM("dtserver?",dtserverp,1,scheme_module);
 }

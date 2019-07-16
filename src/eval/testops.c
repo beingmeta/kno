@@ -42,6 +42,8 @@
 #include <math.h>
 #include <pthread.h>
 #include <errno.h>
+#include <kno/cprims.h>
+
 
 static lispval err_testfail = KNO_TRUE;
 static lispval err_symbol;
@@ -119,6 +121,8 @@ static u8_string get_testid(lispval fn,int n,lispval *args)
   return id;
 }
 
+KNO_DCLPRIM("applytest",applytest,KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
+ "`(APPLYTEST *arg0* *arg1* *args...*)` **undocumented**");
 static lispval applytest(int n,lispval *args)
 {
   lispval expected = args[0], return_value;
@@ -336,8 +340,12 @@ KNO_EXPORT void kno_init_eval_testops_c()
   err_symbol = kno_intern("err");
   void_symbol = kno_intern("void");
 
+  init_local_cprims();
+
+#if 0
   kno_idefn(kno_scheme_module,
 	   kno_make_ndprim(kno_make_cprimn("APPLYTEST",applytest,2)));
+#endif
   kno_def_evalfn(kno_scheme_module,"EVALTEST",
 		 "`(EVALTEST *expected* *expr*)` evaluates *expr* and checks "
 		 "if it is EQUAL? to *expected*. If so it does nothing, "
@@ -364,4 +372,7 @@ KNO_EXPORT void kno_init_eval_testops_c()
      kno_lconfig_get,config_failed_tests_set,&failed_tests);
 }
 
-
+static void init_local_cprims()
+{
+  KNO_LINK_VARARGS("applytest",applytest,kno_scheme_module);
+}

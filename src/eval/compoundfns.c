@@ -19,12 +19,15 @@
 #include "kno/ports.h"
 
 #include "kno/cprims.h"
+#include <kno/cprims.h>
 
-DEFPRIM2("COMPOUND?",compoundp,MIN_ARGS(1),
-         "`(COMPOUND? *obj* *tag*)` returns #f if *obj* is a compound and "
-         "(when *tag* is provided) has the typetag *tag*.",
-         -1,KNO_VOID,-1,KNO_VOID)
-  (lispval x,lispval tag)
+
+KNO_DCLPRIM2("compound?",compoundp,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+             "`(COMPOUND? *obj* *tag*)` "
+             "returns #f if *obj* is a compound and (when *tag* "
+             "is provided) has the typetag *tag*.",
+             kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+static lispval compoundp (lispval x,lispval tag)
 {
   if (KNO_COMPOUNDP(x)) {
     if (KNO_VOIDP(tag))
@@ -36,6 +39,11 @@ DEFPRIM2("COMPOUND?",compoundp,MIN_ARGS(1),
 }
 
 /* TODO: This might be faster if it were non deterministic */
+KNO_DCLPRIM2("pick-compound",pick_compounds,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+ "`(PICK-COMPOUND *arg* [*tags*])` "
+ "returns *arg* if it is a compound and (when "
+ "specified) if it's typetag is any of *tags*.",
+ kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval pick_compounds(lispval candidates,lispval tags)
 {
   if (VOIDP(tags)) {
@@ -63,17 +71,26 @@ static lispval pick_compounds(lispval candidates,lispval tags)
     else return kno_simplify_choice(result);}
 }
 
+KNO_DCLPRIM1("compound-tag",compound_tag,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(COMPOUND-TAG *arg0*)` **undocumented**",
+ kno_compound_type,KNO_VOID);
 static lispval compound_tag(lispval x)
 {
   return kno_incref(KNO_COMPOUND_TAG(x));
 }
 
+KNO_DCLPRIM1("compound-length",compound_length,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(COMPOUND-LENGTH *arg0*)` **undocumented**",
+ kno_compound_type,KNO_VOID);
 static lispval compound_length(lispval x)
 {
   struct KNO_COMPOUND *compound = (struct KNO_COMPOUND *)x;
   return KNO_BYTE2DTYPE(compound->compound_length);
 }
 
+KNO_DCLPRIM1("compound-mutable?",compound_mutablep,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(COMPOUND-MUTABLE? *arg0*)` **undocumented**",
+ kno_compound_type,KNO_VOID);
 static lispval compound_mutablep(lispval x)
 {
   struct KNO_COMPOUND *compound = (struct KNO_COMPOUND *)x;
@@ -82,6 +99,9 @@ static lispval compound_mutablep(lispval x)
   else return KNO_FALSE;
 }
 
+KNO_DCLPRIM1("compound-opaque?",compound_opaquep,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(COMPOUND-OPAQUE? *arg0*)` **undocumented**",
+ kno_compound_type,KNO_VOID);
 static lispval compound_opaquep(lispval x)
 {
   struct KNO_COMPOUND *compound = (struct KNO_COMPOUND *)x;
@@ -90,6 +110,10 @@ static lispval compound_opaquep(lispval x)
   else return KNO_FALSE;
 }
 
+KNO_DCLPRIM3("compound-ref",compound_ref,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+ "`(COMPOUND-REF *arg0* *arg1* [*arg2*])` **undocumented**",
+ kno_compound_type,KNO_VOID,kno_any_type,KNO_VOID,
+ kno_any_type,KNO_VOID);
 static lispval compound_ref(lispval x,lispval offset,lispval tag)
 {
   struct KNO_COMPOUND *compound = (struct KNO_COMPOUND *)x;
@@ -119,6 +143,9 @@ static lispval compound_ref(lispval x,lispval offset,lispval tag)
     return KNO_ERROR;}
 }
 
+KNO_DCLPRIM2("unpack-compound",unpack_compound,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+ "`(UNPACK-COMPOUND *arg0* [*arg1*])` **undocumented**",
+ kno_compound_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval unpack_compound(lispval x,lispval tag)
 {
   struct KNO_COMPOUND *compound = (struct KNO_COMPOUND *)x;
@@ -140,6 +167,10 @@ static lispval unpack_compound(lispval x,lispval tag)
     return result;}
 }
 
+KNO_DCLPRIM4("compound-set!",compound_set,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(3)|KNO_NDCALL,
+ "`(COMPOUND-SET! *arg0* *arg1* *arg2* [*arg3*])` **undocumented**",
+ kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
+ kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval compound_set(lispval x,lispval offset,lispval value,lispval tag)
 {
   if (EMPTYP(x)) return EMPTY;
@@ -188,6 +219,11 @@ static lispval compound_set(lispval x,lispval offset,lispval value,lispval tag)
   }
 }
 
+KNO_DCLPRIM5("compound-modify!",compound_modify,KNO_MAX_ARGS(5)|KNO_MIN_ARGS(4)|KNO_NDCALL,
+ "`(COMPOUND-MODIFY! *arg0* *arg1* *arg2* *arg3* [*arg4*])` **undocumented**",
+ kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
+ kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
+ kno_any_type,KNO_VOID);
 static lispval compound_modify(lispval x,lispval offset,
                                lispval modifier,lispval value,
                                lispval tag)
@@ -259,6 +295,8 @@ static lispval compound_modify(lispval x,lispval offset,
   }
 }
 
+KNO_DCLPRIM("make-compound",make_compound,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
+ "`(MAKE-COMPOUND *arg0* *args...*)` **undocumented**");
 static lispval make_compound(int n,lispval *args)
 {
   struct KNO_COMPOUND *compound=
@@ -277,6 +315,8 @@ static lispval make_compound(int n,lispval *args)
   return LISP_CONS(compound);
 }
 
+KNO_DCLPRIM("make-opaque-compound",make_opaque_compound,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
+ "`(MAKE-OPAQUE-COMPOUND *arg0* *args...*)` **undocumented**");
 static lispval make_opaque_compound(int n,lispval *args)
 {
   struct KNO_COMPOUND *compound=
@@ -295,6 +335,8 @@ static lispval make_opaque_compound(int n,lispval *args)
   return LISP_CONS(compound);
 }
 
+KNO_DCLPRIM("make-mutable-compound",make_mutable_compound,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
+ "`(MAKE-MUTABLE-COMPOUND *arg0* *args...*)` **undocumented**");
 static lispval make_mutable_compound(int n,lispval *args)
 {
   struct KNO_COMPOUND *compound=
@@ -313,6 +355,8 @@ static lispval make_mutable_compound(int n,lispval *args)
   return LISP_CONS(compound);
 }
 
+KNO_DCLPRIM("make-opaque-mutable-compound",make_opaque_mutable_compound,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
+ "`(MAKE-OPAQUE-MUTABLE-COMPOUND *arg0* *args...*)` **undocumented**");
 static lispval make_opaque_mutable_compound(int n,lispval *args)
 {
   struct KNO_COMPOUND *compound=
@@ -332,6 +376,14 @@ static lispval make_opaque_mutable_compound(int n,lispval *args)
   return LISP_CONS(compound);
 }
 
+KNO_DCLPRIM5("sequence->compound",seq2compound,KNO_MAX_ARGS(5)|KNO_MIN_ARGS(2),
+ "`(SEQUENCE->COMPOUND *seq* *tag* *mutable* *opaque* *reserve*)` "
+ "creates a compound object out of *seq*, tagged "
+ "with *tag*. If *reserve* is #f, the returned "
+ "compound won't be a sequence",
+ kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
+ kno_any_type,KNO_FALSE,kno_any_type,KNO_FALSE,
+ kno_any_type,KNO_TRUE);
 static lispval seq2compound(lispval seq,lispval tag,
                             lispval mutable,lispval opaque,
                             lispval offset)
@@ -388,6 +440,9 @@ static lispval seq2compound(lispval seq,lispval tag,
 
 static lispval consfn_symbol, stringfn_symbol, tag_symbol;
 
+KNO_DCLPRIM1("compound-corelen",compound_corelen_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(COMPOUND-CORELEN *arg0*)` **undocumented**",
+ kno_any_type,KNO_VOID);
 static lispval compound_corelen_prim(lispval tag)
 {
   struct KNO_COMPOUND_TYPEINFO *e = kno_lookup_compound(tag);
@@ -397,6 +452,9 @@ static lispval compound_corelen_prim(lispval tag)
   else return EMPTY;
 }
 
+KNO_DCLPRIM2("compound-set-corelen!",compound_set_corelen_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+ "`(COMPOUND-SET-CORELEN! *arg0* *arg1*)` **undocumented**",
+ kno_any_type,KNO_VOID,kno_fixnum_type,KNO_VOID);
 static lispval compound_set_corelen_prim(lispval tag,lispval slots_arg)
 {
   if (!(KNO_UINTP(slots_arg)))
@@ -424,6 +482,9 @@ static lispval tag_slotdata(lispval tag)
     return slotmap;}
 }
 
+KNO_DCLPRIM2("compound-metatdata",compound_metadata_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+ "`(COMPOUND-METATDATA *arg0* [*arg1*])` **undocumented**",
+ kno_compound_type,KNO_VOID,kno_symbol_type,KNO_VOID);
 static lispval compound_metadata_prim(lispval compound,lispval field)
 {
   lispval tag = KNO_COMPOUND_TAG(compound);
@@ -466,6 +527,9 @@ static int stringify_compound(u8_output out,lispval compound,kno_compound_typein
   else return 0;
 }
 
+KNO_DCLPRIM2("compound-set-consfn!",compound_set_consfn_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+ "`(COMPOUND-SET-CONSFN! *arg0* *arg1*)` **undocumented**",
+ kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval compound_set_consfn_prim(lispval tag,lispval consfn)
 {
   if ((SYMBOLP(tag))||(OIDP(tag)))
@@ -488,6 +552,9 @@ static lispval compound_set_consfn_prim(lispval tag,lispval consfn)
 }
 
 
+KNO_DCLPRIM2("compound-set-stringfn!",compound_set_stringfn_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+ "`(COMPOUND-SET-STRINGFN! *arg0* *arg1*)` **undocumented**",
+ kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval compound_set_stringfn_prim(lispval tag,lispval stringfn)
 {
   if ((SYMBOLP(tag))||(OIDP(tag)))
@@ -518,6 +585,9 @@ KNO_EXPORT void kno_init_compoundfns_c()
   consfn_symbol = kno_intern("cons");
   stringfn_symbol = kno_intern("stringify");
 
+  init_local_cprims();
+
+#if 0
   DECL_PRIM(compoundp,2,kno_scheme_module);
   kno_defalias(kno_scheme_module,"COMPOUND-TYPE?","COMPOUND?");
   kno_idefn2(kno_scheme_module,"PICK-COMPOUND",pick_compounds,1,
@@ -597,6 +667,7 @@ KNO_EXPORT void kno_init_compoundfns_c()
            kno_make_cprim2x("COMPOUND-SET-STRINGFN!",
                            compound_set_stringfn_prim,2,
                            -1,VOID,-1,VOID));
+#endif
 }
 
 /* Emacs local variables
@@ -605,3 +676,31 @@ KNO_EXPORT void kno_init_compoundfns_c()
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */
+
+
+static void init_local_cprims()
+{
+  lispval scheme_module = kno_scheme_module;
+
+  KNO_LINK_PRIM("compound-set-stringfn!",compound_set_stringfn_prim,2,scheme_module);
+  KNO_LINK_PRIM("compound-set-consfn!",compound_set_consfn_prim,2,scheme_module);
+  KNO_LINK_PRIM("compound-metatdata",compound_metadata_prim,2,scheme_module);
+  KNO_LINK_PRIM("compound-set-corelen!",compound_set_corelen_prim,2,scheme_module);
+  KNO_LINK_PRIM("compound-corelen",compound_corelen_prim,1,scheme_module);
+  KNO_LINK_ALIAS("vector->compound",seq2compound,scheme_module);
+  KNO_LINK_PRIM("sequence->compound",seq2compound,5,scheme_module);
+  KNO_LINK_VARARGS("make-opaque-mutable-compound",make_opaque_mutable_compound,scheme_module);
+  KNO_LINK_VARARGS("make-mutable-compound",make_mutable_compound,scheme_module);
+  KNO_LINK_VARARGS("make-opaque-compound",make_opaque_compound,scheme_module);
+  KNO_LINK_VARARGS("make-compound",make_compound,scheme_module);
+  KNO_LINK_PRIM("compound-modify!",compound_modify,5,scheme_module);
+  KNO_LINK_PRIM("compound-set!",compound_set,4,scheme_module);
+  KNO_LINK_PRIM("unpack-compound",unpack_compound,2,scheme_module);
+  KNO_LINK_PRIM("compound-ref",compound_ref,3,scheme_module);
+  KNO_LINK_PRIM("compound-opaque?",compound_opaquep,1,scheme_module);
+  KNO_LINK_PRIM("compound-mutable?",compound_mutablep,1,scheme_module);
+  KNO_LINK_PRIM("compound-length",compound_length,1,scheme_module);
+  KNO_LINK_PRIM("compound-tag",compound_tag,1,scheme_module);
+  KNO_LINK_PRIM("pick-compound",pick_compounds,2,scheme_module);
+}
+

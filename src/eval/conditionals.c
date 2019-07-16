@@ -15,6 +15,8 @@
 #include "kno/lisp.h"
 #include "kno/eval.h"
 #include "eval_internals.h"
+#include <kno/cprims.h>
+
 
 static lispval else_symbol;
 
@@ -62,6 +64,9 @@ static lispval tryif_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     return value;}
 }
 
+KNO_DCLPRIM1("not",not_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(NOT *arg0*)` **undocumented**",
+ kno_any_type,KNO_VOID);
 static lispval not_prim(lispval arg)
 {
   if (FALSEP(arg)) return KNO_TRUE; else return KNO_FALSE;
@@ -191,6 +196,8 @@ KNO_EXPORT void kno_init_conditionals_c()
   apply_marker = kno_intern("=>");
   else_symbol = kno_intern("else");
 
+  init_local_cprims();
+
   kno_def_evalfn(kno_scheme_module,"IF",
                 "(IF *test* *then* [*else*]) "
                 "returns *then* if *test* is neither #f or {}\n"
@@ -220,7 +227,9 @@ KNO_EXPORT void kno_init_conditionals_c()
                 "returning the first non #f value. If a clause returns {} "
                 "it is returned immediately.",
                 or_evalfn);
+#if 0
   kno_idefn(kno_scheme_module,kno_make_cprim1("NOT",not_prim,1));
+#endif
 }
 
 /* Emacs local variables
@@ -229,3 +238,10 @@ KNO_EXPORT void kno_init_conditionals_c()
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */
+
+
+static void init_local_cprims()
+{
+  lispval scheme_module = kno_scheme_module;
+  KNO_LINK_PRIM("not",not_prim,1,scheme_module);
+}

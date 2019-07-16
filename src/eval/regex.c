@@ -22,9 +22,15 @@
 #include <libu8/libu8io.h>
 
 #include <sys/types.h>
+#include <kno/cprims.h>
+
 
 u8_condition kno_RegexBadOp=_("Invalid Regex operation");
 
+KNO_DCLPRIM3("regex",make_regex,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
+ "`(REGEX *arg0* [*arg1*] [*arg2*])` **undocumented**",
+ kno_string_type,KNO_VOID,kno_any_type,KNO_FALSE,
+ kno_any_type,KNO_FALSE);
 static lispval make_regex(lispval pat,lispval nocase,lispval matchnl)
 {
   int cflags = REG_EXTENDED;
@@ -33,6 +39,9 @@ static lispval make_regex(lispval pat,lispval nocase,lispval matchnl)
   return kno_make_regex(CSTRING(pat),cflags);
 }
 
+KNO_DCLPRIM1("regex?",regexp_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(REGEX? *arg0*)` **undocumented**",
+ kno_any_type,KNO_VOID);
 static lispval regexp_prim(lispval x)
 {
   if (TYPEP(x,kno_regex_type))
@@ -176,30 +185,50 @@ KNO_EXPORT ssize_t kno_regex_matchlen(lispval pat,u8_string s,ssize_t len)
   return kno_regex_op(rx_matchlen,pat,s,len,0);
 }
 
+KNO_DCLPRIM3("regex/search",regex_search,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+ "`(REGEX/SEARCH *arg0* *arg1* [*arg2*])` **undocumented**",
+ kno_regex_type,KNO_VOID,kno_string_type,KNO_VOID,
+ kno_fixnum_type,KNO_INT(0));
 static lispval regex_search(lispval pat,lispval string,lispval ef)
 {
   if (KNO_UINTP(ef))
     return regex_searchop(rx_search,pat,string,FIX2INT(ef));
   else return kno_type_error("unsigned int","regex_search/flags",ef);
 }
+KNO_DCLPRIM3("regex/matchlen",regex_matchlen,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+ "`(REGEX/MATCHLEN *arg0* *arg1* [*arg2*])` **undocumented**",
+ kno_regex_type,KNO_VOID,kno_string_type,KNO_VOID,
+ kno_fixnum_type,KNO_INT(0));
 static lispval regex_matchlen(lispval pat,lispval string,lispval ef)
 {
   if (KNO_UINTP(ef))
     return regex_searchop(rx_matchlen,pat,string,FIX2INT(ef));
   else return kno_type_error("unsigned int","regex_matchlen/flags",ef);
 }
+KNO_DCLPRIM3("regex/match",regex_exactmatch,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+ "`(REGEX/MATCH *arg0* *arg1* [*arg2*])` **undocumented**",
+ kno_regex_type,KNO_VOID,kno_string_type,KNO_VOID,
+ kno_fixnum_type,KNO_INT(0));
 static lispval regex_exactmatch(lispval pat,lispval string,lispval ef)
 {
   if (KNO_UINTP(ef))
     return regex_searchop(rx_exactmatch,pat,string,FIX2INT(ef));
   else return kno_type_error("unsigned int","regex_exactmatch/flags",ef);
 }
+KNO_DCLPRIM3("regex/matchstring",regex_matchstring,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+ "`(REGEX/MATCHSTRING *arg0* *arg1* [*arg2*])` **undocumented**",
+ kno_regex_type,KNO_VOID,kno_string_type,KNO_VOID,
+ kno_fixnum_type,KNO_INT(0));
 static lispval regex_matchstring(lispval pat,lispval string,lispval ef)
 {
   if (KNO_UINTP(ef))
     return regex_searchop(rx_matchstring,pat,string,FIX2INT(ef));
   else return kno_type_error("unsigned int","regex_matchstring/flags",ef);
 }
+KNO_DCLPRIM3("regex/matchspan",regex_matchspan,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+ "`(REGEX/MATCHSPAN *arg0* *arg1* [*arg2*])` **undocumented**",
+ kno_regex_type,KNO_VOID,kno_string_type,KNO_VOID,
+ kno_fixnum_type,KNO_INT(0));
 static lispval regex_matchspan(lispval pat,lispval string,lispval ef)
 {
   if (KNO_UINTP(ef))
@@ -251,9 +280,10 @@ static lispval regex_restore(lispval U8_MAYBE_UNUSED tag,
 
 static int regex_init = 0;
 
+static lispval regex_module;
+
 KNO_EXPORT int kno_init_regex_c()
 {
-  lispval regex_module;
   if (regex_init) return 0;
 
   struct KNO_COMPOUND_TYPEINFO *info =
@@ -263,6 +293,7 @@ KNO_EXPORT int kno_init_regex_c()
   regex_init = 1;
   regex_module = kno_new_cmodule("regex",0,kno_init_regex_c);
 
+#if 0
   kno_idefn(regex_module,
             kno_make_cprim3x("REGEX",make_regex,1,
                              kno_string_type,VOID,-1,KNO_FALSE,-1,KNO_FALSE));
@@ -288,6 +319,7 @@ KNO_EXPORT int kno_init_regex_c()
             kno_make_cprim3x("REGEX/MATCHSPAN",regex_matchspan,2,
                              kno_regex_type,VOID,kno_string_type,VOID,
                              kno_fixnum_type,KNO_FIXZERO));
+#endif
 
   kno_dtype_writers[kno_regex_type] = write_regex_dtype;
 
@@ -298,9 +330,13 @@ KNO_EXPORT int kno_init_regex_c()
   return 1;
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
+static void init_local_cprims()
+{
+  KNO_LINK_PRIM("regex/matchspan",regex_matchspan,3,regex_module);
+  KNO_LINK_PRIM("regex/matchstring",regex_matchstring,3,regex_module);
+  KNO_LINK_PRIM("regex/match",regex_exactmatch,3,regex_module);
+  KNO_LINK_PRIM("regex/matchlen",regex_matchlen,3,regex_module);
+  KNO_LINK_PRIM("regex/search",regex_search,3,regex_module);
+  KNO_LINK_PRIM("regex?",regexp_prim,1,regex_module);
+  KNO_LINK_PRIM("regex",make_regex,3,regex_module);
+}

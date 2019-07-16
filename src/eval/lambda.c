@@ -18,6 +18,8 @@
 #include "kno/storage.h"
 
 #include <libu8/u8printf.h>
+#include <kno/cprims.h>
+
 
 u8_condition kno_BadArglist=_("Malformed argument list");
 u8_condition kno_BadDefineForm=_("Bad procedure defining form");
@@ -879,6 +881,10 @@ static lispval xapplygetval(void *xobj,lispval var)
   else return kno_err("InternalXapplyBug","xapplygetval",NULL,fn_obj);
 }
 
+KNO_DCLPRIM3("xapply",xapply_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+ "`(XAPPLY *arg0* *arg1* [*arg2*])` **undocumented**",
+ kno_lambda_type,KNO_VOID,kno_any_type,KNO_VOID,
+ kno_any_type,KNO_VOID);
 static lispval xapply_prim(lispval proc,lispval obj,lispval getfn)
 {
   struct KNO_LAMBDA *lambda = kno_consptr(kno_lambda,proc,kno_lambda_type);
@@ -1063,6 +1069,8 @@ KNO_EXPORT void kno_init_lambdas_c()
   kno_dtype_writers[kno_lambda_type] = write_lambda_dtype;
   kno_copiers[kno_lambda_type] = copy_lambda;
 
+  init_local_cprims();
+
   kno_def_evalfn(kno_scheme_module,"LAMBDA","",lambda_evalfn);
   kno_def_evalfn(kno_scheme_module,"AMBDA","",ambda_evalfn);
   kno_def_evalfn(kno_scheme_module,"NLAMBDA","",nlambda_evalfn);
@@ -1083,8 +1091,10 @@ KNO_EXPORT void kno_init_lambdas_c()
                 "Returns a named synchronized lambda procedure",
                 defsync_evalfn);
 
+#if 0
   kno_idefn(kno_scheme_module,kno_make_cprim3x
             ("XAPPLY",xapply_prim,2,kno_lambda_type,VOID,-1,VOID,-1,VOID));
+#endif
 }
 
 /* Emacs local variables
@@ -1093,3 +1103,10 @@ KNO_EXPORT void kno_init_lambdas_c()
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */
+
+
+static void init_local_cprims()
+{
+  lispval scheme_module = kno_scheme_module;
+  KNO_LINK_PRIM("xapply",xapply_prim,3,scheme_module);
+}

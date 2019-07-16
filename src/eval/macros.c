@@ -111,10 +111,3 @@ KNO_EXPORT void kno_init_macros_c()
 
   kno_def_evalfn(kno_scheme_module,"MACRO","",macro_evalfn);
 }
-
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

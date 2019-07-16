@@ -17,6 +17,8 @@
 
 #if HAVE_DLFCN_H
 #include <dlfcn.h>
+#include <kno/cprims.h>
+
 #endif
 
 #ifndef _FILEINFO
@@ -566,12 +568,18 @@ static lispval export_alias_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   return export_alias_helper(expr,env,_stack);
 }
 
+KNO_DCLPRIM1("get-module",get_module,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(GET-MODULE *arg0*)` **undocumented**",
+ kno_any_type,KNO_VOID);
 static lispval get_module(lispval modname)
 {
   lispval module = kno_find_module(modname,0);
   return module;
 }
 
+KNO_DCLPRIM1("get-loaded-module",get_loaded_module,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(GET-LOADED-MODULE *arg0*)` **undocumented**",
+ kno_any_type,KNO_VOID);
 static lispval get_loaded_module(lispval modname)
 {
   lispval module = kno_get_module(modname);
@@ -611,6 +619,9 @@ lispval kno_use_module(kno_lexenv env,lispval module)
   return VOID;
 }
 
+KNO_DCLPRIM1("static-module!",static_module,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(STATIC-MODULE! *arg0*)` **undocumented**",
+ kno_any_type,KNO_VOID);
 static lispval static_module(lispval module)
 {
   if (HASHTABLEP(module)) {
@@ -637,6 +648,9 @@ static lispval static_module(lispval module)
       return result;}}
 }
 
+KNO_DCLPRIM1("get-exports",get_exports_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+             "`(GET-EXPORTS *arg0*)` **undocumented**",
+             kno_any_type,KNO_VOID);
 static lispval get_exports_prim(lispval arg)
 {
   lispval module = arg;
@@ -722,6 +736,13 @@ static lispval get_source(lispval arg)
     return KNO_FALSE;}
 }
 
+KNO_DCLPRIM1("get-source",get_source_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
+ "(get-source [*obj*])\n"
+ "Gets the source file implementing *obj*, which "
+ "can be a function (or macro or evalfn), module, "
+ "or module name. With no arguments, returns the "
+ "current SOURCEBASE",
+ kno_any_type,KNO_VOID);
 static lispval get_source_prim(lispval arg)
 {
   return get_source(arg);
@@ -812,12 +833,26 @@ get_binding_helper(lispval modarg,lispval symbol,lispval dflt,
     return kno_incref(dflt);}
 }
 
+KNO_DCLPRIM3("get-binding",get_binding_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+ "(get-binding *module* *symbol* [*default*])\n"
+ "Gets *module*'s exported binding of *symbol*. On "
+ "failure, returns *default* if provided or errs if "
+ "none is provided.",
+ kno_any_type,KNO_VOID,kno_symbol_type,KNO_VOID,
+ kno_any_type,KNO_VOID);
 static lispval get_binding_prim
 (lispval mod_arg,lispval symbol,lispval dflt)
 {
   return get_binding_helper(mod_arg,symbol,dflt,1,0,"get_binding_prim");
 }
 
+KNO_DCLPRIM3("%get-binding",get_internal_binding_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+ "(get-binding *module* *symbol* [*default*])\n"
+ "Gets *module*'s binding of *symbol* (internal or "
+ "external). On failure returns *default* (if "
+ "provided) or errs if none is provided.",
+ kno_any_type,KNO_VOID,kno_symbol_type,KNO_VOID,
+ kno_any_type,KNO_VOID);
 static lispval get_internal_binding_prim
 (lispval mod_arg,lispval symbol,lispval dflt)
 {
@@ -827,6 +862,13 @@ static lispval get_internal_binding_prim
                             "get_internal_binding_prim");
 }
 
+KNO_DCLPRIM3("importvar",import_var_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+ "(importvar *module* *symbol* [*default*])\n"
+ "Gets *module*'s binding of *symbol* (internal, "
+ "external, or inherhited). On failure returns "
+ "*default*, if provided, or errors (if not).",
+ kno_any_type,KNO_VOID,kno_symbol_type,KNO_VOID,
+ kno_any_type,KNO_VOID);
 static lispval import_var_prim(lispval mod_arg,lispval symbol,lispval dflt)
 {
   return get_binding_helper(mod_arg,symbol,dflt,0,1,"import_var_prim");
@@ -874,15 +916,18 @@ KNO_EXPORT void kno_init_modules_c()
 {
   u8_init_mutex(&exports_lock);
 
+  init_local_cprims();
+
+  kno_def_evalfn(kno_sys_module,"EXPORT-ALIAS!",
+                "Combine the exports of this module with another",
+                export_alias_evalfn);
+
+#if 0
   kno_idefn1(kno_sys_module,"GET-SOURCE",get_source_prim,0,
             "(get-source [*obj*])\nGets the source file implementing *obj*, "
             "which can be a function (or macro or evalfn), module, or module "
             "name. With no arguments, returns the current SOURCEBASE",
             -1,VOID);
-
-  kno_def_evalfn(kno_sys_module,"EXPORT-ALIAS!",
-                "Combine the exports of this module with another",
-                export_alias_evalfn);
 
   kno_idefn3(kno_sys_module,"GET-BINDING",get_binding_prim,2,
             "(get-binding *module* *symbol* [*default*])\n"
@@ -904,6 +949,8 @@ KNO_EXPORT void kno_init_modules_c()
             "*default*, if provided, or errors (if not).",
             -1,VOID,kno_symbol_type,VOID,-1,KNO_VOID);
 
+#endif
+
   kno_def_evalfn(kno_scheme_module,"IN-MODULE","",in_module_evalfn);
   kno_def_evalfn(kno_sys_module,"WITHIN-MODULE","",within_module_evalfn);
   kno_defalias(kno_sys_module,"W/M","WITHIN-MODULE");
@@ -911,13 +958,16 @@ KNO_EXPORT void kno_init_modules_c()
   kno_def_evalfn(kno_sys_module,"ACCESSING-MODULE","",accessing_module_evalfn);
   kno_def_evalfn(kno_scheme_module,"USE-MODULE","",use_module_evalfn);
   kno_def_evalfn(kno_scheme_module,"MODULE-EXPORT!","",module_export_evalfn);
+
+#if 0
   kno_idefn(kno_sys_module,kno_make_cprim1("GET-MODULE",get_module,1));
   kno_idefn(kno_sys_module,kno_make_cprim1("GET-LOADED-MODULE",get_loaded_module,1));
   kno_idefn(kno_sys_module,
-           kno_make_cprim1("GET-EXPORTS",get_exports_prim,1));
+            kno_make_cprim1("GET-EXPORTS",get_exports_prim,1));
   kno_defalias(kno_sys_module,"%LS","GET-EXPORTS");
 
   kno_idefn(kno_sys_module,kno_make_cprim1("STATIC-MODULE!",static_module,1));
+#endif
 
   kno_register_config("LOCKEXPORTS",
                      "Lock the exports of modules when loaded",
@@ -942,3 +992,18 @@ KNO_EXPORT void kno_init_modules_c()
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */
+
+
+static void init_local_cprims()
+{
+  KNO_LINK_PRIM("importvar",import_var_prim,3,kno_sys_module);
+  KNO_LINK_PRIM("%get-binding",get_internal_binding_prim,3,kno_sys_module);
+  KNO_LINK_PRIM("get-binding",get_binding_prim,3,kno_sys_module);
+  KNO_LINK_PRIM("get-source",get_source_prim,1,kno_sys_module);
+  KNO_LINK_PRIM("get-exports",get_exports_prim,1,kno_sys_module);
+  KNO_LINK_PRIM("static-module!",static_module,1,kno_sys_module);
+  KNO_LINK_PRIM("get-loaded-module",get_loaded_module,1,kno_sys_module);
+  KNO_LINK_PRIM("get-module",get_module,1,kno_sys_module);
+  KNO_LINK_ALIAS("%ls",get_exports_prim,kno_sys_module);
+
+}

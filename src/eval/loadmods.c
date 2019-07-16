@@ -59,6 +59,8 @@
 #include <sys/vfs.h>
 #elif ((HAVE_SYS_FSTAT_H)&&(HAVE_STATFS))
 #include <sys/statfs.h>
+#include <kno/cprims.h>
+
 #endif
 
 u8_condition MissingModule=_("Loading failed to resolve module");
@@ -230,6 +232,9 @@ static lispval load_source_for_module(lispval spec,u8_string module_source)
   return (lispval)env;
 }
 
+KNO_DCLPRIM1("reload-module",reload_module,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(RELOAD-MODULE *arg0*)` **undocumented**",
+ kno_any_type,KNO_VOID);
 static lispval reload_module(lispval module)
 {
   if (STRINGP(module)) {
@@ -448,6 +453,9 @@ KNO_EXPORT int kno_update_file_module(u8_string module_source,int force)
   else return 0;
 }
 
+KNO_DCLPRIM1("update-modules",update_modules_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
+ "`(UPDATE-MODULES [*arg0*])` **undocumented**",
+ kno_any_type,KNO_VOID);
 static lispval update_modules_prim(lispval flag)
 {
   if (kno_update_file_modules((!FALSEP(flag)))<0)
@@ -455,6 +463,9 @@ static lispval update_modules_prim(lispval flag)
   else return VOID;
 }
 
+KNO_DCLPRIM2("update-module",update_module_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+ "`(UPDATE-MODULE *arg0* [*arg1*])` **undocumented**",
+ kno_any_type,KNO_VOID,kno_any_type,KNO_FALSE);
 static lispval update_module_prim(lispval spec,lispval force)
 {
   if (FALSEP(force)) {
@@ -691,12 +702,13 @@ static int load_dynamic_module(lispval spec,void *data)
   else return 0;
 }
 
-DCLPRIM2("DYNAMIC-LOAD",dynamic_load_prim,MIN_ARGS(1),
-         "`(DYNAMIC-LOAD *modname* [*err*])` loads a dynamic module "
-         "into KNO. If *modname* (a string) is a path (includes a '/'), "
-         "it is loaded directly. Otherwise, it looks for an dynamic "
-         "module file in the default search path.",
-         kno_string_type,KNO_VOID,-1,KNO_FALSE)
+KNO_DCLPRIM2("dynamic-load",dynamic_load_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+ "`(DYNAMIC-LOAD *modname* [*err*])` "
+ "loads a dynamic module into KNO. If *modname* (a "
+ "string) is a path (includes a '/'), it is loaded "
+ "directly. Otherwise, it looks for an dynamic "
+ "module file in the default search path.",
+ kno_string_type,KNO_VOID,kno_any_type,KNO_FALSE);
 static lispval dynamic_load_prim(lispval arg,lispval err)
 {
   u8_string name = KNO_STRING_DATA(arg);
@@ -769,9 +781,10 @@ lispval kno_find_module(lispval spec,int err)
 
 static int scheme_loadmods_initialized = 0;
 
+lispval loadmods_module;
+
 KNO_EXPORT void kno_init_loadmods_c()
 {
-  lispval loadmods_module;
   if (scheme_loadmods_initialized) return;
   scheme_loadmods_initialized = 1;
   kno_init_scheme();
@@ -821,6 +834,9 @@ KNO_EXPORT void kno_init_loadmods_c()
      liveload_get,liveload_add,NULL);
 #endif
 
+  init_local_cprims();
+
+#if 0
   kno_idefn(loadmods_module,
             kno_make_cprim1("RELOAD-MODULE",reload_module,1));
   kno_idefn(loadmods_module,
@@ -828,6 +844,7 @@ KNO_EXPORT void kno_init_loadmods_c()
   kno_idefn(loadmods_module,
             kno_make_cprim2x("UPDATE-MODULE",update_module_prim,1,
                              -1,VOID,-1,KNO_FALSE));
+#endif
 
   kno_add_module_loader(load_source_module,NULL);
   kno_add_module_loader(load_dynamic_module,NULL);
@@ -843,4 +860,13 @@ KNO_EXPORT void kno_init_loadmods_c()
                      kno_boolconfig_get,kno_boolconfig_set,&trace_dload);
 
   kno_finish_module(loadmods_module);
+}
+
+
+static void init_local_cprims()
+{
+  KNO_LINK_PRIM("dynamic-load",dynamic_load_prim,2,kno_scheme_module);
+  KNO_LINK_PRIM("update-module",update_module_prim,2,loadmods_module);
+  KNO_LINK_PRIM("update-modules",update_modules_prim,1,loadmods_module);
+  KNO_LINK_PRIM("reload-module",reload_module,1,loadmods_module);
 }

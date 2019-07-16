@@ -21,6 +21,8 @@
 #include "kno/ports.h"
 
 #include <ctype.h>
+#include <kno/cprims.h>
+
 
 static lispval reqgetvar(lispval cgidata,lispval var)
 {
@@ -89,6 +91,9 @@ static lispval reqgetvar(lispval cgidata,lispval var)
 
 /* The init function */
 
+KNO_DCLPRIM1("req/call",reqcall_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(REQ/CALL *arg0*)` **undocumented**",
+ kno_any_type,KNO_VOID);
 static lispval reqcall_prim(lispval proc)
 {
   lispval value = VOID;
@@ -104,6 +109,9 @@ static lispval reqcall_prim(lispval proc)
   return value;
 }
 
+KNO_DCLPRIM2("req/get",reqget_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+ "`(REQ/GET *arg0* [*arg1*])` **undocumented**",
+ kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval reqget_prim(lispval vars,lispval dflt)
 {
   lispval results = EMPTY; int found = 0;
@@ -120,6 +128,9 @@ static lispval reqget_prim(lispval vars,lispval dflt)
   else return kno_incref(dflt);
 }
 
+KNO_DCLPRIM2("req/val",reqval_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+ "`(REQ/VAL *arg0* [*arg1*])` **undocumented**",
+ kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval reqval_prim(lispval vars,lispval dflt)
 {
   lispval results = EMPTY; int found = 0;
@@ -209,6 +220,9 @@ static lispval hashcolonquestion_evalfn(lispval expr,kno_lexenv env,kno_stack _s
 #endif
 
 
+KNO_DCLPRIM2("req/test",reqtest_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+ "`(REQ/TEST *arg0* [*arg1*])` **undocumented**",
+ kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval reqtest_prim(lispval vars,lispval val)
 {
   DO_CHOICES(var,vars) {
@@ -224,6 +238,9 @@ static lispval reqtest_prim(lispval vars,lispval val)
   return KNO_FALSE;
 }
 
+KNO_DCLPRIM2("req/store!",reqstore_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+ "`(REQ/STORE! *arg0* *arg1*)` **undocumented**",
+ kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval reqstore_prim(lispval vars,lispval value)
 {
   {DO_CHOICES(var,vars) {
@@ -232,6 +249,9 @@ static lispval reqstore_prim(lispval vars,lispval value)
   return VOID;
 }
 
+KNO_DCLPRIM2("req/add!",reqadd_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+ "`(REQ/ADD! *arg0* *arg1*)` **undocumented**",
+ kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval reqadd_prim(lispval vars,lispval value)
 {
   {DO_CHOICES(var,vars) {
@@ -240,6 +260,9 @@ static lispval reqadd_prim(lispval vars,lispval value)
   return VOID;
 }
 
+KNO_DCLPRIM2("req/drop!",reqdrop_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+ "`(REQ/DROP! *arg0* [*arg1*])` **undocumented**",
+ kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval reqdrop_prim(lispval vars,lispval value)
 {
   {DO_CHOICES(var,vars) {
@@ -248,6 +271,9 @@ static lispval reqdrop_prim(lispval vars,lispval value)
   return VOID;
 }
 
+KNO_DCLPRIM2("req/push!",reqpush_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+ "`(REQ/PUSH! *arg0* *arg1*)` **undocumented**",
+ kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval reqpush_prim(lispval vars,lispval values)
 {
   {DO_CHOICES(var,vars) {
@@ -256,6 +282,8 @@ static lispval reqpush_prim(lispval vars,lispval values)
         kno_req_push(name,value);}}}
   return VOID;
 }
+KNO_DCLPRIM("req/data",reqdata_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+ "`(REQ/DATA)` **undocumented**");
 
 lispval reqdata_prim()
 {
@@ -281,12 +309,16 @@ static lispval withreq_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   return result;
 }
 
+KNO_DCLPRIM("req/live?",req_livep_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+ "`(REQ/LIVE?)` **undocumented**");
 static lispval req_livep_prim()
 {
   if (kno_isreqlive()) return KNO_TRUE;
   else return KNO_FALSE;
 }
 
+KNO_DCLPRIM("req/getlog",reqgetlog_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+ "`(REQ/GETLOG)` **undocumented**");
 KNO_EXPORT lispval reqgetlog_prim()
 {
   struct U8_OUTPUT *log = kno_reqlog(0);
@@ -297,6 +329,8 @@ KNO_EXPORT lispval reqgetlog_prim()
     else return kno_make_string(NULL,len,log->u8_outbuf);}
 }
 
+KNO_DCLPRIM("req/loglen",reqloglen_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+ "`(REQ/LOGLEN)` **undocumented**");
 KNO_EXPORT lispval reqloglen_prim()
 {
   struct U8_OUTPUT *log = kno_reqlog(0);
@@ -348,6 +382,9 @@ KNO_EXPORT void kno_init_reqstate_c()
 
   u8_register_source_file(_FILEINFO);
 
+  init_local_cprims();
+
+#if 0
   kno_idefn(module,kno_make_cprim1("REQ/CALL",reqcall_prim,1));
   kno_idefn(module,kno_make_ndprim(kno_make_cprim2("REQ/GET",reqget_prim,1)));
   kno_idefn(module,kno_make_ndprim(kno_make_cprim2("REQ/VAL",reqval_prim,1)));
@@ -358,6 +395,7 @@ KNO_EXPORT void kno_init_reqstate_c()
   kno_idefn(module,kno_make_cprim2("REQ/DROP!",reqdrop_prim,1));
   kno_idefn(module,kno_make_cprim2("REQ/PUSH!",reqpush_prim,2));
   kno_idefn(module,kno_make_cprim0("REQ/LIVE?",req_livep_prim));
+#endif
 #if 0
   kno_def_evalfn(module,"#:","",hashcolon_evalfn);
   kno_def_evalfn(module,"#::","",hashcoloncolon_evalfn);
@@ -368,10 +406,13 @@ KNO_EXPORT void kno_init_reqstate_c()
   kno_def_evalfn(module,"REQ/LOG","",reqlog_evalfn);
   kno_defalias(module,"REQLOG","REQ/LOG");
   kno_defalias(module,"REQ/LOG!","REQ/LOG");
+
+#if 0
   kno_idefn(module,kno_make_cprim0("REQ/GETLOG",reqgetlog_prim));
   kno_idefn(module,kno_make_cprim0("REQ/LOGLEN",reqloglen_prim));
 
   kno_idefn(module,kno_make_cprim0("REQ/DATA",reqdata_prim));
+#endif
 
   kno_def_evalfn(module,"WITH/REQUEST","",withreq_evalfn);
 
@@ -383,3 +424,22 @@ KNO_EXPORT void kno_init_reqstate_c()
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */
+
+
+static void init_local_cprims()
+{
+  lispval scheme_module = kno_scheme_module;
+
+  KNO_LINK_PRIM("req/live?",req_livep_prim,0,scheme_module);
+  KNO_LINK_PRIM("req/data",reqdata_prim,0,scheme_module);
+  KNO_LINK_PRIM("req/push!",reqpush_prim,2,scheme_module);
+  KNO_LINK_PRIM("req/drop!",reqdrop_prim,2,scheme_module);
+  KNO_LINK_PRIM("req/add!",reqadd_prim,2,scheme_module);
+  KNO_LINK_PRIM("req/store!",reqstore_prim,2,scheme_module);
+  KNO_LINK_PRIM("req/test",reqtest_prim,2,scheme_module);
+  KNO_LINK_PRIM("req/val",reqval_prim,2,scheme_module);
+  KNO_LINK_PRIM("req/get",reqget_prim,2,scheme_module);
+  KNO_LINK_PRIM("req/call",reqcall_prim,1,scheme_module);
+
+  KNO_DECL_ALIAS("req/set!",reqstore_prim,scheme_module);
+}

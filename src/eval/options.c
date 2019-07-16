@@ -39,6 +39,8 @@
 #include <math.h>
 #include <pthread.h>
 #include <errno.h>
+#include <kno/cprims.h>
+
 
 static int optionsp(lispval arg)
 {
@@ -142,6 +144,15 @@ static lispval tryopt_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     else return simplify_value(results);}
 }
 #endif
+KNO_DCLPRIM3("%getopt",getopt_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+ "`(%GETOPT *opts* *name* [*default*=#f])` "
+ "gets any *name* option from opts, returning "
+ "*default* if there isn't any. This is a real "
+ "procedure (unlike `GETOPT`) so that *default* "
+ "will be evaluated even if the option exists and "
+ "is returned.",
+ kno_any_type,KNO_VOID,kno_symbol_type,KNO_VOID,
+ kno_any_type,KNO_FALSE);
 static lispval getopt_prim(lispval opts,lispval keys,lispval dflt)
 {
   lispval results = EMPTY;
@@ -153,6 +164,12 @@ static lispval getopt_prim(lispval opts,lispval keys,lispval dflt)
     kno_incref(dflt); return dflt;}
   else return simplify_value(results);
 }
+KNO_DCLPRIM3("testopt",testopt_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+ "`(TESTOPT *opts* *name* [*value*])` "
+ "returns true if the option *name* is specified in "
+ "*opts* and it includes *value* (if provided).",
+ kno_any_type,KNO_VOID,kno_symbol_type,KNO_VOID,
+ kno_any_type,KNO_VOID);
 static lispval testopt_prim(lispval opts,lispval key,lispval val)
 {
   if (kno_testopt(opts,key,val))
@@ -160,6 +177,10 @@ static lispval testopt_prim(lispval opts,lispval key,lispval val)
   else return KNO_FALSE;
 }
 
+KNO_DCLPRIM1("opts?",optionsp_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+ "`(OPTS? *opts*)` "
+ "returns true if *opts* is a valid options object.",
+ kno_any_type,KNO_VOID);
 static lispval optionsp_prim(lispval opts)
 {
   if (optionsp(opts))
@@ -167,6 +188,10 @@ static lispval optionsp_prim(lispval opts)
   else return KNO_FALSE;
 }
 #define nulloptsp(v) ( (v == KNO_FALSE) || (v == KNO_DEFAULT) )
+KNO_DCLPRIM("opts+",opts_plus_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(0)|KNO_NDCALL,
+ "`(OPTS+ *add* *opts*)` "
+ "or `(OPTS+ *optname* *value* *opts*) returns a "
+ "new options object (a pair).");
 static lispval opts_plus_prim(int n,lispval *args)
 {
   int i = 0, new_front = 0;
@@ -235,6 +260,10 @@ KNO_EXPORT void kno_init_eval_getopt_c()
                 "*default*, if evaluated, may signal an error.",
                 tryopt_evalfn);
 #endif
+
+  init_local_cprims();
+
+#if 0
   kno_idefn3(kno_scheme_module,"%GETOPT",getopt_prim,KNO_NEEDS_2_ARGS|KNO_NDCALL,
             "`(%GETOPT *opts* *name* [*default*=#f])` gets any *name* option "
             "from opts, returning *default* if there isn't any. This is a real "
@@ -256,5 +285,19 @@ KNO_EXPORT void kno_init_eval_getopt_c()
             "`(OPTS+ *add* *opts*)` or `(OPTS+ *optname* *value* *opts*) "
             "returns a new options object (a pair).");
   kno_defalias(kno_scheme_module,"OPT+","OPTS+");
+#endif
 }
 
+
+
+static void init_local_cprims()
+{
+  lispval scheme_module = kno_scheme_module;
+
+  KNO_LINK_VARARGS("opts+",opts_plus_prim,scheme_module);
+  KNO_LINK_PRIM("opts?",optionsp_prim,1,scheme_module);
+  KNO_LINK_PRIM("testopt",testopt_prim,3,scheme_module);
+  KNO_LINK_PRIM("%getopt",getopt_prim,3,scheme_module);
+
+  KNO_DECL_ALIAS("opt+",opts_plus_prim,scheme_module);
+}

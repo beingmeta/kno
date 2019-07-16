@@ -40,6 +40,8 @@
 #include <math.h>
 #include <pthread.h>
 #include <errno.h>
+#include <kno/cprims.h>
+
 
 kno_lexenv kno_app_env=NULL;
 static lispval init_list = NIL;
@@ -180,6 +182,9 @@ KNO_EXPORT void kno_set_app_env(kno_lexenv env)
 	   modules_failed,files_failed,inits_failed);}
 }
 
+KNO_DCLPRIM("%appenv",appenv_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+ "Returns the base 'application environment' for "
+ "the current instance");
 static lispval appenv_prim()
 {
   if (kno_app_env)
@@ -376,6 +381,8 @@ KNO_EXPORT void kno_init_eval_appenv_c()
      or executables may define their own. */
   kno_autoload_config("APPMODS","APPLOAD","APPEVAL");
 
+  init_local_cprims();
+
   kno_register_config("INITS:FAILED",
 		      _("Init expressions or functions which failed"),
 		      kno_lconfig_get,NULL,&inits_failed);
@@ -386,10 +393,13 @@ KNO_EXPORT void kno_init_eval_appenv_c()
 		      _("Init expressions or functions which failed"),
 		      kno_lconfig_get,NULL,&init_list);
 
-  kno_idefn0(kno_scheme_module,"%APPENV",appenv_prim,
-	    "Returns the base 'application environment' for the "
-	    "current instance");
   u8_init_mutex(&app_cleanup_lock);
   u8_init_mutex(&init_lock);
 }
 
+
+
+static void init_local_cprims()
+{
+  KNO_LINK_PRIM("%appenv",appenv_prim,0,kno_scheme_module);
+}

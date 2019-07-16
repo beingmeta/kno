@@ -351,10 +351,3 @@ KNO_EXPORT void kno_init_history_c()
   kno_resolve_histref = kno_get_histref;
 
 }
-
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
