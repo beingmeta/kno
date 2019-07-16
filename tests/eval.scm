@@ -193,8 +193,8 @@
 (applytest "constant" typeof #t)
 (evaltest "choice" (typeof #{"one" "two" 3}))
 (applytest {"fixnum" "string"} typeof #{"one" "two" 3})
-(applytest "builtin function" typeof car)
-(applytest "lambda procedure" typeof test-macros)
+(applytest "cprim" typeof car)
+(applytest "lambda" typeof test-macros)
 
 ;;; Error in default args
 
@@ -450,7 +450,7 @@
 (applytester "33" unparse-arg 33)
 
 (applytester "IF" procedure-name if)
-(applytester "CAR" procedure-name car)
+(applytester "car" procedure-name car)
 (applytester "broken" procedure-name broken)
 
 (applytester #t ->lisp "#t")

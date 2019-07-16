@@ -116,7 +116,7 @@
 
 (applytester #f procedure-symbol (lambda (x) (1+ x)))
 (applytester procedure? procedure-id (lambda (x) (1+ x)))
-(applytester '|CAR| procedure-id car)
+(applytester '|car| procedure-id car)
 (applytester '|IF| procedure-id if)
 (applytester 'contains-string procedure-id contains-string)
 (applytester "expr" procedure-name swapf)

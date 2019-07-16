@@ -37,8 +37,13 @@
 	"\"" (downcase (procedure-name f)) "\"," (procedure-cname f) ","
 	(procedure-arity f) "," (glom (procedure-module f) "_module") ");")
       (printout kno-prefix "LINK_VARARGS("
-	(downcase (procedure-name f)) "\"," (procedure-cname f) "," 
+	"\"" (downcase (procedure-name f)) "\"," (procedure-cname f) "," 
 	(glom (procedure-module f) "_module") ");")))
+
+(define (output-cprim-alias f (kno-prefix "KNO_"))
+  (printout kno-prefix "LINK_ALIAS("
+    "\"" (downcase (procedure-name f)) "\"," (procedure-cname f) ","
+    (glom (procedure-module f) "_module") ");"))
 
 (define (get-cprim-decl f (kno-prefix "KNO_"))
   (stringout kno-prefix (output-prim-decl f kno-prefix)))
@@ -89,7 +94,7 @@
 	  (stringout "`(" (procedure-name f)
 	    (dotimes (i (procedure-min-arity f))
 	      (printout " *arg" i "*"))
-	    (if (< (procedure-arity f) 0)
+	    (if (or (not (procedure-arity f)) (< (procedure-arity f) 0))
 		(printout " *args...*")
 		(dotimes (i (- (procedure-arity f) (procedure-min-arity f)))
 		  (printout " [*arg" (+ (procedure-min-arity f) i) "*]")))
@@ -153,6 +158,8 @@
       (set! pos (textsearch #((bol) "#include " (not> (eol))) string start)))
     last))
 
+(define (proc-name-length p) (length (procedure-name p)))
+
 (define (annotate-file file (content))
   (default! content (filestring file))
   (let* ((prims (get primsbyfile file))
@@ -160,6 +167,7 @@
 	 (pattern `#((bol) (opt "static") (spaces*) "lispval" (spaces) ,cprim-names (spaces*) "("))
 	 (extract `#((bol) (opt "static") (spaces*) "lispval" (spaces) (label cprim ,cprim-names) (spaces*) "("))
 	 (header-end (get-header-end content))
+	 (converted {})
 	 (declared '()))
     (printout (slice content 0 header-end))
     (printout "\n" add-header "\n")
@@ -167,15 +175,25 @@
       (let ((match (text->frames extract block)))
 	(when (singleton? (get match 'cprim))
 	  (let ((cprim (pick prims procedure-cname (get match 'cprim))))
-	    (when (exists? cprim)
-	      (output-cprim-decl cprim)
-	      (set! declared (cons cprim declared)))))
+	    (cond ((singleton? cprim)
+		   (output-cprim-decl cprim)
+		   (set! declared (cons cprim declared)))
+		  ((ambiguous? cprim)
+		   (let ((top (pick-one (largest cprim proc-name-length))))
+		     (logwarn |Ambigous prims|
+		       (procedure-name cprim) " main definition is " (procedure-name top))
+		     (output-cprim-decl top)
+		     (set! declared (cons top declared))
+		     (do-choices (alias (difference cprim top))
+		       (set! declared (cons (list alias) declared))))))))
 	(printout block)))
     (printout "\n\nstatic void init_cprims(){\n"
       (dolist (prim declared)
-	(printout "  " (output-cprim-link prim) "\n"))
+	(if (pair? prim)
+	    (printout "  " (output-cprim-alias (car prim)) "\n")
+	    (printout "  " (output-cprim-link prim) "\n")))
       "}\n")
-    (when (exists? (difference prims (elts declared)))
+    (when (exists? (difference prims {(pick (elts declared) primitive?) (car (pick (elts declared) pair?))}))
       (logwarn |NotConverted| (difference prims (elts declared))))))
 (module-export! 'annotate-file)
 
