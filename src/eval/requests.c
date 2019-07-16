@@ -318,7 +318,7 @@ static lispval req_livep_prim()
 }
 
 KNO_DCLPRIM("req/getlog",reqgetlog_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
- "`(REQ/GETLOG)` **undocumented**");
+            "`(REQ/GETLOG)` **undocumented**");
 KNO_EXPORT lispval reqgetlog_prim()
 {
   struct U8_OUTPUT *log = kno_reqlog(0);
@@ -440,6 +440,8 @@ static void init_local_cprims()
   KNO_LINK_PRIM("req/val",reqval_prim,2,scheme_module);
   KNO_LINK_PRIM("req/get",reqget_prim,2,scheme_module);
   KNO_LINK_PRIM("req/call",reqcall_prim,1,scheme_module);
+  KNO_LINK_PRIM("req/getlog",reqgetlog_prim,0,scheme_module);
+  KNO_LINK_PRIM("req/getloglen",reqloglen_prim,0,scheme_module);
 
   KNO_DECL_ALIAS("req/set!",reqstore_prim,scheme_module);
 }
