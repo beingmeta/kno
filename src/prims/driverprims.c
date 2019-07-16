@@ -23,28 +23,42 @@
 #include <libu8/u8pathfns.h>
 #include <libu8/u8filefns.h>
 #include <libu8/u8stringfns.h>
+#include <kno/cprims.h>
+
 
 static lispval baseoids_symbol;
 
 /* Hashing functions */
 
+KNO_DCLPRIM1("hash-dtype1",lisphash1,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(HASH-DTYPE1 *arg0*)` **undocumented**",
+ kno_any_type,KNO_VOID);
 static lispval lisphash1(lispval x)
 {
   int hash = kno_hash_lisp1(x);
   return KNO_INT(hash);
 }
+KNO_DCLPRIM1("hash-dtype2",lisphash2,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(HASH-DTYPE2 *arg0*)` **undocumented**",
+ kno_any_type,KNO_VOID);
 static lispval lisphash2(lispval x)
 {
   int hash = kno_hash_lisp2(x);
   return KNO_INT(hash);
 }
 
+KNO_DCLPRIM1("hash-dtype3",lisphash3,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(HASH-DTYPE3 *arg0*)` **undocumented**",
+ kno_any_type,KNO_VOID);
 static lispval lisphash3(lispval x)
 {
   int hash = kno_hash_lisp3(x);
   return KNO_INT(hash);
 }
 
+KNO_DCLPRIM1("hash-dtype-rep",lisphashdtype,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(HASH-DTYPE-REP *arg0*)` **undocumented**",
+ kno_any_type,KNO_VOID);
 static lispval lisphashdtype(lispval x)
 {
   unsigned int hash = kno_hash_dtype_rep(x);
@@ -53,6 +67,9 @@ static lispval lisphashdtype(lispval x)
 
 /* Various OPS */
 
+KNO_DCLPRIM1("index-slotids",index_slotids,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(INDEX-SLOTIDS *arg0*)` **undocumented**",
+ kno_any_type,KNO_VOID);
 static lispval index_slotids(lispval index_arg)
 {
   struct KNO_INDEX *ix = kno_lisp2index(index_arg);
@@ -61,6 +78,8 @@ static lispval index_slotids(lispval index_arg)
   else return kno_index_ctl(ix,kno_slotids_op,0,NULL);
 }
 
+KNO_DCLPRIM("indexctl",indexctl_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+ "`(INDEXCTL *arg0* *arg1* *args...*)` **undocumented**");
 static lispval indexctl_prim(int n,lispval *args)
 {
   if (KNO_AMBIGP(args[0])) {
@@ -85,6 +104,8 @@ static lispval indexctl_prim(int n,lispval *args)
   else return kno_index_ctl(ix,args[1],n-2,args+2);
 }
 
+KNO_DCLPRIM("indexctl/default",indexctl_default_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+ "`(INDEXCTL/DEFAULT *arg0* *arg1* *args...*)` **undocumented**");
 static lispval indexctl_default_prim(int n,lispval *args)
 {
   struct KNO_INDEX *ix = kno_lisp2index(args[0]);
@@ -95,6 +116,8 @@ static lispval indexctl_default_prim(int n,lispval *args)
   else return kno_default_indexctl(ix,args[1],n-2,args+2);
 }
 
+KNO_DCLPRIM("poolctl",poolctl_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+ "`(POOLCTL *arg0* *arg1* *args...*)` **undocumented**");
 static lispval poolctl_prim(int n,lispval *args)
 {
   if (KNO_AMBIGP(args[0])) {
@@ -119,6 +142,8 @@ static lispval poolctl_prim(int n,lispval *args)
   else return kno_pool_ctl(p,args[1],n-2,args+2);
 }
 
+KNO_DCLPRIM("poolctl/default",poolctl_default_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+ "`(POOLCTL/DEFAULT *arg0* *arg1* *args...*)` **undocumented**");
 static lispval poolctl_default_prim(int n,lispval *args)
 {
   struct KNO_POOL *p = kno_lisp2pool(args[0]);
@@ -131,6 +156,11 @@ static lispval poolctl_default_prim(int n,lispval *args)
 
 /* DBCTL */
 
+KNO_DCLPRIM("dbctl",dbctl_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
+ "(DBCTL *dbref* *op* ... *args*) "
+ "performs an operation *op* on the pool or index "
+ "*dbref* with *args*. *op* is a symbol and *dbref* "
+ "must be a pool or index object.");
 static lispval dbctl_prim(int n,lispval *args)
 {
   lispval db = args[0];
@@ -166,6 +196,11 @@ static lispval dbctl_prim(int n,lispval *args)
 
 /* ALCOR bindings */
 
+KNO_DCLPRIM3("alcor/save!",alcor_save_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3),
+ "(ALCOR/SAVE! src head len) "
+ "copies the first *len* bytes of *src* into *head*",
+ kno_string_type,KNO_VOID,kno_string_type,KNO_VOID,
+ kno_fixnum_type,KNO_VOID);
 static lispval alcor_save_prim(lispval source,lispval head,lispval size_arg)
 {
   ssize_t size = KNO_FIX2INT(size_arg);
@@ -175,6 +210,12 @@ static lispval alcor_save_prim(lispval source,lispval head,lispval size_arg)
   else return KNO_INT(rv);
 }
 
+KNO_DCLPRIM2("alcor/apply!",alcor_apply_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+ "(ALCOR/APPLY! head src) "
+ "copies *head* into the beginning of *src* (all "
+ "but the last 8 bytes) and truncates *src* to the "
+ "length specified in the last eight bytes of *head*",
+ kno_string_type,KNO_VOID,kno_string_type,KNO_VOID);
 static lispval alcor_apply_prim(lispval head,lispval source)
 {
   ssize_t rv = kno_apply_head(KNO_CSTRING(head),KNO_CSTRING(source));
@@ -187,63 +228,42 @@ static lispval alcor_apply_prim(lispval head,lispval source)
 
 static int scheme_driverfns_initialized = 0;
 
+static lispval driverfns_module;
+
 KNO_EXPORT void kno_init_driverfns_c()
 {
-  lispval driverfns_module;
-
   baseoids_symbol = kno_intern("%baseoids");
 
   if (scheme_driverfns_initialized) return;
   scheme_driverfns_initialized = 1;
   kno_init_scheme();
   kno_init_drivers();
-  driverfns_module = kno_new_cmodule("driverfns",(KNO_MODULE_DEFAULT),
-                                    kno_init_driverfns_c);
+  driverfns_module = kno_new_cmodule
+    ("driverfns",(KNO_MODULE_DEFAULT),kno_init_driverfns_c);
   u8_register_source_file(_FILEINFO);
-
-  kno_idefn(kno_db_module,kno_make_cprim1("INDEX-SLOTIDS",index_slotids,1));
-  kno_defalias(kno_db_module,"HASH-INDEX-SLOTIDS","INDEX-SLOTIDS");
-
-
-  kno_idefnN(kno_db_module,"DBCTL",dbctl_prim,KNO_NEEDS_2_ARGS|KNO_NDCALL,
-            "(DBCTL *dbref* *op* ... *args*) performs an operation *op* "
-            "on the pool or index *dbref* with *args*. *op* is a symbol and "
-            "*dbref* must be a pool or index object.");
-  kno_idefnN(kno_db_module,"POOLCTL",poolctl_prim,KNO_NEEDS_2_ARGS|KNO_NDCALL,
-            "(POOLCTL *pool* *op* ... *args*) performs an operation *op* "
-            "on the pool *pool* with *args*. *op* is a symbol and *pool* is "
-            "a pool object.");
-  kno_idefnN(kno_db_module,"INDEXCTL",indexctl_prim,KNO_NEEDS_2_ARGS|KNO_NDCALL,
-            "(INDEXCTL *index* *op* ... *args*) performs an operation *op* "
-            "on the index *index* with *args*. *op* is a symbol and *index* "
-            "is an index object.");
-
-  kno_idefn(kno_db_module,kno_make_cprimn("INDEXCTL",indexctl_prim,2));
-  kno_idefn(kno_db_module,kno_make_cprimn("POOLCTL",poolctl_prim,2));
-
-  kno_idefn(kno_db_module,kno_make_cprimn("INDEXCTL/DEFAULT",indexctl_default_prim,2));
-  kno_idefn(kno_db_module,kno_make_cprimn("POOLCTL/DEFAULT",poolctl_default_prim,2));
-
-  kno_idefn(driverfns_module,kno_make_cprim1("HASH-DTYPE",lisphash2,1));
-  kno_idefn(driverfns_module,kno_make_cprim1("HASH-DTYPE2",lisphash2,1));
-  kno_idefn(driverfns_module,kno_make_cprim1("HASH-DTYPE3",lisphash3,1));
-  kno_idefn(driverfns_module,kno_make_cprim1("HASH-DTYPE1",lisphash1,1));
-
-  kno_idefn(driverfns_module,kno_make_cprim1("HASH-DTYPE-REP",lisphashdtype,1));
-
-  kno_idefn3(driverfns_module,"ALCOR/SAVE!",alcor_save_prim,3,
-            "(ALCOR/SAVE! src head len) copies the first *len* bytes "
-            "of *src* into *head*",
-            kno_string_type,KNO_VOID,kno_string_type,KNO_VOID,
-            kno_fixnum_type,KNO_VOID);
-  kno_idefn2(driverfns_module,"ALCOR/APPLY!",alcor_apply_prim,2,
-            "(ALCOR/APPLY! head src) copies *head* into the "
-            "beginning of *src* (all but the last 8 bytes) and "
-            "truncates *src* to the length specified in the last "
-            "eight bytes of *head*",
-            kno_string_type,KNO_VOID,kno_string_type,KNO_VOID);
-
-
+  init_local_cprims();
 
   kno_finish_module(driverfns_module);
+}
+
+
+static void init_local_cprims()
+{
+  lispval db_module = kno_db_module;
+
+  KNO_LINK_PRIM("alcor/apply!",alcor_apply_prim,2,driverfns_module);
+  KNO_LINK_PRIM("alcor/save!",alcor_save_prim,3,driverfns_module);
+  KNO_LINK_VARARGS("dbctl",dbctl_prim,kno_db_module);
+  KNO_LINK_VARARGS("poolctl/default",poolctl_default_prim,kno_db_module);
+  KNO_LINK_VARARGS("poolctl",poolctl_prim,kno_db_module);
+  KNO_LINK_VARARGS("indexctl/default",indexctl_default_prim,kno_db_module);
+  KNO_LINK_VARARGS("indexctl",indexctl_prim,kno_db_module);
+  KNO_LINK_PRIM("index-slotids",index_slotids,1,kno_db_module);
+  KNO_LINK_PRIM("hash-dtype-rep",lisphashdtype,1,driverfns_module);
+  KNO_LINK_PRIM("hash-dtype3",lisphash3,1,driverfns_module);
+  KNO_LINK_ALIAS("hash-dtype",lisphash2,driverfns_module);
+  KNO_LINK_PRIM("hash-dtype2",lisphash2,1,driverfns_module);
+  KNO_LINK_PRIM("hash-dtype1",lisphash1,1,driverfns_module);
+
+  KNO_DECL_ALIAS("hash-index-slotids",index_slotids,db_module);
 }

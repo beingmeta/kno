@@ -70,6 +70,8 @@
 #include <sys/vfs.h>
 #elif ((HAVE_SYS_FSTAT_H)&&(HAVE_STATFS))
 #include <sys/statfs.h>
+#include <kno/cprims.h>
+
 #endif
 
 static u8_condition RedirectFailed = "Redirect failed";
@@ -190,30 +192,34 @@ static lispval exec_helper(u8_context caller,
       abort();}}
 }
 
-DCLPRIM("EXEC",exec_prim,MIN_ARGS(1)|KNO_VAR_ARGS,
-        "`(EXEC *command* [*envmap*] [*args*...])` replaces "
-        "the current application with an execution of "
-        "*command* (a string) to *args* (also strings).\n"
-        "*envmap*, if provided, is a slotmap specifying environment "
-        "variables for execution of the command. Environment variables "
-        "can also be explicitly provided in the string *command*.\n"
-        "The last word of *command* (after any environment variables) "
-        "should be the path of an executable program file.")
+KNO_DCLPRIM("exec",exec_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
+ "`(EXEC *command* [*envmap*] [*args*...])` "
+ "replaces the current application with an "
+ "execution of *command* (a string) to *args* (also "
+ "strings).\n*envmap*, if provided, is a slotmap "
+ "specifying environment variables for execution of "
+ "the command. Environment variables can also be "
+ "explicitly provided in the string *command*.\nThe "
+ "last word of *command* (after any environment "
+ "variables) should be the path of an executable "
+ "program file.");
 static lispval exec_prim(int n,lispval *args)
 {
   return exec_helper("exec_prim",0,n,KNO_FALSE,args);
 }
 
-DCLPRIM("EXEC/CMD",exec_cmd_prim,MIN_ARGS(1)|KNO_VAR_ARGS,
-        "`(EXEC/CMD *command* [*envmap*] [*args*...])` replaces "
-        "the current application with an execution of "
-        "*command* (a string) to *args* (also strings).\n"
-        "*envmap*, if provided, is a slotmap specifying environment "
-        "variables for execution of the command. Environment variables "
-        "can also be explicitly provided in the string *command*.\n"
-        "The last word of *command* (after any environment variables) "
-        "should be either a command in the default search path or "
-        "the path of an executable program file.")
+KNO_DCLPRIM("exec/cmd",exec_cmd_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
+ "`(EXEC/CMD *command* [*envmap*] [*args*...])` "
+ "replaces the current application with an "
+ "execution of *command* (a string) to *args* (also "
+ "strings).\n*envmap*, if provided, is a slotmap "
+ "specifying environment variables for execution of "
+ "the command. Environment variables can also be "
+ "explicitly provided in the string *command*.\nThe "
+ "last word of *command* (after any environment "
+ "variables) should be either a command in the "
+ "default search path or the path of an executable "
+ "program file.");
 static lispval exec_cmd_prim(int n,lispval *args)
 {
   return exec_helper("exec_cmd_prim",KNO_DO_LOOKUP,n,KNO_FALSE,args);
@@ -252,77 +258,85 @@ static lispval fork_prim(int n,lispval *args)
   else return exec_helper("fork_prim",KNO_DO_FORK,n,KNO_FALSE,args);
 }
 
-DCLPRIM("FORK/CMD",fork_cmd_prim,MIN_ARGS(1)|KNO_VAR_ARGS,
-        "`(FOR/CMD *command* [*envmap*] [*args*...])` 'forks' "
-        "a new process executing *command* (a string) "
-        "with *args* (also strings). It returns the PID of the "
-        "new process.\n"
-        "*envmap*, if provided, is a slotmap specifying environment "
-        "variables for execution of the command. Environment variables "
-        "can also be explicitly provided in the string *command*.\n"
-        "The last word of *command* (after any environment variables) "
-        "should be either a command in the default search path or "
-        "the path of an executable program file.")
+KNO_DCLPRIM("fork/cmd",fork_cmd_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
+ "`(FOR/CMD *command* [*envmap*] [*args*...])` "
+ "'forks' a new process executing *command* (a "
+ "string) with *args* (also strings). It returns "
+ "the PID of the new process.\n*envmap*, if "
+ "provided, is a slotmap specifying environment "
+ "variables for execution of the command. "
+ "Environment variables can also be explicitly "
+ "provided in the string *command*.\nThe last word "
+ "of *command* (after any environment variables) "
+ "should be either a command in the default search "
+ "path or the path of an executable program file.");
 static lispval fork_cmd_prim(int n,lispval *args)
 {
   return exec_helper("fork_cmd_prim",(KNO_DO_FORK|KNO_DO_LOOKUP),n,KNO_FALSE,args);
 }
 
-DCLPRIM("KNOX/FORK",knox_fork_prim,MIN_ARGS(1)|KNO_VAR_ARGS,
-        "`(KNOX/FORK *scheme_file* [*envmap*] [*args*...])` 'forks' "
-        "a new Kno process reading the file *scheme_file* and "
-        "applying the file's `MAIN` definition to the results of "
-        "parsing *args* (also strings).  It returns the PID of the "
-        "new process.\n"
-        "*envmap*, if provided, specifies CONFIG settings for the "
-        "reading and execution of *scheme-file*. Environment variables "
-        "can also be explicitly provided in the string *command*.\n")
+KNO_DCLPRIM("knox/fork",knox_fork_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
+ "`(KNOX/FORK *scheme_file* [*envmap*] [*args*...])` "
+ "'forks' a new Kno process reading the file "
+ "*scheme_file* and applying the file's `MAIN` "
+ "definition to the results of parsing *args* (also "
+ "strings).  It returns the PID of the new process.\n"
+ "*envmap*, if provided, specifies CONFIG settings "
+ "for the reading and execution of *scheme-file*. "
+ "Environment variables can also be explicitly "
+ "provided in the string *command*.\n");
 static lispval knox_fork_prim(int n,lispval *args)
 {
   return exec_helper("knofork_prim",(KNO_IS_SCHEME|KNO_DO_FORK),n,KNO_FALSE,args);
 }
 
-DCLPRIM("FORK/WAIT",fork_wait_prim,MIN_ARGS(1)|KNO_VAR_ARGS,
-        "`(FORK *command* [*envmap*] [*args*...])` 'forks' "
-        "a new process executing *command* (a string) for "
-        "*args* (also strings). It waits for this process to "
-        "return and returns its exit status.\n"
-        "*envmap*, if provided, is a slotmap specifying environment "
-        "variables for execution of the command. Environment variables "
-        "can also be explicitly provided in the string *command*.\n"
-        "The last word of *command* (after any environment variables) "
-        "should be the path of an executable program file.")
+KNO_DCLPRIM("fork/wait",fork_wait_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
+ "`(FORK *command* [*envmap*] [*args*...])` "
+ "'forks' a new process executing *command* (a "
+ "string) for *args* (also strings). It waits for "
+ "this process to return and returns its exit "
+ "status.\n*envmap*, if provided, is a slotmap "
+ "specifying environment variables for execution of "
+ "the command. Environment variables can also be "
+ "explicitly provided in the string *command*.\nThe "
+ "last word of *command* (after any environment "
+ "variables) should be the path of an executable "
+ "program file.");
 static lispval fork_wait_prim(int n,lispval *args)
 {
   return exec_helper("fork_wait_prim",(KNO_DO_FORK|KNO_DO_WAIT),n,KNO_FALSE,args);
 }
 
-DCLPRIM("FORK/CMD/WAIT",fork_cmd_wait_prim,MIN_ARGS(1)|KNO_VAR_ARGS,
-        "`(FOR/CMD *command* [*envmap*] [*args*...])` 'forks' "
-        "a new process executing *command* (a string) "
-        "with *args* (also strings). It waits for this process to "
-        "return and returns its exit status.\n"
-        "*envmap*, if provided, is a slotmap specifying environment "
-        "variables for execution of the command. Environment variables "
-        "can also be explicitly provided in the string *command*.\n"
-        "The last word of *command* (after any environment variables) "
-        "should be either a command in the default search path or "
-        "the path of an executable program file.")
+KNO_DCLPRIM("fork/cmd/wait",fork_cmd_wait_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
+ "`(FOR/CMD *command* [*envmap*] [*args*...])` "
+ "'forks' a new process executing *command* (a "
+ "string) with *args* (also strings). It waits for "
+ "this process to return and returns its exit "
+ "status.\n*envmap*, if provided, is a slotmap "
+ "specifying environment variables for execution of "
+ "the command. Environment variables can also be "
+ "explicitly provided in the string *command*.\nThe "
+ "last word of *command* (after any environment "
+ "variables) should be either a command in the "
+ "default search path or the path of an executable "
+ "program file.");
 static lispval fork_cmd_wait_prim(int n,lispval *args)
 {
   return exec_helper("fork_cmd_wait_prim",
                      (KNO_DO_FORK|KNO_DO_LOOKUP|KNO_DO_WAIT),n,KNO_FALSE,args);
 }
 
-DCLPRIM("KNOX/FORK/WAIT",knox_fork_wait_prim,MIN_ARGS(1)|KNO_VAR_ARGS,
-        "`(KNOX/FORK/WAIT *scheme_file* [*envmap*] [*args*...])` 'forks' "
-        "a new Kno process reading the file *scheme_file* and "
-        "applying the file's `MAIN` definition to the results of "
-        "parsing *args* (also strings).  It waits for this process to "
-        "return and returns its exit status.\n"
-        "*envmap*, if provided, specifies CONFIG settings for the "
-        "reading and execution of *scheme-file*. Environment variables "
-        "can also be explicitly provided in the string *command*.\n")
+KNO_DCLPRIM("knox/fork/wait",knox_fork_wait_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
+ "`(KNOX/FORK/WAIT *scheme_file* [*envmap*] [*args*...])` "
+ "'forks' a new Kno process reading the file "
+ "*scheme_file* and applying the file's `MAIN` "
+ "definition to the results of parsing *args* (also "
+ "strings).  It waits for this process to return "
+ "and returns its exit status.\n*envmap*, if "
+ "provided, specifies CONFIG settings for the "
+ "reading and execution of *scheme-file*. "
+ "Environment variables can also be explicitly "
+ "provided in the string *command*.\n");
 static lispval knox_fork_wait_prim(int n,lispval *args)
 {
   return exec_helper("knox_fork_wait_prim",
@@ -366,28 +380,28 @@ static int dodup(int from,int to,u8_string stream,u8_string id)
 
 static u8_string makeid(int n,lispval *args);
 
-DCLPRIM("SUBJOB/OPEN",subjob_open,MIN_ARGS(1)|KNO_VAR_ARGS,
-        "`(SUBJOB/OPEN *opts* *command* [*envmap*] [*args*...])` "
-        "'forks' a new process applying *command* to *args* and "
-        "creates a **subjob** object for the process.\n"
-        "*opts* control how the subjob is started and "
-        "how its inputs and outputs are configured.\n"
-        "Some supported options are:\n"
-        "* **ID** provides a descriptive string;\n"
-        "* **STDIN** is either a file to use as the *stdin* "
-        "to the new process, #f to use the *standard input* of the "
-        "current process, or #t to create a stream through which "
-        "the current process can write to the new process.\n"
-        "* **STDOUT** is either a file to use for the *stdout* "
-        "from the new process, #f to share the *standard output* of the "
-        "current process, or #t to create a stream from which "
-        "the current process can read the standard output of "
-        "the new process.\n"
-        "* **STDERR** is either a file to use for the *stderr* "
-        "for the new process, #f to share the *stderr* of the "
-        "current process, or #t to create a stream from which "
-        "the current process can read the error output of "
-        "the new process.\n")
+KNO_DCLPRIM("subjob/open",subjob_open,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
+ "`(SUBJOB/OPEN *opts* *command* [*envmap*] [*args*...])` "
+ "'forks' a new process applying *command* to "
+ "*args* and creates a **subjob** object for the "
+ "process.\n*opts* control how the subjob is started "
+ "and how its inputs and outputs are configured.\n"
+ "Some supported options are:\n* **ID** provides a "
+ "descriptive string;\n* **STDIN** is either a file "
+ "to use as the *stdin* to the new process, #f to "
+ "use the *standard input* of the current process, "
+ "or #t to create a stream through which the "
+ "current process can write to the new process.\n* "
+ "**STDOUT** is either a file to use for the "
+ "*stdout* from the new process, #f to share the "
+ "*standard output* of the current process, or #t "
+ "to create a stream from which the current process "
+ "can read the standard output of the new process.\n"
+ "* **STDERR** is either a file to use for the "
+ "*stderr* for the new process, #f to share the "
+ "*stderr* of the current process, or #t to create "
+ "a stream from which the current process can read "
+ "the error output of the new process.\n");
 static lispval subjob_open(int n,lispval *args)
 {
   lispval opts = args[0];
@@ -544,42 +558,44 @@ static void recycle_subjob(struct KNO_RAW_CONS *c)
   if (!(KNO_STATIC_CONSP(c))) u8_free(c);
 }
 
-DCLPRIM("SUBJOB/PID",subjob_pid,MIN_ARGS(1)|MAX_ARGS(1),
-        "Returns the numeric process ID for the subjob")
+KNO_DCLPRIM("subjob/pid",subjob_pid,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "Returns the numeric process ID for the subjob");
 static lispval subjob_pid(lispval subjob)
 {
   struct KNO_SUBJOB *sj = (kno_subjob) subjob;
   return KNO_INT(sj->subjob_pid);
 }
 
-DCLPRIM("SUBJOB/STDIN",subjob_stdin,MIN_ARGS(1)|MAX_ARGS(1),
-        "Returns an output port for sending to the subjob.")
+KNO_DCLPRIM("subjob/stdin",subjob_stdin,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "Returns an output port for sending to the subjob.");
 static lispval subjob_stdin(lispval subjob)
 {
   struct KNO_SUBJOB *sj = (kno_subjob) subjob;
   return kno_incref(sj->subjob_stdin);
 }
 
-DCLPRIM("SUBJOB/STDOUT",subjob_stdout,MIN_ARGS(1)|MAX_ARGS(1),
-        "Returns an input port for reading the output of subjob.")
+KNO_DCLPRIM("subjob/stdout",subjob_stdout,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "Returns an input port for reading the output of "
+ "subjob.");
 static lispval subjob_stdout(lispval subjob)
 {
   struct KNO_SUBJOB *sj = (kno_subjob) subjob;
   return kno_incref(sj->subjob_stdout);
 }
 
-DCLPRIM("SUBJOB/STDERR",subjob_stderr,MIN_ARGS(1)|MAX_ARGS(1),
-        "Returns an input port for reading the error output (stderr) "
-        " of subjob.")
+KNO_DCLPRIM("subjob/stderr",subjob_stderr,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "Returns an input port for reading the error "
+ "output (stderr)  of subjob.");
 static lispval subjob_stderr(lispval subjob)
 {
   struct KNO_SUBJOB *sj = (kno_subjob) subjob;
   return kno_incref(sj->subjob_stderr);
 }
 
-DCLPRIM("SUBJOB/SIGNAL",subjob_signal,MIN_ARGS(2)|MAX_ARGS(2),
-        "`(SUBJOB/SIGNAL *subjob* *signal*)` sends the number "
-        "*signal* to the process executing *subjob*.")
+KNO_DCLPRIM("subjob/signal",subjob_signal,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+ "`(SUBJOB/SIGNAL *subjob* *signal*)` "
+ "sends the number *signal* to the process "
+ "executing *subjob*.");
 static lispval subjob_signal(lispval subjob,lispval sigval)
 {
   struct KNO_SUBJOB *sj = (kno_subjob) subjob;
@@ -597,9 +613,10 @@ static lispval subjob_signal(lispval subjob,lispval sigval)
 
 /* EXIT functions */
 
-DCLPRIM("EXIT",exit_prim,MIN_ARGS(0)|MAX_ARGS(1),
-        "`(EXIT [*retval*])` exits the current process with "
-        "a return code of *retval* (defaults to 0)")
+KNO_DCLPRIM("exit",exit_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
+ "`(EXIT [*retval*])` "
+ "exits the current process with a return code of "
+ "*retval* (defaults to 0)");
 static lispval exit_prim(lispval arg)
 {
   pid_t main_thread = getpid();
@@ -609,10 +626,11 @@ static lispval exit_prim(lispval arg)
   else return VOID;
 }
 
-DCLPRIM("EXIT/FAST",fast_exit_prim,MIN_ARGS(0)|MAX_ARGS(1),
-        "`(EXIT/FAST [*retval*])` exits the current process "
-        "expeditiously without, for example, freeing memory "
-        "which will just be returned to the OS after exit.")
+KNO_DCLPRIM("exit/fast",fast_exit_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
+ "`(EXIT/FAST [*retval*])` "
+ "exits the current process expeditiously without, "
+ "for example, freeing memory which will just be "
+ "returned to the OS after exit.");
 static lispval fast_exit_prim(lispval arg)
 {
   kno_fast_exit=1;
@@ -625,10 +643,10 @@ static lispval fast_exit_prim(lispval arg)
 
 /* PID functions */
 
-DCLPRIM1("PID?",ispid_prim,MIN_ARGS(1),
-         "Returns #t if it's argument is a current and valid "
-         "process ID.",
-         kno_fixnum_type,KNO_VOID)
+KNO_DCLPRIM1("pid?",ispid_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "Returns #t if it's argument is a current and "
+ "valid process ID.",
+ kno_fixnum_type,KNO_VOID);
 static lispval ispid_prim(lispval pid_arg)
 {
   pid_t pid = FIX2INT(pid_arg);
@@ -638,11 +656,10 @@ static lispval ispid_prim(lispval pid_arg)
   else return KNO_TRUE;
 }
 
-DCLPRIM2("PID/KILL!",pid_kill_prim,MIN_ARGS(1),
-         "`(PID/KILL *process* [*signal*])` "
-         "sends *signal* (default is ) to "
-         "*process*.",
-         -1,KNO_VOID,-1,KNO_VOID)
+KNO_DCLPRIM2("pid/kill!",pid_kill_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+ "`(PID/KILL *process* [*signal*])` "
+ "sends *signal* (default is ) to *process*.",
+ kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval pid_kill_prim(lispval pid_arg,lispval sig_arg)
 {
   pid_t pid = FIX2INT(pid_arg);
@@ -661,11 +678,12 @@ static lispval pid_kill_prim(lispval pid_arg,lispval sig_arg)
 
 lispval kno_rlimit_codes = KNO_EMPTY;
 
-DCLPRIM2("GETRLIMIT",getrlimit_prim,MAX_ARGS(2)|MIN_ARGS(1),
-         "`(GETRLIMIT *resource* [*getmax*])` gets the *resource* "
-         "resource limit for the current process. If *getmax* is true, "
-         "gets the maximum resource limit.",
-         kno_symbol_type,KNO_VOID,-1,KNO_VOID)
+KNO_DCLPRIM2("getrlimit",getrlimit_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+ "`(GETRLIMIT *resource* [*getmax*])` "
+ "gets the *resource* resource limit for the "
+ "current process. If *getmax* is true, gets the "
+ "maximum resource limit.",
+ kno_symbol_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval getrlimit_prim(lispval resname,lispval which)
 {
   struct rlimit lim;
@@ -691,11 +709,13 @@ static lispval getrlimit_prim(lispval resname,lispval which)
     else return KNO_INT(curlim);}
 }
 
-DCLPRIM3("SETRLIMIT!",setrlimit_prim,MAX_ARGS(2)|MIN_ARGS(2),
-         "`(SETRLIMIT! *resource* *value* [*setmax*])` sets the resource "
-         "limit *resource* (symbol) to *value* for the current process. If "
-         "*setmax* is true, sets the maximium resource value if allowed.",
-         kno_symbol_type,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID)
+KNO_DCLPRIM3("setrlimit!",setrlimit_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+ "`(SETRLIMIT! *resource* *value* [*setmax*])` "
+ "sets the resource limit *resource* (symbol) to "
+ "*value* for the current process. If *setmax* is "
+ "true, sets the maximium resource value if allowed.",
+ kno_symbol_type,KNO_VOID,kno_any_type,KNO_VOID,
+ kno_any_type,KNO_VOID);
 static lispval setrlimit_prim(lispval resname,lispval limit_val,
                               lispval setmax_arg)
 {
@@ -814,9 +834,10 @@ static int handle_procopts(lispval opts)
 
 /* The nice prim */
 
-DCLPRIM1("NICE",nice_prim,MIN_ARGS(0),
-         "Returns or adjusts the priority for the current process",
-         kno_fixnum_type,KNO_VOID)
+KNO_DCLPRIM1("nice",nice_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
+ "Returns or adjusts the priority for the current "
+ "process",
+ kno_fixnum_type,KNO_VOID);
 static lispval nice_prim(lispval delta_arg)
 {
   int delta = (!(KNO_FIXNUMP(delta_arg))) ? (0) : (KNO_FIX2INT(delta_arg));
@@ -832,9 +853,10 @@ static lispval nice_prim(lispval delta_arg)
 
 static int scheme_procprims_initialized = 0;
 
+static lispval procprims_module;
+
 KNO_EXPORT void kno_init_procprims_c()
 {
-  lispval procprims_module;
   if (scheme_procprims_initialized) return;
   scheme_procprims_initialized = 1;
   kno_init_scheme();
@@ -843,22 +865,12 @@ KNO_EXPORT void kno_init_procprims_c()
   u8_register_source_file(_FILEINFO);
 
   init_rlimit_codes();
-
-  DECL_PRIM_N(exec_prim,procprims_module);
-  DECL_PRIM_N(exec_cmd_prim,procprims_module);
-  DECL_PRIM_N(fork_prim,procprims_module);
-  DECL_PRIM_N(fork_cmd_prim,procprims_module);
-
-  DECL_PRIM_N(knox_prim,procprims_module);
-  DECL_PRIM_N(knox_fork_prim,procprims_module);
-
-#if HAVE_WAITPID
+  init_local_cprims();
+#if 0 /* HAVE_WAITPID */
   DECL_PRIM_N(fork_wait_prim,procprims_module);
   DECL_PRIM_N(fork_cmd_wait_prim,procprims_module);
   DECL_PRIM_N(knox_fork_wait_prim,procprims_module);
 #endif
-
-  DECL_PRIM(nice_prim,1,procprims_module);
 
   kno_subjob_type = kno_register_cons_type("subjob");
   kno_unparsers[kno_subjob_type] = unparse_subjob;
@@ -870,36 +882,31 @@ KNO_EXPORT void kno_init_procprims_c()
   stderr_symbol = kno_intern("stderr");
   nice_symbol = kno_intern("nice");
 
-  DECL_PRIM_N(subjob_open,procprims_module);
-
-  int subjob_prim_types[1] = { kno_subjob_type };
-  DECL_PRIM_ARGS(subjob_pid,1,procprims_module,
-                 subjob_prim_types,NULL);
-  DECL_PRIM_ARGS(subjob_stdin,1,procprims_module,
-                 subjob_prim_types,NULL);
-  DECL_PRIM_ARGS(subjob_stdout,1,procprims_module,
-                 subjob_prim_types,NULL);
-  DECL_PRIM_ARGS(subjob_stderr,1,procprims_module,
-                 subjob_prim_types,NULL);
-
-  int subjob_signal_types[2] = { kno_subjob_type, kno_fixnum_type };
-  DECL_PRIM_ARGS(subjob_signal,2,procprims_module,
-                 subjob_signal_types,NULL);
-
-  DECL_PRIM(ispid_prim,1,procprims_module);
-  DECL_PRIM(pid_kill_prim,2,procprims_module);
-  DECL_PRIM(exit_prim,1,procprims_module);
-  DECL_PRIM(fast_exit_prim,1,procprims_module);
-
-  DECL_PRIM(getrlimit_prim,2,procprims_module);
-  DECL_PRIM(setrlimit_prim,3,procprims_module);
-
   kno_finish_module(procprims_module);
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
+static void init_local_cprims()
+{
+  KNO_LINK_PRIM("nice",nice_prim,1,procprims_module);
+  KNO_LINK_PRIM("setrlimit!",setrlimit_prim,3,procprims_module);
+  KNO_LINK_PRIM("getrlimit",getrlimit_prim,2,procprims_module);
+  KNO_LINK_PRIM("pid/kill!",pid_kill_prim,2,procprims_module);
+  KNO_LINK_PRIM("pid?",ispid_prim,1,procprims_module);
+  KNO_LINK_PRIM("exit/fast",fast_exit_prim,1,procprims_module);
+  KNO_LINK_PRIM("exit",exit_prim,1,procprims_module);
+  KNO_LINK_PRIM("subjob/signal",subjob_signal,2,procprims_module);
+  KNO_LINK_PRIM("subjob/stderr",subjob_stderr,1,procprims_module);
+  KNO_LINK_PRIM("subjob/stdout",subjob_stdout,1,procprims_module);
+  KNO_LINK_PRIM("subjob/stdin",subjob_stdin,1,procprims_module);
+  KNO_LINK_PRIM("subjob/pid",subjob_pid,1,procprims_module);
+  KNO_LINK_VARARGS("subjob/open",subjob_open,procprims_module);
+  KNO_LINK_VARARGS("knox/fork/wait",knox_fork_wait_prim,procprims_module);
+  KNO_LINK_VARARGS("fork/cmd/wait",fork_cmd_wait_prim,procprims_module);
+  KNO_LINK_VARARGS("fork/wait",fork_wait_prim,procprims_module);
+  KNO_LINK_VARARGS("knox/fork",knox_fork_prim,procprims_module);
+  KNO_LINK_VARARGS("fork/cmd",fork_cmd_prim,procprims_module);
+  KNO_LINK_VARARGS("fork",fork_prim,procprims_module);
+  KNO_LINK_VARARGS("knox",knox_prim,procprims_module);
+  KNO_LINK_VARARGS("exec/cmd",exec_cmd_prim,procprims_module);
+  KNO_LINK_VARARGS("exec",exec_prim,procprims_module);
+}

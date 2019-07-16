@@ -46,23 +46,25 @@
 
 #if ((HAVE_SYS_SYSINFO_H)&&(HAVE_SYSINFO))
 #include <sys/sysinfo.h>
+#include <kno/cprims.h>
+
 #endif
 
 u8_condition kno_MissingFeature=_("OS doesn't support operation");
 
 /* Getting the current hostname */
 
-DCLPRIM("GETHOSTNAME",hostname_prim,0,
-        "Gets the assigned name for this computer")
+KNO_DCLPRIM("gethostname",hostname_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+ "Gets the assigned name for this computer");
 static lispval hostname_prim()
 {
   return kno_wrapstring(u8_gethostname());
 }
 
-DCLPRIM1("HOSTADDRS",hostaddrs_prim,0,
-         "Gets the addresses associated with a hostname "
-         "using the ldns library",
-         kno_string_type,KNO_VOID)
+KNO_DCLPRIM1("hostaddrs",hostaddrs_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "Gets the addresses associated with a hostname "
+ "using the ldns library",
+ kno_string_type,KNO_VOID);
 static lispval hostaddrs_prim(lispval hostname)
 {
   int addr_len = -1; unsigned int type = -1;
@@ -86,11 +88,11 @@ static lispval hostaddrs_prim(lispval hostname)
 
 /* GETENV primitive */
 
-DCLPRIM1("GETENV",getenv_prim,0,
-         "Gets the value of *envvar* in the environment of "
-         "the current process. Returns a string or #f if "
-         "the environment variable is not defined.",
-         kno_string_type,KNO_VOID)
+KNO_DCLPRIM1("getenv",getenv_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "Gets the value of *envvar* in the environment of "
+ "the current process. Returns a string or #f if "
+ "the environment variable is not defined.",
+ kno_string_type,KNO_VOID);
 static lispval getenv_prim(lispval var)
 {
   u8_string enval = u8_getenv(CSTRING(var));
@@ -114,8 +116,8 @@ static lispval getenv_macro(lispval expr,kno_lexenv env,kno_stack ptr)
 
 /* LOAD AVERAGE */
 
-DCLPRIM("GETLOAD",loadavg_prim,0,
-        "Gets the current host's load average.")
+KNO_DCLPRIM("getload",loadavg_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+ "Gets the current host's load average.");
 static lispval loadavg_prim()
 {
   double loadavg;
@@ -125,8 +127,8 @@ static lispval loadavg_prim()
   else return KNO_FALSE;
 }
 
-DCLPRIM("LOADAVG",loadavgs_prim,0,
-        "Gets the load averages for the current host.")
+KNO_DCLPRIM("loadavg",loadavgs_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+ "Gets the load averages for the current host.");
 static lispval loadavgs_prim()
 {
   double loadavg[3]; int nsamples = getloadavg(loadavg,3);
@@ -213,11 +215,12 @@ static u8_string get_malloc_info()
 #endif
 }
 
-DCLPRIM("RUSAGE",rusage_prim,MAX_ARGS(1)|MIN_ARGS(0),
-        "`(RUSAGE [*field*])` returns information about the "
-        "current process. *field*, if provided, indicates the "
-        "value to return. Otherwise, a slotmap of possible "
-        "values is returned.")
+KNO_DCLPRIM("rusage",rusage_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
+ "`(RUSAGE [*field*])` "
+ "returns information about the current process. "
+ "*field*, if provided, indicates the value to "
+ "return. Otherwise, a slotmap of possible values "
+ "is returned.");
 static lispval rusage_prim(lispval field)
 {
   struct rusage r;
@@ -502,8 +505,8 @@ static int setprop(lispval result,u8_string field,char *value)
   else return 0;
 }
 
-DCLPRIM("UNAME",uname_prim,0,
-        "Returns a slotmap describing the hosting OS.")
+KNO_DCLPRIM("uname",uname_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+ "Returns a slotmap describing the hosting OS.");
 static lispval uname_prim()
 {
 #if ((HAVE_SYS_UTSNAME_H)&&(HAVE_UNAME))
@@ -525,24 +528,24 @@ static lispval uname_prim()
 #endif
 }
 
-DCLPRIM("GETPID",getpid_prim,0,
-        "Gets the PID (process ID) for the current process")
+KNO_DCLPRIM("getpid",getpid_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+ "Gets the PID (process ID) for the current process");
 static lispval getpid_prim()
 {
   pid_t pid = getpid();
   return KNO_INT(((unsigned long)pid));
 }
-DCLPRIM("GETPPID",getppid_prim,0,
-        "Gets the PID (process ID) for the parent of the "
-        "current process")
+KNO_DCLPRIM("getppid",getppid_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+ "Gets the PID (process ID) for the parent of the "
+ "current process");
 static lispval getppid_prim()
 {
   pid_t pid = getppid();
   return KNO_INT(((unsigned long)pid));
 }
 
-DCLPRIM("STACKSIZE",stacksize_prim,0,
-        "Gets the stack size for the current thread")
+KNO_DCLPRIM("stacksize",stacksize_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+ "Gets the stack size for the current thread");
 static lispval stacksize_prim()
 {
   ssize_t size = u8_stacksize();
@@ -551,16 +554,18 @@ static lispval stacksize_prim()
   else return KNO_INT(size);
 }
 
-DCLPRIM("THREADID",threadid_prim,0,
-        "Gets the numeric identifier for the current thread.")
+KNO_DCLPRIM("threadid",threadid_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+ "Gets the numeric identifier for the current "
+ "thread.");
 static lispval threadid_prim()
 {
   long long tid = u8_threadid();
   return KNO_INT(tid);
 }
 
-DCLPRIM("PROCSTRING",getprocstring_prim,0,
-        "Gets a string identifying the current thread id and process id")
+KNO_DCLPRIM("procstring",getprocstring_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+ "Gets a string identifying the current thread id "
+ "and process id");
 static lispval getprocstring_prim()
 {
   unsigned char buf[128];
@@ -568,48 +573,51 @@ static lispval getprocstring_prim()
   return kno_mkstring(pinfo);
 }
 
-DCLPRIM("MEMUSAGE",memusage_prim,0,
-        "Gets the memory usage by the current process.")
+KNO_DCLPRIM("memusage",memusage_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+ "Gets the memory usage by the current process.");
 static lispval memusage_prim()
 {
   ssize_t size = u8_memusage();
   return KNO_INT(size);
 }
 
-DCLPRIM("VMEMUSAGE",vmemusage_prim,0,
-        "Gets the virtual memory usage by the current process.")
+KNO_DCLPRIM("vmemusage",vmemusage_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+ "Gets the virtual memory usage by the current "
+ "process.");
 static lispval vmemusage_prim()
 {
   ssize_t size = u8_vmemusage();
   return KNO_INT(size);
 }
 
-DCLPRIM("PHYSMEM",physmem_prim,0,
-        "Gets the physical memory available on the host.")
+KNO_DCLPRIM("physmem",physmem_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+ "Gets the physical memory available on the host.");
 static lispval physmem_prim()
 {
   ssize_t size = u8_physmem();
   return KNO_INT(size);
 }
 
-DCLPRIM("MEMLOAD",memload_prim,0,
-        "Gets the memory load for the current process.")
+KNO_DCLPRIM("memload",memload_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+ "Gets the memory load for the current process.");
 static lispval memload_prim()
 {
   double load = u8_memload();
   return kno_make_flonum(load);
 }
 
-DCLPRIM("VMEMLOAD",vmemload_prim,0,
-        "Gets the virtual memory load for the current process.")
+KNO_DCLPRIM("vmemload",vmemload_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+ "Gets the virtual memory load for the current "
+ "process.");
 static lispval vmemload_prim()
 {
   double vload = u8_vmemload();
   return kno_make_flonum(vload);
 }
 
-DCLPRIM("USERTIME",usertime_prim,0,
-        "Gets the total user-space run time for the current process.")
+KNO_DCLPRIM("usertime",usertime_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+ "Gets the total user-space run time for the "
+ "current process.");
 static lispval usertime_prim()
 {
   struct rusage r;
@@ -624,8 +632,9 @@ static lispval usertime_prim()
     return kno_init_double(NULL,msecs);}
 }
 
-DCLPRIM("SYSTIME",systime_prim,0,
-        "Gets the total system run time for the current process.")
+KNO_DCLPRIM("systime",systime_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+ "Gets the total system run time for the current "
+ "process.");
 static lispval systime_prim()
 {
   struct rusage r;
@@ -640,12 +649,12 @@ static lispval systime_prim()
     return kno_init_double(NULL,msecs);}
 }
 
-DCLPRIM("CPUSAGE",cpusage_prim,MAX_ARGS(1)|MIN_ARGS(0),
-        "Provides relative CPU usage information. With no "
-        "argument, this returns usage since the process started, "
-        "as a slotmap. The result of this call can be passed "
-        "as an argument to a later call to get relative timing "
-        "information")
+KNO_DCLPRIM("cpusage",cpusage_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
+ "Provides relative CPU usage information. With no "
+ "argument, this returns usage since the process "
+ "started, as a slotmap. The result of this call "
+ "can be passed as an argument to a later call to "
+ "get relative timing information");
 static lispval cpusage_prim(lispval arg)
 {
   if (VOIDP(arg))
@@ -845,36 +854,7 @@ KNO_EXPORT void kno_init_sysprims_c()
   total_ram_symbol=kno_intern("totalram");
   max_vmem_symbol=kno_intern("maxvmem");
 
-  DECL_PRIM(hostname_prim,0,kno_sys_module);
-  DECL_PRIM(hostaddrs_prim,1,kno_sys_module);
-  DECL_PRIM(getenv_prim,1,kno_sys_module);
-
-  kno_idefn(kno_sys_module,kno_make_cprim1("RUSAGE",rusage_prim,0));
-  kno_idefn(kno_sys_module,kno_make_cprim1("CPUSAGE",cpusage_prim,0));
-
-  DECL_PRIM(rusage_prim,1,kno_sys_module);
-  DECL_PRIM(cpusage_prim,1,kno_sys_module);
-
-  DECL_PRIM(memusage_prim,0,kno_sys_module);
-
-  DECL_PRIM(memusage_prim,0,kno_sys_module);
-  DECL_PRIM(vmemusage_prim,0,kno_sys_module);
-  DECL_PRIM(memload_prim,0,kno_sys_module);
-  DECL_PRIM(vmemload_prim,0,kno_sys_module);
-  DECL_PRIM(usertime_prim,0,kno_sys_module);
-  DECL_PRIM(systime_prim,0,kno_sys_module);
-  DECL_PRIM(physmem_prim,0,kno_sys_module);
-
-  DECL_PRIM(loadavg_prim,0,kno_sys_module);
-  DECL_PRIM(loadavgs_prim,0,kno_sys_module);
-
-  DECL_PRIM(uname_prim,0,kno_sys_module);
-
-  DECL_PRIM(getpid_prim,0,kno_sys_module);
-  DECL_PRIM(getppid_prim,0,kno_sys_module);
-  DECL_PRIM(threadid_prim,0,kno_sys_module);
-  DECL_PRIM(getprocstring_prim,0,kno_sys_module);
-  DECL_PRIM(stacksize_prim,0,kno_sys_module);
+  init_local_cprims();
 
   kno_def_evalfn(kno_sys_module,"#ENV",
                  "#:ENV\"HOME\" or #:ENV:HOME\n"
@@ -883,4 +863,28 @@ KNO_EXPORT void kno_init_sysprims_c()
 
   kno_init_procprims_c();
 
+}
+
+static void init_local_cprims()
+{
+  KNO_LINK_PRIM("cpusage",cpusage_prim,1,kno_sys_module);
+  KNO_LINK_PRIM("systime",systime_prim,0,kno_sys_module);
+  KNO_LINK_PRIM("usertime",usertime_prim,0,kno_sys_module);
+  KNO_LINK_PRIM("vmemload",vmemload_prim,0,kno_sys_module);
+  KNO_LINK_PRIM("memload",memload_prim,0,kno_sys_module);
+  KNO_LINK_PRIM("physmem",physmem_prim,0,kno_sys_module);
+  KNO_LINK_PRIM("vmemusage",vmemusage_prim,0,kno_sys_module);
+  KNO_LINK_PRIM("memusage",memusage_prim,0,kno_sys_module);
+  KNO_LINK_PRIM("procstring",getprocstring_prim,0,kno_sys_module);
+  KNO_LINK_PRIM("threadid",threadid_prim,0,kno_sys_module);
+  KNO_LINK_PRIM("stacksize",stacksize_prim,0,kno_sys_module);
+  KNO_LINK_PRIM("getppid",getppid_prim,0,kno_sys_module);
+  KNO_LINK_PRIM("getpid",getpid_prim,0,kno_sys_module);
+  KNO_LINK_PRIM("uname",uname_prim,0,kno_sys_module);
+  KNO_LINK_PRIM("rusage",rusage_prim,1,kno_sys_module);
+  KNO_LINK_PRIM("loadavg",loadavgs_prim,0,kno_sys_module);
+  KNO_LINK_PRIM("getload",loadavg_prim,0,kno_sys_module);
+  KNO_LINK_PRIM("getenv",getenv_prim,1,kno_sys_module);
+  KNO_LINK_PRIM("hostaddrs",hostaddrs_prim,1,kno_sys_module);
+  KNO_LINK_PRIM("gethostname",hostname_prim,0,kno_sys_module);
 }

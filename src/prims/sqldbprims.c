@@ -44,8 +44,7 @@
 #include "kno/sqldb.h"
 
 #include <libu8/u8printf.h>
-
-kno_lisp_type kno_sqldb_type, kno_sqlproc_type;
+#include <kno/cprims.h>
 
 static lispval exec_enabled_symbol;
 
@@ -223,6 +222,10 @@ FDPRIM(sqldb_exec,"SQLDB/EXEC",3,KNO_NEEDS_3ARGS,
        kno_sqldb_type,KNO_VOID,kno_string_type,KNO_VOID,-1,KNO_VOID,
        (lispval db,lispval query,lispval colinfo))
 */
+KNO_DCLPRIM3("sqldb/exec",sqldb_exec,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+ "`(SQLDB/EXEC *dbptr* *sql* *colinfo*)` **undocumented**",
+ kno_sqldb_type,KNO_VOID,kno_string_type,KNO_VOID,
+ kno_any_type,KNO_VOID);
 static lispval sqldb_exec(lispval db,lispval query,lispval colinfo)
 {
   struct KNO_SQLDB *sqldb = KNO_GET_CONS(db,kno_sqldb_type,struct KNO_SQLDB *);
@@ -234,6 +237,8 @@ static lispval sqldb_exec(lispval db,lispval query,lispval colinfo)
                      CSTRING(query),db);
 }
 
+KNO_DCLPRIM("sqldb/proc",sqldb_makeproc,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+ "`(SQLDB/PROC *sqldb* *sqltext* [*colinfo*] [*paraminfo*...] )` **undocumented**");
 static lispval sqldb_makeproc(int n,lispval *args)
 {
   if (PRED_TRUE
@@ -259,6 +264,8 @@ static lispval sqldb_makeproc(int n,lispval *args)
   else return VOID;
 }
 
+KNO_DCLPRIM("sqldb/proc+",sqlproc_plus,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+ "`(SQLDB/PROC+ *sqlproc* *sqltext* [*colinfo*] [*paraminfo*...] )` **undocumented**");
 static lispval sqlproc_plus(int n,lispval *args)
 {
   lispval arg1 = args[0], result = VOID;
@@ -288,6 +295,10 @@ static lispval sqlproc_plus(int n,lispval *args)
 
 /* Accessors */
 
+KNO_DCLPRIM1("sqldb/proc/query",sqlproc_query,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(SQLDB/PROC/QUERY *dbproc*)` "
+ "=> sqlstring",
+ kno_sqlproc_type,KNO_VOID);
 static lispval sqlproc_query(lispval sqldb)
 {
   struct KNO_SQLPROC *xdbp = KNO_GET_CONS
@@ -295,6 +306,10 @@ static lispval sqlproc_query(lispval sqldb)
   return kno_mkstring(xdbp->sqldb_qtext);
 }
 
+KNO_DCLPRIM1("sqldb/proc/spec",sqlproc_spec,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(SQLDB/PROC/SPEC *dbproc*)` "
+ "=> dbspecstring",
+ kno_sqlproc_type,KNO_VOID);
 static lispval sqlproc_spec(lispval sqldb)
 {
   struct KNO_SQLPROC *xdbp = KNO_GET_CONS
@@ -302,6 +317,10 @@ static lispval sqlproc_spec(lispval sqldb)
   return kno_mkstring(xdbp->sqldb_spec);
 }
 
+KNO_DCLPRIM1("sqldb/proc/db",sqlproc_db,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(SQLDB/PROC/DB *dbproc*)` "
+ "=> dbptr",
+ kno_sqlproc_type,KNO_VOID);
 static lispval sqlproc_db(lispval sqldb)
 {
   struct KNO_SQLPROC *xdbp = KNO_GET_CONS
@@ -309,6 +328,10 @@ static lispval sqlproc_db(lispval sqldb)
   return kno_incref(xdbp->sqldbptr);
 }
 
+KNO_DCLPRIM1("sqldb/proc/typemap",sqlproc_typemap,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(SQLDB/PROC/TYPEMAP *dbproc*)` "
+ "=> colinfo",
+ kno_sqlproc_type,KNO_VOID);
 static lispval sqlproc_typemap(lispval sqldb)
 {
   struct KNO_SQLPROC *xdbp = KNO_GET_CONS
@@ -316,6 +339,10 @@ static lispval sqlproc_typemap(lispval sqldb)
   return kno_incref(xdbp->sqldb_colinfo);
 }
 
+KNO_DCLPRIM1("sqldb/proc/params",sqlproc_params,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(SQLDB/PROC/PARAMS *dbproc*)` "
+ "=> paraminfo",
+ kno_sqlproc_type,KNO_VOID);
 static lispval sqlproc_params(lispval sqldb)
 {
   struct KNO_SQLPROC *xdbp = KNO_GET_CONS
@@ -334,9 +361,10 @@ static lispval sqlproc_params(lispval sqldb)
 
 int sqldb_initialized = 0;
 
+static lispval sqldb_module;
+
 KNO_EXPORT void kno_init_sqldbprims_c()
 {
-  lispval sqldb_module;
   if (sqldb_initialized) return;
   sqldb_initialized = 1;
   kno_init_scheme();
@@ -347,42 +375,15 @@ KNO_EXPORT void kno_init_sqldbprims_c()
 
   exec_enabled_symbol = kno_intern("sqlexec");
 
-  kno_sqldb_type = kno_register_cons_type("SQLDB");
   kno_recyclers[kno_sqldb_type]=recycle_sqldb;
   kno_unparsers[kno_sqldb_type]=unparse_sqldb;
 
-  kno_sqlproc_type = kno_register_cons_type("SQLPROC");
   kno_recyclers[kno_sqlproc_type]=recycle_sqlproc;
   kno_unparsers[kno_sqlproc_type]=unparse_sqlproc;
   kno_applyfns[kno_sqlproc_type]=(kno_applyfn)callsqlproc;
   kno_functionp[kno_sqlproc_type]=1;
 
-  kno_idefn3(sqldb_module,"SQLDB/EXEC",sqldb_exec,2,
-            "`(SQLDB/EXEC *dbptr* *sql* *colinfo*)`",
-            kno_sqldb_type,VOID,
-            kno_string_type,VOID,
-            -1,VOID);
-  kno_idefnN(sqldb_module,"SQLDB/PROC",sqldb_makeproc,2,
-            "`(SQLDB/PROC *sqldb* *sqltext* [*colinfo*] [*paraminfo*...] )`");
-  kno_idefnN(sqldb_module,"SQLDB/PROC+",sqlproc_plus,2,
-            "`(SQLDB/PROC+ *sqlproc* *sqltext* [*colinfo*] [*paraminfo*...] )`");
-
-  kno_idefn1(sqldb_module,"SQLDB/PROC/QUERY",sqlproc_query,1,
-            "`(SQLDB/PROC/QUERY *dbproc*)` => sqlstring",
-            kno_sqlproc_type,VOID);
-  kno_idefn1(sqldb_module,"SQLDB/PROC/DB",sqlproc_db,1,
-            "`(SQLDB/PROC/DB *dbproc*)` => dbptr",
-            kno_sqlproc_type,VOID);
-  kno_idefn1(sqldb_module,"SQLDB/PROC/SPEC",sqlproc_spec,1,
-            "`(SQLDB/PROC/SPEC *dbproc*)` => dbspecstring",
-            kno_sqlproc_type,VOID);
-  kno_idefn1(sqldb_module,"SQLDB/PROC/PARAMS",sqlproc_params,1,
-            "`(SQLDB/PROC/PARAMS *dbproc*)` => paraminfo",
-            kno_sqlproc_type,VOID);
-  kno_idefn1(sqldb_module,"SQLDB/PROC/TYPEMAP",sqlproc_typemap,1,
-            "`(SQLDB/PROC/TYPEMAP *dbproc*)` => colinfo",
-            kno_sqlproc_type,VOID);
-
+  init_local_cprims();
   kno_register_config("SQLEXEC",
                      _("whether direct execution of SQL strings is allowed"),
                      kno_boolconfig_get,kno_boolconfig_set,&exec_enabled);
@@ -396,3 +397,16 @@ KNO_EXPORT void kno_init_sqldbprims_c()
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */
+
+
+static void init_local_cprims()
+{
+  KNO_LINK_PRIM("sqldb/proc/params",sqlproc_params,1,sqldb_module);
+  KNO_LINK_PRIM("sqldb/proc/typemap",sqlproc_typemap,1,sqldb_module);
+  KNO_LINK_PRIM("sqldb/proc/db",sqlproc_db,1,sqldb_module);
+  KNO_LINK_PRIM("sqldb/proc/spec",sqlproc_spec,1,sqldb_module);
+  KNO_LINK_PRIM("sqldb/proc/query",sqlproc_query,1,sqldb_module);
+  KNO_LINK_VARARGS("sqldb/proc+",sqlproc_plus,sqldb_module);
+  KNO_LINK_VARARGS("sqldb/proc",sqldb_makeproc,sqldb_module);
+  KNO_LINK_PRIM("sqldb/exec",sqldb_exec,3,sqldb_module);
+}

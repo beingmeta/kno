@@ -19,30 +19,32 @@
 
 #include <libu8/libu8.h>
 #include <libu8/u8convert.h>
+#include <kno/cprims.h>
+
 
 static u8_string StrSearchKey=_("string search/key");
 
 /* Character functions */
 
-DCLPRIM1("CHAR->INTEGER",char2integer,MAX_ARGS(1),
-         "`(CHAR->INTEGER *char*)`",
-         kno_character_type,KNO_VOID)
+KNO_DCLPRIM1("char->integer",char2integer,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(CHAR->INTEGER *char*)` **undocumented**",
+ kno_character_type,KNO_VOID);
 static lispval char2integer(lispval arg)
 {
   return KNO_INT(KNO_CHAR2CODE(arg));
 }
 
-DCLPRIM1("INTEGER->CHAR",integer2char,MAX_ARGS(1),
-         "`(CHAR->INTEGER *char*)`",
-         kno_fixnum_type,KNO_VOID)
+KNO_DCLPRIM1("integer->char",integer2char,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(CHAR->INTEGER *char*)` **undocumented**",
+ kno_fixnum_type,KNO_VOID);
 static lispval integer2char(lispval arg)
 {
   return KNO_CODE2CHAR(kno_getint(arg));
 }
 
-DCLPRIM1("CHAR-ALPHABETIC?",char_alphabeticp,MAX_ARGS(1),
-         "`(CHAR-ALPHABETIC? *char*)`",
-         kno_character_type,KNO_VOID)
+KNO_DCLPRIM1("char-alphabetic?",char_alphabeticp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(CHAR-ALPHABETIC? *char*)` **undocumented**",
+ kno_character_type,KNO_VOID);
 static lispval char_alphabeticp(lispval arg)
 {
   if (u8_isalpha(KNO_CHAR2CODE(arg)))
@@ -50,9 +52,9 @@ static lispval char_alphabeticp(lispval arg)
   else return KNO_FALSE;
 }
 
-DCLPRIM1("CHAR-NUMERIC?",char_numericp,MAX_ARGS(1),
-         "`(CHAR-NUMERIC? *char*)`",
-         kno_character_type,KNO_VOID)
+KNO_DCLPRIM1("char-numeric?",char_numericp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(CHAR-NUMERIC? *char*)` **undocumented**",
+ kno_character_type,KNO_VOID);
 static lispval char_numericp(lispval arg)
 {
   if (u8_isdigit(KNO_CHAR2CODE(arg)))
@@ -60,9 +62,9 @@ static lispval char_numericp(lispval arg)
   else return KNO_FALSE;
 }
 
-DCLPRIM1("CHAR-WHITESPACE?",char_whitespacep,MAX_ARGS(1),
-         "`(CHAR-WHITESPACE? *char*)`",
-         kno_character_type,KNO_VOID)
+KNO_DCLPRIM1("char-whitespace?",char_whitespacep,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(CHAR-WHITESPACE? *char*)` **undocumented**",
+ kno_character_type,KNO_VOID);
 static lispval char_whitespacep(lispval arg)
 {
   if (u8_isspace(KNO_CHAR2CODE(arg)))
@@ -70,9 +72,9 @@ static lispval char_whitespacep(lispval arg)
   else return KNO_FALSE;
 }
 
-DCLPRIM1("CHAR-UPPER-CASE?",char_upper_casep,MAX_ARGS(1),
-         "`(CHAR-UPPER-CASE? *char*)`",
-         kno_character_type,KNO_VOID)
+KNO_DCLPRIM1("char-upper-case?",char_upper_casep,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(CHAR-UPPER-CASE? *char*)` **undocumented**",
+ kno_character_type,KNO_VOID);
 static lispval char_upper_casep(lispval arg)
 {
   if (u8_isupper(KNO_CHAR2CODE(arg)))
@@ -80,27 +82,27 @@ static lispval char_upper_casep(lispval arg)
   else return KNO_FALSE;
 }
 
-DCLPRIM1("CHAR-LOWER-CASE?",char_lower_casep,MAX_ARGS(1),
-         "`(CHAR-LOWER-CASE? *char*)`",
-         kno_character_type,KNO_VOID)
+KNO_DCLPRIM1("char-lower-case?",char_lower_casep,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(CHAR-LOWER-CASE? *char*)` **undocumented**",
+ kno_character_type,KNO_VOID);
 static lispval char_lower_casep(lispval arg)
 {
   if (u8_islower(KNO_CHAR2CODE(arg))) return KNO_TRUE;
   else return KNO_FALSE;
 }
 
-DCLPRIM1("CHAR-ALPHANUMERIC?",char_alphanumericp,MAX_ARGS(1),
-         "`(CHAR-ALPHANUMERIC? *char*)`",
-         kno_character_type,KNO_VOID)
+KNO_DCLPRIM1("char-alphanumeric?",char_alphanumericp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(CHAR-ALPHANUMERIC? *char*)` **undocumented**",
+ kno_character_type,KNO_VOID);
 static lispval char_alphanumericp(lispval arg)
 {
   if (u8_isalnum(KNO_CHAR2CODE(arg))) return KNO_TRUE;
   else return KNO_FALSE;
 }
 
-DCLPRIM1("CHAR-PUNCTUATION?",char_punctuationp,MAX_ARGS(1),
-         "`(CHAR-PUNCTUATION? *char*)`",
-         kno_character_type,KNO_VOID)
+KNO_DCLPRIM1("char-punctuation?",char_punctuationp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(CHAR-PUNCTUATION? *char*)` **undocumented**",
+ kno_character_type,KNO_VOID);
 static lispval char_punctuationp(lispval arg)
 {
   if (u8_ispunct(KNO_CHAR2CODE(arg))) return KNO_TRUE;
@@ -109,9 +111,9 @@ static lispval char_punctuationp(lispval arg)
 
 /* String predicates */
 
-DCLPRIM1("ASCII?",asciip,MAX_ARGS(1),
-         "`(ASCII? *string*)`",
-         kno_string_type,KNO_VOID)
+KNO_DCLPRIM1("ascii?",asciip,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(ASCII? *string*)` **undocumented**",
+ kno_string_type,KNO_VOID);
 static lispval asciip(lispval string)
 {
   const u8_byte *scan = CSTRING(string);
@@ -122,9 +124,9 @@ static lispval asciip(lispval string)
   return KNO_TRUE;
 }
 
-DCLPRIM1("LATIN1?",latin1p,MAX_ARGS(1),
-         "`(LATIN1? *string*)`",
-         kno_string_type,KNO_VOID)
+KNO_DCLPRIM1("latin1?",latin1p,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(LATIN1? *string*)` **undocumented**",
+ kno_string_type,KNO_VOID);
 static lispval latin1p(lispval string)
 {
   const u8_byte *scan = CSTRING(string);
@@ -136,9 +138,10 @@ static lispval latin1p(lispval string)
   return KNO_TRUE;
 }
 
-DCLPRIM("LOWERCASE?",lowercasep,MAX_ARGS(1),
-        "`(LOWERCASE? *textarg*)` returns true if *textarg* "
-        "(a string or character) is lowercase.")
+KNO_DCLPRIM("lowercase?",lowercasep,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(LOWERCASE? *textarg*)` "
+ "returns true if *textarg* (a string or character) "
+ "is lowercase.");
 static lispval lowercasep(lispval string)
 {
   if (STRINGP(string)) {
@@ -153,9 +156,10 @@ static lispval lowercasep(lispval string)
   else return kno_type_error("string or character","lowercasep",string);
 }
 
-DCLPRIM("UPPERCASE?",uppercasep,MAX_ARGS(1),
-        "`(UPPERCASE? *textarg*)` returns true if *textarg* "
-        "(a string or character) is uppercase.")
+KNO_DCLPRIM("uppercase?",uppercasep,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(UPPERCASE? *textarg*)` "
+ "returns true if *textarg* (a string or character) "
+ "is uppercase.");
 static lispval uppercasep(lispval string)
 {
   if (STRINGP(string)) {
@@ -170,9 +174,10 @@ static lispval uppercasep(lispval string)
   else return kno_type_error("string or character","uppercasep",string);
 }
 
-DCLPRIM("CAPITALIZED?",capitalizedp,MAX_ARGS(1),
-        "`(CAPITALIZED? *textarg*)` returns true if *textarg* "
-        "(a string or character) is capitalized.")
+KNO_DCLPRIM("capitalized?",capitalizedp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(CAPITALIZED? *textarg*)` "
+ "returns true if *textarg* (a string or character) "
+ "is capitalized.");
 static lispval capitalizedp(lispval string)
 {
   if (STRINGP(string)) {
@@ -185,11 +190,12 @@ static lispval capitalizedp(lispval string)
   else return kno_type_error("string or character","capitalizedp",string);
 }
 
-DCLPRIM2("SOMECAP?",some_capitalizedp,MAX_ARGS(2)|MIN_ARGS(1),
-         "`(SOMECAP? *string* *window*)` returns true if *string* "
-         "contains any uppercase characters. If *window* is provided, "
-         "it limits the number of characters searched",
-         kno_string_type,KNO_VOID,kno_fixnum_type,KNO_VOID)
+KNO_DCLPRIM2("somecap?",some_capitalizedp,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+ "`(SOMECAP? *string* *window*)` "
+ "returns true if *string* contains any uppercase "
+ "characters. If *window* is provided, it limits "
+ "the number of characters searched",
+ kno_string_type,KNO_VOID,kno_fixnum_type,KNO_VOID);
 static lispval some_capitalizedp(lispval string,lispval window_arg)
 {
   int window;
@@ -214,10 +220,11 @@ static lispval some_capitalizedp(lispval string,lispval window_arg)
   return KNO_FALSE;
 }
 
-DCLPRIM3("EMPTY-STRING?",empty_stringp,MIN_ARGS(1),
-         "`(EMPTY-STRING? *string*)` returns #t if *string* "
-         "is empty.",
-         -1,KNO_VOID,-1,KNO_FALSE,-1,KNO_FALSE)
+KNO_DCLPRIM3("empty-string?",empty_stringp,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
+ "`(EMPTY-STRING? *string*)` "
+ "returns #t if *string* is empty.",
+ kno_any_type,KNO_VOID,kno_any_type,KNO_FALSE,
+ kno_any_type,KNO_FALSE);
 static lispval empty_stringp(lispval string,lispval count_vspace_arg,
                             lispval count_nbsp_arg)
 {
@@ -239,9 +246,10 @@ static lispval empty_stringp(lispval string,lispval count_vspace_arg,
     return KNO_TRUE;}
 }
 
-DCLPRIM1("COMPOUND-STRING?",string_compoundp,MAX_ARGS(1),
-         "`(COMPOUND-STRING? *string*)` contains more than one word",
-         kno_string_type,KNO_VOID)
+KNO_DCLPRIM1("compound-string?",string_compoundp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(COMPOUND-STRING? *string*)` "
+ "contains more than one word",
+ kno_string_type,KNO_VOID);
 static lispval string_compoundp(lispval string)
 {
   if (STRINGP(string)) {
@@ -258,9 +266,10 @@ static lispval string_compoundp(lispval string)
   else return KNO_FALSE;
 }
 
-DCLPRIM1("MULTILINE-STRING?",string_multilinep,MAX_ARGS(1),
-         "`(MULTILINE-STRING? *string*)` contains more than one line",
-         kno_string_type,KNO_VOID)
+KNO_DCLPRIM1("multiline-string?",string_multilinep,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(MULTILINE-STRING? *string*)` "
+ "contains more than one line",
+ kno_string_type,KNO_VOID);
 static lispval string_multilinep(lispval string)
 {
   if (STRINGP(string)) {
@@ -278,10 +287,11 @@ static lispval string_multilinep(lispval string)
   else return KNO_FALSE;
 }
 
-DCLPRIM1("PHRASE-LENGTH",string_phrase_length,MAX_ARGS(1),
-         "`(PHRASE-LENGTH *string*)` returns the number of "
-         "whitespace-separated tokens in *string*",
-         kno_string_type,KNO_VOID)
+KNO_DCLPRIM1("phrase-length",string_phrase_length,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(PHRASE-LENGTH *string*)` "
+ "returns the number of whitespace-separated tokens "
+ "in *string*",
+ kno_string_type,KNO_VOID);
 static lispval string_phrase_length(lispval string)
 {
   int len = 0;
@@ -301,10 +311,11 @@ static lispval string_phrase_length(lispval string)
 
 /* String conversions */
 
-DCLPRIM1("DOWNCASE",downcase,MAX_ARGS(1),
-         "`(DOWNCASE *textarg*)` returns a lowercase "
-         "version of *textarg* (a string or character)",
-         -1,KNO_VOID)
+KNO_DCLPRIM1("downcase",downcase,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(DOWNCASE *textarg*)` "
+ "returns a lowercase version of *textarg* (a "
+ "string or character)",
+ kno_any_type,KNO_VOID);
 static lispval downcase(lispval string)
 {
   if (STRINGP(string)) {
@@ -329,21 +340,22 @@ static lispval downcase(lispval string)
          (_("string, symbol, or character"),"downcase",string);
 
 }
-DCLPRIM1("CHAR-DOWNCASE",char_downcase,MAX_ARGS(1),
-         "`(CHAR-DOWNCASE *char*)` returns the lower case "
-         "version of *char* if there is one, otherwise "
-         "returns *char*",
-         -1,KNO_VOID)
+KNO_DCLPRIM1("char-downcase",char_downcase,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(CHAR-DOWNCASE *char*)` "
+ "returns the lower case version of *char* if there "
+ "is one, otherwise returns *char*",
+ kno_any_type,KNO_VOID);
 static lispval char_downcase(lispval ch)
 {
   int c = KNO_CHARCODE(ch);
   return KNO_CODE2CHAR(u8_tolower(c));
 }
 
-DCLPRIM1("UPCASE",upcase,MAX_ARGS(1),
-         "`(UPCASE *textarg*)` returns an uppercase "
-         "version of *textarg* (a string or character)",
-         -1,KNO_VOID)
+KNO_DCLPRIM1("upcase",upcase,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(UPCASE *textarg*)` "
+ "returns an uppercase version of *textarg* (a "
+ "string or character)",
+ kno_any_type,KNO_VOID);
 static lispval upcase(lispval string)
 {
   if (STRINGP(string)) {
@@ -365,23 +377,24 @@ static lispval upcase(lispval string)
     return kno_stream2string(&out);}
   else return kno_type_error(_("string or character"),"upcase",string);
 }
-DCLPRIM1("CHAR-UPCASE",char_upcase,MAX_ARGS(1),
-         "`(CHAR-UPCASE *char*)` returns the upper case "
-         "version of *char* if there is one, otherwise "
-         "returns *char*",
-         -1,KNO_VOID)
+KNO_DCLPRIM1("char-upcase",char_upcase,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(CHAR-UPCASE *char*)` "
+ "returns the upper case version of *char* if there "
+ "is one, otherwise returns *char*",
+ kno_any_type,KNO_VOID);
 static lispval char_upcase(lispval ch)
 {
   int c = KNO_CHARCODE(ch);
   return KNO_CODE2CHAR(u8_toupper(c));
 }
 
-DCLPRIM1("CAPITALIZE",capitalize,MAX_ARGS(1),
-         "`(CAPITALIZE *textarg*)` returns a capitalized "
-         "version of *textarg* (a string or character). "
-         "For a string, the initial letters of all the word "
-         "tokens are converted to uppercase (if possible)",
-         -1,KNO_VOID)
+KNO_DCLPRIM1("capitalize",capitalize,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(CAPITALIZE *textarg*)` "
+ "returns a capitalized version of *textarg* (a "
+ "string or character). For a string, the initial "
+ "letters of all the word tokens are converted to "
+ "uppercase (if possible)",
+ kno_any_type,KNO_VOID);
 static lispval capitalize(lispval string)
 {
   if (STRINGP(string)) {
@@ -398,12 +411,13 @@ static lispval capitalize(lispval string)
   else return kno_type_error(_("string or character"),"capitalize",string);
 }
 
-DCLPRIM1("CAPITALIZE1",capitalize1,MAX_ARGS(1),
-         "`(CAPITALIZE1 *textarg*)` returns a capitalized "
-         "version of *textarg* (a string or character). "
-         "For a string, the initial letter of the first word "
-         "token is converted to uppercase (if possible)",
-         -1,KNO_VOID)
+KNO_DCLPRIM1("capitalize1",capitalize1,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(CAPITALIZE1 *textarg*)` "
+ "returns a capitalized version of *textarg* (a "
+ "string or character). For a string, the initial "
+ "letter of the first word token is converted to "
+ "uppercase (if possible)",
+ kno_any_type,KNO_VOID);
 static lispval capitalize1(lispval string)
 {
   if (STRINGP(string)) {
@@ -418,10 +432,10 @@ static lispval capitalize1(lispval string)
   else return kno_type_error(_("string or character"),"capitalize1",string);
 }
 
-DCLPRIM1("STDCAP",string_stdcap,MAX_ARGS(1),
-         "`(STDCAP *string*)` normalizes the capitalization "
-         "of *string*",
-         kno_string_type,KNO_VOID)
+KNO_DCLPRIM1("stdcap",string_stdcap,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(STDCAP *string*)` "
+ "normalizes the capitalization of *string*",
+ kno_string_type,KNO_VOID);
 static lispval string_stdcap(lispval string)
 {
   if (STRINGP(string)) {
@@ -466,10 +480,11 @@ static lispval string_stdcap(lispval string)
   else return kno_type_error(_("string"),"string_stdcap",string);
 }
 
-DCLPRIM2("STDSPACE",string_stdspace,MAX_ARGS(2)|MIN_ARGS(1),
-         "`(STDSPACE *string* *keepvspace*)` normalizes the whitespace "
-         "of *string*. *keepvspace*, if true, retains pairs of newlines.",
-         kno_string_type,KNO_VOID,-1,KNO_VOID)
+KNO_DCLPRIM2("stdspace",string_stdspace,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+ "`(STDSPACE *string* *keepvspace*)` "
+ "normalizes the whitespace of *string*. "
+ "*keepvspace*, if true, retains pairs of newlines.",
+ kno_string_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval string_stdspace(lispval string,lispval keep_vertical_arg)
 {
   int keep_vertical = KNO_TRUEP(keep_vertical_arg);
@@ -494,10 +509,12 @@ static lispval string_stdspace(lispval string,lispval keep_vertical_arg)
   return kno_stream2string(&out);
 }
 
-DCLPRIM1("STDSTRING",string_stdstring,MAX_ARGS(1),
-         "`(STDSTRING *string*)` normalizes the whitespace and capitalization "
-         "of *string*, also removing diacritical marks and other modifiers.",
-         kno_string_type,KNO_VOID)
+KNO_DCLPRIM1("stdstring",string_stdstring,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(STDSTRING *string*)` "
+ "normalizes the whitespace and capitalization of "
+ "*string*, also removing diacritical marks and "
+ "other modifiers.",
+ kno_string_type,KNO_VOID);
 static lispval string_stdstring(lispval string)
 {
   if (STRINGP(string)) {
@@ -521,11 +538,12 @@ static lispval string_stdstring(lispval string)
   else return kno_type_error("string","string_stdstring",string);
 }
 
-DCLPRIM1("STDOBJ",stdobj,MAX_ARGS(1),
-         "`(STDOBJ *arg*)` if *arg* is a string, this normalizes "
-         "its whitespace and capitalization, otherwise *arg* is "
-         "simply returned.",
-         -1,KNO_VOID)
+KNO_DCLPRIM1("stdobj",stdobj,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(STDOBJ *arg*)` "
+ "if *arg* is a string, this normalizes its "
+ "whitespace and capitalization, otherwise *arg* is "
+ "simply returned.",
+ kno_any_type,KNO_VOID);
 static lispval stdobj(lispval string)
 {
   if (STRINGP(string)) {
@@ -549,10 +567,10 @@ static lispval stdobj(lispval string)
   else return kno_incref(string);
 }
 
-DCLPRIM1("BASESTRING",string_basestring,MAX_ARGS(1),
-         "`(BASESTRING *string*)` removes diacritical marks, etc "
-         "from *string*.",
-         kno_string_type,KNO_VOID)
+KNO_DCLPRIM1("basestring",string_basestring,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(BASESTRING *string*)` "
+ "removes diacritical marks, etc from *string*.",
+ kno_string_type,KNO_VOID);
 static lispval string_basestring(lispval string)
 {
   if (STRINGP(string)) {
@@ -569,9 +587,10 @@ static lispval string_basestring(lispval string)
   else return kno_type_error("string","string_basestring",string);
 }
 
-DCLPRIM1("STARTWORD",string_startword,MAX_ARGS(1),
-         "`(STARTWORD *string*)` returns the first word for *string*",
-         kno_string_type,KNO_VOID)
+KNO_DCLPRIM1("startword",string_startword,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(STARTWORD *string*)` "
+ "returns the first word for *string*",
+ kno_string_type,KNO_VOID);
 static lispval string_startword(lispval string)
 {
   u8_string scan = CSTRING(string), start = scan, last = scan;
@@ -588,10 +607,11 @@ static lispval string_startword(lispval string)
   return kno_incref(string);
 }
 
-DCLPRIM("SYMBOLIZE",symbolize_cprim,MAX_ARGS(1),
-        "`(SYMBOLIZE *arg*)` upcases and interns *arg* "
-        "if it is a string, returns *arg* if it is already "
-        "a symbol, or signals an error otherwise")
+KNO_DCLPRIM("symbolize",symbolize_cprim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(SYMBOLIZE *arg*)` "
+ "upcases and interns *arg* if it is a string, "
+ "returns *arg* if it is already a symbol, or "
+ "signals an error otherwise");
 static lispval symbolize_cprim(lispval arg)
 {
   if (KNO_SYMBOLP(arg))
@@ -614,11 +634,12 @@ static int get_stdchar(const u8_byte **in)
   return c;
 }
 
-DCLPRIM1("TRIGRAMS",string_trigrams,MAX_ARGS(1),
-         "`(TRIGRAMS *string*)` returns all the bigrams (letter triples) "
-         "in *string* as a choice. This strips modifiers and diactricial "
-         "marks.",
-         kno_string_type,KNO_VOID)
+KNO_DCLPRIM1("trigrams",string_trigrams,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(TRIGRAMS *string*)` "
+ "returns all the bigrams (letter triples) in "
+ "*string* as a choice. This strips modifiers and "
+ "diactricial marks.",
+ kno_string_type,KNO_VOID);
 static lispval string_trigrams(lispval string)
 {
   U8_OUTPUT out; u8_byte buf[64];
@@ -644,11 +665,12 @@ static lispval string_trigrams(lispval string)
   else return kno_type_error(_("string"),"string_trigrams",string);
 }
 
-DCLPRIM1("BIGRAMS",string_bigrams,MAX_ARGS(1),
-         "`(BIGRAMS *string*)` returns all the bigrams (letter pairs) "
-         "in *string* as a choice. This strips modifiers and diactricial "
-         "marks.",
-         kno_string_type,KNO_VOID)
+KNO_DCLPRIM1("bigrams",string_bigrams,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(BIGRAMS *string*)` "
+ "returns all the bigrams (letter pairs) in "
+ "*string* as a choice. This strips modifiers and "
+ "diactricial marks.",
+ kno_string_type,KNO_VOID);
 static lispval string_bigrams(lispval string)
 {
   U8_OUTPUT out; u8_byte buf[64];
@@ -672,21 +694,23 @@ static lispval string_bigrams(lispval string)
 
 /* UTF8 related primitives */
 
-DCLPRIM1("UTF8?",utf8p_prim,MAX_ARGS(1),
-         "`(UTF8? *packet*)` returns #t if *packet* "
-         "contains a well-formed UTF-8 string.",
-         kno_packet_type,KNO_VOID)
+KNO_DCLPRIM1("utf8?",utf8p_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(UTF8? *packet*)` "
+ "returns #t if *packet* contains a well-formed "
+ "UTF-8 string.",
+ kno_packet_type,KNO_VOID);
 static lispval utf8p_prim(lispval packet)
 {
   if (u8_validp(KNO_PACKET_DATA(packet)))
     return KNO_TRUE;
   else return KNO_FALSE;
 }
-DCLPRIM1("UTF8STRING",utf8string_prim,MAX_ARGS(1),
-         "`(UTF8STRING *packet*)` converts *packet* to a string "
-         "if it contains a well-formed UTF-8 string, or simply "
-         "returns it otherwise.",
-         kno_packet_type,KNO_VOID)
+KNO_DCLPRIM1("utf8string",utf8string_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(UTF8STRING *packet*)` "
+ "converts *packet* to a string if it contains a "
+ "well-formed UTF-8 string, or simply returns it "
+ "otherwise.",
+ kno_packet_type,KNO_VOID);
 static lispval utf8string_prim(lispval packet)
 {
   if (u8_validp(KNO_PACKET_DATA(packet)))
@@ -694,10 +718,11 @@ static lispval utf8string_prim(lispval packet)
   else return kno_incref(packet);
 }
 
-DCLPRIM1("BYTE-LENGTH",string_byte_length,MAX_ARGS(1),
-         "`(BYTE-LENGTH *string*)` returns the number of bytes "
-         "in the UTF-8 representation of *string*",
-         kno_string_type,KNO_VOID)
+KNO_DCLPRIM1("byte-length",string_byte_length,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(BYTE-LENGTH *string*)` "
+ "returns the number of bytes in the UTF-8 "
+ "representation of *string*",
+ kno_string_type,KNO_VOID);
 static lispval string_byte_length(lispval string)
 {
   int len = STRLEN(string);
@@ -706,11 +731,12 @@ static lispval string_byte_length(lispval string)
 
 /* Fixing embedded NULs */
 
-DCLPRIM1("FIXNULS",fixnuls_prim,MAX_ARGS(1),
-         "`(FIXNULS *string*)` replaces any null bytes in the "
-         "utf-8 representation of string with a 'not quite kosher' "
-         "multi-byte representation.",
-         kno_string_type,KNO_VOID)
+KNO_DCLPRIM1("fixnuls",fixnuls_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(FIXNULS *string*)` "
+ "replaces any null bytes in the utf-8 "
+ "representation of string with a 'not quite "
+ "kosher' multi-byte representation.",
+ kno_string_type,KNO_VOID);
 static lispval fixnuls_prim(lispval string)
 {
   struct KNO_STRING *ss = kno_consptr(kno_string,string,kno_string_type);
@@ -816,63 +842,63 @@ static lispval compare_strings_ci(enum STRCMP need,int n,lispval *stringvals)
   return KNO_TRUE;
 }
 
-DCLPRIM("STRING=?",string_eq,MIN_ARGS(2)|KNO_VAR_ARGS,
-        "`(string=? *strings...*)`")
+KNO_DCLPRIM("string=?",string_eq,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+ "`(string=? *strings...*)` **undocumented**");
 static lispval string_eq(int n,lispval *args) {
   return compare_strings(str_eq,n,args); }
 
-DCLPRIM("STRING-CI=?",string_ci_eq,MIN_ARGS(2)|KNO_VAR_ARGS,
-        "`(STRING-CI=? *strings...*)`")
+KNO_DCLPRIM("string-ci=?",string_ci_eq,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+ "`(STRING-CI=? *strings...*)` **undocumented**");
 static lispval string_ci_eq(int n,lispval *args) {
   return compare_strings_ci(str_eq,n,args); }
 
-DCLPRIM("STRING!=?",string_ne,MIN_ARGS(2)|KNO_VAR_ARGS,
-        "`(STRING!=? *strings...*)`")
+KNO_DCLPRIM("string!=?",string_ne,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+ "`(STRING!=? *strings...*)` **undocumented**");
 static lispval string_ne(int n,lispval *args) {
   return compare_strings(str_neq,n,args); }
 
-DCLPRIM("STRING-CI!=?",string_ci_ne,MIN_ARGS(2)|KNO_VAR_ARGS,
-        "`(STRING-CI!=? *strings...*)`")
+KNO_DCLPRIM("string-ci!=?",string_ci_ne,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+ "`(STRING-CI!=? *strings...*)` **undocumented**");
 static lispval string_ci_ne(int n,lispval *args) {
   return compare_strings_ci(str_neq,n,args); }
 
-DCLPRIM("STRING<?",string_lt,MIN_ARGS(2)|KNO_VAR_ARGS,
-        "`(STRING<? *strings...*)`")
+KNO_DCLPRIM("string<?",string_lt,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+ "`(STRING<? *strings...*)` **undocumented**");
 static lispval string_lt(int n,lispval *args) {
   return compare_strings(str_lt,n,args); }
 
-DCLPRIM("STRING-CI<?",string_ci_lt,MIN_ARGS(2)|KNO_VAR_ARGS,
-        "`(STRING-CI<? *strings...*)`")
+KNO_DCLPRIM("string-ci<?",string_ci_lt,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+ "`(STRING-CI<? *strings...*)` **undocumented**");
 static lispval string_ci_lt(int n,lispval *args) {
   return compare_strings_ci(str_lt,n,args); }
 
-DCLPRIM("STRING<=?",string_lte,MIN_ARGS(2)|KNO_VAR_ARGS,
-        "`(STRING<=? *strings...*)`")
+KNO_DCLPRIM("string<=?",string_lte,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+ "`(STRING<=? *strings...*)` **undocumented**");
 static lispval string_lte(int n,lispval *args) {
   return compare_strings(str_lte,n,args); }
 
-DCLPRIM("STRING-CI<=?",string_ci_lte,MIN_ARGS(2)|KNO_VAR_ARGS,
-        "`(STRING-CI<=? *strings...*)`")
+KNO_DCLPRIM("string-ci<=?",string_ci_lte,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+ "`(STRING-CI<=? *strings...*)` **undocumented**");
 static lispval string_ci_lte(int n, lispval *args) {
   return compare_strings_ci(str_lte,n,args); }
 
-DCLPRIM("STRING>=?",string_gte,MIN_ARGS(2)|KNO_VAR_ARGS,
-        "`(STRING>=? *strings...*)`")
+KNO_DCLPRIM("string>=?",string_gte,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+ "`(STRING>=? *strings...*)` **undocumented**");
 static lispval string_gte(int n,lispval *args) {
   return compare_strings(str_gte,n,args); }
 
-DCLPRIM("STRING-CI>=?",string_ci_gte,MIN_ARGS(2)|KNO_VAR_ARGS,
-        "`(STRING-CI>=? *strings...*)`")
+KNO_DCLPRIM("string-ci>=?",string_ci_gte,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+ "`(STRING-CI>=? *strings...*)` **undocumented**");
 static lispval string_ci_gte(int n,lispval *args) {
   return compare_strings_ci(str_gte,n,args); }
 
-DCLPRIM("STRING>?",string_gt,MIN_ARGS(2)|KNO_VAR_ARGS,
-        "`(STRING>? *strings...*)`")
+KNO_DCLPRIM("string>?",string_gt,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+ "`(STRING>? *strings...*)` **undocumented**");
 static lispval string_gt(int n,lispval *args) {
   return compare_strings(str_gt,n,args); }
 
-DCLPRIM("STRING-CI>?",string_ci_gt,MIN_ARGS(2)|KNO_VAR_ARGS,
-        "`(STRING-CI>? *strings...*)`")
+KNO_DCLPRIM("string-ci>?",string_ci_gt,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+ "`(STRING-CI>? *strings...*)` **undocumented**");
 static lispval string_ci_gt(int n,lispval *args) {
   return compare_strings_ci(str_gt,n,args); }
 
@@ -936,71 +962,72 @@ static lispval compare_chars_ci(enum STRCMP need,int n,lispval *charvals)
   return KNO_TRUE;
 }
 
-DCLPRIM("CHAR=?",char_eq,MIN_ARGS(2)|KNO_VAR_ARGS,
-        "`(char=? *chars...*)`")
+KNO_DCLPRIM("char=?",char_eq,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+ "`(char=? *chars...*)` **undocumented**");
 static lispval char_eq(int n,lispval *args) {
   return compare_chars(str_eq,n,args); }
 
-DCLPRIM("CHAR-CI=?",char_ci_eq,MIN_ARGS(2)|KNO_VAR_ARGS,
-        "`(CHAR-CI=? *chars...*)`")
+KNO_DCLPRIM("char-ci=?",char_ci_eq,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+ "`(CHAR-CI=? *chars...*)` **undocumented**");
 static lispval char_ci_eq(int n,lispval *args) {
   return compare_chars_ci(str_eq,n,args); }
 
-DCLPRIM("CHAR!=?",char_ne,MIN_ARGS(2)|KNO_VAR_ARGS,
-        "`(CHAR!=? *chars...*)`")
+KNO_DCLPRIM("char!=?",char_ne,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+ "`(CHAR!=? *chars...*)` **undocumented**");
 static lispval char_ne(int n,lispval *args) {
   return compare_chars(str_neq,n,args); }
 
-DCLPRIM("CHAR-CI!=?",char_ci_ne,MIN_ARGS(2)|KNO_VAR_ARGS,
-        "`(CHAR-CI!=? *chars...*)`")
+KNO_DCLPRIM("char-ci!=?",char_ci_ne,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+ "`(CHAR-CI!=? *chars...*)` **undocumented**");
 static lispval char_ci_ne(int n,lispval *args) {
   return compare_chars_ci(str_neq,n,args); }
 
-DCLPRIM("CHAR<?",char_lt,MIN_ARGS(2)|KNO_VAR_ARGS,
-        "`(CHAR<? *chars...*)`")
+KNO_DCLPRIM("char<?",char_lt,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+ "`(CHAR<? *chars...*)` **undocumented**");
 static lispval char_lt(int n,lispval *args) {
   return compare_chars(str_lt,n,args); }
 
-DCLPRIM("CHAR-CI<?",char_ci_lt,MIN_ARGS(2)|KNO_VAR_ARGS,
-        "`(CHAR-CI<? *chars...*)`")
+KNO_DCLPRIM("char-ci<?",char_ci_lt,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+ "`(CHAR-CI<? *chars...*)` **undocumented**");
 static lispval char_ci_lt(int n,lispval *args) {
   return compare_chars_ci(str_lt,n,args); }
 
-DCLPRIM("CHAR<=?",char_lte,MIN_ARGS(2)|KNO_VAR_ARGS,
-        "`(CHAR<=? *chars...*)`")
+KNO_DCLPRIM("char<=?",char_lte,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+ "`(CHAR<=? *chars...*)` **undocumented**");
 static lispval char_lte(int n,lispval *args) {
   return compare_chars(str_lte,n,args); }
 
-DCLPRIM("CHAR-CI<=?",char_ci_lte,MIN_ARGS(2)|KNO_VAR_ARGS,
-        "`(CHAR-CI<=? *chars...*)`")
+KNO_DCLPRIM("char-ci<=?",char_ci_lte,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+ "`(CHAR-CI<=? *chars...*)` **undocumented**");
 static lispval char_ci_lte(int n, lispval *args) {
   return compare_chars_ci(str_lte,n,args); }
 
-DCLPRIM("CHAR>=?",char_gte,MIN_ARGS(2)|KNO_VAR_ARGS,
-        "`(CHAR>=? *chars...*)`")
+KNO_DCLPRIM("char>=?",char_gte,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+ "`(CHAR>=? *chars...*)` **undocumented**");
 static lispval char_gte(int n,lispval *args) {
   return compare_chars(str_gte,n,args); }
 
-DCLPRIM("CHAR-CI>=?",char_ci_gte,MIN_ARGS(2)|KNO_VAR_ARGS,
-        "`(CHAR-CI>=? *chars...*)`")
+KNO_DCLPRIM("char-ci>=?",char_ci_gte,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+ "`(CHAR-CI>=? *chars...*)` **undocumented**");
 static lispval char_ci_gte(int n,lispval *args) {
   return compare_chars_ci(str_gte,n,args); }
 
-DCLPRIM("CHAR>?",char_gt,MIN_ARGS(2)|KNO_VAR_ARGS,
-        "`(CHAR>? *chars...*)`")
+KNO_DCLPRIM("char>?",char_gt,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+ "`(CHAR>? *chars...*)` **undocumented**");
 static lispval char_gt(int n,lispval *args) {
   return compare_chars(str_gt,n,args); }
 
-DCLPRIM("CHAR-CI>?",char_ci_gt,MIN_ARGS(2)|KNO_VAR_ARGS,
-        "`(CHAR-CI>? *chars...*)`")
+KNO_DCLPRIM("char-ci>?",char_ci_gt,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+ "`(CHAR-CI>? *chars...*)` **undocumented**");
 static lispval char_ci_gt(int n,lispval *args) {
   return compare_chars_ci(str_gt,n,args); }
 
 /* String building */
 
-DCLPRIM("STRING-APPEND",string_append_prim,KNO_VAR_ARGS,
-        "`(STRING-APPEND *strings...*)` creates a new string "
-        "by appending together each of *strings*.")
+KNO_DCLPRIM("string-append",string_append_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(-1),
+ "`(STRING-APPEND *strings...*)` "
+ "creates a new string by appending together each "
+ "of *strings*.");
 static lispval string_append_prim(int n,lispval *args)
 {
   int i = 0;
@@ -1014,9 +1041,10 @@ static lispval string_append_prim(int n,lispval *args)
   return kno_stream2string(&out);
 }
 
-DCLPRIM("STRING",string_prim,KNO_VAR_ARGS,
-        "`(STRING *strings|chars...*)` creates a new string "
-        "by appending together strings or characters.")
+KNO_DCLPRIM("string",string_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(-1),
+ "`(STRING *strings|chars...*)` "
+ "creates a new string by appending together "
+ "strings or characters.");
 static lispval string_prim(int n,lispval *args)
 {
   int i = 0;
@@ -1030,11 +1058,11 @@ static lispval string_prim(int n,lispval *args)
   return kno_stream2string(&out);
 }
 
-DCLPRIM2("MAKE-STRING",makestring_prim,MAX_ARGS(2)|MIN_ARGS(1),
-         "`(MAKE-STRING *len* [*initchar*])` creates a new string "
-         "of *len* characters, initialied to *initchar* which defaults "
-         "to #\\Space",
-         kno_fixnum_type,VOID,kno_character_type,KNO_VOID)
+KNO_DCLPRIM2("make-string",makestring_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+ "`(MAKE-STRING *len* [*initchar*])` "
+ "creates a new string of *len* characters, "
+ "initialied to *initchar* which defaults to #\\Space",
+ kno_fixnum_type,KNO_VOID,kno_character_type,KNO_VOID);
 static lispval makestring_prim(lispval len,lispval character)
 {
   struct U8_OUTPUT out;
@@ -1074,10 +1102,11 @@ static int has_suffix_test(lispval string,lispval suffix)
       return 1;
     else return 0;}
 }
-DCLPRIM2("HAS-SUFFIX",has_suffix,MAX_ARGS(2)|MIN_ARGS(2)|NDCALL,
-         "`(HAS-SUFFIX *string* *suffixes*)` returns true if *string* "
-         "starts with any of *suffixes* (also strings).",
-         -1,KNO_VOID,-1,KNO_VOID)
+KNO_DCLPRIM2("has-suffix",has_suffix,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+ "`(HAS-SUFFIX *string* *suffixes*)` "
+ "returns true if *string* starts with any of "
+ "*suffixes* (also strings).",
+ kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval has_suffix(lispval string,lispval suffix)
 {
   lispval notstring;
@@ -1118,17 +1147,18 @@ static lispval has_suffix(lispval string,lispval suffix)
     return KNO_FALSE;}
   else return KNO_FALSE;
 }
-DCLPRIM2("IS-SUFFIX",is_suffix,MAX_ARGS(2)|MIN_ARGS(2),
-         "`(IS-SUFFIX *suffix* *string*)` returns true if *string* "
-         "starts with *suffix*.",
-         kno_string_type,KNO_VOID,kno_string_type,KNO_VOID)
+KNO_DCLPRIM2("is-suffix",is_suffix,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+ "`(IS-SUFFIX *suffix* *string*)` "
+ "returns true if *string* starts with *suffix*.",
+ kno_string_type,KNO_VOID,kno_string_type,KNO_VOID);
 static lispval is_suffix(lispval suffix,lispval string) {
   return has_suffix(string,suffix); }
 
-DCLPRIM2("STRIP-SUFFIX",strip_suffix,MAX_ARGS(2)|MIN_ARGS(2)|NDCALL,
-         "`(STRIP-SUFFIX *string* *suffixes*)` removes the longest of "
-         "*suffixes* from the end of *string*, if any.",
-         -1,KNO_VOID,-1,KNO_VOID)
+KNO_DCLPRIM2("strip-suffix",strip_suffix,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+ "`(STRIP-SUFFIX *string* *suffixes*)` "
+ "removes the longest of *suffixes* from the end of "
+ "*string*, if any.",
+ kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval strip_suffix(lispval string,lispval suffix)
 {
   lispval notstring;
@@ -1179,10 +1209,11 @@ static int has_prefix_test(lispval string,lispval prefix)
     else return 0;}
 }
 
-DCLPRIM2("HAS-PREFIX",has_prefix,MAX_ARGS(2)|MIN_ARGS(2)|NDCALL,
-         "`(HAS-PREFIX *string* *prefixes*)` returns true if *string* "
-         "starts with any of *prefixes* (also strings).",
-         -1,KNO_VOID,-1,KNO_VOID)
+KNO_DCLPRIM2("has-prefix",has_prefix,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+ "`(HAS-PREFIX *string* *prefixes*)` "
+ "returns true if *string* starts with any of "
+ "*prefixes* (also strings).",
+ kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval has_prefix(lispval string,lispval prefix)
 {
   lispval notstring;
@@ -1222,17 +1253,18 @@ static lispval has_prefix(lispval string,lispval prefix)
     return KNO_FALSE;}
   else return KNO_FALSE;
 }
-DCLPRIM2("IS-PREFIX",is_prefix,MAX_ARGS(2)|MIN_ARGS(2),
-         "`(IS-PREFIX *prefix* *string*)` returns true if *string* "
-         "starts with *prefix*.",
-         kno_string_type,KNO_VOID,kno_string_type,KNO_VOID)
+KNO_DCLPRIM2("is-prefix",is_prefix,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+ "`(IS-PREFIX *prefix* *string*)` "
+ "returns true if *string* starts with *prefix*.",
+ kno_string_type,KNO_VOID,kno_string_type,KNO_VOID);
 static lispval is_prefix(lispval prefix,lispval string) {
   return has_prefix(string,prefix); }
 
-DCLPRIM2("STRIP-PREFIX",strip_prefix,MAX_ARGS(2)|MIN_ARGS(2)|NDCALL,
-         "`(STRIP-PREFIX *string* *suffixes*)` removes the longest of "
-         "*suffixes* from the beginning of *string*, if any.",
-         -1,KNO_VOID,-1,KNO_VOID)
+KNO_DCLPRIM2("strip-prefix",strip_prefix,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+ "`(STRIP-PREFIX *string* *suffixes*)` "
+ "removes the longest of *suffixes* from the "
+ "beginning of *string*, if any.",
+ kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval strip_prefix(lispval string,lispval prefix)
 {
   lispval notstring;
@@ -1307,12 +1339,12 @@ static int check_yesp(u8_string arg,lispval strings,int ignorecase)
   return 0;
 }
 
-DCLPRIM4("YES?",yesp_prim,MAX_ARGS(4)|MIN_ARGS(1),
-         "`(YES? *string* [*default*] [*yesses*] [*nos*])` "
-         "returns true if *string* is recognized as "
-         "an affirmative natural langauge response.",
-         -1,VOID,-1,KNO_FALSE,
-         -1,EMPTY,-1,EMPTY)
+KNO_DCLPRIM4("yes?",yesp_prim,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(1),
+	     "`(YES? *string* [*default*] [*yesses*] [*nos*])` "
+	     "returns true if *string* is recognized as an "
+	     "affirmative natural langauge response.",
+	     kno_any_type,KNO_VOID,kno_any_type,KNO_FALSE,
+	     kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval yesp_prim(lispval arg,lispval dflt,lispval yes,lispval no)
 {
   u8_string string_arg; int ignorecase = 0;
@@ -1329,11 +1361,13 @@ static lispval yesp_prim(lispval arg,lispval dflt,lispval yes,lispval no)
 
 /* STRSEARCH */
 
-DCLPRIM3("STRMATCH?",strmatchp_prim,MIN_ARGS(2)|MAX_ARGS(3)|NDCALL,
-         "`(STRMATCH? *string* *patterns* *pos*)` return true "
-         "if any of *patterns* (a choice of strings or regexes) "
-         "matches the substring of *string* starting at *pos*.",
-         kno_string_type,VOID,-1,VOID,kno_fixnum_type,VOID)
+KNO_DCLPRIM3("strmatch?",strmatchp_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+ "`(STRMATCH? *string* *patterns* *pos*)` "
+ "return true if any of *patterns* (a choice of "
+ "strings or regexes) matches the substring of "
+ "*string* starting at *pos*.",
+ kno_string_type,KNO_VOID,kno_any_type,KNO_VOID,
+ kno_fixnum_type,KNO_VOID);
 static lispval strmatchp_prim(lispval pat,lispval string,lispval ef)
 {
   if (CHOICEP(string)) {
@@ -1384,15 +1418,18 @@ static lispval strmatchp_prim(lispval pat,lispval string,lispval ef)
 
 static lispval entity_escape;
 
-DCLPRIM3("STRING->PACKET",string2packet,MAX_ARGS(3)|MIN_ARGS(1),
-         "`(STRING->PACKET *string* [*encoding*] [*escape*])` converts "
-         "*string* into a packet based on *encoding*. Characters which "
-         "cannot be converted are escaped based on the *escape* arg. "
-         "If *escape* is '**entities**, HTML escapes are used, if "
-         "*escape* is #f (the default), non-represented characters "
-         "are ignored, and otherwise \\u escapes are emitted. *encoding* "
-         "is either a string or symbol naming the encoding scheme.",
-         kno_string_type,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID)
+KNO_DCLPRIM3("string->packet",string2packet,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
+ "`(STRING->PACKET *string* [*encoding*] [*escape*])` "
+ "converts *string* into a packet based on "
+ "*encoding*. Characters which cannot be converted "
+ "are escaped based on the *escape* arg. If "
+ "*escape* is '**entities**, HTML escapes are used, "
+ "if *escape* is #f (the default), non-represented "
+ "characters are ignored, and otherwise \\u escapes "
+ "are emitted. *encoding* is either a string or "
+ "symbol naming the encoding scheme.",
+ kno_string_type,KNO_VOID,kno_any_type,KNO_VOID,
+ kno_any_type,KNO_VOID);
 static lispval string2packet(lispval string,lispval encoding,lispval escape)
 {
   char *data; int n_bytes;
@@ -1419,14 +1456,15 @@ static lispval string2packet(lispval string,lispval encoding,lispval escape)
   else return KNO_ERROR;
 }
 
-DCLPRIM("->SECRET",x2secret_prim,MAX_ARGS(1),
-        "`(->SECRET *object*)` returns a *secret packet* from "
-        "*object* whose printed representation does not disclose it's "
-        "value but which can be used as arguments to many string "
-        "combination functions. If *object* is a packet, it's bytes "
-        "are used directly, if *object* is a string, it's UTF-8 "
-        "representation is used. Otherwise, the object is unparsed "
-        "into a string.")
+KNO_DCLPRIM("->secret",x2secret_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(->SECRET *object*)` "
+ "returns a *secret packet* from *object* whose "
+ "printed representation does not disclose it's "
+ "value but which can be used as arguments to many "
+ "string combination functions. If *object* is a "
+ "packet, it's bytes are used directly, if *object* "
+ "is a string, it's UTF-8 representation is used. "
+ "Otherwise, the object is unparsed into a string.");
 static lispval x2secret_prim(lispval arg)
 {
   if (TYPEP(arg,kno_secret_type))
@@ -1443,12 +1481,12 @@ static lispval x2secret_prim(lispval arg)
   else return kno_type_error("string/packet","x2secret_prim",arg);
 }
 
-DCLPRIM2("PACKET->STRING",packet2string,MAX_ARGS(2)|MIN_ARGS(1),
-         "`(PACKET->STRING *packet* [*encoding*])` converts the "
-         "bytes of *packet* into a string based on the named "
-         "*encoding* which can be a string or symbol and defaults "
-         "to UTF-8",
-         kno_packet_type,KNO_VOID,-1,KNO_FALSE)
+KNO_DCLPRIM2("packet->string",packet2string,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+ "`(PACKET->STRING *packet* [*encoding*])` "
+ "converts the bytes of *packet* into a string "
+ "based on the named *encoding* which can be a "
+ "string or symbol and defaults to UTF-8",
+ kno_packet_type,KNO_VOID,kno_any_type,KNO_FALSE);
 static lispval packet2string(lispval packet,lispval encoding)
 {
   if (KNO_PACKET_LENGTH(packet)==0)
@@ -1501,12 +1539,14 @@ static u8_string strsearch(u8_string string,lispval pat,
   else return NULL;
 }
 
-DCLPRIM3("STRING-SUBST",string_subst_prim,MAX_ARGS(3),
-         "`(STRING-SUBST *string* *pat* *replace*)` "
-         "replaces substrings of *string* which match *pattern* "
-         "with *replacement*. *pattern* can be a string or "
-         "a regex and arguments substitutions are not available.",
-         kno_string_type,KNO_VOID,-1,KNO_VOID,kno_string_type,KNO_VOID)
+KNO_DCLPRIM3("string-subst",string_subst_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3),
+ "`(STRING-SUBST *string* *pat* *replace*)` "
+ "replaces substrings of *string* which match "
+ "*pattern* with *replacement*. *pattern* can be a "
+ "string or a regex and arguments substitutions are "
+ "not available.",
+ kno_string_type,KNO_VOID,kno_any_type,KNO_VOID,
+ kno_string_type,KNO_VOID);
 static lispval string_subst_prim(lispval string,lispval pat,lispval with)
 {
   if (STRLEN(string)==0) return kno_incref(string);
@@ -1533,10 +1573,11 @@ static lispval string_subst_prim(lispval string,lispval pat,lispval with)
     else return kno_incref(string);}
 }
 
-DCLPRIM("STRING-SUBST*",string_subst_star,MIN_ARGS(3)|KNO_VAR_ARGS,
-        "`(STRING-SUBST* *string* [*pattern* *subst*]...)` replaces "
-        "substrings matching each *pattern* with the corresponding *subst* "
-        "starting from left to right.")
+KNO_DCLPRIM("string-subst*",string_subst_star,KNO_VAR_ARGS|KNO_MIN_ARGS(3),
+ "`(STRING-SUBST* *string* [*pattern* *subst*]...)` "
+ "replaces substrings matching each *pattern* with "
+ "the corresponding *subst* starting from left to "
+ "right.");
 static lispval string_subst_star(int n,lispval *args)
 {
   lispval base = args[0]; int i = 1;
@@ -1558,10 +1599,11 @@ static lispval string_subst_star(int n,lispval *args)
   return base;
 }
 
-DCLPRIM1("TRIM-SPACES",trim_spaces,MAX_ARGS(1),
-         "`(TRIM-SPACES *string*)` removes leading and trailing "
-         "whitespace from *string*.",
-         kno_string_type,KNO_VOID)
+KNO_DCLPRIM1("trim-spaces",trim_spaces,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(TRIM-SPACES *string*)` "
+ "removes leading and trailing whitespace from "
+ "*string*.",
+ kno_string_type,KNO_VOID);
 static lispval trim_spaces(lispval string)
 {
   const u8_byte *start = CSTRING(string), *end = start+STRLEN(string);
@@ -1591,12 +1633,13 @@ static lispval trim_spaces(lispval string)
 
 /* Glomming */
 
-DCLPRIM("GLOM",glom_lexpr,MAX_ARGS(0)|KNO_VAR_ARGS,
-        "`(GLOM *objects...*)` returns a string concatenating "
-        "either the text of *objects* (if they are strings) or the "
-        "text of their printed representations (if they are not). "
-        "If any of the arguments are choices, `GLOM` returns a choice "
-        "of object combinations.")
+KNO_DCLPRIM("glom",glom_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(-1),
+ "`(GLOM *objects...*)` "
+ "returns a string concatenating either the text of "
+ "*objects* (if they are strings) or the text of "
+ "their printed representations (if they are not). "
+ "If any of the arguments are choices, `GLOM` "
+ "returns a choice of object combinations.");
 static lispval glom_lexpr(int n,lispval *args)
 {
   unsigned char *result_data, *write;
@@ -1721,105 +1764,7 @@ KNO_EXPORT void kno_init_stringprims_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  DECL_PRIM(asciip,1,kno_scheme_module);
-  DECL_PRIM(latin1p,1,kno_scheme_module);
-  DECL_PRIM(lowercasep,1,kno_scheme_module);
-  DECL_PRIM(uppercasep,1,kno_scheme_module);
-
-  DECL_PRIM(utf8p_prim,1,kno_scheme_module);
-  DECL_PRIM(utf8string_prim,1,kno_scheme_module);
-  DECL_PRIM(string_byte_length,1,kno_scheme_module);
-  DECL_PRIM(fixnuls_prim,1,kno_scheme_module);
-
-  DECL_PRIM(char2integer,1,kno_scheme_module);
-  DECL_PRIM(integer2char,1,kno_scheme_module);
-  DECL_PRIM(char_alphabeticp,1,kno_scheme_module);
-  DECL_PRIM(char_numericp,1,kno_scheme_module);
-  DECL_PRIM(char_alphanumericp,1,kno_scheme_module);
-  DECL_PRIM(char_punctuationp,1,kno_scheme_module);
-  DECL_PRIM(char_whitespacep,1,kno_scheme_module);
-  DECL_PRIM(char_upper_casep,1,kno_scheme_module);
-  DECL_PRIM(char_lower_casep,1,kno_scheme_module);
-
-  DECL_PRIM(char_downcase,1,kno_scheme_module);
-  DECL_PRIM(downcase,1,kno_scheme_module);
-  DECL_PRIM(char_upcase,1,kno_scheme_module);
-  DECL_PRIM(upcase,1,kno_scheme_module);
-
-  DECL_PRIM_N(string_eq,kno_scheme_module);
-  DECL_PRIM_N(string_ci_eq,kno_scheme_module);
-  DECL_PRIM_N(string_ne,kno_scheme_module);
-  DECL_PRIM_N(string_ci_ne,kno_scheme_module);
-  DECL_PRIM_N(string_lt,kno_scheme_module);
-  DECL_PRIM_N(string_ci_lt,kno_scheme_module);
-  DECL_PRIM_N(string_gt,kno_scheme_module);
-  DECL_PRIM_N(string_ci_gt,kno_scheme_module);
-  DECL_PRIM_N(string_gte,kno_scheme_module);
-  DECL_PRIM_N(string_ci_gte,kno_scheme_module);
-  DECL_PRIM_N(string_lte,kno_scheme_module);
-  DECL_PRIM_N(string_ci_lte,kno_scheme_module);
-
-  DECL_PRIM_N(char_eq,kno_scheme_module);
-  DECL_PRIM_N(char_ci_eq,kno_scheme_module);
-  DECL_PRIM_N(char_ne,kno_scheme_module);
-  DECL_PRIM_N(char_ci_ne,kno_scheme_module);
-  DECL_PRIM_N(char_lt,kno_scheme_module);
-  DECL_PRIM_N(char_ci_lt,kno_scheme_module);
-  DECL_PRIM_N(char_gt,kno_scheme_module);
-  DECL_PRIM_N(char_ci_gt,kno_scheme_module);
-  DECL_PRIM_N(char_gte,kno_scheme_module);
-  DECL_PRIM_N(char_ci_gte,kno_scheme_module);
-  DECL_PRIM_N(char_lte,kno_scheme_module);
-  DECL_PRIM_N(char_ci_lte,kno_scheme_module);
-
-  DECL_PRIM(capitalizedp,1,kno_scheme_module);
-  DECL_PRIM(capitalize,1,kno_scheme_module);
-  DECL_PRIM(capitalize1,1,kno_scheme_module);
-  DECL_PRIM(symbolize_cprim,1,kno_scheme_module);
-
-  DECL_PRIM(some_capitalizedp,2,kno_scheme_module);
-
-  DECL_PRIM(empty_stringp,3,kno_scheme_module);
-  DECL_PRIM(string_compoundp,1,kno_scheme_module);
-  DECL_PRIM(string_multilinep,1,kno_scheme_module);
-  DECL_PRIM(string_phrase_length,1,kno_scheme_module);
-
-  DECL_PRIM(string_stdspace,2,kno_scheme_module);
-  DECL_PRIM(string_stdcap,1,kno_scheme_module);
-  DECL_PRIM(string_stdstring,1,kno_scheme_module);
-  DECL_PRIM(string_basestring,1,kno_scheme_module);
-  DECL_PRIM(string_startword,1,kno_scheme_module);
-  DECL_PRIM(string_trigrams,1,kno_scheme_module);
-  DECL_PRIM(string_bigrams,1,kno_scheme_module);
-
-  DECL_PRIM(yesp_prim,4,kno_scheme_module);
-
-  DECL_PRIM(stdobj,1,kno_scheme_module);
-
-  DECL_PRIM(has_prefix,2,kno_scheme_module);
-  DECL_PRIM(is_prefix,2,kno_scheme_module);
-  DECL_PRIM(strip_prefix,2,kno_scheme_module);
-
-  DECL_PRIM(has_suffix,2,kno_scheme_module);
-  DECL_PRIM(is_suffix,2,kno_scheme_module);
-  DECL_PRIM(strip_suffix,2,kno_scheme_module);
-
-  DECL_PRIM_N(string_append_prim,kno_scheme_module);
-  DECL_PRIM_N(string_prim,kno_scheme_module);
-  DECL_PRIM(makestring_prim,2,kno_scheme_module);
-
-  DECL_PRIM(string_subst_prim,3,kno_scheme_module);
-  DECL_PRIM(trim_spaces,1,kno_scheme_module);
-  DECL_PRIM(strmatchp_prim,3,kno_scheme_module);
-  DECL_PRIM_N(string_subst_star,kno_scheme_module);
-
-  DECL_PRIM_N(glom_lexpr,kno_scheme_module);
-
-  DECL_PRIM(string2packet,3,kno_scheme_module);
-  DECL_PRIM(packet2string,2,kno_scheme_module);
-  DECL_PRIM(x2secret_prim,1,kno_scheme_module);
-  DECL_PRIM(x2secret_prim,1,kno_scheme_module);
-
+  init_local_cprims();
   kno_def_evalfn(kno_scheme_module,"TEXTIF","",textif_evalfn);
 
   entity_escape = kno_intern("entities");
@@ -1831,3 +1776,88 @@ KNO_EXPORT void kno_init_stringprims_c()
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */
+
+
+static void init_local_cprims()
+{
+  KNO_LINK_VARARGS("glom",glom_lexpr,kno_scheme_module);
+  KNO_LINK_PRIM("trim-spaces",trim_spaces,1,kno_scheme_module);
+  KNO_LINK_VARARGS("string-subst*",string_subst_star,kno_scheme_module);
+  KNO_LINK_PRIM("string-subst",string_subst_prim,3,kno_scheme_module);
+  KNO_LINK_PRIM("packet->string",packet2string,2,kno_scheme_module);
+  KNO_LINK_PRIM("->secret",x2secret_prim,1,kno_scheme_module);
+  KNO_LINK_PRIM("string->packet",string2packet,3,kno_scheme_module);
+  KNO_LINK_PRIM("strmatch?",strmatchp_prim,3,kno_scheme_module);
+  KNO_LINK_PRIM("yes?",yesp_prim,4,kno_scheme_module);
+  KNO_LINK_PRIM("strip-prefix",strip_prefix,2,kno_scheme_module);
+  KNO_LINK_PRIM("is-prefix",is_prefix,2,kno_scheme_module);
+  KNO_LINK_PRIM("has-prefix",has_prefix,2,kno_scheme_module);
+  KNO_LINK_PRIM("strip-suffix",strip_suffix,2,kno_scheme_module);
+  KNO_LINK_PRIM("is-suffix",is_suffix,2,kno_scheme_module);
+  KNO_LINK_PRIM("has-suffix",has_suffix,2,kno_scheme_module);
+  KNO_LINK_PRIM("make-string",makestring_prim,2,kno_scheme_module);
+  KNO_LINK_VARARGS("string",string_prim,kno_scheme_module);
+  KNO_LINK_VARARGS("string-append",string_append_prim,kno_scheme_module);
+  KNO_LINK_VARARGS("char-ci>?",char_ci_gt,kno_scheme_module);
+  KNO_LINK_VARARGS("char>?",char_gt,kno_scheme_module);
+  KNO_LINK_VARARGS("char-ci>=?",char_ci_gte,kno_scheme_module);
+  KNO_LINK_VARARGS("char>=?",char_gte,kno_scheme_module);
+  KNO_LINK_VARARGS("char-ci<=?",char_ci_lte,kno_scheme_module);
+  KNO_LINK_VARARGS("char<=?",char_lte,kno_scheme_module);
+  KNO_LINK_VARARGS("char-ci<?",char_ci_lt,kno_scheme_module);
+  KNO_LINK_VARARGS("char<?",char_lt,kno_scheme_module);
+  KNO_LINK_VARARGS("char-ci!=?",char_ci_ne,kno_scheme_module);
+  KNO_LINK_VARARGS("char!=?",char_ne,kno_scheme_module);
+  KNO_LINK_VARARGS("char-ci=?",char_ci_eq,kno_scheme_module);
+  KNO_LINK_VARARGS("char=?",char_eq,kno_scheme_module);
+  KNO_LINK_VARARGS("string-ci>?",string_ci_gt,kno_scheme_module);
+  KNO_LINK_VARARGS("string>?",string_gt,kno_scheme_module);
+  KNO_LINK_VARARGS("string-ci>=?",string_ci_gte,kno_scheme_module);
+  KNO_LINK_VARARGS("string>=?",string_gte,kno_scheme_module);
+  KNO_LINK_VARARGS("string-ci<=?",string_ci_lte,kno_scheme_module);
+  KNO_LINK_VARARGS("string<=?",string_lte,kno_scheme_module);
+  KNO_LINK_VARARGS("string-ci<?",string_ci_lt,kno_scheme_module);
+  KNO_LINK_VARARGS("string<?",string_lt,kno_scheme_module);
+  KNO_LINK_VARARGS("string-ci!=?",string_ci_ne,kno_scheme_module);
+  KNO_LINK_VARARGS("string!=?",string_ne,kno_scheme_module);
+  KNO_LINK_VARARGS("string-ci=?",string_ci_eq,kno_scheme_module);
+  KNO_LINK_VARARGS("string=?",string_eq,kno_scheme_module);
+  KNO_LINK_PRIM("fixnuls",fixnuls_prim,1,kno_scheme_module);
+  KNO_LINK_PRIM("byte-length",string_byte_length,1,kno_scheme_module);
+  KNO_LINK_PRIM("utf8string",utf8string_prim,1,kno_scheme_module);
+  KNO_LINK_PRIM("utf8?",utf8p_prim,1,kno_scheme_module);
+  KNO_LINK_PRIM("bigrams",string_bigrams,1,kno_scheme_module);
+  KNO_LINK_PRIM("trigrams",string_trigrams,1,kno_scheme_module);
+  KNO_LINK_PRIM("symbolize",symbolize_cprim,1,kno_scheme_module);
+  KNO_LINK_PRIM("startword",string_startword,1,kno_scheme_module);
+  KNO_LINK_PRIM("basestring",string_basestring,1,kno_scheme_module);
+  KNO_LINK_PRIM("stdobj",stdobj,1,kno_scheme_module);
+  KNO_LINK_PRIM("stdstring",string_stdstring,1,kno_scheme_module);
+  KNO_LINK_PRIM("stdspace",string_stdspace,2,kno_scheme_module);
+  KNO_LINK_PRIM("stdcap",string_stdcap,1,kno_scheme_module);
+  KNO_LINK_PRIM("capitalize1",capitalize1,1,kno_scheme_module);
+  KNO_LINK_PRIM("capitalize",capitalize,1,kno_scheme_module);
+  KNO_LINK_PRIM("char-upcase",char_upcase,1,kno_scheme_module);
+  KNO_LINK_PRIM("upcase",upcase,1,kno_scheme_module);
+  KNO_LINK_PRIM("char-downcase",char_downcase,1,kno_scheme_module);
+  KNO_LINK_PRIM("downcase",downcase,1,kno_scheme_module);
+  KNO_LINK_PRIM("phrase-length",string_phrase_length,1,kno_scheme_module);
+  KNO_LINK_PRIM("multiline-string?",string_multilinep,1,kno_scheme_module);
+  KNO_LINK_PRIM("compound-string?",string_compoundp,1,kno_scheme_module);
+  KNO_LINK_PRIM("empty-string?",empty_stringp,3,kno_scheme_module);
+  KNO_LINK_PRIM("somecap?",some_capitalizedp,2,kno_scheme_module);
+  KNO_LINK_PRIM("capitalized?",capitalizedp,1,kno_scheme_module);
+  KNO_LINK_PRIM("uppercase?",uppercasep,1,kno_scheme_module);
+  KNO_LINK_PRIM("lowercase?",lowercasep,1,kno_scheme_module);
+  KNO_LINK_PRIM("latin1?",latin1p,1,kno_scheme_module);
+  KNO_LINK_PRIM("ascii?",asciip,1,kno_scheme_module);
+  KNO_LINK_PRIM("char-punctuation?",char_punctuationp,1,kno_scheme_module);
+  KNO_LINK_PRIM("char-alphanumeric?",char_alphanumericp,1,kno_scheme_module);
+  KNO_LINK_PRIM("char-lower-case?",char_lower_casep,1,kno_scheme_module);
+  KNO_LINK_PRIM("char-upper-case?",char_upper_casep,1,kno_scheme_module);
+  KNO_LINK_PRIM("char-whitespace?",char_whitespacep,1,kno_scheme_module);
+  KNO_LINK_PRIM("char-numeric?",char_numericp,1,kno_scheme_module);
+  KNO_LINK_PRIM("char-alphabetic?",char_alphabeticp,1,kno_scheme_module);
+  KNO_LINK_PRIM("integer->char",integer2char,1,kno_scheme_module);
+  KNO_LINK_PRIM("char->integer",char2integer,1,kno_scheme_module);
+}

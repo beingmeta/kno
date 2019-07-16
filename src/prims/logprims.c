@@ -27,6 +27,8 @@
 #include <libu8/u8crypto.h>
 
 #include <zlib.h>
+#include <kno/cprims.h>
+
 
 static int printout_helper(U8_OUTPUT *out,lispval x)
 {
@@ -345,6 +347,10 @@ void kno_summarize_backtrace(U8_OUTPUT *out,u8_exception ex)
 
 /* Table showing primitives */
 
+KNO_DCLPRIM3("%show",lisp_show_table,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+ "Shows a table",
+ kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
+ kno_any_type,KNO_VOID);
 static lispval lisp_show_table(lispval tables,lispval slotids,lispval portarg)
 {
   U8_OUTPUT *out = get_output_port(portarg);
@@ -391,9 +397,7 @@ KNO_EXPORT void kno_init_logprims_c()
   /* Conditional logging with priority level */
   kno_def_evalfn(kno_sys_module,"LOGIF+","",logifplus_evalfn);
 
-  kno_idefn3(kno_sys_module,"%SHOW",lisp_show_table,1|KNO_NDCALL,
-            "Shows a table",
-            -1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID);
+  init_local_cprims();
 }
 
 /* Emacs local variables
@@ -402,3 +406,8 @@ KNO_EXPORT void kno_init_logprims_c()
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */
+
+
+static void init_local_cprims(){
+  KNO_LINK_PRIM("%show",lisp_show_table,3,kno_sys_module);
+}
