@@ -21,6 +21,7 @@ static int knod_loglevel;
 #include "kno/storage.h"
 #include "kno/eval.h"
 #include "kno/ports.h"
+#include "kno/cprims.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8stringfns.h>
@@ -687,7 +688,7 @@ static void shutdown_server(u8_string why)
   u8_server_shutdown(&dtype_server,shutdown_grace);
 }
 
-static lispval knodaemon_shutdown_prim(lispval why)
+static lispval knod_shutdown_prim(lispval why)
 {
   if (shutdown_reason)
     return KNO_FALSE;
@@ -1266,6 +1267,10 @@ static void init_configs()
      kno_boolconfig_get,kno_boolconfig_set,&no_storage_api);
 }
 
+static void init_local_cprims()
+{
+}
+
 static kno_lexenv init_core_env()
 {
   /* This is a safe environment (e.g. a sandbox without file/io etc). */
@@ -1276,11 +1281,22 @@ static kno_lexenv init_core_env()
   kno_finish_module(kno_dbserv_module);
 
   /* We add some special functions */
-  kno_def_evalfn(core_module,"BOUND?","",boundp_evalfn);
-  kno_idefn(core_module,kno_make_cprim0("BOOT-TIME",get_boot_time));
-  kno_idefn(core_module,kno_make_cprim0("UPTIME",get_uptime));
-  kno_idefn(core_module,kno_make_cprim0("ASYNCOK?",asyncok));
-  kno_idefn(core_module,kno_make_cprim0("SERVER-STATUS",get_server_status));
+  kno_def_evalfn(core_module,"bound?","",boundp_evalfn);
+
+  kno_idefn(core_module,
+            kno_make_cprim0("BOOT-TIME",get_boot_time,0,
+                            "Returns the time this daemon was started"));
+  kno_idefn(core_module,
+            kno_make_cprim0("UPTIME",get_uptime,0,
+                            "Returns how long this daemon has been running"));
+  kno_idefn(core_module,
+            kno_make_cprim0
+            ("ASYNCOK?",asyncok,0,
+             "Returns true if the daemon can use async I/O processing"));
+  kno_idefn(core_module,
+            kno_make_cprim0("SERVER-STATUS",get_server_status,0,
+                            "Returns the status of the server"));
+  init_local_cprims();
 
   return core_env;
 }
@@ -1387,9 +1403,9 @@ static int init_server_env(u8_string server_spec,kno_lexenv core_env)
             exit(kno_interr(result));}
           else kno_decref(result);}}}}
   else server_env = exposed_lexenv;
-  kno_idefn1((lispval)working_env,"KNOD/SHUTDOWN!",knodaemon_shutdown_prim,0,
-            "Shuts down the running Knodaemon",
-            -1,KNO_VOID);
+  kno_defn((lispval)working_env,
+           kno_make_cprim1("knod/shutdown!",knod_shutdown_prim,MIN_ARGS(0),
+                           "Shuts down the running daemon"));
   return 1;
 }
 

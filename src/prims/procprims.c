@@ -225,7 +225,7 @@ static lispval exec_cmd_prim(int n,lispval *args)
   return exec_helper("exec_cmd_prim",KNO_DO_LOOKUP,n,KNO_FALSE,args);
 }
 
-DCLPRIM("KNOX",knox_prim,MIN_ARGS(1)|KNO_VAR_ARGS,
+KNO_DEFPRIM("KNOX",knox_prim,MIN_ARGS(1)|KNO_VAR_ARGS,
         "`(KNOX *scheme_file* [*envmap*] [*args*...])` replaces "
         "the current application with a Kno process reading "
         "the file *scheme_file* and applying the file's `MAIN` "
@@ -238,7 +238,7 @@ static lispval knox_prim(int n,lispval *args)
   return exec_helper("knox_prim",KNO_IS_SCHEME,n,KNO_FALSE,args);
 }
 
-DCLPRIM("FORK",fork_prim,MIN_ARGS(1)|KNO_VAR_ARGS,
+KNO_DEFPRIM("FORK",fork_prim,MIN_ARGS(1)|KNO_VAR_ARGS,
         "`(FORK *command* [*envmap*] [*args*...])` 'forks' "
         "a new process executing *command* (a string) for "
         "*args* (also strings). It returns the PID of the new process.\n"

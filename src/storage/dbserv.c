@@ -19,6 +19,7 @@ static int dbserv_loglevel;
 #include "kno/lisp.h"
 #include "kno/storage.h"
 #include "kno/apply.h"
+#include "kno/cprims.h"
 
 #include <libu8/u8printf.h>
 #include <libu8/u8filefns.h>
@@ -838,53 +839,112 @@ void kno_init_dbserv_c()
 
   module = kno_make_hashtable(NULL,67);
 
-  kno_defn(module,kno_make_cprim1("POOL-DATA",server_pool_data,0));
-  kno_defn(module,kno_make_cprim1("OID-VALUE",server_oid_value,1));
-  kno_defn(module,kno_make_cprim1("FETCH-OIDS",server_fetch_oids,1));
-  kno_defn(module,kno_make_cprim1("GET-LOAD",server_get_load,0));
-  kno_defn(module,kno_make_cprim0("UPDATE-LOCKS!",update_locks_prim));
-  kno_defn(module,kno_make_cprim2("STORE-OID!",store_oid_proc,2));
-  kno_defn(module,kno_make_cprim2("BULK-COMMIT",bulk_commit_cproc,2));
+  kno_defn(module,kno_make_cprim1
+           ("POOL-DATA",server_pool_data,MIN_ARGS(0),
+            NULL));
+  kno_defn(module,kno_make_cprim1
+           ("OID-VALUE",server_oid_value,MIN_ARGS(1),
+            NULL));
+  kno_defn(module,kno_make_cprim1
+           ("FETCH-OIDS",server_fetch_oids,MIN_ARGS(1),
+            NULL));
+  kno_defn(module,kno_make_cprim1
+           ("GET-LOAD",server_get_load,MIN_ARGS(0),
+            NULL));
+  kno_defn(module,kno_make_cprim0
+           ("UPDATE-LOCKS!",update_locks_prim,MIN_ARGS(0),
+            NULL));
+  kno_defn(module,kno_make_cprim2
+           ("STORE-OID!",store_oid_proc,MIN_ARGS(2),
+            NULL));
+  kno_defn(module,kno_make_cprim2
+           ("BULK-COMMIT",bulk_commit_cproc,MIN_ARGS(2),
+            NULL));
 
 
-  kno_defn(module,kno_make_cprim1("ISERVER-GET",iserver_get,1));
-  kno_defn(module,kno_make_cprim2("ISERVER-ADD!",iserver_add,2));
-  kno_defn(module,kno_make_cprim2("ISERVER-DROP!",iserver_drop,2));
-  kno_defn(module,kno_make_cprim1("ISERVER-BULK-ADD!",iserver_bulk_add,1));
-  kno_defn(module,kno_make_cprim1x("ISERVER-BULK-GET",iserver_bulk_get,1,
-                                 kno_vector_type,VOID));
-  kno_defn(module,kno_make_cprim1("ISERVER-GET-SIZE",iserver_get_size,1));
-  kno_defn(module,kno_make_cprim0("ISERVER-KEYS",iserver_keys));
-  kno_defn(module,kno_make_cprim0("ISERVER-SIZES",iserver_sizes));
-  kno_defn(module,kno_make_cprim0("ISERVER-WRITABLE?",iserver_writablep));
-  kno_defn(module,kno_make_cprim2("ISERVER-CHANGES",iserver_changes,2));
+  kno_defn(module,kno_make_cprim1
+           ("ISERVER-GET",iserver_get,MIN_ARGS(1),
+            NULL));
+  kno_defn(module,kno_make_cprim2
+           ("ISERVER-ADD!",iserver_add,MIN_ARGS(2),
+            NULL));
+  kno_defn(module,kno_make_cprim2
+           ("ISERVER-DROP!",iserver_drop,MIN_ARGS(2),
+            NULL));
+  kno_defn(module,kno_make_cprim1
+           ("ISERVER-BULK-ADD!",iserver_bulk_add,MIN_ARGS(1),
+            NULL));
+  kno_defn(module,kno_make_cprim1
+           ("ISERVER-BULK-GET",iserver_bulk_get,MIN_ARGS(1),
+            NULL));
+  kno_defn(module,kno_make_cprim1
+           ("ISERVER-GET-SIZE",iserver_get_size,MIN_ARGS(1),
+            NULL));
+  kno_defn(module,kno_make_cprim0
+           ("ISERVER-KEYS",iserver_keys,MIN_ARGS(0),
+            NULL));
+  kno_defn(module,kno_make_cprim0
+           ("ISERVER-SIZES",iserver_sizes,MIN_ARGS(0),
+            NULL));
+  kno_defn(module,kno_make_cprim0
+           ("ISERVER-WRITABLE?",iserver_writablep,MIN_ARGS(0),
+            NULL));
+  kno_defn(module,kno_make_cprim2
+           ("ISERVER-CHANGES",iserver_changes,MIN_ARGS(2),
+            NULL));
 
-  kno_defn(module,kno_make_cprim2x("IXSERVER-GET",ixserver_get,2,
-                                 -1,VOID,-1,VOID));
-  kno_defn(module,kno_make_cprim3("IXSERVER-ADD!",ixserver_add,3));
-  kno_defn(module,kno_make_cprim3("IXSERVER-DROP!",ixserver_drop,3));
-  kno_defn(module,kno_make_cprim2x("IXSERVER-BULK-GET",ixserver_bulk_get,2,
-                                 -1,VOID,
-                                 kno_vector_type,VOID));
-  kno_defn(module,kno_make_cprim2("IXSERVER-BULK-ADD!",ixserver_bulk_add,2));
-  kno_defn(module,kno_make_cprim2x("IXSERVER-GET-SIZE",ixserver_get_size,2,
-                                 -1,VOID,-1,VOID));
-  kno_defn(module,kno_make_cprim1x("IXSERVER-KEYS",ixserver_keys,1,
-                                 -1,VOID));
-  kno_defn(module,kno_make_cprim1x("IXSERVER-SIZES",ixserver_sizes,1,
-                                 -1,VOID));
-  kno_defn(module,kno_make_cprim1x("IXSERVER-WRITABLE?",ixserver_writablep,1,
-                                 -1,VOID));
-  kno_defn(module,kno_make_cprim3("IXSERVER-CHANGES",ixserver_changes,3));
+  kno_defn(module,kno_make_cprim2
+           ("IXSERVER-GET",ixserver_get,MIN_ARGS(2),
+            NULL));
+  kno_defn(module,kno_make_cprim3
+           ("IXSERVER-ADD!",ixserver_add,MIN_ARGS(3),
+            NULL));
+  kno_defn(module,kno_make_cprim3
+           ("IXSERVER-DROP!",ixserver_drop,MIN_ARGS(3),
+            NULL));
+  kno_defn(module,kno_make_cprim2
+           ("IXSERVER-BULK-GET",ixserver_bulk_get,MIN_ARGS(2),
+            NULL));
+  kno_defn(module,kno_make_cprim2
+           ("IXSERVER-BULK-ADD!",ixserver_bulk_add,MIN_ARGS(2),
+            NULL));
+  kno_defn(module,kno_make_cprim2
+           ("IXSERVER-GET-SIZE",ixserver_get_size,MIN_ARGS(2),
+            NULL));
+  kno_defn(module,kno_make_cprim1
+           ("IXSERVER-KEYS",ixserver_keys,MIN_ARGS(1),
+            NULL));
+  kno_defn(module,kno_make_cprim1
+           ("IXSERVER-SIZES",ixserver_sizes,MIN_ARGS(1),
+            NULL));
+  kno_defn(module,kno_make_cprim1
+           ("IXSERVER-WRITABLE?",ixserver_writablep,MIN_ARGS(1),
+            NULL));
+  kno_defn(module,kno_make_cprim3
+           ("IXSERVER-CHANGES",ixserver_changes,MIN_ARGS(3),
+            NULL));
 
-  kno_defn(module,kno_make_cprim0("GET-SYNCSTAMP",get_syncstamp_prim));
-  kno_defn(module,kno_make_cprim2("LOCK-OID",lock_oid_prim,2));
-  kno_defn(module,kno_make_cprim3("UNLOCK-OID",unlock_oid_prim,3));
-  kno_defn(module,kno_make_cprim2("CLEAR-OID-LOCK",clear_server_lock_prim,2));
-  kno_defn(module,kno_make_cprim1("BREAK-OID-LOCK",break_server_lock_prim,1));
-  kno_defn(module,kno_make_cprim1("UNLOCK-ALL",unlock_all_prim,1));
-  kno_defn(module,kno_make_cprim2("OID-CHANGES",oid_server_changes,2));
-
+  kno_defn(module,kno_make_cprim0
+           ("GET-SYNCSTAMP",get_syncstamp_prim,MIN_ARGS(0),
+            NULL));
+  kno_defn(module,kno_make_cprim2
+           ("LOCK-OID",lock_oid_prim,MIN_ARGS(2),
+            NULL));
+  kno_defn(module,kno_make_cprim3
+           ("UNLOCK-OID",unlock_oid_prim,MIN_ARGS(3),
+            NULL));
+  kno_defn(module,kno_make_cprim2
+           ("CLEAR-OID-LOCK",clear_server_lock_prim,MIN_ARGS(2),
+            NULL));
+  kno_defn(module,kno_make_cprim1
+           ("BREAK-OID-LOCK",break_server_lock_prim,MIN_ARGS(1),
+            NULL));
+  kno_defn(module,kno_make_cprim1
+           ("UNLOCK-ALL",unlock_all_prim,MIN_ARGS(1),
+            NULL));
+  kno_defn(module,kno_make_cprim2
+           ("OID-CHANGES",oid_server_changes,MIN_ARGS(2),
+            NULL));
 
   kno_register_config("SERVEPOOLS","OID pools to be served",
                      get_served_pools,
@@ -920,14 +980,12 @@ KNO_EXPORT int kno_init_dbserv()
   dbserv_initialized = 211*kno_init_storage();
 
   u8_register_source_file(_FILEINFO);
+  init_local_cprims();
   kno_init_dbserv_c();
 
   return 1;
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
+static void init_local_cprims()
+{
+}

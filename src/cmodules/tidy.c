@@ -12,6 +12,8 @@
 #include "kno/knosource.h"
 #include "kno/lisp.h"
 #include "kno/eval.h"
+#include "kno/cprims.h"
+
 #include "libu8/u8logging.h"
 
 #include "ext/tidy5/tidy.h"
@@ -116,7 +118,7 @@ static U8_MAYBE_UNUSED int testopt(lispval opts,lispval sym,int dflt)
 static lispval doctype_symbol, dontfix_symbol, wrap_symbol, xhtml_symbol;
 
 static lispval tidy_prim_helper(lispval string,lispval opts,lispval diag,
-                               int do_fixes,int xhtml)
+                                int do_fixes,int xhtml)
 {
   lispval result = KNO_VOID; TidyBuffer outbuf={NULL};
   TidyBuffer errbuf={NULL};
@@ -231,27 +233,46 @@ static lispval tidy_prim_helper(lispval string,lispval opts,lispval diag,
   return result;
 }
 
+KNO_DEFPRIM3("TIDY5",tidy_prim,MIN_ARGS(1),
+             "Cleans up HTML text in its agument",
+             kno_string_type,KNO_VOID,-1,KNO_VOID,
+             -1,KNO_VOID);
 static lispval tidy_prim(lispval string,lispval opts,lispval diag)
 {
   return tidy_prim_helper(string,opts,diag,1,-1);
 }
+
+KNO_DEFPRIM3("TIDY->INDENT",tidy_indent_prim,MIN_ARGS(1),
+             "Cleans up HTML text, indenting the result",
+             kno_string_type,KNO_VOID,-1,KNO_VOID,
+             -1,KNO_VOID);
 static lispval tidy_indent_prim(lispval string,lispval opts,lispval diag)
 {
   return tidy_prim_helper(string,opts,diag,0,-1);
 }
+
+KNO_DEFPRIM3("TIDY->HTML",tidy_html_prim,MIN_ARGS(1),
+             "Cleans up HTML text, generates HTML5 (not XHTML)",
+             kno_string_type,KNO_VOID,-1,KNO_VOID,
+             -1,KNO_VOID);
 static lispval tidy_html_prim(lispval string,lispval opts,lispval diag)
 {
   return tidy_prim_helper(string,opts,diag,1,0);
 }
+
+KNO_DEFPRIM3("TIDY->XHTML",tidy_xhtml_prim,MIN_ARGS(1),
+             "Cleans up HTML text, generating XHTML",
+             kno_string_type,KNO_VOID,-1,KNO_VOID,
+             -1,KNO_VOID);
 static lispval tidy_xhtml_prim(lispval string,lispval opts,lispval diag)
 {
   return tidy_prim_helper(string,opts,diag,1,1);
 }
 
+static lispval tidy_module;
 
 KNO_EXPORT int kno_init_tidy()
 {
-  lispval tidy_module;
   if (tidy_init) return 0;
 
   tidy_init = u8_millitime();
@@ -261,22 +282,7 @@ KNO_EXPORT int kno_init_tidy()
   wrap_symbol = kno_intern("wrap");
   tidy_module = kno_new_cmodule("tidy",0,kno_init_tidy);
 
-  kno_idefn(tidy_module,
-           kno_make_cprim3x("TIDY5",tidy_prim,1,
-                           kno_string_type,KNO_VOID,-1,KNO_VOID,
-                           -1,KNO_VOID));
-  kno_idefn(tidy_module,
-           kno_make_cprim3x("TIDY->XHTML",tidy_xhtml_prim,1,
-                           kno_string_type,KNO_VOID,-1,KNO_VOID,
-                           -1,KNO_VOID));
-  kno_idefn(tidy_module,
-           kno_make_cprim3x("TIDY->INDENT",tidy_indent_prim,1,
-                           kno_string_type,KNO_VOID,-1,KNO_VOID,
-                           -1,KNO_VOID));
-  kno_idefn(tidy_module,
-           kno_make_cprim3x("TIDY->HTML",tidy_html_prim,1,
-                           kno_string_type,KNO_VOID,-1,KNO_VOID,
-                           -1,KNO_VOID));
+  init_local_cprims();
 
   kno_finish_module(tidy_module);
 
@@ -285,9 +291,10 @@ KNO_EXPORT int kno_init_tidy()
   return 1;
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
+static void init_local_cprims()
+{
+  KNO_LINK_PRIM("TIDY5",tidy_prim,3,tidy_module);
+  KNO_LINK_PRIM("TIDY->XHTML",tidy_xhtml_prim,3,tidy_module);
+  KNO_LINK_PRIM("TIDY->INDENT",tidy_indent_prim,3,tidy_module);
+  KNO_LINK_PRIM("TIDY->HTML",tidy_html_prim,3,tidy_module);
+}

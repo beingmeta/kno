@@ -20,6 +20,7 @@
 #include "kno/ports.h"
 #include "kno/sequences.h"
 #include "kno/fileprims.h"
+#include "kno/cprims.h"
 
 #if KNO_HTMLDUMP_ENABLED
 #include "kno/webtools.h"
@@ -682,6 +683,12 @@ static int bugdir_config_set(lispval var,lispval val,void *d)
   else return KNO_ERR(-1,"BadConsoleBugDir","bugdir_config_set",NULL,val);
 }
 
+/* Local cprims */
+
+static void init_local_cprims()
+{
+}
+
 /* Load dot files into the console */
 
 static void dotloader(u8_string file,kno_lexenv env)
@@ -918,12 +925,21 @@ int main(int argc,char **argv)
     kno_set_config("INTERPRETER",interpval);
     kno_decref(interpval);}
 
-  kno_idefn((lispval)env,kno_make_cprim1("BACKTRACE",backtrace_prim,0));
+  kno_defn((lispval)env,
+           kno_make_cprim1("BACKTRACE",backtrace_prim,MIN_ARGS(0),
+                           "Dumps a backtrace of the last error, either "
+                           "into a file or to the console"));
   kno_defalias((lispval)env,"%","BACKTRACE");
 
+  kno_defn((lispval)env,
+           kno_make_cprim0("%HISTORY",history_prim,MIN_ARGS(0),
+                           "Gets the current value history"));
+
   kno_def_evalfn((lispval)env,"%HISTREF","",histref_evalfn);
-  kno_idefn0((lispval)env,"%HISTORY",history_prim,
-            "Returns the current history object");
+
+
+  init_local_cprims();
+
   history_symbol = kno_intern("%history");
   histref_symbol = kno_intern("%histref");
 

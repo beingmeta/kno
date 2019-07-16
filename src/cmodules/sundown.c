@@ -12,6 +12,7 @@
 #include "kno/lisp.h"
 #include "kno/numbers.h"
 #include "kno/eval.h"
+#include "kno/cprims.h"
 
 #include <libu8/libu8io.h>
 
@@ -75,31 +76,32 @@ static lispval markout_prim(lispval mdstring,lispval opts)
   return KNO_VOID;
 }
 
+static lispval sundown_module;
+
 KNO_EXPORT int kno_init_sundown()
 {
-  lispval sundown_module;
   if (sundown_init) return 0;
   /* u8_register_source_file(_FILEINFO); */
   sundown_init = 1;
   sundown_module = kno_new_cmodule("sundown",0,kno_init_sundown);
 
-  kno_idefn(sundown_module,
-           kno_make_cprim2x("MARKDOWN->HTML",markdown2html_prim,1,
-                           kno_string_type,KNO_VOID,-1,KNO_VOID));
-  kno_defalias(sundown_module,"MD->HTML","MARKDOWN->HTML");
-
-  kno_idefn(sundown_module,
-           kno_make_cprim2x("MARKOUT",markout_prim,1,
-                           kno_string_type,KNO_VOID,-1,KNO_VOID));
+  init_local_cprims();
 
   u8_register_source_file(_FILEINFO);
 
   return 1;
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
+static void init_local_cprims()
+{
+  KNO_DEFPRIM2("MARKDOWN->HTML",markdown2html_prim,MIN_ARGS(1),
+               "Converts a markdown string to HTML",
+               kno_string_type,KNO_VOID,-1,KNO_VOID);
+  KNO_LINK_PRIM("MARKDOWN->HTML",markdown2html_prim,2,sundown_module);
+  KNO_LINK_ALIAS("MD->HTML",markdown2html_prim,sundown_module);
+
+  KNO_DEFPRIM2("MARKOUT",markout_prim,MIN_ARGS(1),
+               "Outputs HTML for a markdown string to the standard output",
+               kno_string_type,KNO_VOID,-1,KNO_VOID);
+  KNO_LINK_PRIM("MARKOUT",markout_prim,2,sundown_module);
+}

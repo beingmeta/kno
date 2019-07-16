@@ -2432,26 +2432,23 @@ static lispval vector_set(lispval vec,lispval index,lispval val)
     return VOID;}
 }
 
+KNO_DEFPRIM1("REVERSE",kno_reverse,MIN_ARGS(1),
+	     "Reverses a sequence",
+	     kno_any_type,KNO_VOID);
+KNO_DEFPRIM("APPEND",kno_append,MIN_ARGS(0)|KNO_VAR_ARGS,
+	    "Appends sequences together");
+
 KNO_EXPORT void kno_init_seqprims_c()
 {
   u8_register_source_file(_FILEINFO);
-  kno_idefn(kno_scheme_module,kno_make_cprim1("REVERSE",kno_reverse,1));
-  kno_idefn(kno_scheme_module,kno_make_cprimn("APPEND",kno_append,0));
   init_local_cprims();
 }
-
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
-
 
 static void init_local_cprims()
 {
   lispval scheme_module = kno_scheme_module;
 
+  KNO_LINK_PRIM("reverse",kno_reverse,1,kno_scheme_module);
   KNO_LINK_PRIM("vector-set!",vector_set,3,kno_scheme_module);
   KNO_LINK_PRIM("set-cdr!",set_cdr,2,kno_scheme_module);
   KNO_LINK_PRIM("set-car!",set_car,2,kno_scheme_module);
@@ -2542,12 +2539,14 @@ static void init_local_cprims()
   KNO_LINK_PRIM("length",seqlen_prim,1,kno_scheme_module);
   KNO_LINK_PRIM("sequence?",sequencep_prim,1,kno_scheme_module);
 
+
   KNO_LINK_PRIM("map->choice",kno_map2choice,2,kno_scheme_module);
   KNO_LINK_PRIM("remove",kno_remove,2,kno_scheme_module);
   KNO_LINK_PRIM("reduce",kno_reduce,3,kno_scheme_module);
 
   KNO_LINK_VARARGS("map",mapseq_prim,kno_scheme_module);
   KNO_LINK_VARARGS("for-each",foreach_prim,kno_scheme_module);
+  KNO_LINK_VARARGS("append",kno_append,kno_scheme_module);
   KNO_LINK_VARARGS("longvec",make_long_vector,kno_scheme_module);
   KNO_LINK_VARARGS("intvec",make_int_vector,kno_scheme_module);
   KNO_LINK_VARARGS("shortvec",make_short_vector,kno_scheme_module);

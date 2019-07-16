@@ -1985,6 +1985,8 @@ static void init_types_and_tables()
 
 static void init_localfns()
 {
+  init_local_cprims();
+
   kno_def_evalfn(kno_scheme_module,"EVAL","",eval_evalfn);
   kno_def_evalfn(kno_scheme_module,"BOUND?",
                  "`(BOUND? *sym*)` returns true if *sym* (not evaluated) "
@@ -2036,6 +2038,7 @@ static void init_localfns()
                  "effected by future changes",
                  env_reset_evalfn);
 
+#if 0
   kno_idefn(kno_scheme_module,
             kno_make_cprim1("DOCUMENTATION",get_documentation,1));
 
@@ -2087,8 +2090,11 @@ static void init_localfns()
   kno_idefn(kno_scheme_module,
             kno_make_ndprim(kno_make_cprim1("%FIXCHOICE",fixchoice_prim,1)));
 
+#endif
+
   kno_def_evalfn(kno_scheme_module,"WITHENV","",withenv_evalfn);
 
+#if 0
   kno_idefn3(kno_scheme_module,"GET-ARG",get_arg_prim,2,
              "`(GET-ARG *expression* *i* [*default*])` "
              "returns the *i*'th parameter in *expression*, "
@@ -2106,12 +2112,14 @@ static void init_localfns()
 
   kno_idefn(kno_scheme_module,kno_make_cprim1("CALL/CC",callcc,1));
   kno_defalias(kno_scheme_module,"CALL-WITH-CURRENT-CONTINUATION","CALL/CC");
+#endif
 
   /* This pushes a new threadcache */
   kno_def_evalfn(kno_scheme_module,"WITH-THREADCACHE","",with_threadcache_evalfn);
   /* This ensures that there's an active threadcache, pushing a new one if
      needed or using the current one if it exists. */
   kno_def_evalfn(kno_scheme_module,"USING-THREADCACHE","",using_threadcache_evalfn);
+#if 0
   /* This sets up the current thread to use a threadcache */
   kno_idefn(kno_scheme_module,
             kno_make_cprim1("USE-THREADCACHE",use_threadcache_prim,0));
@@ -2124,12 +2132,13 @@ static void init_localfns()
             kno_make_cprim1("CLEAR-CALLCACHE!",clear_callcache,0));
   kno_defalias(kno_scheme_module,"TCACHECALL","THREAD/CACHECALL");
   kno_defalias(kno_scheme_module,"CACHEPOINT","THREAD/CACHECALL");
+#endif
 
   kno_def_evalfn(kno_scheme_module,"VOID","",void_evalfn);
   kno_def_evalfn(kno_scheme_module,"!!!NULL!!!","",null_evalfn);
   kno_def_evalfn(kno_scheme_module,"BREAK","",break_evalfn);
   kno_def_evalfn(kno_scheme_module,"DEFAULT","",default_evalfn);
-
+#if 0
   kno_idefn(kno_scheme_module,kno_make_cprimn("CHECK-VERSION",check_version_prim,1));
   kno_idefn(kno_scheme_module,kno_make_cprimn("REQUIRE-VERSION",require_version_prim,1));
 
@@ -2141,7 +2150,7 @@ static void init_localfns()
             kno_make_cprim2x("FFI/FOUND?",ffi_foundp_prim,1,
                              kno_string_type,VOID,
                              -1,VOID));
-
+#endif
   kno_register_config
     ("TAILCALL",
      "Enable/disable tail recursion in the Scheme evaluator. "

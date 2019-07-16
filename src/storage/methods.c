@@ -17,6 +17,7 @@
 #include "kno/storage.h"
 #include "kno/apply.h"
 #include "kno/methods.h"
+#include "kno/cprims.h"
 
 static lispval frame_symbol, slot_symbol, value_symbol;
 static lispval through_slot, derive_slot, inverse_slot;
@@ -754,48 +755,83 @@ KNO_EXPORT void kno_init_methods_c()
   kno_make_hashtable(&method_table,67);
   m = kno_method_table = ((lispval)(&method_table));
 
-  kno_defn(m,kno_make_cprim2("FD:INHERITED-GET",inherited_get_method,2));
-  kno_defn(m,kno_make_cprim3("FD:INHERITED-TEST",inherited_test_method,3));
-  kno_defn(m,kno_make_cprim2("FD:MULTI-GET",multi_get_method,2));
-  kno_defn(m,kno_make_cprim3("FD:MULTI-TEST",multi_test_method,3));
-  kno_defn(m,kno_make_cprim3("FD:MULTI-ADD",multi_add_method,3));
-  kno_defn(m,kno_make_cprim3("FD:MULTI-DROP",multi_drop_method,3));
+  kno_defn(m,kno_make_cprim2
+           ("FD:INHERITED-GET",inherited_get_method,MIN_ARGS(2),
+            NULL));
+  kno_defn(m,kno_make_cprim3
+           ("FD:INHERITED-TEST",inherited_test_method,MIN_ARGS(3),
+            NULL));
+  kno_defn(m,kno_make_cprim2("FD:MULTI-GET",multi_get_method,MIN_ARGS(2),
+                             NULL));
+  kno_defn(m,kno_make_cprim3("FD:MULTI-TEST",multi_test_method,MIN_ARGS(3),
+                             NULL));
+  kno_defn(m,kno_make_cprim3("FD:MULTI-ADD",multi_add_method,MIN_ARGS(3),
+                             NULL));
+  kno_defn(m,kno_make_cprim3("FD:MULTI-DROP",multi_drop_method,MIN_ARGS(3),
+                             NULL));
   {
-    lispval invget = kno_make_cprim2("FD:INVERSE-GET",inverse_get_method,2);
-    lispval invgetbase = kno_make_cprim2("FD:INVERSE-GETBASE",inverse_getbase_method,2);
-    lispval invtest = kno_make_cprim3("FD:INVERSE-TEST",inverse_test_method,3);
+    lispval invget =
+      kno_make_cprim2("FD:INVERSE-GET",inverse_get_method,MIN_ARGS(2),
+                      NULL);
+    lispval invgetbase =
+      kno_make_cprim2("FD:INVERSE-GETBASE",inverse_getbase_method,MIN_ARGS(2),
+                      NULL);
+    lispval invtest =
+      kno_make_cprim3("FD:INVERSE-TEST",inverse_test_method,MIN_ARGS(3),
+                      NULL);
     kno_defn(m,invget); kno_defn(m,invtest); kno_defn(m,invgetbase);
     kno_store(m,kno_intern("fd:inv-get"),invget);
     kno_store(m,kno_intern("fd:inv-getbase"),invgetbase);
     kno_store(m,kno_intern("fd:inv-test"),invtest);}
 
-  kno_defn(m,kno_make_cprim2("FD:ASSOC-GET",assoc_get_method,2));
-  kno_defn(m,kno_make_cprim3("FD:ASSOC-TEST",assoc_test_method,2));
-  kno_defn(m,kno_make_cprim3("FD:ASSOC-ADD",assoc_add_method,3));
-  kno_defn(m,kno_make_cprim3("FD:ASSOC-DROP",assoc_drop_method,3));
-  kno_defn(m,kno_make_cprim2("FD:CAR-GET",car_get_method,2));
-  kno_defn(m,kno_make_cprim2("FD:KLEENE-GET",kleene_plus_get_method,2));
-  kno_defn(m,kno_make_cprim2("FD:KLEENE+-GET",kleene_plus_get_method,2));
-  kno_defn(m,kno_make_cprim2("FD:KLEENE*-GET",kleene_star_get_method,2));
-#if 0
-  kno_defn(m,kno_make_cprim2("FD:IX-GET",ix_get_method,2));
-  kno_defn(m,kno_make_cprim3("FD:IX-TEST",ix_test_method,3));
-  kno_defn(m,kno_make_cprim3("FD:IX-ADD",ix_add_method,3));
-  kno_defn(m,kno_make_cprim3("FD:IX-DROP",ix_drop_method,3));
-#endif
-  kno_defn(m,kno_make_cprim2("FD:PAIRED-GET",paired_get_method,2));
-  kno_defn(m,kno_make_cprim3("FD:PAIRED-TEST",paired_test_method,3));
-  kno_defn(m,kno_make_cprim3("FD:PAIRED-DROP",paired_drop_method,3));
-  kno_defn(m,kno_make_cprim3("FD:ADD",lisp_add,3));
-  kno_defn(m,kno_make_cprim3("FD:DROP",lisp_drop,3));
+  kno_defn(m,kno_make_cprim2
+           ("FD:ASSOC-GET",assoc_get_method,MIN_ARGS(2),
+            NULL));
+  kno_defn(m,kno_make_cprim3
+           ("FD:ASSOC-TEST",assoc_test_method,MIN_ARGS(2),
+            NULL));
+  kno_defn(m,kno_make_cprim3
+           ("FD:ASSOC-ADD",assoc_add_method,MIN_ARGS(3),
+            NULL));
+  kno_defn(m,kno_make_cprim3
+           ("FD:ASSOC-DROP",assoc_drop_method,MIN_ARGS(3),
+            NULL));
+  kno_defn(m,kno_make_cprim2
+           ("FD:CAR-GET",car_get_method,MIN_ARGS(2),
+            NULL));
+  kno_defn(m,kno_make_cprim2
+           ("FD:KLEENE-GET",kleene_plus_get_method,MIN_ARGS(2),
+            NULL));
+  kno_defn(m,kno_make_cprim2
+           ("FD:KLEENE+-GET",kleene_plus_get_method,MIN_ARGS(2),
+            NULL));
+  kno_defn(m,kno_make_cprim2
+           ("FD:KLEENE*-GET",kleene_star_get_method,MIN_ARGS(2),
+            NULL));
+  kno_defn(m,kno_make_cprim2
+           ("FD:PAIRED-GET",paired_get_method,MIN_ARGS(2),
+            NULL));
+  kno_defn(m,kno_make_cprim3
+           ("FD:PAIRED-TEST",paired_test_method,MIN_ARGS(3),
+            NULL));
+  kno_defn(m,kno_make_cprim3
+           ("FD:PAIRED-DROP",paired_drop_method,MIN_ARGS(3),
+            NULL));
+  kno_defn(m,kno_make_cprim3
+           ("FD:ADD",lisp_add,MIN_ARGS(3),
+            NULL));
+  kno_defn(m,kno_make_cprim3
+           ("FD:DROP",lisp_drop,MIN_ARGS(3),
+            NULL));
 
-  kno_defn(m,kno_make_cprim3("FD:CLEAR-IMPLIES",clear_implies_effect,3));
+  kno_defn(m,kno_make_cprim3
+           ("FD:CLEAR-IMPLIES",clear_implies_effect,MIN_ARGS(3),
+            NULL));
+
+  init_local_cprims();
 
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
+static void init_local_cprims()
+{
+}

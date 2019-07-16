@@ -20,6 +20,7 @@
 #include "kno/drivers.h"
 #include "kno/eval.h"
 #include "kno/ports.h"
+#include "kno/cprims.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8timefns.h>
@@ -211,6 +212,10 @@ static lispval *handle_argv(int argc,char **argv,size_t *arglenp,
   return args;
 }
 
+static void init_local_cprims()
+{
+}
+
 int do_main(int argc,char **argv,
             u8_string exe_name,u8_string source_file,
             lispval *args,size_t n_args)
@@ -315,7 +320,12 @@ int do_main(int argc,char **argv,
           u8_log(LOG_NOTICE,FileWait,"[%d] Waiting for '%s' to exist",
                  n,wait_for_file);}}}
 
-  kno_idefn((lispval)env,kno_make_cprimn("CHAIN",chain_prim,0));
+  KNO_DEFPRIM("CHAIN",chain_prim,KNO_VAR_ARGS|MIN_ARGS(0),
+              "Resets the current process to a fresh instance of "
+              "knox");
+  KNO_LINK_PRIM("CHAIN",chain_prim,0,(lispval)env);
+
+  init_local_cprims();
 
   if (source_file) {
     lispval src = kno_wrapstring(u8_realpath(source_file,NULL));

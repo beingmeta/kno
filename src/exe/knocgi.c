@@ -59,6 +59,14 @@
 
 #include "main.h"
 
+static lispval make_cprim0(u8_string pname,kno_cprim0 fn)
+{
+  struct KNO_CPRIM *prim =
+    kno_init_cprim(pname,NULL,0,NULL,NULL,0,NULL,NULL);
+  prim->fcn_handler.call0 = fn;
+  return (lispval) prim;
+}
+
 /* This is the size of file to return all at once. */
 #define KNO_FILEBUF_MAX (256*256)
 
@@ -2145,16 +2153,23 @@ int main(int argc,char **argv)
   init_webcommon_data();
   init_webcommon_symbols();
 
-  fallback_notfoundpage = kno_make_cprim0("NOTFOUND404",notfoundpage);
+  fallback_notfoundpage = make_cprim0("NOTFOUND404",notfoundpage);
 
   /* This is the root of all client service environments */
   if (server_env == NULL) server_env = kno_working_lexenv();
-  kno_idefn((lispval)server_env,kno_make_cprim0("BOOT-TIME",get_boot_time));
-  kno_idefn((lispval)server_env,kno_make_cprim0("UPTIME",get_uptime));
   kno_idefn((lispval)server_env,
-           kno_make_cprim0("SERVLET-STATUS->STRING",servlet_status_string));
+            kno_make_cprim0("BOOT-TIME",get_boot_time,0,
+                            "Returns the time this daemon was started"));
   kno_idefn((lispval)server_env,
-           kno_make_cprim0("SERVLET-STATUS",servlet_status));
+            kno_make_cprim0("UPTIME",get_uptime,0,
+                            "Returns how long this daemon has been running"));
+  kno_idefn((lispval)server_env,
+            kno_make_cprim0
+            ("SERVLET-STATUS->STRING",servlet_status_string,0,
+             "Returns true if the daemon can use async I/O processing"));
+  kno_idefn((lispval)server_env,
+            kno_make_cprim0("SERVLET-STATUS",servlet_status,0,
+                            "Returns the status of the server"));
 
   kno_set_app_env(server_env);
 

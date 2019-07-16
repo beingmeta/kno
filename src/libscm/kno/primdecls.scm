@@ -15,7 +15,7 @@
   (let ((typeinfo (procedure-typeinfo f))
 	(defaults (procedure-defaults f))
 	(arity (procedure-arity f)))
-    (printout kno-prefix "DCLPRIM" (or (and typeinfo defaults arity) "")
+    (printout kno-prefix "KNO_DEFPRIM" (or (and typeinfo defaults arity) "")
       "(\"" (downcase (procedure-name f)) "\"," (procedure-cname f) ","
       (get-cprim-flags f kno-prefix)
       (dolist (line (get-docstrings f) i)

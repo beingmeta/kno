@@ -84,9 +84,13 @@ static lispval cleanup_app_env()
 
 KNO_EXPORT void kno_setup_app_env()
 {
-  lispval exit_handler = kno_make_cprim0("APPENV/ATEXIT",cleanup_app_env);
-  kno_config_set("ATEXIT",exit_handler);
-  kno_decref(exit_handler);
+  struct KNO_CPRIM *exit_handler =
+    kno_init_cprim("APPENV/ATEXIT","cleanup_app_env",0,_FILEINFO,
+		   "Cleans up the application environment",
+		   KNO_MAX_ARGS(0),NULL,NULL);
+  exit_handler->fcn_handler.call0 = cleanup_app_env;
+  kno_config_set("ATEXIT",(lispval)exit_handler);
+  kno_decref((lispval)exit_handler);
 }
 
 static int run_init(lispval init,kno_lexenv env)

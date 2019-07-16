@@ -212,9 +212,6 @@ KNO_EXPORT void kno_typedprim6(lispval module,kno_cprim6 fn,
 #define MIN_ARGS     KNO_MIN_ARGS
 #define NDCALL       KNO_NDCALL
 
-#if 0
-#define DEFPRIM_DECL KNO_DEFPRIM_DECL
-#endif
 #define DEFPRIM      KNO_DEFPRIM
 #define DEFPRIM1     KNO_DEFPRIM1
 #define DEFPRIM2     KNO_DEFPRIM2
@@ -231,22 +228,6 @@ KNO_EXPORT void kno_typedprim6(lispval module,kno_cprim6 fn,
 #define DEFPRIM13    KNO_DEFPRIM13
 #define DEFPRIM14    KNO_DEFPRIM14
 #define DEFPRIM15    KNO_DEFPRIM15
-#define DCLPRIM      KNO_DEFPRIM
-#define DCLPRIM1     KNO_DEFPRIM1
-#define DCLPRIM2     KNO_DEFPRIM2
-#define DCLPRIM3     KNO_DEFPRIM3
-#define DCLPRIM4     KNO_DEFPRIM4
-#define DCLPRIM5     KNO_DEFPRIM5
-#define DCLPRIM6     KNO_DEFPRIM6
-#define DCLPRIM7     KNO_DEFPRIM7
-#define DCLPRIM8     KNO_DEFPRIM8
-#define DCLPRIM9     KNO_DEFPRIM9
-#define DCLPRIM10    KNO_DEFPRIM10
-#define DCLPRIM11    KNO_DEFPRIM11
-#define DCLPRIM12    KNO_DEFPRIM12
-#define DCLPRIM13    KNO_DEFPRIM13
-#define DCLPRIM14    KNO_DEFPRIM14
-#define DCLPRIM15    KNO_DEFPRIM15
 #endif
 
 KNO_EXPORT void kno_defprimN(lispval module,kno_cprimn fn,
