@@ -155,7 +155,7 @@ static void recycle_imagick(struct KNO_RAW_CONS *c)
   DestroyMagickWand(wrapper->wand);
   if (!(KNO_STATIC_CONSP(c))) u8_free(c);
 }
-KNO_DEFPRIM1("file->imagick",file2imagick,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("file->imagick",file2imagick,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
              "`(FILE->IMAGICK *arg0*)` **undocumented**",
              kno_string_type,KNO_VOID);
 
@@ -176,7 +176,7 @@ lispval file2imagick(lispval arg)
     U8_CLEAR_ERRNO();
     return (lispval)knomagick;}
 }
-KNO_DEFPRIM1("packet->imagick",packet2imagick,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("packet->imagick",packet2imagick,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
              "`(PACKET->IMAGICK *arg0*)` **undocumented**",
              kno_packet_type,KNO_VOID);
 lispval packet2imagick(lispval arg)
@@ -197,7 +197,7 @@ lispval packet2imagick(lispval arg)
     U8_CLEAR_ERRNO();
     return (lispval)knomagick;}
 }
-KNO_DEFPRIM("imagick->file",imagick2file,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+DEFPRIM("imagick->file",imagick2file,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
             "`(IMAGICK->FILE *arg0* [*arg1*])` **undocumented**");
 lispval imagick2file(lispval knomagick,lispval filename)
 {
@@ -213,7 +213,7 @@ lispval imagick2file(lispval knomagick,lispval filename)
     U8_CLEAR_ERRNO();
     return kno_incref(knomagick);}
 }
-KNO_DEFPRIM("imagick->packet",imagick2packet,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM("imagick->packet",imagick2packet,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
             "`(IMAGICK->PACKET *arg0*)` **undocumented**");
 lispval imagick2packet(lispval knomagick)
 {
@@ -232,7 +232,7 @@ lispval imagick2packet(lispval knomagick)
     U8_CLEAR_ERRNO();
     return packet;}
 }
-KNO_DEFPRIM("imagick/clone",imagick2imagick,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM("imagick/clone",imagick2imagick,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
             "`(IMAGICK/CLONE *arg0*)` **undocumented**");
 lispval imagick2imagick(lispval knomagick)
 {
@@ -325,7 +325,7 @@ static FilterTypes getfilter(lispval arg,u8_string cxt)
     return default_filter;}
 }
 
-KNO_DEFPRIM("imagick/format",imagick_format,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+DEFPRIM("imagick/format",imagick_format,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
             "`(IMAGICK/FORMAT *arg0* *arg1*)` **undocumented**");
 static lispval imagick_format(lispval knomagick,lispval format)
 {
@@ -340,7 +340,7 @@ static lispval imagick_format(lispval knomagick,lispval format)
   else return kno_incref(knomagick);
 }
 
-KNO_DEFPRIM("imagick/fit",imagick_fit,KNO_MAX_ARGS(5)|KNO_MIN_ARGS(3),
+DEFPRIM("imagick/fit",imagick_fit,KNO_MAX_ARGS(5)|KNO_MIN_ARGS(3),
             "`(IMAGICK/FIT *arg0* *arg1* *arg2* [*arg3*] [*arg4*])` **undocumented**");
 static lispval imagick_fit(lispval knomagick,lispval w_arg,lispval h_arg,
                            lispval filter,lispval blur)
@@ -372,7 +372,7 @@ static lispval imagick_fit(lispval knomagick,lispval w_arg,lispval h_arg,
     return kno_incref(knomagick);}
 }
 
-KNO_DEFPRIM("imagick/interlace",imagick_interlace,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+DEFPRIM("imagick/interlace",imagick_interlace,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
             "`(IMAGICK/INTERLACE *arg0* *arg1*)` **undocumented**");
 static lispval imagick_interlace(lispval knomagick,lispval scheme)
 {
@@ -397,7 +397,7 @@ static lispval imagick_interlace(lispval knomagick,lispval scheme)
     return kno_incref(knomagick);}
 }
 
-KNO_DEFPRIM("imagick/extend",imagick_extend,KNO_MAX_ARGS(6)|KNO_MIN_ARGS(3),
+DEFPRIM("imagick/extend",imagick_extend,KNO_MAX_ARGS(6)|KNO_MIN_ARGS(3),
             "`(IMAGICK/EXTEND *arg0* *arg1* *arg2* [*arg3*] [*arg4*] [*arg5*])` **undocumented**");
 static lispval imagick_extend(lispval knomagick,lispval w_arg,lispval h_arg,
                               lispval x_arg,lispval y_arg,
@@ -427,7 +427,7 @@ static lispval imagick_extend(lispval knomagick,lispval w_arg,lispval h_arg,
     return kno_incref(knomagick);}
 }
 
-KNO_DEFPRIM("imagick/charcoal",imagick_charcoal,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3),
+DEFPRIM("imagick/charcoal",imagick_charcoal,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3),
             "`(IMAGICK/CHARCOAL *arg0* *arg1* *arg2*)` **undocumented**");
 static lispval imagick_charcoal(lispval knomagick,lispval radius,lispval sigma)
 {
@@ -445,7 +445,7 @@ static lispval imagick_charcoal(lispval knomagick,lispval radius,lispval sigma)
     return kno_incref(knomagick);}
 }
 
-KNO_DEFPRIM("imagick/emboss",imagick_emboss,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3),
+DEFPRIM("imagick/emboss",imagick_emboss,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3),
             "`(IMAGICK/EMBOSS *arg0* *arg1* *arg2*)` **undocumented**");
 static lispval imagick_emboss(lispval knomagick,lispval radius,lispval sigma)
 {
@@ -463,7 +463,7 @@ static lispval imagick_emboss(lispval knomagick,lispval radius,lispval sigma)
     return kno_incref(knomagick);}
 }
 
-KNO_DEFPRIM("imagick/blur",imagick_blur,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3),
+DEFPRIM("imagick/blur",imagick_blur,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3),
             "`(IMAGICK/BLUR *arg0* *arg1* *arg2*)` **undocumented**");
 static lispval imagick_blur(lispval knomagick,lispval radius,lispval sigma)
 {
@@ -481,7 +481,7 @@ static lispval imagick_blur(lispval knomagick,lispval radius,lispval sigma)
     return kno_incref(knomagick);}
 }
 
-KNO_DEFPRIM("imagick/edge",imagick_edge,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+DEFPRIM("imagick/edge",imagick_edge,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
             "`(IMAGICK/EDGE *arg0* *arg1*)` **undocumented**");
 static lispval imagick_edge(lispval knomagick,lispval radius)
 {
@@ -500,7 +500,7 @@ static lispval imagick_edge(lispval knomagick,lispval radius)
 }
 
 
-KNO_DEFPRIM("imagick/crop",imagick_crop,KNO_MAX_ARGS(5)|KNO_MIN_ARGS(3),
+DEFPRIM("imagick/crop",imagick_crop,KNO_MAX_ARGS(5)|KNO_MIN_ARGS(3),
             "`(IMAGICK/CROP *arg0* *arg1* *arg2* [*arg3*] [*arg4*])` **undocumented**");
 static lispval imagick_crop(lispval knomagick,
                             lispval width,lispval height,
@@ -521,7 +521,7 @@ static lispval imagick_crop(lispval knomagick,
     return kno_incref(knomagick);}
 }
 
-KNO_DEFPRIM("imagick/flip",imagick_flip,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM("imagick/flip",imagick_flip,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
             "`(IMAGICK/FLIP *arg0*)` **undocumented**");
 static lispval imagick_flip(lispval knomagick)
 {
@@ -538,7 +538,7 @@ static lispval imagick_flip(lispval knomagick)
     return kno_incref(knomagick);}
 }
 
-KNO_DEFPRIM("imagick/flop",imagick_flop,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM("imagick/flop",imagick_flop,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
             "`(IMAGICK/FLOP *arg0*)` **undocumented**");
 static lispval imagick_flop(lispval knomagick)
 {
@@ -555,7 +555,7 @@ static lispval imagick_flop(lispval knomagick)
     return kno_incref(knomagick);}
 }
 
-KNO_DEFPRIM("imagick/equalize",imagick_equalize,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM("imagick/equalize",imagick_equalize,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
             "`(IMAGICK/EQUALIZE *arg0*)` **undocumented**");
 static lispval imagick_equalize(lispval knomagick)
 {
@@ -572,7 +572,7 @@ static lispval imagick_equalize(lispval knomagick)
     return kno_incref(knomagick);}
 }
 
-KNO_DEFPRIM("imagick/despeckle",imagick_despeckle,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM("imagick/despeckle",imagick_despeckle,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
             "`(IMAGICK/DESPECKLE *arg0*)` **undocumented**");
 static lispval imagick_despeckle(lispval knomagick)
 {
@@ -589,7 +589,7 @@ static lispval imagick_despeckle(lispval knomagick)
     return kno_incref(knomagick);}
 }
 
-KNO_DEFPRIM("imagick/enhance",imagick_enhance,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM("imagick/enhance",imagick_enhance,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
             "`(IMAGICK/ENHANCE *arg0*)` **undocumented**");
 static lispval imagick_enhance(lispval knomagick)
 {
@@ -606,7 +606,7 @@ static lispval imagick_enhance(lispval knomagick)
     return kno_incref(knomagick);}
 }
 
-KNO_DEFPRIM("imagick/deskew",imagick_deskew,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+DEFPRIM("imagick/deskew",imagick_deskew,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
             "`(IMAGICK/DESKEW *arg0* *arg1*)` **undocumented**");
 static lispval imagick_deskew(lispval knomagick,lispval threshold)
 {
@@ -624,7 +624,7 @@ static lispval imagick_deskew(lispval knomagick,lispval threshold)
     return kno_incref(knomagick);}
 }
 
-KNO_DEFPRIM("imagick/display",imagick_display,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+DEFPRIM("imagick/display",imagick_display,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
             "`(IMAGICK/DISPLAY *arg0* [*arg1*])` **undocumented**");
 static lispval imagick_display(lispval knomagick,lispval display_name)
 {
@@ -643,7 +643,7 @@ static lispval imagick_display(lispval knomagick,lispval display_name)
     return kno_incref(knomagick);}
 }
 
-KNO_DEFPRIM("imagick/get",imagick_get,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+DEFPRIM("imagick/get",imagick_get,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
             "`(IMAGICK/GET *arg0* *arg1* [*arg2*])` **undocumented**");
 static lispval imagick_get(lispval knomagick,lispval property,lispval dflt)
 {
@@ -662,7 +662,7 @@ static lispval imagick_get(lispval knomagick,lispval property,lispval dflt)
   else return kno_incref(dflt);
 }
 
-KNO_DEFPRIM("imagick/keys",imagick_getkeys,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM("imagick/keys",imagick_getkeys,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
             "`(IMAGICK/KEYS *arg0*)` **undocumented**");
 static lispval imagick_getkeys(lispval knomagick)
 {

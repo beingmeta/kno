@@ -146,7 +146,7 @@ static int open_knosqlite(struct KNO_SQLITE *knosqlptr)
     return 1;}
 }
 
-KNO_DEFPRIM3("sqlite/open",sqlite_open_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
+DEFPRIM3("sqlite/open",sqlite_open_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
              "`(SQLITE/OPEN *arg0* [*arg1*] [*arg2*])` **undocumented**",
              kno_string_type,KNO_VOID,kno_any_type,KNO_VOID,
              kno_any_type,KNO_VOID);
@@ -206,7 +206,7 @@ static lispval sqlite_open_prim(lispval filename,lispval colinfo,lispval options
     return LISP_CONS(sqlcons);}
 }
 
-KNO_DEFPRIM1("sqlite/reopen",sqlite_reopen_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("sqlite/reopen",sqlite_reopen_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
              "`(SQLITE/REOPEN *arg0*)` **undocumented**",
              kno_sqldb_type,KNO_VOID);
 static lispval sqlite_reopen_prim(lispval db)
@@ -234,7 +234,7 @@ static void close_knosqlite(struct KNO_SQLITE *dbp,int lock)
   if (lock) u8_unlock_mutex(&(dbp->sqlite_lock));
 }
 
-KNO_DEFPRIM1("sqlite/close",sqlite_close_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("sqlite/close",sqlite_close_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
              "`(SQLITE/CLOSE *arg0*)` **undocumented**",
              kno_sqldb_type,KNO_VOID);
 static lispval sqlite_close_prim(lispval db)

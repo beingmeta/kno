@@ -170,7 +170,7 @@ KNO_EXPORT lispval kno_mapseq(lispval fn,int n_seqs,lispval *sequences)
   u8_free(results);
   return result;
 }
-KNO_DEFPRIM("map",mapseq_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+DEFPRIM("map",mapseq_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
  "`(MAP *arg0* *arg1* *args...*)` **undocumented**");
 static lispval mapseq_prim(int n,lispval *args)
 {
@@ -238,7 +238,7 @@ KNO_EXPORT lispval kno_foreach(lispval fn,int n_seqs,lispval *sequences)
   return VOID;
 }
 
-KNO_DEFPRIM("for-each",foreach_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+DEFPRIM("for-each",foreach_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	    "`(for-each *arg0* *arg1* *args...*)` **undocumented**");
 static lispval foreach_prim(int n,lispval *args)
 {
@@ -247,7 +247,7 @@ static lispval foreach_prim(int n,lispval *args)
   return kno_foreach(args[0],n-1,args+1);
 }
 
-KNO_DEFPRIM("map->choice",kno_map2choice,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+DEFPRIM("map->choice",kno_map2choice,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	    "`(map->choice-each *fn* *seq*)` **undocumented**");
 KNO_EXPORT lispval kno_map2choice(lispval fn,lispval sequence)
 {
@@ -287,9 +287,9 @@ KNO_EXPORT lispval kno_map2choice(lispval fn,lispval sequence)
   else return kno_err(kno_NotAFunction,"MAP",NULL,fn);
 }
 
-KNO_DEFPRIM("remove",kno_remove,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+DEFPRIM("remove",kno_remove,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	    "`(remove *elt* *seq*)` **undocumented**");
-KNO_DEFPRIM("reduce",kno_reduce,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+DEFPRIM("reduce",kno_reduce,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
 	    "`(reduce *fcn* *base* *seq*)` **undocumented**");
 
 /* Reduction */
@@ -320,7 +320,7 @@ KNO_EXPORT lispval kno_reduce(lispval fn,lispval sequence,lispval result)
 
 /* Scheme primitives */
 
-KNO_DEFPRIM1("sequence?",sequencep_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("sequence?",sequencep_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(SEQUENCE? *arg0*)` **undocumented**",
  kno_any_type,KNO_VOID);
 static lispval sequencep_prim(lispval x)
@@ -335,7 +335,7 @@ static lispval sequencep_prim(lispval x)
   else return KNO_FALSE;
 }
 
-KNO_DEFPRIM1("length",seqlen_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("length",seqlen_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(LENGTH *arg0*)` **undocumented**",
  kno_any_type,KNO_VOID);
 static lispval seqlen_prim(lispval x)
@@ -346,7 +346,7 @@ static lispval seqlen_prim(lispval x)
   else return KNO_INT(len);
 }
 
-KNO_DEFPRIM2("elt",seqelt_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+DEFPRIM2("elt",seqelt_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
  "`(ELT *arg0* *arg1*)` **undocumented**",
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval seqelt_prim(lispval x,lispval offset)
@@ -394,7 +394,7 @@ static int has_length_helper(lispval x,lispval length_arg,enum COMPARISON cmp)
     return -1;}
 }
 
-KNO_DEFPRIM2("length=",has_length_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+DEFPRIM2("length=",has_length_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
  "`(LENGTH= *arg0* *arg1*)` **undocumented**",
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval has_length_prim(lispval x,lispval length_arg)
@@ -405,7 +405,7 @@ static lispval has_length_prim(lispval x,lispval length_arg)
   else return KNO_FALSE;
 }
 
-KNO_DEFPRIM2("length<",has_length_lt_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+DEFPRIM2("length<",has_length_lt_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
  "`(LENGTH< *arg0* *arg1*)` **undocumented**",
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval has_length_lt_prim(lispval x,lispval length_arg)
@@ -416,7 +416,7 @@ static lispval has_length_lt_prim(lispval x,lispval length_arg)
   else return KNO_FALSE;
 }
 
-KNO_DEFPRIM2("length=<",has_length_lte_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+DEFPRIM2("length=<",has_length_lte_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
  "`(LENGTH=< *arg0* *arg1*)` **undocumented**",
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval has_length_lte_prim(lispval x,lispval length_arg)
@@ -427,7 +427,7 @@ static lispval has_length_lte_prim(lispval x,lispval length_arg)
   else return KNO_FALSE;
 }
 
-KNO_DEFPRIM2("length>",has_length_gt_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+DEFPRIM2("length>",has_length_gt_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
  "`(LENGTH> *arg0* *arg1*)` **undocumented**",
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval has_length_gt_prim(lispval x,lispval length_arg)
@@ -438,7 +438,7 @@ static lispval has_length_gt_prim(lispval x,lispval length_arg)
   else return KNO_FALSE;
 }
 
-KNO_DEFPRIM2("length>=",has_length_gte_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+DEFPRIM2("length>=",has_length_gte_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
  "`(LENGTH>= *arg0* *arg1*)` **undocumented**",
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval has_length_gte_prim(lispval x,lispval length_arg)
@@ -449,7 +449,7 @@ static lispval has_length_gte_prim(lispval x,lispval length_arg)
   else return KNO_FALSE;
 }
 
-KNO_DEFPRIM1("length>0",has_length_gt_zero_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("length>0",has_length_gt_zero_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(LENGTH>0 *arg0*)` **undocumented**",
  kno_any_type,KNO_VOID);
 static lispval has_length_gt_zero_prim(lispval x)
@@ -458,7 +458,7 @@ static lispval has_length_gt_zero_prim(lispval x)
   if (seqlen>0) return KNO_TRUE; else return KNO_FALSE;
 }
 
-KNO_DEFPRIM1("length>1",has_length_gt_one_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("length>1",has_length_gt_one_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(LENGTH>1 *arg0*)` **undocumented**",
  kno_any_type,KNO_VOID);
 static lispval has_length_gt_one_prim(lispval x)
@@ -552,7 +552,7 @@ static lispval check_range(u8_string prim,lispval seq,
   return VOID;
 }
 
-KNO_DEFPRIM3("slice",slice_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+DEFPRIM3("slice",slice_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
  "`(SLICE *arg0* *arg1* [*arg2*])` **undocumented**",
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
  kno_any_type,KNO_FALSE);
@@ -571,7 +571,7 @@ static lispval slice_prim(lispval x,lispval start_arg,lispval end_arg)
   else return result;
 }
 
-KNO_DEFPRIM4("position",position_prim,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
+DEFPRIM4("position",position_prim,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
  "`(POSITION *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
  kno_any_type,KNO_INT(0),kno_any_type,KNO_FALSE);
@@ -593,7 +593,7 @@ static lispval position_prim(lispval key,lispval x,lispval start_arg,lispval end
   else return KNO_INT(result);
 }
 
-KNO_DEFPRIM4("rposition",rposition_prim,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
+DEFPRIM4("rposition",rposition_prim,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
  "`(RPOSITION *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
  kno_any_type,KNO_INT(0),kno_any_type,KNO_FALSE);
@@ -614,7 +614,7 @@ static lispval rposition_prim(lispval key,lispval x,lispval start_arg,lispval en
   else return KNO_INT(result);
 }
 
-KNO_DEFPRIM4("find",find_prim,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
+DEFPRIM4("find",find_prim,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
  "`(FIND *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
  kno_any_type,KNO_INT(0),kno_any_type,KNO_FALSE);
@@ -635,7 +635,7 @@ static lispval find_prim(lispval key,lispval x,lispval start_arg,lispval end_arg
   else return KNO_FALSE;
 }
 
-KNO_DEFPRIM4("search",search_prim,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
+DEFPRIM4("search",search_prim,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
  "`(SEARCH *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
  kno_any_type,KNO_INT(0),kno_any_type,KNO_FALSE);
@@ -656,7 +656,7 @@ static lispval search_prim(lispval key,lispval x,lispval start_arg,lispval end_a
   else return result;
 }
 
-KNO_DEFPRIM4("every?",every_prim,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
+DEFPRIM4("every?",every_prim,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
  "`(EVERY? *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
@@ -694,7 +694,7 @@ static lispval every_prim(lispval proc,lispval x,lispval start_arg,lispval end_a
     return KNO_TRUE;}
 }
 
-KNO_DEFPRIM4("some?",some_prim,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
+DEFPRIM4("some?",some_prim,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
  "`(SOME? *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
@@ -733,7 +733,7 @@ static lispval some_prim(lispval proc,lispval x,lispval start_arg,lispval end_ar
     return KNO_FALSE;}
 }
 
-KNO_DEFPRIM2("remove-if",removeif_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+DEFPRIM2("remove-if",removeif_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	     "`(REMOVE-IF *pred* *seq*)` **undocumented**",
 	     kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval removeif_prim(lispval test,lispval sequence)
@@ -755,7 +755,7 @@ static lispval removeif_prim(lispval test,lispval sequence)
   else return kno_removeif(test,sequence,0);
 }
 
-KNO_DEFPRIM2("remove-if-not",removeifnot_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+DEFPRIM2("remove-if-not",removeifnot_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
  "`(REMOVE-IF-NOT *arg0* *arg1*)` **undocumented**",
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval removeifnot_prim(lispval test,lispval sequence)
@@ -782,7 +782,7 @@ static lispval range_error(u8_context caller,lispval seq,int len,int start,int e
 }
 
 /* Sequence-if/if-not functions */
-KNO_DEFPRIM4("position-if",position_if_prim,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
+DEFPRIM4("position-if",position_if_prim,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
  "`(POSITION-IF *test* *sequence* [*start*] [*end*])` "
  "returns the position of element of *sequence* for "
  "which *test* returns true. POSITION-IF searches "
@@ -893,7 +893,7 @@ lispval position_if_prim(lispval test,lispval seq,lispval start_arg,
       return KNO_FALSE;}
   }
 }
-KNO_DEFPRIM4("position-if-not",position_if_not_prim,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
+DEFPRIM4("position-if-not",position_if_not_prim,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
  "`(POSITION-IF-NOT *test* *sequence* [*start*] [*end*])` "
  "returns the position of element of *sequence* for "
  "which *test* returns false. POSITION-IF-NOT "
@@ -1008,7 +1008,7 @@ lispval position_if_not_prim(lispval test,lispval seq,lispval start_arg,
       return KNO_FALSE;}
   }
 }
-KNO_DEFPRIM5("find-if",find_if_prim,KNO_MAX_ARGS(5)|KNO_MIN_ARGS(2),
+DEFPRIM5("find-if",find_if_prim,KNO_MAX_ARGS(5)|KNO_MIN_ARGS(2),
  "`(FIND-IF *test* *sequence* [*start*] [*end*] [*noneval*])` "
  "returns an element of *sequence* for which *test* "
  "returns true or *noneval* otherwise.FIND-IF "
@@ -1124,7 +1124,7 @@ lispval find_if_prim(lispval test,lispval seq,lispval start_arg,
       return kno_incref(fail_val);}
   }
 }
-KNO_DEFPRIM5("find-if-not",find_if_not_prim,KNO_MAX_ARGS(5)|KNO_MIN_ARGS(2),
+DEFPRIM5("find-if-not",find_if_not_prim,KNO_MAX_ARGS(5)|KNO_MIN_ARGS(2),
  "`(FIND-IF-NOT *test* *sequence* [*start*] [*end*] [*noneval*])` "
  "returns an element of *sequence* for which *test* "
  "returns false or *noneval* otherwise.FIND-IF_NOT "
@@ -1255,14 +1255,14 @@ static lispval seq_elt(lispval x,char *cxt,int i)
   else return v;
 }
 
-KNO_DEFPRIM1("first",first,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("first",first,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(FIRST *arg0*)` **undocumented**",
  kno_any_type,KNO_VOID);
 static lispval first(lispval x)
 {
   return seq_elt(x,"first",0);
 }
-KNO_DEFPRIM1("rest",rest,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("rest",rest,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(REST *arg0*)` **undocumented**",
  kno_any_type,KNO_VOID);
 static lispval rest(lispval x)
@@ -1276,42 +1276,42 @@ static lispval rest(lispval x)
     else return v;}
 }
 
-KNO_DEFPRIM1("second",second,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("second",second,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(SECOND *arg0*)` **undocumented**",
  kno_any_type,KNO_VOID);
 static lispval second(lispval x)
 {
   return seq_elt(x,"second",1);
 }
-KNO_DEFPRIM1("third",third,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("third",third,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(THIRD *arg0*)` **undocumented**",
  kno_any_type,KNO_VOID);
 static lispval third(lispval x)
 {
   return seq_elt(x,"third",2);
 }
-KNO_DEFPRIM1("fourth",fourth,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("fourth",fourth,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(FOURTH *arg0*)` **undocumented**",
  kno_any_type,KNO_VOID);
 static lispval fourth(lispval x)
 {
   return seq_elt(x,"fourth",3);
 }
-KNO_DEFPRIM1("fifth",fifth,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("fifth",fifth,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(FIFTH *arg0*)` **undocumented**",
  kno_any_type,KNO_VOID);
 static lispval fifth(lispval x)
 {
   return seq_elt(x,"fifth",4);
 }
-KNO_DEFPRIM1("sixth",sixth,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("sixth",sixth,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(SIXTH *arg0*)` **undocumented**",
  kno_any_type,KNO_VOID);
 static lispval sixth(lispval x)
 {
   return seq_elt(x,"sixth",5);
 }
-KNO_DEFPRIM1("seventh",seventh,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("seventh",seventh,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(SEVENTH *arg0*)` **undocumented**",
  kno_any_type,KNO_VOID);
 static lispval seventh(lispval x)
@@ -1321,7 +1321,7 @@ static lispval seventh(lispval x)
 
 /* Pair functions */
 
-KNO_DEFPRIM1("empty-list?",nullp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("empty-list?",nullp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(EMPTY-LIST? *arg0*)` **undocumented**",
  kno_any_type,KNO_VOID);
 static lispval nullp(lispval x)
@@ -1330,28 +1330,28 @@ static lispval nullp(lispval x)
   else return KNO_FALSE;
 }
 
-KNO_DEFPRIM2("cons",cons,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+DEFPRIM2("cons",cons,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
  "`(CONS *arg0* *arg1*)` **undocumented**",
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval cons(lispval x,lispval y)
 {
   return kno_make_pair(x,y);
 }
-KNO_DEFPRIM1("car",car,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("car",car,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(CAR *arg0*)` **undocumented**",
  kno_pair_type,KNO_VOID);
 static lispval car(lispval x)
 {
   return kno_incref(KNO_CAR(x));
 }
-KNO_DEFPRIM1("cdr",cdr,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("cdr",cdr,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(CDR *arg0*)` **undocumented**",
  kno_pair_type,KNO_VOID);
 static lispval cdr(lispval x)
 {
   return kno_incref(KNO_CDR(x));
 }
-KNO_DEFPRIM1("cddr",cddr,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("cddr",cddr,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(CDDR *arg0*)` **undocumented**",
  kno_pair_type,KNO_VOID);
 static lispval cddr(lispval x)
@@ -1360,7 +1360,7 @@ static lispval cddr(lispval x)
     return kno_incref(KNO_CDR(KNO_CDR(x)));
   else return kno_err(kno_RangeError,"CDDR",NULL,x);
 }
-KNO_DEFPRIM1("cadr",cadr,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("cadr",cadr,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(CADR *arg0*)` **undocumented**",
  kno_pair_type,KNO_VOID);
 static lispval cadr(lispval x)
@@ -1369,7 +1369,7 @@ static lispval cadr(lispval x)
     return kno_incref(KNO_CAR(KNO_CDR(x)));
   else return kno_err(kno_RangeError,"CADR",NULL,x);
 }
-KNO_DEFPRIM1("cdar",cdar,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("cdar",cdar,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(CDAR *arg0*)` **undocumented**",
  kno_pair_type,KNO_VOID);
 static lispval cdar(lispval x)
@@ -1378,7 +1378,7 @@ static lispval cdar(lispval x)
     return kno_incref(KNO_CDR(KNO_CAR(x)));
   else return kno_err(kno_RangeError,"CDAR",NULL,x);
 }
-KNO_DEFPRIM1("caar",caar,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("caar",caar,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(CAAR *arg0*)` **undocumented**",
  kno_pair_type,KNO_VOID);
 static lispval caar(lispval x)
@@ -1387,7 +1387,7 @@ static lispval caar(lispval x)
     return kno_incref(KNO_CAR(KNO_CAR(x)));
   else return kno_err(kno_RangeError,"CAAR",NULL,x);
 }
-KNO_DEFPRIM1("caddr",caddr,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("caddr",caddr,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(CADDR *arg0*)` **undocumented**",
  kno_pair_type,KNO_VOID);
 static lispval caddr(lispval x)
@@ -1396,7 +1396,7 @@ static lispval caddr(lispval x)
     return kno_incref(KNO_CAR(KNO_CDR(KNO_CDR(x))));
   else return kno_err(kno_RangeError,"CADR",NULL,x);
 }
-KNO_DEFPRIM1("cdddr",cdddr,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("cdddr",cdddr,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(CDDDR *arg0*)` **undocumented**",
  kno_pair_type,KNO_VOID);
 static lispval cdddr(lispval x)
@@ -1406,7 +1406,7 @@ static lispval cdddr(lispval x)
   else return kno_err(kno_RangeError,"CADR",NULL,x);
 }
 
-KNO_DEFPRIM("cons*",cons_star,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
+DEFPRIM("cons*",cons_star,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
  "`(CONS* *arg0* *args...*)` **undocumented**");
 static lispval cons_star(int n,lispval *args)
 {
@@ -1419,7 +1419,7 @@ static lispval cons_star(int n,lispval *args)
 
 /* Association list functions */
 
-KNO_DEFPRIM2("assq",assq_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+DEFPRIM2("assq",assq_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
  "`(ASSQ *arg0* *arg1*)` **undocumented**",
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval assq_prim(lispval key,lispval list)
@@ -1440,7 +1440,7 @@ static lispval assq_prim(lispval key,lispval list)
     return KNO_FALSE;}
 }
 
-KNO_DEFPRIM2("assv",assv_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+DEFPRIM2("assv",assv_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
  "`(ASSV *arg0* *arg1*)` **undocumented**",
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval assv_prim(lispval key,lispval list)
@@ -1461,7 +1461,7 @@ static lispval assv_prim(lispval key,lispval list)
     return KNO_FALSE;}
 }
 
-KNO_DEFPRIM2("assoc",assoc_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+DEFPRIM2("assoc",assoc_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
  "`(ASSOC *arg0* *arg1*)` **undocumented**",
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval assoc_prim(lispval key,lispval list)
@@ -1484,7 +1484,7 @@ static lispval assoc_prim(lispval key,lispval list)
 
 /* MEMBER functions */
 
-KNO_DEFPRIM2("memq",memq_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+DEFPRIM2("memq",memq_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
  "`(MEMQ *arg0* *arg1*)` **undocumented**",
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval memq_prim(lispval key,lispval list)
@@ -1500,7 +1500,7 @@ static lispval memq_prim(lispval key,lispval list)
   else return kno_type_error("list","memq_prim",list);
 }
 
-KNO_DEFPRIM2("memv",memv_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+DEFPRIM2("memv",memv_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
  "`(MEMV *arg0* *arg1*)` **undocumented**",
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval memv_prim(lispval key,lispval list)
@@ -1516,7 +1516,7 @@ static lispval memv_prim(lispval key,lispval list)
   else return kno_type_error("list","memv_prim",list);
 }
 
-KNO_DEFPRIM2("member",member_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+DEFPRIM2("member",member_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
  "`(MEMBER *arg0* *arg1*)` **undocumented**",
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval member_prim(lispval key,lispval list)
@@ -1534,7 +1534,7 @@ static lispval member_prim(lispval key,lispval list)
 
 /* LIST AND VECTOR */
 
-KNO_DEFPRIM("list",list,KNO_VAR_ARGS|KNO_MIN_ARGS(0),
+DEFPRIM("list",list,KNO_VAR_ARGS|KNO_MIN_ARGS(0),
  "`(LIST *args...*)` **undocumented**");
 static lispval list(int n,lispval *elts)
 {
@@ -1545,7 +1545,7 @@ static lispval list(int n,lispval *elts)
   return head;
 }
 
-KNO_DEFPRIM("vector",vector,KNO_VAR_ARGS|KNO_MIN_ARGS(0),
+DEFPRIM("vector",vector,KNO_VAR_ARGS|KNO_MIN_ARGS(0),
  "`(VECTOR *args...*)` **undocumented**");
 static lispval vector(int n,lispval *elts)
 {
@@ -1553,7 +1553,7 @@ static lispval vector(int n,lispval *elts)
   return kno_make_vector(n,elts);
 }
 
-KNO_DEFPRIM2("make-vector",make_vector,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+DEFPRIM2("make-vector",make_vector,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
  "`(MAKE-VECTOR *arg0* [*arg1*])` **undocumented**",
  kno_fixnum_type,KNO_VOID,kno_any_type,KNO_FALSE);
 static lispval make_vector(lispval size,lispval dflt)
@@ -1570,7 +1570,7 @@ static lispval make_vector(lispval size,lispval dflt)
   else return kno_type_error(_("positive"),"make_vector",size);
 }
 
-KNO_DEFPRIM1("->vector",seq2vector,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("->vector",seq2vector,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(->VECTOR *arg0*)` **undocumented**",
  kno_any_type,KNO_VOID);
 static lispval seq2vector(lispval seq)
@@ -1589,7 +1589,7 @@ static lispval seq2vector(lispval seq)
   else return kno_type_error(_("sequence"),"seq2vector",seq);
 }
 
-KNO_DEFPRIM("1vector",onevector_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(0)|KNO_NDCALL,
+DEFPRIM("1vector",onevector_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(0)|KNO_NDCALL,
  "`(1VECTOR *args...*)` **undocumented**");
 static lispval onevector_prim(int n,lispval *args)
 {
@@ -1625,7 +1625,7 @@ static lispval onevector_prim(int n,lispval *args)
   return result;
 }
 
-KNO_DEFPRIM1("->list",seq2list,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("->list",seq2list,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(->LIST *arg0*)` **undocumented**",
  kno_any_type,KNO_VOID);
 static lispval seq2list(lispval seq)
@@ -1644,7 +1644,7 @@ static lispval seq2list(lispval seq)
   else return kno_type_error(_("sequence"),"seq2list",seq);
 }
 
-KNO_DEFPRIM1("->packet",seq2packet,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("->packet",seq2packet,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(->PACKET *arg0*)` **undocumented**",
  kno_any_type,KNO_VOID);
 static lispval seq2packet(lispval seq)
@@ -1677,7 +1677,7 @@ static lispval seq2packet(lispval seq)
   else return kno_type_error(_("sequence"),"seq2packet",seq);
 }
 
-KNO_DEFPRIM1("->string",x2string,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("->string",x2string,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(->STRING *arg0*)` **undocumented**",
  kno_any_type,KNO_VOID);
 static lispval x2string(lispval seq)
@@ -1769,7 +1769,7 @@ KNO_EXPORT lispval kno_seq2choice(lispval x)
     }}
 }
 
-KNO_DEFPRIM3("elts",elts_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
+DEFPRIM3("elts",elts_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
  "`(ELTS *arg0* [*arg1*] [*arg2*])` **undocumented**",
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
  kno_any_type,KNO_VOID);
@@ -1892,7 +1892,7 @@ static lispval elts_prim(lispval x,lispval start_arg,lispval end_arg)
   return results;
 }
 
-KNO_DEFPRIM1("vector->elts",vec2elts_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("vector->elts",vec2elts_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(VECTOR->ELTS *arg0*)` **undocumented**",
  kno_any_type,KNO_VOID);
 static lispval vec2elts_prim(lispval x)
@@ -1908,7 +1908,7 @@ static lispval vec2elts_prim(lispval x)
 
 /* Vector length predicates */
 
-KNO_DEFPRIM2("veclen<?",veclen_lt_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+DEFPRIM2("veclen<?",veclen_lt_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
  "`(VECLEN<? *arg0* *arg1*)` **undocumented**",
  kno_any_type,KNO_VOID,kno_fixnum_type,KNO_VOID);
 static lispval veclen_lt_prim(lispval x,lispval len)
@@ -1920,7 +1920,7 @@ static lispval veclen_lt_prim(lispval x,lispval len)
   else return KNO_FALSE;
 }
 
-KNO_DEFPRIM2("veclen<=?",veclen_lte_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+DEFPRIM2("veclen<=?",veclen_lte_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
  "`(VECLEN<=? *arg0* *arg1*)` **undocumented**",
  kno_any_type,KNO_VOID,kno_fixnum_type,KNO_VOID);
 static lispval veclen_lte_prim(lispval x,lispval len)
@@ -1932,7 +1932,7 @@ static lispval veclen_lte_prim(lispval x,lispval len)
   else return KNO_FALSE;
 }
 
-KNO_DEFPRIM2("veclen>?",veclen_gt_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+DEFPRIM2("veclen>?",veclen_gt_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
  "`(VECLEN>? *arg0* *arg1*)` **undocumented**",
  kno_any_type,KNO_VOID,kno_fixnum_type,KNO_VOID);
 static lispval veclen_gt_prim(lispval x,lispval len)
@@ -1944,7 +1944,7 @@ static lispval veclen_gt_prim(lispval x,lispval len)
   else return KNO_FALSE;
 }
 
-KNO_DEFPRIM2("veclen>=?",veclen_gte_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+DEFPRIM2("veclen>=?",veclen_gte_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
  "`(VECLEN>=? *arg0* *arg1*)` **undocumented**",
  kno_any_type,KNO_VOID,kno_fixnum_type,KNO_VOID);
 static lispval veclen_gte_prim(lispval x,lispval len)
@@ -1956,7 +1956,7 @@ static lispval veclen_gte_prim(lispval x,lispval len)
   else return KNO_FALSE;
 }
 
-KNO_DEFPRIM2("veclen=?",veclen_eq_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+DEFPRIM2("veclen=?",veclen_eq_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
  "`(VECLEN=? *arg0* *arg1*)` **undocumented**",
  kno_any_type,KNO_VOID,kno_fixnum_type,KNO_VOID);
 static lispval veclen_eq_prim(lispval x,lispval len)
@@ -1970,7 +1970,7 @@ static lispval veclen_eq_prim(lispval x,lispval len)
 
 /* Sequence length predicates */
 
-KNO_DEFPRIM2("seqlen<?",seqlen_lt_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+DEFPRIM2("seqlen<?",seqlen_lt_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
  "`(SEQLEN<? *arg0* *arg1*)` **undocumented**",
  kno_any_type,KNO_VOID,kno_fixnum_type,KNO_VOID);
 static lispval seqlen_lt_prim(lispval x,lispval len)
@@ -1982,7 +1982,7 @@ static lispval seqlen_lt_prim(lispval x,lispval len)
   else return KNO_FALSE;
 }
 
-KNO_DEFPRIM2("seqlen<=?",seqlen_lte_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+DEFPRIM2("seqlen<=?",seqlen_lte_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
  "`(SEQLEN<=? *arg0* *arg1*)` **undocumented**",
  kno_any_type,KNO_VOID,kno_fixnum_type,KNO_VOID);
 static lispval seqlen_lte_prim(lispval x,lispval len)
@@ -1994,7 +1994,7 @@ static lispval seqlen_lte_prim(lispval x,lispval len)
   else return KNO_FALSE;
 }
 
-KNO_DEFPRIM2("seqlen>?",seqlen_gt_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+DEFPRIM2("seqlen>?",seqlen_gt_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
  "`(SEQLEN>? *arg0* *arg1*)` **undocumented**",
  kno_any_type,KNO_VOID,kno_fixnum_type,KNO_VOID);
 static lispval seqlen_gt_prim(lispval x,lispval len)
@@ -2006,7 +2006,7 @@ static lispval seqlen_gt_prim(lispval x,lispval len)
   else return KNO_FALSE;
 }
 
-KNO_DEFPRIM2("seqlen>=?",seqlen_gte_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+DEFPRIM2("seqlen>=?",seqlen_gte_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
  "`(SEQLEN>=? *arg0* *arg1*)` **undocumented**",
  kno_any_type,KNO_VOID,kno_fixnum_type,KNO_VOID);
 static lispval seqlen_gte_prim(lispval x,lispval len)
@@ -2018,7 +2018,7 @@ static lispval seqlen_gte_prim(lispval x,lispval len)
   else return KNO_FALSE;
 }
 
-KNO_DEFPRIM2("seqlen=?",seqlen_eq_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+DEFPRIM2("seqlen=?",seqlen_eq_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
  "`(SEQLEN=? *arg0* *arg1*)` **undocumented**",
  kno_any_type,KNO_VOID,kno_fixnum_type,KNO_VOID);
 static lispval seqlen_eq_prim(lispval x,lispval len)
@@ -2032,7 +2032,7 @@ static lispval seqlen_eq_prim(lispval x,lispval len)
 
 /* Matching vectors */
 
-KNO_DEFPRIM3("match?",seqmatch_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+DEFPRIM3("match?",seqmatch_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
  "`(MATCH? *arg0* *arg1* [*arg2*])` **undocumented**",
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
  kno_fixnum_type,KNO_INT(0));
@@ -2119,7 +2119,7 @@ static lispval sortvec_primfn(lispval vec,lispval keyfn,int reverse,int lexsort)
     return result;}
 }
 
-KNO_DEFPRIM2("sortvec",sortvec_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+DEFPRIM2("sortvec",sortvec_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
  "`(SORTVEC *arg0* [*arg1*])` **undocumented**",
  kno_vector_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval sortvec_prim(lispval vec,lispval keyfn)
@@ -2127,7 +2127,7 @@ static lispval sortvec_prim(lispval vec,lispval keyfn)
   return sortvec_primfn(vec,keyfn,0,0);
 }
 
-KNO_DEFPRIM2("lexsortvec",lexsortvec_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+DEFPRIM2("lexsortvec",lexsortvec_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
  "`(LEXSORTVEC *arg0* [*arg1*])` **undocumented**",
  kno_vector_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval lexsortvec_prim(lispval vec,lispval keyfn)
@@ -2135,7 +2135,7 @@ static lispval lexsortvec_prim(lispval vec,lispval keyfn)
   return sortvec_primfn(vec,keyfn,0,1);
 }
 
-KNO_DEFPRIM2("rsortvec",rsortvec_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+DEFPRIM2("rsortvec",rsortvec_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
  "`(RSORTVEC *arg0* [*arg1*])` **undocumented**",
  kno_vector_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval rsortvec_prim(lispval vec,lispval keyfn)
@@ -2147,7 +2147,7 @@ static lispval rsortvec_prim(lispval vec,lispval keyfn)
    nothing has changed. This is handy for some recursive list
    functions. */
 
-KNO_DEFPRIM3("recons",recons_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3),
+DEFPRIM3("recons",recons_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3),
  "`(RECONS *arg0* *arg1* *arg2*)` **undocumented**",
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
  kno_pair_type,KNO_VOID);
@@ -2163,7 +2163,7 @@ static lispval recons_prim(lispval car,lispval cdr,lispval orig)
 
 /* Numeric vectors */
 
-KNO_DEFPRIM("shortvec",make_short_vector,KNO_VAR_ARGS|KNO_MIN_ARGS(0),
+DEFPRIM("shortvec",make_short_vector,KNO_VAR_ARGS|KNO_MIN_ARGS(0),
  "`(SHORTVEC *args...*)` **undocumented**");
 static lispval make_short_vector(int n,lispval *from_elts)
 {
@@ -2179,7 +2179,7 @@ static lispval make_short_vector(int n,lispval *from_elts)
   return vec;
 }
 
-KNO_DEFPRIM1("->shortvec",seq2shortvec,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("->shortvec",seq2shortvec,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(->SHORTVEC *arg0*)` **undocumented**",
  kno_any_type,KNO_VOID);
 static lispval seq2shortvec(lispval arg)
@@ -2204,7 +2204,7 @@ static lispval seq2shortvec(lispval arg)
   else return kno_type_error(_("sequence"),"seq2shortvec",arg);
 }
 
-KNO_DEFPRIM("intvec",make_int_vector,KNO_VAR_ARGS|KNO_MIN_ARGS(0),
+DEFPRIM("intvec",make_int_vector,KNO_VAR_ARGS|KNO_MIN_ARGS(0),
  "`(INTVEC *args...*)` **undocumented**");
 static lispval make_int_vector(int n,lispval *from_elts)
 {
@@ -2223,7 +2223,7 @@ static lispval make_int_vector(int n,lispval *from_elts)
   return vec;
 }
 
-KNO_DEFPRIM1("->intvec",seq2intvec,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("->intvec",seq2intvec,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(->INTVEC *arg0*)` **undocumented**",
  kno_any_type,KNO_VOID);
 static lispval seq2intvec(lispval arg)
@@ -2248,7 +2248,7 @@ static lispval seq2intvec(lispval arg)
   else return kno_type_error(_("sequence"),"seq2intvec",arg);
 }
 
-KNO_DEFPRIM("longvec",make_long_vector,KNO_VAR_ARGS|KNO_MIN_ARGS(0),
+DEFPRIM("longvec",make_long_vector,KNO_VAR_ARGS|KNO_MIN_ARGS(0),
  "`(LONGVEC *args...*)` **undocumented**");
 static lispval make_long_vector(int n,lispval *from_elts)
 {
@@ -2266,7 +2266,7 @@ static lispval make_long_vector(int n,lispval *from_elts)
   return vec;
 }
 
-KNO_DEFPRIM1("->longvec",seq2longvec,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("->longvec",seq2longvec,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(->LONGVEC *arg0*)` **undocumented**",
  kno_any_type,KNO_VOID);
 static lispval seq2longvec(lispval arg)
@@ -2291,7 +2291,7 @@ static lispval seq2longvec(lispval arg)
   else return kno_type_error(_("sequence"),"seq2longvec",arg);
 }
 
-KNO_DEFPRIM("floatvec",make_float_vector,KNO_VAR_ARGS|KNO_MIN_ARGS(0),
+DEFPRIM("floatvec",make_float_vector,KNO_VAR_ARGS|KNO_MIN_ARGS(0),
  "`(FLOATVEC *args...*)` **undocumented**");
 static lispval make_float_vector(int n,lispval *from_elts)
 {
@@ -2309,7 +2309,7 @@ static lispval make_float_vector(int n,lispval *from_elts)
   return vec;
 }
 
-KNO_DEFPRIM1("->floatvec",seq2floatvec,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("->floatvec",seq2floatvec,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(->FLOATVEC *arg0*)` **undocumented**",
  kno_any_type,KNO_VOID);
 static lispval seq2floatvec(lispval arg)
@@ -2334,7 +2334,7 @@ static lispval seq2floatvec(lispval arg)
   else return kno_type_error(_("sequence"),"seq2floatvec",arg);
 }
 
-KNO_DEFPRIM("doublevec",make_double_vector,KNO_VAR_ARGS|KNO_MIN_ARGS(0),
+DEFPRIM("doublevec",make_double_vector,KNO_VAR_ARGS|KNO_MIN_ARGS(0),
  "`(DOUBLEVEC *args...*)` **undocumented**");
 static lispval make_double_vector(int n,lispval *from_elts)
 {
@@ -2352,7 +2352,7 @@ static lispval make_double_vector(int n,lispval *from_elts)
   return vec;
 }
 
-KNO_DEFPRIM1("->doublevec",seq2doublevec,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("->doublevec",seq2doublevec,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(->DOUBLEVEC *arg0*)` **undocumented**",
  kno_any_type,KNO_VOID);
 static lispval seq2doublevec(lispval arg)
@@ -2379,7 +2379,7 @@ static lispval seq2doublevec(lispval arg)
 
 /* side effecting operations (not threadsafe) */
 
-KNO_DEFPRIM2("set-car!",set_car,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+DEFPRIM2("set-car!",set_car,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
  "`(SET-CAR! *arg0* *arg1*)` **undocumented**",
  kno_pair_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval set_car(lispval pair,lispval val)
@@ -2393,7 +2393,7 @@ static lispval set_car(lispval pair,lispval val)
   return VOID;
 }
 
-KNO_DEFPRIM2("set-cdr!",set_cdr,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+DEFPRIM2("set-cdr!",set_cdr,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
  "`(SET-CDR! *arg0* *arg1*)` **undocumented**",
  kno_pair_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval set_cdr(lispval pair,lispval val)
@@ -2407,7 +2407,7 @@ static lispval set_cdr(lispval pair,lispval val)
   return VOID;
 }
 
-KNO_DEFPRIM3("vector-set!",vector_set,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3),
+DEFPRIM3("vector-set!",vector_set,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3),
  "`(VECTOR-SET! *arg0* *arg1* *arg2*)` **undocumented**",
  kno_vector_type,KNO_VOID,kno_fixnum_type,KNO_VOID,
  kno_any_type,KNO_VOID);
@@ -2432,10 +2432,10 @@ static lispval vector_set(lispval vec,lispval index,lispval val)
     return VOID;}
 }
 
-KNO_DEFPRIM1("REVERSE",kno_reverse,MIN_ARGS(1),
+DEFPRIM1("REVERSE",kno_reverse,MIN_ARGS(1),
 	     "Reverses a sequence",
 	     kno_any_type,KNO_VOID);
-KNO_DEFPRIM("APPEND",kno_append,MIN_ARGS(0)|KNO_VAR_ARGS,
+DEFPRIM("APPEND",kno_append,MIN_ARGS(0)|KNO_VAR_ARGS,
 	    "Appends sequences together");
 
 KNO_EXPORT void kno_init_seqprims_c()

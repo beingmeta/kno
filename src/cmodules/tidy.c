@@ -233,7 +233,7 @@ static lispval tidy_prim_helper(lispval string,lispval opts,lispval diag,
   return result;
 }
 
-KNO_DEFPRIM3("TIDY5",tidy_prim,MIN_ARGS(1),
+DEFPRIM3("TIDY5",tidy_prim,MIN_ARGS(1),
              "Cleans up HTML text in its agument",
              kno_string_type,KNO_VOID,-1,KNO_VOID,
              -1,KNO_VOID);
@@ -242,7 +242,7 @@ static lispval tidy_prim(lispval string,lispval opts,lispval diag)
   return tidy_prim_helper(string,opts,diag,1,-1);
 }
 
-KNO_DEFPRIM3("TIDY->INDENT",tidy_indent_prim,MIN_ARGS(1),
+DEFPRIM3("TIDY->INDENT",tidy_indent_prim,MIN_ARGS(1),
              "Cleans up HTML text, indenting the result",
              kno_string_type,KNO_VOID,-1,KNO_VOID,
              -1,KNO_VOID);
@@ -251,7 +251,7 @@ static lispval tidy_indent_prim(lispval string,lispval opts,lispval diag)
   return tidy_prim_helper(string,opts,diag,0,-1);
 }
 
-KNO_DEFPRIM3("TIDY->HTML",tidy_html_prim,MIN_ARGS(1),
+DEFPRIM3("TIDY->HTML",tidy_html_prim,MIN_ARGS(1),
              "Cleans up HTML text, generates HTML5 (not XHTML)",
              kno_string_type,KNO_VOID,-1,KNO_VOID,
              -1,KNO_VOID);
@@ -260,7 +260,7 @@ static lispval tidy_html_prim(lispval string,lispval opts,lispval diag)
   return tidy_prim_helper(string,opts,diag,1,0);
 }
 
-KNO_DEFPRIM3("TIDY->XHTML",tidy_xhtml_prim,MIN_ARGS(1),
+DEFPRIM3("TIDY->XHTML",tidy_xhtml_prim,MIN_ARGS(1),
              "Cleans up HTML text, generating XHTML",
              kno_string_type,KNO_VOID,-1,KNO_VOID,
              -1,KNO_VOID);

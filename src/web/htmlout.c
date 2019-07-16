@@ -158,7 +158,7 @@ void kno_xhtmlerrorpage(u8_output s,u8_exception ex)
   u8_puts(s,"</body>\n</html>\n");
 }
 
-KNO_DEFPRIM2("debugpage->html",debugpage2html_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(0),
+DEFPRIM2("debugpage->html",debugpage2html_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(0),
  "`(DEBUGPAGE->HTML [*arg0*] [*arg1*])` **undocumented**",
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval debugpage2html_prim(lispval exception,lispval where)
@@ -194,7 +194,7 @@ static lispval debugpage2html_prim(lispval exception,lispval where)
   else return KNO_FALSE;
 }
 
-KNO_DEFPRIM2("backtrace->html",backtrace2html_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(0),
+DEFPRIM2("backtrace->html",backtrace2html_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(0),
  "`(BACKTRACE->HTML [*arg0*] [*arg1*])` **undocumented**",
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval backtrace2html_prim(lispval arg,lispval where)
@@ -599,7 +599,7 @@ static lispval table2html_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   return VOID;
 }
 
-KNO_DEFPRIM2("obj->html",obj2html_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+DEFPRIM2("obj->html",obj2html_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
  "`(OBJ->HTML *arg0* [*arg1*])` **undocumented**",
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval obj2html_prim(lispval obj,lispval tag)

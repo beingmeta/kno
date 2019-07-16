@@ -881,7 +881,7 @@ static lispval xapplygetval(void *xobj,lispval var)
   else return kno_err("InternalXapplyBug","xapplygetval",NULL,fn_obj);
 }
 
-KNO_DEFPRIM3("xapply",xapply_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+DEFPRIM3("xapply",xapply_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
  "`(XAPPLY *arg0* *arg1* [*arg2*])` **undocumented**",
  kno_lambda_type,KNO_VOID,kno_any_type,KNO_VOID,
  kno_any_type,KNO_VOID);

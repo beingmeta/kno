@@ -237,7 +237,7 @@ static struct TAGINFO {
     {EXIF_TAG_IMAGE_UNIQUE_ID, "ImageUniqueID",KNO_VOID},
     {0, NULL,KNO_VOID}};
 
-KNO_DEFPRIM2("exif-get",exif_get,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+DEFPRIM2("exif-get",exif_get,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
  "`(EXIF-GET *arg0* [*arg1*])` **undocumented**",
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval exif_get(lispval x,lispval prop)

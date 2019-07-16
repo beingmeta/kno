@@ -150,7 +150,7 @@ static lispval write_png_packet(QRcode *qrcode,lispval opts)
       return packet;}}
 }
 
-KNO_DEFPRIM2("qrencode",qrencode_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+DEFPRIM2("qrencode",qrencode_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
  "`(QRENCODE *arg0* [*arg1*])` **undocumented**",
  kno_string_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval qrencode_prim(lispval string,lispval opts)

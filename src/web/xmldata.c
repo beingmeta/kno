@@ -24,7 +24,7 @@
 
 static lispval name_slotid, content_slotid;
 
-KNO_DEFPRIM2("xmlattrib",xmlattrib,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+DEFPRIM2("xmlattrib",xmlattrib,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
  "`(XMLATTRIB *arg0* *arg1*)` **undocumented**",
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval xmlattrib(lispval doc,lispval attrib_id)
@@ -54,7 +54,7 @@ static void xmlget_helper(lispval *result,lispval doc,lispval eltid,int cons)
   else return;
 }
 
-KNO_DEFPRIM2("xmlget",xmlget,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+DEFPRIM2("xmlget",xmlget,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
  "`(XMLGET *arg0* *arg1*)` **undocumented**",
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval xmlget(lispval doc,lispval attrib_id)
@@ -73,7 +73,7 @@ static int listlen(lispval l)
     return len;}
 }
 
-KNO_DEFPRIM2("xmlget/sorted",xmlget_sorted,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+DEFPRIM2("xmlget/sorted",xmlget_sorted,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
  "`(XMLGET/SORTED *arg0* *arg1*)` **undocumented**",
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval xmlget_sorted(lispval doc,lispval attrib_id)
@@ -93,7 +93,7 @@ static lispval xmlget_sorted(lispval doc,lispval attrib_id)
     return vec;}
 }
 
-KNO_DEFPRIM2("xmlget/first",xmlget_first,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+DEFPRIM2("xmlget/first",xmlget_first,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
  "`(XMLGET/FIRST *arg0* *arg1*)` **undocumented**",
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval xmlget_first(lispval doc,lispval attrib_id)
@@ -112,7 +112,7 @@ static lispval xmlget_first(lispval doc,lispval attrib_id)
 }
 
 /* This returns the content field as parsed. */
-KNO_DEFPRIM2("xmlconents",xmlcontents,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+DEFPRIM2("xmlconents",xmlcontents,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
  "`(XMLCONENTS *arg0* [*arg1*])` **undocumented**",
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval xmlcontents(lispval doc,lispval attrib_id)
@@ -144,7 +144,7 @@ static lispval xmlcontents(lispval doc,lispval attrib_id)
 }
 
 /* This returns the content field as parsed. */
-KNO_DEFPRIM2("xmlempty?",xmlemptyp,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+DEFPRIM2("xmlempty?",xmlemptyp,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
  "`(XMLEMPTY? *arg0* [*arg1*])` **undocumented**",
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval xmlemptyp(lispval elt,lispval attribid)
@@ -165,7 +165,7 @@ static lispval xmlemptyp(lispval elt,lispval attribid)
 }
 
 /* This returns the content field as a string. */
-KNO_DEFPRIM2("xmlcontent",xmlcontent,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+DEFPRIM2("xmlcontent",xmlcontent,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
  "`(XMLCONTENT *arg0* [*arg1*])` **undocumented**",
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval xmlcontent(lispval doc,lispval attrib_id)

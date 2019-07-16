@@ -320,7 +320,7 @@ int do_main(int argc,char **argv,
           u8_log(LOG_NOTICE,FileWait,"[%d] Waiting for '%s' to exist",
                  n,wait_for_file);}}}
 
-  KNO_DEFPRIM("CHAIN",chain_prim,KNO_VAR_ARGS|MIN_ARGS(0),
+  DEFPRIM("CHAIN",chain_prim,KNO_VAR_ARGS|MIN_ARGS(0),
               "Resets the current process to a fresh instance of "
               "knox");
   KNO_LINK_PRIM("CHAIN",chain_prim,0,(lispval)env);

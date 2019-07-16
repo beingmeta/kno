@@ -232,7 +232,7 @@ static lispval load_source_for_module(lispval spec,u8_string module_source)
   return (lispval)env;
 }
 
-KNO_DEFPRIM1("reload-module",reload_module,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("reload-module",reload_module,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(RELOAD-MODULE *arg0*)` **undocumented**",
  kno_any_type,KNO_VOID);
 static lispval reload_module(lispval module)
@@ -453,7 +453,7 @@ KNO_EXPORT int kno_update_file_module(u8_string module_source,int force)
   else return 0;
 }
 
-KNO_DEFPRIM1("update-modules",update_modules_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
+DEFPRIM1("update-modules",update_modules_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
  "`(UPDATE-MODULES [*arg0*])` **undocumented**",
  kno_any_type,KNO_VOID);
 static lispval update_modules_prim(lispval flag)
@@ -463,7 +463,7 @@ static lispval update_modules_prim(lispval flag)
   else return VOID;
 }
 
-KNO_DEFPRIM2("update-module",update_module_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+DEFPRIM2("update-module",update_module_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
  "`(UPDATE-MODULE *arg0* [*arg1*])` **undocumented**",
  kno_any_type,KNO_VOID,kno_any_type,KNO_FALSE);
 static lispval update_module_prim(lispval spec,lispval force)
@@ -702,7 +702,7 @@ static int load_dynamic_module(lispval spec,void *data)
   else return 0;
 }
 
-KNO_DEFPRIM2("dynamic-load",dynamic_load_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+DEFPRIM2("dynamic-load",dynamic_load_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
  "`(DYNAMIC-LOAD *modname* [*err*])` "
  "loads a dynamic module into KNO. If *modname* (a "
  "string) is a path (includes a '/'), it is loaded "

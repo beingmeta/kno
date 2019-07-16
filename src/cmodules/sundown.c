@@ -94,13 +94,13 @@ KNO_EXPORT int kno_init_sundown()
 
 static void init_local_cprims()
 {
-  KNO_DEFPRIM2("MARKDOWN->HTML",markdown2html_prim,MIN_ARGS(1),
+  DEFPRIM2("MARKDOWN->HTML",markdown2html_prim,MIN_ARGS(1),
                "Converts a markdown string to HTML",
                kno_string_type,KNO_VOID,-1,KNO_VOID);
   KNO_LINK_PRIM("MARKDOWN->HTML",markdown2html_prim,2,sundown_module);
   KNO_LINK_ALIAS("MD->HTML",markdown2html_prim,sundown_module);
 
-  KNO_DEFPRIM2("MARKOUT",markout_prim,MIN_ARGS(1),
+  DEFPRIM2("MARKOUT",markout_prim,MIN_ARGS(1),
                "Outputs HTML for a markdown string to the standard output",
                kno_string_type,KNO_VOID,-1,KNO_VOID);
   KNO_LINK_PRIM("MARKOUT",markout_prim,2,sundown_module);

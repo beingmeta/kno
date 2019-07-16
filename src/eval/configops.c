@@ -59,7 +59,7 @@ static u8_string get_config_path(u8_string spec)
 
 /* Core functions */
 
-KNO_DEFPRIM3("config",config_get,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
+DEFPRIM3("config",config_get,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
  "`(CONFIG *name* [*default*=#f] [*valfn*])`\n"
  "Gets the configuration setting named *name*, "
  "returning *default* if it isn't defined. *valfn*, "
@@ -127,7 +127,7 @@ static lispval config_macro(lispval expr,kno_lexenv env,kno_stack ptr)
   else return KNO_FALSE;
 }
 
-KNO_DEFPRIM("config!",set_config,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+DEFPRIM("config!",set_config,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
  "`(CONFIG! *name1* *value1* *name2* *value2* ...)`\n"
  "Sets each configuration setting *name_i* to "
  "*value_i*. This invokes the config *handler* "
@@ -150,7 +150,7 @@ static lispval set_config(int n,lispval *args)
   return VOID;
 }
 
-KNO_DEFPRIM2("config-default!",set_default_config,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+DEFPRIM2("config-default!",set_default_config,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
  "`(CONFIG-DEFAULT! *name* *value*)`\n"
  "Sets the configuration value named *name* to "
  "*value* if it has not yet been specified for the "
@@ -178,7 +178,7 @@ static lispval set_default_config(lispval var,lispval val)
   else return KNO_FALSE;
 }
 
-KNO_DEFPRIM2("find-configs",find_configs,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+DEFPRIM2("find-configs",find_configs,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
  "`(FIND-CONFIGS *pattern* *withdocs*)`\n"
  "Finds all config settings matching *pattern* and "
  "returns their names (symbols). *pattern* is a "
@@ -228,7 +228,7 @@ static int lconfig_set(lispval var,lispval val,void *data)
 
 static int reuse_lconfig(struct KNO_CONFIG_HANDLER *e);
 
-KNO_DEFPRIM3("config-def!",config_def,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+DEFPRIM3("config-def!",config_def,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
  "`(CONFIG/DEF! *config_name* *handler* [*doc*])` "
  "Defines the procedure *handler* as the config "
  "handler for the *config_name* configuration "
@@ -320,7 +320,7 @@ KNO_EXPORT int kno_load_default_config(u8_string sourceid)
 
 /* From Scheme */
 
-KNO_DEFPRIM1("load-config",lisp_load_config,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("load-config",lisp_load_config,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(LOAD-CONFIG *arg0*)` **undocumented**",
  kno_any_type,KNO_VOID);
 static lispval lisp_load_config(lispval arg)
@@ -347,7 +347,7 @@ static lispval lisp_load_config(lispval arg)
          ("path or config symbol","lisp_load_config",arg);
 }
 
-KNO_DEFPRIM1("load-default-config",lisp_load_default_config,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("load-default-config",lisp_load_default_config,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(LOAD-DEFAULT-CONFIG *arg0*)` **undocumented**",
  kno_any_type,KNO_VOID);
 static lispval lisp_load_default_config(lispval arg)
@@ -374,7 +374,7 @@ static lispval lisp_load_default_config(lispval arg)
          ("path or config symbol","lisp_load_default_config",arg);
 }
 
-KNO_DEFPRIM1("read-config",lisp_read_config,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("read-config",lisp_read_config,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(READ-CONFIG *arg0*)` **undocumented**",
  kno_string_type,KNO_VOID);
 static lispval lisp_read_config(lispval arg)

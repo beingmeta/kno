@@ -568,7 +568,7 @@ static lispval export_alias_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   return export_alias_helper(expr,env,_stack);
 }
 
-KNO_DEFPRIM1("get-module",get_module,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("get-module",get_module,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(GET-MODULE *arg0*)` **undocumented**",
  kno_any_type,KNO_VOID);
 static lispval get_module(lispval modname)
@@ -577,7 +577,7 @@ static lispval get_module(lispval modname)
   return module;
 }
 
-KNO_DEFPRIM1("get-loaded-module",get_loaded_module,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("get-loaded-module",get_loaded_module,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(GET-LOADED-MODULE *arg0*)` **undocumented**",
  kno_any_type,KNO_VOID);
 static lispval get_loaded_module(lispval modname)
@@ -619,7 +619,7 @@ lispval kno_use_module(kno_lexenv env,lispval module)
   return VOID;
 }
 
-KNO_DEFPRIM1("static-module!",static_module,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("static-module!",static_module,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(STATIC-MODULE! *arg0*)` **undocumented**",
  kno_any_type,KNO_VOID);
 static lispval static_module(lispval module)
@@ -648,7 +648,7 @@ static lispval static_module(lispval module)
       return result;}}
 }
 
-KNO_DEFPRIM1("get-exports",get_exports_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("get-exports",get_exports_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
              "`(GET-EXPORTS *arg0*)` **undocumented**",
              kno_any_type,KNO_VOID);
 static lispval get_exports_prim(lispval arg)
@@ -736,7 +736,7 @@ static lispval get_source(lispval arg)
     return KNO_FALSE;}
 }
 
-KNO_DEFPRIM1("get-source",get_source_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
+DEFPRIM1("get-source",get_source_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
  "(get-source [*obj*])\n"
  "Gets the source file implementing *obj*, which "
  "can be a function (or macro or evalfn), module, "
@@ -833,7 +833,7 @@ get_binding_helper(lispval modarg,lispval symbol,lispval dflt,
     return kno_incref(dflt);}
 }
 
-KNO_DEFPRIM3("get-binding",get_binding_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+DEFPRIM3("get-binding",get_binding_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
  "(get-binding *module* *symbol* [*default*])\n"
  "Gets *module*'s exported binding of *symbol*. On "
  "failure, returns *default* if provided or errs if "
@@ -846,7 +846,7 @@ static lispval get_binding_prim
   return get_binding_helper(mod_arg,symbol,dflt,1,0,"get_binding_prim");
 }
 
-KNO_DEFPRIM3("%get-binding",get_internal_binding_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+DEFPRIM3("%get-binding",get_internal_binding_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
  "(get-binding *module* *symbol* [*default*])\n"
  "Gets *module*'s binding of *symbol* (internal or "
  "external). On failure returns *default* (if "
@@ -862,7 +862,7 @@ static lispval get_internal_binding_prim
                             "get_internal_binding_prim");
 }
 
-KNO_DEFPRIM3("importvar",import_var_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+DEFPRIM3("importvar",import_var_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
  "(importvar *module* *symbol* [*default*])\n"
  "Gets *module*'s binding of *symbol* (internal, "
  "external, or inherhited). On failure returns "

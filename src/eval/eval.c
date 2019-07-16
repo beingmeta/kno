@@ -96,7 +96,7 @@ static int bound_in_envp(lispval symbol,kno_lexenv env)
 
 /* Lexrefs */
 
-KNO_DEFPRIM2("%lexref",lexref_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+DEFPRIM2("%lexref",lexref_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
  "(%LEXREF *up* *across*) "
  "returns a lexref (lexical reference) given a "
  "'number of environments' *up* and a 'number of "
@@ -114,7 +114,7 @@ static lispval lexref_prim(lispval upv,lispval acrossv)
   else return kno_type_error("short","lexref_prim",across);
 }
 
-KNO_DEFPRIM1("%lexref?",lexrefp_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("%lexref?",lexrefp_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "(%LEXREF? *val*) "
  "returns true if it's argument is a lexref "
  "(lexical reference)",
@@ -126,7 +126,7 @@ static lispval lexrefp_prim(lispval ref)
   else return KNO_FALSE;
 }
 
-KNO_DEFPRIM1("%lexrefval",lexref_value_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("%lexrefval",lexref_value_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "(%LEXREFVAL *lexref*) "
  "returns the offsets of a lexref as a pair (*up* . "
  "*across*)",
@@ -171,7 +171,7 @@ static ssize_t write_lexref_dtype(struct KNO_OUTBUF *out,lispval x)
 
 /* Code refs */
 
-KNO_DEFPRIM1("%coderef",coderef_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("%coderef",coderef_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "(%CODEREF *nelts*) "
  "returns a 'coderef' (a relative position) value",
  kno_fixnum_type,KNO_VOID);
@@ -181,7 +181,7 @@ static lispval coderef_prim(lispval offset)
   return LISPVAL_IMMEDIATE(kno_coderef_type,off);
 }
 
-KNO_DEFPRIM1("coderef?",coderefp_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("coderef?",coderefp_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "(CODEREF? *nelts*) "
  "returns #t if *arg* is a coderef",
  kno_any_type,KNO_VOID);
@@ -192,7 +192,7 @@ static lispval coderefp_prim(lispval ref)
   else return KNO_FALSE;
 }
 
-KNO_DEFPRIM1("%coderefval",coderef_value_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("%coderefval",coderef_value_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "(%CODEREFVAL *coderef*) "
  "returns the integer relative offset of a coderef",
  kno_coderef_type,KNO_VOID);
@@ -227,7 +227,7 @@ static ssize_t write_coderef_dtype(struct KNO_OUTBUF *out,lispval x)
   return n_bytes;
 }
 
-KNO_DEFPRIM1("make-coderef",make_coderef,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("make-coderef",make_coderef,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "(MAKE-CODEREF <fixnum>)\n"
  "Returns a coderef object",
  kno_fixnum_type,KNO_VOID);
@@ -244,7 +244,7 @@ static lispval make_coderef(lispval x)
 u8_string kno_opcode_names[0x800]={NULL};
 int kno_opcodes_length = 0x800;
 
-KNO_DEFPRIM1("opcode?",opcodep,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("opcode?",opcodep,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(OPCODE? *arg0*)` **undocumented**",
  kno_any_type,KNO_VOID);
 static lispval opcodep(lispval x)
@@ -273,7 +273,7 @@ KNO_EXPORT lispval kno_get_opcode(u8_string name)
   return KNO_FALSE;
 }
 
-KNO_DEFPRIM1("name->opcode",name2opcode_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("name->opcode",name2opcode_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(NAME->OPCODE *arg0*)` **undocumented**",
  kno_any_type,KNO_VOID);
 static lispval name2opcode_prim(lispval arg)
@@ -285,7 +285,7 @@ static lispval name2opcode_prim(lispval arg)
   else return kno_type_error(_("opcode name"),"name2opcode_prim",arg);
 }
 
-KNO_DEFPRIM1("make-opcode",make_opcode,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("make-opcode",make_opcode,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(MAKE-OPCODE *arg0*)` **undocumented**",
  kno_fixnum_type,KNO_VOID);
 static lispval make_opcode(lispval x)
@@ -317,7 +317,7 @@ static int validate_opcode(lispval opcode)
   else return 0;
 }
 
-KNO_DEFPRIM1("opcode-name",opcode_name_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("opcode-name",opcode_name_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "(OPCODE-NAME *opcode*) "
  "returns the name of *opcode* or #f it's valid but "
  "anonymous, and errors if it is not an opcode or "
@@ -1279,7 +1279,7 @@ static lispval env_reset_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   return VOID;
 }
 
-KNO_DEFPRIM2("symbol-bound-in?",symbol_boundin_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+DEFPRIM2("symbol-bound-in?",symbol_boundin_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
  "`(SYMBOL-BOUND-IN? *arg0* *arg1*)` **undocumented**",
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval symbol_boundin_prim(lispval symbol,lispval envarg)
@@ -1352,7 +1352,7 @@ static lispval symbol_boundp_evalfn(lispval expr,kno_lexenv env,
     return KNO_TRUE;}
 }
 
-KNO_DEFPRIM1("environment?",environmentp_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("environment?",environmentp_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(ENVIRONMENT? *arg0*)` **undocumented**",
  kno_any_type,KNO_VOID);
 static lispval environmentp_prim(lispval arg)
@@ -1426,7 +1426,7 @@ static lispval withenv_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 
 /* Eval/apply related primitives */
 
-KNO_DEFPRIM3("get-arg",get_arg_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+DEFPRIM3("get-arg",get_arg_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
  "`(GET-ARG *expression* *i* [*default*])` "
  "returns the *i*'th parameter in *expression*, or "
  "*default* (otherwise)",
@@ -1447,7 +1447,7 @@ static lispval get_arg_prim(lispval expr,lispval elt,lispval dflt)
   else return kno_type_error(_("pair"),"get_arg_prim",expr);
 }
 
-KNO_DEFPRIM("apply",apply_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
+DEFPRIM("apply",apply_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
  "`(APPLY *arg0* *args...*)` **undocumented**");
 static lispval apply_lexpr(int n,lispval *args)
 {
@@ -1523,7 +1523,7 @@ static lispval call_continuation(struct KNO_FUNCTION *f,int n,lispval *args)
   else return kno_err(DoubleThrow,"call_continuation",NULL,arg);
 }
 
-KNO_DEFPRIM1("call/cc",callcc,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("call/cc",callcc,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(CALL/CC *arg0*)` **undocumented**",
  kno_any_type,KNO_VOID);
 static lispval callcc(lispval proc)
@@ -1554,7 +1554,7 @@ static lispval callcc(lispval proc)
 
 /* Cache call */
 
-KNO_DEFPRIM("cachecall",cachecall,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
+DEFPRIM("cachecall",cachecall,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
  "`(CACHECALL *arg0* *args...*)` **undocumented**");
 static lispval cachecall(int n,lispval *args)
 {
@@ -1563,7 +1563,7 @@ static lispval cachecall(int n,lispval *args)
   else return kno_cachecall(args[0],n-1,args+1);
 }
 
-KNO_DEFPRIM("cachecall/probe",cachecall_probe,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
+DEFPRIM("cachecall/probe",cachecall_probe,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
  "`(CACHECALL/PROBE *arg0* *args...*)` **undocumented**");
 static lispval cachecall_probe(int n,lispval *args)
 {
@@ -1572,7 +1572,7 @@ static lispval cachecall_probe(int n,lispval *args)
   else return kno_cachecall_try(args[0],n-1,args+1);
 }
 
-KNO_DEFPRIM("cachedcall?",cachedcallp,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
+DEFPRIM("cachedcall?",cachedcallp,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
 	    "`(CACHEDCALL? *arg0* *args...*)` **undocumented**");
 static lispval cachedcallp(int n,lispval *args)
 {
@@ -1585,7 +1585,7 @@ static lispval cachedcallp(int n,lispval *args)
   else return KNO_FALSE;
 }
 
-KNO_DEFPRIM1("clear-callcache!",clear_callcache,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
+DEFPRIM1("clear-callcache!",clear_callcache,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
  "`(CLEAR-CALLCACHE! [*arg0*])` **undocumented**",
  kno_any_type,KNO_VOID);
 static lispval clear_callcache(lispval arg)
@@ -1594,7 +1594,7 @@ static lispval clear_callcache(lispval arg)
   return VOID;
 }
 
-KNO_DEFPRIM("thread/cachecall",tcachecall,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
+DEFPRIM("thread/cachecall",tcachecall,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
  "`(THREAD/CACHECALL *arg0* *args...*)` **undocumented**");
 static lispval tcachecall(int n,lispval *args)
 {
@@ -1627,7 +1627,7 @@ static lispval using_threadcache_evalfn(lispval expr,kno_lexenv env,kno_stack _s
   return value;
 }
 
-KNO_DEFPRIM1("use-threadcache",use_threadcache_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
+DEFPRIM1("use-threadcache",use_threadcache_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
  "`(USE-THREADCACHE [*arg0*])` **undocumented**",
  kno_any_type,KNO_VOID);
 static lispval use_threadcache_prim(lispval arg)
@@ -1644,7 +1644,7 @@ static lispval use_threadcache_prim(lispval arg)
 
 /* Making DTPROCs */
 
-KNO_DEFPRIM7("dtproc",make_dtproc,KNO_MAX_ARGS(7)|KNO_MIN_ARGS(2),
+DEFPRIM7("dtproc",make_dtproc,KNO_MAX_ARGS(7)|KNO_MIN_ARGS(2),
  "`(DTPROC *arg0* *arg1* [*arg2*] [*arg3*] [*arg4*] [*arg5*] [*arg6*])` **undocumented**",
  kno_symbol_type,KNO_VOID,kno_string_type,KNO_VOID,
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
@@ -1676,7 +1676,7 @@ static lispval make_dtproc(lispval name,lispval server,lispval min_arity,
 
 /* Getting documentation */
 
-KNO_DEFPRIM1("documentation",get_documentation,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("documentation",get_documentation,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "`(DOCUMENTATION *arg0*)` **undocumented**",
  kno_any_type,KNO_VOID);
 KNO_EXPORT u8_string kno_get_documentation(lispval x)
@@ -1787,7 +1787,7 @@ static int check_num(lispval arg,int num)
     else return 0;}
 }
 
-KNO_DEFPRIM("check-version",check_version_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
+DEFPRIM("check-version",check_version_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
  "`(CHECK-VERSION *arg0* *args...*)` **undocumented**");
 static lispval check_version_prim(int n,lispval *args)
 {
@@ -1819,7 +1819,7 @@ static lispval check_version_prim(int n,lispval *args)
   else return KNO_FALSE;
 }
 
-KNO_DEFPRIM("require-version",require_version_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
+DEFPRIM("require-version",require_version_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
  "`(REQUIRE-VERSION *arg0* *args...*)` **undocumented**");
 static lispval require_version_prim(int n,lispval *args)
 {
@@ -1845,7 +1845,7 @@ static lispval require_version_prim(int n,lispval *args)
 
 /* Choice functions */
 
-KNO_DEFPRIM1("%fixchoice",fixchoice_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+DEFPRIM1("%fixchoice",fixchoice_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
  "`(%FIXCHOICE *arg0*)` **undocumented**",
  kno_any_type,KNO_VOID);
 static lispval fixchoice_prim(lispval arg)
@@ -1855,7 +1855,7 @@ static lispval fixchoice_prim(lispval arg)
   else return kno_incref(arg);
 }
 
-KNO_DEFPRIM2("%choiceref",choiceref_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+DEFPRIM2("%choiceref",choiceref_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
  "`(%CHOICEREF *arg0* *arg1*)` **undocumented**",
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval choiceref_prim(lispval arg,lispval off)
@@ -1887,7 +1887,7 @@ static lispval choiceref_prim(lispval arg,lispval off)
 
 /* FFI */
 
-KNO_DEFPRIM("ffi/proc",ffi_proc,KNO_VAR_ARGS|KNO_MIN_ARGS(3),
+DEFPRIM("ffi/proc",ffi_proc,KNO_VAR_ARGS|KNO_MIN_ARGS(3),
  "`(FFI/PROC *arg0* *arg1* *arg2* *args...*)` **undocumented**");
 
 #if KNO_ENABLE_FFI
@@ -1911,7 +1911,7 @@ static lispval ffi_proc(int n,lispval *args)
     else return KNO_ERROR;}
 }
 
-KNO_DEFPRIM2("ffi/found?",ffi_foundp_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+DEFPRIM2("ffi/found?",ffi_foundp_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
  "`(FFI/FOUND? *arg0* [*arg1*])` **undocumented**",
  kno_string_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval ffi_foundp_prim(lispval name,lispval modname)
@@ -2184,7 +2184,7 @@ KNO_EXPORT int kno_init_scheme()
   return kno_scheme_initialized;
 }
 
-KNO_DEFPRIM("%buildinfo",kno_get_build_info,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+DEFPRIM("%buildinfo",kno_get_build_info,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
  "Information about the build and startup "
  "environment");
 

@@ -359,7 +359,7 @@ static void recycle_mysqldb(struct KNO_SQLDB *c)
   mysql_close(dbp->mysqldb);
 }
 
-KNO_DEFPRIM2("mysql/refresh",refresh_mysqldb,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+DEFPRIM2("mysql/refresh",refresh_mysqldb,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
              "`(MYSQL/REFRESH *dbptr* *flags*)` **undocumented**",
              kno_sqldb_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval refresh_mysqldb(lispval c,lispval flags)
@@ -380,7 +380,7 @@ static lispval refresh_mysqldb(lispval c,lispval flags)
 /* Everything but the hostname and dbname is optional.
    In theory, we could have the dbname be optional, but for now we'll
    require it.  */
-KNO_DEFPRIM6("mysql/open",open_mysql,KNO_MAX_ARGS(6)|KNO_MIN_ARGS(1),
+DEFPRIM6("mysql/open",open_mysql,KNO_MAX_ARGS(6)|KNO_MIN_ARGS(1),
  "`(MYSQL/OPEN *host* *dbname* *colmap* *user* *pass* *opts*)` **undocumented**",
  kno_string_type,KNO_VOID,kno_string_type,KNO_VOID,
  kno_any_type,KNO_VOID,kno_string_type,KNO_VOID,

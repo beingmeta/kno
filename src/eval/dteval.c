@@ -79,7 +79,7 @@ KNO_EXPORT lispval kno_open_dtserver(u8_string server,int bufsiz)
   return LISP_CONS(dts);
 }
 
-KNO_DEFPRIM1("dtserver?",dtserverp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("dtserver?",dtserverp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "Returns true if it's argument is a dtype server "
  "object",
  kno_any_type,KNO_VOID);
@@ -90,7 +90,7 @@ static lispval dtserverp(lispval arg)
   else return KNO_FALSE;
 }
 
-KNO_DEFPRIM1("dtserver-id",dtserver_id,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("dtserver-id",dtserver_id,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "Returns the ID of a dtype server (the argument "
  "used to create it)",
  kno_dtserver_type,KNO_VOID);
@@ -100,7 +100,7 @@ static lispval dtserver_id(lispval arg)
   return kno_mkstring(dts->dtserverid);
 }
 
-KNO_DEFPRIM1("dtserver-address",dtserver_address,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("dtserver-address",dtserver_address,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
  "Returns the address (host/port) of a dtype server",
  kno_dtserver_type,KNO_VOID);
 static lispval dtserver_address(lispval arg)
@@ -109,7 +109,7 @@ static lispval dtserver_address(lispval arg)
   return kno_mkstring(dts->dtserver_addr);
 }
 
-KNO_DEFPRIM2("dteval",dteval,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+DEFPRIM2("dteval",dteval,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
  "`(DTEVAL *arg0* *arg1*)` **undocumented**",
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval dteval(lispval server,lispval expr)
@@ -128,7 +128,7 @@ static lispval dteval(lispval server,lispval expr)
   else return kno_type_error(_("server"),"dteval",server);
 }
 
-KNO_DEFPRIM("dtcall",dtcall,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+DEFPRIM("dtcall",dtcall,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
  "`(DTCALL *arg0* *arg1* *args...*)` **undocumented**");
 static lispval dtcall(int n,lispval *args)
 {
@@ -151,7 +151,7 @@ static lispval dtcall(int n,lispval *args)
   return result;
 }
 
-KNO_DEFPRIM2("open-dtserver",open_dtserver,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+DEFPRIM2("open-dtserver",open_dtserver,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
  "`(OPEN-DTSERVER *arg0* [*arg1*])` **undocumented**",
  kno_string_type,KNO_VOID,kno_fixnum_type,KNO_VOID);
 static lispval open_dtserver(lispval server,lispval bufsiz)
