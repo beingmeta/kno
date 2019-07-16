@@ -6,9 +6,6 @@
 #define KNO_SQLDB_H_INFO "include/kno/sqldb.h"
 #endif
 
-KNO_EXPORT kno_lisp_type kno_sqldb_type;
-KNO_EXPORT kno_lisp_type kno_sqlproc_type;
-
 #define KNO_SQLDB_FIELDS                         \
   KNO_CONS_HEADER;                               \
   u8_string sqldb_spec, sqldb_info;             \

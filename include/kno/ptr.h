@@ -202,6 +202,9 @@ typedef enum KNO_LISP_TYPE {
   kno_dtserver_type = KNO_CONS_TYPECODE(38),
   kno_bloom_filter_type = KNO_CONS_TYPECODE(39),
 
+  kno_sqldb_type = KNO_CONS_TYPECODE(40),
+  kno_sqlproc_type = KNO_CONS_TYPECODE(41),
+
   /* Extended types */
 
   kno_number_type = KNO_EXTENDED_TYPECODE(1),
@@ -211,7 +214,7 @@ typedef enum KNO_LISP_TYPE {
 
   } kno_lisp_type;
 
-#define KNO_BUILTIN_CONS_TYPES 40
+#define KNO_BUILTIN_CONS_TYPES 42
 #define KNO_BUILTIN_IMMEDIATE_TYPES 11
 KNO_EXPORT unsigned int kno_next_cons_type;
 KNO_EXPORT unsigned int kno_next_immediate_type;
