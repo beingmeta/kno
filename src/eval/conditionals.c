@@ -232,14 +232,6 @@ KNO_EXPORT void kno_init_conditionals_c()
 #endif
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
-
-
 static void init_local_cprims()
 {
   lispval scheme_module = kno_scheme_module;

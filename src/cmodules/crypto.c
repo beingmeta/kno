@@ -17,6 +17,7 @@
 #include "kno/indexes.h"
 #include "kno/frames.h"
 #include "kno/numbers.h"
+#include "kno/cprims.h"
 
 #include <libu8/libu8io.h>
 #include <libu8/u8timefns.h>
@@ -62,6 +63,10 @@ static lispval doencrypt(lispval data,lispval key,
   else return KNO_ERROR_VALUE;
 }
 
+KNO_DCLPRIM4("encrypt",encrypt_prim,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
+ "`(ENCRYPT *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
+ kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
+ kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval encrypt_prim(lispval data,lispval key,lispval cipher,lispval iv)
 {
   u8_string ciphername = NULL;
@@ -71,6 +76,10 @@ static lispval encrypt_prim(lispval data,lispval key,lispval cipher,lispval iv)
   else return kno_type_error("ciphername","encrypt_prim",cipher);
   return doencrypt(data,key,ciphername,iv,0);
 }
+KNO_DCLPRIM4("encrypt-dtype",encrypt_dtype_prim,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
+ "`(ENCRYPT-DTYPE *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
+ kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
+ kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval encrypt_dtype_prim(lispval data,lispval key,lispval cipher,lispval iv)
 {
   u8_string ciphername;
@@ -81,6 +90,10 @@ static lispval encrypt_dtype_prim(lispval data,lispval key,lispval cipher,lispva
   return doencrypt(data,key,ciphername,iv,1);
 }
 
+KNO_DCLPRIM4("decrypt",decrypt_prim,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
+ "`(DECRYPT *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
+ kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
+ kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval decrypt_prim(lispval data,lispval key,lispval cipher,lispval iv)
 {
   const unsigned char *payload; size_t payload_len;
@@ -106,6 +119,10 @@ static lispval decrypt_prim(lispval data,lispval key,lispval cipher,lispval iv)
   else return KNO_ERROR_VALUE;
 }
 
+KNO_DCLPRIM4("decrypt->string",decrypt2string_prim,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
+ "`(DECRYPT->STRING *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
+ kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
+ kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval decrypt2string_prim(lispval data,lispval key,lispval cipher,lispval iv)
 {
   const unsigned char *payload; size_t payload_len;
@@ -130,6 +147,10 @@ static lispval decrypt2string_prim(lispval data,lispval key,lispval cipher,lispv
   else return KNO_ERROR_VALUE;
 }
 
+KNO_DCLPRIM4("decrypt->dtype",decrypt2dtype_prim,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
+ "`(DECRYPT->DTYPE *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
+ kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
+ kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval decrypt2dtype_prim(lispval data,lispval key,lispval cipher,lispval iv)
 {
   const unsigned char *payload; size_t payload_len;
@@ -159,6 +180,9 @@ static lispval decrypt2dtype_prim(lispval data,lispval key,lispval cipher,lispva
   else return KNO_ERROR_VALUE;
 }
 
+KNO_DCLPRIM1("random-packet",random_packet_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(RANDOM-PACKET *arg0*)` **undocumented**",
+ kno_fixnum_type,KNO_VOID);
 KNO_EXPORT lispval random_packet_prim(lispval arg)
 {
   if (KNO_UINTP(arg))
@@ -167,6 +191,10 @@ KNO_EXPORT lispval random_packet_prim(lispval arg)
   else return kno_type_error("uint","random_packet_prim",arg);
 }
 
+
+KNO_DCLPRIM2("fill-packet",fill_packet_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+ "`(FILL-PACKET *arg0* [*arg1*])` **undocumented**",
+ kno_fixnum_type,KNO_VOID,kno_any_type,KNO_VOID);
 KNO_EXPORT lispval fill_packet_prim(lispval len,lispval init)
 {
   lispval result; unsigned char *bytes;
@@ -189,9 +217,10 @@ KNO_EXPORT lispval fill_packet_prim(lispval len,lispval init)
   return result;
 }
 
+static lispval crypto_module;
+
 KNO_EXPORT int kno_init_crypto()
 {
-  lispval crypto_module;
   if (crypto_init) return 0;
 
   crypto_init = u8_millitime();
@@ -199,6 +228,9 @@ KNO_EXPORT int kno_init_crypto()
 
   u8_init_cryptofns();
 
+  init_local_cprims();
+
+#if 0
   kno_idefn(crypto_module,
            kno_make_cprim4x("ENCRYPT",encrypt_prim,2,
                            -1,VOID,-1,VOID,
@@ -227,6 +259,7 @@ KNO_EXPORT int kno_init_crypto()
   kno_idefn(crypto_module,
            kno_make_cprim2x("FILL-PACKET",fill_packet_prim,1,
                            kno_fixnum_type,VOID,-1,VOID));
+#endif
 
   kno_finish_module(crypto_module);
 
@@ -241,3 +274,15 @@ KNO_EXPORT int kno_init_crypto()
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */
+
+
+static void init_local_cprims()
+{
+  KNO_LINK_PRIM("decrypt->dtype",decrypt2dtype_prim,4,crypto_module);
+  KNO_LINK_PRIM("decrypt->string",decrypt2string_prim,4,crypto_module);
+  KNO_LINK_PRIM("decrypt",decrypt_prim,4,crypto_module);
+  KNO_LINK_PRIM("encrypt-dtype",encrypt_dtype_prim,4,crypto_module);
+  KNO_LINK_PRIM("encrypt",encrypt_prim,4,crypto_module);
+  KNO_LINK_PRIM("random-packet",random_packet_prim,1,crypto_module);
+  KNO_LINK_PRIM("fill-packet",fill_packet_prim,2,crypto_module);
+}

@@ -17,12 +17,14 @@
 #include "kno/eval.h"
 #include "kno/ports.h"
 #include "kno/webtools.h"
+#include "kno/cprims.h"
 
 #include <libu8/u8xfiles.h>
 #include <libu8/u8convert.h>
 #include <libu8/u8netfns.h>
 
 #include <ctype.h>
+
 
 static u8_condition NoMultiPartSeparator=_("Multipart MIME document has no separator");
 
@@ -274,6 +276,9 @@ lispval kno_parse_mime(const char *start,const char *end)
   return slotmap;
 }
 
+KNO_DCLPRIM1("parse-mime",parse_mime_data,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(PARSE-MIME *arg0*)` **undocumented**",
+ kno_any_type,KNO_VOID);
 static lispval parse_mime_data(lispval arg)
 {
   if (PACKETP(arg))
@@ -288,10 +293,15 @@ static lispval parse_mime_data(lispval arg)
 
 /* Module initialization */
 
+static lispval webtools_module;
+
 void kno_init_mime_c()
 {
-  lispval module = kno_new_module("WEBTOOLS",0);
+  webtools_module = kno_new_module("WEBTOOLS",0);
+  init_local_cprims();
+#if 0
   kno_idefn(module,kno_make_cprim1("PARSE-MIME",parse_mime_data,1));
+#endif
 
   content_slotid = kno_intern("content");
   charset_slotid = kno_intern("charset");
@@ -307,9 +317,7 @@ void kno_init_mime_c()
   u8_register_source_file(_FILEINFO);
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
+static void init_local_cprims()
+{
+  KNO_LINK_PRIM("parse-mime",parse_mime_data,1,webtools_module);
+}

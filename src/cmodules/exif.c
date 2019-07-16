@@ -13,12 +13,14 @@
 #include "kno/lisp.h"
 #include "kno/numbers.h"
 #include "kno/eval.h"
+#include "kno/cprims.h"
 
 #include <libu8/libu8io.h>
 
 #include <libexif/exif-utils.h>
 #include <libexif/exif-data.h>
 #include <libexif/exif-tag.h>
+
 
 KNO_EXPORT int kno_init_exif(void) KNO_LIBINIT_FN;
 
@@ -235,6 +237,9 @@ static struct TAGINFO {
     {EXIF_TAG_IMAGE_UNIQUE_ID, "ImageUniqueID",KNO_VOID},
     {0, NULL,KNO_VOID}};
 
+KNO_DCLPRIM2("exif-get",exif_get,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+ "`(EXIF-GET *arg0* [*arg1*])` **undocumented**",
+ kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval exif_get(lispval x,lispval prop)
 {
   ExifData *exdata;
@@ -271,9 +276,10 @@ static lispval exif_get(lispval x,lispval prop)
 
 static long long int exif_init = 0;
 
+static lispval exif_module;
+
 KNO_EXPORT int kno_init_exif()
 {
-  lispval exif_module;
   struct TAGINFO *scan = taginfo;
   if (exif_init) return 0;
   /* u8_register_source_file(_FILEINFO); */
@@ -286,16 +292,18 @@ KNO_EXPORT int kno_init_exif()
     kno_hashtable_store(&exif_tagmap,symbol,KNO_INT(scan->tagid));
     scan->tagsym = symbol;
     scan++;}
+
+  init_local_cprims();
+#if 0
   kno_idefn(exif_module,kno_make_cprim2("EXIF-GET",exif_get,1));
+#endif
 
   u8_register_source_file(_FILEINFO);
 
   return 1;
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
+static void init_local_cprims()
+{
+  KNO_LINK_PRIM("exif-get",exif_get,2,exif_module);
+}

@@ -1371,15 +1371,6 @@ KNO_EXPORT lispval kno_get_opcode(u8_string name)
   return KNO_FALSE;
 }
 
-static lispval name2opcode_prim(lispval arg)
-{
-  if (KNO_SYMBOLP(arg))
-    return kno_get_opcode(SYM_NAME(arg));
-  else if (STRINGP(arg))
-    return kno_get_opcode(CSTRING(arg));
-  else return kno_type_error(_("opcode name"),"name2opcode_prim",arg);
-}
-
 static int unparse_opcode(u8_output out,lispval opcode)
 {
   int opcode_offset = (KNO_GET_IMMEDIATE(opcode,kno_opcode_type));
@@ -1425,6 +1416,4 @@ void kno_init_opcodes_c()
   memset(kno_opcode_names,0,sizeof(kno_opcode_names));
 
   init_opcode_names();
-
-  kno_idefn(kno_scheme_module,kno_make_cprim1("NAME->OPCODE",name2opcode_prim,1));
 }

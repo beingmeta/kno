@@ -18,6 +18,7 @@
 #include "kno/sequences.h"
 #include "kno/texttools.h"
 #include "kno/sqldb.h"
+#include "kno/cprims.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8printf.h>
@@ -358,6 +359,9 @@ static void recycle_mysqldb(struct KNO_SQLDB *c)
   mysql_close(dbp->mysqldb);
 }
 
+KNO_DCLPRIM2("mysql/refresh",refresh_mysqldb,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+             "`(MYSQL/REFRESH *dbptr* *flags*)` **undocumented**",
+             kno_sqldb_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval refresh_mysqldb(lispval c,lispval flags)
 {
   struct KNO_MYSQL *dbp = (struct KNO_MYSQL *)c;
@@ -376,6 +380,11 @@ static lispval refresh_mysqldb(lispval c,lispval flags)
 /* Everything but the hostname and dbname is optional.
    In theory, we could have the dbname be optional, but for now we'll
    require it.  */
+KNO_DCLPRIM6("mysql/open",open_mysql,KNO_MAX_ARGS(6)|KNO_MIN_ARGS(1),
+ "`(MYSQL/OPEN *host* *dbname* *colmap* *user* *pass* *opts*)` **undocumented**",
+ kno_string_type,KNO_VOID,kno_string_type,KNO_VOID,
+ kno_any_type,KNO_VOID,kno_string_type,KNO_VOID,
+ kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval open_mysql
   (lispval hostname,lispval dbname,lispval colinfo,
    lispval user,lispval password,
@@ -1445,6 +1454,8 @@ static void cleanup_thread_for_mysql()
   mysql_thread_end();
 }
 
+static lispval mysql_module;
+
 KNO_EXPORT int kno_init_mysql()
 {
   lispval module;
@@ -1453,7 +1464,7 @@ KNO_EXPORT int kno_init_mysql()
   u8_register_threadinit(init_thread_for_mysql);
   u8_register_threadexit(cleanup_thread_for_mysql);
 
-  module = kno_new_cmodule("mysql",0,kno_init_mysql);
+  mysql_module = kno_new_cmodule("mysql",0,kno_init_mysql);
 
   u8_init_mutex(&mysql_connect_lock);
 
@@ -1464,6 +1475,8 @@ KNO_EXPORT int kno_init_mysql()
 
   kno_register_sqldb_handler(&mysql_handler);
 
+  init_local_cprims();
+#if 0
   kno_idefn6(module,"MYSQL/OPEN",open_mysql,1,
             "`(MYSQL/OPEN *host* *dbname* *colmap* *user* *pass* *opts*)`",
             kno_string_type,KNO_VOID,
@@ -1476,6 +1489,7 @@ KNO_EXPORT int kno_init_mysql()
             "`(MYSQL/REFRESH *dbptr* *flags*)`",
             kno_sqldb_type,KNO_VOID,
             -1,KNO_VOID);
+#endif
   
   mysql_initialized = u8_millitime();
   
@@ -1512,9 +1526,8 @@ KNO_EXPORT int kno_init_mysql()
   return 1;
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
+static void init_local_cprims()
+{
+  KNO_LINK_PRIM("mysql/open",open_mysql,6,mysql_module);
+  KNO_LINK_PRIM("mysql/refresh",refresh_mysqldb,2,mysql_module);
+}

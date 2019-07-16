@@ -547,8 +547,6 @@ KNO_EXPORT void kno_init_configops_c()
                       kno_boolconfig_get,kno_boolconfig_set,&trace_config_load);
 }
 
-
-
 static void init_local_cprims()
 {
   lispval scheme_module = kno_scheme_module;
@@ -563,5 +561,4 @@ static void init_local_cprims()
   KNO_LINK_PRIM("config",config_get,3,scheme_module);
 
   KNO_DECL_ALIAS("config?",find_configs,scheme_module);
-
 }

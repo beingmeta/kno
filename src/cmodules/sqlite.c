@@ -18,6 +18,7 @@
 #include "kno/sequences.h"
 #include "kno/texttools.h"
 #include "kno/sqldb.h"
+#include "kno/cprims.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8printf.h>
@@ -125,7 +126,7 @@ static int open_knosqlite(struct KNO_SQLITE *knosqlptr)
     if (retval) {
       u8_string msg = u8_strdup(sqlite3_errmsg(db));
       kno_seterr(SQLiteError,"open_sqlite",msg,
-                kno_mkstring(knosqlptr->sqlitefile));
+                 kno_mkstring(knosqlptr->sqlitefile));
       if (db) {closedb(db); knosqlptr->sqlitedb = NULL;}
       u8_unlock_mutex(&(knosqlptr->sqlite_lock));
       U8_CLEAR_ERRNO();
@@ -145,6 +146,10 @@ static int open_knosqlite(struct KNO_SQLITE *knosqlptr)
     return 1;}
 }
 
+KNO_DCLPRIM3("sqlite/open",sqlite_open_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
+             "`(SQLITE/OPEN *arg0* [*arg1*] [*arg2*])` **undocumented**",
+             kno_string_type,KNO_VOID,kno_any_type,KNO_VOID,
+             kno_any_type,KNO_VOID);
 static lispval sqlite_open_prim(lispval filename,lispval colinfo,lispval options)
 {
   struct KNO_SQLITE *sqlcons; int retval;
@@ -201,6 +206,9 @@ static lispval sqlite_open_prim(lispval filename,lispval colinfo,lispval options
     return LISP_CONS(sqlcons);}
 }
 
+KNO_DCLPRIM1("sqlite/reopen",sqlite_reopen_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+             "`(SQLITE/REOPEN *arg0*)` **undocumented**",
+             kno_sqldb_type,KNO_VOID);
 static lispval sqlite_reopen_prim(lispval db)
 {
   struct KNO_SQLDB *sqldb = kno_consptr(struct KNO_SQLDB *,db,kno_sqldb_type);
@@ -226,6 +234,9 @@ static void close_knosqlite(struct KNO_SQLITE *dbp,int lock)
   if (lock) u8_unlock_mutex(&(dbp->sqlite_lock));
 }
 
+KNO_DCLPRIM1("sqlite/close",sqlite_close_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+             "`(SQLITE/CLOSE *arg0*)` **undocumented**",
+             kno_sqldb_type,KNO_VOID);
 static lispval sqlite_close_prim(lispval db)
 {
   struct KNO_SQLDB *sqldb = kno_consptr(struct KNO_SQLDB *,db,kno_sqldb_type);
@@ -301,7 +312,7 @@ static lispval sqliteexec(struct KNO_SQLITE *knos,lispval string,lispval colinfo
     if (KNO_ABORTP(values)) {
       errmsg = sqlite3_errmsg(dbp);
       kno_seterr(SQLiteError,"knosqlite_call",
-                errmsg,kno_incref(string));}
+                 errmsg,kno_incref(string));}
     sqlite3_finalize(stmt);
     u8_unlock_mutex(&(knos->sqlite_lock));
     return values;}
@@ -315,7 +326,7 @@ static lispval sqliteexec(struct KNO_SQLITE *knos,lispval string,lispval colinfo
 }
 
 static lispval sqliteexechandler(struct KNO_SQLDB *sqldb,lispval string,
-                                lispval colinfo)
+                                 lispval colinfo)
 {
   if (sqldb->sqldb_handler== &sqlite_handler) {
     struct KNO_SQLITE *sdb = (struct KNO_SQLITE *)sqldb;
@@ -327,7 +338,7 @@ static lispval sqliteexechandler(struct KNO_SQLDB *sqldb,lispval string,
       else u8_log(LOG_WARN,"SQLITE/REOPEN","Reopening %s",
                   sqldb->sqldb_spec);
       open_knosqlite(sdb);
-      if (!(sdb->sqlitedb)) 
+      if (!(sdb->sqlitedb))
         return KNO_ERROR_VALUE;}
     u8_unlock_mutex(&(sdb->sqlite_lock));
     return sqliteexec(sdb,string,colinfo);}
@@ -337,9 +348,9 @@ static lispval sqliteexechandler(struct KNO_SQLDB *sqldb,lispval string,
 /* SQLITE procs */
 
 static lispval sqlitemakeproc
-  (struct KNO_SQLITE *dbp,
-   u8_string sql,int sql_len,
-   lispval colinfo,int n,lispval *ptypes)
+(struct KNO_SQLITE *dbp,
+ u8_string sql,int sql_len,
+ lispval colinfo,int n,lispval *ptypes)
 {
   sqlite3 *db = dbp->sqlitedb;
   sqlite3_stmt *stmt;
@@ -363,7 +374,7 @@ static lispval sqlitemakeproc
     lispval dbptr = (lispval)dbp;
     const char *errmsg = sqlite3_errmsg(db);
     kno_seterr(SQLiteError,"knosqlite_call",
-              errmsg,kno_incref(dbptr));
+               errmsg,kno_incref(dbptr));
     return KNO_ERROR_VALUE;}
   else sqlcons = u8_alloc(struct KNO_SQLITE_PROC);
   KNO_INIT_FRESH_CONS(sqlcons,kno_sqlproc_type);
@@ -409,8 +420,8 @@ static lispval merge_colinfo(KNO_SQLITE *dbp,lispval colinfo)
 }
 
 static lispval sqlitemakeprochandler
-  (struct KNO_SQLDB *sqldb,u8_string sql,int sql_len,
-   lispval colinfo,int n,lispval *ptypes)
+(struct KNO_SQLDB *sqldb,u8_string sql,int sql_len,
+ lispval colinfo,int n,lispval *ptypes)
 {
   if (sqldb->sqldb_handler== &sqlite_handler)
     return sqlitemakeproc((kno_sqlite)sqldb,sql,sql_len,colinfo,n,ptypes);
@@ -450,7 +461,7 @@ static void recycle_knosqliteproc(struct KNO_SQLPROC *c)
   u8_free(dbp->sqldb_spec);
   u8_free(dbp->sqldb_qtext);
   {int j = 0, lim = dbp->fcn_n_params;; while (j<lim) {
-    kno_decref(dbp->sqldb_paramtypes[j]); j++;}}
+      kno_decref(dbp->sqldb_paramtypes[j]); j++;}}
   u8_free(dbp->sqltypes);
   u8_free(dbp->sqldb_paramtypes);
   kno_decref(dbp->sqldbptr);
@@ -521,7 +532,7 @@ static lispval sqlitecallproc(struct KNO_FUNCTION *fn,int n,lispval *args)
           (&out,&(tstamp->u8xtimeval),U8_ISO8601_NOZONE|U8_ISO8601_UTC);
         u8_puts(&out," localtime");}
       else u8_xtime_to_iso8601_x
-        (&out,&(tstamp->u8xtimeval),U8_ISO8601_NOZONE|U8_ISO8601_UTC);
+             (&out,&(tstamp->u8xtimeval),U8_ISO8601_NOZONE|U8_ISO8601_UTC);
       ret = sqlite3_bind_text
         (dbproc->stmt,i+1,
          out.u8_outbuf,out.u8_write-out.u8_outbuf,
@@ -538,7 +549,7 @@ static lispval sqlitecallproc(struct KNO_FUNCTION *fn,int n,lispval *args)
     if (ret) {
       const char *errmsg = sqlite3_errmsg(dbproc->sqlitedb);
       kno_seterr(SQLiteError,"knosqlite_call",
-                errmsg,kno_incref((lispval)fn));
+                 errmsg,kno_incref((lispval)fn));
       u8_unlock_mutex(&(dbproc->sqliteproc_lock));
       U8_CLEAR_ERRNO();
       return KNO_ERROR_VALUE;}
@@ -551,7 +562,7 @@ static lispval sqlitecallproc(struct KNO_FUNCTION *fn,int n,lispval *args)
   if (KNO_ABORTP(values)) {
     const char *errmsg = sqlite3_errmsg(dbproc->sqlitedb);
     kno_seterr(SQLiteError,"knosqlite_call",
-              errmsg,kno_incref((lispval)fn));}
+               errmsg,kno_incref((lispval)fn));}
   U8_CLEAR_ERRNO();
   return values;
 }
@@ -784,11 +795,12 @@ static long long int sqlite_init = 0;
 static struct KNO_SQLDB_HANDLER sqlite_handler=
   {"sqlite",NULL,NULL,NULL,NULL};
 
+static lispval sqlite_module;
+
 KNO_EXPORT int kno_init_sqlite()
 {
-  lispval module;
   if (sqlite_init) return 0;
-  module = kno_new_cmodule("sqlite",0,kno_init_sqlite);
+  sqlite_module = kno_new_cmodule("sqlite",0,kno_init_sqlite);
 
   sqlite_handler.execute = sqliteexechandler;
   sqlite_handler.makeproc = sqlitemakeprochandler;
@@ -797,14 +809,18 @@ KNO_EXPORT int kno_init_sqlite()
 
   kno_register_sqldb_handler(&sqlite_handler);
 
+  init_local_cprims();
+#if 0
   kno_defn(module,
-          kno_make_cprim3x("SQLITE/OPEN",sqlite_open_prim,1,
-                          kno_string_type,KNO_VOID,
-                          -1,KNO_VOID,-1,KNO_VOID));
+           kno_make_cprim3x("SQLITE/OPEN",sqlite_open_prim,1,
+                            kno_string_type,KNO_VOID,
+                            -1,KNO_VOID,-1,KNO_VOID));
   kno_defn(module,kno_make_cprim1x("SQLITE/REOPEN",sqlite_reopen_prim,1,
-                                 kno_sqldb_type,KNO_VOID));
+                                   kno_sqldb_type,KNO_VOID));
   kno_defn(module,kno_make_cprim1x("SQLITE/CLOSE",sqlite_close_prim,1,
-                                 kno_sqldb_type,KNO_VOID));
+                                   kno_sqldb_type,KNO_VOID));
+#endif
+
   sqlite_init = u8_millitime();
 
   merge_symbol = kno_intern("%merge");
@@ -816,16 +832,16 @@ KNO_EXPORT int kno_init_sqlite()
   vfs_symbol = kno_intern("vfs");
   execok_symbol = kno_intern("exec/ok");
 
-  kno_finish_module(module);
+  kno_finish_module(sqlite_module);
 
   u8_register_source_file(_FILEINFO);
 
   return 1;
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
+static void init_local_cprims()
+{
+  KNO_LINK_PRIM("sqlite/close",sqlite_close_prim,1,sqlite_module);
+  KNO_LINK_PRIM("sqlite/reopen",sqlite_reopen_prim,1,sqlite_module);
+  KNO_LINK_PRIM("sqlite/open",sqlite_open_prim,3,sqlite_module);
+}

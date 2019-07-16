@@ -22,6 +22,8 @@
 #include <libu8/u8netfns.h>
 
 #include <ldns/ldns.h>
+#include <kno/cprims.h>
+
 
 static int dns_initialized = 0;
 
@@ -79,6 +81,9 @@ static lispval rdf2dtype ( ldns_rdf *field )
   }
 }
 
+KNO_DCLPRIM2("dns/get",dns_query,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+ "`(DNS/GET *arg0* [*arg1*])` **undocumented**",
+ kno_string_type,KNO_VOID,kno_symbol_type,KNO_VOID);
 static lispval dns_query(lispval domain_arg,lispval type_arg)
 {
   lispval results = EMPTY;
@@ -126,26 +131,28 @@ static lispval dns_query(lispval domain_arg,lispval type_arg)
 
 KNO_EXPORT void kno_init_dns_c(void) KNO_LIBINIT_FN;
 
+static lispval webtools_module;
+
 KNO_EXPORT void kno_init_dns_c()
 {
-  lispval module;
   if (dns_initialized) return;
   dns_initialized = 1;
   kno_init_scheme();
 
-  module = kno_new_module("WEBTOOLS",(0));
+  webtools_module = kno_new_module("WEBTOOLS",(0));
 
+  init_local_cprims();
+#if 0
   kno_idefn(module,kno_make_cprim2x
            ("DNS/GET",dns_query,1,
             kno_string_type,VOID,
             kno_symbol_type,VOID));
+#endif
 
   u8_register_source_file(_FILEINFO);
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
+static void init_local_cprims()
+{
+  KNO_LINK_PRIM("dns/get",dns_query,2,webtools_module);
+}

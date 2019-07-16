@@ -16,15 +16,16 @@
 #include "kno/cprims.h"
 #include "kno/knoregex.h"
 
-#include "libu8/u8logging.h"
+#include <libu8/u8logging.h>
+
 
 KNO_EXPORT int kno_init_testcapi(void) KNO_LIBINIT_FN;
 
 static long long int testcapi_init = 0;
 
-KNO_DCLPRIM("REGEX/TESTCAPI",regex_testcapi,MAX_ARGS(0)|MIN_ARGS(0),
-	    "Run various tests of the C API for regexes "
-	    "which are difficult to do directly from scheme")
+KNO_DCLPRIM("regex/testcapi",regex_testcapi,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+ "Run various tests of the C API for regexes which "
+ "are difficult to do directly from scheme");
 static lispval regex_testcapi()
 {
   lispval pattern = knostring("[0123456789]+");
@@ -50,10 +51,10 @@ static lispval regex_testcapi()
   return VOID;
 }
 
-KNO_DCLPRIM4("REGEX/RAWOP",regex_rawop,MAX_ARGS(4)|MIN_ARGS(4),
-	     "Call kno_regex_op directory",
-	     kno_fixnum_type,KNO_VOID,kno_regex_type,KNO_VOID,
-	     kno_string_type,KNO_VOID,kno_fixnum_type,KNO_VOID)
+KNO_DCLPRIM4("regex/rawop",regex_rawop,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(4),
+ "Call kno_regex_op directory",
+ kno_fixnum_type,KNO_VOID,kno_regex_type,KNO_VOID,
+ kno_string_type,KNO_VOID,kno_fixnum_type,KNO_VOID);
 static lispval regex_rawop(lispval code,lispval pat,lispval string,
 			   lispval flags)
 {
@@ -135,9 +136,9 @@ static U8_MAYBE_UNUSED int check_resultp
 
 static U8_MAYBE_UNUSED int lexenvp(lispval x) { return (KNO_LEXENVP(x)); }
 
-KNO_DCLPRIM("MODULES/TESTCAPI",modules_testcapi,MAX_ARGS(0)|MIN_ARGS(0),
-	    "Run various tests of the module C API which are "
-	    "difficult to do directly from scheme")
+KNO_DCLPRIM("modules/testcapi",modules_testcapi,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+ "Run various tests of the module C API which are "
+ "difficult to do directly from scheme");
 static lispval modules_testcapi()
 {
   int errors = 0;
@@ -158,9 +159,9 @@ static lispval modules_testcapi()
   else return KNO_INT(errors);
 }
 
-KNO_DCLPRIM("EVAL/TESTCAPI",eval_testcapi,MAX_ARGS(0)|MIN_ARGS(0),
-	    "Run various tests of the module C API which are "
-	    "difficult to do directly from scheme")
+KNO_DCLPRIM("eval/testcapi",eval_testcapi,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+ "Run various tests of the module C API which are "
+ "difficult to do directly from scheme");
 static lispval eval_testcapi()
 {
   int errors = 0;
@@ -219,20 +220,35 @@ KNO_DCLPRIM("API/FORCE-PROMISE",kno_force_promise,MAX_ARGS(1)|MIN_ARGS(1),
 	    "difficult to do directly from scheme");
 
 
+static lispval testcapi_module;
+
 KNO_EXPORT int kno_init_testcapi()
 {
   if (testcapi_init) return 0;
-  lispval testcapi_module =
+  testcapi_module =
     kno_new_cmodule_x("testcapi",0,kno_init_testcapi,__FILE__);
-  /* u8_register_source_file(_FILEINFO); */
 
+  init_local_cprims();
+#if 0
   KNO_DECL_PRIM(regex_testcapi,0,testcapi_module);
   KNO_DECL_PRIM(modules_testcapi,0,testcapi_module);
   KNO_DECL_PRIM(eval_testcapi,0,testcapi_module);
   KNO_DECL_PRIM(kno_force_promise,1,testcapi_module);
   KNO_DECL_PRIM(regex_rawop,4,testcapi_module);
+#endif
 
   u8_register_source_file(_FILEINFO);
 
   return 1;
 }
+
+
+static void init_local_cprims()
+{
+  KNO_LINK_PRIM("eval/testcapi",eval_testcapi,0,testcapi_module);
+  KNO_LINK_PRIM("modules/testcapi",modules_testcapi,0,testcapi_module);
+  KNO_LINK_PRIM("regex/rawop",regex_rawop,4,testcapi_module);
+  KNO_LINK_PRIM("regex/testcapi",regex_testcapi,0,testcapi_module);
+  KNO_LINK_PRIM("api/force-promise",kno_force_promise,1,testcapi_module);
+}
+

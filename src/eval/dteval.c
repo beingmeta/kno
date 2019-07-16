@@ -189,7 +189,6 @@ KNO_EXPORT void kno_init_dteval_c()
 #endif
 }
 
-
 static void init_local_cprims()
 {
   lispval scheme_module = kno_scheme_module;

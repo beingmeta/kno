@@ -17,6 +17,7 @@
 #include "kno/eval.h"
 #include "kno/ports.h"
 #include "kno/webtools.h"
+#include "kno/cprims.h"
 
 #include <libu8/u8xfiles.h>
 
@@ -1126,6 +1127,9 @@ static lispval xmlparse_core(lispval input,int flags)
   return result;
 }
 
+KNO_DCLPRIM2("xmlparse",xmlparse,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+ "`(XMLPARSE *arg0* [*arg1*])` **undocumented**",
+ kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval xmlparse(lispval input,lispval options)
 {
   if (CHOICEP(input)) {
@@ -1142,6 +1146,9 @@ static lispval xmlparse(lispval input,lispval options)
 
 /* Parsing KNOML */
 
+KNO_DCLPRIM2("knoml/load",knoml_load,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+ "`(KNOML/LOAD *arg0* [*arg1*])` **undocumented**",
+ kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval knoml_load(lispval input,lispval sloppy)
 {
   int flags = KNO_XML_KEEP_RAW;
@@ -1172,6 +1179,9 @@ static lispval knoml_load(lispval input,lispval sloppy)
   else return KNO_ERROR;
 }
 
+KNO_DCLPRIM2("knoml/parse",knoml_read,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+ "`(KNOML/PARSE *arg0* [*arg1*])` **undocumented**",
+ kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval knoml_read(lispval input,lispval sloppy)
 {
   int flags = KNO_XML_KEEP_RAW;
@@ -1211,9 +1221,13 @@ KNO_EXPORT lispval kno_knoml_arg(lispval input)
 
 /* Initialization functions */
 
+static lispval webtools_module;
+
 KNO_EXPORT void kno_init_xmlinput_c()
 {
-  lispval full_module = kno_new_module("WEBTOOLS",0);
+  webtools_module = kno_new_module("WEBTOOLS",0);
+  init_local_cprims();
+#if 0
   lispval xmlparse_prim = kno_make_ndprim(kno_make_cprim2("XMLPARSE",xmlparse,1));
   lispval knoml_load_prim=
     kno_make_ndprim(kno_make_cprim2("KNOML/LOAD",knoml_load,1));
@@ -1225,6 +1239,8 @@ KNO_EXPORT void kno_init_xmlinput_c()
 
   kno_defn(full_module,xmlparse_prim);
   kno_defn(full_module,knoml_read_prim);
+
+#endif
 
   attribs_symbol = kno_intern("%attribs");
   type_symbol = kno_intern("%type");
@@ -1256,9 +1272,9 @@ KNO_EXPORT void kno_init_xmlinput_c()
   u8_register_source_file(_FILEINFO);
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
+static void init_local_cprims()
+{
+  KNO_LINK_PRIM("knoml/parse",knoml_read,2,webtools_module);
+  KNO_LINK_PRIM("knoml/load",knoml_load,2,webtools_module);
+  KNO_LINK_PRIM("xmlparse",xmlparse,2,webtools_module);
+}

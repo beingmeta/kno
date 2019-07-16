@@ -1659,7 +1659,6 @@ static void init_local_cprims()
   KNO_LINK_PRIM("lambda-body",lambda_body,1,reflection_module);
   KNO_LINK_PRIM("lambda-env",lambda_env,1,reflection_module);
   KNO_LINK_PRIM("set-lambda-args!",set_lambda_args,2,reflection_module);
-  KNO_LINK_ALIAS("lambda-args",lambda_args,reflection_module);
   KNO_LINK_PRIM("lambda-args",lambda_args,1,reflection_module);
   KNO_LINK_PRIM("reflect/drop!",reflect_drop,3,reflection_module);
   KNO_LINK_PRIM("reflect/add!",reflect_add,3,reflection_module);
@@ -1683,7 +1682,6 @@ static void init_local_cprims()
   KNO_LINK_PRIM("procedure-filename",procedure_filename,1,reflection_module);
   KNO_LINK_PRIM("procedure-fileinfo",procedure_fileinfo,1,reflection_module);
   KNO_LINK_PRIM("procedure-cname",procedure_cname,1,reflection_module);
-  KNO_LINK_ALIAS("procedure-name",procedure_name,kno_scheme_module);
   KNO_LINK_PRIM("procedure-name",procedure_name,1,reflection_module);
   KNO_LINK_PRIM("procedure?",procedurep,1,reflection_module);
   KNO_LINK_PRIM("primitive?",primitivep,1,reflection_module);
@@ -1691,6 +1689,8 @@ static void init_local_cprims()
   KNO_LINK_PRIM("compound-procedure?",lambdap,1,reflection_module);
   KNO_LINK_PRIM("macro?",macrop,1,reflection_module);
 
+  KNO_LINK_ALIAS("lambda-args",lambda_args,reflection_module);
+  KNO_LINK_ALIAS("procedure-name",procedure_name,kno_scheme_module);
   KNO_DECL_ALIAS("procedure-args",lambda_args,reflection_module);
   KNO_DECL_ALIAS("procedure-env",lambda_env,reflection_module);
   KNO_DECL_ALIAS("procedure-body",lambda_body,reflection_module);

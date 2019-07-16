@@ -13,6 +13,7 @@
 #include "kno/eval.h"
 #include "kno/ports.h"
 #include "kno/webtools.h"
+#include "kno/cprims.h"
 
 #include <libu8/u8xfiles.h>
 #include <libu8/u8stringfns.h>
@@ -23,6 +24,9 @@
 
 static lispval name_slotid, content_slotid;
 
+KNO_DCLPRIM2("xmlattrib",xmlattrib,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+ "`(XMLATTRIB *arg0* *arg1*)` **undocumented**",
+ kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval xmlattrib(lispval doc,lispval attrib_id)
 {
   if (SLOTMAPP(doc))
@@ -50,6 +54,9 @@ static void xmlget_helper(lispval *result,lispval doc,lispval eltid,int cons)
   else return;
 }
 
+KNO_DCLPRIM2("xmlget",xmlget,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+ "`(XMLGET *arg0* *arg1*)` **undocumented**",
+ kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval xmlget(lispval doc,lispval attrib_id)
 {
   lispval results = EMPTY;
@@ -66,6 +73,9 @@ static int listlen(lispval l)
     return len;}
 }
 
+KNO_DCLPRIM2("xmlget/sorted",xmlget_sorted,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+ "`(XMLGET/SORTED *arg0* *arg1*)` **undocumented**",
+ kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval xmlget_sorted(lispval doc,lispval attrib_id)
 {
   lispval results = NIL;
@@ -83,6 +93,9 @@ static lispval xmlget_sorted(lispval doc,lispval attrib_id)
     return vec;}
 }
 
+KNO_DCLPRIM2("xmlget/first",xmlget_first,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+ "`(XMLGET/FIRST *arg0* *arg1*)` **undocumented**",
+ kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval xmlget_first(lispval doc,lispval attrib_id)
 {
   lispval results = NIL;
@@ -99,6 +112,9 @@ static lispval xmlget_first(lispval doc,lispval attrib_id)
 }
 
 /* This returns the content field as parsed. */
+KNO_DCLPRIM2("xmlconents",xmlcontents,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+ "`(XMLCONENTS *arg0* [*arg1*])` **undocumented**",
+ kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval xmlcontents(lispval doc,lispval attrib_id)
 {
   if ((CHOICEP(doc)) || (PRECHOICEP(doc))) {
@@ -128,6 +144,9 @@ static lispval xmlcontents(lispval doc,lispval attrib_id)
 }
 
 /* This returns the content field as parsed. */
+KNO_DCLPRIM2("xmlempty?",xmlemptyp,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+ "`(XMLEMPTY? *arg0* [*arg1*])` **undocumented**",
+ kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval xmlemptyp(lispval elt,lispval attribid)
 {
   if (VOIDP(attribid)) attribid = content_slotid;
@@ -146,6 +165,9 @@ static lispval xmlemptyp(lispval elt,lispval attribid)
 }
 
 /* This returns the content field as a string. */
+KNO_DCLPRIM2("xmlcontent",xmlcontent,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+ "`(XMLCONTENT *arg0* [*arg1*])` **undocumented**",
+ kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval xmlcontent(lispval doc,lispval attrib_id)
 {
   if ((CHOICEP(doc)) || (PRECHOICEP(doc))) {
@@ -186,11 +208,15 @@ static lispval xmlcontent(lispval doc,lispval attrib_id)
     return contents;}
 }
 
+static lispval webtools_module;
+
 KNO_EXPORT
 void kno_init_xmldata_c()
 {
-  lispval module = kno_new_module("WEBTOOLS",0);
+  webtools_module = kno_new_module("WEBTOOLS",0);
 
+  init_local_cprims();
+#if 0
   kno_idefn(module,kno_make_cprim2("XMLATTRIB",xmlattrib,2));
   kno_idefn(module,kno_make_cprim2("XMLGET",xmlget,2));
   kno_idefn(module,kno_make_cprim2("XMLGET/FIRST",xmlget_first,2));
@@ -198,14 +224,19 @@ void kno_init_xmldata_c()
   kno_idefn(module,kno_make_cprim2("XMLCONENTS",xmlcontents,1));
   kno_idefn(module,kno_make_cprim2("XMLCONTENT",xmlcontent,1));
   kno_idefn(module,kno_make_cprim2("XMLEMPTY?",xmlemptyp,1));
+#endif
 
   name_slotid = kno_intern("%xmltag");
   content_slotid = kno_intern("%content");
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
+static void init_local_cprims()
+{
+  KNO_LINK_PRIM("xmlcontent",xmlcontent,2,webtools_module);
+  KNO_LINK_PRIM("xmlempty?",xmlemptyp,2,webtools_module);
+  KNO_LINK_PRIM("xmlconents",xmlcontents,2,webtools_module);
+  KNO_LINK_PRIM("xmlget/first",xmlget_first,2,webtools_module);
+  KNO_LINK_PRIM("xmlget/sorted",xmlget_sorted,2,webtools_module);
+  KNO_LINK_PRIM("xmlget",xmlget,2,webtools_module);
+  KNO_LINK_PRIM("xmlattrib",xmlattrib,2,webtools_module);
+}

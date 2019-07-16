@@ -891,7 +891,6 @@ static void init_local_cprims()
   KNO_LINK_PRIM("exception?",exceptionp,1,scheme_module);
   KNO_LINK_PRIM("character?",characterp,1,scheme_module);
   KNO_LINK_PRIM("static?",staticp,1,scheme_module);
-  KNO_LINK_ALIAS("cons?",consp,scheme_module);
   KNO_LINK_PRIM("consed?",consp,1,scheme_module);
   KNO_LINK_PRIM("immediate?",immediatep,1,scheme_module);
   KNO_LINK_PRIM("nan?",isnanp,1,scheme_module);
@@ -927,6 +926,7 @@ static void init_local_cprims()
   KNO_LINK_PRIM("equal?",equalp,2,scheme_module);
   KNO_LINK_PRIM("identical?",identicalp,2,scheme_module);
 
+  KNO_LINK_ALIAS("cons?",consp,scheme_module);
   KNO_DECL_ALIAS("=?",identicalp,scheme_module);
   KNO_DECL_ALIAS("*=?",overlapsp,scheme_module);
   KNO_DECL_ALIAS("⊆?",containsp,scheme_module);

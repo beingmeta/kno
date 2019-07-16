@@ -1004,6 +1004,6 @@ static void init_local_cprims()
   KNO_LINK_PRIM("static-module!",static_module,1,kno_sys_module);
   KNO_LINK_PRIM("get-loaded-module",get_loaded_module,1,kno_sys_module);
   KNO_LINK_PRIM("get-module",get_module,1,kno_sys_module);
-  KNO_LINK_ALIAS("%ls",get_exports_prim,kno_sys_module);
 
+  KNO_LINK_ALIAS("%ls",get_exports_prim,kno_sys_module);
 }

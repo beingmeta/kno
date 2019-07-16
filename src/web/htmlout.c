@@ -23,12 +23,11 @@
 #include "kno/webtools.h"
 #include "kno/pprint.h"
 #include "kno/support.h"
+#include "kno/cprims.h"
 
 /* If you  edit this file, you probably also want to edit bugjar.css */
 #include "backtrace_css.h"
 #include "backtrace_js.h"
-
-#include "kno/support.h"
 
 #include <ctype.h>
 
@@ -159,6 +158,9 @@ void kno_xhtmlerrorpage(u8_output s,u8_exception ex)
   u8_puts(s,"</body>\n</html>\n");
 }
 
+KNO_DCLPRIM2("debugpage->html",debugpage2html_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(0),
+ "`(DEBUGPAGE->HTML [*arg0*] [*arg1*])` **undocumented**",
+ kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval debugpage2html_prim(lispval exception,lispval where)
 {
   u8_exception ex=NULL;
@@ -192,6 +194,9 @@ static lispval debugpage2html_prim(lispval exception,lispval where)
   else return KNO_FALSE;
 }
 
+KNO_DCLPRIM2("backtrace->html",backtrace2html_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(0),
+ "`(BACKTRACE->HTML [*arg0*] [*arg1*])` **undocumented**",
+ kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval backtrace2html_prim(lispval arg,lispval where)
 {
   u8_exception ex=NULL;
@@ -594,6 +599,9 @@ static lispval table2html_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   return VOID;
 }
 
+KNO_DCLPRIM2("obj->html",obj2html_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+ "`(OBJ->HTML *arg0* [*arg1*])` **undocumented**",
+ kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval obj2html_prim(lispval obj,lispval tag)
 {
   u8_string tagname = NULL, classname = NULL; u8_byte tagbuf[64];
@@ -614,11 +622,16 @@ static lispval obj2html_prim(lispval obj,lispval tag)
   return VOID;
 }
 
+static lispval webtools_module, xhtml_module;
+
 KNO_EXPORT void kno_init_htmlout_c()
 {
-  lispval webtools_module=kno_new_module("WEBTOOLS",0);
-  lispval xhtml_module=kno_new_module("XHTML",0);
+  webtools_module=kno_new_module("WEBTOOLS",0);
+  xhtml_module=kno_new_module("XHTML",0);
 
+  init_local_cprims();
+
+#if 0
   lispval debug2html = kno_make_cprim2("DEBUGPAGE->HTML",debugpage2html_prim,0);
   lispval backtrace2html = kno_make_cprim2("BACKTRACE->HTML",backtrace2html_prim,0);
 
@@ -628,11 +641,13 @@ KNO_EXPORT void kno_init_htmlout_c()
   kno_defn(xhtml_module,debug2html);
   kno_defn(xhtml_module,backtrace2html);
 
-  kno_def_evalfn(xhtml_module,"TABLE->HTML","",table2html_evalfn);
   kno_idefn(xhtml_module,kno_make_cprim2("OBJ->HTML",obj2html_prim,1));
-
   kno_decref(debug2html);
   kno_decref(backtrace2html);
+
+#endif
+
+  kno_def_evalfn(xhtml_module,"TABLE->HTML","",table2html_evalfn);
 
   xmloidfn_symbol = kno_intern("%xmloid");
   id_symbol = kno_intern("%id");
@@ -659,9 +674,18 @@ KNO_EXPORT void kno_init_htmlout_c()
 
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
+static void init_local_cprims()
+{
+  KNO_LINK_PRIM("obj->html",obj2html_prim,2,xhtml_module);
+  KNO_LINK_PRIM("backtrace->html",backtrace2html_prim,2,webtools_module);
+  KNO_LINK_PRIM("debugpage->html",debugpage2html_prim,2,webtools_module);
+
+  kno_defalias2(xhtml_module,
+                "backtrace->html",
+                webtools_module,
+                "backtrace->html");
+  kno_defalias2(xhtml_module,
+                "debugpage->html",
+                webtools_module,
+                "debugpage->html");
+}

@@ -17,6 +17,7 @@
 #include "kno/indexes.h"
 #include "kno/frames.h"
 #include "kno/numbers.h"
+#include "kno/cprims.h"
 
 #include <libu8/libu8io.h>
 #include <libu8/u8convert.h>
@@ -30,6 +31,9 @@ static u8_condition zlibBufferError=_("ZLIB buffer error");
 static u8_condition zlibBadErrorCode=_("ZLIB odd error code");
 static u8_condition zlibDataError=_("Bad ZLIB input data");
 
+KNO_DCLPRIM2("zlib/compress",zlib_compress_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+ "`(ZLIB/COMPRESS *arg0* [*arg1*])` **undocumented**",
+ kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval zlib_compress_prim(lispval input_arg,lispval level_arg)
 {
   int level = ((KNO_UINTP(level_arg))?(KNO_FIX2INT(level_arg)):(9));
@@ -65,6 +69,10 @@ static lispval zlib_compress_prim(lispval input_arg,lispval level_arg)
     return kno_err(ex,"zip_prim",NULL,KNO_VOID);}
 }
 
+KNO_DCLPRIM3("zlib/uncompress",zlib_uncompress_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
+ "`(ZLIB/UNCOMPRESS *arg0* [*arg1*] [*arg2*])` **undocumented**",
+ kno_packet_type,KNO_VOID,kno_any_type,KNO_FALSE,
+ kno_any_type,KNO_FALSE);
 static lispval zlib_uncompress_prim(lispval input_arg,lispval text,lispval init_factor)
 {
   int init_grow = ((KNO_UINTP(init_factor))?(KNO_FIX2INT(init_factor)):(5));
@@ -136,20 +144,24 @@ KNO_EXPORT int kno_init_zlib(void) KNO_LIBINIT_FN;
 
 static long long int zlib_init = 0;
 
+static lispval zlib_module;
+
 KNO_EXPORT int kno_init_zlib()
 {
-  lispval zlib_module;
   if (zlib_init) return 0;
 
   zlib_init = u8_millitime();
   zlib_module = kno_new_cmodule("zlib",0,kno_init_zlib);
 
+  init_local_cprims();
+#if 0
   kno_idefn(zlib_module,
            kno_make_cprim2("ZLIB/COMPRESS",zlib_compress_prim,1));
 
   kno_idefn(zlib_module,
            kno_make_cprim3x("ZLIB/UNCOMPRESS",zlib_uncompress_prim,1,
                            kno_packet_type,KNO_VOID,-1,KNO_FALSE,-1,KNO_FALSE));
+#endif
 
   kno_finish_module(zlib_module);
 
@@ -164,3 +176,10 @@ KNO_EXPORT int kno_init_zlib()
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */
+
+
+static void init_local_cprims()
+{
+  KNO_LINK_PRIM("zlib/uncompress",zlib_uncompress_prim,3,zlib_module);
+  KNO_LINK_PRIM("zlib/compress",zlib_compress_prim,2,zlib_module);
+}

@@ -23,6 +23,8 @@
 #include <libu8/u8netfns.h>
 
 #include <ctype.h>
+#include <kno/cprims.h>
+
 
 /* MAIL output operations */
 
@@ -42,6 +44,11 @@ static void get_mailinfo(lispval headers,u8_string *host,u8_string *domain,u8_st
   if (STRINGP(mailfrom_spec)) *from = CSTRING(mailfrom_spec);
 }
 
+KNO_DCLPRIM5("smtp",smtp_function,KNO_MAX_ARGS(5)|KNO_MIN_ARGS(3),
+ "`(SMTP *arg0* *arg1* *arg2* [*arg3*] [*arg4*])` **undocumented**",
+ kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
+ kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
+ kno_any_type,KNO_VOID);
 static lispval smtp_function(lispval dest,lispval headers,lispval content,
                             lispval ctype,lispval mailinfo)
 {
@@ -131,12 +138,18 @@ static lispval mailout_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 
 /* Module initialization */
 
+static lispval webtools_module;
+
 void kno_init_email_c()
 {
-  lispval module = kno_new_module("WEBTOOLS",(0));
+  webtools_module = kno_new_module("WEBTOOLS",(0));
 
+  init_local_cprims();
+#if 0
   kno_idefn(module,kno_make_cprim5("SMTP",smtp_function,3));
-  kno_def_evalfn(module,"MAILOUT","",mailout_evalfn);
+#endif
+
+  kno_def_evalfn(webtools_module,"MAILOUT","",mailout_evalfn);
 
   kno_register_config("MAILHOST",_("SMTP host"),
                      kno_sconfig_get,kno_sconfig_set,&mailhost_dflt);
@@ -148,9 +161,7 @@ void kno_init_email_c()
   u8_register_source_file(_FILEINFO);
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
+static void init_local_cprims()
+{
+  KNO_LINK_PRIM("smtp",smtp_function,5,webtools_module);
+}

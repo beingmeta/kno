@@ -17,6 +17,7 @@
 #include "kno/eval.h"
 #include "kno/sequences.h"
 #include "kno/texttools.h"
+#include "kno/cprims.h"
 
 #include "kno/sqldb.h"
 
@@ -137,6 +138,9 @@ static void recycle_odbconn(struct KNO_SQLDB *c)
   SQLFreeHandle(SQL_HANDLE_ENV,dbp->env);
 }
 
+KNO_DCLPRIM2("odbc/open",odbcopen,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+ "`(ODBC/OPEN *arg0* [*arg1*])` **undocumented**",
+ kno_string_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval odbcopen(lispval spec,lispval colinfo)
 {
   return kno_odbc_connect(spec,colinfo,-1);
@@ -510,6 +514,8 @@ static int odbc_initialized = 0;
 static struct KNO_SQLDB_HANDLER odbc_handler=
   {"odbc",NULL,NULL,NULL,NULL};
 
+static lispval odbc_module;
+
 KNO_EXPORT int kno_init_odbc()
 {
   lispval module;
@@ -517,16 +523,19 @@ KNO_EXPORT int kno_init_odbc()
   odbc_initialized = 1;
   kno_init_scheme();
 
-  module = kno_new_cmodule("odbc",(0),kno_init_odbc);
+  odbc_module = kno_new_cmodule("odbc",(0),kno_init_odbc);
 
   odbc_handler.execute = odbcexechandler;
   odbc_handler.makeproc = odbcmakeprochandler;
   odbc_handler.recycle_db = recycle_odbconn;
   odbc_handler.recycle_proc = recycle_odbcproc;
 
+  init_local_cprims();
+#if 0
   kno_idefn(module,kno_make_cprim2x("ODBC/OPEN",odbcopen,1,
                                   kno_string_type,KNO_VOID,
                                   -1,KNO_VOID));
+#endif
 
 #if 0
   kno_idefn(module,kno_make_cprim2x
@@ -549,3 +558,9 @@ KNO_EXPORT int kno_init_odbc()
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */
+
+
+static void init_local_cprims()
+{
+  KNO_LINK_PRIM("odbc/open",odbcopen,2,odbc_module);
+}

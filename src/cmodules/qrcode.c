@@ -21,6 +21,8 @@
 #include "kno/numbers.h"
 #include "kno/sequences.h"
 #include "kno/texttools.h"
+#include "kno/cprims.h"
+
 
 #include <libu8/libu8.h>
 #include <libu8/u8printf.h>
@@ -148,6 +150,9 @@ static lispval write_png_packet(QRcode *qrcode,lispval opts)
       return packet;}}
 }
 
+KNO_DCLPRIM2("qrencode",qrencode_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+ "`(QRENCODE *arg0* [*arg1*])` **undocumented**",
+ kno_string_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval qrencode_prim(lispval string,lispval opts)
 {
   lispval level_arg = kno_getopt(opts,robustness_symbol,KNO_FALSE);
@@ -174,11 +179,12 @@ static lispval qrencode_prim(lispval string,lispval opts)
 
 static long long int qrencode_init = 0;
 
+static lispval qrcode_module;
+
 KNO_EXPORT int kno_init_qrcode()
 {
-  lispval module;
   if (qrencode_init) return 0;
-  module = kno_new_cmodule("qrcode",0,kno_init_qrcode);
+  qrcode_module = kno_new_cmodule("qrcode",0,kno_init_qrcode);
   l_sym = kno_intern("l");
   m_sym = kno_intern("m");
   q_sym = kno_intern("q");
@@ -188,22 +194,22 @@ KNO_EXPORT int kno_init_qrcode()
   version_symbol = kno_intern("version");
   robustness_symbol = kno_intern("robustness");
 
-
+  init_local_cprims();
+#if 0
   kno_defn(module,
           kno_make_cprim2x("QRENCODE",qrencode_prim,1,
                           kno_string_type,KNO_VOID,-1,KNO_VOID));
+#endif
   qrencode_init = u8_millitime();
 
-  kno_finish_module(module);
+  kno_finish_module(qrcode_module);
 
   u8_register_source_file(_FILEINFO);
 
   return 1;
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
+static void init_local_cprims()
+{
+  KNO_LINK_PRIM("qrencode",qrencode_prim,2,qrcode_module);
+}
