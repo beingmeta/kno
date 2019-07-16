@@ -812,8 +812,9 @@ static int boot_config()
   if (config_string == NULL)
     config_string = u8_strdup(KNO_BOOT_CONFIG);
   else config_string = u8_strdup(config_string);
-  if (config_string[0] == '\0')
-    return 0;
+  if (config_string[0] == '\0') {
+    u8_free(config_string);
+    return 0;}
   scan = config_string;
   end = strchr(scan,';');
   while (scan) {
