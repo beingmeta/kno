@@ -102,8 +102,9 @@ static int load_db_module(lispval opts,u8_context context)
 
 /* Finding frames, etc. */
 
-KNO_DCLPRIM("find-frames",find_frames_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(3)|KNO_NDCALL,
- "`(FIND-FRAMES *arg0* *arg1* *arg2* *args...*)` **undocumented**");
+KNO_DCLPRIM("find-frames",find_frames_lexpr,
+	    KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	    "`(FIND-FRAMES *arg0* *arg1* *arg2* *args...*)` **undocumented**");
 static lispval find_frames_lexpr(int n,lispval *args)
 {
   if (n%2)
@@ -115,7 +116,8 @@ static lispval find_frames_lexpr(int n,lispval *args)
 
 /* This is like find_frames but ignores any slot/value pairs
    whose values are empty (and thus would rule out any results at all). */
-KNO_DCLPRIM("xfind-frames",xfind_frames_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(3)|KNO_NDCALL,
+KNO_DCLPRIM("xfind-frames",xfind_frames_lexpr,
+	    KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
  "`(XFIND-FRAMES *arg0* *arg1* *arg2* *args...*)` **undocumented**");
 static lispval xfind_frames_lexpr(int n,lispval *args)
 {
@@ -4098,8 +4100,8 @@ static void init_local_cprims()
   KNO_LINK_PRIM("db/writable?",db_writablep,1,kno_db_module);
   KNO_LINK_PRIM("modified?",dbmodifiedp,2,kno_db_module);
   KNO_LINK_PRIM("loaded?",dbloadedp,2,kno_db_module);
-  KNO_LINK_PRIM("mapgraph",mapgraph,3,kno_scheme_module);
-  KNO_LINK_PRIM("forgraph",forgraph,3,kno_scheme_module);
+  KNO_LINK_PRIM("mapgraph",mapgraph,3,kno_db_module);
+  KNO_LINK_PRIM("forgraph",forgraph,3,kno_db_module);
   KNO_LINK_PRIM("sumframe",sumframe_prim,2,kno_db_module);
   KNO_LINK_PRIM("oid-addr",oidaddr_prim,1,kno_db_module);
   KNO_LINK_PRIM("hex->oid",hex2oid_prim,2,kno_db_module);
@@ -4119,30 +4121,30 @@ static void init_local_cprims()
   KNO_LINK_PRIM("path?",pathp,3,kno_db_module);
   KNO_LINK_PRIM("inherit",inherit_prim,3,kno_db_module);
   KNO_LINK_PRIM("get*",getstar,2,kno_db_module);
-  KNO_LINK_VARARGS("%avoid",prim_avoid_lexpr,kno_scheme_module);
-  KNO_LINK_VARARGS("%reject",prim_reject_lexpr,kno_scheme_module);
-  KNO_LINK_VARARGS("avoid",avoid_lexpr,kno_scheme_module);
-  KNO_LINK_VARARGS("reject",reject_lexpr,kno_scheme_module);
-  KNO_LINK_VARARGS("%prefer",prim_prefer_lexpr,kno_scheme_module);
-  KNO_LINK_VARARGS("%pick",prim_pick_lexpr,kno_scheme_module);
-  KNO_LINK_VARARGS("prefer",prefer_lexpr,kno_scheme_module);
-  KNO_LINK_VARARGS("pick",pick_lexpr,kno_scheme_module);
+  KNO_LINK_VARARGS("%avoid",prim_avoid_lexpr,kno_db_module);
+  KNO_LINK_VARARGS("%reject",prim_reject_lexpr,kno_db_module);
+  KNO_LINK_VARARGS("avoid",avoid_lexpr,kno_db_module);
+  KNO_LINK_VARARGS("reject",reject_lexpr,kno_db_module);
+  KNO_LINK_VARARGS("%prefer",prim_prefer_lexpr,kno_db_module);
+  KNO_LINK_VARARGS("%pick",prim_pick_lexpr,kno_db_module);
+  KNO_LINK_VARARGS("prefer",prefer_lexpr,kno_db_module);
+  KNO_LINK_VARARGS("pick",pick_lexpr,kno_db_module);
   KNO_LINK_PRIM("suggest-hash-size",suggest_hash_size,1,kno_db_module);
-  KNO_LINK_PRIM("index/fetchn",index_fetchn_prim,2,kno_scheme_module);
+  KNO_LINK_PRIM("index/fetchn",index_fetchn_prim,2,kno_db_module);
   KNO_LINK_PRIM("index/save!",index_save_prim,5,kno_db_module);
-  KNO_LINK_PRIM("commit-index",commit_index_prim,1,kno_scheme_module);
-  KNO_LINK_PRIM("close-index",close_index_prim,1,kno_scheme_module);
-  KNO_LINK_PRIM("index-source",index_source,1,kno_scheme_module);
-  KNO_LINK_PRIM("slotindex/merge!",slotindex_merge,2,kno_scheme_module);
-  KNO_LINK_PRIM("index/merge!",index_merge,2,kno_scheme_module);
-  KNO_LINK_PRIM("index-keysvec",index_keysvec,1,kno_scheme_module);
-  KNO_LINK_PRIM("index-sizes",index_sizes,2,kno_scheme_module);
-  KNO_LINK_PRIM("index-keys",index_keys,1,kno_scheme_module);
-  KNO_LINK_PRIM("bgdecache",bgdecache,2,kno_scheme_module);
-  KNO_LINK_PRIM("index-decache",index_decache,3,kno_scheme_module);
-  KNO_LINK_PRIM("index-set!",index_set,3,kno_scheme_module);
-  KNO_LINK_PRIM("index-add!",index_add,3,kno_scheme_module);
-  KNO_LINK_PRIM("index-get",index_get,2,kno_scheme_module);
+  KNO_LINK_PRIM("commit-index",commit_index_prim,1,kno_db_module);
+  KNO_LINK_PRIM("close-index",close_index_prim,1,kno_db_module);
+  KNO_LINK_PRIM("index-source",index_source,1,kno_db_module);
+  KNO_LINK_PRIM("slotindex/merge!",slotindex_merge,2,kno_db_module);
+  KNO_LINK_PRIM("index/merge!",index_merge,2,kno_db_module);
+  KNO_LINK_PRIM("index-keysvec",index_keysvec,1,kno_db_module);
+  KNO_LINK_PRIM("index-sizes",index_sizes,2,kno_db_module);
+  KNO_LINK_PRIM("index-keys",index_keys,1,kno_db_module);
+  KNO_LINK_PRIM("bgdecache",bgdecache,2,kno_db_module);
+  KNO_LINK_PRIM("index-decache",index_decache,3,kno_db_module);
+  KNO_LINK_PRIM("index-set!",index_set,3,kno_db_module);
+  KNO_LINK_PRIM("index-add!",index_add,3,kno_db_module);
+  KNO_LINK_PRIM("index-get",index_get,2,kno_db_module);
   KNO_LINK_PRIM("index-source",index_source_prim,1,kno_db_module);
   KNO_LINK_PRIM("index-id",index_id,1,kno_db_module);
   KNO_LINK_VARARGS("getpath*",getpathstar_prim,kno_db_module);
@@ -4161,18 +4163,18 @@ static void init_local_cprims()
   KNO_LINK_PRIM("fetchoids",fetchoids_prim,1,kno_db_module);
   KNO_LINK_PRIM("prefetch-oids!",prefetch_oids_prim,2,kno_db_module);
   KNO_LINK_PRIM("pool-prefetch!",pool_prefetch_prim,2,kno_db_module);
-  KNO_LINK_PRIM("valid-oid?",validoidp,2,kno_scheme_module);
-  KNO_LINK_PRIM("in-pool?",inpoolp,2,kno_scheme_module);
-  KNO_LINK_PRIM("oid-pool",oidpool,1,kno_scheme_module);
-  KNO_LINK_PRIM("oid?",oidp,1,kno_scheme_module);
+  KNO_LINK_PRIM("valid-oid?",validoidp,2,kno_db_module);
+  KNO_LINK_PRIM("in-pool?",inpoolp,2,kno_db_module);
+  KNO_LINK_PRIM("oid-pool",oidpool,1,kno_db_module);
+  KNO_LINK_PRIM("oid?",oidp,1,kno_db_module);
   KNO_LINK_PRIM("oid-lo",oidlo,1,kno_db_module);
   KNO_LINK_PRIM("oid-hi",oidhi,1,kno_db_module);
-  KNO_LINK_PRIM("cachecount",cachecount,1,kno_scheme_module);
+  KNO_LINK_PRIM("cachecount",cachecount,1,kno_db_module);
   KNO_LINK_PRIM("pool-vector",pool_vec,1,kno_db_module);
   KNO_LINK_PRIM("random-oid",random_oid,1,kno_db_module);
   KNO_LINK_PRIM("oid-vector",oid_vector,2,kno_db_module);
   KNO_LINK_PRIM("oid-range",oid_range,2,kno_db_module);
-  KNO_LINK_PRIM("pool-close",pool_close_prim,1,kno_scheme_module);
+  KNO_LINK_PRIM("pool-close",pool_close_prim,1,kno_db_module);
   KNO_LINK_PRIM("set-pool-prefix!",set_pool_prefix,2,kno_db_module);
   KNO_LINK_PRIM("pool-prefix",pool_prefix,1,kno_db_module);
   KNO_LINK_PRIM("pool-source",pool_source,1,kno_db_module);
@@ -4182,21 +4184,21 @@ static void init_local_cprims()
   KNO_LINK_PRIM("pool-base",pool_base,1,kno_db_module);
   KNO_LINK_PRIM("pool-capacity",pool_capacity,1,kno_db_module);
   KNO_LINK_PRIM("pool-load",pool_load,1,kno_db_module);
-  KNO_LINK_PRIM("swapcheck",swapcheck_prim,0,kno_scheme_module);
-  KNO_LINK_PRIM("clearcaches",clearcaches,0,kno_scheme_module);
-  KNO_LINK_PRIM("clear-slotcache!",clear_slotcache,1,kno_scheme_module);
-  KNO_LINK_PRIM("pool/fetchn",pool_fetchn_prim,2,kno_scheme_module);
-  KNO_LINK_PRIM("pool/storen!",pool_storen_prim,3,kno_scheme_module);
-  KNO_LINK_PRIM("commit-finished",commit_finished,1,kno_scheme_module);
-  KNO_LINK_PRIM("commit-pool",commit_pool,2,kno_scheme_module);
-  KNO_LINK_PRIM("finish-oids",finish_oids,2,kno_scheme_module);
-  KNO_LINK_PRIM("commit-oids",commit_oids,1,kno_scheme_module);
-  KNO_LINK_VARARGS("commit",commit_lexpr,kno_scheme_module);
-  KNO_LINK_VARARGS("swapout",swapout_lexpr,kno_scheme_module);
-  KNO_LINK_PRIM("adjunct?",isadjunctp,1,kno_scheme_module);
-  KNO_LINK_PRIM("get-adjuncts",get_adjuncts,1,kno_scheme_module);
-  KNO_LINK_PRIM("adjunct!",add_adjunct,3,kno_scheme_module);
-  KNO_LINK_PRIM("use-adjunct",use_adjunct,3,kno_scheme_module);
+  KNO_LINK_PRIM("swapcheck",swapcheck_prim,0,kno_db_module);
+  KNO_LINK_PRIM("clearcaches",clearcaches,0,kno_db_module);
+  KNO_LINK_PRIM("clear-slotcache!",clear_slotcache,1,kno_db_module);
+  KNO_LINK_PRIM("pool/fetchn",pool_fetchn_prim,2,kno_db_module);
+  KNO_LINK_PRIM("pool/storen!",pool_storen_prim,3,kno_db_module);
+  KNO_LINK_PRIM("commit-finished",commit_finished,1,kno_db_module);
+  KNO_LINK_PRIM("commit-pool",commit_pool,2,kno_db_module);
+  KNO_LINK_PRIM("finish-oids",finish_oids,2,kno_db_module);
+  KNO_LINK_PRIM("commit-oids",commit_oids,1,kno_db_module);
+  KNO_LINK_VARARGS("commit",commit_lexpr,kno_db_module);
+  KNO_LINK_VARARGS("swapout",swapout_lexpr,kno_db_module);
+  KNO_LINK_PRIM("adjunct?",isadjunctp,1,kno_db_module);
+  KNO_LINK_PRIM("get-adjuncts",get_adjuncts,1,kno_db_module);
+  KNO_LINK_PRIM("adjunct!",add_adjunct,3,kno_db_module);
+  KNO_LINK_PRIM("use-adjunct",use_adjunct,3,kno_db_module);
   KNO_LINK_PRIM("extindex?",extindexp,1,kno_db_module);
   KNO_LINK_PRIM("extindex-state",extindex_state,1,kno_db_module);
   KNO_LINK_PRIM("extindex-commitfn",extindex_commitfn,1,kno_db_module);
@@ -4216,10 +4218,10 @@ static void init_local_cprims()
   KNO_LINK_PRIM("reset-mempool",reset_mempool,1,kno_db_module);
   KNO_LINK_PRIM("clean-mempool",clean_mempool,1,kno_db_module);
   KNO_LINK_PRIM("make-mempool",make_mempool,6,kno_db_module);
-  KNO_LINK_PRIM("tempindex?",tempindexp,1,kno_scheme_module);
-  KNO_LINK_PRIM("extend-aggregate-index!",extend_aggregate_index,2,kno_scheme_module);
-  KNO_LINK_PRIM("aggregate-index?",aggregate_indexp,1,kno_scheme_module);
-  KNO_LINK_PRIM("make-aggregate-index",make_aggregate_index,2,kno_scheme_module);
+  KNO_LINK_PRIM("tempindex?",tempindexp,1,kno_db_module);
+  KNO_LINK_PRIM("extend-aggregate-index!",extend_aggregate_index,2,kno_db_module);
+  KNO_LINK_PRIM("aggregate-index?",aggregate_indexp,1,kno_db_module);
+  KNO_LINK_PRIM("make-aggregate-index",make_aggregate_index,2,kno_db_module);
   KNO_LINK_PRIM("unlock-oids!",unlockoids,2,kno_db_module);
   KNO_LINK_PRIM("locked-oids",lockedoids,1,kno_db_module);
   KNO_LINK_PRIM("lock-oids!",lockoids,1,kno_db_module);
@@ -4228,42 +4230,43 @@ static void init_local_cprims()
   KNO_LINK_PRIM("%set-oid-value!",xsetoidvalue,2,kno_db_module);
   KNO_LINK_PRIM("set-oid-value!",setoidvalue,3,kno_db_module);
   KNO_LINK_PRIM("oid-value",oidvalue,1,kno_db_module);
-  KNO_LINK_PRIM("make-index",make_index,2,kno_scheme_module);
-  KNO_LINK_PRIM("open-pool",open_pool,2,kno_scheme_module);
-  KNO_LINK_PRIM("make-pool",make_pool,2,kno_scheme_module);
-  KNO_LINK_PRIM("cons-index",cons_index,2,kno_scheme_module);
-  KNO_LINK_PRIM("register-index",register_index,2,kno_scheme_module);
-  KNO_LINK_PRIM("open-index",open_index,2,kno_scheme_module);
-  KNO_LINK_PRIM("use-index",use_index,2,kno_scheme_module);
-  KNO_LINK_PRIM("use-pool",use_pool,2,kno_scheme_module);
-  KNO_LINK_PRIM("adjunct-pool",adjunct_pool,2,kno_scheme_module);
-  KNO_LINK_PRIM("try-pool",try_pool,2,kno_scheme_module);
+  KNO_LINK_PRIM("make-index",make_index,2,kno_db_module);
+  KNO_LINK_PRIM("open-pool",open_pool,2,kno_db_module);
+  KNO_LINK_PRIM("make-pool",make_pool,2,kno_db_module);
+  KNO_LINK_PRIM("cons-index",cons_index,2,kno_db_module);
+  KNO_LINK_PRIM("register-index",register_index,2,kno_db_module);
+  KNO_LINK_PRIM("open-index",open_index,2,kno_db_module);
+  KNO_LINK_PRIM("use-index",use_index,2,kno_db_module);
+  KNO_LINK_PRIM("use-pool",use_pool,2,kno_db_module);
+  KNO_LINK_PRIM("adjunct-pool",adjunct_pool,2,kno_db_module);
+  KNO_LINK_PRIM("try-pool",try_pool,2,kno_db_module);
   KNO_LINK_PRIM("set-cache-level!",set_cache_level,2,kno_db_module);
   KNO_LINK_PRIM("set-pool-namefn!",set_pool_namefn,2,kno_db_module);
   KNO_LINK_PRIM("name->pool",getpool,1,kno_db_module);
   KNO_LINK_PRIM("index?",indexp,1,kno_db_module);
   KNO_LINK_PRIM("pool?",poolp,1,kno_db_module);
-  KNO_LINK_PRIM("index-frame",index_frame_prim,4,kno_scheme_module);
+  KNO_LINK_PRIM("index-frame",index_frame_prim,4,kno_db_module);
   KNO_LINK_VARARGS("find-frames/prefetch!",find_frames_prefetch,kno_db_module);
-  KNO_LINK_PRIM("prefetch-slotvals!",prefetch_slotvals,3,kno_scheme_module);
-  KNO_LINK_VARARGS("xfind-frames",xfind_frames_lexpr,kno_scheme_module);
-  KNO_LINK_VARARGS("find-frames",find_frames_lexpr,kno_scheme_module);
+  KNO_LINK_PRIM("prefetch-slotvals!",prefetch_slotvals,3,kno_db_module);
+  KNO_LINK_VARARGS("xfind-frames",xfind_frames_lexpr,kno_db_module);
+  KNO_LINK_VARARGS("find-frames",find_frames_lexpr,kno_db_module);
   KNO_LINK_PRIM("slotid?",slotidp,1,kno_db_module);
 
   KNO_LINK_ALIAS("??",find_frames_lexpr,kno_db_module);
   KNO_LINK_ALIAS("getpool",getpool,kno_db_module);
-  KNO_DECL_ALIAS("load-pool",try_pool,kno_scheme_module);
-  KNO_DECL_ALIAS("temp-index",cons_index,kno_scheme_module);
-  KNO_DECL_ALIAS("oid+",oid_plus_prim,kno_db_module);
-  KNO_DECL_ALIAS("oid-",oid_minus_prim,kno_db_module);
-  KNO_DECL_ALIAS("oid@",oidaddr_prim,kno_db_module);
-  KNO_DECL_ALIAS("oidhex",oidhex_prim,kno_db_module);
-  KNO_DECL_ALIAS("hexoid",oidhex_prim,kno_db_module);
-  KNO_DECL_ALIAS("find-frames-prefetch!",find_frames_prefetch,kno_db_module);
-  KNO_DECL_ALIAS("\?\?/prefetch!",find_frames_prefetch,kno_db_module);
-  KNO_DECL_ALIAS("\?\?!",find_frames_prefetch,kno_db_module);
-  KNO_DECL_ALIAS("add-to-aggregate-index!",extend_aggregate_index,kno_scheme_module);
-  KNO_DECL_ALIAS("index-merge!",index_merge,kno_scheme_module);
-  KNO_DECL_ALIAS("add-adjunct!",add_adjunct,kno_scheme_module);
+  KNO_LINK_ALIAS("load-pool",try_pool,kno_db_module);
+  KNO_LINK_ALIAS("temp-index",cons_index,kno_db_module);
+  KNO_LINK_ALIAS("oid+",oid_plus_prim,kno_db_module);
+  KNO_LINK_ALIAS("oid-",oid_minus_prim,kno_db_module);
+  KNO_LINK_ALIAS("oid@",oidaddr_prim,kno_db_module);
+  KNO_LINK_ALIAS("oidhex",oidhex_prim,kno_db_module);
+  KNO_LINK_ALIAS("hexoid",oidhex_prim,kno_db_module);
+  KNO_LINK_ALIAS("find-frames-prefetch!",find_frames_prefetch,kno_db_module);
+  KNO_LINK_ALIAS("\?\?/prefetch!",find_frames_prefetch,kno_db_module);
+  KNO_LINK_ALIAS("\?\?!",find_frames_prefetch,kno_db_module);
+  KNO_LINK_ALIAS("add-to-aggregate-index!",extend_aggregate_index,
+		 kno_db_module);
+  KNO_LINK_ALIAS("index-merge!",index_merge,kno_db_module);
+  KNO_LINK_ALIAS("add-adjunct!",add_adjunct,kno_db_module);
 
 }

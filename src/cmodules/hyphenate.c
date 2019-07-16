@@ -17,6 +17,7 @@
 #include "kno/indexes.h"
 #include "kno/frames.h"
 #include "kno/numbers.h"
+#include "kno/cprims.h"
 
 #include <libu8/libu8io.h>
 #include <libu8/u8pathfns.h>
@@ -32,6 +33,9 @@ static HyphenDict *default_dict = NULL;
 
 static long long int hyphenate_init = 0;
 
+KNO_DCLPRIM1("hyphenate-word",hyphenate_word_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(HYPHENATE-WORD *arg0*)` **undocumented**",
+ kno_string_type,KNO_VOID);
 static lispval hyphenate_word_prim(lispval string_arg)
 {
   u8_string string = KNO_CSTRING(string_arg);
@@ -52,6 +56,9 @@ static lispval hyphenate_word_prim(lispval string_arg)
       return result;}}
 }
 
+KNO_DCLPRIM1("hyphen-breaks",hyphen_breaks_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(HYPHEN-BREAKS *arg0*)` **undocumented**",
+ kno_string_type,KNO_VOID);
 static lispval hyphen_breaks_prim(lispval string_arg)
 {
   u8_string string = KNO_CSTRING(string_arg);
@@ -93,6 +100,9 @@ static lispval hyphen_breaks_prim(lispval string_arg)
       return result;}}
 }
 
+KNO_DCLPRIM1("shyphenate",shyphenate_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(SHYPHENATE *arg0*)` **undocumented**",
+ kno_string_type,KNO_VOID);
 static lispval shyphenate_prim(lispval string_arg)
 {
   u8_string string = KNO_CSTRING(string_arg);
@@ -148,6 +158,10 @@ static int hyphenout_helper(U8_OUTPUT *out,
     return n_hyphens;}
 }
 
+KNO_DCLPRIM2("hyphenout",hyphenout_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+             "`(HYPHENOUT *arg0* [*arg1*])` **undocumented**",
+             kno_string_type,KNO_VOID,
+             kno_character_type,KNO_CODE2CHAR('­'));
 static lispval hyphenout_prim(lispval string_arg,lispval hyphen_arg)
 {
   U8_OUTPUT *output = u8_current_output;
@@ -196,6 +210,9 @@ static lispval hyphenout_prim(lispval string_arg,lispval hyphen_arg)
   return KNO_VOID;
 }
 
+KNO_DCLPRIM2("hyphenate",hyphenate_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+ "`(HYPHENATE *arg0* [*arg1*])` **undocumented**",
+ kno_string_type,KNO_VOID,kno_character_type,KNO_CODE2CHAR('­'));
 static lispval hyphenate_prim(lispval string_arg,lispval hyphen_arg)
 {
   lispval result;
@@ -248,9 +265,10 @@ static lispval hyphenate_prim(lispval string_arg,lispval hyphen_arg)
   return result;
 }
 
+static lispval hyphenate_module;
+
 KNO_EXPORT int kno_init_hyphenate()
 {
-  lispval hyphenate_module;
   if (hyphenate_init) return 0;
 
   hyphenate_init = u8_millitime();
@@ -272,6 +290,8 @@ KNO_EXPORT int kno_init_hyphenate()
 
   hyphenate_module = kno_new_cmodule("hyphenate",0,kno_init_hyphenate);
 
+  init_local_cprims();
+#if 0
   kno_idefn(hyphenate_module,
            kno_make_cprim1x("HYPHENATE-WORD",
                            hyphenate_word_prim,1,kno_string_type,KNO_VOID));
@@ -291,6 +311,7 @@ KNO_EXPORT int kno_init_hyphenate()
                            hyphenate_prim,1,
                            kno_string_type,KNO_VOID,
                            kno_character_type,KNO_CODE2CHAR(0xAD)));
+#endif
 
   kno_finish_module(hyphenate_module);
 
@@ -299,9 +320,11 @@ KNO_EXPORT int kno_init_hyphenate()
   return 1;
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
+static void init_local_cprims()
+{
+  KNO_LINK_PRIM("hyphenate",hyphenate_prim,2,hyphenate_module);
+  KNO_LINK_PRIM("hyphenout",hyphenout_prim,2,hyphenate_module);
+  KNO_LINK_PRIM("shyphenate",shyphenate_prim,1,hyphenate_module);
+  KNO_LINK_PRIM("hyphen-breaks",hyphen_breaks_prim,1,hyphenate_module);
+  KNO_LINK_PRIM("hyphenate-word",hyphenate_word_prim,1,hyphenate_module);
+}

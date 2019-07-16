@@ -1458,7 +1458,6 @@ static lispval mysql_module;
 
 KNO_EXPORT int kno_init_mysql()
 {
-  lispval module;
   if (mysql_initialized) return 0;
 
   u8_register_threadinit(init_thread_for_mysql);
@@ -1513,7 +1512,7 @@ KNO_EXPORT int kno_init_mysql()
   write_timeout_symbol = kno_intern("write-timeout");
   lazy_symbol = kno_intern("lazyprocs");
 
-  kno_finish_module(module);
+  kno_finish_module(mysql_module);
 
   kno_register_config
     ("MYSQL:LAZYPROCS",

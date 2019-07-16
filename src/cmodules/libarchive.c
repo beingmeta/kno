@@ -19,6 +19,7 @@
 #include "kno/numbers.h"
 #include "kno/support.h"
 #include "kno/ports.h"
+#include "kno/cprims.h"
 
 #include <libu8/libu8io.h>
 #include <libu8/u8filefns.h>
@@ -98,13 +99,13 @@ static lispval new_archive(lispval spec,lispval opts)
                              KNO_LONGVAL( KNO_PACKET_DATA (spec) ));}
   else {
     kno_seterr("InvalidArchiveSpec","new_archive",
-              archive_error_string(archive),spec);
+               archive_error_string(archive),spec);
     archive_read_close(archive);
     return KNO_ERROR_VALUE;}
   if (status < 0) {
     kno_seterr("LibArchiveError","new_archive",
-              archive_error_string(archive),
-              spec);
+               archive_error_string(archive),
+               spec);
     archive_read_close(archive);
     return KNO_ERROR_VALUE;}
   else {
@@ -149,15 +150,15 @@ static  int archive_seek(struct KNO_ARCHIVE *archive,lispval seek,
         return 1;}}
     else {
       kno_seterr("BadSeekSpec","archive_seek",
-                archive_errmsg(msgbuf,1000,archive),
-                seek);
+                 archive_errmsg(msgbuf,1000,archive),
+                 seek);
       return -1;}
     rv = archive_read_next_header(archive->kno_archive,&entry);}
   if (rv == ARCHIVE_OK) {}
-    return 0;
+  return 0;
   kno_seterr("ArchiveError","archive_find",
-            archive_errmsg(msgbuf,1000,archive),
-            seek);
+             archive_errmsg(msgbuf,1000,archive),
+             seek);
   return -1;
 }
 
@@ -273,9 +274,9 @@ static int read_from_archive(struct U8_INPUT *raw_input)
 static lispval entry_info(struct archive_entry *entry);
 
 static kno_port open_archive_input(struct archive *archive,
-                                  u8_string archive_id,
-                                  u8_string eltname,
-                                  struct archive_entry *entry)
+                                   u8_string archive_id,
+                                   u8_string eltname,
+                                   struct archive_entry *entry)
 {
   struct KNO_ARCHIVE_INPUT *in = u8_alloc(struct KNO_ARCHIVE_INPUT);
   U8_INIT_INPUT_X((u8_input)in,30000,NULL,U8_STREAM_MALLOCD);
@@ -302,6 +303,10 @@ static kno_port open_archive_input(struct archive *archive,
 
 /* Top level functions */
 
+KNO_DCLPRIM3("archive/open",open_archive,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
+             "Opens an archive file",
+             kno_any_type,KNO_VOID,kno_any_type,KNO_FALSE,
+             kno_any_type,KNO_FALSE);
 static lispval open_archive(lispval spec,lispval path,lispval opts)
 {
   if ( (KNO_STRINGP(opts)) && (KNO_TABLEP(path)) ) {
@@ -319,8 +324,8 @@ static lispval open_archive(lispval spec,lispval path,lispval opts)
       if (kno_testopt(opts,KNOSYM_DROP,KNO_TRUE)) {
         u8_byte msgbuf[1000];
         kno_seterr("NotFound","open_archive",
-                  archive_errmsg(msgbuf,1000,archive),
-                  path);
+                   archive_errmsg(msgbuf,1000,archive),
+                   path);
         kno_decref(spec);
         return KNO_ERROR;}
       else return KNO_FALSE;}
@@ -383,6 +388,9 @@ static lispval entry_info(struct archive_entry *entry)
   return tbl;
 }
 
+KNO_DCLPRIM("archive/find",archive_find,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+            "Get the next archive entry (possibly matching a "
+            "string or regex)");
 static lispval archive_find(lispval obj,lispval seek)
 {
   struct KNO_ARCHIVE *archive = (struct KNO_ARCHIVE *) obj;
@@ -409,6 +417,9 @@ static lispval archive_find(lispval obj,lispval seek)
   else return KNO_FALSE;
 }
 
+KNO_DCLPRIM1("archive/stat",archive_stat,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+             "Information about an open archive stream",
+             kno_ioport_type,KNO_VOID);
 static lispval archive_stat(lispval port)
 {
   lispval info;
@@ -425,40 +436,48 @@ static lispval archive_stat(lispval port)
   return kno_incref(info);
 }
 
+static lispval libarchive_module;
+
 KNO_EXPORT int kno_init_libarchive()
 {
-  lispval module;
   if (libarchive_initialized)
     return libarchive_initialized;
   else libarchive_initialized = u8_millitime();
 
-  module = kno_new_cmodule("libarchive",0,kno_init_libarchive);
+  libarchive_module = kno_new_cmodule("libarchive",0,kno_init_libarchive);
 
   kno_libarchive_type = kno_register_cons_type("archive");
   kno_unparsers[kno_libarchive_type] = unparse_archive;
   kno_recyclers[kno_libarchive_type] = recycle_archive;
 
+  init_local_cprims();
+
+#if 0
   kno_idefn3(module,"ARCHIVE/OPEN",open_archive,1,
-            "Opens an archive file",
-            -1,KNO_VOID,-1,KNO_FALSE,-1,KNO_FALSE);
+             "Opens an archive file",
+             -1,KNO_VOID,-1,KNO_FALSE,-1,KNO_FALSE);
   kno_idefn2(module,"ARCHIVE/FIND",archive_find,1,
-            "Get the next archive entry (possibly matching a string or regex)",
-            kno_libarchive_type,KNO_VOID,-1,KNO_FALSE);
+             "Get the next archive entry (possibly matching a string or regex)",
+             kno_libarchive_type,KNO_VOID,-1,KNO_FALSE);
   kno_idefn1(module,"ARCHIVE/STAT",archive_stat,1,
-            "Information about an open archive stream",
-            kno_ioport_type,KNO_VOID);
+             "Information about an open archive stream",
+             kno_ioport_type,KNO_VOID);
+#endif
 
 
-  kno_finish_module(module);
+  kno_finish_module(libarchive_module);
 
   u8_register_source_file(_FILEINFO);
 
   return libarchive_initialized;
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
+static void init_local_cprims()
+{
+  KNO_LINK_PRIM("archive/stat",archive_stat,1,libarchive_module);
+  KNO_LINK_PRIM("archive/open",open_archive,3,libarchive_module);
+
+  KNO_LINK_TYPED("archive/find",archive_find,2,libarchive_module,
+                 kno_libarchive_type,KNO_VOID,
+                 kno_any_type,KNO_FALSE);
+}

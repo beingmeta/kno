@@ -1272,6 +1272,8 @@ KNO_EXPORT void kno_init_xmloutput_c()
   kno_def_evalfn(xhtml_module,"JAVASCRIPT","",javascript_evalfn);
   kno_def_evalfn(xhtml_module,"JAVASTMT","",javastmt_evalfn);
 
+  init_local_cprims();
+
 #if 0
   /* Applicable XML generators (not evalfns) */
   lispval xmlempty_dproc = kno_make_cprimn("XMLEMPTY",xmlemptyelt,0);

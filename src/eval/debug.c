@@ -1347,4 +1347,6 @@ static void init_local_cprims()
   KNO_LINK_PRIM("muntrace",muntrace_prim,0,scheme_module);
   KNO_LINK_PRIM("mtrace",mtrace_prim,1,scheme_module);
   KNO_LINK_PRIM("%watchptrval",watchptr_prim,2,scheme_module);
+
+  KNO_LINK_PRIM("dump-bug",dumpbug_prim,2,scheme_module);
 }

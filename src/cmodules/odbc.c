@@ -518,7 +518,6 @@ static lispval odbc_module;
 
 KNO_EXPORT int kno_init_odbc()
 {
-  lispval module;
   if (odbc_initialized) return 0;
   odbc_initialized = 1;
   kno_init_scheme();
@@ -545,7 +544,7 @@ KNO_EXPORT int kno_init_odbc()
 
   merge_symbol = kno_intern("%merge");
 
-  kno_finish_module(module);
+  kno_finish_module(odbc_module);
 
   u8_register_source_file(_FILEINFO);
 

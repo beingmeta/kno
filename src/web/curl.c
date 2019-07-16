@@ -1931,6 +1931,7 @@ static void init_local_cprims()
   KNO_LINK_PRIM("urlget",urlget,2,webtools_module);
   KNO_LINK_PRIM("curl/reset!",curlreset,1,webtools_module);
   KNO_LINK_PRIM("curl-handle?",curlhandlep,1,webtools_module);
+  KNO_LINK_PRIM("add-text_type!",addtexttype,1,webtools_module);
 
   KNO_DECL_ALIAS("curlreset!",curlreset,webtools_module);
   KNO_DECL_ALIAS("curlsetopt!",curlsetopt,webtools_module);

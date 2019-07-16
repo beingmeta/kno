@@ -542,8 +542,9 @@ KNO_DCLPRIM1("typeof",typeof_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 static lispval typeof_prim(lispval x)
 {
   kno_lisp_type t = KNO_PRIM_TYPE(x);
-  if (kno_type_names[t]) return kno_mkstring(kno_type_names[t]);
-  else return kno_mkstring("??");
+  if (kno_type_names[t])
+    return kno_mkstring(kno_type_names[t]);
+  else return kno_mkstring("unknown");
 }
 
 KNO_DCLPRIM2("tagged?",taggedp_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),

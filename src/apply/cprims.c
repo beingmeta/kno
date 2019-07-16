@@ -210,8 +210,8 @@ static void link_cprim(struct KNO_CPRIM *cprim,u8_string pname,lispval module)
          (KNO_VOIDP(cprim->fcn_moduleid)) ) {
       lispval moduleid = kno_get(module,moduleid_symbol,KNO_VOID);
       if (!(KNO_VOIDP(moduleid)))
-        cprim->fcn_moduleid=moduleid;}
-    kno_decref((lispval)cprim);}
+        cprim->fcn_moduleid=moduleid;}}
+  kno_decref((lispval)cprim);
 }
 
 KNO_EXPORT void kno_defprimN(lispval module,kno_cprimn fn,

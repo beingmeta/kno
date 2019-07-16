@@ -72,19 +72,19 @@ static u8_input get_input_port(lispval portarg)
   else return NULL;
 }
 
-KNO_DEFPRIM("PORT?",portp,KNO_MAX_ARGS(1),
+KNO_DCLPRIM("PORT?",portp,KNO_MAX_ARGS(1),
             "`(PORT? *object*)` returns #t if *object* is an i/o port.")
-  (lispval arg)
+static lispval portp(lispval arg)
 {
   if (KNO_PORTP(arg))
     return KNO_TRUE;
   else return KNO_FALSE;
 }
 
-KNO_DEFPRIM("INPUT-PORT?",input_portp,KNO_MAX_ARGS(1),
+KNO_DCLPRIM("INPUT-PORT?",input_portp,KNO_MAX_ARGS(1),
             "`(INPUT-PORT? *object*)` returns #t "
             "if *object* is an input port.")
-  (lispval arg)
+static lispval input_portp(lispval arg)
 {
   if (KNO_PORTP(arg)) {
     struct KNO_PORT *p=
@@ -95,10 +95,10 @@ KNO_DEFPRIM("INPUT-PORT?",input_portp,KNO_MAX_ARGS(1),
   else return KNO_FALSE;
 }
 
-KNO_DEFPRIM("OUTPUT-PORT?",output_portp,MAX_ARGS(1),
+KNO_DCLPRIM("OUTPUT-PORT?",output_portp,MAX_ARGS(1),
            "`(OUTPUT-PORT? *object*)` returns #t "
            "if *object* is an output port.")
-  (lispval arg)
+static lispval output_portp(lispval arg)
 {
   if (KNO_PORTP(arg)) {
     struct KNO_PORT *p=
@@ -1255,6 +1255,9 @@ static void init_local_cprims()
   KNO_LINK_PRIM("dtype->packet",lisp2packet,2,kno_io_module);
   KNO_LINK_PRIM("packet->dtype",packet2dtype,1,kno_io_module);
   KNO_LINK_PRIM("eof-object?",eofp,1,kno_io_module);
+  KNO_LINK_PRIM("port?",portp,1,kno_io_module);
+  KNO_LINK_PRIM("input-port?",input_portp,1,kno_io_module);
+  KNO_LINK_PRIM("output-port?",output_portp,1,kno_io_module);
 
   KNO_DECL_ALIAS("eof?",eofp,kno_io_module);
   KNO_DECL_ALIAS("write-char",putchar_prim,kno_io_module);

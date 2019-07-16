@@ -250,14 +250,14 @@ static lispval table_test(lispval table,lispval key,lispval val)
 }
 
 
-DEFPRIM_DECL("GETKEYS",kno_getkeys,MAX_ARGS(1),
+KNO_DCLPRIM("GETKEYS",kno_getkeys,MAX_ARGS(1),
              "`(GETKEYS *table*)` returns all the keys in *table*.");
-DEFPRIM_DECL("GETVALUES",kno_getvalues,MAX_ARGS(1),
-             "`(GETVALUES *table*)` returns all the values associated with "
-             "all of the keys in *table*.");
-DEFPRIM_DECL("GETASSOCS",kno_getassocs,MAX_ARGS(1),
-             "`(GETASSOCS *table*)` returns (key . values) pairs for all "
-             "of the keys in *table*.");
+KNO_DCLPRIM("GETVALUES",kno_getvalues,MAX_ARGS(1),
+            "`(GETVALUES *table*)` returns all the values associated with "
+            "all of the keys in *table*.");
+KNO_DCLPRIM("GETASSOCS",kno_getassocs,MAX_ARGS(1),
+            "`(GETASSOCS *table*)` returns (key . values) pairs for all "
+            "of the keys in *table*.");
 
 /* Converting schemaps to slotmaps */
 
@@ -1094,15 +1094,15 @@ static lispval hashtable_merge(lispval dest,lispval src)
   return kno_incref(dest);
 }
 
-DEFPRIM_DECL("PLIST->TABLE",kno_plist_to_slotmap,MAX_ARGS(1),
+KNO_DCLPRIM("PLIST->TABLE",kno_plist_to_slotmap,MAX_ARGS(1),
              "`(PLIST->TABLE *plist*)` returns a slotmap from a plist "
              "(property list) of the form "
              "(key1 value1 key2 value2 ... )");
-DEFPRIM_DECL("ALIST->TABLE",kno_alist_to_slotmap,MAX_ARGS(1),
+KNO_DCLPRIM("ALIST->TABLE",kno_alist_to_slotmap,MAX_ARGS(1),
              "`(ALIST->TABLE *list*)` returns a slotmap from an alist "
              "(association list) of the form "
              "((key1 . value1) (key2 . value2) ... )");
-DEFPRIM_DECL("BLIST->TABLE",kno_blist_to_slotmap,MAX_ARGS(1),
+KNO_DCLPRIM("BLIST->TABLE",kno_blist_to_slotmap,MAX_ARGS(1),
              "`(BLIST->TABLE *list*)` returns a slotmap from a blist "
              "(binding list) of the form "
              "((key1  value1) (key2 value2) ... )");
@@ -1113,6 +1113,9 @@ KNO_EXPORT void kno_init_tableprims_c()
 {
   u8_register_source_file(_FILEINFO);
 
+  init_local_cprims();
+
+#if 0
   DECL_PRIM(tablep,1,kno_scheme_module);
   DECL_PRIM(haskeysp,1,kno_scheme_module);
   DECL_PRIM(slotmapp,1,kno_scheme_module);
@@ -1216,6 +1219,8 @@ KNO_EXPORT void kno_init_tableprims_c()
   DECL_PRIM(kno_alist_to_slotmap,1,kno_scheme_module);
   DECL_PRIM(kno_blist_to_slotmap,1,kno_scheme_module);
   DECL_ALIAS("BINDINGS->SLOTMAP",kno_blist_to_slotmap,kno_scheme_module);
+#endif
+
 }
 
 /* Emacs local variables
@@ -1226,5 +1231,89 @@ KNO_EXPORT void kno_init_tableprims_c()
 */
 
 
-static void init_cprims(){
+static void init_local_cprims()
+{
+  KNO_LINK_PRIM("TABLE?",tablep,1,kno_scheme_module);
+  KNO_LINK_PRIM("HASKEYS?",haskeysp,1,kno_scheme_module);
+  KNO_LINK_PRIM("SLOTMAP?",slotmapp,1,kno_scheme_module);
+  KNO_LINK_PRIM("SCHEMAP?",schemapp,1,kno_scheme_module);
+  KNO_LINK_PRIM("HASHTABLE?",hashtablep,1,kno_scheme_module);
+  KNO_LINK_PRIM("MAKE-HASHSET",make_hashset,1,kno_scheme_module);
+  KNO_LINK_PRIM("MAKE-HASHTABLE",make_hashtable,1,kno_scheme_module);
+  KNO_LINK_PRIM("PICK-HASHTABLE-SIZE", pick_hashtable_size,1,kno_scheme_module);
+  KNO_LINK_PRIM("RESET-HASHTABLE!",reset_hashtable,2,kno_scheme_module);
+  KNO_LINK_PRIM("STATIC-HASHTABLE",static_hashtable,1,kno_scheme_module);
+  KNO_LINK_PRIM("UNSAFE-HASHTABLE",unsafe_hashtable,1,kno_scheme_module);
+  KNO_LINK_PRIM("RESAFE-HASHTABLE",resafe_hashtable,1,kno_scheme_module);
+  KNO_LINK_PRIM("HASH-LISP",hash_lisp_prim,1,kno_scheme_module);
+  KNO_LINK_PRIM("%GET",table_get,3,kno_scheme_module);
+  KNO_LINK_PRIM("ADD!",table_add,3,kno_scheme_module);
+  KNO_LINK_PRIM("DROP!",table_drop,3,kno_scheme_module);
+  KNO_LINK_PRIM("STORE!",table_store,3,kno_scheme_module);
+  KNO_LINK_PRIM("%TEST",table_test,3,kno_scheme_module);
+  KNO_LINK_PRIM("SCHEMAP->SLOTMAP",schemap2slotmap_prim,1,kno_scheme_module);
+  KNO_LINK_PRIM("SLOTMAP->SCHEMAP",slotmap2schemap_prim,1,kno_scheme_module);
+  KNO_LINK_PRIM("->SCHEMAP",table2schemap_prim,1,kno_scheme_module);
+  KNO_LINK_PRIM("TABLE-INCREMENT!",table_increment,3,kno_scheme_module);
+  KNO_LINK_PRIM("TABLE-INCREMENT-EXISTING!",table_increment_existing,3,
+                kno_scheme_module);
+  KNO_LINK_PRIM("TABLE-MULTIPLY!",table_multiply,3,kno_scheme_module);
+  KNO_LINK_PRIM("TABLE-MULTIPLY-EXISTING!",table_multiply_existing,3,
+                kno_scheme_module);
+  KNO_LINK_PRIM("TABLE-MAXIMIZE!",table_maximize,3,kno_scheme_module);
+  KNO_LINK_PRIM("TABLE-MAXIMIZE-EXISTING!",table_maximize_existing,3,
+                kno_scheme_module);
+  KNO_LINK_PRIM("TABLE-MINIMIZE!",table_minimize,3,kno_scheme_module);
+  KNO_LINK_PRIM("TABLE-MINIMIZE-EXISTING!",table_minimize_existing,3,
+                kno_scheme_module);
+  KNO_LINK_PRIM("TABLE-SIZE",table_size,1,kno_scheme_module);
+  KNO_LINK_PRIM("TABLE-WRITABLE?",table_writablep,1,kno_scheme_module);
+  KNO_LINK_PRIM("TABLE-WRITABLE!",table_set_writable,2,kno_scheme_module);
+  KNO_LINK_PRIM("TABLE-MODIFIED?",table_modifiedp,1,kno_scheme_module);
+  KNO_LINK_PRIM("TABLE-MODIFIED!",table_set_modified,2,kno_scheme_module);
+  KNO_LINK_PRIM("TABLE-MAX",table_max,2,kno_scheme_module);
+  KNO_LINK_PRIM("TABLE-MAXVAL",table_maxval,2,kno_scheme_module);
+  KNO_LINK_PRIM("TABLE-SKIM",table_skim,3,kno_scheme_module);
+  KNO_LINK_PRIM("MAP->TABLE",map2table,3,kno_scheme_module);
+  KNO_LINK_PRIM("TABLE-MAP-SIZE",table_map_size,1,kno_scheme_module);
+  KNO_LINK_PRIM("HASHSET?",hashsetp,1,kno_scheme_module);
+  KNO_LINK_PRIM("HASHSET-ADD!",hashset_add,2,kno_scheme_module);
+  KNO_LINK_PRIM("HASHSET+",hashset_plus,2,kno_scheme_module);
+  KNO_LINK_PRIM("HASHSET-DROP!",hashset_drop,2,kno_scheme_module);
+  KNO_LINK_PRIM("HASHSET-GET",hashset_get,2,kno_scheme_module);
+  KNO_LINK_PRIM("HASHSET-TEST",hashset_test,2,kno_scheme_module);
+  KNO_LINK_PRIM("HASHSET-ELTS",hashset_elts,2,kno_scheme_module);
+  KNO_LINK_PRIM("RESET-HASHSET!",reset_hashset,1,kno_scheme_module);
+
+  KNO_LINK_VARARGS("CHOICE->HASHSET",choices2hashset,kno_scheme_module);
+  KNO_LINK_PRIM("HASHSET/INTERN",hashset_intern,2,kno_scheme_module);
+  KNO_LINK_PRIM("HASHSET/PROBE",hashset_probe,2,kno_scheme_module);
+  KNO_LINK_PRIM("SORT-SLOTMAP",sort_slotmap,1,kno_scheme_module);
+  KNO_LINK_PRIM("HASHTABLE-BUCKETS",hashtable_buckets,1,kno_scheme_module);
+  KNO_LINK_PRIM("HASHTABLE/MERGE",hashtable_merge,2,kno_scheme_module);
+
+  KNO_LINK_PRIM("PLIST->TABLE",kno_plist_to_slotmap,1,kno_scheme_module);
+  KNO_LINK_PRIM("ALIST->TABLE",kno_alist_to_slotmap,1,kno_scheme_module);
+  KNO_LINK_PRIM("BLIST->TABLE",kno_blist_to_slotmap,1,kno_scheme_module);
+  KNO_LINK_PRIM("GETKEYS",kno_getkeys,1,kno_scheme_module);
+  KNO_LINK_PRIM("GETVALUES",kno_getvalues,1,kno_scheme_module);
+  KNO_LINK_PRIM("GETASSOCS",kno_getassocs,1,kno_scheme_module);
+
+  KNO_LINK_ALIAS("HASHTABLE-MAX",table_max,kno_scheme_module);
+  KNO_LINK_ALIAS("HASHTABLE-MAXVAL",table_maxval,kno_scheme_module);
+  KNO_LINK_ALIAS("HASHTABLE-SKIM",table_skim,kno_scheme_module);
+
+  KNO_LINK_ALIAS("HASHTABLE-INCREMENT!",table_increment,kno_scheme_module);
+  KNO_LINK_ALIAS("HASHTABLE-INCREMENT-EXISTING!",table_increment_existing,
+                 kno_scheme_module);
+  KNO_LINK_ALIAS("HASHTABLE-MULTIPLY!",table_multiply,kno_scheme_module);
+  KNO_LINK_ALIAS("HASHTABLE-MULTIPLY-EXISTING!",table_multiply_existing,
+                 kno_scheme_module);
+  KNO_LINK_ALIAS("HASHTABLE-MAXIMIZE!",table_maximize,kno_scheme_module);
+  KNO_LINK_ALIAS("HASHTABLE-MAXIMIZE-EXISTING!",table_maximize_existing,
+                 kno_scheme_module);
+  KNO_LINK_ALIAS("HASHTABLE-MINIMIZE!",table_minimize,kno_scheme_module);
+  KNO_LINK_ALIAS("HASHTABLE-MINIMIZE-EXISTING!",table_minimize_existing,
+                 kno_scheme_module);
+  KNO_LINK_ALIAS("BINDINGS->SLOTMAP",kno_blist_to_slotmap,kno_scheme_module);
 }

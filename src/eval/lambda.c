@@ -949,7 +949,7 @@ static int better_unparse_fcnid(u8_output out,lispval x)
           (VOID);
         if (SYMBOLP(arg))
           u8_puts(out,SYM_NAME(arg));
-        else u8_puts(out,"??");
+        else u8_puts(out,"?anon?");
         if (PAIRP(spec)) u8_putc(out,'?');
         scan = KNO_CDR(scan);}
       if (NILP(scan))

@@ -336,7 +336,9 @@ KNO_EXPORT void kno_typedprim6(lispval module,kno_cprim6 fn,
 #define MIN_ARGS     KNO_MIN_ARGS
 #define NDCALL       KNO_NDCALL
 
+#if 0
 #define DEFPRIM_DECL KNO_DEFPRIM_DECL
+#endif
 #define DEFPRIM      KNO_DEFPRIM
 #define DEFPRIM1     KNO_DEFPRIM1
 #define DEFPRIM2     KNO_DEFPRIM2
