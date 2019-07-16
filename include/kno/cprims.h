@@ -161,7 +161,7 @@
     pname, # cname, _FILEINFO " L#" STRINGIFY(__LINE__), docstring, 10, flags};  \
   static U8_MAYBE_UNUSED int cname## _typeinfo[10] =                    \
     { t1, t2, t3, t4, t5, t6, t7, t8, t9, t10 };                        \
-  static U8_MAYBE_UNUSED lispval cname ## _defaults[7] =                \
+  static U8_MAYBE_UNUSED lispval cname ## _defaults[10] =                \
     { d1, d2, d3, d4, d5, d6, d7, d8, d9, d10 };
 
 #define KNO_DEFPRIM10(pname,cname,flags,docstring,t1,d1,t2,d2,           \
@@ -282,6 +282,9 @@
   kno_defprimN(module,cname,&cname ## _info);
 
 #define KNO_DECL_ALIAS(alias,cname,module)               \
+  kno_defalias(module,alias,cname ## _info.pname)
+
+#define KNO_LINK_ALIAS(alias,cname,module)               \
   kno_defalias(module,alias,cname ## _info.pname)
 
 #if KNO_SOURCE
