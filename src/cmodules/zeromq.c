@@ -1033,33 +1033,6 @@ KNO_EXPORT int kno_init_zeromq()
 
   init_local_cprims();
 
-#if 0
-  DECL_PRIM(zmq_socket_prim,1,module);
-  DECL_PRIM(zmq_close_prim,1,module);
-  DECL_PRIM(zmq_open_prim,2,module);
-  DECL_PRIM(zmq_listen_prim,2,module);
-
-  DECL_PRIM(zeromqp_prim,2,module);
-  DECL_PRIM(zeromq_type_prim,1,module);
-
-  DECL_PRIM(zmq_getsockopt_prim,2,module);
-  DECL_PRIM(zmq_setsockopt_prim,3,module);
-
-  DECL_PRIM(zmq_bind_prim,2,module);
-  DECL_PRIM(zmq_unbind_prim,2,module);
-  DECL_PRIM(zmq_connect_prim,2,module);
-  DECL_PRIM(zmq_disconnect_prim,2,module);
-
-  DECL_PRIM(zmq_send_prim,3,module);
-  DECL_PRIM(zmq_recv_prim,2,module);
-
-  DECL_PRIM(zeromq_shutdown_prim,0,module);
-
-  kno_lisp_type proxy_args[3] =
-    { kno_zmqsock_type, kno_zmqsock_type, kno_zmqsock_type };
-  DECL_PRIM_ARGS(zmq_proxy_prim,3,module,proxy_args,NULL);
-#endif
-
   kno_register_config("ZEROMQ:LOGLEVEL",
                       "Loglevel for the ZeroMQ wrapper",
                       kno_intconfig_get,

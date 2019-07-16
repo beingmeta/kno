@@ -1090,11 +1090,6 @@ KNO_EXPORT void kno_init_lambdas_c()
   kno_def_evalfn(kno_scheme_module,"DEFSYNC",
                 "Returns a named synchronized lambda procedure",
                 defsync_evalfn);
-
-#if 0
-  kno_idefn(kno_scheme_module,kno_make_cprim3x
-            ("XAPPLY",xapply_prim,2,kno_lambda_type,VOID,-1,VOID,-1,VOID));
-#endif
 }
 
 /* Emacs local variables

@@ -299,9 +299,6 @@ void kno_init_mime_c()
 {
   webtools_module = kno_new_module("WEBTOOLS",0);
   init_local_cprims();
-#if 0
-  kno_idefn(module,kno_make_cprim1("PARSE-MIME",parse_mime_data,1));
-#endif
 
   content_slotid = kno_intern("content");
   charset_slotid = kno_intern("charset");

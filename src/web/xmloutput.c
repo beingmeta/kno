@@ -1274,28 +1274,6 @@ KNO_EXPORT void kno_init_xmloutput_c()
 
   init_local_cprims();
 
-#if 0
-  /* Applicable XML generators (not evalfns) */
-  lispval xmlempty_dproc = kno_make_cprimn("XMLEMPTY",xmlemptyelt,0);
-  lispval xmlempty_proc = kno_make_ndprim(xmlempty_dproc);
-  lispval xmlify_proc = kno_make_cprim1("XMLIFY",xmlify,1);
-  kno_defn(webtools_module,xmlempty_proc);
-  kno_defn(webtools_module,xmlify_proc);
-  kno_defn(webtools_module,kno_make_cprim3("XML->STRING",xml2string_prim,1));
-  kno_idefn(xhtml_module,kno_make_cprim1("%XMLOID",xmloid,1));
-  kno_idefn(xhtml_module,kno_make_cprim0("NBSP",nbsp_prim));
-  {
-    lispval xmlcloseprim=
-      kno_make_cprim1("XMLCLOSE",xmlclose_prim,1);
-    lispval xmlendprim=
-      kno_make_cprim1("XMLEND",xmlend_prim,1);
-    kno_defn(webtools_module,xmlcloseprim);
-    kno_idefn(webtools_module,xmlcloseprim);
-    kno_defn(webtools_module,xmlendprim);
-    kno_idefn(webtools_module,xmlendprim);}
-  kno_decref(xmlempty_proc); kno_decref(xmlify_proc);
-#endif
-
   kno_decref(markup_prim); kno_decref(markupstar_prim);
   kno_decref(markupblock_prim); kno_decref(markupstarblock_prim);
   kno_decref(emptymarkup_prim); kno_decref(xmlout_prim);

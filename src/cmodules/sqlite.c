@@ -810,16 +810,6 @@ KNO_EXPORT int kno_init_sqlite()
   kno_register_sqldb_handler(&sqlite_handler);
 
   init_local_cprims();
-#if 0
-  kno_defn(module,
-           kno_make_cprim3x("SQLITE/OPEN",sqlite_open_prim,1,
-                            kno_string_type,KNO_VOID,
-                            -1,KNO_VOID,-1,KNO_VOID));
-  kno_defn(module,kno_make_cprim1x("SQLITE/REOPEN",sqlite_reopen_prim,1,
-                                   kno_sqldb_type,KNO_VOID));
-  kno_defn(module,kno_make_cprim1x("SQLITE/CLOSE",sqlite_close_prim,1,
-                                   kno_sqldb_type,KNO_VOID));
-#endif
 
   sqlite_init = u8_millitime();
 

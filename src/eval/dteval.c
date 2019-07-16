@@ -168,25 +168,6 @@ KNO_EXPORT void kno_init_dteval_c()
   u8_register_source_file(_FILEINFO);
 
   init_local_cprims();
-
-#if 0
-  kno_idefn(kno_scheme_module,kno_make_cprim2("DTEVAL",dteval,2));
-  kno_idefn(kno_scheme_module,kno_make_cprimn("DTCALL",dtcall,2));
-  kno_idefn(kno_scheme_module,kno_make_cprim2x("OPEN-DTSERVER",open_dtserver,1,
-                                            kno_string_type,VOID,
-                                            kno_fixnum_type,VOID));
-  kno_idefn1(kno_scheme_module,"DTSERVER?",dtserverp,KNO_NEEDS_1_ARG,
-            "Returns true if it's argument is a dtype server object",
-            -1,VOID);
-  kno_idefn1(kno_scheme_module,"DTSERVER-ID",
-            dtserver_id,KNO_NEEDS_1_ARG,
-            "Returns the ID of a dtype server (the argument used to create it)",
-            kno_dtserver_type,VOID);
-  kno_idefn1(kno_scheme_module,"DTSERVER-ADDRESS",
-            dtserver_address,KNO_NEEDS_1_ARG,
-            "Returns the address (host/port) of a dtype server",
-            kno_dtserver_type,VOID);
-#endif
 }
 
 static void init_local_cprims()

@@ -836,59 +836,6 @@ KNO_EXPORT void kno_init_urifns_c()
 
   init_local_cprims();
 
-#if 0
-  kno_idefn(module,kno_make_cprim2x("PARSEURI",parseuri,1,
-                                  kno_string_type,VOID,
-                                  -1,VOID));
-  kno_idefn(module,kno_make_cprim2("MERGEURIS",mergeuris,2));
-  kno_idefn(module,kno_make_cprim2("UNPARSEURI",unparseuri,1));
-
-  kno_idefn(module,kno_make_cprim1x("URISCHEME",urischeme_prim,1,
-                                  kno_string_type,VOID));
-  kno_idefn(module,kno_make_cprim1x("URIHOST",urihost_prim,1,
-                                  kno_string_type,VOID));
-  kno_idefn(module,kno_make_cprim1x("URIFRAG",urifrag_prim,1,
-                                  kno_string_type,VOID));
-  kno_idefn(module,kno_make_cprim1x("URIQUERY",uriquery_prim,1,
-                                  kno_string_type,VOID));
-  kno_idefn(module,kno_make_cprim1x("URIBASE",uribase_prim,1,
-                                  kno_string_type,VOID));
-  kno_idefn(module,kno_make_cprim1x("URIPATH",uripath_prim,1,
-                                  kno_string_type,VOID));
-
-  kno_idefn(module,kno_make_cprim2x("MKURIPATH",mkuripath_prim,2,
-                                  -1,VOID,kno_string_type,VOID));
-
-  kno_idefn(module,kno_make_cprim2x("DATAURI",datauri_prim,1,
-                                  -1,VOID,kno_string_type,VOID));
-
-  /* This is the non-deterministic version */
-  DECL_PRIM(uriencode_prim,3,module);
-  DECL_PRIM(uridecode_prim,1,module);
-  DECL_PRIM(form_encode_prim,2,module);
-
-  lispval oid2id_proc=
-    kno_make_cprim2x("OID2ID",oid2id,1,kno_oid_type,VOID,-1,VOID);
-  lispval scripturl_proc=
-    kno_make_ndprim(kno_make_cprimn("SCRIPTURL",scripturl,1));
-  lispval knoscripturl_proc=
-    kno_make_ndprim(kno_make_cprimn("KNOSCRIPTURL",knoscripturl,2));
-  lispval scripturlplus_proc=
-    kno_make_ndprim(kno_make_cprimn("SCRIPTURL+",scripturlplus,1));
-  lispval knoscripturlplus_proc=
-    kno_make_ndprim(kno_make_cprimn("KNOSCRIPTURL+",knoscripturlplus,2));
-
-  kno_defn(module,oid2id_proc);
-  kno_defn(module,scripturl_proc);
-  kno_defn(module,scripturlplus_proc);
-  kno_defn(module,knoscripturl_proc);
-  kno_defn(module,knoscripturlplus_proc);
-
-  kno_store(module,kno_intern("scripturl+"),scripturlplus_proc);
-  kno_store(module,kno_intern("knoscripturl"),knoscripturl_proc);
-  kno_store(module,kno_intern("knoscripturl+"),knoscripturlplus_proc);
-#endif
-
   u8_register_source_file(_FILEINFO);
 }
 

@@ -195,11 +195,7 @@ KNO_EXPORT int kno_init_qrcode()
   robustness_symbol = kno_intern("robustness");
 
   init_local_cprims();
-#if 0
-  kno_defn(module,
-          kno_make_cprim2x("QRENCODE",qrencode_prim,1,
-                          kno_string_type,KNO_VOID,-1,KNO_VOID));
-#endif
+
   qrencode_init = u8_millitime();
 
   kno_finish_module(qrcode_module);

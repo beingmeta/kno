@@ -1475,20 +1475,6 @@ KNO_EXPORT int kno_init_mysql()
   kno_register_sqldb_handler(&mysql_handler);
 
   init_local_cprims();
-#if 0
-  kno_idefn6(module,"MYSQL/OPEN",open_mysql,1,
-            "`(MYSQL/OPEN *host* *dbname* *colmap* *user* *pass* *opts*)`",
-            kno_string_type,KNO_VOID,
-            kno_string_type,KNO_VOID,
-            -1,KNO_VOID,
-            kno_string_type,KNO_VOID,
-            -1,KNO_VOID,
-            -1,KNO_VOID);
-  kno_idefn2(module,"MYSQL/REFRESH",refresh_mysqldb,1,
-            "`(MYSQL/REFRESH *dbptr* *flags*)`",
-            kno_sqldb_type,KNO_VOID,
-            -1,KNO_VOID);
-#endif
   
   mysql_initialized = u8_millitime();
   

@@ -1193,73 +1193,6 @@ KNO_EXPORT void kno_init_eval_debug_c()
 
   init_local_cprims();
 
-#if 0
-  /* for testing */
-  kno_idefn9(kno_scheme_module,"LIST9",list9,0,"Returns a nine-element list",
-             -1,KNO_FALSE,-1,KNO_FALSE,-1,KNO_FALSE,
-             -1,KNO_FALSE,-1,KNO_FALSE,-1,KNO_FALSE,
-             -1,KNO_FALSE,-1,KNO_FALSE, -1,KNO_FALSE);
-
-  kno_idefn4(kno_scheme_module,"_PLUS4",plus4,1,"Add numbers",
-             -1,KNO_INT(0),-1,KNO_INT(0),-1,KNO_INT(0),
-             -1,KNO_INT(0));
-  kno_idefn5(kno_scheme_module,"_PLUS5",plus5,1,"Add numbers",
-             -1,KNO_INT(0),-1,KNO_INT(0),-1,KNO_INT(0),
-             -1,KNO_INT(0),-1,KNO_INT(0));
-  kno_idefn6(kno_scheme_module,"_PLUS6",plus6,2,"Add numbers",
-             -1,KNO_INT(0),-1,KNO_INT(0),-1,KNO_INT(0),
-             -1,KNO_INT(0),-1,KNO_INT(0),-1,KNO_INT(0));
-  kno_idefn7(kno_scheme_module,"_PLUS7",plus7,3,"Add numbers",
-             -1,KNO_INT(0),-1,KNO_INT(0),-1,KNO_INT(0),
-             -1,KNO_INT(0),-1,KNO_INT(0),-1,KNO_INT(0),
-             -1,KNO_INT(0));
-  kno_idefn8(kno_scheme_module,"_PLUS8",plus8,3,"Add numbers",
-             -1,KNO_INT(0),-1,KNO_INT(0),-1,KNO_INT(0),
-             -1,KNO_INT(0),-1,KNO_INT(0),-1,KNO_INT(0),
-             -1,KNO_INT(0),-1,KNO_INT(0));
-  kno_idefn9(kno_scheme_module,"_PLUS9",plus9,3,"Add numbers",
-             -1,KNO_INT(0),-1,KNO_INT(0),-1,KNO_INT(0),
-             -1,KNO_INT(0),-1,KNO_INT(0),-1,KNO_INT(0),
-             -1,KNO_INT(0),-1,KNO_INT(0), -1,KNO_INT(0));
-  kno_idefn10(kno_scheme_module,"_PLUS10",plus10,3,"Add numbers",
-              -1,KNO_INT(0),-1,KNO_INT(0),-1,KNO_INT(0),
-              -1,KNO_INT(0),-1,KNO_INT(0),-1,KNO_INT(0),
-              -1,KNO_INT(0),-1,KNO_INT(0), -1,KNO_INT(0),
-              -1,KNO_INT(0));
-  kno_idefn11(kno_scheme_module,"_PLUS11",plus11,3,"Add numbers",
-              -1,KNO_INT(0),-1,KNO_INT(0),-1,KNO_INT(0),
-              -1,KNO_INT(0),-1,KNO_INT(0),-1,KNO_INT(0),
-              -1,KNO_INT(0),-1,KNO_INT(0), -1,KNO_INT(0),
-              -1,KNO_INT(0),-1,KNO_INT(0));
-  kno_idefn12(kno_scheme_module,"_PLUS12",plus12,3,"Add numbers",
-              -1,KNO_INT(0),-1,KNO_INT(0),-1,KNO_INT(0),
-              -1,KNO_INT(0),-1,KNO_INT(0),-1,KNO_INT(0),
-              -1,KNO_INT(0),-1,KNO_INT(0), -1,KNO_INT(0),
-              -1,KNO_INT(0),-1,KNO_INT(0),-1,KNO_INT(0));
-  kno_idefn13(kno_scheme_module,"_PLUS13",plus13,3,"Add numbers",
-              -1,KNO_INT(0),-1,KNO_INT(0),-1,KNO_INT(0),
-              -1,KNO_INT(0),-1,KNO_INT(0),-1,KNO_INT(0),
-              -1,KNO_INT(0),-1,KNO_INT(0), -1,KNO_INT(0),
-              -1,KNO_INT(0),-1,KNO_INT(0),-1,KNO_INT(0),
-              -1,KNO_INT(0));
-  kno_idefn14(kno_scheme_module,"_PLUS14",plus14,3,"Add numbers",
-              -1,KNO_INT(0),-1,KNO_INT(0),-1,KNO_INT(0),
-              -1,KNO_INT(0),-1,KNO_INT(0),-1,KNO_INT(0),
-              -1,KNO_INT(0),-1,KNO_INT(0), -1,KNO_INT(0),
-              -1,KNO_INT(0),-1,KNO_INT(0),-1,KNO_INT(0),
-              -1,KNO_INT(0),-1,KNO_INT(0));
-  kno_idefn15(kno_scheme_module,"_PLUS15",plus15,3,"Add numbers",
-              -1,KNO_INT(0),-1,KNO_INT(0),-1,KNO_INT(0),
-              -1,KNO_INT(0),-1,KNO_INT(0),-1,KNO_INT(0),
-              -1,KNO_INT(0),-1,KNO_INT(0), -1,KNO_INT(0),
-              -1,KNO_INT(0),-1,KNO_INT(0),-1,KNO_INT(0),
-              -1,KNO_INT(0),-1,KNO_INT(0),-1,KNO_INT(0));
-
-  kno_idefn(kno_scheme_module,
-            kno_make_ndprim(kno_make_cprim2("%WATCHPTRVAL",watchptr_prim,1)));
-
-#endif
-
   kno_def_evalfn(kno_scheme_module,"TIMEVAL","",timed_eval_evalfn);
   kno_def_evalfn(kno_scheme_module,"%TIMEVAL","",timed_evalx_evalfn);
   kno_def_evalfn(kno_scheme_module,"%WATCHPTR","",watchptr_evalfn);
@@ -1279,29 +1212,6 @@ KNO_EXPORT void kno_init_eval_debug_c()
 
   /* This pushes a log context */
   kno_def_evalfn(kno_scheme_module,"WITH-LOG-CONTEXT","",with_log_context_evalfn);
-#if 0
-  kno_idefn1(kno_scheme_module,"SET-LOG-CONTEXT!",set_log_context_prim,1,
-             "`(SET-LOG-CONTEXT! *label*)` sets the current log context to "
-             "the string or symbol *label*.",
-             -1,KNO_VOID);
-
-  kno_idefn2(kno_scheme_module,"DUMP-BUG",dumpbug_prim,1,
-             "(DUMP-BUG *err* [*to*]) writes a DType representation of *err* "
-             "to either *to* or the configured BUGDIR. If *err* is #t, "
-             "returns a packet of the representation. Without *to* or "
-             "if *to* is #f or #default, writes the exception into either "
-             "'./errors/' or './'",
-             kno_exception_type,KNO_VOID,-1,KNO_VOID);
-
-  kno_idefn1(kno_scheme_module,"MTRACE",mtrace_prim,KNO_NEEDS_0_ARGS,
-             "Activates LIBC heap tracing to MALLOC_TRACE and "
-             "returns true if it worked. Optional argument is a "
-             "filename to set as MALLOC_TRACE",
-             -1,VOID);
-  kno_idefn0(kno_scheme_module,"MUNTRACE",muntrace_prim,
-             "Deactivates LIBC heap tracing, returns true if it did anything");
-
-#endif
 #if USING_GOOGLE_PROFILER
   kno_def_evalfn(kno_scheme_module,"GOOGLE/PROFILE","",gprofile_evalfn);
   kno_idefn(kno_scheme_module,

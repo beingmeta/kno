@@ -1227,20 +1227,6 @@ KNO_EXPORT void kno_init_xmlinput_c()
 {
   webtools_module = kno_new_module("WEBTOOLS",0);
   init_local_cprims();
-#if 0
-  lispval xmlparse_prim = kno_make_ndprim(kno_make_cprim2("XMLPARSE",xmlparse,1));
-  lispval knoml_load_prim=
-    kno_make_ndprim(kno_make_cprim2("KNOML/LOAD",knoml_load,1));
-  lispval knoml_read_prim=
-    kno_make_ndprim(kno_make_cprim2("KNOML/PARSE",knoml_read,1));
-  kno_defn(full_module,xmlparse_prim);
-  kno_defn(full_module,knoml_read_prim);
-  kno_defn(full_module,knoml_load_prim);
-
-  kno_defn(full_module,xmlparse_prim);
-  kno_defn(full_module,knoml_read_prim);
-
-#endif
 
   attribs_symbol = kno_intern("%attribs");
   type_symbol = kno_intern("%type");

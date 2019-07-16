@@ -532,28 +532,6 @@ KNO_EXPORT void kno_init_load_c()
 
   init_local_cprims();
 
-#if 0
-  kno_defn(kno_scheme_module,
-           kno_make_cprim3x("LOAD->ENV",load_into_env_prim,1,
-                            kno_string_type,VOID,
-                            -1,VOID,
-                            -1,VOID));
-
-  kno_idefnN(kno_scheme_module,"KNO/RUN-FILE",
-             kno_run_file,KNO_NEEDS_1_ARG|KNO_NDCALL,
-             "Loads a file and applies its (main) procedure to the arguments");
-  kno_idefnN(kno_scheme_module,"KNO/RUN->STRING",
-             kno_run_file_2string,KNO_NEEDS_1_ARG|KNO_NDCALL,
-             "Loads a KNO file and applies its (main) procedure "
-             "to the arguments, returns the output as a string");
-
-  kno_idefn(kno_scheme_module,
-            kno_make_cprim2x("GET-COMPONENT",lisp_get_component,0,
-			     kno_string_type,VOID,
-                             kno_string_type,VOID));
-
-#endif
-
   kno_def_evalfn(kno_scheme_module,"LOAD-LATEST","",load_latest_evalfn);
 
   kno_def_evalfn(kno_scheme_module,"#PATH",

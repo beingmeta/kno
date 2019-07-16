@@ -262,30 +262,6 @@ KNO_EXPORT void kno_init_eval_getopt_c()
 #endif
 
   init_local_cprims();
-
-#if 0
-  kno_idefn3(kno_scheme_module,"%GETOPT",getopt_prim,KNO_NEEDS_2_ARGS|KNO_NDCALL,
-            "`(%GETOPT *opts* *name* [*default*=#f])` gets any *name* option "
-            "from opts, returning *default* if there isn't any. This is a real "
-            "procedure (unlike `GETOPT`) so that *default* will be evaluated even "
-            "if the option exists and is returned.",
-            -1,VOID,kno_symbol_type,VOID,
-            -1,KNO_FALSE);
-  kno_idefn3(kno_scheme_module,"TESTOPT",testopt_prim,2,
-            "`(TESTOPT *opts* *name* [*value*])` returns true if "
-            "the option *name* is specified in *opts* and it includes "
-            "*value* (if provided).",
-            -1,VOID,kno_symbol_type,VOID,
-            -1,VOID);
-  kno_idefn1(kno_scheme_module,"OPTS?",optionsp_prim,KNO_NEEDS_1_ARG|KNO_NDCALL,
-            "`(OPTS? *opts*)` returns true if *opts* is a valid options "
-            "object.",
-            -1,VOID);
-  kno_idefnN(kno_scheme_module,"OPTS+",opts_plus_prim,KNO_NDCALL,
-            "`(OPTS+ *add* *opts*)` or `(OPTS+ *optname* *value* *opts*) "
-            "returns a new options object (a pair).");
-  kno_defalias(kno_scheme_module,"OPT+","OPTS+");
-#endif
 }
 
 

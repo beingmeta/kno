@@ -291,27 +291,6 @@ KNO_EXPORT int kno_init_hyphenate()
   hyphenate_module = kno_new_cmodule("hyphenate",0,kno_init_hyphenate);
 
   init_local_cprims();
-#if 0
-  kno_idefn(hyphenate_module,
-           kno_make_cprim1x("HYPHENATE-WORD",
-                           hyphenate_word_prim,1,kno_string_type,KNO_VOID));
-  kno_idefn(hyphenate_module,
-           kno_make_cprim1x("HYPHEN-BREAKS",
-                           hyphen_breaks_prim,1,kno_string_type,KNO_VOID));
-  kno_idefn(hyphenate_module,
-           kno_make_cprim1x("SHYPHENATE",
-                           shyphenate_prim,1,kno_string_type,KNO_VOID));
-  kno_idefn(hyphenate_module,
-           kno_make_cprim2x("HYPHENOUT",
-                           hyphenout_prim,1,
-                           kno_string_type,KNO_VOID,
-                           kno_character_type,KNO_CODE2CHAR(0xAD)));
-  kno_idefn(hyphenate_module,
-           kno_make_cprim2x("HYPHENATE",
-                           hyphenate_prim,1,
-                           kno_string_type,KNO_VOID,
-                           kno_character_type,KNO_CODE2CHAR(0xAD)));
-#endif
 
   kno_finish_module(hyphenate_module);
 

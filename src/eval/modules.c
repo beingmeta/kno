@@ -922,35 +922,6 @@ KNO_EXPORT void kno_init_modules_c()
                 "Combine the exports of this module with another",
                 export_alias_evalfn);
 
-#if 0
-  kno_idefn1(kno_sys_module,"GET-SOURCE",get_source_prim,0,
-            "(get-source [*obj*])\nGets the source file implementing *obj*, "
-            "which can be a function (or macro or evalfn), module, or module "
-            "name. With no arguments, returns the current SOURCEBASE",
-            -1,VOID);
-
-  kno_idefn3(kno_sys_module,"GET-BINDING",get_binding_prim,2,
-            "(get-binding *module* *symbol* [*default*])\n"
-            "Gets *module*'s exported binding of *symbol*. "
-            "On failure, returns *default* if provided "
-            "or errs if none is provided.",
-            -1,VOID,kno_symbol_type,VOID,-1,VOID);
-
-  kno_idefn3(kno_sys_module,"%GET-BINDING",get_internal_binding_prim,2,
-            "(get-binding *module* *symbol* [*default*])\n"
-            "Gets *module*'s binding of *symbol* "
-            "(internal or external). On failure returns "
-            "*default* (if provided) or errs if none is provided.",
-            -1,VOID,kno_symbol_type,VOID,-1,VOID);
-  kno_idefn3(kno_sys_module,"IMPORTVAR",import_var_prim,2,
-            "(importvar *module* *symbol* [*default*])\n"
-            "Gets *module*'s binding of *symbol* "
-            "(internal, external, or inherhited). On failure returns "
-            "*default*, if provided, or errors (if not).",
-            -1,VOID,kno_symbol_type,VOID,-1,KNO_VOID);
-
-#endif
-
   kno_def_evalfn(kno_scheme_module,"IN-MODULE","",in_module_evalfn);
   kno_def_evalfn(kno_sys_module,"WITHIN-MODULE","",within_module_evalfn);
   kno_defalias(kno_sys_module,"W/M","WITHIN-MODULE");
@@ -958,16 +929,6 @@ KNO_EXPORT void kno_init_modules_c()
   kno_def_evalfn(kno_sys_module,"ACCESSING-MODULE","",accessing_module_evalfn);
   kno_def_evalfn(kno_scheme_module,"USE-MODULE","",use_module_evalfn);
   kno_def_evalfn(kno_scheme_module,"MODULE-EXPORT!","",module_export_evalfn);
-
-#if 0
-  kno_idefn(kno_sys_module,kno_make_cprim1("GET-MODULE",get_module,1));
-  kno_idefn(kno_sys_module,kno_make_cprim1("GET-LOADED-MODULE",get_loaded_module,1));
-  kno_idefn(kno_sys_module,
-            kno_make_cprim1("GET-EXPORTS",get_exports_prim,1));
-  kno_defalias(kno_sys_module,"%LS","GET-EXPORTS");
-
-  kno_idefn(kno_sys_module,kno_make_cprim1("STATIC-MODULE!",static_module,1));
-#endif
 
   kno_register_config("LOCKEXPORTS",
                      "Lock the exports of modules when loaded",
@@ -985,14 +946,6 @@ KNO_EXPORT void kno_init_modules_c()
                      "Specify modules to be used by the default live environment",
                      config_used_modules,config_use_module,NULL);
 }
-
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
-
 
 static void init_local_cprims()
 {

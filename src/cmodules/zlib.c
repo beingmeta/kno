@@ -154,14 +154,6 @@ KNO_EXPORT int kno_init_zlib()
   zlib_module = kno_new_cmodule("zlib",0,kno_init_zlib);
 
   init_local_cprims();
-#if 0
-  kno_idefn(zlib_module,
-           kno_make_cprim2("ZLIB/COMPRESS",zlib_compress_prim,1));
-
-  kno_idefn(zlib_module,
-           kno_make_cprim3x("ZLIB/UNCOMPRESS",zlib_uncompress_prim,1,
-                           kno_packet_type,KNO_VOID,-1,KNO_FALSE,-1,KNO_FALSE));
-#endif
 
   kno_finish_module(zlib_module);
 

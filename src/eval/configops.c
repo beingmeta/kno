@@ -487,56 +487,6 @@ KNO_EXPORT void kno_init_configops_c()
 		 "environment",
 		 config_macro);
 
-#if 0
-  kno_idefn3(kno_scheme_module,"CONFIG",config_get,KNO_NEEDS_1_ARG,
-	     "`(CONFIG *name* [*default*=#f] [*valfn*])`\n"
-	     "Gets the configuration setting named *name*, returning *default* "
-	     "if it isn't defined. *valfn*, if provided is either a function "
-	     "to call on the retrieved value or #t to indicate that string "
-	     "values should be parsed as lisp",
-	     -1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID);
-
-  kno_idefnN(kno_scheme_module,"CONFIG!",set_config,KNO_NEEDS_2_ARGS,
-	     "`(CONFIG! *name1* *value1* *name2* *value2* ...)`\n"
-	     "Sets each configuration setting *name_i* to *value_i*. "
-	     "This invokes the config *handler* defined for *name_i* if "
-	     "there is one.");
-
-  kno_idefn2(kno_scheme_module,"CONFIG-DEFAULT!",
-	     set_default_config,KNO_NEEDS_2_ARGS,
-	     "`(CONFIG-DEFAULT! *name* *value*)`\n"
-	     "Sets the configuration value named *name* to *value* if "
-	     "it has not yet been specified for the current process. "
-	     "This invokes the config *handler* defined for *name* if "
-	     "it has been defined. ",
-	     -1,KNO_VOID,-1,KNO_VOID);
-
-  kno_idefn2(kno_scheme_module,"FIND-CONFIGS",
-	     find_configs,KNO_NEEDS_1_ARG,
-	     "`(FIND-CONFIGS *pattern* *withdocs*)`\n"
-	     "Finds all config settings matching *pattern* and returns "
-	     "their names (symbols). *pattern* is a string or regex and "
-	     "a setting matches *pattern* if a match can be found in the name "
-	     "of the setting. The second argument, if specified and true, "
-	     "returns the matches as pairs of names and docstrings.",
-	     -1,KNO_VOID,-1,KNO_VOID);
-
-  kno_defalias(kno_scheme_module,"CONFIG?","FIND-CONFIGS");
-
-  DECL_PRIM(config_def,3,kno_scheme_module);
-
-  kno_idefn(kno_scheme_module,
-            kno_make_cprim1x("READ-CONFIG",lisp_read_config,1,
-                             kno_string_type,VOID));
-  kno_idefn(kno_scheme_module,
-            kno_make_cprim1x("LOAD-CONFIG",lisp_load_config,1,
-                             -1,VOID));
-  kno_idefn(kno_scheme_module,
-            kno_make_cprim1x("LOAD-DEFAULT-CONFIG",lisp_load_default_config,1,
-                             -1,VOID));
-
-#endif
-
   kno_register_config("CONFIG","Add a CONFIG file/URI to process",
                       get_config_files,add_config_file,NULL);
   kno_register_config("DEFAULTS","Add a CONFIG file/URI to process as defaults",

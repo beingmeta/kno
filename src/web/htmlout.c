@@ -631,22 +631,6 @@ KNO_EXPORT void kno_init_htmlout_c()
 
   init_local_cprims();
 
-#if 0
-  lispval debug2html = kno_make_cprim2("DEBUGPAGE->HTML",debugpage2html_prim,0);
-  lispval backtrace2html = kno_make_cprim2("BACKTRACE->HTML",backtrace2html_prim,0);
-
-  kno_defn(webtools_module,debug2html);
-  kno_defn(webtools_module,backtrace2html);
-
-  kno_defn(xhtml_module,debug2html);
-  kno_defn(xhtml_module,backtrace2html);
-
-  kno_idefn(xhtml_module,kno_make_cprim2("OBJ->HTML",obj2html_prim,1));
-  kno_decref(debug2html);
-  kno_decref(backtrace2html);
-
-#endif
-
   kno_def_evalfn(xhtml_module,"TABLE->HTML","",table2html_evalfn);
 
   xmloidfn_symbol = kno_intern("%xmloid");

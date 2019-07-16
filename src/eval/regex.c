@@ -295,34 +295,6 @@ KNO_EXPORT int kno_init_regex_c()
 
   init_local_cprims();
 
-#if 0
-  kno_idefn(regex_module,
-            kno_make_cprim3x("REGEX",make_regex,1,
-                             kno_string_type,VOID,-1,KNO_FALSE,-1,KNO_FALSE));
-  kno_idefn(regex_module,kno_make_cprim1("REGEX?",regexp_prim,1));
-
-  kno_idefn(regex_module,
-            kno_make_cprim3x("REGEX/SEARCH",regex_search,2,
-                             kno_regex_type,VOID,kno_string_type,VOID,
-                             kno_fixnum_type,KNO_FIXZERO));
-  kno_idefn(regex_module,
-            kno_make_cprim3x("REGEX/MATCH",regex_exactmatch,2,
-                             kno_regex_type,VOID,kno_string_type,VOID,
-                             kno_fixnum_type,KNO_FIXZERO));
-  kno_idefn(regex_module,
-            kno_make_cprim3x("REGEX/MATCHLEN",regex_matchlen,2,
-                             kno_regex_type,VOID,kno_string_type,VOID,
-                             kno_fixnum_type,KNO_FIXZERO));
-  kno_idefn(regex_module,
-            kno_make_cprim3x("REGEX/MATCHSTRING",regex_matchstring,2,
-                             kno_regex_type,VOID,kno_string_type,VOID,
-                             kno_fixnum_type,KNO_FIXZERO));
-  kno_idefn(regex_module,
-            kno_make_cprim3x("REGEX/MATCHSPAN",regex_matchspan,2,
-                             kno_regex_type,VOID,kno_string_type,VOID,
-                             kno_fixnum_type,KNO_FIXZERO));
-#endif
-
   kno_dtype_writers[kno_regex_type] = write_regex_dtype;
 
   kno_finish_module(regex_module);

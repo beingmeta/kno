@@ -294,9 +294,6 @@ KNO_EXPORT int kno_init_exif()
     scan++;}
 
   init_local_cprims();
-#if 0
-  kno_idefn(exif_module,kno_make_cprim2("EXIF-GET",exif_get,1));
-#endif
 
   u8_register_source_file(_FILEINFO);
 

@@ -227,9 +227,6 @@ KNO_EXPORT void kno_init_conditionals_c()
                 "returning the first non #f value. If a clause returns {} "
                 "it is returned immediately.",
                 or_evalfn);
-#if 0
-  kno_idefn(kno_scheme_module,kno_make_cprim1("NOT",not_prim,1));
-#endif
 }
 
 static void init_local_cprims()

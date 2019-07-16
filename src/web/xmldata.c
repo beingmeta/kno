@@ -216,15 +216,6 @@ void kno_init_xmldata_c()
   webtools_module = kno_new_module("WEBTOOLS",0);
 
   init_local_cprims();
-#if 0
-  kno_idefn(module,kno_make_cprim2("XMLATTRIB",xmlattrib,2));
-  kno_idefn(module,kno_make_cprim2("XMLGET",xmlget,2));
-  kno_idefn(module,kno_make_cprim2("XMLGET/FIRST",xmlget_first,2));
-  kno_idefn(module,kno_make_cprim2("XMLGET/SORTED",xmlget_sorted,2));
-  kno_idefn(module,kno_make_cprim2("XMLCONENTS",xmlcontents,1));
-  kno_idefn(module,kno_make_cprim2("XMLCONTENT",xmlcontent,1));
-  kno_idefn(module,kno_make_cprim2("XMLEMPTY?",xmlemptyp,1));
-#endif
 
   name_slotid = kno_intern("%xmltag");
   content_slotid = kno_intern("%content");

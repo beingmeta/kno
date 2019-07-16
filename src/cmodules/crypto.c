@@ -230,37 +230,6 @@ KNO_EXPORT int kno_init_crypto()
 
   init_local_cprims();
 
-#if 0
-  kno_idefn(crypto_module,
-           kno_make_cprim4x("ENCRYPT",encrypt_prim,2,
-                           -1,VOID,-1,VOID,
-                           -1,VOID,-1,VOID));
-  kno_idefn(crypto_module,
-           kno_make_cprim4x("ENCRYPT-DTYPE",encrypt_dtype_prim,2,
-                           -1,VOID,-1,VOID,
-                           -1,VOID,-1,VOID));
-
-  kno_idefn(crypto_module,
-           kno_make_cprim4x("DECRYPT",decrypt_prim,2,
-                           -1,VOID,-1,VOID,
-                           -1,VOID,-1,VOID));
-  kno_idefn(crypto_module,
-           kno_make_cprim4x("DECRYPT->STRING",decrypt2string_prim,2,
-                           -1,VOID,-1,VOID,
-                           -1,VOID,-1,VOID));
-  kno_idefn(crypto_module,
-           kno_make_cprim4x("DECRYPT->DTYPE",decrypt2dtype_prim,2,
-                           -1,VOID,-1,VOID,
-                           -1,VOID,-1,VOID));
-
-  kno_idefn(crypto_module,
-           kno_make_cprim1x("RANDOM-PACKET",random_packet_prim,1,
-                           kno_fixnum_type,VOID));
-  kno_idefn(crypto_module,
-           kno_make_cprim2x("FILL-PACKET",fill_packet_prim,1,
-                           kno_fixnum_type,VOID,-1,VOID));
-#endif
-
   kno_finish_module(crypto_module);
 
   u8_register_source_file(_FILEINFO);

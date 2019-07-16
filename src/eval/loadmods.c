@@ -834,18 +834,6 @@ KNO_EXPORT void kno_init_loadmods_c()
 
   init_local_cprims();
 
-#if 0
-  DECL_PRIM(dynamic_load_prim,2,kno_sys_module);
-
-  kno_idefn(loadmods_module,
-            kno_make_cprim1("RELOAD-MODULE",reload_module,1));
-  kno_idefn(loadmods_module,
-            kno_make_cprim1("UPDATE-MODULES",update_modules_prim,0));
-  kno_idefn(loadmods_module,
-            kno_make_cprim2x("UPDATE-MODULE",update_module_prim,1,
-                             -1,VOID,-1,KNO_FALSE));
-#endif
-
   kno_add_module_loader(load_source_module,NULL);
   kno_add_module_loader(load_dynamic_module,NULL);
   init_dloadpath();

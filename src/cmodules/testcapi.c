@@ -229,13 +229,6 @@ KNO_EXPORT int kno_init_testcapi()
     kno_new_cmodule_x("testcapi",0,kno_init_testcapi,__FILE__);
 
   init_local_cprims();
-#if 0
-  KNO_DECL_PRIM(regex_testcapi,0,testcapi_module);
-  KNO_DECL_PRIM(modules_testcapi,0,testcapi_module);
-  KNO_DECL_PRIM(eval_testcapi,0,testcapi_module);
-  KNO_DECL_PRIM(kno_force_promise,1,testcapi_module);
-  KNO_DECL_PRIM(regex_rawop,4,testcapi_module);
-#endif
 
   u8_register_source_file(_FILEINFO);
 

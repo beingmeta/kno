@@ -627,25 +627,6 @@ KNO_EXPORT void kno_init_json_c()
 
   init_local_cprims();
 
-#if 0
-  kno_idefn3(module,"JSONPARSE",jsonparseprim,1,
-            "(JSONPARSE *string*) Parse the JSON in *string* into a LISP object",
-            -1,VOID,
-            -1,KNO_INT(KNO_JSON_DEFAULTS),
-            -1,VOID);
-
-  kno_idefn5(module,"->JSON",jsonstring,1,
-            "(->JSON *obj* ...) returns a JSON string for the lisp object *obj*",
-            -1,VOID,-1,KNO_INT(KNO_JSON_DEFAULTS),
-            -1,VOID,-1,VOID,
-            -1,VOID);
-
-  kno_idefn5(module,"JSONOUTPUT",jsonoutput,1,
-            "Outputs a JSON representation to the standard output",
-            -1,VOID,-1,KNO_INT(KNO_JSON_DEFAULTS),
-            -1,VOID,-1,VOID,-1,VOID);
-#endif
-
   symbolize_symbol=kno_intern("symbolize");
   colonize_symbol=kno_intern("colonize");
   rawids_symbol=kno_intern("rawids");

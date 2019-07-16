@@ -1838,56 +1838,6 @@ KNO_EXPORT void kno_init_curl_c()
 
   init_local_cprims();
 
-#if 0
-  kno_idefn(module,kno_make_cprim2("URLGET",urlget,1));
-  kno_idefn4(module,"URLSTREAM",urlstream,1,
-            "(URLSTREAM *url* *handler* [*curl*]) opens the remote URL *url* "
-            "and calls *handler* on packets of data from the stream. A second "
-            "argument to *handler* is a slotmap which will be returned when "
-            "the *handler* either errs or returns #F",
-            kno_string_type,VOID,-1,VOID,
-            -1,VOID,-1,VOID);
-  kno_idefn(module,kno_make_cprim2("URLHEAD",urlhead,1));
-  kno_idefn(module,kno_make_cprimn("URLPOST",urlpost,1));
-  kno_idefn(module,kno_make_cprim4("URLPUT",urlput,2));
-  kno_idefn(module,kno_make_cprim2("URLCONTENT",urlcontent,1));
-  kno_idefn(module,kno_make_cprim3("URLXML",urlxml,1));
-  kno_idefn(module,kno_make_cprimn("CURL/OPEN",curlopen,0));
-  kno_defalias(module,"CURLOPEN","CURL/OPEN");
-  kno_idefn(module,kno_make_cprim3("CURL/SETOPT!",curlsetopt,2));
-  kno_defalias(module,"CURLSETOPT!","CURL/SETOPT!");
-  kno_idefn(module,kno_make_cprim1x
-           ("CURL/RESET!",curlreset,1,kno_curl_type,VOID));
-  kno_defalias(module,"CURLRESET!","CURL/RESET!");
-  kno_idefn(module,kno_make_cprim1("ADD-TEXT_TYPE!",addtexttype,1));
-  kno_idefn(module,kno_make_cprim1("CURL-HANDLE?",curlhandlep,1));
-
-  kno_idefn(module,kno_make_cprim1("RESPONSE/OK?",responseokp,1));
-  kno_idefn(module,kno_make_cprim1("RESPONSE/REDIRECT?",
-                                 responseredirectp,1));
-  kno_idefn(module,kno_make_cprim1("RESPONSE/ERROR?",responseanyerrorp,1));
-  kno_idefn(module,kno_make_cprim1("RESPONSE/MYERROR?",responsemyerrorp,1));
-  kno_idefn(module,kno_make_cprim1("RESPONSE/SERVERERROR?",
-                                 responseservererrorp,1));
-  kno_idefn(module,kno_make_cprim1("RESPONSE/UNAUTHORIZED?",
-                                 responseunauthorizedp,1));
-  kno_idefn(module,kno_make_cprim1("RESPONSE/FORBIDDEN?",
-                                 responseforbiddenp,1));
-  kno_idefn(module,kno_make_cprim1("RESPONSE/TIMEOUT?",
-                                 responsetimeoutp,1));
-  kno_idefn(module,kno_make_cprim1("RESPONSE/BADMETHOD?",
-                                 responsebadmethodp,1));
-  kno_idefn(module,kno_make_cprim1("RESPONSE/NOTFOUND?",
-                                 responsenotfoundp,1));
-  kno_idefn(module,kno_make_cprim1("RESPONSE/NOTFOUND?",
-                                 responsenotfoundp,1));
-  kno_idefn(module,kno_make_cprim1("RESPONSE/GONE?",
-                                 responsegonep,1));
-  kno_idefn(module,kno_make_cprim1("RESPONSE/STATUS",responsestatusprim,1));
-  kno_idefn(module,kno_make_ndprim
-           (kno_make_cprim3("RESPONSE/STATUS?",testresponseprim,2)));
-#endif
-
   kno_register_config
     ("CURL:LOGLEVEL",_("Loglevel for debugging CURL calls"),
      kno_intconfig_get,kno_loglevelconfig_set,&curl_loglevel);

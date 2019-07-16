@@ -145,9 +145,6 @@ void kno_init_email_c()
   webtools_module = kno_new_module("WEBTOOLS",(0));
 
   init_local_cprims();
-#if 0
-  kno_idefn(module,kno_make_cprim5("SMTP",smtp_function,3));
-#endif
 
   kno_def_evalfn(webtools_module,"MAILOUT","",mailout_evalfn);
 

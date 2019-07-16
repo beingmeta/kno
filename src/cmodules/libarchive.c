@@ -452,19 +452,6 @@ KNO_EXPORT int kno_init_libarchive()
 
   init_local_cprims();
 
-#if 0
-  kno_idefn3(module,"ARCHIVE/OPEN",open_archive,1,
-             "Opens an archive file",
-             -1,KNO_VOID,-1,KNO_FALSE,-1,KNO_FALSE);
-  kno_idefn2(module,"ARCHIVE/FIND",archive_find,1,
-             "Get the next archive entry (possibly matching a string or regex)",
-             kno_libarchive_type,KNO_VOID,-1,KNO_FALSE);
-  kno_idefn1(module,"ARCHIVE/STAT",archive_stat,1,
-             "Information about an open archive stream",
-             kno_ioport_type,KNO_VOID);
-#endif
-
-
   kno_finish_module(libarchive_module);
 
   u8_register_source_file(_FILEINFO);

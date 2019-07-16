@@ -142,12 +142,6 @@ KNO_EXPORT void kno_init_dns_c()
   webtools_module = kno_new_module("WEBTOOLS",(0));
 
   init_local_cprims();
-#if 0
-  kno_idefn(module,kno_make_cprim2x
-           ("DNS/GET",dns_query,1,
-            kno_string_type,VOID,
-            kno_symbol_type,VOID));
-#endif
 
   u8_register_source_file(_FILEINFO);
 }

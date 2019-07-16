@@ -2450,73 +2450,6 @@ KNO_EXPORT int kno_init_rocksdb()
   rocksdb_module = kno_new_cmodule("rocksdb",0,kno_init_rocksdb);
 
   init_local_cprims();
-#if 0
-  kno_idefn(module,kno_make_cprim2x("ROCKSDB/OPEN",rocksdb_open_prim,1,
-                                  kno_string_type,KNO_VOID,
-                                  -1,KNO_VOID));
-  kno_idefn(module,kno_make_cprim1x("ROCKSDB?",rocksdbp_prim,1,-1,KNO_VOID));
-  kno_idefn(module,kno_make_cprim1x("ROCKSDB/CLOSE",rocksdb_close_prim,1,
-                                  kno_rocksdb_type,KNO_VOID));
-  kno_idefn(module,kno_make_cprim1x("ROCKSDB/REOPEN",rocksdb_reopen_prim,1,
-                                  kno_rocksdb_type,KNO_VOID));
-
-  kno_idefn(module,kno_make_cprim3x("ROCKSDB/GET",rocksdb_get_prim,2,
-                                  kno_rocksdb_type,KNO_VOID,
-                                  -1,KNO_VOID,-1,KNO_VOID));
-  kno_idefn(module,kno_make_cprim3x("ROCKSDB/GETN",rocksdb_getn_prim,2,
-                                  kno_rocksdb_type,KNO_VOID,
-                                  kno_vector_type,KNO_VOID,-1,KNO_VOID));
-
-  kno_idefn3(module,"ROCKSDB/PREFIX/GET",
-            rocksdb_prefix_get_prim,2,
-            "(ROCKSDB/PREFIX/GET *db* *key* [*opts*]) returns all the "
-            "key/value pairs (as packets), whose keys begin with the "
-            "DTYPE representation of *key*.",
-            kno_rocksdb_type,KNO_VOID,
-            -1,KNO_VOID,-1,KNO_VOID);
-  kno_idefn3(module,"ROCKSDB/PREFIX/GETN",
-            rocksdb_prefix_getn_prim,2,
-            "(ROCKSDB/PREFIX/GET *db* *key* [*opts*]) returns all the "
-            "key/value pairs (as packets), whose keys begin with the "
-            "DTYPE representation of *key*.",
-            kno_rocksdb_type,KNO_VOID,
-            kno_vector_type,KNO_VOID,-1,KNO_VOID);
-
-
-  kno_idefn(module,kno_make_cprim4x("ROCKSDB/PUT!",rocksdb_put_prim,3,
-                                  kno_rocksdb_type,KNO_VOID,
-                                  -1,KNO_VOID,-1,KNO_VOID,
-                                  -1,KNO_VOID));
-  kno_idefn(module,kno_make_cprim3x("ROCKSDB/DROP!",rocksdb_drop_prim,2,
-                                  kno_rocksdb_type,KNO_VOID,
-                                  -1,KNO_VOID,-1,KNO_VOID));
-
-
-  kno_idefn3(module,"ROCKSDB/INDEX/GET",rocksdb_index_get_prim,2,
-            "(ROCKSDB/INDEX/GET *db* *key* [*opts*]) gets values "
-            "associated with *key* in *db*, using the "
-            "rocksdb database as an index and options provided in *opts*.",
-            kno_rocksdb_type,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID);
-  kno_idefn4(module,"ROCKSDB/INDEX/ADD!",rocksdb_index_add_prim,3,
-            "(ROCKSDB/INDEX/ADD! *db* *key* *value [*opts*]) Saves *values* "
-            "in *db*, associating them with *key* and using the "
-            "rocksdb database as an index with options provided in *opts*.",
-            kno_rocksdb_type,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID,-1,KNO_VOID);
-
-
-  kno_idefn(module,
-           kno_make_cprim2x("ROCKSDB/USE-POOL",
-                           use_rocksdb_pool_prim,1,
-                           kno_string_type,KNO_VOID,-1,KNO_VOID));
-  kno_idefn(module,
-           kno_make_cprim4x("ROCKSDB/MAKE-POOL",
-                           make_rocksdb_pool_prim,3,
-                           kno_string_type,KNO_VOID,
-                           kno_oid_type,KNO_VOID,
-                           kno_fixnum_type,KNO_VOID,
-                           -1,KNO_VOID));
-
-#endif
 
   kno_register_config("ROCKSDB:WRITEBUF",
                      "Default writebuf size for rocksdb",
@@ -2563,14 +2496,6 @@ KNO_EXPORT int kno_init_rocksdb()
 
   return 1;
 }
-
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
-
 
 static void init_local_cprims()
 {

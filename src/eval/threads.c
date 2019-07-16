@@ -1818,24 +1818,6 @@ KNO_EXPORT void kno_init_threads_c()
 		 "options.",
 		 threadeval_evalfn);
 
-#if 0
-  DECL_PRIM_N(threadapply_prim,threads_module);
-  DECL_PRIM_N(threadcall_prim,threads_module);
-
-  DECL_PRIM_N(threadcallx_prim,threads_module);
-  DECL_PRIM(threadyield_prim,0,threads_module);
-  DECL_PRIM(threadjoin_prim,2,threads_module);
-
-  DECL_PRIM(threadwait_prim,2,threads_module);
-  DECL_PRIM(threadwaitbang_prim,2,threads_module);
-  DECL_PRIM(threadfinish_prim,2,threads_module);
-
-  DECL_PRIM(threadp_prim,1,threads_module);
-  DECL_PRIM(synchronizerp_prim,1,threads_module);
-  DECL_PRIM(mutexp_prim,1,threads_module);
-  DECL_PRIM(rwlockp_prim,1,threads_module);
-  DECL_PRIM(condvarp_prim,1,threads_module);
-#endif
 
   u8_init_mutex(&sassign_lock);
   kno_def_evalfn(threads_module,"SSET!",
@@ -1843,80 +1825,23 @@ KNO_EXPORT void kno_init_threads_c()
 		 "to *value*, just like `SET!` would do.",
 		 sassign_evalfn);
 
-#if 0
-  int one_thread_arg[1] = { kno_thread_type };
-  int thread_plus_arg[2] = { kno_thread_type, kno_any_type };
-  int thread_plus_fixnum_arg[2] = { kno_thread_type, kno_fixnum_type };
-  int find_thread_types[2] = { kno_fixnum_type, kno_any_type };
-
-  lispval thread_plus_fix1[2] = { VOID, KNO_INT(kno_thread_sigint) };
-
-  DECL_PRIM_ARGS(threadid_prim,1,threads_module,one_thread_arg,NULL);
-  DECL_PRIM_ARGS(findthread_prim,2,threads_module,find_thread_types,NULL);
-
-  DECL_PRIM_ARGS(thread_exitedp,1,threads_module,one_thread_arg,NULL);
-  DECL_PRIM_ARGS(thread_finishedp,1,threads_module,one_thread_arg,NULL);
-  DECL_PRIM_ARGS(thread_errorp,1,threads_module,one_thread_arg,NULL);
-  DECL_PRIM_ARGS(thread_result,1,threads_module,one_thread_arg,NULL);
-
-  DECL_PRIM_ARGS(thread_signal_prim,2,threads_module,
-		 thread_plus_fixnum_arg,thread_plus_fix1);
-  DECL_PRIM_ARGS(thread_cancel_prim,2,threads_module,
-		 thread_plus_arg,NULL);
-  DECL_PRIM_ARGS(thread_terminate_prim,2,threads_module,thread_plus_arg,NULL);
-
-#endif
-
   timeout_symbol = kno_intern("timeout");
   logexit_symbol = kno_intern("logexit");
   keepenv_symbol = kno_intern("keepenv");
   void_symbol = kno_intern("void");
 
-#if 0
-  int one_synchronizer_arg[1] = { kno_synchronizer_type };
-  int condvar_signal_args[2] = { kno_synchronizer_type, kno_any_type };
-
-  DECL_PRIM(make_mutex,0,threads_module);
-  DECL_PRIM(make_rwlock,0,threads_module);
-  DECL_PRIM(make_condvar,0,threads_module);
-
-  DECL_PRIM_ARGS(condvar_signal,2,threads_module,
-		 condvar_signal_args,NULL);
-  DECL_PRIM_ARGS(condvar_wait,2,threads_module,
-		 condvar_signal_args,NULL);
-  DECL_PRIM_ARGS(condvar_lock,1,threads_module,
-		 one_synchronizer_arg,NULL);
-  DECL_PRIM_ARGS(condvar_unlock,1,threads_module,
-		 one_synchronizer_arg,NULL);
-
-  DECL_PRIM(sync_lock,1,threads_module);
-  DECL_PRIM(sync_unlock,1,threads_module);
-  DECL_PRIM(sync_read_lock,1,threads_module);
-
-#endif
   kno_def_evalfn(threads_module,"WITH-LOCK",
 		 "`(WITH-LOCK *synchronizer* *body...*)` executes the "
 		 "expressions in *body* with *synchronizer* locked.",
 		 with_lock_evalfn);
 
-#if 0
-  DECL_PRIM(thread_get,1,threads_module);
-  DECL_PRIM(thread_boundp,1,threads_module);
-  DECL_PRIM(thread_set,2,threads_module);
-  DECL_PRIM(thread_add,2,threads_module);
-  DECL_PRIM(thread_reset_vars,0,threads_module);
-#endif
   kno_def_evalfn(threads_module,"THREAD/CACHE",
 		 "`(THREAD/CACHE *sym* *expr*)` returns the fluid "
 		 "(thread-local) value of *sym* (which is evaluated) "
 		 "if it exists. If it doesn't exist, *expr* is evaluted "
 		 "and fluidly assigned to *sym*.",
 		 thread_ref_evalfn);
-#if 0
-  DECL_PRIM(cstack_depth_prim,0,threads_module);
-  DECL_PRIM(cstack_limit_prim,0,threads_module);
-  DECL_PRIM(set_cstack_limit_prim,1,threads_module);
-#endif
+
   kno_register_config("ALLTHREADS",
 		      "All active LISP threads",
 		      allthreads_config_get,kno_readonly_config_set,

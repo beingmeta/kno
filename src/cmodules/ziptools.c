@@ -508,69 +508,6 @@ KNO_EXPORT int kno_init_ziptools()
   kno_recyclers[kno_zipfile_type]=recycle_zipfile;
 
   init_local_cprims();
-#if 0
-  kno_idefn(ziptools_module,
-           kno_make_cprim1("ZIPFILE?",iszipfile_prim,1));
-
-  kno_idefn(ziptools_module,
-           kno_make_cprim2x("ZIP/OPEN",zipopen_prim,1,
-                           kno_string_type,KNO_VOID,-1,KNO_FALSE));
-  kno_idefn(ziptools_module,
-           kno_make_cprim1x("ZIP/MAKE",zipmake_prim,1,kno_string_type,KNO_VOID));
-
-  kno_idefn(ziptools_module,
-           kno_make_cprim1x
-           ("ZIP/CLOSE!",close_zipfile,1,kno_zipfile_type,KNO_VOID));
-  kno_defalias(ziptools_module,"ZIP/CLOSE","ZIP/CLOSE!");
-  kno_defalias(ziptools_module,"ZIP/COMMIT!","ZIP/CLOSE!");
-
-  kno_idefn(ziptools_module,
-           kno_make_cprim1x("ZIP/OPEN?",zipfile_openp,1,kno_zipfile_type,KNO_VOID));
-
-  kno_idefn(ziptools_module,
-           kno_make_cprim5x("ZIP/ADD!",zipadd_prim,3,
-                           kno_zipfile_type,KNO_VOID,
-                           kno_string_type,KNO_VOID,
-                           -1,KNO_VOID,
-                           -1,KNO_FALSE,
-                           -1,KNO_TRUE));
-
-  kno_idefn(ziptools_module,
-           kno_make_cprim2x("ZIP/DROP!",zipdrop_prim,2,
-                           kno_zipfile_type,KNO_VOID,
-                           kno_string_type,KNO_VOID));
-  kno_idefn(ziptools_module,
-           kno_make_cprim3x("ZIP/GET",zipget_prim,2,
-                           kno_zipfile_type,KNO_VOID,
-                           kno_string_type,KNO_VOID,
-                           -1,KNO_VOID));
-
-  kno_idefn(ziptools_module,
-           kno_make_cprim2x("ZIP/EXISTS?",zipexists_prim,2,
-                           kno_zipfile_type,KNO_VOID,
-                           kno_string_type,KNO_VOID));
-
-  kno_idefn(ziptools_module,
-           kno_make_cprim2x("ZIP/MODTIME",zipmodtime_prim,2,
-                           kno_zipfile_type,KNO_VOID,
-                           kno_string_type,KNO_VOID));
-
-  kno_idefn(ziptools_module,
-           kno_make_cprim2x("ZIP/GETSIZE",zipgetsize_prim,2,
-                           kno_zipfile_type,KNO_VOID,
-                           kno_string_type,KNO_VOID));
-
-  kno_idefn(ziptools_module,
-           kno_make_cprim1x("ZIP/GETFILES",zipgetfiles_prim,1,
-                           kno_zipfile_type,KNO_VOID));
-
-  kno_idefn(ziptools_module,
-    kno_make_cprim0("ZIP/FEATURES",zipfeatures_prim));
-
-  kno_idefn(ziptools_module,
-           kno_make_cprim1x("ZIP/FILENAME",zipfilename_prim,1,
-                           kno_zipfile_type,KNO_VOID));
-#endif
 
   kno_finish_module(ziptools_module);
 

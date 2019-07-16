@@ -530,17 +530,6 @@ KNO_EXPORT int kno_init_odbc()
   odbc_handler.recycle_proc = recycle_odbcproc;
 
   init_local_cprims();
-#if 0
-  kno_idefn(module,kno_make_cprim2x("ODBC/OPEN",odbcopen,1,
-                                  kno_string_type,KNO_VOID,
-                                  -1,KNO_VOID));
-#endif
-
-#if 0
-  kno_idefn(module,kno_make_cprim2x
-           ("ODBC/ATTR",odbcattr,2,
-            kno_odbc_type,KNO_VOID,kno_symbol_type,KNO_VOID));
-#endif
 
   merge_symbol = kno_intern("%merge");
 

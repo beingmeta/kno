@@ -1364,21 +1364,6 @@ KNO_EXPORT void kno_init_cgiexec_c()
 
   init_local_cprims();
 
-#if 0
-  kno_idefn(module,kno_make_cprim1("HTTPHEADER!",addhttpheader,1));
-  kno_idefn(module,kno_make_cprim6("SET-COOKIE!",setcookie,2));
-  kno_idefn(module,kno_make_cprim4("CLEAR-COOKIE!",clearcookie,1));
-  kno_idefn(module,kno_make_cprimn("BODY!",set_body_attribs,1));
-  kno_idefn(module,kno_make_cprim1x("BODYCLASS!",add_body_class,1,
-                                  kno_string_type,VOID));
-  kno_idefn(module,kno_make_cprim1x("HTMLCLASS!",add_html_class,1,
-                                  kno_string_type,VOID));
-
-  kno_idefn(module,kno_make_cprim1x("MAPURL",mapurl,1,kno_string_type,VOID));
-  kno_idefn(module,kno_make_cprim1x
-           ("URLDATA/PARSE",urldata_parse,1,kno_string_type,VOID));
-  kno_defalias(module,"CGIPARSE","URLDATA/PARSE");
-#endif
   kno_def_evalfn(module,"WITH/REQUEST/OUT","",withreqout_evalfn);
   kno_defalias(module,"WITHCGIOUT","WITH/REQUEST/OUT");
 
@@ -1398,20 +1383,6 @@ KNO_EXPORT void kno_init_cgiexec_c()
   kno_def_evalfn(xhtml_module,"TITLE!","",title_evalfn);
   kno_def_evalfn(xhtml_module,"JSOUT","",jsout_evalfn);
   kno_def_evalfn(xhtml_module,"CSSOUT","",cssout_evalfn);
-
-#if 0
-  kno_idefn(xhtmlout_module,
-           kno_make_cprim2x("STYLESHEET!",add_stylesheet,1,
-                           kno_string_type,VOID,
-                           kno_string_type,VOID));
-  kno_idefn(xhtmlout_module,
-           kno_make_cprim1x("JAVASCRIPT!",add_javascript,1,
-                           kno_string_type,VOID));
-
-  kno_idefn(xhtmlout_module,
-           kno_make_cprim1x("JAVASCRIPT!",add_javascript,1,
-                           kno_string_type,VOID));
-#endif
 
   tail_symbol = kno_intern("%tail");
   browseinfo_symbol = kno_intern("browseinfo");

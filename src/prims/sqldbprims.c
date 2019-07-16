@@ -391,14 +391,6 @@ KNO_EXPORT void kno_init_sqldbprims_c()
   kno_finish_module(sqldb_module);
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
-
-
 static void init_local_cprims()
 {
   KNO_LINK_PRIM("sqldb/proc/params",sqlproc_params,1,sqldb_module);

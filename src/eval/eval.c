@@ -2038,119 +2038,19 @@ static void init_localfns()
                  "effected by future changes",
                  env_reset_evalfn);
 
-#if 0
-  kno_idefn(kno_scheme_module,
-            kno_make_cprim1("DOCUMENTATION",get_documentation,1));
-
-  kno_idefn(kno_scheme_module,
-            kno_make_cprim1("ENVIRONMENT?",environmentp_prim,1));
-  kno_idefn(kno_scheme_module,
-            kno_make_cprim2("SYMBOL-BOUND-IN?",symbol_boundin_prim,2));
-  kno_idefn2(kno_scheme_module,"%LEXREF",lexref_prim,2,
-             "(%LEXREF *up* *across*) returns a lexref (lexical reference) "
-             "given a 'number of environments' *up* and a 'number of bindings' "
-             "across",
-             kno_fixnum_type,VOID,kno_fixnum_type,VOID);
-  kno_idefn1(kno_scheme_module,"%LEXREFVAL",lexref_value_prim,1,
-             "(%LEXREFVAL *lexref*) returns the offsets "
-             "of a lexref as a pair (*up* . *across*)",
-             kno_lexref_type,VOID);
-  kno_idefn1(kno_scheme_module,"%LEXREF?",lexrefp_prim,1,
-             "(%LEXREF? *val*) returns true if it's argument "
-             "is a lexref (lexical reference)",
-             -1,KNO_VOID);
-
-  kno_idefn1(kno_scheme_module,"%CODEREF",coderef_prim,1,
-             "(%CODEREF *nelts*) returns a 'coderef' (a relative position) value",
-             kno_fixnum_type,VOID);
-  kno_idefn1(kno_scheme_module,"%CODEREFVAL",coderef_value_prim,1,
-             "(%CODEREFVAL *coderef*) returns the integer relative offset of a coderef",
-             kno_coderef_type,VOID);
-  kno_idefn1(kno_scheme_module,"CODEREF?",coderefp_prim,1,
-             "(CODEREF? *nelts*) returns #t if *arg* is a coderef",
-             -1,VOID);
-  kno_idefn1(kno_scheme_module,"MAKE-CODEREF",make_coderef,1,
-            "(MAKE-CODEREF <fixnum>)\nReturns a coderef object",
-            kno_fixnum_type,KNO_VOID);
-
-  kno_idefn(kno_scheme_module,kno_make_cprim1("NAME->OPCODE",name2opcode_prim,1));
-  kno_idefn(kno_scheme_module,kno_make_cprim1("NAME->OPCODE",name2opcode_prim,1));
-  kno_idefn1(kno_scheme_module,"OPCODE-NAME",opcode_name_prim,1,
-             "(OPCODE-NAME *opcode*) returns the name of *opcode* "
-             "or #f it's valid but anonymous, and errors if it is "
-             "not an opcode or invalid",
-             kno_opcode_type,VOID);
-  kno_idefn(kno_scheme_module,
-           kno_make_cprim1x("MAKE-OPCODE",make_opcode,1,
-                           kno_fixnum_type,VOID));
-  kno_idefn(kno_scheme_module,kno_make_cprim1("OPCODE?",opcodep,1));
-
-  kno_idefn(kno_scheme_module,
-            kno_make_ndprim(kno_make_cprim2("%CHOICEREF",choiceref_prim,2)));
-  kno_idefn(kno_scheme_module,
-            kno_make_ndprim(kno_make_cprim1("%FIXCHOICE",fixchoice_prim,1)));
-
-#endif
-
   kno_def_evalfn(kno_scheme_module,"WITHENV","",withenv_evalfn);
-
-#if 0
-  kno_idefn3(kno_scheme_module,"GET-ARG",get_arg_prim,2,
-             "`(GET-ARG *expression* *i* [*default*])` "
-             "returns the *i*'th parameter in *expression*, "
-             "or *default* (otherwise)",
-             -1,KNO_VOID,kno_fixnum_type,KNO_VOID,-1,KNO_VOID);
-  kno_idefn(kno_scheme_module,
-            kno_make_ndprim(kno_make_cprimn("APPLY",apply_lexpr,1)));
-  kno_idefn(kno_scheme_module,kno_make_cprim7x
-            ("DTPROC",make_dtproc,2,
-             kno_symbol_type,VOID,kno_string_type,VOID,
-             -1,VOID,-1,VOID,
-             kno_fixnum_type,KNO_INT(2),
-             kno_fixnum_type,KNO_INT(4),
-             kno_fixnum_type,KNO_INT(1)));
-
-  kno_idefn(kno_scheme_module,kno_make_cprim1("CALL/CC",callcc,1));
-  kno_defalias(kno_scheme_module,"CALL-WITH-CURRENT-CONTINUATION","CALL/CC");
-#endif
 
   /* This pushes a new threadcache */
   kno_def_evalfn(kno_scheme_module,"WITH-THREADCACHE","",with_threadcache_evalfn);
   /* This ensures that there's an active threadcache, pushing a new one if
      needed or using the current one if it exists. */
   kno_def_evalfn(kno_scheme_module,"USING-THREADCACHE","",using_threadcache_evalfn);
-#if 0
-  /* This sets up the current thread to use a threadcache */
-  kno_idefn(kno_scheme_module,
-            kno_make_cprim1("USE-THREADCACHE",use_threadcache_prim,0));
-
-  kno_idefn(kno_scheme_module,kno_make_cprimn("THREAD/CACHECALL",tcachecall,1));
-  kno_idefn(kno_scheme_module,kno_make_cprimn("CACHECALL",cachecall,1));
-  kno_idefn(kno_scheme_module,kno_make_cprimn("CACHECALL/PROBE",cachecall_probe,1));
-  kno_idefn(kno_scheme_module,kno_make_cprimn("CACHEDCALL?",cachedcallp,1));
-  kno_idefn(kno_scheme_module,
-            kno_make_cprim1("CLEAR-CALLCACHE!",clear_callcache,0));
-  kno_defalias(kno_scheme_module,"TCACHECALL","THREAD/CACHECALL");
-  kno_defalias(kno_scheme_module,"CACHEPOINT","THREAD/CACHECALL");
-#endif
 
   kno_def_evalfn(kno_scheme_module,"VOID","",void_evalfn);
   kno_def_evalfn(kno_scheme_module,"!!!NULL!!!","",null_evalfn);
   kno_def_evalfn(kno_scheme_module,"BREAK","",break_evalfn);
   kno_def_evalfn(kno_scheme_module,"DEFAULT","",default_evalfn);
-#if 0
-  kno_idefn(kno_scheme_module,kno_make_cprimn("CHECK-VERSION",check_version_prim,1));
-  kno_idefn(kno_scheme_module,kno_make_cprimn("REQUIRE-VERSION",require_version_prim,1));
 
-  kno_idefn0(kno_scheme_module,"%BUILDINFO",kno_get_build_info,
-             "Information about the build and startup environment");
-
-  kno_idefn(kno_scheme_module,kno_make_cprimn("FFI/PROC",ffi_proc,3));
-  kno_idefn(kno_scheme_module,
-            kno_make_cprim2x("FFI/FOUND?",ffi_foundp_prim,1,
-                             kno_string_type,VOID,
-                             -1,VOID));
-#endif
   kno_register_config
     ("TAILCALL",
      "Enable/disable tail recursion in the Scheme evaluator. "

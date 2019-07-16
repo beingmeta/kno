@@ -342,10 +342,6 @@ KNO_EXPORT void kno_init_eval_testops_c()
 
   init_local_cprims();
 
-#if 0
-  kno_idefn(kno_scheme_module,
-	   kno_make_ndprim(kno_make_cprimn("APPLYTEST",applytest,2)));
-#endif
   kno_def_evalfn(kno_scheme_module,"EVALTEST",
 		 "`(EVALTEST *expected* *expr*)` evaluates *expr* and checks "
 		 "if it is EQUAL? to *expected*. If so it does nothing, "
