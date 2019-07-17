@@ -1,7 +1,7 @@
 [Unit]
 Description=Start %%NAME%% servlet
 Requires=network.target local-fs.target
-After=knodaemons.service fdweb.service upsource.target
+After=kno-daemons.service kno-servlets.service upsource.target
 
 [Service]
 Type=simple

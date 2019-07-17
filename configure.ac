@@ -2049,9 +2049,8 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   etc/upstart/ex_knoservlet.conf
 	   etc/systemd/ex_servlet.service
 	   etc/systemd/ex_daemon.service
-	   etc/systemd/knod.service
-	   etc/systemd/knoservlets.service
-	   etc/systemd/kno.service
+	   etc/systemd/kno-daemons.service
+	   etc/systemd/kno-servlets.service
 	   etc/macos/OSXStartupItem/KNO
 	   etc/macos/KNO.plist
 	   etc/apache/knocgi.conf 

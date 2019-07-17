@@ -20,7 +20,9 @@ set -e
 
 case "$1" in
     configure)
-	rm -f /lib/systemd/system/kno.service /lib/systemd/system/knoservlets.service
+	rm -f /lib/systemd/system/kno.service \
+	   /lib/systemd/system/knod.service \
+	   /lib/systemd/system/knoservlets.service
 	systemctl daemon-reload
 #	systemctl enable knod
 #	systemctl enable knoservlets
