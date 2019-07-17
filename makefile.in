@@ -1569,8 +1569,8 @@ install-data: \
 	$(DESTDIR)@config_dir@/boot/ex_daemon.service   \
 	$(DESTDIR)@config_dir@/boot/ex_servlet.service  \
 	$(DESTDIR)@config_dir@/boot/kno.target		\
-	$(DESTDIR)@config_dir@/boot/knod.service	\
-	$(DESTDIR)@config_dir@/boot/knoservlets.service	\
+	$(DESTDIR)@config_dir@/boot/kno-daemons.service	\
+	$(DESTDIR)@config_dir@/boot/kno-servlets.service	\
 	$(DESTDIR)@config_dir@/boot/kno-rc.d 		\
 	$(DESTDIR)@config_dir@/boot/kno.conf 		\
 	$(DESTDIR)@config_dir@/boot/logrotate
@@ -1759,8 +1759,8 @@ $(DESTDIR)/etc/init/kno.conf: etc/upstart/kno.conf $(DESTDIR)/etc/init
 $(DESTDIR)@systemd_loc@:
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $(DESTDIR)@systemd_loc@
 setup-systemd: $(DESTDIR)@systemd_loc@/kno.target \
-		$(DESTDIR)@systemd_loc@/knod.service \
-		$(DESTDIR)@systemd_loc@/knoservlets.service \
+		$(DESTDIR)@systemd_loc@/kno-daemons.service \
+		$(DESTDIR)@systemd_loc@/kno-servlets.service \
 		startupdirs
 $(DESTDIR)@systemd_loc@/%: etc/systemd/% $(DESTDIR)@systemd_loc@
 	@$(MSG) Installing systemd config in $@

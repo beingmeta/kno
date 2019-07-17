@@ -1,7 +1,7 @@
 [Unit]
 Description=Start daemon %%NAME%%
 Requires=network.target local-fs.target
-After=knodaemons.service upsource.target
+After=kno-daemons.service upsource.target
 
 [Service]
 Type=simple
