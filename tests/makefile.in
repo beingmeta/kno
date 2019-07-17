@@ -118,7 +118,7 @@ cmdtests:
 
 static-tests: schemetests optscheme loadmods optmods slotmaps tables pools indexes framedbs
 schemetest schemetests scheme: r4rs exceptions choices sequences breaks numbers regex \
-        lambda conditionals iterators binders errfns requests \
+        lambda conditionals iterators binders errfns requests compounds \
 	reflect hashsets eval loading modules quasiquote promises ffi configs opts appenv \
 	picktest cachecall texttools webtools timefns sysprims startup stringprims \
 	threads i18n misc gctests profiling sqlite \
