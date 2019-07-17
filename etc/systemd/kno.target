@@ -1,6 +1,6 @@
 [Unit]
-Description=FramerD service(s) starter
-Requires=fdaemons.service fdweb.service
+Description=KNO service(s) starter
+Requires=kno-daemons.service kno-servlets.service
 After=upsource.target
 
 [Install]
