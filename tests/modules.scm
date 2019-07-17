@@ -11,8 +11,15 @@
 (get-module 'stringfmts)
 (get-module 'testcapi)
 
+(errtest (module-export!))
+(errtest (module-export! #"packet"))
+(errtest (use-module))
+(errtest (use-module . rest))
 (errtest (use-module 'nomod))
 (errtest (use-module 'badmod))
+
+(applytest pair? config 'module)
+(applytest 'void config! 'module 'stringfmts)
 
 (let ((mod (get-module 'stringfmts_alias)))
   (overlaps? 'get% (get-exports mod)))
@@ -20,12 +27,16 @@
 (evaltest #t (applicable? (within-module 'stringfmts get%)))
 (evaltest #t (applicable? (within-module 'stringfmts quotient~)))
 (errtest (within-module 'stringfmts (quotient~)))
+(errtest (within-module))
+(errtest (within-module 'qrxtm))
 
 (evaltest 5 (within-module 'stringfmts (quotient~ 17 3)))
 (errtest (within-module 'stringfmts (quotient~ 17 "three")))
 (errtest (within-module 'stringfmts (->exact (quotient~ 17 0))))
 
 (errtest (accessing-module 'testcapi (quotient~ zval 3)))
+(errtest (accessing-module))
+(errtest (accessing-module 'badmod (+ 3 4)))
 
 (define zval 17)
 (errtest (within-module 'stringfmts (quotient~ zval 3)))

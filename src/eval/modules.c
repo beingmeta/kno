@@ -43,8 +43,6 @@ static int auto_fix_modules = 0;
 static int auto_fix_exports = 0;
 static int auto_lock_modules = 0;
 static int auto_lock_exports = 0;
-static int auto_static_modules = 0;
-static int auto_static_exports = 0;
 
 static int readonly_tablep(lispval arg)
 {
@@ -110,12 +108,17 @@ KNO_EXPORT kno_lexenv kno_new_lexenv(lispval bindings)
   if (VOIDP(bindings))
     bindings = kno_make_hashtable(NULL,17);
   else kno_incref(bindings);
-  return kno_make_env(bindings,default_env);
+  kno_lexenv env = kno_make_env(bindings,default_env);
+  if (env==NULL) kno_decref(bindings);
+  return env;
 }
 KNO_EXPORT kno_lexenv kno_working_lexenv()
 {
   if (kno_scheme_initialized==0) kno_init_scheme();
-  return kno_make_env(kno_make_hashtable(NULL,17),default_env);
+  lispval table = kno_make_hashtable(NULL,17);
+  kno_lexenv env = kno_make_env(table,default_env);
+  if (env == NULL) kno_decref(table);
+  return env;
 }
 
 KNO_EXPORT lispval kno_register_module_x(lispval name,lispval module,int flags)
@@ -170,23 +173,6 @@ KNO_EXPORT lispval kno_new_cmodule_x(char *name,int flags,void *addr,
 {
   lispval mod = kno_new_module(name,flags);
   int free_filename = 0;
-#if HAVE_DLADDR
-  Dl_info  dlinfo;
-  if (filename == NULL) {
-    if (dladdr(addr,&dlinfo)) {
-      const char *cfilename = dlinfo.dli_fname;
-      if (cfilename) {
-        u8_string u8filename = u8_fromlibc((char *)cfilename);
-        lispval strval = knostring(u8filename);
-        kno_add(mod,dlsource_symbol,strval);
-        kno_decref(strval);
-        if (filename == NULL) {
-          filename = u8filename;
-          if ( ((char *)u8filename) != cfilename)
-            free_filename = 1;}
-        else if ( ((char *)u8filename) != cfilename)
-          u8_free(u8filename);}}}
-#endif
   if (filename) {
     lispval fname = knostring(filename);
     if (free_filename) u8_free(filename);
@@ -221,9 +207,7 @@ int kno_finish_module(lispval module)
       int flags = ((auto_fix_modules)?(KNO_FIX_MODULES):(0)) |
         ((auto_fix_exports)?(KNO_FIX_EXPORTS):(0)) |
         ((auto_lock_modules)?(KNO_LOCK_MODULES):(0)) |
-        ((auto_lock_exports)?(KNO_LOCK_EXPORTS):(0)) |
-        ((auto_static_modules)?(KNO_STATIC_MODULES):(0)) |
-        ((auto_static_exports)?(KNO_STATIC_EXPORTS):(0));
+        ((auto_lock_exports)?(KNO_LOCK_EXPORTS):(0));
       return kno_module_finished(module,flags);}
   else {
     kno_seterr(kno_NotAModule,"kno_finish_module",NULL,module);
@@ -257,39 +241,15 @@ int kno_module_finished(lispval module,int flags)
       kno_lexenv env = (kno_lexenv) module;
       lispval exports = env->env_exports;
       if (HASHTABLEP(env->env_bindings)) {
-        if (U8_BITP(flags,KNO_STATIC_MODULES))
-          kno_static_module(env->env_bindings);
-        else {}
         if (U8_BITP(flags,KNO_LOCK_MODULES))
           kno_hashtable_set_readonly((kno_hashtable)(env->env_bindings),1);}
       if (HASHTABLEP(exports)) {
-        if (U8_BITP(flags,KNO_STATIC_EXPORTS)) kno_static_module(exports);
-        else {}
         if (U8_BITP(flags,KNO_LOCK_EXPORTS))
           kno_hashtable_set_readonly((kno_hashtable)exports,1);}}
     else if (HASHTABLEP(module)) {
-      if (U8_BITP( flags, KNO_STATIC_EXPORTS | KNO_STATIC_MODULES))
-        kno_static_module(module);
-      else {}
       if (flags&(KNO_LOCK_EXPORTS|KNO_LOCK_MODULES)) kno_lock_exports(module);}
     else {}
     return 1;}
-}
-
-KNO_EXPORT
-int kno_static_module(lispval module)
-{
-  if (HASHTABLEP(module)) {
-    int conversions = 0;
-    struct KNO_HASHTABLE *ht = (kno_hashtable)module;
-    conversions = conversions+kno_static_hashtable(ht,kno_lambda_type);
-    conversions = conversions+kno_static_hashtable(ht,kno_cprim_type);
-    conversions = conversions+kno_static_hashtable(ht,kno_evalfn_type);
-    return conversions;}
-  else if (TABLEP(module)) return 0;
-  else {
-    kno_seterr(kno_NotAModule,"kno_static_module",NULL,module);
-    return -1;}
 }
 
 KNO_EXPORT
@@ -312,15 +272,13 @@ int kno_lock_exports(lispval module)
 
 static kno_lexenv become_module(kno_lexenv env,lispval module_name,int create)
 {
-  lispval module_spec, module;
-  if (STRINGP(module_name))
-    module_spec = kno_intern(CSTRING(module_name));
-  else module_spec = kno_eval(module_name,env);
+  lispval module_spec = kno_eval(module_name,env), module;
   if (SYMBOLP(module_spec))
     module = kno_get_module(module_spec);
-  else {
-    module = module_spec;
-    kno_incref(module);}
+  else if (ABORTP(module_spec))
+    return NULL;
+  else { kno_decref(module_spec);
+    return KNO_ERR(NULL,"InvalidModuleSpec","become_module",NULL,module_spec);}
   if (KNO_ABORTP(module)) return NULL;
   else if ((!(create))&&(VOIDP(module))) {
     kno_seterr(kno_NoSuchModule,"become_module",NULL,module_spec);
@@ -350,9 +308,7 @@ static kno_lexenv become_module(kno_lexenv env,lispval module_name,int create)
     else {}
     kno_store(env->env_exports,moduleid_symbol,module_spec);
     kno_register_module(SYM_NAME(module_spec),(lispval)env,0);}
-  else {
-    kno_seterr(kno_NotAModule,"use_module",NULL,module_spec);
-    return NULL;}
+  else return KNO_ERR(NULL,kno_NotAModule,"use_module",NULL,module_spec);
   kno_decref(module);
   kno_decref(module_spec);
   return env;
@@ -380,7 +336,9 @@ static lispval within_module_evalfn(lispval expr,kno_lexenv env,kno_stack _stack
       kno_decref(result); result = kno_eval(elt,consed_env);}
     kno_decref((lispval)consed_env);
     return result;}
-  else return KNO_ERROR;
+  else {
+    kno_decref((lispval)consed_env);
+    return KNO_ERROR;}
 }
 
 static kno_lexenv make_hybrid_env(kno_lexenv base,lispval module_spec)
@@ -618,35 +576,6 @@ lispval kno_use_module(kno_lexenv env,lispval module)
   return VOID;
 }
 
-DEFPRIM1("static-module!",static_module,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-         "`(STATIC-MODULE! *arg0*)` **undocumented**",
-         kno_any_type,KNO_VOID);
-static lispval static_module(lispval module)
-{
-  if (HASHTABLEP(module)) {
-    int conversions = kno_static_module(module);
-    if (conversions<0) return KNO_ERROR;
-    else return KNO_INT(conversions);}
-  else if (KNO_LEXENVP(module)) {
-    kno_lexenv env = (kno_lexenv) module;
-    int conversions = 0, delta = 0;
-    if (HASHTABLEP(env->env_bindings))
-      delta = kno_static_module(env->env_bindings);
-    if (conversions<0) return KNO_ERROR;
-    else conversions = conversions+delta;
-    if ((env->env_exports) && (HASHTABLEP(env->env_exports)))
-      delta = kno_static_module(env->env_exports);
-    if (conversions<0) return KNO_ERROR;
-    else return KNO_INT(conversions+delta);}
-  else {
-    lispval module_val = kno_find_module(module,0);
-    if (KNO_ABORTP(module_val)) return module_val;
-    else {
-      lispval result = static_module(module_val);
-      kno_decref(module_val);
-      return result;}}
-}
-
 DEFPRIM1("get-exports",get_exports_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
          "`(GET-EXPORTS *arg0*)` **undocumented**",
          kno_any_type,KNO_VOID);
@@ -703,10 +632,13 @@ static lispval get_source(lispval arg)
     if (f->fcn_filename)
       return kno_make_string(NULL,-1,f->fcn_filename);
     else {
-      lispval sourceinfo = kno_symeval(source_symbol,f->lambda_env);
+      lispval sourceinfo =
+	kno_get(f->lambda_env->env_bindings,source_symbol,VOID);
       if (KNO_STRINGP(sourceinfo))
-        return sourceinfo;
-      else return KNO_FALSE;}}
+	return sourceinfo;
+      else {
+	kno_decref(sourceinfo);
+	return KNO_FALSE;}}}
   else if (KNO_FUNCTIONP(arg)) {
     struct KNO_FUNCTION *f = (kno_function) kno_fcnid_ref(arg);
     if (f->fcn_filename)
@@ -937,13 +869,9 @@ KNO_EXPORT void kno_init_modules_c()
                       "Lock bindings of source modules after they are loaded",
                       kno_boolconfig_get,kno_boolconfig_set,
                       &auto_lock_modules);
-  kno_register_config("STATICMODULES",
-                      "Convert function values in a module into static values",
-                      kno_boolconfig_get,kno_boolconfig_set,
-                      &auto_static_modules);
   kno_register_config("MODULE",
-                      "Specify modules to be used by the default live environment",
-                      config_used_modules,config_use_module,NULL);
+		      "Specify modules to be used by the default live environment",
+		      config_used_modules,config_use_module,NULL);
 }
 
 static void init_local_cprims()
@@ -953,7 +881,6 @@ static void init_local_cprims()
   KNO_LINK_PRIM("get-binding",get_binding_prim,3,kno_sys_module);
   KNO_LINK_PRIM("get-source",get_source_prim,1,kno_sys_module);
   KNO_LINK_PRIM("get-exports",get_exports_prim,1,kno_sys_module);
-  KNO_LINK_PRIM("static-module!",static_module,1,kno_sys_module);
   KNO_LINK_PRIM("get-loaded-module",get_loaded_module,1,kno_sys_module);
   KNO_LINK_PRIM("get-module",get_module,1,kno_sys_module);
 
