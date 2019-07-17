@@ -140,8 +140,8 @@ static int hyphenout_helper(U8_OUTPUT *out,
 {
   char *hyphens = u8_malloc(len+5);
   char **rep = NULL; int *pos = NULL; int *cut = NULL;
-  int retval = hnj_hyphen_hyphenate2(default_dict,string,len,hyphens,
-				     NULL,&rep,&pos,&cut);
+  int retval = hnj_hyphen_hyphenate2
+    (default_dict,string,len,hyphens,NULL,&rep,&pos,&cut);
   if (retval) {
     u8_free(hyphens);
     return -1;}
@@ -151,17 +151,16 @@ static int hyphenout_helper(U8_OUTPUT *out,
     while (c>=0) {
       u8_putc(out,c);
       if ((cpos>EDGE_LEN)&&(hyphens[cpos]&1)&&(cpos<(len-EDGE_LEN))) {
-	u8_putc(out,hyphen_char); n_hyphens++;}
+	u8_putc(out,hyphen_char);
+	n_hyphens++;}
       cpos = scan-string;
       c = u8_sgetc(&scan);}
     u8_free(hyphens);
     return n_hyphens;}
 }
 
-DEFPRIM2("hyphenout",hyphenout_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "`(HYPHENOUT *arg0* [*arg1*])` **undocumented**",
-	 kno_string_type,KNO_VOID,
-	 kno_character_type,KNO_CODE2CHAR('­'));
+DEFPRIM("hyphenout",hyphenout_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	"`(HYPHENOUT *arg0* [*arg1*])` **undocumented**");
 static lispval hyphenout_prim(lispval string_arg,lispval hyphen_arg)
 {
   U8_OUTPUT *output = u8_current_output;
@@ -177,7 +176,8 @@ static lispval hyphenout_prim(lispval string_arg,lispval hyphen_arg)
   U8_INIT_OUTPUT(&word,64);
   while (c>=0) {
     if (u8_isalnum(c)) {
-      u8_putc(&word,c); c = u8_sgetc(&scan);}
+      u8_putc(&word,c);
+      c = u8_sgetc(&scan);}
     else if (u8_isspace(c)) {
       if (word.u8_write!=word.u8_outbuf) {
 	hyphenout_helper
@@ -210,9 +210,8 @@ static lispval hyphenout_prim(lispval string_arg,lispval hyphen_arg)
   return KNO_VOID;
 }
 
-DEFPRIM2("hyphenate",hyphenate_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "`(HYPHENATE *arg0* [*arg1*])` **undocumented**",
-	 kno_string_type,KNO_VOID,kno_character_type,KNO_CODE2CHAR('­'));
+DEFPRIM("hyphenate",hyphenate_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	"`(HYPHENATE *arg0* [*arg1*])` **undocumented**");
 static lispval hyphenate_prim(lispval string_arg,lispval hyphen_arg)
 {
   lispval result;
@@ -301,9 +300,16 @@ KNO_EXPORT int kno_init_hyphenate()
 
 static void init_local_cprims()
 {
-  KNO_LINK_PRIM("hyphenate",hyphenate_prim,2,hyphenate_module);
-  KNO_LINK_PRIM("hyphenout",hyphenout_prim,2,hyphenate_module);
+  u8_string s = "­";
+  unsigned int c = u8_sgetc(&s);
   KNO_LINK_PRIM("shyphenate",shyphenate_prim,1,hyphenate_module);
   KNO_LINK_PRIM("hyphen-breaks",hyphen_breaks_prim,1,hyphenate_module);
   KNO_LINK_PRIM("hyphenate-word",hyphenate_word_prim,1,hyphenate_module);
+
+  KNO_LINK_TYPED("hyphenate",hyphenate_prim,2,hyphenate_module,
+		 kno_string_type,KNO_VOID,
+		 kno_character_type,KNO_CODE2CHAR(c));
+  KNO_LINK_TYPED("hyphenout",hyphenout_prim,2,hyphenate_module,
+		 kno_string_type,KNO_VOID,
+		 kno_character_type,KNO_CODE2CHAR(c));
 }
