@@ -38,8 +38,8 @@ static lispval compoundp (lispval x,lispval tag)
 }
 
 /* TODO: This might be faster if it were non deterministic */
-DEFPRIM2("pick-compound",pick_compounds,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-         "`(PICK-COMPOUND *arg* [*tags*])` "
+DEFPRIM2("pick-compounds",pick_compounds,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+         "`(pick-compounds *arg* [*tags*])` "
          "returns *arg* if it is a compound and (when "
          "specified) if it's typetag is any of *tags*.",
          kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
@@ -50,20 +50,22 @@ static lispval pick_compounds(lispval candidates,lispval tags)
     {KNO_DO_CHOICES(candidate,candidates)
         if (KNO_COMPOUNDP(candidate)) {
           kno_incref(candidate);
-          KNO_ADD_TO_CHOICE(result,candidate);
-          changes = 1;}}
+          KNO_ADD_TO_CHOICE(result,candidate);}
+        else changes = 1;}
     if (changes == 0) {
       kno_decref(result);
       return kno_incref(candidates);}
     else return kno_simplify_choice(result);}
   else {
     lispval result = KNO_EMPTY; int changes = 0;
-    {KNO_DO_CHOICES(candidate,candidates)
-        if ( (KNO_COMPOUNDP(candidate)) &&
-             (kno_overlapp(KNO_COMPOUND_TAG(candidate),tags)) ) {
-          kno_incref(candidate);
-          KNO_ADD_TO_CHOICE(result,candidate);
-          changes = 1;}}
+    {KNO_DO_CHOICES(candidate,candidates) {
+        if (KNO_COMPOUNDP(candidate)) {
+          if (kno_overlapp(KNO_COMPOUND_TAG(candidate),tags)) {
+            kno_incref(candidate);
+            KNO_ADD_TO_CHOICE(result,candidate);
+            changes = 1;}
+          else changes = 1;}
+        else changes = 1;}}
     if (changes == 0) {
       kno_decref(result);
       return kno_incref(candidates);}
@@ -219,7 +221,7 @@ static lispval compound_set(lispval x,lispval offset,lispval value,lispval tag)
 }
 
 DEFPRIM5("compound-modify!",compound_modify,KNO_MAX_ARGS(5)|KNO_MIN_ARGS(4)|KNO_NDCALL,
-         "`(COMPOUND-MODIFY! *arg0* *arg1* *arg2* *arg3* [*arg4*])` **undocumented**",
+         "`(compound-modify! *compound* *eltno* *modfn* *modval* [*tag*])` **undocumented**",
          kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
          kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
          kno_any_type,KNO_VOID);
@@ -522,7 +524,9 @@ static int stringify_compound(u8_output out,lispval compound,kno_compound_typein
         u8_putn(out,CSTRING(result),STRLEN(result));
         kno_decref(result);
         return 1;}
-      else {kno_decref(result); return 0;}}}
+      else {
+        kno_decref(result);
+        return 0;}}}
   else return 0;
 }
 
@@ -549,7 +553,6 @@ static lispval compound_set_consfn_prim(lispval tag,lispval consfn)
     else return kno_type_error("applicable","set_compound_consfn_prim",tag);
   else return kno_type_error("compound tag","set_compound_consfn_prim",tag);
 }
-
 
 DEFPRIM2("compound-set-stringfn!",compound_set_stringfn_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
          "`(COMPOUND-SET-STRINGFN! *arg0* *arg1*)` **undocumented**",
@@ -587,14 +590,6 @@ KNO_EXPORT void kno_init_compoundfns_c()
   init_local_cprims();
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
-
-
 static void init_local_cprims()
 {
   lispval scheme_module = kno_scheme_module;
@@ -618,7 +613,7 @@ static void init_local_cprims()
   KNO_LINK_PRIM("compound-mutable?",compound_mutablep,1,scheme_module);
   KNO_LINK_PRIM("compound-length",compound_length,1,scheme_module);
   KNO_LINK_PRIM("compound-tag",compound_tag,1,scheme_module);
-  KNO_LINK_PRIM("pick-compound",pick_compounds,2,scheme_module);
+  KNO_LINK_PRIM("pick-compounds",pick_compounds,2,scheme_module);
 
   KNO_LINK_ALIAS("compound-type?",compoundp,scheme_module);
   KNO_LINK_ALIAS("vector->compound",seq2compound,scheme_module);
