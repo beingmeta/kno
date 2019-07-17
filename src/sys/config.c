@@ -651,7 +651,7 @@ KNO_EXPORT int kno_symconfig_set(lispval ignored,lispval v,void *lispp)
   else if (KNO_STRINGP(v)) {
     u8_string lower = u8_downcase(CSTRING(v));
     sym = kno_intern(lower);
-    u8_free(upper);}
+    u8_free(lower);}
   else {}
   if (KNO_VOIDP(sym)) {
     kno_type_error("string or symbol","kno_symconfig_set",v);
