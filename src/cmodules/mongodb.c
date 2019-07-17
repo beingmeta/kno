@@ -3426,7 +3426,7 @@ static u8_byte *mongoc_version = mongoc_version_string;
 KNO_EXPORT int kno_init_mongodb(void) KNO_LIBINIT_FN;
 static long long int mongodb_initialized = 0;
 
-#define DEFAULT_FLAGS (KNO_SHORT2DTYPE(KNO_MONGODB_DEFAULTS))
+#define DEFAULT_FLAGS (KNO_SHORT2LISP(KNO_MONGODB_DEFAULTS))
 
 static lispval mongodb_module;
 
@@ -3679,14 +3679,14 @@ static void init_local_cprims()
   KNO_LINK_TYPED("cursor/done?",mongodb_donep,1,mongodb_module,
 		 kno_mongoc_cursor,KNO_VOID);
   KNO_LINK_TYPED("cursor/skip",mongodb_skip,2,mongodb_module,
-		 kno_mongoc_cursor,KNO_VOID,kno_fixnum_type,KNO_INT(1));
+		 kno_mongoc_cursor,KNO_VOID,kno_fixnum_type,KNO_CPP_INT(1));
 
 
   KNO_LINK_TYPED("cursor/read",mongodb_cursor_read,3,mongodb_module,
-		 kno_mongoc_cursor,KNO_VOID,kno_fixnum_type,KNO_INT(1),
+		 kno_mongoc_cursor,KNO_VOID,kno_fixnum_type,KNO_CPP_INT(1),
 		 kno_any_type,KNO_VOID);
   KNO_LINK_TYPED("cursor/readvec",mongodb_cursor_read_vector,3,mongodb_module,
-		 kno_mongoc_cursor,KNO_VOID,kno_fixnum_type,KNO_INT(1),
+		 kno_mongoc_cursor,KNO_VOID,kno_fixnum_type,KNO_CPP_INT(1),
 		 kno_any_type,KNO_VOID);
   KNO_LINK_TYPED("mongodb/dbinfo",mongodb_getinfo,2,mongodb_module,
 		 kno_mongoc_server,KNO_VOID,kno_any_type,KNO_VOID);

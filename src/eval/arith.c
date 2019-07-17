@@ -1094,7 +1094,7 @@ static lispval sqrt_prim(lispval x)
 
 DEFPRIM2("ilog",ilog_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "`(ILOG *arg0* [*arg1*])` **undocumented**",
-	 kno_fixnum_type,KNO_VOID,kno_fixnum_type,KNO_INT(2));
+	 kno_fixnum_type,KNO_VOID,kno_fixnum_type,KNO_CPP_INT(2));
 static lispval ilog_prim(lispval n,lispval base_arg)
 {
   long long base = kno_getint(base_arg), limit = kno_getint(n);
@@ -1273,7 +1273,7 @@ static lispval cityhash128(lispval arg)
 
 DEFPRIM2("u8itoa",itoa_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "`(U8ITOA *arg0* [*arg1*])` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_fixnum_type,KNO_INT(10));
+	 kno_any_type,KNO_VOID,kno_fixnum_type,KNO_CPP_INT(10));
 static lispval itoa_prim(lispval arg,lispval base_arg)
 {
   long long base = FIX2INT(base_arg); char buf[32];
@@ -1342,7 +1342,7 @@ DEFPRIM2("number->string",number2string,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "(number->string *obj* [*base*=10])\n"
 	 "Converts *obj* (a number) into a string in the "
 	 "given *base*",
-	 kno_any_type,KNO_VOID,kno_fixnum_type,KNO_INT(10));
+	 kno_any_type,KNO_VOID,kno_fixnum_type,KNO_CPP_INT(10));
 static lispval number2string(lispval x,lispval base)
 {
   if (NUMBERP(x)) {

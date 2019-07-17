@@ -11,8 +11,7 @@
 (applytest 3.1 req/call plus-ts)
 
 (with/request
- (req/log %info% |Startup| requests.sym
-	  "Starting test of request functions")
+ (req/log |Startup| "Starting test of request functions")
  (req/set! 'alpha "alpha")
  (req/set! 'beta "beta")
  (req/set! 'words "alpha")
@@ -33,8 +32,7 @@
  (applytest #t req/test 'words "gamma")
  (req/drop! 'words "gamma")
  (applytest #f req/test 'words "gamma")
- (req/log %info% |ReqCall| requests.sym
-	  "Starting req/call tests")
+ (req/log |ReqCall| "Starting req/call tests")
  (applytest "alphabeta" req/call glom-ab)
  (applytest 66.3 req/call plus-ts)
  (applytest '(second first) req/get 'lst)
@@ -43,7 +41,6 @@
        (string (req/getlog)))
    (when (and (applytest len length string)
 	      (applytest > 0 req/loglen))
-     (req/log %info% |ReqLogOK| requests.sym
-	      "REQ/LOG appears to be written okay")
+     (req/log |ReqLogOK| "REQ/LOG appears to be written okay")
      (applytest #f equal? string (req/getlog))))
  )

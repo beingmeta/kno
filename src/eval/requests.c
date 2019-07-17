@@ -344,36 +344,47 @@ KNO_EXPORT lispval reqlog_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   struct U8_XTIME xt;
   struct U8_OUTPUT *reqout = kno_reqlog(1);
-  u8_string cond = NULL, cxt = NULL;
+  u8_string cond = NULL, cxt = NULL, free_cond = NULL;
   long long body_off = 1, level = -1;
-  lispval arg1 = kno_get_arg(expr,1), arg2 = kno_get_arg(expr,2);
-  lispval arg3 = kno_get_arg(expr,3), body, outval;
-  if (FIXNUMP(arg1)) {
-    level = FIX2INT(arg1); body_off++;
-    arg1 = arg2; arg2 = arg3; arg3 = VOID;}
-  if (SYMBOLP(arg1)) {
-    cond = SYM_NAME(arg1); body_off++;
-    arg1 = arg2; arg2 = arg3; arg3 = VOID;}
-  if (SYMBOLP(arg1)) {
-    cxt = SYM_NAME(arg2); body_off++;}
+  lispval arg = kno_get_arg(expr,1), cond_val = VOID;
+  lispval body = kno_get_body(expr,2), outval;
+  if (KNO_SYMBOLP(arg))
+    cond = KNO_SYMBOL_NAME(arg);
+  else if (KNO_STRINGP(arg))
+    cond = KNO_CSTRING(arg);
+  else {
+    cond_val = kno_stack_eval(arg,env,_stack,0);
+    if (KNO_ABORTP(cond_val)) {
+      u8_exception ex = u8_erreify();
+      cond = free_cond = kno_errstring(ex);
+      u8_free_exception(ex,1);}
+    else if (KNO_SYMBOLP(cond_val))
+      cond = KNO_SYMBOL_NAME(cond_val);
+    else if (KNO_STRINGP(cond_val))
+      cond = KNO_CSTRING(cond_val);
+    else cond = "WeirdConditionValue";}
   u8_local_xtime(&xt,-1,u8_nanosecond,0);
   if (level>=0)
     u8_printf(reqout,"<logentry level='%d' scope='request'>",level);
   else u8_printf(reqout,"<logentry scope='request'>");
-  if (level>=0) u8_printf(reqout,"\n\t<level>%d</level>",level);
+  if (level>=0)
+    u8_printf(reqout,"\n\t<level>%d</level>",level);
   u8_printf(reqout,"\n\t<datetime tick='%ld' nsecs='%d'>%lXt</datetime>",
             xt.u8_tick,xt.u8_nsecs,&xt);
   if (cond) u8_printf(reqout,"\n\t<condition>%s</condition>",cond);
-  if (cxt) u8_printf(reqout,"\n\t<context>%s</context>",cxt);
   u8_printf(reqout,"\n\t<message>\n");
-  body = kno_get_body(expr,body_off);
   outval = kno_printout_to(reqout,body,env);
   u8_printf(reqout,"\n\t</message>");
-  u8_printf(reqout,"\n</logentry>\n");
-  kno_decref(body);
   if (KNO_ABORTP(outval)) {
-    return outval;}
-  else return VOID;
+    u8_exception ex = u8_erreify();
+    u8_string errsum = kno_errstring(ex);
+    u8_printf(reqout,"\n\t<error>%s</error>",errsum);
+    u8_free(errsum);
+    u8_free_exception(ex,1);}
+  u8_printf(reqout,"\n</logentry>\n");
+  if (free_cond) u8_free(free_cond);
+  kno_decref(cond_val);
+  return VOID;
 }
 
 KNO_EXPORT void kno_init_reqstate_c()
@@ -391,14 +402,6 @@ KNO_EXPORT void kno_init_reqstate_c()
   kno_def_evalfn(module,"WITH/REQUEST","",withreq_evalfn);
 
 }
-
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
-
 
 static void init_local_cprims()
 {

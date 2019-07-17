@@ -1651,8 +1651,8 @@ DEFPRIM7("dtproc",make_dtproc,KNO_MAX_ARGS(7)|KNO_MIN_ARGS(2),
 	 "`(DTPROC *arg0* *arg1* [*arg2*] [*arg3*] [*arg4*] [*arg5*] [*arg6*])` **undocumented**",
 	 kno_symbol_type,KNO_VOID,kno_string_type,KNO_VOID,
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
-	 kno_fixnum_type,KNO_INT(2),kno_fixnum_type,KNO_INT(4),
-	 kno_fixnum_type,KNO_INT(1));
+	 kno_fixnum_type,KNO_CPP_INT(2),kno_fixnum_type,KNO_CPP_INT(4),
+	 kno_fixnum_type,KNO_CPP_INT(1));
 static lispval make_dtproc(lispval name,lispval server,lispval min_arity,
 			   lispval arity,lispval minsock,lispval maxsock,
 			   lispval initsock)

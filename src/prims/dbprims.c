@@ -781,7 +781,7 @@ static lispval tempindexp(lispval arg)
 DEFPRIM6("make-mempool",make_mempool,KNO_MAX_ARGS(6)|KNO_MIN_ARGS(2),
 	 "`(MAKE-MEMPOOL *arg0* *arg1* [*arg2*] [*arg3*] [*arg4*] [*arg5*])` **undocumented**",
 	 kno_string_type,KNO_VOID,kno_oid_type,KNO_VOID,
-	 kno_fixnum_type,KNO_INT(1048576),kno_fixnum_type,KNO_INT(0),
+	 kno_fixnum_type,KNO_CPP_INT(1048576),kno_fixnum_type,KNO_CPP_INT(0),
 	 kno_any_type,KNO_FALSE,kno_any_type,KNO_FALSE);
 static lispval make_mempool(lispval label,lispval base,lispval cap,
 			    lispval load,lispval noswap,lispval opts)
@@ -823,7 +823,7 @@ DEFPRIM6("make-procpool",make_procpool,KNO_MAX_ARGS(6)|KNO_MIN_ARGS(4),
 	 "Returns a pool implemented by userspace functions",
 	 kno_string_type,KNO_VOID,kno_oid_type,KNO_VOID,
 	 kno_fixnum_type,KNO_VOID,kno_any_type,KNO_VOID,
-	 kno_any_type,KNO_VOID,kno_fixnum_type,KNO_INT(0));
+	 kno_any_type,KNO_VOID,kno_fixnum_type,KNO_CPP_INT(0));
 static lispval make_procpool(lispval label,
 			     lispval base,lispval cap,
 			     lispval opts,lispval state,
@@ -3276,7 +3276,7 @@ static lispval modify_frame_lexpr(int n,lispval *args)
 DEFPRIM2("oid-plus",oid_plus_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "Adds an integer to an OID address and returns "
 	 "that OID",
-	 kno_oid_type,KNO_VOID,kno_fixnum_type,KNO_INT(1));
+	 kno_oid_type,KNO_VOID,kno_fixnum_type,KNO_CPP_INT(1));
 static lispval oid_plus_prim(lispval oid,lispval increment)
 {
   KNO_OID base = KNO_OID_ADDR(oid), next;

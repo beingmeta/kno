@@ -619,7 +619,7 @@ static lispval xtime_get(struct U8_XTIME *xt,lispval slotid,int reterr)
       return kno_make_timestamp(&asgmt);}
   else if (KNO_EQ(slotid,month_symbol))
     if (xt->u8_prec>=u8_month)
-      return KNO_BYTE2DTYPE(xt->u8_mon);
+      return KNO_BYTE2LISP(xt->u8_mon);
     else if (reterr)
       return kno_err(kno_ImpreciseTimestamp,"xtime_get",
 		     SYM_NAME(slotid),VOID);
@@ -774,38 +774,38 @@ static lispval xtime_get(struct U8_XTIME *xt,lispval slotid,int reterr)
     else return EMPTY;
   else if (KNO_EQ(slotid,date_symbol))
     if (xt->u8_prec>=u8_day)
-      return KNO_BYTE2DTYPE(xt->u8_mday);
+      return KNO_BYTE2LISP(xt->u8_mday);
     else if (reterr)
       return kno_err(kno_ImpreciseTimestamp,"xtime_get",
 		     SYM_NAME(slotid),VOID);
     else return EMPTY;
   else if (KNO_EQ(slotid,hours_symbol))
     if (xt->u8_prec>=u8_hour)
-      return KNO_BYTE2DTYPE(xt->u8_hour);
+      return KNO_BYTE2LISP(xt->u8_hour);
     else if (reterr)
       return kno_err(kno_ImpreciseTimestamp,"xtime_get",
 		     SYM_NAME(slotid),VOID);
     else return EMPTY;
   else if (KNO_EQ(slotid,minutes_symbol))
     if (xt->u8_prec>=u8_minute)
-      return KNO_BYTE2DTYPE(xt->u8_min);
+      return KNO_BYTE2LISP(xt->u8_min);
     else if (reterr)
       return kno_err(kno_ImpreciseTimestamp,"xtime_get",
 		     SYM_NAME(slotid),VOID);
     else return EMPTY;
   else if (KNO_EQ(slotid,seconds_symbol))
     if (xt->u8_prec>=u8_second)
-      return KNO_BYTE2DTYPE(xt->u8_sec);
+      return KNO_BYTE2LISP(xt->u8_sec);
     else if (reterr)
       return kno_err(kno_ImpreciseTimestamp,"xtime_get",
 		     SYM_NAME(slotid),VOID);
     else return EMPTY;
   else if (KNO_EQ(slotid,tzoff_symbol))
-    return KNO_SHORT2DTYPE(xt->u8_tzoff);
+    return KNO_SHORT2LISP(xt->u8_tzoff);
   else if (KNO_EQ(slotid,dstoff_symbol))
-    return KNO_SHORT2DTYPE(xt->u8_dstoff);
+    return KNO_SHORT2LISP(xt->u8_dstoff);
   else if (KNO_EQ(slotid,gmtoff_symbol))
-    return KNO_SHORT2DTYPE((xt->u8_tzoff+xt->u8_dstoff));
+    return KNO_SHORT2LISP((xt->u8_tzoff+xt->u8_dstoff));
   else if (KNO_EQ(slotid,tick_symbol))
     if (xt->u8_prec>=u8_second) {
       time_t tick = xt->u8_tick;
@@ -1121,7 +1121,7 @@ static lispval now_macro(lispval expr,kno_lexenv env,kno_stack ptr)
 
 DEFPRIM2("secs->string",secs2string,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "`(SECS->STRING *arg0* [*arg1*])` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_INT(3));
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_CPP_INT(3));
 static lispval secs2string(lispval secs,lispval prec_arg)
 {
   struct U8_OUTPUT out;

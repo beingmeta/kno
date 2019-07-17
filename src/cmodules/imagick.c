@@ -789,8 +789,8 @@ static void init_local_cprims()
 		 kno_imagick_type,KNO_VOID,kno_flonum_type,KNO_VOID);
   KNO_LINK_TYPED("imagick/crop",imagick_crop,5,imagick_module,
 		 kno_imagick_type,KNO_VOID,kno_fixnum_type,KNO_VOID,
-		 kno_fixnum_type,KNO_INT(0),kno_fixnum_type,KNO_INT(0),
-		 kno_fixnum_type,KNO_INT(0));
+		 kno_fixnum_type,KNO_CPP_INT(0),kno_fixnum_type,KNO_CPP_INT(0),
+		 kno_fixnum_type,KNO_CPP_INT(0));
   KNO_LINK_TYPED("imagick/flip",imagick_flip,1,imagick_module,
 		 kno_imagick_type,KNO_VOID);
   KNO_LINK_TYPED("imagick/flop",imagick_flop,1,imagick_module,
