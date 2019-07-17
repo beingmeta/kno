@@ -159,9 +159,8 @@ static lispval modules_testcapi()
   lispval table = kno_make_slotmap(0,0,NULL);
   kno_lexenv tmp_env = kno_new_lexenv(table);
   if (tmp_env == NULL) errors++;
-  else {
-    kno_decref((lispval)tmp_env);
-    kno_decref(table);}
+  else {kno_decref((lispval)tmp_env);}
+  kno_decref(table);
   kno_decref(astring);
   if (errors == 0)
     return KNO_FALSE;
