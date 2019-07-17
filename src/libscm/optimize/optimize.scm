@@ -28,7 +28,8 @@
 ;; 2: substs + lexrefs
 ;; 3: rewrites
 ;; 4: bind opcodes
-(define-init optlevel 3)
+;; 5: no sourcerefs
+(define-init optlevel 4)
 (varconfig! optimize:level optlevel)
 (varconfig! optlevel optlevel)
 
@@ -68,8 +69,11 @@
 (define (optmode-macro optname thresh varname)
   (macro expr
     `(getopt ,(cadr expr) ',optname
-	     (try ,varname (>= (getopt ,(cadr expr) 'optlevel optlevel)
-			       ,thresh)))))
+	     (try ,varname (if (>= ,thresh 0)
+			       (>= (getopt ,(cadr expr) 'optlevel optlevel)
+				   ,thresh)
+			       (>= (getopt ,(cadr expr) 'optlevel optlevel)
+				   (- ,thresh)))))))
 (define optmode
   (macro expr
     (let ((optname (get-arg expr 1))
@@ -101,7 +105,7 @@
 
 (define (annotate optimized source opts)
   (if (keep-source? opts)
-      (cons* sourcref-opcode source optimized)
+      (cons* sourceref-opcode source optimized)
       optimized))
 
 ;;; What we export
@@ -317,7 +321,7 @@
 (define fixchoice-opcode  #OP_FIXCHOICE)
 (define break-opcode  #OP_BREAK)
 
-(define sourcref-opcode  #OP_SOURCEREF)
+(define sourceref-opcode #OP_SOURCEREF)
 
 (def-opcode AMBIGUOUS? #OP_AMBIGP 1)
 (def-opcode SINGLETON? #OP_SINGLETONP 1)
