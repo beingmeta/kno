@@ -388,7 +388,7 @@ static lispval sqlitemakeproc
   /* include NUL */
   sqlcons->fcn_name = sqlcons->sqldb_qtext=_memdup((u8_byte *)sql,sql_len+1);
   sqlcons->fcn_n_params = n_params = sqlite3_bind_parameter_count(stmt);
-  sqlcons->fcn_call = KNO_FCN_CALL_XCALL;
+  sqlcons->fcn_call = KNO_FCN_CALL_XCALL | KNO_FCN_CALL_NOTAIL;
   sqlcons->fcn_arity = -1;
   sqlcons->fcn_min_arity = n_params;
   sqlcons->fcn_handler.xcalln = sqlitecallproc;

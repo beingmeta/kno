@@ -178,7 +178,7 @@ static lispval odbcmakeproc
     return KNO_ERROR_VALUE;}
   dbproc->sqldbptr = (lispval)dbp; kno_incref(dbproc->sqldbptr);
   dbproc->sqldb_handler = &odbc_handler;
-  dbproc->fcn_call = KNO_FCN_CALL_XCALL;
+  dbproc->fcn_call = KNO_FCN_CALL_XCALL | KNO_FCN_CALL_NOTAIL;
   dbproc->fcn_arity = -1;
   dbproc->fcn_min_arity = dbproc->fcn_n_params = n_params;
   dbproc->fcn_name = dbproc->sqldb_qtext=_memdup(stmt,stmt_len+1);

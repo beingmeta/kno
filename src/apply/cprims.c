@@ -166,12 +166,10 @@ static struct KNO_CPRIM *make_cprim(u8_string name,
   f->fcn_filename = filename;
   f->fcn_doc = doc;
   f->fcn_moduleid = KNO_VOID;
-  if (varargs)
-    f->fcn_call |= KNO_FCN_CALL_LEXPR;
-  if (non_deterministic)
-    f->fcn_call |= KNO_FCN_CALL_NDCALL;
-  if (extended_call)
-    f->fcn_call |= KNO_FCN_CALL_XCALL;
+  f->fcn_call = KNO_FCN_CALL_NOTAIL |
+    ( (varargs) ? (KNO_FCN_CALL_LEXPR) : (0) ) |
+    ( (non_deterministic) ? (KNO_FCN_CALL_NDCALL) : (0) ) |
+    ( (extended_call) ? (KNO_FCN_CALL_XCALL) : (0) );
   f->fcn_arity = arity;
   f->fcn_min_arity = min_arity;
   f->fcn_typeinfo = prim_typeinfo;
