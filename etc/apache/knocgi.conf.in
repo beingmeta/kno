@@ -1,0 +1,11 @@
+<IfModule !knocgi_module>
+  LoadModule knocgi_module      @apache_modules_dir@/mod_knocgi.so
+</IfModule>
+<IfModule mod_knocgi.c>
+        AddHandler knocgi .knocgi .knoxml .knoml .nml .cgi.scm .cgi.scm
+	KnoExecutable @prefix@/bin/knocgi
+	KnoUser @webuser@
+	KnoGroup @admin_group@
+	KnoPrefix @servlet_rundir@
+	KnoLogPrefix @servlet_logdir@
+</IfModule>

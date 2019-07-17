@@ -1,12 +1,12 @@
 /* C Mode */
 
-/* mod_kno.c
+/* mod_knocgi.c
    Copyright (C) 2002-2012 beingmeta, inc.  All Rights Reserved
    This is a Apache module supporting persistent Kno servers
 
    For Apache 2.0:
-     Compile with: apxs2 -c mod_kno.c
-     Install with: apxs2 -i mod_kno.so
+     Compile with: apxs2 -c mod_knocgi.c
+     Install with: apxs2 -i mod_knocgi.so
 
 */
 
@@ -97,7 +97,7 @@ static int debug_kv(void *data,const char *key,const char *value)
 #define APACHE20 1
 #define APACHE13 0
 
-#include "mod_kno_fileinfo.h"
+#include "mod_knocgi_fileinfo.h"
 
 #if (APR_SIZEOF_VOIDP==8)
 typedef unsigned long long INTPOINTER;
@@ -217,7 +217,7 @@ char version_info[256];
 
 static void init_version_info()
 {
-  sprintf(version_info,"mod_kno/%s",version_num);
+  sprintf(version_info,"mod_knocgi/%s",version_num);
 }
 
 /* Compatibility and utilities */
@@ -1375,7 +1375,7 @@ static int start_servlet(request_rec *r,kno_servlet s,
     *write_argv++=gidconfig;}
     
   {
-    char *launchconfig=apr_psprintf(p,"LAUNCHER=mod_kno");
+    char *launchconfig=apr_psprintf(p,"LAUNCHER=mod_knocgi");
     *write_argv++=launchconfig;}
 
 
@@ -2212,7 +2212,7 @@ static apr_status_t close_servlets(void *data)
   apr_thread_mutex_lock(servlets_lock);
   lim=n_servlets;
   ap_log_perror(APLOG_MARK,APLOG_NOTICE,OK,p,
-		"mod_kno closing %d open servlets",lim);
+		"mod_knocgi closing %d open servlets",lim);
   while (i<lim) {
     kno_servlet s=&(servlets[i++]);
     int j=0, n_socks;
@@ -2231,7 +2231,7 @@ static apr_status_t close_servlets(void *data)
       sock->closed=1; sock->busy=1;}
     apr_thread_mutex_unlock(s->lock);}
   ap_log_perror(APLOG_MARK,APLOG_INFO,OK,p,
-		"mod_kno closed %d open sockets across %d servlets",
+		"mod_knocgi closed %d open sockets across %d servlets",
 		sock_count,lim);
   apr_thread_mutex_unlock(servlets_lock);
   return OK;
@@ -2245,13 +2245,13 @@ static int reset_servlet(kno_servlet s,apr_pool_t *p,int locked)
   sockets=s->sockets; n_socks=s->n_socks;
 
   ap_log_perror(APLOG_MARK,APLOG_INFO,OK,p,
-		"mod_kno Resetting servlet %s (%d sockets/%d busy)",
+		"mod_knocgi Resetting servlet %s (%d sockets/%d busy)",
 		s->sockname,n_socks,s->n_busy);
   
   while (j<n_socks) {
     knosocket sock=&(sockets[j++]);
     ap_log_perror(APLOG_MARK,APLOG_INFO,OK,p,
-		  "mod_kno Resetting socket#%d for %s",
+		  "mod_knocgi Resetting socket#%d for %s",
 		  j-1,s->sockname);
     if (sock->closed) continue;
     if (sock->socktype==filesock) {
@@ -2261,7 +2261,7 @@ static int reset_servlet(kno_servlet s,apr_pool_t *p,int locked)
       apr_socket_close(sock->conn.apr);
       n_closed++;}
     else ap_log_perror(APLOG_MARK,APLOG_WARNING,OK,p,
-		       "mod_kno Weird socket entry (#%d) for %s",
+		       "mod_knocgi Weird socket entry (#%d) for %s",
 		       j-1,s->sockname);
     sock->closed=1; sock->busy=0;}
   s->n_busy=0;
@@ -2507,7 +2507,7 @@ static int scan_fgets(char *buf,int n_bytes,void *stream)
 #if DEBUG_KNO
     ap_log_error
       (APLOG_MARK,LOGDEBUG,rv,r->server,
-       "mod_kno/scan_fgets: Read header string %s from APR socket",buf);
+       "mod_knocgi/scan_fgets: Read header string %s from APR socket",buf);
 #endif
     if (write>=limit) return write-buf;
     else return write-buf;}
@@ -2523,7 +2523,7 @@ static int scan_fgets(char *buf,int n_bytes,void *stream)
 #if DEBUG_KNO
     ap_log_error
       (APLOG_MARK,APLOG_WARNING,OK,r->server,
-       "mod_kno/scan_fgets: Read header string %s from %d",buf,sock);
+       "mod_knocgi/scan_fgets: Read header string %s from %d",buf,sock);
 #endif
     if (write>=limit) return write-buf;
     else return write-buf;}
@@ -3124,7 +3124,7 @@ static int kno_post_config(apr_pool_t *p,
   struct KNO_SERVER_CONFIG *sconfig=
     ap_get_module_config(s->module_config,&kno_module);
   ap_log_perror(APLOG_MARK,APLOG_NOTICE,OK,p,
-		"mod_kno v%s starting post config for Apache 2.x (%s)",
+		"mod_knocgi v%s starting post config for Apache 2.x (%s)",
 		version_num,_FILEINFO);
   if (sconfig->socket_prefix==NULL)
     sconfig->socket_prefix=apr_pstrdup(p,"/var/run/kno/servlets/");
@@ -3146,7 +3146,7 @@ static int kno_post_config(apr_pool_t *p,
   init_version_info();
   ap_add_version_component(p,version_info);
   ap_log_perror(APLOG_MARK,APLOG_NOTICE,OK,p,
-		"mod_kno v%s finished post config for Apache 2.x",
+		"mod_knocgi v%s finished post config for Apache 2.x",
 		version_num);
   return OK;
 }
@@ -3154,7 +3154,7 @@ static int kno_post_config(apr_pool_t *p,
 static void kno_init(apr_pool_t *p,server_rec *s)
 {
   ap_log_perror(APLOG_MARK,APLOG_INFO,OK,p,
-		"mod_kno v%s starting child init (%d) for Apache 2.x (%s)",
+		"mod_knocgi v%s starting child init (%d) for Apache 2.x (%s)",
 		version_num,(int)getpid(),_FILEINFO);
   socketname_table=apr_table_make(p,64);
   kno_pool=p;
@@ -3166,7 +3166,7 @@ static void kno_init(apr_pool_t *p,server_rec *s)
   apr_pool_pre_cleanup_register(p,p,close_servlets);
   #endif
   ap_log_perror(APLOG_MARK,APLOG_INFO,OK,p,
-		"mod_kno v%s finished child init (%d) for Apache 2.x",
+		"mod_knocgi v%s finished child init (%d) for Apache 2.x",
 		version_num,(int)getpid());
 }
 static void register_hooks(apr_pool_t *p)
@@ -3190,7 +3190,7 @@ module AP_MODULE_DECLARE_DATA kno_module =
 
 /* Emacs local variables
 ;;;  Local variables: ***
-;;;  compile-command: "cd ../..; make mod_kno" ***
+;;;  compile-command: "cd ../..; make mod_knocgi" ***
 ;;;  End: ***
 */
 

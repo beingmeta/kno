@@ -734,7 +734,7 @@ static int output_content(kno_webconn ucl,lispval content)
     ssize_t rv = u8_writeall(ucl->socket,CSTRING(content),STRLEN(content));
     if (rv<0) {
       u8_log(LOG_CRIT,knocgiWriteError,
-             "Unexpected error writing %ld bytes to mod_kno",
+             "Unexpected error writing %ld bytes to mod_knocgi",
              STRLEN(content));
       return rv;}
     return STRLEN(content);}
@@ -742,7 +742,7 @@ static int output_content(kno_webconn ucl,lispval content)
     ssize_t rv = u8_writeall(ucl->socket,KNO_PACKET_DATA(content),KNO_PACKET_LENGTH(content));
     if (rv<0) {
       u8_log(LOG_CRIT,knocgiWriteError,
-             "Unexpected error writing %ld bytes to mod_kno",
+             "Unexpected error writing %ld bytes to mod_knocgi",
              STRLEN(content));
       return rv;}
     return KNO_PACKET_LENGTH(content);}
@@ -2049,7 +2049,7 @@ int main(int argc,char **argv)
      from the processing of the configuration variables themselves
      (where lots of errors could happen); second, we want to be able
      to set this in the environment we wrap around calls (which is how
-     mod_kno does it). */
+     mod_knocgi does it). */
   if (logfile) {
     int logsync = ((getenv("LOGSYNC") == NULL)?(0):(O_SYNC));
     int log_fd = open(logfile,O_RDWR|O_APPEND|O_CREAT|logsync,0644);

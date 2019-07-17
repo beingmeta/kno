@@ -19,10 +19,10 @@ override_dh_auto_configure:
                 --with-malloc=jemalloc
 
 override_dh_make:
-	make distribution docs mod_kno
+	make distribution docs mod_knocgi
 
 override_dh_auto_install:
-	make DESTDIR=$$(pwd)/debian/tmp install install-mod_kno install-i18n install-docs \
+	make DESTDIR=$$(pwd)/debian/tmp install install-mod_knocgi install-i18n install-docs \
 		setup-upstart setup-sysv setup-systemd setup-logrotate
 
 override_dh_install:

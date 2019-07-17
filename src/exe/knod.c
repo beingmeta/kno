@@ -1029,7 +1029,7 @@ int main(int argc,char **argv)
      from the processing of the configuration variables themselves
      (where lots of errors could happen); second, we want to be able
      to set this in the environment we wrap around calls (which is how
-     mod_kno does it). */
+     mod_knocgi does it). */
   if (logfile) {
     int logsync = ((getenv("LOGSYNC") == NULL)?(0):(O_SYNC));
     int log_fd = open(logfile,O_RDWR|O_APPEND|O_CREAT|logsync,0644);

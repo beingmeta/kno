@@ -18,7 +18,7 @@ Description: Scalable knowledge base development and application platform
  Kno natively supports reading and and generation of XML, HTML, and
  MIME data.  Web services support has long included built-in support
  for processing CGI requests both directly and with fastcgi.  With
- version 2.4, Kno comes with mod_kno, a lightweight extension to
+ version 2.4, Kno comes with mod_knocgi, a lightweight extension to
  the Apache webserver for transparently managing persistent
  multi-threaded servlets responding to CGI requests.
  
@@ -61,10 +61,10 @@ Provides: kno-modules
 Description: This package directly provides many source (scheme) modules for
   use with Kno
 
-Package: libapache2-mod-kno
+Package: libapache2-mod-knocgi
 Architecture: any
 Depends: kno-core (= ${binary:Version}), apache2
-Description: The mod_kno module for KNO servlets under Apache
+Description: The mod_knocgi modulec for KNO servlets under Apache
 
 Package: kno-mysql
 Architecture: any

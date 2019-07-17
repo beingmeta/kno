@@ -1,3 +1,0 @@
-<IfModule !kno_module>
-  LoadModule kno_module      @apache_modules_dir@/mod_kno.so
-</IfModule>
