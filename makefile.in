@@ -1420,7 +1420,7 @@ dist/debs.signed: dist/debs.built
 			sysv-kno_@KNO_VERSION@*.deb  		\
 			upstart-kno_@KNO_VERSION@*.deb  	\
 			systemd-kno_@KNO_VERSION@*.deb  	\
-			libapache2-mod-kno_@KNO_VERSION@*.deb  \
+			libapache2-mod-knocgi_@KNO_VERSION@*.deb  \
 			elpa-knoc_@KNO_VERSION@*.deb  \
 			../dist) &&                             \
 	touch dist/debs.signed;
@@ -1432,7 +1432,7 @@ dist/debsource.signed: dist/debsource.built
 			sysv-kno_@KNO_VERSION@*.deb  		\
 			upstart-kno_@KNO_VERSION@*.deb  	\
 			systemd-kno_@KNO_VERSION@*.deb  	\
-			libapache2-mod-kno_@KNO_VERSION@*.deb  \
+			libapache2-mod-knocgi_@KNO_VERSION@*.deb  \
 			elpa-knoc_@KNO_VERSION@*.deb  \
 			../dist) &&                             \
 	touch dist/debsource.signed;
@@ -1445,7 +1445,7 @@ dist/debsource.done: dist/debsource.signed
 
 install-debian install-debs debinstall installdebs: dist/debs.done
 	@cd dist; @SUDO@ dpkg -i kno*@KNO_VERSION@*.deb \
-		elpa-knoc*@KNO_VERSION@*.deb libapache2-mod-kno_@KNO_VERSION@*.deb \
+		elpa-knoc*@KNO_VERSION@*.deb libapache2-mod-knocgi_@KNO_VERSION@*.deb \
 		systemd-kno_@KNO_VERSION@*.deb
 
 update-local-apt-repo: dist/debs.done
@@ -1570,7 +1570,7 @@ install-data: \
 	$(DESTDIR)@config_dir@/boot/ex_servlet.service  \
 	$(DESTDIR)@config_dir@/boot/kno.target		\
 	$(DESTDIR)@config_dir@/boot/knod.service	\
-	$(DESTDIR)@config_dir@/boot/knoweb.service	\
+	$(DESTDIR)@config_dir@/boot/knoservlets.service	\
 	$(DESTDIR)@config_dir@/boot/kno-rc.d 		\
 	$(DESTDIR)@config_dir@/boot/kno.conf 		\
 	$(DESTDIR)@config_dir@/boot/logrotate
@@ -1760,7 +1760,7 @@ $(DESTDIR)@systemd_loc@:
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $(DESTDIR)@systemd_loc@
 setup-systemd: $(DESTDIR)@systemd_loc@/kno.target \
 		$(DESTDIR)@systemd_loc@/knod.service \
-		$(DESTDIR)@systemd_loc@/knoweb.service \
+		$(DESTDIR)@systemd_loc@/knoservlets.service \
 		startupdirs
 $(DESTDIR)@systemd_loc@/%: etc/systemd/% $(DESTDIR)@systemd_loc@
 	@$(MSG) Installing systemd config in $@
@@ -1853,9 +1853,9 @@ mod_knocgi: src/apache2/mod_knocgi.so
 # apxs -Wc,'-arch x86_64' -Wl,'-arch x86_64'  -a -i -c src/apache2/mod_knocgi.c
 install-mod_knocgi: src/apache2/mod_knocgi.so $(DESTDIR)@apache_modinfo@ \
 	$(DESTDIR)@apache_modules_dir@ $(DESTDIR)@servlet_logdir@
-	@cd etc/apache; $(SYSINSTALL) @install_file_opts@ kno.conf \
+	@cd etc/apache; $(SYSINSTALL) @install_file_opts@ knocgi.conf \
 			$(DESTDIR)@apache_modinfo@;
-	@cd etc/apache; $(SYSINSTALL) @install_file_opts@ kno.load \
+	@cd etc/apache; $(SYSINSTALL) @install_file_opts@ knocgi.load \
 			$(DESTDIR)@apache_modinfo@;
 	@$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
 			-d $(DESTDIR)@rundir@/kno/servlets;
@@ -1877,7 +1877,7 @@ update-mod_knocgi: src/apache2/mod_knocgi.so $(DESTDIR)@apache_modinfo@ \
 	@$(MSG) "STOPPING and STARTING Apache to INSTALL NEW mod_knocgi"
 	@$(MSG) "THIS REQUIRES sudo PRIVILEGES; you may be prompted for your password"
 	sudo apachectl stop
-	cd etc/apache; sudo ${INSTALL} @install_file_opts@ kno.conf kno.load \
+	cd etc/apache; sudo ${INSTALL} @install_file_opts@ knocgi.conf knocgi.load \
 			$(DESTDIR)@apache_modinfo@;
 	$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
 			-d $(DESTDIR)@rundir@/kno/servlets;

@@ -6,7 +6,7 @@ After=knodaemons.service upsource.target
 [Service]
 Type=forking
 RemainAfterExit=true
-Environment=KNO_LAUNCHER=fdweb.service RUNUSER=@webuser@ RUNGROUP=@webgroup@
+Environment=KNO_LAUNCHER=knoservlets.service RUNUSER=@webuser@ RUNGROUP=@webgroup@
 PassEnvironment=KNO_LAUNCHER RUNUSER RUNGROUP
 TimeoutStartSec=300
 TimeoutStopSec=300
