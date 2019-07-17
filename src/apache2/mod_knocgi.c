@@ -190,7 +190,7 @@ typedef struct KNO_SERVLET {
   struct KNO_SOCKET *sockets;} KNO_SERVLET;
 typedef struct KNO_SERVLET *kno_servlet;
 
-module AP_MODULE_DECLARE_DATA kno_module;
+module AP_MODULE_DECLARE_DATA knocgi_module;
 
 static struct KNO_SERVLET *servlets;
 static int n_servlets=0, max_servlets=-1;
@@ -393,9 +393,9 @@ static const char *get_sockname(request_rec *r)
   if (cached) return cached;
   else {
     struct KNO_SERVER_CONFIG *sconfig=
-      ap_get_module_config(r->server->module_config,&kno_module);
+      ap_get_module_config(r->server->module_config,&knocgi_module);
     struct KNO_DIR_CONFIG *dconfig=
-      ap_get_module_config(r->per_dir_config,&kno_module);
+      ap_get_module_config(r->per_dir_config,&knocgi_module);
     const char *socket_location=
       (((dconfig->socket_spec)!=NULL) ? (dconfig->socket_spec) :
        (convert_path(location,pathbuf)));
@@ -702,7 +702,7 @@ static const char *socket_spec(cmd_parms *parms,void *mconfig,const char *arg)
 {
   struct KNO_DIR_CONFIG *dconfig=mconfig;
   struct KNO_SERVER_CONFIG *sconfig=
-    ap_get_module_config(parms->server->module_config,&kno_module);
+    ap_get_module_config(parms->server->module_config,&knocgi_module);
   struct server_rec *srv=parms->server;
   const char *fullpath=NULL, *spec=NULL, *cpath=parms->path;
 
@@ -739,7 +739,7 @@ static const char *using_dtblock(cmd_parms *parms,void *mconfig,const char *arg)
 {
   LOG_CONFIG(parms,arg);
   struct KNO_SERVER_CONFIG *sconfig=
-    ap_get_module_config(parms->server->module_config,&kno_module);
+    ap_get_module_config(parms->server->module_config,&knocgi_module);
   if (!(arg))
     sconfig->use_dtblock=0;
   else if (!(*arg))
@@ -787,7 +787,7 @@ static const char *servlet_executable
    (cmd_parms *parms,void *mconfig,const char *arg)
 {
   struct KNO_SERVER_CONFIG *sconfig=
-    ap_get_module_config(parms->server->module_config,&kno_module);
+    ap_get_module_config(parms->server->module_config,&knocgi_module);
   struct KNO_DIR_CONFIG *dconfig=mconfig;
   LOG_CONFIG(parms,arg);
   if (executable_filep(parms->pool,arg))
@@ -804,7 +804,7 @@ static const char *servlet_dir
    (cmd_parms *parms,void *mconfig,const char *arg)
 {
   struct KNO_SERVER_CONFIG *sconfig=
-    ap_get_module_config(parms->server->module_config,&kno_module);
+    ap_get_module_config(parms->server->module_config,&knocgi_module);
   struct KNO_DIR_CONFIG *dconfig=mconfig;
   LOG_CONFIG(parms,arg);
   if (isdirectoryp(parms->pool,arg))
@@ -820,7 +820,7 @@ static const char *servlet_dir
 static const char *servlet_wait(cmd_parms *parms,void *mconfig,const char *arg)
 {
   struct KNO_SERVER_CONFIG *sconfig=
-    ap_get_module_config(parms->server->module_config,&kno_module);
+    ap_get_module_config(parms->server->module_config,&knocgi_module);
   struct KNO_DIR_CONFIG *dconfig=mconfig;
   char *end=NULL; long wait_interval=-1;
   LOG_CONFIG(parms,arg);
@@ -842,7 +842,7 @@ static const char *servlet_wait(cmd_parms *parms,void *mconfig,const char *arg)
 static const char *servlet_spawn(cmd_parms *parms,void *mconfig,const char *arg)
 {
   struct KNO_SERVER_CONFIG *sconfig=
-    ap_get_module_config(parms->server->module_config,&kno_module);
+    ap_get_module_config(parms->server->module_config,&knocgi_module);
   struct KNO_DIR_CONFIG *dconfig=mconfig;
   int spawn_wait; char *end;
   LOG_CONFIG(parms,arg);
@@ -877,7 +877,7 @@ static const char *log_sync(cmd_parms *parms,void *mconfig,const char *arg)
     return NULL;}
   else {
     struct KNO_SERVER_CONFIG *sconfig=
-      ap_get_module_config(parms->server->module_config,&kno_module);
+      ap_get_module_config(parms->server->module_config,&knocgi_module);
     sconfig->log_sync=dosync;}
   return NULL;
 }
@@ -890,7 +890,7 @@ static const char *servlet_config
 {
   struct KNO_DIR_CONFIG *dconfig=mconfig;
   struct KNO_SERVER_CONFIG *sconfig=
-    ap_get_module_config(parms->server->module_config,&kno_module);
+    ap_get_module_config(parms->server->module_config,&knocgi_module);
   apr_pool_t *p=parms->pool;
   if (parms->path) {
     dconfig->config_args=
@@ -908,7 +908,7 @@ static const char *servlet_env
 {
   struct KNO_DIR_CONFIG *dconfig=mconfig;
   struct KNO_SERVER_CONFIG *sconfig=
-    ap_get_module_config(parms->server->module_config,&kno_module);
+    ap_get_module_config(parms->server->module_config,&knocgi_module);
   apr_pool_t *p=parms->pool;
   if (parms->path) {
     dconfig->servlet_env=
@@ -957,7 +957,7 @@ static const char *servlet_param
 {
   struct KNO_DIR_CONFIG *dconfig=mconfig;
   struct KNO_SERVER_CONFIG *sconfig=
-    ap_get_module_config(parms->server->module_config,&kno_module);
+    ap_get_module_config(parms->server->module_config,&knocgi_module);
   apr_pool_t *p=parms->pool;
   if (parms->path) {
     dconfig->req_params=
@@ -998,7 +998,7 @@ static char **extend_params(apr_pool_t *p,char **req_params,const
 static const char *servlet_user(cmd_parms *parms,void *mconfig,const char *arg)
 {
   struct KNO_SERVER_CONFIG *sconfig=
-    ap_get_module_config(parms->server->module_config,&kno_module);
+    ap_get_module_config(parms->server->module_config,&knocgi_module);
   int uid=(int)ap_uname2id(arg);
   if (uid >= 0) {
     /* On some platforms (OS X), this condition can never happen,
@@ -1012,7 +1012,7 @@ static const char *servlet_user(cmd_parms *parms,void *mconfig,const char *arg)
 static const char *servlet_group(cmd_parms *parms,void *mconfig,const char *arg)
 {
   struct KNO_SERVER_CONFIG *sconfig=
-    ap_get_module_config(parms->server->module_config,&kno_module);
+    ap_get_module_config(parms->server->module_config,&knocgi_module);
   int gid=(int)ap_gname2id(arg);
   if (gid >= 0) {
     /* On some platforms (OS X), this condition can never happen,
@@ -1027,7 +1027,7 @@ static const char *socket_prefix(cmd_parms *parms,void *mconfig,const char *arg)
 {
   struct KNO_DIR_CONFIG *dconfig=mconfig;
   struct KNO_SERVER_CONFIG *sconfig=
-    ap_get_module_config(parms->server->module_config,&kno_module);
+    ap_get_module_config(parms->server->module_config,&knocgi_module);
   const char *fullpath;
   if (arg[0]=='/') fullpath=arg;
   else fullpath=ap_server_root_relative(parms->pool,(char *)arg);
@@ -1056,7 +1056,7 @@ static const char *log_prefix(cmd_parms *parms,void *mconfig,const char *arg)
 {
   struct KNO_DIR_CONFIG *dconfig=mconfig;
   struct KNO_SERVER_CONFIG *sconfig=
-    ap_get_module_config(parms->server->module_config,&kno_module);
+    ap_get_module_config(parms->server->module_config,&knocgi_module);
   const char *fullpath;
   if (arg[0]=='/') fullpath=arg;
   else fullpath=ap_server_root_relative(parms->pool,(char *)arg);
@@ -1086,7 +1086,7 @@ static const char *log_file(cmd_parms *parms,void *mconfig,const char *arg)
   struct KNO_DIR_CONFIG *dconfig=mconfig;
   struct KNO_SERVER_CONFIG *sconfig=mconfig;
   struct KNO_SERVER_CONFIG *smodconfig=
-    ap_get_module_config(parms->server->module_config,&kno_module);
+    ap_get_module_config(parms->server->module_config,&knocgi_module);
   const char *log_prefix=NULL, *fullpath=NULL;
   if (parms->path)
     log_prefix=dconfig->log_prefix;
@@ -1176,9 +1176,9 @@ static int check_directory(apr_pool_t *p,const char *filename)
 static const char *get_log_file(request_rec *r,const char *sockname) /* 2.0 */
 {
   struct KNO_SERVER_CONFIG *sconfig=
-    ap_get_module_config(r->server->module_config,&kno_module);
+    ap_get_module_config(r->server->module_config,&knocgi_module);
   struct KNO_DIR_CONFIG *dconfig=
-    ap_get_module_config(r->per_dir_config,&kno_module);
+    ap_get_module_config(r->per_dir_config,&knocgi_module);
   const char *log_file=
     (((dconfig->log_file)!=NULL) ? (dconfig->log_file) :
      ((sconfig->log_file)!=NULL) ? (sconfig->log_file) : (NULL));
@@ -1227,9 +1227,9 @@ static int spawn_servlet(kno_servlet s,request_rec *r,apr_pool_t *p)
   const char *nospawn=apr_pstrcat(p,sockname,".nospawn",NULL);
 
   struct KNO_SERVER_CONFIG *sconfig=
-    ap_get_module_config(r->server->module_config,&kno_module);
+    ap_get_module_config(r->server->module_config,&knocgi_module);
   struct KNO_DIR_CONFIG *dconfig=
-    ap_get_module_config(r->per_dir_config,&kno_module);
+    ap_get_module_config(r->per_dir_config,&knocgi_module);
 
   server_rec *server=r->server;
   int servlet_wait=dconfig->servlet_wait;
@@ -1605,9 +1605,9 @@ static int spawn_wait(kno_servlet s,request_rec *r,apr_proc_t *proc)
   apr_pool_t *p=((r==NULL)?(kno_pool):(r->pool));
   const char *sockname=s->sockname;
   struct KNO_SERVER_CONFIG *sconfig=
-    ap_get_module_config(r->server->module_config,&kno_module);
+    ap_get_module_config(r->server->module_config,&knocgi_module);
   struct KNO_DIR_CONFIG *dconfig=
-    ap_get_module_config(r->per_dir_config,&kno_module);
+    ap_get_module_config(r->per_dir_config,&knocgi_module);
   struct stat stat_data; int rv;
   int servlet_wait=dconfig->servlet_wait;
   int elapsed=0;
@@ -1941,9 +1941,9 @@ static knosocket servlet_open(kno_servlet s,struct KNO_SOCKET *given,request_rec
 static int get_servlet_wait(request_rec *r)
 {
   struct KNO_SERVER_CONFIG *sconfig=
-    ap_get_module_config(r->server->module_config,&kno_module);
+    ap_get_module_config(r->server->module_config,&knocgi_module);
   struct KNO_DIR_CONFIG *dconfig=
-    ap_get_module_config(r->per_dir_config,&kno_module);
+    ap_get_module_config(r->per_dir_config,&knocgi_module);
   if (dconfig->servlet_wait>=0) return dconfig->servlet_wait;
   else if (sconfig->servlet_wait>=0) return sconfig->servlet_wait;
   else return DEFAULT_SERVLET_WAIT;
@@ -2165,9 +2165,9 @@ static kno_servlet request_servlet(request_rec *r)
 {
   const char *sockname=get_sockname(r);
   struct KNO_SERVER_CONFIG *sconfig=
-    ap_get_module_config(r->server->module_config,&kno_module);
+    ap_get_module_config(r->server->module_config,&knocgi_module);
   struct KNO_DIR_CONFIG *dconfig=
-    ap_get_module_config(r->per_dir_config,&kno_module);
+    ap_get_module_config(r->per_dir_config,&knocgi_module);
   int keep_socks=sconfig->keep_socks, max_socks=sconfig->max_socks;
   kno_servlet servlet;
   if (sockname)
@@ -2858,9 +2858,9 @@ static int kno_handler(request_rec *r)
   int rv;
   struct HEAD_SCANNER scanner;
   struct KNO_SERVER_CONFIG *sconfig=
-    ap_get_module_config(r->server->module_config,&kno_module);
+    ap_get_module_config(r->server->module_config,&knocgi_module);
   struct KNO_DIR_CONFIG *dconfig=
-    ap_get_module_config(r->per_dir_config,&kno_module);
+    ap_get_module_config(r->per_dir_config,&knocgi_module);
   int using_dtblock=((sconfig->use_dtblock<0)?(use_dtblock):
 		     ((sconfig->use_dtblock)?(1):(0)));
   int status_request=0;
@@ -3122,7 +3122,7 @@ static int kno_post_config(apr_pool_t *p,
 			      server_rec *s)
 {
   struct KNO_SERVER_CONFIG *sconfig=
-    ap_get_module_config(s->module_config,&kno_module);
+    ap_get_module_config(s->module_config,&knocgi_module);
   ap_log_perror(APLOG_MARK,APLOG_NOTICE,OK,p,
 		"mod_knocgi v%s starting post config for Apache 2.x (%s)",
 		version_num,_FILEINFO);
@@ -3177,7 +3177,7 @@ static void register_hooks(apr_pool_t *p)
   ap_hook_post_config(kno_post_config, NULL, NULL, APR_HOOK_MIDDLE);
 }
 
-module AP_MODULE_DECLARE_DATA kno_module =
+module AP_MODULE_DECLARE_DATA knocgi_module =
 {
     STANDARD20_MODULE_STUFF,
     create_dir_config,				/* dir config creater */
