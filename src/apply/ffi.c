@@ -152,8 +152,7 @@ KNO_EXPORT struct KNO_FFI_PROC *kno_make_ffi_proc
     proc->ffi_argtypes = ffi_argtypes;
     proc->ffi_return_spec = return_spec; kno_incref(return_spec);
     proc->ffi_argspecs = savespecs;
-    proc->fcn_ndcall = 0;
-    proc->fcn_xcall = 1;
+    proc->fcn_call = KNO_FCN_CALL_XCALL;
     // Defer arity checking to kno_ffi_call
     proc->fcn_handler.xcalln = NULL;
     proc->ffi_dlsym = symbol;
@@ -455,13 +454,14 @@ KNO_EXPORT lispval kno_ffi_call(struct KNO_FUNCTION *fn,int n,lispval *args)
 static void recycle_ffi_proc(struct KNO_RAW_CONS *c)
 {
   struct KNO_FFI_PROC *ffi = (struct KNO_FFI_PROC *)c;
-  int arity = ffi->fcn_arity;
+  int arity = ffi->fcn_arity, free_flags = ffi->fcn_free;
   if (ffi->fcn_name) u8_free(ffi->fcn_name);
   if (ffi->fcn_filename) u8_free(ffi->fcn_filename);
-  if ( (ffi->fcn_doc) && (ffi->fcn_free_doc) )
+  if ( (ffi->fcn_doc) && (free_flags&KNO_FCN_FREE_DOC) )
     u8_free(ffi->fcn_doc);
-  if (ffi->fcn_typeinfo) u8_free(ffi->fcn_typeinfo);
-  if (ffi->fcn_defaults) {
+  if ( (ffi->fcn_typeinfo) && (free_flags&KNO_FCN_FREE_TYPEINFO) )
+    u8_free(ffi->fcn_typeinfo);
+  if ( (ffi->fcn_defaults) && (free_flags&KNO_FCN_FREE_DEFAULTS) ) {
     lispval *default_values = ffi->fcn_defaults;
     int i = 0; while (i<arity) {
       lispval v = default_values[i++]; kno_decref(v);}

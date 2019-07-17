@@ -482,10 +482,10 @@ KNO_FASTOP lispval dcall(u8_string fname,kno_function f,int n,lispval *args)
     if (kno_applyfns[ctype])
       return kno_applyfns[ctype]((lispval)f,n,args);
     else return kno_type_error("applicable","dcall",(lispval)f);}
-  else if ( (f->fcn_varargs) || (f->fcn_arity < 0) || (f->fcn_xcall) ) {
-    if (f->fcn_xcall)
-      return f->fcn_handler.xcalln(f,n,args);
-    else return f->fcn_handler.calln(n,args);}
+  else if ( (FCN_LEXPRP(f)) || (f->fcn_arity < 0) )
+    return f->fcn_handler.calln(n,args);
+  else if (FCN_XCALLP(f))
+    return f->fcn_handler.xcalln(f,n,args);
   else switch (f->fcn_arity) {
     case 0: return dcall0(f);
     case 1: return dcall1(f,args[0]);
@@ -537,7 +537,7 @@ KNO_FASTOP lispval dcall(u8_string fname,kno_function f,int n,lispval *args)
                      args[9],args[10],args[11],
                      args[12],args[13],args[14]);
     default:
-      if (f->fcn_xcall)
+      if (FCN_XCALLP(f))
         return f->fcn_handler.xcalln(f,n,args);
       else return f->fcn_handler.calln(n,args);}
 }
@@ -555,7 +555,7 @@ KNO_FASTOP lispval apply_fcn(struct KNO_STACK *stack,
     lispval argbuf[n];
     if (KNO_EXPECT_FALSE(check_argbuf(f,n,argbuf,argvec)<0))
       return KNO_ERROR;
-    else if ( (f->fcn_xcall) && (f->fcn_handler.xcalln) )
+    else if ( (FCN_XCALLP(f)) && (f->fcn_handler.xcalln) )
       return f->fcn_handler.xcalln(f,n,argbuf);
     else if (f->fcn_handler.calln)
       return f->fcn_handler.calln(n,argbuf);
@@ -624,7 +624,7 @@ KNO_EXPORT lispval kno_dcall(struct KNO_STACK *_stack,
         clock_gettime(CLOCK_MONOTONIC,&start);
 #endif
         result=apply_fcn(apply_stack,fname,f,n,argvec);
-        if ( (KNO_TAILCALLP(result)) && (f->fcn_notail) )
+        if ( (KNO_TAILCALLP(result)) && (FCN_NOTAILP(f)) )
           result=kno_finish_call(result);
 #if HAVE_CLOCK_GETTIME
         clock_gettime(CLOCK_MONOTONIC,&end);
@@ -655,7 +655,7 @@ KNO_EXPORT lispval kno_dcall(struct KNO_STACK *_stack,
         if (!(PRED_TRUE(KNO_CHECK_PTR(result)))) {
           result = kno_badptr_err(result,"kno_deterministic_apply",fname);
           trouble = 1;}
-        else if ( (KNO_TAILCALLP(result)) && (f->fcn_notail) )
+        else if ( (KNO_TAILCALLP(result)) && (FCN_NOTAILP(f)) )
           result=kno_finish_call(result);}
       else result=kno_applyfns[ftype](fn,n,argvec);
     U8_ON_EXCEPTION {
@@ -898,7 +898,7 @@ KNO_EXPORT lispval kno_call(struct KNO_STACK *_stack,
   lispval handler = (KNO_FCNIDP(fp)) ? (kno_fcnid_ref(fp)) : (fp);
   if (KNO_FUNCTIONP(handler))  {
     struct KNO_FUNCTION *f = (kno_function) handler;
-    if ( (f) && (f->fcn_ndcall) ) {
+    if ( (f) && (FCN_NDCALLP(f)) ) {
       if (!(PRED_FALSE(contains_qchoicep(n,args))))
         result = kno_dcall(_stack,(lispval)f,n,args);
       else result = qchoice_dcall(_stack,fp,n,args);

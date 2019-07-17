@@ -1132,7 +1132,7 @@ static int non_deterministicp(lispval fn)
 {
   if (KNO_FUNCTIONP(fn)) {
     kno_function f = (kno_function) fn;
-    return (f->fcn_ndcall);}
+    return (FCN_NDCALLP(f));}
   else if (KNO_APPLICABLEP(fn))
     return 1;
   else return 0;

@@ -146,10 +146,7 @@ typedef lispval (*kno_xprimn)(kno_function,int n,lispval *);
   u8_string fcn_name, fcn_filename;                                       \
   u8_string fcn_doc;                                                      \
   lispval fcn_moduleid;                                                   \
-  unsigned int fcn_ndcall:1, fcn_xcall:1, fcn_varargs:1;                \
-  unsigned int fcn_wrap_calls:1, fcn_notail:1;                          \
-  unsigned int fcn_break:1, fcn_trace:3;                                  \
-  unsigned int fcn_free_doc:1, fcn_free_typeinfo:1, fcn_free_defaults:1;  \
+  unsigned char fcn_call, fcn_trace, fcn_free, fcn_other;               \
   lispval fcnid;                                                          \
   short fcn_arity, fcn_min_arity;                                         \
   lispval fcn_attribs;                                                    \
@@ -167,6 +164,34 @@ typedef lispval (*kno_xprimn)(kno_function,int n,lispval *);
     kno_xprimn xcalln;                                                     \
     void *fnptr;}                                                         \
     fcn_handler
+
+#define KNO_FCN_FREE_DOC 1
+#define KNO_FCN_FREE_TYPEINFO 2
+#define KNO_FCN_FREE_DEFAULTS 4
+
+#define KNO_FCN_TRACE_PROFILE 1
+#define KNO_FCN_TRACE_LOGGING 2
+#define KNO_FCN_TRACE_TRACEFN 4
+#define KNO_FCN_TRACE_BREAK   8
+
+#define KNO_FCN_CALL_NDCALL 1
+#define KNO_FCN_CALL_LEXPR  2
+#define KNO_FCN_CALL_NOTAIL 4
+#define KNO_FCN_CALL_XCALL  8
+
+#define KNO_FCN_PROFILEP(f) ( ((f)->fcn_trace) & (KNO_FCN_TRACE_PROFILE) )
+#define KNO_FCN_LOGGEDP(f)  ( ((f)->fcn_trace) & (KNO_FCN_CALL_LOGGING) )
+#define KNO_FCN_TRACEDP(f)  ( ((f)->fcn_trace) & (KNO_FCN_CALL_TRACEFN) )
+#define KNO_FCN_BREAKP(f)   ( ((f)->fcn_trace) & (KNO_FCN_CALL_BREAK) )
+
+#define KNO_FCN_NDCALLP(f) ( ((f)->fcn_call) & (KNO_FCN_CALL_NDCALL) )
+#define KNO_FCN_LEXPRP(f) ( ((f)->fcn_call) & (KNO_FCN_CALL_LEXPR) )
+#define KNO_FCN_NOTAILP(f) ( ((f)->fcn_call) & (KNO_FCN_CALL_NOTAIL) )
+#define KNO_FCN_XCALLP(f) ( ((f)->fcn_call) & (KNO_FCN_CALL_XCALL) )
+
+#define KNO_FCN_FREE_DOCP(f)      ( ((f)->fcn_free) & (KNO_FCN_FREE_DOC) )
+#define KNO_FCN_FREE_TYPEINFOP(f) ( ((f)->fcn_free) & (KNO_FCN_FREE_TYPEINFO) )
+#define KNO_FCN_FREE_DEFAULTSP(f) ( ((f)->fcn_free) & (KNO_FCN_FREE_DEFAULTS) )
 
 struct KNO_FUNCTION {
   KNO_FUNCTION_FIELDS;
@@ -425,6 +450,15 @@ KNO_EXPORT int kno_profiling;
 
 KNO_EXPORT int kno_unparse_function
 (u8_output out,lispval x,u8_string name,u8_string before,u8_string after);
+
+/* KNO_SOURCE aliases */
+
+#if KNO_SOURCE
+#define FCN_NDCALLP KNO_FCN_NDCALLP
+#define FCN_NOTAILP KNO_FCN_NOTAILP
+#define FCN_XCALLP KNO_FCN_XCALLP
+#define FCN_LEXPRP KNO_FCN_LEXPRP
+#endif
 
 #endif /* KNO_APPLY_H */
 

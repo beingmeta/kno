@@ -147,7 +147,7 @@ static int unparse_fcnid(u8_output out,lispval x)
     u8_byte arity[64]="", codes[64]="", numbuf[32], namebuf[64];
     u8_string name = kno_fcn_sig(fcn,namebuf);
     if ((filename)&&(filename[0]=='\0')) filename = NULL;
-    if (fcn->fcn_ndcall) strcat(codes,"∀");
+    if (FCN_NDCALLP(fcn)) strcat(codes,"∀");
     if ((fcn->fcn_arity<0)&&(fcn->fcn_min_arity<0))
       strcat(arity,"…");
     else if (fcn->fcn_arity == fcn->fcn_min_arity) {

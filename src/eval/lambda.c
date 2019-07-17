@@ -283,7 +283,7 @@ static lispval process_docstring(struct KNO_LAMBDA *s,u8_string name,
     n_lines++;}
   if ( (u8_outbuf_written(&docstream)) ) {
     s->fcn_doc=docstream.u8_outbuf;
-    s->fcn_free_doc = 1;}
+    s->fcn_free |= KNO_FCN_FREE_DOC;}
   else u8_close_output(&docstream);
   return body;
 }
@@ -335,8 +335,8 @@ _make_lambda(u8_string name,
   KNO_INIT_FRESH_CONS(s,kno_lambda_type);
   s->fcn_name = ((name) ? (u8_strdup(name)) : (NULL));
 
-  s->fcn_ndcall = nd;
-  s->fcn_xcall = 1;
+  s->fcn_call = ( ((nd) ? (KNO_FCN_CALL_NDCALL) : (0)) |
+                  (KNO_FCN_CALL_XCALL) );
   s->fcn_handler.fnptr = NULL;
   s->fcn_typeinfo = NULL;
   s->fcn_defaults = NULL;
@@ -402,9 +402,14 @@ KNO_EXPORT void recycle_lambda(struct KNO_RAW_CONS *c)
 {
   struct KNO_LAMBDA *lambda = (struct KNO_LAMBDA *)c;
   int mallocd = KNO_MALLOCD_CONSP(c), n_vars = lambda->lambda_n_vars;
-  if (lambda->fcn_typeinfo) u8_free(lambda->fcn_typeinfo);
-  if (lambda->fcn_defaults) u8_free(lambda->fcn_defaults);
-  if ( (lambda->fcn_doc) && (lambda->fcn_free_doc) ) {
+  int free_flags = lambda->fcn_free;
+  if ( (lambda->fcn_typeinfo) && ( (free_flags) & (KNO_FCN_FREE_TYPEINFO) ) ) {
+    u8_free(lambda->fcn_typeinfo);
+    lambda->fcn_typeinfo=NULL;}
+  if ( (lambda->fcn_defaults) && ( (free_flags) & (KNO_FCN_FREE_DEFAULTS) ) ) {
+    u8_free(lambda->fcn_defaults);
+    lambda->fcn_defaults=NULL;}
+  if ( (lambda->fcn_doc) && ( (free_flags) & (KNO_FCN_FREE_DOC) ) ) {
     u8_free(lambda->fcn_doc);
     lambda->fcn_doc = NULL;}
   if (lambda->fcn_attribs) kno_decref(lambda->fcn_attribs);
@@ -454,9 +459,9 @@ static int unparse_lambda(u8_output out,lispval x)
   u8_string modname =
     (KNO_SYMBOLP(moduleid)) ? (KNO_SYMBOL_NAME(moduleid)) : (NULL);
   u8_string codes=
-    (((lambda->lambda_synchronized)&&(lambda->fcn_ndcall))?("∀∥"):
-     (lambda->lambda_synchronized)?("∥"):
-     (lambda->fcn_ndcall)?("∀"):(""));
+    (( (lambda->lambda_synchronized) && (FCN_NDCALLP(lambda)) ) ? ("∀∥") :
+     (lambda->lambda_synchronized) ? ("∥") :
+     (FCN_NDCALLP(lambda)) ? ("∀") : (""));
   if (lambda->fcn_name)
     u8_printf(out,"#<λ%s%s",codes,lambda->fcn_name);
   else u8_printf(out,"#<λ%s0x%04x",codes,((addr>>2)%0x10000));
@@ -522,10 +527,11 @@ KNO_EXPORT lispval copy_lambda(lispval c,int flags)
     KNO_INIT_CONS(fresh,kno_lambda_type);
 
     if (lambda->fcn_doc) {
-      if (lambda->fcn_free_doc)
+      if (KNO_FCN_FREE_DOCP(lambda))
         fresh->fcn_doc = u8_strdup(lambda->fcn_doc);
       else fresh->fcn_doc = lambda->fcn_doc;}
-    if (lambda->fcn_name) fresh->fcn_name = u8_strdup(lambda->fcn_name);
+    if (lambda->fcn_name)
+      fresh->fcn_name = u8_strdup(lambda->fcn_name);
     if (lambda->fcn_filename)
       fresh->fcn_filename = u8_strdup(lambda->fcn_filename);
     if (lambda->lambda_env)
@@ -926,10 +932,11 @@ static int better_unparse_fcnid(u8_output out,lispval x)
     struct KNO_LAMBDA *lambda = kno_consptr(kno_lambda,lp,kno_lambda_type);
     kno_ptrval addr = (kno_ptrval) lambda;
     lispval arglist = lambda->lambda_arglist;
+    int ndcallp = (FCN_NDCALLP(lambda));
     u8_string codes=
-      (((lambda->lambda_synchronized)&&(lambda->fcn_ndcall))?("∀∥"):
+      (((lambda->lambda_synchronized)&&(ndcallp))?("∀∥"):
        (lambda->lambda_synchronized)?("∥"):
-       (lambda->fcn_ndcall)?("∀"):(""));
+       (ndcallp)?("∀"):(""));
     if (lambda->fcn_name)
       u8_printf(out,"#<~%d<λ%s%s",
                 KNO_GET_IMMEDIATE(x,kno_fcnid_type),
@@ -976,7 +983,7 @@ static int better_unparse_fcnid(u8_output out,lispval x)
     u8_byte arity[64]="", codes[64]="", numbuf[32]="";
     if ((filename)&&(filename[0]=='\0')) filename = NULL;
     if (name == NULL) name = fcn->fcn_name;
-    if (fcn->fcn_ndcall) strcat(codes,"∀");
+    if (FCN_NDCALLP(fcn)) strcat(codes,"∀");
     if ((fcn->fcn_arity<0)&&(fcn->fcn_min_arity<0))
       strcat(arity,"[…]");
     else if (fcn->fcn_arity == fcn->fcn_min_arity) {

@@ -270,10 +270,10 @@ static lispval set_procedure_documentation(lispval x,lispval doc)
   kno_lisp_type proctype = KNO_LISP_TYPE(proc);
   if (kno_functionp[proctype]) {
     struct KNO_FUNCTION *f = KNO_DTYPE2FCN(x);
-    u8_string to_free = ( (f->fcn_doc) && (f->fcn_free_doc) ) ?
+    u8_string to_free = ( (f->fcn_doc) && (KNO_FCN_FREE_DOCP(f)) ) ?
       (f->fcn_doc) : (NULL);
     f->fcn_doc = u8_strdup(CSTRING(doc));
-    f->fcn_free_doc = 1;
+    f->fcn_free |= KNO_FCN_FREE_DOC;
     if (to_free) u8_free(to_free);
     return VOID;}
   else if (TYPEP(proc,kno_evalfn_type)) {
@@ -297,7 +297,7 @@ static lispval procedure_tailablep(lispval x)
   kno_lisp_type proctype = KNO_LISP_TYPE(proc);
   if (kno_functionp[proctype]) {
     struct KNO_FUNCTION *f = KNO_DTYPE2FCN(x);
-    if (f->fcn_notail)
+    if (FCN_NOTAILP(f))
       return KNO_FALSE;
     else return KNO_TRUE;}
   else return kno_err("Not Handled","procedure_tailablep",NULL,x);
@@ -312,8 +312,8 @@ static lispval set_procedure_tailable(lispval x,lispval bool)
   if (kno_functionp[proctype]) {
     struct KNO_FUNCTION *f = KNO_DTYPE2FCN(x);
     if (KNO_FALSEP(bool))
-      f->fcn_notail = 1;
-    else f->fcn_notail = 0;
+      f->fcn_call |= KNO_FCN_CALL_NOTAIL;
+    else f->fcn_call &= ~KNO_FCN_CALL_NOTAIL;
     return VOID;}
   else return kno_err("Not Handled","set_procedure_tailable",NULL,x);
 }
@@ -340,7 +340,7 @@ static lispval non_deterministicp(lispval x)
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
   if (KNO_APPLICABLEP(x)) {
     struct KNO_FUNCTION *f = KNO_DTYPE2FCN(x);
-    if (f->fcn_ndcall)
+    if (FCN_NDCALLP(f))
       return KNO_TRUE;
     else return KNO_FALSE;}
   else return kno_type_error(_("procedure"),"non_deterministicp",x);

@@ -840,6 +840,7 @@ static lispval eval_apply(u8_string fname,
       if (KNO_FUNCTIONP(f)) {
 	struct KNO_FUNCTION *fcn=KNO_XFUNCTION(f);
 	int max_arity = fcn->fcn_arity, min_arity = fcn->fcn_min_arity;
+	int call_flags = fcn->fcn_call;
 	if (max_args >= 0) {
 	  if (max_arity < 0) max_args = max_arity;
 	  else if (max_arity > max_args)
@@ -848,8 +849,8 @@ static lispval eval_apply(u8_string fname,
 	if (min_args >= 0) {
 	  if (min_arity < min_args)
 	    min_args = min_arity;}
-	if (fcn->fcn_ndcall) d_prim = 0;
-	if (fcn->fcn_notail) tail = 0;
+	if (call_flags&KNO_FCN_CALL_NDCALL) d_prim = 0;
+	if (call_flags&KNO_FCN_CALL_NOTAIL) tail = 0;
 	if (lambda < 0) {
 	  if (KNO_LAMBDAP(fn)) lambda = 1;}
 	else if (KNO_LAMBDAP(fn))
@@ -862,9 +863,10 @@ static lispval eval_apply(u8_string fname,
       else n_fns++;}}
   else if (KNO_FUNCTIONP(fn)) {
     struct KNO_FUNCTION *fcn=KNO_XFUNCTION(fn);
+    int call_flags = fcn->fcn_call;
     lambda = KNO_LAMBDAP(fn);
-    d_prim = (! (fcn->fcn_ndcall) );
-    tail   = (! (fcn->fcn_notail) );
+    d_prim = (! (call_flags&KNO_FCN_CALL_NDCALL) );
+    tail   = (! (call_flags&KNO_FCN_CALL_NOTAIL) );
     max_args = fcn->fcn_arity;
     min_args = fcn->fcn_min_arity;}
   else if (KNO_APPLICABLEP(fn))
@@ -1531,8 +1533,10 @@ static lispval callcc(lispval proc)
   struct KNO_CONTINUATION *f = u8_alloc(struct KNO_CONTINUATION);
   KNO_INIT_FRESH_CONS(f,kno_cprim_type);
   f->fcn_name="continuation"; f->fcn_filename = NULL;
-  f->fcn_ndcall = 1; f->fcn_xcall = 1; f->fcn_arity = 1; f->fcn_min_arity = 1;
-  f->fcn_typeinfo = NULL; f->fcn_defaults = NULL;
+  f->fcn_call = KNO_FCN_CALL_NDCALL | KNO_FCN_CALL_XCALL;
+  f->fcn_arity = 1; f->fcn_min_arity = 1;
+  f->fcn_typeinfo = NULL;
+  f->fcn_defaults = NULL;
   f->fcn_handler.xcalln = call_continuation;
   f->retval = VOID;
   continuation = LISP_CONS(f);
@@ -1703,7 +1707,7 @@ KNO_EXPORT u8_string kno_get_documentation(lispval x)
       if (SYMBOLP(scan))
 	u8_printf(&out," [%ls...]",SYM_NAME(scan));
       lambda->fcn_doc = out.u8_outbuf;
-      lambda->fcn_free_doc = 1;
+      lambda->fcn_free |= KNO_FCN_FREE_DOC;
       return u8_strdup(out.u8_outbuf);}}
   else if (kno_functionp[proctype]) {
     struct KNO_FUNCTION *f = KNO_DTYPE2FCN(proc);

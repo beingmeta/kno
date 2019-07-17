@@ -52,7 +52,7 @@ int unparse_cprim(u8_output out,lispval x)
     tmpbuf[len]='\0';
     filename=tmpbuf;}
   if (filename==NULL) filename="nofile";
-  if (fcn->fcn_ndcall) strcat(codes,"∀");
+  if (FCN_NDCALLP(fcn)) strcat(codes,"∀");
   if ((fcn->fcn_arity<0)&&(fcn->fcn_min_arity<0))
     strcat(arity,"[…]");
   else if (fcn->fcn_arity == fcn->fcn_min_arity) {
@@ -86,10 +86,13 @@ int unparse_cprim(u8_output out,lispval x)
 static void recycle_cprim(struct KNO_RAW_CONS *c)
 {
   struct KNO_CPRIM *fn = (struct KNO_CPRIM *)c;
-  if ( (fn->fcn_typeinfo) && (fn->fcn_free_typeinfo) )
+  int free_flags = fn->fcn_free;
+  if ( (fn->fcn_typeinfo) && ( (free_flags) & (KNO_FCN_FREE_TYPEINFO) ) )
     u8_free(fn->fcn_typeinfo);
-  if ( (fn->fcn_defaults) && (fn->fcn_free_defaults) )
+  if ( (fn->fcn_defaults) && ( (free_flags) & (KNO_FCN_FREE_DEFAULTS) ) )
     u8_free(fn->fcn_defaults);
+  if ( (fn->fcn_defaults) && ( (free_flags) & (KNO_FCN_FREE_DOC) ) )
+    u8_free(fn->fcn_doc);
   if (fn->fcn_attribs) kno_decref(fn->fcn_attribs);
   if (fn->fcn_moduleid) kno_decref(fn->fcn_moduleid);
   if (KNO_MALLOCD_CONSP(c)) u8_free(c);
@@ -164,14 +167,11 @@ static struct KNO_CPRIM *make_cprim(u8_string name,
   f->fcn_doc = doc;
   f->fcn_moduleid = KNO_VOID;
   if (varargs)
-    f->fcn_varargs = 1;
-  else f->fcn_varargs = 0;
+    f->fcn_call |= KNO_FCN_CALL_LEXPR;
   if (non_deterministic)
-    f->fcn_ndcall = 1;
-  else f->fcn_ndcall = 0;
+    f->fcn_call |= KNO_FCN_CALL_NDCALL;
   if (extended_call)
-    f->fcn_xcall = 1;
-  else f->fcn_xcall = 0;
+    f->fcn_call |= KNO_FCN_CALL_XCALL;
   f->fcn_arity = arity;
   f->fcn_min_arity = min_arity;
   f->fcn_typeinfo = prim_typeinfo;
