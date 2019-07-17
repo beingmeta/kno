@@ -31,7 +31,7 @@ static int dns_initialized = 0;
 #define NSBUF_SIZE 4096
 #endif
 
-static lispval rdf2dtype ( ldns_rdf *field )
+static lispval rdf2lisp ( ldns_rdf *field )
 {
   size_t size = field->_size;
   void *data = ldns_rdf_data( field );
@@ -72,7 +72,7 @@ static lispval rdf2dtype ( ldns_rdf *field )
       rv = ldns_rdf2buffer_str_long_str( tmp, field );
     else {}
     if (rv != LDNS_STATUS_OK)
-      result = kno_err("Unexpected LDNS condition","rdf2dtype",NULL,VOID);
+      result = kno_err("Unexpected LDNS condition","rdf2lisp",NULL,VOID);
     else result = kno_make_string(NULL,tmp->_position,tmp->_data);
     ldns_buffer_free( tmp );
     return result;}
@@ -110,13 +110,13 @@ static lispval dns_query(lispval domain_arg,lispval type_arg)
 	ldns_rdf **fields = record->_rdata_fields;
 	if (n_fields == 0)  {} /* does this ever happen? */
 	else if (n_fields == 1)  {
-	  lispval value = rdf2dtype( fields[0] );
+	  lispval value = rdf2lisp( fields[0] );
 	  CHOICE_ADD(results,value);}
 	else {
 	  lispval vec = kno_empty_vector(n_fields);
 	  int j = 0; while (j < n_fields) {
 	    ldns_rdf *field = fields[j];
-	    lispval value = rdf2dtype( field );
+	    lispval value = rdf2lisp( field );
 	    KNO_VECTOR_SET( vec, j, value);
 	    j++;}
 	  CHOICE_ADD(results,vec);}}

@@ -558,6 +558,14 @@ KNO_EXPORT u8_string kno_oid2string(lispval oidval,u8_byte *buf,ssize_t len);
 
 KNO_EXPORT lispval kno_make_bigint(long long intval);
 
+#define KNO_CPP_INT(n)                                    \
+  ( (sizeof(n) < KNO_FIXNUM_BYTES) ?                      \
+    (KNO_INT2FIX(n)) :                                        \
+    ( (((long long)(n)) > KNO_MAX_FIXNUM) ||                  \
+      (((long long)(n)) < KNO_MIN_FIXNUM) ) ?                 \
+    (kno_make_bigint(n)) :                                    \
+    (KNO_INT2FIX(n)))
+
 /* The sizeof check here avoids *tautological* range errors
    when n can't be too big for a fixnum. */
 #if KNO_EXTREME_PROFILING
@@ -575,24 +583,23 @@ KNO_EXPORT lispval _KNO_INT2LISP(long long intval);
 #define KNO_INT(x) (KNO_INT2LISP(x))
 #define KNO_MAKEINT(x) (KNO_INT2LISP(x))
 
-#define KNO_UINT2DTYPE(x) \
+#define KNO_UINT2LISP(x) \
   (((to64u(x)) > (to64(KNO_MAX_FIXNUM))) ?                       \
    (kno_make_bigint(to64u(x))) :                                 \
    ((lispval) (((to64u(x))*4)|kno_fixnum_type)))
 
-#define KNO_SHORT2DTYPE(shrt) (KNO_INT2FIX((long long)shrt))
+#define KNO_SHORT2LISP(shrt) (KNO_INT2FIX((long long)shrt))
 #define KNO_SHORT2FIX(shrt)   (KNO_INT2FIX((long long)shrt))
 
-#define KNO_USHORT2DTYPE(x)     ((lispval)(kno_fixnum_type|((x&0xFFFF)<<2)))
-#define KNO_BYTE2DTYPE(x)       ((lispval) (kno_fixnum_type|((x&0xFF)<<2)))
-#define KNO_BYTE2LISP(x)        (KNO_BYTE2DTYPE(x))
+#define KNO_USHORT2LISP(x)     ((lispval)(kno_fixnum_type|((x&0xFFFF)<<2)))
+#define KNO_BYTE2LISP(x)       ((lispval) (kno_fixnum_type|((x&0xFF)<<2)))
 #define KNO_FIXNUM_MAGNITUDE(x) ((x<0)?((-(x))>>2):(x>>2))
 #define KNO_FIXNUM_NEGATIVEP(x) (x<0)
 
-#define KNO_FIXZERO         (KNO_SHORT2DTYPE(0))
-#define KNO_FIXNUM_ZERO     (KNO_SHORT2DTYPE(0))
-#define KNO_FIXNUM_ONE      (KNO_SHORT2DTYPE(1))
-#define KNO_FIXNUM_NEGONE   (KNO_SHORT2DTYPE(-1))
+#define KNO_FIXZERO         (KNO_SHORT2LISP(0))
+#define KNO_FIXNUM_ZERO     (KNO_SHORT2LISP(0))
+#define KNO_FIXNUM_ONE      (KNO_SHORT2LISP(1))
+#define KNO_FIXNUM_NEGONE   (KNO_SHORT2LISP(-1))
 
 #if KNO_FIXNUM_BITS <= 30
 #define KNO_INTP(x) (KNO_FIXNUMP(x))

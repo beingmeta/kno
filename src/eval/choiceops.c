@@ -875,7 +875,7 @@ static lispval pickone(lispval x)
 
 DEFPRIM2("sample-n",samplen,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	 "`(SAMPLE-N *arg0* [*arg1*])` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_fixnum_type,KNO_INT(10));
+	 kno_any_type,KNO_VOID,kno_fixnum_type,KNO_CPP_INT(10));
 static lispval samplen(lispval x,lispval count)
 {
   if (EMPTYP(x))
@@ -1580,7 +1580,7 @@ static lispval getrange_prim(lispval arg1,lispval endval)
 
 DEFPRIM3("pick>",pick_gt_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	 "`(PICK> *arg0* [*arg1*] [*arg2*])` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_INT(0),
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_CPP_INT(0),
 	 kno_any_type,KNO_FALSE);
 static lispval pick_gt_prim(lispval items,lispval num,lispval checktype)
 {

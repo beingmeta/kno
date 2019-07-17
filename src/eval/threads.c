@@ -1036,7 +1036,7 @@ static lispval thread_cancel_prim(lispval thread_arg,lispval reason)
 DEFPRIM2("thread/signal!",thread_signal_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "(THREAD/SIGNAL! *thread* *signal*) "
 	 "signals *thread* with *signal*.",
-	 kno_thread_type,KNO_VOID,kno_fixnum_type,KNO_INT(37));
+	 kno_thread_type,KNO_VOID,kno_fixnum_type,KNO_CPP_INT(37));
 static lispval thread_signal_prim(lispval thread_arg,lispval signal)
 {
   struct KNO_THREAD *thread = (struct KNO_THREAD *)thread_arg;

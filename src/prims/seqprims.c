@@ -574,7 +574,7 @@ static lispval slice_prim(lispval x,lispval start_arg,lispval end_arg)
 DEFPRIM4("position",position_prim,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
 	 "`(POSITION *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
-	 kno_any_type,KNO_INT(0),kno_any_type,KNO_FALSE);
+	 kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_FALSE);
 static lispval position_prim(lispval key,lispval x,lispval start_arg,lispval end_arg)
 {
   int result, start, end; char buf[128];
@@ -596,7 +596,7 @@ static lispval position_prim(lispval key,lispval x,lispval start_arg,lispval end
 DEFPRIM4("rposition",rposition_prim,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
 	 "`(RPOSITION *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
-	 kno_any_type,KNO_INT(0),kno_any_type,KNO_FALSE);
+	 kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_FALSE);
 static lispval rposition_prim(lispval key,lispval x,lispval start_arg,lispval end_arg)
 {
   int result, start, end; char buf[128];
@@ -617,7 +617,7 @@ static lispval rposition_prim(lispval key,lispval x,lispval start_arg,lispval en
 DEFPRIM4("find",find_prim,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
 	 "`(FIND *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
-	 kno_any_type,KNO_INT(0),kno_any_type,KNO_FALSE);
+	 kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_FALSE);
 static lispval find_prim(lispval key,lispval x,lispval start_arg,lispval end_arg)
 {
   int result, start, end; char buf[128];
@@ -638,7 +638,7 @@ static lispval find_prim(lispval key,lispval x,lispval start_arg,lispval end_arg
 DEFPRIM4("search",search_prim,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
 	 "`(SEARCH *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
-	 kno_any_type,KNO_INT(0),kno_any_type,KNO_FALSE);
+	 kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_FALSE);
 static lispval search_prim(lispval key,lispval x,lispval start_arg,lispval end_arg)
 {
   int result, start, end;
@@ -793,7 +793,7 @@ DEFPRIM4("position-if",position_if_prim,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
 	 "either *start* or *end* are negative, they are "
 	 "taken as offsets from the end of the sequence.",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
-	 kno_any_type,KNO_INT(0),kno_any_type,KNO_FALSE);
+	 kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_FALSE);
 
 lispval position_if_prim(lispval test,lispval seq,lispval start_arg,
 			 lispval end_arg)
@@ -905,7 +905,7 @@ DEFPRIM4("position-if-not",position_if_not_prim,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
 	 "they are taken as offsets from the end of the "
 	 "sequence.",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
-	 kno_any_type,KNO_INT(0),kno_any_type,KNO_FALSE);
+	 kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_FALSE);
 
 lispval position_if_not_prim(lispval test,lispval seq,lispval start_arg,
 			     lispval end_arg)
@@ -1020,7 +1020,7 @@ DEFPRIM5("find-if",find_if_prim,KNO_MAX_ARGS(5)|KNO_MIN_ARGS(2),
 	 "negative, they are taken as offsets from the end "
 	 "of the sequence.",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
-	 kno_any_type,KNO_INT(0),kno_any_type,KNO_FALSE,
+	 kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_FALSE,
 	 kno_any_type,KNO_FALSE);
 
 lispval find_if_prim(lispval test,lispval seq,lispval start_arg,
@@ -1136,7 +1136,7 @@ DEFPRIM5("find-if-not",find_if_not_prim,KNO_MAX_ARGS(5)|KNO_MIN_ARGS(2),
 	 "they are taken as offsets from the end of the "
 	 "sequence.",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
-	 kno_any_type,KNO_INT(0),kno_any_type,KNO_FALSE,
+	 kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_FALSE,
 	 kno_any_type,KNO_FALSE);
 
 lispval find_if_not_prim(lispval test,lispval seq,lispval start_arg,
@@ -2035,7 +2035,7 @@ static lispval seqlen_eq_prim(lispval x,lispval len)
 DEFPRIM3("match?",seqmatch_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
 	 "`(MATCH? *arg0* *arg1* [*arg2*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
-	 kno_fixnum_type,KNO_INT(0));
+	 kno_fixnum_type,KNO_CPP_INT(0));
 static lispval seqmatch_prim(lispval prefix,lispval seq,lispval startarg)
 {
   if (!(KNO_UINTP(startarg)))

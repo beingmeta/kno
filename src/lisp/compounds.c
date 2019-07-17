@@ -44,7 +44,7 @@ KNO_EXPORT lispval kno_init_compound
     va_start(args,n);
     while (i<n) {va_arg(args,lispval); i++;}
     return kno_type_error
-      (_("positive byte"),"kno_init_compound",KNO_SHORT2DTYPE(n));}
+      (_("positive byte"),"kno_init_compound",KNO_SHORT2LISP(n));}
   else if (p == NULL) {
     if (n==0) p = u8_malloc(sizeof(struct KNO_COMPOUND));
     else p = u8_malloc(sizeof(struct KNO_COMPOUND)+(n-1)*LISPVAL_LEN);}
@@ -95,7 +95,7 @@ KNO_EXPORT lispval kno_init_compound_from_elts
   lispval *write, *limit, *read = elts, initfn = KNO_FALSE;
   if (PRED_FALSE((n<0)))
     return kno_type_error(_("positive byte"),"kno_init_compound_from_elts",
-			 KNO_SHORT2DTYPE(n));
+			 KNO_SHORT2LISP(n));
   else if (p == NULL) {
     if (n==0)
       p = u8_malloc(sizeof(struct KNO_COMPOUND));

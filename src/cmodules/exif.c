@@ -43,11 +43,11 @@ static lispval exif2lisp(ExifEntry *exentry)
     if (exentry->format == EXIF_FORMAT_SBYTE)
       while (i < n) {
 	char ival = exifdata[i];
-	lispdata[i]=KNO_SHORT2DTYPE(ival);
+	lispdata[i]=KNO_SHORT2LISP(ival);
 	i++;}
     else while (i < n) {
 	unsigned char ival = exifdata[i];
-	lispdata[i]=KNO_USHORT2DTYPE(ival);
+	lispdata[i]=KNO_USHORT2LISP(ival);
 	i++;}
     if (n==1) {
       lispval retval = lispdata[0]; u8_free(lispdata);
@@ -62,11 +62,11 @@ static lispval exif2lisp(ExifEntry *exentry)
     if (exentry->format == EXIF_FORMAT_SSHORT)
       while (i < n) {
 	short ival = exif_get_short(exifdata+(i*item_size),o);
-	lispdata[i]=KNO_SHORT2DTYPE(ival);
+	lispdata[i]=KNO_SHORT2LISP(ival);
 	i++;}
     else while (i < n) {
 	unsigned short ival = exif_get_short(exifdata+(i*item_size),o);
-	lispdata[i]=KNO_USHORT2DTYPE(ival);
+	lispdata[i]=KNO_USHORT2LISP(ival);
 	i++;}
     if (n==1) {
       lispval retval = lispdata[0]; u8_free(lispdata);

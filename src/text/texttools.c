@@ -416,7 +416,7 @@ static lispval getwordsv_prim(lispval arg,lispval punctflag)
 */
 DEFPRIM3("vector->frags",vector2frags_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
 	 "`(VECTOR->FRAGS *arg0* [*arg1*] [*arg2*])` **undocumented**",
-	 kno_vector_type,KNO_VOID,kno_any_type,KNO_INT(2),
+	 kno_vector_type,KNO_VOID,kno_any_type,KNO_CPP_INT(2),
 	 kno_any_type,KNO_TRUE);
 static lispval vector2frags_prim(lispval vec,lispval window,lispval with_affix)
 {
@@ -506,7 +506,7 @@ static lispval seq2phrase_ndhelper
 
 DEFPRIM3("seq->phrase",seq2phrase_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
 	 "`(SEQ->PHRASE *arg0* [*arg1*] [*arg2*])` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_fixnum_type,KNO_INT(0),
+	 kno_any_type,KNO_VOID,kno_fixnum_type,KNO_CPP_INT(0),
 	 kno_fixnum_type,KNO_VOID);
 static lispval seq2phrase_prim(lispval arg,lispval start_arg,lispval end_arg)
 {
@@ -890,7 +890,7 @@ static void convert_offsets
 DEFPRIM4("textmatcher",textmatcher,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
 	 "`(TEXTMATCHER *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_string_type,KNO_VOID,
-	 kno_fixnum_type,KNO_INT(0),kno_fixnum_type,KNO_VOID);
+	 kno_fixnum_type,KNO_CPP_INT(0),kno_fixnum_type,KNO_VOID);
 static lispval textmatcher(lispval pattern,lispval string,
 			   lispval offset,lispval limit)
 {
@@ -909,7 +909,7 @@ static lispval textmatcher(lispval pattern,lispval string,
 DEFPRIM4("textmatch",textmatch,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
 	 "`(TEXTMATCH *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_string_type,KNO_VOID,
-	 kno_fixnum_type,KNO_INT(0),kno_fixnum_type,KNO_VOID);
+	 kno_fixnum_type,KNO_CPP_INT(0),kno_fixnum_type,KNO_VOID);
 static lispval textmatch(lispval pattern,lispval string,
 			 lispval offset,lispval limit)
 {
@@ -928,7 +928,7 @@ static lispval textmatch(lispval pattern,lispval string,
 DEFPRIM4("textsearch",textsearch,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
 	 "`(TEXTSEARCH *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_string_type,KNO_VOID,
-	 kno_fixnum_type,KNO_INT(0),kno_fixnum_type,KNO_VOID);
+	 kno_fixnum_type,KNO_CPP_INT(0),kno_fixnum_type,KNO_VOID);
 static lispval textsearch(lispval pattern,lispval string,
 			  lispval offset,lispval limit)
 {
@@ -947,7 +947,7 @@ static lispval textsearch(lispval pattern,lispval string,
 DEFPRIM4("textract",textract,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
 	 "`(TEXTRACT *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_string_type,KNO_VOID,
-	 kno_fixnum_type,KNO_INT(0),kno_fixnum_type,KNO_VOID);
+	 kno_fixnum_type,KNO_CPP_INT(0),kno_fixnum_type,KNO_VOID);
 static lispval textract(lispval pattern,lispval string,
 			lispval offset,lispval limit)
 {
@@ -1027,7 +1027,7 @@ static lispval textgather_base(lispval pattern,lispval string,
 DEFPRIM4("gather",textgather,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
 	 "`(GATHER *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_string_type,KNO_VOID,
-	 kno_fixnum_type,KNO_INT(0),kno_fixnum_type,KNO_VOID);
+	 kno_fixnum_type,KNO_CPP_INT(0),kno_fixnum_type,KNO_VOID);
 static lispval textgather(lispval pattern,lispval string,
 			  lispval offset,lispval limit)
 {
@@ -1037,7 +1037,7 @@ static lispval textgather(lispval pattern,lispval string,
 DEFPRIM4("gather*",textgather_star,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
 	 "`(GATHER* *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_string_type,KNO_VOID,
-	 kno_fixnum_type,KNO_INT(0),kno_fixnum_type,KNO_VOID);
+	 kno_fixnum_type,KNO_CPP_INT(0),kno_fixnum_type,KNO_VOID);
 static lispval textgather_star(lispval pattern,lispval string,
 			       lispval offset,lispval limit)
 {
@@ -1047,7 +1047,7 @@ static lispval textgather_star(lispval pattern,lispval string,
 DEFPRIM4("gather->list",textgather2list,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
 	 "`(GATHER->LIST *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_string_type,KNO_VOID,
-	 kno_fixnum_type,KNO_INT(0),kno_fixnum_type,KNO_VOID);
+	 kno_fixnum_type,KNO_CPP_INT(0),kno_fixnum_type,KNO_VOID);
 static lispval textgather2list(lispval pattern,lispval string,
 			       lispval offset,lispval limit)
 {
@@ -1186,7 +1186,7 @@ static lispval rewrite_apply(lispval fcn,lispval content,lispval args)
 DEFPRIM4("textrewrite",textrewrite,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
 	 "`(TEXTREWRITE *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_string_type,KNO_VOID,
-	 kno_fixnum_type,KNO_INT(0),kno_fixnum_type,KNO_VOID);
+	 kno_fixnum_type,KNO_CPP_INT(0),kno_fixnum_type,KNO_VOID);
 static lispval textrewrite(lispval pattern,lispval string,
 			   lispval offset,lispval limit)
 {
@@ -1219,7 +1219,7 @@ static lispval textrewrite(lispval pattern,lispval string,
 DEFPRIM5("textsubst",textsubst,KNO_MAX_ARGS(5)|KNO_MIN_ARGS(2),
 	 "`(TEXTSUBST *arg0* *arg1* [*arg2*] [*arg3*] [*arg4*])` **undocumented**",
 	 kno_string_type,KNO_VOID,kno_any_type,KNO_VOID,
-	 kno_any_type,KNO_VOID,kno_fixnum_type,KNO_INT(0),
+	 kno_any_type,KNO_VOID,kno_fixnum_type,KNO_CPP_INT(0),
 	 kno_fixnum_type,KNO_VOID);
 static lispval textsubst(lispval string,
 			 lispval pattern,lispval replace,
@@ -1382,7 +1382,7 @@ static lispval gathersubst_base(lispval pattern,lispval string,
 DEFPRIM4("gathersubst",gathersubst,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
 	 "`(GATHERSUBST *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_string_type,KNO_VOID,
-	 kno_fixnum_type,KNO_INT(0),kno_fixnum_type,KNO_VOID);
+	 kno_fixnum_type,KNO_CPP_INT(0),kno_fixnum_type,KNO_VOID);
 static lispval gathersubst(lispval pattern,lispval string,
 			   lispval offset,lispval limit)
 {
@@ -1392,7 +1392,7 @@ static lispval gathersubst(lispval pattern,lispval string,
 DEFPRIM4("gathersubst*",gathersubst_star,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
 	 "`(GATHERSUBST* *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_string_type,KNO_VOID,
-	 kno_fixnum_type,KNO_INT(0),kno_fixnum_type,KNO_VOID);
+	 kno_fixnum_type,KNO_CPP_INT(0),kno_fixnum_type,KNO_VOID);
 static lispval gathersubst_star(lispval pattern,lispval string,
 				lispval offset,lispval limit)
 {
@@ -1439,7 +1439,7 @@ static int getnonstring(lispval choice)
 DEFPRIM4("string-matches?",string_matches,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	 "`(STRING-MATCHES? *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
-	 kno_fixnum_type,KNO_INT(0),kno_fixnum_type,KNO_VOID);
+	 kno_fixnum_type,KNO_CPP_INT(0),kno_fixnum_type,KNO_VOID);
 static lispval string_matches(lispval string,lispval pattern,
 			      lispval start_arg,lispval end_arg)
 {
@@ -1479,7 +1479,7 @@ static lispval string_matches(lispval string,lispval pattern,
 DEFPRIM4("string-contains?",string_contains,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	 "`(STRING-CONTAINS? *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
-	 kno_fixnum_type,KNO_INT(0),kno_fixnum_type,KNO_VOID);
+	 kno_fixnum_type,KNO_CPP_INT(0),kno_fixnum_type,KNO_VOID);
 static lispval string_contains(lispval string,lispval pattern,
 			       lispval start_arg,lispval end_arg)
 {
@@ -1522,7 +1522,7 @@ static lispval string_contains(lispval string,lispval pattern,
 DEFPRIM4("string-starts-with?",string_starts_with,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	 "`(STRING-STARTS-WITH? *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
-	 kno_fixnum_type,KNO_INT(0),kno_fixnum_type,KNO_VOID);
+	 kno_fixnum_type,KNO_CPP_INT(0),kno_fixnum_type,KNO_VOID);
 static lispval string_starts_with(lispval string,lispval pattern,
 				  lispval start_arg,lispval end_arg)
 {
@@ -1599,7 +1599,7 @@ static lispval string_ends_with_test(lispval string,lispval pattern,
 DEFPRIM4("string-ends-with?",string_ends_with,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	 "`(STRING-ENDS-WITH? *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
-	 kno_fixnum_type,KNO_INT(0),kno_fixnum_type,KNO_VOID);
+	 kno_fixnum_type,KNO_CPP_INT(0),kno_fixnum_type,KNO_VOID);
 static lispval string_ends_with(lispval string,lispval pattern,
 				lispval start_arg,lispval end_arg)
 {
@@ -1713,7 +1713,7 @@ static int framify(lispval f,u8_output out,lispval xtract)
 DEFPRIM4("text->frame",text2frame,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
 	 "`(TEXT->FRAME *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_string_type,KNO_VOID,
-	 kno_fixnum_type,KNO_INT(0),kno_fixnum_type,KNO_VOID);
+	 kno_fixnum_type,KNO_CPP_INT(0),kno_fixnum_type,KNO_VOID);
 static lispval text2frame(lispval pattern,lispval string,
 			  lispval offset,lispval limit)
 {
@@ -1743,7 +1743,7 @@ static lispval text2frame(lispval pattern,lispval string,
 DEFPRIM4("text->frames",text2frames,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
 	 "`(TEXT->FRAMES *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_string_type,KNO_VOID,
-	 kno_fixnum_type,KNO_INT(0),kno_fixnum_type,KNO_VOID);
+	 kno_fixnum_type,KNO_CPP_INT(0),kno_fixnum_type,KNO_VOID);
 static lispval text2frames(lispval pattern,lispval string,
 			   lispval offset,lispval limit)
 {
@@ -1818,7 +1818,7 @@ static int interpret_keep_arg(lispval keep_arg)
 DEFPRIM5("textslice",textslice,KNO_MAX_ARGS(5)|KNO_MIN_ARGS(2),
 	 "`(TEXTSLICE *arg0* *arg1* [*arg2*] [*arg3*] [*arg4*])` **undocumented**",
 	 kno_string_type,KNO_VOID,kno_any_type,KNO_VOID,
-	 kno_any_type,KNO_TRUE,kno_fixnum_type,KNO_INT(0),
+	 kno_any_type,KNO_TRUE,kno_fixnum_type,KNO_CPP_INT(0),
 	 kno_fixnum_type,KNO_VOID);
 static lispval textslice(lispval string,lispval sep,lispval keep_arg,
 			 lispval offset,lispval limit)

@@ -3090,7 +3090,7 @@ static lispval NUM_ELT(lispval x,int i)
     case kno_int_elt:
       return KNO_INT2LISP(KNO_NUMVEC_INT(x,i));
     case kno_short_elt:
-      return KNO_SHORT2DTYPE(KNO_NUMVEC_SHORT(x,i));
+      return KNO_SHORT2LISP(KNO_NUMVEC_SHORT(x,i));
     default: {
       kno_incref(x);
       return kno_err(_("NotAVector"),"NUM_ELT",NULL,x);}

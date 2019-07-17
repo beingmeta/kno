@@ -722,7 +722,7 @@ KNO_EXPORT lispval kno_badptr_err(lispval result,u8_context cxt,
 {
   if (errno) u8_graberrno(cxt,u8_strdup(details));
   return kno_err( get_pointer_exception(result), cxt,
-                  details, KNO_UINT2DTYPE(result) );
+                  details, KNO_UINT2LISP(result) );
 }
 
 /* Testing */

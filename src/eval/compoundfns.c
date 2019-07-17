@@ -84,7 +84,7 @@ DEFPRIM1("compound-length",compound_length,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 static lispval compound_length(lispval x)
 {
   struct KNO_COMPOUND *compound = (struct KNO_COMPOUND *)x;
-  return KNO_BYTE2DTYPE(compound->compound_length);
+  return KNO_BYTE2LISP(compound->compound_length);
 }
 
 DEFPRIM1("compound-mutable?",compound_mutablep,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),

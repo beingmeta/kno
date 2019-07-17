@@ -182,7 +182,7 @@ static lispval dontopt(lispval x)
 */
 DEFPRIM2("refcount",get_refcount,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	 "`(REFCOUNT *arg0* [*arg1*])` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_fixnum_type,KNO_INT(0));
+	 kno_any_type,KNO_VOID,kno_fixnum_type,KNO_CPP_INT(0));
 static lispval get_refcount(lispval x,lispval delta)
 {
   if (CONSP(x)) {
