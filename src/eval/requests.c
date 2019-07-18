@@ -344,8 +344,8 @@ KNO_EXPORT lispval reqlog_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   struct U8_XTIME xt;
   struct U8_OUTPUT *reqout = kno_reqlog(1);
-  u8_string cond = NULL, cxt = NULL, free_cond = NULL;
-  long long body_off = 1, level = -1;
+  u8_string cond = NULL, free_cond = NULL;
+  long long level = -1;
   lispval arg = kno_get_arg(expr,1), cond_val = VOID;
   lispval body = kno_get_body(expr,2), outval;
   if (KNO_SYMBOLP(arg))
