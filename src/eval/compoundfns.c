@@ -153,6 +153,7 @@ static lispval unpack_compound(lispval x,lispval tag)
   if ((!(VOIDP(tag)))&&(compound->compound_typetag!=tag)) {
     u8_string type_string = kno_lisp2string(tag);
     kno_seterr(kno_TypeError,"compound_ref",type_string,x);
+    u8_free(type_string);
     return KNO_ERROR;}
   else {
     int len = compound->compound_length;
@@ -209,10 +210,12 @@ static lispval compound_set(lispval x,lispval offset,lispval value,lispval tag)
     else if ((compound->compound_typetag!=tag) && (!(VOIDP(tag)))) {
       u8_string type_string = kno_lisp2string(tag);
       kno_seterr(kno_TypeError,"compound_ref",type_string,x);
+      u8_free(type_string);
       return KNO_ERROR;}
     else if (!(VOIDP(tag))) {
       u8_string type_string = kno_lisp2string(tag);
       kno_seterr(kno_RangeError,"compound_ref",type_string,off);
+      u8_free(type_string);
       return KNO_ERROR;}
     else {
       kno_seterr(kno_RangeError,"compound_ref",NULL,off);
@@ -285,10 +288,12 @@ static lispval compound_modify(lispval x,lispval offset,
     else if ((compound->compound_typetag!=tag) && (!(VOIDP(tag)))) {
       u8_string type_string = kno_lisp2string(tag);
       kno_seterr(kno_TypeError,"compound_ref",type_string,x);
+      u8_free(type_string);
       return KNO_ERROR;}
     else if (!(VOIDP(tag))) {
       u8_string type_string = kno_lisp2string(tag);
       kno_seterr(kno_RangeError,"compound_ref",type_string,off);
+      u8_free(type_string);
       return KNO_ERROR;}
     else {
       kno_seterr(kno_RangeError,"compound_ref",NULL,off);
