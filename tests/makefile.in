@@ -129,7 +129,7 @@ optscheme:
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes choices.scm ${RUNCONF}
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes sequences.scm ${RUNCONF}
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes misctest.scm ${RUNCONF}
-	@${RUN} ${KNOX} TESTOPTIMIZED=yes configs.scm ${RUNCONF} FOO=quux "CONFVAR=88;XCONF=baz"
+	@${RUN} ${KNOX} TESTOPTIMIZED=yes configs.scm ${RUNCONF} FOO=quux "CONFVAR=88;XCONF=baz" TESTSYM=:TESTSYM TESTSTRING=\\:COLON
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes reflect.scm ${RUNCONF}
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes exceptions.scm ${RUNCONF}
 	@${RUN} ${KNOX} TESTOPTIMIZED=yes picktest.scm ${RUNCONF}
@@ -206,8 +206,9 @@ promises:
 	@${RUN} ${KNOX} promises.scm ${RUNCONF}
 	@${header} "■■■■ Completed promises tests ${RUNCONF}"
 configs:
-	@${RUN} ${KNOX} configs.scm ${RUNCONF} FOO=quux "CONFVAR=88;XCONF=baz"
-	@${RUN} ${KNOX} configs.scm ${RUNCONF} FOO=quux "CONFVAR=88;XCONF=baz" USEROOT=https://s3.amazonaws.com/knomods.beingmeta.com/
+	@${RUN} ${KNOX} configs.scm ${RUNCONF} FOO=quux "CONFVAR=88;XCONF=baz" TESTSYM=:TESTSYM TESTSTRING=\\:COLON
+	@${RUN} ${KNOX} configs.scm ${RUNCONF} FOO=quux "CONFVAR=88;XCONF=baz" TESTSYM=:TESTSYM TESTSTRING=\\:COLON \
+                USEROOT=https://s3.amazonaws.com/knomods.beingmeta.com/
 	@${header} "■■■■ Completed config system tests ${RUNCONF}"
 appenv:
 	@${RUN} ${KNOX} TRACECONFIG=yes TRACELOAD=yes CONFIG=data/appenv.cfg \

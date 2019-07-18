@@ -90,6 +90,11 @@
 (applytest "xxx" config 'xval)
 (applytest "YYY" config 'yval)
 
+(errtest (load-config))
+(errtest (load-config '(foo)))
+(errtest (load-default-config))
+(errtest (load-default-config '(foo)))
+
 (applytest overlaps? '{|PID| |PPID|} find-configs "pid")
 (applytest overlaps? '{|PID| |PPID|} find-configs #/p+id/i)
 
@@ -111,6 +116,11 @@
 (config! 'config-config (get-component "webfiles/root/default.cfg"))
 (load-config 'config-config)
 (load-default-config 'config-config)
+(errtest (load-config 'config-notconfig))
+(errtest (load-default-config 'config-notconfig))
+(config! 'config-wrongtype-config '(a b))
+(errtest (load-config 'config-wrongtype-config))
+(errtest (load-default-config 'config-wrongtype-config))
 
 ;;; Errors
 
@@ -165,4 +175,10 @@
 ;;; READ-CONFIG
 
 (read-config (filestring (get-component "webfiles/root/sample.cfg")))
+
+;;; Test passing to MAIN
+
+(define (main)
+  (applytest 'testsym config 'testsym)
+  (applytest ":COLON" config 'teststring))
 

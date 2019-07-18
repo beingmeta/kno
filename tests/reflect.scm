@@ -26,6 +26,7 @@
   (lambda (filename) (search pat filename)))
 
 (applytester "factr" procedure-name factr)
+(applytester 'err procedure-name #"packet")
 (applytester 1 procedure-arity factr)
 (applytester 1 procedure-min-arity factr)
 (applytester 1 procedure-min-arity car)
@@ -40,7 +41,6 @@
 
 (errtest (set-lambda-args! "foo" '(x (y 5))))
 (errtest (set-lambda-body! "foo" '(x (y 5))))
-(errtest (optimize-lambda-args! "foo" '(x (y 5))))
 
 (applytest '(x (y 3)) lambda-args arity-test)
 (set-lambda-args! arity-test '(x (y 5)))
@@ -123,8 +123,16 @@
 (applytester swapf procedure-id swapf)
 
 (applytester #f procedure-cname factr)
+(applytester 'err procedure-cname #"packet")
 (applytester "car" procedure-cname car)
 (applytester "open_output_file" procedure-cname open-output-file)
+(applytester #("pair") procedure-typeinfo car)
+(applytester #f procedure-typeinfo load)
+(applytester #("string" #f #f) procedure-typeinfo load->env)
+(applytester #(%void %void %void) procedure-defaults load->env)
+
+(applytest has-prefix (procedure-filename car) procedure-fileinfo car)
+(applytest has-prefix (procedure-filename show%) procedure-fileinfo show%)
 
 (applytest #f reflect/get arity-test 'testprop)
 (applytest 'void reflect/store! arity-test 'testprop "value")

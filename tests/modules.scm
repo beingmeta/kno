@@ -51,9 +51,10 @@
 ;;; Update modules
 
 (config! 'updatemodules 15)
-(config! 'updatemodules 15.0)
+(applytest 15.0 config 'updatemodules)
 (config! 'updatemodules #t)
 (config! 'updatemodules #f)
+(errtest (config! 'updatemodules 1/2))
 
 ;;; Reload testing
 
@@ -76,6 +77,19 @@
 (lognotice |LoadPath| (config 'loadpath))
 
 (config! 'load:trace #t)
+
+;; (fileout (get-component "data/xtestmod.scm")
+;;   (pprint '(in-module 'xtestmod))
+;;   (pprint '(define z (* 1000 1000 1000 1000 1000))))
+;; (use-module 'xtestmod)
+;; (fileout (get-component "data/xtestmod.scm")
+;;   (pprint '(in-module 'xtestmod))
+;;   (pprint '(define z (* 1000 1000 1000 1000 1000 "three"))))
+;; (errtest (reload-module 'xtestmod))
+;; (fileout (get-component "data/xtestmod.scm")
+;;   (pprint '(in-module 'notxtestmod))
+;;   (pprint '(define z (* 1000 1000 1000 1000 1000))))
+;; (errtest (reload-module 'xtestmod))
 
 (define-tester (test-reloading)
   (let ((base (get-load-count)))

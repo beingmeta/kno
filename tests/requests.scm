@@ -10,6 +10,10 @@
 (define (plus-ts (tt 1) (ttt 2.1)) (+ tt ttt))
 (applytest 3.1 req/call plus-ts)
 
+(define (testargs symbol string bad1 bad2)
+  (and (symbol? symbol) (string? string)
+       (string? bad1) (string? bad2)))
+
 (with/request
  (req/log |Startup| "Starting test of request functions")
  (req/set! 'alpha "alpha")
@@ -35,6 +39,11 @@
  (req/log |ReqCall| "Starting req/call tests")
  (applytest "alphabeta" req/call glom-ab)
  (applytest 66.3 req/call plus-ts)
+ (req/set! 'symbol ":symbol")
+ (req/set! 'string "\\:string")
+ (req/set! 'bad1 ":(+ 3")
+ (req/set! 'bad2 "(+ 3")
+ (applytest #t req/call testargs)
  (applytest '(second first) req/get 'lst)
  (applytest #t req/live?)
  (let ((len (req/loglen))
