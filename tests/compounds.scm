@@ -128,3 +128,10 @@
 (compound-set-consfn! 'type4 type4-consfn)
 (applytest "extra" compound-ref #%(type4 3 4 5 "nine") 0)
 
+(define type4.1 #%(type4 3 4 5 "nine"))
+
+(applytest type4-consfn tag-metadata 'type4 'consfn)
+(applytest slotmap? tag-metadata 'type4)
+
+(applytest type4-consfn compound-metadata type4.1  'consfn)
+(applytest slotmap? compound-metadata type4.1)
