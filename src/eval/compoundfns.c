@@ -504,8 +504,8 @@ static lispval compound_metadata_prim(lispval compound,lispval field)
   return result;
 }
 
-DEFPRIM2("tag-metatdata",tag_metadata_prim,KNO_MIN_ARGS(1),
-         "`(tag-metatdata *tag* [*field*])` Returns the metadata for "
+DEFPRIM2("tag-metadata",tag_metadata_prim,KNO_MIN_ARGS(1),
+         "`(tag-metadata *tag* [*field*])` Returns the metadata for "
 	 "compounds tagged with *tag*. If *field* is provided, the "
 	 "the *field* slot of the metadata is returned, otherwise a "
 	 "copy of the metadata (a slotmap) is returned.",
@@ -639,7 +639,7 @@ static void init_local_cprims()
   KNO_LINK_PRIM("pick-compounds",pick_compounds,2,scheme_module);
 
   KNO_LINK_PRIM("compound-metatdata",compound_metadata_prim,2,scheme_module);
-  KNO_LINK_PRIM("tag-metatdata",tag_metadata_prim,2,scheme_module);
+  KNO_LINK_PRIM("tag-metadata",tag_metadata_prim,2,scheme_module);
 
 
   KNO_LINK_ALIAS("compound-type?",compoundp,scheme_module);
