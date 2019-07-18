@@ -4,6 +4,9 @@
 
 (use-module 'ezrecords)
 
+;;; Reset something we change below, just to be consistent
+(compound-set-corelen! 'typex #f)
+
 (defrecord type1
   x y (z 3) (q 4))
 
@@ -91,13 +94,37 @@
 (applytest compound-mutable? make-opaque-mutable-compound 'type11 3 4 "foo" '(bar))
 (applytest compound-opaque? make-opaque-mutable-compound 'type11 3 4 "foo" '(bar))
 
+(applytest iscompound? sequence->compound #("a" b 3) 'typeX)
+(applytest iscompound? sequence->compound #("a" b 3) 'typeX #f #f 0)
+(applytest compound-mutable? sequence->compound #("a" b 3) 'typeX #t #f 0)
+(applytest compound-opaque? sequence->compound #("a" b 3) 'typeX #f #t 0)
+(applytest compound-opaque? sequence->compound #("a" b 3) 'typeX #t #t 0)
+(applytest compound-mutable? sequence->compound #("a" b 3) 'typeX #t #t 0)
+
+(define vec-compound (sequence->compound #("a" b 3 4 6 7) 'typeX #t #f 0))
+(applytest #t iscompound? vec-compound)
+(applytest #f compound-opaque? vec-compound)
+(applytest #t compound-mutable? vec-compound)
+(applytest #t sequence? vec-compound)
+;;(applytest #t length vec-compound)
+(applytest 3 compound-ref vec-compound 2)
+(applytest 3 compound-ref vec-compound 2 'typex)
+(applytest "#%(typex \"a\" b 3 4 6 7)" lisp->string vec-compound)
+(evaltest 'void (compound-set-corelen! 'typex 3))
+(applytest "#%(typex \"a\" b 3)" lisp->string vec-compound)
 
 (errtest (sequence->compound 'foo 'type4))
 (applytest #%(TYPE4 A B C) sequence->compound #(A B C) 'type4)
 (applytest #%(TYPE4 A B C) sequence->compound '(A B C) 'type4)
 (applytest "#%(type4 a b c)" lisp->string (sequence->compound '(A B C) 'type4))
-(define (type4-opaquefn c)
+(define (type4-stringfn c)
   (stringout "#<TYPE4" (doseq (elt c) (printout " " elt))
     ">"))
-;; (compound-set-stringfn! 'type4 type4-opaquefn)
-;; (applytest "#<TYPE4 a b c>" lisp->string (sequence->compound '(A B C) 'type4))
+(compound-set-stringfn! 'type4 type4-stringfn)
+(applytest "#<TYPE4 a b c>" lisp->string (sequence->compound '(A B C) 'type4))
+
+(define (type4-consfn . args)
+  (sequence->compound (cons "extra" args) 'type4))
+(compound-set-consfn! 'type4 type4-consfn)
+(applytest "extra" compound-ref #%(type4 3 4 5 "nine") 0)
+

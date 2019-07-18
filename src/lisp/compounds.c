@@ -228,7 +228,9 @@ KNO_EXPORT struct KNO_COMPOUND_TYPEINFO
 	lispval old_data = scan->compound_metadata;
 	scan->compound_metadata = kno_incref(data);
 	kno_decref(old_data);}
-      if (core_slots>0) scan->compound_corelen = core_slots;
+      if (core_slots>=0)
+	scan->compound_corelen = core_slots;
+      else scan->compound_corelen = -1;
       u8_unlock_mutex(&compound_registry_lock);
       return scan;}
     else scan = scan->compound_nextinfo;

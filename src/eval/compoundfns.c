@@ -448,23 +448,26 @@ static lispval compound_corelen_prim(lispval tag)
 {
   struct KNO_COMPOUND_TYPEINFO *e = kno_lookup_compound(tag);
   if (e) {
-    if (e->compound_corelen<0) return KNO_FALSE;
+    if (e->compound_corelen<0)
+      return KNO_FALSE;
     else return KNO_INT(e->compound_corelen);}
   else return EMPTY;
 }
 
 DEFPRIM2("compound-set-corelen!",compound_set_corelen_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-         "`(COMPOUND-SET-CORELEN! *arg0* *arg1*)` **undocumented**",
-         kno_any_type,KNO_VOID,kno_fixnum_type,KNO_VOID);
+	 "`(COMPOUND-SET-CORELEN! *arg0* *arg1*)` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval compound_set_corelen_prim(lispval tag,lispval slots_arg)
 {
-  if (!(KNO_UINTP(slots_arg)))
-    return kno_type_error("unsigned int",
-                          "compound_set_corelen_prim",
-                          slots_arg);
-  unsigned int core_slots = FIX2INT(slots_arg);
+  int core_slots = -1;
+  if (KNO_FALSEP(slots_arg))
+    core_slots = -1;
+  else if ( (FIXNUMP(slots_arg)) && (KNO_UINTP(slots_arg)) )
+    core_slots = FIX2INT(slots_arg);
+  else return kno_type_error("unsigned int","compound_set_corelen_prim",
+			     slots_arg);
   kno_declare_compound(tag,VOID,core_slots);
-  return kno_incref(tag);
+  return KNO_VOID;
 }
 
 static lispval tag_slotdata(lispval tag)
@@ -483,15 +486,36 @@ static lispval tag_slotdata(lispval tag)
     return slotmap;}
 }
 
-DEFPRIM2("compound-metatdata",compound_metadata_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-         "`(COMPOUND-METATDATA *arg0* [*arg1*])` **undocumented**",
-         kno_compound_type,KNO_VOID,kno_symbol_type,KNO_VOID);
+DEFPRIM2("compound-metatdata",compound_metadata_prim,KNO_MIN_ARGS(1),
+         "`(COMPOUND-METATDATA *compound* [*field*])` accesses the metadata "
+	 "associated with the typetag assigned to *compound*. If *field* "
+	 "is specified, that particular metadata field is returned. Otherwise "
+	 "the entire metadata object (a slotmap) is copied and returned.",
+	 kno_compound_type,KNO_VOID,kno_symbol_type,KNO_VOID);
 static lispval compound_metadata_prim(lispval compound,lispval field)
 {
   lispval tag = KNO_COMPOUND_TAG(compound);
   lispval slotmap = tag_slotdata(tag);
   lispval result;
-  if (VOIDP(field)) result = kno_deep_copy(slotmap);
+  if (VOIDP(field))
+    result = kno_deep_copy(slotmap);
+  else result = kno_get(slotmap,tag,EMPTY);
+  kno_decref(slotmap);
+  return result;
+}
+
+DEFPRIM2("tag-metatdata",tag_metadata_prim,KNO_MIN_ARGS(1),
+         "`(tag-metatdata *tag* [*field*])` Returns the metadata for "
+	 "compounds tagged with *tag*. If *field* is provided, the "
+	 "the *field* slot of the metadata is returned, otherwise a "
+	 "copy of the metadata (a slotmap) is returned.",
+	 kno_any_type,KNO_VOID,kno_symbol_type,KNO_VOID);
+static lispval tag_metadata_prim(lispval tag,lispval field)
+{
+  lispval slotmap = tag_slotdata(tag);
+  lispval result;
+  if (VOIDP(field))
+    result = kno_deep_copy(slotmap);
   else result = kno_get(slotmap,tag,EMPTY);
   kno_decref(slotmap);
   return result;
@@ -597,7 +621,6 @@ static void init_local_cprims()
   KNO_LINK_PRIM("compound?",compoundp,2,scheme_module);
   KNO_LINK_PRIM("compound-set-stringfn!",compound_set_stringfn_prim,2,scheme_module);
   KNO_LINK_PRIM("compound-set-consfn!",compound_set_consfn_prim,2,scheme_module);
-  KNO_LINK_PRIM("compound-metatdata",compound_metadata_prim,2,scheme_module);
   KNO_LINK_PRIM("compound-set-corelen!",compound_set_corelen_prim,2,scheme_module);
   KNO_LINK_PRIM("compound-corelen",compound_corelen_prim,1,scheme_module);
   KNO_LINK_PRIM("sequence->compound",seq2compound,5,scheme_module);
@@ -614,6 +637,10 @@ static void init_local_cprims()
   KNO_LINK_PRIM("compound-length",compound_length,1,scheme_module);
   KNO_LINK_PRIM("compound-tag",compound_tag,1,scheme_module);
   KNO_LINK_PRIM("pick-compounds",pick_compounds,2,scheme_module);
+
+  KNO_LINK_PRIM("compound-metatdata",compound_metadata_prim,2,scheme_module);
+  KNO_LINK_PRIM("tag-metatdata",tag_metadata_prim,2,scheme_module);
+
 
   KNO_LINK_ALIAS("compound-type?",compoundp,scheme_module);
   KNO_LINK_ALIAS("vector->compound",seq2compound,scheme_module);
