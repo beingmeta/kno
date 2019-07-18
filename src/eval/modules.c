@@ -39,25 +39,6 @@ lispval kno_sys_module = KNO_VOID;
 
 void clear_module_load_lock(lispval spec);
 
-static int auto_fix_modules = 0;
-static int auto_fix_exports = 0;
-static int auto_lock_modules = 0;
-static int auto_lock_exports = 0;
-
-static int readonly_tablep(lispval arg)
-{
-  kno_lisp_type type = KNO_LISP_TYPE(arg);
-  switch (type) {
-  case kno_hashtable_type:
-    return KNO_HASHTABLE_READONLYP(arg);
-  case kno_slotmap_type:
-    return KNO_SLOTMAP_READONLYP(arg);
-  case kno_schemap_type:
-    return KNO_SCHEMAP_READONLYP(arg);
-  default:
-    return 0;}
-}
-
 /* Module system */
 
 KNO_EXPORT kno_lexenv kno_make_env(lispval bindings,kno_lexenv parent)
@@ -201,14 +182,9 @@ KNO_EXPORT
 int kno_finish_module(lispval module)
 {
   if (TABLEP(module))
-    if (readonly_tablep(module))
+    if (kno_test(module,loadstamp_symbol,KNO_VOID))
       return 0;
-    else {
-      int flags = ((auto_fix_modules)?(KNO_FIX_MODULES):(0)) |
-        ((auto_fix_exports)?(KNO_FIX_EXPORTS):(0)) |
-        ((auto_lock_modules)?(KNO_LOCK_MODULES):(0)) |
-        ((auto_lock_exports)?(KNO_LOCK_EXPORTS):(0));
-      return kno_module_finished(module,flags);}
+    else return kno_module_finished(module,0);
   else {
     kno_seterr(kno_NotAModule,"kno_finish_module",NULL,module);
     return -1;}
@@ -237,35 +213,7 @@ int kno_module_finished(lispval module,int flags)
     else clear_module_load_lock(moduleid);
     kno_decref(moduleid);
     kno_decref(cur_timestamp);
-    if (KNO_LEXENVP(module)) {
-      kno_lexenv env = (kno_lexenv) module;
-      lispval exports = env->env_exports;
-      if (HASHTABLEP(env->env_bindings)) {
-        if (U8_BITP(flags,KNO_LOCK_MODULES))
-          kno_hashtable_set_readonly((kno_hashtable)(env->env_bindings),1);}
-      if (HASHTABLEP(exports)) {
-        if (U8_BITP(flags,KNO_LOCK_EXPORTS))
-          kno_hashtable_set_readonly((kno_hashtable)exports,1);}}
-    else if (HASHTABLEP(module)) {
-      if (flags&(KNO_LOCK_EXPORTS|KNO_LOCK_MODULES)) kno_lock_exports(module);}
-    else {}
     return 1;}
-}
-
-KNO_EXPORT
-int kno_lock_exports(lispval module)
-{
-  if (HASHTABLEP(module))
-    return kno_hashtable_set_readonly((struct KNO_HASHTABLE *) module, 1);
-  else if (KNO_LEXENVP(module)) {
-    kno_lexenv env = (kno_lexenv) module;
-    lispval exports = env->env_exports;
-    if (HASHTABLEP(exports))
-      return kno_hashtable_set_readonly((struct KNO_HASHTABLE *) exports, 1);
-    else return 0;}
-  else {
-    kno_incref(module);
-    return kno_reterr(_("not a module"),"kno_lock_exports",NULL,module);}
 }
 
 /* Switching modules */
@@ -861,14 +809,6 @@ KNO_EXPORT void kno_init_modules_c()
   kno_def_evalfn(kno_scheme_module,"USE-MODULE","",use_module_evalfn);
   kno_def_evalfn(kno_scheme_module,"MODULE-EXPORT!","",module_export_evalfn);
 
-  kno_register_config("LOCKEXPORTS",
-                      "Lock the exports of modules when loaded",
-                      kno_boolconfig_get,kno_boolconfig_set,
-                      &auto_lock_exports);
-  kno_register_config("LOCKMODULES",
-                      "Lock bindings of source modules after they are loaded",
-                      kno_boolconfig_get,kno_boolconfig_set,
-                      &auto_lock_modules);
   kno_register_config("MODULE",
 		      "Specify modules to be used by the default live environment",
 		      config_used_modules,config_use_module,NULL);

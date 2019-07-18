@@ -138,8 +138,6 @@ KNO_EXPORT lispval kno_all_modules(void);
 
 KNO_EXPORT int kno_module_finished(lispval module,int flags);
 KNO_EXPORT int kno_finish_module(lispval module);
-KNO_EXPORT int kno_static_module(lispval module);
-KNO_EXPORT int kno_lock_exports(lispval module);
 
 KNO_EXPORT lispval kno_find_module(lispval,int);
 KNO_EXPORT lispval kno_new_module(char *name,int flags);
@@ -154,14 +152,6 @@ KNO_EXPORT lispval kno_use_module(kno_lexenv env,lispval module);
 KNO_EXPORT int kno_log_reloads;
 
 KNO_EXPORT void kno_add_module_loader(int (*loader)(lispval,void *),void *);
-
-#define KNO_LOCK_EXPORTS 0x01
-#define KNO_FIX_EXPORTS 0x02
-#define KNO_STATIC_EXPORTS 0x04
-#define KNO_LOCK_MODULES 0x08
-#define KNO_FIX_MODULES 0x10
-#define KNO_STATIC_MODULES 0x20
-#define KNO_OPTIMIZE_EXPORTS 0x03
 
 /* LAMBDAs */
 
