@@ -1613,7 +1613,7 @@ KNO_EXPORT void kno_init_timeprims_c()
 
   gmt_symbol = kno_intern("gmt");
 
-  init_local_cprims();
+  link_local_cprims();
 
   kno_def_evalfn(kno_sys_module,"#NOW",
 		 "#:NOW:YEAR\n evaluates to a field of the current time",
@@ -1625,7 +1625,7 @@ KNO_EXPORT void kno_init_timeprims_c()
 }
 
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("uuid->packet",uuidpacket_prim,1,kno_sys_module);
   KNO_LINK_PRIM("uuid->string",uuidstring_prim,1,kno_sys_module);

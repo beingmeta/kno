@@ -1226,7 +1226,7 @@ static lispval webtools_module;
 KNO_EXPORT void kno_init_xmlinput_c()
 {
   webtools_module = kno_new_module("WEBTOOLS",0);
-  init_local_cprims();
+  link_local_cprims();
 
   attribs_symbol = kno_intern("%attribs");
   type_symbol = kno_intern("%type");
@@ -1258,7 +1258,7 @@ KNO_EXPORT void kno_init_xmlinput_c()
   u8_register_source_file(_FILEINFO);
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("knoml/parse",knoml_read,2,webtools_module);
   KNO_LINK_PRIM("knoml/load",knoml_load,2,webtools_module);

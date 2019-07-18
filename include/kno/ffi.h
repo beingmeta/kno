@@ -47,9 +47,3 @@ KNO_EXPORT u8_condition kno_FFI_TypeError;
 
 #endif /* KNO_FFI_H */
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

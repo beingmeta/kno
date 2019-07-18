@@ -1076,7 +1076,7 @@ KNO_EXPORT void kno_init_lambdas_c()
   kno_dtype_writers[kno_lambda_type] = write_lambda_dtype;
   kno_copiers[kno_lambda_type] = copy_lambda;
 
-  init_local_cprims();
+  link_local_cprims();
 
   kno_def_evalfn(kno_scheme_module,"LAMBDA","",lambda_evalfn);
   kno_def_evalfn(kno_scheme_module,"AMBDA","",ambda_evalfn);
@@ -1099,15 +1099,9 @@ KNO_EXPORT void kno_init_lambdas_c()
                  defsync_evalfn);
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
 
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   lispval scheme_module = kno_scheme_module;
   KNO_LINK_PRIM("xapply",xapply_prim,3,scheme_module);

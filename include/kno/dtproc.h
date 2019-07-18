@@ -25,9 +25,3 @@ KNO_EXPORT lispval kno_make_dtproc
 
 #endif
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

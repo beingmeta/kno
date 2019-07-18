@@ -462,9 +462,3 @@ KNO_EXPORT int kno_unparse_function
 
 #endif /* KNO_APPLY_H */
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

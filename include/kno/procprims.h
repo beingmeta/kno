@@ -24,9 +24,3 @@ KNO_EXPORT lispval kno_rlimit_codes;
 
 #endif
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

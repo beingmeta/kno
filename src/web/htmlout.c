@@ -629,7 +629,7 @@ KNO_EXPORT void kno_init_htmlout_c()
   webtools_module=kno_new_module("WEBTOOLS",0);
   xhtml_module=kno_new_module("XHTML",0);
 
-  init_local_cprims();
+  link_local_cprims();
 
   kno_def_evalfn(xhtml_module,"TABLE->HTML","",table2html_evalfn);
 
@@ -658,7 +658,7 @@ KNO_EXPORT void kno_init_htmlout_c()
 
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("obj->html",obj2html_prim,2,xhtml_module);
   KNO_LINK_PRIM("backtrace->html",backtrace2html_prim,2,webtools_module);

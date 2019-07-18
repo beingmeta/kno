@@ -722,9 +722,3 @@ KNO_EXPORT int kno_reset_hashset(kno_hashset);
 
 #endif /* KNO_TABLES_H */
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

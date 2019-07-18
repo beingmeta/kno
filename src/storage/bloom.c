@@ -418,9 +418,3 @@ void kno_init_bloom_c()
  * Refer to bloom.h for documentation on the public interfaces.
  */
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

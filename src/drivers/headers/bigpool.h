@@ -57,9 +57,3 @@ struct BIGPOOL_FETCH_SCHEDULE {
 struct BIGPOOL_SAVEINFO {
   KNO_CHUNK_REF chunk; unsigned int oidoff;} BIGPOOL_SAVEINFO;
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

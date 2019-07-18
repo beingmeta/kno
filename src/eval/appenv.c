@@ -385,7 +385,7 @@ KNO_EXPORT void kno_init_eval_appenv_c()
      or executables may define their own. */
   kno_autoload_config("APPMODS","APPLOAD","APPEVAL");
 
-  init_local_cprims();
+  link_local_cprims();
 
   kno_register_config("INITS:FAILED",
 		      _("Init expressions or functions which failed"),
@@ -403,7 +403,7 @@ KNO_EXPORT void kno_init_eval_appenv_c()
 
 
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("%appenv",appenv_prim,0,kno_scheme_module);
 }

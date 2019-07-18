@@ -298,7 +298,7 @@ static lispval webtools_module;
 void kno_init_mime_c()
 {
   webtools_module = kno_new_module("WEBTOOLS",0);
-  init_local_cprims();
+  link_local_cprims();
 
   content_slotid = kno_intern("content");
   charset_slotid = kno_intern("charset");
@@ -314,7 +314,7 @@ void kno_init_mime_c()
   u8_register_source_file(_FILEINFO);
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("parse-mime",parse_mime_data,1,webtools_module);
 }

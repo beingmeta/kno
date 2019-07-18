@@ -18,9 +18,3 @@ KNO_EXPORT lispval kno_reduce(lispval fn,lispval sequence,lispval result);
 
 #endif /*  KNO_SEQUENCES_H */
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

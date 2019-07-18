@@ -20,9 +20,3 @@ typedef struct KNO_FILE_POOL *kno_file_pool;
 KNO_EXPORT int kno_make_file_pool(u8_string,unsigned int,
 				KNO_OID,unsigned int,unsigned int);
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

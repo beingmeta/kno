@@ -1031,7 +1031,7 @@ KNO_EXPORT int kno_init_zeromq()
   init_symbols();
   init_sockopts();
 
-  init_local_cprims();
+  link_local_cprims();
 
   kno_register_config("ZEROMQ:LOGLEVEL",
 		      "Loglevel for the ZeroMQ wrapper",
@@ -1046,7 +1046,7 @@ KNO_EXPORT int kno_init_zeromq()
   return 1;
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("zmq/type",zeromq_type_prim,1,zeromq_module);
   KNO_LINK_PRIM("zeromq?",zeromqp_prim,2,zeromq_module);

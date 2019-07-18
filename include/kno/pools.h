@@ -507,9 +507,3 @@ KNO_EXPORT int kno_reset_mempool(kno_pool p);
 
 #endif /* KNO_POOLS_H */
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

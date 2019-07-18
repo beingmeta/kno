@@ -1191,7 +1191,7 @@ KNO_EXPORT void kno_init_eval_debug_c()
      kno_sconfig_get,config_bugdir,&kno_bugdir);
 
 
-  init_local_cprims();
+  link_local_cprims();
 
   kno_def_evalfn(kno_scheme_module,"TIMEVAL","",timed_eval_evalfn);
   kno_def_evalfn(kno_scheme_module,"%TIMEVAL","",timed_evalx_evalfn);
@@ -1228,15 +1228,9 @@ KNO_EXPORT void kno_init_eval_debug_c()
   logcxt_symbol = kno_intern("logcxt");
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
 
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   lispval scheme_module = kno_scheme_module;
 

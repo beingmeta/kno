@@ -1151,9 +1151,3 @@ KNO_EXPORT int kno_ptr_debug_density;
 
 #endif /* ndef KNO_PTR_H */
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

@@ -13,9 +13,3 @@ typedef struct KNO_NETWORK_POOL {
   int bulk_commitp;} KNO_NETWORK_POOL;
 typedef struct KNO_NETWORK_POOL *kno_network_pool;
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

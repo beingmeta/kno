@@ -4061,7 +4061,7 @@ KNO_EXPORT void kno_init_dbprims_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  init_local_cprims();
+  link_local_cprims();
 
   kno_def_evalfn(kno_db_module,"CACHEGET","",cacheget_evalfn);
 
@@ -4082,7 +4082,7 @@ KNO_EXPORT void kno_init_dbprims_c()
 
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("procindex?",procindexp,1,kno_db_module);
   KNO_LINK_PRIM("procpool?",procpoolp,1,kno_db_module);

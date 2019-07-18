@@ -285,9 +285,3 @@ void kno_init_oids_c()
   kno_zero_pool_buckets[0]=kno_zero_pool_values;
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

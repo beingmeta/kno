@@ -397,17 +397,11 @@ KNO_EXPORT void kno_init_logprims_c()
   /* Conditional logging with priority level */
   kno_def_evalfn(kno_sys_module,"LOGIF+","",logifplus_evalfn);
 
-  init_local_cprims();
+  link_local_cprims();
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
 
 
-static void init_local_cprims(){
+static void link_local_cprims(){
   KNO_LINK_PRIM("%show",lisp_show_table,3,kno_sys_module);
 }

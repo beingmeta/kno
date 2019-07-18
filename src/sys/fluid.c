@@ -423,9 +423,3 @@ void kno_init_fluid_c()
   atexit(recycle_thread_table);
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

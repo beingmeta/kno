@@ -588,7 +588,7 @@ KNO_EXPORT void kno_init_cprims_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  init_local_cprims();
+  link_local_cprims();
 
   moduleid_symbol = kno_intern("%moduleid");
 
@@ -599,7 +599,7 @@ KNO_EXPORT void kno_init_cprims_c()
   kno_dtype_writers[kno_cprim_type]=cprim_dtype;
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
 
 }

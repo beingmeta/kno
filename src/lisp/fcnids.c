@@ -191,9 +191,3 @@ KNO_EXPORT void kno_init_fcnids_c()
      kno_boolconfig_get,kno_boolconfig_set,&_kno_leak_fcnids);
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

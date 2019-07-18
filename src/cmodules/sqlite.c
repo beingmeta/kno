@@ -810,7 +810,7 @@ KNO_EXPORT int kno_init_sqlite()
 
   kno_register_sqldb_handler(&sqlite_handler);
 
-  init_local_cprims();
+  link_local_cprims();
 
   sqlite_init = u8_millitime();
 
@@ -830,7 +830,7 @@ KNO_EXPORT int kno_init_sqlite()
   return 1;
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("sqlite/close",sqlite_close_prim,1,sqlite_module);
   KNO_LINK_PRIM("sqlite/reopen",sqlite_reopen_prim,1,sqlite_module);

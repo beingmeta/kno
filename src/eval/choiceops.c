@@ -1752,7 +1752,7 @@ KNO_EXPORT void kno_init_choicefns_c()
 
   kno_def_evalfn(kno_scheme_module,"DO-SUBSETS","",dosubsets_evalfn);
 
-  init_local_cprims();
+  link_local_cprims();
 
   kno_def_evalfn(kno_scheme_module,"TRY","",try_evalfn);
   kno_def_evalfn(kno_scheme_module,"IFEXISTS","",ifexists_evalfn);
@@ -1765,7 +1765,7 @@ KNO_EXPORT void kno_init_choicefns_c()
 
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   lispval scheme_module = kno_scheme_module;
 

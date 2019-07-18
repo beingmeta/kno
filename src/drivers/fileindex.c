@@ -1342,9 +1342,3 @@ KNO_EXPORT void kno_init_fileindex_c()
                      &fileindex_default_size);
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

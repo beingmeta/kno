@@ -70,9 +70,3 @@ lispval kno_makeseq(kno_lisp_type ctype,int n,lispval *v);
 
 #endif /*  KNO_SEQUENCES_H */
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

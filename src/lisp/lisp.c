@@ -376,9 +376,3 @@ KNO_EXPORT int kno_init_lisp_types()
   return lisp_types_initialized;
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

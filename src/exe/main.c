@@ -242,9 +242,3 @@ KNO_EXPORT void _knodbg_show_stack_env(void *arg)
   else fprintf(stderr,"!! No env\n");
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

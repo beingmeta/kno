@@ -795,7 +795,7 @@ KNO_EXPORT void kno_init_modules_c()
 {
   u8_init_mutex(&exports_lock);
 
-  init_local_cprims();
+  link_local_cprims();
 
   kno_def_evalfn(kno_sys_module,"EXPORT-ALIAS!",
                  "Combine the exports of this module with another",
@@ -814,7 +814,7 @@ KNO_EXPORT void kno_init_modules_c()
 		      config_used_modules,config_use_module,NULL);
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("importvar",import_var_prim,3,kno_sys_module);
   KNO_LINK_PRIM("%get-binding",get_internal_binding_prim,3,kno_sys_module);

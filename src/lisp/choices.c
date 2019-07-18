@@ -1309,9 +1309,3 @@ void kno_init_choices_c()
   kno_type_names[kno_choice_type]="choice";
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

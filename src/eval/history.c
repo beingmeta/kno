@@ -432,7 +432,7 @@ KNO_EXPORT void kno_init_history_c()
 		 "This saves any current history context.",
 		 with_history_evalfn);
 
-  init_local_cprims();
+  link_local_cprims();
 
   history_symbol = kno_intern("%history");
   histref_typetag = kno_intern("%histref");
@@ -443,7 +443,7 @@ KNO_EXPORT void kno_init_history_c()
 
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("histref",histref_prim,2,history_module);
   KNO_LINK_PRIM("histfind",histfind_prim,2,history_module);

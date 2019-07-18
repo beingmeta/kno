@@ -2389,9 +2389,3 @@ static void init_x2vec_symbols()
   optsep_symbol=kno_intern("optsep");
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

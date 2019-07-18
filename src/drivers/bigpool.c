@@ -2399,9 +2399,3 @@ KNO_EXPORT void kno_init_bigpool_c()
   kno_set_default_pool_type("bigpool");
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

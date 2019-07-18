@@ -1218,9 +1218,3 @@ static lispval handle_special_opcode(lispval opcode,lispval args,lispval expr,
   }
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

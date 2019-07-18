@@ -107,9 +107,3 @@ KNO_EXPORT lispval kno_compound_descriptor_type;
 
 #endif
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

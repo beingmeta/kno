@@ -1796,7 +1796,7 @@ KNO_EXPORT void kno_init_threads_c()
   kno_recyclers[kno_synchronizer_type]=recycle_synchronizer;
   kno_unparsers[kno_synchronizer_type]=unparse_synchronizer;
 
-  init_local_cprims();
+  link_local_cprims();
 
   kno_def_evalfn(threads_module,"PARALLEL",
 		 "`(PARALLEL *exprs...*)` is just like `CHOICE`, "
@@ -1877,7 +1877,7 @@ KNO_EXPORT void kno_init_threads_c()
 }
 
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("cstack-limit!",set_cstack_limit_prim,1,threads_module);
   KNO_LINK_PRIM("cstack-limit",cstack_limit_prim,0,threads_module);

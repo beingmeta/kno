@@ -1089,9 +1089,3 @@ KNO_EXPORT lispval kno_zero_pool_store(lispval oid,lispval value);
 
 #endif /* ndef KNO_CONS_H */
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

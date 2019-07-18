@@ -2441,10 +2441,10 @@ DEFPRIM("APPEND",kno_append,MIN_ARGS(0)|KNO_VAR_ARGS,
 KNO_EXPORT void kno_init_seqprims_c()
 {
   u8_register_source_file(_FILEINFO);
-  init_local_cprims();
+  link_local_cprims();
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   lispval scheme_module = kno_scheme_module;
 

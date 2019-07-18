@@ -609,9 +609,3 @@ static void init_symbols()
   ffi_result_symbol = kno_intern("result");
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

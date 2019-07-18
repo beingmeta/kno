@@ -1240,9 +1240,3 @@ KNO_EXPORT void kno_init_apply_c()
   kno_init_lexenv_c();
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

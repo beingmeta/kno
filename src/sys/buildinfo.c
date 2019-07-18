@@ -573,9 +573,3 @@ KNO_EXPORT void kno_init_build_info()
   table->table_readonly=1;
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

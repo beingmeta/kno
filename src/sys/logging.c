@@ -355,9 +355,3 @@ void kno_init_logging_c()
      config_get_reqlogonly,config_set_reqlogonly,NULL);
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

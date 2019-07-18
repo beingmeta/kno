@@ -1361,7 +1361,7 @@ KNO_EXPORT void kno_init_reflection_c()
   call_profile_symbol = kno_intern("%callprofile");
   void_symbol = kno_intern("%void");
 
-  init_local_cprims();
+  link_local_cprims();
 
   kno_def_evalfn(module,"%BINDINGS","",local_bindings_evalfn);
 
@@ -1372,15 +1372,9 @@ KNO_EXPORT void kno_init_reflection_c()
   kno_finish_module(module);
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
 
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("all-modules",get_all_modules_prim,0,reflection_module);
   KNO_LINK_PRIM("profile/nitems",profile_nitems,1,reflection_module);

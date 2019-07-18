@@ -1762,21 +1762,15 @@ KNO_EXPORT void kno_init_stringprims_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  init_local_cprims();
+  link_local_cprims();
   kno_def_evalfn(kno_scheme_module,"TEXTIF","",textif_evalfn);
 
   entity_escape = kno_intern("entities");
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
 
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_VARARGS("glom",glom_lexpr,kno_scheme_module);
   KNO_LINK_PRIM("trim-spaces",trim_spaces,1,kno_scheme_module);

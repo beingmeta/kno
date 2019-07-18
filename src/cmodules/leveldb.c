@@ -2439,7 +2439,7 @@ KNO_EXPORT int kno_init_leveldb()
 
   leveldb_module = kno_new_cmodule("leveldb",0,kno_init_leveldb);
 
-  init_local_cprims();
+  link_local_cprims();
 
   kno_register_config("LEVELDB:WRITEBUF",
 		      "Default writebuf size for leveldb",
@@ -2487,7 +2487,7 @@ KNO_EXPORT int kno_init_leveldb()
   return 1;
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("leveldb/make-pool",make_leveldb_pool_prim,4,leveldb_module);
   KNO_LINK_PRIM("leveldb/use-pool",use_leveldb_pool_prim,2,leveldb_module);

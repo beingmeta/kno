@@ -194,7 +194,7 @@ KNO_EXPORT int kno_init_qrcode()
   version_symbol = kno_intern("version");
   robustness_symbol = kno_intern("robustness");
 
-  init_local_cprims();
+  link_local_cprims();
 
   qrencode_init = u8_millitime();
 
@@ -205,7 +205,7 @@ KNO_EXPORT int kno_init_qrcode()
   return 1;
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("qrencode",qrencode_prim,2,qrcode_module);
 }

@@ -1836,7 +1836,7 @@ KNO_EXPORT void kno_init_curl_c()
 
   kno_def_evalfn(module,"URLPOSTOUT","",urlpostdata_evalfn);
 
-  init_local_cprims();
+  link_local_cprims();
 
   kno_register_config
     ("CURL:LOGLEVEL",_("Loglevel for debugging CURL calls"),
@@ -1855,7 +1855,7 @@ KNO_EXPORT void kno_init_curl_c()
   u8_register_source_file(_FILEINFO);
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_VARARGS("urlpost",urlpost,webtools_module);
   KNO_LINK_VARARGS("curl/open",curlopen,webtools_module);

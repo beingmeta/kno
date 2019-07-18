@@ -206,7 +206,7 @@
 		  (printout " KNO_LINK_ALIAS(\"" (car alias) "\"," (procedure-cname cp) ","
 		    (cdr alias) "_module);\n"))))))
 	(printout block)))
-    (printout "\n\nstatic void init_local_cprims()\n{\n"
+    (printout "\n\nstatic void link_local_cprims()\n{\n"
       (dolist (prim declared)
 	(if (pair? prim)
 	    (printout "  " (output-cprim-alias (car prim)) "\n")

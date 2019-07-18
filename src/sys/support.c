@@ -255,9 +255,3 @@ KNO_EXPORT void kno_init_support_c()
                      config_get_module_loc,NULL,(void *) UNPACKAGE_DIR);
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

@@ -1986,7 +1986,7 @@ static void init_types_and_tables()
 
 static void init_localfns()
 {
-  init_local_cprims();
+  link_local_cprims();
 
   kno_def_evalfn(kno_scheme_module,"EVAL","",eval_evalfn);
   kno_def_evalfn(kno_scheme_module,"BOUND?",
@@ -2189,7 +2189,7 @@ DEFPRIM("%buildinfo",kno_get_build_info,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
 	"Information about the build and startup "
 	"environment");
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_VARARGS("ffi/proc",ffi_proc,kno_scheme_module);
   KNO_LINK_PRIM("symbol-bound-in?",symbol_boundin_prim,2,kno_scheme_module);

@@ -869,7 +869,7 @@ KNO_EXPORT void kno_init_errfns_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  init_local_cprims();
+  link_local_cprims();
 
   kno_def_evalfn(kno_scheme_module,"ERROR",
 		 "(error *condition* *caller* [*irritant*] details...) "
@@ -935,7 +935,7 @@ KNO_EXPORT void kno_init_errfns_c()
 
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   lispval scheme_module = kno_scheme_module;
 

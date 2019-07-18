@@ -682,9 +682,3 @@ KNO_EXPORT void kno_init_pprint_c()
   pprint_default_rules = kno_make_hashtable(NULL,200);
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

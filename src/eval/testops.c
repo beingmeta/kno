@@ -348,7 +348,7 @@ KNO_EXPORT void kno_init_eval_testops_c()
   err_symbol = kno_intern("err");
   void_symbol = kno_intern("void");
 
-  init_local_cprims();
+  link_local_cprims();
 
   kno_def_evalfn(kno_scheme_module,"EVALTEST",
 		 "`(EVALTEST *expected* *expr*)` evaluates *expr* and checks "
@@ -376,7 +376,7 @@ KNO_EXPORT void kno_init_eval_testops_c()
      kno_lconfig_get,config_failed_tests_set,&failed_tests);
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_VARARGS("applytest",applytest,kno_scheme_module);
 }

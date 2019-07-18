@@ -536,9 +536,3 @@ unsigned char *kno_zlib_compress
 
 #endif /* KNO_BUFIO_H */
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

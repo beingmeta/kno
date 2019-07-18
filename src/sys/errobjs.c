@@ -801,9 +801,3 @@ void kno_init_err_c()
   exception_stack_symbol = kno_intern("exception-stack");
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

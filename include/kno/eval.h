@@ -396,9 +396,3 @@ KNO_EXPORT u8_string kno_bugdir;
 
 #endif /* KNO_EVAL_H */
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

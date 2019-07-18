@@ -44,9 +44,3 @@ KNO_EXPORT int kno_release_sqlproc(struct KNO_SQLPROC *p);
 
 #endif /* ndef KNO_SQLDB_H */
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

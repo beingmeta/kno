@@ -196,7 +196,7 @@ KNO_EXPORT void kno_init_conditionals_c()
   apply_marker = kno_intern("=>");
   else_symbol = kno_intern("else");
 
-  init_local_cprims();
+  link_local_cprims();
 
   kno_def_evalfn(kno_scheme_module,"IF",
 		 "(IF *test* *then* [*else*]) "
@@ -229,7 +229,7 @@ KNO_EXPORT void kno_init_conditionals_c()
 		 or_evalfn);
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   lispval scheme_module = kno_scheme_module;
   KNO_LINK_PRIM("not",not_prim,1,scheme_module);

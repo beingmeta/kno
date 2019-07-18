@@ -293,7 +293,7 @@ KNO_EXPORT int kno_init_regex_c()
   regex_init = 1;
   regex_module = kno_new_cmodule("regex",0,kno_init_regex_c);
 
-  init_local_cprims();
+  link_local_cprims();
 
   kno_dtype_writers[kno_regex_type] = write_regex_dtype;
 
@@ -304,7 +304,7 @@ KNO_EXPORT int kno_init_regex_c()
   return 1;
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("regex/matchspan",regex_matchspan,3,regex_module);
   KNO_LINK_PRIM("regex/matchstring",regex_matchstring,3,regex_module);

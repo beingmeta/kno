@@ -1216,14 +1216,14 @@ KNO_EXPORT void kno_init_portprims_c()
   kno_recyclers[kno_ioport_type]=recycle_port;
 
   init_portprims_symbols();
-  init_local_cprims();
+  link_local_cprims();
 
   kno_def_evalfn(kno_io_module,"PRINTOUT","",printout_evalfn);
   kno_def_evalfn(kno_io_module,"LINEOUT","",lineout_evalfn);
   kno_def_evalfn(kno_io_module,"STRINGOUT","",stringout_evalfn);
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("gzip",gzip_prim,3,kno_io_module);
   KNO_LINK_PRIM("packet->base16",to_base16_prim,1,kno_io_module);

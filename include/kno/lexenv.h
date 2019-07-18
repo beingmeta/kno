@@ -77,9 +77,3 @@ KNO_EXPORT void kno_destroy_lexenv(kno_lexenv env);
 
 #endif
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

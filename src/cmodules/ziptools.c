@@ -507,7 +507,7 @@ KNO_EXPORT int kno_init_ziptools()
   kno_unparsers[kno_zipfile_type]=unparse_zipfile;
   kno_recyclers[kno_zipfile_type]=recycle_zipfile;
 
-  init_local_cprims();
+  link_local_cprims();
 
   kno_finish_module(ziptools_module);
 
@@ -516,7 +516,7 @@ KNO_EXPORT int kno_init_ziptools()
   return 1;
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("zip/features",zipfeatures_prim,0,ziptools_module);
 

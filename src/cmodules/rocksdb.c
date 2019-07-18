@@ -2449,7 +2449,7 @@ KNO_EXPORT int kno_init_rocksdb()
 
   rocksdb_module = kno_new_cmodule("rocksdb",0,kno_init_rocksdb);
 
-  init_local_cprims();
+  link_local_cprims();
 
   kno_register_config("ROCKSDB:WRITEBUF",
 		      "Default writebuf size for rocksdb",
@@ -2497,7 +2497,7 @@ KNO_EXPORT int kno_init_rocksdb()
   return 1;
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("rocksdb/make-pool",make_rocksdb_pool_prim,4,rocksdb_module);
   KNO_LINK_PRIM("rocksdb/use-pool",use_rocksdb_pool_prim,2,rocksdb_module);

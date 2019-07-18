@@ -530,7 +530,7 @@ KNO_EXPORT void kno_init_load_c()
   kno_def_evalfn(kno_scheme_module,"LOAD","",load_source_evalfn);
   kno_def_evalfn(kno_scheme_module,"LOAD-COMPONENT","",load_component_evalfn);
 
-  init_local_cprims();
+  link_local_cprims();
 
   kno_def_evalfn(kno_scheme_module,"LOAD-LATEST","",load_latest_evalfn);
 
@@ -559,7 +559,7 @@ KNO_EXPORT void kno_init_load_c()
 }
 
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   lispval scheme_module = kno_scheme_module;
 

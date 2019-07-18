@@ -383,7 +383,7 @@ KNO_EXPORT void kno_init_sqldbprims_c()
   kno_applyfns[kno_sqlproc_type]=(kno_applyfn)callsqlproc;
   kno_functionp[kno_sqlproc_type]=1;
 
-  init_local_cprims();
+  link_local_cprims();
   kno_register_config("SQLEXEC",
                       _("whether direct execution of SQL strings is allowed"),
                       kno_boolconfig_get,kno_boolconfig_set,&exec_enabled);
@@ -391,7 +391,7 @@ KNO_EXPORT void kno_init_sqldbprims_c()
   kno_finish_module(sqldb_module);
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("sqldb/proc/params",sqlproc_params,1,sqldb_module);
   KNO_LINK_PRIM("sqldb/proc/typemap",sqlproc_typemap,1,sqldb_module);

@@ -913,12 +913,12 @@ KNO_EXPORT void kno_init_streamprims_c()
   u8_register_source_file(_FILEINFO);
   fixsyms_symbol = kno_intern("LOUDSYMS");
 
-  init_local_cprims();
+  link_local_cprims();
 
   kno_finish_module(streamprims_module);
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   lispval scheme_module = kno_scheme_module;
 

@@ -169,9 +169,3 @@ int kno_bloom_op(struct KNO_BLOOM * bloom, lispval val, int flags);
 
 #endif /* KNO_BLOOM_H */
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

@@ -144,7 +144,7 @@ void kno_init_email_c()
 {
   webtools_module = kno_new_module("WEBTOOLS",(0));
 
-  init_local_cprims();
+  link_local_cprims();
 
   kno_def_evalfn(webtools_module,"MAILOUT","",mailout_evalfn);
 
@@ -158,7 +158,7 @@ void kno_init_email_c()
   u8_register_source_file(_FILEINFO);
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("smtp",smtp_function,5,webtools_module);
 }

@@ -1475,7 +1475,7 @@ KNO_EXPORT int kno_init_mysql()
 
   kno_register_sqldb_handler(&mysql_handler);
 
-  init_local_cprims();
+  link_local_cprims();
 
   mysql_initialized = u8_millitime();
 
@@ -1512,7 +1512,7 @@ KNO_EXPORT int kno_init_mysql()
   return 1;
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("mysql/open",open_mysql,6,mysql_module);
   KNO_LINK_PRIM("mysql/refresh",refresh_mysqldb,2,mysql_module);

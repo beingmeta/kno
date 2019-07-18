@@ -833,20 +833,14 @@ KNO_EXPORT void kno_init_urifns_c()
   fragment_symbol = kno_intern("fragment");
   colonize_symbol = kno_intern("colonize");
 
-  init_local_cprims();
+  link_local_cprims();
 
   u8_register_source_file(_FILEINFO);
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
 
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_VARARGS("knoscripturl+",knoscripturlplus,webtools_module);
   KNO_LINK_VARARGS("scripturl+",scripturlplus,webtools_module);

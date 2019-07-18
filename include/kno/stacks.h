@@ -213,9 +213,3 @@ KNO_EXPORT lispval kno_get_backtrace(struct KNO_STACK *stack);
 
 #endif /* KNO_STACKS_H */
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

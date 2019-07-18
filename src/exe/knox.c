@@ -212,7 +212,7 @@ static lispval *handle_argv(int argc,char **argv,size_t *arglenp,
   return args;
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
 }
 
@@ -325,7 +325,7 @@ int do_main(int argc,char **argv,
           "knox");
   KNO_LINK_PRIM("CHAIN",chain_prim,0,(lispval)env);
 
-  init_local_cprims();
+  link_local_cprims();
 
   if (source_file) {
     lispval src = kno_wrapstring(u8_realpath(source_file,NULL));
@@ -460,9 +460,3 @@ int main(int argc,char **argv)
 }
 #endif
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

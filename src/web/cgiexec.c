@@ -1362,7 +1362,7 @@ KNO_EXPORT void kno_init_cgiexec_c()
 
   kno_def_evalfn(module,"HTTPHEADER","",httpheader);
 
-  init_local_cprims();
+  link_local_cprims();
 
   kno_def_evalfn(module,"WITH/REQUEST/OUT","",withreqout_evalfn);
   kno_defalias(module,"WITHCGIOUT","WITH/REQUEST/OUT");
@@ -1485,15 +1485,9 @@ KNO_EXPORT void kno_init_cgiexec_c()
   u8_register_source_file(_FILEINFO);
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
 
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("mapurl",mapurl,1,webtools_module);
   KNO_LINK_PRIM("urldata/parse",urldata_parse,1,webtools_module);

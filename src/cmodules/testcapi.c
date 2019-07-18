@@ -236,7 +236,7 @@ KNO_EXPORT int kno_init_testcapi()
   testcapi_module =
     kno_new_cmodule_x("testcapi",0,kno_init_testcapi,__FILE__);
 
-  init_local_cprims();
+  link_local_cprims();
 
   u8_register_source_file(_FILEINFO);
 
@@ -244,7 +244,7 @@ KNO_EXPORT int kno_init_testcapi()
 }
 
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("eval/testcapi",eval_testcapi,0,testcapi_module);
   KNO_LINK_PRIM("modules/testcapi",modules_testcapi,0,testcapi_module);

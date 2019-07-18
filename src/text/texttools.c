@@ -2796,7 +2796,7 @@ void kno_init_texttools()
   kno_init_phonetic_c();
 
   kno_def_evalfn(texttools_module,"TEXTCLOSURE","",textclosure_evalfn);
-  init_local_cprims();
+  link_local_cprims();
 
   subst_symbol = kno_intern("subst");
 
@@ -2805,7 +2805,7 @@ void kno_init_texttools()
   kno_finish_module(texttools_module);
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("matchdef!",matchdef_prim,2,texttools_module);
   KNO_LINK_PRIM("hmac-sha512",hmac_sha512_prim,2,texttools_module);

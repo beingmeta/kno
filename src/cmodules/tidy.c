@@ -282,7 +282,7 @@ KNO_EXPORT int kno_init_tidy()
   wrap_symbol = kno_intern("wrap");
   tidy_module = kno_new_cmodule("tidy",0,kno_init_tidy);
 
-  init_local_cprims();
+  link_local_cprims();
 
   kno_finish_module(tidy_module);
 
@@ -291,7 +291,7 @@ KNO_EXPORT int kno_init_tidy()
   return 1;
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("TIDY5",tidy_prim,3,tidy_module);
   KNO_LINK_PRIM("TIDY->XHTML",tidy_xhtml_prim,3,tidy_module);

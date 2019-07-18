@@ -261,12 +261,12 @@ KNO_EXPORT void kno_init_eval_getopt_c()
 		 tryopt_evalfn);
 #endif
 
-  init_local_cprims();
+  link_local_cprims();
 }
 
 
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   lispval scheme_module = kno_scheme_module;
 

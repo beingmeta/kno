@@ -293,9 +293,3 @@ U8_MAYBE_UNUSED static lispval _kno_apply_keyfn(lispval x,lispval keyfn)
 
 #endif /* KNO_SORTING_H */
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

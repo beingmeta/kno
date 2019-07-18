@@ -208,9 +208,3 @@ void kno_init_walk_c()
   kno_walkers[kno_compound_type]=walk_compound;
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

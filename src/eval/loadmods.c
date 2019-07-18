@@ -831,7 +831,7 @@ KNO_EXPORT void kno_init_loadmods_c()
      liveload_get,liveload_add,NULL);
 #endif
 
-  init_local_cprims();
+  link_local_cprims();
 
   kno_add_module_loader(load_source_module,NULL);
   kno_add_module_loader(load_dynamic_module,NULL);
@@ -850,7 +850,7 @@ KNO_EXPORT void kno_init_loadmods_c()
 }
 
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("dynamic-load",dynamic_load_prim,2,kno_scheme_module);
   KNO_LINK_PRIM("update-module",update_module_prim,2,loadmods_module);

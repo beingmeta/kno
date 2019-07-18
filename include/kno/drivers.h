@@ -239,9 +239,3 @@ KNO_EXPORT int kno_set_file_opts(u8_string filename,lispval opts);
 
 #endif /* #ifndef KNO_DRIVERS_H */
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

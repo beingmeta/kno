@@ -1816,7 +1816,7 @@ KNO_EXPORT void kno_init_fileprims_c()
 
   u8_set_global_output((u8_output)&u8stdout);
 
-  init_local_cprims();
+  link_local_cprims();
   kno_def_evalfn(fileio_module,"FILEOUT","",simple_fileout_evalfn);
 
   kno_def_evalfn(fileio_module,"SYSTEM","",simple_system_evalfn);
@@ -1862,15 +1862,9 @@ KNO_EXPORT void kno_init_schemeio()
   kno_init_driverfns_c();
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
 
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   lispval scheme_module = kno_scheme_module;
 

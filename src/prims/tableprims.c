@@ -1112,11 +1112,11 @@ KNO_EXPORT void kno_init_tableprims_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  init_local_cprims();
+  link_local_cprims();
 
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("TABLE?",tablep,1,kno_scheme_module);
   KNO_LINK_PRIM("HASKEYS?",haskeysp,1,kno_scheme_module);

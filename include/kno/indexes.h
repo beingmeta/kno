@@ -451,9 +451,3 @@ KNO_EXPORT int kno_execute_index_delays(kno_index ix,void *data);
 
 #endif /* KNO_INDEXES_H */
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

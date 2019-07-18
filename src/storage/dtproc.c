@@ -129,9 +129,3 @@ KNO_EXPORT void kno_init_dtproc_c()
   kno_recyclers[kno_dtproc_type]=recycle_dtproc;
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

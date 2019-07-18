@@ -135,9 +135,3 @@ KNO_EXPORT u8_condition kno_ThreadTerminated, kno_ThreadInterrupted;
 
 #endif /* ndef KNO_COMMON_H */
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

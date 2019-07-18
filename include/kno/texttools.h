@@ -104,9 +104,3 @@ KNO_EXPORT lispval kno_words2list(u8_string string,int keep_punct);
 
 #endif /* KNO_TEXTTOOLS_H */
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

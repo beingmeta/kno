@@ -302,9 +302,3 @@ KNO_EXPORT ssize_t kno_restore_head(u8_string file,u8_string head);
 
 #endif
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

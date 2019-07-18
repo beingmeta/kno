@@ -685,7 +685,7 @@ static int bugdir_config_set(lispval var,lispval val,void *d)
 
 /* Local cprims */
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
 }
 
@@ -938,7 +938,7 @@ int main(int argc,char **argv)
   kno_def_evalfn((lispval)env,"%HISTREF","",histref_evalfn);
 
 
-  init_local_cprims();
+  link_local_cprims();
 
   history_symbol = kno_intern("%history");
   histref_symbol = kno_intern("%histref");
@@ -1164,9 +1164,3 @@ int main(int argc,char **argv)
   return 0;
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

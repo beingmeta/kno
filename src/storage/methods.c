@@ -828,10 +828,10 @@ KNO_EXPORT void kno_init_methods_c()
            ("FD:CLEAR-IMPLIES",clear_implies_effect,MIN_ARGS(3),
             NULL));
 
-  init_local_cprims();
+  link_local_cprims();
 
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
 }

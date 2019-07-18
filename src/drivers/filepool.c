@@ -988,9 +988,3 @@ KNO_EXPORT void kno_init_file_pool_c()
      (void *)(U8_INT2PTR(KNO_FILE_POOL_TO_RECOVER)));
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

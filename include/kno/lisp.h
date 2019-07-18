@@ -111,9 +111,3 @@ KNO_EXPORT int kno_pprint
 
 #endif /* ndef KNO_LISP_H */
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

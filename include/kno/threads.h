@@ -56,9 +56,3 @@ typedef struct KNO_SYNCHORNIZER *kno_synchornizer;
 
 #endif
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

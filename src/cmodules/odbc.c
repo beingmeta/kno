@@ -528,7 +528,7 @@ KNO_EXPORT int kno_init_odbc()
   odbc_handler.recycle_db = recycle_odbconn;
   odbc_handler.recycle_proc = recycle_odbcproc;
 
-  init_local_cprims();
+  link_local_cprims();
 
   merge_symbol = kno_intern("%merge");
 
@@ -539,15 +539,9 @@ KNO_EXPORT int kno_init_odbc()
   return 1;
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
 
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("odbc/open",odbcopen,2,odbc_module);
 }

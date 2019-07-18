@@ -47,9 +47,3 @@ KNO_EXPORT int kno_pathp(lispval root,lispval slotid,lispval to);
 
 #endif /* KNO_METHODS_H */
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

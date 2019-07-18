@@ -164,9 +164,3 @@ KNO_EXPORT int kno_opcodes_length;
 
 #endif /* KNO_OPCODES_H */
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

@@ -481,9 +481,3 @@ KNO_EXPORT lispval *kno_natsort_choice(kno_choice ch,lispval *,ssize_t);
 
 #endif /* KNO_CHOICES_H */
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

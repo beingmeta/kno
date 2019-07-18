@@ -289,7 +289,7 @@ KNO_EXPORT int kno_init_hyphenate()
 
   hyphenate_module = kno_new_cmodule("hyphenate",0,kno_init_hyphenate);
 
-  init_local_cprims();
+  link_local_cprims();
 
   kno_finish_module(hyphenate_module);
 
@@ -298,7 +298,7 @@ KNO_EXPORT int kno_init_hyphenate()
   return 1;
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   u8_string s = "­";
   unsigned int c = u8_sgetc(&s);

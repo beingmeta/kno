@@ -1272,7 +1272,7 @@ KNO_EXPORT void kno_init_xmloutput_c()
   kno_def_evalfn(xhtml_module,"JAVASCRIPT","",javascript_evalfn);
   kno_def_evalfn(xhtml_module,"JAVASTMT","",javastmt_evalfn);
 
-  init_local_cprims();
+  link_local_cprims();
 
   kno_decref(markup_prim); kno_decref(markupstar_prim);
   kno_decref(markupblock_prim); kno_decref(markupstarblock_prim);
@@ -1313,15 +1313,9 @@ KNO_EXPORT void kno_init_xmloutput_c()
 
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
 
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("xmlclose",xmlclose_prim,1,webtools_module);
   KNO_LINK_PRIM("xml->string",xml2string_prim,3,webtools_module);

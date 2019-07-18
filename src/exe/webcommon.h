@@ -892,9 +892,3 @@ static lispval webcommon_adjust_docroot(lispval cgidata,u8_string docroot)
 }
 
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

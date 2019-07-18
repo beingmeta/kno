@@ -1429,13 +1429,13 @@ KNO_EXPORT void kno_init_arith_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  init_local_cprims();
+  link_local_cprims();
 
   kno_store(kno_scheme_module,kno_intern("max-fixnum"),kno_max_fixnum);
   kno_store(kno_scheme_module,kno_intern("min-fixnum"),kno_min_fixnum);
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   lispval scheme_module = kno_scheme_module;
 

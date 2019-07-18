@@ -159,9 +159,3 @@ KNO_FASTOP int check_bindexprs(lispval bindexprs,lispval *why_not)
   else return -1;
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

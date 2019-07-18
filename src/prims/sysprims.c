@@ -852,7 +852,7 @@ KNO_EXPORT void kno_init_sysprims_c()
   total_ram_symbol=kno_intern("totalram");
   max_vmem_symbol=kno_intern("maxvmem");
 
-  init_local_cprims();
+  link_local_cprims();
 
   kno_def_evalfn(kno_sys_module,"#ENV",
 		 "#:ENV\"HOME\" or #:ENV:HOME\n"
@@ -863,7 +863,7 @@ KNO_EXPORT void kno_init_sysprims_c()
 
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("cpusage",cpusage_prim,1,kno_sys_module);
   KNO_LINK_PRIM("systime",systime_prim,0,kno_sys_module);

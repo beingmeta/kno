@@ -625,7 +625,7 @@ KNO_EXPORT void kno_init_json_c()
   lispval module = kno_new_module("WEBTOOLS",0);
   webtools_module = module;
 
-  init_local_cprims();
+  link_local_cprims();
 
   symbolize_symbol=kno_intern("symbolize");
   colonize_symbol=kno_intern("colonize");
@@ -638,7 +638,7 @@ KNO_EXPORT void kno_init_json_c()
   u8_register_source_file(_FILEINFO);
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("->json",jsonstring,5,webtools_module);
   KNO_LINK_PRIM("jsonoutput",jsonoutput,5,webtools_module);

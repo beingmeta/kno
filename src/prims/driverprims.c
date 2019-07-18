@@ -241,13 +241,13 @@ KNO_EXPORT void kno_init_driverfns_c()
   driverfns_module = kno_new_cmodule
     ("driverfns",(KNO_MODULE_DEFAULT),kno_init_driverfns_c);
   u8_register_source_file(_FILEINFO);
-  init_local_cprims();
+  link_local_cprims();
 
   kno_finish_module(driverfns_module);
 }
 
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   lispval db_module = kno_db_module;
 

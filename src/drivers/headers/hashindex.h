@@ -127,9 +127,3 @@ KNO_EXPORT ssize_t kno_hashindex_bucket
 KNO_EXPORT lispval kno_hashindex_keyinfo
 (lispval lix,lispval min_count,lispval max_count);
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

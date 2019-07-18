@@ -25,9 +25,3 @@ KNO_EXPORT off_t kno_regex_search(lispval pat,u8_string s,ssize_t len);
 
 #endif /* KNO_FDREGEX_H */
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

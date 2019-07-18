@@ -776,9 +776,3 @@ KNO_EXPORT void kno_init_dtread_c()
   u8_init_mutex(&(dtype_unpacker_lock));
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

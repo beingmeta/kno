@@ -17,9 +17,3 @@ typedef struct KNO_NETWORK_INDEX *kno_network_index;
 KNO_EXPORT kno_index kno_open_network_index(u8_string spec,kno_storage_flags flags,
 					 lispval opts);
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

@@ -3526,7 +3526,7 @@ KNO_EXPORT int kno_init_mongodb()
   kno_unparsers[kno_mongoc_collection]=unparse_collection;
   kno_unparsers[kno_mongoc_cursor]=unparse_cursor;
 
-  init_local_cprims();
+  link_local_cprims();
 
   kno_register_config("MONGODB:FLAGS",
 		      "Default flags (fixnum) for MongoDB/BSON processing",
@@ -3604,7 +3604,7 @@ KNO_EXPORT int kno_init_mongodb()
   return 1;
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("mongodb/dbinfo",mongodb_getinfo,2,mongodb_module);
   KNO_LINK_PRIM("mongodb/cursor?",mongodb_cursorp,1,mongodb_module);

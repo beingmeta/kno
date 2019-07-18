@@ -74,9 +74,3 @@ KNO_EXPORT int kno_slotindex_merge(kno_index into,lispval from);
 
 #endif /* KNO_FRAMES_H */
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

@@ -863,7 +863,7 @@ KNO_EXPORT void kno_init_procprims_c()
   u8_register_source_file(_FILEINFO);
 
   init_rlimit_codes();
-  init_local_cprims();
+  link_local_cprims();
 #if 0 /* HAVE_WAITPID */
   DECL_PRIM_N(fork_wait_prim,procprims_module);
   DECL_PRIM_N(fork_cmd_wait_prim,procprims_module);
@@ -883,7 +883,7 @@ KNO_EXPORT void kno_init_procprims_c()
   kno_finish_module(procprims_module);
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("nice",nice_prim,1,procprims_module);
   KNO_LINK_PRIM("setrlimit!",setrlimit_prim,3,procprims_module);

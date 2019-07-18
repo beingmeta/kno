@@ -388,9 +388,3 @@ KNO_EXPORT void kno_init_aggregates_c()
   kno_register_index(((kno_index)kno_background));
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
