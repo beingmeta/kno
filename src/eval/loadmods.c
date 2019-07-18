@@ -483,7 +483,8 @@ static lispval update_module_prim(lispval spec,lispval force)
 
 static lispval updatemodules_config_get(lispval var,void *ignored)
 {
-  if (reload_interval<0.0) return KNO_FALSE;
+  if ( reload_interval < 0)
+    return KNO_FALSE;
   else return kno_init_double(NULL,reload_interval);
 }
 static int updatemodules_config_set(lispval var,lispval val,void *ignored)
