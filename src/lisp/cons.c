@@ -117,9 +117,9 @@ static int validate_constant(lispval x)
 
 KNO_EXPORT
 /* kno_check_immediate:
-     Arguments: a list pointer
-     Returns: 1 or 0 (an int)
-  Checks an immediate pointer for validity.
+   Arguments: a list pointer
+   Returns: 1 or 0 (an int)
+   Checks an immediate pointer for validity.
 */
 int kno_check_immediate(lispval x)
 {
@@ -196,9 +196,9 @@ KNO_EXPORT ssize_t _kno_free_elts(lispval *elts,size_t n)
 
 KNO_EXPORT
 /* lispval_equal:
-    Arguments: two dtype pointers
-    Returns: 1 or 0 (an int)
-  Returns 1 if the two objects are equal. */
+   Arguments: two dtype pointers
+   Returns: 1 or 0 (an int)
+   Returns 1 if the two objects are equal. */
 int lispval_equal(lispval x,lispval y)
 {
   if (ATOMICP(x)) return (x == y);
@@ -268,11 +268,11 @@ int lispval_equal(lispval x,lispval y)
 
 KNO_EXPORT
 /* kno_init_string:
-    Arguments: A pointer to an KNO_STRING struct, a length, and a byte vector.
-    Returns: a lisp string
-  This returns a lisp string object from a character string.
-  If the structure pointer is NULL, one is mallocd.
-  If the length is negative, it is computed. */
+   Arguments: A pointer to an KNO_STRING struct, a length, and a byte vector.
+   Returns: a lisp string
+   This returns a lisp string object from a character string.
+   If the structure pointer is NULL, one is mallocd.
+   If the length is negative, it is computed. */
 lispval kno_init_string(struct KNO_STRING *ptr,int slen,u8_string string)
 {
   int len = ((slen<0) ? (strlen(string)) : (slen));
@@ -291,11 +291,11 @@ lispval kno_init_string(struct KNO_STRING *ptr,int slen,u8_string string)
 
 KNO_EXPORT
 /* kno_extract_string:
-    Arguments: A pointer to an KNO_STRING struct, and two pointers to ut8-strings
-    Returns: a lisp string
-  This returns a lisp string object from a region of a character string.
-  If the structure pointer is NULL, one is mallocd.
-  This copies the region between the pointers into a string and initializes
+   Arguments: A pointer to an KNO_STRING struct, and two pointers to ut8-strings
+   Returns: a lisp string
+   This returns a lisp string object from a region of a character string.
+   If the structure pointer is NULL, one is mallocd.
+   This copies the region between the pointers into a string and initializes
    a lisp string based on the region.
    If the second argument is NULL, the end of the first argument is used. */
 lispval kno_extract_string(struct KNO_STRING *ptr,u8_string start,u8_string end)
@@ -322,11 +322,11 @@ lispval kno_extract_string(struct KNO_STRING *ptr,u8_string start,u8_string end)
 
 KNO_EXPORT
 /* kno_substring:
-    Arguments: two pointers to utf-8 strings
-    Returns: a lisp string
-  This returns a lisp string object from a region of a character string.
-  If the structure pointer is NULL, one is mallocd.
-  This copies the region between the pointers into a string and initializes
+   Arguments: two pointers to utf-8 strings
+   Returns: a lisp string
+   This returns a lisp string object from a region of a character string.
+   If the structure pointer is NULL, one is mallocd.
+   This copies the region between the pointers into a string and initializes
    a lisp string based on the region. */
 lispval kno_substring(u8_string start,u8_string end)
 {
@@ -348,11 +348,11 @@ lispval kno_substring(u8_string start,u8_string end)
 
 KNO_EXPORT
 /* kno_make_string:
-    Arguments: A pointer to an KNO_STRING struct, a length, and a pointer to a byte vector
-    Returns: a lisp string
-  This returns a lisp string object from a string, copying the string
-  If the structure pointer is NULL, the lisp string is uniconsed, so that
-    the string data is contiguous with the struct. */
+   Arguments: A pointer to an KNO_STRING struct, a length, and a pointer to a byte vector
+   Returns: a lisp string
+   This returns a lisp string object from a string, copying the string
+   If the structure pointer is NULL, the lisp string is uniconsed, so that
+   the string data is contiguous with the struct. */
 lispval kno_make_string(struct KNO_STRING *ptr,int len,u8_string string)
 {
   int length = ((len>=0)?(len):(strlen(string)));
@@ -379,10 +379,10 @@ lispval kno_make_string(struct KNO_STRING *ptr,int len,u8_string string)
 
 KNO_EXPORT
 /* kno_block_string:
-    Arguments: a length, and a pointer to a byte vector
-    Returns: a lisp string
-  This returns a uniconsed lisp string object from a string,
-    copying and freeing the string data
+   Arguments: a length, and a pointer to a byte vector
+   Returns: a lisp string
+   This returns a uniconsed lisp string object from a string,
+   copying and freeing the string data
 */
 lispval kno_block_string(int len,u8_string string)
 {
@@ -405,9 +405,9 @@ lispval kno_block_string(int len,u8_string string)
 
 KNO_EXPORT
 /* kno_mkstring:
-    Arguments: a C string (u8_string)
-    Returns: a lisp string
-  */
+   Arguments: a C string (u8_string)
+   Returns: a lisp string
+*/
 lispval kno_mkstring(u8_string string)
 {
   return kno_make_string(NULL,-1,string);
@@ -466,8 +466,8 @@ KNO_EXPORT lispval kno_reverse_list(lispval l)
 /* Vectors */
 
 KNO_EXPORT lispval kno_cons_vector(struct KNO_VECTOR *ptr,
-                                 int len,int big_alloc_elts,
-                                 lispval *data)
+                                   int len,int big_alloc_elts,
+                                   lispval *data)
 {
   lispval *elts; int free_data = 1; int big_alloc = 0;
   if (len<0)
@@ -486,8 +486,8 @@ KNO_EXPORT lispval kno_cons_vector(struct KNO_VECTOR *ptr,
     elts = data;}
   else if (data == NULL) {
     int i = 0; elts = u8_malloc(LISPVEC_BYTELEN(len));
-      while (i<len) elts[i]=VOID;
-      free_data = 1;}
+    while (i<len) elts[i]=VOID;
+    free_data = 1;}
   else elts = data;
   KNO_INIT_CONS(ptr,kno_vector_type);
   ptr->vec_length = len;
@@ -562,7 +562,7 @@ KNO_EXPORT lispval kno_make_vector(int len,lispval *data)
 /* Packets */
 
 KNO_EXPORT lispval kno_init_packet
-  (struct KNO_STRING *ptr,int len,const unsigned char *data)
+(struct KNO_STRING *ptr,int len,const unsigned char *data)
 {
   if (len<0)
     return kno_err("NegativeLength","kno_init_packet",NULL,KNO_INT(len));
@@ -581,7 +581,7 @@ KNO_EXPORT lispval kno_init_packet
 }
 
 KNO_EXPORT lispval kno_make_packet
-  (struct KNO_STRING *ptr,int len,const unsigned char *data)
+(struct KNO_STRING *ptr,int len,const unsigned char *data)
 {
   u8_byte *bytes = NULL; int freedata = 1;
   if (len<0)
@@ -603,7 +603,7 @@ KNO_EXPORT lispval kno_make_packet
 }
 
 KNO_EXPORT lispval kno_bytes2packet
-  (struct KNO_STRING *use_ptr,int len,const unsigned char *data)
+(struct KNO_STRING *use_ptr,int len,const unsigned char *data)
 {
   struct KNO_STRING *ptr = NULL;
   u8_byte *bytes = NULL; int freedata = (data!=NULL);
@@ -684,8 +684,8 @@ KNO_EXPORT struct KNO_PAIR *kno_pair_data(lispval x)
 KNO_EXPORT int _kno_find_elt(lispval x,lispval *v,int n)
 {
   int i = 0; while (i<n)
-    if (v[i]==x) return i;
-    else i++;
+               if (v[i]==x) return i;
+               else i++;
   return -1;
 }
 
@@ -718,7 +718,7 @@ u8_condition get_pointer_exception(lispval x)
 }
 
 KNO_EXPORT lispval kno_badptr_err(lispval result,u8_context cxt,
-                                u8_string details)
+                                  u8_string details)
 {
   if (errno) u8_graberrno(cxt,u8_strdup(details));
   return kno_err( get_pointer_exception(result), cxt,
@@ -735,7 +735,7 @@ static U8_MAYBE_UNUSED int some_false(lispval arg)
   return some_false;
 }
 
-
+
 /* Initialization */
 
 static struct KNO_FLONUM flonum_consts[8];
@@ -764,7 +764,7 @@ void kno_init_cons_c()
   i = 0; while (i < KNO_TYPE_MAX) kno_type_names[i++]=NULL;
   i = 0; while (i<KNO_TYPE_MAX) kno_hashfns[i++]=NULL;
   i = 0; while (i<KNO_MAX_IMMEDIATE_TYPES+4)
-         kno_immediate_checkfns[i++]=NULL;
+           kno_immediate_checkfns[i++]=NULL;
 
   i = 0; while (i < KNO_TYPE_MAX) kno_recyclers[i++]=NULL;
   i = 0; while (i < KNO_TYPE_MAX) kno_unparsers[i++]=NULL;

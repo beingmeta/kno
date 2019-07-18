@@ -21,8 +21,8 @@
 static lispval uuid_symbol;
 
 KNO_EXPORT lispval kno_cons_uuid
-   (struct KNO_UUID *ptr,
-    struct U8_XTIME *xtime,long long nodeid,short clockid)
+(struct KNO_UUID *ptr,
+ struct U8_XTIME *xtime,long long nodeid,short clockid)
 {
   if (ptr == NULL) ptr = u8_alloc(struct KNO_UUID);
   KNO_INIT_CONS(ptr,kno_uuid_type);
@@ -82,11 +82,11 @@ static lispval uuid_restore(lispval MU tag,lispval x,kno_compound_typeinfo MU e)
       memcpy(uuid->uuid16,p->str_bytes,16);
       return LISP_CONS(uuid);}
     else return kno_err("Bad UUID packet","uuid_restore",
-                       "UUID packet has wrong length",
-                       x);}
+                        "UUID packet has wrong length",
+                        x);}
   else return kno_err("Bad UUID rep","uuid_restore",
-                     "UUID serialization isn't a packet",
-                     x);
+                      "UUID serialization isn't a packet",
+                      x);
 }
 
 static int unparse_uuid(u8_output out,lispval x)
@@ -97,16 +97,16 @@ static int unparse_uuid(u8_output out,lispval x)
   return 1;
 }
 
-
+
 /* Timestamps */
 
 static lispval timestamp_symbol, timestamp0_symbol;
 
 KNO_EXPORT
 /* kno_make_timestamp:
-    Arguments: a pointer to a U8_XTIME struct and a memory pool
-    Returns: a dtype pointer to a timestamp
- */
+   Arguments: a pointer to a U8_XTIME struct and a memory pool
+   Returns: a dtype pointer to a timestamp
+*/
 lispval kno_make_timestamp(struct U8_XTIME *tm)
 {
   struct KNO_TIMESTAMP *tstamp = u8_alloc(struct KNO_TIMESTAMP);
@@ -120,9 +120,9 @@ lispval kno_make_timestamp(struct U8_XTIME *tm)
 
 KNO_EXPORT
 /* kno_time2timestamp
-    Arguments: a pointer to a U8_XTIME struct and a memory pool
-    Returns: a dtype pointer to a timestamp
- */
+   Arguments: a pointer to a U8_XTIME struct and a memory pool
+   Returns: a dtype pointer to a timestamp
+*/
 lispval kno_time2timestamp(time_t moment)
 {
   struct U8_XTIME xt;
@@ -237,7 +237,7 @@ static lispval lispval_restore(lispval tag,lispval x,kno_compound_typeinfo e)
   else return kno_init_compound(NULL,lispval_symbol,KNO_COMPOUND_INCREF,1,x);
 }
 
-
+
 /* Regexes */
 
 u8_condition kno_RegexError=_("Regular expression error");
@@ -285,7 +285,7 @@ static int unparse_regex(struct U8_OUTPUT *out,lispval x)
   return 1;
 }
 
-
+
 /* Raw pointers */
 
 KNO_EXPORT lispval kno_wrap_pointer(void *ptrval,
@@ -311,7 +311,7 @@ KNO_EXPORT lispval kno_wrap_pointer(void *ptrval,
   return (lispval) rawptr;
 }
 
-
+
 void kno_init_misctypes_c()
 {
   kno_unparsers[kno_uuid_type]=unparse_uuid;
@@ -327,7 +327,7 @@ void kno_init_misctypes_c()
 
   uuid_symbol = kno_intern("uuid");
   {
-    struct KNO_COMPOUND_TYPEINFO *e = 
+    struct KNO_COMPOUND_TYPEINFO *e =
       kno_register_compound(uuid_symbol,NULL,NULL);
     e->compound_dumpfn = uuid_dump;
     e->compound_restorefn = uuid_restore;}

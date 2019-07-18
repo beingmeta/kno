@@ -107,13 +107,13 @@ static u8_exception mkerr(u8_condition c,u8_context caller,
 }
 
 KNO_EXPORT u8_exception kno_mkerr
-  (u8_condition c,u8_context caller,u8_string details,lispval irritant)
+(u8_condition c,u8_context caller,u8_string details,lispval irritant)
 {
   return mkerr(c,caller,details,irritant);
 }
 
 KNO_EXPORT void kno_seterr
-  (u8_condition c,u8_context caller,u8_string details,lispval irritant)
+(u8_condition c,u8_context caller,u8_string details,lispval irritant)
 {
   u8_exception ex = mkerr(c,caller,details,irritant);
   u8_expush(ex);
@@ -142,13 +142,13 @@ KNO_EXPORT lispval kno_wrap_exception(u8_exception ex)
     lispval irritant = (ex) ? (kno_get_irritant(ex)) : (KNO_VOID);
     lispval backtrace = kno_get_backtrace(kno_stackptr);
     return kno_init_exception(NULL,condition,caller,
-                             u8_strdup(details),
-                             kno_incref(irritant),
-                             backtrace,KNO_VOID,
-                             u8_sessionid(),
-                             ex->u8x_moment,
-                             u8_elapsed_base(),
-                             ex->u8x_thread);}
+                              u8_strdup(details),
+                              kno_incref(irritant),
+                              backtrace,KNO_VOID,
+                              u8_sessionid(),
+                              ex->u8x_moment,
+                              u8_elapsed_base(),
+                              ex->u8x_thread);}
 }
 
 KNO_EXPORT lispval kno_simple_exception(u8_exception ex)
@@ -222,14 +222,14 @@ KNO_EXPORT struct KNO_EXCEPTION *kno_exception_object(u8_exception ex)
 }
 
 KNO_EXPORT void kno_raise
-  (u8_condition c,u8_context cxt,u8_string details,lispval irritant)
+(u8_condition c,u8_context cxt,u8_string details,lispval irritant)
 {
   u8_exception ex = kno_mkerr(c,cxt,details,irritant);
   u8_raise_exception(ex);
 }
 
 KNO_EXPORT int kno_poperr
-  (u8_condition *c,u8_context *cxt,u8_string *details,lispval *irritant)
+(u8_condition *c,u8_context *cxt,u8_string *details,lispval *irritant)
 {
   u8_exception current = u8_current_exception;
   if (current == NULL) return 0;
@@ -260,7 +260,7 @@ KNO_EXPORT lispval kno_exception_xdata(u8_exception ex)
 }
 
 KNO_EXPORT int kno_reterr
-  (u8_condition c,u8_context cxt,u8_string details,lispval irritant)
+(u8_condition c,u8_context cxt,u8_string details,lispval irritant)
 {
   kno_seterr(c,cxt,details,irritant);
   return -1;
@@ -272,7 +272,7 @@ KNO_EXPORT int kno_interr(lispval x)
 }
 
 KNO_EXPORT lispval kno_err
-  (u8_condition ex,u8_context cxt,u8_string details,lispval irritant)
+(u8_condition ex,u8_context cxt,u8_string details,lispval irritant)
 {
   if (KNO_CHECK_PTR(irritant)) {
     if (details)
@@ -563,14 +563,14 @@ int kno_clear_errors(int report)
 /* Exception objects */
 
 KNO_EXPORT lispval kno_init_exception
-   (struct KNO_EXCEPTION *exo,
-    u8_condition condition,u8_context caller,
-    u8_string details,lispval irritant,
-    lispval stack,lispval context,
-    u8_string sid,
-    double moment,
-    time_t timebase,
-    long long thread)
+(struct KNO_EXCEPTION *exo,
+ u8_condition condition,u8_context caller,
+ u8_string details,lispval irritant,
+ lispval stack,lispval context,
+ u8_string sid,
+ double moment,
+ time_t timebase,
+ long long thread)
 {
   if (exo == NULL) exo = u8_alloc(struct KNO_EXCEPTION);
   KNO_INIT_CONS(exo,kno_exception_type);
@@ -623,8 +623,8 @@ static ssize_t write_exception_dtype(struct KNO_OUTBUF *out,lispval x)
   struct KNO_OUTBUF tmpbuf;
   unsigned char bytes[16000];
   KNO_INIT_OUTBUF(&tmpbuf,bytes,16000,
-                 KNO_IS_WRITING|KNO_BUFFER_NO_FLUSH|KNO_STATIC_BUFFER|
-                 KNO_USE_DTYPEV2|KNO_WRITE_OPAQUE);
+                  KNO_IS_WRITING|KNO_BUFFER_NO_FLUSH|KNO_STATIC_BUFFER|
+                  KNO_USE_DTYPEV2|KNO_WRITE_OPAQUE);
   kno_write_byte(&tmpbuf,dt_exception);
   ssize_t base_len = kno_write_dtype(&tmpbuf,vector);
   kno_decref(vector);
@@ -650,10 +650,10 @@ KNO_EXPORT lispval kno_restore_exception_dtype(lispval content)
   else if (VECTORP(content)) {
     int len = VEC_LEN(content);
     /* And the new format is:
-         #(ex caller details [irritant] [stack]
-           [sid] [timebase] [moment] [context] )
-         where ex and context are symbols and stack and context
-          are optional values which default to VOID
+       #(ex caller details [irritant] [stack]
+       [sid] [timebase] [moment] [context] )
+       where ex and context are symbols and stack and context
+       are optional values which default to VOID
        We handle all cases
     */
     if (len>0) {
@@ -693,7 +693,7 @@ KNO_EXPORT lispval kno_restore_exception_dtype(lispval content)
         u8_log(LOG_WARN,kno_DTypeError,
                "Bad caller (not a symbol) %q in exception serialization %q",
                caller_val,content);
-         caller="BadCaller";}}
+        caller="BadCaller";}}
     if (len > 2) {
       lispval details_val = VEC_REF(content,2);
       if (KNO_STRINGP(details_val))
@@ -721,11 +721,11 @@ KNO_EXPORT lispval kno_restore_exception_dtype(lispval content)
       context = VEC_REF(content,8);
       kno_incref(context);}
     return kno_init_exception(NULL,condname,caller,
-                             details,irritant,
-                             stack,context,
-                             sessionid,moment,
-                             timebase,
-                             -1);}
+                              details,irritant,
+                              stack,context,
+                              sessionid,moment,
+                              timebase,
+                              -1);}
   else if (KNO_SYMBOLP(content)) {
     return kno_init_exception
       (NULL,KNO_SYMBOL_NAME(content),
@@ -752,14 +752,14 @@ static lispval copy_exception(lispval x,int deep)
   struct KNO_EXCEPTION *xo=
     kno_consptr(struct KNO_EXCEPTION *,x,kno_exception_type);
   return kno_init_exception(NULL,xo->ex_condition,xo->ex_caller,
-                           u8_strdup(xo->ex_details),
-                           kno_incref(xo->ex_irritant),
-                           kno_incref(xo->ex_stack),
-                           kno_incref(xo->ex_context),
-                           xo->ex_session,
-                           xo->ex_moment,
-                           xo->ex_timebase,
-                           xo->ex_thread);
+                            u8_strdup(xo->ex_details),
+                            kno_incref(xo->ex_irritant),
+                            kno_incref(xo->ex_stack),
+                            kno_incref(xo->ex_context),
+                            xo->ex_session,
+                            xo->ex_moment,
+                            xo->ex_timebase,
+                            xo->ex_thread);
 }
 
 static int unparse_exception(struct U8_OUTPUT *out,lispval x)

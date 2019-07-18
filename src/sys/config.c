@@ -55,7 +55,7 @@ static struct KNO_CONFIG_FINDER *config_lookupfns = NULL;
 
 static lispval config_intern(u8_string start)
 {
-  /* Config settings are normalized to uppercase and punctuation and 
+  /* Config settings are normalized to uppercase and punctuation and
      whitespace, other than : and / are converted to '_'. */
   U8_OUTPUT nameout; u8_byte buf[64];
   const u8_byte *scan = start;
@@ -214,12 +214,12 @@ KNO_EXPORT int kno_set_config_consed(u8_string var,lispval val)
 /* Registering new configuration handlers */
 
 KNO_EXPORT int kno_register_config_x
-  (u8_string var,u8_string doc,
-   lispval (*getfn)(lispval,void *),
-   int (*setfn)(lispval,lispval,void *),
-   void *data,
-   int flags,
-   int (*reuse)(struct KNO_CONFIG_HANDLER *scan))
+(u8_string var,u8_string doc,
+ lispval (*getfn)(lispval,void *),
+ int (*setfn)(lispval,lispval,void *),
+ void *data,
+ int flags,
+ int (*reuse)(struct KNO_CONFIG_HANDLER *scan))
 {
   lispval symbol = config_intern(var);
   lispval current = config_get(symbol);
@@ -302,10 +302,10 @@ KNO_EXPORT int kno_register_config_x
 }
 
 KNO_EXPORT int kno_register_config
-  (u8_string var,u8_string doc,
-   lispval (*getfn)(lispval,void *),
-   int (*setfn)(lispval,lispval,void *),
-   void *data)
+(u8_string var,u8_string doc,
+ lispval (*getfn)(lispval,void *),
+ int (*setfn)(lispval,lispval,void *),
+ void *data)
 {
   return kno_register_config_x(var,doc,getfn,setfn,data,0,NULL);
 }
@@ -482,8 +482,8 @@ KNO_EXPORT int kno_default_config_assignment(u8_string assignment)
   else return -1;
 }
 
-#define EXPR_STARTS_WITH(expr,sym) \
-  ( (KNO_PAIRP(expr)) &&            \
+#define EXPR_STARTS_WITH(expr,sym)  \
+  ( (KNO_PAIRP(expr)) &&             \
     (KNO_PAIRP(KNO_CDR(expr))) &&    \
     ( (KNO_CAR(expr)) == (sym) ) )
 
@@ -615,10 +615,10 @@ KNO_EXPORT int kno_readonly_config_set(lispval ignored,lispval v,void *vptr)
 {
   if (SYMBOLP(v))
     return kno_reterr(kno_ReadOnlyConfig,"kno_set_config",
-                     SYM_NAME(v),VOID);
+                      SYM_NAME(v),VOID);
   else if (STRINGP(v))
     return kno_reterr(kno_ReadOnlyConfig,"kno_set_config",
-                     CSTRING(v),VOID);
+                      CSTRING(v),VOID);
   else return kno_reterr(kno_ReadOnlyConfig,"kno_set_config",NULL,VOID);
 }
 
@@ -742,7 +742,7 @@ KNO_EXPORT int kno_intconfig_set(lispval ignored,lispval v,void *vptr)
     *ptr = FIX2INT(v);
     return 1;}
   return kno_reterr(kno_TypeError,"kno_intconfig_set",
-                   u8_strdup(_("small fixnum")),v);
+                    u8_strdup(_("small fixnum")),v);
 }
 
 /* For configuration variables which get/set ints. */
@@ -758,7 +758,7 @@ KNO_EXPORT int kno_longconfig_set(lispval ignored,lispval v,void *vptr)
     *ptr = FIX2INT(v);
     return 1;}
   else return kno_reterr(kno_TypeError,"kno_longconfig_set",
-                        u8_strdup(_("fixnum")),v);
+                         u8_strdup(_("fixnum")),v);
 }
 
 /* For configuration variables which get/set ints. */
@@ -809,7 +809,7 @@ KNO_EXPORT int kno_dblconfig_set(lispval var,lispval v,void *vptr)
     double dblval = (double)intval;
     *ptr = dblval;}
   else return kno_reterr(kno_TypeError,"kno_dblconfig_set",
-                        SYM_NAME(var),v);
+                         SYM_NAME(var),v);
   return 1;
 }
 
@@ -979,7 +979,7 @@ static void tblconfig_error(lispval var,lispval val)
     (KNO_STRINGP(var)) ? (CSTRING(var)) :
     (U8STR("oddconfig"));
   kno_seterr("ConfigFailed","kno_tblconfig_set",
-            u8_strdup(details),val);
+             u8_strdup(details),val);
 
 }
 
@@ -1121,30 +1121,30 @@ void kno_init_config_c()
      hostname_config_get,NULL,NULL);
 
   kno_register_config("FIXMAX","The maximum fixnum value",
-                     kno_lconfig_get,kno_readonly_config_set,
-                     &kno_max_fixnum);
+                      kno_lconfig_get,kno_readonly_config_set,
+                      &kno_max_fixnum);
   kno_register_config("MAXFIX","The maximum fixnum value",
-                     kno_lconfig_get,kno_readonly_config_set,
-                     &kno_max_fixnum);
+                      kno_lconfig_get,kno_readonly_config_set,
+                      &kno_max_fixnum);
   kno_register_config("FIXMIN","The minimum fixnum value",
-                     kno_lconfig_get,kno_readonly_config_set,
-                     &kno_min_fixnum);
+                      kno_lconfig_get,kno_readonly_config_set,
+                      &kno_min_fixnum);
   kno_register_config("MINFIX","The minimum fixnum value",
-                     kno_lconfig_get,kno_readonly_config_set,
-                     &kno_min_fixnum);
+                      kno_lconfig_get,kno_readonly_config_set,
+                      &kno_min_fixnum);
 
   kno_register_config("UINT_MAX",
-                     "Maximum value for an underlying unsigned INT",
-                     kno_constconfig_get,kno_readonly_config_set,
-                     (void *) UINT_MAX);
+                      "Maximum value for an underlying unsigned INT",
+                      kno_constconfig_get,kno_readonly_config_set,
+                      (void *) UINT_MAX);
   kno_register_config("INT_MAX",
-                     "Maximum value for an underlying unsigned INT",
-                     kno_constconfig_get,kno_readonly_config_set,
-                     (void *) INT_MAX);
+                      "Maximum value for an underlying unsigned INT",
+                      kno_constconfig_get,kno_readonly_config_set,
+                      (void *) INT_MAX);
   kno_register_config("INT_MIN",
-                     "Maximum value for an underlying unsigned INT",
-                     kno_constconfig_get,kno_readonly_config_set,
-                     (void *) INT_MIN);
+                      "Maximum value for an underlying unsigned INT",
+                      kno_constconfig_get,kno_readonly_config_set,
+                      (void *) INT_MIN);
 
   kno_register_config("DTYPES:FIXCASE","Normalize symbol case",
                       kno_boolconfig_get,kno_boolconfig_set,

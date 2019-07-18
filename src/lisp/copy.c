@@ -49,13 +49,13 @@ KNO_FASTOP lispval copy_elt(lispval elt,int flags)
   else return elt;
 }
 
-
+
 KNO_EXPORT
 /* kno_deep_copy:
-    Arguments: a dtype pointer
-    Returns: a dtype pointer
-  This returns a copy of its argument, possibly recurring to sub objects,
-  with lots of options. */
+   Arguments: a dtype pointer
+   Returns: a dtype pointer
+   This returns a copy of its argument, possibly recurring to sub objects,
+   with lots of options. */
 lispval kno_copier(lispval x,int flags)
 {
   int static_copy = U8_BITP(flags,KNO_STATIC_COPY);
@@ -130,7 +130,7 @@ lispval kno_copier(lispval x,int flags)
         return copy;}
       else if (!(KNO_MALLOCD_CONSP((kno_cons)x)))
         return kno_err(kno_NoMethod,"kno_copier/static",
-                      kno_type_names[ctype],VOID);
+                       kno_type_names[ctype],VOID);
       else if ((flags)&(KNO_STRICT_COPY))
         return kno_err(kno_NoMethod,"kno_copier",kno_type_names[ctype],x);
       else {kno_incref(x); return x;}}}
@@ -170,10 +170,10 @@ lispval *kno_copy_vec(lispval *vec,size_t n,lispval *into,int flags)
 
 KNO_EXPORT
 /* kno_copy:
-    Arguments: a dtype pointer
-    Returns: a dtype pointer
-  If the argument is a malloc'd cons, this just increfs it.
-  If it is a static cons, it does a deep copy. */
+   Arguments: a dtype pointer
+   Returns: a dtype pointer
+   If the argument is a malloc'd cons, this just increfs it.
+   If it is a static cons, it does a deep copy. */
 lispval kno_copy(lispval x)
 {
   if (!(CONSP(x))) return x;

@@ -178,18 +178,18 @@ static void grow_symbol_tables()
     int i = 0, lim = kno_symbol_table.table_size;
     while (i < new_size) new_entries[i++]=NULL;
     i = 0; while (i < lim)
-      if (old_entries[i] == NULL) i++;
-      else {
-        struct KNO_SYMBOL_ENTRY *entry = old_entries[i];
-        int probe=
-          mult_hash_bytes(entry->sym_pname.str_bytes,
-                          entry->sym_pname.str_bytelen)%new_size;
-        while (PRED_TRUE(new_entries[probe]!=NULL))
-          if (probe >= new_size)
-            probe = 0;
-          else probe = (probe+1)%new_size;
-        new_entries[probe]=entry;
-        i++;}
+             if (old_entries[i] == NULL) i++;
+             else {
+               struct KNO_SYMBOL_ENTRY *entry = old_entries[i];
+               int probe=
+                 mult_hash_bytes(entry->sym_pname.str_bytes,
+                                 entry->sym_pname.str_bytelen)%new_size;
+               while (PRED_TRUE(new_entries[probe]!=NULL))
+                 if (probe >= new_size)
+                   probe = 0;
+                 else probe = (probe+1)%new_size;
+               new_entries[probe]=entry;
+               i++;}
     old_symbol_data = u8_cons_list(old_entries,old_symbol_data,0);
     kno_symbol_table.kno_symbol_entries = new_entries;
     kno_symbol_table.table_size = new_size;}

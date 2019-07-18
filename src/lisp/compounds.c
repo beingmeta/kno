@@ -24,7 +24,7 @@ lispval kno_compound_descriptor_type;
 /* Compounds */
 
 KNO_EXPORT lispval kno_init_compound
-  (struct KNO_COMPOUND *p,lispval tag,int flags,int n,...)
+(struct KNO_COMPOUND *p,lispval tag,int flags,int n,...)
 {
   lispval *write, *limit, initfn = KNO_FALSE;
   int ismutable   = (flags&(KNO_COMPOUND_MUTABLE));
@@ -82,7 +82,7 @@ KNO_EXPORT lispval kno_init_compound
 }
 
 KNO_EXPORT lispval kno_init_compound_from_elts
-  (struct KNO_COMPOUND *p,lispval tag,int flags,int n,lispval *elts)
+(struct KNO_COMPOUND *p,lispval tag,int flags,int n,lispval *elts)
 {
   int ismutable   = (flags&(KNO_COMPOUND_MUTABLE));
   int isopaque    = (flags&(KNO_COMPOUND_OPAQUE));
@@ -95,7 +95,7 @@ KNO_EXPORT lispval kno_init_compound_from_elts
   lispval *write, *limit, *read = elts, initfn = KNO_FALSE;
   if (PRED_FALSE((n<0)))
     return kno_type_error(_("positive byte"),"kno_init_compound_from_elts",
-			 KNO_SHORT2LISP(n));
+			  KNO_SHORT2LISP(n));
   else if (p == NULL) {
     if (n==0)
       p = u8_malloc(sizeof(struct KNO_COMPOUND));
@@ -284,10 +284,10 @@ void kno_init_compounds_c()
     (NULL,VOID,KNO_COMPOUND_MUTABLE,9,
      kno_intern("compoundtype"),0,KNO_INT(9),
      kno_make_nvector(9,KNOSYM_TAG,KNOSYM_LENGTH,
-		     kno_intern("fields"),kno_intern("initfn"),
-		     kno_intern("freefn"),kno_intern("comparefn"),
-		     kno_intern("stringfn"),kno_intern("dumpfn"),
-		     kno_intern("restorefn")),
+		      kno_intern("fields"),kno_intern("initfn"),
+		      kno_intern("freefn"),kno_intern("comparefn"),
+		      kno_intern("stringfn"),kno_intern("dumpfn"),
+		      kno_intern("restorefn")),
      KNO_FALSE,KNO_FALSE,KNO_FALSE,KNO_FALSE,
      KNO_FALSE,KNO_FALSE);
   ((kno_compound)kno_compound_descriptor_type)

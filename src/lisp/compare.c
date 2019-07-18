@@ -18,9 +18,9 @@ static int string_compare(u8_string s1,u8_string s2,int ci);
 
 KNO_EXPORT
 /* lispval_compare:
-    Arguments: two dtype pointers
-    Returns: 1, 0, or -1 (an int)
-  Returns a function corresponding to a generic sort of two dtype pointers. */
+   Arguments: two dtype pointers
+   Returns: 1, 0, or -1 (an int)
+   Returns a function corresponding to a generic sort of two dtype pointers. */
 int lispval_compare(lispval x,lispval y,kno_compare_flags flags)
 {
   int quick = (flags == KNO_COMPARE_QUICK);
@@ -31,7 +31,7 @@ int lispval_compare(lispval x,lispval y,kno_compare_flags flags)
   int nocase = (flags&KNO_COMPARE_CI);
 
   /* This is just defined for this function */
-#define DOCOMPARE(x,y) \
+#define DOCOMPARE(x,y)                                          \
   (((quick)&&(x == y)) ? (0) : (LISP_COMPARE(x,y,flags)))
 
   if (x == y) return 0;
@@ -187,9 +187,9 @@ KNO_FASTOP void do_swap(lispval *a,lispval *b)
 
 KNO_EXPORT
 /* lispval_sort:
-    Arguments: a vector of dtypes, a length, and a comparison flag value
-    Returns: 1, 0, or -1 (an int)
-  Returns a function corresponding to a generic sort of two dtype pointers. */
+   Arguments: a vector of dtypes, a length, and a comparison flag value
+   Returns: 1, 0, or -1 (an int)
+   Returns a function corresponding to a generic sort of two dtype pointers. */
 void lispval_sort(lispval *v,size_t n,kno_compare_flags flags)
 {
   size_t i, j, ln, rn;

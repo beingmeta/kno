@@ -21,16 +21,16 @@
 
 
 #define LISTABLEP(x)                                                    \
-  ( (KNO_CHOICEP(x)) || (KNO_VECTORP(x)) || (KNO_PAIRP(x)) ||              \
-    (KNO_SLOTMAPP(x)) || (KNO_SCHEMAPP(x)) || (KNO_PRECHOICEP(x)) ||       \
+  ( (KNO_CHOICEP(x)) || (KNO_VECTORP(x)) || (KNO_PAIRP(x)) ||           \
+    (KNO_SLOTMAPP(x)) || (KNO_SCHEMAPP(x)) || (KNO_PRECHOICEP(x)) ||    \
     (KNO_COMPOUND_VECTORP(x)) )
-#define SHORTP(x) \
-  ((KNO_SYMBOLP(x)) || (KNO_NUMBERP(x)) || \
+#define SHORTP(x)                          \
+  ((KNO_SYMBOLP(x)) || (KNO_NUMBERP(x)) ||              \
    ( (KNO_STRINGP(x)) && (KNO_STRLEN(x) < 17) ) )
-#define UNLISTABLEP(x) \
-  ( (! (LISTABLEP(x)) ) ||                      \
+#define UNLISTABLEP(x)                          \
+  ( (! (LISTABLEP(x)) ) ||                                              \
     ( (KNO_PAIRP(x)) && (SHORTP(KNO_CAR(x))) && (SHORTP(KNO_CDR(x))) ) )
-#define ODDPAIRP(x) \
+#define ODDPAIRP(x)                                                     \
   ( (KNO_PAIRP(x)) && (SHORTP(KNO_CAR(x))) && (SHORTP(KNO_CDR(x))) )
 
 
@@ -340,13 +340,13 @@ static int list_elements(u8_output out,
 }
 
 KNO_EXPORT int kno_list_object(u8_output out,
-                             lispval result,
-                             u8_string label,
-                             u8_string pathref,
-                             u8_string indent,
-                             kno_listobj_fn eltfn,
-                             int width,
-                             int detail)
+                               lispval result,
+                               u8_string label,
+                               u8_string pathref,
+                               u8_string indent,
+                               kno_listobj_fn eltfn,
+                               int width,
+                               int detail)
 {
   if (VOIDP(result)) return 0;
   if ((KNO_CHOICEP(result)) ||

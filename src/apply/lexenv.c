@@ -144,9 +144,9 @@ static int count_envrefs(lispval root,kno_lexenv env,int depth)
 
 KNO_EXPORT
 /* kno_recycle_lexenv:
-     Arguments: a lisp pointer to an environment
-     Returns: 1 if the environment was recycled.
- This handles circular environment problems.  The problem is that environments
+   Arguments: a lisp pointer to an environment
+   Returns: 1 if the environment was recycled.
+   This handles circular environment problems.  The problem is that environments
    commonly contain pointers to procedures which point back to the environment
    they are closed in.  This does a limited structure descent to see how many
    reclaimable environment pointers there may be.  If the reclaimable references

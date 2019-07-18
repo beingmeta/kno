@@ -192,9 +192,9 @@ static void recycle_mystery(struct KNO_RAW_CONS *c)
 
 KNO_EXPORT
 /* kno_recycle_cons:
-    Arguments: a pointer to an KNO_CONS struct
-    Returns: void
- Recycles a cons cell */
+   Arguments: a pointer to an KNO_CONS struct
+   Returns: void
+   Recycles a cons cell */
 void kno_recycle_cons(kno_raw_cons c)
 {
   int ctype = KNO_CONS_TYPE(c);

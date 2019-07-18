@@ -29,9 +29,9 @@ u8_condition kno_SecretData=_("SecretData");
 
 struct KNO_SEQFNS *kno_seqfns[KNO_TYPE_MAX];
 
-#define KNO_EQV(x,y) \
-  ((KNO_EQ(x,y)) || \
-   ((NUMBERP(x)) && (NUMBERP(y)) && \
+#define KNO_EQV(x,y)                            \
+  ((KNO_EQ(x,y)) ||                             \
+   ((NUMBERP(x)) && (NUMBERP(y)) &&             \
     (kno_numcompare(x,y)==0)))
 
 #define string_start(bytes,i) ((i==0) ? (bytes) : (u8_substring(bytes,i)))
@@ -476,7 +476,7 @@ KNO_EXPORT int kno_search(lispval subseq,lispval seq,int start,int end)
     else if (keytype == kno_secret_type)
       return KNO_ERR(-2,kno_SecretData,"kno_seq_search",NULL,seq);
     else if ((kno_seqfns[ctype]) && (kno_seqfns[ctype]->search) &&
-        ((kno_seqfns[ctype]->search)!=kno_search))
+             ((kno_seqfns[ctype]->search)!=kno_search))
       return (kno_seqfns[ctype]->search)(subseq,seq,start,end);
     else if ((PACKETP(seq)) && (PACKETP(subseq)))
       return packet_search(subseq,seq,start,end);
@@ -555,11 +555,11 @@ static int vector_search(lispval key,lispval x,int start,int end)
 /* Creating and extracting data */
 
 /* kno_seq_elts:
-     Arguments: a lisp sequence and a pointer to an int
-     Returns: a C vector of dtype pointers
+   Arguments: a lisp sequence and a pointer to an int
+   Returns: a C vector of dtype pointers
    This returns a vector of dtype pointers representing the elements
-     of the sequence.  For strings these are characters, for packets, they
-     are ints. */
+   of the sequence.  For strings these are characters, for packets, they
+   are ints. */
 lispval *kno_seq_elts(lispval seq,int *n)
 {
   int len = seq_length(seq);
@@ -656,9 +656,9 @@ lispval *kno_seq_elts(lispval seq,int *n)
 
 KNO_EXPORT
 /* kno_makeseq:
-    Arguments: a sequence type, a length, and a C vector of dtype pointers.
-    Returns: a sequence
-  Creates a sequence of the designated type out of the given elements. */
+   Arguments: a sequence type, a length, and a C vector of dtype pointers.
+   Returns: a sequence
+   Creates a sequence of the designated type out of the given elements. */
 lispval kno_makeseq(kno_lisp_type ctype,int n,lispval *v)
 {
   if (ctype == kno_compound_type) ctype = kno_vector_type;

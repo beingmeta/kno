@@ -204,54 +204,54 @@ KNO_EXPORT void kno_init_support_c()
      &kno_packet_outfmt);
 
   kno_register_config("PPRINT:MAXCHARS",
-                     _("Maximum number of characters when pprinting strings"),
-                     kno_intconfig_get,kno_intconfig_set,
-                     &pprint_maxchars);
+                      _("Maximum number of characters when pprinting strings"),
+                      kno_intconfig_get,kno_intconfig_set,
+                      &pprint_maxchars);
   kno_register_config("PPRINT:MAXBYTE",
-                     _("Maximum number of bytes when pprinting packets"),
-                     kno_intconfig_get,kno_intconfig_set,
-                     &pprint_maxbytes);
+                      _("Maximum number of bytes when pprinting packets"),
+                      kno_intconfig_get,kno_intconfig_set,
+                      &pprint_maxbytes);
   kno_register_config("PPRINT:MAXELTS",
-                     _("Maximum number of elements when pprinting sequences "
-                       "or choices"),
-                     kno_intconfig_get,kno_intconfig_set,
-                     &pprint_maxelts);
+                      _("Maximum number of elements when pprinting sequences "
+                        "or choices"),
+                      kno_intconfig_get,kno_intconfig_set,
+                      &pprint_maxelts);
   kno_register_config("PPRINT:MAXDEPTH",
-                     _("Maximum depth for recursive printing"),
-                     kno_intconfig_get,kno_intconfig_set,
-                     &pprint_maxdepth);
+                      _("Maximum depth for recursive printing"),
+                      kno_intconfig_get,kno_intconfig_set,
+                      &pprint_maxdepth);
   kno_register_config("PPRINT:LISTMAX",
-                     _("Maximum number of elements when pprinting lists"),
-                     kno_intconfig_get,kno_intconfig_set,
-                     &pprint_list_max);
+                      _("Maximum number of elements when pprinting lists"),
+                      kno_intconfig_get,kno_intconfig_set,
+                      &pprint_list_max);
   kno_register_config("PPRINT:VECTORMAX",
-                     _("Maximum number of elements when pprinting vectors"),
-                     kno_intconfig_get,kno_intconfig_set,
-                     &pprint_vector_max);
+                      _("Maximum number of elements when pprinting vectors"),
+                      kno_intconfig_get,kno_intconfig_set,
+                      &pprint_vector_max);
   kno_register_config("PPRINT:CHOICEMAX",
-                     _("Maximum number of elements when pprinting choices"),
-                     kno_intconfig_get,kno_intconfig_set,
-                     &pprint_choice_max);
+                      _("Maximum number of elements when pprinting choices"),
+                      kno_intconfig_get,kno_intconfig_set,
+                      &pprint_choice_max);
   kno_register_config("PPRINT:KEYSMAX",
-                     _("Maximum number of keys when pprinting tables"),
-                     kno_intconfig_get,kno_intconfig_set,
-                     &pprint_choice_max);
+                      _("Maximum number of keys when pprinting tables"),
+                      kno_intconfig_get,kno_intconfig_set,
+                      &pprint_choice_max);
 
   kno_register_config("PPRINT:INDENTS",
-                     _("PPRINT indentation rules"),
-                     kno_tblconfig_get,kno_tblconfig_set,
-                     &pprint_default_rules);
+                      _("PPRINT indentation rules"),
+                      kno_tblconfig_get,kno_tblconfig_set,
+                      &pprint_default_rules);
 
   kno_register_config("LOCAL_MODULES",_("value of LOCAL_MODULES"),
-                     config_get_module_loc,NULL,(void *) LOCAL_MODULES);
+                      config_get_module_loc,NULL,(void *) LOCAL_MODULES);
   kno_register_config("INSTALLED_MODULES",_("value of INSTALLED_MODULES"),
-                     config_get_module_loc,NULL,(void *) INSTALLED_MODULES);
+                      config_get_module_loc,NULL,(void *) INSTALLED_MODULES);
   kno_register_config("SHARED_MODULES",_("value of SHARED_MODULES"),
-                     config_get_module_loc,NULL,(void *) SHARED_MODULES);
+                      config_get_module_loc,NULL,(void *) SHARED_MODULES);
   kno_register_config("STDLIB_MODULES",_("value of STDLIB_MODULES"),
-                     config_get_module_loc,NULL,(void *) STDLIB_MODULES);
+                      config_get_module_loc,NULL,(void *) STDLIB_MODULES);
 
   kno_register_config("UNPACKAGE_DIR",_("value of UNPACKAGE_DIR"),
-                     config_get_module_loc,NULL,(void *) UNPACKAGE_DIR);
+                      config_get_module_loc,NULL,(void *) UNPACKAGE_DIR);
 }
 

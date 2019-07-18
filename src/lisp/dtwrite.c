@@ -28,7 +28,7 @@ int kno_use_dtblock = KNO_USE_DTBLOCK;
 unsigned int kno_check_dtsize = 1;
 
 int (*kno_dtype_error)
-     (struct KNO_OUTBUF *,lispval x,u8_string details) = NULL;
+(struct KNO_OUTBUF *,lispval x,u8_string details) = NULL;
 
 u8_condition kno_InconsistentDTypeSize=_("Inconsistent DTYPE size");
 
@@ -64,7 +64,7 @@ static ssize_t try_dtype_output(ssize_t *len,struct KNO_OUTBUF *out,lispval x)
   *len = *len+dlen;
   return dlen;
 }
-#define kno_output_dtype(len,out,x) \
+#define kno_output_dtype(len,out,x)                              \
   if (PRED_FALSE(KNO_ISREADING(out))) return kno_isreadbuf(out); \
   else if (try_dtype_output(&len,out,x)<0) return -1; else {}
 
@@ -84,7 +84,7 @@ static ssize_t write_opaque(struct KNO_OUTBUF *out,lispval x)
 }
 
 static int opaque_unparser(u8_output out,lispval val,
-                               kno_compound_typeinfo info)
+                           kno_compound_typeinfo info)
 {
   struct KNO_COMPOUND *compound = (kno_compound) val;
   if ( (compound->compound_length > 0) &&

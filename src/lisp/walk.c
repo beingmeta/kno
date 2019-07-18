@@ -64,11 +64,11 @@ KNO_FASTOP int fast_walk(kno_walker walker,lispval obj,
 
 KNO_EXPORT
 /* kno_walk:
-    Arguments: two dtype pointers
-    Returns: 1, 0, or -1 (an int)
-  Walks the object tree, calling walker on nodes encountered. */
+   Arguments: two dtype pointers
+   Returns: 1, 0, or -1 (an int)
+   Walks the object tree, calling walker on nodes encountered. */
 int kno_walk(kno_walker walker,lispval obj,void *walkdata,
-            kno_walk_flags flags,int depth)
+             kno_walk_flags flags,int depth)
 {
   return fast_walk(walker,obj,walkdata,flags,depth);
 }
@@ -187,9 +187,9 @@ static int cons_walk(kno_walker walker,int constype,
 }
 
 static int walk_compound(kno_walker walker,lispval x,
-                          void *walkdata,
-                          kno_walk_flags flags,
-                          int depth)
+                         void *walkdata,
+                         kno_walk_flags flags,
+                         int depth)
 {
   if (depth<=0) return 0;
   struct KNO_COMPOUND *c = kno_consptr(struct KNO_COMPOUND *,x,kno_compound_type);

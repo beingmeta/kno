@@ -393,7 +393,7 @@ KNO_EXPORT struct U8_OUTPUT *kno_reqlog(int force)
 }
 
 KNO_EXPORT int kno_reqlogger
-  (u8_condition c,u8_context cxt,u8_string message)
+(u8_condition c,u8_context cxt,u8_string message)
 {
   struct U8_OUTPUT *out = kno_get_reqlog();
   if (!(out)) return 0;

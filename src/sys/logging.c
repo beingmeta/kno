@@ -73,17 +73,17 @@ static int kno_logger(int loglevel,u8_condition c,u8_string message)
   lispval mstring = kno_make_string(NULL,-1,message);
   lispval args[3]={ll,csym,mstring};
   char *level = ((abs_loglevel>MAX_LOGLEVEL)?(NULL):
-	       (loglevel_names[abs_loglevel]));
+                 (loglevel_names[abs_loglevel]));
   if (reqout) {
     struct U8_XTIME xt;
     u8_local_xtime(&xt,-1,u8_nanosecond,0);
     if (local_log)
       u8_printf(reqout,"<logentry level='%d' scope='local'>",
-		abs_loglevel);
+                abs_loglevel);
     else u8_printf(reqout,"<logentry level='%d'>",abs_loglevel);
     if (level) u8_printf(reqout,"\n\t<level>%s</level>",level);
     u8_printf(reqout,"\n\t<datetime tick='%ld' nsecs='%d'>%Xlt</datetime>",
-	      xt.u8_tick,xt.u8_nsecs,&xt);
+              xt.u8_tick,xt.u8_nsecs,&xt);
     if (c) u8_printf(reqout,"\n\t<condition>%s</condition>",c);
     u8_printf(reqout,"\n\t<message>\n%s\n\t</message>",message);
     u8_printf(reqout,"\n</logentry>\n");}

@@ -35,7 +35,7 @@
 
 #define odigitp(c) ((c>='0')&&(c<='8'))
 #define spacecharp(c) ((c>0) && (c<128) && (isspace(c)))
-#define atombreakp(c) \
+#define atombreakp(c)                                                   \
   ((c<=0) || ((c<128) && ((isspace(c)) || (strchr("{}()[]#\"',`",c)))))
 
 u8_condition kno_CantUnparse=_("LISP expression unparse error");
@@ -152,7 +152,7 @@ static int get_packet_base(const unsigned char *bytes,int len)
 }
 
 KNO_EXPORT int kno_unparse_packet
-   (U8_OUTPUT *out,const unsigned char *bytes,size_t len,int base)
+(U8_OUTPUT *out,const unsigned char *bytes,size_t len,int base)
 {
   int i = 0;
   int unparse_maxbytes =
@@ -308,9 +308,9 @@ static int unparse_choice(U8_OUTPUT *out,lispval x)
 
 KNO_EXPORT
 /* kno_unparse:
-     Arguments: a U8 output stream and a lisp object
-     Returns: int
-  Emits a printed representation of the object to the stream.
+   Arguments: a U8 output stream and a lisp object
+   Returns: int
+   Emits a printed representation of the object to the stream.
 */
 int kno_unparse(u8_output out,lispval x)
 {
@@ -380,10 +380,10 @@ int kno_unparse(u8_output out,lispval x)
 
 KNO_EXPORT
 /* kno_lisp2string:
-     Arguments: a lisp object
-     Returns: a UTF-8 encoding string
+   Arguments: a lisp object
+   Returns: a UTF-8 encoding string
 
-     Returns a textual encoding of its argument.
+   Returns a textual encoding of its argument.
 */
 u8_string kno_lisp2string(lispval x)
 {
@@ -395,13 +395,13 @@ u8_string kno_lisp2string(lispval x)
 
 KNO_EXPORT
 /* kno_lisp2buf:
-     Arguments: a lisp object
-     Arguments: a length in bytes
-     Arguments: a (possibly NULL) buffer
-     Returns: a UTF-8 encoding string
+   Arguments: a lisp object
+   Arguments: a length in bytes
+   Arguments: a (possibly NULL) buffer
+   Returns: a UTF-8 encoding string
 
-     Writes a text representation of the object into a fixed length
-     string.
+   Writes a text representation of the object into a fixed length
+   string.
 
 */
 u8_string kno_lisp2buf(lispval x,size_t n,u8_byte *buf)
@@ -460,12 +460,12 @@ static int unparse_compound(struct U8_OUTPUT *out,lispval x)
 
 KNO_EXPORT
 /* kno_unparse_arg:
-     Arguments: a lisp object
-     Returns: a utf-8 string
+   Arguments: a lisp object
+   Returns: a utf-8 string
 
-     Generates a string representation from a lisp object, trying
-     to make the representation as natural as possible but allowing
-     it to be reversed by kno_parse_arg
+   Generates a string representation from a lisp object, trying
+   to make the representation as natural as possible but allowing
+   it to be reversed by kno_parse_arg
 */
 u8_string kno_unparse_arg(lispval arg)
 {
@@ -526,7 +526,7 @@ static int unparse_rawptr(struct U8_OUTPUT *out,lispval x)
 /* U8_PRINTF extensions */
 
 static u8_string lisp_printf_handler
-  (struct U8_OUTPUT *s,char *cmd,u8_byte *buf,int bufsiz,va_list *args)
+(struct U8_OUTPUT *s,char *cmd,u8_byte *buf,int bufsiz,va_list *args)
 {
   lispval value = va_arg(*args,lispval);
   int verbose = (strchr(cmd,'l')!=NULL), retval;

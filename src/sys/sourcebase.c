@@ -69,11 +69,11 @@ static void restore_sourcebase(u8_string old)
 
 KNO_EXPORT
 /* kno_bind_sourcebase:
-      Arguments: a UTF-8 string
-      Returns: a UTF-8 string
-  This dynamically binds the sourcebase, which indicates
- the "current file" and is used by functions like load-component
- and get-component. */
+   Arguments: a UTF-8 string
+   Returns: a UTF-8 string
+   This dynamically binds the sourcebase, which indicates
+   the "current file" and is used by functions like load-component
+   and get-component. */
 u8_string kno_bind_sourcebase(u8_string sourcebase)
 {
   return bind_sourcebase(sourcebase);
@@ -81,9 +81,9 @@ u8_string kno_bind_sourcebase(u8_string sourcebase)
 
 KNO_EXPORT
 /* kno_restore_sourcebase:
-      Arguments: a UTF-8 string
-      Returns: void
-  Restores the previous sourcebase, passed as an argument. */
+   Arguments: a UTF-8 string
+   Returns: void
+   Restores the previous sourcebase, passed as an argument. */
 void kno_restore_sourcebase(u8_string sourcebase)
 {
   restore_sourcebase(sourcebase);
@@ -91,9 +91,9 @@ void kno_restore_sourcebase(u8_string sourcebase)
 
 KNO_EXPORT
 /* kno_get_component:
-    Arguments: a utf8 string identifying a filename
-    Returns: a utf8 string identifying a filename
-  Interprets a relative pathname with respect to the directory
+   Arguments: a utf8 string identifying a filename
+   Returns: a utf8 string identifying a filename
+   Interprets a relative pathname with respect to the directory
    of the current file being loaded.
 */
 u8_string kno_get_component(u8_string spec)

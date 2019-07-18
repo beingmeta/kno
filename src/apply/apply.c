@@ -47,7 +47,7 @@ lispval kno_default_stackspec = VOID;
 u8_string kno_ndcallstack_type = "ndapply";
 u8_string kno_callstack_type   = "apply";
 
-#define KNO_APPLY_STACK(name,fname,fn)                   \
+#define KNO_APPLY_STACK(name,fname,fn)                  \
   KNO_PUSH_STACK(name,kno_callstack_type,fname,fn)
 
 u8_condition kno_NotAFunction=_("calling a non function");
@@ -119,7 +119,7 @@ KNO_EXPORT ssize_t kno_stack_setsize(ssize_t limit)
       kno_set_stack_limit(limit);
       return old;}
     else {
-#if ( (HAVE_PTHREAD_SELF) &&       \
+#if ( (HAVE_PTHREAD_SELF) &&                    \
       (HAVE_PTHREAD_GETATTR_NP) &&              \
       (HAVE_PTHREAD_ATTR_SETSTACKSIZE) )
       pthread_t self = pthread_self();
@@ -409,7 +409,7 @@ static int bad_arg(u8_context cxt,struct KNO_FUNCTION *f,int i,lispval v)
 }
 
 KNO_FASTOP int check_argbuf(struct KNO_FUNCTION *f,int n,
-                         lispval *argbuf,lispval *argvec)
+                            lispval *argbuf,lispval *argvec)
 {
   /* Check typeinfo */
   int *typeinfo = f->fcn_typeinfo; int i = 0;
@@ -439,8 +439,8 @@ KNO_FASTOP int check_argbuf(struct KNO_FUNCTION *f,int n,
 }
 
 KNO_FASTOP int fill_arbguf(struct KNO_FUNCTION *f,int n,
-                          lispval *argbuf,
-                          lispval *argvec)
+                           lispval *argbuf,
+                           lispval *argvec)
 {
   int arity = f->fcn_arity, min_arity = f->fcn_min_arity;
   lispval fptr = (lispval)f;
@@ -543,8 +543,8 @@ KNO_FASTOP lispval dcall(u8_string fname,kno_function f,int n,lispval *args)
 }
 
 KNO_FASTOP lispval apply_fcn(struct KNO_STACK *stack,
-                            u8_string name,kno_function f,int n,
-                            lispval *argvec)
+                             u8_string name,kno_function f,int n,
+                             lispval *argvec)
 {
   lispval fnptr = (lispval)f; int arity=f->fcn_arity;
   if (PRED_FALSE(n<0))
@@ -649,7 +649,7 @@ KNO_EXPORT lispval kno_dcall(struct KNO_STACK *_stack,
 #endif
 
         kno_profile_record(profile,0,nsecs,utime,stime,
-                          n_waits,n_contests,n_faults);}
+                           n_waits,n_contests,n_faults);}
       else if (f) {
         result=apply_fcn(apply_stack,fname,f,n,argvec);
         if (!(PRED_TRUE(KNO_CHECK_PTR(result)))) {
@@ -671,7 +671,7 @@ KNO_EXPORT lispval kno_dcall(struct KNO_STACK *_stack,
       u8_log(LOG_WARN,cond,"Unexpected errno=%d (%s) after %s",
              errno,cond,U8ALT(fname,"primcall"));
       errno=0;}
-    if ( ( (trouble) || (KNO_TROUBLEP(result)) ) && 
+    if ( ( (trouble) || (KNO_TROUBLEP(result)) ) &&
          (u8_current_exception==NULL) ) {
       if (errno) {u8_graberrno("kno_apply",fname);}
       else kno_seterr(kno_UnknownError,"kno_apply",fname,VOID);}
@@ -685,9 +685,9 @@ KNO_EXPORT lispval kno_dcall(struct KNO_STACK *_stack,
 
 /* Calling non-deterministically */
 
-#define KNO_ADD_RESULT(to,result)          \
+#define KNO_ADD_RESULT(to,result)               \
   if (to == EMPTY) to = result;                 \
-  else {                                        \
+  else {                                           \
     if (TYPEP(to,kno_tailcall_type))               \
       to = kno_finish_call(to);                    \
     if (TYPEP(result,kno_tailcall_type))           \
@@ -819,8 +819,8 @@ static lispval ndapply4(kno_stack _stack,
 }
 
 KNO_EXPORT lispval kno_ndcall(struct KNO_STACK *_stack,
-                            lispval fp,
-                            int n,lispval *args)
+                              lispval fp,
+                              int n,lispval *args)
 {
   lispval handler = (KNO_FCNIDP(fp) ? (kno_fcnid_ref(fp)) : (fp));
   if (EMPTYP(handler))
@@ -891,8 +891,8 @@ static lispval qchoice_dcall
 (kno_stack stack,lispval fp,int n,lispval *args);
 
 KNO_EXPORT lispval kno_call(struct KNO_STACK *_stack,
-                          lispval fp,
-                          int n,lispval *args)
+                            lispval fp,
+                            int n,lispval *args)
 {
   lispval result;
   lispval handler = (KNO_FCNIDP(fp)) ? (kno_fcnid_ref(fp)) : (fp);
@@ -1128,8 +1128,8 @@ KNO_EXPORT void kno_defalias(lispval table,u8_string to,u8_string from)
 }
 
 KNO_EXPORT void kno_defalias2(lispval table,
-                            u8_string to,lispval src,
-                            u8_string from)
+                              u8_string to,lispval src,
+                              u8_string from)
 {
   lispval to_symbol = kno_getsym(to);
   lispval from_symbol = kno_getsym(from);

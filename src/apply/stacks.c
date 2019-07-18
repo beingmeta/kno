@@ -159,7 +159,7 @@ static lispval copy_bindings(lispval bindings)
    6. args   (a vector of arguments to an applied procedure, or () otherwise)
    7. env    (the lexical environment established by the frame)
    8. source (the original source code for the call, if available)
- */
+*/
 
 #define STACK_CREATE_OPTS KNO_COMPOUND_USEREF
 
@@ -171,9 +171,9 @@ static lispval stack2lisp(struct KNO_STACK *stack,struct KNO_STACK *inner)
   lispval op = stack->stack_op, env = KNO_FALSE;
   lispval argvec = ( stack->stack_args ) ?
     (kno_init_compound_from_elts(NULL,pargs_symbol,
-                                KNO_COMPOUND_COPYREF|KNO_COMPOUND_SEQUENCE,
-                                stack->n_args,
-                                stack->stack_args)) :
+                                 KNO_COMPOUND_COPYREF|KNO_COMPOUND_SEQUENCE,
+                                 stack->n_args,
+                                 stack->stack_args)) :
     (KNO_FALSE);
   unsigned int icrumb = stack->stack_crumb;
   lispval source = stack->stack_source;
