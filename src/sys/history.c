@@ -13,8 +13,6 @@
 #include "kno/lisp.h"
 #include "kno/apply.h"
 #include "kno/lexenv.h"
-#include "kno/cprims.h"
-#include "kno/eval.h"
 #include "kno/compounds.h"
 #include "kno/sequences.h"
 #include "kno/storage.h"
@@ -288,11 +286,10 @@ lispval kno_get_histref(lispval elts)
         return err;}}
     else if ( (KNO_SYMBOLP(path)) || (KNO_OIDP(path)) ) {
       if (KNO_TABLEP(scan)) {
-        lispval v = (OIDP(scan)) ? (kno_frame_get(scan,path)) :
-          (kno_get(scan,path,KNO_VOID));
-        u8_byte keybuf[64];
-        if (KNO_VOIDP(v))
-          kno_seterr("NoSuchKey","histref_evalfn",
+	lispval v = (kno_get(scan,path,KNO_VOID));
+	u8_byte keybuf[64];
+	if (KNO_VOIDP(v))
+	  kno_seterr("NoSuchKey","histref_evalfn",
                      ((KNO_SYMBOLP(path)) ? 
                       (KNO_SYMBOL_NAME(path)) :
                       (kno_oid2string(path,keybuf,64))),
@@ -313,7 +310,7 @@ lispval kno_get_histref(lispval elts)
     else return kno_make_list(2,KNOSYM_QUOTE,scan);}
 }
 
-KNO_EXPORT void kno_histinit(int size)
+KNO_EXPORT void kno_hist_init(int size)
 {
   lispval history = kno_thread_get(history_symbol);
   if (size<=0) {
@@ -339,113 +336,26 @@ KNO_EXPORT void kno_histclear(int size)
 {
   if (size>0) {
     kno_thread_set(history_symbol,VOID);
-    kno_histinit(size);}
+    kno_hist_init(size);}
   else kno_thread_set(history_symbol,KNO_FALSE);
 }
 
-KNO_EXPORT lispval with_history_evalfn
-(lispval expr,kno_lexenv env,kno_stack stack)
-{
-  lispval history_arg = kno_stack_eval(kno_get_arg(expr,1),env,stack,0);
-  if (KNO_VOIDP(history_arg)) {
-    if (u8_current_exception)
-      return KNO_ERROR;
-    else return kno_err("BadHistoryArg","with_history_evalfn",NULL,expr);}
-  lispval outer_history = kno_thread_get(history_symbol);
-  kno_thread_set(history_symbol,VOID);
-  if (KNO_FIXNUMP(history_arg))
-    kno_histinit(KNO_FIX2INT(history_arg));
-  else kno_histinit(200);
-  lispval body = kno_get_body(expr,2);
-  lispval value = kno_eval_exprs(body,env,stack,0);
-  kno_thread_set(history_symbol,outer_history);
-  kno_decref(outer_history);
-  kno_decref(history_arg);
-  return value;
-}
+/* Initialization */
 
-DEFPRIM("histref",histref_prim,MIN_ARGS(2)|MAX_ARGS(2),
-	"`(HISTREF *ref* [*history*])` returns the history item for "
-	"*ref*, using the current historical context if *history* is "
-	"not provided.");
-static lispval histref_prim(lispval ref,lispval history)
-{
-  if ( (VOIDP(history)) || (FALSEP(history)) || (DEFAULTP(history)) )
-    history = kno_thread_get(history_symbol);
-  else kno_incref(history);
-  if (KNO_COMPOUND_TYPEP(history,history_symbol)) {
-    lispval result = kno_history_ref(history,ref);
-    kno_decref(history);
-    return result;}
-  else return KNO_EMPTY;
-}
-
-DEFPRIM("histfind",histfind_prim,MIN_ARGS(2)|MAX_ARGS(2),
-	"`(HISTFIND *val* [*history*])` returns the history reference for "
-	"*value*, using the current historical context if *history* is "
-	"not provided.");
-static lispval histfind_prim(lispval ref,lispval history)
-{
-  if ( (VOIDP(history)) || (FALSEP(history)) || (DEFAULTP(history)) )
-    history = kno_thread_get(history_symbol);
-  else kno_incref(history);
-  if (KNO_COMPOUND_TYPEP(history,history_symbol)) {
-    lispval result = kno_history_find(history,ref);
-    kno_decref(history);
-    return result;}
-  else return KNO_EMPTY;
-}
-
-DEFPRIM("histadd!",histadd_prim,MIN_ARGS(1)|MAX_ARGS(3),
-	"`(HISTADD! *val* [*history*] [*ref*])` associates *val* with "
-	"the history reference *ref*, creating a new reference if *ref* "
-	"is not provided. This uses the current historical context if "
-	"*history* is not provided.");
-static lispval histadd_prim(lispval val,lispval history,lispval ref)
-{
-  if ( (VOIDP(history)) || (FALSEP(history)) || (DEFAULTP(history)) )
-    history = kno_thread_get(history_symbol);
-  else kno_incref(history);
-  if (KNO_COMPOUND_TYPEP(history,history_symbol)) {
-    lispval result = kno_history_add(history,val,ref);
-    kno_decref(history);
-    return result;}
-  else return KNO_EMPTY;
-}
-
-static int scheme_history_initialized = 0;
-
-static lispval history_module ;
+static int history_initialized = 0;
 
 KNO_EXPORT void kno_init_history_c()
 {
-  if (scheme_history_initialized) return;
-  else scheme_history_initialized = 1;
-
-  history_module = kno_new_cmodule("history",0,NULL);
+  if (history_initialized) return;
+  else history_initialized = 1;
 
   u8_register_source_file(_FILEINFO);
-
-  kno_def_evalfn(history_module,"with-history",
-		 "`(with-history *info* *body...*)` creates a new history "
-		 "context and evaluates *body* within that context. "
-		 "This saves any current history context.",
-		 with_history_evalfn);
-
-  link_local_cprims();
 
   history_symbol = kno_intern("%history");
   histref_typetag = kno_intern("%histref");
 
   kno_resolve_histref = kno_get_histref;
 
-  kno_finish_module(history_module);
-
 }
 
-static void link_local_cprims()
-{
-  KNO_LINK_PRIM("histref",histref_prim,2,history_module);
-  KNO_LINK_PRIM("histfind",histfind_prim,2,history_module);
-  KNO_LINK_PRIM("histadd!",histadd_prim,3,history_module);
-}
+

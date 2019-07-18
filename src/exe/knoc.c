@@ -980,7 +980,7 @@ int main(int argc,char **argv)
      kno_boolconfig_get,kno_boolconfig_set,&use_void_marker);
 
   /* This is the REPL value history, not the editline history */
-  kno_histinit(0);
+  kno_hist_init(0);
 
   kno_set_config("SIGRAISE",KNO_INT(SIGINT));
 

@@ -157,13 +157,13 @@ LISP_OBJS=\
 	src/lisp/dtread.o src/lisp/dtwrite.o			\
 	src/lisp/lisp.o
 
-SUPPORT_OBJS=						\
+SYS_OBJS=						\
 	src/sys/buildinfo.o src/sys/support.o	\
 	src/sys/config.o src/sys/errobjs.o	\
 	src/sys/logging.o src/sys/getopt.o	\
 	src/sys/startup.o src/sys/fluid.o 	\
 	src/sys/signals.o src/sys/posix.o 	\
-	src/sys/sourcebase.o
+	src/sys/sourcebase.o src/sys/history.o
 
 APPLY_OBJS=\
 	src/apply/apply.o src/apply/stacks.o 			\
@@ -214,7 +214,8 @@ CORE_SCHEME_OBJS=\
 	src/eval/struct_eval.o \
 	src/eval/errfns.o\
 	src/eval/conditionals.o\
-	src/eval/iterators.o
+	src/eval/iterators.o\
+	src/eval/repl.o
 
 SCHEME_OBJS=\
 	$(CORE_SCHEME_OBJS) \
@@ -244,8 +245,7 @@ SCHEME_OBJS=\
 	src/prims/sqldbprims.o \
 	src/prims/fileprims.o \
 	src/prims/driverprims.o \
-	src/eval/loadmods.o \
-	src/eval/history.o
+	src/eval/loadmods.o
 
 WEB_OBJS=\
 	src/web/webtools.o \
@@ -437,7 +437,7 @@ KNO_SOURCES=\
 	src/eval/conditionals.c src/eval/iterators.c               		\
         src/eval/threads.c src/eval/quasiquote.c src/eval/struct_eval.c		\
 	src/eval/modules.c src/eval/load.c src/eval/reflection.c 		\
-	src/eval/compoundfns.c 							\
+	src/eval/compoundfns.c src/eval/repl.c					\
 	src/eval/coreops.c                  					\
 	src/eval/arith.c 			              			\
 	src/eval/regex.c 			              			\
@@ -1000,9 +1000,9 @@ src/text/matcher.o src/text/texttools.o : XCFLAGS="${XOPTFLAGS}"
 
 # Library targets
 
-lib/libknocore@suffix@.a: $(LISP_OBJS) $(SUPPORT_OBJS) $(APPLY_OBJS)
-lib/libknocore@suffix@.so: $(LISP_OBJS) $(SUPPORT_OBJS) $(APPLY_OBJS)
-lib/libknocore@suffix@.dylib: $(LISP_OBJS) $(SUPPORT_OBJS) $(APPLY_OBJS)
+lib/libknocore@suffix@.a: $(LISP_OBJS) $(SYS_OBJS) $(APPLY_OBJS)
+lib/libknocore@suffix@.so: $(LISP_OBJS) $(SYS_OBJS) $(APPLY_OBJS)
+lib/libknocore@suffix@.dylib: $(LISP_OBJS) $(SYS_OBJS) $(APPLY_OBJS)
 
 lib/libknostorage@suffix@.a: $(STORAGE_OBJS)
 lib/libknostorage@suffix@.so: $(STORAGE_OBJS) lib/libknocore@suffix@.so
@@ -2090,7 +2090,7 @@ include/kno/revision.h: $(KNO_SOURCES) $(KNO_HEADERS) makefile
 ### Depending on the .buildmode
 $(EXECUTABLES) $(STATIC_EXECUTABLES): .buildmode $(REVISION_H)
 $(LISP_OBJS): $(LISP_HEADERS) $(REVISION_H)
-$(SUPPORT_OBJS): $(LISP_HEADERS) $(REVISION_H)
+$(SYS_OBJS): $(LISP_HEADERS) $(REVISION_H)
 $(APPLY_OBJS): $(LISP_HEADERS) $(APPLY_HEADERS) $(REVISION_H)
 $(STORAGE_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(REVISION_H)
 $(DRIVER_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) $(REVISION_H)
@@ -2100,7 +2100,7 @@ $(WEB_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
 	$(APPLY_HEADERS) $(SCHEME_HEADERS) $(REVISION_H) ./include/kno/webtools.h
 $(TEXT_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
 	$(APPLY_HEADERS) $(REVISION_H) $(SCHEME_HEADERS) ./include/kno/texttools.h
-$(LISP_OBJS) $(SUPPORT_OBJS) $(APPLY_OBJS): .buildmode
+$(LISP_OBJS) $(SYS_OBJS) $(APPLY_OBJS): .buildmode
 $(STORAGE_OBJS) $(DRIVER_OBJS): .buildmode
 $(SCHEME_OBJS): .buildmode
 $(WEB_OBJS) $(TEXT_OBJS): .buildmode
