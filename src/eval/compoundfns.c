@@ -480,14 +480,14 @@ static lispval tag_slotdata(lispval tag)
   else {
     struct KNO_KEYVAL *keyvals = u8_alloc_n(1,struct KNO_KEYVAL);
     lispval slotmap = VOID, *slotdata = &slotmap;
-    keyvals[0].kv_key = tag_symbol; keyvals[0].kv_key = kno_incref(tag);
+    keyvals[0].kv_key = tag_symbol; keyvals[0].kv_val = kno_incref(tag);
     slotmap = kno_init_slotmap(NULL,1,keyvals);
     kno_register_compound(tag,slotdata,NULL);
     return slotmap;}
 }
 
-DEFPRIM2("compound-metatdata",compound_metadata_prim,KNO_MIN_ARGS(1),
-         "`(COMPOUND-METATDATA *compound* [*field*])` accesses the metadata "
+DEFPRIM2("compound-metadata",compound_metadata_prim,KNO_MIN_ARGS(1),
+         "`(compound-metadata *compound* [*field*])` accesses the metadata "
 	 "associated with the typetag assigned to *compound*. If *field* "
 	 "is specified, that particular metadata field is returned. Otherwise "
 	 "the entire metadata object (a slotmap) is copied and returned.",
@@ -608,13 +608,14 @@ KNO_EXPORT void kno_init_compoundfns_c()
 {
   u8_register_source_file(_FILEINFO);
 
+  tag_symbol = kno_intern("tag");
   consfn_symbol = kno_intern("cons");
   stringfn_symbol = kno_intern("stringify");
 
-  init_local_cprims();
+  link_local_cprims();
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   lispval scheme_module = kno_scheme_module;
 
@@ -638,7 +639,7 @@ static void init_local_cprims()
   KNO_LINK_PRIM("compound-tag",compound_tag,1,scheme_module);
   KNO_LINK_PRIM("pick-compounds",pick_compounds,2,scheme_module);
 
-  KNO_LINK_PRIM("compound-metatdata",compound_metadata_prim,2,scheme_module);
+  KNO_LINK_PRIM("compound-metadata",compound_metadata_prim,2,scheme_module);
   KNO_LINK_PRIM("tag-metadata",tag_metadata_prim,2,scheme_module);
 
 
