@@ -39,23 +39,33 @@ static lispval reqgetvar(lispval cgidata,lispval var)
     if (*data=='\0') return val;
     else if (strchr("@{#(",data[0])) {
       lispval parsed = kno_parse_arg(data);
-      kno_decref(val); return parsed;}
+      if (ABORTED(parsed)) {
+	kno_clear_errors(1);
+	return val;}
+      else return parsed;}
     else if (isdigit(data[0])) {
       lispval parsed = kno_parse_arg(data);
-      if (NUMBERP(parsed)) {
-        kno_decref(val); return parsed;}
+      if (ABORTED(parsed)) {
+	kno_clear_errors(1);
+	return val;}
+      else if (NUMBERP(parsed)) {
+	kno_decref(val);
+	return parsed;}
       else {
-        kno_decref(parsed); return val;}}
+	kno_decref(parsed);
+	return val;}}
     else if (*data == ':')
       if (data[1]=='\0')
         return kno_mkstring(data);
       else {
         lispval arg = kno_parse(data+1);
-        if (KNO_ABORTP(arg)) {
-          u8_log(LOG_WARN,kno_ParseArgError,"Bad colon spec arg '%s'",arg);
-          kno_clear_errors(1);
-          return kno_mkstring(data);}
-        else return arg;}
+        if (KNO_ABORTED(arg)) {
+	  u8_log(LOG_WARN,kno_ParseArgError,"Bad colon spec arg '%s'",data);
+	  kno_clear_errors(1);
+          return val;}
+	else {
+	  kno_decref(val);
+	  return arg;}}
     else if (*data == '\\') {
       lispval shorter = kno_mkstring(data+1);
       kno_decref(val);
@@ -67,23 +77,29 @@ static lispval reqgetvar(lispval cgidata,lispval var)
       if (!(STRINGP(v))) {
         kno_incref(v); CHOICE_ADD(result,v);}
       else {
-        u8_string data = CSTRING(v); lispval parsed = v;
-        if (*data=='\\') parsed = kno_mkstring(data+1);
-        else if ((*data==':')&&(data[1]=='\0')) {kno_incref(parsed);}
+	lispval parsed = v;
+        u8_string data = CSTRING(v);
+        if (*data=='\\')
+	  parsed = kno_mkstring(data+1);
+        else if ((*data==':')&&(data[1]=='\0')) {
+	  kno_incref(parsed);}
         else if (*data==':')
           parsed = kno_parse(data+1);
         else if ((isdigit(*data))||(*data=='+')||(*data=='-')||(*data=='.')) {
           parsed = kno_parse_arg(data);
           if (!(NUMBERP(parsed))) {
-            kno_decref(parsed); parsed = v; kno_incref(parsed);}}
-        else if ( (noparse==0) && (strchr("@{#(",data[0])) )
-          parsed = kno_parse_arg(data);
-        else kno_incref(parsed);
-        if (KNO_ABORTP(parsed)) {
-          u8_log(LOG_WARN,kno_ParseArgError,"Bad LISP arg '%s'",data);
-          kno_clear_errors(1);
-          parsed = v; kno_incref(v);}
-        CHOICE_ADD(result,parsed);}}
+            kno_decref(parsed);
+	    parsed = v;
+	    kno_incref(parsed);}}
+	else if ( (noparse==0) && (strchr("@{#(",data[0])) )
+	  parsed = kno_parse_arg(data);
+	else kno_incref(parsed);
+	if (KNO_ABORTED(parsed)) {
+	  u8_log(LOG_WARN,kno_ParseArgError,"Bad LISP arg '%s'",data);
+	  kno_clear_errors(1);
+	  parsed = v;
+	  kno_incref(v);}
+	CHOICE_ADD(result,parsed);}}
     kno_decref(val);
     return result;}
   else return val;
@@ -121,10 +137,8 @@ static lispval reqget_prim(lispval vars,lispval dflt)
     if (!(VOIDP(val))) {
       found = 1; CHOICE_ADD(results,val);}}
   if (found) return kno_simplify_choice(results);
-  else if (VOIDP(dflt)) return EMPTY;
-  else if (QCHOICEP(dflt)) {
-    struct KNO_QCHOICE *qc = KNO_XQCHOICE(dflt);
-    return kno_make_simple_choice(qc->qchoiceval);}
+  else if (VOIDP(dflt))
+    return EMPTY;
   else return kno_incref(dflt);
 }
 
@@ -141,22 +155,29 @@ static lispval reqval_prim(lispval vars,lispval dflt)
     if (VOIDP(val)) {}
     else if (STRINGP(val)) {
       lispval parsed = kno_parse_arg(CSTRING(val));
-      kno_decref(val);
-      CHOICE_ADD(results,parsed);
+      if (ABORTED(parsed)) {
+	kno_clear_errors(1);
+	CHOICE_ADD(results,val);}
+      else {
+	kno_decref(val);
+	CHOICE_ADD(results,parsed);}
       found = 1;}
     else if (CHOICEP(val)) {
       DO_CHOICES(v,val) {
-        if (STRINGP(v)) {
-          lispval parsed = kno_parse_arg(CSTRING(v));
-          CHOICE_ADD(results,parsed);}
-        else {
-          kno_incref(v); CHOICE_ADD(results,v);}}
-      kno_decref(val);
+	lispval parsed = kno_parse_arg(CSTRING(val));
+	if (ABORTED(parsed)) {
+	  kno_incref(v);
+	  kno_clear_errors(1);
+	  CHOICE_ADD(results,v);}
+	else {
+	  CHOICE_ADD(results,parsed);
+	  kno_decref(val);}}
       found = 1;}
     else {
       CHOICE_ADD(results,val);
       found = 1;}}
-  if (found) return results;
+  if (found)
+    return results;
   else if (VOIDP(dflt)) return EMPTY;
   else if (QCHOICEP(dflt)) {
     struct KNO_QCHOICE *qc = KNO_XQCHOICE(dflt);
