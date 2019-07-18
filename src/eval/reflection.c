@@ -123,7 +123,9 @@ static lispval procedure_cname(lispval x)
     if (f->fcn_name)
       return knostring(f->fcn_name);
     else return KNO_FALSE;}
-  else return KNO_FALSE;
+  else if (KNO_APPLICABLEP(x))
+    return KNO_FALSE;
+  else return kno_type_error("function","procedure_cname",x);
 }
 
 DEFPRIM1("procedure-fileinfo",procedure_fileinfo,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
@@ -680,6 +682,7 @@ static lispval optimize_lambda_body(lispval arg,lispval new_body)
   else return kno_type_error("lambda","optimize_lambda_body",x);
 }
 
+#if 0
 DEFPRIM2("optimize-lambda-args!",optimize_lambda_args,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 "(OPTIMIZE-LAMBDA-ARGS! *lambda*) "
 	 "updates the parsed vars and defaults for lambda "
@@ -695,6 +698,7 @@ static lispval optimize_lambda_args(lispval arg,lispval new_args)
     else return KNO_INT(n);}
   else return kno_type_error("lambda","optimize_lambda_args",x);
 }
+#endif
 
 DEFPRIM2("set-lambda-source!",set_lambda_source,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 "`(SET-LAMBDA-SOURCE! *arg0* *arg1*)` **undocumented**",
@@ -711,6 +715,7 @@ static lispval set_lambda_source(lispval arg,lispval new_source)
   else return kno_type_error("lambda","set_lambda_source",x);
 }
 
+#if 0
 DEFPRIM2("set-lambda-optimizer!",set_lambda_optimizer,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 "`(SET-LAMBDA-OPTIMIZER! *arg0* *arg1*)` **undocumented**",
 	 kno_lambda_type,KNO_VOID,kno_any_type,KNO_VOID);
@@ -728,6 +733,7 @@ static lispval set_lambda_optimizer(lispval arg,lispval optimizer)
   else return kno_type_error
 	 ("lambda","set_lambda_optimizer",x);
 }
+#endif
 
 /* Function IDs */
 
@@ -1405,9 +1411,11 @@ static void link_local_cprims()
   KNO_LINK_PRIM("fcnid/set!",fcnid_setprim,2,reflection_module);
   KNO_LINK_PRIM("fcnid/register",fcnid_registerprim,1,reflection_module);
   KNO_LINK_PRIM("fcnid/ref",fcnid_refprim,1,reflection_module);
+#if 0
   KNO_LINK_PRIM("set-lambda-optimizer!",set_lambda_optimizer,2,reflection_module);
-  KNO_LINK_PRIM("set-lambda-source!",set_lambda_source,2,reflection_module);
   KNO_LINK_PRIM("optimize-lambda-args!",optimize_lambda_args,2,reflection_module);
+#endif
+  KNO_LINK_PRIM("set-lambda-source!",set_lambda_source,2,reflection_module);
   KNO_LINK_PRIM("optimize-lambda-body!",optimize_lambda_body,2,reflection_module);
   KNO_LINK_PRIM("set-lambda-body!",set_lambda_body,2,reflection_module);
   KNO_LINK_PRIM("lambda-source",lambda_source,1,reflection_module);
