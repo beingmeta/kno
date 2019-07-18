@@ -114,7 +114,15 @@ static u8_string get_testid(lispval fn,int n,lispval *args)
   int i = 0; while (i<n) {
     lispval arg = args[i];
     u8_putc(&testid,' ');
-    kno_unparse(&testid,arg);
+    if (KNO_FUNCTIONP(arg)) {
+      lispval f = (KNO_FCNIDP(arg)) ? (kno_fcnid_ref(arg)) : (arg);
+      if (KNO_FUNCTIONP(f)) {
+	kno_function fcn = (kno_function) f;
+	if (fcn->fcn_name)
+	  u8_puts(&testid,fcn->fcn_name);
+	else kno_unparse(&testid,arg);}
+      else kno_unparse(&testid,f);}
+    else kno_unparse(&testid,arg);
     i++;}
   u8_string id = u8_strdup(testid.u8_outbuf);
   u8_close_output(&testid);
@@ -191,10 +199,10 @@ static lispval applytest(int n,lispval *args)
       return_value = pred_result;
     else if ( (KNO_FALSEP(pred_result)) || (EMPTYP(pred_result)) ) {
       u8_logf((err) ? (LOG_NOTICE) : (LOG_WARN),
-	      "Tests/UnexpectedValue",
-	      "%s:\n  Returned:\t%q\n  Failed:\t%q\n",
+	      "Tests/PredicateFailed",
+	      "%s:\n  Predicate:\t %q\n  Result:\t%q\n",
 	      testid,result,predicate);
-      return_value = kno_err("Tests/BadResult","applytest",testid,result);}
+      return_value = kno_err("Tests/PredicateFailed","applytest",testid,result);}
     else {
       u8_logf(LOG_INFO,"Tests/Passed",
 	      "Result %q passed %q for %s",result,predicate,testid);
@@ -207,11 +215,11 @@ static lispval applytest(int n,lispval *args)
       return_value = pred_result;}
     else if ( (KNO_FALSEP(pred_result)) || (EMPTYP(pred_result)) ) {
       u8_logf((err) ? (LOG_NOTICE) : (LOG_WARN),
-	      "Tests/UnexpectedValue",
-	      "%s:\n  Returned:\t%q\n  Failed:\t%q %q\n",
-	      testid,result,predicate,predicate_arg);
+	      "Tests/PredicateFailed",
+	      "%s:\n  Predicate:\t%q\n  Result:\t%q\n  Argument:\t%q\n",
+	      testid,predicate,result,predicate_arg);
       if (err) return_value =
-		 kno_err("Tests/BadResult","applytest",testid,result);}
+		 kno_err("Tests/PredicateFailed","applytest",testid,result);}
     else {
       u8_logf(LOG_INFO,"Tests/Passed",
 	      "Result %q passed %q for %s",result,predicate,testid);
