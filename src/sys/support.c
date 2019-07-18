@@ -161,24 +161,23 @@ void kno_init_fluid_c(void);
 void kno_init_posix_c(void);
 void kno_init_signals_c(void);
 void kno_init_sourcebase_c(void);
+void kno_init_history_c(void);
 
 KNO_EXPORT void kno_init_support_c()
 {
 
-  u8_register_textdomain("Kno");
+  u8_register_textdomain("kno");
 
   kno_init_sourcebase_c();
-
   kno_init_config_c();
-
   kno_init_err_c();
-
   kno_init_logging_c();
   kno_init_startup_c();
   kno_init_getopt_c();
   kno_init_fluid_c();
   kno_init_posix_c();
   kno_init_signals_c();
+  kno_init_history_c();
 
   kno_register_config
     ("MAXCHARS",_("Max number of chars to show in strings"),
