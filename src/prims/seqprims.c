@@ -1319,38 +1319,6 @@ static lispval seventh(lispval x)
   return seq_elt(x,"seventh",6);
 }
 
-/* Pair functions */
-
-DEFPRIM1("empty-list?",nullp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(EMPTY-LIST? *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
-static lispval nullp(lispval x)
-{
-  if (NILP(x)) return KNO_TRUE;
-  else return KNO_FALSE;
-}
-
-DEFPRIM2("cons",cons,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "`(CONS *arg0* *arg1*)` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
-static lispval cons(lispval x,lispval y)
-{
-  return kno_make_pair(x,y);
-}
-DEFPRIM1("car",car,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(CAR *arg0*)` **undocumented**",
-	 kno_pair_type,KNO_VOID);
-static lispval car(lispval x)
-{
-  return kno_incref(KNO_CAR(x));
-}
-DEFPRIM1("cdr",cdr,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(CDR *arg0*)` **undocumented**",
-	 kno_pair_type,KNO_VOID);
-static lispval cdr(lispval x)
-{
-  return kno_incref(KNO_CDR(x));
-}
 DEFPRIM1("cddr",cddr,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "`(CDDR *arg0*)` **undocumented**",
 	 kno_pair_type,KNO_VOID);
@@ -2500,12 +2468,6 @@ static void link_local_cprims()
   KNO_LINK_PRIM("cdar",cdar,1,kno_scheme_module);
   KNO_LINK_PRIM("cadr",cadr,1,kno_scheme_module);
   KNO_LINK_PRIM("cddr",cddr,1,kno_scheme_module);
-  KNO_LINK_PRIM("cdr",cdr,1,kno_scheme_module);
-  KNO_LINK_PRIM("car",car,1,kno_scheme_module);
-  KNO_LINK_PRIM("cons",cons,2,kno_scheme_module);
-  KNO_LINK_PRIM("empty-list?",nullp,1,kno_scheme_module);
-  KNO_LINK_ALIAS("null?",nullp,kno_scheme_module);
-  KNO_LINK_ALIAS("nil?",nullp,kno_scheme_module);
   KNO_LINK_PRIM("seventh",seventh,1,kno_scheme_module);
   KNO_LINK_PRIM("sixth",sixth,1,kno_scheme_module);
   KNO_LINK_PRIM("fifth",fifth,1,kno_scheme_module);
@@ -2555,7 +2517,5 @@ static void link_local_cprims()
   KNO_LINK_ALIAS("length=>",has_length_gte_prim,scheme_module);
   KNO_LINK_ALIAS("length<=",has_length_lte_prim,scheme_module);
   KNO_LINK_ALIAS("subseq",slice_prim,scheme_module);
-  KNO_LINK_ALIAS("null?",nullp,scheme_module);
-  KNO_LINK_ALIAS("nil?",nullp,scheme_module);
   KNO_LINK_ALIAS("onevector",onevector_prim,scheme_module);
 }
