@@ -2063,7 +2063,6 @@ static void init_localfns()
 }
 
 KNO_EXPORT void kno_init_errfns_c(void);
-KNO_EXPORT void kno_init_compoundfns_c(void);
 KNO_EXPORT void kno_init_threads_c(void);
 KNO_EXPORT void kno_init_conditionals_c(void);
 KNO_EXPORT void kno_init_iterators_c(void);
@@ -2071,7 +2070,8 @@ KNO_EXPORT void kno_init_choicefns_c(void);
 KNO_EXPORT void kno_init_binders_c(void);
 KNO_EXPORT void kno_init_lambdas_c(void);
 KNO_EXPORT void kno_init_macros_c(void);
-KNO_EXPORT void kno_init_coreprims_c(void);
+KNO_EXPORT void kno_init_compoundfns_c(void);
+KNO_EXPORT void kno_init_coreops_c(void);
 KNO_EXPORT void kno_init_tableprims_c(void);
 KNO_EXPORT void kno_init_stringprims_c(void);
 KNO_EXPORT void kno_init_dbprims_c(void);
@@ -2117,6 +2117,7 @@ static void init_eval_core()
   kno_init_arith_c();
   kno_init_threads_c();
   kno_init_errfns_c();
+  kno_init_coreops_c();
   kno_init_getsource_c();
   kno_init_load_c();
   kno_init_conditionals_c();
@@ -2139,7 +2140,6 @@ static void init_eval_core()
 
   kno_init_history_c();
 
-  kno_init_coreprims_c();
   kno_init_stringprims_c();
   kno_init_dbprims_c();
   kno_init_seqprims_c();
