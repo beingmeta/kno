@@ -1120,11 +1120,11 @@ static lispval xref_op(struct KNO_COMPOUND *c,long long i,lispval tag,int free)
     if ((i>=0) && (i<c->compound_length)) {
       lispval *values = &(c->compound_0), value;
       if (c->compound_ismutable)
-        u8_lock_mutex(&(c->compound_lock));
+        u8_lock_mutex(&(c->compound_rwlock));
       value = values[i];
       kno_incref(value);
       if (c->compound_ismutable)
-        u8_unlock_mutex(&(c->compound_lock));
+        u8_unlock_mutex(&(c->compound_rwlock));
       if (free) kno_decref((lispval)c);
       return value;}
     else {

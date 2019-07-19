@@ -27,7 +27,8 @@
 	 (modify-method-name
 	  (string->symbol (stringout "modify-" prefix "-" field-name "!"))))
     `(defambda (,modify-method-name ,name _modifier _value)
-       (,compound-modify! ,name ,(position field fields) _modifier _value ,tag-expr))))
+       (,compound-modify! ,name ,tag-expr ,(position field fields) 
+			  _modifier _value))))
 (define (make-accessor-subst name field tag-expr prefix fields)
   (let* ((field-name (if (pair? field) (car field) field))
 	 (get-method-name (string->symbol (stringout prefix "-" field-name))))
@@ -59,18 +60,21 @@
 			  (testopt defspec 'mutable)))
 	   (isopaque (or (and (pair? defspec) (position 'opaque defspec))
 			 (testopt defspec 'opaque)))
-	   (corelen (getopt defspec 'corelen))
+	   (showlen (getopt defspec 'showlen))
 	   (consfn (getopt defspec 'consfn))
 	   (stringfn (getopt defspec 'stringfn))
 	   (fields (cddr defrecord))
 	   (field-names (map fieldname fields))
 	   (cons-method-name (string->symbol (stringout "cons-" name)))
-	   (predicate-method-name (getopt defspec 'predicate (string->symbol (stringout name "?")))))
+	   (predicate-method-name 
+	    (getopt defspec 'predicate (string->symbol (stringout name "?")))))
       `(begin (bind-default! %rewrite {})
 	 (defambda (,cons-method-name ,@fields)
 	   (,(if ismutable
-		 (if isopaque make-opaque-mutable-compound make-mutable-compound)
-		 (if isopaque make-opaque-compound make-compound))
+		 (if isopaque 
+		     make-opaque-mutable-compound make-mutable-compound)
+		 (if isopaque
+		     make-opaque-compound make-compound))
 	    ,tag-expr ,@field-names))
 	 (define (,predicate-method-name ,name)
 	   (,compound-type? ,name ,tag-expr))
@@ -86,7 +90,7 @@
 	       (forseq (field fields)
 		 (make-modifier-def name field tag-expr prefix fields))
 	       '())
-	 ,@(if corelen `((compound-set-corelen! ,tag-expr ,corelen)) '())
+	 ,@(if showlen `((compound-set-showlen! ,tag-expr ,showlen)) '())
 	 ,@(if consfn `((compound-set-consfn! ,tag-expr ,consfn)) '())
 	 ,@(if stringfn `((compound-set-stringfn! ,tag-expr ,stringfn)) '())))))
 

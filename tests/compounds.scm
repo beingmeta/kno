@@ -5,7 +5,7 @@
 (use-module 'ezrecords)
 
 ;;; Reset something we change below, just to be consistent
-(compound-set-corelen! 'typex #f)
+(compound-set-showlen! 'typex #f)
 
 (defrecord type1
   x y (z 3) (q 4))
@@ -72,10 +72,9 @@
 	       (compound-ref type2.1 0)))
 (errtest (compound-set! type1.1 0 77))
 (errtest (compound-set! type2.1 0 77 'type1))
-(evaltest (* 2 77) (begin (compound-modify! type2.1 0 * 2 'type2)
+(evaltest (* 2 77) (begin (compound-modify! type2.1 'type2 0 * 2)
 		     (compound-ref type2.1 0)))
-(errtest (compound-modify! type2.1 0 * 2 'type1))
-
+(errtest (compound-modify! type2.1 'type1 0 * 2))
 
 (applytest #f compound-mutable? type3.1)
 (applytest #t compound-opaque? type3.1)
@@ -110,7 +109,7 @@
 (applytest 3 compound-ref vec-compound 2)
 (applytest 3 compound-ref vec-compound 2 'typex)
 (applytest "#%(typex \"a\" b 3 4 6 7)" lisp->string vec-compound)
-(evaltest 'void (compound-set-corelen! 'typex 3))
+(evaltest 'void (compound-set-showlen! 'typex 3))
 (applytest "#%(typex \"a\" b 3)" lisp->string vec-compound)
 
 (errtest (sequence->compound 'foo 'type4))

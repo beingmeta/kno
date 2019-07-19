@@ -175,7 +175,8 @@ static void recycle_compound(struct KNO_RAW_CONS *c)
   lispval *data = &(compound->compound_0);
   while (i<n) {kno_decref(data[i]); i++;}
   kno_decref(compound->compound_typetag);
-  if (compound->compound_ismutable) u8_destroy_mutex(&(compound->compound_lock));
+  if (compound->compound_ismutable) 
+    u8_destroy_rwlock(&(compound->compound_rwlock));
   u8_free(c);
 }
 

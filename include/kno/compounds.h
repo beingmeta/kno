@@ -21,7 +21,7 @@ typedef struct KNO_COMPOUND {
   unsigned int compound_isopaque:1;
   unsigned int compound_istable:1;
   char compound_off;
-  u8_mutex compound_lock;
+  u8_rwlock compound_rwlock;
   lispval compound_0;} KNO_COMPOUND;
 typedef struct KNO_COMPOUND *kno_compound;
 

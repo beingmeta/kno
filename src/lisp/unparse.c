@@ -423,7 +423,8 @@ static lispval get_compound_tag(lispval tag)
 
 static int unparse_compound(struct U8_OUTPUT *out,lispval x)
 {
-  struct KNO_COMPOUND *xc = kno_consptr(struct KNO_COMPOUND *,x,kno_compound_type);
+  struct KNO_COMPOUND *xc =
+    kno_consptr(struct KNO_COMPOUND *,x,kno_compound_type);
   lispval tag = get_compound_tag(xc->compound_typetag);
   struct KNO_COMPOUND_TYPEINFO *entry = kno_lookup_compound(tag);
   if ((entry) && (entry->compound_unparser)) {
@@ -438,8 +439,8 @@ static int unparse_compound(struct U8_OUTPUT *out,lispval x)
   {
     lispval *data = &(xc->compound_0);
     int i = 0, n = xc->compound_length;
-    if ((entry)&&(entry->compound_corelen>0)&&(entry->compound_corelen<n))
-      n = entry->compound_corelen;
+    if ((entry)&&(entry->compound_showlen>0)&&(entry->compound_showlen<n))
+      n = entry->compound_showlen;
     if (opaque)
       u8_printf(out,"#<<%q",xc->compound_typetag);
     else u8_printf(out,"#%%(%q",xc->compound_typetag);

@@ -15,13 +15,13 @@ static lispval xref_op(struct KNO_COMPOUND *c,long long i,lispval tag,int free)
     if ((i>=0) && (i<c->compound_length)) {
       lispval *values = &(c->compound_0), value;
       if (c->compound_ismutable)
-        u8_lock_mutex(&(c->compound_lock));
+        u8_read_lock(&(c->compound_rwlock));
       value = values[i];
       kno_incref(value);
       if (c->compound_ismutable)
-        u8_unlock_mutex(&(c->compound_lock));
+        u8_rw_unlock(&(c->compound_rwlock));
       if (free) kno_decref((lispval)c);
-      return value;}
+      return kno_simplify_choice(value);}
     else {
       kno_seterr(kno_RangeError,"xref",NULL,(lispval)c);
       if (free) kno_decref((lispval)c);
@@ -45,8 +45,9 @@ static lispval xref_opcode(lispval x,long long i,lispval tag)
     DO_CHOICES(c,x) {
       lispval r = xref_op((struct KNO_COMPOUND *)c,i,tag,0);
       if (KNO_ABORTED(r)) {
-        kno_decref(results); results = r;
         KNO_STOP_DO_CHOICES;
+        kno_decref(results);
+	results = r;
         break;}
       else {CHOICE_ADD(results,r);}}
     /* Need to free this */

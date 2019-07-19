@@ -363,8 +363,10 @@ KNO_EXPORT int _KNO_TYPEP(lispval ptr,int type);
 #define KNO_TYPEP _KNO_TYPEP
 #else
 #define KNO_TYPEP(ptr,type)                                       \
-  ((type >= 0x84) ? ( (KNO_CONSP(ptr)) && (KNO_CONSPTR_TYPE(ptr) == type) ) :   \
-   (type >= 0x04) ? ( (KNO_IMMEDIATEP(ptr)) && (KNO_IMM_TYPE(ptr) == type ) ) : \
+  ((type >= 0x84) ? \
+   ( (KNO_CONSP(ptr)) && (KNO_CONSPTR_TYPE(ptr) == type) ) :		\
+   (type >= 0x04) ? \
+   ( (KNO_IMMEDIATEP(ptr)) && (KNO_IMM_TYPE(ptr) == type ) ) :	\
    ( ( (ptr) & (0x3) ) == type) )
 #endif
 #define KNO_PRIM_TYPEP(x,tp)   ( KNO_TYPEP(x,tp) )

@@ -856,7 +856,7 @@ typedef lispval (*kno_compound_restorefn)(lispval,lispval,kno_compound_typeinfo)
 
 typedef struct KNO_COMPOUND_TYPEINFO {
   lispval compound_typetag, compound_metadata;
-  short compound_corelen;
+  short compound_showlen;
   char compound_isopaque;
   char compound_ismutable;
   char compound_istable;

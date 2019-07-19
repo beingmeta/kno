@@ -49,7 +49,7 @@ KNO_EXPORT lispval kno_init_compound
     if (n==0) p = u8_malloc(sizeof(struct KNO_COMPOUND));
     else p = u8_malloc(sizeof(struct KNO_COMPOUND)+(n-1)*LISPVAL_LEN);}
   KNO_INIT_CONS(p,kno_compound_type);
-  if (ismutable) u8_init_mutex(&(p->compound_lock));
+  if (ismutable) u8_init_rwlock(&(p->compound_rwlock));
   p->compound_typetag = kno_incref(tag);
   p->compound_ismutable = ismutable;
   p->compound_isopaque = isopaque;
@@ -106,7 +106,7 @@ KNO_EXPORT lispval kno_init_compound_from_elts
 	   "Creating a compound of type %q with %d elements",tag,n);
   else NO_ELSE;
   KNO_INIT_CONS(p,kno_compound_type);
-  if (ismutable) u8_init_mutex(&(p->compound_lock));
+  if (ismutable) u8_init_rwlock(&(p->compound_rwlock));
   p->compound_typetag = kno_incref(tag);
   p->compound_ismutable = ismutable;
   p->compound_isopaque = isopaque;
@@ -148,10 +148,12 @@ KNO_EXPORT lispval kno_init_compound_from_elts
   else return LISP_CONS(p);
 }
 
-KNO_EXPORT lispval kno_compound_ref(lispval arg,lispval tag,int off,lispval dflt)
+KNO_EXPORT lispval kno_compound_ref
+(lispval arg,lispval tag,int off,lispval dflt)
 {
   struct KNO_COMPOUND *tvec = (struct KNO_COMPOUND *) arg;
-  if (! ( (KNO_VOIDP(tag)) || (tvec->compound_typetag == tag) ) ) {
+  if (! ( (KNO_VOIDP(tag)) || (KNO_DEFAULTP(tag)) || 
+	  (tvec->compound_typetag == tag) ) ) {
     U8_STATIC_OUTPUT(details,512);
     kno_unparse(&details,tag);
     lispval errval =
@@ -191,9 +193,9 @@ struct KNO_COMPOUND_TYPEINFO
 	  kno_incref(data);
 	  *datap = data;}}
       if (corep) {
-	if (scan->compound_corelen<0)
-	  scan->compound_corelen = *corep;
-	else *corep = scan->compound_corelen;}
+	if (scan->compound_showlen<0)
+	  scan->compound_showlen = *corep;
+	else *corep = scan->compound_showlen;}
       u8_unlock_mutex(&compound_registry_lock);
       return scan;}
     else scan = scan->compound_nextinfo;
@@ -204,7 +206,7 @@ struct KNO_COMPOUND_TYPEINFO
     kno_incref(data);
     newrec->compound_metadata = data;}
   else newrec->compound_metadata = VOID;
-  newrec->compound_corelen = ((corep)?(*corep):(-1));
+  newrec->compound_showlen = ((corep)?(*corep):(-1));
   newrec->compound_nextinfo = kno_compound_entries;
   newrec->compound_typetag = symbol;
   newrec->compound_parser = NULL;
@@ -229,15 +231,15 @@ KNO_EXPORT struct KNO_COMPOUND_TYPEINFO
 	scan->compound_metadata = kno_incref(data);
 	kno_decref(old_data);}
       if (core_slots>=0)
-	scan->compound_corelen = core_slots;
-      else scan->compound_corelen = -1;
+	scan->compound_showlen = core_slots;
+      else scan->compound_showlen = -1;
       u8_unlock_mutex(&compound_registry_lock);
       return scan;}
     else scan = scan->compound_nextinfo;
   newrec = u8_alloc(struct KNO_COMPOUND_TYPEINFO);
   memset(newrec,0,sizeof(struct KNO_COMPOUND_TYPEINFO));
   newrec->compound_metadata = data;
-  newrec->compound_corelen = core_slots;
+  newrec->compound_showlen = core_slots;
   newrec->compound_typetag = symbol;
   newrec->compound_nextinfo = kno_compound_entries;
   newrec->compound_parser = NULL;
@@ -264,7 +266,8 @@ KNO_EXPORT
 int kno_compound_unparser(u8_string pname,kno_compound_unparsefn fn)
 {
   lispval sym = kno_intern(pname);
-  struct KNO_COMPOUND_TYPEINFO *typeinfo = kno_register_compound(sym,NULL,NULL);
+  struct KNO_COMPOUND_TYPEINFO *typeinfo =
+    kno_register_compound(sym,NULL,NULL);
   if (typeinfo) {
     typeinfo->compound_unparser = fn;
     return 1;}

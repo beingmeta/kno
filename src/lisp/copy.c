@@ -193,7 +193,7 @@ static lispval copy_compound(lispval x,int flags)
     struct KNO_COMPOUND *nc = u8_malloc(sizeof(KNO_COMPOUND)+(n-1)*LISPVAL_LEN);
     lispval *data = &(xc->compound_0), *write = &(nc->compound_0);
     KNO_INIT_CONS(nc,kno_compound_type);
-    if (xc->compound_ismutable) u8_init_mutex(&(nc->compound_lock));
+    if (xc->compound_ismutable) u8_init_rwlock(&(nc->compound_rwlock));
     nc->compound_ismutable = xc->compound_ismutable;
     nc->compound_isopaque = xc->compound_isopaque;
     nc->compound_typetag = kno_incref(xc->compound_typetag);
