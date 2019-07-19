@@ -212,7 +212,6 @@ static lispval compound_set(lispval x,lispval offset,lispval value,lispval tag)
       u8_rw_unlock(&(compound->compound_rwlock));
       return VOID;}
     /* Unlock and figure out the details of the error */
-    u8_rw_unlock(&(compound->compound_rwlock));
     if (compound->compound_ismutable==0) {
       kno_seterr(_("Immutable record"),"set_compound",NULL,x);
       return KNO_ERROR;}
@@ -670,11 +669,17 @@ KNO_EXPORT void kno_init_compoundfns_c()
   push_prim = kno_get(scheme,kno_intern("push"),KNO_VOID);
   push_fcnid  = kno_register_fcnid(push_prim);
 
-  plus_prim = kno_get(scheme,kno_intern("plus"),KNO_VOID);
+  plus_prim = kno_get(scheme,kno_intern("+"),KNO_VOID);
   plus_fcnid  = kno_register_fcnid(plus_prim);
 
-  minus_prim = kno_get(scheme,kno_intern("minus"),KNO_VOID);
+  minus_prim = kno_get(scheme,kno_intern("-"),KNO_VOID);
   minus_fcnid  = kno_register_fcnid(minus_prim);
+
+  minusone_prim = kno_get(scheme,kno_intern("-1+"),KNO_VOID);
+  minusone_fcnid  = kno_register_fcnid(minusone_prim);
+
+  plusone_prim = kno_get(scheme,kno_intern("1+"),KNO_VOID);
+  plusone_fcnid  = kno_register_fcnid(plusone_prim);
 
   link_local_cprims();
 }
@@ -705,7 +710,6 @@ static void link_local_cprims()
 
   KNO_LINK_PRIM("compound-metadata",compound_metadata_prim,2,scheme_module);
   KNO_LINK_PRIM("tag-metadata",tag_metadata_prim,2,scheme_module);
-
 
   KNO_LINK_ALIAS("compound-type?",compoundp,scheme_module);
   KNO_LINK_ALIAS("vector->compound",seq2compound,scheme_module);
