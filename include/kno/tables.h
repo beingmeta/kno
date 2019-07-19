@@ -16,15 +16,15 @@ KNO_EXPORT u8_condition kno_NoSuchKey;
 typedef enum KNO_TABLEOP {
   kno_table_store = 0, kno_table_add = 1, kno_table_drop = 2, kno_table_default = 3,
   kno_table_increment = 4, kno_table_multiply = 5, kno_table_push = 6,
-  kno_table_replace = 7, kno_table_replace_novoid = 8,
-  kno_table_add_if_present = 9,
-  kno_table_increment_if_present = 10,
-  kno_table_multiply_if_present = 11,
-  kno_table_store_noref = 12, kno_table_add_noref = 13,
-  kno_table_test = 14, kno_table_haskey = 15,
-  kno_table_add_empty = 16, kno_table_add_empty_noref = 17,
-  kno_table_maximize = 18, kno_table_maximize_if_present = 19,
-  kno_table_minimize = 20, kno_table_minimize_if_present = 21}
+  kno_table_replace = 7, kno_table_replace_novoid = 8, kno_table_init = 9,
+  kno_table_add_if_present = 10,
+  kno_table_increment_if_present = 11,
+  kno_table_multiply_if_present = 12,
+  kno_table_store_noref = 13, kno_table_add_noref = 14,
+  kno_table_test = 15, kno_table_haskey = 16,
+  kno_table_add_empty = 17, kno_table_add_empty_noref = 18,
+  kno_table_maximize = 19, kno_table_maximize_if_present = 20,
+  kno_table_minimize = 21, kno_table_minimize_if_present = 22}
  kno_tableop;
 
 typedef lispval (*kno_table_get_fn)(lispval,lispval,lispval);

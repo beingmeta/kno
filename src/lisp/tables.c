@@ -2345,40 +2345,47 @@ static int do_hashtable_op(struct KNO_HASHTABLE *ht,kno_tableop op,
        (op == kno_table_minimize_if_present) ||
        (op == kno_table_increment_if_present)))
     return 0;
-  switch (op) {
+  lispval curval = result->kv_val;
+  if ( (op == kno_table_init) && (!(KNO_VOIDP(curval))) )
+    return 0;
+  else switch (op) {
   case kno_table_replace_novoid:
-    if (VOIDP(result->kv_val)) return 0;
-  case kno_table_store: case kno_table_replace: {
+    if (VOIDP(curval)) return 0;
+  case kno_table_store: case kno_table_replace: case kno_table_init: {
     lispval newv=kno_incref(value);
-    kno_decref(result->kv_val); result->kv_val=newv;
+    result->kv_val=newv;
+    kno_decref(curval);
     break;}
   case kno_table_store_noref:
-    kno_decref(result->kv_val);
     result->kv_val=value;
+    kno_decref(curval);
     break;
   case kno_table_add_if_present:
-    if (VOIDP(result->kv_val)) break;
+    if (VOIDP(curval)) break;
   case kno_table_add: case kno_table_add_empty:
     kno_incref(value);
-    if (VOIDP(result->kv_val)) result->kv_val=value;
+    if (VOIDP(curval))
+      result->kv_val=value;
     else {CHOICE_ADD(result->kv_val,value);}
     break;
   case kno_table_add_noref: case kno_table_add_empty_noref:
-    if (VOIDP(result->kv_val))
+    if (VOIDP(curval))
       result->kv_val=value;
     else {CHOICE_ADD(result->kv_val,value);}
     break;
   case kno_table_drop: {
     int drop_key = 0;
-    lispval cur = result->kv_val, new;
+    lispval newval;
     if (KNO_VOIDP(value)) {
-      drop_key = 1; new=EMPTY;}
-    else if (KNO_EMPTYP(cur)) {
-      drop_key = 1; new=EMPTY;}
+      drop_key = 1;
+      newval=EMPTY;}
+    else if (KNO_EMPTYP(curval)) {
+      drop_key = 1;
+      newval=EMPTY;}
     else {
-      new=kno_difference(cur,value);
-      if (EMPTYP(new)) drop_key=1;}
-    if (new != cur) kno_decref(cur);
+      newval=kno_difference(curval,value);
+      if (EMPTYP(newval)) drop_key=1;}
+    if (newval != curval) kno_decref(curval);
     if (drop_key) {
       lispval key = result->kv_key;
       struct KNO_HASH_BUCKET *bucket = *bucket_loc;
@@ -2386,117 +2393,112 @@ static int do_hashtable_op(struct KNO_HASHTABLE *ht,kno_tableop op,
       kno_decref(key);
       ht->table_n_keys--;
       result = NULL;}
-    else result->kv_val = new;
+    else result->kv_val = newval;
     break;}
   case kno_table_test:
-    if ((CHOICEP(result->kv_val)) ||
-        (PRECHOICEP(result->kv_val)) ||
+    if ((CHOICEP(curval)) ||
+        (PRECHOICEP(curval)) ||
         (CHOICEP(value)) ||
         (PRECHOICEP(value)))
-      return kno_overlapp(value,result->kv_val);
-    else if (LISP_EQUAL(value,result->kv_val))
+      return kno_overlapp(value,curval);
+    else if (LISP_EQUAL(value,curval))
       return 1;
     else return 0;
   case kno_table_default:
-    if ((EMPTYP(result->kv_val)) ||
-        (VOIDP(result->kv_val))) {
+    if ((EMPTYP(curval)) || (VOIDP(curval))) {
       result->kv_val = kno_incref(value);}
     break;
   case kno_table_increment_if_present:
-    if (VOIDP(result->kv_val)) break;
+    if (VOIDP(curval)) break;
   case kno_table_increment:
-    if ((EMPTYP(result->kv_val)) ||
-        (VOIDP(result->kv_val))) {
+    if ((EMPTYP(curval)) || (VOIDP(curval))) {
       result->kv_val=kno_incref(value);}
-    else if (!(NUMBERP(result->kv_val)))
-      return KNO_ERR(-1,kno_TypeError,"kno_table_increment","number",result->kv_val);
+    else if (!(NUMBERP(curval)))
+      return KNO_ERR(-1,kno_TypeError,"kno_table_increment","number",
+                     curval);
     else {
-      lispval current=result->kv_val;
       DO_CHOICES(v,value)
-        if ((FIXNUMP(current)) && (FIXNUMP(v))) {
-          long long cval=FIX2INT(current);
+        if ((FIXNUMP(curval)) && (FIXNUMP(v))) {
+          long long cval=FIX2INT(curval);
           long long delta=FIX2INT(v);
           result->kv_val=KNO_INT(cval+delta);}
-        else if ((KNO_FLONUMP(current)) &&
-                 (KNO_CONS_REFCOUNT(((kno_cons)current))<2) &&
+        else if ((KNO_FLONUMP(curval)) &&
+                 (KNO_CONS_REFCOUNT(((kno_cons)curval))<2) &&
                  ((FIXNUMP(v)) || (KNO_FLONUMP(v)))) {
-          struct KNO_FLONUM *dbl=(kno_flonum)current;
+          struct KNO_FLONUM *dbl = (kno_flonum) curval;
           if (FIXNUMP(v))
             dbl->floval=dbl->floval+FIX2INT(v);
           else dbl->floval=dbl->floval+KNO_FLONUM(v);}
         else if (NUMBERP(v)) {
-          lispval newnum=kno_plus(current,v);
-          if (newnum != current) {
-            kno_decref(current);
+          lispval newnum=kno_plus(curval,v);
+          if (newnum != curval) {
+            kno_decref(curval);
             result->kv_val=newnum;}}
         else return KNO_ERR(-1,kno_TypeError,"kno_table_increment","number",v);}
     break;
   case kno_table_multiply_if_present:
-    if (VOIDP(result->kv_val)) break;
+    if (VOIDP(curval)) break;
   case kno_table_multiply:
-    if ((VOIDP(result->kv_val))||(EMPTYP(result->kv_val)))  {
+    if ( (VOIDP(curval)) || (EMPTYP(curval)) )  {
       result->kv_val=kno_incref(value);}
-    else if (!(NUMBERP(result->kv_val)))
-      return KNO_ERR(-1,kno_TypeError,"kno_table_multiply","number",result->kv_val);
+    else if (!(NUMBERP(curval)))
+      return KNO_ERR(-1,kno_TypeError,"kno_table_multiply","number",
+                     curval);
     else {
-      lispval current=result->kv_val;
       DO_CHOICES(v,value)
-        if ((KNO_INTP(current)) && (KNO_INTP(v))) {
-          long long cval=FIX2INT(current);
+        if ((KNO_INTP(curval)) && (KNO_INTP(v))) {
+          long long cval=FIX2INT(curval);
           long long factor=FIX2INT(v);
           result->kv_val=KNO_INT(cval*factor);}
-        else if ((KNO_FLONUMP(current)) &&
-                 (KNO_CONS_REFCOUNT(((kno_cons)current))<2) &&
+        else if ((KNO_FLONUMP(curval)) &&
+                 (KNO_CONS_REFCOUNT(((kno_cons)curval))<2) &&
                  ((FIXNUMP(v)) || (KNO_FLONUMP(v)))) {
-          struct KNO_FLONUM *dbl=(kno_flonum)current;
+          struct KNO_FLONUM *dbl=(kno_flonum)curval;
           if (FIXNUMP(v))
             dbl->floval=dbl->floval*FIX2INT(v);
           else dbl->floval=dbl->floval*KNO_FLONUM(v);}
         else if (NUMBERP(v)) {
-          lispval newnum=kno_multiply(current,v);
-          if (newnum != current) {
-            kno_decref(current);
+          lispval newnum=kno_multiply(curval,v);
+          if (newnum != curval) {
+            kno_decref(curval);
             result->kv_val=newnum;}}
         else return KNO_ERR(-1,kno_TypeError,"table_multiply_op","number",v);}
     break;
   case kno_table_maximize_if_present:
-    if (VOIDP(result->kv_val)) break;
+    if (VOIDP(curval)) break;
   case kno_table_maximize:
-    if ((EMPTYP(result->kv_val)) ||
-        (VOIDP(result->kv_val))) {
+    if ((EMPTYP(curval)) || (VOIDP(curval))) {
       result->kv_val=kno_incref(value);}
-    else if (!(NUMBERP(result->kv_val)))
-      return KNO_ERR(-1,kno_TypeError,"table_maximize_op","number",result->kv_val);
+    else if (!(NUMBERP(curval)))
+      return KNO_ERR(-1,kno_TypeError,"table_maximize_op","number",curval);
     else {
-      lispval current=result->kv_val;
-      if ((NUMBERP(current)) && (NUMBERP(value))) {
-        if (kno_numcompare(value,current)>0) {
+      if ((NUMBERP(curval)) && (NUMBERP(value))) {
+        if (kno_numcompare(value,curval)>0) {
           result->kv_val=kno_incref(value);
-          kno_decref(current);}}
+          kno_decref(curval);}}
       else return KNO_ERR(-1,kno_TypeError,"table_maximize_op","number",value);}
     break;
   case kno_table_minimize_if_present:
-    if (VOIDP(result->kv_val)) break;
+    if (VOIDP(curval)) break;
   case kno_table_minimize:
-    if ((EMPTYP(result->kv_val))||(VOIDP(result->kv_val))) {
+    if ( (EMPTYP(curval)) || (VOIDP(curval)) ) {
       result->kv_val=kno_incref(value);}
-    else if (!(NUMBERP(result->kv_val)))
-      return KNO_ERR(-1,kno_TypeError,"table_maximize_op","number",result->kv_val);
+    else if (!(NUMBERP(curval)))
+      return KNO_ERR(-1,kno_TypeError,"table_maximize_op","number",curval);
     else {
-      lispval current=result->kv_val;
-      if ((NUMBERP(current)) && (NUMBERP(value))) {
-        if (kno_numcompare(value,current)<0) {
+      if ((NUMBERP(curval)) && (NUMBERP(value))) {
+        if (kno_numcompare(value,curval)<0) {
           result->kv_val=kno_incref(value);
-          kno_decref(current);}}
+          kno_decref(curval);}}
       else return KNO_ERR(-1,kno_TypeError,"table_maximize_op","number",value);}
     break;
   case kno_table_push:
-    if ((VOIDP(result->kv_val)) || (EMPTYP(result->kv_val))) {
+    if ((VOIDP(curval)) || (EMPTYP(curval))) {
       result->kv_val=kno_make_pair(value,NIL);}
-    else if (PAIRP(result->kv_val)) {
-      result->kv_val=kno_conspair(kno_incref(value),result->kv_val);}
+    else if (PAIRP(curval)) {
+      result->kv_val=kno_conspair(kno_incref(value),curval);}
     else {
-      lispval tail=kno_conspair(result->kv_val,NIL);
+      lispval tail=kno_conspair(curval,NIL);
       result->kv_val=kno_conspair(kno_incref(value),tail);}
     break;
   default: {
@@ -2507,8 +2509,8 @@ static int do_hashtable_op(struct KNO_HASHTABLE *ht,kno_tableop op,
     break;}
   }
   ht->table_modified=1;
-  if ( (result) && (PRECHOICEP(result->kv_val)) ) {
-    struct KNO_PRECHOICE *ch=KNO_XPRECHOICE(result->kv_val);
+  if ( (result) && (PRECHOICEP(curval)) ) {
+    struct KNO_PRECHOICE *ch=KNO_XPRECHOICE(curval);
     if (ch->prechoice_uselock) {
       u8_destroy_mutex(&(ch->prechoice_lock));
       ch->prechoice_uselock=0;}}
