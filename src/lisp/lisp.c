@@ -210,14 +210,15 @@ static void init_type_names()
   kno_type_names[kno_secret_type]=_("secret");
   kno_type_names[kno_bigint_type]=_("bigint");
   kno_type_names[kno_pair_type]=_("pair");
+  kno_type_names[kno_cdrcode_type]=_("cdrcode");
 
   kno_type_names[kno_compound_type]=_("compound");
   kno_type_names[kno_choice_type]=_("choice");
   kno_type_names[kno_prechoice_type]=_("prechoice");
   kno_type_names[kno_qchoice_type]=_("qchoice");
   kno_type_names[kno_vector_type]=_("vector");
-  kno_type_names[kno_matrix_type]=_("matrix");
   kno_type_names[kno_numeric_vector_type]=_("numeric_vector");
+  kno_type_names[kno_typeinfo_type]=_("typeinfo");
 
   kno_type_names[kno_slotmap_type]=_("slotmap");
   kno_type_names[kno_schemap_type]=_("schemap");

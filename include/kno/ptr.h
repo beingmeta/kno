@@ -152,60 +152,61 @@ typedef enum KNO_LISP_TYPE {
   kno_string_type = KNO_CONS_TYPECODE(0),
   kno_packet_type = KNO_CONS_TYPECODE(1),
   kno_vector_type = KNO_CONS_TYPECODE(2),
-  kno_matrix_type = KNO_CONS_TYPECODE(3), /* NYI */
-  kno_numeric_vector_type = KNO_CONS_TYPECODE(4),
-  kno_pair_type = KNO_CONS_TYPECODE(5),
+  kno_numeric_vector_type = KNO_CONS_TYPECODE(3),
+  kno_pair_type = KNO_CONS_TYPECODE(4),
+  kno_cdrcode_type = KNO_CONS_TYPECODE(5),
   kno_secret_type = KNO_CONS_TYPECODE(6),
   kno_bigint_type = KNO_CONS_TYPECODE(7),
 
-  kno_compound_type = KNO_CONS_TYPECODE(8),
-  kno_choice_type = KNO_CONS_TYPECODE(9),
-  kno_prechoice_type = KNO_CONS_TYPECODE(10),
-  kno_qchoice_type = KNO_CONS_TYPECODE(11),
+  kno_choice_type = KNO_CONS_TYPECODE(8),
+  kno_prechoice_type = KNO_CONS_TYPECODE(9),
+  kno_qchoice_type = KNO_CONS_TYPECODE(10),
+  kno_compound_type = KNO_CONS_TYPECODE(11),
+  kno_typeinfo_type = KNO_CONS_TYPECODE(12),
 
-  kno_slotmap_type = KNO_CONS_TYPECODE(12),
-  kno_schemap_type = KNO_CONS_TYPECODE(13),
-  kno_hashtable_type = KNO_CONS_TYPECODE(14),
-  kno_hashset_type = KNO_CONS_TYPECODE(15),
+  kno_slotmap_type = KNO_CONS_TYPECODE(13),
+  kno_schemap_type = KNO_CONS_TYPECODE(14),
+  kno_hashtable_type = KNO_CONS_TYPECODE(15),
+  kno_hashset_type = KNO_CONS_TYPECODE(16),
 
   /* Evaluator/apply types, defined here to be constant */
-  kno_cprim_type = KNO_CONS_TYPECODE(16),
-  kno_lambda_type = KNO_CONS_TYPECODE(17),
-  kno_ffi_type = KNO_CONS_TYPECODE(18),
-  kno_dtproc_type = KNO_CONS_TYPECODE(19),
-  kno_lexenv_type = KNO_CONS_TYPECODE(20),
-  kno_evalfn_type = KNO_CONS_TYPECODE(21),
-  kno_macro_type = KNO_CONS_TYPECODE(22),
-  kno_stackframe_type = KNO_CONS_TYPECODE(23),
-  kno_tailcall_type = KNO_CONS_TYPECODE(24),
-  kno_exception_type = KNO_CONS_TYPECODE(25),
-  kno_promise_type = KNO_CONS_TYPECODE(26),
+  kno_cprim_type = KNO_CONS_TYPECODE(17),
+  kno_lambda_type = KNO_CONS_TYPECODE(18),
+  kno_ffi_type = KNO_CONS_TYPECODE(19),
+  kno_dtproc_type = KNO_CONS_TYPECODE(20),
+  kno_lexenv_type = KNO_CONS_TYPECODE(21),
+  kno_evalfn_type = KNO_CONS_TYPECODE(22),
+  kno_macro_type = KNO_CONS_TYPECODE(23),
+  kno_stackframe_type = KNO_CONS_TYPECODE(24),
+  kno_tailcall_type = KNO_CONS_TYPECODE(25),
+  kno_exception_type = KNO_CONS_TYPECODE(26),
+  kno_promise_type = KNO_CONS_TYPECODE(27),
 
-  kno_complex_type = KNO_CONS_TYPECODE(27),
-  kno_rational_type = KNO_CONS_TYPECODE(28),
-  kno_flonum_type = KNO_CONS_TYPECODE(29),
+  kno_complex_type = KNO_CONS_TYPECODE(28),
+  kno_rational_type = KNO_CONS_TYPECODE(29),
+  kno_flonum_type = KNO_CONS_TYPECODE(30),
 
-  kno_timestamp_type = KNO_CONS_TYPECODE(30),
-  kno_uuid_type = KNO_CONS_TYPECODE(31),
+  kno_timestamp_type = KNO_CONS_TYPECODE(31),
+  kno_uuid_type = KNO_CONS_TYPECODE(32),
 
   /* Other types, also defined here to be constant*/
-  kno_mystery_type = KNO_CONS_TYPECODE(32),
+  kno_mystery_type = KNO_CONS_TYPECODE(33),
 
-  kno_ioport_type = KNO_CONS_TYPECODE(33),
-  kno_stream_type = KNO_CONS_TYPECODE(34),
+  kno_ioport_type = KNO_CONS_TYPECODE(34),
+  kno_stream_type = KNO_CONS_TYPECODE(35),
 
-  kno_regex_type = KNO_CONS_TYPECODE(35),
+  kno_regex_type = KNO_CONS_TYPECODE(36),
 
-  kno_consblock_type = KNO_CONS_TYPECODE(36),
-  kno_rawptr_type = KNO_CONS_TYPECODE(37),
+  kno_consblock_type = KNO_CONS_TYPECODE(37),
+  kno_rawptr_type = KNO_CONS_TYPECODE(38),
 
-  kno_dtserver_type = KNO_CONS_TYPECODE(38),
-  kno_bloom_filter_type = KNO_CONS_TYPECODE(39),
+  kno_dtserver_type = KNO_CONS_TYPECODE(39),
+  kno_bloom_filter_type = KNO_CONS_TYPECODE(40),
 
-  kno_thread_type = KNO_CONS_TYPECODE(40),
-  kno_synchronizer_type = KNO_CONS_TYPECODE(41),
-  kno_sqldb_type = KNO_CONS_TYPECODE(42),
-  kno_sqlproc_type = KNO_CONS_TYPECODE(43),
+  kno_thread_type = KNO_CONS_TYPECODE(41),
+  kno_synchronizer_type = KNO_CONS_TYPECODE(42),
+  kno_sqldb_type = KNO_CONS_TYPECODE(43),
+  kno_sqlproc_type = KNO_CONS_TYPECODE(44),
 
   /* Extended types */
 
@@ -216,7 +217,7 @@ typedef enum KNO_LISP_TYPE {
 
   } kno_lisp_type;
 
-#define KNO_BUILTIN_CONS_TYPES 44
+#define KNO_BUILTIN_CONS_TYPES 45
 #define KNO_BUILTIN_IMMEDIATE_TYPES 11
 KNO_EXPORT unsigned int kno_next_cons_type;
 KNO_EXPORT unsigned int kno_next_immediate_type;
