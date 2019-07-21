@@ -45,11 +45,11 @@ static lispval make_long_vector(int n,lispval *from_elts);
 static lispval *compound2vector(lispval x,int *lenp)
 {
   struct KNO_COMPOUND *compound = (kno_compound) x;
-  if ((compound->compound_off)<0) {
+  if ((compound->compound_seqoff)<0) {
     *lenp = -1;
     return NULL;}
   else {
-    int off = compound->compound_off;
+    int off = compound->compound_seqoff;
     int len = (compound->compound_length)-off;
     *lenp = len;
     return (&(compound->compound_0))+off;}
@@ -63,9 +63,9 @@ KNO_FASTOP int seq_length(lispval x)
     return VEC_LEN(x);
   case kno_compound_type: {
     struct KNO_COMPOUND *compound = (kno_compound) x;
-    if ( (compound->compound_off) < 0 )
+    if ( (compound->compound_seqoff) < 0 )
       return -1;
-    else return (compound->compound_length)-(compound->compound_off);}
+    else return (compound->compound_length)-(compound->compound_seqoff);}
     return VEC_LEN(x);
   case kno_packet_type: case kno_secret_type:
     return KNO_PACKET_LENGTH(x);

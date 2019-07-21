@@ -195,7 +195,7 @@ static int walk_compound(kno_walker walker,lispval x,
   struct KNO_COMPOUND *c = kno_consptr(struct KNO_COMPOUND *,x,kno_compound_type);
   int i = 0, len = c->compound_length;
   lispval *data = &(c->compound_0);
-  walker(c->compound_typetag,walkdata);
+  walker(c->typetag,walkdata);
   while (i<len) {
     if (fast_walk(walker,data[i],walkdata,flags,depth-1)<0)
       return -1;

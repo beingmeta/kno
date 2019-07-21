@@ -250,7 +250,7 @@ int kno_pprinter(u8_output out,lispval x,int indent,int col,int depth,
     int vec_max = pprint_max3(vector_max,maxelts,ppcxt);
     U8_OUTPUT tmpout; u8_byte buf[200];
     U8_INIT_OUTPUT_BUF(&tmpout,200,buf);
-    u8_printf(&tmpout,"#%%(%q)",comp->compound_typetag);
+    u8_printf(&tmpout,"#%%(%q)",comp->typetag);
     size_t head_len = tmpout.u8_write-tmpout.u8_outbuf;
     if (len==0) {
       u8_putn(out,tmpout.u8_outbuf,head_len);

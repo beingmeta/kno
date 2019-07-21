@@ -735,6 +735,94 @@ static U8_MAYBE_UNUSED int some_false(lispval arg)
   return some_false;
 }
 
+/* Typeinfo */
+
+static struct KNO_HASHTABLE typeinfo;
+
+KNO_EXPORT struct KNO_TYPEINFO *kno_probe_typeinfo(lispval tag)
+{
+  lispval v = kno_hashtable_get(&typeinfo,tag,KNO_FALSE);
+  if (KNO_TYPEP(v,kno_typeinfo_type))
+    return (kno_typeinfo) v;
+  else return NULL;
+}
+
+KNO_EXPORT struct KNO_TYPEINFO *kno_use_typeinfo(lispval tag)
+{
+  lispval exists = kno_hashtable_get(&typeinfo,tag,KNO_VOID);
+  if (KNO_VOIDP(exists)) {
+    struct KNO_TYPEINFO *info = u8_alloc(struct KNO_TYPEINFO);
+    KNO_INIT_STATIC_CONS(info,kno_typeinfo_type);
+    info->type_tag = tag; kno_incref(tag);
+    info->type_props = kno_make_slotmap(2,0,NULL);
+    info->type_handlers = kno_make_slotmap(2,0,NULL);
+    int rv = kno_hashtable_op(&typeinfo,kno_table_init,tag,((lispval)info));
+    if (rv > 0)
+      return info;
+    else {
+      kno_decref(info->type_tag);
+      kno_decref(info->type_props);
+      kno_decref(info->type_handlers);
+      u8_free(info);
+      if (rv < 0)
+	return NULL;
+      else {
+	lispval useval = kno_hashtable_get(&typeinfo,tag,KNO_FALSE);
+	if (KNO_TYPEP(useval,kno_typeinfo_type))
+	  return (kno_typeinfo) useval;
+	else return NULL;}}}
+  else return (kno_typeinfo) exists;
+}
+
+KNO_EXPORT
+int kno_set_unparsefn(lispval tag,kno_type_unparsefn fn)
+{
+  struct KNO_TYPEINFO *info = kno_use_typeinfo(tag);
+  if (info) {
+    info->type_unparsefn = fn;
+    return 1;}
+  else return 0;
+}
+
+KNO_EXPORT
+int kno_set_freefn(lispval tag,kno_type_freefn fn)
+{
+  struct KNO_TYPEINFO *info = kno_use_typeinfo(tag);
+  if (info) {
+    info->type_freefn = fn;
+    return 1;}
+  else return 0;
+}
+
+KNO_EXPORT
+int kno_set_parsefn(lispval tag,kno_type_parsefn fn)
+{
+  struct KNO_TYPEINFO *info = kno_use_typeinfo(tag);
+  if (info) {
+    info->type_parsefn = fn;
+    return 1;}
+  else return 0;
+}
+
+KNO_EXPORT
+int kno_set_dumpfn(lispval tag,kno_type_dumpfn fn)
+{
+  struct KNO_TYPEINFO *info = kno_use_typeinfo(tag);
+  if (info) {
+    info->type_dumpfn = fn;
+    return 1;}
+  else return 0;
+}
+
+KNO_EXPORT
+int kno_set_restorefn(lispval tag,kno_type_restorefn fn)
+{
+  struct KNO_TYPEINFO *info = kno_use_typeinfo(tag);
+  if (info) {
+    info->type_restorefn = fn;
+    return 1;}
+  else return 0;
+}
 
 /* Initialization */
 
@@ -760,6 +848,8 @@ void kno_init_cons_c()
 
   u8_init_mutex(&constant_registry_lock);
   u8_init_mutex(&type_registry_lock);
+
+  kno_init_hashtable(&typeinfo,223,NULL);
 
   i = 0; while (i < KNO_TYPE_MAX) kno_type_names[i++]=NULL;
   i = 0; while (i<KNO_TYPE_MAX) kno_hashfns[i++]=NULL;

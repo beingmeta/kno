@@ -828,15 +828,79 @@ typedef struct KNO_CONSBLOCK {
 
 lispval kno_make_consblock(lispval obj);
 
+/* Typeinfo */
+
+typedef struct KNO_TYPEINFO *kno_typeinfo;
+typedef int (*kno_type_unparsefn)(u8_output out,lispval,kno_typeinfo);
+typedef lispval (*kno_type_parsefn)(int n,lispval *,kno_typeinfo);
+typedef int (*kno_type_freefn)(lispval,kno_typeinfo);
+typedef lispval (*kno_type_dumpfn)(lispval,kno_typeinfo);
+typedef lispval (*kno_type_restorefn)(lispval,lispval,kno_typeinfo);
+
+typedef struct KNO_TYPEINFO {
+  KNO_CONS_HEADER;
+  lispval type_tag, type_props, type_handlers;
+  char type_isopaque, type_ismutable;
+  kno_type_parsefn type_parsefn;
+  kno_type_unparsefn type_unparsefn;
+  kno_type_freefn type_freefn;
+  kno_type_dumpfn type_dumpfn;
+  kno_type_restorefn type_restorefn;
+  struct KNO_TABLEFNS *type_tablefns;
+  struct KNO_SEQFNS *type_seqfns;} KNO_TYPEINFO;
+
+KNO_EXPORT int kno_set_unparsefn(lispval tag,kno_type_unparsefn fn);
+KNO_EXPORT int kno_set_parsefn(lispval tag,kno_type_parsefn fn);
+KNO_EXPORT int kno_set_freefn(lispval tag,kno_type_freefn fn);
+KNO_EXPORT int kno_set_dumpfn(lispval tag,kno_type_dumpfn fn);
+KNO_EXPORT int kno_set_restorefn(lispval tag,kno_type_restorefn fn);
+
+#define KNO_TAGGED_HEAD \
+  KNO_CONS_HEADER; \
+  lispval typetag; \
+  struct KNO_TYPEINFO *typeinfo
+
+#define KNO_TAGGEDP(x) \
+  ( (KNO_CONSP(x)) && ( (KNO_XCONSPTR_TYPE(x)==kno_tagged_type) ) )
+
+typedef struct KNO_TAGGED {
+  KNO_TAGGED_HEAD;} KNO_TAGGED;
+typedef struct KNO_TAGGED *kno_tagged;
+
+struct KNO_TYPEINFO *kno_probe_typeinfo(lispval tag);
+struct KNO_TYPEINFO *kno_use_typeinfo(lispval tag);
+KNO_FASTOP struct KNO_TYPEINFO *kno_taginfo(lispval obj)
+{
+  if ( (KNO_TAGGEDP(obj)) ) {
+    struct KNO_TAGGED *tagged = (kno_tagged) obj;
+    if (tagged->typeinfo)
+      return tagged->typeinfo;
+    else {
+      struct KNO_TYPEINFO *info = kno_use_typeinfo(tagged->typetag);
+      tagged->typeinfo = info;
+      return info;}}
+  else return NULL;
+}
+
+/* Compound types */
+
+typedef struct KNO_COMPOUND {
+  KNO_TAGGED_HEAD;
+  int compound_length;
+  char compound_ismutable, compound_isopaque;
+  char compound_seqoff;
+  u8_rwlock compound_rwlock;
+  lispval compound_0;} KNO_COMPOUND;
+typedef struct KNO_COMPOUND *kno_compound;
+
 /* Raw pointers */
 
 typedef void (*kno_raw_recyclefn)(void *);
 
 typedef struct KNO_RAWPTR {
-  KNO_CONS_HEADER;
+  KNO_TAGGED_HEAD;
   void *ptrval;
   u8_string typestring, idstring;
-  lispval raw_typetag;
   kno_raw_recyclefn recycler;} KNO_RAWPTR;
 typedef struct KNO_RAWPTR *kno_rawptr;
 
@@ -845,37 +909,8 @@ KNO_EXPORT lispval kno_wrap_pointer(void *ptrval,
                                  lispval typespec,
                                  u8_string idstring);
 
-/* Compounds */
-
-typedef struct KNO_COMPOUND_TYPEINFO *kno_compound_typeinfo;
-typedef int (*kno_compound_unparsefn)(u8_output out,lispval,kno_compound_typeinfo);
-typedef lispval (*kno_compound_parsefn)(int n,lispval *,kno_compound_typeinfo);
-typedef int (*kno_compound_freefn)(lispval,kno_compound_typeinfo);
-typedef lispval (*kno_compound_dumpfn)(lispval,kno_compound_typeinfo);
-typedef lispval (*kno_compound_restorefn)(lispval,lispval,kno_compound_typeinfo);
-
-typedef struct KNO_COMPOUND_TYPEINFO {
-  lispval compound_typetag, compound_metadata;
-  short compound_showlen;
-  char compound_isopaque;
-  char compound_ismutable;
-  char compound_istable;
-  char compound_issequence;
-  struct KNO_COMPOUND_TYPEINFO *compound_nextinfo;
-  kno_compound_parsefn compound_parser;
-  kno_compound_unparsefn compound_unparser;
-  kno_compound_freefn compound_freefn;
-  kno_compound_dumpfn compound_dumpfn;
-  kno_compound_restorefn compound_restorefn;
-  struct KNO_TABLEFNS *compund_tablefns;} KNO_COMPOUND_TYPEINFO;
-KNO_EXPORT struct KNO_COMPOUND_TYPEINFO *kno_compound_entries;
-
-
-KNO_EXPORT struct KNO_COMPOUND_TYPEINFO *kno_lookup_compound(lispval);
-KNO_EXPORT struct KNO_COMPOUND_TYPEINFO *kno_declare_compound(lispval,lispval,int);
-KNO_EXPORT struct KNO_COMPOUND_TYPEINFO *kno_register_compound(lispval,lispval *,int *);
-KNO_EXPORT int kno_compound_unparser(u8_string pname,kno_compound_unparsefn fn);
-
+KNO_EXPORT int kno_compound_set_unparser(u8_string pname,
+					 kno_type_unparsefn fn);
 
 /* Cons compare */
 

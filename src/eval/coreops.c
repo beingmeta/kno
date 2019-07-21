@@ -562,7 +562,7 @@ static lispval taggedp_prim(lispval x,lispval tag)
     kno_rawptr raw = (kno_rawptr) x;
     if (VOIDP(tag))
       return KNO_TRUE;
-    else if (tag == raw->raw_typetag)
+    else if (tag == raw->typetag)
       return KNO_TRUE;
     else return KNO_FALSE;}
   else return KNO_FALSE;

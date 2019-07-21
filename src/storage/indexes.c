@@ -1981,7 +1981,7 @@ static int unparse_consed_index(u8_output out,lispval x)
   return 1;
 }
 
-static lispval index_parsefn(int n,lispval *args,kno_compound_typeinfo e)
+static lispval index_parsefn(int n,lispval *args,kno_typeinfo e)
 {
   kno_index ix = NULL;
   if (n<2) return VOID;
@@ -2412,9 +2412,8 @@ KNO_EXPORT void kno_init_indexes_c()
   background_flag=kno_intern("background");
 
   {
-    struct KNO_COMPOUND_TYPEINFO *e =
-      kno_register_compound(kno_intern("index"),NULL,NULL);
-    e->compound_parser = index_parsefn;}
+    struct KNO_TYPEINFO *e = kno_use_typeinfo(kno_intern("index"));
+    e->type_parsefn = index_parsefn;}
 
   kno_tablefns[kno_index_type]=u8_zalloc(struct KNO_TABLEFNS);
   kno_tablefns[kno_index_type]->get = table_indexget;

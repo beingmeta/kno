@@ -327,7 +327,7 @@ static lispval sequencep_prim(lispval x)
 {
   if (KNO_COMPOUNDP(x)) {
     struct KNO_COMPOUND *c = (kno_compound) x;
-    if (c->compound_off >= 0)
+    if (c->compound_seqoff >= 0)
       return KNO_TRUE;
     else return KNO_FALSE;}
   else if (KNO_SEQUENCEP(x))
@@ -1759,7 +1759,7 @@ static lispval elts_prim(lispval x,lispval start_arg,lispval end_arg)
       return results;}
     case kno_compound_type: {
       struct KNO_COMPOUND *compound = (kno_compound) x;
-      int off = compound->compound_off;
+      int off = compound->compound_seqoff;
       if (off < 0)
 	return kno_err("NotACompoundSequence","elts_prim",NULL,x);
       lispval *scan = (&(compound->compound_0))+off+start;

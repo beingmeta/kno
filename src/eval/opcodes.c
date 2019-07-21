@@ -1116,7 +1116,7 @@ static lispval xref_type_error(lispval x,lispval tag)
 
 static lispval xref_op(struct KNO_COMPOUND *c,long long i,lispval tag,int free)
 {
-  if ((VOIDP(tag)) || ((c->compound_typetag) == tag)) {
+  if ((VOIDP(tag)) || ((c->typetag) == tag)) {
     if ((i>=0) && (i<c->compound_length)) {
       lispval *values = &(c->compound_0), value;
       if (c->compound_ismutable)

@@ -239,26 +239,22 @@ KNO_EXPORT lispval kno_read_dtype(struct KNO_INBUF *in)
         return cdr;}
       else switch (code) {
         case dt_compound: {
-          struct KNO_COMPOUND_TYPEINFO *e = kno_lookup_compound(car);
-          if ((e) && (e->compound_restorefn)) {
-            lispval result = e->compound_restorefn(car,cdr,e);
+          struct KNO_TYPEINFO *e = kno_use_typeinfo(car);
+          if ((e) && (e->type_restorefn)) {
+            lispval result = e->type_restorefn(car,cdr,e);
             kno_decref(cdr);
             return result;}
           else {
             int flags = KNO_COMPOUND_USEREF;
             if (e) {
-              if (e->compound_isopaque)
+              if (e->type_isopaque)
                 flags |= KNO_COMPOUND_OPAQUE;
-              if (e->compound_ismutable)
-                flags |= KNO_COMPOUND_MUTABLE;
-              if (e->compound_istable)
-                flags |= KNO_COMPOUND_TABLE;
-              if (e->compound_istable)
-                flags |= KNO_COMPOUND_SEQUENCE;}
-            else if (KNO_VECTORP(cdr)) {
-              flags |= KNO_COMPOUND_SEQUENCE;}
-            else NO_ELSE;
-            if (KNO_VECTORP(cdr)) {
+              if (e->type_ismutable)
+                flags |= KNO_COMPOUND_MUTABLE;}
+	    else if (KNO_VECTORP(cdr)) {
+	      flags |= KNO_COMPOUND_SEQUENCE;}
+	    else NO_ELSE;
+	    if (KNO_VECTORP(cdr)) {
               struct KNO_VECTOR *vec = (struct KNO_VECTOR *)cdr;
               lispval result = kno_init_compound_from_elts
                 (NULL,car,flags,vec->vec_length,vec->vec_elts);

@@ -212,7 +212,7 @@ static int compare_compounds(lispval x,lispval y,kno_compare_flags flags)
 {
   struct KNO_COMPOUND *xc = kno_consptr(struct KNO_COMPOUND *,x,kno_compound_type);
   struct KNO_COMPOUND *yc = kno_consptr(struct KNO_COMPOUND *,y,kno_compound_type);
-  lispval xtag = xc->compound_typetag, ytag = yc->compound_typetag;
+  lispval xtag = xc->typetag, ytag = yc->typetag;
   int cmp;
   if (xc == yc) return 0;
   else if ((xc->compound_isopaque) || (yc->compound_isopaque))

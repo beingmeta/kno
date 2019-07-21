@@ -157,24 +157,24 @@ static void recycle_rawptr(struct KNO_RAW_CONS *c)
   if (rawptr->idstring) u8_free(rawptr->idstring);
   rawptr->ptrval   = NULL;
   rawptr->idstring = NULL;
-  kno_decref(rawptr->raw_typetag);
+  kno_decref(rawptr->typetag);
   u8_free(c);
 }
 
 static void recycle_compound(struct KNO_RAW_CONS *c)
 {
   struct KNO_COMPOUND *compound = (struct KNO_COMPOUND *)c;
-  lispval typetag = compound->compound_typetag;
-  struct KNO_COMPOUND_TYPEINFO *typeinfo = kno_lookup_compound(typetag);
-  if ( (typeinfo) && (typeinfo->compound_freefn) ) {
-    int rv = (typeinfo->compound_freefn)((lispval)c,typeinfo);
+  lispval typetag = compound->typetag;
+  struct KNO_TYPEINFO *typeinfo = kno_use_typeinfo(typetag);
+  if ( (typeinfo) && (typeinfo->type_freefn) ) {
+    int rv = (typeinfo->type_freefn)((lispval)c,typeinfo);
     if (rv < 0) {
       u8_log(LOGERR,"RecycleCompound",
              "Recycling %q compound: %q",typetag,compound);}}
   int i = 0, n = compound->compound_length;
   lispval *data = &(compound->compound_0);
   while (i<n) {kno_decref(data[i]); i++;}
-  kno_decref(compound->compound_typetag);
+  kno_decref(compound->typetag);
   if (compound->compound_ismutable) 
     u8_destroy_rwlock(&(compound->compound_rwlock));
   u8_free(c);

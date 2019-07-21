@@ -50,6 +50,7 @@ u8_string kno_ndevalstack_type="ndeval";
 int kno_optimize_tail_calls = 1;
 
 lispval _kno_comment_symbol, fcnids_symbol, sourceref_tag;
+static lispval consfn_symbol, stringfn_symbol;
 
 static lispval quote_symbol, comment_symbol, moduleid_symbol, source_symbol;
 
@@ -1726,6 +1727,135 @@ static lispval get_documentation(lispval x)
   else return KNO_FALSE;
 }
 
+/* Stringify */
+
+static int stringify_method(u8_output out,lispval compound,kno_typeinfo e)
+{
+  if (e->type_handlers) {
+    lispval method = kno_get(e->type_handlers,stringfn_symbol,VOID);
+    if (VOIDP(method)) return 0;
+    else {
+      lispval result = kno_apply(method,1,&compound);
+      kno_decref(method);
+      if (STRINGP(result)) {
+        u8_putn(out,CSTRING(result),STRLEN(result));
+        kno_decref(result);
+        return 1;}
+      else {
+        kno_decref(result);
+        return 0;}}}
+  else return 0;
+}
+
+static lispval cons_method(int n,lispval *args,kno_typeinfo e)
+{
+  if (e->type_handlers) {
+    lispval method = kno_get(e->type_handlers,KNOSYM_CONS,VOID);
+    if (VOIDP(method))
+      return VOID;
+    else {
+      lispval result = kno_apply(method,n,args);
+      if (! ( (KNO_VOIDP(result)) || (KNO_EMPTYP(result)) ) ) {
+	kno_decref(method);
+	return result;}}}
+  /* This is the default cons method */
+  return kno_init_compound_from_elts(NULL,e->type_tag,
+				     KNO_COMPOUND_INCREF,
+				     n,args);
+}
+
+/* Setting type cons functions */
+
+DEFPRIM2("type-set-consfn!",type_set_consfn_prim,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+         "`(TYPE-SET-CONSFN! *arg0* *arg1*)` **undocumented**",
+         kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+static lispval type_set_consfn_prim(lispval tag,lispval consfn)
+{
+  if ((SYMBOLP(tag))||(OIDP(tag)))
+    if (FALSEP(consfn)) {
+      struct KNO_TYPEINFO *e = kno_use_typeinfo(tag);
+      kno_drop(e->type_handlers,KNOSYM_CONS,VOID);
+      e->type_parsefn = NULL;
+      return VOID;}
+    else if (KNO_APPLICABLEP(consfn)) {
+      struct KNO_TYPEINFO *e = kno_use_typeinfo(tag);
+      kno_store(e->type_handlers,KNOSYM_CONS,consfn);
+      e->type_parsefn = cons_method;
+      return VOID;}
+    else return kno_type_error("applicable","set_compound_consfn_prim",tag);
+  else return kno_type_error("compound tag","set_compound_consfn_prim",tag);
+}
+
+DEFPRIM2("type-set-stringfn!",type_set_stringfn_prim,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	 "`(TYPE-SET-STRINGFN! *arg0* *arg1*)` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+static lispval type_set_stringfn_prim(lispval tag,lispval stringfn)
+{
+  if ((SYMBOLP(tag))||(OIDP(tag)))
+    if (FALSEP(stringfn)) {
+      struct KNO_TYPEINFO *e = kno_use_typeinfo(tag);
+      kno_drop(e->type_handlers,stringfn_symbol,VOID);
+      e->type_unparsefn = NULL;
+      return VOID;}
+    else if (KNO_APPLICABLEP(stringfn)) {
+      struct KNO_TYPEINFO *e = kno_use_typeinfo(tag);
+      kno_store(e->type_handlers,stringfn_symbol,stringfn);
+      e->type_unparsefn = stringify_method;
+      return VOID;}
+    else return kno_type_error("applicable","set_type_stringfn_prim",tag);
+  else return kno_type_error("type tag","set_type_stringfn_prim",tag);
+}
+
+DEFPRIM2("type-props",type_props_prim,KNO_MIN_ARGS(1),
+         "`(type-props *tag* [*field*])` accesses the metadata "
+	 "associated with the typetag assigned to *compound*. If *field* "
+	 "is specified, that particular metadata field is returned. Otherwise "
+	 "the entire metadata object (a slotmap) is copied and returned.",
+	 kno_any_type,KNO_VOID,kno_symbol_type,KNO_VOID);
+static lispval type_props_prim(lispval arg,lispval field)
+{
+  struct KNO_TYPEINFO *e =
+    (KNO_TAGGEDP(arg)) ? (kno_taginfo(arg)) : (kno_use_typeinfo(arg));;
+  if (VOIDP(field))
+    return kno_deep_copy(e->type_props);
+  else return kno_get(e->type_props,field,EMPTY);
+}
+
+DEFPRIM2("type-handlers",type_handlers_prim,KNO_MIN_ARGS(1),
+         "`(type-handlers *tag* [*field*])` accesses the metadata "
+	 "associated with the typetag assigned to *compound*. If *field* "
+	 "is specified, that particular metadata field is returned. Otherwise "
+	 "the entire metadata object (a slotmap) is copied and returned.",
+	 kno_any_type,KNO_VOID,kno_symbol_type,KNO_VOID);
+static lispval type_handlers_prim(lispval arg,lispval method)
+{
+  struct KNO_TYPEINFO *e =
+    (KNO_TAGGEDP(arg)) ? (kno_taginfo(arg)) : (kno_use_typeinfo(arg));;
+  if (VOIDP(method))
+    return kno_deep_copy(e->type_handlers);
+  else return kno_get(e->type_handlers,method,EMPTY);
+}
+
+DEFPRIM3("type-set!",type_set_prim,KNO_MIN_ARGS(3),
+         "`(type-set! *tag* *field* *value*)` stores *value* "
+	 "in *field* of the properties associated with the type tag *tag*.",
+	 kno_any_type,KNO_VOID,kno_symbol_type,KNO_VOID,kno_any_type,KNO_VOID);
+static lispval type_set_prim(lispval arg,lispval field,lispval value)
+{
+  struct KNO_TYPEINFO *e =
+    (KNO_TAGGEDP(arg)) ? (kno_taginfo(arg)) : (kno_use_typeinfo(arg));;
+  int rv = kno_store(e->type_props,field,value);
+  if (rv < 0)
+    return KNO_ERROR;
+  else if (rv)
+    return KNO_TRUE;
+  else return KNO_FALSE;
+}
+
+
+
 /* Helpful forms and functions */
 
 static lispval void_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
@@ -1979,6 +2109,8 @@ static void init_types_and_tables()
   source_symbol = kno_intern("%source");
   fcnids_symbol = kno_intern("%fcnids");
   sourceref_tag = kno_intern("%sourceref");
+  consfn_symbol = kno_intern("cons");
+  stringfn_symbol = kno_intern("stringify");
 
   kno_init_module_tables();
   init_opcode_names();
@@ -2248,6 +2380,14 @@ static void link_local_cprims()
 
   KNO_LINK_PRIM("dtproc",make_dtproc,7,kno_scheme_module);
 
+  KNO_LINK_PRIM("type-set-stringfn!",type_set_stringfn_prim,2,kno_scheme_module);
+  KNO_LINK_ALIAS("compound-set-stringfn!",type_set_stringfn_prim,kno_scheme_module);
+  KNO_LINK_PRIM("type-set-consfn!",type_set_consfn_prim,2,kno_scheme_module);
+  KNO_LINK_PRIM("type-set!",type_set_prim,3,kno_scheme_module);
+  KNO_LINK_PRIM("type-props",type_props_prim,2,kno_scheme_module);
+  KNO_LINK_PRIM("type-handlers",type_handlers_prim,2,kno_scheme_module);
 }
+
+
 
 

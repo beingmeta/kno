@@ -413,46 +413,29 @@ u8_string kno_lisp2buf(lispval x,size_t n,u8_byte *buf)
   return out.u8_outbuf;
 }
 
-static lispval get_compound_tag(lispval tag)
-{
-  if (KNO_COMPOUND_TYPEP(tag,kno_compound_descriptor_type)) {
-    struct KNO_COMPOUND *c = KNO_XCOMPOUND(tag);
-    return kno_incref(c->compound_typetag);}
-  else return tag;
-}
-
 static int unparse_compound(struct U8_OUTPUT *out,lispval x)
 {
   struct KNO_COMPOUND *xc =
     kno_consptr(struct KNO_COMPOUND *,x,kno_compound_type);
-  lispval tag = get_compound_tag(xc->compound_typetag);
-  struct KNO_COMPOUND_TYPEINFO *entry = kno_lookup_compound(tag);
-  if ((entry) && (entry->compound_unparser)) {
-    int retval = entry->compound_unparser(out,x,entry);
-    if (retval<0) return retval;
-    else if (retval) return retval;}
+  lispval tag = xc->typetag;
+  struct KNO_TYPEINFO *info = kno_use_typeinfo(tag);
+  if ((info) && (info->type_unparsefn)) {
+    int retval = info->type_unparsefn(out,x,info);
+    if (retval!=0) return retval;}
   u8_string tagstring = (KNO_SYMBOLP(tag)) ? (KNO_SYMBOL_NAME(tag)) :
     (KNO_STRINGP(tag)) ? (KNO_CSTRING(tag)) : (NULL);
   int opaque = (xc->compound_isopaque) ? (1) :
-    (entry) ? (entry->compound_isopaque) :
+    (info) ? (info->type_isopaque) :
     ( (tagstring) && (tagstring[0]=='%') );
   {
     lispval *data = &(xc->compound_0);
     int i = 0, n = xc->compound_length;
-    if ((entry)&&(entry->compound_showlen>0)&&(entry->compound_showlen<n))
-      n = entry->compound_showlen;
     if (opaque)
-      u8_printf(out,"#<<%q",xc->compound_typetag);
-    else u8_printf(out,"#%%(%q",xc->compound_typetag);
+      u8_printf(out,"#<<%q",xc->typetag);
+    else u8_printf(out,"#%%(%q",xc->typetag);
     while (i<n) {
       lispval elt = data[i++];
-      if (0) { /* (PACKETP(elt)) */
-        struct KNO_STRING *packet = kno_consptr(kno_string,elt,kno_packet_type);
-        const unsigned char *bytes = packet->str_bytes;
-        int n_bytes = packet->str_bytelen;
-        u8_puts(out," ");
-        kno_unparse_packet(out,bytes,n_bytes,16);}
-      else u8_printf(out," %q",elt);}
+      u8_printf(out," %q",elt);}
     if (opaque)
       u8_puts(out,">>");
     else u8_puts(out,")");

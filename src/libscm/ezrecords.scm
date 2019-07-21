@@ -60,7 +60,6 @@
 			  (testopt defspec 'mutable)))
 	   (isopaque (or (and (pair? defspec) (position 'opaque defspec))
 			 (testopt defspec 'opaque)))
-	   (showlen (getopt defspec 'showlen))
 	   (consfn (getopt defspec 'consfn))
 	   (stringfn (getopt defspec 'stringfn))
 	   (fields (cddr defrecord))
@@ -90,9 +89,8 @@
 	       (forseq (field fields)
 		 (make-modifier-def name field tag-expr prefix fields))
 	       '())
-	 ,@(if showlen `((compound-set-showlen! ,tag-expr ,showlen)) '())
-	 ,@(if consfn `((compound-set-consfn! ,tag-expr ,consfn)) '())
-	 ,@(if stringfn `((compound-set-stringfn! ,tag-expr ,stringfn)) '())))))
+	 ,@(if consfn `((type-set-consfn! ,tag-expr ,consfn)) '())
+	 ,@(if stringfn `((type-set-stringfn! ,tag-expr ,stringfn)) '())))))
 
 (module-export! '{defrecord})
 

@@ -26,13 +26,12 @@
 
 static lispval reqgetvar(lispval cgidata,lispval var)
 {
-  int noparse=
-    ((SYMBOLP(var))&&((SYM_NAME(var))[0]=='%'));
+  int noparse = ((SYMBOLP(var))&&((SYM_NAME(var))[0]=='%'));
   lispval name = ((noparse)?(kno_intern(SYM_NAME(var)+1)):(var));
   lispval val = ((TABLEP(cgidata))?(kno_get(cgidata,name,VOID)):
-                 (kno_req_get(name,VOID)));
+		 (kno_req_get(name,VOID)));
   if (VOIDP(val)) return val;
-  else if ((noparse)&&(STRINGP(val)))
+  else if ( (noparse) && (STRINGP(val)) )
     return val;
   else if (STRINGP(val)) {
     u8_string data = CSTRING(val);
@@ -42,7 +41,9 @@ static lispval reqgetvar(lispval cgidata,lispval var)
       if (ABORTED(parsed)) {
 	kno_clear_errors(1);
 	return val;}
-      else return parsed;}
+      else {
+	kno_decref(val);
+	return parsed;}}
     else if (isdigit(data[0])) {
       lispval parsed = kno_parse_arg(data);
       if (ABORTED(parsed)) {

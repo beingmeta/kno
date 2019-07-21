@@ -265,7 +265,7 @@ static ssize_t write_regex_dtype(struct KNO_OUTBUF *out,lispval x)
 
 static lispval regex_restore(lispval U8_MAYBE_UNUSED tag,
 			     lispval x,
-			     kno_compound_typeinfo U8_MAYBE_UNUSED e)
+			     kno_typeinfo U8_MAYBE_UNUSED e)
 {
   if ( (VECTORP(x)) && (KNO_VECTOR_LENGTH(x) == 2) ) {
     lispval rxsrc = KNO_VECTOR_REF(x,0);
@@ -286,9 +286,8 @@ KNO_EXPORT int kno_init_regex_c()
 {
   if (regex_init) return 0;
 
-  struct KNO_COMPOUND_TYPEINFO *info =
-    kno_register_compound(kno_intern("%regex"),NULL,NULL);
-  info->compound_restorefn = regex_restore;
+  struct KNO_TYPEINFO *info = kno_use_typeinfo(kno_intern("%regex"));
+  info->type_restorefn = regex_restore;
 
   regex_init = 1;
   regex_module = kno_new_cmodule("regex",0,kno_init_regex_c);

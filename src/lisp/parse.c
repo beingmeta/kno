@@ -1050,9 +1050,9 @@ static lispval parse_qchoice(U8_INPUT *in)
 static lispval recreate_record(int n,lispval *v)
 {
   int i = 0;
-  struct KNO_COMPOUND_TYPEINFO *entry = kno_lookup_compound(v[0]);
-  if ((entry) && (entry->compound_parser)) {
-    lispval result = entry->compound_parser(n,v,entry);
+  struct KNO_TYPEINFO *entry = kno_use_typeinfo(v[0]);
+  if ((entry) && (entry->type_parsefn)) {
+    lispval result = entry->type_parsefn(n,v,entry);
     if (!(VOIDP(result))) {
       while (i<n) {kno_decref(v[i]); i++;}
       if (v) u8_free(v);

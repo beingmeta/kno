@@ -2419,7 +2419,7 @@ static bool bson_append_dtype(struct KNO_BSON_OUTPUT b,
     case kno_compound_type: {
       struct KNO_COMPOUND *compound = KNO_XCOMPOUND(val);
       if (compound == NULL) return KNO_ERROR_VALUE;
-      lispval tag = compound->compound_typetag, *elts = KNO_COMPOUND_ELTS(val);
+      lispval tag = compound->typetag, *elts = KNO_COMPOUND_ELTS(val);
       int len = KNO_COMPOUND_LENGTH(val);
       struct KNO_BSON_OUTPUT rout;
       bson_t doc;
@@ -2680,7 +2680,7 @@ KNO_EXPORT lispval kno_bson_output(struct KNO_BSON_OUTPUT out,lispval obj)
   else if (KNO_COMPOUNDP(obj)) {
     struct KNO_COMPOUND *compound = KNO_XCOMPOUND(obj);
     if (compound == NULL) return KNO_ERROR_VALUE;
-    lispval tag = compound->compound_typetag, *elts = KNO_COMPOUND_ELTS(obj);
+    lispval tag = compound->typetag, *elts = KNO_COMPOUND_ELTS(obj);
     int len = KNO_COMPOUND_LENGTH(obj);
     if (tag == mongovec_symbol) {
       lispval *scan = elts, *limit = scan+len; int i = 0;
@@ -2909,7 +2909,7 @@ static void bson_read_step(KNO_BSON_INPUT b,int flags,
 	value = kno_init_pair(NULL,car,cdr);}
       else if (kno_test(value,knotag_symbol,KNO_VOID)) {
 	lispval tag = kno_get(value,knotag_symbol,KNO_VOID), compound;
-	struct KNO_COMPOUND_TYPEINFO *entry = kno_lookup_compound(tag);
+	struct KNO_TYPEINFO *entry = kno_use_typeinfo(tag);
 	lispval fields[16] = { KNO_VOID }, keys = kno_getkeys(value);
 	int max = -1, i = 0, n, ok = 1;
 	{KNO_DO_CHOICES(key,keys) {
@@ -2928,8 +2928,8 @@ static void bson_read_step(KNO_BSON_INPUT b,int flags,
 	      fields[index]=kno_get(value,key,KNO_VOID);}}}
 	if (ok) {
 	  n = max+1;
-	  if ((entry)&&(entry->compound_parser))
-	    compound = entry->compound_parser(n,fields,entry);
+	  if ((entry)&&(entry->type_parsefn))
+	    compound = entry->type_parsefn(n,fields,entry);
 	  else {
 	    struct KNO_COMPOUND *c=
 	      u8_malloc(sizeof(struct KNO_COMPOUND)+(n*LISPVAL_LEN));

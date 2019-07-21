@@ -1627,7 +1627,7 @@ static unsigned int hash_lisp(lispval x)
           return hash_mult(x,type_multipliers[ctype]);
         else return hash_mult(x,MYSTERIOUS_MULTIPLIER);}
       else return hash_mult
-             (hash_lisp(c->compound_typetag),
+             (hash_lisp(c->typetag),
               hash_elts(&(c->compound_0),c->compound_length));}
     case kno_slotmap_type: {
       struct KNO_SLOTMAP *sm = (kno_slotmap) cons;
@@ -2230,7 +2230,7 @@ KNO_EXPORT int kno_hashtable_drop
 }
 
 static lispval restore_hashtable(lispval tag,lispval alist,
-                                 kno_compound_typeinfo e)
+                                 kno_typeinfo e)
 {
   lispval *keys, *vals; int n=0; struct KNO_HASHTABLE *new;
   if (PAIRP(alist)) {
@@ -2312,7 +2312,8 @@ static int do_hashtable_op(struct KNO_HASHTABLE *ht,kno_tableop op,
     /* These are operations which can be resolved immediately if the key
        does not exist in the table.  It doesn't bother setting up the hashtable
        if it doesn't have to. */
-    if (ht->table_n_keys == 0) return 0;
+    if (ht->table_n_keys == 0)
+      return 0;
     result=hashvec_get(key,ht->ht_buckets,ht->ht_n_buckets,&bucket_loc);
     if (result == NULL)
       return 0;
@@ -2333,6 +2334,7 @@ static int do_hashtable_op(struct KNO_HASHTABLE *ht,kno_tableop op,
     if (ht->ht_n_buckets == 0) setup_hashtable(ht,kno_init_hash_size);
     result=hashvec_insert(key,ht->ht_buckets,ht->ht_n_buckets,
                           &(ht->table_n_keys));
+    added = 1;
   } /* switch (op) */
 
   if ((result==NULL) &&
@@ -2346,7 +2348,7 @@ static int do_hashtable_op(struct KNO_HASHTABLE *ht,kno_tableop op,
        (op == kno_table_increment_if_present)))
     return 0;
   lispval curval = result->kv_val;
-  if ( (op == kno_table_init) && (!(KNO_VOIDP(curval))) )
+  if ( (op == kno_table_init) && (!(KNO_EMPTYP(curval))) )
     return 0;
   else switch (op) {
   case kno_table_replace_novoid:
@@ -2509,8 +2511,8 @@ static int do_hashtable_op(struct KNO_HASHTABLE *ht,kno_tableop op,
     break;}
   }
   ht->table_modified=1;
-  if ( (result) && (PRECHOICEP(curval)) ) {
-    struct KNO_PRECHOICE *ch=KNO_XPRECHOICE(curval);
+  if ( (result) && (PRECHOICEP(result->kv_val)) ) {
+    struct KNO_PRECHOICE *ch=KNO_XPRECHOICE(result->kv_val);
     if (ch->prechoice_uselock) {
       u8_destroy_mutex(&(ch->prechoice_lock));
       ch->prechoice_uselock=0;}}
@@ -4697,9 +4699,8 @@ void kno_init_tables_c()
      CHOICES
      are foud in xtable.c */
   {
-    struct KNO_COMPOUND_TYPEINFO *e=
-      kno_register_compound(kno_intern("hashtable"),NULL,NULL);
-    e->compound_restorefn=restore_hashtable;
+    struct KNO_TYPEINFO *e = kno_use_typeinfo(kno_intern("hashtable"));
+    e->type_restorefn=restore_hashtable;
   }
 }
 

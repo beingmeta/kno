@@ -4,9 +4,6 @@
 
 (use-module 'ezrecords)
 
-;;; Reset something we change below, just to be consistent
-(compound-set-showlen! 'typex #f)
-
 (defrecord type1
   x y (z 3) (q 4))
 
@@ -109,8 +106,6 @@
 (applytest 3 compound-ref vec-compound 2)
 (applytest 3 compound-ref vec-compound 2 'typex)
 (applytest "#%(typex \"a\" b 3 4 6 7)" lisp->string vec-compound)
-(evaltest 'void (compound-set-showlen! 'typex 3))
-(applytest "#%(typex \"a\" b 3)" lisp->string vec-compound)
 
 (errtest (sequence->compound 'foo 'type4))
 (applytest #%(TYPE4 A B C) sequence->compound #(A B C) 'type4)
@@ -119,18 +114,18 @@
 (define (type4-stringfn c)
   (stringout "#<TYPE4" (doseq (elt c) (printout " " elt))
     ">"))
-(compound-set-stringfn! 'type4 type4-stringfn)
+(type-set-stringfn! 'type4 type4-stringfn)
 (applytest "#<TYPE4 a b c>" lisp->string (sequence->compound '(A B C) 'type4))
 
 (define (type4-consfn . args)
   (sequence->compound (cons "extra" args) 'type4))
-(compound-set-consfn! 'type4 type4-consfn)
+(type-set-consfn! 'type4 type4-consfn)
 (applytest "extra" compound-ref #%(type4 3 4 5 "nine") 0)
 
 (define type4.1 #%(type4 3 4 5 "nine"))
 
-(applytest type4-consfn tag-metadata 'type4 'consfn)
-(applytest slotmap? tag-metadata 'type4)
+(applytest type4-consfn type-handlers 'type4 'consfn)
+(applytest slotmap? type-props 'type4)
 
-(applytest type4-consfn compound-metadata type4.1  'consfn)
-(applytest slotmap? compound-metadata type4.1)
+(applytest type4-consfn type-handlers type4.1  'consfn)
+(applytest slotmap? type-handlers type4.1)

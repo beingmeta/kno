@@ -161,44 +161,45 @@ typedef enum KNO_LISP_TYPE {
   kno_choice_type = KNO_CONS_TYPECODE(8),
   kno_prechoice_type = KNO_CONS_TYPECODE(9),
   kno_qchoice_type = KNO_CONS_TYPECODE(10),
-  kno_compound_type = KNO_CONS_TYPECODE(11),
-  kno_typeinfo_type = KNO_CONS_TYPECODE(12),
+  kno_typeinfo_type = KNO_CONS_TYPECODE(11),
+  kno_tagged_type = KNO_CONS_TYPECODE(12),
+  kno_compound_type = KNO_CONS_TYPECODE(12),
+  kno_rawptr_type = KNO_CONS_TYPECODE(13),
 
-  kno_slotmap_type = KNO_CONS_TYPECODE(13),
-  kno_schemap_type = KNO_CONS_TYPECODE(14),
-  kno_hashtable_type = KNO_CONS_TYPECODE(15),
-  kno_hashset_type = KNO_CONS_TYPECODE(16),
+  kno_slotmap_type = KNO_CONS_TYPECODE(14),
+  kno_schemap_type = KNO_CONS_TYPECODE(15),
+  kno_hashtable_type = KNO_CONS_TYPECODE(16),
+  kno_hashset_type = KNO_CONS_TYPECODE(17),
 
   /* Evaluator/apply types, defined here to be constant */
-  kno_cprim_type = KNO_CONS_TYPECODE(17),
-  kno_lambda_type = KNO_CONS_TYPECODE(18),
-  kno_ffi_type = KNO_CONS_TYPECODE(19),
-  kno_dtproc_type = KNO_CONS_TYPECODE(20),
-  kno_lexenv_type = KNO_CONS_TYPECODE(21),
-  kno_evalfn_type = KNO_CONS_TYPECODE(22),
-  kno_macro_type = KNO_CONS_TYPECODE(23),
-  kno_stackframe_type = KNO_CONS_TYPECODE(24),
-  kno_tailcall_type = KNO_CONS_TYPECODE(25),
-  kno_exception_type = KNO_CONS_TYPECODE(26),
-  kno_promise_type = KNO_CONS_TYPECODE(27),
+  kno_cprim_type = KNO_CONS_TYPECODE(18),
+  kno_lambda_type = KNO_CONS_TYPECODE(19),
+  kno_ffi_type = KNO_CONS_TYPECODE(20),
+  kno_dtproc_type = KNO_CONS_TYPECODE(21),
+  kno_lexenv_type = KNO_CONS_TYPECODE(22),
+  kno_evalfn_type = KNO_CONS_TYPECODE(23),
+  kno_macro_type = KNO_CONS_TYPECODE(24),
+  kno_stackframe_type = KNO_CONS_TYPECODE(25),
+  kno_tailcall_type = KNO_CONS_TYPECODE(26),
+  kno_exception_type = KNO_CONS_TYPECODE(27),
+  kno_promise_type = KNO_CONS_TYPECODE(28),
 
-  kno_complex_type = KNO_CONS_TYPECODE(28),
-  kno_rational_type = KNO_CONS_TYPECODE(29),
-  kno_flonum_type = KNO_CONS_TYPECODE(30),
+  kno_complex_type = KNO_CONS_TYPECODE(29),
+  kno_rational_type = KNO_CONS_TYPECODE(30),
+  kno_flonum_type = KNO_CONS_TYPECODE(31),
 
-  kno_timestamp_type = KNO_CONS_TYPECODE(31),
-  kno_uuid_type = KNO_CONS_TYPECODE(32),
+  kno_timestamp_type = KNO_CONS_TYPECODE(32),
+  kno_uuid_type = KNO_CONS_TYPECODE(33),
 
   /* Other types, also defined here to be constant*/
-  kno_mystery_type = KNO_CONS_TYPECODE(33),
+  kno_mystery_type = KNO_CONS_TYPECODE(34),
 
-  kno_ioport_type = KNO_CONS_TYPECODE(34),
-  kno_stream_type = KNO_CONS_TYPECODE(35),
+  kno_ioport_type = KNO_CONS_TYPECODE(35),
+  kno_stream_type = KNO_CONS_TYPECODE(36),
 
-  kno_regex_type = KNO_CONS_TYPECODE(36),
+  kno_regex_type = KNO_CONS_TYPECODE(37),
 
-  kno_consblock_type = KNO_CONS_TYPECODE(37),
-  kno_rawptr_type = KNO_CONS_TYPECODE(38),
+  kno_consblock_type = KNO_CONS_TYPECODE(38),
 
   kno_dtserver_type = KNO_CONS_TYPECODE(39),
   kno_bloom_filter_type = KNO_CONS_TYPECODE(40),
@@ -293,7 +294,12 @@ KNO_FASTOP U8_MAYBE_UNUSED kno_raw_cons KNO_RAW_CONS(lispval x){ return (kno_raw
    counted) conses.  The 7 bit type code is converted to a real type by
    adding 0x84. */
 
+/* An XCONS is a CONS type which masks the lower bit, and is used for 
+   typecode pairs (like kno_pair_type and kno_cdrcode_type) which share
+   their high bits */
+
 #define KNO_CONS_TYPE_MASK (0x7f)
+#define KNO_XCONS_TYPE_MASK (0x7e)
 #define KNO_CONS_TYPE_OFF  (0x84)
 
 #if 0
@@ -319,6 +325,10 @@ KNO_FASTOP U8_MAYBE_UNUSED int _KNO_ISDTYPE(lispval x){ return 1;}
 #define KNO_CONS_TYPE(x) \
   (( ((x)->conshead) & (KNO_CONS_TYPE_MASK) )+(KNO_CONS_TYPE_OFF))
 #define KNO_CONSPTR_TYPE(x) (KNO_CONS_TYPE((kno_cons)x))
+
+#define KNO_XCONS_TYPE(x) \
+  (( ((x)->conshead) & (KNO_XCONS_TYPE_MASK) )+(KNO_CONS_TYPE_OFF))
+#define KNO_XCONSPTR_TYPE(x) (KNO_XCONS_TYPE((kno_cons)x))
 
 #define KNO_CONSPTR(cast,x) ((cast)((kno_cons)x))
 #define kno_consptr(cast,x,typecode)                                     \

@@ -214,7 +214,7 @@ static int handle_ffi_arg(lispval arg,lispval spec,
     if (KNO_PRIM_TYPEP(arg,kno_rawptr_type)) {
       struct KNO_RAWPTR *raw=(kno_rawptr)arg;
       lispval typetag = kno_get(spec,typetag_symbol,KNO_VOID);
-      if ( KNO_EQUALP(typetag,raw->raw_typetag) )
+      if ( KNO_EQUALP(typetag,raw->typetag) )
         *valptr=raw->ptrval;
       else if (KNO_SYMBOLP(typetag))
         return ffi_type_error(KNO_SYMBOL_NAME(typetag),arg);

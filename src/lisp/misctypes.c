@@ -66,13 +66,13 @@ static int hash_uuid(lispval x,unsigned int (*fn)(lispval))
   return kno_hash_bytes(uuid->uuid16,16);
 }
 
-static lispval uuid_dump(lispval x,kno_compound_typeinfo MU e)
+static lispval uuid_dump(lispval x,kno_typeinfo MU e)
 {
   struct KNO_UUID *uuid = kno_consptr(struct KNO_UUID *,x,kno_uuid_type);
   return kno_make_packet(NULL,16,uuid->uuid16);
 }
 
-static lispval uuid_restore(lispval MU tag,lispval x,kno_compound_typeinfo MU e)
+static lispval uuid_restore(lispval MU tag,lispval x,kno_typeinfo MU e)
 {
   if (PACKETP(x)) {
     struct KNO_STRING *p = kno_consptr(struct KNO_STRING *,x,kno_packet_type);
@@ -139,7 +139,7 @@ static int unparse_timestamp(struct U8_OUTPUT *out,lispval x)
   return 1;
 }
 
-static lispval timestamp_parsefn(int n,lispval *args,kno_compound_typeinfo e)
+static lispval timestamp_parsefn(int n,lispval *args,kno_typeinfo e)
 {
   struct KNO_TIMESTAMP *tm = u8_alloc(struct KNO_TIMESTAMP);
   u8_string timestring;
@@ -194,7 +194,7 @@ static ssize_t timestamp_dtype(struct KNO_OUTBUF *out,lispval x)
   return size;
 }
 
-static lispval timestamp_restore(lispval tag,lispval x,kno_compound_typeinfo e)
+static lispval timestamp_restore(lispval tag,lispval x,kno_typeinfo e)
 {
   if (FIXNUMP(x)) {
     struct KNO_TIMESTAMP *tm = u8_alloc(struct KNO_TIMESTAMP);
@@ -226,7 +226,7 @@ static lispval timestamp_restore(lispval tag,lispval x,kno_compound_typeinfo e)
 
 static lispval lispval_symbol;
 
-static lispval lispval_restore(lispval tag,lispval x,kno_compound_typeinfo e)
+static lispval lispval_restore(lispval tag,lispval x,kno_typeinfo e)
 {
   if (KNO_STRINGP(x)) {
     lispval v = kno_parse(KNO_CSTRING(x));
@@ -297,7 +297,7 @@ KNO_EXPORT lispval kno_wrap_pointer(void *ptrval,
   KNO_INIT_CONS(rawptr,kno_rawptr_type);
   rawptr->ptrval = ptrval;
   rawptr->recycler = recycler;
-  rawptr->raw_typetag = typespec; kno_incref(typespec);
+  rawptr->typetag = typespec; kno_incref(typespec);
   if (SYMBOLP(typespec))
     rawptr->typestring = SYM_NAME(typespec);
 #if 0 /* This just seems like a bad idea */
@@ -327,36 +327,32 @@ void kno_init_misctypes_c()
 
   uuid_symbol = kno_intern("uuid");
   {
-    struct KNO_COMPOUND_TYPEINFO *e =
-      kno_register_compound(uuid_symbol,NULL,NULL);
-    e->compound_dumpfn = uuid_dump;
-    e->compound_restorefn = uuid_restore;}
+    struct KNO_TYPEINFO *e = kno_use_typeinfo(uuid_symbol);
+    e->type_dumpfn = uuid_dump;
+    e->type_restorefn = uuid_restore;}
 
   timestamp_symbol = kno_intern("timestamp");
   timestamp0_symbol = kno_intern("timestamp0");
   {
-    struct KNO_COMPOUND_TYPEINFO *e=
-      kno_register_compound(timestamp_symbol,NULL,NULL);
-    e->compound_parser = timestamp_parsefn;
-    e->compound_dumpfn = NULL;
-    e->compound_restorefn = timestamp_restore;}
+    struct KNO_TYPEINFO *e = kno_use_typeinfo(timestamp_symbol);
+    e->type_parsefn = timestamp_parsefn;
+    e->type_dumpfn = NULL;
+    e->type_restorefn = timestamp_restore;}
   {
-    struct KNO_COMPOUND_TYPEINFO *e=
-      kno_register_compound(timestamp0_symbol,NULL,NULL);
-    e->compound_parser = timestamp_parsefn;
-    e->compound_dumpfn = NULL;
-    e->compound_restorefn = timestamp_restore;}
+    struct KNO_TYPEINFO *e = kno_use_typeinfo(timestamp0_symbol);
+    e->type_parsefn = timestamp_parsefn;
+    e->type_dumpfn = NULL;
+    e->type_restorefn = timestamp_restore;}
   kno_dtype_writers[kno_timestamp_type]=timestamp_dtype;
 
   kno_copiers[kno_timestamp_type]=copy_timestamp;
 
   lispval_symbol = kno_intern("%lispval");
   {
-    struct KNO_COMPOUND_TYPEINFO *e=
-      kno_register_compound(lispval_symbol,NULL,NULL);
-    e->compound_parser = NULL;
-    e->compound_dumpfn = NULL;
-    e->compound_restorefn = lispval_restore;}
+    struct KNO_TYPEINFO *e = kno_use_typeinfo(lispval_symbol);
+    e->type_parsefn = NULL;
+    e->type_dumpfn = NULL;
+    e->type_restorefn = lispval_restore;}
   kno_dtype_writers[kno_timestamp_type]=timestamp_dtype;
 
   u8_register_source_file(_FILEINFO);

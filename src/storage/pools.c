@@ -2189,7 +2189,7 @@ static int unparse_consed_pool(u8_output out,lispval x)
   return 1;
 }
 
-static lispval pool_parsefn(int n,lispval *args,kno_compound_typeinfo e)
+static lispval pool_parsefn(int n,lispval *args,kno_typeinfo e)
 {
   kno_pool p = NULL;
   if (n<3) return VOID;
@@ -2838,9 +2838,8 @@ KNO_EXPORT void kno_init_pools_c()
   consed_pools_len=64;
 
   {
-    struct KNO_COMPOUND_TYPEINFO *e =
-      kno_register_compound(kno_intern("pool"),NULL,NULL);
-    e->compound_parser = pool_parsefn;}
+    struct KNO_TYPEINFO *e = kno_use_typeinfo(kno_intern("pool"));
+    e->type_parsefn = pool_parsefn;}
 
   KNO_INIT_STATIC_CONS(&poolid_table,kno_hashtable_type);
   kno_make_hashtable(&poolid_table,-1);

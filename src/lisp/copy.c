@@ -196,9 +196,9 @@ static lispval copy_compound(lispval x,int flags)
     if (xc->compound_ismutable) u8_init_rwlock(&(nc->compound_rwlock));
     nc->compound_ismutable = xc->compound_ismutable;
     nc->compound_isopaque = xc->compound_isopaque;
-    nc->compound_typetag = kno_incref(xc->compound_typetag);
+    nc->typetag = kno_incref(xc->typetag);
     nc->compound_length = xc->compound_length;
-    nc->compound_off = xc->compound_off;
+    nc->compound_seqoff = xc->compound_seqoff;
     if (flags)
       while (i<n) {
         *write = kno_copier(data[i],flags);
