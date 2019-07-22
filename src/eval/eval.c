@@ -1759,7 +1759,7 @@ static lispval cons_method(int n,lispval *args,kno_typeinfo e)
 	kno_decref(method);
 	return result;}}}
   /* This is the default cons method */
-  return kno_init_compound_from_elts(NULL,e->type_tag,
+  return kno_init_compound_from_elts(NULL,e->typetag,
 				     KNO_COMPOUND_INCREF,
 				     n,args);
 }

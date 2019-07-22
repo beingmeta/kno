@@ -49,7 +49,9 @@ KNO_EXPORT lispval kno_init_compound_from_elts
   else NO_ELSE;
   KNO_INIT_CONS(p,kno_compound_type);
   if (ismutable) u8_init_rwlock(&(p->compound_rwlock));
-  p->typetag = kno_incref(tag);
+  if (KNO_CONSP(tag))
+    p->typetag = kno_incref(info->typetag);
+  else p->typetag = tag;
   p->typeinfo = info;
   p->compound_ismutable = ismutable;
   p->compound_isopaque = isopaque;

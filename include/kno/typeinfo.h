@@ -24,7 +24,7 @@ typedef lispval kno_use_typeinfo(lispval tag);
 
 typedef struct KNO_TYPEINFO {
   KNO_CONS_HEADER;
-  lispval type_tag, type_props;
+  lispval typetag, type_props;
   lispval type_handlers;
   kno_type_parsefn type_parsefn;
   kno_type_unparsefn type_unparsefn;

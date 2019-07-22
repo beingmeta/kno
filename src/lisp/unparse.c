@@ -418,10 +418,12 @@ static int unparse_compound(struct U8_OUTPUT *out,lispval x)
   struct KNO_COMPOUND *xc =
     kno_consptr(struct KNO_COMPOUND *,x,kno_compound_type);
   lispval tag = xc->typetag;
-  struct KNO_TYPEINFO *info = kno_use_typeinfo(tag);
+  struct KNO_TYPEINFO *info = xc->typeinfo;
+  if (info == NULL) info = kno_taginfo(x);
   if ((info) && (info->type_unparsefn)) {
     int retval = info->type_unparsefn(out,x,info);
-    if (retval!=0) return retval;}
+    if (retval<0) {kno_clear_errors(1);}
+    else if (retval) return retval;}
   u8_string tagstring = (KNO_SYMBOLP(tag)) ? (KNO_SYMBOL_NAME(tag)) :
     (KNO_STRINGP(tag)) ? (KNO_CSTRING(tag)) : (NULL);
   int opaque = (xc->compound_isopaque) ? (1) :
@@ -440,6 +442,30 @@ static int unparse_compound(struct U8_OUTPUT *out,lispval x)
       u8_puts(out,">>");
     else u8_puts(out,")");
     return 1;}
+}
+
+static int unparse_rawptr(struct U8_OUTPUT *out,lispval x)
+{
+  struct KNO_RAWPTR *rawptr = (struct KNO_RAWPTR *)x;
+  lispval tag = rawptr->typetag;
+  struct KNO_TYPEINFO *info = rawptr->typeinfo;
+  if (info == NULL) info = kno_taginfo(x);
+  if ((info) && (info->type_unparsefn)) {
+    int retval = info->type_unparsefn(out,x,info);
+    if (retval<0) {kno_clear_errors(1);}
+    else if (retval) return retval;}
+  u8_string typestring = (KNO_SYMBOLP(tag)) ? (KNO_SYMBOL_NAME(tag)) :
+    (KNO_STRINGP(tag)) ? (KNO_CSTRING(tag)) : (info->type_name) ;
+  if ( (typestring) && (rawptr->idstring) )
+    u8_printf(out,"#<%s(RAW) 0x%llx (%s)>",
+              typestring,U8_PTR2INT(rawptr->ptrval),rawptr->idstring);
+  else if (typestring)
+    u8_printf(out,"#<%s(RAW) 0x%llx>",typestring,U8_PTR2INT(rawptr->ptrval));
+  else if (rawptr->idstring)
+    u8_printf(out,"#<RAW 0x%llx (%s)>",U8_PTR2INT(rawptr->ptrval),
+              rawptr->idstring);
+  else u8_printf(out,"#<RAW 0x%llx>",U8_PTR2INT(rawptr->ptrval));
+  return 1;
 }
 
 KNO_EXPORT
@@ -483,27 +509,6 @@ static int unparse_mystery(u8_output out,lispval x)
                d->myst_dtpackage,d->myst_dtcode,
                (long long)d->myst_dtsize);
   u8_puts(out,buf);
-  return 1;
-}
-
-static int unparse_rawptr(struct U8_OUTPUT *out,lispval x)
-{
-  struct KNO_RAWPTR *rawptr = (struct KNO_RAWPTR *)x;
-  if ((rawptr->typestring)&&(rawptr->idstring))
-    u8_printf(out,"#<%s(RAW) 0x%llx (%s)>",
-              rawptr->typestring,
-              U8_PTR2INT(rawptr->ptrval),
-              rawptr->idstring);
-  else if (rawptr->typestring)
-    u8_printf(out,"#<%s(RAW) 0x%llx>",
-              rawptr->typestring,
-              U8_PTR2INT(rawptr->ptrval));
-  else if (rawptr->idstring)
-    u8_printf(out,"#<RAW 0x%llx (%s)>",
-              U8_PTR2INT(rawptr->ptrval),
-              rawptr->idstring);
-  else u8_printf(out,"#<RAW 0x%llx>",
-                 U8_PTR2INT(rawptr->ptrval));
   return 1;
 }
 

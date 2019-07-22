@@ -753,14 +753,17 @@ KNO_EXPORT struct KNO_TYPEINFO *kno_use_typeinfo(lispval tag)
   if (KNO_VOIDP(exists)) {
     struct KNO_TYPEINFO *info = u8_alloc(struct KNO_TYPEINFO);
     KNO_INIT_STATIC_CONS(info,kno_typeinfo_type);
-    info->type_tag = tag; kno_incref(tag);
+    info->typetag = tag; kno_incref(tag);
     info->type_props = kno_make_slotmap(2,0,NULL);
     info->type_handlers = kno_make_slotmap(2,0,NULL);
+    info->type_name = (KNO_SYMBOLP(tag)) ? (KNO_SYMBOL_NAME(tag)) :
+      (KNO_STRINGP(tag)) ? (KNO_CSTRING(tag)) : (kno_lisp2string(tag));
+    info->type_description = NULL;
     int rv = kno_hashtable_op(&typeinfo,kno_table_init,tag,((lispval)info));
     if (rv > 0)
       return info;
     else {
-      kno_decref(info->type_tag);
+      kno_decref(info->typetag);
       kno_decref(info->type_props);
       kno_decref(info->type_handlers);
       u8_free(info);

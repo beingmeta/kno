@@ -152,8 +152,11 @@ static void recycle_regex(struct KNO_RAW_CONS *c)
 static void recycle_rawptr(struct KNO_RAW_CONS *c)
 {
   struct KNO_RAWPTR *rawptr = (struct KNO_RAWPTR *)c;
-  if (rawptr->recycler)
-    rawptr->recycler(rawptr->ptrval);
+  struct KNO_TYPEINFO *info = rawptr->typeinfo;
+  if (info->type_freefn)
+    info->type_freefn((lispval)c,info);
+  if (rawptr->raw_recycler)
+    rawptr->raw_recycler(rawptr->ptrval);
   if (rawptr->idstring) u8_free(rawptr->idstring);
   rawptr->ptrval   = NULL;
   rawptr->idstring = NULL;

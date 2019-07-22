@@ -839,7 +839,8 @@ typedef lispval (*kno_type_restorefn)(lispval,lispval,kno_typeinfo);
 
 typedef struct KNO_TYPEINFO {
   KNO_CONS_HEADER;
-  lispval type_tag, type_props, type_handlers;
+  lispval typetag, type_props, type_handlers;
+  u8_string type_name, type_description;
   char type_isopaque, type_ismutable;
   kno_type_parsefn type_parsefn;
   kno_type_unparsefn type_unparsefn;
@@ -900,8 +901,9 @@ typedef void (*kno_raw_recyclefn)(void *);
 typedef struct KNO_RAWPTR {
   KNO_TAGGED_HEAD;
   void *ptrval;
-  u8_string typestring, idstring;
-  kno_raw_recyclefn recycler;} KNO_RAWPTR;
+  u8_string idstring;
+  lispval raw_annotations;
+  kno_raw_recyclefn raw_recycler;} KNO_RAWPTR;
 typedef struct KNO_RAWPTR *kno_rawptr;
 
 KNO_EXPORT lispval kno_wrap_pointer(void *ptrval,

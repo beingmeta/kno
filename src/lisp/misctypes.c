@@ -290,21 +290,18 @@ static int unparse_regex(struct U8_OUTPUT *out,lispval x)
 
 KNO_EXPORT lispval kno_wrap_pointer(void *ptrval,
                                     kno_raw_recyclefn recycler,
-                                    lispval typespec,
+                                    lispval typetag,
                                     u8_string idstring)
 {
   struct KNO_RAWPTR *rawptr = u8_alloc(struct KNO_RAWPTR);
   KNO_INIT_CONS(rawptr,kno_rawptr_type);
+  struct KNO_TYPEINFO *info = kno_use_typeinfo(typetag);
   rawptr->ptrval = ptrval;
-  rawptr->recycler = recycler;
-  rawptr->typetag = typespec; kno_incref(typespec);
-  if (SYMBOLP(typespec))
-    rawptr->typestring = SYM_NAME(typespec);
-#if 0 /* This just seems like a bad idea */
-  else if (STRINGP(typespec))
-    rawptr->typestring = CSTRING(typespec);
-#endif
-  else rawptr->typestring = NULL;
+  rawptr->raw_recycler = recycler;
+  if (CONSP(typetag))
+    rawptr->typetag = kno_incref(info->typetag);
+  else rawptr->typetag = kno_incref(typetag);
+  rawptr->typeinfo = info;
   if (idstring)
     rawptr->idstring = u8_strdup(idstring);
   else rawptr->idstring = NULL;
