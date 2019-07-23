@@ -938,7 +938,7 @@ with_apacheinfo
 with_apachelib
 enable_ffi
 with_arch
-with_extended_profiling
+enable_xprofiling
 with_share_dir
 with_data_dir
 with_config_dir
@@ -1627,6 +1627,7 @@ Optional Features:
 --endisable-htmldump write HTML backtraces
 --endisable-prefetching make frame operations prefetch when they can
 --enable-ffi enable the FFI interface
+--enable-xprofiling use xprofiling information
 --endisable-fileconfig enable file-based configuration
 --endisable-shared Build with/without shared libraries
 --endisable-maintainer-mode doesn't do anything
@@ -1687,7 +1688,6 @@ Optional Packages:
 --with-apacheinfo where Apache module info lives
 --with-apachelib where Apache extensions live
 --without-arch build with particular --arch flags
---enable-rusage-profiling use extended profiling information
 --with-share-dir location
 --with-data-dir location
 --with-config-dir location
@@ -9378,15 +9378,14 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
 
-
-# Check whether --with-extended_profiling was given.
-if test "${with_extended_profiling+set}" = set; then :
-  withval=$with_extended_profiling; with_extended_profiling=$withval
+# Check whether --enable-xprofiling was given.
+if test "${enable_xprofiling+set}" = set; then :
+  enableval=$enable_xprofiling; enable_xprofiling=$withval
 else
-  with_extended_profiling="no"
+  enable_xprofiling="no"
 fi
 
-if test "${with_extended_profiling}" != "no"; then
+if test "${enable_xprofiling}" != "no"; then
    $as_echo "#define KNO_EXTENDED_PROFILING 1" >>confdefs.h
 
 else

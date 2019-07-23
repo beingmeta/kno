@@ -1213,8 +1213,8 @@ AC_CHECK_MEMBERS([struct rusage.ru_inblock, struct rusage.ru_nvcsw, struct rusag
 AC_CHECK_MEMBERS([struct stat.st_mtim, struct stat.st_mtimespec],[],[],[#include <sys/stat.h>])
 AC_CHECK_DECLS([RUSAGE_THREAD],[],[],[#include <sys/resource.h>])
 
-AC_ARG_WITH(extended_profiling,--enable-rusage-profiling use extended profiling information,with_extended_profiling=$withval,with_extended_profiling="no")
-if test "${with_extended_profiling}" != "no"; then
+AC_ARG_ENABLE(xprofiling,--enable-xprofiling use xprofiling information,enable_xprofiling=$withval,enable_xprofiling="no")
+if test "${enable_xprofiling}" != "no"; then
    AC_DEFINE(KNO_EXTENDED_PROFILING,1)
 else
    AC_DEFINE(KNO_EXTENDED_PROFILING,0)

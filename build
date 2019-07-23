@@ -26,6 +26,9 @@ while [ $# -gt 0 ]; do
 	ipeval)
 	    CONFIG_ARGS="--with-ipeval ${CONFIG_ARGS}";
 	    ;;
+	xprofile|xprofiling)
+	    CONFIG_ARGS="--enable-xprofiling ${CONFIG_ARGS}";
+	    ;;
 	profile|profiling|gcov)
 	    CONFIG_ARGS="--enable-gcov ${CONFIG_ARGS}";
 	    MAKE_ARGS="${MAKE_ARGS} debug";
