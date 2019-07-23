@@ -70,6 +70,7 @@ static void kno_profile_record
   p->prof_n_contests += n_contests;
   p->prof_n_nfaults += n_faults;
 #endif
+  u8_lock_mutex(&(p->prof_lock));
 }
 #endif
 
