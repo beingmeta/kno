@@ -564,15 +564,11 @@ DEFPRIM2("set-lambda-args!",set_lambda_args,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 kno_lambda_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval set_lambda_args(lispval arg,lispval new_arglist)
 {
-  lispval x = kno_fcnid_ref(arg);
-  if (KNO_LAMBDAP(x)) {
-    struct KNO_LAMBDA *proc = (kno_lambda)kno_fcnid_ref(x);
-    lispval arglist = proc->lambda_arglist;
-    proc->lambda_arglist = kno_incref(new_arglist);
-    kno_decref(arglist);
-    return VOID;}
-  else return kno_type_error
-	 ("lambda","set_lambda_args",x);
+  struct KNO_LAMBDA *proc = (kno_lambda)arg;
+  lispval arglist = proc->lambda_arglist;
+  proc->lambda_arglist = kno_incref(new_arglist);
+  kno_decref(arglist);
+  return VOID;
 }
 
 DEFPRIM1("lambda-env",lambda_env,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
@@ -632,20 +628,16 @@ DEFPRIM2("set-lambda-body!",set_lambda_body,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 kno_lambda_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval set_lambda_body(lispval arg,lispval new_body)
 {
-  lispval x = kno_fcnid_ref(arg);
-  if (KNO_LAMBDAP(x)) {
-    struct KNO_LAMBDA *proc = (kno_lambda)kno_fcnid_ref(x);
-    lispval old_body = proc->lambda_body;
-    proc->lambda_body = kno_incref(new_body);
-    kno_decref(old_body);
-    if (proc->lambda_consblock) {
-      lispval cb = (lispval) (proc->lambda_consblock);
-      kno_decref(cb);
-      proc->lambda_consblock = NULL;}
-    proc->lambda_start = new_body;
-    return VOID;}
-  else return kno_type_error
-	 ("lambda","set_lambda_body",x);
+  struct KNO_LAMBDA *proc = (kno_lambda)arg;
+  lispval old_body = proc->lambda_body;
+  proc->lambda_body = kno_incref(new_body);
+  kno_decref(old_body);
+  if (proc->lambda_consblock) {
+    lispval cb = (lispval) (proc->lambda_consblock);
+    kno_decref(cb);
+    proc->lambda_consblock = NULL;}
+  proc->lambda_start = new_body;
+  return VOID;
 }
 
 DEFPRIM2("optimize-lambda-body!",optimize_lambda_body,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
@@ -654,32 +646,29 @@ DEFPRIM2("optimize-lambda-body!",optimize_lambda_body,KNO_MAX_ARGS(2)|KNO_MIN_AR
 	 kno_lambda_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval optimize_lambda_body(lispval arg,lispval new_body)
 {
-  lispval x = kno_fcnid_ref(arg);
-  if (KNO_LAMBDAP(x)) {
-    struct KNO_LAMBDA *proc = (kno_lambda)x;
-    if (KNO_FALSEP(new_body)) {
-      if (proc->lambda_consblock) {
-	lispval cb = (lispval) (proc->lambda_consblock);
-	proc->lambda_consblock = NULL;
-	kno_decref(cb);}
-      proc->lambda_start = proc->lambda_body;}
-    else {
-      lispval new_consblock = (KNO_TRUEP(new_body)) ?
-	(kno_make_consblock(proc->lambda_body)) :
-	(kno_make_consblock(new_body));
-      if (ABORTED(new_consblock)) return new_consblock;
-      else if (KNO_TYPEP(new_consblock,kno_consblock_type)) {
-	struct KNO_CONSBLOCK *cb = (kno_consblock) new_consblock;
-	proc->lambda_start = cb->consblock_head;}
-      else proc->lambda_start = new_consblock;
-      if (proc->lambda_consblock) {
-	lispval cb = (lispval) (proc->lambda_consblock);
-	kno_decref(cb);}
-      if (KNO_TYPEP(new_consblock,kno_consblock_type))
-	proc->lambda_consblock = (kno_consblock) new_consblock;
-      else proc->lambda_consblock = NULL;}
-    return VOID;}
-  else return kno_type_error("lambda","optimize_lambda_body",x);
+  struct KNO_LAMBDA *proc = (kno_lambda)arg;
+  if (KNO_FALSEP(new_body)) {
+    if (proc->lambda_consblock) {
+      lispval cb = (lispval) (proc->lambda_consblock);
+      proc->lambda_consblock = NULL;
+      kno_decref(cb);}
+    proc->lambda_start = proc->lambda_body;}
+  else {
+    lispval new_consblock = (KNO_TRUEP(new_body)) ?
+      (kno_make_consblock(proc->lambda_body)) :
+      (kno_make_consblock(new_body));
+    if (ABORTED(new_consblock)) return new_consblock;
+    else if (KNO_TYPEP(new_consblock,kno_consblock_type)) {
+      struct KNO_CONSBLOCK *cb = (kno_consblock) new_consblock;
+      proc->lambda_start = cb->consblock_head;}
+    else proc->lambda_start = new_consblock;
+    if (proc->lambda_consblock) {
+      lispval cb = (lispval) (proc->lambda_consblock);
+      kno_decref(cb);}
+    if (KNO_TYPEP(new_consblock,kno_consblock_type))
+      proc->lambda_consblock = (kno_consblock) new_consblock;
+    else proc->lambda_consblock = NULL;}
+  return VOID;
 }
 
 #if 0
@@ -690,13 +679,10 @@ DEFPRIM2("optimize-lambda-args!",optimize_lambda_args,KNO_MAX_ARGS(2)|KNO_MIN_AR
 	 kno_lambda_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval optimize_lambda_args(lispval arg,lispval new_args)
 {
-  lispval x = kno_fcnid_ref(arg);
-  if (KNO_LAMBDAP(x)) {
-    struct KNO_LAMBDA *s = (kno_lambda)x;
-    int n = kno_set_lambda_schema(s,new_args);
-    if (n<0) return KNO_ERROR_VALUE;
-    else return KNO_INT(n);}
-  else return kno_type_error("lambda","optimize_lambda_args",x);
+  struct KNO_LAMBDA *s = (kno_lambda)arg;
+  int n = kno_set_lambda_schema(s,new_args);
+  if (n<0) return KNO_ERROR_VALUE;
+  else return KNO_INT(n);
 }
 #endif
 
@@ -705,14 +691,11 @@ DEFPRIM2("set-lambda-source!",set_lambda_source,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 kno_lambda_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval set_lambda_source(lispval arg,lispval new_source)
 {
-  lispval x = kno_fcnid_ref(arg);
-  if (KNO_LAMBDAP(x)) {
-    struct KNO_LAMBDA *proc = (kno_lambda)kno_fcnid_ref(x);
-    lispval source = proc->lambda_source;
-    proc->lambda_source = kno_incref(new_source);
-    kno_decref(source);
-    return VOID;}
-  else return kno_type_error("lambda","set_lambda_source",x);
+  struct KNO_LAMBDA *proc = (kno_lambda)arg;
+  lispval source = proc->lambda_source;
+  proc->lambda_source = kno_incref(new_source);
+  kno_decref(source);
+  return VOID;
 }
 
 #if 0
@@ -721,17 +704,13 @@ DEFPRIM2("set-lambda-optimizer!",set_lambda_optimizer,KNO_MAX_ARGS(2)|KNO_MIN_AR
 	 kno_lambda_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval set_lambda_optimizer(lispval arg,lispval optimizer)
 {
-  lispval x = kno_fcnid_ref(arg);
-  if (KNO_LAMBDAP(x)) {
-    struct KNO_LAMBDA *proc = (kno_lambda)x;
-    if (proc->lambda_optimizer) {
-      lispval cur = (lispval)(proc->lambda_optimizer);
-      kno_decref(cur);}
-    kno_incref(optimizer);
-    proc->lambda_optimizer = optimizer;
-    return VOID;}
-  else return kno_type_error
-	 ("lambda","set_lambda_optimizer",x);
+  struct KNO_LAMBDA *proc = (kno_lambda)arg;
+  if (proc->lambda_optimizer) {
+    lispval cur = (lispval)(proc->lambda_optimizer);
+    kno_decref(cur);}
+  kno_incref(optimizer);
+  proc->lambda_optimizer = optimizer;
+  return VOID;
 }
 #endif
 
