@@ -215,6 +215,8 @@ appenv:
 		APPMODS=logctl APPMODS=gpath\;parsetime ${RUNCONF}
 	@ BIZZARO=yes ${RUN} ${KNOX} CONFIG:TRACE=yes LOAD:TRACE=yes APPMODS=nomagic ${RUNCONF}
 	@ BIZZARO=yes ${RUN} ${KNOX} TRACECONFIG=yes TRACELOAD=yes APPLOAD=data/nomagic.scm ${RUNCONF}
+	@ BIZZARO=yes ${RUN} ${KNOX} CONFIG:TRACE=yes LOAD:TRACE=yes "APPMODS=stringfmts;33;88" ${RUNCONF}
+	@ BIZZARO=yes ${RUN} ${KNOX} CONFIG:TRACE=yes LOAD:TRACE=yes "APPMODS=:(stringfmts 88)" ${RUNCONF}
 	@${header} "■■■■ Completed appenv tests ${RUNCONF}"
 sqlite:
 	@${RUN} ${KNOX} sqldb.scm DBMODULE=:sqlite DBOPEN=:sqlite/open DBSPEC=test.sqlite 
