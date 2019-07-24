@@ -1990,41 +1990,41 @@ gcovr.text: src/lisp/cons.gcda
 gcovr.html: src/lisp/cons.gcda
 	gcovr ${GCOVR_FLAGS} -r . --html -o gcovr.html
 
-staging/gcovr:
-	if test ! -d staging/gcovr; then mkdir staging/gcovr; fi
+tests/gcovr:
+	if test ! -d tests/gcovr; then mkdir tests/gcovr; fi
 
-staging/gcovr/all.html: src/lisp/cons.gcda staging/gcovr
+tests/gcovr/all.html: src/lisp/cons.gcda tests/gcovr
 	gcovr ${GCOVR_FLAGS} -r . --html --html-details -o $@
-staging/gcovr/core.html: src/lisp/cons.gcda staging/gcovr
+tests/gcovr/core.html: src/lisp/cons.gcda tests/gcovr
 	gcovr ${GCOVR_FLAGS} -r . \
 		-f src/lisp -f src/sys -f src/apply -f src/eval -f include \
 		--html --html-details -o $@
-staging/gcovr/eval.html: src/lisp/cons.gcda staging/gcovr
+tests/gcovr/eval.html: src/lisp/cons.gcda tests/gcovr
 	gcovr ${GCOVR_FLAGS} -r . -f src/eval \
 		--html --html-details -o $@
-staging/gcovr/lisp.html: src/lisp/cons.gcda staging/gcovr
+tests/gcovr/lisp.html: src/lisp/cons.gcda tests/gcovr
 	gcovr ${GCOVR_FLAGS} -r . -f src/lisp \
 		--html --html-details -o $@
-staging/gcovr/support.html: src/lisp/cons.gcda staging/gcovr
+tests/gcovr/support.html: src/lisp/cons.gcda tests/gcovr
 	gcovr ${GCOVR_FLAGS} -r . -f src/sys \
 		--html --html-details -o $@
-staging/gcovr/apply.html: src/lisp/cons.gcda staging/gcovr
+tests/gcovr/apply.html: src/lisp/cons.gcda tests/gcovr
 	gcovr ${GCOVR_FLAGS} -r . -f src/apply \
 		--html --html-details -o $@
-staging/gcovr/storage.html: src/lisp/cons.gcda staging/gcovr
+tests/gcovr/storage.html: src/lisp/cons.gcda tests/gcovr
 	gcovr ${GCOVR_FLAGS} -r . \
 		-f src/storage -f src/drivers -f include \
 		--html --html-details -o $@
-staging/gcovr/prims.html: src/lisp/cons.gcda staging/gcovr
+tests/gcovr/prims.html: src/lisp/cons.gcda tests/gcovr
 	gcovr ${GCOVR_FLAGS} -r . -f src/prims -f include \
 		--html --html-details -o $@
-staging/gcovr/cmodules.html: src/lisp/cons.gcda staging/gcovr
+tests/gcovr/cmodules.html: src/lisp/cons.gcda tests/gcovr
 	gcovr ${GCOVR_FLAGS} -r . -f src/cmodules -f include \
 		--html --html-details -o $@
-staging/gcovr/text.html: src/lisp/cons.gcda staging/gcovr
+tests/gcovr/text.html: src/lisp/cons.gcda tests/gcovr
 	gcovr ${GCOVR_FLAGS} -r . -f src/text -f include \
 		--html --html-details -o $@
-staging/gcovr/web.html: src/lisp/cons.gcda staging/gcovr
+tests/gcovr/web.html: src/lisp/cons.gcda tests/gcovr
 	gcovr ${GCOVR_FLAGS} -r . -f src/text -f include \
 		--html --html-details -o $@
 
@@ -2032,10 +2032,14 @@ src/lisp/cons.gcda: lib/libknocore.a
 	find . -name "*.gcda" -exec rm '{}' \;
 	cd tests; make libtests;
 
-gcovr_html: staging/gcovr/all.html staging/gcovr/core.html staging/gcovr/storage.html \
-	staging/gcovr/prims.html staging/gcovr/text.html staging/gcovr/web.html \
-	staging/gcovr/cmodules.html staging/gcovr/lisp.html staging/gcovr/support.html \
-	staging/gcovr/apply.html staging/gcovr/eval.html
+gcovr_html: tests/gcovr/all.html tests/gcovr/core.html tests/gcovr/storage.html \
+	tests/gcovr/prims.html tests/gcovr/text.html tests/gcovr/web.html \
+	tests/gcovr/cmodules.html tests/gcovr/lisp.html tests/gcovr/support.html \
+	tests/gcovr/apply.html tests/gcovr/eval.html
+
+gcovr_fresh:
+	rm -f tests/gcovr/*
+	make gcovr_html
 
 .PHONY: lcov_html gcovr_details
 
