@@ -201,8 +201,8 @@ static lispval compound_set(lispval x,lispval offset,lispval value,lispval tag)
       return kno_type_error("unsigned int","compound_ref",offset);
     unsigned int off = FIX2INT(offset), len = compound->compound_length;
     if ((compound->compound_ismutable) &&
-        ((compound->typetag == tag) || (VOIDP(tag))) &&
-        (off<len)) {
+	((compound->typetag == tag) || (VOIDP(tag))) &&
+	(off<len)) {
       lispval *valuep = ((&(compound->compound_0))+off), old_value;
       u8_write_lock(&(compound->compound_rwlock));
       old_value = *valuep;
@@ -317,7 +317,6 @@ static lispval compound_modify(lispval x,lispval tag,lispval offset,
       u8_rw_unlock(&(compound->compound_rwlock));
       return VOID;}
     /* Unlock and figure out the details of the error */
-    u8_rw_unlock(&(compound->compound_rwlock));
     if (compound->compound_ismutable==0) {
       kno_seterr(_("Immutable record"),"set_compound",NULL,x);
       return KNO_ERROR;}
