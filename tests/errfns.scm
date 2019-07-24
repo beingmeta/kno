@@ -82,6 +82,11 @@
       (applytest string? exception-summary ex)
       #f))
 
+(errtest (onerror (begin (error justcond intest))
+	     (lambda (ex) 
+	       (+ 3 "foo")
+	       #f)))
+
 (define (errfact n)
   (if (<= n 1)
       (irritant n |BadBaseCase| errfact)
@@ -99,6 +104,13 @@
 (evaltest 120 (ignore-errors (goodfact 5) (begin (set! start (1+ start)) start)))
 (evaltest 4 (ignore-errors (errfact 5) (begin (set! start (1+ start)) start)))
 
+(onerror (errfact 20)
+    (lambda (ex) 
+      (applytest #t compound? (exception-stack ex 5))
+      (applytest 2 length (exception-stack ex 5 7))
+      (applytest 5 length (exception-stack ex -5))
+      #f))
+
 (evaltest "errobj" (onerror (errfact 5) "errobj"))
 (evaltest "errobj" (onerror (errfact 5)
 		       (lambda (ex) "errobj")))
@@ -112,10 +124,14 @@
 		(fileout "backtrace.html" (exception.html ex))
 		(get (exception->slotmap ex) 'condition))))
 
+(errtest (onerror (errfact 5)
+	     (lambda (ex)
+	       (exception/context! ex 'comment "seen")
+	       (reraise ex))))
+
 (define (raise-something)
   (test-u8raise '(cons)))
 
-#|
 (let ((n 6))
   (errtest (unwind-protect (error |Forced| evaltest)
 	     (set! n (1+ n))
@@ -126,7 +142,43 @@
 	     (set! n (1+ n))
 	     (clear-errors!)))
   (applytest #t = n 7))
-|#
+
+(let ((n 6))
+  (errtest (dynamic-wind 
+	       (lambda () (set! n 9))
+	       (lambda () (error |Forced| evaltest))
+	       (lambda () (set! n (1+ n)))))
+  (applytest #t = n 10))
+
+(let ((n 6))
+  (errtest (dynamic-wind 
+	       (lambda (nothunk) (set! n 9))
+	       (lambda () (+ 2 3))
+	       (lambda () (set! n (1+ n))))))
+(let ((n 6))
+  (errtest (dynamic-wind 
+	       (lambda () (set! n 9))
+	       (lambda (nothunk) (+ 2 3))
+	       (lambda () (set! n (1+ n))))))
+(let ((n 6))
+  (errtest (dynamic-wind 
+	       (lambda () (set! n 9))
+	       (lambda () (+ 2 3))
+	       (lambda (nothunk) (set! n (1+ n))))))
+
+(let ((n 6))
+  (errtest (dynamic-wind 
+	       (lambda () (set! n 9))
+	       (lambda () (+ 2 "three"))
+	       (lambda () (set! n (1+ n)))))
+  (applytest #t = n 10))
+
+(let ((n 6))
+  (errtest (dynamic-wind 
+	       (lambda () (set! n (+ 2 "three")))
+	       (lambda () (+ 2 "three"))
+	       (lambda () (set! n (1+ n)))))
+  (applytest #t = n 6))
 
 (applytest exception? 
 	   make-exception "Testing" 'test-exception

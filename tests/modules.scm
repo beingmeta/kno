@@ -11,6 +11,8 @@
 (get-module 'stringfmts)
 (get-module 'testcapi)
 
+(errtest (in-module))
+(errtest (in-module '(not a module spec)))
 (errtest (module-export!))
 (errtest (module-export! #"packet"))
 (errtest (use-module))
@@ -42,6 +44,7 @@
 (errtest (accessing-module 'testcapi (quotient~ zval 3)))
 (errtest (accessing-module))
 (errtest (accessing-module 'badmod (+ 3 4)))
+(errtest (accessing-module '(not a module) (+ 3 4)))
 
 (define zval 17)
 (errtest (within-module 'stringfmts (quotient~ zval 3)))
@@ -52,6 +55,9 @@
 			'get%))
 
 (modules/testcapi)
+
+;; Tests recursive loading
+(use-module 'loop2mod)
 
 (applytest eq? $num get-binding 'stringfmts '$num)
 (applytest eq? $num %get-binding 'stringfmts '$num)
@@ -72,6 +78,8 @@
 
 (config! 'updatemodules 15)
 (applytest 15.0 config 'updatemodules)
+(config! 'updatemodules 13.0)
+(applytest 13.0 config 'updatemodules)
 (config! 'updatemodules #t)
 (config! 'updatemodules #f)
 (errtest (config! 'updatemodules 1/2))
@@ -80,6 +88,8 @@
 ;;; Reload testing
 
 (define goodmod-file  (get-component "data/goodmod.scm"))
+
+(evaltest #t (update-module goodmod-file))
 
 (use-module 'reloadmod)
 (errtest (reload-module 'nosuchmod))
@@ -94,6 +104,8 @@
 (config! 'splitmod:err #t)
 (evaltest 'err (reload-module (get-component "data/splitmod.scm")))
 (config! 'splitmod:err #f)
+
+(errtest (reload-module "data/nosuchmod.scm"))
 
 (lognotice |LoadPath| (config 'loadpath))
 
