@@ -90,10 +90,21 @@
 (applytest "xxx" config 'xval)
 (applytest "YYY" config 'yval)
 
+(config! 'itis9 9)
+
 (errtest (load-config))
+(errtest (load-config 'nosuchref))
+(errtest (load-config 'itis9))
+(errtest (load-config #"foo"))
 (errtest (load-config '(foo)))
+(errtest (load-config "data/nosuch.cfg"))
 (errtest (load-default-config))
+(errtest (load-default-config 'nosuchref))
+(errtest (load-default-config 'itis9))
 (errtest (load-default-config '(foo)))
+(errtest (load-default-config #"foo"))
+(errtest (load-default-config "data/nosuch.cfg"))
+
 
 (applytest overlaps? '{|PID| |PPID|} find-configs "pid")
 (applytest overlaps? '{|PID| |PPID|} find-configs #/p+id/i)
@@ -110,6 +121,8 @@
 (applytest timestamp? config 'test.load.cfg)
 (applytest has-prefix (config 'cwd) config 'test.load.cfg.path)
 (applytest list-contains? (abspath (get-component "data/load.cfg")) config 'config)
+;; Redundant
+(config! 'config (abspath (get-component "data/load.cfg")))
 
 (config! 'defaults (get-component "webfiles/root/default.cfg"))
 

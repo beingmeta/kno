@@ -18,6 +18,11 @@
 (errtest (use-module 'nomod))
 (errtest (use-module 'badmod))
 
+(applytest #f dynamic-load "data/nomod")
+
+(applytest overlaps? 'show% get-exports 'stringfmts)
+(applytest {} get-exports 'zyizx)
+
 (applytest pair? config 'module)
 (applytest 'void config! 'module 'stringfmts)
 
@@ -48,6 +53,21 @@
 
 (modules/testcapi)
 
+(applytest eq? $num get-binding 'stringfmts '$num)
+(applytest eq? $num %get-binding 'stringfmts '$num)
+
+(applytest 'err get-binding 'stringfmts '1+)
+(applytest 'err %get-binding 'stringfmts '1+)
+(applytest 'err get-binding (get-module 'stringfmts) '1+)
+(applytest 'err %get-binding (get-module 'stringfmts) '1+)
+(applytest 'err get-binding 'stringfmts 'rem~)
+(applytest applicable? %get-binding 'stringfmts 'rem~)
+
+(applytest 'err get-binding #"packet" '$num)
+(applytest 'err get-binding 'zyxxyz '$num)
+(applytest 'err %get-binding #"packet" '$num)
+(applytest 'err %get-binding 'zyxxyz '$num)
+
 ;;; Update modules
 
 (config! 'updatemodules 15)
@@ -55,6 +75,7 @@
 (config! 'updatemodules #t)
 (config! 'updatemodules #f)
 (errtest (config! 'updatemodules 1/2))
+(errtest (config! 'updatemodules #"packet"))
 
 ;;; Reload testing
 

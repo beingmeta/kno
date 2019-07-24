@@ -170,7 +170,9 @@
     (applytest string? lisp->string evalfn-id)
     (applytest string? lisp->string evalfn-id)
     (applytest string? lisp->string list-id)
-    (applytest fcnid? fcnid/register prim-id)))
+    (applytest fcnid? fcnid/register prim-id)
+    (applytest 'err fcnid/set! lambda-id 3)
+    (apply)))
 
 (test-fcnids)
 

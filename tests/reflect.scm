@@ -100,13 +100,25 @@
 
 (applytester (contains-string "miscfns.scm") procedure-filename factr)
 (applytester (contains-string "ezrecords") procedure-filename defrecord)
+(applytester (contains-string "miscfns.scm") procedure-fileinfo factr)
+(applytester (contains-string "ezrecords") procedure-fileinfo defrecord)
 (errtest (procedure-name 3))
 (errtest (procedure-name "procedure"))
+
+(applytester #("pair") procedure-typeinfo car)
+(applytester #(%void) procedure-default car)
+(applytester #(#f #f #f #f) procedure-typeinfo position)
+(applytester #(%void %void 0 #f) procedure-defaults position)
 
 (define nameless
   (with-sourcebase #f
 		   (list (lambda (x) (1+ x)) 
 			 (macro expr `(+ 2 3)))))
+(evaltest #f (with-sourcebase #f (get-source)))
+(applytest #f get-source (withenv (%env)))
+(applytest #f get-source #[x 3])
+(applytest #f get-source (with-sourcebase #f (lambda (x) x)))
+(applytest has-suffix "stringfmts.scm" get-source (get (get-module 'stringfmts) 'show%))
 (applytest #f procedure-filename (elts nameless))
 (applytest 'err procedure-filename #"packet")
 (applytest 'err procedure-module #"packet")
@@ -292,6 +304,7 @@
 (applytest #t reflect/profiled? arity-test)
 (applytest #f reflect/profiled? car)
 (errtest (reflect/profile! if))
+(errtest (reflect/profile! car #f))
 (applytest #f reflect/profiled? if)
 
 (define (ctest3 i) (1+ i))

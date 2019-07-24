@@ -18,6 +18,7 @@
 (config! 'atexit save-elapsed-atexit)
 
 (config! 'log:threadid #t)
+(config! 'dload:trace #t)
 
 (define pooltype 'bigpool)
 (varconfig! pooltype pooltype #t)

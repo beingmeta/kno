@@ -210,6 +210,7 @@
 (applytester 15 reduce-choice + {1 2 3 4 5})
 (applytester 21 reduce-choice + {1 2 3 4 5} 6)
 (applytester 21 reduce-choice + {1 2 3 4 5 6})
+(applytester 'err reduce-choice {+ fixnum?} {1 2 3 4 5 6})
 
 (applytester 2432902008176640000
 	     reduce-choice * (nrange 1 21))
@@ -222,6 +223,7 @@
 (applytester 12 reduce-choice + {"3" "4" "5"} 0 string->number)
 (applytester 12 reduce-choice + {"3" "4" "5" "5"} 0 string->number)
 (applytester 17 reduce-choice + {"3" "4" "5" "+5"} 0 string->number)
+(applytester 'err reduce-choice + {"3" "4" "5" "+5"} 0 #"packet")
 
 ;;; CHOICE-MAX tests
 
@@ -446,6 +448,16 @@
 (exists-tests)
 (exists-tests sometrue)
 
+(applytest #f sometrue {})
+(applytest #f sometrue #f)
+(applytest #t sometrue 'x)
+(applytest #t sometrue 'x)
+
+(applytest #f sometrue/skiperrs {})
+(applytest #f sometrue/skiperrs #f)
+(applytest #t sometrue/skiperrs 'x)
+(applytest #t sometrue/skiperrs 'x)
+
 ;;; Other stuff
 
 (applytest {0 1 2 3 4} getrange 5)
@@ -529,8 +541,10 @@
 
 (applytest 'err pick-n a-random-choice -5)
 (applytest 'err pick-n a-random-choice 3 (* 1024 1024 1024 1024 17))
+(applytest 'err pick-n a-random-choice 1/2)
 (applytest {} pick-n a-random-choice 0)
 (applytest {} sample-n a-random-choice 0)
+(applytest 'err sample-n a-random-choice 1/2)
 (applytest 1 choice-size (pick-one a-random-choice))
 (applytest 3 choice-size (pick-n a-random-choice 3))
 ;; By default, this always replicates

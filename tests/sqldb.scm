@@ -22,6 +22,8 @@
     (applytest #t procedure? addentry)
     (applytest #t applicable? addentry)
     (applytest #f compound-procedure? addentry)
+    (applytest #t non-determinstic? addentry)
+    (applytest #f procedure-name addentry)
     ;; (applytest 3 procedure-arity addentry)
     (applytest 3 procedure-min-arity addentry)
     (dotimes (i irange) 
