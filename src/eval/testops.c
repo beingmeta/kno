@@ -139,10 +139,11 @@ static lispval applytest(int n,lispval *args)
   lispval *argstart = args+2;
   int n_args = n-2;
   if (KNO_FUNCTIONP(expected)) {
-    struct KNO_FUNCTION *f = (kno_function) expected;
-    if (f->fcn_arity == 1)
+    struct KNO_FUNCTION *f = KNO_GETFUNCTION(expected);
+    if ( (f) && (f->fcn_arity == 1) )
       predicate=expected;
-    else if ( ( (f->fcn_arity > 1) || (f->fcn_arity < 0) ) &&
+    else if ( (f) &&
+	      ( (f->fcn_arity > 1) || (f->fcn_arity < 0) ) &&
 	      (f->fcn_min_arity < 3) &&
 	      (n >= 3) ) {
       predicate=expected;
