@@ -331,7 +331,7 @@ DEFPRIM1("valid-utf8?",valid_utf8p,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 kno_any_type,KNO_VOID);
 static lispval valid_utf8p(lispval x)
 {
-  if (STRINGP(x)) {
+  if ( (STRINGP(x)) || (KNO_TYPEP(x,kno_packet_type)) ) {
     int rv = u8_validp(KNO_CSTRING(x));
     if (rv)
       return KNO_TRUE;
