@@ -479,8 +479,8 @@ KNO_FASTOP int fill_arbguf(struct KNO_FUNCTION *f,int n,
 KNO_FASTOP lispval dcall(u8_string fname,kno_function f,int n,lispval *args,
 			 kno_stack stack)
 {
-  if (KNO_INTERRUPTED()) return KNO_ERROR;
-  else if (PRED_FALSE((f->fcn_handler.fnptr==NULL))) {
+  /* if (KNO_INTERRUPTED()) return KNO_ERROR; else */
+  if (PRED_FALSE((f->fcn_handler.fnptr==NULL))) {
     int ctype = KNO_CONS_TYPE(f);
     if (kno_applyfns[ctype])
       return kno_applyfns[ctype]((lispval)f,n,args);
