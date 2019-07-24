@@ -148,7 +148,8 @@ static lispval odbcopen(lispval spec,lispval colinfo)
 
 /* ODBCProcs */
 
-static lispval callodbcproc(struct KNO_FUNCTION *fn,int n,lispval *args);
+static lispval callodbcproc(struct KNO_STACK *stack,struct KNO_FUNCTION *fn,
+			    int n,lispval *args);
 
 static lispval odbcmakeproc
 (struct KNO_ODBC *dbp,
@@ -448,7 +449,8 @@ static lispval odbcexechandler
   else return kno_type_error("ODBC SQLDB","odbcexechandler",(lispval)sqldb);
 }
 
-static lispval callodbcproc(struct KNO_FUNCTION *fn,int n,lispval *args)
+static lispval callodbcproc(struct KNO_STACK *s,struct KNO_FUNCTION *fn,
+			    int n,lispval *args)
 {
   struct KNO_ODBC_PROC *dbp = (struct KNO_ODBC_PROC *)fn;
   int i = 0, ret = -1;

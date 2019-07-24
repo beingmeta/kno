@@ -710,7 +710,9 @@ lispval pair_eval(lispval head,lispval expr,kno_lexenv env,
       result = eval_apply(f->fcn_name,headval,KNO_CDR(expr),env,
 			  eval_stack,tail);}
     else if (kno_applyfns[headtype]) {
-      result = eval_apply("extfcn",headval,KNO_CDR(expr),env,eval_stack,tail);}
+      u8_context cxt = kno_type_names[headtype];
+      if (cxt == NULL) cxt = "extfcn";
+      result = eval_apply(cxt,headval,KNO_CDR(expr),env,eval_stack,tail);}
     else if (KNO_ABORTED(headval)) {
       result=headval;}
     else if (PRED_FALSE(VOIDP(headval))) {
@@ -1513,7 +1515,8 @@ static int lispenv_add(lispval e,lispval s,lispval v)
 
 /* Call/cc */
 
-static lispval call_continuation(struct KNO_FUNCTION *f,int n,lispval *args)
+static lispval call_continuation(struct KNO_STACK *stack,
+				 struct KNO_FUNCTION *f,int n,lispval *args)
 {
   struct KNO_CONTINUATION *cont = (struct KNO_CONTINUATION *)f;
   lispval arg = args[0];
@@ -1711,7 +1714,7 @@ KNO_EXPORT u8_string kno_get_documentation(lispval x)
       lambda->fcn_free |= KNO_FCN_FREE_DOC;
       return u8_strdup(out.u8_outbuf);}}
   else if (kno_functionp[proctype]) {
-    struct KNO_FUNCTION *f = KNO_DTYPE2FCN(proc);
+    struct KNO_FUNCTION *f = KNO_GETFUNCTION(proc);
     return u8_strdup(f->fcn_doc);}
   else if (TYPEP(x,kno_evalfn_type)) {
     struct KNO_EVALFN *sf = (kno_evalfn)proc;

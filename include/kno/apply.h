@@ -139,7 +139,7 @@ typedef lispval (*kno_xprim15)(kno_function,
                               lispval,lispval,lispval,
                               lispval,lispval,lispval,
                               lispval,lispval,lispval);
-typedef lispval (*kno_xprimn)(kno_function,int n,lispval *);
+typedef lispval (*kno_xprimn)(kno_stack,kno_function,int n,lispval *);
 
 #define KNO_FUNCTION_FIELDS                                                \
   KNO_CONS_HEADER;                                                         \
@@ -436,7 +436,7 @@ KNO_EXPORT int _KNO_APPLICABLE_TYPEP(int typecode);
    (KNO_APPLICABLE_TYPEP(KNO_PRIM_TYPE(x))))
 #endif
 
-#define KNO_DTYPE2FCN(x)              \
+#define KNO_GETFUNCTION(x)              \
   ((KNO_FCNIDP(x)) ?                   \
    ((kno_function)(kno_fcnid_ref(x))) : \
    ((kno_function)x))

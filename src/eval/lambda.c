@@ -104,6 +104,9 @@ lispval call_lambda(struct KNO_STACK *_stack,
       U8_SETBITS(_stack->stack_flags,KNO_STACK_FREE_LABEL);}}
 
   lispval vals[n_vars];
+  int tail = (fn->lambda_synchronized) ? (0) :
+    ( (_stack->stack_flags & KNO_STACK_TAIL) &&
+      (! ((fn->fcn_call) & KNO_FCN_CALL_NOTAIL) ) );
 
   struct KNO_LEXENV stack_env = { 0 };
   KNO_INIT_STATIC_CONS(&stack_env,kno_lexenv_type);
@@ -152,7 +155,7 @@ lispval call_lambda(struct KNO_STACK *_stack,
   /* If we're synchronized, lock the mutex. */
   if (fn->lambda_synchronized) u8_lock_mutex(&(fn->lambda_lock));
   result = eval_body(fn->lambda_start,call_env,kno_stackptr,
-                     ":LAMBDA",fn->fcn_name,1);
+                     ":LAMBDA",fn->fcn_name,tail);
   if (fn->lambda_synchronized) {
     /* If we're synchronized, finish any tail calls and unlock the
        mutex. */
@@ -336,8 +339,8 @@ _make_lambda(u8_string name,
   s->fcn_name = ((name) ? (u8_strdup(name)) : (NULL));
 
   s->fcn_call = ( ((nd) ? (KNO_FCN_CALL_NDCALL) : (0)) |
-                  (KNO_FCN_CALL_XCALL) );
-  s->fcn_handler.fnptr = NULL;
+		  (KNO_FCN_CALL_XCALL) );
+  s->fcn_handler.xcalln = (kno_xprimn) call_lambda;
   s->fcn_typeinfo = NULL;
   s->fcn_defaults = NULL;
   s->fcn_filename = NULL;

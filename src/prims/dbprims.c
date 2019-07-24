@@ -2504,7 +2504,7 @@ KNO_FASTOP int test_selector_relation(lispval f,lispval pred,lispval val,int dat
     /* Handle the case where the 'slotid' is a unary function which can
        be used to extract an argument. */
     if ((KNO_LAMBDAP(pred)) || (TYPEP(pred,kno_cprim_type))) {
-      kno_function fcn = KNO_DTYPE2FCN(pred); int retval = -1;
+      kno_function fcn = KNO_GETFUNCTION(pred); int retval = -1;
       if (fcn->fcn_min_arity == 2) {
 	rail[0]=f; rail[1]=val;
 	result = kno_apply(pred,2,rail);

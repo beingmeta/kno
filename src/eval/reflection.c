@@ -88,7 +88,7 @@ static lispval procedure_name(lispval x)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
   if (KNO_FUNCTIONP(x)) {
-    struct KNO_FUNCTION *f = KNO_DTYPE2FCN(x);
+    struct KNO_FUNCTION *f = KNO_GETFUNCTION(x);
     if (f->fcn_name)
       return kno_mkstring(f->fcn_name);
     else return KNO_FALSE;}
@@ -215,7 +215,7 @@ static lispval procedure_symbol(lispval x)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
   if (KNO_APPLICABLEP(x)) {
-    struct KNO_FUNCTION *f = KNO_DTYPE2FCN(x);
+    struct KNO_FUNCTION *f = KNO_GETFUNCTION(x);
     if (f->fcn_name)
       return kno_getsym(f->fcn_name);
     else return KNO_FALSE;}
@@ -239,7 +239,7 @@ static lispval procedure_id(lispval x)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
   if (KNO_APPLICABLEP(x)) {
-    struct KNO_FUNCTION *f = KNO_DTYPE2FCN(x);
+    struct KNO_FUNCTION *f = KNO_GETFUNCTION(x);
     if (f->fcn_name)
       return kno_intern(f->fcn_name);
     else return kno_incref(x);}
@@ -271,7 +271,7 @@ static lispval set_procedure_documentation(lispval x,lispval doc)
   lispval proc = (KNO_FCNIDP(x)) ? (kno_fcnid_ref(x)) : (x);
   kno_lisp_type proctype = KNO_LISP_TYPE(proc);
   if (kno_functionp[proctype]) {
-    struct KNO_FUNCTION *f = KNO_DTYPE2FCN(x);
+    struct KNO_FUNCTION *f = KNO_GETFUNCTION(x);
     u8_string to_free = ( (f->fcn_doc) && (KNO_FCN_FREE_DOCP(f)) ) ?
       (f->fcn_doc) : (NULL);
     f->fcn_doc = u8_strdup(CSTRING(doc));
@@ -298,7 +298,7 @@ static lispval procedure_tailablep(lispval x)
   lispval proc = (KNO_FCNIDP(x)) ? (kno_fcnid_ref(x)) : (x);
   kno_lisp_type proctype = KNO_LISP_TYPE(proc);
   if (kno_functionp[proctype]) {
-    struct KNO_FUNCTION *f = KNO_DTYPE2FCN(x);
+    struct KNO_FUNCTION *f = KNO_GETFUNCTION(x);
     if (FCN_NOTAILP(f))
       return KNO_FALSE;
     else return KNO_TRUE;}
@@ -312,7 +312,7 @@ static lispval set_procedure_tailable(lispval x,lispval bool)
   lispval proc = (KNO_FCNIDP(x)) ? (kno_fcnid_ref(x)) : (x);
   kno_lisp_type proctype = KNO_LISP_TYPE(proc);
   if (kno_functionp[proctype]) {
-    struct KNO_FUNCTION *f = KNO_DTYPE2FCN(x);
+    struct KNO_FUNCTION *f = KNO_GETFUNCTION(x);
     if (KNO_FALSEP(bool))
       f->fcn_call |= KNO_FCN_CALL_NOTAIL;
     else f->fcn_call &= ~KNO_FCN_CALL_NOTAIL;
@@ -327,7 +327,7 @@ static lispval procedure_arity(lispval x)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
   if (KNO_APPLICABLEP(x)) {
-    struct KNO_FUNCTION *f = KNO_DTYPE2FCN(x);
+    struct KNO_FUNCTION *f = KNO_GETFUNCTION(x);
     int arity = f->fcn_arity;
     if (arity<0) return KNO_FALSE;
     else return KNO_INT(arity);}
@@ -341,7 +341,7 @@ static lispval non_deterministicp(lispval x)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
   if (KNO_APPLICABLEP(x)) {
-    struct KNO_FUNCTION *f = KNO_DTYPE2FCN(x);
+    struct KNO_FUNCTION *f = KNO_GETFUNCTION(x);
     if (FCN_NDCALLP(f))
       return KNO_TRUE;
     else return KNO_FALSE;}
@@ -371,7 +371,7 @@ static lispval procedure_min_arity(lispval x)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
   if (KNO_APPLICABLEP(x)) {
-    struct KNO_FUNCTION *f = KNO_DTYPE2FCN(x);
+    struct KNO_FUNCTION *f = KNO_GETFUNCTION(x);
     int arity = f->fcn_min_arity;
     return KNO_INT(arity);}
   else return kno_type_error(_("procedure"),"procedure_min_arity",x);
@@ -443,7 +443,7 @@ static lispval get_proc_attribs(lispval x,int create)
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
   kno_lisp_type proctype = KNO_LISP_TYPE(x);
   if (kno_functionp[proctype]) {
-    struct KNO_FUNCTION *f = KNO_DTYPE2FCN(x);
+    struct KNO_FUNCTION *f = KNO_GETFUNCTION(x);
     lispval attribs = f->fcn_attribs;
     if (!(create)) {
       if ((attribs!=KNO_NULL)&&(TABLEP(attribs)))
@@ -475,7 +475,7 @@ static lispval set_procedure_attribs(lispval x,lispval value)
 {
   kno_lisp_type proctype = KNO_LISP_TYPE(x);
   if (kno_functionp[proctype]) {
-    struct KNO_FUNCTION *f = KNO_DTYPE2FCN(x);
+    struct KNO_FUNCTION *f = KNO_GETFUNCTION(x);
     lispval table = f->fcn_attribs;
     if (table!=KNO_NULL) kno_decref(table);
     f->fcn_attribs = kno_incref(value);
