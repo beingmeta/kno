@@ -453,13 +453,6 @@ static lispval export_alias_helper(lispval expr,kno_lexenv env,kno_stack _stack)
     (KNO_HASHTABLEP(module)) ? ((kno_hashtable)module) :
     (KNO_LEXENVP(module)) ? (get_exports((kno_lexenv)module)) :
     (NULL);
-  if (exports == NULL) {
-    lispval err = kno_err("ModuleAliasFailed","alias_module_evalfn",
-                          (KNO_SYMBOLP(modname)) ? (KNO_SYMBOL_NAME(modname)) :
-                          (KNO_STRINGP(modname)) ? (KNO_CSTRING(modname)) : (NULL),
-                          module);
-    kno_decref(modname); kno_decref(module);
-    return err;}
   kno_incref((lispval)exports);
   env->env_exports=kno_incref((lispval)exports);
   kno_decref(modname);
