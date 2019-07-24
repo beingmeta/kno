@@ -421,14 +421,16 @@ KNO_EXPORT int kno_config_assignment(u8_string assignment)
       u8_byte copied[len+1], *start = copied, *scan;
       strncpy(copied,assignment,len+1);
       while ((scan=strchr(start,sep))) {
-        if ( (scan>start) && (scan[-1] == '\\') ) {
+	if ( (scan>start) && (scan[-1] == '\\') ) {
           scan = strchr(scan+1,sep);
+	  if (scan == NULL) break;
           continue;}
-        *scan = '\0';
+	if (scan) *scan = '\0';
         int rv = kno_config_assignment(start);
         if (rv<0) {
           u8_seterr("BadConfig","kno_config_assigment",u8_strdup(start));
           return rv;}
+	if (scan == NULL) break;
         start=scan+1;
         count++;}
       if (*start) {
