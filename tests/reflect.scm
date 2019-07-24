@@ -35,6 +35,11 @@
 (applytester #f procedure-arity arity-test2)
 (applytester 2 procedure-min-arity arity-test2)
 
+(let* ((body (procedure-body factr))
+       (cblock (consblock body)))
+  (applytest eq? body consblock-origin cblock)
+  (applytest (car body) car (consblock-head cblock)))
+
 (errtest (procedure-min-arity "foo"))
 
 (errtest (apropos 99))
@@ -62,6 +67,7 @@
 (evaltest 'void (set-procedure-tailable! arity-test #f))
 (applytest #f procedure-tailable? arity-test)
 (evaltest 'void (set-procedure-tailable! arity-test #t))
+(errtest (set-procedure-tailable! #"packet" #f))
 
 (applytester pair? lambda-start arity-test2)
 (errtest (procedure-tailable? if))
@@ -102,6 +108,8 @@
 (applytester (contains-string "ezrecords") procedure-filename defrecord)
 (applytester (contains-string "miscfns.scm") procedure-fileinfo factr)
 (applytester (contains-string "ezrecords") procedure-fileinfo defrecord)
+(applytester 'err procedure-fileinfo #"packet")
+(applytester 'err procedure-fileinfo "string")
 (errtest (procedure-name 3))
 (errtest (procedure-name "procedure"))
 
@@ -127,6 +135,8 @@
 (applytest 'err reflect/store! #"packet" 'length 6)
 
 (applytester #f procedure-symbol (lambda (x) (1+ x)))
+(applytester 'err procedure-symbol "string")
+(applytester 'err procedure-symbol #"packet")
 (applytester procedure? procedure-id (lambda (x) (1+ x)))
 (applytester '|car| procedure-id car)
 (applytester '|IF| procedure-id if)
@@ -153,9 +163,12 @@
 (applytest 'void reflect/add! arity-test 'testprop "more")
 (applytest {"more" "value"} reflect/get arity-test 'testprop)
 
+(errtest (set-procedure-documentation! #"packet" "Not a procedure"))
+
 (applytest table? reflect/attribs arity-test)
 (reflect/set-attribs! pair? #[documentation "is it a pair"])
 (applytest "is it a pair" reflect/get pair? 'documentation)
+(errtest (reflect/set-attribs! #"packet" #[documentation "is it a pair"]))
 
 (errtest (reflect/store! "foo" 'bar value))
 (errtest (reflect/add! "foo" 'bar value))
@@ -298,12 +311,26 @@
 (errtest (defimport rrzy (get-module 'bench/miscfns)))
 (errtest (defimport rrzy 'nosuchmodule))
 
+(define (test-bindings x y) (%bindings))
+(applytest [x "foo" y '(bar)] test-bindings "foo" '(bar))
+
+;;; Refcounts
+
+(define stringval "abcdef")
+;; Insert an extra expr so that the previous expr gets freed
+(define noval #f)
+(applytest 1 refcount stringval)
+
+(let ((x (list stringval stringval)))
+  (applytest 3 refcount stringval))
+
 ;;;; Profiling
 
 (applytest #f reflect/profiled? arity-test)
 (evaltest #t (reflect/profile! arity-test))
 (applytest #t reflect/profiled? arity-test)
 (applytest #f reflect/profiled? car)
+(applytest #f reflect/profile! car #f)
 (errtest (reflect/profile! if))
 (errtest (reflect/profile! arity-test #f))
 (evaltest #t (reflect/profile! arity-test #t))

@@ -249,6 +249,13 @@
 (applytest #t string? (stringout (pprint sort-seq-sample)))
 (applytest #t string? (stringout (listdata sort-seq-sample)))
 
+(applytest #t valid-utf8? "ℕ ⊆ ℕ₀ ⊂ ℤ ⊂ ℚ ⊂ ℝ ⊂ ℂ, ⊥ < a ≠ b ≡ c ≤ d ≪ ⊤ ⇒ (A ⇔ B),")
+(applytest #f valid-utf8? #"\xAA")
+
+(applytest #t proper-list? '(a b c "d" 3))
+(applytest #f proper-list? '(a b c "d" 3 . x))
+(applytest #f proper-list? '(a b c "d" 3 . "x"))
+
 (applytest 309 dtype->file dtype-test-obj "test.dtype")
 (applytest dtype-test-obj file->dtype "test.dtype")
 
@@ -587,6 +594,14 @@
 (errtest (memq 'x "string"))
 (errtest (memv 'x "string"))
 (errtest (member 'x "string"))
+
+;;; Others
+
+(applytest > 1000 choice-size (allsymbols))
+
+(applytest '(a "b" "c") push 'a '("b" "c"))
+(applytest '(a) push 'a)
+(applytest '(a b) push 'a 'b)
 
 ;;; Tests of testops
 

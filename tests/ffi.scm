@@ -37,8 +37,12 @@
 
 (applytest "getenv" procedure-cname ffi_getenv)
 
+(define (istagged? x) (tagged? x))
+
 (when (getenv "USER")
   (applytest (getenv "USER") ffi_strdup (ffi_getenv "USER"))
+  (applytest tagged? 'envstring ffi_getenv "USER")
+  (applytest istagged? ffi_getenv "USER")
   (applytest string? lisp->string (ffi_getenv "USER")))
 
 (applytest #t ffi/found? "u8_cons_list" (glom "libu8." dload-suffix))

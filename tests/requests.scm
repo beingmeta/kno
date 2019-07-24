@@ -55,15 +55,15 @@
  (applytest ":(+ 3" req/call (lambda (bad1) bad1))
  (applytest '(+ 3 2) req/call (lambda (eval5) eval5))
  (applytest '(+ 3 2) req/call (lambda (eval5a) eval5a))
+ (applytest "33" req/call (lambda (%tt) %tt))
  (req/set! 'eval5b ":(+ 3 2)")
- ;; (req/add! 'eval5b 9)
+ (req/add! 'eval5b 9)
  (req/add! 'eval5b "9")
  (req/add! 'eval5b ":(+ 4 3)")
  (req/add! 'eval5b "11")
- ;;(applytest {5 7 9 11} req/val 'eval5b)
- ;;(applytest {5 7 9 11} req/val 'eval5b)
+ (dbg #t)
+ (applytest '{(+ 3 2) (+ 4 3) 9 11} req/val 'eval5b)
  (req/add! 'eval5b ":(+ 3 2")
- (%wc req/call (lambda (eval5b) eval5b))
  (applytest '{(+ 3 2) (+ 4 3) 9 11 ":(+ 3 2"} req/call (lambda (eval5b) eval5b))
  (applytest '(second first) req/get 'lst)
  (applytest #t req/live?)
@@ -91,5 +91,10 @@
 (with/request
  (req/set! 'alpha 9)
  (req/log 'inerr "There was " (1+ "zero") " error"))
+
+(errtest
+ (with/request
+  (req/set! 'alpha 9)
+  (req/set! 'beta (1+ "zero"))))
 
 
