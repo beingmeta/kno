@@ -165,14 +165,17 @@ static lispval reqval_prim(lispval vars,lispval dflt)
       found = 1;}
     else if (CHOICEP(val)) {
       DO_CHOICES(v,val) {
-	lispval parsed = kno_parse_arg(CSTRING(val));
-	if (ABORTED(parsed)) {
-	  kno_incref(v);
-	  kno_clear_errors(1);
-	  CHOICE_ADD(results,v);}
+	if (STRINGP(v)) {
+	  lispval parsed = kno_parse_arg(CSTRING(v));
+	  if (ABORTED(parsed)) {
+	    kno_incref(v);
+	    kno_clear_errors(1);
+	    CHOICE_ADD(results,v);}
+	  else {
+	    CHOICE_ADD(results,parsed);}}
 	else {
-	  CHOICE_ADD(results,parsed);
-	  kno_decref(val);}}
+	  kno_incref(v);
+	  CHOICE_ADD(results,v);}}
       found = 1;}
     else {
       CHOICE_ADD(results,val);
@@ -321,6 +324,7 @@ static lispval withreq_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   {KNO_DOLIST(ex,body) {
       if (KNO_ABORTP(result)) {
         kno_use_reqinfo(EMPTY);
+	kno_decref(reqdata);
         kno_reqlog(-1);
         return result;}
       kno_decref(result);
