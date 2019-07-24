@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-07-16 21:02-0400\n"
+"POT-Creation-Date: 2019-07-23 20:38-0400\n"
 "PO-Revision-Date: 2005-03-05 16:06-0500\n"
 "Last-Translator: Kenneth Haase <kh@beingmeta.com>\n"
 "Language-Team: French <traduc@traduc.org>\n"
@@ -145,16 +145,16 @@ msgid "SecretData"
 msgstr ""
 
 #: src/lisp/sequences.c:154 src/lisp/sequences.c:249 src/lisp/sequences.c:780
-#: src/eval/opcode_defs.c:98 src/eval/opcode_defs.c:105
-#: src/eval/opcode_defs.c:331 src/eval/opcode_defs.c:335
+#: src/eval/opcode_defs.c:99 src/eval/opcode_defs.c:106
+#: src/eval/opcode_defs.c:332 src/eval/opcode_defs.c:336
 #: src/prims/dbprims.c:3178 src/prims/dbprims.c:3180 src/prims/seqprims.c:345
 #: src/prims/seqprims.c:356 src/prims/seqprims.c:365 src/prims/seqprims.c:382
 #: src/prims/seqprims.c:531 src/prims/seqprims.c:566 src/prims/seqprims.c:630
-#: src/prims/seqprims.c:655 src/prims/seqprims.c:1589 src/prims/seqprims.c:1644
-#: src/prims/seqprims.c:1677 src/prims/seqprims.c:1722
-#: src/prims/seqprims.c:1890 src/prims/seqprims.c:2204
-#: src/prims/seqprims.c:2248 src/prims/seqprims.c:2291
-#: src/prims/seqprims.c:2334 src/prims/seqprims.c:2377
+#: src/prims/seqprims.c:655 src/prims/seqprims.c:1557 src/prims/seqprims.c:1612
+#: src/prims/seqprims.c:1645 src/prims/seqprims.c:1690
+#: src/prims/seqprims.c:1858 src/prims/seqprims.c:2172
+#: src/prims/seqprims.c:2216 src/prims/seqprims.c:2259
+#: src/prims/seqprims.c:2302 src/prims/seqprims.c:2345
 msgid "sequence"
 msgstr "séquence"
 
@@ -163,12 +163,12 @@ msgstr "séquence"
 msgid "Not a sequence"
 msgstr "séquence"
 
-#: src/lisp/sequences.c:675 src/lisp/lisp.c:197 src/prims/seqprims.c:1707
-#: src/prims/seqprims.c:1716
+#: src/lisp/sequences.c:675 src/lisp/lisp.c:197 src/prims/seqprims.c:1675
+#: src/prims/seqprims.c:1684
 msgid "character"
 msgstr "caractère"
 
-#: src/lisp/sequences.c:688 src/prims/seqprims.c:1667
+#: src/lisp/sequences.c:688 src/prims/seqprims.c:1635
 msgid "byte"
 msgstr "octet"
 
@@ -177,24 +177,24 @@ msgstr "octet"
 msgid "sequence type"
 msgstr "séquence"
 
-#: src/lisp/sequences.c:834 src/prims/seqprims.c:2178
+#: src/lisp/sequences.c:834 src/prims/seqprims.c:2146
 msgid "short element"
 msgstr ""
 
-#: src/lisp/sequences.c:851 src/prims/seqprims.c:2222
+#: src/lisp/sequences.c:851 src/prims/seqprims.c:2190
 msgid "int element"
 msgstr ""
 
-#: src/lisp/sequences.c:867 src/prims/seqprims.c:2265
+#: src/lisp/sequences.c:867 src/prims/seqprims.c:2233
 #, fuzzy
 msgid "flonum element"
 msgstr "nombre en virgule flottante"
 
-#: src/lisp/sequences.c:883 src/prims/seqprims.c:2308
+#: src/lisp/sequences.c:883 src/prims/seqprims.c:2276
 msgid "float element"
 msgstr ""
 
-#: src/lisp/sequences.c:899 src/prims/seqprims.c:2351
+#: src/lisp/sequences.c:899 src/prims/seqprims.c:2319
 msgid "double(float) element"
 msgstr ""
 
@@ -278,11 +278,11 @@ msgstr "liste"
 msgid "binding list"
 msgstr ""
 
-#: src/lisp/tables.c:4028
+#: src/lisp/tables.c:4032
 msgid "value is not a boolean"
 msgstr "n'est pas une boolean"
 
-#: src/lisp/compounds.c:47 src/lisp/compounds.c:97
+#: src/lisp/compounds.c:38 src/lisp/compounds.c:106
 msgid "positive byte"
 msgstr ""
 
@@ -306,11 +306,11 @@ msgstr "Fin prématurée des données"
 msgid "Malformed DTYPE representation"
 msgstr "représentation «DTYPE» mal formulée"
 
-#: src/lisp/dtread.c:770
+#: src/lisp/dtread.c:766
 msgid "Use the DTBLOCK dtype code when appropriate"
 msgstr ""
 
-#: src/lisp/dtread.c:773
+#: src/lisp/dtread.c:769
 msgid "whether to check returned and real dtype sizes"
 msgstr ""
 
@@ -402,12 +402,12 @@ msgstr "ne peut écrire objet à une chaîne"
 msgid "no handler"
 msgstr "opération pas supporté"
 
-#: src/lisp/unparse.c:495
+#: src/lisp/unparse.c:505
 #, fuzzy, c-format
 msgid "#<MysteryVector 0x%x/0x%x %lld elements>"
 msgstr "#<Objet Composée Mystérieux 0x%x/0x%x %d  éléments>"
 
-#: src/lisp/unparse.c:498
+#: src/lisp/unparse.c:508
 #, fuzzy, c-format
 msgid "#<MysteryPacket 0x%x/0x%x %lld bytes>"
 msgstr "#<Paquet Mystérieux 0x%x/0x%x %d bytes>"
@@ -428,8 +428,8 @@ msgstr ""
 msgid "oid"
 msgstr "oid"
 
-#: src/lisp/lisp.c:193 src/sys/config.c:761 src/eval/eval.c:1445
-#: src/eval/opcode_defs.c:106 src/prims/dbprims.c:3109
+#: src/lisp/lisp.c:193 src/sys/config.c:761 src/eval/eval.c:1450
+#: src/eval/opcode_defs.c:107 src/prims/dbprims.c:3109
 #: src/prims/portprims.c:640 src/eval/choiceops.c:1455
 #: src/eval/choiceops.c:1493 src/eval/choiceops.c:1519
 #: src/eval/choiceops.c:1555 src/eval/choiceops.c:1569
@@ -457,8 +457,8 @@ msgid "constant"
 msgstr "constante"
 
 # bfd
-#: src/lisp/lisp.c:198 src/eval/eval.c:1287 src/eval/modules.c:462
-#: src/eval/reflection.c:992
+#: src/lisp/lisp.c:198 src/eval/eval.c:1292 src/eval/modules.c:368
+#: src/eval/reflection.c:998
 msgid "symbol"
 msgstr "symbole"
 
@@ -466,11 +466,11 @@ msgstr "symbole"
 msgid "fcnid"
 msgstr ""
 
-#: src/lisp/lisp.c:200 src/eval/eval.c:1962
+#: src/lisp/lisp.c:200 src/eval/eval.c:2099
 msgid "lexref"
 msgstr ""
 
-#: src/lisp/lisp.c:201 src/eval/eval.c:1968
+#: src/lisp/lisp.c:201 src/eval/eval.c:2105
 msgid "opcode"
 msgstr ""
 
@@ -480,7 +480,7 @@ msgstr ""
 msgid "typeref"
 msgstr "Erreur de type"
 
-#: src/lisp/lisp.c:203 src/eval/eval.c:1966
+#: src/lisp/lisp.c:203 src/eval/eval.c:2103
 msgid "coderef"
 msgstr ""
 
@@ -534,38 +534,38 @@ msgid "bigint"
 msgstr "nombre entier grande"
 
 # coreutils
-#: src/lisp/lisp.c:212 src/eval/eval.c:1446 src/eval/opcode_defs.c:302
-#: src/eval/opcode_defs.c:304 src/eval/opcode_defs.c:317
-#: src/eval/opcode_defs.c:319
+#: src/lisp/lisp.c:212 src/eval/eval.c:1451 src/eval/opcode_defs.c:303
+#: src/eval/opcode_defs.c:305 src/eval/opcode_defs.c:318
+#: src/eval/opcode_defs.c:320
 msgid "pair"
 msgstr "paire"
 
-#: src/lisp/lisp.c:214
+#: src/lisp/lisp.c:213
+msgid "cdrcode"
+msgstr ""
+
+#: src/lisp/lisp.c:215
 msgid "compound"
 msgstr "object composée"
 
-#: src/lisp/lisp.c:215
+#: src/lisp/lisp.c:216
 msgid "choice"
 msgstr "choix"
 
-#: src/lisp/lisp.c:216
+#: src/lisp/lisp.c:217
 #, fuzzy
 msgid "prechoice"
 msgstr "choix"
 
-#: src/lisp/lisp.c:217
+#: src/lisp/lisp.c:218
 #, fuzzy
 msgid "qchoice"
 msgstr "choix"
 
 # vector
-#: src/lisp/lisp.c:218
+#: src/lisp/lisp.c:219
 msgid "vector"
 msgstr "vecteur"
-
-#: src/lisp/lisp.c:219
-msgid "matrix"
-msgstr ""
 
 # vector
 #: src/lisp/lisp.c:220
@@ -573,123 +573,129 @@ msgstr ""
 msgid "numeric_vector"
 msgstr "vecteur"
 
-#: src/lisp/lisp.c:222
+# gnumeric
+#: src/lisp/lisp.c:221
+#, fuzzy
+msgid "typeinfo"
+msgstr "Erreur de type"
+
+#: src/lisp/lisp.c:223
 msgid "slotmap"
 msgstr "slotmap"
 
-#: src/lisp/lisp.c:223
+#: src/lisp/lisp.c:224
 msgid "schemap"
 msgstr "schemap"
 
-#: src/lisp/lisp.c:224
+#: src/lisp/lisp.c:225
 msgid "hashtable"
 msgstr "table de hachage"
 
-#: src/lisp/lisp.c:225 src/prims/tableprims.c:971 src/text/match.c:3421
+#: src/lisp/lisp.c:226 src/prims/tableprims.c:971 src/text/match.c:3421
 #: src/text/match.c:3457 src/text/match.c:3483 src/text/match.c:3525
 #, fuzzy
 msgid "hashset"
 msgstr "table de hachage"
 
-#: src/lisp/lisp.c:227
+#: src/lisp/lisp.c:228
 msgid "cprim"
 msgstr ""
 
-#: src/lisp/lisp.c:228
+#: src/lisp/lisp.c:229
 msgid "lexenv"
 msgstr ""
 
-#: src/lisp/lisp.c:229
+#: src/lisp/lisp.c:230
 msgid "evalfn"
 msgstr ""
 
-#: src/lisp/lisp.c:230
+#: src/lisp/lisp.c:231
 msgid "macro"
 msgstr ""
 
-#: src/lisp/lisp.c:231 src/storage/dtproc.c:120
+#: src/lisp/lisp.c:232 src/storage/dtproc.c:124
 msgid "dtproc"
 msgstr ""
 
-#: src/lisp/lisp.c:232
+#: src/lisp/lisp.c:233
 msgid "stackframe"
 msgstr ""
 
-#: src/lisp/lisp.c:233
+#: src/lisp/lisp.c:234
 msgid "tailcall"
 msgstr ""
 
-#: src/lisp/lisp.c:234
+#: src/lisp/lisp.c:235
 msgid "lambda"
 msgstr ""
 
-#: src/lisp/lisp.c:235
+#: src/lisp/lisp.c:236
 msgid "ffi"
 msgstr ""
 
-#: src/lisp/lisp.c:236
+#: src/lisp/lisp.c:237
 msgid "exception"
 msgstr ""
 
-#: src/lisp/lisp.c:238
+#: src/lisp/lisp.c:239
 msgid "complex"
 msgstr ""
 
-#: src/lisp/lisp.c:239
+#: src/lisp/lisp.c:240
 msgid "rational"
 msgstr ""
 
-#: src/lisp/lisp.c:240
+#: src/lisp/lisp.c:241
 msgid "flonum"
 msgstr "nombre en virgule flottante"
 
-#: src/lisp/lisp.c:242
+#: src/lisp/lisp.c:243
 msgid "timestamp"
 msgstr ""
 
-#: src/lisp/lisp.c:243
+#: src/lisp/lisp.c:244
 msgid "uuid"
 msgstr ""
 
-#: src/lisp/lisp.c:245
+#: src/lisp/lisp.c:246
 msgid "mystery"
 msgstr "objet mystérieux"
 
 # discover
-#: src/lisp/lisp.c:246
+#: src/lisp/lisp.c:247
 #, fuzzy
 msgid "ioport"
 msgstr "port"
 
-#: src/lisp/lisp.c:247
+#: src/lisp/lisp.c:248
 msgid "stream"
 msgstr ""
 
-#: src/lisp/lisp.c:249
+#: src/lisp/lisp.c:250
 msgid "regex"
 msgstr ""
 
 # gas
-#: src/lisp/lisp.c:251
+#: src/lisp/lisp.c:252
 #, fuzzy
 msgid "consblock"
 msgstr "constante"
 
-#: src/lisp/lisp.c:253
+#: src/lisp/lisp.c:254
 msgid "rawptr"
 msgstr ""
 
 # gnumeric
-#: src/lisp/lisp.c:254
+#: src/lisp/lisp.c:255
 #, fuzzy
 msgid "dtserver"
 msgstr "Erreur de type"
 
-#: src/lisp/lisp.c:255
+#: src/lisp/lisp.c:256
 msgid "bloom_filter"
 msgstr ""
 
-#: src/lisp/lisp.c:303
+#: src/lisp/lisp.c:304
 msgid "RUSAGE Failed"
 msgstr ""
 
@@ -710,87 +716,87 @@ msgstr "fichier non repéré"
 msgid "File does not exist"
 msgstr "«test» opération pas supporté"
 
-#: src/sys/support.c:184
+#: src/sys/support.c:183
 #, fuzzy
 msgid "Max number of chars to show in strings"
 msgstr "trop peu de arguments à «find-frames»"
 
-#: src/sys/support.c:189
+#: src/sys/support.c:188
 msgid "Max number of elements to show in vectors/lists/choices, etc"
 msgstr ""
 
-#: src/sys/support.c:193
+#: src/sys/support.c:192
 #, fuzzy
 msgid "Max number of elements to show in numeric vectors"
 msgstr "trop peu de arguments à «find-frames»"
 
-#: src/sys/support.c:198
+#: src/sys/support.c:197
 msgid "How to dump packets to ASCII (16 = hex,64 = base64,dflt = ascii-ish)"
 msgstr ""
 
-#: src/sys/support.c:202
+#: src/sys/support.c:201
 msgid "Whether to use custom formatting for OIDs"
 msgstr ""
 
-#: src/sys/support.c:207
+#: src/sys/support.c:206
 #, fuzzy
 msgid "Maximum number of characters when pprinting strings"
 msgstr "trop peu de arguments à «find-frames»"
 
-#: src/sys/support.c:211
+#: src/sys/support.c:210
 msgid "Maximum number of bytes when pprinting packets"
 msgstr ""
 
-#: src/sys/support.c:215
+#: src/sys/support.c:214
 #, fuzzy
 msgid "Maximum number of elements when pprinting sequences or choices"
 msgstr "trop peu de arguments à «find-frames»"
 
-#: src/sys/support.c:220
+#: src/sys/support.c:219
 msgid "Maximum depth for recursive printing"
 msgstr ""
 
-#: src/sys/support.c:224
+#: src/sys/support.c:223
 #, fuzzy
 msgid "Maximum number of elements when pprinting lists"
 msgstr "trop peu de arguments à «find-frames»"
 
-#: src/sys/support.c:228
+#: src/sys/support.c:227
 #, fuzzy
 msgid "Maximum number of elements when pprinting vectors"
 msgstr "trop peu de arguments à «find-frames»"
 
-#: src/sys/support.c:232
+#: src/sys/support.c:231
 #, fuzzy
 msgid "Maximum number of elements when pprinting choices"
 msgstr "trop peu de arguments à «find-frames»"
 
-#: src/sys/support.c:236
+#: src/sys/support.c:235
 #, fuzzy
 msgid "Maximum number of keys when pprinting tables"
 msgstr "trop peu de arguments à «find-frames»"
 
-#: src/sys/support.c:241
+#: src/sys/support.c:240
 msgid "PPRINT indentation rules"
 msgstr ""
 
-#: src/sys/support.c:245
+#: src/sys/support.c:244
 msgid "value of LOCAL_MODULES"
 msgstr ""
 
-#: src/sys/support.c:247
+#: src/sys/support.c:246
 msgid "value of INSTALLED_MODULES"
 msgstr ""
 
-#: src/sys/support.c:249
+#: src/sys/support.c:248
 msgid "value of SHARED_MODULES"
 msgstr ""
 
-#: src/sys/support.c:251
+#: src/sys/support.c:250
 msgid "value of STDLIB_MODULES"
 msgstr ""
 
-#: src/sys/support.c:254
+#: src/sys/support.c:253
 msgid "value of UNPACKAGE_DIR"
 msgstr ""
 
@@ -871,8 +877,8 @@ msgstr ""
 msgid "The default group for the ucrrent process"
 msgstr ""
 
-#: src/sys/errobjs.c:290 src/sys/errobjs.c:297 src/eval/modules.c:70
-#: src/eval/modules.c:94
+#: src/sys/errobjs.c:290 src/sys/errobjs.c:297 src/eval/modules.c:49
+#: src/eval/modules.c:73
 #, c-format
 msgid "object is not a %m"
 msgstr ""
@@ -1215,23 +1221,23 @@ msgstr ""
 msgid "Internal stack size didn't make any sense, punting"
 msgstr ""
 
-#: src/apply/apply.c:551
+#: src/apply/apply.c:554
 msgid "Negative arg count"
 msgstr ""
 
-#: src/apply/apply.c:1098
+#: src/apply/apply.c:1106
 msgid "Definition Failed"
 msgstr ""
 
-#: src/apply/apply.c:1224
+#: src/apply/apply.c:1232
 msgid "Size of the stack (in bytes or as a factor of the current size)"
 msgstr ""
 
-#: src/apply/apply.c:1228
+#: src/apply/apply.c:1236
 msgid "Whether to profile function applications by default"
 msgstr ""
 
-#: src/apply/apply.c:1232
+#: src/apply/apply.c:1240
 msgid "Functions declared for profiling"
 msgstr ""
 
@@ -1264,7 +1270,7 @@ msgstr "pas une fonction"
 msgid "FFI type error"
 msgstr "Erreur de type"
 
-#: src/apply/ffi.c:449
+#: src/apply/ffi.c:448
 msgid "Not an foreign function interface"
 msgstr ""
 
@@ -1792,7 +1798,7 @@ msgstr ""
 msgid "raw pool"
 msgstr "pas une fichiers d'index"
 
-#: src/storage/pools.c:2855
+#: src/storage/pools.c:2854
 msgid "Default location for new OID allocation"
 msgstr ""
 
@@ -2003,103 +2009,103 @@ msgstr ""
 msgid "NotMemindex"
 msgstr "index"
 
-#: src/eval/eval.c:56
+#: src/eval/eval.c:57
 msgid "Continuation is no longer valid"
 msgstr ""
 
-#: src/eval/eval.c:57
+#: src/eval/eval.c:58
 msgid "Continuation used twice"
 msgstr ""
 
-#: src/eval/eval.c:58
+#: src/eval/eval.c:59
 msgid "Lost invoked continuation"
 msgstr ""
 
-#: src/eval/eval.c:60
+#: src/eval/eval.c:61
 msgid "SCHEME expression syntax error"
 msgstr "Expression exécutable mal formulée"
 
-#: src/eval/eval.c:61
+#: src/eval/eval.c:62
 #, fuzzy
 msgid "invalid macro transformer"
 msgstr "«cond» expression mal formulée"
 
 # binutils
-#: src/eval/eval.c:62
+#: src/eval/eval.c:63
 msgid "the variable is unbound"
 msgstr "variable non définie"
 
-#: src/eval/eval.c:63
+#: src/eval/eval.c:64
 msgid "VOID result passed as argument"
 msgstr ""
 
-#: src/eval/eval.c:64
+#: src/eval/eval.c:65
 msgid "VOID result used as variable binding"
 msgstr ""
 
-#: src/eval/eval.c:65
+#: src/eval/eval.c:66
 msgid "VOID result used as sort key"
 msgstr ""
 
-#: src/eval/eval.c:66
+#: src/eval/eval.c:67
 msgid "Unexpected VOID result returned"
 msgstr ""
 
-#: src/eval/eval.c:67
+#: src/eval/eval.c:68
 msgid "VOID result as boolean value"
 msgstr ""
 
-#: src/eval/eval.c:68
+#: src/eval/eval.c:69
 msgid "not an identifier"
 msgstr "pas une identificateur"
 
 # aptitude
-#: src/eval/eval.c:69
+#: src/eval/eval.c:70
 #, fuzzy
 msgid "too few subexpressions"
 msgstr "trop peu de expressions"
 
-#: src/eval/eval.c:70
+#: src/eval/eval.c:71
 msgid "can't add binding to environment"
 msgstr ""
 
-#: src/eval/eval.c:71
+#: src/eval/eval.c:72
 msgid "Read only environment"
 msgstr ""
 
-#: src/eval/eval.c:284
+#: src/eval/eval.c:285
 msgid "opcode name"
 msgstr ""
 
-#: src/eval/eval.c:694 src/eval/reflection.c:778
+#: src/eval/eval.c:695 src/eval/reflection.c:784
 msgid "macro expansion"
 msgstr ""
 
-#: src/eval/eval.c:1057 src/eval/opcode_defs.c:375 src/eval/opcode_defs.c:479
-#: src/eval/opcode_defs.c:504 src/eval/opcode_defs.c:612
-#: src/eval/opcode_defs.c:671
+#: src/eval/eval.c:1062 src/eval/opcode_defs.c:376 src/eval/opcode_defs.c:480
+#: src/eval/opcode_defs.c:505 src/eval/opcode_defs.c:613
+#: src/eval/opcode_defs.c:672
 #, fuzzy
 msgid "Invalid opcode"
 msgstr "constante invalide"
 
-#: src/eval/eval.c:1309 src/eval/reflection.c:952 src/eval/reflection.c:1009
+#: src/eval/eval.c:1314 src/eval/reflection.c:958 src/eval/reflection.c:1015
 msgid "environment"
 msgstr ""
 
 # gnumeric
-#: src/eval/opcode_defs.c:390 src/eval/arith.c:295
+#: src/eval/opcode_defs.c:391 src/eval/arith.c:295
 #, fuzzy
 msgid "number"
 msgstr "nombre"
 
 # bfd
-#: src/eval/opcode_defs.c:465
+#: src/eval/opcode_defs.c:466
 #, fuzzy
 msgid "number|string"
 msgstr "chaîne"
 
-#: src/eval/opcode_defs.c:469 src/eval/opcode_defs.c:473
-#: src/eval/opcode_defs.c:477 src/prims/dbprims.c:2185
+#: src/eval/opcode_defs.c:470 src/eval/opcode_defs.c:474
+#: src/eval/opcode_defs.c:478 src/prims/dbprims.c:2185
 #: src/prims/tableprims.c:770 src/prims/tableprims.c:792
 #: src/prims/tableprims.c:821 src/prims/tableprims.c:891 src/web/htmlout.c:598
 #: src/web/uriprims.c:204 src/web/uriprims.c:206 src/web/uriprims.c:305
@@ -2228,23 +2234,18 @@ msgstr "ne peut repérer le module"
 msgid "Can't switch to opaque module"
 msgstr "ne peut repérer le module"
 
-#: src/eval/modules.c:248
+#: src/eval/modules.c:208
 msgid "Anonymous module"
 msgstr ""
 
-#: src/eval/modules.c:308
-#, fuzzy
-msgid "not a module"
-msgstr "pas une fichiers d'index"
-
-#: src/eval/modules.c:347
+#: src/eval/modules.c:253
 #, fuzzy
 msgid "Can't reload a read-only module"
 msgstr "ne peut repérer le module"
 
-#: src/eval/modules.c:725 src/eval/reflection.c:817 src/eval/reflection.c:836
-#: src/eval/reflection.c:861 src/eval/reflection.c:910
-#: src/eval/reflection.c:915
+#: src/eval/modules.c:605 src/eval/reflection.c:823 src/eval/reflection.c:842
+#: src/eval/reflection.c:867 src/eval/reflection.c:916
+#: src/eval/reflection.c:921
 msgid "module"
 msgstr ""
 
@@ -2262,24 +2263,24 @@ msgstr "fichier non repéré"
 msgid "Load Eval"
 msgstr ""
 
-#: src/eval/reflection.c:107 src/eval/reflection.c:150
-#: src/eval/reflection.c:182 src/eval/reflection.c:206
-#: src/eval/reflection.c:230 src/eval/choiceops.c:531 src/eval/choiceops.c:639
+#: src/eval/reflection.c:107 src/eval/reflection.c:152
+#: src/eval/reflection.c:184 src/eval/reflection.c:208
+#: src/eval/reflection.c:232 src/eval/choiceops.c:531 src/eval/choiceops.c:639
 #: src/prims/seqprims.c:669 src/prims/seqprims.c:707
 msgid "function"
 msgstr ""
 
-#: src/eval/reflection.c:332 src/eval/reflection.c:346
-#: src/eval/reflection.c:362 src/eval/reflection.c:375
+#: src/eval/reflection.c:334 src/eval/reflection.c:348
+#: src/eval/reflection.c:364 src/eval/reflection.c:377
 msgid "procedure"
 msgstr ""
 
-#: src/eval/reflection.c:795 src/eval/configops.c:82 src/eval/configops.c:147
-#: src/eval/configops.c:172 src/cmodules/sqlite.c:161
+#: src/eval/reflection.c:801 src/eval/configops.c:82 src/eval/configops.c:147
+#: src/eval/configops.c:172 src/cmodules/sqlite.c:162
 msgid "string or symbol"
 msgstr "chaîne ou symbole"
 
-#: src/eval/compoundfns.c:205 src/eval/compoundfns.c:281
+#: src/eval/compoundfns.c:216 src/eval/compoundfns.c:322
 msgid "Immutable record"
 msgstr ""
 
@@ -2442,11 +2443,11 @@ msgstr ""
 msgid "test"
 msgstr ""
 
-#: src/prims/seqprims.c:1570
+#: src/prims/seqprims.c:1538
 msgid "positive"
 msgstr ""
 
-#: src/prims/seqprims.c:1852
+#: src/prims/seqprims.c:1820
 msgid "Corrputed numerical vector"
 msgstr ""
 
@@ -2545,15 +2546,15 @@ msgstr ""
 msgid "Module does not exist"
 msgstr ""
 
-#: src/eval/loadmods.c:680
+#: src/eval/loadmods.c:681
 msgid "FailedModule"
 msgstr ""
 
-#: src/eval/loadmods.c:684
+#: src/eval/loadmods.c:685
 msgid "DynamicLoad"
 msgstr ""
 
-#: src/eval/loadmods.c:757
+#: src/eval/loadmods.c:758
 msgid "module name"
 msgstr ""
 
@@ -3348,7 +3349,7 @@ msgstr ""
 msgid "ODBC error"
 msgstr "Erreur de type"
 
-#: src/cmodules/sqlite.c:53
+#: src/cmodules/sqlite.c:54
 msgid "SQLite Error"
 msgstr ""
 
@@ -3361,11 +3362,11 @@ msgstr "Réponse mal formulée d'un serveur"
 msgid "MYSQL unused parameter type"
 msgstr ""
 
-#: src/cmodules/mysql.c:123
+#: src/cmodules/mysql.c:124
 msgid "MySQL Error"
 msgstr ""
 
-#: src/cmodules/mysql.c:124
+#: src/cmodules/mysql.c:125
 msgid "Can't convert value to SQL"
 msgstr ""
 
@@ -3534,6 +3535,10 @@ msgstr ""
 #: src/exe/webcommon.h:733
 msgid "WEBMAIN default procedure for handling requests"
 msgstr ""
+
+#, fuzzy
+#~ msgid "not a module"
+#~ msgstr "pas une fichiers d'index"
 
 #, fuzzy
 #~ msgid "quoted choice"

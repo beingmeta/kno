@@ -106,7 +106,7 @@
 (errtest (procedure-name "procedure"))
 
 (applytester #("pair") procedure-typeinfo car)
-(applytester #(%void) procedure-default car)
+(applytester #(%void) procedure-defaults car)
 (applytester #(#f #f #f #f) procedure-typeinfo position)
 (applytester #(%void %void 0 #f) procedure-defaults position)
 
@@ -115,7 +115,7 @@
 		   (list (lambda (x) (1+ x)) 
 			 (macro expr `(+ 2 3)))))
 (evaltest #f (with-sourcebase #f (get-source)))
-(applytest #f get-source (withenv (%env)))
+(applytest #f get-source (withenv #f (%env)))
 (applytest #f get-source #[x 3])
 (applytest #f get-source (with-sourcebase #f (lambda (x) x)))
 (applytest has-suffix "stringfmts.scm" get-source (get (get-module 'stringfmts) 'show%))
@@ -143,6 +143,7 @@
 (applytester #("string" #f #f) procedure-typeinfo load->env)
 (applytester #(%void %void %void) procedure-defaults load->env)
 
+(applytest has-prefix (procedure-filename if) procedure-fileinfo if)
 (applytest has-prefix (procedure-filename car) procedure-fileinfo car)
 (applytest has-prefix (procedure-filename show%) procedure-fileinfo show%)
 
@@ -304,7 +305,8 @@
 (applytest #t reflect/profiled? arity-test)
 (applytest #f reflect/profiled? car)
 (errtest (reflect/profile! if))
-(errtest (reflect/profile! car #f))
+(errtest (reflect/profile! arity-test #f))
+(evaltest #t (reflect/profile! arity-test #t))
 (applytest #f reflect/profiled? if)
 
 (define (ctest3 i) (1+ i))

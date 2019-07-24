@@ -76,10 +76,9 @@
      (applytest #f equal? string (req/getlog))))
  )
 
-(errtest
- (with/request 
+(with/request 
   (req/set! 'alpha 9)
-  (req/log (append "foo" 3) "Error")))
+  (req/log (append "foo" 3) "Error"))
 
 (with/request 
  (req/set! 'alpha 9)
@@ -89,7 +88,7 @@
  (req/set! 'alpha 9)
  (req/log 'beta "No error"))
 
-(with-request
+(with/request
  (req/set! 'alpha 9)
  (req/log 'inerr "There was " (1+ "zero") " error"))
 

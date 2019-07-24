@@ -172,7 +172,8 @@
     (applytest string? lisp->string list-id)
     (applytest fcnid? fcnid/register prim-id)
     (applytest 'err fcnid/set! lambda-id 3)
-    (apply)))
+    (%wc fcnid/set! lambda-id test-macros)
+    (applytest eq? lambda-id fcnid/set! lambda-id test-macros)))
 
 (test-fcnids)
 
