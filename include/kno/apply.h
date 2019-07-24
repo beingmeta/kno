@@ -55,114 +55,64 @@ typedef lispval (*kno_cprim5)(lispval,lispval,lispval,lispval,lispval);
 typedef lispval (*kno_cprim6)(lispval,lispval,lispval,lispval,lispval,lispval);
 typedef lispval (*kno_cprim7)(lispval,lispval,lispval,lispval,lispval,lispval,lispval);
 typedef lispval (*kno_cprim8)(lispval,lispval,lispval,
-                             lispval,lispval,lispval,
-                             lispval,lispval);
+			     lispval,lispval,lispval,
+			     lispval,lispval);
 typedef lispval (*kno_cprim9)(lispval,lispval,lispval,
-                             lispval,lispval,lispval,
-                             lispval,lispval,lispval);
+			     lispval,lispval,lispval,
+			     lispval,lispval,lispval);
 typedef lispval (*kno_cprim10)(lispval,lispval,lispval,
-                              lispval,lispval,lispval,
-                              lispval,lispval,lispval,
-                              lispval);
+			      lispval,lispval,lispval,
+			      lispval,lispval,lispval,
+			      lispval);
 typedef lispval (*kno_cprim11)(lispval,lispval,lispval,
-                              lispval,lispval,lispval,
-                              lispval,lispval,lispval,
-                              lispval,lispval);
+			      lispval,lispval,lispval,
+			      lispval,lispval,lispval,
+			      lispval,lispval);
 typedef lispval (*kno_cprim12)(lispval,lispval,lispval,
-                              lispval,lispval,lispval,
-                              lispval,lispval,lispval,
-                              lispval,lispval,lispval);
+			      lispval,lispval,lispval,
+			      lispval,lispval,lispval,
+			      lispval,lispval,lispval);
 typedef lispval (*kno_cprim13)(lispval,lispval,lispval,
-                              lispval,lispval,lispval,
-                              lispval,lispval,lispval,
-                              lispval,lispval,lispval,
-                              lispval);
+			      lispval,lispval,lispval,
+			      lispval,lispval,lispval,
+			      lispval,lispval,lispval,
+			      lispval);
 typedef lispval (*kno_cprim14)(lispval,lispval,lispval,
-                              lispval,lispval,lispval,
-                              lispval,lispval,lispval,
-                              lispval,lispval,lispval,
-                              lispval,lispval);
+			      lispval,lispval,lispval,
+			      lispval,lispval,lispval,
+			      lispval,lispval,lispval,
+			      lispval,lispval);
 typedef lispval (*kno_cprim15)(lispval,lispval,lispval,
-                              lispval,lispval,lispval,
-                              lispval,lispval,lispval,
-                              lispval,lispval,lispval,
-                              lispval,lispval,lispval);
+			      lispval,lispval,lispval,
+			      lispval,lispval,lispval,
+			      lispval,lispval,lispval,
+			      lispval,lispval,lispval);
 typedef lispval (*kno_cprimn)(int n,lispval *);
 
-typedef lispval (*kno_xprim0)(kno_function);
-typedef lispval (*kno_xprim1)(kno_function,lispval);
-typedef lispval (*kno_xprim2)(kno_function,lispval,lispval);
-typedef lispval (*kno_xprim3)(kno_function,lispval,lispval,lispval);
-typedef lispval (*kno_xprim4)(kno_function,lispval,lispval,lispval,lispval);
-typedef lispval (*kno_xprim5)(kno_function,
-                             lispval,lispval,lispval,lispval,lispval);
-typedef lispval (*kno_xprim6)(kno_function,lispval,lispval,
-                             lispval,lispval,lispval,lispval);
-typedef lispval (*kno_xprim7)(kno_function,lispval,lispval,
-                             lispval,lispval,lispval,lispval,lispval);
-typedef lispval (*kno_xprim8)(kno_function,lispval,lispval,
-                             lispval,lispval,lispval,lispval,lispval,lispval);
-typedef lispval (*kno_xprim9)(kno_function,
-                             lispval,lispval,lispval,
-                             lispval,lispval,lispval,
-                             lispval,lispval,lispval);
-typedef lispval (*kno_xprim10)(kno_function,
-                              lispval,lispval,lispval,
-                              lispval,lispval,lispval,
-                              lispval,lispval,lispval,
-                              lispval);
-typedef lispval (*kno_xprim11)(kno_function,
-                              lispval,lispval,lispval,
-                              lispval,lispval,lispval,
-                              lispval,lispval,lispval,
-                              lispval,lispval);
-typedef lispval (*kno_xprim12)(kno_function,
-                              lispval,lispval,lispval,
-                              lispval,lispval,lispval,
-                              lispval,lispval,lispval,
-                              lispval,lispval,lispval);
-typedef lispval (*kno_xprim13)(kno_function,
-                              lispval,lispval,lispval,
-                              lispval,lispval,lispval,
-                              lispval,lispval,lispval,
-                              lispval,lispval,lispval,
-                              lispval);
-typedef lispval (*kno_xprim14)(kno_function,
-                              lispval,lispval,lispval,
-                              lispval,lispval,lispval,
-                              lispval,lispval,lispval,
-                              lispval,lispval,lispval,
-                              lispval,lispval);
-typedef lispval (*kno_xprim15)(kno_function,
-                              lispval,lispval,lispval,
-                              lispval,lispval,lispval,
-                              lispval,lispval,lispval,
-                              lispval,lispval,lispval,
-                              lispval,lispval,lispval);
 typedef lispval (*kno_xprimn)(kno_stack,kno_function,int n,lispval *);
 
-#define KNO_FUNCTION_FIELDS                                                \
-  KNO_CONS_HEADER;                                                         \
-  u8_string fcn_name, fcn_filename;                                       \
-  u8_string fcn_doc;                                                      \
-  lispval fcn_moduleid;                                                   \
-  unsigned char fcn_call, fcn_trace, fcn_free, fcn_other;               \
-  lispval fcnid;                                                          \
-  short fcn_arity, fcn_min_arity;                                         \
-  lispval fcn_attribs;                                                    \
-  int *fcn_typeinfo;                                                      \
-  lispval *fcn_defaults;                                                  \
-  struct KNO_PROFILE *fcn_profile;                                         \
-  union {                                                                 \
-    kno_cprim0 call0; kno_cprim1 call1; kno_cprim2 call2;                    \
-    kno_cprim3 call3; kno_cprim4 call4; kno_cprim5 call5;                    \
-    kno_cprim6 call6; kno_cprim7 call7; kno_cprim8 call8;                    \
-    kno_cprim9 call9; kno_cprim10 call10; kno_cprim11 call11;                \
-    kno_cprim12 call12; kno_cprim13 call13; kno_cprim14 call14;              \
-    kno_cprim15 call15;                                                    \
-    kno_cprimn calln;                                                      \
-    kno_xprimn xcalln;                                                     \
-    void *fnptr;}                                                         \
+#define KNO_FUNCTION_FIELDS						   \
+  KNO_CONS_HEADER;							   \
+  u8_string fcn_name, fcn_filename;					  \
+  u8_string fcn_doc;							  \
+  lispval fcn_moduleid;							  \
+  unsigned char fcn_call, fcn_trace, fcn_free, fcn_other;		\
+  lispval fcnid;							  \
+  short fcn_arity, fcn_min_arity;					  \
+  lispval fcn_attribs;							  \
+  int *fcn_typeinfo;							  \
+  lispval *fcn_defaults;						  \
+  struct KNO_PROFILE *fcn_profile;					   \
+  union {								  \
+    kno_cprim0 call0; kno_cprim1 call1; kno_cprim2 call2;		     \
+    kno_cprim3 call3; kno_cprim4 call4; kno_cprim5 call5;		     \
+    kno_cprim6 call6; kno_cprim7 call7; kno_cprim8 call8;		     \
+    kno_cprim9 call9; kno_cprim10 call10; kno_cprim11 call11;		     \
+    kno_cprim12 call12; kno_cprim13 call13; kno_cprim14 call14;		     \
+    kno_cprim15 call15;							   \
+    kno_cprimn calln;							   \
+    kno_xprimn xcalln;							   \
+    void *fnptr;}							  \
     fcn_handler
 
 #define KNO_FCN_FREE_DOC 1
@@ -189,7 +139,7 @@ typedef lispval (*kno_xprimn)(kno_stack,kno_function,int n,lispval *);
 #define KNO_FCN_NOTAILP(f) ( ((f)->fcn_call) & (KNO_FCN_CALL_NOTAIL) )
 #define KNO_FCN_XCALLP(f) ( ((f)->fcn_call) & (KNO_FCN_CALL_XCALL) )
 
-#define KNO_FCN_FREE_DOCP(f)      ( ((f)->fcn_free) & (KNO_FCN_FREE_DOC) )
+#define KNO_FCN_FREE_DOCP(f)	  ( ((f)->fcn_free) & (KNO_FCN_FREE_DOC) )
 #define KNO_FCN_FREE_TYPEINFOP(f) ( ((f)->fcn_free) & (KNO_FCN_FREE_TYPEINFO) )
 #define KNO_FCN_FREE_DEFAULTSP(f) ( ((f)->fcn_free) & (KNO_FCN_FREE_DEFAULTS) )
 
@@ -211,7 +161,7 @@ typedef struct KNO_CPRIM_INFO {
 KNO_EXPORT u8_string kno_fcn_sig(struct KNO_FUNCTION *fcn,u8_byte namebuf[100]);
 
 KNO_EXPORT lispval kno_init_cprim2(u8_string name,u8_string cname,u8_string filename,u8_string doc,kno_cprim2 fn,int flags,
-                                 int types[2],lispval dflts[2]);
+				 int types[2],lispval dflts[2]);
 
 KNO_EXPORT struct KNO_CPRIM *kno_init_cprim
 (u8_string name,u8_string cname,
@@ -245,20 +195,20 @@ KNO_EXPORT lispval kno_cons_cprimN
 
 #define kno_make_cprim0(name,fn,flags,doc) \
   kno_cons_cprim0(name,# name,\
-                  _FILEINFO " L#" STRINGIFY(__LINE__),  \
-                  doc,flags,fn)
+		  _FILEINFO " L#" STRINGIFY(__LINE__),	\
+		  doc,flags,fn)
 #define kno_make_cprim1(name,fn,flags,doc) \
   kno_cons_cprim1(name,# name,\
-                  _FILEINFO " L#" STRINGIFY(__LINE__),  \
-                  doc,flags,fn)
+		  _FILEINFO " L#" STRINGIFY(__LINE__),	\
+		  doc,flags,fn)
 #define kno_make_cprim2(name,fn,flags,doc) \
   kno_cons_cprim2(name,# name,\
-                  _FILEINFO " L#" STRINGIFY(__LINE__),  \
-                  doc,flags,fn)
+		  _FILEINFO " L#" STRINGIFY(__LINE__),	\
+		  doc,flags,fn)
 #define kno_make_cprim3(name,fn,flags,doc) \
   kno_cons_cprim3(name,# name,\
-                  _FILEINFO " L#" STRINGIFY(__LINE__),  \
-                  doc,flags,fn)
+		  _FILEINFO " L#" STRINGIFY(__LINE__),	\
+		  doc,flags,fn)
 
 /* Adding primitives */
 
@@ -275,42 +225,42 @@ KNO_EXPORT lispval kno_cons_cprimN
 
 #define KNO_FUNCTIONP(x) \
   (KNO_FUNCTION_TYPEP(KNO_PRIM_TYPE(x)))
-#define KNO_XFUNCTION(x)                                      \
-  ((KNO_FUNCTIONP(x)) ?                                                 \
-   ((struct KNO_FUNCTION *)(KNO_CONS_DATA(kno_fcnid_ref(x)))) :         \
+#define KNO_XFUNCTION(x)				      \
+  ((KNO_FUNCTIONP(x)) ?							\
+   ((struct KNO_FUNCTION *)(KNO_CONS_DATA(kno_fcnid_ref(x)))) :		\
    ((struct KNO_FUNCTION *)(u8_raise(kno_TypeError,"function",NULL),NULL)))
-#define KNO_FUNCTION_ARITY(x)                                           \
-  ((KNO_FUNCTIONP(x)) ?                                                 \
+#define KNO_FUNCTION_ARITY(x)						\
+  ((KNO_FUNCTIONP(x)) ?							\
    (((struct KNO_FUNCTION *)(KNO_CONS_DATA(kno_fcnid_ref(x))))->fcn_arity) : \
    (0))
 
 /* #define KNO_XFUNCTION(x) (kno_consptr(struct KNO_FUNCTION *,x,kno_cprim_type)) */
-#define KNO_PRIMITIVEP(x)                                \
-  ((KNO_FCNIDP(x)) ?                                     \
-   (KNO_TYPEP((kno_fcnid_ref(x)),kno_cprim_type)) :        \
+#define KNO_PRIMITIVEP(x)				 \
+  ((KNO_FCNIDP(x)) ?					 \
+   (KNO_TYPEP((kno_fcnid_ref(x)),kno_cprim_type)) :	   \
    (KNO_TYPEP((x),kno_cprim_type)))
 
 /* Forward reference. Note that kno_lambda_type is defined in the
    pointer type enum in ptr.h. */
 
-#define KNO_LAMBDAP(x)                                   \
-  ((KNO_FCNIDP(x)) ?                                     \
-   (KNO_TYPEP((kno_fcnid_ref(x)),kno_lambda_type)) :       \
+#define KNO_LAMBDAP(x)					 \
+  ((KNO_FCNIDP(x)) ?					 \
+   (KNO_TYPEP((kno_fcnid_ref(x)),kno_lambda_type)) :	   \
    (KNO_TYPEP((x),kno_lambda_type)))
 
 KNO_EXPORT lispval kno_make_ndprim(lispval prim);
 
 /* Primitive defining macros */
 
-#define KNO_CPRIM(cname,scm_name, ...)           \
+#define KNO_CPRIM(cname,scm_name, ...)		 \
   static lispval cname(__VA_ARGS__)
-#define KNO_NDPRIM(cname,scm_name, ...)          \
+#define KNO_NDPRIM(cname,scm_name, ...)		 \
   static lispval cname(__VA_ARGS__)
 
 #define KNO_CPRIMP(x) (KNO_TYPEP(x,kno_cprim_type))
-#define KNO_XCPRIM(x)                                      \
-  ((KNO_CPRIMP(x)) ?                                                 \
-   ((struct KNO_CPRIM *)(KNO_CONS_DATA(kno_fcnid_ref(x)))) :         \
+#define KNO_XCPRIM(x)					   \
+  ((KNO_CPRIMP(x)) ?						     \
+   ((struct KNO_CPRIM *)(KNO_CONS_DATA(kno_fcnid_ref(x)))) :	     \
    ((struct KNO_CPRIM *)(u8_raise(kno_TypeError,"function",NULL),NULL)))
 
 
@@ -344,9 +294,9 @@ KNO_EXPORT ssize_t kno_init_cstack(void);
 
 /* Tail calls */
 
-#define KNO_TAILCALL_ND_ARGS     1
+#define KNO_TAILCALL_ND_ARGS	 1
 #define KNO_TAILCALL_ATOMIC_ARGS 2
-#define KNO_TAILCALL_VOID_VALUE  4
+#define KNO_TAILCALL_VOID_VALUE	 4
 
 typedef struct KNO_TAILCALL {
   KNO_CONS_HEADER;
@@ -430,14 +380,14 @@ KNO_EXPORT int _KNO_APPLICABLE_TYPEP(int typecode);
   ( ( ((typecode) >= kno_cprim_type) && ((typecode) <= kno_dtproc_type) ) || \
     ( (kno_applyfns[typecode]) != NULL) )
 
-#define KNO_APPLICABLEP(x)                       \
-  ((KNO_TYPEP(x,kno_fcnid_type)) ?                \
-   (KNO_APPLICABLE_TYPEP(KNO_FCNID_TYPE(x))) :    \
+#define KNO_APPLICABLEP(x)			 \
+  ((KNO_TYPEP(x,kno_fcnid_type)) ?		  \
+   (KNO_APPLICABLE_TYPEP(KNO_FCNID_TYPE(x))) :	  \
    (KNO_APPLICABLE_TYPEP(KNO_PRIM_TYPE(x))))
 #endif
 
-#define KNO_GETFUNCTION(x)              \
-  ((KNO_FCNIDP(x)) ?                   \
+#define KNO_GETFUNCTION(x)		\
+  ((KNO_FCNIDP(x)) ?		       \
    ((kno_function)(kno_fcnid_ref(x))) : \
    ((kno_function)x))
 
