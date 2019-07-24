@@ -1079,7 +1079,8 @@ static lispval profile_fcn_prim(lispval fcn,lispval bool)
       if (profile)
 	return kno_err("NotYetImplemented","profile_fcn_prim",
 		       "Unprofiling of functions isn't yet supported",
-		       fcn);}
+		       fcn);
+      else return KNO_FALSE;}
     else f->fcn_profile = kno_make_profile(f->fcn_name);
     return KNO_TRUE;}
   else return kno_type_error("function","profile_fcn",fcn);
