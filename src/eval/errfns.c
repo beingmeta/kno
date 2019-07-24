@@ -61,10 +61,14 @@ static lispval error_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     printout_body = kno_get_body(expr,1);}
   else printout_body = kno_get_body(expr,1);
 
-  {
+  if (KNO_EMPTY_LISTP(printout_body))
+    return kno_err(ex,cxt,NULL,VOID);
+  else {
     U8_OUTPUT out; U8_INIT_OUTPUT(&out,256);
     kno_printout_to(&out,printout_body,env);
-    kno_seterr(ex,cxt,out.u8_outbuf,VOID);
+    if (out.u8_write > out.u8_outbuf)
+      kno_seterr(ex,cxt,out.u8_outbuf,VOID);
+    else kno_seterr(ex,cxt,NULL,VOID);
     u8_close_output(&out);
     return KNO_ERROR;}
 }
