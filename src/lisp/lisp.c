@@ -235,10 +235,14 @@ static void init_type_names()
   kno_type_names[kno_lambda_type]=_("lambda");
   kno_type_names[kno_ffi_type]=_("ffi");
   kno_type_names[kno_exception_type]=_("exception");
+  kno_type_names[kno_promise_type]=_("promise");
 
   kno_type_names[kno_complex_type]=_("complex");
   kno_type_names[kno_rational_type]=_("rational");
   kno_type_names[kno_flonum_type]=_("flonum");
+
+  kno_type_names[kno_thread_type]=_("thread");
+  kno_type_names[kno_synchronizer_type]=_("synchronizer");
 
   kno_type_names[kno_timestamp_type]=_("timestamp");
   kno_type_names[kno_uuid_type]=_("uuid");
@@ -250,6 +254,9 @@ static void init_type_names()
   kno_type_names[kno_regex_type]=_("regex");
 
   kno_type_names[kno_consblock_type]=_("consblock");
+
+  kno_type_names[kno_sqldb_type]=_("sqldb");
+  kno_type_names[kno_sqlproc_type]=_("sqldbproc");
 
   kno_type_names[kno_rawptr_type]=_("rawptr");
   kno_type_names[kno_dtserver_type]=_("dtserver");
