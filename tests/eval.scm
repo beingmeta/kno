@@ -297,6 +297,12 @@
 (evaltest #f (constant? s))
 (evaltest #t (constant? #f))
 (evaltest #t (constant? #default))
+(let ((n #f))
+  (evaltest #t (constant? n)))
+(let ((n #f))
+  (errtest (constant? zyz)))
+(let ((ln (list #f)))
+  (errtest (constant? (elt ln 5))))
 
 (evaltest #f (immediate? "string"))
 (evaltest #f (immediate? @1/89))
@@ -588,6 +594,23 @@
 (errtest (until . broke))
 (errtest (until (= 3 "three")))
 (errtest (until (= 3 3.0) . body))
+
+(errtest (define))
+(errtest (define z))
+(errtest (define z (+ 3 "three")))
+(errtest (define z (+ 3 "three")))
+(errtest (define ("text" x) (stringout x)))
+(errtest (define "text" 33))
+
+(errtest (defslambda))
+(errtest (defslambda sample (stringout x)))
+(errtest (defslambda ("text" x) (stringout x)))
+(errtest (defslambda "text" (stringout x)))
+
+(errtest (defambda))
+(errtest (defambda sample (stringout x)))
+(errtest (defambda ("text" x) (stringout x)))
+(errtest (defambda "text" (stringout x)))
 
 (evaltest 'void (doseq (x {}) x))
 

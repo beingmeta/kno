@@ -15,6 +15,7 @@
 
 (define type1.1 (cons-type1 11 12))
 (define type2.1 (cons-type2 33 99))
+(define type2.2 (cons-type2 77 33))
 (define type3.1 (cons-type3 2000 42))
 
 (applytest "#<<type3 2000 42 8 9>>" lisp->string type3.1)
@@ -23,10 +24,14 @@
 (applytest {type1.1 type3.1} pick-compounds {type1.1 9 type3.1 "nine" #"nine" '(9)})
 (applytest type1.1 pick-compounds {type1.1 9 type3.1 "nine" #"nine" '(9)} 'type1)
 (applytest {type1.1 type3.1} pick-compounds {type1.1 type3.1})
+(applytest {type2.1 type2.2} pick-compounds {type2.1 type2.2} 'type2)
 
 (applytest 'type1 car (unpack-compound type1.1))
 (applytest vector? cdr (unpack-compound type1.1))
 (applytest 'err unpack-compound type1.1 'type2)
+
+(applytest 'type2 car (unpack-compound type2.1))
+(applytest vector? cdr (unpack-compound type2.1 'type2))
 
 (applytest #t compound? type1.1)
 (applytest #t compound? type1.1 'type1)
@@ -65,6 +70,8 @@
 (applytest 'err compound-ref type2.1 0 'type1)
 (applytest 'err compound-ref type2.1 22 'type2)
 (applytest 'err compound-ref type2.1 22)
+(applytest 'err compound-ref type2.1 1/2)
+(applytest 'err compound-ref type2.1 #"packet")
 
 (applytest 33 compound-ref type2.1 0)
 (evaltest 77 (begin (compound-set! type2.1 0 77)
@@ -76,16 +83,38 @@
 (evaltest (* 2 77) (begin (compound-modify! type2.1 'type2 0 * 2)
 		     (compound-ref type2.1 0)))
 (errtest (compound-modify! type2.1 'type1 0 * 2))
+(errtest (compound-modify! type2.1 'type2 11 * 2))
 
-(define type2.2 (cons-type2 77 33))
 (evaltest 88 (begin (compound-set! {type2.1 type2.2} 0 88 'type2)
  	       (compound-ref type2.1 0)))
+(errtest (compound-set! {type2.1 type2.2} 22 88 'type2))
+(errtest (compound-set! {type2.1 type2.2} 0 88 'type1))
+(errtest (compound-set! {type2.1 "type2.2"} 22 88 'type2))
+(errtest (compound-set! {type2.1 type2.2} -5 88 'type2))
+(errtest (compound-set! {type2.1 type2.2} 1/2 88 'type2))
+
+(errtest (compound-set! type1.1 0 88 'type1))
+(errtest (compound-set! type1.1 0 88))
+
 (evaltest 89 (begin (compound-modify! {type2.1 type2.2} 'type2 0 + 1)
  	       (compound-ref type2.1 0)))
 (evaltest 90 (begin (compound-modify! {type2.1 type2.2} 'type2 0 '+ 1)
 	       (compound-ref type2.1 0)))
 (evaltest 89 (begin (compound-modify! {type2.1 type2.2} 'type2 0 '- 1)
 	       (compound-ref type2.1 0)))
+(evaltest {4242 99}
+	  (begin (compound-modify! type2.1 'type2 1 'add 4242)
+	    (compound-ref type2.1 1 'type2)))
+(evaltest 4242
+	  (begin (compound-modify! type2.1 'type2 1 'drop 99)
+	    (compound-ref type2.1 1 'type2)))
+(evaltest 9999
+	  (begin (compound-modify! type2.1 'type2 1 'store 9999)
+	    (compound-ref type2.1 1 'type2)))
+(evaltest 10000
+	  (begin (compound-modify! type2.1 'type2 1 1+)
+	    (compound-ref type2.1 1 'type2)))
+(applytest {} compound-modify! {} 'type2 1 1+)
 
 (applytest #f compound-mutable? type3.1)
 (applytest #t compound-opaque? type3.1)
@@ -103,6 +132,9 @@
 (applytest compound-mutable? make-mutable-compound 'type11 3 4 "foo" '(bar))
 (applytest compound-mutable? make-opaque-mutable-compound 'type11 3 4 "foo" '(bar))
 (applytest compound-opaque? make-opaque-mutable-compound 'type11 3 4 "foo" '(bar))
+
+(applytest 'err sequence->compound #("a" b 3) 'typeX #t #f 1/2)
+(applytest #f sequence? (sequence->compound #("a" b 3) 'typeX #t #f #f))
 
 (applytest iscompound? sequence->compound #("a" b 3) 'typeX)
 (applytest iscompound? sequence->compound #("a" b 3) 'typeX #f #f 0)
@@ -130,11 +162,21 @@
     ">"))
 (type-set-stringfn! 'type4 type4-stringfn)
 (applytest "#<TYPE4 a b c>" lisp->string (sequence->compound '(A B C) 'type4))
+(type-set-stringfn! 'type4 #f)
+(applytest "#%(type4 a b c)" lisp->string (sequence->compound '(A B C) 'type4))
+(define (type4-wrong-stringfn c) #f)
+(type-set-stringfn! 'type4 type4-wrong-stringfn)
+(applytest "#%(type4 a b c)" lisp->string (sequence->compound '(A B C) 'type4))
+(type-set-stringfn! 'type4 type4-stringfn)
+(applytest "#<TYPE4 a b c>" lisp->string (sequence->compound '(A B C) 'type4))
 
 (define (type4-consfn . args)
   (sequence->compound (cons "extra" args) 'type4))
 (type-set-consfn! 'type4 type4-consfn)
 (applytest "extra" compound-ref #%(type4 3 4 5 "nine") 0)
+(type-set-consfn! 'type4 #f)
+(applytest 3 compound-ref #%(type4 3 4 5 "nine") 0)
+(type-set-consfn! 'type4 type4-consfn)
 
 (define type4.1 #%(type4 3 4 5 "nine"))
 
@@ -143,3 +185,5 @@
 
 (applytest type4-consfn type-handlers type4.1  'consfn)
 (applytest slotmap? type-handlers type4.1)
+
+(type-set! 'type4 'someprop "someval")

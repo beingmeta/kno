@@ -102,10 +102,10 @@
 	      #f))
 (evaltest 'void (use-module (get-component "data/splitmod.scm")))
 (config! 'splitmod:err #t)
-(evaltest 'err (reload-module (get-component "data/splitmod.scm")))
+(errtest (reload-module (get-component "data/splitmod.scm")))
 (config! 'splitmod:err #f)
 
-(errtest (reload-module "data/nosuchmod.scm"))
+(evaltest #f (reload-module "data/nosuchmod.scm"))
 
 (lognotice |LoadPath| (config 'loadpath))
 

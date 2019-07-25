@@ -95,6 +95,7 @@
 (errtest
  (with/request
   (req/set! 'alpha 9)
-  (req/set! 'beta (1+ "zero"))))
+  (req/set! 'beta (1+ "zero"))
+  (req/get! 'gamma 8)))
 
 
