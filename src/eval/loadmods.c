@@ -593,18 +593,13 @@ static lispval loadpath_config_get(lispval var,void *d)
 
 /* Design for avoiding the module loading race condition */
 
-/* Have a list of modules being sought; a function kno_need_module
-   locks a mutex and does a kno_get_module.  If it gets non-void,
-   it unlikes its mutext and returns it.  Otherwise, if the module is
-   on the list, it waits on the condvar and tries again (get and
-   then list) it wakes up.  If the module isn't on the list,
-   it puts it on the list, unlocks its mutex and returns
-   VOID, indicating that its caller can try to load it.
-   Finishing a module pops it off of the seeking list.
-   If loading the module fails, it's also popped off of
-   the seeking list.
-   And while we're at it, it looks like finish_module should
-   wake up the loadstamp condvar!
+/* Have a list of modules being sought; a function kno_need_module locks a mutex and does a
+   kno_get_module.  If it gets non-void, it unlocks its mutex and returns that result.  Otherwise,
+   if the module is on the list, it waits on the condvar and tries again (get and then check the
+   list) when it wakes up.  If the module isn't on the list, it puts it on the list, unlocks its
+   mutex and returns VOID, indicating that its caller can try to load it.  Finishing a module pops
+   it off of the seeking list.  If loading the module fails, it's also popped off of the seeking
+   list.  And one of the results of finish_module is that it wakes up the condvar.
 */
 
 /* Getting the loadlock for a module */
