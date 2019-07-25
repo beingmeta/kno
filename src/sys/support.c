@@ -68,7 +68,7 @@ KNO_EXPORT lispval _kno_debug(lispval x)
 
 #define LOCAL_MODULES 1
 #define INSTALLED_MODULES 2
-#define SHARED_MODULES 3
+/* #define SHARED_MODULES 3 */
 #define STDLIB_MODULES 4
 #define UNPACKAGE_DIR 5
 
@@ -245,8 +245,10 @@ KNO_EXPORT void kno_init_support_c()
                       config_get_module_loc,NULL,(void *) LOCAL_MODULES);
   kno_register_config("INSTALLED_MODULES",_("value of INSTALLED_MODULES"),
                       config_get_module_loc,NULL,(void *) INSTALLED_MODULES);
+#if 0
   kno_register_config("SHARED_MODULES",_("value of SHARED_MODULES"),
                       config_get_module_loc,NULL,(void *) SHARED_MODULES);
+#endif
   kno_register_config("STDLIB_MODULES",_("value of STDLIB_MODULES"),
                       config_get_module_loc,NULL,(void *) STDLIB_MODULES);
 
