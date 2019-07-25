@@ -125,8 +125,7 @@ static lispval oddp(lispval x)
     else return KNO_FALSE;}
   else if (KNO_BIGINTP(x)) {
     lispval remainder = kno_remainder(x,KNO_INT(2));
-    if (KNO_ABORTP(remainder))
-      return remainder;
+    if (KNO_ABORTP(remainder)) return remainder;
     else if (KNO_FIX2INT(remainder))
       return KNO_TRUE;
     else return KNO_FALSE;}
@@ -145,8 +144,7 @@ static lispval evenp(lispval x)
     else return KNO_TRUE;}
   else if (KNO_BIGINTP(x)) {
     lispval remainder = kno_remainder(x,KNO_INT(2));
-    if (KNO_ABORTP(remainder))
-      return remainder;
+    if (KNO_ABORTP(remainder)) return remainder;
     else if (KNO_FIX2INT(remainder))
       return KNO_FALSE;
     else return KNO_TRUE;}
@@ -205,7 +203,8 @@ static lispval plus_lexpr(int n,lispval *args)
     int i = 0; int floating = 0, generic = 0, vector = 0;
     while (i < n)
       if (FIXNUMP(args[i])) i++;
-      else if (KNO_FLONUMP(args[i])) {floating = 1; i++;}
+      else if (KNO_FLONUMP(args[i])) {
+	floating = 1; i++;}
       else if ((VECTORP(args[i]))||(KNO_NUMVECP(args[i]))) {
 	generic = 1; vector = 1; i++;}
       else {generic = 1; i++;}
@@ -298,13 +297,15 @@ static lispval times_lexpr(int n,lispval *args)
   else {
     while (i < n)
       if (FIXNUMP(args[i])) i++;
-      else if (KNO_FLONUMP(args[i])) {floating = 1; i++;}
+      else if (KNO_FLONUMP(args[i])) {
+	floating = 1; i++;}
       else {generic = 1; i++;}
     if ((floating==0) && (generic==0)) {
       long long fixresult = 1;
       i = 0; while (i < n) {
 	long long mult = kno_getint(args[i]);
-	if (mult==0) return KNO_INT(0);
+	if (mult==0)
+	  return KNO_INT(0);
 	else {
 	  int q = ((mult>0)?(KNO_MAX_FIXNUM/mult):(KNO_MIN_FIXNUM/mult));
 	  if ((fixresult>0)?(fixresult>q):((-fixresult)>q)) {
@@ -355,9 +356,10 @@ static lispval minus_lexpr(int n,lispval *args)
     int i = 0; int floating = 0, generic = 0, vector = 0;
     while (i < n) {
       if (FIXNUMP(args[i])) i++;
-      else if (KNO_FLONUMP(args[i])) {floating = 1; i++;}
+      else if (KNO_FLONUMP(args[i])) {
+	floating = 1; i++;}
       else if ((VECTORP(args[i]))||(KNO_NUMVECP(args[i]))) {
-	vector = 1; generic = 1;}
+	vector = 1; generic = 1; i++;}
       else {generic = 1; i++;}}
     if ((floating==0) && (generic==0)) {
       long long fixresult = 0;
