@@ -129,23 +129,16 @@ static lispval pickoids_opcode(lispval arg1)
   if (OIDP(arg1)) return arg1;
   else if (EMPTYP(arg1)) return arg1;
   else if (CHOICEP(arg1)) {
-    lispval choice, results = EMPTY;
-    int free_choice = 0, all_oids = 1;
-    if (CHOICEP(arg1)) choice = arg1;
-    else {
-      choice = kno_make_simple_choice(arg1);
-      free_choice = 1;}
-    {DO_CHOICES(elt,choice) {
+    lispval results = EMPTY;
+    int all_oids = 1;
+    {DO_CHOICES(elt,arg1) {
         if (OIDP(elt)) {CHOICE_ADD(results,elt);}
         else if (all_oids)
           all_oids = 0;
         else NO_ELSE;}}
     if (all_oids) {
       kno_decref(results);
-      if (free_choice)
-        return choice;
-      else return kno_incref(choice);}
-    else if (free_choice) kno_decref(choice);
+      return kno_incref(arg1);}
     else NO_ELSE;
     return kno_simplify_choice(results);}
   else return EMPTY;
@@ -154,14 +147,9 @@ static lispval pickoids_opcode(lispval arg1)
 static lispval pickstrings_opcode(lispval arg1)
 {
   if (CHOICEP(arg1)) {
-    lispval choice, results = EMPTY;
-    int free_choice = 0, all_strings = 1;
-    if (CHOICEP(arg1))
-      choice = arg1;
-    else {
-      choice = kno_make_simple_choice(arg1);
-      free_choice = 1;}
-    {DO_CHOICES(elt,choice) {
+    lispval results = EMPTY;
+    int all_strings = 1;
+    {DO_CHOICES(elt,arg1) {
         if (STRINGP(elt)) {
           kno_incref(elt);
           CHOICE_ADD(results,elt);}
@@ -170,11 +158,7 @@ static lispval pickstrings_opcode(lispval arg1)
         else NO_ELSE;}}
     if (all_strings) {
       kno_decref(results);
-      if (free_choice)
-        return choice;
-      else return kno_incref(choice);}
-    else if (free_choice)
-      kno_decref(choice);
+      return kno_incref(arg1);}
     else NO_ELSE;
     return kno_simplify_choice(results);}
   else if (STRINGP(arg1))
@@ -186,29 +170,20 @@ static lispval picknums_opcode(lispval arg1)
 {
   if (EMPTYP(arg1)) return arg1;
   else if (CHOICEP(arg1)) {
-    lispval choice, results = EMPTY;
-    int free_choice = 0, all_nums = 1;
-    if (CHOICEP(arg1))
-      choice = arg1;
-    else {
-      choice = kno_make_simple_choice(arg1);
-      free_choice = 1;}
-    {DO_CHOICES(elt,choice) {
+    lispval results = KNO_EMPTY;
+    int all_nums = 1;
+    {DO_CHOICES(elt,arg1) {
         if (KNO_FIXNUMP(elt)) {
-          CHOICE_ADD(results,elt);}
-        else if (KNO_NUMBERP(elt)) {
-          kno_incref(elt);
-          CHOICE_ADD(results,elt);}
-        else if (all_nums)
-          all_nums = 0;
+	  CHOICE_ADD(results,elt);}
+	else if (KNO_NUMBERP(elt)) {
+	  kno_incref(elt);
+	  CHOICE_ADD(results,elt);}
+	else if (all_nums)
+	  all_nums = 0;
         else NO_ELSE;}}
     if (all_nums) {
       kno_decref(results);
-      if (free_choice)
-        return choice;
-      else return kno_incref(choice);}
-    else if (free_choice)
-      kno_decref(choice);
+      return kno_incref(arg1);}
     else NO_ELSE;
     return kno_simplify_choice(results);}
   else if (KNO_NUMBERP(arg1))
@@ -221,27 +196,18 @@ static lispval pickmaps_opcode(lispval arg1)
   if (EMPTYP(arg1))
     return arg1;
   else if (CHOICEP(arg1)) {
-    lispval choice, results = EMPTY;
-    int free_choice = 0, all_nums = 1;
-    if (CHOICEP(arg1))
-      choice = arg1;
-    else {
-      choice = kno_make_simple_choice(arg1);
-      free_choice = 1;}
-    {DO_CHOICES(elt,choice) {
+    lispval results = KNO_EMPTY;
+    int all_maps = 1;
+    {DO_CHOICES(elt,arg1) {
         if ( (KNO_SLOTMAPP(elt)) || (KNO_SCHEMAPP(elt)) ) {
-          kno_incref(elt);
-          CHOICE_ADD(results,elt);}
-        else if (all_nums) 
-          all_nums = 0;
+	  kno_incref(elt);
+	  CHOICE_ADD(results,elt);}
+	else if (all_maps)
+	  all_maps = 0;
         else NO_ELSE;}}
-    if (all_nums) {
+    if (all_maps) {
       kno_decref(results);
-      if (free_choice)
-        return choice;
-      else return kno_incref(choice);}
-    else if (free_choice)
-      kno_decref(choice);
+      return kno_incref(arg1);}
     else NO_ELSE;
     return kno_simplify_choice(results);}
   else if ( (KNO_SLOTMAPP(arg1)) || (KNO_SCHEMAPP(arg1)) )
