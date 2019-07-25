@@ -504,21 +504,21 @@ static lispval exception2slotmap(lispval x,lispval with_stack_arg)
 	   ( (KNO_COMPOUND_LENGTH(entry)) >= 5) ) {
 	lispval copied = kno_copier(entry,0);
 	int len = KNO_COMPOUND_LENGTH(entry);
-	if (len >= 5) {
-	  lispval argvec = KNO_COMPOUND_REF(entry,5);
+	if (len >= 6) {
+	  lispval argvec = KNO_COMPOUND_REF(entry,6);
 	  if (KNO_VECTORP(argvec)) {
 	    lispval wrapped = kno_init_compound_from_elts
 	      (NULL,args_tag,KNO_COMPOUND_INCREF,
 	       KNO_VECTOR_LENGTH(argvec),
 	       KNO_VECTOR_ELTS(argvec));
-	    KNO_COMPOUND_REF(entry,5) = wrapped;
+	    KNO_COMPOUND_REF(entry,6) = wrapped;
 	    kno_decref(argvec);}}
-	if (len >= 7) {
-	  lispval env = KNO_COMPOUND_REF(entry,7);
+	if (len >= 8) {
+	  lispval env = KNO_COMPOUND_REF(entry,8);
 	  if (KNO_TABLEP(env)) {
 	    lispval wrapped = kno_init_compound
 	      (NULL,env_tag,KNO_COMPOUND_INCREF,1,env);
-	    KNO_COMPOUND_REF(entry,7) = wrapped;
+	    KNO_COMPOUND_REF(entry,8) = wrapped;
 	    kno_decref(env);}}
 	KNO_VECTOR_SET(new_stack,i,copied);}
       else {
