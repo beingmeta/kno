@@ -1177,6 +1177,8 @@ static lispval constantp_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       return kno_err(kno_BadPtr,"constantp_evalfn","NULL pointer",to_eval);
     else if (KNO_ABORTED(v))
       return v;
+    else if (KNO_VOIDP(v))
+      return kno_err(kno_UnboundIdentifier,"constantp_evalfn",NULL,to_eval);
     else if (KNO_CONSTANTP(v))
       return KNO_TRUE;
     else {
@@ -1647,38 +1649,6 @@ static lispval use_threadcache_prim(lispval arg)
     struct KNO_THREAD_CACHE *tc = kno_use_threadcache();
     if (tc) return KNO_TRUE;
     else return KNO_FALSE;}
-}
-
-/* Making DTPROCs */
-
-DEFPRIM7("dtproc",make_dtproc,KNO_MAX_ARGS(7)|KNO_MIN_ARGS(2),
-	 "`(DTPROC *arg0* *arg1* [*arg2*] [*arg3*] [*arg4*] [*arg5*] [*arg6*])` **undocumented**",
-	 kno_symbol_type,KNO_VOID,kno_string_type,KNO_VOID,
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
-	 kno_fixnum_type,KNO_CPP_INT(2),kno_fixnum_type,KNO_CPP_INT(4),
-	 kno_fixnum_type,KNO_CPP_INT(1));
-static lispval make_dtproc(lispval name,lispval server,lispval min_arity,
-			   lispval arity,lispval minsock,lispval maxsock,
-			   lispval initsock)
-{
-  lispval result;
-  if (VOIDP(min_arity))
-    result = kno_make_dtproc(SYM_NAME(name),CSTRING(server),1,-1,-1,
-			     FIX2INT(minsock),FIX2INT(maxsock),
-			     FIX2INT(initsock));
-  else if (VOIDP(arity))
-    result = kno_make_dtproc
-      (SYM_NAME(name),CSTRING(server),
-       1,kno_getint(arity),kno_getint(arity),
-       FIX2INT(minsock),FIX2INT(maxsock),
-       FIX2INT(initsock));
-  else result=
-	 kno_make_dtproc
-	 (SYM_NAME(name),CSTRING(server),1,
-	  kno_getint(arity),kno_getint(min_arity),
-	  FIX2INT(minsock),FIX2INT(maxsock),
-	  FIX2INT(initsock));
-  return result;
 }
 
 /* Getting documentation */
@@ -2380,8 +2350,6 @@ static void link_local_cprims()
   KNO_LINK_VARARGS("check-version",check_version_prim,kno_scheme_module);
   KNO_LINK_VARARGS("require-version",require_version_prim,kno_scheme_module);
   KNO_LINK_PRIM("%buildinfo",kno_get_build_info,0,kno_scheme_module);
-
-  KNO_LINK_PRIM("dtproc",make_dtproc,7,kno_scheme_module);
 
   KNO_LINK_PRIM("type-set-stringfn!",type_set_stringfn_prim,2,kno_scheme_module);
   KNO_LINK_ALIAS("compound-set-stringfn!",type_set_stringfn_prim,kno_scheme_module);
