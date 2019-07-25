@@ -372,17 +372,14 @@ _make_lambda(u8_string name,
 
   if (env == NULL)
     s->lambda_env = env;
-  else if ( (copy_env) || (KNO_MALLOCD_CONSP(env)) )
-    s->lambda_env = kno_copy_env(env);
-  else s->lambda_env = kno_copy_env(env); /* s->lambda_env = env; */
+  else s->lambda_env = kno_copy_env(env);
+  /* Maybe don't copy if it's static, i.e. not
+     ( (copy_env) || (KNO_MALLOCD_CONSP(env)) ) */
+  /* s->lambda_env = env; */
   if (sync) {
     s->lambda_synchronized = 1;
     u8_init_mutex(&(s->lambda_lock));}
   else s->lambda_synchronized = 0;
-  if ( ( KNO_PAIRP(body) ) &&
-       ( KNO_PAIRP(KNO_CAR(body)) ) &&
-       ( (KNO_CAR(KNO_CAR(body))) == decls_symbol ) )
-    body = process_body(s,name,arglist,body,env);
 
   return LISP_CONS(s);
 }
