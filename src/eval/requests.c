@@ -38,18 +38,11 @@ static lispval reqgetvar(lispval cgidata,lispval var)
     if (*data=='\0') return val;
     else if (strchr("@{#(",data[0])) {
       lispval parsed = kno_parse_arg(data);
-      if (ABORTED(parsed)) {
-	kno_clear_errors(1);
-	return val;}
-      else {
-	kno_decref(val);
-	return parsed;}}
+      kno_decref(val);
+      return parsed;}
     else if (isdigit(data[0])) {
       lispval parsed = kno_parse_arg(data);
-      if (ABORTED(parsed)) {
-	kno_clear_errors(1);
-	return val;}
-      else if (NUMBERP(parsed)) {
+      if (NUMBERP(parsed)) {
 	kno_decref(val);
 	return parsed;}
       else {
@@ -156,23 +149,14 @@ static lispval reqval_prim(lispval vars,lispval dflt)
     if (VOIDP(val)) {}
     else if (STRINGP(val)) {
       lispval parsed = kno_parse_arg(CSTRING(val));
-      if (ABORTED(parsed)) {
-	kno_clear_errors(1);
-	CHOICE_ADD(results,val);}
-      else {
-	kno_decref(val);
-	CHOICE_ADD(results,parsed);}
+      kno_decref(val);
+      CHOICE_ADD(results,parsed);
       found = 1;}
     else if (CHOICEP(val)) {
       DO_CHOICES(v,val) {
 	if (STRINGP(v)) {
 	  lispval parsed = kno_parse_arg(CSTRING(v));
-	  if (ABORTED(parsed)) {
-	    kno_incref(v);
-	    kno_clear_errors(1);
-	    CHOICE_ADD(results,v);}
-	  else {
-	    CHOICE_ADD(results,parsed);}}
+	  CHOICE_ADD(results,parsed);}
 	else {
 	  kno_incref(v);
 	  CHOICE_ADD(results,v);}}
