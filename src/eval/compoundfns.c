@@ -463,17 +463,19 @@ static lispval seq2compound(lispval seq,lispval tag,
     *write++=elt;}
   if (KNO_FALSEP(offset))
     compound->compound_seqoff = -1;
-  else {
-    if (KNO_FIXNUMP(offset)) {
-      long long off = KNO_FIX2INT(offset);
-      if ( (off>=0) && (off<128) && (off < len) )
-        compound->compound_seqoff = off;
-      else {
-        kno_seterr("BadCompoundVectorOffset","vector2compound",NULL,offset);
-        return KNO_ERROR_VALUE;}}
+  else if ( (KNO_VOIDP(offset)) || (KNO_DEFAULTP(offset)) ||
+	    (KNO_TRUEP(offset)) )
+    compound->compound_seqoff = 0;
+  else if (KNO_FIXNUMP(offset)) {
+    long long off = KNO_FIX2INT(offset);
+    if ( (off>=0) && (off<128) && (off < len) )
+      compound->compound_seqoff = off;
     else {
       kno_seterr("BadCompoundVectorOffset","vector2compound",NULL,offset);
       return KNO_ERROR_VALUE;}}
+  else {
+    kno_seterr("BadCompoundVectorOffset","vector2compound",NULL,offset);
+    return KNO_ERROR_VALUE;}
   if (KNO_VECTORP(seq))
     return LISP_CONS(compound);
   else {
