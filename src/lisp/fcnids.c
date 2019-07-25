@@ -138,45 +138,8 @@ KNO_EXPORT int kno_deregister_fcnid(lispval id,lispval value)
         return 1;}}}
 }
 
-static int unparse_fcnid(u8_output out,lispval x)
-{
-  lispval lp = kno_fcnid_ref(x);
-  if (TYPEP(lp,kno_cprim_type)) {
-    struct KNO_FUNCTION *fcn = (kno_function)lp;
-    u8_string filename = fcn->fcn_filename;
-    u8_byte arity[64]="", codes[64]="", numbuf[32], namebuf[64];
-    u8_string name = kno_fcn_sig(fcn,namebuf);
-    if ((filename)&&(filename[0]=='\0')) filename = NULL;
-    if (FCN_NDCALLP(fcn)) strcat(codes,"∀");
-    if ((fcn->fcn_arity<0)&&(fcn->fcn_min_arity<0))
-      strcat(arity,"…");
-    else if (fcn->fcn_arity == fcn->fcn_min_arity) {
-      strcat(arity,"[");
-      strcat(arity,u8_itoa10(fcn->fcn_arity,numbuf));
-      strcat(arity,"]");}
-    else if (fcn->fcn_arity<0) {
-      strcat(arity,"[");
-      strcat(arity,u8_itoa10(fcn->fcn_min_arity,numbuf));
-      strcat(arity,"…]");}
-    else {
-      strcat(arity,"[");
-      strcat(arity,u8_itoa10(fcn->fcn_min_arity,numbuf));
-      strcat(arity,"-");
-      strcat(arity,u8_itoa10(fcn->fcn_arity,numbuf));
-      strcat(arity,"]");}
-    if (name)
-      u8_printf(out,"#<~%d<Φ%s%s%s%s%s%s>>",
-                KNO_GET_IMMEDIATE(x,kno_fcnid_type),
-                codes,name,arity,U8OPTSTR("'",filename,"'"));
-    else u8_printf(out,"#<~%d<Φ%s%s #!0x%llx%s%s%s>>",
-                   KNO_GET_IMMEDIATE(x,kno_fcnid_type),codes,arity,
-                   u8_uitoa16((KNO_PTRVAL(fcn)),numbuf),
-                   U8OPTSTR(" '",filename,"'"));
-    return 1;}
-  else {
-    u8_printf(out,"#<~%ld %q>",KNO_GET_IMMEDIATE(x,kno_fcnid_type),lp);
-    return 1;}
-}
+static int unparse_fcnid(u8_output out,lispval x) {
+  u8_printf(out,"#<FCNID 0x%x>", KNO_IMMEDIATE_DATA(x)); return 1;}
 
 KNO_EXPORT void kno_init_fcnids_c()
 {
