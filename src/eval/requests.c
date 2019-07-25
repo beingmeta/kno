@@ -166,10 +166,8 @@ static lispval reqval_prim(lispval vars,lispval dflt)
       found = 1;}}
   if (found)
     return results;
-  else if (VOIDP(dflt)) return EMPTY;
-  else if (QCHOICEP(dflt)) {
-    struct KNO_QCHOICE *qc = KNO_XQCHOICE(dflt);
-    return kno_make_simple_choice(qc->qchoiceval);}
+  else if (VOIDP(dflt))
+    return EMPTY;
   else return kno_incref(dflt);
 }
 
