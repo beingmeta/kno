@@ -561,9 +561,7 @@ static lispval exception_stack(lispval x,lispval arg1,lispval arg2)
 	start = 0;}
       else {
 	start = KNO_FIX2INT(arg1);
-	if (KNO_FIXNUMP(arg1))
-	  end = KNO_FIX2INT(arg2);
-	else end = stack_len;}
+	end = KNO_FIX2INT(arg2);}
       if (start<0) start = stack_len-start;
       if (end<0) end = stack_len+end;
       if (start < 0) start = 0;
@@ -719,7 +717,7 @@ static lispval unwind_protect_evalfn(lispval uwp,kno_lexenv env,kno_stack _stack
 /* Testing raise() which will be invoked by */
 
 DEFPRIM1("test-u8raise",test_u8raise_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "Reraises the exception represented by an object",
+	 "Has the kno_consptr macro signal a type error with u8_raise.",
 	 kno_any_type,KNO_VOID);
 static lispval test_u8raise_prim(lispval obj)
 {

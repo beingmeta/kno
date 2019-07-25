@@ -471,7 +471,9 @@ static lispval seq2compound(lispval seq,lispval tag,
       else {
         kno_seterr("BadCompoundVectorOffset","vector2compound",NULL,offset);
         return KNO_ERROR_VALUE;}}
-    else compound->compound_seqoff = 0;}
+    else {
+      kno_seterr("BadCompoundVectorOffset","vector2compound",NULL,offset);
+      return KNO_ERROR_VALUE;}}
   if (KNO_VECTORP(seq))
     return LISP_CONS(compound);
   else {
