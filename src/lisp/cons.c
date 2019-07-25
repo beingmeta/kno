@@ -725,16 +725,6 @@ KNO_EXPORT lispval kno_badptr_err(lispval result,u8_context cxt,
                   details, KNO_UINT2LISP(result) );
 }
 
-/* Testing */
-
-static U8_MAYBE_UNUSED int some_false(lispval arg)
-{
-  int some_false = 0;
-  KNO_DOELTS(elt,arg,count) {
-    if (FALSEP(elt)) some_false = 1;}
-  return some_false;
-}
-
 /* Typeinfo */
 
 static struct KNO_HASHTABLE typeinfo;
