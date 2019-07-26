@@ -160,7 +160,8 @@ static lispval reqval_prim(lispval vars,lispval dflt)
 	else {
 	  kno_incref(v);
 	  CHOICE_ADD(results,v);}}
-      found = 1;}
+      found = 1;
+      kno_decref(val);}
     else {
       CHOICE_ADD(results,val);
       found = 1;}}
