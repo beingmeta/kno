@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-07-23 20:38-0400\n"
+"POT-Creation-Date: 2019-07-26 08:31-0400\n"
 "PO-Revision-Date: 2005-03-04 22:55-0500\n"
 "Last-Translator: Kenneth Haase <kh@beingmeta.com>\n"
 "Language-Team: Dutch <nl@li.org>\n"
@@ -117,7 +117,7 @@ msgstr ""
 msgid "No more valid persistent pointers"
 msgstr ""
 
-#: src/lisp/fcnids.c:183
+#: src/lisp/fcnids.c:146
 msgid "function identifier"
 msgstr ""
 
@@ -135,7 +135,7 @@ msgstr ""
 
 #: src/lisp/sequences.c:154 src/lisp/sequences.c:249 src/lisp/sequences.c:780
 #: src/eval/opcode_defs.c:99 src/eval/opcode_defs.c:106
-#: src/eval/opcode_defs.c:332 src/eval/opcode_defs.c:336
+#: src/eval/opcode_defs.c:298 src/eval/opcode_defs.c:302
 #: src/prims/dbprims.c:3178 src/prims/dbprims.c:3180 src/prims/seqprims.c:345
 #: src/prims/seqprims.c:356 src/prims/seqprims.c:365 src/prims/seqprims.c:382
 #: src/prims/seqprims.c:531 src/prims/seqprims.c:566 src/prims/seqprims.c:630
@@ -164,23 +164,23 @@ msgstr ""
 msgid "sequence type"
 msgstr ""
 
-#: src/lisp/sequences.c:834 src/prims/seqprims.c:2146
+#: src/lisp/sequences.c:833 src/prims/seqprims.c:2146
 msgid "short element"
 msgstr ""
 
-#: src/lisp/sequences.c:851 src/prims/seqprims.c:2190
+#: src/lisp/sequences.c:850 src/prims/seqprims.c:2190
 msgid "int element"
 msgstr ""
 
-#: src/lisp/sequences.c:867 src/prims/seqprims.c:2233
+#: src/lisp/sequences.c:866 src/prims/seqprims.c:2233
 msgid "flonum element"
 msgstr ""
 
-#: src/lisp/sequences.c:883 src/prims/seqprims.c:2276
+#: src/lisp/sequences.c:882 src/prims/seqprims.c:2276
 msgid "float element"
 msgstr ""
 
-#: src/lisp/sequences.c:899 src/prims/seqprims.c:2319
+#: src/lisp/sequences.c:898 src/prims/seqprims.c:2319
 msgid "double(float) element"
 msgstr ""
 
@@ -399,7 +399,7 @@ msgstr ""
 msgid "oid"
 msgstr ""
 
-#: src/lisp/lisp.c:193 src/sys/config.c:761 src/eval/eval.c:1450
+#: src/lisp/lisp.c:193 src/sys/config.c:767 src/eval/eval.c:1452
 #: src/eval/opcode_defs.c:107 src/prims/dbprims.c:3109
 #: src/prims/portprims.c:640 src/eval/choiceops.c:1455
 #: src/eval/choiceops.c:1493 src/eval/choiceops.c:1519
@@ -424,8 +424,8 @@ msgstr ""
 msgid "constant"
 msgstr ""
 
-#: src/lisp/lisp.c:198 src/eval/eval.c:1292 src/eval/modules.c:368
-#: src/eval/reflection.c:998
+#: src/lisp/lisp.c:198 src/eval/eval.c:1294 src/eval/modules.c:371
+#: src/eval/reflection.c:977
 msgid "symbol"
 msgstr ""
 
@@ -433,11 +433,11 @@ msgstr ""
 msgid "fcnid"
 msgstr ""
 
-#: src/lisp/lisp.c:200 src/eval/eval.c:2099
+#: src/lisp/lisp.c:200 src/eval/eval.c:2069
 msgid "lexref"
 msgstr ""
 
-#: src/lisp/lisp.c:201 src/eval/eval.c:2105
+#: src/lisp/lisp.c:201 src/eval/eval.c:2075
 msgid "opcode"
 msgstr ""
 
@@ -445,7 +445,7 @@ msgstr ""
 msgid "typeref"
 msgstr ""
 
-#: src/lisp/lisp.c:203 src/eval/eval.c:2103
+#: src/lisp/lisp.c:203 src/eval/eval.c:2073
 msgid "coderef"
 msgstr ""
 
@@ -464,8 +464,8 @@ msgstr ""
 msgid "histref"
 msgstr ""
 
-#: src/lisp/lisp.c:208 src/sys/config.c:690 src/sys/config.c:709
-#: src/sys/config.c:728 src/sys/startup.c:254 src/sys/startup.c:630
+#: src/lisp/lisp.c:208 src/sys/config.c:696 src/sys/config.c:715
+#: src/sys/config.c:734 src/sys/startup.c:254 src/sys/startup.c:630
 #: src/prims/dbprims.c:320 src/prims/dbprims.c:341 src/prims/dbprims.c:362
 #: src/prims/portprims.c:184 src/prims/portprims.c:561
 #: src/prims/portprims.c:646 src/prims/streamprims.c:455
@@ -495,9 +495,9 @@ msgstr ""
 msgid "bigint"
 msgstr ""
 
-#: src/lisp/lisp.c:212 src/eval/eval.c:1451 src/eval/opcode_defs.c:303
-#: src/eval/opcode_defs.c:305 src/eval/opcode_defs.c:318
-#: src/eval/opcode_defs.c:320
+#: src/lisp/lisp.c:212 src/eval/eval.c:1453 src/eval/opcode_defs.c:269
+#: src/eval/opcode_defs.c:271 src/eval/opcode_defs.c:284
+#: src/eval/opcode_defs.c:286
 msgid "pair"
 msgstr ""
 
@@ -590,59 +590,80 @@ msgstr ""
 msgid "exception"
 msgstr ""
 
-#: src/lisp/lisp.c:239
-msgid "complex"
+#: src/lisp/lisp.c:238 src/eval/promises.c:237
+msgid "promise"
 msgstr ""
 
 #: src/lisp/lisp.c:240
-msgid "rational"
+msgid "complex"
 msgstr ""
 
 #: src/lisp/lisp.c:241
+msgid "rational"
+msgstr ""
+
+#: src/lisp/lisp.c:242
 msgid "flonum"
 msgstr ""
 
-#: src/lisp/lisp.c:243
-msgid "timestamp"
+#: src/lisp/lisp.c:244 src/eval/threads.c:1227 src/eval/threads.c:1265
+#: src/eval/threads.c:1349
+msgid "thread"
 msgstr ""
 
-#: src/lisp/lisp.c:244
-msgid "uuid"
-msgstr ""
-
-#: src/lisp/lisp.c:246
-msgid "mystery"
+#: src/lisp/lisp.c:245
+msgid "synchronizer"
 msgstr ""
 
 #: src/lisp/lisp.c:247
-msgid "ioport"
+msgid "timestamp"
 msgstr ""
 
 #: src/lisp/lisp.c:248
-msgid "stream"
+msgid "uuid"
 msgstr ""
 
 #: src/lisp/lisp.c:250
-msgid "regex"
+msgid "mystery"
+msgstr ""
+
+#: src/lisp/lisp.c:251
+msgid "ioport"
 msgstr ""
 
 #: src/lisp/lisp.c:252
-msgid "consblock"
+msgid "stream"
 msgstr ""
 
 #: src/lisp/lisp.c:254
-msgid "rawptr"
-msgstr ""
-
-#: src/lisp/lisp.c:255
-msgid "dtserver"
+msgid "regex"
 msgstr ""
 
 #: src/lisp/lisp.c:256
+msgid "consblock"
+msgstr ""
+
+#: src/lisp/lisp.c:258
+msgid "sqldb"
+msgstr ""
+
+#: src/lisp/lisp.c:259
+msgid "sqldbproc"
+msgstr ""
+
+#: src/lisp/lisp.c:261
+msgid "rawptr"
+msgstr ""
+
+#: src/lisp/lisp.c:262
+msgid "dtserver"
+msgstr ""
+
+#: src/lisp/lisp.c:263
 msgid "bloom_filter"
 msgstr ""
 
-#: src/lisp/lisp.c:304
+#: src/lisp/lisp.c:311
 msgid "RUSAGE Failed"
 msgstr ""
 
@@ -726,15 +747,15 @@ msgstr ""
 msgid "value of INSTALLED_MODULES"
 msgstr ""
 
-#: src/sys/support.c:248
+#: src/sys/support.c:249
 msgid "value of SHARED_MODULES"
 msgstr ""
 
-#: src/sys/support.c:250
+#: src/sys/support.c:252
 msgid "value of STDLIB_MODULES"
 msgstr ""
 
-#: src/sys/support.c:253
+#: src/sys/support.c:255
 msgid "value of UNPACKAGE_DIR"
 msgstr ""
 
@@ -746,59 +767,59 @@ msgstr ""
 msgid "Read-only config setting"
 msgstr ""
 
-#: src/sys/config.c:745
+#: src/sys/config.c:751
 msgid "small fixnum"
 msgstr ""
 
-#: src/sys/config.c:787 src/sys/config.c:790
+#: src/sys/config.c:793 src/sys/config.c:796
 msgid "size_t sized value"
 msgstr ""
 
-#: src/sys/config.c:1078
+#: src/sys/config.c:1084
 msgid "Get the Kno version string"
 msgstr ""
 
-#: src/sys/config.c:1081
+#: src/sys/config.c:1087
 msgid "Get the Kno revision identifier"
 msgstr ""
 
-#: src/sys/config.c:1084
+#: src/sys/config.c:1090
 msgid "Get the Kno branch name"
 msgstr ""
 
-#: src/sys/config.c:1087
+#: src/sys/config.c:1093
 msgid "Get the Kno major version number"
 msgstr ""
 
-#: src/sys/config.c:1090
+#: src/sys/config.c:1096
 msgid "Get the libu8 version string"
 msgstr ""
 
-#: src/sys/config.c:1093
+#: src/sys/config.c:1099
 msgid "Get the libu8 revision identifier"
 msgstr ""
 
-#: src/sys/config.c:1096
+#: src/sys/config.c:1102
 msgid "Get the libu8 major version number"
 msgstr ""
 
-#: src/sys/config.c:1101
+#: src/sys/config.c:1107
 msgid "Directory for looking up config entries"
 msgstr ""
 
-#: src/sys/config.c:1109 src/sys/config.c:1113
+#: src/sys/config.c:1116 src/sys/config.c:1120
 msgid "Get/set the current working directory"
 msgstr ""
 
-#: src/sys/config.c:1117
+#: src/sys/config.c:1124
 msgid "Get the time elapsed since this process started"
 msgstr ""
 
-#: src/sys/config.c:1120
+#: src/sys/config.c:1127
 msgid "Get hostname of the computer running KNO"
 msgstr ""
 
-#: src/sys/config.c:1154
+#: src/sys/config.c:1166
 msgid "whether to trace configuration"
 msgstr ""
 
@@ -1943,53 +1964,53 @@ msgstr ""
 msgid "opcode name"
 msgstr ""
 
-#: src/eval/eval.c:695 src/eval/reflection.c:784
+#: src/eval/eval.c:695 src/eval/reflection.c:763
 msgid "macro expansion"
 msgstr ""
 
-#: src/eval/eval.c:1062 src/eval/opcode_defs.c:376 src/eval/opcode_defs.c:480
-#: src/eval/opcode_defs.c:505 src/eval/opcode_defs.c:613
-#: src/eval/opcode_defs.c:672
+#: src/eval/eval.c:1062 src/eval/opcode_defs.c:342 src/eval/opcode_defs.c:446
+#: src/eval/opcode_defs.c:471 src/eval/opcode_defs.c:579
+#: src/eval/opcode_defs.c:638
 msgid "Invalid opcode"
 msgstr ""
 
-#: src/eval/eval.c:1314 src/eval/reflection.c:958 src/eval/reflection.c:1015
+#: src/eval/eval.c:1316 src/eval/reflection.c:937 src/eval/reflection.c:994
 msgid "environment"
 msgstr ""
 
-#: src/eval/opcode_defs.c:391 src/eval/arith.c:295
+#: src/eval/opcode_defs.c:357 src/eval/arith.c:294
 msgid "number"
 msgstr ""
 
-#: src/eval/opcode_defs.c:466
+#: src/eval/opcode_defs.c:432
 msgid "number|string"
 msgstr ""
 
-#: src/eval/opcode_defs.c:470 src/eval/opcode_defs.c:474
-#: src/eval/opcode_defs.c:478 src/prims/dbprims.c:2185
+#: src/eval/opcode_defs.c:436 src/eval/opcode_defs.c:440
+#: src/eval/opcode_defs.c:444 src/prims/dbprims.c:2185
 #: src/prims/tableprims.c:770 src/prims/tableprims.c:792
 #: src/prims/tableprims.c:821 src/prims/tableprims.c:891 src/web/htmlout.c:598
 #: src/web/uriprims.c:204 src/web/uriprims.c:206 src/web/uriprims.c:305
 msgid "table"
 msgstr ""
 
-#: src/eval/appenv.c:323
+#: src/eval/appenv.c:320
 msgid "load error"
 msgstr ""
 
-#: src/eval/appenv.c:367
+#: src/eval/appenv.c:364
 msgid "Which modules to load into the application environment"
 msgstr ""
 
-#: src/eval/appenv.c:370
+#: src/eval/appenv.c:367
 msgid "Which files to load into the application environment"
 msgstr ""
 
-#: src/eval/appenv.c:373
+#: src/eval/appenv.c:370
 msgid "Which functions/forms to execute to set up the application environment"
 msgstr ""
 
-#: src/eval/appenv.c:391 src/eval/appenv.c:394 src/eval/appenv.c:397
+#: src/eval/appenv.c:388 src/eval/appenv.c:391 src/eval/appenv.c:394
 msgid "Init expressions or functions which failed"
 msgstr ""
 
@@ -2017,11 +2038,11 @@ msgstr ""
 msgid "Bad binding expression"
 msgstr ""
 
-#: src/eval/lambda.c:24
+#: src/eval/lambda.c:25
 msgid "Malformed argument list"
 msgstr ""
 
-#: src/eval/lambda.c:25
+#: src/eval/lambda.c:26
 msgid "Bad procedure defining form"
 msgstr ""
 
@@ -2065,10 +2086,6 @@ msgstr ""
 msgid "lispenv"
 msgstr ""
 
-#: src/eval/threads.c:1227 src/eval/threads.c:1265 src/eval/threads.c:1349
-msgid "thread"
-msgstr ""
-
 #: src/eval/threads.c:1772
 msgid "StubbornThread"
 msgstr ""
@@ -2093,9 +2110,9 @@ msgstr ""
 msgid "Can't reload a read-only module"
 msgstr ""
 
-#: src/eval/modules.c:605 src/eval/reflection.c:823 src/eval/reflection.c:842
-#: src/eval/reflection.c:867 src/eval/reflection.c:916
-#: src/eval/reflection.c:921
+#: src/eval/modules.c:601 src/eval/reflection.c:802 src/eval/reflection.c:821
+#: src/eval/reflection.c:846 src/eval/reflection.c:895
+#: src/eval/reflection.c:900
 msgid "module"
 msgstr ""
 
@@ -2123,34 +2140,30 @@ msgstr ""
 msgid "procedure"
 msgstr ""
 
-#: src/eval/reflection.c:801 src/eval/configops.c:82 src/eval/configops.c:147
+#: src/eval/reflection.c:780 src/eval/configops.c:82 src/eval/configops.c:147
 #: src/eval/configops.c:172 src/cmodules/sqlite.c:162
 msgid "string or symbol"
 msgstr ""
 
-#: src/eval/compoundfns.c:216 src/eval/compoundfns.c:322
+#: src/eval/compoundfns.c:216 src/eval/compoundfns.c:325
 msgid "Immutable record"
 msgstr ""
 
-#: src/eval/arith.c:445 src/eval/arith.c:958 src/eval/arith.c:978
-#: src/eval/arith.c:998 src/eval/arith.c:1029
+#: src/eval/arith.c:461 src/eval/arith.c:974 src/eval/arith.c:994
+#: src/eval/arith.c:1014 src/eval/arith.c:1045
 msgid "scalar"
 msgstr ""
 
-#: src/eval/arith.c:1283 src/eval/arith.c:1302
+#: src/eval/arith.c:1299 src/eval/arith.c:1318
 msgid "negative numbers can't be rendered as non-decimal"
 msgstr ""
 
-#: src/eval/arith.c:1418
+#: src/eval/arith.c:1434
 msgid "string or number"
 msgstr ""
 
 #: src/eval/regex.c:28
 msgid "Invalid Regex operation"
-msgstr ""
-
-#: src/eval/promises.c:237
-msgid "promise"
 msgstr ""
 
 #: src/prims/dbprims.c:267
@@ -2376,15 +2389,15 @@ msgstr ""
 msgid "Module does not exist"
 msgstr ""
 
-#: src/eval/loadmods.c:681
+#: src/eval/loadmods.c:676
 msgid "FailedModule"
 msgstr ""
 
-#: src/eval/loadmods.c:685
+#: src/eval/loadmods.c:680
 msgid "DynamicLoad"
 msgstr ""
 
-#: src/eval/loadmods.c:758
+#: src/eval/loadmods.c:753
 msgid "module name"
 msgstr ""
 
@@ -2562,11 +2575,11 @@ msgstr ""
 msgid "whether direct execution of SQL strings is allowed"
 msgstr ""
 
-#: src/eval/dteval.c:36
+#: src/eval/dteval.c:37
 msgid "Server unconfigured"
 msgstr ""
 
-#: src/eval/dteval.c:127 src/eval/dteval.c:139
+#: src/eval/dteval.c:128 src/eval/dteval.c:140
 msgid "server"
 msgstr ""
 
