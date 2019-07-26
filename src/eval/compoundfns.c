@@ -345,9 +345,9 @@ DEFPRIM("make-compound",make_compound,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
 static lispval make_compound(int n,lispval *args)
 {
   struct KNO_COMPOUND *compound=
-    u8_malloc(sizeof(struct KNO_COMPOUND)+((n-2)*LISPVAL_LEN));
+    u8_zmalloc(sizeof(struct KNO_COMPOUND)+((n-2)*LISPVAL_LEN));
   int i = 1; lispval *write = &(compound->compound_0);
-  KNO_INIT_FRESH_CONS(compound,kno_compound_type);
+  KNO_INIT_CONS(compound,kno_compound_type);
   compound->typetag = kno_incref(args[0]);
   compound->compound_length = n-1;
   compound->compound_ismutable = 0;
@@ -366,9 +366,9 @@ DEFPRIM("make-opaque-compound",make_opaque_compound,
 static lispval make_opaque_compound(int n,lispval *args)
 {
   struct KNO_COMPOUND *compound=
-    u8_malloc(sizeof(struct KNO_COMPOUND)+((n-2)*LISPVAL_LEN));
+    u8_zmalloc(sizeof(struct KNO_COMPOUND)+((n-2)*LISPVAL_LEN));
   int i = 1; lispval *write = &(compound->compound_0);
-  KNO_INIT_FRESH_CONS(compound,kno_compound_type);
+  KNO_INIT_CONS(compound,kno_compound_type);
   compound->typetag = kno_incref(args[0]);
   compound->compound_length = n-1;
   compound->compound_ismutable = 0;
@@ -387,9 +387,9 @@ DEFPRIM("make-mutable-compound",make_mutable_compound,
 static lispval make_mutable_compound(int n,lispval *args)
 {
   struct KNO_COMPOUND *compound=
-    u8_malloc(sizeof(struct KNO_COMPOUND)+((n-2)*LISPVAL_LEN));
+    u8_zmalloc(sizeof(struct KNO_COMPOUND)+((n-2)*LISPVAL_LEN));
   int i = 1; lispval *write = &(compound->compound_0);
-  KNO_INIT_FRESH_CONS(compound,kno_compound_type);
+  KNO_INIT_CONS(compound,kno_compound_type);
   compound->typetag = kno_incref(args[0]);
   compound->compound_length = n-1;
   compound->compound_ismutable = 1;
@@ -408,9 +408,9 @@ DEFPRIM("make-opaque-mutable-compound",make_opaque_mutable_compound,
 static lispval make_opaque_mutable_compound(int n,lispval *args)
 {
   struct KNO_COMPOUND *compound=
-    u8_malloc(sizeof(struct KNO_COMPOUND)+((n-2)*LISPVAL_LEN));
+    u8_zmalloc(sizeof(struct KNO_COMPOUND)+((n-2)*LISPVAL_LEN));
   int i = 1; lispval *write = &(compound->compound_0);
-  KNO_INIT_FRESH_CONS(compound,kno_compound_type);
+  KNO_INIT_CONS(compound,kno_compound_type);
   compound->typetag = kno_incref(args[0]);
   compound->compound_length = n-1;
   compound->compound_ismutable = 1;
@@ -445,8 +445,8 @@ static lispval seq2compound(lispval seq,lispval tag,
     return KNO_ERROR_VALUE;
   int extra_elts = (len) ? (len-1) : (0);
   struct KNO_COMPOUND *compound =
-    u8_malloc(sizeof(struct KNO_COMPOUND)+((extra_elts)*LISPVAL_LEN));
-  KNO_INIT_FRESH_CONS(compound,kno_compound_type);
+    u8_zmalloc(sizeof(struct KNO_COMPOUND)+((extra_elts)*LISPVAL_LEN));
+  KNO_INIT_CONS(compound,kno_compound_type);
   compound->typetag = kno_incref(tag);
   compound->compound_length = len;
   if ( (len==0) || (FALSEP(mutable)) )

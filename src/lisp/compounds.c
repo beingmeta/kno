@@ -39,8 +39,8 @@ KNO_EXPORT lispval kno_init_compound_from_elts
 			  KNO_SHORT2LISP(n));
   else if (p == NULL) {
     if (n==0)
-      p = u8_malloc(sizeof(struct KNO_COMPOUND));
-    else p = u8_malloc(sizeof(struct KNO_COMPOUND)+(n-1)*LISPVAL_LEN);}
+      p = u8_zmalloc(sizeof(struct KNO_COMPOUND));
+    else p = u8_zmalloc(sizeof(struct KNO_COMPOUND)+(n-1)*LISPVAL_LEN);}
   else NO_ELSE;
   struct KNO_TYPEINFO *info = kno_use_typeinfo(tag);
   if (n >= KNO_BIG_COMPOUND_LENGTH)

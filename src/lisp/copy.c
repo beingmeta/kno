@@ -190,7 +190,8 @@ static lispval copy_compound(lispval x,int flags)
     return x;}
   else {
     int i = 0, n = xc->compound_length;
-    struct KNO_COMPOUND *nc = u8_malloc(sizeof(KNO_COMPOUND)+(n-1)*LISPVAL_LEN);
+    struct KNO_COMPOUND *nc =
+      u8_zmalloc(sizeof(KNO_COMPOUND)+(n-1)*LISPVAL_LEN);
     lispval *data = &(xc->compound_0), *write = &(nc->compound_0);
     KNO_INIT_CONS(nc,kno_compound_type);
     if (xc->compound_ismutable) u8_init_rwlock(&(nc->compound_rwlock));
