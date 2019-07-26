@@ -347,20 +347,24 @@ void kno_register_config_lookup(lispval (*fn)(lispval,void *),void *ldata)
 
 /* Environment config lookup */
 
+static int envconfig_enabled = 1;
+
 static lispval getenv_config_lookup(lispval symbol,void *ignored)
 {
-  U8_OUTPUT out;
+  if (! (envconfig_enabled) ) return VOID;
+  U8_STATIC_OUTPUT(out,32);
   char *getenv_result;
   u8_string u8result;
   lispval result;
-  U8_INIT_OUTPUT(&out,32);
   u8_printf(&out,"KNO_%s",SYM_NAME(symbol));
   getenv_result = getenv(out.u8_outbuf);
   if (getenv_result == NULL) {
-    u8_free(out.u8_outbuf); return VOID;}
+    u8_close_output(&out);
+    return VOID;}
   u8result = u8_fromlibc(getenv_result);
   result = kno_parse_arg(u8result);
-  u8_free(out.u8_outbuf); u8_free(u8result);
+  u8_close_output(&out);
+  u8_free(u8result);
   return result;
 }
 
@@ -1105,7 +1109,8 @@ void kno_init_config_c()
   kno_register_config_lookup(file_config_lookup,NULL);
 #endif
 
-  kno_register_config_lookup(getenv_config_lookup,NULL);
+  if (! (getenv("KNO_DISABLE_ENVCONFIG")) )
+    kno_register_config_lookup(getenv_config_lookup,NULL);
 
   kno_register_config
     ("CWD",_("Get/set the current working directory"),
@@ -1151,6 +1156,11 @@ void kno_init_config_c()
   kno_register_config("DTYPES:FIXCASE","Normalize symbol case",
                       kno_boolconfig_get,kno_boolconfig_set,
                       &kno_dtype_fixcase);
+
+  kno_register_config("ENVCONFIG",
+		      "Check the POSIX environment for configuration information",
+                      kno_boolconfig_get,kno_boolconfig_set,
+                      &envconfig_enabled);
 
   kno_register_config
     ("TRACECONFIG",_("whether to trace configuration"),
