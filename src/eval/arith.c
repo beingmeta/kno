@@ -291,7 +291,7 @@ static lispval times_lexpr(int n,lispval *args)
       return  kno_incref(arg);
     else if ((KNO_NUMVECP(arg))||(VECTORP(arg)))
       return kno_incref(arg);
-    return kno_type_error(_("number"),"times_lexpr",kno_incref(arg));}
+    return kno_type_error(_("number"),"times_lexpr",arg);}
   else if (n==2)
     return kno_multiply(args[0],args[1]);
   else {
@@ -357,18 +357,23 @@ static lispval minus_lexpr(int n,lispval *args)
     while (i < n) {
       if (FIXNUMP(args[i])) i++;
       else if (KNO_FLONUMP(args[i])) {
-	floating = 1; i++;}
+	floating = 1;
+	i++;}
       else if ((VECTORP(args[i]))||(KNO_NUMVECP(args[i]))) {
-	vector = 1; generic = 1; i++;}
+	vector = 1;
+	generic = 1;
+	i++;}
       else {generic = 1; i++;}}
     if ((floating==0) && (generic==0)) {
       long long fixresult = 0;
       i = 0; while (i < n) {
 	long long val = 0;
-	if (FIXNUMP(args[i])) val = FIX2INT(args[i]);
+	if (FIXNUMP(args[i]))
+	  val = FIX2INT(args[i]);
 	else if  (KNO_BIGINTP(args[i]))
 	  val = (double)kno_bigint_to_double((kno_bigint)args[i]);
-	if (i==0) fixresult = val; else fixresult = fixresult-val;
+	if (i==0) fixresult = val;
+	else fixresult = fixresult-val;
 	i++;}
       return KNO_INT(fixresult);}
     else if (generic == 0) {
@@ -379,20 +384,29 @@ static lispval minus_lexpr(int n,lispval *args)
 	else if  (KNO_BIGINTP(args[i]))
 	  val = (double)kno_bigint_to_double((kno_bigint)args[i]);
 	else val = ((struct KNO_FLONUM *)args[i])->floval;
-	if (i==0) floresult = val; else floresult = floresult-val;
+	if (i==0) floresult = val;
+	else floresult = floresult-val;
 	i++;}
       return kno_init_double(NULL,floresult);}
     else if (vector) {
       lispval result = kno_subtract(args[0],args[1]);
       i = 2; while (i < n) {
 	lispval newv = kno_subtract(result,args[i]);
-	kno_decref(result); result = newv; i++;}
+	kno_decref(result);
+	if (KNO_ABORTP(newv))
+	  return newv;
+	else result = newv;
+	i++;}
       return result;}
     else {
       lispval result = kno_incref(args[0]);
       i = 1; while (i < n) {
 	lispval newv = kno_subtract(result,args[i]);
-	kno_decref(result); result = newv; i++;}
+	kno_decref(result);
+	if (KNO_ABORTP(newv))
+	  return newv;
+	else result = newv;
+	i++;}
       return result;}}
 }
 
