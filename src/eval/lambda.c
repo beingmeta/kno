@@ -13,6 +13,7 @@
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
+#include "kno/profiles.h"
 #include "kno/eval.h"
 #include "kno/cprims.h"
 #include "eval_internals.h"
@@ -414,6 +415,11 @@ KNO_EXPORT void recycle_lambda(struct KNO_RAW_CONS *c)
     lambda->fcn_doc = NULL;}
   if (lambda->fcn_attribs) kno_decref(lambda->fcn_attribs);
   if (lambda->fcn_moduleid) kno_decref(lambda->fcn_moduleid);
+  if (lambda->fcn_profile) {
+    if (lambda->fcn_profile->prof_label)
+      u8_free(lambda->fcn_profile->prof_label);
+    u8_free(lambda->fcn_profile);
+    lambda->fcn_profile = NULL;}
   kno_decref(lambda->lambda_arglist);
   kno_decref(lambda->lambda_body);
   kno_decref(lambda->lambda_source);
@@ -612,6 +618,7 @@ static lispval nlambda_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     kno_decref(name);
     return err;}
   proc=make_lambda(namestring,arglist,body,env,1,0);
+  kno_decref(name);
   if (KNO_ABORTED(proc))
     return proc;
   KNO_SET_LAMBDA_SOURCE(proc,expr);
