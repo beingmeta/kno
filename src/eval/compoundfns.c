@@ -236,9 +236,13 @@ static lispval apply_modifier(lispval modifier,lispval old_value,lispval value)
   if ( (modifier == KNOSYM_ADD) || 
        (modifier == choice_fcnid) ||
        (modifier == choice_prim) ) {
+    lispval new_value = old_value;
     kno_incref(value);
-    CHOICE_ADD(old_value,value);
-    return kno_incref(old_value);}
+    CHOICE_ADD(new_value,value);
+    if ( (new_value == old_value) ||
+	 (KNO_PRECHOICEP(old_value)) )
+      return kno_incref(new_value);
+    else return new_value;}
   else if ( (modifier == KNOSYM_DROP) ||
 	    (modifier == difference_fcnid) ||
 	    (modifier == difference_prim) )
@@ -472,9 +476,13 @@ static lispval seq2compound(lispval seq,lispval tag,
       compound->compound_seqoff = off;
     else {
       kno_seterr("BadCompoundVectorOffset","vector2compound",NULL,offset);
+      kno_decref_vec(&(compound->compound_0),len);
+      u8_free(compound);
       return KNO_ERROR_VALUE;}}
   else {
     kno_seterr("BadCompoundVectorOffset","vector2compound",NULL,offset);
+    kno_decref_vec(&(compound->compound_0),len);
+    u8_free(compound);
     return KNO_ERROR_VALUE;}
   if (KNO_VECTORP(seq))
     return LISP_CONS(compound);
