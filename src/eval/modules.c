@@ -300,6 +300,7 @@ static kno_lexenv make_hybrid_env(kno_lexenv base,lispval module_spec)
     return NULL;}
   else if (HASHTABLEP(module)) {
     kno_seterr(OpaqueModule,"IN-MODULE",NULL,module_spec);
+    kno_decref(module);
     return NULL;}
   else if (KNO_LEXENVP(module)) {
     KNO_LEXENV *menv=
@@ -308,10 +309,10 @@ static kno_lexenv make_hybrid_env(kno_lexenv base,lispval module_spec)
     kno_decref(module);
     return result;}
   else if (VOIDP(module)) {
-    kno_seterr(kno_NoSuchModule,"USING-MODULE",NULL,kno_incref(module_spec));
+    kno_seterr(kno_NoSuchModule,"USING-MODULE",NULL,module_spec);
     return NULL;}
   else {
-    kno_seterr(kno_TypeError,"USING-MODULE",NULL,kno_incref(module));
+    kno_seterr(kno_TypeError,"USING-MODULE",NULL,module);
     return NULL;}
 }
 
@@ -319,13 +320,15 @@ static lispval accessing_module_evalfn(lispval expr,kno_lexenv env,kno_stack _st
 {
   lispval module_name = kno_eval(kno_get_arg(expr,1),env);
   kno_lexenv hybrid;
-  if (VOIDP(module_name)) {
-    return kno_err(kno_TooFewExpressions,"WITHIN-MODULE",NULL,expr);}
+  if (VOIDP(module_name))
+    return kno_err(kno_TooFewExpressions,"WITHIN-MODULE",NULL,expr);
   hybrid = make_hybrid_env(env,module_name);
   if (hybrid) {
     lispval result = VOID, body = kno_get_body(expr,2);
     KNO_DOLIST(elt,body) {
-      kno_decref(result); result = kno_eval(elt,hybrid);}
+      if (KNO_ABORTP(result)) break;
+      kno_decref(result);
+      result = kno_eval(elt,hybrid);}
     kno_decref(module_name);
     kno_decref((lispval)hybrid);
     return result;}
