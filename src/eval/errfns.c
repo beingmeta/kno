@@ -504,7 +504,7 @@ static lispval exception2slotmap(lispval x,lispval with_stack_arg)
 	   ( (KNO_COMPOUND_LENGTH(entry)) >= 5) ) {
 	lispval copied = kno_copier(entry,0);
 	int len = KNO_COMPOUND_LENGTH(entry);
-	if (len >= 6) {
+	if (len >= 7) {
 	  lispval argvec = KNO_COMPOUND_REF(entry,6);
 	  if (KNO_VECTORP(argvec)) {
 	    lispval wrapped = kno_init_compound_from_elts
@@ -513,7 +513,7 @@ static lispval exception2slotmap(lispval x,lispval with_stack_arg)
 	       KNO_VECTOR_ELTS(argvec));
 	    KNO_COMPOUND_REF(entry,6) = wrapped;
 	    kno_decref(argvec);}}
-	if (len >= 8) {
+	if (len >= 9) {
 	  lispval env = KNO_COMPOUND_REF(entry,8);
 	  if (KNO_TABLEP(env)) {
 	    lispval wrapped = kno_init_compound
@@ -643,23 +643,29 @@ static lispval dynamic_wind_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     return kno_err(kno_SyntaxError,"dynamic_wind_evalfn",NULL,expr);
   else {
     wind = kno_stack_eval(wind,env,_stack,0);
-    if (KNO_ABORTP(wind)) return wind;
-    else if (!(thunkp(wind)))
-      return kno_type_error("thunk","dynamic_wind_evalfn",wind);
+    if (KNO_ABORTP(wind))
+      return wind;
+    else if (!(thunkp(wind))) {
+      lispval err=kno_type_error("thunk","dynamic_wind_evalfn",wind);
+      kno_decref(wind);
+      return err;}
     else doit = kno_stack_eval(doit,env,_stack,0);
     if (KNO_ABORTP(doit)) {
       kno_decref(wind);
       return doit;}
     else if (!(thunkp(doit))) {
-      kno_decref(wind);
-      return kno_type_error("thunk","dynamic_wind_evalfn",doit);}
+      lispval err=kno_type_error("thunk","dynamic_wind_evalfn",doit);
+      kno_decref(wind); kno_decref(doit);
+      return err;}
     else unwind = kno_stack_eval(unwind,env,_stack,0);
     if (KNO_ABORTP(unwind)) {
-      kno_decref(wind); kno_decref(doit);
+      kno_decref(wind);
+      kno_decref(doit);
       return unwind;}
     else if (!(thunkp(unwind))) {
-      kno_decref(wind); kno_decref(doit);
-      return kno_type_error("thunk","dynamic_wind_evalfn",unwind);}
+      lispval err= kno_type_error("thunk","dynamic_wind_evalfn",unwind);
+      kno_decref(wind); kno_decref(doit); kno_decref(unwind);
+      return err;}
     else {
       lispval retval = kno_apply(wind,0,NULL);
       if (KNO_ABORTP(retval)) {}
