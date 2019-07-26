@@ -603,6 +603,8 @@
 (applytest '(a) push 'a)
 (applytest '(a b) push 'a 'b)
 
+(applytest fixnum? hash-lisp #/[0123456789]+/)
+
 ;;; Tests of testops
 
 (define (void-cruiser x)

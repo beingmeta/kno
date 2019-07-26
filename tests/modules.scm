@@ -85,6 +85,11 @@
 (errtest (config! 'updatemodules 1/2))
 (errtest (config! 'updatemodules #"packet"))
 
+;;; Try some APPMODS cases
+
+(errtest (config! 'appmods #"notamodule"))
+(errtest (config! 'appmods '(stringfmts #"notamodule")))
+
 ;;; Reload testing
 
 (define goodmod-file  (get-component "data/goodmod.scm"))

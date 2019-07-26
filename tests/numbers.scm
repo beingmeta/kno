@@ -103,6 +103,11 @@
 (applytest 1331 * 11 11 11)
 (applytest 1331.0 * 11 11.0 11)
 
+(applytest 50 - 100 15 25 10)
+(applytest 50.0 - 100 15.0 25 10)
+
+(applytest #(10 16) * #(10 16) )
+(applytester 'err * #"packet")
 (applytest #(100 80) * 5 #(20 16) )
 (applytest #(100.0 80.0) * 5.0 #(20 16) )
 (applytest #(100.0 80) * 5 #(20.0 16) )
@@ -111,9 +116,13 @@
   (* (* 4 1024 1024 1024)  (* 4 1024 1024 1024)))
 
 (applytest inexact? + 3 4 4.5 onebig)
+(applytest inexact? - 100 15.0 25 onebig)
 (applytest inexact? random 200.0)
 (applytest exact? random (* 1024 1024 4))
 (applytest exact? random (* 1024 1024 1024 64))
+
+(applytest '{(420 . 10) (422 . 2) (425 . 5)} scalerep 423 {10 5 2})
+(applytest '(4230 . -10) scalerep 423.0 -10)
 
 (applytest #(6 8 10) + #(3 4 5) #(3 4 5))
 (applytest 'err + #(3 4 5) #(3 4 5) 25)
@@ -173,6 +182,7 @@
 (applytest 4 ->exact 3.5 0)
 
 (applytest 2.236068 sqrt 5.000000)
+(applytest 2.236068 lsqrt 5.000000)
 (applytest -0.958924 sin 5.000000)
 (applytest 0.283662 cos 5.000000)
 (applytest 1.373401 atan 5.000000)
@@ -219,6 +229,10 @@
 (applytest flonum? + onebig 1.0)
 (applytest flonum? - onebig 1.0)
 
+(applytest 'err /~ 3+9i)
+(applytest 3.000000 /~ 0.3333333)
+(applytest 1.333333 /~ 0.3333333 0.25)
+
 (applytest 1.0 * onebig (/~ onebig))
 
 (applytest 4.0 -1+ 5.0)
@@ -246,6 +260,21 @@
 (applytest 3 nthroot 27 3)
 (applytest 3.0 nthroot 27.0 3)
 (applytest 2.0 nthroot 4 2.0)
+
+(applytest (* 1024 1024 1024 4)
+	   nthroot 
+	   (*  (* 1024 1024 1024 4) (* 1024 1024 1024 4) )
+	   2)
+
+(applytest 0 modulo (*  (* 1024 1024 1024 4) (* 1024 1024 1024 4) ) 2)
+(applytest 1 modulo (1+ (* (* 1024 1024 1024 4) (* 1024 1024 1024 4) )) 2)
+(applytest -1 modulo (- (1+ (* (* 1024 1024 1024 4) (* 1024 1024 1024 4) ))) -2)
+(applytest -1 modulo (1+ (* (* 1024 1024 1024 4) (* 1024 1024 1024 4) )) -2)
+(applytest 1 modulo (- (1+ (* (* 1024 1024 1024 4) (* 1024 1024 1024 4) ))) 2)
+(applytest 0 modulo 0 (+ (*  (* 1024 1024 1024 4) (* 1024 1024 1024 4) ) 1))
+(applytest 'err modulo (+ (*  (* 1024 1024 1024 4) (* 1024 1024 1024 4) ) 1) 0)
+
+(applytest 'err nthroot 3+5i 2)
 
 (applytest 3.0 nthroot~ 9 2)
 (applytest 3.0 nthroot~ 27 3)

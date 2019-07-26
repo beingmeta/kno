@@ -4,7 +4,8 @@
 
 (use-module '{reflection stringfmts optimize})
 (optimize! 'stringfmts)
-(reoptimize! 'stringfmts)
+;; TODO: This leaks for some reason. Find it out.
+;;(reoptimize! 'stringfmts)
 
 (errtest ((lambda (x (y . err) (z)) (+ x 3)) 8))
 (errtest (nlambda (string-append 3 "bar") (x y) (+ x y)))

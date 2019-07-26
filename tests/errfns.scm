@@ -61,7 +61,8 @@
     (lambda (ex) 
       (applytest (threadid) exception-threadno ex)
       (applytest 'justcond exception-condition ex)
-      (%watch (exception-status ex))
+      ;; This causes this to leak a lot
+      ;; (%watch (exception-status ex))
       (applytest #f exception-details ex)
       (applytest #f exception-caller ex)
       (applytest #f exception-irritant ex)
