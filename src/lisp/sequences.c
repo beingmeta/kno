@@ -776,8 +776,8 @@ KNO_EXPORT lispval kno_append(int n,lispval *sequences)
       total_length = total_length+lengths[i];
       if (lengths[i]==0) i++;
       else if (elts[i]==NULL)  {
-        if (n>16) {u8_free(lengths); u8_free(elts);}
-        return kno_type_error(_("sequence"),"kno_append",seq);}
+	int j = 0; while (j<i) { u8_free(elts[j]); j++;}
+	return kno_type_error(_("sequence"),"kno_append",seq);}
       else i++;}
     combined = u8_alloc_n(total_length,lispval);
     i = 0; while (i < n) {
@@ -787,7 +787,6 @@ KNO_EXPORT lispval kno_append(int n,lispval *sequences)
       i++;}
     result = kno_makeseq(result_type,total_length,combined);
     i = 0; while (i<total_length) {kno_decref(combined[i]); i++;}
-    if (n>16) {u8_free(lengths); u8_free(elts);}
     u8_free(combined);
     return result;}
 }
