@@ -336,7 +336,7 @@ static int get_json_flags(lispval flags_arg)
     return 0;
   else if (FIXNUMP(flags_arg)) {
     long long val=FIX2INT(flags_arg);
-    if ((val>0) && (val<KNO_JSON_MAXFLAGS))
+    if ((val>=0) && (val<KNO_JSON_MAXFLAGS))
       return (unsigned int) val;
     else return KNO_JSON_DEFAULTS;}
   else if (KNO_TRUEP(flags_arg))
@@ -384,8 +384,16 @@ static int get_json_flags(lispval flags_arg)
 }
 
 DEFPRIM3("jsonparse",jsonparseprim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
-	 "(JSONPARSE *string*) "
-	 "Parse the JSON in *string* into a LISP object",
+	 "(JSONPARSE *string* [*flags*] [*fieldmap*]) "
+	 "parses the JSON in *string* into a LISP object. The additional "
+	 "arguments control the conversion of JSON to lisp tables. "
+	 "*fieldmap* has a set of string/symbol translations or associates "
+	 "field names with conversion functions. *flags* handles the "
+	 "conversion to and from symbols. Flags is an opts structure "
+	 "and SYMBOLIZE causes table keys without spaces to be converted "
+	 "into symbols, while colonize applies argstring processing "
+	 "to values, parsing pairs, etc if possible and obeying :expr "
+	 "when it doesn't generate an error.",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_CPP_INT(8),
 	 kno_any_type,KNO_VOID);
 static lispval jsonparseprim(lispval in,lispval flags_arg,lispval fieldmap)
