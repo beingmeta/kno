@@ -51,7 +51,7 @@ u8_condition kno_ThreadInterrupted=_("Thread interrupted");
 
 /* External functional versions of common macros */
 
-KNO_EXPORT kno_lisp_type _KNO_LISP_TYPE(lispval x)
+KNO_EXPORT kno_lisp_type _KNO_TYPEOF(lispval x)
 {
   int type_field = (KNO_PTR_MANIFEST_TYPE(x));
   switch (type_field) {

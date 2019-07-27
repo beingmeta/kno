@@ -57,7 +57,7 @@ static lispval *compound2vector(lispval x,int *lenp)
 
 KNO_FASTOP int seq_length(lispval x)
 {
-  int ctype = KNO_LISP_TYPE(x);
+  int ctype = KNO_TYPEOF(x);
   switch (ctype) {
   case kno_vector_type:
     return VEC_LEN(x);
@@ -93,7 +93,7 @@ KNO_EXPORT int kno_seq_length(lispval x)
 
 KNO_EXPORT lispval kno_seq_elt(lispval x,int i)
 {
-  int ctype = KNO_LISP_TYPE(x);
+  int ctype = KNO_TYPEOF(x);
   if (i<0)
     return KNO_RANGE_ERROR;
   else switch (ctype) {
@@ -157,7 +157,7 @@ KNO_EXPORT lispval kno_seq_elt(lispval x,int i)
 
 KNO_EXPORT lispval kno_slice(lispval x,int start,int end)
 {
-  int ctype = KNO_LISP_TYPE(x);
+  int ctype = KNO_TYPEOF(x);
   if (start<0) return KNO_RANGE_ERROR;
   else switch (ctype) {
     case kno_vector_type: {
@@ -254,7 +254,7 @@ KNO_EXPORT lispval kno_slice(lispval x,int start,int end)
 
 KNO_EXPORT int kno_position(lispval key,lispval seq,int start,int limit)
 {
-  int ctype = KNO_LISP_TYPE(seq), len = seq_length(seq);
+  int ctype = KNO_TYPEOF(seq), len = seq_length(seq);
   if (len<0)
     return KNO_ERR(-2,"NotASequence","kno_position",NULL,seq);
   else if (ctype == kno_secret_type)
@@ -358,7 +358,7 @@ KNO_EXPORT int kno_rposition(lispval key,lispval x,int start,int end)
       if (found<data+end) return u8_charoffset(data,found-data);
       else return -1;
     else return -1;}
-  else switch (KNO_LISP_TYPE(x)) {
+  else switch (KNO_TYPEOF(x)) {
     case kno_vector_type: {
       lispval *data = VEC_DATA(x);
       int len = VEC_LEN(x);
@@ -470,7 +470,7 @@ KNO_EXPORT int kno_search(lispval subseq,lispval seq,int start,int end)
   else if (NILP(seq))
     return -1;
   else {
-    int ctype = KNO_LISP_TYPE(seq), keytype = KNO_LISP_TYPE(subseq);
+    int ctype = KNO_TYPEOF(seq), keytype = KNO_TYPEOF(subseq);
     if (ctype == kno_secret_type)
       return KNO_ERR(-2,kno_SecretData,"kno_seq_search",NULL,seq);
     else if (keytype == kno_secret_type)
@@ -570,7 +570,7 @@ lispval *kno_seq_elts(lispval seq,int *n)
     *n = 0;
     return NULL;}
   else {
-    kno_lisp_type ctype = KNO_LISP_TYPE(seq);
+    kno_lisp_type ctype = KNO_TYPEOF(seq);
     lispval *vec = u8_alloc_n(len,lispval);
     *n = len;
     switch (ctype) {
@@ -735,7 +735,7 @@ KNO_EXPORT lispval kno_reverse(lispval sequence)
         result = make_int_vector(len,elts); break;
       case kno_long_elt:
         result = make_long_vector(len,elts); break;}}
-    else result = kno_makeseq(KNO_LISP_TYPE(sequence),len,tmp);
+    else result = kno_makeseq(KNO_TYPEOF(sequence),len,tmp);
     i = 0; while (i<len) {kno_decref(elts[i]); i++;}
     if (elts) u8_free(elts); if (tmp) u8_free(tmp);
     return result;}
@@ -748,28 +748,28 @@ KNO_EXPORT lispval kno_append(int n,lispval *sequences)
   if (n == 0)
     return NIL;
   else {
-    kno_lisp_type result_type = KNO_LISP_TYPE(sequences[0]);
+    kno_lisp_type result_type = KNO_TYPEOF(sequences[0]);
     lispval result, *elts[n], *combined;
     int i = 0, k = 0, lengths[n], total_length = 0;
     if (NILP(sequences[0])) result_type = kno_pair_type;
     while (i < n) {
       lispval seq = sequences[i];
       if ((NILP(seq)) && (result_type == kno_pair_type)) {}
-      else if (KNO_LISP_TYPE(seq) == result_type) {}
+      else if (KNO_TYPEOF(seq) == result_type) {}
       else if ((result_type == kno_secret_type)&&
-               ((KNO_LISP_TYPE(seq) == kno_packet_type)||
-                (KNO_LISP_TYPE(seq) == kno_string_type)))
+               ((KNO_TYPEOF(seq) == kno_packet_type)||
+                (KNO_TYPEOF(seq) == kno_string_type)))
         result_type = kno_secret_type;
       else if ((result_type == kno_packet_type)&&
-               (KNO_LISP_TYPE(seq) == kno_secret_type))
+               (KNO_TYPEOF(seq) == kno_secret_type))
         result_type = kno_secret_type;
       else if ((result_type == kno_string_type)&&
-               (KNO_LISP_TYPE(seq) == kno_secret_type))
+               (KNO_TYPEOF(seq) == kno_secret_type))
         result_type = kno_secret_type;
       else if ((result_type == kno_string_type)&&
-               (KNO_LISP_TYPE(seq) == kno_packet_type))
+               (KNO_TYPEOF(seq) == kno_packet_type))
         result_type = kno_packet_type;
-      else if (KNO_LISP_TYPE(seq) != result_type)
+      else if (KNO_TYPEOF(seq) != result_type)
         result_type = kno_vector_type;
       else {}
       elts[i]=kno_seq_elts(seq,&(lengths[i]));
@@ -800,7 +800,7 @@ KNO_EXPORT lispval kno_remove(lispval item,lispval sequence)
   else if (NILP(sequence)) return sequence;
   else {
     int i = 0, j = 0, removals = 0, len = seq_length(sequence);
-    kno_lisp_type result_type = KNO_LISP_TYPE(sequence);
+    kno_lisp_type result_type = KNO_TYPEOF(sequence);
     lispval *results = u8_alloc_n(len,lispval), result;
     while (i < len) {
       lispval elt = kno_seq_elt(sequence,i); i++;

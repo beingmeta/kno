@@ -39,7 +39,7 @@ DEFPRIM("HASKEYS?",haskeysp,MAX_ARGS(1),
 static lispval haskeysp(lispval arg)
 {
   if (TABLEP(arg)) {
-    kno_lisp_type argtype = KNO_LISP_TYPE(arg);
+    kno_lisp_type argtype = KNO_TYPEOF(arg);
     if ((kno_tablefns[argtype])->keys)
       return KNO_TRUE;
     else return KNO_FALSE;}

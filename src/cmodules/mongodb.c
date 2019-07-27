@@ -2286,7 +2286,7 @@ static bool bson_append_dtype(struct KNO_BSON_OUTPUT b,
     if (ok) ok = bson_append_document_end(out,&values);
     return ok;}
   else if (KNO_CONSP(val)) {
-    kno_lisp_type ctype = KNO_LISP_TYPE(val);
+    kno_lisp_type ctype = KNO_TYPEOF(val);
     switch (ctype) {
     case kno_string_type: {
       unsigned char _buf[64], *buf=_buf;

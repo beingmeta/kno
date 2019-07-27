@@ -224,7 +224,7 @@ KNO_EXPORT lispval _kno_get_body(lispval expr,int i);
 #if KNO_PROVIDE_FASTEVAL
 KNO_FASTOP lispval fastget(lispval table,lispval key)
 {
-  kno_lisp_type argtype = KNO_LISP_TYPE(table);
+  kno_lisp_type argtype = KNO_TYPEOF(table);
   switch (argtype) {
   case kno_schemap_type:
     return kno_schemap_get((kno_schemap)table,key,KNO_UNBOUND);

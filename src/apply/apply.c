@@ -585,7 +585,7 @@ KNO_EXPORT lispval kno_dcall(struct KNO_STACK *_stack,
 
   if (ftype==kno_fcnid_type) {
     fn=kno_fcnid_ref(fn);
-    ftype=KNO_LISP_TYPE(fn);}
+    ftype=KNO_TYPEOF(fn);}
 
   if (kno_functionp[ftype]) {
     f=(struct KNO_FUNCTION *)fn;
@@ -868,7 +868,7 @@ KNO_EXPORT lispval kno_ndcall(struct KNO_STACK *_stack,
     kno_pop_stack(ndapply_stack);
     return kno_simplify_choice(results);}
   else {
-    kno_lisp_type fntype = KNO_LISP_TYPE(handler);
+    kno_lisp_type fntype = KNO_TYPEOF(handler);
     if (kno_functionp[fntype]) {
       struct KNO_FUNCTION *f = KNO_GETFUNCTION(handler);
       if (f->fcn_arity == 0)
@@ -937,7 +937,7 @@ KNO_EXPORT lispval kno_call(struct KNO_STACK *_stack,
         return EMPTY;
       else if (ATOMICP(args[i])) i++;
       else {
-        kno_lisp_type argtype = KNO_LISP_TYPE(args[i]);
+        kno_lisp_type argtype = KNO_TYPEOF(args[i]);
         if ((argtype == kno_choice_type) ||
             (argtype == kno_prechoice_type)) {
           result = kno_ndcall(_stack,handler,n,args);
@@ -1220,6 +1220,30 @@ KNO_EXPORT int _KNO_APPLICABLEP(lispval x)
     return (APPLICABLE_TYPEP(KNO_FCNID_TYPE(x)));
   else return APPLICABLE_TYPEP(KNO_PRIM_TYPE(x));
 }
+
+static int FUNCTION_TYPEP(int typecode)
+{
+  if ( ((typecode) == kno_cprim_type) ||
+       ((typecode) == kno_lambda_type) )
+    return 1;
+  else return kno_functionp[typecode];
+}
+KNO_EXPORT int _KNO_FUNCITON_TYPEP(int typecode)
+{
+  return APPLICABLE_TYPEP(typecode);
+}
+KNO_EXPORT int _KNO_FUNCTIONP(lispval x)
+{
+  if (KNO_TYPEP(x,kno_fcnid_type))
+    return (FUNCTION_TYPEP(KNO_FCNID_TYPE(x)));
+  else return FUNCTION_TYPEP(KNO_PRIM_TYPE(x));
+}
+
+KNO_EXPORT int _KNO_LAMBDAP(lispval x)
+{
+  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
+  return (KNO_TYPEP((x),kno_lambda_type));
+}							 \
 
 /* Initializations */
 

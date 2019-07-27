@@ -32,7 +32,7 @@ KNO_FASTOP int fast_walk(kno_walker walker,lispval obj,
   if (depth<=0)
     return 0;
   else if (CONSP(obj)) {
-    int constype = KNO_LISP_TYPE(obj);
+    int constype = KNO_TYPEOF(obj);
     switch (constype) {
     case kno_pair_type: case kno_vector_type:
     case kno_choice_type: case kno_prechoice_type: case kno_qchoice_type:
