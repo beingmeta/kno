@@ -98,10 +98,8 @@ typedef lispval (*kno_xprimn)(kno_stack,kno_function,int n,lispval *);
   lispval fcn_moduleid;							  \
   unsigned char fcn_call, fcn_trace, fcn_free, fcn_other;		\
   lispval fcnid;							  \
-  short fcn_arity, fcn_min_arity;					  \
+  short fcn_call_len, fcn_arity, fcn_min_arity;				\
   lispval fcn_attribs;							  \
-  int *fcn_typeinfo;							  \
-  lispval *fcn_defaults;						  \
   struct KNO_PROFILE *fcn_profile;					   \
   union {								  \
     kno_cprim0 call0; kno_cprim1 call1; kno_cprim2 call2;		     \
@@ -127,7 +125,8 @@ typedef lispval (*kno_xprimn)(kno_stack,kno_function,int n,lispval *);
 #define KNO_FCN_CALL_NDCALL 1
 #define KNO_FCN_CALL_LEXPR  2
 #define KNO_FCN_CALL_NOTAIL 4
-#define KNO_FCN_CALL_XCALL  8
+#define KNO_FCN_CALL_CPRIM  8
+#define KNO_FCN_CALL_XCALL  16
 
 #define KNO_FCN_PROFILEP(f) ( ((f)->fcn_trace) & (KNO_FCN_TRACE_PROFILE) )
 #define KNO_FCN_LOGGEDP(f)  ( ((f)->fcn_trace) & (KNO_FCN_CALL_LOGGING) )
@@ -137,6 +136,7 @@ typedef lispval (*kno_xprimn)(kno_stack,kno_function,int n,lispval *);
 #define KNO_FCN_NDCALLP(f) ( ((f)->fcn_call) & (KNO_FCN_CALL_NDCALL) )
 #define KNO_FCN_LEXPRP(f) ( ((f)->fcn_call) & (KNO_FCN_CALL_LEXPR) )
 #define KNO_FCN_NOTAILP(f) ( ((f)->fcn_call) & (KNO_FCN_CALL_NOTAIL) )
+#define KNO_FCN_CPRIMP(f) ( ((f)->fcn_call) & (KNO_FCN_CALL_CPRIM) )
 #define KNO_FCN_XCALLP(f) ( ((f)->fcn_call) & (KNO_FCN_CALL_XCALL) )
 
 #define KNO_FCN_FREE_DOCP(f)	  ( ((f)->fcn_free) & (KNO_FCN_FREE_DOC) )
@@ -150,7 +150,8 @@ struct KNO_FUNCTION {
 struct KNO_CPRIM {
   KNO_FUNCTION_FIELDS;
   u8_string cprim_name;
-};
+  int *fcn_typeinfo;
+  lispval *fcn_defaults;};
 typedef struct KNO_CPRIM KNO_CPRIM;
 typedef struct KNO_CPRIM *kno_cprim;
 
@@ -160,8 +161,9 @@ typedef struct KNO_CPRIM_INFO {
 
 KNO_EXPORT u8_string kno_fcn_sig(struct KNO_FUNCTION *fcn,u8_byte namebuf[100]);
 
-KNO_EXPORT lispval kno_init_cprim2(u8_string name,u8_string cname,u8_string filename,u8_string doc,kno_cprim2 fn,int flags,
-				 int types[2],lispval dflts[2]);
+KNO_EXPORT lispval kno_init_cprim2
+(u8_string name,u8_string cname,u8_string filename,u8_string doc,kno_cprim2 fn,int flags,
+ int types[2],lispval dflts[2]);
 
 KNO_EXPORT struct KNO_CPRIM *kno_init_cprim
 (u8_string name,u8_string cname,

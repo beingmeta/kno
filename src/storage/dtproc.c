@@ -40,8 +40,6 @@ KNO_EXPORT lispval kno_make_dtproc(u8_string name,u8_string server,
   f->fcn_min_arity = min_arity;
   f->fcn_arity = arity;
   f->fcn_call |= KNO_FCN_CALL_XCALL;
-  f->fcn_typeinfo = NULL;
-  f->fcn_defaults = NULL;
   f->fcn_handler.fnptr = NULL;
   if (minsock<0) minsock = 2;
   if (maxsock<0) maxsock = minsock+3;
@@ -70,8 +68,6 @@ static void recycle_dtproc(struct KNO_RAW_CONS *c)
   u8_free(f->fcn_name);
   u8_free(f->fcn_filename);
   u8_free(f->dtprocserver);
-  if (f->fcn_typeinfo) u8_free(f->fcn_typeinfo);
-  if (f->fcn_defaults) u8_free(f->fcn_defaults);
   if (!(KNO_STATIC_CONSP(f))) u8_free(f);
 }
 

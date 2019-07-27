@@ -342,8 +342,6 @@ _make_lambda(u8_string name,
   s->fcn_call = ( ((nd) ? (KNO_FCN_CALL_NDCALL) : (0)) |
 		  (KNO_FCN_CALL_XCALL) );
   s->fcn_handler.xcalln = (kno_xprimn) call_lambda;
-  s->fcn_typeinfo = NULL;
-  s->fcn_defaults = NULL;
   s->fcn_filename = NULL;
   s->fcn_attribs = VOID;
   s->fcnid = VOID;
@@ -404,12 +402,6 @@ KNO_EXPORT void recycle_lambda(struct KNO_RAW_CONS *c)
   struct KNO_LAMBDA *lambda = (struct KNO_LAMBDA *)c;
   int mallocd = KNO_MALLOCD_CONSP(c), n_vars = lambda->lambda_n_vars;
   int free_flags = lambda->fcn_free;
-  if ( (lambda->fcn_typeinfo) && ( (free_flags) & (KNO_FCN_FREE_TYPEINFO) ) ) {
-    u8_free(lambda->fcn_typeinfo);
-    lambda->fcn_typeinfo=NULL;}
-  if ( (lambda->fcn_defaults) && ( (free_flags) & (KNO_FCN_FREE_DEFAULTS) ) ) {
-    u8_free(lambda->fcn_defaults);
-    lambda->fcn_defaults=NULL;}
   if ( (lambda->fcn_doc) && ( (free_flags) & (KNO_FCN_FREE_DOC) ) ) {
     u8_free(lambda->fcn_doc);
     lambda->fcn_doc = NULL;}
@@ -542,9 +534,6 @@ KNO_EXPORT lispval copy_lambda(lispval c,int flags)
       fresh->fcn_filename = u8_strdup(lambda->fcn_filename);
     if (lambda->lambda_env)
       fresh->lambda_env = kno_copy_env(lambda->lambda_env);
-    /* This should never be set for lambda */
-    fresh->fcn_typeinfo = NULL;
-    fresh->fcn_defaults = NULL;
     fresh->fcn_attribs = VOID;
 
     fresh->lambda_arglist = kno_copier(lambda->lambda_arglist,flags);

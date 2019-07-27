@@ -382,12 +382,11 @@ DEFPRIM1("procedure-typeinfo",procedure_typeinfo,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)
 	 "Returns a typeinfo vector for *fcn* if it has "
 	 "one, or #f. Note that this doesn't error on "
 	 "non-functions but just returns #f",
-	 kno_any_type,KNO_VOID);
+	 kno_cprim_type,KNO_VOID);
 static lispval procedure_typeinfo(lispval x)
 {
-  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
-  if (KNO_FUNCTIONP(x)) {
-    struct KNO_FUNCTION *fcn = (kno_function) x;
+  if (KNO_TYPEP(x,kno_cprim_type)) {
+    struct KNO_CPRIM *fcn = (kno_cprim) x;
     if (fcn->fcn_typeinfo) {
       int arity = fcn->fcn_arity;
       int *typeinfo = fcn->fcn_typeinfo;
@@ -412,12 +411,12 @@ DEFPRIM1("procedure-defaults",procedure_defaults,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)
 	 "Returns a vector of default values for *fcn* if "
 	 "they're specified, or #f. Note that this doesn't "
 	 "error on non-functions but just returns #f",
-	 kno_any_type,KNO_VOID);
+	 kno_cprim_type,KNO_VOID);
 static lispval procedure_defaults(lispval x)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
-  if (KNO_FUNCTIONP(x)) {
-    struct KNO_FUNCTION *fcn = (kno_function) x;
+  if (KNO_CPRIMP(x)) {
+    struct KNO_CPRIM *fcn = (kno_cprim) x;
     if (fcn->fcn_defaults) {
       int arity = fcn->fcn_arity;
       lispval *defaults = fcn->fcn_defaults;

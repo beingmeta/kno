@@ -185,8 +185,6 @@ static void recycle_sqlproc(struct KNO_RAW_CONS *c)
     u8_log(LOG_WARN,_("recycle failed"),"Bad sqldb proc");
   else if (dbproc->sqldb_handler->recycle_proc) {
     dbproc->sqldb_handler->recycle_proc(dbproc);
-    if (dbproc->fcn_typeinfo) u8_free(dbproc->fcn_typeinfo);
-    if (dbproc->fcn_defaults) u8_free(dbproc->fcn_defaults);
     if (dbproc->fcn_attribs) kno_decref(dbproc->fcn_attribs);
     if (dbproc->fcn_moduleid) kno_decref(dbproc->fcn_moduleid);}
   else u8_log(LOG_WARN,_("recycle failed"),
