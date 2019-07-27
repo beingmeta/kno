@@ -359,7 +359,13 @@ KNO_EXPORT lispval _kno_symeval(lispval,kno_lexenv);
 /* Simple continuations */
 
 typedef struct KNO_CONTINUATION {
-  KNO_FUNCTION_FIELDS; lispval retval;} KNO_CONTINUATION;
+  KNO_FUNCTION_FIELDS;
+  /* We have these because the cons type for a continuation
+     is a cprim and we have to run through that apply loop. */
+  int *fcn_typeinfo;
+  lispval *fcn_defaults;
+  /* This is the one we use */
+  lispval retval;} KNO_CONTINUATION;
 typedef struct KNO_CONTINUATION *kno_continuation;
 
 /* Delays */

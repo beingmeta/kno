@@ -1540,8 +1540,11 @@ static lispval callcc(lispval proc)
   KNO_INIT_FRESH_CONS(f,kno_cprim_type);
   f->fcn_name="continuation"; f->fcn_filename = NULL;
   f->fcn_call = KNO_FCN_CALL_NDCALL | KNO_FCN_CALL_XCALL;
-  f->fcn_arity = 1; f->fcn_min_arity = 1;
+  f->fcn_call_len = f->fcn_arity = 1;
+  f->fcn_min_arity = 1;
   f->fcn_handler.xcalln = call_continuation;
+  f->fcn_typeinfo = NULL;
+  f->fcn_defaults = NULL;
   f->retval = VOID;
   continuation = LISP_CONS(f);
   value = kno_apply(proc,1,&continuation);

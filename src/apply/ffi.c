@@ -145,7 +145,7 @@ KNO_EXPORT struct KNO_FFI_PROC *kno_make_ffi_proc
     kno_incref_vec(savespecs,arity);
     proc->fcn_name = u8_strdup(name);
     proc->fcn_filename = u8dup(filename);
-    proc->fcn_arity = arity;
+    proc->fcn_call_len = proc->fcn_arity = arity;
     proc->fcn_min_arity = arity;
     proc->ffi_return_type = return_type;
     proc->ffi_argtypes = ffi_argtypes;
@@ -453,7 +453,7 @@ KNO_EXPORT lispval kno_ffi_call(struct KNO_FUNCTION *fn,int n,lispval *args)
 static void recycle_ffi_proc(struct KNO_RAW_CONS *c)
 {
   struct KNO_FFI_PROC *ffi = (struct KNO_FFI_PROC *)c;
-  int arity = ffi->fcn_arity, free_flags = ffi->fcn_free;
+  int free_flags = ffi->fcn_free;
   if (ffi->fcn_name) u8_free(ffi->fcn_name);
   if (ffi->fcn_filename) u8_free(ffi->fcn_filename);
   if ( (ffi->fcn_doc) && (free_flags&KNO_FCN_FREE_DOC) )

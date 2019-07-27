@@ -436,8 +436,9 @@ KNO_FASTOP lispval cprim_call(u8_string fname,kno_cprim cp,
   kno_lisp_type *typeinfo = cp->fcn_typeinfo;
   lispval *defaults = cp->fcn_defaults;
   kno_function f = (kno_function) cp;
-  if (PRED_FALSE( ( (typeinfo) || (defaults) ) &&
-		  (cprim_check(fname,n,args,typeinfo,defaults)) ))
+  if (PRED_FALSE( ( (typeinfo) || (defaults) ) && 
+		  (cp->fcn_arity > 0) &&
+		  (cprim_check(fname,cp->fcn_arity,args,typeinfo,defaults)) ))
     return KNO_ERROR;
   if ( (FCN_LEXPRP(f)) || (f->fcn_arity < 0) )
     return f->fcn_handler.calln(n,args);
@@ -507,10 +508,11 @@ static int cprim_check(u8_string fname,
   if ( (typeinfo) && (defaults) ) {
     int i = 0; while (i < n) {
       lispval arg = args[i];
-      if (KNO_NULLP(arg)) args[i]=arg=KNO_VOID;
-      if ( (KNO_VOIDP(arg)) || (KNO_DEFAULTP(arg)) ) {
-	/* Note that the defaults can't be conses */
-	arg = defaults[i];}
+      if (KNO_NULLP(arg)) args[i] = arg = KNO_VOID;
+      if ( (KNO_VOIDP(arg)) || (KNO_DEFAULTP(arg)) )
+	/* Note that the defaults for cprims can't be conses, so we don't bother with
+	   incref/decref */
+	args[i] = arg = defaults[i];
       else if (typeinfo[i]>0) {
 	if (! (PRED_TRUE(KNO_TYPEP(arg,typeinfo[i]))) ) {
 	  u8_byte buf[128];
@@ -523,15 +525,16 @@ static int cprim_check(u8_string fname,
     int i = 0; while (i < n) {
       lispval arg = args[i];
       if (KNO_NULLP(arg)) args[i]=arg=KNO_VOID;
-      if ( (KNO_VOIDP(arg)) || (KNO_DEFAULTP(arg)) ) {} {
+      if ( (KNO_VOIDP(arg)) || (KNO_DEFAULTP(arg)) )
 	/* Note that the defaults can't be conses */
-	if (defaults) arg = defaults[i];}}
-    i++;}
+	args[i] = arg = defaults[i];
+      i++;}}
   else if (typeinfo) {
-    int i = 0; while (i < n) {
-      lispval arg = args[i];
-      if (KNO_NULLP(arg)) args[i]=arg=KNO_VOID;
-      if (typeinfo[i]>0) {
+      int i = 0; while (i < n) {
+	lispval arg = args[i];
+      if (KNO_NULLP(arg))
+	args[i] = arg = KNO_VOID;
+      else if (typeinfo[i]>0) {
 	if (! (PRED_TRUE(KNO_TYPEP(arg,typeinfo[i]))) ) {
 	  u8_byte buf[128];
 	  kno_seterr(kno_TypeError,kno_type_names[typeinfo[i]],
@@ -546,7 +549,7 @@ static int cprim_check(u8_string fname,
 KNO_FASTOP lispval opaque_call
 (lispval fn,int n,lispval *argvec,struct KNO_STACK *stack)
 {
-  int ctype = KNO_LISP_TYPE(fn);
+  int ctype = KNO_TYPEOF(fn);
   if (kno_applyfns[ctype])
     return kno_applyfns[ctype](fn,n,argvec);
   else return kno_err("NotApplicable","opaque_apply",
@@ -565,10 +568,10 @@ KNO_FASTOP lispval function_call(u8_string name,kno_function f,
     if (kno_applyfns[ctype])
       return kno_applyfns[ctype]((lispval)f,n,argvec);
     else return kno_err("NotApplicable","apply_fcn",f->fcn_name,(lispval)f);}
-  else if (KNO_FCN_CPRIMP(f))
-    return cprim_call(name,(kno_cprim)f,n,argvec,stack);
   else if (FCN_XCALLP(f))
     return f->fcn_handler.xcalln(stack,f,n,argvec);
+  else if (KNO_FCN_CPRIMP(f))
+    return cprim_call(name,(kno_cprim)f,n,argvec,stack);
   else return f->fcn_handler.calln(n,argvec);
 }
 
@@ -616,6 +619,7 @@ KNO_EXPORT lispval kno_dcall(struct KNO_STACK *_stack,
   else NO_ELSE;
 
   lispval argbuf[alloc_args];
+
   if (alloc_args) {
     int i = 0; while (i<n) {
       lispval arg = argvec[i];
@@ -623,10 +627,11 @@ KNO_EXPORT lispval kno_dcall(struct KNO_STACK *_stack,
       if (KNO_QCHOICEP(arg)) {
 	struct KNO_QCHOICE *qch = (kno_qchoice) arg;
 	arg = qch->qchoiceval;}
-      argbuf[i] = arg;}
+      argbuf[i] = arg;
+      i++;}
     while (i < alloc_args) argbuf[i++] = KNO_VOID;
     args = argbuf;}
-  
+
   /* Make the call */
   if (stackcheck()) {
     int trouble = 0;
@@ -638,13 +643,15 @@ KNO_EXPORT lispval kno_dcall(struct KNO_STACK *_stack,
       U8_CLEARBITS(apply_stack->stack_flags,KNO_STACK_FREE_SRC);}
     if ( (_stack) && ( (_stack->stack_flags & KNO_STACK_TAIL) ) )
       apply_stack->stack_flags |=  KNO_STACK_TAIL;
-    apply_stack->stack_args=argvec;
+    apply_stack->stack_args=args;
     apply_stack->n_args=n;
     U8_WITH_CONTOUR(fname,0)
       if (profile == NULL) {
-	if (f)
-	  result=function_call(fname,f,n,argvec,apply_stack);
-	else result=opaque_call(fn,n,argvec,apply_stack);}
+	if (ftype == kno_cprim_type)
+	  result=cprim_call(fname,(kno_cprim)f,n,args,apply_stack);
+	else if (f)
+	  result=function_call(fname,f,n,args,apply_stack);
+	else result=opaque_call(fn,n,args,apply_stack);}
       else {
         long long nsecs = 0;
         long long stime = 0, utime = 0;
@@ -657,11 +664,17 @@ KNO_EXPORT lispval kno_dcall(struct KNO_STACK *_stack,
         struct timespec start, end;
         clock_gettime(CLOCK_MONOTONIC,&start);
 #endif
-	if (f)
-	  result=function_call(fname,f,n,argvec,apply_stack);
-	else result=opaque_call(fn,n,argvec,apply_stack);
-        if ( (KNO_TAILCALLP(result)) && (FCN_NOTAILP(f)) )
-          result=kno_finish_call(result);
+
+	/* Here's where we actually call the function */
+	if (ftype == kno_cprim_type)
+	  result=cprim_call(fname,(kno_cprim)f,n,args,apply_stack);
+	else if (f)
+	  result=function_call(fname,f,n,args,apply_stack);
+	else result=opaque_call(fn,n,args,apply_stack);
+	/* We finish it here because we want to include it in the profile. */
+	if ( (KNO_TAILCALLP(result)) && (FCN_NOTAILP(f)) )
+	  result=kno_finish_call(result);
+
 #if HAVE_CLOCK_GETTIME
         clock_gettime(CLOCK_MONOTONIC,&end);
         nsecs = ((end.tv_sec*1000000000)+(end.tv_nsec)) -
@@ -685,12 +698,6 @@ KNO_EXPORT lispval kno_dcall(struct KNO_STACK *_stack,
 #endif
         kno_profile_record(profile,0,nsecs,utime,stime,
                            n_waits,n_contests,n_faults);}
-    if (!(PRED_TRUE(KNO_CHECK_PTR(result)))) {
-      result = kno_badptr_err(result,"kno_deterministic_apply",fname);
-      trouble = 1;}
-    else if ( (KNO_TAILCALLP(result)) && (FCN_NOTAILP(f)) )
-      result=kno_finish_call(result);
-    else result=kno_applyfns[ftype](fn,n,argvec);
     U8_ON_EXCEPTION {
       U8_CLEAR_CONTOUR();
       trouble = 1;

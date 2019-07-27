@@ -38,7 +38,7 @@ KNO_EXPORT lispval kno_make_dtproc(u8_string name,u8_string server,
   if (ndcall)
     f->fcn_call |= KNO_FCN_CALL_NDCALL;
   f->fcn_min_arity = min_arity;
-  f->fcn_arity = arity;
+  f->fcn_call_len = f->fcn_arity = arity;
   f->fcn_call |= KNO_FCN_CALL_XCALL;
   f->fcn_handler.fnptr = NULL;
   if (minsock<0) minsock = 2;

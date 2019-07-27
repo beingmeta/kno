@@ -910,7 +910,7 @@ static lispval mysqlmakeproc
   dbproc->fcn_filename = dbproc->sqldb_spec;
   dbproc->fcn_name = dbproc->sqldb_qtext;
   dbproc->fcn_call = KNO_FCN_CALL_XCALL | KNO_FCN_CALL_NOTAIL;
-  dbproc->fcn_arity = -1;
+  dbproc->fcn_call_len = dbproc->fcn_arity = -1;
   dbproc->fcn_min_arity = 0;
   dbproc->fcn_handler.xcalln = callmysqlproc;
 
