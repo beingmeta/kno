@@ -151,7 +151,7 @@ static lispval applytest(int n,lispval *args)
       fn = args[2];
       argstart = args+3;
       n_args = n - 3;}
-    else return kno_err("Improper arguments","applytest/predicate",
+    else return kno_err("Bad applytest result predicate","applytest/predicate",
 			NULL,expected);}
   else NO_ELSE;
   u8_string testid = get_testid(fn,n_args,argstart);
@@ -178,8 +178,8 @@ static lispval applytest(int n,lispval *args)
     u8_logf(LOG_INFO,"Tests/ExpectedVoidValue","%s",testid);
     return_value = KNO_TRUE;}
   else if (KNO_VOIDP(result)) {
-    u8_logf((err) ? (LOG_NOTICE) : (LOG_WARN),
-	    "Tests/UnexpectedVoidValue","%s",testid);
+    u8_logf(LOG_WARN,"Tests/UnexpectedVoidValue",
+	    "%s expected %q",testid,expected);
     if (err) return_value = kno_err
 	       ("Tests/UnexpectedVoidValue","applytest",testid,VOID);}
   else if (KNO_VOIDP(predicate)) {
@@ -188,8 +188,7 @@ static lispval applytest(int n,lispval *args)
 	      "Received %q from %q for %s",result,fn,testid);
       return_value = KNO_TRUE;}
     else {
-      u8_logf((err) ? (LOG_NOTICE) : (LOG_WARN),
-	      "Tests/UnexpectedValue",
+      u8_logf(LOG_WARN,"Tests/UnexpectedValue",
 	      "%s:\n  Expected:\t%q\n  Returned:\t%q\n",
 	      testid,expected,result);
       if (err) return_value =
@@ -199,8 +198,7 @@ static lispval applytest(int n,lispval *args)
     if (KNO_ABORTP(pred_result))
       return_value = pred_result;
     else if ( (KNO_FALSEP(pred_result)) || (EMPTYP(pred_result)) ) {
-      u8_logf((err) ? (LOG_NOTICE) : (LOG_WARN),
-	      "Tests/PredicateFailed",
+      u8_logf(LOG_WARN,"Tests/PredicateFailed",
 	      "%s:\n  Predicate:\t %q\n  Result:\t%q\n",
 	      testid,result,predicate);
       return_value = kno_err("Tests/PredicateFailed","applytest",testid,result);}
@@ -215,8 +213,7 @@ static lispval applytest(int n,lispval *args)
     if (KNO_ABORTP(pred_result)) {
       return_value = pred_result;}
     else if ( (KNO_FALSEP(pred_result)) || (EMPTYP(pred_result)) ) {
-      u8_logf((err) ? (LOG_NOTICE) : (LOG_WARN),
-	      "Tests/PredicateFailed",
+      u8_logf(LOG_WARN,"Tests/PredicateFailed",
 	      "%s:\n  Predicate:\t%q\n  Result:\t%q\n  Argument:\t%q\n",
 	      testid,predicate,result,predicate_arg);
       if (err) return_value =
