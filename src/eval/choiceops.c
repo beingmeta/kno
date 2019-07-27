@@ -30,7 +30,7 @@ static lispval keyfn_get(lispval val,lispval keyfn)
   else if (OIDP(val))
     return kno_frame_get(val,keyfn);
   else {
-    kno_lisp_type type = KNO_LISP_TYPE(keyfn);
+    kno_lisp_type type = KNO_TYPEOF(keyfn);
     switch (type) {
     case kno_hashtable_type:
     case kno_slotmap_type:
@@ -970,7 +970,7 @@ static lispval pickn(lispval x,lispval count,lispval offset)
 
 static int compare_lisp(lispval x,lispval y)
 {
-  kno_lisp_type xtype = KNO_LISP_TYPE(x), ytype = KNO_LISP_TYPE(y);
+  kno_lisp_type xtype = KNO_TYPEOF(x), ytype = KNO_TYPEOF(y);
   if (xtype == ytype)
     switch (xtype) {
     case kno_fixnum_type: {

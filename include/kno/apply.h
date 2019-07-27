@@ -219,6 +219,13 @@ KNO_EXPORT lispval kno_cons_cprimN
 
 /* Useful macros */
 
+KNO_EXPORT int _KNO_APPLICABLEP(lispval x);
+KNO_EXPORT int _KNO_APPLICABLE_TYPEP(int typecode);
+
+#if KNO_EXTREME_PROFILING
+#define KNO_FUNCTIONP _KNO_FUNCTIONP
+#define KNO_FUNCTION_TYPEP _KNO_FUNCTION_TYPEP
+#else
 #define KNO_FUNCTION_TYPEP(typecode) \
   ( (typecode == kno_cprim_type) || (typecode == kno_lambda_type) || \
     (kno_functionp[typecode]) )
@@ -229,6 +236,8 @@ KNO_EXPORT lispval kno_cons_cprimN
   ((KNO_FUNCTIONP(x)) ?							\
    ((struct KNO_FUNCTION *)(KNO_CONS_DATA(kno_fcnid_ref(x)))) :		\
    ((struct KNO_FUNCTION *)(u8_raise(kno_TypeError,"function",NULL),NULL)))
+#endif
+
 #define KNO_FUNCTION_ARITY(x)						\
   ((KNO_FUNCTIONP(x)) ?							\
    (((struct KNO_FUNCTION *)(KNO_CONS_DATA(kno_fcnid_ref(x))))->fcn_arity) : \
@@ -243,10 +252,16 @@ KNO_EXPORT lispval kno_cons_cprimN
 /* Forward reference. Note that kno_lambda_type is defined in the
    pointer type enum in ptr.h. */
 
+KNO_EXPORT int _KNO_LAMBDAP(lispval x);
+
+#if KNO_EXTREME_PROFILING
+#define KNO_LAMBDAP _KNO_LAMBDAP
+#else
 #define KNO_LAMBDAP(x)					 \
   ((KNO_FCNIDP(x)) ?					 \
    (KNO_TYPEP((kno_fcnid_ref(x)),kno_lambda_type)) :	   \
    (KNO_TYPEP((x),kno_lambda_type)))
+#endif
 
 KNO_EXPORT lispval kno_make_ndprim(lispval prim);
 
@@ -386,10 +401,14 @@ KNO_EXPORT int _KNO_APPLICABLE_TYPEP(int typecode);
    (KNO_APPLICABLE_TYPEP(KNO_PRIM_TYPE(x))))
 #endif
 
+#if KNO_EXTREME_PROFILING
+#define KNO_GETFUNCTION _KNO_GETFUNCTION
+#else
 #define KNO_GETFUNCTION(x)		\
   ((KNO_FCNIDP(x)) ?		       \
    ((kno_function)(kno_fcnid_ref(x))) : \
    ((kno_function)x))
+#endif
 
 KNO_EXPORT lispval kno_get_backtrace(struct KNO_STACK *stack);
 KNO_EXPORT void kno_html_backtrace(u8_output out,lispval rep);

@@ -81,7 +81,7 @@ KNO_EXPORT lispval kno_removeif(lispval test,lispval sequence,int invert)
   else if (NILP(sequence)) return sequence;
   else {
     int i = 0, j = 0, removals = 0, len = kno_seq_length(sequence);
-    kno_lisp_type result_type = KNO_LISP_TYPE(sequence);
+    kno_lisp_type result_type = KNO_TYPEOF(sequence);
     lispval *results = u8_alloc_n(len,lispval), result;
     while (i < len) {
       lispval elt = kno_seq_elt(sequence,i);
@@ -108,7 +108,7 @@ KNO_EXPORT lispval kno_mapseq(lispval fn,int n_seqs,lispval *sequences)
   int i = 1, seqlen = -1;
   lispval firstseq = sequences[0];
   lispval result, *results, _argvec[8], *argvec = NULL;
-  kno_lisp_type result_type = KNO_LISP_TYPE(firstseq);
+  kno_lisp_type result_type = KNO_TYPEOF(firstseq);
   if (KNO_FCNIDP(fn)) fn = kno_fcnid_ref(fn);
   if ((TABLEP(fn)) || (ATOMICP(fn))) {
     if (n_seqs>1)
@@ -182,7 +182,7 @@ KNO_EXPORT lispval kno_foreach(lispval fn,int n_seqs,lispval *sequences)
   int i = 0, seqlen = -1;
   lispval firstseq = sequences[0];
   lispval _argvec[8], *argvec = NULL;
-  kno_lisp_type result_type = KNO_LISP_TYPE(firstseq);
+  kno_lisp_type result_type = KNO_TYPEOF(firstseq);
   if ((TABLEP(fn)) || ((ATOMICP(fn)) && (KNO_FCNIDP(fn)))) {
     if (n_seqs>1)
       return kno_err(kno_TooManyArgs,"kno_foreach",NULL,fn);
@@ -256,7 +256,7 @@ KNO_EXPORT lispval kno_map2choice(lispval fn,lispval sequence)
   else if (NILP(sequence)) return sequence;
   else if ((KNO_APPLICABLEP(fn)) || (TABLEP(fn)) || (ATOMICP(fn))) {
     int i = 0, len = kno_seq_length(sequence);
-    kno_lisp_type result_type = KNO_LISP_TYPE(sequence);
+    kno_lisp_type result_type = KNO_TYPEOF(sequence);
     lispval *results = u8_alloc_n(len,lispval);
     while (i < len) {
       lispval elt = kno_seq_elt(sequence,i), new_elt;
@@ -799,7 +799,7 @@ lispval position_if_prim(lispval test,lispval seq,lispval start_arg,
 			 lispval end_arg)
 {
   int end, start = (KNO_FIXNUMP(start_arg)) ? (KNO_FIX2INT(start_arg)) : (0);
-  int ctype = KNO_LISP_TYPE(seq);
+  int ctype = KNO_TYPEOF(seq);
   switch (ctype) {
   case kno_vector_type: {
     int len = KNO_VECTOR_LENGTH(seq), delta = 1;
@@ -911,7 +911,7 @@ lispval position_if_not_prim(lispval test,lispval seq,lispval start_arg,
 			     lispval end_arg)
 {
   int start = KNO_FIX2INT(start_arg), end;
-  int ctype = KNO_LISP_TYPE(seq);
+  int ctype = KNO_TYPEOF(seq);
   switch (ctype) {
   case kno_vector_type: {
     int len = KNO_VECTOR_LENGTH(seq), delta = 1;
@@ -1027,7 +1027,7 @@ lispval find_if_prim(lispval test,lispval seq,lispval start_arg,
 		     lispval end_arg,lispval fail_val)
 {
   int end, start = (KNO_FIXNUMP(start_arg)) ? (KNO_FIX2INT(start_arg)) : (0);
-  int ctype = KNO_LISP_TYPE(seq);
+  int ctype = KNO_TYPEOF(seq);
   switch (ctype) {
   case kno_vector_type: {
     int len = KNO_VECTOR_LENGTH(seq), delta = 1;
@@ -1144,7 +1144,7 @@ lispval find_if_not_prim(lispval test,lispval seq,lispval start_arg,
 			 lispval fail_val)
 {
   int start = KNO_FIX2INT(start_arg), end;
-  int ctype = KNO_LISP_TYPE(seq);
+  int ctype = KNO_TYPEOF(seq);
   switch (ctype) {
   case kno_vector_type: {
     int len = KNO_VECTOR_LENGTH(seq), delta = 1;
@@ -1700,7 +1700,7 @@ KNO_EXPORT lispval kno_seq2choice(lispval x)
     return results;}
   else {
     lispval result = EMPTY;
-    int ctype = KNO_LISP_TYPE(x), i = 0, len;
+    int ctype = KNO_TYPEOF(x), i = 0, len;
     switch (ctype) {
     case kno_vector_type:
       len = VEC_LEN(x); while (i < len) {
@@ -1746,7 +1746,7 @@ static lispval elts_prim(lispval x,lispval start_arg,lispval end_arg)
   int start, end;
   lispval check = check_range("elts_prim",x,start_arg,end_arg,&start,&end);
   lispval results = EMPTY;
-  int ctype = KNO_LISP_TYPE(x);
+  int ctype = KNO_TYPEOF(x);
   if (KNO_ABORTED(check))
     return check;
   else switch (ctype) {

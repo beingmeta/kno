@@ -570,7 +570,7 @@ lispval kno_stack_eval(lispval expr,kno_lexenv env,
 {
   if (_stack==NULL) _stack=kno_stackptr;
   if (KNO_IMMEDIATEP(expr)) {
-    switch (KNO_LISP_TYPE(expr)) {
+    switch (KNO_TYPEOF(expr)) {
     case kno_lexref_type:
       return kno_lexref(expr,env);
     case kno_symbol_type: {
@@ -660,7 +660,7 @@ lispval pair_eval(lispval head,lispval expr,kno_lexenv env,
   if (gc_head) {
     KNO_ADD_TO_CHOICE(eval_stack->stack_vals,headval);}
 
-  kno_lisp_type headtype = KNO_LISP_TYPE(headval);
+  kno_lisp_type headtype = KNO_TYPEOF(headval);
   switch (headtype) {
   case kno_opcode_type:
     result = opcode_eval(headval,expr,env,eval_stack,tail); break;
@@ -1659,7 +1659,7 @@ DEFPRIM1("documentation",get_documentation,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 KNO_EXPORT u8_string kno_get_documentation(lispval x)
 {
   lispval proc = (KNO_FCNIDP(x)) ? (kno_fcnid_ref(x)) : (x);
-  kno_lisp_type proctype = KNO_LISP_TYPE(proc);
+  kno_lisp_type proctype = KNO_TYPEOF(proc);
   if (proctype == kno_lambda_type) {
     struct KNO_LAMBDA *lambda = (kno_lambda)proc;
     if (lambda->fcn_doc)

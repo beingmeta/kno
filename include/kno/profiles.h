@@ -74,7 +74,7 @@ static void kno_profile_record
 }
 #endif
 
-static struct KNO_PROFILE *kno_make_profile(u8_string name)
+static U8_MAYBE_UNUSED struct KNO_PROFILE *kno_make_profile(u8_string name)
 {
   struct KNO_PROFILE *result = u8_alloc(struct KNO_PROFILE);
   result->prof_label = (name) ? (u8_strdup(name)) : (NULL);

@@ -13,13 +13,13 @@
 
 /* Compounds */
 
-#define KNO_COMPOUNDP(x) (KNO_LISP_TYPE(x) == kno_compound_type)
+#define KNO_COMPOUNDP(x) (KNO_TYPEOF(x) == kno_compound_type)
 #define KNO_COMPOUND_TAG(x) \
   ((kno_consptr(struct KNO_COMPOUND *,x,kno_compound_type))->typetag)
 #define KNO_COMPOUND_DATA(x) \
   ((kno_consptr(struct KNO_COMPOUND *,x,kno_compound_type))->elt0)
 #define KNO_COMPOUND_TYPEP(x,tag)                        \
-  ((KNO_LISP_TYPE(x) == kno_compound_type) && (KNO_COMPOUND_TAG(x) == tag))
+  ((KNO_TYPEOF(x) == kno_compound_type) && (KNO_COMPOUND_TAG(x) == tag))
 #define KNO_COMPOUND_ELTS(x) \
   (&((kno_consptr(struct KNO_COMPOUND *,x,kno_compound_type))->compound_0))
 #define KNO_COMPOUND_LENGTH(x) \
@@ -31,10 +31,10 @@
 #define KNO_2COMPOUND(x) ((kno_compound)(x))
 
 #define KNO_COMPOUND_VECLEN(x) \
-  ( ( (KNO_LISP_TYPE(x) == kno_compound_type) && ((KNO_2COMPOUND(x))->compound_seqoff>=0) ) ? \
+  ( ( (KNO_TYPEOF(x) == kno_compound_type) && ((KNO_2COMPOUND(x))->compound_seqoff>=0) ) ? \
     (((KNO_XCOMPOUND(x))->compound_length)-((KNO_2COMPOUND(x))->compound_seqoff)) : (-1) )
 #define KNO_COMPOUND_VECELTS(x) \
-  ( ( (KNO_LISP_TYPE(x) == kno_compound_type) && ((KNO_2COMPOUND(x))->compound_seqoff>=0) ) ? \
+  ( ( (KNO_TYPEOF(x) == kno_compound_type) && ((KNO_2COMPOUND(x))->compound_seqoff>=0) ) ? \
     ((&(((KNO_2COMPOUND(x))->compound_0)))+((KNO_2COMPOUND(x))->compound_seqoff)) : (NULL) )
 #define KNO_XCOMPOUND_VECREF(x,i)                                            \
   ( (&((KNO_XCOMPOUND(x))->compound_0))[(i)+((KNO_2COMPOUND(x))->compound_seqoff)])
@@ -56,14 +56,14 @@ KNO_EXPORT lispval kno_compound_ref(lispval arg,lispval tag,int off,lispval dflt
 #define KNO_COMPOUND_USEREF     0x30 /* Decref on error */
 
 #define KNO_COMPOUND_MUTABLEP(x) \
-  ( (KNO_LISP_TYPE(x) == kno_compound_type) && \
+  ( (KNO_TYPEOF(x) == kno_compound_type) && \
     ((KNO_2COMPOUND(x))->compound_ismutable) )
 #define KNO_COMPOUND_OPAQUEP(x) \
-  ( (KNO_LISP_TYPE(x) == kno_compound_type) && \
+  ( (KNO_TYPEOF(x) == kno_compound_type) && \
     ((KNO_2COMPOUND(x))->compound_isopaque) )
 
 #define KNO_COMPOUND_VECTORP(x) \
-  ( (KNO_LISP_TYPE(x) == kno_compound_type) && \
+  ( (KNO_TYPEOF(x) == kno_compound_type) && \
     ((KNO_2COMPOUND(x))->compound_seqoff>=0) )
 #define KNO_COMPOUND_SEQOFFSET(x) \
   ((kno_consptr(struct KNO_COMPOUND *,x,kno_compound_type))->compound_seqoff)

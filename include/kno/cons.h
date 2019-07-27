@@ -483,9 +483,9 @@ KNO_EXPORT lispval kno_mkstring(u8_string string);
 /* Packets are blocks of binary data. */
 
 #define KNO_PACKETP(x) \
-  ((KNO_LISP_TYPE(x) == kno_packet_type)||(KNO_LISP_TYPE(x) == kno_secret_type))
+  ((KNO_TYPEOF(x) == kno_packet_type)||(KNO_TYPEOF(x) == kno_secret_type))
 #define KNO_SECRETP(x) \
-  (KNO_LISP_TYPE(x) == kno_secret_type)
+  (KNO_TYPEOF(x) == kno_secret_type)
 #define KNO_PACKET_LENGTH(x) \
   ((unsigned int) ((KNO_CONSPTR(kno_string,x))->str_bytelen))
 #define KNO_PACKET_DATA(x) ((KNO_CONSPTR(kno_string,x))->str_bytes)
@@ -519,7 +519,7 @@ typedef struct KNO_PAIR {
   lispval cdr;} KNO_PAIR;
 typedef struct KNO_PAIR *kno_pair;
 
-#define KNO_PAIRP(x) (KNO_LISP_TYPE(x) == kno_pair_type)
+#define KNO_PAIRP(x) (KNO_TYPEOF(x) == kno_pair_type)
 #define KNO_CAR(x) ((KNO_CONSPTR(KNO_PAIR *,(x)))->car)
 #define KNO_CDR(x) ((KNO_CONSPTR(KNO_PAIR *,(x)))->cdr)
 #define KNO_TRY_CAR(x) \
@@ -719,7 +719,7 @@ typedef struct KNO_RATIONAL {
   lispval denominator;} KNO_RATIONAL;
 typedef struct KNO_RATIONAL *kno_rational;
 
-#define KNO_RATIONALP(x) (KNO_LISP_TYPE(x) == kno_rational_type)
+#define KNO_RATIONALP(x) (KNO_TYPEOF(x) == kno_rational_type)
 #define KNO_NUMERATOR(x) \
   ((kno_consptr(struct KNO_RATIONAL *,x,kno_rational_type))->numerator)
 #define KNO_DENOMINATOR(x) \
@@ -731,7 +731,7 @@ typedef struct KNO_COMPLEX {
   lispval imagpart;} KNO_COMPLEX;
 typedef struct KNO_COMPLEX *kno_complex;
 
-#define KNO_COMPLEXP(x) (KNO_LISP_TYPE(x) == kno_complex_type)
+#define KNO_COMPLEXP(x) (KNO_TYPEOF(x) == kno_complex_type)
 #define KNO_REALPART(x) \
   ((kno_consptr(struct KNO_COMPLEX *,x,kno_complex_type))->realpart)
 #define KNO_IMAGPART(x) \
@@ -755,7 +755,7 @@ typedef struct KNO_REGEX *kno_regex;
 
 KNO_EXPORT lispval kno_make_regex(u8_string src,int flags);
 
-#define KNO_REGEXP(x) (KNO_LISP_TYPE(x) == kno_regex_type)
+#define KNO_REGEXP(x) (KNO_TYPEOF(x) == kno_regex_type)
 
 /* Mysteries */
 
@@ -946,8 +946,8 @@ static int base_compare(lispval x,lispval y)
   else if (KNO_ATOMICP(y))
     return 1;
   else {
-    kno_lisp_type xtype = KNO_LISP_TYPE(x);
-    kno_lisp_type ytype = KNO_LISP_TYPE(y);
+    kno_lisp_type xtype = KNO_TYPEOF(x);
+    kno_lisp_type ytype = KNO_TYPEOF(y);
     if (KNO_NUMBER_TYPEP(xtype))
       if (KNO_NUMBER_TYPEP(ytype))
         return kno_numcompare(x,y);
@@ -1001,8 +1001,8 @@ static int cons_compare(lispval x,lispval y)
   else if (KNO_ATOMICP(y))
     return 1;
   else {
-    kno_lisp_type xtype = KNO_LISP_TYPE(x);
-    kno_lisp_type ytype = KNO_LISP_TYPE(y);
+    kno_lisp_type xtype = KNO_TYPEOF(x);
+    kno_lisp_type ytype = KNO_TYPEOF(y);
     if ( (KNO_NUMBER_TYPEP(xtype)) && (KNO_NUMBER_TYPEP(ytype)) )
       return kno_numcompare(x,y);
     else if (KNO_NUMBER_TYPEP(xtype))
@@ -1075,7 +1075,7 @@ U8_MAYBE_UNUSED static int _kno_applicablep(lispval x)
     kno_lisp_type xtype = KNO_IMMEDIATE_TYPE(x);
     if (xtype == kno_fcnid_type) {
       lispval fcn = kno_fcnid_ref(x);
-      kno_lisp_type objtype = KNO_LISP_TYPE(fcn);
+      kno_lisp_type objtype = KNO_TYPEOF(fcn);
       return ( (objtype == kno_cprim_type) ||
                (objtype == kno_lambda_type) ||
                (kno_applyfns[objtype] != NULL) );}

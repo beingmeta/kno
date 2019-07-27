@@ -223,7 +223,7 @@ int lispval_equal(lispval x,lispval y)
     else if (memcmp(KNO_PACKET_DATA(x),KNO_PACKET_DATA(y),xlen)==0)
       return 1;
     else return 0;}
-  else if (!(TYPEP(y,KNO_LISP_TYPE(x))))
+  else if (!(TYPEP(y,KNO_TYPEOF(x))))
     /* At this point, If the types are different, the values are
        different. */
     return 0;

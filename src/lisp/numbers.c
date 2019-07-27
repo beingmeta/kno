@@ -2002,11 +2002,11 @@ static double todoublex(lispval x,kno_lisp_type xt)
 }
 static double todouble(lispval x)
 {
-  return todoublex(x,KNO_LISP_TYPE(x));
+  return todoublex(x,KNO_TYPEOF(x));
 }
 KNO_EXPORT double kno_todouble(lispval x)
 {
-  return todoublex(x,KNO_LISP_TYPE(x));
+  return todoublex(x,KNO_TYPEOF(x));
 }
 static kno_bigint tobigint(lispval x)
 {
@@ -2263,7 +2263,7 @@ int kno_numberp(lispval x)
 KNO_EXPORT
 lispval kno_plus(lispval x,lispval y)
 {
-  kno_lisp_type xt = KNO_LISP_TYPE(x), yt = KNO_LISP_TYPE(y);
+  kno_lisp_type xt = KNO_TYPEOF(x), yt = KNO_TYPEOF(y);
   if ((xt == kno_fixnum_type) && (yt == kno_fixnum_type)) {
     long long ix = FIX2INT(x);
     long long iy = FIX2INT(y);
@@ -2324,7 +2324,7 @@ lispval kno_plus(lispval x,lispval y)
 KNO_EXPORT
 lispval kno_multiply(lispval x,lispval y)
 {
-  kno_lisp_type xt = KNO_LISP_TYPE(x), yt = KNO_LISP_TYPE(y);
+  kno_lisp_type xt = KNO_TYPEOF(x), yt = KNO_TYPEOF(y);
   if ((xt == kno_fixnum_type) && (yt == kno_fixnum_type)) {
     long long ix = FIX2INT(x), iy = FIX2INT(y);
     long long q, result;
@@ -2399,7 +2399,7 @@ lispval kno_multiply(lispval x,lispval y)
 KNO_EXPORT
 lispval kno_subtract(lispval x,lispval y)
 {
-  kno_lisp_type xt = KNO_LISP_TYPE(x), yt = KNO_LISP_TYPE(y);
+  kno_lisp_type xt = KNO_TYPEOF(x), yt = KNO_TYPEOF(y);
   if ((xt == kno_fixnum_type) && (yt == kno_fixnum_type)) {
     long long result = (FIX2INT(x))-(FIX2INT(y));
     if ((result<KNO_MAX_FIXNUM) && (result>KNO_MIN_FIXNUM))
@@ -2452,7 +2452,7 @@ lispval kno_subtract(lispval x,lispval y)
 KNO_EXPORT
 lispval kno_divide(lispval x,lispval y)
 {
-  kno_lisp_type xt = KNO_LISP_TYPE(x), yt = KNO_LISP_TYPE(y);
+  kno_lisp_type xt = KNO_TYPEOF(x), yt = KNO_TYPEOF(y);
   if ((INTEGERP(x)) && (INTEGERP(y)))
     return kno_make_rational(x,y);
   else if ((xt == kno_flonum_type) && (yt == kno_flonum_type)) {
@@ -2495,7 +2495,7 @@ lispval kno_divide(lispval x,lispval y)
 KNO_EXPORT
 lispval kno_inexact_divide(lispval x,lispval y)
 {
-  kno_lisp_type xt = KNO_LISP_TYPE(x), yt = KNO_LISP_TYPE(y);
+  kno_lisp_type xt = KNO_TYPEOF(x), yt = KNO_TYPEOF(y);
   if ((xt == kno_fixnum_type) && (yt == kno_fixnum_type)) {
     if (yt == KNO_FIXZERO)
       return kno_err("DivideByZero","kno_inexact_divide",NULL,x);
@@ -2523,7 +2523,7 @@ lispval kno_inexact_divide(lispval x,lispval y)
 KNO_EXPORT
 lispval kno_quotient(lispval x,lispval y)
 {
-  kno_lisp_type xt = KNO_LISP_TYPE(x), yt = KNO_LISP_TYPE(y);
+  kno_lisp_type xt = KNO_TYPEOF(x), yt = KNO_TYPEOF(y);
   if ((xt == kno_fixnum_type) && (yt == kno_fixnum_type)) {
     long long result = FIX2INT(x)/FIX2INT(y);
     return KNO_INT(result);}
@@ -2541,7 +2541,7 @@ lispval kno_quotient(lispval x,lispval y)
 KNO_EXPORT
 lispval kno_remainder(lispval x,lispval y)
 {
-  kno_lisp_type xt = KNO_LISP_TYPE(x), yt = KNO_LISP_TYPE(y);
+  kno_lisp_type xt = KNO_TYPEOF(x), yt = KNO_TYPEOF(y);
   if ((xt == kno_fixnum_type) && (yt == kno_fixnum_type)) {
     long long result = FIX2INT(x)%FIX2INT(y);
     return KNO_INT(result);}
@@ -2618,7 +2618,7 @@ KNO_EXPORT int kno_tolonglong(lispval r,long long *intval)
 KNO_EXPORT
 int kno_numcompare(lispval x,lispval y)
 {
-  kno_lisp_type xt = KNO_LISP_TYPE(x), yt = KNO_LISP_TYPE(y);
+  kno_lisp_type xt = KNO_TYPEOF(x), yt = KNO_TYPEOF(y);
   if ((xt == kno_fixnum_type) && (yt == kno_fixnum_type)) {
     long long dx = FIX2INT(x), dy = FIX2INT(y);
     if (dx>dy) return 1; else if (dx<dy) return -1; else return 0;}
@@ -2655,7 +2655,7 @@ int kno_numcompare(lispval x,lispval y)
 KNO_EXPORT
 lispval kno_make_inexact(lispval x)
 {
-  kno_lisp_type xt = KNO_LISP_TYPE(x);
+  kno_lisp_type xt = KNO_TYPEOF(x);
   if (xt == kno_flonum_type)
     return kno_incref(x);
   else if (xt == kno_fixnum_type)
@@ -2679,7 +2679,7 @@ lispval kno_make_inexact(lispval x)
 KNO_EXPORT
 lispval kno_make_exact(lispval x)
 {
-  kno_lisp_type xt = KNO_LISP_TYPE(x);
+  kno_lisp_type xt = KNO_TYPEOF(x);
   if (xt == kno_flonum_type) {
     double d = KNO_FLONUM(x);
     if ( (isnan(d)) || (isinf(d)) )
@@ -2720,7 +2720,7 @@ lispval kno_make_exact(lispval x)
 KNO_EXPORT
 int kno_exactp(lispval x)
 {
-  kno_lisp_type xt = KNO_LISP_TYPE(x);
+  kno_lisp_type xt = KNO_TYPEOF(x);
   if (xt == kno_flonum_type) return 0;
   else if (xt == kno_complex_type) {
     lispval realpart = KNO_REALPART(x), imagpart = KNO_IMAGPART(x);

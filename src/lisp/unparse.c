@@ -248,7 +248,7 @@ static int unparse_pair(U8_OUTPUT *out,lispval x)
     kno_unparse(out,KNO_CAR(scan));
     len++;
     scan = KNO_CDR(scan);
-    while (KNO_LISP_TYPE(scan) == kno_pair_type)
+    while (KNO_TYPEOF(scan) == kno_pair_type)
       if ((unparse_maxelts>0) && (len>=unparse_maxelts)) {
         if (len == unparse_maxelts) ellipsis_start = len;
         scan = KNO_CDR(scan);

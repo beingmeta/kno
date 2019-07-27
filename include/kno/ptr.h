@@ -359,15 +359,15 @@ KNO_FASTOP U8_MAYBE_UNUSED int _KNO_ISDTYPE(lispval x){ return 1;}
 #define KNO_IMMEDIATE_MAX (1<<24)
 
 #if KNO_EXTREME_PROFILING
-KNO_EXPORT kno_lisp_type _KNO_LISP_TYPE(lispval x);
+KNO_EXPORT kno_lisp_type _KNO_TYPEOF(lispval x);
 #define KNO_LISP_TYPE _KNO_LISP_TYPE
 #else
-#define KNO_LISP_TYPE(x) \
+#define KNO_TYPEOF(x) \
   (((KNO_PTR_MANIFEST_TYPE(LISPVAL(x)))>1) ? (KNO_PTR_MANIFEST_TYPE(x)) :  \
    ((KNO_PTR_MANIFEST_TYPE(x))==1) ? (KNO_IMMEDIATE_TYPE(x)) : \
    (x) ? (KNO_CONS_TYPE(((struct KNO_CONS *)KNO_CONS_DATA(x)))) : (-1))
 #endif
-#define KNO_PRIM_TYPE(x)         (KNO_LISP_TYPE(x))
+#define KNO_PRIM_TYPE(x)         (KNO_TYPEOF(x))
 
 #if KNO_EXTREME_PROFILING
 KNO_EXPORT int _KNO_TYPEP(lispval ptr,int type);
@@ -883,7 +883,7 @@ static U8_MAYBE_UNUSED lispval _kno_fcnid_ref(lispval ref)
 #endif
 
 #define KNO_FCNID_TYPEP(x,tp)    (KNO_TYPEP(kno_fcnid_ref(x),tp))
-#define KNO_FCNID_TYPE(x)        (KNO_LISP_TYPE(kno_fcnid_ref(x)))
+#define KNO_FCNID_TYPE(x)        (KNO_TYPEOF(kno_fcnid_ref(x)))
 
 /* Numeric macros */
 
@@ -891,7 +891,7 @@ static U8_MAYBE_UNUSED lispval _kno_fcnid_ref(lispval ref)
   ((x == kno_fixnum_type) || (x == kno_bigint_type) ||   \
    (x == kno_flonum_type) || (x == kno_rational_type) || \
    (x == kno_complex_type))
-#define KNO_NUMBERP(x) (KNO_NUMBER_TYPEP(KNO_LISP_TYPE(x)))
+#define KNO_NUMBERP(x) (KNO_NUMBER_TYPEP(KNO_TYPEOF(x)))
 
 /* Generic handlers */
 
@@ -1034,7 +1034,7 @@ KNO_EXPORT void lispval_sort(lispval *v,size_t n,kno_compare_flags flags);
 
 /* Debugging support */
 
-KNO_EXPORT kno_lisp_type _kno_lisp_type(lispval x);
+KNO_EXPORT kno_lisp_type _kno_typeof(lispval x);
 KNO_EXPORT lispval _kno_debug(lispval x);
 
 /* Pointer checking for internal debugging */

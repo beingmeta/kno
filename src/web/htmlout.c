@@ -423,7 +423,7 @@ static void output_value(u8_output out,lispval val,
     else u8_printf(out," <%s class='%s packet'>%lk</%s>",
 		   eltname,classname,val,eltname);
   else {
-    kno_lisp_type ptrtype=KNO_LISP_TYPE(val);
+    kno_lisp_type ptrtype=KNO_TYPEOF(val);
     if (kno_type_names[ptrtype])
       u8_printf(out," <%s class='%s %s'>%lk</%s>",
 		eltname,classname,kno_type_names[ptrtype],
@@ -532,7 +532,7 @@ static void output_xhtml_table(U8_OUTPUT *out,lispval tbl,lispval keys,
   else if (HASHTABLEP(tbl))
     u8_printf(out,"<tr><th colspan='2' class='header'>%lk</th></tr>\n",tbl);
   else u8_printf(out,"<tr><th colspan='2' class='header'>%s</th></tr>\n",
-		 kno_type_names[KNO_LISP_TYPE(tbl)]);
+		 kno_type_names[KNO_TYPEOF(tbl)]);
   {
     DO_CHOICES(key,keys) {
       if ( (out->u8_write - out->u8_outbuf) >= kno_htmlout_max) {

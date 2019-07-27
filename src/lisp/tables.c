@@ -1622,7 +1622,7 @@ static unsigned int hash_lisp(lispval x)
     case kno_compound_type: {
       struct KNO_COMPOUND *c = (kno_compound) cons;
       if (c->compound_isopaque) {
-        int ctype = KNO_LISP_TYPE(x);
+        int ctype = KNO_TYPEOF(x);
         if ( (ctype>0) && (ctype<N_TYPE_MULTIPLIERS) )
           return hash_mult(x,type_multipliers[ctype]);
         else return hash_mult(x,MYSTERIOUS_MULTIPLIER);}
@@ -4063,7 +4063,7 @@ static int bad_table_call(lispval arg,kno_lisp_type type,void *handler,
 
 KNO_EXPORT lispval kno_get(lispval arg,lispval key,lispval dflt)
 {
-  kno_lisp_type argtype=KNO_LISP_TYPE(arg);
+  kno_lisp_type argtype=KNO_TYPEOF(arg);
   CHECKPTR(arg,"kno_get/table");
   CHECKPTR(key,"kno_get/key");
   CHECKPTR(key,"kno_get/dflt");
@@ -4089,7 +4089,7 @@ KNO_EXPORT lispval kno_get(lispval arg,lispval key,lispval dflt)
 
 KNO_EXPORT int kno_store(lispval arg,lispval key,lispval value)
 {
-  kno_lisp_type argtype=KNO_LISP_TYPE(arg);
+  kno_lisp_type argtype=KNO_TYPEOF(arg);
   CHECKPTR(arg,"kno_store/table");
   CHECKPTR(key,"kno_store/key");
   CHECKPTR(value,"kno_store/value");
@@ -4111,7 +4111,7 @@ KNO_EXPORT int kno_store(lispval arg,lispval key,lispval value)
 
 KNO_EXPORT int kno_add(lispval arg,lispval key,lispval value)
 {
-  kno_lisp_type argtype=KNO_LISP_TYPE(arg);
+  kno_lisp_type argtype=KNO_TYPEOF(arg);
   CHECKPTR(arg,"kno_add/table");
   CHECKPTR(key,"kno_add/key");
   CHECKPTR(value,"kno_add/value");
@@ -4156,7 +4156,7 @@ KNO_EXPORT int kno_add(lispval arg,lispval key,lispval value)
 
 KNO_EXPORT int kno_drop(lispval arg,lispval key,lispval value)
 {
-  kno_lisp_type argtype=KNO_LISP_TYPE(arg);
+  kno_lisp_type argtype=KNO_TYPEOF(arg);
   CHECKPTR(arg,"kno_drop/table");
   CHECKPTR(key,"kno_drop/key");
   CHECKPTR(value,"kno_drop/value");
@@ -4206,7 +4206,7 @@ KNO_EXPORT int kno_drop(lispval arg,lispval key,lispval value)
 
 KNO_EXPORT int kno_test(lispval arg,lispval key,lispval value)
 {
-  kno_lisp_type argtype=KNO_LISP_TYPE(arg);
+  kno_lisp_type argtype=KNO_TYPEOF(arg);
   CHECKPTR(arg,"kno_test/table");
   CHECKPTR(key,"kno_test/key");
   CHECKPTR(value,"kno_test/value");
@@ -4245,7 +4245,7 @@ KNO_EXPORT int kno_test(lispval arg,lispval key,lispval value)
 
 KNO_EXPORT int kno_getsize(lispval arg)
 {
-  kno_lisp_type argtype=KNO_LISP_TYPE(arg);
+  kno_lisp_type argtype=KNO_TYPEOF(arg);
   CHECKPTR(arg,"kno_getsize/table");
   if (kno_tablefns[argtype])
     if (kno_tablefns[argtype]->getsize)
@@ -4264,7 +4264,7 @@ KNO_EXPORT int kno_getsize(lispval arg)
 
 KNO_EXPORT int kno_modifiedp(lispval arg)
 {
-  kno_lisp_type argtype=KNO_LISP_TYPE(arg);
+  kno_lisp_type argtype=KNO_TYPEOF(arg);
   CHECKPTR(arg,"kno_modifiedp/table");
   if (kno_tablefns[argtype])
     if (kno_tablefns[argtype]->modified)
@@ -4275,7 +4275,7 @@ KNO_EXPORT int kno_modifiedp(lispval arg)
 
 KNO_EXPORT int kno_set_modified(lispval arg,int flag)
 {
-  kno_lisp_type argtype=KNO_LISP_TYPE(arg);
+  kno_lisp_type argtype=KNO_TYPEOF(arg);
   CHECKPTR(arg,"kno_set_modified/table");
   if (kno_tablefns[argtype])
     if (kno_tablefns[argtype]->modified)
@@ -4286,7 +4286,7 @@ KNO_EXPORT int kno_set_modified(lispval arg,int flag)
 
 KNO_EXPORT int kno_readonlyp(lispval arg)
 {
-  kno_lisp_type argtype=KNO_LISP_TYPE(arg);
+  kno_lisp_type argtype=KNO_TYPEOF(arg);
   CHECKPTR(arg,"kno_readonlyp/table");
   if (kno_tablefns[argtype])
     if (kno_tablefns[argtype]->readonly)
@@ -4297,7 +4297,7 @@ KNO_EXPORT int kno_readonlyp(lispval arg)
 
 KNO_EXPORT int kno_set_readonly(lispval arg,int flag)
 {
-  kno_lisp_type argtype=KNO_LISP_TYPE(arg);
+  kno_lisp_type argtype=KNO_TYPEOF(arg);
   CHECKPTR(arg,"kno_set_readonly/table");
   if (kno_tablefns[argtype])
     if (kno_tablefns[argtype]->readonly)
@@ -4308,7 +4308,7 @@ KNO_EXPORT int kno_set_readonly(lispval arg,int flag)
 
 KNO_EXPORT int kno_finishedp(lispval arg)
 {
-  kno_lisp_type argtype=KNO_LISP_TYPE(arg);
+  kno_lisp_type argtype=KNO_TYPEOF(arg);
   CHECKPTR(arg,"kno_finishedp/table");
   if (kno_tablefns[argtype])
     if (kno_tablefns[argtype]->finished)
@@ -4319,7 +4319,7 @@ KNO_EXPORT int kno_finishedp(lispval arg)
 
 KNO_EXPORT int kno_set_finished(lispval arg,int flag)
 {
-  kno_lisp_type argtype=KNO_LISP_TYPE(arg);
+  kno_lisp_type argtype=KNO_TYPEOF(arg);
   CHECKPTR(arg,"kno_set_finished/table");
   if (kno_tablefns[argtype])
     if (kno_tablefns[argtype]->finished)
@@ -4330,7 +4330,7 @@ KNO_EXPORT int kno_set_finished(lispval arg,int flag)
 
 KNO_EXPORT lispval kno_getkeys(lispval arg)
 {
-  kno_lisp_type argtype=KNO_LISP_TYPE(arg);
+  kno_lisp_type argtype=KNO_TYPEOF(arg);
   CHECKPTR(arg,"kno_getkeys/table");
   if (kno_tablefns[argtype])
     if (kno_tablefns[argtype]->keys)
