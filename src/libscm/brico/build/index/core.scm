@@ -55,6 +55,12 @@
   {@1/0{WN16} @1/46074"Wordnet 3.0, Copyright 2006 Princeton University" 
    @1/94d47"Wordnet 3.1, Copyright 2011 Princeton University"})
 
+(define index-sources
+  '{@1/0{WN16}
+    @1/46074"Wordnet 3.0, Copyright 2006 Princeton University" 
+    @1/94d47"Wordnet 3.1, Copyright 2011 Princeton University"
+    wikidata})
+
 (defambda (indexer frames batch-state loop-state task-state)
   (let ((index (get batch-state 'index))
 	(wikid.index (get batch-state 'wikid.index))
@@ -65,20 +71,20 @@
       (onerror
 	  (begin
 	    (when fixup (fixup f))
-	      (when (test f 'source wn-sources)
-		(index-frame wordnet.index
-		    f '{type source has words hypernym hyponym sensecat
-			sensekeys synsets verb-frames pertainym
-			lex-fileno})
-		(index-frame wordnet.index f '%sensekeys (getvalues (get f '%sensekeys)))
-		(index-frame wordnet.index f 'has (getkeys f))
-		(index-gloss wordnet.index f 'gloss)
-		(index-brico index f)
-		(index-latlong latlong.index f)
-		(index-frame index f index-also)
-		(index-wikid wikid.index f))))
-	  (lambda (ex) (logwarn |IndexError| "Indexing " f "\n" ex))))
-    (swapout frames))
+	    (when (test f 'source index-sources)
+	      (index-frame wordnet.index
+		  f '{type source has words hypernym hyponym sensecat
+		      sensekeys synsets verb-frames pertainym
+		      lex-fileno})
+	      (index-frame wordnet.index f '%sensekeys (getvalues (get f '%sensekeys)))
+	      (index-frame wordnet.index f 'has (getkeys f))
+	      (index-gloss wordnet.index f 'gloss)
+	      (index-brico index f)
+	      (index-latlong latlong.index f)
+	      (index-frame index f index-also)
+	      (index-wikid wikid.index f))))
+      (lambda (ex) (logwarn |IndexError| "Indexing " f "\n" ex))))
+  (swapout frames))
 
 (define (main . names)
   (config! 'appid  "indexcore")

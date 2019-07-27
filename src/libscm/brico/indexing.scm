@@ -252,7 +252,7 @@
 	   (cons (get d 'word) (get d 'type)))}))))
 
 (define (index-brico index frame)
-  (cond ((empty? (getslots frame))
+  (cond ((empty? (getkeys frame))
 	 (index-frame index frame 'status 'deleted))
 	((test frame 'type 'deleted)
 	 (index-frame index frame 'type)
