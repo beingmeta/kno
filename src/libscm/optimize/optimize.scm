@@ -980,8 +980,12 @@
   (if (and (pair? type-arg)
 	   (overlaps? (car type-arg) {'quote quote #OP_QUOTE}))
       `(,xpred-opcode ,(cadr type-arg) ,(optimize (get-arg expr 1) env bound opts))
-      `(,(fcnref compound? (car expr) env opts)
-	,(optimize (get-arg expr 1) env bound opts))))
+      (if type-arg
+	  `(,(fcnref compound? (car expr) env opts)
+	    ,(optimize (get-arg expr 1) env bound opts)
+	    ,(optimize type-arg env bound opts))
+	  `(,(fcnref compound? (car expr) env opts)
+	    ,(optimize (get-arg expr 1) env bound opts)))))
 
 (store! procedure-optimizers compound? optimize-compound-predicate)
 
