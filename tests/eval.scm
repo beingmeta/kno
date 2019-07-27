@@ -195,7 +195,7 @@
 (applytest "constant" typeof #f)
 (applytest "constant" typeof #t)
 (evaltest "choice" (typeof #{"one" "two" 3}))
-(applytest {"fixnum" "string"} typeof #{"one" "two" 3})
+(applytest {"fixnum" "string"} typeof {"one" "two" 3})
 (applytest "cprim" typeof car)
 (applytest "lambda" typeof test-macros)
 
