@@ -353,6 +353,7 @@ _make_lambda(u8_string name,
     if (name) u8_free(s->fcn_name);
     u8_free(s);
     return KNO_ERROR;}
+  s->fcn_call_len = n_vars;
   if (! (n_vars) ) {
     s->lambda_vars = NULL;
     s->lambda_inits = NULL;}

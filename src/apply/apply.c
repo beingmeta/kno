@@ -594,7 +594,8 @@ KNO_EXPORT lispval kno_dcall(struct KNO_STACK *_stack,
     f=(struct KNO_FUNCTION *)fn;
     if (f->fcn_name) fname=f->fcn_name;
     alloc_args = f->fcn_call_len;
-    if (alloc_args < 0) alloc_args = 0;
+    if (alloc_args < n)
+      alloc_args = n;
     min_arity = f->fcn_min_arity;
     max_arity = f->fcn_arity;}
   else if (kno_applyfns[ftype]) {
