@@ -163,7 +163,13 @@
   kno_defprim ## arity(module,cname,&cname ## _info,             \
                       cname ## _typeinfo,                       \
                       cname ## _defaults)
+#define KNO_LINK_CPRIM(cname,arity,module)                  \
+  kno_defprim ## arity(module,cname,&cname ## _info,             \
+                      cname ## _typeinfo,                       \
+                      cname ## _defaults)
 #define KNO_LINK_VARARGS(pname,cname,module)    \
+  kno_defprimN(module,cname,&cname ## _info);
+#define KNO_LINK_CVARARGS(cname,module)    \
   kno_defprimN(module,cname,&cname ## _info);
 
 KNO_EXPORT void kno_typedprim1(lispval module,kno_cprim1 fn,
