@@ -221,21 +221,26 @@ int kno_module_finished(lispval module,int flags)
 static kno_lexenv become_module(kno_lexenv env,lispval module_name,int create)
 {
   lispval module_spec = kno_eval(module_name,env), module;
-  if (SYMBOLP(module_spec))
-    module = kno_get_module(module_spec);
-  else if (ABORTP(module_spec))
+  if (ABORTP(module_spec))
     return NULL;
-  else { kno_decref(module_spec);
+  else if (SYMBOLP(module_spec))
+    module = kno_get_module(module_spec);
+  else if ( (KNO_LEXENVP(module_spec)) || (KNO_HASHTABLEP(module_spec)) )
+    module = kno_incref(module_spec);
+  else {
+    kno_decref(module_spec);
     return KNO_ERR(NULL,"InvalidModuleSpec","become_module",NULL,module_spec);}
   if (KNO_ABORTP(module)) return NULL;
-  else if ((!(create))&&(VOIDP(module))) {
-    kno_seterr(kno_NoSuchModule,"become_module",NULL,module_spec);
+  else if ( (!(create)) && (VOIDP(module)) ) {
+    kno_seterr(kno_NoSuchModule,"become_module",
+	       KNO_GETSTRING(module_spec),
+	       module_spec);
     kno_decref(module);
     return NULL;}
   else if (HASHTABLEP(module)) {
-    kno_seterr(OpaqueModule,"become_module",NULL,module_spec);
     kno_decref(module);
-    return NULL;}
+    return KNO_ERR(NULL,OpaqueModule,"become_module",
+		   KNO_GETSTRING(module_spec),module_spec);}
   else if (KNO_LEXENVP(module)) {
     KNO_LEXENV *menv=
       kno_consptr(KNO_LEXENV *,module,kno_lexenv_type);
@@ -251,12 +256,15 @@ static kno_lexenv become_module(kno_lexenv env,lispval module_name,int create)
       env->env_exports = kno_make_hashtable(NULL,0);
     else if (KNO_HASHTABLE_READONLYP(env->env_exports)) {
       kno_seterr(_("Can't reload a read-only module"),
-                 "become_module",NULL,module_spec);
+		 "become_module",NULL,module_spec);
       return NULL;}
     else {}
     kno_store(env->env_exports,moduleid_symbol,module_spec);
     kno_register_module(SYM_NAME(module_spec),(lispval)env,0);}
-  else return KNO_ERR(NULL,kno_NotAModule,"use_module",NULL,module_spec);
+  else {
+    kno_seterr(kno_NotAModule,"use_module",
+	       KNO_GETSTRING(module_spec),module_spec);
+    env = NULL;}
   kno_decref(module);
   kno_decref(module_spec);
   return env;
@@ -273,12 +281,11 @@ static lispval in_module_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 
 static lispval within_module_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  kno_lexenv consed_env = kno_working_lexenv();
   lispval module_name = kno_get_arg(expr,1);
-  if (VOIDP(module_name)) {
-    kno_decref((lispval)consed_env);
-    return kno_err(kno_TooFewExpressions,"WITHIN-MODULE",NULL,expr);}
-  else if (become_module(consed_env,module_name,0)) {
+  if (VOIDP(module_name))
+    return kno_err(kno_TooFewExpressions,"WITHIN-MODULE",NULL,expr);
+  kno_lexenv consed_env = kno_working_lexenv();
+  if (become_module(consed_env,module_name,0)) {
     lispval result = VOID, body = kno_get_body(expr,2);
     KNO_DOLIST(elt,body) {
       kno_decref(result); result = kno_eval(elt,consed_env);}
