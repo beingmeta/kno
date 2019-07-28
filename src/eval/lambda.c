@@ -58,8 +58,9 @@ static lispval get_rest_arg(lispval *args,int n)
 {
   lispval result=NIL; n--;
   while (n>=0) {
-    lispval arg=args[n--];
-    result=kno_init_pair(NULL,kno_incref(arg),result);}
+    lispval arg=args[n];
+    result=kno_init_pair(NULL,kno_incref(arg),result);
+    n--;}
   return result;
 }
 
@@ -124,9 +125,6 @@ lispval call_lambda(struct KNO_STACK *_stack,
 
   kno_init_elts(vals,n_vars,VOID);
 
-  /* Make it static */
-  if (_stack) _stack->stack_env = call_env = &stack_env;
-
   if (direct_call)
     memcpy(vals,args,sizeof(lispval)*n_vars);
   else {
@@ -135,17 +133,17 @@ lispval call_lambda(struct KNO_STACK *_stack,
     int i = 0; while (i < n_inits) {
       lispval arg = (i<n) ? (args[i]) : (KNO_DEFAULT_VALUE);
       if (arg != KNO_DEFAULT_VALUE)
-        vals[i]=kno_incref(args[i]);
+	vals[i]=kno_incref(args[i]);
       else if (inits) {
-        lispval default_expr = inits[i];
-        lispval use_value = fast_stack_eval(default_expr,proc_env,_stack);
-        if (KNO_THROWP(use_value)) {
-          kno_decref_vec(vals,i);
-          _return use_value;}
-        else if (KNO_ABORTED(use_value)) {
-          kno_decref_vec(vals,i);
-          _return use_value;}
-        else vals[i]=use_value;}
+	lispval default_expr = inits[i];
+	lispval use_value = fast_stack_eval(default_expr,proc_env,_stack);
+	if (KNO_THROWP(use_value)) {
+	  kno_decref_vec(vals,i);
+	  _return use_value;}
+	else if (KNO_ABORTED(use_value)) {
+	  kno_decref_vec(vals,i);
+	  _return use_value;}
+	else vals[i]=use_value;}
       else vals[i] = args[i];
       i++;}
     if ( (arity < 0) && (i < n_vars) ) {
@@ -153,6 +151,7 @@ lispval call_lambda(struct KNO_STACK *_stack,
       vals[i++]=rest_arg;
       assert(i==n_vars);}
     else {}}
+  if (_stack) _stack->stack_env = call_env = &stack_env;
   /* If we're synchronized, lock the mutex. */
   if (fn->lambda_synchronized) u8_lock_mutex(&(fn->lambda_lock));
   result = eval_body(fn->lambda_start,call_env,kno_stackptr,
