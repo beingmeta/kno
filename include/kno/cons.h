@@ -479,7 +479,10 @@ KNO_EXPORT lispval kno_mkstring(u8_string string);
 
 #define kno_wrapstring(s) kno_init_string(NULL,-1,(s))
 
-/* Packets */
+#define KNO_GETSTRING(x) \
+  ((KNO_SYMBOLP(x)) ? (KNO_SYMBOL_NAME(x)) : \
+   (KNO_STRINGP(x)) ? (KNO_CSTRING(x)) : (NULL))
+
 /* Packets are blocks of binary data. */
 
 #define KNO_PACKETP(x) \
