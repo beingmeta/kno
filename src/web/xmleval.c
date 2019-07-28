@@ -761,7 +761,8 @@ void kno_xmleval_contentfn(KNO_XML *node,u8_string s,int len)
           const u8_byte *as = scan+1, *end = semi;
           U8_INIT_FIXED_OUTPUT(&out,64,buf);
           while (as<end) {
-            int c = u8_sgetc(&as); c = u8_toupper(c);
+            int c = u8_sgetc(&as);
+	    c = u8_tolower(c);
             u8_putc(&out,c);}
           symbol = kno_intern(out.u8_outbuf);
           if (start<scan)

@@ -84,11 +84,15 @@ KNO_EXPORT lispval kno_convert_entities(u8_string arg,u8_string lim)
       const u8_byte *end = NULL;
       int code = u8_parse_entity(scan,&end);
       if (code<=0) {
-	u8_putc(&out,c); c = u8_sgetc(&scan);}
+	u8_putc(&out,c);
+	c = u8_sgetc(&scan);}
       else {
-	u8_putc(&out,code); scan = end;
+	u8_putc(&out,code);
+	scan = end;
 	c = u8_sgetc(&scan);}}
-    else {u8_putc(&out,c); c = u8_sgetc(&scan);}
+    else {
+      u8_putc(&out,c);
+      c = u8_sgetc(&scan);}
   return kno_stream2string(&out);
 }
 
@@ -138,13 +142,18 @@ static int egetc(u8_string *s)
   if (**s=='\0') return -1;
   else if (**s<0x80)
     if (**s=='&')
-      if (strncmp(*s,"&nbsp;",6)==0) {*s = *s+6; return ' ';}
+      if (strncmp(*s,"&nbsp;",6)==0) {
+	*s = *s+6;
+	return ' ';}
       else {
 	const u8_byte *end = NULL;
 	int code = u8_parse_entity((*s)+1,&end);
 	if (code>0) {
-	  *s = end; return code;}
-	else {(*s)++; return '&';}}
+	  *s = end;
+	  return code;}
+	else {
+	  (*s)++;
+	  return '&';}}
     else {
       int c = **s; (*s)++; return c;}
   else return u8_sgetc(s);
@@ -152,10 +161,13 @@ static int egetc(u8_string *s)
 
 static lispval decode_entities(lispval input)
 {
-  struct U8_OUTPUT out; u8_string scan = CSTRING(input); int c = egetc(&scan);
+  struct U8_OUTPUT out;
+  u8_string scan = CSTRING(input);
+  int c = egetc(&scan);
   U8_INIT_OUTPUT(&out,STRLEN(input));
   while (c>=0) {
-    u8_putc(&out,c); c = egetc(&scan);}
+    u8_putc(&out,c);
+    c = egetc(&scan);}
   return kno_stream2string(&out);
 }
 
