@@ -1455,7 +1455,7 @@ static lispval get_arg_prim(lispval expr,lispval elt,lispval dflt)
 
 DEFPRIM("apply",apply_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	"`(APPLY *arg0* *args...*)` **undocumented**");
-static lispval apply_lexpr(int n,lispval *args)
+static lispval apply_lexpr(int n,kno_argvec args)
 {
   DO_CHOICES(fn,args[0])
     if (!(KNO_APPLICABLEP(args[0]))) {
@@ -1518,7 +1518,8 @@ static int lispenv_add(lispval e,lispval s,lispval v)
 /* Call/cc */
 
 static lispval call_continuation(struct KNO_STACK *stack,
-				 struct KNO_FUNCTION *f,int n,lispval *args)
+				 struct KNO_FUNCTION *f,
+				 int n,kno_argvec args)
 {
   struct KNO_CONTINUATION *cont = (struct KNO_CONTINUATION *)f;
   lispval arg = args[0];
@@ -1566,7 +1567,7 @@ static lispval callcc(lispval proc)
 
 DEFPRIM("cachecall",cachecall,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
 	"`(CACHECALL *arg0* *args...*)` **undocumented**");
-static lispval cachecall(int n,lispval *args)
+static lispval cachecall(int n,kno_argvec args)
 {
   if (HASHTABLEP(args[0]))
     return kno_xcachecall((kno_hashtable)args[0],args[1],n-2,args+2);
@@ -1575,7 +1576,7 @@ static lispval cachecall(int n,lispval *args)
 
 DEFPRIM("cachecall/probe",cachecall_probe,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
 	"`(CACHECALL/PROBE *arg0* *args...*)` **undocumented**");
-static lispval cachecall_probe(int n,lispval *args)
+static lispval cachecall_probe(int n,kno_argvec args)
 {
   if (HASHTABLEP(args[0]))
     return kno_xcachecall_try((kno_hashtable)args[0],args[1],n-2,args+2);
@@ -1584,7 +1585,7 @@ static lispval cachecall_probe(int n,lispval *args)
 
 DEFPRIM("cachedcall?",cachedcallp,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
 	"`(CACHEDCALL? *arg0* *args...*)` **undocumented**");
-static lispval cachedcallp(int n,lispval *args)
+static lispval cachedcallp(int n,kno_argvec args)
 {
   if (HASHTABLEP(args[0]))
     if (kno_xcachecall_probe((kno_hashtable)args[0],args[1],n-2,args+2))
@@ -1606,7 +1607,7 @@ static lispval clear_callcache(lispval arg)
 
 DEFPRIM("thread/cachecall",tcachecall,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
 	"`(THREAD/CACHECALL *arg0* *args...*)` **undocumented**");
-static lispval tcachecall(int n,lispval *args)
+static lispval tcachecall(int n,kno_argvec args)
 {
   return kno_tcachecall(args[0],n-1,args+1);
 }
@@ -1896,7 +1897,7 @@ static int check_num(lispval arg,int num)
 
 DEFPRIM("check-version",check_version_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
 	"`(CHECK-VERSION *arg0* *args...*)` **undocumented**");
-static lispval check_version_prim(int n,lispval *args)
+static lispval check_version_prim(int n,kno_argvec args)
 {
   int rv = check_num(args[0],KNO_MAJOR_VERSION);
   if (rv<0) return KNO_ERROR;
@@ -1928,7 +1929,7 @@ static lispval check_version_prim(int n,lispval *args)
 
 DEFPRIM("require-version",require_version_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
 	"`(REQUIRE-VERSION *arg0* *args...*)` **undocumented**");
-static lispval require_version_prim(int n,lispval *args)
+static lispval require_version_prim(int n,kno_argvec args)
 {
   lispval result = check_version_prim(n,args);
   if (KNO_ABORTP(result))
@@ -1941,7 +1942,7 @@ static lispval require_version_prim(int n,lispval *args)
       if (!(KNO_FIXNUMP(args[i])))
 	return kno_type_error("version number(integer)","require_version_prim",args[i]);
       else i++;}
-    lispval version_vec = kno_make_vector(n,args);
+    lispval version_vec = kno_make_vector(n,(lispval *)args);
     kno_seterr("VersionError","require_version_prim",
 	       u8_sprintf(buf,50,"Version is %s",KNO_REVISION),
 	       /* We don't need to incref *args* because they're all fixnums */
@@ -1998,7 +1999,7 @@ DEFPRIM("ffi/proc",ffi_proc,KNO_VAR_ARGS|KNO_MIN_ARGS(3),
 	"`(FFI/PROC *arg0* *arg1* *arg2* *args...*)` **undocumented**");
 
 #if KNO_ENABLE_FFI
-static lispval ffi_proc(int n,lispval *args)
+static lispval ffi_proc(int n,kno_argvec args)
 {
   lispval name_arg = args[0], filename_arg = args[1];
   lispval return_type = args[2];

@@ -237,7 +237,7 @@ static lispval sqldb_exec(lispval db,lispval query,lispval colinfo)
 
 DEFPRIM("sqldb/proc",sqldb_makeproc,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
         "`(SQLDB/PROC *sqldb* *sqltext* [*colinfo*] [*paraminfo*...] )` **undocumented**");
-static lispval sqldb_makeproc(int n,lispval *args)
+static lispval sqldb_makeproc(int n,kno_argvec args)
 {
   if (PRED_TRUE
       ((KNO_PRIM_TYPEP(args[0],kno_sqldb_type)) && (STRINGP(args[1])))) {
@@ -253,7 +253,7 @@ static lispval sqldb_makeproc(int n,lispval *args)
     else return sqldb->sqldb_handler->makeproc
            (sqldb,CSTRING(query),STRLEN(query),colinfo,
             ((n>3) ? (n-3) : (0)),
-            ((n>3)? (args+3) : (NULL)));}
+	    ((n>3)? (args+3) : (NULL)));}
   else if (!(KNO_PRIM_TYPEP(args[0],kno_sqldb_type)))
     return kno_type_error("sqldb","sqldb_makeproc",args[0]);
   else if  (!(STRINGP(args[1])))
@@ -264,7 +264,7 @@ static lispval sqldb_makeproc(int n,lispval *args)
 
 DEFPRIM("sqldb/proc+",sqlproc_plus,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
         "`(SQLDB/PROC+ *sqlproc* *sqltext* [*colinfo*] [*paraminfo*...] )` **undocumented**");
-static lispval sqlproc_plus(int n,lispval *args)
+static lispval sqlproc_plus(int n,kno_argvec args)
 {
   lispval arg1 = args[0], result = VOID;
   struct KNO_SQLPROC *sqlproc=

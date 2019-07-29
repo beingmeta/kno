@@ -228,18 +228,18 @@ KNO_EXPORT u8_mutex kno_ipeval_lock;
 KNO_EXPORT long kno_callcache_load(void);
 KNO_EXPORT void kno_clear_callcache(lispval arg);
 
-KNO_EXPORT lispval kno_cachecall(lispval fcn,int n,lispval *args);
+KNO_EXPORT lispval kno_cachecall(lispval fcn,int n,kno_argvec args);
 KNO_EXPORT lispval kno_xcachecall
-  (struct KNO_HASHTABLE *cache,lispval fcn,int n,lispval *args);
+  (struct KNO_HASHTABLE *cache,lispval fcn,int n,kno_argvec args);
 
-KNO_EXPORT lispval kno_cachecall_try(lispval fcn,int n,lispval *args);
+KNO_EXPORT lispval kno_cachecall_try(lispval fcn,int n,kno_argvec args);
 KNO_EXPORT lispval kno_xcachecall_try
-  (struct KNO_HASHTABLE *cache,lispval fcn,int n,lispval *args);
+  (struct KNO_HASHTABLE *cache,lispval fcn,int n,kno_argvec args);
 
-KNO_EXPORT int kno_cachecall_probe(lispval fcn,int n,lispval *args);
-KNO_EXPORT int kno_xcachecall_probe(kno_hashtable,lispval fcn,int n,lispval *args);
+KNO_EXPORT int kno_cachecall_probe(lispval fcn,int n,kno_argvec);
+KNO_EXPORT int kno_xcachecall_probe(kno_hashtable,lispval fcn,int,kno_argvec);
 
-KNO_EXPORT lispval kno_tcachecall(lispval fcn,int n,lispval *args);
+KNO_EXPORT lispval kno_tcachecall(lispval fcn,int n,kno_argvec args);
 
 /* Thread caches */
 
@@ -294,7 +294,8 @@ KNO_EXPORT kno_thread_cache kno_use_threadcache(void);
 
 KNO_EXPORT lispval (*kno_get_oid_name)(kno_pool,lispval);
 
-KNO_EXPORT lispval kno_getpath(lispval start,int n,lispval *path,int infer,int accumulate);
+KNO_EXPORT lispval kno_getpath(lispval start,int n,kno_argvec path,
+			       int infer,int accumulate);
 
 KNO_EXPORT ssize_t kno_save_head(u8_string source,u8_string dest,size_t head_len);
 KNO_EXPORT ssize_t kno_apply_head(u8_string head,u8_string file);

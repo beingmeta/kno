@@ -319,7 +319,7 @@ static kno_index open_memindex(u8_string file,kno_storage_flags flags,
     return (kno_index)memidx;}
 }
 
-static lispval memindex_ctl(kno_index ix,lispval op,int n,lispval *args)
+static lispval memindex_ctl(kno_index ix,lispval op,int n,kno_argvec args)
 {
   struct KNO_MEMINDEX *mix = (struct KNO_MEMINDEX *)ix;
   if ( ((n>0)&&(args == NULL)) || (n<0) )

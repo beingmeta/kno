@@ -409,7 +409,7 @@ static int bad_arg(u8_context cxt,struct KNO_FUNCTION *f,int i,lispval v)
 }
 
 KNO_FASTOP lispval fcn_call(u8_string fname,kno_function f,
-			    int n,lispval *args,
+			    int n,kno_argvec args,
 			    kno_stack stack)
 {
   if (PRED_FALSE((f->fcn_handler.fnptr==NULL))) {
@@ -427,18 +427,19 @@ KNO_FASTOP lispval fcn_call(u8_string fname,kno_function f,
 static int cprim_check(u8_string fname,
 		       int n,lispval *args,
 		       kno_lisp_type *typeinfo,
-		       lispval *defaults);
+		       const lispval *defaults);
 
 KNO_FASTOP lispval cprim_call(u8_string fname,kno_cprim cp,
-			      int n,lispval *args,
+			      int n,kno_argvec args,
 			      kno_stack stack)
 {
   kno_lisp_type *typeinfo = cp->fcn_typeinfo;
-  lispval *defaults = cp->fcn_defaults;
+  const lispval *defaults = cp->fcn_defaults;
   kno_function f = (kno_function) cp;
   if (PRED_FALSE( ( (typeinfo) || (defaults) ) && 
 		  (cp->fcn_arity > 0) &&
-		  (cprim_check(fname,cp->fcn_arity,args,typeinfo,defaults)) ))
+		  (cprim_check(fname,cp->fcn_arity,(lispval *)args,
+			       typeinfo,defaults)) ))
     return KNO_ERROR;
   if ( (FCN_LEXPRP(f)) || (f->fcn_arity < 0) )
     return f->fcn_handler.calln(n,args);
@@ -501,9 +502,9 @@ KNO_FASTOP lispval cprim_call(u8_string fname,kno_cprim cp,
 }
 
 static int cprim_check(u8_string fname,
-		       int n,lispval *args,
+		       int n,kno_lispval *args,
 		       kno_lisp_type *typeinfo,
-		       lispval *defaults)
+		       const lispval *defaults)
 {
   if ( (typeinfo) && (defaults) ) {
     int i = 0; while (i < n) {
@@ -547,7 +548,7 @@ static int cprim_check(u8_string fname,
 }
 
 KNO_FASTOP lispval opaque_call
-(lispval fn,int n,lispval *argvec,struct KNO_STACK *stack)
+(lispval fn,int n,kno_argvec argvec,struct KNO_STACK *stack)
 {
   int ctype = KNO_TYPEOF(fn);
   if (kno_applyfns[ctype])
@@ -558,7 +559,7 @@ KNO_FASTOP lispval opaque_call
 }
 
 KNO_FASTOP lispval function_call(u8_string name,kno_function f,
-				 int n,lispval *argvec,
+				 int n,kno_argvec argvec,
 				 struct KNO_STACK *stack)
 {
   if (PRED_FALSE(f->fcn_handler.fnptr == NULL)) {
@@ -576,14 +577,14 @@ KNO_FASTOP lispval function_call(u8_string name,kno_function f,
 }
 
 KNO_EXPORT lispval kno_dcall(struct KNO_STACK *_stack,
-                             lispval fn,int n,lispval *argvec)
+                             lispval fn,int n,kno_argvec argvec)
 {
   u8_byte namebuf[60], numbuf[32];
   u8_string fname="apply";
   kno_lisp_type ftype=KNO_PRIM_TYPE(fn);
   struct KNO_FUNCTION *f=NULL;
   int min_arity = -1, max_arity = -1;
-  lispval *args = argvec;
+  const lispval *args = argvec;
   int alloc_args = 0;
 
   if (ftype==kno_fcnid_type) {
@@ -644,7 +645,7 @@ KNO_EXPORT lispval kno_dcall(struct KNO_STACK *_stack,
       U8_CLEARBITS(apply_stack->stack_flags,KNO_STACK_FREE_SRC);}
     if ( (_stack) && ( (_stack->stack_flags & KNO_STACK_TAIL) ) )
       apply_stack->stack_flags |=  KNO_STACK_TAIL;
-    apply_stack->stack_args=args;
+    apply_stack->stack_args = (lispval *) args;
     apply_stack->n_args=n;
     U8_WITH_CONTOUR(fname,0)
       if (profile == NULL) {
@@ -738,7 +739,7 @@ KNO_EXPORT lispval kno_dcall(struct KNO_STACK *_stack,
 static lispval ndcall_loop
 (struct KNO_STACK *_stack,
  struct KNO_FUNCTION *f,lispval *results,
- int i,int n,lispval *nd_args,lispval *d_args)
+ int i,int n,kno_argvec nd_args,lispval *d_args)
 {
   lispval retval=VOID;
   if (i == n) {
@@ -857,7 +858,7 @@ static lispval ndapply4(kno_stack _stack,
 
 KNO_EXPORT lispval kno_ndcall(struct KNO_STACK *_stack,
                               lispval fp,
-                              int n,lispval *args)
+                              int n,kno_argvec args)
 {
   lispval handler = (KNO_FCNIDP(fp) ? (kno_fcnid_ref(fp)) : (fp));
   if (EMPTYP(handler))
@@ -921,13 +922,12 @@ KNO_EXPORT lispval kno_ndcall(struct KNO_STACK *_stack,
 
 /* The default apply function */
 
-static int contains_qchoicep(int n,lispval *args);
-static lispval qchoice_dcall
-(kno_stack stack,lispval fp,int n,lispval *args);
+static int contains_qchoicep(int n,kno_argvec args);
+static lispval qchoice_dcall(kno_stack stack,lispval fp,int n,kno_argvec args);
 
 KNO_EXPORT lispval kno_call(struct KNO_STACK *_stack,
-                            lispval fp,
-                            int n,lispval *args)
+			    lispval fp,
+			    int n,kno_argvec args)
 {
   lispval result;
   lispval handler = (KNO_FCNIDP(fp)) ? (kno_fcnid_ref(fp)) : (fp);
@@ -960,9 +960,9 @@ KNO_EXPORT lispval kno_call(struct KNO_STACK *_stack,
   else return kno_err("Not applicable","kno_call",NULL,fp);
 }
 
-static int contains_qchoicep(int n,lispval *args)
+static int contains_qchoicep(int n,kno_argvec args)
 {
-  lispval *scan = args, *limit = args+n;
+  kno_argvec scan = args, limit = args+n;
   while (scan<limit)
     if (QCHOICEP(*scan)) return 1;
     else scan++;
@@ -970,33 +970,32 @@ static int contains_qchoicep(int n,lispval *args)
 }
 
 static lispval qchoice_dcall(struct KNO_STACK *stck,
-                             lispval fp,
-                             int n,lispval *args)
+                             lispval fp,int n,kno_argvec args)
 {
-  lispval argbuf[n]; /* *argbuf=kno_alloca(n); */
-  lispval *read = args, *limit = read+n, *write=argbuf;
+  kno_argvec read = args, limit = read+n;
+  lispval argbuf[n], *write=argbuf;
   while (read<limit)
     if (QCHOICEP(*read)) {
       struct KNO_QCHOICE *qc = (struct KNO_QCHOICE *) (*read++);
       *write++=qc->qchoiceval;}
-    else *write++= *read++;
+    else *write++ = *read++;
   return kno_dcall(stck,fp,n,argbuf);
 }
 
 /* Apply wrappers (which finish calls) */
 
 KNO_EXPORT lispval _kno_stack_apply
-(struct KNO_STACK *stack,lispval fn,int n_args,lispval *args)
+(struct KNO_STACK *stack,lispval fn,int n_args,kno_argvec args)
 {
   return kno_stack_apply(stack,fn,n_args,args);
 }
 KNO_EXPORT lispval _kno_stack_dapply
-(struct KNO_STACK *stack,lispval fn,int n_args,lispval *args)
+(struct KNO_STACK *stack,lispval fn,int n_args,kno_argvec args)
 {
   return kno_stack_dapply(stack,fn,n_args,args);
 }
 KNO_EXPORT lispval _kno_stack_ndapply
-(struct KNO_STACK *stack,lispval fn,int n_args,lispval *args)
+(struct KNO_STACK *stack,lispval fn,int n_args,kno_argvec args)
 {
   return kno_stack_ndapply(stack,fn,n_args,args);
 }
@@ -1176,7 +1175,7 @@ KNO_EXPORT void kno_defalias2(lispval table,
   kno_decref(v);
 }
 
-static lispval dapply(lispval f,int n_args,lispval *argvec)
+static lispval dapply(lispval f,int n_args,kno_argvec argvec)
 {
   return kno_dapply(f,n_args,argvec);
 }

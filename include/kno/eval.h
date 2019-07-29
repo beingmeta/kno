@@ -176,7 +176,7 @@ KNO_EXPORT int kno_record_source;
   else {}
 
 KNO_EXPORT lispval kno_apply_lambda(struct KNO_STACK *,struct KNO_LAMBDA *fn,
-                                  int n,lispval *args);
+				    int n,kno_argvec args);
 KNO_EXPORT lispval kno_xapply_lambda
 (struct KNO_LAMBDA *fn,void *data,lispval (*getval)(void *,lispval));
 

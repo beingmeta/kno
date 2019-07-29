@@ -33,7 +33,7 @@ typedef struct KNO_FFI_PROC *kno_ffi_proc;
 
 KNO_EXPORT struct KNO_FFI_PROC *kno_make_ffi_proc
   (u8_string name,u8_string filename,int arity,
-   lispval return_type,lispval *argspecs);
+   lispval return_type,const lispval *argspecs);
 
 KNO_EXPORT lispval kno_ffi_call(struct KNO_FUNCTION *fn,int n,lispval *args);
 

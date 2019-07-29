@@ -734,7 +734,7 @@ DEFPRIM("pprint",lisp_pprint,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	"on *port* () with a width of *width* columns with "
 	"a left margin of *margin* which is either number "
 	"of columns or a string.");
-static lispval lisp_pprint(int n,lispval *args)
+static lispval lisp_pprint(int n,kno_argvec args)
 {
   U8_OUTPUT *out=NULL;
   struct U8_OUTPUT tmpout;

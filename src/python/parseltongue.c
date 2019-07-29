@@ -1381,7 +1381,7 @@ static lispval pyerr(u8_context cxt)
 }
 
 /* This is the KNO apply method for Python functions */
-static lispval pyapply(lispval fcn,int n,lispval *args)
+static lispval pyapply(lispval fcn,int n,kno_argvec args)
 {
   if (KNO_PRIM_TYPEP(fcn,python_object_type)) {
     struct KNO_PYTHON_OBJECT *pyo=(struct KNO_PYTHON_OBJECT *)fcn;
@@ -1458,14 +1458,14 @@ static lispval pyimport(lispval modname)
 
 KNO_DEFPRIM("PY/CALL",pycall,KNO_VAR_ARGS|MIN_ARGS(1),
 	    "Calls a python function on some arguments");
-static lispval pycall(int n,lispval *args)
+static lispval pycall(int n,kno_argvec args)
 {
   return pyapply(args[0],n-1,args+1);
 }
 
 KNO_DEFPRIM("PY/HANDLE",pyhandle,KNO_VAR_ARGS|MIN_ARGS(2),
 	    "Calls the method of a Python object on some arguments");
-static lispval pyhandle(int n,lispval *lisp_args)
+static lispval pyhandle(int n,kno_argvec lisp_args)
 {
   lispval obj = lisp_args[0], method = lisp_args[1];
   PyObject *name;
@@ -1524,7 +1524,7 @@ static lispval pyhandle(int n,lispval *lisp_args)
 
 KNO_DEFPRIM("PY/TRY",pytry,KNO_VAR_ARGS|MIN_ARGS(2),
 	    "Calls a method on a Python object, returning {} on error");
-static lispval pytry(int n,lispval *lisp_args)
+static lispval pytry(int n,kno_argvec lisp_args)
 {
   lispval obj = lisp_args[0], method = lisp_args[1];
   PyObject *name;
@@ -1785,7 +1785,7 @@ static struct KNO_SEQFNS python_sequence_fns = {
   NULL, /* int (*position)(lispval key,lispval x,int i,int j); */
   NULL, /* int (*search)(lispval key,lispval x,int i,int j); */
   NULL, /* lispval *(*elts)(lispval x,int *); */
-  NULL, /* lispval (*make)(int,lispval *); */
+  NULL, /* lispval (*make)(int,kno_argvec); */
   python_sequencep, /* int (*sequencep)(lispval); */
 };
 
@@ -1927,51 +1927,7 @@ static void init_kno_module()
   kno_seqfns[python_object_type] = &python_sequence_fns;
   kno_tablefns[python_object_type] = &python_table_fns;
 
-  init_local_cprims();
-
-#if 0
-  kno_idefn1(pymodule,"PY/EXEC",pyexec,1,
-	    "Executes a Python expression",
-	    kno_string_type,KNO_VOID);
-  kno_idefn1(pymodule,"PY/STRING",pystring,1,
-	    "Returns a string containing the printed representation "
-	    "of a Python object",
-	    python_object_type,KNO_VOID);
-  kno_idefn1(pymodule,"PY/IMPORT",pyimport,1,
-	    "Imports a python module/file",
-	    kno_string_type,KNO_VOID);
-  kno_idefnN(pymodule,"PY/CALL",pycall,1,
-	    "Calls a python function on some arguments");
-  kno_idefnN(pymodule,"PY/HANDLE",pyhandle,2,
-	     "Calls a method on a Python object");
-  kno_idefnN(pymodule,"PY/TRY",pytry,2,
-	     "Calls a method on a Python object, returning {} on error");
-  kno_idefn2(pymodule,"PY/FCN",pyfcn,2,
-	    "Returns a python method object",
-	    -1,KNO_VOID,
-	    kno_string_type,KNO_VOID);
-  kno_idefn1(pymodule,"PY/LEN",pylen,1,
-	    "`(PY/LEN *obj* *rv*) Returns the length of *obj* or #f "
-	    "if *obj* doesn't have a length",
-	    python_object_type,KNO_VOID);
-  kno_idefn2(pymodule,"PY/NEXT",pynext,2,
-	     "Advances an iterator",
-	    python_object_type,KNO_VOID,-1,KNO_EMPTY);
-  kno_idefn1(pymodule,"PY/DIR",pydir,1,
-	    "Returns a vector of fields on a Python object "
-	    "or #F if it isn't a map",
-	    python_object_type,KNO_VOID);
-  kno_idefn1(pymodule,"PY/DIR*",pydirstar,1,
-	    "Returns a choice of the fields on a Python object "
-	    "or {} if it isn't a map",
-	    python_object_type,KNO_VOID);
-  kno_idefn2(pymodule,"PY/GET",pyget,2,
-	    "Gets a field from a python object",
-	    python_object_type,KNO_VOID,-1,KNO_VOID);
-  kno_idefn2(pymodule,"PY/HAS",pyhas,2,
-	    "Returns true if a python object has a field",
-	    python_object_type,KNO_VOID,-1,KNO_VOID);
-#endif
+  link_local_cprims();
 
   kno_finish_module(pymodule);
 
@@ -1980,7 +1936,7 @@ static void init_kno_module()
 
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("PY/EXEC",pyexec,1,pymodule);
   KNO_LINK_PRIM("PY/IMPORT",pyimport,1,pymodule);

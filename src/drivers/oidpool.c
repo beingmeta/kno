@@ -1620,7 +1620,7 @@ static lispval oidpool_getoids(kno_oidpool op)
 
 /* OIDPOOL ops */
 
-static lispval oidpool_ctl(kno_pool p,lispval op,int n,lispval *args)
+static lispval oidpool_ctl(kno_pool p,lispval op,int n,kno_argvec args)
 {
   struct KNO_OIDPOOL *fp = (struct KNO_OIDPOOL *)p;
   if ((n>0)&&(args == NULL))

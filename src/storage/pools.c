@@ -239,7 +239,7 @@ static u8_mutex pool_registry_lock;
 
 /* Pool ops */
 
-KNO_EXPORT lispval kno_pool_ctl(kno_pool p,lispval poolop,int n,lispval *args)
+KNO_EXPORT lispval kno_pool_ctl(kno_pool p,lispval poolop,int n,kno_argvec args)
 {
   struct KNO_POOL_HANDLER *h = p->pool_handler;
   if (h->poolctl)
@@ -2477,7 +2477,7 @@ KNO_EXPORT lispval kno_pool_base_metadata(kno_pool p)
   return metadata;
 }
 
-KNO_EXPORT lispval kno_default_poolctl(kno_pool p,lispval op,int n,lispval *args)
+KNO_EXPORT lispval kno_default_poolctl(kno_pool p,lispval op,int n,kno_argvec args)
 {
   if ((n>0)&&(args == NULL))
     return kno_err("BadPoolOpCall","kno_default_poolctl",p->poolid,VOID);

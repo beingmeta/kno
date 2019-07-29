@@ -11,8 +11,8 @@
 #define KNO_SEQPRIMS_H_INFO "include/kno/seqprims.h"
 #endif
 
-KNO_EXPORT lispval kno_mapseq(lispval fn,int n,lispval *seqs);
-KNO_EXPORT lispval kno_foreach(lispval fn,int n,lispval *seqs);
+KNO_EXPORT lispval kno_mapseq(lispval fn,int n,kno_argvec seqs);
+KNO_EXPORT lispval kno_foreach(lispval fn,int n,kno_argvec seqs);
 KNO_EXPORT lispval kno_removeif(lispval test,lispval sequence,int invert);
 KNO_EXPORT lispval kno_reduce(lispval fn,lispval sequence,lispval result);
 

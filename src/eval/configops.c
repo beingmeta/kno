@@ -132,7 +132,7 @@ DEFPRIM("config!",set_config,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"Sets each configuration setting *name_i* to "
 	"*value_i*. This invokes the config *handler* "
 	"defined for *name_i* if there is one.");
-static lispval set_config(int n,lispval *args)
+static lispval set_config(int n,kno_argvec args)
 {
   int retval, i = 0;
   if (n%2) return kno_err(kno_SyntaxError,"set_config",NULL,VOID);

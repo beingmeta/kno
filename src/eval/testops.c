@@ -104,7 +104,7 @@ static int config_failed_tests_set(lispval var,lispval val,void *data)
 #define USE_EQUAL_TEST 0
 #define USE_PREDICATE_TEST 1
 
-static u8_string get_testid(lispval fn,int n,lispval *args)
+static u8_string get_testid(lispval fn,int n,kno_argvec args)
 {
   if ( (n>0) && (KNO_SYMBOLP(args[0])) )
     return u8_strdup(KNO_SYMBOL_NAME(args[0]));
@@ -131,12 +131,12 @@ static u8_string get_testid(lispval fn,int n,lispval *args)
 
 DEFPRIM("applytest",applytest,KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	"`(APPLYTEST *arg0* *arg1* *args...*)` **undocumented**");
-static lispval applytest(int n,lispval *args)
+static lispval applytest(int n,kno_argvec args)
 {
   lispval expected = args[0], return_value;
   lispval fn = args[1], predicate = KNO_VOID, predicate_arg = KNO_VOID;
   int err = ! ( (KNO_VOIDP(err_testfail)) || (KNO_FALSEP(err_testfail)) );
-  lispval *argstart = args+2;
+  const lispval *argstart = args+2;
   int n_args = n-2;
   if (KNO_FUNCTIONP(expected)) {
     struct KNO_FUNCTION *f = KNO_GETFUNCTION(expected);

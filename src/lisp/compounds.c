@@ -24,7 +24,8 @@ lispval kno_compound_descriptor_type;
 /* Compounds */
 
 KNO_EXPORT lispval kno_init_compound_from_elts
-(struct KNO_COMPOUND *p,lispval tag,int flags,int n,lispval *elts)
+(struct KNO_COMPOUND *p,lispval tag,int flags,int n,
+ lispval *elts)
 {
   int ismutable   = (flags&(KNO_COMPOUND_MUTABLE));
   int isopaque    = (flags&(KNO_COMPOUND_OPAQUE));
@@ -33,7 +34,8 @@ KNO_EXPORT lispval kno_init_compound_from_elts
   int incref      = (refmask==KNO_COMPOUND_INCREF);
   int decref      = (refmask==KNO_COMPOUND_USEREF);
   int copyref     = (refmask==KNO_COMPOUND_COPYREF);
-  lispval *write, *limit, *read = elts, initfn = KNO_FALSE;
+  lispval *write, *limit, initfn = KNO_FALSE;
+  lispval *read = elts;
   if (PRED_FALSE((n<0)))
     return kno_type_error(_("positive byte"),"kno_init_compound_from_elts",
 			  KNO_SHORT2LISP(n));

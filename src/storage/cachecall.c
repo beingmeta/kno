@@ -38,47 +38,15 @@ static struct KNO_HASHTABLE *get_fcn_cache(lispval fcn,int create)
   else return kno_consptr(struct KNO_HASHTABLE *,cache,kno_hashtable_type);
 }
 
-KNO_EXPORT lispval kno_cachecall(lispval fcn,int n,lispval *args)
-{
-  lispval vec, cached;
-  struct KNO_HASHTABLE *cache = get_fcn_cache(fcn,1);
-  struct KNO_VECTOR vecstruct;
-  memset(&vecstruct,0,sizeof(vecstruct));
-  vecstruct.vec_length = n;
-  vecstruct.vec_free_elts = 0;
-  vecstruct.vec_elts = ((n==0) ? (NULL) : (args));
-  KNO_SET_CONS_TYPE(&vecstruct,kno_vector_type);
-  vec = LISP_CONS(&vecstruct);
-  cached = kno_hashtable_get(cache,vec,VOID);
-  if (VOIDP(cached)) {
-    int state = kno_ipeval_status();
-    lispval result = kno_finish_call(kno_dapply(fcn,n,args));
-    if (KNO_ABORTP(result)) {
-      kno_decref((lispval)cache);
-      return result;}
-    else if (kno_ipeval_status() == state) {
-      lispval *datavec = ((n) ? (u8_alloc_n(n,lispval)) : (NULL));
-      lispval key = kno_wrap_vector(n,datavec);
-      int i = 0; while (i<n) {
-        datavec[i]=kno_incref(args[i]); i++;}
-      kno_hashtable_store(cache,key,result);
-      kno_decref(key);}
-    kno_decref((lispval)cache);
-    return result;}
-  else {
-    kno_decref((lispval)cache);
-    return cached;}
-}
-
 KNO_EXPORT lispval kno_xcachecall
-(struct KNO_HASHTABLE *cache,lispval fcn,int n,lispval *args)
+(struct KNO_HASHTABLE *cache,lispval fcn,int n,kno_argvec args)
 {
   lispval vec, cached;
   struct KNO_VECTOR vecstruct;
   memset(&vecstruct,0,sizeof(vecstruct));
   vecstruct.vec_length = n;
   vecstruct.vec_free_elts = 0;
-  vecstruct.vec_elts = ((n==0) ? (NULL) : (args));
+  vecstruct.vec_elts = (lispval *) ((n==0) ? (NULL) : (args));
   KNO_SET_CONS_TYPE(&vecstruct,kno_vector_type);
   vec = LISP_CONS(&vecstruct);
   cached = kno_hashtable_get(cache,vec,VOID);
@@ -97,6 +65,14 @@ KNO_EXPORT lispval kno_xcachecall
       kno_decref(key);}
     return result;}
   else return cached;
+}
+
+KNO_EXPORT lispval kno_cachecall(lispval fcn,int n,kno_argvec args)
+{
+  struct KNO_HASHTABLE *cache = get_fcn_cache(fcn,1);
+  lispval result = kno_xcachecall(cache,fcn,n,args);
+  kno_decref((lispval)cache);
+  return result;
 }
 
 KNO_EXPORT void kno_clear_callcache(lispval arg)
@@ -138,64 +114,51 @@ KNO_EXPORT long kno_callcache_load()
   return count;
 }
 
-KNO_EXPORT int kno_cachecall_probe(lispval fcn,int n,lispval *args)
+KNO_EXPORT int kno_xcachecall_probe(struct KNO_HASHTABLE *cache,
+				    lispval fcn,int n,kno_argvec args)
 {
   lispval vec; int iscached = 0;
-  struct KNO_HASHTABLE *cache = get_fcn_cache(fcn,1);
   struct KNO_VECTOR vecstruct;
   memset(&vecstruct,0,sizeof(vecstruct));
   vecstruct.vec_length = n;
   vecstruct.vec_free_elts = 0;
-  vecstruct.vec_elts = ((n==0) ? (NULL) : (args));
+  vecstruct.vec_elts = (lispval *) ((n==0) ? (NULL) : (args));
   KNO_SET_CONS_TYPE(&vecstruct,kno_vector_type);
   vec = LISP_CONS(&vecstruct);
   iscached = kno_hashtable_probe(cache,vec);
+  return iscached;
+}
+
+KNO_EXPORT int kno_cachecall_probe(lispval fcn,int n,kno_argvec args)
+{
+  int iscached = 0;
+  struct KNO_HASHTABLE *cache = get_fcn_cache(fcn,1);
+  iscached = kno_xcachecall_probe(cache,fcn,n,args);
   kno_decref((lispval)cache);
   return iscached;
 }
 
-KNO_EXPORT int kno_xcachecall_probe(struct KNO_HASHTABLE *cache,lispval fcn,int n,lispval *args)
-{
-  lispval vec; int iscached = 0;
-  struct KNO_VECTOR vecstruct;
-  memset(&vecstruct,0,sizeof(vecstruct));
-  vecstruct.vec_length = n;
-  vecstruct.vec_free_elts = 0;
-  vecstruct.vec_elts = ((n==0) ? (NULL) : (args));
-  KNO_SET_CONS_TYPE(&vecstruct,kno_vector_type);
-  vec = LISP_CONS(&vecstruct);
-  iscached = kno_hashtable_probe(cache,vec);
-  return iscached;
-}
-
-KNO_EXPORT lispval kno_cachecall_try(lispval fcn,int n,lispval *args)
+KNO_EXPORT lispval kno_xcachecall_try(struct KNO_HASHTABLE *cache,
+				      lispval fcn,int n,kno_argvec args)
 {
   lispval vec; lispval value;
-  struct KNO_HASHTABLE *cache = get_fcn_cache(fcn,1);
   struct KNO_VECTOR vecstruct;
   memset(&vecstruct,0,sizeof(vecstruct));
   vecstruct.vec_length = n;
   vecstruct.vec_free_elts = 0;
-  vecstruct.vec_elts = ((n==0) ? (NULL) : (args));
+  vecstruct.vec_elts = (lispval *) ((n==0) ? (NULL) : (args));
   KNO_SET_CONS_TYPE(&vecstruct,kno_vector_type);
   vec = LISP_CONS(&vecstruct);
   value = kno_hashtable_get(cache,vec,VOID);
-  kno_decref((lispval)cache);
   if (VOIDP(value)) return EMPTY;
   else return value;
 }
 
-KNO_EXPORT lispval kno_xcachecall_try(struct KNO_HASHTABLE *cache,lispval fcn,int n,lispval *args)
+KNO_EXPORT lispval kno_cachecall_try(lispval fcn,int n,kno_argvec args)
 {
-  lispval vec; lispval value;
-  struct KNO_VECTOR vecstruct;
-  memset(&vecstruct,0,sizeof(vecstruct));
-  vecstruct.vec_length = n;
-  vecstruct.vec_free_elts = 0;
-  vecstruct.vec_elts = ((n==0) ? (NULL) : (args));
-  KNO_SET_CONS_TYPE(&vecstruct,kno_vector_type);
-  vec = LISP_CONS(&vecstruct);
-  value = kno_hashtable_get(cache,vec,VOID);
+  struct KNO_HASHTABLE *cache = get_fcn_cache(fcn,1);
+  lispval value = kno_xcachecall_try(cache,fcn,n,args);
+  kno_decref((lispval)cache);
   if (VOIDP(value)) return EMPTY;
   else return value;
 }
@@ -204,21 +167,18 @@ KNO_EXPORT lispval kno_xcachecall_try(struct KNO_HASHTABLE *cache,lispval fcn,in
 
 #define TCACHECALL_STACK_ELTS 8
 
-KNO_EXPORT lispval kno_tcachecall(lispval fcn,int n,lispval *args)
+KNO_EXPORT lispval kno_tcachecall(lispval fcn,int n,kno_argvec args)
 {
   if (kno_threadcache) {
     kno_thread_cache tc = kno_threadcache;
     struct KNO_VECTOR vecstruct;
-    lispval _elts[TCACHECALL_STACK_ELTS], *elts = NULL, vec, cached;
+    lispval elts[n+1], vec, cached;
     /* Initialize the stack vector */
     memset(&vecstruct,0,sizeof(vecstruct));
     vecstruct.vec_free_elts = 0;
     vecstruct.vec_length = n+1;
     KNO_SET_CONS_TYPE(&vecstruct,kno_vector_type);
     /* Allocate an elements vector if neccessary */
-    if ((n+1)>(TCACHECALL_STACK_ELTS))
-      elts = u8_alloc_n(n+1,lispval);
-    else elts=_elts;
     /* Initialize the elements */
     elts[0]=fcn; memcpy(elts+1,args,LISPVEC_BYTELEN(n));
     vecstruct.vec_elts = elts;
@@ -226,31 +186,23 @@ KNO_EXPORT lispval kno_tcachecall(lispval fcn,int n,lispval *args)
     /* Look it up in the cache. */
     cached = kno_hashtable_get_nolock(&(tc->calls),vec,VOID);
     if (!(VOIDP(cached))) {
-      if (elts!=_elts) u8_free(elts);
       return cached;}
     else {
       int state = kno_ipeval_status();
       lispval result = kno_finish_call(kno_dapply(fcn,n,args));
-      if (KNO_ABORTP(result)) {
-        if (elts!=_elts) u8_free(elts);
-        return result;}
-      else if (kno_ipeval_status() == state) {
-        if (elts==_elts) {
-          int i = 0, nelts = n+1;
-          elts = u8_alloc_n(n+1,lispval);
-          while (i<nelts) {elts[i]=kno_incref(_elts[i]); i++;}
-          vec = kno_wrap_vector(nelts,elts);}
-        else {
-          int i = 0, nelts = n+1;
-          while (i<nelts) {kno_incref(elts[i]); i++;}
-          vec = kno_wrap_vector(nelts,elts);}
-        kno_hashtable_store(&(tc->calls),vec,result);
-        kno_decref(vec);
-        return result;}
+      if (KNO_ABORTP(result)) return result;
+      else if (kno_ipeval_status() == state) { /* OK to cache */
+	int i = 0, nelts = n+1;
+	lispval *vec_elts = u8_alloc_n(n+1,lispval);
+	while (i<nelts) {vec_elts[i]=kno_incref(elts[i]); i++;}
+	vec = kno_wrap_vector(nelts,vec_elts);
+	kno_hashtable_store(&(tc->calls),vec,result);
+	kno_decref(vec);
+	return result;}
       else return result;}}
-  else if (kno_cachecall_probe(fcn,n,args))
-    return kno_cachecall(fcn,n,args);
-  else return kno_finish_call(kno_dapply(fcn,n,args));
+ else if (kno_cachecall_probe(fcn,n,args))
+   return kno_cachecall(fcn,n,args);
+ else return kno_finish_call(kno_dapply(fcn,n,args));
 }
 
 /* Initialization stuff */

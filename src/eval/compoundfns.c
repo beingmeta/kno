@@ -342,7 +342,7 @@ static lispval compound_modify(lispval x,lispval tag,lispval offset,
 
 DEFPRIM("make-compound",make_compound,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
         "`(MAKE-COMPOUND *arg0* *args...*)` **undocumented**");
-static lispval make_compound(int n,lispval *args)
+static lispval make_compound(int n,kno_argvec args)
 {
   struct KNO_COMPOUND *compound=
     u8_zmalloc(sizeof(struct KNO_COMPOUND)+((n-2)*LISPVAL_LEN));
@@ -363,7 +363,7 @@ static lispval make_compound(int n,lispval *args)
 DEFPRIM("make-opaque-compound",make_opaque_compound,
 	KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
         "`(MAKE-OPAQUE-COMPOUND *arg0* *args...*)` **undocumented**");
-static lispval make_opaque_compound(int n,lispval *args)
+static lispval make_opaque_compound(int n,kno_argvec args)
 {
   struct KNO_COMPOUND *compound=
     u8_zmalloc(sizeof(struct KNO_COMPOUND)+((n-2)*LISPVAL_LEN));
@@ -384,7 +384,7 @@ static lispval make_opaque_compound(int n,lispval *args)
 DEFPRIM("make-mutable-compound",make_mutable_compound,
 	KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
         "`(MAKE-MUTABLE-COMPOUND *arg0* *args...*)` **undocumented**");
-static lispval make_mutable_compound(int n,lispval *args)
+static lispval make_mutable_compound(int n,kno_argvec args)
 {
   struct KNO_COMPOUND *compound=
     u8_zmalloc(sizeof(struct KNO_COMPOUND)+((n-2)*LISPVAL_LEN));
@@ -405,7 +405,7 @@ static lispval make_mutable_compound(int n,lispval *args)
 DEFPRIM("make-opaque-mutable-compound",make_opaque_mutable_compound,
 	KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
         "`(MAKE-OPAQUE-MUTABLE-COMPOUND *arg0* *args...*)` **undocumented**");
-static lispval make_opaque_mutable_compound(int n,lispval *args)
+static lispval make_opaque_mutable_compound(int n,kno_argvec args)
 {
   struct KNO_COMPOUND *compound=
     u8_zmalloc(sizeof(struct KNO_COMPOUND)+((n-2)*LISPVAL_LEN));

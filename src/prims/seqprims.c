@@ -40,11 +40,11 @@ static u8_condition EmptyReduce=_("No sequence elements to reduce");
 
 #define string_start(bytes,i) ((i==0) ? (bytes) : (u8_substring(bytes,i)))
 
-static lispval make_float_vector(int n,lispval *from_elts);
-static lispval make_double_vector(int n,lispval *from_elts);
-static lispval make_short_vector(int n,lispval *from_elts);
-static lispval make_int_vector(int n,lispval *from_elts);
-static lispval make_long_vector(int n,lispval *from_elts);
+static lispval make_float_vector(int n,kno_argvec from_elts);
+static lispval make_double_vector(int n,kno_argvec from_elts);
+static lispval make_short_vector(int n,kno_argvec from_elts);
+static lispval make_int_vector(int n,kno_argvec from_elts);
+static lispval make_long_vector(int n,kno_argvec from_elts);
 
 /* Exported primitives */
 
@@ -103,7 +103,7 @@ KNO_EXPORT lispval kno_removeif(lispval test,lispval sequence,int invert)
 
 /* Mapping */
 
-KNO_EXPORT lispval kno_mapseq(lispval fn,int n_seqs,lispval *sequences)
+KNO_EXPORT lispval kno_mapseq(lispval fn,int n_seqs,kno_argvec sequences)
 {
   int i = 1, seqlen = -1;
   lispval firstseq = sequences[0];
@@ -172,12 +172,12 @@ KNO_EXPORT lispval kno_mapseq(lispval fn,int n_seqs,lispval *sequences)
 }
 DEFPRIM("map",mapseq_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(MAP *arg0* *arg1* *args...*)` **undocumented**");
-static lispval mapseq_prim(int n,lispval *args)
+static lispval mapseq_prim(int n,kno_argvec args)
 {
   return kno_mapseq(args[0],n-1,args+1);
 }
 
-KNO_EXPORT lispval kno_foreach(lispval fn,int n_seqs,lispval *sequences)
+KNO_EXPORT lispval kno_foreach(lispval fn,int n_seqs,kno_argvec sequences)
 {
   int i = 0, seqlen = -1;
   lispval firstseq = sequences[0];
@@ -240,7 +240,7 @@ KNO_EXPORT lispval kno_foreach(lispval fn,int n_seqs,lispval *sequences)
 
 DEFPRIM("for-each",foreach_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(for-each *arg0* *arg1* *args...*)` **undocumented**");
-static lispval foreach_prim(int n,lispval *args)
+static lispval foreach_prim(int n,kno_argvec args)
 {
   /* This iterates over a sequence or set of sequences and applies
      FN to each of the elements. */
@@ -1376,7 +1376,7 @@ static lispval cdddr(lispval x)
 
 DEFPRIM("cons*",cons_star,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
 	"`(CONS* *arg0* *args...*)` **undocumented**");
-static lispval cons_star(int n,lispval *args)
+static lispval cons_star(int n,kno_argvec args)
 {
   int i = n-2; lispval list = kno_incref(args[n-1]);
   while (i>=0) {
@@ -1504,7 +1504,7 @@ static lispval member_prim(lispval key,lispval list)
 
 DEFPRIM("list",list,KNO_VAR_ARGS|KNO_MIN_ARGS(0),
 	"`(LIST *args...*)` **undocumented**");
-static lispval list(int n,lispval *elts)
+static lispval list(int n,kno_argvec elts)
 {
   lispval head = NIL, *tail = &head; int i = 0;
   while (i < n) {
@@ -1515,10 +1515,10 @@ static lispval list(int n,lispval *elts)
 
 DEFPRIM("vector",vector,KNO_VAR_ARGS|KNO_MIN_ARGS(0),
 	"`(VECTOR *args...*)` **undocumented**");
-static lispval vector(int n,lispval *elts)
+static lispval vector(int n,kno_argvec elts)
 {
   int i = 0; while (i < n) {kno_incref(elts[i]); i++;}
-  return kno_make_vector(n,elts);
+  return kno_make_vector(n,(lispval *)elts);
 }
 
 DEFPRIM2("make-vector",make_vector,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
@@ -1559,7 +1559,7 @@ static lispval seq2vector(lispval seq)
 
 DEFPRIM("1vector",onevector_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(0)|KNO_NDCALL,
 	"`(1VECTOR *args...*)` **undocumented**");
-static lispval onevector_prim(int n,lispval *args)
+static lispval onevector_prim(int n,kno_argvec args)
 {
   lispval elts[32], result = VOID;
   struct U8_PILE pile; int i = 0;
@@ -1570,9 +1570,10 @@ static lispval onevector_prim(int n,lispval *args)
     else if ((EMPTYP(args[0]))||(KNO_EMPTY_QCHOICEP(args[0])))
       return kno_empty_vector(0);
     else if (!(CONSP(args[0])))
-      return kno_make_vector(1,args);
+      return kno_make_vector(1,(lispval *)args);
     else {
-      kno_incref(args[0]); return kno_make_vector(1,args);}}
+      kno_incref(args[0]);
+      return kno_make_vector(1,(lispval *)args);}}
   U8_INIT_STATIC_PILE((&pile),elts,32);
   while (i<n) {
     lispval arg = args[i++];
@@ -2133,7 +2134,7 @@ static lispval recons_prim(lispval car,lispval cdr,lispval orig)
 
 DEFPRIM("shortvec",make_short_vector,KNO_VAR_ARGS|KNO_MIN_ARGS(0),
 	"`(SHORTVEC *args...*)` **undocumented**");
-static lispval make_short_vector(int n,lispval *from_elts)
+static lispval make_short_vector(int n,kno_argvec from_elts)
 {
   int i = 0; lispval vec = kno_make_numeric_vector(n,kno_short_elt);
   kno_short *elts = KNO_NUMVEC_SHORTS(vec);
@@ -2174,7 +2175,7 @@ static lispval seq2shortvec(lispval arg)
 
 DEFPRIM("intvec",make_int_vector,KNO_VAR_ARGS|KNO_MIN_ARGS(0),
 	"`(INTVEC *args...*)` **undocumented**");
-static lispval make_int_vector(int n,lispval *from_elts)
+static lispval make_int_vector(int n,kno_argvec from_elts)
 {
   int i = 0; lispval vec = kno_make_numeric_vector(n,kno_int_elt);
   kno_int *elts = KNO_NUMVEC_INTS(vec);
@@ -2218,7 +2219,7 @@ static lispval seq2intvec(lispval arg)
 
 DEFPRIM("longvec",make_long_vector,KNO_VAR_ARGS|KNO_MIN_ARGS(0),
 	"`(LONGVEC *args...*)` **undocumented**");
-static lispval make_long_vector(int n,lispval *from_elts)
+static lispval make_long_vector(int n,kno_argvec from_elts)
 {
   int i = 0; lispval vec = kno_make_numeric_vector(n,kno_long_elt);
   kno_long *elts = KNO_NUMVEC_LONGS(vec);
@@ -2261,7 +2262,7 @@ static lispval seq2longvec(lispval arg)
 
 DEFPRIM("floatvec",make_float_vector,KNO_VAR_ARGS|KNO_MIN_ARGS(0),
 	"`(FLOATVEC *args...*)` **undocumented**");
-static lispval make_float_vector(int n,lispval *from_elts)
+static lispval make_float_vector(int n,kno_argvec from_elts)
 {
   int i = 0; lispval vec = kno_make_numeric_vector(n,kno_float_elt);
   float *elts = KNO_NUMVEC_FLOATS(vec);
@@ -2304,7 +2305,7 @@ static lispval seq2floatvec(lispval arg)
 
 DEFPRIM("doublevec",make_double_vector,KNO_VAR_ARGS|KNO_MIN_ARGS(0),
 	"`(DOUBLEVEC *args...*)` **undocumented**");
-static lispval make_double_vector(int n,lispval *from_elts)
+static lispval make_double_vector(int n,kno_argvec from_elts)
 {
   int i = 0; lispval vec = kno_make_numeric_vector(n,kno_double_elt);
   double *elts = KNO_NUMVEC_DOUBLES(vec);

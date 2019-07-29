@@ -130,7 +130,7 @@ static lispval dteval(lispval server,lispval expr)
 
 DEFPRIM("dtcall",dtcall,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(DTCALL *arg0* *arg1* *args...*)` **undocumented**");
-static lispval dtcall(int n,lispval *args)
+static lispval dtcall(int n,kno_argvec args)
 {
   lispval server; lispval request = NIL, result; int i = n-1;
   if (n<2) return kno_err(kno_SyntaxError,"dtcall",NULL,VOID);

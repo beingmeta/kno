@@ -192,7 +192,7 @@ DEFPRIM("opts+",opts_plus_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(0)|KNO_NDCALL,
 	"`(OPTS+ *add* *opts*)` "
 	"or `(OPTS+ *optname* *value* *opts*) returns a "
 	"new options object (a pair).");
-static lispval opts_plus_prim(int n,lispval *args)
+static lispval opts_plus_prim(int n,kno_argvec args)
 {
   int i = 0, new_front = 0;
   /* *back* is the options list and *front* is where specified values

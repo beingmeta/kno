@@ -1053,7 +1053,10 @@ KNO_EXPORT kno_compare_flags kno_get_compare_flags(lispval spec);
 
 /* APPLY methods */
 
-typedef lispval (*kno_applyfn)(lispval f,int n,lispval *);
+typedef const lispval *kno_argvec;
+#define KNO_ARGS const lispval *
+
+typedef lispval (*kno_applyfn)(lispval f,int n,kno_argvec);
 KNO_EXPORT kno_applyfn kno_applyfns[];
 
 /* This maps types to whether they have function (KNO_FUNCTION_FIELDS)

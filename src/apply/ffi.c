@@ -107,7 +107,7 @@ static ffi_type *get_ffi_type(lispval arg)
 
 KNO_EXPORT struct KNO_FFI_PROC *kno_make_ffi_proc
 (u8_string name,u8_string filename,int arity,
- lispval return_spec,lispval *argspecs)
+ lispval return_spec,const lispval *argspecs)
 {
   if (name==NULL) {
     u8_seterr("NullArg","kno_make_ffi_proc/name",NULL);

@@ -926,7 +926,7 @@ KNO_EXPORT
    Returns: a dtype pointer
    Computes the intersection of a set of choices.
 */
-lispval kno_intersection(lispval *v,unsigned int n)
+lispval kno_intersection(const lispval *v,unsigned int n)
 {
   if (n == 0)
     return EMPTY;
@@ -1050,7 +1050,7 @@ KNO_EXPORT
    Returns: a dtype pointer
    Computes the union of a set of choices.
 */
-lispval kno_union(lispval *v,unsigned int n)
+lispval kno_union(const lispval *v,unsigned int n)
 {
   if (n == 0) return EMPTY;
   else {

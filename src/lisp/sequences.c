@@ -659,7 +659,7 @@ KNO_EXPORT
    Arguments: a sequence type, a length, and a C vector of dtype pointers.
    Returns: a sequence
    Creates a sequence of the designated type out of the given elements. */
-lispval kno_makeseq(kno_lisp_type ctype,int n,lispval *v)
+lispval kno_makeseq(kno_lisp_type ctype,int n,kno_argvec v)
 {
   if (ctype == kno_compound_type) ctype = kno_vector_type;
   switch (ctype) {
@@ -694,7 +694,7 @@ lispval kno_makeseq(kno_lisp_type ctype,int n,lispval *v)
     return result;}
   case kno_vector_type: {
     int i = 0; while (i < n) {kno_incref(v[i]); i++;}
-    return kno_make_vector(n,v);}
+    return kno_make_vector(n,(lispval *)v);}
   case kno_pair_type:
     if (n == 0) return NIL;
     else {
@@ -743,7 +743,7 @@ KNO_EXPORT lispval kno_reverse(lispval sequence)
 
 typedef lispval *kno_types;
 
-KNO_EXPORT lispval kno_append(int n,lispval *sequences)
+KNO_EXPORT lispval kno_append(int n,kno_argvec sequences)
 {
   if (n == 0)
     return NIL;
@@ -901,16 +901,30 @@ static lispval make_double_vector(int n,lispval *from_elts)
 
 /* Miscellaneous sequence creation functions */
 
-static lispval makepair(int n,lispval *elts) {
-  return kno_makeseq(kno_pair_type,n,elts);}
-static lispval makestring(int n,lispval *elts) {
-  return kno_makeseq(kno_string_type,n,elts);}
-static lispval makepacket(int n,lispval *elts) {
-  return kno_makeseq(kno_packet_type,n,elts);}
-static lispval makesecret(int n,lispval *elts) {
-  return kno_makeseq(kno_secret_type,n,elts);}
-static lispval makevector(int n,lispval *elts) {
-  return kno_makeseq(kno_vector_type,n,elts);}
+static lispval makepair(int n,kno_argvec elts)
+{
+  return kno_makeseq(kno_pair_type,n,elts);
+}
+
+static lispval makestring(int n,kno_argvec elts)
+{
+  return kno_makeseq(kno_string_type,n,elts);
+}
+
+static lispval makepacket(int n,kno_argvec elts)
+{
+  return kno_makeseq(kno_packet_type,n,elts);
+}
+
+static lispval makesecret(int n,kno_argvec elts)
+{
+  return kno_makeseq(kno_secret_type,n,elts);
+}
+
+static lispval makevector(int n,kno_argvec elts)
+{
+  return kno_makeseq(kno_vector_type,n,elts);
+}
 
 static struct KNO_SEQFNS pair_seqfns={
   kno_seq_length,

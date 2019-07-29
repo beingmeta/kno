@@ -334,7 +334,7 @@ static int procpool_getload(kno_pool p)
       return -1;}}
 }
 
-static lispval procpool_ctl(kno_pool p,lispval opid,int n,lispval *args)
+static lispval procpool_ctl(kno_pool p,lispval opid,int n,kno_argvec args)
 {
   struct KNO_PROCPOOL *pp = (kno_procpool)p;
   lispval lp = kno_pool2lisp(p);

@@ -1756,7 +1756,7 @@ static int getnewopt(lispval opts,int dflt)
 
 static lispval make_mongovec(lispval vec);
 
-static lispval make_command(int n,lispval *values)
+static lispval make_command(int n,kno_argvec values)
 {
   if ((n%2)==1)
     return kno_err(kno_SyntaxError,"make_command","Odd number of arguments",KNO_VOID);
@@ -1887,7 +1887,7 @@ static lispval db_command(lispval arg,lispval command,
 
 DEFPRIM("mongodb/results",mongodb_command,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(MONGODB/RESULTS *arg0* *arg1* *args...*)` **undocumented**");
-static lispval mongodb_command(int n,lispval *args)
+static lispval mongodb_command(int n,kno_argvec args)
 {
   lispval arg = args[0], opts = KNO_VOID, command = KNO_VOID, result = KNO_VOID;
   int flags = mongodb_getflags(arg);
@@ -1991,7 +1991,7 @@ static lispval db_simple_command(lispval arg,lispval command,
 
 DEFPRIM("mongodb/cmd",mongodb_simple_command,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(MONGODB/CMD *arg0* *arg1* *args...*)` **undocumented**");
-static lispval mongodb_simple_command(int n,lispval *args)
+static lispval mongodb_simple_command(int n,kno_argvec args)
 {
   lispval arg = args[0], opts = KNO_VOID, command = KNO_VOID, result = KNO_VOID;
   int flags = mongodb_getflags(arg);
@@ -3051,10 +3051,12 @@ KNO_EXPORT lispval kno_bson2dtype(bson_t *in,int flags,lispval opts)
 
 DEFPRIM("mongovec",mongovec_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(0)|KNO_NDCALL,
 	"`(MONGOVEC *args...*)` **undocumented**");
-static lispval mongovec_lexpr(int n,lispval *values)
+static lispval mongovec_lexpr(int n,kno_argvec values)
 {
   return kno_init_compound_from_elts
-    (NULL,mongovec_symbol,KNO_COMPOUND_INCREF|KNO_COMPOUND_SEQUENCE,n,values);
+    (NULL,mongovec_symbol,
+     KNO_COMPOUND_INCREF|KNO_COMPOUND_SEQUENCE,
+     n,(lispval *)values);
 }
 
 DEFPRIM1("->mongovec",make_mongovec,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),

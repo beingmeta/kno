@@ -1180,7 +1180,7 @@ static void fileindex_setbuf(kno_index ix,int bufsiz)
 
 /* File index ops */
 
-static lispval fileindex_ctl(kno_index ix,lispval op,int n,lispval *args)
+static lispval fileindex_ctl(kno_index ix,lispval op,int n,kno_argvec args)
 {
   struct KNO_FILEINDEX *flx = (struct KNO_FILEINDEX *)ix;
   if ( ((n>0)&&(args == NULL)) || (n<0) )

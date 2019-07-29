@@ -420,7 +420,7 @@ static lispval procedure_defaults(lispval x)
     struct KNO_CPRIM *fcn = (kno_cprim) x;
     if (fcn->fcn_defaults) {
       int arity = fcn->fcn_arity;
-      lispval *defaults = fcn->fcn_defaults;
+      const lispval *defaults = fcn->fcn_defaults;
       lispval result = kno_make_vector(arity,NULL);
       int i = 0; while (i<arity) {
 	lispval dflt = defaults[i];

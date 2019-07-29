@@ -149,12 +149,12 @@ static lispval odbcopen(lispval spec,lispval colinfo)
 /* ODBCProcs */
 
 static lispval callodbcproc(struct KNO_STACK *stack,struct KNO_FUNCTION *fn,
-			    int n,lispval *args);
+			    int n,kno_argvec args);
 
 static lispval odbcmakeproc
 (struct KNO_ODBC *dbp,
- u8_string stmt,int stmt_len,
- lispval colinfo,int n,lispval *args)
+ u8_string stmt,int stmt_len,lispval colinfo,
+ int n,kno_argvec args)
 {
   int ret = 0, have_stmt = 0;
   SQLSMALLINT n_params, *sqltypes;
@@ -212,8 +212,8 @@ static lispval odbcmakeproc
 
 static lispval odbcmakeprochandler
 (struct KNO_SQLDB *sqldb,
- u8_string stmt,int stmt_len,
- lispval colinfo,int n,lispval *ptypes)
+ u8_string stmt,int stmt_len,lispval colinfo,
+ int n,kno_argvec ptypes)
 {
   if (sqldb->sqldb_handler== &odbc_handler)
     return odbcmakeproc((kno_odbc)sqldb,stmt,stmt_len,colinfo,n,ptypes);
@@ -450,7 +450,7 @@ static lispval odbcexechandler
 }
 
 static lispval callodbcproc(struct KNO_STACK *s,struct KNO_FUNCTION *fn,
-			    int n,lispval *args)
+			    int n,kno_argvec args)
 {
   struct KNO_ODBC_PROC *dbp = (struct KNO_ODBC_PROC *)fn;
   int i = 0, ret = -1;

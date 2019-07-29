@@ -414,7 +414,7 @@ static lispval nbsp_prim()
 
 DEFPRIM("xmlempty",xmlemptyelt,KNO_VAR_ARGS|KNO_MIN_ARGS(0)|KNO_NDCALL,
         "`(XMLEMPTY *args...*)` **undocumented**");
-static lispval xmlemptyelt(int n,lispval *args)
+static lispval xmlemptyelt(int n,kno_argvec args)
 {
   U8_OUTPUT *out = u8_current_output;
   lispval eltname = args[0];

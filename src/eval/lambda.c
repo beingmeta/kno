@@ -45,7 +45,7 @@ static u8_string lambda_id(struct KNO_LAMBDA *fn)
                            ((KNO_LONGVAL(fn))&0xFFFFFFFF)));
 }
 
-static int no_defaults(lispval *args,int n)
+static int no_defaults(kno_argvec args,int n)
 {
   int i=0; while (i<n) {
     if (args[i] == KNO_DEFAULT_VALUE)
@@ -54,7 +54,7 @@ static int no_defaults(lispval *args,int n)
   return 1;
 }
 
-static lispval get_rest_arg(lispval *args,int n)
+static lispval get_rest_arg(kno_argvec args,int n)
 {
   lispval result=NIL; n--;
   while (n>=0) {
@@ -79,7 +79,7 @@ static int add_autodocp(u8_string s)
 KNO_FASTOP
 lispval call_lambda(struct KNO_STACK *_stack,
                     struct KNO_LAMBDA *fn,
-                    int n,lispval *args)
+                    int n,kno_argvec args)
 {
   lispval result = VOID;
   lispval *proc_vars=fn->lambda_vars;
@@ -166,12 +166,12 @@ lispval call_lambda(struct KNO_STACK *_stack,
 
 KNO_EXPORT lispval kno_apply_lambda(struct KNO_STACK *stack,
                                     struct KNO_LAMBDA *fn,
-                                    int n,lispval *args)
+				    int n,kno_argvec args)
 {
   return call_lambda(stack,fn,n,args);
 }
 
-static lispval apply_lambda(lispval fn,int n,lispval *args)
+static lispval apply_lambda(lispval fn,int n,kno_argvec args)
 {
   return call_lambda(kno_stackptr,(struct KNO_LAMBDA *)fn,n,args);
 }

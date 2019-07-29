@@ -1052,7 +1052,7 @@ int kno_output_xml_preface(U8_OUTPUT *out,lispval cgidata)
 
 DEFPRIM("body!",set_body_attribs,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
         "`(BODY! *arg0* *args...*)` **undocumented**");
-static lispval set_body_attribs(int n,lispval *args)
+static lispval set_body_attribs(int n,kno_argvec args)
 {
   if ((n==1)&&(args[0]==KNO_FALSE)) {
     kno_req_store(body_attribs_slotid,KNO_FALSE);

@@ -1347,7 +1347,7 @@ static lispval curlsetopt(lispval handle,lispval opt,lispval value)
 
 DEFPRIM("curl/open",curlopen,KNO_VAR_ARGS|KNO_MIN_ARGS(0),
 	"`(CURL/OPEN *args...*)` **undocumented**");
-static lispval curlopen(int n,lispval *args)
+static lispval curlopen(int n,kno_argvec args)
 {
   if (n==0)
     return (lispval) kno_open_curl_handle();
@@ -1388,7 +1388,7 @@ static lispval curlopen(int n,lispval *args)
 
 DEFPRIM("urlpost",urlpost,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
 	"`(URLPOST *arg0* *args...*)` **undocumented**");
-static lispval urlpost(int n,lispval *args)
+static lispval urlpost(int n,kno_argvec args)
 {
   INBUF data; CURLcode retval;
   lispval result = VOID, conn, urlarg = VOID, curl=KNO_VOID;

@@ -188,7 +188,7 @@ static lispval negativep(lispval x)
 
 DEFPRIM("+",plus_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(-1),
 	"`(+)` **undocumented**");
-static lispval plus_lexpr(int n,lispval *args)
+static lispval plus_lexpr(int n,kno_argvec args)
 {
   if (n==0)
     return KNO_FIXNUM_ZERO;
@@ -281,7 +281,7 @@ static lispval minus1(lispval x)
 
 DEFPRIM("*",times_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(-1),
 	"`(*)` **undocumented**");
-static lispval times_lexpr(int n,lispval *args)
+static lispval times_lexpr(int n,kno_argvec args)
 {
   int i = 0; int floating = 0, generic = 0;
   if (n==1) {
@@ -339,7 +339,7 @@ static lispval times_lexpr(int n,lispval *args)
 
 DEFPRIM("-",minus_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(-1),
 	"`(-)` **undocumented**");
-static lispval minus_lexpr(int n,lispval *args)
+static lispval minus_lexpr(int n,kno_argvec args)
 {
   if (n == 1) {
     lispval arg = args[0];
@@ -427,7 +427,7 @@ static double todouble(lispval x)
 
 DEFPRIM("/",div_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(-1),
 	"`(/)` **undocumented**");
-static lispval div_lexpr(int n,lispval *args)
+static lispval div_lexpr(int n,kno_argvec args)
 {
   int all_double = 1, i = 0;
   while (i<n)
@@ -452,7 +452,7 @@ static lispval div_lexpr(int n,lispval *args)
 
 DEFPRIM("/~",idiv_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(-1),
 	"`(/~)` **undocumented**");
-static lispval idiv_lexpr(int n,lispval *args)
+static lispval idiv_lexpr(int n,kno_argvec args)
 {
   int all_double = 1, i = 0;
   while (i<n)
@@ -833,7 +833,7 @@ static lispval inexact_nthroot_prim(lispval v,lispval n)
 
 DEFPRIM("min",min_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
 	"`(MIN *arg0* *args...*)` **undocumented**");
-static lispval min_prim(int n,lispval *args)
+static lispval min_prim(int n,kno_argvec args)
 {
   if (n==0)
     return kno_err(kno_TooFewArgs,"max_prim",NULL,VOID);
@@ -859,7 +859,7 @@ static lispval min_prim(int n,lispval *args)
 
 DEFPRIM("max",max_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
 	"`(MAX *arg0* *args...*)` **undocumented**");
-static lispval max_prim(int n,lispval *args)
+static lispval max_prim(int n,kno_argvec args)
 {
   if (n==0) return kno_err(kno_TooFewArgs,"max_prim",NULL,VOID);
   else {

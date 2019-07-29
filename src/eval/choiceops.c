@@ -286,7 +286,7 @@ static lispval fail_prim()
 
 DEFPRIM("choice",choice_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(0)|KNO_NDCALL,
 	"`(CHOICE *args...*)` **undocumented**");
-static lispval choice_prim(int n,lispval *args)
+static lispval choice_prim(int n,kno_argvec args)
 {
   int i = 0; lispval results = EMPTY;
   while (i < n) {
@@ -297,7 +297,7 @@ static lispval choice_prim(int n,lispval *args)
 
 DEFPRIM("qchoice",qchoice_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(0)|KNO_NDCALL,
 	"`(QCHOICE *args...*)` **undocumented**");
-static lispval qchoice_prim(int n,lispval *args)
+static lispval qchoice_prim(int n,kno_argvec args)
 {
   int i = 0; lispval results = EMPTY, presults;
   while (i < n) {
@@ -311,7 +311,7 @@ static lispval qchoice_prim(int n,lispval *args)
 
 DEFPRIM("qchoicex",qchoicex_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(0)|KNO_NDCALL,
 	"`(QCHOICEX *args...*)` **undocumented**");
-static lispval qchoicex_prim(int n,lispval *args)
+static lispval qchoicex_prim(int n,kno_argvec args)
 {
   int i = 0; lispval results = EMPTY, presults;
   while (i < n) {
@@ -487,7 +487,7 @@ static lispval qchoicep_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 #define PASS_ERRS 0
 
 static int test_exists(struct KNO_FUNCTION *fn,
-		       int i,int n,lispval *nd_args,lispval *d_args,
+		       int i,int n,kno_argvec nd_args,lispval *d_args,
 		       int skip_errs)
 {
   if (i == n) {
@@ -517,7 +517,7 @@ static int test_exists(struct KNO_FUNCTION *fn,
     return test_exists(fn,i+1,n,nd_args,d_args,skip_errs);}
 }
 
-static lispval exists_helper(int n,lispval *nd_args,int skip_errs)
+static lispval exists_helper(int n,kno_argvec nd_args,int skip_errs)
 {
   int i = 0; while (i<n)
 	       if (EMPTYP(nd_args[i]))
@@ -542,21 +542,21 @@ static lispval exists_helper(int n,lispval *nd_args,int skip_errs)
 
 DEFPRIM("exists",exists_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	"`(EXISTS *arg0* *args...*)` **undocumented**");
-static lispval exists_lexpr(int n,lispval *nd_args)
+static lispval exists_lexpr(int n,kno_argvec nd_args)
 {
   return exists_helper(n,nd_args,PASS_ERRS);
 }
 
 DEFPRIM("exists/skiperrs",exists_skiperrs,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	"`(EXISTS/SKIPERRS *arg0* *args...*)` **undocumented**");
-static lispval exists_skiperrs(int n,lispval *nd_args)
+static lispval exists_skiperrs(int n,kno_argvec nd_args)
 {
   return exists_helper(n,nd_args,SKIP_ERRS);
 }
 
 DEFPRIM("sometrue",sometrue_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	"`(SOMETRUE *arg0* *args...*)` **undocumented**");
-static lispval sometrue_lexpr(int n,lispval *nd_args)
+static lispval sometrue_lexpr(int n,kno_argvec nd_args)
 {
   if (n==1)
     if (EMPTYP(nd_args[0]))
@@ -569,7 +569,7 @@ static lispval sometrue_lexpr(int n,lispval *nd_args)
 
 DEFPRIM("sometrue/skiperrs",sometrue_skiperrs,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	"`(SOMETRUE/SKIPERRS *arg0* *args...*)` **undocumented**");
-static lispval sometrue_skiperrs(int n,lispval *nd_args)
+static lispval sometrue_skiperrs(int n,kno_argvec nd_args)
 {
   if (n==1)
     if (EMPTYP(nd_args[0]))
@@ -583,7 +583,7 @@ static lispval sometrue_skiperrs(int n,lispval *nd_args)
 /* FORALL */
 
 static int test_forall(struct KNO_FUNCTION *fn,int i,int n,
-		       lispval *nd_args,lispval *d_args,
+		       kno_argvec nd_args,lispval *d_args,
 		       int skip_errs)
 {
   if (i == n) {
@@ -627,7 +627,7 @@ static lispval whenexists_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   else return value;
 }
 
-static lispval forall_helper(int n,lispval *nd_args,int skip_errs)
+static lispval forall_helper(int n,kno_argvec nd_args,int skip_errs)
 {
   int i = 0; while (i<n)
 	       if (EMPTYP(nd_args[i])) return KNO_TRUE;
@@ -652,14 +652,14 @@ static lispval forall_helper(int n,lispval *nd_args,int skip_errs)
 
 DEFPRIM("forall",forall_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	"`(FORALL *arg0* *args...*)` **undocumented**");
-static lispval forall_lexpr(int n,lispval *nd_args)
+static lispval forall_lexpr(int n,kno_argvec nd_args)
 {
   return forall_helper(n,nd_args,PASS_ERRS);
 }
 
 DEFPRIM("forall/skiperrs",forall_skiperrs,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	"`(FORALL/SKIPERRS *arg0* *args...*)` **undocumented**");
-static lispval forall_skiperrs(int n,lispval *nd_args)
+static lispval forall_skiperrs(int n,kno_argvec nd_args)
 {
   return forall_helper(n,nd_args,SKIP_ERRS);
 }
@@ -668,19 +668,19 @@ static lispval forall_skiperrs(int n,lispval *nd_args)
 
 DEFPRIM("union",union_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	"`(UNION *arg0* *args...*)` **undocumented**");
-static lispval union_lexpr(int n,lispval *args)
+static lispval union_lexpr(int n,kno_argvec args)
 {
   return kno_simplify_choice(kno_union(args,n));
 }
 DEFPRIM("intersection",intersection_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	"`(INTERSECTION *arg0* *args...*)` **undocumented**");
-static lispval intersection_lexpr(int n,lispval *args)
+static lispval intersection_lexpr(int n,kno_argvec args)
 {
   return kno_simplify_choice(kno_intersection(args,n));
 }
 DEFPRIM("difference",difference_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	"`(DIFFERENCE *arg0* *args...*)` **undocumented**");
-static lispval difference_lexpr(int n,lispval *args)
+static lispval difference_lexpr(int n,kno_argvec args)
 {
   lispval result = kno_incref(args[0]); int i = 1;
   if (EMPTYP(result))

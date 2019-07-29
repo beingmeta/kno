@@ -179,7 +179,8 @@ KNO_EXPORT lispval *kno_get_index_delays() { return get_index_delays(); }
 
 /* Index ops */
 
-KNO_EXPORT lispval kno_index_ctl(kno_index x,lispval indexop,int n,lispval *args)
+KNO_EXPORT lispval kno_index_ctl(kno_index x,lispval indexop,int n,
+				 kno_argvec args)
 {
   struct KNO_INDEX_HANDLER *h = x->index_handler;
   if (h->indexctl)
@@ -2222,7 +2223,7 @@ static int valid_keyslotp(lispval defslot)
 }
 
 KNO_EXPORT lispval kno_default_indexctl(kno_index ix,lispval op,
-                                      int n,lispval *args)
+                                      int n,kno_argvec args)
 {
   if ((n>0)&&(args == NULL))
     return kno_err("BadIndexOpCall","kno_default_indexctl",ix->indexid,VOID);

@@ -1034,7 +1034,7 @@ static lispval modtime_prim(lispval slotmap,lispval base,lispval togmt)
 
 DEFPRIM("mktime",mktime_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(0),
 	"`(MKTIME *args...*)` **undocumented**");
-static lispval mktime_lexpr(int n,lispval *args)
+static lispval mktime_lexpr(int n,kno_argvec args)
 {
   lispval base; struct U8_XTIME *xt; int scan = 0;
   if (n%2) {

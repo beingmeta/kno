@@ -82,7 +82,7 @@ static kno_index open_tempindex(u8_string name,kno_storage_flags flags,
   return (kno_index)tempindex;
 }
 
-static lispval tempindex_ctl(kno_index ix,lispval op,int n,lispval *args)
+static lispval tempindex_ctl(kno_index ix,lispval op,int n,kno_argvec args)
 {
   struct KNO_TEMPINDEX *mix = (struct KNO_TEMPINDEX *)ix;
   if ( ((n>0)&&(args == NULL)) || (n<0) )

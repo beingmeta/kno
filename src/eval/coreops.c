@@ -283,7 +283,7 @@ static lispval lisp_zerop(lispval x)
     else return KNO_FALSE;}
 }
 
-static lispval do_compare(int n,lispval *v,int testspec[3])
+static lispval do_compare(int n,kno_argvec v,int testspec[3])
 {
   int i = 1; while (i < n) {
     int comparison = numeric_compare(v[i-1],v[i]);
@@ -300,22 +300,22 @@ static int gtespec[3]={0,1,1}, gtspec[3]={0,0,1}, nespec[3]={1,0,1};
 
 DEFPRIM("<",lt,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(< *arg0* *arg1* *args...*)` **undocumented**");
-static lispval lt(int n,lispval *v) { return do_compare(n,v,ltspec); }
+static lispval lt(int n,kno_argvec v) { return do_compare(n,v,ltspec); }
 DEFPRIM("<=",lte,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(<= *arg0* *arg1* *args...*)` **undocumented**");
-static lispval lte(int n,lispval *v) { return do_compare(n,v,ltespec); }
+static lispval lte(int n,kno_argvec v) { return do_compare(n,v,ltespec); }
 DEFPRIM("=",numeqp,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(= *arg0* *arg1* *args...*)` **undocumented**");
-static lispval numeqp(int n,lispval *v) { return do_compare(n,v,espec); }
+static lispval numeqp(int n,kno_argvec v) { return do_compare(n,v,espec); }
 DEFPRIM(">=",gte,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(>= *arg0* *arg1* *args...*)` **undocumented**");
-static lispval gte(int n,lispval *v) { return do_compare(n,v,gtespec); }
+static lispval gte(int n,kno_argvec v) { return do_compare(n,v,gtespec); }
 DEFPRIM(">",gt,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(> *arg0* *arg1* *args...*)` **undocumented**");
-static lispval gt(int n,lispval *v) { return do_compare(n,v,gtspec); }
+static lispval gt(int n,kno_argvec v) { return do_compare(n,v,gtspec); }
 DEFPRIM("!=",numneqp,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(!= *arg0* *arg1* *args...*)` **undocumented**");
-static lispval numneqp(int n,lispval *v) { return do_compare(n,v,nespec); }
+static lispval numneqp(int n,kno_argvec v) { return do_compare(n,v,nespec); }
 
 /* Type predicates */
 

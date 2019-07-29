@@ -107,13 +107,13 @@ typedef struct KNO_INDEX_HANDLER {
                      kno_storage_flags flags,lispval opts);
   int (*walker)(kno_index,kno_walker,void *,kno_walk_flags,int);
   void (*recycle)(kno_index p);
-  lispval (*indexctl)(kno_index ix,lispval op,int n,lispval *args);}
+  lispval (*indexctl)(kno_index ix,lispval op,int n,kno_argvec args);}
   KNO_INDEX_HANDLER;
 typedef struct KNO_INDEX_HANDLER *kno_index_handler;
 
-KNO_EXPORT lispval kno_index_ctl(kno_index p,lispval op,int n,lispval *args);
+KNO_EXPORT lispval kno_index_ctl(kno_index p,lispval op,int n,kno_argvec args);
 
-KNO_EXPORT lispval kno_default_indexctl(kno_index ix,lispval op,int n,lispval *args);
+KNO_EXPORT lispval kno_default_indexctl(kno_index ix,lispval op,int n,kno_argvec args);
 KNO_EXPORT lispval kno_index_base_metadata(kno_index ix);
 KNO_EXPORT void kno_recycle_index(struct KNO_INDEX *ix);
 

@@ -1013,7 +1013,7 @@ static lispval reset_hashset(lispval hs)
 DEFPRIM("CHOICE->HASHSET",choices2hashset,KNO_N_ARGS|MIN_ARGS(0)|NDCALL,
         "`(CHOICE->HASHSET choices...)` returns a hashset combining "
         "mutiple choices.")
-static lispval choices2hashset(int n,lispval *args)
+static lispval choices2hashset(int n,kno_argvec args)
 {
   struct KNO_HASHSET *h = u8_alloc(struct KNO_HASHSET);
   int size = 0; int i = 0; while (i<n) {

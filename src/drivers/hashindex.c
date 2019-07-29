@@ -3810,7 +3810,7 @@ static int hashindex_set_read_only(kno_hashindex hx,int read_only)
 
 static lispval metadata_readonly_props = KNO_VOID;
 
-static lispval hashindex_ctl(kno_index ix,lispval op,int n,lispval *args)
+static lispval hashindex_ctl(kno_index ix,lispval op,int n,kno_argvec args)
 {
   struct KNO_HASHINDEX *hx = (struct KNO_HASHINDEX *)ix;
   if ( ((n>0)&&(args == NULL)) || (n<0) )

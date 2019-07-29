@@ -2033,7 +2033,7 @@ static lispval bigpool_getoids(kno_bigpool bp)
 
 static lispval metadata_readonly_props = KNO_VOID;
 
-static lispval bigpool_ctl(kno_pool p,lispval op,int n,lispval *args)
+static lispval bigpool_ctl(kno_pool p,lispval op,int n,kno_argvec args)
 {
   struct KNO_BIGPOOL *bp = (struct KNO_BIGPOOL *)p;
   if ((n>0)&&(args == NULL))

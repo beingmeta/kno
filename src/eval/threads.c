@@ -835,7 +835,7 @@ DEFPRIM("thread/call",threadcall_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
 	"applies *fcn* in parallel to all of the "
 	"combinations of *args* and returns one thread for "
 	"each combination.");
-static lispval threadcall_prim(int n,lispval *args)
+static lispval threadcall_prim(int n,kno_argvec args)
 {
   lispval fn = args[0];
   if (KNO_APPLICABLEP(fn)) {
@@ -865,7 +865,7 @@ DEFPRIM("thread/apply",threadapply_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
 	"combinations of *args* and returns one thread for "
 	"each combination. Choice arguments can be passed "
 	"as one by using `QCHOICE`.");
-static lispval threadapply_prim(int n,lispval *args)
+static lispval threadapply_prim(int n,kno_argvec args)
 {
   if (n == 1)
     return threadcall_prim(1,args);
@@ -915,7 +915,7 @@ DEFPRIM("thread/call+",threadcallx_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"combinations of *args* and returns one thread for "
 	"each combination. *opts* specifies options for "
 	"creating each thread.");
-static lispval threadcallx_prim(int n,lispval *args)
+static lispval threadcallx_prim(int n,kno_argvec args)
 {
   lispval opts = args[0];
   lispval fn   = args[1];

@@ -34,7 +34,7 @@
 KNO_EXPORT int kno_init_sqlite(void) KNO_LIBINIT_FN;
 static struct KNO_SQLDB_HANDLER sqlite_handler;
 static lispval sqlitecallproc(struct KNO_STACK *stack,struct KNO_FUNCTION *fn,
-			      int n,lispval *args);
+			      int n,kno_argvec args);
 
 typedef struct KNO_SQLITE {
   KNO_SQLDB_FIELDS;
@@ -350,8 +350,8 @@ static lispval sqliteexechandler(struct KNO_SQLDB *sqldb,lispval string,
 
 static lispval sqlitemakeproc
 (struct KNO_SQLITE *dbp,
- u8_string sql,int sql_len,
- lispval colinfo,int n,lispval *ptypes)
+ u8_string sql,int sql_len,lispval colinfo,
+ int n,kno_argvec ptypes)
 {
   sqlite3 *db = dbp->sqlitedb;
   sqlite3_stmt *stmt;
@@ -423,9 +423,9 @@ static lispval merge_colinfo(KNO_SQLITE *dbp,lispval colinfo)
 
 static lispval sqlitemakeprochandler
 (struct KNO_SQLDB *sqldb,u8_string sql,int sql_len,
- lispval colinfo,int n,lispval *ptypes)
+ lispval colinfo,int n,kno_argvec ptypes)
 {
-  if (sqldb->sqldb_handler== &sqlite_handler)
+  if (sqldb->sqldb_handler == &sqlite_handler)
     return sqlitemakeproc((kno_sqlite)sqldb,sql,sql_len,colinfo,n,ptypes);
   else return kno_type_error
 	 ("SQLITE SQLDB","sqlitemakeprochandler",(lispval)sqldb);
@@ -472,8 +472,9 @@ static void recycle_knosqliteproc(struct KNO_SQLPROC *c)
 
 /* Calling a SQLITE proc */
 
-static lispval sqlitecallproc(struct KNO_STACK *stack,struct KNO_FUNCTION *fn,
-			      int n,lispval *args)
+static lispval sqlitecallproc(struct KNO_STACK *stack,
+			      struct KNO_FUNCTION *fn,
+			      int n,kno_argvec args)
 {
   struct KNO_SQLITE_PROC *dbproc = (struct KNO_SQLITE_PROC *)fn;
   /* We use this for the lock */

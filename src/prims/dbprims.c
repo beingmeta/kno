@@ -105,7 +105,7 @@ static int load_db_module(lispval opts,u8_context context)
 DEFPRIM("find-frames",find_frames_lexpr,
 	KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	"`(FIND-FRAMES *arg0* *arg1* *arg2* *args...*)` **undocumented**");
-static lispval find_frames_lexpr(int n,lispval *args)
+static lispval find_frames_lexpr(int n,kno_argvec args)
 {
   if (n%2)
     if (FALSEP(args[0]))
@@ -119,7 +119,7 @@ static lispval find_frames_lexpr(int n,lispval *args)
 DEFPRIM("xfind-frames",xfind_frames_lexpr,
 	KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	"`(XFIND-FRAMES *arg0* *arg1* *arg2* *args...*)` **undocumented**");
-static lispval xfind_frames_lexpr(int n,lispval *args)
+static lispval xfind_frames_lexpr(int n,kno_argvec args)
 {
   int i = (n%2); while (i<n)
 		   if (EMPTYP(args[i+1])) {
@@ -158,7 +158,7 @@ static lispval prefetch_slotvals(lispval index,lispval slotids,lispval values)
 
 DEFPRIM("find-frames/prefetch!",find_frames_prefetch,KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	"`(FIND-FRAMES/PREFETCH! *arg0* *arg1* *args...*)` **undocumented**");
-static lispval find_frames_prefetch(int n,lispval *args)
+static lispval find_frames_prefetch(int n,kno_argvec args)
 {
   int i = (n%2);
   kno_index ix = ((n%2) ? (kno_indexptr(args[0])) : ((kno_index)(kno_background)));
@@ -1183,7 +1183,7 @@ static lispval isadjunctp(lispval pool_arg)
 
 DEFPRIM("swapout",swapout_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(0)|KNO_NDCALL,
 	"`(SWAPOUT *args...*)` **undocumented**");
-static lispval swapout_lexpr(int n,lispval *args)
+static lispval swapout_lexpr(int n,kno_argvec args)
 {
   if (n == 0) {
     kno_swapout_indexes();
@@ -1261,7 +1261,7 @@ static lispval swapout_lexpr(int n,lispval *args)
 
 DEFPRIM("commit",commit_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(0),
 	"`(COMMIT *args...*)` **undocumented**");
-static lispval commit_lexpr(int n,lispval *args)
+static lispval commit_lexpr(int n,kno_argvec args)
 {
   if (n == 0) {
     if (kno_commit_indexes()<0)
@@ -2099,7 +2099,7 @@ KNO_EXPORT lispval kno_retract(lispval frames,lispval slotids,lispval values)
 
 DEFPRIM("testp",testp,KNO_VAR_ARGS|KNO_MIN_ARGS(3)|KNO_NDCALL,
 	"`(TESTP *arg0* *arg1* *arg2* *args...*)` **undocumented**");
-static lispval testp(int n,lispval *args)
+static lispval testp(int n,kno_argvec args)
 {
   lispval frames = args[0], slotids = args[1], testfns = args[2];
   if ((EMPTYP(frames)) || (EMPTYP(slotids)))
@@ -2111,24 +2111,28 @@ static lispval testp(int n,lispval *args)
 	DO_CHOICES(testfn,testfns)
 	  if (KNO_APPLICABLEP(testfn)) {
 	    lispval test_result = KNO_FALSE;
-	    args[2]=values;
-	    test_result = kno_apply(testfn,n-2,args+2);
-	    args[2]=testfns;
+	    lispval test_args[n-2]; test_args[0] = values;
+	    memcpy(test_args+1,args+3,(n-3)*sizeof(lispval));
+	    test_result = kno_apply(testfn,n-2,test_args);
 	    if (KNO_ABORTED(test_result)) {
-	      kno_decref(values); return test_result;}
+	      kno_decref(values);
+	      return test_result;}
 	    else if (KNO_TRUEP(test_result)) {
-	      kno_decref(values); kno_decref(test_result);
+	      kno_decref(values);
+	      kno_decref(test_result);
 	      return KNO_TRUE;}
 	    else {}}
 	  else if ((SYMBOLP(testfn)) || (OIDP(testfn))) {
-	    lispval test_result;
-	    args[1]=values; args[2]=testfn;
-	    test_result = testp(n-1,args+1);
-	    args[1]=slotids; args[2]=testfns;
+	    lispval test_result = KNO_FALSE;
+	    lispval recursive_args[n-2]; recursive_args[0] = values;
+	    memcpy(recursive_args+1,args+4,(n-3)*sizeof(lispval));
+	    test_result = testp(n-1,recursive_args);
 	    if (KNO_ABORTED(test_result)) {
-	      kno_decref(values); return test_result;}
+	      kno_decref(values);
+	      return test_result;}
 	    else if (KNO_TRUEP(test_result)) {
-	      kno_decref(values); return test_result;}
+	      kno_decref(values);
+	      return test_result;}
 	    else kno_decref(test_result);}
 	  else if (TABLEP(testfn)) {
 	    DO_CHOICES(value,values) {
@@ -2139,11 +2143,13 @@ static lispval testp(int n,lispval *args)
 	      else if (VOIDP(mapsto)) {}
 	      else if (n>3)
 		if (kno_overlapp(mapsto,args[3])) {
-		  kno_decref(mapsto); kno_decref(values);
+		  kno_decref(mapsto);
+		  kno_decref(values);
 		  return KNO_TRUE;}
 		else {kno_decref(mapsto);}
 	      else {
-		kno_decref(mapsto); kno_decref(values);
+		kno_decref(mapsto);
+		kno_decref(values);
 		return KNO_TRUE;}}}
 	  else {
 	    kno_decref(values);
@@ -2154,7 +2160,7 @@ static lispval testp(int n,lispval *args)
 
 DEFPRIM("getpath",getpath_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	"`(GETPATH *arg0* *args...*)` **undocumented**");
-static lispval getpath_prim(int n,lispval *args)
+static lispval getpath_prim(int n,kno_argvec args)
 {
   lispval result = kno_getpath(args[0],n-1,args+1,1,0);
   return kno_simplify_choice(result);
@@ -2162,7 +2168,7 @@ static lispval getpath_prim(int n,lispval *args)
 
 DEFPRIM("getpath*",getpathstar_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	"`(GETPATH* *arg0* *args...*)` **undocumented**");
-static lispval getpathstar_prim(int n,lispval *args)
+static lispval getpathstar_prim(int n,kno_argvec args)
 {
   lispval result = kno_getpath(args[0],n-1,args+1,1,0);
   return kno_simplify_choice(result);
@@ -2665,7 +2671,7 @@ KNO_FASTOP int test_selector_predicate(lispval candidate,lispval test,
     return kno_interr(ev);}
 }
 
-KNO_FASTOP int test_selector_clauses(lispval candidate,int n,lispval *args,
+KNO_FASTOP int test_selector_clauses(lispval candidate,int n,kno_argvec args,
 				     int datalevel)
 {
   if (n==1)
@@ -2692,7 +2698,8 @@ KNO_FASTOP int test_selector_clauses(lispval candidate,int n,lispval *args,
 
 /* PICK etc */
 
-static lispval pick_helper(lispval candidates,int n,lispval *tests,int datalevel)
+static lispval pick_helper(lispval candidates,int n,kno_argvec tests,
+			   int datalevel)
 {
   int retval;
   if (CHOICEP(candidates)) {
@@ -2828,7 +2835,7 @@ static lispval hashtable_filter(lispval candidates,kno_hashtable ht,int pick)
 
 DEFPRIM("pick",pick_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	"`(PICK *arg0* *arg1* *args...*)` **undocumented**");
-static lispval pick_lexpr(int n,lispval *args)
+static lispval pick_lexpr(int n,kno_argvec args)
 {
   if (KNO_EMPTYP(args[0]))
     return KNO_EMPTY;
@@ -2845,7 +2852,7 @@ static lispval pick_lexpr(int n,lispval *args)
 
 DEFPRIM("prefer",prefer_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	"`(PREFER *arg0* *arg1* *args...*)` **undocumented**");
-static lispval prefer_lexpr(int n,lispval *args)
+static lispval prefer_lexpr(int n,kno_argvec args)
 {
   if ((n==2)&&(HASHTABLEP(args[1]))) {
     lispval results = hashtable_pick(args[0],(kno_hashtable)args[1]);
@@ -2868,7 +2875,7 @@ static lispval prefer_lexpr(int n,lispval *args)
 
 DEFPRIM("%pick",prim_pick_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	"`(%PICK *arg0* *arg1* *args...*)` **undocumented**");
-static lispval prim_pick_lexpr(int n,lispval *args)
+static lispval prim_pick_lexpr(int n,kno_argvec args)
 {
   if ((n==2)&&(HASHTABLEP(args[1])))
     return hashtable_pick(args[0],(kno_hashtable)args[1]);
@@ -2882,7 +2889,7 @@ static lispval prim_pick_lexpr(int n,lispval *args)
 
 DEFPRIM("%prefer",prim_prefer_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	"`(%PREFER *arg0* *arg1* *args...*)` **undocumented**");
-static lispval prim_prefer_lexpr(int n,lispval *args)
+static lispval prim_prefer_lexpr(int n,kno_argvec args)
 {
   if ((n<=4)||(n%2)) {
     lispval results = pick_helper(args[0],n-1,args+1,1);
@@ -2895,7 +2902,8 @@ static lispval prim_prefer_lexpr(int n,lispval *args)
 
 /* REJECT etc */
 
-static lispval reject_helper(lispval candidates,int n,lispval *tests,int datalevel)
+static lispval reject_helper(lispval candidates,int n,kno_argvec tests,
+			     int datalevel)
 {
   int retval;
   if (CHOICEP(candidates)) {
@@ -2947,7 +2955,7 @@ static lispval reject_helper(lispval candidates,int n,lispval *tests,int datalev
 
 DEFPRIM("reject",reject_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	"`(REJECT *arg0* *arg1* *args...*)` **undocumented**");
-static lispval reject_lexpr(int n,lispval *args)
+static lispval reject_lexpr(int n,kno_argvec args)
 {
   if (KNO_EMPTYP(args[0]))
     return KNO_EMPTY;
@@ -2963,7 +2971,7 @@ static lispval reject_lexpr(int n,lispval *args)
 
 DEFPRIM("avoid",avoid_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	"`(AVOID *arg0* *arg1* *args...*)` **undocumented**");
-static lispval avoid_lexpr(int n,lispval *args)
+static lispval avoid_lexpr(int n,kno_argvec args)
 {
   if ((n==2)&&(HASHTABLEP(args[1]))) {
     lispval results = hashtable_reject(args[0],(kno_hashtable)args[1]);
@@ -2986,7 +2994,7 @@ static lispval avoid_lexpr(int n,lispval *args)
 
 DEFPRIM("%reject",prim_reject_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	"`(%REJECT *arg0* *arg1* *args...*)` **undocumented**");
-static lispval prim_reject_lexpr(int n,lispval *args)
+static lispval prim_reject_lexpr(int n,kno_argvec args)
 {
   if ((n==2)&&(HASHTABLEP(args[1])))
     return hashtable_reject(args[0],args[1]);
@@ -3000,7 +3008,7 @@ static lispval prim_reject_lexpr(int n,lispval *args)
 
 DEFPRIM("%avoid",prim_avoid_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	"`(%AVOID *arg0* *arg1* *args...*)` **undocumented**");
-static lispval prim_avoid_lexpr(int n,lispval *args)
+static lispval prim_avoid_lexpr(int n,kno_argvec args)
 {
   if ((n==2)&&(HASHTABLEP(args[1]))) {
     lispval results = hashtable_reject(args[0],(kno_hashtable)args[1]);
@@ -3111,7 +3119,7 @@ static lispval allocate_oids(lispval pool,lispval howmany)
 
 DEFPRIM("frame-create",frame_create_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	"`(FRAME-CREATE *arg0* *args...*)` **undocumented**");
-static lispval frame_create_lexpr(int n,lispval *args)
+static lispval frame_create_lexpr(int n,kno_argvec args)
 {
   lispval result;
   int i = (n%2);
@@ -3147,7 +3155,7 @@ static lispval frame_create_lexpr(int n,lispval *args)
 
 DEFPRIM("frame-update",frame_update_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(3)|KNO_NDCALL,
 	"`(FRAME-UPDATE *arg0* *arg1* *arg2* *args...*)` **undocumented**");
-static lispval frame_update_lexpr(int n,lispval *args)
+static lispval frame_update_lexpr(int n,kno_argvec args)
 {
   if ((n>=1)&&(EMPTYP(args[0])))
     return EMPTY;
@@ -3243,7 +3251,7 @@ static int doretract(lispval f,lispval s,lispval v)
 
 DEFPRIM("modify-frame",modify_frame_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(3)|KNO_NDCALL,
 	"`(MODIFY-FRAME *arg0* *arg1* *arg2* *args...*)` **undocumented**");
-static lispval modify_frame_lexpr(int n,lispval *args)
+static lispval modify_frame_lexpr(int n,kno_argvec args)
 {
   if (n%2==0)
     return kno_err(kno_SyntaxError,"FRAME-MODIFY",NULL,VOID);

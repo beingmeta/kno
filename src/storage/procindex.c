@@ -358,7 +358,7 @@ static void procindex_close(kno_index ix)
     return;}
 }
 
-static lispval procindex_ctl(kno_index ix,lispval opid,int n,lispval *args)
+static lispval procindex_ctl(kno_index ix,lispval opid,int n,kno_argvec args)
 {
   struct KNO_PROCINDEX *pix = (kno_procindex)ix;
   lispval lx = kno_index2lisp(ix);

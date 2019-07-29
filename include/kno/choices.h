@@ -467,8 +467,8 @@ kno_dochoices_helper(lispval *_valp,
 #define KNO_STOP_DO_CHOICES \
    if (_need_gc) kno_decref(_val)
 
-KNO_EXPORT lispval kno_union(lispval *v,unsigned int n);
-KNO_EXPORT lispval kno_intersection(lispval *v,unsigned int n);
+KNO_EXPORT lispval kno_union(const lispval *v,unsigned int n);
+KNO_EXPORT lispval kno_intersection(const lispval *v,unsigned int n);
 KNO_EXPORT lispval kno_difference(lispval whole,lispval part);
 KNO_EXPORT int kno_choice_containsp(lispval key,lispval x);
 KNO_EXPORT int kno_overlapp(lispval,lispval);

@@ -787,7 +787,7 @@ static int string_compare(u8_string s1,u8_string s2)
   else if (c1<c2) return -1;
   else return 1;
 }
-static lispval compare_strings(enum STRCMP need,int n,lispval *stringvals)
+static lispval compare_strings(enum STRCMP need,int n,kno_argvec stringvals)
 {
   int i = 1;
   lispval base_arg = stringvals[0];
@@ -821,7 +821,7 @@ static int string_compare_ci(u8_string s1,u8_string s2)
   else return KNO_TRUE;
 }
 
-static lispval compare_strings_ci(enum STRCMP need,int n,lispval *stringvals)
+static lispval compare_strings_ci(enum STRCMP need,int n,kno_argvec stringvals)
 {
   int i = 1;
   lispval base_arg = stringvals[0];
@@ -842,67 +842,67 @@ static lispval compare_strings_ci(enum STRCMP need,int n,lispval *stringvals)
 
 DEFPRIM("string=?",string_eq,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(string=? *strings...*)` **undocumented**");
-static lispval string_eq(int n,lispval *args) {
+static lispval string_eq(int n,kno_argvec args) {
   return compare_strings(str_eq,n,args); }
 
 DEFPRIM("string-ci=?",string_ci_eq,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(STRING-CI=? *strings...*)` **undocumented**");
-static lispval string_ci_eq(int n,lispval *args) {
+static lispval string_ci_eq(int n,kno_argvec args) {
   return compare_strings_ci(str_eq,n,args); }
 
 DEFPRIM("string!=?",string_ne,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(STRING!=? *strings...*)` **undocumented**");
-static lispval string_ne(int n,lispval *args) {
+static lispval string_ne(int n,kno_argvec args) {
   return compare_strings(str_neq,n,args); }
 
 DEFPRIM("string-ci!=?",string_ci_ne,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(STRING-CI!=? *strings...*)` **undocumented**");
-static lispval string_ci_ne(int n,lispval *args) {
+static lispval string_ci_ne(int n,kno_argvec args) {
   return compare_strings_ci(str_neq,n,args); }
 
 DEFPRIM("string<?",string_lt,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(STRING<? *strings...*)` **undocumented**");
-static lispval string_lt(int n,lispval *args) {
+static lispval string_lt(int n,kno_argvec args) {
   return compare_strings(str_lt,n,args); }
 
 DEFPRIM("string-ci<?",string_ci_lt,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(STRING-CI<? *strings...*)` **undocumented**");
-static lispval string_ci_lt(int n,lispval *args) {
+static lispval string_ci_lt(int n,kno_argvec args) {
   return compare_strings_ci(str_lt,n,args); }
 
 DEFPRIM("string<=?",string_lte,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(STRING<=? *strings...*)` **undocumented**");
-static lispval string_lte(int n,lispval *args) {
+static lispval string_lte(int n,kno_argvec args) {
   return compare_strings(str_lte,n,args); }
 
 DEFPRIM("string-ci<=?",string_ci_lte,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(STRING-CI<=? *strings...*)` **undocumented**");
-static lispval string_ci_lte(int n, lispval *args) {
+static lispval string_ci_lte(int n, kno_argvec args) {
   return compare_strings_ci(str_lte,n,args); }
 
 DEFPRIM("string>=?",string_gte,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(STRING>=? *strings...*)` **undocumented**");
-static lispval string_gte(int n,lispval *args) {
+static lispval string_gte(int n,kno_argvec args) {
   return compare_strings(str_gte,n,args); }
 
 DEFPRIM("string-ci>=?",string_ci_gte,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(STRING-CI>=? *strings...*)` **undocumented**");
-static lispval string_ci_gte(int n,lispval *args) {
+static lispval string_ci_gte(int n,kno_argvec args) {
   return compare_strings_ci(str_gte,n,args); }
 
 DEFPRIM("string>?",string_gt,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(STRING>? *strings...*)` **undocumented**");
-static lispval string_gt(int n,lispval *args) {
+static lispval string_gt(int n,kno_argvec args) {
   return compare_strings(str_gt,n,args); }
 
 DEFPRIM("string-ci>?",string_ci_gt,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(STRING-CI>? *strings...*)` **undocumented**");
-static lispval string_ci_gt(int n,lispval *args) {
+static lispval string_ci_gt(int n,kno_argvec args) {
   return compare_strings_ci(str_gt,n,args); }
 
 /* Character comparisons */
 
-static lispval compare_chars(enum STRCMP need,int n,lispval *charvals)
+static lispval compare_chars(enum STRCMP need,int n,kno_argvec charvals)
 {
   int i = 1;
   lispval base_arg = charvals[0];
@@ -930,7 +930,7 @@ static lispval compare_chars(enum STRCMP need,int n,lispval *charvals)
   return KNO_TRUE;
 }
 
-static lispval compare_chars_ci(enum STRCMP need,int n,lispval *charvals)
+static lispval compare_chars_ci(enum STRCMP need,int n,kno_argvec charvals)
 {
   int i = 1;
   lispval base_arg = charvals[0];
@@ -962,62 +962,62 @@ static lispval compare_chars_ci(enum STRCMP need,int n,lispval *charvals)
 
 DEFPRIM("char=?",char_eq,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(char=? *chars...*)` **undocumented**");
-static lispval char_eq(int n,lispval *args) {
+static lispval char_eq(int n,kno_argvec args) {
   return compare_chars(str_eq,n,args); }
 
 DEFPRIM("char-ci=?",char_ci_eq,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(CHAR-CI=? *chars...*)` **undocumented**");
-static lispval char_ci_eq(int n,lispval *args) {
+static lispval char_ci_eq(int n,kno_argvec args) {
   return compare_chars_ci(str_eq,n,args); }
 
 DEFPRIM("char!=?",char_ne,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(CHAR!=? *chars...*)` **undocumented**");
-static lispval char_ne(int n,lispval *args) {
+static lispval char_ne(int n,kno_argvec args) {
   return compare_chars(str_neq,n,args); }
 
 DEFPRIM("char-ci!=?",char_ci_ne,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(CHAR-CI!=? *chars...*)` **undocumented**");
-static lispval char_ci_ne(int n,lispval *args) {
+static lispval char_ci_ne(int n,kno_argvec args) {
   return compare_chars_ci(str_neq,n,args); }
 
 DEFPRIM("char<?",char_lt,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(CHAR<? *chars...*)` **undocumented**");
-static lispval char_lt(int n,lispval *args) {
+static lispval char_lt(int n,kno_argvec args) {
   return compare_chars(str_lt,n,args); }
 
 DEFPRIM("char-ci<?",char_ci_lt,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(CHAR-CI<? *chars...*)` **undocumented**");
-static lispval char_ci_lt(int n,lispval *args) {
+static lispval char_ci_lt(int n,kno_argvec args) {
   return compare_chars_ci(str_lt,n,args); }
 
 DEFPRIM("char<=?",char_lte,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(CHAR<=? *chars...*)` **undocumented**");
-static lispval char_lte(int n,lispval *args) {
+static lispval char_lte(int n,kno_argvec args) {
   return compare_chars(str_lte,n,args); }
 
 DEFPRIM("char-ci<=?",char_ci_lte,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(CHAR-CI<=? *chars...*)` **undocumented**");
-static lispval char_ci_lte(int n, lispval *args) {
+static lispval char_ci_lte(int n, kno_argvec args) {
   return compare_chars_ci(str_lte,n,args); }
 
 DEFPRIM("char>=?",char_gte,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(CHAR>=? *chars...*)` **undocumented**");
-static lispval char_gte(int n,lispval *args) {
+static lispval char_gte(int n,kno_argvec args) {
   return compare_chars(str_gte,n,args); }
 
 DEFPRIM("char-ci>=?",char_ci_gte,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(CHAR-CI>=? *chars...*)` **undocumented**");
-static lispval char_ci_gte(int n,lispval *args) {
+static lispval char_ci_gte(int n,kno_argvec args) {
   return compare_chars_ci(str_gte,n,args); }
 
 DEFPRIM("char>?",char_gt,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(CHAR>? *chars...*)` **undocumented**");
-static lispval char_gt(int n,lispval *args) {
+static lispval char_gt(int n,kno_argvec args) {
   return compare_chars(str_gt,n,args); }
 
 DEFPRIM("char-ci>?",char_ci_gt,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(CHAR-CI>? *chars...*)` **undocumented**");
-static lispval char_ci_gt(int n,lispval *args) {
+static lispval char_ci_gt(int n,kno_argvec args) {
   return compare_chars_ci(str_gt,n,args); }
 
 /* String building */
@@ -1026,7 +1026,7 @@ DEFPRIM("string-append",string_append_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(-1),
 	"`(STRING-APPEND *strings...*)` "
 	"creates a new string by appending together each "
 	"of *strings*.");
-static lispval string_append_prim(int n,lispval *args)
+static lispval string_append_prim(int n,kno_argvec args)
 {
   int i = 0;
   U8_OUTPUT out; U8_INIT_OUTPUT(&out,128);
@@ -1043,7 +1043,7 @@ DEFPRIM("string",string_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(-1),
 	"`(STRING *strings|chars...*)` "
 	"creates a new string by appending together "
 	"strings or characters.");
-static lispval string_prim(int n,lispval *args)
+static lispval string_prim(int n,kno_argvec args)
 {
   int i = 0;
   U8_OUTPUT out; U8_INIT_OUTPUT(&out,32);
@@ -1576,7 +1576,7 @@ DEFPRIM("string-subst*",string_subst_star,KNO_VAR_ARGS|KNO_MIN_ARGS(3),
 	"replaces substrings matching each *pattern* with "
 	"the corresponding *subst* starting from left to "
 	"right.");
-static lispval string_subst_star(int n,lispval *args)
+static lispval string_subst_star(int n,kno_argvec args)
 {
   lispval base = args[0]; int i = 1;
   if ((n%2)==0)
@@ -1638,7 +1638,7 @@ DEFPRIM("glom",glom_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(-1),
 	"their printed representations (if they are not). "
 	"If any of the arguments are choices, `GLOM` "
 	"returns a choice of object combinations.");
-static lispval glom_lexpr(int n,lispval *args)
+static lispval glom_lexpr(int n,kno_argvec args)
 {
   unsigned char *result_data, *write;
   int i = 0, sumlen = 0; kno_lisp_type result_type = 0;

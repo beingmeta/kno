@@ -243,7 +243,7 @@ KNO_EXPORT lispval kno_prim_find(lispval indexes,lispval slotids,lispval values)
   else return kno_type_error("index/table","kno_prim_find",indexes);
 }
 
-KNO_EXPORT lispval kno_finder(lispval indexes,int n,lispval *slotvals)
+KNO_EXPORT lispval kno_finder(lispval indexes,int n,kno_argvec slotvals)
 {
   if (EMPTYP(indexes)) return EMPTY;
   int i = 0, n_conjuncts = n/2;
@@ -703,7 +703,7 @@ KNO_EXPORT lispval kno_bg_get(lispval slotid,lispval value)
   return aggregate_prim_find(kno_background,slotid,value);
 }
 
-KNO_EXPORT lispval kno_bgfinder(int n,lispval *slotvals)
+KNO_EXPORT lispval kno_bgfinder(int n,kno_argvec slotvals)
 {
   return kno_finder(index2lisp((kno_index)kno_background),n,slotvals);
 }
