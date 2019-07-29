@@ -58,10 +58,10 @@ ssize_t kno_max_strlen = -1;
 int kno_check_utf8 = 0;
 
 const char *kno_constant_names[256]={
-  "#void","#f","#t","{}","()","#eof","#eod","#eox",
-  "#bad_dtype","#bad_parse","#oom","#type_error","#range_error",
-  "#error","#badptr","#throw","#break","#unbound",
-  "#neverseen","#lockholder","#default","#preoid", /* 22 */
+  "#void","#f","#t","{}","()","#default","#tailcall",
+  "#eof","#eod","#eox", "#bad_dtype","#bad_parse","#oom",
+  "#type_error","#range_error", "#error","#badptr","#throw",
+  "#break","#unbound","#neverseen","#lockholder","#preoid", /* 22 */
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL, /* 30 */
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
@@ -85,7 +85,7 @@ const char *kno_constant_names[256]={
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL, /* 250 */
-  NULL,NULL,NULL,NULL,NULL,NULL};
+  NULL,NULL,NULL,NULL,NULL};
 
 KNO_EXPORT
 lispval kno_register_constant(u8_string name)

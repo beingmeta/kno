@@ -654,29 +654,32 @@ KNO_EXPORT lispval _KNO_INT2LISP(long long intval);
 #define KNO_TRUE                   KNO_CONSTANT(2)
 #define KNO_EMPTY_CHOICE           KNO_CONSTANT(3)
 #define KNO_EMPTY_LIST             KNO_CONSTANT(4)
-#define KNO_EOF                    KNO_CONSTANT(5)
-#define KNO_EOD                    KNO_CONSTANT(6)
-#define KNO_EOX                    KNO_CONSTANT(7)
-#define KNO_DTYPE_ERROR            KNO_CONSTANT(8)
-#define KNO_PARSE_ERROR            KNO_CONSTANT(9)
-#define KNO_OOM                    KNO_CONSTANT(10)
-#define KNO_TYPE_ERROR             KNO_CONSTANT(11)
-#define KNO_RANGE_ERROR            KNO_CONSTANT(12)
-#define KNO_ERROR_VALUE            KNO_CONSTANT(13)
-#define KNO_BADPTR                 KNO_CONSTANT(14)
-#define KNO_THROW_VALUE            KNO_CONSTANT(15)
-#define KNO_BREAK                  KNO_CONSTANT(16)
-#define KNO_UNBOUND                KNO_CONSTANT(17)
-#define KNO_NEVERSEEN              KNO_CONSTANT(18)
-#define KNO_LOCKHOLDER             KNO_CONSTANT(19)
-#define KNO_DEFAULT_VALUE          KNO_CONSTANT(20)
-#define KNO_UNALLOCATED_OID        KNO_CONSTANT(21)
+#define KNO_DEFAULT_VALUE          KNO_CONSTANT(5)
+#define KNO_TAIL_CALL              KNO_CONSTANT(6)
+#define KNO_EOF                    KNO_CONSTANT(7)
+#define KNO_EOD                    KNO_CONSTANT(8)
+#define KNO_EOX                    KNO_CONSTANT(9)
+#define KNO_DTYPE_ERROR            KNO_CONSTANT(10)
+#define KNO_PARSE_ERROR            KNO_CONSTANT(11)
+#define KNO_OOM                    KNO_CONSTANT(12)
+#define KNO_TYPE_ERROR             KNO_CONSTANT(13)
+#define KNO_RANGE_ERROR            KNO_CONSTANT(14)
+#define KNO_ERROR_VALUE            KNO_CONSTANT(15)
+#define KNO_BADPTR                 KNO_CONSTANT(16)
+#define KNO_THROW_VALUE            KNO_CONSTANT(17)
+#define KNO_BREAK                  KNO_CONSTANT(18)
+#define KNO_UNBOUND                KNO_CONSTANT(19)
+#define KNO_NEVERSEEN              KNO_CONSTANT(20)
+#define KNO_LOCKHOLDER             KNO_CONSTANT(21)
+#define KNO_UNALLOCATED_OID        KNO_CONSTANT(22)
 
-#define KNO_N_BUILTIN_CONSTANTS 22
+#define KNO_N_BUILTIN_CONSTANTS 23
 
 KNO_EXPORT const char *kno_constant_names[];
 KNO_EXPORT int kno_n_constants;
 KNO_EXPORT lispval kno_register_constant(u8_string name);
+
+KNO_EXPORT lispval _kno_return_errcode(lispval x);
 
 #define KNO_VOIDP(x) ((x) == (KNO_VOID))
 #define KNO_NOVOIDP(x) ((x) != (KNO_VOID))
@@ -709,12 +712,12 @@ KNO_EXPORT int _KNO_ERRORP(lispval x);
 #else
 #define KNO_ABORTP(x) \
   (((KNO_TYPEP(x,kno_constant_type)) && \
-    (KNO_GET_IMMEDIATE(x,kno_constant_type)>6) && \
-    (KNO_GET_IMMEDIATE(x,kno_constant_type)<=16)))
+    (KNO_GET_IMMEDIATE(x,kno_constant_type)>7) && \
+    (KNO_GET_IMMEDIATE(x,kno_constant_type)<=18)))
 #define KNO_ERRORP(x) \
   (((KNO_TYPEP(x,kno_constant_type)) && \
-    (KNO_GET_IMMEDIATE(x,kno_constant_type)>6) && \
-    (KNO_GET_IMMEDIATE(x,kno_constant_type)<15)))
+    (KNO_GET_IMMEDIATE(x,kno_constant_type)>7) && \
+    (KNO_GET_IMMEDIATE(x,kno_constant_type)<16)))
 #endif
 #define KNO_TROUBLEP(x) (KNO_EXPECT_FALSE(KNO_ERRORP(x)))
 #define KNO_COOLP(x) (!(KNO_TROUBLEP(x)))

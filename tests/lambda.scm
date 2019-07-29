@@ -7,6 +7,13 @@
 ;; TODO: This leaks for some reason. Find it out.
 ;;(reoptimize! 'stringfmts)
 
+(applytest '("foo" "bar" "baz") (lambda x x) "foo" "bar" "baz")
+(applytest '() (lambda x x))
+(applytest '("bar" "baz") (lambda (x . rest) rest) "foo" "bar" "baz")
+(applytest '("baz") (lambda (x (y "quux") . rest) rest) "foo" "bar" "baz")
+(applytest '() (lambda (x (y "quux") (z "qxu") . rest) rest) "foo" "bar" "baz")
+
+
 (errtest ((lambda (x (y . err) (z)) (+ x 3)) 8))
 (errtest (nlambda (string-append 3 "bar") (x y) (+ x y)))
 (errtest ((lambda (x "y" (z)) (+ x 3)) 8))

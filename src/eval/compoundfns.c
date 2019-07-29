@@ -261,7 +261,7 @@ static lispval apply_modifier(lispval modifier,lispval old_value,lispval value)
     if (KNO_FCNIDP(modifier)) modifier = kno_fcnid_ref(modifier);
     if (KNO_FUNCTIONP(modifier)) {
       kno_function fcn = (kno_function) modifier;
-      if (fcn->fcn_arity == 1)
+      if (fcn->fcn_arity==1)
 	return kno_apply(modifier,1,&old_value);
       else {
 	lispval args[2] = { old_value, value };

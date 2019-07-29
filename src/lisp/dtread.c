@@ -11,6 +11,9 @@
 
 #define KNO_INLINE_BUFIO 1
 
+#undef KNO_DEBUG_DTYPEIO
+#define KNO_DEBUG_DTYPEIO 1
+
 #include "kno/knosource.h"
 #include "kno/lisp.h"
 #include "kno/compounds.h"

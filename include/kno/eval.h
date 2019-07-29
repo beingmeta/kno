@@ -51,6 +51,7 @@ KNO_EXPORT int kno_choice_evalp(lispval x);
     ( (KNO_AMBIGP(x)) && (kno_choice_evalp(x)) ) )
 
 KNO_EXPORT u8_string kno_evalstack_type, kno_ndevalstack_type;
+KNO_EXPORT u8_string kno_lambda_stack_type;
 
 #define KNO_MODULE_OPTIONAL 0
 #define KNO_MODULE_DEFAULT 1
@@ -157,7 +158,8 @@ KNO_EXPORT void kno_add_module_loader(int (*loader)(lispval,void *),void *);
 
 typedef struct KNO_LAMBDA {
   KNO_FUNCTION_FIELDS;
-  short lambda_n_vars, lambda_synchronized;
+  unsigned short lambda_n_vars;
+  unsigned char lambda_synchronized;
   lispval *lambda_vars, *lambda_inits;
   lispval lambda_arglist, lambda_body, lambda_source;
   lispval lambda_optimizer, lambda_start;

@@ -55,7 +55,7 @@ int unparse_cprim(u8_output out,lispval x)
   if (FCN_NDCALLP(fcn)) strcat(codes,"∀");
   if ((fcn->fcn_arity<0)&&(fcn->fcn_min_arity<0))
     strcat(arity,"[…]");
-  else if (fcn->fcn_arity == fcn->fcn_min_arity) {
+  else if (fcn->fcn_arity==fcn->fcn_min_arity) {
     strcat(arity,"[");
     strcat(arity,u8_itoa10(fcn->fcn_arity,numbuf));
     strcat(arity,"]");}
@@ -170,7 +170,7 @@ static struct KNO_CPRIM *make_cprim(u8_string name,
     ( (varargs) ? (KNO_FCN_CALL_LEXPR) : (0) ) |
     ( (non_deterministic) ? (KNO_FCN_CALL_NDCALL) : (0) ) |
     ( (extended_call) ? (KNO_FCN_CALL_XCALL) : (0) );
-  f->fcn_call_len = f->fcn_arity = arity;
+  f->fcn_call_width = f->fcn_arity = arity;
   f->fcn_min_arity = min_arity;
   f->fcn_typeinfo = prim_typeinfo;
   if (typeinfo) memcpy(prim_typeinfo,typeinfo,sizeof(int)*arity);

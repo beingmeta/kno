@@ -101,7 +101,7 @@ static int run_init(lispval init,kno_lexenv env)
       if (KNO_APPLICABLEP(init)) {
 	if (KNO_FUNCTIONP(init)) {
 	  struct KNO_FUNCTION *f = (kno_function) init;
-	  v = (f->fcn_arity == 0) ?
+	  v = (f->fcn_arity==0) ?
 	    (kno_apply(init,0,NULL)) :
 	    (kno_apply(init,1,(lispval *)(&env)));}
 	else v = kno_apply(init,0,NULL);}

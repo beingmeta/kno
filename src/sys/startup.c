@@ -190,8 +190,8 @@ KNO_EXPORT lispval *kno_handle_argv(int argc,char **argv,
          string */
       lisp_arg = kno_parse_arg(arg);
       if (return_args) {
-        return_args[n]=lisp_arg;
-        kno_incref(lisp_arg);}
+	return_args[n]=lisp_arg;
+	kno_incref(lisp_arg);}
       _kno_argv[n]=lisp_arg; kno_incref(lisp_arg);
       KNO_VECTOR_SET(lisp_args,n,lisp_arg);
       KNO_VECTOR_SET(string_args,n,string_arg);

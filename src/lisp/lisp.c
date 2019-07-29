@@ -167,6 +167,11 @@ KNO_EXPORT long long _kno_getint64(lispval x)
 }
 #endif
 
+KNO_EXPORT lispval _kno_return_errcode(lispval x)
+{
+  return x;
+}
+
 /* Initialization procedures */
 
 extern void kno_init_choices_c(void);

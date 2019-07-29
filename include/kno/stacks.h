@@ -35,20 +35,24 @@ typedef struct KNO_STACK {
 
   lispval stack_op;
   lispval *stack_args;
-  lispval stack_source;
+
   lispval stack_vals;
+
+  lispval stack_source;
+
   struct KNO_LEXENV *stack_env;} *kno_stack;
 typedef struct KNO_LEXENV *kno_lexenv;
 typedef struct KNO_LEXENV *kno_lexenv;
 
 #define KNO_STACK_LIVE 0x01
 #define KNO_STACK_RETVOID 0x02
-#define KNO_STACK_TAIL 0x04
-#define KNO_STACK_NDCALL 0x08
-#define KNO_STACK_DECREF_OP 0x10
-#define KNO_STACK_FREE_LABEL 0x20
-#define KNO_STACK_FREE_STATUS 0x40
-#define KNO_STACK_FREE_SRC 0x80
+#define KNO_STACK_NDCALL 0x04
+#define KNO_STACK_TAILPOS 0x08
+#define KNO_STACK_TAILCALL 0x10
+#define KNO_STACK_DECREF_OP 0x100
+#define KNO_STACK_FREE_LABEL 0x200
+#define KNO_STACK_FREE_STATUS 0x400
+#define KNO_STACK_FREE_SRC 0x800
 
 /* Stack error flags */
 
@@ -165,6 +169,8 @@ KNO_FASTOP void kno_free_stack(struct KNO_STACK *stack)
     kno_decref(stack->stack_op);
     stack->stack_op=KNO_VOID;}
 
+  stack->stack_args = NULL;
+
   if ( (stack->stack_label) &&
        (U8_BITP(stack->stack_flags,KNO_STACK_FREE_LABEL)) ) {
     u8_free(stack->stack_label);
@@ -183,9 +189,11 @@ KNO_FASTOP void kno_free_stack(struct KNO_STACK *stack)
   if (KNO_CONSP(stack->stack_vals)) {
     kno_decref(stack->stack_vals);
     stack->stack_vals=KNO_EMPTY_CHOICE; }
+
   if (stack->stack_env) {
     kno_free_lexenv(stack->stack_env);
     stack->stack_env=NULL;}
+
   stack->stack_flags = 0;
 }
 KNO_FASTOP void kno_pop_stack(struct KNO_STACK *stack)

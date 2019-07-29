@@ -186,7 +186,7 @@ KNO_EXPORT void _knodbg_show_stack_frame(void *arg)
     u8_fprintf(stderr,"Applying %q to",stack->stack_op);
     if (stack->n_args) {
       u8_byte buf[128];
-      lispval *args=stack->stack_args;
+      kno_argvec args=stack->stack_args;
       int i=0, n=stack->n_args;
       while (i<n) {
         u8_string line=u8_sprintf(buf,128,"\n#%d\t%q",i,args[i]);

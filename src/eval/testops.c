@@ -140,7 +140,7 @@ static lispval applytest(int n,kno_argvec args)
   int n_args = n-2;
   if (KNO_FUNCTIONP(expected)) {
     struct KNO_FUNCTION *f = KNO_GETFUNCTION(expected);
-    if ( (f) && (f->fcn_arity == 1) )
+    if ( (f) && (f->fcn_arity==1) )
       predicate=expected;
     else if ( (f) &&
 	      ( (f->fcn_arity > 1) || (f->fcn_arity < 0) ) &&

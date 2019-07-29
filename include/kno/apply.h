@@ -97,8 +97,8 @@ typedef lispval (*kno_xprimn)(kno_stack,kno_function,int n,kno_argvec);
   u8_string fcn_doc;							  \
   lispval fcn_moduleid;							  \
   unsigned char fcn_call, fcn_trace, fcn_free, fcn_other;		\
+  short fcn_arity, fcn_min_arity, fcn_call_width;					\
   lispval fcnid;							  \
-  short fcn_call_len, fcn_arity, fcn_min_arity;				\
   lispval fcn_attribs;							  \
   struct KNO_PROFILE *fcn_profile;					   \
   union {								  \
