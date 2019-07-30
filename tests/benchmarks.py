@@ -16,5 +16,6 @@ def time_fibtr(count,n):
     end=time.clock()
     return end-start    
 
-print fibtr(10)
-print time_fibtr(5000,10)
+print( fibtr(10) )
+print( time_fibtr(5000,10) )
+
