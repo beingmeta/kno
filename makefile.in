@@ -571,7 +571,7 @@ nodebug standard usable working:
 nitpick:
 	@if test $(BUILDMODE) != "nitpicking"; then echo nitpicking > .buildmode; fi
 	@make -s `cat .buildmode`
-fast:
+optimized fast:
 	@if test $(BUILDMODE) != "optimizing"; then echo optimizing > .buildmode; fi
 	@make -s `cat .buildmode`
 .buildmode:

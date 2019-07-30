@@ -36,7 +36,7 @@ while [ $# -gt 0 ]; do
 	libc|tcmalloc|jemalloc|asan|asan_noleak|tcmalloc_debug|tcmalloc_minimal|gperftools|asan_thread)
 	    CONFIG_ARGS="--with-malloc=${arg} ${CONFIG_ARGS}"; 
 	    ;;
-	debug|production|install|nitpick|fast|install-bin|standard|usable|working)
+	debug|production|install|nitpick|fast|install-bin|standard|usable|working|optimized)
 	    MAKE_ARGS="${MAKE_ARGS} ${arg}";
 	    ;;
 	tests|memtests|leaktests|libtests|schemetests|dbtests|cmdtests)
