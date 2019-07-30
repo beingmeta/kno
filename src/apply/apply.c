@@ -948,9 +948,7 @@ KNO_EXPORT lispval kno_call(struct KNO_STACK *_stack,
   if (KNO_FUNCTIONP(handler))  {
     struct KNO_FUNCTION *f = (kno_function) handler;
     if ( (f) && (FCN_NDCALLP(f)) ) {
-      if (!(PRED_FALSE(contains_qchoicep(n,args))))
-        result = kno_dcall(_stack,(lispval)f,n,args);
-      else result = qchoice_dcall(_stack,fp,n,args);
+      result = kno_dcall(_stack,(lispval)f,n,args);
       return kno_finish_call(result);}}
   if (kno_applyfns[KNO_PRIM_TYPE(handler)]) {
     int i = 0, qchoice = 0;
@@ -964,12 +962,8 @@ KNO_EXPORT lispval kno_call(struct KNO_STACK *_stack,
             (argtype == kno_prechoice_type)) {
           result = kno_ndcall(_stack,handler,n,args);
           return kno_finish_call(result);}
-        else if (argtype == kno_qchoice_type) {
-          qchoice = 1; i++;}
-        else i++;}
-    if (qchoice)
-      result=qchoice_dcall(_stack,handler,n,args);
-    else result=kno_dcall(_stack,handler,n,args);
+	else i++;}
+    result=kno_dcall(_stack,handler,n,args);
     return kno_finish_call(result);}
   else return kno_err("Not applicable","kno_call",NULL,fp);
 }
