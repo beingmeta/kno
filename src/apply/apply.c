@@ -668,7 +668,7 @@ KNO_EXPORT lispval kno_dcall(struct KNO_STACK *_stack,
       else {
         long long nsecs = 0;
         long long stime = 0, utime = 0;
-        long long n_waits = 0, n_contests = 0, n_faults = 0;
+        long long n_waits = 0, n_pauses = 0, n_faults = 0;
 #if ( (KNO_EXTENDED_PROFILING) && (HAVE_DECL_RUSAGE_THREAD) )
         struct rusage before = { 0 }, after = { 0 };
 	if (kno_extended_profiling) getrusage(RUSAGE_THREAD,&before);
@@ -707,12 +707,12 @@ KNO_EXPORT lispval kno_dcall(struct KNO_STACK *_stack,
 	  n_faults = after.ru_majflt - before.ru_majflt;
 #endif
 #if HAVE_STRUCT_RUSAGE_RU_NIVCSW
-	  n_contests = after.ru_nivcsw - before.ru_nivcsw;
+	  n_pauses = after.ru_nivcsw - before.ru_nivcsw;
 #endif
 	}
 #endif
 	kno_profile_record(profile,0,nsecs,utime,stime,
-			   n_waits,n_contests,n_faults);}
+			   n_waits,n_pauses,n_faults);}
     U8_ON_EXCEPTION {
       U8_CLEAR_CONTOUR();
       trouble = 1;

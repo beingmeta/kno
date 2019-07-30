@@ -121,7 +121,7 @@ schemetest schemetests scheme: r4rs exceptions choices sequences breaks numbers 
         lambda conditionals iterators binders errfns requests compounds binio \
 	reflect hashsets eval loading modules quasiquote promises ffi configs opts appenv \
 	picktest cachecall texttools webtools timefns sysprims startup stringprims \
-	threads i18n misc gctests profiling sqlite \
+	threads i18n misc gctests profiler sqlite \
 	fileprims xml
 optscheme:
 	@${header} "■■■■■■■■ Running optimized scheme tests ${RUNCONF}"
