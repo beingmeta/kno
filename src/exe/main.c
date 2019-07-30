@@ -150,7 +150,7 @@ static void _concise_stack_frame(struct KNO_STACK *stack)
     fprintf(stderr,"??.%s",stack->stack_type);
   else fprintf(stderr,"unitialized stack");
   if (stack->stack_args)
-    fprintf(stderr,", %d args",stack->n_args);
+    fprintf(stderr,", %d args",stack->stack_arglen);
   if (KNO_SYMBOLP(op))
     fprintf(stderr,", op=%s",SYM_NAME(op));
   else if (KNO_FUNCTIONP(op)) {
@@ -184,10 +184,10 @@ KNO_EXPORT void _knodbg_show_stack_frame(void *arg)
     u8_fprintf(stderr,"%Q",stack->stack_op);
   else if (KNO_APPLICABLEP(stack->stack_op)) {
     u8_fprintf(stderr,"Applying %q to",stack->stack_op);
-    if (stack->n_args) {
+    if (stack->stack_arglen) {
       u8_byte buf[128];
       kno_argvec args=stack->stack_args;
-      int i=0, n=stack->n_args;
+      int i=0, n=stack->stack_arglen;
       while (i<n) {
         u8_string line=u8_sprintf(buf,128,"\n#%d\t%q",i,args[i]);
         fputs(line,stderr);
@@ -201,7 +201,7 @@ KNO_EXPORT lispval _knodbg_get_stack_arg(void *arg,int n)
 {
   struct KNO_STACK *stack=_get_stack_frame(arg);
   if (stack->stack_args)
-    if ( (n>=0) && (n < (stack->n_args) ) )
+    if ( (n>=0) && (n < (stack->stack_arglen) ) )
       return stack->stack_args[n];
     else return KNO_NULL;
   else return KNO_NULL;

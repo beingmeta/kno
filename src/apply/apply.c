@@ -416,11 +416,14 @@ KNO_FASTOP lispval cprim_call(u8_string fname,kno_cprim cp,
 {
   kno_lisp_type *typeinfo = cp->fcn_typeinfo;
   const lispval *defaults = cp->fcn_defaults;
-  int arity = cp->fcn_arity, call_width = cp->fcn_call_width;
-  lispval *argbuf = stack->stack_args;
+  int arity = cp->fcn_arity, buflen = stack->stack_buflen;
+  lispval *argbuf = stack->stack_buf;
   kno_function f = (kno_function) cp;
-  if (PRED_FALSE(cprim_prep(fname,n,args,call_width,argbuf,typeinfo,defaults) < 0))
+  if (PRED_FALSE(cprim_prep(fname,n,args,buflen,argbuf,typeinfo,defaults) < 0))
     return KNO_ERROR;
+  else {
+    stack->stack_args = (kno_argvec) argbuf;
+    stack->stack_arglen = buflen;}
   if (FCN_XCALLP(f))
     return f->fcn_handler.xcalln(stack,(kno_function)f,n,argbuf);
   else if ( (FCN_LEXPRP(f)) || (arity < 0) )
@@ -648,10 +651,12 @@ KNO_EXPORT lispval kno_dcall(struct KNO_STACK *_stack,
 
     int call_width = f->fcn_call_width;
     int callbuf_width = (call_width<0) ? (n) : call_width;
-    lispval call_args[callbuf_width];
-    int i = 0; while (i<call_width) call_args[i++] = VOID;
-    apply_stack->stack_args = call_args;
-    apply_stack->n_args = callbuf_width;
+    lispval callbuf[callbuf_width];
+    int i = 0; while (i<call_width) callbuf[i++] = VOID;
+    apply_stack->stack_buf = callbuf;
+    apply_stack->stack_buflen = callbuf_width;
+    apply_stack->stack_args = argvec;
+    apply_stack->stack_arglen = n;
 
     U8_WITH_CONTOUR(fname,0)
       if (profile == NULL) {

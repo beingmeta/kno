@@ -81,9 +81,6 @@ lispval lambda_call(struct KNO_STACK *_stack,
   int arity = fn->fcn_arity, min_arity = fn->fcn_min_arity;
 
   if (_stack == NULL) _stack=kno_stackptr;
-  if (_stack == NULL) {
-    KNO_ALLOCA_STACK(_stack);
-    _stack->stack_label = fn->fcn_name;}
 
   if (n < min_arity)
     return kno_err(kno_TooFewArgs,fn->fcn_name,NULL,VOID);
@@ -91,16 +88,16 @@ lispval lambda_call(struct KNO_STACK *_stack,
     return kno_err(kno_TooManyArgs,fn->fcn_name,NULL,VOID);
   else {}
 
-  if ( (_stack) && (_stack->stack_label == NULL) ) {
+  if (_stack->stack_label == NULL) {
     if (fn->fcn_name)
       _stack->stack_label=fn->fcn_name;
     else {
       _stack->stack_label=lambda_id(fn);
       U8_SETBITS(_stack->stack_flags,KNO_STACK_FREE_LABEL);}}
 
+  lispval *vals = _stack->stack_buf;
   _stack->stack_type = kno_lambda_stack_type;
 
-  lispval *vals = _stack->stack_args;
   int tail = (fn->lambda_synchronized) ? (0) :
     ( (_stack->stack_flags & KNO_STACK_TAILPOS) &&
       (! ((fn->fcn_call) & KNO_FCN_CALL_NOTAIL) ) );
@@ -153,7 +150,9 @@ lispval lambda_call(struct KNO_STACK *_stack,
   struct KNO_SCHEMAP bindings = { 0 };
   init_static_env(n_vars,proc_env,&bindings,&stack_env,
 		  proc_vars,vals);
-  if (_stack) _stack->stack_env = call_env = &stack_env;
+  _stack->stack_env = call_env = &stack_env;
+  _stack->stack_args = vals;
+  _stack->stack_arglen = n_vars;
 
   /* If we're synchronized, lock the mutex. */
   if (fn->lambda_synchronized) u8_lock_mutex(&(fn->lambda_lock));
@@ -192,10 +191,11 @@ KNO_EXPORT int kno_set_lambda_schema(struct KNO_LAMBDA *s,lispval args)
       if (KNO_SYMBOLP(arg)) {}
       else if (KNO_PAIRP(arg)) {
         if ( (KNO_SYMBOLP(KNO_CAR(arg))) &&
-             ( (KNO_CDR(arg) == KNO_EMPTY_LIST) ||
+	     ( (KNO_CDR(arg) == KNO_EMPTY_LIST) ||
                (KNO_PAIRP(KNO_CDR(arg))) ) ) {
           if (min_arity < 0) min_arity = i;
-          has_inits =1;}
+	  if (KNO_PAIRP(KNO_CDR(arg)))
+	    has_inits = 1;}
         else {
           kno_seterr(kno_SyntaxError,"lambda",s->fcn_name,args);
           return -1;}}

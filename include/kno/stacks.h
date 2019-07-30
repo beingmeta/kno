@@ -23,24 +23,25 @@
 
 typedef struct KNO_STACK {
   KNO_CONS_HEADER; /* We're not using this right now */
-  u8_string stack_type, stack_label, stack_status, stack_src;
-  long long threadid;
-  unsigned int stack_flags, stack_errflags, stack_crumb;
-  int stack_depth, n_args;
-  struct KNO_STACK *stack_caller, *stack_root;
+  unsigned short stack_flags, stack_errflags;
+  short stack_arglen, stack_buflen;
 
+  lispval stack_op;
+  kno_argvec stack_args;
+  lispval *stack_buf;
+  lispval stack_vals;
+  struct KNO_LEXENV *stack_env;
+
+  struct KNO_STACK *stack_caller;
+  struct KNO_STACK *stack_root;
+  int stack_crumb;
 #if HAVE_OBSTACK_H
   struct obstack *stack_obstack;
 #endif
-
-  lispval stack_op;
-  lispval *stack_args;
-
-  lispval stack_vals;
-
+  int stack_depth;
   lispval stack_source;
-
-  struct KNO_LEXENV *stack_env;} *kno_stack;
+  u8_string stack_type, stack_label, stack_status, stack_src;
+  long long threadid;} *kno_stack;
 typedef struct KNO_LEXENV *kno_lexenv;
 typedef struct KNO_LEXENV *kno_lexenv;
 
@@ -111,7 +112,9 @@ KNO_EXPORT __thread struct KNO_STACK *kno_stackptr;
   _ ## name.stack_source=KNO_VOID;                       \
   _ ## name.stack_op=op;                                \
   _ ## name.stack_status=NULL;                          \
-  _ ## name.n_args=0;                                   \
+  _ ## name.stack_arglen=0;                                   \
+  _ ## name.stack_buflen=0;                                   \
+  _ ## name.stack_buf = NULL;                          \
   _ ## name.stack_args = NULL;                          \
   _ ## name.stack_env=NULL
 

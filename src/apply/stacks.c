@@ -172,7 +172,7 @@ static lispval stack2lisp(struct KNO_STACK *stack,struct KNO_STACK *inner)
   lispval argvec = ( stack->stack_args ) ?
     (kno_init_compound_from_elts(NULL,pargs_symbol,
                                  KNO_COMPOUND_COPYREF|KNO_COMPOUND_SEQUENCE,
-                                 stack->n_args,
+                                 stack->stack_arglen,
 				 (lispval *) stack->stack_args)) :
     (KNO_FALSE);
   unsigned int icrumb = stack->stack_crumb;
