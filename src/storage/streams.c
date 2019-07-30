@@ -1194,6 +1194,26 @@ KNO_EXPORT long long kno_read_4bytes_at(kno_stream s,kno_off_t off,int locked)
     return -1;}
 }
 
+KNO_EXPORT int kno_read_byte_at(kno_stream s,kno_off_t off,int locked)
+{
+#if HAVE_PREAD
+  unsigned char byte;
+  int rv = pread(s->stream_fileno,&byte,1,off);
+  if (rv==1)
+    return byte;
+#endif
+  if (locked==0) kno_lock_stream(s);
+  struct KNO_INBUF *in = (off>=0) ? (kno_start_read(s,off)) : (kno_readbuf(s));
+  if (kno_request_bytes(in,1)) {
+    int byte = kno_get_byte(in->bufread);
+    in->bufread = in->bufread+1;
+    if (locked==0) kno_unlock_stream(s);
+    return byte;}
+  else {
+    if (locked==0) kno_unlock_stream(s);
+    return -1;}
+}
+
 KNO_EXPORT int kno_write_8bytes_at(kno_stream s,kno_8bytes w,kno_off_t off)
 {
   kno_outbuf out = (off>=0) ? (kno_start_write(s,off)) : (kno_writebuf(s)) ;
