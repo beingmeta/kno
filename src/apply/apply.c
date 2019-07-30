@@ -943,9 +943,6 @@ KNO_EXPORT lispval kno_ndcall(struct KNO_STACK *_stack,
 
 /* The default apply function */
 
-static int contains_qchoicep(int n,kno_argvec args);
-static lispval qchoice_dcall(kno_stack stack,lispval fp,int n,kno_argvec args);
-
 KNO_EXPORT lispval kno_call(struct KNO_STACK *_stack,
 			    lispval fp,
 			    int n,kno_argvec args)
@@ -958,8 +955,7 @@ KNO_EXPORT lispval kno_call(struct KNO_STACK *_stack,
       result = kno_dcall(_stack,(lispval)f,n,args);
       return kno_finish_call(result);}}
   if (kno_applyfns[KNO_PRIM_TYPE(handler)]) {
-    int i = 0, qchoice = 0;
-    while (i<n)
+    int i = 0; while (i<n)
       if (args[i]==EMPTY)
         return EMPTY;
       else if (ATOMICP(args[i])) i++;
@@ -973,28 +969,6 @@ KNO_EXPORT lispval kno_call(struct KNO_STACK *_stack,
     result=kno_dcall(_stack,handler,n,args);
     return kno_finish_call(result);}
   else return kno_err("Not applicable","kno_call",NULL,fp);
-}
-
-static int contains_qchoicep(int n,kno_argvec args)
-{
-  kno_argvec scan = args, limit = args+n;
-  while (scan<limit)
-    if (QCHOICEP(*scan)) return 1;
-    else scan++;
-  return 0;
-}
-
-static lispval qchoice_dcall(struct KNO_STACK *stck,
-                             lispval fp,int n,kno_argvec args)
-{
-  kno_argvec read = args, limit = read+n;
-  lispval argbuf[n], *write=argbuf;
-  while (read<limit)
-    if (QCHOICEP(*read)) {
-      struct KNO_QCHOICE *qc = (struct KNO_QCHOICE *) (*read++);
-      *write++=qc->qchoiceval;}
-    else *write++ = *read++;
-  return kno_dcall(stck,fp,n,argbuf);
 }
 
 /* Apply wrappers (which finish calls) */
