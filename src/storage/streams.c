@@ -976,7 +976,7 @@ KNO_EXPORT kno_off_t _kno_getpos(kno_stream s)
     /* If we are reading, we subtract the amount buffered from the
        actual filepos */
     s->stream_filepos = current;
-    pos = current-(buf->buflim-buf->buffer);}
+    pos = current-(buf->buflim-buf->bufpoint);}
   else {
     current = lseek(s->stream_fileno,0,SEEK_CUR);
     s->stream_filepos = current;
