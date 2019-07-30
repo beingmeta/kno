@@ -79,8 +79,8 @@ ssize_t kno_stack_limit = -1;
 
 static lispval moduleid_symbol;
 
-/* Whether to always profile */
-int kno_profiling = 0;
+/* Whether to always use extended apply profiling */
+int kno_extended_profiling = 0;
 
 /* Stack checking */
 
@@ -671,11 +671,11 @@ KNO_EXPORT lispval kno_dcall(struct KNO_STACK *_stack,
         long long n_waits = 0, n_contests = 0, n_faults = 0;
 #if ( (KNO_EXTENDED_PROFILING) && (HAVE_DECL_RUSAGE_THREAD) )
         struct rusage before = { 0 }, after = { 0 };
-        getrusage(RUSAGE_THREAD,&before);
+	if (kno_extended_profiling) getrusage(RUSAGE_THREAD,&before);
 #endif
 #if HAVE_CLOCK_GETTIME
-        struct timespec start, end;
-        clock_gettime(CLOCK_MONOTONIC,&start);
+	struct timespec start, end;
+	clock_gettime(CLOCK_MONOTONIC,&start);
 #endif
 
 	/* Here's where we actually call the function */
@@ -694,23 +694,25 @@ KNO_EXPORT lispval kno_dcall(struct KNO_STACK *_stack,
           ((start.tv_sec*1000000000)+(start.tv_nsec));
 #endif
 #if ( (KNO_EXTENDED_PROFILING) && (HAVE_DECL_RUSAGE_THREAD) )
-        getrusage(RUSAGE_THREAD,&after);
-        utime = (after.ru_utime.tv_sec*1000000000+after.ru_utime.tv_usec*1000)-
-          (before.ru_utime.tv_sec*1000000000+before.ru_utime.tv_usec*1000);
-        stime = (after.ru_stime.tv_sec*1000000000+after.ru_stime.tv_usec*1000)-
-          (before.ru_stime.tv_sec*1000000000+before.ru_stime.tv_usec*1000);
+	if (kno_extended_profiling) {
+	  getrusage(RUSAGE_THREAD,&after);
+	  utime = (after.ru_utime.tv_sec*1000000000+after.ru_utime.tv_usec*1000)-
+	    (before.ru_utime.tv_sec*1000000000+before.ru_utime.tv_usec*1000);
+	  stime = (after.ru_stime.tv_sec*1000000000+after.ru_stime.tv_usec*1000)-
+	    (before.ru_stime.tv_sec*1000000000+before.ru_stime.tv_usec*1000);
 #if HAVE_STRUCT_RUSAGE_RU_NVCSW
-        n_waits = after.ru_nvcsw - before.ru_nvcsw;
+	  n_waits = after.ru_nvcsw - before.ru_nvcsw;
 #endif
 #if HAVE_STRUCT_RUSAGE_RU_MAJFLT
-        n_faults = after.ru_majflt - before.ru_majflt;
+	  n_faults = after.ru_majflt - before.ru_majflt;
 #endif
 #if HAVE_STRUCT_RUSAGE_RU_NIVCSW
-        n_faults = after.ru_nivcsw - before.ru_nivcsw;
+	  n_contests = after.ru_nivcsw - before.ru_nivcsw;
 #endif
+	}
 #endif
-        kno_profile_record(profile,0,nsecs,utime,stime,
-                           n_waits,n_contests,n_faults);}
+	kno_profile_record(profile,0,nsecs,utime,stime,
+			   n_waits,n_contests,n_faults);}
     U8_ON_EXCEPTION {
       U8_CLEAR_CONTOUR();
       trouble = 1;
@@ -1292,15 +1294,14 @@ KNO_EXPORT void kno_init_apply_c()
   u8_register_threadinit(init_thread_stack_limit);
   u8_init_mutex(&profiled_lock);
 
-
   kno_register_config
     ("STACKLIMIT",
      _("Size of the stack (in bytes or as a factor of the current size)"),
      kno_sizeconfig_get,kno_sizeconfig_set,&kno_default_stackspec);
 
   kno_register_config
-    ("PROFILING",_("Whether to profile function applications by default"),
-     kno_boolconfig_get,kno_boolconfig_set,&kno_profiling);
+    ("XPROFILING",_("Whether to use extended apply profiling"),
+     kno_boolconfig_get,kno_boolconfig_set,&kno_extended_profiling);
 
   kno_register_config
     ("PROFILED",_("Functions declared for profiling"),

@@ -29,4 +29,29 @@
 ;; Since we've made fibi not tailable, the time for fibi is not greater than fib-iter
 (applytest #t > (profile/time (profile/getcalls fibi)) (profile/time (profile/getcalls fib-iter)) )
 
+;;;; Test for extended profiling
+
+(define-init shared-table #[count1 0 count2 0])
+
+(define (update-field field) (store! shared-table field (1+ (get shared-table field))))
+
+(config! 'profiled update-field)
+(config! 'xprofiling #t)
+
+(define wait-count 
+  (begin (dotimes (i 10000) (update-field 'count1)) 
+    (profile/waits (profile/getcalls update-field))))
+
+(applytest > 0 profile/utime (profile/getcalls update-field))
+
+(profile/reset! update-field)
+
+(define threaded-wait-count 
+  (begin (parallel (dotimes (i 10000) (update-field 'count1)) (dotimes (i 10000) (update-field 'count2))) 
+    (profile/waits (profile/getcalls update-field))))
+
+(applytest > 0 profile/utime (profile/getcalls update-field))
+(applytest > wait-count profile/waits (profile/getcalls update-field))
+
+
 (test-finished "PROFILETEST")

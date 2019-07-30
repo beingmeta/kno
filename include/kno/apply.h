@@ -415,7 +415,7 @@ KNO_EXPORT int _KNO_APPLICABLE_TYPEP(int typecode);
 KNO_EXPORT lispval kno_get_backtrace(struct KNO_STACK *stack);
 KNO_EXPORT void kno_html_backtrace(u8_output out,lispval rep);
 
-KNO_EXPORT int kno_profiling;
+KNO_EXPORT int kno_extended_profiling;
 
 /* Unparsing */
 

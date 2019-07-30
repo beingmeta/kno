@@ -1147,7 +1147,8 @@ static lispval getcalls_prim(lispval fcn)
     return kno_init_compound
       (NULL,call_profile_symbol,KNO_COMPOUND_USEREF,10,
        fcn,kno_make_flonum(exec_time),
-       KNO_INT(user_time),KNO_INT(system_time),
+       kno_make_flonum(user_time),
+       kno_make_flonum(system_time),
        KNO_INT(n_waits),KNO_INT(n_contests),KNO_INT(n_faults),
        KNO_INT(nsecs),KNO_INT(calls),KNO_INT(items));}
   else return kno_type_error("function","getcalls_prim(profile)",fcn);

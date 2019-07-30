@@ -9382,7 +9382,7 @@ _ACEOF
 if test "${enable_xprofiling+set}" = set; then :
   enableval=$enable_xprofiling; enable_xprofiling=$withval
 else
-  enable_xprofiling="no"
+  enable_xprofiling="yes"
 fi
 
 if test "${enable_xprofiling}" != "no"; then
