@@ -41,12 +41,17 @@
 (define pool-suffix
   {#(".flexpool" (eos)) #("." (opt #((isxdigit+) ".")) "pool" (eos))})
 
-(define (get-partition-prefix filename)
-  (let ((stripped (textsubst filename (qc pool-suffix) "")))
-    (if (position #\/ stripped)
-	stripped
-	(mkpath (textsubst stripped #("." (isalnum+) (eos)) "")
-		stripped))))
+(define (get-partition-prefix filename (opts #f) (given))
+  (set! given (getopt opts 'prefix (config 'prefix)))
+  (if given
+      (if (has-suffix (getopt opts 'prefix) "/")
+	  (mkpath (getopt opts 'prefix) (basename filename #t))
+	  (getopt opts 'prefix))
+      (let ((stripped (textsubst filename (qc pool-suffix) "")))
+	(if (position #\/ stripped)
+	    stripped
+	    (mkpath (textsubst stripped #("." (isalnum+) (eos)) "")
+		    stripped)))))
 
 (define (get-partition-type opts)
   (getopt opts 'partition-type 
@@ -66,7 +71,8 @@
 (defrecord (flexpool mutable opaque 
 		     #[predicate isflexpool?] 
 		     `(stringfn . flexpool->string))
-  filename prefix base capacity (partsize default-partsize) 
+  filename prefix base capacity 
+  (partsize default-partsize) (partopts `#[partsize default-partsize])
   (opts) (basemap (make-hashtable)) (partitions {})
   (front #f) (zero #f) (last #f)
   (lock (make-condvar)))
@@ -146,10 +152,13 @@
        (tryif (and (file-exists? filename) (not (file-directory? filename)))
 	 (let* ((def (file->dtype filename))
 		(opts (if opts (cons opts def) def)))
-	   (let ((prefix (getopt def 'prefix (get-partition-prefix filename)))
+	   (let ((prefix (getopt def 'prefix (get-partition-prefix filename opts)))
 		 (base (getopt def 'base))
 		 (partsize (getopt def 'partsize (getopt def 'step default-partsize)))
 		 (cap (getopt def 'capacity)))
+	     (debug%watch "FLEXPOOL/OPEN" 
+	       filename prefix base partsize cap
+	       "\nDEF" def "\nOPTS" opts)
 	     (try (tryif (and (exists? prefix) prefix)
 		    (get flexpools (mkpath (dirname (abspath filename)) prefix))
 		    (get flexpools (mkpath (dirname (realpath filename)) prefix)))
@@ -165,10 +174,12 @@
 (define (make-flexpool filename opts)
   (let ((base (getopt opts 'base))
 	(cap (getopt opts 'capacity))
-	(prefix (getopt opts 'prefix (get-partition-prefix filename)))
+	(prefix (get-partition-prefix filename opts))
 	(partsize (getopt opts 'partsize (getopt opts 'step default-partsize))))
+    (debug%watch "MAKE-FLEXPOOL" 
+      filename prefix base partsize cap "\nOPTS" opts)
     (if (and (exists? prefix) (exists? base) (exists? cap) (exists? partsize))
-	(let* ((metadata (getopt opts 'metadata {}))
+	(let* ((metadata (getopt opts 'metadata #[]))
 	       (absprefix (mkpath (dirname (abspath filename)) prefix))
 	       (adjuncts (getopt opts 'adjuncts (get metadata 'adjuncts)))
 	       (saved (frame-create #f
@@ -178,19 +189,24 @@
 			'prefix prefix
 			'load (getopt opts 'load {})
 			'partitions (getopt opts 'partitions {})
+			'partopts (frame-create 'capacity partsize 'adjuncts adjuncts)
 			'metadata metadata)))
+	  (debug%watch "MAKE-FLEXPOOL"
+	    filename absprefix adjuncts 
+	    "\n" metadata "\n" saved)
 	  (when (and (exists? adjuncts) (not (test metadata 'adjuncts)))
 	    (store! metadata 'adjuncts adjuncts))
 	  (drop! metadata '{cachelevel poolid source cached locked registered load})
 	  (drop! metadata '{%slotids readonly opts props})
-	  (store! metadata 'flags 
-		  (intersection (get metadata 'flags) '{isadjunct adjunct sparse}))
+	  (store! metadata 'flags
+	    (intersection (get metadata 'flags) '{isadjunct adjunct sparse}))
 	  (unless (and (file-exists? (dirname absprefix))
 		       (file-directory? (dirname absprefix)))
 	    (logwarn |FlexpoolDir| 
 	      "Creating a partitions directory " (write (dirname absprefix))
 	      " for " filename)
 	    (mkdirs (dirname absprefix)))
+	  (debug%watch "MAKE-FLEXPOOL" "\nSAVED" saved)
 	  (dtype->file saved filename)
 	  (when (exists? adjuncts)
 	    (init-adjunct-flexpools (get metadata 'adjuncts) 
@@ -216,10 +232,10 @@
   (unless (has-prefix filename "/")
     (set! filename (abspath filename)))
   (try (flexpool/open filename)
-       (make-flexpool filename
-		      (if (getopt opts 'make #f)
-			  opts
-			  (cons #[make #t] opts)))))
+       ( make-flexpool filename
+		       (if (getopt opts 'make #f)
+			   opts
+			   (cons #[make #t] opts)))))
 
 (define unique-flexpool ;; -init
   ;; Use define-init to avoid duplicate slambdas/locks when reloading
@@ -237,14 +253,13 @@
 	 (start-ref (glom prefix "." (padnum 0 padlen 16) ".pool"))
 	 (start-file (mkpath flexdir start-ref))
 	 (partition-opts
-	  (getopt opts 'partopts 
-		  (frame-create #f
-		    'adjunct (getopt opts 'adjunct)
-		    'cachelevel (getopt opts 'cachelevel {})
-		    'loglevel (getopt opts 'loglevel {})
-		    'compression (getopt opts 'compression {})
-		    'readonly (getopt opts 'readonly {})
-		    'make (getopt opts 'make))))
+	  (opts+ (getopt opts 'partopts)
+	      'adjunct (getopt opts 'adjunct)
+	      'cachelevel (getopt opts 'cachelevel {})
+	      'loglevel (getopt opts 'loglevel {})
+	      'compression (getopt opts 'compression {})
+	      'readonly (getopt opts 'readonly {})
+	      'make (getopt opts 'make)))
 	 (start-pool (tryif (file-exists? start-file)
 		       (if (getopt opts 'adjunct)
 			   (open-pool start-file partition-opts)
@@ -350,7 +365,8 @@
     
     (when (not front) (set! front last))
 
-    (let ((state (cons-flexpool filename prefix flexbase flexcap partsize
+    (let ((state (cons-flexpool filename prefix flexbase flexcap 
+				partsize partition-opts
 				opts basemap pools
 				front start-pool last))
 	  (flex-opts `#[adjunct #t 
@@ -708,9 +724,10 @@
 				   (strip-suffix name {".flexpool" ".pool"})))
 	       (flexdef (frame-create #f
 			  'base base 'capacity cap
-			  'metadata `#[adjunct ,adjslot partopts ,(getopt opts 'partopts #[])]
+			  'metadata `#[adjunct ,adjslot]
 			  'adjunct adjslot
 			  'partsize partsize 
+			  'partopts ,(getopt opts 'partopts #[])
 			  'prefix adj-prefix
 			  'init (config 'sessionid)
 			  'created (gmtimestamp))))
@@ -736,8 +753,7 @@
 		       ".flexpool")))))
   (default! rootdir 
     (getopt opts 'rootdir (config 'ROOTDIR (dirname output))))
-  (default! prefix 
-    (getopt opts 'prefix (config 'PREFIX (get-partition-prefix original))))
+  (default! prefix (get-partition-prefix original opts))
   (let* ((input (open-pool original (cons #[adjunct #t] opts)))
 	 (flexbase (pool-base input))
 	 (flexcap (getopt opts 'newcap (CONFIG 'NEWCAP (pool-capacity input))))

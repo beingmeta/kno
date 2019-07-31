@@ -138,10 +138,11 @@
 	     (adjunct-setup! pool slotid (get adjuncts slotid) opts))))))
 
 (define (adjunct-setup! pool slotid adjopts opts)
+  (%watch "ADJUNCT-SETUP!" pool slotid adjopts)
   (when (string? adjopts)
     (set! adjopts
-      (cond ((has-prefix adjopts ".index") `#[index ,adjopts])
-	    ((has-prefix adjopts ".pool")
+      (cond ((has-suffix adjopts ".index") `#[index ,adjopts])
+	    ((has-suffix adjopts ".pool")
 	     `#[pool ,adjopts
 		base ,(pool-base pool) 
 		capacity ,(pool-capacity pool)])
@@ -157,6 +158,13 @@
 				  make #t] 
 			       adjopts))))
 
+(define suffix-pat #((opt #("." (isdigit+))) "." (isalpha+) (eos)))
+
+(define (replace-suffix file suffix)
+  (if (textsearch suffix-pat file)
+      (textsubst file suffix-pat suffix)
+      (glom file suffix)))
+
 (define (ref-adjunct pool opts)
   (if (or (getopt opts 'index)
 	  (overlaps? (downcase (getopt opts 'type {}))
@@ -166,11 +174,10 @@
 	  (open-index (abspath (getopt opts 'index)) opts)
 	  (make-index (abspath (getopt opts 'index)) opts))
       ;; Assume it's a pool
-      (let* ((source-suffix (gather (qc dbfile-suffix) (pool-source pool)))
+      (let* ((source-suffix (gather suffix-pat (pool-source pool)))
 	     (poolfile (getopt opts 'pool))
 	     (filename
-	      (abspath (textsubst (getopt opts 'pool) 
-				  (qc dbfile-suffix) source-suffix)
+	      (abspath (replace-suffix (getopt opts 'pool) source-suffix)
 		       (dirname (pool-source pool)))))
 	(info%watch "REF-ADJUNCT" (pool-source pool) filename)
 	(cond ((file-exists? filename) (open-pool filename opts))
