@@ -315,15 +315,18 @@ static int better_unparse_oid(u8_output out,lispval x)
       return 1;
     else if (kno_oid_display_level<2)
       return 1;
-    else if ((hi>0) && (kno_oid_display_level<3) &&
-             (!(kno_hashtable_probe_novoid(&(p->pool_cache),x))) &&
-             (!(kno_hashtable_probe_novoid(&(p->pool_changes),x))))
-      return 1;
-    else {
-      lispval name = kno_get_oid_name(p,x);
-      int retval = print_oid_name(out,name,1);
-      kno_decref(name);
-      return retval;}}
+    else if ((hi>0) && (kno_oid_display_level<3) ) {
+	lispval v = kno_hashtable_get(&(p->pool_cache),x,KNO_VOID);
+	if ( (v == KNO_VOID) || (v == KNO_UNALLOCATED_OID) ) {
+	  v = kno_hashtable_get(&(p->pool_changes),x,KNO_VOID);
+	  if ( (v == KNO_VOID) || (v == KNO_UNALLOCATED_OID) )
+	    return 1;
+	  else kno_decref(v);}
+	else kno_decref(v);}
+    lispval name = kno_get_oid_name(p,x);
+    int retval = print_oid_name(out,name,1);
+    kno_decref(name);
+    return retval;}
 }
 
 /* CONFIG settings */
