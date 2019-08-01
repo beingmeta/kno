@@ -150,7 +150,7 @@ KNO_FASTOP int modify_readonly(lispval table,int val)
       kno_lisp_type typecode = KNO_TYPEOF(table);
       struct KNO_TABLEFNS *methods = kno_tablefns[typecode];
       if ( (methods) && (methods->readonly) )
-        return (methods->readonly)(table,1);
+	return (methods->readonly)(table,1);
       else return 0;}}}
   else return 0;
 }
@@ -176,7 +176,7 @@ KNO_FASTOP int modify_modified(lispval table,int val)
       kno_lisp_type typecode = KNO_TYPEOF(table);
       struct KNO_TABLEFNS *methods = kno_tablefns[typecode];
       if ( (methods) && (methods->modified) )
-        return (methods->modified)(table,1);
+	return (methods->modified)(table,1);
       else return 0;}}}
   else return 0;
 }
@@ -268,8 +268,8 @@ static void init_cache_level(kno_pool p)
 
 KNO_EXPORT
 void kno_reset_pool_tables(kno_pool p,
-                          ssize_t cacheval,
-                          ssize_t locksval)
+			   ssize_t cacheval,
+			   ssize_t locksval)
 {
   int read_only = U8_BITP(p->pool_flags,KNO_STORAGE_READ_ONLY);
   kno_hashtable cache = &(p->pool_cache), locks = &(p->pool_changes);
@@ -322,12 +322,12 @@ KNO_EXPORT int kno_register_pool(kno_pool p)
       KNO_OID base = KNO_OID_PLUS(p->pool_base,(KNO_OID_BUCKET_SIZE*i));
       int baseid = kno_get_oid_base_index(base,1);
       if (baseid<0) {
-        u8_unlock_mutex(&pool_registry_lock);
-        return -1;}
+	u8_unlock_mutex(&pool_registry_lock);
+	return -1;}
       else if (kno_top_pools[baseid]) {
-        pool_conflict(p,kno_top_pools[baseid]);
-        u8_unlock_mutex(&pool_registry_lock);
-        return -1;}
+	pool_conflict(p,kno_top_pools[baseid]);
+	u8_unlock_mutex(&pool_registry_lock);
+	return -1;}
       else kno_top_pools[baseid]=p;
       i++;}}
   else if (kno_top_pools[bix] == NULL) {
@@ -335,12 +335,12 @@ KNO_EXPORT int kno_register_pool(kno_pool p)
       kno_top_pools[bix]=p;
     else {
       /* If the pool is smaller than an OID bucket, and there isn't a
-         pool in kno_top_pools, create a gluepool and place it there */
+	 pool in kno_top_pools, create a gluepool and place it there */
       struct KNO_GLUEPOOL *gluepool = make_gluepool(kno_base_oids[bix]);
       kno_top_pools[bix]=(struct KNO_POOL *)gluepool;
       if (add_to_gluepool(gluepool,p)<0) {
-        u8_unlock_mutex(&pool_registry_lock);
-        return -1;}}}
+	u8_unlock_mutex(&pool_registry_lock);
+	return -1;}}}
   else if (kno_top_pools[bix]->pool_capacity) {
     /* If the top pool has a capacity (i.e. it's not a gluepool), we
        have a pool conflict. Complain and error. */
@@ -370,9 +370,9 @@ static void register_pool_label(kno_pool p)
     kno_pool conflict = kno_lisp2pool(probe);
     if (conflict != p) {
       u8_log(LOG_WARN,"PoolLabelConflict",
-             "The label '%s' is already associated "
-             "with the pool\n    %q\n rather than %q",
-             base,conflict,lisp_arg);}
+	     "The label '%s' is already associated "
+	     "with the pool\n    %q\n rather than %q",
+	     base,conflict,lisp_arg);}
     kno_decref(full); kno_decref(probe); u8_free(base);
     return;}
   if ((dot=strchr(base,'.'))) {
@@ -442,8 +442,8 @@ static int add_to_gluepool(struct KNO_GLUEPOOL *gp,kno_pool p)
     top = gp->subpools+gp->n_subpools;
     while (read<top)
       if (write == ipoint) {
-        *write++=p;
-        *write++= *read++;}
+	*write++=p;
+	*write++= *read++;}
       else *write++ = *read++;
     if (write == ipoint)
       *write = p;
@@ -501,10 +501,10 @@ static void pool_conflict(kno_pool upstart,kno_pool holder)
     if (!(upstart_id)) upstart_id = upstart->poolid;
     if (!(holder_id)) holder_id = holder->poolid;
     u8_logf(LOG_WARN,kno_PoolConflict,
-            "%s (from %s) and existing pool %s (from %s)\n",
-            upstart->pool_label,upstart_id,holder->pool_label,holder_id);
+	    "%s (from %s) and existing pool %s (from %s)\n",
+	    upstart->pool_label,upstart_id,holder->pool_label,holder_id);
     u8_seterr(_("Pool confict"),"kno_register_pool",
-              u8_mkstring("%s w/ %s",upstart_id,holder_id));}
+	      u8_mkstring("%s w/ %s",upstart_id,holder_id));}
 }
 
 
@@ -521,7 +521,7 @@ KNO_EXPORT lispval kno_oid_value(lispval oid)
     else if (v==KNO_UNALLOCATED_OID) {
       kno_pool p = kno_oid2pool(oid);
       if (p)
-        kno_seterr(kno_UnallocatedOID,"kno_oid_value",(p->poolid),oid);
+	kno_seterr(kno_UnallocatedOID,"kno_oid_value",(p->poolid),oid);
       else kno_seterr(kno_UnallocatedOID,"kno_oid_value",(p->poolid),oid);
       return KNO_ERROR_VALUE;}
     else return v;}
@@ -533,8 +533,8 @@ KNO_EXPORT lispval kno_locked_oid_value(kno_pool p,lispval oid)
   if (PRED_FALSE(!(OIDP(oid))))
     return kno_type_error(_("OID"),"kno_locked_oid_value",oid);
   else if ( (p->pool_handler->lock == NULL) ||
-            (U8_BITP(p->pool_flags,KNO_POOL_VIRTUAL)) ||
-            (U8_BITP(p->pool_flags,KNO_POOL_NOLOCKS)) ) {
+	    (U8_BITP(p->pool_flags,KNO_POOL_VIRTUAL)) ||
+	    (U8_BITP(p->pool_flags,KNO_POOL_NOLOCKS)) ) {
     return kno_fetch_oid(p,oid);}
   else if (p == kno_zero_pool)
     return kno_zero_pool_value(oid);
@@ -543,27 +543,27 @@ KNO_EXPORT lispval kno_locked_oid_value(kno_pool p,lispval oid)
     if (VOIDP(smap)) {
       int retval = kno_pool_lock(p,oid);
       if (retval<0)
-        return KNO_ERROR;
+	return KNO_ERROR;
       else if (retval) {
-        lispval v = kno_fetch_oid(p,oid);
-        if (KNO_ABORTP(v)) {
-          kno_seterr("FetchFailed","kno_locked_oid_value",p->poolid,oid);
-          return v;}
-        else if (v==KNO_UNALLOCATED_OID) {
-          kno_pool p = kno_oid2pool(oid);
-          kno_seterr(kno_UnallocatedOID,"kno_locked_oid_value",
-                    (p)?(p->poolid):((u8_string)"no pool"),oid);
-          return KNO_ERROR_VALUE;}
-        modify_readonly(v,0);
-        kno_hashtable_store(&(p->pool_changes),oid,v);
-        return v;}
+	lispval v = kno_fetch_oid(p,oid);
+	if (KNO_ABORTP(v)) {
+	  kno_seterr("FetchFailed","kno_locked_oid_value",p->poolid,oid);
+	  return v;}
+	else if (v==KNO_UNALLOCATED_OID) {
+	  kno_pool p = kno_oid2pool(oid);
+	  kno_seterr(kno_UnallocatedOID,"kno_locked_oid_value",
+		     (p)?(p->poolid):((u8_string)"no pool"),oid);
+	  return KNO_ERROR_VALUE;}
+	modify_readonly(v,0);
+	kno_hashtable_store(&(p->pool_changes),oid,v);
+	return v;}
       else return kno_err(kno_CantLockOID,"kno_locked_oid_value",
-                         p->pool_source,oid);}
+			  p->pool_source,oid);}
     else if (smap == KNO_LOCKHOLDER) {
       lispval v = kno_fetch_oid(p,oid);
       if (KNO_ABORTP(v)) {
-        kno_seterr("FetchFailed","kno_locked_oid_value",p->poolid,oid);
-        return v;}
+	kno_seterr("FetchFailed","kno_locked_oid_value",p->poolid,oid);
+	return v;}
       modify_readonly(v,0);
       kno_hashtable_store(&(p->pool_changes),oid,v);
       return v;}
@@ -581,8 +581,8 @@ KNO_EXPORT int kno_set_oid_value(lispval oid,lispval value)
     modify_readonly(value,0);
     modify_modified(value,1);
     if ( (p->pool_handler->lock == NULL) ||
-         (U8_BITP(p->pool_flags,KNO_POOL_VIRTUAL)) ||
-         (U8_BITP(p->pool_flags,KNO_POOL_NOLOCKS)) ) {
+	 (U8_BITP(p->pool_flags,KNO_POOL_VIRTUAL)) ||
+	 (U8_BITP(p->pool_flags,KNO_POOL_NOLOCKS)) ) {
       kno_hashtable_store(&(p->pool_cache),oid,value);
       return 1;}
     else if (kno_lock_oid(oid)) {
@@ -600,8 +600,8 @@ KNO_EXPORT int kno_replace_oid_value(lispval oid,lispval value)
     return kno_zero_pool_store(oid,value);
   else {
     if ( (p->pool_handler->lock == NULL) ||
-         (U8_BITP(p->pool_flags,KNO_POOL_VIRTUAL)) ||
-         (U8_BITP(p->pool_flags,KNO_POOL_NOLOCKS)) ) {
+	 (U8_BITP(p->pool_flags,KNO_POOL_VIRTUAL)) ||
+	 (U8_BITP(p->pool_flags,KNO_POOL_NOLOCKS)) ) {
       kno_hashtable_store(&(p->pool_cache),oid,value);
       return 1;}
     else if (kno_hashtable_probe(&(p->pool_changes),oid)) {
@@ -630,12 +630,12 @@ KNO_EXPORT lispval kno_pool_fetch(kno_pool p,lispval oid)
     return v;
   /* If it's locked, store it in the locks table */
   else if ( (p->pool_changes.table_n_keys) &&
-            (kno_hashtable_op(&(p->pool_changes),
-                             kno_table_replace_novoid,oid,v)) )
+	    (kno_hashtable_op(&(p->pool_changes),
+			      kno_table_replace_novoid,oid,v)) )
     return v;
   else if ( (p->pool_handler->lock == NULL) ||
-            (U8_BITP(p->pool_flags,KNO_POOL_VIRTUAL)) ||
-            (U8_BITP(p->pool_flags,KNO_POOL_NOLOCKS)) )
+	    (U8_BITP(p->pool_flags,KNO_POOL_VIRTUAL)) ||
+	    (U8_BITP(p->pool_flags,KNO_POOL_NOLOCKS)) )
     modify_readonly(v,0);
   else modify_readonly(v,1);
   if ( ( (p->pool_cache_level) > 0) &&
@@ -669,10 +669,10 @@ KNO_EXPORT int kno_pool_prefetch(kno_pool p,lispval oids)
     else {
       int n_fetches = 0;
       DO_CHOICES(oid,oids) {
-        lispval v = kno_pool_fetch(p,oid);
-        if (KNO_ABORTP(v)) {
-          KNO_STOP_DO_CHOICES; return v;}
-        n_fetches++; kno_decref(v);}
+	lispval v = kno_pool_fetch(p,oid);
+	if (KNO_ABORTP(v)) {
+	  KNO_STOP_DO_CHOICES; return v;}
+	n_fetches++; kno_decref(v);}
       return n_fetches;}}
   if (PRECHOICEP(oids)) {
     oids = kno_make_simple_choice(oids);
@@ -684,8 +684,8 @@ KNO_EXPORT int kno_pool_prefetch(kno_pool p,lispval oids)
     DO_CHOICES(oid,oids)
       if (kno_hashtable_probe_novoid(cache,oid)) {}
       else {
-        CHOICE_ADD(*delays,oid);
-        n_to_fetch++;}
+	CHOICE_ADD(*delays,oid);
+	n_to_fetch++;}
     (void)kno_ipeval_delay(n_to_fetch);
     /* kno_decref(oidschoice); */
     return 0;}
@@ -699,16 +699,16 @@ KNO_EXPORT int kno_pool_prefetch(kno_pool p,lispval oids)
     lispval *values, *oidv = u8_big_alloc_n(n,lispval), *write = oidv;
     DO_CHOICES(o,oids)
       if (((oidcache == NULL)||(kno_hashtable_probe_novoid(oidcache,o)==0))&&
-          (kno_hashtable_probe_novoid(cache,o)==0) &&
-          (kno_hashtable_probe(changes,o)==0))
-        /* If it's not in the oid cache, the pool cache, or the changes, get it */
-        *write++=o;
+	  (kno_hashtable_probe_novoid(cache,o)==0) &&
+	  (kno_hashtable_probe(changes,o)==0))
+	/* If it's not in the oid cache, the pool cache, or the changes, get it */
+	*write++=o;
       else if ((n_locked>=0)&&
-               (kno_hashtable_op(changes,kno_table_test,o,KNO_LOCKHOLDER))) {
-        /* If it's in the changes but not loaded, save it for loading and not
-           that some of the results should be put in the changes rather than
-           the cache */
-        *write++=o; n_locked++;}
+	       (kno_hashtable_op(changes,kno_table_test,o,KNO_LOCKHOLDER))) {
+	/* If it's in the changes but not loaded, save it for loading and not
+	   that some of the results should be put in the changes rather than
+	   the cache */
+	*write++=o; n_locked++;}
       else {}
     if (write == oidv) {
       /* Nothing to prefetch, free and return */
@@ -721,34 +721,34 @@ KNO_EXPORT int kno_pool_prefetch(kno_pool p,lispval oids)
     /* If you got results, store them in the cache */
     if (values) {
       if (nolock) {
-        /* If the pool doesn't have to be locked, don't bother locking
-           any values */}
+	/* If the pool doesn't have to be locked, don't bother locking
+	   any values */}
       else if (n_locked>0) {
-        /* If some values are locked, we consider each value and
-           store it in the appropriate tables (changes or cache). */
-        int j = 0; while (j<n) {
-          lispval v = values[j], oid = oidv[j];
-          /* Try to replace it in the changes table, and only store it
-             in the cache if it's not there. Also update the readonly
-             bit accordingly. */
-          if (kno_hashtable_op(changes,kno_table_replace_novoid,oid,v)==0) {
-            /* This is when the OID we're storing isn't locked */
-            modify_readonly(v,1);
-            kno_hashtable_op(cache,kno_table_store,oid,v);}
-          else modify_readonly(v,0);
-          if (knotc) kno_hashtable_op(&(knotc->oids),kno_table_store,oid,v);
-          /* We decref it since it would have been incref'd when stored. */
-          kno_decref(values[j]);
-          j++;}}
+	/* If some values are locked, we consider each value and
+	   store it in the appropriate tables (changes or cache). */
+	int j = 0; while (j<n) {
+	  lispval v = values[j], oid = oidv[j];
+	  /* Try to replace it in the changes table, and only store it
+	     in the cache if it's not there. Also update the readonly
+	     bit accordingly. */
+	  if (kno_hashtable_op(changes,kno_table_replace_novoid,oid,v)==0) {
+	    /* This is when the OID we're storing isn't locked */
+	    modify_readonly(v,1);
+	    kno_hashtable_op(cache,kno_table_store,oid,v);}
+	  else modify_readonly(v,0);
+	  if (knotc) kno_hashtable_op(&(knotc->oids),kno_table_store,oid,v);
+	  /* We decref it since it would have been incref'd when stored. */
+	  kno_decref(values[j]);
+	  j++;}}
       else {
-        /* If no values are locked, make them all readonly */
-        int j = 0; while (j<n) {
-          lispval v=values[j];
-          modify_readonly(v,1);
-          j++;}
-        if (knotc) kno_hashtable_iter(oidcache,kno_table_store,n,oidv,values);
-        /* Store them all in the cache */
-        kno_hashtable_iter(cache,kno_table_store_noref,n,oidv,values);}}
+	/* If no values are locked, make them all readonly */
+	int j = 0; while (j<n) {
+	  lispval v=values[j];
+	  modify_readonly(v,1);
+	  j++;}
+	if (knotc) kno_hashtable_iter(oidcache,kno_table_store,n,oidv,values);
+	/* Store them all in the cache */
+	kno_hashtable_iter(cache,kno_table_store_noref,n,oidv,values);}}
     else {
       u8_big_free(oidv);
       if (decref_oids) kno_decref(oids);
@@ -762,10 +762,10 @@ KNO_EXPORT int kno_pool_prefetch(kno_pool p,lispval oids)
     if (KNO_ABORTP(v)) return v;
     kno_hashtable changes = &(p->pool_changes);
     if ( (changes->table_n_keys==0) ||
-         /* This will store it in changes if it's already there */
-         (kno_hashtable_op(changes,kno_table_replace_novoid,oids,v)==0) ) {}
+	 /* This will store it in changes if it's already there */
+	 (kno_hashtable_op(changes,kno_table_replace_novoid,oids,v)==0) ) {}
     else if ( ( (p->pool_cache_level) > 0) &&
-              ( ! ( (p->pool_flags) & (KNO_STORAGE_VIRTUAL) ) ) )
+	      ( ! ( (p->pool_flags) & (KNO_STORAGE_VIRTUAL) ) ) )
       kno_hashtable_store(&(p->pool_cache),oids,v);
     else {}
     if (knotc) kno_hashtable_op(&(knotc->oids),kno_table_store,oids,v);
@@ -791,20 +791,20 @@ KNO_EXPORT int kno_pool_swapout(kno_pool p,lispval oids)
     return rv;}
   else if ((OIDP(oids))||(CHOICEP(oids)))
     u8_logf(LOG_GLUT,"SwapPool",_("Swapping out %d oids in pool %s"),
-            KNO_CHOICE_SIZE(oids),p->poolid);
+	    KNO_CHOICE_SIZE(oids),p->poolid);
   else if (PRECHOICEP(oids))
     u8_logf(LOG_GLUT,"SwapPool",_("Swapping out ~%d oids in pool %s"),
-            KNO_PRECHOICE_SIZE(oids),p->poolid);
+	    KNO_PRECHOICE_SIZE(oids),p->poolid);
   else u8_logf(LOG_GLUT,"SwapPool",_("Swapping out oids in pool %s"),p->poolid);
   int rv = -1;
   double started = u8_elapsed_time();
   if (p->pool_handler->swapout) {
     p->pool_handler->swapout(p,oids);
     u8_logf(LOG_DETAIL,"SwapPool",
-            "Finished custom swapout for pool %s, clearing caches...",
-            p->poolid);}
+	    "Finished custom swapout for pool %s, clearing caches...",
+	    p->poolid);}
   else u8_logf(LOG_GLUT,"SwapPool",
-               "No custom swapout clearing caches for %s",p->poolid);
+	       "No custom swapout clearing caches for %s",p->poolid);
   if (p->pool_flags&KNO_STORAGE_NOSWAP)
     return 0;
   else if (OIDP(oids)) {
@@ -813,8 +813,8 @@ KNO_EXPORT int kno_pool_swapout(kno_pool p,lispval oids)
   else if (CHOICEP(oids)) {
     rv = KNO_CHOICE_SIZE(oids);
     kno_hashtable_iterkeys(cache,kno_table_replace,
-                          KNO_CHOICE_SIZE(oids),KNO_CHOICE_DATA(oids),
-                          VOID);
+			   KNO_CHOICE_SIZE(oids),KNO_CHOICE_DATA(oids),
+			   VOID);
     kno_devoid_hashtable(cache,0);}
   else {
     rv = cache->table_n_keys;
@@ -822,8 +822,8 @@ KNO_EXPORT int kno_pool_swapout(kno_pool p,lispval oids)
       kno_reset_hashtable(cache,-1,1);
     else kno_reset_hashtable(cache,kno_pool_cache_init,1);}
   u8_logf(LOG_DETAIL,"SwapPool",
-          "Swapped out %d oids from pool '%s' in %f",
-          rv,p->poolid,u8_elapsed_time()-started);
+	  "Swapped out %d oids from pool '%s' in %f",
+	  rv,p->poolid,u8_elapsed_time()-started);
   return rv;
 }
 
@@ -844,13 +844,13 @@ KNO_EXPORT lispval kno_pool_alloc(kno_pool p,int n)
     return result;}
   else if (CHOICEP(result)) {
     kno_hashtable_iterkeys(init_cache,kno_table_default,
-                          KNO_CHOICE_SIZE(result),KNO_CHOICE_DATA(result),
-                          EMPTY);
+			   KNO_CHOICE_SIZE(result),KNO_CHOICE_DATA(result),
+			   EMPTY);
     return result;}
   else if (KNO_ABORTP(result)) return result;
   else if (KNO_EXCEPTIONP(result)) return result;
   else return kno_err("BadDriverResult","kno_pool_alloc",
-                     u8_strdup(p->pool_source),VOID);
+		      u8_strdup(p->pool_source),VOID);
 }
 
 /* Locking and unlocking OIDs within pools */
@@ -911,7 +911,7 @@ KNO_EXPORT int kno_pool_lock(kno_pool p,lispval oids)
 
 /* TODO: Cleanup kno_pool_unlock call return values */
 KNO_EXPORT int kno_pool_unlock(kno_pool p,lispval oids,
-                             kno_storage_unlock_flag flags)
+			       kno_storage_unlock_flag flags)
 {
   struct KNO_HASHTABLE *changes = &(p->pool_changes);
   if (changes->table_n_keys==0)
@@ -930,11 +930,11 @@ KNO_EXPORT int kno_pool_unlock(kno_pool p,lispval oids,
     lispval locked_oids = kno_hashtable_keys(changes);
     if (n_committed<0) {}
     {DO_CHOICES(oid,locked_oids) {
-        kno_pool pool = kno_oid2pool(oid);
-        if (p == pool) {
-          lispval v = kno_hashtable_get(changes,oid,VOID);
-          if ( (!(VOIDP(v))) && (!(modifiedp(v)))) {
-            CHOICE_ADD(to_unlock,oid);}}}}
+	kno_pool pool = kno_oid2pool(oid);
+	if (p == pool) {
+	  lispval v = kno_hashtable_get(changes,oid,VOID);
+	  if ( (!(VOIDP(v))) && (!(modifiedp(v)))) {
+	    CHOICE_ADD(to_unlock,oid);}}}}
     kno_decref(locked_oids);
     to_unlock = kno_simplify_choice(to_unlock);
     n_unlocked = KNO_CHOICE_SIZE(to_unlock);
@@ -944,9 +944,9 @@ KNO_EXPORT int kno_pool_unlock(kno_pool p,lispval oids,
       kno_hashtable_op(changes,kno_table_replace,to_unlock,VOID);
     else {
       kno_hashtable_iterkeys(changes,kno_table_replace,
-                            KNO_CHOICE_SIZE(to_unlock),
-                            KNO_CHOICE_DATA(to_unlock),
-                            VOID);}
+			     KNO_CHOICE_SIZE(to_unlock),
+			     KNO_CHOICE_DATA(to_unlock),
+			     VOID);}
     kno_devoid_hashtable(changes,0);
     kno_decref(to_unlock);
     return n_unlocked+n_committed;}
@@ -968,42 +968,42 @@ KNO_EXPORT int kno_pool_finish(kno_pool p,lispval oids)
     if (p == pool) {
       lispval v = kno_hashtable_get(changes,oid,VOID);
       if (CONSP(v)) {
-        if (SLOTMAPP(v)) {
-          if (KNO_SLOTMAP_MODIFIEDP(v)) {
-            KNO_SLOTMAP_MARK_FINISHED(v);
-            finished++;}}
-        else if (SCHEMAPP(v)) {
-          if (KNO_SCHEMAP_MODIFIEDP(v)) {
-            KNO_SCHEMAP_MARK_FINISHED(v);
-            finished++;}}
-        else if (HASHTABLEP(v)) {
-          if (KNO_HASHTABLE_MODIFIEDP(v)) {
-            KNO_HASHTABLE_MARK_FINISHED(v);
-            finished++;}}
-        else {}
-        kno_decref(v);}}}
+	if (SLOTMAPP(v)) {
+	  if (KNO_SLOTMAP_MODIFIEDP(v)) {
+	    KNO_SLOTMAP_MARK_FINISHED(v);
+	    finished++;}}
+	else if (SCHEMAPP(v)) {
+	  if (KNO_SCHEMAP_MODIFIEDP(v)) {
+	    KNO_SCHEMAP_MARK_FINISHED(v);
+	    finished++;}}
+	else if (HASHTABLEP(v)) {
+	  if (KNO_HASHTABLE_MODIFIEDP(v)) {
+	    KNO_HASHTABLE_MARK_FINISHED(v);
+	    finished++;}}
+	else {}
+	kno_decref(v);}}}
   return finished;
 }
 
 static int rollback_commits(kno_pool p,struct KNO_POOL_COMMITS *commits)
 {
   u8_logf(LOG_ERR,"Rollback","commit of %d OIDs%s to %s",
-          commits->commit_count,
-          ((KNO_VOIDP(commits->commit_metadata)) ? ("") : (" and metadata") ),
-          p->poolid);
+	  commits->commit_count,
+	  ((KNO_VOIDP(commits->commit_metadata)) ? ("") : (" and metadata") ),
+	  p->poolid);
   int rv = p->pool_handler->commit(p,kno_commit_rollback,commits);
   if (rv<0)
     u8_logf(LOG_CRIT,"Rollback/Failed","commit of %d OIDs%s to %s",
-            commits->commit_count,
-            ((KNO_VOIDP(commits->commit_metadata)) ? ("") : (" and metadata") ),
-            p->poolid);
+	    commits->commit_count,
+	    ((KNO_VOIDP(commits->commit_metadata)) ? ("") : (" and metadata") ),
+	    p->poolid);
   commits->commit_phase = kno_commit_flush;
   return rv;
 }
 
 /* Timing */
 
-#define record_elapsed(loc) \
+#define record_elapsed(loc)					\
   ((loc=(u8_elapsed_time()-(mark))),(mark=u8_elapsed_time()))
 
 /* Committing OIDs to external sources */
@@ -1014,7 +1014,7 @@ static void abort_commit(kno_pool p,struct KNO_POOL_COMMITS *commits);
 static int finish_commit(kno_pool p,struct KNO_POOL_COMMITS *commits);
 
 static int pool_docommit(kno_pool p,lispval oids,
-                         struct KNO_POOL_COMMITS *use_commits)
+			 struct KNO_POOL_COMMITS *use_commits)
 {
   struct KNO_HASHTABLE *locks = &(p->pool_changes);
   int kno_storage_loglevel = (p->pool_loglevel>=0) ? (p->pool_loglevel) :
@@ -1027,7 +1027,7 @@ static int pool_docommit(kno_pool p,lispval oids,
     return 0;}
   else if (p->pool_handler->commit == NULL) {
     u8_logf(LOG_DEBUG,kno_PoolCommit,
-            "No commit handler, just unlocking OIDs in %s",p->poolid);
+	    "No commit handler, just unlocking OIDs in %s",p->poolid);
     int rv = kno_pool_unlock(p,oids,leave_modified);
     return rv;}
   else {
@@ -1038,7 +1038,7 @@ static int pool_docommit(kno_pool p,lispval oids,
     if (use_commits) {
       memcpy(&commits,use_commits,sizeof(struct KNO_POOL_COMMITS));
       if (commits.commit_vals)
-        kno_incref_vec(commits.commit_vals,commits.commit_count);
+	kno_incref_vec(commits.commit_vals,commits.commit_count);
       free_commits=0;}
     else commits.commit_pool = p;
 
@@ -1055,46 +1055,46 @@ static int pool_docommit(kno_pool p,lispval oids,
     if ( (started < 0) || (commits.commit_count < 0) ) {
       u8_graberrno("pool_commit",u8_strdup(p->poolid));
       u8_logf(LOG_WARN,"PoolCommit/Start",
-              "Failed starting to commit %s",p->poolid);
+	      "Failed starting to commit %s",p->poolid);
       u8_unlock_mutex(&(p->pool_commit_lock));
       return started;}
 
     if (commits.commit_count) {
       /* Either use_commits or kno_commit_start initialized the
-         commit_count, so we won't touch it. */}
+	 commit_count, so we won't touch it. */}
     else if (! (locks->table_n_keys) ) {
       /* No locked OIDs to commit */
       u8_logf(LOG_DEBUG,"PoolCommit/Nada",
-              "No locked OIDs to commit to %s",p->poolid);}
+	      "No locked OIDs to commit to %s",p->poolid);}
     else if ((FALSEP(oids))||(VOIDP(oids))) {
       /* Commit all the modified OIDS */
       pick_modified(p,0,&commits);
       if (commits.commit_count)
-        u8_logf(LOG_DEBUG,"PoolCommit/modified",
-                "%d modified OIDs to commit to %s",
-                commits.commit_count,p->poolid);}
+	u8_logf(LOG_DEBUG,"PoolCommit/modified",
+		"%d modified OIDs to commit to %s",
+		commits.commit_count,p->poolid);}
     else if ((OIDP(oids))||(CHOICEP(oids))||(PRECHOICEP(oids))) {
       /* Commit the designated OIDs (if modified) */
       pick_writes(p,oids,&commits);
       if (commits.commit_count)
-        u8_logf(LOG_DEBUG,"PoolCommit/specified",
-                "%d/%d modified OIDs to commit to %s",
-                commits.commit_count,KNO_CHOICE_SIZE(oids),
-                p->poolid);}
+	u8_logf(LOG_DEBUG,"PoolCommit/specified",
+		"%d/%d modified OIDs to commit to %s",
+		commits.commit_count,KNO_CHOICE_SIZE(oids),
+		p->poolid);}
     else if (KNO_TRUEP(oids)) {
       /* Commit all the modified OIDs which are also 'finished,' which
-         means they've been marked readonly. */
+	 means they've been marked readonly. */
       pick_modified(p,1,&commits);
       if (commits.commit_count)
-        u8_logf(LOG_DEBUG,"PoolCommit/finalized",
-                "%d modified+finished OIDs to commit to %s",
-                commits.commit_count,p->poolid);}
+	u8_logf(LOG_DEBUG,"PoolCommit/finalized",
+		"%d modified+finished OIDs to commit to %s",
+		commits.commit_count,p->poolid);}
     else pick_writes(p,EMPTY,&commits);
 
     if (use_commits) {
       /* Fix a NULL metadata slot if you've been handled it. */
       if (commits.commit_metadata == KNO_NULL)
-        commits.commit_metadata = KNO_VOID;}
+	commits.commit_metadata = KNO_VOID;}
     /* Otherwise, copy the current metadata if it's been modified. */
     else if (metadata_changed(p))
       commits.commit_metadata = kno_deep_copy((lispval)&(p->pool_metadata));
@@ -1108,7 +1108,7 @@ static int pool_docommit(kno_pool p,lispval oids,
     int written, synced, rollback = 0;
 
     if ( (commits.commit_count == 0) &&
-         (KNO_VOIDP(commits.commit_metadata)) ) {
+	 (KNO_VOIDP(commits.commit_metadata)) ) {
       /* There's nothing to do */
       commits.commit_times.write     = 0;
       commits.commit_times.sync = 0;
@@ -1119,77 +1119,77 @@ static int pool_docommit(kno_pool p,lispval oids,
 
     if (written >= 0)
       u8_logf(LOG_DEBUG,"PoolCommit/Written","%d OIDs%s to %s",
-              commit_count,((w_metadata) ? (" and metadata") : ("") ),
-              p->poolid);
+	      commit_count,((w_metadata) ? (" and metadata") : ("") ),
+	      p->poolid);
 
     if (written < 0) {
       u8_logf(LOG_ERR,"PoolCommit/WriteFailed",
-              "Couldn't write %d OIDs%s to %s, rolling back any changes",
-              commit_count,((w_metadata) ? (" and metadata") : ("") ),
-              p->poolid);
+	      "Couldn't write %d OIDs%s to %s, rolling back any changes",
+	      commit_count,((w_metadata) ? (" and metadata") : ("") ),
+	      p->poolid);
       rollback = rollback_commits(p,&commits);
       synced = -1;}
     else if (commits.commit_phase == kno_commit_sync) {
       synced = p->pool_handler->commit(p,kno_commit_sync,&commits);
       if (synced < 0) {
-        u8_logf(LOG_ERR,"PoolCommit/SyncFailed",
-                "Couldn't sync %d commits%s to %s",
-                commit_count,((w_metadata) ? (" and metadata") : ("") ),
-                p->poolid);
-        rollback = rollback_commits(p,&commits);}
+	u8_logf(LOG_ERR,"PoolCommit/SyncFailed",
+		"Couldn't sync %d commits%s to %s",
+		commit_count,((w_metadata) ? (" and metadata") : ("") ),
+		p->poolid);
+	rollback = rollback_commits(p,&commits);}
       else u8_logf(LOG_DEBUG,"PoolCommit/Synced","%d OIDs%s to %s",
-                   commit_count,((w_metadata) ? (" and metadata") : ("") ),
-                   p->poolid);}
+		   commit_count,((w_metadata) ? (" and metadata") : ("") ),
+		   p->poolid);}
     else synced = 0;
     record_elapsed(commits.commit_times.sync);
 
     if (rollback<0)
       u8_logf(LOG_CRIT,"Rollback/Failed",
-              _("Couldn't rollback %d changes%s to %s"),
-              commit_count,((w_metadata) ? (" and metadata") : ("") ),
-              p->poolid);
+	      _("Couldn't rollback %d changes%s to %s"),
+	      commit_count,((w_metadata) ? (" and metadata") : ("") ),
+	      p->poolid);
 
     if (use_commits == NULL)
       u8_logf(LOG_DEBUG,"PoolCommit/Flushing",
-              "cached changes for %d OIDs%s written to %s",
-              commit_count,((w_metadata) ? (" and metadata") : ("") ),
-              p->poolid);
+	      "cached changes for %d OIDs%s written to %s",
+	      commit_count,((w_metadata) ? (" and metadata") : ("") ),
+	      p->poolid);
     int flushed = p->pool_handler->commit(p,kno_commit_flush,&commits);
     if (flushed<0)
       u8_logf(LOG_WARN,"PoolCommit/Flush/Failed",
-              "Couldn't flush DB state for %d OIDs%s written to %s",
-              commit_count,((w_metadata) ? (" and metadata") : ("") ),
-              p->poolid);
+	      "Couldn't flush DB state for %d OIDs%s written to %s",
+	      commit_count,((w_metadata) ? (" and metadata") : ("") ),
+	      p->poolid);
     else u8_logf(LOG_DEBUG,"PoolCommit/Flushed",
-                 "DB state for %d OIDs%s written to %s",
-                 commit_count,((w_metadata) ? (" and metadata") : ("") ),
-                 p->poolid);
+		 "DB state for %d OIDs%s written to %s",
+		 commit_count,((w_metadata) ? (" and metadata") : ("") ),
+		 p->poolid);
 
     if (use_commits == NULL) {
       int finished=0;
       if (synced < 0)
-        abort_commit(p,&commits);
+	abort_commit(p,&commits);
       else {
-        u8_logf(LOG_DETAIL,"PoolCommit/Unlocking",
-                "Unlocking and flushing changes for %d OIDs%s written to %s",
-                commit_count,((w_metadata) ? (" and metadata") : ("") ),
-                p->poolid);
-        finished = finish_commit(p,&commits);}
+	u8_logf(LOG_DETAIL,"PoolCommit/Unlocking",
+		"Unlocking and flushing changes for %d OIDs%s written to %s",
+		commit_count,((w_metadata) ? (" and metadata") : ("") ),
+		p->poolid);
+	finished = finish_commit(p,&commits);}
       if (finished < 0)
-        u8_logf(LOG_WARN,"PoolCommit/Unlock/Failure",
-                "couldn't unlock changes for %d OIDs%s written to %s",
-                commit_count,((w_metadata) ? (" and metadata") : ("") ),
-                p->poolid);
+	u8_logf(LOG_WARN,"PoolCommit/Unlock/Failure",
+		"couldn't unlock changes for %d OIDs%s written to %s",
+		commit_count,((w_metadata) ? (" and metadata") : ("") ),
+		p->poolid);
       else u8_logf(LOG_DETAIL,"PoolCommit/Unlocked",
-                   "Unlocked and flushed changes for %d OIDs%s written to %s",
-                   commit_count,((w_metadata) ? (" and metadata") : ("") ),
-                   p->poolid);}
+		   "Unlocked and flushed changes for %d OIDs%s written to %s",
+		   commit_count,((w_metadata) ? (" and metadata") : ("") ),
+		   p->poolid);}
     record_elapsed(commits.commit_times.flush);
 
     u8_logf(LOG_DEBUG,"PoolCommit/Cleanup",
-            "Cleaning up after saving %d OIDs%s to %s",
-            commit_count,((w_metadata) ? (" and metadata") : ("") ),
-            p->poolid);
+	    "Cleaning up after saving %d OIDs%s to %s",
+	    commit_count,((w_metadata) ? (" and metadata") : ("") ),
+	    p->poolid);
     int cleanup = p->pool_handler->commit(p,kno_commit_cleanup,&commits);
     record_elapsed(commits.commit_times.cleanup);
 
@@ -1200,41 +1200,41 @@ static int pool_docommit(kno_pool p,lispval oids,
 
     if (synced < 0)
       u8_logf(LOG_WARN,"Pool/Commit/Failed",
-              "Couldn't commit %d OIDs%s to %s after %f secs",
-              commit_count,((w_metadata) ? (" and metadata") : ("") ),
-              p->poolid,u8_elapsed_time()-start_time);
+	      "Couldn't commit %d OIDs%s to %s after %f secs",
+	      commit_count,((w_metadata) ? (" and metadata") : ("") ),
+	      p->poolid,u8_elapsed_time()-start_time);
 
     u8_logf(LOG_NOTICE,
-            ((sync<0) ? ("Pool/Commit/Timing") : ("Pool/Commit/Complete")),
-            "%s %d OIDs%s to '%s' in %fs\n"
-            "total=%f, start=%f, setup=%f, save=%f, "
-            "finalize=%f, apply=%f, cleanup=%f",
-            ((sync<0) ? ("for") : ("Committed")),
-            commits.commit_count,
-            ((w_metadata) ? (" and metadata") : ("") ),
-            p->poolid,
-            u8_elapsed_time()-commits.commit_times.base,
-            u8_elapsed_time()-commits.commit_times.base,
-            commits.commit_times.start,
-            commits.commit_times.setup,
-            commits.commit_times.write,
-            commits.commit_times.sync,
-            commits.commit_times.flush,
-            commits.commit_times.cleanup);
+	    ((sync<0) ? ("Pool/Commit/Timing") : ("Pool/Commit/Complete")),
+	    "%s %d OIDs%s to '%s' in %fs\n"
+	    "total=%f, start=%f, setup=%f, save=%f, "
+	    "finalize=%f, apply=%f, cleanup=%f",
+	    ((sync<0) ? ("for") : ("Committed")),
+	    commits.commit_count,
+	    ((w_metadata) ? (" and metadata") : ("") ),
+	    p->poolid,
+	    u8_elapsed_time()-commits.commit_times.base,
+	    u8_elapsed_time()-commits.commit_times.base,
+	    commits.commit_times.start,
+	    commits.commit_times.setup,
+	    commits.commit_times.write,
+	    commits.commit_times.sync,
+	    commits.commit_times.flush,
+	    commits.commit_times.cleanup);
 
     if (free_commits) {
       if (commits.commit_oids) {
-        u8_big_free(commits.commit_oids);
-        commits.commit_oids=NULL;}
+	u8_big_free(commits.commit_oids);
+	commits.commit_oids=NULL;}
       else {
-        u8_big_free(commits.commit_oids);
-        commits.commit_oids=NULL;}
+	u8_big_free(commits.commit_oids);
+	commits.commit_oids=NULL;}
       if (commits.commit_vals) {
-        u8_big_free(commits.commit_vals);
-        commits.commit_vals=NULL;}
+	u8_big_free(commits.commit_vals);
+	commits.commit_vals=NULL;}
       else {
-        u8_big_free(commits.commit_vals);
-        commits.commit_vals=NULL;}
+	u8_big_free(commits.commit_vals);
+	commits.commit_vals=NULL;}
       kno_decref(commits.commit_metadata);}
 
     commits.commit_times.cleanup = u8_elapsed_time();
@@ -1300,21 +1300,21 @@ static int finish_commit(kno_pool p,struct KNO_POOL_COMMITS *commits)
       int finished=1;
       lispval cur = kv->kv_val;
       if (SLOTMAPP(v)) {
-        if (KNO_SLOTMAP_MODIFIEDP(v)) finished=0;}
+	if (KNO_SLOTMAP_MODIFIEDP(v)) finished=0;}
       else if (SCHEMAPP(v)) {
-        if (KNO_SCHEMAP_MODIFIEDP(v)) finished=0;}
+	if (KNO_SCHEMAP_MODIFIEDP(v)) finished=0;}
       else if (HASHTABLEP(v)) {
-        if (KNO_HASHTABLE_MODIFIEDP(v)) finished=0;}
+	if (KNO_HASHTABLE_MODIFIEDP(v)) finished=0;}
       else {}
       /* We "swap out" the value (free, dereference, and unlock it) if:
-         1. it hasn't been modified since we picked it (finished) and
-         2. the only pointers to it are in *values and the hashtable
-         (refcount<=2) */
+	 1. it hasn't been modified since we picked it (finished) and
+	 2. the only pointers to it are in *values and the hashtable
+	 (refcount<=2) */
       if ((finished) && (KNO_CONS_REFCOUNT(v)<=2)) {
-        *unlock++=oids[i];
-        values[i]=VOID;
-        kv->kv_val=VOID;
-        kno_decref(cur);}
+	*unlock++=oids[i];
+	values[i]=VOID;
+	kv->kv_val=VOID;
+	kno_decref(cur);}
       kno_decref(v);
       i++;}}
   u8_rw_unlock(&(changes->table_rwlock));
@@ -1325,9 +1325,9 @@ static int finish_commit(kno_pool p,struct KNO_POOL_COMMITS *commits)
     int retval = p->pool_handler->unlock(p,to_unlock);
     if (retval<0) {
       u8_logf(LOG_CRIT,"UnlockFailed",
-              "Error unlocking pool %s, all %d values saved "
-              "but up to %d OIDs may still be locked",
-              p->poolid,n,unlock_count);
+	      "Error unlocking pool %s, all %d values saved "
+	      "but up to %d OIDs may still be locked",
+	      p->poolid,n,unlock_count);
       kno_decref(to_unlock);
       kno_clear_errors(1);
       return retval;}
@@ -1344,22 +1344,22 @@ static int savep(lispval v,int only_finished)
   else if (SLOTMAPP(v)) {
     if (KNO_SLOTMAP_MODIFIEDP(v)) {
       if ((!(only_finished))||(KNO_SLOTMAP_FINISHEDP(v))) {
-        KNO_SLOTMAP_CLEAR_MODIFIED(v);
-        return 1;}
+	KNO_SLOTMAP_CLEAR_MODIFIED(v);
+	return 1;}
       else return 0;}
     else return 0;}
   else if (SCHEMAPP(v)) {
     if (KNO_SCHEMAP_MODIFIEDP(v)) {
       if ((!(only_finished))||(KNO_SCHEMAP_FINISHEDP(v))) {
-        KNO_SCHEMAP_CLEAR_MODIFIED(v);
-        return 1;}
+	KNO_SCHEMAP_CLEAR_MODIFIED(v);
+	return 1;}
       else return 0;}
     else return 0;}
   else if (HASHTABLEP(v)) {
     if (KNO_HASHTABLE_MODIFIEDP(v)) {
       if ((!(only_finished))||(KNO_HASHTABLE_READONLYP(v))) {
-        KNO_HASHTABLE_CLEAR_MODIFIED(v);
-        return 1;}
+	KNO_HASHTABLE_CLEAR_MODIFIED(v);
+	return 1;}
       else return 0;}
     else return 0;}
   else if (only_finished) return 0;
@@ -1393,20 +1393,20 @@ static int pick_writes(kno_pool p,lispval oids,struct KNO_POOL_COMMITS *commits)
     commits->commit_oids = oidv = u8_big_alloc_n(n,lispval);
     commits->commit_vals = values = u8_big_alloc_n(n,lispval);
     {DO_CHOICES(oid,oids) {
-        kno_pool pool = kno_oid2pool(oid);
-        if (pool == p) {
-          lispval v = kno_hashtable_get(changes,oid,VOID);
-          if (v == KNO_LOCKHOLDER) {}
-          else if (savep(v,0)) {
-            *oidv++=oid;
-            *values++=v;}
-          else kno_decref(v);}}}
+	kno_pool pool = kno_oid2pool(oid);
+	if (pool == p) {
+	  lispval v = kno_hashtable_get(changes,oid,VOID);
+	  if (v == KNO_LOCKHOLDER) {}
+	  else if (savep(v,0)) {
+	    *oidv++=oid;
+	    *values++=v;}
+	  else kno_decref(v);}}}
     commits->commit_count = oidv-commits->commit_oids;
     return commits->commit_count;}
 }
 
 static int pick_modified(kno_pool p,int finished,
-                         struct KNO_POOL_COMMITS *commits)
+			 struct KNO_POOL_COMMITS *commits)
 {
   kno_hashtable changes = &(p->pool_changes); int unlock = 0;
   if (changes->table_uselock) {
@@ -1422,22 +1422,22 @@ static int pick_modified(kno_pool p,int finished,
     struct KNO_HASH_BUCKET **lim = scan+changes->ht_n_buckets;
     while (scan < lim) {
       if (*scan) {
-        struct KNO_HASH_BUCKET *e = *scan;
-        int bucket_len = e->bucket_len;
-        struct KNO_KEYVAL *kvscan = &(e->kv_val0);
-        struct KNO_KEYVAL *kvlimit = kvscan+bucket_len;
-        while (kvscan<kvlimit) {
-          lispval key = kvscan->kv_key, val = kvscan->kv_val;
-          if (val == KNO_LOCKHOLDER) {
-            kvscan++;
-            continue;}
-          else if (savep(val,finished)) {
-            *oidv++=key;
-            *values++=val;
-            kno_incref(val);}
-          else {}
-          kvscan++;}
-        scan++;}
+	struct KNO_HASH_BUCKET *e = *scan;
+	int bucket_len = e->bucket_len;
+	struct KNO_KEYVAL *kvscan = &(e->kv_val0);
+	struct KNO_KEYVAL *kvlimit = kvscan+bucket_len;
+	while (kvscan<kvlimit) {
+	  lispval key = kvscan->kv_key, val = kvscan->kv_val;
+	  if (val == KNO_LOCKHOLDER) {
+	    kvscan++;
+	    continue;}
+	  else if (savep(val,finished)) {
+	    *oidv++=key;
+	    *values++=val;
+	    kno_incref(val);}
+	  else {}
+	  kvscan++;}
+	scan++;}
       else scan++;}
   }
   if (unlock) u8_rw_unlock(&(changes->table_rwlock));
@@ -1492,28 +1492,28 @@ static int apply_poolop(kno_pool_op fn,lispval oids_arg)
     int n = KNO_CHOICE_SIZE(oids), sum = 0;
     lispval *allocd = u8_alloc_n(n,lispval), *oidv = allocd, *write = oidv;
     {DO_CHOICES(oid,oids) {
-        if (OIDP(oid)) *write++=oid;}}
+	if (OIDP(oid)) *write++=oid;}}
     n = write-oidv;
     while (n>0) {
       kno_pool p = kno_oid2pool(oidv[0]);
       if (p == NULL) {oidv++; n--; continue;}
       else {
-        lispval oids_in_pool = oidv[0];
-        lispval *keep = oidv;
-        int rv = 0, i = 1; while (i<n) {
-          lispval oid = oidv[i++];
-          kno_pool pool = kno_oid2pool(oid);
-          if (p == NULL) {}
-          else if (pool == p) {
-            CHOICE_ADD(oids_in_pool,oid);}
-          else *keep++=oid;}
-        oids_in_pool = kno_simplify_choice(oids_in_pool);
-        if (EMPTYP(oids_in_pool)) rv = 0;
-        else rv = fn(p,oids_in_pool);
-        if (rv>0)
-          sum = sum+rv;
-        kno_decref(oids_in_pool);
-        n = keep-oidv;}}
+	lispval oids_in_pool = oidv[0];
+	lispval *keep = oidv;
+	int rv = 0, i = 1; while (i<n) {
+	  lispval oid = oidv[i++];
+	  kno_pool pool = kno_oid2pool(oid);
+	  if (p == NULL) {}
+	  else if (pool == p) {
+	    CHOICE_ADD(oids_in_pool,oid);}
+	  else *keep++=oid;}
+	oids_in_pool = kno_simplify_choice(oids_in_pool);
+	if (EMPTYP(oids_in_pool)) rv = 0;
+	else rv = fn(p,oids_in_pool);
+	if (rv>0)
+	  sum = sum+rv;
+	kno_decref(oids_in_pool);
+	n = keep-oidv;}}
     kno_decref(oids);
     u8_free(allocd);
     return sum;}
@@ -1617,8 +1617,8 @@ KNO_EXPORT lispval kno_fetch_oid(kno_pool p,lispval oid)
   lispval value;
   if (knotc) {
     lispval value = ((knotc->oids.table_n_keys)?
-                     (kno_hashtable_get(&(knotc->oids),oid,VOID)):
-                     (VOID));
+		     (kno_hashtable_get(&(knotc->oids),oid,VOID)):
+		     (VOID));
     if (!(VOIDP(value))) return value;}
   if (p == NULL) p = kno_oid2pool(oid);
   if (p == NULL)
@@ -1626,19 +1626,19 @@ KNO_EXPORT lispval kno_fetch_oid(kno_pool p,lispval oid)
   else if (p == kno_zero_pool)
     return kno_zero_pool_value(oid);
   else if ( (p->pool_cache_level) &&
-            (p->pool_changes.table_n_keys) &&
-            (kno_hashtable_probe_novoid(&(p->pool_changes),oid)) ) {
+	    (p->pool_changes.table_n_keys) &&
+	    (kno_hashtable_probe_novoid(&(p->pool_changes),oid)) ) {
     /* This is where the OID is 'locked' (has an entry in the changes
        table */
     value = kno_hashtable_get(&(p->pool_changes),oid,VOID);
     if (value == KNO_LOCKHOLDER) {
       value = kno_pool_fetch(p,oid);
       if (KNO_ABORTP(value)) {
-        kno_seterr("FetchFailed","kno_fetch_oid",p->poolid,oid);
-        return value;}
+	kno_seterr("FetchFailed","kno_fetch_oid",p->poolid,oid);
+	return value;}
       if (KNO_CONSP(value)) modify_readonly(value,0);
       if ( ! ( (p->pool_flags) & (KNO_STORAGE_VIRTUAL) ) )
-        kno_hashtable_store(&(p->pool_changes),oid,value);
+	kno_hashtable_store(&(p->pool_changes),oid,value);
       return value;}
     else return value;}
   if (p->pool_cache_level)
@@ -1691,24 +1691,24 @@ KNO_EXPORT lispval kno_pool_fetchn(kno_pool p,lispval oids_arg)
     else {
       int n = KNO_CHOICE_SIZE(oids);
       if (n==0)
-        return kno_make_hashtable(NULL,8);
+	return kno_make_hashtable(NULL,8);
       else if (n==1) {
-        lispval table=kno_make_hashtable(NULL,16);
-        lispval value = kno_fetch_oid(p,oids);
-        kno_store(table,oids,value);
-        kno_decref(value);
-        kno_decref(oids);
-        return table;}
+	lispval table=kno_make_hashtable(NULL,16);
+	lispval value = kno_fetch_oid(p,oids);
+	kno_store(table,oids,value);
+	kno_decref(value);
+	kno_decref(oids);
+	return table;}
       else {
-        init_cache_level(p);
-        const lispval *oidv=KNO_CHOICE_DATA(oids);
-        const lispval *values=p->pool_handler->fetchn(p,n,(lispval *)oidv);
-        lispval table=kno_make_hashtable(NULL,n*3);
-        kno_hashtable_iter((kno_hashtable)table,kno_table_store_noref,n,
-                          oidv,values);
-        u8_big_free((lispval *)values);
-        kno_decref(oids);
-        return table;}}}
+	init_cache_level(p);
+	const lispval *oidv=KNO_CHOICE_DATA(oids);
+	const lispval *values=p->pool_handler->fetchn(p,n,(lispval *)oidv);
+	lispval table=kno_make_hashtable(NULL,n*3);
+	kno_hashtable_iter((kno_hashtable)table,kno_table_store_noref,n,
+			   oidv,values);
+	u8_big_free((lispval *)values);
+	kno_decref(oids);
+	return table;}}}
   else if (p->pool_handler) {
     u8_seterr("NoHandler","kno_pool_fetchn",u8_strdup(p->poolid));
     return KNO_ERROR;}
@@ -1734,7 +1734,7 @@ KNO_EXPORT kno_pool kno_lisp2pool(lispval lp)
     else {
       char buf[64];
       kno_seterr3(kno_InvalidPoolPtr,"kno_lisp2pool",
-                 u8_sprintf(buf,64,"serial = 0x%x",serial));
+		  u8_sprintf(buf,64,"serial = 0x%x",serial));
       return NULL;}}
   else if (TYPEP(lp,kno_consed_pool_type))
     return (kno_pool) lp;
@@ -1809,7 +1809,7 @@ KNO_EXPORT u8_string kno_locate_pool(u8_string spec)
 static int match_pool_id(kno_pool p,u8_string id)
 {
   return ((id)&&(p->poolid)&&
-          (strcmp(p->poolid,id)==0));
+	  (strcmp(p->poolid,id)==0));
 }
 
 static int match_pool_source(kno_pool p,u8_string source)
@@ -1856,7 +1856,7 @@ KNO_EXPORT kno_pool kno_find_pool_by_prefix(u8_string prefix)
   while (i<n) {
     kno_pool p = kno_pools_by_serialno[i++];
     if (( (p->pool_prefix) && ((strcasecmp(prefix,p->pool_prefix)) == 0) ) ||
-        ( (p->pool_label) && ((strcasecmp(prefix,p->pool_label)) == 0) ))
+	( (p->pool_label) && ((strcasecmp(prefix,p->pool_label)) == 0) ))
       return p;}
   return NULL;
 }
@@ -1893,7 +1893,7 @@ static int commit_each_pool(kno_pool p,void *data)
   if (retval<0)
     if (data) {
       u8_logf(LOG_CRIT,"POOL_COMMIT_FAIL",
-              "Error when committing pool %s",p->poolid);
+	      "Error when committing pool %s",p->poolid);
       return 0;}
     else return -1;
   else return 0;
@@ -1983,12 +1983,12 @@ lispval kno_changed_oids(kno_pool p)
 /* Common pool initialization stuff */
 
 KNO_EXPORT void kno_init_pool(kno_pool p,
-                            KNO_OID base,unsigned int capacity,
-                            struct KNO_POOL_HANDLER *h,
-                            u8_string id,u8_string source,u8_string csource,
-                            kno_storage_flags flags,
-                            lispval metadata,
-                            lispval opts)
+			      KNO_OID base,unsigned int capacity,
+			      struct KNO_POOL_HANDLER *h,
+			      u8_string id,u8_string source,u8_string csource,
+			      kno_storage_flags flags,
+			      lispval metadata,
+			      lispval opts)
 {
   KNO_INIT_CONS(p,kno_consed_pool_type);
   p->pool_base = base;
@@ -1996,7 +1996,7 @@ KNO_EXPORT void kno_init_pool(kno_pool p,
   p->pool_source = u8_strdup(source);
   p->canonical_source = u8_strdup(csource);
   p->poolid = u8_strdup(id);
-  p->pool_typeid = NULL;
+  p->pool_typeid = u8_strdup(h->name);
   p->pool_handler = h;
   p->pool_flags = kno_get_dbflags(opts,flags);
   p->pool_serialno = -1; p->pool_cache_level = -1;
@@ -2011,11 +2011,11 @@ KNO_EXPORT void kno_init_pool(kno_pool p,
   if (KNO_VOIDP(ll))
     p->pool_loglevel = -1;
   else if ( (KNO_FIXNUMP(ll)) && ( (KNO_FIX2INT(ll)) >= 0 ) &&
-       ( (KNO_FIX2INT(ll)) < U8_MAX_LOGLEVEL ) )
+	    ( (KNO_FIX2INT(ll)) < U8_MAX_LOGLEVEL ) )
     p->pool_loglevel = KNO_FIX2INT(ll);
   else {
     u8_log(LOG_WARN,"BadLogLevel",
-           "Invalid loglevel %q for pool %s",ll,id);
+	   "Invalid loglevel %q for pool %s",ll,id);
     p->pool_loglevel = -1;}
   kno_decref(ll);
 
@@ -2054,7 +2054,7 @@ KNO_EXPORT int kno_pool_set_metadata(kno_pool p,lispval metadata)
     if (p->pool_metadata.n_allocd) {
       struct KNO_SLOTMAP *sm = & p->pool_metadata;
       if ( (sm->sm_free_keyvals) && (sm->sm_keyvals) )
-        u8_free(sm->sm_keyvals);
+	u8_free(sm->sm_keyvals);
       u8_destroy_rwlock(&(sm->table_rwlock));}
     lispval adj = kno_get(metadata,KNOSYM_ADJUNCT,KNO_VOID);
     if ( (KNO_OIDP(adj)) || (KNO_TRUEP(adj)) || (KNO_SYMBOLP(adj)) )
@@ -2105,11 +2105,11 @@ KNO_EXPORT kno_pool kno_get_pool
     u8_byte *brk = strchr(start,';');
     while (brk) {
       if (p == NULL) {
-        *brk='\0'; p = kno_open_pool(start,flags,opts);
-        if (p) {brk = NULL; start = NULL;}
-        else {
-          start = brk+1;
-          brk = strchr(start,';');}}}
+	*brk='\0'; p = kno_open_pool(start,flags,opts);
+	if (p) {brk = NULL; start = NULL;}
+	else {
+	  start = brk+1;
+	  brk = strchr(start,';');}}}
     if (p) return p;
     else if ((start)&&(*start)) {
       int start_off = start-copy;
@@ -2157,19 +2157,19 @@ static void display_pool(u8_output out,kno_pool p,lispval lp)
   strcat(addrbuf,u8_uitoa16(p->pool_capacity,numbuf));
   if (p->pool_label)
     u8_printf(out,"#<%s %s (%s%s) %s cx=%d/%d #!%lx \"%s\">",
-              tag,p->pool_label,type,
-              ((is_adjunct)?("/adj"):("")),
-              addrbuf,n_cached,n_changed,
-              lp,source);
+	      tag,p->pool_label,type,
+	      ((is_adjunct)?("/adj"):("")),
+	      addrbuf,n_cached,n_changed,
+	      lp,source);
   else if (strcmp(useid,source))
     u8_printf(out,"#<%s %s (%s%s) %s oids=%d/%d #!%lx \"%s\">",
-              tag,useid,type,
-              ((is_adjunct)?("/adj"):("")),
-              addrbuf,n_cached,n_changed,lp,source);
+	      tag,useid,type,
+	      ((is_adjunct)?("/adj"):("")),
+	      addrbuf,n_cached,n_changed,lp,source);
   else u8_printf(out,"#<%s %s (%s%s) %s oids=%d/%d #!%lx>",
-                 tag,useid,type,
-                 ((is_adjunct)?("/adj"):("")),
-                 addrbuf,n_cached,n_changed,lp);
+		 tag,useid,type,
+		 ((is_adjunct)?("/adj"):("")),
+		 addrbuf,n_cached,n_changed,lp);
 
 }
 
@@ -2196,7 +2196,7 @@ static lispval pool_parsefn(int n,lispval *args,kno_typeinfo e)
   else if (n==3)
     p = kno_use_pool(KNO_STRING_DATA(args[2]),0,VOID);
   else if ((STRINGP(args[2])) &&
-           ((p = kno_find_pool_by_prefix(KNO_STRING_DATA(args[2]))) == NULL))
+	   ((p = kno_find_pool_by_prefix(KNO_STRING_DATA(args[2]))) == NULL))
     p = kno_use_pool(KNO_STRING_DATA(args[3]),0,VOID);
   if (p) return kno_pool2lisp(p);
   else return kno_err(kno_CantParseRecord,"pool_parsefn",NULL,VOID);
@@ -2217,16 +2217,16 @@ KNO_EXPORT int kno_execute_pool_delays(kno_pool p,void *data)
 #if KNO_TRACE_IPEVAL
     if (kno_trace_ipeval>1)
       u8_logf(LOG_DEBUG,ipeval_objfetch,"Fetching %d oids from %s: %q",
-              KNO_CHOICE_SIZE(todo),p->poolid,todo);
+	      KNO_CHOICE_SIZE(todo),p->poolid,todo);
     else if (kno_trace_ipeval)
       u8_logf(LOG_DEBUG,ipeval_objfetch,"Fetching %d oids from %s",
-              KNO_CHOICE_SIZE(todo),p->poolid);
+	      KNO_CHOICE_SIZE(todo),p->poolid);
 #endif
     kno_pool_prefetch(p,todo);
 #if KNO_TRACE_IPEVAL
     if (kno_trace_ipeval)
       u8_logf(LOG_DEBUG,ipeval_objfetch,"Fetched %d oids from %s",
-              KNO_CHOICE_SIZE(todo),p->poolid);
+	      KNO_CHOICE_SIZE(todo),p->poolid);
 #endif
     return 0;}
 }
@@ -2245,11 +2245,11 @@ static lispval pool_get(kno_pool p,lispval key,lispval dflt)
       unsigned int capacity = p->pool_capacity;
       int load = kno_pool_load(p);
       if (load<0)
-        return KNO_ERROR;
+	return KNO_ERROR;
       else if ((p->pool_flags&KNO_POOL_ADJUNCT) ?
-               (offset<capacity) :
-               (offset<load))
-        return kno_fetch_oid(p,key);
+	       (offset<capacity) :
+	       (offset<load))
+	return kno_fetch_oid(p,key);
       else return kno_incref(dflt);}}
   else return kno_incref(dflt);
 }
@@ -2280,18 +2280,18 @@ static int pool_store(kno_pool p,lispval key,lispval value)
       modify_modified(value,1);
       int cap = p->pool_capacity, rv = -1;
       if (offset>cap) {
-        kno_seterr(kno_PoolRangeError,"pool_store",kno_pool_id(p),key);
-        return -1;}
+	kno_seterr(kno_PoolRangeError,"pool_store",kno_pool_id(p),key);
+	return -1;}
       else if ( (p->pool_flags & KNO_STORAGE_VIRTUAL) &&
-                (p->pool_handler->commit) )
-        rv=kno_pool_storen(p,1,&key,&value);
+		(p->pool_handler->commit) )
+	rv=kno_pool_storen(p,1,&key,&value);
       else if (p->pool_handler->lock == NULL) {
-        rv = kno_hashtable_store(&(p->pool_cache),key,value);}
+	rv = kno_hashtable_store(&(p->pool_cache),key,value);}
       else if (kno_pool_lock(p,key)) {
-        rv = kno_hashtable_store(&(p->pool_changes),key,value);}
+	rv = kno_hashtable_store(&(p->pool_changes),key,value);}
       else {
-        kno_seterr(kno_CantLockOID,"pool_store",kno_pool_id(p),key);
-        return -1;}
+	kno_seterr(kno_CantLockOID,"pool_store",kno_pool_id(p),key);
+	return -1;}
       return rv;}}
   else {
     kno_seterr(kno_NotAnOID,"pool_store",kno_pool_id(p),kno_incref(key));
@@ -2450,8 +2450,8 @@ KNO_EXPORT lispval kno_pool_base_metadata(kno_pool p)
     lispval adjuncts_table=kno_make_slotmap(n,0,NULL);
     while (i<n) {
       kno_store(adjuncts_table,
-               adjuncts[i].slotid,
-               adjuncts[i].table);
+		adjuncts[i].slotid,
+		adjuncts[i].table);
       i++;}
     kno_store(metadata,_adjuncts_slot,adjuncts_table);
     kno_decref(adjuncts_table);}
@@ -2486,7 +2486,7 @@ KNO_EXPORT lispval kno_default_poolctl(kno_pool p,lispval op,int n,kno_argvec ar
   else if (op == kno_label_op) {
     if (n==0) {
       if (!(p->pool_label))
-        return KNO_FALSE;
+	return KNO_FALSE;
       else return kno_mkstring(p->pool_label);}
     else return KNO_FALSE;}
   else if (op == KNOSYM_OPTS)  {
@@ -2512,49 +2512,49 @@ KNO_EXPORT lispval kno_default_poolctl(kno_pool p,lispval op,int n,kno_argvec ar
     else if (n == 2) {
       lispval extended=kno_pool_ctl(p,kno_metadata_op,0,NULL);
       if (kno_test(extended,KNOSYM_READONLY,slotid)) {
-        kno_decref(extended);
-        return kno_err("ReadOnlyMetadataProperty","kno_default_poolctl",
-                      p->poolid,slotid);}
+	kno_decref(extended);
+	return kno_err("ReadOnlyMetadataProperty","kno_default_poolctl",
+		       p->poolid,slotid);}
       else kno_decref(extended);
       int rv=kno_store(metadata,slotid,args[1]);
       if (rv<0)
-        return KNO_ERROR_VALUE;
+	return KNO_ERROR_VALUE;
       else return kno_incref(args[1]);}
     else return kno_err(kno_TooManyArgs,"kno_pool_ctl/metadata",
-                       KNO_SYMBOL_NAME(op),kno_pool2lisp(p));}
+			KNO_SYMBOL_NAME(op),kno_pool2lisp(p));}
   else if (op == adjuncts_slot) {
     if (n == 0) {
       if (p->pool_n_adjuncts) {
-        int i=0, n=p->pool_n_adjuncts;
-        struct KNO_ADJUNCT *adjuncts=p->pool_adjuncts;
-        lispval adjuncts_table=kno_make_slotmap(n,0,NULL);
-        while (i<n) {
-          kno_store(adjuncts_table,
-                   adjuncts[i].slotid,
-                   adjuncts[i].table);
-          i++;}
-        return adjuncts_table;}
+	int i=0, n=p->pool_n_adjuncts;
+	struct KNO_ADJUNCT *adjuncts=p->pool_adjuncts;
+	lispval adjuncts_table=kno_make_slotmap(n,0,NULL);
+	while (i<n) {
+	  kno_store(adjuncts_table,
+		    adjuncts[i].slotid,
+		    adjuncts[i].table);
+	  i++;}
+	return adjuncts_table;}
       else return kno_empty_slotmap();}
     else if (n == 1) {
       if (p->pool_n_adjuncts) {
-        lispval slotid = args[0];
-        struct KNO_ADJUNCT *adjuncts=p->pool_adjuncts;
-        int i=0, n = p->pool_n_adjuncts;
-        while (i<n) {
-          if (adjuncts[i].slotid == slotid)
-            return kno_incref(adjuncts[i].table);
-          i++;}
-        return KNO_FALSE;}
+	lispval slotid = args[0];
+	struct KNO_ADJUNCT *adjuncts=p->pool_adjuncts;
+	int i=0, n = p->pool_n_adjuncts;
+	while (i<n) {
+	  if (adjuncts[i].slotid == slotid)
+	    return kno_incref(adjuncts[i].table);
+	  i++;}
+	return KNO_FALSE;}
       else return KNO_FALSE;}
     else if (n == 2) {
       lispval slotid = args[0];
       lispval adjunct = args[1];
       int rv = kno_set_adjunct(p,slotid,adjunct);
       if (rv<0)
-        return KNO_ERROR_VALUE;
+	return KNO_ERROR_VALUE;
       else return adjunct;}
     else return kno_err(kno_TooManyArgs,"kno_pool_ctl/adjuncts",
-                       KNO_SYMBOL_NAME(op),kno_pool2lisp(p));}
+			KNO_SYMBOL_NAME(op),kno_pool2lisp(p));}
   else if (op == KNOSYM_PROPS) {
     lispval props = (lispval) &(p->pool_props);
     lispval slotid = (n>0) ? (args[0]) : (KNO_VOID);
@@ -2565,28 +2565,28 @@ KNO_EXPORT lispval kno_default_poolctl(kno_pool p,lispval op,int n,kno_argvec ar
     else if (n == 2) {
       int rv=kno_store(props,slotid,args[1]);
       if (rv<0)
-        return KNO_ERROR_VALUE;
+	return KNO_ERROR_VALUE;
       else return kno_incref(args[1]);}
     else return kno_err(kno_TooManyArgs,"kno_pool_ctl/props",
-                       KNO_SYMBOL_NAME(op),kno_pool2lisp(p));}
+			KNO_SYMBOL_NAME(op),kno_pool2lisp(p));}
   else if (op == kno_capacity_op)
     return KNO_INT(p->pool_capacity);
   else if (op == KNOSYM_LOGLEVEL) {
     if (n == 0) {
       if (p->pool_loglevel < 0)
-        return KNO_FALSE;
+	return KNO_FALSE;
       else return KNO_INT(p->pool_loglevel);}
     else if (n == 1) {
       if (FIXNUMP(args[0])) {
-        long long level = KNO_FIX2INT(args[0]);
-        if ((level<0) || (level > 128))
-          return kno_err(kno_RangeError,"kno_default_poolctl",p->poolid,args[0]);
-        else {
-          int old_loglevel = p->pool_loglevel;
-          p->pool_loglevel = level;
-          if (old_loglevel<0)
-            return KNO_FALSE;
-          else return KNO_INT(old_loglevel);}}
+	long long level = KNO_FIX2INT(args[0]);
+	if ((level<0) || (level > 128))
+	  return kno_err(kno_RangeError,"kno_default_poolctl",p->poolid,args[0]);
+	else {
+	  int old_loglevel = p->pool_loglevel;
+	  p->pool_loglevel = level;
+	  if (old_loglevel<0)
+	    return KNO_FALSE;
+	  else return KNO_INT(old_loglevel);}}
       else return kno_type_error("loglevel","kno_default_poolctl",args[0]);}
     else return kno_err(kno_TooManyArgs,"kno_default_poolctl",p->poolid,VOID);}
   else if (op == kno_partitions_op)
@@ -2599,9 +2599,11 @@ KNO_EXPORT lispval kno_default_poolctl(kno_pool p,lispval op,int n,kno_argvec ar
     if (U8_BITP((p->pool_flags),KNO_STORAGE_READ_ONLY))
       return KNO_TRUE;
     else return KNO_FALSE;}
+  else if (op == KNOSYM_TYPE)
+    return kno_intern(p->pool_typeid);
   else {
     u8_log(LOG_WARN,"Unhandled POOLCTL op",
-           "Couldn't handle %q for %s",op,p->poolid);
+	   "Couldn't handle %q for %s",op,p->poolid);
     return KNO_FALSE;}
 }
 
@@ -2634,20 +2636,20 @@ static u8_string _more_oid_info(lispval oid)
     unsigned int hi = KNO_OID_HI(addr), lo = KNO_OID_LO(addr);
     if (p == NULL)
       u8_sprintf(oid_info_buf,sizeof(oid_info_buf),
-                 "@%x/%x in no pool",hi,lo);
+		 "@%x/%x in no pool",hi,lo);
     else if ((p->pool_label)&&(p->pool_source))
       u8_sprintf(oid_info_buf,sizeof(oid_info_buf),
-                 "@%x/%x in %s from %s = %s",
-                 hi,lo,p->pool_label,p->pool_source,p->poolid);
+		 "@%x/%x in %s from %s = %s",
+		 hi,lo,p->pool_label,p->pool_source,p->poolid);
     else if (p->pool_label)
       u8_sprintf(oid_info_buf,sizeof(oid_info_buf),
-                 "@%x/%x in %s",hi,lo,p->pool_label);
+		 "@%x/%x in %s",hi,lo,p->pool_label);
     else if (p->pool_source)
       u8_sprintf(oid_info_buf,sizeof(oid_info_buf),
-                 "@%x/%x from %s = %s",
-                 hi,lo,p->pool_source,p->poolid);
+		 "@%x/%x from %s = %s",
+		 hi,lo,p->pool_source,p->poolid);
     else u8_sprintf(oid_info_buf,sizeof(oid_info_buf),
-                    "@%x/%x from %s",hi,lo,p->poolid);
+		    "@%x/%x from %s",hi,lo,p->poolid);
     return oid_info_buf;}
   else return "not an oid!";
 }
@@ -2852,8 +2854,8 @@ KNO_EXPORT void kno_init_pools_c()
   kno_recyclers[kno_consed_pool_type]=recycle_consed_pool;
   kno_copiers[kno_consed_pool_type]=copy_consed_pool;
   kno_register_config("DEFAULTPOOL",_("Default location for new OID allocation"),
-                     kno_poolconfig_get,kno_poolconfig_set,
-                     &kno_default_pool);
+		      kno_poolconfig_get,kno_poolconfig_set,
+		      &kno_default_pool);
 
   kno_tablefns[kno_pool_type]=u8_zalloc(struct KNO_TABLEFNS);
   kno_tablefns[kno_pool_type]->get = (kno_table_get_fn)pool_tableget;
