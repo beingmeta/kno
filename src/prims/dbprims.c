@@ -4005,6 +4005,32 @@ static lispval bloom_data(lispval filter)
   return kno_bytes2packet(NULL,bloom->bytes,bloom->bf);
 }
 
+/* Checking pool and index typeids */
+
+DEFPRIM1("pooltype?",pool_typep,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "Returns true if *arg* is a known pool type",
+	 kno_symbol_type,KNO_VOID);
+static lispval pool_typep(lispval typesym)
+{
+  struct KNO_POOL_TYPEINFO *ptype =
+    kno_get_pool_typeinfo(KNO_SYMBOL_NAME(typesym));
+  if (ptype)
+    return KNO_TRUE;
+  else return KNO_FALSE;
+}
+
+DEFPRIM1("indextype?",index_typep,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "Returns true if *arg* is a known index type",
+	 kno_symbol_type,KNO_VOID);
+static lispval index_typep(lispval typesym)
+{
+  struct KNO_INDEX_TYPEINFO *ptype =
+    kno_get_index_typeinfo(KNO_SYMBOL_NAME(typesym));
+  if (ptype)
+    return KNO_TRUE;
+  else return KNO_FALSE;
+}
+
 /* Registering procpools and procindexes */
 
 DEFPRIM2("defpooltype",def_procpool,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
@@ -4094,6 +4120,8 @@ static void link_local_cprims()
 {
   KNO_LINK_PRIM("procindex?",procindexp,1,kno_db_module);
   KNO_LINK_PRIM("procpool?",procpoolp,1,kno_db_module);
+  KNO_LINK_PRIM("indextype?",index_typep,1,kno_db_module);
+  KNO_LINK_PRIM("pooltype?",pool_typep,1,kno_db_module);
   KNO_LINK_PRIM("defindextype",def_procindex,2,kno_db_module);
   KNO_LINK_PRIM("defpooltype",def_procpool,2,kno_db_module);
   KNO_LINK_PRIM("bloom-data",bloom_data,1,kno_db_module);
