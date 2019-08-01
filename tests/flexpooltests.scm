@@ -2,7 +2,8 @@
 
 (use-module '{flexdb flexdb/flexpool texttools varconfig logger logctl})
 
-;;(logctl! 'flexdb/flexpool %debug%)
+(logctl! 'flexdb/flexpool %debug%)
+(logctl! 'flexdb/adjuncts %debug%)
 
 (define poolfile "flex.flexpool")
 (define pooltype 'bigpool)
@@ -19,6 +20,7 @@
   (let* ((existing (file-exists? poolfile))
 	 (opts `#[base @99/0 capacity 1024 partsize 16 type flexpool
 		  prefix ,(strip-suffix poolfile ".flexpool")
+		  adjuncts #[to3rd "to3rd"]
 		  compression ,compression
 		  partition-type bigpool])
 	 (fp ((if existing open-pool make-pool) poolfile opts)))

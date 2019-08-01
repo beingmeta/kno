@@ -163,11 +163,8 @@
 	     (try (tryif (and (exists? prefix) prefix)
 		    (get flexpools (mkpath (dirname (abspath filename)) prefix))
 		    (get flexpools (mkpath (dirname (realpath filename)) prefix)))
-		  (if (and (exists? prefix) prefix
-			   (exists? base) base
-			   (exists? cap) cap
-			   (exists? partsize) partsize
-			   (exists? partopts) partopts)
+		  (if (and (satisfied? prefix) (satisfied? base) (satisfied? cap)
+			   (satisfied? partsize) (satisfied? partopts))
 		      (let ((pool (unique-flexpool filename prefix base cap 
 						   partsize partopts
 						   opts)))
@@ -191,7 +188,10 @@
 	       (partopts (frame-create #f
 			   'capacity partsize
 			   'pooltype pooltype
-			   'metadata (frame-create #f 'adjuncts adjuncts)
+			   'metadata (frame-create #f
+				       'adjuncts adjuncts
+				       'flexinfo `#[base ,base cap ,cap partsize ,partsize
+						    pooltype ,pooltype prefix ,prefix])
 			   'prefix prefix))
 	       (flexinfo (frame-create #f
 			   'created (timestamp)
@@ -201,9 +201,7 @@
 			   'load (getopt opts 'load {})
 			   'partitions (getopt opts 'partitions {})
 			   'partopts partopts
-			   'metadata metadata))
-	       (zero-pool (flexdb/pool (make-pool )))
-)
+			   'metadata metadata)))
 	  (debug%watch "MAKE-FLEXPOOL"
 	    filename absprefix adjuncts 
 	    "\n" metadata "\n" flexinfo)
@@ -257,74 +255,64 @@
 
 (define (init-flexpool filename file-prefix flexbase flexcap partsize partopts 
 		       (open-opts #f))
-  (unless (has-prefix filename "/")
-    (set! filename (abspath filename)))
+  (unless (has-prefix filename "/") (set! filename (abspath filename)))
   (let* ((prefix (textsubst file-prefix pool-suffix ""))
 	 (padlen (flexpool/padlen flexcap partsize))
 	 (flexdir (dirname filename))
-	 (start-ref (glom prefix "." (padnum 0 padlen 16) ".pool"))
-	 (start-file (mkpath flexdir start-ref))
 	 (suffix-pat `#({"/" (bos)}
 			,(basename prefix)
 			"." ,(make-vector padlen '(isxdigit)) ".pool"))
-	 (matching-files (pick (getfiles (dirname start-file))
+	 (matching-files (pick (getfiles (dirname (mkpath flexdir prefix)))
 			   string-ends-with? suffix-pat))
 	 (basemap (make-hashtable))
-	 (start-pool (tryif (file-exists? start-file)
-		       (flexdb/pool
-			(if (getopt opts 'adjunct)
-			    (open-pool start-file (opt+ open-opts partition-opts))
-			    (use-pool start-file (opt+ open-opts partition-opts)))
-			open-opts)))
-	 (pools start-pool)
+	 (pools {})
 	 (front #f)
-	 (last start-pool))
+	 (last #f)
+	 (zero #f))
 
-    (debug%watch "INIT-FLEXPOOL" filename file-prefix opts)
-
-    (when (> (pool-capacity start-pool) (pool-load start-pool))
-      (set! front start-pool))
-
-    (loginfo |PoolPartition| "= " (pool-source start-pool))
-
-    (store! basemap (pool-base start-pool) start-pool)
+    (debug%watch "INIT-FLEXPOOL" 
+      filename file-prefix "\n" open-opts )
 
     (do-choices (other matching-files)
-      (unless (equal? other start-file)
-	(let ((pool (flexdb/pool
-		     (if (getopt opts 'adjunct)
-			 (open-pool other (opt+ open-opts partition-opts))
-			 (use-pool other (opt+ open-opts partition-opts)))
-		     open-opts)))
-	  (loginfo |PoolPartition| "+ " (pool-source pool))
-	  (poolctl pool 'props 'flexbase flexbase)
-	  (set+! pools pool)
-	  (store! basemap (pool-base pool) pool)
-	  ;; *front* is the first pool with any space
-	  (when (and (not front) (< (pool-load pool) (pool-capacity pool)))
-	    (set! front pool))
-	  ;; *last* is the numerically largest pool in the flex pool
-	  (when (> (oid-addr (pool-base pool)) (oid-addr (pool-base last)))
-	    (set! last pool)))))
+      (let ((pool (flexdb/pool
+		   (if (getopt open-opts 'adjunct)
+		       (open-pool other (opt+ open-opts partopts))
+		       (use-pool other (opt+ open-opts partopts)))
+		   open-opts)))
+	(loginfo |PoolPartition| "+ " (pool-source pool))
+	(poolctl pool 'props 'flexbase flexbase)
+	(store! basemap (pool-base pool) pool)
+	(set+! pools pool)
+	;; *front* is the first pool with any space
+	(when (and (not front) (< (pool-load pool) (pool-capacity pool)))
+	  (set! front pool))
+	;; Zero is the first pool
+	(when (= (oid-addr (pool-base pool)) (oid-addr flexbase))
+	  (set! zero pool))
+	;; *last* is the numerically largest pool in the flex pool
+	(when (or (not last)
+		  (> (oid-addr (pool-base pool)) (oid-addr (pool-base last))))
+	  (set! last pool))))
     
     (when (not front) (set! front last))
 
-    (let ((state (cons-flexpool filename prefix flexbase flexcap 
-				partsize partition-opts
-				opts basemap pools
-				front start-pool last))
-	  (flex-opts `#[adjunct #t 
-			register #t
-			type flexpool
-			source ,filename
-			cachelevel 0]))
+    (let* ((state (cons-flexpool filename prefix flexbase flexcap 
+				 partsize partopts open-opts
+				 basemap pools
+				 front zero last))
+	   (flex-opts `#[adjunct #t
+			 register #t
+			 type flexpool
+			 source ,filename
+			 cachelevel 0])
+	   (zero-pool (flexpool-partition state 0 open-opts 'create)))
       (let ((pool (make-procpool 
-		   prefix flexbase flexcap (cons flex-opts opts) state
-		   (getopt opts 'load 0))))
+		   prefix flexbase flexcap (cons flex-opts open-opts) state
+		   (getopt open-opts 'load 0))))
 	(lognotice |Flexpool|
 	  "Using " ($count (choice-size pools) "partition" "partitions") 
 	  " of " ($num partsize) " OIDs"
-	  " for" (if (getopt opts 'adjunct) " adjunct" )" flexpool " (write (pool-id pool)) 
+	  " for" (if (getopt open-opts 'adjunct) " adjunct" )" flexpool " (write (pool-id pool)) 
 	  "\n    " pool)
 	(store! flexdata pool state)
 	(store! flexdata
@@ -342,11 +330,15 @@
 	pool))))
 
 (define (flexpool-partition fp serial (open-opts #f) (action #f))
-  (let ((base (oid-plus (flexpool-base fp) (* serial (flexpool-partsize fp))))
-	(padlen (flexpool/padlen (flexpool-capacity fp) partsize))
-	(relpath (glom (flexpool-prefix fp) "." (padnum serial padlen 16) ".pool"))
-	(path (mkpath (dirname (flexpool-filename fp)) relpath))
-	(partopts (cons [base base] (flexpool-partopts fp))))
+  (let* ((base (oid-plus (flexpool-base fp) (* serial (flexpool-partsize fp))))
+	 (padlen (flexpool/padlen (flexpool-capacity fp) (flexpool-partsize fp)))
+	 (relpath (glom (flexpool-prefix fp) "." (padnum serial padlen 16) ".pool"))
+	 (path (mkpath (dirname (flexpool-filename fp)) relpath))
+	 (partopts (deep-copy (flexpool-partopts fp)))
+	 (metadata (get partopts 'metadata)))
+    (store! partopts 'base base)
+    (store! (get metadata 'flexinfo) 'serial serial)
+    (store! (get metadata 'flexinfo) 'base base)
     (cond ((file-exists? path)
 	   (flexdb/pool (if (or (getopt open-opts 'adjunct)
 				(getopt partopts 'adjunct))
@@ -354,39 +346,28 @@
 			    (use-pool path (cons open-opts partopts)))))
 	  ((eq? action 'err)
 	   (irritant path |MissingPartition| flexpool-partition))
-	  ((eq? action 'create)
-	   (let ((made (flexdb/pool (make-pool path partopts))))
+	  ((or (eq? action 'create) (eq? action #t))
+	   (let ((made (flexdb/pool (make-pool path partopts)
+				    (cons #[create #t] open-opts))))
+	     (unless (satisfied? (flexpool-front fp))
+	       (set-flexpool-front! fp made))
+	     (unless (satisfied? (flexpool-last fp))
+	       (set-flexpool-last! fp made))
+	     (when (and (satisfied? (flexpool-zero fp)) 
+			(eq? (pool-base made) (flexpool-base fp)))
+	       (set-flexpool-zero! fp made))
 	     (set-flexpool-partitions! fp (choice made (flexpool-partitions fp)))
 	     made)))))
 
 ;;; Getting the 'next' flexpool (creates a new partition)
 
 (define (flexpool-next-inner fp)
-  (let* ((base (oid-plus (pool-base (flexpool-front fp))
-			 (flexpool-partsize fp)))
-	 (flexbase (flexpool-base fp))
-	 (flexcap (flexpool-capacity fp))
-	 (flexopts (flexpool-opts fp))
-	 (partopts (flexpool-partopts fp))
-	 (partsize (flexpool-partsize fp))
-	 (prefix (flexpool-prefix fp))
-	 (padlen (flexpool/padlen (flexpool-capacity fp) partsize))
-	 (serial (quotient (oid-offset base flexbase) partsize))
-	 (relpath (glom prefix "." (padnum serial padlen 16) ".pool"))
-	 (path (mkpath (dirname (flexpool-filename fp)) relpath))
-	 (opts (flexpool/makeopts path flexbase 0 flexcap partsize serial
-				  (cons `#[prefix ,prefix create #t]
-					(flexpool-partopts fp)))))
-    (let ((new (flexdb/pool
-		(if (file-exists? path)
-		    (use-pool path (cons opts (flexpool-opts fp))) 
-		    (make-pool path (cons opts (flexpool-opts fp))))
-		opts)))
-      (loginfo |FlexpoolNext| "Created new pool " new " in " fp)
-      (when (exists? (poolctl new 'metadata 'adjuncts)) 
-	(adjuncts/setup! new (poolctl new 'metadata 'adjuncts) partopts))
-      (set-flexpool-front! fp new)
-      new)))
+  (let* ((front (flexpool-front fp))
+	 (serial (get (poolctl front 'metadata 'flexinfo) 'serial))
+	 (next (flexpool-partition fp (1+ serial) (flexpool-opts fp) 'create)))
+      (loginfo |FlexpoolNext| "Created new pool " next " in " fp)
+      (set-flexpool-front! fp next)
+      next))
 (define-init flexpool-next
   (slambda (fp) (flexpool-next-inner fp)))
 
@@ -449,7 +430,7 @@
 	((test flexdata file)
 	 (set! file (abspath (flexpool-filename (get flexdata file)))))
 	((exists? (flexpool/find file))
-	 (set! file (abspath (flexpool-filename (flexpool/find file)))))
+	 (set! file (abspath (flexpool-filename (get flexpools (flexpool/find file))))))
 	((string? file) (set! file (abspath file)))
 	(else (irritant file |FlexpoolRef|)))
   (cond ((file-exists? file) (set! file (realpath file)))
@@ -467,7 +448,7 @@
 		  #(".pool" {"" ".commit" ".rollback"})))
 	 (metadata (get info 'metadata))
 	 (adjuncts (get metadata 'adjuncts))
-	 (patterns `#(,(abspath prefix (dirname file)) ,partition-suffix))
+	 (patterns `#(,(abspath prefix (dirname file)) (opt #("_" (isalpha+))) ,partition-suffix))
 	 (filedir (dirname file))
 	 (topdir (dirname (abspath prefix filedir)))
 	 (dirs topdir))
@@ -691,7 +672,7 @@
 			  'metadata `#[adjunct ,adjslot]
 			  'adjunct adjslot
 			  'partsize partsize 
-			  'partopts ,(getopt opts 'partopts #[])
+			  'partopts (getopt opts 'partopts #[])
 			  'prefix adj-prefix
 			  'init (config 'sessionid)
 			  'created (gmtimestamp))))
@@ -779,6 +760,8 @@
 (define (flexpool-alloc pool flexpool (n 1))
   (with-lock (flexpool-lock flexpool)
     (let ((front (flexpool-front flexpool)))
+      (unless (satisfied? front)
+	(set! front (flexpool-partition flexpool 0)))
       (if (<= (+ (pool-load front) n) (pool-capacity front))
 	  (allocate-oids front n)
 	  (let* ((lower (- (pool-capacity front)

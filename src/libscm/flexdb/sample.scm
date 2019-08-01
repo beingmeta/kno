@@ -3,9 +3,13 @@
 
 (config! 'bricosource (get-component "brico"))
 
-(use-module '{logger webtools varconfig libarchive texttools stringfmts optimize})
+(use-module '{logger logctl webtools varconfig libarchive texttools stringfmts optimize})
 (use-module '{flexdb flexdb/branches flexdb/typeindex})
 ;; (use-module 'brico)
+
+(begin (logctl! 'flexdb %debug%)
+  (logctl! 'flexdb/flexpool %debug%)
+  (logctl! 'flexdb/adjuncts %debug%))
 
 (config! 'cachelevel 2)
 (config! 'logthreadinfo #t)
@@ -17,6 +21,13 @@
 (varconfig! inbufsize inbufsize)
 
 (define %loglevel %notice%)
+
+(define wikidata-root (get-component "wikidata"))
+(unless (file-directory? wikidata-root) (mkdir wikidata-root))
+(define wikidata-pools-root (mkpath wikidata-root "pools"))
+(unless (file-directory? wikidata-pools-root) (mkdir wikidata-pools-root))
+(define (reset)
+  (remove-file (getfiles {wikidata-root (mkpath wikidata-root "pools")})))
 
 (define wikidata.pool
   (flexdb/make "wikidata/wikidata.flexpool"
@@ -31,7 +42,7 @@
 
 #|
 (define wikidata.pool
-  (flexdb/make "wikidata/wikidata.00.pool"
+  (flexdb/make "wikidata/wikidata.pool"
 	       [create #t type 'bigpool
 		base @31c1/0 capacity (* 1024 1024)
 		adjuncts #[labels #[pool "labels"]
@@ -39,3 +50,5 @@
 			   claims #[pool "claims"]
 			   sitelinks #[pool "sitelinks"]]]))
 |#
+
+

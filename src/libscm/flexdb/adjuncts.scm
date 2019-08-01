@@ -30,7 +30,8 @@
       (info%watch "ADJUNCTS/INIT!" pool adjuncts cur open-opts)
       (do-choices (slotid (getkeys adjuncts))
 	(cond ((not (test cur slotid))
-	       (let* ((spec (get cur slotid))
+	       ;; No currently defined adjunct, go ahead and try to open one
+	       (let* ((spec (get adjuncts slotid))
 		      (adjopts (getadjopts pool slotid spec))
 		      (usedb (db/ref (get adjuncts slotid) (cons adjopts open-opts))))
 		 (cond ((exists? usedb) (adjunct! pool slotid usedb))
@@ -41,19 +42,25 @@
 			(logwarn |MissingAdjunct| 
 			  "Adjunct " (get adjuncts slotid) " couldn't be resolved for\n  "
 			  pool)))))
+	      ;; A currently defined adjunct which is consistent with the
+	      ;; spec in the metadata, leav it.
 	      ((consistent? (get cur slotid) (get adjuncts slotid)
 			    (dirname (pool-source pool))))
+	      ;; An inconsistent adjunct and we're generating an error on confict
 	      ((testopt opts 'override 'error)
 	       (irritant `#[pool ,pool slotid ,slotid 
 			    cur ,(get cur slotid)
 			    new ,(get adjuncts slotid)]
 		   |AdjunctConflict|
 		 adjunct/init!))
+	      ;; An inconsistent adjunct but we're just ignoring it, except for a log message
 	      ((testopt opts 'override '{ignore keep})
 	       (logwarn |AdjunctConflict| 
 		 "Keeping existing adjunct for " slotid " of " pool ":"
 		 "\n   keeping:   " (get cur slotid) 
 		 "\n   ignoring:  " (get adjuncts slotid)))
+	      ;; An inconsistent adjunct and the current one is modified, so we'll signal an error
+	      ;;  rather than lose those modifications
 	      ((and (modified? (get cur slotid))
 		    (not (testopt opts 'force)))
 	       (irritant `#[pool ,pool slotid ,slotid 
@@ -62,7 +69,8 @@
 		   |ModifiedAdjunctConflict|
 		 adjuncts/init!))
 	      (else 
-	       (let* ((spec (get cur slotid))
+	       ;; Try to replace the adunct
+	       (let* ((spec (get adjuncts slotid))
 		      (adjopts (getadjopts pool slotid spec))
 		      (usedb (db/ref (get adjuncts slotid) (cons adjopts open-opts))))
 		 (cond ((exists? usedb)
@@ -73,13 +81,13 @@
 			    "\n   dropping:   " (get cur slotid)))
 			(adjunct! pool slotid usedb))
 		       ((getopt opts 'require_adjuncts)
+			;; Signal an error here, even though there's another adjunct
 			(irritant (get adjuncts slotid) |MissingAdjunct|
 			  "for pool " pool))
 		       (else
 			(logwarn |MissingAdjunct| 
-			  "New adjunct " (get adjuncts slotid)
-			  " couldn't be resolved for\n  "
-			  pool)))))))
+			  "New adjunct for " slotid " in " pool
+			  " couldn't be resolved from " spec)))))))
       (poolctl pool 'props 'adjuncts (get-adjuncts pool)))))
 
 (define (consistent? adjunct spec (dir))
@@ -144,11 +152,9 @@
 (define (adjunct-setup! pool slotid spec opts)
   (info%watch "ADJUNCT-SETUP!" pool slotid spec opts)
   (adjunct! pool slotid 
-	    (ref-adjunct pool
-			 (cons (getadjopts pool slotid spec) 
-			       opts))))
+	    (ref-adjunct pool (cons (getadjopts pool slotid spec) opts))))
 
-(define suffix-pat #((opt #("." (isdigit+))) "." (isalpha+) (eos)))
+(define suffix-pat #((opt #("." (isxdigit+))) "." (isalpha+) (eos)))
 
 (define (replace-suffix file suffix)
   (if (textsearch suffix-pat file)
@@ -233,7 +239,7 @@
 	     (poolctl pool 'type)
 	     'bigpool))
       (store! opts 'base (pool-base pool))
-      (store! opts 'capacity (poolctl pool 'metadata 'partsize (* 1024 1024)))
+      (store! opts 'capacity (pool-capacity pool))
       (unless (pooltype? (get opts 'pooltype))
 	(irritant opts |InvalidPoolType| getadjopts)))
     opts))
@@ -242,11 +248,11 @@
   (if (position #\/ path)
       (mkpath (dirname poolsrc) 
 	      (glom path (gather poolsrc
-				 #((opt #("." (isdigit+))) "." (isalpha+) (eos)))))
+				 #((opt #("." (isxdigit+))) "." (isalpha+) (eos)))))
       (glom (basename poolsrc #t) 
 	(and (not (has-prefix path "_")) "_")
-	(textsubst path #((opt #("." (isdigit+))) "." (isalpha+) (eos)) "")
-	(gather #((opt #("." (isdigit+))) "." (isalpha+) (eos)) poolsrc))))
+	(textsubst path #((opt #("." (isxdigit+))) "." (isalpha+) (eos)) "")
+	(gather #((opt #("." (isxdigit+))) "." (isalpha+) (eos)) poolsrc))))
 
 (define (get-adjindex-path poolsrc path)
   (if (position #\/ path)
