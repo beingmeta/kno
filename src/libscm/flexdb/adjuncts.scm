@@ -30,7 +30,9 @@
       (info%watch "ADJUNCTS/INIT!" pool adjuncts cur open-opts)
       (do-choices (slotid (getkeys adjuncts))
 	(cond ((not (test cur slotid))
-	       (let ((usedb (db/ref (get adjuncts slotid) open-opts)))
+	       (let* ((spec (get cur slotid))
+		      (adjopts (getadjopts pool slotid spec))
+		      (usedb (db/ref (get adjuncts slotid) (cons adjopts open-opts))))
 		 (cond ((exists? usedb) (adjunct! pool slotid usedb))
 		       ((getopt opts 'require_adjuncts)
 			(irritant (get adjuncts slotid) |MissingAdjunct|
@@ -60,8 +62,9 @@
 		   |ModifiedAdjunctConflict|
 		 adjuncts/init!))
 	      (else 
-	       (let ((spec (get adjuncts slotid))
-		     (usedb (db/ref (get adjuncts slotid) open-opts)))
+	       (let* ((spec (get cur slotid))
+		      (adjopts (getadjopts pool slotid spec))
+		      (usedb (db/ref (get adjuncts slotid) (cons adjopts open-opts))))
 		 (cond ((exists? usedb)
 			(unless (test cur slotid usedb)
 			  (logwarn |AdjunctConflict| 
@@ -107,6 +110,7 @@
 (define (adjuncts/setup! pool (adjuncts) (opts #f))
   (default! adjuncts (poolctl pool 'metadata 'adjuncts))
   (let ((cur (get-adjuncts pool)))
+    (debug%watch "ADJUNCTS/SETUP!" adjuncts cur)
     (do-choices (slotid (getkeys adjuncts))
       (cond ((not (test cur slotid))
 	     (adjunct-setup! pool slotid (get adjuncts slotid) opts))
@@ -137,26 +141,12 @@
 	       "\n   dropping:   " (get cur slotid))
 	     (adjunct-setup! pool slotid (get adjuncts slotid) opts))))))
 
-(define (adjunct-setup! pool slotid adjopts opts)
-  (%watch "ADJUNCT-SETUP!" pool slotid adjopts)
-  (when (string? adjopts)
-    (set! adjopts
-      (cond ((has-suffix adjopts ".index") `#[index ,adjopts])
-	    ((has-suffix adjopts ".pool")
-	     `#[pool ,adjopts
-		base ,(pool-base pool) 
-		capacity ,(pool-capacity pool)])
-	    (else `#[index ,adjopts]))))
-  (unless (or (getopt adjopts 'pool)  (getopt adjopts 'index))
-    (irritant adjopts |InvalidAdjunct|))
+(define (adjunct-setup! pool slotid spec opts)
+  (info%watch "ADJUNCT-SETUP!" pool slotid spec opts)
   (adjunct! pool slotid 
 	    (ref-adjunct pool
-			 (cons `#[adjunct ,slotid
-				  base ,(pool-base pool) 
-				  capacity ,(pool-capacity pool)
-				  metadata #[adjunct ,slotid adjuncts #[]]
-				  make #t] 
-			       adjopts))))
+			 (cons (getadjopts pool slotid spec) 
+			       opts))))
 
 (define suffix-pat #((opt #("." (isdigit+))) "." (isalpha+) (eos)))
 
@@ -181,7 +171,8 @@
 		       (dirname (pool-source pool)))))
 	(info%watch "REF-ADJUNCT" (pool-source pool) filename)
 	(cond ((file-exists? filename) (open-pool filename opts))
-	      ((getopt opts 'make) (make-pool filename opts))
+	      ((or (getopt opts 'make) (getopt opts 'create))
+	       (make-pool filename opts))
 	      ((getopt opts 'err #t)
 	       (irritant filename |MissingAdjunct| REF-ADJUNCT))
 	      (else {})))))
@@ -203,4 +194,64 @@
     (adjuncts/setup! pool `#[,slotid ,spec])
     (commit pool)))
 
+(define (getadjopts pool slotid spec)
+  (debug%watch "GETADJOPTS" pool slotid spec)
+  (let* ((path (try (tryif (string? spec) spec)
+		    (tryif (not (or (slotmap? spec) (schemap? spec)))
+		      (irritant spec |InvalidAdjunctSpec| getadjopts))
+		    (pickstrings
+		     (try (get spec 'index)
+			  (get spec 'pool)
+			  (get spec 'source)
+			  (get spec 'path)))
+		    (tryif (symbol? slotid) (symbol->string slotid))
+		    (tryif (oid? slotid) (number->string (oid-addr slotid) 16))))
+	 (poolsrc (pool-source pool))
+	 (opts (if (string? spec) #[] 
+		   (if (slotmap? spec) (deep-copy spec)
+		       (if (schemap? spec) (schemap->slotmap spec)
+			   (irritant spec |InvalidAdjunctSpec| getadjopts)))))
+	 (isindex (or (test opts '{index indextype})
+		      (has-suffix path ".index")
+		      (test opts 'type 'index)
+		      (exists indextype? (get opts 'type)))))
+    (store! opts 'adjunct slotid)
+    (when isindex
+      (store! opts 'index (get-adjindex-path poolsrc path))
+      (store! opts 'index path)
+      (store! opts '{type indextype}
+	(try (difference (get opts 'type) 'index)
+	     'hashindex))
+      (unless (test opts 'size)
+	(store! opts 'size (pool-capacity pool)))
+      (unless (indextype? (get opts 'indextype))
+	(irritant opts '|BadIndexType| getadjopts)))
+    (unless isindex
+      (store! opts 'pool (get-adjpool-path poolsrc path))
+      (store! opts '{type pooltype}
+	(try (difference (get opts 'type) 'pool)
+	     (poolctl pool 'type)
+	     'bigpool))
+      (store! opts 'base (pool-base pool))
+      (store! opts 'capacity (poolctl pool 'metadata 'partsize (* 1024 1024)))
+      (unless (pooltype? (get opts 'pooltype))
+	(irritant opts |InvalidPoolType| getadjopts)))
+    opts))
 
+(define (get-adjpool-path poolsrc path)
+  (if (position #\/ path)
+      (mkpath (dirname poolsrc) 
+	      (glom path (gather poolsrc
+				 #((opt #("." (isdigit+))) "." (isalpha+) (eos)))))
+      (glom (basename poolsrc #t) 
+	(and (not (has-prefix path "_")) "_")
+	(textsubst path #((opt #("." (isdigit+))) "." (isalpha+) (eos)) "")
+	(gather #((opt #("." (isdigit+))) "." (isalpha+) (eos)) poolsrc))))
+
+(define (get-adjindex-path poolsrc path)
+  (if (position #\/ path)
+      (mkpath (dirname poolsrc) (glom path ".index"))
+      (glom (basename poolsrc #t)
+	(and (not (has-prefix path "_")) "_")
+	(strip-suffix path ".index")
+	".index")))
