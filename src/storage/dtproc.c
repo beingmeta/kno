@@ -30,7 +30,7 @@ KNO_EXPORT lispval kno_make_dtproc(u8_string name,u8_string server,
                                  int minsock,int maxsock,int initsock)
 {
   struct KNO_DTPROC *f = u8_alloc(struct KNO_DTPROC);
-  KNO_INIT_CONS(f,kno_dtproc_type);
+  KNO_INIT_CONS(f,kno_rpcproc_type);
   f->fcn_name = u8_mkstring("%s/%s",name,server);
   f->fcn_filename = u8_strdup(server);
   f->dtprocserver = u8_strdup(server);
@@ -56,7 +56,7 @@ KNO_EXPORT lispval kno_make_dtproc(u8_string name,u8_string server,
 
 static int unparse_dtproc(u8_output out,lispval x)
 {
-  struct KNO_DTPROC *f = kno_consptr(kno_dtproc,x,kno_dtproc_type);
+  struct KNO_DTPROC *f = kno_consptr(kno_dtproc,x,kno_rpcproc_type);
   u8_printf(out,"#<!DTPROC %s using %s>",f->fcn_name,
             f->dtprocserver);
   return 1;
@@ -117,11 +117,11 @@ KNO_EXPORT void kno_init_dtproc_c()
   u8_register_source_file(_FILEINFO);
   u8_register_source_file(KNO_DTPROC_H_INFO);
 
-  kno_type_names[kno_dtproc_type]=_("dtproc");
-  kno_applyfns[kno_dtproc_type]=(kno_applyfn)dtapply;
-  kno_functionp[kno_dtproc_type]=1;
+  kno_type_names[kno_rpcproc_type]=_("dtproc");
+  kno_applyfns[kno_rpcproc_type]=(kno_applyfn)dtapply;
+  kno_function_types[kno_rpcproc_type]=1;
 
-  kno_unparsers[kno_dtproc_type]=unparse_dtproc;
-  kno_recyclers[kno_dtproc_type]=recycle_dtproc;
+  kno_unparsers[kno_rpcproc_type]=unparse_dtproc;
+  kno_recyclers[kno_rpcproc_type]=recycle_dtproc;
 }
 

@@ -611,7 +611,7 @@ KNO_EXPORT lispval kno_dcall(struct KNO_STACK *_stack,
     fn=kno_fcnid_ref(fn);
     ftype=KNO_TYPEOF(fn);}
 
-  if (kno_functionp[ftype]) {
+  if (kno_function_types[ftype]) {
     f=(struct KNO_FUNCTION *)fn;
     if (f->fcn_name) fname=f->fcn_name;
     min_arity = f->fcn_min_arity;
@@ -899,7 +899,7 @@ KNO_EXPORT lispval kno_ndcall(struct KNO_STACK *_stack,
     return kno_simplify_choice(results);}
   else {
     kno_lisp_type fntype = KNO_TYPEOF(handler);
-    if (kno_functionp[fntype]) {
+    if (kno_function_types[fntype]) {
       struct KNO_FUNCTION *f = KNO_GETFUNCTION(handler);
       if (f->fcn_arity==0)
 	return kno_stack_dapply(_stack,handler,n,args);
@@ -1202,7 +1202,7 @@ static int config_add_profiled(lispval var,lispval val,void *data)
 static int APPLICABLE_TYPEP(int typecode)
 {
   if ( ((typecode) >= kno_cprim_type) &&
-       ((typecode) <= kno_dtproc_type) )
+       ((typecode) <= kno_rpcproc_type) )
     return 1;
   else return ( (kno_applyfns[typecode]) != NULL);
 }
@@ -1222,7 +1222,7 @@ static int FUNCTION_TYPEP(int typecode)
   if ( ((typecode) == kno_cprim_type) ||
        ((typecode) == kno_lambda_type) )
     return 1;
-  else return kno_functionp[typecode];
+  else return kno_function_types[typecode];
 }
 KNO_EXPORT int _KNO_FUNCITON_TYPEP(int typecode)
 {
@@ -1246,11 +1246,11 @@ KNO_EXPORT int _KNO_LAMBDAP(lispval x)
 KNO_EXPORT void kno_init_apply_c()
 {
   int i = 0; while (i < KNO_TYPE_MAX) kno_applyfns[i++]=NULL;
-  i = 0; while (i < KNO_TYPE_MAX) kno_functionp[i++]=0;
+  i = 0; while (i < KNO_TYPE_MAX) kno_function_types[i++]=0;
 
   moduleid_symbol = kno_getsym("%MODULEID");
 
-  kno_functionp[kno_fcnid_type]=1;
+  kno_function_types[kno_fcnid_type]=1;
 
   kno_applyfns[kno_cprim_type]=dapply;
 

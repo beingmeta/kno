@@ -228,7 +228,6 @@
 	    (let* ((line (filestream/read in))
 		   (item (and (satisfied? line) (string? line)
 			      (jsonparse line 'symbolize))))
-	      (%watch "READ-LOOP" line item)
 	      (when item
 		(import-wikid-item item index has.index))))))
     (let ((cur-count (filestream-itemcount in)))

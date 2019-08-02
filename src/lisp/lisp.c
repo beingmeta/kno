@@ -36,6 +36,9 @@ KNO_EXPORT u8_string kno_getversion(){return KNO_VERSION;}
 KNO_EXPORT u8_string kno_getrevision(){return KNO_REVISION;}
 KNO_EXPORT int kno_getmajorversion(){return KNO_MAJOR_VERSION;}
 
+u8_string kno_type_names[KNO_TYPE_MAX];
+u8_string kno_type_docs[KNO_TYPE_MAX];
+
 int kno_lockdown = 0;
 
 #if ((KNO_THREADS_ENABLED)&&(KNO_USE_TLS))
@@ -194,78 +197,145 @@ static void register_header_files()
 
 static void init_type_names()
 {
+  memset(kno_type_names,0,sizeof(u8_string)*KNO_TYPE_MAX);
+  memset(kno_type_docs,0,sizeof(u8_string)*KNO_TYPE_MAX);
+
   kno_type_names[kno_oid_type]=_("oid");
+  kno_type_docs[kno_oid_type]=_("oid");
   kno_type_names[kno_fixnum_type]=_("fixnum");
+  kno_type_docs[kno_fixnum_type]=_("fixnum");
   kno_type_names[kno_cons_type]=_("cons");
+  kno_type_docs[kno_cons_type]=_("cons");
   kno_type_names[kno_immediate_type]=_("immediate");
+  kno_type_docs[kno_immediate_type]=_("immediate");
   kno_type_names[kno_constant_type]=_("constant");
+  kno_type_docs[kno_constant_type]=_("constant");
   kno_type_names[kno_character_type]=_("character");
+  kno_type_docs[kno_character_type]=_("character");
   kno_type_names[kno_symbol_type]=_("symbol");
+  kno_type_docs[kno_symbol_type]=_("symbol");
   kno_type_names[kno_fcnid_type]=_("fcnid");
+  kno_type_docs[kno_fcnid_type]=_("fcnid");
   kno_type_names[kno_lexref_type]=_("lexref");
+  kno_type_docs[kno_lexref_type]=_("lexref");
   kno_type_names[kno_opcode_type]=_("opcode");
+  kno_type_docs[kno_opcode_type]=_("opcode");
   kno_type_names[kno_typeref_type]=_("typeref");
+  kno_type_docs[kno_typeref_type]=_("typeref");
   kno_type_names[kno_coderef_type]=_("coderef");
+  kno_type_docs[kno_coderef_type]=_("coderef");
   kno_type_names[kno_pool_type]=_("pool");
+  kno_type_docs[kno_pool_type]=_("pool");
   kno_type_names[kno_index_type]=_("index");
+  kno_type_docs[kno_index_type]=_("index");
   kno_type_names[kno_histref_type]=_("histref");
+  kno_type_docs[kno_histref_type]=_("histref");
 
   kno_type_names[kno_string_type]=_("string");
+  kno_type_docs[kno_string_type]=_("string");
   kno_type_names[kno_packet_type]=_("packet");
+  kno_type_docs[kno_packet_type]=_("packet");
   kno_type_names[kno_secret_type]=_("secret");
+  kno_type_docs[kno_secret_type]=_("secret");
   kno_type_names[kno_bigint_type]=_("bigint");
+  kno_type_docs[kno_bigint_type]=_("bigint");
   kno_type_names[kno_pair_type]=_("pair");
+  kno_type_docs[kno_pair_type]=_("pair");
   kno_type_names[kno_cdrcode_type]=_("cdrcode");
+  kno_type_docs[kno_cdrcode_type]=_("cdrcode");
 
-  kno_type_names[kno_compound_type]=_("compound");
-  kno_type_names[kno_choice_type]=_("choice");
-  kno_type_names[kno_prechoice_type]=_("prechoice");
-  kno_type_names[kno_qchoice_type]=_("qchoice");
-  kno_type_names[kno_vector_type]=_("vector");
-  kno_type_names[kno_numeric_vector_type]=_("numeric_vector");
   kno_type_names[kno_typeinfo_type]=_("typeinfo");
+  kno_type_docs[kno_typeinfo_type]=_("typeinfo");
+  kno_type_names[kno_compound_type]=_("compound");
+  kno_type_docs[kno_compound_type]=_("compound");
+  kno_type_names[kno_wrapper_type]=_("wrapper");
+  kno_type_docs[kno_wrapper_type]=_("wrapper");
+  kno_type_names[kno_rawptr_type]=_("rawptr");
+  kno_type_docs[kno_rawptr_type]=_("rawptr");
+
+  kno_type_names[kno_choice_type]=_("choice");
+  kno_type_docs[kno_choice_type]=_("choice");
+  kno_type_names[kno_prechoice_type]=_("prechoice");
+  kno_type_docs[kno_prechoice_type]=_("prechoice");
+  kno_type_names[kno_qchoice_type]=_("qchoice");
+  kno_type_docs[kno_qchoice_type]=_("qchoice");
+
+  kno_type_names[kno_vector_type]=_("vector");
+  kno_type_docs[kno_vector_type]=_("vector");
+  kno_type_names[kno_numeric_vector_type]=_("numeric_vector");
+  kno_type_docs[kno_numeric_vector_type]=_("numeric_vector");
 
   kno_type_names[kno_slotmap_type]=_("slotmap");
+  kno_type_docs[kno_slotmap_type]=_("slotmap");
   kno_type_names[kno_schemap_type]=_("schemap");
+  kno_type_docs[kno_schemap_type]=_("schemap");
   kno_type_names[kno_hashtable_type]=_("hashtable");
+  kno_type_docs[kno_hashtable_type]=_("hashtable");
   kno_type_names[kno_hashset_type]=_("hashset");
+  kno_type_docs[kno_hashset_type]=_("hashset");
 
   kno_type_names[kno_cprim_type]=_("cprim");
-  kno_type_names[kno_lexenv_type]=_("lexenv");
-  kno_type_names[kno_evalfn_type]=_("evalfn");
-  kno_type_names[kno_macro_type]=_("macro");
-  kno_type_names[kno_dtproc_type]=_("dtproc");
-  kno_type_names[kno_stackframe_type]=_("stackframe");
-  kno_type_names[kno_tailcall_type]=_("tailcall");
-  kno_type_names[kno_lambda_type]=_("lambda");
+  kno_type_docs[kno_cprim_type]=_("cprim");
   kno_type_names[kno_ffi_type]=_("ffi");
+  kno_type_docs[kno_ffi_type]=_("ffi");
+  kno_type_names[kno_lambda_type]=_("lambda");
+  kno_type_docs[kno_lambda_type]=_("lambda");
+  kno_type_names[kno_rpcproc_type]=_("rpcproc");
+  kno_type_docs[kno_rpcproc_type]=_("rpcproc");
+
+  kno_type_names[kno_lexenv_type]=_("lexenv");
+  kno_type_docs[kno_lexenv_type]=_("lexenv");
+  kno_type_names[kno_evalfn_type]=_("evalfn");
+  kno_type_docs[kno_evalfn_type]=_("evalfn");
+  kno_type_names[kno_macro_type]=_("macro");
+  kno_type_docs[kno_macro_type]=_("macro");
+  kno_type_names[kno_stackframe_type]=_("stackframe");
+  kno_type_docs[kno_stackframe_type]=_("stackframe");
+  kno_type_names[kno_tailcall_type]=_("tailcall");
+  kno_type_docs[kno_tailcall_type]=_("tailcall");
   kno_type_names[kno_exception_type]=_("exception");
+  kno_type_docs[kno_exception_type]=_("exception");
   kno_type_names[kno_promise_type]=_("promise");
+  kno_type_docs[kno_promise_type]=_("promise");
+  kno_type_names[kno_thread_type]=_("thread");
+  kno_type_docs[kno_thread_type]=_("thread");
+  kno_type_names[kno_synchronizer_type]=_("synchronizer");
+  kno_type_docs[kno_synchronizer_type]=_("synchronizer");
 
   kno_type_names[kno_complex_type]=_("complex");
+  kno_type_docs[kno_complex_type]=_("complex");
   kno_type_names[kno_rational_type]=_("rational");
+  kno_type_docs[kno_rational_type]=_("rational");
   kno_type_names[kno_flonum_type]=_("flonum");
-
-  kno_type_names[kno_thread_type]=_("thread");
-  kno_type_names[kno_synchronizer_type]=_("synchronizer");
+  kno_type_docs[kno_flonum_type]=_("flonum");
 
   kno_type_names[kno_timestamp_type]=_("timestamp");
+  kno_type_docs[kno_timestamp_type]=_("timestamp");
   kno_type_names[kno_uuid_type]=_("uuid");
+  kno_type_docs[kno_uuid_type]=_("uuid");
 
   kno_type_names[kno_mystery_type]=_("mystery");
+  kno_type_docs[kno_mystery_type]=_("mystery");
   kno_type_names[kno_ioport_type]=_("ioport");
+  kno_type_docs[kno_ioport_type]=_("ioport");
   kno_type_names[kno_stream_type]=_("stream");
+  kno_type_docs[kno_stream_type]=_("stream");
 
   kno_type_names[kno_regex_type]=_("regex");
+  kno_type_docs[kno_regex_type]=_("regex");
 
   kno_type_names[kno_consblock_type]=_("consblock");
+  kno_type_docs[kno_consblock_type]=_("consblock");
 
   kno_type_names[kno_sqldb_type]=_("sqldb");
+  kno_type_docs[kno_sqldb_type]=_("sqldb");
   kno_type_names[kno_sqlproc_type]=_("sqldbproc");
+  kno_type_docs[kno_sqlproc_type]=_("sqldbproc");
 
-  kno_type_names[kno_rawptr_type]=_("rawptr");
   kno_type_names[kno_dtserver_type]=_("dtserver");
+  kno_type_docs[kno_dtserver_type]=_("dtserver");
   kno_type_names[kno_bloom_filter_type]=_("bloom_filter");
+  kno_type_docs[kno_bloom_filter_type]=_("bloom_filter");
 }
 
 static int lisp_types_version = 101;

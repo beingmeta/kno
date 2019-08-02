@@ -280,7 +280,7 @@ typedef int kno_size_t;
 #endif
 
 #ifndef KNO_TYPE_MAX
-#define KNO_TYPE_MAX 256
+#define KNO_TYPE_MAX 512
 #endif
 
 #ifndef KNO_TRACE_IPEVAL

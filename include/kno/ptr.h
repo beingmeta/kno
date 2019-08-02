@@ -139,6 +139,7 @@ typedef enum KNO_LISP_TYPE {
   kno_constant_type = KNO_IMMEDIATE_TYPECODE(0),
   kno_character_type = KNO_IMMEDIATE_TYPECODE(1),
   kno_symbol_type = KNO_IMMEDIATE_TYPECODE(2),
+
   /* Reserved as constants */
   kno_fcnid_type = KNO_IMMEDIATE_TYPECODE(3),
   kno_lexref_type = KNO_IMMEDIATE_TYPECODE(4),
@@ -161,53 +162,55 @@ typedef enum KNO_LISP_TYPE {
   kno_choice_type = KNO_CONS_TYPECODE(8),
   kno_prechoice_type = KNO_CONS_TYPECODE(9),
   kno_qchoice_type = KNO_CONS_TYPECODE(10),
-  kno_typeinfo_type = KNO_CONS_TYPECODE(11),
-  kno_tagged_type = KNO_CONS_TYPECODE(12),
-  kno_compound_type = KNO_CONS_TYPECODE(12),
-  kno_rawptr_type = KNO_CONS_TYPECODE(13),
 
-  kno_slotmap_type = KNO_CONS_TYPECODE(14),
-  kno_schemap_type = KNO_CONS_TYPECODE(15),
-  kno_hashtable_type = KNO_CONS_TYPECODE(16),
-  kno_hashset_type = KNO_CONS_TYPECODE(17),
+  kno_typeinfo_type = KNO_CONS_TYPECODE(11),
+
+  kno_compound_type = KNO_CONS_TYPECODE(12),
+  kno_wrapper_type = KNO_CONS_TYPECODE(13),
+  kno_rawptr_type = KNO_CONS_TYPECODE(14),
+
+  kno_slotmap_type = KNO_CONS_TYPECODE(16),
+  kno_schemap_type = KNO_CONS_TYPECODE(17),
+  kno_hashtable_type = KNO_CONS_TYPECODE(18),
+  kno_hashset_type = KNO_CONS_TYPECODE(19),
 
   /* Evaluator/apply types, defined here to be constant */
-  kno_cprim_type = KNO_CONS_TYPECODE(18),
-  kno_lambda_type = KNO_CONS_TYPECODE(19),
-  kno_ffi_type = KNO_CONS_TYPECODE(20),
-  kno_dtproc_type = KNO_CONS_TYPECODE(21),
-  kno_lexenv_type = KNO_CONS_TYPECODE(22),
-  kno_evalfn_type = KNO_CONS_TYPECODE(23),
-  kno_macro_type = KNO_CONS_TYPECODE(24),
-  kno_stackframe_type = KNO_CONS_TYPECODE(25),
-  kno_tailcall_type = KNO_CONS_TYPECODE(26),
-  kno_exception_type = KNO_CONS_TYPECODE(27),
-  kno_promise_type = KNO_CONS_TYPECODE(28),
+  kno_cprim_type = KNO_CONS_TYPECODE(20),
+  kno_lambda_type = KNO_CONS_TYPECODE(21),
+  kno_ffi_type = KNO_CONS_TYPECODE(22),
+  kno_rpcproc_type = KNO_CONS_TYPECODE(23),
 
-  kno_complex_type = KNO_CONS_TYPECODE(29),
-  kno_rational_type = KNO_CONS_TYPECODE(30),
-  kno_flonum_type = KNO_CONS_TYPECODE(31),
+  kno_lexenv_type = KNO_CONS_TYPECODE(24),
+  kno_evalfn_type = KNO_CONS_TYPECODE(25),
+  kno_macro_type = KNO_CONS_TYPECODE(26),
+  kno_stackframe_type = KNO_CONS_TYPECODE(27),
+  kno_tailcall_type = KNO_CONS_TYPECODE(28),
+  kno_exception_type = KNO_CONS_TYPECODE(29),
+  kno_promise_type = KNO_CONS_TYPECODE(30),
+  kno_thread_type = KNO_CONS_TYPECODE(31),
+  kno_synchronizer_type = KNO_CONS_TYPECODE(32),
+  kno_consblock_type = KNO_CONS_TYPECODE(33),
 
-  kno_timestamp_type = KNO_CONS_TYPECODE(32),
-  kno_uuid_type = KNO_CONS_TYPECODE(33),
+  kno_complex_type = KNO_CONS_TYPECODE(34),
+  kno_rational_type = KNO_CONS_TYPECODE(35),
+  kno_flonum_type = KNO_CONS_TYPECODE(36),
 
-  /* Other types, also defined here to be constant*/
-  kno_mystery_type = KNO_CONS_TYPECODE(34),
+  kno_timestamp_type = KNO_CONS_TYPECODE(37),
+  kno_uuid_type = KNO_CONS_TYPECODE(38),
 
-  kno_ioport_type = KNO_CONS_TYPECODE(35),
-  kno_stream_type = KNO_CONS_TYPECODE(36),
+  /* Other types, not strictly core, but defined here so they'll be
+     constant for the compiler */
+  kno_mystery_type = KNO_CONS_TYPECODE(39),
 
-  kno_regex_type = KNO_CONS_TYPECODE(37),
+  kno_ioport_type = KNO_CONS_TYPECODE(40),
+  kno_stream_type = KNO_CONS_TYPECODE(41),
+  kno_regex_type = KNO_CONS_TYPECODE(42),
 
-  kno_consblock_type = KNO_CONS_TYPECODE(38),
+  kno_dtserver_type = KNO_CONS_TYPECODE(43),
+  kno_bloom_filter_type = KNO_CONS_TYPECODE(44),
 
-  kno_dtserver_type = KNO_CONS_TYPECODE(39),
-  kno_bloom_filter_type = KNO_CONS_TYPECODE(40),
-
-  kno_thread_type = KNO_CONS_TYPECODE(41),
-  kno_synchronizer_type = KNO_CONS_TYPECODE(42),
-  kno_sqldb_type = KNO_CONS_TYPECODE(43),
-  kno_sqlproc_type = KNO_CONS_TYPECODE(44),
+  kno_sqldb_type = KNO_CONS_TYPECODE(45),
+  kno_sqlproc_type = KNO_CONS_TYPECODE(46),
 
   /* Extended types */
 
@@ -218,7 +221,7 @@ typedef enum KNO_LISP_TYPE {
 
   } kno_lisp_type;
 
-#define KNO_BUILTIN_CONS_TYPES 45
+#define KNO_BUILTIN_CONS_TYPES 47
 #define KNO_BUILTIN_IMMEDIATE_TYPES 11
 KNO_EXPORT unsigned int kno_next_cons_type;
 KNO_EXPORT unsigned int kno_next_immediate_type;
@@ -230,6 +233,7 @@ KNO_EXPORT int kno_register_cons_type(char *name);
 KNO_EXPORT int kno_register_immediate_type(char *name,kno_checkfn fn);
 
 KNO_EXPORT u8_string kno_type_names[KNO_TYPE_MAX];
+KNO_EXPORT u8_string kno_type_docs[KNO_TYPE_MAX];
 
 #define kno_lisp_typename(tc) \
   ( (tc<kno_next_cons_type) ? (kno_type_names[tc]) : ((u8_string)"oddtype"))

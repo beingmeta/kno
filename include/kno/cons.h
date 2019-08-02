@@ -426,10 +426,6 @@ struct KNO_FREE_CONS {
   KNO_CONS_HEADER;
   struct KNO_FREE_CONS *kno_nextfree;};
 
-struct KNO_WRAPPER {
-  KNO_CONS_HEADER;
-  void *kno_wrapped_data;};
-
 /* Strings */
 
 typedef struct KNO_STRING {
@@ -865,7 +861,7 @@ KNO_EXPORT int kno_set_restorefn(lispval tag,kno_type_restorefn fn);
   struct KNO_TYPEINFO *typeinfo
 
 #define KNO_TAGGEDP(x) \
-  ( (KNO_CONSP(x)) && ( (KNO_XCONSPTR_TYPE(x)==kno_tagged_type) ) )
+  ( (KNO_CONSP(x)) && ( (KNO_XCONSPTR_TYPE(x)==kno_compound_type) ) )
 
 typedef struct KNO_TAGGED {
   KNO_TAGGED_HEAD;} KNO_TAGGED;
@@ -885,6 +881,13 @@ KNO_FASTOP struct KNO_TYPEINFO *kno_taginfo(lispval obj)
       return info;}}
   else return NULL;
 }
+
+/* Compound types */
+
+typedef struct KNO_WRAPPER {
+  KNO_TAGGED_HEAD;
+  lispval wrapped;} KNO_WRAPPER;
+typedef struct KNO_WRAPPER *kno_wrapper;
 
 /* Compound types */
 
@@ -1061,7 +1064,7 @@ KNO_EXPORT kno_applyfn kno_applyfns[];
 
 /* This maps types to whether they have function (KNO_FUNCTION_FIELDS)
    header. */
-KNO_EXPORT short kno_functionp[];
+KNO_EXPORT short kno_function_types[];
 
 /* Choices, tables, regexes */
 

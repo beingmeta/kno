@@ -32,7 +32,6 @@ u8_mutex _kno_ptr_locks[KNO_N_PTRLOCKS];
 u8_condition kno_BadPtr=_("bad lisp pointer");
 u8_condition kno_NullPtr=_("NULL lisp pointer");
 
-u8_string kno_type_names[KNO_TYPE_MAX];
 kno_hashfn kno_hashfns[KNO_TYPE_MAX];
 kno_checkfn kno_immediate_checkfns[KNO_MAX_IMMEDIATE_TYPES+4];
 
@@ -44,7 +43,7 @@ kno_compare_fn kno_comparators[KNO_TYPE_MAX];
 
 kno_applyfn kno_applyfns[KNO_TYPE_MAX];
 /* This is set if the type is a CONS with a FUNCTION header */
-short kno_functionp[KNO_TYPE_MAX];
+short kno_function_types[KNO_TYPE_MAX];
 
 static u8_mutex constant_registry_lock;
 int kno_n_constants = KNO_N_BUILTIN_CONSTANTS;
