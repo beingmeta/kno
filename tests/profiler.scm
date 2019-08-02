@@ -62,8 +62,13 @@
 
 (profile/reset! update-field)
 
+;;; This threaded wait count test will occasionally fail, but bumping
+;;; up threaded-wait-repeat reduces the chance of that.
+(define threaded-wait-repeat 25000)
 (define threaded-wait-count 
-  (begin (parallel (dotimes (i 10000) (update-field 'count1)) (dotimes (i 10000) (update-field 'count2))) 
+  (begin (parallel 
+	  (dotimes (i threaded-wait-repeat) (update-field 'count1))
+	  (dotimes (i threaded-wait-repeat) (update-field 'count2))) 
     (profile/waits (profile/getcalls update-field))))
 
 (applytest > 0 profile/utime (profile/getcalls update-field))
