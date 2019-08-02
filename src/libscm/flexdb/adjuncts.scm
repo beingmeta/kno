@@ -33,7 +33,8 @@
 	       ;; No currently defined adjunct, go ahead and try to open one
 	       (let* ((spec (get adjuncts slotid))
 		      (adjopts (getadjopts pool slotid spec))
-		      (usedb (db/ref (get adjuncts slotid) (cons adjopts open-opts))))
+		      (usedb (db/ref (getopt adjopts 'source spec)
+				     (cons adjopts open-opts))))
 		 (cond ((exists? usedb) (adjunct! pool slotid usedb))
 		       ((getopt opts 'require_adjuncts)
 			(irritant (get adjuncts slotid) |MissingAdjunct|
@@ -72,7 +73,8 @@
 	       ;; Try to replace the adunct
 	       (let* ((spec (get adjuncts slotid))
 		      (adjopts (getadjopts pool slotid spec))
-		      (usedb (db/ref (get adjuncts slotid) (cons adjopts open-opts))))
+		      (usedb (db/ref (getopt adjopts 'source spec)
+				     (cons adjopts open-opts))))
 		 (cond ((exists? usedb)
 			(unless (test cur slotid usedb)
 			  (logwarn |AdjunctConflict| 
@@ -202,17 +204,18 @@
 
 (define (getadjopts pool slotid spec)
   (debug%watch "GETADJOPTS" pool slotid spec)
-  (let* ((path (try (tryif (string? spec) spec)
-		    (tryif (not (or (slotmap? spec) (schemap? spec)))
-		      (irritant spec |InvalidAdjunctSpec| getadjopts))
-		    (pickstrings
-		     (try (get spec 'index)
-			  (get spec 'pool)
-			  (get spec 'source)
-			  (get spec 'path)))
-		    (tryif (symbol? slotid) (symbol->string slotid))
-		    (tryif (oid? slotid) (number->string (oid-addr slotid) 16))))
+  (let* ((relpath (try (tryif (string? spec) spec)
+		       (tryif (not (or (slotmap? spec) (schemap? spec)))
+			 (irritant spec |InvalidAdjunctSpec| getadjopts))
+		       (pickstrings
+			(try (get spec 'index)
+			     (get spec 'pool)
+			     (get spec 'source)
+			     (get spec 'path)))
+		       (tryif (symbol? slotid) (symbol->string slotid))
+		       (tryif (oid? slotid) (number->string (oid-addr slotid) 16))))
 	 (poolsrc (pool-source pool))
+	 (path (mkpath (dirname poolsrc) relpath))
 	 (opts (if (string? spec) #[] 
 		   (if (slotmap? spec) (deep-copy spec)
 		       (if (schemap? spec) (schemap->slotmap spec)
@@ -223,7 +226,7 @@
 		      (exists indextype? (get opts 'type)))))
     (store! opts 'adjunct slotid)
     (when isindex
-      (store! opts 'index (get-adjindex-path poolsrc path))
+      (store! opts '{index source} (get-adjindex-path poolsrc path))
       (store! opts 'index path)
       (store! opts '{type indextype}
 	(try (difference (get opts 'type) 'index)
@@ -233,7 +236,7 @@
       (unless (indextype? (get opts 'indextype))
 	(irritant opts '|BadIndexType| getadjopts)))
     (unless isindex
-      (store! opts 'pool (get-adjpool-path poolsrc path))
+      (store! opts '{pool source} (get-adjpool-path poolsrc path))
       (store! opts '{type pooltype}
 	(try (difference (get opts 'type) 'pool)
 	     (poolctl pool 'type)
@@ -245,14 +248,10 @@
     opts))
 
 (define (get-adjpool-path poolsrc path)
-  (if (position #\/ path)
-      (mkpath (dirname poolsrc) 
-	      (glom path (gather poolsrc
-				 #((opt #("." (isxdigit+))) "." (isalpha+) (eos)))))
-      (glom (basename poolsrc #t) 
-	(and (not (has-prefix path "_")) "_")
-	(textsubst path #((opt #("." (isxdigit+))) "." (isalpha+) (eos)) "")
-	(gather #((opt #("." (isxdigit+))) "." (isalpha+) (eos)) poolsrc))))
+  (mkpath (dirname poolsrc) 
+	  (glom (textsubst path #((opt #("." (isxdigit+))) "." (isalpha+) (eos)) "")
+	    (gather #((opt #("." (isxdigit+))) "." (isalpha+) (eos))
+		    poolsrc))))
 
 (define (get-adjindex-path poolsrc path)
   (if (position #\/ path)
