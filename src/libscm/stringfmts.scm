@@ -16,7 +16,8 @@
    $num $numstring
    $size $sizestring
    $bytes $bytestring
-   $bytes/sec})
+   $bytes/sec
+   $rate})
 
 ;; Percentages
 
@@ -146,6 +147,12 @@
 		      (printout (printnum (/~ bytes TiB) 1) " TiB/sec")
 		      (printout (printnum (/~ bytes PiB) 1) " PiB/sec")))))))
 
+(define ($rate count ticks (precision 2))
+  (let ((ratio (/~ count ticks)))
+    (if (> ratio (/~ (pow 10 precision)))
+	(inexact->string ratio precision)
+	(inexact->string ratio))))
+
 ;; Temporal intervals
 
 (define (interval-string secs (precise #t))
@@ -244,9 +251,4 @@
 	(if (< total 60)
 	    (printout (inexact->string total 1) "s")
 	    (printout secs "s")))))
-
-
-
-
-
 
