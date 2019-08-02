@@ -229,14 +229,12 @@ KNO_EXPORT int _KNO_APPLICABLE_TYPEP(int typecode);
 #define KNO_FUNCTION_TYPEP _KNO_FUNCTION_TYPEP
 #else
 #define KNO_FUNCTION_TYPEP(typecode) \
-  ( (typecode == kno_cprim_type) ||		\
-    (typecode == kno_lambda_type) ||		\
-    (typecode == kno_ffi_type) ||		\
-    (typecode == kno_rpcproc_type) ||		\
+  ( (((typecode)&0xfc) == kno_function_type) ||	\
     (kno_function_types[typecode]) )
 
 #define KNO_FUNCTIONP(x) \
-  (KNO_FUNCTION_TYPEP(KNO_TYPEOF(x)))
+  ( (KNO_XXCONS_TYPEP(x,kno_function_type)) || \
+    (KNO_FUNCTION_TYPEP(KNO_TYPEOF(x))) )
 #define KNO_XFUNCTION(x)				      \
   ((KNO_FUNCTIONP(x)) ?							\
    ((struct KNO_FUNCTION *)(KNO_CONS_DATA(kno_fcnid_ref(x)))) :		\

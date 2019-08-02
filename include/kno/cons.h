@@ -861,7 +861,7 @@ KNO_EXPORT int kno_set_restorefn(lispval tag,kno_type_restorefn fn);
   struct KNO_TYPEINFO *typeinfo
 
 #define KNO_TAGGEDP(x) \
-  ( (KNO_CONSP(x)) && ( (KNO_XCONSPTR_TYPE(x)==kno_compound_type) ) )
+  (KNO_XXCONS_TYPEP((x),kno_tagged_type))
 
 typedef struct KNO_TAGGED {
   KNO_TAGGED_HEAD;} KNO_TAGGED;

@@ -91,9 +91,8 @@ KNO_EXPORT int _KNO_TABLEP(lispval x);
 #define KNO_TABLEP(x)                                                  \
   ( (KNO_OIDP(x)) ? (1) :                                              \
     (KNO_CONSP(x)) ?                                                   \
-    ( ( ( KNO_CONSPTR_TYPE(x) >= kno_slotmap_type) &&                  \
-        ( KNO_CONSPTR_TYPE(x) <= kno_hashset_type) ) ||                 \
-      ( (kno_tablefns[KNO_CONSPTR_TYPE(x)] != NULL ) &&                 \
+    ( (KNO_XXCONS_TYPEP((x),kno_coretable_type)) ||			\
+      ( (kno_tablefns[KNO_CONSPTR_TYPE(x)] != NULL ) &&			\
         ( (kno_tablefns[KNO_CONSPTR_TYPE(x)]->tablep == NULL ) ||       \
           (kno_tablefns[KNO_CONSPTR_TYPE(x)]->tablep(x)) ) ) ) :        \
     (KNO_IMMEDIATEP(x)) ?                                               \

@@ -165,16 +165,29 @@ typedef enum KNO_LISP_TYPE {
 
   kno_typeinfo_type = KNO_CONS_TYPECODE(11),
 
+  kno_tagged_type = KNO_CONS_TYPECODE(12),
+  /* These types are arranged so that their top bits are the same,
+     allowing them to be used with KNO_XXCONS macros, though we
+     leave a type gap */
   kno_compound_type = KNO_CONS_TYPECODE(12),
   kno_wrapper_type = KNO_CONS_TYPECODE(13),
   kno_rawptr_type = KNO_CONS_TYPECODE(14),
+  kno_xtyped_type = KNO_CONS_TYPECODE(15),
 
+  kno_coretable_type = KNO_CONS_TYPECODE(16),
+  /* These types are arranged so that their top bits are the same,
+     allowing them to be used with KNO_XXCONS macros, though we
+     leave a type gap */
   kno_slotmap_type = KNO_CONS_TYPECODE(16),
   kno_schemap_type = KNO_CONS_TYPECODE(17),
   kno_hashtable_type = KNO_CONS_TYPECODE(18),
   kno_hashset_type = KNO_CONS_TYPECODE(19),
 
   /* Evaluator/apply types, defined here to be constant */
+
+  kno_function_type = KNO_CONS_TYPECODE(20),
+  /* These types are arranged so that their top bits are the same,
+     allowing them to be used with KNO_XXCONS macros */
   kno_cprim_type = KNO_CONS_TYPECODE(20),
   kno_lambda_type = KNO_CONS_TYPECODE(21),
   kno_ffi_type = KNO_CONS_TYPECODE(22),
@@ -302,9 +315,12 @@ KNO_FASTOP U8_MAYBE_UNUSED kno_raw_cons KNO_RAW_CONS(lispval x){ return (kno_raw
    typecode pairs (like kno_pair_type and kno_cdrcode_type) which share
    their high bits */
 
-#define KNO_CONS_TYPE_MASK (0x7f)
-#define KNO_XCONS_TYPE_MASK (0x7e)
 #define KNO_CONS_TYPE_OFF  (0x84)
+#define KNO_CONS_TYPE_MASK (0x7f)
+/* These are for cases where a set of basic types are all arranged to
+   have the same high bytes, making it easy to test for them. */
+#define KNO_XCONS_TYPE_MASK (0x7e)
+#define KNO_XXCONS_TYPE_MASK (0x7c)
 
 #if 0
 KNO_FASTOP U8_MAYBE_UNUSED kno_cons KNO_CONS_DATA(lispval x){ return (kno_cons) x;}
@@ -332,7 +348,16 @@ KNO_FASTOP U8_MAYBE_UNUSED int _KNO_ISDTYPE(lispval x){ return 1;}
 
 #define KNO_XCONS_TYPE(x) \
   (( ((x)->conshead) & (KNO_XCONS_TYPE_MASK) )+(KNO_CONS_TYPE_OFF))
-#define KNO_XCONSPTR_TYPE(x) (KNO_XCONS_TYPE((kno_cons)x))
+#define KNO_XCONS_TYPEOF(x) (KNO_XCONS_TYPE((kno_cons)(x)))
+#define KNO_XCONS_TYPEP(x,type) \
+  ( (KNO_CONSP(x)) && ( (KNO_XXCONS_TYPE((kno_cons)(x))) == ((type)&0xFe) ) )
+
+#define KNO_XXCONS_TYPE(x) \
+  (( ((x)->conshead) & (KNO_XXCONS_TYPE_MASK) )+(KNO_CONS_TYPE_OFF))
+#define KNO_XXCONS_TYPEOF(x) (KNO_XXCONS_TYPE((kno_cons)(x)))
+#define KNO_XXCONS_TYPEP(x,type) \
+  ( (KNO_CONSP(x)) && ( (KNO_XXCONS_TYPE((kno_cons)(x))) == ((type)&0xFc) ) )
+
 
 #define KNO_CONSPTR(cast,x) ((cast)((kno_cons)x))
 #define kno_consptr(cast,x,typecode)                                     \
