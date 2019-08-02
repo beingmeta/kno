@@ -215,8 +215,13 @@
 		(string->number (strip-suffix val {"g" "gib" "gb"}))))
 	    ((has-suffix val {"t" "tb" "tib"})
 	     (* 1024 1024 1024 1024
-		(string->number (strip-suffix val  {"t" "tb" "tib"})))))
-      (if (number? val) val
+		(string->number (strip-suffix val  {"t" "tb" "tib"}))))
+	    ((string->number val))
+	    (else (irritant val |BadByteValue| config:bytes)))
+      (if (integer? val) 
+	  (if (>= val 0)
+	      val 
+	      (irritant val |BadByteValue| config:bytes))
 	  (if (not val) val
 	      (begin (logwarn "Odd config:bytes specifier " (write val))
 		(fail))))))
