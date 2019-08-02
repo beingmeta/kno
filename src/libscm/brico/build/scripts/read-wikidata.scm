@@ -1,9 +1,10 @@
 #!/usr/bin/knox
 ;;; -*- Mode: Scheme; -*-
 
-(config! 'bricosource (get-component "brico"))
+(config! 'bricosource "brico")
 
-(use-module '{logger webtools varconfig libarchive texttools brico stringfmts optimize})
+(use-module '{logger webtools varconfig libarchive texttools
+	      filestream brico stringfmts optimize})
 (use-module '{flexdb flexdb/branches flexdb/typeindex})
 
 (config! 'cachelevel 2)
@@ -27,27 +28,28 @@
 ;; 			   sitelinks #[pool "sitelinks.pool"]]]))
 (define wikidata.pool
   (flexdb/make "wikidata/wikidata.flexpool"
-	       [create #t type flexpool
+	       [create #t type 'flexpool
 		base @31c1/0 capacity (* 128 1024 1024)
-		partsize (* 1024 1024) partition-type 'bigpool
+		partsize (* 1024 1024) pooltypek 'bigpool
 		prefix "pools/"
-		adjuncts #[labels #[pool "labels.flexpool"]
-			   aliases #[pool "aliases.flexpool"]
-			   claims #[pool "claims.flexpool"]
-			   sitelinks #[pool "sitelinks.flexpool"]]]))
+		adjuncts #[labels #[pool "labels"]
+			   aliases #[pool "aliases"]
+			   claims #[pool "claims"]
+			   sitelinks #[pool "sitelinks"]]
+		reserve 3]))
 
 (define buildmap.table
-  (flexdb/make (get-component "wikidata/wikids.table") [indextype 'memindex create #t]))
+  (flexdb/make "wikidata/wikids.table" [indextype 'memindex create #t]))
 (define wikids.index
-  (flexdb/make (get-component "wikidata/wikids.index")
+  (flexdb/make "wikidata/wikids.index"
 	       [indextype 'hashindex size (* 16 1024 1024) create #t
 		keyslot 'id register #t]))
 (define words.index
-  (flexdb/make (get-component "wikidata/words.index")
+  (flexdb/make "wikidata/words.index"
 	       [indextype 'hashindex size (* 16 1024 1024) create #t
 		keyslot 'words register #t]))
 (define norms.index
-  (flexdb/make (get-component "wikidata/norms.index")
+  (flexdb/make "wikidata/norms.index"
 	       [indextype 'hashindex size (* 16 1024 1024) create #t
 		keyslot 'norms register #t]))
 ;; (define has.index
@@ -55,28 +57,21 @@
 ;; 		  [indextype 'typeindex create #t keyslot 'has register #t]
 ;; 		  #t))
 (define has.index
-  (flexdb/make (get-component "wikidata/hasprops.index")
+  (flexdb/make "wikidata/hasprops.index"
 	       [indextype 'hashindex create #t keyslot 'has register #t]))
 (define props.index
-  (flexdb/make (get-component "wikidata/props.index")
+  (flexdb/make "wikidata/props.index"
 	       [indextype 'hashindex size (* 16 1024 1024) create #t
 		register #t]))
 
 (define wikidata.index
   (make-aggregate-index {words.index norms.index has.index props.index}))
 
-(define line-count-file (get-component "wikidata/linecount"))
-
-(define line-count
-  (if (file-exists? line-count-file)
-      (read (open-input-file line-count-file))
-      0))
-
-(define (wikidata/save!)
+(define (wikidata/save! in)
   (flexdb/commit! {wikidata.pool wikidata.index 
 		   wikids.index buildmap.table
 		   has.index})
-  (fileout line-count-file (printout line-count)))
+  (filestream/save! in))
 
 (define propmap
   (let ((props (?? 'type 'wikidprop))
@@ -90,23 +85,13 @@
 
 ;;; Reading data
 
-(define (open-wikidata path (line line-count))
-  (let ((port (if (has-suffix path {".bz2" ".gz" ".xz"})
-		  (archive/open path 0)
-		  (open-input-file path)))
-	(skip line))
-    (setbuf! port inbufsize)
-    ;; Skip the [
-    (getline port)
-    ;; Skip things you've read already
-    (until (zero? skip) (getline port) (set! skip (-1+ skip)))
-    (cons port line)))
+(define (skip-file-start port) (getline port))
 
-(defslambda (read-item port (line))
-  (set! line (getline (car port)))
-  (when (and line (= (length line) 0)) (set! line #f))
-  (when line (set-cdr! port (1+ (cdr port))))
-  line)
+(define filestream-opts
+  [startfn skip-file-start
+   itemfn getline])
+
+;;; Parsing the data
 
 (define (get-wikidref id)
   (try (get buildmap.table id)
@@ -196,29 +181,7 @@
       (index-frame has.index ref 'has (getkeys ref)))
     ref))
 
-(define (read-loop in (duration 60) (index wikidata.index) (has.index has.index))
-  (let ((branch (index/branch index))
-	(started (elapsed-time))
-	(saved (elapsed-time)))
-    (while (< (elapsed-time started) duration)
-      (let* ((line (read-item in))
-	     (item (and line (jsonparse line 'symbolize))))
-	(import-wikid-item item branch has.index)
-	(when (zero? (random 500))
-	  (branch/commit! branch)
-	  (set! saved (elapsed-time)))))
-    (branch/commit! branch)))
-
-(define (thread-loop in (duration 60) (threadcount #t) (index wikidata.index))
-  (let ((threads {}))
-    (dotimes (i (if (number? threadcount)
-		    threadcount
-		    (rusage 'ncpus)))
-      (set+! threads (thread/call read-loop in duration index)))
-    (thread/join threads)
-    (set! line-count (cdr in))))
-
-(define ($rate count ticks) (inexact->string (/~ count ticks) 1))
+;;; Reporting
 
 (define (runstats (usage (rusage)))
   (stringout "CPU: " (inexact->string (get usage 'cpu%) 2) "%"
@@ -227,46 +190,80 @@
     ", resident: " ($bytes (get usage 'memusage))
     ", virtual: " ($bytes (get usage 'vmemusage))))
 
-(define (dobatch (secs 120) (start-count line-count) (start-time (elapsed-time)))
-  (thread-loop in secs)
-  (lognotice |Progress|
-    "Procesed " ($num (- line-count start-count)) " items in "
-    (elapsed-time start-time) "s, or " 
-    ($rate (- line-count start-count) (elapsed-time start-time))
-    " items/sec")
-  (lognotice |Saving|
-    "Wikidata after " ($num (- line-count start-count)) " items: " (runstats))
-  (wikidata/save!)
-  (clearcaches)
-  (lognotice |Process|
-    "Processed " ($num (- line-count init-count)) " items in "
-    (secs->string (elapsed-time started)) ", or " 
-    ($rate (- line-count init-count) (elapsed-time started))
-    " items/sec")
-  (lognotice |Overall| "To date, " ($num line-count) " items have been processed."))
+(define (read-loop in (duration 60) (index wikidata.index) (has.index has.index))
+  (let ((branch (index/branch index))
+	(started (elapsed-time))
+	(saved (elapsed-time)))
+    (while (< (elapsed-time started) duration)
+      (let* ((line (filestream/read in))
+	     (item (and (satisfied? line) (string? line)
+			(jsonparse line 'symbolize))))
+	(%watch "READ-LOOP" line item)
+	(when item
+	  (import-wikid-item item branch has.index)
+	  (when  (and (> (elapsed-time saved) 10)
+		      (zero? (random 500)))
+	    (branch/commit! branch)
+	    (set! saved (elapsed-time))))))
+    (branch/commit! branch)))
 
-(define in (open-wikidata (get-component "latest-all.json.bz2")))
-(define started #f)
-(define init-count line-count)
+(define (thread-loop in (threadcount #t) (duration 60) 
+		     (index wikidata.index) (has.index has.index))
+  (let ((threads {}))
+    (dotimes (i (if (number? threadcount)
+		    threadcount
+		    (rusage 'ncpus)))
+      (set+! threads (thread/call read-loop in duration index has.index)))
+    (thread/join threads)))
 
-(define (main)
-  (unless in (set! in (open-wikidata (get-component "latest-all.json.bz2"))))
-  (set! started (elapsed-time))
-  (lognotice |Start| "Starting to read wikidata at line #" line-count)
-  (let ((cycles (config 'cycles 10)))
+(define (dobatch in (threadcount #t) (duration 120) 
+		 (index wikidata.index) (has.index has.index))
+  (let ((start-count (filestream-itemcount in))
+	(start-time (elapsed-time)))
+    (if threadcount
+	(thread-loop in threadcount duration index has.index)
+	(let ((started (elapsed-time))
+	      (saved (elapsed-time)))
+	  (while (< (elapsed-time started) duration)
+	    (let* ((line (filestream/read in))
+		   (item (and (satisfied? line) (string? line)
+			      (jsonparse line 'symbolize))))
+	      (%watch "READ-LOOP" line item)
+	      (when item
+		(import-wikid-item item index has.index))))))
+    (let ((cur-count (filestream-itemcount in)))
+      (lognotice |Saving|
+	"wikidata after processing " ($count (- cur-count start-count) "item") " in "
+	(secs->string (elapsed-time start-time)) 
+	" (" ($rate (- cur-count start-count) (elapsed-time start-time)) " items/sec) -- "
+	(runstats)))
+    (wikidata/save! in)
+    (clearcaches)
+    (filestream/log! in '(overall))))
+
+(define (main (file "latest-all.json") 
+	      (secs (config 'cycletime 10))
+	      (cycles (config 'cycles 10))
+	      (threadcount (config 'threads #t)))
+  (let ((in (filestream/open file filestream-opts))
+	(started (elapsed-time)))
+    (filestream/log! in)
     (dotimes (i cycles)
       (lognotice |Cycle| "Starting #" (1+ i) " of " cycles ": " (runstats))
-      (dobatch))
-    (lognotice |Cycle| "Finished #" cycles ", "
-	       "processed " ($num (- line-count init-count)) " items in "
-	       (secs->string (elapsed-time started)))
-    (lognotice |Cycle| ($rate (- line-count init-count) (elapsed-time started))
-	       " items/sec; " (runstats))))
+      (dobatch in threadcount secs)
+      (lognotice |Cycle| "Finished #" cycles ", "
+		 "processed " ($num (filestream-itemcount in) "item") " in "
+		 (secs->string (elapsed-time started)))
+      (filestream/log! in '(overall)))
+    (wikidata/save! in)))
   
 (when (config 'optimized #t)
-  (optimize! '{flexdb flexdb/branches flexdb/typeindex brico brico/indexing})
+  (optimize! '{flexdb flexdb/flexpool flexdb/adjuncts 
+	       flexdb/branches flexdb/typeindex brico brico/indexing
+	       filestream})
+  (logwarn |Optimized| 
+    "Modules " '{flexdb flexdb/flexpool flexdb/adjuncts 
+		 flexdb/branches flexdb/typeindex brico brico/indexing
+		 filestream})
   (optimize!)
-  (logwarn |Optimzed| "Running code optimized"))
-
-
-
+  (logwarn |Optimized| (get-source)))

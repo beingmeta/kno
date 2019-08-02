@@ -11,7 +11,8 @@
 		  flexpool/ref flexpool/record 
 		  flexpool/zero flexpool/front
 		  flexpool/last flexpool/info
-		  flexpool/partitions flexpool/partcount
+		  flexpool/partition flexpool/partitions
+		  flexpool/partcount
 		  flexpool/delete!
 		  flexpool/adjunct!
 		  flexpool/padlen
@@ -182,7 +183,7 @@
 	(adjuncts (getopt opts 'adjuncts {})))
     (debug%watch "MAKE-FLEXPOOL" 
       filename prefix base partsize cap "\nOPTS" opts)
-    (if (and (exists? prefix) (exists? base) (exists? cap) (exists? partsize))
+    (if (and (satisfied? prefix) (satisfied? base) (satisfied? cap) (satisfied? partsize))
 	(let* ((metadata (getopt opts 'metadata #[]))
 	       (absprefix (mkpath (dirname (abspath filename)) prefix))
 	       (partopts (frame-create #f
@@ -218,17 +219,15 @@
 	    (mkdirs (dirname absprefix)))
 	  (debug%watch "MAKE-FLEXPOOL" "\nSAVED" flexinfo)
 	  (dtype->file flexinfo filename)
-	  ;; (when (exists? adjuncts)
-	  ;;   (init-adjunct-flexpools (get metadata 'adjuncts) 
-	  ;; 			    prefix base cap partsize
-	  ;; 			    (dirname filename)
-	  ;; 			    opts))
 	  (let ((pool (unique-flexpool (abspath filename) 
 				       prefix base cap 
 				       partsize partopts
-				       opts)))
-	    ;; (adjuncts/setup! pool opts)
-	    ;; (adjuncts/init! pool opts)
+				       opts))
+		(reserve (getopt opts 'reserve 1)))
+	    (when reserve
+	      (dotimes (i (if (number? reserve) reserve 1))
+		(logwarn |ReservePartition| 
+		  "Reserved partition " (flexpool/partition pool i opts 'create))))
 	    pool))
 	(irritant opts |IncompleteFlexpoolDef|))))
 
@@ -339,6 +338,10 @@
     (store! partopts 'base base)
     (store! (get metadata 'flexinfo) 'serial serial)
     (store! (get metadata 'flexinfo) 'base base)
+    (debug%watch "FLEXPOOL-PARTITION" 
+      fp serial base padlen path 
+      "\n" metadata "\n" partopts
+      "\nFLEXINFO"  (get metadata 'flexinfo))
     (cond ((file-exists? path)
 	   (flexdb/pool (if (or (getopt open-opts 'adjunct)
 				(getopt partopts 'adjunct))
@@ -349,6 +352,7 @@
 	  ((or (eq? action 'create) (eq? action #t))
 	   (let ((made (flexdb/pool (make-pool path partopts)
 				    (cons #[create #t] open-opts))))
+	     (lognotice |NewPartition| made)
 	     (unless (satisfied? (flexpool-front fp))
 	       (set-flexpool-front! fp made))
 	     (unless (satisfied? (flexpool-last fp))
@@ -358,6 +362,13 @@
 	       (set-flexpool-zero! fp made))
 	     (set-flexpool-partitions! fp (choice made (flexpool-partitions fp)))
 	     made)))))
+
+(define (flexpool/partition fp serial (opts #f) (action))
+  (default! action (if (eq? opts #t) 'create (getopt opts 'action)))
+  (if (eq? opts #t) (set! opts #f))
+  (cond ((isflexpool? fp) (flexpool-partition fp serial opts action))
+	((test flexdata fp) (flexpool-partition (get flexdata fp) serial opts action))
+	(else #f)))
 
 ;;; Getting the 'next' flexpool (creates a new partition)
 
