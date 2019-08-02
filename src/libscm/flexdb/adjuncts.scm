@@ -45,7 +45,8 @@
 			  pool)))))
 	      ;; A currently defined adjunct which is consistent with the
 	      ;; spec in the metadata, leav it.
-	      ((consistent? (get cur slotid) (get adjuncts slotid)
+	      ((consistent? (get cur slotid) 
+			    (getadjopts pool slotid (get adjuncts slotid))
 			    (dirname (pool-source pool))))
 	      ;; An inconsistent adjunct and we're generating an error on confict
 	      ((testopt opts 'override 'error)
@@ -112,7 +113,7 @@
 		   (irritant adjunct |WrongPoolBase|
 		     "not " (getopt spec 'base) ": " spec))
 	       (or (not (test spec 'capacity))
-		   (< (get spec 'capacity) (pool-capacity adjunct))
+		   (= (get spec 'capacity) (pool-capacity adjunct))
 		   (irritant adjunct |WrongPoolCapacity|
 		     "not " (getopt spec 'capacity) ": " spec)))
 	  )))
