@@ -2,8 +2,8 @@
 
 (use-module '{flexdb flexdb/flexpool texttools varconfig logger logctl})
 
-(logctl! 'flexdb/flexpool %debug%)
-(logctl! 'flexdb/adjuncts %debug%)
+;; (logctl! 'flexdb/flexpool %debug%)
+;; (logctl! 'flexdb/adjuncts %debug%)
 
 (define poolfile "flex.flexpool")
 (define pooltype 'bigpool)
@@ -28,9 +28,9 @@
     (unless existing
       (logwarn |Initializing| testpool)
       (dotimes (i 9) 
-	(frame-create fp
-	  '%id i 'num i 'generation 1
-	  'sq (* i i)))
+      	(frame-create fp
+      	  '%id i 'num i 'generation 1
+      	  'sq (* i i)))
       (applytest 1 flexpool/partcount fp)
       (dotimes (i 9) 
 	(frame-create fp
