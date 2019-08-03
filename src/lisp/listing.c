@@ -188,6 +188,7 @@ static void list_table(u8_output out,lispval table,
   else if (label)
     u8_printf(out,"\n%s] ;; %s (%d slots)",indent,label,n_keys);
   else u8_puts(out," ]");
+  kno_decref(keys);
 }
 
 static void output_key(u8_output out,lispval key,kno_listobj_fn eltfn)
