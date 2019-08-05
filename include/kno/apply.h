@@ -237,8 +237,6 @@ KNO_EXPORT int _KNO_APPLICABLE_TYPEP(int typecode);
 
 #define KNO_FUNCTIONP(x)		       \
   ( (KNO_XXCONS_TYPEP(x,kno_function_type)) ||		\
-    ( (KNO_FCNIDP(x)) &&				\
-      (KNO_XXCONS_TYPE(x) == kno_function_type) )	 \
     ( ( KNO_FCNIDP(x) ) ?					\
       (KNO_FUNCTION_TYPEP(KNO_TYPEOF(kno_fcnid_ref(x)))) :	\
       (KNO_FUNCTION_TYPEP(KNO_TYPEOF(x))) ))
