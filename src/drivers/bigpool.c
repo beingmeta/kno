@@ -2336,6 +2336,7 @@ static kno_pool bigpool_create(u8_string spec,void *type_data,
   kno_decref(label);
   kno_decref(slotcodes);
   kno_decref(metadata);
+  kno_decref(metadata_init);
   kno_decref(ctime_opt);
   kno_decref(mtime_opt);
   kno_decref(generation_opt);
