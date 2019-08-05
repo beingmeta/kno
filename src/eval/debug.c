@@ -257,10 +257,10 @@ static void log_ptr(lispval val,lispval label_arg,lispval expr)
     unsigned int refcount = KNO_CONS_REFCOUNT(c);
     u8_log(U8_LOG_MSG,"Pointer/Consed",
            "%s%s%s0x%llx [ T0x%llx(%s) refs=%d ] == %q%s%s%s",
-           U8OPTSTR("",label,": "),
-           (KNO_LONGVAL(val)),
-           ptype,type_name,refcount,val,
-           U8OPTSTR(" <== ",src_string,""));}
+	   U8OPTSTR("",label,": "),
+	   (KNO_LONGVAL(val)),
+	   ptype,type_name,refcount,val,
+	   U8OPTSTR(" <== ",src_string,""));}
   else {}
   if (src_string) u8_free(src_string);
 }
@@ -271,6 +271,49 @@ static lispval watchptr_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   lispval value = kno_stack_eval(val_expr,env,_stack,0);
   log_ptr(value,KNO_VOID,val_expr);
   return value;
+}
+
+static lispval watchcons_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+{
+  lispval val_expr = kno_get_arg(expr,1);
+  lispval name_spec = kno_get_arg(expr,2);
+  u8_string label = (KNO_SYMBOLP(name_spec)) ? (SYMBOL_NAME(name_spec)) :
+    (KNO_STRINGP(name_spec)) ? (KNO_CSTRING(name_spec)) : (NULL);
+  lispval body = (label) ? (kno_get_body(expr,3)) : (kno_get_body(expr,2));
+  lispval value = kno_stack_eval(val_expr,env,_stack,0);
+  if (KNO_CONSP(value)) {
+    int refcount = KNO_CONS_REFCOUNT(value);
+    if (refcount == 0)
+      u8_log(U8_LOGWARN,"%WATCHCONS","Not a cons: %q",value);
+    else {
+      lispval result = eval_body(body,env,_stack,"%WATCHCONS",label,0);
+      int after = KNO_CONS_REFCOUNT(value);
+      if (refcount != after) {
+	if (after == 0)
+	  u8_log(U8_LOGWARN,"%WATCHCONS",
+		 "STATIC %d => 0%s%s %q\n    %q",
+		 refcount-1,U8IF(label," "),U8S(label),
+		 value,val_expr);
+	else if (after == 0)
+	  u8_log(U8_LOGWARN,"%WATCHCONS",
+		 "FREED %d => 0%s%s %q=>\n    %q",
+		 refcount-1,
+		 U8IF(label," "),U8S(label),
+		 value,val_expr);
+	else u8_log(U8_LOGWARN,"%WATCHCONS",
+		    "%s%d (%d => %d)%s%s %q\n    %q",
+		    (after>refcount)?("+"):(""),
+		    (after-refcount),
+		    refcount-1,after-1,
+		    U8IF(label," "),U8S(label),
+		    value,val_expr);
+	kno_decref(value);
+	return result;}
+      else {
+	kno_decref(value);
+	return result;}}}
+  else u8_log(U8_LOGWARN,"%WATCHCONS","Not a cons: %q",value);
+  return eval_body(body,env,_stack,"%WATCHCONS",label,0);
 }
 
 DEFPRIM2("%watchptrval",watchptr_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
@@ -547,6 +590,7 @@ static lispval dbg_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
       u8_message("Debug called");
     else u8_message("Debug (%q) %q",msg,arg);
     kno_decref(msg);}
+  log_ptr(arg,KNO_VOID,arg_expr);
   return _kno_dbg(arg);
 }
 
@@ -1199,9 +1243,17 @@ KNO_EXPORT void kno_init_eval_debug_c()
   kno_def_evalfn(kno_scheme_module,"%WATCH","",watchpoint_evalfn);
   kno_def_evalfn(kno_scheme_module,"PROFILE","",profiled_eval_evalfn);
   kno_def_evalfn(kno_scheme_module,"%WATCHCALL","",watchcall_evalfn);
-  kno_defalias(kno_scheme_module,"%WC","%WATCHCALL");
   kno_def_evalfn(kno_scheme_module,"%WATCHCALL+","",watchcall_plus_evalfn);
+  kno_def_evalfn(kno_scheme_module,"%WATCHCONS",
+		 "`(%WATCHCONS *ptr* [*label*] body...)` reports "
+		 "refcount changes to *ptr* across the evaluation of "
+		 "*body...*. If the second argument (*label*) is a symbol "
+		 "or string (not evaluated), it is used in reporting.",
+		 watchcons_evalfn);
+
+  kno_defalias(kno_scheme_module,"%WC","%WATCHCALL");
   kno_defalias(kno_scheme_module,"%WC+","%WATCHCALL+");
+
 
   kno_def_evalfn(kno_scheme_module,"%WCOND",
                  "Reports (watches) which branch of a COND was taken",
