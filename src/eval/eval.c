@@ -405,6 +405,7 @@ KNO_EXPORT void recycle_evalfn(struct KNO_RAW_CONS *c)
 {
   struct KNO_EVALFN *sf = (struct KNO_EVALFN *)c;
   if (sf->evalfn_name) u8_free(sf->evalfn_name);
+  if (sf->evalfn_cname) u8_free(sf->evalfn_cname);
   if (sf->evalfn_documentation) u8_free(sf->evalfn_documentation);
   if (!(KNO_STATIC_CONSP(c))) u8_free(c);
 }
@@ -1071,7 +1072,7 @@ KNO_EXPORT lispval kno_make_evalfn(u8_string name,kno_eval_handler fn)
   return LISP_CONS(f);
 }
 
-KNO_EXPORT void kno_new_evalfn(lispval mod,u8_string name,
+KNO_EXPORT void kno_new_evalfn(lispval mod,u8_string name,u8_string cname,
 			       u8_string filename,u8_string doc,
 			       kno_eval_handler fn)
 {
@@ -1080,6 +1081,7 @@ KNO_EXPORT void kno_new_evalfn(lispval mod,u8_string name,
   f->evalfn_name = u8_strdup(name);
   f->evalfn_handler = fn;
   f->evalfn_filename = filename;
+  f->evalfn_cname = u8_strdup(cname);
   f->evalfn_documentation = u8_strdup(doc);
   kno_store(mod,kno_getsym(name),LISP_CONS(f));
   f->evalfn_moduleid = kno_get(mod,moduleid_symbol,KNO_VOID);
