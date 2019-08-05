@@ -103,6 +103,7 @@ static int drop_consed_pool(kno_pool p)
   while (scan<limit) {
     if ( *scan == p ) {
       size_t to_shift=(limit-scan)-1;
+      *scan = NULL;
       memmove(scan,scan+1,to_shift);
       n_consed_pools--;
       u8_unlock_mutex(&consed_pools_lock);
@@ -373,7 +374,9 @@ static void register_pool_label(kno_pool p)
 	     "The label '%s' is already associated "
 	     "with the pool\n    %q\n rather than %q",
 	     base,conflict,lisp_arg);}
-    kno_decref(full); kno_decref(probe); u8_free(base);
+    kno_decref(full);
+    kno_decref(probe);
+    u8_free(base);
     return;}
   if ((dot=strchr(base,'.'))) {
     lispval prefix = kno_substring(base,dot);

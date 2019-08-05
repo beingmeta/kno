@@ -410,7 +410,7 @@ static kno_pool procpool_create(u8_string spec,void *type_data,
   else kno_decref(args[0]);
   if (KNO_ABORTED(result))
     return NULL;
-  else if ( (KNO_POOLP(result)) || (KNO_TYPEP(result,kno_consed_pool_type)) )
+  else if (KNO_POOLP(result))
     return kno_lisp2pool(result);
   else {
     kno_seterr("NotAPool","procpool_create",spec,result);
