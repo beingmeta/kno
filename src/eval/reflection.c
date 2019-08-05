@@ -135,7 +135,7 @@ static lispval procedure_fileinfo(lispval x)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
   if (KNO_FUNCTIONP(x)) {
-    struct KNO_FUNCTION *f = KNO_XFUNCTION(x);
+    struct KNO_FUNCTION *f = (kno_function)(x);
     if (f->fcn_filename)
       return kno_mkstring(f->fcn_filename);
     else return KNO_FALSE;}
@@ -167,7 +167,7 @@ static lispval procedure_filename(lispval x)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
   if (KNO_FUNCTIONP(x)) {
-    struct KNO_FUNCTION *f = KNO_XFUNCTION(x);
+    struct KNO_FUNCTION *f = (kno_function) x;
     if (f->fcn_filename)
       return strip_filename(f->fcn_filename);
     else return KNO_FALSE;}
@@ -191,7 +191,7 @@ static lispval procedure_moduleid(lispval x)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
   if (KNO_FUNCTIONP(x)) {
-    struct KNO_FUNCTION *f = KNO_XFUNCTION(x);
+    struct KNO_FUNCTION *f = (kno_function)(x);
     lispval id = f->fcn_moduleid;
     if ( (KNO_NULLP(id)) || (KNO_VOIDP(id)) ) return KNO_FALSE;
     else return kno_incref(id);}
@@ -1052,7 +1052,7 @@ DEFPRIM2("reflect/profile!",profile_fcn_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 static lispval profile_fcn_prim(lispval fcn,lispval bool)
 {
   if (KNO_FUNCTIONP(fcn)) {
-    struct KNO_FUNCTION *f = KNO_XFUNCTION(fcn);
+    struct KNO_FUNCTION *f = KNO_GETFUNCTION(fcn);
     if (KNO_FALSEP(bool)) {
       struct KNO_PROFILE *profile = f->fcn_profile;
       if (profile)
@@ -1072,7 +1072,7 @@ DEFPRIM1("profile/reset!",profile_reset_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 static lispval profile_reset_prim(lispval fcn)
 {
   if (KNO_FUNCTIONP(fcn)) {
-    struct KNO_FUNCTION *f = KNO_XFUNCTION(fcn);
+    struct KNO_FUNCTION *f = KNO_GETFUNCTION(fcn);
     struct KNO_PROFILE *profile = f->fcn_profile;
     if (profile == NULL) return KNO_FALSE;
 #if HAVE_STDATOMIC_H
@@ -1100,7 +1100,7 @@ DEFPRIM1("reflect/profiled?",profiledp_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 static lispval profiledp_prim(lispval fcn)
 {
   if (KNO_FUNCTIONP(fcn)) {
-    struct KNO_FUNCTION *f = KNO_XFUNCTION(fcn);
+    struct KNO_FUNCTION *f = KNO_GETFUNCTION(fcn);
     if (f->fcn_profile)
       return KNO_TRUE;
     else return KNO_FALSE;}
@@ -1117,7 +1117,7 @@ static int getprofile_info(lispval fcn,int err,
 			   long long *faults_ptr)
 {
   if (KNO_FUNCTIONP(fcn)) {
-    struct KNO_FUNCTION *f = KNO_XFUNCTION(fcn);
+    struct KNO_FUNCTION *f = KNO_GETFUNCTION(fcn);
     struct KNO_PROFILE *p = f->fcn_profile;
     if (p==NULL)
       return 0;

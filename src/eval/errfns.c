@@ -151,7 +151,7 @@ static lispval irritant_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       if (SYMBOLP(op))
 	cxt=KNO_SYMBOL_NAME(op);
       else if (KNO_FUNCTIONP(op)) {
-	struct KNO_FUNCTION *fcn=KNO_XFUNCTION(op);
+	struct KNO_FUNCTION *fcn = KNO_GETFUNCTION(op);
 	if (fcn->fcn_name)
 	  cxt=fcn->fcn_name;
 	else cxt="FUNCTIONCALL";}
@@ -626,14 +626,18 @@ static lispval exception_summary(lispval x,lispval with_irritant)
 
 static int thunkp(lispval x)
 {
-  if (!(KNO_APPLICABLEP(x))) return 0;
-  else {
-    struct KNO_FUNCTION *f = KNO_XFUNCTION(x);
-    if (f->fcn_arity==0) return 1;
-    else if ((f->fcn_arity<0) && (f->fcn_min_arity==0)) return 1;
+  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
+  if (PRED_TRUE(KNO_FUNCTIONP(x))) {
+    struct KNO_FUNCTION *f = KNO_GETFUNCTION(x);
+    if (f->fcn_arity==0)
+      return 1;
+    else if ((f->fcn_arity<0) && (f->fcn_min_arity==0))
+      return 1;
     else return 0;}
+  else if (kno_applyfns[KNO_TYPEOF(x)])
+    return 1;
+  else return 0;
 }
-
 static lispval dynamic_wind_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval wind = kno_get_arg(expr,1);

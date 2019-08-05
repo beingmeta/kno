@@ -633,13 +633,13 @@ static lispval forall_helper(int n,kno_argvec nd_args,int skip_errs)
 	       if (EMPTYP(nd_args[i])) return KNO_TRUE;
 	       else i++;
   {DO_CHOICES(fcn,nd_args[0])
-      if (KNO_APPLICABLEP(fcn)) {}
+      if (KNO_FUNCTIONP(fcn)) {}
       else {
 	KNO_STOP_DO_CHOICES;
 	return kno_type_error(_("function"),"forall_helper",nd_args[0]);}}
   lispval d_args[n-1];
   {DO_CHOICES(fcn,nd_args[0]) {
-      struct KNO_FUNCTION *f = KNO_XFUNCTION(fcn);
+      struct KNO_FUNCTION *f = KNO_GETFUNCTION(fcn);
       int retval = test_forall(f,0,n-1,nd_args+1,d_args,skip_errs);
       if ( (retval < 0) && (skip_errs == 0) )
 	return KNO_ERROR;

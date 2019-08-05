@@ -385,13 +385,13 @@ KNO_EXPORT void kno_clear_slotcaches()
 static struct KNO_FUNCTION *lookup_method(lispval arg)
 {
   if (KNO_FUNCTIONP(arg))
-    return KNO_XFUNCTION(arg);
+    return KNO_GETFUNCTION(arg);
   else if (SYMBOLP(arg)) {
-    lispval lookup=
+    lispval lookup =
       kno_hashtable_get(KNO_XHASHTABLE(kno_method_table),arg,EMPTY);
     if (KNO_FUNCTIONP(lookup)) {
-      struct KNO_FUNCTION *fn = KNO_XFUNCTION(lookup); kno_decref(lookup);
-      return fn;}
+      kno_decref(lookup);
+      return KNO_GETFUNCTION(lookup);}
     else return NULL;}
   else return NULL;
 }

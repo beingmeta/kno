@@ -221,6 +221,9 @@ KNO_EXPORT lispval kno_cons_cprimN
 
 /* Useful macros */
 
+KNO_EXPORT int _KNO_FUNCTION_TYPEP(int typecode);
+KNO_EXPORT int _KNO_FUNCTIONP(lispval x);
+
 KNO_EXPORT int _KNO_APPLICABLEP(lispval x);
 KNO_EXPORT int _KNO_APPLICABLE_TYPEP(int typecode);
 
@@ -232,13 +235,21 @@ KNO_EXPORT int _KNO_APPLICABLE_TYPEP(int typecode);
   ( (((typecode)&0xfc) == kno_function_type) ||	\
     (kno_function_types[typecode]) )
 
-#define KNO_FUNCTIONP(x) \
-  ( (KNO_XXCONS_TYPEP(x,kno_function_type)) || \
-    (KNO_FUNCTION_TYPEP(KNO_TYPEOF(x))) )
-#define KNO_XFUNCTION(x)				      \
-  ((KNO_FUNCTIONP(x)) ?							\
-   ((struct KNO_FUNCTION *)(KNO_CONS_DATA(kno_fcnid_ref(x)))) :		\
-   ((struct KNO_FUNCTION *)(u8_raise(kno_TypeError,"function",NULL),NULL)))
+#define KNO_FUNCTIONP(x)		       \
+  ( (KNO_XXCONS_TYPEP(x,kno_function_type)) ||		\
+    ( (KNO_FCNIDP(x)) &&				\
+      (KNO_XXCONS_TYPE(x) == kno_function_type) )	 \
+    ( ( KNO_FCNIDP(x) ) ?					\
+      (KNO_FUNCTION_TYPEP(KNO_TYPEOF(kno_fcnid_ref(x)))) :	\
+      (KNO_FUNCTION_TYPEP(KNO_TYPEOF(x))) ))
+
+KNO_FASTOP kno_function KNO_XFUNCTION(lispval x)
+{
+  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
+  if (KNO_FUNCTIONP(x))
+    return (kno_function) x;
+  else return KNO_ERR(NULL,kno_TypeError,"function",NULL,x);
+}
 #endif
 
 #define KNO_FUNCTION_ARITY(x)						\
@@ -403,6 +414,8 @@ KNO_EXPORT int _KNO_APPLICABLE_TYPEP(int typecode);
    (KNO_APPLICABLE_TYPEP(KNO_FCNID_TYPE(x))) :	  \
    (KNO_APPLICABLE_TYPEP(KNO_PRIM_TYPE(x))))
 #endif
+
+KNO_EXPORT kno_function _KNO_GETFUNCTION(lispval x);
 
 #if KNO_EXTREME_PROFILING
 #define KNO_GETFUNCTION _KNO_GETFUNCTION

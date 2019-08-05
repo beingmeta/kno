@@ -817,7 +817,7 @@ static int gather_fcn_data(lispval headvals,
     lispval fcnval = (KNO_FCNIDP(head)) ? (kno_fcnid_ref(head)) : (head);
     int fcntype = KNO_PRIM_TYPE(fcnval);
     if (KNO_FUNCTION_TYPEP(fcntype)) {
-      struct KNO_FUNCTION *fcn=KNO_XFUNCTION(fcnval);
+      struct KNO_FUNCTION *fcn = KNO_GETFUNCTION(fcnval);
       int max_arity = fcn->fcn_arity, min_arity = fcn->fcn_min_arity;
       int call_flags = fcn->fcn_call;
       if (max_args >= 0) {
@@ -862,7 +862,7 @@ static lispval eval_apply(u8_string fname,
     n_fns = gather_fcn_data(fn,&max_args,&min_args,&lambda,&nd_fns,&tail);
     if (n_fns < 0) return KNO_ERROR;}
   else if (KNO_FUNCTIONP(fn)) {
-    struct KNO_FUNCTION *fcn=KNO_XFUNCTION(fn);
+    struct KNO_FUNCTION *fcn = KNO_GETFUNCTION(fn);
     int call_flags = fcn->fcn_call;
     lambda = KNO_LAMBDAP(fn);
     if (call_flags&KNO_FCN_CALL_NDCALL) nd_fns = 1;

@@ -154,7 +154,7 @@ static void _concise_stack_frame(struct KNO_STACK *stack)
   if (KNO_SYMBOLP(op))
     fprintf(stderr,", op=%s",SYM_NAME(op));
   else if (KNO_FUNCTIONP(op)) {
-    struct KNO_FUNCTION *fn=KNO_XFUNCTION(op);
+    struct KNO_FUNCTION *fn=KNO_GETFUNCTION(op);
     if (fn->fcn_name)
       fprintf(stderr,", op=%s",fn->fcn_name);}
   else if (TYPEP(op,kno_evalfn_type)) {

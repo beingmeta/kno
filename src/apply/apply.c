@@ -899,7 +899,7 @@ KNO_EXPORT lispval kno_ndcall(struct KNO_STACK *_stack,
     return kno_simplify_choice(results);}
   else {
     kno_lisp_type fntype = KNO_TYPEOF(handler);
-    if (kno_function_types[fntype]) {
+    if (KNO_FUNCTION_TYPEP(fntype)) {
       struct KNO_FUNCTION *f = KNO_GETFUNCTION(handler);
       if (f->fcn_arity==0)
 	return kno_stack_dapply(_stack,handler,n,args);
@@ -1182,7 +1182,7 @@ static u8_mutex profiled_lock;
 static int config_add_profiled(lispval var,lispval val,void *data)
 {
   if (KNO_FUNCTIONP(val)) {
-    struct KNO_FUNCTION *fcn = KNO_XFUNCTION(val);
+    struct KNO_FUNCTION *fcn = KNO_GETFUNCTION(val);
     if (fcn->fcn_profile)
       return 0;
     u8_lock_mutex(&profiled_lock);
@@ -1224,7 +1224,7 @@ static int FUNCTION_TYPEP(int typecode)
     return 1;
   else return kno_function_types[typecode];
 }
-KNO_EXPORT int _KNO_FUNCITON_TYPEP(int typecode)
+KNO_EXPORT int _KNO_FUNCTION_TYPEP(int typecode)
 {
   return APPLICABLE_TYPEP(typecode);
 }
@@ -1240,6 +1240,22 @@ KNO_EXPORT int _KNO_LAMBDAP(lispval x)
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
   return (KNO_TYPEP((x),kno_lambda_type));
 }							 \
+
+KNO_EXPORT kno_function _KNO_GETFUNCTION(lispval x)
+{
+  if (KNO_FCNIDP(x)) {
+    x = kno_fcnid_ref(x);
+    return (kno_function) x;}
+  else return (kno_function)x;;
+}
+
+KNO_EXPORT kno_function _KNO_XFUNCTION(lispval x)
+{
+  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
+  if (KNO_FUNCTIONP(x))
+    return (kno_function) x;
+  else return KNO_ERR(NULL,kno_NotAFunction,NULL,NULL,x);
+}
 
 /* Initializations */
 

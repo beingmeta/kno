@@ -387,9 +387,9 @@ KNO_FASTOP U8_MAYBE_UNUSED int _KNO_ISDTYPE(lispval x){ return 1;}
 #define KNO_IMM_TYPE(x) ((((LISPVAL(x))>>25)&0x7F)+0x4)
 #define KNO_IMMEDIATE_MAX (1<<24)
 
-#if KNO_EXTREME_PROFILING
 KNO_EXPORT kno_lisp_type _KNO_TYPEOF(lispval x);
-#define KNO_LISP_TYPE _KNO_LISP_TYPE
+#if KNO_EXTREME_PROFILING
+#define KNO_TYPEOF _KNO_TYPEOF
 #else
 #define KNO_TYPEOF(x) \
   (((KNO_PTR_MANIFEST_TYPE(LISPVAL(x)))>1) ? (KNO_PTR_MANIFEST_TYPE(x)) :  \
