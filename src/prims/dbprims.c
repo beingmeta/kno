@@ -50,14 +50,6 @@ static lispval slotidp(lispval arg)
 
 /* These are called when the lisp version of its pool/index argument
    is being returned and needs to be incref'd if it is consed. */
-KNO_FASTOP lispval index2lisp(kno_index ix)
-{
-  if (ix == NULL)
-    return KNO_ERROR;
-  else if (ix->index_serialno>=0)
-    return LISPVAL_IMMEDIATE(kno_index_type,ix->index_serialno);
-  else return (lispval)ix;
-}
 KNO_FASTOP lispval index_ref(kno_index ix)
 {
   if (ix == NULL)
@@ -68,12 +60,6 @@ KNO_FASTOP lispval index_ref(kno_index ix)
     lispval lix = (lispval)ix;
     kno_incref(lix);
     return lix;}
-}
-static lispval pool2lisp(kno_pool p)
-{
-  lispval poolval=kno_pool2lisp(p);
-  kno_incref(poolval);
-  return poolval;
 }
 
 #define FALSE_ARGP(x) ( ((x)==KNO_VOID) || ((x)==KNO_FALSE) || ((x)==KNO_FIXZERO) )
@@ -260,7 +246,7 @@ static lispval getpool(lispval arg)
   else if (STRINGP(arg))
     p = kno_name2pool(CSTRING(arg));
   else if (OIDP(arg)) p = kno_oid2pool(arg);
-  if (p) return pool2lisp(p);
+  if (p) return kno_pool2lisp(p);
   else return EMPTY;
 }
 
@@ -323,7 +309,7 @@ static lispval try_pool(lispval arg1,lispval opts)
       KNO_STORAGE_NOERR;
     kno_pool p = kno_get_pool(CSTRING(arg1),flags,opts);
     if (p)
-      return pool2lisp(p);
+      return kno_pool2lisp(p);
     else return KNO_FALSE;}
 }
 
@@ -344,7 +330,7 @@ static lispval adjunct_pool(lispval arg1,lispval opts)
       KNO_POOL_ADJUNCT;
     kno_pool p = kno_get_pool(CSTRING(arg1),flags,opts);
     if (p)
-      return pool2lisp(p);
+      return kno_pool2lisp(p);
     else return KNO_ERROR;}
 }
 
@@ -362,7 +348,7 @@ static lispval use_pool(lispval arg1,lispval opts)
     return kno_type_error(_("string"),"use_pool",arg1);
   else {
     kno_pool p = kno_get_pool(CSTRING(arg1),-1,opts);
-    if (p) return pool2lisp(p);
+    if (p) return kno_pool2lisp(p);
     else return kno_err(kno_NoSuchPool,"use_pool",
 			CSTRING(arg1),VOID);}
 }
@@ -515,7 +501,7 @@ static lispval make_pool(lispval path,lispval opts)
   else return kno_err(_("BadPoolType"),"make_pool",NULL,type);
   kno_decref(type);
   if (p)
-    return pool2lisp(p);
+    return kno_pool2lisp(p);
   else return KNO_ERROR;
 }
 
@@ -528,7 +514,7 @@ static lispval open_pool(lispval path,lispval opts)
   kno_storage_flags flags = kno_get_dbflags(opts,KNO_STORAGE_ISPOOL);
   kno_pool p = kno_open_pool(CSTRING(path),flags,opts);
   if (p)
-    return pool2lisp(p);
+    return kno_pool2lisp(p);
   else return KNO_ERROR;
 }
 
@@ -693,7 +679,7 @@ static lispval make_aggregate_index(lispval sources,lispval opts)
 {
   int n_sources = KNO_CHOICE_SIZE(sources), n_partitions=0;
   if (n_sources == 0)
-    return index2lisp((kno_index)kno_make_aggregate_index(opts,8,0,NULL));
+    return kno_index2lisp((kno_index)kno_make_aggregate_index(opts,8,0,NULL));
   kno_index partitions[n_sources];
   KNO_DO_CHOICES(source,sources) {
     kno_index ix = NULL;
@@ -722,7 +708,7 @@ static lispval make_aggregate_index(lispval sources,lispval opts)
     n_alloc=n_alloc*2;
   kno_aggregate_index aggregate =
     kno_make_aggregate_index(opts,n_alloc,n_partitions,partitions);
-  return index2lisp((kno_index)aggregate);
+  return kno_index2lisp((kno_index)aggregate);
 }
 
 DEFPRIM1("aggregate-index?",aggregate_indexp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
@@ -796,7 +782,7 @@ static lispval make_mempool(lispval label,lispval base,lispval cap,
      opts);
   if (p == NULL)
     return KNO_ERROR;
-  else return pool2lisp(p);
+  else return kno_pool2lisp(p);
 }
 
 DEFPRIM1("clean-mempool",clean_mempool,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
@@ -841,7 +827,7 @@ static lispval make_procpool(lispval label,
   kno_pool p = kno_make_procpool
     (KNO_OID_ADDR(base),FIX2INT(cap),FIX2INT(load),
      opts,state,CSTRING(label),NULL);
-  return pool2lisp(p);
+  return kno_pool2lisp(p);
 }
 
 DEFPRIM10("make-extpool",make_extpool,KNO_MAX_ARGS(10)|KNO_MIN_ARGS(4),
@@ -862,7 +848,7 @@ static lispval make_extpool(lispval label,lispval base,lispval cap,
     (CSTRING(label),KNO_OID_ADDR(base),FIX2INT(cap),
      fetchfn,savefn,lockfn,allocfn,state,opts);
   if (FALSEP(cache)) kno_pool_setcache(p,0);
-  return pool2lisp(p);
+  return kno_pool2lisp(p);
 }
 
 DEFPRIM3("extpool-cache!",extpool_setcache,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3),
@@ -941,7 +927,7 @@ static lispval make_procindex(lispval id,
     (opts,state,KNO_CSTRING(id),
      ((KNO_VOIDP(source)) ? (NULL) : (KNO_CSTRING(source))),
      ((KNO_VOIDP(typeid)) ? (NULL) : (KNO_CSTRING(typeid))));
-  return index2lisp(ix);
+  return kno_index2lisp(ix);
 }
 
 /* External indexes */
@@ -963,7 +949,7 @@ static lispval make_extindex(lispval label,lispval fetchfn,lispval commitfn,
      -1,
      opts);
   if (FALSEP(usecache)) kno_index_setcache(ix,0);
-  return index2lisp(ix);
+  return kno_index2lisp(ix);
 }
 
 DEFPRIM6("cons-extindex",cons_extindex,KNO_MAX_ARGS(6)|KNO_MIN_ARGS(2),
@@ -1003,7 +989,7 @@ static lispval extindex_cacheadd(lispval index,lispval key,lispval values)
     struct KNO_PAIR tempkey;
     struct KNO_HASHTABLE *h = &(knotc->indexes);
     KNO_INIT_STATIC_CONS(&tempkey,kno_pair_type);
-    tempkey.car = index2lisp(ix); tempkey.cdr = key;
+    tempkey.car = kno_index2lisp(ix); tempkey.cdr = key;
     if (kno_hashtable_probe(h,(lispval)&tempkey)) {
       kno_hashtable_store(h,(lispval)&tempkey,VOID);}}
   return VOID;
@@ -1016,7 +1002,7 @@ static lispval extindex_decache(lispval index,lispval key)
 {
   KNOTC *knotc = kno_threadcache;
   kno_index ix = kno_indexptr(index);
-  lispval lix = index2lisp(ix);
+  lispval lix = kno_index2lisp(ix);
   if ( (ix) && (ix->index_handler == &kno_extindex_handler) )
     if (VOIDP(key))
       if (kno_reset_hashtable(&(ix->index_cache),ix->index_cache.ht_n_buckets,1)<0)
@@ -1030,7 +1016,7 @@ static lispval extindex_decache(lispval index,lispval key)
     struct KNO_PAIR tempkey;
     struct KNO_HASHTABLE *h = &(knotc->indexes);
     KNO_INIT_STATIC_CONS(&tempkey,kno_pair_type);
-    tempkey.car = index2lisp(ix); tempkey.cdr = key;
+    tempkey.car = kno_index2lisp(ix); tempkey.cdr = key;
     if (kno_hashtable_probe(h,(lispval)&tempkey)) {
       kno_hashtable_store(h,(lispval)&tempkey,VOID);}}
   else if (knotc) {
@@ -1109,7 +1095,7 @@ static lispval use_adjunct(lispval adjunct,lispval slotid,lispval pool_arg)
 {
   if (STRINGP(adjunct)) {
     kno_index ix = kno_get_index(CSTRING(adjunct),0,VOID);
-    if (ix) adjunct = index2lisp(ix);
+    if (ix) adjunct = kno_index2lisp(ix);
     else return kno_type_error("adjunct spec","use_adjunct",adjunct);}
   if ((VOIDP(slotid)) && (TABLEP(adjunct)))
     slotid = kno_get(adjunct,padjuncts_symbol,VOID);
@@ -1138,7 +1124,7 @@ static lispval add_adjunct(lispval pool_arg,lispval slotid,lispval adjunct)
 {
   if (STRINGP(adjunct)) {
     kno_index ix = kno_get_index(CSTRING(adjunct),0,VOID);
-    if (ix) adjunct = index2lisp(ix);
+    if (ix) adjunct = kno_index2lisp(ix);
     else return kno_type_error("adjunct spec","use_adjunct",adjunct);}
   if ((VOIDP(slotid)) && (TABLEP(adjunct)))
     slotid = kno_get(adjunct,padjuncts_symbol,VOID);
@@ -1743,7 +1729,7 @@ static lispval oidpool(lispval x)
 {
   kno_pool p = kno_oid2pool(x);
   if (p == NULL) return EMPTY;
-  else return pool2lisp(p);
+  else return kno_pool2lisp(p);
 }
 
 DEFPRIM2("in-pool?",inpoolp,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
