@@ -409,18 +409,29 @@ KNO_EXPORT void kno_init_iterators_c()
 
   u8_register_source_file(_FILEINFO);
 
-  kno_def_evalfn(kno_scheme_module,"UNTIL","",until_evalfn);
-  kno_def_evalfn(kno_scheme_module,"WHILE","",while_evalfn);
-  kno_def_evalfn(kno_scheme_module,"DOTIMES","",dotimes_evalfn);
-  kno_def_evalfn(kno_scheme_module,"DOLIST","",dolist_evalfn);
-  kno_def_evalfn(kno_scheme_module,"DOSEQ","",doseq_evalfn);
-  kno_def_evalfn(kno_scheme_module,"FORSEQ","",forseq_evalfn);
-  kno_def_evalfn(kno_scheme_module,"TRYSEQ","",tryseq_evalfn);
+  kno_def_evalfn(kno_scheme_module,"UNTIL",until_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"WHILE",while_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"DOTIMES",dotimes_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"DOLIST",dolist_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"DOSEQ",doseq_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"FORSEQ",forseq_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"TRYSEQ",tryseq_evalfn,
+		 "*undocumented*");
 
-  kno_def_evalfn(kno_scheme_module,"BEGIN","",begin_evalfn);
-  kno_def_evalfn(kno_scheme_module,"PROG1","",prog1_evalfn);
-  kno_def_evalfn(kno_scheme_module,"COMMENT","",comment_evalfn);
+  kno_def_evalfn(kno_scheme_module,"BEGIN",begin_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"PROG1",prog1_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"COMMENT",comment_evalfn,
+		 "*undocumented*");
   kno_defalias(kno_scheme_module,"*******","COMMENT");
-  kno_def_evalfn(kno_scheme_module,"ONBREAK","",onbreak_evalfn);
+  kno_def_evalfn(kno_scheme_module,"ONBREAK",onbreak_evalfn,
+		 "*undocumented*");
 
 }

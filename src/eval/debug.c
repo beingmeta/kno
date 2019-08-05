@@ -1220,15 +1220,23 @@ KNO_EXPORT void kno_init_eval_debug_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  kno_def_evalfn(kno_scheme_module,"DBG","",dbg_evalfn);
+  kno_def_evalfn(kno_scheme_module,"DBG",dbg_evalfn,
+		 "*undocumented*");
 
-  kno_def_evalfn(kno_scheme_module,"EVAL1","",eval1);
-  kno_def_evalfn(kno_scheme_module,"EVAL2","",eval2);
-  kno_def_evalfn(kno_scheme_module,"EVAL3","",eval3);
-  kno_def_evalfn(kno_scheme_module,"EVAL4","",eval4);
-  kno_def_evalfn(kno_scheme_module,"EVAL5","",eval5);
-  kno_def_evalfn(kno_scheme_module,"EVAL6","",eval6);
-  kno_def_evalfn(kno_scheme_module,"EVAL7","",eval7);
+  kno_def_evalfn(kno_scheme_module,"EVAL1",eval1,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"EVAL2",eval2,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"EVAL3",eval3,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"EVAL4",eval4,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"EVAL5",eval5,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"EVAL6",eval6,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"EVAL7",eval7,
+		 "*undocumented*");
 
   kno_register_config
     ("BUGDIR","Save exceptions to this directory",
@@ -1237,35 +1245,44 @@ KNO_EXPORT void kno_init_eval_debug_c()
 
   link_local_cprims();
 
-  kno_def_evalfn(kno_scheme_module,"TIMEVAL","",timed_eval_evalfn);
-  kno_def_evalfn(kno_scheme_module,"%TIMEVAL","",timed_evalx_evalfn);
-  kno_def_evalfn(kno_scheme_module,"%WATCHPTR","",watchptr_evalfn);
-  kno_def_evalfn(kno_scheme_module,"%WATCH","",watchpoint_evalfn);
-  kno_def_evalfn(kno_scheme_module,"PROFILE","",profiled_eval_evalfn);
-  kno_def_evalfn(kno_scheme_module,"%WATCHCALL","",watchcall_evalfn);
-  kno_def_evalfn(kno_scheme_module,"%WATCHCALL+","",watchcall_plus_evalfn);
-  kno_def_evalfn(kno_scheme_module,"%WATCHCONS",
+  kno_def_evalfn(kno_scheme_module,"TIMEVAL",timed_eval_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"%TIMEVAL",timed_evalx_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"%WATCHPTR",watchptr_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"%WATCH",watchpoint_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"PROFILE",profiled_eval_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"%WATCHCALL",watchcall_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"%WATCHCALL+",watchcall_plus_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"%WATCHCONS",watchcons_evalfn ,
 		 "`(%WATCHCONS *ptr* [*label*] body...)` reports "
 		 "refcount changes to *ptr* across the evaluation of "
 		 "*body...*. If the second argument (*label*) is a symbol "
-		 "or string (not evaluated), it is used in reporting.",
-		 watchcons_evalfn);
+		 "or string (not evaluated), it is used in reporting.");
+
+
+
 
   kno_defalias(kno_scheme_module,"%WC","%WATCHCALL");
   kno_defalias(kno_scheme_module,"%WC+","%WATCHCALL+");
 
 
-  kno_def_evalfn(kno_scheme_module,"%WCOND",
-                 "Reports (watches) which branch of a COND was taken",
-                 watched_cond_evalfn);
-  kno_def_evalfn(kno_scheme_module,"%WTRY",
-                 "Reports (watches) which clause of a TRY succeeded",
-                 watched_try_evalfn);
+  kno_def_evalfn(kno_scheme_module,"%WCOND",watched_cond_evalfn,
+		 "Reports (watches) which branch of a COND was taken");
+  kno_def_evalfn(kno_scheme_module,"%WTRY",watched_try_evalfn,
+		 "Reports (watches) which clause of a TRY succeeded");
 
   /* This pushes a log context */
-  kno_def_evalfn(kno_scheme_module,"WITH-LOG-CONTEXT","",with_log_context_evalfn);
+  kno_def_evalfn(kno_scheme_module,"WITH-LOG-CONTEXT",with_log_context_evalfn,
+		 "*undocumented*");
 #if USING_GOOGLE_PROFILER
-  kno_def_evalfn(kno_scheme_module,"GOOGLE/PROFILE","",gprofile_evalfn);
+  kno_def_evalfn(kno_scheme_module,"GOOGLE/PROFILE",gprofile_evalfn,
+		 "*undocumented*");
   kno_idefn(kno_scheme_module,
             kno_make_cprim0("GOOGLE/PROFILE/STOP",gprofile_stop));
 #endif

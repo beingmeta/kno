@@ -1798,47 +1798,41 @@ KNO_EXPORT void kno_init_threads_c()
 
   link_local_cprims();
 
-  kno_def_evalfn(threads_module,"PARALLEL",
+  kno_def_evalfn(threads_module,"PARALLEL",parallel_evalfn,
 		 "`(PARALLEL *exprs...*)` is just like `CHOICE`, "
-		 "but each of *exprs* is evaluated in its own thread.",
-		 parallel_evalfn);
-  kno_def_evalfn(threads_module,"SPAWN",
+		 "but each of *exprs* is evaluated in its own thread.");
+  kno_def_evalfn(threads_module,"SPAWN",spawn_evalfn,
 		 "`(SPAWN *expr* *opts**)` starts and returns parallel threads"
 		 "evaluating *expr* (which may be a choice of exprs). "
-		 "*opts*, if provided, specifies thread creation options.",
-		 spawn_evalfn);
+		 "*opts*, if provided, specifies thread creation options.");
 
-  kno_def_evalfn(threads_module,"THREAD/EVAL",
+  kno_def_evalfn(threads_module,"THREAD/EVAL",threadeval_evalfn,
 		 "`(THREAD/EVAL *expr* [*env*] [*opts*])` starts a parallel "
 		 "thread evaluating *expr*. If *env* is provided, it is used, "
 		 "otherwise, *expr* is evaluated in a *copy* of the current "
 		 "environment. *opts*, if provided, specifies thread creation "
-		 "options.",
-		 threadeval_evalfn);
+		 "options.");
 
 
   u8_init_mutex(&sassign_lock);
-  kno_def_evalfn(threads_module,"SSET!",
+  kno_def_evalfn(threads_module,"SSET!",sassign_evalfn,
 		 "`(SSET! *var* *value*)` thread-safely sets *var* "
-		 "to *value*, just like `SET!` would do.",
-		 sassign_evalfn);
+		 "to *value*, just like `SET!` would do.");
 
   timeout_symbol = kno_intern("timeout");
   logexit_symbol = kno_intern("logexit");
   keepenv_symbol = kno_intern("keepenv");
   void_symbol = kno_intern("void");
 
-  kno_def_evalfn(threads_module,"WITH-LOCK",
+  kno_def_evalfn(threads_module,"WITH-LOCK",with_lock_evalfn,
 		 "`(WITH-LOCK *synchronizer* *body...*)` executes the "
-		 "expressions in *body* with *synchronizer* locked.",
-		 with_lock_evalfn);
+		 "expressions in *body* with *synchronizer* locked.");
 
-  kno_def_evalfn(threads_module,"THREAD/CACHE",
+  kno_def_evalfn(threads_module,"THREAD/CACHE",thread_ref_evalfn,
 		 "`(THREAD/CACHE *sym* *expr*)` returns the fluid "
 		 "(thread-local) value of *sym* (which is evaluated) "
 		 "if it exists. If it doesn't exist, *expr* is evaluted "
-		 "and fluidly assigned to *sym*.",
-		 thread_ref_evalfn);
+		 "and fluidly assigned to *sym*.");
 
   kno_register_config("ALLTHREADS",
 		      "All active LISP threads",

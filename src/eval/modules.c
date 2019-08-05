@@ -800,17 +800,21 @@ KNO_EXPORT void kno_init_modules_c()
 
   link_local_cprims();
 
-  kno_def_evalfn(kno_sys_module,"EXPORT-ALIAS!",
-                 "Combine the exports of this module with another",
-                 export_alias_evalfn);
+  kno_def_evalfn(kno_sys_module,"EXPORT-ALIAS!",export_alias_evalfn,
+                 "Combine the exports of this module with another");
 
-  kno_def_evalfn(kno_scheme_module,"IN-MODULE","",in_module_evalfn);
-  kno_def_evalfn(kno_sys_module,"WITHIN-MODULE","",within_module_evalfn);
+  kno_def_evalfn(kno_scheme_module,"IN-MODULE",in_module_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_sys_module,"WITHIN-MODULE",within_module_evalfn,
+		 "*undocumented*");
   kno_defalias(kno_sys_module,"W/M","WITHIN-MODULE");
   kno_defalias(kno_sys_module,"%WM","WITHIN-MODULE");
-  kno_def_evalfn(kno_sys_module,"ACCESSING-MODULE","",accessing_module_evalfn);
-  kno_def_evalfn(kno_scheme_module,"USE-MODULE","",use_module_evalfn);
-  kno_def_evalfn(kno_scheme_module,"MODULE-EXPORT!","",module_export_evalfn);
+  kno_def_evalfn(kno_sys_module,"ACCESSING-MODULE",accessing_module_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"USE-MODULE",use_module_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"MODULE-EXPORT!",module_export_evalfn,
+		 "*undocumented*");
 
   kno_register_config("MODULE",
 		      "Specify modules to be used by the default live environment",

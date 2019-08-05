@@ -404,11 +404,13 @@ KNO_EXPORT void kno_init_reqstate_c()
 
   link_local_cprims();
 
-  kno_def_evalfn(module,"REQ/LOG","",reqlog_evalfn);
+  kno_def_evalfn(module,"REQ/LOG",reqlog_evalfn,
+		 "*undocumented*");
   kno_defalias(module,"REQLOG","REQ/LOG");
   kno_defalias(module,"REQ/LOG!","REQ/LOG");
 
-  kno_def_evalfn(module,"WITH/REQUEST","",withreq_evalfn);
+  kno_def_evalfn(module,"WITH/REQUEST",withreq_evalfn,
+		 "*undocumented*");
 
 }
 

@@ -854,10 +854,9 @@ KNO_EXPORT void kno_init_sysprims_c()
 
   link_local_cprims();
 
-  kno_def_evalfn(kno_sys_module,"#ENV",
+  kno_def_evalfn(kno_sys_module,"#ENV",getenv_macro,
 		 "#:ENV\"HOME\" or #:ENV:HOME\n"
-		 "evaluates to an environment variable",
-		 getenv_macro);
+		 "evaluates to an environment variable");
 
   kno_init_procprims_c();
 

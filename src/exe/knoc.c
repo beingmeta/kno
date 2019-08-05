@@ -935,7 +935,8 @@ int main(int argc,char **argv)
            kno_make_cprim0("%HISTORY",history_prim,MIN_ARGS(0),
                            "Gets the current value history"));
 
-  kno_def_evalfn((lispval)env,"%HISTREF","",histref_evalfn);
+  kno_def_evalfn((lispval)env,"%HISTREF",histref_evalfn,
+		 "");
 
 
   link_local_cprims();

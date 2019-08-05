@@ -226,13 +226,18 @@ KNO_EXPORT void kno_init_ipevalprims_c()
 
   moduleid_symbol = kno_intern("%moduleid");
 
-  kno_def_evalfn(kno_scheme_module,"LETQ","",letq_evalfn);
-  kno_def_evalfn(kno_scheme_module,"LETQ*","",letqstar_evalfn);
+  kno_def_evalfn(kno_scheme_module,"LETQ",letq_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"LETQ*",letqstar_evalfn,
+		 "*undocumented*");
 
 #if KNO_IPEVAL_ENABLED
-  kno_def_evalfn(kno_scheme_module,"IPEVAL","",ipeval_evalfn);
-  kno_def_evalfn(kno_scheme_module,"TIPEVAL","",trace_ipeval_evalfn);
-  kno_def_evalfn(kno_scheme_module,"TRACK-IPEVAL","",track_ipeval_evalfn);
+  kno_def_evalfn(kno_scheme_module,"IPEVAL",ipeval_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"TIPEVAL",trace_ipeval_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"TRACK-IPEVAL",track_ipeval_evalfn,
+		 "*undocumented*");
 #endif
 
 }

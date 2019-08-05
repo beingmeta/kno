@@ -1615,9 +1615,8 @@ KNO_EXPORT void kno_init_timeprims_c()
 
   link_local_cprims();
 
-  kno_def_evalfn(kno_sys_module,"#NOW",
-		 "#:NOW:YEAR\n evaluates to a field of the current time",
-		 now_macro);
+  kno_def_evalfn(kno_sys_module,"#NOW",now_macro,
+		 "#:NOW:YEAR\n evaluates to a field of the current time");
 
 #if 0 /* ((HAVE_SLEEP) || (HAVE_NANOSLEEP)) */
   kno_idefn(kno_sys_module,kno_make_cprim1("SLEEP",sleep_prim,1));

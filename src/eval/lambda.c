@@ -1078,25 +1078,31 @@ KNO_EXPORT void kno_init_lambdas_c()
 
   link_local_cprims();
 
-  kno_def_evalfn(kno_scheme_module,"LAMBDA","",lambda_evalfn);
-  kno_def_evalfn(kno_scheme_module,"AMBDA","",ambda_evalfn);
-  kno_def_evalfn(kno_scheme_module,"NLAMBDA","",nlambda_evalfn);
-  kno_def_evalfn(kno_scheme_module,"SLAMBDA","",slambda_evalfn);
-  kno_def_evalfn(kno_scheme_module,"SAMBDA","",sambda_evalfn);
-  kno_def_evalfn(kno_scheme_module,"THUNK","",thunk_evalfn);
-  kno_def_evalfn(kno_scheme_module,"DEFINE","",define_evalfn);
-  kno_def_evalfn(kno_scheme_module,"DEFSLAMBDA","",defslambda_evalfn);
-  kno_def_evalfn(kno_scheme_module,"DEFAMBDA","",defambda_evalfn);
+  kno_def_evalfn(kno_scheme_module,"LAMBDA",lambda_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"AMBDA",ambda_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"NLAMBDA",nlambda_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"SLAMBDA",slambda_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"SAMBDA",sambda_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"THUNK",thunk_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"DEFINE",define_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"DEFSLAMBDA",defslambda_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"DEFAMBDA",defambda_evalfn,
+		 "*undocumented*");
 
-  kno_def_evalfn(kno_scheme_module,"DEF",
-                 "Returns a named lambda procedure",
-                 def_evalfn);
-  kno_def_evalfn(kno_scheme_module,"DEFAMB",
-                 "Returns a named non-determinstic lambda procedure",
-                 defamb_evalfn);
-  kno_def_evalfn(kno_scheme_module,"DEFSYNC",
-                 "Returns a named synchronized lambda procedure",
-                 defsync_evalfn);
+  kno_def_evalfn(kno_scheme_module,"DEF",def_evalfn,
+                 "Returns a named lambda procedure");
+  kno_def_evalfn(kno_scheme_module,"DEFAMB",defamb_evalfn,
+                 "Returns a named non-determinstic lambda procedure");
+  kno_def_evalfn(kno_scheme_module,"DEFSYNC",defsync_evalfn,
+                 "Returns a named synchronized lambda procedure");
 }
 
 

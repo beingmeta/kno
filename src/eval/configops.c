@@ -481,11 +481,10 @@ KNO_EXPORT void kno_init_configops_c()
 
   link_local_cprims();
 
-  kno_def_evalfn(kno_scheme_module,"#CONFIG",
+  kno_def_evalfn(kno_scheme_module,"#CONFIG",config_macro,
 		 "#:CONFIG\"KNOVERSION\" or #:CONFIG:LOADPATH\n"
 		 "evaluates to a value from the current configuration "
-		 "environment",
-		 config_macro);
+		 "environment");
 
   kno_register_config("CONFIG","Add a CONFIG file/URI to process",
 		      get_config_files,add_config_file,NULL);

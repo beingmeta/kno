@@ -348,18 +348,16 @@ KNO_EXPORT void kno_init_eval_testops_c()
 
   link_local_cprims();
 
-  kno_def_evalfn(kno_scheme_module,"EVALTEST",
+  kno_def_evalfn(kno_scheme_module,"EVALTEST",evaltest_evalfn,
 		 "`(EVALTEST *expected* *expr*)` evaluates *expr* and checks "
 		 "if it is EQUAL? to *expected*. If so it does nothing, "
 		 "otherwise it either logs the failed test (depending on "
-		 "the LOGTESTS config) or signals an error.",
-		 evaltest_evalfn);
-  kno_def_evalfn(kno_scheme_module,"ERRTEST",
+		 "the LOGTESTS config) or signals an error.");
+  kno_def_evalfn(kno_scheme_module,"ERRTEST",errtest_evalfn,
 		 "`(ERRTEST *buggy-expr*)` evalutes *bugg-expr* and ignores "
 		 "any signalled error. However, if *buggy-expr* returns a "
 		 "without an error, this is either logged (depending on "
-		 "the LOGTESTS config) or signalled as an error",
-		 errtest_evalfn);
+		 "the LOGTESTS config) or signalled as an error");
 
   kno_register_config
     ("TESTS:ERROR",

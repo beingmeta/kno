@@ -1360,11 +1360,13 @@ KNO_EXPORT void kno_init_cgiexec_c()
 
   u8_init_mutex(&protected_cgi_lock);
 
-  kno_def_evalfn(module,"HTTPHEADER","",httpheader);
+  kno_def_evalfn(module,"HTTPHEADER",httpheader,
+		 "*undocumented*");
 
   link_local_cprims();
 
-  kno_def_evalfn(module,"WITH/REQUEST/OUT","",withreqout_evalfn);
+  kno_def_evalfn(module,"WITH/REQUEST/OUT",withreqout_evalfn,
+		 "*undocumented*");
   kno_defalias(module,"WITHCGIOUT","WITH/REQUEST/OUT");
 
   kno_defalias2(module,"WITHCGI",kno_scheme_module,"WITH/REQUEST");
@@ -1377,12 +1379,17 @@ KNO_EXPORT void kno_init_cgiexec_c()
   kno_defalias2(module,"CGIADD!",kno_scheme_module,"REQ/DROP!");
 
 
-  /* kno_def_evalfn(module,"CGIVAR","",cgivar_evalfn); */
+  /* kno_def_evalfn(module,"CGIVAR",cgivar_evalfn,
+     "*undocumented*"); */
 
-  kno_def_evalfn(xhtml_module,"HTMLHEADER","",htmlheader);
-  kno_def_evalfn(xhtml_module,"TITLE!","",title_evalfn);
-  kno_def_evalfn(xhtml_module,"JSOUT","",jsout_evalfn);
-  kno_def_evalfn(xhtml_module,"CSSOUT","",cssout_evalfn);
+  kno_def_evalfn(xhtml_module,"HTMLHEADER",htmlheader,
+		 "*undocumented*");
+  kno_def_evalfn(xhtml_module,"TITLE!",title_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(xhtml_module,"JSOUT",jsout_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(xhtml_module,"CSSOUT",cssout_evalfn,
+		 "*undocumented*");
 
   tail_symbol = kno_intern("%tail");
   browseinfo_symbol = kno_intern("browseinfo");

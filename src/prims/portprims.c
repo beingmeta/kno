@@ -1218,9 +1218,12 @@ KNO_EXPORT void kno_init_portprims_c()
   init_portprims_symbols();
   link_local_cprims();
 
-  kno_def_evalfn(kno_io_module,"PRINTOUT","",printout_evalfn);
-  kno_def_evalfn(kno_io_module,"LINEOUT","",lineout_evalfn);
-  kno_def_evalfn(kno_io_module,"STRINGOUT","",stringout_evalfn);
+  kno_def_evalfn(kno_io_module,"PRINTOUT",printout_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_io_module,"LINEOUT",lineout_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_io_module,"STRINGOUT",stringout_evalfn,
+		 "*undocumented*");
 }
 
 static void link_local_cprims()

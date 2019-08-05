@@ -114,11 +114,10 @@ KNO_EXPORT void kno_init_replc_c()
 
   u8_register_source_file(_FILEINFO);
 
-  kno_def_evalfn(repl_module,"with-history",
+  kno_def_evalfn(repl_module,"with-history",with_history_evalfn,
 		 "`(with-history *info* *body...*)` creates a new history "
 		 "context and evaluates *body* within that context. "
-		 "This saves any current history context.",
-		 with_history_evalfn);
+		 "This saves any current history context.");
 
   link_local_cprims();
 

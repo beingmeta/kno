@@ -2092,69 +2092,68 @@ static void init_localfns()
 {
   link_local_cprims();
 
-  kno_def_evalfn(kno_scheme_module,"EVAL","",eval_evalfn);
-  kno_def_evalfn(kno_scheme_module,"BOUND?",
+  kno_def_evalfn(kno_scheme_module,"EVAL",eval_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"BOUND?",boundp_evalfn,
 		 "`(BOUND? *sym*)` returns true if *sym* (not evaluated) "
-		 "is bound in the current environment.",
-		 boundp_evalfn);
-  kno_def_evalfn(kno_scheme_module,"UNBOUND?",
+		 "is bound in the current environment.");
+  kno_def_evalfn(kno_scheme_module,"UNBOUND?",unboundp_evalfn,
 		 "`(UNBOUND? *sym*)` returns true if *sym* (*not evaluated*) "
-		 "is *not* bound in the current environment.",unboundp_evalfn);
-  kno_def_evalfn(kno_scheme_module,"DEFINED?","",definedp_evalfn);
-  kno_def_evalfn(kno_scheme_module,"VOID?",
+		 "is *not* bound in the current environment.");
+  kno_def_evalfn(kno_scheme_module,"DEFINED?",definedp_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"VOID?",voidp_evalfn,
 		 "`(VOID? *expr*)` returns true if evaluating *expr* "
-		 "returns the **VOID** value.",
-		 voidp_evalfn);
-  kno_def_evalfn(kno_scheme_module,"DEFAULT?",
+		 "returns the **VOID** value.");
+  kno_def_evalfn(kno_scheme_module,"DEFAULT?",defaultp_evalfn,
 		 "`(DEFAULT? *expr*)` returns true if evaluating *expr* "
-		 "returns the **DEFAULT** value token.",
-		 defaultp_evalfn);
-  kno_def_evalfn(kno_scheme_module,"CONSTANT?",
+		 "returns the **DEFAULT** value token.");
+  kno_def_evalfn(kno_scheme_module,"CONSTANT?",constantp_evalfn,
 		 "`(CONSTANT? *expr*)` returns true if evaluating *expr* "
-		 "returns a Scheme constant.",
-		 constantp_evalfn);
-  kno_def_evalfn(kno_scheme_module,"BAD?",
+		 "returns a Scheme constant.");
+  kno_def_evalfn(kno_scheme_module,"BAD?",badp_evalfn,
 		 "`(BAD? *expr*)` returns true if evaluating *expr* "
-		 "returns an invalid pointer",
-		 badp_evalfn);
-  kno_def_evalfn(kno_scheme_module,"QUOTE",
+		 "returns an invalid pointer");
+  kno_def_evalfn(kno_scheme_module,"QUOTE",quote_evalfn,
 		 "`(QUOTE *x*)` returns the subexpression *x*, "
-		 "which is *not* evaluated.",
-		 quote_evalfn);
-  kno_def_evalfn(kno_scheme_module,"%ENV",
-		 "`(%ENV)` returns the current lexical environment.",
-		 env_evalfn);
-  kno_def_evalfn(kno_scheme_module,"%MODREF",
+		 "which is *not* evaluated.");
+  kno_def_evalfn(kno_scheme_module,"%ENV",env_evalfn,
+		 "`(%ENV)` returns the current lexical environment.");
+  kno_def_evalfn(kno_scheme_module,"%MODREF",modref_evalfn,
 		 "`(%MODREF *modobj* *symbol*) returns the binding of "
 		 "*symbol* in the module *modobj*, neither of which are "
 		 "evaluated. This is intended for use in automatically "
-		 "generated/optimized code",
-		 modref_evalfn);
-  kno_def_evalfn(kno_scheme_module,"SYMBOL-BOUND?",
+		 "generated/optimized code");
+  kno_def_evalfn(kno_scheme_module,"SYMBOL-BOUND?",symbol_boundp_evalfn,
 		 "`(SYMBOL-BOUND? *sym* [*env*])` returns #t "
 		 "if *sym* is bound in *env*, which defaults to "
-		 "the current environment.",
-		 symbol_boundp_evalfn);
+		 "the current environment.");
 
-  kno_def_evalfn(kno_scheme_module,"%ENV/RESET!",
+  kno_def_evalfn(kno_scheme_module,"%ENV/RESET!",env_reset_evalfn,
 		 "Resets the cached dynamic copy of the current "
 		 "environment (if any). This means that procedures "
 		 "closed in the current environment will not be "
-		 "effected by future changes",
-		 env_reset_evalfn);
+		 "effected by future changes");
 
-  kno_def_evalfn(kno_scheme_module,"WITHENV","",withenv_evalfn);
+  kno_def_evalfn(kno_scheme_module,"WITHENV",withenv_evalfn,
+		 "*undocumented*");
 
   /* This pushes a new threadcache */
-  kno_def_evalfn(kno_scheme_module,"WITH-THREADCACHE","",with_threadcache_evalfn);
+  kno_def_evalfn(kno_scheme_module,"WITH-THREADCACHE",with_threadcache_evalfn,
+		 "*undocumented*");
   /* This ensures that there's an active threadcache, pushing a new one if
      needed or using the current one if it exists. */
-  kno_def_evalfn(kno_scheme_module,"USING-THREADCACHE","",using_threadcache_evalfn);
+  kno_def_evalfn(kno_scheme_module,"USING-THREADCACHE",using_threadcache_evalfn,
+		 "*undocumented*");
 
-  kno_def_evalfn(kno_scheme_module,"VOID","",void_evalfn);
-  kno_def_evalfn(kno_scheme_module,"!!!NULL!!!","",null_evalfn);
-  kno_def_evalfn(kno_scheme_module,"BREAK","",break_evalfn);
-  kno_def_evalfn(kno_scheme_module,"DEFAULT","",default_evalfn);
+  kno_def_evalfn(kno_scheme_module,"VOID",void_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"!!!NULL!!!",null_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"BREAK",break_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"DEFAULT",default_evalfn,
+		 "*undocumented*");
 
   kno_register_config
     ("TAILCALL",

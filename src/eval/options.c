@@ -244,22 +244,11 @@ KNO_EXPORT void kno_init_eval_getopt_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  kno_def_evalfn(kno_scheme_module,"GETOPT",
+  kno_def_evalfn(kno_scheme_module,"GETOPT",getopt_evalfn,
 		 "`(GETOPT *opts* *name* [*default*=#f])` returns any *name* "
 		 "option defined in *opts* or *default* otherwise. "
 		 "If *opts* or *name* are choices, this only returns *default* "
-		 "if none of the alternatives yield results.",
-		 getopt_evalfn);
-#if 0
-  kno_def_evalfn(kno_scheme_module,"TRYOPT",
-		 "`(TRYOPT *opts* *name* [*default*=#f])` returns any *name* "
-		 "option defined in *opts* or *default* otherwise. Any errors "
-		 "during option resolution are ignored. "
-		 "If *opts* or *name* are choices, this only returns *default* "
-		 "if none of the alternatives yield results. Note that the "
-		 "*default*, if evaluated, may signal an error.",
-		 tryopt_evalfn);
-#endif
+		 "if none of the alternatives yield results.");
 
   link_local_cprims();
 }

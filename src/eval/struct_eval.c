@@ -129,11 +129,10 @@ KNO_EXPORT int kno_init_struct_eval_c()
 
   struct_eval_symbol = kno_intern("#.");
 
-  kno_def_evalfn(kno_scheme_module,"#.",
+  kno_def_evalfn(kno_scheme_module,"#.",struct_evalfn,
 		"Evaluate the value components of a structured object "
 		"(vector, slotmap, etc) and return a copy with those "
-		"values.",
-		struct_evalfn);
+		"values.");
   kno_defalias(kno_scheme_module,"STRUCT-EVAL","#.");
 
   u8_register_source_file(_FILEINFO);

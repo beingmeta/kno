@@ -198,35 +198,33 @@ KNO_EXPORT void kno_init_conditionals_c()
 
   link_local_cprims();
 
-  kno_def_evalfn(kno_scheme_module,"IF",
+  kno_def_evalfn(kno_scheme_module,"IF",if_evalfn,
 		 "(IF *test* *then* [*else*]) "
 		 "returns *then* if *test* is neither #f or {}\n"
 		 "and *else* (if provided) when *test* is #f. "
-		 "Returns VOID otherwise.",
-		 if_evalfn);
-  kno_def_evalfn(kno_scheme_module,"TRYIF","",tryif_evalfn);
-  kno_def_evalfn(kno_scheme_module,"COND","",cond_evalfn);
-  kno_def_evalfn(kno_scheme_module,"CASE","",case_evalfn);
-  kno_def_evalfn(kno_scheme_module,"WHEN",
+		 "Returns VOID otherwise.");
+  kno_def_evalfn(kno_scheme_module,"TRYIF",tryif_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"COND",cond_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"CASE",case_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"WHEN",when_evalfn,
 		 "(WHEN *test* *clauses*...) returns VOID and "
 		 "evaluates *clauses* in order if *test* is not "
-		 "#f or {}",
-		 when_evalfn);
-  kno_def_evalfn(kno_scheme_module,"UNLESS",
+		 "#f or {}");
+  kno_def_evalfn(kno_scheme_module,"UNLESS",unless_evalfn,
 		 "(WHEN *test* *clauses*...) returns VOID and "
-		 "evaluates *clauses* in order if *test* is #f.",
-		 unless_evalfn);
-  kno_def_evalfn(kno_scheme_module,"AND",
+		 "evaluates *clauses* in order if *test* is #f.");
+  kno_def_evalfn(kno_scheme_module,"AND",and_evalfn,
 		 "(AND *clauses*..) evaluates *clauses* in order "
 		 "until one returns either #f or {}, which is then "
 		 "returned. If none return #f or #{}, return the result "
-		 "of the last clause",
-		 and_evalfn);
-  kno_def_evalfn(kno_scheme_module,"OR",
+		 "of the last clause");
+  kno_def_evalfn(kno_scheme_module,"OR",or_evalfn,
 		 "(OR *clauses*..) evaluates *clauses* in order, "
 		 "returning the first non #f value. If a clause returns {} "
-		 "it is returned immediately.",
-		 or_evalfn);
+		 "it is returned immediately.");
 }
 
 static void link_local_cprims()

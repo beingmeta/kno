@@ -1478,11 +1478,15 @@ KNO_EXPORT void kno_init_reflection_c()
 
   link_local_cprims();
 
-  kno_def_evalfn(module,"%BINDINGS","",local_bindings_evalfn);
+  kno_def_evalfn(module,"%BINDINGS",local_bindings_evalfn,
+		 "*undocumented*");
 
-  kno_def_evalfn(module,"WHEREFROM","",wherefrom_evalfn);
-  kno_def_evalfn(module,"GETMODULES","",getmodules_evalfn);
-  kno_def_evalfn(module,"WITH-SOURCEBASE","",with_sourcebase_evalfn);
+  kno_def_evalfn(module,"WHEREFROM",wherefrom_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(module,"GETMODULES",getmodules_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(module,"WITH-SOURCEBASE",with_sourcebase_evalfn,
+		 "*undocumented*");
 
   kno_finish_module(module);
 }

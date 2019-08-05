@@ -527,17 +527,19 @@ KNO_EXPORT void kno_init_load_c()
   postload_symbol = kno_intern("%postload");
 
 
-  kno_def_evalfn(kno_scheme_module,"LOAD","",load_source_evalfn);
-  kno_def_evalfn(kno_scheme_module,"LOAD-COMPONENT","",load_component_evalfn);
+  kno_def_evalfn(kno_scheme_module,"LOAD",load_source_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"LOAD-COMPONENT",load_component_evalfn,
+		 "*undocumented*");
 
   link_local_cprims();
 
-  kno_def_evalfn(kno_scheme_module,"LOAD-LATEST","",load_latest_evalfn);
+  kno_def_evalfn(kno_scheme_module,"LOAD-LATEST",load_latest_evalfn,
+		 "*undocumented*");
 
-  kno_def_evalfn(kno_scheme_module,"#PATH",
+  kno_def_evalfn(kno_scheme_module,"#PATH",path_macro,
 		 "#:PATH\"init/foo.scm\" or #:PATH:home.scm\n"
-		 "evaluates to an environment variable",
-		 path_macro);
+		 "evaluates to an environment variable");
 
   kno_register_config("LOAD:TRACE","Trace file load starts and ends",
 		      kno_boolconfig_get,kno_boolconfig_set,&trace_load);

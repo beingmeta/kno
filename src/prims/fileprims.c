@@ -1817,9 +1817,11 @@ KNO_EXPORT void kno_init_fileprims_c()
   u8_set_global_output((u8_output)&u8stdout);
 
   link_local_cprims();
-  kno_def_evalfn(fileio_module,"FILEOUT","",simple_fileout_evalfn);
+  kno_def_evalfn(fileio_module,"FILEOUT",simple_fileout_evalfn,
+		 "*undocumented*");
 
-  kno_def_evalfn(fileio_module,"SYSTEM","",simple_system_evalfn);
+  kno_def_evalfn(fileio_module,"SYSTEM",simple_system_evalfn,
+		 "*undocumented*");
 
   kno_init_driverfns_c();
 
@@ -1846,8 +1848,10 @@ KNO_EXPORT void kno_init_fileprims_c()
   noblock_symbol = kno_intern("noblock");
   nodelay_symbol = kno_intern("nodelay");
 
-  kno_def_evalfn(fileio_module,"SNAPSHOT","",snapshot_evalfn);
-  kno_def_evalfn(fileio_module,"SNAPBACK","",snapback_evalfn);
+  kno_def_evalfn(fileio_module,"SNAPSHOT",snapshot_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(fileio_module,"SNAPBACK",snapback_evalfn,
+		 "*undocumented*");
 
   kno_register_config
     ("STACKDUMP","File to store stackdump information on errors",

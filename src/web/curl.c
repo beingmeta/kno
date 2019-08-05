@@ -1834,7 +1834,8 @@ KNO_EXPORT void kno_init_curl_c()
 
   curl_defaults = kno_empty_slotmap();
 
-  kno_def_evalfn(module,"URLPOSTOUT","",urlpostdata_evalfn);
+  kno_def_evalfn(module,"URLPOSTOUT",urlpostdata_evalfn,
+		 "*undocumented*");
 
   link_local_cprims();
 

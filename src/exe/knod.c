@@ -1281,7 +1281,8 @@ static kno_lexenv init_core_env()
   kno_finish_module(kno_dbserv_module);
 
   /* We add some special functions */
-  kno_def_evalfn(core_module,"bound?","",boundp_evalfn);
+  kno_def_evalfn(core_module,"bound?",boundp_evalfn,
+		 "");
 
   kno_idefn(core_module,
             kno_make_cprim0("BOOT-TIME",get_boot_time,0,

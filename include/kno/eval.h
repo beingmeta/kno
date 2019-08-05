@@ -94,8 +94,8 @@ KNO_EXPORT void kno_new_evalfn(lispval mod,u8_string name,
                              u8_string doc,
                              kno_eval_handler fn);
 
-#define kno_def_evalfn(mod,name,doc,evalfn) \
-  kno_new_evalfn(mod,name,_FILEINFO,doc,evalfn)
+#define kno_def_evalfn(mod,name,evalfn,doc) \
+  kno_new_evalfn(mod,name,_FILEINFO " L#" STRINGIFY(__LINE__),doc,evalfn)
 
 typedef struct KNO_MACRO {
   KNO_CONS_HEADER;

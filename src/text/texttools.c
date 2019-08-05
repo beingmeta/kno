@@ -2795,7 +2795,8 @@ void kno_init_texttools()
   kno_init_match_c();
   kno_init_phonetic_c();
 
-  kno_def_evalfn(texttools_module,"TEXTCLOSURE","",textclosure_evalfn);
+  kno_def_evalfn(texttools_module,"TEXTCLOSURE",textclosure_evalfn,
+		 "*undocumented*");
   link_local_cprims();
 
   subst_symbol = kno_intern("subst");

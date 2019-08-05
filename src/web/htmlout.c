@@ -631,7 +631,8 @@ KNO_EXPORT void kno_init_htmlout_c()
 
   link_local_cprims();
 
-  kno_def_evalfn(xhtml_module,"TABLE->HTML","",table2html_evalfn);
+  kno_def_evalfn(xhtml_module,"TABLE->HTML",table2html_evalfn,
+		 "*undocumented*");
 
   xmloidfn_symbol = kno_intern("%xmloid");
   id_symbol = kno_intern("%id");

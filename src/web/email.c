@@ -146,7 +146,8 @@ void kno_init_email_c()
 
   link_local_cprims();
 
-  kno_def_evalfn(webtools_module,"MAILOUT","",mailout_evalfn);
+  kno_def_evalfn(webtools_module,"MAILOUT",mailout_evalfn,
+		 "*undocumented*");
 
   kno_register_config("MAILHOST",_("SMTP host"),
 		      kno_sconfig_get,kno_sconfig_set,&mailhost_dflt);

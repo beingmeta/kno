@@ -239,11 +239,10 @@ KNO_EXPORT int kno_init_promises_c()
   kno_recyclers[kno_promise_type]=recycle_promise;
 
   link_local_cprims();
-  kno_def_evalfn(kno_scheme_module,"DELAY",
+  kno_def_evalfn(kno_scheme_module,"DELAY",delay_evalfn,
                  "`(DELAY *expr*)` creates a *promise* to evalute *expr* in "
                  "the current environment, which is delivered when "
-                 "the promise is *forced*.",
-                 delay_evalfn);
+                 "the promise is *forced*.");
 
   u8_register_source_file(_FILEINFO);
 

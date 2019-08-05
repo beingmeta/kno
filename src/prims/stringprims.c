@@ -1763,7 +1763,8 @@ KNO_EXPORT void kno_init_stringprims_c()
   u8_register_source_file(_FILEINFO);
 
   link_local_cprims();
-  kno_def_evalfn(kno_scheme_module,"TEXTIF","",textif_evalfn);
+  kno_def_evalfn(kno_scheme_module,"TEXTIF",textif_evalfn,
+		 "*undocumented*");
 
   entity_escape = kno_intern("entities");
 }

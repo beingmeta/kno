@@ -1739,25 +1739,32 @@ KNO_EXPORT void kno_init_choicefns_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  kno_def_evalfn(kno_scheme_module,"DO-CHOICES","",dochoices_evalfn);
+  kno_def_evalfn(kno_scheme_module,"DO-CHOICES",dochoices_evalfn,
+		 "*undocumented*");
   kno_defalias(kno_scheme_module,"DO∀","DO-CHOICES");
-  kno_def_evalfn(kno_scheme_module,"FOR-CHOICES","",forchoices_evalfn);
+  kno_def_evalfn(kno_scheme_module,"FOR-CHOICES",forchoices_evalfn,
+		 "*undocumented*");
   kno_defalias(kno_scheme_module,"FOR∀","FOR-CHOICES");
-  kno_def_evalfn(kno_scheme_module,"TRY-CHOICES","",trychoices_evalfn);
+  kno_def_evalfn(kno_scheme_module,"TRY-CHOICES",trychoices_evalfn,
+		 "*undocumented*");
   kno_defalias(kno_scheme_module,"TRY∀","TRY-CHOICES");
-  kno_def_evalfn(kno_scheme_module,"FILTER-CHOICES","",filterchoices_evalfn);
+  kno_def_evalfn(kno_scheme_module,"FILTER-CHOICES",filterchoices_evalfn,
+		 "*undocumented*");
   kno_defalias(kno_scheme_module,"?∀","FILTER-CHOICES");
 
-  /* kno_def_evalfn(kno_scheme_module,"CHOICEVEC","",choicevec_evalfn); */
-
-  kno_def_evalfn(kno_scheme_module,"DO-SUBSETS","",dosubsets_evalfn);
+  kno_def_evalfn(kno_scheme_module,"DO-SUBSETS",dosubsets_evalfn,
+		 "*undocumented*");
 
   link_local_cprims();
 
-  kno_def_evalfn(kno_scheme_module,"TRY","",try_evalfn);
-  kno_def_evalfn(kno_scheme_module,"IFEXISTS","",ifexists_evalfn);
-  kno_def_evalfn(kno_scheme_module,"WHENEXISTS","",whenexists_evalfn);
-  kno_def_evalfn(kno_scheme_module,"QCHOICE?","",qchoicep_evalfn);
+  kno_def_evalfn(kno_scheme_module,"TRY",try_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"IFEXISTS",ifexists_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"WHENEXISTS",whenexists_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"QCHOICE?",qchoicep_evalfn,
+		 "*undocumented*");
 
   lexical_symbol = kno_intern("lexical");
   lexci_symbol = kno_intern("lexical/ci");

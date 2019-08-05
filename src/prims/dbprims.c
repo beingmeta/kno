@@ -4083,7 +4083,8 @@ KNO_EXPORT void kno_init_dbprims_c()
 
   link_local_cprims();
 
-  kno_def_evalfn(kno_db_module,"CACHEGET","",cacheget_evalfn);
+  kno_def_evalfn(kno_db_module,"CACHEGET",cacheget_evalfn,
+		 "*undocumented*");
 
   id_symbol = kno_intern("%id");
   padjuncts_symbol = kno_intern("%adjuncts");
