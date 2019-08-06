@@ -27,10 +27,16 @@
 
 (dotimes (i 10) (fibi 1000))
 
-(applytest #t > (profile/time (profile/getcalls fib-iter)) (profile/time (profile/getcalls fibi)) )
+;; This was testing for the old tail recursion implementation where
+;; the call to fibi became a call to fib-iter. Now, fib-iter recurs,
+;; but it doesn't replace fibi because it has more arguments and can't
+;; use the stack frame. Keeping this in case, we ever restore the
+;; previous functionality.
+
+;;(applytest #t > (profile/time (profile/getcalls fib-iter)) (profile/time (profile/getcalls fibi)) )
 ;; "More" time is spent in fib-iter than fibi, because fibi is tail recursive
-(applytest #t < (profile/nsecs (profile/getcalls fibi)) (profile/nsecs (profile/getcalls fib-iter)) )
-(applytest #t > (profile/ncalls (profile/getcalls fib-iter)) (profile/ncalls (profile/getcalls +)) )
+;;(applytest #t < (profile/nsecs (profile/getcalls fibi)) (profile/nsecs (profile/getcalls fib-iter)) )
+;;(applytest #t > (profile/ncalls (profile/getcalls fib-iter)) (profile/ncalls (profile/getcalls +)) )
 
 (profile/reset! profiled)
 
@@ -64,7 +70,7 @@
 
 ;;; This threaded wait count test will occasionally fail, but bumping
 ;;; up threaded-wait-repeat reduces the chance of that.
-(define threaded-wait-repeat 25000)
+(define threaded-wait-repeat 100000)
 (define threaded-wait-count 
   (begin (parallel 
 	  (dotimes (i threaded-wait-repeat) (update-field 'count1))
