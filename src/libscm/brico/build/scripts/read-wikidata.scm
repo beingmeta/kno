@@ -36,7 +36,7 @@
 			   aliases #[pool "aliases"]
 			   claims #[pool "claims"]
 			   sitelinks #[pool "sitelinks"]]
-		reserve 3]))
+		reserve 1]))
 
 (define buildmap.table
   (flexdb/make "wikidata/wikids.table" [indextype 'memindex create #t]))
@@ -85,11 +85,13 @@
 
 ;;; Reading data
 
-(define (skip-file-start port) (getline port))
+(define (skip-file-start port)
+  "This skips the opening [ character."
+  (getline port))
 
 (define filestream-opts
   [startfn skip-file-start
-   itemfn getline])
+   readfn getline])
 
 ;;; Parsing the data
 
@@ -198,7 +200,7 @@
       (let* ((line (filestream/read in))
 	     (item (and (satisfied? line) (string? line)
 			(jsonparse line 'symbolize))))
-	(%watch "READ-LOOP" line item)
+	(debug%watch "READ-LOOP" line item)
 	(when item
 	  (import-wikid-item item branch has.index)
 	  (when  (and (> (elapsed-time saved) 10)
@@ -241,7 +243,7 @@
     (filestream/log! in '(overall))))
 
 (define (main (file "latest-all.json") 
-	      (secs (config 'cycletime 10))
+	      (secs (config 'cycletime 120))
 	      (cycles (config 'cycles 10))
 	      (threadcount (config 'threads #t)))
   (let ((in (filestream/open file filestream-opts))
