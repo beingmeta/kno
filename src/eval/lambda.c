@@ -99,7 +99,8 @@ lispval lambda_call(struct KNO_STACK *_stack,
   _stack->stack_type = kno_lambda_stack_type;
 
   int tail = (fn->lambda_synchronized) ? (0) :
-    ( (_stack->stack_flags & KNO_STACK_TAILPOS) &&
+    ( (_stack->stack_caller) &&
+      (_stack->stack_caller->stack_flags & KNO_STACK_TAILPOS) &&
       (! ((fn->fcn_call) & KNO_FCN_CALL_NOTAIL) ) );
 
   int i = 0, max_positional = (arity < 0) ? (n_vars-1) : (arity);
@@ -121,6 +122,7 @@ lispval lambda_call(struct KNO_STACK *_stack,
 	kno_qchoice qc = (kno_qchoice) arg;
 	lispval qval = qc->qchoiceval;
 	kno_incref(qval);
+	if (vals == args) kno_decref(arg);
 	arg = qval;}
       else kno_incref(arg);
       vals[i] = arg;
@@ -136,7 +138,13 @@ lispval lambda_call(struct KNO_STACK *_stack,
   else {
     while (i < last_positional) {
       lispval arg = args[i];
-      kno_incref(arg);
+      if (KNO_QCHOICEP(arg)) {
+	kno_qchoice qc = (kno_qchoice) arg;
+	lispval qval = qc->qchoiceval;
+	kno_incref(qval);
+	if (vals == args) kno_decref(arg);
+	arg = qval;}
+      else kno_incref(arg);
       vals[i++] = arg;}
     while (i < max_positional) {
       vals[i++] = VOID;}}
@@ -145,6 +153,8 @@ lispval lambda_call(struct KNO_STACK *_stack,
       vals[i] = get_rest_arg(args+i,n-i);
     else vals[i] = KNO_EMPTY_LIST;
     i++;}
+
+  if (tail) _stack->stack_flags |= KNO_STACK_TAILPOS;
 
   struct KNO_LEXENV stack_env = { 0 };
   struct KNO_SCHEMAP bindings = { 0 };
