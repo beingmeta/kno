@@ -26,11 +26,13 @@
 (defrecord (filestream/batch) itemcount start end)
 
 (define (batch-runtime batch)
-  (- (filestream/batch-end batch) (filestream/batch-start batch)))
+  (difftime (filestream/batch-end batch) (filestream/batch-start batch)))
 (define (batch-count batch) (filestream/batch-itemcount batch))
 
 (define (filestream/open filename (opts #f))
   (let* ((statefile (glom filename ".state"))
+	 (archive (and (has-suffix filename {".bz" ".gz" ".bz2" ".Z" ".tar"})
+		       (archive/open filename)))
 	 (state (if (file-exists? statefile)
 		    (read (open-input-file statefile))
 		    (frame-create #f
@@ -38,10 +40,9 @@
 		      'started (gmtimestamp)
 		      'filetime (file-modtime filename)
 		      'filesize (file-size filename)
+		      'filepos (tryif (not archive) 0)
 		      'total (getopt opts 'total {})
 		      'itemcount 0)))
-	 (archive (and (has-suffix filename {".bz" ".gz" ".bz2" ".Z" ".tar"})
-		       (archive/open filename)))
 	 (port (if archive
 		   (archive/open archive 0)
 		   (open-input-file filename)))
@@ -51,18 +52,15 @@
 				   filename archive statefile state
 				   (gmtimestamp) 0 (and (not archive) (getpos port))
 				   #f)))
-      (when (getopt opts 'skipfn) ((getopt opts 'skipfn) stream))
-      (if (or archive (not (test state 'filepos)))
-	  (dotimes (i (get state 'itemcount)) (readfn port))
-	  (onerror
-	      (setpos! port (get state 'filepos))
-	      (lambda (x) 
-		(logwarn |FilestreamSetPosFailed| 
-		  "For " filename ", via " ($histval stream) 
-		  "\n    Skipping " ($count (get state 'itemcount) "item") " instead")
-		(dotimes (i (get state 'itemcount)) (readfn port)))))
-      (unless archive
-	(store! state 'filepos (getpos port)))
+      (if (> (getopt state 'filepos 0) 0)
+	  (setpos! port (getopt state 'filepos))
+	  (begin
+	    (when (getopt opts 'startfn) ((getopt opts 'startfn) port))
+	    (unless archive (store! state 'filepos (getpos port)))
+	    (when archive
+	      ;; When you can't set file positions, skip over all the
+	      ;;  items which have been read in the past
+	      (dotimes (i (getopt state 'itemcount 0)) (readfn port)))))
       (store! state 'updated (timestamp))
       (fileout statefile (pprint state))
       stream)))
@@ -83,9 +81,10 @@
       (store! state 'itemcount (+ (get state 'itemcount) (filestream-itemcount stream)))
       (when (filestream-filepos stream)
 	(store! state 'filepos (filestream-filepos stream)))
-      (add! state 'batches (cons-filestream/batch (filestream-itemcount stream)
-						 (filestream-started stream)
-						 now))
+      (add! state 'batches
+	(cons-filestream/batch (filestream-itemcount stream)
+			       (filestream-started stream)
+			       now))
       state)))
 
 (define (filestream/save! stream)
@@ -93,8 +92,8 @@
     (let* ((state (deep-copy (filestream-state stream)))
 	   (count (filestream-itemcount stream))
 	   (started (filestream-started stream))
-	   (batch (cons-filestream/batch count started now))
-	   (now (gmtimestamp)))
+	   (now (gmtimestamp))
+	   (batch (cons-filestream/batch count started now)))
       (store! state 'updated now)
       (store! state 'itemcount (+ (get state 'itemcount) count))
       (when (filestream-filepos stream)
@@ -120,23 +119,23 @@
     (when (and (getopt opts 'batch #t) (not (zero? count)))
       (lognotice |FileStream| 
 	"Processed " ($count count "item") " in " 
-	(secs->string (difftime started)) 
-	" (" ($rate count (difftime started)) " items/sec)"))
+	(secs->string (time-since started)) 
+	" (" ($rate count (time-since started)) " items/sec)"))
     (when (getopt opts 'overall #f)
       (let ((runtime (+ (reduce-choice + (get state 'batches) 0 batch-runtime)
-			(difftime started)))
+			(time-since started)))
 	    (full-count (+ (reduce-choice + (get state 'batches) 0 batch-count)
 			   (filestream-itemcount stream))))
 	(when (> full-count 0)
 	  (lognotice |FileStream| 
 	    "Overall, processed " ($count (+ count (get state 'itemcount)) "item") 
 	    (when filepos (printout " and " ($bytes filepos) " bytes"))
-	    " in " (secs->string (difftime (get state 'started))) 
+	    " in " (secs->string (time-since (get state 'started))) 
 	    " over " ($count (1+ (||  (get state 'batches))) "batch" "batches")
 	    " running " (secs->string runtime))
 	  (lognotice |FileStream|
-	    "Overall, processing " ($rate count (difftime started)) " items/sec"
-	    (when filepos (printout " and" ($rate count (difftime started)) " bytes/sec)")))
+	    "Overall, processing " ($rate count (time-since started)) " items/sec"
+	    (when filepos (printout " and " ($bytes/sec filepos (time-since started)))))
 	  (cond (filepos
 		 (let ((rate (/~ filepos runtime))
 		       (togo (- (get state 'filesize) filepos)))
@@ -150,4 +149,3 @@
 		     "Inshallah, everything should be done in "
 		     (secs->string (/~ togo rate)))))
 		(else)))))))
-
