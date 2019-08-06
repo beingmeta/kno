@@ -376,8 +376,7 @@ int do_main(int argc,char **argv,
 	result = KNO_VOID;}}
     else if (KNO_APPLICABLEP(main_proc)) {
       kno_decref(result);
-      result = kno_apply(main_proc,n_args,args);
-      result = kno_finish_call(result);}
+      result = kno_apply(main_proc,n_args,args);}
     else {
       u8_log(LOGWARN,"BadMain",
 	     "The main procedure for %s (%q) isn't applicable",

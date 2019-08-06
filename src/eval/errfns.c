@@ -228,8 +228,8 @@ static lispval onerror_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     else if (KNO_APPLICABLEP(handler)) {
       lispval result;
       if (VOIDP(value))
-	result = kno_finish_call(kno_dapply(handler,0,&value));
-      else result = kno_finish_call(kno_dapply(handler,1,&value));
+	result = kno_dapply(handler,0,&value);
+      else result = kno_dapply(handler,1,&value);
       kno_decref(value);
       kno_decref(handler);
       return result;}

@@ -38,10 +38,10 @@ static lispval keyfn_get(lispval val,lispval keyfn)
       return kno_get(keyfn,val,EMPTY);
     case kno_lambda_type:
     case kno_cprim_type:
-      return kno_finish_call(kno_dapply(keyfn,1,&val));
+      return kno_dapply(keyfn,1,&val);
     default:
       if (KNO_APPLICABLEP(keyfn))
-	return kno_finish_call(kno_dapply(keyfn,1,&val));
+	return kno_dapply(keyfn,1,&val);
       else if (KNO_TABLEP(keyfn))
 	return kno_get(keyfn,val,EMPTY);
       else if (KNO_TABLEP(val))
@@ -491,7 +491,7 @@ static int test_exists(struct KNO_FUNCTION *fn,
 		       int skip_errs)
 {
   if (i == n) {
-    lispval val = kno_finish_call(kno_dapply((lispval)fn,n,d_args));
+    lispval val = kno_dapply((lispval)fn,n,d_args);
     if ((FALSEP(val)) || (EMPTYP(val))) {
       return 0;}
     else if (KNO_ABORTED(val))
@@ -587,7 +587,7 @@ static int test_forall(struct KNO_FUNCTION *fn,int i,int n,
 		       int skip_errs)
 {
   if (i == n) {
-    lispval val = kno_finish_call(kno_dapply((lispval)fn,n,d_args));
+    lispval val = kno_dapply((lispval)fn,n,d_args);
     if (FALSEP(val))
       return 0;
     else if (EMPTYP(val))

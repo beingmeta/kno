@@ -496,8 +496,7 @@ static void json_unparse(u8_output out,lispval x,int flags,lispval slotfn,
   if (FIXNUMP(x))
     u8_printf(out,"%lld",FIX2INT(x));
   else if (OIDP(x)) {
-    lispval oidval = ((VOIDP(oidfn))?(VOID):
-		      (kno_finish_call(kno_dapply(oidfn,1,&x))));
+    lispval oidval = (VOIDP(oidfn)) ? (VOID) : (kno_dapply(oidfn,1,&x));
     if (VOIDP(oidval)) {
       KNO_OID addr = KNO_OID_ADDR(x);
       if (flags)
@@ -574,8 +573,7 @@ static void json_unparse(u8_output out,lispval x,int flags,lispval slotfn,
   else if (FALSEP(x)) u8_puts(out,"false");
   else {
     u8_byte buf[256]; struct U8_OUTPUT tmpout;
-    lispval tval = ((VOIDP(miscfn))?(VOID):
-		    (kno_finish_call(kno_dapply(miscfn,1,&x))));
+    lispval tval = (VOIDP(miscfn)) ? (VOID) : (kno_dapply(miscfn,1,&x));
     U8_INIT_STATIC_OUTPUT_BUF(tmpout,256,buf);
     tmpout.u8_streaminfo |= U8_STREAM_VERBOSE;
     if (VOIDP(tval))

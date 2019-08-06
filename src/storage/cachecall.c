@@ -52,7 +52,7 @@ KNO_EXPORT lispval kno_xcachecall
   cached = kno_hashtable_get(cache,vec,VOID);
   if (VOIDP(cached)) {
     int state = kno_ipeval_status();
-    lispval result = kno_finish_call(kno_dapply(fcn,n,args));
+    lispval result = kno_dapply(fcn,n,args);
     if (KNO_ABORTP(result)) {
       kno_decref((lispval)cache);
       return result;}
@@ -189,7 +189,7 @@ KNO_EXPORT lispval kno_tcachecall(lispval fcn,int n,kno_argvec args)
       return cached;}
     else {
       int state = kno_ipeval_status();
-      lispval result = kno_finish_call(kno_dapply(fcn,n,args));
+      lispval result = kno_dapply(fcn,n,args);
       if (KNO_ABORTP(result)) return result;
       else if (kno_ipeval_status() == state) { /* OK to cache */
 	int i = 0, nelts = n+1;
@@ -202,7 +202,7 @@ KNO_EXPORT lispval kno_tcachecall(lispval fcn,int n,kno_argvec args)
       else return result;}}
  else if (kno_cachecall_probe(fcn,n,args))
    return kno_cachecall(fcn,n,args);
- else return kno_finish_call(kno_dapply(fcn,n,args));
+ else return kno_dapply(fcn,n,args);
 }
 
 /* Initialization stuff */
