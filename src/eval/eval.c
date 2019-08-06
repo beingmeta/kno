@@ -576,8 +576,9 @@ lispval kno_stack_eval(lispval expr,kno_lexenv env,
       else return simplify_value(val);}
     default:
       return expr;}}
-  else if (KNO_CONSP(expr))
-    return cons_eval(expr,env,_stack,tail);
+  else if (KNO_CONSP(expr)) {
+    if (tail) _stack->stack_flags |= KNO_STACK_TAILPOS;
+    return cons_eval(expr,env,_stack,tail);}
   else return expr;
 }
 
@@ -891,9 +892,9 @@ static lispval eval_apply(u8_string fname,
       argbuf=new_argbuf;}
     argbuf[arg_i++]=arg_val;}
   if ( (tail) && (lambda) && (kno_optimize_tail_calls) &&
-       (! ((nd_args) && (n_fns > nd_fns) ) ) ) {
+       (! qc_args) && (! ((nd_args) && (n_fns > nd_fns) ) ) ) {
     result = kno_tail_call(stack,fn,arg_i,argbuf);}
-  else if ( (n_fns > 1) || ( (nd_args) && (n_fns > nd_fns) ) )
+  else if ( (n_fns > 1) ||  ( (nd_args) && (n_fns > nd_fns) ) )
     result=kno_ndcall(stack,fn,arg_i,argbuf);
   else if (gc_args)
     result=kno_dcall(stack,fn,arg_i,argbuf);
