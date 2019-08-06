@@ -774,7 +774,6 @@ KNO_EXPORT lispval kno_dcall
 
     U8_WITH_CONTOUR(fname,0) {
       while (1) {
-	_stack->stack_flags |= KNO_STACK_TAILPOS;
 	argvec = _stack->stack_args;
 	n = _stack->stack_arglen;
 	if (profile == NULL)
@@ -788,6 +787,7 @@ KNO_EXPORT lispval kno_dcall
 	if (errno) errno_warning(_stack->stack_label);
 	if (result != KNO_TAIL_CALL) break;
 	fn = _stack->stack_op;
+	n = _stack->stack_arglen;
 	int next_setup = setup_call_stack(_stack,fn,n,&f);
 	if (next_setup < 0) break;
 	if (f) profile = f->fcn_profile;
@@ -1043,7 +1043,7 @@ KNO_EXPORT lispval kno_tail_call(kno_stack stack,lispval fcn,
     if (stack == NULL)
       return kno_dcall(NULL,fcn,n,args);}
   kno_stack scan = stack, found = NULL;
-  while (scan->stack_flags & KNO_STACK_TAILPOS) {
+  while ( (scan) && (scan->stack_flags & KNO_STACK_TAILPOS) ) {
     if ( (scan->stack_buflen >= n) &&
 	 (scan->stack_buf) )
       found = scan;
@@ -1069,7 +1069,8 @@ KNO_EXPORT lispval kno_tail_call(kno_stack stack,lispval fcn,
       lispval old_arg = argbuf[i];
       argbuf[i++] = KNO_VOID;
       kno_decref(old_arg);}
-    found->stack_args = (kno_argvec) argbuf; /* found->stack_arglen = n; */
+    found->stack_args = (kno_argvec) argbuf;
+    found->stack_arglen = n;
     return KNO_TAIL_CALL;}
 }
 
