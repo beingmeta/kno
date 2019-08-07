@@ -51,7 +51,8 @@ static lispval get_rest_arg(kno_argvec args,int n)
   lispval result=NIL; n--;
   while (n>=0) {
     lispval arg=args[n];
-    result=kno_init_pair(NULL,kno_incref(arg),result);
+    kno_incref(arg);
+    result=kno_init_pair(NULL,arg,result);
     n--;}
   return result;
 }
@@ -124,7 +125,9 @@ lispval lambda_call(struct KNO_STACK *_stack,
 	kno_incref(qval);
 	if (vals == args) kno_decref(arg);
 	arg = qval;}
-      else kno_incref(arg);
+      else if (vals != args)
+	 kno_incref(arg);
+      else NO_ELSE;
       vals[i] = arg;
       i++;}
     while (i < max_positional) {
@@ -133,28 +136,41 @@ lispval lambda_call(struct KNO_STACK *_stack,
       if (KNO_ABORTED(use_value)) {
 	kno_decref_vec(vals,i);
 	_return use_value;}
-      else vals[i]=use_value;
+      vals[i]=use_value;
       i++;}}
   else {
     while (i < last_positional) {
       lispval arg = args[i];
+      lispval old_arg = vals[i];
       if (KNO_QCHOICEP(arg)) {
 	kno_qchoice qc = (kno_qchoice) arg;
 	lispval qval = qc->qchoiceval;
 	kno_incref(qval);
+	/* If args is the current stack's argbuf,
+	   arg need's to be decref'd because we're
+	   replacing it. */
 	if (vals == args) kno_decref(arg);
-	arg = qval;}
-      else kno_incref(arg);
-      vals[i++] = arg;}
+	vals[i] = qval;}
+      else if (arg != old_arg) {
+	kno_incref(arg);
+	vals[i] = arg;
+	kno_decref(old_arg);}
+      else NO_ELSE;
+      i++;}
     while (i < max_positional) {
-      vals[i++] = VOID;}}
+      lispval old_arg = vals[i];
+      vals[i++] = VOID;
+      kno_decref(old_arg);}}
   if (arity < 0) {
+    lispval old_arg = vals[i];
     if (i<n)
       vals[i] = get_rest_arg(args+i,n-i);
     else vals[i] = KNO_EMPTY_LIST;
+    if (vals == args) kno_decref(old_arg);
     i++;}
 
-  if (tail) _stack->stack_flags |= KNO_STACK_TAILPOS;
+  _stack->stack_flags |= (tail? (KNO_STACK_TAILPOS) : (0));
+  _stack->stack_flags |= KNO_STACK_DECREF_CALLBUF;
 
   struct KNO_LEXENV stack_env = { 0 };
   struct KNO_SCHEMAP bindings = { 0 };
@@ -173,7 +189,11 @@ lispval lambda_call(struct KNO_STACK *_stack,
   if (fn->lambda_synchronized) {
     u8_unlock_mutex(&(fn->lambda_lock));}
 
+  if (_stack->stack_env->env_copy) {
+    kno_decref((lispval)_stack->stack_env->env_copy);
+    _stack->stack_env->env_copy=NULL;}
   _stack->stack_env=NULL;
+
   return result;
 }
 

@@ -331,7 +331,7 @@ typedef struct KNO_TAILCALL {
   int tailcall_arity;
   lispval tailcall_head;} *kno_tailcall;
 
-KNO_EXPORT lispval kno_tail_call(kno_stack,lispval fcn,int n,kno_argvec args);
+KNO_EXPORT lispval kno_tail_apply(kno_stack,lispval fcn,int,kno_argvec);
 
 /* Apply functions */
 

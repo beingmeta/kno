@@ -22,6 +22,9 @@
 
 (define-init %loglevel %warning%)
 
+(define (zlist . args)
+  (%watchptr (apply list args)))
+
 ;; OPTLEVEL interpretations
 ;; 0: no optimization
 ;; 1: fcnrefs + opcodes
@@ -657,7 +660,7 @@
   (let* ((env (lambda-env proc))
 	 (arglist (lambda-args proc))
 	 (body (lambda-body proc))
-	 (bound (list (arglist->vars arglist)))
+	 (bound (dbg (list (arglist->vars arglist))))
 	 (initial (and (pair? body) (car body)))
 	 (opts (if (reflect/get proc 'optimize)
 		   (if opts

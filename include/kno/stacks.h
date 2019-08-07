@@ -51,9 +51,13 @@ typedef struct KNO_LEXENV *kno_lexenv;
 #define KNO_STACK_TAILPOS 0x08
 #define KNO_STACK_TAILCALL 0x10
 #define KNO_STACK_DECREF_OP 0x100
-#define KNO_STACK_FREE_LABEL 0x200
-#define KNO_STACK_FREE_STATUS 0x400
-#define KNO_STACK_FREE_SRC 0x800
+#define KNO_STACK_DECREF_CALLBUF 0x200
+#define KNO_STACK_DECREF_ARGS 0x400 /* Not used currently */
+#define KNO_STACK_FREE_LABEL 0x800
+#define KNO_STACK_FREE_STATUS 0x1000
+#define KNO_STACK_FREE_SRC 0x2000
+
+#define KNO_DECREF_CALLBUF KNO_STACK_DECREF_CALLBUF
 
 #define KNO_STACK_LIVEP(stack) ( (stack->stack_flags) & (KNO_STACK_LIVE) )
 #define KNO_STACK_TAILP(stack) ( (stack->stack_flags) & (KNO_STACK_TAILPOS) )
@@ -196,6 +200,15 @@ KNO_FASTOP void kno_free_stack(struct KNO_STACK *stack)
   if (KNO_CONSP(stack->stack_vals)) {
     kno_decref(stack->stack_vals);
     stack->stack_vals=KNO_EMPTY_CHOICE; }
+
+  if ( (stack->stack_buf) &&
+       (U8_BITP(stack->stack_flags,KNO_STACK_DECREF_CALLBUF)) ) {
+    lispval *buf = stack->stack_buf;
+    int i = 0, limit = stack->stack_buflen;
+    while (i < limit) {
+      lispval elt = buf[i];
+      kno_decref(elt);
+      buf[i++] = KNO_VOID;}}
 
   if (stack->stack_env) {
     kno_free_lexenv(stack->stack_env);

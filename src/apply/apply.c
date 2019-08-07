@@ -1035,8 +1035,8 @@ KNO_EXPORT lispval _kno_stack_ndapply
 
 /* Tail calls */
 
-KNO_EXPORT lispval kno_tail_call(kno_stack stack,lispval fcn,
-				 int n,kno_argvec args)
+KNO_EXPORT lispval kno_tail_apply(kno_stack stack,lispval fcn,
+				  int n,kno_argvec args)
 {
   if (stack == NULL) {
     stack = kno_stackptr;
@@ -1048,29 +1048,40 @@ KNO_EXPORT lispval kno_tail_call(kno_stack stack,lispval fcn,
 	 (scan->stack_buf) )
       found = scan;
     scan = scan->stack_caller;}
-  if (found == NULL)
-    return kno_dcall(NULL,fcn,n,args);
+  if (found == NULL) {
+    lispval result = kno_dcall(NULL,fcn,n,args);
+    int i = 0; while (i<n) {
+      lispval arg = args[i++];
+      kno_decref(arg);}
+    return result;}
   else {
     int flags = found->stack_flags;
     int i = 0, stack_width = found->stack_buflen;
+    int decref_cur = ( flags & KNO_STACK_DECREF_CALLBUF);
     lispval *argbuf = found->stack_buf;
     if (KNO_FCNIDP(fcn)) fcn = kno_fcnid_ref(fcn);
     if ( found->stack_op != fcn) {
       if (flags & KNO_STACK_DECREF_OP) kno_decref(found->stack_op);
+      found->stack_flags &= ~KNO_STACK_DECREF_OP;
       found->stack_op = fcn;}
-    while (i<n) {
-      lispval arg = args[i];
-      lispval old_arg = argbuf[i];
-      if (arg != old_arg) {
-	argbuf[i] = arg;
-	kno_decref(old_arg);}
-      i++;}
-    while (i < stack_width) {
-      lispval old_arg = argbuf[i];
-      argbuf[i++] = KNO_VOID;
-      kno_decref(old_arg);}
+    if (decref_cur) {
+      while (i<n) {
+	lispval arg = args[i];
+	lispval old_arg = argbuf[i];
+	if (arg != old_arg) {
+	  argbuf[i] = arg;
+	  kno_decref(old_arg);}
+	i++;}}
+    else while (i<n) { argbuf[i] = args[i]; i++;}
+    if (decref_cur) {
+      while (i < stack_width) {
+	lispval old_arg = argbuf[i];
+	kno_decref(old_arg);
+	argbuf[i++] = KNO_VOID;}}
+    else while (i < stack_width) { argbuf[i++] = KNO_VOID;}
     found->stack_args = (kno_argvec) argbuf;
     found->stack_arglen = n;
+    found->stack_flags |= KNO_DECREF_CALLBUF;
     return KNO_TAIL_CALL;}
 }
 
