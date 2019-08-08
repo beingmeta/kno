@@ -538,11 +538,17 @@ debugging:
 	          XOPTFLAGS="-O0" OPTFLAGS="-O0" 		\
 		  XLIBS="@debuglibs@ $(XLIBS)" 			\
 	  testbin exe cmodules etc @TAGS@
+
 optimizing:
 	@echo Building OPTIMIZING configuration
 	@if test -f .malloc; then \
 	  echo With $(shell cat .malloc) malloc; fi;
-	@+make -s XCFLAGS="-O3" testbin exe cmodules etc @TAGS@
+	@+make -s XCFLAGS="-O3 -Ofast" testbin exe cmodules etc @TAGS@
+zooming:
+	@echo Building Zooming configuration
+	@if test -f .malloc; then \
+	  echo With $(shell cat .malloc) malloc; fi;
+	@+make -s XCFLAGS="-O3 -g0 -Ofast" testbin exe cmodules etc @TAGS@
 nitpicking:
 	@echo Building NITPICKING configuration
 	@if test -f .malloc; then \
@@ -573,6 +579,9 @@ nitpick:
 	@make -s `cat .buildmode`
 optimized fast:
 	@if test $(BUILDMODE) != "optimizing"; then echo optimizing > .buildmode; fi
+	@make -s `cat .buildmode`
+faster:
+	@if test $(BUILDMODE) != "zooming"; then echo zooming > .buildmode; fi
 	@make -s `cat .buildmode`
 .buildmode:
 	@echo normal > .buildmode
