@@ -685,7 +685,7 @@ KNO_EXPORT lispval _KNO_INT2LISP(long long intval);
 #define KNO_EMPTY_CHOICE           KNO_CONSTANT(3)
 #define KNO_EMPTY_LIST             KNO_CONSTANT(4)
 #define KNO_DEFAULT_VALUE          KNO_CONSTANT(5)
-#define KNO_TAIL_CALL              KNO_CONSTANT(6)
+#define KNO_TAIL_LOOP              KNO_CONSTANT(6)
 #define KNO_EOF                    KNO_CONSTANT(7)
 #define KNO_EOD                    KNO_CONSTANT(8)
 #define KNO_EOX                    KNO_CONSTANT(9)
