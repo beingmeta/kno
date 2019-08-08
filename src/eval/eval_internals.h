@@ -75,9 +75,14 @@ KNO_FASTOP lispval eval_body(lispval body,kno_lexenv env,kno_stack stack,
 
 #define KNO_VOID_RESULT(result)                          \
   if (KNO_ABORTP(result)) return result;                 \
+  else if (KNO_TYPEP(result,kno_tailcall_type)) {         \
+    struct KNO_TAILCALL *tc = (kno_tailcall)result;         \
+    tc->tailcall_flags |= KNO_TAILCALL_VOID_VALUE;}        \
   else { kno_decref(result); result = KNO_VOID; }
 
 #define KNO_DISCARD_RESULT(result)               \
+  if (KNO_ABORTP(result)) return result;         \
+  result = kno_finish_call(result);                \
   if (KNO_ABORTP(result)) return result;         \
   else { kno_decref(result); result = KNO_VOID;}
 

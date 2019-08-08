@@ -589,6 +589,8 @@ static lispval xmlapply(u8_output out,lispval fn,lispval xml,
     kno_decref(bind);
     return kno_type_error("function","xmlapply",fn);}
 
+  result = kno_finish_call(result);
+
   if (KNO_ABORTED(result))
     return result;
   else if (VOIDP(bind)) return result;

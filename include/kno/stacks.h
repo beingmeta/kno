@@ -59,10 +59,6 @@ typedef struct KNO_LEXENV *kno_lexenv;
 
 #define KNO_DECREF_CALLBUF KNO_STACK_DECREF_CALLBUF
 
-#define KNO_STACK_LIVEP(stack) ( (stack->stack_flags) & (KNO_STACK_LIVE) )
-#define KNO_STACK_TAILP(stack) ( (stack->stack_flags) & (KNO_STACK_TAILPOS) )
-#define KNO_STACK_NDCALLP(stack) ( (stack->stack_flags) & (KNO_STACK_NDCALL) )
-
 /* Stack error flags */
 
 #define KNO_STACK_ERR_DEBUG      0x01   /* Return stack info */

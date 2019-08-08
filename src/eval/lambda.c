@@ -183,10 +183,13 @@ lispval lambda_call(struct KNO_STACK *_stack,
   /* If we're synchronized, lock the mutex. */
   if (fn->lambda_synchronized) u8_lock_mutex(&(fn->lambda_lock));
 
-  result = eval_body(fn->lambda_start,call_env,_stack,
+  result = eval_body(fn->lambda_start,call_env,kno_stackptr,
 		     ":LAMBDA",fn->fcn_name,tail);
 
   if (fn->lambda_synchronized) {
+    /* If we're synchronized, finish any tail calls and unlock the
+       mutex. */
+    result = kno_finish_call(result);
     u8_unlock_mutex(&(fn->lambda_lock));}
 
   if (_stack->stack_env->env_copy) {
@@ -890,6 +893,9 @@ lispval kno_xapply_lambda
   if (fn->lambda_synchronized) u8_lock_mutex(&(fn->lambda_lock));
   result = eval_body(fn->lambda_start,call_env,_stack,
                      ":XPROC",fn->fcn_name,1);
+  /* if (fn->lambda_synchronized) result = kno_finish_call(result); */
+  /* We always finish tail calls here */
+  result = kno_finish_call(result);
   if (fn->lambda_synchronized)
     u8_unlock_mutex(&(fn->lambda_lock));
   _return result;

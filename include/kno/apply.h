@@ -331,7 +331,25 @@ typedef struct KNO_TAILCALL {
   int tailcall_arity;
   lispval tailcall_head;} *kno_tailcall;
 
-KNO_EXPORT lispval kno_tail_apply(kno_stack,lispval fcn,int,kno_argvec);
+KNO_EXPORT lispval kno_tail_call(lispval fcn,int n,lispval *vec);
+KNO_EXPORT lispval kno_step_call(lispval c);
+KNO_EXPORT lispval _kno_finish_call(lispval);
+
+#define KNO_TAILCALLP(x) (KNO_TYPEP((x),kno_tailcall_type))
+
+KNO_INLINE_FCN lispval kno_finish_call(lispval pt)
+{
+  if (!(KNO_EXPECT_TRUE(KNO_CHECK_PTR(pt))))
+    return kno_badptr_err(pt,"kno_finish_call",NULL);
+  else if (KNO_TAILCALLP(pt)) {
+    lispval v = _kno_finish_call(pt);
+    if (KNO_PRECHOICEP(v))
+      return kno_simplify_choice(v);
+    else return v;}
+  else if (KNO_PRECHOICEP(pt))
+    return kno_simplify_choice(pt);
+  else return pt;
+}
 
 /* Apply functions */
 
@@ -343,13 +361,40 @@ KNO_EXPORT lispval _kno_stack_apply(struct KNO_STACK *stack,lispval fn,int n_arg
 KNO_EXPORT lispval _kno_stack_dapply(struct KNO_STACK *stack,lispval fn,int n_args,kno_argvec);
 KNO_EXPORT lispval _kno_stack_ndapply(struct KNO_STACK *stack,lispval fn,int n_args,kno_argvec);
 
-#define kno_stack_apply kno_call
-#define kno_stack_dapply kno_dcall
-#define kno_stack_ndapply kno_ndcall
+#if KNO_INLINE_APPLY
+U8_MAYBE_UNUSED static
+lispval kno_stack_apply(struct KNO_STACK *stack,lispval fn,int n_args,kno_argvec args)
+{
+  lispval result= (stack) ?
+    (kno_call(stack,fn,n_args,args)) :
+    (kno_call(kno_stackptr,fn,n_args,args));
+  return kno_finish_call(result);
+}
+static U8_MAYBE_UNUSED
+lispval kno_stack_dapply(struct KNO_STACK *stack,lispval fn,int n_args,kno_argvec args)
+{
+  lispval result= (stack) ?
+    (kno_dcall(stack,fn,n_args,args)) :
+    (kno_dcall(kno_stackptr,fn,n_args,args));
+  return kno_finish_call(result);
+}
+static U8_MAYBE_UNUSED
+lispval kno_stack_ndapply(struct KNO_STACK *stack,lispval fn,int n_args,kno_argvec args)
+{
+  lispval result= (stack) ?
+    (kno_ndcall(stack,fn,n_args,args)) :
+    (kno_ndcall(kno_stackptr,fn,n_args,args));
+  return kno_finish_call(result);
+}
+#else
+#define kno_stack_apply _kno_stack_apply
+#define kno_stack_dapply _kno_stack_dapply
+#define kno_stack_ndapply _kno_stack_ndapply
+#endif
 
-#define kno_apply(fn,n_args,argv) (kno_call(kno_stackptr,fn,n_args,argv))
-#define kno_ndapply(fn,n_args,argv) (kno_ndcall(kno_stackptr,fn,n_args,argv))
-#define kno_dapply(fn,n_args,argv) (kno_dcall(kno_stackptr,fn,n_args,argv))
+#define kno_apply(fn,n_args,argv) (kno_stack_apply(kno_stackptr,fn,n_args,argv))
+#define kno_ndapply(fn,n_args,argv) (kno_stack_ndapply(kno_stackptr,fn,n_args,argv))
+#define kno_dapply(fn,n_args,argv) (kno_stack_dapply(kno_stackptr,fn,n_args,argv))
 
 KNO_EXPORT int _KNO_APPLICABLEP(lispval x);
 KNO_EXPORT int _KNO_APPLICABLE_TYPEP(int typecode);

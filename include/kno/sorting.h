@@ -275,8 +275,9 @@ U8_MAYBE_UNUSED static lispval _kno_apply_keyfn(lispval x,lispval keyfn)
     return kno_incref(x);
   else if (KNO_OIDP(keyfn)) return kno_frame_get(x,keyfn);
   else if (KNO_TABLEP(keyfn)) return kno_get(keyfn,x,KNO_EMPTY_CHOICE);
-  else if (KNO_APPLICABLEP(keyfn))
-    return kno_apply(keyfn,1,&x);
+  else if (KNO_APPLICABLEP(keyfn)) {
+    lispval result = kno_apply(keyfn,1,&x);
+    return kno_finish_call(result);}
   else if (KNO_VECTORP(keyfn)) {
     int i = 0, len = KNO_VECTOR_LENGTH(keyfn);
     lispval *keyfns = KNO_VECTOR_DATA(keyfn);

@@ -664,10 +664,12 @@ static void *_kno_thread_main(void *data)
 
     if (tstruct->flags&KNO_EVAL_THREAD)
       result = kno_eval(tstruct->evaldata.expr,tstruct->evaldata.env);
-    else result = kno_dapply(tstruct->applydata.fn,
-			     tstruct->applydata.n_args,
-			     tstruct->applydata.args);
-    
+    else
+      result = kno_dapply(tstruct->applydata.fn,
+			  tstruct->applydata.n_args,
+			  tstruct->applydata.args);
+    result = kno_finish_call(result);
+
     tstruct->finished = u8_elapsed_time();
     tstruct->flags = tstruct->flags|KNO_THREAD_DONE;
 
