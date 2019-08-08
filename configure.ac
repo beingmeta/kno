@@ -2034,7 +2034,9 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
            tests/lisp/makefile tests/storage/makefile
 	   tests/makefile DIY/makefile 
            etc/gdbinit
+           etc/lldbinit
 	   exe/.gdbinit
+	   exe/.lldbinit
 	   dbg/runenv.sh dbg/.gdbinit dbg/.lldbinit dbg/.valgrind
 	   tests/lisp/.gdbinit tests/storage/.gdbinit tests/.valgrind
 	   etc/kno_start_servlets etc/kno_start_daemons etc/kno_stop_jobs
