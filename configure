@@ -1622,28 +1622,28 @@ Optional Features:
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
   --enable-gcov           enable coverage testing with gcov
---endisable-ipeval Enable IPEVAL
---endisable-largefiles Enable use of large (> 2GB) file support
---endisable-htmldump write HTML backtraces
---endisable-prefetching make frame operations prefetch when they can
+--en/disable-ipeval Enable IPEVAL
+--en/disable-largefiles Enable use of large (> 2GB) file support
+--en/disable-htmldump write HTML backtraces
+--en/disable-prefetching make frame operations prefetch when they can
 --enable-ffi enable the FFI interface
 --enable-xprofiling use xprofiling information
---endisable-fileconfig enable file-based configuration
---endisable-shared Build with/without shared libraries
---endisable-maintainer-mode doesn't do anything
---endisable-dependency-tracking doesn't do anything
---endisable-async Enable async I/O features
---endisable-dtblock DTBlock dtype for net I/O
+--en/disable-fileconfig enable file-based configuration
+--en/disable-shared Build with/without shared libraries
+--en/disable-maintainer-mode doesn't do anything
+--en/disable-dependency-tracking doesn't do anything
+--en/disable-async Enable async I/O features
+--en/disable-dtblock DTBlock dtype for net I/O
 --enable-thread-debug Use libu8 thread tracing and debugging
---endisable-lockfree Enables lock-free reference counting
---endisable-leveldb Build and install LevelDB module
---endisable-rocksdb Build and install Rocksdb module
---endisable-imagick Build and install imagemagick module
+--en/disable-lockfree Enables lock-free reference counting
+--en/disable-leveldb Build and install LevelDB module
+--en/disable-rocksdb Build and install Rocksdb module
+--en/disable-imagick Build and install imagemagick module
 --with-ziptools Build and install ziptools
---endisable-mongodb Build and install MongoDB module
---endisable-odbc Build odbc modules
---endisable-tidy Build and install tidy module
---endisable-hyphenate Build and install the hyphenate module
+--en/disable-mongodb Build and install MongoDB module
+--en/disable-odbc Build odbc modules
+--en/disable-tidy Build and install tidy module
+--en/disable-hyphenate Build and install the hyphenate module
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
@@ -1668,15 +1668,15 @@ Optional Packages:
 --with-optdir Use optional header/lib
   --with-extlib[=DIR]       use additional lib dir
 --with-rpath dir
---without-fileinfo record fileinfo
+--with/out-fileinfo record fileinfo
 --with-stackcheck Build with native stack checking
 --with/out-profiling compile to generate profile information
 --with-duma Build with Detect Unintended Memory Access
---with-malloc Use custom malloc
---without-crypto Compile the crypto module
---without-global-ipeval Use global lock and variables for ipeval
---without-curl Use libcurl in webtools
---without-dns Use dns in web
+--with-malloc Use custom malloc: e.g. $WITHMALLOC_OPTS
+--with/out-crypto Compile the crypto module
+--with/out-global-ipeval Use global lock and variables for ipeval
+--with/out-curl Use libcurl in webtools
+--with/out-dns Use dns in web
 --with-codename for distribution
 --with-admin-group Install files with admin group and group write permissions
 --with-daemonid The identity (user) for Kno servers to run as
@@ -1687,7 +1687,7 @@ Optional Packages:
 --with-webgroup The group for the webserver
 --with-apacheinfo where Apache module info lives
 --with-apachelib where Apache extensions live
---without-arch build with particular --arch flags
+--with/out-arch build with particular --arch flags
 --with-share-dir location
 --with-data-dir location
 --with-config-dir location
@@ -1702,19 +1702,19 @@ Optional Packages:
 --with-module-path location
 --with-boot-config configstring
 --with-dload-path location
---without-i18n built and install message catalogs
---without-mmap build without using mmap
---without-tls Force use of threadlocal storage
+--with/out-i18n built and install message catalogs
+--with/out-mmap build without using mmap
+--with/out-tls Force use of threadlocal storage
 --with-nptrlocks Sets the number of pointer hash locks to use
---without-editline Use the editline with the kno console
---without-libu8 Use libu8 includes
---without-parseltongue Build parseltongue libraries for connecting Kno and Python
---without-sudo use sudo with install
---without-fastcgi Use fastcgi
---without-mysql Use alternate mysql lib
---without-sundown Compile the sundown module
---without-exif Use libexif in webtools
---without-qrcode Create qrcode binary module
+--with/out-editline Use the editline with the kno console
+--with/out-libu8 Use libu8 includes
+--with/out-parseltongue Build parseltongue libraries for connecting Kno and Python
+--with/out-sudo use sudo with install
+--with/out-fastcgi Use fastcgi
+--with/out-mysql Use alternate mysql lib
+--with/out-sundown Compile the sundown module
+--with/out-exif Use libexif in webtools
+--with/out-qrcode Create qrcode binary module
 --with-bootsystem Setup boot method
 --with-systemd Specify systemd install directory
 
@@ -7231,6 +7231,8 @@ if test "$with_duma" != "no"; then
    default_malloc="libc";
 fi
 
+WITHMALLOC_OPTS="libc builtin jemalloc asan tcmalloc dmalloc list"
+
 
 # Check whether --with-malloc was given.
 if test "${with_malloc+set}" = set; then :
@@ -11474,9 +11476,11 @@ fi
 # Check whether --with-parseltongue was given.
 if test "${with_parseltongue+set}" = set; then :
   withval=$with_parseltongue;
+else
+  with_parseltongue=auto
 fi
 
-if test "$with_parseltongue" = "yes"; then
+if test "$with_parseltongue" = "yes" || test "$with_parseltongue" = "auto"; then
    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for python build information" >&5
 $as_echo_n "checking for python build information... " >&6; }
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: " >&5
@@ -12135,10 +12139,14 @@ fi;
 if test ! -z "${ax_python3_lib}"; then
    CORE_CMODULES="lib/kno/parseltongue.$shared_suffix ${CORE_CMODULES}"
    INSTALL_CORE_CMODULES="install-parseltongue ${INSTALL_CORE_CMODULES}"
+else
+   auto_disabled="parseltongue3 ${auto_disabled}";
 fi
 if test ! -z "${ax_python2_lib}"; then
    CORE_CMODULES="lib/kno/parseltongue2.$shared_suffix ${CORE_CMODULES}"
    INSTALL_CORE_CMODULES="install-parseltongue2 ${INSTALL_CORE_CMODULES}"
+else
+   auto_disabled="parseltongue2 ${auto_disabled}";
 fi
 
 ### Control use of 'sudo' for installation

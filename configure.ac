@@ -595,7 +595,7 @@ if test "${static_libgcc}" == "yes"; then
    LDFLAGS="-static-libgcc -Wl,--as-needed ${LDFLAGS}"
 fi
 
-AC_ARG_WITH(fileinfo,--with[out]-fileinfo record fileinfo,,with_fileinfo="yes")
+AC_ARG_WITH(fileinfo,--with/out-fileinfo record fileinfo,,with_fileinfo="yes")
 if test "$with_fileinfo" = "yes" ; then
    definefileinfo="-D_FILEINFO=\"\\\"\`./fileinfo ./$< .\`\\\"\""
    versionsh="include/kno/versions.h"
@@ -853,7 +853,7 @@ AC_CHECK_LIB(u8io,u8_open_xinput)
 AC_CHECK_LIB(u8data,u8_init_chardata_c)
 dnl Check for cryptic in in libu8
 AC_CHECK_FUNCS(u8_cryptic,with_crypto_default="yes")
-AC_ARG_WITH(crypto,--with[out]-crypto Compile the crypto module,,with_crypto=$with_crypto_default)
+AC_ARG_WITH(crypto,--with/out-crypto Compile the crypto module,,with_crypto=$with_crypto_default)
 if test $with_crypto = "yes"; then
   CORE_CMODULES="lib/kno/crypto.$shared_suffix ${CORE_CMODULES}"
   INSTALL_CORE_CMODULES="install-crypto ${INSTALL_CORE_CMODULES}"
@@ -884,7 +884,7 @@ fi
 # IPEVAL configuration (disabled by default, patented)
 
 dnl This enables the ipeval implementation within Kno
-AC_ARG_ENABLE(ipeval,--en[dis]able-ipeval Enable IPEVAL,,enable_ipeval=$enable_ipeval_default)
+AC_ARG_ENABLE(ipeval,--en/disable-ipeval Enable IPEVAL,,enable_ipeval=$enable_ipeval_default)
 if test $enable_ipeval = "yes"; then
   ipevalo=src/storage/ipeval.o
   ipevalopso=src/eval/ipevalops.o
@@ -895,7 +895,7 @@ fi
 
 dnl This forces the use of a global lock for ipeval, which can reduce
 dnl  parallellism  but may help track down subtle bugs
-AC_ARG_WITH(global_ipeval,--with[out]-global-ipeval Use global lock and variables for ipeval,,with_global_ipeval=$global_ipeval_default)
+AC_ARG_WITH(global_ipeval,--with/out-global-ipeval Use global lock and variables for ipeval,,with_global_ipeval=$global_ipeval_default)
 if test $with_global_ipeval = "yes"; then
   AC_DEFINE(KNO_GLOBAL_IPEVAL,1)
 else
@@ -906,7 +906,7 @@ fi
 
 dnl Build with primitives accessing libcurl, if it is available
 AC_CHECK_LIB(curl,curl_easy_init,curl_default="yes")
-AC_ARG_WITH(curl,--with[out]-curl Use libcurl in webtools,,with_curl=$curl_default)
+AC_ARG_WITH(curl,--with/out-curl Use libcurl in webtools,,with_curl=$curl_default)
 if test $with_curl = "yes"; then
   AC_CHECK_LIB(curl,curl_easy_init)
   AC_CHECK_HEADERS(curl/curl.h)
@@ -926,7 +926,7 @@ AC_CHECK_HEADERS(arpa/nameser.h)
 AC_CHECK_HEADERS(netinet/in.h)
 AC_CHECK_HEADERS(netdb.h)
 AC_CHECK_LIB(ldns,ldns_resolver_query,dns_default="yes")
-AC_ARG_WITH(dns,--with[out]-dns Use dns in web,,with_dns=$dns_default)
+AC_ARG_WITH(dns,--with/out-dns Use dns in web,,with_dns=$dns_default)
 if test "$with_dns" = "yes"; then
   AC_CHECK_LIB(ldns,ldns_resolver_query)
   AC_DEFINE(KNO_WITH_DNS,1)
@@ -943,7 +943,7 @@ AC_CHECK_FUNCS(uuid_generate_time)
 ## Large files
 
 dnl Compile for access to large files, essentially defining off_t as 64 bits.
-AC_ARG_ENABLE(largefiles,--en[dis]able-largefiles Enable use of large (> 2GB) file support,,enable_largefiles=yes)
+AC_ARG_ENABLE(largefiles,--en/disable-largefiles Enable use of large (> 2GB) file support,,enable_largefiles=yes)
 if test $enable_largefiles = "yes"; then
   AC_DEFINE(KNO_LARGEFILES_ENABLED,1)
 else
@@ -952,7 +952,7 @@ fi
 
 dnl This integrates the webtools module into executables by default; otherwise
 dnl  it is built and installed as a plugin library
-AC_ARG_ENABLE(htmldump,--en[dis]able-htmldump write HTML backtraces,,enable_htmldump="yes")
+AC_ARG_ENABLE(htmldump,--en/disable-htmldump write HTML backtraces,,enable_htmldump="yes")
 if test $enable_htmldump = "yes"; then
   scheme_builtins_init="$scheme_builtins_init; kno_init_webtools()"
   xdynamic_scheme_libs="$xdynamic_scheme_libs -lknowebtools${suffix}"
@@ -966,7 +966,7 @@ fi
 dnl This is used to disable the simplest automatic database prefetches.
 dnl This is typically used to configure for benchmarking prefetch mechanisms
 dnl against the base case of no prefetches at all.
-AC_ARG_ENABLE(prefetching,--en[dis]able-prefetching make frame operations prefetch when they can,,enable_prefetching="yes")
+AC_ARG_ENABLE(prefetching,--en/disable-prefetching make frame operations prefetch when they can,,enable_prefetching="yes")
 if test $enable_prefetching = "yes"; then
   AC_DEFINE(KNO_PREFETCHING_ENABLED,1)
 else
@@ -1172,7 +1172,7 @@ LSHARED_LOADPATH="${prefix}/lib/lib%.${vshared_suffix}:${prefix}/lib/lib%.${mmsh
 DEFAULT_DLOADPATH="${VSHARED_LOADPATH}:${MMSHARED_LOADPATH}:${MSHARED_LOADPATH}:${SHARED_LOADPATH}"
 
 dnl For specifying default -arch flags for OSX
-AC_ARG_WITH(arch,--with[out]-arch build with particular --arch flags,,with_arch="")
+AC_ARG_WITH(arch,--with/out-arch build with particular --arch flags,,with_arch="")
 if test -z $with_arch; then
   archflags=""
 elif test $with_arch = "all"; then
@@ -1252,7 +1252,7 @@ AC_ARG_WITH(unpackage_dir,--with-unpackage-dir location,,with_unpackage_dir=$sha
 unpackage_dir=$with_unpackage_dir
 
 dnl This builds in file config lookups
-AC_ARG_ENABLE(fileconfig,--en[dis]able-fileconfig enable file-based configuration,,enable_fileconfig="yes")
+AC_ARG_ENABLE(fileconfig,--en/disable-fileconfig enable file-based configuration,,enable_fileconfig="yes")
 if test "$enable_fileconfig" = "yes"; then
   AC_DEFINE(KNO_FILECONFIG_ENABLED,1)
 else
@@ -1371,7 +1371,7 @@ AC_CHECK_LIB(dl,dladdr)
 AC_CHECK_FUNCS(dladdr)
 
 dnl Build the shared libraries.
-AC_ARG_ENABLE(shared,--en[dis]able-shared Build with/without shared libraries,,enable_shared=$shared_default)
+AC_ARG_ENABLE(shared,--en/disable-shared Build with/without shared libraries,,enable_shared=$shared_default)
 if test $enable_shared = "yes"; then
   CFLAGS="-fPIC $CFLAGS"
   SHARED_LIB_TARGET=shared-libs
@@ -1381,11 +1381,11 @@ else
   SHARED_LIB_TARGET=
 fi
 
-AC_ARG_ENABLE(maintainer-mode,--en[dis]able-maintainer-mode doesn't do anything)
-AC_ARG_ENABLE(dependency-tracking,--en[dis]able-dependency-tracking doesn't do anything)
+AC_ARG_ENABLE(maintainer-mode,--en/disable-maintainer-mode doesn't do anything)
+AC_ARG_ENABLE(dependency-tracking,--en/disable-dependency-tracking doesn't do anything)
 
 dnl Enable async I/O features
-AC_ARG_ENABLE(async,--en[dis]able-async Enable async I/O features)
+AC_ARG_ENABLE(async,--en/disable-async Enable async I/O features)
 
 if test "$enable_async" = "yes"; then
   DEFAULTISASYNC=1
@@ -1396,7 +1396,7 @@ else
 fi
 
 dnl Enable dtblock for improved performance
-AC_ARG_ENABLE(dtblock,--en[dis]able-dtblock DTBlock dtype for net I/O,,enable_dtblock=$use_dtblock_default)
+AC_ARG_ENABLE(dtblock,--en/disable-dtblock DTBlock dtype for net I/O,,enable_dtblock=$use_dtblock_default)
 
 if test "$enable_dtblock" = "yes"; then
   USEDTBLOCK=1
@@ -1416,7 +1416,7 @@ if test "$libc_gettext" != "yes"; then
 fi
 
 dnl Whether to build message catalogs
-AC_ARG_WITH(i18n,--with[out]-i18n built and install message catalogs,,with_i18n="no")
+AC_ARG_WITH(i18n,--with/out-i18n built and install message catalogs,,with_i18n="no")
 if test $with_i18n = "yes"; then
   AC_CHECK_FUNCS(gettext,[doi18n="yes"])
 fi
@@ -1432,7 +1432,7 @@ fi
 
 ### Using mmap (if available)
 
-AC_ARG_WITH(mmap,--with[out]-mmap build without using mmap,,with_mmap="yes")
+AC_ARG_WITH(mmap,--with/out-mmap build without using mmap,,with_mmap="yes")
 if test $with_mmap == "no"; then
    AC_DEFINE(KNO_WITHOUT_MMAP,1)
 fi
@@ -1445,7 +1445,7 @@ AX_PTHREAD(threads_default="yes",threads_default="no")
 dnl This forces the use of the threadlocal storage functions from the pthreads
 dnl  library.  Otherwise, the executable will use __thread storage declarations
 dnl  when available
-AC_ARG_WITH(tls,--with[out]-tls Force use of threadlocal storage,,with_tls=$tls_default)
+AC_ARG_WITH(tls,--with/out-tls Force use of threadlocal storage,,with_tls=$tls_default)
 if test $with_tls = "yes"; then
   AC_DEFINE(KNO_FORCE_TLS,1)
 else
@@ -1466,7 +1466,7 @@ fi
 
 AC_CHECK_HEADERS(stdatomic.h)
 
-AC_ARG_ENABLE(lockfree,--en[dis]able-lockfree Enables lock-free reference counting,,enable_lockfree="yes")
+AC_ARG_ENABLE(lockfree,--en/disable-lockfree Enables lock-free reference counting,,enable_lockfree="yes")
 if test "$enable_lockfree" = "yes"; then
   AC_DEFINE(KNO_ENABLE_LOCKFREE,1)
 else
@@ -1509,7 +1509,7 @@ AC_TRY_COMPILE([
 ### Use editline in kno console
 
 dnl Use the editline library from kno console
-AC_ARG_WITH(editline,--with[out]-editline Use the editline with the kno console,,with_editline="yes")
+AC_ARG_WITH(editline,--with/out-editline Use the editline with the kno console,,with_editline="yes")
 if test "$with_editline" = "yes"; then
   AC_CHECK_HEADERS(editline/readline.h histedit.h)
   AC_CHECK_LIB(edit,el_init)
@@ -1521,7 +1521,7 @@ fi
 ### Alternate libu8 directory
 
 dnl Use a different directory for libu8
-AC_ARG_WITH(libu8,--with[out]-libu8 Use libu8 includes,,with_libu8="")
+AC_ARG_WITH(libu8,--with/out-libu8 Use libu8 includes,,with_libu8="")
 if test "$with_libu8" != ""; then
   CFLAGS="-I$with_libu8/include $CFLAGS"
   LDFLAGS="-L$with_libu8/lib $LDFLAGS"
@@ -1529,8 +1529,8 @@ if test "$with_libu8" != ""; then
 fi
 
 dnl check for building with parseltongue
-AC_ARG_WITH(parseltongue,--with[out]-parseltongue Build parseltongue libraries for connecting Kno and Python)
-if test "$with_parseltongue" = "yes"; then
+AC_ARG_WITH(parseltongue,--with/out-parseltongue Build parseltongue libraries for connecting Kno and Python,,with_parseltongue=auto)
+if test "$with_parseltongue" = "yes" || test "$with_parseltongue" = "auto"; then
    AX_PYTHON3
    AX_PYTHON2
 elif test "$with_parseltongue" = "2"; then
@@ -1541,10 +1541,14 @@ fi;
 if test ! -z "${ax_python3_lib}"; then
    CORE_CMODULES="lib/kno/parseltongue.$shared_suffix ${CORE_CMODULES}"
    INSTALL_CORE_CMODULES="install-parseltongue ${INSTALL_CORE_CMODULES}"
+else
+   auto_disabled="parseltongue3 ${auto_disabled}";
 fi
 if test ! -z "${ax_python2_lib}"; then
    CORE_CMODULES="lib/kno/parseltongue2.$shared_suffix ${CORE_CMODULES}"
    INSTALL_CORE_CMODULES="install-parseltongue2 ${INSTALL_CORE_CMODULES}"
+else
+   auto_disabled="parseltongue2 ${auto_disabled}";
 fi
 
 ### Control use of 'sudo' for installation
@@ -1557,7 +1561,7 @@ else
   SUDO=$sudo_program
 fi;
 
-AC_ARG_WITH(sudo,--with[out]-sudo use sudo with install,,with_sudo="$SUDO")
+AC_ARG_WITH(sudo,--with/out-sudo use sudo with install,,with_sudo="$SUDO")
 
 if test "$with_sudo" == "yes"; then
    SUINSTALL="${SUDO} ";
@@ -1570,7 +1574,7 @@ fi
 ### Build fastcgi executable if possible
 
 with_fastcgi="yes";
-AC_ARG_WITH(fastcgi,--with[out]-fastcgi Use fastcgi,with_fastcgi=no,[AC_DEFINE(WITH_FASTCGI,1)])
+AC_ARG_WITH(fastcgi,--with/out-fastcgi Use fastcgi,with_fastcgi=no,[AC_DEFINE(WITH_FASTCGI,1)])
 if test "$with_fastcgi" != "no"; then
   AC_CHECK_HEADERS(fcgiapp.h)
   AC_CHECK_LIB(fcgi,FCGX_Init)
@@ -1632,7 +1636,7 @@ fi;
 
 ### LevelDB cmodule build
 
-AC_ARG_ENABLE(leveldb,--en[dis]able-leveldb Build and install LevelDB module,,enable_leveldb="yes")
+AC_ARG_ENABLE(leveldb,--en/disable-leveldb Build and install LevelDB module,,enable_leveldb="yes")
 leveldb_ok="no"
 
 if test "${enable_leveldb}" = "yes" ||
@@ -1660,7 +1664,7 @@ fi
 
 ### RocksDB cmodule build
 
-AC_ARG_ENABLE(rocksdb,--en[dis]able-rocksdb Build and install Rocksdb module,,enable_rocksdb="yes")
+AC_ARG_ENABLE(rocksdb,--en/disable-rocksdb Build and install Rocksdb module,,enable_rocksdb="yes")
 rocksdb_ok="no"
 
 if test "${enable_rocksdb}" = "yes" ||
@@ -1688,7 +1692,7 @@ fi
 
 ### ImageMagick cmodule build
 
-AC_ARG_ENABLE(imagick,--en[dis]able-imagick Build and install imagemagick module,,enable_imagick="yes")
+AC_ARG_ENABLE(imagick,--en/disable-imagick Build and install imagemagick module,,enable_imagick="yes")
 
 if test "$enable_imagick" = "yes" &&
    test $pkg_config != "na" &&
@@ -1761,7 +1765,7 @@ fi
 
 ### MongoDB
 
-AC_ARG_ENABLE(mongodb,--en[dis]able-mongodb Build and install MongoDB module,,enable_mongodb="yes")
+AC_ARG_ENABLE(mongodb,--en/disable-mongodb Build and install MongoDB module,,enable_mongodb="yes")
 
 if test "$enable_mongodb" = "yes" ||
    test "$enable_mongodb" = "force"; then
@@ -1804,7 +1808,7 @@ else
    with_mysql_default="no";
 fi
 
-AC_ARG_WITH(mysql,--with[out]-mysql Use alternate mysql lib,,with_mysql=$with_mysql_default)
+AC_ARG_WITH(mysql,--with/out-mysql Use alternate mysql lib,,with_mysql=$with_mysql_default)
 
 if test "$with_mysql" = "auto"; then
   MYSQL_CFLAGS=`$mysql_config --cflags`
@@ -1829,7 +1833,7 @@ fi
 
 AC_CHECK_HEADERS(sql.h)
 
-AC_ARG_ENABLE(odbc,--en[dis]able-odbc Build odbc modules,,enable_odbc="yes")
+AC_ARG_ENABLE(odbc,--en/disable-odbc Build odbc modules,,enable_odbc="yes")
 ODBC_LIBS=
 odbc_included=no
 
@@ -1881,7 +1885,7 @@ fi
 
 ### HTML TIDY
 
-AC_ARG_ENABLE(tidy,--en[dis]able-tidy Build and install tidy module,,enable_tidy="yes")
+AC_ARG_ENABLE(tidy,--en/disable-tidy Build and install tidy module,,enable_tidy="yes")
 
 if test "$enable_tidy" = "yes"; then
   TEXT_CMODULES="lib/kno/tidy.$shared_suffix ${TEXT_CMODULES}"
@@ -1891,7 +1895,7 @@ fi
 
 ### Hyphenate library
 
-AC_ARG_ENABLE(hyphenate,--en[dis]able-hyphenate Build and install the hyphenate module,,enable_hyphenate="yes")
+AC_ARG_ENABLE(hyphenate,--en/disable-hyphenate Build and install the hyphenate module,,enable_hyphenate="yes")
 hyphen_ok="no"
 
 if test "$enable_hyphenate" = "yes"; then
@@ -1921,7 +1925,7 @@ fi
 
 # Sundown library for converting markdown to HTML
 
-AC_ARG_WITH(sundown,--with[out]-sundown Compile the sundown module,,with_sundown="yes")
+AC_ARG_WITH(sundown,--with/out-sundown Compile the sundown module,,with_sundown="yes")
 if test "$with_sundown" = "yes"; then
   TEXT_CMODULES="lib/kno/sundown.$shared_suffix ${TEXT_CMODULES}"
   INSTALL_TEXT_CMODULES="install-sundown ${INSTALL_TEXT_CMODULES}"
@@ -1933,7 +1937,7 @@ fi
 dnl Build with primitives accessing libexif, if it is available
 AC_CHECK_LIB(exif,exif_data_new_from_data,exif_default="yes")
 AC_CHECK_HEADER(libexif/exif-data.h,exif_default=$exif_default,exif_default="no")
-AC_ARG_WITH(exif,--with[out]-exif Use libexif in webtools,,with_exif=$exif_default)
+AC_ARG_WITH(exif,--with/out-exif Use libexif in webtools,,with_exif=$exif_default)
 if test "$with_exif" = "yes"; then
   AC_CHECK_HEADERS(libexif/exif-data.h)
   GRAPHICS_CMODULES="lib/kno/exif.$shared_suffix ${GRAPHICS_CMODULES}"
@@ -1949,7 +1953,7 @@ dnl Build with primitives accessing qrcoding, if available
 AC_CHECK_HEADER(png.h,have_png_h="yes",have_png_h="no")
 AC_CHECK_HEADER(qrencode.h,have_qrencode_h="yes",have_qrencode_h="no")
 
-AC_ARG_WITH(qrcode,--with[out]-qrcode Create qrcode binary module,,with_qrcode="yes")
+AC_ARG_WITH(qrcode,--with/out-qrcode Create qrcode binary module,,with_qrcode="yes")
 libpng_ok="no"
 qrcode_ok="no"
 
