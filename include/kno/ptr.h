@@ -255,6 +255,7 @@ KNO_EXPORT u8_string kno_type_docs[KNO_TYPE_MAX];
    ((u8_string)"oddtype"):      \
    (kno_type_names[tc]))
 
+KNO_EXPORT u8_condition kno_get_pointer_exception(lispval x);
 KNO_EXPORT lispval kno_badptr_err(lispval badx,u8_context cxt,u8_string details);
 
 #define KNO_VALID_TYPECODEP(x)                                  \

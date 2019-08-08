@@ -598,153 +598,199 @@ KNO_FASTOP lispval function_call(u8_string name,kno_function f,
   else return f->fcn_handler.calln(n,argvec);
 }
 
-KNO_EXPORT lispval kno_dcall(struct KNO_STACK *_stack,
-                             lispval fn,int n,kno_argvec argvec)
+KNO_FASTOP lispval core_call(kno_stack stack,
+			     lispval fn,kno_function f,
+			     int n,kno_argvec argvec)
 {
-  u8_byte namebuf[60], numbuf[32];
-  u8_string fname="apply";
-  kno_lisp_type ftype=KNO_PRIM_TYPE(fn);
-  struct KNO_FUNCTION *f=NULL;
-  int min_arity = -1, max_arity = -1;
+  if ( (f) && (KNO_CONS_TYPE(f) == kno_cprim_type) )
+    return cprim_call(stack->stack_label,(kno_cprim)f,n,argvec,stack);
+  else if (f)
+    return function_call(stack->stack_label,f,n,argvec,stack);
+  else return opaque_call(fn,n,argvec,stack);
+}
 
+static lispval profiled_call(kno_stack stack,
+			     lispval fn,kno_function f,
+			     int n,kno_argvec argvec,
+			     kno_profile profile)
+{
+  lispval result = KNO_VOID;
+  long long nsecs = 0;
+  long long stime = 0, utime = 0;
+  long long n_waits = 0, n_pauses = 0, n_faults = 0;
+#if ( (KNO_EXTENDED_PROFILING) && (HAVE_DECL_RUSAGE_THREAD) )
+  struct rusage before = { 0 }, after = { 0 };
+  if (kno_extended_profiling) getrusage(RUSAGE_THREAD,&before);
+#endif
+#if HAVE_CLOCK_GETTIME
+  struct timespec start, end;
+  clock_gettime(CLOCK_MONOTONIC,&start);
+#endif
+  
+  /* Here's where we actually apply the function */
+  result = core_call(stack,fn,f,n,argvec);
+
+#if HAVE_CLOCK_GETTIME
+  clock_gettime(CLOCK_MONOTONIC,&end);
+  nsecs = ((end.tv_sec*1000000000)+(end.tv_nsec)) -
+    ((start.tv_sec*1000000000)+(start.tv_nsec));
+#endif
+#if ( (KNO_EXTENDED_PROFILING) && (HAVE_DECL_RUSAGE_THREAD) )
+  if (kno_extended_profiling) {
+    getrusage(RUSAGE_THREAD,&after);
+    utime = (after.ru_utime.tv_sec*1000000000+after.ru_utime.tv_usec*1000)-
+      (before.ru_utime.tv_sec*1000000000+before.ru_utime.tv_usec*1000);
+    stime = (after.ru_stime.tv_sec*1000000000+after.ru_stime.tv_usec*1000)-
+      (before.ru_stime.tv_sec*1000000000+before.ru_stime.tv_usec*1000);
+#if HAVE_STRUCT_RUSAGE_RU_NVCSW
+    n_waits = after.ru_nvcsw - before.ru_nvcsw;
+#endif
+#if HAVE_STRUCT_RUSAGE_RU_MAJFLT
+    n_faults = after.ru_majflt - before.ru_majflt;
+#endif
+#if HAVE_STRUCT_RUSAGE_RU_NIVCSW
+    n_pauses = after.ru_nivcsw - before.ru_nivcsw;
+#endif
+  }
+#endif
+  kno_profile_record(profile,0,nsecs,utime,stime,
+		     n_waits,n_pauses,n_faults);
+  return result;
+}
+
+static int too_few_args(lispval fn,u8_string fname,int n,int min,int max)
+{
+  kno_lisp_type ftype = KNO_TYPEOF(fn);
+  u8_byte buf[64], namebuf[64];
+  if (fname == NULL) {
+    u8_string type_name = kno_type_names[ftype];
+    if (!(type_name)) type_name="applicable";
+    fname = u8_bprintf(namebuf,"<%s>0x%llx",type_name,KNO_LONGVAL(fn));}
+  kno_seterr(kno_TooFewArgs,"kno_dcall",
+	     ((max>=0) ?
+	      (u8_bprintf(buf,"%s %d args < [%d-%d] expected",
+			  fname,n,min,max)) :
+	      (u8_bprintf(buf,"%s %d args < [%d+] expected",
+			  fname,n,min))),
+	     fn);
+  return -1;
+}
+
+static int too_many_args(lispval fn,u8_string fname,int n,int min,int max)
+{
+  kno_lisp_type ftype = KNO_TYPEOF(fn);
+  u8_byte buf[64], namebuf[64];
+  if (fname == NULL) {
+    u8_string type_name = kno_type_names[ftype];
+    if (!(type_name)) type_name="applicable";
+    fname = u8_bprintf(namebuf,"<%s>0x%llx",type_name,KNO_LONGVAL(fn));}
+  kno_seterr(kno_TooManyArgs,"kno_dcall",
+	     u8_bprintf(buf,"%s %d args > [%d,%d] expected",
+			fname,n,min,max),
+	     fn);
+  return -1;
+}
+
+static void badptr_err(lispval result,lispval fn)
+{
+  u8_byte numbuf[64];
+  if (errno) u8_graberrno("badptr",NULL);
+  kno_seterr( kno_get_pointer_exception(result),"kno_dcall",
+	      u8_uitoa16(KNO_LONGVAL(result),numbuf),
+	      fn);
+}
+
+
+KNO_FASTOP int setup_call_stack(kno_stack stack,lispval fn,int n,
+				kno_function *fcnp)
+{
+  kno_lisp_type ftype=KNO_TYPEOF(fn);
   if (ftype==kno_fcnid_type) {
     fn=kno_fcnid_ref(fn);
     ftype=KNO_TYPEOF(fn);}
 
-  if (kno_function_types[ftype]) {
-    f=(struct KNO_FUNCTION *)fn;
-    if (f->fcn_name) fname=f->fcn_name;
-    min_arity = f->fcn_min_arity;
-    max_arity = f->fcn_arity;}
-  else if (kno_applyfns[ftype]) {
-    strcpy(namebuf,"λ0x");
-    strcat(namebuf,u8_uitoa16(KNO_LONGVAL(fn),numbuf));
-    fname=namebuf;}
-  else return kno_type_error("applicable","kno_determinstic_apply",fn);
-
-  if ( (min_arity > 0) && (n < min_arity) ) {
-    u8_byte buf[64];
-    return kno_err(kno_TooFewArgs,"function_call",
-		   ((max_arity>=0) ?
-		    (u8_bprintf(buf,"%d args < [%d-%d] expected",
-				n,min_arity,max_arity)) :
-		    (u8_bprintf(buf,"%d args < [%d+] expected",n,min_arity))),
-		   fn);}
-  else if ( (max_arity >= 0) && (n > max_arity) ) {
-    u8_byte buf[64];
-    return kno_err(kno_TooManyArgs,"function_call",
-		   u8_bprintf(buf,"%d args > %d expected",n,max_arity),
-		   fn);}
+  if ( (KNO_FUNCTION_TYPEP(ftype)) || (kno_function_types[ftype]) ) {
+    kno_function f = (kno_function) fn;
+    int min_arity = f->fcn_min_arity;
+    int max_arity = f->fcn_arity;
+    u8_string label = stack->stack_label;
+    if (fcnp) *fcnp = f;
+    if ( (label) && (stack->stack_flags & (KNO_STACK_FREE_LABEL) ) ) {
+      U8_CLEARBITS(stack->stack_flags,(KNO_STACK_FREE_LABEL));
+      u8_free(label);}
+    stack->stack_label = label = f->fcn_name;
+    if ( (min_arity > 0) && (n < min_arity) )
+      return too_few_args(fn,label,n,min_arity,max_arity);
+    else if ( (max_arity >= 0) && (n > max_arity) )
+      return too_many_args(fn,label,n,min_arity,max_arity);
+    else NO_ELSE;}
+  else if (fcnp)
+    *fcnp = NULL;
   else NO_ELSE;
+
+  stack->stack_op = fn;
+
+  return 1;
+}
+
+static void errno_warning(u8_string label)
+{
+  u8_string cond=u8_strerror(errno);
+  u8_log(LOG_WARN,cond,"Unexpected errno=%d (%s) after %s",
+	 errno,cond,(U8ALT(label,"core_apply")));
+  errno=0;
+}
+
+KNO_EXPORT lispval kno_dcall
+(struct KNO_STACK *caller,lispval fn,
+ int n,kno_argvec argvec)
+{
+  u8_string fname="apply";
+  if (caller == NULL) caller = kno_stackptr;
 
   /* Make the call */
   if (stackcheck()) {
-    int trouble = 0;
     lispval result=VOID;
-    struct KNO_PROFILE *profile = (f) ? (f->fcn_profile) : (NULL);
-    KNO_APPLY_STACK(apply_stack,fname,fn);
+    struct KNO_FUNCTION *f;
+    struct KNO_PROFILE *profile;
+    KNO_NEW_STACK(caller,kno_callstack_type,NULL,VOID);
+    int callbuf_width;
+    int setup = setup_call_stack(_stack,fn,n,&f);
+    if (setup < 0)
+      _return KNO_ERROR;
+    _stack->stack_args = argvec;
+    _stack->stack_arglen = n;
     if (f) {
-      apply_stack->stack_src      = f->fcn_filename;
-      U8_CLEARBITS(apply_stack->stack_flags,KNO_STACK_FREE_SRC);}
-    if ( (_stack) && ( (_stack->stack_flags & KNO_STACK_TAILPOS) ) )
-      apply_stack->stack_flags |=  KNO_STACK_TAILPOS;
-
-    int call_width = f->fcn_call_width;
-    int callbuf_width = (call_width<0) ? (n) : call_width;
+      profile = f->fcn_profile;
+      int call_width = f->fcn_call_width;
+      callbuf_width = (call_width<0) ? (n) : call_width;}
+    else {
+      profile = NULL;
+      callbuf_width = n;}
     lispval callbuf[callbuf_width];
-    int i = 0; while (i<call_width) callbuf[i++] = VOID;
-    apply_stack->stack_buf = callbuf;
-    apply_stack->stack_buflen = callbuf_width;
-    apply_stack->stack_args = argvec;
-    apply_stack->stack_arglen = n;
+    int i = 0; while (i<callbuf_width) callbuf[i++] = VOID;
+    _stack->stack_buf = callbuf;
+    _stack->stack_buflen = callbuf_width;
 
-    U8_WITH_CONTOUR(fname,0)
-      if (profile == NULL) {
-	if (ftype == kno_cprim_type)
-	  result = cprim_call(fname,(kno_cprim)f,n,argvec,apply_stack);
-	else if (f)
-	  result=function_call(fname,f,n,argvec,apply_stack);
-	else result=opaque_call(fn,n,argvec,apply_stack);}
-      else {
-        long long nsecs = 0;
-        long long stime = 0, utime = 0;
-        long long n_waits = 0, n_pauses = 0, n_faults = 0;
-#if ( (KNO_EXTENDED_PROFILING) && (HAVE_DECL_RUSAGE_THREAD) )
-        struct rusage before = { 0 }, after = { 0 };
-	if (kno_extended_profiling) getrusage(RUSAGE_THREAD,&before);
-#endif
-#if HAVE_CLOCK_GETTIME
-	struct timespec start, end;
-	clock_gettime(CLOCK_MONOTONIC,&start);
-#endif
-
-	/* Here's where we actually call the function */
-	if (ftype == kno_cprim_type)
-	  result=cprim_call(fname,(kno_cprim)f,n,argvec,apply_stack);
-	else if (f)
-	  result=function_call(fname,f,n,argvec,apply_stack);
-	else result=opaque_call(fn,n,argvec,apply_stack);
-	/* We finish it here because we want to include it in the profile. */
-	if ( (KNO_TAILCALLP(result)) && (FCN_NOTAILP(f)) )
-	  result=kno_finish_call(result);
-
-#if HAVE_CLOCK_GETTIME
-        clock_gettime(CLOCK_MONOTONIC,&end);
-        nsecs = ((end.tv_sec*1000000000)+(end.tv_nsec)) -
-          ((start.tv_sec*1000000000)+(start.tv_nsec));
-#endif
-#if ( (KNO_EXTENDED_PROFILING) && (HAVE_DECL_RUSAGE_THREAD) )
-	if (kno_extended_profiling) {
-	  getrusage(RUSAGE_THREAD,&after);
-	  utime = (after.ru_utime.tv_sec*1000000000+after.ru_utime.tv_usec*1000)-
-	    (before.ru_utime.tv_sec*1000000000+before.ru_utime.tv_usec*1000);
-	  stime = (after.ru_stime.tv_sec*1000000000+after.ru_stime.tv_usec*1000)-
-	    (before.ru_stime.tv_sec*1000000000+before.ru_stime.tv_usec*1000);
-#if HAVE_STRUCT_RUSAGE_RU_NVCSW
-	  n_waits = after.ru_nvcsw - before.ru_nvcsw;
-#endif
-#if HAVE_STRUCT_RUSAGE_RU_MAJFLT
-	  n_faults = after.ru_majflt - before.ru_majflt;
-#endif
-#if HAVE_STRUCT_RUSAGE_RU_NIVCSW
-	  n_pauses = after.ru_nivcsw - before.ru_nivcsw;
-#endif
-	}
-#endif
-	kno_profile_record(profile,0,nsecs,utime,stime,
-			   n_waits,n_pauses,n_faults);}
+    U8_WITH_CONTOUR(fname,0) {
+      if (profile == NULL)
+	result = core_call(_stack,fn,f,n,argvec);
+      else result = profiled_call(_stack,fn,f,n,argvec,profile);
+      if (!(KNO_CHECK_PTR(result))) {
+	result = KNO_ERROR;
+	badptr_err(result,fn);}
+      if (errno) errno_warning(_stack->stack_label);}
     U8_ON_EXCEPTION {
       U8_CLEAR_CONTOUR();
-      trouble = 1;
       result = KNO_ERROR;}
     U8_END_EXCEPTION;
-    if (!(KNO_CHECK_PTR(result))) {
-      if (errno) {u8_graberrno("kno_apply",fname);}
-      result = kno_badptr_err(result,"kno_deterministic_apply",fname);}
-    if ( (errno) && (!(trouble))) {
-      u8_string cond=u8_strerror(errno);
-      u8_log(LOG_WARN,cond,"Unexpected errno=%d (%s) after %s",
-             errno,cond,U8ALT(fname,"primcall"));
-      errno=0;}
-    if ( ( (trouble) || (KNO_TROUBLEP(result)) ) &&
-         (u8_current_exception==NULL) ) {
-      if (errno) {u8_graberrno("kno_apply",fname);}
-      else if (KNO_CONSTANTP(result)) {
-	int const_code = KNO_GET_IMMEDIATE(result,kno_constant_type);
-	u8_condition condition;
-	if ( (const_code < kno_n_constants) &&
-	     (kno_constant_names[const_code]) )
-	  condition = kno_constant_names[const_code];
-	else condition="Unknown condition constant";
-	kno_seterr(condition,"kno_apply",fname,VOID);}
-      else kno_seterr(kno_UnknownError,"kno_apply",fname,result);}
-    kno_pop_stack(apply_stack);
-    return kno_simplify_choice(result);}
+    _return kno_simplify_choice(result);}
   else {
     u8_string limit=u8_mkstring("%lld",kno_stack_limit);
     lispval depth=KNO_INT2LISP(u8_stack_depth());
     return kno_err(kno_StackOverflow,fname,limit,depth);}
 }
+
 
 /* Calling non-deterministically */
 

@@ -695,7 +695,7 @@ KNO_EXPORT void _kno_bad_pointer(lispval badx,u8_context cxt)
   u8_raise(kno_BadPtr,cxt,NULL);
 }
 
-u8_condition get_pointer_exception(lispval x)
+KNO_EXPORT u8_condition kno_get_pointer_exception(lispval x)
 {
   if (KNO_NULLP(x))
     return _("NullPointer");
@@ -720,7 +720,7 @@ KNO_EXPORT lispval kno_badptr_err(lispval result,u8_context cxt,
                                   u8_string details)
 {
   if (errno) u8_graberrno(cxt,u8_strdup(details));
-  return kno_err( get_pointer_exception(result), cxt,
+  return kno_err( kno_get_pointer_exception(result), cxt,
                   details, KNO_UINT2LISP(result) );
 }
 
