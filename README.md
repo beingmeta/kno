@@ -1,108 +1,62 @@
 # This is KNO
 
-**KNO** is a platform for high-performance symbolic computing at
+**Kno** is a platform for high-performance symbolic computing at
 scale, especially suited for development and deployment of symbolic AI
 services and solutions. The core platform is implemented in C for Unix
-platforms (including MacOS) and is released under the open-source AGPL
+platforms (including MacOS) and released under the open-source AGPL
 license.
 
-*KNO* is based on the general architecture and data model of
-[http://www.framerd.org/](FramerD) which has been stable (but growing)
-for over twenty years in both experimental and commercial deployments.
-Earlier versions of KNO (known as FramerD) have been deployed
-commercially in contexts with high availability to tens of thousands
-of users and largely maintained by in-house sysops administrators.
+*Kno* is based on the general architecture and data model of
+[http://www.framerd.org/](FramerD) which has been used extensively in
+both experimental and commercial deployments supporting tens of
+thousands of users.
 
-**KNO** databases readily include millions of searchable frames with
+**Kno** databases readily include millions of searchable frames with
 multiple properties and relations.  These databases can be distributed
-over multiple networked machines. In experimental applications, KNO
-has supported over a billion frames.
+over multiple networked machines. Kno includes its own native database
+formats but also provides backends to libraries such as Google's
+LevelDB or RocksDB. Bundled drivers also allow Kno to connect to
+external databases such as MongoDB or MySQL.
 
-The *KNO* runtime and language kernel provides:
+The *Kno* runtime and language kernel provides:
   * a lockless reference-counting GC suited to real-time applications;
-  * an extensible type system
   * full UTF-8 support with conversion from external encodings (using libu8)
-  * graph representations with *heapless nodes* allowing very large
-knowledge and data graphs.
-  * a simple and powerful abstract *storage layer* for representing graphs and graph indexes;
-  * many optimizations for multi-threaded execution and the writing of
-high-utilization threaded services and applications
-  * an application language, based on Scheme, with an extensible optimization/compilation facility
-  * support for *non-deterministic* programming, a paradigm 
-  * high performance data structures (tables, sets, etc) and components (e.g. bloom filters)
-  * native modules for text analysis and web format parsing (including XML, JSON, and MIME)
+  * *zero-cost* object references for operating over large graphs
+    using limited memory;
+  * data structures (including the lockless GC) optimized for
+    multiple threads and CPUs, enabling;
+  * optimized data structures and algorithms for many set, lookup, and
+    search operations;
+  * a simple and powerful abstract *storage layer* for representing
+    graphs and graph indexes, with drivers for both native databases
+	and popular open-source database libraries or services;
+  * an extensible type system available from both C and other hosted
+    languages;
+  * **Knox**, an extension, application, and scripting language (based
+    on Scheme) which leverages all of the above features, and adds:
+  * support for *non-deterministic* programming, a natural paradigm
+    for many kinds of search and AI algorithms;
+  * a mature module system and profiling facility to support
+    programming in the large;
+  * *parseltongue*, an FFI interface for Python which allows Knox
+    programs to transparently access Python libraries and modules;
+  * native high-performance modules for text processing using a
+    structured pattern language, as well as have facilities for
+    stemming and morphological analysis;
+  * native modules for parsing and emitting various web formats
+    including XML, JSON, MIME, and various URI formats, as well as
+	native access to services such as LDNS;
+  * native database drivers for connecting with MongoDB and SQL
+    (through both ODBC and vendor-provided drivers);
+  * Apache integration through a custom `mod_knocgi` module and a
+    servlet engine supporting distributed processing and asynchronous
+    I/O;
   * native wrappers for:
     * image processing (imagick, qrencode, exif, etc),
 	* cryptographic functions,
     * text processing (tidy, markdown,hyphenation, etc),
-    * external database libraries (leveldb, rocksdb, sqlite, etc), 
-    * external archival data files (ziptools, libarchive, libzip, etc),
-  * native database drivers for MongoDB, MySQL, ODBC, etc
-  * a performant web *servlet* architecture integrated with Apache
-  * a distributed processing and data model
-
-In addition, *Kno* includes **parseltongue**, a library for using and
-being used by Python libraries and applications. *Parseltongue*
-provides in-memory access to Python libraries and objects as well as
-enabling both the KNO runtime and modules to be accessed from Python
-code directly. This effectively enables Kno to leverage the vast
-variety of existing python libraries as well as it's own advanced
-features and components.
-
-## General architecture
-
-*KNO* consists of four main components: 
-
-* a **portable distributed schema-free graph database** designed to
-  support the maintenance and sharing of knowledge bases. KNO is
-  especially optimized for the sort of pointer-intensive data
-  structures used by semantic networks, frame systems, and many
-  intelligent agent applications. This database provides a simple and
-  flexible object and index model grounded in *drivers* for both KNO's
-  native database formats and external formats and services.
-
-* a **Scheme**-based scripting language with special provisions for
-  Prolog-style non-deterministic programming and other common AI
-  programming tropes. It also includes various facilities from Common
-  Lisp, including generic sequences and a formatted output facility
-  inspired by Interlisp's `PRINTOUT`. This language and KNO's
-  underlying runtime are optimized for multi-threaded programming
-  with typesafe object implementations and a lock-free garbage
-  collector.
-
-* a range of high-performance utility libraries for:
-  * text processing pipelines, including composable pattern matchers,
-  stemmers and normalizers (e.g. Soundex or Metaphone), and
-  stream-based text matching;
-  * standard cryptographic functions as provided by the OpenSSL
-    libraries;
-  * web-centric computing including: XML/HTML, JSON, and MIME parsing;
-  support for Markdown and TIDY web document processors; bindings for
-  CURL, LDNS, and other network facilities.
-  * integration with external databases, including SQL databases
-  (MySQL, MariaDB, and SQLITE), NOSQL databases (MongoDB), and generic
-  file database libraries (RocksDB and LevelDB);
-  * image manipulation through bindings for the ImageMagick library and
-  other utility libraries including EXIF and QRENCODE.
-  * bindings for plumbing utilities like libarchive, zlib, and zip
-  tools.
-
-* a growing abundance of *source modules*, written in Scheme, for
-  document processing, utility computation, and access to external
-  APIs. These are listed [Source modules](below).
-
-* **parseltongue**, a native library for directly accessing Python
-  libraries and programs from within Scheme programs and modules, and
-  vice versa. This is in addition to the platform's support for
-  calling external C functions through `libffi`.
-
-* an application framework for implementing web applications and
-  services. In this framework, web applications use a custom Apache
-  module (`mod_knoweb`) to communicate with multi-threaded KNO
-  *servlets* using a binary wire protocol.
-
-KNO is implemented in C for Unix-based platforms including Linux and
-macOS.
+    * databases including leveldb, rocksdb, sqlite, etc;
+    * archival data files including ziptools, libarchive, and libzip,
 
 ## Background
 
@@ -141,23 +95,21 @@ language (a variant of Scheme) to provide additional functions:
 
 * access to many AWS (Amazon Web Services) APIs, including S3, SQS,
   SES, EC2 and others;
+* a facility for generating and using JWTs (Javascript Web Tokens)
+  including both symmetric and asymmetric (public key) signatures;
 * libraries for DOM manipulation and processing, based on the
   representations generated by FramerD's native XML/HTML parser;
-* many tools for accessing the BRICO semantic knowledge base;
 * an extensible generic pathname facility (`gpath`) for working with a
   range of file-like data repositories (including S3, Dropbox,
   in-memory filesystems, zip files, and web resources);
-* a facility for checking and generating JWTs (Javascript Web Tokens)
-  including both symmetric and asymmetric (public key) signatures;
-* various facilities for transforming objects to and from JSON
-  (JavaScript Object Notation);
+* many tools for accessing the *BRICO* semantic knowledge base;
 * modules for advanced parsing and rendering of times and numbers;
-* a lightweight implementation of records (`ezrecords`);
+* a lightweight implementation of structured records (`ezrecords`);
 * facilities for fine-grained logging of program activity;
 * various caching facilities for improving performance against
   resource-intensive functions or services;
 * support for OAuth2 authorization and API access;
 * HTTP access to CouchDB databases and RSS feeds;
 * facilities for integrating with SOAP-based web services;
-* interfaces to the APIs for Facebook, Gravatar, OpenLibrary,
+* interfaces to the APIs for Facebook, Gravatar, Dropbox, OpenLibrary,
   LibraryThing, Twilio (SMS), PayPal, and others.

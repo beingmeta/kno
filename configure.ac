@@ -683,7 +683,9 @@ if test "$with_duma" != "no"; then
    default_malloc="libc";
 fi
 
-AC_ARG_WITH(malloc,--with-malloc Use custom malloc,with_malloc=$withval,with_malloc=$default_malloc)
+WITHMALLOC_OPTS="libc builtin jemalloc asan tcmalloc dmalloc list"
+
+AC_ARG_WITH(malloc,--with-malloc Use custom malloc: e.g. $WITHMALLOC_OPTS,with_malloc=$withval,with_malloc=$default_malloc)
 
 if test "$with_malloc" = "jemalloc"; then
   AC_CHECK_LIB(jemalloc,malloc,EXELIBS="-ljemalloc $EXELIBS")
