@@ -2038,7 +2038,7 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   exe/.gdbinit
 	   exe/.lldbinit
 	   dbg/runenv.sh dbg/.gdbinit dbg/.lldbinit dbg/.valgrind
-	   tests/lisp/.gdbinit tests/storage/.gdbinit tests/.valgrind
+	   tests/lisp/.gdbinit tests/storage/.gdbinit
 	   etc/kno_start_servlets etc/kno_start_daemons etc/kno_stop_jobs
 	   etc/knostart etc/knostop etc/knostartall etc/knostopall etc/knocleanup
 	   etc/knosignal etc/knoinject etc/knostatus etc/knolog 
