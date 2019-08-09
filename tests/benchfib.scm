@@ -1,3 +1,4 @@
+#!./xrun ./knox
 ;;; -*- Mode: Scheme; -*-
 
 (use-module '{bench/miscfns optimize stringfmts})
