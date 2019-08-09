@@ -49,7 +49,8 @@
 (dotimes (i 10) (fibi 1000))
 
 ;; Since we've made fibi not tailable, the time for fibi is not greater than fib-iter
-(applytest #t > (profile/time (profile/getcalls fibi)) (profile/time (profile/getcalls fib-iter)) )
+;;  TODO: This depends on what kind of tail calls we're doing. Disabled for now.
+;;(applytest #t > (profile/time (profile/getcalls fibi)) (profile/time (profile/getcalls fib-iter)) )
 
 ;;;; Test for extended profiling
 
