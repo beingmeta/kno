@@ -61,7 +61,7 @@ LEAKTEST	= ${TEST_ENV} ${LEAKTEST_ENV} ${LEAKTESTER:-${TESTPROG}}
 FRAMEDB_FILES	= r4rs.scm misctest.scm sequences.scm choices.scm framedb.scm
 TESTBASE	= tmptest
 TESTFILE	= ${TESTBASE}.file
-KNOX		= ../dbg/knox
+KNOX		= ./knox
 OIDPOOL		= POOLTYPE=oidpool
 BIGPOOL		= POOLTYPE=bigpool
 SNAPPY		= COMPRESSION=snappy
