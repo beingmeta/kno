@@ -71,6 +71,11 @@ u8_condition kno_SyntaxError=_("SCHEME expression syntax error"),
   kno_CantBind=_("can't add binding to environment"),
   kno_ReadOnlyEnv=_("Read only environment");
 
+#define head_label(head) \
+  ( (SYMBOLP(head)) ? (SYM_NAME(head)) : \
+    (KNO_OPCODEP(head)) ? (opcode_name(head)) : \
+    (NULL) )
+
 /* Reading from expressions */
 
 KNO_EXPORT lispval _kno_get_arg(lispval expr,int i)
@@ -631,13 +636,11 @@ lispval pair_eval(lispval head,lispval expr,kno_lexenv env,
 		  struct KNO_STACK *eval_stack,
 		  int tail,int fresh_stack)
 {
-  u8_string label=(SYMBOLP(head)) ? (SYM_NAME(head)) :
-    (KNO_OPCODEP(head)) ? (opcode_name(head)) : (NULL);
+  u8_string label= head_label(head);
   if (head == KNO_SOURCEREF_OPCODE) {
     expr = handle_sourcerefs(expr,eval_stack);
     head = (KNO_PAIRP(expr)) ? (KNO_CAR(expr)) : (KNO_VOID);
-    label=(SYMBOLP(head)) ? (SYM_NAME(head)) :
-      (KNO_OPCODEP(head)) ? (opcode_name(head)) : (NULL);}
+    label = head_label(head);}
   int flags = eval_stack->stack_flags;
   if (U8_BITP(flags,KNO_STACK_DECREF_OP)) {
     kno_decref(eval_stack->stack_op);}
