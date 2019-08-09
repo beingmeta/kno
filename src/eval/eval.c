@@ -905,6 +905,8 @@ static lispval eval_apply(u8_string fname,
   lispval scan = arg_exprs;
   while (KNO_PAIRP(scan)) {
     lispval arg_expr = pop_arg(scan);
+    /* TODO: restore here when op_eval/op_eval_apply/op_call
+       are implemented without it. */
     /* if (commentp(arg_expr)) continue; */
     lispval arg_val = arg_eval(arg_expr,env,stack);
     if ( (ABORTED(arg_val)) || (PRED_FALSE(VOIDP(arg_val))) ) {
@@ -920,12 +922,9 @@ static lispval eval_apply(u8_string fname,
       kno_lisp_type type = KNO_CONSPTR_TYPE(arg_val);
       if (type == kno_choice_type)
 	nd_args++;
-      else if (PRED_FALSE(type == kno_choice_type)) {
-	kno_qchoice qc = (kno_qchoice) arg_val;
-	lispval real_choice = qc->qchoiceval;
-	kno_incref(real_choice);
-	kno_decref(arg_val);
-	arg_val = real_choice;}
+      else if (PRED_FALSE(type == kno_qchoice_type)) 
+	qc_args++;
+      else NO_ELSE;
       if ( (gc_args == 0) && (!(KNO_STATICP(arg_val))) )
 	gc_args = 1;
       else NO_ELSE;}
@@ -933,10 +932,12 @@ static lispval eval_apply(u8_string fname,
     argbuf[arg_i++]=arg_val;}
 
   if ( (tail) && (lambda) && (kno_optimize_tail_calls) &&
-       (! ((nd_args) && (n_fns > nd_fns) ) ) )
+       (qc_args == 0) && (! ((nd_args) && (n_fns > nd_fns) ) ) )
     result=kno_tail_call(fn,arg_i,argbuf);
   else if ( (n_fns > 1) || ( (nd_args) && (n_fns > nd_fns) ) )
     result=kno_ndcall(stack,fn,arg_i,argbuf);
+  else if (qc_args)
+    result = kno_ndcall(stack,fn,arg_i,argbuf);
   else if (gc_args)
     result=kno_dcall(stack,fn,arg_i,argbuf);
   else return kno_dcall(stack,fn,arg_i,argbuf);
