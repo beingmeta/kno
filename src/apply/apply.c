@@ -795,7 +795,7 @@ static lispval profiled_dcall
     return kno_err(kno_StackOverflow,fname,limit,depth);}
 }
 
-static lispval wrapped_dcall
+static lispval contoured_dcall
 (struct KNO_STACK *caller,lispval fn,
  int n,kno_argvec argvec)
 {
@@ -841,7 +841,7 @@ static lispval wrapped_dcall
     return kno_err(kno_StackOverflow,fname,limit,depth);}
 }
 
-static lispval stack_dcall
+static lispval reckless_dcall
 (struct KNO_STACK *caller,lispval fn,
  int n,kno_argvec argvec)
 {
@@ -880,10 +880,10 @@ KNO_EXPORT lispval kno_dcall(struct KNO_STACK *caller,lispval fn,
 			     int n,kno_argvec argvec)
 {
   /* if (guardrails < 1) return stackless_dcall(caller,fn,n,argvec); else */
-  if (guardrails < 2)
-    return stack_dcall(caller,fn,n,argvec);
-  else if (guardrails == 2)
-    return wrapped_dcall(caller,fn,n,argvec);
+  if (guardrails < 1)
+    return reckless_dcall(caller,fn,n,argvec);
+  else if (guardrails == 1)
+    return contoured_dcall(caller,fn,n,argvec);
   else return profiled_dcall(caller,fn,n,argvec);
 }
 
