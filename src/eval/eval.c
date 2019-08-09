@@ -886,6 +886,7 @@ static lispval eval_apply(u8_string fname,
     n_fns++;}
   else return kno_err("NotApplicable","eval_apply",NULL,fn);
 
+  if (n_fns == 0) return KNO_EMPTY_CHOICE;
   if (n_fns > 1) tail = 0;
   int arg_i = 0, argbuf_len = (n<0) ? (list_length(arg_exprs)) : (n);
   if (PRED_FALSE(argbuf_len < 0)) {
@@ -896,35 +897,39 @@ static lispval eval_apply(u8_string fname,
     return kno_err(kno_SyntaxError,"eval_apply",
 		   (label) ? (label) : (u8_bprintf(buf,"%q",fn)),
 		   arg_exprs);}
+  else if (PRED_FALSE( (max_args >= 0) && (argbuf_len > max_args) ))
+    return kno_err(kno_TooManyArgs,"eval_apply",fname,arg_exprs);
+  else NO_ELSE;
   lispval argbuf[argbuf_len];
   lispval result = KNO_VOID;
   lispval scan = arg_exprs;
   while (KNO_PAIRP(scan)) {
     lispval arg_expr = pop_arg(scan);
-    if (commentp(arg_expr)) continue;
-    else if (PRED_FALSE( (max_args >= 0) && (arg_i > max_args) )) {
-      if (gc_args) kno_decref_vec(argbuf,arg_i);
-      return kno_err(kno_TooManyArgs,"eval_apply",fname,arg_expr);}
+    /* if (commentp(arg_expr)) continue; */
     lispval arg_val = arg_eval(arg_expr,env,stack);
-    if (PRED_FALSE(VOIDP(arg_val))) {
+    if ( (ABORTED(arg_val)) || (PRED_FALSE(VOIDP(arg_val))) ) {
       if (gc_args) kno_decref_vec(argbuf,arg_i);
-      return kno_err(kno_VoidArgument,"eval_apply/arg",NULL,arg_expr);}
-    else if (KNO_ABORTED(arg_val)) {
-      /* Clean up the arguments we've already evaluated */
-      if (gc_args) kno_decref_vec(argbuf,arg_i);
-      return arg_val;}
-    if (PRED_FALSE( (nd_fns==0) && (EMPTYP(arg_val)) )) {
+      if (KNO_VOIDP(arg_val))
+	return kno_err(kno_VoidArgument,"eval_apply/arg",NULL,arg_expr);
+      else return arg_val;}
+    else if (PRED_FALSE( (nd_fns==0) && (EMPTYP(arg_val)) )) {
       /* Prune this call, cleaning up the arguments we've already evaluated */
       if (gc_args) kno_decref_vec(argbuf,arg_i);
       return arg_val;}
     else if (CONSP(arg_val)) {
-      if (CHOICEP(arg_val))
+      kno_lisp_type type = KNO_CONSPTR_TYPE(arg_val);
+      if (type == kno_choice_type)
 	nd_args++;
-      else if (QCHOICEP(arg_val)) {
-	qc_args++;}
-      else NO_ELSE;
-      gc_args = 1;}
-    else {}
+      else if (PRED_FALSE(type == kno_choice_type)) {
+	kno_qchoice qc = (kno_qchoice) arg_val;
+	lispval real_choice = qc->qchoiceval;
+	kno_incref(real_choice);
+	kno_decref(arg_val);
+	arg_val = real_choice;}
+      if ( (gc_args == 0) && (!(KNO_STATICP(arg_val))) )
+	gc_args = 1;
+      else NO_ELSE;}
+    else NO_ELSE;
     argbuf[arg_i++]=arg_val;}
 
   if ( (tail) && (lambda) && (kno_optimize_tail_calls) &&
