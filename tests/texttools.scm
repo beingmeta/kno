@@ -47,9 +47,7 @@
 ;(applytest #f numeric? "$33.50")
 ;(applytest #f numeric? "thirty-three")
 
-;;; Suffix tests
-
-
+;;; Word function tests
 
 (define sample-string
   "The book was over here by the bookcase
