@@ -978,7 +978,7 @@ static void collection_done(mongoc_collection_t *collection,
 /* Basic operations on collections */
 
 #if HAVE_MONGOC_BULK_OPERATION_WITH_OPTS
-DEFPRIM3("collection/insert!",mongodb_insert,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+DEFPRIM3("collection/insert!",mongodb_insert,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDOP,
 	 "(COLLECTION/INSERT! *collection* *objects* *opts*) **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
 	 kno_any_type,KNO_FALSE);
@@ -1065,7 +1065,7 @@ static lispval mongodb_insert(lispval arg,lispval objects,lispval opts_arg)
   return result;
 }
 #else
-DEFPRIM3("collection/insert!",mongodb_insert,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+DEFPRIM3("collection/insert!",mongodb_insert,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDOP,
 	 "(COLLECTION/INSERT! *collection* *objects* *opts*) **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
 	 kno_any_type,KNO_FALSE);
@@ -3049,7 +3049,7 @@ KNO_EXPORT lispval kno_bson2dtype(bson_t *in,int flags,lispval opts)
   else return kno_err(kno_BSON_Input_Error,"kno_bson2dtype",NULL,KNO_VOID);
 }
 
-DEFPRIM("mongovec",mongovec_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(0)|KNO_NDCALL,
+DEFPRIM("mongovec",mongovec_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(0)|KNO_NDOP,
 	"`(MONGOVEC *args...*)` **undocumented**");
 static lispval mongovec_lexpr(int n,kno_argvec values)
 {

@@ -122,7 +122,7 @@ typedef lispval (*kno_xprimn)(kno_stack,kno_function,int n,kno_argvec);
 #define KNO_FCN_TRACE_TRACEFN 4
 #define KNO_FCN_TRACE_BREAK   8
 
-#define KNO_FCN_CALL_NDCALL 1
+#define KNO_FCN_CALL_NDOP 1
 #define KNO_FCN_CALL_LEXPR  2
 #define KNO_FCN_CALL_NOTAIL 4
 #define KNO_FCN_CALL_CPRIM  8
@@ -133,7 +133,7 @@ typedef lispval (*kno_xprimn)(kno_stack,kno_function,int n,kno_argvec);
 #define KNO_FCN_TRACEDP(f)  ( ((f)->fcn_trace) & (KNO_FCN_CALL_TRACEFN) )
 #define KNO_FCN_BREAKP(f)   ( ((f)->fcn_trace) & (KNO_FCN_CALL_BREAK) )
 
-#define KNO_FCN_NDCALLP(f) ( ((f)->fcn_call) & (KNO_FCN_CALL_NDCALL) )
+#define KNO_FCN_NDOPP(f) ( ((f)->fcn_call) & (KNO_FCN_CALL_NDOP) )
 #define KNO_FCN_LEXPRP(f) ( ((f)->fcn_call) & (KNO_FCN_CALL_LEXPR) )
 #define KNO_FCN_NOTAILP(f) ( ((f)->fcn_call) & (KNO_FCN_CALL_NOTAIL) )
 #define KNO_FCN_CPRIMP(f) ( ((f)->fcn_call) & (KNO_FCN_CALL_CPRIM) )
@@ -215,7 +215,7 @@ KNO_EXPORT lispval kno_cons_cprimN
 /* Adding primitives */
 
 #define KNO_XCALL   0x10000
-#define KNO_NDCALL  0x20000
+#define KNO_NDOP  0x20000
 #define KNO_LEXPR   0x40000
 #define KNO_VARARGS KNO_LEXPR
 
@@ -437,7 +437,7 @@ KNO_EXPORT int kno_unparse_function
 /* KNO_SOURCE aliases */
 
 #if KNO_SOURCE
-#define FCN_NDCALLP KNO_FCN_NDCALLP
+#define FCN_NDOPP KNO_FCN_NDOPP
 #define FCN_NOTAILP KNO_FCN_NOTAILP
 #define FCN_XCALLP KNO_FCN_XCALLP
 #define FCN_LEXPRP KNO_FCN_LEXPRP

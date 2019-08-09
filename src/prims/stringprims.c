@@ -1100,7 +1100,7 @@ static int has_suffix_test(lispval string,lispval suffix)
       return 1;
     else return 0;}
 }
-DEFPRIM2("has-suffix",has_suffix,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+DEFPRIM2("has-suffix",has_suffix,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDOP,
 	 "`(HAS-SUFFIX *string* *suffixes*)` "
 	 "returns true if *string* starts with any of "
 	 "*suffixes* (also strings).",
@@ -1152,7 +1152,7 @@ DEFPRIM2("is-suffix",is_suffix,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 static lispval is_suffix(lispval suffix,lispval string) {
   return has_suffix(string,suffix); }
 
-DEFPRIM2("strip-suffix",strip_suffix,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+DEFPRIM2("strip-suffix",strip_suffix,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDOP,
 	 "`(STRIP-SUFFIX *string* *suffixes*)` "
 	 "removes the longest of *suffixes* from the end of "
 	 "*string*, if any.",
@@ -1207,7 +1207,7 @@ static int has_prefix_test(lispval string,lispval prefix)
     else return 0;}
 }
 
-DEFPRIM2("has-prefix",has_prefix,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+DEFPRIM2("has-prefix",has_prefix,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDOP,
 	 "`(HAS-PREFIX *string* *prefixes*)` "
 	 "returns true if *string* starts with any of "
 	 "*prefixes* (also strings).",
@@ -1258,7 +1258,7 @@ DEFPRIM2("is-prefix",is_prefix,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 static lispval is_prefix(lispval prefix,lispval string) {
   return has_prefix(string,prefix); }
 
-DEFPRIM2("strip-prefix",strip_prefix,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+DEFPRIM2("strip-prefix",strip_prefix,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDOP,
 	 "`(STRIP-PREFIX *string* *suffixes*)` "
 	 "removes the longest of *suffixes* from the "
 	 "beginning of *string*, if any.",
@@ -1359,7 +1359,7 @@ static lispval yesp_prim(lispval arg,lispval dflt,lispval yes,lispval no)
 
 /* STRSEARCH */
 
-DEFPRIM3("strmatch?",strmatchp_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+DEFPRIM3("strmatch?",strmatchp_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDOP,
 	 "`(STRMATCH? *string* *patterns* *pos*)` "
 	 "return true if any of *patterns* (a choice of "
 	 "strings or regexes) matches the substring of "

@@ -412,7 +412,7 @@ static lispval nbsp_prim()
   return VOID;
 }
 
-DEFPRIM("xmlempty",xmlemptyelt,KNO_VAR_ARGS|KNO_MIN_ARGS(0)|KNO_NDCALL,
+DEFPRIM("xmlempty",xmlemptyelt,KNO_VAR_ARGS|KNO_MIN_ARGS(0)|KNO_NDOP,
         "`(XMLEMPTY *args...*)` **undocumented**");
 static lispval xmlemptyelt(int n,kno_argvec args)
 {

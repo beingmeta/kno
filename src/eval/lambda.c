@@ -364,7 +364,7 @@ _make_lambda(u8_string name,
   KNO_INIT_FRESH_CONS(s,kno_lambda_type);
   s->fcn_name = ((name) ? (u8_strdup(name)) : (NULL));
 
-  s->fcn_call = ( ((nd) ? (KNO_FCN_CALL_NDCALL) : (0)) |
+  s->fcn_call = ( ((nd) ? (KNO_FCN_CALL_NDOP) : (0)) |
 		  (KNO_FCN_CALL_XCALL) );
   s->fcn_handler.xcalln = (kno_xprimn) lambda_call;
   s->fcn_filename = NULL;
@@ -482,9 +482,9 @@ static int unparse_lambda(u8_output out,lispval x)
   u8_string modname =
     (KNO_SYMBOLP(moduleid)) ? (KNO_SYMBOL_NAME(moduleid)) : (NULL);
   u8_string codes=
-    (( (lambda->lambda_synchronized) && (FCN_NDCALLP(lambda)) ) ? ("∀∥") :
+    (( (lambda->lambda_synchronized) && (FCN_NDOPP(lambda)) ) ? ("∀∥") :
      (lambda->lambda_synchronized) ? ("∥") :
-     (FCN_NDCALLP(lambda)) ? ("∀") : (""));
+     (FCN_NDOPP(lambda)) ? ("∀") : (""));
   if (lambda->fcn_name)
     u8_printf(out,"#<λ%s%s",codes,lambda->fcn_name);
   else u8_printf(out,"#<λ%s0x%04x",codes,((addr>>2)%0x10000));
@@ -953,7 +953,7 @@ static int better_unparse_fcnid(u8_output out,lispval x)
     struct KNO_LAMBDA *lambda = kno_consptr(kno_lambda,lp,kno_lambda_type);
     kno_ptrval addr = (kno_ptrval) lambda;
     lispval arglist = lambda->lambda_arglist;
-    int ndcallp = (FCN_NDCALLP(lambda));
+    int ndcallp = (FCN_NDOPP(lambda));
     u8_string codes=
       (((lambda->lambda_synchronized)&&(ndcallp))?("∀∥"):
        (lambda->lambda_synchronized)?("∥"):
@@ -1004,7 +1004,7 @@ static int better_unparse_fcnid(u8_output out,lispval x)
     u8_byte arity[64]="", codes[64]="", numbuf[32]="";
     if ((filename)&&(filename[0]=='\0')) filename = NULL;
     if (name == NULL) name = fcn->fcn_name;
-    if (FCN_NDCALLP(fcn)) strcat(codes,"∀");
+    if (FCN_NDOPP(fcn)) strcat(codes,"∀");
     if ((fcn->fcn_arity<0)&&(fcn->fcn_min_arity<0))
       strcat(arity,"[…]");
     else if (fcn->fcn_arity==fcn->fcn_min_arity) {

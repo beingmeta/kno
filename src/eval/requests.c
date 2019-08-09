@@ -119,7 +119,7 @@ static lispval reqcall_prim(lispval proc)
   return value;
 }
 
-DEFPRIM2("req/get",reqget_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+DEFPRIM2("req/get",reqget_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDOP,
          "`(REQ/GET *arg0* [*arg1*])` **undocumented**",
          kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval reqget_prim(lispval vars,lispval dflt)
@@ -136,7 +136,7 @@ static lispval reqget_prim(lispval vars,lispval dflt)
   else return kno_incref(dflt);
 }
 
-DEFPRIM2("req/val",reqval_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+DEFPRIM2("req/val",reqval_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDOP,
          "`(REQ/VAL *arg0* [*arg1*])` **undocumented**",
          kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval reqval_prim(lispval vars,lispval dflt)
@@ -228,7 +228,7 @@ static lispval hashcolonquestion_evalfn(lispval expr,kno_lexenv env,kno_stack _s
 #endif
 
 
-DEFPRIM2("req/test",reqtest_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+DEFPRIM2("req/test",reqtest_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDOP,
          "`(REQ/TEST *arg0* [*arg1*])` **undocumented**",
          kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval reqtest_prim(lispval vars,lispval val)
@@ -246,7 +246,7 @@ static lispval reqtest_prim(lispval vars,lispval val)
   return KNO_FALSE;
 }
 
-DEFPRIM2("req/store!",reqstore_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+DEFPRIM2("req/store!",reqstore_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDOP,
          "`(REQ/STORE! *arg0* *arg1*)` **undocumented**",
          kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval reqstore_prim(lispval vars,lispval value)

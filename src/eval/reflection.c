@@ -342,7 +342,7 @@ static lispval non_deterministicp(lispval x)
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
   if (KNO_APPLICABLEP(x)) {
     struct KNO_FUNCTION *f = KNO_GETFUNCTION(x);
-    if (FCN_NDCALLP(f))
+    if (FCN_NDOPP(f))
       return KNO_TRUE;
     else return KNO_FALSE;}
   else return kno_type_error(_("procedure"),"non_deterministicp",x);

@@ -178,7 +178,7 @@ static lispval unpack_compound(lispval x,lispval tag)
 }
 
 DEFPRIM4("compound-set!",compound_set,
-	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(3)|KNO_NDCALL,
+	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(3)|KNO_NDOP,
          "`(COMPOUND-SET! *arg0* *arg1* *arg2* [*arg3*])` **undocumented**",
          kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
          kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
@@ -277,7 +277,7 @@ static lispval apply_modifier(lispval modifier,lispval old_value,lispval value)
 
 DEFPRIM5
 ("compound-modify!",compound_modify,
- KNO_MAX_ARGS(5)|KNO_MIN_ARGS(4)|KNO_NDCALL,
+ KNO_MAX_ARGS(5)|KNO_MIN_ARGS(4)|KNO_NDOP,
  "`(compound-modify! *compound* *tag* *eltno* *modfn* *modval*)` "
  "**undocumented**",
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
@@ -340,7 +340,7 @@ static lispval compound_modify(lispval x,lispval tag,lispval offset,
   }
 }
 
-DEFPRIM("make-compound",make_compound,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
+DEFPRIM("make-compound",make_compound,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDOP,
         "`(MAKE-COMPOUND *arg0* *args...*)` **undocumented**");
 static lispval make_compound(int n,kno_argvec args)
 {
@@ -361,7 +361,7 @@ static lispval make_compound(int n,kno_argvec args)
 }
 
 DEFPRIM("make-opaque-compound",make_opaque_compound,
-	KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
+	KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDOP,
         "`(MAKE-OPAQUE-COMPOUND *arg0* *args...*)` **undocumented**");
 static lispval make_opaque_compound(int n,kno_argvec args)
 {
@@ -382,7 +382,7 @@ static lispval make_opaque_compound(int n,kno_argvec args)
 }
 
 DEFPRIM("make-mutable-compound",make_mutable_compound,
-	KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
+	KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDOP,
         "`(MAKE-MUTABLE-COMPOUND *arg0* *args...*)` **undocumented**");
 static lispval make_mutable_compound(int n,kno_argvec args)
 {
@@ -403,7 +403,7 @@ static lispval make_mutable_compound(int n,kno_argvec args)
 }
 
 DEFPRIM("make-opaque-mutable-compound",make_opaque_mutable_compound,
-	KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
+	KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDOP,
         "`(MAKE-OPAQUE-MUTABLE-COMPOUND *arg0* *args...*)` **undocumented**");
 static lispval make_opaque_mutable_compound(int n,kno_argvec args)
 {

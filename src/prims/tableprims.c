@@ -176,7 +176,7 @@ static lispval hash_lisp_prim(lispval x)
   return KNO_INT(val);
 }
 
-DEFPRIM("%GET",table_get,MAX_ARGS(3)|MIN_ARGS(2)|NDCALL,
+DEFPRIM("%GET",table_get,MAX_ARGS(3)|MIN_ARGS(2)|NDOP,
         "`(%GET *table* *key* [*default*])` returns the value "
         "of *key* in *table* or *default* if *table* does not contain "
         "*key*. *default* defaults to the empty choice {}."
@@ -188,7 +188,7 @@ static lispval table_get(lispval table,lispval key,lispval dflt)
   else return kno_get(table,key,dflt);
 }
 
-DEFPRIM("ADD!",table_add,MAX_ARGS(3)|NDCALL,
+DEFPRIM("ADD!",table_add,MAX_ARGS(3)|NDOP,
         "`(ADD! *table* *key* *value*)` adds *value* to "
         "the associations of *key* in *table*. "
         "Note that this does no inference, use ASSERT! to enable inference.")
@@ -200,7 +200,7 @@ static lispval table_add(lispval table,lispval key,lispval val)
     return KNO_ERROR;
   else return VOID;
 }
-DEFPRIM("DROP!",table_drop,MAX_ARGS(3)|MIN_ARGS(2)|NDCALL,
+DEFPRIM("DROP!",table_drop,MAX_ARGS(3)|MIN_ARGS(2)|NDOP,
         "`(DROP! *table* *key* [*values*])` removes *values* "
         "from *key* of *table*. If *values* is not provided, "
         "all values associated with *key* are removed. "
@@ -212,7 +212,7 @@ static lispval table_drop(lispval table,lispval key,lispval val)
   else if (kno_drop(table,key,val)<0) return KNO_ERROR;
   else return VOID;
 }
-DEFPRIM("STORE!",table_store,MAX_ARGS(3)|NDCALL,
+DEFPRIM("STORE!",table_store,MAX_ARGS(3)|NDOP,
         "`(STORE! *table* *key* *value*)` stores *value* in "
         "*table* under *key*, removing all existing values. If "
         "*value* is a choice, the entire choice is stored under "
@@ -230,7 +230,7 @@ static lispval table_store(lispval table,lispval key,lispval val)
     return KNO_ERROR;
   else return VOID;
 }
-DEFPRIM("%TEST",table_test,MAX_ARGS(3)|MIN_ARGS(2)|NDCALL,
+DEFPRIM("%TEST",table_test,MAX_ARGS(3)|MIN_ARGS(2)|NDOP,
         "`(%TEST *tables* *keys* [*values*])` returns true if "
         "any of *values* is stored undery any of *keys* in "
         "any of *tables*. If *values* is not provided, returns true "
@@ -292,7 +292,7 @@ static lispval slotmap2schemap_prim(lispval map)
   return result;
 }
 
-DEFPRIM1("->SCHEMAP",table2schemap_prim,MAX_ARGS(1)|NDCALL,
+DEFPRIM1("->SCHEMAP",table2schemap_prim,MAX_ARGS(1)|NDOP,
          "`(->SCHEMAP *assocs*)` converts a slotmap to a schemap.",
          -1,KNO_VOID)
 static lispval table2schemap_prim(lispval tbl)
@@ -330,7 +330,7 @@ typedef lispval (*reduceop)(lispval,lispval);
 /* Various table operations */
 
 DEFPRIM("TABLE-INCREMENT!",
-        table_increment,MAX_ARGS(3)|MIN_ARGS(2)|NDCALL,
+        table_increment,MAX_ARGS(3)|MIN_ARGS(2)|NDOP,
         "`(TABLE-INCREMENT! *table* *key* [*delta*])` "
         "adds *delta* (default to 1) to the current value of *key* in "
         "*table* (which defaults to 0).")
@@ -378,7 +378,7 @@ static lispval table_increment(lispval table,lispval keys,lispval increment)
 }
 
 DEFPRIM("TABLE-INCREMENT-EXISTING!",
-        table_increment_existing,MAX_ARGS(3)|MIN_ARGS(2)|NDCALL,
+        table_increment_existing,MAX_ARGS(3)|MIN_ARGS(2)|NDOP,
         "`(TABLE-INCREMENT-EXISTING! *table* *key* [*delta*])` "
         "adds *delta* (default to 1) to the current value of *key* in "
         "*table*, doing nothing if *key* is not in *table*.")
@@ -425,7 +425,7 @@ static lispval table_increment_existing(lispval table,lispval keys,lispval incre
 }
 
 DEFPRIM("TABLE-MULTIPLY!",
-        table_multiply,MAX_ARGS(3)|NDCALL,
+        table_multiply,MAX_ARGS(3)|NDOP,
         "`(TABLE-MULTIPLY! *table* *key* *factor*)` "
         "multiplies the current value of *key* in *table* by *factor*, "
         "defaulting the value of *key* to 1.")
@@ -467,7 +467,7 @@ static lispval table_multiply(lispval table,lispval keys,lispval factor)
 }
 
 DEFPRIM("TABLE-MULTIPLY-EXISTING!",
-        table_multiply_existing,MAX_ARGS(3)|NDCALL,
+        table_multiply_existing,MAX_ARGS(3)|NDOP,
         "`(TABLE-MULTIPLY-EXISTING! *table* *key* *factor*)` "
         "multiplies the current value of *key* in *table* by *factor*, "
         "doing nothing if *key* is not currently defined in *table*.")
@@ -512,7 +512,7 @@ static lispval table_multiply_existing(lispval table,lispval keys,lispval factor
    less than the new value. */
 
 DEFPRIM("TABLE-MAXIMIZE!",
-        table_maximize,MAX_ARGS(3)|NDCALL,
+        table_maximize,MAX_ARGS(3)|NDOP,
         "`(TABLE-MAXIMIZE! *table* *key* *value*)` "
         "stores *value* under  *key* in *table* if it is larger "
         "than the current value or if there is no current value.")
@@ -552,7 +552,7 @@ static lispval table_maximize(lispval table,lispval keys,lispval maxval)
 }
 
 DEFPRIM("TABLE-MAXIMIZE-EXISTING!",
-        table_maximize_existing,MAX_ARGS(3)|NDCALL,
+        table_maximize_existing,MAX_ARGS(3)|NDOP,
         "`(TABLE-MAXIMIZE-EXISTING! *table* *key* *value*)` "
         "stores *value* under  *key* in *table* if it is larger "
         "than the current value, doing nothing if *key* is not in *table*")
@@ -595,7 +595,7 @@ static lispval table_maximize_existing(lispval table,lispval keys,lispval maxval
    less than the new value. */
 
 DEFPRIM("TABLE-MINIMIZE!",
-        table_minimize,MAX_ARGS(3)|NDCALL,
+        table_minimize,MAX_ARGS(3)|NDOP,
         "`(TABLE-MINIMIZE! *table* *key* *value*)` "
         "stores *value* under  *key* in *table* if it is smaller "
         "than the current value or if there is no current value.")
@@ -636,7 +636,7 @@ static lispval table_minimize(lispval table,lispval keys,lispval minval)
 }
 
 DEFPRIM("TABLE-MINIMIZE-EXISTING!",
-        table_minimize_existing,MAX_ARGS(3)|NDCALL,
+        table_minimize_existing,MAX_ARGS(3)|NDOP,
         "`(TABLE-MINIMIZE-EXISTING! *table* *key* *value*)` "
         "stores *value* under  *key* in *table* if it is smaller "
         "than the current value, doing nothing if *key* is not in *table*")
@@ -746,7 +746,7 @@ static lispval table_set_modified(lispval table,lispval flag_arg)
 
 /* Getting max values out of tables, especially hashtables. */
 
-DEFPRIM("TABLE-MAX",table_max,MAX_ARGS(2)|MIN_ARGS(1)|NDCALL,
+DEFPRIM("TABLE-MAX",table_max,MAX_ARGS(2)|MIN_ARGS(1)|NDOP,
         "`(TABLE-MAX *table* [*scope*])` returns the key(s) "
         "in *table* with the largest numeric values. If *scope* "
         "is provided, limit the operation to the keys in *scope*.")
@@ -771,7 +771,7 @@ static lispval table_max(lispval tables,lispval scope)
     return results;}
 }
 
-DEFPRIM("TABLE-MAXVAL",table_maxval,MAX_ARGS(2)|MIN_ARGS(1)|NDCALL,
+DEFPRIM("TABLE-MAXVAL",table_maxval,MAX_ARGS(2)|MIN_ARGS(1)|NDOP,
         "`(TABLE-MAXVAL *table* [*scope*])` returns the value "
         "in *table* with the largest numeric magnitude. If *scope* "
         "is provided, limit the operation to the values associated "
@@ -793,7 +793,7 @@ static lispval table_maxval(lispval tables,lispval scope)
     return results;}
 }
 
-DEFPRIM("TABLE-SKIM",table_skim,MAX_ARGS(3)|MIN_ARGS(2)|NDCALL,
+DEFPRIM("TABLE-SKIM",table_skim,MAX_ARGS(3)|MIN_ARGS(2)|NDOP,
         "`(TABLE-SKIM *table* *threshold* [*scope*])` returns the key(s) "
         "in *table* associated with numeric values larger than *threhsold*. "
         "If *scope* is provided, limit the operation to the keys in *scope*.")
@@ -824,7 +824,7 @@ static lispval table_skim(lispval tables,lispval maxval,lispval scope)
 
 /* Table utility functions */
 
-DEFPRIM("MAP->TABLE",map2table,MAX_ARGS(3)|MIN_ARGS(2)|NDCALL,
+DEFPRIM("MAP->TABLE",map2table,MAX_ARGS(3)|MIN_ARGS(2)|NDOP,
         "`(MAP->TABLE *keys* *fcn* [*hashp*])` returns "
         "a table store the results of applying *fn* "
         "to *keys*. The type of table is controlled by *hashp*:"
@@ -902,7 +902,7 @@ static lispval hashsetp(lispval x)
   else return KNO_FALSE;
 }
 
-DEFPRIM("HASHSET-ADD!",hashset_add,MAX_ARGS(2)|MIN_ARGS(2)|NDCALL,
+DEFPRIM("HASHSET-ADD!",hashset_add,MAX_ARGS(2)|MIN_ARGS(2)|NDOP,
         "`(HASHSET-ADD! *hashset* *keys*)` adds *keys* to *hashset*(s). "
         "Returns the number of new values added.")
 static lispval hashset_add(lispval hs,lispval key)
@@ -961,7 +961,7 @@ static lispval hashset_get(lispval hs,lispval key)
 }
 
 DEFPRIM("HASHSET-TEST",hashset_test,
-        MAX_ARGS(2)|MIN_ARGS(2)|NDCALL,
+        MAX_ARGS(2)|MIN_ARGS(2)|NDOP,
         "`(HASHSET-TEST *hashset* *keys*)` returns true if "
         "any *keys* are in any of *hashsets*")
 static lispval hashset_test(lispval hs,lispval keys)
@@ -1010,7 +1010,7 @@ static lispval reset_hashset(lispval hs)
   else return KNO_FALSE;
 }
 
-DEFPRIM("CHOICE->HASHSET",choices2hashset,KNO_N_ARGS|MIN_ARGS(0)|NDCALL,
+DEFPRIM("CHOICE->HASHSET",choices2hashset,KNO_N_ARGS|MIN_ARGS(0)|NDOP,
         "`(CHOICE->HASHSET choices...)` returns a hashset combining "
         "mutiple choices.")
 static lispval choices2hashset(int n,kno_argvec args)

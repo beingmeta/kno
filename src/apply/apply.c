@@ -1041,7 +1041,7 @@ KNO_EXPORT lispval kno_ndcall(struct KNO_STACK *_stack,
       struct KNO_FUNCTION *f = KNO_GETFUNCTION(handler);
       if (f->fcn_arity==0)
 	return kno_stack_dapply(_stack,handler,n,args);
-      else if (f->fcn_call & KNO_FCN_CALL_NDCALL) {
+      else if (f->fcn_call & KNO_FCN_CALL_NDOP) {
 	lispval unwrapped[n]; int n_qchoices = 0;
 	int i = 0;  while (i < n) {
 	  lispval arg = args[i];
@@ -1101,7 +1101,7 @@ KNO_EXPORT lispval kno_call(struct KNO_STACK *_stack,
   lispval handler = (KNO_FCNIDP(fp)) ? (kno_fcnid_ref(fp)) : (fp);
   if (KNO_FUNCTIONP(handler))  {
     struct KNO_FUNCTION *f = (kno_function) handler;
-    if ( (f) && (FCN_NDCALLP(f)) ) {
+    if ( (f) && (FCN_NDOPP(f)) ) {
       result = kno_dcall(_stack,(lispval)f,n,args);
       return kno_finish_call(result);}}
   if (kno_applyfns[KNO_PRIM_TYPE(handler)]) {

@@ -52,7 +52,7 @@ int unparse_cprim(u8_output out,lispval x)
     tmpbuf[len]='\0';
     filename=tmpbuf;}
   if (filename==NULL) filename="nofile";
-  if (FCN_NDCALLP(fcn)) strcat(codes,"∀");
+  if (FCN_NDOPP(fcn)) strcat(codes,"∀");
   if ((fcn->fcn_arity<0)&&(fcn->fcn_min_arity<0))
     strcat(arity,"[…]");
   else if (fcn->fcn_arity==fcn->fcn_min_arity) {
@@ -141,7 +141,7 @@ static struct KNO_CPRIM *make_cprim(u8_string name,
 {
   int arity = ( (flags&0x80) ? (-1) : ( flags & (0x7f) ) );
   int min_arity = (flags&0x8000) ? ( (flags>>8) & 0x7f) : (arity);
-  int non_deterministic = flags & KNO_NDCALL;
+  int non_deterministic = flags & KNO_NDOP;
   int extended_call = flags & KNO_XCALL;
   int varargs = ( (arity < 0) || (flags & KNO_LEXPR) );
   /* We allocate the type/default info together with the function to
@@ -168,7 +168,7 @@ static struct KNO_CPRIM *make_cprim(u8_string name,
   f->fcn_moduleid = KNO_VOID;
   f->fcn_call = KNO_FCN_CALL_NOTAIL |
     ( (varargs) ? (KNO_FCN_CALL_LEXPR) : (0) ) |
-    ( (non_deterministic) ? (KNO_FCN_CALL_NDCALL) : (0) ) |
+    ( (non_deterministic) ? (KNO_FCN_CALL_NDOP) : (0) ) |
     ( (extended_call) ? (KNO_FCN_CALL_XCALL) : (0) );
   f->fcn_call_width = f->fcn_arity = arity;
   f->fcn_min_arity = min_arity;

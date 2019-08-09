@@ -25,7 +25,7 @@
 #define KNO_FNFLAGS(max_arity,min_arity,ndcall,xcall)    \
   ( (KNO_MAX_ARGS(max_arity)) |                          \
     (KNO_MIN_ARGS(min_arity)) |                          \
-    ((ndcall) ? (KNO_NDCALL) : (0)) |                    \
+    ((ndcall) ? (KNO_NDOP) : (0)) |                    \
     ((xcall) ? (KNO_XCALL) : (0)) )
 
 /* DEFPRIM */
@@ -216,7 +216,7 @@ KNO_EXPORT void kno_typedprim6(lispval module,kno_cprim6 fn,
 #if KNO_SOURCE
 #define MAX_ARGS     KNO_MAX_ARGS
 #define MIN_ARGS     KNO_MIN_ARGS
-#define NDCALL       KNO_NDCALL
+#define NDOP       KNO_NDOP
 
 #define DEFPRIM      KNO_DEFPRIM
 #define DEFPRIM1     KNO_DEFPRIM1

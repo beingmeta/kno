@@ -151,7 +151,7 @@ static lispval dosegment(u8_string string,lispval separators)
   return result;
 }
 
-DEFPRIM2("segment",segment_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+DEFPRIM2("segment",segment_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDOP,
 	 "`(SEGMENT *arg0* [*arg1*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval segment_prim(lispval inputs,lispval separators)
@@ -1401,7 +1401,7 @@ static lispval gathersubst_star(lispval pattern,lispval string,
 
 /* Handy filtering functions */
 
-DEFPRIM2("textfilter",textfilter,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+DEFPRIM2("textfilter",textfilter,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDOP,
 	 "`(TEXTFILTER *arg0* *arg1*)` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval textfilter(lispval strings,lispval pattern)
@@ -1436,7 +1436,7 @@ static int getnonstring(lispval choice)
   return VOID;
 }
 
-DEFPRIM4("string-matches?",string_matches,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+DEFPRIM4("string-matches?",string_matches,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2)|KNO_NDOP,
 	 "`(STRING-MATCHES? *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
 	 kno_fixnum_type,KNO_CPP_INT(0),kno_fixnum_type,KNO_VOID);
@@ -1476,7 +1476,7 @@ static lispval string_matches(lispval string,lispval pattern,
     else return KNO_FALSE;}
 }
 
-DEFPRIM4("string-contains?",string_contains,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+DEFPRIM4("string-contains?",string_contains,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2)|KNO_NDOP,
 	 "`(STRING-CONTAINS? *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
 	 kno_fixnum_type,KNO_CPP_INT(0),kno_fixnum_type,KNO_VOID);
@@ -1519,7 +1519,7 @@ static lispval string_contains(lispval string,lispval pattern,
     else return KNO_TRUE;}
 }
 
-DEFPRIM4("string-starts-with?",string_starts_with,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+DEFPRIM4("string-starts-with?",string_starts_with,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2)|KNO_NDOP,
 	 "`(STRING-STARTS-WITH? *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
 	 kno_fixnum_type,KNO_CPP_INT(0),kno_fixnum_type,KNO_VOID);
@@ -1596,7 +1596,7 @@ static lispval string_ends_with_test(lispval string,lispval pattern,
   return 0;
 }
 
-DEFPRIM4("string-ends-with?",string_ends_with,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+DEFPRIM4("string-ends-with?",string_ends_with,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2)|KNO_NDOP,
 	 "`(STRING-ENDS-WITH? *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
 	 kno_fixnum_type,KNO_CPP_INT(0),kno_fixnum_type,KNO_VOID);

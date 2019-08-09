@@ -337,7 +337,7 @@ static lispval watchcons_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   return eval_body(body,env,_stack,"%WATCHCONS",label,0);
 }
 
-DEFPRIM2("%watchptrval",watchptr_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+DEFPRIM2("%watchptrval",watchptr_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDOP,
          "`(%WATCHPTRVAL *ptrval* [*arg1*])` Describes the Kno pointer "
 	 "characteristics of *ptrval*, using a label string dervied "
 	 "from *label* if provided",

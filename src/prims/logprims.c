@@ -347,7 +347,7 @@ void kno_summarize_backtrace(U8_OUTPUT *out,u8_exception ex)
 
 /* Table showing primitives */
 
-DEFPRIM3("%show",lisp_show_table,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+DEFPRIM3("%show",lisp_show_table,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1)|KNO_NDOP,
          "Shows a table",
          kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
          kno_any_type,KNO_VOID);

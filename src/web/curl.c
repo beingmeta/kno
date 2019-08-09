@@ -1291,7 +1291,7 @@ static lispval responsestatusprim(lispval response)
     return kno_type_error("HTTP response","responsestatusprim",response);}
   else return status;
 }
-DEFPRIM3("response/status?",testresponseprim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+DEFPRIM3("response/status?",testresponseprim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDOP,
 	 "`(RESPONSE/STATUS? *arg0* *arg1* [*arg2*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
 	 kno_any_type,KNO_VOID);
@@ -1329,7 +1329,7 @@ static lispval testresponseprim(lispval response,lispval arg1,lispval arg2)
 /* Opening URLs with options */
 
 DEFPRIM3("curl/setopt!",curlsetopt,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 "`(CURL/SETOPT! *arg0* *arg1* [*arg2*])` **undocumented**",
+	 "`(CURL/NDOPT! *arg0* *arg1* [*arg2*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
 	 kno_any_type,KNO_VOID);
 static lispval curlsetopt(lispval handle,lispval opt,lispval value)

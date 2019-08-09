@@ -73,7 +73,7 @@ static lispval error_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     return KNO_ERROR;}
 }
 
-DEFPRIM4("%err",error_prim,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+DEFPRIM4("%err",error_prim,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(1)|KNO_NDOP,
 	 "(%err *cond* [*caller*] [*details*] [*irritant*]) "
 	 "returns an error object with condition *cond* (a "
 	 "symbol), a *caller* (also a symbol), *details* "
@@ -415,7 +415,7 @@ static lispval exception_sessionid(lispval x)
   else return KNO_FALSE;
 }
 
-DEFPRIM3("exception/context!",exception_add_context,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+DEFPRIM3("exception/context!",exception_add_context,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDOP,
 	 "Creates an exception object",
 	 kno_exception_type,KNO_VOID,kno_any_type,KNO_VOID,
 	 kno_any_type,KNO_VOID);
@@ -846,7 +846,7 @@ static u8_string static_string(lispval x,int err)
   else return NULL;
 }
 
-DEFPRIM10("make-exception",make_exception,KNO_MAX_ARGS(10)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+DEFPRIM10("make-exception",make_exception,KNO_MAX_ARGS(10)|KNO_MIN_ARGS(1)|KNO_NDOP,
 	  "Creates an exception object",
 	  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
 	  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,

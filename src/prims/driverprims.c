@@ -156,7 +156,7 @@ static lispval poolctl_default_prim(int n,kno_argvec args)
 
 /* DBCTL */
 
-DEFPRIM("dbctl",dbctl_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
+DEFPRIM("dbctl",dbctl_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDOP,
 	"(DBCTL *dbref* *op* ... *args*) "
 	"performs an operation *op* on the pool or index "
 	"*dbref* with *args*. *op* is a symbol and *dbref* "

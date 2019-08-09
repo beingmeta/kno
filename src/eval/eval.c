@@ -826,7 +826,7 @@ static int gather_fcn_data(lispval headvals,
       if (min_args >= 0) {
 	if (min_arity < min_args)
 	  min_args = min_arity;}
-      if (!(call_flags&KNO_FCN_CALL_NDCALL)) nd_fns++;
+      if (!(call_flags&KNO_FCN_CALL_NDOP)) nd_fns++;
       if (call_flags&KNO_FCN_CALL_NOTAIL) tail = 0;
       if (lambda < 0) {
 	if (fcntype == kno_lambda_type) lambda = 1;}
@@ -876,7 +876,7 @@ static lispval eval_apply(u8_string fname,
     struct KNO_FUNCTION *fcn = KNO_GETFUNCTION(fn);
     int call_flags = fcn->fcn_call;
     lambda = KNO_LAMBDAP(fn);
-    if (call_flags&KNO_FCN_CALL_NDCALL) nd_fns = 1;
+    if (call_flags&KNO_FCN_CALL_NDOP) nd_fns = 1;
     tail   = (! (call_flags&KNO_FCN_CALL_NOTAIL) );
     max_args = fcn->fcn_arity;
     min_args = fcn->fcn_min_arity;
@@ -1458,7 +1458,7 @@ static lispval get_arg_prim(lispval expr,lispval elt,lispval dflt)
   else return kno_type_error(_("pair"),"get_arg_prim",expr);
 }
 
-DEFPRIM("apply",apply_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
+DEFPRIM("apply",apply_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDOP,
 	"`(APPLY *arg0* *args...*)` **undocumented**");
 static lispval apply_lexpr(int n,kno_argvec args)
 {
@@ -1545,7 +1545,7 @@ static lispval callcc(lispval proc)
   struct KNO_CONTINUATION *f = u8_alloc(struct KNO_CONTINUATION);
   KNO_INIT_FRESH_CONS(f,kno_cprim_type);
   f->fcn_name="continuation"; f->fcn_filename = NULL;
-  f->fcn_call = KNO_FCN_CALL_NDCALL | KNO_FCN_CALL_XCALL;
+  f->fcn_call = KNO_FCN_CALL_NDOP | KNO_FCN_CALL_XCALL;
   f->fcn_call_width = f->fcn_arity = 1;
   f->fcn_min_arity = 1;
   f->fcn_handler.xcalln = call_continuation;
@@ -1958,7 +1958,7 @@ static lispval require_version_prim(int n,kno_argvec args)
 
 /* Choice functions */
 
-DEFPRIM1("%fixchoice",fixchoice_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+DEFPRIM1("%fixchoice",fixchoice_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDOP,
 	 "`(%FIXCHOICE *arg0*)` **undocumented**",
 	 kno_any_type,KNO_VOID);
 static lispval fixchoice_prim(lispval arg)
@@ -1968,7 +1968,7 @@ static lispval fixchoice_prim(lispval arg)
   else return kno_incref(arg);
 }
 
-DEFPRIM2("%choiceref",choiceref_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+DEFPRIM2("%choiceref",choiceref_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDOP,
 	 "`(%CHOICEREF *arg0* *arg1*)` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval choiceref_prim(lispval arg,lispval off)

@@ -31,7 +31,7 @@
 
 /* Standard predicates */
 
-DEFPRIM2("identical?",identicalp,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+DEFPRIM2("identical?",identicalp,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDOP,
 	 "`(IDENTICAL? *arg0* *arg1*)` is the non-deterministic version "
 	 "of EQUAL? and returns true if its arguments (which can be "
 	 "choices) have the same structure and elements.",
@@ -43,7 +43,7 @@ static lispval identicalp(lispval x,lispval y)
   else return KNO_FALSE;
 }
 
-DEFPRIM2("equal?",equalp,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+DEFPRIM2("equal?",equalp,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDOP,
 	 "`(EQUAL? *arg0* *arg1*)` returns true if its arguments "
 	 "have the same structure and elements. If its arguments are "
 	 "choices, this compares all pairings and may return true, false, "
@@ -163,7 +163,7 @@ static lispval staticcopy(lispval x)
   return kno_static_copy(x);
 }
 
-DEFPRIM1("dontopt",dontopt,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+DEFPRIM1("dontopt",dontopt,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDOP,
 	 "`(DONTOPT *arg0*)` **undocumented**",
 	 kno_any_type,KNO_VOID);
 static lispval dontopt(lispval x)
@@ -180,7 +180,7 @@ static lispval dontopt(lispval x)
  counting or garbage collection.
 
 */
-DEFPRIM2("refcount",get_refcount,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+DEFPRIM2("refcount",get_refcount,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDOP,
 	 "`(REFCOUNT *arg0* [*arg1*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_fixnum_type,KNO_CPP_INT(0));
 static lispval get_refcount(lispval x,lispval delta)
@@ -230,7 +230,7 @@ static lispval eqvp(lispval x,lispval y)
   else return KNO_FALSE;
 }
 
-DEFPRIM2("overlaps?",overlapsp,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+DEFPRIM2("overlaps?",overlapsp,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDOP,
 	 "`(OVERLAPS? *arg0* *arg1*)` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval overlapsp(lispval x,lispval y)
@@ -242,7 +242,7 @@ static lispval overlapsp(lispval x,lispval y)
   else return KNO_FALSE;
 }
 
-DEFPRIM2("contains?",containsp,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+DEFPRIM2("contains?",containsp,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDOP,
 	 "`(CONTAINS? *arg0* *arg1*)` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval containsp(lispval x,lispval y)
@@ -716,7 +716,7 @@ static lispval lisp_string2symbol(lispval s)
 
 /* HASHPTR */
 
-DEFPRIM1("hashptr",hashptr_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+DEFPRIM1("hashptr",hashptr_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDOP,
 	 "Returns an integer representation for its "
 	 "argument.",
 	 kno_any_type,KNO_VOID);

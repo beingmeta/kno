@@ -47,7 +47,7 @@ typedef struct KNO_LEXENV *kno_lexenv;
 
 #define KNO_STACK_LIVE 0x01
 #define KNO_STACK_RETVOID 0x02
-#define KNO_STACK_NDCALL 0x04
+#define KNO_STACK_NDOP 0x04
 #define KNO_STACK_TAILPOS 0x08
 #define KNO_STACK_TAILCALL 0x10
 #define KNO_STACK_DECREF_OP 0x100
