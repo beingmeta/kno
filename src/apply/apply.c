@@ -603,9 +603,11 @@ KNO_FASTOP lispval core_call(kno_stack stack,
 			     int n,kno_argvec argvec)
 {
   if ( (f) && (KNO_CONS_TYPE(f) == kno_cprim_type) )
-    return cprim_call(stack->stack_label,(kno_cprim)f,n,argvec,stack);
+    return cprim_call((stack) ? (stack->stack_label) : (NULL),
+		      (kno_cprim)f,n,argvec,stack);
   else if (f)
-    return function_call(stack->stack_label,f,n,argvec,stack);
+    return function_call((stack) ? (stack->stack_label) : (NULL),
+			 f,n,argvec,stack);
   else return opaque_call(fn,n,argvec,stack);
 }
 
@@ -741,7 +743,9 @@ static void errno_warning(u8_string label)
   errno=0;
 }
 
-KNO_EXPORT lispval kno_dcall
+static int guardrails = 2;
+
+static lispval profiled_dcall
 (struct KNO_STACK *caller,lispval fn,
  int n,kno_argvec argvec)
 {
@@ -791,6 +795,97 @@ KNO_EXPORT lispval kno_dcall
     return kno_err(kno_StackOverflow,fname,limit,depth);}
 }
 
+static lispval wrapped_dcall
+(struct KNO_STACK *caller,lispval fn,
+ int n,kno_argvec argvec)
+{
+  u8_string fname="apply";
+  if (caller == NULL) caller = kno_stackptr;
+
+  /* Make the call */
+  if (stackcheck()) {
+    lispval result=VOID;
+    struct KNO_FUNCTION *f;
+    struct KNO_PROFILE *profile;
+    KNO_NEW_STACK(caller,kno_callstack_type,NULL,VOID);
+    int callbuf_width;
+    int setup = setup_call_stack(_stack,fn,n,&f);
+    if (setup < 0)
+      _return KNO_ERROR;
+    _stack->stack_args = argvec;
+    _stack->stack_arglen = n;
+    if (f) {
+      int call_width = f->fcn_call_width;
+      callbuf_width = (call_width<0) ? (n) : call_width;}
+    else {
+      profile = NULL;
+      callbuf_width = n;}
+    lispval callbuf[callbuf_width];
+    int i = 0; while (i<callbuf_width) callbuf[i++] = VOID;
+    _stack->stack_buf = callbuf;
+    _stack->stack_buflen = callbuf_width;
+
+    U8_WITH_CONTOUR(fname,0) {
+      result = core_call(_stack,fn,f,n,argvec);
+      if (!(KNO_CHECK_PTR(result))) {
+	result = KNO_ERROR;
+	badptr_err(result,fn);}}
+    U8_ON_EXCEPTION {
+      U8_CLEAR_CONTOUR();
+      result = KNO_ERROR;}
+    U8_END_EXCEPTION;
+    _return kno_simplify_choice(result);}
+  else {
+    u8_string limit=u8_mkstring("%lld",kno_stack_limit);
+    lispval depth=KNO_INT2LISP(u8_stack_depth());
+    return kno_err(kno_StackOverflow,fname,limit,depth);}
+}
+
+static lispval stack_dcall
+(struct KNO_STACK *caller,lispval fn,
+ int n,kno_argvec argvec)
+{
+  u8_string fname="apply";
+  if (caller == NULL) caller = kno_stackptr;
+
+  lispval result=VOID;
+  struct KNO_FUNCTION *f;
+  KNO_NEW_STACK(caller,kno_callstack_type,NULL,VOID);
+  int callbuf_width;
+  int setup = setup_call_stack(_stack,fn,n,&f);
+  if (setup < 0)
+    _return KNO_ERROR;
+  _stack->stack_args = argvec;
+  _stack->stack_arglen = n;
+  if (f) {
+    int call_width = f->fcn_call_width;
+    callbuf_width = (call_width<0) ? (n) : call_width;}
+  else {
+    callbuf_width = n;}
+  lispval callbuf[callbuf_width];
+  int i = 0; while (i<callbuf_width) callbuf[i++] = VOID;
+  _stack->stack_buf = callbuf;
+  _stack->stack_buflen = callbuf_width;
+
+  result = core_call(_stack,fn,f,n,argvec);
+
+  if (!(KNO_CHECK_PTR(result))) {
+    result = KNO_ERROR;
+    badptr_err(result,fn);}
+
+  _return kno_simplify_choice(result);
+}
+
+KNO_EXPORT lispval kno_dcall(struct KNO_STACK *caller,lispval fn,
+			     int n,kno_argvec argvec)
+{
+  /* if (guardrails < 1) return stackless_dcall(caller,fn,n,argvec); else */
+  if (guardrails < 2)
+    return stack_dcall(caller,fn,n,argvec);
+  else if (guardrails == 2)
+    return wrapped_dcall(caller,fn,n,argvec);
+  else return profiled_dcall(caller,fn,n,argvec);
+}
 
 /* Calling non-deterministically */
 
@@ -1342,6 +1437,11 @@ KNO_EXPORT void kno_init_apply_c()
   kno_register_config
     ("PROFILED",_("Functions declared for profiling"),
      kno_lconfig_get,config_add_profiled,&profiled_fcns);
+
+  kno_register_config
+    ("GUARDRAILS",_("How careful to be calling functions"),
+     kno_intconfig_get,kno_intconfig_set,&guardrails);
+
 
   u8_register_threadinit(init_thread_stack_limit);
 
