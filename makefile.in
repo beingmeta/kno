@@ -543,12 +543,12 @@ optimizing:
 	@echo Building OPTIMIZING configuration
 	@if test -f .malloc; then \
 	  echo With $(shell cat .malloc) malloc; fi;
-	@+make -s XCFLAGS="-O3 -Ofast" testbin exe cmodules etc @TAGS@
+	@+make -s XCFLAGS="-O3" testbin exe cmodules etc @TAGS@
 zooming:
 	@echo Building Zooming configuration
 	@if test -f .malloc; then \
 	  echo With $(shell cat .malloc) malloc; fi;
-	@+make -s XCFLAGS="-O3 -g0 -Ofast" testbin exe cmodules etc @TAGS@
+	@+make -s XCFLAGS="-O3 -g0" testbin exe cmodules etc @TAGS@
 nitpicking:
 	@echo Building NITPICKING configuration
 	@if test -f .malloc; then \
