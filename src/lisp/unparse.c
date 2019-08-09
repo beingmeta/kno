@@ -344,6 +344,23 @@ int kno_unparse(u8_output out,lispval x)
       else {
         char buf[24]; sprintf(buf,"#!%lx",(unsigned long)x);
         return u8_puts(out,buf);}
+    else if (itype == kno_type_type) {
+      U8_STATIC_OUTPUT(typeref,128);
+      if ( (data < KNO_TYPE_MAX) && (kno_type_names[data]) ) {
+	u8_string scan = kno_type_names[data];
+	int c = u8_sgetc(&scan);
+	u8_putc(typerefout,'#');
+	while (c>0) {
+	  if (u8_isalnum(c))
+	    u8_putc(typerefout,c);
+	  else u8_putc(typerefout,'_');
+	  c = u8_sgetc(&scan);}
+	u8_puts(typerefout,"_type");}
+      else {
+	u8_printf(typerefout,"#!%lx:typeref",x);}
+      int rv = u8_puts(out,typeref.u8_outbuf);
+      u8_close_output(typerefout);
+      return rv;}
     else if (kno_unparsers[itype])
       return kno_unparsers[itype](out,x);
     else {

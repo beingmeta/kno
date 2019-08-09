@@ -647,6 +647,13 @@ KNO_EXPORT int kno_register_cons_type(char *name)
   typecode = kno_next_cons_type;
   kno_next_cons_type++;
   kno_type_names[typecode]=name;
+  u8_byte buf[100];
+  lispval typecode_value = LISPVAL_IMMEDIATE(kno_type_type,typecode);
+  u8_string hashname = u8_bprintf(buf,"%s_type",name);
+  if (kno_add_constname(hashname,typecode_value)<0)
+    u8_log(LOGCRIT,"BadTypeName",
+	   "Couldn't register typename '%s' for typecode=%d",
+	   hashname,typecode);
   u8_unlock_mutex(&type_registry_lock);
   return typecode;
 }
@@ -662,6 +669,13 @@ KNO_EXPORT int kno_register_immediate_type(char *name,kno_checkfn fn)
   kno_immediate_checkfns[typecode]=fn;
   kno_next_immediate_type++;
   kno_type_names[typecode]=name;
+  lispval typecode_value = LISPVAL_IMMEDIATE(kno_type_type,typecode);
+  u8_byte buf[100];
+  u8_string hashname = u8_bprintf(buf,"%s_type",name);
+  if (kno_add_constname(hashname,typecode_value)<0)
+    u8_log(LOGCRIT,"BadTypeName",
+	   "Couldn't register typename '%s' for typecode=%d",
+	   hashname,typecode);
   u8_unlock_mutex(&type_registry_lock);
   return typecode;
 }

@@ -149,6 +149,7 @@ typedef enum KNO_LISP_TYPE {
   kno_pool_type = KNO_IMMEDIATE_TYPECODE(8),
   kno_index_type = KNO_IMMEDIATE_TYPECODE(9),
   kno_histref_type = KNO_IMMEDIATE_TYPECODE(10),
+  kno_type_type = KNO_IMMEDIATE_TYPECODE(11),
 
   kno_string_type = KNO_CONS_TYPECODE(0),
   kno_packet_type = KNO_CONS_TYPECODE(1),
@@ -235,7 +236,9 @@ typedef enum KNO_LISP_TYPE {
   } kno_lisp_type;
 
 #define KNO_BUILTIN_CONS_TYPES 47
-#define KNO_BUILTIN_IMMEDIATE_TYPES 11
+/* not really, but it gives us breathing room and they're not
+   clamoring for space :) */
+#define KNO_BUILTIN_IMMEDIATE_TYPES 12
 KNO_EXPORT unsigned int kno_next_cons_type;
 KNO_EXPORT unsigned int kno_next_immediate_type;
 

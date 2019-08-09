@@ -13,6 +13,7 @@
 #include "kno/lisp.h"
 #include <libu8/u8rusage.h>
 #include <libu8/u8logging.h>
+#include <libu8/u8printf.h>
 #include <stdarg.h>
 #include <time.h>
 #include <math.h>
@@ -453,6 +454,17 @@ KNO_EXPORT int kno_init_lisp_types()
   kno_init_consblocks_c();
   kno_init_fcnids_c();
   kno_init_build_info();
+
+  int typecode = 0; while (typecode < KNO_TYPE_MAX) {
+    if (kno_type_names[typecode]) {
+      lispval typecode_value = LISPVAL_IMMEDIATE(kno_type_type,typecode);
+      u8_byte buf[100];
+      u8_string hashname = u8_bprintf(buf,"%s_type",kno_type_names[typecode]);
+      if (kno_add_constname(hashname,typecode_value)<0)
+	u8_log(LOGCRIT,"BadTypeName",
+	       "Couldn't register typename '%s' for typecode=%d",
+	       hashname,typecode);}
+    typecode++;}
 
   u8_threadcheck();
 

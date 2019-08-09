@@ -273,22 +273,31 @@ int kno_add_constname(u8_string s,lispval value)
     if (value==cur) return 0;
     else return -1;}
   else {
-    u8_string d= (*s == '#') ? (u8_downcase(s+1)) : (u8_downcase(s));
-    lispval string=kno_mkstring(d);
+    size_t len = strlen(s);
+    U8_STATIC_OUTPUT(name,(len+1)*2);
+    u8_string scan = (*s == '#') ? (s+1) : (s);
+    int c = u8_sgetc(&scan);
+    while (c>0) {
+      if (u8_isalnum(c)) {
+	if (u8_isupper(c))
+	  u8_putc(nameout,u8_tolower(c));
+	else u8_putc(nameout,c);}
+      else u8_putc(nameout,'_');
+      c = u8_sgetc(&scan);}
+    lispval string=kno_mkstring(_buf_name);
     struct KNO_KEYVAL *added=
       kno_sortvec_insert(string,&constnames,
-                         &n_constnames,&constnames_len,MAX_CONSTNAMES,
-                         1);
+			 &n_constnames,&constnames_len,MAX_CONSTNAMES,
+			 1);
     if (added)
       added->kv_val=value;
     if ( (added) && (added->kv_key != string ) ) {
       if (!(KNO_EQUALP(value,added->kv_val)))
-        u8_log(LOG_WARN,"ConstantConflict",
-               "Conflicting values for constant #%s: #!0x%llx and #!0x%llx",
-               d,added->kv_val,value);
+	u8_log(LOG_WARN,"ConstantConflict",
+	       "Conflicting values for constant #%s: #!0x%llx and #!0x%llx",
+	       _buf_name,added->kv_val,value);
       kno_decref(string);}
     u8_rw_unlock(&constnames_lock);
-    u8_free(d);
     return 1;}
 }
 
