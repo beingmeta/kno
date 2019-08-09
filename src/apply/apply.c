@@ -1044,6 +1044,18 @@ KNO_EXPORT lispval kno_ndcall(struct KNO_STACK *_stack,
       struct KNO_FUNCTION *f = KNO_GETFUNCTION(handler);
       if (f->fcn_arity==0)
 	return kno_stack_dapply(_stack,handler,n,args);
+      else if (f->fcn_call & KNO_FCN_CALL_NDCALL) {
+	lispval unwrapped[n]; int n_qchoices = 0;
+	int i = 0;  while (i < n) {
+	  lispval arg = args[i];
+	  if (KNO_QCHOICEP(arg)) {
+	    unwrapped[i++] = KNO_QCHOICEVAL(arg);
+	    n_qchoices++;}
+	  else unwrapped[i++] = arg;}
+	if (n_qchoices) {
+	  lispval result = kno_dcall(_stack,fp,n,(kno_argvec)unwrapped);
+	  return result;}
+	else return kno_dcall(_stack,fp,n,args);}
       else if ((f->fcn_arity < 0) ?
                (n >= (f->fcn_min_arity)) :
                ((n <= (f->fcn_arity)) &&

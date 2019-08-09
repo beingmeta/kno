@@ -274,6 +274,8 @@ KNO_EXPORT lispval kno_make_qchoice(lispval val);
     == (KNO_EMPTY_CHOICE)))
 #define KNO_XQCHOICE(x) (kno_consptr(struct KNO_QCHOICE *,x,kno_qchoice_type))
 #define KNO_QCHOICE_SIZE(x) (KNO_CHOICE_SIZE(KNO_XQCHOICE(x)->qchoiceval))
+#define KNO_QCHOICEVAL(x) \
+  ((kno_consptr(struct KNO_QCHOICE *,x,kno_qchoice_type))->qchoiceval)
 
 /* Generic choice operations */
 
@@ -418,13 +420,6 @@ kno_dochoices_helper(lispval *_valp,
     *limit=KNO_CHOICE_DATA(_val)+KNO_CHOICE_SIZE(_val);}
   else if (KNO_EMPTY_CHOICEP(_val)) {
     *scan=singlev+1;
-    *limit=singlev+1;}
-  else if (KNO_QCHOICEP(_val)) {
-    singlev[0] = KNO_XQCHOICE(_val)->qchoiceval;
-    _val = singlev[0];
-    kno_incref(_val);
-    *need_gcp = 1;
-    *scan=singlev;
     *limit=singlev+1;}
   else {
     singlev[0]=_val;
