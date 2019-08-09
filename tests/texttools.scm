@@ -285,17 +285,17 @@ is the other number")
 (applytest "aXbcXdeXfXgh" textsubst "a1bc2de3f4gh" '(isdigit) '(subst (isdigit) "X"))
 (applytest "aXbcXdeXfXgh" textsubst "a1bc2de3f4gh" '(isdigit) "X")
 
-(define testsubst (ambda (s pat) (textsubst s (qc pat))))
-(define ndtestsubst (lambda (s pat) (textsubst s (qc pat))))
+(define ndtestsubst (ambda (s pat) (textsubst s (qc pat))))
+(define testsubst (lambda (s pat) (textsubst s (qc pat))))
 
 (applytest {"aXbcX" "aYbcY"}
 	   textsubst "a1bc2"
 	   '{(subst (isdigit) "X") (subst (isdigit) "Y")})
 (applytest {"aXbcX" "aYbcY"}
-	   ndtestsubst "a1bc2"
+	   testsubst "a1bc2"
 	   '{(subst (isdigit) "X") (subst (isdigit) "Y")})
 (applytest {"aXbcX" "aXbcY" "aYbcX" "aYbcY"}
-	   testsubst "a1bc2"
+	   ndtestsubst "a1bc2"
 	   '{(subst (isdigit) "X") (subst (isdigit) "Y")})
 
 (applytest "COOkIng Is An ExcItIng ActIvIty"
