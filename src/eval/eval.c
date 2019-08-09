@@ -636,7 +636,7 @@ lispval pair_eval(lispval head,lispval expr,kno_lexenv env,
 		  struct KNO_STACK *eval_stack,
 		  int tail,int fresh_stack)
 {
-  u8_string label= head_label(head);
+  u8_string label = NULL;
   if (head == KNO_SOURCEREF_OPCODE) {
     expr = handle_sourcerefs(expr,eval_stack);
     head = (KNO_PAIRP(expr)) ? (KNO_CAR(expr)) : (KNO_VOID);
