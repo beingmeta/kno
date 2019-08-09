@@ -806,7 +806,6 @@ static lispval contoured_dcall
   if (stackcheck()) {
     lispval result=VOID;
     struct KNO_FUNCTION *f;
-    struct KNO_PROFILE *profile;
     KNO_NEW_STACK(caller,kno_callstack_type,NULL,VOID);
     int callbuf_width;
     int setup = setup_call_stack(_stack,fn,n,&f);
@@ -818,7 +817,6 @@ static lispval contoured_dcall
       int call_width = f->fcn_call_width;
       callbuf_width = (call_width<0) ? (n) : call_width;}
     else {
-      profile = NULL;
       callbuf_width = n;}
     lispval callbuf[callbuf_width];
     int i = 0; while (i<callbuf_width) callbuf[i++] = VOID;
@@ -845,7 +843,6 @@ static lispval reckless_dcall
 (struct KNO_STACK *caller,lispval fn,
  int n,kno_argvec argvec)
 {
-  u8_string fname="apply";
   if (caller == NULL) caller = kno_stackptr;
 
   lispval result=VOID;
