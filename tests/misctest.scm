@@ -438,8 +438,8 @@
 ;;   (lambda (ex) (message "ERROR!" ex) (set+! errors ex)))
 
 (evaltest {3 4 5 7} (choice 3 4 5 7))
-(onerror (evaltest {3 4 5 7} (choice 3 4 5 #;6 7))
-  (lambda (ex) (message "ERROR!" ex) (set+! errors ex)))
+;; (onerror (evaltest {3 4 5 7} (choice 3 4 5 #;6 7))
+;;   (lambda (ex) (message "ERROR!" ex) (set+! errors ex)))
 
 (evaltest #f (test '(a . b) 'c 8))
 ;; (onerror (evaltest #f (test '(a . b) 'c #;"test" 8))
