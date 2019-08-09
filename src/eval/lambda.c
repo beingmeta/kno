@@ -109,58 +109,47 @@ lispval lambda_call(struct KNO_STACK *_stack,
     ((n < max_positional) ? (n) : (max_positional)) :
     (n);
   lispval *inits = fn->lambda_inits;
-  if (inits) {
+  if (args != vals)
     while (i < last_positional) {
       lispval arg = args[i];
       if ( (KNO_VOIDP(arg)) || (KNO_DEFAULTP(arg)) ) {
-	lispval default_expr = inits[i];
-	lispval use_value = fast_stack_eval(default_expr,proc_env,_stack);
-	if (KNO_ABORTED(use_value)) {
-	  kno_decref_vec(vals,i);
-	  _return use_value;}
-	else arg=use_value;}
-      else if (KNO_QCHOICEP(arg)) {
-	kno_qchoice qc = (kno_qchoice) arg;
-	lispval qval = qc->qchoiceval;
-	kno_incref(qval);
-	if (vals == args) kno_decref(arg);
-	arg = qval;}
-      else if (vals != args)
-	 kno_incref(arg);
-      else NO_ELSE;
-      vals[i] = arg;
-      i++;}
+	vals[i++] = KNO_VOID;
+	continue;}
+      else vals[i++] = kno_incref(arg);}
+  else i = n;
+  if (inits) {
     while (i < max_positional) {
       lispval default_expr = inits[i];
-      lispval use_value = fast_stack_eval(default_expr,proc_env,_stack);
-      if (KNO_ABORTED(use_value)) {
-	kno_decref_vec(vals,i);
-	_return use_value;}
-      vals[i]=use_value;
-      i++;}}
-  else {
-    while (i < last_positional) {
-      lispval arg = args[i];
+      if (VOIDP(default_expr))
+	vals[i++] = KNO_VOID;
+      else {
+	lispval default_value = fast_stack_eval(default_expr,proc_env,_stack);
+	if (KNO_ABORTED(default_value))
+	  _return default_value;
+	else vals[i++] = default_value;}}}
+  else if (args == vals) {
+    /* The rest of vals should be already be void */
+    i = max_positional;}
+#if 0
+  while (i < last_positional) {
+    lispval arg = args[i];
+    if (PRED_FALSE(KNO_QCHOICEP(arg))) {
+      fix_qchoice(arg,&vals[i],(vals==args));}
+    else {
       lispval old_arg = vals[i];
-      if (KNO_QCHOICEP(arg)) {
-	kno_qchoice qc = (kno_qchoice) arg;
-	lispval qval = qc->qchoiceval;
-	kno_incref(qval);
-	/* If args is the current stack's argbuf,
-	   arg need's to be decref'd because we're
-	   replacing it. */
-	if (vals == args) kno_decref(arg);
-	vals[i] = qval;}
-      else if (arg != old_arg) {
-	kno_incref(arg);
+      if (arg != old_arg) {
 	vals[i] = arg;
+	kno_incref(arg);
 	kno_decref(old_arg);}
-      else NO_ELSE;
-      i++;}
-    while (i < max_positional) {
+      else if (vals != args)
+	kno_incref(arg);
+      else NO_ELSE;}
+    i++;}
+  while (i < max_positional) {
       lispval old_arg = vals[i];
       vals[i++] = VOID;
-      kno_decref(old_arg);}}
+      kno_decref(old_arg);}
+#endif
   if (arity < 0) {
     lispval old_arg = vals[i];
     if (i<n)
