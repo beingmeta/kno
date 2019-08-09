@@ -2436,11 +2436,10 @@ KNO_EXPORT int kno_init_rocksdb()
   sync_writeopts = rocksdb_writeoptions_create();
   rocksdb_writeoptions_set_sync(sync_writeopts,1);
 
-  kno_rocksdb_type = kno_register_cons_type("rocksdb");
+  kno_rocksdb_type = kno_register_cons_type("RocksDB");
 
   kno_unparsers[kno_rocksdb_type]=unparse_rocksdb;
   kno_recyclers[kno_rocksdb_type]=recycle_rocksdb;
-  kno_type_names[kno_rocksdb_type]="Rocksdb";
 
   /* Table functions for rocksdbs */
   kno_tablefns[kno_rocksdb_type]=u8_zalloc(struct KNO_TABLEFNS);

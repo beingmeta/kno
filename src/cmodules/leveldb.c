@@ -2426,11 +2426,10 @@ KNO_EXPORT int kno_init_leveldb()
   sync_writeopts = leveldb_writeoptions_create();
   leveldb_writeoptions_set_sync(sync_writeopts,1);
 
-  kno_leveldb_type = kno_register_cons_type("leveldb");
+  kno_leveldb_type = kno_register_cons_type("LevelDB");
 
   kno_unparsers[kno_leveldb_type]=unparse_leveldb;
   kno_recyclers[kno_leveldb_type]=recycle_leveldb;
-  kno_type_names[kno_leveldb_type]="LevelDB";
 
   /* Table functions for leveldbs */
   kno_tablefns[kno_leveldb_type]=u8_zalloc(struct KNO_TABLEFNS);

@@ -3516,10 +3516,6 @@ KNO_EXPORT int kno_init_mongodb()
   kno_mongoc_collection = kno_register_cons_type("MongoDB collection");
   kno_mongoc_cursor = kno_register_cons_type("MongoDB cursor");
 
-  kno_type_names[kno_mongoc_server]="MongoDB server";
-  kno_type_names[kno_mongoc_collection]="MongoDB collection";
-  kno_type_names[kno_mongoc_cursor]="MongoDB cursor";
-
   kno_recyclers[kno_mongoc_server]=recycle_server;
   kno_recyclers[kno_mongoc_collection]=recycle_collection;
   kno_recyclers[kno_mongoc_cursor]=recycle_cursor;
