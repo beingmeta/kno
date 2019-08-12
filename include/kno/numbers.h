@@ -51,6 +51,12 @@ KNO_EXPORT int kno_bigint_negativep(kno_bigint);
 KNO_EXPORT int kno_bigint_fits_in_word_p(kno_bigint bi,long width,int twosc);
 KNO_EXPORT unsigned long kno_bigint_bytes(kno_bigint bi);
 
+KNO_EXPORT kno_bigint kno_bigint_multiply(kno_bigint bx,kno_bigint by);
+KNO_EXPORT kno_bigint kno_bigint_substract(kno_bigint bx,kno_bigint by);
+KNO_EXPORT kno_bigint kno_bigint_add(kno_bigint bx,kno_bigint by);
+
+
+
 KNO_EXPORT int kno_numcompare(lispval x,lispval y);
 
 KNO_EXPORT lispval kno_init_flonum(struct KNO_FLONUM *ptr,double flonum);

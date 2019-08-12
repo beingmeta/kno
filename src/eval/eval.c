@@ -1010,6 +1010,14 @@ static lispval opcode_eval(lispval opcode,lispval expr,
     else results = d1_call(opcode,val);
     kno_decref(val);
     return results;}
+  else if (opcode == KNO_PLUS_OPCODE)
+    return plus_op(args,env,_stack);
+  else if (opcode == KNO_MINUS_OPCODE)
+    return minus_op(args,env,_stack);
+  else if (opcode == KNO_TIMES_OPCODE)
+    return mult_op(args,env,_stack);
+  else if (opcode == KNO_FLODIV_OPCODE)
+    return flodiv_op(args,env,_stack);
   else if ( (KNO_D2_OPCODEP(opcode)) ||
 	    (KNO_ND2_OPCODEP(opcode)) ||
 	    (KNO_NUMERIC_OPCODEP(opcode)) ) {
@@ -2364,7 +2372,3 @@ static void link_local_cprims()
   KNO_LINK_PRIM("type-props",type_props_prim,2,kno_scheme_module);
   KNO_LINK_PRIM("type-handlers",type_handlers_prim,2,kno_scheme_module);
 }
-
-
-
-
