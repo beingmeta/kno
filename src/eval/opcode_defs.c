@@ -156,7 +156,7 @@ KNO_FASTOP lispval nd_reduce_op(kno_stack stack,
 	    goto error_exit;}
 	  else {KNO_ADD_TO_CHOICE(new_state,reduced);}}}
       kno_decref(state);
-      new_state = state;}
+      state = kno_simplify_choice(new_state);}
     else {
       lispval reduced = fn(state,arg,&done);
       if (KNO_ABORTP(reduced)) {
@@ -165,7 +165,7 @@ KNO_FASTOP lispval nd_reduce_op(kno_stack stack,
 	return reduced;}
       else if (state != reduced) {
 	lispval prev_state = state;
-	state = reduced;
+	state = kno_simplify_choice(reduced);
 	kno_decref(prev_state);}
       else NO_ELSE;}}
   return kno_simplify_choice(state);
@@ -195,6 +195,7 @@ KNO_FASTOP lispval union_reduce(lispval state,lispval step,int *done)
   if (VOIDP(state)) return step;
   else if (EMPTYP(step)) return state;
   else {
+    if (!(KNO_PRECHOICEP(state))) kno_incref(state);
     KNO_ADD_TO_CHOICE(state,step);
     return state;}
 }
@@ -263,7 +264,7 @@ KNO_FASTOP lispval and_reduce(lispval state,lispval step,int *done)
 
 static lispval and_op(lispval exprs,kno_lexenv env,kno_stack stack,int tail)
 {
-  return reduce_op(stack,exprs,env,KNO_VOID,and_reduce);
+  return reduce_op(stack,exprs,env,KNO_TRUE,and_reduce);
 }
 
 KNO_FASTOP lispval or_reduce(lispval state,lispval step,int *done)
@@ -277,7 +278,7 @@ KNO_FASTOP lispval or_reduce(lispval state,lispval step,int *done)
 static lispval or_op(lispval exprs,kno_lexenv env,kno_stack stack,int tail)
 {
   /* ??: is NO_PRUNE the right thing? */
-  return reduce_op(stack,exprs,env,KNO_VOID,or_reduce);
+  return reduce_op(stack,exprs,env,KNO_FALSE,or_reduce);
 }
 
 static lispval xref_type_error(lispval x,lispval tag)
@@ -1396,7 +1397,7 @@ KNO_FASTOP lispval plus_reduce(lispval state,lispval step,int *done)
 
 static lispval plus_op(lispval exprs,kno_lexenv env,kno_stack stack)
 {
-  return nd_reduce_op(stack,exprs,env,KNO_VOID,plus_reduce);
+  return nd_reduce_op(stack,exprs,env,KNO_FIXNUM_ZERO,plus_reduce);
 }
 
 
@@ -1484,6 +1485,10 @@ KNO_FASTOP lispval mult_reduce(lispval state,lispval step,int *done)
     double as_double = kno_todouble(step);
     double result = KNO_FLONUM(state)*as_double;
     return kno_init_flonum(NULL,result);}
+  else if (KNO_FLONUMP(step)) {
+    double as_double = kno_todouble(state);
+    double result = KNO_FLONUM(step)*as_double;
+    return kno_init_flonum(NULL,result);}
   else if (PRED_FALSE(!(NUMBERP(state))))
     return kno_type_error(_("number"),"minus",state);
   else return kno_plus(state,step);
@@ -1491,7 +1496,7 @@ KNO_FASTOP lispval mult_reduce(lispval state,lispval step,int *done)
 
 static lispval mult_op(lispval exprs,kno_lexenv env,kno_stack stack)
 {
-  return nd_reduce_op(stack,exprs,env,KNO_VOID,mult_reduce);
+  return nd_reduce_op(stack,exprs,env,KNO_FIXNUM_ONE,mult_reduce);
 }
 
 static lispval flodiv_reduce(lispval state,lispval step,int *done)
