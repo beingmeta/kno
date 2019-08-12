@@ -25,7 +25,7 @@ Description: Scalable knowledge base development and application platform
 Package: kno-core
 Architecture: any
 Suggests: kno-docs
-Depends: ${misc:Depends}, libu8 (>= 2.6.8), libzip4 | libzip2, libarchive13, libsnappy1v5, libzstd1, libssl1.1 | libssl1.0 | libssl1.0.0, libcurl4 | libcurl3, libhyphen0, libedit2, adduser, libldns2 | libldns1, libjemalloc1
+Depends: ${misc:Depends}, libu8 (>= 2.6.8), libzip5 | libzip4 | libzip2, libarchive13, libsnappy1v5, libzstd1, libssl1.1 | libssl1.0 | libssl1.0.0, libcurl4 | libcurl3, libhyphen0, libedit2, adduser, libldns2 | libldns1, libjemalloc2 | libjemalloc1
 Description: This package provides the core libraries, executables, and 
   configuration files for Kno applications
 
@@ -82,7 +82,7 @@ Description: This package contains the debugging symbols for kno-mysql
 
 Package: kno-sqlite
 Architecture: any
-Depends: kno-core (= ${binary:Version}), sqlite
+Depends: kno-core (= ${binary:Version}), sqlite | sqlite3
 Description: SQLite bindings for Kno
 
 Package: kno-sqlite-dbg
@@ -126,7 +126,7 @@ Description: This package contains the debugging symbols for kno-mongodb
 
 Package: kno-leveldb
 Architecture: any
-Depends: kno-core (= ${binary:Version}), libleveldb1v5
+Depends: kno-core (= ${binary:Version}), libleveldb1d | libleveldb1v5
 Description: Leveldb interface for Kno
 
 Package: kno-leveldb-dbg
@@ -142,7 +142,7 @@ Description: This package contains the debugging symbols for kno-leveldb
 
 Package: kno-rocksdb
 Architecture: i386 amd64
-Depends: kno-core (= ${binary:Version}), librocksdb5.10 | librocksdb5.8 | librocksdb4.5 | librocksdb4.1
+Depends: kno-core (= ${binary:Version}), librocksdb5.17 | librocksdb5.10 | librocksdb5.8 | librocksdb4.5 | librocksdb4.1
 Description: Rocksdb interface for Kno
 
 Package: kno-rocksdb-dbg
@@ -186,7 +186,7 @@ Description: This package contains the debugging symbols for kno-parseltongue
 
 Package: kno-imagetools
 Architecture: any
-Depends: kno-core (= ${binary:Version}), libexif12, libmagickwand | libmagickwand5 | libmagickwand-6.q16-2 | libmagickwand-6.q16-3, libqrencode3
+Depends: kno-core (= ${binary:Version}), libexif12, libmagickwand | libmagickwand-6.q16-6 | libmagickwand-6.q16-3 | libmagickwand-6.q16-2  | libmagickwand5, libqrencode4 | libqrencode3
 Description: Image tools for Kno
   Bindings to various image libraries modules for Kno,
   including ImageMagick, QRCode generation, and EXIF extraction.
