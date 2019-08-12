@@ -921,7 +921,7 @@ crypto cryptotest:
 	@${header} "■■■■ Completed crypto tests ${RUNCONF}"
 
 #   ;;;  Local variables: ***
-#   ;;;  compile-command: "cd ..; ./config.status;" ***
+#   ;;;  compile-command: "make -j" ***
 #   ;;;  indent-tabs-mode: nil ***
 #   ;;;  End: ***
 
