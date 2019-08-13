@@ -226,7 +226,7 @@
 
 (define (get-modified arg)
   (cond ((registry? arg) (tryif (registry/modified? arg) arg))
-	((flexpool/record arg) (pick (flexpool/partitions arg) modified?))
+	((flexpool/record arg) (get-modified (flexpool/partitions arg)))
 	((pool? arg) 
 	 (let ((partitions (poolctl arg 'partitions))
 	       (adjuncts (getvalues (poolctl arg 'adjuncts))))
