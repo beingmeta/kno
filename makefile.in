@@ -1465,7 +1465,7 @@ update-local-apt-repo: dist/debs.done
 
 update-remote-apt-repo: dist/debs.done
 	cd dist; for change in *.changes; do \
-	  dupload -c --nomail --to ${CODENAME} $${change} && \
+	  dupload -c ./dupload.conf --nomail --to ${CODENAME} $${change} && \
 	  rm -f $${change}; \
 	done
 
