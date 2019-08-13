@@ -47,6 +47,3 @@
 	(applytest #t test (dbctl adj 'metadata) 'flags 'isadjunct)
 	(applytest #t test (dbctl adj 'metadata) 'adjunct 'cubed)))))
 
-
-
-
