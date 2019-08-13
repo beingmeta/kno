@@ -348,19 +348,19 @@ static lispval accessing_module_evalfn(lispval expr,kno_lexenv env,kno_stack _st
 
 static u8_mutex exports_lock;
 
-static kno_hashtable get_exports(kno_lexenv env)
+KNO_EXPORT kno_hashtable kno_get_exports(kno_lexenv env)
 {
   kno_hashtable exports;
-  lispval moduleid = kno_get(env->env_bindings,moduleid_symbol,VOID);
   u8_lock_mutex(&exports_lock);
   if (HASHTABLEP(env->env_exports)) {
     u8_unlock_mutex(&exports_lock);
-    kno_decref(moduleid);
     return (kno_hashtable) env->env_exports;}
   exports = (kno_hashtable)(env->env_exports = kno_make_hashtable(NULL,16));
+  lispval moduleid = kno_get(env->env_bindings,moduleid_symbol,VOID);
   if (!(VOIDP(moduleid)))
     kno_hashtable_store(exports,moduleid_symbol,moduleid);
   u8_unlock_mutex(&exports_lock);
+  kno_decref(moduleid);
   return exports;
 }
 
@@ -378,7 +378,7 @@ static lispval module_export_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
         return kno_type_error(_("symbol"),"module_export",symbol);}}
   if (HASHTABLEP(env->env_exports))
     exports = (kno_hashtable)env->env_exports;
-  else exports = get_exports(env);
+  else exports = kno_get_exports(env);
   {DO_CHOICES(symbol,symbols) {
       lispval val = kno_get(env->env_bindings,symbol,VOID);
       kno_hashtable_store(exports,symbol,val);
@@ -430,7 +430,7 @@ static lispval use_module_helper(lispval expr,kno_lexenv env)
       else {
         kno_lexenv expenv=
           kno_consptr(kno_lexenv,module,kno_lexenv_type);
-        lispval expval = (lispval)get_exports(expenv);
+        lispval expval = (lispval)kno_get_exports(expenv);
         if (!(uses_bindings(env,expval))) {
           if (env->env_copy != env) modify_env = kno_copy_env(env);
           kno_lexenv old_parent = modify_env->env_parent;
@@ -461,7 +461,7 @@ static lispval export_alias_helper(lispval expr,kno_lexenv env,kno_stack _stack)
   if (KNO_ABORTP(module)) return module;
   kno_hashtable exports =
     (KNO_HASHTABLEP(module)) ? ((kno_hashtable)module) :
-    (KNO_LEXENVP(module)) ? (get_exports((kno_lexenv)module)) :
+    (KNO_LEXENVP(module)) ? (kno_get_exports((kno_lexenv)module)) :
     (NULL);
   kno_incref((lispval)exports);
   env->env_exports=kno_incref((lispval)exports);
@@ -517,7 +517,7 @@ lispval kno_use_module(kno_lexenv env,lispval module)
   else if (KNO_LEXENVP(module)) {
     kno_lexenv expenv=
       kno_consptr(kno_lexenv,module,kno_lexenv_type);
-    lispval expval = (lispval)get_exports(expenv);
+    lispval expval = (lispval)kno_get_exports(expenv);
     if (!(uses_bindings(env,expval))) {
       kno_lexenv oldp = env->env_parent;
       env->env_parent = kno_make_export_env(expval,oldp);
@@ -546,7 +546,7 @@ static lispval get_exports_prim(lispval arg)
   else if (TYPEP(module,kno_lexenv_type)) {
     kno_lexenv expenv=
       kno_consptr(kno_lexenv,module,kno_lexenv_type);
-    lispval expval = (lispval)get_exports(expenv);
+    lispval expval = (lispval)kno_get_exports(expenv);
     if (KNO_ABORTP(expval)) return expval;
     lispval keys = kno_getkeys(expval);
     kno_decref(module);

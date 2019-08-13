@@ -163,6 +163,8 @@ KNO_EXPORT lispval kno_new_cmodule_x
 #define kno_new_cmodule(name,flags,addr) \
   kno_new_cmodule_x(name,flags,addr,__FILE__)
 
+KNO_EXPORT kno_hashtable kno_get_exports(kno_lexenv);
+
 KNO_EXPORT lispval kno_use_module(kno_lexenv env,lispval module);
 
 KNO_EXPORT int kno_log_reloads;
