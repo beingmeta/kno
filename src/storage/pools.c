@@ -2602,6 +2602,16 @@ KNO_EXPORT lispval kno_default_poolctl(kno_pool p,lispval op,int n,kno_argvec ar
     if (U8_BITP((p->pool_flags),KNO_STORAGE_READ_ONLY))
       return KNO_TRUE;
     else return KNO_FALSE;}
+  else if (op == KNOSYM_ADJUNCT) {
+    if (U8_BITP((p->pool_flags),KNO_POOL_ADJUNCT)) {
+      lispval slotid = kno_slotmap_get
+	(&(p->pool_metadata),KNOSYM_ADJUNCT,KNO_VOID);
+      if ( (KNO_OIDP(slotid)) || (KNO_SYMBOLP(slotid)) )
+	return slotid;
+      else {
+	kno_decref(slotid);
+	return KNO_TRUE;}}
+    else return KNO_FALSE;}
   else if (op == KNOSYM_TYPE)
     return kno_intern(p->pool_typeid);
   else {
