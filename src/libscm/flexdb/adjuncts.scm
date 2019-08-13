@@ -224,8 +224,13 @@
 	 (isindex (or (test opts '{index indextype})
 		      (has-suffix path ".index")
 		      (test opts 'type 'index)
-		      (exists indextype? (get opts 'type)))))
+		      (exists indextype? (get opts 'type))))
+	 (metadata (getopt opts 'metadata)))
+    (unless metadata
+      (set! metadata (frame-create #f))
+      (store! opts 'metadata metadata))
     (store! opts 'adjunct slotid)
+    (store! metadata 'adjunct slotid)
     (when isindex
       (store! opts '{index source} (get-adjindex-path poolsrc path))
       (store! opts 'index path)
