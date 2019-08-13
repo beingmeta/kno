@@ -255,7 +255,8 @@
 	     (n-threads (and spec-threads (min spec-threads (choice-size modified)))))
 	(lognotice |FLEX/Commit|
 	  "Saving " (choice-size modified) " dbs using " (or n-threads "no") " threads:"
-	  (do-choices (db modified) (printout "\n\t" db)))
+	  (when (log>? %notify%)
+	    (do-choices (db modified) (printout "\n\t" db))))
 	(cond ((not n-threads)
 	       (do-choices (db modified) (commit-db db opts timings)))
 	      ((>= n-threads (choice-size modified))
