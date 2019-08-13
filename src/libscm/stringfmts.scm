@@ -6,7 +6,8 @@
 ;;; Generation of strings from various other kinds of values
 
 (module-export!
- '{get% show%
+ '{;; Now defined with DEFEXPORT
+   ;; get% show%
    interval-string
    short-interval-string
    minimal-interval-string
@@ -21,12 +22,12 @@
 
 ;; Percentages
 
-(define (get% num (den #f) (prec 2))
+(defexport (get% num (den #f) (prec 2))
   (cond ((zero? den) den)
 	(den (inexact->string (/ (* num 100.0) den) prec))
 	(else (inexact->string (* num 100.0) prec))))
 
-(define (show% num (den #f) (prec 2))
+(defexport (show% num (den #f) (prec 2))
   (cond ((not den) (printout (inexact->string (* num 100.0) prec) "%"))
 	((zero? den)
 	 (if (zero? num)

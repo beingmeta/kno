@@ -739,27 +739,26 @@ static lispval define_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     lispval val_expr = kno_get_arg(expr,2);
     if (VOIDP(val_expr))
       return kno_err(kno_TooFewExpressions,"DEFINE",NULL,expr);
+    lispval value = kno_eval(val_expr,env);
+    if (KNO_ABORTED(value))
+      return value;
+    else if (kno_bind_value(var,value,env)>=0) {
+      lispval fvalue = (KNO_FCNIDP(value))?(kno_fcnid_ref(value)):(value);
+      if (KNO_FUNCTIONP(fvalue))
+	init_definition(fvalue,expr,env);
+      else if (KNO_MACROP(fvalue)) {
+	struct KNO_MACRO *macro = (kno_macro) fvalue;
+	if (KNO_VOIDP(macro->macro_moduleid)) {
+	  macro->macro_moduleid =
+	    kno_get(env->env_bindings,moduleid_symbol,KNO_VOID);}
+	if (macro->macro_name == NULL)
+	  macro->macro_name = u8_strdup(KNO_SYMBOL_NAME(var));}
+      else NO_ELSE;
+      kno_decref(value);
+      return VOID;}
     else {
-      lispval value = kno_eval(val_expr,env);
-      if (KNO_ABORTED(value))
-        return value;
-      else if (kno_bind_value(var,value,env)>=0) {
-        lispval fvalue = (KNO_FCNIDP(value))?(kno_fcnid_ref(value)):(value);
-        if (KNO_FUNCTIONP(fvalue))
-          init_definition(fvalue,expr,env);
-        else if (KNO_MACROP(fvalue)) {
-          struct KNO_MACRO *macro = (kno_macro) fvalue;
-          if (KNO_VOIDP(macro->macro_moduleid)) {
-            macro->macro_moduleid =
-              kno_get(env->env_bindings,moduleid_symbol,KNO_VOID);}
-          if (macro->macro_name == NULL)
-            macro->macro_name = u8_strdup(KNO_SYMBOL_NAME(var));}
-        else NO_ELSE;
-        kno_decref(value);
-        return VOID;}
-      else {
-        kno_decref(value);
-        return kno_err(kno_BindError,"DEFINE",SYM_NAME(var),var);}}}
+      kno_decref(value);
+      return kno_err(kno_BindError,"DEFINE",SYM_NAME(var),var);}}
   else if (PAIRP(var)) {
     lispval fn_name = KNO_CAR(var), args = KNO_CDR(var);
     lispval body = kno_get_body(expr,2);
@@ -778,6 +777,21 @@ static lispval define_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
         kno_decref(value);
         return kno_err(kno_BindError,"DEFINE",SYM_NAME(fn_name),var);}}}
   else return kno_err(kno_NotAnIdentifier,"DEFINE",NULL,var);
+}
+
+static lispval defexport_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+{
+  lispval rv = define_evalfn(expr,env,_stack);
+  if (ABORTED(rv)) return rv;
+  lispval var = kno_get_arg(expr,1);
+  if (PAIRP(var)) var = KNO_CAR(var);
+  kno_hashtable exports =
+    (HASHTABLEP(env->env_exports)) ? ((kno_hashtable)(env->env_exports)) :
+    (kno_get_exports(env));
+  lispval val = kno_get(env->env_bindings,var,VOID);
+  kno_hashtable_store(exports,var,val);
+  kno_decref(val);
+  return rv;
 }
 
 static lispval defslambda_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
@@ -1112,6 +1126,8 @@ KNO_EXPORT void kno_init_lambdas_c()
   kno_def_evalfn(kno_scheme_module,"THUNK",thunk_evalfn,
 		 "*undocumented*");
   kno_def_evalfn(kno_scheme_module,"DEFINE",define_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"DEFEXPORT",defexport_evalfn,
 		 "*undocumented*");
   kno_def_evalfn(kno_scheme_module,"DEFSLAMBDA",defslambda_evalfn,
 		 "*undocumented*");
