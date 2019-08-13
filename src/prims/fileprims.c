@@ -130,7 +130,7 @@ static lispval open_output_file(lispval fname,lispval opts,lispval escape_char)
   f = u8_open_output_file(filename,enc,open_flags,0);
   if (encid != opts) kno_decref(encid);
   if (f == NULL)
-    return kno_err(u8_CantOpenFile,"OPEN-OUTPUT-FILE",NULL,fname);
+    return kno_err("CantWriteFile","OPEN-OUTPUT-FILE",NULL,fname);
   if (KNO_CHARACTERP(escape_char)) {
     int escape = KNO_CHAR2CODE(escape_char);
     f->u8_xescape = escape;}
