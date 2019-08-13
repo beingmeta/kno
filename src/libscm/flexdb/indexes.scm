@@ -133,7 +133,7 @@
 (define (get-new-size old opts (minimum))
   (default! minimum (getopt opts 'minsize (config 'MINSIZE 100)))
   (let ((specified (getopt opts 'newsize (config 'newsize 2.0))))
-    (if (not (number? specified)) (irritant newsize |BadNewIndexSize|))
+    (if (not (number? specified)) (irritant specified |BadNewIndexSize|))
     (max
      (if (and (exact? specified) (> specified 42))
 	 specified
