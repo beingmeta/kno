@@ -4,14 +4,17 @@
 (config! 'bricosource "brico")
 
 (use-module '{logger webtools varconfig libarchive texttools
-	      filestream brico stringfmts optimize})
-(use-module '{flexdb flexdb/branches flexdb/typeindex})
+	      filestream brico stringfmts optimize
+	      reflection})
+(use-module '{flexdb flexdb/branches flexdb/typeindex 
+	      flexdb/flexindex})
 
 (config! 'cachelevel 2)
 (config! 'logthreadinfo #t)
 (config! 'logelapsed #t)
 (config! 'thread:logexit #f)
 (config! 'dbloglevel %warn%)
+(config! 'xprofiling #t)
 
 (define inbufsize (* 1024 1024 3))
 (varconfig! inbufsize inbufsize)
@@ -40,10 +43,24 @@
 
 (define buildmap.table
   (flexdb/make "wikidata/wikids.table" [indextype 'memindex create #t]))
+
 (define wikids.index
-  (flexdb/make "wikidata/wikids.index"
-	       [indextype 'hashindex size (* 16 1024 1024) create #t
-		keyslot 'id register #t]))
+  (flex/open-index "wikidata/wikids.flexindex"
+		   [indextype 'hashindex size (* 8 1024 1024) create #t
+		    keyslot 'id register #t
+		    maxkeys (* 4 1024 1024)]))
+
+(define words.index
+  (flex/open-index "wikidata/words.flexindex"
+		     [indextype 'hashindex size (* 4 1024 1024) create #t
+		      keyslot 'words register #t
+		      maxkeys (* 2 1024 1024)]))
+(define norms.index
+  (flex/open-index "wikidata/norms.flexindex"
+		     [indextype 'hashindex size (* 4 1024 1024) create #t
+		      keyslot 'norms register #t
+		      maxkeys (* 2 1024 1024)]))
+#|
 (define words.index
   (flexdb/make "wikidata/words.index"
 	       [indextype 'hashindex size (* 16 1024 1024) create #t
@@ -52,6 +69,8 @@
   (flexdb/make "wikidata/norms.index"
 	       [indextype 'hashindex size (* 16 1024 1024) create #t
 		keyslot 'norms register #t]))
+|#
+
 ;; (define has.index
 ;;   (typeindex/open (get-component "wikidata/has.index/")
 ;; 		  [indextype 'typeindex create #t keyslot 'has register #t]
@@ -59,10 +78,11 @@
 (define has.index
   (flexdb/make "wikidata/hasprops.index"
 	       [indextype 'hashindex create #t keyslot 'has register #t]))
+
 (define props.index
-  (flexdb/make "wikidata/props.index"
-	       [indextype 'hashindex size (* 16 1024 1024) create #t
-		register #t]))
+  (flex/open-index "wikidata/props.index"
+		     [indextype 'hashindex size (* 4 1024 1024) create #t
+		      register #t maxkeys (* 2 1024 1024)]))
 
 (define wikidata.index
   (make-aggregate-index {words.index norms.index has.index props.index}))
@@ -221,7 +241,9 @@
 (define (dobatch in (threadcount #t) (duration 120) 
 		 (index wikidata.index) (has.index has.index))
   (let ((start-count (filestream-itemcount in))
-	(start-time (elapsed-time)))
+	(start-time (elapsed-time))
+	(before (and (reflect/profiled? filestream/read)
+		     (profile/getcalls filestream/read))))
     (if threadcount
 	(thread-loop in threadcount duration index has.index)
 	(let ((started (elapsed-time))
@@ -238,6 +260,20 @@
 	(secs->string (elapsed-time start-time)) 
 	" (" ($rate (- cur-count start-count) (elapsed-time start-time)) " items/sec) -- "
 	(runstats)))
+    (when before
+      (let ((cur (profile/getcalls filestream/read)))
+	(lognotice |ReadProfile|
+	  "After " (secs->string (elapsed-time start-time)) 
+	  " filestream/read took " 
+	  (secs->string (- (profile/time cur) (profile/time before)))
+	  " (clock), "
+	  (secs->string (- (profile/utime cur) (profile/utime before)))
+	  " (user)" 
+	  (secs->string (- (profile/stime cur) (profile/stime before)))
+	  " (system) across "
+	  ($count (- (profile/ncalls cur) (profile/ncalls before)) "call")
+	  " interrupted by "
+	  ($count (- (profile/waits cur) (profile/waits before)) "wait") )))
     (wikidata/save! in)
     (clearcaches)
     (filestream/log! in '(overall))))
@@ -252,7 +288,7 @@
     (dotimes (i cycles)
       (lognotice |Cycle| "Starting #" (1+ i) " of " cycles ": " (runstats))
       (dobatch in threadcount secs)
-      (lognotice |Cycle| "Finished #" cycles ", "
+      (lognotice |Cycle| "Finished #" (1+ i) "/" cycles ", "
 		 "processed " ($num (filestream-itemcount in) "item") " in "
 		 (secs->string (elapsed-time started)))
       (filestream/log! in '(overall)))
@@ -268,3 +304,11 @@
 		 filestream})
   (optimize!)
   (logwarn |Optimized| (get-source)))
+
+(config! 'profiled filestream/read)
+
+(when (config 'profiled #f)
+  (config! 'profiled {get-wikidref new-wikidref import-wikid-item 
+		      convert-claims convert-lexslot
+		      convert-sitelinks
+		      filestream/read}))
