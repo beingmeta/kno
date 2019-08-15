@@ -8,6 +8,7 @@
 (use-module '{flexdb flexdb/registry flexdb/branches})
 
 (define %loglevel %notice%)
+(set! %loglevel %debug%)
 
 (module-export! '{filestream/open filestream/read filestream/state 
 		  filestream/save! filestream/log!})
@@ -52,15 +53,16 @@
 				   filename archive statefile state
 				   (gmtimestamp) 0 (and (not archive) (getpos port))
 				   #f)))
-      (if (> (getopt state 'filepos 0) 0)
-	  (setpos! port (getopt state 'filepos))
-	  (begin
-	    (when (getopt opts 'startfn) ((getopt opts 'startfn) port))
-	    (unless archive (store! state 'filepos (getpos port)))
-	    (when archive
-	      ;; When you can't set file positions, skip over all the
-	      ;;  items which have been read in the past
-	      (dotimes (i (getopt state 'itemcount 0)) (readfn port)))))
+      (cond ((> (getopt state 'filepos 0) 0)
+	     (setpos! port (getopt state 'filepos))
+	     (set-filestream-filepos! stream (getopt state 'filepos 0)))
+	    (else
+	     (when (getopt opts 'startfn) ((getopt opts 'startfn) port))
+	     (unless archive (store! state 'filepos (getpos port)))
+	     (when archive
+	       ;; When you can't set file positions, skip over all the
+	       ;;  items which have been read in the past
+	       (dotimes (i (getopt state 'itemcount 0)) (readfn port)))))
       (store! state 'updated (timestamp))
       (fileout statefile (pprint state))
       stream)))
@@ -109,41 +111,53 @@
 	(state (filestream/state stream)))
     (when (zero? count)
       (lognotice |FileStream| 
-	"Starting at item #" (get state 'itemcount) 
+	"Starting at item #" ($num (get state 'itemcount)) 
 	(when (and (test state 'total) (> (get state 'itemcount) 0))
 	  (printout " (" (show% (get state 'itemcount) (get state 'total))))
 	(when (> (get state 'itemcount) 0)
 	  (printout " after " ($bytes filepos) 
 	    " (" (show% filepos (get state 'filesize))
-	    " of " ($bytes (get state 'filesize))))))
+	    " of " ($bytes (get state 'filesize)) ")"))))
     (when (and (getopt opts 'batch #t) (not (zero? count)))
       (lognotice |FileStream| 
-	"Processed " ($count count "item") " in " 
-	(secs->string (time-since started)) 
-	" (" ($rate count (time-since started)) " items/sec)"))
+	"Processed " ($count count "item") 
+	(when filepos (printout" and " ($bytes (- filepos (get state 'filepos)))))
+	" in " (secs->string (time-since started)) 
+	" (" ($rate count (time-since started)) " items/sec)"
+	(when filepos 
+	  (printout" (" ($bytes/sec (- filepos (get state 'filepos)) (time-since started))))))
     (when (getopt opts 'overall #f)
-      (let ((runtime (+ (reduce-choice + (get state 'batches) 0 batch-runtime)
-			(time-since started)))
+      (let ((clock-time (time-since started))
+	    (overall-time (time-since (try (get state 'started) started)))
+	    (run-time (+ (difftime started)
+			 (reduce-choice + (get state 'batches) 0 batch-runtime)))
 	    (full-count (+ (reduce-choice + (get state 'batches) 0 batch-count)
 			   (filestream-itemcount stream))))
 	(when (> full-count 0)
 	  (lognotice |FileStream| 
 	    "Overall, processed " ($count (+ count (get state 'itemcount)) "item") 
+	    (when (test state 'total)
+	      (printout " (" (show% (+ count (get state 'itemcount)) (get state 'total)) ")"))
 	    (when filepos (printout " and " ($bytes filepos) " bytes"))
-	    " in " (secs->string (time-since (get state 'started))) 
-	    " over " ($count (1+ (||  (get state 'batches))) "batch" "batches")
-	    " running " (secs->string runtime))
+	    (when (and filepos (test state 'filesize))
+	      (printout " (" (show% filepos (get state 'filesize)) ")"))
+	    " after " (secs->string overall-time) 
+	    " over " ($count (1+ (|| (get state 'batches))) "batch" "batches")
+	    " taking " (secs->string run-time) " together.")
 	  (lognotice |FileStream|
-	    "Overall, processing " ($rate count (time-since started)) " items/sec"
-	    (when filepos (printout " and " ($bytes/sec filepos (time-since started)))))
+	    "Overall, processing " ($rate count run-time) " items/sec"
+	    (when filepos (printout " and " ($bytes/sec filepos run-time))))
 	  (cond (filepos
-		 (let ((rate (/~ filepos runtime))
+		 (let ((rate (/~ filepos run-time))
 		       (togo (- (get state 'filesize) filepos)))
+		   (debug%watch rate togo filepos run-time (/~ togo rate))
 		   (lognotice |FileStream|
 		     "Inshallah, everything should be done in "
-		     (secs->string (/~ togo rate)))))
+		     (secs->string (/~ togo rate)) " at "
+		     ($bytes/sec rate) " for the remaining "
+		     ($bytes togo))))
 		((test state 'total)
-		 (let ((rate (/~ full-count runtime))
+		 (let ((rate (/~ full-count run-time))
 		       (togo (- (get state 'total) full-count)))
 		   (lognotice |FileStream|
 		     "Inshallah, everything should be done in "
