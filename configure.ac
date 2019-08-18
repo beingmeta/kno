@@ -178,6 +178,10 @@ IMAGICK_CFLAGS=
 IMAGICK_LDFLAGS=
 LIBZIP_CFLAGS=
 LIBZIP_LDFLAGS=
+PYTHON2_CFLAGS=
+PYTHON2_LDFLAGS=
+PYTHON3_CFLAGS=
+PYTHON3_LDFLAGS=
 DEFAULTISASYNC=0
 USEDTBLOCK=0
 MSG=echo
@@ -383,6 +387,11 @@ AC_SUBST(ODBC_LIBS)
 AC_SUBST(SQLITE3_LIBS)
 AC_SUBST(ZEROMQ_LIBS)
 
+AC_SUBST(PYTHON2_CFLAGS)
+AC_SUBST(PYTHON2_LDFLAGS)
+AC_SUBST(PYTHON3_CFLAGS)
+AC_SUBST(PYTHON3_LDFLAGS)
+
 AC_ARG_VAR(RPMDIR,"Location for writing built RPMs")
 AC_ARG_VAR(RPMFLAGS,"Default flags for building RPMs")
 AC_ARG_VAR(GPG,"GPG executable")
@@ -435,7 +444,7 @@ else
    GITDESCRIBE="$git describe"
 fi
 
-AC_CHECK_PROGS(pkg_config,pkg-config /usr/local/bin/pkg-config /opt/bin/pkg-config /opt/local/bin/pkg-config ,"na")
+AC_CHECK_PROGS(pkg_config,pkg-config /opt/local/bin/pkg-config  /opt/bin/pkg-config /usr/local/bin/pkg-config ,"na")
 
 AC_ARG_WITH(mkdir,--with-mkdir command,with_mkdir=$withval,with_mkdir=$MKDIR_DEFAULT)
 MKDIR=$with_mkdir
@@ -1530,21 +1539,46 @@ fi
 
 dnl check for building with parseltongue
 AC_ARG_WITH(parseltongue,--with/out-parseltongue Build parseltongue libraries for connecting Kno and Python,,with_parseltongue=auto)
-if test "$with_parseltongue" = "yes" || test "$with_parseltongue" = "auto"; then
+
+if test "$with_parseltongue" = "no" || test "$with_parseltongue" = "2"; then
+   echo "Not building parseltongue3 library";
+elif test ! -z "$pkg_config" && $pkg_config --exists python-3.7; then
+   PYTHON3_LDFLAGS=`$pkg_config python-3.7 --libs`;
+   PYTHON3_CFLAGS=`$pkg_config python-3.7 --cflags`;
+elif test ! -z "$pkg_config" && $pkg_config --exists python-3.6; then
+   PYTHON3_LDFLAGS=`$pkg_config python-3.6 --libs`;
+   PYTHON3_CFLAGS=`$pkg_config python-3.6 --cflags`;
+elif test ! -z "$pkg_config" && $pkg_config --exists python-3.5; then
+   PYTHON3_LDFLAGS=`$pkg_config python-3.5 --libs`;
+   PYTHON3_CFLAGS=`$pkg_config python-3.5 --cflags`;
+else
    AX_PYTHON3
+   if test ! -z "${ax_python3_lib}"; then
+     PYTHON3_CFLAGS="-I${PYTHON3_INCLUDE_DIR}";
+     PYTHON3_LDFLAGS="-l${PYTHON3_LIB}";
+   fi;
+fi;	     
+
+if test "$with_parseltongue" = "no" || test "$with_parseltongue" = "3"; then
+   echo "Not building parseltongue2 library";
+elif test ! -z "$pkg_config" && $pkg_config --exists python-2.7; then
+   PYTHON2_LDFLAGS=`$pkg_config python-2.7 --libs`;
+   PYTHON2_CFLAGS=`$pkg_config python-2.7 --cflags`;
+else
    AX_PYTHON2
-elif test "$with_parseltongue" = "2"; then
-   AX_PYTHON2
-elif test "$with_parseltongue" = "3"; then
-   AX_PYTHON3
-fi;
-if test ! -z "${ax_python3_lib}"; then
+   if test ! -z "${ax_python2_lib}"; then
+     PYTHON2_CFLAGS="-I${PYTHON2_INCLUDE_DIR}";
+     PYTHON2_LDFLAGS="-l${PYTHON2_LIB}";
+   fi;
+fi;	     
+
+if test ! -z "${PYTHON3_CFLAGS}"; then
    CORE_CMODULES="lib/kno/parseltongue.$shared_suffix ${CORE_CMODULES}"
    INSTALL_CORE_CMODULES="install-parseltongue ${INSTALL_CORE_CMODULES}"
 else
    auto_disabled="parseltongue3 ${auto_disabled}";
 fi
-if test ! -z "${ax_python2_lib}"; then
+if test ! -z "${PYTHON2_CFLAGS}"; then
    CORE_CMODULES="lib/kno/parseltongue2.$shared_suffix ${CORE_CMODULES}"
    INSTALL_CORE_CMODULES="install-parseltongue2 ${INSTALL_CORE_CMODULES}"
 else
@@ -1800,7 +1834,6 @@ fi;
 ### MySQL
 
 AC_CHECK_PROGS(mysql_config,mysql_config /usr/local/bin/mysql_config /opt/bin/mysql_config /opt/local/bin/mysql_config ,"na")
-AC_CHECK_PROGS(pkg_config,pkg-config /usr/local/bin/pkg-config /opt/bin/pkg-config /opt/local/bin/pkg-config ,"na")
 
 if test $mysql_config != "na"; then
    with_mysql_default="auto"
