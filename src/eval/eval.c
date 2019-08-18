@@ -2061,6 +2061,9 @@ static lispval ffi_foundp_prim(lispval name,lispval modname)
 }
 #endif
 
+/* Opcode eval */
+
+
 /* Initialization */
 
 void kno_init_module_tables(void);

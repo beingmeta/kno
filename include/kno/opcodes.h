@@ -141,8 +141,8 @@ KNO_EXPORT int kno_opcodes_length;
 #define KNO_DROP_OPCODE       KNO_TABLE_OPCODE(0x08)
 #define KNO_PRIMTEST_OPCODE   KNO_TABLE_OPCODE(0x09)
 
-#define KNO_APPLY_OPCODE(x)   KNO_OPCODE(0x800+x)
-#define KNO_APPLY_OPCODEP(x)  ((x>=KNO_OPCODE(0x800))&&(x<KNO_OPCODE(0xA00))
+#define KNO_APPLY_OPCODE(x)      KNO_OPCODE(0x800+x)
+#define KNO_APPLY_OPCODEP(x)     ( (x>=KNO_OPCODE(0x800)) && (x<KNO_OPCODE(0xA00)) )
 /* Other primitives with more than two arguments */
 #define KNO_APPLY0_OPCODE        KNO_APPLY_OPCODE(0x00)
 #define KNO_APPLY1_OPCODE        KNO_APPLY_OPCODE(0x01)
