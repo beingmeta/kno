@@ -76,6 +76,8 @@ u8_condition kno_SyntaxError=_("SCHEME expression syntax error"),
     (KNO_OPCODEP(head)) ? (opcode_name(head)) : \
     (NULL) )
 
+KNO_FASTOP lispval op_eval(kno_stack _stack,lispval x,kno_lexenv env,int tail);
+
 /* Reading from expressions */
 
 KNO_EXPORT lispval _kno_get_arg(lispval expr,int i)
@@ -585,27 +587,30 @@ lispval kno_stack_eval(lispval expr,kno_lexenv env,
       else return simplify_value(val);}
     default:
       return expr;}}
-  else if (KNO_CONSP(expr)) {
-    kno_lisp_type ctype = KNO_CONSPTR_TYPE(expr);
-    switch (ctype) {
-    case kno_pair_type: {
-      lispval result = VOID;
-      KNO_PUSH_STACK(eval_stack,kno_evalstack_type,NULL,expr);
-      result = pair_eval(KNO_CAR(expr),expr,env,eval_stack,tail,1);
-      kno_pop_stack(eval_stack);
-      return result;}
-    case kno_choice_type:
-      return choice_eval(expr,env,_stack,tail);
-    case kno_slotmap_type:
-      return kno_deep_copy(expr);
-    case kno_schemap_type: {
-      lispval result = VOID;
-      KNO_PUSH_STACK(eval_stack,kno_evalstack_type,NULL,expr);
-      result = schemap_eval(expr,env,eval_stack);
-      kno_pop_stack(eval_stack);
-      return result;}
-    default:
-      return kno_incref(expr);}}
+  else if (KNO_CONSP(expr))
+    if (KNO_STATIC_CONSP(expr))
+      return op_eval(_stack,expr,env,tail);
+    else {
+      kno_lisp_type ctype = KNO_CONSPTR_TYPE(expr);
+      switch (ctype) {
+      case kno_pair_type: {
+	lispval result = VOID;
+	KNO_PUSH_STACK(eval_stack,kno_evalstack_type,NULL,expr);
+	result = pair_eval(KNO_CAR(expr),expr,env,eval_stack,tail,1);
+	kno_pop_stack(eval_stack);
+	return result;}
+      case kno_choice_type:
+	return choice_eval(expr,env,_stack,tail);
+      case kno_slotmap_type:
+	return kno_deep_copy(expr);
+      case kno_schemap_type: {
+	lispval result = VOID;
+	KNO_PUSH_STACK(eval_stack,kno_evalstack_type,NULL,expr);
+	result = schemap_eval(expr,env,eval_stack);
+	kno_pop_stack(eval_stack);
+	return result;}
+      default:
+	return kno_incref(expr);}}
   else return expr;
 }
 
@@ -1070,7 +1075,7 @@ static lispval opcode_eval(lispval opcode,lispval expr,
     kno_decref(val1); kno_decref(val2);
     return results;}
   else if (KNO_TABLE_OPCODEP(opcode))
-    return handle_table_opcode(opcode,expr,env,_stack,tail);
+    return handle_table_opcode(opcode,expr,env,_stack);
   else return kno_err(_("Invalid opcode"),"numop_call",NULL,expr);
 }
 
