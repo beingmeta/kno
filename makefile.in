@@ -131,6 +131,7 @@ LIB_HEADERS=include/kno/texttools.h include/kno/webtools.h \
 # Headers which don't live in include/kno
 SRC_HEADERS=src/lisp/biginternals.h 		\
 	src/eval/eval_internals.h 		\
+	src/apply/apply_cprims.h 		\
 	src/exe/webcommon.h 			\
 	src/drivers/headers/zcompress.h 	\
 	src/drivers/headers/filepool.h 		\
@@ -411,7 +412,7 @@ KNO_SOURCES=\
 	src/sys/errobjs.c src/sys/logging.c src/sys/getopt.c	\
 	src/sys/startup.c src/sys/fluid.c src/sys/signals.c		\
 	src/apply/apply.c src/apply/stacks.c src/apply/lexenv.c 		\
-	src/apply/ffi.c								\
+	src/apply/ffi.c src/apply/apply_cprims.h				\
 	src/storage/storage.c src/storage/streams.c src/storage/hashdtype.c	\
 	src/storage/drivers.c src/storage/indexes.c src/storage/pools.c		\
 	src/storage/oidstore.c  src/storage/frames.c src/storage/slotindexes.c  \
@@ -990,6 +991,7 @@ pull:
 
 # Custom dependencies
 
+src/apply/apply.o: src/apply/apply_cprims.h
 src/eval/binders.o src/eval/conditionals.o src/eval/iterators.o: \
 	src/eval/eval_internals.h
 src/eval/eval.o: src/eval/eval_internals.h src/eval/opcode_defs.c src/eval/opcode_names.h
@@ -1000,8 +1002,8 @@ src/lisp/dtread.o src/lisp/dtwrite.o src/lisp/bufio.o : XCFLAGS="${XOPTFLAGS}"
 src/lisp/choices.o : XCFLAGS="${XOPTFLAGS}"
 src/lisp/tables.o src/storage/bloom.o src/lisp/sequences.o : XCFLAGS="${XOPTFLAGS}"
 src/lisp/numbers.o src/lisp/compare.o : XCFLAGS="${XOPTFLAGS}"
-src/apply/apply.o : XCFLAGS="${XOPTFLAGS}"
 src/storage/streams.o src/storage/pools.o src/storage/indexes.o : XCFLAGS="${XOPTFLAGS}"
+src/apply/apply.o : XCFLAGS="${XOPTFLAGS}"
 src/eval/eval.o src/eval/choiceops.o : XCFLAGS="${XOPTFLAGS}"
 src/eval/conditionals.o src/eval/iterators.o : XCFLAGS="${XOPTFLAGS}"
 src/eval/lambda.o : XCFLAGS="${XOPTFLAGS}"
