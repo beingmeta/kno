@@ -294,7 +294,11 @@ KNO_FASTOP lispval function_call(u8_string name,kno_function f,
   else if (FCN_XCALLP(f))
     return f->fcn_handler.xcalln(stack,f,n,argvec);
   else if (KNO_FCN_CPRIMP(f))
-    return cprim_call(name,(kno_cprim)f,n,argvec,stack);
+    return cprim_call(name,(kno_cprim)f,
+		      n,argvec,
+		      stack->stack_buflen,
+		      stack->stack_buf,
+		      stack);
   else return f->fcn_handler.calln(n,argvec);
 }
 
@@ -302,11 +306,20 @@ KNO_FASTOP lispval core_call(kno_stack stack,
 			     lispval fn,kno_function f,
 			     int n,kno_argvec argvec)
 {
-  if ( (f) && (KNO_CONS_TYPE(f) == kno_cprim_type) )
-    return cprim_call((stack) ? (stack->stack_label) : (NULL),
-		      (kno_cprim)f,n,argvec,stack);
+  if ( (f) && (KNO_CONS_TYPE(f) == kno_cprim_type) ) {
+    if (stack)
+      return cprim_call(f->fcn_name,(kno_cprim)f,
+			n,argvec,
+			stack->stack_buflen,
+			stack->stack_buf,
+			stack);
+    else {
+      lispval argbuf[n];
+      return cprim_call(f->fcn_name,(kno_cprim)f,
+			n,argvec,n,argbuf,stack);}}
   else if (f)
-    return function_call((stack) ? (stack->stack_label) : (NULL),
+    return function_call((f->fcn_name) ? (f->fcn_name) :
+			 (stack) ? (stack->stack_label) : (NULL),
 			 f,n,argvec,stack);
   else return opaque_call(fn,n,argvec,stack);
 }

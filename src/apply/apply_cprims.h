@@ -85,13 +85,13 @@ static int cprim_prep(u8_string fname,
 
 KNO_FASTOP lispval cprim_call(u8_string fname,kno_cprim cp,
 			      int n,kno_argvec args,
+			      int buflen,lispval *argbuf,
 			      kno_stack stack)
 {
   kno_lisp_type *typeinfo = cp->fcn_typeinfo;
   const lispval *defaults = cp->fcn_defaults;
-  int arity = cp->fcn_arity, buflen = stack->stack_buflen;
-  lispval *argbuf = stack->stack_buf;
   kno_function f = (kno_function) cp;
+  int arity = cp->fcn_arity;
   if (PRED_FALSE(cprim_prep(fname,n,args,buflen,argbuf,typeinfo,defaults) < 0))
     return KNO_ERROR;
   else {
