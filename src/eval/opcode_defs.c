@@ -1,3 +1,5 @@
+#include "../apply/apply_cprims.h"
+
 static lispval handle_special_opcode(lispval opcode,lispval args,lispval expr,
                                      kno_lexenv env,
                                      kno_stack _stack,
@@ -60,7 +62,7 @@ lispval op_eval_expr(struct KNO_STACK *eval_stack,
     if (handler->evalfn_name) eval_stack->stack_label=handler->evalfn_name;
     lispval eval_result = handler->evalfn_handler(expr,env,eval_stack);
     eval_stack->stack_op = restore_op;
-    eval_stack->stack_env = restore_env;
+    if (restore_env) eval_stack->stack_env = restore_env;
     eval_stack->stack_label = restore_label;
     return eval_result;}
   case kno_macro_type: {
@@ -77,6 +79,9 @@ lispval op_eval_expr(struct KNO_STACK *eval_stack,
       return kno_err(kno_SyntaxError,_("macro expansion"),show_name,new_expr);}
     lispval eval_result = kno_stack_eval(new_expr,env,eval_stack,tail);
     kno_decref(new_expr);
+    eval_stack->stack_op = restore_op;
+    if (restore_env) eval_stack->stack_env = restore_env;
+    eval_stack->stack_label = restore_label;
     return result;}
   case kno_opcode_type: {
     if (KNO_SPECIAL_OPCODEP(headval))
@@ -145,14 +150,22 @@ lispval op_eval_expr(struct KNO_STACK *eval_stack,
       else result = d2_call(headval,args[0],args[1]);
     else result = kno_err("BadOpcode","op_eval_expr",NULL,expr);}
   else if (KNO_FUNCTIONP(headval)) 
-    if ( (!nd_args) || (isndop) )
+    if ( (!nd_args) || (isndop) ) {
       /* This is where we might dispatch directly for C or Lambdas */
-      result = kno_dcall(eval_stack,headval,n_args,args);
+      if (headtype == kno_cprim_type) {
+	lispval argbuf[call_width];
+	result = cprim_call(f->fcn_name,(kno_cprim)f,
+			    n_args,args,call_width,argbuf,
+			    eval_stack);}
+      else result = kno_dcall(eval_stack,headval,n_args,args);}
     else result = kno_ndcall(eval_stack,headval,n_args,args);
   else if (KNO_APPLICABLEP(headval)) 
     result = kno_dcall(eval_stack,headval,n_args,args);
   else result = kno_err(kno_NotAFunction,"op_eval",NULL,expr);
   kno_decref(free_args);
+  eval_stack->stack_op = restore_op;
+  if (restore_env) eval_stack->stack_env = restore_env;
+  eval_stack->stack_label = restore_label;
   return result;
 }
       
