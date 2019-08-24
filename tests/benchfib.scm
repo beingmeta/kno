@@ -1,10 +1,10 @@
 #!./xrun ./knox
 ;;; -*- Mode: Scheme; -*-
 
-(use-module '{bench/miscfns optimize stringfmts})
+(use-module '{bench/miscfns optimize logger 
+	      reflection varconfig stringfmts})
+(config! 'optlevel 4)
 (config! 'optimize:keepsource #f)
-
-(optimize! 'bench/miscfns)
 
 (define (fibtest (n 50) (cycles 5000) . more)
   (let ((start (elapsed-time))
@@ -21,8 +21,9 @@
 	(message "(fibi " n ") x " cycles " in " (secs->string runtime #f))
 	))))
 
-(optimize!)
+(when (config 'optimized #t config:boolean)
+  (logwarn |Optimizing| (get-source))
+  (optimize! 'bench/miscfns)
+  (optimize!))
 
 (define main fibtest)
-
-
