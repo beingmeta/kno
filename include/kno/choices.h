@@ -221,7 +221,7 @@ KNO_EXPORT int _KNO_CHOICE_SIZE(lispval x);
 #endif
 
 #if KNO_INLINE_CHOICES
-static U8_MAYBE_UNUSED int kno_choice_size(lispval x)
+KNO_FASTOP U8_MAYBE_UNUSED int kno_choice_size(lispval x)
 {
   if (KNO_EMPTY_CHOICEP(x)) return 0;
   else if (!(KNO_CONSP(x))) return 1;
@@ -231,13 +231,13 @@ static U8_MAYBE_UNUSED int kno_choice_size(lispval x)
     return KNO_PRECHOICE_SIZE(x);
   else return 1;
 }
-static U8_MAYBE_UNUSED lispval kno_simplify_choice(lispval x)
+KNO_FASTOP U8_MAYBE_UNUSED lispval kno_simplify_choice(lispval x)
 {
   if (KNO_PRECHOICEP(x))
     return _kno_simplify_choice(x);
   else return x;
 }
-static U8_MAYBE_UNUSED lispval kno_make_simple_choice(lispval x)
+KNO_FASTOP U8_MAYBE_UNUSED lispval kno_make_simple_choice(lispval x)
 {
   if (KNO_PRECHOICEP(x))
     return _kno_make_simple_choice(x);
