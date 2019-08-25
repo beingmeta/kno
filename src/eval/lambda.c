@@ -181,7 +181,7 @@ lispval lambda_call(struct KNO_STACK *_stack,
     result = kno_finish_call(result);
     u8_unlock_mutex(&(fn->lambda_lock));}
 
-  if (_stack->stack_env->env_copy) {
+  if ( (_stack->stack_env) && (_stack->stack_env->env_copy) ) {
     kno_decref((lispval)_stack->stack_env->env_copy);
     _stack->stack_env->env_copy=NULL;}
   _stack->stack_env=NULL;

@@ -248,8 +248,8 @@ static lispval make_coderef(lispval x)
 
 /* Opcodes */
 
-u8_string kno_opcode_names[0x800]={NULL};
-int kno_opcodes_length = 0x800;
+u8_string kno_opcode_names[0xF00]={NULL};
+int kno_opcodes_length = 0xF00;
 
 DEFPRIM1("opcode?",opcodep,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "`(OPCODE? *arg0*)` **undocumented**",
