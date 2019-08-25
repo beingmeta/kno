@@ -405,7 +405,8 @@
 (defambda (optimize expr env bound opts)
   (logdebug "Optimizing " expr " given " bound)
   (cond ((and (ambiguous? expr) (use-opcodes? opts))
-	 `(#OP_UNION ,@(forseq (each (choice->list expr)) (optimize each env bound opts))))
+	 `(#OP_UNION ,@(forseq (each (choice->list expr))
+			 (optimize each env bound opts))))
 	((ambiguous? expr)
 	 (for-choices (each expr) 
 	   (optimize each env bound opts)))
@@ -471,8 +472,8 @@
 		     (add! env '%warnings (cons* 'UNBOUND expr bound)))
 		   (when (or optwarn (not env))
 		     (logwarn |Unbound|
-		       "The symbol " expr " appears to be unbound given bindings "
-		       (apply append bound))))
+		       "The symbol " expr " appears to be unbound "
+		       "given bindings " (apply append bound))))
 		 expr)
 		;; This is where the symbol isn't from a module, but
 		;; we're not doing lexrefs, so we just keep the
@@ -600,7 +601,7 @@
 	  ((fail? (reject headvalue applicable?))
 	   ;; If all of the head values are applicable, we optimize
 	   ;;  the call, replacing the head with shortcuts to the
-	   ;;  value
+	   ;;  headvalue
 	   (check-arguments headvalue n-exprs expr)
 	   (try (tryif (singleton? (get procedure-optimizers headvalue))
 		  ((get procedure-optimizers headvalue)
@@ -611,7 +612,8 @@
 			     (test from '%nosubst head))
 			 head)
 			((test from '%volatile head) `(#OP_SYMREF ,from ,head))
-			(else (get-headop headvalue head n-exprs env bound opts)))
+			(else (get-headop headvalue head n-exprs
+					  env bound opts)))
 		  (optimize-args (cdr expr) env bound opts))
 		 expr opts)))
 	  ((%lexref? headvalue)
@@ -626,8 +628,19 @@
 	       (apply append bound)))
 	   expr))))
 
+(define use-apply-opcodes #t)
+
+(define apply-opcodes
+  #(#OP_APPLY0 #OP_APPLY1 #OP_APPLY2 #OP_APPLY3 #OP_APPLY4))
+
 (define (callcons head tail)
-  (cons head (->list tail)))
+  (if (and (not (opcode? head)) use-apply-opcodes)
+      (let ((len (length tail))
+	    (args (->list tail)))
+	(if (< len (length apply-opcodes))
+	    (cons* (elt apply-opcodes len) head tail)
+	    (cons* #OP_APPLY_N head len tail)))
+      (cons head (->list tail))))
 
 (defambda (optimize-call expr env bound opts)
   (cond ((ambiguous? expr)
@@ -1001,7 +1014,6 @@
 	expr)))
 
 (store! procedure-optimizers BREAK optimize-break)
-
 
 ;;;; Special form handlers
 
