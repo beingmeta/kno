@@ -60,13 +60,11 @@ lispval op_eval_expr(struct KNO_STACK *eval_stack,
   switch (headtype) {
   case kno_evalfn_type: {
     struct KNO_EVALFN *handler = (kno_evalfn)headval;
+    KNO_NEW_STACK(eval_stack,kno_evalstack_type,handler->evalfn_name,expr);
     /* These are evalfns which do all the evaluating themselves */
-    if (handler->evalfn_name) eval_stack->stack_label=handler->evalfn_name;
-    lispval eval_result = handler->evalfn_handler(expr,env,eval_stack);
-    eval_stack->stack_op = restore_op;
-    if (restore_env) eval_stack->stack_env = restore_env;
-    eval_stack->stack_label = restore_label;
-    return eval_result;}
+    result = handler->evalfn_handler(expr,env,_stack);
+    kno_pop_stack(_stack);
+    return result;}
   case kno_macro_type: {
     /* These expand into expressions which are
        then evaluated. */
@@ -121,7 +119,7 @@ lispval op_eval_expr(struct KNO_STACK *eval_stack,
   if ( (f) && (f->fcn_call_width > call_width) )
     call_width = f->fcn_call_width;
   lispval args[call_width], free_args = KNO_EMPTY;
-  int nd_args = 0, qc_args = 0;
+  int nd_args = 0, qc_args = 0, gc_args = 0;
   int i=0; while (i < n_args) {
     lispval arg_expr = pop_arg(arg_exprs);
     lispval arg_value = op_eval(eval_stack,arg_expr,env,0);
@@ -132,8 +130,7 @@ lispval op_eval_expr(struct KNO_STACK *eval_stack,
     if (CONSP(arg_value)) {
       if (KNO_PRECHOICEP(arg_value))
 	arg_value = kno_simplify_choice(arg_value);
-      if (KNO_MALLOCD_CONSP(arg_value)) {
-	KNO_ADD_TO_CHOICE(free_args,arg_value);}
+      if (KNO_MALLOCD_CONSP(arg_value)) gc_args++;
       if (KNO_CHOICEP(arg_value)) nd_args++;
       if (KNO_QCHOICEP(arg_value)) qc_args++;}
     args[i++] = arg_value;}
@@ -157,28 +154,22 @@ lispval op_eval_expr(struct KNO_STACK *eval_stack,
   else if (KNO_FUNCTIONP(headval))
     if ( (!nd_args) || (isndop) ) {
       /* This is where we might dispatch directly for C or Lambdas */
-      if (headtype == kno_cprim_type) {
+      if ( (0) && (headtype == kno_cprim_type) ) {
 	lispval argbuf[call_width];
 	result = cprim_call(f->fcn_name,(kno_cprim)f,
 			    n_args,args,call_width,argbuf,
 			    eval_stack);}
-      else if (headtype == kno_lambda_type) {
-	lispval *restore_buf = eval_stack->stack_buf;
-	int restore_buflen = eval_stack->stack_buflen;
-	eval_stack->stack_buf = args;
-	eval_stack->stack_buflen = call_width;
-	result = kno_apply_lambda(eval_stack,(kno_lambda)f,n_args,args);
-	eval_stack->stack_buf = restore_buf;
-	eval_stack->stack_buflen = restore_buflen;}
       else result = kno_dcall(eval_stack,headval,n_args,args);}
     else result = kno_ndcall(eval_stack,headval,n_args,args);
   else if (KNO_APPLICABLEP(headval))
     result = kno_dcall(eval_stack,headval,n_args,args);
   else result = kno_err(kno_NotAFunction,"op_eval",NULL,expr);
-  kno_decref(free_args);
   eval_stack->stack_op = restore_op;
   if (restore_env) eval_stack->stack_env = restore_env;
   eval_stack->stack_label = restore_label;
+  if (gc_args) {
+    int i = 0; while (i<call_width) {
+      lispval arg = args[i++]; kno_decref(arg);}}
   return result;
 }
       

@@ -172,7 +172,7 @@ lispval lambda_call(struct KNO_STACK *_stack,
   /* If we're synchronized, lock the mutex. */
   if (fn->lambda_synchronized) u8_lock_mutex(&(fn->lambda_lock));
 
-  result = eval_body(fn->lambda_start,call_env,kno_stackptr,
+  result = eval_body(fn->lambda_start,call_env,_stack,
 		     ":LAMBDA",fn->fcn_name,tail);
 
   if (fn->lambda_synchronized) {
@@ -186,6 +186,86 @@ lispval lambda_call(struct KNO_STACK *_stack,
     _stack->stack_env->env_copy=NULL;}
   _stack->stack_env=NULL;
 
+  return result;
+}
+
+lispval direct_lambda_call(struct KNO_STACK *_stack,
+			   struct KNO_LAMBDA *fn,
+			   int n,lispval *args)
+{
+  lispval result = VOID;
+  lispval *proc_vars=fn->lambda_vars;
+  kno_lexenv proc_env=fn->lambda_env;
+  kno_lexenv call_env=proc_env;
+  int n_vars = fn->lambda_n_vars;
+  int arity = fn->fcn_arity, min_arity = fn->fcn_min_arity;
+
+  if (_stack == NULL) _stack=kno_stackptr;
+
+  if (n < min_arity)
+    return kno_err(kno_TooFewArgs,fn->fcn_name,NULL,VOID);
+  else if ( (arity>=0) && (n>arity) )
+    return kno_err(kno_TooManyArgs,fn->fcn_name,NULL,VOID);
+  else {}
+
+  if (_stack->stack_label == NULL) {
+    if (fn->fcn_name)
+      _stack->stack_label=fn->fcn_name;
+    else {
+      _stack->stack_label=lambda_id(fn);
+      U8_SETBITS(_stack->stack_flags,KNO_STACK_FREE_LABEL);}}
+
+  _stack->stack_type = kno_lambda_stack_type;
+
+  int tail = (fn->lambda_synchronized) ? (0) :
+    ( (_stack->stack_caller) &&
+      (_stack->stack_caller->stack_flags & KNO_STACK_TAILPOS) &&
+      (! ((fn->fcn_call) & KNO_FCN_CALL_NOTAIL) ) );
+
+  int i = 0, max_positional = (arity < 0) ? (n_vars-1) : (arity);
+  int last_positional = (arity < 0) ?
+    ((n < max_positional) ? (n) : (max_positional)) :
+    (n);
+  lispval *inits = fn->lambda_inits;
+  while (i < last_positional) {
+    lispval arg = args[i];
+    if (KNO_DEFAULTP(arg)) {args[i] = KNO_VOID;}
+    i++;}
+  if (inits) {
+    while (i < max_positional) {
+      lispval default_expr = inits[i];
+      if (!(VOIDP(default_expr))) {
+	lispval default_value = fast_stack_eval(default_expr,proc_env,_stack);
+	if (KNO_ABORTED(default_value))
+	  return default_value;
+	args[i++] = default_value;}}}
+  else i = max_positional;
+  if (arity < 0) {
+    lispval old_arg = args[i];
+    if (i<n)
+      args[i] = get_rest_arg(args+i,n-i);
+    else args[i] = KNO_EMPTY_LIST;
+    kno_decref(old_arg);
+    i++;}
+
+  struct KNO_LEXENV stack_env = { 0 };
+  struct KNO_SCHEMAP bindings = { 0 };
+  init_static_env(n_vars,proc_env,&bindings,&stack_env,
+		  proc_vars,args);
+
+  /* If we're synchronized, lock the mutex. */
+  if (fn->lambda_synchronized) u8_lock_mutex(&(fn->lambda_lock));
+
+  result = eval_body(fn->lambda_start,call_env,_stack,
+		     ":LAMBDA",fn->fcn_name,tail);
+
+  if (fn->lambda_synchronized) {
+    /* If we're synchronized, finish any tail calls and unlock the
+       mutex. */
+    result = kno_finish_call(result);
+    u8_unlock_mutex(&(fn->lambda_lock));}
+
+  kno_recycle_lexenv(call_env);
   return result;
 }
 
