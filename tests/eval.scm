@@ -50,7 +50,7 @@
 	(op4 (make-opcode 200))
 	(bad-opcode (make-opcode 1666)))
     (errtest (name->opcode 0x334))
-    (errtest (make-opcode 3192))
+    (errtest (make-opcode 0x2000))
     (errtest (make-opcode 33.5))
     (errtest (make-opcode (* 1024 1024 1024 1024 1024 1024 1024 1024 1024)))
     (applytest string? (lisp->string op4))
