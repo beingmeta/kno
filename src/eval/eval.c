@@ -565,6 +565,9 @@ static lispval opcode_eval(lispval opcode,lispval expr,
 			   kno_lexenv env,
 			   kno_stack _stack,
 			   int tail);
+lispval op_eval_expr(struct KNO_STACK *eval_stack,
+		     lispval head,lispval expr,kno_lexenv env,
+		     int tail);
 static lispval choice_eval(lispval expr,kno_lexenv env,
 			   struct KNO_STACK *_stack,
 			   int tail);
@@ -663,7 +666,8 @@ lispval pair_eval(lispval head,lispval expr,kno_lexenv env,
   kno_lisp_type headtype = KNO_TYPEOF(headval);
   switch (headtype) {
   case kno_opcode_type:
-    result = opcode_eval(headval,expr,env,eval_stack,tail); break;
+    result = op_eval_expr(eval_stack,headval,expr,env,tail);
+    break;
   case kno_cprim_type: case kno_lambda_type: {
     struct KNO_FUNCTION *f = (struct KNO_FUNCTION *) headval;
     if (f->fcn_name) eval_stack->stack_label=f->fcn_name;
