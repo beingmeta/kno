@@ -55,7 +55,7 @@
   
 (define (temp-arglist n (arglist '()))
   (if (= n 0)
-      (reverse arglist)
+      arglist
       (temp-arglist (-1+ n)
 		    (cons (string->symbol (glom "_arg_" n))
 			  arglist))))
