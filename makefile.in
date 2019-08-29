@@ -1848,6 +1848,10 @@ build-setup.debian: staging/build-setup.debian.core \
 build-setup.redhat:
 	sudo rpm -Uvh libedit-devel
 
+macports-build-setup:
+	sudo port install  curl curl-ca-bundle exif libexif qrencode libpng imagemagick ldns unixODBC sqlite3 \
+		leveldb snappy rocksdb mongo-c-driver libarchive libzip zlib zmq-devel hyphen python37
+
 .PHONY: debian-build-setup rpm-build-setup
 
 # The mod_knocgi module
