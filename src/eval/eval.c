@@ -756,28 +756,32 @@ static lispval get_headval(lispval head,kno_lexenv env,kno_stack eval_stack,
 {
   lispval headval = VOID;
   if (KNO_IMMEDIATEP(head)) {
-    /* This is never reached, because we only go to get_headval if head *isn't*
-       an opcode. */
-    /* if (KNO_OPCODEP(head)) return head; else */
-    if (KNO_LEXREFP(head)) {
+    kno_lisp_type head_type = KNO_IMMEDIATE_TYPE(head);
+    switch (head_type) {
+    case kno_lexref_type: {
       headval=kno_lexref(head,env);
       if ( (KNO_CONSP(headval)) && (KNO_MALLOCD_CONSP(headval)) )
-	*gc_headval=1;}
-    else if (KNO_SYMBOLP(head)) {
-      if (head == quote_symbol) return KNO_QUOTE_OPCODE;
-      headval=kno_symeval(head,env);
-      if (KNO_CONSP(headval)) *gc_headval=1;}
-    else headval = head;}
+	*gc_headval=1;
+      return headval;}
+    case kno_fcnid_type: {
+      headval=kno_fcnid_ref(head);
+      *gc_headval=0;
+      return headval;}
+    case kno_symbol_type:
+      if (head == quote_symbol)
+	return KNO_QUOTE_OPCODE;
+      else {
+	headval=kno_symeval(head,env);
+	if (KNO_CONSP(headval)) *gc_headval=1;
+	return headval;}
+    default:
+      return kno_err("NotEvalable","op_pair_eval",NULL,head);}}
   else if ( (PAIRP(head)) || (CHOICEP(head)) ) {
     headval=stack_eval(head,env,eval_stack);
     headval=simplify_value(headval);
-    *gc_headval=1;}
-  else headval=head;
-  if (KNO_ABORTED(headval)) return headval;
-  else if (KNO_FCNIDP(headval))
-    headval=kno_fcnid_ref(headval);
-  else NO_ELSE;
-  return headval;
+    if (KNO_MALLOCD_CONSP(headval)) *gc_headval=1;
+    return headval;}
+  else return kno_err("NotEvalable","op_pair_eval",NULL,head);
 }
 
 KNO_FASTOP lispval arg_eval(lispval x,kno_lexenv env,struct KNO_STACK *stack)

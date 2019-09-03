@@ -4,7 +4,7 @@ static lispval handle_special_opcode(lispval opcode,lispval args,lispval expr,
                                      kno_lexenv env,
                                      kno_stack _stack,
 				     int tail);
-static lispval op_get_headval(lispval head,kno_lexenv env,kno_stack eval_stack,
+static lispval get_headval(lispval head,kno_lexenv env,kno_stack eval_stack,
 			      int *gc_headval);
 KNO_FASTOP lispval op_eval(kno_stack _stack,lispval x,kno_lexenv env,int tail);
 static lispval handle_table_opcode(lispval opcode,lispval expr,
@@ -37,7 +37,7 @@ lispval op_eval_expr(struct KNO_STACK *eval_stack,
     (KNO_OPCODEP(head)) ? (head) :
     (KNO_FCNIDP(head)) ? kno_fcnid_ref(head) :
     (KNO_APPLICABLEP(head)) ? (head) :
-    (op_get_headval(head,env,eval_stack,&gc_head));
+    (get_headval(head,env,eval_stack,&gc_head));
   if (ABORTED(headval)) return headval;
   else if (CHOICEP(headval))
     return eval_apply("choice",headval,n_args,arg_exprs,env,eval_stack,tail);
@@ -100,7 +100,7 @@ lispval op_eval_expr(struct KNO_STACK *eval_stack,
       lispval fn_val = (KNO_OPCODEP(fn_expr)) ? (fn_expr) :
 	(KNO_FCNIDP(fn_expr)) ? (kno_fcnid_ref(fn_expr)) :
 	(KNO_APPLICABLEP(fn_expr)) ? (fn_expr) :
-	(op_get_headval(fn_expr,env,eval_stack,&gc_head));
+	(get_headval(fn_expr,env,eval_stack,&gc_head));
       if (KNO_ABORTED(fn_val)) return fn_val;
       else if (headval == KNO_APPLY_N_OPCODE) {
 	lispval arg_count = pop_arg(arg_exprs);
@@ -186,35 +186,6 @@ lispval op_eval_expr(struct KNO_STACK *eval_stack,
   return result;
 }
       
-static lispval op_get_headval(lispval head,kno_lexenv env,kno_stack eval_stack,
-			      int *gc_headval)
-{
-  lispval headval = VOID;
-  if (KNO_IMMEDIATEP(head)) {
-    kno_lisp_type head_type = KNO_IMMEDIATE_TYPE(head);
-    switch (head_type) {
-    case kno_lexref_type: {
-      headval=kno_lexref(head,env);
-      if ( (KNO_CONSP(headval)) && (KNO_MALLOCD_CONSP(headval)) )
-	*gc_headval=1;
-      return headval;}
-    case kno_symbol_type:
-      if (head == quote_symbol)
-	return KNO_QUOTE_OPCODE;
-      else {
-	headval=kno_symeval(head,env);
-	if (KNO_CONSP(headval)) *gc_headval=1;
-	return headval;}
-    default:
-      return kno_err("NotEvalable","op_pair_eval",NULL,head);}}
-  else if ( (PAIRP(head)) || (CHOICEP(head)) ) {
-    headval=op_eval(eval_stack,head,env,0);
-    headval=simplify_value(headval);
-    if (KNO_MALLOCD_CONSP(headval)) *gc_headval=1;
-    return headval;}
-  else return kno_err("NotEvalable","op_pair_eval",NULL,head);
-}
-
 static lispval unbound_error(lispval sym,kno_lexenv env)
 {
   /* TODO: Add something to identify env? */
