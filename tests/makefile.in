@@ -125,29 +125,10 @@ schemetest schemetests scheme: r4rs exceptions choices sequences breaks numbers 
 	fileprims xml
 optscheme:
 	@${header} "■■■■■■■■ Running optimized scheme tests ${RUNCONF}"
-	@${RUN} ${KNOX} r4rs.scm TESTOPTIMIZED=yes ${RUNCONF}
-	@${RUN} ${KNOX} choices.scm TESTOPTIMIZED=yes ${RUNCONF}
-	@${RUN} ${KNOX} sequences.scm TESTOPTIMIZED=yes ${RUNCONF}
-	@${RUN} ${KNOX} misctest.scm TESTOPTIMIZED=yes ${RUNCONF}
-	@${RUN} ${KNOX} configs.scm TESTOPTIMIZED=yes ${RUNCONF} FOO=quux "CONFVAR=88;XCONF=baz" TESTSYM=:TESTSYM TESTSTRING=\\:COLON
-	@${RUN} ${KNOX} reflect.scm TESTOPTIMIZED=yes ${RUNCONF}
-	@${RUN} ${KNOX} exceptions.scm TESTOPTIMIZED=yes ${RUNCONF}
-	@${RUN} ${KNOX} picktest.scm TESTOPTIMIZED=yes ${RUNCONF}
-	@${RUN} ${KNOX} cachecall.scm TESTOPTIMIZED=yes ${RUNCONF}
-	@${RUN} ${KNOX} timefns.scm TESTOPTIMIZED=yes ${RUNCONF}
-	@${RUN} ${KNOX} sysprims.scm TESTOPTIMIZED=yes ${RUNCONF}
-	#@${RUN} ${KNOX} modules.scm TESTOPTIMIZED=yes ${RUNCONF}
-	@${RUN} ${KNOX} compounds.scm TESTOPTIMIZED=yes ${RUNCONF}
-	@${RUN} ${KNOX} i18n.scm TESTOPTIMIZED=yes ${RUNCONF}
-	@${RUN} ${KNOX} fileprims.scm TESTOPTIMIZED=yes ${RUNCONF}
-	@${RUN} ${KNOX} lambda.scm TESTOPTIMIZED=yes ${RUNCONF}
-	@${RUN} ${KNOX} numbers.scm TESTOPTIMIZED=yes ${RUNCONF}
-	@${RUN} ${KNOX} regex.scm TESTOPTIMIZED=yes ${RUNCONF}
-	@${RUN} ${KNOX} threads.scm TESTOPTIMIZED=yes ${RUNCONF}
-	@${RUN} ${KNOX} gctests.scm TESTOPTIMIZED=yes ${RUNCONF}
-	@${RUN} ${KNOX} xml.scm TESTOPTIMIZED=yes ${RUNCONF}
-	@${RUN} ${KNOX} texttools.scm TESTOPTIMIZED=yes ${RUNCONF}
-	@${RUN} ${KNOX} eval.scm TESTOPTIMIZED=yes ${RUNCONF}
+	make RUNCONF="TESTOPTIMIZED=yes ${RUNCONF}" r4rs choices sequences misctest configs reflect \
+	  exceptions picktest cachecall timefns sysprims compounds i18n fileprims lambda \
+	  numbers regex threads xml texttools eval binders conditionals errfns \
+          requests sysprims timefns breaks eval gctests
 	@${header} "■■■■■■■■ Completed optimized scheme tests ${RUNCONF}"
 
 loadmods load_modules:
