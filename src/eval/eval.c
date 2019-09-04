@@ -776,10 +776,14 @@ static lispval get_headval(lispval head,kno_lexenv env,kno_stack eval_stack,
 	return headval;}
     default:
       return kno_err("NotEvalable","op_pair_eval",NULL,head);}}
+  else if ( (KNO_FUNCTIONP(head)) ||
+	    (TYPEP(head,kno_evalfn_type)) ||
+	    (KNO_APPLICABLEP(head)) )
+    return head;
   else if ( (PAIRP(head)) || (CHOICEP(head)) ) {
     headval=stack_eval(head,env,eval_stack);
     headval=simplify_value(headval);
-    if (KNO_MALLOCD_CONSP(headval)) *gc_headval=1;
+    if ( (KNO_MALLOCDP(headval)) ) *gc_headval=1;
     return headval;}
   else return kno_err("NotEvalable","op_pair_eval",NULL,head);
 }
