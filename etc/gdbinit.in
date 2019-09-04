@@ -1,4 +1,4 @@
-directory @source_dir@/kno:@source_dir@/libu8:@source_dir@/lingo:@extra_sources@
+directory @source_dir@/kno:@source_dir@/libu8:@extra_sources@
 set env UNDERGDB=yes
 set env STDLOG=yes
 set env KNO_FOREGROUND=yes
