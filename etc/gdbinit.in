@@ -185,6 +185,7 @@ define celt
   printf "%s\n",kno_lisp2string(((&((struct KNO_CHOICE *)$arg0)->choice_0)[$arg1]))
   print/x ((&((struct KNO_CHOICE *)$arg0)->choice_0)[$arg1])
   showtype $
+end
 define oidinfo
   printf "oidinfo: %s\n", (_kno_oid_info($arg0))
 end
