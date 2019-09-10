@@ -1561,7 +1561,11 @@ static lispval call_continuation(struct KNO_STACK *stack,
 }
 
 DEFPRIM1("call/cc",callcc,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(CALL/CC *arg0*)` **undocumented**",
+	 "`(call/cc *fn.callback*)` applies *fn.callback* to a single argument, "
+	 "which is a *continuation* procedure. When the application of *fn.callback* "
+	 "calls *continuation* to an argument, that argument is immediately returned "
+	 "by the call to `call/cc`. If *continuation* is never called, `call/cc` simply "
+	 "returns the value returned by *fn.callback*.",
 	 kno_any_type,KNO_VOID);
 static lispval callcc(lispval proc)
 {
@@ -2366,6 +2370,7 @@ static void link_local_cprims()
   KNO_LINK_PRIM("%fixchoice",fixchoice_prim,1,kno_scheme_module);
 
   KNO_LINK_PRIM("call/cc",callcc,1,kno_scheme_module);
+  KNO_LINK_ALIAS("call-with-current-continuation",callcc,kno_scheme_module);
 
   KNO_LINK_PRIM("use-threadcache",use_threadcache_prim,1,kno_scheme_module);
 
