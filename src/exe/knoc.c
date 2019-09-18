@@ -170,17 +170,24 @@ static u8_exception last_exception = NULL;
 
 static int debug_maxelts = 32, debug_maxchars = 80;
 
+static u8_mutex console_lock;
+
 static void close_consoles()
 {
+  u8_lock_mutex(&console_lock);
+  u8_input in = inconsole;
+  u8_output out = outconsole;
+  u8_output err = errconsole;
+  kno_lexenv env = console_env;
+  inconsole = outconsole = errconsole = NULL;
+  console_env = NULL;
+  u8_unlock_mutex(&console_lock);
   if (inconsole) {
-    u8_close((u8_stream)inconsole);
-    inconsole = NULL;}
+    close((u8_stream)inconsole);}
   if (outconsole) {
-    u8_close((u8_stream)outconsole);
-    outconsole = NULL;}
+    u8_close((u8_stream)outconsole);}
   if (errconsole) {
-    u8_close((u8_stream)errconsole);
-    errconsole = NULL;}
+    u8_close((u8_stream)errconsole);}
   if (console_env) {
     kno_recycle_lexenv(console_env);
     console_env = NULL;}
@@ -844,6 +851,7 @@ int main(int argc,char **argv)
     console_bugdir = u8_abspath("./_bugjar",NULL);
 
   /* Initialize console streams */
+  u8_init_mutex(&console_lock);
   inconsole = in;
   outconsole = out;
   errconsole = err;
