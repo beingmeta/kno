@@ -192,7 +192,7 @@
   (applytest "3Dec1979 03:15:00AM" get bday 'shortstring)
   ;; (applytest "03:15:00 AM" get bday 'timestring)
   (applytest "12/03/1979" get bday 'datestring)
-  (applytest "Monday 03 December 1979 03:15:00 AM -0500" get bday 'fullstring)
+;;  (applytest "Monday 03 December 1979 03:15:00 AM -0500" get bday 'fullstring)
   (applytest 'mon get bday 'dowid)
   (applytest 'dec get bday 'monthid))
   
