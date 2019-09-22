@@ -1637,7 +1637,9 @@ static lispval minus_op(lispval exprs,kno_lexenv env,kno_stack stack)
 {
   lispval arg0_expr = pop_arg(exprs);
   lispval arg0 = op_eval(stack,arg0_expr,env,0);
-  if (exprs == KNO_EMPTY_LIST) {
+  if (EMPTYP(arg0))
+    return KNO_EMPTY;
+  else if (exprs == KNO_EMPTY_LIST) {
     if (KNO_FIXNUMP(arg0)) {
       int ix = kno_getint(arg0);
       int nix = -ix;
