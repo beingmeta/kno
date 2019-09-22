@@ -179,18 +179,18 @@ static void close_consoles()
   u8_output out = outconsole;
   u8_output err = errconsole;
   kno_lexenv env = console_env;
-  inconsole = outconsole = errconsole = NULL;
+  inconsole = NULL;
+  outconsole = errconsole = NULL;
   console_env = NULL;
   u8_unlock_mutex(&console_lock);
-  if (inconsole) {
-    close((u8_stream)inconsole);}
-  if (outconsole) {
-    u8_close((u8_stream)outconsole);}
-  if (errconsole) {
-    u8_close((u8_stream)errconsole);}
-  if (console_env) {
-    kno_recycle_lexenv(console_env);
-    console_env = NULL;}
+  if (in) {
+    u8_close_input(in);}
+  if (out) {
+    u8_close_output(out);}
+  if (err) {
+    u8_close_output(err);}
+  if (env) {
+    kno_recycle_lexenv(env);}
 }
 
 static lispval oid_listfn(lispval item)
