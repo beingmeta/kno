@@ -34,7 +34,7 @@ KNO_EXPORT lispval kno_init_compound_from_elts
   int incref      = (refmask==KNO_COMPOUND_INCREF);
   int decref      = (refmask==KNO_COMPOUND_USEREF);
   int copyref     = (refmask==KNO_COMPOUND_COPYREF);
-  lispval *write, *limit, initfn = KNO_FALSE;
+  lispval *write, *limit;
   lispval *read = elts;
   if (PRED_FALSE((n<0)))
     return kno_type_error(_("positive byte"),"kno_init_compound_from_elts",
@@ -61,37 +61,34 @@ KNO_EXPORT lispval kno_init_compound_from_elts
     p->compound_seqoff = KNO_COMPOUND_HEADER_LENGTH(flags);
   else p->compound_seqoff = -1;
   p->compound_length = n;
-  if (n>0) {
-    write = &(p->compound_0);
-    limit = write+n;
-    while (write<limit) {
-      lispval value = *read++;
-      if (value == KNO_NULL) {
-	lispval *start = &(p->compound_0); int n =0;
-	u8_byte buf[64];
-	if ( (incref) || (copyref) || (decref) ) {
-	  kno_decref_vec(start,write-start);}
-	if (decref) {
-	  kno_decref_vec(read,((elts+n)-read));}
-	u8_free(p);
-	return kno_err(kno_NullPtr,"kno_init_compound_from_elts",
-		       u8_bprintf(buf,"at elt#%d",read-elts-1),
-		       tag);}
-      else if (copyref)
-	value = kno_copier(value,0);
-      else if (incref)
-	kno_incref(value);
-      else NO_ELSE;
-      *write++ = value;}
-    if (KNO_ABORTP(initfn)) {
-      lispval *scan = &(p->compound_0);
-      if ( (incref) || (copyref) || (decref) ) {
-	while (scan<write) {
-	  kno_decref(*scan);
-	  scan++;}}
-      return initfn;}
-    else return LISP_CONS(p);}
-  else return LISP_CONS(p);
+  if (n>0)
+    if (read) {
+      write = &(p->compound_0);
+      limit = write+n;
+      while (write<limit) {
+	lispval value = *read++;
+	if (value == KNO_NULL) {
+	  lispval *start = &(p->compound_0); int n =0;
+	  u8_byte buf[64];
+	  if ( (incref) || (copyref) || (decref) ) {
+	    kno_decref_vec(start,write-start);}
+	  if (decref) {
+	    kno_decref_vec(read,((elts+n)-read));}
+	  u8_free(p);
+	  return kno_err(kno_NullPtr,"kno_init_compound_from_elts",
+			 u8_bprintf(buf,"at elt#%d",read-elts-1),
+			 tag);}
+	else if (copyref)
+	  value = kno_copier(value,0);
+	else if (incref)
+	  kno_incref(value);
+	else NO_ELSE;
+	*write++ = value;}}
+    else {
+      int i = 0; while (i<n) {
+	*write++ = KNO_FALSE;
+	i++;}}
+  return LISP_CONS(p);
 }
 
 KNO_EXPORT lispval kno_init_compound
