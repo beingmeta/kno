@@ -281,10 +281,15 @@ KNO_FASTOP lispval reduce_op(kno_stack stack,
       kno_decref(state);
       kno_decref(arg);
       return reduced;}
-    if (state != reduced) {
+    if (KNO_EMPTYP(reduced)) {
+      kno_decref(state);
+      state = reduced;
+      break;}
+    else if (state != reduced) {
       lispval prev_state = state;
       state = reduced;
-      kno_decref(prev_state);}}
+      kno_decref(prev_state);}
+    else NO_ELSE;}
   return kno_simplify_choice(state);
 }
 
@@ -1647,11 +1652,33 @@ static lispval minus_op(lispval exprs,kno_lexenv env,kno_stack stack)
     else if (KNO_FLONUMP(arg0)) {
       double d = KNO_FLONUM(arg0);
       return kno_make_flonum(-d);}
+    else if (KNO_CHOICEP(arg0)) {
+      lispval results = KNO_EMPTY;
+      KNO_DO_CHOICES(arg,arg0) {
+	if (KNO_FIXNUMP(arg)) {
+	  long long ix = kno_getint(arg);
+	  long long nix = -ix;
+	  lispval r = KNO_INT(nix);
+	  KNO_ADD_TO_CHOICE(results,r);}
+	else if (KNO_FLONUMP(arg)) {
+	  double d = KNO_FLONUM(arg);
+	  lispval r = kno_make_flonum(-d);
+	  KNO_ADD_TO_CHOICE(results,r);}
+	else {
+	  lispval r = kno_subtract(KNO_FIXNUM_ZERO,arg0);
+	  if (KNO_ABORTED(r)) {
+	    kno_decref(results);
+	    return r;}
+	  else {
+	    KNO_ADD_TO_CHOICE(results,r);}}}
+      return kno_simplify_choice(results);}
     else {
       lispval result = kno_subtract(KNO_FIXNUM_ZERO,arg0);
       kno_decref(arg0);
       return result;}}
-  else return nd_reduce_op(stack,exprs,env,arg0,minus_reduce);
+  else {
+    lispval state = kno_simplify_choice(arg0);
+    return nd_reduce_op(stack,exprs,env,state,minus_reduce);}
 }
 
 KNO_FASTOP lispval mult_reduce(lispval state,lispval step,int *done)
