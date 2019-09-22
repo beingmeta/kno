@@ -933,19 +933,19 @@ int main(int argc,char **argv)
     kno_set_config("INTERPRETER",interpval);
     kno_decref(interpval);}
 
-  kno_defn((lispval)env,
-           kno_make_cprim1("BACKTRACE",backtrace_prim,MIN_ARGS(0),
-                           "Dumps a backtrace of the last error, either "
-                           "into a file or to the console"));
+  lispval btprim = kno_make_cprim1("BACKTRACE",backtrace_prim,MIN_ARGS(0),
+				   "Dumps a backtrace of the last error, either "
+				   "into a file or to the console");
+  kno_defn((lispval)env,btprim);
   kno_defalias((lispval)env,"%","BACKTRACE");
+  kno_decref(btprim);
 
-  kno_defn((lispval)env,
-           kno_make_cprim0("%HISTORY",history_prim,MIN_ARGS(0),
-                           "Gets the current value history"));
+  lispval histprim = kno_make_cprim0("%HISTORY",history_prim,MIN_ARGS(0),
+				     "Gets the current value history");
+  kno_defn((lispval)env,histprim);
+  kno_decref(histprim);
 
-  kno_def_evalfn((lispval)env,"%HISTREF",histref_evalfn,
-		 "");
-
+  kno_def_evalfn((lispval)env,"%HISTREF",histref_evalfn,"");
 
   link_local_cprims();
 
