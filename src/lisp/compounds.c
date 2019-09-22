@@ -61,9 +61,9 @@ KNO_EXPORT lispval kno_init_compound_from_elts
     p->compound_seqoff = KNO_COMPOUND_HEADER_LENGTH(flags);
   else p->compound_seqoff = -1;
   p->compound_length = n;
-  if (n>0)
+  write = &(p->compound_0);
+  if (n>0) {
     if (read) {
-      write = &(p->compound_0);
       limit = write+n;
       while (write<limit) {
 	lispval value = *read++;
@@ -87,7 +87,7 @@ KNO_EXPORT lispval kno_init_compound_from_elts
     else {
       int i = 0; while (i<n) {
 	*write++ = KNO_FALSE;
-	i++;}}
+	i++;}}}
   return LISP_CONS(p);
 }
 
