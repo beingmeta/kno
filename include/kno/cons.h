@@ -897,7 +897,7 @@ typedef struct KNO_COMPOUND {
   KNO_TAGGED_HEAD;
   int compound_length;
   char compound_ismutable, compound_isopaque;
-  char compound_seqoff;
+  char compound_seqoff, compound_istable;
   u8_rwlock compound_rwlock;
   lispval compound_0;} KNO_COMPOUND;
 typedef struct KNO_COMPOUND *kno_compound;

@@ -4391,7 +4391,8 @@ KNO_EXPORT lispval kno_getassocs(lispval arg)
       lispval values=kno_get(arg,key,VOID);
       if (!(VOIDP(values))) {
         lispval assoc=kno_init_pair(NULL,key,values);
-        kno_incref(key); kno_incref(values);
+        kno_incref(key);
+	kno_incref(values);
         CHOICE_ADD(results,assoc);}}
     kno_decref(keys);
     return results;}

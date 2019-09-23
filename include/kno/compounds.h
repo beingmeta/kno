@@ -11,6 +11,8 @@
 #define KNO_COMPOUNDS_H_INFO "include/kno/compounds.h"
 #endif
 
+#include "cons.h"
+
 /* Compounds */
 
 #define KNO_COMPOUNDP(x) (KNO_TYPEOF(x) == kno_compound_type)

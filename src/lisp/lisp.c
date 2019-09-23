@@ -435,7 +435,6 @@ KNO_EXPORT int kno_init_lisp_types()
   kno_init_recycle_c();
   kno_init_copy_c();
   kno_init_compare_c();
-  kno_init_compounds_c();
   kno_init_misctypes_c();
   kno_init_oids_c();
   kno_init_unparse_c();
@@ -451,6 +450,7 @@ KNO_EXPORT int kno_init_lisp_types()
   kno_init_stacks_c();
   kno_init_apply_c();
   kno_init_sequences_c();
+  kno_init_compounds_c();
   kno_init_consblocks_c();
   kno_init_fcnids_c();
   kno_init_build_info();

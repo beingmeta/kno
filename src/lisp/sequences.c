@@ -974,15 +974,6 @@ static struct KNO_SEQFNS secret_seqfns={
   NULL,
   NULL,
   makesecret};
-static struct KNO_SEQFNS compound_seqfns={
-  kno_seq_length,
-  kno_seq_elt,
-  NULL,
-  kno_position,
-  kno_search,
-  kno_seq_elts,
-  NULL};
-
 
 KNO_EXPORT void kno_init_sequences_c()
 {
@@ -993,7 +984,6 @@ KNO_EXPORT void kno_init_sequences_c()
   kno_seqfns[kno_packet_type]= &packet_seqfns;
   kno_seqfns[kno_secret_type]= &secret_seqfns;
   kno_seqfns[kno_vector_type]= &vector_seqfns;
-  kno_seqfns[kno_compound_type]= &compound_seqfns;
   kno_seqfns[kno_numeric_vector_type]= &numeric_vector_seqfns;
 
   u8_register_source_file(_FILEINFO);
