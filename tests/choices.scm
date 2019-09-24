@@ -737,6 +737,39 @@
 (applytest 'err sorted string-choice length-voidfn)
 (applytest 'err rsorted string-choice length-voidfn)
 
+;;; Choices (esp failures) and boolean ops
+
+(define one-half 1/2)
+
+(evaltest "foo" (and {3 4} "foo"))
+(evaltest {8 9} (and {3 4} { 8 9}))
+(evaltest {} (and {3 4} #t {8 9} (intersection 3/4 one-half)))
+
+(evaltest "foo" (and {3 4} "foo"))
+(evaltest {8 9} (and {3 4} { 8 9}))
+(evaltest {} (and {3 4} #t {8 9} (intersection 3/4 one-half)))
+
+(evaltest {3/4 1/2} (or #f {3/4 one-half}))
+(evaltest {3/4 1/2} (or #f  {3/4 one-half}))
+(evaltest {3/4 1/2} (or {} {3/4 one-half}))
+
+;;; Choices (esp failures) and iterative expressions
+
+(define test-lst '(#[x "3" y "4"] #[x "3" z "4"] #[q "3" z "4"]))
+
+(evaltest '(#[q "3" z "4"])
+	  (let ((scan test-lst)) 
+	    (while (and (pair? scan) (get (car scan) 'x)) (set! scan (cdr scan)))
+	    scan))
+(evaltest test-lst
+	  (let ((scan test-lst)) 
+	    (until (and (pair? scan) (get (car scan) 'x)) (set! scan (cdr scan)))
+	    scan))
+(evaltest test-lst
+	  (let ((scan test-lst)) 
+	    (until (and (pair? scan) (get (car scan) 'q)) (set! scan (cdr scan)))
+	    scan))
+
 ;;; Bigger sets
 
 (define big-choice-size 20000)

@@ -6,25 +6,31 @@ static U8_MAYBE_UNUSED lispval moduleid_symbol;
 #define stack_eval(x,env,s) (_kno_fast_eval(x,env,s,0))
 #define stack_tail_eval(x,env,s) (_kno_fast_eval(x,env,s,1))
 
-static int testeval(lispval expr,kno_lexenv env,
+static int testeval(lispval expr,kno_lexenv env,int fail_val,
                     lispval *whoops,kno_stack s) U8_MAYBE_UNUSED;
 
-static int testeval(lispval expr,kno_lexenv env,lispval *whoops,
+static int testeval(lispval expr,kno_lexenv env,int fail_val,
+		    lispval *whoops,
                     kno_stack _stack)
 {
   lispval val = _kno_fast_eval(expr,env,_stack,0);
-  if (KNO_ABORTP(val)) {
+  if (KNO_CONSP(val)) {
+    kno_decref(val);
+    return 1;}
+  else if (KNO_ABORTED(val)) {
     *whoops = val;
     return -1;}
+  else if (KNO_FALSEP(val))
+    return 0;
+  else if (KNO_EMPTYP(val))
+    return fail_val;
   else if (KNO_VOIDP(val)) {
     *whoops = KNO_ERROR;
     return KNO_ERR(-1,kno_VoidBoolean,"testeval",NULL,expr);}
-  else if (KNO_FALSEP(val))
-    return 0;
-  else {
-    kno_decref(val);
-    return 1;}
+  else return 1;
 }
+#define TESTEVAL_FAIL_FALSE 0
+#define TESTEVAL_FAIL_TRUE  1
 
 KNO_FASTOP lispval _pop_arg(lispval *scan)
 {

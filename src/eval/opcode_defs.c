@@ -437,6 +437,7 @@ static lispval difference_op(lispval exprs,kno_lexenv env,kno_stack stack)
 
 KNO_FASTOP lispval and_reduce(lispval state,lispval step,int *done)
 {
+  /* Evaluate clauses until you get an error or a false/empty value */
   if ( (FALSEP(step)) || (EMPTYP(step)) ) {
     *done=1;
     return step;}
@@ -450,6 +451,7 @@ static lispval and_op(lispval exprs,kno_lexenv env,kno_stack stack,int tail)
 
 KNO_FASTOP lispval or_reduce(lispval state,lispval step,int *done)
 {
+  /* Evaluate clauses until you get an error or a non-false/non-empty value */
   if (! ( (FALSEP(step)) || (EMPTYP(step)) ) ) {
     *done = 1;
     return step;}
@@ -1144,9 +1146,9 @@ static lispval until_opcode(lispval expr,kno_lexenv env,kno_stack stack)
   if (VOIDP(test_expr))
     return kno_err(kno_SyntaxError,"KNO_LOOP_OPCODE",NULL,expr);
   lispval test_val = _kno_fast_eval(test_expr,env,stack,0);
-  if (KNO_ABORTED(test_val))
+  if (ABORTED(test_val))
     return test_val;
-  else while (FALSEP(test_val)) {
+  else while ( (FALSEP(test_val)) || (EMPTYP(test_val)) ) {
       lispval body_result=op_eval_body(loop_body,env,stack,"UNTIL",NULL,0);
       if (KNO_BROKEP(body_result))
         return KNO_FALSE;

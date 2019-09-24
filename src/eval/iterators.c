@@ -35,7 +35,7 @@ static lispval while_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   else if (! (PRED_TRUE( (KNO_PAIRP(body)) || (body == KNO_NIL) )) )
     return kno_err(kno_SyntaxError,"WHILE",NULL,expr);
   else {
-    while (testeval(test_expr,env,&result,_stack) == 1) {
+    while (testeval(test_expr,env,TESTEVAL_FAIL_FALSE,&result,_stack) == 1) {
       KNO_DOLIST(iter_expr,body) {
         lispval val = fast_eval(iter_expr,env);
         if (KNO_BROKEP(val))
@@ -58,7 +58,7 @@ static lispval until_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   else if (! (PRED_TRUE( (KNO_PAIRP(body)) || (body == KNO_NIL) )) )
     return kno_err(kno_SyntaxError,"UNTIL",NULL,expr);
   else {
-    while (testeval(test_expr,env,&result,_stack) == 0) {
+    while (testeval(test_expr,env,TESTEVAL_FAIL_TRUE,&result,_stack) == 0) {
       KNO_DOLIST(iter_expr,body) {
         lispval val = fast_eval(iter_expr,env);
         if (KNO_BROKEP(val))
