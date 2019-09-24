@@ -60,6 +60,10 @@
 			  (testopt defspec 'mutable)))
 	   (isopaque (or (and (pair? defspec) (position 'opaque defspec))
 			 (testopt defspec 'opaque)))
+	   (isseq (or (and (pair? defspec) (position 'sequence defspec))
+		      (getopt defspec 'sequence #f)))
+	   (istable (or (and (pair? defspec) (position 'table defspec))
+			(testopt defspec 'table)))
 	   (consfn (getopt defspec 'consfn))
 	   (stringfn (getopt defspec 'stringfn))
 	   (fields (cddr defrecord))
@@ -69,12 +73,12 @@
 	    (getopt defspec 'predicate (string->symbol (stringout name "?")))))
       `(begin (bind-default! %rewrite {})
 	 (defambda (,cons-method-name ,@fields)
-	   (,(if ismutable
-		 (if isopaque 
-		     make-opaque-mutable-compound make-mutable-compound)
-		 (if isopaque
-		     make-opaque-compound make-compound))
-	    ,tag-expr ,@field-names))
+	   (,make-xcompound ,tag-expr ,ismutable ,isopaque
+			    ,(cond ((not isseq) #f)
+				   ((eq? isseq 'tail) (length file-names))
+				   (else #t)) 
+			    ,istable
+			    ,@field-names))
 	 (define (,predicate-method-name ,name)
 	   (,compound-type? ,name ,tag-expr))
 	 ,@(forseq (field fields)

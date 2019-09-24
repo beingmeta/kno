@@ -893,13 +893,15 @@ typedef struct KNO_WRAPPER *kno_wrapper;
 
 /* Compound types */
 
-typedef struct KNO_COMPOUND {
-  KNO_TAGGED_HEAD;
-  int compound_length;
-  char compound_ismutable, compound_isopaque;
-  char compound_seqoff, compound_istable;
-  u8_rwlock compound_rwlock;
-  lispval compound_0;} KNO_COMPOUND;
+#define KNO_COMPOUND_HEADER(elt0)		\
+  KNO_TAGGED_HEAD;				\
+  int compound_length;				\
+  char compound_ismutable, compound_isopaque;	\
+  char compound_seqoff, compound_istable;	\
+  u8_rwlock compound_rwlock;			\
+  lispval elt0
+
+typedef struct KNO_COMPOUND {KNO_COMPOUND_HEADER(compound_0);} KNO_COMPOUND;
 typedef struct KNO_COMPOUND *kno_compound;
 
 /* Raw pointers */

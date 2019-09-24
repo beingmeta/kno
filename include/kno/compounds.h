@@ -70,10 +70,12 @@ KNO_EXPORT lispval kno_compound_ref(lispval arg,lispval tag,int off,lispval dflt
 #define KNO_COMPOUND_SEQOFFSET(x) \
   ((kno_consptr(struct KNO_COMPOUND *,x,kno_compound_type))->compound_seqoff)
 
-#define KNO_COMPOUND_HEADER(n) \
-  ((((n)&0x8f)<<8)|(KNO_COMPOUND_SEQUENCE))
 #define KNO_COMPOUND_HEADER_LENGTH(flags) \
-  ( ((flags)&(KNO_COMPOUND_SEQUENCE)) ? (((n)>>8)&(0x8f)) : (-1))
+  ( ((flags)&(KNO_COMPOUND_SEQUENCE)) ?	  \
+    ( ((flags)&(KNO_COMPOUND_TABLE)) ?	  \
+      ( (((n)>>8)&(0x8f))+1 )  :	  \
+      (((n)>>8)&(0x8f))) :		  \
+    (-1))
 
 #define KNO_BIG_COMPOUND_LENGTH 1024
 

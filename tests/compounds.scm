@@ -127,6 +127,10 @@
 (applytester iscompound? make-opaque-compound 'type11 3 4 "foo" '(bar))
 (applytester iscompound? make-mutable-compound 'type11 3 4 "foo" '(bar))
 (applytester iscompound? make-opaque-mutable-compound 'type11 3 4 "foo" '(bar))
+(applytester iscompound? make-xcompound 'type11 #f #f #f #f 3 4 "foo" '(bar))
+(applytester sequence? make-xcompound 'type11 #f #f #f 3 #t 4 "foo" '(bar))
+(applytester length= 4 make-xcompound 'type11 #f #f #f #t 3 4 "foo" '(bar))
+(applytester length= 2 make-xcompound 'type11 #f #f #f 2 3 4 "foo" '(bar))
 
 (applytester compound-opaque? make-opaque-compound 'type11 3 4 "foo" '(bar))
 (applytester compound-mutable? make-mutable-compound 'type11 3 4 "foo" '(bar))
@@ -134,7 +138,7 @@
 (applytester compound-opaque? make-opaque-mutable-compound 'type11 3 4 "foo" '(bar))
 
 (applytester 'err sequence->compound #("a" b 3) 'typeX #t #f 1/2)
-(applytester #f sequence? (sequence->compound #("a" b 3) 'typeX #t #f #f))
+(applytester #f sequence? (sequence->compound #("a" b 3) 'typeX #t #f #f #f))
 
 (applytester iscompound? sequence->compound #("a" b 3) 'typeX)
 (applytester iscompound? sequence->compound #("a" b 3) 'typeX #f #f 0)
@@ -143,7 +147,8 @@
 (applytester compound-opaque? sequence->compound #("a" b 3) 'typeX #t #t 0)
 (applytester compound-mutable? sequence->compound #("a" b 3) 'typeX #t #t 0)
 
-(define vec-compound (sequence->compound #("a" b 3 4 6 7) 'typeX #t #f 0))
+(define vec-compound (sequence->compound #("a" b 3 4 6 7) 'typeX #t #f 0 #f))
+(define vec2-compound (sequence->compound #("a" b 3 4 6 7) 'typeX #t #f 2 #f))
 (applytester #t iscompound? vec-compound)
 (applytester #f compound-opaque? vec-compound)
 (applytester #t compound-mutable? vec-compound)
@@ -151,6 +156,8 @@
 ;;(applytester #t length vec-compound)
 (applytester 3 compound-ref vec-compound 2)
 (applytester 3 compound-ref vec-compound 2 'typex)
+(applytest 6 length vec-compound)
+(applytest 4 length vec2-compound)
 (applytester "#%(typex \"a\" b 3 4 6 7)" lisp->string vec-compound)
 
 (errtest (sequence->compound 'foo 'type4))
