@@ -38,7 +38,9 @@ lispval op_eval_expr(struct KNO_STACK *eval_stack,
     (KNO_FCNIDP(head)) ? kno_fcnid_ref(head) :
     (KNO_APPLICABLEP(head)) ? (head) :
     (get_headval(head,env,eval_stack,&gc_head));
-  if (ABORTED(headval)) return headval;
+  if (KNO_FCNIDP(headval)) headval = kno_fcnid_ref(headval);
+  if (ABORTED(headval))
+    return headval;
   else if (CHOICEP(headval))
     return eval_apply("choice",headval,n_args,arg_exprs,env,eval_stack,tail);
   else if (gc_head) {
