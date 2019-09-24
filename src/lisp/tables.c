@@ -1603,6 +1603,8 @@ static unsigned int hash_lisp(lispval x)
   kno_lisp_type lisp_type = KNO_PTR_MANIFEST_TYPE(x);
   if (lisp_type == kno_cons_type) {
     struct KNO_CONS *cons = (struct KNO_CONS *)x;
+    if (PRED_FALSE(cons == NULL))
+      kno_raise(kno_NullPtr,"hash_lisp",NULL,KNO_VOID);
     lisp_type = KNO_CONS_TYPE(cons);
     switch (lisp_type) {
     case kno_string_type: {
