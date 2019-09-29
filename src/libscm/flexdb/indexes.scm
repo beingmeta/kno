@@ -130,9 +130,11 @@
       (set! v (indexctl index 'metadata 'keys)))
     (if (and (exists? v) v) v #f)))
 
-(define (get-new-size old opts (minimum))
+(define (get-new-size old opts (minimum) (oldsize))
   (default! minimum (getopt opts 'minsize (config 'MINSIZE 100)))
-  (let ((specified (getopt opts 'newsize (config 'newsize 2.0))))
+  (let ((specified (or (getopt opts 'newsize (config 'newsize 2.0))
+		       (config 'newsize 2.0))))
+    (info%watch old minimum specified "\nOPTS" opts)
     (if (not (number? specified)) (irritant specified |BadNewIndexSize|))
     (max
      (if (and (exact? specified) (> specified 42))
