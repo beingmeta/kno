@@ -129,8 +129,8 @@
 (applytester iscompound? make-opaque-mutable-compound 'type11 3 4 "foo" '(bar))
 (applytester iscompound? make-xcompound 'type11 #f #f #f #f 3 4 "foo" '(bar))
 (applytester sequence? make-xcompound 'type11 #f #f #f 3 #t 4 "foo" '(bar))
-(applytester length= 4 make-xcompound 'type11 #f #f #f #t 3 4 "foo" '(bar))
-(applytester length= 2 make-xcompound 'type11 #f #f #f 2 3 4 "foo" '(bar))
+(applytest length= 4 make-xcompound 'type11 #f #f #f #t 3 4 "foo" '(bar))
+(applytest length= 2 make-xcompound 'type11 #f #f #f 2 3 4 "foo" '(bar))
 
 (applytester compound-opaque? make-opaque-compound 'type11 3 4 "foo" '(bar))
 (applytester compound-mutable? make-mutable-compound 'type11 3 4 "foo" '(bar))

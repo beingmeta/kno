@@ -13,6 +13,7 @@
 
 KNO_EXPORT u8_condition kno_RangeError;
 KNO_EXPORT u8_condition kno_SecretData;
+KNO_EXPORT u8_condition kno_NotASequence;
 
 typedef struct KNO_SEQFNS {
   int (*len)(lispval x);

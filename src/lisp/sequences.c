@@ -26,6 +26,7 @@
 #include <limits.h>
 
 u8_condition kno_SecretData=_("SecretData");
+u8_condition kno_NotASequence=_("NotASequence");
 
 struct KNO_SEQFNS *kno_seqfns[KNO_TYPE_MAX];
 
@@ -88,7 +89,9 @@ KNO_FASTOP int seq_length(lispval x)
 struct KNO_SEQFNS *kno_seqfns[KNO_TYPE_MAX];
 KNO_EXPORT int kno_seq_length(lispval x)
 {
-  return seq_length(x);
+  ssize_t len = seq_length(x);
+  if (PRED_FALSE(len<0)) kno_seterr(kno_NotASequence,"kno_seq_elts",NULL,x);
+  return len;
 }
 
 KNO_EXPORT lispval kno_seq_elt(lispval x,int i)
@@ -255,9 +258,9 @@ KNO_EXPORT lispval kno_slice(lispval x,int start,int end)
 KNO_EXPORT int kno_position(lispval key,lispval seq,int start,int limit)
 {
   int ctype = KNO_TYPEOF(seq), len = seq_length(seq);
-  if (len<0)
-    return KNO_ERR(-2,"NotASequence","kno_position",NULL,seq);
-  else if (ctype == kno_secret_type)
+  if (PRED_FALSE(len<0))
+    return KNO_ERR(-2,kno_NotASequence,"kno_position",NULL,seq);
+  else if (PRED_FALSE(ctype == kno_secret_type))
     return KNO_ERR(-2,kno_SecretData,"kno_position",NULL,seq);
   else NO_ELSE;
   int end = (limit<0)?(len+limit+1):(limit>len)?(len):(limit);
@@ -411,7 +414,9 @@ KNO_EXPORT int kno_rposition(lispval key,lispval x,int start,int end)
 KNO_EXPORT int kno_generic_position(lispval key,lispval x,int start,int end)
 {
   int len = seq_length(x);
-  if (len<0) return len;
+  if (PRED_FALSE(len<0)) {
+    kno_seterr(kno_NotASequence,"kno_seq_elts",NULL,x);
+    return len;}
   else if (end<0)
     end = len+end;
   else if (end<start)  {
@@ -488,14 +493,21 @@ KNO_EXPORT int kno_search(lispval subseq,lispval seq,int start,int end)
 KNO_EXPORT int kno_generic_search(lispval subseq,lispval seq,int start,int end)
 {
   /* Generic implementation */
-  int subseqlen = seq_length(subseq), pos = start;
+  int seqlen = seq_length(seq), subseqlen = seq_length(subseq), pos = start;
   if (subseqlen < 0)
-    return -2;
+    return KNO_ERR(-2,kno_NotASequence,"kno_seq_elts",NULL,seq);
   else if (subseqlen == 0)
     return 0;
   else NO_ELSE;
   lispval subseqstart = kno_seq_elt(subseq,0);
-  if (end<0) end = seq_length(seq);
+  if (ABORTED(subseqstart)) return subseqstart;
+  if (end<0) end = seqlen;
+  else if (end > seqlen) {
+    u8_byte buf[64];
+    return KNO_ERR(-2,kno_RangeError,"kno_generic_search",
+		   u8_bprintf(buf,"%d:%d",start,end),
+		   seq);}
+  else NO_ELSE;
   while ((pos = kno_position(subseqstart,seq,pos,pos-subseqlen))>=0) {
     int i = 1, j = pos+1;
     while (i < subseqlen) {
@@ -565,6 +577,7 @@ lispval *kno_seq_elts(lispval seq,int *n)
   int len = seq_length(seq);
   if (len < 0) {
     *n = -1;
+    kno_seterr(kno_NotASequence,"kno_seq_elts",NULL,seq);
     return NULL;}
   else if (len==0) {
     *n = 0;
@@ -800,6 +813,8 @@ KNO_EXPORT lispval kno_remove(lispval item,lispval sequence)
   else if (NILP(sequence)) return sequence;
   else {
     int i = 0, j = 0, removals = 0, len = seq_length(sequence);
+    if (PRED_FALSE(len<0))
+      return kno_err(kno_NotASequence,"kno_remove",NULL,sequence);
     kno_lisp_type result_type = KNO_TYPEOF(sequence);
     lispval *results = u8_alloc_n(len,lispval), result;
     while (i < len) {

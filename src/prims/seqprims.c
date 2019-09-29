@@ -379,10 +379,10 @@ static int has_length_helper(lispval x,lispval length_arg,enum COMPARISON cmp)
 {
   int seqlen = kno_seq_length(x), testlen;
   if (seqlen<0)
-    return kno_type_error(_("sequence"),"seqlen",x);
+    return KNO_ERR(-1,kno_NotASequence,"has_length_helper",NULL,x);
   else if (KNO_INTP(length_arg))
     testlen = (FIX2INT(length_arg));
-  else return kno_type_error(_("fixnum"),"has-length?",x);
+  else return KNO_ERR(-1,"length(fixnum)","has_length_helper",NULL,length_arg);
   switch (cmp) {
   case cmp_lt: return (seqlen<testlen);
   case cmp_lte: return (seqlen<=testlen);
