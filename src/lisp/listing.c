@@ -340,6 +340,15 @@ static int list_elements(u8_output out,
   return show_elts;
 }
 
+static int has_unparsefn(lispval compound)
+{
+  lispval tag = KNO_COMPOUND_TAG(compound);
+  struct KNO_TYPEINFO *typeinfo = kno_probe_typeinfo(tag);
+  if ( (typeinfo) && (typeinfo->type_unparsefn) )
+    return 1;
+  else return 0;
+}
+
 KNO_EXPORT int kno_list_object(u8_output out,
                                lispval result,
                                u8_string label,
@@ -352,8 +361,9 @@ KNO_EXPORT int kno_list_object(u8_output out,
   if (VOIDP(result)) return 0;
   if ((KNO_CHOICEP(result)) ||
       (KNO_VECTORP(result)) ||
-      (KNO_COMPOUND_VECTORP(result)) ||
-      (PAIRP(result))) {
+      (PAIRP(result)) ||
+      ( (KNO_COMPOUND_VECTORP(result)) &&
+	(has_unparsefn(result) == 0) )) {
     list_elements(out,result,label,pathref,indent,eltfn,width,detail,0);
     return 1;}
   else if ( (KNO_SLOTMAPP(result)) || (KNO_SCHEMAPP(result)) ) {
