@@ -268,6 +268,7 @@ KNO_FASTOP lispval reduce_op(kno_stack stack,
 			     lispval exprs,
 			     kno_lexenv env,
 			     lispval state,
+			     lispval prune,
 			     reducefn fn)
 {
   int done = 0; kno_incref(state);
@@ -283,9 +284,10 @@ KNO_FASTOP lispval reduce_op(kno_stack stack,
       kno_decref(state);
       kno_decref(arg);
       return reduced;}
-    if (KNO_EMPTYP(reduced)) {
+    if ( (KNO_EMPTYP(reduced)) &&
+	 (!(KNO_VOIDP(prune))) ) {
       kno_decref(state);
-      state = reduced;
+      state = prune;
       break;}
     else if (state != reduced) {
       lispval prev_state = state;
@@ -370,7 +372,9 @@ KNO_FASTOP lispval try_reduce(lispval state,lispval step,int *done)
 
 static lispval try_op(lispval exprs,kno_lexenv env,kno_stack stack,int tail)
 {
-  return reduce_op(stack,exprs,env,KNO_EMPTY_CHOICE,try_reduce);
+  return reduce_op(stack,exprs,env,
+		   KNO_EMPTY_CHOICE,KNO_VOID,
+		   try_reduce);
 }
 
 KNO_FASTOP lispval union_reduce(lispval state,lispval step,int *done)
@@ -385,7 +389,9 @@ KNO_FASTOP lispval union_reduce(lispval state,lispval step,int *done)
 
 static lispval union_op(lispval exprs,kno_lexenv env,kno_stack stack)
 {
-  return reduce_op(stack,exprs,env,KNO_EMPTY_CHOICE,union_reduce);
+  return reduce_op(stack,exprs,env,
+		   KNO_EMPTY_CHOICE,KNO_VOID,
+		   union_reduce);
 }
 
 KNO_FASTOP lispval intersect_reduce(lispval state,lispval step,int *done)
@@ -409,7 +415,9 @@ KNO_FASTOP lispval intersect_reduce(lispval state,lispval step,int *done)
 
 static lispval intersect_op(lispval exprs,kno_lexenv env,kno_stack stack)
 {
-  return reduce_op(stack,exprs,env,KNO_VOID,intersect_reduce);
+  return reduce_op(stack,exprs,env,
+		   KNO_VOID,KNO_EMPTY_CHOICE,
+		   intersect_reduce);
 }
 
 KNO_FASTOP lispval difference_reduce(lispval state,lispval step,int *done)
@@ -434,7 +442,9 @@ KNO_FASTOP lispval difference_reduce(lispval state,lispval step,int *done)
 
 static lispval difference_op(lispval exprs,kno_lexenv env,kno_stack stack)
 {
-  return reduce_op(stack,exprs,env,KNO_VOID,difference_reduce);
+  return reduce_op(stack,exprs,env,
+		   KNO_VOID,KNO_EMPTY_CHOICE,
+		   difference_reduce);
 }
 
 KNO_FASTOP lispval and_reduce(lispval state,lispval step,int *done)
@@ -448,7 +458,7 @@ KNO_FASTOP lispval and_reduce(lispval state,lispval step,int *done)
 
 static lispval and_op(lispval exprs,kno_lexenv env,kno_stack stack,int tail)
 {
-  return reduce_op(stack,exprs,env,KNO_TRUE,and_reduce);
+  return reduce_op(stack,exprs,env,KNO_TRUE,KNO_EMPTY_CHOICE,and_reduce);
 }
 
 KNO_FASTOP lispval or_reduce(lispval state,lispval step,int *done)
@@ -463,7 +473,7 @@ KNO_FASTOP lispval or_reduce(lispval state,lispval step,int *done)
 static lispval or_op(lispval exprs,kno_lexenv env,kno_stack stack,int tail)
 {
   /* ??: is NO_PRUNE the right thing? */
-  return reduce_op(stack,exprs,env,KNO_FALSE,or_reduce);
+  return reduce_op(stack,exprs,env,KNO_FALSE,KNO_EMPTY_CHOICE,or_reduce);
 }
 
 static lispval xref_type_error(lispval x,lispval tag)
@@ -1609,7 +1619,9 @@ KNO_FASTOP lispval plus_reduce(lispval state,lispval step,int *done)
 
 static lispval plus_op(lispval exprs,kno_lexenv env,kno_stack stack)
 {
-  return nd_reduce_op(stack,exprs,env,KNO_FIXNUM_ZERO,plus_reduce);
+  return nd_reduce_op(stack,exprs,env,
+		      KNO_FIXNUM_ZERO,
+		      plus_reduce);
 }
 
 KNO_FASTOP lispval minus_reduce(lispval state,lispval step,int *done)
