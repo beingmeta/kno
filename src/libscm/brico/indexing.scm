@@ -77,7 +77,7 @@
   (default! frag (getopt opts 'frag #f))
   (default! value (get frame slot))
   (do-choices slot
-    (let* ((values (stdspace (pickstrings (or value (get frame slot)))))
+    (let* ((values (stdspace (pickstrings value)))
 	   (expvalues (choice values (basestring values)))
 	   (normcaps (capitalize (downcase (pick expvalues somecap?))))
 	   (lowered (downcase values)))
@@ -123,8 +123,9 @@
 			      #t)
 		 length>1))))))
 
-(defambda (index-name index frame slot (value #f) (window default-frag-window))
-  (let* ((values (downcase (stdspace (if value value (get frame slot)))))
+(defambda (index-name index frame slot (value) (window default-frag-window))
+  (default! value (get frame slot))
+  (let* ((values (downcase (stdspace value)))
 	 (expvalues (choice values (basestring values))))
     (index-relation index frame slot expvalues)
     (when window
@@ -138,8 +139,9 @@
       ((empty? g))
     (index-relation index frame slot g inverse)))
 
-(define (index-gloss index frame slotid (value #f))
-  (let* ((wordlist (getwords (or value (get frame slotid))))
+(define (index-gloss index frame slotid (value))
+  (default! value (get frame slotid))
+  (let* ((wordlist (getwords value))
 	 (gloss-words (filter-choices (word (elts wordlist))
 			(< (length word) 16))))
     (index-relation index frame slotid
