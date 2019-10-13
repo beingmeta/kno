@@ -8,6 +8,10 @@
 
 (define indir (config 'indir (abspath "brico/")))
 (define outdir (config 'outdir (abspath "fresh/")))
+(define bugjar (abspath "bugjar/"))
+
+(unless (file-directory? bugjar) (mkdir bugjar))
+(config! 'engine:bugjar bugjar)
 
 (define brico-pool-names "brico.pool")
 
