@@ -1816,7 +1816,13 @@ static int interpret_keep_arg(lispval keep_arg)
 }
 
 DEFPRIM5("textslice",textslice,KNO_MAX_ARGS(5)|KNO_MIN_ARGS(2),
-	 "`(TEXTSLICE *arg0* *arg1* [*arg2*] [*arg3*] [*arg4*])` **undocumented**",
+	 "`(TEXTSLICE *string* *sep* [*keep*] [*start*] [*limit*])`\n"
+	 "Divides *string* (between *start* and *limit*) into segments "
+	 "separated by *sep*. If keep is #f (the default), the separators "
+	 "are discarded; if *keep* is `SEP`, they are included in the list "
+	 "of segments. If *sep* is `SUFFIX` the separated string is appended "
+	 "to the end of the preceding string; if *sep* is `PREFIX`, the "
+	 "separator string is prepended to the succeeding string.",
 	 kno_string_type,KNO_VOID,kno_any_type,KNO_VOID,
 	 kno_any_type,KNO_TRUE,kno_fixnum_type,KNO_CPP_INT(0),
 	 kno_fixnum_type,KNO_VOID);
