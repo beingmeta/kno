@@ -873,7 +873,6 @@ infodir
 docdir
 oldincludedir
 includedir
-runstatedir
 localstatedir
 sharedstatedir
 sysconfdir
@@ -955,6 +954,7 @@ with_local_modules
 with_stdlib_module_dir
 with_loadpath
 with_libscm
+with_stdlib
 with_module_path
 with_boot_config
 with_dload_path
@@ -1040,7 +1040,6 @@ datadir='${datarootdir}'
 sysconfdir='${prefix}/etc'
 sharedstatedir='${prefix}/com'
 localstatedir='${prefix}/var'
-runstatedir='${localstatedir}/run'
 includedir='${prefix}/include'
 oldincludedir='/usr/include'
 docdir='${datarootdir}/doc/${PACKAGE}'
@@ -1293,15 +1292,6 @@ do
   | -silent | --silent | --silen | --sile | --sil)
     silent=yes ;;
 
-  -runstatedir | --runstatedir | --runstatedi | --runstated \
-  | --runstate | --runstat | --runsta | --runst | --runs \
-  | --run | --ru | --r)
-    ac_prev=runstatedir ;;
-  -runstatedir=* | --runstatedir=* | --runstatedi=* | --runstated=* \
-  | --runstate=* | --runstat=* | --runsta=* | --runst=* | --runs=* \
-  | --run=* | --ru=* | --r=*)
-    runstatedir=$ac_optarg ;;
-
   -sbindir | --sbindir | --sbindi | --sbind | --sbin | --sbi | --sb)
     ac_prev=sbindir ;;
   -sbindir=* | --sbindir=* | --sbindi=* | --sbind=* | --sbin=* \
@@ -1439,7 +1429,7 @@ fi
 for ac_var in	exec_prefix prefix bindir sbindir libexecdir datarootdir \
 		datadir sysconfdir sharedstatedir localstatedir includedir \
 		oldincludedir docdir infodir htmldir dvidir pdfdir psdir \
-		libdir localedir mandir runstatedir
+		libdir localedir mandir
 do
   eval ac_val=\$$ac_var
   # Remove trailing slashes.
@@ -1592,7 +1582,6 @@ Fine tuning of the installation directories:
   --sysconfdir=DIR        read-only single-machine data [PREFIX/etc]
   --sharedstatedir=DIR    modifiable architecture-independent data [PREFIX/com]
   --localstatedir=DIR     modifiable single-machine data [PREFIX/var]
-  --runstatedir=DIR       modifiable per-process data [LOCALSTATEDIR/run]
   --libdir=DIR            object code libraries [EPREFIX/lib]
   --includedir=DIR        C header files [PREFIX/include]
   --oldincludedir=DIR     C header files for non-gcc [/usr/include]
@@ -1703,6 +1692,7 @@ Optional Packages:
 --with-stdlib-module-dir location
 --with-loadpath location
 --with-libscm location
+--with-stdlib location
 --with-module-path location
 --with-boot-config configstring
 --with-dload-path location
@@ -9563,7 +9553,23 @@ _ACEOF
    LIBSCM=$with_libscm
 fi;
 
-stdlib_module_path=$stdlib_module_dir/
+stdlib_search_dir=
+
+# Check whether --with-stdlib was given.
+if test "${with_stdlib+set}" = set; then :
+  withval=$with_stdlib;
+fi
+
+if test -z "$with_stdlib"; then
+   stdlib_search_dir=$stdlib_module_dir;
+elif test ! -d "$with_stdlib"; then
+   echo "No stdlib dir $with_stdlib";
+   stdlib_search_dir=$stdlib_module_dir;
+else
+   stdlib_search_dir=$with_stdlib;
+fi;
+
+stdlib_module_path=$stdlib_search_dir/
 
 installed_module_path=$installed_module_dir/
 

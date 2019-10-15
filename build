@@ -21,7 +21,7 @@ while [ $# -gt 0 ]; do
 	    doclean=1;
 	    ;;
 	dev)
-	    CONFIG_ARGS="--with-libscm=${BUILD}/src/libscm/ ${CONFIG_ARGS}";
+	    CONFIG_ARGS="--with-libscm=${BUILD}/src/libscm/ --with-stdlib=${BUILD}/src/stdlib ${CONFIG_ARGS}";
 	    ;;
 	ipeval)
 	    CONFIG_ARGS="--with-ipeval ${CONFIG_ARGS}";
