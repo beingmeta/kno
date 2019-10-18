@@ -1194,18 +1194,18 @@ else archflags=$with_arch
 fi
 
 # Check whether to use an architecture specific library directory
-if test "${libdir}" != "\${exec_prefix}/lib"; then
-  echo checking libdir, using explicit libdir ${libdir};
-elif test ${ac_cv_sizeof_long} -eq 4 && test -d ${prefix}/lib32; then
-  libdir=${prefix}/lib32;
-  echo checking libdir, using 32-bit libdir ${libdir};
-elif test ${ac_cv_sizeof_long} -eq 8 && test -d ${prefix}/lib64; then
-  libdir=${prefix}/lib64;
-  echo checking libdir, using 64-bit libdir ${libdir};
-else
-  echo checking libdir, using default libdir ${libdir};
-fi
-LDFLAGS="-L${libdir} ${LDFLAGS}"
+dnl if test "${libdir}" != "\${exec_prefix}/lib"; then
+dnl   echo checking libdir, using explicit libdir ${libdir};
+dnl elif test ${ac_cv_sizeof_long} -eq 4 && test -d ${prefix}/lib32; then
+dnl   libdir=${prefix}/lib32;
+dnl   echo checking libdir, using 32-bit libdir ${libdir};
+dnl elif test ${ac_cv_sizeof_long} -eq 8 && test -d ${prefix}/lib64; then
+dnl   libdir=${prefix}/lib64;
+dnl   echo checking libdir, using 64-bit libdir ${libdir};
+dnl else
+dnl   echo checking libdir, using default libdir ${libdir};
+dnl fi
+dnl LDFLAGS="-L${libdir} ${LDFLAGS}"
 
 dnl Some system headers and members
 
