@@ -1651,7 +1651,7 @@ KNO_FASTOP lispval minus_reduce(lispval state,lispval step,int *done)
     return kno_init_flonum(NULL,result);}
   else if (PRED_FALSE(!(NUMBERP(state))))
     return kno_type_error(_("number"),"minus",state);
-  else return kno_plus(state,step);
+  else return kno_subtract(state,step);
 }
 
 static lispval minus_op(lispval exprs,kno_lexenv env,kno_stack stack)
@@ -1738,7 +1738,7 @@ KNO_FASTOP lispval mult_reduce(lispval state,lispval step,int *done)
     return kno_init_flonum(NULL,result);}
   else if (PRED_FALSE(!(NUMBERP(state))))
     return kno_type_error(_("number"),"minus",state);
-  else return kno_plus(state,step);
+  else return kno_multiply(state,step);
 }
 
 static lispval mult_op(lispval exprs,kno_lexenv env,kno_stack stack)
@@ -1766,7 +1766,7 @@ static lispval flodiv_reduce(lispval state,lispval step,int *done)
     return kno_init_flonum(NULL,result);}
   else if (PRED_FALSE(!(NUMBERP(state))))
     return kno_type_error(_("number"),"minus",state);
-  else return kno_plus(state,step);
+  else return kno_inexact_divide(state,step);
 }
 
 static lispval flodiv_op(lispval exprs,kno_lexenv env,kno_stack stack)
