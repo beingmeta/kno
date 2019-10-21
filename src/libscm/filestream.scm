@@ -20,7 +20,8 @@
 
 (defrecord (filestream mutable)
   (port) (readfn) (lock) (filename) (archive) (statefile) (state)
-  (started) (itemcount) (filepos) (state) 
+  (opened) (itemcount) (filepos) (state) 
+  (startpos 0)
   ;; not yet used
   (fifo (fifo/make)))
 
@@ -52,7 +53,8 @@
     (let ((stream (cons-filestream port readfn (make-mutex)
 				   filename archive statefile state
 				   (gmtimestamp) 0 (and (not archive) (getpos port))
-				   #f)))
+				   #f
+				   (and (not archive) (try (get state 'filepos) 0)))))
       (cond ((> (getopt state 'filepos 0) 0)
 	     (setpos! port (getopt state 'filepos))
 	     (set-filestream-filepos! stream (getopt state 'filepos 0)))
@@ -85,7 +87,7 @@
 	(store! state 'filepos (filestream-filepos stream)))
       (add! state 'batches
 	(cons-filestream/batch (filestream-itemcount stream)
-			       (filestream-started stream)
+			       (filestream-opened stream)
 			       now))
       state)))
 
@@ -93,9 +95,9 @@
   (with-lock (filestream-lock stream)
     (let* ((state (deep-copy (filestream-state stream)))
 	   (count (filestream-itemcount stream))
-	   (started (filestream-started stream))
+	   (opened (filestream-opened stream))
 	   (now (gmtimestamp))
-	   (batch (cons-filestream/batch count started now)))
+	   (batch (cons-filestream/batch count opened now)))
       (store! state 'updated now)
       (store! state 'itemcount (+ (get state 'itemcount) count))
       (when (filestream-filepos stream)
@@ -105,10 +107,12 @@
 	(pprint state)))))
 
 (define (filestream/log! stream (opts #f) (%loglevel %notice%))
-  (let ((count (filestream-itemcount stream))
-	(filepos (filestream-filepos stream))
-	(started (filestream-started stream))
-	(state (filestream/state stream)))
+  (let* ((count (filestream-itemcount stream))
+	 (filepos (filestream-filepos stream))
+	 (opened (filestream-opened stream))
+	 (state (filestream/state stream))
+	 (bytes (and filepos (- filepos (filestream-startpos stream))))
+	 (delta-time (time-since opened)))
     (when (zero? count)
       (lognotice |FileStream| 
 	"Starting at item #" ($num (get state 'itemcount)) 
@@ -120,19 +124,21 @@
 	    " of " ($bytes (get state 'filesize)) ")"))))
     (when (and (getopt opts 'batch #t) (not (zero? count)))
       (lognotice |FileStream| 
-	"Processed " ($count count "item") 
-	(when filepos (printout" and " ($bytes (- filepos (get state 'filepos)))))
-	" in " (secs->string (time-since started)) 
-	" (" ($rate count (time-since started)) " items/sec)"
-	(when filepos 
-	  (printout" (" ($bytes/sec (- filepos (get state 'filepos)) (time-since started))))))
+	"Processed " ($count count "item")
+	(when filepos (printout" and " ($bytes bytes)))
+	" in " (secs->string delta-time) " (" ($rate count delta-time) " items/sec)"
+	(when filepos (printout" (" ($bytes/sec bytes delta-time) ")"))))
     (when (getopt opts 'overall #f)
-      (let ((clock-time (time-since started))
-	    (overall-time (time-since (try (get state 'started) started)))
-	    (run-time (+ (difftime started)
-			 (reduce-choice + (get state 'batches) 0 batch-runtime)))
-	    (full-count (+ (reduce-choice + (get state 'batches) 0 batch-count)
-			   (filestream-itemcount stream))))
+      (let* ((clock-time (time-since opened))
+	     (overall-time (time-since (try (get state 'started) opened)))
+	     (run-time (+ (difftime opened)
+			  (reduce-choice + (get state 'batches) 0 batch-runtime)))
+	     (delta-count (reduce-choice + (get state 'batches) 0 batch-count))
+	     (full-count (+ delta-count (filestream-itemcount stream))))
+	(debug%watch "FILESTREAM/LOG"
+	  filepos opened clock-time overall-time run-time 
+	  count full-count
+	  "\nSTATE" state)
 	(when (> full-count 0)
 	  (lognotice |FileStream| 
 	    "Overall, processed " ($count (+ count (get state 'itemcount)) "item") 
@@ -145,21 +151,23 @@
 	    " over " ($count (1+ (|| (get state 'batches))) "batch" "batches")
 	    " taking " (secs->string run-time) " together.")
 	  (lognotice |FileStream|
-	    "Overall, processing " ($rate count run-time) " items/sec"
-	    (when filepos (printout " and " ($bytes/sec filepos run-time))))
-	  (cond (filepos
-		 (let ((rate (/~ filepos run-time))
+	    "Overall, processing " ($rate full-count overall-time) " items/sec"
+	    (when filepos (printout " and " ($bytes/sec filepos overall-time))))
+	  (cond ((and filepos (test state 'filesize))
+		 (let ((rate (/~ bytes delta-time))
 		       (togo (- (get state 'filesize) filepos)))
-		   (debug%watch rate togo filepos run-time (/~ togo rate))
+		   (debug%watch bytes delta-time run-time rate 
+				($numstring togo) ($numstring filepos)
+				(/~ togo rate))
 		   (lognotice |FileStream|
-		     "Inshallah, everything should be done in "
+		     "At the current rate, everything should be done in "
 		     (secs->string (/~ togo rate)) " at "
 		     ($bytes/sec rate) " for the remaining "
 		     ($bytes togo))))
 		((test state 'total)
-		 (let ((rate (/~ full-count run-time))
+		 (let ((rate (/~ delta-count delta-time))
 		       (togo (- (get state 'total) full-count)))
 		   (lognotice |FileStream|
-		     "Inshallah, everything should be done in "
+		     "At the current rate, everything should be done in "
 		     (secs->string (/~ togo rate)))))
 		(else)))))))
