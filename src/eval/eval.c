@@ -527,7 +527,7 @@ KNO_EXPORT int kno_assign_value(lispval symbol,lispval value,kno_lexenv env)
 
 /* Quote */
 
-static lispval quote_evalfn(lispval obj,kno_lexenv env,kno_stack stake)
+static lispval quote_evalfn(lispval obj,kno_lexenv env,kno_stack stack)
 {
   if ((PAIRP(obj)) && (PAIRP(KNO_CDR(obj))) &&
       ((KNO_CDR(KNO_CDR(obj))) == NIL))
