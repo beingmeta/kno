@@ -281,7 +281,7 @@
 (define (main (file "latest-all.json") 
 	      (secs (config 'cycletime 120))
 	      (cycles (config 'cycles 10))
-	      (threadcount (config 'threads #t)))
+	      (threadcount (config 'nthreads #t)))
   (let ((in (filestream/open file filestream-opts))
 	(started (elapsed-time)))
     (filestream/log! in)
