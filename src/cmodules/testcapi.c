@@ -101,10 +101,25 @@ static int  U8_MAYBE_UNUSED check_null
     u8_log(LOGNOTICE,cxt,"Expected error %q",errobj);
     u8_free_exception(ex,0);
     rv = 0;}
-  else u8_log(LOG_ERROR,cxt,"Test failed to generate expected error",result);
-
+  else u8_log(LOG_ERROR,cxt,"Test failed to generate expected NULL error"
+	      "returned %llx",(unsigned long long)result);
   if ( (fn) && (result) )
     fn(result);
+  return rv;
+}
+
+static int  U8_MAYBE_UNUSED check_neg(u8_string cxt,int result)
+{
+  int rv = 1;
+  if (result<0) {
+    u8_exception ex = u8_erreify();
+    lispval errobj = kno_get_exception(ex);
+    u8_log(LOGNOTICE,cxt,"Expected error %q",errobj);
+    u8_free_exception(ex,0);
+    rv = 0;}
+  else u8_log(LOG_ERROR,cxt,
+	      "Test failed to generate expected negatrive error, returned %d",
+	      result);
   return rv;
 }
 
@@ -156,12 +171,15 @@ static lispval modules_testcapi()
   errors += check_null("kno_new_lexenv()",
 		       kno_new_lexenv(KNO_VOID),
 		       freefn(kno_free_lexenv));
+  errors += check_neg("kno_finish_module(string)",
+		       kno_finish_module(astring));
+  errors += check_neg("kno_module_finished(string,flags)",
+		      kno_module_finished(astring,0));
   lispval table = kno_make_slotmap(0,0,NULL);
   kno_lexenv tmp_env = kno_new_lexenv(table);
   if (tmp_env == NULL) errors++;
-  else {
-    kno_decref((lispval)tmp_env);
-    kno_decref(table);}
+  else {kno_decref((lispval)tmp_env);}
+  kno_decref(table);
   kno_decref(astring);
   if (errors == 0)
     return KNO_FALSE;
@@ -237,7 +255,7 @@ KNO_EXPORT int kno_init_testcapi()
   testcapi_module =
     kno_new_cmodule_x("testcapi",0,kno_init_testcapi,__FILE__);
 
-  init_local_cprims();
+  link_local_cprims();
 
   u8_register_source_file(_FILEINFO);
 
@@ -245,7 +263,7 @@ KNO_EXPORT int kno_init_testcapi()
 }
 
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("eval/testcapi",eval_testcapi,0,testcapi_module);
   KNO_LINK_PRIM("modules/testcapi",modules_testcapi,0,testcapi_module);

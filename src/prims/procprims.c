@@ -85,7 +85,7 @@ static int handle_procopts(lispval opts);
 
 static lispval exec_helper(u8_context caller,
 			   int flags,lispval opts,
-			   int n,lispval *args)
+			   int n,kno_argvec args)
 {
   if (!(STRINGP(args[0])))
     return kno_type_error("pathname",caller,args[0]);
@@ -201,7 +201,7 @@ DEFPRIM("exec",exec_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
 	"last word of *command* (after any environment "
 	"variables) should be the path of an executable "
 	"program file.");
-static lispval exec_prim(int n,lispval *args)
+static lispval exec_prim(int n,kno_argvec args)
 {
   return exec_helper("exec_prim",0,n,KNO_FALSE,args);
 }
@@ -218,7 +218,7 @@ DEFPRIM("exec/cmd",exec_cmd_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
 	"variables) should be either a command in the "
 	"default search path or the path of an executable "
 	"program file.");
-static lispval exec_cmd_prim(int n,lispval *args)
+static lispval exec_cmd_prim(int n,kno_argvec args)
 {
   return exec_helper("exec_cmd_prim",KNO_DO_LOOKUP,n,KNO_FALSE,args);
 }
@@ -231,7 +231,7 @@ DEFPRIM("KNOX",knox_prim,MIN_ARGS(1)|KNO_VAR_ARGS,
 	"*envmap*, if provided, specifies CONFIG settings for the "
 	"reading and execution of *scheme-file*. Environment variables "
 	"can also be explicitly provided in the string *command*.\n")
-static lispval knox_prim(int n,lispval *args)
+static lispval knox_prim(int n,kno_argvec args)
 {
   return exec_helper("knox_prim",KNO_IS_SCHEME,n,KNO_FALSE,args);
 }
@@ -245,7 +245,7 @@ DEFPRIM("FORK",fork_prim,MIN_ARGS(1)|KNO_VAR_ARGS,
 	"can also be explicitly provided in the string *command*.\n"
 	"The last word of *command* (after any environment variables) "
 	"should be the path of an executable program file.")
-static lispval fork_prim(int n,lispval *args)
+static lispval fork_prim(int n,kno_argvec args)
 {
   if (n==0) {
     pid_t pid = fork();
@@ -268,7 +268,7 @@ DEFPRIM("fork/cmd",fork_cmd_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
 	"of *command* (after any environment variables) "
 	"should be either a command in the default search "
 	"path or the path of an executable program file.");
-static lispval fork_cmd_prim(int n,lispval *args)
+static lispval fork_cmd_prim(int n,kno_argvec args)
 {
   return exec_helper("fork_cmd_prim",(KNO_DO_FORK|KNO_DO_LOOKUP),n,KNO_FALSE,args);
 }
@@ -283,7 +283,7 @@ DEFPRIM("knox/fork",knox_fork_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
 	"for the reading and execution of *scheme-file*. "
 	"Environment variables can also be explicitly "
 	"provided in the string *command*.\n");
-static lispval knox_fork_prim(int n,lispval *args)
+static lispval knox_fork_prim(int n,kno_argvec args)
 {
   return exec_helper("knofork_prim",(KNO_IS_SCHEME|KNO_DO_FORK),n,KNO_FALSE,args);
 }
@@ -300,7 +300,7 @@ DEFPRIM("fork/wait",fork_wait_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
 	"last word of *command* (after any environment "
 	"variables) should be the path of an executable "
 	"program file.");
-static lispval fork_wait_prim(int n,lispval *args)
+static lispval fork_wait_prim(int n,kno_argvec args)
 {
   return exec_helper("fork_wait_prim",(KNO_DO_FORK|KNO_DO_WAIT),n,KNO_FALSE,args);
 }
@@ -318,7 +318,7 @@ DEFPRIM("fork/cmd/wait",fork_cmd_wait_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
 	"variables) should be either a command in the "
 	"default search path or the path of an executable "
 	"program file.");
-static lispval fork_cmd_wait_prim(int n,lispval *args)
+static lispval fork_cmd_wait_prim(int n,kno_argvec args)
 {
   return exec_helper("fork_cmd_wait_prim",
 		     (KNO_DO_FORK|KNO_DO_LOOKUP|KNO_DO_WAIT),n,KNO_FALSE,args);
@@ -335,7 +335,7 @@ DEFPRIM("knox/fork/wait",knox_fork_wait_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
 	"reading and execution of *scheme-file*. "
 	"Environment variables can also be explicitly "
 	"provided in the string *command*.\n");
-static lispval knox_fork_wait_prim(int n,lispval *args)
+static lispval knox_fork_wait_prim(int n,kno_argvec args)
 {
   return exec_helper("knox_fork_wait_prim",
 		     (KNO_IS_SCHEME|KNO_DO_FORK|KNO_DO_WAIT),
@@ -376,7 +376,7 @@ static int dodup(int from,int to,u8_string stream,u8_string id)
   return rv;
 }
 
-static u8_string makeid(int n,lispval *args);
+static u8_string makeid(int n,kno_argvec args);
 
 DEFPRIM("subjob/open",subjob_open,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
 	"`(SUBJOB/OPEN *opts* *command* [*envmap*] [*args*...])` "
@@ -400,7 +400,7 @@ DEFPRIM("subjob/open",subjob_open,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
 	"*stderr* of the current process, or #t to create "
 	"a stream from which the current process can read "
 	"the error output of the new process.\n");
-static lispval subjob_open(int n,lispval *args)
+static lispval subjob_open(int n,kno_argvec args)
 {
   lispval opts = args[0];
   lispval idstring = kno_getopt(opts,id_symbol,KNO_VOID);
@@ -523,7 +523,7 @@ static lispval subjob_open(int n,lispval *args)
   }
 }
 
-static u8_string makeid(int n,lispval *args)
+static u8_string makeid(int n,kno_argvec args)
 {
   struct U8_OUTPUT idout; U8_INIT_OUTPUT(&idout,64);
   int i = 0; while (i<n) {
@@ -863,7 +863,7 @@ KNO_EXPORT void kno_init_procprims_c()
   u8_register_source_file(_FILEINFO);
 
   init_rlimit_codes();
-  init_local_cprims();
+  link_local_cprims();
 #if 0 /* HAVE_WAITPID */
   DECL_PRIM_N(fork_wait_prim,procprims_module);
   DECL_PRIM_N(fork_cmd_wait_prim,procprims_module);
@@ -883,7 +883,7 @@ KNO_EXPORT void kno_init_procprims_c()
   kno_finish_module(procprims_module);
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("nice",nice_prim,1,procprims_module);
   KNO_LINK_PRIM("setrlimit!",setrlimit_prim,3,procprims_module);

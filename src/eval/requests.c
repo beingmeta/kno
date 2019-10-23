@@ -26,36 +26,40 @@
 
 static lispval reqgetvar(lispval cgidata,lispval var)
 {
-  int noparse=
-    ((SYMBOLP(var))&&((SYM_NAME(var))[0]=='%'));
+  int noparse = ((SYMBOLP(var))&&((SYM_NAME(var))[0]=='%'));
   lispval name = ((noparse)?(kno_intern(SYM_NAME(var)+1)):(var));
   lispval val = ((TABLEP(cgidata))?(kno_get(cgidata,name,VOID)):
-                 (kno_req_get(name,VOID)));
+		 (kno_req_get(name,VOID)));
   if (VOIDP(val)) return val;
-  else if ((noparse)&&(STRINGP(val)))
+  else if ( (noparse) && (STRINGP(val)) )
     return val;
   else if (STRINGP(val)) {
     u8_string data = CSTRING(val);
     if (*data=='\0') return val;
     else if (strchr("@{#(",data[0])) {
       lispval parsed = kno_parse_arg(data);
-      kno_decref(val); return parsed;}
+      kno_decref(val);
+      return parsed;}
     else if (isdigit(data[0])) {
       lispval parsed = kno_parse_arg(data);
       if (NUMBERP(parsed)) {
-        kno_decref(val); return parsed;}
+	kno_decref(val);
+	return parsed;}
       else {
-        kno_decref(parsed); return val;}}
+	kno_decref(parsed);
+	return val;}}
     else if (*data == ':')
       if (data[1]=='\0')
         return kno_mkstring(data);
       else {
         lispval arg = kno_parse(data+1);
-        if (KNO_ABORTP(arg)) {
-          u8_log(LOG_WARN,kno_ParseArgError,"Bad colon spec arg '%s'",arg);
-          kno_clear_errors(1);
-          return kno_mkstring(data);}
-        else return arg;}
+        if (KNO_ABORTED(arg)) {
+	  u8_log(LOG_WARN,kno_ParseArgError,"Bad colon spec arg '%s'",data);
+	  kno_clear_errors(1);
+          return val;}
+	else {
+	  kno_decref(val);
+	  return arg;}}
     else if (*data == '\\') {
       lispval shorter = kno_mkstring(data+1);
       kno_decref(val);
@@ -67,23 +71,29 @@ static lispval reqgetvar(lispval cgidata,lispval var)
       if (!(STRINGP(v))) {
         kno_incref(v); CHOICE_ADD(result,v);}
       else {
-        u8_string data = CSTRING(v); lispval parsed = v;
-        if (*data=='\\') parsed = kno_mkstring(data+1);
-        else if ((*data==':')&&(data[1]=='\0')) {kno_incref(parsed);}
+	lispval parsed = v;
+        u8_string data = CSTRING(v);
+        if (*data=='\\')
+	  parsed = kno_mkstring(data+1);
+        else if ((*data==':')&&(data[1]=='\0')) {
+	  kno_incref(parsed);}
         else if (*data==':')
           parsed = kno_parse(data+1);
         else if ((isdigit(*data))||(*data=='+')||(*data=='-')||(*data=='.')) {
           parsed = kno_parse_arg(data);
           if (!(NUMBERP(parsed))) {
-            kno_decref(parsed); parsed = v; kno_incref(parsed);}}
-        else if ( (noparse==0) && (strchr("@{#(",data[0])) )
-          parsed = kno_parse_arg(data);
-        else kno_incref(parsed);
-        if (KNO_ABORTP(parsed)) {
-          u8_log(LOG_WARN,kno_ParseArgError,"Bad LISP arg '%s'",data);
-          kno_clear_errors(1);
-          parsed = v; kno_incref(v);}
-        CHOICE_ADD(result,parsed);}}
+            kno_decref(parsed);
+	    parsed = v;
+	    kno_incref(parsed);}}
+	else if ( (noparse==0) && (strchr("@{#(",data[0])) )
+	  parsed = kno_parse_arg(data);
+	else kno_incref(parsed);
+	if (KNO_ABORTED(parsed)) {
+	  u8_log(LOG_WARN,kno_ParseArgError,"Bad LISP arg '%s'",data);
+	  kno_clear_errors(1);
+	  parsed = v;
+	  kno_incref(v);}
+	CHOICE_ADD(result,parsed);}}
     kno_decref(val);
     return result;}
   else return val;
@@ -109,7 +119,7 @@ static lispval reqcall_prim(lispval proc)
   return value;
 }
 
-DEFPRIM2("req/get",reqget_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+DEFPRIM2("req/get",reqget_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDOP,
          "`(REQ/GET *arg0* [*arg1*])` **undocumented**",
          kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval reqget_prim(lispval vars,lispval dflt)
@@ -121,14 +131,12 @@ static lispval reqget_prim(lispval vars,lispval dflt)
     if (!(VOIDP(val))) {
       found = 1; CHOICE_ADD(results,val);}}
   if (found) return kno_simplify_choice(results);
-  else if (VOIDP(dflt)) return EMPTY;
-  else if (QCHOICEP(dflt)) {
-    struct KNO_QCHOICE *qc = KNO_XQCHOICE(dflt);
-    return kno_make_simple_choice(qc->qchoiceval);}
+  else if (VOIDP(dflt))
+    return EMPTY;
   else return kno_incref(dflt);
 }
 
-DEFPRIM2("req/val",reqval_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+DEFPRIM2("req/val",reqval_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDOP,
          "`(REQ/VAL *arg0* [*arg1*])` **undocumented**",
          kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval reqval_prim(lispval vars,lispval dflt)
@@ -146,21 +154,21 @@ static lispval reqval_prim(lispval vars,lispval dflt)
       found = 1;}
     else if (CHOICEP(val)) {
       DO_CHOICES(v,val) {
-        if (STRINGP(v)) {
-          lispval parsed = kno_parse_arg(CSTRING(v));
-          CHOICE_ADD(results,parsed);}
-        else {
-          kno_incref(v); CHOICE_ADD(results,v);}}
-      kno_decref(val);
-      found = 1;}
+	if (STRINGP(v)) {
+	  lispval parsed = kno_parse_arg(CSTRING(v));
+	  CHOICE_ADD(results,parsed);}
+	else {
+	  kno_incref(v);
+	  CHOICE_ADD(results,v);}}
+      found = 1;
+      kno_decref(val);}
     else {
       CHOICE_ADD(results,val);
       found = 1;}}
-  if (found) return results;
-  else if (VOIDP(dflt)) return EMPTY;
-  else if (QCHOICEP(dflt)) {
-    struct KNO_QCHOICE *qc = KNO_XQCHOICE(dflt);
-    return kno_make_simple_choice(qc->qchoiceval);}
+  if (found)
+    return results;
+  else if (VOIDP(dflt))
+    return EMPTY;
   else return kno_incref(dflt);
 }
 
@@ -220,7 +228,7 @@ static lispval hashcolonquestion_evalfn(lispval expr,kno_lexenv env,kno_stack _s
 #endif
 
 
-DEFPRIM2("req/test",reqtest_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+DEFPRIM2("req/test",reqtest_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDOP,
          "`(REQ/TEST *arg0* [*arg1*])` **undocumented**",
          kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval reqtest_prim(lispval vars,lispval val)
@@ -238,7 +246,7 @@ static lispval reqtest_prim(lispval vars,lispval val)
   return KNO_FALSE;
 }
 
-DEFPRIM2("req/store!",reqstore_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+DEFPRIM2("req/store!",reqstore_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDOP,
          "`(REQ/STORE! *arg0* *arg1*)` **undocumented**",
          kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval reqstore_prim(lispval vars,lispval value)
@@ -299,6 +307,7 @@ static lispval withreq_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   {KNO_DOLIST(ex,body) {
       if (KNO_ABORTP(result)) {
         kno_use_reqinfo(EMPTY);
+	kno_decref(reqdata);
         kno_reqlog(-1);
         return result;}
       kno_decref(result);
@@ -344,8 +353,8 @@ KNO_EXPORT lispval reqlog_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   struct U8_XTIME xt;
   struct U8_OUTPUT *reqout = kno_reqlog(1);
-  u8_string cond = NULL, cxt = NULL, free_cond = NULL;
-  long long body_off = 1, level = -1;
+  u8_string cond = NULL, free_cond = NULL;
+  long long level = -1;
   lispval arg = kno_get_arg(expr,1), cond_val = VOID;
   lispval body = kno_get_body(expr,2), outval;
   if (KNO_SYMBOLP(arg))
@@ -393,17 +402,19 @@ KNO_EXPORT void kno_init_reqstate_c()
 
   u8_register_source_file(_FILEINFO);
 
-  init_local_cprims();
+  link_local_cprims();
 
-  kno_def_evalfn(module,"REQ/LOG","",reqlog_evalfn);
+  kno_def_evalfn(module,"REQ/LOG",reqlog_evalfn,
+		 "*undocumented*");
   kno_defalias(module,"REQLOG","REQ/LOG");
   kno_defalias(module,"REQ/LOG!","REQ/LOG");
 
-  kno_def_evalfn(module,"WITH/REQUEST","",withreq_evalfn);
+  kno_def_evalfn(module,"WITH/REQUEST",withreq_evalfn,
+		 "*undocumented*");
 
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   lispval scheme_module = kno_scheme_module;
 

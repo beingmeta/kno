@@ -131,6 +131,7 @@ LIB_HEADERS=include/kno/texttools.h include/kno/webtools.h \
 # Headers which don't live in include/kno
 SRC_HEADERS=src/lisp/biginternals.h 		\
 	src/eval/eval_internals.h 		\
+	src/apply/apply_cprims.h 		\
 	src/exe/webcommon.h 			\
 	src/drivers/headers/zcompress.h 	\
 	src/drivers/headers/filepool.h 		\
@@ -157,13 +158,13 @@ LISP_OBJS=\
 	src/lisp/dtread.o src/lisp/dtwrite.o			\
 	src/lisp/lisp.o
 
-SUPPORT_OBJS=						\
+SYS_OBJS=						\
 	src/sys/buildinfo.o src/sys/support.o	\
 	src/sys/config.o src/sys/errobjs.o	\
 	src/sys/logging.o src/sys/getopt.o	\
 	src/sys/startup.o src/sys/fluid.o 	\
 	src/sys/signals.o src/sys/posix.o 	\
-	src/sys/sourcebase.o
+	src/sys/sourcebase.o src/sys/history.o
 
 APPLY_OBJS=\
 	src/apply/apply.o src/apply/stacks.o 			\
@@ -214,7 +215,8 @@ CORE_SCHEME_OBJS=\
 	src/eval/struct_eval.o \
 	src/eval/errfns.o\
 	src/eval/conditionals.o\
-	src/eval/iterators.o
+	src/eval/iterators.o\
+	src/eval/repl.o
 
 SCHEME_OBJS=\
 	$(CORE_SCHEME_OBJS) \
@@ -244,8 +246,7 @@ SCHEME_OBJS=\
 	src/prims/sqldbprims.o \
 	src/prims/fileprims.o \
 	src/prims/driverprims.o \
-	src/eval/loadmods.o \
-	src/eval/history.o
+	src/eval/loadmods.o
 
 WEB_OBJS=\
 	src/web/webtools.o \
@@ -411,7 +412,7 @@ KNO_SOURCES=\
 	src/sys/errobjs.c src/sys/logging.c src/sys/getopt.c	\
 	src/sys/startup.c src/sys/fluid.c src/sys/signals.c		\
 	src/apply/apply.c src/apply/stacks.c src/apply/lexenv.c 		\
-	src/apply/ffi.c								\
+	src/apply/ffi.c src/apply/apply_cprims.h				\
 	src/storage/storage.c src/storage/streams.c src/storage/hashdtype.c	\
 	src/storage/drivers.c src/storage/indexes.c src/storage/pools.c		\
 	src/storage/oidstore.c  src/storage/frames.c src/storage/slotindexes.c  \
@@ -437,7 +438,7 @@ KNO_SOURCES=\
 	src/eval/conditionals.c src/eval/iterators.c               		\
         src/eval/threads.c src/eval/quasiquote.c src/eval/struct_eval.c		\
 	src/eval/modules.c src/eval/load.c src/eval/reflection.c 		\
-	src/eval/compoundfns.c 							\
+	src/eval/compoundfns.c src/eval/repl.c					\
 	src/eval/coreops.c                  					\
 	src/eval/arith.c 			              			\
 	src/eval/regex.c 			              			\
@@ -538,11 +539,17 @@ debugging:
 	          XOPTFLAGS="-O0" OPTFLAGS="-O0" 		\
 		  XLIBS="@debuglibs@ $(XLIBS)" 			\
 	  testbin exe cmodules etc @TAGS@
+
 optimizing:
 	@echo Building OPTIMIZING configuration
 	@if test -f .malloc; then \
 	  echo With $(shell cat .malloc) malloc; fi;
 	@+make -s XCFLAGS="-O3" testbin exe cmodules etc @TAGS@
+zooming:
+	@echo Building Zooming configuration
+	@if test -f .malloc; then \
+	  echo With $(shell cat .malloc) malloc; fi;
+	@+make -s XCFLAGS="-O3 -g0" testbin exe cmodules etc @TAGS@
 nitpicking:
 	@echo Building NITPICKING configuration
 	@if test -f .malloc; then \
@@ -571,8 +578,11 @@ nodebug standard usable working:
 nitpick:
 	@if test $(BUILDMODE) != "nitpicking"; then echo nitpicking > .buildmode; fi
 	@make -s `cat .buildmode`
-fast:
+optimized fast:
 	@if test $(BUILDMODE) != "optimizing"; then echo optimizing > .buildmode; fi
+	@make -s `cat .buildmode`
+faster:
+	@if test $(BUILDMODE) != "zooming"; then echo zooming > .buildmode; fi
 	@make -s `cat .buildmode`
 .buildmode:
 	@echo normal > .buildmode
@@ -949,7 +959,6 @@ tidy: profile-clean
 	make testclean
 	rm -f config.log
 clean: tidy
-	rm -f .buildmode
 	@for dir in ${CLEANDIRS}; do rm -f ${dir}/*.o; done
 	rm -rf etc/*.o etc/.libs
 	rm -f lib/*.a lib/*@suffix@.so lib/*.dylib
@@ -965,6 +974,7 @@ clean: tidy
 	cd tests; make -s clean
 	find . -name "*.dSYM" -writable | xargs rm -rf
 distclean: clean
+	rm -f .buildmode
 	rm -f makefile config.log config.status config.cache
 	rm -f tests/lisp/makefile tests/storage/makefile tests/makefile
 	rm -f tests/lisp/.gdbinit tests/storage/.gdbinit tests/.gdbinit
@@ -981,6 +991,7 @@ pull:
 
 # Custom dependencies
 
+src/apply/apply.o: src/apply/apply_cprims.h
 src/eval/binders.o src/eval/conditionals.o src/eval/iterators.o: \
 	src/eval/eval_internals.h
 src/eval/eval.o: src/eval/eval_internals.h src/eval/opcode_defs.c src/eval/opcode_names.h
@@ -991,8 +1002,8 @@ src/lisp/dtread.o src/lisp/dtwrite.o src/lisp/bufio.o : XCFLAGS="${XOPTFLAGS}"
 src/lisp/choices.o : XCFLAGS="${XOPTFLAGS}"
 src/lisp/tables.o src/storage/bloom.o src/lisp/sequences.o : XCFLAGS="${XOPTFLAGS}"
 src/lisp/numbers.o src/lisp/compare.o : XCFLAGS="${XOPTFLAGS}"
-src/apply/apply.o : XCFLAGS="${XOPTFLAGS}"
 src/storage/streams.o src/storage/pools.o src/storage/indexes.o : XCFLAGS="${XOPTFLAGS}"
+src/apply/apply.o : XCFLAGS="${XOPTFLAGS}"
 src/eval/eval.o src/eval/choiceops.o : XCFLAGS="${XOPTFLAGS}"
 src/eval/conditionals.o src/eval/iterators.o : XCFLAGS="${XOPTFLAGS}"
 src/eval/lambda.o : XCFLAGS="${XOPTFLAGS}"
@@ -1000,9 +1011,9 @@ src/text/matcher.o src/text/texttools.o : XCFLAGS="${XOPTFLAGS}"
 
 # Library targets
 
-lib/libknocore@suffix@.a: $(LISP_OBJS) $(SUPPORT_OBJS) $(APPLY_OBJS)
-lib/libknocore@suffix@.so: $(LISP_OBJS) $(SUPPORT_OBJS) $(APPLY_OBJS)
-lib/libknocore@suffix@.dylib: $(LISP_OBJS) $(SUPPORT_OBJS) $(APPLY_OBJS)
+lib/libknocore@suffix@.a: $(LISP_OBJS) $(SYS_OBJS) $(APPLY_OBJS)
+lib/libknocore@suffix@.so: $(LISP_OBJS) $(SYS_OBJS) $(APPLY_OBJS)
+lib/libknocore@suffix@.dylib: $(LISP_OBJS) $(SYS_OBJS) $(APPLY_OBJS)
 
 lib/libknostorage@suffix@.a: $(STORAGE_OBJS)
 lib/libknostorage@suffix@.so: $(STORAGE_OBJS) lib/libknocore@suffix@.so
@@ -1228,17 +1239,17 @@ lib/kno/tidy.dylib: \
 
 # Parseltongue (default: v3)
 src/python/parseltongue.o: src/python/parseltongue.c
-	$(CC) "-I@PYTHON3_INCLUDE_DIR@" $(CFLAGS) -o $@ -c $< ${MODLIBS}
+	$(CC) @PYTHON3_CFLAGS@ $(CFLAGS) -o $@ -c $< ${MODLIBS}
 	@$(MSG) CC_PYTHON $@ $<
 
 lib/kno/parseltongue.so: src/python/parseltongue.o
-	@$(MKSO) -L./lib -L./ -o $@ $< ${MODLIBS} -l@PYTHON3_LIB@
+	@$(MKSO) -L./lib -L./ -o $@ $< ${MODLIBS} @PYTHON3_LDFLAGS@
 	@ln -sf $(@F) $(@D)/$(@F).@KNO_MAJOR@
 	@$(MSG) MKSO  $@ $<
 lib/kno/parseltongue.dylib: src/python/parseltongue.o ${CMODULE_DEPENDS}
 	@$(MACLIBTOOL) -install_name \
 		`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
-		$(DYLIB_FLAGS) ${MODLIBS} -l@PYTHON3_LIB@ -o $@ $< 
+		$(DYLIB_FLAGS) ${MODLIBS} @PYTHON3_LDFLAGS@ -o $@ $< 
 	@$(MSG) MACLIBTOOL  $@ $<
 lib/kno/parseltongue.@KNO_MAJOR@.dylib: lib/kno/parseltongue.dylib
 	@ln -sf $(*F).dylib $@
@@ -1250,17 +1261,17 @@ install-parseltongue: ${CMODULES}/parseltongue.@shared_suffix@ \
 
 # Parseltongue (v2)
 src/python/parseltongue2.o: src/python/parseltongue.c
-	$(CC) "-I@PYTHON2_INCLUDE_DIR@" $(CFLAGS) -o $@ -c $< ${MODLIBS}
+	$(CC) @PYTHON2_CFLAGS@ $(CFLAGS) -o $@ -c $< ${MODLIBS}
 	@$(MSG) CC_PYTHON $@ $<
 
 lib/kno/parseltongue2.so: src/python/parseltongue2.o
-	@$(MKSO) -L./lib -L./ -o $@ $< ${MODLIBS} -l@PYTHON2_LIB@
+	@$(MKSO) -L./lib -L./ -o $@ $< ${MODLIBS} @PYTHON2_LDFLAGS@
 	@ln -sf $(@F) $(@D)/$(@F).@KNO_MAJOR@
 	@$(MSG) MKSO  $@ $<
 lib/kno/parseltongue2.dylib: src/python/parseltongue2.o ${CMODULE_DEPENDS}
 	@$(MACLIBTOOL) -install_name \
 		`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
-		$(DYLIB_FLAGS) ${MODLIBS} -l@PYTHON2_LIB@ -o $@ $< 
+		$(DYLIB_FLAGS) ${MODLIBS} @PYTHON2_LDFLAGS@ -o $@ $< 
 	@$(MSG) MACLIBTOOL  $@ $<
 lib/kno/parseltongue2.@KNO_MAJOR@.dylib: lib/kno/parseltongue2.dylib
 	@ln -sf $(*F).dylib $@
@@ -1456,7 +1467,7 @@ update-local-apt-repo: dist/debs.done
 
 update-remote-apt-repo: dist/debs.done
 	cd dist; for change in *.changes; do \
-	  dupload -c --nomail --to ${CODENAME} $${change} && \
+	  dupload -c ./dupload.conf --nomail --to ${CODENAME} $${change} && \
 	  rm -f $${change}; \
 	done
 
@@ -1775,7 +1786,8 @@ $(DESTDIR)/etc/logrotate.d:
 	@$(SYSINSTALL) -m 0755 -d $@
 $(DESTDIR)/etc/logrotate.d/kno: etc/logrotate $(DESTDIR)/etc/logrotate.d
 	@$(MSG) Installing logrotate script
-	@$(SYSINSTALL) -T -m 0644 etc/logrotate $(DESTDIR)/etc/logrotate.d/kno
+	@$(SYSINSTALL) -m 0644 etc/logrotate $(DESTDIR)/etc/logrotate.d/kno
+	#@$(SYSINSTALL) -T -m 0644 etc/logrotate $(DESTDIR)/etc/logrotate.d/kno
 
 setup-allboot: setup-sysv setup-upstart setup-systemd
 
@@ -1836,6 +1848,10 @@ build-setup.debian: staging/build-setup.debian.core \
 
 build-setup.redhat:
 	sudo rpm -Uvh libedit-devel
+
+macports-build-setup:
+	sudo port install  curl curl-ca-bundle exif libexif qrencode libpng imagemagick ldns unixODBC sqlite3 \
+		leveldb snappy rocksdb mongo-c-driver libarchive libzip zlib zmq-devel hyphen python37
 
 .PHONY: debian-build-setup rpm-build-setup
 
@@ -1990,41 +2006,41 @@ gcovr.text: src/lisp/cons.gcda
 gcovr.html: src/lisp/cons.gcda
 	gcovr ${GCOVR_FLAGS} -r . --html -o gcovr.html
 
-staging/gcovr:
-	if test ! -d staging/gcovr; then mkdir staging/gcovr; fi
+tests/gcovr:
+	if test ! -d tests/gcovr; then mkdir tests/gcovr; fi
 
-staging/gcovr/all.html: src/lisp/cons.gcda staging/gcovr
+tests/gcovr/all.html: src/lisp/cons.gcda tests/gcovr
 	gcovr ${GCOVR_FLAGS} -r . --html --html-details -o $@
-staging/gcovr/core.html: src/lisp/cons.gcda staging/gcovr
+tests/gcovr/core.html: src/lisp/cons.gcda tests/gcovr
 	gcovr ${GCOVR_FLAGS} -r . \
 		-f src/lisp -f src/sys -f src/apply -f src/eval -f include \
 		--html --html-details -o $@
-staging/gcovr/eval.html: src/lisp/cons.gcda staging/gcovr
+tests/gcovr/eval.html: src/lisp/cons.gcda tests/gcovr
 	gcovr ${GCOVR_FLAGS} -r . -f src/eval \
 		--html --html-details -o $@
-staging/gcovr/lisp.html: src/lisp/cons.gcda staging/gcovr
+tests/gcovr/lisp.html: src/lisp/cons.gcda tests/gcovr
 	gcovr ${GCOVR_FLAGS} -r . -f src/lisp \
 		--html --html-details -o $@
-staging/gcovr/support.html: src/lisp/cons.gcda staging/gcovr
+tests/gcovr/support.html: src/lisp/cons.gcda tests/gcovr
 	gcovr ${GCOVR_FLAGS} -r . -f src/sys \
 		--html --html-details -o $@
-staging/gcovr/apply.html: src/lisp/cons.gcda staging/gcovr
+tests/gcovr/apply.html: src/lisp/cons.gcda tests/gcovr
 	gcovr ${GCOVR_FLAGS} -r . -f src/apply \
 		--html --html-details -o $@
-staging/gcovr/storage.html: src/lisp/cons.gcda staging/gcovr
+tests/gcovr/storage.html: src/lisp/cons.gcda tests/gcovr
 	gcovr ${GCOVR_FLAGS} -r . \
 		-f src/storage -f src/drivers -f include \
 		--html --html-details -o $@
-staging/gcovr/prims.html: src/lisp/cons.gcda staging/gcovr
+tests/gcovr/prims.html: src/lisp/cons.gcda tests/gcovr
 	gcovr ${GCOVR_FLAGS} -r . -f src/prims -f include \
 		--html --html-details -o $@
-staging/gcovr/cmodules.html: src/lisp/cons.gcda staging/gcovr
+tests/gcovr/cmodules.html: src/lisp/cons.gcda tests/gcovr
 	gcovr ${GCOVR_FLAGS} -r . -f src/cmodules -f include \
 		--html --html-details -o $@
-staging/gcovr/text.html: src/lisp/cons.gcda staging/gcovr
+tests/gcovr/text.html: src/lisp/cons.gcda tests/gcovr
 	gcovr ${GCOVR_FLAGS} -r . -f src/text -f include \
 		--html --html-details -o $@
-staging/gcovr/web.html: src/lisp/cons.gcda staging/gcovr
+tests/gcovr/web.html: src/lisp/cons.gcda tests/gcovr
 	gcovr ${GCOVR_FLAGS} -r . -f src/text -f include \
 		--html --html-details -o $@
 
@@ -2032,10 +2048,14 @@ src/lisp/cons.gcda: lib/libknocore.a
 	find . -name "*.gcda" -exec rm '{}' \;
 	cd tests; make libtests;
 
-gcovr_html: staging/gcovr/all.html staging/gcovr/core.html staging/gcovr/storage.html \
-	staging/gcovr/prims.html staging/gcovr/text.html staging/gcovr/web.html \
-	staging/gcovr/cmodules.html staging/gcovr/lisp.html staging/gcovr/support.html \
-	staging/gcovr/apply.html staging/gcovr/eval.html
+gcovr_html: tests/gcovr/all.html tests/gcovr/core.html tests/gcovr/storage.html \
+	tests/gcovr/prims.html tests/gcovr/text.html tests/gcovr/web.html \
+	tests/gcovr/cmodules.html tests/gcovr/lisp.html tests/gcovr/support.html \
+	tests/gcovr/apply.html tests/gcovr/eval.html
+
+gcovr_fresh:
+	rm -f tests/gcovr/*
+	make gcovr_html
 
 .PHONY: lcov_html gcovr_details
 
@@ -2090,7 +2110,7 @@ include/kno/revision.h: $(KNO_SOURCES) $(KNO_HEADERS) makefile
 ### Depending on the .buildmode
 $(EXECUTABLES) $(STATIC_EXECUTABLES): .buildmode $(REVISION_H)
 $(LISP_OBJS): $(LISP_HEADERS) $(REVISION_H)
-$(SUPPORT_OBJS): $(LISP_HEADERS) $(REVISION_H)
+$(SYS_OBJS): $(LISP_HEADERS) $(REVISION_H)
 $(APPLY_OBJS): $(LISP_HEADERS) $(APPLY_HEADERS) $(REVISION_H)
 $(STORAGE_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(REVISION_H)
 $(DRIVER_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) $(REVISION_H)
@@ -2100,7 +2120,7 @@ $(WEB_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
 	$(APPLY_HEADERS) $(SCHEME_HEADERS) $(REVISION_H) ./include/kno/webtools.h
 $(TEXT_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
 	$(APPLY_HEADERS) $(REVISION_H) $(SCHEME_HEADERS) ./include/kno/texttools.h
-$(LISP_OBJS) $(SUPPORT_OBJS) $(APPLY_OBJS): .buildmode
+$(LISP_OBJS) $(SYS_OBJS) $(APPLY_OBJS): .buildmode
 $(STORAGE_OBJS) $(DRIVER_OBJS): .buildmode
 $(SCHEME_OBJS): .buildmode
 $(WEB_OBJS) $(TEXT_OBJS): .buildmode

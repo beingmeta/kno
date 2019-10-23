@@ -64,7 +64,7 @@ static lispval annotate_source(lispval expr,lispval target)
   else if (! (KNO_CONSP(expr)) )
     return expr;
   else {
-    kno_lisp_type type = KNO_LISP_TYPE(expr);
+    kno_lisp_type type = KNO_TYPEOF(expr);
     switch (type) {
     case kno_pair_type: {
       lispval car = source_subst(KNO_CAR(expr),target);
@@ -159,7 +159,7 @@ static lispval copy_bindings(lispval bindings)
    6. args   (a vector of arguments to an applied procedure, or () otherwise)
    7. env    (the lexical environment established by the frame)
    8. source (the original source code for the call, if available)
- */
+*/
 
 #define STACK_CREATE_OPTS KNO_COMPOUND_USEREF
 
@@ -171,9 +171,9 @@ static lispval stack2lisp(struct KNO_STACK *stack,struct KNO_STACK *inner)
   lispval op = stack->stack_op, env = KNO_FALSE;
   lispval argvec = ( stack->stack_args ) ?
     (kno_init_compound_from_elts(NULL,pargs_symbol,
-                                KNO_COMPOUND_COPYREF|KNO_COMPOUND_SEQUENCE,
-                                stack->n_args,
-                                stack->stack_args)) :
+                                 KNO_COMPOUND_COPYREF|KNO_COMPOUND_SEQUENCE,
+                                 stack->stack_arglen,
+				 (lispval *) stack->stack_args)) :
     (KNO_FALSE);
   unsigned int icrumb = stack->stack_crumb;
   lispval source = stack->stack_source;
@@ -322,9 +322,3 @@ void kno_init_stacks_c()
 
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

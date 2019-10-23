@@ -203,6 +203,7 @@
 			 (glom (mongodb/spec collection) 
 			   ":" (mongodb/dbname collection)
 			   ":" cname))))
+	 (info%watch "INIT-MONGOPOOL" collection opts info name)
 	 (config! 'mongo:domain collection)
 	 (cond ((and (exists? base) (exists? cap)))
 	       ((not (getopt opts 'create)) #f)
@@ -226,6 +227,7 @@
 					base cap opts 
 					(qc (getopt opts 'slotinfo {}))))
 		(pool (make-procpool name base cap opts record load)))
+	   (info%watch "INIT-MONGOPOOL/consed" pool record collection)
 	   (store! mongopools collection pool)
 	   (store! mongopools
 	     {(vector (mongodb/getdb collection) cname)

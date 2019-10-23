@@ -82,23 +82,25 @@ KNO_EXPORT lispval kno_read_xtype(kno_inbuf in,xtype_refs refs)
       return xt_error(BadXType,"kno_read_xtype",NULL,VOID);}}
   else if (code < xt_utf8_b) {
     ssize_t len = xt_read_len(in,code);
-    if (len < 0) return len; 
+    if (len < 0) return len;
     if ( (code & 0x30) == xt_utf8_b ) {
       struct KNO_STRING *str = u8_malloc(sizeof(KNO_STRING)+len);
       KNO_INIT_CONS(ptr,kno_string_type);
       ptr->str_bytelen = len;
       ptr->str_bytes = ;
-  ptr->str_freebytes = freedata;
+      ptr->str_freebytes = freedata;
 
-    unsigned char buf[len];
-    int bytes_read = kno_read_bytes(buf,inbuf,len);
-    if (bytes_read < len) return KNO_UNEXPECTED_EOD;
+      unsigned char buf[len];
+      int bytes_read = kno_read_bytes(buf,inbuf,len);
+      if (bytes_read < len) return KNO_UNEXPECTED_EOD;
 
 
+    }
+  }
 }
 
 static ssize_t validate_dtype(int pos,const unsigned char *ptr,
-                              const unsigned char *lim)
+			      const unsigned char *lim)
 {
   if (pos < 0)
     return pos;
@@ -119,49 +121,49 @@ static ssize_t validate_dtype(int pos,const unsigned char *ptr,
       return validate_dtype(newpos(pos+1,ptr,lim),ptr,lim);
     case dt_pair: case dt_compound: case dt_rational: case dt_complex:
       return validate_dtype(validate_dtype(validate_dtype(pos+1,ptr,lim),
-                                           ptr,lim),
-                            ptr,lim);
+					   ptr,lim),
+			    ptr,lim);
     case dt_tiny_symbol: case dt_tiny_string:
       if (ptr+pos+1 >= lim) return -1;
       else return newpos(pos+1+ptr[pos+1],ptr,lim);
     case dt_tiny_choice:
       if (ptr+pos+1 >= lim) return -1;
       else {
-        int i = 0, len = ptr[pos+1];
-        while (i<len) {
-          int i = 0, len = ptr[pos+1], npos = pos+2;
-          while ((i < len) && (npos > 0))
-            npos = validate_dtype(npos,ptr,lim);
-          return npos;}}
+	int i = 0, len = ptr[pos+1];
+	while (i<len) {
+	  int i = 0, len = ptr[pos+1], npos = pos+2;
+	  while ((i < len) && (npos > 0))
+	    npos = validate_dtype(npos,ptr,lim);
+	  return npos;}}
     case dt_symbol: case dt_packet: case dt_string: case dt_zstring:
       if (ptr+pos+5 >= lim) return -1;
       else {
-        int len = kno_get_4bytes(ptr+pos+1);
-        return newpos(pos+5+len,ptr,lim);}
+	int len = kno_get_4bytes(ptr+pos+1);
+	return newpos(pos+5+len,ptr,lim);}
     case dt_vector:
       if (ptr+pos+5 >= lim) return -1;
       else {
-        int i = 0, len = kno_get_4bytes(ptr+pos+1), npos = pos+5;
-        while ((i < len) && (npos > 0))
-          npos = validate_dtype(npos,ptr,lim);
-        return npos;}
+	int i = 0, len = kno_get_4bytes(ptr+pos+1), npos = pos+5;
+	while ((i < len) && (npos > 0))
+	  npos = validate_dtype(npos,ptr,lim);
+	return npos;}
     default:
       if ((code > 0x40) && (ptr+pos+2 < lim)) {
-        int subcode = *(ptr+pos+1), len, npos;
-        if (subcode&0x40)
-          if (ptr+pos+6 < lim) {
-            npos = pos+6;
-            len = kno_get_4bytes(ptr+pos+2);}
-          else return -1;
-        else if (ptr+pos+3 < lim) {
-          npos = pos+3;
-          len = kno_get_byte(ptr+pos+2);}
-        else return -1;
-        if (subcode&0x80) {
-          int i = 0; while ((i < len) && (npos > 0)) {
-            npos = validate_dtype(npos,ptr,lim); i++;}
-          return npos;}
-        else return newpos(npos+len,ptr,lim);}
+	int subcode = *(ptr+pos+1), len, npos;
+	if (subcode&0x40)
+	  if (ptr+pos+6 < lim) {
+	    npos = pos+6;
+	    len = kno_get_4bytes(ptr+pos+2);}
+	  else return -1;
+	else if (ptr+pos+3 < lim) {
+	  npos = pos+3;
+	  len = kno_get_byte(ptr+pos+2);}
+	else return -1;
+	if (subcode&0x80) {
+	  int i = 0; while ((i < len) && (npos > 0)) {
+	    npos = validate_dtype(npos,ptr,lim); i++;}
+	  return npos;}
+	else return newpos(npos+len,ptr,lim);}
       else return -1;}}
 }
 
@@ -180,7 +182,7 @@ KNO_EXPORT lispval kno_make_mystery_vector(int,int,unsigned int,lispval *);
 static lispval read_packaged_dtype(int,struct KNO_INBUF *);
 
 static lispval *read_dtypes(int n,struct KNO_INBUF *in,
-                            lispval *why_not,lispval *into)
+			    lispval *why_not,lispval *into)
 {
   if (n==0) return NULL;
   else {
@@ -188,11 +190,11 @@ static lispval *read_dtypes(int n,struct KNO_INBUF *in,
     int i = 0; while (i < n) {
       lispval v = kno_read_dtype(in);
       if (KNO_COOLP(v))
-        vec[i++]=v;
+	vec[i++]=v;
       else {
-        int j = 0; while (j<i) {kno_decref(vec[j]); j++;}
-        u8_free(vec); *why_not = v;
-        return NULL;}}
+	int j = 0; while (j<i) {kno_decref(vec[j]); j++;}
+	u8_free(vec); *why_not = v;
+	return NULL;}}
     return vec;}
 }
 
@@ -215,15 +217,15 @@ KNO_EXPORT lispval kno_read_dtype(struct KNO_INBUF *in)
     case dt_default_value: return KNO_DEFAULT_VALUE;
     case dt_boolean:
       if (nobytes(in,1))
-        return kno_return_errcode(KNO_EOD);
+	return kno_return_errcode(KNO_EOD);
       else if (*(in->bufread++))
-        return KNO_TRUE;
+	return KNO_TRUE;
       else return KNO_FALSE;
     case dt_fixnum:
       if (havebytes(in,4)) {
-        int intval = kno_get_4bytes(in->bufread);
-        in->bufread = in->bufread+4;
-        return KNO_INT(intval);}
+	int intval = kno_get_4bytes(in->bufread);
+	in->bufread = in->bufread+4;
+	return KNO_INT(intval);}
       else return kno_return_errcode(KNO_EOD);
     case dt_flonum: {
       char bytes[4];
@@ -232,300 +234,298 @@ KNO_EXPORT lispval kno_read_dtype(struct KNO_INBUF *in)
       unsigned int *i = (unsigned int *)&bytes, num;
       long long result=kno_read_4bytes(in);
       if (result<0)
-        return unexpected_eod();
+	return unexpected_eod();
       else num=(unsigned int)result;
       *i = num; flonum = *f;
       return _kno_make_double(flonum);}
     case dt_oid: {
       long long hival=kno_read_4bytes(in), loval;
       if (PRED_FALSE(hival<0))
-        return unexpected_eod();
+	return unexpected_eod();
       else loval=kno_read_4bytes(in);
       if (PRED_FALSE(loval<0))
-        return unexpected_eod();
+	return unexpected_eod();
       else {
-        KNO_OID addr = KNO_NULL_OID_INIT;
-        KNO_SET_OID_HI(addr,hival);
-        KNO_SET_OID_LO(addr,loval);
-        return kno_make_oid(addr);}}
+	KNO_OID addr = KNO_NULL_OID_INIT;
+	KNO_SET_OID_HI(addr,hival);
+	KNO_SET_OID_LO(addr,loval);
+	return kno_make_oid(addr);}}
     case dt_error: {
       lispval content = kno_read_dtype(in);
       if (KNO_ABORTP(content))
-        return content;
+	return content;
       else return kno_init_compound(NULL,error_symbol,0,1,content);}
     case dt_exception: {
       lispval content = kno_read_dtype(in);
       if (KNO_ABORTP(content))
-        return content;
+	return content;
       else return kno_restore_exception_dtype(content);}
     case dt_pair: {
       lispval head = NIL, *tail = &head;
       while (1) {
-        lispval car = kno_read_dtype(in);
-        if (KNO_ABORTP(car)) {
-          kno_decref(head);
-          return car;}
-        else {
-          lispval new_pair=
-            kno_init_pair(u8_alloc(struct KNO_PAIR),
-                          car,NIL);
-          int dtcode = kno_read_byte(in);
-          if (dtcode<0) {
-            kno_decref(head);
-            kno_decref(new_pair);
-            return unexpected_eod();}
-          *tail = new_pair;
-          tail = &(KNO_CDR(new_pair));
-          if (dtcode != dt_pair) {
-            lispval cdr;
-            if (kno_unread_byte(in,dtcode)<0) {
-              kno_decref(head);
-              return KNO_ERROR;}
-            cdr = kno_read_dtype(in);
-            if (KNO_ABORTP(cdr)) {
-              kno_decref(head);
-              return cdr;}
-            *tail = cdr;
-            return head;}}}}
+	lispval car = kno_read_dtype(in);
+	if (KNO_ABORTP(car)) {
+	  kno_decref(head);
+	  return car;}
+	else {
+	  lispval new_pair=
+	    kno_init_pair(u8_alloc(struct KNO_PAIR),
+			  car,NIL);
+	  int dtcode = kno_read_byte(in);
+	  if (dtcode<0) {
+	    kno_decref(head);
+	    kno_decref(new_pair);
+	    return unexpected_eod();}
+	  *tail = new_pair;
+	  tail = &(KNO_CDR(new_pair));
+	  if (dtcode != dt_pair) {
+	    lispval cdr;
+	    if (kno_unread_byte(in,dtcode)<0) {
+	      kno_decref(head);
+	      return KNO_ERROR;}
+	    cdr = kno_read_dtype(in);
+	    if (KNO_ABORTP(cdr)) {
+	      kno_decref(head);
+	      return cdr;}
+	    *tail = cdr;
+	    return head;}}}}
     case dt_compound: case dt_rational: case dt_complex: {
       lispval car = kno_read_dtype(in), cdr;
       if (KNO_TROUBLEP(car))
-        return car;
+	return car;
       else cdr = kno_read_dtype(in);
       if (KNO_TROUBLEP(cdr)) {
-        kno_decref(car);
-        return cdr;}
+	kno_decref(car);
+	return cdr;}
       else switch (code) {
-        case dt_compound: {
-          struct KNO_COMPOUND_TYPEINFO *e = kno_lookup_compound(car);
-          if ((e) && (e->compound_restorefn)) {
-            lispval result = e->compound_restorefn(car,cdr,e);
-            kno_decref(cdr);
-            return result;}
-          else {
-            int flags = KNO_COMPOUND_USEREF;
-            if (e) {
-              if (e->compound_isopaque)
-                flags |= KNO_COMPOUND_OPAQUE;
-              if (e->compound_ismutable)
-                flags |= KNO_COMPOUND_MUTABLE;
-              if (e->compound_istable)
-                flags |= KNO_COMPOUND_TABLE;
-              if (e->compound_istable)
-                flags |= KNO_COMPOUND_SEQUENCE;}
-            else if (KNO_VECTORP(cdr)) {
-              flags |= KNO_COMPOUND_SEQUENCE;}
-            else NO_ELSE;
-            if (KNO_VECTORP(cdr)) {
-              struct KNO_VECTOR *vec = (struct KNO_VECTOR *)cdr;
-              lispval result = kno_init_compound_from_elts
-                (NULL,car,flags,vec->vec_length,vec->vec_elts);
-              vec->vec_length = 0; vec->vec_elts = NULL;
-              kno_decref(cdr);
-              return result;}
-            else return kno_init_compound(NULL,car,flags,1,cdr);}}
-        case dt_rational:
-          return _kno_make_rational(car,cdr);
-        case dt_complex:
-          return _kno_make_complex(car,cdr);}}
+	case dt_compound: {
+	  struct KNO_TYPEINFO *e = kno_use_typeinfo(car);
+	  if ((e) && (e->type_restorefn)) {
+	    lispval result = e->type_restorefn(car,cdr,e);
+	    kno_decref(cdr);
+	    return result;}
+	  else {
+	    int flags = KNO_COMPOUND_USEREF;
+	    if (e) {
+	      if (e->compound_isopaque)
+		flags |= KNO_COMPOUND_OPAQUE;
+	      if (e->compound_ismutable)
+		flags |= KNO_COMPOUND_MUTABLE;
+	      if (e->compound_issequence)
+		flags |= KNO_COMPOUND_SEQUENCE;}
+	    else if (KNO_VECTORP(cdr)) {
+	      flags |= KNO_COMPOUND_SEQUENCE;}
+	    else NO_ELSE;
+	    if (KNO_VECTORP(cdr)) {
+	      struct KNO_VECTOR *vec = (struct KNO_VECTOR *)cdr;
+	      lispval result = kno_init_compound_from_elts
+		(NULL,car,flags,vec->vec_length,vec->vec_elts);
+	      vec->vec_length = 0; vec->vec_elts = NULL;
+	      kno_decref(cdr);
+	      return result;}
+	    else return kno_init_compound(NULL,car,flags,1,cdr);}}
+	case dt_rational:
+	  return _kno_make_rational(car,cdr);
+	case dt_complex:
+	  return _kno_make_complex(car,cdr);}}
     case dt_packet: case dt_string:
       len=kno_read_4bytes(in);
       if (len<0)
-        return unexpected_eod();
+	return unexpected_eod();
       else if (nobytes(in,len))
-        return unexpected_eod();
+	return unexpected_eod();
       else {
-        lispval result = VOID;
-        switch (code) {
-        case dt_string:
-          result = kno_make_string(NULL,len,in->bufread); break;
-        case dt_packet:
-          result = kno_make_packet(NULL,len,in->bufread); break;}
-        in->bufread = in->bufread+len;
-        return result;}
+	lispval result = VOID;
+	switch (code) {
+	case dt_string:
+	  result = kno_make_string(NULL,len,in->bufread); break;
+	case dt_packet:
+	  result = kno_make_packet(NULL,len,in->bufread); break;}
+	in->bufread = in->bufread+len;
+	return result;}
     case dt_tiny_symbol:
       len = kno_read_byte(in);
       if (len<0)
-        return unexpected_eod();
+	return unexpected_eod();
       else if (nobytes(in,len))
-        return unexpected_eod();
+	return unexpected_eod();
       else {
-        u8_byte data[257];
-        memcpy(data,in->bufread,len); data[len]='\0';
-        in->bufread += len;
-        if ( ( (in->buf_flags) & KNO_FIX_DTSYMS) ||
-             ( kno_dtype_fixcase ) )
-          return kno_fixcase_symbol(data,len);
-        else return kno_make_symbol(data,len);}
+	u8_byte data[257];
+	memcpy(data,in->bufread,len); data[len]='\0';
+	in->bufread += len;
+	if ( ( (in->buf_flags) & KNO_FIX_DTSYMS) ||
+	     ( kno_dtype_fixcase ) )
+	  return kno_fixcase_symbol(data,len);
+	else return kno_make_symbol(data,len);}
     case dt_tiny_string:
       len = kno_read_byte(in);
       if (len<0)
-        return unexpected_eod();
+	return unexpected_eod();
       else if (nobytes(in,len))
-        return unexpected_eod();
+	return unexpected_eod();
       else {
-        lispval result = kno_make_string(NULL,len,in->bufread);
-        in->bufread += len;
-        return result;}
+	lispval result = kno_make_string(NULL,len,in->bufread);
+	in->bufread += len;
+	return result;}
     case dt_symbol: case dt_zstring:
       len = kno_read_4bytes(in);
       if ( (len<0) || (nobytes(in,len)) )
-        return kno_return_errcode(KNO_EOD);
+	return kno_return_errcode(KNO_EOD);
       else {
-        unsigned char data[len+1];
-        memcpy(data,in->bufread,len); data[len]='\0';
-        in->bufread += len;
-        if ( ( (in->buf_flags) & KNO_FIX_DTSYMS) ||
-             ( kno_dtype_fixcase ) )
-          return kno_fixcase_symbol(data,len);
-        else return kno_make_symbol(data,len);}
+	unsigned char data[len+1];
+	memcpy(data,in->bufread,len); data[len]='\0';
+	in->bufread += len;
+	if ( ( (in->buf_flags) & KNO_FIX_DTSYMS) ||
+	     ( kno_dtype_fixcase ) )
+	  return kno_fixcase_symbol(data,len);
+	else return kno_make_symbol(data,len);}
     case dt_vector:
       len = kno_read_4bytes(in);
       if (len < 0)
-        return kno_return_errcode(KNO_EOD);
+	return kno_return_errcode(KNO_EOD);
       else if (PRED_FALSE(len == 0))
-        return kno_empty_vector(0);
+	return kno_empty_vector(0);
       else {
-        lispval why_not = KNO_EOD, result = kno_empty_vector(len);
-        lispval *elts = KNO_VECTOR_ELTS(result);
-        lispval *data = read_dtypes(len,in,&why_not,elts);
-        if (PRED_TRUE((data!=NULL)))
-          return result;
-        else return KNO_ERROR;}
+	lispval why_not = KNO_EOD, result = kno_empty_vector(len);
+	lispval *elts = KNO_VECTOR_ELTS(result);
+	lispval *data = read_dtypes(len,in,&why_not,elts);
+	if (PRED_TRUE((data!=NULL)))
+	  return result;
+	else return KNO_ERROR;}
     case dt_tiny_choice:
       len=kno_read_byte(in);
       if (len<0)
-        return unexpected_eod();
+	return unexpected_eod();
       else {
-        struct KNO_CHOICE *ch = kno_alloc_choice(len);
-        lispval *write = (lispval *)KNO_XCHOICE_DATA(ch);
-        lispval *limit = write+len;
-        while (write<limit) {
-          lispval v = kno_read_dtype(in);
-          if (KNO_ABORTP(v)) {
-            kno_free_choice(ch);
-            return v;}
-          *write++=v;}
-        return kno_init_choice(ch,len,NULL,(KNO_CHOICE_DOSORT|KNO_CHOICE_REALLOC));}
+	struct KNO_CHOICE *ch = kno_alloc_choice(len);
+	lispval *write = (lispval *)KNO_XCHOICE_DATA(ch);
+	lispval *limit = write+len;
+	while (write<limit) {
+	  lispval v = kno_read_dtype(in);
+	  if (KNO_ABORTP(v)) {
+	    kno_free_choice(ch);
+	    return v;}
+	  *write++=v;}
+	return kno_init_choice(ch,len,NULL,(KNO_CHOICE_DOSORT|KNO_CHOICE_REALLOC));}
     case dt_block:
       len=kno_read_4bytes(in);
       if ( (len<0) || (nobytes(in,len)) )
-        return unexpected_eod();
+	return unexpected_eod();
       else return kno_read_dtype(in);
     case dt_kno_package: {
       int code, lenlen;
       if (nobytes(in,2))
-        return unexpected_eod();
+	return unexpected_eod();
       code = *(in->bufread++); lenlen = ((code&0x40) ? 4 : 1);
       if (lenlen==4)
-        len = kno_read_4bytes(in);
+	len = kno_read_4bytes(in);
       else len = kno_read_byte(in);
       if (len < 0)
-        return unexpected_eod();
+	return unexpected_eod();
       else switch (code) {
-        case dt_qchoice: case dt_small_qchoice:
-          if (len==0)
-            return kno_init_qchoice(u8_alloc(struct KNO_QCHOICE),EMPTY);
-        case dt_choice: case dt_small_choice:
-          if (len==0)
-            return EMPTY;
-          else {
-            lispval result;
-            struct KNO_CHOICE *ch = kno_alloc_choice(len);
-            lispval *write = (lispval *)KNO_XCHOICE_DATA(ch);
-            lispval *limit = write+len;
-            while (write<limit) {
-              lispval v=kno_read_dtype(in);
-              if (KNO_ABORTP(v)) {
-                lispval *elts=(lispval *)KNO_XCHOICE_DATA(ch);
-                kno_decref_vec(elts,write-elts);
-                u8_big_free(ch);
-                return v;}
-              else *write++=v;}
-            result = kno_init_choice(ch,len,NULL,(KNO_CHOICE_DOSORT|KNO_CHOICE_REALLOC));
-            if (CHOICEP(result))
-              if ((code == dt_qchoice) || (code == dt_small_qchoice))
-                return kno_init_qchoice(u8_alloc(struct KNO_QCHOICE),result);
-              else return result;
-            else return result;}
-        case dt_slotmap: case dt_small_slotmap:
-          if (len==0)
-            return kno_empty_slotmap();
-          else {
-            int n_slots = len/2;
-            struct KNO_KEYVAL *keyvals = u8_alloc_n(n_slots,struct KNO_KEYVAL);
-            struct KNO_KEYVAL *write = keyvals, *limit = keyvals+n_slots;
-            while (write<limit) {
-              lispval key = kno_read_dtype(in), value;
-              if (KNO_ABORTP(key)) value=key;
-              else value = kno_read_dtype(in);
-              if (KNO_ABORTP(value)) {
-                struct KNO_KEYVAL *scan=keyvals;
-                if (!(KNO_ABORTP(key))) kno_decref(key);
-                while (scan<write) {
-                  kno_decref(scan->kv_key);
-                  kno_decref(scan->kv_val);
-                  scan++;}
-                u8_free(keyvals);
-                return value;}
-              else {
-                write->kv_key = key;
-                write->kv_val = value;
-                write++;}}
-            return kno_init_slotmap(NULL,n_slots,keyvals);}
-        case dt_hashtable: case dt_small_hashtable:
-          if (len==0)
-            return kno_init_hashtable(NULL,0,NULL);
-          else {
-            int n_keys = len/2, n_read = 0;
-            struct KNO_KEYVAL *keyvals = u8_big_alloc_n(n_keys,struct KNO_KEYVAL);
-            while (n_read<n_keys) {
-              lispval key = kno_read_dtype(in), value;
-              if (KNO_ABORTP(key)) value=key;
-              else value = kno_read_dtype(in);
-              if (KNO_ABORTP(value)) {
-                if (!(KNO_ABORTP(key))) kno_decref(key);
-                int j = 0; while (j<n_read) {
-                  kno_decref(keyvals[j].kv_key);
-                  kno_decref(keyvals[j].kv_val);
-                  j++;}
-                u8_big_free(keyvals);
-                return value;}
-              else if ( (EMPTYP(value)) || (EMPTYP(key)) ) {
-                kno_decref(key);
-                kno_decref(value);}
-              else {
-                keyvals[n_read].kv_key = key;
-                keyvals[n_read].kv_val = value;
-                n_read++;}}
-            lispval table = kno_initialize_hashtable(NULL,keyvals,n_read);
-            u8_big_free(keyvals);
-            return table;}
-        case dt_hashset: case dt_small_hashset: {
-          int i = 0;
-          struct KNO_HASHSET *h = u8_alloc(struct KNO_HASHSET);
-          kno_init_hashset(h,len,KNO_MALLOCD_CONS);
-          while (i<len) {
-            lispval v = kno_read_dtype(in);
-            if (KNO_ABORTP(v)) {
-              kno_decref((lispval)h);
-              return v;}
-            kno_hashset_add_raw(h,v);
-            i++;}
-          return LISP_CONS(h);}
-        default: {
-          int i = 0; lispval *data = u8_alloc_n(len,lispval);
-          while (i<len) {
-            lispval v=kno_read_dtype(in);
-            if (KNO_ABORTP(v)) {
-              kno_decref_vec(data,i);
-              u8_free(data);
-              return v;}
-            else data[i++]=kno_read_dtype(in);}
-          return kno_make_mystery_vector(dt_kno_package,code,len,data);}}}
+	case dt_qchoice: case dt_small_qchoice:
+	  if (len==0)
+	    return kno_init_qchoice(u8_alloc(struct KNO_QCHOICE),EMPTY);
+	case dt_choice: case dt_small_choice:
+	  if (len==0)
+	    return EMPTY;
+	  else {
+	    lispval result;
+	    struct KNO_CHOICE *ch = kno_alloc_choice(len);
+	    lispval *write = (lispval *)KNO_XCHOICE_DATA(ch);
+	    lispval *limit = write+len;
+	    while (write<limit) {
+	      lispval v=kno_read_dtype(in);
+	      if (KNO_ABORTP(v)) {
+		lispval *elts=(lispval *)KNO_XCHOICE_DATA(ch);
+		kno_decref_vec(elts,write-elts);
+		u8_big_free(ch);
+		return v;}
+	      else *write++=v;}
+	    result = kno_init_choice(ch,len,NULL,(KNO_CHOICE_DOSORT|KNO_CHOICE_REALLOC));
+	    if (CHOICEP(result))
+	      if ((code == dt_qchoice) || (code == dt_small_qchoice))
+		return kno_init_qchoice(u8_alloc(struct KNO_QCHOICE),result);
+	      else return result;
+	    else return result;}
+	case dt_slotmap: case dt_small_slotmap:
+	  if (len==0)
+	    return kno_empty_slotmap();
+	  else {
+	    int n_slots = len/2;
+	    struct KNO_KEYVAL *keyvals = u8_alloc_n(n_slots,struct KNO_KEYVAL);
+	    struct KNO_KEYVAL *write = keyvals, *limit = keyvals+n_slots;
+	    while (write<limit) {
+	      lispval key = kno_read_dtype(in), value;
+	      if (KNO_ABORTP(key)) value=key;
+	      else value = kno_read_dtype(in);
+	      if (KNO_ABORTP(value)) {
+		struct KNO_KEYVAL *scan=keyvals;
+		if (!(KNO_ABORTP(key))) kno_decref(key);
+		while (scan<write) {
+		  kno_decref(scan->kv_key);
+		  kno_decref(scan->kv_val);
+		  scan++;}
+		u8_free(keyvals);
+		return value;}
+	      else {
+		write->kv_key = key;
+		write->kv_val = value;
+		write++;}}
+	    return kno_init_slotmap(NULL,n_slots,keyvals);}
+	case dt_hashtable: case dt_small_hashtable:
+	  if (len==0)
+	    return kno_init_hashtable(NULL,0,NULL);
+	  else {
+	    int n_keys = len/2, n_read = 0;
+	    struct KNO_KEYVAL *keyvals = u8_big_alloc_n(n_keys,struct KNO_KEYVAL);
+	    while (n_read<n_keys) {
+	      lispval key = kno_read_dtype(in), value;
+	      if (KNO_ABORTP(key)) value=key;
+	      else value = kno_read_dtype(in);
+	      if (KNO_ABORTP(value)) {
+		if (!(KNO_ABORTP(key))) kno_decref(key);
+		int j = 0; while (j<n_read) {
+		  kno_decref(keyvals[j].kv_key);
+		  kno_decref(keyvals[j].kv_val);
+		  j++;}
+		u8_big_free(keyvals);
+		return value;}
+	      else if ( (EMPTYP(value)) || (EMPTYP(key)) ) {
+		kno_decref(key);
+		kno_decref(value);}
+	      else {
+		keyvals[n_read].kv_key = key;
+		keyvals[n_read].kv_val = value;
+		n_read++;}}
+	    lispval table = kno_initialize_hashtable(NULL,keyvals,n_read);
+	    u8_big_free(keyvals);
+	    return table;}
+	case dt_hashset: case dt_small_hashset: {
+	  int i = 0;
+	  struct KNO_HASHSET *h = u8_alloc(struct KNO_HASHSET);
+	  kno_init_hashset(h,len,KNO_MALLOCD_CONS);
+	  while (i<len) {
+	    lispval v = kno_read_dtype(in);
+	    if (KNO_ABORTP(v)) {
+	      kno_decref((lispval)h);
+	      return v;}
+	    kno_hashset_add_raw(h,v);
+	    i++;}
+	  return LISP_CONS(h);}
+	default: {
+	  int i = 0; lispval *data = u8_alloc_n(len,lispval);
+	  while (i<len) {
+	    lispval v=kno_read_dtype(in);
+	    if (KNO_ABORTP(v)) {
+	      kno_decref_vec(data,i);
+	      u8_free(data);
+	      return v;}
+	    else data[i++]=kno_read_dtype(in);}
+	  return kno_make_mystery_vector(dt_kno_package,code,len,data);}}}
     default:
       if ((code >= 0x40) && (code < 0x80))
-        return read_packaged_dtype(code,in);
+	return read_packaged_dtype(code,in);
       else return KNO_DTYPE_ERROR;}}
   else return kno_return_errcode(KNO_EOD);
 }
@@ -625,8 +625,8 @@ static lispval read_packaged_dtype
 }
 
 static lispval make_character_type(int code,
-                                   int len,unsigned char *bytes,
-                                   int dtflags)
+				   int len,unsigned char *bytes,
+				   int dtflags)
 {
   switch (code) {
   case dt_ascii_char: {
@@ -663,7 +663,7 @@ static lispval make_character_type(int code,
       int c = scan[0]<<8|scan[1]; scan = scan+2;
       u8_putc(&os,c);}
     if ( ( (dtflags) & KNO_FIX_DTSYMS) ||
-         ( kno_dtype_fixcase ) )
+	 ( kno_dtype_fixcase ) )
       sym = kno_fixcase_symbol(os.u8_outbuf,os.u8_write-os.u8_outbuf);
     else sym = kno_make_symbol(os.u8_outbuf,os.u8_write-os.u8_outbuf);
     u8_free(bytes);
@@ -775,12 +775,12 @@ static unsigned char *do_uncompress
     else if (error == Z_BUF_ERROR) {
       Bytef *newbuf;
       if (xbuf == init_xbuf)
-        newbuf = u8_malloc(buflen*2);
+	newbuf = u8_malloc(buflen*2);
       else newbuf = u8_realloc(xbuf,buflen*2);
       if (newbuf == NULL) {
-        u8_seterr(kno_MallocFailed,"do_uncompress",NULL);
-        if (xbuf == init_xbuf) u8_free(xbuf);
-        return NULL;}
+	u8_seterr(kno_MallocFailed,"do_uncompress",NULL);
+	if (xbuf == init_xbuf) u8_free(xbuf);
+	return NULL;}
       xbuf=newbuf;
       buflen=buflen*2;
       xbuf_size=buflen;}

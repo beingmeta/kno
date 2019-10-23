@@ -25,7 +25,7 @@
 #define KNO_FNFLAGS(max_arity,min_arity,ndcall,xcall)    \
   ( (KNO_MAX_ARGS(max_arity)) |                          \
     (KNO_MIN_ARGS(min_arity)) |                          \
-    ((ndcall) ? (KNO_NDCALL) : (0)) |                    \
+    ((ndcall) ? (KNO_NDOP) : (0)) |                    \
     ((xcall) ? (KNO_XCALL) : (0)) )
 
 /* DEFPRIM */
@@ -163,7 +163,13 @@
   kno_defprim ## arity(module,cname,&cname ## _info,             \
                       cname ## _typeinfo,                       \
                       cname ## _defaults)
+#define KNO_LINK_CPRIM(cname,arity,module)                  \
+  kno_defprim ## arity(module,cname,&cname ## _info,             \
+                      cname ## _typeinfo,                       \
+                      cname ## _defaults)
 #define KNO_LINK_VARARGS(pname,cname,module)    \
+  kno_defprimN(module,cname,&cname ## _info);
+#define KNO_LINK_CVARARGS(cname,module)    \
   kno_defprimN(module,cname,&cname ## _info);
 
 KNO_EXPORT void kno_typedprim1(lispval module,kno_cprim1 fn,
@@ -210,7 +216,7 @@ KNO_EXPORT void kno_typedprim6(lispval module,kno_cprim6 fn,
 #if KNO_SOURCE
 #define MAX_ARGS     KNO_MAX_ARGS
 #define MIN_ARGS     KNO_MIN_ARGS
-#define NDCALL       KNO_NDCALL
+#define NDOP       KNO_NDOP
 
 #define DEFPRIM      KNO_DEFPRIM
 #define DEFPRIM1     KNO_DEFPRIM1
@@ -297,13 +303,7 @@ KNO_EXPORT void kno_defprim15(lispval module,kno_cprim15 fn,
                             int typeinfo[15],
                             lispval defaults[15]);
 
-static U8_MAYBE_UNUSED void init_local_cprims(void);
+static U8_MAYBE_UNUSED void link_local_cprims(void);
 
 #endif /* KNO_CPRIMS_H */
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

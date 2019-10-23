@@ -1052,7 +1052,7 @@ int kno_output_xml_preface(U8_OUTPUT *out,lispval cgidata)
 
 DEFPRIM("body!",set_body_attribs,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
         "`(BODY! *arg0* *args...*)` **undocumented**");
-static lispval set_body_attribs(int n,lispval *args)
+static lispval set_body_attribs(int n,kno_argvec args)
 {
   if ((n==1)&&(args[0]==KNO_FALSE)) {
     kno_req_store(body_attribs_slotid,KNO_FALSE);
@@ -1360,11 +1360,13 @@ KNO_EXPORT void kno_init_cgiexec_c()
 
   u8_init_mutex(&protected_cgi_lock);
 
-  kno_def_evalfn(module,"HTTPHEADER","",httpheader);
+  kno_def_evalfn(module,"HTTPHEADER",httpheader,
+		 "*undocumented*");
 
-  init_local_cprims();
+  link_local_cprims();
 
-  kno_def_evalfn(module,"WITH/REQUEST/OUT","",withreqout_evalfn);
+  kno_def_evalfn(module,"WITH/REQUEST/OUT",withreqout_evalfn,
+		 "*undocumented*");
   kno_defalias(module,"WITHCGIOUT","WITH/REQUEST/OUT");
 
   kno_defalias2(module,"WITHCGI",kno_scheme_module,"WITH/REQUEST");
@@ -1377,12 +1379,17 @@ KNO_EXPORT void kno_init_cgiexec_c()
   kno_defalias2(module,"CGIADD!",kno_scheme_module,"REQ/DROP!");
 
 
-  /* kno_def_evalfn(module,"CGIVAR","",cgivar_evalfn); */
+  /* kno_def_evalfn(module,"CGIVAR",cgivar_evalfn,
+     "*undocumented*"); */
 
-  kno_def_evalfn(xhtml_module,"HTMLHEADER","",htmlheader);
-  kno_def_evalfn(xhtml_module,"TITLE!","",title_evalfn);
-  kno_def_evalfn(xhtml_module,"JSOUT","",jsout_evalfn);
-  kno_def_evalfn(xhtml_module,"CSSOUT","",cssout_evalfn);
+  kno_def_evalfn(xhtml_module,"HTMLHEADER",htmlheader,
+		 "*undocumented*");
+  kno_def_evalfn(xhtml_module,"TITLE!",title_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(xhtml_module,"JSOUT",jsout_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(xhtml_module,"CSSOUT",cssout_evalfn,
+		 "*undocumented*");
 
   tail_symbol = kno_intern("%tail");
   browseinfo_symbol = kno_intern("browseinfo");
@@ -1485,15 +1492,9 @@ KNO_EXPORT void kno_init_cgiexec_c()
   u8_register_source_file(_FILEINFO);
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
 
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("mapurl",mapurl,1,webtools_module);
   KNO_LINK_PRIM("urldata/parse",urldata_parse,1,webtools_module);

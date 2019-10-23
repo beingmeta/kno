@@ -2,9 +2,39 @@
 
 (load-component "common.scm")
 
+(use-module '{reflection stringfmts optimize})
+(optimize! 'stringfmts)
+;; TODO: This leaks for some reason. Find it out.
+;;(reoptimize! 'stringfmts)
+
+(applytest '("foo" "bar" "baz") (lambda x x) "foo" "bar" "baz")
+(applytest '() (lambda x x))
+(applytest '("bar" "baz") (lambda (x . rest) rest) "foo" "bar" "baz")
+(applytest '("baz") (lambda (x (y "quux") . rest) rest) "foo" "bar" "baz")
+(applytest '() (lambda (x (y "quux") (z "qxu") . rest) rest) "foo" "bar" "baz")
+
+
 (errtest ((lambda (x (y . err) (z)) (+ x 3)) 8))
 (errtest (nlambda (string-append 3 "bar") (x y) (+ x y)))
 (errtest ((lambda (x "y" (z)) (+ x 3)) 8))
+
+(errtest ((lambda) 8))
+(errtest ((ambda) 8))
+(errtest ((nlambda)))
+(errtest ((slambda) 8))
+(errtest ((sambda) 8))
+
+(applytest #t procedure? (def (times p q) (* p q)))
+(applytest #t procedure? (def ("times" p q) (* p q)))
+(applytest #t non-deterministic? (defamb ("times" p q) (* p q)))
+
+(applytest 5 (nlambda 'take5 (n) (+ 2 n)) 3)
+(applytest 5 (nlambda "take5" (n) (+ 2 n)) 3)
+(applytest 5 (nlambda (glom "take" 5) (n) (+ 2 n)) 3)
+(errtest (nlambda (append "take" 5) (n) (+ 2 n)))
+(errtest (nlambda (cons "take" 5) (n) (+ 2 n)))
+
+(applytest packet? dtype->packet (lambda (x) (1+ x)))
 
 ;;; Arity checking
 

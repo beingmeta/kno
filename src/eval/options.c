@@ -144,7 +144,7 @@ static lispval tryopt_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     else return simplify_value(results);}
 }
 #endif
-DEFPRIM3("%getopt",getopt_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+DEFPRIM3("%getopt",getopt_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDOP,
 	 "`(%GETOPT *opts* *name* [*default*=#f])` "
 	 "gets any *name* option from opts, returning "
 	 "*default* if there isn't any. This is a real "
@@ -177,7 +177,7 @@ static lispval testopt_prim(lispval opts,lispval key,lispval val)
   else return KNO_FALSE;
 }
 
-DEFPRIM1("opts?",optionsp_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+DEFPRIM1("opts?",optionsp_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDOP,
 	 "`(OPTS? *opts*)` "
 	 "returns true if *opts* is a valid options object.",
 	 kno_any_type,KNO_VOID);
@@ -188,11 +188,11 @@ static lispval optionsp_prim(lispval opts)
   else return KNO_FALSE;
 }
 #define nulloptsp(v) ( (v == KNO_FALSE) || (v == KNO_DEFAULT) )
-DEFPRIM("opts+",opts_plus_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(0)|KNO_NDCALL,
+DEFPRIM("opts+",opts_plus_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(0)|KNO_NDOP,
 	"`(OPTS+ *add* *opts*)` "
 	"or `(OPTS+ *optname* *value* *opts*) returns a "
 	"new options object (a pair).");
-static lispval opts_plus_prim(int n,lispval *args)
+static lispval opts_plus_prim(int n,kno_argvec args)
 {
   int i = 0, new_front = 0;
   /* *back* is the options list and *front* is where specified values
@@ -244,29 +244,18 @@ KNO_EXPORT void kno_init_eval_getopt_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  kno_def_evalfn(kno_scheme_module,"GETOPT",
+  kno_def_evalfn(kno_scheme_module,"GETOPT",getopt_evalfn,
 		 "`(GETOPT *opts* *name* [*default*=#f])` returns any *name* "
 		 "option defined in *opts* or *default* otherwise. "
 		 "If *opts* or *name* are choices, this only returns *default* "
-		 "if none of the alternatives yield results.",
-		 getopt_evalfn);
-#if 0
-  kno_def_evalfn(kno_scheme_module,"TRYOPT",
-		 "`(TRYOPT *opts* *name* [*default*=#f])` returns any *name* "
-		 "option defined in *opts* or *default* otherwise. Any errors "
-		 "during option resolution are ignored. "
-		 "If *opts* or *name* are choices, this only returns *default* "
-		 "if none of the alternatives yield results. Note that the "
-		 "*default*, if evaluated, may signal an error.",
-		 tryopt_evalfn);
-#endif
+		 "if none of the alternatives yield results.");
 
-  init_local_cprims();
+  link_local_cprims();
 }
 
 
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   lispval scheme_module = kno_scheme_module;
 

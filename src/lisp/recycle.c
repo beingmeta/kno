@@ -152,30 +152,34 @@ static void recycle_regex(struct KNO_RAW_CONS *c)
 static void recycle_rawptr(struct KNO_RAW_CONS *c)
 {
   struct KNO_RAWPTR *rawptr = (struct KNO_RAWPTR *)c;
-  if (rawptr->recycler)
-    rawptr->recycler(rawptr->ptrval);
+  struct KNO_TYPEINFO *info = rawptr->typeinfo;
+  if (info->type_freefn)
+    info->type_freefn((lispval)c,info);
+  if (rawptr->raw_recycler)
+    rawptr->raw_recycler(rawptr->ptrval);
   if (rawptr->idstring) u8_free(rawptr->idstring);
   rawptr->ptrval   = NULL;
   rawptr->idstring = NULL;
-  kno_decref(rawptr->raw_typetag);
+  kno_decref(rawptr->typetag);
   u8_free(c);
 }
 
 static void recycle_compound(struct KNO_RAW_CONS *c)
 {
   struct KNO_COMPOUND *compound = (struct KNO_COMPOUND *)c;
-  lispval typetag = compound->compound_typetag;
-  struct KNO_COMPOUND_TYPEINFO *typeinfo = kno_lookup_compound(typetag);
-  if ( (typeinfo) && (typeinfo->compound_freefn) ) {
-    int rv = (typeinfo->compound_freefn)((lispval)c,typeinfo);
+  lispval typetag = compound->typetag;
+  struct KNO_TYPEINFO *typeinfo = kno_use_typeinfo(typetag);
+  if ( (typeinfo) && (typeinfo->type_freefn) ) {
+    int rv = (typeinfo->type_freefn)((lispval)c,typeinfo);
     if (rv < 0) {
       u8_log(LOGERR,"RecycleCompound",
              "Recycling %q compound: %q",typetag,compound);}}
   int i = 0, n = compound->compound_length;
   lispval *data = &(compound->compound_0);
   while (i<n) {kno_decref(data[i]); i++;}
-  kno_decref(compound->compound_typetag);
-  if (compound->compound_ismutable) u8_destroy_mutex(&(compound->compound_lock));
+  kno_decref(compound->typetag);
+  if (compound->compound_ismutable) 
+    u8_destroy_rwlock(&(compound->compound_rwlock));
   u8_free(c);
 }
 
@@ -192,9 +196,9 @@ static void recycle_mystery(struct KNO_RAW_CONS *c)
 
 KNO_EXPORT
 /* kno_recycle_cons:
-    Arguments: a pointer to an KNO_CONS struct
-    Returns: void
- Recycles a cons cell */
+   Arguments: a pointer to an KNO_CONS struct
+   Returns: void
+   Recycles a cons cell */
 void kno_recycle_cons(kno_raw_cons c)
 {
   int ctype = KNO_CONS_TYPE(c);
@@ -272,9 +276,3 @@ void kno_init_recycle_c()
   u8_register_source_file(_FILEINFO);
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

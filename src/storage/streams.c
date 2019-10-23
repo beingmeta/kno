@@ -976,7 +976,7 @@ KNO_EXPORT kno_off_t _kno_getpos(kno_stream s)
     /* If we are reading, we subtract the amount buffered from the
        actual filepos */
     s->stream_filepos = current;
-    pos = current-(buf->buflim-buf->buffer);}
+    pos = current-(buf->buflim-buf->bufpoint);}
   else {
     current = lseek(s->stream_fileno,0,SEEK_CUR);
     s->stream_filepos = current;
@@ -1189,6 +1189,26 @@ KNO_EXPORT long long kno_read_4bytes_at(kno_stream s,kno_off_t off,int locked)
     in->bufread = in->bufread+4;
     if (locked==0) kno_unlock_stream(s);
     return bytes;}
+  else {
+    if (locked==0) kno_unlock_stream(s);
+    return -1;}
+}
+
+KNO_EXPORT int kno_read_byte_at(kno_stream s,kno_off_t off,int locked)
+{
+#if HAVE_PREAD
+  unsigned char byte;
+  int rv = pread(s->stream_fileno,&byte,1,off);
+  if (rv==1)
+    return byte;
+#endif
+  if (locked==0) kno_lock_stream(s);
+  struct KNO_INBUF *in = (off>=0) ? (kno_start_read(s,off)) : (kno_readbuf(s));
+  if (kno_request_bytes(in,1)) {
+    int byte = kno_get_byte(in->bufread);
+    in->bufread = in->bufread+1;
+    if (locked==0) kno_unlock_stream(s);
+    return byte;}
   else {
     if (locked==0) kno_unlock_stream(s);
     return -1;}
@@ -1584,9 +1604,3 @@ KNO_EXPORT void kno_init_streams_c()
   u8_register_source_file(_FILEINFO);
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

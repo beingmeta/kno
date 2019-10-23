@@ -1,0 +1,43 @@
+#directory @source_dir@/kno:@source_dir@/libu8:@source_dir@/lingo:@extra_sources@
+env UNDERGDB yes
+env STDLOG yes
+env KNO_FOREGROUND yes
+env KNO_IGNORELEFTOVERS yes
+env KNO_STEALSOCKETS yes
+env DUMA_ALIGNMENT 4
+env PPROF_PATH /usr/bin/gpprof
+env MSAN_SYMBOLIZER_PATH /usr/bin/llvm-symbolizer
+env ASAN_OPTIONS abort_on_error=1:malloc_context_size=40:print_cmdline=true
+env LSAN_OPTIONS detect_leaks=0
+env TCMALLOC_DEBUG 3
+env PERFTOOLS_VERBOSE 2
+env MALLOCSTATS 2
+env HEAPPROFILE /tmp/heap.profiles/heapprof
+
+break u8_log_break
+break u8_new_exception
+break u8_utf8_warning
+break _kno_debug
+break _u8_dbg
+break u8_raise
+break TCMalloc_Printer::printf
+break __msan_warning
+break __msan_warning_noreturn
+break __asan_report_error
+break abort
+#break exit
+
+# For LIBC
+env MALLOC_CHECK_ 2
+
+# For OS X
+env MallocGuardEdges 1
+env MallocScribble 1
+env MallocBadFreeAbort 1
+env MallocCheckHeapAbort 1
+env MallocCorruptionAbort 1
+
+# Init some tracing configurations
+env KNO_DLOAD:TRACE yes
+# This is for OS X > Sierra
+# set startup-with-shell off

@@ -19,9 +19,3 @@ KNO_EXPORT int kno_init_libarchive(void) KNO_LIBINIT_FN;
 
 #endif /* KNO_ARCHIVE_H */
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

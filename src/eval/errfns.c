@@ -61,15 +61,19 @@ static lispval error_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     printout_body = kno_get_body(expr,1);}
   else printout_body = kno_get_body(expr,1);
 
-  {
+  if (KNO_EMPTY_LISTP(printout_body))
+    return kno_err(ex,cxt,NULL,VOID);
+  else {
     U8_OUTPUT out; U8_INIT_OUTPUT(&out,256);
     kno_printout_to(&out,printout_body,env);
-    kno_seterr(ex,cxt,out.u8_outbuf,VOID);
+    if (out.u8_write > out.u8_outbuf)
+      kno_seterr(ex,cxt,out.u8_outbuf,VOID);
+    else kno_seterr(ex,cxt,NULL,VOID);
     u8_close_output(&out);
     return KNO_ERROR;}
 }
 
-DEFPRIM4("%err",error_prim,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+DEFPRIM4("%err",error_prim,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(1)|KNO_NDOP,
 	 "(%err *cond* [*caller*] [*details*] [*irritant*]) "
 	 "returns an error object with condition *cond* (a "
 	 "symbol), a *caller* (also a symbol), *details* "
@@ -147,7 +151,7 @@ static lispval irritant_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       if (SYMBOLP(op))
 	cxt=KNO_SYMBOL_NAME(op);
       else if (KNO_FUNCTIONP(op)) {
-	struct KNO_FUNCTION *fcn=KNO_XFUNCTION(op);
+	struct KNO_FUNCTION *fcn = KNO_GETFUNCTION(op);
 	if (fcn->fcn_name)
 	  cxt=fcn->fcn_name;
 	else cxt="FUNCTIONCALL";}
@@ -411,7 +415,7 @@ static lispval exception_sessionid(lispval x)
   else return KNO_FALSE;
 }
 
-DEFPRIM3("exception/context!",exception_add_context,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+DEFPRIM3("exception/context!",exception_add_context,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDOP,
 	 "Creates an exception object",
 	 kno_exception_type,KNO_VOID,kno_any_type,KNO_VOID,
 	 kno_any_type,KNO_VOID);
@@ -500,21 +504,21 @@ static lispval exception2slotmap(lispval x,lispval with_stack_arg)
 	   ( (KNO_COMPOUND_LENGTH(entry)) >= 5) ) {
 	lispval copied = kno_copier(entry,0);
 	int len = KNO_COMPOUND_LENGTH(entry);
-	if (len >= 5) {
-	  lispval argvec = KNO_COMPOUND_REF(entry,5);
+	if (len >= 7) {
+	  lispval argvec = KNO_COMPOUND_REF(entry,6);
 	  if (KNO_VECTORP(argvec)) {
 	    lispval wrapped = kno_init_compound_from_elts
 	      (NULL,args_tag,KNO_COMPOUND_INCREF,
 	       KNO_VECTOR_LENGTH(argvec),
 	       KNO_VECTOR_ELTS(argvec));
-	    KNO_COMPOUND_REF(entry,5) = wrapped;
+	    KNO_COMPOUND_REF(entry,6) = wrapped;
 	    kno_decref(argvec);}}
-	if (len >= 7) {
-	  lispval env = KNO_COMPOUND_REF(entry,7);
+	if (len >= 9) {
+	  lispval env = KNO_COMPOUND_REF(entry,8);
 	  if (KNO_TABLEP(env)) {
 	    lispval wrapped = kno_init_compound
 	      (NULL,env_tag,KNO_COMPOUND_INCREF,1,env);
-	    KNO_COMPOUND_REF(entry,7) = wrapped;
+	    KNO_COMPOUND_REF(entry,8) = wrapped;
 	    kno_decref(env);}}
 	KNO_VECTOR_SET(new_stack,i,copied);}
       else {
@@ -557,9 +561,7 @@ static lispval exception_stack(lispval x,lispval arg1,lispval arg2)
 	start = 0;}
       else {
 	start = KNO_FIX2INT(arg1);
-	if (KNO_FIXNUMP(arg1))
-	  end = KNO_FIX2INT(arg2);
-	else end = stack_len;}
+	end = KNO_FIX2INT(arg2);}
       if (start<0) start = stack_len-start;
       if (end<0) end = stack_len+end;
       if (start < 0) start = 0;
@@ -624,14 +626,18 @@ static lispval exception_summary(lispval x,lispval with_irritant)
 
 static int thunkp(lispval x)
 {
-  if (!(KNO_APPLICABLEP(x))) return 0;
-  else {
-    struct KNO_FUNCTION *f = KNO_XFUNCTION(x);
-    if (f->fcn_arity==0) return 1;
-    else if ((f->fcn_arity<0) && (f->fcn_min_arity==0)) return 1;
+  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
+  if (PRED_TRUE(KNO_FUNCTIONP(x))) {
+    struct KNO_FUNCTION *f = KNO_GETFUNCTION(x);
+    if (f->fcn_arity==0)
+      return 1;
+    else if ((f->fcn_arity<0) && (f->fcn_min_arity==0))
+      return 1;
     else return 0;}
+  else if (kno_applyfns[KNO_TYPEOF(x)])
+    return 1;
+  else return 0;
 }
-
 static lispval dynamic_wind_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval wind = kno_get_arg(expr,1);
@@ -641,23 +647,29 @@ static lispval dynamic_wind_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     return kno_err(kno_SyntaxError,"dynamic_wind_evalfn",NULL,expr);
   else {
     wind = kno_stack_eval(wind,env,_stack,0);
-    if (KNO_ABORTP(wind)) return wind;
-    else if (!(thunkp(wind)))
-      return kno_type_error("thunk","dynamic_wind_evalfn",wind);
+    if (KNO_ABORTP(wind))
+      return wind;
+    else if (!(thunkp(wind))) {
+      lispval err=kno_type_error("thunk","dynamic_wind_evalfn",wind);
+      kno_decref(wind);
+      return err;}
     else doit = kno_stack_eval(doit,env,_stack,0);
     if (KNO_ABORTP(doit)) {
       kno_decref(wind);
       return doit;}
     else if (!(thunkp(doit))) {
-      kno_decref(wind);
-      return kno_type_error("thunk","dynamic_wind_evalfn",doit);}
+      lispval err=kno_type_error("thunk","dynamic_wind_evalfn",doit);
+      kno_decref(wind); kno_decref(doit);
+      return err;}
     else unwind = kno_stack_eval(unwind,env,_stack,0);
     if (KNO_ABORTP(unwind)) {
-      kno_decref(wind); kno_decref(doit);
+      kno_decref(wind);
+      kno_decref(doit);
       return unwind;}
     else if (!(thunkp(unwind))) {
-      kno_decref(wind); kno_decref(doit);
-      return kno_type_error("thunk","dynamic_wind_evalfn",unwind);}
+      lispval err= kno_type_error("thunk","dynamic_wind_evalfn",unwind);
+      kno_decref(wind); kno_decref(doit); kno_decref(unwind);
+      return err;}
     else {
       lispval retval = kno_apply(wind,0,NULL);
       if (KNO_ABORTP(retval)) {}
@@ -715,7 +727,7 @@ static lispval unwind_protect_evalfn(lispval uwp,kno_lexenv env,kno_stack _stack
 /* Testing raise() which will be invoked by */
 
 DEFPRIM1("test-u8raise",test_u8raise_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "Reraises the exception represented by an object",
+	 "Has the kno_consptr macro signal a type error with u8_raise.",
 	 kno_any_type,KNO_VOID);
 static lispval test_u8raise_prim(lispval obj)
 {
@@ -834,7 +846,7 @@ static u8_string static_string(lispval x,int err)
   else return NULL;
 }
 
-DEFPRIM10("make-exception",make_exception,KNO_MAX_ARGS(10)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+DEFPRIM10("make-exception",make_exception,KNO_MAX_ARGS(10)|KNO_MIN_ARGS(1)|KNO_NDOP,
 	  "Creates an exception object",
 	  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
 	  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
@@ -869,55 +881,51 @@ KNO_EXPORT void kno_init_errfns_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  init_local_cprims();
+  link_local_cprims();
 
-  kno_def_evalfn(kno_scheme_module,"ERROR",
+  kno_def_evalfn(kno_scheme_module,"ERROR",error_evalfn,
 		 "(error *condition* *caller* [*irritant*] details...) "
 		 "signals an error\n"
 		 "*condition* and *caller* should be symbols and are not "
 		 "evaluated. *irritant* is a lisp object (evaluated) and "
-		 "a details message is generated by PRINTOUT ..details",
-		 error_evalfn);
-  kno_def_evalfn(kno_scheme_module,"IRRITANT",
+		 "a details message is generated by PRINTOUT ..details");
+  kno_def_evalfn(kno_scheme_module,"IRRITANT",irritant_evalfn,
 		 "(irritant *irritant* *condition* *caller* details...) "
 		 "signals an error with the designated *irritant* \n"
 		 "*condition* and *caller* should be symbols and are not "
 		 "evaluated. A details message is generated by "
-		 "PRINTOUT ..details",
-		 irritant_evalfn);
+		 "PRINTOUT ..details");
 
-  kno_def_evalfn(kno_scheme_module,"ONERROR",
+  kno_def_evalfn(kno_scheme_module,"ONERROR",onerror_evalfn,
 		 "(ONERROR *expr* *onerr* [*normally*])\n"
 		 "Evaluates *expr*, catching errors during the evaluation. "
 		 "If there are errors, either apply *onerr* to an exception "
 		 "object or simply return *onerr* if it's not applicable. "
 		 "If there are no errors and *normal* is not specified, "
 		 "return the result. If *normal* is specified, apply it to "
-		 "the result and return it's result.",
-		 onerror_evalfn);
-  kno_def_evalfn(kno_scheme_module,"CATCHERR",
+		 "the result and return it's result.");
+  kno_def_evalfn(kno_scheme_module,"CATCHERR",catcherr_evalfn,
 		 "(CATCHERR *expr*) returns the result of *expr* "
-		 "or an exception object describing any signalled errors",
-		 catcherr_evalfn);
-  kno_def_evalfn(kno_scheme_module,"ERREIFY",
+		 "or an exception object describing any signalled errors");
+  kno_def_evalfn(kno_scheme_module,"ERREIFY",catcherr_evalfn,
 		 "(ERREIFY *expr*) returns the result of *expr* "
-		 "or an exception object describing any signalled errors",
-		 catcherr_evalfn);
+		 "or an exception object describing any signalled errors");
 
-  kno_def_evalfn(kno_scheme_module,"REPORT-ERRORS",
+  kno_def_evalfn(kno_scheme_module,"REPORT-ERRORS",report_errors_evalfn,
 		 "(REPORT-ERRORS *expr* [*errval*]) evaluates *expr*, "
 		 "reporting and clearing any errors.\n"
-		 "Returns *errval* or #f if any errors occur.",
-		 report_errors_evalfn);
-  kno_def_evalfn(kno_scheme_module,"IGNORE-ERRORS",
+		 "Returns *errval* or #f if any errors occur.");
+  kno_def_evalfn(kno_scheme_module,"IGNORE-ERRORS",ignore_errors_evalfn,
 		 "(REPORT-ERRORS *expr* [*errval*]) evaluates *expr*, "
 		 "reporting and clearing any errors.\n"
-		 "Returns *errval* or #f if any errors occur.",
-		 ignore_errors_evalfn);
-  kno_def_evalfn(kno_scheme_module,"DYNAMIC-WIND","",dynamic_wind_evalfn);
-  kno_def_evalfn(kno_scheme_module,"UNWIND-PROTECT","",unwind_protect_evalfn);
+		 "Returns *errval* or #f if any errors occur.");
+  kno_def_evalfn(kno_scheme_module,"DYNAMIC-WIND",dynamic_wind_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"UNWIND-PROTECT",unwind_protect_evalfn,
+		 "*undocumented*");
   /* Deprecated, from old error system */
-  kno_def_evalfn(kno_scheme_module,"NEWERR","",irritant_evalfn);
+  kno_def_evalfn(kno_scheme_module,"NEWERR",irritant_evalfn,
+		 "*undocumented*");
 
   stack_entry_symbol = kno_intern("_stack");
   condition_symbol = kno_intern("condition");
@@ -935,7 +943,7 @@ KNO_EXPORT void kno_init_errfns_c()
 
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   lispval scheme_module = kno_scheme_module;
 

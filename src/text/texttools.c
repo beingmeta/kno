@@ -151,7 +151,7 @@ static lispval dosegment(u8_string string,lispval separators)
   return result;
 }
 
-DEFPRIM2("segment",segment_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+DEFPRIM2("segment",segment_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDOP,
 	 "`(SEGMENT *arg0* [*arg1*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval segment_prim(lispval inputs,lispval separators)
@@ -851,7 +851,7 @@ static lispval columnize_prim(lispval string,lispval cols,lispval parse)
     while (field<n_fields)
       fields[field++]=kno_init_string(NULL,0,NULL);
   else while (field<n_fields) fields[field++]=KNO_FALSE;
-  lispval result=kno_makeseq(KNO_LISP_TYPE(cols),n_fields,fields);
+  lispval result=kno_makeseq(KNO_TYPEOF(cols),n_fields,fields);
   u8_free(fields);
   return result;
 }
@@ -1401,7 +1401,7 @@ static lispval gathersubst_star(lispval pattern,lispval string,
 
 /* Handy filtering functions */
 
-DEFPRIM2("textfilter",textfilter,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+DEFPRIM2("textfilter",textfilter,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDOP,
 	 "`(TEXTFILTER *arg0* *arg1*)` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval textfilter(lispval strings,lispval pattern)
@@ -1436,7 +1436,7 @@ static int getnonstring(lispval choice)
   return VOID;
 }
 
-DEFPRIM4("string-matches?",string_matches,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+DEFPRIM4("string-matches?",string_matches,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2)|KNO_NDOP,
 	 "`(STRING-MATCHES? *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
 	 kno_fixnum_type,KNO_CPP_INT(0),kno_fixnum_type,KNO_VOID);
@@ -1476,7 +1476,7 @@ static lispval string_matches(lispval string,lispval pattern,
     else return KNO_FALSE;}
 }
 
-DEFPRIM4("string-contains?",string_contains,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+DEFPRIM4("string-contains?",string_contains,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2)|KNO_NDOP,
 	 "`(STRING-CONTAINS? *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
 	 kno_fixnum_type,KNO_CPP_INT(0),kno_fixnum_type,KNO_VOID);
@@ -1519,7 +1519,7 @@ static lispval string_contains(lispval string,lispval pattern,
     else return KNO_TRUE;}
 }
 
-DEFPRIM4("string-starts-with?",string_starts_with,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+DEFPRIM4("string-starts-with?",string_starts_with,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2)|KNO_NDOP,
 	 "`(STRING-STARTS-WITH? *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
 	 kno_fixnum_type,KNO_CPP_INT(0),kno_fixnum_type,KNO_VOID);
@@ -1596,7 +1596,7 @@ static lispval string_ends_with_test(lispval string,lispval pattern,
   return 0;
 }
 
-DEFPRIM4("string-ends-with?",string_ends_with,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+DEFPRIM4("string-ends-with?",string_ends_with,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2)|KNO_NDOP,
 	 "`(STRING-ENDS-WITH? *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
 	 kno_fixnum_type,KNO_CPP_INT(0),kno_fixnum_type,KNO_VOID);
@@ -1816,7 +1816,13 @@ static int interpret_keep_arg(lispval keep_arg)
 }
 
 DEFPRIM5("textslice",textslice,KNO_MAX_ARGS(5)|KNO_MIN_ARGS(2),
-	 "`(TEXTSLICE *arg0* *arg1* [*arg2*] [*arg3*] [*arg4*])` **undocumented**",
+	 "`(TEXTSLICE *string* *sep* [*keep*] [*start*] [*limit*])`\n"
+	 "Divides *string* (between *start* and *limit*) into segments "
+	 "separated by *sep*. If keep is #f (the default), the separators "
+	 "are discarded; if *keep* is `SEP`, they are included in the list "
+	 "of segments. If *sep* is `SUFFIX` the separated string is appended "
+	 "to the end of the preceding string; if *sep* is `PREFIX`, the "
+	 "separator string is prepended to the succeeding string.",
 	 kno_string_type,KNO_VOID,kno_any_type,KNO_VOID,
 	 kno_any_type,KNO_TRUE,kno_fixnum_type,KNO_CPP_INT(0),
 	 kno_fixnum_type,KNO_VOID);
@@ -2795,8 +2801,9 @@ void kno_init_texttools()
   kno_init_match_c();
   kno_init_phonetic_c();
 
-  kno_def_evalfn(texttools_module,"TEXTCLOSURE","",textclosure_evalfn);
-  init_local_cprims();
+  kno_def_evalfn(texttools_module,"TEXTCLOSURE",textclosure_evalfn,
+		 "*undocumented*");
+  link_local_cprims();
 
   subst_symbol = kno_intern("subst");
 
@@ -2805,7 +2812,7 @@ void kno_init_texttools()
   kno_finish_module(texttools_module);
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("matchdef!",matchdef_prim,2,texttools_module);
   KNO_LINK_PRIM("hmac-sha512",hmac_sha512_prim,2,texttools_module);

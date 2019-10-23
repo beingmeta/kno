@@ -215,13 +215,13 @@ void kno_init_xmldata_c()
 {
   webtools_module = kno_new_module("WEBTOOLS",0);
 
-  init_local_cprims();
+  link_local_cprims();
 
   name_slotid = kno_intern("%xmltag");
   content_slotid = kno_intern("%content");
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("xmlcontent",xmlcontent,2,webtools_module);
   KNO_LINK_PRIM("xmlempty?",xmlemptyp,2,webtools_module);

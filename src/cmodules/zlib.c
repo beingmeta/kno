@@ -153,7 +153,7 @@ KNO_EXPORT int kno_init_zlib()
   zlib_init = u8_millitime();
   zlib_module = kno_new_cmodule("zlib",0,kno_init_zlib);
 
-  init_local_cprims();
+  link_local_cprims();
 
   kno_finish_module(zlib_module);
 
@@ -162,15 +162,9 @@ KNO_EXPORT int kno_init_zlib()
   return 1;
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
 
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("zlib/uncompress",zlib_uncompress_prim,3,zlib_module);
   KNO_LINK_PRIM("zlib/compress",zlib_compress_prim,2,zlib_module);

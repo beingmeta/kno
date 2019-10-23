@@ -210,6 +210,7 @@
 (applytester 15 reduce-choice + {1 2 3 4 5})
 (applytester 21 reduce-choice + {1 2 3 4 5} 6)
 (applytester 21 reduce-choice + {1 2 3 4 5 6})
+(applytester 'err reduce-choice {+ fixnum?} {1 2 3 4 5 6})
 
 (applytester 2432902008176640000
 	     reduce-choice * (nrange 1 21))
@@ -222,6 +223,7 @@
 (applytester 12 reduce-choice + {"3" "4" "5"} 0 string->number)
 (applytester 12 reduce-choice + {"3" "4" "5" "5"} 0 string->number)
 (applytester 17 reduce-choice + {"3" "4" "5" "+5"} 0 string->number)
+(applytester 'err reduce-choice + {"3" "4" "5" "+5"} 0 #"packet")
 
 ;;; CHOICE-MAX tests
 
@@ -446,6 +448,16 @@
 (exists-tests)
 (exists-tests sometrue)
 
+(applytest #f sometrue {})
+(applytest #f sometrue #f)
+(applytest #t sometrue 'x)
+(applytest #t sometrue 'x)
+
+(applytest #f sometrue/skiperrs {})
+(applytest #f sometrue/skiperrs #f)
+(applytest #t sometrue/skiperrs 'x)
+(applytest #t sometrue/skiperrs 'x)
+
 ;;; Other stuff
 
 (applytest {0 1 2 3 4} getrange 5)
@@ -529,8 +541,10 @@
 
 (applytest 'err pick-n a-random-choice -5)
 (applytest 'err pick-n a-random-choice 3 (* 1024 1024 1024 1024 17))
+(applytest 'err pick-n a-random-choice 1/2)
 (applytest {} pick-n a-random-choice 0)
 (applytest {} sample-n a-random-choice 0)
+(applytest 'err sample-n a-random-choice 1/2)
 (applytest 1 choice-size (pick-one a-random-choice))
 (applytest 3 choice-size (pick-n a-random-choice 3))
 ;; By default, this always replicates
@@ -722,6 +736,39 @@
 (applytest 'err rsorted string-choice length-errfn)
 (applytest 'err sorted string-choice length-voidfn)
 (applytest 'err rsorted string-choice length-voidfn)
+
+;;; Choices (esp failures) and boolean ops
+
+(define one-half 1/2)
+
+(evaltest "foo" (and {3 4} "foo"))
+(evaltest {8 9} (and {3 4} { 8 9}))
+(evaltest {} (and {3 4} #t {8 9} (intersection 3/4 one-half)))
+
+(evaltest "foo" (and {3 4} "foo"))
+(evaltest {8 9} (and {3 4} { 8 9}))
+(evaltest {} (and {3 4} #t {8 9} (intersection 3/4 one-half)))
+
+(evaltest {3/4 1/2} (or #f {3/4 one-half}))
+(evaltest {3/4 1/2} (or #f  {3/4 one-half}))
+(evaltest {3/4 1/2} (or {} {3/4 one-half}))
+
+;;; Choices (esp failures) and iterative expressions
+
+(define test-lst '(#[x "3" y "4"] #[x "3" z "4"] #[q "3" z "4"]))
+
+(evaltest '(#[q "3" z "4"])
+	  (let ((scan test-lst)) 
+	    (while (and (pair? scan) (get (car scan) 'x)) (set! scan (cdr scan)))
+	    scan))
+(evaltest test-lst
+	  (let ((scan test-lst)) 
+	    (until (and (pair? scan) (get (car scan) 'x)) (set! scan (cdr scan)))
+	    scan))
+(evaltest test-lst
+	  (let ((scan test-lst)) 
+	    (until (and (pair? scan) (get (car scan) 'q)) (set! scan (cdr scan)))
+	    scan))
 
 ;;; Bigger sets
 

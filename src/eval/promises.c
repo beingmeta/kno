@@ -238,28 +238,21 @@ KNO_EXPORT int kno_init_promises_c()
   kno_unparsers[kno_promise_type]=unparse_promise;
   kno_recyclers[kno_promise_type]=recycle_promise;
 
-  init_local_cprims();
-  kno_def_evalfn(kno_scheme_module,"DELAY",
+  link_local_cprims();
+  kno_def_evalfn(kno_scheme_module,"DELAY",delay_evalfn,
                  "`(DELAY *expr*)` creates a *promise* to evalute *expr* in "
                  "the current environment, which is delivered when "
-                 "the promise is *forced*.",
-                 delay_evalfn);
+                 "the promise is *forced*.");
 
   u8_register_source_file(_FILEINFO);
 
   return 1;
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
 
 
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("promise?",promisep_prim,1,kno_scheme_module);
   KNO_LINK_PRIM("promise/satisfied?",promise_satisfiedp_prim,1,kno_scheme_module);

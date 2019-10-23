@@ -88,7 +88,7 @@ static lispval procedure_name(lispval x)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
   if (KNO_FUNCTIONP(x)) {
-    struct KNO_FUNCTION *f = KNO_DTYPE2FCN(x);
+    struct KNO_FUNCTION *f = KNO_GETFUNCTION(x);
     if (f->fcn_name)
       return kno_mkstring(f->fcn_name);
     else return KNO_FALSE;}
@@ -123,7 +123,9 @@ static lispval procedure_cname(lispval x)
     if (f->fcn_name)
       return knostring(f->fcn_name);
     else return KNO_FALSE;}
-  else return KNO_FALSE;
+  else if (KNO_APPLICABLEP(x))
+    return KNO_FALSE;
+  else return kno_type_error("function","procedure_cname",x);
 }
 
 DEFPRIM1("procedure-fileinfo",procedure_fileinfo,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
@@ -133,7 +135,7 @@ static lispval procedure_fileinfo(lispval x)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
   if (KNO_FUNCTIONP(x)) {
-    struct KNO_FUNCTION *f = KNO_XFUNCTION(x);
+    struct KNO_FUNCTION *f = (kno_function)(x);
     if (f->fcn_filename)
       return kno_mkstring(f->fcn_filename);
     else return KNO_FALSE;}
@@ -165,7 +167,7 @@ static lispval procedure_filename(lispval x)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
   if (KNO_FUNCTIONP(x)) {
-    struct KNO_FUNCTION *f = KNO_XFUNCTION(x);
+    struct KNO_FUNCTION *f = (kno_function) x;
     if (f->fcn_filename)
       return strip_filename(f->fcn_filename);
     else return KNO_FALSE;}
@@ -189,7 +191,7 @@ static lispval procedure_moduleid(lispval x)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
   if (KNO_FUNCTIONP(x)) {
-    struct KNO_FUNCTION *f = KNO_XFUNCTION(x);
+    struct KNO_FUNCTION *f = (kno_function)(x);
     lispval id = f->fcn_moduleid;
     if ( (KNO_NULLP(id)) || (KNO_VOIDP(id)) ) return KNO_FALSE;
     else return kno_incref(id);}
@@ -213,7 +215,7 @@ static lispval procedure_symbol(lispval x)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
   if (KNO_APPLICABLEP(x)) {
-    struct KNO_FUNCTION *f = KNO_DTYPE2FCN(x);
+    struct KNO_FUNCTION *f = KNO_GETFUNCTION(x);
     if (f->fcn_name)
       return kno_getsym(f->fcn_name);
     else return KNO_FALSE;}
@@ -237,7 +239,7 @@ static lispval procedure_id(lispval x)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
   if (KNO_APPLICABLEP(x)) {
-    struct KNO_FUNCTION *f = KNO_DTYPE2FCN(x);
+    struct KNO_FUNCTION *f = KNO_GETFUNCTION(x);
     if (f->fcn_name)
       return kno_intern(f->fcn_name);
     else return kno_incref(x);}
@@ -267,9 +269,9 @@ DEFPRIM2("set-procedure-documentation!",set_procedure_documentation,KNO_MAX_ARGS
 static lispval set_procedure_documentation(lispval x,lispval doc)
 {
   lispval proc = (KNO_FCNIDP(x)) ? (kno_fcnid_ref(x)) : (x);
-  kno_lisp_type proctype = KNO_LISP_TYPE(proc);
-  if (kno_functionp[proctype]) {
-    struct KNO_FUNCTION *f = KNO_DTYPE2FCN(x);
+  kno_lisp_type proctype = KNO_TYPEOF(proc);
+  if (kno_function_types[proctype]) {
+    struct KNO_FUNCTION *f = KNO_GETFUNCTION(x);
     u8_string to_free = ( (f->fcn_doc) && (KNO_FCN_FREE_DOCP(f)) ) ?
       (f->fcn_doc) : (NULL);
     f->fcn_doc = u8_strdup(CSTRING(doc));
@@ -294,9 +296,9 @@ DEFPRIM1("procedure-tailable?",procedure_tailablep,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(
 static lispval procedure_tailablep(lispval x)
 {
   lispval proc = (KNO_FCNIDP(x)) ? (kno_fcnid_ref(x)) : (x);
-  kno_lisp_type proctype = KNO_LISP_TYPE(proc);
-  if (kno_functionp[proctype]) {
-    struct KNO_FUNCTION *f = KNO_DTYPE2FCN(x);
+  kno_lisp_type proctype = KNO_TYPEOF(proc);
+  if (kno_function_types[proctype]) {
+    struct KNO_FUNCTION *f = KNO_GETFUNCTION(x);
     if (FCN_NOTAILP(f))
       return KNO_FALSE;
     else return KNO_TRUE;}
@@ -308,9 +310,9 @@ DEFPRIM2("set-procedure-tailable!",set_procedure_tailable,KNO_MAX_ARGS(2)|KNO_MI
 static lispval set_procedure_tailable(lispval x,lispval bool)
 {
   lispval proc = (KNO_FCNIDP(x)) ? (kno_fcnid_ref(x)) : (x);
-  kno_lisp_type proctype = KNO_LISP_TYPE(proc);
-  if (kno_functionp[proctype]) {
-    struct KNO_FUNCTION *f = KNO_DTYPE2FCN(x);
+  kno_lisp_type proctype = KNO_TYPEOF(proc);
+  if (kno_function_types[proctype]) {
+    struct KNO_FUNCTION *f = KNO_GETFUNCTION(x);
     if (KNO_FALSEP(bool))
       f->fcn_call |= KNO_FCN_CALL_NOTAIL;
     else f->fcn_call &= ~KNO_FCN_CALL_NOTAIL;
@@ -325,7 +327,7 @@ static lispval procedure_arity(lispval x)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
   if (KNO_APPLICABLEP(x)) {
-    struct KNO_FUNCTION *f = KNO_DTYPE2FCN(x);
+    struct KNO_FUNCTION *f = KNO_GETFUNCTION(x);
     int arity = f->fcn_arity;
     if (arity<0) return KNO_FALSE;
     else return KNO_INT(arity);}
@@ -339,8 +341,8 @@ static lispval non_deterministicp(lispval x)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
   if (KNO_APPLICABLEP(x)) {
-    struct KNO_FUNCTION *f = KNO_DTYPE2FCN(x);
-    if (FCN_NDCALLP(f))
+    struct KNO_FUNCTION *f = KNO_GETFUNCTION(x);
+    if (FCN_NDOPP(f))
       return KNO_TRUE;
     else return KNO_FALSE;}
   else return kno_type_error(_("procedure"),"non_deterministicp",x);
@@ -369,7 +371,7 @@ static lispval procedure_min_arity(lispval x)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
   if (KNO_APPLICABLEP(x)) {
-    struct KNO_FUNCTION *f = KNO_DTYPE2FCN(x);
+    struct KNO_FUNCTION *f = KNO_GETFUNCTION(x);
     int arity = f->fcn_min_arity;
     return KNO_INT(arity);}
   else return kno_type_error(_("procedure"),"procedure_min_arity",x);
@@ -384,8 +386,8 @@ DEFPRIM1("procedure-typeinfo",procedure_typeinfo,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)
 static lispval procedure_typeinfo(lispval x)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
-  if (KNO_FUNCTIONP(x)) {
-    struct KNO_FUNCTION *fcn = (kno_function) x;
+  if (KNO_TYPEP(x,kno_cprim_type)) {
+    struct KNO_CPRIM *fcn = (kno_cprim) x;
     if (fcn->fcn_typeinfo) {
       int arity = fcn->fcn_arity;
       int *typeinfo = fcn->fcn_typeinfo;
@@ -414,11 +416,11 @@ DEFPRIM1("procedure-defaults",procedure_defaults,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)
 static lispval procedure_defaults(lispval x)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
-  if (KNO_FUNCTIONP(x)) {
-    struct KNO_FUNCTION *fcn = (kno_function) x;
+  if (KNO_CPRIMP(x)) {
+    struct KNO_CPRIM *fcn = (kno_cprim) x;
     if (fcn->fcn_defaults) {
       int arity = fcn->fcn_arity;
-      lispval *defaults = fcn->fcn_defaults;
+      const lispval *defaults = fcn->fcn_defaults;
       lispval result = kno_make_vector(arity,NULL);
       int i = 0; while (i<arity) {
 	lispval dflt = defaults[i];
@@ -439,9 +441,9 @@ static lispval procedure_defaults(lispval x)
 static lispval get_proc_attribs(lispval x,int create)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
-  kno_lisp_type proctype = KNO_LISP_TYPE(x);
-  if (kno_functionp[proctype]) {
-    struct KNO_FUNCTION *f = KNO_DTYPE2FCN(x);
+  kno_lisp_type proctype = KNO_TYPEOF(x);
+  if (kno_function_types[proctype]) {
+    struct KNO_FUNCTION *f = KNO_GETFUNCTION(x);
     lispval attribs = f->fcn_attribs;
     if (!(create)) {
       if ((attribs!=KNO_NULL)&&(TABLEP(attribs)))
@@ -471,9 +473,9 @@ DEFPRIM2("reflect/set-attribs!",set_procedure_attribs,KNO_MAX_ARGS(2)|KNO_MIN_AR
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval set_procedure_attribs(lispval x,lispval value)
 {
-  kno_lisp_type proctype = KNO_LISP_TYPE(x);
-  if (kno_functionp[proctype]) {
-    struct KNO_FUNCTION *f = KNO_DTYPE2FCN(x);
+  kno_lisp_type proctype = KNO_TYPEOF(x);
+  if (kno_function_types[proctype]) {
+    struct KNO_FUNCTION *f = KNO_GETFUNCTION(x);
     lispval table = f->fcn_attribs;
     if (table!=KNO_NULL) kno_decref(table);
     f->fcn_attribs = kno_incref(value);
@@ -562,15 +564,11 @@ DEFPRIM2("set-lambda-args!",set_lambda_args,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 kno_lambda_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval set_lambda_args(lispval arg,lispval new_arglist)
 {
-  lispval x = kno_fcnid_ref(arg);
-  if (KNO_LAMBDAP(x)) {
-    struct KNO_LAMBDA *proc = (kno_lambda)kno_fcnid_ref(x);
-    lispval arglist = proc->lambda_arglist;
-    proc->lambda_arglist = kno_incref(new_arglist);
-    kno_decref(arglist);
-    return VOID;}
-  else return kno_type_error
-	 ("lambda","set_lambda_args",x);
+  struct KNO_LAMBDA *proc = (kno_lambda)arg;
+  lispval arglist = proc->lambda_arglist;
+  proc->lambda_arglist = kno_incref(new_arglist);
+  kno_decref(arglist);
+  return VOID;
 }
 
 DEFPRIM1("lambda-env",lambda_env,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
@@ -630,20 +628,16 @@ DEFPRIM2("set-lambda-body!",set_lambda_body,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 kno_lambda_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval set_lambda_body(lispval arg,lispval new_body)
 {
-  lispval x = kno_fcnid_ref(arg);
-  if (KNO_LAMBDAP(x)) {
-    struct KNO_LAMBDA *proc = (kno_lambda)kno_fcnid_ref(x);
-    lispval old_body = proc->lambda_body;
-    proc->lambda_body = kno_incref(new_body);
-    kno_decref(old_body);
-    if (proc->lambda_consblock) {
-      lispval cb = (lispval) (proc->lambda_consblock);
-      kno_decref(cb);
-      proc->lambda_consblock = NULL;}
-    proc->lambda_start = new_body;
-    return VOID;}
-  else return kno_type_error
-	 ("lambda","set_lambda_body",x);
+  struct KNO_LAMBDA *proc = (kno_lambda)arg;
+  lispval old_body = proc->lambda_body;
+  proc->lambda_body = kno_incref(new_body);
+  kno_decref(old_body);
+  if (proc->lambda_consblock) {
+    lispval cb = (lispval) (proc->lambda_consblock);
+    kno_decref(cb);
+    proc->lambda_consblock = NULL;}
+  proc->lambda_start = new_body;
+  return VOID;
 }
 
 DEFPRIM2("optimize-lambda-body!",optimize_lambda_body,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
@@ -652,34 +646,32 @@ DEFPRIM2("optimize-lambda-body!",optimize_lambda_body,KNO_MAX_ARGS(2)|KNO_MIN_AR
 	 kno_lambda_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval optimize_lambda_body(lispval arg,lispval new_body)
 {
-  lispval x = kno_fcnid_ref(arg);
-  if (KNO_LAMBDAP(x)) {
-    struct KNO_LAMBDA *proc = (kno_lambda)x;
-    if (KNO_FALSEP(new_body)) {
-      if (proc->lambda_consblock) {
-	lispval cb = (lispval) (proc->lambda_consblock);
-	proc->lambda_consblock = NULL;
-	kno_decref(cb);}
-      proc->lambda_start = proc->lambda_body;}
-    else {
-      lispval new_consblock = (KNO_TRUEP(new_body)) ?
-	(kno_make_consblock(proc->lambda_body)) :
-	(kno_make_consblock(new_body));
-      if (ABORTED(new_consblock)) return new_consblock;
-      else if (KNO_TYPEP(new_consblock,kno_consblock_type)) {
-	struct KNO_CONSBLOCK *cb = (kno_consblock) new_consblock;
-	proc->lambda_start = cb->consblock_head;}
-      else proc->lambda_start = new_consblock;
-      if (proc->lambda_consblock) {
-	lispval cb = (lispval) (proc->lambda_consblock);
-	kno_decref(cb);}
-      if (KNO_TYPEP(new_consblock,kno_consblock_type))
-	proc->lambda_consblock = (kno_consblock) new_consblock;
-      else proc->lambda_consblock = NULL;}
-    return VOID;}
-  else return kno_type_error("lambda","optimize_lambda_body",x);
+  struct KNO_LAMBDA *proc = (kno_lambda)arg;
+  if (KNO_FALSEP(new_body)) {
+    if (proc->lambda_consblock) {
+      lispval cb = (lispval) (proc->lambda_consblock);
+      proc->lambda_consblock = NULL;
+      kno_decref(cb);}
+    proc->lambda_start = proc->lambda_body;}
+  else {
+    lispval new_consblock = (KNO_TRUEP(new_body)) ?
+      (kno_make_consblock(proc->lambda_body)) :
+      (kno_make_consblock(new_body));
+    if (ABORTED(new_consblock)) return new_consblock;
+    else if (KNO_TYPEP(new_consblock,kno_consblock_type)) {
+      struct KNO_CONSBLOCK *cb = (kno_consblock) new_consblock;
+      proc->lambda_start = cb->consblock_head;}
+    else proc->lambda_start = new_consblock;
+    if (proc->lambda_consblock) {
+      lispval cb = (lispval) (proc->lambda_consblock);
+      kno_decref(cb);}
+    if (KNO_TYPEP(new_consblock,kno_consblock_type))
+      proc->lambda_consblock = (kno_consblock) new_consblock;
+    else proc->lambda_consblock = NULL;}
+  return VOID;
 }
 
+#if 0
 DEFPRIM2("optimize-lambda-args!",optimize_lambda_args,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 "(OPTIMIZE-LAMBDA-ARGS! *lambda*) "
 	 "updates the parsed vars and defaults for lambda "
@@ -687,47 +679,40 @@ DEFPRIM2("optimize-lambda-args!",optimize_lambda_args,KNO_MAX_ARGS(2)|KNO_MIN_AR
 	 kno_lambda_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval optimize_lambda_args(lispval arg,lispval new_args)
 {
-  lispval x = kno_fcnid_ref(arg);
-  if (KNO_LAMBDAP(x)) {
-    struct KNO_LAMBDA *s = (kno_lambda)x;
-    int n = kno_set_lambda_schema(s,new_args);
-    if (n<0) return KNO_ERROR_VALUE;
-    else return KNO_INT(n);}
-  else return kno_type_error("lambda","optimize_lambda_args",x);
+  struct KNO_LAMBDA *s = (kno_lambda)arg;
+  int n = kno_set_lambda_schema(s,new_args);
+  if (n<0) return KNO_ERROR_VALUE;
+  else return KNO_INT(n);
 }
+#endif
 
 DEFPRIM2("set-lambda-source!",set_lambda_source,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 "`(SET-LAMBDA-SOURCE! *arg0* *arg1*)` **undocumented**",
 	 kno_lambda_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval set_lambda_source(lispval arg,lispval new_source)
 {
-  lispval x = kno_fcnid_ref(arg);
-  if (KNO_LAMBDAP(x)) {
-    struct KNO_LAMBDA *proc = (kno_lambda)kno_fcnid_ref(x);
-    lispval source = proc->lambda_source;
-    proc->lambda_source = kno_incref(new_source);
-    kno_decref(source);
-    return VOID;}
-  else return kno_type_error("lambda","set_lambda_source",x);
+  struct KNO_LAMBDA *proc = (kno_lambda)arg;
+  lispval source = proc->lambda_source;
+  proc->lambda_source = kno_incref(new_source);
+  kno_decref(source);
+  return VOID;
 }
 
+#if 0
 DEFPRIM2("set-lambda-optimizer!",set_lambda_optimizer,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 "`(SET-LAMBDA-OPTIMIZER! *arg0* *arg1*)` **undocumented**",
 	 kno_lambda_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval set_lambda_optimizer(lispval arg,lispval optimizer)
 {
-  lispval x = kno_fcnid_ref(arg);
-  if (KNO_LAMBDAP(x)) {
-    struct KNO_LAMBDA *proc = (kno_lambda)x;
-    if (proc->lambda_optimizer) {
-      lispval cur = (lispval)(proc->lambda_optimizer);
-      kno_decref(cur);}
-    kno_incref(optimizer);
-    proc->lambda_optimizer = optimizer;
-    return VOID;}
-  else return kno_type_error
-	 ("lambda","set_lambda_optimizer",x);
+  struct KNO_LAMBDA *proc = (kno_lambda)arg;
+  if (proc->lambda_optimizer) {
+    lispval cur = (lispval)(proc->lambda_optimizer);
+    kno_decref(cur);}
+  kno_incref(optimizer);
+  proc->lambda_optimizer = optimizer;
+  return VOID;
 }
+#endif
 
 /* Function IDs */
 
@@ -769,7 +754,7 @@ static lispval macroexpand(lispval expander,lispval expr)
   if (PAIRP(expr)) {
     if (TYPEP(expander,kno_macro_type)) {
       struct KNO_MACRO *macrofn = (struct KNO_MACRO *)kno_fcnid_ref(expander);
-      kno_lisp_type xformer_type = KNO_LISP_TYPE(macrofn->macro_transformer);
+      kno_lisp_type xformer_type = KNO_TYPEOF(macrofn->macro_transformer);
       if (kno_applyfns[xformer_type]) {
 	/* These are evalfns which do all the evaluating themselves */
 	lispval new_expr=
@@ -1067,13 +1052,14 @@ DEFPRIM2("reflect/profile!",profile_fcn_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 static lispval profile_fcn_prim(lispval fcn,lispval bool)
 {
   if (KNO_FUNCTIONP(fcn)) {
-    struct KNO_FUNCTION *f = KNO_XFUNCTION(fcn);
+    struct KNO_FUNCTION *f = KNO_GETFUNCTION(fcn);
     if (KNO_FALSEP(bool)) {
       struct KNO_PROFILE *profile = f->fcn_profile;
       if (profile)
 	return kno_err("NotYetImplemented","profile_fcn_prim",
 		       "Unprofiling of functions isn't yet supported",
-		       fcn);}
+		       fcn);
+      else return KNO_FALSE;}
     else f->fcn_profile = kno_make_profile(f->fcn_name);
     return KNO_TRUE;}
   else return kno_type_error("function","profile_fcn",fcn);
@@ -1086,7 +1072,7 @@ DEFPRIM1("profile/reset!",profile_reset_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 static lispval profile_reset_prim(lispval fcn)
 {
   if (KNO_FUNCTIONP(fcn)) {
-    struct KNO_FUNCTION *f = KNO_XFUNCTION(fcn);
+    struct KNO_FUNCTION *f = KNO_GETFUNCTION(fcn);
     struct KNO_PROFILE *profile = f->fcn_profile;
     if (profile == NULL) return KNO_FALSE;
 #if HAVE_STDATOMIC_H
@@ -1114,7 +1100,7 @@ DEFPRIM1("reflect/profiled?",profiledp_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 static lispval profiledp_prim(lispval fcn)
 {
   if (KNO_FUNCTIONP(fcn)) {
-    struct KNO_FUNCTION *f = KNO_XFUNCTION(fcn);
+    struct KNO_FUNCTION *f = KNO_GETFUNCTION(fcn);
     if (f->fcn_profile)
       return KNO_TRUE;
     else return KNO_FALSE;}
@@ -1123,18 +1109,18 @@ static lispval profiledp_prim(lispval fcn)
 
 static lispval call_profile_symbol;
 
-DEFPRIM1("profile/getcalls",getcalls_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(PROFILE/GETCALLS *fcn*)`"
-	 "Returns the profile information for *fcn*, a "
-	 "vector of *fcn*, the number of calls, the number "
-	 "of nanoseconds spent in *fcn*",
-	 kno_any_type,KNO_VOID);
-static lispval getcalls_prim(lispval fcn)
+static int getprofile_info(lispval fcn,int err,
+			   long long *calls_ptr,long long *items_ptr,
+			   long long *nsecs_ptr,
+			   double *etime,double *utime,double *stime,
+			   long long *waits_ptr,long long *pauses_ptr,
+			   long long *faults_ptr)
 {
   if (KNO_FUNCTIONP(fcn)) {
-    struct KNO_FUNCTION *f = KNO_XFUNCTION(fcn);
+    struct KNO_FUNCTION *f = KNO_GETFUNCTION(fcn);
     struct KNO_PROFILE *p = f->fcn_profile;
-    if (p==NULL) return KNO_FALSE;
+    if (p==NULL)
+      return 0;
 #if HAVE_STDATOMIC_H
     long long calls = atomic_load(&(p->prof_calls));
     long long items = atomic_load(&(p->prof_items));
@@ -1142,7 +1128,7 @@ static lispval getcalls_prim(lispval fcn)
     long long user_nsecs = atomic_load(&(p->prof_nsecs_user));
     long long system_nsecs = atomic_load(&(p->prof_nsecs_system));
     long long n_waits = atomic_load(&(p->prof_n_waits));
-    long long n_contests = atomic_load(&(p->prof_n_contests));
+    long long n_pauses = atomic_load(&(p->prof_n_pauses));
     long long n_faults = atomic_load(&(p->prof_n_faults));
 #else
     long long calls = p->prof_calls;
@@ -1151,19 +1137,61 @@ static lispval getcalls_prim(lispval fcn)
     long long user_nsecs = p->prof_nsecs_user;
     long long system_nsecs = p->prof_nsecs_system;
     long long n_waits = prof_n_waits;
-    long long n_contests = prof_n_waits;
+    long long n_pauses = prof_n_pauses;
     long long n_faults = p->prof_n_faults;
 #endif
     double exec_time = ((double)((nsecs)|(calls)))/1000000000.0;
     double user_time = ((double)((user_nsecs)|(calls)))/1000000000.0;
     double system_time = ((double)((system_nsecs)|(calls)))/1000000000.0;
-    kno_incref(fcn);
-    return kno_init_compound
-      (NULL,call_profile_symbol,KNO_COMPOUND_USEREF,10,
-       fcn,kno_make_flonum(exec_time),
-       KNO_INT(user_time),KNO_INT(system_time),
-       KNO_INT(n_waits),KNO_INT(n_contests),KNO_INT(n_faults),
-       KNO_INT(nsecs),KNO_INT(calls),KNO_INT(items));}
+    if (nsecs_ptr) *nsecs_ptr = nsecs;
+    if (calls_ptr) *calls_ptr = calls;
+    if (items_ptr) *items_ptr = items;
+    if (etime) *etime = exec_time;
+    if (utime) *utime = user_time;
+    if (stime) *stime = system_time;
+    if (waits_ptr) *waits_ptr = n_waits;
+    if (pauses_ptr) *pauses_ptr = n_pauses;
+    if (faults_ptr) *faults_ptr = n_faults;
+    return 1;}
+  else if (err) {
+    kno_seterr("function","getprofile_info(profile)",NULL,fcn);
+    return -1;}
+  else return 0;
+}
+
+DEFPRIM1("profile/getcalls",getcalls_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "`(PROFILE/GETCALLS *fcn* *error*)`"
+	 "Returns the profile information for *fcn*, a "
+	 "vector of *fcn*, the number of calls, the number "
+	 "of nanoseconds spent in *fcn*. If *fcn* is a valid function "
+	 "but isn't being profiled, this returns #f. "
+	 "If *fcn* is not a function, this returns an error unless "
+	 "*error* is false.",
+	 kno_any_type,KNO_VOID);
+static lispval getcalls_prim(lispval fcn,lispval errp)
+{
+  if (KNO_FUNCTIONP(fcn)) {
+    long long calls = 0, items = 0, nsecs = 0;
+    double exec_time = 0, user_time = 0, system_time = 0;
+    long long n_waits = 0, n_pauses = 0, n_faults = 0;
+    int rv = getprofile_info(fcn,(!(KNO_FALSEP(errp))),
+			     &calls,&items,&nsecs,
+			     &exec_time,&user_time,&system_time,
+			     &n_waits,&n_pauses,&n_faults);
+    if (rv < 0)
+      return KNO_ERROR_VALUE;
+    else if (rv) {
+      kno_incref(fcn);
+      return kno_init_compound
+	(NULL,call_profile_symbol,KNO_COMPOUND_USEREF,10,
+	 fcn,kno_make_flonum(exec_time),
+	 kno_make_flonum(user_time),
+	 kno_make_flonum(system_time),
+	 KNO_INT(n_waits),KNO_INT(n_pauses),KNO_INT(n_faults),
+	 KNO_INT(nsecs),KNO_INT(calls),KNO_INT(items));}
+    else return KNO_FALSE;}
+  else if (KNO_FALSEP(errp))
+    return KNO_FALSE;
   else return kno_type_error("function","getcalls_prim(profile)",fcn);
 }
 
@@ -1181,6 +1209,7 @@ static lispval profile_getfcn(lispval profile)
     return kno_incref(v);}
   else return kno_type_error("call profile","profile_getfcn",profile);
 }
+
 DEFPRIM1("profile/time",profile_gettime,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "`(PROFILE/TIME *profile*)` "
 	 "returns the number of seconds spent in the "
@@ -1188,10 +1217,19 @@ DEFPRIM1("profile/time",profile_gettime,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 kno_any_type,KNO_VOID);
 static lispval profile_gettime(lispval profile)
 {
+  if (KNO_FCNIDP(profile)) profile = kno_fcnid_ref(profile);
   if (KNO_COMPOUND_TYPEP(profile,call_profile_symbol)) {
     struct KNO_COMPOUND *p = (kno_compound) profile;
     lispval v = KNO_COMPOUND_VREF(p,1);
     return kno_incref(v);}
+  else if (KNO_FUNCTIONP(profile)) {
+    double time = 0;
+    int rv = getprofile_info(profile,0,NULL,NULL,NULL,
+			     &time,NULL,NULL,
+			     NULL,NULL,NULL);
+    if (rv)
+      return kno_make_flonum(time);
+    else return KNO_FALSE;}
   else return kno_type_error("call profile","profile_gettime",profile);
 }
 DEFPRIM1("profile/utime",profile_getutime,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
@@ -1201,10 +1239,19 @@ DEFPRIM1("profile/utime",profile_getutime,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 kno_any_type,KNO_VOID);
 static lispval profile_getutime(lispval profile)
 {
+  if (KNO_FCNIDP(profile)) profile = kno_fcnid_ref(profile);
   if (KNO_COMPOUND_TYPEP(profile,call_profile_symbol)) {
     struct KNO_COMPOUND *p = (kno_compound) profile;
     lispval v = KNO_COMPOUND_VREF(p,2);
     return kno_incref(v);}
+  else if (KNO_FUNCTIONP(profile)) {
+    double time = 0;
+    int rv = getprofile_info(profile,0,NULL,NULL,NULL,
+			     NULL,&time,NULL,
+			     NULL,NULL,NULL);
+    if (rv)
+      return kno_make_flonum(time);
+    else return KNO_FALSE;}
   else return kno_type_error("call profile","profile_getutime",profile);
 }
 DEFPRIM1("profile/stime",profile_getstime,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
@@ -1214,10 +1261,19 @@ DEFPRIM1("profile/stime",profile_getstime,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 kno_any_type,KNO_VOID);
 static lispval profile_getstime(lispval profile)
 {
+  if (KNO_FCNIDP(profile)) profile = kno_fcnid_ref(profile);
   if (KNO_COMPOUND_TYPEP(profile,call_profile_symbol)) {
     struct KNO_COMPOUND *p = (kno_compound) profile;
     lispval v = KNO_COMPOUND_VREF(p,3);
     return kno_incref(v);}
+  else if (KNO_FUNCTIONP(profile)) {
+    double time = 0;
+    int rv = getprofile_info(profile,0,NULL,NULL,NULL,
+			     NULL,NULL,&time,
+			     NULL,NULL,NULL);
+    if (rv)
+      return kno_make_flonum(time);
+    else return KNO_FALSE;}
   else return kno_type_error("call profile","profile_getstime",profile);
 }
 DEFPRIM1("profile/waits",profile_getwaits,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
@@ -1228,25 +1284,43 @@ DEFPRIM1("profile/waits",profile_getwaits,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 kno_any_type,KNO_VOID);
 static lispval profile_getwaits(lispval profile)
 {
+  if (KNO_FCNIDP(profile)) profile = kno_fcnid_ref(profile);
   if (KNO_COMPOUND_TYPEP(profile,call_profile_symbol)) {
     struct KNO_COMPOUND *p = (kno_compound) profile;
     lispval v = KNO_COMPOUND_VREF(p,4);
     return kno_incref(v);}
+  else if (KNO_FUNCTIONP(profile)) {
+    long long count = 0;
+    int rv = getprofile_info(profile,0,NULL,NULL,NULL,
+			     NULL,NULL,NULL,
+			     &count,NULL,NULL);
+    if (rv)
+      return KNO_INT(count);
+    else return KNO_FALSE;}
   else return kno_type_error("call profile","profile_getwaits",profile);
 }
-DEFPRIM1("profile/contests",profile_getcontests,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(PROFILE/CONTESTS *profile*)` "
+DEFPRIM1("profile/pauses",profile_getpauses,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "`(PROFILE/PAUSES *profile*)` "
 	 "returns the number of involuntary context "
 	 "switches (often indicating contested resources) "
 	 "during the execution of the profiled function",
 	 kno_any_type,KNO_VOID);
-static lispval profile_getcontests(lispval profile)
+static lispval profile_getpauses(lispval profile)
 {
+  if (KNO_FCNIDP(profile)) profile = kno_fcnid_ref(profile);
   if (KNO_COMPOUND_TYPEP(profile,call_profile_symbol)) {
     struct KNO_COMPOUND *p = (kno_compound) profile;
     lispval v = KNO_COMPOUND_VREF(p,5);
     return kno_incref(v);}
-  else return kno_type_error("call profile","profile_getcontests",profile);
+  else if (KNO_FUNCTIONP(profile)) {
+    long long count = 0;
+    int rv = getprofile_info(profile,0,NULL,NULL,NULL,
+			     NULL,NULL,NULL,
+			     NULL,&count,NULL);
+    if (rv)
+      return KNO_INT(count);
+    else return KNO_FALSE;}
+  else return kno_type_error("call profile","profile_getpauses",profile);
 }
 DEFPRIM1("profile/faults",profile_getfaults,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "`(PROFILE/FAULTS *profile*)` "
@@ -1255,12 +1329,22 @@ DEFPRIM1("profile/faults",profile_getfaults,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 kno_any_type,KNO_VOID);
 static lispval profile_getfaults(lispval profile)
 {
+  if (KNO_FCNIDP(profile)) profile = kno_fcnid_ref(profile);
   if (KNO_COMPOUND_TYPEP(profile,call_profile_symbol)) {
     struct KNO_COMPOUND *p = (kno_compound) profile;
     lispval v = KNO_COMPOUND_VREF(p,6);
     return kno_incref(v);}
+  else if (KNO_FUNCTIONP(profile)) {
+    long long count = 0;
+    int rv = getprofile_info(profile,0,NULL,NULL,NULL,
+			     NULL,NULL,NULL,
+			     NULL,NULL,&count);
+    if (rv)
+      return KNO_INT(count);
+    else return KNO_FALSE;}
   else return kno_type_error("call profile","profile_getfaults",profile);
 }
+
 DEFPRIM1("profile/nsecs",profile_nsecs,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "`(PROFILE/NSECS *profile*)` "
 	 "returns the number of nanoseconds spent in the "
@@ -1268,12 +1352,23 @@ DEFPRIM1("profile/nsecs",profile_nsecs,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 kno_any_type,KNO_VOID);
 static lispval profile_nsecs(lispval profile)
 {
+  if (KNO_FCNIDP(profile)) profile = kno_fcnid_ref(profile);
   if (KNO_COMPOUND_TYPEP(profile,call_profile_symbol)) {
     struct KNO_COMPOUND *p = (kno_compound) profile;
     lispval v = KNO_COMPOUND_VREF(p,7);
     return kno_incref(v);}
+  else if (KNO_FUNCTIONP(profile)) {
+    long long nsecs = 0;
+    int rv = getprofile_info(profile,0,
+			     NULL,NULL,&nsecs,
+			     NULL,NULL,NULL,
+			     NULL,NULL,NULL);
+    if (rv)
+      return KNO_INT(nsecs);
+    else return KNO_FALSE;}
   else return kno_type_error("call profile","profile_nsecs",profile);
 }
+
 DEFPRIM1("profile/ncalls",profile_ncalls,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "`(PROFILE/FAULTS *profile*)` "
 	 "returns the number of calls to the profiled "
@@ -1281,10 +1376,20 @@ DEFPRIM1("profile/ncalls",profile_ncalls,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 kno_any_type,KNO_VOID);
 static lispval profile_ncalls(lispval profile)
 {
+  if (KNO_FCNIDP(profile)) profile = kno_fcnid_ref(profile);
   if (KNO_COMPOUND_TYPEP(profile,call_profile_symbol)) {
     struct KNO_COMPOUND *p = (kno_compound) profile;
     lispval v = KNO_COMPOUND_VREF(p,8);
     return kno_incref(v);}
+  else if (KNO_FUNCTIONP(profile)) {
+    long long count = 0;
+    int rv = getprofile_info(profile,0,
+			     &count,NULL,NULL,
+			     NULL,NULL,NULL,
+			     NULL,NULL,NULL);
+    if (rv)
+      return KNO_INT(count);
+    else return KNO_FALSE;}
   else return kno_type_error("call profile","profile_ncalls",profile);
 }
 DEFPRIM1("profile/nitems",profile_nitems,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
@@ -1294,10 +1399,20 @@ DEFPRIM1("profile/nitems",profile_nitems,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 kno_any_type,KNO_VOID);
 static lispval profile_nitems(lispval profile)
 {
+  if (KNO_FCNIDP(profile)) profile = kno_fcnid_ref(profile);
   if (KNO_COMPOUND_TYPEP(profile,call_profile_symbol)) {
     struct KNO_COMPOUND *p = (kno_compound) profile;
     lispval v = KNO_COMPOUND_VREF(p,9);
     return kno_incref(v);}
+  else if (KNO_FUNCTIONP(profile)) {
+    long long count = 0;
+    int rv = getprofile_info(profile,0,
+			     NULL,&count,NULL,
+			     NULL,NULL,NULL,
+			     NULL,NULL,NULL);
+    if (rv)
+      return KNO_INT(count);
+    else return KNO_FALSE;}
   else return kno_type_error("call profile","profile_nitems",profile);
 }
 
@@ -1361,39 +1476,35 @@ KNO_EXPORT void kno_init_reflection_c()
   call_profile_symbol = kno_intern("%callprofile");
   void_symbol = kno_intern("%void");
 
-  init_local_cprims();
+  link_local_cprims();
 
-  kno_def_evalfn(module,"%BINDINGS","",local_bindings_evalfn);
+  kno_def_evalfn(module,"%BINDINGS",local_bindings_evalfn,
+		 "*undocumented*");
 
-  kno_def_evalfn(module,"WHEREFROM","",wherefrom_evalfn);
-  kno_def_evalfn(module,"GETMODULES","",getmodules_evalfn);
-  kno_def_evalfn(module,"WITH-SOURCEBASE","",with_sourcebase_evalfn);
+  kno_def_evalfn(module,"WHEREFROM",wherefrom_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(module,"GETMODULES",getmodules_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(module,"WITH-SOURCEBASE",with_sourcebase_evalfn,
+		 "*undocumented*");
 
   kno_finish_module(module);
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
-
-
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("all-modules",get_all_modules_prim,0,reflection_module);
   KNO_LINK_PRIM("profile/nitems",profile_nitems,1,reflection_module);
   KNO_LINK_PRIM("profile/ncalls",profile_ncalls,1,reflection_module);
   KNO_LINK_PRIM("profile/nsecs",profile_nsecs,1,reflection_module);
   KNO_LINK_PRIM("profile/faults",profile_getfaults,1,reflection_module);
-  KNO_LINK_PRIM("profile/contests",profile_getcontests,1,reflection_module);
+  KNO_LINK_PRIM("profile/pauses",profile_getpauses,1,reflection_module);
   KNO_LINK_PRIM("profile/waits",profile_getwaits,1,reflection_module);
   KNO_LINK_PRIM("profile/stime",profile_getstime,1,reflection_module);
   KNO_LINK_PRIM("profile/utime",profile_getutime,1,reflection_module);
   KNO_LINK_PRIM("profile/time",profile_gettime,1,reflection_module);
   KNO_LINK_PRIM("profile/fcn",profile_getfcn,1,reflection_module);
-  KNO_LINK_PRIM("profile/getcalls",getcalls_prim,1,reflection_module);
+  KNO_LINK_PRIM("profile/getcalls",getcalls_prim,2,reflection_module);
   KNO_LINK_PRIM("reflect/profiled?",profiledp_prim,1,reflection_module);
   KNO_LINK_PRIM("profile/reset!",profile_reset_prim,1,reflection_module);
   KNO_LINK_PRIM("reflect/profile!",profile_fcn_prim,2,reflection_module);
@@ -1411,9 +1522,11 @@ static void init_local_cprims()
   KNO_LINK_PRIM("fcnid/set!",fcnid_setprim,2,reflection_module);
   KNO_LINK_PRIM("fcnid/register",fcnid_registerprim,1,reflection_module);
   KNO_LINK_PRIM("fcnid/ref",fcnid_refprim,1,reflection_module);
+#if 0
   KNO_LINK_PRIM("set-lambda-optimizer!",set_lambda_optimizer,2,reflection_module);
-  KNO_LINK_PRIM("set-lambda-source!",set_lambda_source,2,reflection_module);
   KNO_LINK_PRIM("optimize-lambda-args!",optimize_lambda_args,2,reflection_module);
+#endif
+  KNO_LINK_PRIM("set-lambda-source!",set_lambda_source,2,reflection_module);
   KNO_LINK_PRIM("optimize-lambda-body!",optimize_lambda_body,2,reflection_module);
   KNO_LINK_PRIM("set-lambda-body!",set_lambda_body,2,reflection_module);
   KNO_LINK_PRIM("lambda-source",lambda_source,1,reflection_module);

@@ -567,7 +567,7 @@ static int add_query_param(u8_output out,lispval name,lispval value,int nocolon)
 
 /* URI encoding */
 
-DEFPRIM3("uriencode",uriencode_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+DEFPRIM3("uriencode",uriencode_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1)|KNO_NDOP,
          "(uriencode *val* [*chars*] [*upper*]) "
          "encodes a value for use as a URI component (e.g. "
          "translating space into '%20'.) If *val* is a "
@@ -687,8 +687,9 @@ static int xdigit_weight(int c)
 
 /* Scripturl primitives */
 
-static lispval scripturl_core(u8_string baseuri,lispval params,int n,
-                              lispval *args,int nocolon,int keep_secret)
+static lispval scripturl_core(u8_string baseuri,lispval params,
+			      int n,kno_argvec args,
+			      int nocolon,int keep_secret)
 {
   struct U8_OUTPUT out;
   int i = 0, need_qmark = ((baseuri!=NULL)&&(strchr(baseuri,'?') == NULL));
@@ -733,9 +734,9 @@ static lispval scripturl_core(u8_string baseuri,lispval params,int n,
   else return kno_stream2string(&out);
 }
 
-DEFPRIM("scripturl",scripturl,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
+DEFPRIM("scripturl",scripturl,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDOP,
         "`(SCRIPTURL *arg0* *args...*)` **undocumented**");
-static lispval scripturl(int n,lispval *args)
+static lispval scripturl(int n,kno_argvec args)
 {
   if (EMPTYP(args[0])) return EMPTY;
   else if (!((STRINGP(args[0]))||
@@ -753,9 +754,9 @@ static lispval scripturl(int n,lispval *args)
   else return scripturl_core(CSTRING(args[0]),VOID,n-1,args+1,1,0);
 }
 
-DEFPRIM("knoscripturl",knoscripturl,KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
+DEFPRIM("knoscripturl",knoscripturl,KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDOP,
         "`(KNOSCRIPTURL *arg0* *arg1* *args...*)` **undocumented**");
-static lispval knoscripturl(int n,lispval *args)
+static lispval knoscripturl(int n,kno_argvec args)
 {
   if (EMPTYP(args[0])) return EMPTY;
   else if (!((STRINGP(args[0]))||
@@ -773,9 +774,9 @@ static lispval knoscripturl(int n,lispval *args)
   else return scripturl_core(CSTRING(args[0]),VOID,n-1,args+1,0,0);
 }
 
-DEFPRIM("scripturl+",scripturlplus,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
+DEFPRIM("scripturl+",scripturlplus,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDOP,
         "`(SCRIPTURL+ *arg0* *args...*)` **undocumented**");
-static lispval scripturlplus(int n,lispval *args)
+static lispval scripturlplus(int n,kno_argvec args)
 {
   if (EMPTYP(args[0])) return EMPTY;
   else if (!((STRINGP(args[0]))||
@@ -793,9 +794,9 @@ static lispval scripturlplus(int n,lispval *args)
   else return scripturl_core(CSTRING(args[0]),args[1],n-2,args+2,1,0);
 }
 
-DEFPRIM("knoscripturl+",knoscripturlplus,KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
+DEFPRIM("knoscripturl+",knoscripturlplus,KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDOP,
         "`(KNOSCRIPTURL+ *arg0* *arg1* *args...*)` **undocumented**");
-static lispval knoscripturlplus(int n,lispval *args)
+static lispval knoscripturlplus(int n,kno_argvec args)
 {
   if (EMPTYP(args[0])) return EMPTY;
   else if  (!((STRINGP(args[0]))||
@@ -833,20 +834,14 @@ KNO_EXPORT void kno_init_urifns_c()
   fragment_symbol = kno_intern("fragment");
   colonize_symbol = kno_intern("colonize");
 
-  init_local_cprims();
+  link_local_cprims();
 
   u8_register_source_file(_FILEINFO);
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
 
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_VARARGS("knoscripturl+",knoscripturlplus,webtools_module);
   KNO_LINK_VARARGS("scripturl+",scripturlplus,webtools_module);

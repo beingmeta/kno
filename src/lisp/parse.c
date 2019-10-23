@@ -36,14 +36,14 @@
 
 #define PARSE_ERRORP(x) ((x == KNO_EOX) || (x == KNO_PARSE_ERROR) || (x == KNO_OOM))
 #define PARSE_ABORTP(x)                                                 \
-  (KNO_EXPECT_FALSE(((KNO_TYPEP(x,kno_constant_type)) &&                   \
-                    (KNO_GET_IMMEDIATE(x,kno_constant_type)>6) &&         \
-                    (KNO_GET_IMMEDIATE(x,kno_constant_type)<16))))
+  (KNO_EXPECT_FALSE(((KNO_TYPEP(x,kno_constant_type)) &&                \
+                     (KNO_GET_IMMEDIATE(x,kno_constant_type)>6) &&      \
+                     (KNO_GET_IMMEDIATE(x,kno_constant_type)<16))))
 
 
 #define odigitp(c) ((c>='0')&&(c<='8'))
 #define spacecharp(c) ((c>0) && (c<128) && (isspace(c)))
-#define atombreakp(c) \
+#define atombreakp(c)                                                   \
   ((c<=0) || ((c<128) && ((isspace(c)) || (strchr("{}()[]#\"',`",c)))))
 
 u8_condition kno_BadEscapeSequence=_("Invalid escape sequence");
@@ -273,22 +273,31 @@ int kno_add_constname(u8_string s,lispval value)
     if (value==cur) return 0;
     else return -1;}
   else {
-    u8_string d= (*s == '#') ? (u8_downcase(s+1)) : (u8_downcase(s));
-    lispval string=kno_mkstring(d);
+    size_t len = strlen(s);
+    U8_STATIC_OUTPUT(name,(len+1)*2);
+    u8_string scan = (*s == '#') ? (s+1) : (s);
+    int c = u8_sgetc(&scan);
+    while (c>0) {
+      if (u8_isalnum(c)) {
+	if (u8_isupper(c))
+	  u8_putc(nameout,u8_tolower(c));
+	else u8_putc(nameout,c);}
+      else u8_putc(nameout,'_');
+      c = u8_sgetc(&scan);}
+    lispval string=kno_mkstring(_buf_name);
     struct KNO_KEYVAL *added=
       kno_sortvec_insert(string,&constnames,
-                        &n_constnames,&constnames_len,MAX_CONSTNAMES,
-                        1);
+			 &n_constnames,&constnames_len,MAX_CONSTNAMES,
+			 1);
     if (added)
       added->kv_val=value;
     if ( (added) && (added->kv_key != string ) ) {
       if (!(KNO_EQUALP(value,added->kv_val)))
-        u8_log(LOG_WARN,"ConstantConflict",
-               "Conflicting values for constant #%s: #!0x%llx and #!0x%llx",
-               d,added->kv_val,value);
+	u8_log(LOG_WARN,"ConstantConflict",
+	       "Conflicting values for constant #%s: #!0x%llx and #!0x%llx",
+	       _buf_name,added->kv_val,value);
       kno_decref(string);}
     u8_rw_unlock(&constnames_lock);
-    u8_free(d);
     return 1;}
 }
 
@@ -404,9 +413,9 @@ static lispval parse_character(U8_INPUT *in)
     return KNO_CODE2CHAR(c);
   else {
     int i = 0; while (character_constant_names[i])
-      if (strcasecmp(buf,character_constant_names[i]) == 0)
-        return character_constants[i];
-      else i++;
+                 if (strcasecmp(buf,character_constant_names[i]) == 0)
+                   return character_constants[i];
+                 else i++;
     kno_seterr3(kno_InvalidCharacterConstant,"parse_character",tmpbuf.u8_outbuf);
     return KNO_PARSE_ERROR;}
 }
@@ -417,12 +426,12 @@ static lispval (*oid_parser)(u8_string start,int len) = NULL;
 
 KNO_EXPORT
 /* kno_set_oid_parser:
-     Arguments: a function which takes a UTF8 string and an integer length
-     Returns: void
-  This sets the default parser used for OIDs.
+   Arguments: a function which takes a UTF8 string and an integer length
+   Returns: void
+   This sets the default parser used for OIDs.
 */
 void kno_set_oid_parser(lispval (*parsefn)(u8_string start,int len))
-  {
+{
   oid_parser = parsefn;
 }
 
@@ -480,7 +489,7 @@ static lispval parse_oid(U8_INPUT *in)
     result = oid_parser(u8_outstring(&tmpbuf),u8_outlen(&tmpbuf));
   else result = default_parse_oid(u8_outstring(&tmpbuf),u8_outlen(&tmpbuf));
   if (KNO_ABORTP(result))
-      return result;
+    return result;
   if (strchr("({\"",c)) {
     /* If an object starts immediately after the OID (no whitespace)
        it is the OID's label, so we read it and discard it. */
@@ -828,20 +837,20 @@ static int copy_string(u8_input s,u8_output a)
   if (c!='"') return c;
   u8_putc(a,c);
   while ((c = u8_getc(s))>=0) {
-      if (c == '"') {
-        u8_putc(a,c);
-        return c;}
-      else if (c == '\\') {
-        int nextc = u8_getc(s);
-        if (nextc=='\n') {
-          while (u8_isspace(nextc)) nextc = u8_getc(s);
-          u8_putc(a,nextc);
-          continue;}
-        else u8_ungetc(s,nextc);
-        c = read_escape(s);
-        if (c<0) return c;
-        u8_putc(a,c);}
-      else u8_putc(a,c);}
+    if (c == '"') {
+      u8_putc(a,c);
+      return c;}
+    else if (c == '\\') {
+      int nextc = u8_getc(s);
+      if (nextc=='\n') {
+        while (u8_isspace(nextc)) nextc = u8_getc(s);
+        u8_putc(a,nextc);
+        continue;}
+      else u8_ungetc(s,nextc);
+      c = read_escape(s);
+      if (c<0) return c;
+      u8_putc(a,c);}
+    else u8_putc(a,c);}
   return c;
 }
 
@@ -1027,7 +1036,7 @@ static lispval parse_qchoice(U8_INPUT *in)
   lispval *elts = parse_vec(in,'}',&n_elts);
   if (n_elts==0)
     return kno_init_qchoice(u8_alloc(struct KNO_QCHOICE),
-                           EMPTY);
+                            EMPTY);
   else if (n_elts==1) {
     lispval result = elts[0];
     u8_free(elts);
@@ -1050,9 +1059,9 @@ static lispval parse_qchoice(U8_INPUT *in)
 static lispval recreate_record(int n,lispval *v)
 {
   int i = 0;
-  struct KNO_COMPOUND_TYPEINFO *entry = kno_lookup_compound(v[0]);
-  if ((entry) && (entry->compound_parser)) {
-    lispval result = entry->compound_parser(n,v,entry);
+  struct KNO_TYPEINFO *entry = kno_use_typeinfo(v[0]);
+  if ((entry) && (entry->type_parsefn)) {
+    lispval result = entry->type_parsefn(n,v,entry);
     if (!(VOIDP(result))) {
       while (i<n) {kno_decref(v[i]); i++;}
       if (v) u8_free(v);
@@ -1086,10 +1095,10 @@ static lispval parse_atom(u8_input in,int ch1,int ch2,int upcase);
 
 KNO_EXPORT
 /* kno_parser:
-     Arguments: a U8 input stream and a memory pool
-     Returns: a lisp object
+   Arguments: a U8 input stream and a memory pool
+   Returns: a lisp object
 
-     Parses a textual object representation from a stream into a lisp object.
+   Parses a textual object representation from a stream into a lisp object.
 */
 lispval kno_parser(u8_input in)
 {
@@ -1103,7 +1112,7 @@ lispval kno_parser(u8_input in)
       u8_string details=u8_get_input_context(in,32,32,">!<");
       u8_getc(in); /* Consume the character */
       return kno_err(kno_ParseError,"unexpected terminator",
-                    details,KNO_CODE2CHAR(inchar));}
+                     details,KNO_CODE2CHAR(inchar));}
     case '"': return parse_string(in);
     case '@': return parse_oid(in);
     case '(':
@@ -1264,7 +1273,7 @@ lispval kno_parser(u8_input in)
             u8_putc(&out,nch);
             if ((out.u8_write-out.u8_outbuf)>11) {
               kno_seterr(kno_ParseError,"kno_parser","invalid hash # prefix",
-                        kno_stream2string(&out));
+                         kno_stream2string(&out));
               return KNO_PARSE_ERROR;}
             else nch = u8_getc(in);}
           u8_ungetc(in,nch);
@@ -1334,41 +1343,41 @@ static lispval parse_histref(u8_input in)
     if (c >= 0) u8_ungetc(in,c);
     return constval;}
   else while (c >= 0) {
-    if ( (u8_isalnum(c)) ||
-         (c=='-') || (c=='_') ||
-         (c=='/') || (c=='+') ||
-         (c=='%') || (c=='$') ||
-         (c=='&') || (c=='!') ||
-         (c=='@') || (c=='?') ) {
-      u8_putc(&tmpbuf,c); }
-    else if (c == '.') {
-      lispval elt = kno_parse(tmpbuf.u8_outbuf);
-      if (elt == KNO_EOX) elt = KNO_FALSE;
-      lispval new_tail = kno_init_pair(NULL,elt,KNO_EMPTY_LIST);
-      *tail = new_tail;
-      tail = &(KNO_CDR(new_tail));
-      tmpbuf.u8_write = tmpbuf.u8_outbuf;
-      tmpbuf.u8_outbuf[0] = '\0';
-      n_elts++;}
-    else if (c == '=') {
-      lispval elt = kno_parse(tmpbuf.u8_outbuf);
-      lispval new_tail = kno_make_list(2,elt,KNOSYM_EQUALS);
-      lispval new_cdr = KNO_CDR(new_tail);
-      *tail = new_tail;
-      tail = &(KNO_CDR(new_cdr));
-      tmpbuf.u8_write = tmpbuf.u8_outbuf;
-      tmpbuf.u8_outbuf[0] = '\0';
-      n_elts++;}
-    else break;
-    c = u8_getc(in);}
+      if ( (u8_isalnum(c)) ||
+           (c=='-') || (c=='_') ||
+           (c=='/') || (c=='+') ||
+           (c=='%') || (c=='$') ||
+           (c=='&') || (c=='!') ||
+           (c=='@') || (c=='?') ) {
+        u8_putc(&tmpbuf,c); }
+      else if (c == '.') {
+        lispval elt = kno_parse(tmpbuf.u8_outbuf);
+        if (elt == KNO_EOX) elt = KNO_FALSE;
+        lispval new_tail = kno_init_pair(NULL,elt,KNO_EMPTY_LIST);
+        *tail = new_tail;
+        tail = &(KNO_CDR(new_tail));
+        tmpbuf.u8_write = tmpbuf.u8_outbuf;
+        tmpbuf.u8_outbuf[0] = '\0';
+        n_elts++;}
+      else if (c == '=') {
+        lispval elt = kno_parse(tmpbuf.u8_outbuf);
+        lispval new_tail = kno_make_list(2,elt,KNOSYM_EQUALS);
+        lispval new_cdr = KNO_CDR(new_tail);
+        *tail = new_tail;
+        tail = &(KNO_CDR(new_cdr));
+        tmpbuf.u8_write = tmpbuf.u8_outbuf;
+        tmpbuf.u8_outbuf[0] = '\0';
+        n_elts++;}
+      else break;
+      c = u8_getc(in);}
   if (tmpbuf.u8_write>tmpbuf.u8_outbuf) {
-      lispval elt = kno_parse(tmpbuf.u8_outbuf);
-      lispval new_tail = kno_init_pair(NULL,elt,KNO_EMPTY_LIST);
-      *tail = new_tail;
-      tail = &(KNO_CDR(new_tail));
-      tmpbuf.u8_write = tmpbuf.u8_outbuf;
-      tmpbuf.u8_outbuf[0] = '\0';
-      n_elts++;}
+    lispval elt = kno_parse(tmpbuf.u8_outbuf);
+    lispval new_tail = kno_init_pair(NULL,elt,KNO_EMPTY_LIST);
+    *tail = new_tail;
+    tail = &(KNO_CDR(new_tail));
+    tmpbuf.u8_write = tmpbuf.u8_outbuf;
+    tmpbuf.u8_outbuf[0] = '\0';
+    n_elts++;}
   if (c>0) u8_ungetc(in,c);
   if (kno_resolve_histref) {
     lispval resolved = kno_resolve_histref(KNO_CDR(elts));
@@ -1383,12 +1392,12 @@ static lispval parse_histref(u8_input in)
 
 KNO_EXPORT
 /* kno_parse_expr:
-     Arguments: a U8 input stream
-     Returns: a lisp object
+   Arguments: a U8 input stream
+   Returns: a lisp object
 
-     This returns KNO_EOF if there is nothing to read.
-     It is distinct from kno_parser which returns KNO_EOX
-      (an error) if there is nothing to read.
+   This returns KNO_EOF if there is nothing to read.
+   It is distinct from kno_parser which returns KNO_EOX
+   (an error) if there is nothing to read.
 */
 lispval kno_parse_expr(u8_input in)
 {
@@ -1409,10 +1418,10 @@ lispval kno_parse_expr(u8_input in)
 
 KNO_EXPORT
 /* kno_parser:
-     Arguments: a string
-     Returns: a lisp object
+   Arguments: a string
+   Returns: a lisp object
 
-Parses a textual object representation into a lisp object. */
+   Parses a textual object representation into a lisp object. */
 lispval kno_parse(u8_string s)
 {
   struct U8_INPUT stream;
@@ -1430,20 +1439,20 @@ lispval kno_parse(u8_string s)
 
 KNO_EXPORT
 /* kno_read_arg:
-     Arguments: a string
-     Returns: a lisp object
+   Arguments: a string
+   Returns: a lisp object
 
-     Parses a textual object representation into a lisp object.  This
-     is designed for command line arguments or other external contexts
-     (e.g. Windows registry entries).  The idea is to be able to
-     easily pass strings (without embedded double quotes) while still
-     allowing arbitrary expressions.  If the string starts with a
-     parser-significant character, the parser is called on it.  If the
-     string starts with a ':', the parser is called on the rest of the
-     string (so you can refer to the symbol FOO as ":foo").  If the
-     string starts with a backslash, a lisp string is created from the
-     rest of the string.  Otherwise, a lisp string is just created
-     from the string.
+   Parses a textual object representation into a lisp object.  This
+   is designed for command line arguments or other external contexts
+   (e.g. Windows registry entries).  The idea is to be able to
+   easily pass strings (without embedded double quotes) while still
+   allowing arbitrary expressions.  If the string starts with a
+   parser-significant character, the parser is called on it.  If the
+   string starts with a ':', the parser is called on the rest of the
+   string (so you can refer to the symbol FOO as ":foo").  If the
+   string starts with a backslash, a lisp string is created from the
+   rest of the string.  Otherwise, a lisp string is just created
+   from the string.
 */
 lispval kno_read_arg(u8_input in)
 {
@@ -1507,20 +1516,20 @@ lispval kno_read_arg(u8_input in)
 
 KNO_EXPORT
 /* kno_parse_arg:
-     Arguments: a string
-     Returns: a lisp object
+   Arguments: a string
+   Returns: a lisp object
 
-     Parses a textual object representation into a lisp object.  This
-     is designed for command line arguments or other external contexts
-     (e.g. Windows registry entries).  The idea is to be able to
-     easily pass strings (without embedded double quotes) while still
-     allowing arbitrary expressions.  If the string starts with a
-     parser-significant character, the parser is called on it.  If the
-     string starts with a ':', the parser is called on the rest of the
-     string (so you can refer to the symbol FOO as ":foo").  If the
-     string starts with a backslash, a lisp string is created from the
-     rest of the string.  Otherwise, a lisp string is just created
-     from the string.
+   Parses a textual object representation into a lisp object.  This
+   is designed for command line arguments or other external contexts
+   (e.g. Windows registry entries).  The idea is to be able to
+   easily pass strings (without embedded double quotes) while still
+   allowing arbitrary expressions.  If the string starts with a
+   parser-significant character, the parser is called on it.  If the
+   string starts with a ':', the parser is called on the rest of the
+   string (so you can refer to the symbol FOO as ":foo").  If the
+   string starts with a backslash, a lisp string is created from the
+   rest of the string.  Otherwise, a lisp string is just created
+   from the string.
 */
 lispval kno_parse_arg(u8_string arg)
 {
@@ -1557,10 +1566,4 @@ KNO_EXPORT void kno_init_parse_c()
   struct_eval_symbol = kno_intern("#.");
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
 

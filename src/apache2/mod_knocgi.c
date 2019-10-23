@@ -1330,7 +1330,11 @@ static int start_servlet(request_rec *r,kno_servlet s,
     ap_log_error(APLOG_MARK,APLOG_CRIT,OK,server,
 		 "Waiting on spawned socket %s for %s, uid=%d, gid=%d",
 		 sockname,r->unparsed_uri,uid,gid);
-    return spawn_wait(s,r,&(s->proc));}
+    int rv = spawn_wait(s,r,&(s->proc));
+    if (unlock) {
+      apr_file_unlock(lockfile);
+      apr_file_remove(lockname,p);}
+    return rv;}
   else {
     ap_log_error(APLOG_MARK,APLOG_INFO,OK,server,
 		 "Spawning %s %s for %s, uid=%d, gid=%d",
@@ -1342,8 +1346,9 @@ static int start_servlet(request_rec *r,kno_servlet s,
     ap_log_error(APLOG_MARK,APLOG_CRIT,apr_get_os_error(),server,
 		 "Can't write socket file '%s' (%s) for %s, uid=%d, gid=%d",
 		 sockname,exename,r->unparsed_uri,uid,gid);
-    if (unlock) apr_file_unlock(lockfile);
-    apr_file_remove(lockname,p);
+    if (unlock) {
+      apr_file_unlock(lockfile);
+      apr_file_remove(lockname,p);}
     return -1;}
   if ((log_file) && (!(file_writablep(p,server,log_file)))) {
     const char *new_log_file=get_log_file(r,sockname);
@@ -1555,8 +1560,9 @@ static int start_servlet(request_rec *r,kno_servlet s,
     else {
       ap_log_error(APLOG_MARK,APLOG_CRIT,apr_get_os_error(),server,
 		   "Could not remove socket file %s",sockname);
-      if (unlock) apr_file_unlock(lockfile);
-      apr_file_remove(lockname,p);
+      if (unlock) {
+	apr_file_unlock(lockfile);
+	apr_file_remove(lockname,p);}
       return -1;}}
   errno=0;
   rv=apr_proc_create(proc,exename,(const char **)argv,envp,attr,p);
@@ -1579,24 +1585,29 @@ static int start_servlet(request_rec *r,kno_servlet s,
 
   {
     int exitcode; apr_exit_why_e why;
-    rv=apr_proc_wait(proc,&exitcode,&why,APR_WAIT);
+    rv=apr_proc_wait(proc,&exitcode,&why,APR_NOWAIT);
 
-    if (exitcode) {
+    if ( (rv == APR_CHILD_DONE) && (exitcode) ) {
       ap_log_error(APLOG_MARK,APLOG_CRIT,rv,server,
 		   "Servlet exited(%s) with %d: %s @%s for %s",
 		   ((why==APR_PROC_SIGNAL_CORE)?("core"):
 		    (why==APR_PROC_SIGNAL)?("signal"):("normal")),
 		   exitcode,exename,sockname,r->unparsed_uri);
+      if (unlock) {
+	apr_file_unlock(lockfile);
+	apr_file_remove(lockname,p);}
       return -1;}}
 
   /* Now wait for the socket file to exist */
   int started = spawn_wait(s,r,proc);
 
-  if (unlock) apr_file_unlock(lockfile);
-  apr_file_remove(lockname,p);
+  if (unlock) {
+    apr_file_unlock(lockfile);
+    apr_file_remove(lockname,p);}
   s->spawning=0;
 
-  if (rv>=0) return 1;
+  if (rv>=0)
+    return 1;
   else return retval;
 }
 
@@ -2875,7 +2886,7 @@ static int kno_handler(request_rec *r)
 	(r->method_number == M_DELETE) ||
 	(r->method_number == M_OPTIONS)))
     return DECLINED;
-  else if ( (STRMATCH(r->handler, "kno")) ||
+  else if ( (STRMATCH(r->handler, "knocgi")) ||
 	    (STRMATCH(r->handler, KNO_MAGIC_TYPE)) )
     status_request=0;
   else if ( (STRMATCH(r->handler, "knostatus")) ||

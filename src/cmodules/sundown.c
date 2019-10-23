@@ -85,14 +85,14 @@ KNO_EXPORT int kno_init_sundown()
   sundown_init = 1;
   sundown_module = kno_new_cmodule("sundown",0,kno_init_sundown);
 
-  init_local_cprims();
+  link_local_cprims();
 
   u8_register_source_file(_FILEINFO);
 
   return 1;
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   DEFPRIM2("MARKDOWN->HTML",markdown2html_prim,MIN_ARGS(1),
            "Converts a markdown string to HTML",

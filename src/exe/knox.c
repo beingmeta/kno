@@ -85,7 +85,7 @@ static lispval chain_prim(int n,lispval *args)
     return kno_err(_("Too many configs to CHAIN"),"chain_prim",NULL,VOID);
   else if ( (stop_file) && (u8_file_existsp(stop_file)) ) {
     u8_log(LOG_CRIT,"StopFile",
-           "Not chaining because the file '%s' exists",stop_file);
+	   "Not chaining because the file '%s' exists",stop_file);
     return KNO_FALSE;}
   else {
     int i = 0, cargc = 0, rv = -1;
@@ -96,27 +96,27 @@ static lispval chain_prim(int n,lispval *args)
     cargv[cargc++]=exe_arg;
     cargv[cargc++]=file_arg;
     i = 0; while (i<n)
-             if (KNO_STRINGP(args[i])) {
-               u8_printf(&argstring," %s",CSTRING(args[i]));
-               cargv[cargc]=u8_tolibc(CSTRING(args[i]));
-               i++; cargc++;}
-             else {
-               u8_string as_string = kno_lisp2string(args[i]);
-               char *libc_string = u8_tolibc(as_string);
-               u8_printf(&argstring," %s",as_string);
-               u8_free(as_string);
-               cargv[cargc]=libc_string;
-               i++; cargc++;}
+	     if (KNO_STRINGP(args[i])) {
+	       u8_printf(&argstring," %s",CSTRING(args[i]));
+	       cargv[cargc]=u8_tolibc(CSTRING(args[i]));
+	       i++; cargc++;}
+	     else {
+	       u8_string as_string = kno_lisp2string(args[i]);
+	       char *libc_string = u8_tolibc(as_string);
+	       u8_printf(&argstring," %s",as_string);
+	       u8_free(as_string);
+	       cargv[cargc]=libc_string;
+	       i++; cargc++;}
     u8_puts(&argstring," LOGAPPEND=yes");
     cargv[cargc++]=u8_strdup("LOGAPPEND=yes");
     i = 0; while (i<n_configs) {
       char *config = configs[i];
       if ( (strncmp(config,"LOGAPPEND=",10) == 0) ||
-           (strncmp(config,"PIDFILE=",10) == 0) )
-        i++;
+	   (strncmp(config,"PIDFILE=",10) == 0) )
+	i++;
       else {
-        u8_printf(&argstring," %s",u8_fromlibc(configs[i]));
-        cargv[cargc++]=configs[i++];}}
+	u8_printf(&argstring," %s",u8_fromlibc(configs[i]));
+	cargv[cargc++]=configs[i++];}}
     cargv[cargc++]=NULL;
     fflush(stdout); fflush(stderr);
     /* TODO: Should we run any exit methods here? */
@@ -125,11 +125,11 @@ static lispval chain_prim(int n,lispval *args)
     kno_close_pools();
     kno_close_indexes();
     u8_log(LOG_NOTICE,"CHAIN",">> %s %s%s",
-           exe_arg,u8_fromlibc(file_arg),argstring.u8_outbuf);
+	   exe_arg,u8_fromlibc(file_arg),argstring.u8_outbuf);
     u8_free(argstring.u8_outbuf);
     u8_log(LOG_NOTICE,"CHAIN","%s",
-           "================================================================"
-           "================================");
+	   "================================================================"
+	   "================================");
     rv = execvp(exe_arg,cargv);
     if (rv<0) {
       u8_graberr(errno,"CHAIN",u8_strdup(file_arg));
@@ -147,14 +147,14 @@ static void print_args(int argc,char **argv)
 }
 
 static lispval *handle_argv(int argc,char **argv,size_t *arglenp,
-                            u8_string *exe_namep,
-                            u8_string *source_filep,
-                            u8_string appid_prefix)
+			    u8_string *exe_namep,
+			    u8_string *source_filep,
+			    u8_string appid_prefix)
 {
   lispval *args = NULL;
   u8_string tmp_string = NULL, source_file = NULL, exe_name = NULL;
   /* Bit map of args which we handle */
-  unsigned char arg_mask[argc];  memset(arg_mask,0,argc);
+  unsigned char arg_mask[argc];	 memset(arg_mask,0,argc);
   int i = 1;
 
   if (getenv("KNO_SHOWARGV")) print_args(argc,argv);
@@ -212,13 +212,13 @@ static lispval *handle_argv(int argc,char **argv,size_t *arglenp,
   return args;
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
 }
 
 int do_main(int argc,char **argv,
-            u8_string exe_name,u8_string source_file,
-            lispval *args,size_t n_args)
+	    u8_string exe_name,u8_string source_file,
+	    lispval *args,size_t n_args)
 {
   kno_lexenv env = kno_working_lexenv();
   lispval main_proc = VOID, result = VOID;
@@ -300,32 +300,32 @@ int do_main(int argc,char **argv,
   if (!(kno_be_vewy_quiet)) kno_boot_message();
   if ( (stop_file) && (u8_file_existsp(stop_file)) ) {
     u8_log(LOG_CRIT,"StopFile",
-           "Not starting because the file '%s' exists",stop_file);
+	   "Not starting because the file '%s' exists",stop_file);
     return 1;}
   else if (wait_for_file) {
     if (u8_file_existsp(wait_for_file))
       u8_log(LOG_NOTICE,FileWait,"Starting now because '%s' exists",
-             wait_for_file);
+	     wait_for_file);
     else {
       int n = 0;
       u8_log(LOG_NOTICE,FileWait,"Waiting for '%s' to exist",
-             wait_for_file);
+	     wait_for_file);
       while (1) {
-        n++; if (n<15) sleep(n); else sleep(15);
-        if (u8_file_existsp(wait_for_file)) {
-          u8_log(LOG_NOTICE,FileWait,"[%d] Starting now because '%s' exists",
-                 n,wait_for_file);
-          break;}
-        else if ((n<15) ? ((n%4)==0) : ((n%20)==0))
-          u8_log(LOG_NOTICE,FileWait,"[%d] Waiting for '%s' to exist",
-                 n,wait_for_file);}}}
+	n++; if (n<15) sleep(n); else sleep(15);
+	if (u8_file_existsp(wait_for_file)) {
+	  u8_log(LOG_NOTICE,FileWait,"[%d] Starting now because '%s' exists",
+		 n,wait_for_file);
+	  break;}
+	else if ((n<15) ? ((n%4)==0) : ((n%20)==0))
+	  u8_log(LOG_NOTICE,FileWait,"[%d] Waiting for '%s' to exist",
+		 n,wait_for_file);}}}
 
   DEFPRIM("CHAIN",chain_prim,KNO_VAR_ARGS|MIN_ARGS(0),
-          "Resets the current process to a fresh instance of "
-          "knox");
+	  "Resets the current process to a fresh instance of "
+	  "knox");
   KNO_LINK_PRIM("CHAIN",chain_prim,0,(lispval)env);
 
-  init_local_cprims();
+  link_local_cprims();
 
   if (source_file) {
     lispval src = kno_wrapstring(u8_realpath(source_file,NULL));
@@ -346,8 +346,8 @@ int do_main(int argc,char **argv,
       startup_time = startup_time*1000; units="ms";}
     else {startup_time = startup_time*1000000; units="ms";}
     u8_message("Kno %s loaded in %0.3f%s, %d/%d pools/indexes",
-               u8_appid(),startup_time,units,kno_n_pools,
-               kno_n_primary_indexes+kno_n_secondary_indexes);}
+	       u8_appid(),startup_time,units,kno_n_pools,
+	       kno_n_primary_indexes+kno_n_secondary_indexes);}
 
   if ( (!(KNO_ABORTP(result))) && (!(SYMBOLP(main_symbol))) ) {
     kno_decref(result);
@@ -357,34 +357,34 @@ int do_main(int argc,char **argv,
     main_proc = kno_symeval(main_symbol,env);
     if (KNO_VOIDP(main_proc)) {
       if (source_file == NULL) {
-        int i = 0;
-        if (main_symbol == real_main)
-          fprintf(stderr,
-                  "Error: %s no filename specified or (MAIN) defined",
-                  exe_name);
-        else fprintf(stderr,
-                     "Error: %s no filename specified or main (%s) defined",
-                     exe_name,KNO_SYMBOL_NAME(main_symbol));
-        while (i<argc) {
-          fprintf(stderr,"argv[%d]=%s\n",i,argv[i]);
-          i++;}
-        fprintf(stderr,"Usage: %s filename [config = val]*\n",exe_name);
-        result = kno_err("No MAIN","main()",NULL,main_symbol);}
+	int i = 0;
+	if (main_symbol == real_main)
+	  fprintf(stderr,
+		  "Error: %s no filename specified or (MAIN) defined",
+		  exe_name);
+	else fprintf(stderr,
+		     "Error: %s no filename specified or main (%s) defined",
+		     exe_name,KNO_SYMBOL_NAME(main_symbol));
+	while (i<argc) {
+	  fprintf(stderr,"argv[%d]=%s\n",i,argv[i]);
+	  i++;}
+	fprintf(stderr,"Usage: %s filename [config = val]*\n",exe_name);
+	result = kno_err("No MAIN","main()",NULL,main_symbol);}
       else {
-        /* Nothing to do */
-        kno_decref(result);
-        result = KNO_VOID;}}
+	/* Nothing to do */
+	kno_decref(result);
+	result = KNO_VOID;}}
     else if (KNO_APPLICABLEP(main_proc)) {
       kno_decref(result);
       result = kno_apply(main_proc,n_args,args);
       result = kno_finish_call(result);}
     else {
       u8_log(LOGWARN,"BadMain",
-             "The main procedure for %s (%q) isn't applicable",
-             ((source_file) ? (source_file) : (U8S("stdin")) ),
-             main_proc);
+	     "The main procedure for %s (%q) isn't applicable",
+	     ((source_file) ? (source_file) : (U8S("stdin")) ),
+	     main_proc);
       result = kno_err("BadMain","main()",KNO_SYMBOL_NAME(main_symbol),
-                       main_proc);}}
+		       main_proc);}}
   if (source_file) source_file = NULL;
   if (KNO_TROUBLEP(result)) {
     U8_OUTPUT out; U8_INIT_OUTPUT(&out,2000);
@@ -394,11 +394,11 @@ int do_main(int argc,char **argv,
     kno_unparse_maxchars = debug_maxchars; kno_unparse_maxelts = debug_maxelts;
     kno_output_errstack(&out,e);
     kno_unparse_maxelts = old_maxelts; kno_unparse_maxchars = old_maxchars;
-    fputs(out.u8_outbuf,stderr); fputc('\n',stderr);
+    fputs(out.u8_outbuf,stderr);
+    fputc('\n',stderr);
 
     /* Write out the exception object somehow */
-
-    u8_free(out.u8_outbuf);
+    u8_close_output(&out);
     u8_free_exception(e,1);
     retval = -1;}
 
@@ -460,9 +460,3 @@ int main(int argc,char **argv)
 }
 #endif
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

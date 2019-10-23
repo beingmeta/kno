@@ -483,7 +483,8 @@ static lispval update_module_prim(lispval spec,lispval force)
 
 static lispval updatemodules_config_get(lispval var,void *ignored)
 {
-  if (reload_interval<0.0) return KNO_FALSE;
+  if ( reload_interval < 0)
+    return KNO_FALSE;
   else return kno_init_double(NULL,reload_interval);
 }
 static int updatemodules_config_set(lispval var,lispval val,void *ignored)
@@ -592,18 +593,13 @@ static lispval loadpath_config_get(lispval var,void *d)
 
 /* Design for avoiding the module loading race condition */
 
-/* Have a list of modules being sought; a function kno_need_module
-   locks a mutex and does a kno_get_module.  If it gets non-void,
-   it unlikes its mutext and returns it.  Otherwise, if the module is
-   on the list, it waits on the condvar and tries again (get and
-   then list) it wakes up.  If the module isn't on the list,
-   it puts it on the list, unlocks its mutex and returns
-   VOID, indicating that its caller can try to load it.
-   Finishing a module pops it off of the seeking list.
-   If loading the module fails, it's also popped off of
-   the seeking list.
-   And while we're at it, it looks like finish_module should
-   wake up the loadstamp condvar!
+/* Have a list of modules being sought; a function kno_need_module locks a mutex and does a
+   kno_get_module.  If it gets non-void, it unlocks its mutex and returns that result.  Otherwise,
+   if the module is on the list, it waits on the condvar and tries again (get and then check the
+   list) when it wakes up.  If the module isn't on the list, it puts it on the list, unlocks its
+   mutex and returns VOID, indicating that its caller can try to load it.  Finishing a module pops
+   it off of the seeking list.  If loading the module fails, it's also popped off of the seeking
+   list.  And one of the results of finish_module is that it wakes up the condvar.
 */
 
 /* Getting the loadlock for a module */
@@ -831,7 +827,7 @@ KNO_EXPORT void kno_init_loadmods_c()
      liveload_get,liveload_add,NULL);
 #endif
 
-  init_local_cprims();
+  link_local_cprims();
 
   kno_add_module_loader(load_source_module,NULL);
   kno_add_module_loader(load_dynamic_module,NULL);
@@ -850,7 +846,7 @@ KNO_EXPORT void kno_init_loadmods_c()
 }
 
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("dynamic-load",dynamic_load_prim,2,kno_scheme_module);
   KNO_LINK_PRIM("update-module",update_module_prim,2,loadmods_module);

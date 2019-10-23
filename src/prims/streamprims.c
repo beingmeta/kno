@@ -200,37 +200,139 @@ static lispval write_dtype(lispval object,lispval stream,
     return KNO_INT(n_bytes);}
 }
 
+DEFPRIM2("read-byte",read_abyte,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	 "(READ-4BYTES *stream* [*pos*]) "
+	 "reads a bigendian 4-byte integer from *stream*. "
+	 "If pos is provided, the value is read from "
+	 "the stream at *pos*; if not, the varint is read from the "
+	 "current position of the stream and that position is advanced "
+	 "by one byte.",
+	 kno_stream_type,KNO_VOID,kno_any_type,KNO_VOID);
+static lispval read_abyte(lispval stream,lispval pos)
+{
+  struct KNO_STREAM *ds=
+    kno_consptr(struct KNO_STREAM *,stream,kno_stream_type);
+  if (VOIDP(pos)) {
+    kno_lock_stream(ds);
+    struct KNO_INBUF *in = kno_readbuf(ds);
+    int ival = kno_read_byte(in);
+    kno_unlock_stream(ds);
+    if (ival<0)
+      return KNO_ERROR;
+    else return KNO_INT(ival);}
+  else {
+    long long filepos = (KNO_VOIDP(pos)) ? (-1) : (kno_getint(pos));
+    int ival = kno_read_byte_at(ds,filepos,KNO_UNLOCKED);
+    if (ival < 0) return KNO_ERROR;
+    else return KNO_INT(ival);}
+}
+
 DEFPRIM2("read-4bytes",read_4bytes,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "(READ-4BYTES *stream* [*pos*]) "
-	 "reads a bigendian 4-byte integer from *stream* at "
-	 "*pos* (or the current location, if none)",
+	 "reads a bigendian 4-byte integer from *stream*. "
+	 "If pos is provided, the value is read from "
+	 "the stream at *pos*; if not, the varint is read from the "
+	 "current position of the stream and that position is advanced "
+	 "by four bytes.",
 	 kno_stream_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval read_4bytes(lispval stream,lispval pos)
 {
   struct KNO_STREAM *ds=
     kno_consptr(struct KNO_STREAM *,stream,kno_stream_type);
-  long long filepos = (KNO_VOIDP(pos)) ? (-1) : (kno_getint(pos));
-  long long ival = kno_read_4bytes_at(ds,filepos,KNO_UNLOCKED);
-  if (ival<0)
-    return KNO_ERROR;
-  else return KNO_INT(ival);
+  if (VOIDP(pos)) {
+    kno_lock_stream(ds);
+    struct KNO_INBUF *in = kno_readbuf(ds);
+    long long ival = kno_read_4bytes(in);
+    kno_unlock_stream(ds);
+    if (ival<0)
+      return KNO_ERROR;
+    else return KNO_INT(ival);}
+  else {
+    long long filepos = kno_getint(pos);
+    long long ival = kno_read_4bytes_at(ds,filepos,KNO_UNLOCKED);
+    if (ival<0) return KNO_ERROR;
+    if (VOIDP(pos)) kno_setpos(ds,filepos+8);
+    return KNO_INT(ival);}
 }
 
 DEFPRIM2("read-8bytes",read_8bytes,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "(READ-8BYTES *stream* [*pos*]) "
-	 "reads a bigendian 8-byte integer from *stream* at "
-	 "*pos* (or the current location, if none)",
+	 "reads a bigendian 8-byte integer from *stream*. "
+	 "If pos is provided, the value is read from "
+	 "the stream at *pos*; if not, the varint is read from the "
+	 "current position of the stream and that position is advanced "
+	 "by eight bytes.",
 	 kno_stream_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval read_8bytes(lispval stream,lispval pos)
 {
   struct KNO_STREAM *ds=
     kno_consptr(struct KNO_STREAM *,stream,kno_stream_type);
   int err = 0;
-  long long filepos = (KNO_VOIDP(pos)) ? (-1) : (kno_getint(pos));
+  long long filepos = (VOIDP(pos)) ? (kno_getpos(ds)) : kno_getint(pos);
   unsigned long long ival = kno_read_8bytes_at(ds,filepos,KNO_UNLOCKED,&err);
   if (err)
     return KNO_ERROR;
-  else return KNO_INT(ival);
+  if (VOIDP(pos)) kno_setpos(ds,filepos+8);
+  return KNO_INT(ival);
+}
+
+DEFPRIM2("read-varint",read_varint,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	 "(read-varint *stream* [*pos*]) "
+	 "reads an encoded varint, up to 8 bytes in decoded length "
+	 "from stream. If pos is provided, the value is read from "
+	 "the stream at *pos*; if not, the varint is read from the "
+	 "current position of the stream and that position is advanced "
+	 "based on the data read.",
+	 kno_stream_type,KNO_VOID,kno_any_type,KNO_VOID);
+static lispval read_varint(lispval stream,lispval pos)
+{
+  struct KNO_STREAM *ds=
+    kno_consptr(struct KNO_STREAM *,stream,kno_stream_type);
+  if (VOIDP(pos)) {
+    kno_lock_stream(ds);
+    struct KNO_INBUF *in = kno_readbuf(ds);
+    long long ival = kno_read_varint(in);
+    kno_unlock_stream(ds);
+    if (ival<0)
+      return KNO_ERROR;
+    else return KNO_INT(ival);}
+  else {
+    unsigned char bytes[16];
+    long long ival = -1;
+    kno_off_t filepos = kno_getint(pos);
+#if HAVE_PREAD
+    ssize_t n_read = pread(ds->stream_fileno,bytes,16,filepos);
+    if (n_read<0) {
+      u8_graberr(errno,"read_varint/pread",u8_strdup(ds->streamid));
+      errno=0;
+      return KNO_ERROR_VALUE;}
+    else {
+      struct KNO_INBUF in;
+      KNO_INIT_INBUF(&in,bytes,n_read,0);
+      ival = kno_read_varint(&in);}
+#else
+    int irv = kno_lock_stream(ds);
+    if (irv<0) return KNO_ERROR;
+    kno_off_t old_pos = kno_getpos(ds);
+    kno_off_t rv = kno_setpos(ds,filepos);
+    if (rv<0) {
+      kno_unlock_stream(ds);
+      return KNO_ERROR;}
+    struct KNO_INBUF *in = kno_readbuf(ds);
+    ival = kno_read_varint(in);
+    rv = kno_setpos(ds,oldpos);
+    if (rv<0) {
+      kno_unlock_stream(ds);
+      return KNO_ERROR;}
+    irv = kno_unlock_stream(ds);
+    if (irv<0) return KNO_ERROR;
+#endif
+    if (ival < 0) {
+      u8_byte buf[64];
+      return kno_err("VarIntReadFailed","read_varint",
+		     u8_bprintf(buf,"pos=%lld",filepos),
+		     stream);}
+    else return KNO_INT(ival);}
 }
 
 DEFPRIM3("read-bytes",read_bytes,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
@@ -263,8 +365,9 @@ static lispval read_bytes(lispval stream,lispval n,lispval pos)
       u8_graberr(errno,"read_bytes/pread",u8_strdup(ds->streamid));
       errno=0;
       return KNO_ERROR_VALUE;}}
-  if (to_read==0)
-    return kno_init_packet(NULL,n_bytes,bytes);
+  if (to_read==0) {
+    if (VOIDP(pos)) kno_setpos(ds,filepos+n_bytes);
+    return kno_init_packet(NULL,n_bytes,bytes);}
 #elif KNO_USE_MMAP
   ssize_t page_off = (filepos/512)*512;
   ssize_t map_len  = (pos+n_bytes)-page_off;
@@ -277,7 +380,9 @@ static lispval read_bytes(lispval stream,lispval n,lispval pos)
     if (rv<0) {
       u8_log(LOG_CRIT,kno_failed_unmap,
 	     "Couldn't unmap buffer for %s (0x%llx)",ds->streamid,ds);}
-    else return kno_init_packet(NULL,n_bytes,bytes);}
+    else {
+      if (VOIDP(pos)) kno_setpos(ds,filepos+n_bytes);
+      return kno_init_packet(NULL,n_bytes,bytes);}}
 #endif
   kno_lock_stream(ds);
   if (! (KNO_VOIDP(pos)) ) kno_setpos(ds,pos);
@@ -402,7 +507,7 @@ static lispval zwrite_int(lispval object,lispval stream)
 
 static lispval lisp2zipfile(lispval object,lispval filename,lispval bufsiz);
 
-DEFPRIM3("dtype->file",lisp2file,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+DEFPRIM3("dtype->file",lisp2file,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDOP,
 	 "`(DTYPE->FILE *arg0* *arg1* [*arg2*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
 	 kno_any_type,KNO_VOID);
@@ -455,7 +560,7 @@ static lispval lisp2file(lispval object,lispval filename,lispval bufsiz)
   else return kno_type_error(_("string"),"lisp2file",filename);
 }
 
-DEFPRIM3("dtype->zfile",lisp2zipfile,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+DEFPRIM3("dtype->zfile",lisp2zipfile,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDOP,
 	 "`(DTYPE->ZFILE *arg0* *arg1* [*arg2*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
 	 kno_any_type,KNO_VOID);
@@ -557,7 +662,7 @@ static ssize_t write_dtypes(lispval dtypes,struct KNO_STREAM *out)
 
 static lispval add_lisp2zipfile(lispval object,lispval filename);
 
-DEFPRIM2("dtypes->file+",add_dtypes2file,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+DEFPRIM2("dtypes->file+",add_dtypes2file,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDOP,
 	 "`(DTYPES->FILE+ *arg0* *arg1*)` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval add_dtypes2file(lispval object,lispval filename)
@@ -589,7 +694,7 @@ static lispval add_dtypes2file(lispval object,lispval filename)
   else return kno_type_error(_("string"),"add_dtypes2file",filename);
 }
 
-DEFPRIM2("dtype->zfile+",add_lisp2zipfile,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+DEFPRIM2("dtype->zfile+",add_lisp2zipfile,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDOP,
 	 "`(DTYPE->ZFILE+ *arg0* *arg1*)` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval add_lisp2zipfile(lispval object,lispval filename)
@@ -913,12 +1018,12 @@ KNO_EXPORT void kno_init_streamprims_c()
   u8_register_source_file(_FILEINFO);
   fixsyms_symbol = kno_intern("LOUDSYMS");
 
-  init_local_cprims();
+  link_local_cprims();
 
   kno_finish_module(streamprims_module);
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   lispval scheme_module = kno_scheme_module;
 
@@ -951,8 +1056,10 @@ static void init_local_cprims()
   KNO_LINK_PRIM("write-8bytes",write_8bytes,3,kno_scheme_module);
   KNO_LINK_PRIM("write-4bytes",write_4bytes,3,kno_scheme_module);
   KNO_LINK_PRIM("read-bytes",read_bytes,3,kno_scheme_module);
+  KNO_LINK_PRIM("read-varint",read_varint,2,kno_scheme_module);
   KNO_LINK_PRIM("read-8bytes",read_8bytes,2,kno_scheme_module);
   KNO_LINK_PRIM("read-4bytes",read_4bytes,2,kno_scheme_module);
+  KNO_LINK_PRIM("read-byte",read_abyte,2,scheme_module);
   KNO_LINK_PRIM("write-dtype",write_dtype,4,kno_scheme_module);
   KNO_LINK_PRIM("write-bytes",write_bytes,3,kno_scheme_module);
   KNO_LINK_PRIM("read-dtype",read_dtype,3,kno_scheme_module);

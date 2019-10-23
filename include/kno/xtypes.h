@@ -114,9 +114,3 @@ typedef struct KNO_COMPOUND_CONSTRUCTOR *kno_compound_constructor;
 
 #endif /* KNO_XTYPES_H */
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

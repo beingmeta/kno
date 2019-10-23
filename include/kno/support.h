@@ -234,9 +234,3 @@ KNO_EXPORT void kno_restore_sourcebase(u8_string sourcebase);
 
 #endif /* #ifndef KNO_SUPPORT_H */
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

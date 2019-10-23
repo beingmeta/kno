@@ -328,7 +328,7 @@
   (do-choices (atom (get-expr-atoms (get frame 'expr)))
     (applytest #t test frame 'atoms atom)
     (unless (overlaps? frame  (find-frames testindex 'atoms atom))
-      (logwarn "Didn't find " frame " based on atom " atom))
+      (logwarn |FindFailed| "Didn't find " frame " based on atom " atom))
     (applytest #t overlaps? frame
 	       (find-frames testindex 'atoms atom))))
 

@@ -141,12 +141,12 @@ KNO_EXPORT void kno_init_dns_c()
 
   webtools_module = kno_new_module("WEBTOOLS",(0));
 
-  init_local_cprims();
+  link_local_cprims();
 
   u8_register_source_file(_FILEINFO);
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("dns/get",dns_query,2,webtools_module);
 }

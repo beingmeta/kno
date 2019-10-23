@@ -423,7 +423,7 @@ static void output_value(u8_output out,lispval val,
     else u8_printf(out," <%s class='%s packet'>%lk</%s>",
 		   eltname,classname,val,eltname);
   else {
-    kno_lisp_type ptrtype=KNO_LISP_TYPE(val);
+    kno_lisp_type ptrtype=KNO_TYPEOF(val);
     if (kno_type_names[ptrtype])
       u8_printf(out," <%s class='%s %s'>%lk</%s>",
 		eltname,classname,kno_type_names[ptrtype],
@@ -532,7 +532,7 @@ static void output_xhtml_table(U8_OUTPUT *out,lispval tbl,lispval keys,
   else if (HASHTABLEP(tbl))
     u8_printf(out,"<tr><th colspan='2' class='header'>%lk</th></tr>\n",tbl);
   else u8_printf(out,"<tr><th colspan='2' class='header'>%s</th></tr>\n",
-		 kno_type_names[KNO_LISP_TYPE(tbl)]);
+		 kno_type_names[KNO_TYPEOF(tbl)]);
   {
     DO_CHOICES(key,keys) {
       if ( (out->u8_write - out->u8_outbuf) >= kno_htmlout_max) {
@@ -629,9 +629,10 @@ KNO_EXPORT void kno_init_htmlout_c()
   webtools_module=kno_new_module("WEBTOOLS",0);
   xhtml_module=kno_new_module("XHTML",0);
 
-  init_local_cprims();
+  link_local_cprims();
 
-  kno_def_evalfn(xhtml_module,"TABLE->HTML","",table2html_evalfn);
+  kno_def_evalfn(xhtml_module,"TABLE->HTML",table2html_evalfn,
+		 "*undocumented*");
 
   xmloidfn_symbol = kno_intern("%xmloid");
   id_symbol = kno_intern("%id");
@@ -658,7 +659,7 @@ KNO_EXPORT void kno_init_htmlout_c()
 
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("obj->html",obj2html_prim,2,xhtml_module);
   KNO_LINK_PRIM("backtrace->html",backtrace2html_prim,2,webtools_module);

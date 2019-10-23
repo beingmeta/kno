@@ -90,6 +90,22 @@
 (applytest "xxx" config 'xval)
 (applytest "YYY" config 'yval)
 
+(config! 'itis9 9)
+
+(errtest (load-config))
+(errtest (load-config 'nosuchref))
+(errtest (load-config 'itis9))
+(errtest (load-config #"foo"))
+(errtest (load-config '(foo)))
+(errtest (load-config "data/nosuch.cfg"))
+(errtest (load-default-config))
+(errtest (load-default-config 'nosuchref))
+(errtest (load-default-config 'itis9))
+(errtest (load-default-config '(foo)))
+(errtest (load-default-config #"foo"))
+(errtest (load-default-config "data/nosuch.cfg"))
+
+
 (applytest overlaps? '{|PID| |PPID|} find-configs "pid")
 (applytest overlaps? '{|PID| |PPID|} find-configs #/p+id/i)
 
@@ -105,12 +121,19 @@
 (applytest timestamp? config 'test.load.cfg)
 (applytest has-prefix (config 'cwd) config 'test.load.cfg.path)
 (applytest list-contains? (abspath (get-component "data/load.cfg")) config 'config)
+;; Redundant
+(config! 'config (abspath (get-component "data/load.cfg")))
 
 (config! 'defaults (get-component "webfiles/root/default.cfg"))
 
 (config! 'config-config (get-component "webfiles/root/default.cfg"))
 (load-config 'config-config)
 (load-default-config 'config-config)
+(errtest (load-config 'config-notconfig))
+(errtest (load-default-config 'config-notconfig))
+(config! 'config-wrongtype-config '(a b))
+(errtest (load-config 'config-wrongtype-config))
+(errtest (load-default-config 'config-wrongtype-config))
 
 ;;; Errors
 
@@ -155,6 +178,48 @@
 (applytest 5 config 'foobar5)
 
 
+;;; Various configs
+
+;;; Just exercising, not checking if they work.
+
+(define (test-config name (newv))
+  (default! newv (config name))
+  (let ((v (config name)))
+    (config! name newv)
+    (config! name v)))
+
+(test-config 'utf8err #t)
+(test-config 'utf8warn #t)
+(test-config 'sessionid)
+(test-config 'appid)
+(test-config 'runbase)
+(test-config 'randomseed)
+
+(applytest fixnum? config 'runuser)
+(applytest fixnum? config 'rungroup)
+(applytest fixnum? config 'maxnproc)
+(applytest fixnum? config 'maxfiles)
+
+(test-config 'rungroup)
+(test-config 'runuser)
+(test-config 'maxfiles)
+
+(errtest (config! 'runuser 0))
+(errtest (config! 'rungroup 0))
+
+(applytest flonum? config 'elapsed)
+(applytest string? config 'directory)
+(applytest string? config 'cwd)
+
+(applytest pair? config 'loadpath)
+
+(dbg #t)
+(do-choices (setting '{LOCAL_MODULES INSTALLED_MODULES STDLIB_MODULES})
+  (applytest string? config setting))
+
+;;; This exercises the really long string case in config_intern
+(config! "ZYXWZYXWZYXWZYXWZYXWZYXWZYXWZYXWZYXWZYXWZYXWZYXWZYXWZYXWZYXWZYXWZYXWZYXWZYXWZYXWZYXWZYXWZYXWZYXW" 3)
+
 ;;;; Optconfigs
 
 (config! 'optconfig (abspath (get-component "data/xoptional.cfg")))
@@ -165,4 +230,10 @@
 ;;; READ-CONFIG
 
 (read-config (filestring (get-component "webfiles/root/sample.cfg")))
+
+;;; Test passing to MAIN
+
+(define (main)
+  (applytest 'testsym config 'testsym)
+  (applytest ":COLON" config 'teststring))
 

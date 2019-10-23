@@ -101,7 +101,7 @@ static int run_init(lispval init,kno_lexenv env)
       if (KNO_APPLICABLEP(init)) {
 	if (KNO_FUNCTIONP(init)) {
 	  struct KNO_FUNCTION *f = (kno_function) init;
-	  v = (f->fcn_arity == 0) ?
+	  v = (f->fcn_arity==0) ?
 	    (kno_apply(init,0,NULL)) :
 	    (kno_apply(init,1,(lispval *)(&env)));}
 	else v = kno_apply(init,0,NULL);}
@@ -232,7 +232,6 @@ static u8_string get_next(u8_string pt,u8_string seps)
 static int add_modname(lispval modname)
 {
   if (kno_app_env) {
-    double started = u8_elapsed_time();
     lispval module = kno_find_module(modname,0);
     if (KNO_ABORTP(module))
       return -1;
@@ -240,10 +239,8 @@ static int add_modname(lispval modname)
       u8_log(LOG_WARN,kno_NoSuchModule,"module_config_set",
 	     "No module found for %q",modname);
       return -1;}
-    u8_log(LOG_DEBUG,"AppConfig","Loading module %q",modname);
-    lispval used = kno_use_module(kno_app_env,module);
-    u8_log(LOG_INFO,"AppConfig","Loaded module %q in %fs",
-	   modname,u8_elapsed_time()-started);
+    kno_use_module(kno_app_env,module);
+#if 0
     if (KNO_ABORTP(used)) {
       u8_log(LOG_WARN,"LoadModuleError",
 	     "Error using module %q",module);
@@ -251,10 +248,10 @@ static int add_modname(lispval modname)
       kno_decref(module);
       kno_decref(used);
       return -1;}
+#endif
     module_list = kno_conspair(modname,module_list);
     kno_incref(modname);
     kno_decref(module);
-    kno_decref(used);
     return 1;}
   else {
     u8_log(LOG_INFO,"AppConfig","Will load module %q",modname);
@@ -275,20 +272,20 @@ static int module_config_set(lispval var,lispval vals,void *d)
       return -1;}
     else if (PAIRP(modname)) {
       KNO_DOLIST(elt,modname) {
-	if (!(SYMBOLP(elt))) {
-	  u8_log(LOG_WARN,kno_TypeError,"module_config_set",
-		 "Not a valid module name: %q",elt);}
-	else {
+	if ( (SYMBOLP(elt)) || (STRINGP(elt)) ) {
 	  int added = add_modname(elt);
-	  if (added>0) loads++;}}
+	  if (added>0) loads++;}
+	else {
+	  u8_log(LOG_WARN,kno_TypeError,"module_config_set",
+		 "Not a valid module name: %q",elt);}}
       kno_decref(modname);}
-    else if (!(SYMBOLP(modname))) {
+    else if ( (SYMBOLP(modname)) || (STRINGP(modname)) ) {
+      int added = add_modname(modname);
+      if (added > 0) loads++;}
+    else {
       kno_seterr(kno_TypeError,"module_config_set","module name",val);
       kno_decref(modname);
-      return -1;}
-    else {
-      int added = add_modname(modname);
-      if (added > 0) loads++;}}
+      return -1;}}
   return loads;
 }
 
@@ -385,7 +382,7 @@ KNO_EXPORT void kno_init_eval_appenv_c()
      or executables may define their own. */
   kno_autoload_config("APPMODS","APPLOAD","APPEVAL");
 
-  init_local_cprims();
+  link_local_cprims();
 
   kno_register_config("INITS:FAILED",
 		      _("Init expressions or functions which failed"),
@@ -403,7 +400,7 @@ KNO_EXPORT void kno_init_eval_appenv_c()
 
 
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("%appenv",appenv_prim,0,kno_scheme_module);
 }

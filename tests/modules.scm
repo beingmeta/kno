@@ -11,12 +11,19 @@
 (get-module 'stringfmts)
 (get-module 'testcapi)
 
+(errtest (in-module))
+(errtest (in-module '(not a module spec)))
 (errtest (module-export!))
 (errtest (module-export! #"packet"))
 (errtest (use-module))
 (errtest (use-module . rest))
 (errtest (use-module 'nomod))
 (errtest (use-module 'badmod))
+
+(applytest #f dynamic-load "data/nomod")
+
+(applytest overlaps? 'show% get-exports 'stringfmts)
+(applytest {} get-exports 'zyizx)
 
 (applytest pair? config 'module)
 (applytest 'void config! 'module 'stringfmts)
@@ -37,6 +44,7 @@
 (errtest (accessing-module 'testcapi (quotient~ zval 3)))
 (errtest (accessing-module))
 (errtest (accessing-module 'badmod (+ 3 4)))
+(errtest (accessing-module '(not a module) (+ 3 4)))
 
 (define zval 17)
 (errtest (within-module 'stringfmts (quotient~ zval 3)))
@@ -48,16 +56,45 @@
 
 (modules/testcapi)
 
+;; Tests recursive loading
+(use-module 'loop2mod)
+
+(applytest eq? $num get-binding 'stringfmts '$num)
+(applytest eq? $num %get-binding 'stringfmts '$num)
+
+(applytest 'err get-binding 'stringfmts '1+)
+(applytest 'err %get-binding 'stringfmts '1+)
+(applytest 'err get-binding (get-module 'stringfmts) '1+)
+(applytest 'err %get-binding (get-module 'stringfmts) '1+)
+(applytest 'err get-binding 'stringfmts 'rem~)
+(applytest applicable? %get-binding 'stringfmts 'rem~)
+
+(applytest 'err get-binding #"packet" '$num)
+(applytest 'err get-binding 'zyxxyz '$num)
+(applytest 'err %get-binding #"packet" '$num)
+(applytest 'err %get-binding 'zyxxyz '$num)
+
 ;;; Update modules
 
 (config! 'updatemodules 15)
-(config! 'updatemodules 15.0)
+(applytest 15.0 config 'updatemodules)
+(config! 'updatemodules 13.0)
+(applytest 13.0 config 'updatemodules)
 (config! 'updatemodules #t)
 (config! 'updatemodules #f)
+(errtest (config! 'updatemodules 1/2))
+(errtest (config! 'updatemodules #"packet"))
+
+;;; Try some APPMODS cases
+
+(errtest (config! 'appmods #"notamodule"))
+(errtest (config! 'appmods '(stringfmts #"notamodule")))
 
 ;;; Reload testing
 
 (define goodmod-file  (get-component "data/goodmod.scm"))
+
+(evaltest #t (update-module goodmod-file))
 
 (use-module 'reloadmod)
 (errtest (reload-module 'nosuchmod))
@@ -70,12 +107,27 @@
 	      #f))
 (evaltest 'void (use-module (get-component "data/splitmod.scm")))
 (config! 'splitmod:err #t)
-(evaltest 'err (reload-module (get-component "data/splitmod.scm")))
+(errtest (reload-module (get-component "data/splitmod.scm")))
 (config! 'splitmod:err #f)
+
+(evaltest #f (reload-module "data/nosuchmod.scm"))
 
 (lognotice |LoadPath| (config 'loadpath))
 
 (config! 'load:trace #t)
+
+;; (fileout (get-component "data/xtestmod.scm")
+;;   (pprint '(in-module 'xtestmod))
+;;   (pprint '(define z (* 1000 1000 1000 1000 1000))))
+;; (use-module 'xtestmod)
+;; (fileout (get-component "data/xtestmod.scm")
+;;   (pprint '(in-module 'xtestmod))
+;;   (pprint '(define z (* 1000 1000 1000 1000 1000 "three"))))
+;; (errtest (reload-module 'xtestmod))
+;; (fileout (get-component "data/xtestmod.scm")
+;;   (pprint '(in-module 'notxtestmod))
+;;   (pprint '(define z (* 1000 1000 1000 1000 1000))))
+;; (errtest (reload-module 'xtestmod))
 
 (define-tester (test-reloading)
   (let ((base (get-load-count)))

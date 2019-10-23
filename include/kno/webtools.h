@@ -213,9 +213,3 @@ KNO_EXPORT void kno_init_json_c(void);
 
 #endif /* KNO_WEBTOOLS_H */
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

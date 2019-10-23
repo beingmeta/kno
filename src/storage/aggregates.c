@@ -305,7 +305,7 @@ KNO_EXPORT int kno_add_to_aggregate_index(kno_aggregate_index aix,kno_index add)
 
 static lispval partitions_symbol;
 
-static lispval aggregate_ctl(kno_index ix,lispval op,int n,lispval *args)
+static lispval aggregate_ctl(kno_index ix,lispval op,int n,kno_argvec args)
 {
   struct KNO_AGGREGATE_INDEX *cx = (struct KNO_AGGREGATE_INDEX *)ix;
   if ( ((n>0)&&(args == NULL)) || (n<0) )
@@ -388,9 +388,3 @@ KNO_EXPORT void kno_init_aggregates_c()
   kno_register_index(((kno_index)kno_background));
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

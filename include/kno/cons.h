@@ -214,9 +214,11 @@ KNO_EXPORT u8_mutex _kno_ptr_locks[KNO_N_PTRLOCKS];
 #define KNO_CONS_REFCOUNT(x) (((x)->conshead)>>7)
 #endif
 
-
 #define KNO_MALLOCD_CONSP(x) ((KNO_CONSBITS(x))>=0x80)
 #define KNO_STATIC_CONSP(x)  (!(KNO_MALLOCD_CONSP(x)))
+
+#define KNO_MALLOCDP(x) ( (KNO_CONSP(x)) &&  ((KNO_CONSBITS(x))>=0x80) )
+
 
 #define KNO_STATICP(x) ((!(KNO_CONSP(x)))||(KNO_STATIC_CONSP((kno_cons)x)))
 
@@ -426,10 +428,6 @@ struct KNO_FREE_CONS {
   KNO_CONS_HEADER;
   struct KNO_FREE_CONS *kno_nextfree;};
 
-struct KNO_WRAPPER {
-  KNO_CONS_HEADER;
-  void *kno_wrapped_data;};
-
 /* Strings */
 
 typedef struct KNO_STRING {
@@ -479,13 +477,16 @@ KNO_EXPORT lispval kno_mkstring(u8_string string);
 
 #define kno_wrapstring(s) kno_init_string(NULL,-1,(s))
 
-/* Packets */
+#define KNO_GETSTRING(x) \
+  ((KNO_SYMBOLP(x)) ? (KNO_SYMBOL_NAME(x)) : \
+   (KNO_STRINGP(x)) ? (KNO_CSTRING(x)) : (NULL))
+
 /* Packets are blocks of binary data. */
 
 #define KNO_PACKETP(x) \
-  ((KNO_LISP_TYPE(x) == kno_packet_type)||(KNO_LISP_TYPE(x) == kno_secret_type))
+  ((KNO_TYPEOF(x) == kno_packet_type)||(KNO_TYPEOF(x) == kno_secret_type))
 #define KNO_SECRETP(x) \
-  (KNO_LISP_TYPE(x) == kno_secret_type)
+  (KNO_TYPEOF(x) == kno_secret_type)
 #define KNO_PACKET_LENGTH(x) \
   ((unsigned int) ((KNO_CONSPTR(kno_string,x))->str_bytelen))
 #define KNO_PACKET_DATA(x) ((KNO_CONSPTR(kno_string,x))->str_bytes)
@@ -519,7 +520,7 @@ typedef struct KNO_PAIR {
   lispval cdr;} KNO_PAIR;
 typedef struct KNO_PAIR *kno_pair;
 
-#define KNO_PAIRP(x) (KNO_LISP_TYPE(x) == kno_pair_type)
+#define KNO_PAIRP(x) (KNO_TYPEOF(x) == kno_pair_type)
 #define KNO_CAR(x) ((KNO_CONSPTR(KNO_PAIR *,(x)))->car)
 #define KNO_CDR(x) ((KNO_CONSPTR(KNO_PAIR *,(x)))->cdr)
 #define KNO_TRY_CAR(x) \
@@ -719,7 +720,7 @@ typedef struct KNO_RATIONAL {
   lispval denominator;} KNO_RATIONAL;
 typedef struct KNO_RATIONAL *kno_rational;
 
-#define KNO_RATIONALP(x) (KNO_LISP_TYPE(x) == kno_rational_type)
+#define KNO_RATIONALP(x) (KNO_TYPEOF(x) == kno_rational_type)
 #define KNO_NUMERATOR(x) \
   ((kno_consptr(struct KNO_RATIONAL *,x,kno_rational_type))->numerator)
 #define KNO_DENOMINATOR(x) \
@@ -731,7 +732,7 @@ typedef struct KNO_COMPLEX {
   lispval imagpart;} KNO_COMPLEX;
 typedef struct KNO_COMPLEX *kno_complex;
 
-#define KNO_COMPLEXP(x) (KNO_LISP_TYPE(x) == kno_complex_type)
+#define KNO_COMPLEXP(x) (KNO_TYPEOF(x) == kno_complex_type)
 #define KNO_REALPART(x) \
   ((kno_consptr(struct KNO_COMPLEX *,x,kno_complex_type))->realpart)
 #define KNO_IMAGPART(x) \
@@ -755,7 +756,7 @@ typedef struct KNO_REGEX *kno_regex;
 
 KNO_EXPORT lispval kno_make_regex(u8_string src,int flags);
 
-#define KNO_REGEXP(x) (KNO_LISP_TYPE(x) == kno_regex_type)
+#define KNO_REGEXP(x) (KNO_TYPEOF(x) == kno_regex_type)
 
 /* Mysteries */
 
@@ -828,16 +829,91 @@ typedef struct KNO_CONSBLOCK {
 
 lispval kno_make_consblock(lispval obj);
 
+/* Typeinfo */
+
+typedef struct KNO_TYPEINFO *kno_typeinfo;
+typedef int (*kno_type_unparsefn)(u8_output out,lispval,kno_typeinfo);
+typedef lispval (*kno_type_parsefn)(int n,lispval *,kno_typeinfo);
+typedef int (*kno_type_freefn)(lispval,kno_typeinfo);
+typedef lispval (*kno_type_dumpfn)(lispval,kno_typeinfo);
+typedef lispval (*kno_type_restorefn)(lispval,lispval,kno_typeinfo);
+
+typedef struct KNO_TYPEINFO {
+  KNO_CONS_HEADER;
+  lispval typetag, type_props, type_handlers;
+  u8_string type_name, type_description;
+  char type_isopaque, type_ismutable;
+  kno_type_parsefn type_parsefn;
+  kno_type_unparsefn type_unparsefn;
+  kno_type_freefn type_freefn;
+  kno_type_dumpfn type_dumpfn;
+  kno_type_restorefn type_restorefn;
+  struct KNO_TABLEFNS *type_tablefns;
+  struct KNO_SEQFNS *type_seqfns;} KNO_TYPEINFO;
+
+KNO_EXPORT int kno_set_unparsefn(lispval tag,kno_type_unparsefn fn);
+KNO_EXPORT int kno_set_parsefn(lispval tag,kno_type_parsefn fn);
+KNO_EXPORT int kno_set_freefn(lispval tag,kno_type_freefn fn);
+KNO_EXPORT int kno_set_dumpfn(lispval tag,kno_type_dumpfn fn);
+KNO_EXPORT int kno_set_restorefn(lispval tag,kno_type_restorefn fn);
+
+#define KNO_TAGGED_HEAD \
+  KNO_CONS_HEADER; \
+  lispval typetag; \
+  struct KNO_TYPEINFO *typeinfo
+
+#define KNO_TAGGEDP(x) \
+  (KNO_XXCONS_TYPEP((x),kno_tagged_type))
+
+typedef struct KNO_TAGGED {
+  KNO_TAGGED_HEAD;} KNO_TAGGED;
+typedef struct KNO_TAGGED *kno_tagged;
+
+struct KNO_TYPEINFO *kno_probe_typeinfo(lispval tag);
+struct KNO_TYPEINFO *kno_use_typeinfo(lispval tag);
+KNO_FASTOP struct KNO_TYPEINFO *kno_taginfo(lispval obj)
+{
+  if ( (KNO_TAGGEDP(obj)) ) {
+    struct KNO_TAGGED *tagged = (kno_tagged) obj;
+    if (tagged->typeinfo)
+      return tagged->typeinfo;
+    else {
+      struct KNO_TYPEINFO *info = kno_use_typeinfo(tagged->typetag);
+      tagged->typeinfo = info;
+      return info;}}
+  else return NULL;
+}
+
+/* Compound types */
+
+typedef struct KNO_WRAPPER {
+  KNO_TAGGED_HEAD;
+  lispval wrapped;} KNO_WRAPPER;
+typedef struct KNO_WRAPPER *kno_wrapper;
+
+/* Compound types */
+
+#define KNO_COMPOUND_HEADER(elt0)		\
+  KNO_TAGGED_HEAD;				\
+  int compound_length;				\
+  char compound_ismutable, compound_isopaque;	\
+  char compound_seqoff, compound_istable;	\
+  u8_rwlock compound_rwlock;			\
+  lispval elt0
+
+typedef struct KNO_COMPOUND {KNO_COMPOUND_HEADER(compound_0);} KNO_COMPOUND;
+typedef struct KNO_COMPOUND *kno_compound;
+
 /* Raw pointers */
 
 typedef void (*kno_raw_recyclefn)(void *);
 
 typedef struct KNO_RAWPTR {
-  KNO_CONS_HEADER;
+  KNO_TAGGED_HEAD;
   void *ptrval;
-  u8_string typestring, idstring;
-  lispval raw_typetag;
-  kno_raw_recyclefn recycler;} KNO_RAWPTR;
+  u8_string idstring;
+  lispval raw_annotations;
+  kno_raw_recyclefn raw_recycler;} KNO_RAWPTR;
 typedef struct KNO_RAWPTR *kno_rawptr;
 
 KNO_EXPORT lispval kno_wrap_pointer(void *ptrval,
@@ -845,37 +921,8 @@ KNO_EXPORT lispval kno_wrap_pointer(void *ptrval,
                                  lispval typespec,
                                  u8_string idstring);
 
-/* Compounds */
-
-typedef struct KNO_COMPOUND_TYPEINFO *kno_compound_typeinfo;
-typedef int (*kno_compound_unparsefn)(u8_output out,lispval,kno_compound_typeinfo);
-typedef lispval (*kno_compound_parsefn)(int n,lispval *,kno_compound_typeinfo);
-typedef int (*kno_compound_freefn)(lispval,kno_compound_typeinfo);
-typedef lispval (*kno_compound_dumpfn)(lispval,kno_compound_typeinfo);
-typedef lispval (*kno_compound_restorefn)(lispval,lispval,kno_compound_typeinfo);
-
-typedef struct KNO_COMPOUND_TYPEINFO {
-  lispval compound_typetag, compound_metadata;
-  short compound_corelen;
-  char compound_isopaque;
-  char compound_ismutable;
-  char compound_istable;
-  char compound_issequence;
-  struct KNO_COMPOUND_TYPEINFO *compound_nextinfo;
-  kno_compound_parsefn compound_parser;
-  kno_compound_unparsefn compound_unparser;
-  kno_compound_freefn compound_freefn;
-  kno_compound_dumpfn compound_dumpfn;
-  kno_compound_restorefn compound_restorefn;
-  struct KNO_TABLEFNS *compund_tablefns;} KNO_COMPOUND_TYPEINFO;
-KNO_EXPORT struct KNO_COMPOUND_TYPEINFO *kno_compound_entries;
-
-
-KNO_EXPORT struct KNO_COMPOUND_TYPEINFO *kno_lookup_compound(lispval);
-KNO_EXPORT struct KNO_COMPOUND_TYPEINFO *kno_declare_compound(lispval,lispval,int);
-KNO_EXPORT struct KNO_COMPOUND_TYPEINFO *kno_register_compound(lispval,lispval *,int *);
-KNO_EXPORT int kno_compound_unparser(u8_string pname,kno_compound_unparsefn fn);
-
+KNO_EXPORT int kno_compound_set_unparser(u8_string pname,
+					 kno_type_unparsefn fn);
 
 /* Cons compare */
 
@@ -909,8 +956,8 @@ static int base_compare(lispval x,lispval y)
   else if (KNO_ATOMICP(y))
     return 1;
   else {
-    kno_lisp_type xtype = KNO_LISP_TYPE(x);
-    kno_lisp_type ytype = KNO_LISP_TYPE(y);
+    kno_lisp_type xtype = KNO_TYPEOF(x);
+    kno_lisp_type ytype = KNO_TYPEOF(y);
     if (KNO_NUMBER_TYPEP(xtype))
       if (KNO_NUMBER_TYPEP(ytype))
         return kno_numcompare(x,y);
@@ -964,8 +1011,8 @@ static int cons_compare(lispval x,lispval y)
   else if (KNO_ATOMICP(y))
     return 1;
   else {
-    kno_lisp_type xtype = KNO_LISP_TYPE(x);
-    kno_lisp_type ytype = KNO_LISP_TYPE(y);
+    kno_lisp_type xtype = KNO_TYPEOF(x);
+    kno_lisp_type ytype = KNO_TYPEOF(y);
     if ( (KNO_NUMBER_TYPEP(xtype)) && (KNO_NUMBER_TYPEP(ytype)) )
       return kno_numcompare(x,y);
     else if (KNO_NUMBER_TYPEP(xtype))
@@ -1013,12 +1060,15 @@ KNO_EXPORT kno_compare_flags kno_get_compare_flags(lispval spec);
 
 /* APPLY methods */
 
-typedef lispval (*kno_applyfn)(lispval f,int n,lispval *);
+typedef const lispval *kno_argvec;
+#define KNO_ARGS const lispval *
+
+typedef lispval (*kno_applyfn)(lispval f,int n,kno_argvec);
 KNO_EXPORT kno_applyfn kno_applyfns[];
 
 /* This maps types to whether they have function (KNO_FUNCTION_FIELDS)
    header. */
-KNO_EXPORT short kno_functionp[];
+KNO_EXPORT short kno_function_types[];
 
 /* Choices, tables, regexes */
 
@@ -1038,7 +1088,7 @@ U8_MAYBE_UNUSED static int _kno_applicablep(lispval x)
     kno_lisp_type xtype = KNO_IMMEDIATE_TYPE(x);
     if (xtype == kno_fcnid_type) {
       lispval fcn = kno_fcnid_ref(x);
-      kno_lisp_type objtype = KNO_LISP_TYPE(fcn);
+      kno_lisp_type objtype = KNO_TYPEOF(fcn);
       return ( (objtype == kno_cprim_type) ||
                (objtype == kno_lambda_type) ||
                (kno_applyfns[objtype] != NULL) );}
@@ -1089,9 +1139,3 @@ KNO_EXPORT lispval kno_zero_pool_store(lispval oid,lispval value);
 
 #endif /* ndef KNO_CONS_H */
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

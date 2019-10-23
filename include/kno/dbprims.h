@@ -18,9 +18,3 @@ KNO_EXPORT lispval kno_retract(lispval frames,lispval slotids,lispval values);
 
 #endif
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

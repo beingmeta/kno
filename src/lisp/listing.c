@@ -21,16 +21,16 @@
 
 
 #define LISTABLEP(x)                                                    \
-  ( (KNO_CHOICEP(x)) || (KNO_VECTORP(x)) || (KNO_PAIRP(x)) ||              \
-    (KNO_SLOTMAPP(x)) || (KNO_SCHEMAPP(x)) || (KNO_PRECHOICEP(x)) ||       \
+  ( (KNO_CHOICEP(x)) || (KNO_VECTORP(x)) || (KNO_PAIRP(x)) ||           \
+    (KNO_SLOTMAPP(x)) || (KNO_SCHEMAPP(x)) || (KNO_PRECHOICEP(x)) ||    \
     (KNO_COMPOUND_VECTORP(x)) )
-#define SHORTP(x) \
-  ((KNO_SYMBOLP(x)) || (KNO_NUMBERP(x)) || \
+#define SHORTP(x)                          \
+  ((KNO_SYMBOLP(x)) || (KNO_NUMBERP(x)) ||              \
    ( (KNO_STRINGP(x)) && (KNO_STRLEN(x) < 17) ) )
-#define UNLISTABLEP(x) \
-  ( (! (LISTABLEP(x)) ) ||                      \
+#define UNLISTABLEP(x)                          \
+  ( (! (LISTABLEP(x)) ) ||                                              \
     ( (KNO_PAIRP(x)) && (SHORTP(KNO_CAR(x))) && (SHORTP(KNO_CDR(x))) ) )
-#define ODDPAIRP(x) \
+#define ODDPAIRP(x)                                                     \
   ( (KNO_PAIRP(x)) && (SHORTP(KNO_CAR(x))) && (SHORTP(KNO_CDR(x))) )
 
 
@@ -188,6 +188,7 @@ static void list_table(u8_output out,lispval table,
   else if (label)
     u8_printf(out,"\n%s] ;; %s (%d slots)",indent,label,n_keys);
   else u8_puts(out," ]");
+  kno_decref(keys);
 }
 
 static void output_key(u8_output out,lispval key,kno_listobj_fn eltfn)
@@ -339,20 +340,30 @@ static int list_elements(u8_output out,
   return show_elts;
 }
 
+static int has_unparsefn(lispval compound)
+{
+  lispval tag = KNO_COMPOUND_TAG(compound);
+  struct KNO_TYPEINFO *typeinfo = kno_probe_typeinfo(tag);
+  if ( (typeinfo) && (typeinfo->type_unparsefn) )
+    return 1;
+  else return 0;
+}
+
 KNO_EXPORT int kno_list_object(u8_output out,
-                             lispval result,
-                             u8_string label,
-                             u8_string pathref,
-                             u8_string indent,
-                             kno_listobj_fn eltfn,
-                             int width,
-                             int detail)
+                               lispval result,
+                               u8_string label,
+                               u8_string pathref,
+                               u8_string indent,
+                               kno_listobj_fn eltfn,
+                               int width,
+                               int detail)
 {
   if (VOIDP(result)) return 0;
   if ((KNO_CHOICEP(result)) ||
       (KNO_VECTORP(result)) ||
-      (KNO_COMPOUND_VECTORP(result)) ||
-      (PAIRP(result))) {
+      (PAIRP(result)) ||
+      ( (KNO_COMPOUND_VECTORP(result)) &&
+	(has_unparsefn(result) == 0) )) {
     list_elements(out,result,label,pathref,indent,eltfn,width,detail,0);
     return 1;}
   else if ( (KNO_SLOTMAPP(result)) || (KNO_SCHEMAPP(result)) ) {
@@ -401,9 +412,3 @@ KNO_EXPORT void kno_init_listing_c()
 
 }
 
-/* Emacs local variables
-   ;;;	Local variables: ***
-   ;;;	compile-command: "make -C ../.. debugging;" ***
-   ;;;	indent-tabs-mode: nil ***
-   ;;;	End: ***
-*/

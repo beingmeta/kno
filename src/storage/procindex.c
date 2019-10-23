@@ -358,7 +358,7 @@ static void procindex_close(kno_index ix)
     return;}
 }
 
-static lispval procindex_ctl(kno_index ix,lispval opid,int n,lispval *args)
+static lispval procindex_ctl(kno_index ix,lispval opid,int n,kno_argvec args)
 {
   struct KNO_PROCINDEX *pix = (kno_procindex)ix;
   lispval lx = kno_index2lisp(ix);
@@ -496,9 +496,3 @@ KNO_EXPORT void kno_init_procindex_c()
   u8_register_source_file(_FILEINFO);
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

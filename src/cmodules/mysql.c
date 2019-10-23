@@ -82,7 +82,8 @@ static u8_mutex mysql_connect_lock;
 
 KNO_EXPORT int kno_init_mysql(void) KNO_LIBINIT_FN;
 static struct KNO_SQLDB_HANDLER mysql_handler;
-static lispval callmysqlproc(kno_function fn,int n,lispval *args);
+static lispval callmysqlproc(kno_stack stack,kno_function fn,
+			     int n,kno_argvec args);
 
 typedef struct KNO_MYSQL {
   KNO_SQLDB_FIELDS;
@@ -873,8 +874,8 @@ static int default_lazy_init = 0;
 
 static lispval mysqlmakeproc
 (struct KNO_MYSQL *dbp,
- u8_string stmt,int stmt_len,
- lispval colinfo,int n,lispval *ptypes)
+ u8_string stmt,int stmt_len,lispval colinfo,
+ int n,kno_argvec ptypes)
 {
   MYSQL *db = dbp->mysqldb; int retval = 0;
   struct KNO_MYSQL_PROC *dbproc = u8_alloc(struct KNO_MYSQL_PROC);
@@ -908,8 +909,8 @@ static lispval mysqlmakeproc
   /* Set up fields for the function object itself */
   dbproc->fcn_filename = dbproc->sqldb_spec;
   dbproc->fcn_name = dbproc->sqldb_qtext;
-  dbproc->fcn_call = KNO_FCN_CALL_XCALL;
-  dbproc->fcn_arity = -1;
+  dbproc->fcn_call = KNO_FCN_CALL_XCALL | KNO_FCN_CALL_NOTAIL;
+  dbproc->fcn_call_width = dbproc->fcn_arity = -1;
   dbproc->fcn_min_arity = 0;
   dbproc->fcn_handler.xcalln = callmysqlproc;
 
@@ -940,7 +941,7 @@ static lispval mysqlmakeproc
 static lispval mysqlmakeprochandler
 (struct KNO_SQLDB *sqldb,
  u8_string stmt,int stmt_len,
- lispval colinfo,int n,lispval *ptypes)
+ lispval colinfo,int n,kno_argvec ptypes)
 {
   if (sqldb->sqldb_handler== &mysql_handler)
     return mysqlmakeproc((kno_mysql)sqldb,stmt,stmt_len,colinfo,n,ptypes);
@@ -1102,12 +1103,15 @@ static void recycle_mysqlproc(struct KNO_SQLPROC *c)
 
 /* Actually calling a MYSQL proc */
 
-static lispval applymysqlproc(kno_function f,int n,lispval *args,int reconn);
+static lispval applymysqlproc(kno_function f,int n,kno_argvec args,int reconn);
 
-static lispval callmysqlproc(kno_function fn,int n,lispval *args){
-  return applymysqlproc(fn,n,args,7);}
+static lispval callmysqlproc
+(kno_stack stack,kno_function fn,int n,kno_argvec args)
+{
+  return applymysqlproc(fn,n,args,7);
+}
 
-static lispval applymysqlproc(kno_function fn,int n,lispval *args,int reconn)
+static lispval applymysqlproc(kno_function fn,int n,kno_argvec args,int reconn)
 {
   struct KNO_MYSQL_PROC *dbproc = (struct KNO_MYSQL_PROC *)fn;
   struct KNO_MYSQL *dbp=
@@ -1475,7 +1479,7 @@ KNO_EXPORT int kno_init_mysql()
 
   kno_register_sqldb_handler(&mysql_handler);
 
-  init_local_cprims();
+  link_local_cprims();
 
   mysql_initialized = u8_millitime();
 
@@ -1512,7 +1516,7 @@ KNO_EXPORT int kno_init_mysql()
   return 1;
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("mysql/open",open_mysql,6,mysql_module);
   KNO_LINK_PRIM("mysql/refresh",refresh_mysqldb,2,mysql_module);

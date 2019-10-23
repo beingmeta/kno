@@ -1,41 +1,41 @@
 /* -*-C-*-
 
-    Copyright (c) 1989-1993 Massachusetts Institute of Technology
-    Copyright (c) 1993-2001 Massachusetts Institute of Technology
-    Copyright (c) 2001-2019 beingmeta, inc.
+   Copyright (c) 1989-1993 Massachusetts Institute of Technology
+   Copyright (c) 1993-2001 Massachusetts Institute of Technology
+   Copyright (c) 2001-2019 beingmeta, inc.
 
-    Part of this code is based on the bignum code from the Scheme Project at
-    MIT, which was used with minor modifications by the Media Laboratory at
-    MIT, and which was further modified by beingmeta.  The notice below
-    covers the original Scheme Project code.
+   Part of this code is based on the bignum code from the Scheme Project at
+   MIT, which was used with minor modifications by the Media Laboratory at
+   MIT, and which was further modified by beingmeta.  The notice below
+   covers the original Scheme Project code.
 
-    This material was developed by the Scheme project at the Massachusetts
-    Institute of Technology, Department of Electrical Engineering and
-    Computer Science.  Permission to copy this software, to redistribute
-    it, and to use it for any purpose is granted, subject to the following
-    restrictions and understandings.
+   This material was developed by the Scheme project at the Massachusetts
+   Institute of Technology, Department of Electrical Engineering and
+   Computer Science.  Permission to copy this software, to redistribute
+   it, and to use it for any purpose is granted, subject to the following
+   restrictions and understandings.
 
-    1. Any copy made of this software must include this copyright notice
-    in full.
+   1. Any copy made of this software must include this copyright notice
+   in full.
 
-    2. Users of this software agree to make their best efforts (a) to
-    return to the MIT Scheme project any improvements or extensions that
-    they make, so that these may be included in future releases; and (b)
-    to inform MIT of noteworthy uses of this software.
+   2. Users of this software agree to make their best efforts (a) to
+   return to the MIT Scheme project any improvements or extensions that
+   they make, so that these may be included in future releases; and (b)
+   to inform MIT of noteworthy uses of this software.
 
-    3. All materials developed as a consequence of the use of this
-    software shall duly acknowledge such use, in accordance with the usual
-    standards of acknowledging credit in academic research.
+   3. All materials developed as a consequence of the use of this
+   software shall duly acknowledge such use, in accordance with the usual
+   standards of acknowledging credit in academic research.
 
-    4. MIT has made no warrantee or representation that the operation of
-    this software will be error-free, and MIT is under no obligation to
-    provide any services, by way of maintenance, update, or otherwise.
+   4. MIT has made no warrantee or representation that the operation of
+   this software will be error-free, and MIT is under no obligation to
+   provide any services, by way of maintenance, update, or otherwise.
 
-    5. In conjunction with products arising from the use of this material,
-    there shall be no use of the name of the Massachusetts Institute of
-    Technology nor of any adaptation thereof in any advertising,
-    promotional, or sales literature without prior written consent from
-    MIT in each case. */
+   5. In conjunction with products arising from the use of this material,
+   there shall be no use of the name of the Massachusetts Institute of
+   Technology nor of any adaptation thereof in any advertising,
+   promotional, or sales literature without prior written consent from
+   MIT in each case. */
 
 /* Implementation of various number types, including bigints
    (unlimited precision integers).  The bigint implementation
@@ -99,7 +99,7 @@ static lispval vector_scale(lispval vec,lispval scalar);
 
 int kno_numvec_showmax = 7;
 
-
+
 static kno_bigint
 DEFUN (bigint_malloc, (kno_veclen), int length)
 {
@@ -115,7 +115,7 @@ DEFUN (bigint_realloc, (bigint, kno_veclen),
 {
   char * result =
     (realloc (((char *) bigint),
-	      ((length + 2) * (sizeof (bigint_digit_type)))));
+              ((length + 2) * (sizeof (bigint_digit_type)))));
   BIGINT_ASSERT (result != ((char *) 0));
   return ((kno_bigint) result);
 }
@@ -130,28 +130,28 @@ static kno_bigint bigint_multiply_unsigned_small_factor(kno_bigint, bigint_digit
 static void bigint_destructive_scale_up(kno_bigint, bigint_digit_type);
 static void bigint_destructive_add(kno_bigint, bigint_digit_type);
 static void bigint_divide_unsigned_large_denominator
-  (kno_bigint, kno_bigint, kno_bigint *,
-   kno_bigint *,int, int);
+(kno_bigint, kno_bigint, kno_bigint *,
+ kno_bigint *,int, int);
 static void bigint_destructive_normalization
-  (kno_bigint, kno_bigint, int);
+(kno_bigint, kno_bigint, int);
 static void bigint_destructive_unnormalization(kno_bigint, int);
 static void bigint_divide_unsigned_normalized
-  (kno_bigint, kno_bigint, kno_bigint);
+(kno_bigint, kno_bigint, kno_bigint);
 static bigint_digit_type bigint_divide_subtract
-  (bigint_digit_type *, bigint_digit_type *,
-   bigint_digit_type, bigint_digit_type *);
+(bigint_digit_type *, bigint_digit_type *,
+ bigint_digit_type, bigint_digit_type *);
 static void bigint_divide_unsigned_medium_denominator
-  (kno_bigint, bigint_digit_type, kno_bigint *,
-   kno_bigint *, int, int);
+(kno_bigint, bigint_digit_type, kno_bigint *,
+ kno_bigint *, int, int);
 static bigint_digit_type bigint_digit_divide
-  (bigint_digit_type, bigint_digit_type,
-   bigint_digit_type, bigint_digit_type *);
+(bigint_digit_type, bigint_digit_type,
+ bigint_digit_type, bigint_digit_type *);
 static bigint_digit_type bigint_digit_divide_subtract
-  (bigint_digit_type, bigint_digit_type,
-   bigint_digit_type, bigint_digit_type *);
+(bigint_digit_type, bigint_digit_type,
+ bigint_digit_type, bigint_digit_type *);
 static void bigint_divide_unsigned_small_denominator
-  (kno_bigint, bigint_digit_type, kno_bigint *,
-   kno_bigint *, int, int);
+(kno_bigint, bigint_digit_type, kno_bigint *,
+ kno_bigint *, int, int);
 static bigint_digit_type bigint_destructive_scale_down(kno_bigint, bigint_digit_type);
 static kno_bigint bigint_remainder_unsigned_small_denominator(kno_bigint, bigint_digit_type, int);
 static kno_bigint bigint_digit_to_bigint(bigint_digit_type, int);
@@ -164,7 +164,7 @@ static kno_bigint bigint_new_sign(kno_bigint, int);
 static kno_bigint bigint_maybe_new_sign(kno_bigint, int);
 static void bigint_destructive_copy(kno_bigint, kno_bigint);
 
-
+
 /* Exports */
 
 kno_bigint
@@ -192,10 +192,10 @@ DEFUN (bigint_equal_p, (x, y),
     ((BIGINT_ZERO_P (x))
      ? (BIGINT_ZERO_P (y))
      : ((! (BIGINT_ZERO_P (y)))
-	&& ((BIGINT_NEGATIVE_P (x))
-	    ? (BIGINT_NEGATIVE_P (y))
-	    : (! (BIGINT_NEGATIVE_P (y))))
-	&& (bigint_equal_p_unsigned (x, y))));
+        && ((BIGINT_NEGATIVE_P (x))
+            ? (BIGINT_NEGATIVE_P (y))
+            : (! (BIGINT_NEGATIVE_P (y))))
+        && (bigint_equal_p_unsigned (x, y))));
 }
 
 enum kno_bigint_comparison
@@ -216,23 +216,23 @@ DEFUN (kno_bigint_compare, (x, y),
   return
     ((BIGINT_ZERO_P (x))
      ? ((BIGINT_ZERO_P (y))
-	? kno_bigint_equal
-	: (BIGINT_NEGATIVE_P (y))
-	? kno_bigint_greater
-	: kno_bigint_less)
+        ? kno_bigint_equal
+        : (BIGINT_NEGATIVE_P (y))
+        ? kno_bigint_greater
+        : kno_bigint_less)
      : (BIGINT_ZERO_P (y))
      ? ((BIGINT_NEGATIVE_P (x))
-	? kno_bigint_less
-	: kno_bigint_greater)
+        ? kno_bigint_less
+        : kno_bigint_greater)
      : (BIGINT_NEGATIVE_P (x))
      ? ((BIGINT_NEGATIVE_P (y))
-	? (bigint_compare_unsigned (y, x))
-	: (kno_bigint_less))
+        ? (bigint_compare_unsigned (y, x))
+        : (kno_bigint_less))
      : ((BIGINT_NEGATIVE_P (y))
-	? (kno_bigint_greater)
-	: (bigint_compare_unsigned (x, y))));
+        ? (kno_bigint_greater)
+        : (bigint_compare_unsigned (x, y))));
 }
-
+
 kno_bigint
 DEFUN (kno_bigint_add, (x, y),
        fast kno_bigint x AND fast kno_bigint y)
@@ -243,12 +243,12 @@ DEFUN (kno_bigint_add, (x, y),
      : (BIGINT_ZERO_P (y))
      ? (BIGINT_MAYBE_COPY (x))
      : ((BIGINT_NEGATIVE_P (x))
-	? ((BIGINT_NEGATIVE_P (y))
-	   ? (bigint_add_unsigned (x, y, 1))
-	   : (bigint_subtract_unsigned (y, x, 0)))
-	: ((BIGINT_NEGATIVE_P (y))
-	   ? (bigint_subtract_unsigned (x, y, 0))
-	   : (bigint_add_unsigned (x, y, 0)))));
+        ? ((BIGINT_NEGATIVE_P (y))
+           ? (bigint_add_unsigned (x, y, 1))
+           : (bigint_subtract_unsigned (y, x, 0)))
+        : ((BIGINT_NEGATIVE_P (y))
+           ? (bigint_subtract_unsigned (x, y, 0))
+           : (bigint_add_unsigned (x, y, 0)))));
 }
 
 kno_bigint
@@ -258,17 +258,17 @@ DEFUN (kno_bigint_subtract, (x, y),
   return
     ((BIGINT_ZERO_P (x))
      ? ((BIGINT_ZERO_P (y))
-	? (BIGINT_MAYBE_COPY (y))
-	: (bigint_new_sign (y, (! (BIGINT_NEGATIVE_P (y))))))
+        ? (BIGINT_MAYBE_COPY (y))
+        : (bigint_new_sign (y, (! (BIGINT_NEGATIVE_P (y))))))
      : ((BIGINT_ZERO_P (y))
-	? (BIGINT_MAYBE_COPY (x))
-	: ((BIGINT_NEGATIVE_P (x))
-	   ? ((BIGINT_NEGATIVE_P (y))
-	      ? (bigint_subtract_unsigned (x, y, 1))
-	      : (bigint_add_unsigned (y, x, 1)))
-	   : ((BIGINT_NEGATIVE_P (y))
-	      ? (bigint_add_unsigned (x, y, 0))
-	      : (bigint_subtract_unsigned (x, y, 0))))));
+        ? (BIGINT_MAYBE_COPY (x))
+        : ((BIGINT_NEGATIVE_P (x))
+           ? ((BIGINT_NEGATIVE_P (y))
+              ? (bigint_subtract_unsigned (x, y, 1))
+              : (bigint_add_unsigned (y, x, 1)))
+           : ((BIGINT_NEGATIVE_P (y))
+              ? (bigint_add_unsigned (x, y, 0))
+              : (bigint_subtract_unsigned (x, y, 0))))));
 }
 
 kno_bigint
@@ -279,7 +279,7 @@ DEFUN (kno_bigint_negate, (x), fast kno_bigint x)
      ? (BIGINT_MAYBE_COPY (x))
      : (bigint_new_sign (x, (! (BIGINT_NEGATIVE_P (x))))));
 }
-
+
 kno_bigint
 DEFUN (kno_bigint_multiply, (x, y),
        fast kno_bigint x AND fast kno_bigint y)
@@ -298,21 +298,21 @@ DEFUN (kno_bigint_multiply, (x, y),
     {
       bigint_digit_type digit = (BIGINT_REF (x, 0));
       if (digit == 1)
-	return (bigint_maybe_new_sign (y, negative_p));
+        return (bigint_maybe_new_sign (y, negative_p));
       if (digit < BIGINT_RADIX_ROOT)
-	return (bigint_multiply_unsigned_small_factor (y, digit, negative_p));
+        return (bigint_multiply_unsigned_small_factor (y, digit, negative_p));
     }
   if (y_length == 1)
     {
       bigint_digit_type digit = (BIGINT_REF (y, 0));
       if (digit == 1)
-	return (bigint_maybe_new_sign (x, negative_p));
+        return (bigint_maybe_new_sign (x, negative_p));
       if (digit < BIGINT_RADIX_ROOT)
-	return (bigint_multiply_unsigned_small_factor (x, digit, negative_p));
+        return (bigint_multiply_unsigned_small_factor (x, digit, negative_p));
     }
   return (bigint_multiply_unsigned (x, y, negative_p));
 }
-
+
 int
 DEFUN (kno_bigint_divide, (numerator, denominator, quotient, remainder),
        kno_bigint numerator AND kno_bigint denominator
@@ -329,57 +329,57 @@ DEFUN (kno_bigint_divide, (numerator, denominator, quotient, remainder),
     {
       int r_negative_p = (BIGINT_NEGATIVE_P (numerator));
       int q_negative_p =
-	((BIGINT_NEGATIVE_P (denominator)) ? (! r_negative_p) : r_negative_p);
+        ((BIGINT_NEGATIVE_P (denominator)) ? (! r_negative_p) : r_negative_p);
       switch (bigint_compare_unsigned (numerator, denominator))
-	{
-	case kno_bigint_equal:
-	  {
-	    (*quotient) = (BIGINT_ONE (q_negative_p));
-	    (*remainder) = (BIGINT_ZERO ());
-	    break;
-	  }
-	case kno_bigint_less:
-	  {
-	    (*quotient) = (BIGINT_ZERO ());
-	    (*remainder) = (BIGINT_MAYBE_COPY (numerator));
-	    break;
-	  }
-	case kno_bigint_greater:
-	  {
-	    if ((BIGINT_LENGTH (denominator)) == 1)
-	      {
-		bigint_digit_type digit = (BIGINT_REF (denominator, 0));
-		if (digit == 1)
-		  {
-		    (*quotient) =
-		      (bigint_maybe_new_sign (numerator, q_negative_p));
-		    (*remainder) = (BIGINT_ZERO ());
-		    break;
-		  }
-		else if (digit < BIGINT_RADIX_ROOT)
-		  {
-		    bigint_divide_unsigned_small_denominator
-		      (numerator, digit,
-		       quotient, remainder,
-		       q_negative_p, r_negative_p);
-		    break;
-		  }
-		else
-		  {
-		    bigint_divide_unsigned_medium_denominator
-		      (numerator, digit,
-		       quotient, remainder,
-		       q_negative_p, r_negative_p);
-		    break;
-		  }
-	      }
-	    bigint_divide_unsigned_large_denominator
-	      (numerator, denominator,
-	       quotient, remainder,
-	       q_negative_p, r_negative_p);
-	    break;
-	  }
-	}
+        {
+        case kno_bigint_equal:
+          {
+            (*quotient) = (BIGINT_ONE (q_negative_p));
+            (*remainder) = (BIGINT_ZERO ());
+            break;
+          }
+        case kno_bigint_less:
+          {
+            (*quotient) = (BIGINT_ZERO ());
+            (*remainder) = (BIGINT_MAYBE_COPY (numerator));
+            break;
+          }
+        case kno_bigint_greater:
+          {
+            if ((BIGINT_LENGTH (denominator)) == 1)
+              {
+                bigint_digit_type digit = (BIGINT_REF (denominator, 0));
+                if (digit == 1)
+                  {
+                    (*quotient) =
+                      (bigint_maybe_new_sign (numerator, q_negative_p));
+                    (*remainder) = (BIGINT_ZERO ());
+                    break;
+                  }
+                else if (digit < BIGINT_RADIX_ROOT)
+                  {
+                    bigint_divide_unsigned_small_denominator
+                      (numerator, digit,
+                       quotient, remainder,
+                       q_negative_p, r_negative_p);
+                    break;
+                  }
+                else
+                  {
+                    bigint_divide_unsigned_medium_denominator
+                      (numerator, digit,
+                       quotient, remainder,
+                       q_negative_p, r_negative_p);
+                    break;
+                  }
+              }
+            bigint_divide_unsigned_large_denominator
+              (numerator, denominator,
+               quotient, remainder,
+               q_negative_p, r_negative_p);
+            break;
+          }
+        }
     }
   return (0);
 }
@@ -400,41 +400,41 @@ DEFUN (kno_bigint_quotient, (numerator, denominator),
     switch (bigint_compare_unsigned (numerator, denominator))
       {
       case kno_bigint_equal:
-	return (BIGINT_ONE (q_negative_p));
+        return (BIGINT_ONE (q_negative_p));
       case kno_bigint_less:
-	return (BIGINT_ZERO ());
+        return (BIGINT_ZERO ());
       case kno_bigint_greater:
-	{
-	  kno_bigint quotient;
-	  if ((BIGINT_LENGTH (denominator)) == 1)
-	    {
-	      bigint_digit_type digit = (BIGINT_REF (denominator, 0));
-	      if (digit == 1)
-		return (bigint_maybe_new_sign (numerator, q_negative_p));
-	      if (digit < BIGINT_RADIX_ROOT)
-		bigint_divide_unsigned_small_denominator
-		  (numerator, digit,
-		   (&quotient), ((kno_bigint *) 0),
-		   q_negative_p, 0);
-	      else
-		bigint_divide_unsigned_medium_denominator
-		  (numerator, digit,
-		   (&quotient), ((kno_bigint *) 0),
-		   q_negative_p, 0);
-	    }
-	  else
-	    bigint_divide_unsigned_large_denominator
-	      (numerator, denominator,
-	       (&quotient), ((kno_bigint *) 0),
-	       q_negative_p, 0);
-	  return (quotient);
-	}
+        {
+          kno_bigint quotient;
+          if ((BIGINT_LENGTH (denominator)) == 1)
+            {
+              bigint_digit_type digit = (BIGINT_REF (denominator, 0));
+              if (digit == 1)
+                return (bigint_maybe_new_sign (numerator, q_negative_p));
+              if (digit < BIGINT_RADIX_ROOT)
+                bigint_divide_unsigned_small_denominator
+                  (numerator, digit,
+                   (&quotient), ((kno_bigint *) 0),
+                   q_negative_p, 0);
+              else
+                bigint_divide_unsigned_medium_denominator
+                  (numerator, digit,
+                   (&quotient), ((kno_bigint *) 0),
+                   q_negative_p, 0);
+            }
+          else
+            bigint_divide_unsigned_large_denominator
+              (numerator, denominator,
+               (&quotient), ((kno_bigint *) 0),
+               q_negative_p, 0);
+          return (quotient);
+        }
       default:
-	return (BIGINT_OUT_OF_BAND);
+        return (BIGINT_OUT_OF_BAND);
       }
   }
 }
-
+
 kno_bigint
 DEFUN (kno_bigint_remainder, (numerator, denominator),
        kno_bigint numerator AND kno_bigint denominator)
@@ -451,35 +451,35 @@ DEFUN (kno_bigint_remainder, (numerator, denominator),
       return (BIGINT_MAYBE_COPY (numerator));
     case kno_bigint_greater:
       {
-	kno_bigint remainder = 0; kno_bigint quotient = 0;
-	if ((BIGINT_LENGTH (denominator)) == 1)
-	  {
-	    bigint_digit_type digit = (BIGINT_REF (denominator, 0));
-	    if (digit == 1)
-	      return (BIGINT_ZERO ());
-	    if (digit < BIGINT_RADIX_ROOT)
-	      return
-		(bigint_remainder_unsigned_small_denominator
-		 (numerator, digit, (BIGINT_NEGATIVE_P (numerator))));
-	    bigint_divide_unsigned_medium_denominator
-	      (numerator, digit,
-	       &quotient, (&remainder),
-	       0, (BIGINT_NEGATIVE_P (numerator)));
-	  }
-	else
-	  bigint_divide_unsigned_large_denominator
-	    (numerator, denominator,
-	     &quotient, (&remainder),
-	     0, (BIGINT_NEGATIVE_P (numerator)));
-	if (quotient) free(quotient);
-	return (remainder);
+        kno_bigint remainder = 0; kno_bigint quotient = 0;
+        if ((BIGINT_LENGTH (denominator)) == 1)
+          {
+            bigint_digit_type digit = (BIGINT_REF (denominator, 0));
+            if (digit == 1)
+              return (BIGINT_ZERO ());
+            if (digit < BIGINT_RADIX_ROOT)
+              return
+                (bigint_remainder_unsigned_small_denominator
+                 (numerator, digit, (BIGINT_NEGATIVE_P (numerator))));
+            bigint_divide_unsigned_medium_denominator
+              (numerator, digit,
+               &quotient, (&remainder),
+               0, (BIGINT_NEGATIVE_P (numerator)));
+          }
+        else
+          bigint_divide_unsigned_large_denominator
+            (numerator, denominator,
+             &quotient, (&remainder),
+             0, (BIGINT_NEGATIVE_P (numerator)));
+        if (quotient) free(quotient);
+        return (remainder);
       }
     default:
       return (BIGINT_OUT_OF_BAND);
     }
 }
 
-
+
 kno_bigint
 DEFUN (kno_long_to_bigint, (n), long n)
 {
@@ -494,8 +494,8 @@ DEFUN (kno_long_to_bigint, (n), long n)
     fast unsigned long accumulator = ((negative_p = (n < 0)) ? (-n) : n);
     do
       {
-	(*end_digits++) = (accumulator & BIGINT_DIGIT_MASK);
-	accumulator >>= BIGINT_DIGIT_LENGTH;
+        (*end_digits++) = (accumulator & BIGINT_DIGIT_MASK);
+        accumulator >>= BIGINT_DIGIT_LENGTH;
       }
     while (accumulator != 0);
   }
@@ -524,8 +524,8 @@ DEFUN (kno_long_long_to_bigint, (n), long long n)
     fast unsigned long long accumulator = ((negative_p = (n < 0)) ? (-n) : n);
     do
       {
-	(*end_digits++) = (accumulator & BIGINT_DIGIT_MASK);
-	accumulator >>= BIGINT_DIGIT_LENGTH;
+        (*end_digits++) = (accumulator & BIGINT_DIGIT_MASK);
+        accumulator >>= BIGINT_DIGIT_LENGTH;
       }
     while (accumulator != 0);
   }
@@ -540,7 +540,7 @@ DEFUN (kno_long_long_to_bigint, (n), long long n)
   }
 }
 
-
+
 kno_bigint
 DEFUN (kno_ulong_to_bigint, (n), unsigned long n)
 {
@@ -555,8 +555,8 @@ DEFUN (kno_ulong_to_bigint, (n), unsigned long n)
     fast unsigned long accumulator = n;
     do
       {
-	(*end_digits++) = (accumulator & BIGINT_DIGIT_MASK);
-	accumulator >>= BIGINT_DIGIT_LENGTH;
+        (*end_digits++) = (accumulator & BIGINT_DIGIT_MASK);
+        accumulator >>= BIGINT_DIGIT_LENGTH;
       }
     while (accumulator != 0);
   }
@@ -585,8 +585,8 @@ DEFUN (kno_ulong_long_to_bigint, (n), unsigned long long n)
     fast unsigned long long accumulator = n;
     do
       {
-	(*end_digits++) = (accumulator & BIGINT_DIGIT_MASK);
-	accumulator >>= BIGINT_DIGIT_LENGTH;
+        (*end_digits++) = (accumulator & BIGINT_DIGIT_MASK);
+        accumulator >>= BIGINT_DIGIT_LENGTH;
       }
     while (accumulator != 0);
   }
@@ -668,14 +668,14 @@ DEFUN (kno_bigint_to_ulong, (bigint), kno_bigint bigint)
   }
 }
 
-
+
 #define DTB_WRITE_DIGIT(factor)						\
-{									\
-  significand *= (factor);						\
-  digit = ((bigint_digit_type) significand);				\
-  (*--scan) = digit;							\
-  significand -= ((double) digit);					\
-}
+  {									\
+    significand *= (factor);						\
+    digit = ((bigint_digit_type) significand);				\
+    (*--scan) = digit;							\
+    significand -= ((double) digit);					\
+  }
 
 kno_bigint
 DEFUN (kno_double_to_bigint, (x), double x)
@@ -697,13 +697,13 @@ DEFUN (kno_double_to_bigint, (x), double x)
       DTB_WRITE_DIGIT (1L << odd_bits);
     while (start < scan)
       {
-	if (significand == 0)
-	  {
-	    while (start < scan)
-	      (*--scan) = 0;
-	    break;
-	  }
-	DTB_WRITE_DIGIT (BIGINT_RADIX);
+        if (significand == 0)
+          {
+            while (start < scan)
+              (*--scan) = 0;
+            break;
+          }
+        DTB_WRITE_DIGIT (BIGINT_RADIX);
       }
     return (result);
   }
@@ -726,7 +726,7 @@ DEFUN (kno_bigint_to_double, (bigint), kno_bigint bigint)
   }
 }
 
-
+
 int
 DEFUN (kno_bigint_fits_in_word_p, (bigint, word_length, twos_complement_p),
        kno_bigint bigint AND long word_length AND int twos_complement_p)
@@ -744,8 +744,8 @@ DEFUN (kno_bigint_fits_in_word_p, (bigint, word_length, twos_complement_p),
     return
       ((length < max_digits) ||
        ((length == max_digits) &&
-	((BIGINT_REF (bigint, (length - 1))) <
-	 (1L << (n_bits - ((length - 1) * BIGINT_DIGIT_LENGTH))))));
+        ((BIGINT_REF (bigint, (length - 1))) <
+         (1L << (n_bits - ((length - 1) * BIGINT_DIGIT_LENGTH))))));
   }
 }
 
@@ -763,8 +763,8 @@ DEFUN (kno_bigint_length_in_bits, (bigint), kno_bigint bigint)
     bigint_destructive_scale_up (result, BIGINT_DIGIT_LENGTH);
     while (digit > 0)
       {
-	bigint_destructive_add (result, ((bigint_digit_type) 1));
-	digit >>= 1;
+        bigint_destructive_add (result, ((bigint_digit_type) 1));
+        digit >>= 1;
       }
     return (bigint_trim (result));
   }
@@ -786,7 +786,7 @@ DEFUN_VOID (bigint_length_upper_limit)
   (BIGINT_REF (result, 1)) = BIGINT_DIGIT_LENGTH;
   return (result);
 }
-
+
 kno_bigint
 DEFUN (kno_digit_stream_to_bigint,
        (n_digits, producer, context, radix, negative_p),
@@ -811,25 +811,25 @@ DEFUN (kno_digit_stream_to_bigint,
       fast unsigned int radix_copy = radix;
       fast unsigned int log_radix = 0;
       while (radix_copy > 0)
-	{
-	  radix_copy >>= 1;
-	  log_radix += 1;
-	}
+        {
+          radix_copy >>= 1;
+          log_radix += 1;
+        }
       /* This length will be at least as large as needed. */
       length = (BIGINT_BITS_TO_DIGITS (n_digits * log_radix));
     }
     {
       fast kno_bigint result = (bigint_allocate_zeroed (length, negative_p));
       while ((n_digits--) > 0)
-	{
-	  int digit = producer(context);
-	  if ((digit<0) || (digit>radix)) {
-	    kno_decref((lispval)result);
-	    return NULL;}
-	  bigint_destructive_scale_up (result, ((bigint_digit_type) radix));
-	  bigint_destructive_add
-	    (result, ((bigint_digit_type) digit));
-	}
+        {
+          int digit = producer(context);
+          if ((digit<0) || (digit>radix)) {
+            kno_decref((lispval)result);
+            return NULL;}
+          bigint_destructive_scale_up (result, ((bigint_digit_type) radix));
+          bigint_destructive_add
+            (result, ((bigint_digit_type) digit));
+        }
       return (bigint_trim (result));
     }
   }
@@ -849,13 +849,13 @@ DEFUN (kno_bigint_to_digit_stream, (bigint, radix, consumer, context),
       fast bigint_digit_type * start = (BIGINT_START_PTR (working_copy));
       fast bigint_digit_type * scan = (start + (BIGINT_LENGTH (working_copy)));
       while (start < scan)
-	{
-	  if ((scan[-1]) == 0)
-	    scan -= 1;
-	  else
-	    (*consumer)
-	      (context, (bigint_destructive_scale_down (working_copy, radix)));
-	}
+        {
+          if ((scan[-1]) == 0)
+            scan -= 1;
+          else
+            (*consumer)
+              (context, (bigint_destructive_scale_down (working_copy, radix)));
+        }
       BIGINT_DEALLOCATE (working_copy);
     }
   return;
@@ -866,7 +866,7 @@ DEFUN_VOID (kno_bigint_max_digit_stream_radix)
 {
   return (BIGINT_RADIX_ROOT);
 }
-
+
 /* Comparisons */
 
 static int
@@ -882,8 +882,8 @@ DEFUN (bigint_equal_p_unsigned, (x, y),
       fast bigint_digit_type * scan_y = (BIGINT_START_PTR (y));
       fast bigint_digit_type * end_x = (scan_x + length);
       while (scan_x < end_x)
-	if ((*scan_x++) != (*scan_y++))
-	  return (0);
+        if ((*scan_x++) != (*scan_y++))
+          return (0);
       return (1);
     }
 }
@@ -904,17 +904,17 @@ DEFUN (bigint_compare_unsigned, (x, y),
     fast bigint_digit_type * scan_y = ((BIGINT_START_PTR (y)) + y_length);
     while (start_x < scan_x)
       {
-	fast bigint_digit_type digit_x = (*--scan_x);
-	fast bigint_digit_type digit_y = (*--scan_y);
-	if (digit_x < digit_y)
-	  return (kno_bigint_less);
-	if (digit_x > digit_y)
-	  return (kno_bigint_greater);
+        fast bigint_digit_type digit_x = (*--scan_x);
+        fast bigint_digit_type digit_y = (*--scan_y);
+        if (digit_x < digit_y)
+          return (kno_bigint_less);
+        if (digit_x > digit_y)
+          return (kno_bigint_greater);
       }
   }
   return (kno_bigint_equal);
 }
-
+
 /* Addition */
 
 static kno_bigint
@@ -938,47 +938,47 @@ DEFUN (bigint_add_unsigned, (x, y, negative_p),
       fast bigint_digit_type * scan_y = (BIGINT_START_PTR (y));
       fast bigint_digit_type * end_y = (scan_y + (BIGINT_LENGTH (y)));
       while (scan_y < end_y)
-	{
-	  sum = ((*scan_x++) + (*scan_y++) + carry);
-	  if (sum < BIGINT_RADIX)
-	    {
-	      (*scan_r++) = sum;
-	      carry = 0;
-	    }
-	  else
-	    {
-	      (*scan_r++) = (sum - BIGINT_RADIX);
-	      carry = 1;
-	    }
-	}
+        {
+          sum = ((*scan_x++) + (*scan_y++) + carry);
+          if (sum < BIGINT_RADIX)
+            {
+              (*scan_r++) = sum;
+              carry = 0;
+            }
+          else
+            {
+              (*scan_r++) = (sum - BIGINT_RADIX);
+              carry = 1;
+            }
+        }
     }
     {
       fast bigint_digit_type * end_x = ((BIGINT_START_PTR (x)) + x_length);
       if (carry != 0)
-	while (scan_x < end_x)
-	  {
-	    sum = ((*scan_x++) + 1);
-	    if (sum < BIGINT_RADIX)
-	      {
-		(*scan_r++) = sum;
-		carry = 0;
-		break;
-	      }
-	    else
-	      (*scan_r++) = (sum - BIGINT_RADIX);
-	  }
+        while (scan_x < end_x)
+          {
+            sum = ((*scan_x++) + 1);
+            if (sum < BIGINT_RADIX)
+              {
+                (*scan_r++) = sum;
+                carry = 0;
+                break;
+              }
+            else
+              (*scan_r++) = (sum - BIGINT_RADIX);
+          }
       while (scan_x < end_x)
-	(*scan_r++) = (*scan_x++);
+        (*scan_r++) = (*scan_x++);
     }
     if (carry != 0)
       {
-	(*scan_r) = 1;
-	return (r);
+        (*scan_r) = 1;
+        return (r);
       }
     return (bigint_shorten_length (r, x_length));
   }
 }
-
+
 /* Subtraction */
 
 static kno_bigint
@@ -992,21 +992,21 @@ DEFUN (bigint_subtract_unsigned, (x, y),
       return (BIGINT_ZERO ());
     case kno_bigint_less:
       {
-	kno_bigint z = x;
-	x = y;
-	y = z;
+        kno_bigint z = x;
+        x = y;
+        y = z;
       }
       if (make_negative)
-	negative_p = 0;
+        negative_p = 0;
       else negative_p = 1;
       break;
     case kno_bigint_greater:
       if (make_negative)
-	negative_p = 1;
+        negative_p = 1;
       else negative_p = 0;
       break;
     }
-  
+
   {
     int x_length = (BIGINT_LENGTH (x));
     kno_bigint r = (bigint_allocate (x_length, negative_p));
@@ -1018,48 +1018,48 @@ DEFUN (bigint_subtract_unsigned, (x, y),
       fast bigint_digit_type * scan_y = (BIGINT_START_PTR (y));
       fast bigint_digit_type * end_y = (scan_y + (BIGINT_LENGTH (y)));
       while (scan_y < end_y)
-	{
-	  difference = (((*scan_x++) - (*scan_y++)) - borrow);
-	  if (difference < 0)
-	    {
-	      (*scan_r++) = (difference + BIGINT_RADIX);
-	      borrow = 1;
-	    }
-	  else
-	    {
-	      (*scan_r++) = difference;
-	      borrow = 0;
-	    }
-	}
+        {
+          difference = (((*scan_x++) - (*scan_y++)) - borrow);
+          if (difference < 0)
+            {
+              (*scan_r++) = (difference + BIGINT_RADIX);
+              borrow = 1;
+            }
+          else
+            {
+              (*scan_r++) = difference;
+              borrow = 0;
+            }
+        }
     }
     {
       fast bigint_digit_type * end_x = (BIGINT_START_PTR (x))+ x_length;
       if (borrow != 0)
-	while (scan_x < end_x)
-	  {
-	    difference = ((*scan_x++) - borrow);
-	    if (difference < 0)
-	      (*scan_r++) = (difference + BIGINT_RADIX);
-	    else
-	      {
-		(*scan_r++) = difference;
-		borrow = 0;
-		break;
-	      }
-	  }
+        while (scan_x < end_x)
+          {
+            difference = ((*scan_x++) - borrow);
+            if (difference < 0)
+              (*scan_r++) = (difference + BIGINT_RADIX);
+            else
+              {
+                (*scan_r++) = difference;
+                borrow = 0;
+                break;
+              }
+          }
       BIGINT_ASSERT (borrow == 0);
       while (scan_x < end_x)
-	(*scan_r++) = (*scan_x++);
+        (*scan_r++) = (*scan_x++);
     }
     return (bigint_trim (r));
   }
 }
-
+
 /* Multiplication
    Maximum value for product_low or product_high:
-	((R * R) + (R * (R - 2)) + (R - 1))
+   ((R * R) + (R * (R - 2)) + (R - 1))
    Maximum value for carry: ((R * (R - 1)) + (R - 1))
-	where R == BIGINT_RADIX_ROOT */
+   where R == BIGINT_RADIX_ROOT */
 
 static kno_bigint
 DEFUN (bigint_multiply_unsigned, (x, y, negative_p),
@@ -1094,33 +1094,33 @@ DEFUN (bigint_multiply_unsigned, (x, y, negative_p),
 #define product_high carry
     while (scan_x < end_x)
       {
-	x_digit = (*scan_x++);
-	x_digit_low = (HD_LOW (x_digit));
-	x_digit_high = (HD_HIGH (x_digit));
-	carry = 0;
-	scan_y = start_y;
-	scan_r = (start_r++);
-	while (scan_y < end_y)
-	  {
-	    y_digit = (*scan_y++);
-	    y_digit_low = (HD_LOW (y_digit));
-	    y_digit_high = (HD_HIGH (y_digit));
-	    product_low =
-	      ((*scan_r) +
-	       (x_digit_low * y_digit_low) +
-	       (HD_LOW (carry)));
-	    product_high =
-	      ((x_digit_high * y_digit_low) +
-	       (x_digit_low * y_digit_high) +
-	       (HD_HIGH (product_low)) +
-	       (HD_HIGH (carry)));
-	    (*scan_r++) =
-	      (HD_CONS ((HD_LOW (product_high)), (HD_LOW (product_low))));
-	    carry =
-	      ((x_digit_high * y_digit_high) +
-	       (HD_HIGH (product_high)));
-	  }
-	(*scan_r) += carry;
+        x_digit = (*scan_x++);
+        x_digit_low = (HD_LOW (x_digit));
+        x_digit_high = (HD_HIGH (x_digit));
+        carry = 0;
+        scan_y = start_y;
+        scan_r = (start_r++);
+        while (scan_y < end_y)
+          {
+            y_digit = (*scan_y++);
+            y_digit_low = (HD_LOW (y_digit));
+            y_digit_high = (HD_HIGH (y_digit));
+            product_low =
+              ((*scan_r) +
+               (x_digit_low * y_digit_low) +
+               (HD_LOW (carry)));
+            product_high =
+              ((x_digit_high * y_digit_low) +
+               (x_digit_low * y_digit_high) +
+               (HD_HIGH (product_low)) +
+               (HD_HIGH (carry)));
+            (*scan_r++) =
+              (HD_CONS ((HD_LOW (product_high)), (HD_LOW (product_low))));
+            carry =
+              ((x_digit_high * y_digit_high) +
+               (HD_HIGH (product_high)));
+          }
+        (*scan_r) += carry;
       }
     return (bigint_trim (r));
 #undef x_digit
@@ -1128,7 +1128,7 @@ DEFUN (bigint_multiply_unsigned, (x, y, negative_p),
 #undef product_high
   }
 }
-
+
 static kno_bigint
 DEFUN (bigint_multiply_unsigned_small_factor, (x, y, negative_p),
        kno_bigint x AND bigint_digit_type y AND int negative_p)
@@ -1157,16 +1157,16 @@ DEFUN (bigint_destructive_scale_up, (bigint, factor),
       two_digits = (*scan);
       product_low = ((factor * (HD_LOW (two_digits))) + (HD_LOW (carry)));
       product_high =
-	((factor * (HD_HIGH (two_digits))) +
-	 (HD_HIGH (product_low)) +
-	 (HD_HIGH (carry)));
+        ((factor * (HD_HIGH (two_digits))) +
+         (HD_HIGH (product_low)) +
+         (HD_HIGH (carry)));
       (*scan++) = (HD_CONS ((HD_LOW (product_high)), (HD_LOW (product_low))));
       carry = (HD_HIGH (product_high));
     }
   /* A carry here would be an overflow, i.e. it would not fit.
      Hopefully the callers allocate enough space that this will
      never happen.
-   */
+  */
   BIGINT_ASSERT (carry == 0);
   return;
 #undef product_high
@@ -1189,14 +1189,14 @@ DEFUN (bigint_destructive_add, (bigint, n),
     {
       digit = ((*scan) + 1);
       if (digit < BIGINT_RADIX)
-	{
-	  (*scan) = digit;
-	  return;
-	}
+        {
+          (*scan) = digit;
+          return;
+        }
       (*scan++) = (digit - BIGINT_RADIX);
     }
 }
-
+
 /* Division */
 
 /* For help understanding this algorithm, see:
@@ -1206,8 +1206,8 @@ DEFUN (bigint_destructive_add, (bigint, n),
 
 static void
 DEFUN (bigint_divide_unsigned_large_denominator, (numerator, denominator,
-						  quotient, remainder,
-						  q_negative_p, r_negative_p),
+                                                  quotient, remainder,
+                                                  q_negative_p, r_negative_p),
        kno_bigint numerator
        AND kno_bigint denominator
        AND kno_bigint * quotient
@@ -1228,8 +1228,8 @@ DEFUN (bigint_divide_unsigned_large_denominator, (numerator, denominator,
     fast bigint_digit_type v1 = (BIGINT_REF ((denominator), (length_d - 1)));
     while (v1 < (BIGINT_RADIX / 2))
       {
-	v1 <<= 1;
-	shift += 1;
+        v1 <<= 1;
+        shift += 1;
       }
   }
   if (shift == 0)
@@ -1246,7 +1246,7 @@ DEFUN (bigint_divide_unsigned_large_denominator, (numerator, denominator,
       bigint_divide_unsigned_normalized (u, v, q);
       BIGINT_DEALLOCATE (v);
       if (remainder != ((kno_bigint *) 0))
-	bigint_destructive_unnormalization (u, shift);
+        bigint_destructive_unnormalization (u, shift);
     }
   if (quotient != ((kno_bigint *) 0))
     (*quotient) = (bigint_trim (q));
@@ -1256,7 +1256,7 @@ DEFUN (bigint_divide_unsigned_large_denominator, (numerator, denominator,
     BIGINT_DEALLOCATE (u);
   return;
 }
-
+
 static void
 DEFUN (bigint_divide_unsigned_normalized, (u, v, q),
        kno_bigint u AND kno_bigint v AND kno_bigint q)
@@ -1290,49 +1290,49 @@ DEFUN (bigint_divide_unsigned_normalized, (u, v, q),
     {
       uj = (*--u_scan);
       if (uj != v1)
-	{
-	  /* comparand =
-	     (((((uj * BIGINT_RADIX) + uj1) % v1) * BIGINT_RADIX) + uj2);
-	     guess = (((uj * BIGINT_RADIX) + uj1) / v1); */
-	  cl = (u_scan[-2]);
-	  ch = (bigint_digit_divide (uj, (u_scan[-1]), v1, (&gm)));
-	  guess = gm;
-	}
+        {
+          /* comparand =
+             (((((uj * BIGINT_RADIX) + uj1) % v1) * BIGINT_RADIX) + uj2);
+             guess = (((uj * BIGINT_RADIX) + uj1) / v1); */
+          cl = (u_scan[-2]);
+          ch = (bigint_digit_divide (uj, (u_scan[-1]), v1, (&gm)));
+          guess = gm;
+        }
       else
-	{
-	  cl = (u_scan[-2]);
-	  ch = ((u_scan[-1]) + v1);
-	  guess = (BIGINT_RADIX - 1);
-	}
+        {
+          cl = (u_scan[-2]);
+          ch = ((u_scan[-1]) + v1);
+          guess = (BIGINT_RADIX - 1);
+        }
       while (1)
-	{
-	  /* product = (guess * v2); */
-	  gl = (HD_LOW (guess));
-	  gh = (HD_HIGH (guess));
-	  pl = (v2l * gl);
-	  ph = ((v2l * gh) + (v2h * gl) + (HD_HIGH (pl)));
-	  pl = (HD_CONS ((HD_LOW (ph)), (HD_LOW (pl))));
-	  ph = ((v2h * gh) + (HD_HIGH (ph)));
-	  /* if (comparand >= product) */
-	  if ((ch > ph) || ((ch == ph) && (cl >= pl)))
-	    break;
-	  guess -= 1;
-	  /* comparand += (v1 << BIGINT_DIGIT_LENGTH) */
-	  ch += v1;
-	  /* if (comparand >= (BIGINT_RADIX * BIGINT_RADIX)) */
-	  if (ch >= BIGINT_RADIX)
-	    break;
-	}
+        {
+          /* product = (guess * v2); */
+          gl = (HD_LOW (guess));
+          gh = (HD_HIGH (guess));
+          pl = (v2l * gl);
+          ph = ((v2l * gh) + (v2h * gl) + (HD_HIGH (pl)));
+          pl = (HD_CONS ((HD_LOW (ph)), (HD_LOW (pl))));
+          ph = ((v2h * gh) + (HD_HIGH (ph)));
+          /* if (comparand >= product) */
+          if ((ch > ph) || ((ch == ph) && (cl >= pl)))
+            break;
+          guess -= 1;
+          /* comparand += (v1 << BIGINT_DIGIT_LENGTH) */
+          ch += v1;
+          /* if (comparand >= (BIGINT_RADIX * BIGINT_RADIX)) */
+          if (ch >= BIGINT_RADIX)
+            break;
+        }
       qj = (bigint_divide_subtract (v_start, v_end, guess, (--u_scan_start)));
       if (q != BIGINT_OUT_OF_BAND)
-	(*--q_scan) = qj;
+        (*--q_scan) = qj;
     }
   return;
 #undef gl
 #undef uj
 #undef qj
 }
-
+
 static bigint_digit_type
 DEFUN (bigint_divide_subtract, (v_start, v_end, guess, u_start),
        bigint_digit_type * v_start
@@ -1355,22 +1355,22 @@ DEFUN (bigint_divide_subtract, (v_start, v_end, guess, u_start),
 #define diff pl
     while (v_scan < v_end)
       {
-	v = (*v_scan++);
-	vl = (HD_LOW (v));
-	vh = (HD_HIGH (v));
-	pl = ((vl * gl) + (HD_LOW (carry)));
-	ph = ((vl * gh) + (vh * gl) + (HD_HIGH (pl)) + (HD_HIGH (carry)));
-	diff = ((*u_scan) - (HD_CONS ((HD_LOW (ph)), (HD_LOW (pl)))));
-	if (diff < 0)
-	  {
-	    (*u_scan++) = (diff + BIGINT_RADIX);
-	    carry = ((vh * gh) + (HD_HIGH (ph)) + 1);
-	  }
-	else
-	  {
-	    (*u_scan++) = diff;
-	    carry = ((vh * gh) + (HD_HIGH (ph)));
-	  }
+        v = (*v_scan++);
+        vl = (HD_LOW (v));
+        vh = (HD_HIGH (v));
+        pl = ((vl * gl) + (HD_LOW (carry)));
+        ph = ((vl * gh) + (vh * gl) + (HD_HIGH (pl)) + (HD_HIGH (carry)));
+        diff = ((*u_scan) - (HD_CONS ((HD_LOW (ph)), (HD_LOW (pl)))));
+        if (diff < 0)
+          {
+            (*u_scan++) = (diff + BIGINT_RADIX);
+            carry = ((vh * gh) + (HD_HIGH (ph)) + 1);
+          }
+        else
+          {
+            (*u_scan++) = diff;
+            carry = ((vh * gh) + (HD_HIGH (ph)));
+          }
       }
     if (carry == 0)
       return (guess);
@@ -1379,8 +1379,8 @@ DEFUN (bigint_divide_subtract, (v_start, v_end, guess, u_start),
       (*u_scan) = (diff + BIGINT_RADIX);
     else
       {
-	(*u_scan) = diff;
-	return (guess);
+        (*u_scan) = diff;
+        return (guess);
       }
 #undef vh
 #undef ph
@@ -1395,15 +1395,15 @@ DEFUN (bigint_divide_subtract, (v_start, v_end, guess, u_start),
     {
       bigint_digit_type sum = ((*v_scan++) + (*u_scan) + carry);
       if (sum < BIGINT_RADIX)
-	{
-	  (*u_scan++) = sum;
-	  carry = 0;
-	}
+        {
+          (*u_scan++) = sum;
+          carry = 0;
+        }
       else
-	{
-	  (*u_scan++) = (sum - BIGINT_RADIX);
-	  carry = 1;
-	}
+        {
+          (*u_scan++) = (sum - BIGINT_RADIX);
+          carry = 1;
+        }
     }
   if (carry == 1)
     {
@@ -1412,11 +1412,11 @@ DEFUN (bigint_divide_subtract, (v_start, v_end, guess, u_start),
     }
   return (guess - 1);
 }
-
+
 static void
 DEFUN (bigint_divide_unsigned_medium_denominator, (numerator, denominator,
-						   quotient, remainder,
-						   q_negative_p, r_negative_p),
+                                                   quotient, remainder,
+                                                   q_negative_p, r_negative_p),
        kno_bigint numerator
        AND bigint_digit_type denominator
        AND kno_bigint * quotient
@@ -1453,29 +1453,29 @@ DEFUN (bigint_divide_unsigned_medium_denominator, (numerator, denominator,
     bigint_digit_type qj;
     if (quotient != ((kno_bigint *) 0))
       {
-	while (start < scan)
-	  {
-	    r = (bigint_digit_divide (r, (*--scan), denominator, (&qj)));
-	    (*scan) = qj;
-	  }
-	(*quotient) = (bigint_trim (q));
+        while (start < scan)
+          {
+            r = (bigint_digit_divide (r, (*--scan), denominator, (&qj)));
+            (*scan) = qj;
+          }
+        (*quotient) = (bigint_trim (q));
       }
     else
       {
-	while (start < scan)
-	  r = (bigint_digit_divide (r, (*--scan), denominator, (&qj)));
-	BIGINT_DEALLOCATE (q);
+        while (start < scan)
+          r = (bigint_digit_divide (r, (*--scan), denominator, (&qj)));
+        BIGINT_DEALLOCATE (q);
       }
     if (remainder != ((kno_bigint *) 0))
       {
-	if (shift != 0)
-	  r >>= shift;
-	(*remainder) = (bigint_digit_to_bigint (r, r_negative_p));
+        if (shift != 0)
+          r >>= shift;
+        (*remainder) = (bigint_digit_to_bigint (r, r_negative_p));
       }
   }
   return;
 }
-
+
 static void
 DEFUN (bigint_destructive_normalization, (source, target, shift_left),
        kno_bigint source AND kno_bigint target AND int shift_left)
@@ -1520,34 +1520,34 @@ DEFUN (bigint_destructive_unnormalization, (bigint, shift_right),
   BIGINT_ASSERT (carry == 0);
   return;
 }
-
+
 /* This is a reduced version of the division algorithm, applied to the
    case of dividing two bigint digits by one bigint digit.  It is
    assumed that the numerator and denominator are normalized. */
 
 #define BDD_STEP(qn, j)							\
-{									\
-  uj = (u[j]);								\
-  if (uj != v1)								\
-    {									\
-      uj_uj1 = (HD_CONS (uj, (u[j + 1])));				\
-      guess = (uj_uj1 / v1);						\
-      comparand = (HD_CONS ((uj_uj1 % v1), (u[j + 2])));		\
-    }									\
-  else									\
-    {									\
-      guess = (BIGINT_RADIX_ROOT - 1);					\
-      comparand = (HD_CONS (((u[j + 1]) + v1), (u[j + 2])));		\
-    }									\
-  while ((guess * v2) > comparand)					\
-    {									\
-      guess -= 1;							\
-      comparand += (v1 << BIGINT_HALF_DIGIT_LENGTH);			\
-      if (comparand >= BIGINT_RADIX)					\
-	break;								\
-    }									\
-  qn = (bigint_digit_divide_subtract (v1, v2, guess, (&u[j])));		\
-}
+  {									\
+    uj = (u[j]);                                                        \
+    if (uj != v1)                                                       \
+      {									\
+        uj_uj1 = (HD_CONS (uj, (u[j + 1])));				\
+        guess = (uj_uj1 / v1);						\
+        comparand = (HD_CONS ((uj_uj1 % v1), (u[j + 2])));		\
+      }									\
+    else                                                                \
+      {									\
+        guess = (BIGINT_RADIX_ROOT - 1);                                \
+        comparand = (HD_CONS (((u[j + 1]) + v1), (u[j + 2])));		\
+      }									\
+    while ((guess * v2) > comparand)					\
+      {									\
+        guess -= 1;							\
+        comparand += (v1 << BIGINT_HALF_DIGIT_LENGTH);			\
+        if (comparand >= BIGINT_RADIX)					\
+          break;                                                        \
+      }									\
+    qn = (bigint_digit_divide_subtract (v1, v2, guess, (&u[j])));       \
+  }
 
 static bigint_digit_type
 DEFUN (bigint_digit_divide, (uh, ul, v, q),
@@ -1566,15 +1566,15 @@ DEFUN (bigint_digit_divide, (uh, ul, v, q),
   if (uh == 0)
     {
       if (ul < v)
-	{
-	  (*q) = 0;
-	  return (ul);
-	}
+        {
+          (*q) = 0;
+          return (ul);
+        }
       else if (ul == v)
-	{
-	  (*q) = 1;
-	  return (0);
-	}
+        {
+          (*q) = 1;
+          return (0);
+        }
     }
   (u[0]) = (HD_HIGH (uh));
   (u[1]) = (HD_LOW (uh));
@@ -1589,37 +1589,37 @@ DEFUN (bigint_digit_divide, (uh, ul, v, q),
 }
 
 #undef BDD_STEP
-
+
 #define BDDS_MULSUB(vn, un, carry_in)					\
-{									\
-  product = ((vn * guess) + carry_in);					\
-  diff = (un - (HD_LOW (product)));					\
-  if (diff < 0)								\
-    {									\
-      un = (diff + BIGINT_RADIX_ROOT);					\
-      carry = ((HD_HIGH (product)) + 1);				\
-    }									\
-  else									\
-    {									\
-      un = diff;							\
-      carry = (HD_HIGH (product));					\
-    }									\
-}
+  {									\
+    product = ((vn * guess) + carry_in);                                \
+    diff = (un - (HD_LOW (product)));					\
+    if (diff < 0)                                                       \
+      {									\
+        un = (diff + BIGINT_RADIX_ROOT);                                \
+        carry = ((HD_HIGH (product)) + 1);				\
+      }									\
+    else                                                                \
+      {									\
+        un = diff;							\
+        carry = (HD_HIGH (product));					\
+      }									\
+  }
 
 #define BDDS_ADD(vn, un, carry_in)					\
-{									\
-  sum = (vn + un + carry_in);						\
-  if (sum < BIGINT_RADIX_ROOT)						\
-    {									\
-      un = sum;								\
-      carry = 0;							\
-    }									\
-  else									\
-    {									\
-      un = (sum - BIGINT_RADIX_ROOT);					\
-      carry = 1;							\
-    }									\
-}
+  {									\
+    sum = (vn + un + carry_in);						\
+    if (sum < BIGINT_RADIX_ROOT)                                        \
+      {									\
+        un = sum;                                                       \
+        carry = 0;							\
+      }									\
+    else                                                                \
+      {									\
+        un = (sum - BIGINT_RADIX_ROOT);					\
+        carry = 1;							\
+      }									\
+  }
 
 static bigint_digit_type
 DEFUN (bigint_digit_divide_subtract, (v1, v2, guess, u),
@@ -1639,8 +1639,8 @@ DEFUN (bigint_digit_divide_subtract, (v1, v2, guess, u),
       (u[0]) = (diff + BIGINT_RADIX);
     else
       {
-	(u[0]) = diff;
-	return (guess);
+        (u[0]) = diff;
+        return (guess);
       }
   }
   {
@@ -1656,11 +1656,11 @@ DEFUN (bigint_digit_divide_subtract, (v1, v2, guess, u),
 
 #undef BDDS_MULSUB
 #undef BDDS_ADD
-
+
 static void
 DEFUN (bigint_divide_unsigned_small_denominator, (numerator, denominator,
-						  quotient, remainder,
-						  q_negative_p, r_negative_p),
+                                                  quotient, remainder,
+                                                  q_negative_p, r_negative_p),
        kno_bigint numerator
        AND bigint_digit_type denominator
        AND kno_bigint * quotient
@@ -1703,7 +1703,7 @@ DEFUN (bigint_destructive_scale_down, (bigint, denominator),
   return (remainder);
 #undef quotient_high
 }
-
+
 static kno_bigint
 DEFUN (bigint_remainder_unsigned_small_denominator, (n, d, negative_p),
        kno_bigint n AND bigint_digit_type d AND int negative_p)
@@ -1717,9 +1717,9 @@ DEFUN (bigint_remainder_unsigned_small_denominator, (n, d, negative_p),
     {
       two_digits = (*--scan);
       r =
-	((HD_CONS (((HD_CONS (r, (HD_HIGH (two_digits)))) % d),
-		   (HD_LOW (two_digits))))
-	 % d);
+        ((HD_CONS (((HD_CONS (r, (HD_HIGH (two_digits)))) % d),
+                   (HD_LOW (two_digits))))
+         % d);
     }
   return (bigint_digit_to_bigint (r, negative_p));
 }
@@ -1737,7 +1737,7 @@ DEFUN (bigint_digit_to_bigint, (digit, negative_p),
       return (result);
     }
 }
-
+
 /* Allocation */
 
 static kno_bigint
@@ -1777,7 +1777,7 @@ DEFUN (bigint_shorten_length, (bigint, kno_veclen),
   if (length < current_length)
     {
       BIGINT_SET_HEADER
-	(bigint, length, ((length != 0) && (BIGINT_NEGATIVE_P (bigint))));
+        (bigint, length, ((length != 0) && (BIGINT_NEGATIVE_P (bigint))));
       BIGINT_REDUCE_LENGTH (bigint, bigint, length);
     }
   return (bigint);
@@ -1796,12 +1796,12 @@ DEFUN (bigint_trim, (bigint), kno_bigint bigint)
     {
       fast int length = (scan - start);
       BIGINT_SET_HEADER
-	(bigint, length, ((length != 0) && (BIGINT_NEGATIVE_P (bigint))));
+        (bigint, length, ((length != 0) && (BIGINT_NEGATIVE_P (bigint))));
       BIGINT_REDUCE_LENGTH (bigint, bigint, length);
     }
   return (bigint);
 }
-
+
 /* Copying */
 
 static kno_bigint
@@ -1834,7 +1834,7 @@ DEFUN (bigint_maybe_new_sign, (bigint, negative_p),
 #endif /* not BIGINT_FORCE_NEW_RESULTS */
     {
       fast kno_bigint result =
-	(bigint_allocate ((BIGINT_LENGTH (bigint)), negative_p));
+        (bigint_allocate ((BIGINT_LENGTH (bigint)), negative_p));
       bigint_destructive_copy (bigint, result);
       return (result);
     }
@@ -2002,11 +2002,11 @@ static double todoublex(lispval x,kno_lisp_type xt)
 }
 static double todouble(lispval x)
 {
-  return todoublex(x,KNO_LISP_TYPE(x));
+  return todoublex(x,KNO_TYPEOF(x));
 }
 KNO_EXPORT double kno_todouble(lispval x)
 {
-  return todoublex(x,KNO_LISP_TYPE(x));
+  return todoublex(x,KNO_TYPEOF(x));
 }
 static kno_bigint tobigint(lispval x)
 {
@@ -2147,14 +2147,14 @@ static long long fix_gcd (long long x, long long y)
   return x;
 }
 
-#define INT_POSITIVEP(x) \
-  ((FIXNUMP(x)) ? ((FIX2INT(x)>0)) : \
+#define INT_POSITIVEP(x)             \
+  ((FIXNUMP(x)) ? ((FIX2INT(x)>0)) :                                    \
    (KNO_BIGINTP(x)) ? ((bigint_test((kno_bigint)x)) == kno_bigint_greater) : (0))
-#define INT_NEGATIVEP(x) \
-  ((FIXNUMP(x)) ? ((FIX2INT(x)<0)) : \
+#define INT_NEGATIVEP(x)             \
+  ((FIXNUMP(x)) ? ((FIX2INT(x)<0)) :                                    \
    (KNO_BIGINTP(x)) ? ((bigint_test((kno_bigint)x)) == kno_bigint_less) : (0))
-#define INT_ZEROP(x) \
-  ((FIXNUMP(x)) ? ((FIX2INT(x)==0)) : \
+#define INT_ZEROP(x)                  \
+  ((FIXNUMP(x)) ? ((FIX2INT(x)==0)) :                                   \
    (KNO_BIGINTP(x)) ? ((bigint_test((kno_bigint)x)) == kno_bigint_equal) : (0))
 
 static lispval int_gcd(lispval x,lispval y)
@@ -2216,7 +2216,7 @@ KNO_EXPORT int kno_modest_bigintp(kno_bigint bi)
 
 KNO_EXPORT int kno_bigint2int(kno_bigint bi)
 {
-  if (kno_bigint_fits_in_word_p(bi,32,1)) 
+  if (kno_bigint_fits_in_word_p(bi,32,1))
     return kno_bigint_to_long(bi);
   else return 0;
 }
@@ -2231,7 +2231,7 @@ KNO_EXPORT unsigned int kno_bigint2uint(kno_bigint bi)
 
 KNO_EXPORT long long int kno_bigint2int64(kno_bigint bi)
 {
-  if (kno_bigint_fits_in_word_p(bi,64,1)) 
+  if (kno_bigint_fits_in_word_p(bi,64,1))
     return kno_bigint_to_long_long(bi);
   else return 0;
 }
@@ -2263,7 +2263,7 @@ int kno_numberp(lispval x)
 KNO_EXPORT
 lispval kno_plus(lispval x,lispval y)
 {
-  kno_lisp_type xt = KNO_LISP_TYPE(x), yt = KNO_LISP_TYPE(y);
+  kno_lisp_type xt = KNO_TYPEOF(x), yt = KNO_TYPEOF(y);
   if ((xt == kno_fixnum_type) && (yt == kno_fixnum_type)) {
     long long ix = FIX2INT(x);
     long long iy = FIX2INT(y);
@@ -2324,7 +2324,7 @@ lispval kno_plus(lispval x,lispval y)
 KNO_EXPORT
 lispval kno_multiply(lispval x,lispval y)
 {
-  kno_lisp_type xt = KNO_LISP_TYPE(x), yt = KNO_LISP_TYPE(y);
+  kno_lisp_type xt = KNO_TYPEOF(x), yt = KNO_TYPEOF(y);
   if ((xt == kno_fixnum_type) && (yt == kno_fixnum_type)) {
     long long ix = FIX2INT(x), iy = FIX2INT(y);
     long long q, result;
@@ -2399,7 +2399,7 @@ lispval kno_multiply(lispval x,lispval y)
 KNO_EXPORT
 lispval kno_subtract(lispval x,lispval y)
 {
-  kno_lisp_type xt = KNO_LISP_TYPE(x), yt = KNO_LISP_TYPE(y);
+  kno_lisp_type xt = KNO_TYPEOF(x), yt = KNO_TYPEOF(y);
   if ((xt == kno_fixnum_type) && (yt == kno_fixnum_type)) {
     long long result = (FIX2INT(x))-(FIX2INT(y));
     if ((result<KNO_MAX_FIXNUM) && (result>KNO_MIN_FIXNUM))
@@ -2452,7 +2452,7 @@ lispval kno_subtract(lispval x,lispval y)
 KNO_EXPORT
 lispval kno_divide(lispval x,lispval y)
 {
-  kno_lisp_type xt = KNO_LISP_TYPE(x), yt = KNO_LISP_TYPE(y);
+  kno_lisp_type xt = KNO_TYPEOF(x), yt = KNO_TYPEOF(y);
   if ((INTEGERP(x)) && (INTEGERP(y)))
     return kno_make_rational(x,y);
   else if ((xt == kno_flonum_type) && (yt == kno_flonum_type)) {
@@ -2471,7 +2471,7 @@ lispval kno_divide(lispval x,lispval y)
     cb = kno_multiply(c,b); bd = kno_multiply(b,d);
     cc = kno_multiply(c,c); dd = kno_multiply(d,d);
     ccpdd = kno_plus(cc,dd);
-    ac_bd = kno_plus(ac,bd); cb_ad = kno_subtract(cb,ad);    
+    ac_bd = kno_plus(ac,bd); cb_ad = kno_subtract(cb,ad);
     realr = kno_divide(ac_bd,ccpdd); imagr = kno_divide(cb_ad,ccpdd);
     result = make_complex(realr,imagr);
     kno_decref(ac); kno_decref(ad); kno_decref(cb); kno_decref(bd);
@@ -2495,7 +2495,7 @@ lispval kno_divide(lispval x,lispval y)
 KNO_EXPORT
 lispval kno_inexact_divide(lispval x,lispval y)
 {
-  kno_lisp_type xt = KNO_LISP_TYPE(x), yt = KNO_LISP_TYPE(y);
+  kno_lisp_type xt = KNO_TYPEOF(x), yt = KNO_TYPEOF(y);
   if ((xt == kno_fixnum_type) && (yt == kno_fixnum_type)) {
     if (yt == KNO_FIXZERO)
       return kno_err("DivideByZero","kno_inexact_divide",NULL,x);
@@ -2523,7 +2523,7 @@ lispval kno_inexact_divide(lispval x,lispval y)
 KNO_EXPORT
 lispval kno_quotient(lispval x,lispval y)
 {
-  kno_lisp_type xt = KNO_LISP_TYPE(x), yt = KNO_LISP_TYPE(y);
+  kno_lisp_type xt = KNO_TYPEOF(x), yt = KNO_TYPEOF(y);
   if ((xt == kno_fixnum_type) && (yt == kno_fixnum_type)) {
     long long result = FIX2INT(x)/FIX2INT(y);
     return KNO_INT(result);}
@@ -2541,7 +2541,7 @@ lispval kno_quotient(lispval x,lispval y)
 KNO_EXPORT
 lispval kno_remainder(lispval x,lispval y)
 {
-  kno_lisp_type xt = KNO_LISP_TYPE(x), yt = KNO_LISP_TYPE(y);
+  kno_lisp_type xt = KNO_TYPEOF(x), yt = KNO_TYPEOF(y);
   if ((xt == kno_fixnum_type) && (yt == kno_fixnum_type)) {
     long long result = FIX2INT(x)%FIX2INT(y);
     return KNO_INT(result);}
@@ -2618,7 +2618,7 @@ KNO_EXPORT int kno_tolonglong(lispval r,long long *intval)
 KNO_EXPORT
 int kno_numcompare(lispval x,lispval y)
 {
-  kno_lisp_type xt = KNO_LISP_TYPE(x), yt = KNO_LISP_TYPE(y);
+  kno_lisp_type xt = KNO_TYPEOF(x), yt = KNO_TYPEOF(y);
   if ((xt == kno_fixnum_type) && (yt == kno_fixnum_type)) {
     long long dx = FIX2INT(x), dy = FIX2INT(y);
     if (dx>dy) return 1; else if (dx<dy) return -1; else return 0;}
@@ -2642,10 +2642,10 @@ int kno_numcompare(lispval x,lispval y)
     int sgn = signum(difference);
     kno_decref(difference);
     if (sgn==0)
-      if ((xt == kno_flonum_type) || (yt == kno_flonum_type)) 
-	/* If either argument is inexact (double), don't return =, unless
-	   both are inexact (which is handled above) */
-	if (xt<yt) return -1; else return 1;
+      if ((xt == kno_flonum_type) || (yt == kno_flonum_type))
+        /* If either argument is inexact (double), don't return =, unless
+           both are inexact (which is handled above) */
+        if (xt<yt) return -1; else return 1;
       else return sgn;
     else return sgn;}
 }
@@ -2655,7 +2655,7 @@ int kno_numcompare(lispval x,lispval y)
 KNO_EXPORT
 lispval kno_make_inexact(lispval x)
 {
-  kno_lisp_type xt = KNO_LISP_TYPE(x);
+  kno_lisp_type xt = KNO_TYPEOF(x);
   if (xt == kno_flonum_type)
     return kno_incref(x);
   else if (xt == kno_fixnum_type)
@@ -2669,17 +2669,17 @@ lispval kno_make_inexact(lispval x)
   else if (xt == kno_complex_type) {
     lispval realpart = KNO_REALPART(x), imagpart = KNO_IMAGPART(x);
     if ((KNO_FLONUMP(realpart)) &&
-	(KNO_FLONUMP(imagpart)))
+        (KNO_FLONUMP(imagpart)))
       return kno_incref(x);
     else return make_complex(kno_make_inexact(realpart),
-			     kno_make_inexact(imagpart));}
+                             kno_make_inexact(imagpart));}
   else return kno_type_error(_("number"),"kno_make_inexact",x);
 }
 
 KNO_EXPORT
 lispval kno_make_exact(lispval x)
 {
-  kno_lisp_type xt = KNO_LISP_TYPE(x);
+  kno_lisp_type xt = KNO_TYPEOF(x);
   if (xt == kno_flonum_type) {
     double d = KNO_FLONUM(x);
     if ( (isnan(d)) || (isinf(d)) )
@@ -2697,12 +2697,12 @@ lispval kno_make_exact(lispval x)
       bigint_destructive_scale_up(ibottom,1024);
       bigint_destructive_scale_up(ibottom,1024);
       if (exp>0) while (exp>0) {
-	bigint_destructive_scale_up(itop,2); exp--;}
+          bigint_destructive_scale_up(itop,2); exp--;}
       else while (exp<0) {
-	bigint_destructive_scale_up(ibottom,2);
-	exp++;}
+          bigint_destructive_scale_up(ibottom,2);
+          exp++;}
       return make_rational(simplify_bigint(itop),
-			   simplify_bigint(ibottom));}
+                           simplify_bigint(ibottom));}
 #endif
     else {
       kno_bigint ival = kno_double_to_bigint(d);
@@ -2710,7 +2710,7 @@ lispval kno_make_exact(lispval x)
   else if (xt == kno_complex_type) {
     lispval realpart = KNO_REALPART(x), imagpart = KNO_IMAGPART(x);
     if ((KNO_FLONUMP(realpart)) ||
-	(KNO_FLONUMP(imagpart)))
+        (KNO_FLONUMP(imagpart)))
       return make_complex(kno_make_exact(realpart),kno_make_exact(imagpart));
     else return kno_incref(x);}
   else if (NUMBERP(x)) return kno_incref(x);
@@ -2720,7 +2720,7 @@ lispval kno_make_exact(lispval x)
 KNO_EXPORT
 int kno_exactp(lispval x)
 {
-  kno_lisp_type xt = KNO_LISP_TYPE(x);
+  kno_lisp_type xt = KNO_TYPEOF(x);
   if (xt == kno_flonum_type) return 0;
   else if (xt == kno_complex_type) {
     lispval realpart = KNO_REALPART(x), imagpart = KNO_IMAGPART(x);
@@ -2731,7 +2731,7 @@ int kno_exactp(lispval x)
   else return -1;
 }
 
-
+
 /* Homogenous vectors */
 
 /* Numeric vector handlers */
@@ -2796,7 +2796,7 @@ static int compare_numeric_vector(lispval x,lispval y,kno_compare_flags flags)
   struct KNO_NUMERIC_VECTOR *vx = (struct KNO_NUMERIC_VECTOR *)x;
   struct KNO_NUMERIC_VECTOR *vy = (struct KNO_NUMERIC_VECTOR *)y;
   if (vx->numvec_length == vy->numvec_length) {
-    int i = 0, n = vx->numvec_length; 
+    int i = 0, n = vx->numvec_length;
     while (i<n) {
       double xelt = double_ref(vx,i);
       double yelt = double_ref(vy,i);
@@ -2840,23 +2840,23 @@ static lispval copy_numeric_vector(lispval x,int deep)
   switch (elt_type) {
   case kno_short_elt:
     copy->numvec_elts.shorts = vec->numvec_elts.shorts;
-    memcpy(copy->numvec_elts.shorts,vec->numvec_elts.shorts,elts_size); 
+    memcpy(copy->numvec_elts.shorts,vec->numvec_elts.shorts,elts_size);
     break;
   case kno_int_elt:
     copy->numvec_elts.ints = vec->numvec_elts.ints;
-    memcpy(copy->numvec_elts.ints,vec->numvec_elts.ints,elts_size); 
+    memcpy(copy->numvec_elts.ints,vec->numvec_elts.ints,elts_size);
     break;
   case kno_long_elt:
     copy->numvec_elts.longs = vec->numvec_elts.longs;
-    memcpy(copy->numvec_elts.longs,vec->numvec_elts.longs,elts_size); 
+    memcpy(copy->numvec_elts.longs,vec->numvec_elts.longs,elts_size);
     break;
   case kno_float_elt:
     copy->numvec_elts.floats = vec->numvec_elts.floats;
-    memcpy(copy->numvec_elts.floats,vec->numvec_elts.floats,elts_size); 
+    memcpy(copy->numvec_elts.floats,vec->numvec_elts.floats,elts_size);
     break;
   case kno_double_elt:
     copy->numvec_elts.doubles = vec->numvec_elts.doubles;
-    memcpy(copy->numvec_elts.doubles,vec->numvec_elts.doubles,elts_size); 
+    memcpy(copy->numvec_elts.doubles,vec->numvec_elts.doubles,elts_size);
     break;}
   return (lispval) copy;
 }
@@ -2879,47 +2879,47 @@ static int unparse_numeric_vector(struct U8_OUTPUT *out,lispval x)
     typename="DOUBLEVEC"; break;}
   u8_printf(out,"#<%s",typename);
   if (n>kno_numvec_showmax) switch (type) {
-      case kno_short_elt: {
-        long long sum = 0, dot = 0; while (i<n) {
-          long long v = KNO_NUMVEC_SHORT(vec,i);
-          sum = sum+v; dot = dot+v*v; i++;}
-        u8_printf(out," sum=%lld/dot=%d/n=%lld",sum,dot,n);
-        break;}
-      case kno_int_elt: {
-        long long sum = 0, dot = 0; while (i<n) {
-          long long v = KNO_NUMVEC_INT(vec,i);
-          sum = sum+v; dot = dot+v*v; i++;}
-        u8_printf(out," sum=%lld/dot=%lld/n=%lld",sum,dot,n);
-        break;}
-      case kno_long_elt: {
-        long long sum = 0, dot = 0; while (i<n) {
-          int v = KNO_NUMVEC_LONG(vec,i);
-          sum = sum+v; dot = dot+v*v; i++;}
-        u8_printf(out," sum=%lld/dot=%lld/n=%lld",sum,dot,n);
-        break;}
-      case kno_float_elt: {
-        double sum = 0, dot = 0; while (i<n) {
-          double v = KNO_NUMVEC_FLOAT(vec,i);
-          sum = sum+v; dot = dot+v*v; i++;}
-        u8_printf(out," sum=%f/dot=%f/n=%d",sum,dot,n);
-        break;}
-      case kno_double_elt: {
-        double sum = 0, dot = 0; while (i<n) {
-          double v = KNO_NUMVEC_DOUBLE(vec,i);
-          sum = sum+v; dot = dot+v*v; i++;}
-        u8_printf(out," sum=%f/dot=%f/n=%d",sum,dot,n);
-        break;}}
+    case kno_short_elt: {
+      long long sum = 0, dot = 0; while (i<n) {
+        long long v = KNO_NUMVEC_SHORT(vec,i);
+        sum = sum+v; dot = dot+v*v; i++;}
+      u8_printf(out," sum=%lld/dot=%d/n=%lld",sum,dot,n);
+      break;}
+    case kno_int_elt: {
+      long long sum = 0, dot = 0; while (i<n) {
+        long long v = KNO_NUMVEC_INT(vec,i);
+        sum = sum+v; dot = dot+v*v; i++;}
+      u8_printf(out," sum=%lld/dot=%lld/n=%lld",sum,dot,n);
+      break;}
+    case kno_long_elt: {
+      long long sum = 0, dot = 0; while (i<n) {
+        int v = KNO_NUMVEC_LONG(vec,i);
+        sum = sum+v; dot = dot+v*v; i++;}
+      u8_printf(out," sum=%lld/dot=%lld/n=%lld",sum,dot,n);
+      break;}
+    case kno_float_elt: {
+      double sum = 0, dot = 0; while (i<n) {
+        double v = KNO_NUMVEC_FLOAT(vec,i);
+        sum = sum+v; dot = dot+v*v; i++;}
+      u8_printf(out," sum=%f/dot=%f/n=%d",sum,dot,n);
+      break;}
+    case kno_double_elt: {
+      double sum = 0, dot = 0; while (i<n) {
+        double v = KNO_NUMVEC_DOUBLE(vec,i);
+        sum = sum+v; dot = dot+v*v; i++;}
+      u8_printf(out," sum=%f/dot=%f/n=%d",sum,dot,n);
+      break;}}
   else switch (type) {
-  case kno_short_elt:
-    while (i<n) {u8_printf(out," %d",KNO_NUMVEC_SHORT(vec,i)); i++;} break;
-  case kno_int_elt:
-    while (i<n) {u8_printf(out," %d",KNO_NUMVEC_INT(vec,i)); i++;} break;
-  case kno_long_elt:
-    while (i<n) {u8_printf(out," %lld",KNO_NUMVEC_LONG(vec,i)); i++;} break;
-  case kno_float_elt:
-    while (i<n) {u8_printf(out," %f",(double)KNO_NUMVEC_FLOAT(vec,i)); i++;} break;
-  case kno_double_elt:
-    while (i<n) {u8_printf(out," %f",KNO_NUMVEC_DOUBLE(vec,i)); i++;} break;}
+    case kno_short_elt:
+      while (i<n) {u8_printf(out," %d",KNO_NUMVEC_SHORT(vec,i)); i++;} break;
+    case kno_int_elt:
+      while (i<n) {u8_printf(out," %d",KNO_NUMVEC_INT(vec,i)); i++;} break;
+    case kno_long_elt:
+      while (i<n) {u8_printf(out," %lld",KNO_NUMVEC_LONG(vec,i)); i++;} break;
+    case kno_float_elt:
+      while (i<n) {u8_printf(out," %f",(double)KNO_NUMVEC_FLOAT(vec,i)); i++;} break;
+    case kno_double_elt:
+      while (i<n) {u8_printf(out," %f",KNO_NUMVEC_DOUBLE(vec,i)); i++;} break;}
   u8_puts(out,">");
   return 1;
 }
@@ -3009,24 +3009,24 @@ KNO_EXPORT lispval kno_make_numeric_vector(int n,enum kno_num_elt_type vectype)
   memset(((char *)nvec)+sizeof(struct KNO_NUMERIC_VECTOR),0,n*elt_size);
   switch (vectype) {
   case kno_short_elt:
-    nvec->numvec_elts.shorts = (kno_short *)(bytes+sizeof(struct KNO_NUMERIC_VECTOR)); 
+    nvec->numvec_elts.shorts = (kno_short *)(bytes+sizeof(struct KNO_NUMERIC_VECTOR));
     break;
   case kno_int_elt:
-    nvec->numvec_elts.ints = (kno_int *)(bytes+sizeof(struct KNO_NUMERIC_VECTOR)); 
+    nvec->numvec_elts.ints = (kno_int *)(bytes+sizeof(struct KNO_NUMERIC_VECTOR));
     break;
   case kno_long_elt:
-    nvec->numvec_elts.longs = (kno_long *)(bytes+sizeof(struct KNO_NUMERIC_VECTOR)); 
+    nvec->numvec_elts.longs = (kno_long *)(bytes+sizeof(struct KNO_NUMERIC_VECTOR));
     break;
   case kno_float_elt:
-    nvec->numvec_elts.floats = (kno_float *)(bytes+sizeof(struct KNO_NUMERIC_VECTOR)); 
+    nvec->numvec_elts.floats = (kno_float *)(bytes+sizeof(struct KNO_NUMERIC_VECTOR));
     break;
-  case kno_double_elt: 
-    nvec->numvec_elts.doubles = (kno_double *)(bytes+sizeof(struct KNO_NUMERIC_VECTOR)); 
+  case kno_double_elt:
+    nvec->numvec_elts.doubles = (kno_double *)(bytes+sizeof(struct KNO_NUMERIC_VECTOR));
     break;}
   return (lispval) nvec;
 }
 
-
+
 /* Vector operations */
 
 static void decref_vec(lispval *elts,int n)
@@ -3116,11 +3116,11 @@ static lispval vector_add(lispval x,lispval y,int mult)
         lispval result; kno_float *sums = u8_alloc_n(x_len,kno_float);
         int i = 0; while (i<x_len) {
           kno_float xelt = ((xtype == kno_double_elt)?
-                         (KNO_NUMVEC_DOUBLE(x,i)):
-                         (KNO_NUMVEC_FLOAT(x,i)));
+                            (KNO_NUMVEC_DOUBLE(x,i)):
+                            (KNO_NUMVEC_FLOAT(x,i)));
           kno_float yelt = ((ytype == kno_double_elt)?
-                         (KNO_NUMVEC_DOUBLE(y,i)):
-                         (KNO_NUMVEC_FLOAT(y,i)));
+                            (KNO_NUMVEC_DOUBLE(y,i)):
+                            (KNO_NUMVEC_FLOAT(y,i)));
           sums[i]=xelt+(yelt*mult);
           i++;}
         result = kno_make_float_vector(x_len,sums);
@@ -3227,11 +3227,11 @@ static lispval vector_dotproduct(lispval x,lispval y)
         /* This is the case where they're both float vectors */
         int i = 0; while (i<x_len) {
           kno_float xelt = ((x_elt_type == kno_double_elt)?
-                         (KNO_NUMVEC_DOUBLE(x,i)):
-                         (KNO_NUMVEC_FLOAT(x,i)));
+                            (KNO_NUMVEC_DOUBLE(x,i)):
+                            (KNO_NUMVEC_FLOAT(x,i)));
           kno_float yelt = ((y_elt_type == kno_double_elt)?
-                         (KNO_NUMVEC_DOUBLE(y,i)):
-                         (KNO_NUMVEC_FLOAT(y,i)));
+                            (KNO_NUMVEC_DOUBLE(y,i)):
+                            (KNO_NUMVEC_FLOAT(y,i)));
           dot = dot+(xelt*yelt);
           i++;}
         return kno_make_flonum(dot);}
@@ -3545,48 +3545,48 @@ lispval kno_string2number(u8_string string,int base)
       return kno_string2number(string+2,2);
     case 'i': case 'I': {
       lispval result = kno_string2number(string+2,base);
-	if (PRED_TRUE(NUMBERP(result))) {
-	  double dbl = todouble(result);
-	  lispval inexresult = kno_init_flonum(NULL,dbl);
-	  kno_decref(result);
-	  return inexresult;}
-	else return KNO_FALSE;}
+      if (PRED_TRUE(NUMBERP(result))) {
+        double dbl = todouble(result);
+        lispval inexresult = kno_init_flonum(NULL,dbl);
+        kno_decref(result);
+        return inexresult;}
+      else return KNO_FALSE;}
     case 'e': case 'E': {
       if (strchr(string,'.')) {
-	lispval num, den = KNO_INT(1);
-	u8_byte *copy = u8_strdup(string+2);
-	u8_byte *dot = strchr(copy,'.'), *scan = dot+1;
-	*dot='\0'; num = kno_string2number(copy,10);
-	if (PRED_FALSE(!(NUMBERP(num)))) {
-	  u8_free(copy);
-	  return KNO_FALSE;}
-	while (*scan)
-	  if (isdigit(*scan)) {
-	    lispval numx10 = kno_multiply(num,KNO_INT(10));
-	    int uchar = *scan;
-	    int numweight = u8_digit_weight(uchar);
-	    lispval add_digit = KNO_INT(numweight);
-	    lispval nextnum = kno_plus(numx10,add_digit);
-	    lispval nextden = kno_multiply(den,KNO_INT(10));
-	    kno_decref(numx10); kno_decref(num); kno_decref(den);
-	    num = nextnum; den = nextden;
-	    scan++;}
-	  else if (strchr("sSeEfFlL",*scan)) {
-	    int i = 0, exponent = strtol(scan+1,NULL,10);
-	    if (exponent>=0)
-	      while (i<exponent) {
-		lispval nextnum = kno_multiply(num,KNO_INT(10));
-		kno_decref(num); num = nextnum; i++;}
-	    else {
-	      exponent = -exponent;
-	      while (i<exponent) {
-		lispval nextden = kno_multiply(den,KNO_INT(10));
-		kno_decref(den); den = nextden; i++;}}
-	    break;}
-	  else {
-	    kno_seterr3(kno_InvalidNumericLiteral,"kno_string2number",string);
-	    return KNO_PARSE_ERROR;}
-	return make_rational(num,den);}
+        lispval num, den = KNO_INT(1);
+        u8_byte *copy = u8_strdup(string+2);
+        u8_byte *dot = strchr(copy,'.'), *scan = dot+1;
+        *dot='\0'; num = kno_string2number(copy,10);
+        if (PRED_FALSE(!(NUMBERP(num)))) {
+          u8_free(copy);
+          return KNO_FALSE;}
+        while (*scan)
+          if (isdigit(*scan)) {
+            lispval numx10 = kno_multiply(num,KNO_INT(10));
+            int uchar = *scan;
+            int numweight = u8_digit_weight(uchar);
+            lispval add_digit = KNO_INT(numweight);
+            lispval nextnum = kno_plus(numx10,add_digit);
+            lispval nextden = kno_multiply(den,KNO_INT(10));
+            kno_decref(numx10); kno_decref(num); kno_decref(den);
+            num = nextnum; den = nextden;
+            scan++;}
+          else if (strchr("sSeEfFlL",*scan)) {
+            int i = 0, exponent = strtol(scan+1,NULL,10);
+            if (exponent>=0)
+              while (i<exponent) {
+                lispval nextnum = kno_multiply(num,KNO_INT(10));
+                kno_decref(num); num = nextnum; i++;}
+            else {
+              exponent = -exponent;
+              while (i<exponent) {
+                lispval nextden = kno_multiply(den,KNO_INT(10));
+                kno_decref(den); den = nextden; i++;}}
+            break;}
+          else {
+            kno_seterr3(kno_InvalidNumericLiteral,"kno_string2number",string);
+            return KNO_PARSE_ERROR;}
+        return make_rational(num,den);}
       else return kno_string2number(string+2,base);}
     default:
       kno_seterr3(kno_InvalidNumericLiteral,"kno_string2number",string);
@@ -3611,16 +3611,16 @@ lispval kno_string2number(u8_string string,int base)
     if (istart == NULL) {
       imag = kno_string2number(copy,base);
       if (PRED_FALSE(!(NUMBERP(imag)))) {
-	kno_decref(imag); u8_free(copy); return KNO_FALSE;}
+        kno_decref(imag); u8_free(copy); return KNO_FALSE;}
       real = KNO_INT(0);}
     else {
       imag = kno_string2number(istart,base); *istart='\0';
       if (PRED_FALSE(!(NUMBERP(imag)))) {
-	kno_decref(imag); u8_free(copy); return KNO_FALSE;}
+        kno_decref(imag); u8_free(copy); return KNO_FALSE;}
       real = kno_string2number(copy,base);
       if (PRED_FALSE(!(NUMBERP(real)))) {
-	kno_decref(imag); kno_decref(real); u8_free(copy);
-	return KNO_FALSE;}}
+        kno_decref(imag); kno_decref(real); u8_free(copy);
+        return KNO_FALSE;}}
     u8_free(copy);
     return make_complex(real,imag);}
   else if (strchr(string,'/')) {
@@ -3657,7 +3657,7 @@ lispval kno_string2number(u8_string string,int base)
     if (string[0]=='0') {
       if (string[1]=='\0') return KNO_INT(0);
       else if ((string[1]=='x') || (string[1]=='X')) {
-	start = string+2; nbase = 16;}}
+        start = string+2; nbase = 16;}}
     if ((base<0) && (nbase)) base = nbase;
     else if (base<0) base = 10;
     errno = 0;
@@ -3665,7 +3665,7 @@ lispval kno_string2number(u8_string string,int base)
     U8_CLEAR_ERRNO();
     if (!((end>string) && ((end-string) == len)))
       return KNO_FALSE;
-    else if ((fixnum) && 
+    else if ((fixnum) &&
              ((fixnum<KNO_MAX_FIXNUM) && (fixnum>KNO_MIN_FIXNUM)))
       return KNO_INT(fixnum);
     else if ((fixnum==0) && (end) && (*end=='\0'))
@@ -3730,7 +3730,7 @@ int kno_output_number(u8_output out,lispval num,int base)
   else return 0;
 }
 
-
+
 /* Initialization stuff */
 
 void kno_init_numbers_c()
@@ -3789,9 +3789,3 @@ void kno_init_numbers_c()
   u8_register_source_file(_FILEINFO);
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

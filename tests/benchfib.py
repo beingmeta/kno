@@ -16,5 +16,7 @@ def time_fibtr(count,n):
     end=time.clock()
     return end-start    
 
-print fibtr(10)
-print time_fibtr(5000,10)
+print( "fibtr(10) x 5000 in %s"%time_fibtr(5000,10) )
+print( "fibtr(100) x 5000 in %s"%time_fibtr(5000,100) )
+print( "fibtr(200) x 5000 in %s"%time_fibtr(5000,200) )
+print( "fibtr(500) x 5000 in %s"%time_fibtr(5000,500) )

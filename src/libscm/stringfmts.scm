@@ -6,7 +6,8 @@
 ;;; Generation of strings from various other kinds of values
 
 (module-export!
- '{get% show%
+ '{;; Now defined with DEFEXPORT
+   ;; get% show%
    interval-string
    short-interval-string
    minimal-interval-string
@@ -16,16 +17,17 @@
    $num $numstring
    $size $sizestring
    $bytes $bytestring
-   $bytes/sec})
+   $bytes/sec
+   $rate})
 
 ;; Percentages
 
-(define (get% num (den #f) (prec 2))
+(defexport (get% num (den #f) (prec 2))
   (cond ((zero? den) den)
 	(den (inexact->string (/ (* num 100.0) den) prec))
 	(else (inexact->string (* num 100.0) prec))))
 
-(define (show% num (den #f) (prec 2))
+(defexport (show% num (den #f) (prec 2))
   (cond ((not den) (printout (inexact->string (* num 100.0) prec) "%"))
 	((zero? den)
 	 (if (zero? num)
@@ -146,6 +148,12 @@
 		      (printout (printnum (/~ bytes TiB) 1) " TiB/sec")
 		      (printout (printnum (/~ bytes PiB) 1) " PiB/sec")))))))
 
+(define ($rate count ticks (precision 2))
+  (let ((ratio (/~ count ticks)))
+    (if (> ratio (/~ (pow 10 precision)))
+	(inexact->string ratio precision)
+	(inexact->string ratio))))
+
 ;; Temporal intervals
 
 (define (interval-string secs (precise #t))
@@ -244,9 +252,4 @@
 	(if (< total 60)
 	    (printout (inexact->string total 1) "s")
 	    (printout secs "s")))))
-
-
-
-
-
 

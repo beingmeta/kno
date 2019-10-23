@@ -221,7 +221,7 @@ KNO_EXPORT int _KNO_CHOICE_SIZE(lispval x);
 #endif
 
 #if KNO_INLINE_CHOICES
-static U8_MAYBE_UNUSED int kno_choice_size(lispval x)
+KNO_FASTOP U8_MAYBE_UNUSED int kno_choice_size(lispval x)
 {
   if (KNO_EMPTY_CHOICEP(x)) return 0;
   else if (!(KNO_CONSP(x))) return 1;
@@ -231,13 +231,13 @@ static U8_MAYBE_UNUSED int kno_choice_size(lispval x)
     return KNO_PRECHOICE_SIZE(x);
   else return 1;
 }
-static U8_MAYBE_UNUSED lispval kno_simplify_choice(lispval x)
+KNO_FASTOP U8_MAYBE_UNUSED lispval kno_simplify_choice(lispval x)
 {
   if (KNO_PRECHOICEP(x))
     return _kno_simplify_choice(x);
   else return x;
 }
-static U8_MAYBE_UNUSED lispval kno_make_simple_choice(lispval x)
+KNO_FASTOP U8_MAYBE_UNUSED lispval kno_make_simple_choice(lispval x)
 {
   if (KNO_PRECHOICEP(x))
     return _kno_make_simple_choice(x);
@@ -274,6 +274,8 @@ KNO_EXPORT lispval kno_make_qchoice(lispval val);
     == (KNO_EMPTY_CHOICE)))
 #define KNO_XQCHOICE(x) (kno_consptr(struct KNO_QCHOICE *,x,kno_qchoice_type))
 #define KNO_QCHOICE_SIZE(x) (KNO_CHOICE_SIZE(KNO_XQCHOICE(x)->qchoiceval))
+#define KNO_QCHOICEVAL(x) \
+  ((kno_consptr(struct KNO_QCHOICE *,x,kno_qchoice_type))->qchoiceval)
 
 /* Generic choice operations */
 
@@ -419,13 +421,6 @@ kno_dochoices_helper(lispval *_valp,
   else if (KNO_EMPTY_CHOICEP(_val)) {
     *scan=singlev+1;
     *limit=singlev+1;}
-  else if (KNO_QCHOICEP(_val)) {
-    singlev[0] = KNO_XQCHOICE(_val)->qchoiceval;
-    _val = singlev[0];
-    kno_incref(_val);
-    *need_gcp = 1;
-    *scan=singlev;
-    *limit=singlev+1;}
   else {
     singlev[0]=_val;
     *scan=singlev;
@@ -467,8 +462,8 @@ kno_dochoices_helper(lispval *_valp,
 #define KNO_STOP_DO_CHOICES \
    if (_need_gc) kno_decref(_val)
 
-KNO_EXPORT lispval kno_union(lispval *v,unsigned int n);
-KNO_EXPORT lispval kno_intersection(lispval *v,unsigned int n);
+KNO_EXPORT lispval kno_union(const lispval *v,unsigned int n);
+KNO_EXPORT lispval kno_intersection(const lispval *v,unsigned int n);
 KNO_EXPORT lispval kno_difference(lispval whole,lispval part);
 KNO_EXPORT int kno_choice_containsp(lispval key,lispval x);
 KNO_EXPORT int kno_overlapp(lispval,lispval);
@@ -481,9 +476,3 @@ KNO_EXPORT lispval *kno_natsort_choice(kno_choice ch,lispval *,ssize_t);
 
 #endif /* KNO_CHOICES_H */
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

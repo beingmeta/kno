@@ -356,7 +356,7 @@ static ssize_t dtype_bloom(struct KNO_OUTBUF *out,lispval x)
   return 1 + 1 + 4 + 11 + 1 + 4 + header_len + bloom->bytes;
 }
 
-static lispval restore_bloom(lispval tag,lispval x,kno_compound_typeinfo e)
+static lispval restore_bloom(lispval tag,lispval x,kno_typeinfo e)
 {
   if (KNO_PACKETP(x)) {
     struct KNO_INBUF in = { 0 };
@@ -388,8 +388,8 @@ void kno_init_bloom_c()
 
   lispval bloom_tag = kno_intern("bloomfilter");
 
-  struct KNO_COMPOUND_TYPEINFO *e=kno_register_compound(bloom_tag,NULL,NULL);
-  e->compound_restorefn = restore_bloom;
+  struct KNO_TYPEINFO *e = kno_use_typeinfo(bloom_tag);
+  e->type_restorefn = restore_bloom;
 
   u8_register_source_file(_FILEINFO);
 }
@@ -418,9 +418,3 @@ void kno_init_bloom_c()
  * Refer to bloom.h for documentation on the public interfaces.
  */
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

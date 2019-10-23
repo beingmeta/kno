@@ -19,9 +19,3 @@ KNO_EXPORT u8_string kno_tempdir(u8_string arg,int keep);
 
 #endif
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

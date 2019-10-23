@@ -107,7 +107,7 @@ static ffi_type *get_ffi_type(lispval arg)
 
 KNO_EXPORT struct KNO_FFI_PROC *kno_make_ffi_proc
 (u8_string name,u8_string filename,int arity,
- lispval return_spec,lispval *argspecs)
+ lispval return_spec,const lispval *argspecs)
 {
   if (name==NULL) {
     u8_seterr("NullArg","kno_make_ffi_proc/name",NULL);
@@ -145,9 +145,8 @@ KNO_EXPORT struct KNO_FFI_PROC *kno_make_ffi_proc
     kno_incref_vec(savespecs,arity);
     proc->fcn_name = u8_strdup(name);
     proc->fcn_filename = u8dup(filename);
-    proc->fcn_arity = arity;
+    proc->fcn_call_width = proc->fcn_arity = arity;
     proc->fcn_min_arity = arity;
-    proc->fcn_defaults = NULL;
     proc->ffi_return_type = return_type;
     proc->ffi_argtypes = ffi_argtypes;
     proc->ffi_return_spec = return_spec; kno_incref(return_spec);
@@ -214,7 +213,7 @@ static int handle_ffi_arg(lispval arg,lispval spec,
     if (KNO_PRIM_TYPEP(arg,kno_rawptr_type)) {
       struct KNO_RAWPTR *raw=(kno_rawptr)arg;
       lispval typetag = kno_get(spec,typetag_symbol,KNO_VOID);
-      if ( KNO_EQUALP(typetag,raw->raw_typetag) )
+      if ( KNO_EQUALP(typetag,raw->typetag) )
         *valptr=raw->ptrval;
       else if (KNO_SYMBOLP(typetag))
         return ffi_type_error(KNO_SYMBOL_NAME(typetag),arg);
@@ -454,18 +453,11 @@ KNO_EXPORT lispval kno_ffi_call(struct KNO_FUNCTION *fn,int n,lispval *args)
 static void recycle_ffi_proc(struct KNO_RAW_CONS *c)
 {
   struct KNO_FFI_PROC *ffi = (struct KNO_FFI_PROC *)c;
-  int arity = ffi->fcn_arity, free_flags = ffi->fcn_free;
+  int free_flags = ffi->fcn_free;
   if (ffi->fcn_name) u8_free(ffi->fcn_name);
   if (ffi->fcn_filename) u8_free(ffi->fcn_filename);
   if ( (ffi->fcn_doc) && (free_flags&KNO_FCN_FREE_DOC) )
     u8_free(ffi->fcn_doc);
-  if ( (ffi->fcn_typeinfo) && (free_flags&KNO_FCN_FREE_TYPEINFO) )
-    u8_free(ffi->fcn_typeinfo);
-  if ( (ffi->fcn_defaults) && (free_flags&KNO_FCN_FREE_DEFAULTS) ) {
-    lispval *default_values = ffi->fcn_defaults;
-    int i = 0; while (i<arity) {
-      lispval v = default_values[i++]; kno_decref(v);}
-    u8_free(default_values);}
   u8_free(ffi->ffi_argtypes);
   if (!(KNO_STATIC_CONSP(ffi))) u8_free(ffi);
 }
@@ -556,7 +548,7 @@ KNO_EXPORT void kno_init_ffi_c()
   kno_unparsers[kno_ffi_type]=unparse_ffi_proc;
   kno_recyclers[kno_ffi_type]=recycle_ffi_proc;
 
-  kno_functionp[kno_ffi_type]=1;
+  kno_function_types[kno_ffi_type]=1;
   kno_applyfns[kno_ffi_type]=(kno_applyfn)kno_ffi_call;
 
   init_symbols();
@@ -609,9 +601,3 @@ static void init_symbols()
   ffi_result_symbol = kno_intern("result");
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

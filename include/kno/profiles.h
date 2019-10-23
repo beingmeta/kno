@@ -20,7 +20,7 @@ typedef struct KNO_PROFILE {
   _Atomic long long prof_nsecs_user;
   _Atomic long long prof_nsecs_system;
   _Atomic long long prof_n_waits;
-  _Atomic long long prof_n_contests;
+  _Atomic long long prof_n_pauses;
   _Atomic long long prof_n_faults;} *kno_profile;
 #else
 typedef struct KNO_PROFILE {
@@ -31,7 +31,7 @@ typedef struct KNO_PROFILE {
   long long prof_nsecs_user;
   long long prof_nsecs_system;
   long long prof_n_waits;
-  long long prof_n_contests;
+  long long prof_n_pauses;
   long long prof_n_faults;
   u8_mutex prof_lock;} *kno_profile;
 #endif
@@ -40,7 +40,7 @@ typedef struct KNO_PROFILE {
 U8_MAYBE_UNUSED static void kno_profile_record
 (struct KNO_PROFILE *p,long long items,
  long long nsecs,long long nsecs_user,long long nsecs_system,
- long long n_waits,long long n_contests,long long n_faults)
+ long long n_waits,long long n_pauses,long long n_faults)
 {
   if (items) atomic_fetch_add(&(p->prof_items),items);
   atomic_fetch_add(&(p->prof_calls),1);
@@ -49,7 +49,7 @@ U8_MAYBE_UNUSED static void kno_profile_record
   atomic_fetch_add(&(p->prof_nsecs_user),nsecs_user);
   atomic_fetch_add(&(p->prof_nsecs_system),nsecs_system);
   atomic_fetch_add(&(p->prof_n_waits),n_waits);
-  atomic_fetch_add(&(p->prof_n_contests),n_contests);
+  atomic_fetch_add(&(p->prof_n_pauses),n_pauses);
   atomic_fetch_add(&(p->prof_n_faults),n_faults);
 #endif
 }
@@ -57,7 +57,7 @@ U8_MAYBE_UNUSED static void kno_profile_record
 static void kno_profile_record
 (struct KNO_PROFILE *p,long long items,
  long long nsecs,long long nsecs_user,long long nsecs_system,
- long long n_waits,long long n_contests,long long n_faults)
+ long long n_waits,long long n_pauses,long long n_faults)
 {
   u8_lock_mutex(&(p->prof_lock));
   if (items) p->prof_items += items;
@@ -67,13 +67,14 @@ static void kno_profile_record
   p->prof_nsecs_user += nsecs_user;
   p->prof_nsecs_system += nsecs_system;
   p->prof_n_waits += n_waits;
-  p->prof_n_contests += n_contests;
+  p->prof_n_pauses += n_pauses;
   p->prof_n_nfaults += n_faults;
 #endif
+  u8_lock_mutex(&(p->prof_lock));
 }
 #endif
 
-static struct KNO_PROFILE *kno_make_profile(u8_string name)
+static U8_MAYBE_UNUSED struct KNO_PROFILE *kno_make_profile(u8_string name)
 {
   struct KNO_PROFILE *result = u8_alloc(struct KNO_PROFILE);
   result->prof_label = (name) ? (u8_strdup(name)) : (NULL);
@@ -85,7 +86,7 @@ static struct KNO_PROFILE *kno_make_profile(u8_string name)
   result->prof_nsecs_user   = ATOMIC_VAR_INIT(0);
   result->prof_nsecs_system = ATOMIC_VAR_INIT(0);
   result->prof_n_waits      = ATOMIC_VAR_INIT(0);
-  result->prof_n_contests      = ATOMIC_VAR_INIT(0);
+  result->prof_n_pauses      = ATOMIC_VAR_INIT(0);
   result->prof_n_faults     = ATOMIC_VAR_INIT(0);
 #endif
 #else

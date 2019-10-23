@@ -104,7 +104,7 @@ static int config_failed_tests_set(lispval var,lispval val,void *data)
 #define USE_EQUAL_TEST 0
 #define USE_PREDICATE_TEST 1
 
-static u8_string get_testid(lispval fn,int n,lispval *args)
+static u8_string get_testid(lispval fn,int n,kno_argvec args)
 {
   if ( (n>0) && (KNO_SYMBOLP(args[0])) )
     return u8_strdup(KNO_SYMBOL_NAME(args[0]));
@@ -114,27 +114,36 @@ static u8_string get_testid(lispval fn,int n,lispval *args)
   int i = 0; while (i<n) {
     lispval arg = args[i];
     u8_putc(&testid,' ');
-    kno_unparse(&testid,arg);
+    if (KNO_FUNCTIONP(arg)) {
+      lispval f = (KNO_FCNIDP(arg)) ? (kno_fcnid_ref(arg)) : (arg);
+      if (KNO_FUNCTIONP(f)) {
+	kno_function fcn = (kno_function) f;
+	if (fcn->fcn_name)
+	  u8_puts(&testid,fcn->fcn_name);
+	else kno_unparse(&testid,arg);}
+      else kno_unparse(&testid,f);}
+    else kno_unparse(&testid,arg);
     i++;}
   u8_string id = u8_strdup(testid.u8_outbuf);
   u8_close_output(&testid);
   return id;
 }
 
-DEFPRIM("applytest",applytest,KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
+DEFPRIM("applytest",applytest,KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDOP,
 	"`(APPLYTEST *arg0* *arg1* *args...*)` **undocumented**");
-static lispval applytest(int n,lispval *args)
+static lispval applytest(int n,kno_argvec args)
 {
   lispval expected = args[0], return_value;
   lispval fn = args[1], predicate = KNO_VOID, predicate_arg = KNO_VOID;
   int err = ! ( (KNO_VOIDP(err_testfail)) || (KNO_FALSEP(err_testfail)) );
-  lispval *argstart = args+2;
+  const lispval *argstart = args+2;
   int n_args = n-2;
   if (KNO_FUNCTIONP(expected)) {
-    struct KNO_FUNCTION *f = (kno_function) expected;
-    if (f->fcn_arity == 1)
+    struct KNO_FUNCTION *f = KNO_GETFUNCTION(expected);
+    if ( (f) && (f->fcn_arity==1) )
       predicate=expected;
-    else if ( ( (f->fcn_arity > 1) || (f->fcn_arity < 0) ) &&
+    else if ( (f) &&
+	      ( (f->fcn_arity > 1) || (f->fcn_arity < 0) ) &&
 	      (f->fcn_min_arity < 3) &&
 	      (n >= 3) ) {
       predicate=expected;
@@ -142,7 +151,7 @@ static lispval applytest(int n,lispval *args)
       fn = args[2];
       argstart = args+3;
       n_args = n - 3;}
-    else return kno_err("Improper arguments","applytest/predicate",
+    else return kno_err("Bad applytest result predicate","applytest/predicate",
 			NULL,expected);}
   else NO_ELSE;
   u8_string testid = get_testid(fn,n_args,argstart);
@@ -169,8 +178,8 @@ static lispval applytest(int n,lispval *args)
     u8_logf(LOG_INFO,"Tests/ExpectedVoidValue","%s",testid);
     return_value = KNO_TRUE;}
   else if (KNO_VOIDP(result)) {
-    u8_logf((err) ? (LOG_NOTICE) : (LOG_WARN),
-	    "Tests/UnexpectedVoidValue","%s",testid);
+    u8_logf(LOG_WARN,"Tests/UnexpectedVoidValue",
+	    "%s expected %q",testid,expected);
     if (err) return_value = kno_err
 	       ("Tests/UnexpectedVoidValue","applytest",testid,VOID);}
   else if (KNO_VOIDP(predicate)) {
@@ -179,8 +188,7 @@ static lispval applytest(int n,lispval *args)
 	      "Received %q from %q for %s",result,fn,testid);
       return_value = KNO_TRUE;}
     else {
-      u8_logf((err) ? (LOG_NOTICE) : (LOG_WARN),
-	      "Tests/UnexpectedValue",
+      u8_logf(LOG_WARN,"Tests/UnexpectedValue",
 	      "%s:\n  Expected:\t%q\n  Returned:\t%q\n",
 	      testid,expected,result);
       if (err) return_value =
@@ -190,11 +198,10 @@ static lispval applytest(int n,lispval *args)
     if (KNO_ABORTP(pred_result))
       return_value = pred_result;
     else if ( (KNO_FALSEP(pred_result)) || (EMPTYP(pred_result)) ) {
-      u8_logf((err) ? (LOG_NOTICE) : (LOG_WARN),
-	      "Tests/UnexpectedValue",
-	      "%s:\n  Returned:\t%q\n  Failed:\t%q\n",
+      u8_logf(LOG_WARN,"Tests/PredicateFailed",
+	      "%s:\n  Predicate:\t %q\n  Result:\t%q\n",
 	      testid,result,predicate);
-      return_value = kno_err("Tests/BadResult","applytest",testid,result);}
+      return_value = kno_err("Tests/PredicateFailed","applytest",testid,result);}
     else {
       u8_logf(LOG_INFO,"Tests/Passed",
 	      "Result %q passed %q for %s",result,predicate,testid);
@@ -206,12 +213,11 @@ static lispval applytest(int n,lispval *args)
     if (KNO_ABORTP(pred_result)) {
       return_value = pred_result;}
     else if ( (KNO_FALSEP(pred_result)) || (EMPTYP(pred_result)) ) {
-      u8_logf((err) ? (LOG_NOTICE) : (LOG_WARN),
-	      "Tests/UnexpectedValue",
-	      "%s:\n  Returned:\t%q\n  Failed:\t%q %q\n",
-	      testid,result,predicate,predicate_arg);
+      u8_logf(LOG_WARN,"Tests/PredicateFailed",
+	      "%s:\n  Predicate:\t%q\n  Result:\t%q\n  Argument:\t%q\n",
+	      testid,predicate,result,predicate_arg);
       if (err) return_value =
-		 kno_err("Tests/BadResult","applytest",testid,result);}
+		 kno_err("Tests/PredicateFailed","applytest",testid,result);}
     else {
       u8_logf(LOG_INFO,"Tests/Passed",
 	      "Result %q passed %q for %s",result,predicate,testid);
@@ -340,20 +346,18 @@ KNO_EXPORT void kno_init_eval_testops_c()
   err_symbol = kno_intern("err");
   void_symbol = kno_intern("void");
 
-  init_local_cprims();
+  link_local_cprims();
 
-  kno_def_evalfn(kno_scheme_module,"EVALTEST",
+  kno_def_evalfn(kno_scheme_module,"EVALTEST",evaltest_evalfn,
 		 "`(EVALTEST *expected* *expr*)` evaluates *expr* and checks "
 		 "if it is EQUAL? to *expected*. If so it does nothing, "
 		 "otherwise it either logs the failed test (depending on "
-		 "the LOGTESTS config) or signals an error.",
-		 evaltest_evalfn);
-  kno_def_evalfn(kno_scheme_module,"ERRTEST",
+		 "the LOGTESTS config) or signals an error.");
+  kno_def_evalfn(kno_scheme_module,"ERRTEST",errtest_evalfn,
 		 "`(ERRTEST *buggy-expr*)` evalutes *bugg-expr* and ignores "
 		 "any signalled error. However, if *buggy-expr* returns a "
 		 "without an error, this is either logged (depending on "
-		 "the LOGTESTS config) or signalled as an error",
-		 errtest_evalfn);
+		 "the LOGTESTS config) or signalled as an error");
 
   kno_register_config
     ("TESTS:ERROR",
@@ -368,7 +372,7 @@ KNO_EXPORT void kno_init_eval_testops_c()
      kno_lconfig_get,config_failed_tests_set,&failed_tests);
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_VARARGS("applytest",applytest,kno_scheme_module);
 }

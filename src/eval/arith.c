@@ -125,8 +125,7 @@ static lispval oddp(lispval x)
     else return KNO_FALSE;}
   else if (KNO_BIGINTP(x)) {
     lispval remainder = kno_remainder(x,KNO_INT(2));
-    if (KNO_ABORTP(remainder))
-      return remainder;
+    if (KNO_ABORTP(remainder)) return remainder;
     else if (KNO_FIX2INT(remainder))
       return KNO_TRUE;
     else return KNO_FALSE;}
@@ -145,8 +144,7 @@ static lispval evenp(lispval x)
     else return KNO_TRUE;}
   else if (KNO_BIGINTP(x)) {
     lispval remainder = kno_remainder(x,KNO_INT(2));
-    if (KNO_ABORTP(remainder))
-      return remainder;
+    if (KNO_ABORTP(remainder)) return remainder;
     else if (KNO_FIX2INT(remainder))
       return KNO_FALSE;
     else return KNO_TRUE;}
@@ -190,7 +188,7 @@ static lispval negativep(lispval x)
 
 DEFPRIM("+",plus_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(-1),
 	"`(+)` **undocumented**");
-static lispval plus_lexpr(int n,lispval *args)
+static lispval plus_lexpr(int n,kno_argvec args)
 {
   if (n==0)
     return KNO_FIXNUM_ZERO;
@@ -205,7 +203,8 @@ static lispval plus_lexpr(int n,lispval *args)
     int i = 0; int floating = 0, generic = 0, vector = 0;
     while (i < n)
       if (FIXNUMP(args[i])) i++;
-      else if (KNO_FLONUMP(args[i])) {floating = 1; i++;}
+      else if (KNO_FLONUMP(args[i])) {
+	floating = 1; i++;}
       else if ((VECTORP(args[i]))||(KNO_NUMVECP(args[i]))) {
 	generic = 1; vector = 1; i++;}
       else {generic = 1; i++;}
@@ -282,7 +281,7 @@ static lispval minus1(lispval x)
 
 DEFPRIM("*",times_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(-1),
 	"`(*)` **undocumented**");
-static lispval times_lexpr(int n,lispval *args)
+static lispval times_lexpr(int n,kno_argvec args)
 {
   int i = 0; int floating = 0, generic = 0;
   if (n==1) {
@@ -292,19 +291,21 @@ static lispval times_lexpr(int n,lispval *args)
       return  kno_incref(arg);
     else if ((KNO_NUMVECP(arg))||(VECTORP(arg)))
       return kno_incref(arg);
-    return kno_type_error(_("number"),"times_lexpr",kno_incref(arg));}
+    return kno_type_error(_("number"),"times_lexpr",arg);}
   else if (n==2)
     return kno_multiply(args[0],args[1]);
   else {
     while (i < n)
       if (FIXNUMP(args[i])) i++;
-      else if (KNO_FLONUMP(args[i])) {floating = 1; i++;}
+      else if (KNO_FLONUMP(args[i])) {
+	floating = 1; i++;}
       else {generic = 1; i++;}
     if ((floating==0) && (generic==0)) {
       long long fixresult = 1;
       i = 0; while (i < n) {
 	long long mult = kno_getint(args[i]);
-	if (mult==0) return KNO_INT(0);
+	if (mult==0)
+	  return KNO_INT(0);
 	else {
 	  int q = ((mult>0)?(KNO_MAX_FIXNUM/mult):(KNO_MIN_FIXNUM/mult));
 	  if ((fixresult>0)?(fixresult>q):((-fixresult)>q)) {
@@ -338,7 +339,7 @@ static lispval times_lexpr(int n,lispval *args)
 
 DEFPRIM("-",minus_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(-1),
 	"`(-)` **undocumented**");
-static lispval minus_lexpr(int n,lispval *args)
+static lispval minus_lexpr(int n,kno_argvec args)
 {
   if (n == 1) {
     lispval arg = args[0];
@@ -355,18 +356,24 @@ static lispval minus_lexpr(int n,lispval *args)
     int i = 0; int floating = 0, generic = 0, vector = 0;
     while (i < n) {
       if (FIXNUMP(args[i])) i++;
-      else if (KNO_FLONUMP(args[i])) {floating = 1; i++;}
+      else if (KNO_FLONUMP(args[i])) {
+	floating = 1;
+	i++;}
       else if ((VECTORP(args[i]))||(KNO_NUMVECP(args[i]))) {
-	vector = 1; generic = 1;}
+	vector = 1;
+	generic = 1;
+	i++;}
       else {generic = 1; i++;}}
     if ((floating==0) && (generic==0)) {
       long long fixresult = 0;
       i = 0; while (i < n) {
 	long long val = 0;
-	if (FIXNUMP(args[i])) val = FIX2INT(args[i]);
+	if (FIXNUMP(args[i]))
+	  val = FIX2INT(args[i]);
 	else if  (KNO_BIGINTP(args[i]))
 	  val = (double)kno_bigint_to_double((kno_bigint)args[i]);
-	if (i==0) fixresult = val; else fixresult = fixresult-val;
+	if (i==0) fixresult = val;
+	else fixresult = fixresult-val;
 	i++;}
       return KNO_INT(fixresult);}
     else if (generic == 0) {
@@ -377,20 +384,29 @@ static lispval minus_lexpr(int n,lispval *args)
 	else if  (KNO_BIGINTP(args[i]))
 	  val = (double)kno_bigint_to_double((kno_bigint)args[i]);
 	else val = ((struct KNO_FLONUM *)args[i])->floval;
-	if (i==0) floresult = val; else floresult = floresult-val;
+	if (i==0) floresult = val;
+	else floresult = floresult-val;
 	i++;}
       return kno_init_double(NULL,floresult);}
     else if (vector) {
       lispval result = kno_subtract(args[0],args[1]);
       i = 2; while (i < n) {
 	lispval newv = kno_subtract(result,args[i]);
-	kno_decref(result); result = newv; i++;}
+	kno_decref(result);
+	if (KNO_ABORTP(newv))
+	  return newv;
+	else result = newv;
+	i++;}
       return result;}
     else {
       lispval result = kno_incref(args[0]);
       i = 1; while (i < n) {
 	lispval newv = kno_subtract(result,args[i]);
-	kno_decref(result); result = newv; i++;}
+	kno_decref(result);
+	if (KNO_ABORTP(newv))
+	  return newv;
+	else result = newv;
+	i++;}
       return result;}}
 }
 
@@ -411,7 +427,7 @@ static double todouble(lispval x)
 
 DEFPRIM("/",div_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(-1),
 	"`(/)` **undocumented**");
-static lispval div_lexpr(int n,lispval *args)
+static lispval div_lexpr(int n,kno_argvec args)
 {
   int all_double = 1, i = 0;
   while (i<n)
@@ -436,7 +452,7 @@ static lispval div_lexpr(int n,lispval *args)
 
 DEFPRIM("/~",idiv_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(-1),
 	"`(/~)` **undocumented**");
-static lispval idiv_lexpr(int n,lispval *args)
+static lispval idiv_lexpr(int n,kno_argvec args)
 {
   int all_double = 1, i = 0;
   while (i<n)
@@ -817,7 +833,7 @@ static lispval inexact_nthroot_prim(lispval v,lispval n)
 
 DEFPRIM("min",min_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
 	"`(MIN *arg0* *args...*)` **undocumented**");
-static lispval min_prim(int n,lispval *args)
+static lispval min_prim(int n,kno_argvec args)
 {
   if (n==0)
     return kno_err(kno_TooFewArgs,"max_prim",NULL,VOID);
@@ -843,7 +859,7 @@ static lispval min_prim(int n,lispval *args)
 
 DEFPRIM("max",max_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
 	"`(MAX *arg0* *args...*)` **undocumented**");
-static lispval max_prim(int n,lispval *args)
+static lispval max_prim(int n,kno_argvec args)
 {
   if (n==0) return kno_err(kno_TooFewArgs,"max_prim",NULL,VOID);
   else {
@@ -1429,13 +1445,13 @@ KNO_EXPORT void kno_init_arith_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  init_local_cprims();
+  link_local_cprims();
 
   kno_store(kno_scheme_module,kno_intern("max-fixnum"),kno_max_fixnum);
   kno_store(kno_scheme_module,kno_intern("min-fixnum"),kno_min_fixnum);
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   lispval scheme_module = kno_scheme_module;
 

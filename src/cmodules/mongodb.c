@@ -978,7 +978,7 @@ static void collection_done(mongoc_collection_t *collection,
 /* Basic operations on collections */
 
 #if HAVE_MONGOC_BULK_OPERATION_WITH_OPTS
-DEFPRIM3("collection/insert!",mongodb_insert,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+DEFPRIM3("collection/insert!",mongodb_insert,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDOP,
 	 "(COLLECTION/INSERT! *collection* *objects* *opts*) **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
 	 kno_any_type,KNO_FALSE);
@@ -1065,7 +1065,7 @@ static lispval mongodb_insert(lispval arg,lispval objects,lispval opts_arg)
   return result;
 }
 #else
-DEFPRIM3("collection/insert!",mongodb_insert,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+DEFPRIM3("collection/insert!",mongodb_insert,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDOP,
 	 "(COLLECTION/INSERT! *collection* *objects* *opts*) **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
 	 kno_any_type,KNO_FALSE);
@@ -1756,7 +1756,7 @@ static int getnewopt(lispval opts,int dflt)
 
 static lispval make_mongovec(lispval vec);
 
-static lispval make_command(int n,lispval *values)
+static lispval make_command(int n,kno_argvec values)
 {
   if ((n%2)==1)
     return kno_err(kno_SyntaxError,"make_command","Odd number of arguments",KNO_VOID);
@@ -1887,7 +1887,7 @@ static lispval db_command(lispval arg,lispval command,
 
 DEFPRIM("mongodb/results",mongodb_command,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(MONGODB/RESULTS *arg0* *arg1* *args...*)` **undocumented**");
-static lispval mongodb_command(int n,lispval *args)
+static lispval mongodb_command(int n,kno_argvec args)
 {
   lispval arg = args[0], opts = KNO_VOID, command = KNO_VOID, result = KNO_VOID;
   int flags = mongodb_getflags(arg);
@@ -1991,7 +1991,7 @@ static lispval db_simple_command(lispval arg,lispval command,
 
 DEFPRIM("mongodb/cmd",mongodb_simple_command,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(MONGODB/CMD *arg0* *arg1* *args...*)` **undocumented**");
-static lispval mongodb_simple_command(int n,lispval *args)
+static lispval mongodb_simple_command(int n,kno_argvec args)
 {
   lispval arg = args[0], opts = KNO_VOID, command = KNO_VOID, result = KNO_VOID;
   int flags = mongodb_getflags(arg);
@@ -2286,7 +2286,7 @@ static bool bson_append_dtype(struct KNO_BSON_OUTPUT b,
     if (ok) ok = bson_append_document_end(out,&values);
     return ok;}
   else if (KNO_CONSP(val)) {
-    kno_lisp_type ctype = KNO_LISP_TYPE(val);
+    kno_lisp_type ctype = KNO_TYPEOF(val);
     switch (ctype) {
     case kno_string_type: {
       unsigned char _buf[64], *buf=_buf;
@@ -2419,7 +2419,7 @@ static bool bson_append_dtype(struct KNO_BSON_OUTPUT b,
     case kno_compound_type: {
       struct KNO_COMPOUND *compound = KNO_XCOMPOUND(val);
       if (compound == NULL) return KNO_ERROR_VALUE;
-      lispval tag = compound->compound_typetag, *elts = KNO_COMPOUND_ELTS(val);
+      lispval tag = compound->typetag, *elts = KNO_COMPOUND_ELTS(val);
       int len = KNO_COMPOUND_LENGTH(val);
       struct KNO_BSON_OUTPUT rout;
       bson_t doc;
@@ -2680,7 +2680,7 @@ KNO_EXPORT lispval kno_bson_output(struct KNO_BSON_OUTPUT out,lispval obj)
   else if (KNO_COMPOUNDP(obj)) {
     struct KNO_COMPOUND *compound = KNO_XCOMPOUND(obj);
     if (compound == NULL) return KNO_ERROR_VALUE;
-    lispval tag = compound->compound_typetag, *elts = KNO_COMPOUND_ELTS(obj);
+    lispval tag = compound->typetag, *elts = KNO_COMPOUND_ELTS(obj);
     int len = KNO_COMPOUND_LENGTH(obj);
     if (tag == mongovec_symbol) {
       lispval *scan = elts, *limit = scan+len; int i = 0;
@@ -2909,7 +2909,7 @@ static void bson_read_step(KNO_BSON_INPUT b,int flags,
 	value = kno_init_pair(NULL,car,cdr);}
       else if (kno_test(value,knotag_symbol,KNO_VOID)) {
 	lispval tag = kno_get(value,knotag_symbol,KNO_VOID), compound;
-	struct KNO_COMPOUND_TYPEINFO *entry = kno_lookup_compound(tag);
+	struct KNO_TYPEINFO *entry = kno_use_typeinfo(tag);
 	lispval fields[16] = { KNO_VOID }, keys = kno_getkeys(value);
 	int max = -1, i = 0, n, ok = 1;
 	{KNO_DO_CHOICES(key,keys) {
@@ -2928,8 +2928,8 @@ static void bson_read_step(KNO_BSON_INPUT b,int flags,
 	      fields[index]=kno_get(value,key,KNO_VOID);}}}
 	if (ok) {
 	  n = max+1;
-	  if ((entry)&&(entry->compound_parser))
-	    compound = entry->compound_parser(n,fields,entry);
+	  if ((entry)&&(entry->type_parsefn))
+	    compound = entry->type_parsefn(n,fields,entry);
 	  else {
 	    struct KNO_COMPOUND *c=
 	      u8_malloc(sizeof(struct KNO_COMPOUND)+(n*LISPVAL_LEN));
@@ -3049,12 +3049,14 @@ KNO_EXPORT lispval kno_bson2dtype(bson_t *in,int flags,lispval opts)
   else return kno_err(kno_BSON_Input_Error,"kno_bson2dtype",NULL,KNO_VOID);
 }
 
-DEFPRIM("mongovec",mongovec_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(0)|KNO_NDCALL,
+DEFPRIM("mongovec",mongovec_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(0)|KNO_NDOP,
 	"`(MONGOVEC *args...*)` **undocumented**");
-static lispval mongovec_lexpr(int n,lispval *values)
+static lispval mongovec_lexpr(int n,kno_argvec values)
 {
   return kno_init_compound_from_elts
-    (NULL,mongovec_symbol,KNO_COMPOUND_INCREF|KNO_COMPOUND_SEQUENCE,n,values);
+    (NULL,mongovec_symbol,
+     KNO_COMPOUND_INCREF|KNO_COMPOUND_SEQUENCE,
+     n,(lispval *)values);
 }
 
 DEFPRIM1("->mongovec",make_mongovec,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
@@ -3514,10 +3516,6 @@ KNO_EXPORT int kno_init_mongodb()
   kno_mongoc_collection = kno_register_cons_type("MongoDB collection");
   kno_mongoc_cursor = kno_register_cons_type("MongoDB cursor");
 
-  kno_type_names[kno_mongoc_server]="MongoDB server";
-  kno_type_names[kno_mongoc_collection]="MongoDB collection";
-  kno_type_names[kno_mongoc_cursor]="MongoDB cursor";
-
   kno_recyclers[kno_mongoc_server]=recycle_server;
   kno_recyclers[kno_mongoc_collection]=recycle_collection;
   kno_recyclers[kno_mongoc_cursor]=recycle_cursor;
@@ -3526,7 +3524,7 @@ KNO_EXPORT int kno_init_mongodb()
   kno_unparsers[kno_mongoc_collection]=unparse_collection;
   kno_unparsers[kno_mongoc_cursor]=unparse_cursor;
 
-  init_local_cprims();
+  link_local_cprims();
 
   kno_register_config("MONGODB:FLAGS",
 		      "Default flags (fixnum) for MongoDB/BSON processing",
@@ -3604,7 +3602,7 @@ KNO_EXPORT int kno_init_mongodb()
   return 1;
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("mongodb/dbinfo",mongodb_getinfo,2,mongodb_module);
   KNO_LINK_PRIM("mongodb/cursor?",mongodb_cursorp,1,mongodb_module);

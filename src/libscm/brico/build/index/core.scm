@@ -55,30 +55,39 @@
   {@1/0{WN16} @1/46074"Wordnet 3.0, Copyright 2006 Princeton University" 
    @1/94d47"Wordnet 3.1, Copyright 2011 Princeton University"})
 
+(define index-sources
+  '{@1/0{WN16}
+    @1/46074"Wordnet 3.0, Copyright 2006 Princeton University" 
+    @1/94d47"Wordnet 3.1, Copyright 2011 Princeton University"
+    wikidata})
+
 (defambda (indexer frames batch-state loop-state task-state)
-  (let ((index (get batch-state 'index))
+  (let ((core.index (get batch-state 'core.index))
 	(wikid.index (get batch-state 'wikid.index))
 	(latlong.index (get batch-state 'latlong.index))
 	(wordnet.index (get batch-state 'wordnet.index)))
+    (info%watch "INDEXER/thread"
+      core.index wikid.index latlong.index wordnet.index)
     (prefetch-oids! frames)
     (do-choices (f frames)
-      (onerror
-	  (begin
-	    (when fixup (fixup f))
-	      (when (test f 'source wn-sources)
-		(index-frame wordnet.index
-		    f '{type source has words hypernym hyponym sensecat
-			sensekeys synsets verb-frames pertainym
-			lex-fileno})
-		(index-frame wordnet.index f '%sensekeys (getvalues (get f '%sensekeys)))
-		(index-frame wordnet.index f 'has (getkeys f))
-		(index-gloss wordnet.index f 'gloss)
-		(index-brico index f)
-		(index-latlong latlong.index f)
-		(index-frame index f index-also)
-		(index-wikid wikid.index f))))
-	  (lambda (ex) (logwarn |IndexError| "Indexing " f "\n" ex))))
-    (swapout frames))
+      (when fixup (fixup f))
+      (cond ((test f 'source index-sources)
+	     (index-frame wordnet.index
+		 f '{type source has words hypernym hyponym sensecat
+		     sensekeys synsets verb-frames pertainym
+		     lex-fileno})
+	     (index-frame wordnet.index f '%sensekeys (getvalues (get f '%sensekeys)))
+	     (index-frame wordnet.index f 'has (getkeys f))
+	     (index-gloss wordnet.index f 'gloss)
+	     (index-brico core.index f)
+	     (index-latlong latlong.index f)
+	     (index-frame core.index f index-also)
+	     (index-wikid wikid.index f))
+	    ((test f 'type '{slot language lexslot kbsource})
+	     (index-brico core.index f)
+	     (index-frame core.index f index-also))
+	    ((test f 'source) (index-frame core.index f 'source))))
+  (swapout frames)))
 
 (define (main . names)
   (config! 'appid  "indexcore")
@@ -90,15 +99,17 @@
 	 (wikid.index (target-index wikid-index))
 	 (index (make-aggregate-index {core.index latlong.index wikidref.index}
 				      [register #t])))
+    (info%watch "MAIN" core.index wikid.index latlong.index wordnet.index)
     (engine/run indexer (pool-elts pools)
-      `#[loop #[index ,index
+      `#[loop #[core.index ,core.index
 		wordnet.index ,wordnet.index
+		latlong.index ,latlong.index
 		wikid.index ,wikid.index]
-	 branchindexes {index wordnet.index wikid.index}
+	 branchindexes {core.index wordnet.index wikid.index latlong.index}
 	 batchsize 10000 batchrange 4
 	 checkfreq 15
 	 checktests ,(engine/interval (config 'savefreq 60))
-	 checkpoint ,{pools wikid.index wordnet.index index}
+	 checkpoint ,{pools core.index wikid.index wordnet.index}
 	 logfns {,engine/log ,engine/logrusage}
 	 logfreq ,(config 'logfreq 50)
 	 logchecks #t])

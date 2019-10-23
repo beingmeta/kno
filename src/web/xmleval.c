@@ -761,7 +761,8 @@ void kno_xmleval_contentfn(KNO_XML *node,u8_string s,int len)
           const u8_byte *as = scan+1, *end = semi;
           U8_INIT_FIXED_OUTPUT(&out,64,buf);
           while (as<end) {
-            int c = u8_sgetc(&as); c = u8_toupper(c);
+            int c = u8_sgetc(&as);
+	    c = u8_tolower(c);
             u8_putc(&out,c);}
           symbol = kno_intern(out.u8_outbuf);
           if (start<scan)
@@ -1752,17 +1753,28 @@ KNO_EXPORT void kno_init_xmleval_c()
   knoml_module = kno_make_env(kno_make_hashtable(NULL,17),NULL);
   lispval addtomod = (lispval) knoml_module;
 
-  kno_def_evalfn(addtomod,"IF","",knoml_if);
-  kno_def_evalfn(addtomod,"ALT","",knoml_alt);
-  kno_def_evalfn(addtomod,"IFREQ","",knoml_ifreq);
-  kno_def_evalfn(addtomod,"LOOP","",knoml_loop);
-  kno_def_evalfn(addtomod,"INSERT","",knoml_insert);
-  kno_def_evalfn(addtomod,"DEFINE","",knoml_define);
-  kno_def_evalfn(addtomod,"FIND","",knoml_find);
-  kno_def_evalfn(addtomod,"TRY","",knoml_try);
-  kno_def_evalfn(addtomod,"UNION","",knoml_union);
-  kno_def_evalfn(addtomod,"INTERSECTION","",knoml_intersection);
-  kno_def_evalfn(addtomod,"BINDING","",knoml_binding);
+  kno_def_evalfn(addtomod,"IF",knoml_if,
+		 "*undocumented*");
+  kno_def_evalfn(addtomod,"ALT",knoml_alt,
+		 "*undocumented*");
+  kno_def_evalfn(addtomod,"IFREQ",knoml_ifreq,
+		 "*undocumented*");
+  kno_def_evalfn(addtomod,"LOOP",knoml_loop,
+		 "*undocumented*");
+  kno_def_evalfn(addtomod,"INSERT",knoml_insert,
+		 "*undocumented*");
+  kno_def_evalfn(addtomod,"DEFINE",knoml_define,
+		 "*undocumented*");
+  kno_def_evalfn(addtomod,"FIND",knoml_find,
+		 "*undocumented*");
+  kno_def_evalfn(addtomod,"TRY",knoml_try,
+		 "*undocumented*");
+  kno_def_evalfn(addtomod,"UNION",knoml_union,
+		 "*undocumented*");
+  kno_def_evalfn(addtomod,"INTERSECTION",knoml_intersection,
+		 "*undocumented*");
+  kno_def_evalfn(addtomod,"BINDING",knoml_binding,
+		 "*undocumented*");
 
   xmleval_tag = kno_intern("%xmleval");
   xmleval2expr_tag = kno_intern("%xmleval2expr");
@@ -1829,10 +1841,4 @@ KNO_EXPORT void kno_init_xmleval_c()
   u8_register_source_file(_FILEINFO);
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
 

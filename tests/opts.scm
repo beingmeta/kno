@@ -47,3 +47,4 @@
 (evaltest 9 (getopt (opt+ #[x 3 y 4] 'y 9) 'y))
 (evaltest 5 (getopt (opt+ #[x 3 y 4] 'y 9 #[y 5]) 'y))
 
+(applytest "foo" %getopt {#[var "foo"] #[bar "baz"]} 'var)

@@ -1,4 +1,4 @@
-(in-module 'test/benchmarks)
+(in-module 'tests/benchmarks)
 
 (module-export! '{ack fib fibtr fact facttr fibflt tak takflt spectral-norm xspectral-norm})
 

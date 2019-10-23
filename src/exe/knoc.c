@@ -170,20 +170,27 @@ static u8_exception last_exception = NULL;
 
 static int debug_maxelts = 32, debug_maxchars = 80;
 
+static u8_mutex console_lock;
+
 static void close_consoles()
 {
-  if (inconsole) {
-    u8_close((u8_stream)inconsole);
-    inconsole = NULL;}
-  if (outconsole) {
-    u8_close((u8_stream)outconsole);
-    outconsole = NULL;}
-  if (errconsole) {
-    u8_close((u8_stream)errconsole);
-    errconsole = NULL;}
-  if (console_env) {
-    kno_recycle_lexenv(console_env);
-    console_env = NULL;}
+  u8_lock_mutex(&console_lock);
+  u8_input in = inconsole;
+  u8_output out = outconsole;
+  u8_output err = errconsole;
+  kno_lexenv env = console_env;
+  inconsole = NULL;
+  outconsole = errconsole = NULL;
+  console_env = NULL;
+  u8_unlock_mutex(&console_lock);
+  if (in) {
+    u8_close_input(in);}
+  if (out) {
+    u8_close_output(out);}
+  if (err) {
+    u8_close_output(err);}
+  if (env) {
+    kno_recycle_lexenv(env);}
 }
 
 static lispval oid_listfn(lispval item)
@@ -685,7 +692,7 @@ static int bugdir_config_set(lispval var,lispval val,void *d)
 
 /* Local cprims */
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
 }
 
@@ -844,6 +851,7 @@ int main(int argc,char **argv)
     console_bugdir = u8_abspath("./_bugjar",NULL);
 
   /* Initialize console streams */
+  u8_init_mutex(&console_lock);
   inconsole = in;
   outconsole = out;
   errconsole = err;
@@ -925,20 +933,21 @@ int main(int argc,char **argv)
     kno_set_config("INTERPRETER",interpval);
     kno_decref(interpval);}
 
-  kno_defn((lispval)env,
-           kno_make_cprim1("BACKTRACE",backtrace_prim,MIN_ARGS(0),
-                           "Dumps a backtrace of the last error, either "
-                           "into a file or to the console"));
+  lispval btprim = kno_make_cprim1("BACKTRACE",backtrace_prim,MIN_ARGS(0),
+				   "Dumps a backtrace of the last error, either "
+				   "into a file or to the console");
+  kno_defn((lispval)env,btprim);
   kno_defalias((lispval)env,"%","BACKTRACE");
+  kno_decref(btprim);
 
-  kno_defn((lispval)env,
-           kno_make_cprim0("%HISTORY",history_prim,MIN_ARGS(0),
-                           "Gets the current value history"));
+  lispval histprim = kno_make_cprim0("%HISTORY",history_prim,MIN_ARGS(0),
+				     "Gets the current value history");
+  kno_defn((lispval)env,histprim);
+  kno_decref(histprim);
 
-  kno_def_evalfn((lispval)env,"%HISTREF","",histref_evalfn);
+  kno_def_evalfn((lispval)env,"%HISTREF",histref_evalfn,"");
 
-
-  init_local_cprims();
+  link_local_cprims();
 
   history_symbol = kno_intern("%history");
   histref_symbol = kno_intern("%histref");
@@ -980,7 +989,7 @@ int main(int argc,char **argv)
      kno_boolconfig_get,kno_boolconfig_set,&use_void_marker);
 
   /* This is the REPL value history, not the editline history */
-  kno_histinit(0);
+  kno_hist_init(0);
 
   kno_set_config("SIGRAISE",KNO_INT(SIGINT));
 
@@ -1164,9 +1173,3 @@ int main(int argc,char **argv)
   return 0;
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

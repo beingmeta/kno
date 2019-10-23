@@ -4035,9 +4035,3 @@ void kno_init_match_c()
   subst_symbol = kno_intern("subst");
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

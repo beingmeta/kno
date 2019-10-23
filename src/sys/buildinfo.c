@@ -16,9 +16,9 @@
 static lispval build_info=VOID;
 static lispval _kno_features_symbol;
 
-#define config_int(var) \
+#define config_int(var)                                 \
   kno_store(build_info,kno_intern(# var),KNO_INT(var));
-#define config_bool(var) \
+#define config_bool(var)                                        \
   kno_add(build_info,_kno_features_symbol,kno_intern(# var));
 
 #define config_string(var) config_string_helper(# var,var)
@@ -460,10 +460,10 @@ KNO_EXPORT void kno_init_build_info()
 
 #if (WORDS_BIGENDIAN)
   kno_add(build_info,kno_intern("byte_order"),
-         kno_intern("little_endian"));
+          kno_intern("little_endian"));
 #else
   kno_add(build_info,kno_intern("byte_order"),
-         kno_intern("big_endian"));
+          kno_intern("big_endian"));
 #endif
 
   config_string(KNO_VERSION);
@@ -566,16 +566,10 @@ KNO_EXPORT void kno_init_build_info()
 #endif
 
   kno_register_config("BUILDINFO",
-                     "Information about compile-time features",
-                     config_get_build_info,NULL,NULL);
+                      "Information about compile-time features",
+                      config_get_build_info,NULL,NULL);
 
   struct KNO_SLOTMAP *table= (kno_slotmap) build_info;
   table->table_readonly=1;
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

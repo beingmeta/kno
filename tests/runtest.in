@@ -7,6 +7,7 @@ fi
 case $1 in
     *.scm)
 	PROGNAME=./knox;
+	TESTNAME=$(basename $1 .scm);
 	;;
     *.knox)
 	PROGNAME=./knox;
@@ -15,9 +16,16 @@ case $1 in
 	PROGNAME=$1; shift;
 	;;
 esac
-
+if test -z "$TESTNAME"; then
+    case $1 in
+	*.scm)
+	    TESTNAME=$(basename $1 .scm)
+	    ;;
+    esac;
+fi;
 
 LOGFILE=${USELOG:-state/$$.log}
+ERRFILE=${USELOG:-err/$$.log}
 LOGTIME=state/t$$.elapsed
 KEEPTIMES=no
 KEEPLOGS=no
@@ -87,7 +95,13 @@ if [ -f ${LOGFILE} ]; then
 	cat ${LOGFILE} >> ${COMBOLOG} || true;
     fi;
     if [ "$SUCCESS" = "no" ]; then
-	printf "Log file in %s\n" "${LOGFILE}";
+	cp ${LOGFILE} ${ERRFILE}
+	if test -z "$TESTNAME"; then
+	    printf "Log file in %s\n" "${ERRFILE}";
+	else
+	    ln -sf $(basename ${ERRFILE}) err/${TESTNAME}.log;
+	    printf "Log file in %s (%s)\n" "err/${TESTNAME}.log" "${ERRFILE}";
+	fi;
     elif [ "$KEEPLOGS" = "no" ]; then
 	rm -f ${LOGFILE} $$.*.started $$.*.cmd;
     fi;

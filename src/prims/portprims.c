@@ -611,7 +611,7 @@ static off_t find_substring(u8_string string,lispval strings,
 static ssize_t get_more_data(u8_input in,ssize_t lim);
 static lispval record_reader(lispval port,lispval ends,lispval limit_arg);
 
-DEFPRIM3("read-record",read_record_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+DEFPRIM3("read-record",read_record_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1)|KNO_NDOP,
 	 "`(READ-RECORD *ports* [*separator*] [*limit*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
 	 kno_any_type,KNO_VOID);
@@ -728,13 +728,13 @@ static lispval maxkeys_symbol, listmax_symbol, vecmax_symbol, choicemax_symbol;
 
 #define PPRINT_MARGINBUF_SIZE 256
 
-DEFPRIM("pprint",lisp_pprint,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
+DEFPRIM("pprint",lisp_pprint,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDOP,
 	"(pprint *object* *port* *width* *margin*)\n"
 	"Generates a formatted representation of *object* "
 	"on *port* () with a width of *width* columns with "
 	"a left margin of *margin* which is either number "
 	"of columns or a string.");
-static lispval lisp_pprint(int n,lispval *args)
+static lispval lisp_pprint(int n,kno_argvec args)
 {
   U8_OUTPUT *out=NULL;
   struct U8_OUTPUT tmpout;
@@ -891,7 +891,7 @@ static int get_fixopt(lispval opts,lispval optname,long long *intval)
 
 static lispval label_symbol, width_symbol, depth_symbol, output_symbol;
 
-DEFPRIM3("listdata",lisp_listdata,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+DEFPRIM3("listdata",lisp_listdata,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1)|KNO_NDOP,
 	 "`(LISTDATA *object* [*opts*] [*port*])` "
 	 "output a formatted textual representation of "
 	 "*object* to *port*, controlled by *opts*.",
@@ -1216,14 +1216,17 @@ KNO_EXPORT void kno_init_portprims_c()
   kno_recyclers[kno_ioport_type]=recycle_port;
 
   init_portprims_symbols();
-  init_local_cprims();
+  link_local_cprims();
 
-  kno_def_evalfn(kno_io_module,"PRINTOUT","",printout_evalfn);
-  kno_def_evalfn(kno_io_module,"LINEOUT","",lineout_evalfn);
-  kno_def_evalfn(kno_io_module,"STRINGOUT","",stringout_evalfn);
+  kno_def_evalfn(kno_io_module,"PRINTOUT",printout_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_io_module,"LINEOUT",lineout_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_io_module,"STRINGOUT",stringout_evalfn,
+		 "*undocumented*");
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("gzip",gzip_prim,3,kno_io_module);
   KNO_LINK_PRIM("packet->base16",to_base16_prim,1,kno_io_module);

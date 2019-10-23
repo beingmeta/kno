@@ -84,11 +84,15 @@ KNO_EXPORT lispval kno_convert_entities(u8_string arg,u8_string lim)
       const u8_byte *end = NULL;
       int code = u8_parse_entity(scan,&end);
       if (code<=0) {
-	u8_putc(&out,c); c = u8_sgetc(&scan);}
+	u8_putc(&out,c);
+	c = u8_sgetc(&scan);}
       else {
-	u8_putc(&out,code); scan = end;
+	u8_putc(&out,code);
+	scan = end;
 	c = u8_sgetc(&scan);}}
-    else {u8_putc(&out,c); c = u8_sgetc(&scan);}
+    else {
+      u8_putc(&out,c);
+      c = u8_sgetc(&scan);}
   return kno_stream2string(&out);
 }
 
@@ -138,13 +142,18 @@ static int egetc(u8_string *s)
   if (**s=='\0') return -1;
   else if (**s<0x80)
     if (**s=='&')
-      if (strncmp(*s,"&nbsp;",6)==0) {*s = *s+6; return ' ';}
+      if (strncmp(*s,"&nbsp;",6)==0) {
+	*s = *s+6;
+	return ' ';}
       else {
 	const u8_byte *end = NULL;
 	int code = u8_parse_entity((*s)+1,&end);
 	if (code>0) {
-	  *s = end; return code;}
-	else {(*s)++; return '&';}}
+	  *s = end;
+	  return code;}
+	else {
+	  (*s)++;
+	  return '&';}}
     else {
       int c = **s; (*s)++; return c;}
   else return u8_sgetc(s);
@@ -152,10 +161,13 @@ static int egetc(u8_string *s)
 
 static lispval decode_entities(lispval input)
 {
-  struct U8_OUTPUT out; u8_string scan = CSTRING(input); int c = egetc(&scan);
+  struct U8_OUTPUT out;
+  u8_string scan = CSTRING(input);
+  int c = egetc(&scan);
   U8_INIT_OUTPUT(&out,STRLEN(input));
   while (c>=0) {
-    u8_putc(&out,c); c = egetc(&scan);}
+    u8_putc(&out,c);
+    c = egetc(&scan);}
   return kno_stream2string(&out);
 }
 
@@ -1127,7 +1139,7 @@ static lispval xmlparse_core(lispval input,int flags)
   return result;
 }
 
-DEFPRIM2("xmlparse",xmlparse,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+DEFPRIM2("xmlparse",xmlparse,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDOP,
 	 "`(XMLPARSE *arg0* [*arg1*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval xmlparse(lispval input,lispval options)
@@ -1146,7 +1158,7 @@ static lispval xmlparse(lispval input,lispval options)
 
 /* Parsing KNOML */
 
-DEFPRIM2("knoml/load",knoml_load,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+DEFPRIM2("knoml/load",knoml_load,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDOP,
 	 "`(KNOML/LOAD *arg0* [*arg1*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval knoml_load(lispval input,lispval sloppy)
@@ -1179,7 +1191,7 @@ static lispval knoml_load(lispval input,lispval sloppy)
   else return KNO_ERROR;
 }
 
-DEFPRIM2("knoml/parse",knoml_read,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+DEFPRIM2("knoml/parse",knoml_read,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDOP,
 	 "`(KNOML/PARSE *arg0* [*arg1*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval knoml_read(lispval input,lispval sloppy)
@@ -1226,7 +1238,7 @@ static lispval webtools_module;
 KNO_EXPORT void kno_init_xmlinput_c()
 {
   webtools_module = kno_new_module("WEBTOOLS",0);
-  init_local_cprims();
+  link_local_cprims();
 
   attribs_symbol = kno_intern("%attribs");
   type_symbol = kno_intern("%type");
@@ -1258,7 +1270,7 @@ KNO_EXPORT void kno_init_xmlinput_c()
   u8_register_source_file(_FILEINFO);
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("knoml/parse",knoml_read,2,webtools_module);
   KNO_LINK_PRIM("knoml/load",knoml_load,2,webtools_module);

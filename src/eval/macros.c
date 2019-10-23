@@ -109,5 +109,5 @@ KNO_EXPORT void kno_init_macros_c()
   kno_unparsers[kno_macro_type]=unparse_macro;
   kno_recyclers[kno_macro_type]=recycle_macro;
 
-  kno_def_evalfn(kno_scheme_module,"MACRO","",macro_evalfn);
+  kno_def_evalfn(kno_scheme_module,"MACRO",macro_evalfn,"*undocumented*");
 }

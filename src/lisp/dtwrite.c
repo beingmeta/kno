@@ -28,7 +28,7 @@ int kno_use_dtblock = KNO_USE_DTBLOCK;
 unsigned int kno_check_dtsize = 1;
 
 int (*kno_dtype_error)
-     (struct KNO_OUTBUF *,lispval x,u8_string details) = NULL;
+(struct KNO_OUTBUF *,lispval x,u8_string details) = NULL;
 
 u8_condition kno_InconsistentDTypeSize=_("Inconsistent DTYPE size");
 
@@ -64,7 +64,7 @@ static ssize_t try_dtype_output(ssize_t *len,struct KNO_OUTBUF *out,lispval x)
   *len = *len+dlen;
   return dlen;
 }
-#define kno_output_dtype(len,out,x) \
+#define kno_output_dtype(len,out,x)                              \
   if (PRED_FALSE(KNO_ISREADING(out))) return kno_isreadbuf(out); \
   else if (try_dtype_output(&len,out,x)<0) return -1; else {}
 
@@ -83,8 +83,7 @@ static ssize_t write_opaque(struct KNO_OUTBUF *out,lispval x)
   return 18+slen;
 }
 
-static int opaque_unparser(u8_output out,lispval val,
-                               kno_compound_typeinfo info)
+static int opaque_unparser(u8_output out,lispval val,kno_typeinfo info)
 {
   struct KNO_COMPOUND *compound = (kno_compound) val;
   if ( (compound->compound_length > 0) &&
@@ -627,7 +626,7 @@ static ssize_t dtype_compound(struct KNO_OUTBUF *out,lispval x)
   struct KNO_COMPOUND *xc = kno_consptr(struct KNO_COMPOUND *,x,kno_compound_type);
   int n_bytes = 1;
   kno_write_byte(out,dt_compound);
-  n_bytes = n_bytes+kno_write_dtype(out,xc->compound_typetag);
+  n_bytes = n_bytes+kno_write_dtype(out,xc->typetag);
   if ( (xc->compound_length) == 1 )
     n_bytes = n_bytes+kno_write_dtype(out,xc->compound_0);
   else {
@@ -653,7 +652,7 @@ KNO_EXPORT void kno_init_dtwrite_c()
 
   error_symbol = kno_intern("%error");
 
-  kno_compound_unparser("%OPAQUE",opaque_unparser);
+  kno_set_unparsefn(kno_intern("%OPAQUE"),opaque_unparser);
 
   kno_register_config
     ("USEDTBLOCK",_("Use the DTBLOCK dtype code when appropriate"),
@@ -661,9 +660,3 @@ KNO_EXPORT void kno_init_dtwrite_c()
 
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

@@ -835,7 +835,7 @@ DEFPRIM("thread/call",threadcall_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
 	"applies *fcn* in parallel to all of the "
 	"combinations of *args* and returns one thread for "
 	"each combination.");
-static lispval threadcall_prim(int n,lispval *args)
+static lispval threadcall_prim(int n,kno_argvec args)
 {
   lispval fn = args[0];
   if (KNO_APPLICABLEP(fn)) {
@@ -865,7 +865,7 @@ DEFPRIM("thread/apply",threadapply_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
 	"combinations of *args* and returns one thread for "
 	"each combination. Choice arguments can be passed "
 	"as one by using `QCHOICE`.");
-static lispval threadapply_prim(int n,lispval *args)
+static lispval threadapply_prim(int n,kno_argvec args)
 {
   if (n == 1)
     return threadcall_prim(1,args);
@@ -915,7 +915,7 @@ DEFPRIM("thread/call+",threadcallx_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"combinations of *args* and returns one thread for "
 	"each combination. *opts* specifies options for "
 	"creating each thread.");
-static lispval threadcallx_prim(int n,lispval *args)
+static lispval threadcallx_prim(int n,kno_argvec args)
 {
   lispval opts = args[0];
   lispval fn   = args[1];
@@ -1214,7 +1214,7 @@ static int join_thread(struct KNO_THREAD *tstruct,
   return rv;
 }
 
-DEFPRIM2("thread/join",threadjoin_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+DEFPRIM2("thread/join",threadjoin_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDOP,
 	 "(THREAD/JOIN *threads* [*opts*]) "
 	 "waits for *threads* to finish. If *opts* is "
 	 "provided, it specifies a timeout. This returns "
@@ -1248,7 +1248,7 @@ static lispval threadjoin_prim(lispval threads,lispval U8_MAYBE_UNUSED opts)
   return finished;
 }
 
-DEFPRIM2("thread/wait",threadwait_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+DEFPRIM2("thread/wait",threadwait_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDOP,
 	 "(THREAD/WAIT *threads* [*opts*]) "
 	 "waits for all of *threads* to return. If provided "
 	 "*opts* specifies a timeout, and unfinished "
@@ -1281,7 +1281,7 @@ static lispval threadwait_prim(lispval threads,lispval U8_MAYBE_UNUSED opts)
   return unfinished;
 }
 
-DEFPRIM2("thread/finish",threadfinish_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+DEFPRIM2("thread/finish",threadfinish_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDOP,
 	 "(THREAD/FINISH *args* [*opts*]) "
 	 "waits for all of threads in *args* to return, "
 	 "returning the non-VOID thread results together "
@@ -1334,7 +1334,7 @@ static lispval threadfinish_prim(lispval args,lispval opts)
   return results;
 }
 
-DEFPRIM2("thread/wait!",threadwaitbang_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+DEFPRIM2("thread/wait!",threadwaitbang_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDOP,
 	 "(THREAD/WAIT! *threads*) "
 	 "waits for all of *threads* to return, and returns "
 	 "VOID. *opts is currently ignored.",
@@ -1590,9 +1590,9 @@ static int walk_thread_struct(kno_walker walker,lispval x,
 	if (kno_walk(walker,stack_val,walkdata,flags,depth-1)<0) {
 	  KNO_STOP_DO_CHOICES;
 	  return -1;}}}
-    if (stackptr->n_args) {
-      lispval *args = stackptr->stack_args;
-      int i=0, n=stackptr->n_args; while (i<n) {
+    if (stackptr->stack_arglen) {
+      const lispval *args = stackptr->stack_args;
+      int i=0, n=stackptr->stack_arglen; while (i<n) {
 	if (kno_walk(walker,args[i],walkdata,flags,depth-1)<0) {
 	  return -1;}
 	i++;}}}
@@ -1796,49 +1796,43 @@ KNO_EXPORT void kno_init_threads_c()
   kno_recyclers[kno_synchronizer_type]=recycle_synchronizer;
   kno_unparsers[kno_synchronizer_type]=unparse_synchronizer;
 
-  init_local_cprims();
+  link_local_cprims();
 
-  kno_def_evalfn(threads_module,"PARALLEL",
+  kno_def_evalfn(threads_module,"PARALLEL",parallel_evalfn,
 		 "`(PARALLEL *exprs...*)` is just like `CHOICE`, "
-		 "but each of *exprs* is evaluated in its own thread.",
-		 parallel_evalfn);
-  kno_def_evalfn(threads_module,"SPAWN",
+		 "but each of *exprs* is evaluated in its own thread.");
+  kno_def_evalfn(threads_module,"SPAWN",spawn_evalfn,
 		 "`(SPAWN *expr* *opts**)` starts and returns parallel threads"
 		 "evaluating *expr* (which may be a choice of exprs). "
-		 "*opts*, if provided, specifies thread creation options.",
-		 spawn_evalfn);
+		 "*opts*, if provided, specifies thread creation options.");
 
-  kno_def_evalfn(threads_module,"THREAD/EVAL",
+  kno_def_evalfn(threads_module,"THREAD/EVAL",threadeval_evalfn,
 		 "`(THREAD/EVAL *expr* [*env*] [*opts*])` starts a parallel "
 		 "thread evaluating *expr*. If *env* is provided, it is used, "
 		 "otherwise, *expr* is evaluated in a *copy* of the current "
 		 "environment. *opts*, if provided, specifies thread creation "
-		 "options.",
-		 threadeval_evalfn);
+		 "options.");
 
 
   u8_init_mutex(&sassign_lock);
-  kno_def_evalfn(threads_module,"SSET!",
+  kno_def_evalfn(threads_module,"SSET!",sassign_evalfn,
 		 "`(SSET! *var* *value*)` thread-safely sets *var* "
-		 "to *value*, just like `SET!` would do.",
-		 sassign_evalfn);
+		 "to *value*, just like `SET!` would do.");
 
   timeout_symbol = kno_intern("timeout");
   logexit_symbol = kno_intern("logexit");
   keepenv_symbol = kno_intern("keepenv");
   void_symbol = kno_intern("void");
 
-  kno_def_evalfn(threads_module,"WITH-LOCK",
+  kno_def_evalfn(threads_module,"WITH-LOCK",with_lock_evalfn,
 		 "`(WITH-LOCK *synchronizer* *body...*)` executes the "
-		 "expressions in *body* with *synchronizer* locked.",
-		 with_lock_evalfn);
+		 "expressions in *body* with *synchronizer* locked.");
 
-  kno_def_evalfn(threads_module,"THREAD/CACHE",
+  kno_def_evalfn(threads_module,"THREAD/CACHE",thread_ref_evalfn,
 		 "`(THREAD/CACHE *sym* *expr*)` returns the fluid "
 		 "(thread-local) value of *sym* (which is evaluated) "
 		 "if it exists. If it doesn't exist, *expr* is evaluted "
-		 "and fluidly assigned to *sym*.",
-		 thread_ref_evalfn);
+		 "and fluidly assigned to *sym*.");
 
   kno_register_config("ALLTHREADS",
 		      "All active LISP threads",
@@ -1877,7 +1871,7 @@ KNO_EXPORT void kno_init_threads_c()
 }
 
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("cstack-limit!",set_cstack_limit_prim,1,threads_module);
   KNO_LINK_PRIM("cstack-limit",cstack_limit_prim,0,threads_module);

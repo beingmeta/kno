@@ -88,6 +88,25 @@ static void init_opcode_names()
   set_opcode_name(KNO_GETKEYS_OPCODE,"OP_GETKEYS");
   set_opcode_name(KNO_GETVALUES_OPCODE,"OP_GETVALUES");
   set_opcode_name(KNO_GETASSOCS_OPCODE,"OP_GETASSOCS");
+
+  set_opcode_name(KNO_APPLY0_OPCODE,"OP_APPLY0");
+  set_opcode_name(KNO_APPLY1_OPCODE,"OP_APPLY1");
+  set_opcode_name(KNO_APPLY2_OPCODE,"OP_APPLY2");
+  set_opcode_name(KNO_APPLY3_OPCODE,"OP_APPLY3");
+  set_opcode_name(KNO_APPLY4_OPCODE,"OP_APPLY4");
+  set_opcode_name(KNO_APPLY5_OPCODE,"OP_APPLY5");
+  set_opcode_name(KNO_APPLY6_OPCODE,"OP_APPLY6");
+  set_opcode_name(KNO_APPLY7_OPCODE,"OP_APPLY7");
+  set_opcode_name(KNO_APPLY8_OPCODE,"OP_APPLY8");
+  set_opcode_name(KNO_APPLY9_OPCODE,"OP_APPLY9");
+  set_opcode_name(KNO_APPLY10_OPCODE,"OP_APPLY10");
+  set_opcode_name(KNO_APPLY11_OPCODE,"OP_APPLY11");
+  set_opcode_name(KNO_APPLY12_OPCODE,"OP_APPLY12");
+  set_opcode_name(KNO_APPLY13_OPCODE,"OP_APPLY13");
+  set_opcode_name(KNO_APPLY14_OPCODE,"OP_APPLY14");
+  set_opcode_name(KNO_APPLY15_OPCODE,"OP_APPLY15");
+  set_opcode_name(KNO_APPLY_N_OPCODE,"OP_APPLY_N");
+
 }
 
 /* Emacs local variables

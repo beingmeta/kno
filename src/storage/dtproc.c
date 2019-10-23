@@ -30,18 +30,16 @@ KNO_EXPORT lispval kno_make_dtproc(u8_string name,u8_string server,
                                  int minsock,int maxsock,int initsock)
 {
   struct KNO_DTPROC *f = u8_alloc(struct KNO_DTPROC);
-  KNO_INIT_CONS(f,kno_dtproc_type);
+  KNO_INIT_CONS(f,kno_rpcproc_type);
   f->fcn_name = u8_mkstring("%s/%s",name,server);
   f->fcn_filename = u8_strdup(server);
   f->dtprocserver = u8_strdup(server);
   f->dtprocname = kno_intern(name);
   if (ndcall)
-    f->fcn_call |= KNO_FCN_CALL_NDCALL;
+    f->fcn_call |= KNO_FCN_CALL_NDOP;
   f->fcn_min_arity = min_arity;
-  f->fcn_arity = arity;
+  f->fcn_call_width = f->fcn_arity = arity;
   f->fcn_call |= KNO_FCN_CALL_XCALL;
-  f->fcn_typeinfo = NULL;
-  f->fcn_defaults = NULL;
   f->fcn_handler.fnptr = NULL;
   if (minsock<0) minsock = 2;
   if (maxsock<0) maxsock = minsock+3;
@@ -58,7 +56,7 @@ KNO_EXPORT lispval kno_make_dtproc(u8_string name,u8_string server,
 
 static int unparse_dtproc(u8_output out,lispval x)
 {
-  struct KNO_DTPROC *f = kno_consptr(kno_dtproc,x,kno_dtproc_type);
+  struct KNO_DTPROC *f = kno_consptr(kno_dtproc,x,kno_rpcproc_type);
   u8_printf(out,"#<!DTPROC %s using %s>",f->fcn_name,
             f->dtprocserver);
   return 1;
@@ -70,8 +68,6 @@ static void recycle_dtproc(struct KNO_RAW_CONS *c)
   u8_free(f->fcn_name);
   u8_free(f->fcn_filename);
   u8_free(f->dtprocserver);
-  if (f->fcn_typeinfo) u8_free(f->fcn_typeinfo);
-  if (f->fcn_defaults) u8_free(f->fcn_defaults);
   if (!(KNO_STATIC_CONSP(f))) u8_free(f);
 }
 
@@ -121,17 +117,11 @@ KNO_EXPORT void kno_init_dtproc_c()
   u8_register_source_file(_FILEINFO);
   u8_register_source_file(KNO_DTPROC_H_INFO);
 
-  kno_type_names[kno_dtproc_type]=_("dtproc");
-  kno_applyfns[kno_dtproc_type]=(kno_applyfn)dtapply;
-  kno_functionp[kno_dtproc_type]=1;
+  kno_type_names[kno_rpcproc_type]=_("dtproc");
+  kno_applyfns[kno_rpcproc_type]=(kno_applyfn)dtapply;
+  kno_function_types[kno_rpcproc_type]=1;
 
-  kno_unparsers[kno_dtproc_type]=unparse_dtproc;
-  kno_recyclers[kno_dtproc_type]=recycle_dtproc;
+  kno_unparsers[kno_rpcproc_type]=unparse_dtproc;
+  kno_recyclers[kno_rpcproc_type]=recycle_dtproc;
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

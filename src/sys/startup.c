@@ -190,8 +190,8 @@ KNO_EXPORT lispval *kno_handle_argv(int argc,char **argv,
          string */
       lisp_arg = kno_parse_arg(arg);
       if (return_args) {
-        return_args[n]=lisp_arg;
-        kno_incref(lisp_arg);}
+	return_args[n]=lisp_arg;
+	kno_incref(lisp_arg);}
       _kno_argv[n]=lisp_arg; kno_incref(lisp_arg);
       KNO_VECTOR_SET(lisp_args,n,lisp_arg);
       KNO_VECTOR_SET(string_args,n,string_arg);
@@ -390,7 +390,7 @@ KNO_EXPORT void kno_signal_doexit(int sig)
   kno_doexit(KNO_INT2FIX(sig));
 }
 
-
+
 /* RLIMIT configs */
 
 #if HAVE_SYS_RESOURCE_H
@@ -607,7 +607,7 @@ KNO_EXPORT u8_string kno_runbase_filename(u8_string suffix)
       u8_string appid = u8_string_subst(u8_appid(),"/",":");
       runbase = u8_mkpath(runbase_config,appid);
       u8_free(appid);}
-  /* Otherwise, use the configured name as the prefix */
+    /* Otherwise, use the configured name as the prefix */
     else runbase = u8_strdup(runbase_config);}
   if (suffix == NULL)
     return u8_strdup(runbase);
@@ -833,7 +833,7 @@ static int boot_config()
 /* Bootup message */
 
 #define NO_COPYRIGHT_MESSAGE ""
-#define COPYRIGHT_MESSAGE \
+#define COPYRIGHT_MESSAGE                                       \
   "\nCopyright (C) beingmeta 2004-2019, all rights reserved"
 
 KNO_EXPORT int kno_boot_message()
@@ -1035,24 +1035,24 @@ void kno_init_startup_c()
   boot_config();
 
   kno_register_config("QUIET",_("Avoid unneccessary verbiage"),
-                     kno_intconfig_get,kno_boolconfig_set,&kno_be_vewy_quiet);
+                      kno_intconfig_get,kno_boolconfig_set,&kno_be_vewy_quiet);
   kno_register_config("PID",_("system process ID (read-only)"),
-                     config_getpid,NULL,NULL);
+                      config_getpid,NULL,NULL);
   kno_register_config("PPID",_("parent's process ID (read-only)"),
-                     config_getppid,NULL,NULL);
+                      config_getppid,NULL,NULL);
 
   kno_register_config("UTF8WARN",_("warn on bad UTF-8 sequences"),
-                     config_getutf8warn,config_setutf8warn,NULL);
+                      config_getutf8warn,config_setutf8warn,NULL);
   kno_register_config("UTF8ERR",_("fail (error) on bad UTF-8 sequences"),
-                     config_getutf8err,config_setutf8err,NULL);
+                      config_getutf8err,config_setutf8err,NULL);
   kno_register_config("RANDOMSEED",_("random seed used for stochastic operations"),
-                     config_getrandomseed,config_setrandomseed,NULL);
+                      config_getrandomseed,config_setrandomseed,NULL);
 
   kno_register_config("CHECKUTF8",_("check that strings are valid UTF-8 on creation"),
-                     kno_boolconfig_get,kno_boolconfig_set,&kno_check_utf8);
+                      kno_boolconfig_get,kno_boolconfig_set,&kno_check_utf8);
 
   kno_register_config("APPID",_("application ID used in messages and SESSIONID"),
-                     config_getappid,config_setappid,NULL);
+                      config_getappid,config_setappid,NULL);
 
   kno_register_config("CMDARGS",
                       _("the command line arguments as a string, with arguments "
@@ -1062,89 +1062,89 @@ void kno_init_startup_c()
                       _("the command line arguments as a string"),
                       kno_lconfig_get,NULL,&lisp_cmdline);
   kno_register_config("ARGV",
-                     _("the vector of args (before parsing) to the application (no configs)"),
-                     kno_lconfig_get,NULL,&raw_argv);
+                      _("the vector of args (before parsing) to the application (no configs)"),
+                      kno_lconfig_get,NULL,&raw_argv);
   kno_register_config("RAWARGS",
-                     _("the vector of args (before parsing) to the application (no configs)"),
-                     kno_lconfig_get,NULL,&raw_argv);
+                      _("the vector of args (before parsing) to the application (no configs)"),
+                      kno_lconfig_get,NULL,&raw_argv);
   kno_register_config("CMDARGS",
-                     _("the vector of parsed args to the application (no configs)"),
-     kno_lconfig_get,NULL,&lisp_argv);
+                      _("the vector of parsed args to the application (no configs)"),
+                      kno_lconfig_get,NULL,&lisp_argv);
   kno_register_config("ARGS",
-                     _("the vector of parsed args to the application (no configs)"),
-     kno_lconfig_get,NULL,&lisp_argv);
+                      _("the vector of parsed args to the application (no configs)"),
+                      kno_lconfig_get,NULL,&lisp_argv);
   kno_register_config("STRINGARGS",
-                     _("the vector of args (before parsing) to the application (no configs)"),
-     kno_lconfig_get,NULL,&string_argv);
+                      _("the vector of args (before parsing) to the application (no configs)"),
+                      kno_lconfig_get,NULL,&string_argv);
   kno_register_config("CONFIGARGS",
-                     _("config arguments passed to the application (unparsed)"),
+                      _("config arguments passed to the application (unparsed)"),
                       kno_lconfig_get,NULL,&config_argv);
   kno_register_config("EXENAME",
-                     _("the vector of args (before parsing) to the application (no configs)"),
-                     kno_lconfig_get,NULL,&exec_arg);
+                      _("the vector of args (before parsing) to the application (no configs)"),
+                      kno_lconfig_get,NULL,&exec_arg);
 
 
 
   kno_register_config("LOGCMD",
                       _("Whether to display command line args on entry and exit"),
-                     kno_boolconfig_get,kno_boolconfig_set,&kno_logcmd);
+                      kno_boolconfig_get,kno_boolconfig_set,&kno_logcmd);
 
 
 
   kno_register_config("SESSIONID",_("unique session identifier"),
-                     config_getsessionid,config_setsessionid,NULL);
+                      config_getsessionid,config_setsessionid,NULL);
   kno_register_config("FASTEXIT",_("whether to recycle session state on exit"),
-                     kno_boolconfig_get,kno_boolconfig_set,&kno_fast_exit);
+                      kno_boolconfig_get,kno_boolconfig_set,&kno_fast_exit);
   kno_register_config("EXIT:FAST",_("whether to recycle session state on exit"),
-                     kno_boolconfig_get,kno_boolconfig_set,&kno_fast_exit);
+                      kno_boolconfig_get,kno_boolconfig_set,&kno_fast_exit);
   kno_register_config("RUNUSER",_("Set the user ID for this process"),
-                     config_getuser,config_setuser,NULL);
+                      config_getuser,config_setuser,NULL);
   kno_register_config("RUNGROUP",_("Set the group ID for this process"),
-                     config_getgroup,config_setgroup,NULL);
+                      config_getgroup,config_setgroup,NULL);
 
 
   kno_register_config("RUNBASE",_("Path prefix for program state files"),
-                     config_getrunbase,config_setrunbase,NULL);
+                      config_getrunbase,config_setrunbase,NULL);
 
   kno_register_config("STDOUT",_("Redirect standard output to file"),
-                     kno_sconfig_get,stdout_config_set,&stdout_filename);
+                      kno_sconfig_get,stdout_config_set,&stdout_filename);
   kno_register_config("STDERR",_("Redirect standard output to file"),
-                     kno_sconfig_get,stderr_config_set,&stderr_filename);
+                      kno_sconfig_get,stderr_config_set,&stderr_filename);
   kno_register_config("STDIN",_("Redirect standard input to file"),
-                     kno_sconfig_get,stdin_config_set,&stdin_filename);
+                      kno_sconfig_get,stdin_config_set,&stdin_filename);
   kno_register_config("PIDFILE",_("Write PID to file, delete on exit"),
-                     kno_sconfig_get,pidfile_config_set,&pid_filename);
+                      kno_sconfig_get,pidfile_config_set,&pid_filename);
 
 #if HAVE_SYS_RESOURCE_H
 #ifdef RLIMIT_CPU
   kno_register_config("MAXCPU",_("Max CPU execution time limit"),
-                     kno_config_rlimit_get,kno_config_rlimit_set,
-                     (void *)&MAXCPU);
+                      kno_config_rlimit_get,kno_config_rlimit_set,
+                      (void *)&MAXCPU);
 #endif
 #ifdef RLIMIT_RSS
   kno_register_config("MAXRSS",_("Max resident set (RSS) size"),
-                     kno_config_rlimit_get,kno_config_rlimit_set,
-                     (void *)&MAXRSS);
+                      kno_config_rlimit_get,kno_config_rlimit_set,
+                      (void *)&MAXRSS);
 #endif
 #ifdef RLIMIT_CORE
   kno_register_config("MAXCORE",_("Max core dump size"),
-                     kno_config_rlimit_get,kno_config_rlimit_set,
-                     (void *)&MAXCORE);
+                      kno_config_rlimit_get,kno_config_rlimit_set,
+                      (void *)&MAXCORE);
 #endif
 #ifdef RLIMIT_NPROC
   kno_register_config("MAXNPROC",_("Max number of subprocesses"),
-                     kno_config_rlimit_get,kno_config_rlimit_set,
-                     (void *)&MAXNPROC);
+                      kno_config_rlimit_get,kno_config_rlimit_set,
+                      (void *)&MAXNPROC);
 #endif
 #ifdef RLIMIT_NOFILE
   kno_register_config("MAXFILES",_("Max number of open file descriptors"),
-                     kno_config_rlimit_get,kno_config_rlimit_set,
-                     (void *)&MAXFILES);
+                      kno_config_rlimit_get,kno_config_rlimit_set,
+                      (void *)&MAXFILES);
 #endif
 #ifdef RLIMIT_STACK
   kno_register_config("MAXSTACK",_("Max stack depth"),
-                     kno_config_rlimit_get,kno_config_rlimit_set,
-                     (void *)&MAXSTACK);
+                      kno_config_rlimit_get,kno_config_rlimit_set,
+                      (void *)&MAXSTACK);
 #endif
 
 #endif
@@ -1153,72 +1153,72 @@ void kno_init_startup_c()
 #if HAVE_SYS_RESOURCE_H
 #ifdef RLIMIT_CPU
   kno_register_config("MAXCPU",_("Max CPU execution time limit"),
-                     kno_config_rlimit_get,kno_config_rlimit_set,
-                     (void *)&MAXCPU);
+                      kno_config_rlimit_get,kno_config_rlimit_set,
+                      (void *)&MAXCPU);
 #endif
 
 #ifdef RLIMIT_RSS
   kno_register_config("MAXRSS",_("Max resident set (RSS) size"),
-                     kno_config_rlimit_get,kno_config_rlimit_set,
-                     (void *)&MAXRSS);
+                      kno_config_rlimit_get,kno_config_rlimit_set,
+                      (void *)&MAXRSS);
 #endif
 #ifdef RLIMIT_CORE
   kno_register_config("MAXCORE",_("Max core dump size"),
-                     kno_config_rlimit_get,kno_config_rlimit_set,
-                     (void *)&MAXCORE);
+                      kno_config_rlimit_get,kno_config_rlimit_set,
+                      (void *)&MAXCORE);
 #endif
 #ifdef RLIMIT_NPROC
   kno_register_config("MAXNPROC",_("Max number of subprocesses"),
-                     kno_config_rlimit_get,kno_config_rlimit_set,
-                     (void *)&MAXNPROC);
+                      kno_config_rlimit_get,kno_config_rlimit_set,
+                      (void *)&MAXNPROC);
 #endif
 #ifdef RLIMIT_NOFILE
   kno_register_config("MAXFILES",_("Max number of open file descriptors"),
-                     kno_config_rlimit_get,kno_config_rlimit_set,
-                     (void *)&MAXFILES);
+                      kno_config_rlimit_get,kno_config_rlimit_set,
+                      (void *)&MAXFILES);
 #endif
 #ifdef RLIMIT_STACK
   kno_register_config("MAXSTACK",_("Max stack depth"),
-                     kno_config_rlimit_get,kno_config_rlimit_set,
-                     (void *)&MAXSTACK);
+                      kno_config_rlimit_get,kno_config_rlimit_set,
+                      (void *)&MAXSTACK);
 #endif
 
 #endif
 
   if (!(logdir)) logdir = u8_strdup(KNO_LOG_DIR);
   kno_register_config("LOGDIR",_("Root Kno logging directories"),
-                     kno_sconfig_get,kno_sconfig_set,&logdir);
+                      kno_sconfig_get,kno_sconfig_set,&logdir);
 
   if (!(sharedir)) sharedir = u8_strdup(KNO_SHARE_DIR);
   kno_register_config("SHAREDIR",_("Shared config/data directory for Kno"),
-                     kno_sconfig_get,kno_sconfig_set,&sharedir);
+                      kno_sconfig_get,kno_sconfig_set,&sharedir);
 
   if (!(datadir)) datadir = u8_strdup(KNO_DATA_DIR);
   kno_register_config("DATADIR",_("Data directory for Kno"),
-                     kno_sconfig_get,kno_sconfig_set,&datadir);
+                      kno_sconfig_get,kno_sconfig_set,&datadir);
 
   kno_register_config("SOURCES",_("Registered source files"),
-                     config_get_source_files,config_add_source_file,
-                     &u8_log_show_procinfo);
+                      config_get_source_files,config_add_source_file,
+                      &u8_log_show_procinfo);
 
   kno_register_config("U8:MMAPTHRESH",
-                     _("Size at which u8_big_alloc starts using MMAP"),
-                     kno_sizeconfig_get,kno_sizeconfig_set,
-                     &u8_mmap_threshold);
+                      _("Size at which u8_big_alloc starts using MMAP"),
+                      kno_sizeconfig_get,kno_sizeconfig_set,
+                      &u8_mmap_threshold);
   kno_register_config("HASH:BIGTHRESH",
-                     _("Number of buckets at which hashtables use bigalloc"),
-                     kno_sizeconfig_get,kno_sizeconfig_set,
-                     &kno_hash_bigthresh);
+                      _("Number of buckets at which hashtables use bigalloc"),
+                      kno_sizeconfig_get,kno_sizeconfig_set,
+                      &kno_hash_bigthresh);
   kno_register_config("BUFIO:BIGTHRESH",
-                     _("Size of binary buffers to use bigalloc"),
-                     kno_sizeconfig_get,kno_sizeconfig_set,
-                     &kno_bigbuf_threshold);
+                      _("Size of binary buffers to use bigalloc"),
+                      kno_sizeconfig_get,kno_sizeconfig_set,
+                      &kno_bigbuf_threshold);
 
   kno_register_config("ATEXIT",_("Procedures to call on exit"),
-                     config_atexit_get,config_atexit_set,NULL);
+                      config_atexit_get,config_atexit_set,NULL);
 
   kno_register_config("EXITING",_("Whether this process is exiting"),
-                     kno_boolconfig_get,kno_boolconfig_set,&kno_exiting);
+                      kno_boolconfig_get,kno_boolconfig_set,&kno_exiting);
 
 
   kno_register_config
@@ -1239,9 +1239,3 @@ void kno_init_startup_c()
 
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

@@ -79,9 +79,3 @@ int kno_pprint_table(u8_output out,lispval x,
 
 #endif /* ndef KNO_PPRINT_H */
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

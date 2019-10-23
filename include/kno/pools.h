@@ -241,7 +241,7 @@ typedef struct KNO_POOL_HANDLER {
                     kno_storage_flags flags,lispval opts);
   int (*walker)(kno_pool,kno_walker,void *,kno_walk_flags,int);
   void (*recycle)(kno_pool p);
-  lispval (*poolctl)(kno_pool p,lispval op,int n,lispval *args);}
+  lispval (*poolctl)(kno_pool p,lispval op,int n,kno_argvec args);}
   KNO_POOL_HANDLER;
 typedef struct KNO_POOL_HANDLER *kno_pool_handler;
 
@@ -262,9 +262,9 @@ struct KNO_POOL_HANDLER some_handler={
 };
 #endif
 
-KNO_EXPORT lispval kno_pool_ctl(kno_pool p,lispval op,int n,lispval *args);
+KNO_EXPORT lispval kno_pool_ctl(kno_pool p,lispval op,int n,kno_argvec args);
 
-KNO_EXPORT lispval kno_default_poolctl(kno_pool p,lispval op,int n,lispval *args);
+KNO_EXPORT lispval kno_default_poolctl(kno_pool p,lispval op,int n,kno_argvec args);
 KNO_EXPORT lispval kno_pool_base_metadata(kno_pool p);
 
 KNO_EXPORT void kno_init_pool(kno_pool p,KNO_OID base,unsigned int capacity,
@@ -507,9 +507,3 @@ KNO_EXPORT int kno_reset_mempool(kno_pool p);
 
 #endif /* KNO_POOLS_H */
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

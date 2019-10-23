@@ -48,7 +48,7 @@
 
 (check-modules '{paypal paypal/checkout paypal/express paypal/adaptive})
 
-(check-modules '{textindex textindex/domtext})
+;;(check-modules '{textindex textindex/domtext})
 
 (check-modules '{twitter})
 

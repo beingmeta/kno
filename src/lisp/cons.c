@@ -32,7 +32,6 @@ u8_mutex _kno_ptr_locks[KNO_N_PTRLOCKS];
 u8_condition kno_BadPtr=_("bad lisp pointer");
 u8_condition kno_NullPtr=_("NULL lisp pointer");
 
-u8_string kno_type_names[KNO_TYPE_MAX];
 kno_hashfn kno_hashfns[KNO_TYPE_MAX];
 kno_checkfn kno_immediate_checkfns[KNO_MAX_IMMEDIATE_TYPES+4];
 
@@ -44,7 +43,7 @@ kno_compare_fn kno_comparators[KNO_TYPE_MAX];
 
 kno_applyfn kno_applyfns[KNO_TYPE_MAX];
 /* This is set if the type is a CONS with a FUNCTION header */
-short kno_functionp[KNO_TYPE_MAX];
+short kno_function_types[KNO_TYPE_MAX];
 
 static u8_mutex constant_registry_lock;
 int kno_n_constants = KNO_N_BUILTIN_CONSTANTS;
@@ -58,10 +57,10 @@ ssize_t kno_max_strlen = -1;
 int kno_check_utf8 = 0;
 
 const char *kno_constant_names[256]={
-  "#void","#f","#t","{}","()","#eof","#eod","#eox",
-  "#bad_dtype","#bad_parse","#oom","#type_error","#range_error",
-  "#error","#badptr","#throw","#break","#unbound",
-  "#neverseen","#lockholder","#default","#preoid", /* 22 */
+  "#void","#f","#t","{}","()","#default","#tailcall",
+  "#eof","#eod","#eox", "#bad_dtype","#bad_parse","#oom",
+  "#type_error","#range_error", "#error","#badptr","#throw",
+  "#break","#unbound","#neverseen","#lockholder","#preoid", /* 22 */
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL, /* 30 */
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
@@ -85,7 +84,7 @@ const char *kno_constant_names[256]={
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL, /* 250 */
-  NULL,NULL,NULL,NULL,NULL,NULL};
+  NULL,NULL,NULL,NULL,NULL};
 
 KNO_EXPORT
 lispval kno_register_constant(u8_string name)
@@ -117,9 +116,9 @@ static int validate_constant(lispval x)
 
 KNO_EXPORT
 /* kno_check_immediate:
-     Arguments: a list pointer
-     Returns: 1 or 0 (an int)
-  Checks an immediate pointer for validity.
+   Arguments: a list pointer
+   Returns: 1 or 0 (an int)
+   Checks an immediate pointer for validity.
 */
 int kno_check_immediate(lispval x)
 {
@@ -196,9 +195,9 @@ KNO_EXPORT ssize_t _kno_free_elts(lispval *elts,size_t n)
 
 KNO_EXPORT
 /* lispval_equal:
-    Arguments: two dtype pointers
-    Returns: 1 or 0 (an int)
-  Returns 1 if the two objects are equal. */
+   Arguments: two dtype pointers
+   Returns: 1 or 0 (an int)
+   Returns 1 if the two objects are equal. */
 int lispval_equal(lispval x,lispval y)
 {
   if (ATOMICP(x)) return (x == y);
@@ -223,7 +222,7 @@ int lispval_equal(lispval x,lispval y)
     else if (memcmp(KNO_PACKET_DATA(x),KNO_PACKET_DATA(y),xlen)==0)
       return 1;
     else return 0;}
-  else if (!(TYPEP(y,KNO_LISP_TYPE(x))))
+  else if (!(TYPEP(y,KNO_TYPEOF(x))))
     /* At this point, If the types are different, the values are
        different. */
     return 0;
@@ -268,11 +267,11 @@ int lispval_equal(lispval x,lispval y)
 
 KNO_EXPORT
 /* kno_init_string:
-    Arguments: A pointer to an KNO_STRING struct, a length, and a byte vector.
-    Returns: a lisp string
-  This returns a lisp string object from a character string.
-  If the structure pointer is NULL, one is mallocd.
-  If the length is negative, it is computed. */
+   Arguments: A pointer to an KNO_STRING struct, a length, and a byte vector.
+   Returns: a lisp string
+   This returns a lisp string object from a character string.
+   If the structure pointer is NULL, one is mallocd.
+   If the length is negative, it is computed. */
 lispval kno_init_string(struct KNO_STRING *ptr,int slen,u8_string string)
 {
   int len = ((slen<0) ? (strlen(string)) : (slen));
@@ -291,11 +290,11 @@ lispval kno_init_string(struct KNO_STRING *ptr,int slen,u8_string string)
 
 KNO_EXPORT
 /* kno_extract_string:
-    Arguments: A pointer to an KNO_STRING struct, and two pointers to ut8-strings
-    Returns: a lisp string
-  This returns a lisp string object from a region of a character string.
-  If the structure pointer is NULL, one is mallocd.
-  This copies the region between the pointers into a string and initializes
+   Arguments: A pointer to an KNO_STRING struct, and two pointers to ut8-strings
+   Returns: a lisp string
+   This returns a lisp string object from a region of a character string.
+   If the structure pointer is NULL, one is mallocd.
+   This copies the region between the pointers into a string and initializes
    a lisp string based on the region.
    If the second argument is NULL, the end of the first argument is used. */
 lispval kno_extract_string(struct KNO_STRING *ptr,u8_string start,u8_string end)
@@ -322,11 +321,11 @@ lispval kno_extract_string(struct KNO_STRING *ptr,u8_string start,u8_string end)
 
 KNO_EXPORT
 /* kno_substring:
-    Arguments: two pointers to utf-8 strings
-    Returns: a lisp string
-  This returns a lisp string object from a region of a character string.
-  If the structure pointer is NULL, one is mallocd.
-  This copies the region between the pointers into a string and initializes
+   Arguments: two pointers to utf-8 strings
+   Returns: a lisp string
+   This returns a lisp string object from a region of a character string.
+   If the structure pointer is NULL, one is mallocd.
+   This copies the region between the pointers into a string and initializes
    a lisp string based on the region. */
 lispval kno_substring(u8_string start,u8_string end)
 {
@@ -348,11 +347,11 @@ lispval kno_substring(u8_string start,u8_string end)
 
 KNO_EXPORT
 /* kno_make_string:
-    Arguments: A pointer to an KNO_STRING struct, a length, and a pointer to a byte vector
-    Returns: a lisp string
-  This returns a lisp string object from a string, copying the string
-  If the structure pointer is NULL, the lisp string is uniconsed, so that
-    the string data is contiguous with the struct. */
+   Arguments: A pointer to an KNO_STRING struct, a length, and a pointer to a byte vector
+   Returns: a lisp string
+   This returns a lisp string object from a string, copying the string
+   If the structure pointer is NULL, the lisp string is uniconsed, so that
+   the string data is contiguous with the struct. */
 lispval kno_make_string(struct KNO_STRING *ptr,int len,u8_string string)
 {
   int length = ((len>=0)?(len):(strlen(string)));
@@ -379,10 +378,10 @@ lispval kno_make_string(struct KNO_STRING *ptr,int len,u8_string string)
 
 KNO_EXPORT
 /* kno_block_string:
-    Arguments: a length, and a pointer to a byte vector
-    Returns: a lisp string
-  This returns a uniconsed lisp string object from a string,
-    copying and freeing the string data
+   Arguments: a length, and a pointer to a byte vector
+   Returns: a lisp string
+   This returns a uniconsed lisp string object from a string,
+   copying and freeing the string data
 */
 lispval kno_block_string(int len,u8_string string)
 {
@@ -405,9 +404,9 @@ lispval kno_block_string(int len,u8_string string)
 
 KNO_EXPORT
 /* kno_mkstring:
-    Arguments: a C string (u8_string)
-    Returns: a lisp string
-  */
+   Arguments: a C string (u8_string)
+   Returns: a lisp string
+*/
 lispval kno_mkstring(u8_string string)
 {
   return kno_make_string(NULL,-1,string);
@@ -466,8 +465,8 @@ KNO_EXPORT lispval kno_reverse_list(lispval l)
 /* Vectors */
 
 KNO_EXPORT lispval kno_cons_vector(struct KNO_VECTOR *ptr,
-                                 int len,int big_alloc_elts,
-                                 lispval *data)
+                                   int len,int big_alloc_elts,
+                                   lispval *data)
 {
   lispval *elts; int free_data = 1; int big_alloc = 0;
   if (len<0)
@@ -486,8 +485,8 @@ KNO_EXPORT lispval kno_cons_vector(struct KNO_VECTOR *ptr,
     elts = data;}
   else if (data == NULL) {
     int i = 0; elts = u8_malloc(LISPVEC_BYTELEN(len));
-      while (i<len) elts[i]=VOID;
-      free_data = 1;}
+    while (i<len) elts[i]=VOID;
+    free_data = 1;}
   else elts = data;
   KNO_INIT_CONS(ptr,kno_vector_type);
   ptr->vec_length = len;
@@ -562,7 +561,7 @@ KNO_EXPORT lispval kno_make_vector(int len,lispval *data)
 /* Packets */
 
 KNO_EXPORT lispval kno_init_packet
-  (struct KNO_STRING *ptr,int len,const unsigned char *data)
+(struct KNO_STRING *ptr,int len,const unsigned char *data)
 {
   if (len<0)
     return kno_err("NegativeLength","kno_init_packet",NULL,KNO_INT(len));
@@ -581,7 +580,7 @@ KNO_EXPORT lispval kno_init_packet
 }
 
 KNO_EXPORT lispval kno_make_packet
-  (struct KNO_STRING *ptr,int len,const unsigned char *data)
+(struct KNO_STRING *ptr,int len,const unsigned char *data)
 {
   u8_byte *bytes = NULL; int freedata = 1;
   if (len<0)
@@ -603,7 +602,7 @@ KNO_EXPORT lispval kno_make_packet
 }
 
 KNO_EXPORT lispval kno_bytes2packet
-  (struct KNO_STRING *use_ptr,int len,const unsigned char *data)
+(struct KNO_STRING *use_ptr,int len,const unsigned char *data)
 {
   struct KNO_STRING *ptr = NULL;
   u8_byte *bytes = NULL; int freedata = (data!=NULL);
@@ -648,6 +647,13 @@ KNO_EXPORT int kno_register_cons_type(char *name)
   typecode = kno_next_cons_type;
   kno_next_cons_type++;
   kno_type_names[typecode]=name;
+  u8_byte buf[100];
+  lispval typecode_value = LISPVAL_IMMEDIATE(kno_type_type,typecode);
+  u8_string hashname = u8_bprintf(buf,"%s_type",name);
+  if (kno_add_constname(hashname,typecode_value)<0)
+    u8_log(LOGCRIT,"BadTypeName",
+	   "Couldn't register typename '%s' for typecode=%d",
+	   hashname,typecode);
   u8_unlock_mutex(&type_registry_lock);
   return typecode;
 }
@@ -663,6 +669,13 @@ KNO_EXPORT int kno_register_immediate_type(char *name,kno_checkfn fn)
   kno_immediate_checkfns[typecode]=fn;
   kno_next_immediate_type++;
   kno_type_names[typecode]=name;
+  lispval typecode_value = LISPVAL_IMMEDIATE(kno_type_type,typecode);
+  u8_byte buf[100];
+  u8_string hashname = u8_bprintf(buf,"%s_type",name);
+  if (kno_add_constname(hashname,typecode_value)<0)
+    u8_log(LOGCRIT,"BadTypeName",
+	   "Couldn't register typename '%s' for typecode=%d",
+	   hashname,typecode);
   u8_unlock_mutex(&type_registry_lock);
   return typecode;
 }
@@ -684,8 +697,8 @@ KNO_EXPORT struct KNO_PAIR *kno_pair_data(lispval x)
 KNO_EXPORT int _kno_find_elt(lispval x,lispval *v,int n)
 {
   int i = 0; while (i<n)
-    if (v[i]==x) return i;
-    else i++;
+               if (v[i]==x) return i;
+               else i++;
   return -1;
 }
 
@@ -696,7 +709,7 @@ KNO_EXPORT void _kno_bad_pointer(lispval badx,u8_context cxt)
   u8_raise(kno_BadPtr,cxt,NULL);
 }
 
-u8_condition get_pointer_exception(lispval x)
+KNO_EXPORT u8_condition kno_get_pointer_exception(lispval x)
 {
   if (KNO_NULLP(x))
     return _("NullPointer");
@@ -718,24 +731,105 @@ u8_condition get_pointer_exception(lispval x)
 }
 
 KNO_EXPORT lispval kno_badptr_err(lispval result,u8_context cxt,
-                                u8_string details)
+                                  u8_string details)
 {
   if (errno) u8_graberrno(cxt,u8_strdup(details));
-  return kno_err( get_pointer_exception(result), cxt,
+  return kno_err( kno_get_pointer_exception(result), cxt,
                   details, KNO_UINT2LISP(result) );
 }
 
-/* Testing */
+/* Typeinfo */
 
-static U8_MAYBE_UNUSED int some_false(lispval arg)
+static struct KNO_HASHTABLE typeinfo;
+
+KNO_EXPORT struct KNO_TYPEINFO *kno_probe_typeinfo(lispval tag)
 {
-  int some_false = 0;
-  KNO_DOELTS(elt,arg,count) {
-    if (FALSEP(elt)) some_false = 1;}
-  return some_false;
+  lispval v = kno_hashtable_get(&typeinfo,tag,KNO_FALSE);
+  if (KNO_TYPEP(v,kno_typeinfo_type))
+    return (kno_typeinfo) v;
+  else return NULL;
 }
 
-
+KNO_EXPORT struct KNO_TYPEINFO *kno_use_typeinfo(lispval tag)
+{
+  lispval exists = kno_hashtable_get(&typeinfo,tag,KNO_VOID);
+  if (KNO_VOIDP(exists)) {
+    struct KNO_TYPEINFO *info = u8_alloc(struct KNO_TYPEINFO);
+    KNO_INIT_STATIC_CONS(info,kno_typeinfo_type);
+    info->typetag = tag; kno_incref(tag);
+    info->type_props = kno_make_slotmap(2,0,NULL);
+    info->type_handlers = kno_make_slotmap(2,0,NULL);
+    info->type_name = (KNO_SYMBOLP(tag)) ? (KNO_SYMBOL_NAME(tag)) :
+      (KNO_STRINGP(tag)) ? (KNO_CSTRING(tag)) : (kno_lisp2string(tag));
+    info->type_description = NULL;
+    int rv = kno_hashtable_op(&typeinfo,kno_table_init,tag,((lispval)info));
+    if (rv > 0)
+      return info;
+    else {
+      kno_decref(info->typetag);
+      kno_decref(info->type_props);
+      kno_decref(info->type_handlers);
+      u8_free(info);
+      if (rv < 0)
+	return NULL;
+      else {
+	lispval useval = kno_hashtable_get(&typeinfo,tag,KNO_FALSE);
+	if (KNO_TYPEP(useval,kno_typeinfo_type))
+	  return (kno_typeinfo) useval;
+	else return NULL;}}}
+  else return (kno_typeinfo) exists;
+}
+
+KNO_EXPORT
+int kno_set_unparsefn(lispval tag,kno_type_unparsefn fn)
+{
+  struct KNO_TYPEINFO *info = kno_use_typeinfo(tag);
+  if (info) {
+    info->type_unparsefn = fn;
+    return 1;}
+  else return 0;
+}
+
+KNO_EXPORT
+int kno_set_freefn(lispval tag,kno_type_freefn fn)
+{
+  struct KNO_TYPEINFO *info = kno_use_typeinfo(tag);
+  if (info) {
+    info->type_freefn = fn;
+    return 1;}
+  else return 0;
+}
+
+KNO_EXPORT
+int kno_set_parsefn(lispval tag,kno_type_parsefn fn)
+{
+  struct KNO_TYPEINFO *info = kno_use_typeinfo(tag);
+  if (info) {
+    info->type_parsefn = fn;
+    return 1;}
+  else return 0;
+}
+
+KNO_EXPORT
+int kno_set_dumpfn(lispval tag,kno_type_dumpfn fn)
+{
+  struct KNO_TYPEINFO *info = kno_use_typeinfo(tag);
+  if (info) {
+    info->type_dumpfn = fn;
+    return 1;}
+  else return 0;
+}
+
+KNO_EXPORT
+int kno_set_restorefn(lispval tag,kno_type_restorefn fn)
+{
+  struct KNO_TYPEINFO *info = kno_use_typeinfo(tag);
+  if (info) {
+    info->type_restorefn = fn;
+    return 1;}
+  else return 0;
+}
+
 /* Initialization */
 
 static struct KNO_FLONUM flonum_consts[8];
@@ -761,10 +855,12 @@ void kno_init_cons_c()
   u8_init_mutex(&constant_registry_lock);
   u8_init_mutex(&type_registry_lock);
 
+  kno_init_hashtable(&typeinfo,223,NULL);
+
   i = 0; while (i < KNO_TYPE_MAX) kno_type_names[i++]=NULL;
   i = 0; while (i<KNO_TYPE_MAX) kno_hashfns[i++]=NULL;
   i = 0; while (i<KNO_MAX_IMMEDIATE_TYPES+4)
-         kno_immediate_checkfns[i++]=NULL;
+           kno_immediate_checkfns[i++]=NULL;
 
   i = 0; while (i < KNO_TYPE_MAX) kno_recyclers[i++]=NULL;
   i = 0; while (i < KNO_TYPE_MAX) kno_unparsers[i++]=NULL;
@@ -843,9 +939,3 @@ void kno_init_cons_c()
 
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

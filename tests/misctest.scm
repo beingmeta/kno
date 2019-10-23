@@ -249,6 +249,13 @@
 (applytest #t string? (stringout (pprint sort-seq-sample)))
 (applytest #t string? (stringout (listdata sort-seq-sample)))
 
+(applytest #t valid-utf8? "ℕ ⊆ ℕ₀ ⊂ ℤ ⊂ ℚ ⊂ ℝ ⊂ ℂ, ⊥ < a ≠ b ≡ c ≤ d ≪ ⊤ ⇒ (A ⇔ B),")
+(applytest #f valid-utf8? #"\xAA")
+
+(applytest #t proper-list? '(a b c "d" 3))
+(applytest #f proper-list? '(a b c "d" 3 . x))
+(applytest #f proper-list? '(a b c "d" 3 . "x"))
+
 (applytest 309 dtype->file dtype-test-obj "test.dtype")
 (applytest dtype-test-obj file->dtype "test.dtype")
 
@@ -420,27 +427,27 @@
 (define-tester (plus3 x y z) (+ x y z))
 (onerror (evaltest 27 (plus3 8 9 10))
   (lambda (ex) (set! errors ex)))
-(onerror (evaltest 27 (plus3 8 #;() 9 10))
-  (lambda (ex) (set+! errors ex)))
+;; (onerror (evaltest 27 (plus3 8 #;() 9 10))
+;;   (lambda (ex) (set+! errors ex)))
 
 (define (plus4 x y z (q 8)) (+ x y z q))
 (evaltest 77 (plus4 8 9 10 50))
-(onerror (evaltest 30 (plus4 8 #;() 9 10 3))
-  (lambda (ex) (message "ERROR!" ex) (set+! errors ex)))
-(onerror (evaltest 35 (plus4 8 #;() 9 10))
-  (lambda (ex) (message "ERROR!" ex) (set+! errors ex)))
+;; (onerror (evaltest 30 (plus4 8 #;() 9 10 3))
+;;   (lambda (ex) (message "ERROR!" ex) (set+! errors ex)))
+;; (onerror (evaltest 35 (plus4 8 #;() 9 10))
+;;   (lambda (ex) (message "ERROR!" ex) (set+! errors ex)))
 
 (evaltest {3 4 5 7} (choice 3 4 5 7))
-(onerror (evaltest {3 4 5 7} (choice 3 4 5 #;6 7))
-  (lambda (ex) (message "ERROR!" ex) (set+! errors ex)))
+;; (onerror (evaltest {3 4 5 7} (choice 3 4 5 #;6 7))
+;;   (lambda (ex) (message "ERROR!" ex) (set+! errors ex)))
 
 (evaltest #f (test '(a . b) 'c 8))
-(onerror (evaltest #f (test '(a . b) 'c #;"test" 8))
-  (lambda (ex) (message "ERROR!" ex) (set+! errors ex)))
+;; (onerror (evaltest #f (test '(a . b) 'c #;"test" 8))
+;;   (lambda (ex) (message "ERROR!" ex) (set+! errors ex)))
 
 (evaltest #t (test '(a . b) 'a 'b))
-(onerror (evaltest #t (test '(a . b) 'a #;"test" 'b))
-  (lambda (ex) (message "ERROR!" ex) (set+! errors ex)))
+;; (onerror (evaltest #t (test '(a . b) 'a #;"test" 'b))
+;;     (lambda (ex) (message "ERROR!" ex) (set+! errors ex)))
 
 (evaltest #f (number? (string->number "5a")))
 (evaltest #f (number? (parse-arg "5a")))
@@ -587,6 +594,16 @@
 (errtest (memq 'x "string"))
 (errtest (memv 'x "string"))
 (errtest (member 'x "string"))
+
+;;; Others
+
+(applytest > 1000 choice-size (allsymbols))
+
+(applytest '(a "b" "c") push 'a '("b" "c"))
+(applytest '(a) push 'a)
+(applytest '(a b) push 'a 'b)
+
+(applytest fixnum? hash-lisp #/[0123456789]+/)
 
 ;;; Tests of testops
 

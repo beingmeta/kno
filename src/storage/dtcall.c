@@ -120,7 +120,7 @@ static lispval dteval_connpool(struct U8_CONNPOOL *cpool,lispval expr,int async)
       u8_logf(LOG_DEBUG,"DTEVAL","On %s%s#%d ==> %hq",
               (((async)&&(kno_use_dtblock))?(" (async/dtblock) "):
                (async)?(" (async) "):("")),
-              cpool->u8cp_id,conn,KNO_LISP_TYPE(result));
+              cpool->u8cp_id,conn,KNO_TYPEOF(result));
     else u8_logf(LOG_DEBUG,"DTEVAL","On %s%s#%d ==> %q",
                  (((async)&&(kno_use_dtblock))?(" (async/dtblock) "):
                   (async)?(" (async) "):("")),
@@ -240,9 +240,3 @@ KNO_EXPORT void kno_init_dtcall_c()
   u8_register_source_file(_FILEINFO);
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

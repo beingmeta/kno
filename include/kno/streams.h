@@ -151,6 +151,7 @@ KNO_EXPORT ssize_t kno_write_dtype_to_file(lispval obj,u8_string filename);
 KNO_EXPORT ssize_t kno_write_ztype_to_file(lispval obj,u8_string filename);
 KNO_EXPORT ssize_t kno_add_dtype_to_file(lispval obj,u8_string filename);
 
+KNO_EXPORT int kno_read_byte_at(kno_stream s,kno_off_t off,int locked);
 KNO_EXPORT long long kno_read_4bytes_at(kno_stream s,kno_off_t off,int locked);
 KNO_EXPORT kno_8bytes kno_read_8bytes_at(kno_stream s,kno_off_t off,int locked,int *err);
 KNO_EXPORT int kno_write_4bytes_at(kno_stream s,kno_4bytes w,kno_off_t off);
@@ -485,9 +486,3 @@ KNO_EXPORT u8_condition kno_BadLSEEK, kno_OverSeek, kno_UnderSeek;
 
 #endif /* KNO_STREAMS_H */
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

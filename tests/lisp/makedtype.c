@@ -57,15 +57,9 @@ int main(int argc,char **argv)
   else object = kno_parse(argv[2]);
   write_dtype_to_file(object,f);
   u8_fprintf(stdout,"Dumped the %s %q\n",
-             kno_type_names[KNO_LISP_TYPE(object)],object);
+             kno_type_names[KNO_TYPEOF(object)],object);
   kno_decref(object); object = KNO_VOID;
   fclose(f);
   exit(0);
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

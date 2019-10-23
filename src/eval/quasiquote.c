@@ -371,7 +371,8 @@ KNO_EXPORT void kno_init_quasiquote_c()
   unquote = kno_intern("unquote");
   unquotestar = kno_intern("unquote*");
 
-  kno_def_evalfn(kno_scheme_module,"QUASIQUOTE","",quasiquote_evalfn);
+  kno_def_evalfn(kno_scheme_module,"QUASIQUOTE",quasiquote_evalfn,
+		 "*undocumented*");
 
   u8_register_source_file(_FILEINFO);
 }

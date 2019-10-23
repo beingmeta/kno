@@ -334,7 +334,7 @@ static int procpool_getload(kno_pool p)
       return -1;}}
 }
 
-static lispval procpool_ctl(kno_pool p,lispval opid,int n,lispval *args)
+static lispval procpool_ctl(kno_pool p,lispval opid,int n,kno_argvec args)
 {
   struct KNO_PROCPOOL *pp = (kno_procpool)p;
   lispval lp = kno_pool2lisp(p);
@@ -410,7 +410,7 @@ static kno_pool procpool_create(u8_string spec,void *type_data,
   else kno_decref(args[0]);
   if (KNO_ABORTED(result))
     return NULL;
-  else if ( (KNO_POOLP(result)) || (KNO_TYPEP(result,kno_consed_pool_type)) )
+  else if (KNO_POOLP(result))
     return kno_lisp2pool(result);
   else {
     kno_seterr("NotAPool","procpool_create",spec,result);
@@ -467,9 +467,3 @@ KNO_EXPORT void kno_init_procpool_c()
   u8_register_source_file(_FILEINFO);
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

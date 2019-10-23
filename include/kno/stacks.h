@@ -23,32 +23,41 @@
 
 typedef struct KNO_STACK {
   KNO_CONS_HEADER; /* We're not using this right now */
-  u8_string stack_type, stack_label, stack_status, stack_src;
-  long long threadid;
-  unsigned int stack_flags, stack_errflags, stack_crumb;
-  int stack_depth, n_args;
-  struct KNO_STACK *stack_caller, *stack_root;
+  unsigned short stack_flags, stack_errflags;
+  short stack_arglen, stack_buflen;
 
+  lispval stack_op;
+  kno_argvec stack_args;
+  lispval *stack_buf;
+  lispval stack_vals;
+  struct KNO_LEXENV *stack_env;
+
+  struct KNO_STACK *stack_caller;
+  struct KNO_STACK *stack_root;
+  int stack_crumb;
 #if HAVE_OBSTACK_H
   struct obstack *stack_obstack;
 #endif
-
-  lispval stack_op;
-  lispval *stack_args;
+  int stack_depth;
   lispval stack_source;
-  lispval stack_vals;
-  struct KNO_LEXENV *stack_env;} *kno_stack;
+  u8_string stack_type, stack_label, stack_status, stack_src;
+  long long threadid;} *kno_stack;
 typedef struct KNO_LEXENV *kno_lexenv;
 typedef struct KNO_LEXENV *kno_lexenv;
 
 #define KNO_STACK_LIVE 0x01
 #define KNO_STACK_RETVOID 0x02
-#define KNO_STACK_TAIL 0x04
-#define KNO_STACK_NDCALL 0x08
-#define KNO_STACK_DECREF_OP 0x10
-#define KNO_STACK_FREE_LABEL 0x20
-#define KNO_STACK_FREE_STATUS 0x40
-#define KNO_STACK_FREE_SRC 0x80
+#define KNO_STACK_NDOP 0x04
+#define KNO_STACK_TAILPOS 0x08
+#define KNO_STACK_TAILCALL 0x10
+#define KNO_STACK_DECREF_OP 0x100
+#define KNO_STACK_DECREF_CALLBUF 0x200
+#define KNO_STACK_DECREF_ARGS 0x400 /* Not used currently */
+#define KNO_STACK_FREE_LABEL 0x800
+#define KNO_STACK_FREE_STATUS 0x1000
+#define KNO_STACK_FREE_SRC 0x2000
+
+#define KNO_DECREF_CALLBUF KNO_STACK_DECREF_CALLBUF
 
 /* Stack error flags */
 
@@ -107,7 +116,9 @@ KNO_EXPORT __thread struct KNO_STACK *kno_stackptr;
   _ ## name.stack_source=KNO_VOID;                       \
   _ ## name.stack_op=op;                                \
   _ ## name.stack_status=NULL;                          \
-  _ ## name.n_args=0;                                   \
+  _ ## name.stack_arglen=0;                                   \
+  _ ## name.stack_buflen=0;                                   \
+  _ ## name.stack_buf = NULL;                          \
   _ ## name.stack_args = NULL;                          \
   _ ## name.stack_env=NULL
 
@@ -165,6 +176,8 @@ KNO_FASTOP void kno_free_stack(struct KNO_STACK *stack)
     kno_decref(stack->stack_op);
     stack->stack_op=KNO_VOID;}
 
+  stack->stack_args = NULL;
+
   if ( (stack->stack_label) &&
        (U8_BITP(stack->stack_flags,KNO_STACK_FREE_LABEL)) ) {
     u8_free(stack->stack_label);
@@ -183,9 +196,20 @@ KNO_FASTOP void kno_free_stack(struct KNO_STACK *stack)
   if (KNO_CONSP(stack->stack_vals)) {
     kno_decref(stack->stack_vals);
     stack->stack_vals=KNO_EMPTY_CHOICE; }
+
+  if ( (stack->stack_buf) &&
+       (U8_BITP(stack->stack_flags,KNO_STACK_DECREF_CALLBUF)) ) {
+    lispval *buf = stack->stack_buf;
+    int i = 0, limit = stack->stack_buflen;
+    while (i < limit) {
+      lispval elt = buf[i];
+      kno_decref(elt);
+      buf[i++] = KNO_VOID;}}
+
   if (stack->stack_env) {
     kno_free_lexenv(stack->stack_env);
     stack->stack_env=NULL;}
+
   stack->stack_flags = 0;
 }
 KNO_FASTOP void kno_pop_stack(struct KNO_STACK *stack)
@@ -213,9 +237,3 @@ KNO_EXPORT lispval kno_get_backtrace(struct KNO_STACK *stack);
 
 #endif /* KNO_STACKS_H */
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

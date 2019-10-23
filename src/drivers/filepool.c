@@ -880,7 +880,7 @@ static lispval filepool_getoids(kno_file_pool fp)
 
 static lispval label_file_pool(struct KNO_FILE_POOL *fp,lispval label);
 
-static lispval file_pool_ctl(kno_pool p,lispval op,int n,lispval *args)
+static lispval file_pool_ctl(kno_pool p,lispval op,int n,kno_argvec args)
 {
   struct KNO_FILE_POOL *fp = (struct KNO_FILE_POOL *)p;
   if ((n>0)&&(args == NULL))
@@ -988,9 +988,3 @@ KNO_EXPORT void kno_init_file_pool_c()
      (void *)(U8_INT2PTR(KNO_FILE_POOL_TO_RECOVER)));
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

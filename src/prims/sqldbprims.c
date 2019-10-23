@@ -185,8 +185,6 @@ static void recycle_sqlproc(struct KNO_RAW_CONS *c)
     u8_log(LOG_WARN,_("recycle failed"),"Bad sqldb proc");
   else if (dbproc->sqldb_handler->recycle_proc) {
     dbproc->sqldb_handler->recycle_proc(dbproc);
-    if (dbproc->fcn_typeinfo) u8_free(dbproc->fcn_typeinfo);
-    if (dbproc->fcn_defaults) u8_free(dbproc->fcn_defaults);
     if (dbproc->fcn_attribs) kno_decref(dbproc->fcn_attribs);
     if (dbproc->fcn_moduleid) kno_decref(dbproc->fcn_moduleid);}
   else u8_log(LOG_WARN,_("recycle failed"),
@@ -198,7 +196,7 @@ static void recycle_sqlproc(struct KNO_RAW_CONS *c)
 static lispval callsqlproc(struct KNO_FUNCTION *xdbproc,int n,lispval *args)
 {
   struct KNO_SQLPROC *dbp = (struct KNO_SQLPROC *)xdbproc;
-  return dbp->fcn_handler.xcalln(xdbproc,n,args);
+  return dbp->fcn_handler.xcalln(kno_stackptr,xdbproc,n,args);
 }
 
 /* SQLDB primitives */
@@ -239,7 +237,7 @@ static lispval sqldb_exec(lispval db,lispval query,lispval colinfo)
 
 DEFPRIM("sqldb/proc",sqldb_makeproc,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
         "`(SQLDB/PROC *sqldb* *sqltext* [*colinfo*] [*paraminfo*...] )` **undocumented**");
-static lispval sqldb_makeproc(int n,lispval *args)
+static lispval sqldb_makeproc(int n,kno_argvec args)
 {
   if (PRED_TRUE
       ((KNO_PRIM_TYPEP(args[0],kno_sqldb_type)) && (STRINGP(args[1])))) {
@@ -255,7 +253,7 @@ static lispval sqldb_makeproc(int n,lispval *args)
     else return sqldb->sqldb_handler->makeproc
            (sqldb,CSTRING(query),STRLEN(query),colinfo,
             ((n>3) ? (n-3) : (0)),
-            ((n>3)? (args+3) : (NULL)));}
+	    ((n>3)? (args+3) : (NULL)));}
   else if (!(KNO_PRIM_TYPEP(args[0],kno_sqldb_type)))
     return kno_type_error("sqldb","sqldb_makeproc",args[0]);
   else if  (!(STRINGP(args[1])))
@@ -266,7 +264,7 @@ static lispval sqldb_makeproc(int n,lispval *args)
 
 DEFPRIM("sqldb/proc+",sqlproc_plus,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
         "`(SQLDB/PROC+ *sqlproc* *sqltext* [*colinfo*] [*paraminfo*...] )` **undocumented**");
-static lispval sqlproc_plus(int n,lispval *args)
+static lispval sqlproc_plus(int n,kno_argvec args)
 {
   lispval arg1 = args[0], result = VOID;
   struct KNO_SQLPROC *sqlproc=
@@ -381,9 +379,9 @@ KNO_EXPORT void kno_init_sqldbprims_c()
   kno_recyclers[kno_sqlproc_type]=recycle_sqlproc;
   kno_unparsers[kno_sqlproc_type]=unparse_sqlproc;
   kno_applyfns[kno_sqlproc_type]=(kno_applyfn)callsqlproc;
-  kno_functionp[kno_sqlproc_type]=1;
+  kno_function_types[kno_sqlproc_type]=1;
 
-  init_local_cprims();
+  link_local_cprims();
   kno_register_config("SQLEXEC",
                       _("whether direct execution of SQL strings is allowed"),
                       kno_boolconfig_get,kno_boolconfig_set,&exec_enabled);
@@ -391,7 +389,7 @@ KNO_EXPORT void kno_init_sqldbprims_c()
   kno_finish_module(sqldb_module);
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("sqldb/proc/params",sqlproc_params,1,sqldb_module);
   KNO_LINK_PRIM("sqldb/proc/typemap",sqlproc_typemap,1,sqldb_module);

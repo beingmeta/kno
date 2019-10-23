@@ -481,32 +481,39 @@ KNO_EXPORT void kno_init_binders_c()
 
   moduleid_symbol = kno_intern("%moduleid");
 
-  kno_def_evalfn(kno_scheme_module,"SET!","",assign_evalfn);
-  kno_def_evalfn(kno_scheme_module,"SET+!","",assign_plus_evalfn);
+  kno_def_evalfn(kno_scheme_module,"SET!",assign_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"SET+!",assign_plus_evalfn,
+		 "*undocumented*");
 
-  kno_def_evalfn(kno_scheme_module,"LET","",let_evalfn);
-  kno_def_evalfn(kno_scheme_module,"LET*","",letstar_evalfn);
-  kno_def_evalfn(kno_scheme_module,"LETREC","",letrec_evalfn);
-  kno_def_evalfn(kno_scheme_module,"DEFINE-INIT","",define_init_evalfn);
-  kno_def_evalfn(kno_scheme_module,"DEFINE-LOCAL","",define_local_evalfn);
-  kno_def_evalfn(kno_scheme_module,"DEF+","",define_return_evalfn);
+  kno_def_evalfn(kno_scheme_module,"LET",let_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"LET*",letstar_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"LETREC",letrec_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"DEFINE-INIT",define_init_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"DEFINE-LOCAL",define_local_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"DEF+",define_return_evalfn,
+		 "*undocumented*");
 
-  kno_def_evalfn(kno_scheme_module,"DO","",do_evalfn);
+  kno_def_evalfn(kno_scheme_module,"DO",do_evalfn,
+		 "*undocumented*");
 
-  kno_def_evalfn(kno_scheme_module,"DEFAULT!","",assign_default_evalfn);
-  kno_def_evalfn(kno_scheme_module,"SETFALSE!","",assign_false_evalfn);
-  kno_def_evalfn(kno_scheme_module,"BIND-DEFAULT!","",bind_default_evalfn);
+  kno_def_evalfn(kno_scheme_module,"DEFAULT!",assign_default_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"SETFALSE!",assign_false_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"BIND-DEFAULT!",bind_default_evalfn,
+		 "*undocumented*");
 
-  kno_def_evalfn(kno_scheme_module,"DEFINE-IMPORT",
-                "Defines a local binding for a value in another module",
-                define_import);
+  kno_def_evalfn(kno_scheme_module,"DEFINE-IMPORT",define_import,
+		 "`(DEFINE-IMPORT *name* *module* [*defname*])` defines "
+		 "a local binding *name* for the value of *defname * "
+		 "in *module*. If not provided, *name* is used as *defname*.");
   kno_defalias(kno_scheme_module,"DEFIMPORT","DEFINE-IMPORT");
 
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

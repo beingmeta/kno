@@ -137,32 +137,32 @@ KNO_EXPORT int kno_testopt(lispval opts,lispval key,lispval val)
   else if (EMPTYP(opts))
     return 0;
   else while (!(VOIDP(opts))) {
-         if (PAIRP(opts)) {
-           lispval car = KNO_CAR(opts);
-           if (SYMBOLP(car)) {
-             if ((KNO_EQ(key,car)) && (KNO_TRUEP(val)))
-               return 1;}
-           else if (PAIRP(car)) {
-             if (KNO_EQ(KNO_CAR(car),key)) {
-               if (KNO_EQUAL(val,KNO_CDR(car)))
-                 return 1;
-               else return 0;}}
-           else if (TABLEP(car)) {
-             int tv = kno_test(car,key,val);
-             if (tv) return tv;}
-           else if (FALSEP(car)) {}
-           else return kno_err(WeirdOption,"kno_getopt",NULL,car);
-           opts = KNO_CDR(opts);}
-         else if (SYMBOLP(opts))
-           if (KNO_EQ(key,opts))
-             if (KNO_TRUEP(val)) return 1;
-             else return 0;
-           else return 0;
-         else if (TABLEP(opts))
-           return kno_test(opts,key,val);
-         else if ((NILP(opts))||(FALSEP(opts)))
-           return 0;
-         else return kno_err(WeirdOption,"kno_getopt",NULL,opts);}
+      if (PAIRP(opts)) {
+        lispval car = KNO_CAR(opts);
+        if (SYMBOLP(car)) {
+          if ((KNO_EQ(key,car)) && (KNO_TRUEP(val)))
+            return 1;}
+        else if (PAIRP(car)) {
+          if (KNO_EQ(KNO_CAR(car),key)) {
+            if (KNO_EQUAL(val,KNO_CDR(car)))
+              return 1;
+            else return 0;}}
+        else if (TABLEP(car)) {
+          int tv = kno_test(car,key,val);
+          if (tv) return tv;}
+        else if (FALSEP(car)) {}
+        else return kno_err(WeirdOption,"kno_getopt",NULL,car);
+        opts = KNO_CDR(opts);}
+      else if (SYMBOLP(opts))
+        if (KNO_EQ(key,opts))
+          if (KNO_TRUEP(val)) return 1;
+          else return 0;
+        else return 0;
+      else if (TABLEP(opts))
+        return kno_test(opts,key,val);
+      else if ((NILP(opts))||(FALSEP(opts)))
+        return 0;
+      else return kno_err(WeirdOption,"kno_getopt",NULL,opts);}
   return 0;
 }
 
@@ -191,9 +191,3 @@ void kno_init_getopt_c()
   u8_register_source_file(_FILEINFO);
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

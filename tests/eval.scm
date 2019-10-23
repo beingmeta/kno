@@ -50,7 +50,7 @@
 	(op4 (make-opcode 200))
 	(bad-opcode (make-opcode 1666)))
     (errtest (name->opcode 0x334))
-    (errtest (make-opcode 3192))
+    (errtest (make-opcode 0x2000))
     (errtest (make-opcode 33.5))
     (errtest (make-opcode (* 1024 1024 1024 1024 1024 1024 1024 1024 1024)))
     (applytest string? (lisp->string op4))
@@ -170,7 +170,10 @@
     (applytest string? lisp->string evalfn-id)
     (applytest string? lisp->string evalfn-id)
     (applytest string? lisp->string list-id)
-    (applytest fcnid? fcnid/register prim-id)))
+    (applytest fcnid? fcnid/register prim-id)
+    (applytest 'err fcnid/set! lambda-id 3)
+    (applytest eq? lambda-id fcnid/set! lambda-id test-macros)
+    (applytest eq? lambda-id fcnid/set! lambda-id test-macros)))
 
 (test-fcnids)
 
@@ -192,7 +195,7 @@
 (applytest "constant" typeof #f)
 (applytest "constant" typeof #t)
 (evaltest "choice" (typeof #{"one" "two" 3}))
-(applytest {"fixnum" "string"} typeof #{"one" "two" 3})
+(applytest {"fixnum" "string"} typeof {"one" "two" 3})
 (applytest "cprim" typeof car)
 (applytest "lambda" typeof test-macros)
 
@@ -294,6 +297,12 @@
 (evaltest #f (constant? s))
 (evaltest #t (constant? #f))
 (evaltest #t (constant? #default))
+(let ((n #f))
+  (evaltest #t (constant? n)))
+(let ((n #f))
+  (errtest (constant? zyz)))
+(let ((ln (list #f)))
+  (errtest (constant? (elt ln 5))))
 
 (evaltest #f (immediate? "string"))
 (evaltest #f (immediate? @1/89))
@@ -585,6 +594,23 @@
 (errtest (until . broke))
 (errtest (until (= 3 "three")))
 (errtest (until (= 3 3.0) . body))
+
+(errtest (define))
+(errtest (define z))
+(errtest (define z (+ 3 "three")))
+(errtest (define z (+ 3 "three")))
+(errtest (define ("text" x) (stringout x)))
+(errtest (define "text" 33))
+
+(errtest (defslambda))
+(errtest (defslambda sample (stringout x)))
+(errtest (defslambda ("text" x) (stringout x)))
+(errtest (defslambda "text" (stringout x)))
+
+(errtest (defambda))
+(errtest (defambda sample (stringout x)))
+(errtest (defambda ("text" x) (stringout x)))
+(errtest (defambda "text" (stringout x)))
 
 (evaltest 'void (doseq (x {}) x))
 

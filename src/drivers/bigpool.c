@@ -2033,7 +2033,7 @@ static lispval bigpool_getoids(kno_bigpool bp)
 
 static lispval metadata_readonly_props = KNO_VOID;
 
-static lispval bigpool_ctl(kno_pool p,lispval op,int n,lispval *args)
+static lispval bigpool_ctl(kno_pool p,lispval op,int n,kno_argvec args)
 {
   struct KNO_BIGPOOL *bp = (struct KNO_BIGPOOL *)p;
   if ((n>0)&&(args == NULL))
@@ -2336,6 +2336,7 @@ static kno_pool bigpool_create(u8_string spec,void *type_data,
   kno_decref(label);
   kno_decref(slotcodes);
   kno_decref(metadata);
+  kno_decref(metadata_init);
   kno_decref(ctime_opt);
   kno_decref(mtime_opt);
   kno_decref(generation_opt);
@@ -2399,9 +2400,3 @@ KNO_EXPORT void kno_init_bigpool_c()
   kno_set_default_pool_type("bigpool");
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

@@ -1,3 +1,9 @@
+kno (5.0.1-4) stable; urgency=medium
+
+  * Add build dependencies on more Python dev packages, ronn, etc
+
+ -- Ken Haase <kh@beingmeta.com>  Mon, 12 Aug 2019 22:09:08 +0000
+
 kno (5.0.1-3) stable; urgency=medium
 
   * Added build dependency on ruby-ronn

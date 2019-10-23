@@ -228,7 +228,7 @@ KNO_EXPORT int kno_init_crypto()
 
   u8_init_cryptofns();
 
-  init_local_cprims();
+  link_local_cprims();
 
   kno_finish_module(crypto_module);
 
@@ -237,15 +237,9 @@ KNO_EXPORT int kno_init_crypto()
   return 1;
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
 
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("decrypt->dtype",decrypt2dtype_prim,4,crypto_module);
   KNO_LINK_PRIM("decrypt->string",decrypt2string_prim,4,crypto_module);

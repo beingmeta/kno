@@ -51,6 +51,7 @@ KNO_EXPORT int kno_choice_evalp(lispval x);
     ( (KNO_AMBIGP(x)) && (kno_choice_evalp(x)) ) )
 
 KNO_EXPORT u8_string kno_evalstack_type, kno_ndevalstack_type;
+KNO_EXPORT u8_string kno_lambda_stack_type;
 
 #define KNO_MODULE_OPTIONAL 0
 #define KNO_MODULE_DEFAULT 1
@@ -81,20 +82,35 @@ typedef lispval (*kno_eval_handler)(lispval expr,
 
 typedef struct KNO_EVALFN {
   KNO_CONS_HEADER;
-  u8_string evalfn_name, evalfn_filename;
+  u8_string evalfn_name, evalfn_cname, evalfn_filename;
   u8_string evalfn_documentation;
   lispval evalfn_moduleid;
   kno_eval_handler evalfn_handler;} KNO_EVALFN;
 typedef struct KNO_EVALFN *kno_evalfn;
 
 KNO_EXPORT lispval kno_make_evalfn(u8_string name,kno_eval_handler fn);
-KNO_EXPORT void kno_new_evalfn(lispval mod,u8_string name,
-                             u8_string filename,
-                             u8_string doc,
-                             kno_eval_handler fn);
+KNO_EXPORT void kno_new_evalfn(lispval mod,u8_string name,u8_string cname,
+			       u8_string filename,
+			       u8_string doc,
+			       kno_eval_handler fn);
 
-#define kno_def_evalfn(mod,name,doc,evalfn) \
-  kno_new_evalfn(mod,name,_FILEINFO,doc,evalfn)
+#define kno_def_evalfn(mod,name,evalfn,doc)				\
+  kno_new_evalfn(mod,name,# evalfn,					\
+		 _FILEINFO " L#" STRINGIFY(__LINE__),doc,evalfn)
+
+typedef struct KNO_EVALFN_INFO {
+  u8_string pname, cname, filename, docstring;} KNO_EVALFN_INFO;
+typedef struct KNO_EVALFN_INFO *kno_evalfn_info;
+
+#define KNO_DEF_EVALFN(pname,cname,docstring) \
+  struct KNO_EVALFN_INFO cname ## _info = { \
+    pname, # cname, _FILEINFO " L#" STRINGIFY(__LINE__), \
+    docstring};
+
+#define KNO_LINK_EVALFN(module,cname) \
+  kno_new_evalfn(module,cname ## _info.pname,# cname,cname ## _info.filename, \
+		 cname ## _info.docstring,cname);
+
 
 typedef struct KNO_MACRO {
   KNO_CONS_HEADER;
@@ -138,8 +154,6 @@ KNO_EXPORT lispval kno_all_modules(void);
 
 KNO_EXPORT int kno_module_finished(lispval module,int flags);
 KNO_EXPORT int kno_finish_module(lispval module);
-KNO_EXPORT int kno_static_module(lispval module);
-KNO_EXPORT int kno_lock_exports(lispval module);
 
 KNO_EXPORT lispval kno_find_module(lispval,int);
 KNO_EXPORT lispval kno_new_module(char *name,int flags);
@@ -149,25 +163,20 @@ KNO_EXPORT lispval kno_new_cmodule_x
 #define kno_new_cmodule(name,flags,addr) \
   kno_new_cmodule_x(name,flags,addr,__FILE__)
 
+KNO_EXPORT kno_hashtable kno_get_exports(kno_lexenv);
+
 KNO_EXPORT lispval kno_use_module(kno_lexenv env,lispval module);
 
 KNO_EXPORT int kno_log_reloads;
 
 KNO_EXPORT void kno_add_module_loader(int (*loader)(lispval,void *),void *);
 
-#define KNO_LOCK_EXPORTS 0x01
-#define KNO_FIX_EXPORTS 0x02
-#define KNO_STATIC_EXPORTS 0x04
-#define KNO_LOCK_MODULES 0x08
-#define KNO_FIX_MODULES 0x10
-#define KNO_STATIC_MODULES 0x20
-#define KNO_OPTIMIZE_EXPORTS 0x03
-
 /* LAMBDAs */
 
 typedef struct KNO_LAMBDA {
   KNO_FUNCTION_FIELDS;
-  short lambda_n_vars, lambda_synchronized;
+  unsigned short lambda_n_vars;
+  unsigned char lambda_synchronized;
   lispval *lambda_vars, *lambda_inits;
   lispval lambda_arglist, lambda_body, lambda_source;
   lispval lambda_optimizer, lambda_start;
@@ -186,7 +195,7 @@ KNO_EXPORT int kno_record_source;
   else {}
 
 KNO_EXPORT lispval kno_apply_lambda(struct KNO_STACK *,struct KNO_LAMBDA *fn,
-                                  int n,lispval *args);
+				    int n,kno_argvec args);
 KNO_EXPORT lispval kno_xapply_lambda
 (struct KNO_LAMBDA *fn,void *data,lispval (*getval)(void *,lispval));
 
@@ -234,7 +243,7 @@ KNO_EXPORT lispval _kno_get_body(lispval expr,int i);
 #if KNO_PROVIDE_FASTEVAL
 KNO_FASTOP lispval fastget(lispval table,lispval key)
 {
-  kno_lisp_type argtype = KNO_LISP_TYPE(table);
+  kno_lisp_type argtype = KNO_TYPEOF(table);
   switch (argtype) {
   case kno_schemap_type:
     return kno_schemap_get((kno_schemap)table,key,KNO_UNBOUND);
@@ -369,7 +378,13 @@ KNO_EXPORT lispval _kno_symeval(lispval,kno_lexenv);
 /* Simple continuations */
 
 typedef struct KNO_CONTINUATION {
-  KNO_FUNCTION_FIELDS; lispval retval;} KNO_CONTINUATION;
+  KNO_FUNCTION_FIELDS;
+  /* We have these because the cons type for a continuation
+     is a cprim and we have to run through that apply loop. */
+  int *fcn_typeinfo;
+  lispval *fcn_defaults;
+  /* This is the one we use */
+  lispval retval;} KNO_CONTINUATION;
 typedef struct KNO_CONTINUATION *kno_continuation;
 
 /* Delays */
@@ -406,9 +421,3 @@ KNO_EXPORT u8_string kno_bugdir;
 
 #endif /* KNO_EVAL_H */
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

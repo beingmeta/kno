@@ -11,6 +11,8 @@
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
+#include "kno/apply.h"
+#include "kno/lexenv.h"
 #include "kno/compounds.h"
 #include "kno/sequences.h"
 #include "kno/storage.h"
@@ -198,7 +200,7 @@ lispval kno_get_histref(lispval elts)
   lispval history = kno_thread_get(history_symbol);
   if (KNO_ABORTP(history))
     return history;
-  else if (VOIDP(history)) {
+  else if ( (VOIDP(history)) || (FALSEP(history)) ) {
     kno_seterr("NoActiveHistory","histref_evalfn",NULL,KNO_VOID);
     return KNO_ERROR_VALUE;}
   else NO_ELSE;
@@ -284,11 +286,10 @@ lispval kno_get_histref(lispval elts)
         return err;}}
     else if ( (KNO_SYMBOLP(path)) || (KNO_OIDP(path)) ) {
       if (KNO_TABLEP(scan)) {
-        lispval v = (OIDP(scan)) ? (kno_frame_get(scan,path)) :
-          (kno_get(scan,path,KNO_VOID));
-        u8_byte keybuf[64];
-        if (KNO_VOIDP(v))
-          kno_seterr("NoSuchKey","histref_evalfn",
+	lispval v = (kno_get(scan,path,KNO_VOID));
+	u8_byte keybuf[64];
+	if (KNO_VOIDP(v))
+	  kno_seterr("NoSuchKey","histref_evalfn",
                      ((KNO_SYMBOLP(path)) ? 
                       (KNO_SYMBOL_NAME(path)) :
                       (kno_oid2string(path,keybuf,64))),
@@ -309,7 +310,7 @@ lispval kno_get_histref(lispval elts)
     else return kno_make_list(2,KNOSYM_QUOTE,scan);}
 }
 
-KNO_EXPORT void kno_histinit(int size)
+KNO_EXPORT void kno_hist_init(int size)
 {
   lispval history = kno_thread_get(history_symbol);
   if (size<=0) {
@@ -333,16 +334,21 @@ KNO_EXPORT void kno_histinit(int size)
 
 KNO_EXPORT void kno_histclear(int size)
 {
-  kno_thread_set(history_symbol,VOID);
-  kno_histinit(size);
+  if (size>0) {
+    kno_thread_set(history_symbol,VOID);
+    kno_hist_init(size);}
+  else kno_thread_set(history_symbol,KNO_FALSE);
 }
 
-static int scheme_history_initialized = 0;
+/* Initialization */
+
+static int history_initialized = 0;
 
 KNO_EXPORT void kno_init_history_c()
 {
-  if (scheme_history_initialized) return;
-  else scheme_history_initialized = 1;
+  if (history_initialized) return;
+  else history_initialized = 1;
+
   u8_register_source_file(_FILEINFO);
 
   history_symbol = kno_intern("%history");
@@ -351,3 +357,5 @@ KNO_EXPORT void kno_init_history_c()
   kno_resolve_histref = kno_get_histref;
 
 }
+
+

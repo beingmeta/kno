@@ -217,8 +217,9 @@ static kno_pool open_pool(kno_pool_typeinfo ptype,u8_string spec,
         kno_clear_errors(1);}
       else return KNO_ERR(NULL,kno_AdjunctError,"kno_open_pool",spec,opts);}}
   lispval old_opts=opened->pool_opts;
-  opened->pool_opts=kno_incref(opts);
-  kno_decref(old_opts);
+  if (old_opts != opts) {
+    opened->pool_opts=kno_incref(opts);
+    kno_decref(old_opts);}
   return opened;
 }
 
@@ -250,8 +251,9 @@ kno_pool kno_open_pool(u8_string spec,kno_storage_flags flags,lispval opts)
               kno_clear_errors(1);}
             else return KNO_ERR(NULL,kno_AdjunctError,"kno_open_pool",spec,opts);}}
         lispval old_opts=opened->pool_opts;
-        opened->pool_opts=kno_incref(opts);
-        kno_decref(old_opts);
+	if (old_opts != opts) {
+	  opened->pool_opts=kno_incref(opts);
+	  kno_decref(old_opts);}
         return opened;}
       CHECK_ERRNO();}
     ptype = ptype->next_type;}
@@ -438,8 +440,9 @@ static kno_index open_index(kno_index_typeinfo ixtype,u8_string spec,
       return KNO_ERR(NULL,kno_CantOpenIndex,"kno_open_index",spec,opts);
     return opened;}
   lispval old_opts=opened->index_opts;
-  opened->index_opts=kno_incref(opts);
-  kno_decref(old_opts);
+  if (old_opts != opts) {
+    opened->index_opts=kno_incref(opts);
+    kno_decref(old_opts);}
   return opened;
 }
 
@@ -461,8 +464,9 @@ kno_index kno_open_index(u8_string spec,kno_storage_flags flags,lispval opts)
           return KNO_ERR(NULL,kno_CantOpenIndex,"kno_open_index",spec,opts);
         if (use_spec!=spec) u8_free(use_spec);
         lispval old_opts=opened->index_opts;
-        opened->index_opts=kno_incref(opts);
-        kno_decref(old_opts);
+	if (old_opts != opts) {
+	  opened->index_opts=kno_incref(opts);
+	  kno_decref(old_opts);}
         return opened;}
       else ixtype = ixtype->next_type;
       CHECK_ERRNO();}
@@ -1266,9 +1270,3 @@ KNO_EXPORT int kno_init_drivers_c()
   return drivers_c_initialized;
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

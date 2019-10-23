@@ -980,12 +980,12 @@ KNO_EXPORT int kno_init_dbserv()
   dbserv_initialized = 211*kno_init_storage();
 
   u8_register_source_file(_FILEINFO);
-  init_local_cprims();
+  link_local_cprims();
   kno_init_dbserv_c();
 
   return 1;
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
 }

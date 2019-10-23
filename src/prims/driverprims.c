@@ -80,7 +80,7 @@ static lispval index_slotids(lispval index_arg)
 
 DEFPRIM("indexctl",indexctl_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(INDEXCTL *arg0* *arg1* *args...*)` **undocumented**");
-static lispval indexctl_prim(int n,lispval *args)
+static lispval indexctl_prim(int n,kno_argvec args)
 {
   if (KNO_AMBIGP(args[0])) {
     lispval inner[n], indexes = args[0];
@@ -106,7 +106,7 @@ static lispval indexctl_prim(int n,lispval *args)
 
 DEFPRIM("indexctl/default",indexctl_default_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(INDEXCTL/DEFAULT *arg0* *arg1* *args...*)` **undocumented**");
-static lispval indexctl_default_prim(int n,lispval *args)
+static lispval indexctl_default_prim(int n,kno_argvec args)
 {
   struct KNO_INDEX *ix = kno_lisp2index(args[0]);
   if (ix == NULL)
@@ -118,7 +118,7 @@ static lispval indexctl_default_prim(int n,lispval *args)
 
 DEFPRIM("poolctl",poolctl_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(POOLCTL *arg0* *arg1* *args...*)` **undocumented**");
-static lispval poolctl_prim(int n,lispval *args)
+static lispval poolctl_prim(int n,kno_argvec args)
 {
   if (KNO_AMBIGP(args[0])) {
     lispval inner[n], pools = args[0];
@@ -144,7 +144,7 @@ static lispval poolctl_prim(int n,lispval *args)
 
 DEFPRIM("poolctl/default",poolctl_default_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(POOLCTL/DEFAULT *arg0* *arg1* *args...*)` **undocumented**");
-static lispval poolctl_default_prim(int n,lispval *args)
+static lispval poolctl_default_prim(int n,kno_argvec args)
 {
   struct KNO_POOL *p = kno_lisp2pool(args[0]);
   if (p == NULL)
@@ -156,12 +156,12 @@ static lispval poolctl_default_prim(int n,lispval *args)
 
 /* DBCTL */
 
-DEFPRIM("dbctl",dbctl_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
+DEFPRIM("dbctl",dbctl_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDOP,
 	"(DBCTL *dbref* *op* ... *args*) "
 	"performs an operation *op* on the pool or index "
 	"*dbref* with *args*. *op* is a symbol and *dbref* "
 	"must be a pool or index object.");
-static lispval dbctl_prim(int n,lispval *args)
+static lispval dbctl_prim(int n,kno_argvec args)
 {
   lispval db = args[0];
   if (KNO_AMBIGP(db)) {
@@ -241,13 +241,13 @@ KNO_EXPORT void kno_init_driverfns_c()
   driverfns_module = kno_new_cmodule
     ("driverfns",(KNO_MODULE_DEFAULT),kno_init_driverfns_c);
   u8_register_source_file(_FILEINFO);
-  init_local_cprims();
+  link_local_cprims();
 
   kno_finish_module(driverfns_module);
 }
 
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   lispval db_module = kno_db_module;
 

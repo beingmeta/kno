@@ -31,7 +31,7 @@
 
 /* Standard predicates */
 
-DEFPRIM2("identical?",identicalp,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+DEFPRIM2("identical?",identicalp,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDOP,
 	 "`(IDENTICAL? *arg0* *arg1*)` is the non-deterministic version "
 	 "of EQUAL? and returns true if its arguments (which can be "
 	 "choices) have the same structure and elements.",
@@ -43,7 +43,7 @@ static lispval identicalp(lispval x,lispval y)
   else return KNO_FALSE;
 }
 
-DEFPRIM2("equal?",equalp,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+DEFPRIM2("equal?",equalp,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDOP,
 	 "`(EQUAL? *arg0* *arg1*)` returns true if its arguments "
 	 "have the same structure and elements. If its arguments are "
 	 "choices, this compares all pairings and may return true, false, "
@@ -163,7 +163,7 @@ static lispval staticcopy(lispval x)
   return kno_static_copy(x);
 }
 
-DEFPRIM1("dontopt",dontopt,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+DEFPRIM1("dontopt",dontopt,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDOP,
 	 "`(DONTOPT *arg0*)` **undocumented**",
 	 kno_any_type,KNO_VOID);
 static lispval dontopt(lispval x)
@@ -180,7 +180,7 @@ static lispval dontopt(lispval x)
  counting or garbage collection.
 
 */
-DEFPRIM2("refcount",get_refcount,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+DEFPRIM2("refcount",get_refcount,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDOP,
 	 "`(REFCOUNT *arg0* [*arg1*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_fixnum_type,KNO_CPP_INT(0));
 static lispval get_refcount(lispval x,lispval delta)
@@ -230,7 +230,7 @@ static lispval eqvp(lispval x,lispval y)
   else return KNO_FALSE;
 }
 
-DEFPRIM2("overlaps?",overlapsp,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+DEFPRIM2("overlaps?",overlapsp,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDOP,
 	 "`(OVERLAPS? *arg0* *arg1*)` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval overlapsp(lispval x,lispval y)
@@ -242,7 +242,7 @@ static lispval overlapsp(lispval x,lispval y)
   else return KNO_FALSE;
 }
 
-DEFPRIM2("contains?",containsp,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+DEFPRIM2("contains?",containsp,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDOP,
 	 "`(CONTAINS? *arg0* *arg1*)` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval containsp(lispval x,lispval y)
@@ -283,7 +283,7 @@ static lispval lisp_zerop(lispval x)
     else return KNO_FALSE;}
 }
 
-static lispval do_compare(int n,lispval *v,int testspec[3])
+static lispval do_compare(int n,kno_argvec v,int testspec[3])
 {
   int i = 1; while (i < n) {
     int comparison = numeric_compare(v[i-1],v[i]);
@@ -300,22 +300,22 @@ static int gtespec[3]={0,1,1}, gtspec[3]={0,0,1}, nespec[3]={1,0,1};
 
 DEFPRIM("<",lt,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(< *arg0* *arg1* *args...*)` **undocumented**");
-static lispval lt(int n,lispval *v) { return do_compare(n,v,ltspec); }
+static lispval lt(int n,kno_argvec v) { return do_compare(n,v,ltspec); }
 DEFPRIM("<=",lte,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(<= *arg0* *arg1* *args...*)` **undocumented**");
-static lispval lte(int n,lispval *v) { return do_compare(n,v,ltespec); }
+static lispval lte(int n,kno_argvec v) { return do_compare(n,v,ltespec); }
 DEFPRIM("=",numeqp,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(= *arg0* *arg1* *args...*)` **undocumented**");
-static lispval numeqp(int n,lispval *v) { return do_compare(n,v,espec); }
+static lispval numeqp(int n,kno_argvec v) { return do_compare(n,v,espec); }
 DEFPRIM(">=",gte,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(>= *arg0* *arg1* *args...*)` **undocumented**");
-static lispval gte(int n,lispval *v) { return do_compare(n,v,gtespec); }
+static lispval gte(int n,kno_argvec v) { return do_compare(n,v,gtespec); }
 DEFPRIM(">",gt,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(> *arg0* *arg1* *args...*)` **undocumented**");
-static lispval gt(int n,lispval *v) { return do_compare(n,v,gtspec); }
+static lispval gt(int n,kno_argvec v) { return do_compare(n,v,gtspec); }
 DEFPRIM("!=",numneqp,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(!= *arg0* *arg1* *args...*)` **undocumented**");
-static lispval numneqp(int n,lispval *v) { return do_compare(n,v,nespec); }
+static lispval numneqp(int n,kno_argvec v) { return do_compare(n,v,nespec); }
 
 /* Type predicates */
 
@@ -331,7 +331,7 @@ DEFPRIM1("valid-utf8?",valid_utf8p,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 kno_any_type,KNO_VOID);
 static lispval valid_utf8p(lispval x)
 {
-  if (STRINGP(x)) {
+  if ( (STRINGP(x)) || (KNO_TYPEP(x,kno_packet_type)) ) {
     int rv = u8_validp(KNO_CSTRING(x));
     if (rv)
       return KNO_TRUE;
@@ -562,7 +562,7 @@ static lispval taggedp_prim(lispval x,lispval tag)
     kno_rawptr raw = (kno_rawptr) x;
     if (VOIDP(tag))
       return KNO_TRUE;
-    else if (tag == raw->raw_typetag)
+    else if (tag == raw->typetag)
       return KNO_TRUE;
     else return KNO_FALSE;}
   else return KNO_FALSE;
@@ -576,6 +576,51 @@ static lispval lisp_intern(lispval symbol_name)
   if (STRINGP(symbol_name))
     return kno_intern(CSTRING(symbol_name));
   else return kno_type_error("string","lisp_intern",symbol_name);
+}
+
+/* Pair functions */
+
+DEFPRIM1("empty-list?",nullp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "`(EMPTY-LIST? *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
+static lispval nullp(lispval x)
+{
+  if (NILP(x)) return KNO_TRUE;
+  else return KNO_FALSE;
+}
+
+DEFPRIM2("cons",cons,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	 "`(CONS *arg0* *arg1*)` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+static lispval cons(lispval x,lispval y)
+{
+  return kno_make_pair(x,y);
+}
+DEFPRIM1("car",car,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "`(CAR *arg0*)` **undocumented**",
+	 kno_pair_type,KNO_VOID);
+static lispval car(lispval x)
+{
+  return kno_incref(KNO_CAR(x));
+}
+DEFPRIM1("cdr",cdr,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "`(CDR *arg0*)` **undocumented**",
+	 kno_pair_type,KNO_VOID);
+static lispval cdr(lispval x)
+{
+  return kno_incref(KNO_CDR(x));
+}
+DEFPRIM2("push",push,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	 "`(push *head* [*tail*])` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+static lispval push(lispval x,lispval y)
+{
+  if ( (KNO_VOIDP(y)) || (KNO_NILP(y) ) || (KNO_DEFAULTP(y) ) )
+    return kno_init_pair(NULL,kno_incref(x),KNO_EMPTY_LIST);
+  else if (KNO_PAIRP(y))
+    return kno_init_pair(NULL,kno_incref(x),kno_incref(y));
+  else return kno_init_pair
+	 (NULL,kno_incref(x),kno_init_pair(NULL,kno_incref(y),KNO_EMPTY_LIST));
 }
 
 DEFPRIM("allsymbols",lisp_all_symbols,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
@@ -671,7 +716,7 @@ static lispval lisp_string2symbol(lispval s)
 
 /* HASHPTR */
 
-DEFPRIM1("hashptr",hashptr_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+DEFPRIM1("hashptr",hashptr_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDOP,
 	 "Returns an integer representation for its "
 	 "argument.",
 	 kno_any_type,KNO_VOID);
@@ -749,22 +794,14 @@ static lispval force_sigfpe()
 
 /* The init function */
 
-KNO_EXPORT void kno_init_coreprims_c()
+KNO_EXPORT void kno_init_coreops_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  init_local_cprims();
+  link_local_cprims();
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
-
-
-static void init_local_cprims()
+static void link_local_cprims()
 {
   lispval scheme_module = kno_scheme_module;
 
@@ -836,4 +873,11 @@ static void init_local_cprims()
   KNO_LINK_ALIAS("char?",characterp,scheme_module);
   KNO_LINK_ALIAS("error?",exceptionp,scheme_module);
 
+  KNO_LINK_PRIM("cons",cons,2,kno_scheme_module);
+  KNO_LINK_PRIM("cdr",cdr,1,kno_scheme_module);
+  KNO_LINK_PRIM("car",car,1,kno_scheme_module);
+  KNO_LINK_PRIM("push",push,2,kno_scheme_module);
+  KNO_LINK_PRIM("empty-list?",nullp,1,kno_scheme_module);
+  KNO_LINK_ALIAS("null?",nullp,kno_scheme_module);
+  KNO_LINK_ALIAS("nil?",nullp,kno_scheme_module);
 }

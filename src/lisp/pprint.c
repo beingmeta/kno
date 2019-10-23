@@ -79,15 +79,15 @@ static int unparse(u8_output out,lispval obj,pprint_context ppcxt);
 #define PPRINT_ATOMICP(x)               \
   (!((PAIRP(x)) || (VECTORP(x)) ||      \
      (SCHEMAPP(x)) || (SLOTMAPP(x)) ||  \
-     (CHOICEP(x)) || (PRECHOICEP(x)) || \
+     (CHOICEP(x)) || (PRECHOICEP(x)) ||         \
      (QCHOICEP(x)) || (KNO_COMPOUNDP(x))))
 
 /* The real function */
 
 KNO_EXPORT
 int kno_pprinter(u8_output out,lispval x,int indent,int col,int depth,
-                kno_pprintfn customfn,void *customdata,
-                pprint_context ppcxt)
+                 kno_pprintfn customfn,void *customdata,
+                 pprint_context ppcxt)
 {
   int maxcol = pprint_max(maxcol,ppcxt);
   int maxdepth = pprint_max(maxdepth,ppcxt);
@@ -172,8 +172,8 @@ int kno_pprinter(u8_output out,lispval x,int indent,int col,int depth,
           break;}}
       lispval head = KNO_CAR(scan);
       col = kno_pprinter(out,head,indent,col,depth,
-                        customfn,customdata,
-                        ppcxt);
+                         customfn,customdata,
+                         ppcxt);
       scan = KNO_CDR(scan);
       if (n_elts == 0) {
         if ( (KNO_SYMBOLP(head)) &&
@@ -206,8 +206,8 @@ int kno_pprinter(u8_output out,lispval x,int indent,int col,int depth,
         u8_puts(out,". ");
         col = indent+2+((margin) ? (u8_strlen(margin)) : (0));
         col = kno_pprinter(out,scan,indent+2,col,depth+1,
-                          customfn,customdata,
-                          ppcxt);
+                           customfn,customdata,
+                           ppcxt);
         u8_putc(out,')');
         return col+1;}
       else return col+n_chars;}}
@@ -239,8 +239,8 @@ int kno_pprinter(u8_output out,lispval x,int indent,int col,int depth,
         if (col > base_col) {
           u8_putc(out,' '); col++;}
         col = kno_pprinter(out,VEC_REF(x,eltno),indent+2,col,depth+1,
-                          customfn,customdata,
-                          ppcxt);
+                           customfn,customdata,
+                           ppcxt);
         eltno++;}
       u8_putc(out,')');
       return col+1;}}
@@ -250,7 +250,7 @@ int kno_pprinter(u8_output out,lispval x,int indent,int col,int depth,
     int vec_max = pprint_max3(vector_max,maxelts,ppcxt);
     U8_OUTPUT tmpout; u8_byte buf[200];
     U8_INIT_OUTPUT_BUF(&tmpout,200,buf);
-    u8_printf(&tmpout,"#%%(%q)",comp->compound_typetag);
+    u8_printf(&tmpout,"#%%(%q)",comp->typetag);
     size_t head_len = tmpout.u8_write-tmpout.u8_outbuf;
     if (len==0) {
       u8_putn(out,tmpout.u8_outbuf,head_len);
@@ -280,8 +280,8 @@ int kno_pprinter(u8_output out,lispval x,int indent,int col,int depth,
         if (col > base_col) {
           u8_putc(out,' '); col++;}
         col = kno_pprinter(out,KNO_XCOMPOUND_VECREF(x,eltno),indent+4,col,depth+1,
-                          customfn,customdata,
-                          ppcxt);
+                           customfn,customdata,
+                           ppcxt);
         eltno++;
         if (eltno < len) {
           u8_putc(out,' '); col++;}}
@@ -301,8 +301,8 @@ int kno_pprinter(u8_output out,lispval x,int indent,int col,int depth,
           u8_putc(out,' '); col++;}
         if (OVERFLOWP(n_elts,choice_max)) {}
         else col = kno_pprinter(out,elt,indent+2,col+2,depth+1,
-                               customfn,customdata,
-                               ppcxt);
+                                customfn,customdata,
+                                ppcxt);
         n_elts++;}
       u8_putc(out,'}');
       return col+1;}}
@@ -329,16 +329,16 @@ int kno_pprinter(u8_output out,lispval x,int indent,int col,int depth,
           col=col+ellipsis_len;
           break;}}
       col = kno_pprinter(out,elt,indent+1,col+1,depth+1,
-                        customfn,customdata,
-                        ppcxt);
+                         customfn,customdata,
+                         ppcxt);
       n_elts++;}
     u8_putc(out,'}');
     return col+1;}
   else if (KNO_PRECHOICEP(x)) {
     lispval simple = kno_make_simple_choice(x);
     int rv = kno_pprinter(out,simple,indent,col,depth,
-                         customfn,customdata,
-                         ppcxt);
+                          customfn,customdata,
+                          ppcxt);
     kno_decref(simple);
     return rv;}
   else if ( (SLOTMAPP(x)) || (SCHEMAPP(x)) ) {
@@ -360,9 +360,9 @@ int kno_pprinter(u8_output out,lispval x,int indent,int col,int depth,
       off = 2; u8_puts(out,"#[");}
     if (!(CHOICEP(keys)))
       col=kno_pprint_table(out,x,&keys,1,
-                          indent+off,col+off,depth+1,
-                          customfn,customdata,
-                          ppcxt);
+                           indent+off,col+off,depth+1,
+                           customfn,customdata,
+                           ppcxt);
     else col=kno_pprint_table
            (out,x,KNO_CHOICE_DATA(keys),KNO_CHOICE_SIZE(keys),
             indent+off,col+off,depth+1,
@@ -505,10 +505,10 @@ static int unparse(u8_output out,lispval obj,pprint_context ppcxt)
 
 KNO_EXPORT
 int kno_pprint_table(u8_output out,lispval x,
-                    const lispval *keys,size_t n_keys,
-                    int indent,int col,int depth,
-                    kno_pprintfn customfn,void *customdata,
-                    pprint_context ppcxt)
+                     const lispval *keys,size_t n_keys,
+                     int indent,int col,int depth,
+                     kno_pprintfn customfn,void *customdata,
+                     pprint_context ppcxt)
 {
   if (n_keys==0) return col;
   const lispval *scan=keys, *limit=scan+n_keys;
@@ -581,8 +581,8 @@ int kno_pprint_table(u8_output out,lispval x,
       continue;}
     u8_close_output(&tmp);
     col=kno_pprinter(out,val,value_indent,col,depth+1,
-                    customfn,customdata,
-                    ppcxt);
+                     customfn,customdata,
+                     ppcxt);
     kno_decref(val);}
   return col;
 }
@@ -629,15 +629,15 @@ static int output_keyval(u8_output out,
 
 KNO_EXPORT
 int kno_pprint(u8_output out,lispval x,u8_string margin,
-              int indent,int col,int maxcol)
+               int indent,int col,int maxcol)
 {
   return kno_pprint_x(out,x,margin,indent,col,maxcol,NULL,NULL);
 }
 
 KNO_EXPORT
 int kno_pprint_x(u8_output out,lispval x,u8_string margin,
-                int indent,int col,int maxcol,
-                kno_pprintfn customfn,void *customdata)
+                 int indent,int col,int maxcol,
+                 kno_pprintfn customfn,void *customdata)
 {
   struct PPRINT_CONTEXT ppcxt={0};
   ppcxt.pp_margin = margin;
@@ -649,7 +649,7 @@ int kno_pprint_x(u8_output out,lispval x,u8_string margin,
 /* printf handler for pprint */
 
 static u8_string lisp_pprintf_handler
-  (u8_output out,char *cmd,u8_byte *buf,int bufsiz,va_list *args)
+(u8_output out,char *cmd,u8_byte *buf,int bufsiz,va_list *args)
 {
   struct U8_OUTPUT tmpout;
   int width = 80; lispval value;
@@ -682,9 +682,3 @@ KNO_EXPORT void kno_init_pprint_c()
   pprint_default_rules = kno_make_hashtable(NULL,200);
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

@@ -32,7 +32,7 @@ KNO_FASTOP int fast_walk(kno_walker walker,lispval obj,
   if (depth<=0)
     return 0;
   else if (CONSP(obj)) {
-    int constype = KNO_LISP_TYPE(obj);
+    int constype = KNO_TYPEOF(obj);
     switch (constype) {
     case kno_pair_type: case kno_vector_type:
     case kno_choice_type: case kno_prechoice_type: case kno_qchoice_type:
@@ -64,11 +64,11 @@ KNO_FASTOP int fast_walk(kno_walker walker,lispval obj,
 
 KNO_EXPORT
 /* kno_walk:
-    Arguments: two dtype pointers
-    Returns: 1, 0, or -1 (an int)
-  Walks the object tree, calling walker on nodes encountered. */
+   Arguments: two dtype pointers
+   Returns: 1, 0, or -1 (an int)
+   Walks the object tree, calling walker on nodes encountered. */
 int kno_walk(kno_walker walker,lispval obj,void *walkdata,
-            kno_walk_flags flags,int depth)
+             kno_walk_flags flags,int depth)
 {
   return fast_walk(walker,obj,walkdata,flags,depth);
 }
@@ -187,15 +187,15 @@ static int cons_walk(kno_walker walker,int constype,
 }
 
 static int walk_compound(kno_walker walker,lispval x,
-                          void *walkdata,
-                          kno_walk_flags flags,
-                          int depth)
+                         void *walkdata,
+                         kno_walk_flags flags,
+                         int depth)
 {
   if (depth<=0) return 0;
   struct KNO_COMPOUND *c = kno_consptr(struct KNO_COMPOUND *,x,kno_compound_type);
   int i = 0, len = c->compound_length;
   lispval *data = &(c->compound_0);
-  walker(c->compound_typetag,walkdata);
+  walker(c->typetag,walkdata);
   while (i<len) {
     if (fast_walk(walker,data[i],walkdata,flags,depth-1)<0)
       return -1;
@@ -208,9 +208,3 @@ void kno_init_walk_c()
   kno_walkers[kno_compound_type]=walk_compound;
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

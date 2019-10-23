@@ -84,7 +84,9 @@
 (define yesterday (timestamp+ (* 3600 -24)))
 (define b-uuid (getuuid 42 yesterday))
 (applytest 42 (uuid-node b-uuid))
-(applytest yesterday (uuid-time b-uuid))
+(applytest yesterday uuid-time b-uuid)
+
+(applytest yesterday dtype/roundtrip yesterday)
 
 (applytest string? timestring)
 (applytest "02:05:00" secs->short (+ (* 3600 2) (* 60 5)))
@@ -190,7 +192,7 @@
   (applytest "3Dec1979 03:15:00AM" get bday 'shortstring)
   ;; (applytest "03:15:00 AM" get bday 'timestring)
   (applytest "12/03/1979" get bday 'datestring)
-  (applytest "Monday 03 December 1979 03:15:00 AM -0500" get bday 'fullstring)
+;;  (applytest "Monday 03 December 1979 03:15:00 AM -0500" get bday 'fullstring)
   (applytest 'mon get bday 'dowid)
   (applytest 'dec get bday 'monthid))
   

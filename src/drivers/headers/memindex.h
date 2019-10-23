@@ -34,9 +34,3 @@ typedef struct KNO_MEMINDEX {
   struct KNO_STREAM index_stream;} KNO_LOG_INDEX;
 typedef struct KNO_LOG_INDEX *kno_log_index;
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

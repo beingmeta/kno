@@ -16,15 +16,15 @@ KNO_EXPORT u8_condition kno_NoSuchKey;
 typedef enum KNO_TABLEOP {
   kno_table_store = 0, kno_table_add = 1, kno_table_drop = 2, kno_table_default = 3,
   kno_table_increment = 4, kno_table_multiply = 5, kno_table_push = 6,
-  kno_table_replace = 7, kno_table_replace_novoid = 8,
-  kno_table_add_if_present = 9,
-  kno_table_increment_if_present = 10,
-  kno_table_multiply_if_present = 11,
-  kno_table_store_noref = 12, kno_table_add_noref = 13,
-  kno_table_test = 14, kno_table_haskey = 15,
-  kno_table_add_empty = 16, kno_table_add_empty_noref = 17,
-  kno_table_maximize = 18, kno_table_maximize_if_present = 19,
-  kno_table_minimize = 20, kno_table_minimize_if_present = 21}
+  kno_table_replace = 7, kno_table_replace_novoid = 8, kno_table_init = 9,
+  kno_table_add_if_present = 10,
+  kno_table_increment_if_present = 11,
+  kno_table_multiply_if_present = 12,
+  kno_table_store_noref = 13, kno_table_add_noref = 14,
+  kno_table_test = 15, kno_table_haskey = 16,
+  kno_table_add_empty = 17, kno_table_add_empty_noref = 18,
+  kno_table_maximize = 19, kno_table_maximize_if_present = 20,
+  kno_table_minimize = 21, kno_table_minimize_if_present = 22}
  kno_tableop;
 
 typedef lispval (*kno_table_get_fn)(lispval,lispval,lispval);
@@ -91,9 +91,8 @@ KNO_EXPORT int _KNO_TABLEP(lispval x);
 #define KNO_TABLEP(x)                                                  \
   ( (KNO_OIDP(x)) ? (1) :                                              \
     (KNO_CONSP(x)) ?                                                   \
-    ( ( ( KNO_CONSPTR_TYPE(x) >= kno_slotmap_type) &&                  \
-        ( KNO_CONSPTR_TYPE(x) <= kno_hashset_type) ) ||                 \
-      ( (kno_tablefns[KNO_CONSPTR_TYPE(x)] != NULL ) &&                 \
+    ( (KNO_XXCONS_TYPEP((x),kno_coretable_type)) ||			\
+      ( (kno_tablefns[KNO_CONSPTR_TYPE(x)] != NULL ) &&			\
         ( (kno_tablefns[KNO_CONSPTR_TYPE(x)]->tablep == NULL ) ||       \
           (kno_tablefns[KNO_CONSPTR_TYPE(x)]->tablep(x)) ) ) ) :        \
     (KNO_IMMEDIATEP(x)) ?                                               \
@@ -102,7 +101,7 @@ KNO_EXPORT int _KNO_TABLEP(lispval x);
         (kno_tablefns[KNO_IMMEDIATE_TYPE(x)]->tablep(x)) ) ) :          \
     (0))
 #endif
-/* #define KNO_TABLEP(x) ( ((kno_tablefns[KNO_LISP_TYPE(x)])!=NULL)  */
+/* #define KNO_TABLEP(x) ( ((kno_tablefns[KNO_TYPEOF(x)])!=NULL)  */
 
 #define KNO_INIT_SMAP_SIZE 7
 #define KNO_INIT_HASH_SIZE 73
@@ -722,9 +721,3 @@ KNO_EXPORT int kno_reset_hashset(kno_hashset);
 
 #endif /* KNO_TABLES_H */
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

@@ -120,13 +120,13 @@ static int preflight_set(lispval var,lispval val,void *data)
   if (!(KNO_APPLICABLEP(val)))
     return kno_reterr(kno_TypeError,"preflight_set",u8_strdup("applicable"),val);
   if (KNO_FUNCTIONP(val)) {
-    vf = KNO_DTYPE2FCN(val);
+    vf = KNO_GETFUNCTION(val);
     if ((vf)&&(vf->fcn_name)&&(vf->fcn_filename)) {
       lispval scan = preflight; while (KNO_PAIRP(scan)) {
         lispval fn = KNO_CAR(scan);
         if (val == fn) return 0;
         else if (KNO_FUNCTIONP(fn)) {
-          struct KNO_FUNCTION *f = KNO_DTYPE2FCN(fn);
+          struct KNO_FUNCTION *f = KNO_GETFUNCTION(fn);
           if ((f->fcn_name)&&(f->fcn_filename)&&
               (strcmp(f->fcn_name,vf->fcn_name)==0)&&
               (strcmp(f->fcn_filename,vf->fcn_filename)==0)) {
@@ -172,13 +172,13 @@ static int postflight_set(lispval var,lispval val,void *data)
   if (!(KNO_APPLICABLEP(val)))
     return kno_reterr(kno_TypeError,"postflight_set",u8_strdup("applicable"),val);
   if (KNO_FUNCTIONP(val)) {
-    vf = KNO_DTYPE2FCN(val);
+    vf = KNO_GETFUNCTION(val);
     if ((vf)&&(vf->fcn_name)&&(vf->fcn_filename)) {
       lispval scan = postflight; while (KNO_PAIRP(scan)) {
         lispval fn = KNO_CAR(scan);
         if (val == fn) return 0;
         else if (KNO_FUNCTIONP(fn)) {
-          struct KNO_FUNCTION *f = KNO_DTYPE2FCN(fn);
+          struct KNO_FUNCTION *f = KNO_GETFUNCTION(fn);
           if ((f->fcn_name)&&(f->fcn_filename)&&
               (strcmp(f->fcn_name,vf->fcn_name)==0)&&
               (strcmp(f->fcn_filename,vf->fcn_filename)==0)) {
@@ -892,9 +892,3 @@ static lispval webcommon_adjust_docroot(lispval cgidata,u8_string docroot)
 }
 
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

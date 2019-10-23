@@ -23,6 +23,8 @@
 #include <gperftools/malloc_extension_c.h>
 #endif
 
+#define KNO_SOURCE 1
+
 #include "kno/lisp.h"
 #include "kno/eval.h"
 #include "kno/storage.h"
@@ -30,6 +32,7 @@
 #include "kno/indexes.h"
 #include "kno/frames.h"
 #include "kno/numbers.h"
+#include "kno/cprims.h"
 
 #include <libu8/libu8io.h>
 #include <libu8/u8timefns.h>
@@ -51,6 +54,8 @@
 /* Google profiling tools */
 
 #if HAVE_GPERFTOOLS_HEAP_PROFILER_H
+DEFPRIM("GPERF/HEAP/PROFILE!",gperf_heap_profile,MAX_ARGS(1)|MIN_ARGS(0),
+	"Activates the gperftools heap profiler");
 static lispval gperf_heap_profile(lispval arg)
 {
   int running = IsHeapProfilerRunning();
@@ -68,13 +73,20 @@ static lispval gperf_heap_profile(lispval arg)
     return KNO_TRUE;}
 }
 
-static lispval gperf_profiling_heap(lispval arg)
+DEFPRIM("GPERF/HEAP/PROFILING?",gperf_profiling_heap,MAX_ARGS(0)|MIN_ARGS(0),
+	"`(GPERF/HEAP/PROFILING?)` Returns true if the gperftools heap "
+	"profiler is running.");
+static lispval gperf_profiling_heap()
 {
   if (IsHeapProfilerRunning())
     return KNO_TRUE;
   else return KNO_FALSE;
 }
 
+DEFPRIM("GPERF/HEAP/DUMP!",gperf_dump_heap,MAX_ARGS(1)|MIN_ARGS(1),
+	"`(GPERF/HEAP/DUMP! *file*)` dumps the current heap information to"
+	"*file*, returning true. Returns false if the heap profiler is not "
+	"running.");
 static lispval gperf_dump_heap(lispval arg)
 {
   int running = IsHeapProfilerRunning();
@@ -86,6 +98,9 @@ static lispval gperf_dump_heap(lispval arg)
 #endif
 
 #if HAVE_GPERFTOOLS_PROFILER_H
+DEFPRIM("GPERF/CPU/PROFILE!",gperf_startstop,MAX_ARGS(1)|MIN_ARGS(1),
+	"`(GPERF/CPU/PROFILE! *file*)` starts CPU profiling to *file*, or "
+	"stops CPU profiling if *file* is not provided.");
 static lispval gperf_startstop(lispval arg)
 {
   if (STRINGP(arg))
@@ -93,6 +108,9 @@ static lispval gperf_startstop(lispval arg)
   else ProfilerStop();
   return VOID;
 }
+DEFPRIM("GPERF/CPU/FLUSH!",gperf_flush,MAX_ARGS(1)|MIN_ARGS(1),
+	"`(GPERF/CPU/FLUSH!)` flushes CPU profiling records to the "
+	"designated file.");
 static lispval gperf_flush()
 {
   ProfilerFlush();
@@ -100,6 +118,8 @@ static lispval gperf_flush()
 }
 #endif
 
+DEFPRIM("GPERF/MALLOC/STATS!",malloc_stats_prim,MAX_ARGS(0)|MIN_ARGS(0),
+	"`(GPERF/MALLOC/STATS)` writes malloc statistics to the stdout.");
 static lispval malloc_stats_prim()
 {
 #if HAVE_MALLOC_STATS
@@ -111,6 +131,9 @@ static lispval malloc_stats_prim()
   return VOID;
 }
 
+DEFPRIM("GPERF/MALLOC/RELEASE!",release_memory_prim,MAX_ARGS(1)|MIN_ARGS(0),
+	"`(GPERF/MALLOC/RELEASE!)` attemps to release memory back to the "
+	"operating system.");
 static lispval release_memory_prim(lispval arg)
 {
 #if HAVE_GPERFTOOLS_MALLOC_EXTENSION_C_H
@@ -158,44 +181,30 @@ KNO_EXPORT int kno_init_gperftools()
 {
   if (gperftools_init) return 0;
   gperftools_init = u8_millitime();
-  lispval gperftools_module = kno_new_cmodule("gperftools",0,kno_init_gperftools);
+  lispval module = kno_new_cmodule("gperftools",0,kno_init_gperftools);
 
   kno_add_sensor(kno_intern("mallocd"),mallocd_sensor);
   kno_add_sensor(kno_intern("heapsize"),heapsize_sensor);
   kno_add_sensor(kno_intern("mallocinfo"),mallocinfo_sensor);
 
 #if HAVE_GPERFTOOLS_HEAP_PROFILER_H
-  kno_idefn(kno_scheme_module,
-           kno_make_cprim1("GPERF/HEAP/PROFILE!",gperf_heap_profile,0));
-  kno_idefn(kno_scheme_module,
-           kno_make_cprim0("GPERF/HEAP?",gperf_profiling_heap));
-  kno_idefn(kno_scheme_module,
-           kno_make_cprim1("GPERF/DUMPHEAP",gperf_dump_heap,1));
+  KNO_LINK_CPRIM(gperf_heap_profile,1,module);
+  KNO_LINK_CPRIM(gperf_profiling_heap,0,module);
+  KNO_LINK_CPRIM(gperf_dump_heap,1,module);
 #endif
 
 #if HAVE_GPERFTOOLS_PROFILER_H
-  kno_idefn(kno_scheme_module,
-           kno_make_cprim1("GPERF/PROFILE!",gperf_startstop,0));
-  kno_idefn(kno_scheme_module,kno_make_cprim0("GPERF/FLUSH",gperf_flush));
+  KNO_LINK_CPRIM(gperf_startstop,1,module);
+  KNO_LINK_CPRIM(gperf_flush,0,module);
 #endif
 
-  kno_idefn1(kno_scheme_module,"RELEASE-MEMORY",release_memory_prim,0,
-            "Releases memory back to the operating system",
-            kno_fixnum_type,VOID);
+  KNO_LINK_CPRIM(release_memory_prim,1,module);
+  KNO_LINK_CPRIM(malloc_stats_prim,0,module);
 
-  kno_idefn0(kno_scheme_module,"MALLOC-STATS",malloc_stats_prim,
-            "Returns a string report of memory usage");
-
-  kno_finish_module(gperftools_module);
+  kno_finish_module(module);
 
   u8_register_source_file(_FILEINFO);
 
   return 1;
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

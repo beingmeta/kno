@@ -35,7 +35,7 @@
 
 #define odigitp(c) ((c>='0')&&(c<='8'))
 #define spacecharp(c) ((c>0) && (c<128) && (isspace(c)))
-#define atombreakp(c) \
+#define atombreakp(c)                                                   \
   ((c<=0) || ((c<128) && ((isspace(c)) || (strchr("{}()[]#\"',`",c)))))
 
 u8_condition kno_CantUnparse=_("LISP expression unparse error");
@@ -152,7 +152,7 @@ static int get_packet_base(const unsigned char *bytes,int len)
 }
 
 KNO_EXPORT int kno_unparse_packet
-   (U8_OUTPUT *out,const unsigned char *bytes,size_t len,int base)
+(U8_OUTPUT *out,const unsigned char *bytes,size_t len,int base)
 {
   int i = 0;
   int unparse_maxbytes =
@@ -248,7 +248,7 @@ static int unparse_pair(U8_OUTPUT *out,lispval x)
     kno_unparse(out,KNO_CAR(scan));
     len++;
     scan = KNO_CDR(scan);
-    while (KNO_LISP_TYPE(scan) == kno_pair_type)
+    while (KNO_TYPEOF(scan) == kno_pair_type)
       if ((unparse_maxelts>0) && (len>=unparse_maxelts)) {
         if (len == unparse_maxelts) ellipsis_start = len;
         scan = KNO_CDR(scan);
@@ -308,9 +308,9 @@ static int unparse_choice(U8_OUTPUT *out,lispval x)
 
 KNO_EXPORT
 /* kno_unparse:
-     Arguments: a U8 output stream and a lisp object
-     Returns: int
-  Emits a printed representation of the object to the stream.
+   Arguments: a U8 output stream and a lisp object
+   Returns: int
+   Emits a printed representation of the object to the stream.
 */
 int kno_unparse(u8_output out,lispval x)
 {
@@ -344,6 +344,23 @@ int kno_unparse(u8_output out,lispval x)
       else {
         char buf[24]; sprintf(buf,"#!%lx",(unsigned long)x);
         return u8_puts(out,buf);}
+    else if (itype == kno_type_type) {
+      U8_STATIC_OUTPUT(typeref,128);
+      if ( (data < KNO_TYPE_MAX) && (kno_type_names[data]) ) {
+	u8_string scan = kno_type_names[data];
+	int c = u8_sgetc(&scan);
+	u8_putc(typerefout,'#');
+	while (c>0) {
+	  if (u8_isalnum(c))
+	    u8_putc(typerefout,c);
+	  else u8_putc(typerefout,'_');
+	  c = u8_sgetc(&scan);}
+	u8_puts(typerefout,"_type");}
+      else {
+	u8_printf(typerefout,"#!%lx:typeref",x);}
+      int rv = u8_puts(out,typeref.u8_outbuf);
+      u8_close_output(typerefout);
+      return rv;}
     else if (kno_unparsers[itype])
       return kno_unparsers[itype](out,x);
     else {
@@ -380,10 +397,10 @@ int kno_unparse(u8_output out,lispval x)
 
 KNO_EXPORT
 /* kno_lisp2string:
-     Arguments: a lisp object
-     Returns: a UTF-8 encoding string
+   Arguments: a lisp object
+   Returns: a UTF-8 encoding string
 
-     Returns a textual encoding of its argument.
+   Returns a textual encoding of its argument.
 */
 u8_string kno_lisp2string(lispval x)
 {
@@ -395,13 +412,13 @@ u8_string kno_lisp2string(lispval x)
 
 KNO_EXPORT
 /* kno_lisp2buf:
-     Arguments: a lisp object
-     Arguments: a length in bytes
-     Arguments: a (possibly NULL) buffer
-     Returns: a UTF-8 encoding string
+   Arguments: a lisp object
+   Arguments: a length in bytes
+   Arguments: a (possibly NULL) buffer
+   Returns: a UTF-8 encoding string
 
-     Writes a text representation of the object into a fixed length
-     string.
+   Writes a text representation of the object into a fixed length
+   string.
 
 */
 u8_string kno_lisp2buf(lispval x,size_t n,u8_byte *buf)
@@ -413,59 +430,69 @@ u8_string kno_lisp2buf(lispval x,size_t n,u8_byte *buf)
   return out.u8_outbuf;
 }
 
-static lispval get_compound_tag(lispval tag)
-{
-  if (KNO_COMPOUND_TYPEP(tag,kno_compound_descriptor_type)) {
-    struct KNO_COMPOUND *c = KNO_XCOMPOUND(tag);
-    return kno_incref(c->compound_typetag);}
-  else return tag;
-}
-
 static int unparse_compound(struct U8_OUTPUT *out,lispval x)
 {
-  struct KNO_COMPOUND *xc = kno_consptr(struct KNO_COMPOUND *,x,kno_compound_type);
-  lispval tag = get_compound_tag(xc->compound_typetag);
-  struct KNO_COMPOUND_TYPEINFO *entry = kno_lookup_compound(tag);
-  if ((entry) && (entry->compound_unparser)) {
-    int retval = entry->compound_unparser(out,x,entry);
-    if (retval<0) return retval;
+  struct KNO_COMPOUND *xc =
+    kno_consptr(struct KNO_COMPOUND *,x,kno_compound_type);
+  lispval tag = xc->typetag;
+  struct KNO_TYPEINFO *info = xc->typeinfo;
+  if (info == NULL) info = kno_taginfo(x);
+  if ((info) && (info->type_unparsefn)) {
+    int retval = info->type_unparsefn(out,x,info);
+    if (retval<0) {kno_clear_errors(1);}
     else if (retval) return retval;}
   u8_string tagstring = (KNO_SYMBOLP(tag)) ? (KNO_SYMBOL_NAME(tag)) :
     (KNO_STRINGP(tag)) ? (KNO_CSTRING(tag)) : (NULL);
   int opaque = (xc->compound_isopaque) ? (1) :
-    (entry) ? (entry->compound_isopaque) :
+    (info) ? (info->type_isopaque) :
     ( (tagstring) && (tagstring[0]=='%') );
   {
     lispval *data = &(xc->compound_0);
     int i = 0, n = xc->compound_length;
-    if ((entry)&&(entry->compound_corelen>0)&&(entry->compound_corelen<n))
-      n = entry->compound_corelen;
     if (opaque)
-      u8_printf(out,"#<<%q",xc->compound_typetag);
-    else u8_printf(out,"#%%(%q",xc->compound_typetag);
+      u8_printf(out,"#<<%q",xc->typetag);
+    else u8_printf(out,"#%%(%q",xc->typetag);
     while (i<n) {
       lispval elt = data[i++];
-      if (0) { /* (PACKETP(elt)) */
-        struct KNO_STRING *packet = kno_consptr(kno_string,elt,kno_packet_type);
-        const unsigned char *bytes = packet->str_bytes;
-        int n_bytes = packet->str_bytelen;
-        u8_puts(out," ");
-        kno_unparse_packet(out,bytes,n_bytes,16);}
-      else u8_printf(out," %q",elt);}
+      u8_printf(out," %q",elt);}
     if (opaque)
       u8_puts(out,">>");
     else u8_puts(out,")");
     return 1;}
 }
 
+static int unparse_rawptr(struct U8_OUTPUT *out,lispval x)
+{
+  struct KNO_RAWPTR *rawptr = (struct KNO_RAWPTR *)x;
+  lispval tag = rawptr->typetag;
+  struct KNO_TYPEINFO *info = rawptr->typeinfo;
+  if (info == NULL) info = kno_taginfo(x);
+  if ((info) && (info->type_unparsefn)) {
+    int retval = info->type_unparsefn(out,x,info);
+    if (retval<0) {kno_clear_errors(1);}
+    else if (retval) return retval;}
+  u8_string typestring = (KNO_SYMBOLP(tag)) ? (KNO_SYMBOL_NAME(tag)) :
+    (KNO_STRINGP(tag)) ? (KNO_CSTRING(tag)) : (info->type_name) ;
+  if ( (typestring) && (rawptr->idstring) )
+    u8_printf(out,"#<%s(RAW) 0x%llx (%s)>",
+              typestring,U8_PTR2INT(rawptr->ptrval),rawptr->idstring);
+  else if (typestring)
+    u8_printf(out,"#<%s(RAW) 0x%llx>",typestring,U8_PTR2INT(rawptr->ptrval));
+  else if (rawptr->idstring)
+    u8_printf(out,"#<RAW 0x%llx (%s)>",U8_PTR2INT(rawptr->ptrval),
+              rawptr->idstring);
+  else u8_printf(out,"#<RAW 0x%llx>",U8_PTR2INT(rawptr->ptrval));
+  return 1;
+}
+
 KNO_EXPORT
 /* kno_unparse_arg:
-     Arguments: a lisp object
-     Returns: a utf-8 string
+   Arguments: a lisp object
+   Returns: a utf-8 string
 
-     Generates a string representation from a lisp object, trying
-     to make the representation as natural as possible but allowing
-     it to be reversed by kno_parse_arg
+   Generates a string representation from a lisp object, trying
+   to make the representation as natural as possible but allowing
+   it to be reversed by kno_parse_arg
 */
 u8_string kno_unparse_arg(lispval arg)
 {
@@ -502,31 +529,10 @@ static int unparse_mystery(u8_output out,lispval x)
   return 1;
 }
 
-static int unparse_rawptr(struct U8_OUTPUT *out,lispval x)
-{
-  struct KNO_RAWPTR *rawptr = (struct KNO_RAWPTR *)x;
-  if ((rawptr->typestring)&&(rawptr->idstring))
-    u8_printf(out,"#<%s(RAW) 0x%llx (%s)>",
-              rawptr->typestring,
-              U8_PTR2INT(rawptr->ptrval),
-              rawptr->idstring);
-  else if (rawptr->typestring)
-    u8_printf(out,"#<%s(RAW) 0x%llx>",
-              rawptr->typestring,
-              U8_PTR2INT(rawptr->ptrval));
-  else if (rawptr->idstring)
-    u8_printf(out,"#<RAW 0x%llx (%s)>",
-              U8_PTR2INT(rawptr->ptrval),
-              rawptr->idstring);
-  else u8_printf(out,"#<RAW 0x%llx>",
-                 U8_PTR2INT(rawptr->ptrval));
-  return 1;
-}
-
 /* U8_PRINTF extensions */
 
 static u8_string lisp_printf_handler
-  (struct U8_OUTPUT *s,char *cmd,u8_byte *buf,int bufsiz,va_list *args)
+(struct U8_OUTPUT *s,char *cmd,u8_byte *buf,int bufsiz,va_list *args)
 {
   lispval value = va_arg(*args,lispval);
   int verbose = (strchr(cmd,'l')!=NULL), retval;
@@ -570,10 +576,3 @@ KNO_EXPORT void kno_init_unparse_c()
   histref_symbol = kno_intern("%histref");
   comment_symbol = kno_intern("comment");
 }
-
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

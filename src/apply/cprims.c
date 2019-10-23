@@ -52,10 +52,10 @@ int unparse_cprim(u8_output out,lispval x)
     tmpbuf[len]='\0';
     filename=tmpbuf;}
   if (filename==NULL) filename="nofile";
-  if (FCN_NDCALLP(fcn)) strcat(codes,"∀");
+  if (FCN_NDOPP(fcn)) strcat(codes,"∀");
   if ((fcn->fcn_arity<0)&&(fcn->fcn_min_arity<0))
     strcat(arity,"[…]");
-  else if (fcn->fcn_arity == fcn->fcn_min_arity) {
+  else if (fcn->fcn_arity==fcn->fcn_min_arity) {
     strcat(arity,"[");
     strcat(arity,u8_itoa10(fcn->fcn_arity,numbuf));
     strcat(arity,"]");}
@@ -141,7 +141,7 @@ static struct KNO_CPRIM *make_cprim(u8_string name,
 {
   int arity = ( (flags&0x80) ? (-1) : ( flags & (0x7f) ) );
   int min_arity = (flags&0x8000) ? ( (flags>>8) & 0x7f) : (arity);
-  int non_deterministic = flags & KNO_NDCALL;
+  int non_deterministic = flags & KNO_NDOP;
   int extended_call = flags & KNO_XCALL;
   int varargs = ( (arity < 0) || (flags & KNO_LEXPR) );
   /* We allocate the type/default info together with the function to
@@ -166,13 +166,11 @@ static struct KNO_CPRIM *make_cprim(u8_string name,
   f->fcn_filename = filename;
   f->fcn_doc = doc;
   f->fcn_moduleid = KNO_VOID;
-  if (varargs)
-    f->fcn_call |= KNO_FCN_CALL_LEXPR;
-  if (non_deterministic)
-    f->fcn_call |= KNO_FCN_CALL_NDCALL;
-  if (extended_call)
-    f->fcn_call |= KNO_FCN_CALL_XCALL;
-  f->fcn_arity = arity;
+  f->fcn_call = KNO_FCN_CALL_NOTAIL |
+    ( (varargs) ? (KNO_FCN_CALL_LEXPR) : (0) ) |
+    ( (non_deterministic) ? (KNO_FCN_CALL_NDOP) : (0) ) |
+    ( (extended_call) ? (KNO_FCN_CALL_XCALL) : (0) );
+  f->fcn_call_width = f->fcn_arity = arity;
   f->fcn_min_arity = min_arity;
   f->fcn_typeinfo = prim_typeinfo;
   if (typeinfo) memcpy(prim_typeinfo,typeinfo,sizeof(int)*arity);
@@ -590,18 +588,18 @@ KNO_EXPORT void kno_init_cprims_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  init_local_cprims();
+  link_local_cprims();
 
   moduleid_symbol = kno_intern("%moduleid");
 
-  kno_functionp[kno_cprim_type]=1;
+  kno_function_types[kno_cprim_type]=1;
 
   kno_unparsers[kno_cprim_type]=unparse_cprim;
   kno_recyclers[kno_cprim_type]=recycle_cprim;
   kno_dtype_writers[kno_cprim_type]=cprim_dtype;
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
 
 }

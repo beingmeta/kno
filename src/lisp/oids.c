@@ -150,7 +150,7 @@ static char b32_weights[]=
    23,24,25,-1,26,-1,27,28,29,30,31,-1,-1,-1,-1,-1};
 
 KNO_EXPORT char *kno_ulonglong_to_b32(unsigned long long offset,
-                                    char *buf,int *len)
+                                      char *buf,int *len)
 {
   char tmpbuf[32]; int rem = offset, outlen = 0;
   int buflen = ((len)?(*len):((sizeof(unsigned long long)/5)+1));
@@ -171,7 +171,7 @@ KNO_EXPORT char *kno_ulonglong_to_b32(unsigned long long offset,
 }
 
 KNO_EXPORT int kno_b32_to_ulonglong
-  (const char *digits,unsigned long long *out)
+(const char *digits,unsigned long long *out)
 {
   unsigned long long sum = 0; long long xsum;
   const char *scan = digits; int err = 0, weight;
@@ -285,9 +285,3 @@ void kno_init_oids_c()
   kno_zero_pool_buckets[0]=kno_zero_pool_values;
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

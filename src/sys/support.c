@@ -54,9 +54,9 @@ u8_condition kno_NoSuchFile=_("File does not exist");
 
 /* Debugging support functions */
 
-KNO_EXPORT kno_lisp_type _kno_lisp_type(lispval x)
+KNO_EXPORT kno_lisp_type _kno_typeof(lispval x)
 {
-  return KNO_LISP_TYPE(x);
+  return KNO_TYPEOF(x);
 }
 
 KNO_EXPORT lispval _kno_debug(lispval x)
@@ -68,7 +68,7 @@ KNO_EXPORT lispval _kno_debug(lispval x)
 
 #define LOCAL_MODULES 1
 #define INSTALLED_MODULES 2
-#define SHARED_MODULES 3
+/* #define SHARED_MODULES 3 */
 #define STDLIB_MODULES 4
 #define UNPACKAGE_DIR 5
 
@@ -161,24 +161,23 @@ void kno_init_fluid_c(void);
 void kno_init_posix_c(void);
 void kno_init_signals_c(void);
 void kno_init_sourcebase_c(void);
+void kno_init_history_c(void);
 
 KNO_EXPORT void kno_init_support_c()
 {
 
-  u8_register_textdomain("Kno");
+  u8_register_textdomain("kno");
 
   kno_init_sourcebase_c();
-
   kno_init_config_c();
-
   kno_init_err_c();
-
   kno_init_logging_c();
   kno_init_startup_c();
   kno_init_getopt_c();
   kno_init_fluid_c();
   kno_init_posix_c();
   kno_init_signals_c();
+  kno_init_history_c();
 
   kno_register_config
     ("MAXCHARS",_("Max number of chars to show in strings"),
@@ -204,60 +203,56 @@ KNO_EXPORT void kno_init_support_c()
      &kno_packet_outfmt);
 
   kno_register_config("PPRINT:MAXCHARS",
-                     _("Maximum number of characters when pprinting strings"),
-                     kno_intconfig_get,kno_intconfig_set,
-                     &pprint_maxchars);
+                      _("Maximum number of characters when pprinting strings"),
+                      kno_intconfig_get,kno_intconfig_set,
+                      &pprint_maxchars);
   kno_register_config("PPRINT:MAXBYTE",
-                     _("Maximum number of bytes when pprinting packets"),
-                     kno_intconfig_get,kno_intconfig_set,
-                     &pprint_maxbytes);
+                      _("Maximum number of bytes when pprinting packets"),
+                      kno_intconfig_get,kno_intconfig_set,
+                      &pprint_maxbytes);
   kno_register_config("PPRINT:MAXELTS",
-                     _("Maximum number of elements when pprinting sequences "
-                       "or choices"),
-                     kno_intconfig_get,kno_intconfig_set,
-                     &pprint_maxelts);
+                      _("Maximum number of elements when pprinting sequences "
+                        "or choices"),
+                      kno_intconfig_get,kno_intconfig_set,
+                      &pprint_maxelts);
   kno_register_config("PPRINT:MAXDEPTH",
-                     _("Maximum depth for recursive printing"),
-                     kno_intconfig_get,kno_intconfig_set,
-                     &pprint_maxdepth);
+                      _("Maximum depth for recursive printing"),
+                      kno_intconfig_get,kno_intconfig_set,
+                      &pprint_maxdepth);
   kno_register_config("PPRINT:LISTMAX",
-                     _("Maximum number of elements when pprinting lists"),
-                     kno_intconfig_get,kno_intconfig_set,
-                     &pprint_list_max);
+                      _("Maximum number of elements when pprinting lists"),
+                      kno_intconfig_get,kno_intconfig_set,
+                      &pprint_list_max);
   kno_register_config("PPRINT:VECTORMAX",
-                     _("Maximum number of elements when pprinting vectors"),
-                     kno_intconfig_get,kno_intconfig_set,
-                     &pprint_vector_max);
+                      _("Maximum number of elements when pprinting vectors"),
+                      kno_intconfig_get,kno_intconfig_set,
+                      &pprint_vector_max);
   kno_register_config("PPRINT:CHOICEMAX",
-                     _("Maximum number of elements when pprinting choices"),
-                     kno_intconfig_get,kno_intconfig_set,
-                     &pprint_choice_max);
+                      _("Maximum number of elements when pprinting choices"),
+                      kno_intconfig_get,kno_intconfig_set,
+                      &pprint_choice_max);
   kno_register_config("PPRINT:KEYSMAX",
-                     _("Maximum number of keys when pprinting tables"),
-                     kno_intconfig_get,kno_intconfig_set,
-                     &pprint_choice_max);
+                      _("Maximum number of keys when pprinting tables"),
+                      kno_intconfig_get,kno_intconfig_set,
+                      &pprint_choice_max);
 
   kno_register_config("PPRINT:INDENTS",
-                     _("PPRINT indentation rules"),
-                     kno_tblconfig_get,kno_tblconfig_set,
-                     &pprint_default_rules);
+                      _("PPRINT indentation rules"),
+                      kno_tblconfig_get,kno_tblconfig_set,
+                      &pprint_default_rules);
 
   kno_register_config("LOCAL_MODULES",_("value of LOCAL_MODULES"),
-                     config_get_module_loc,NULL,(void *) LOCAL_MODULES);
+                      config_get_module_loc,NULL,(void *) LOCAL_MODULES);
   kno_register_config("INSTALLED_MODULES",_("value of INSTALLED_MODULES"),
-                     config_get_module_loc,NULL,(void *) INSTALLED_MODULES);
+                      config_get_module_loc,NULL,(void *) INSTALLED_MODULES);
+#if 0
   kno_register_config("SHARED_MODULES",_("value of SHARED_MODULES"),
-                     config_get_module_loc,NULL,(void *) SHARED_MODULES);
+                      config_get_module_loc,NULL,(void *) SHARED_MODULES);
+#endif
   kno_register_config("STDLIB_MODULES",_("value of STDLIB_MODULES"),
-                     config_get_module_loc,NULL,(void *) STDLIB_MODULES);
+                      config_get_module_loc,NULL,(void *) STDLIB_MODULES);
 
   kno_register_config("UNPACKAGE_DIR",_("value of UNPACKAGE_DIR"),
-                     config_get_module_loc,NULL,(void *) UNPACKAGE_DIR);
+                      config_get_module_loc,NULL,(void *) UNPACKAGE_DIR);
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

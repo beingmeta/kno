@@ -1267,7 +1267,7 @@ static void init_configs()
      kno_boolconfig_get,kno_boolconfig_set,&no_storage_api);
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
 }
 
@@ -1281,7 +1281,8 @@ static kno_lexenv init_core_env()
   kno_finish_module(kno_dbserv_module);
 
   /* We add some special functions */
-  kno_def_evalfn(core_module,"bound?","",boundp_evalfn);
+  kno_def_evalfn(core_module,"bound?",boundp_evalfn,
+		 "");
 
   kno_idefn(core_module,
             kno_make_cprim0("BOOT-TIME",get_boot_time,0,
@@ -1296,7 +1297,7 @@ static kno_lexenv init_core_env()
   kno_idefn(core_module,
             kno_make_cprim0("SERVER-STATUS",get_server_status,0,
                             "Returns the status of the server"));
-  init_local_cprims();
+  link_local_cprims();
 
   return core_env;
 }
@@ -1445,9 +1446,3 @@ static int run_server(u8_string server_spec)
   return 0;
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

@@ -1291,7 +1291,7 @@ static lispval responsestatusprim(lispval response)
     return kno_type_error("HTTP response","responsestatusprim",response);}
   else return status;
 }
-DEFPRIM3("response/status?",testresponseprim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+DEFPRIM3("response/status?",testresponseprim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDOP,
 	 "`(RESPONSE/STATUS? *arg0* *arg1* [*arg2*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
 	 kno_any_type,KNO_VOID);
@@ -1329,7 +1329,7 @@ static lispval testresponseprim(lispval response,lispval arg1,lispval arg2)
 /* Opening URLs with options */
 
 DEFPRIM3("curl/setopt!",curlsetopt,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 "`(CURL/SETOPT! *arg0* *arg1* [*arg2*])` **undocumented**",
+	 "`(CURL/NDOPT! *arg0* *arg1* [*arg2*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
 	 kno_any_type,KNO_VOID);
 static lispval curlsetopt(lispval handle,lispval opt,lispval value)
@@ -1347,7 +1347,7 @@ static lispval curlsetopt(lispval handle,lispval opt,lispval value)
 
 DEFPRIM("curl/open",curlopen,KNO_VAR_ARGS|KNO_MIN_ARGS(0),
 	"`(CURL/OPEN *args...*)` **undocumented**");
-static lispval curlopen(int n,lispval *args)
+static lispval curlopen(int n,kno_argvec args)
 {
   if (n==0)
     return (lispval) kno_open_curl_handle();
@@ -1388,7 +1388,7 @@ static lispval curlopen(int n,lispval *args)
 
 DEFPRIM("urlpost",urlpost,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
 	"`(URLPOST *arg0* *args...*)` **undocumented**");
-static lispval urlpost(int n,lispval *args)
+static lispval urlpost(int n,kno_argvec args)
 {
   INBUF data; CURLcode retval;
   lispval result = VOID, conn, urlarg = VOID, curl=KNO_VOID;
@@ -1834,9 +1834,10 @@ KNO_EXPORT void kno_init_curl_c()
 
   curl_defaults = kno_empty_slotmap();
 
-  kno_def_evalfn(module,"URLPOSTOUT","",urlpostdata_evalfn);
+  kno_def_evalfn(module,"URLPOSTOUT",urlpostdata_evalfn,
+		 "*undocumented*");
 
-  init_local_cprims();
+  link_local_cprims();
 
   kno_register_config
     ("CURL:LOGLEVEL",_("Loglevel for debugging CURL calls"),
@@ -1855,7 +1856,7 @@ KNO_EXPORT void kno_init_curl_c()
   u8_register_source_file(_FILEINFO);
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_VARARGS("urlpost",urlpost,webtools_module);
   KNO_LINK_VARARGS("curl/open",curlopen,webtools_module);

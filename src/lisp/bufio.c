@@ -269,7 +269,7 @@ KNO_EXPORT int _kno_write_8bytes(struct KNO_OUTBUF *b,kno_8bytes w)
 }
 
 KNO_EXPORT int _kno_write_bytes
-   (struct KNO_OUTBUF *b,const unsigned char *data,int size)
+(struct KNO_OUTBUF *b,const unsigned char *data,int size)
 {
   if (PRED_FALSE(KNO_ISREADING(b))) return kno_isreadbuf(b);
   else if (kno_needs_space(b,size) == 0) return -1;
@@ -345,7 +345,7 @@ KNO_EXPORT kno_8bytes _kno_read_8bytes(struct KNO_INBUF *buf)
 }
 
 KNO_EXPORT int
-  _kno_read_bytes(unsigned char *bytes,struct KNO_INBUF *buf,int len)
+_kno_read_bytes(unsigned char *bytes,struct KNO_INBUF *buf,int len)
 {
   if (PRED_FALSE(KNO_ISWRITING(buf)))
     return kno_iswritebuf(buf);
@@ -419,9 +419,3 @@ unsigned char *kno_snappy_compress
     return NULL;}
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

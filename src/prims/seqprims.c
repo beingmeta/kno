@@ -40,11 +40,11 @@ static u8_condition EmptyReduce=_("No sequence elements to reduce");
 
 #define string_start(bytes,i) ((i==0) ? (bytes) : (u8_substring(bytes,i)))
 
-static lispval make_float_vector(int n,lispval *from_elts);
-static lispval make_double_vector(int n,lispval *from_elts);
-static lispval make_short_vector(int n,lispval *from_elts);
-static lispval make_int_vector(int n,lispval *from_elts);
-static lispval make_long_vector(int n,lispval *from_elts);
+static lispval make_float_vector(int n,kno_argvec from_elts);
+static lispval make_double_vector(int n,kno_argvec from_elts);
+static lispval make_short_vector(int n,kno_argvec from_elts);
+static lispval make_int_vector(int n,kno_argvec from_elts);
+static lispval make_long_vector(int n,kno_argvec from_elts);
 
 /* Exported primitives */
 
@@ -81,7 +81,7 @@ KNO_EXPORT lispval kno_removeif(lispval test,lispval sequence,int invert)
   else if (NILP(sequence)) return sequence;
   else {
     int i = 0, j = 0, removals = 0, len = kno_seq_length(sequence);
-    kno_lisp_type result_type = KNO_LISP_TYPE(sequence);
+    kno_lisp_type result_type = KNO_TYPEOF(sequence);
     lispval *results = u8_alloc_n(len,lispval), result;
     while (i < len) {
       lispval elt = kno_seq_elt(sequence,i);
@@ -103,12 +103,12 @@ KNO_EXPORT lispval kno_removeif(lispval test,lispval sequence,int invert)
 
 /* Mapping */
 
-KNO_EXPORT lispval kno_mapseq(lispval fn,int n_seqs,lispval *sequences)
+KNO_EXPORT lispval kno_mapseq(lispval fn,int n_seqs,kno_argvec sequences)
 {
   int i = 1, seqlen = -1;
   lispval firstseq = sequences[0];
   lispval result, *results, _argvec[8], *argvec = NULL;
-  kno_lisp_type result_type = KNO_LISP_TYPE(firstseq);
+  kno_lisp_type result_type = KNO_TYPEOF(firstseq);
   if (KNO_FCNIDP(fn)) fn = kno_fcnid_ref(fn);
   if ((TABLEP(fn)) || (ATOMICP(fn))) {
     if (n_seqs>1)
@@ -172,17 +172,17 @@ KNO_EXPORT lispval kno_mapseq(lispval fn,int n_seqs,lispval *sequences)
 }
 DEFPRIM("map",mapseq_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(MAP *arg0* *arg1* *args...*)` **undocumented**");
-static lispval mapseq_prim(int n,lispval *args)
+static lispval mapseq_prim(int n,kno_argvec args)
 {
   return kno_mapseq(args[0],n-1,args+1);
 }
 
-KNO_EXPORT lispval kno_foreach(lispval fn,int n_seqs,lispval *sequences)
+KNO_EXPORT lispval kno_foreach(lispval fn,int n_seqs,kno_argvec sequences)
 {
   int i = 0, seqlen = -1;
   lispval firstseq = sequences[0];
   lispval _argvec[8], *argvec = NULL;
-  kno_lisp_type result_type = KNO_LISP_TYPE(firstseq);
+  kno_lisp_type result_type = KNO_TYPEOF(firstseq);
   if ((TABLEP(fn)) || ((ATOMICP(fn)) && (KNO_FCNIDP(fn)))) {
     if (n_seqs>1)
       return kno_err(kno_TooManyArgs,"kno_foreach",NULL,fn);
@@ -240,7 +240,7 @@ KNO_EXPORT lispval kno_foreach(lispval fn,int n_seqs,lispval *sequences)
 
 DEFPRIM("for-each",foreach_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(for-each *arg0* *arg1* *args...*)` **undocumented**");
-static lispval foreach_prim(int n,lispval *args)
+static lispval foreach_prim(int n,kno_argvec args)
 {
   /* This iterates over a sequence or set of sequences and applies
      FN to each of the elements. */
@@ -256,7 +256,7 @@ KNO_EXPORT lispval kno_map2choice(lispval fn,lispval sequence)
   else if (NILP(sequence)) return sequence;
   else if ((KNO_APPLICABLEP(fn)) || (TABLEP(fn)) || (ATOMICP(fn))) {
     int i = 0, len = kno_seq_length(sequence);
-    kno_lisp_type result_type = KNO_LISP_TYPE(sequence);
+    kno_lisp_type result_type = KNO_TYPEOF(sequence);
     lispval *results = u8_alloc_n(len,lispval);
     while (i < len) {
       lispval elt = kno_seq_elt(sequence,i), new_elt;
@@ -327,7 +327,7 @@ static lispval sequencep_prim(lispval x)
 {
   if (KNO_COMPOUNDP(x)) {
     struct KNO_COMPOUND *c = (kno_compound) x;
-    if (c->compound_off >= 0)
+    if (c->compound_seqoff >= 0)
       return KNO_TRUE;
     else return KNO_FALSE;}
   else if (KNO_SEQUENCEP(x))
@@ -379,10 +379,10 @@ static int has_length_helper(lispval x,lispval length_arg,enum COMPARISON cmp)
 {
   int seqlen = kno_seq_length(x), testlen;
   if (seqlen<0)
-    return kno_type_error(_("sequence"),"seqlen",x);
+    return KNO_ERR(-1,kno_NotASequence,"has_length_helper",NULL,x);
   else if (KNO_INTP(length_arg))
     testlen = (FIX2INT(length_arg));
-  else return kno_type_error(_("fixnum"),"has-length?",x);
+  else return KNO_ERR(-1,"length(fixnum)","has_length_helper",NULL,length_arg);
   switch (cmp) {
   case cmp_lt: return (seqlen<testlen);
   case cmp_lte: return (seqlen<=testlen);
@@ -755,7 +755,7 @@ static lispval removeif_prim(lispval test,lispval sequence)
   else return kno_removeif(test,sequence,0);
 }
 
-DEFPRIM2("remove-if-not",removeifnot_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+DEFPRIM2("remove-if-not",removeifnot_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDOP,
 	 "`(REMOVE-IF-NOT *arg0* *arg1*)` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval removeifnot_prim(lispval test,lispval sequence)
@@ -799,7 +799,7 @@ lispval position_if_prim(lispval test,lispval seq,lispval start_arg,
 			 lispval end_arg)
 {
   int end, start = (KNO_FIXNUMP(start_arg)) ? (KNO_FIX2INT(start_arg)) : (0);
-  int ctype = KNO_LISP_TYPE(seq);
+  int ctype = KNO_TYPEOF(seq);
   switch (ctype) {
   case kno_vector_type: {
     int len = KNO_VECTOR_LENGTH(seq), delta = 1;
@@ -911,7 +911,7 @@ lispval position_if_not_prim(lispval test,lispval seq,lispval start_arg,
 			     lispval end_arg)
 {
   int start = KNO_FIX2INT(start_arg), end;
-  int ctype = KNO_LISP_TYPE(seq);
+  int ctype = KNO_TYPEOF(seq);
   switch (ctype) {
   case kno_vector_type: {
     int len = KNO_VECTOR_LENGTH(seq), delta = 1;
@@ -1027,7 +1027,7 @@ lispval find_if_prim(lispval test,lispval seq,lispval start_arg,
 		     lispval end_arg,lispval fail_val)
 {
   int end, start = (KNO_FIXNUMP(start_arg)) ? (KNO_FIX2INT(start_arg)) : (0);
-  int ctype = KNO_LISP_TYPE(seq);
+  int ctype = KNO_TYPEOF(seq);
   switch (ctype) {
   case kno_vector_type: {
     int len = KNO_VECTOR_LENGTH(seq), delta = 1;
@@ -1144,7 +1144,7 @@ lispval find_if_not_prim(lispval test,lispval seq,lispval start_arg,
 			 lispval fail_val)
 {
   int start = KNO_FIX2INT(start_arg), end;
-  int ctype = KNO_LISP_TYPE(seq);
+  int ctype = KNO_TYPEOF(seq);
   switch (ctype) {
   case kno_vector_type: {
     int len = KNO_VECTOR_LENGTH(seq), delta = 1;
@@ -1319,38 +1319,6 @@ static lispval seventh(lispval x)
   return seq_elt(x,"seventh",6);
 }
 
-/* Pair functions */
-
-DEFPRIM1("empty-list?",nullp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(EMPTY-LIST? *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
-static lispval nullp(lispval x)
-{
-  if (NILP(x)) return KNO_TRUE;
-  else return KNO_FALSE;
-}
-
-DEFPRIM2("cons",cons,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "`(CONS *arg0* *arg1*)` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
-static lispval cons(lispval x,lispval y)
-{
-  return kno_make_pair(x,y);
-}
-DEFPRIM1("car",car,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(CAR *arg0*)` **undocumented**",
-	 kno_pair_type,KNO_VOID);
-static lispval car(lispval x)
-{
-  return kno_incref(KNO_CAR(x));
-}
-DEFPRIM1("cdr",cdr,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(CDR *arg0*)` **undocumented**",
-	 kno_pair_type,KNO_VOID);
-static lispval cdr(lispval x)
-{
-  return kno_incref(KNO_CDR(x));
-}
 DEFPRIM1("cddr",cddr,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "`(CDDR *arg0*)` **undocumented**",
 	 kno_pair_type,KNO_VOID);
@@ -1408,7 +1376,7 @@ static lispval cdddr(lispval x)
 
 DEFPRIM("cons*",cons_star,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
 	"`(CONS* *arg0* *args...*)` **undocumented**");
-static lispval cons_star(int n,lispval *args)
+static lispval cons_star(int n,kno_argvec args)
 {
   int i = n-2; lispval list = kno_incref(args[n-1]);
   while (i>=0) {
@@ -1536,7 +1504,7 @@ static lispval member_prim(lispval key,lispval list)
 
 DEFPRIM("list",list,KNO_VAR_ARGS|KNO_MIN_ARGS(0),
 	"`(LIST *args...*)` **undocumented**");
-static lispval list(int n,lispval *elts)
+static lispval list(int n,kno_argvec elts)
 {
   lispval head = NIL, *tail = &head; int i = 0;
   while (i < n) {
@@ -1547,10 +1515,10 @@ static lispval list(int n,lispval *elts)
 
 DEFPRIM("vector",vector,KNO_VAR_ARGS|KNO_MIN_ARGS(0),
 	"`(VECTOR *args...*)` **undocumented**");
-static lispval vector(int n,lispval *elts)
+static lispval vector(int n,kno_argvec elts)
 {
   int i = 0; while (i < n) {kno_incref(elts[i]); i++;}
-  return kno_make_vector(n,elts);
+  return kno_make_vector(n,(lispval *)elts);
 }
 
 DEFPRIM2("make-vector",make_vector,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
@@ -1589,9 +1557,9 @@ static lispval seq2vector(lispval seq)
   else return kno_type_error(_("sequence"),"seq2vector",seq);
 }
 
-DEFPRIM("1vector",onevector_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(0)|KNO_NDCALL,
+DEFPRIM("1vector",onevector_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(0)|KNO_NDOP,
 	"`(1VECTOR *args...*)` **undocumented**");
-static lispval onevector_prim(int n,lispval *args)
+static lispval onevector_prim(int n,kno_argvec args)
 {
   lispval elts[32], result = VOID;
   struct U8_PILE pile; int i = 0;
@@ -1602,9 +1570,10 @@ static lispval onevector_prim(int n,lispval *args)
     else if ((EMPTYP(args[0]))||(KNO_EMPTY_QCHOICEP(args[0])))
       return kno_empty_vector(0);
     else if (!(CONSP(args[0])))
-      return kno_make_vector(1,args);
+      return kno_make_vector(1,(lispval *)args);
     else {
-      kno_incref(args[0]); return kno_make_vector(1,args);}}
+      kno_incref(args[0]);
+      return kno_make_vector(1,(lispval *)args);}}
   U8_INIT_STATIC_PILE((&pile),elts,32);
   while (i<n) {
     lispval arg = args[i++];
@@ -1732,7 +1701,7 @@ KNO_EXPORT lispval kno_seq2choice(lispval x)
     return results;}
   else {
     lispval result = EMPTY;
-    int ctype = KNO_LISP_TYPE(x), i = 0, len;
+    int ctype = KNO_TYPEOF(x), i = 0, len;
     switch (ctype) {
     case kno_vector_type:
       len = VEC_LEN(x); while (i < len) {
@@ -1778,7 +1747,7 @@ static lispval elts_prim(lispval x,lispval start_arg,lispval end_arg)
   int start, end;
   lispval check = check_range("elts_prim",x,start_arg,end_arg,&start,&end);
   lispval results = EMPTY;
-  int ctype = KNO_LISP_TYPE(x);
+  int ctype = KNO_TYPEOF(x);
   if (KNO_ABORTED(check))
     return check;
   else switch (ctype) {
@@ -1791,7 +1760,7 @@ static lispval elts_prim(lispval x,lispval start_arg,lispval end_arg)
       return results;}
     case kno_compound_type: {
       struct KNO_COMPOUND *compound = (kno_compound) x;
-      int off = compound->compound_off;
+      int off = compound->compound_seqoff;
       if (off < 0)
 	return kno_err("NotACompoundSequence","elts_prim",NULL,x);
       lispval *scan = (&(compound->compound_0))+off+start;
@@ -2165,7 +2134,7 @@ static lispval recons_prim(lispval car,lispval cdr,lispval orig)
 
 DEFPRIM("shortvec",make_short_vector,KNO_VAR_ARGS|KNO_MIN_ARGS(0),
 	"`(SHORTVEC *args...*)` **undocumented**");
-static lispval make_short_vector(int n,lispval *from_elts)
+static lispval make_short_vector(int n,kno_argvec from_elts)
 {
   int i = 0; lispval vec = kno_make_numeric_vector(n,kno_short_elt);
   kno_short *elts = KNO_NUMVEC_SHORTS(vec);
@@ -2206,7 +2175,7 @@ static lispval seq2shortvec(lispval arg)
 
 DEFPRIM("intvec",make_int_vector,KNO_VAR_ARGS|KNO_MIN_ARGS(0),
 	"`(INTVEC *args...*)` **undocumented**");
-static lispval make_int_vector(int n,lispval *from_elts)
+static lispval make_int_vector(int n,kno_argvec from_elts)
 {
   int i = 0; lispval vec = kno_make_numeric_vector(n,kno_int_elt);
   kno_int *elts = KNO_NUMVEC_INTS(vec);
@@ -2250,7 +2219,7 @@ static lispval seq2intvec(lispval arg)
 
 DEFPRIM("longvec",make_long_vector,KNO_VAR_ARGS|KNO_MIN_ARGS(0),
 	"`(LONGVEC *args...*)` **undocumented**");
-static lispval make_long_vector(int n,lispval *from_elts)
+static lispval make_long_vector(int n,kno_argvec from_elts)
 {
   int i = 0; lispval vec = kno_make_numeric_vector(n,kno_long_elt);
   kno_long *elts = KNO_NUMVEC_LONGS(vec);
@@ -2293,7 +2262,7 @@ static lispval seq2longvec(lispval arg)
 
 DEFPRIM("floatvec",make_float_vector,KNO_VAR_ARGS|KNO_MIN_ARGS(0),
 	"`(FLOATVEC *args...*)` **undocumented**");
-static lispval make_float_vector(int n,lispval *from_elts)
+static lispval make_float_vector(int n,kno_argvec from_elts)
 {
   int i = 0; lispval vec = kno_make_numeric_vector(n,kno_float_elt);
   float *elts = KNO_NUMVEC_FLOATS(vec);
@@ -2336,7 +2305,7 @@ static lispval seq2floatvec(lispval arg)
 
 DEFPRIM("doublevec",make_double_vector,KNO_VAR_ARGS|KNO_MIN_ARGS(0),
 	"`(DOUBLEVEC *args...*)` **undocumented**");
-static lispval make_double_vector(int n,lispval *from_elts)
+static lispval make_double_vector(int n,kno_argvec from_elts)
 {
   int i = 0; lispval vec = kno_make_numeric_vector(n,kno_double_elt);
   double *elts = KNO_NUMVEC_DOUBLES(vec);
@@ -2441,10 +2410,10 @@ DEFPRIM("APPEND",kno_append,MIN_ARGS(0)|KNO_VAR_ARGS,
 KNO_EXPORT void kno_init_seqprims_c()
 {
   u8_register_source_file(_FILEINFO);
-  init_local_cprims();
+  link_local_cprims();
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   lispval scheme_module = kno_scheme_module;
 
@@ -2500,12 +2469,6 @@ static void init_local_cprims()
   KNO_LINK_PRIM("cdar",cdar,1,kno_scheme_module);
   KNO_LINK_PRIM("cadr",cadr,1,kno_scheme_module);
   KNO_LINK_PRIM("cddr",cddr,1,kno_scheme_module);
-  KNO_LINK_PRIM("cdr",cdr,1,kno_scheme_module);
-  KNO_LINK_PRIM("car",car,1,kno_scheme_module);
-  KNO_LINK_PRIM("cons",cons,2,kno_scheme_module);
-  KNO_LINK_PRIM("empty-list?",nullp,1,kno_scheme_module);
-  KNO_LINK_ALIAS("null?",nullp,kno_scheme_module);
-  KNO_LINK_ALIAS("nil?",nullp,kno_scheme_module);
   KNO_LINK_PRIM("seventh",seventh,1,kno_scheme_module);
   KNO_LINK_PRIM("sixth",sixth,1,kno_scheme_module);
   KNO_LINK_PRIM("fifth",fifth,1,kno_scheme_module);
@@ -2555,7 +2518,5 @@ static void init_local_cprims()
   KNO_LINK_ALIAS("length=>",has_length_gte_prim,scheme_module);
   KNO_LINK_ALIAS("length<=",has_length_lte_prim,scheme_module);
   KNO_LINK_ALIAS("subseq",slice_prim,scheme_module);
-  KNO_LINK_ALIAS("null?",nullp,scheme_module);
-  KNO_LINK_ALIAS("nil?",nullp,scheme_module);
   KNO_LINK_ALIAS("onevector",onevector_prim,scheme_module);
 }

@@ -22,9 +22,3 @@ typedef struct KNO_FILEINDEX *kno_fileindex;
 
 KNO_EXPORT int kno_make_fileindex(u8_string,unsigned int,int);
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

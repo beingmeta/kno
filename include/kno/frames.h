@@ -59,8 +59,8 @@ KNO_EXPORT lispval kno_new_frame(lispval pool_spec,lispval initval,int deepcopy)
 /* Finding frames */
 
 KNO_EXPORT lispval kno_prim_find(lispval indexes,lispval slotid,lispval value);
-KNO_EXPORT lispval kno_finder(lispval indexes,int n,lispval *slotvals);
-KNO_EXPORT lispval kno_bgfinder(int n,lispval *slotvals);
+KNO_EXPORT lispval kno_finder(lispval indexes,int n,kno_argvec slotvals);
+KNO_EXPORT lispval kno_bgfinder(int n,kno_argvec slotvals);
 KNO_EXPORT lispval kno_find_frames(lispval indexes,...);
 KNO_EXPORT lispval kno_bgfind(lispval slotid,lispval values,...);
 KNO_EXPORT int kno_bg_prefetch(lispval keys);
@@ -74,9 +74,3 @@ KNO_EXPORT int kno_slotindex_merge(kno_index into,lispval from);
 
 #endif /* KNO_FRAMES_H */
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

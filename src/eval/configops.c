@@ -132,7 +132,7 @@ DEFPRIM("config!",set_config,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"Sets each configuration setting *name_i* to "
 	"*value_i*. This invokes the config *handler* "
 	"defined for *name_i* if there is one.");
-static lispval set_config(int n,lispval *args)
+static lispval set_config(int n,kno_argvec args)
 {
   int retval, i = 0;
   if (n%2) return kno_err(kno_SyntaxError,"set_config",NULL,VOID);
@@ -479,13 +479,12 @@ KNO_EXPORT void kno_init_configops_c()
 
   u8_init_mutex(&config_file_lock);
 
-  init_local_cprims();
+  link_local_cprims();
 
-  kno_def_evalfn(kno_scheme_module,"#CONFIG",
+  kno_def_evalfn(kno_scheme_module,"#CONFIG",config_macro,
 		 "#:CONFIG\"KNOVERSION\" or #:CONFIG:LOADPATH\n"
 		 "evaluates to a value from the current configuration "
-		 "environment",
-		 config_macro);
+		 "environment");
 
   kno_register_config("CONFIG","Add a CONFIG file/URI to process",
 		      get_config_files,add_config_file,NULL);
@@ -497,7 +496,7 @@ KNO_EXPORT void kno_init_configops_c()
 		      kno_boolconfig_get,kno_boolconfig_set,&trace_config_load);
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   lispval scheme_module = kno_scheme_module;
 

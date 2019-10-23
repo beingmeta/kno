@@ -439,7 +439,7 @@ static lispval load_latest_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 /* Lisp run */
 
 static lispval kno_run(u8_string source_file,struct U8_OUTPUT *out,
-		       int n,lispval *args)
+		       int n,kno_argvec args)
 {
   kno_lexenv env = kno_working_lexenv();
   lispval load_result = kno_load_source(source_file,env,NULL);
@@ -472,10 +472,10 @@ static lispval kno_run(u8_string source_file,struct U8_OUTPUT *out,
       return result;}}
 }
 
-DEFPRIM("kno/run-file",kno_run_file,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
+DEFPRIM("kno/run-file",kno_run_file,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDOP,
 	"Loads a file and applies its (main) procedure to "
 	"the arguments");
-static lispval kno_run_file(int n,lispval *args)
+static lispval kno_run_file(int n,kno_argvec args)
 {
   if ( (KNO_STRINGP(args[0])) &&
        (u8_file_existsp(KNO_CSTRING(args[0]))) )
@@ -483,10 +483,10 @@ static lispval kno_run_file(int n,lispval *args)
   else return kno_type_error("filename","kno_run_file",args[0]);
 }
 
-DEFPRIM("kno/run->string",kno_run_file_2string,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
+DEFPRIM("kno/run->string",kno_run_file_2string,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDOP,
 	"Loads a KNO file and applies its (main) procedure "
 	"to the arguments, returns the output as a string");
-static lispval kno_run_file_2string(int n,lispval *args)
+static lispval kno_run_file_2string(int n,kno_argvec args)
 {
   if ( (KNO_STRINGP(args[0])) &&
        (u8_file_existsp(KNO_CSTRING(args[0]))) ) {
@@ -527,17 +527,19 @@ KNO_EXPORT void kno_init_load_c()
   postload_symbol = kno_intern("%postload");
 
 
-  kno_def_evalfn(kno_scheme_module,"LOAD","",load_source_evalfn);
-  kno_def_evalfn(kno_scheme_module,"LOAD-COMPONENT","",load_component_evalfn);
+  kno_def_evalfn(kno_scheme_module,"LOAD",load_source_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"LOAD-COMPONENT",load_component_evalfn,
+		 "*undocumented*");
 
-  init_local_cprims();
+  link_local_cprims();
 
-  kno_def_evalfn(kno_scheme_module,"LOAD-LATEST","",load_latest_evalfn);
+  kno_def_evalfn(kno_scheme_module,"LOAD-LATEST",load_latest_evalfn,
+		 "*undocumented*");
 
-  kno_def_evalfn(kno_scheme_module,"#PATH",
+  kno_def_evalfn(kno_scheme_module,"#PATH",path_macro,
 		 "#:PATH\"init/foo.scm\" or #:PATH:home.scm\n"
-		 "evaluates to an environment variable",
-		 path_macro);
+		 "evaluates to an environment variable");
 
   kno_register_config("LOAD:TRACE","Trace file load starts and ends",
 		      kno_boolconfig_get,kno_boolconfig_set,&trace_load);
@@ -559,7 +561,7 @@ KNO_EXPORT void kno_init_load_c()
 }
 
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   lispval scheme_module = kno_scheme_module;
 

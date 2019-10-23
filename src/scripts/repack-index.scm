@@ -35,7 +35,7 @@
   (let* ((overwrite (config 'overwrite #f))
 	 (input (open-index in #[register #f]))
 	 (opts (frame-create #f
-		 'newsize (or (config 'newsize)  {})
+		 'newsize (or (config 'newsize) {})
 		 'keyslot (->slotid (or (config 'keyslot)
 					(indexctl input 'keyslot)))
 		 'mincount (or (config 'mincount) {})

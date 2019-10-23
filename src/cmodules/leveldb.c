@@ -2426,11 +2426,10 @@ KNO_EXPORT int kno_init_leveldb()
   sync_writeopts = leveldb_writeoptions_create();
   leveldb_writeoptions_set_sync(sync_writeopts,1);
 
-  kno_leveldb_type = kno_register_cons_type("leveldb");
+  kno_leveldb_type = kno_register_cons_type("LevelDB");
 
   kno_unparsers[kno_leveldb_type]=unparse_leveldb;
   kno_recyclers[kno_leveldb_type]=recycle_leveldb;
-  kno_type_names[kno_leveldb_type]="LevelDB";
 
   /* Table functions for leveldbs */
   kno_tablefns[kno_leveldb_type]=u8_zalloc(struct KNO_TABLEFNS);
@@ -2439,7 +2438,7 @@ KNO_EXPORT int kno_init_leveldb()
 
   leveldb_module = kno_new_cmodule("leveldb",0,kno_init_leveldb);
 
-  init_local_cprims();
+  link_local_cprims();
 
   kno_register_config("LEVELDB:WRITEBUF",
 		      "Default writebuf size for leveldb",
@@ -2487,7 +2486,7 @@ KNO_EXPORT int kno_init_leveldb()
   return 1;
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("leveldb/make-pool",make_leveldb_pool_prim,4,leveldb_module);
   KNO_LINK_PRIM("leveldb/use-pool",use_leveldb_pool_prim,2,leveldb_module);

@@ -412,9 +412,9 @@ static lispval nbsp_prim()
   return VOID;
 }
 
-DEFPRIM("xmlempty",xmlemptyelt,KNO_VAR_ARGS|KNO_MIN_ARGS(0)|KNO_NDCALL,
+DEFPRIM("xmlempty",xmlemptyelt,KNO_VAR_ARGS|KNO_MIN_ARGS(0)|KNO_NDOP,
         "`(XMLEMPTY *args...*)` **undocumented**");
-static lispval xmlemptyelt(int n,lispval *args)
+static lispval xmlemptyelt(int n,kno_argvec args)
 {
   U8_OUTPUT *out = u8_current_output;
   lispval eltname = args[0];
@@ -1210,12 +1210,16 @@ KNO_EXPORT void kno_init_xmloutput_c()
   kno_store(webtools_module,kno_intern("blockmarkupfn"),markupblock_prim);
   kno_store(webtools_module,kno_intern("blockmarkup*fn"),markupstarblock_prim);
   kno_store(webtools_module,kno_intern("emptymarkupfn"),emptymarkup_prim);
-  kno_def_evalfn(webtools_module,"SOAPENVELOPE","",soapenvelope_evalfn);
+  kno_def_evalfn(webtools_module,"SOAPENVELOPE",soapenvelope_evalfn,
+		 "*undocumented*");
 
-  kno_def_evalfn(xhtml_module,"ANCHOR","",doanchor_evalfn);
-  kno_def_evalfn(xhtml_module,"ANCHOR*","",doanchor_star_evalfn);
+  kno_def_evalfn(xhtml_module,"ANCHOR",doanchor_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(xhtml_module,"ANCHOR*",doanchor_star_evalfn,
+		 "*undocumented*");
 
-  kno_def_evalfn(xhtml_module,"XHTML","",raw_xhtml_evalfn);
+  kno_def_evalfn(xhtml_module,"XHTML",raw_xhtml_evalfn,
+		 "*undocumented*");
 
   kno_store(xhtml_module,kno_intern("div"),markupstarblock_prim);
   kno_store(xhtml_module,kno_intern("span"),markupstar_prim);
@@ -1260,19 +1264,27 @@ KNO_EXPORT void kno_init_xmloutput_c()
   kno_store(xhtml_module,kno_intern("br"),emptymarkup_prim);
   kno_store(xhtml_module,kno_intern("hr"),emptymarkup_prim);
 
-  kno_def_evalfn(webtools_module,"XMLEVAL","",xmleval_evalfn);
-  kno_def_evalfn(webtools_module,"XMLEVAL","",xmleval_evalfn);
-  kno_def_evalfn(webtools_module,"XMLOPEN","",xmlopen_evalfn);
-  kno_def_evalfn(webtools_module,"XMLOPEN","",xmlopen_evalfn);
-  kno_def_evalfn(webtools_module,"XMLSTART","",xmlstart_evalfn);
-  kno_def_evalfn(webtools_module,"XMLSTART","",xmlstart_evalfn);
+  kno_def_evalfn(webtools_module,"XMLEVAL",xmleval_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(webtools_module,"XMLEVAL",xmleval_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(webtools_module,"XMLOPEN",xmlopen_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(webtools_module,"XMLOPEN",xmlopen_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(webtools_module,"XMLSTART",xmlstart_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(webtools_module,"XMLSTART",xmlstart_evalfn,
+		 "*undocumented*");
 
 
   /* Not strictly XML of course, but a neighbor */
-  kno_def_evalfn(xhtml_module,"JAVASCRIPT","",javascript_evalfn);
-  kno_def_evalfn(xhtml_module,"JAVASTMT","",javastmt_evalfn);
+  kno_def_evalfn(xhtml_module,"JAVASCRIPT",javascript_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(xhtml_module,"JAVASTMT",javastmt_evalfn,
+		 "*undocumented*");
 
-  init_local_cprims();
+  link_local_cprims();
 
   kno_decref(markup_prim); kno_decref(markupstar_prim);
   kno_decref(markupblock_prim); kno_decref(markupstarblock_prim);
@@ -1313,15 +1325,9 @@ KNO_EXPORT void kno_init_xmloutput_c()
 
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
 
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("xmlclose",xmlclose_prim,1,webtools_module);
   KNO_LINK_PRIM("xml->string",xml2string_prim,3,webtools_module);

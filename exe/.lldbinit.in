@@ -1,0 +1,23 @@
+#source @abs_top_srcdir@/etc/gdbinit
+#directory @abs_top_srcdir@:@abs_top_srcdir@/../libu8:@abs_top_srcdir@/../lingo:@extra_sources@
+#set env FD_POOLS /data/bg/brico.pool
+#set env FD_INDICES /data/bg/brico.index
+#set env FD_POOLS bground@localhost
+#set env FD_INDICES bground@localhost
+env DYLD_LIBRARY_PATH=@abs_top_srcdir@/lib
+env LD_LIBRARY_PATH=@abs_top_srcdir@/lib
+env KNO_INIT_DLOADPATH @abs_top_srcdir@/lib/kno/%.@shared_suffix@:@abs_top_srcdir@/lib/libkno%.@shared_suffix@:@abs_top_srcdir@/../lingo/%.@shared_suffix@:@prefix@/lib/kno/%.@shared_suffix@
+env FD_INIT_LOADPATH=@abs_top_srcdir@/src/extmods/:@abs_top_srcdir@/src/extmods/safe/:@default_module_path@
+env FD_INIT_SAFELOADPATH=@abs_top_srcdir@/src/extmods/safe/:@default_safe_module_path@
+env FD_UPDATEMODULES=5
+env FD_SKIP_DOTLOAD=yes
+env FD_TRACECONFIGLOAD=yes
+env FD_DLOAD:TRACE=yes
+env FD_SHOWTIME=0.0
+env FD_DISPLAYMAXELTS=36
+env FD_DISPLAYMAXCHARS=1024
+env FD_TRACEWEB=yes
+env FD_WEBDEBUG=yes
+env FD_WEBALLOWDEBUG=yes
+env KNO_LOADMOD=kno/sessions
+env FD_LIBSCM_DIR=@abs_top_srcdir@/src/libscm/

@@ -450,7 +450,7 @@ KNO_EXPORT int kno_init_libarchive()
   kno_unparsers[kno_libarchive_type] = unparse_archive;
   kno_recyclers[kno_libarchive_type] = recycle_archive;
 
-  init_local_cprims();
+  link_local_cprims();
 
   kno_finish_module(libarchive_module);
 
@@ -459,7 +459,7 @@ KNO_EXPORT int kno_init_libarchive()
   return libarchive_initialized;
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("archive/stat",archive_stat,1,libarchive_module);
   KNO_LINK_PRIM("archive/open",open_archive,3,libarchive_module);

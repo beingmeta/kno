@@ -1034,7 +1034,7 @@ static lispval modtime_prim(lispval slotmap,lispval base,lispval togmt)
 
 DEFPRIM("mktime",mktime_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(0),
 	"`(MKTIME *args...*)` **undocumented**");
-static lispval mktime_lexpr(int n,lispval *args)
+static lispval mktime_lexpr(int n,kno_argvec args)
 {
   lispval base; struct U8_XTIME *xt; int scan = 0;
   if (n%2) {
@@ -1613,11 +1613,10 @@ KNO_EXPORT void kno_init_timeprims_c()
 
   gmt_symbol = kno_intern("gmt");
 
-  init_local_cprims();
+  link_local_cprims();
 
-  kno_def_evalfn(kno_sys_module,"#NOW",
-		 "#:NOW:YEAR\n evaluates to a field of the current time",
-		 now_macro);
+  kno_def_evalfn(kno_sys_module,"#NOW",now_macro,
+		 "#:NOW:YEAR\n evaluates to a field of the current time");
 
 #if 0 /* ((HAVE_SLEEP) || (HAVE_NANOSLEEP)) */
   kno_idefn(kno_sys_module,kno_make_cprim1("SLEEP",sleep_prim,1));
@@ -1625,7 +1624,7 @@ KNO_EXPORT void kno_init_timeprims_c()
 }
 
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("uuid->packet",uuidpacket_prim,1,kno_sys_module);
   KNO_LINK_PRIM("uuid->string",uuidstring_prim,1,kno_sys_module);

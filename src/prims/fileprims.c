@@ -130,7 +130,7 @@ static lispval open_output_file(lispval fname,lispval opts,lispval escape_char)
   f = u8_open_output_file(filename,enc,open_flags,0);
   if (encid != opts) kno_decref(encid);
   if (f == NULL)
-    return kno_err(u8_CantOpenFile,"OPEN-OUTPUT-FILE",NULL,fname);
+    return kno_err("CantWriteFile","OPEN-OUTPUT-FILE",NULL,fname);
   if (KNO_CHARACTERP(escape_char)) {
     int escape = KNO_CHAR2CODE(escape_char);
     f->u8_xescape = escape;}
@@ -1816,10 +1816,12 @@ KNO_EXPORT void kno_init_fileprims_c()
 
   u8_set_global_output((u8_output)&u8stdout);
 
-  init_local_cprims();
-  kno_def_evalfn(fileio_module,"FILEOUT","",simple_fileout_evalfn);
+  link_local_cprims();
+  kno_def_evalfn(fileio_module,"FILEOUT",simple_fileout_evalfn,
+		 "*undocumented*");
 
-  kno_def_evalfn(fileio_module,"SYSTEM","",simple_system_evalfn);
+  kno_def_evalfn(fileio_module,"SYSTEM",simple_system_evalfn,
+		 "*undocumented*");
 
   kno_init_driverfns_c();
 
@@ -1846,8 +1848,10 @@ KNO_EXPORT void kno_init_fileprims_c()
   noblock_symbol = kno_intern("noblock");
   nodelay_symbol = kno_intern("nodelay");
 
-  kno_def_evalfn(fileio_module,"SNAPSHOT","",snapshot_evalfn);
-  kno_def_evalfn(fileio_module,"SNAPBACK","",snapback_evalfn);
+  kno_def_evalfn(fileio_module,"SNAPSHOT",snapshot_evalfn,
+		 "*undocumented*");
+  kno_def_evalfn(fileio_module,"SNAPBACK",snapback_evalfn,
+		 "*undocumented*");
 
   kno_register_config
     ("STACKDUMP","File to store stackdump information on errors",
@@ -1862,15 +1866,9 @@ KNO_EXPORT void kno_init_schemeio()
   kno_init_driverfns_c();
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
 
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   lispval scheme_module = kno_scheme_module;
 

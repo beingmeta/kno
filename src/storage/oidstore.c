@@ -629,7 +629,8 @@ static lispval choice_keys(lispval arg)
 
 /* Get Path functions */
 
-KNO_EXPORT lispval kno_getpath(lispval start,int n,lispval *path,int infer,int accumulate)
+KNO_EXPORT lispval kno_getpath(lispval start,int n,kno_argvec path,
+			       int infer,int accumulate)
 {
   lispval results = EMPTY;
   lispval scan = start; int i = 0;
@@ -719,9 +720,3 @@ KNO_EXPORT void kno_init_oidobj_c()
 
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

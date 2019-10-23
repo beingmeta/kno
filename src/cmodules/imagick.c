@@ -722,7 +722,7 @@ int kno_init_imagick()
   kno_tablefns[kno_imagick_type]->getsize = NULL;
   kno_tablefns[kno_imagick_type]->keys = NULL;
 
-  init_local_cprims();
+  link_local_cprims();
 
   MagickWandGenesis();
   atexit(magickwand_atexit);
@@ -733,7 +733,7 @@ int kno_init_imagick()
 
 }
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("imagick/keys",imagick_getkeys,1,imagick_module);
   KNO_LINK_PRIM("imagick/get",imagick_get,3,imagick_module);

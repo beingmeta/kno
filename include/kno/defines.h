@@ -280,7 +280,7 @@ typedef int kno_size_t;
 #endif
 
 #ifndef KNO_TYPE_MAX
-#define KNO_TYPE_MAX 256
+#define KNO_TYPE_MAX 512
 #endif
 
 #ifndef KNO_TRACE_IPEVAL
@@ -471,9 +471,3 @@ typedef double kno_double;
 
 #endif /* KNO_DEFINES_H */
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

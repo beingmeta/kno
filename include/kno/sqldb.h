@@ -32,7 +32,7 @@ typedef struct KNO_SQLPROC *kno_sqlproc;
 typedef struct KNO_SQLDB_HANDLER {
   u8_string name;
   lispval (*execute)(struct KNO_SQLDB *,lispval,lispval);
-  lispval (*makeproc)(struct KNO_SQLDB *,u8_string,int,lispval,int,lispval *);
+  lispval (*makeproc)(struct KNO_SQLDB *,u8_string,int,lispval,int,kno_argvec);
   void (*recycle_db)(struct KNO_SQLDB *c);
   void (*recycle_proc)(struct KNO_SQLPROC *c);
   } KNO_SQLDB_HANDLER;
@@ -44,9 +44,3 @@ KNO_EXPORT int kno_release_sqlproc(struct KNO_SQLPROC *p);
 
 #endif /* ndef KNO_SQLDB_H */
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

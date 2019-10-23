@@ -148,12 +148,13 @@ static lispval odbcopen(lispval spec,lispval colinfo)
 
 /* ODBCProcs */
 
-static lispval callodbcproc(struct KNO_FUNCTION *fn,int n,lispval *args);
+static lispval callodbcproc(struct KNO_STACK *stack,struct KNO_FUNCTION *fn,
+			    int n,kno_argvec args);
 
 static lispval odbcmakeproc
 (struct KNO_ODBC *dbp,
- u8_string stmt,int stmt_len,
- lispval colinfo,int n,lispval *args)
+ u8_string stmt,int stmt_len,lispval colinfo,
+ int n,kno_argvec args)
 {
   int ret = 0, have_stmt = 0;
   SQLSMALLINT n_params, *sqltypes;
@@ -178,8 +179,8 @@ static lispval odbcmakeproc
     return KNO_ERROR_VALUE;}
   dbproc->sqldbptr = (lispval)dbp; kno_incref(dbproc->sqldbptr);
   dbproc->sqldb_handler = &odbc_handler;
-  dbproc->fcn_call = KNO_FCN_CALL_XCALL;
-  dbproc->fcn_arity = -1;
+  dbproc->fcn_call = KNO_FCN_CALL_XCALL | KNO_FCN_CALL_NOTAIL;
+  dbproc->fcn_call_width = dbproc->fcn_arity = -1;
   dbproc->fcn_min_arity = dbproc->fcn_n_params = n_params;
   dbproc->fcn_name = dbproc->sqldb_qtext=_memdup(stmt,stmt_len+1);
   dbproc->fcn_filename = dbproc->sqldb_spec = u8_strdup(dbp->sqldb_spec);
@@ -211,8 +212,8 @@ static lispval odbcmakeproc
 
 static lispval odbcmakeprochandler
 (struct KNO_SQLDB *sqldb,
- u8_string stmt,int stmt_len,
- lispval colinfo,int n,lispval *ptypes)
+ u8_string stmt,int stmt_len,lispval colinfo,
+ int n,kno_argvec ptypes)
 {
   if (sqldb->sqldb_handler== &odbc_handler)
     return odbcmakeproc((kno_odbc)sqldb,stmt,stmt_len,colinfo,n,ptypes);
@@ -448,7 +449,8 @@ static lispval odbcexechandler
   else return kno_type_error("ODBC SQLDB","odbcexechandler",(lispval)sqldb);
 }
 
-static lispval callodbcproc(struct KNO_FUNCTION *fn,int n,lispval *args)
+static lispval callodbcproc(struct KNO_STACK *s,struct KNO_FUNCTION *fn,
+			    int n,kno_argvec args)
 {
   struct KNO_ODBC_PROC *dbp = (struct KNO_ODBC_PROC *)fn;
   int i = 0, ret = -1;
@@ -528,7 +530,7 @@ KNO_EXPORT int kno_init_odbc()
   odbc_handler.recycle_db = recycle_odbconn;
   odbc_handler.recycle_proc = recycle_odbcproc;
 
-  init_local_cprims();
+  link_local_cprims();
 
   merge_symbol = kno_intern("%merge");
 
@@ -539,15 +541,9 @@ KNO_EXPORT int kno_init_odbc()
   return 1;
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
 
 
-static void init_local_cprims()
+static void link_local_cprims()
 {
   KNO_LINK_PRIM("odbc/open",odbcopen,2,odbc_module);
 }

@@ -28,7 +28,8 @@
 ;; 2: substs + lexrefs
 ;; 3: rewrites
 ;; 4: bind opcodes
-(define-init optlevel 3)
+;; 5: no sourcerefs
+(define-init optlevel 4)
 (varconfig! optimize:level optlevel)
 (varconfig! optlevel optlevel)
 
@@ -68,8 +69,11 @@
 (define (optmode-macro optname thresh varname)
   (macro expr
     `(getopt ,(cadr expr) ',optname
-	     (try ,varname (>= (getopt ,(cadr expr) 'optlevel optlevel)
-			       ,thresh)))))
+	     (try ,varname (if (>= ,thresh 0)
+			       (>= (getopt ,(cadr expr) 'optlevel optlevel)
+				   ,thresh)
+			       (>= (getopt ,(cadr expr) 'optlevel optlevel)
+				   (- ,thresh)))))))
 (define optmode
   (macro expr
     (let ((optname (get-arg expr 1))
@@ -101,7 +105,7 @@
 
 (define (annotate optimized source opts)
   (if (keep-source? opts)
-      (cons* sourcref-opcode source optimized)
+      (cons* sourceref-opcode source optimized)
       optimized))
 
 ;;; What we export
@@ -317,7 +321,7 @@
 (define fixchoice-opcode  #OP_FIXCHOICE)
 (define break-opcode  #OP_BREAK)
 
-(define sourcref-opcode  #OP_SOURCEREF)
+(define sourceref-opcode #OP_SOURCEREF)
 
 (def-opcode AMBIGUOUS? #OP_AMBIGP 1)
 (def-opcode SINGLETON? #OP_SINGLETONP 1)
@@ -370,10 +374,10 @@
 (def-opcode >=         #OP_GTE 2)
 (def-opcode <          #OP_LT 2)
 (def-opcode <=         #OP_LTE 2)
-(def-opcode +          #OP_PLUS 2)
-(def-opcode -          #OP_MINUS 2)
-(def-opcode *          #OP_MULT 2)
-(def-opcode /~         #OP_FLODIV 2)
+(def-opcode +          #OP_PLUS)
+(def-opcode -          #OP_MINUS)
+(def-opcode *          #OP_MULT)
+(def-opcode /~         #OP_FLODIV)
 
 (def-opcode IDENTICAL?   #OP_IDENTICALP 2)
 (def-opcode OVERLAPS?    #OP_OVERLAPSP 2)
@@ -401,7 +405,8 @@
 (defambda (optimize expr env bound opts)
   (logdebug "Optimizing " expr " given " bound)
   (cond ((and (ambiguous? expr) (use-opcodes? opts))
-	 `(#OP_UNION ,@(forseq (each (choice->list expr)) (optimize each env bound opts))))
+	 `(#OP_UNION ,@(forseq (each (choice->list expr))
+			 (optimize each env bound opts))))
 	((ambiguous? expr)
 	 (for-choices (each expr) 
 	   (optimize each env bound opts)))
@@ -467,8 +472,8 @@
 		     (add! env '%warnings (cons* 'UNBOUND expr bound)))
 		   (when (or optwarn (not env))
 		     (logwarn |Unbound|
-		       "The symbol " expr " appears to be unbound given bindings "
-		       (apply append bound))))
+		       "The symbol " expr " appears to be unbound "
+		       "given bindings " (apply append bound))))
 		 expr)
 		;; This is where the symbol isn't from a module, but
 		;; we're not doing lexrefs, so we just keep the
@@ -596,7 +601,7 @@
 	  ((fail? (reject headvalue applicable?))
 	   ;; If all of the head values are applicable, we optimize
 	   ;;  the call, replacing the head with shortcuts to the
-	   ;;  value
+	   ;;  headvalue
 	   (check-arguments headvalue n-exprs expr)
 	   (try (tryif (singleton? (get procedure-optimizers headvalue))
 		  ((get procedure-optimizers headvalue)
@@ -607,7 +612,8 @@
 			     (test from '%nosubst head))
 			 head)
 			((test from '%volatile head) `(#OP_SYMREF ,from ,head))
-			(else (get-headop headvalue head n-exprs env bound opts)))
+			(else (get-headop headvalue head n-exprs
+					  env bound opts)))
 		  (optimize-args (cdr expr) env bound opts))
 		 expr opts)))
 	  ((%lexref? headvalue)
@@ -622,8 +628,19 @@
 	       (apply append bound)))
 	   expr))))
 
+(define use-apply-opcodes #t)
+
+(define apply-opcodes
+  #(#OP_APPLY0 #OP_APPLY1 #OP_APPLY2 #OP_APPLY3 #OP_APPLY4))
+
 (define (callcons head tail)
-  (cons head (->list tail)))
+  (if (and (not (opcode? head)) use-apply-opcodes)
+      (let ((len (length tail))
+	    (args (->list tail)))
+	(if (< len (length apply-opcodes))
+	    (cons* (elt apply-opcodes len) head tail)
+	    (cons* #OP_APPLY_N head len tail)))
+      (cons head (->list tail))))
 
 (defambda (optimize-call expr env bound opts)
   (cond ((ambiguous? expr)
@@ -976,8 +993,12 @@
   (if (and (pair? type-arg)
 	   (overlaps? (car type-arg) {'quote quote #OP_QUOTE}))
       `(,xpred-opcode ,(cadr type-arg) ,(optimize (get-arg expr 1) env bound opts))
-      `(,(fcnref compound? (car expr) env opts)
-	,(optimize (get-arg expr 1) env bound opts))))
+      (if type-arg
+	  `(,(fcnref compound? (car expr) env opts)
+	    ,(optimize (get-arg expr 1) env bound opts)
+	    ,(optimize type-arg env bound opts))
+	  `(,(fcnref compound? (car expr) env opts)
+	    ,(optimize (get-arg expr 1) env bound opts)))))
 
 (store! procedure-optimizers compound? optimize-compound-predicate)
 
@@ -993,7 +1014,6 @@
 	expr)))
 
 (store! procedure-optimizers BREAK optimize-break)
-
 
 ;;;; Special form handlers
 
@@ -1335,13 +1355,20 @@
 
 (define (optimize-quasiquote handler expr env bound opts)
   `(,handler ,(optimize-quasiquote-node (cadr expr) env bound opts)))
+(define (optimize-unquote expr env bound opts)
+  (if (and (pair? expr) 
+	   (or (eq? (car expr) 'unquote) 
+	       (eq? (car expr) 'unquote*)))
+      (list (car expr) (qc (optimize-unquote (cadr expr) env bound opts)))
+      (optimize (qc expr) env bound opts)))
+
 (defambda (optimize-quasiquote-node expr env bound opts)
   (cond ((ambiguous? expr)
 	 (for-choices (elt expr)
 	   (optimize-quasiquote-node elt env bound opts)))
 	((and (pair? expr) 
-	      (or (eq? (car expr) 'unquote)  (eq? (car expr) 'unquote*)))
-	 `(,(car expr) ,(optimize (cadr expr) env bound opts)))
+	      (or (eq? (car expr) 'unquote) (eq? (car expr) 'unquote*)))
+	 (optimize-unquote (qc expr) env bound opts))
 	((pair? expr)
 	 (let ((backwards '()) (scan expr))
 	   (while (pair? scan)

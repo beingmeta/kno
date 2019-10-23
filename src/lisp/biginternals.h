@@ -118,9 +118,3 @@ extern void abort ();
 
 #endif /* not BIGINT_DISABLE_ASSERTION_CHECKS */
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

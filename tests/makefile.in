@@ -61,7 +61,7 @@ LEAKTEST	= ${TEST_ENV} ${LEAKTEST_ENV} ${LEAKTESTER:-${TESTPROG}}
 FRAMEDB_FILES	= r4rs.scm misctest.scm sequences.scm choices.scm framedb.scm
 TESTBASE	= tmptest
 TESTFILE	= ${TESTBASE}.file
-KNOX		= ../dbg/knox
+KNOX		= ./knox
 OIDPOOL		= POOLTYPE=oidpool
 BIGPOOL		= POOLTYPE=bigpool
 SNAPPY		= COMPRESSION=snappy
@@ -118,36 +118,17 @@ cmdtests:
 
 static-tests: schemetests optscheme loadmods optmods slotmaps tables pools indexes framedbs
 schemetest schemetests scheme: r4rs exceptions choices sequences breaks numbers regex \
-        lambda conditionals iterators binders errfns requests \
+        lambda conditionals iterators binders errfns requests compounds binio \
 	reflect hashsets eval loading modules quasiquote promises ffi configs opts appenv \
 	picktest cachecall texttools webtools timefns sysprims startup stringprims \
-	threads i18n misc gctests profiling sqlite \
+	threads i18n misc gctests profiler sqlite \
 	fileprims xml
 optscheme:
 	@${header} "■■■■■■■■ Running optimized scheme tests ${RUNCONF}"
-	@${RUN} ${KNOX} TESTOPTIMIZED=yes r4rs.scm ${RUNCONF}
-	@${RUN} ${KNOX} TESTOPTIMIZED=yes choices.scm ${RUNCONF}
-	@${RUN} ${KNOX} TESTOPTIMIZED=yes sequences.scm ${RUNCONF}
-	@${RUN} ${KNOX} TESTOPTIMIZED=yes misctest.scm ${RUNCONF}
-	@${RUN} ${KNOX} TESTOPTIMIZED=yes configs.scm ${RUNCONF} FOO=quux "CONFVAR=88;XCONF=baz"
-	@${RUN} ${KNOX} TESTOPTIMIZED=yes reflect.scm ${RUNCONF}
-	@${RUN} ${KNOX} TESTOPTIMIZED=yes exceptions.scm ${RUNCONF}
-	@${RUN} ${KNOX} TESTOPTIMIZED=yes picktest.scm ${RUNCONF}
-	@${RUN} ${KNOX} TESTOPTIMIZED=yes cachecall.scm ${RUNCONF}
-	@${RUN} ${KNOX} TESTOPTIMIZED=yes timefns.scm ${RUNCONF}
-	@${RUN} ${KNOX} TESTOPTIMIZED=yes sysprims.scm ${RUNCONF}
-	#@${RUN} ${KNOX} TESTOPTIMIZED=yes modules.scm ${RUNCONF}
-	@${RUN} ${KNOX} TESTOPTIMIZED=yes compounds.scm ${RUNCONF}
-	@${RUN} ${KNOX} TESTOPTIMIZED=yes i18n.scm ${RUNCONF}
-	@${RUN} ${KNOX} TESTOPTIMIZED=yes fileprims.scm ${RUNCONF}
-	@${RUN} ${KNOX} TESTOPTIMIZED=yes lambda.scm ${RUNCONF}
-	@${RUN} ${KNOX} TESTOPTIMIZED=yes numbers.scm ${RUNCONF}
-	@${RUN} ${KNOX} TESTOPTIMIZED=yes regex.scm ${RUNCONF}
-	@${RUN} ${KNOX} TESTOPTIMIZED=yes threads.scm ${RUNCONF}
-	@${RUN} ${KNOX} TESTOPTIMIZED=yes gctests.scm ${RUNCONF}
-	@${RUN} ${KNOX} TESTOPTIMIZED=yes xml.scm ${RUNCONF}
-	@${RUN} ${KNOX} TESTOPTIMIZED=yes texttools.scm ${RUNCONF}
-	@${RUN} ${KNOX} TESTOPTIMIZED=yes eval.scm ${RUNCONF}
+	make RUNCONF="TESTOPTIMIZED=yes ${RUNCONF}" r4rs choices sequences misctest configs reflect \
+	  exceptions picktest cachecall timefns sysprims compounds i18n fileprims lambda \
+	  numbers regex threads xml texttools eval binders conditionals errfns \
+          requests sysprims timefns breaks eval gctests
 	@${header} "■■■■■■■■ Completed optimized scheme tests ${RUNCONF}"
 
 loadmods load_modules:
@@ -196,6 +177,9 @@ binders:
 errfns:
 	@${RUN} ${KNOX} errfns.scm ${RUNCONF}
 	@${header} "■■■■ Completed errfns tests ${RUNCONF}"
+binio:
+	@${RUN} ${KNOX} binio.scm ${RUNCONF}
+	@${header} "■■■■ Completed binio tests ${RUNCONF}"
 eval:
 	@${RUN} ${KNOX} eval.scm ${RUNCONF}
 	@${header} "■■■■ Completed miscellaneous eval tests ${RUNCONF}"
@@ -206,14 +190,17 @@ promises:
 	@${RUN} ${KNOX} promises.scm ${RUNCONF}
 	@${header} "■■■■ Completed promises tests ${RUNCONF}"
 configs:
-	@${RUN} ${KNOX} configs.scm ${RUNCONF} FOO=quux "CONFVAR=88;XCONF=baz"
-	@${RUN} ${KNOX} configs.scm ${RUNCONF} FOO=quux "CONFVAR=88;XCONF=baz" USEROOT=https://s3.amazonaws.com/knomods.beingmeta.com/
+	@${RUN} ${KNOX} configs.scm ${RUNCONF} FOO=quux "CONFVAR=88;XCONF=baz" TESTSYM=:TESTSYM TESTSTRING=\\:COLON
+	@${RUN} ${KNOX} configs.scm ${RUNCONF} FOO=quux "CONFVAR=88;XCONF=baz" TESTSYM=:TESTSYM TESTSTRING=\\:COLON \
+                USEROOT=https://s3.amazonaws.com/knomods.beingmeta.com/
 	@${header} "■■■■ Completed config system tests ${RUNCONF}"
 appenv:
 	@${RUN} ${KNOX} TRACECONFIG=yes TRACELOAD=yes CONFIG=data/appenv.cfg \
 		APPMODS=logctl APPMODS=gpath\;parsetime ${RUNCONF}
 	@ BIZZARO=yes ${RUN} ${KNOX} CONFIG:TRACE=yes LOAD:TRACE=yes APPMODS=nomagic ${RUNCONF}
 	@ BIZZARO=yes ${RUN} ${KNOX} TRACECONFIG=yes TRACELOAD=yes APPLOAD=data/nomagic.scm ${RUNCONF}
+	@ BIZZARO=yes ${RUN} ${KNOX} CONFIG:TRACE=yes LOAD:TRACE=yes "APPMODS=stringfmts;33;88" ${RUNCONF}
+	@ BIZZARO=yes ${RUN} ${KNOX} CONFIG:TRACE=yes LOAD:TRACE=yes "APPMODS=:(stringfmts 88)" ${RUNCONF}
 	@${header} "■■■■ Completed appenv tests ${RUNCONF}"
 sqlite:
 	@${RUN} ${KNOX} sqldb.scm DBMODULE=:sqlite DBOPEN=:sqlite/open DBSPEC=test.sqlite 
@@ -305,6 +292,9 @@ xml xmltest:
 temp:
 	@${RUN} ${KNOX} temp.scm ${RUNCONF}
 	@${header} "■■■■ Completed temp tests ${RUNCONF}"
+tempopt:
+	@${RUN} ${KNOX} temp.scm TESTOPTIMIZED=yes ${RUNCONF}
+	@${header} "■■■■ Completed temp tests ${RUNCONF}"
 
 # Table tests
 
@@ -375,8 +365,9 @@ oidpools oidpooltests: oidpooltest oidpool32test oidpool64test
 
 flexpools flexpooltests:
 	@${header} "■■■■■■■■ Running flexpool tests, ${TESTBASE} ${TESTSIZE} ${RUNCONF}";
-	@${RUN} ${KNOX} flextest.scm flex${TESTBASE}.flexpool RESET=yes ${RUNCONF};
-	@${RUN} ${KNOX} flextest.scm flex${TESTBASE}.flexpool ${RUNCONF};
+	@rm -f flex${TESTBASE}.flexpool flex${TESTBASE}*.[0123456789][0123456789].pool
+	@${RUN} ${KNOX} flexpooltests.scm flex${TESTBASE}.flexpool ${RUNCONF};
+	@${RUN} ${KNOX} flexpooltests.scm flex${TESTBASE}.flexpool ${RUNCONF};
 
 pooltests pools: filepooltest bigpooltests flexpooltests
 
@@ -911,7 +902,7 @@ crypto cryptotest:
 	@${header} "■■■■ Completed crypto tests ${RUNCONF}"
 
 #   ;;;  Local variables: ***
-#   ;;;  compile-command: "cd ..; ./config.status;" ***
+#   ;;;  compile-command: "make -j" ***
 #   ;;;  indent-tabs-mode: nil ***
 #   ;;;  End: ***
 

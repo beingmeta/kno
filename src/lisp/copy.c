@@ -35,7 +35,7 @@ KNO_FASTOP lispval copy_elt(lispval elt,int flags)
       case kno_packet_type: case kno_string_type:
       case kno_secret_type: case kno_bigint_type:
       case kno_cprim_type: case kno_evalfn_type:
-      case kno_macro_type: case kno_dtproc_type:
+      case kno_macro_type: case kno_rpcproc_type:
       case kno_ffi_type: case kno_timestamp_type:
       case kno_uuid_type: case kno_mystery_type:
       case kno_rawptr_type: case kno_regex_type:
@@ -49,13 +49,13 @@ KNO_FASTOP lispval copy_elt(lispval elt,int flags)
   else return elt;
 }
 
-
+
 KNO_EXPORT
 /* kno_deep_copy:
-    Arguments: a dtype pointer
-    Returns: a dtype pointer
-  This returns a copy of its argument, possibly recurring to sub objects,
-  with lots of options. */
+   Arguments: a dtype pointer
+   Returns: a dtype pointer
+   This returns a copy of its argument, possibly recurring to sub objects,
+   with lots of options. */
 lispval kno_copier(lispval x,int flags)
 {
   int static_copy = U8_BITP(flags,KNO_STATIC_COPY);
@@ -130,7 +130,7 @@ lispval kno_copier(lispval x,int flags)
         return copy;}
       else if (!(KNO_MALLOCD_CONSP((kno_cons)x)))
         return kno_err(kno_NoMethod,"kno_copier/static",
-                      kno_type_names[ctype],VOID);
+                       kno_type_names[ctype],VOID);
       else if ((flags)&(KNO_STRICT_COPY))
         return kno_err(kno_NoMethod,"kno_copier",kno_type_names[ctype],x);
       else {kno_incref(x); return x;}}}
@@ -170,10 +170,10 @@ lispval *kno_copy_vec(lispval *vec,size_t n,lispval *into,int flags)
 
 KNO_EXPORT
 /* kno_copy:
-    Arguments: a dtype pointer
-    Returns: a dtype pointer
-  If the argument is a malloc'd cons, this just increfs it.
-  If it is a static cons, it does a deep copy. */
+   Arguments: a dtype pointer
+   Returns: a dtype pointer
+   If the argument is a malloc'd cons, this just increfs it.
+   If it is a static cons, it does a deep copy. */
 lispval kno_copy(lispval x)
 {
   if (!(CONSP(x))) return x;
@@ -190,15 +190,16 @@ static lispval copy_compound(lispval x,int flags)
     return x;}
   else {
     int i = 0, n = xc->compound_length;
-    struct KNO_COMPOUND *nc = u8_malloc(sizeof(KNO_COMPOUND)+(n-1)*LISPVAL_LEN);
+    struct KNO_COMPOUND *nc =
+      u8_zmalloc(sizeof(KNO_COMPOUND)+(n-1)*LISPVAL_LEN);
     lispval *data = &(xc->compound_0), *write = &(nc->compound_0);
     KNO_INIT_CONS(nc,kno_compound_type);
-    if (xc->compound_ismutable) u8_init_mutex(&(nc->compound_lock));
+    if (xc->compound_ismutable) u8_init_rwlock(&(nc->compound_rwlock));
     nc->compound_ismutable = xc->compound_ismutable;
     nc->compound_isopaque = xc->compound_isopaque;
-    nc->compound_typetag = kno_incref(xc->compound_typetag);
+    nc->typetag = kno_incref(xc->typetag);
     nc->compound_length = xc->compound_length;
-    nc->compound_off = xc->compound_off;
+    nc->compound_seqoff = xc->compound_seqoff;
     if (flags)
       while (i<n) {
         *write = kno_copier(data[i],flags);
@@ -219,9 +220,3 @@ void kno_init_copy_c()
 
 }
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

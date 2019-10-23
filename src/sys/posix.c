@@ -122,9 +122,3 @@ void kno_init_posix_c()
     ("GROUP",_("The default group for the ucrrent process"),
      group_config_get,group_config_set,NULL);
 }
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/

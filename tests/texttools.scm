@@ -47,9 +47,7 @@
 ;(applytest #f numeric? "$33.50")
 ;(applytest #f numeric? "thirty-three")
 
-;;; Suffix tests
-
-
+;;; Word function tests
 
 (define sample-string
   "The book was over here by the bookcase
@@ -285,11 +283,18 @@ is the other number")
 (applytest "aXbcXdeXfXgh" textsubst "a1bc2de3f4gh" '(isdigit) '(subst (isdigit) "X"))
 (applytest "aXbcXdeXfXgh" textsubst "a1bc2de3f4gh" '(isdigit) "X")
 
-(define testsubst (ambda (s pat) (textsubst s (qc pat))))
+(define ndtestsubst (ambda (s pat) (textsubst s (qc pat))))
+(define testsubst (lambda (s pat) (textsubst s (qc pat))))
 
-(applytest {"aXbcX" "aXbcY" "aYbcX" "aYbcY"}
+(applytest {"aXbcX" "aYbcY"}
+	   textsubst "a1bc2"
+	   '{(subst (isdigit) "X") (subst (isdigit) "Y")})
+(applytest {"aXbcX" "aYbcY"}
 	   testsubst "a1bc2"
-	   (qc '{(subst (isdigit) "X") (subst (isdigit) "Y")}))
+	   '{(subst (isdigit) "X") (subst (isdigit) "Y")})
+(applytest {"aXbcX" "aXbcY" "aYbcX" "aYbcY"}
+	   ndtestsubst "a1bc2"
+	   '{(subst (isdigit) "X") (subst (isdigit) "Y")})
 
 (applytest "COOkIng Is An ExcItIng ActIvIty"
 	   textsubst "Cooking is an exciting activity"

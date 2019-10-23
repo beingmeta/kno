@@ -92,9 +92,3 @@ KNO_EXPORT lispval kno_exception_backtrace(u8_exception ex);
 
 #endif /* ndef KNO_ERROBJS_H */
 
-/* Emacs local variables
-   ;;;  Local variables: ***
-   ;;;  compile-command: "make -C ../.. debugging;" ***
-   ;;;  indent-tabs-mode: nil ***
-   ;;;  End: ***
-*/
