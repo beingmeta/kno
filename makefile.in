@@ -378,8 +378,8 @@ SHELL_SCRIPTS=etc/knosetconfig etc/knogetconfig etc/knoconfig \
 	etc/knosignal etc/knoinject etc/knostatus etc/knolog  \
 	etc/knorestart etc/knoctl etc/knogdb etc/knodbgexec \
 	etc/knocleanup etc/knojob
-SCHEME_SCRIPTS=exe/scripts/repack-pool exe/scripts/repack-index \
-	       exe/scripts/knomerge exe/scripts/knopkg
+SCHEME_SCRIPTS=exe/scripts/pack-pool exe/scripts/pack-index \
+	       exe/scripts/merge-indexes exe/scripts/knopkg
 
 CONFDIRS=$(DESTDIR)@config_dir@ $(DESTDIR)@config_dir@/config $(DESTDIR)@share_dir@ \
 	$(DESTDIR)@stdlib_module_dir@ $(DESTDIR)@local_module_dir@
@@ -936,22 +936,18 @@ SCHEMETAGS: ${SCHEME_MODULES}
 	@rm -f SCHEMETAGS
 	@# We skip module.scm files because they are always links
 	@#  to other files (with more distinctive names)
-	@find src/libscm -name "*.scm" -readable | \
-		grep -v module.scm | \
-		xargs etags -o SCHEMETAGS -a
-	@find src/stdlib -name "*.scm" -readable | \
-		grep -v module.scm | \
-		xargs etags -o SCHEMETAGS -a
+	@find src/libscm -name "*.scm" -type f | xargs etags -o SCHEMETAGS -a
+	@find src/stdlib -name "*.scm" -type f | xargs etags -o SCHEMETAGS -a
 	@ls -l SCHEMETAGS
 
 profile-clean:
-	@find . -name "*.gcda" -type f -writable | xargs rm -f
-	@find . -name "*.gcno" -type f -writable | xargs rm -f
-	@find . -name "*.gcov" -type f -writable | xargs rm -f
-	@find . -name "*.bb" -type f -writable | xargs rm -f
-	@find . -name "*.bbg" -type f -writable | xargs rm -f
-	@find . -name "*.da" -type f -writable | xargs rm -f
-	@find . -name "gmon.out" -writable | xargs rm -f
+	@find . -name "*.gcda" -type f | xargs rm -f
+	@find . -name "*.gcno" -type f | xargs rm -f
+	@find . -name "*.gcov" -type f | xargs rm -f
+	@find . -name "*.bb" -type f | xargs rm -f
+	@find . -name "*.bbg" -type f | xargs rm -f
+	@find . -name "*.da" -type f | xargs rm -f
+	@find . -name "gmon.out" | xargs rm -f
 tidy: profile-clean
 	@for dir in ${CLEANDIRS}; do \
 	  rm -f $${dir}/*~ $${dir}/*.o; \

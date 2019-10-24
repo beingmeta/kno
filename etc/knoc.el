@@ -1,11 +1,11 @@
 ;;; -*- Mode: emacs-lisp; lexical-binding: t; -*-
 ;;; knoc.el --- emacs mode for the Knoc console
 
-;; Copyright (C) 2001-2016  beingmeta, inc
+;; Copyright (C) 2001-2019  beingmeta, inc
 
 ;; Author: Ken Haase <kh@beingmeta.com>
 ;; Keywords: lisp kno framerd
-;; Version: 3.9.5
+;; Version: 5.0.1
 
 ;;; Commentary:
 
