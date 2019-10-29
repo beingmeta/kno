@@ -40,6 +40,14 @@ static lispval boolean_symbol;
 u8_condition ServerReset=_("MYSQL server reset");
 u8_condition UnusedType=_("MYSQL unused parameter type");
 
+#ifndef ER_NORMAL_SHUTDOWN
+#define ER_NORMAL_SHUTDOWN ER_NORMAL_SERVER_SHUTDOWN
+#endif
+
+#if MYSQL_VERSION_ID > 80000
+typedef bool my_bool;
+#endif
+
 static u8_string dupstring(lispval x)
 {
   if (KNO_VOIDP(x)) return NULL;
