@@ -799,9 +799,9 @@ if test ! -z "$using_malloc"; then
    AC_DEFINE_UNQUOTED(KNO_DEFAULT_MALLOC,"$using_malloc")
 fi;
 
-if test ! -z "$asan" && test "$CLANG" = "none"; then
-   AC_MSG_ERROR(No clang program to use with ASAN)
-fi;
+#if test ! -z "$asan" && test "$CLANG" = "none"; then
+#   AC_MSG_ERROR(No clang program to use with ASAN)
+#fi;
 
 if test -z "$gperftools" || test "$gperftools" = "no"; then
    ${ECHO} -n;
