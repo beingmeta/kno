@@ -11,7 +11,8 @@
 (set! %loglevel %debug%)
 
 (module-export! '{filestream/open filestream/read filestream/state 
-		  filestream/save! filestream/log!})
+		  filestream/save! filestream/log!
+		  filestream/done?})
 
 (module-export! '{filestream-filename filestream-itemcount})
 
@@ -171,3 +172,11 @@
 		     "At the current rate, everything should be done in "
 		     (secs->string (/~ togo rate)))))
 		(else)))))))
+
+(define (filestream/done? in)
+  (if (filestream-filepos in)
+      (= (filestream-filepos in)
+	 (get (filestream-state in) 'filesize))
+      (and (get (filestream-state in) 'total)
+	   (= (filestream-filepos in)
+	      (get (filestream-state in) 'total)))))
