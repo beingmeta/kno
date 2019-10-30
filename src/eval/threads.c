@@ -229,6 +229,8 @@ KNO_EXPORT void recycle_thread_struct(struct KNO_RAW_CONS *c)
     u8_free(args);}
   if (th->result!=KNO_NULL) kno_decref(th->result);
   th->resultptr = NULL;
+  u8_destroy_condvar(&(th->exit_cvar));
+  u8_destroy_mutex(&(th->exit_lock));
   pthread_attr_destroy(&(th->attr));
   if (!(KNO_STATIC_CONSP(c))) u8_free(c);
 }
@@ -612,18 +614,28 @@ static lispval condvar_unlock(lispval cvar)
 
 static void threadexit_cleanup(void *calldata)
 {
-  struct KNO_THREAD *tstruct =
-    (struct KNO_THREAD *) calldata;
+  struct KNO_THREAD *tstruct = (struct KNO_THREAD *) calldata;
   u8_threadexit();
+
   if (tstruct->finished < 0) {
     lispval reason = tstruct->result;
+    int status = (ABORTED(reason)) ? (-1) : (1);
+    u8_lock_mutex(&(tstruct->exit_lock));
+    if (tstruct->finished>=0)
+      u8_unlock_mutex(&(tstruct->exit_lock));
+    else {
+      tstruct->finished = u8_elapsed_time();
+      u8_unlock_mutex(&(tstruct->exit_lock));
+      u8_condvar_broadcast(&(tstruct->exit_cvar));}
+    u8_condition exit_cond = ((tstruct->flags)&(KNO_THREAD_CANCELLED)) ? 
+      ("ThreadCanceled") : ("ThreadAborted");
     if ( (KNO_NULLP(reason)) || (KNO_VOIDP(reason)) )
-      u8_log(LOGWARN,"ThreadCanceled",
-	     "%q was cancelled prematurely after %f seconds",
+      u8_log(LOGWARN,exit_cond,
+	     "%q finished prematurely after %f seconds",
 	     (lispval)tstruct,u8_elapsed_time()-tstruct->started);
-    else u8_log(LOGWARN,"ThreadCanceled",
-		"%q was cancelled prematurely after %f seconds",
-		(lispval)tstruct,u8_elapsed_time()-tstruct->started);}
+    else u8_log(LOGWARN,exit_cond,
+		"%q finished prematurely after %f seconds due to %q",
+		(lispval)tstruct,u8_elapsed_time()-tstruct->started,reason);}
   kno_decref((lispval)tstruct);
   return;
 }
@@ -661,6 +673,8 @@ static void *_kno_thread_main(void *data)
 
     tstruct->started = u8_elapsed_time();
     tstruct->finished = -1;
+    u8_init_mutex(&(tstruct->exit_lock));
+    u8_init_condvar(&(tstruct->exit_cvar));
 
     if (tstruct->flags&KNO_EVAL_THREAD)
       result = kno_eval(tstruct->evaldata.expr,tstruct->evaldata.env);
@@ -670,8 +684,12 @@ static void *_kno_thread_main(void *data)
 			  tstruct->applydata.args);
     result = kno_finish_call(result);
 
-    tstruct->finished = u8_elapsed_time();
+    u8_lock_mutex(&(tstruct->exit_lock));
     tstruct->flags = tstruct->flags|KNO_THREAD_DONE;
+    if (tstruct->finished<0)
+      tstruct->finished = u8_elapsed_time();
+    u8_unlock_mutex(&(tstruct->exit_lock));
+    u8_condvar_broadcast(&(tstruct->exit_cvar));
 
     if ( (KNO_ABORTP(result)) && (errno) ) {
       u8_exception ex = u8_current_exception;
@@ -1028,8 +1046,13 @@ static lispval thread_cancel_prim(lispval thread_arg,lispval reason)
     else {
       kno_incref(reason);
       thread->flags |= KNO_THREAD_CANCELLED;
-      thread->finished = u8_elapsed_time();
+      int status = (ABORTED(reason)) ? (-1) : (1);
+      u8_lock_mutex(&(thread->exit_lock));
+      if (thread->finished<0)
+	thread->finished = u8_elapsed_time();
       thread->result = reason;
+      u8_unlock_mutex(&(thread->exit_lock));
+      u8_condvar_broadcast(&(thread->exit_cvar));
       return KNO_TRUE;}}
 }
 
@@ -1197,15 +1220,23 @@ static int join_thread(struct KNO_THREAD *tstruct,
 #if HAVE_PTHREAD_TRYJOIN_NP
     rv = pthread_tryjoin_np(tstruct->tid,NULL);
 #else
-    kno_seterr("NoPThreadTryJoin","join_thread",NULL,VOID);
-    return -1;
+    if (tstruct->finished>0)
+      return 0;
+    else return EBUSY;
 #endif
   } else {
 #if HAVE_PTHREAD_TIMEDJOIN_NP
     rv = pthread_timedjoin_np(tstruct->tid,NULL,ts);
 #else
-    kno_seterr("NoPThreadTryJoin","join_thread",NULL,VOID);
-    return -1;
+    if (tstruct->finished>0)
+      return 0;
+    else {
+      int rv = u8_condvar_timedwait(tstruct->exit_lock,
+				    tstruct->exit_cvar,
+				    ts);
+      if (tstruct->finished>0)
+	return 0;
+      else return ETIMEDOUT; 
 #endif
   }
   if ( (rv == 0) && (tstruct->result == KNO_NULL) ) {

@@ -25,6 +25,8 @@ typedef struct KNO_THREAD {
   pthread_t tid;
   long long threadid;
   int flags;
+  u8_mutex exit_lock;
+  u8_condvar exit_cvar;
   pthread_attr_t attr;
   int *errnop;
   int loglevel;
