@@ -2,6 +2,11 @@
 
 #include <bson.h>
 #include <mongoc.h>
+
+#if (!(MONGOC_CHECK_VERSION(1,15,0)))
+#define mongoc_uri_get_tls mongoc_uri_get_ssl
+#endif
+
 #include "storage.h"
 
 /*

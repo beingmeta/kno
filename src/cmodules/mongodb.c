@@ -31,7 +31,6 @@ static int mongodb_loglevel;
 #include <libu8/u8crypto.h>
 #include <libu8/u8pathfns.h>
 
-
 #include <math.h>
 
 /* Initialization */
@@ -520,7 +519,7 @@ static int multislots_config_add(lispval var,lispval val,void *data)
 /* Consing MongoDB clients, collections, and cursors */
 
 static u8_string get_connection_spec(mongoc_uri_t *info);
-static int setup_ssl(mongoc_ssl_opt_t *,mongoc_uri_t *,lispval);
+static int setup_tls(mongoc_ssl_opt_t *,mongoc_uri_t *,lispval);
 
 #if MONGOC_CHECK_VERSION(1,6,0)
 static int set_uri_opt(mongoc_uri_t *uri,const char *option,lispval val)
@@ -758,7 +757,7 @@ static lispval mongodb_open(lispval arg,lispval opts)
   if (client_pool == NULL) {
     mongoc_uri_destroy(info);
     return kno_type_error("MongoDB client URI","mongodb_open",arg);}
-  else if ( (setup_ssl(&ssl_opts,info,opts)) ) {
+  else if ( (setup_tls(&ssl_opts,info,opts)) ) {
     mongoc_client_pool_set_ssl_opts(client_pool,&ssl_opts);
     u8_free(ssl_opts.pem_file);
     u8_free(ssl_opts.pem_pwd);
@@ -836,11 +835,11 @@ static u8_string get_connection_spec(mongoc_uri_t *info)
   return result;
 }
 
-static int setup_ssl(mongoc_ssl_opt_t *ssl_opts,
+static int setup_tls(mongoc_ssl_opt_t *ssl_opts,
 		     mongoc_uri_t *info,
 		     lispval opts)
 {
-  if ( (mongoc_uri_get_ssl(info)) ||
+  if ( (mongoc_uri_get_tls(info)) ||
        (boolopt(opts,sslsym,default_ssl)) ||
        ( (kno_testopt(opts,cafilesym,KNO_VOID)) &&
 	 (!(kno_testopt(opts,cafilesym,KNO_FALSE)))) ) {
@@ -3369,7 +3368,7 @@ static lispval mongodb_getinfo(lispval mongodb,lispval field)
       add_string(result,connections_symbol,scan->host_and_port);
       scan = scan->next;}
   }
-  if (mongoc_uri_get_ssl(info))
+  if (mongoc_uri_get_tls(info))
     kno_store(result,sslsym,KNO_TRUE);
 
   if ((KNO_VOIDP(field))||(KNO_FALSEP(field)))
