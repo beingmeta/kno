@@ -1,2 +1,2 @@
-mod src/apache2/mod_kno.so
-mod debian/kno.load
+mod src/apache2/mod_knocgi.so
+mod debian/knocgi.load
