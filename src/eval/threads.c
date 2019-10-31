@@ -1231,12 +1231,11 @@ static int join_thread(struct KNO_THREAD *tstruct,
     if (tstruct->finished>0)
       return 0;
     else {
-      int rv = u8_condvar_timedwait(tstruct->exit_lock,
-				    tstruct->exit_cvar,
-				    ts);
+      int rv = u8_condvar_timedwait
+	(&(tstruct->exit_cvar),&(tstruct->exit_lock),ts);
       if (tstruct->finished>0)
 	return 0;
-      else return ETIMEDOUT; 
+      else return ETIMEDOUT;}
 #endif
   }
   if ( (rv == 0) && (tstruct->result == KNO_NULL) ) {
