@@ -8,6 +8,7 @@
 	      reflection})
 (use-module '{flexdb flexdb/branches flexdb/typeindex 
 	      flexdb/flexindex})
+(use-module 'brico/build/wikidata)
 
 (config! 'cachelevel 2)
 (config! 'logthreadinfo #t)
@@ -21,88 +22,6 @@
 
 (define %loglevel %notice%)
 
-;; (define wikidata.pool
-;;   (flexdb/make (get-component "wikidata/wikdiata.pool")
-;; 	       [base @31c1/0 capacity (* 16 1024 1024) 
-;; 		type 'bigpool create #t 
-;; 		adjuncts #[labels #[pool "labels.pool"]
-;; 			   aliases #[pool "aliases.pool"]
-;; 			   claims #[pool "claims.pool"]
-;; 			   sitelinks #[pool "sitelinks.pool"]]]))
-(define wikidata.pool
-  (flexdb/make "wikidata/wikidata.flexpool"
-	       [create #t type 'flexpool
-		base @31c1/0 capacity (* 128 1024 1024)
-		partsize (* 1024 1024) pooltypek 'bigpool
-		prefix "pools/"
-		adjuncts #[labels #[pool "labels"]
-			   aliases #[pool "aliases"]
-			   claims #[pool "claims"]
-			   sitelinks #[pool "sitelinks"]]
-		reserve 1]))
-
-(define buildmap.table
-  (flexdb/make "wikidata/wikids.table" [indextype 'memindex create #t]))
-
-(define wikids.index
-  (flex/open-index "wikidata/wikids.flexindex"
-		   [indextype 'hashindex size (* 8 1024 1024) create #t
-		    keyslot 'id register #t
-		    maxkeys (* 4 1024 1024)]))
-
-(define words.index
-  (flex/open-index "wikidata/words.flexindex"
-		     [indextype 'hashindex size (* 4 1024 1024) create #t
-		      keyslot 'words register #t
-		      maxkeys (* 2 1024 1024)]))
-(define norms.index
-  (flex/open-index "wikidata/norms.flexindex"
-		     [indextype 'hashindex size (* 4 1024 1024) create #t
-		      keyslot 'norms register #t
-		      maxkeys (* 2 1024 1024)]))
-#|
-(define words.index
-  (flexdb/make "wikidata/words.index"
-	       [indextype 'hashindex size (* 16 1024 1024) create #t
-		keyslot 'words register #t]))
-(define norms.index
-  (flexdb/make "wikidata/norms.index"
-	       [indextype 'hashindex size (* 16 1024 1024) create #t
-		keyslot 'norms register #t]))
-|#
-
-;; (define has.index
-;;   (typeindex/open (get-component "wikidata/has.index/")
-;; 		  [indextype 'typeindex create #t keyslot 'has register #t]
-;; 		  #t))
-(define has.index
-  (flexdb/make "wikidata/hasprops.index"
-	       [indextype 'hashindex create #t keyslot 'has register #t]))
-
-(define props.index
-  (flex/open-index "wikidata/props.index"
-		     [indextype 'hashindex size (* 4 1024 1024) create #t
-		      register #t maxkeys (* 2 1024 1024)]))
-
-(define wikidata.index
-  (make-aggregate-index {words.index norms.index has.index props.index}))
-
-(define (wikidata/save! in)
-  (flexdb/commit! {wikidata.pool wikidata.index 
-		   wikids.index buildmap.table
-		   has.index})
-  (filestream/save! in))
-
-(define propmap
-  (let ((props (?? 'type 'wikidprop))
-	(table (make-hashtable)))
-    (prefetch-oids! props)
-    (do-choices (prop props)
-      (add! table (get prop 'wikid) prop)
-      (add! table (downcase (get prop 'wikid)) prop)
-      (add! table (string->symbol (downcase (get prop 'wikid))) prop))
-    table))
-
 ;;; Reading data
 
 (define (skip-file-start port)
@@ -112,6 +31,10 @@
 (define filestream-opts
   [startfn skip-file-start
    readfn getline])
+
+(define (checkpoint in)
+  (wikidata/save!)
+  (filestream/save! in))
 
 ;;; Parsing the data
 
@@ -154,7 +77,7 @@
 (define (convert-claims v)
   (cond ((vector? v)
 	 (convert-claims (elts v)))
-	((string? v) (try (get propmap v) v))
+	((string? v) (try (get wikidata.props v) v))
 	((not (table? v)) v)
 	(else
 	 (when (test v 'references) (drop! v 'references))
@@ -169,7 +92,7 @@
 		(keys (getkeys v)))
 	    (do-choices (key keys)
 	      (let* ((vals (get v key))
-		     (slot (try (get propmap key) key)))
+		     (slot (try (get wikidata.props key) key)))
 		(when (vector? vals) (set! vals (elts vals)))
 		(cond ((overlaps? slot typeslots)
 		       (add! converted slot (symbolize vals)))
@@ -264,7 +187,7 @@
       (let ((cur (profile/getcalls filestream/read)))
 	(lognotice |ReadProfile|
 	  "After " (secs->string (elapsed-time start-time)) 
-	  " filestream/read took " 
+	  " filestream/read took "
 	  (secs->string (- (profile/time cur) (profile/time before)))
 	  " (clock), "
 	  (secs->string (- (profile/utime cur) (profile/utime before)))
@@ -274,7 +197,7 @@
 	  ($count (- (profile/ncalls cur) (profile/ncalls before)) "call")
 	  " interrupted by "
 	  ($count (- (profile/waits cur) (profile/waits before)) "wait") )))
-    (wikidata/save! in)
+    (checkpoint in)
     (clearcaches)
     (filestream/log! in '(overall))))
 
@@ -282,6 +205,7 @@
 	      (secs (config 'cycletime 120))
 	      (cycles (config 'cycles 10))
 	      (threadcount (config 'nthreads #t)))
+  (unless (config 'wikidata) (config! 'wikidata (abspath "wikidata")))
   (let ((in (filestream/open file filestream-opts))
 	(started (elapsed-time)))
     (filestream/log! in)
@@ -292,7 +216,9 @@
 		 "processed " ($num (filestream-itemcount in) "item") " in "
 		 (secs->string (elapsed-time started)))
       (filestream/log! in '(overall)))
-    (wikidata/save! in)))
+    (checkpoint in)
+    (unless (or (file-exists? "read-wikidata.stop") (filestream/done? in))
+      (chain file secs cycles threadcount))))
   
 (when (config 'optimized #t)
   (optimize! '{flexdb flexdb/flexpool flexdb/adjuncts 

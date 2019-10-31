@@ -175,10 +175,11 @@
     (unless (exists? (getpool @1/3000000)) (set! brico.reduced #t))
     (set! bricosource source)
     (if brico.db
-	(set! brico-index (get brico.db '%indexes))
-	(if use-indexes (set! brico-index use-indexes)))
-    (set! brico-pool (name->pool "brico.framerd.org"))
-    (set! brico.pool brico-pool)
+	(set! brico.index (get brico.db '%indexes))
+	(if use-indexes (set! brico.index use-indexes)))
+    (set! brico-index brico.index)
+    (set! brico.pool (name->pool "brico.framerd.org"))
+    (set! brico-pool brico.pool)
     (unless brico.reduced
       (set! xbrico-pool (name->pool "xbrico.beingmeta.com"))
       (set! names-pool (name->pool "namedb.beingmeta.com"))
