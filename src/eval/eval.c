@@ -760,8 +760,11 @@ static lispval get_headval(lispval head,kno_lexenv env,kno_stack eval_stack,
     switch (head_type) {
     case kno_lexref_type: {
       headval=kno_lexref(head,env);
-      if ( (KNO_CONSP(headval)) && (KNO_MALLOCD_CONSP(headval)) )
+      if (KNO_FCNIDP(headval))
+	headval = kno_fcnid_ref(headval);
+      else if ( (KNO_CONSP(headval)) && (KNO_MALLOCD_CONSP(headval)) )
 	*gc_headval=1;
+      else NO_ELSE;
       return headval;}
     case kno_fcnid_type: {
       headval=kno_fcnid_ref(head);
@@ -772,7 +775,11 @@ static lispval get_headval(lispval head,kno_lexenv env,kno_stack eval_stack,
 	return KNO_QUOTE_OPCODE;
       else {
 	headval=kno_symeval(head,env);
-	if (KNO_CONSP(headval)) *gc_headval=1;
+	if (KNO_FCNIDP(headval))
+	  headval = kno_fcnid_ref(headval);
+	else if ( (KNO_CONSP(headval)) && (KNO_MALLOCD_CONSP(headval)) )
+	  *gc_headval=1;
+	else NO_ELSE;
 	return headval;}
     default:
       return kno_err("NotEvalable","op_pair_eval",NULL,head);}}
@@ -783,7 +790,11 @@ static lispval get_headval(lispval head,kno_lexenv env,kno_stack eval_stack,
   else if ( (PAIRP(head)) || (CHOICEP(head)) ) {
     headval=stack_eval(head,env,eval_stack);
     headval=simplify_value(headval);
-    if ( (KNO_MALLOCDP(headval)) ) *gc_headval=1;
+    if (KNO_FCNIDP(headval))
+      headval = kno_fcnid_ref(headval);
+    else if ( (KNO_CONSP(headval)) && (KNO_MALLOCD_CONSP(headval)) )
+      *gc_headval=1;
+    else NO_ELSE;
     return headval;}
   else return kno_err("NotEvalable","op_pair_eval",NULL,head);
 }
