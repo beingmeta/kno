@@ -1392,7 +1392,7 @@ static int index_docommit(kno_index ix,struct KNO_INDEX_COMMITS *use_commits)
 	lispval added = htget(adds_table,key);
 	lispval dropped = htget(drops_table,key);
 	if ( (EXISTSP(added)) || (EXISTSP(dropped)) ) {
-	  CHOICE_ADD(merged,key);
+	  CHOICE_ADD(merged,key); kno_incref(key);
 	  CHOICE_ADD(value,added);
 	  if (EXISTSP(dropped)) {
 	    lispval newv = kno_difference(value,dropped);
@@ -1401,7 +1401,7 @@ static int index_docommit(kno_index ix,struct KNO_INDEX_COMMITS *use_commits)
 	    value = newv;}
 	  stores[i].kv_val = value;}
 	i++;}}
-    if (EXISTSP(merged)) {
+    if (EXISTSP(merged)) { /* normalize merged, others? */
       n_adds = remove_keyvals(adds,n_adds,merged);
       n_drops = remove_keyvals(drops,n_drops,merged);
       kno_decref(merged);}
