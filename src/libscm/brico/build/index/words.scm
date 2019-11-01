@@ -17,7 +17,7 @@
 	 (aliases.index  (getopt loop-state 'aliases.index))
 	 (indicators.index  (getopt loop-state 'indicators.index))
 	 (glosses.index  (getopt loop-state 'glosses.index))
-	 (other.index  (getopt loop-state 'other.index)))
+	 (names.index  (getopt loop-state 'names.index)))
     (do-choices f
       (unless (or (not (test f 'type))
 		  (test f 'source @1/1))
@@ -26,12 +26,14 @@
 	       (%aliases (get f '%aliases))
 	       (%glosses (get f '%glosses))
 	       (%indicators (get f '%indicators))
-	       (langids (getkeys {%words %norms %glosses %indicators})))
+	       (langids (getkeys {%words %norms %glosses %indicators}))
+	       (names (pick {words aliases} capitalized?)))
 	  (when (exists? %words) (index-frame core.index f 'has '%words))
 	  (when (exists? %norms) (index-frame core.index f 'has '%norms))
 	  (when (exists? %aliases) (index-frame core.index f 'has '%aliases))
 	  (when (exists? %glosses) (index-frame core.index f 'has '%glosses))
 	  (when (exists? %indicators) (index-frame core.index f 'has '%indicators))
+	  (when (exists? names) (index-frame names.index f 'names {names (downcase names)}))
 	  (do-choices (langid (difference langids 'en))
 	    (when (test %words langid)
 	      (let* ((words (get %words langid))
@@ -72,7 +74,7 @@
 	 (glosses.index (target-index "glosses.index"))
 	 (norms.index (target-index "norms.index"))
 	 (aliases.index (target-index "aliases.index"))
-	 (other.index (target-index "other.index"))
+	 (names.index (target-index "names.index"))
 	 (oids (difference (pool-elts pools) (?? 'source @1/1))))
     (drop! core.index (cons 'has lexslots))
     (engine/run index-words oids
@@ -83,7 +85,7 @@
 		glosses.index ,glosses.index
 		aliases.index ,aliases.index
 		norms.index ,norms.index
-		other.index ,other.index]
+		names.index ,names.index]
 	 counters {words names}
 	 logcounters #(words names)
 	 batchsize ,(config 'batchsize 5000)
@@ -93,7 +95,7 @@
 	 checkpoint ,{pools core.index words.index frags.index 
 		      indicators.index aliases.index
 		      norms.index glosses.index
-		      other.index}
+		      names.index}
 	 logfns {,engine/log ,engine/logrusage}
 	 logchecks #t])))
 

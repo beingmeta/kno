@@ -65,6 +65,7 @@
   (let ((core.index (get batch-state 'core.index))
 	(wikid.index (get batch-state 'wikid.index))
 	(latlong.index (get batch-state 'latlong.index))
+	(wikidref.index (get batch-state 'wikidref.index))
 	(wordnet.index (get batch-state 'wordnet.index)))
     (info%watch "INDEXER/thread"
       core.index wikid.index latlong.index wordnet.index)
@@ -82,7 +83,8 @@
 	     (index-brico core.index f)
 	     (index-latlong latlong.index f)
 	     (index-frame core.index f index-also)
-	     (index-wikid wikid.index f))
+	     (index-wikid wikid.index f)
+	     (when (test f 'wikidref) (index-frame wikidref.index f 'wikidref)))
 	    ((test f 'type '{slot language lexslot kbsource})
 	     (index-brico core.index f)
 	     (index-frame core.index f index-also))
@@ -104,12 +106,16 @@
       `#[loop #[core.index ,core.index
 		wordnet.index ,wordnet.index
 		latlong.index ,latlong.index
-		wikid.index ,wikid.index]
-	 branchindexes {core.index wordnet.index wikid.index latlong.index}
+		wikid.index ,wikid.index
+		wikidref.index ,wikidref.index]
+	 branchindexes {core.index wordnet.index wikid.index
+			wikidref.index 
+			latlong.index}
 	 batchsize 10000 batchrange 4
 	 checkfreq 15
 	 checktests ,(engine/interval (config 'savefreq 60))
-	 checkpoint ,{pools core.index wikid.index wordnet.index}
+	 checkpoint ,{pools core.index wikid.index wordnet.index 
+		      wikidref.index latlong.index}
 	 logfns {,engine/log ,engine/logrusage}
 	 logfreq ,(config 'logfreq 50)
 	 logchecks #t])
