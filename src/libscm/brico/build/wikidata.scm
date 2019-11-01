@@ -35,33 +35,7 @@
 
 (define wikidata-build #f)
 
-(config-def! 'wikidata
-  (lambda (var (val #f))
-    (cond ((not val) wikidata.dir)
-	  ((not (string? val)) (irritant val |NotADirectoryPath|))
-	  ((and wikidata.dir
-		(equal? (realpath wikidata.dir) (realpath val)))
-	   wikidata.dir)
-	  (wikidata.dir (irritant wikidata.dir |WikidataAlreadyConfigured|))
-	  ((not (file-directory? val))
-	   (irritant val |NotADirectoryPath|))
-	  (else (setup-wikidata val)))))
-
-(config-def! 'wikidata:build
-  (lambda (var (val))
-    (cond ((not (bound? val)) wikidata-build)
-	  ((not val)
-	   (set! wikidata-build #f)
-	   (set! buildmap.table #f))
-	  ((not wikidata.dir) (error |NoWikidataConfigured|))
-	  (wikidata-build wikidata-build)
-	  (else (set! buildmap.table
-		  (flexdb/make (mkpath wikidata.dir "wikids.table")
-			       [indextype 'memindex create #t]))
-		(set! wikidata-build #t)))))
-
 (define (setup-wikidata dir)
-
   (if core.index
       (let ((props (?? 'type '{wikidprop wikidata}))
 	    (table (make-hashtable)))
@@ -117,6 +91,31 @@
   (set! wikidata.index
     (make-aggregate-index {words.index norms.index has.index props.index})))
 
+(config-def! 'wikidata
+  (lambda (var (val #f))
+    (cond ((not val) wikidata.dir)
+	  ((not (string? val)) (irritant val |NotADirectoryPath|))
+	  ((and wikidata.dir
+		(equal? (realpath wikidata.dir) (realpath val)))
+	   wikidata.dir)
+	  (wikidata.dir (irritant wikidata.dir |WikidataAlreadyConfigured|))
+	  ((not (file-directory? val))
+	   (irritant val |NotADirectoryPath|))
+	  (else (setup-wikidata val)))))
+
+(config-def! 'wikidata:build
+  (lambda (var (val))
+    (cond ((not (bound? val)) wikidata-build)
+	  ((not val)
+	   (set! wikidata-build #f)
+	   (set! buildmap.table #f))
+	  ((not wikidata.dir) (error |NoWikidataConfigured|))
+	  (wikidata-build wikidata-build)
+	  (else (set! buildmap.table
+		  (flexdb/make (mkpath wikidata.dir "wikids.table")
+			       [indextype 'memindex create #t]))
+		(set! wikidata-build #t)))))
+
 (define (wikidata/save!)
   (flexdb/commit! {wikidata.pool wikidata.index 
 		   wikids.index buildmap.table
@@ -141,4 +140,5 @@
 	 (try (tryif buildmap.table (upcase (symbol->string arg)))
 	      (get wikids.index (upcase (symbol->string arg)))
 	      #f))))
+
 
