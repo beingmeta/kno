@@ -62,7 +62,7 @@
 		       opts)))
 	   (when (and (fail? indexes) (not (getopt opts 'create)))
 	     (irritant fullpath |NoMatchingFiles| flex/open-index))
-	   (when (ambiguous? keyslots)
+	   (when #f ;; (ambiguous? keyslots)
 	     (irritant spec |InconsistentKeySlots| flex/open-index
 		       (when (getopt opts 'keyslot)
 			 (printout "\n  " (getopt opts 'keyslot) "\tREQUESTED"))
@@ -83,8 +83,7 @@
 		    (aggregate
 		     (if (and (singleton? (choice indexes front)) (getopt opts 'readonly))
 			 (choice indexes front)
-			 (make-aggregate-index (choice indexes front)
-					       `#[register #t]))))
+			 (make-aggregate-index (choice indexes front) `#[register #t]))))
 	       (when keyslot (indexctl aggregate 'keyslot keyslot))
 	       (if (and (exists? front) front)
 		   (indexctl aggregate 'props 'front front)
