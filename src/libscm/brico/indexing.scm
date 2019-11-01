@@ -24,17 +24,18 @@
 
 ;;; Indexing functions
 
-(defambda (index-relation index frame slotids (values) (inverse #f) (genslot #f) (oidvals))
+(defambda (index-relation index frame slotids (usevals) (inverse #f) (genslot #f) (oidvals))
   (do-choices (slotid slotids)
-    (default! values (get frame slotid))
-    (set! oidvals (pick values oid?))
-    (let* ((inverse (and inverse
+    (let* ((values (default usevals (get frame slotid)))
+	   (oidvals (pickoids values))
+	   (inverse (and inverse
 			 (try (pick inverse slotid?)
 			      (get slotid 'inverse)
 			      #f)))
 	   (genslot (and genslot
 			 (try (pick genslot slotid?)
 			      genls*))))
+      ;; (when (eq? slotid '%id) (%watch "INDEX-RELATION" index frame slotid values))
       (index-frame index frame slotid values)
       (when inverse 
 	(index-frame index oidvals inverse frame))
@@ -232,7 +233,8 @@
     (index-relation index frame 'sensecat 'senseless))
   (when (test frame '%index)
     (index-relation index frame (pick (get frame '%index) {oid? symbol?})))
-  (index-relation index frame '%id (get frame '{%mnemonics wikid}))
+  (when (test frame '{%mnemonics wikid})
+    (index-relation index frame '%id (get frame '{%mnemonics wikid})))
   (when (or (test frame 'type 'slot) (test frame 'type 'get-methods))
     (index-relation index frame '%id))
   (index-relation index frame '%ids)
