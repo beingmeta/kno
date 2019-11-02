@@ -423,7 +423,7 @@ KNO_EXPORT int kno_config_assignment(u8_string assignment)
       ssize_t len = strlen(assignment);
       int count = 0, rv = 0;
       u8_byte copied[len+1], *start = copied, *scan;
-      strncpy(copied,assignment,len+1);
+      memcpy(copied,assignment,len+1);
       while ((scan=strchr(start,sep))) {
 	if ( (scan>start) && (scan[-1] == '\\') ) {
           scan = strchr(scan+1,sep);
