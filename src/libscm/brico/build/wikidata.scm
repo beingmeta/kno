@@ -85,7 +85,7 @@
     (flexdb/make (mkpath dir "hasprops.index")
 		 [indextype 'hashindex create #t keyslot 'has register #t]))
   (set! props.index
-    (flex/open-index (mkpath dir "props.index")
+    (flex/open-index (mkpath dir "props.flexindex")
 		     [indextype 'hashindex size (* 4 1024 1024) create #t
 		      register #t maxkeys (* 2 1024 1024)]))
   (set! wikidata.index
