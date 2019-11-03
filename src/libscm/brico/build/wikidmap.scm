@@ -7,10 +7,9 @@
 (use-module '{flexdb flexdb/branches flexdb/typeindex flexdb/flexindex})
 (use-module '{brico brico/indexing brico/wikid brico/build/wikidata})
 
-(module-export! '{wikidata->brico
+(module-export! '{wikidata->brico wikid/brico
 		  wikid/import!
-		  wikid/ref
-		  import/enginefn})
+		  wikidata/import/enginefn})
 
 (define %loglevel %notice%)
 
@@ -29,17 +28,22 @@
 	(store! wikidmap wikidstring found)
 	(store! wikidmap wikid found)
 	(or found (fail)))))
+(define wikid/brico wikidata->brico)
 
 (define (copy-lexslots wikid brico index)
   ;; We should use 'index' here
-  (let ((wds #[]) (norms #[]) (glosses #[]))
-    (do-choices (alias (get wikid 'aliases))
+  (let* ((wds #[]) (norms #[]) (glosses #[])
+	 (labels (get wikid 'labels))
+	 (aliases (get wikid 'aliases))
+	 (descriptions (get wikid 'descriptions)))
+    (do-choices (alias aliases)
       (do-choices (langid (getkeys alias))
-	(add! wds langid (get alias langid))))
-    (do-choices (label (get wikid 'labels))
+	(let ((v (get alias langid)))
+	  (add! wds langid v))))
+    (do-choices (label labels)
       (do-choices (langid (getkeys label))
 	(add! {wds norms} langid (get label langid))))
-    (do-choices (description (get wikid 'descriptions))
+    (do-choices (description descriptions)
       (do-choices (langid (getkeys description))
 	(add! glosses langid (get description langid))))
     (let ((cur-wds (get brico '%norms))
@@ -49,22 +53,19 @@
       (store! brico '%words wds)
       (store! brico '%norms norms)
       (store! brico '%glosses glosses)
+      (add! brico 'words (get wds 'en))
+      (add! brico 'norms (get norms 'en))
       (do-choices (lang langs)
 	(let ((addwds (difference (get wds lang) (get cur-wds lang))))
 	  (when (exists? addwds)
-	    (index-frame wikid.index brico 
-	      (get language-map (downcase lang))
-	      addwds)))
+	    (index-string wikid.index brico 
+			  (get language-map (downcase lang))
+	      {addwds (downcase addwds)})))
 	(let ((addnorms (difference (get norms lang) (get cur-norms lang))))
 	  (when (exists? addnorms)
-	    (index-frame wikid.index brico 
+	    (index-string wikid.index brico 
 	      (get norm-map (downcase lang))
-	      addnorms)))
-	(let ((addglosses (difference (get glosses lang) (get cur-glosses lang))))
-	  (when (exists? addglosses)
-	    (index-frame wikid.index brico 
-	      (get gloss-map (downcase lang))
-	      addglosses)))))))
+	      addnorms)))))))
 
 (define import-slotids
   [@1/2c27e{isa} {@1/1f("instance of" wikid "P31")
@@ -87,16 +88,19 @@
 			@1/4525c("parliamentary group" wikid "P4100")
 			@1/4526d("astronaut mission" wikid "P450")}])
 
-(define (wikid/import! wikid (template #f) (wikidstring))
+(define (wikid/import! wikid (opts #f) (template) (wikidstring))
+  (default! template (getopt opts 'template #f))
   (default! wikidstring (if (string? wikid) wikid (get wikid 'id)))
   (unless (oid? wikid) (set! wikid (or (wikidata/ref wikidstring) wikid)))
   (when (fail? wikid) (irritant wikidstring |InvalidWikidRef|))
-  (let* ((cached (or (try (get wikidmap wikid)  (get wikidmap wikidstring)) #f))
+  (let* ((cached (or (try (get wikidmap wikid) (get wikidmap wikidstring)
+			  (wikidata->brico wikidstring))
+		     #f))
 	 (label (try (pick-one (get wikid 'norms)) (pick-one (get wikid 'words))))
 	 (frame (or cached
 		    (frame-create wikid.pool
 		      '%id `(WIKID ,label ,wikidstring)
-		      'type 'wikid 'source 'wikidata
+		      'type {'wikid (getopt opts 'type '{noun thing})} 'source 'wikidata
 		      'wikidref wikidstring
 		      'imported (config 'sessionid)
 		      'imported_at (timestamp)
@@ -150,18 +154,19 @@
 	      (add! adj slot frame)
 	      (index-frame wikid.index adj slot frame))))))
     (cond (cached)
+	  ((%test frame 'sensecat))
 	  ((%test frame @?genls)
 	   (add! frame 'type (get (%get frame @?genls) 'type))
 	   (add! frame 'sensecat (get (%get frame @?genls) 'sensecat))
 	   (index-frame wikid.index frame '{sensecat type})))
+    (index-lattice wikidata.index frame)
+    (index-relations wikidata.index frame)
+    (index-analytics wikidata.index frame)
     frame))
 
-(defambda (import/enginefn batch)
+(defambda (wikidata/import/enginefn batch)
   (prefetch-oids! batch)
   (prefetch-keys! wikid.index (cons 'wikidref (get batch 'id)))
   (wikid/import! batch))
 
-(define (wikid/ref arg)
-  (if (and (oid? arg) (test arg 'wikidref))
-      (wikidata/ref (get arg 'wikidref))
-      (wikidata/ref arg)))
+
