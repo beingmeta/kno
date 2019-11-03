@@ -13,7 +13,8 @@
 		  words.index norms.index has.index props.index
 		  buildmap.table
 		  wikidata.props
-		  wikidata/ref})
+		  wikidata/ref wikid/ref
+		  wikidata/find wikid/find})
 
 (module-export! '{wikidata/save!})
 
@@ -121,7 +122,7 @@
 		   wikids.index buildmap.table
 		   has.index}))
 
-(define (wikidata/ref arg)
+(define (wikidata/ref arg . ignored)
   (cond ((not wikidata.pool) (error |WikdataNotConfigured|))
 	((oid? arg)
 	 (if (or (in-pool? arg wikidata.pool) (test arg 'wikitype))
@@ -141,4 +142,9 @@
 	      (get wikids.index (upcase (symbol->string arg)))
 	      #f))))
 
+(define wikid/ref wikidata/ref)
 
+(defambda (wikidata/find . specs)
+  (apply find-frames wikidata.index specs))
+
+(define wikid/find wikidata/find)
