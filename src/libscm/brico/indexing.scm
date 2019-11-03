@@ -87,16 +87,16 @@
       ;;  capitalization.  Normalizing capitalization makes all elements of a
       ;;  compound be uppercase and makes oddly capitalized terms (e.g. iTunes)
       ;;  be lowercased.
-      (index-relation index frame slot 
-		      {expvalues normcaps lowered
-		       (dedash expvalues)
-		       (dedash (difference lowered expvalues))
-		       (dedash (difference normcaps lowered expvalues))})
+      (index-frame index frame slot 
+		   {expvalues normcaps lowered
+		    (dedash expvalues)
+		    (dedash (difference lowered expvalues))
+		    (dedash (difference normcaps lowered expvalues))})
       (when soundslike
-	(index-relation index frame slot
-			(choice (pick (metaphone (choice values normcaps) #t) length>1)
-				(pick (metaphone+ (choice values normcaps) #t) length>1)))
-	(index-relation index frame slot (pick (soundex (choice values normcaps) #t) length>1)))
+	(index-frame index frame slot
+		     (choice (pick (metaphone (choice values normcaps) #t) length>1)
+			     (pick (metaphone+ (choice values normcaps) #t) length>1)))
+	(index-frame index frame slot (pick (soundex (choice values normcaps) #t) length>1)))
       (when frag (index-frags index frame slot values 1 #f)))))
 
 (defambda (index-string/keys value (opts #f) (soundslike) (frag))
@@ -128,7 +128,7 @@
   (default! value (get frame slot))
   (let* ((values (downcase (stdspace value)))
 	 (expvalues (choice values (basestring values))))
-    (index-relation index frame slot expvalues)
+    (index-frame index frame slot expvalues)
     (when window
       (index-frags index frame slot expvalues window))))
 
@@ -145,8 +145,8 @@
   (let* ((wordlist (getwords value))
 	 (gloss-words (filter-choices (word (elts wordlist))
 			(< (length word) 16))))
-    (index-relation index frame slotid
-		    (choice gloss-words (porter-stem gloss-words)))))
+    (index-frame index frame slotid
+		 (choice gloss-words (porter-stem gloss-words)))))
 
 ;;; Indexing string fragments
 
@@ -182,13 +182,13 @@
     (let* ((stdcompounds (basestring compounds))
 	   (wordv (words->vector compounds))
 	   (swordv (words->vector stdcompounds)))
-      (index-relation index frame slot
-		      (vector->frags (trimwordvec (choice wordv swordv)) window))
+      (index-frame index frame slot
+		   (vector->frags (trimwordvec (choice wordv swordv)) window))
       (when phonetic
-	(index-relation index frame slot
-			(vector->frags (trimwordvec (map metaphone1 wordv))))
-	(index-relation index frame slot
-			(vector->frags (trimwordvec (map metaphone2 wordv))))))))
+	(index-frame index frame slot
+		     (vector->frags (trimwordvec (map metaphone1 wordv))))
+	(index-frame index frame slot
+		     (vector->frags (trimwordvec (map metaphone2 wordv))))))))
 
 (defambda (index-frags/keys value (window 1) (phonetic #t))
   (let* ((values (stdstring value))
@@ -217,13 +217,13 @@
 (define wordform-slotids '{word of language rank type sensenum})
 
 (define (index-core index frame)
-  (index-relation index frame
-		  '{type sensecat source
-		    topic_domain region_domain usage_domain
-		    derivations language
-		    fips-code dsg 
-		    wikid wikidref wikidef
-		    has})
+  (index-frame index frame
+    '{type sensecat source
+      topic_domain region_domain usage_domain
+      derivations language
+      fips-code dsg 
+      wikid wikidref wikidef
+      has})
   (index-frame index frame 'has (getkeys frame))
   (when (and (or (%test frame 'words) (%test frame '%words))
 	     (ambiguous? (get frame 'sensecat)))
@@ -232,13 +232,13 @@
 	     (not (test frame 'sensecat)))
     (index-frame index frame 'sensecat 'senseless))
   (when (test frame '%index)
-    (index-relation index frame (pick (get frame '%index) {oid? symbol?})))
+    (index-frame index frame (pick (get frame '%index) {oid? symbol?})))
   (when (test frame '{%mnemonics wikid})
-    (index-relation index frame '%id (get frame '{%mnemonics wikid})))
+    (index-frame index frame '%id (get frame '{%mnemonics wikid})))
   (when (or (test frame 'type 'slot) (test frame 'type 'get-methods))
     (index-relation index frame '%id))
-  (index-relation index frame '%ids)
-  (index-relation index frame '%mnemonics)
+  (index-frame index frame '%ids)
+  (index-frame index frame '%mnemonics)
   (index-relation index frame '{key through slots inverse @1/2c27a}))
 
 (define (index-wordform index frame)
@@ -263,7 +263,7 @@
 	((test frame 'source @1/1)
 	 ;; We minimally index the Roget frames, since they tend
 	 ;;  to mostly get in the way and often be archaic
-	 (index-relation index frame '{type source}))
+	 (index-frame index frame '{type source}))
 	(else
 	 (index-core index frame)
 	 (when (test frame 'type 'language)
