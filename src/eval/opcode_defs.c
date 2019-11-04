@@ -46,6 +46,7 @@ lispval op_eval_expr(struct KNO_STACK *eval_stack,
   else if (gc_head) {
     KNO_ADD_TO_CHOICE(eval_stack->stack_vals,headval);}
   else NO_ELSE;
+  if (KNO_EMPTYP(headval)) return KNO_EMPTY;
   kno_lisp_type headtype = KNO_TYPEOF(headval);
   kno_function f = (KNO_FUNCTION_TYPEP(headtype)) ?
     ((kno_function)headval) :
