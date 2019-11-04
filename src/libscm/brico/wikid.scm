@@ -2,11 +2,11 @@
 ;;; Copyright (C) 2005-2018 beingmeta, inc.  All rights reserved.
 
 (in-module 'brico/wikid)
-;;; Using the BRICO database from Kno
 
+;;; Using the BRICO database from Kno
 (define %nosubst '{wikid.source wikid.pool wikid.index wikid.background})
 
-(use-module '{texttools reflection logger varconfig flexdb})
+(use-module '{texttools reflection logger varconfig stringfmts flexdb})
 
 (define-init %loglevel %notify%)
 ;;(set! %loglevel %debug%)
@@ -25,6 +25,8 @@
   (cond ((and wikid.source
 	      (or (equal? source wikid.source)
 		  (equal? (realpath source) wikid.source)))
+	 (loginfo |RedundantWikiDInit|
+	   "Wikid is already consistently provided from wikid.source")
 	 wikid-source)
 	((and wikid.source err)
 	 (irritant wikid.source |WikidSourceConflict|))
@@ -34,6 +36,7 @@
 	 (set! wikid.index
 	   (flexdb/ref source (opt+ opts 'index source 
 				    'background wikid.background)))
+	 (lognotice |WIKID| "being accessed from " wikid.source)
 	 (set! wikid.indexes wikid.index)
 	 (set! wikid.source source))
 	((not (file-directory? source))
@@ -47,7 +50,11 @@
 				'background wikid.background))
 		(indexes (flex/ref indexfiles use-opts)))
 	   (set! wikid.indexes indexes)
-	   (set! wikid.index (make-aggregate-index indexes [register #t])))
+	   (set! wikid.index (make-aggregate-index indexes [register #t]))
+	   (lognotice |WIKID| "Using data from " (write source) 
+		      " comprised of one pool, " 
+		      ($size (getvalues (dbctl wikid.pool 'adjuncts)) "adjunct") ", and "
+		      ($size indexes "index" "indexes")))
 	 (set! wikid.source source))))
 
 (config-def! 'wikidsource
