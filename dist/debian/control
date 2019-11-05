@@ -255,7 +255,7 @@ Architecture: any
 Depends: ${misc:Depends}, ${elpa:Depends}
 Built-Using: ${misc:Built-Using}
 Recommends: emacs (>= 46.0)
-Enhances: emacs, emacs24, emacs25
+Enhances: emacs, emacs24, emacs25, emacs26
 Description: Provides an Emacs mode for interacting with knoc
 
 Package: kno-full
