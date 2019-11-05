@@ -14,4 +14,5 @@ RUN apt-get -yqq install libu8 libu8-encodings \
     	    	 	 kno-core kno-stdlib kno-parseltongue \
      	     	         kno-sqlite kno-zeromq kno-leveldb kno-rocksdb kno-sqlite kno-mysql kno-mongodb \
 			 kno-sundown kno-tidy
-RUN mkdir /data /src /app
+COPY configs/* /etc/kno/config/
+
