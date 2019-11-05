@@ -64,6 +64,7 @@ Description: This package directly provides many source (scheme) modules for
 Package: libapache2-mod-knocgi
 Architecture: any
 Depends: kno-core (= ${binary:Version}), apache2
+Recommends: ${misc:Recommends}
 Description: The mod_knocgi modulec for KNO servlets under Apache
 
 Package: kno-mysql

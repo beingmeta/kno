@@ -19,7 +19,7 @@ override_dh_auto_configure:
                 --with-malloc=jemalloc
 
 override_dh_make:
-	make distribution docs mod_knocgi
+	make distribution docs src/apache2/mod_knocgi.so
 
 override_dh_auto_install:
 	make DESTDIR=$$(pwd)/debian/tmp install install-mod_knocgi install-i18n install-docs \
