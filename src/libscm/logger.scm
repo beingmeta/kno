@@ -25,8 +25,8 @@
    %debug% %debug! 
    %detail% %detail! %details%
    %deluge% %deluge! %swamp% %swamp!})
-(module-export! '{swamp%call deluge%call detail%call debug%call
-		  info%call notice%call warn%call})
+(module-export! '{swamp%wc deluge%wc detail%wc debug%wc
+		  info%wc notice%wc warn%wc})
 (module-export! '{logswamp? logdeluge? logdetail? logdebug?
 		  loginfo? lognotice? logwarn?
 		  logerr? logcrit? logalert? logpanic?
@@ -205,55 +205,41 @@
 (define always%watch
   (macro expr `(,%watch ,@(cdr expr))))
 
-(define swamp%call
+(define swamp%wc
   (macro expr
     `(if (>= %loglevel ,%swamp%)
-	 (,%watchcall ,@(cdr expr))
-	 (if (string? (cadr expr))
-	     `(,@(cddr expr))
-	     `(,@(cdr expr))))))
-(define deluge%call
+	 (,%wc ,@(cdr expr))
+	 ,(cdr expr))))
+(define deluge%wc
   (macro expr
     `(if (>= %loglevel ,%deluge%)
-	 (,%watchcall ,@(cdr expr))
-	 (if (string? (cadr expr))
-	     `(,@(cddr expr))
-	     `(,@(cdr expr))))))
-(define detail%call
+	 (,%wc ,@(cdr expr))
+	 ,(cdr expr))))
+(define detail%wc
   (macro expr
     `(if (>= %loglevel ,%detail%)
-	 (,%watchcall ,@(cdr expr))
-	 (if (string? (cadr expr))
-	     `(,@(cddr expr))
-	     `(,@(cdr expr))))))
-(define debug%call
+	 (,%wc ,@(cdr expr))
+	 ,(cdr expr))))
+(define debug%wc
   (macro expr
     `(if (>= %loglevel ,%debug%)
-	 (,%watchcall ,@(cdr expr))
-	 (if (string? (cadr expr))
-	     `(,@(cddr expr))
-	     `(,@(cdr expr))))))
-(define info%call
+	 (,%wc ,@(cdr expr))
+	 ,(cdr expr))))
+(define info%wc
   (macro expr
     `(if (>= %loglevel ,%info%)
-	 (,%watchcall ,@(cdr expr))
-	 (if (string? (cadr expr))
-	     `(,@(cddr expr))
-	     `(,@(cdr expr))))))
-(define notice%call
+	 (,%wc ,@(cdr expr))
+	 ,(cdr expr))))
+(define notice%wc
   (macro expr
     `(if (>= %loglevel ,%notice%)
-	 (,%watchcall ,@(cdr expr))
-	 (if (string? (cadr expr))
-	     `(,@(cddr expr))
-	     `(,@(cdr expr))))))
-(define warn%call
+	 (,%wc ,@(cdr expr))
+	 ,(cdr expr))))
+(define warn%wc
   (macro expr
     `(if (>= %loglevel ,%warn%)
-	 (,%watchcall ,@(cdr expr))
-	 (if (string? (cadr expr))
-	     `(,@(cddr expr))
-	     `(,@(cdr expr))))))
+	 (,%wc ,@(cdr expr))
+	 ,(cdr expr))))
 
 ;;; Local loglevel predicates
 
