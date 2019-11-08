@@ -126,16 +126,17 @@
 		   (logwarn |DBFailed| "Couldn't use " file)
 		   (set! failed #t)
 		   (break))))
-	   (when (or (exists? pools) (exists? indexes))
-	     (lognotice |BRICO|
-	       "Loaded " (choice-size pools) " pools "
-	       "and " (choice-size indexes) " indexes for BRICO "
-	       "from " source)
-	     (logdebug |BRICO|
-	       "Loaded " (choice-size pools) " pools "
-	       "and " (choice-size indexes) " indexes:"
-	       (do-choices (pool pools) (printout "\n\t" pool))
-	       (do-choices (index indexes) (printout "\n\t" index))))
+	   (unless (config 'quiet)
+	     (when (or (exists? pools) (exists? indexes))
+	       (lognotice |BRICO|
+		 "Using " (choice-size pools) " pools "
+		 "and " (choice-size indexes) " indexes for BRICO "
+		 "from " source)
+	       (logdebug |BRICO|
+		 "Loaded " (choice-size pools) " pools "
+		 "and " (choice-size indexes) " indexes:"
+		 (do-choices (pool pools) (printout "\n\t" pool))
+		 (do-choices (index indexes) (printout "\n\t" index)))))
 	   (when  (and (not failed) (exists? pools) (exists? indexes)
 		       (name->pool "brico.framerd.org"))
 	     (set! brico.db `#[%pools ,pools %indexes ,indexes opts ,use-opts])
