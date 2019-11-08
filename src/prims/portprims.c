@@ -61,7 +61,7 @@ static u8_output get_output_port(lispval portarg)
 
 static u8_input get_input_port(lispval portarg)
 {
-  if (VOIDP(portarg))
+  if ( (VOIDP(portarg)) || (KNO_TRUEP(portarg)) )
     return u8_current_input;
   else if (KNO_PORTP(portarg)) {
     struct KNO_PORT *p=
@@ -412,6 +412,42 @@ static lispval uniscape(lispval arg,lispval excluding)
     else u8_putc(output,c);
     c = u8_sgetc(&scan);}
   if (!(STRINGP(arg))) u8_free(input);
+  return VOID;
+}
+
+static lispval printout_to_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+{
+  lispval dest_arg = kno_get_arg(expr,1);
+  if (KNO_VOIDP(dest_arg))
+    return kno_err(kno_SyntaxError,"printout_to_evalfn",NULL,expr);
+  lispval dest = fast_eval(dest_arg,env);
+  if (ABORTED(dest)) return dest;
+  u8_output f = NULL;
+  if (KNO_PORTP(dest)) {
+    struct KNO_PORT *p = (kno_port) dest;
+    f = p->port_output;}
+  if (f == NULL) {
+    lispval err = kno_type_error("output port","printout_to_evalfn",dest);
+    kno_decref(dest);
+    return err;}
+  u8_output oldf = u8_current_output;
+  u8_set_default_output(f);
+  {lispval body = kno_get_body(expr,2);
+    KNO_DOLIST(ex,body)  {
+      lispval value = fast_eval(ex,env);
+      if (ABORTED(value)) {
+	kno_decref(dest);
+	u8_set_default_output(oldf);
+	return value;}
+      else if (printout_helper(f,value))
+	kno_decref(value);
+      else {
+	kno_decref(dest);
+	u8_set_default_output(oldf);
+	return value;}}}
+  u8_flush(f);
+  u8_set_default_output(oldf);
+  kno_decref(dest);
   return VOID;
 }
 
@@ -1218,6 +1254,8 @@ KNO_EXPORT void kno_init_portprims_c()
   init_portprims_symbols();
   link_local_cprims();
 
+  kno_def_evalfn(kno_io_module,"PRINTOUT-TO",printout_to_evalfn,
+		 "*undocumented*");
   kno_def_evalfn(kno_io_module,"PRINTOUT",printout_evalfn,
 		 "*undocumented*");
   kno_def_evalfn(kno_io_module,"LINEOUT",lineout_evalfn,
