@@ -1815,6 +1815,7 @@ KNO_EXPORT void kno_init_fileprims_c()
   atexit(close_u8stdio);
 
   u8_set_global_output((u8_output)&u8stdout);
+  u8_set_global_input((u8_input)&u8stdin);
 
   link_local_cprims();
   kno_def_evalfn(fileio_module,"FILEOUT",simple_fileout_evalfn,

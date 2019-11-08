@@ -639,6 +639,13 @@ chained_batchscripts:
 	@@test_env@ ../dbg/knotask chaintest.scm
 	@${header} "■■■■■■■■ Done testing batch scripts which call CHAIN"
 
+pipes:
+	@${RUN} ${KNOX} reverse_pipe.scm reversed.text < data/alphabet.text;
+	@if diff reversed.text data/tebahpla.text; then \
+	   echo "Pipe test succeded" > /dev/null;       \
+	 else exit 1;                                   \
+	 fi;
+
 # ATEXIT tests
 
 atexit_tests: atexit_kill atexit_quit atexit_term
