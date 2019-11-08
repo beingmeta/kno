@@ -25,8 +25,9 @@
   (cond ((and wikid.source
 	      (or (equal? source wikid.source)
 		  (equal? (realpath source) wikid.source)))
-	 (loginfo |RedundantWikiDInit|
-	   "Wikid is already consistently provided from wikid.source")
+	 (unless (config 'quiet)
+	   (loginfo |RedundantWikiDInit|
+	     "Wikid is already consistently provided from wikid.source"))
 	 wikid-source)
 	((and wikid.source err)
 	 (irritant wikid.source |WikidSourceConflict|))
@@ -36,7 +37,8 @@
 	 (set! wikid.index
 	   (flexdb/ref source (opt+ opts 'index source 
 				    'background wikid.background)))
-	 (lognotice |WIKID| "being accessed from " wikid.source)
+	 (unless (config 'quiet)
+	   (lognotice |WIKID| "being accessed from " wikid.source))
 	 (set! wikid.indexes wikid.index)
 	 (set! wikid.source source))
 	((not (file-directory? source))
@@ -51,10 +53,11 @@
 		(indexes (flex/ref indexfiles use-opts)))
 	   (set! wikid.indexes indexes)
 	   (set! wikid.index (make-aggregate-index indexes [register #t]))
-	   (lognotice |WIKID| "Using data from " (write source) 
-		      " comprised of one pool, " 
-		      ($size (getvalues (dbctl wikid.pool 'adjuncts)) "adjunct") ", and "
-		      ($size indexes "index" "indexes")))
+	   (unless (config 'quiet)
+	     (lognotice |WIKID| "Using one pool, "
+			($size (getvalues (dbctl wikid.pool 'adjuncts)) "adjunct") ", and "
+			($size indexes "index" "indexes")
+			" for WIKID from "  source)))
 	 (set! wikid.source source))))
 
 (config-def! 'wikidsource
