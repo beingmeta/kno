@@ -325,13 +325,15 @@ KNO_EXPORT void kno_doexit(lispval arg)
   kno_exiting = 1;
   if (atexit_handlers) {
     u8_lock_mutex(&atexit_handlers_lock);
-    u8_log(LOG_NOTICE,"kno_doexit","Running %d Kno exit handlers",
-           n_atexit_handlers);
+    if (!(kno_be_vewy_quiet))
+      u8_log(LOG_NOTICE,"kno_doexit","Running %d Kno exit handlers",
+	     n_atexit_handlers);
     scan = atexit_handlers; atexit_handlers = NULL;
     u8_unlock_mutex(&atexit_handlers_lock);
     while (scan) {
       lispval handler = scan->exitfn_handler, result = VOID;
-      u8_log(LOG_INFO,"kno_doexit","Running Kno exit handler %q",handler);
+      if (!(kno_be_vewy_quiet))
+	u8_log(LOG_INFO,"kno_doexit","Running Kno exit handler %q",handler);
       if ((KNO_FUNCTIONP(handler))&&(KNO_FUNCTION_ARITY(handler)))
         result = kno_apply(handler,1,&arg);
       else result = kno_apply(handler,0,NULL);
@@ -359,7 +361,7 @@ KNO_EXPORT void kno_doexit(lispval arg)
   if ( (kno_logcmd) && (kno_argc > 1) )
     log_argv(kno_argc,kno_argv);
 
-  kno_log_status("EXIT");
+  if (!(kno_be_vewy_quiet)) kno_log_status("EXIT");
 
   if (kno_argv) {
     int i = 0, n = kno_argc; while (i<n) {
