@@ -746,7 +746,7 @@ static lispval nd1_call(lispval opcode,lispval arg1)
         else {
           kno_decref(results);
           return kno_type_error(_("pair"),"CAR opcode",arg);}
-      return results;}
+      return kno_simplify_choice(results);}
     else return kno_type_error(_("pair"),"CAR opcode",arg1);
   case KNO_CDR_OPCODE:
     if (EMPTYP(arg1)) return arg1;
@@ -761,7 +761,7 @@ static lispval nd1_call(lispval opcode,lispval arg1)
         else {
           kno_decref(results);
           return kno_type_error(_("pair"),"CDR opcode",arg);}
-      return results;}
+      return kno_simplify_choice(results);}
     else return kno_type_error(_("pair"),"CDR opcode",arg1);
   case KNO_LENGTH_OPCODE:
     if (arg1==EMPTY) return EMPTY;
@@ -936,7 +936,7 @@ static lispval d1_loop(lispval opcode,lispval arg1)
       KNO_STOP_DO_CHOICES;
       return r;}
     else {KNO_ADD_TO_CHOICE(results,r);}}
-  return results;
+  return kno_simplify_choice(results);
 }
 
 static lispval d2_call(lispval opcode,lispval arg1,lispval arg2)
@@ -979,9 +979,8 @@ static lispval d2_loop(lispval opcode,lispval arg1,lispval arg2)
     if (KNO_ABORTED(results)) {
       KNO_STOP_DO_CHOICES;
       break;}}
-  return results;
+  return kno_simplify_choice(results);
 }
-
 
 KNO_FASTOP int numeric_argp(lispval x)
 {
@@ -1006,88 +1005,6 @@ KNO_FASTOP int numeric_argp(lispval x)
       return 1;}
     default:
       return 0;}
-}
-
-static lispval numop_call(lispval opcode,lispval arg1,lispval arg2)
-{
-  if (KNO_EXPECT_FALSE(!(numeric_argp(arg1))))
-    return kno_err("NotANumber","numop_call",NULL,arg1);
-  else if (KNO_EXPECT_FALSE(!(numeric_argp(arg2))))
-    return kno_err("NotANumber","numop_call",NULL,arg2);
-  else switch (opcode) {
-    case KNO_NUMEQ_OPCODE: {
-      if ((FIXNUMP(arg1)) && (FIXNUMP(arg2)))
-        if ((FIX2INT(arg1)) == (FIX2INT(arg2)))
-          return KNO_TRUE;
-        else return KNO_FALSE;
-      else if (kno_numcompare(arg1,arg2)==0) return KNO_TRUE;
-      else return KNO_FALSE;}
-    case KNO_GT_OPCODE: {
-      if ((FIXNUMP(arg1)) && (FIXNUMP(arg2)))
-        if ((FIX2INT(arg1))>(FIX2INT(arg2)))
-          return KNO_TRUE;
-        else return KNO_FALSE;
-      else if (kno_numcompare(arg1,arg2)>0) return KNO_TRUE;
-      else return KNO_FALSE;}
-    case KNO_GTE_OPCODE: {
-      if ((FIXNUMP(arg1)) && (FIXNUMP(arg2)))
-        if ((FIX2INT(arg1))>=(FIX2INT(arg2)))
-          return KNO_TRUE;
-        else return KNO_FALSE;
-      else if (kno_numcompare(arg1,arg2)>=0) return KNO_TRUE;
-      else return KNO_FALSE;}
-    case KNO_LT_OPCODE: {
-      if ((FIXNUMP(arg1)) && (FIXNUMP(arg2)))
-        if ((FIX2INT(arg1))<(FIX2INT(arg2)))
-          return KNO_TRUE;
-        else return KNO_FALSE;
-      else if (kno_numcompare(arg1,arg2)<0) return KNO_TRUE;
-      else return KNO_FALSE;}
-    case KNO_LTE_OPCODE: {
-      if ((FIXNUMP(arg1)) && (FIXNUMP(arg2)))
-        if ((FIX2INT(arg1))<=(FIX2INT(arg2)))
-          return KNO_TRUE;
-        else return KNO_FALSE;
-      else if (kno_numcompare(arg1,arg2)<=0) return KNO_TRUE;
-      else return KNO_FALSE;}
-    case KNO_PLUS_OPCODE: {
-      if ((FIXNUMP(arg1)) && (FIXNUMP(arg2)))  {
-        long long m = FIX2INT(arg1), n = FIX2INT(arg2);
-        return KNO_INT(m+n);}
-      else if ((KNO_FLONUMP(arg1)) && (KNO_FLONUMP(arg2))) {
-        double x = KNO_FLONUM(arg1), y = KNO_FLONUM(arg2);
-        return kno_init_double(NULL,x+y);}
-      else return kno_plus(arg1,arg2);}
-    case KNO_MINUS_OPCODE: {
-      if ((FIXNUMP(arg1)) && (FIXNUMP(arg2)))  {
-        long long m = FIX2INT(arg1), n = FIX2INT(arg2);
-        return KNO_INT(m-n);}
-      else if ((KNO_FLONUMP(arg1)) && (KNO_FLONUMP(arg2))) {
-        double x = KNO_FLONUM(arg1), y = KNO_FLONUM(arg2);
-        return kno_init_double(NULL,x-y);}
-      else return kno_subtract(arg1,arg2);}
-    case KNO_TIMES_OPCODE: {
-      if ((FIXNUMP(arg1)) && (FIXNUMP(arg2)))  {
-        long long m = FIX2INT(arg1), n = FIX2INT(arg2);
-        return KNO_INT(m*n);}
-      else if ((KNO_FLONUMP(arg1)) && (KNO_FLONUMP(arg2))) {
-        double x = KNO_FLONUM(arg1), y = KNO_FLONUM(arg2);
-        return kno_init_double(NULL,x*y);}
-      else return kno_multiply(arg1,arg2);}
-    case KNO_FLODIV_OPCODE: {
-      if ((FIXNUMP(arg1)) && (FIXNUMP(arg2)))  {
-        long long m = FIX2INT(arg1), n = FIX2INT(arg2);
-        double x = (double)m, y = (double)n;
-        return kno_init_double(NULL,x/y);}
-      else if ((KNO_FLONUMP(arg1)) && (KNO_FLONUMP(arg2))) {
-        double x = KNO_FLONUM(arg1), y = KNO_FLONUM(arg2);
-        return kno_init_double(NULL,x/y);}
-      else {
-        double x = kno_todouble(arg1), y = kno_todouble(arg2);
-        return kno_init_double(NULL,x/y);}}
-    default:
-      return kno_err(_("Invalid opcode"),"numop_call",NULL,VOID);
-    }
 }
 
 static lispval nd2_call(lispval opcode,lispval arg1,lispval arg2)

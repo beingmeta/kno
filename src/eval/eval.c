@@ -561,10 +561,6 @@ static lispval pair_eval(lispval head,lispval expr,kno_lexenv env,
 			 int tail,int pushed);
 static lispval schemap_eval(lispval expr,kno_lexenv env,
 			    struct KNO_STACK *_stack);
-static lispval opcode_eval(lispval opcode,lispval expr,
-			   kno_lexenv env,
-			   kno_stack _stack,
-			   int tail);
 lispval op_eval_expr(struct KNO_STACK *eval_stack,
 		     lispval head,lispval expr,kno_lexenv env,
 		     int tail);
@@ -1002,104 +998,6 @@ lispval schemap_eval(lispval expr,kno_lexenv env,
 /* Opcode eval */
 
 #include "opcode_defs.c"
-
-static lispval opcode_eval(lispval opcode,lispval expr,
-			   kno_lexenv env,
-			   kno_stack _stack,
-			   int tail)
-{
-  lispval args = KNO_CDR(expr);
-
-  if (KNO_SPECIAL_OPCODEP(opcode))
-    return handle_special_opcode(opcode,args,expr,env,_stack,tail);
-  else if ( (KNO_D1_OPCODEP(opcode)) || (KNO_ND1_OPCODEP(opcode)) ) {
-    int nd_call = (KNO_ND1_OPCODEP(opcode));
-    lispval results = KNO_EMPTY_CHOICE;
-    lispval arg = pop_arg(args), val = arg_eval(arg,env,_stack);
-    if (KNO_ABORTED(val)) _return val;
-    else if (KNO_VOIDP(val))
-      return kno_err(kno_VoidArgument,"OPCODE_APPLY",opcode_name(opcode),arg);
-    else if (PRED_TRUE(args == KNO_EMPTY_LIST)) {}
-    else return kno_err(kno_TooManyArgs,"opcode_eval",opcode_name(opcode),expr);
-    /* Get results */
-    if ( (!(nd_call)) && (KNO_EMPTY_CHOICEP(val)) )
-      results = KNO_EMPTY_CHOICE;
-    else if (nd_call)
-      results = nd1_call(opcode,val);
-    else if (KNO_CHOICEP(val)) {
-      KNO_DO_CHOICES(v,val) {
-	lispval r = d1_call(opcode,val);
-	if (KNO_ABORTP(r)) {
-	  kno_decref(results);
-	  KNO_STOP_DO_CHOICES;
-	  _return r;}
-	else {KNO_ADD_TO_CHOICE(results,r);}}}
-    else results = d1_call(opcode,val);
-    kno_decref(val);
-    return results;}
-  else if (opcode == KNO_PLUS_OPCODE)
-    return plus_op(args,env,_stack);
-  else if (opcode == KNO_MINUS_OPCODE)
-    return minus_op(args,env,_stack);
-  else if (opcode == KNO_TIMES_OPCODE)
-    return mult_op(args,env,_stack);
-  else if (opcode == KNO_FLODIV_OPCODE)
-    return flodiv_op(args,env,_stack);
-  else if ( (KNO_D2_OPCODEP(opcode)) ||
-	    (KNO_ND2_OPCODEP(opcode)) ||
-	    (KNO_NUMERIC_OPCODEP(opcode)) ) {
-    int nd_call = (KNO_ND2_OPCODEP(opcode));
-    lispval results = KNO_EMPTY_CHOICE;
-    int numericp = (KNO_NUMERIC_OPCODEP(opcode));
-    lispval arg1 = pop_arg(args), arg2 = pop_arg(args);
-    if (PRED_FALSE(KNO_VOIDP(arg1)))
-      return kno_err(kno_TooFewArgs,"opcode_eval",opcode_name(opcode),
-		     expr);
-    else if (PRED_FALSE(args != KNO_EMPTY_LIST))
-      return kno_err(kno_TooManyArgs,"opcode_eval",opcode_name(opcode),expr);
-    else NO_ELSE;
-    lispval val1 = arg_eval(arg1,env,_stack), val2;
-    if (KNO_ABORTED(val1))
-      return val1;
-    else if ( (KNO_EMPTY_CHOICEP(val1)) && (!(nd_call)) )
-      return val1;
-    else val2 = arg_eval(arg2,env,_stack);
-    if (KNO_ABORTED(val2)) {
-      kno_decref(val1);
-      return val2;}
-    else if ( (KNO_EMPTY_CHOICEP(val2)) && (!(nd_call)) ) {
-      kno_decref(val1);
-      return val2;}
-    if (KNO_PRECHOICEP(val1)) val1 = kno_simplify_choice(val1);
-    if (KNO_PRECHOICEP(val2)) val2 = kno_simplify_choice(val2);
-    if ( (KNO_CHOICEP(val1)) || (KNO_CHOICEP(val2)) ) {
-      if (nd_call)
-	results = nd2_call(opcode,val1,val2);
-      else {
-	KNO_DO_CHOICES(v1,val1) {
-	  KNO_DO_CHOICES(v2,val2) {
-	    lispval r = (numericp) ? (numop_call(opcode,v1,v2)) :
-	      (d2_call(opcode,v1,v2));
-	    if (KNO_ABORTP(r)) {
-	      kno_decref(results);
-	      KNO_STOP_DO_CHOICES;
-	      results = r;
-	      break;}
-	    else {KNO_ADD_TO_CHOICE(results,r);}}
-	  if (KNO_ABORTP(results)) {
-	    KNO_STOP_DO_CHOICES;
-	    break;}}}}
-    else if (numericp)
-      results = numop_call(opcode,val1,val2);
-    else if (KNO_ND2_OPCODEP(opcode))
-      results = nd2_call(opcode,val1,val2);
-    else results = d2_call(opcode,val1,val2);
-    kno_decref(val1); kno_decref(val2);
-    return results;}
-  else if (KNO_TABLE_OPCODEP(opcode))
-    return handle_table_opcode(opcode,expr,env,_stack);
-  else return kno_err(_("Invalid opcode"),"numop_call",NULL,expr);
-}
 
 /* Making some functions */
 
