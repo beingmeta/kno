@@ -1,10 +1,7 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
-;;; Copyright (C) 2005-2018 beingmeta, inc.  All rights reserved.
+;;; Copyright (C) 2005-2019 beingmeta, inc.  All rights reserved.
 
 (in-module 'brico/wikid)
-
-;;; Using the BRICO database from Kno
-(define %nosubst '{wikid.source wikid.pool wikid.index wikid.background})
 
 (use-module '{texttools reflection logger varconfig stringfmts flexdb})
 
@@ -12,6 +9,7 @@
 ;;(set! %loglevel %debug%)
 
 (module-export! '{wikid.pool wikid.index wikid.source})
+(define %nosubst '{wikid.source wikid.pool wikid.index wikid.background})
 
 (define wikid.source #f)
 (define wikid.pool #f)
