@@ -5,13 +5,13 @@
 
 (use-module '{ezrecords stringfmts logger texttools})
 
-(module-export! '{flexdb/file flexdb/partition-files})
+(module-export! '{knodb/file knodb/partition-files})
 
 (define (try-file . args)
   (let ((file (apply glom args)))
     (tryif (file-exists? file) file)))
 
-(define (flexdb/file prefix (suffix "pool") (simple #t))
+(define (knodb/file prefix (suffix "pool") (simple #t))
   (set! prefix
     (textsubst prefix 
 	       `#("." (opt #((isxdigit+) ".")) ,suffix)
@@ -23,7 +23,7 @@
 	(try-file prefix ".0." suffix)
 	(tryif simple (try-file prefix "." suffix)))))
 
-(define (flexdb/partition-files prefix (suffix #f))
+(define (knodb/partition-files prefix (suffix #f))
   (cond ((index? prefix) (index-source (or (indexctl prefix 'partitions) {})))
 	((pool? prefix) (index-source (or (poolctl prefix 'partitions) {})))
 	((string? prefix)
