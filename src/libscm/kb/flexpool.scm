@@ -1,11 +1,11 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
 ;;; Copyright (C) 2005-2019 beingmeta, inc.  All rights reserved.
 
-(in-module 'flexdb/flexpool)
+(in-module 'kb/flexpool)
 
 (use-module '{ezrecords stringfmts logger varconfig fifo texttools})
-(use-module '{flexdb/adjuncts flexdb/filenames})
-(use-module '{flexdb})
+(use-module '{kb/adjuncts kb/filenames})
+(use-module '{kb})
 
 (module-export! '{flexpool/open flexpool/make flexpool?
 		  flexpool/ref flexpool/record 
@@ -16,7 +16,7 @@
 		  flexpool/delete!
 		  ;; flexpool/adjunct!
 		  flexpool/padlen
-		  flexdb/zero flexdb/front flexdb/last flexdb/info
+		  kb/zero kb/front kb/last kb/info
 		  flex/zero flex/front flex/last flex/info})
 
 (module-export! '{flexpool-suffix})
@@ -66,7 +66,7 @@
   (stringout "#<FLEXPOOL " (flexpool-filename f) " " 
     (oid->string (flexpool-base f)) "+" 
     (flexpool/partcount f) "*" (flexpool-partsize f) " "
-    ;; (flexdb/load f)
+    ;; (kb/load f)
     (flexpool-capacity f) ">"))
 
 (defrecord (flexpool mutable opaque 
@@ -91,26 +91,26 @@
 	((test flexdata fp)
 	 (flexpool-zero (get flexdata fp)))
 	(else #f)))
-(define (flexdb/zero fp) (flexpool/zero fp))
-(define flex/zero flexdb/zero)
+(define (kb/zero fp) (flexpool/zero fp))
+(define flex/zero kb/zero)
 
 (define (flexpool/front fp)
   (cond ((isflexpool? fp) (flexpool-front fp))
 	((test flexdata fp)
 	 (flexpool-front (get flexdata fp)))
 	(else #f)))
-(define (flexdb/front fp) (flexpool/front fp))
-(define flex/front flexdb/front)
+(define (kb/front fp) (flexpool/front fp))
+(define flex/front kb/front)
 
 (define (flexpool/last fp)
   (cond ((isflexpool? fp) 
 	 (or (flexpool-last fp) (flexpool-front fp)
 	     (flexpool-zero fp)))
 	((test flexdata fp)
-	 (flexdb/last (get flexdata fp)))
+	 (kb/last (get flexdata fp)))
 	(else #f)))
-(define (flexdb/last fp) (flexpool/last fp))
-(define flex/last flexdb/last)
+(define (kb/last fp) (flexpool/last fp))
+(define flex/last kb/last)
 
 (define (flexpool/record fp)
   (cond ((isflexpool? fp) fp)
@@ -129,8 +129,8 @@
        front ,(and front (pool-source front))
        last ,(and (flexpool-last record)
 		  (pool-source (flexpool-last record)))]))
-(define (flexdb/info fp) (flexpool/info fp))
-(define flex/info flexdb/info)
+(define (kb/info fp) (flexpool/info fp))
+(define flex/info kb/info)
 
 ;;; Finding flexpools by filename
 
@@ -276,7 +276,7 @@
       filename file-prefix "\n" open-opts )
 
     (do-choices (other matching-files)
-      (let ((pool (flexdb/pool
+      (let ((pool (kb/pool
 		   (if (getopt open-opts 'adjunct)
 		       (open-pool other (opt+ open-opts partopts))
 		       (use-pool other (opt+ open-opts partopts)))
@@ -347,7 +347,7 @@
 	     "\n" metadata "\n" partopts
 	     "\nFLEXINFO"  (get metadata 'flexinfo))
 	   (cond ((file-exists? path)
-		  (flexdb/pool
+		  (kb/pool
 		   (if (or (getopt open-opts 'adjunct)
 			   (getopt partopts 'adjunct))
 		       (open-pool path (cons open-opts partopts))
@@ -355,7 +355,7 @@
 		 ((eq? action 'err)
 		  (irritant path |MissingPartition| flexpool-partition))
 		 ((or (eq? action 'create) (eq? action #t))
-		  (let ((made (flexdb/pool (make-pool path partopts)
+		  (let ((made (kb/pool (make-pool path partopts)
 					   (cons #[create #t] open-opts))))
 		    (lognotice |NewPartition| made)
 		    (unless (satisfied? (flexpool-front fp))
@@ -432,13 +432,13 @@
     (if (and (exists? info) (isflexpool? info))
 	(choice-size (flexpool-partitions info))
 	(irritant fp |UnknownFlexPool| flexpool/partitions))))
-(define (flexdb/load flexpool (front))
+(define (kb/load flexpool (front))
   (set! front (flexpool-front flexpool))
   (if front
       (oid-offset (oid-plus (pool-base front) (pool-load front))
 		  (flexpool-base flexpool))
       0))
-(define flex/load flexdb/load)
+(define flex/load kb/load)
 
 ;;; Deleting flexpools
 
@@ -776,7 +776,7 @@
      getload ,flexpool-load
      fetch ,flexpool-fetch
      poolctl ,flexpool-ctl])
-(defpooltype 'flexdb/flexpool
+(defpooltype 'kb/flexpool
   `#[open ,flexpool/open
      create ,flexpool/make
      alloc ,flexpool-alloc

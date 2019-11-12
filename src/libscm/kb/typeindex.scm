@@ -1,7 +1,7 @@
 ;;; -*- mode: Scheme; Character-encoding: utf-8; -*-
 ;;; Copyright (C) 2005-2019 beingmeta, inc.  All rights reserved.
 
-(in-module 'flexdb/typeindex)
+(in-module 'kb/typeindex)
 
 ;;; A type index is an index with a relatively small number of keys
 ;;; but a large number of values, where, for example, the keys
@@ -15,8 +15,8 @@
 ;;; including duplicates) and the valid size of the values file.
 
 (use-module '{ezrecords stringfmts logger varconfig fifo texttools})
-(use-module '{flexdb/adjuncts flexdb/filenames})
-(use-module '{flexdb})
+(use-module '{kb/adjuncts kb/filenames})
+(use-module '{kb})
 
 (define-init %loglevel %warn%)
 

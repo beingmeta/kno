@@ -1,12 +1,12 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
 ;;; Copyright (C) 2005-2019 beingmeta, inc.  All rights reserved.
 
-(in-module 'flexdb/splitpool)
+(in-module 'kb/splitpool)
 
 (use-module '{reflection texttools regex varconfig
 	      logger logctl fifo
 	      mttools stringfmts opts})
-(use-module '{flexdb flexdb/flexpool flexdb/adjuncts})
+(use-module '{kb kb/flexpool kb/adjuncts})
 
 (module-export! 'flexpool/split)
 

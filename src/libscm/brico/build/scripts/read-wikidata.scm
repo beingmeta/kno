@@ -6,8 +6,8 @@
 (use-module '{logger webtools varconfig libarchive texttools
 	      filestream brico stringfmts optimize
 	      reflection})
-(use-module '{flexdb flexdb/branches flexdb/typeindex 
-	      flexdb/flexindex})
+(use-module '{kb kb/branches kb/typeindex 
+	      kb/flexindex})
 (use-module 'brico/build/wikidata)
 
 (config! 'cachelevel 2)
@@ -221,12 +221,12 @@
       (chain file secs cycles threadcount))))
   
 (when (config 'optimized #t)
-  (optimize! '{flexdb flexdb/flexpool flexdb/adjuncts 
-	       flexdb/branches flexdb/typeindex brico brico/indexing
+  (optimize! '{kb kb/flexpool kb/adjuncts 
+	       kb/branches kb/typeindex brico brico/indexing
 	       filestream})
   (logwarn |Optimized| 
-    "Modules " '{flexdb flexdb/flexpool flexdb/adjuncts 
-		 flexdb/branches flexdb/typeindex brico brico/indexing
+    "Modules " '{kb kb/flexpool kb/adjuncts 
+		 kb/branches kb/typeindex brico brico/indexing
 		 filestream})
   (optimize!)
   (logwarn |Optimized| (get-source)))

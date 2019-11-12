@@ -1,9 +1,9 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
 ;;; Copyright (C) 2010-2019 beingmeta, inc. All rights reserved
 
-(in-module 'flexdb/slotindex)
+(in-module 'kb/slotindex)
 
-(use-module '{logger varconfig flexdb})
+(use-module '{logger varconfig kb})
 
 (module-export! '{slotindex/make slotindex/setup 
 		  slotindex/init slotindex/add!
@@ -119,7 +119,7 @@
 	 (when (file-exists? path)
 	   (lognotice |UsingIndex| "Using the index at " path " for " slot))
 	 (if (file-exists? path)
-	     (set! index (flexdb/ref path opts))
+	     (set! index (kb/ref path opts))
 	     (let* ((type (getopt opts 'indextype 
 				  (getopt opts 'type (getopt opts 'module 'hashindex))))
 		    (module (getopt opts 'module {}))
@@ -134,7 +134,7 @@
 			       (get-baseoids pools)}))
 	       (lognotice |NewIndex| "Creating new index for " slot " at " path)
 	       (when (exists? baseoids) (store! opts 'baseoids baseoids))
-	       (set! index (flexdb/make path opts))))
+	       (set! index (kb/make path opts))))
 	 (store! base slot index)
 	 (add! base 'slots slot)
 	 index)))

@@ -1,7 +1,7 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
 ;;; Copyright (C) 2005-2019 beingmeta, inc.  All rights reserved.
 
-(in-module 'flexdb/hashindexes)
+(in-module 'kb/hashindexes)
 
 (use-module '{reflection logger logctl stringfmts mttools fifo engine})
 

@@ -1,12 +1,11 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
 ;;; Copyright (C) 2005-2019 beingmeta, inc.  All rights reserved.
 
-(in-module 'flexdb/filenames)
+(in-module 'kb/filenames)
 
 (use-module '{ezrecords stringfmts logger texttools})
 
-(module-export! '{flexdb/file flexdb/partition-files
-		  flex/file flex/partition-files})
+(module-export! '{flexdb/file flexdb/partition-files})
 
 (define (try-file . args)
   (let ((file (apply glom args)))
@@ -23,7 +22,6 @@
 	(try-file prefix ".00." suffix)
 	(try-file prefix ".0." suffix)
 	(tryif simple (try-file prefix "." suffix)))))
-(define flex/file flexdb/file)
 
 (define (flexdb/partition-files prefix (suffix #f))
   (cond ((index? prefix) (index-source (or (indexctl prefix 'partitions) {})))
@@ -39,5 +37,4 @@
 		  string-ends-with? suffix)
 	    absroot)))
 	(else (irritant prefix |NotAPartitionSpec|))))
-(define flex/partition-files flexdb/partition-files)
 

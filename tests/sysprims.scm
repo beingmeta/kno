@@ -49,25 +49,27 @@
 (applytest ip-addr? hostaddrs "beingmeta.com")
 (applytester {} hostaddrs "beingmeta.cox")
 
-(applytester #t check-version 5)
-(applytester #t check-version 5 0 0)
-(applytester #f check-version 5 1)
-(applytester #f check-version 6)
+(applytester #t check-version 1910)
+(applytester #t check-version 1910 0 0)
+(applytester #f check-version 1910 2)
+(applytester #f check-version 2012)
 
 (applytester #t require-version 5)
 (applytester #t require-version 5 0)
+(applytester #t require-version 1910)
+(applytester #t require-version 1910 0)
 
-(applytester #f check-version 5 0 2)
-(errtest (require-version 5 0 2))
-(errtest (require-version 6))
-(errtest (require-version 5 1))
+(applytester #f check-version 1910 2 0)
+(errtest (require-version 1910 2 2))
+(errtest (require-version 2012))
+(errtest (require-version 1910 5))
 
-(errtest (check-version "5"))
-(errtest (check-version 5 "0"))
-(errtest (check-version 5 0 "1"))
-(errtest (check-version 5 0 "1"))
-(errtest (check-version 5 0 0 "patched"))
-(applytester #t check-version 5 0 0 1)
+(errtest (check-version "1910"))
+(errtest (check-version 1910 "0"))
+(errtest (check-version 1910 0 "1"))
+(errtest (check-version 1910 0 "1"))
+(errtest (check-version 1910 0 0 "patched"))
+(applytester #t check-version 1910 0 0 1)
 
 ;;;; Pointer locks, etc
 

@@ -1,9 +1,9 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
 ;;; Copyright (C) 2005-2019 beingmeta, inc.  All rights reserved.
 
-(in-module 'flexdb/indexes)
+(in-module 'kb/indexes)
 
-(use-module '{fifo engine stringfmts flexdb/hashindexes logger varconfig})
+(use-module '{fifo engine stringfmts kb/hashindexes logger varconfig})
 
 (define-init %loglevel %notice%)
 

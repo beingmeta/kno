@@ -1,11 +1,11 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
 ;;; Copyright (C) 2005-2019 beingmeta, inc.  All rights reserved.
 
-(in-module 'flexdb/branches)
+(in-module 'kb/branches)
 
 (use-module '{ezrecords stringfmts logger varconfig fifo texttools})
-(use-module '{flexdb/adjuncts flexdb/filenames})
-(use-module '{flexdb})
+(use-module '{kb/adjuncts kb/filenames})
+(use-module '{kb})
 
 (module-export! '{index/branch branch/commit index-branch?})
 ;; Aliases

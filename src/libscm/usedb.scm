@@ -8,7 +8,7 @@
 ;;;  and indexes, but the intent is to keep information relevant to
 ;;;  journalling and syncing in this same data structure.
 
-(use-module '{readfile flexdb texttools})
+(use-module '{readfile kb texttools})
 
 (module-export! '{usedb use-component})
 
@@ -44,9 +44,9 @@
 	 (let ((dbdata (deep-copy spec))
 	       (root (getopt spec 'root (getopt opts 'root (getcwd)))))
 	   (do-choices (pool (get dbdata 'pools))
-	     (add! dbdata '%pools (flexdb/ref (mkpath root pool) opts)))
+	     (add! dbdata '%pools (kb/ref (mkpath root pool) opts)))
 	   (do-choices (index (get dbdata '{indexes indices}))
-	     (add! dbdata '%indexes (flexdb/ref (mkpath root index) opts)))
+	     (add! dbdata '%indexes (kb/ref (mkpath root index) opts)))
 	   (do-choices (config (get dbdata 'configs))
 	     (cond ((not (pair? config)))
 		   ((and (pair? (cdr config)) (eq? (cadr config) 'FILE))
@@ -60,12 +60,12 @@
 		   (add! rmi slotid 
 			 (if (string? index)
 			     (usedb (mkpath root index) opts)
-			     (flexdb/ref index)))))
+			     (kb/ref index)))))
 	       (add! dbdata '%metaindex rmi)))
 	   dbdata))
 	((not (string? spec)) (irritant name |BadDBspec|))
 	((and (file-exists? spec) (string-ends-with? spec #("." (* (isalpha)) {"pool" "index"}))) 
-	 (flexdb/ref spec opts))
+	 (kb/ref spec opts))
 	((has-suffix spec {".db" ".dbspec" ".dtype" ".lsd" ".scd"})
 	 (usedb (readfile spec) (opts+ opts `#[root ,(dirname spec)])))
 	((file-directory? spec)

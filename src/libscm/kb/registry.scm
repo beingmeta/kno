@@ -1,11 +1,11 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
 ;;; Copyright (C) 2005-2019 beingmeta, inc.  All rights reserved.
 
-(in-module 'flexdb/registry)
+(in-module 'kb/registry)
 
 ;;; Maintaining registries of objects (OIDs) with unique IDs
 
-(use-module '{ezrecords logger stringfmts varconfig flexdb/flexpool})
+(use-module '{ezrecords logger stringfmts varconfig kb/flexpool})
 
 (define %used_modules 'ezrecords)
 

@@ -3,7 +3,7 @@
 
 (in-module 'brico/wikid)
 
-(use-module '{texttools reflection logger varconfig stringfmts flexdb})
+(use-module '{texttools reflection logger varconfig stringfmts kb})
 
 (define-init %loglevel %notify%)
 ;;(set! %loglevel %debug%)
@@ -31,9 +31,9 @@
 	 (irritant wikid.source |WikidSourceConflict|))
 	(wikid.source wikid.source)
 	((or (position #\@ source) (position #\: source))
-	 (set! wikid.pool (flexdb/ref source (opt+ opts 'pool source)))
+	 (set! wikid.pool (kb/ref source (opt+ opts 'pool source)))
 	 (set! wikid.index
-	   (flexdb/ref source (opt+ opts 'index source 
+	   (kb/ref source (opt+ opts 'index source 
 				    'background wikid.background)))
 	 (unless (config 'quiet)
 	   (lognotice |WIKID| "being accessed from " wikid.source))

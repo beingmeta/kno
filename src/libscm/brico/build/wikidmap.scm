@@ -4,7 +4,7 @@
 (in-module 'brico/build/wikidmap)
 
 (use-module '{logger webtools varconfig libarchive texttools stringfmts})
-(use-module '{flexdb flexdb/branches flexdb/typeindex flexdb/flexindex})
+(use-module '{kb kb/branches kb/typeindex kb/flexindex})
 (use-module '{brico brico/indexing brico/wikid brico/build/wikidata})
 
 (module-export! '{wikidata->brico wikid/brico

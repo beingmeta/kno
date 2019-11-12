@@ -3,7 +3,7 @@
 
 (in-module 'brico/build/initwikid)
 
-(use-module '{texttools reflection logger varconfig stringfmts flexdb})
+(use-module '{texttools reflection logger varconfig stringfmts kb})
 
 (module-export! '{wikid/init!})
 
@@ -63,7 +63,7 @@
     keyslot 'pending]})
 
 (define (open-wikid-index spec dir)
-  (flexdb/make (mkpath dir (get spec 'filename))
+  (kb/make (mkpath dir (get spec 'filename))
 	       [indextype (getopt spec 'type 'hashindex)
 		size (getopt spec 'size 'hashindex)
 		size (getopt spec 'maxkeys (* 4 1024 1024))
@@ -72,7 +72,7 @@
 
 (define (wikid/init source)
   (set! wikid.pool
-    (flexdb/make (mkpath source "wikid.pool")
+    (kb/make (mkpath source "wikid.pool")
 		 [create #t type 'bigpool
 		  base @1/8000000 capacity (* 4 1024 1024)
 		  adjuncts #[%words #[pool "wikid_words"]

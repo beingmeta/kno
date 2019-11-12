@@ -1,12 +1,12 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
 ;;; Copyright (C) 2005-2019 beingmeta, inc.  All rights reserved.
 
-(in-module 'flexdb/adjuncts)
+(in-module 'kb/adjuncts)
 
 (use-module '{reflection texttools regex
 	      logger logctl fifo
 	      mttools stringfmts opts})
-(use-module 'flexdb)
+(use-module 'kb)
 
 (define %loglevel %warn%)
 
@@ -33,7 +33,7 @@
 	       ;; No currently defined adjunct, go ahead and try to open one
 	       (let* ((spec (get adjuncts slotid))
 		      (adjopts (getadjopts pool slotid spec))
-		      (usedb (db/ref (getopt adjopts 'source spec)
+		      (usedb (kb/ref (getopt adjopts 'source spec)
 				     (cons adjopts open-opts))))
 		 (cond ((exists? usedb) (adjunct! pool slotid usedb))
 		       ((getopt opts 'require_adjuncts)
@@ -74,7 +74,7 @@
 	       ;; Try to replace the adunct
 	       (let* ((spec (get adjuncts slotid))
 		      (adjopts (getadjopts pool slotid spec))
-		      (usedb (db/ref (getopt adjopts 'source spec)
+		      (usedb (kb/ref (getopt adjopts 'source spec)
 				     (cons adjopts open-opts))))
 		 (cond ((exists? usedb)
 			(unless (test cur slotid usedb)

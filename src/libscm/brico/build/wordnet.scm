@@ -5,7 +5,7 @@
 
 (use-module '{texttools})
 (use-module '{logger varconfig optimize stringfmts})
-(use-module '{flexdb})
+(use-module '{kb})
 (use-module '{brico})
 
 (module-export! '{link-release! check-release-links
@@ -439,7 +439,7 @@
 ;;; Creating a sensekey index when you don't have one
 #|
 (define sense-keys.index
-  (db/ref (mkpath brico-dir "sensekeys.index")
+  (kb/ref (mkpath brico-dir "sensekeys.index")
 	  #[indextype hashindex size #m2mib 
 	    keyslot sensekeys
 	    register #t create #t]))

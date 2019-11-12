@@ -5,8 +5,8 @@
 
 (use-module '{logger webtools varconfig libarchive texttools
 	      brico stringfmts})
-(use-module '{flexdb flexdb/branches flexdb/typeindex 
-	      flexdb/flexindex})
+(use-module '{kb kb/branches kb/typeindex 
+	      kb/flexindex})
 
 (module-export! '{wikidata.dir
 		  wikidata.pool wikidata.index  wikids.index
@@ -51,7 +51,7 @@
   (set! wikidata.dir (realpath dir))
 
   (set! wikidata.pool
-    (flexdb/make (mkpath dir "wikidata.flexpool")
+    (kb/make (mkpath dir "wikidata.flexpool")
 		 [create #t type 'flexpool
 		  base @31c1/0 capacity (* 128 1024 1024)
 		  partsize (* 1024 1024) pooltypek 'bigpool
@@ -64,7 +64,7 @@
 
   (when wikidata-build
     (set! buildmap.table
-      (flexdb/make (mkpath dir "wikids.table") [indextype 'memindex create #t])))
+      (kb/make (mkpath dir "wikids.table") [indextype 'memindex create #t])))
 
   (set! wikids.index
     (flex/open-index (mkpath dir "wikids.flexindex")
@@ -83,7 +83,7 @@
 		      keyslot 'norms register #t
 		      maxkeys (* 2 1024 1024)]))
   (set! has.index
-    (flexdb/make (mkpath dir "hasprops.index")
+    (kb/make (mkpath dir "hasprops.index")
 		 [indextype 'hashindex create #t keyslot 'has register #t]))
   (set! props.index
     (flex/open-index (mkpath dir "props.flexindex")
@@ -113,12 +113,12 @@
 	  ((not wikidata.dir) (error |NoWikidataConfigured|))
 	  (wikidata-build wikidata-build)
 	  (else (set! buildmap.table
-		  (flexdb/make (mkpath wikidata.dir "wikids.table")
+		  (kb/make (mkpath wikidata.dir "wikids.table")
 			       [indextype 'memindex create #t]))
 		(set! wikidata-build #t)))))
 
 (define (wikidata/save!)
-  (flexdb/commit! {wikidata.pool wikidata.index 
+  (kb/commit! {wikidata.pool wikidata.index 
 		   wikids.index buildmap.table
 		   has.index}))
 

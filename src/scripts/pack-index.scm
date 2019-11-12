@@ -4,7 +4,7 @@
 (config! 'logthreadinfo #t)
 (config! 'logelapsed #t)
 (use-module '{optimize varconfig logger mttools})
-(use-module '{flexdb/indexes})
+(use-module '{kb/indexes})
 
 (onerror (use-module 'rocksdb))
 (onerror (use-module 'leveldb))
@@ -59,7 +59,7 @@
     (index/pack! in out opts)))
 
 (when (config 'optimize #t)
-  (optimize! '{flexdb/indexes flexdb/hashindexes ezrecords fifo engine})
+  (optimize! '{kb/indexes kb/hashindexes ezrecords fifo engine})
   (optimize!))
 
 

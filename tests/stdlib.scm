@@ -4,11 +4,11 @@
 		 stringfmts usedb varconfig
 		 bench})
 
-(check-modules '{flexdb flexdb/flexpool flexdb/flexindex
-		 flexdb/adjuncts flexdb/branches flexdb/registry
-		 flexdb/typeindex 
+(check-modules '{kb kb/flexpool kb/flexindex
+		 kb/adjuncts kb/branches kb/registry
+		 kb/typeindex 
 		 ;; Kind of legacy
-		 flexdb/slotindex flexdb/splitpool})
+		 kb/slotindex kb/splitpool})
 
 (check-modules '{bugjar bugjar/html bugjar/servlet})
 

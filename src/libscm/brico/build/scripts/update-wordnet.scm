@@ -5,7 +5,7 @@
 (config! 'dbloglevel %info%)
 (config! 'bricosource "./current/")
 
-(use-module '{flexdb})
+(use-module '{kb})
 (use-module '{brico})
 (use-module '{brico/indexing brico/build/wordnet})
 

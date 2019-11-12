@@ -1,17 +1,18 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
 ;;; Copyright (C) 2005-2019 beingmeta, inc.  All rights reserved.
 
-(in-module 'flexdb)
+(in-module 'kb)
 
 (use-module '{ezrecords stringfmts logger texttools fifo mttools reflection})
-(use-module '{flexdb/adjuncts flexdb/registry flexdb/filenames})
-(use-module '{flexdb/flexpool flexdb/flexindex})
+(use-module '{kb/adjuncts kb/registry kb/filenames})
+(use-module '{kb/flexpool kb/flexindex})
 
 (module-export! '{pool/ref index/ref pool/copy 
-		  flexdb/ref flex/dbref db/ref flex/db flex/ref
-		  flexdb/make flexdb/partitions flexdb/commit! flexdb/save!
-		  flex/make flex/partitions flex/commit! flex/save!
-		  flexdb/pool})
+		  flex/dbref kb/ref flex/db flex/ref
+		  flex/make
+		  flex/partitions
+		  flex/commit!
+		  flex/save!})
 
 (module-export! '{flex/container flex/container!})
 
@@ -49,26 +50,21 @@
   (let ((addopts (or (deep-copy (getopt opts 'make)) `#[])))
     (when (getopt opts 'adjuncts)
       (store! addopts 'metadata (or (deep-copy (getopt opts 'metadata)) #[]))
-      (store! (getopt addopts 'metadata) 'adjuncts (getopt opts 'adjuncts)))
+      (store! (getopt addopts 'metadata) 'adjuncts (getopt opts 'adjuncts))
+      (store! addopts 'metadata #f))
     (cons addopts opts)))
 
-(define (flexdb/partitions arg)
+(define (kb/partitions arg)
   (cond ((pool? arg) (poolctl arg 'partitions))
 	((index? arg) (or (indexctl arg 'partitions) {}))
-	((string? arg) (flexdb/partition-files arg))
+	((string? arg) (kb/partition-files arg))
 	(else (fail))))
-(define flex/partitions flexdb/partitions)
 
-(define (flexdb/pool pool (opts #f))
-  (debug%watch "FLEXDB/POOL" pool opts)
+(define (wrap-pool pool (opts #f))
   (unless (or (adjunct? pool) (exists? (poolctl pool 'props 'adjuncts)))
     (if (or (getopt opts 'make) (getopt opts 'create))
-	(adjuncts/setup! pool 
-			 (getopt opts 'adjuncts (poolctl pool 'metadata 'adjuncts))
-			 opts)
-	(adjuncts/init! pool
-			(getopt opts 'adjuncts (poolctl pool 'metadata 'adjuncts))
-			opts)))
+	(adjuncts/setup! pool)
+	(adjuncts/init! pool)))
   pool)
 
 (define (wrap-index index (opts #f))
@@ -76,7 +72,7 @@
 
 (define (flex-open source opts)
   (debug%watch "FLEX-OPEN" source "\nOPTS" opts)
-  (cond ((pool? source) (flexdb/pool source opts))
+  (cond ((pool? source) (wrap-pool source opts))
 	((or (index? source) (hashtable? source))
 	 (wrap-index source opts))
 	((or (has-suffix source ".flexpool")
@@ -87,32 +83,31 @@
 	     (getopt opts 'flexindex)
 	     (identical? (downcase (getopt opts 'type {})) "flexindex")
 	     (textsearch #("." (isdigit+) ".index") source))
-	 (flex/open-index source opts))
+	 (kb/open-index source opts))
 	((or (has-suffix source ".pool")
 	     (testopt opts 'pool)
-	     (testopt opts 'pooltype)
-	     (testopt opts 'type 'pool))
+	     (testopt opts 'type 'pool)
+	     (testopt opts 'pooltype))
 	 (if (or (testopt opts 'adjunct)
 		 (not (getopt opts 'background #t)))
-	     (flexdb/pool (open-pool source opts) opts)
-	     (flexdb/pool ( use-pool source opts) opts)))
+	     (wrap-pool (open-pool source opts) opts)
+	     (wrap-pool ( use-pool source opts) opts)))
 	((or (has-suffix source ".index")
 	     (testopt opts 'index)
-	     (testopt opts 'indextype)
 	     (testopt opts 'type 'index))
 	 (if (testopt opts 'background)
 	     (wrap-index (use-index source opts) opts)
 	     (wrap-index (open-index source opts) opts)))
-	((exists? (flexdb/partition-files source "index"))
-	 (flex/open-index source opts))
-	((exists? (flexdb/partition-files source "pool"))
+	((exists? (kb/partition-files source "index"))
+	 (kb/open-index source opts))
+	((exists? (kb/partition-files source "pool"))
 	 (if (or (testopt opts 'adjunct)
 		 (not (getopt opts 'background #t)))
-	     (flexdb/pool (open-pool (flexdb/partition-files source "pool") opts) opts)
-	     (flexdb/pool (use-pool (flexdb/partition-files source "pool") opts) opts)))
+	     (wrap-pool (open-pool (kb/partition-files source "pool") opts) opts)
+	     (wrap-pool (use-pool (kb/partition-files source "pool") opts) opts)))
 	(else (irritant source |UnknownDBType|))))
 
-(define (flexdb/ref dbsource (opts #f))
+(define (kb/ref dbsource (opts #f))
   (when (and (table? dbsource) (not (or (pool? dbsource) (index? dbsource))))
     (if opts (set! opts (cons opts dbsource))
 	(set! opts dbsource))
@@ -121,17 +116,14 @@
 	    ((testopt opts 'pool) (get-db-source (getopt opts 'pool) opts))
 	    ((testopt opts 'source) (get-db-source (getopt opts 'source) opts))
 	    (else (irritant dbsource |NoDBSource| flex/dbref)))))
-  (info%watch "FLEXDB/REF" dbsource "\nOPTS" opts)
-  (cond ((pool? dbsource) (flexdb/pool dbsource opts))
+  (info%watch "KB/REF" dbsource "\nOPTS" opts)
+  (cond ((pool? dbsource) (wrap-pool dbsource opts))
 	((or (index? dbsource) (hashtable? dbsource)) (wrap-index dbsource opts))
 	((not (string? dbsource))
 	 (irritant dbsource |BadDBSource| flex/dbref))
-	((or (testopt opts '{flexindex flexpool})
-	     (testopt opts 'type '{flexindex flexpool}))
-	 (flex-open dbsource opts))
 	((or (file-exists? dbsource) (textmatch (qc network-source) dbsource)
-	     (exists? (flexdb/partition-files dbsource "index"))
-	     (exists? (flexdb/partition-files dbsource "pool")))	     
+	     (exists? (kb/partition-files dbsource "index"))
+	     (exists? (kb/partition-files dbsource "pool")))	     
 	 (flex-open dbsource opts))
 	((not (or (getopt opts 'create) (getopt opts 'make)))
 	 (if (getopt opts 'err)
@@ -143,8 +135,8 @@
 	     (testopt opts 'pool)
 	     (testopt opts 'pooltype)
 	     (testopt opts 'type 'pool))
-	 (flexdb/pool (make-pool (checkdir dbsource opts) (make-opts opts))
-		      opts))
+	 (wrap-pool (make-pool (checkdir dbsource opts) (make-opts opts))
+		    opts))
 	((or (has-suffix dbsource ".index")
 	     (testopt opts 'index)
 	     (testopt opts 'indextype)
@@ -153,27 +145,21 @@
 		     opts))
 	(else (irritant (cons [source dbsource] opts) 
 		  |CantDetermineDBType| flex/dbref))))
-(define flex/dbref flexdb/ref)
-(define flex/db flexdb/ref)
-(define flex/ref flexdb/ref)
-(define db/ref flexdb/ref)
+(define flex/db kb/ref)
+(define flex/ref kb/ref)
+(define kb/ref kb/ref)
+(define flex/dbref kb/ref)
 
 ;;; Variants
 
-(define (flexdb/make spec (opts #f))
-  (flexdb/ref spec (if opts (cons #[create #t] opts) #[create #t])))
-(define flex/make flexdb/make)
+(define (kb/make spec (opts #f))
+  (kb/ref spec (if opts (cons #[create #t] opts) #[create #t])))
 
 (define (pool/ref spec (opts #f))
-  (flexdb/ref spec 
-	      (if (testopt opts 'pooltype) 
-		  opts
-		  (opt+ opts 'pooltype (getopt opts 'type 'bigpool)))))
+  (kb/ref spec (opt+ opts 'type 'pool)))
 
 (define (index/ref spec (opts #f))
-  (flexdb/ref spec 
-	      (if (testopt opts 'indextype) opts
-		  (opt+ opts 'indextype (getopt opts 'type 'hashindex)))))
+  (kb/ref spec (opt+ opts 'type 'index)))
 
 ;;; Copying OIDs between pools
 
@@ -204,7 +190,7 @@
 
 ;;; Generic DB saving
 
-(define (flexdb/mods arg)
+(define (kb/mods arg)
   (cond ((registry? arg) (pick arg registry/modified?))
 	((flexpool/record arg) (pick (flexpool/partitions arg) modified?))
 	((exists? (db->registry arg)) (pick (db->registry arg) registry/modified?))
@@ -212,9 +198,8 @@
 	((and (applicable? arg) (zero? (procedure-min-arity arg))) arg)
 	((and (pair? arg) (applicable? (car arg))) arg)
 	(else (logwarn |CantSave| "No method for saving " arg) {})))
-(define flex/mods flexdb/mods)
 
-(define (flexdb/modified? arg)
+(define (kb/modified? arg)
   (cond ((registry? arg) (registry/modified? arg))
 	((flexpool/record arg) (exists? (pick (flexpool/partitions arg) modified?)))
 	((pool? arg) (modified? arg))
@@ -222,20 +207,13 @@
 	((and (applicable? arg) (zero? (procedure-min-arity arg))) #t)
 	((and (pair? arg) (applicable? (car arg))) #t)
 	(else #f)))
-(define flex/modified? flexdb/modified?)
 
 (define (get-modified arg)
   (cond ((registry? arg) (tryif (registry/modified? arg) arg))
-	((flexpool/record arg) (get-modified (flexpool/partitions arg)))
+	((flexpool/record arg) (pick (flexpool/partitions arg) modified?))
 	((pool? arg) 
-	 (let ((partitions (poolctl arg 'partitions))
-	       (adjuncts (getvalues (poolctl arg 'adjuncts))))
-	   (choice (tryif (modified? arg) arg)
-		   (get-modified partitions)
-		   (get-modified adjuncts)
-		   (get-modified (for-choices (adjunct adjuncts) (dbctl adjunct 'partitions)))
-		   (get-modified (for-choices (partition partitions)
-				   (getvalues (dbctl partition 'adjuncts)))))))
+	 (choice (tryif (modified? arg) arg)
+		 (get-modified (poolctl arg 'partitions))))
 	((index? arg)
 	 (choice (tryif (modified? arg) arg)
 		 (get-modified (indexctl arg 'partitions))))
@@ -245,7 +223,7 @@
 
 (define commit-threads #t)
 
-(defambda (flexdb/commit! dbs (opts #f))
+(defambda (kb/commit! dbs (opts #f))
   (let ((modified (get-modified dbs))
 	(started (elapsed-time)))
     (when (exists? modified)
@@ -255,8 +233,7 @@
 	     (n-threads (and spec-threads (min spec-threads (choice-size modified)))))
 	(lognotice |FLEX/Commit|
 	  "Saving " (choice-size modified) " dbs using " (or n-threads "no") " threads:"
-	  (when (log>? %notify%)
-	    (do-choices (db modified) (printout "\n\t" db))))
+	  (do-choices (db modified) (printout "\n\t" db)))
 	(cond ((not n-threads)
 	       (do-choices (db modified) (commit-db db opts timings)))
 	      ((>= n-threads (choice-size modified))
@@ -277,12 +254,10 @@
 	      (if (>= time 0)
 		  (printout "\n\t" ($num time 1) "s \t" db)
 		  (printout "\n\tFAILED after " ($num time 1) "s:\t" db)))))))))
-(define flex/commit! flexdb/commit!)
 
-(defambda (flexdb/save! . args)
+(defambda (kb/save! . args)
   (dolist (arg args)
-    (flexdb/commit! arg)))
-(define flex/save! flexdb/save!)
+    (kb/commit! arg)))
 
 (define (inner-commit arg timings start)
   (cond ((registry? arg) (registry/save! arg))
