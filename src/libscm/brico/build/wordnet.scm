@@ -5,7 +5,7 @@
 
 (use-module '{texttools})
 (use-module '{logger varconfig optimize stringfmts})
-(use-module '{knobase})
+(use-module '{knodb})
 (use-module '{brico})
 
 (module-export! '{link-release! check-release-links

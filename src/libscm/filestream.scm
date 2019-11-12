@@ -5,7 +5,7 @@
 
 (use-module '{fifo varconfig ezrecords stringfmts reflection 
 	      libarchive bugjar bugjar/html logger})
-(use-module '{knobase knobase/registry knobase/branches})
+(use-module '{knodb knodb/registry knodb/branches})
 
 (define %loglevel %notice%)
 (set! %loglevel %debug%)

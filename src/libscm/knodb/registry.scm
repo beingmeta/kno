@@ -1,11 +1,11 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
 ;;; Copyright (C) 2005-2019 beingmeta, inc.  All rights reserved.
 
-(in-module 'knobase/registry)
+(in-module 'knodb/registry)
 
 ;;; Maintaining registries of objects (OIDs) with unique IDs
 
-(use-module '{ezrecords logger stringfmts varconfig knobase/flexpool})
+(use-module '{ezrecords logger stringfmts varconfig knodb/flexpool})
 
 (define %used_modules 'ezrecords)
 

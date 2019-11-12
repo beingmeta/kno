@@ -1,12 +1,12 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
 ;;; Copyright (C) 2005-2019 beingmeta, inc.  All rights reserved.
 
-(in-module 'knobase/adjuncts)
+(in-module 'knodb/adjuncts)
 
 (use-module '{reflection texttools regex
 	      logger logctl fifo
 	      mttools stringfmts opts})
-(use-module 'knobase)
+(use-module 'knodb)
 
 (define %loglevel %warn%)
 

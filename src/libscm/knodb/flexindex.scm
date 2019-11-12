@@ -1,11 +1,11 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
 ;;; Copyright (C) 2005-2019 beingmeta, inc.  All rights reserved.
 
-(in-module 'knobase/flexindex)
+(in-module 'knodb/flexindex)
 
 (use-module '{ezrecords stringfmts logger varconfig texttools})
-(use-module '{knobase/adjuncts knobase/filenames})
-(use-module '{knobase})
+(use-module '{knodb/adjuncts knodb/filenames})
+(use-module '{knodb})
 
 (module-export! '{flex/open-index flex/index})
 
@@ -31,7 +31,7 @@
 (define (get-keyslot index) (indexctl index 'keyslot))
 (define (get-readonly index) (indexctl index 'readonly))
 
-(define (knobase/open-index spec (opts #f))
+(define (knodb/open-index spec (opts #f))
   (let* ((prefix (textsubst spec (qc ".flexindex" flex-suffix) ""))
 	 (fullpath (abspath prefix))
 	 (full-prefix (strip-suffix fullpath prefix))
@@ -92,7 +92,7 @@
 		       (glom {fullpath (realpath fullpath)} {".flexindex" ""})
 		       aggregate)
 	       aggregate)))))
-(define flex/open-index knobase/open-index)
+(define flex/open-index knodb/open-index)
 
 (defambda (pick-front indexes opts)
   (let ((maxsize (getopt opts 'maxsize))

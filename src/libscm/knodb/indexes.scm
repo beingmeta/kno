@@ -1,9 +1,9 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
 ;;; Copyright (C) 2005-2019 beingmeta, inc.  All rights reserved.
 
-(in-module 'knobase/indexes)
+(in-module 'knodb/indexes)
 
-(use-module '{fifo engine stringfmts knobase/hashindexes logger varconfig})
+(use-module '{fifo engine stringfmts knodb/hashindexes logger varconfig})
 
 (define-init %loglevel %notice%)
 

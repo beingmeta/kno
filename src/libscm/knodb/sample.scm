@@ -4,12 +4,12 @@
 (config! 'bricosource (get-component "brico"))
 
 (use-module '{logger logctl webtools varconfig libarchive texttools stringfmts optimize})
-(use-module '{knobase knobase/branches knobase/typeindex})
+(use-module '{knodb knodb/branches knodb/typeindex})
 ;; (use-module 'brico)
 
-(begin (logctl! 'knobase %debug%)
-  (logctl! 'knobase/flexpool %debug%)
-  (logctl! 'knobase/adjuncts %debug%))
+(begin (logctl! 'knodb %debug%)
+  (logctl! 'knodb/flexpool %debug%)
+  (logctl! 'knodb/adjuncts %debug%))
 
 (config! 'cachelevel 2)
 (config! 'logthreadinfo #t)
@@ -30,7 +30,7 @@
   (remove-file (getfiles {wikidata-root (mkpath wikidata-root "pools")})))
 
 (define wikidata.pool
-  (knobase/make "wikidata/wikidata.flexpool"
+  (knodb/make "wikidata/wikidata.flexpool"
 	       [create #t type 'flexpool
 		base @31c1/0 capacity (* 128 1024 1024)
 		partsize (* 1024 1024) partition-type 'bigpool
@@ -42,7 +42,7 @@
 
 #|
 (define wikidata.pool
-  (knobase/make "wikidata/wikidata.pool"
+  (knodb/make "wikidata/wikidata.pool"
 	       [create #t type 'bigpool
 		base @31c1/0 capacity (* 1024 1024)
 		adjuncts #[labels #[pool "labels"]

@@ -8,7 +8,7 @@
 ;;;  and indexes, but the intent is to keep information relevant to
 ;;;  journalling and syncing in this same data structure.
 
-(use-module '{readfile knobase texttools})
+(use-module '{readfile knodb texttools})
 
 (module-export! '{usedb use-component})
 

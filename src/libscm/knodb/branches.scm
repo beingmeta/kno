@@ -1,11 +1,11 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
 ;;; Copyright (C) 2005-2019 beingmeta, inc.  All rights reserved.
 
-(in-module 'knobase/branches)
+(in-module 'knodb/branches)
 
 (use-module '{ezrecords stringfmts logger varconfig fifo texttools})
-(use-module '{knobase/adjuncts knobase/filenames})
-(use-module '{knobase})
+(use-module '{knodb/adjuncts knodb/filenames})
+(use-module '{knodb})
 
 (module-export! '{index/branch branch/commit index-branch?})
 ;; Aliases

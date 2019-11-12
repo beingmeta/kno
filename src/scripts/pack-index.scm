@@ -4,7 +4,7 @@
 (config! 'logthreadinfo #t)
 (config! 'logelapsed #t)
 (use-module '{optimize varconfig logger mttools})
-(use-module '{knobase/indexes})
+(use-module '{knodb/indexes})
 
 (onerror (use-module 'rocksdb))
 (onerror (use-module 'leveldb))
@@ -59,7 +59,7 @@
     (index/pack! in out opts)))
 
 (when (config 'optimize #t)
-  (optimize! '{knobase/indexes knobase/hashindexes ezrecords fifo engine})
+  (optimize! '{knodb/indexes knodb/hashindexes ezrecords fifo engine})
   (optimize!))
 
 

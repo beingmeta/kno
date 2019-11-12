@@ -938,6 +938,8 @@ SCHEMETAGS: ${SCHEME_MODULES}
 	@#  to other files (with more distinctive names)
 	@find src/libscm -name "*.scm" -type f | xargs etags -o SCHEMETAGS -a
 	@find src/stdlib -name "*.scm" -type f | xargs etags -o SCHEMETAGS -a
+	@find src/scripts -name "*.scm" -type f | xargs etags -o SCHEMETAGS -a
+	@find tests -name "*.scm" -type f | xargs etags -o SCHEMETAGS -a
 	@ls -l SCHEMETAGS
 
 profile-clean:
@@ -1676,7 +1678,7 @@ install-support: $(DESTDIR)@share_dir@
 	cd $(BUILD)/src/web; $(SYSINSTALL) @install_file_opts@ 	\
 		webinfo.knocgi $(DESTDIR)@share_dir@
 
-LIBSCM_DIRS=optimize bugjar bench knobase brico brico/build mongodb xhtml
+LIBSCM_DIRS=optimize bugjar bench knodb brico brico/build mongodb xhtml
 LIBSCM_DATA_DIRS=brico/data
 install-libscm:
 	@if [ ! -d ${DESTDIR}${LIBSCM} ]; then 						\

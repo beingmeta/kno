@@ -2,7 +2,7 @@
 
 (use-module '{webtools optimize mttools varconfig 
 	      stringfmts logger fifo 
-	      knobase knobase/flexpools})
+	      knodb knodb/flexpools})
 
 (define %loglevel %notice%)
 (config! 'cachelevel 2)
@@ -108,6 +108,6 @@
   (message "                     ; and this can also restrict how many OIDs are copied")
   (message " LABEL=kilroy        ; The flexpool is labelled 'kilroy' and subpools 'kilroy.XXX"))
 
-(optimize! '{knobase/flexpools knobase/filenames knobase/adjuncts})
+(optimize! '{knodb/flexpools knodb/filenames knodb/adjuncts})
 (optimize!)
 

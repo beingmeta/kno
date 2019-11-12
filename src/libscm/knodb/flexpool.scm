@@ -1,11 +1,11 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
 ;;; Copyright (C) 2005-2019 beingmeta, inc.  All rights reserved.
 
-(in-module 'knobase/flexpool)
+(in-module 'knodb/flexpool)
 
 (use-module '{ezrecords stringfmts logger varconfig fifo texttools})
-(use-module '{knobase/adjuncts knobase/filenames})
-(use-module '{knobase})
+(use-module '{knodb/adjuncts knodb/filenames})
+(use-module '{knodb})
 
 (module-export! '{flexpool/open flexpool/make flexpool?
 		  flexpool/ref flexpool/record 
@@ -776,7 +776,7 @@
      getload ,flexpool-load
      fetch ,flexpool-fetch
      poolctl ,flexpool-ctl])
-(defpooltype 'knobase/flexpool
+(defpooltype 'knodb/flexpool
   `#[open ,flexpool/open
      create ,flexpool/make
      alloc ,flexpool-alloc

@@ -1,7 +1,7 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
 ;;; Copyright (C) 2005-2019 beingmeta, inc.  All rights reserved.
 
-(in-module 'knobase/filenames)
+(in-module 'knodb/filenames)
 
 (use-module '{ezrecords stringfmts logger texttools})
 

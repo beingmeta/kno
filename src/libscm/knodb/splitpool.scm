@@ -1,12 +1,12 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
 ;;; Copyright (C) 2005-2019 beingmeta, inc.  All rights reserved.
 
-(in-module 'knobase/splitpool)
+(in-module 'knodb/splitpool)
 
 (use-module '{reflection texttools regex varconfig
 	      logger logctl fifo
 	      mttools stringfmts opts})
-(use-module '{knobase knobase/flexpool knobase/adjuncts})
+(use-module '{knodb knodb/flexpool knodb/adjuncts})
 
 (module-export! 'flexpool/split)
 
