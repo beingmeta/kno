@@ -3,7 +3,7 @@
 
 (in-module 'brico/build/initwikid)
 
-(use-module '{texttools reflection logger varconfig stringfmts kb})
+(use-module '{texttools reflection logger varconfig stringfmts knobase})
 
 (module-export! '{wikid/init!})
 

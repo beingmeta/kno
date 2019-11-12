@@ -1,9 +1,9 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
 ;;; Copyright (C) 2010-2019 beingmeta, inc. All rights reserved
 
-(in-module 'kb/slotindex)
+(in-module 'knobase/slotindex)
 
-(use-module '{logger varconfig kb})
+(use-module '{logger varconfig knobase})
 
 (module-export! '{slotindex/make slotindex/setup 
 		  slotindex/init slotindex/add!

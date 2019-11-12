@@ -1,9 +1,9 @@
 (load-component "common.scm")
 
-(use-module '{kb kb/flexpool texttools varconfig logger logctl})
+(use-module '{knobase knobase/flexpool texttools varconfig logger logctl})
 
-;; (logctl! 'kb/flexpool %debug%)
-;; (logctl! 'kb/adjuncts %debug%)
+;; (logctl! 'knobase/flexpool %debug%)
+;; (logctl! 'knobase/adjuncts %debug%)
 
 (define poolfile "flex.flexpool")
 (define pooltype 'bigpool)

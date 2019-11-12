@@ -1,7 +1,7 @@
 ;;; -*- mode: Scheme; Character-encoding: utf-8; -*-
 ;;; Copyright (C) 2005-2019 beingmeta, inc.  All rights reserved.
 
-(in-module 'kb/typeindex)
+(in-module 'knobase/typeindex)
 
 ;;; A type index is an index with a relatively small number of keys
 ;;; but a large number of values, where, for example, the keys
@@ -15,8 +15,8 @@
 ;;; including duplicates) and the valid size of the values file.
 
 (use-module '{ezrecords stringfmts logger varconfig fifo texttools})
-(use-module '{kb/adjuncts kb/filenames})
-(use-module '{kb})
+(use-module '{knobase/adjuncts knobase/filenames})
+(use-module '{knobase})
 
 (define-init %loglevel %warn%)
 

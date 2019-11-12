@@ -1,14 +1,14 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
 ;;; Copyright (C) 2005-2019 beingmeta, inc.  All rights reserved.
 
-(in-module 'kb)
+(in-module 'knobase)
 
 (use-module '{ezrecords stringfmts logger texttools fifo mttools reflection})
-(use-module '{kb/adjuncts kb/registry kb/filenames})
-(use-module '{kb/flexpool kb/flexindex})
+(use-module '{knobase/adjuncts knobase/registry knobase/filenames})
+(use-module '{knobase/flexpool knobase/flexindex})
 
 (module-export! '{pool/ref index/ref pool/copy 
-		  flex/dbref kb/ref flex/db flex/ref
+		  flex/dbref knobase/ref flex/db flex/ref
 		  flex/make
 		  flex/partitions
 		  flex/commit!
