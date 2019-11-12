@@ -5,8 +5,8 @@
 
 (use-module '{logger webtools varconfig libarchive texttools
 	      brico stringfmts})
-(use-module '{kb kb/branches kb/typeindex 
-	      kb/flexindex})
+(use-module '{knobase knobase/branches knobase/typeindex 
+	      knobase/flexindex})
 
 (module-export! '{wikidata.dir
 		  wikidata.pool wikidata.index  wikids.index

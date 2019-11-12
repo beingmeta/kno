@@ -1,7 +1,7 @@
 ;;; -*- Mode: Scheme; -*-
 
-(use-module '{logger varconfig fifo engine kb stringfmts ezrecords})
-(use-module '{kb kb/branches})
+(use-module '{logger varconfig fifo engine knobase stringfmts ezrecords})
+(use-module '{knobase knobase/branches})
 
 (config! 'cachelevel 2)
 (config! 'thread:logexit #f)

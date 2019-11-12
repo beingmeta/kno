@@ -3,7 +3,7 @@
 
 (in-module 'brico/wikid)
 
-(use-module '{texttools reflection logger varconfig stringfmts kb})
+(use-module '{texttools reflection logger varconfig stringfmts knobase})
 
 (define-init %loglevel %notify%)
 ;;(set! %loglevel %debug%)

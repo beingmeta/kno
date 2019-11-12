@@ -12,7 +12,7 @@
 		   wordnet.adjunct attic.adjunct
 		   freqfns use-wordforms})
 
-(use-module '{texttools reflection logger varconfig kb})
+(use-module '{texttools reflection logger varconfig knobase})
 (use-module 'usedb)
 ;; For custom methods
 (use-module 'rulesets)

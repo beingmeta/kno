@@ -4,11 +4,11 @@
 		 stringfmts usedb varconfig
 		 bench})
 
-(check-modules '{kb kb/flexpool kb/flexindex
-		 kb/adjuncts kb/branches kb/registry
-		 kb/typeindex 
+(check-modules '{knobase knobase/flexpool knobase/flexindex
+		 knobase/adjuncts knobase/branches knobase/registry
+		 knobase/typeindex 
 		 ;; Kind of legacy
-		 kb/slotindex kb/splitpool})
+		 knobase/slotindex knobase/splitpool})
 
 (check-modules '{bugjar bugjar/html bugjar/servlet})
 

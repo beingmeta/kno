@@ -1,7 +1,7 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
 ;;; Copyright (C) 2005-2019 beingmeta, inc.  All rights reserved.
 
-(in-module 'kb/hashindexes)
+(in-module 'knobase/hashindexes)
 
 (use-module '{reflection logger logctl stringfmts mttools fifo engine})
 
