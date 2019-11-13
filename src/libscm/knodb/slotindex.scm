@@ -47,8 +47,8 @@
 	    (slotindex/setup base slot)
 	    (if (and (table? slot) (test slot 'slot))
 		(begin (store! (get base 'custom) 
-			       (get slot 'slot)
-			       slot)
+			   (get slot 'slot)
+			 slot)
 		  (slotindex/setup base slot))
 		(logwarn |SlotIndex/BadSlotSpec|
 		  "Couldn't handle " slot))
@@ -119,7 +119,7 @@
 	 (when (file-exists? path)
 	   (lognotice |UsingIndex| "Using the index at " path " for " slot))
 	 (if (file-exists? path)
-	     (set! index (kb/ref path opts))
+	     (set! index (knodb/ref path opts))
 	     (let* ((type (getopt opts 'indextype 
 				  (getopt opts 'type (getopt opts 'module 'hashindex))))
 		    (module (getopt opts 'module {}))
@@ -134,7 +134,7 @@
 			       (get-baseoids pools)}))
 	       (lognotice |NewIndex| "Creating new index for " slot " at " path)
 	       (when (exists? baseoids) (store! opts 'baseoids baseoids))
-	       (set! index (kb/make path opts))))
+	       (set! index (knodb/make path opts))))
 	 (store! base slot index)
 	 (add! base 'slots slot)
 	 index)))
@@ -295,15 +295,15 @@
 		  (tryif (modified? table)
 		    (begin 
 		      (store! branch slot 
-			      (branch-table (getopt branch 'opts)
-					    (table-size table)))
+			(branch-table (getopt branch 'opts)
+				      (table-size table)))
 		      (thread/call index-merge! (get root slot) table)))))))
 	    (begin (do-choices (slot (get branch 'slots))
 		     (let ((table (get branch slot)))
 		       (when (modified? table)
 			 (store! branch slot 
-				 (branch-table (getopt branch 'opts)
-					       (table-size table)))
+			   (branch-table (getopt branch 'opts)
+					 (table-size table)))
 			 (index-merge! (get root slot) table)
 			 (set! count (1+ count)))))
 	      count)))))

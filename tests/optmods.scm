@@ -3,6 +3,7 @@
 (config! 'optalltest #t)
 (config! 'traceload #t)
 ;(config! 'optimize:checkusage #f)
+(config! 'optimize:err #t)
 (config! 'mysql:lazyprocs #f)
 (define %loglevel %info%)
 (define trouble #f)

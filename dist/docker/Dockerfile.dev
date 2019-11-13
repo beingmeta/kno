@@ -1,4 +1,4 @@
-FROM kno:base
+FROM kno:full
 MAINTAINER repoman@beingmeta.com
 ENV TERM=linux
 RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
@@ -12,4 +12,4 @@ RUN apt-get -yqq install build-essential make cmake autoconf autoconf-archive \
 			 libhyphen-dev libedit-dev libsasl2-dev libmongoc-dev libbson-dev \
 			 sqlite3 libmysqlclient-dev libmongoc-dev libbson-dev libleveldb-dev librocksdb-dev libsqlite3-dev \
 			 apache2-dev libcurl4-openssl-dev libldns-dev
-RUN apt-get -yqq install kno-full kno-dev
+CMD "/bin/bash"

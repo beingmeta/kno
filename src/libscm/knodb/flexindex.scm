@@ -7,7 +7,7 @@
 (use-module '{knodb/adjuncts knodb/filenames})
 (use-module '{knodb})
 
-(module-export! '{flex/open-index flex/index})
+(module-export! '{flex/open-index})
 
 (define-init %loglevel %notice%)
 
@@ -31,14 +31,14 @@
 (define (get-keyslot index) (indexctl index 'keyslot))
 (define (get-readonly index) (indexctl index 'readonly))
 
-(define (knodb/open-index spec (opts #f))
+(define (flex/open-index spec (opts #f))
   (let* ((prefix (textsubst spec (qc ".flexindex" flex-suffix) ""))
 	 (fullpath (abspath prefix))
 	 (full-prefix (strip-suffix fullpath prefix))
 	 (directory (dirname fullpath))
 	 (files (pick (pick (getfiles directory)
-			    has-prefix (glom fullpath "."))
-		      has-suffix ".index"))
+			has-prefix (glom fullpath "."))
+		  has-suffix ".index"))
 	 (serials (get-serial files))
 	 (refpath (textsubst files flex-suffix ""))
 	 (metadata (frame-create #f))
@@ -61,9 +61,9 @@
 			 'keyslot keyslot)
 		       opts)))
 	   (when (and (fail? indexes) (not (getopt opts 'create)))
-	     (irritant fullpath |NoMatchingFiles| flex/open-index))
+	     (irritant fullpath |NoMatchingFiles| knodb/open-index))
 	   (when #f ;; (ambiguous? keyslots)
-	     (irritant spec |InconsistentKeySlots| flex/open-index
+	     (irritant spec |InconsistentKeySlots| knodb/open-index
 		       (when (getopt opts 'keyslot)
 			 (printout "\n  " (getopt opts 'keyslot) "\tREQUESTED"))
 		       (do-choices (slot keyslots)
@@ -71,28 +71,27 @@
 			   (do-choices (match (pick indexes get-keyslot slot) i)
 			     (printout (if (> i 0) "\n")
 			       "\t" (index-source match)))))))
-	     (when (and (exists? keyslot) keyslot)
-	       (store! metadata 'keyslot keyslot))
-	     (let* ((front (tryif (not (getopt opts 'readonly))
-			     (open-index (getopt opts 'front {}) partition-opts)
-			     (pick-front writable partition-opts)
-			     (make-front fullpath
-					 (if (fail? serials) 0 (1+ (largest serials)))
-					 (try (largest indexes get-serial) #f)
-					 new-partition-opts)))
-		    (aggregate
-		     (if (and (singleton? (choice indexes front)) (getopt opts 'readonly))
-			 (choice indexes front)
-			 (make-aggregate-index (choice indexes front) `#[register #t]))))
-	       (when keyslot (indexctl aggregate 'keyslot keyslot))
-	       (if (and (exists? front) front)
-		   (indexctl aggregate 'props 'front front)
-		   (indexctl aggregate 'readonly #t))
-	       (store! flex-indexes
-		       (glom {fullpath (realpath fullpath)} {".flexindex" ""})
-		       aggregate)
-	       aggregate)))))
-(define flex/open-index knodb/open-index)
+	   (when (and (exists? keyslot) keyslot)
+	     (store! metadata 'keyslot keyslot))
+	   (let* ((front (tryif (not (getopt opts 'readonly))
+			   (open-index (getopt opts 'front {}) partition-opts)
+			   (pick-front writable partition-opts)
+			   (make-front fullpath
+				       (if (fail? serials) 0 (1+ (largest serials)))
+				       (try (largest indexes get-serial) #f)
+				       new-partition-opts)))
+		  (aggregate
+		   (if (and (singleton? (choice indexes front)) (getopt opts 'readonly))
+		       (choice indexes front)
+		       (make-aggregate-index (choice indexes front) `#[register #t]))))
+	     (when keyslot (indexctl aggregate 'keyslot keyslot))
+	     (if (and (exists? front) front)
+		 (indexctl aggregate 'props 'front front)
+		 (indexctl aggregate 'readonly #t))
+	     (store! flex-indexes
+		 (glom {fullpath (realpath fullpath)} {".flexindex" ""})
+	       aggregate)
+	     aggregate)))))
 
 (defambda (pick-front indexes opts)
   (let ((maxsize (getopt opts 'maxsize))
@@ -159,8 +158,8 @@
     
     (when (or (getopt opts 'keyslot) (and model (indexctl model 'keyslot)))
       (store! make-opts 'keyslot 
-	      (or (getopt opts 'keyslot) (and model (indexctl model 'keyslot)))))
-										 
+	(or (getopt opts 'keyslot) (and model (indexctl model 'keyslot)))))
+    
     (when (or maxsize maxkeys)
       (unless (getopt new-opts 'metadata) (store! make-opts 'metadata #[]))
       (when maxsize (store! (getopt new-opts 'metadata) 'maxsize maxsize))

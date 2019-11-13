@@ -33,8 +33,8 @@
 	       ;; No currently defined adjunct, go ahead and try to open one
 	       (let* ((spec (get adjuncts slotid))
 		      (adjopts (getadjopts pool slotid spec))
-		      (usedb (kb/ref (getopt adjopts 'source spec)
-				     (cons adjopts open-opts))))
+		      (usedb (knodb/ref (getopt adjopts 'source spec)
+					(cons adjopts open-opts))))
 		 (cond ((exists? usedb) (adjunct! pool slotid usedb))
 		       ((getopt opts 'require_adjuncts)
 			(irritant (get adjuncts slotid) |MissingAdjunct|
@@ -74,8 +74,8 @@
 	       ;; Try to replace the adunct
 	       (let* ((spec (get adjuncts slotid))
 		      (adjopts (getadjopts pool slotid spec))
-		      (usedb (kb/ref (getopt adjopts 'source spec)
-				     (cons adjopts open-opts))))
+		      (usedb (knodb/ref (getopt adjopts 'source spec)
+					(cons adjopts open-opts))))
 		 (cond ((exists? usedb)
 			(unless (test cur slotid usedb)
 			  (logwarn |AdjunctConflict| 
