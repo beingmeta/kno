@@ -1,5 +1,5 @@
 FROM ubuntu:18.04
-RUN for dir in /data /src /app /kno /data/brico /data/wikid /data/lexdata; do if test ! -d ${dir}; then mkdir ${dir}; fi; done;
+RUN for dir in /data /src /app /app/bin /app/commands /kno /data/brico /data/wikid /data/lexdata; do if test ! -d ${dir}; then mkdir ${dir}; fi; done;
 ENV TERM=linux
 RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
 MAINTAINER repoman@beingmeta.com
@@ -14,5 +14,10 @@ RUN apt-get -yqq install libu8 libu8-encodings \
     	    	 	 kno-core kno-stdlib kno-parseltongue \
      	     	         kno-sqlite kno-zeromq kno-leveldb kno-rocksdb kno-sqlite kno-mysql kno-mongodb \
 			 kno-sundown kno-tidy
-COPY configs/* /etc/kno/config/
+WORKDIR /app
+COPY configs /etc/kno/config/
+COPY commands commands
+COPY bin bin
+CMD "/usr/bin/knoc"
+
 

@@ -1,0 +1,3 @@
+FROM kno:base
+MAINTAINER repoman@beingmeta.com
+RUN apt-get -yqq update && apt-get -yqq full-upgrade && apt-get -yqq install kno-imagetools kno-full
