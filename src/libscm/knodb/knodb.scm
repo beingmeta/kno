@@ -7,15 +7,16 @@
 (use-module '{knodb/adjuncts knodb/registry knodb/filenames})
 (use-module '{knodb/flexpool knodb/flexindex})
 
-(module-export! '{pool/ref index/ref pool/copy 
-		  kb/ref kb/make
-		  kb/partitions kb/commit! kb/save!
-		  flex/make flex/partitions flex/commit! flex/save!
-		  kb/pool})
+(module-export! '{knodb/ref knodb/make knodb/commit! knodb/save! 
+		  knodb/partitions knodb/pool knodb/wrap-index
+		  pool/ref index/ref
+		  pool/copy})
 
-(module-export! '{flex/container flex/container!})
+(module-export! '{knodb/commit})
 
 (define-init %loglevel %notice%)
+
+;;; Patterns
 
 (define flexpool-suffix #("." (isxdigit+) ".pool" (eos)))
 (define flexindex-suffix #("." (isxdigit+) ".index" (eos)))
@@ -28,6 +29,8 @@
 (define network-source 
   `{#((label host,network-host) ":" (label port (isdigit+)))
     #((label ttport (isalnum)) "@" (label host ,network-host))})
+
+;;; Utility functions
 
 (define (checkdir source opts)
   (cond ((exists position {#\@ #\:} source) source)
@@ -52,15 +55,57 @@
       (store! (getopt addopts 'metadata) 'adjuncts (getopt opts 'adjuncts)))
     (cons addopts opts)))
 
-(define (kb/partitions arg)
-  (cond ((pool? arg) (poolctl arg 'partitions))
-	((index? arg) (or (indexctl arg 'partitions) {}))
-	((string? arg) (kb/partition-files arg))
-	(else (fail))))
-(define flex/partitions kb/partitions)
+;;;; knodb/ref
 
-(define (kb/pool pool (opts #f))
-  (debug%watch "KB/POOL" pool opts)
+(define (knodb/ref dbsource (opts #f))
+  (when (and (table? dbsource) (not (or (pool? dbsource) (index? dbsource))))
+    (if opts (set! opts (cons opts dbsource))
+	(set! opts dbsource))
+    (set! dbsource
+      (cond ((testopt opts 'index) (get-db-source (getopt opts 'index) opts))
+	    ((testopt opts 'pool) (get-db-source (getopt opts 'pool) opts))
+	    ((testopt opts 'source) (get-db-source (getopt opts 'source) opts))
+	    (else (irritant dbsource |NoDBSource| flex/dbref)))))
+  (info%watch "KNODB/REF" dbsource "\nOPTS" opts)
+  (cond ((pool? dbsource) (knodb/pool dbsource opts))
+	((or (index? dbsource) (hashtable? dbsource)) 
+	 (knodb/wrap-index dbsource opts))
+	((not (string? dbsource))
+	 (irritant dbsource |BadDBSource| flex/dbref))
+	((or (testopt opts '{flexindex flexpool})
+	     (testopt opts 'type '{flexindex flexpool}))
+	 (flex-open dbsource opts))
+	((or (file-exists? dbsource) (textmatch (qc network-source) dbsource)
+	     (exists? (knodb/partition-files dbsource "index"))
+	     (exists? (knodb/partition-files dbsource "pool")))	     
+	 (flex-open dbsource opts))
+	((not (or (getopt opts 'create) (getopt opts 'make)))
+	 (if (getopt opts 'err)
+	     (irritant dbsource |NoSuchDatabase| flex/dbref)
+	     #f))
+	((textmatch (qc network-source) dbsource)
+	 (irritant dbsource |CantCreateRemoteDB|))
+	((or (has-suffix dbsource ".pool")
+	     (testopt opts 'pool)
+	     (testopt opts 'pooltype)
+	     (testopt opts 'type 'pool))
+	 (knodb/pool (make-pool (checkdir dbsource opts) (make-opts opts))
+		     opts))
+	((or (has-suffix dbsource ".index")
+	     (testopt opts 'index)
+	     (testopt opts 'indextype)
+	     (testopt opts 'type 'index))
+	 (knodb/wrap-index
+	  (make-index (checkdir dbsource opts) (make-opts opts))
+	  opts))
+	(else (irritant (cons [source dbsource] opts) 
+		  |CantDetermineDBType| flex/dbref))))
+
+(define (knodb/make spec (opts #f))
+  (knodb/ref spec (if opts (cons #[create #t] opts) #[create #t])))
+
+(define (knodb/pool pool (opts #f))
+  (debug%watch "KNODB/POOL" pool opts)
   (unless (or (adjunct? pool) (exists? (poolctl pool 'props 'adjuncts)))
     (if (or (getopt opts 'make) (getopt opts 'create))
 	(adjuncts/setup! pool 
@@ -71,14 +116,23 @@
 			opts)))
   pool)
 
-(define (wrap-index index (opts #f))
-  index)
+(define (knodb/wrap-index index (opts #f)) index)
+
+;;; Getting partitions
+
+(define (knodb/partitions arg)
+  (cond ((pool? arg) (poolctl arg 'partitions))
+	((index? arg) (or (indexctl arg 'partitions) {}))
+	((string? arg) (knodb/partition-files arg))
+	(else (fail))))
+
+;;;; FLEX-OPEN
 
 (define (flex-open source opts)
   (debug%watch "FLEX-OPEN" source "\nOPTS" opts)
-  (cond ((pool? source) (kb/pool source opts))
+  (cond ((pool? source) (knodb/pool source opts))
 	((or (index? source) (hashtable? source))
-	 (wrap-index source opts))
+	 (knodb/wrap-index source opts))
 	((or (has-suffix source ".flexpool")
 	     (testopt opts 'flexpool)
 	     (testopt opts 'type 'flexpool))
@@ -94,82 +148,35 @@
 	     (testopt opts 'type 'pool))
 	 (if (or (testopt opts 'adjunct)
 		 (not (getopt opts 'background #t)))
-	     (kb/pool (open-pool source opts) opts)
-	     (kb/pool ( use-pool source opts) opts)))
+	     (knodb/pool (open-pool source opts) opts)
+	     (knodb/pool ( use-pool source opts) opts)))
 	((or (has-suffix source ".index")
 	     (testopt opts 'index)
 	     (testopt opts 'indextype)
 	     (testopt opts 'type 'index))
 	 (if (testopt opts 'background)
-	     (wrap-index (use-index source opts) opts)
-	     (wrap-index (open-index source opts) opts)))
-	((exists? (kb/partition-files source "index"))
+	     (knodb/wrap-index (use-index source opts) opts)
+	     (knodb/wrap-index (open-index source opts) opts)))
+	((exists? (knodb/partition-files source "index"))
 	 (flex/open-index source opts))
-	((exists? (kb/partition-files source "pool"))
+	((exists? (knodb/partition-files source "pool"))
 	 (if (or (testopt opts 'adjunct)
 		 (not (getopt opts 'background #t)))
-	     (kb/pool (open-pool (kb/partition-files source "pool") opts) opts)
-	     (kb/pool (use-pool (kb/partition-files source "pool") opts) opts)))
+	     (knodb/pool (open-pool (knodb/partition-files source "pool") opts) opts)
+	     (knodb/pool (use-pool (knodb/partition-files source "pool") opts) opts)))
 	(else (irritant source |UnknownDBType|))))
-
-(define (kb/ref dbsource (opts #f))
-  (when (and (table? dbsource) (not (or (pool? dbsource) (index? dbsource))))
-    (if opts (set! opts (cons opts dbsource))
-	(set! opts dbsource))
-    (set! dbsource
-      (cond ((testopt opts 'index) (get-db-source (getopt opts 'index) opts))
-	    ((testopt opts 'pool) (get-db-source (getopt opts 'pool) opts))
-	    ((testopt opts 'source) (get-db-source (getopt opts 'source) opts))
-	    (else (irritant dbsource |NoDBSource| flex/dbref)))))
-  (info%watch "KB/REF" dbsource "\nOPTS" opts)
-  (cond ((pool? dbsource) (kb/pool dbsource opts))
-	((or (index? dbsource) (hashtable? dbsource)) (wrap-index dbsource opts))
-	((not (string? dbsource))
-	 (irritant dbsource |BadDBSource| flex/dbref))
-	((or (testopt opts '{flexindex flexpool})
-	     (testopt opts 'type '{flexindex flexpool}))
-	 (flex-open dbsource opts))
-	((or (file-exists? dbsource) (textmatch (qc network-source) dbsource)
-	     (exists? (kb/partition-files dbsource "index"))
-	     (exists? (kb/partition-files dbsource "pool")))	     
-	 (flex-open dbsource opts))
-	((not (or (getopt opts 'create) (getopt opts 'make)))
-	 (if (getopt opts 'err)
-	     (irritant dbsource |NoSuchDatabase| flex/dbref)
-	     #f))
-	((textmatch (qc network-source) dbsource)
-	 (irritant dbsource |CantCreateRemoteDB|))
-	((or (has-suffix dbsource ".pool")
-	     (testopt opts 'pool)
-	     (testopt opts 'pooltype)
-	     (testopt opts 'type 'pool))
-	 (kb/pool (make-pool (checkdir dbsource opts) (make-opts opts))
-		      opts))
-	((or (has-suffix dbsource ".index")
-	     (testopt opts 'index)
-	     (testopt opts 'indextype)
-	     (testopt opts 'type 'index))
-	 (wrap-index (make-index (checkdir dbsource opts) (make-opts opts))
-		     opts))
-	(else (irritant (cons [source dbsource] opts) 
-		  |CantDetermineDBType| flex/dbref))))
 
 ;;; Variants
 
-(define (kb/make spec (opts #f))
-  (kb/ref spec (if opts (cons #[create #t] opts) #[create #t])))
-(define flex/make kb/make)
-
 (define (pool/ref spec (opts #f))
-  (kb/ref spec 
-	      (if (testopt opts 'pooltype) 
-		  opts
-		  (opt+ opts 'pooltype (getopt opts 'type 'bigpool)))))
+  (knodb/ref spec 
+	     (if (testopt opts 'pooltype) opts
+		 (opt+ opts 'pooltype (getopt opts 'type 'bigpool)))))
 
 (define (index/ref spec (opts #f))
-  (kb/ref spec 
-	      (if (testopt opts 'indextype) opts
-		  (opt+ opts 'indextype (getopt opts 'type 'hashindex)))))
+  (knodb/ref spec 
+	     (if (testopt opts 'indextype) opts
+		 (opt+ opts 'indextype (getopt opts 'type 'hashindex)))))
 
 ;;; Copying OIDs between pools
 
@@ -200,7 +207,7 @@
 
 ;;; Generic DB saving
 
-(define (kb/mods arg)
+(define (knodb/mods arg)
   (cond ((registry? arg) (pick arg registry/modified?))
 	((flexpool/record arg) (pick (flexpool/partitions arg) modified?))
 	((exists? (db->registry arg)) (pick (db->registry arg) registry/modified?))
@@ -208,9 +215,8 @@
 	((and (applicable? arg) (zero? (procedure-min-arity arg))) arg)
 	((and (pair? arg) (applicable? (car arg))) arg)
 	(else (logwarn |CantSave| "No method for saving " arg) {})))
-(define flex/mods kb/mods)
 
-(define (kb/modified? arg)
+(define (knodb/modified? arg)
   (cond ((registry? arg) (registry/modified? arg))
 	((flexpool/record arg) (exists? (pick (flexpool/partitions arg) modified?)))
 	((pool? arg) (modified? arg))
@@ -218,7 +224,6 @@
 	((and (applicable? arg) (zero? (procedure-min-arity arg))) #t)
 	((and (pair? arg) (applicable? (car arg))) #t)
 	(else #f)))
-(define flex/modified? kb/modified?)
 
 (define (get-modified arg)
   (cond ((registry? arg) (tryif (registry/modified? arg) arg))
@@ -239,9 +244,11 @@
 	((and (pair? arg) (applicable? (car arg))) arg)
 	(else {})))
 
+;;; Committing
+
 (define commit-threads #t)
 
-(defambda (kb/commit! dbs (opts #f))
+(defambda (knodb/commit! dbs (opts #f))
   (let ((modified (get-modified dbs))
 	(started (elapsed-time)))
     (when (exists? modified)
@@ -273,12 +280,11 @@
 	      (if (>= time 0)
 		  (printout "\n\t" ($num time 1) "s \t" db)
 		  (printout "\n\tFAILED after " ($num time 1) "s:\t" db)))))))))
-(define flex/commit! kb/commit!)
+(define knodb/commit knodb/commit!)
 
-(defambda (kb/save! . args)
+(defambda (knodb/save! . args)
   (dolist (arg args)
-    (kb/commit! arg)))
-(define flex/save! kb/save!)
+    (knodb/commit! arg)))
 
 (define (inner-commit arg timings start)
   (cond ((registry? arg) (registry/save! arg))
@@ -304,4 +310,5 @@
       (commit-db db opts timings)
       (set! db (fifo/pop fifo)))))
 
+;;;; Deprecated aliases
 

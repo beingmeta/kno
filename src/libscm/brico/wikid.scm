@@ -44,11 +44,11 @@
 	((not (file-exists? (mkpath source "wikid.pool")))
 	 (irritant source |NoWikidPool|))
 	(else
-	 (set! wikid.pool (flex/ref (mkpath source "wikid.pool") wikid.opts))
+	 (set! wikid.pool (knodb/ref (mkpath source "wikid.pool") wikid.opts))
 	 (let* ((indexfiles (pick (getfiles source) has-suffix ".index"))
 		(use-opts (opt+ opts 'register (getopt opts 'register #t)
 				'background wikid.background))
-		(indexes (flex/ref indexfiles use-opts)))
+		(indexes (knodb/ref indexfiles use-opts)))
 	   (set! wikid.indexes indexes)
 	   (set! wikid.index (make-aggregate-index indexes [register #t]))
 	   (unless (config 'quiet)

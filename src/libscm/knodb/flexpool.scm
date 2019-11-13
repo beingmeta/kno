@@ -16,7 +16,7 @@
 		  flexpool/delete!
 		  ;; flexpool/adjunct!
 		  flexpool/padlen
-		  kb/zero kb/front kb/last kb/info
+		  knodb/zero knodb/front knodb/last knodb/info
 		  flex/zero flex/front flex/last flex/info})
 
 (module-export! '{flexpool-suffix})
@@ -66,7 +66,7 @@
   (stringout "#<FLEXPOOL " (flexpool-filename f) " " 
     (oid->string (flexpool-base f)) "+" 
     (flexpool/partcount f) "*" (flexpool-partsize f) " "
-    ;; (kb/load f)
+    ;; (knodb/load f)
     (flexpool-capacity f) ">"))
 
 (defrecord (flexpool mutable opaque 
@@ -91,26 +91,26 @@
 	((test flexdata fp)
 	 (flexpool-zero (get flexdata fp)))
 	(else #f)))
-(define (kb/zero fp) (flexpool/zero fp))
-(define flex/zero kb/zero)
+(define (knodb/zero fp) (flexpool/zero fp))
+(define flex/zero knodb/zero)
 
 (define (flexpool/front fp)
   (cond ((isflexpool? fp) (flexpool-front fp))
 	((test flexdata fp)
 	 (flexpool-front (get flexdata fp)))
 	(else #f)))
-(define (kb/front fp) (flexpool/front fp))
-(define flex/front kb/front)
+(define (knodb/front fp) (flexpool/front fp))
+(define flex/front knodb/front)
 
 (define (flexpool/last fp)
   (cond ((isflexpool? fp) 
 	 (or (flexpool-last fp) (flexpool-front fp)
 	     (flexpool-zero fp)))
 	((test flexdata fp)
-	 (kb/last (get flexdata fp)))
+	 (knodb/last (get flexdata fp)))
 	(else #f)))
-(define (kb/last fp) (flexpool/last fp))
-(define flex/last kb/last)
+(define (knodb/last fp) (flexpool/last fp))
+(define flex/last knodb/last)
 
 (define (flexpool/record fp)
   (cond ((isflexpool? fp) fp)
@@ -129,8 +129,8 @@
        front ,(and front (pool-source front))
        last ,(and (flexpool-last record)
 		  (pool-source (flexpool-last record)))]))
-(define (kb/info fp) (flexpool/info fp))
-(define flex/info kb/info)
+(define (knodb/info fp) (flexpool/info fp))
+(define flex/info knodb/info)
 
 ;;; Finding flexpools by filename
 
@@ -276,7 +276,7 @@
       filename file-prefix "\n" open-opts )
 
     (do-choices (other matching-files)
-      (let ((pool (kb/pool
+      (let ((pool (knodb/pool
 		   (if (getopt open-opts 'adjunct)
 		       (open-pool other (opt+ open-opts partopts))
 		       (use-pool other (opt+ open-opts partopts)))
@@ -347,7 +347,7 @@
 	     "\n" metadata "\n" partopts
 	     "\nFLEXINFO"  (get metadata 'flexinfo))
 	   (cond ((file-exists? path)
-		  (kb/pool
+		  (knodb/pool
 		   (if (or (getopt open-opts 'adjunct)
 			   (getopt partopts 'adjunct))
 		       (open-pool path (cons open-opts partopts))
@@ -355,8 +355,8 @@
 		 ((eq? action 'err)
 		  (irritant path |MissingPartition| flexpool-partition))
 		 ((or (eq? action 'create) (eq? action #t))
-		  (let ((made (kb/pool (make-pool path partopts)
-					   (cons #[create #t] open-opts))))
+		  (let ((made (knodb/pool (make-pool path partopts)
+					  (cons #[create #t] open-opts))))
 		    (lognotice |NewPartition| made)
 		    (unless (satisfied? (flexpool-front fp))
 		      (set-flexpool-front! fp made))
@@ -391,33 +391,33 @@
 
 #|
 (define adjpool-suffix
-  `(GREEDY {#("." (isxdigit+) ".pool" (eos)) #(".pool" (eos)) #(".flexpool" (eos))}))
+`(GREEDY {#("." (isxdigit+) ".pool" (eos)) #(".pool" (eos)) #(".flexpool" (eos))}))
 
 (define (flexpool/adjunct! flexpool slotid flex-spec)
-  (do-choices (partition (flexpool/partitions flexpool))
-    (let ((spec (deep-copy flex-spec))
-	  (prefix (flexpool-prefix (flexpool/record flexpool)))
-	  (decls (poolctl partition 'metadata 'adjuncts)))
-      (cond ((test decls slotid)
-	     (logwarn |ExistingAdjunct| 
-	       "Not overriding existing adjunct definition for " partition 
-	       ": " (get decls slotid)))
-	    ((test spec 'index) 
-	     (adjuncts/add! partition slotid spec))
-	    ((and (test spec 'pool)
-		  (file-exists? (mkpath (dirname (pool-source partition))
-					(get spec 'pool)))) 
-	     (adjuncts/add! partition slotid spec))
-	    ((and (test spec 'pool) 
-		  (textsearch partition-suffix (pool-source partition)))
-	     (store! spec 'pool
-	       (glom (basename prefix) "."
-		 (strip-suffix (get spec 'pool) ".flexpool")
-		 (gather partition-suffix (pool-source partition))))
-	     (adjuncts/add! partition slotid spec))
-	    ((test spec 'pool)
-	     (adjuncts/add! partition slotid spec))
-	    (else (logwarn |BadAdjunctSpec| spec))))))
+(do-choices (partition (flexpool/partitions flexpool))
+(let ((spec (deep-copy flex-spec))
+(prefix (flexpool-prefix (flexpool/record flexpool)))
+(decls (poolctl partition 'metadata 'adjuncts)))
+(cond ((test decls slotid)
+(logwarn |ExistingAdjunct| 
+"Not overriding existing adjunct definition for " partition 
+": " (get decls slotid)))
+((test spec 'index) 
+(adjuncts/add! partition slotid spec))
+((and (test spec 'pool)
+(file-exists? (mkpath (dirname (pool-source partition))
+(get spec 'pool)))) 
+(adjuncts/add! partition slotid spec))
+((and (test spec 'pool) 
+(textsearch partition-suffix (pool-source partition)))
+(store! spec 'pool
+(glom (basename prefix) "."
+(strip-suffix (get spec 'pool) ".flexpool")
+(gather partition-suffix (pool-source partition))))
+(adjuncts/add! partition slotid spec))
+((test spec 'pool)
+(adjuncts/add! partition slotid spec))
+(else (logwarn |BadAdjunctSpec| spec))))))
 |#
 
 ;;; Getting info
@@ -432,13 +432,13 @@
     (if (and (exists? info) (isflexpool? info))
 	(choice-size (flexpool-partitions info))
 	(irritant fp |UnknownFlexPool| flexpool/partitions))))
-(define (kb/load flexpool (front))
+(define (knodb/load flexpool (front))
   (set! front (flexpool-front flexpool))
   (if front
       (oid-offset (oid-plus (pool-base front) (pool-load front))
 		  (flexpool-base flexpool))
       0))
-(define flex/load kb/load)
+(define flex/load knodb/load)
 
 ;;; Deleting flexpools
 
