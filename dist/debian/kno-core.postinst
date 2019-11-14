@@ -27,7 +27,6 @@ case "$1" in
 	chmod -R g+rwX /etc/kno /usr/share/kno;
 	chmod -R g+rwX /var/run/kno /var/log/kno;
 	chmod -R ag+rwX /var/log/kno/bugjar;
-
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)
