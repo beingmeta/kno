@@ -8739,12 +8739,12 @@ _ACEOF
 if test "${with_rundir+set}" = set; then :
   withval=$with_rundir;
 else
-  with_rundir="$localstatedir/run"
+  with_rundir="$kno_rundir"
 fi
 
-rundir=$with_rundir
+kno_rundir=$with_rundir
 cat >>confdefs.h <<_ACEOF
-#define KNO_RUN_DIR "$rundir"
+#define KNO_RUN_DIR "$kno_rundir"
 _ACEOF
 
 
@@ -8753,10 +8753,10 @@ _ACEOF
 if test "${with_logdir+set}" = set; then :
   withval=$with_logdir;
 else
-  with_logdir="$localstatedir/log"
+  with_logdir="$kno_logdir"
 fi
 
-logdir=$with_logdir
+kno_logdir=$with_logdir
 
 
 # Check whether --with-bugjar was given.
@@ -8769,7 +8769,7 @@ fi
 bugjar=$with_bugjar
 
 cat >>confdefs.h <<_ACEOF
-#define KNO_LOG_DIR "$logdir"
+#define KNO_LOG_DIR "$kno_logdir"
 _ACEOF
 
 cat >>confdefs.h <<_ACEOF

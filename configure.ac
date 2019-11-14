@@ -1034,19 +1034,19 @@ fi
 AC_DEFINE_UNQUOTED(KNO_DAEMON,"$knoaemon")
 
 dnl Specifies where server state files should live
-AC_ARG_WITH(rundir,--with-rundir The default location for server state files,,with_rundir="$localstatedir/run")
-rundir=$with_rundir
-AC_DEFINE_UNQUOTED(KNO_RUN_DIR,"$rundir")
+AC_ARG_WITH(rundir,--with-rundir The default location for server state files,,with_rundir="$kno_rundir")
+kno_rundir=$with_rundir
+AC_DEFINE_UNQUOTED(KNO_RUN_DIR,"$kno_rundir")
 
 dnl Specifies where log files should live
-AC_ARG_WITH(logdir,--with-logdir The default location for log files,,with_logdir="$localstatedir/log")
-logdir=$with_logdir
+AC_ARG_WITH(logdir,--with-logdir The default location for log files,,with_logdir="$kno_logdir")
+kno_logdir=$with_logdir
 
 dnl Specifies where the default bugjar location
 AC_ARG_WITH(bugjar,--with-bugjar The default location for bugjar reports,,with_bugjar="$default_bugjar")
 bugjar=$with_bugjar
 
-AC_DEFINE_UNQUOTED(KNO_LOG_DIR,"$logdir")
+AC_DEFINE_UNQUOTED(KNO_LOG_DIR,"$kno_logdir")
 AC_DEFINE_UNQUOTED(KNO_DAEMON_LOG_DIR,"$daemon_logdir")
 AC_DEFINE_UNQUOTED(KNO_SERVLET_LOG_DIR,"$servlet_logdir")
 AC_DEFINE_UNQUOTED(KNO_DAEMON_RUN_DIR,"$daemon_rundir")
