@@ -2069,7 +2069,9 @@ int main(int argc,char **argv)
     u8_log(LOG_WARN,"WriteFailed",
            "Write to output failed errno=%d:%s",err,u8_strerror(err));}
 
-  kno_setapp(socket_spec,NULL);
+  if (socket_spec)
+    kno_setapp(socket_spec,NULL);
+  else kno_setapp("knocgi",NULL);
   kno_boot_message();
   u8_now(&boot_time);
 
