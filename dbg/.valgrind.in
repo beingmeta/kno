@@ -1,5 +1,5 @@
 export VG_ENV="\
-        LD_LIBRARY_PATH=./lib DYLD_LIBRARY_PATH=../lib			\
+        LD_LIBRARY_PATH=../lib DYLD_LIBRARY_PATH=../lib			\
 	MEMCHECKING=yes UNDERGDB=yes					\
 	KNO_INIT_LOADPATH=@abs_top_srcdir@/src/stdlib/:@abs_top_srcdir@/src/stdlib/safe/:@default_module_path@ \
 	KNO_LOADPATH=@abs_top_srcdir@/src/stdlib/%/module.scm:@abs_top_srcdir@/src/stdlib/%.scm: 	\
