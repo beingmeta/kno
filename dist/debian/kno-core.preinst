@@ -16,9 +16,8 @@ set -e
 
 case "$1" in
     install|upgrade)
-	addgroup --system kno ||
-	adduser --system --no-create-home --disabled-password knodaemon ||
-	echo > /dev/null;
+	addgroup --system kno || echo > /dev/null;
+	adduser --system --no-create-home --disabled-password knodaemon || echo > /dev/null;
 	;;
     abort-upgrade)
 	;;
