@@ -2094,7 +2094,9 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   src/scripts/knopkg.scm
 	   etc/knojob
 	   etc/logrotate
-	   etc/kno-rc.d
+	   etc/sysv/kno-rc.d
+	   etc/sysv/ex_servlet-init.d
+	   etc/sysv/ex_daemon-init.d
 	   etc/upstart/kno.conf
 	   etc/upstart/knod.conf
 	   etc/upstart/knoservlets.conf

@@ -1,0 +1,81 @@
+#!/bin/sh
+#
+# Startup script for Kno servers
+# chkconfig:		- 80 80
+# processname: 		%%NAME%%_daemon
+# pidfile: 		@daemon_rundir@/%%NAME%%.pid
+### BEGIN INIT INFO
+# Provides:		%%NAME%%
+# Required-Start:	$local_fs $network $named $syslog
+# Required-Stop:	$local_fs $network $named $syslog
+# Default-Start:  	3 4 5
+# Default-Stop:  	0 1 6
+# Short-Description: 	Starts the %%NAME%% KNO daemon
+# Description: 		Starts the %%NAME%% KNO daemon using u8run
+# X-Interactive:	false
+### END INIT INFO
+
+export KNODAEMON_GROUP=@admin_group@
+export WEB_USER=@webuser@
+
+pid=
+if [ -f @daemon_rundir@/%%NAME%%.pid ]; then
+    pid=$(cat @daemon_rundir@/%%NAME%%.pid);
+fi
+if [ ! -z "${pid}" ]; then
+    if kill -0 ${pid} 2>1 > /dev/null; then
+	echo "Daemon process (pid=) no longer exists";
+	pid="";
+    fi;
+fi;
+	
+ppid=
+if [ -f @daemon_rundir@/%%NAME%%.ppid ]; then
+    ppid=$(cat @daemon_rundir@/%%NAME%%.ppid);
+fi
+if [ ! -z "${ppid}" ]; then
+    if kill -0 ${ppid} 2>1 > /dev/null; then
+	echo "Daemon process (ppid=) no longer exists";
+	ppid="";
+    fi;
+fi;
+
+# See how we were called.
+case "$1" in
+  start)
+	if [ ! -z "${pid}" ]; then
+	    echo "The %%NAME%% daemon has already been started";
+	    exit;
+	fi
+	u8run +daemon \
+	      jobid=@daemon_rundir@/%%NAME%% \
+	      logfile=@daemon_logdir@/%%NAME%% \
+	      @prefix@/bin/knod @daemon_rundir@/%%NAME%%.sock \
+	          CONFIG=@local_config@/daemons/%%NAME%%.cfg
+	;;
+  stop)
+      if [ -f @daemon_rundir@/%%NAME%%.pid ]; then
+	  kill $(cat @daemon_rundir@/%%NAME%%.pid);
+      else
+	  echo "No PID file (@daemon_rundir@/%%NAME%%.pid)";
+	  echo "Guessing the %%NAME%% daemon has been stopped";
+	;;
+  status)
+	if [ ! -z "${pid}" ]; then
+	    echo "%%NAME%% daemon is running with pid ${pid} sustained by ${ppid}";
+	else
+	    echo "No PID file (@daemon_rundir@/%%NAME%%.pid) for %%NAME%% daemon";
+	fi;
+	;;
+  restart|force-reload)
+	$0 stop
+	echo "Sleeping for 5 seconds before restart"
+	sleep 5
+	$0 start
+	;;
+  *)
+	echo "Usage: $0 {start|stop|restart|status}"
+	exit 1
+esac
+
+exit 0

@@ -1,0 +1,82 @@
+#!/bin/sh
+#
+# Startup script for Kno servers
+# chkconfig:		- 80 80
+# processname: 		%%NAME%%_servlet
+# pidfile: 		@servlet_rundir@/%%NAME%%.pid
+### BEGIN INIT INFO
+# Provides:		%%NAME%%
+# Required-Start:	$local_fs $network $named $syslog
+# Required-Stop:	$local_fs $network $named $syslog
+# Default-Start:  	3 4 5
+# Default-Stop:  	0 1 6
+# Short-Description: 	Starts the %%NAME%% KNO servlet
+# Description: 		Starts the %%NAME%% KNO servlet using u8run
+# X-Interactive:	false
+### END INIT INFO
+
+export KNOCGI=@prefix@/bin/knocgi
+export KNODAEMON_GROUP=@admin_group@
+export WEB_USER=@webuser@
+
+pid=
+if [ -f @servlet_rundir@/%%NAME%%.pid ]; then
+    pid=$(cat @servlet_rundir@/%%NAME%%.pid);
+fi
+if [ ! -z "${pid}" ]; then
+    if kill -0 ${pid} 2>1 > /dev/null; then
+	echo "Servlet process (pid=) no longer exists";
+	pid="";
+    fi;
+fi;
+	
+ppid=
+if [ -f @servlet_rundir@/%%NAME%%.ppid ]; then
+    ppid=$(cat @servlet_rundir@/%%NAME%%.ppid);
+fi
+if [ ! -z "${ppid}" ]; then
+    if kill -0 ${ppid} 2>1 > /dev/null; then
+	echo "Servlet process (ppid=) no longer exists";
+	ppid="";
+    fi;
+fi;
+
+# See how we were called.
+case "$1" in
+  start)
+	if [ ! -z "${pid}" ]; then
+	    echo "The %%NAME%% servlet has already been started";
+	    exit;
+	fi
+	u8run +daemon \
+	      jobid=@servlet_rundir@/%%NAME%% \
+	      logfile=@servlet_logdir@/%%NAME%% \
+	      @prefix@/bin/knocgi @servlet_rundir@/%%NAME%%.sock \
+	          CONFIG=@local_config@/servlets/%%NAME%%.cfg
+	;;
+  stop)
+      if [ -f @servlet_rundir@/%%NAME%%.pid ]; then
+	  kill $(cat @servlet_rundir@/%%NAME%%.pid);
+      else
+	  echo "No PID file (@servlet_rundir@/%%NAME%%.pid)";
+	  echo "Guessing the %%NAME%% servlet has been stopped";
+	;;
+  status)
+	if [ ! -z "${pid}" ]; then
+	    echo "%%NAME%% servlet is running with pid ${pid} sustained by ${ppid}";
+	else
+	    echo "No PID file (@servlet_rundir@/%%NAME%%.pid) for %%NAME%% servlet";
+	fi;
+	;;
+  restart|force-reload)
+	$0 stop
+	echo "Sleeping for 5 seconds before restart"
+	sleep 5
+	$0 start
+	;;
+  *)
+	echo "Usage: $0 {start|stop|restart|status}"
+	exit 1
+esac
+
+exit 0
