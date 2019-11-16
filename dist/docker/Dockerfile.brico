@@ -1,0 +1,10 @@
+FROM kno:brico
+MAINTAINER repoman@beingmeta.com
+RUN apt-get -yqq update && apt-get -yqq full-upgrade && \
+    apt-get -yqq install kno-imagetools kno-full && \
+    apt-get -yqq install libapache2-mod-knocgi &&
+    apt-get autoclean && apt-get clean
+WORKDIR /data
+ADD https://bricobase.s3.amazonaws.com/releases/brico20191031.tar.bz2 .
+ADD https://bricobase.s3.amazonaws.com/releases/wikid20191103.tar.bz2 .
+RUN tar -xf brico*.tar.bz2 && tar -xf wikid*.tar.bz2; wait; rm *.tar.bz2
