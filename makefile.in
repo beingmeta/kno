@@ -777,6 +777,8 @@ $(DESTDIR)@config_dir@/boot/%.target: etc/systemd/%.target $(DESTDIR)@config_dir
 	@$(SYSINSTALL) @install_file_opts@ $< $@
 $(DESTDIR)@config_dir@/boot/%.conf: etc/upstart/%.conf $(DESTDIR)@config_dir@/boot
 	@$(SYSINSTALL) @install_file_opts@ $< $@
+$(DESTDIR)@config_dir@/boot/%.d: etc/sysv/%.d $(DESTDIR)@config_dir@/boot
+	@$(SYSINSTALL) @install_file_opts@ $< $@
 
 dist/%.changelog: dist/equivs.changelog
 	etc/make-equivs-changelog `basename $@ .changelog` dist/equivs.changelog > $@
