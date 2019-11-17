@@ -623,7 +623,7 @@ dbg/.gdbinit: dbg/.gdbinit.in ./config.status
 exe/.gdbinit: exe/.gdbinit.in ./config.status
 	./config.status
 
-etc: etc/logrotate etc/install-script etc/kno-rc.d etc/logrotate    	\
+etc: etc/logrotate etc/install-script etc/sysv/kno-rc.d etc/logrotate    	\
         etc/knoconfig etc/knosetconfig etc/knogetconfig			\
         etc/knojob etc/knosignal                             		\
         tests/lisp/.gdbinit tests/storage/.gdbinit dbg/.gdbinit         \
@@ -977,7 +977,8 @@ distclean: clean
 	rm -f tests/lisp/makefile tests/storage/makefile tests/makefile
 	rm -f tests/lisp/.gdbinit tests/storage/.gdbinit tests/.gdbinit
 	rm -f dbg/gdbinit
-	rm -f etc/knogetconfig etc/knosetconfig etc/kno-rc.d
+	rm -f etc/knogetconfig etc/knosetconfig
+	rm -f etc/sysv/kno-rc.id etc/sysv/ex_servlet-init.d etc/sysv/ex_daemon-init.d
 	rm -f exe/.gdbinit include/kno/config.h include/kno/revision.h
 
 commit:
@@ -1709,10 +1710,10 @@ statedirs: $(DESTDIR)@rundir@/kno \
 	logdirs
 $(DESTDIR)/etc/init.d:
 	@$(SYSINSTALL) -m 0755 -d $(DESTDIR)/etc/init.d
-$(DESTDIR)/etc/init.d/kno: etc/kno-rc.d $(DESTDIR)/etc/init.d
+$(DESTDIR)/etc/init.d/kno: etc/sysv/kno-rc.d $(DESTDIR)/etc/init.d
 	@$(MSG) Installing Kno init.d
 	@$(SYSINSTALL) -m 0555 @admininstall@ \
-		   etc/kno-rc.d $(DESTDIR)/etc/init.d/kno
+		   etc/sysv/kno-rc.d $(DESTDIR)/etc/init.d/kno
 $(DESTDIR)@kno_rundir@:
 	@$(MSG) Installing Kno run directory
 	@$(SYSINSTALL) -m 0775  @knodaemoninstall@ @admininstall@ -d \
