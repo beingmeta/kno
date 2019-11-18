@@ -1721,45 +1721,50 @@ static int add_server(u8_string spec)
   return 0;
 }
 
+static int add_port(u8_string port)
+{
+  int port_i = -1;
+  u8_lock_mutex(&server_port_lock);
+  if (n_ports >= max_ports) {
+    int new_max = ((max_ports)?(max_ports+8):(8));
+    if (ports)
+      ports = u8_realloc(ports,sizeof(u8_string)*new_max);
+    else ports = u8_malloc(sizeof(u8_string)*new_max);}
+  int i = 0; while (i < n_ports) {
+    if (strcmp(ports[i],port)==0) {
+      u8_unlock_mutex(&server_port_lock);
+      return i;}
+    i++;}
+  port_i = n_ports++;
+  ports[port_i]=u8_strdup(port);
+  u8_unlock_mutex(&server_port_lock);
+  u8_log(LOGINFO,"KnoCGI/NewPort","%s@%d",port,port_i);
+  return port_i;
+}
+
 static int addknocgiport(lispval var,lispval val,void *data)
 {
   u8_string new_port = NULL;
-  u8_lock_mutex(&server_port_lock);
   if (STRINGP(val)) {
     u8_string spec = CSTRING(val);
     if (strchr(spec,'/')) {
       if (check_socket_path(spec)>0) {
         new_port = u8_abspath(spec,NULL);}
-      else {
-        u8_seterr("Can't write socket file","setportconfig",
-                  u8_abspath(spec,NULL));
-        u8_unlock_mutex(&server_port_lock);
-        return -1;}}
+      else return u8_reterr("Can't write socket file","setportconfig",
+			    u8_abspath(spec,NULL));}
     else if ((strchr(spec,'@'))||(strchr(spec,':')))
       new_port = u8_strdup(spec);
-    else if (check_socket_path(spec)>0) {
-      new_port = u8_abspath(spec,NULL);}
-    else {
-      u8_unlock_mutex(&server_port_lock);
-      u8_seterr("Can't write socket file","setportconfig",
-                u8_abspath(spec,NULL));
-      return -1;}}
+    else if (check_socket_path(spec)>0)
+      new_port = u8_abspath(spec,NULL);
+    else u8_reterr("Can't write socket file","setportconfig",
+		   u8_abspath(spec,NULL));}
   else if (KNO_FIXNUMP(val))
     new_port = u8_mkstring("%lld",KNO_FIX2INT(val));
   else return KNO_ERR(-1,kno_TypeError,"setportconfig",NULL,val);
-  if (!(server_id)) server_id = new_port;
-  if (n_ports>=max_ports) {
-    int new_max = ((max_ports)?(max_ports+8):(8));
-    if (ports)
-      ports = u8_realloc(ports,sizeof(u8_string)*new_max);
-    else ports = u8_malloc(sizeof(u8_string)*new_max);}
-  ports[n_ports++]=new_port;
-  if (server_running) {
-    add_server(new_port);
-    u8_unlock_mutex(&server_port_lock);
-    return 1;}
-  u8_unlock_mutex(&server_port_lock);
-  return 0;
+  if (!(server_id)) server_id = u8_strdup(new_port);
+  int port_i = add_port(new_port);
+  if (server_running) add_server(new_port);
+  return port_i;
 }
 
 static lispval getknocgiports(lispval var,void *data)
@@ -1793,7 +1798,7 @@ static int start_servers()
   int i = 0, lim = n_ports, added=0;
   u8_lock_mutex(&server_port_lock); lim = n_ports;
   while (i<lim) {
-    u8_string port = ports[i++];
+    u8_string port = ports[i];
     int add_port = 0;
     if ((strchr(port,'/')) && (u8_file_existsp(port))) {
       if (! (socketp(port)) )
@@ -2095,6 +2100,8 @@ int main(int argc,char **argv)
     socket_spec = u8_mkpath(sockets_dir,socket_spec);
     u8_free(sockets_dir);}
 
+  if (socket_spec) add_port(socket_spec);
+
   register_servlet_configs();
   atexit(exit_servlet);
 
@@ -2122,11 +2129,6 @@ int main(int argc,char **argv)
     u8_log(LOG_WARN,Startup,"Starting beingmeta servlet %s in directory %s",
 	   socket_spec,u8_getcwd());
   else NO_ELSE;
-
-  if (socket_spec) {
-    ports = u8_malloc(sizeof(u8_string)*8);
-    max_ports = 8; n_ports = 1;
-    server_id = ports[0]=u8_strdup(socket_spec);}
 
   kno_version = kno_init_scheme();
 
