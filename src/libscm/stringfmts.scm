@@ -83,7 +83,7 @@
 (define (numstring . args) (stringout (apply printnum args)))
 (define ($numstring . args) (stringout (apply printnum args)))
 
-(define $num printnum)
+(define $num (fcn/alias printnum))
 
 ;;; Plural stuff (automatic stuff is just English)
 
