@@ -266,7 +266,7 @@ static lispval histref_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       if (KNO_CHOICEP(scan)) {
         ssize_t n_choices = KNO_CHOICE_SIZE(scan);
         ssize_t off = (rel_off>=0) ?  (rel_off) : (n_choices + rel_off);
-        if ( (off < 0) || (off > n_choices) )
+        if ( (off < 0) || (off >= n_choices) )
           return kno_err(kno_RangeError,"histref_evalfn",NULL,path);
         else {
           lispval new_scan = KNO_CHOICE_ELTS(scan)[off];
