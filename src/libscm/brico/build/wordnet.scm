@@ -439,7 +439,7 @@
 ;;; Creating a sensekey index when you don't have one
 #|
 (define sense-keys.index
-  (kb/ref (mkpath brico-dir "sensekeys.index")
+  (knodb/ref (mkpath brico-dir "sensekeys.index")
 	  #[indextype hashindex size #m2mib 
 	    keyslot sensekeys
 	    register #t create #t]))
