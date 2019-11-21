@@ -523,7 +523,79 @@ KNO_EXPORT int kno_assign_value(lispval symbol,lispval value,kno_lexenv env)
   return 0;
 }
 
-/* Unpacking expressions, non-inline versions */
+/* FCN/REF */
+
+KNO_EXPORT lispval kno_fcn_ref(lispval sym,kno_lexenv env,lispval val)
+{
+  if (env) {
+    if (! ( (KNO_CONSP(val)) && 
+	    ( (KNO_FUNCTIONP(val)) || 
+	      (KNO_APPLICABLEP(val)) ||
+	      (KNO_MACROP(val)) )) ) {
+      u8_log(LOGWARN,"BadAliasValue","The value of '%q cannot be aliased: %q",
+	     sym,val);
+      return kno_incref(val);}
+    lispval bindings = env->env_bindings;
+    lispval exports = env->env_exports;
+    if (KNO_HASHTABLEP(bindings)) {
+      /* Update fcnids if needed */
+      lispval fcnids = kno_get(bindings,fcnids_symbol,KNO_VOID);
+      if (!(KNO_HASHTABLEP(fcnids))) {
+	lispval use_table = kno_make_hashtable(NULL,19);
+	kno_hashtable_op((kno_hashtable)bindings,
+			 kno_table_default,fcnids_symbol,use_table);
+	kno_decref(use_table);
+	fcnids = kno_get(bindings,fcnids_symbol,KNO_VOID);}
+      lispval fcnid = kno_get(fcnids,sym,KNO_VOID);
+      if (!(KNO_FCNIDP(fcnid))) {
+	lispval new_fcnid = kno_register_fcnid(val);
+	/* In rare cases, this may leak a fcnid reference, but
+	   we're not worrying about that. */
+	kno_hashtable_op((kno_hashtable)fcnids,
+			 kno_table_default,sym,new_fcnid);
+	fcnid = kno_get(fcnids,sym,KNO_VOID);}
+      if ( (KNO_FCNIDP(fcnid)) && (KNO_CONSP(val)) && 
+	   ( (KNO_FUNCTIONP(val)) || (KNO_APPLICABLEP(val)) )) {
+	kno_set_fcnid(fcnid,val);}
+      kno_decref(fcnids);
+      return fcnid;}
+    else return kno_incref(val);}
+  else return kno_incref(val);
+}
+
+static lispval fcnalias_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
+{
+  lispval sym = kno_get_arg(expr,1);
+  if (!(KNO_SYMBOLP(sym)))
+    return kno_err(kno_SyntaxError,"fcnalias_evalfn",NULL,expr);
+  lispval env_expr = kno_get_arg(expr,2), free_env = KNO_VOID;
+  kno_lexenv use_env = env;
+  if (!(KNO_VOIDP(env_expr))) {
+    lispval env_arg = kno_stack_eval(env_expr,env,stack,0);
+    if (KNO_LEXENVP(env_arg)) {
+      kno_lexenv e = (kno_lexenv) env_arg;
+      if (KNO_HASHTABLEP(e->env_bindings))
+	use_env = (kno_lexenv) env_arg;}
+    free_env = env_arg;}
+  lispval val = kno_symeval(sym,use_env);
+  if (KNO_ABORTED(val)) {
+    kno_decref(free_env);
+    return val;}
+  else if ( (KNO_CONSP(val)) && 
+	    ( (KNO_FUNCTIONP(val)) || 
+	      (KNO_APPLICABLEP(val)) ||
+	      (KNO_MACROP(val)) ) ) {
+    lispval fcnid = kno_fcn_ref(sym,use_env,val);
+    kno_decref(val);
+    kno_decref(free_env);
+    return fcnid;}
+  else {
+    kno_decref(free_env);
+    u8_log(LOG_WARN,"BadAlias",
+	   "Can't make alias of the value of '%s: %q",
+	   KNO_SYMBOL_NAME(sym),val);
+    return val;}
+}
 
 /* Quote */
 
@@ -2065,6 +2137,9 @@ static void init_localfns()
   kno_def_evalfn(kno_scheme_module,"QUOTE",quote_evalfn,
 		 "`(QUOTE *x*)` returns the subexpression *x*, "
 		 "which is *not* evaluated.");
+  kno_def_evalfn(kno_scheme_module,"FCN/ALIAS",fcnalias_evalfn,
+		 "`(FCN/ALIAS *sym*)` returns a *fcnid* pointer aliasing the "
+		 "definition of *sym* in the current environment.");
   kno_def_evalfn(kno_scheme_module,"%ENV",env_evalfn,
 		 "`(%ENV)` returns the current lexical environment.");
   kno_def_evalfn(kno_scheme_module,"%MODREF",modref_evalfn,
