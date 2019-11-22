@@ -51,20 +51,20 @@
   (set! wikidata.dir (realpath dir))
 
   (set! wikidata.pool
-    (kb/make (mkpath dir "wikidata.flexpool")
-		 [create #t type 'flexpool
-		  base @31c1/0 capacity (* 128 1024 1024)
-		  partsize (* 1024 1024) pooltypek 'bigpool
-		  prefix "pools/"
-		  adjuncts #[labels #[pool "labels"]
-			     aliases #[pool "aliases"]
-			     claims #[pool "claims"]
-			     sitelinks #[pool "sitelinks"]]
-		  reserve 1]))
+    (knodb/make (mkpath dir "wikidata.flexpool")
+		[create #t type 'flexpool
+		 base @31c1/0 capacity (* 128 1024 1024)
+		 partsize (* 1024 1024) pooltypek 'bigpool
+		 prefix "pools/"
+		 adjuncts #[labels #[pool "labels"]
+			    aliases #[pool "aliases"]
+			    claims #[pool "claims"]
+			    sitelinks #[pool "sitelinks"]]
+		 reserve 1]))
 
   (when wikidata-build
     (set! buildmap.table
-      (kb/make (mkpath dir "wikids.table") [indextype 'memindex create #t])))
+      (knodb/make (mkpath dir "wikids.table") [indextype 'memindex create #t])))
 
   (set! wikids.index
     (flex/open-index (mkpath dir "wikids.flexindex")
@@ -83,8 +83,8 @@
 		      keyslot 'norms register #t
 		      maxkeys (* 2 1024 1024)]))
   (set! has.index
-    (kb/make (mkpath dir "hasprops.index")
-		 [indextype 'hashindex create #t keyslot 'has register #t]))
+    (knodb/make (mkpath dir "hasprops.index")
+		[indextype 'hashindex create #t keyslot 'has register #t]))
   (set! props.index
     (flex/open-index (mkpath dir "props.flexindex")
 		     [indextype 'hashindex size (* 4 1024 1024) create #t
@@ -113,14 +113,14 @@
 	  ((not wikidata.dir) (error |NoWikidataConfigured|))
 	  (wikidata-build wikidata-build)
 	  (else (set! buildmap.table
-		  (kb/make (mkpath wikidata.dir "wikids.table")
-			       [indextype 'memindex create #t]))
+		  (knodb/make (mkpath wikidata.dir "wikids.table")
+			      [indextype 'memindex create #t]))
 		(set! wikidata-build #t)))))
 
 (define (wikidata/save!)
-  (kb/commit! {wikidata.pool wikidata.index 
-		   wikids.index buildmap.table
-		   has.index}))
+  (knodb/commit! {wikidata.pool wikidata.index 
+		  wikids.index buildmap.table
+		  has.index}))
 
 (define (wikidata/ref arg . ignored)
   (cond ((not wikidata.pool) (error |WikdataNotConfigured|))

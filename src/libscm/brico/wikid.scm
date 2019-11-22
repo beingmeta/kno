@@ -26,14 +26,14 @@
 	 (unless (config 'quiet)
 	   (loginfo |RedundantWikiDInit|
 	     "Wikid is already consistently provided from wikid.source"))
-	 wikid-source)
+	 wikid.source)
 	((and wikid.source err)
 	 (irritant wikid.source |WikidSourceConflict|))
 	(wikid.source wikid.source)
 	((or (position #\@ source) (position #\: source))
-	 (set! wikid.pool (kb/ref source (opt+ opts 'pool source)))
+	 (set! wikid.pool (knodb/ref source (opt+ opts 'pool source)))
 	 (set! wikid.index
-	   (kb/ref source (opt+ opts 'index source 
+	   (knodb/ref source (opt+ opts 'index source 
 				    'background wikid.background)))
 	 (unless (config 'quiet)
 	   (lognotice |WIKID| "being accessed from " wikid.source))

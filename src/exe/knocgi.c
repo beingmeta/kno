@@ -1721,45 +1721,50 @@ static int add_server(u8_string spec)
   return 0;
 }
 
+static int add_port(u8_string port)
+{
+  int port_i = -1;
+  u8_lock_mutex(&server_port_lock);
+  if (n_ports >= max_ports) {
+    int new_max = ((max_ports)?(max_ports+8):(8));
+    if (ports)
+      ports = u8_realloc(ports,sizeof(u8_string)*new_max);
+    else ports = u8_malloc(sizeof(u8_string)*new_max);}
+  int i = 0; while (i < n_ports) {
+    if (strcmp(ports[i],port)==0) {
+      u8_unlock_mutex(&server_port_lock);
+      return i;}
+    i++;}
+  port_i = n_ports++;
+  ports[port_i]=u8_strdup(port);
+  u8_unlock_mutex(&server_port_lock);
+  u8_log(LOGINFO,"KnoCGI/NewPort","%s@%d",port,port_i);
+  return port_i;
+}
+
 static int addknocgiport(lispval var,lispval val,void *data)
 {
   u8_string new_port = NULL;
-  u8_lock_mutex(&server_port_lock);
   if (STRINGP(val)) {
     u8_string spec = CSTRING(val);
     if (strchr(spec,'/')) {
       if (check_socket_path(spec)>0) {
         new_port = u8_abspath(spec,NULL);}
-      else {
-        u8_seterr("Can't write socket file","setportconfig",
-                  u8_abspath(spec,NULL));
-        u8_unlock_mutex(&server_port_lock);
-        return -1;}}
+      else return u8_reterr("Can't write socket file","setportconfig",
+			    u8_abspath(spec,NULL));}
     else if ((strchr(spec,'@'))||(strchr(spec,':')))
       new_port = u8_strdup(spec);
-    else if (check_socket_path(spec)>0) {
-      new_port = u8_abspath(spec,NULL);}
-    else {
-      u8_unlock_mutex(&server_port_lock);
-      u8_seterr("Can't write socket file","setportconfig",
-                u8_abspath(spec,NULL));
-      return -1;}}
+    else if (check_socket_path(spec)>0)
+      new_port = u8_abspath(spec,NULL);
+    else u8_reterr("Can't write socket file","setportconfig",
+		   u8_abspath(spec,NULL));}
   else if (KNO_FIXNUMP(val))
     new_port = u8_mkstring("%lld",KNO_FIX2INT(val));
   else return KNO_ERR(-1,kno_TypeError,"setportconfig",NULL,val);
-  if (!(server_id)) server_id = new_port;
-  if (n_ports>=max_ports) {
-    int new_max = ((max_ports)?(max_ports+8):(8));
-    if (ports)
-      ports = u8_realloc(ports,sizeof(u8_string)*new_max);
-    else ports = u8_malloc(sizeof(u8_string)*new_max);}
-  ports[n_ports++]=new_port;
-  if (server_running) {
-    add_server(new_port);
-    u8_unlock_mutex(&server_port_lock);
-    return 1;}
-  u8_unlock_mutex(&server_port_lock);
-  return 0;
+  if (!(server_id)) server_id = u8_strdup(new_port);
+  int port_i = add_port(new_port);
+  if (server_running) add_server(new_port);
+  return port_i;
 }
 
 static lispval getknocgiports(lispval var,void *data)
@@ -1793,7 +1798,7 @@ static int start_servers()
   int i = 0, lim = n_ports, added=0;
   u8_lock_mutex(&server_port_lock); lim = n_ports;
   while (i<lim) {
-    u8_string port = ports[i++];
+    u8_string port = ports[i];
     int add_port = 0;
     if ((strchr(port,'/')) && (u8_file_existsp(port))) {
       if (! (socketp(port)) )
@@ -1869,6 +1874,7 @@ static void register_servlet_configs()
 
   kno_register_config("PORT",_("Ports for listening for connections"),
                      getknocgiports,addknocgiport,NULL);
+
   kno_register_config("ASYNCMODE",_("Whether to run in asynchronous mode"),
                      kno_boolconfig_get,kno_boolconfig_set,&async_mode);
 
@@ -1953,7 +1959,8 @@ int main(int argc,char **argv)
   int kno_version; /* Wait to set this until we have a log file */
   /* Bit map of args which we handle */
   unsigned char arg_mask[argc];  memset(arg_mask,0,argc);
-  u8_string socket_spec = NULL, load_source = NULL;
+  u8_string socket_spec = NULL;
+  u8_string load_source = NULL;
   u8_string logfile = NULL;
 
   KNO_INIT_STACK();
@@ -1993,26 +2000,32 @@ int main(int argc,char **argv)
   else if (getenv("LOGFILE")) {
     char *envfile = getenv("LOGFILE");
     if ((envfile)&&(envfile[0])&&(strcmp(envfile,"-")))
-      logfile = u8_fromlibc(envfile);}
+      logfile = u8_fromlibc(envfile);
+    u8_log(LOG_WARN,Startup,"Using logfile %s from environment",envfile);}
   else if (socket_spec == NULL) {
-    u8_log(LOG_WARN,Startup,"No socket file to name logfile, using stdout");}
+    u8_log(LOG_WARN,Startup,
+	   "No command line socket specification to name logfile, using stdout");}
   else {
     u8_string logdir = getenv("LOGDIR");
     if (logdir == NULL) logdir=KNO_SERVLET_LOG_DIR;
     u8_string base = u8_basename(socket_spec,"*");
-    u8_string logname = u8_mkstring("%s.log",base);
-    logfile = u8_mkpath(logdir,logname);
-    u8_free(logname);
+    if ( (base) && (base[0]) ) {
+      u8_string logname = u8_mkstring("%s.log",base);
+      logfile = u8_mkpath(logdir,logname);
+      u8_free(logname);}
     u8_free(base);}
 
+  if (logfile)
+    u8_log(LOG_WARN,Startup,"Using %s as log file",logfile);
+  else u8_log(LOG_WARN,Startup,"No logfile, using stdout/stderr");
+  
   /* Close and reopen STDIN */
   close(0);  if (open("/dev/null",O_RDONLY) == -1) {
     u8_log(LOG_CRIT,ServletAbort,"Unable to reopen stdin for daemon");
     exit(1);}
 
-  u8_string rungroup = getenv("RUNGROUP");
-  if (rungroup == NULL) rungroup = KNO_WEBGROUP;
-  if (rungroup) {
+  if (getenv("RUNGROUP")) {
+    u8_string rungroup = getenv("RUNGROUP");
     u8_gid gid = u8_getgid(rungroup);
     if (gid<0)
       u8_log(LOGERR,"UnknownGroupName","%s",rungroup);
@@ -2057,18 +2070,18 @@ int main(int argc,char **argv)
       u8_log(LOG_CRIT,ServletAbort,"Couldn't open log file %s",logfile);
       exit(1);}
     dup2(log_fd,1);
-    dup2(log_fd,2);}
-
-  char header[] =
-    ";;====||====||====||====||====||====||====||===="
-    "||====||====||====||====||====||====||====||===="
-    "||====||====||====||====||====||====||====||====\n";
-  ssize_t written = write(1,header,strlen(header));
-  if (written < 0) {
-    int err = errno; errno=0;
-    u8_log(LOG_WARN,"WriteFailed",
-           "Write to output failed errno=%d:%s",err,u8_strerror(err));}
-
+    dup2(log_fd,2);
+    char header[] =
+      ";;====||====||====||====||====||====||====||===="
+      "||====||====||====||====||====||====||====||===="
+      "||====||====||====||====||====||====||====||====\n";
+    ssize_t written = write(1,header,strlen(header));
+    if (written < 0) {
+      int err = errno; errno=0;
+      u8_log(LOG_WARN,"WriteFailed",
+	     "Write to output failed errno=%d:%s",err,u8_strerror(err));
+      exit(1);}}
+    
   if (socket_spec)
     kno_setapp(socket_spec,NULL);
   else kno_setapp("knocgi",NULL);
@@ -2087,6 +2100,8 @@ int main(int argc,char **argv)
     socket_spec = u8_mkpath(sockets_dir,socket_spec);
     u8_free(sockets_dir);}
 
+  if (socket_spec) add_port(socket_spec);
+
   register_servlet_configs();
   atexit(exit_servlet);
 
@@ -2097,24 +2112,23 @@ int main(int argc,char **argv)
   _stack->stack_label=u8_strdup(u8_appid());
   U8_SETBITS(_stack->stack_flags,KNO_STACK_FREE_LABEL);
 
-  {
-    if (argc>2) {
-      struct U8_OUTPUT out; unsigned char buf[2048]; int i = 1;
-      U8_INIT_OUTPUT_BUF(&out,2048,buf);
-      while (i<argc) {
-        unsigned char *arg = argv[i++];
-        if (arg == socket_spec) u8_puts(&out," @");
-        else {u8_putc(&out,' '); u8_puts(&out,arg);}}
-      u8_log(LOG_WARN,Startup,"Starting beingmeta servlet %s in %s with\n  %s",
-             socket_spec,u8_getcwd(),out.u8_outbuf);
-      u8_close((U8_STREAM *)&out);}
-    else u8_log(LOG_WARN,Startup,"Starting beingmeta servlet %s",socket_spec);
-    u8_log(LOG_WARN,Startup,"Copyright (C) beingmeta 2004-2019, all rights reserved");}
-
-  if (socket_spec) {
-    ports = u8_malloc(sizeof(u8_string)*8);
-    max_ports = 8; n_ports = 1;
-    server_id = ports[0]=u8_strdup(socket_spec);}
+  if (argc > 2) {
+    struct U8_OUTPUT out; unsigned char buf[2048]; int i = 1;
+    U8_INIT_OUTPUT_BUF(&out,2048,buf);
+    while (i<argc) {
+      unsigned char *arg = argv[i++];
+      if (arg == socket_spec) u8_puts(&out," @");
+      else {u8_putc(&out,' '); u8_puts(&out,arg);}}
+    if (socket_spec)
+      u8_log(LOG_WARN,Startup,"Starting beingmeta servlet %s in %s with args %s",
+	     socket_spec,u8_getcwd(),out.u8_outbuf);
+    else u8_log(LOG_WARN,Startup,"Starting beingmeta servlet in %s with args %s",
+		u8_getcwd(),out.u8_outbuf);
+    u8_close((U8_STREAM *)&out);}
+  else if (socket_spec)
+    u8_log(LOG_WARN,Startup,"Starting beingmeta servlet %s in directory %s",
+	   socket_spec,u8_getcwd());
+  else NO_ELSE;
 
   kno_version = kno_init_scheme();
 
@@ -2181,10 +2195,14 @@ int main(int argc,char **argv)
      of other problems too! */
   u8_init_mutex(&log_lock);
 
-  u8_log(LOG_NOTICE,Startup,"Servlet %s",socket_spec);
+  if (socket_spec)
+    u8_log(LOG_NOTICE,Startup,"Servlet %s",socket_spec);
 
   if (!(KNO_VOIDP(default_notfoundpage)))
     u8_log(LOG_NOTICE,"SetPageNotFound","Handler=%q",default_notfoundpage);
+
+  if (!(socket_spec)) socket_spec=server_id;
+
   if (!socket_spec) {
     u8_log(LOG_CRIT,"USAGE","knocgi <socket> [config]*");
     fprintf(stderr,"Usage: knocgi <socket> [config]*\n");
@@ -2272,9 +2290,16 @@ static int run_servlet(u8_string socket_spec)
          KNO_REVISION,kno_n_pools,
          kno_n_primary_indexes+kno_n_secondary_indexes);
   u8_message("beingmeta KNO, (C) beingmeta 2004-2019, all rights reserved");
-  if (kno_servlet.n_servers>0) {
+  int n_servers = kno_servlet.n_servers;
+
+  if (n_servers > 0) {
     u8_log(LOG_WARN,ServletStartup,"Listening on %d addresses",
            kno_servlet.n_servers);
+    struct U8_SERVER_INFO *info = kno_servlet.server_info;
+    int i = 0; while (i < n_servers) {
+      u8_log(LOG_WARN,"Listening","On %s (%d)",
+	     info[i].idstring,info[i].socket);
+      i++;}
     write_pid_file();
     u8_server_loop(&kno_servlet);}
   else {

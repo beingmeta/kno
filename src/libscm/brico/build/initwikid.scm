@@ -63,23 +63,23 @@
     keyslot 'pending]})
 
 (define (open-wikid-index spec dir)
-  (kb/make (mkpath dir (get spec 'filename))
-	       [indextype (getopt spec 'type 'hashindex)
-		size (getopt spec 'size 'hashindex)
-		size (getopt spec 'maxkeys (* 4 1024 1024))
-		keyslot (getopt spec 'keyslot #f)
-		create #t register #t]))
+  (knodb/make (mkpath dir (get spec 'filename))
+	      [indextype (getopt spec 'type 'hashindex)
+	       size (getopt spec 'size 'hashindex)
+	       size (getopt spec 'maxkeys (* 4 1024 1024))
+	       keyslot (getopt spec 'keyslot #f)
+	       create #t register #t]))
 
 (define (wikid/init source)
   (set! wikid.pool
-    (kb/make (mkpath source "wikid.pool")
-		 [create #t type 'bigpool
-		  base @1/8000000 capacity (* 4 1024 1024)
-		  adjuncts #[%words #[pool "wikid_words"]
-			     %norms #[pool "wikid_norms"]
-			     %glosses #[pool "wikid_glosses"]
-			     %aliases #[pool "wikid_aliases"]
-			     %indicators #[pool "wikid_indicators"]]
-		  reserve 1]))
+    (knodb/make (mkpath source "wikid.pool")
+		[create #t type 'bigpool
+		 base @1/8000000 capacity (* 4 1024 1024)
+		 adjuncts #[%words #[pool "wikid_words"]
+			    %norms #[pool "wikid_norms"]
+			    %glosses #[pool "wikid_glosses"]
+			    %aliases #[pool "wikid_aliases"]
+			    %indicators #[pool "wikid_indicators"]]
+		 reserve 1]))
   (let ((indexes (open-wikid-index (get-index-templates) source)))
     (set! wikid.index (make-aggregate-index indexes))))

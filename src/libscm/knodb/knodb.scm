@@ -9,6 +9,7 @@
 
 (module-export! '{knodb/ref knodb/make knodb/commit! knodb/save! 
 		  knodb/partitions knodb/pool knodb/wrap-index
+		  knodb/mods knodb/modified?
 		  pool/ref index/ref
 		  pool/copy})
 

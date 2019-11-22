@@ -223,7 +223,7 @@ lispval kno_get_histref(lispval elts)
       if (KNO_CHOICEP(scan)) {
         ssize_t n_choices = KNO_CHOICE_SIZE(scan);
         ssize_t off = (rel_off>=0) ?  (rel_off) : (n_choices + rel_off);
-        if ( (off < 0) || (off > n_choices) )
+        if ( (off < 0) || (off >= n_choices) )
           return kno_err(kno_RangeError,"histref_evalfn",
                          u8_write_long_long((long long)rel_off,numbuf,64),
                          path);
