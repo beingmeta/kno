@@ -35,6 +35,7 @@
 (define wikidata.props #f)
 
 (define wikidata-build #f)
+(varconfig! wikidata:build wikidata-build config:boolean)
 
 (define (setup-wikidata dir)
   (if core.index

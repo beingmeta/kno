@@ -2,6 +2,10 @@
 ;;; -*- Mode: Scheme; -*-
 
 (config! 'bricosource "brico")
+(when (file-directory? "wikidata")
+  (config-default! wikidata (abspath "wikidata"))
+  ;; Should this be conditional on something like wikidata.pool being writable?
+  (config! 'wikidata:build #t))
 
 (use-module '{logger webtools varconfig libarchive texttools
 	      filestream brico stringfmts optimize
@@ -21,6 +25,8 @@
 (varconfig! inbufsize inbufsize)
 
 (define %loglevel %notice%)
+
+(define-init chain #f)
 
 ;;; Reading data
 
@@ -218,7 +224,9 @@
       (filestream/log! in '(overall)))
     (checkpoint in)
     (unless (or (file-exists? "read-wikidata.stop") (filestream/done? in))
-      (chain file secs cycles threadcount))))
+      (if chain
+	  (chain file secs cycles threadcount)
+	  (logcrit |NoChain| "Just exiting")))))
   
 (when (config 'optimized #t)
   (optimize! '{knodb knodb/flexpool knodb/adjuncts 
