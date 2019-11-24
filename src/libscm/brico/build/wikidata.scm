@@ -38,6 +38,7 @@
 (varconfig! wikidata:build wikidata-build config:boolean)
 
 (define (setup-wikidata dir)
+  (logwarn |SetupWikidata| dir)
   (if core.index
       (let ((props (?? 'type '{wikidprop wikidata}))
 	    (table (make-hashtable)))

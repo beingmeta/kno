@@ -3,7 +3,7 @@
 
 (config! 'bricosource "brico")
 (when (file-directory? "wikidata")
-  (config-default! wikidata (abspath "wikidata"))
+  (config-default! 'wikidata (abspath "wikidata"))
   ;; Should this be conditional on something like wikidata.pool being writable?
   (config! 'wikidata:build #t))
 
@@ -25,8 +25,6 @@
 (varconfig! inbufsize inbufsize)
 
 (define %loglevel %notice%)
-
-(define-init chain #f)
 
 ;;; Reading data
 
@@ -123,11 +121,13 @@
 	(index-frame index ref 'norms {norms (stdstring norms)}))
       (let* ((claims (convert-claims (get item 'claims)))
 	     (props (getkeys claims)))
+	(index-frame has.index ref 'has (list props))
 	(store! ref 'claims claims)
 	(do-choices (prop props)
-	  (let ((vals (get (get claims prop) 'mainsnak)))
-	    (add! ref prop {(pickstrings vals) (pickoids vals)
-			    (picknums vals)})
+	  (let* ((main (get (get claims prop) 'mainsnak))
+		 (vals {(pickoids main) (pickstrings main) (picknums main)
+			(get (get (pickmaps main) 'datavalue) 'value)}))
+	    (add! ref prop vals)
 	    (index-frame index ref prop (pickoids vals)))))
       (index-frame has.index ref 'has (getkeys ref)))
     ref))
@@ -213,6 +213,7 @@
 	      (threadcount (config 'nthreads #t)))
   (unless (config 'wikidata) (config! 'wikidata (abspath "wikidata")))
   (let ((in (filestream/open file filestream-opts))
+	(dochain (and (bound? chain) (config 'chain #t config:boolean)))
 	(started (elapsed-time)))
     (filestream/log! in)
     (dotimes (i cycles)

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-10-23 20:26+0000\n"
+"POT-Creation-Date: 2019-11-23 21:07+0000\n"
 "PO-Revision-Date: 2005-03-04 22:55-0500\n"
 "Last-Translator: Kenneth Haase <kh@beingmeta.com>\n"
 "Language-Team: Spanish <es@li.org>\n"
@@ -138,8 +138,8 @@ msgid "NotASequence"
 msgstr ""
 
 #: src/lisp/sequences.c:157 src/lisp/sequences.c:252 src/lisp/sequences.c:793
-#: src/eval/opcode_defs.c:577 src/eval/opcode_defs.c:584
-#: src/eval/opcode_defs.c:776 src/eval/opcode_defs.c:780
+#: src/eval/opcode_defs.c:578 src/eval/opcode_defs.c:585
+#: src/eval/opcode_defs.c:777 src/eval/opcode_defs.c:781
 #: src/prims/dbprims.c:3172 src/prims/dbprims.c:3174 src/prims/seqprims.c:345
 #: src/prims/seqprims.c:356 src/prims/seqprims.c:365 src/prims/seqprims.c:531
 #: src/prims/seqprims.c:566 src/prims/seqprims.c:630 src/prims/seqprims.c:655
@@ -404,8 +404,8 @@ msgid "oid"
 msgstr ""
 
 #: src/lisp/lisp.c:206 src/lisp/lisp.c:207 src/sys/config.c:767
-#: src/eval/eval.c:1481 src/eval/opcode_defs.c:585 src/prims/dbprims.c:3103
-#: src/prims/portprims.c:640 src/eval/choiceops.c:1455
+#: src/eval/eval.c:1462 src/eval/opcode_defs.c:586 src/prims/dbprims.c:3103
+#: src/prims/portprims.c:676 src/eval/choiceops.c:1455
 #: src/eval/choiceops.c:1493 src/eval/choiceops.c:1519
 #: src/eval/choiceops.c:1555 src/eval/choiceops.c:1569
 #: src/eval/choiceops.c:1573 src/eval/choiceops.c:1574 src/prims/seqprims.c:361
@@ -427,7 +427,7 @@ msgstr ""
 msgid "constant"
 msgstr ""
 
-#: src/lisp/lisp.c:216 src/lisp/lisp.c:217 src/eval/eval.c:1323
+#: src/lisp/lisp.c:216 src/lisp/lisp.c:217 src/eval/eval.c:1304
 #: src/eval/modules.c:378 src/eval/reflection.c:977
 msgid "symbol"
 msgstr ""
@@ -436,11 +436,11 @@ msgstr ""
 msgid "fcnid"
 msgstr ""
 
-#: src/lisp/lisp.c:220 src/lisp/lisp.c:221 src/eval/eval.c:2107
+#: src/lisp/lisp.c:220 src/lisp/lisp.c:221 src/eval/eval.c:2088
 msgid "lexref"
 msgstr ""
 
-#: src/lisp/lisp.c:222 src/lisp/lisp.c:223 src/eval/eval.c:2113
+#: src/lisp/lisp.c:222 src/lisp/lisp.c:223 src/eval/eval.c:2094
 msgid "opcode"
 msgstr ""
 
@@ -448,7 +448,7 @@ msgstr ""
 msgid "typeref"
 msgstr ""
 
-#: src/lisp/lisp.c:226 src/lisp/lisp.c:227 src/eval/eval.c:2111
+#: src/lisp/lisp.c:226 src/lisp/lisp.c:227 src/eval/eval.c:2092
 msgid "coderef"
 msgstr ""
 
@@ -470,9 +470,9 @@ msgstr ""
 
 #: src/lisp/lisp.c:235 src/lisp/lisp.c:236 src/sys/config.c:696
 #: src/sys/config.c:715 src/sys/config.c:734 src/sys/startup.c:254
-#: src/sys/startup.c:630 src/prims/dbprims.c:306 src/prims/dbprims.c:327
-#: src/prims/dbprims.c:348 src/prims/portprims.c:184 src/prims/portprims.c:561
-#: src/prims/portprims.c:646 src/prims/streamprims.c:560
+#: src/sys/startup.c:632 src/prims/dbprims.c:306 src/prims/dbprims.c:327
+#: src/prims/dbprims.c:348 src/prims/portprims.c:184 src/prims/portprims.c:597
+#: src/prims/portprims.c:682 src/prims/streamprims.c:560
 #: src/prims/streamprims.c:605 src/prims/streamprims.c:694
 #: src/prims/streamprims.c:726 src/prims/streamprims.c:744
 #: src/prims/streamprims.c:767 src/prims/streamprims.c:801
@@ -499,9 +499,9 @@ msgstr ""
 msgid "bigint"
 msgstr ""
 
-#: src/lisp/lisp.c:243 src/lisp/lisp.c:244 src/eval/eval.c:1482
-#: src/eval/opcode_defs.c:747 src/eval/opcode_defs.c:749
-#: src/eval/opcode_defs.c:762 src/eval/opcode_defs.c:764
+#: src/lisp/lisp.c:243 src/lisp/lisp.c:244 src/eval/eval.c:1463
+#: src/eval/opcode_defs.c:748 src/eval/opcode_defs.c:750
+#: src/eval/opcode_defs.c:763 src/eval/opcode_defs.c:765
 msgid "pair"
 msgstr ""
 
@@ -607,8 +607,8 @@ msgstr ""
 msgid "promise"
 msgstr ""
 
-#: src/lisp/lisp.c:301 src/lisp/lisp.c:302 src/eval/threads.c:1227
-#: src/eval/threads.c:1265 src/eval/threads.c:1349
+#: src/lisp/lisp.c:301 src/lisp/lisp.c:302 src/eval/threads.c:1257
+#: src/eval/threads.c:1295 src/eval/threads.c:1379
 msgid "thread"
 msgstr ""
 
@@ -947,185 +947,185 @@ msgstr ""
 msgid "The argv argument cannot be NULL!"
 msgstr ""
 
-#: src/sys/startup.c:461
+#: src/sys/startup.c:463
 msgid "RLIMIT too high"
 msgstr ""
 
-#: src/sys/startup.c:849
+#: src/sys/startup.c:851
 #, c-format
 msgid ""
 "(kno:%s:%lld) %-s@%-s:%-s (%s)\n"
 "%s %s%s"
 msgstr ""
 
-#: src/sys/startup.c:1037
+#: src/sys/startup.c:1039
 msgid "Avoid unneccessary verbiage"
 msgstr ""
 
-#: src/sys/startup.c:1039
+#: src/sys/startup.c:1041
 msgid "system process ID (read-only)"
 msgstr ""
 
-#: src/sys/startup.c:1041
+#: src/sys/startup.c:1043
 msgid "parent's process ID (read-only)"
 msgstr ""
 
-#: src/sys/startup.c:1044
+#: src/sys/startup.c:1046
 msgid "warn on bad UTF-8 sequences"
 msgstr ""
 
-#: src/sys/startup.c:1046
+#: src/sys/startup.c:1048
 msgid "fail (error) on bad UTF-8 sequences"
 msgstr ""
 
-#: src/sys/startup.c:1048
+#: src/sys/startup.c:1050
 msgid "random seed used for stochastic operations"
 msgstr ""
 
-#: src/sys/startup.c:1051
+#: src/sys/startup.c:1053
 msgid "check that strings are valid UTF-8 on creation"
 msgstr ""
 
-#: src/sys/startup.c:1054
+#: src/sys/startup.c:1056
 msgid "application ID used in messages and SESSIONID"
 msgstr ""
 
-#: src/sys/startup.c:1058
+#: src/sys/startup.c:1060
 msgid ""
 "the command line arguments as a string, with arguments numbered and "
 "separated by newlines"
 msgstr ""
 
-#: src/sys/startup.c:1062
+#: src/sys/startup.c:1064
 msgid "the command line arguments as a string"
 msgstr ""
 
-#: src/sys/startup.c:1065 src/sys/startup.c:1068 src/sys/startup.c:1077
-#: src/sys/startup.c:1083
+#: src/sys/startup.c:1067 src/sys/startup.c:1070 src/sys/startup.c:1079
+#: src/sys/startup.c:1085
 msgid "the vector of args (before parsing) to the application (no configs)"
 msgstr ""
 
-#: src/sys/startup.c:1071 src/sys/startup.c:1074
+#: src/sys/startup.c:1073 src/sys/startup.c:1076
 msgid "the vector of parsed args to the application (no configs)"
 msgstr ""
 
-#: src/sys/startup.c:1080
+#: src/sys/startup.c:1082
 msgid "config arguments passed to the application (unparsed)"
 msgstr ""
 
-#: src/sys/startup.c:1089
+#: src/sys/startup.c:1091
 msgid "Whether to display command line args on entry and exit"
 msgstr ""
 
-#: src/sys/startup.c:1094
+#: src/sys/startup.c:1096
 msgid "unique session identifier"
 msgstr ""
 
-#: src/sys/startup.c:1096 src/sys/startup.c:1098
+#: src/sys/startup.c:1098 src/sys/startup.c:1100
 msgid "whether to recycle session state on exit"
 msgstr ""
 
-#: src/sys/startup.c:1100
+#: src/sys/startup.c:1102
 msgid "Set the user ID for this process"
 msgstr ""
 
-#: src/sys/startup.c:1102
+#: src/sys/startup.c:1104
 msgid "Set the group ID for this process"
 msgstr ""
 
-#: src/sys/startup.c:1106
+#: src/sys/startup.c:1108
 msgid "Path prefix for program state files"
 msgstr ""
 
-#: src/sys/startup.c:1109 src/sys/startup.c:1111
+#: src/sys/startup.c:1111 src/sys/startup.c:1113
 msgid "Redirect standard output to file"
 msgstr ""
 
-#: src/sys/startup.c:1113
+#: src/sys/startup.c:1115
 msgid "Redirect standard input to file"
 msgstr ""
 
-#: src/sys/startup.c:1115
+#: src/sys/startup.c:1117
 msgid "Write PID to file, delete on exit"
 msgstr ""
 
-#: src/sys/startup.c:1120 src/sys/startup.c:1155
+#: src/sys/startup.c:1122 src/sys/startup.c:1157
 msgid "Max CPU execution time limit"
 msgstr ""
 
-#: src/sys/startup.c:1125 src/sys/startup.c:1161
+#: src/sys/startup.c:1127 src/sys/startup.c:1163
 msgid "Max resident set (RSS) size"
 msgstr ""
 
-#: src/sys/startup.c:1130 src/sys/startup.c:1166
+#: src/sys/startup.c:1132 src/sys/startup.c:1168
 msgid "Max core dump size"
 msgstr ""
 
-#: src/sys/startup.c:1135 src/sys/startup.c:1171
+#: src/sys/startup.c:1137 src/sys/startup.c:1173
 msgid "Max number of subprocesses"
 msgstr ""
 
-#: src/sys/startup.c:1140 src/sys/startup.c:1176
+#: src/sys/startup.c:1142 src/sys/startup.c:1178
 msgid "Max number of open file descriptors"
 msgstr ""
 
-#: src/sys/startup.c:1145 src/sys/startup.c:1181
+#: src/sys/startup.c:1147 src/sys/startup.c:1183
 msgid "Max stack depth"
 msgstr ""
 
-#: src/sys/startup.c:1189
+#: src/sys/startup.c:1191
 msgid "Root Kno logging directories"
 msgstr ""
 
-#: src/sys/startup.c:1193
+#: src/sys/startup.c:1195
 msgid "Shared config/data directory for Kno"
 msgstr ""
 
-#: src/sys/startup.c:1197
+#: src/sys/startup.c:1199
 msgid "Data directory for Kno"
 msgstr ""
 
-#: src/sys/startup.c:1200
+#: src/sys/startup.c:1202
 msgid "Registered source files"
 msgstr ""
 
-#: src/sys/startup.c:1205
+#: src/sys/startup.c:1207
 msgid "Size at which u8_big_alloc starts using MMAP"
 msgstr ""
 
-#: src/sys/startup.c:1209
+#: src/sys/startup.c:1211
 msgid "Number of buckets at which hashtables use bigalloc"
 msgstr ""
 
-#: src/sys/startup.c:1213
+#: src/sys/startup.c:1215
 msgid "Size of binary buffers to use bigalloc"
 msgstr ""
 
-#: src/sys/startup.c:1217
+#: src/sys/startup.c:1219
 msgid "Procedures to call on exit"
 msgstr ""
 
-#: src/sys/startup.c:1220
+#: src/sys/startup.c:1222
 msgid "Whether this process is exiting"
 msgstr ""
 
-#: src/sys/startup.c:1225
+#: src/sys/startup.c:1227
 msgid "Set core size limit"
 msgstr ""
 
-#: src/sys/startup.c:1228
+#: src/sys/startup.c:1230
 msgid "Set cpu time limit (in seconds)"
 msgstr ""
 
-#: src/sys/startup.c:1231
+#: src/sys/startup.c:1233
 msgid "Set resident memory limit"
 msgstr ""
 
-#: src/sys/startup.c:1234
+#: src/sys/startup.c:1236
 msgid "Set total VMEM limit"
 msgstr ""
 
-#: src/sys/startup.c:1237
+#: src/sys/startup.c:1239
 msgid "Set total heap (DATA segment) limit"
 msgstr ""
 
@@ -1747,7 +1747,7 @@ msgid "The head file has no data"
 msgstr ""
 
 #: src/storage/compress.c:131 src/storage/compress.c:170
-#: src/prims/portprims.c:1123 src/drivers/headers/zcompress.h:27
+#: src/prims/portprims.c:1159 src/drivers/headers/zcompress.h:27
 #: src/drivers/headers/zcompress.h:65
 msgid "ZLIB ran out of memory"
 msgstr ""
@@ -1761,7 +1761,7 @@ msgid "ZLIB uncompress data error"
 msgstr ""
 
 #: src/storage/compress.c:145 src/storage/compress.c:183
-#: src/prims/portprims.c:1136 src/drivers/headers/zcompress.h:40
+#: src/prims/portprims.c:1172 src/drivers/headers/zcompress.h:40
 #: src/drivers/headers/zcompress.h:78
 msgid "Bad ZLIB return code"
 msgstr ""
@@ -1770,7 +1770,7 @@ msgstr ""
 msgid "pool value compression ran out of memory"
 msgstr ""
 
-#: src/storage/compress.c:181 src/prims/portprims.c:1134
+#: src/storage/compress.c:181 src/prims/portprims.c:1170
 #: src/drivers/headers/zcompress.h:76
 msgid "ZLIB compress data error"
 msgstr ""
@@ -1977,36 +1977,35 @@ msgstr ""
 msgid "opcode name"
 msgstr ""
 
-#: src/eval/eval.c:699 src/eval/opcode_defs.c:85 src/eval/reflection.c:763
+#: src/eval/eval.c:767 src/eval/opcode_defs.c:86 src/eval/reflection.c:763
 msgid "macro expansion"
 msgstr ""
 
-#: src/eval/eval.c:1090 src/eval/opcode_defs.c:820 src/eval/opcode_defs.c:924
-#: src/eval/opcode_defs.c:962 src/eval/opcode_defs.c:1088
-#: src/eval/opcode_defs.c:1147
-msgid "Invalid opcode"
-msgstr ""
-
-#: src/eval/eval.c:1345 src/eval/reflection.c:937 src/eval/reflection.c:994
+#: src/eval/eval.c:1326 src/eval/reflection.c:937 src/eval/reflection.c:994
 msgid "environment"
 msgstr ""
 
-#: src/eval/opcode_defs.c:835 src/eval/opcode_defs.c:1593
-#: src/eval/opcode_defs.c:1616 src/eval/opcode_defs.c:1633
-#: src/eval/opcode_defs.c:1653 src/eval/opcode_defs.c:1706
-#: src/eval/opcode_defs.c:1740 src/eval/opcode_defs.c:1755
-#: src/eval/opcode_defs.c:1768 src/eval/opcode_defs.c:1810
-#: src/eval/opcode_defs.c:1849 src/eval/opcode_defs.c:1887
-#: src/eval/opcode_defs.c:1925 src/eval/opcode_defs.c:1963 src/eval/arith.c:294
+#: src/eval/opcode_defs.c:821 src/eval/opcode_defs.c:925
+#: src/eval/opcode_defs.c:963 src/eval/opcode_defs.c:1065
+msgid "Invalid opcode"
+msgstr ""
+
+#: src/eval/opcode_defs.c:836 src/eval/opcode_defs.c:1511
+#: src/eval/opcode_defs.c:1534 src/eval/opcode_defs.c:1551
+#: src/eval/opcode_defs.c:1571 src/eval/opcode_defs.c:1624
+#: src/eval/opcode_defs.c:1658 src/eval/opcode_defs.c:1673
+#: src/eval/opcode_defs.c:1686 src/eval/opcode_defs.c:1728
+#: src/eval/opcode_defs.c:1767 src/eval/opcode_defs.c:1805
+#: src/eval/opcode_defs.c:1843 src/eval/opcode_defs.c:1881 src/eval/arith.c:294
 msgid "number"
 msgstr ""
 
-#: src/eval/opcode_defs.c:910
+#: src/eval/opcode_defs.c:911
 msgid "number|string"
 msgstr ""
 
-#: src/eval/opcode_defs.c:914 src/eval/opcode_defs.c:918
-#: src/eval/opcode_defs.c:922 src/prims/dbprims.c:2177
+#: src/eval/opcode_defs.c:915 src/eval/opcode_defs.c:919
+#: src/eval/opcode_defs.c:923 src/prims/dbprims.c:2177
 #: src/prims/tableprims.c:770 src/prims/tableprims.c:792
 #: src/prims/tableprims.c:821 src/prims/tableprims.c:891 src/web/htmlout.c:598
 #: src/web/uriprims.c:204 src/web/uriprims.c:206 src/web/uriprims.c:305
@@ -2086,26 +2085,26 @@ msgstr ""
 msgid "ThreadExit"
 msgstr ""
 
-#: src/eval/threads.c:540 src/eval/threads.c:562 src/eval/threads.c:581
-#: src/eval/threads.c:584
+#: src/eval/threads.c:542 src/eval/threads.c:564 src/eval/threads.c:583
+#: src/eval/threads.c:586
 msgid "valid condvar"
 msgstr ""
 
-#: src/eval/threads.c:554 src/eval/threads.c:556 src/prims/timeprims.c:1324
+#: src/eval/threads.c:556 src/eval/threads.c:558 src/prims/timeprims.c:1324
 msgid "time interval"
 msgstr ""
 
-#: src/eval/threads.c:859 src/eval/threads.c:941 src/eval/choiceops.c:1440
+#: src/eval/threads.c:877 src/eval/threads.c:959 src/eval/choiceops.c:1440
 #: src/eval/choiceops.c:1466 src/eval/choiceops.c:1504
 #: src/eval/choiceops.c:1530 src/text/match.c:3551 src/text/match.c:3580
 msgid "applicable"
 msgstr ""
 
-#: src/eval/threads.c:996
+#: src/eval/threads.c:1014
 msgid "lispenv"
 msgstr ""
 
-#: src/eval/threads.c:1772
+#: src/eval/threads.c:1802
 msgid "StubbornThread"
 msgstr ""
 
@@ -2280,17 +2279,17 @@ msgstr ""
 msgid "output port"
 msgstr ""
 
-#: src/prims/portprims.c:530 src/prims/portprims.c:558
-#: src/prims/portprims.c:584 src/prims/portprims.c:604
-#: src/prims/portprims.c:636 src/text/texttools.c:2315
+#: src/prims/portprims.c:566 src/prims/portprims.c:594
+#: src/prims/portprims.c:620 src/prims/portprims.c:640
+#: src/prims/portprims.c:672 src/text/texttools.c:2315
 msgid "input port"
 msgstr ""
 
-#: src/prims/portprims.c:564
+#: src/prims/portprims.c:600
 msgid "fixum"
 msgstr ""
 
-#: src/prims/portprims.c:1131
+#: src/prims/portprims.c:1167
 msgid "OIDPOOL compress ran out of memory"
 msgstr ""
 
@@ -2985,87 +2984,87 @@ msgstr ""
 msgid "No servers configured"
 msgstr ""
 
-#: src/exe/knocgi.c:1829
+#: src/exe/knocgi.c:1834
 msgid "Trace web transactions over N seconds"
 msgstr ""
 
-#: src/exe/knocgi.c:1832 src/exe/knod.c:1182
+#: src/exe/knocgi.c:1837 src/exe/knod.c:1182
 msgid "Number of pending connection requests allowed"
 msgstr ""
 
-#: src/exe/knocgi.c:1834 src/exe/knod.c:1185
+#: src/exe/knocgi.c:1839 src/exe/knod.c:1185
 msgid "Max number of requests to keep queued"
 msgstr ""
 
-#: src/exe/knocgi.c:1837
+#: src/exe/knocgi.c:1842
 msgid "Max number of concurrent connections to allow (NYI)"
 msgstr ""
 
-#: src/exe/knocgi.c:1840 src/exe/knod.c:1189
+#: src/exe/knocgi.c:1845 src/exe/knod.c:1189
 msgid "Number of clients to prepare for/grow by"
 msgstr ""
 
-#: src/exe/knocgi.c:1843 src/exe/knocgi.c:1846 src/exe/knod.c:1192
+#: src/exe/knocgi.c:1848 src/exe/knocgi.c:1851 src/exe/knod.c:1192
 msgid "Number of threads in the thread pool"
 msgstr ""
 
-#: src/exe/knocgi.c:1849
+#: src/exe/knocgi.c:1854
 msgid "File for recording status reports"
 msgstr ""
 
-#: src/exe/knocgi.c:1852
+#: src/exe/knocgi.c:1857
 msgid "Milliseconds (roughly) between updates to .status"
 msgstr ""
 
-#: src/exe/knocgi.c:1855
+#: src/exe/knocgi.c:1860
 msgid "Milliseconds (roughly) between logging status information"
 msgstr ""
 
-#: src/exe/knocgi.c:1858 src/exe/knod.c:1258
+#: src/exe/knocgi.c:1863 src/exe/knod.c:1258
 msgid "How long (μs) to wait for tasks during shutdown"
 msgstr ""
 
-#: src/exe/knocgi.c:1862 src/exe/knod.c:1166
+#: src/exe/knocgi.c:1867 src/exe/knod.c:1166
 msgid "Remove existing socket files with extreme prejudice"
 msgstr ""
 
-#: src/exe/knocgi.c:1866
+#: src/exe/knocgi.c:1871
 msgid "Whether to check for existing PID files"
 msgstr ""
 
-#: src/exe/knocgi.c:1870
+#: src/exe/knocgi.c:1875
 msgid "Ports for listening for connections"
 msgstr ""
 
-#: src/exe/knocgi.c:1872 src/exe/knod.c:1254
+#: src/exe/knocgi.c:1878 src/exe/knod.c:1254
 msgid "Whether to run in asynchronous mode"
 msgstr ""
 
-#: src/exe/knocgi.c:1876
+#: src/exe/knocgi.c:1882
 msgid "Whether to have libu8 log each monitored address"
 msgstr ""
 
-#: src/exe/knocgi.c:1880
+#: src/exe/knocgi.c:1886
 msgid "Timeout for the poll loop (lower bound of status updates)"
 msgstr ""
 
-#: src/exe/knocgi.c:1884 src/exe/knod.c:1219
+#: src/exe/knocgi.c:1890 src/exe/knod.c:1219
 msgid "Whether to have libu8 log each connection"
 msgstr ""
 
-#: src/exe/knocgi.c:1888 src/exe/knod.c:1224
+#: src/exe/knocgi.c:1894 src/exe/knod.c:1224
 msgid "Whether to have libu8 log each transaction"
 msgstr ""
 
-#: src/exe/knocgi.c:1892
+#: src/exe/knocgi.c:1898
 msgid "Whether to have libu8 log queue activity"
 msgstr ""
 
-#: src/exe/knocgi.c:1898
+#: src/exe/knocgi.c:1904
 msgid "Whether to have libu8 log data transmission/receiption"
 msgstr ""
 
-#: src/exe/knocgi.c:1905 src/exe/knod.c:1236
+#: src/exe/knocgi.c:1911 src/exe/knod.c:1236
 msgid "Whether to support thread-asynchronous transactions"
 msgstr ""
 
@@ -3201,55 +3200,55 @@ msgstr ""
 msgid "MYSQL unused parameter type"
 msgstr ""
 
-#: src/cmodules/mysql.c:124
+#: src/cmodules/mysql.c:132
 msgid "MySQL Error"
 msgstr ""
 
-#: src/cmodules/mysql.c:125
+#: src/cmodules/mysql.c:133
 msgid "Can't convert value to SQL"
 msgstr ""
 
-#: src/cmodules/mongodb.c:39
+#: src/cmodules/mongodb.c:38
 msgid "MongoDB error"
 msgstr ""
 
-#: src/cmodules/mongodb.c:40
+#: src/cmodules/mongodb.c:39
 msgid "BSON conversion error"
 msgstr ""
 
-#: src/cmodules/mongodb.c:41
+#: src/cmodules/mongodb.c:40
 msgid "MongoDB warning"
 msgstr ""
 
-#: src/cmodules/mongodb.c:42
+#: src/cmodules/mongodb.c:41
 msgid "BSON input error"
 msgstr ""
 
-#: src/cmodules/mongodb.c:43
+#: src/cmodules/mongodb.c:42
 msgid "BSON/Kno compound overflow"
 msgstr ""
 
-#: src/cmodules/mongodb.c:127
+#: src/cmodules/mongodb.c:126
 msgid "MongoDB/get_client"
 msgstr ""
 
-#: src/cmodules/mongodb.c:131
+#: src/cmodules/mongodb.c:130
 msgid "MongoDB/got_client"
 msgstr ""
 
-#: src/cmodules/mongodb.c:139
+#: src/cmodules/mongodb.c:138
 msgid "MongoDB/release_client"
 msgstr ""
 
-#: src/cmodules/mongodb.c:898
+#: src/cmodules/mongodb.c:897
 msgid "MissingDBName"
 msgstr ""
 
-#: src/cmodules/mongodb.c:1003 src/cmodules/mongodb.c:1090
+#: src/cmodules/mongodb.c:1002 src/cmodules/mongodb.c:1089
 msgid "MongoDB collection"
 msgstr ""
 
-#: src/cmodules/mongodb.c:1895 src/cmodules/mongodb.c:1998
+#: src/cmodules/mongodb.c:1894 src/cmodules/mongodb.c:1997
 msgid "MongoDB"
 msgstr ""
 
