@@ -51,6 +51,10 @@
 
 (define (make-opts opts)
   (let ((addopts (or (deep-copy (getopt opts 'make)) `#[])))
+    (when (and (testopt opts 'indextype) (not (testopt opts 'type)))
+      (store! addopts 'type (getopt opts 'indextype)))
+    (when (and (testopt opts 'pooltype) (not (testopt opts 'type)))
+      (store! addopts 'type (getopt opts 'pooltype)))
     (when (getopt opts 'adjuncts)
       (store! addopts 'metadata (or (deep-copy (getopt opts 'metadata)) #[]))
       (store! (getopt addopts 'metadata) 'adjuncts (getopt opts 'adjuncts)))
