@@ -37,6 +37,7 @@
 (define brico.pool {})
 (define brico.index {})
 (define core.index {})
+(define wikidref.index {})
 (define wordnet.index #f)
 (define lattice.index #f)
 (define termlogic.index #f)
@@ -63,7 +64,7 @@
    words.index norms.index aliases.index 
    names.index})
 
-(module-export! '{core.index wordnet.index
+(module-export! '{core.index wikidref.index wordnet.index
 		  lattice.index termlogic.index})
 
 (module-export! '{wordnet.adjunct attic.adjunct})
@@ -203,6 +204,7 @@
       (set! en_norms.index (try (pick indexes get-keyslot @1/44896"Common English") #f))
       (set! names.index (try (pick indexes get-keyslot 'names) #f))
       (set! core.index (pick indexes index-source has-suffix "/core.index"))
+      (set! wikidref.index (pick indexes index-source has-suffix "/wikidref.index"))
       (set! wordnet.index (pick indexes index-source has-suffix "/wordnet.index"))
       (set! lattice.index (pick indexes index-source has-suffix "/lattice.index"))
       (set! termlogic.index (pick indexes index-source has-suffix "/termlogic.index"))))

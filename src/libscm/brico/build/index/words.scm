@@ -27,7 +27,7 @@
 	       (%glosses (get f '%glosses))
 	       (%indicators (get f '%indicators))
 	       (langids (getkeys {%words %norms %glosses %indicators}))
-	       (names (pick {words aliases} capitalized?)))
+	       (names (pick (getvalues {%words %aliases}) capitalized?)))
 	  (when (exists? %words) (index-frame core.index f 'has '%words))
 	  (when (exists? %norms) (index-frame core.index f 'has '%norms))
 	  (when (exists? %aliases) (index-frame core.index f 'has '%aliases))

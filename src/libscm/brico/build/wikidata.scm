@@ -35,7 +35,6 @@
 (define wikidata.props #f)
 
 (define wikidata-build #f)
-(varconfig! wikidata:build wikidata-build config:boolean)
 
 (define (setup-wikidata dir)
   (logwarn |SetupWikidata| dir)
@@ -71,17 +70,20 @@
   (set! wikids.index
     (flex/open-index (mkpath dir "wikids.flexindex")
 		     [indextype 'hashindex size (* 8 1024 1024) create #t
+		      readonly (not (config 'wikidata:build))
 		      keyslot 'id register #t
 		      maxkeys (* 4 1024 1024)]))
 
   (set! words.index
     (flex/open-index (mkpath dir "words.flexindex")
 		     [indextype 'hashindex size (* 4 1024 1024) create #t
+		      readonly (not (config 'wikidata:build))
 		      keyslot 'words register #t
 		      maxkeys (* 2 1024 1024)]))
   (set! norms.index
     (flex/open-index (mkpath dir "norms.flexindex")
 		     [indextype 'hashindex size (* 4 1024 1024) create #t
+		      readonly (not (config 'wikidata:build))
 		      keyslot 'norms register #t
 		      maxkeys (* 2 1024 1024)]))
   (set! has.index
@@ -90,6 +92,7 @@
   (set! props.index
     (flex/open-index (mkpath dir "props.flexindex")
 		     [indextype 'hashindex size (* 4 1024 1024) create #t
+		      readonly (not (config 'wikidata:build))
 		      register #t maxkeys (* 2 1024 1024)]))
   (set! wikidata.index
     (make-aggregate-index {words.index norms.index has.index props.index})))
