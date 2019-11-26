@@ -1,4 +1,4 @@
-#!/usr/bin/knox
+#!/usr/bin/env knox
 ;;; -*- Mode: Scheme; -*-
 
 (config! 'cachelevel 2)
