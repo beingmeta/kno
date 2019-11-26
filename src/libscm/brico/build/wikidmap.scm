@@ -55,7 +55,7 @@
 	  (drop! disowned p v)
 	  (unindex! index disowned p v))))
     (when index (index-frame index brico 'wikidref wikidref))
-    (when copy (wikid/copy! brico wikidata index))))
+    (when copy (wikid/copy! wikidata brico index))))
 
 (define (wikidata->brico wikid (wikidstring) (cached))
   (default! wikidstring (if (string? wikid) wikid (get wikid 'id)))
