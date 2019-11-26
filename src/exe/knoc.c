@@ -505,6 +505,11 @@ static lispval console_read(u8_input in,kno_lexenv env)
       lispval err = kno_err(kno_ParseError,"console_read",edge,readpoint);
       kno_decref(readpoint);
       return err;}
+    else {
+      history(edithistory,&tmp,H_ENTER,line);
+      el_reset(editconsole);
+      return expr;}
+#if 0
     else if (KNO_ABORTP(expr)) {
       history(edithistory,&tmp,H_ENTER,line);
       el_reset(editconsole);
@@ -514,13 +519,13 @@ static lispval console_read(u8_input in,kno_lexenv env)
       kno_pprint(&expanded,expr,NULL,0,0,80);
       history(edithistory,&tmp,H_ENTER,expanded.u8_outbuf);
       u8_close_output(expandedout);
-      return expr;}}
+      return expr;}
+#endif
+  }
   else return stream_read(in,env);
 #endif
   return stream_read(in,env);
 }
-
-
 
 static void exit_knoc()
 {
