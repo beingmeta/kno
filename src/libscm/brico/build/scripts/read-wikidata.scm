@@ -185,9 +185,11 @@
 		(import-wikid-item item index has.index))))))
     (let ((cur-count (filestream-itemcount in)))
       (lognotice |Saving|
-	"wikidata after processing " ($count (- cur-count start-count) "item") " in "
+	"wikidata after processing "
+	($count (- cur-count start-count) "item") " in "
 	(secs->string (elapsed-time start-time)) 
-	" (" ($rate (- cur-count start-count) (elapsed-time start-time)) " items/sec) -- "
+	" (" ($rate (- cur-count start-count) (elapsed-time start-time))
+	" items/sec) -- "
 	(runstats)))
     (when before
       (let ((cur (profile/getcalls filestream/read)))
