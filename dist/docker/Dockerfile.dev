@@ -1,15 +1,17 @@
 FROM kno:full
 MAINTAINER repoman@beingmeta.com
-ENV TERM=linux
-RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
 RUN apt-get -yqq update && apt-get -yqq full-upgrade
 RUN apt-get -yqq install build-essential make cmake autoconf autoconf-archive \
-    	    	         gcc gdb gcovr lcov gettext gettext-base gettext-el doxygen doxygen-latex \
-			 libu8-dev debhelper autotools-dev equivs dh-systemd dh-elpa debsigs devscripts \
-			 libgoogle-perftools-dev libjemalloc-dev libsnappy-dev libzstd-dev libarchive-dev libzip-dev \
-			 libexif-dev libqrencode-dev libmagickwand-dev ruby-ronn \
-			 python-dev libpython2.7-dev python3-dev libpython3-dev \
-			 libhyphen-dev libedit-dev libsasl2-dev libmongoc-dev libbson-dev \
-			 sqlite3 libmysqlclient-dev libmongoc-dev libbson-dev libleveldb-dev librocksdb-dev libsqlite3-dev \
-			 apache2-dev libcurl4-openssl-dev libldns-dev
+      gcc gdb gcovr lcov gettext gettext-base gettext-el \
+      debhelper autotools-dev equivs dh-systemd dh-elpa debsigs devscripts \
+      doxygen doxygen-latex ruby-ronn \
+      libgoogle-perftools-dev libjemalloc-dev \
+      libsnappy-dev libzstd-dev libarchive-dev libzip-dev \
+      apache2-dev libcurl4-openssl-dev libldns-dev \
+      libexif-dev libqrencode-dev libmagickwand-dev \
+      python-dev libpython2.7-dev python3-dev libpython3-dev \
+      libhyphen-dev libedit-dev libsasl2-dev libmongoc-dev libbson-dev \
+      sqlite3 libmysqlclient-dev libleveldb-dev librocksdb-dev libsqlite3-dev \
+      libmongoc-dev libbson-dev \
+      libu8-dev kno-dev
 CMD "/bin/bash"

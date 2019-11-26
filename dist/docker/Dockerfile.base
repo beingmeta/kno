@@ -1,7 +1,12 @@
 FROM ubuntu:18.04
-RUN for dir in /data /src /app /app/bin /app/commands /kno /data/brico /data/wikid /data/lexdata; do if test ! -d ${dir}; then mkdir ${dir}; fi; done;
+RUN for dir in /data /src /app /app/bin /app/commands \
+    	       /data/brico /data/wikid /data/lexdata \
+	       /kno ; do \
+	       if test ! -d ${dir}; then mkdir ${dir}; fi;  \
+	       done;
 ENV TERM=linux
-RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
+RUN echo 'debconf debconf/frontend select Noninteractive' | \
+    	 debconf-set-selections
 MAINTAINER repoman@beingmeta.com
 RUN apt-get -yqq update && \
     apt-get -yqq install apt-utils zile software-properties-common tzdata && \
