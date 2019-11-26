@@ -259,10 +259,13 @@
     (when (exists? modified)
       (let* ((timings (make-hashtable))
 	     (fifo (fifo/make (choice->vector modified)))
-	     (spec-threads (mt/threadcount (getopt opts 'threads commit-threads)))
-	     (n-threads (and spec-threads (min spec-threads (choice-size modified)))))
+	     (spec-threads 
+	      (mt/threadcount (getopt opts 'threads commit-threads)))
+	     (n-threads (and spec-threads
+			     (min spec-threads (choice-size modified)))))
 	(lognotice |FLEX/Commit|
-	  "Saving " (choice-size modified) " dbs using " (or n-threads "no") " threads:"
+	  "Saving " (choice-size modified) " dbs using "
+	  (or n-threads "no") " threads:"
 	  (when (log>? %notify%)
 	    (do-choices (db modified) (printout "\n\t" db))))
 	(cond ((not n-threads)
@@ -274,7 +277,8 @@
 	      (else
 	       (let ((threads {}))
 		 (dotimes (i n-threads)
-		   (set+! threads (thread/call commit-queued fifo opts timings)))
+		   (set+! threads 
+		     (thread/call commit-queued fifo opts timings)))
 		 (thread/wait! threads))))
 	(lognotice |Flex/Commit|
 	  "Committed " (choice-size (getkeys timings)) " dbs "

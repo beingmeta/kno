@@ -227,8 +227,8 @@
     (dotimes (i cycles)
       (lognotice |Cycle| "Starting #" (1+ i) " of " cycles ": " (runstats))
       (dobatch in threadcount secs)
-      (lognotice |Cycle| "Finished #" (1+ i) "/" cycles ", "
-		 "processed " ($num (filestream-itemcount in) "item") " in "
+      (lognotice |Cycle| "Finished #" (1+ i) "/" cycles " cycles, "
+		 "processed " ($count (filestream-itemcount in) "item") " in "
 		 (secs->string (elapsed-time started)))
       (filestream/log! in '(overall)))
     (checkpoint in)
