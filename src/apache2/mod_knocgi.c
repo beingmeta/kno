@@ -2955,7 +2955,10 @@ static int kno_handler(request_rec *r)
   ap_add_common_vars(r); ap_add_cgi_vars(r);
   /* This should work: */ /* ( r->remaining > 0 ) */
   if ( (r->method_number == M_POST) ||
-       (r->method_number == M_PUT) ) {
+       (r->method_number == M_PUT) ||
+       /* This is a common pattern (get with content) whose value
+	  and correctness is contentious. */
+       (r->method_number == M_GET) ) {
     char bigbuf[4096];
     rv=ap_setup_client_block(r,REQUEST_CHUNKED_ERROR);
     if (rv!=OK) {}
