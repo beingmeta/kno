@@ -909,7 +909,11 @@ static lispval *bigpool_fetchn(kno_pool p,int n,lispval *oids)
     int i = 0;
     /* Populate a fetch schedule with where to get OID values */
     while (i<n) {
-      lispval oid = oids[i]; KNO_OID addr = KNO_OID_ADDR(oid);
+      lispval oid = oids[i];
+      if (!(OIDP(oid))) {
+	kno_seterr(kno_NotAnOID,"bigpool_fetchn",p->poolid,oid);
+	break;}
+      KNO_OID addr = KNO_OID_ADDR(oid);
       unsigned int off = KNO_OID_DIFFERENCE(addr,base);
       schedule[i].value_at = i;
       if (off<load)

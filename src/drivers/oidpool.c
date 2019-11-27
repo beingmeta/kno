@@ -700,16 +700,23 @@ static lispval *oidpool_fetchn(kno_pool p,int n,lispval *oids)
     kno_lock_stream(&(op->pool_stream));
     int i = 0;
     while (i<n) {
-      lispval oid = oids[i]; KNO_OID addr = KNO_OID_ADDR(oid);
+      lispval oid = oids[i];
+      if (!(OIDP(oid))) {
+	kno_seterr(kno_NotAnOID,"oidpool_fetchn",p->poolid,oid);
+	kno_unlock_stream(&(op->pool_stream));
+        u8_big_free(schedule);
+        u8_big_free(values);
+	return NULL;}
+      KNO_OID addr = KNO_OID_ADDR(oid);
       unsigned int off = KNO_OID_DIFFERENCE(addr,base);
       schedule[i].value_at = i;
       schedule[i].location =
         kno_get_chunk_ref(offdata,op->pool_offtype,off,offdata_len);
       if (schedule[i].location.off<0) {
         kno_seterr(InvalidOffset,"oidpool_fetchn",p->poolid,oid);
+        kno_unlock_stream(&(op->pool_stream));
         u8_big_free(schedule);
         u8_big_free(values);
-        kno_unlock_stream(&(op->pool_stream));
         return NULL;}
       else i++;}
     /* Sort to try and take advantage of locality */

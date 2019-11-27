@@ -301,7 +301,14 @@ static lispval *file_pool_fetchn(kno_pool p,int n,lispval *oids)
   if (fp->pool_offdata) {
     unsigned int *offsets = fp->pool_offdata;
     int i = 0; while (i < n) {
-      lispval oid = oids[i]; KNO_OID addr = KNO_OID_ADDR(oid);
+      lispval oid = oids[i];
+      if (!(OIDP(oid))) {
+	kno_seterr(kno_NotAnOID,"file_pool_fetchn",p->poolid,oid);
+	kno_unlock_pool_struct(p);
+        u8_big_free(result);
+        u8_big_free(schedule);
+	return NULL;}
+      KNO_OID addr = KNO_OID_ADDR(oid);
       unsigned int off = KNO_OID_DIFFERENCE(addr,base), file_off;
       if (PRED_FALSE(off>=load)) {
         u8_big_free(result);
