@@ -90,7 +90,7 @@
 (define (copy-block queuefn old new (msg #f))
   (let ((oids (queuefn))
 	(started (elapsed-time)))
-    (while (exists? oids)
+    (while (and (exists? oids) oid)
       (let* ((oidvec (choice->vector oids))
 	     (valvec (pool/fetchn old oidvec)))
 	(pool/storen! new oidvec valvec))
