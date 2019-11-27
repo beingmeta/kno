@@ -1687,10 +1687,15 @@ KNO_EXPORT lispval kno_pool_fetchn(kno_pool p,lispval oids_arg)
     lispval oids = kno_make_simple_choice(oids_arg);
     if (KNO_VECTORP(oids)) {
       int n = KNO_VECTOR_LENGTH(oids);
+      if (n == 0) {
+	kno_decref(oids);
+	return kno_init_vector(NULL,0,NULL);}
       lispval *oidv = KNO_VECTOR_ELTS(oids);
       lispval *values = p->pool_handler->fetchn(p,n,oidv);
       kno_decref(oids);
-      return kno_cons_vector(NULL,n,1,values);}
+      if (values==NULL)
+	return KNO_ERROR_VALUE;
+      else return kno_cons_vector(NULL,n,1,values);}
     else {
       int n = KNO_CHOICE_SIZE(oids);
       if (n==0)

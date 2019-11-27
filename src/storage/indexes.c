@@ -679,10 +679,15 @@ KNO_EXPORT lispval kno_index_fetchn(kno_index ix,lispval keys_arg)
     lispval keys = kno_make_simple_choice(keys_arg);
     if (KNO_VECTORP(keys)) {
       int n = KNO_VECTOR_LENGTH(keys);
+      if (n == 0) {
+	kno_decref(keys);
+	return kno_init_vector(NULL,0,NULL);}
       lispval *keyv = KNO_VECTOR_ELTS(keys);
       lispval *values = ix->index_handler->fetchn(ix,n,keyv);
       kno_decref(keys);
-      return kno_cons_vector(NULL,n,1,values);}
+      if (values == NULL)
+	return KNO_ERROR_VALUE;
+      else return kno_cons_vector(NULL,n,1,values);}
     else {
       int n = KNO_CHOICE_SIZE(keys);
       if (n==0)
