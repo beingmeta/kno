@@ -293,7 +293,7 @@
 
 (defambda (knodb/save! . args)
   (dolist (arg args)
-    (knodb/commit! arg)))
+    (when arg (knodb/commit! arg))))
 
 (define (inner-commit arg timings start)
   (cond ((registry? arg) (registry/save! arg))
