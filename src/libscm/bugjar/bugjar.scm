@@ -5,6 +5,7 @@
 
 (use-module '{webtools xhtml texttools xhtml/tableout gpath condense})
 (use-module '{varconfig stringfmts getcontent mimetable logger})
+(use-module 'bugjar/html)
 (define %used_modules '{varconfig})
 
 (module-export! '{bugjar! bugjar bugjar/saveroot bugjar/webroot})
@@ -133,7 +134,7 @@
 	 (opts (if (opts? opts) opts `#[uuid ,uuid]))
 	 (saveroot (makelogroot uuid bugjar/saveroot))
 	 (webroot (and bugjar/webroot (mkpath bugjar/webroot (getlogroot uuid))))
-	 (logname (getlogname uuid))
+	 (logname (glom (getlogname uuid) ".html"))
 	 (savepath (gp/makepath saveroot logname))
 	 (refpath (if webroot 
 		      (mkpath webroot logname)
@@ -146,7 +147,7 @@
     (when (string? saveroot) (mkdirs (mkpath saveroot "example")))
     (when reqdata (exception/context! exception 'reqdata reqdata))
     (when reqlog (exception/context! exception 'reqlog reqlog))
-    (dtype->gpath (condense exception) savepath)
+    (fileout savepath (exception.html exception))
     (logwarn |Bugjar| 
       "Logged " (exception-condition exception) " " (uuid->string uuid)
       (when (exception-context exception) (printout " <" (exception-caller exception) ">"))
