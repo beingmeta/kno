@@ -29,6 +29,11 @@
 (define-init *json-refslot* #f)
 (varconfig! JSON:REFSLOT *json-refslot*)
 
+;; A slotid/key storing an ID for rendering tables 
+(define-init *json-vecslots* {})
+(varconfig! JSON:VECSLOTS *json-vecslots* #f choice)
+
+
 ;; A slotid or function for generating references from OIDs
 (define-init *json-oidref* #f)
 (varconfig! JSON:OIDREF *json-oidref*)
@@ -61,8 +66,9 @@
       (if (string? slotid) slotid
 	  (unparse-arg slotid))))
 
-(defambda (jsonfield field value (valuefn #f) (prefix #f) (context #f)
-		     (vecval #f))
+(defambda (jsonfield field value (valuefn #f) 
+		     (prefix #f) (context #f) (vecval))
+  (default! vecval (overlaps? field *json-vecslots*))
   (unless (string? field)
     (set! field
       (if (symbol? field) (downcase field)
@@ -78,8 +84,9 @@
 	  (jsonout value #f)))
     (if (or vecval (not (singleton? value))) (printout "]"))))
 
-(defambda (jsonfield+ field value (valuefn #f) (prefix #f) (context #f)
-		      (vecval #f))
+(defambda (jsonfield+ field value (valuefn #f) 
+		      (prefix #f) (context #f) (vecval))
+  (default! vecval (overlaps? field *json-vecslots*))
   (unless (string? field)
     (set! field
       (if (symbol? field) (downcase field)
@@ -94,23 +101,27 @@
 	  (jsonout value #f)))
     "]"))
 
-(define (getkv table (slotid))
-  (for-choices (assoc (getassocs table))
+(define (getkv table (slotid) (assocs))
+  (for-choices (assoc (%wc getassocs table))
     (set! slotid (car assoc))
     (cons (if (symbol? slotid) (downcase slotid)
 	      (if (string? slotid) slotid (unparse-arg slotid)))
 	  (cdr assoc))))
 
-(define (jsontable table (opts #f) (valuefn #f) (context #f))
+(define (jsontable table (opts #f) (valuefn #f) (context #f) (vecslots))
+  (default! vecslots (getopt opts 'vecslots {}))
   (printout "{"
     (if (getopt opts 'keysort)
-	(doseq (assoc (sorted (getkv table) (get opts 'keysort)) i)
+	(doseq (assoc (sorted (%wc getkv table) (get opts 'keysort)) i)
 	  (if (> i 0) (printout ", "))
 	  (jsonfield (car assoc) (qc (cdr assoc))
-		     valuefn #f context))
+		     valuefn #f context
+		     (or (overlaps? (car assoc) vecslots) #default)))
 	(do-choices (key (getkeys table) i)
 	  (if (> i 0) (printout ", "))
-	  (jsonfield key (qc (get table key)) valuefn #f context)))
+	  (jsonfield key (qc (get table key))
+		     valuefn #f context
+		     (or (overlaps? key vecslots) #default))))
     "}"))
 
 (defambda (jsonout value (opts #f) (emptyval))
@@ -135,7 +146,7 @@
 			      (write value))))
 		(jsonoutput string 0)))))
 
-(module-export! '{jsonout jsonvec jsontable opts jsonfield jsonfield+ jsonelt})
+(module-export! '{jsonout jsonvec jsontable jsonfield jsonfield+ jsonelt})
 
 ;;; Support for JSON responses
 
