@@ -27,8 +27,6 @@ static lispval keyfn_get(lispval val,lispval keyfn)
 {
   if ( (VOIDP(keyfn)) || (KNO_FALSEP(keyfn)) || (KNO_DEFAULTP(keyfn)) )
     return kno_incref(val);
-  else if (OIDP(val))
-    return kno_frame_get(val,keyfn);
   else {
     kno_lisp_type type = KNO_TYPEOF(keyfn);
     switch (type) {
@@ -44,6 +42,8 @@ static lispval keyfn_get(lispval val,lispval keyfn)
 	return kno_finish_call(kno_dapply(keyfn,1,&val));
       else if (KNO_TABLEP(keyfn))
 	return kno_get(keyfn,val,EMPTY);
+      else if (OIDP(val))
+	return kno_frame_get(val,keyfn);
       else if (KNO_TABLEP(val))
 	return kno_get(val,keyfn,EMPTY);
       else return KNO_EMPTY;}}
