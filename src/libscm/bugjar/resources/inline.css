@@ -52,6 +52,9 @@ div.stack span.filename {
     font-size: 60%; 
     float: right;
     margin-left: 2em; }
+div.stack span.crumb {
+    display: none;
+    float: right;}
 div.stack span.info { font-size: 70%; float: right; margin-left: 2em; }
 div.stack span.info span.type { font-weight: bold; }
 div.stack span.info span.depth {}
