@@ -16,6 +16,8 @@ p.sorry {
 
 span.evalsto { font-size: 125%; }
 
+.crumb { display: none }
+
 div.backtrace { 
     margin-left: 4em; 
     margin-right: 2em;}
