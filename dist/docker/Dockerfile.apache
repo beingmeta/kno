@@ -6,5 +6,7 @@ RUN apt-get -yqq update && apt-get -yqq full-upgrade && \
 	    libapache2-mod-xsendfile libapache2-mod-xforward \
     	    libapache2-mod-knocgi httpie && \
     a2enmod ssl rewrite status proxy proxy_http info headers \
-            knocgi alias auth_basic auth_digest mime
+            knocgi alias auth_basic auth_digest mime; \
+    echo kno:apache > /app/kno/config/DOCKERIMAGE; \
+    date > /app/kno/config/DOCKER:APACHE:BASE;
 

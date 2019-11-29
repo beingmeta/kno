@@ -8,4 +8,7 @@ WORKDIR /data
 ADD https://kno.s3.amazonaws.com/brico/latest/brico.tar.bz2 .
 ADD https://kno.s3.amazonaws.com/brico/latest/wikid.tar.bz2 .
 RUN tar -xf brico.tar.bz2 && tar -xf wikid.tar.bz2; wait; rm *.tar.bz2
-
+RUN echo /data/brico > /app/kno/config/BRICOSOURCE; \
+    echo /data/wikid > /app/kno/config/WIKIDSOURCE; \
+    echo kno:brico > /app/kno/config/DOCKERIMAGE; \
+    date > /app/kno/config/DOCKER:BUILD:BASE;
