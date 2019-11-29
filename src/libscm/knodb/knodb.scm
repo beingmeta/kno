@@ -3,7 +3,7 @@
 
 (in-module 'knodb)
 
-(use-module '{ezrecords stringfmts logger texttools fifo mttools reflection})
+(use-module '{ezrecords stringfmts logger varconfig texttools fifo mttools reflection})
 (use-module '{knodb/adjuncts knodb/registry knodb/filenames})
 (use-module '{knodb/flexpool knodb/flexindex})
 
@@ -111,6 +111,7 @@
 
 (define (knodb/pool pool (opts #f))
   (debug%watch "KNODB/POOL" pool opts)
+  (unless (pool? pool) (irritant pool |NotAPool|))
   (unless (or (adjunct? pool) (exists? (poolctl pool 'props 'adjuncts)))
     (if (or (getopt opts 'make) (getopt opts 'create))
 	(adjuncts/setup! pool 
@@ -119,7 +120,24 @@
 	(adjuncts/init! pool
 			(getopt opts 'adjuncts (poolctl pool 'metadata 'adjuncts))
 			opts)))
+  (when (getopt opts 'searchable #t)
+    (let ((indexes (or (try (poolctl pool 'props 'indexes) 
+			    (get-indexes pool opts))
+		       (fail))))
+      (lognotice |Indexes| 
+	"Found " ($count (|| indexes) "index" "indexes") " for " pool)))
   pool)
+
+(define (get-indexes pool (opts #f))
+  (or (try (poolctl pool 'props 'indexes)
+	   (let* ((rootdir (dirnrame (pool-source pool)))
+		  (indexes (index/ref (poolctl pool 'metadata 'indexes)
+				      (opt+ 'rootdir rootdir opts))))
+	     (poolctl pool 'props 'indexes (try indexes #f))
+	     (do-choices (partition (poolctl pool 'partitions))
+	       (set+! indexes (get-indexes partition opts)))
+	     indexes))
+      (fail)))
 
 (define (knodb/wrap-index index (opts #f)) index)
 
@@ -319,5 +337,11 @@
       (commit-db db opts timings)
       (set! db (fifo/pop fifo)))))
 
-;;;; Deprecated aliases
+;;;; Configs
 
+(define (usedb-config var (val))
+  (if (bound? val)
+      (db/ref val)
+      (|| {(config 'pools) (config 'indexes}))))
+
+(config-def! 'usedb usedb-config)
