@@ -1170,16 +1170,16 @@ void kno_init_config_c()
      u8major_config_get,kno_readonly_config_set,NULL);
 
 #if KNO_FILECONFIG_ENABLED
+#if KNO_FILECONFIG_DEFAULTS
+  kno_register_config_lookup(file_config_lookup,NULL);
+  kno_register_config
+    ("CONFIGDATA",_("Default directory for looking up config entries"),
+     kno_sconfig_get,kno_sconfig_set,&configdata_path);
+#endif
   kno_register_config
     ("CONFIGSRC",
      _("Directory/path (cumulative) for looking up config settings"),
      get_config_sources,add_config_source,NULL);
-#if KNO_FILECONFIG_DEFAULTS
-  kno_register_config
-    ("CONFIGDATA",_("Default directory for looking up config entries"),
-     kno_sconfig_get,kno_sconfig_set,&configdata_path);
-  kno_register_config_lookup(file_config_lookup,NULL);
-#endif
 #endif
 
   if (! (getenv("KNO_DISABLE_ENVCONFIG")) )
