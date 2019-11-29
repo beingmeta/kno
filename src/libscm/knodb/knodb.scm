@@ -13,6 +13,8 @@
 		  pool/ref index/ref
 		  pool/copy})
 
+(module-export! '{knodb:pool knodb:index})
+
 (module-export! '{knodb/commit})
 
 (define-init %loglevel %notice%)
@@ -122,20 +124,20 @@
 			opts)))
   (when (getopt opts 'searchable #t)
     (let ((indexes (or (try (poolctl pool 'props 'indexes) 
-			    (get-indexes pool opts))
+			    (get-indexes-for-pool pool opts))
 		       (fail))))
       (lognotice |Indexes| 
 	"Found " ($count (|| indexes) "index" "indexes") " for " pool)))
   pool)
 
-(define (get-indexes pool (opts #f))
+(define (get-indexes-for-pool pool (opts #f))
   (or (try (poolctl pool 'props 'indexes)
-	   (let* ((rootdir (dirnrame (pool-source pool)))
+	   (let* ((rootdir (dirname (pool-source pool)))
 		  (indexes (index/ref (poolctl pool 'metadata 'indexes)
 				      (opt+ 'rootdir rootdir opts))))
 	     (poolctl pool 'props 'indexes (try indexes #f))
 	     (do-choices (partition (poolctl pool 'partitions))
-	       (set+! indexes (get-indexes partition opts)))
+	       (set+! indexes (get-indexes-for-pool partition opts)))
 	     indexes))
       (fail)))
 
@@ -342,6 +344,40 @@
 (define (usedb-config var (val))
   (if (bound? val)
       (db/ref val)
-      (|| {(config 'pools) (config 'indexes}))))
+      (|| {(config 'pools) (config 'indexes)})))
 
 (config-def! 'usedb usedb-config)
+
+;;;; Defaults
+
+(define (opt-suffix string suffix)
+  (if (string-ends-with? string #("." (isalnum+)))
+      string
+      (glom string suffix)))
+
+(define (knodb:pool ref)
+  (when (symbol? ref)
+    (if (config ref)
+	(set! ref (config ref))
+	(irritant ref |UndefinedPoolConfigRef|)))
+  (cond ((pool? ref) ref)
+	((index? ref) (irritant ref |InvalidPoolRef|))
+	((and (opts? ref) (testopt ref '{source pool}))
+	 (pool/ref (getopt ref 'pool (opt-suffix (getopt ref 'source) ".pool"))
+		   ref))
+	((string? ref) (pool/ref (opt-suffix ref ".pool")))
+	(else (irritant ref |InvalidPoolRef|))))
+
+(define (knodb:index ref)
+  (when (symbol? ref)
+    (if (config ref)
+	(set! ref (config ref))
+	(irritant ref |UndefinedIndexConfigRef|)))
+  (cond ((index? ref) ref)
+	((pool? ref) (irritant ref |InvalidIndexRef|))
+	((hashtable? ref) ref)
+	((string? ref) (index/ref (opt-suffix ref ".index")))
+	((and (opts? ref) (testopt ref '{source index}))
+	 (pool/ref (getopt ref 'index (opt-suffix (getopt ref 'source) ".index"))
+		   ref))
+	(else (irritant ref |InvalidIndexRef|))))
