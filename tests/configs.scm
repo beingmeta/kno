@@ -3,6 +3,7 @@
 (load-component "common.scm")
 
 (use-module 'varconfig)
+(use-module 'texttools)
 
 (define-init identity (lambda (x) x))
 
@@ -230,6 +231,11 @@
 ;;; READ-CONFIG
 
 (read-config (filestring (get-component "webfiles/root/sample.cfg")))
+
+;;; Using an additional config directory
+(config! 'configsrc (get-component "configsrc"))
+(applytest 3 choice-size (config 'TEST17))
+(applytest "value" second (words->vector (config 'TEST17)))
 
 ;;; Test passing to MAIN
 
