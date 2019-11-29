@@ -330,6 +330,9 @@
 /* Define if file based configuration is built in. */
 #undef KNO_FILECONFIG_ENABLED
 
+/* Define if the default file config locations are used */
+#undef KNO_FILECONFIG_DEFAULTS
+
 /* Define if console dumping of backtraces to HTML is enabled. */
 #undef KNO_HTMLDUMP_ENABLED
 

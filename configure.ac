@@ -1264,8 +1264,13 @@ dnl This builds in file config lookups
 AC_ARG_ENABLE(fileconfig,--en/disable-fileconfig enable file-based configuration,,enable_fileconfig="yes")
 if test "$enable_fileconfig" = "yes"; then
   AC_DEFINE(KNO_FILECONFIG_ENABLED,1)
+  AC_DEFINE(KNO_FILECONFIG_DEFAULTS,1)
+elif test "$enable_fileconfig" = "secure"; then
+  AC_DEFINE(KNO_FILECONFIG_ENABLED,1)
+  AC_DEFINE(KNO_FILECONFIG_DEFAULTS,0)
 else
   AC_DEFINE(KNO_FILECONFIG_ENABLED,0)
+  AC_DEFINE(KNO_FILECONFIG_DEFAULTS,0)
 fi
 
 ### Scheme Module search paths

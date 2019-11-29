@@ -23,6 +23,7 @@
 #include <signal.h>
 #include <sys/types.h>
 #include <pwd.h>
+#include <ctype.h>
 
 #include <libu8/libu8.h>
 #include <libu8/u8netfns.h>
@@ -335,9 +336,24 @@ KNO_EXPORT lispval kno_all_configs(int with_docs)
 KNO_EXPORT
 void kno_register_config_lookup(lispval (*fn)(lispval,void *),void *ldata)
 {
-  struct KNO_CONFIG_FINDER *entry=
-    u8_alloc(struct KNO_CONFIG_FINDER);
+  struct KNO_CONFIG_FINDER *entry = u8_alloc(struct KNO_CONFIG_FINDER);
   u8_lock_mutex(&config_lookup_lock);
+  struct KNO_CONFIG_FINDER *scan = config_lookupfns;
+  struct KNO_CONFIG_FINDER *prev = NULL;
+  while (scan) {
+    if ( (scan->config_lookup == fn) &&
+	 (scan->config_lookup_data == ldata) ) {
+      /* Reorder config lookups */
+      if (prev) {
+	struct KNO_CONFIG_FINDER *next = scan->next_lookup;
+	prev->next_lookup = next;
+	scan->next_lookup = config_lookupfns;
+	config_lookupfns = scan;}
+      u8_lock_mutex(&config_lookup_lock);
+      return;}
+    else {
+      prev = scan;;
+      scan = scan->next_lookup;}}
   entry->config_lookup = fn;
   entry->config_lookup_data = ldata;
   entry->next_lookup = config_lookupfns;
@@ -377,28 +393,79 @@ static lispval file_config_lookup(lispval symbol,void *pathdata)
 {
   u8_string path=
     ((pathdata == NULL) ?
-     ((configdata_path) ? (configdata_path) : ((u8_string)KNO_CONFIG_FILE_PATH)) :
+     ((configdata_path) ? (configdata_path) :
+      ((u8_string)KNO_CONFIG_FILE_PATH)) :
      ((u8_string)pathdata));
-  u8_string filename = u8_find_file(SYM_NAME(symbol),path,u8_file_readablep);
+  u8_string filename =
+    u8_find_file(SYM_NAME(symbol),path,u8_file_readablep);
   if (filename) {
-    int n_bytes; lispval result;
+    int n_bytes; lispval results = KNO_EMPTY;
     unsigned char *content = u8_filedata(filename,&n_bytes);
     if (content[0]==0) {
       struct KNO_INBUF in = { 0 };
-      in.buffer = in.bufread = content+1; in.buflim = in.buffer+n_bytes;
+      in.buffer = in.bufread = content+1;
+      in.buflim = in.buffer+n_bytes;
       in.buf_fillfn = NULL;
-      result = kno_read_dtype(&in);}
+      lispval result = kno_read_dtype(&in);
+      while (in.bufread < in.buflim) {
+	if (ABORTED(result)) {
+	  kno_decref(results);
+	  results = result;
+	  break;}
+	KNO_ADD_TO_CHOICE(results,result);
+	result = kno_read_dtype(&in);}
+      KNO_ADD_TO_CHOICE(results,result);}
     else {
       /* Zap any trailing newlines */
-      if ((n_bytes>1) && (content[n_bytes-1]=='\n'))
-        content[n_bytes-1]='\0';
-      if ((n_bytes>2) && (content[n_bytes-2]=='\r'))
-        content[n_bytes-2]='\0';
-      result = kno_parse_arg(content);}
+      int last_byte = n_bytes-1;
+      while ( (content[last_byte]<128) && (isspace(content[last_byte])) ) {
+	content[last_byte]='\0'; last_byte--;}
+      n_bytes = last_byte+1;
+      struct U8_INPUT instream;
+      U8_INIT_STRING_INPUT(&instream,n_bytes,content);
+      lispval result = kno_read_arg(&instream);
+      while (1) {
+	if (KNO_ABORTED(result)) {
+	  kno_decref(results);
+	  results=result;
+	  break;}
+	else {KNO_ADD_TO_CHOICE(results,result);}
+	int c = kno_skip_whitespace(&instream);
+	if (c < 0) break; else u8_ungetc(&instream,c);
+	result = kno_read_arg(&instream);
+	if (result == KNO_EOF) break;}}
     u8_free(filename);
     u8_free(content);
-    return result;}
+    return kno_simplify_choice(results);}
   else return VOID;
+}
+
+static lispval get_config_sources(lispval var,void *data)
+{
+  lispval paths = KNO_EMPTY_LIST;
+  u8_lock_mutex(&config_lookup_lock);
+  struct KNO_CONFIG_FINDER *scan = config_lookupfns;
+  while (scan) {
+    if ( (scan->config_lookup == file_config_lookup) &&
+	 (scan->config_lookup_data) ) {
+      u8_string s = (u8_string) (scan->config_lookup_data);
+      paths = kno_init_pair(NULL,knostring(s),paths);}
+    scan = scan->next_lookup;}
+  u8_unlock_mutex(&config_lookup_lock);
+  lispval in_search_order = kno_reverse_list(paths);
+  kno_decref(paths);
+  return in_search_order;
+}
+
+static int add_config_source(lispval var,lispval val,void *data)
+{
+  if (KNO_STRINGP(val)) {
+    u8_string copy = u8_strdup(KNO_CSTRING(val));
+    kno_register_config_lookup(file_config_lookup,(void *)copy);
+    return 1;}
+  else {
+    kno_seterr("NotAString","add_config_dir",NULL,val);
+    return -1;}
 }
 
 #endif
@@ -1104,9 +1171,15 @@ void kno_init_config_c()
 
 #if KNO_FILECONFIG_ENABLED
   kno_register_config
-    ("CONFIGDATA",_("Directory for looking up config entries"),
+    ("CONFIGSRC",
+     _("Directory/path (cumulative) for looking up config settings"),
+     get_config_sources,add_config_source,NULL);
+#if KNO_FILECONFIG_DEFAULTS
+  kno_register_config
+    ("CONFIGDATA",_("Default directory for looking up config entries"),
      kno_sconfig_get,kno_sconfig_set,&configdata_path);
   kno_register_config_lookup(file_config_lookup,NULL);
+#endif
 #endif
 
   if (! (getenv("KNO_DISABLE_ENVCONFIG")) )
