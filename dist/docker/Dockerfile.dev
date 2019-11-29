@@ -13,5 +13,7 @@ RUN apt-get -yqq install build-essential make cmake autoconf autoconf-archive \
       libhyphen-dev libedit-dev libsasl2-dev libmongoc-dev libbson-dev \
       sqlite3 libmysqlclient-dev libleveldb-dev librocksdb-dev libsqlite3-dev \
       libmongoc-dev libbson-dev \
-      libu8-dev kno-dev
+      libu8-dev kno-dev; \
+    echo kno:dev > /app/kno/config/DOCKERIMAGE; \
+    date > /app/kno/config/DOCKER:BUILD:BASE;
 CMD "/bin/bash"
