@@ -35,13 +35,20 @@
 
 ;;; Utility functions
 
-(define (checkdir source opts)
+(define (opt-suffix string suffix)
+  (if suffix
+      (if (string-ends-with? string #("." (isalnum+)))
+	  string
+	  (glom string suffix))
+      string))
+
+(define (checkdbpath source opts (suffix #f))
   (cond ((exists position {#\@ #\:} source) source)
-	((not (position #\/ source)) source)
+	((not (position #\/ source)) (opt-suffix source suffix))
 	((file-directory? (dirname source)) source)
 	((getopt opts 'mkdir #f)
 	 (mkdirs (dirname source))
-	 source)
+	 (opt-suffix source suffix))
 	(else (irritant source |MissingDirectory|))))
 
 (define (get-db-source arg (opts #f) (rootdir))
@@ -99,14 +106,16 @@
 	     (testopt opts 'pool)
 	     (testopt opts 'pooltype)
 	     (testopt opts 'type 'pool))
-	 (knodb/pool (make-pool (checkdir dbsource opts) (make-opts opts))
+	 (knodb/pool (make-pool (checkdbpath dbsource opts ".pool")
+		       (make-opts opts))
 		     opts))
 	((or (has-suffix dbsource ".index")
 	     (testopt opts 'index)
 	     (testopt opts 'indextype)
 	     (testopt opts 'type 'index))
 	 (knodb/wrap-index
-	  (make-index (checkdir dbsource opts) (make-opts opts))
+	  (make-index (checkdbpath dbsource opts ".index")
+	    (make-opts opts))
 	  opts))
 	(else (irritant (cons [source dbsource] opts) 
 		  |CantDetermineDBType| flex/dbref))))
@@ -352,11 +361,6 @@
 (config-def! 'usedb usedb-config)
 
 ;;;; Defaults
-
-(define (opt-suffix string suffix)
-  (if (string-ends-with? string #("." (isalnum+)))
-      string
-      (glom string suffix)))
 
 (define (knodb:pool ref)
   (when (symbol? ref)
