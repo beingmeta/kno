@@ -8,18 +8,15 @@ RUN apt-get -yqq update && \
     	    apt-utils software-properties-common tzdata gnupg2 \
 	    zile httpie wget curl && \
     apt-get -yqq full-upgrade
-RUN apt-key adv --receive-keys \
-    	    FE1BC737F9F323D732AA26330620266BE5AFF294 && \
-    add-apt-repository \
-     'deb [arch=any] https://repo.beingmeta.com/apt beingmeta main' && \
-    add-apt-repository \
-     'deb [arch=amd64,arch=i386.arch=arm64,arch=armhf] https://repo.beingmeta.com/apt bionic main' && \
-    apt-get -yqq update
-RUN apt-get -yqq install libu8 libu8-encodings \
+COPY apt/*.list /etc/apt/sources.list.d/
+COPY apt/*.gpg /tmp/
+RUN apt-key add /tmp/*.gpg && rm /tmp/*.gpg && \
+    apt-get -yqq update && \
+    apt-get -yqq install libu8 libu8-encodings \
     	    	 	 kno-core kno-stdlib kno-parseltongue \
      	     	         kno-sqlite kno-zeromq kno-leveldb kno-rocksdb kno-sqlite kno-mysql kno-mongodb \
 			 kno-sundown kno-tidy
-RUN for dir in /app \
+RUN for dir in /app /data \
     	       /app/bin /app/configs /app/log /app/run /app/db /app/data \
 	       /app/kno /app/kno/config \
     	       /data/brico /data/wikid /data/lexdata; \
