@@ -1,6 +1,6 @@
 ;;; -*- Mode: Scheme; -*-
 
-(use-module '{fdweb xhtml texttools optimize samplefns logger})
+(use-module '{webtools xhtml texttools optimize samplefns logger})
 (use-module 'bugjar/html)
 
 (config! 'traceweb #t)

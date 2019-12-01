@@ -3,13 +3,13 @@
 ;;; This is a simple script which shows you the CGIDATA it receives
 ;;; that can be used for various sorts of debugging.
 
-(use-module '{fdweb xhtml})
+(use-module '{webtools xhtml})
 
 (define (main)
   (stylesheet!
    (config 'errorstylesheet
 	   "http://www.beingmeta.com/ext/fdweb/fdweb.css"))
-  (let ((cgidata (threadget 'cgidata)))
+  (let ((cgidata (req/data)))
     (table* ((class "slotmap") (id "CGIDATA"))
       (do-choices (key (getkeys cgidata))
 	(let ((values (get cgidata key)))
