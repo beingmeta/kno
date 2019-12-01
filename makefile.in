@@ -1884,6 +1884,9 @@ install-mod_knocgi: src/apache2/mod_knocgi.so $(DESTDIR)@apache_modinfo@ \
 		fi
 	@echo Installed knocgi module with @rundir@/kno/servlets @logdir@/kno/servlets
 
+update-apache: mod_knocgi
+	make install-mod_knocgi && sudo apachectl restart
+
 $(DESTDIR)@apache_modules_dir@:
 	@$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
 		-d $(DESTDIR)@apache_modules_dir@
