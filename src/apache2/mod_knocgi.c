@@ -28,7 +28,7 @@
 #endif
 
 #ifndef DEBUG_ALL
-#define DEBUG_ALL 0
+#define DEBUG_ALL 1
 #endif
 
 #ifndef DEBUG_KNOWEB
@@ -1289,7 +1289,7 @@ static int start_servlet(request_rec *r,kno_servlet s,
   const char *argv[2+MAX_CONFIGS+1+1+1], **envp, **write_argv=argv;
   struct stat stat_data; int rv, n_configs=0, retval=0;
   uid_t uid; gid_t gid;
-  apr_file_t *lockfile;
+  apr_file_t *lockfile, *logfile;
   int log_sync=dconfig->log_sync, unlock=0;
 
   if (log_sync<0) log_sync=sconfig->log_sync;
@@ -1307,7 +1307,8 @@ static int start_servlet(request_rec *r,kno_servlet s,
       (APLOG_MARK,APLOG_CRIT,lock_status,server,
        "Failed to create lock file %s with status %d (%s) for %s uid=%d gid=%d",
        lockname,lock_status,apr_strerror(lock_status,errbuf,512),
-       r->unparsed_uri,uid,gid);}
+       r->unparsed_uri,uid,gid);
+    return -1;}
   else {
     lock_status=apr_file_lock
       (lockfile,APR_FLOCK_EXCLUSIVE|APR_FLOCK_NONBLOCK);
@@ -1323,7 +1324,7 @@ static int start_servlet(request_rec *r,kno_servlet s,
     else {
       unlock=1;
       ap_log_error
-	(APLOG_MARK,APLOG_WARNING,lock_status,server,
+	(APLOG_MARK,APLOG_NOTICE,lock_status,server,
 	 "Got spawn lock %s for %s uid=%d gid=%d",
 	 lockname,r->unparsed_uri,uid,gid);}}
   if (s->spawning) {
@@ -1356,7 +1357,8 @@ static int start_servlet(request_rec *r,kno_servlet s,
 		 "Logfile %s isn't writable for processing %s, trying %s",
 		 log_file,r->unparsed_uri,new_log_file);
     log_file=new_log_file;}
-  else if (log_file==NULL) log_file=get_log_file(r,sockname);
+  else if (log_file==NULL)
+    log_file=get_log_file(r,sockname);
   else {}
   if ((log_file) && (!(file_writablep(p,server,log_file)))) {
     ap_log_error(APLOG_MARK,APLOG_CRIT,apr_get_os_error(),server,
@@ -1374,11 +1376,11 @@ static int start_servlet(request_rec *r,kno_servlet s,
 
   *write_argv++=(char *)exename;
   *write_argv++=(char *)sockname;
-    
+
   if (gid>0) {
     char *gidconfig=apr_psprintf(p,"RUNGROUP=%d",gid);
     *write_argv++=gidconfig;}
-    
+
   {
     char *launchconfig=apr_psprintf(p,"LAUNCHER=mod_knocgi");
     *write_argv++=launchconfig;}
@@ -1389,7 +1391,8 @@ static int start_servlet(request_rec *r,kno_servlet s,
     while (*scan_config) {
       if (n_configs>MAX_CONFIGS) {
 	ap_log_error(APLOG_MARK,APLOG_CRIT,OK,server,
-		     "Stopped after %d configs!	 Not passing Kno server config %s",
+		     "Stopped after %d configs!	 "
+		     "Not passing Kno server config %s",
 		     n_configs,*scan_config);}
       else {
 	ap_log_error(APLOG_MARK,APLOG_INFO,OK,server,
@@ -1406,7 +1409,8 @@ static int start_servlet(request_rec *r,kno_servlet s,
     while (*scan_config) {
       if (n_configs>MAX_CONFIGS) {
 	ap_log_error(APLOG_MARK,APLOG_CRIT,OK,server,
-		     "Stopped after %d configs!	 Not passing Kno path config %s",
+		     "Stopped after %d configs!	 "
+		     "Not passing Kno path config %s",
 		     n_configs,*scan_config);}
       else {
 	ap_log_error(APLOG_MARK,APLOG_INFO,OK,server,
@@ -1418,40 +1422,15 @@ static int start_servlet(request_rec *r,kno_servlet s,
   else ap_log_error(APLOG_MARK,APLOG_WARNING,OK,server,
 		    "No Kno dir configs for %s (%s)",
 		    sockname,exename);
-    
+
   {
     char *launchurl=apr_psprintf(p,"LAUNCHURL=%s",r->unparsed_uri);
     *write_argv++=launchurl;}
 
   *write_argv++=NULL; n_configs++;
-    
+
   envp=NULL;
-  /* Pass the logfile in through the environment, so we can
-     use it to record processing of config variables */
-  if (log_file) {
-    if (n_configs>MAX_CONFIGS) {
-      ap_log_error(APLOG_MARK,APLOG_CRIT,OK,server,
-		   "Stopped after %d configs!  Not passing LOGFILE=%s",
-		   n_configs,log_file);}
-    else {
-      char *env_entry=apr_psprintf(p,"LOGFILE=%s",log_file);
-      envp=write_argv;
-      *write_argv++=(char *)env_entry;
-      n_configs++;}}
-  if (log_sync) {
-    if (n_configs>MAX_CONFIGS) {
-      ap_log_error(APLOG_MARK,APLOG_CRIT,OK,server,
-		   "Stopped after %d configs!  Not passing LOGFILE=%s",
-		   n_configs,log_file);}
-    else {
-      if (n_configs>MAX_CONFIGS) {
-	ap_log_error(APLOG_MARK,APLOG_CRIT,OK,server,
-		     "Stopped after %d configs! Not passing LOGSYNC",n_configs);}
-      else {
-	char *env_entry=apr_pstrdup(p,"LOGSYNC=yes");
-	if (!(envp)) envp=write_argv;
-	*write_argv++=(char *)env_entry;}}}
-    
+
   if (server_env) {
     const char **scan_env=server_env;
     while (*scan_env) {
@@ -1485,7 +1464,7 @@ static int start_servlet(request_rec *r,kno_servlet s,
       n_configs++;}}
     
   *write_argv++=NULL;
-    
+
   /* Make sure the socket is writable, creating directories
      if needed. */
   check_directory(p,sockname);
@@ -1523,33 +1502,44 @@ static int start_servlet(request_rec *r,kno_servlet s,
     rv = apr_procattr_dir_set(attr,dir);
     if (rv != APR_SUCCESS) {
       ap_log_error(APLOG_MARK, APLOG_ERR, rv, server,
-		   "couldn't set directory to '%s', using '%s') for '%s'",
+		   "couldn't set directory to '%s', using '%s' for '%s'",
 		   dir,cwd,r->filename);
       if (a_ok) a_ok=0;
       dir = cwd;}
     else ap_log_error(APLOG_MARK, APLOG_DEBUG, rv, server,
 		      "Set process working directory to %s for '%s'",
 		      dir,r->filename);
-#if 0
-    rv=apr_procattr_detach_set(attr,0);
-    if (rv != APR_SUCCESS) {
-      ap_log_error(APLOG_MARK, APLOG_ERR, rv, server,
-		   "couldn't make process detachable for '%s'", r->filename);
-      if (a_ok) a_ok=0;}
-    else ap_log_error(APLOG_MARK, APLOG_DEBUG, rv, server,
-		      "Made process detachable for '%s'", r->filename);
-#endif
-  }
 
-  {
-    const char **scanner=argv; while (scanner<write_argv) {
+    if (log_file) {
+      apr_file_t *file;
+      apr_file_t *log_output;
+      apr_status_t status =
+	apr_file_open(&log_output,log_file,
+		      APR_FOPEN_WRITE|APR_FOPEN_APPEND|APR_FOPEN_CREATE,
+		      APR_FPROT_OS_DEFAULT,
+		      p);
+      if (status == APR_SUCCESS)
+	status=apr_procattr_child_out_set(attr,log_output,NULL);
+      if (status == APR_SUCCESS)
+	status=apr_procattr_child_err_set(attr,log_output,NULL);
+      if (status == APR_SUCCESS)
+	ap_log_error(APLOG_MARK,APLOG_NOTICE,OK,server,
+		     "Opened logfile '%s' for servlet '%s'",
+		     log_file,r->filename);
+      else {
+	ap_log_error(APLOG_MARK,APLOG_CRIT,status,server,
+		     "Couldn't open logfile '%s' for servlet '%s'",
+		     log_file,r->filename);
+	return -1;}}}
+
+  {const char **scanner=argv; while (scanner<write_argv) {
       if ((envp) && (scanner>=envp))
 	ap_log_error(APLOG_MARK, LOGDEBUG, OK, server,
-		      "%s ENV[%ld]='%s'",
-		      exename,((long int)(scanner-argv)),*scanner);
+		     "%s ENV[%ld]='%s'",
+		     exename,((long int)(scanner-argv)),*scanner);
       else ap_log_error(APLOG_MARK, LOGDEBUG, OK, server,
-			 "%s ARG[%ld]='%s'",
-			 exename,((long int)(scanner-argv)),*scanner);
+			"%s ARG[%ld]='%s'",
+			exename,((long int)(scanner-argv)),*scanner);
       scanner++;}}
 
   if ((stat(sockname,&stat_data) == 0)&&
@@ -1568,20 +1558,25 @@ static int start_servlet(request_rec *r,kno_servlet s,
   rv=apr_proc_create(proc,exename,(const char **)argv,envp,attr,p);
   if (rv!=APR_SUCCESS) {
     ap_log_rerror(APLOG_MARK,APLOG_EMERG, rv, r,
-		  "Couldn't spawn %s @%s for %s [rv=%d,pid=%d,uid=%d,gid=%d]",
-		  exename,sockname,r->unparsed_uri,rv,proc->pid,uid,gid);
+		  "Couldn't spawn %s @%s for %s "
+		  "[rv=%d,pid=%d,uid=%d,gid=%d]",
+		  exename,sockname,r->unparsed_uri,
+		  rv,proc->pid,uid,gid);
     /* We don't exit right away because there might be a race condition
        so another process is creating the socket.  So we still wait. */
     retval=-1;}
   else if (log_file)
     ap_log_error
       (APLOG_MARK,APLOG_NOTICE,rv,server,
-       "Spawned %s @%s (logfile=%s) for %s [rv=%d,pid=%d,uid=%d,uid=%d,dir=%s]",
+       "Spawned %s @%s (logfile=%s) for %s "
+       "[rv=%d,pid=%d,uid=%d,uid=%d,dir=%s]",
        exename,sockname,log_file,r->unparsed_uri,rv,
        proc->pid,uid,gid,dir);
   else ap_log_error(APLOG_MARK,APLOG_NOTICE,rv,server,
-		    "Spawned %s @%s (nolog) for %s [rv=%d,pid=%d,uid=%d,gid=%d,dir=%s]",
-		    exename,sockname,r->unparsed_uri,rv,proc->pid,uid,gid,dir);
+		    "Spawned %s @%s (nolog) for %s "
+		    "[rv=%d,pid=%d,uid=%d,gid=%d,dir=%s]",
+		    exename,sockname,r->unparsed_uri,
+		    rv,proc->pid,uid,gid,dir);
 
   {
     int exitcode; apr_exit_why_e why;
@@ -1767,6 +1762,10 @@ static kno_servlet add_servlet(struct request_rec *r,const char *sockname,
 	hostname[split-sockname]='\0';
 	portno=atoi(split+1);}
       else {}
+      ap_log_rerror
+	(APLOG_MARK,APLOG_DEBUG,OK,r,
+	 "sockname=%s, hostname=%s, portno=%d",
+	 sockname,hostname,portno);
       if (portno<0) {
 	ap_log_rerror
 	  (APLOG_MARK,APLOG_WARNING,OK,r,
@@ -1782,13 +1781,7 @@ static kno_servlet add_servlet(struct request_rec *r,const char *sockname,
 	   "Unable to resolve connection info for port %d at %s",
 	   portno,sockname);
 	apr_thread_mutex_unlock(servlets_lock);
-	return NULL;}
-      else {
-	apr_sockaddr_ip_get(&rname,addr);
-	ap_log_rerror
-	  (APLOG_MARK,APLOG_DEBUG,OK,r,
-	   "Got info for port %d at %s, addr=%s, port=%d",
-	   portno,hostname,rname,addr->port);}}
+	return NULL;}}
     apr_thread_mutex_create(&(servlet->lock),
 			    APR_THREAD_MUTEX_DEFAULT,kno_pool);
     servlet->max_socks=max_socks;
