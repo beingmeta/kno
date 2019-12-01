@@ -234,8 +234,10 @@ static int statlog_set(lispval var,lispval val,void *data)
     u8_string filename = CSTRING(val);
     u8_lock_mutex(&log_lock);
     if (statlog) {
-      fclose(statlog); statlog = NULL;
-      u8_free(statlogfile); statlogfile = NULL;}
+      fclose(statlog);
+      statlog = NULL;
+      u8_free(statlogfile);
+      statlogfile = NULL;}
     statlogfile = u8_abspath(filename,NULL);
     statlog = u8_fopen_locked(statlogfile,"a");
     if ((statlog == NULL)&&(u8_file_existsp(statlogfile))) {
@@ -1961,7 +1963,6 @@ int main(int argc,char **argv)
   unsigned char arg_mask[argc];  memset(arg_mask,0,argc);
   u8_string socket_spec = NULL;
   u8_string load_source = NULL;
-  u8_string logfile = NULL;
 
   KNO_INIT_STACK();
 
@@ -1982,7 +1983,7 @@ int main(int argc,char **argv)
   u8_init_chardata_c();
 #endif
 
-  /* Find the socket spec (the non-config arg) */
+  /* Find the socket spec (the first non-config arg) */
   i = 1; while (i<argc) {
     if (isconfig(argv[i])) {
       u8_log(LOG_NOTICE,"ServletConfig","    %s",argv[i]);
@@ -1995,110 +1996,25 @@ int main(int argc,char **argv)
   }
   i = 1;
 
-  if (getenv("STDLOG")) {
-    u8_log(LOG_WARN,Startup,"Obeying STDLOG and using stdout/stderr for logging");}
-  else if (getenv("LOGFILE")) {
-    char *envfile = getenv("LOGFILE");
-    if ((envfile)&&(envfile[0])&&(strcmp(envfile,"-")))
-      logfile = u8_fromlibc(envfile);
-    u8_log(LOG_WARN,Startup,"Using logfile %s from environment",envfile);}
-  else if (socket_spec == NULL) {
-    u8_log(LOG_WARN,Startup,
-	   "No command line socket specification to name logfile, using stdout");}
-  else {
-    u8_string logdir = getenv("LOGDIR");
-    if (logdir == NULL) logdir=KNO_SERVLET_LOG_DIR;
-    u8_string base = u8_basename(socket_spec,"*");
-    if ( (base) && (base[0]) ) {
-      u8_string logname = u8_mkstring("%s.log",base);
-      logfile = u8_mkpath(logdir,logname);
-      u8_free(logname);}
-    u8_free(base);}
-
-  if (logfile)
-    u8_log(LOG_WARN,Startup,"Using %s as log file",logfile);
-  else u8_log(LOG_WARN,Startup,"No logfile, using stdout/stderr");
-  
-  /* Close and reopen STDIN */
-  close(0);  if (open("/dev/null",O_RDONLY) == -1) {
-    u8_log(LOG_CRIT,ServletAbort,"Unable to reopen stdin for daemon");
-    exit(1);}
-
-  if (getenv("RUNGROUP")) {
-    u8_string rungroup = getenv("RUNGROUP");
-    u8_gid gid = u8_getgid(rungroup);
-    if (gid<0)
-      u8_log(LOGERR,"UnknownGroupName","%s",rungroup);
-    else {
-      int rv = setgid(gid);
-      if (rv<0) {
-        u8_string errstring = u8_strerror(errno); errno=0;
-        u8_log(LOGERR,"SetGroupFailed",
-               "Couldn't set group to %s (%d): %s",
-               rungroup,gid,errstring);}}}
-
-  if ( (geteuid()) == 0) {
-    /* Avoid running as root */
-    u8_string runuser = getenv("RUNUSER");
-    if (runuser == NULL) runuser = KNO_WEBUSER;
-    if (runuser) {
-      u8_uid uid = u8_getgid(runuser);
-      if (uid>=0) {
-        int rv = setuid(uid);
-        if (rv < 0) {
-          u8_string errstring = u8_strerror(errno); errno=0;
-          u8_log(LOGERR,"SetUserFailed",
-                 "Couldn't set user to %s (%d): %s",
-                 runuser,uid,errstring);}}
-      else {
-        u8_log(LOGERR,"UnknownUser","%s",runuser);
-        exit(1);}}}
-
   if ( (geteuid()) == 0)
     u8_log(LOGCRIT,"RootUser","Running as root, probably a bad idea");
-
-  /* We do this using the Unix environment (rather than configuration
-     variables) for two reasons.  First, we want to redirect errors
-     from the processing of the configuration variables themselves
-     (where lots of errors could happen); second, we want to be able
-     to set this in the environment we wrap around calls (which is how
-     mod_knocgi does it). */
-  if (logfile) {
-    int logsync = ((getenv("LOGSYNC") == NULL)?(0):(O_SYNC));
-    int log_fd = open(logfile,O_RDWR|O_APPEND|O_CREAT|logsync,0644);
-    if (log_fd<0) {
-      u8_log(LOG_CRIT,ServletAbort,"Couldn't open log file %s",logfile);
-      exit(1);}
-    dup2(log_fd,1);
-    dup2(log_fd,2);
-    char header[] =
-      ";;====||====||====||====||====||====||====||===="
-      "||====||====||====||====||====||====||====||===="
-      "||====||====||====||====||====||====||====||====\n";
-    ssize_t written = write(1,header,strlen(header));
-    if (written < 0) {
-      int err = errno; errno=0;
-      u8_log(LOG_WARN,"WriteFailed",
-	     "Write to output failed errno=%d:%s",err,u8_strerror(err));
-      exit(1);}}
     
-  if (socket_spec)
-    kno_setapp(socket_spec,NULL);
-  else kno_setapp("knocgi",NULL);
-  kno_boot_message();
-  u8_now(&boot_time);
-
   u8_init_mutex(&server_port_lock);
 
   if (!(socket_spec)) {}
-  else if (strchr(socket_spec,'/'))
-    socket_spec = u8_abspath(socket_spec,NULL);
   else if ((strchr(socket_spec,':'))||(strchr(socket_spec,'@')))
     socket_spec = u8_strdup(socket_spec);
   else {
-    u8_string sockets_dir = u8_mkpath(KNO_RUN_DIR,"servlets");
-    socket_spec = u8_mkpath(sockets_dir,socket_spec);
-    u8_free(sockets_dir);}
+    if (strchr(socket_spec,'/'))
+      socket_spec = u8_abspath(socket_spec,NULL);
+    else {
+      u8_string sockets_dir = u8_mkpath(KNO_RUN_DIR,"servlets");
+      socket_spec = u8_mkpath(sockets_dir,socket_spec);
+      u8_free(sockets_dir);}
+    kno_setapp(socket_spec,NULL);}
+  
+  kno_boot_message();
+  u8_now(&boot_time);
 
   if (socket_spec) add_port(socket_spec);
 
@@ -2107,6 +2023,14 @@ int main(int argc,char **argv)
 
   /* Process the command line */
   kno_handle_argv(argc,argv,arg_mask,NULL);
+
+  if ((strchr(socket_spec,':'))||(strchr(socket_spec,'@'))) {
+    if (u8_appid())
+      kno_setapp(u8_appid(),NULL);
+    else {
+      u8_string servlets_dir = u8_mkpath(KNO_RUN_DIR,"servlets");
+      kno_setapp(socket_spec,servlets_dir);
+      u8_free(servlets_dir);}}
 
   KNO_NEW_STACK(((struct KNO_STACK *)NULL),"servlet",NULL,VOID);
   _stack->stack_label=u8_strdup(u8_appid());

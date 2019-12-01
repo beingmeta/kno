@@ -217,39 +217,6 @@ static int server_loopfn(struct U8_SERVER *server)
   return 1;
 }
 
-/* Log files */
-
-u8_condition LogFileError=_("Log file error");
-
-static u8_string log_filename = NULL;
-static int log_fd = -1;
-static int set_logfile(u8_string logfile,int exitonfail)
-{
-  int logsync = ((getenv("LOGSYNC") == NULL)?(0):(O_SYNC));
-  if (!(logfile)) {
-    u8_log(LOG_WARN,ServerConfig,"Can't specify NULL log file");
-    if (exitonfail) exit(1);
-    u8_seterr(LogFileError,"set_logfile",u8_strdup("Can't set NULL log file"));
-    return -1;}
-  int new_fd = open(logfile,O_RDWR|O_APPEND|O_CREAT|logsync,0644);
-  if (new_fd<0) {
-    u8_log(LOG_WARN,ServerConfig,"Couldn't open log file %s",logfile);
-    if (exitonfail) exit(1);
-    u8_seterr(LogFileError,"set_logfile",u8_strdup(logfile));
-    return -1;}
-  else if ((log_filename)&&((strcmp(logfile,log_filename))!=0))
-    u8_log(LOG_WARN,ServerConfig,"Changing log file to %s from %s",
-           logfile,log_filename);
-  else u8_log(LOG_WARN,ServerConfig,"Using log file %s",logfile);
-  dup2(new_fd,1);
-  dup2(new_fd,2);
-  if (log_fd>=0) close(log_fd);
-  log_fd = new_fd;
-  if (log_filename) u8_free(log_filename);
-  log_filename = u8_strdup(logfile);
-  return 1;
-}
-
 /* Configuration
    This uses the CONFIG facility to setup the server.  Some
    config options just set static variables which control the server,
@@ -903,10 +870,6 @@ static lispval boundp_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       kno_decref(val); return KNO_TRUE;}}
 }
 
-/* State dir */
-
-static u8_string state_dir = NULL;
-
 /* The main() event */
 
 static void init_server()
@@ -947,7 +910,6 @@ int main(int argc,char **argv)
   int i = 1;
   /* Mask of args which we handle */
   unsigned char arg_mask[argc];  memset(arg_mask,0,argc);
-  u8_string logfile = NULL;
 
   u8_log_show_date=1;
   u8_log_show_procinfo=1;
@@ -1001,57 +963,9 @@ int main(int argc,char **argv)
     source_file = server_spec;
   else server_port = server_spec;
 
-  if (getenv("STDLOG")) {
-    u8_log(LOG_WARN,Startup,"Obeying STDLOG and using stdout/stderr for logging");}
-  else if (getenv("LOGFILE")) {
-    char *envfile = getenv("LOGFILE");
-    if ((envfile)&&(envfile[0])&&(strcmp(envfile,"-")))
-      logfile = u8_fromlibc(envfile);}
-  else if ((getenv("LOGDIR"))&&(server_spec)) {
-    u8_string base = u8_basename(server_spec,"*");
-    u8_string logname = u8_mkstring("%s.log",base);
-    logfile = u8_mkpath(getenv("LOGDIR"),logname);
-    u8_free(base); u8_free(logname);}
-  else if ((!(foreground))&&(server_spec)) {
-    u8_string base = u8_basename(server_spec,"*");
-    u8_string logname = u8_mkstring("%s.log",base);
-    logfile = u8_mkpath(KNO_SERVLET_LOG_DIR,logname);
-    u8_free(base); u8_free(logname);}
-  else u8_log(LOG_WARN,Startup,"No logfile, using stdout");
-
-  /* Close and reopen STDIN */
-  close(0);  if (open("/dev/null",O_RDONLY) == -1) {
-    u8_log(LOG_CRIT,ServerAbort,"Unable to reopen stdin for daemon");
-    exit(1);}
-
-  /* We do this using the Unix environment (rather than configuration
-     variables) for two reasons.  First, we want to redirect errors
-     from the processing of the configuration variables themselves
-     (where lots of errors could happen); second, we want to be able
-     to set this in the environment we wrap around calls (which is how
-     mod_knocgi does it). */
-  if (logfile) {
-    int logsync = ((getenv("LOGSYNC") == NULL)?(0):(O_SYNC));
-    int log_fd = open(logfile,O_RDWR|O_APPEND|O_CREAT|logsync,0644);
-    if (log_fd<0) {
-      u8_log(LOG_CRIT,ServerAbort,"Couldn't open log file %s",logfile);
-      exit(1);}
-    dup2(log_fd,1);
-    dup2(log_fd,2);}
-
-  char header[] =
-    ";;====||====||====||====||====||====||====||===="
-    "||====||====||====||====||====||====||====||===="
-    "||====||====||====||====||====||====||====||====\n";
-  ssize_t written = write(1,header,strlen(header));
-  if (written < 0) {
-    int err = errno; errno=0;
-    u8_log(LOG_WARN,"WriteFailed",
-           "Write to output failed errno=%d:%s",err,u8_strerror(err));}
-
-  kno_setapp(server_spec,state_dir);
+  kno_setapp(server_spec,NULL);
   kno_boot_message();
-
+  
   {
     if (argc>2) {
       struct U8_OUTPUT out; unsigned char buf[2048]; int i = 1;
@@ -1103,18 +1017,6 @@ int main(int argc,char **argv)
 
   /* Initialize config settings */
   init_configs();
-
-  if (getenv("STDLOG")) {}
-  else if (log_filename) {}
-  else if ((!(foreground))&&(server_spec)) {
-    u8_string base = u8_basename(server_spec,"*");
-    u8_string logname = u8_mkstring("%s.log",base);
-    u8_string logfile = u8_mkpath(KNO_DAEMON_LOG_DIR,logname);
-    set_logfile(logfile,1);
-    u8_free(base); u8_free(logname);}
-  else {
-    u8_log(LOG_WARN,Startup,"No logfile, using stdout");}
-
 
   /* Get the core environment */
   core_env = init_core_env();
@@ -1247,9 +1149,6 @@ static void init_configs()
      _("Max number of object elements to display in debug messages"),
      kno_intconfig_get,kno_intconfig_set,
      &debug_maxelts);
-  kno_register_config
-    ("STATEDIR",_("Where to write server pid/nid files"),
-     kno_sconfig_get,kno_sconfig_set,&state_dir);
   kno_register_config
     ("ASYNCMODE",_("Whether to run in asynchronous mode"),
      kno_boolconfig_get,kno_boolconfig_set,&async_mode);
