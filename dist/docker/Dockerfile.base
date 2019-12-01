@@ -6,7 +6,7 @@ MAINTAINER repoman@beingmeta.com
 RUN apt-get -yqq update && \
     apt-get -yqq install \
     	    apt-utils software-properties-common tzdata gnupg2 \
-	    zile httpie && \
+	    zile httpie wget curl && \
     apt-get -yqq full-upgrade
 RUN apt-key adv --receive-keys \
     	    FE1BC737F9F323D732AA26330620266BE5AFF294 && \
@@ -19,12 +19,14 @@ RUN apt-get -yqq install libu8 libu8-encodings \
     	    	 	 kno-core kno-stdlib kno-parseltongue \
      	     	         kno-sqlite kno-zeromq kno-leveldb kno-rocksdb kno-sqlite kno-mysql kno-mongodb \
 			 kno-sundown kno-tidy
-RUN for dir in /data /src /app /kno \
-    	       /app/bin /app/db /app/config /app/data \
+RUN for dir in /app \
+    	       /app/bin /app/configs /app/log /app/run /app/db /app/data \
 	       /app/kno /app/kno/config \
     	       /data/brico /data/wikid /data/lexdata; \
-	do if test ! -d ${dir}; then mkdir ${dir}; fi; done; \
-     echo /app/kno/:/kno > /etc/kno/config/LOADPATH; \
+	do if test ! -d ${dir}; then mkdir ${dir}; fi; \
+	   chmod ag+rwX ${dir}; \
+     done; \
+     echo /app/kno/ > /etc/kno/config/LOADPATH; \
      echo /app/kno/config/ > /etc/kno/config/CONFIGSRC; \
      echo kno:base > /app/kno/config/DOCKERIMAGE; \
      date > /app/kno/config/DOCKER:BUILD:BASE;
