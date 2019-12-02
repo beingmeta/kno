@@ -108,6 +108,9 @@
       (cons* sourceref-opcode source optimized)
       optimized))
 
+(define (optimizable? arg)
+  (and (not (fcnid? arg)) (compound-procedure? arg)))
+
 ;;; What we export
 
 (module-export! '{optimize! optimized optimized? use+
@@ -738,7 +741,7 @@
   (reflect/get arg 'optimized))
 
 (define (optimized? arg)
-  (if (compound-procedure? arg)
+  (if (optimizable? arg)
       (procedure-optimized? arg)
       (and (or (hashtable? arg) (slotmap? arg) (schemap? arg)
 	       (environment? arg))
@@ -769,7 +772,7 @@
     (when bindings
       (do-choices (var bindings)
 	(let ((value (get module var)))
-	  (when (and (exists? value) (compound-procedure? value))
+	  (when (and (exists? value) (optimizable? value))
 	    (loginfo |OptimizeModule|
 	      "Optimizing procedure " var " in " module)
 	    (set! count (1+ count))
@@ -807,7 +810,7 @@
     (do-choices (var bindings)
       (loginfo "Deoptimizing module binding " var)
       (let ((value (get module var)))
-	(when (and (exists? value) (compound-procedure? value))
+	(when (and (exists? value) (optimizable? value))
 	  (when (deoptimize-procedure! value)
 	    (set! count (1+ count))))))
     count))
@@ -822,7 +825,7 @@
       (logdebug "Optimizing binding " var)
       (let ((value (get bindings var)))
 	(if (defined? value)
-	    (when (compound-procedure? value)
+	    (when (optimizable? value)
 	      (set! count (1+ count))
 	      (optimize-procedure! value #f))
 	    (unless (default? value) 
@@ -836,7 +839,7 @@
       (logdetail |Deoptimize| "Deoptimizing binding " var)
       (let ((value (get bindings var)))
 	(if (defined? value)
-	    (when (compound-procedure? value)
+	    (when (optimizable? value)
 	      (when (deoptimize-procedure! value)
 		(set! count (1+ count))))
 	    (if (bound? value)
@@ -851,14 +854,14 @@
 
 (define (optimize*! . args)
   (dolist (arg args)
-    (cond ((compound-procedure? arg) (optimize-procedure! arg))
+    (cond ((optimizable? arg) (optimize-procedure! arg))
 	  ((table? arg) (optimize-module! arg))
 	  (else (error '|TypeError| 'optimize*
 			 "Invalid optimize argument: " arg)))))
 
 (define (deoptimize*! . args)
   (dolist (arg args)
-    (cond ((compound-procedure? arg) (deoptimize-procedure! arg))
+    (cond ((optimizable? arg) (deoptimize-procedure! arg))
 	  ((table? arg) (deoptimize-module! arg))
 	  (else (error '|TypeError| 'optimize*
 			 "Invalid optimize argument: " arg)))))
@@ -960,10 +963,11 @@
   (optimize-module! (get-module modules)))
 
 (define (optimized arg)
-  (cond ((compound-procedure? arg) (optimize-procedure! arg))
+  (cond ((optimizable? arg) (optimize-procedure! arg))
 	((or (hashtable? arg) (slotmap? arg) (schemap? arg)
 	     (environment? arg))
 	 (optimize-module! arg))
+	((and (fcnid? arg) (compound-procedure? arg)) arg)
 	(else (irritant arg |TypeError| OPTIMIZED
 			"Not a compound procedure, environment, or module")))
   arg)
