@@ -1159,7 +1159,8 @@ static int webservefn(u8_client ucl)
       result = kno_err(u8_CantOpenFile,"Servlet/retfile","existing filename",
                       retfile);}}
   /* Output is done, so stop writing */
-  if (!(KNO_TROUBLEP(result))) u8_set_default_output(NULL);
+  if (!(KNO_TROUBLEP(result)))
+    u8_set_default_output(NULL);
   else recovered = 0;
   if (KNO_TROUBLEP(result)) {
     u8_exception ex = u8_erreify();
@@ -1515,10 +1516,12 @@ static int webservefn(u8_client ucl)
       kno_decref(cleanup_val);}}
   run_postflight();
   if (threadcache) kno_pop_threadcache(threadcache);
+  u8_set_default_output(NULL);
   kno_use_reqinfo(EMPTY);
   kno_reqlog(-1);
   kno_thread_set(browseinfo_symbol,VOID);
-  kno_decref(init_cgidata); init_cgidata = VOID;
+  kno_decref(init_cgidata);
+  init_cgidata = VOID;
   kno_clear_errors(1);
   write_time = u8_elapsed_time();
   getloadavg(end_load,3);

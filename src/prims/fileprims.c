@@ -285,7 +285,7 @@ static lispval simple_fileout_evalfn(lispval expr,kno_lexenv env,kno_stack _stac
 {
   lispval filename_arg = kno_get_arg(expr,1);
   lispval filename_val = kno_eval(filename_arg,env);
-  U8_OUTPUT *f, *oldf; int doclose;
+  U8_OUTPUT *f, *oldf = NULL; int doclose;
   if (KNO_ABORTP(filename_val)) return filename_val;
   else if (KNO_PORTP(filename_val)) {
     KNO_PORT *port = kno_consptr(KNO_PORT *,filename_val,kno_ioport_type);
@@ -314,7 +314,7 @@ static lispval simple_fileout_evalfn(lispval expr,kno_lexenv env,kno_stack _stac
 	u8_set_default_output(oldf);
 	kno_decref(filename_val);
 	return value;}}}
-  if (oldf) u8_set_default_output(oldf);
+  u8_set_default_output(oldf);
   if (doclose) u8_close_output(f);
   else u8_flush(f);
   kno_decref(filename_val);

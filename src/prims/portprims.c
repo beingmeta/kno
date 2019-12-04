@@ -348,6 +348,7 @@ lispval kno_printout_to(U8_OUTPUT *out,lispval body,kno_lexenv env)
     lispval value = fast_eval(KNO_CAR(body),env);
     if (KNO_ABORTED(value)) {
       u8_flush(out);
+      u8_set_default_output(prev);
       return value;}
     else if (printout_helper(out,value))
       kno_decref(value);

@@ -249,7 +249,8 @@ static lispval logif_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
         kno_decref(condition_name);}
       else {}
       body = KNO_CDR(body);}
-    kno_decref(value); u8_set_default_output(out);
+    kno_decref(value);
+    u8_set_default_output(out);
     while (PAIRP(body)) {
       lispval value = fast_eval(KNO_CAR(body),env);
       if (printout_helper(out,value)) kno_decref(value);
