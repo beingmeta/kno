@@ -714,6 +714,40 @@ static lispval lisp_string2symbol(lispval s)
   return kno_intern(KNO_STRING_DATA(s));
 }
 
+DEFPRIM1("getsym",lisp_getsym,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "`(getsym *arg*)` if *arg* is a string, "
+	 "interns a lowercase version of it. If *arg* is "
+	 "a symbol, returns it, otherwise errors.",
+	 -1,KNO_VOID);
+static lispval lisp_getsym(lispval s)
+{
+  if (KNO_SYMBOLP(s))
+    return s;
+  else if (KNO_STRINGP(s))
+    return kno_getsym(KNO_STRING_DATA(s));
+  else return kno_err("NotStringOrSymbol","lisp_getsym",NULL,s);
+}
+
+DEFPRIM1("getslotid",lisp_getslotid,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "`(getslot *arg*)` tries to get a slotid (symbol or OID) "
+	 "from *arg*, parsing OIDs and interning lowercase strings, "
+	 "signalling an error on failure",
+	 -1,KNO_VOID);
+static lispval lisp_getslotid(lispval s)
+{
+  if ( (KNO_SYMBOLP(s)) || (KNO_OIDP(s)) )
+    return s;
+  else if (KNO_STRINGP(s)) {
+    u8_string str = KNO_CSTRING(s);
+    if ( (*str == '@') || ( (*str == ':') && (str[1] == '@') ) ) {
+      lispval arg = kno_parse_arg(str);
+      if (KNO_OIDP(arg))
+	return arg;
+      else kno_err("NotASlot","lisp_getsym",NULL,s);}
+    else return kno_getsym(str);}
+  return kno_err("NotStringOrSymbol","lisp_getsym",NULL,s);
+}
+
 /* HASHPTR */
 
 DEFPRIM1("hashptr",hashptr_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDOP,
@@ -813,6 +847,8 @@ static void link_local_cprims()
   KNO_LINK_PRIM("hashptr",hashptr_prim,1,scheme_module);
   KNO_LINK_PRIM("string->symbol",lisp_string2symbol,1,scheme_module);
   KNO_LINK_PRIM("symbol->string",lisp_symbol2string,1,scheme_module);
+  KNO_LINK_PRIM("getsym",lisp_getsym,1,scheme_module);
+  KNO_LINK_PRIM("getslotid",lisp_getslotid,1,scheme_module);
   KNO_LINK_PRIM("unparse-arg",lisp_unparse_arg,1,scheme_module);
   KNO_LINK_PRIM("parse-arg",lisp_parse_arg,1,scheme_module);
   KNO_LINK_PRIM("->lisp",lisp_tolisp,1,scheme_module);
