@@ -5,7 +5,14 @@
 
 (use-module '{ezrecords stringfmts logger texttools})
 
-(module-export! '{knodb/file knodb/partition-files})
+(module-export! '{knodb/file knodb/partition-files opt-suffix})
+
+(define (opt-suffix string suffix)
+  (if suffix
+      (if (string-ends-with? string #("." (isalnum+)))
+	  string
+	  (glom string suffix))
+      string))
 
 (define (try-file . args)
   (let ((file (apply glom args)))

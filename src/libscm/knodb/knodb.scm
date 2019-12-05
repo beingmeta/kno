@@ -35,13 +35,6 @@
 
 ;;; Utility functions
 
-(define (opt-suffix string suffix)
-  (if suffix
-      (if (string-ends-with? string #("." (isalnum+)))
-	  string
-	  (glom string suffix))
-      string))
-
 (define (checkdbpath source opts (suffix #f))
   (cond ((exists position {#\@ #\:} source) source)
 	((not (position #\/ source)) (opt-suffix source suffix))
