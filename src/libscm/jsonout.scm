@@ -29,10 +29,13 @@
 (define-init *json-refslot* #f)
 (varconfig! JSON:REFSLOT *json-refslot*)
 
-;; A slotid/key storing an ID for rendering tables 
+;; Slots/keys whose values should always be arrays
 (define-init *json-vecslots* {})
 (varconfig! JSON:VECSLOTS *json-vecslots* #f choice)
 
+;; Slots/keys which 
+(define-init *json-symslots* {})
+(varconfig! JSON:SYMSLOTS *json-symslots* #f choice)
 
 ;; A slotid or function for generating references from OIDs
 (define-init *json-oidref* #f)
@@ -67,8 +70,10 @@
 	  (unparse-arg slotid))))
 
 (defambda (jsonfield field value (valuefn #f) 
-		     (prefix #f) (context #f) (vecval))
+		     (prefix #f) (context #f)
+		     (vecval) (symval))
   (default! vecval (overlaps? field *json-vecslots*))
+  (default! symval (overlaps? field *json-symslots*))
   (unless (string? field)
     (set! field
       (if (symbol? field) (downcase field)
@@ -81,7 +86,9 @@
       (when (> i 0) (printout ","))
       (if valuefn
 	  (jsonout (valuefn value context) #f)
-	  (jsonout value #f)))
+	  (if (and (symbol? value) symval)
+	      (jsonout (symbol->string value))
+	      (jsonout value #f))))
     (if (or vecval (not (singleton? value))) (printout "]"))))
 
 (defambda (jsonfield+ field value (valuefn #f) 
@@ -98,7 +105,9 @@
       (when (> i 0) (printout ","))
       (if valuefn
 	  (jsonout (valuefn value context) #f)
-	  (jsonout value #f)))
+	  (if (and (symbol? value) symval)
+	      (jsonout (symbol->string value))
+	      (jsonout value #f))))
     "]"))
 
 (define (getkv table (slotid) (assocs))
