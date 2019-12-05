@@ -9,6 +9,12 @@
 
 
 default: full.image base.image
+pushed: full.pushed base.pushed
+clean:
+	rm -f *.image *.pushed
+fresh:
+	make clean
+	make default
 
 full.image: base.image
 dev.image: full.image
