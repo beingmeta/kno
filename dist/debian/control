@@ -61,12 +61,6 @@ Provides: kno-modules
 Description: This package directly provides many source (scheme) modules for
   use with Kno
 
-Package: libapache2-mod-knocgi
-Architecture: any
-Depends: kno-core (= ${binary:Version}), apache2
-Recommends: ${misc:Recommends}
-Description: The mod_knocgi modulec for KNO servlets under Apache
-
 Package: kno-mysql
 Architecture: any
 Depends: kno-core (= ${binary:Version}), libmysqlclient | libmysqlclient20 | libmysqlclient19 | libmysqlclient18 | libmysqlclient-dev
