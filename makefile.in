@@ -1432,7 +1432,6 @@ dist/debs.signed: dist/debs.built
 			sysv-kno_@KNO_VERSION@*.deb  		\
 			upstart-kno_@KNO_VERSION@*.deb  	\
 			systemd-kno_@KNO_VERSION@*.deb  	\
-			libapache2-mod-knocgi_@KNO_VERSION@*.deb  \
 			elpa-knoc_@KNO_VERSION@*.deb  \
 			../dist) &&                             \
 	touch dist/debs.signed;
@@ -1444,7 +1443,6 @@ dist/debsource.signed: dist/debsource.built
 			sysv-kno_@KNO_VERSION@*.deb  		\
 			upstart-kno_@KNO_VERSION@*.deb  	\
 			systemd-kno_@KNO_VERSION@*.deb  	\
-			libapache2-mod-knocgi_@KNO_VERSION@*.deb  \
 			elpa-knoc_@KNO_VERSION@*.deb  \
 			../dist) &&                             \
 	touch dist/debsource.signed;
@@ -1457,7 +1455,7 @@ dist/debsource.done: dist/debsource.signed
 
 install-debian install-debs debinstall installdebs: dist/debs.done
 	@cd dist; @SUDO@ dpkg -i kno*@KNO_VERSION@*.deb \
-		elpa-knoc*@KNO_VERSION@*.deb libapache2-mod-knocgi_@KNO_VERSION@*.deb \
+		elpa-knoc*@KNO_VERSION@*.deb \
 		systemd-kno_@KNO_VERSION@*.deb
 
 update-local-apt-repo: dist/debs.done
