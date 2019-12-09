@@ -27,6 +27,7 @@ KNO_EXPORT lispval kno_cons_uuid
   if (ptr == NULL) ptr = u8_alloc(struct KNO_UUID);
   KNO_INIT_CONS(ptr,kno_uuid_type);
   u8_consuuid(xtime,nodeid,clockid,(u8_uuid)&(ptr->uuid16));
+  U8_CLEAR_ERRNO();
   return LISP_CONS(ptr);
 }
 
@@ -35,6 +36,7 @@ KNO_EXPORT lispval kno_fresh_uuid(struct KNO_UUID *ptr)
   if (ptr == NULL) ptr = u8_alloc(struct KNO_UUID);
   KNO_INIT_CONS(ptr,kno_uuid_type);
   u8_getuuid((u8_uuid)&(ptr->uuid16));
+  U8_CLEAR_ERRNO();
   return LISP_CONS(ptr);
 }
 
