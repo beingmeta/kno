@@ -1,4 +1,4 @@
-;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
+;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
 ;;; Copyright (C) 2005-2018 beingmeta, inc.  All rights reserved.
 
 (in-module 'brico)
@@ -7,7 +7,7 @@
 (define %nosubst '{bricosource
 		   brico-pool brico-index brico.db
 		   xbrico-pool names-pool places-pool
-		   brico.pool brico.index
+		   brico.pool brico.index brico.indexes
 		   xbrico.pool names.pool places.pool
 		   wordnet.adjunct attic.adjunct
 		   freqfns use-wordforms})
@@ -36,6 +36,7 @@
 
 (define brico.pool {})
 (define brico.index {})
+(define brico.indexes {})
 (define core.index {})
 (define wikidref.index {})
 (define wordnet.index #f)
@@ -170,8 +171,9 @@
 	     (textmatch `#(,host-name ":" (isdigit+)) source))
 	 (onerror
 	     (begin
-	       (use-pool source use-opts)
-	       (open-index source use-opts)
+	       (set! brico.pool (use-pool source use-opts))
+	       (set! use-indexes (open-index source use-opts))
+	       (set! brico.db (%watch `#[%pools ,brico.pool %indexes ,use-indexes opts ,use-opts]))
 	       (set! success #t)
 	       (set! setup #t))
 	     (lambda (ex)
@@ -184,9 +186,11 @@
   (when (and success setup)
     (unless (exists? (getpool @1/3000000)) (set! brico.reduced #t))
     (set! bricosource source)
-    (if brico.db
-	(set! brico.index (get brico.db '%indexes))
-	(if use-indexes (set! brico.index use-indexes)))
+    (set! brico.indexes (if brico.db (get brico.db '%indexes) use-indexes))
+    (set! brico.index 
+      (if (singleton? brico.indexes)
+	  brico.indexes
+	  (make-aggregate-index brico.indexes #[register #t])))
     (set! brico-index brico.index)
     (set! brico.pool (name->pool "brico.framerd.org"))
     (set! brico-pool brico.pool)
@@ -211,11 +215,12 @@
       (set! en.index (try (pick indexes get-keyslot @1/2c1c7"English") #f))
       (set! en_norms.index (try (pick indexes get-keyslot @1/44896"Common English") #f))
       (set! names.index (try (pick indexes get-keyslot 'names) #f))
-      (set! core.index (pick indexes index-source has-suffix "/core.index"))
-      (set! wikidref.index (pick indexes index-source has-suffix "/wikidref.index"))
-      (set! wordnet.index (pick indexes index-source has-suffix "/wordnet.index"))
-      (set! lattice.index (pick indexes index-source has-suffix "/lattice.index"))
-      (set! termlogic.index (pick indexes index-source has-suffix "/termlogic.index"))))
+      (let ((sourced  (pick indexes index-source)))
+	(set! core.index (pick sourced index-source has-suffix "/core.index"))
+	(set! wikidref.index (pick sourced index-source has-suffix "/wikidref.index"))
+	(set! wordnet.index (pick sourced index-source has-suffix "/wordnet.index"))
+	(set! lattice.index (pick sourced index-source has-suffix "/lattice.index"))
+	(set! termlogic.index (pick sourced index-source has-suffix "/termlogic.index")))))
   success)
 
 (define bricosource-config
@@ -810,7 +815,7 @@
  '{brico-pool
    brico-index brico.db brico-dir
    xbrico-pool names-pool places-pool
-   brico.pool brico.index
+   brico.pool brico.index brico.indexes
    xbrico.pool names.pool places.pool
    absfreqs getabsfreq
    default-language all-languages

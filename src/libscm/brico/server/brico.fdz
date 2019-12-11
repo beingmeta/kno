@@ -1,0 +1,67 @@
+;;; -*- Mode: Scheme; -*-
+
+;;; This is the server control file for a BRICO knowledge base server
+
+(define stdconfig
+  (if (file-exists? (get-component "custom.cfg"))
+      "custom.cfg"
+      "standard.cfg"))
+(config! 'config (get-component (config 'srvconfig stdconfig)))
+
+(use-module '{brico brico/lookup brico/dterms brico/dtermcache morph morph/en})
+
+(config! 'servepools brico.pool)
+;;(config! 'serveindexes (get-component (get dbdata 'indexes) (get-component "data/brico.db")))
+
+(define (help) "This is the server for the BRICO knowledge base")
+(define (doswap) (swapout))
+
+(define absfreqs (within-module 'brico absfreqs))
+
+(define (resolve string (tryhard 3)  (language default-language))
+  (brico/resolve string language tryhard))
+(define (getnorm concept (language default-language))
+  (get-norm concept language))
+(define (getgloss concept (language default-language))
+  (get-gloss concept language))
+(define (getdterm concept (language default-language))
+  (require-dterm concept language))
+(define (getfreq concept)
+  1)
+
+;; (define brico2enwiki
+;;   (if (file-exists? (get-component "data/brico2enwiki.table"))
+;;       (file->dtype (get-component "data/brico2enwiki.table"))
+;;       (if (file-exists? (get-component "wiki/brico2enwiki.table"))
+;; 	  (file->dtype (get-component "wiki/brico2enwiki.table"))
+;; 	  #f)))
+
+;; (define brico2wiki
+;;   (if (file-exists? (get-component "data/brico2wiki.index"))
+;;       (open-index (get-component "data/brico2wiki.index"))
+;;       (if (file-exists? (get-component "wiki/brico2wiki.index"))
+;; 	  (open-index (get-component "wiki/brico2wiki.index"))
+;; 	  #f)))
+
+(define (getenwiki concept)
+  (tryif brico2enwiki (get brico2enwiki concept)))
+(define (getwikiref concept (language @?en))
+  (try (tryif (and (eq? language @?en) brico2enwiki)
+	      (get brico2enwiki concept))
+       (tryif brico2wiki
+	      (get brico2wiki (cons concept @?en)))
+       (tryif brico2enwiki (get brico2enwiki concept))))
+
+(define (resolve term (language default-language) (tryhard 2))
+  (lookup-term term language tryhard))
+(define (lookupterm term (language default-language) (tryhard 2))
+  (lookup-term term language tryhard))
+(define (bricoref term (language default-language) (tryhard 2))
+  (brico/ref term language tryhard))
+
+(module-export!
+ '{help
+   getenwiki getwikiref
+   resolve lookupterm bricoref
+   getnorm getgloss getdterm getfreq
+   absfreqs doswap})
