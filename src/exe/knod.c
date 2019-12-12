@@ -540,27 +540,33 @@ static int dtypeserver(u8_client ucl)
     client->elapsed = client->elapsed+elapsed;
     /* Currently, kno_write_dtype writes the whole thing at once,
        so we just use that. */
-
     outbuf->bufwrite = outbuf->buffer;
     if (kno_use_dtblock) {
       size_t start_off = outbuf->bufwrite-outbuf->buffer;
       size_t nbytes = kno_write_dtype(outbuf,value);
       if (nbytes>KNO_DTBLOCK_THRESH) {
-        unsigned char headbuf[6];
-        size_t head_off = outbuf->bufwrite-outbuf->buffer;
-        unsigned char *buf = outbuf->buffer;
-        kno_write_byte(outbuf,dt_block);
-        kno_write_4bytes(outbuf,nbytes);
-        memcpy(headbuf,buf+head_off,5);
-        memmove(buf+start_off+5,buf+start_off,nbytes);
-        memcpy(buf+start_off,headbuf,5);}}
-    else kno_write_dtype(outbuf,value);
-    if (async) {
-      struct KNO_RAWBUF *rawbuf = (struct KNO_RAWBUF *)inbuf;
-      size_t n_bytes = rawbuf->bufpoint-rawbuf->buffer;
-      u8_client_write(ucl,rawbuf->buffer,n_bytes,0);
-      rawbuf->bufpoint = rawbuf->buffer;
-      return 1;}
+	unsigned char headbuf[6];
+	if (kno_needs_space(outbuf,5+nbytes) == 0)
+	  return -1;
+	size_t head_off = outbuf->bufwrite-outbuf->buffer;
+	unsigned char *buf = outbuf->buffer;
+	kno_write_byte(outbuf,dt_block);
+	kno_write_4bytes(outbuf,nbytes);
+	memcpy(headbuf,buf+head_off,5);
+	memmove(buf+start_off+5,buf+start_off,nbytes);
+	memcpy(buf+start_off,headbuf,5);
+	outbuf->bufwrite = buf+5+nbytes;}
+      else kno_write_dtype(outbuf,value);
+      if (async) {
+	struct KNO_RAWBUF *rawbuf = (struct KNO_RAWBUF *)inbuf;
+	size_t n_bytes = rawbuf->bufpoint-rawbuf->buffer;
+	u8_client_write(ucl,rawbuf->buffer,n_bytes,0);
+	rawbuf->bufpoint = rawbuf->buffer;
+	kno_decref(expr);
+	kno_decref(value);
+	kno_swapcheck();
+	return 1;}
+      else kno_flush_stream(stream);}
     else {
       kno_write_dtype(outbuf,value);
       kno_flush_stream(stream);}
@@ -568,7 +574,8 @@ static int dtypeserver(u8_client ucl)
     if (tracethis)
       u8_log(LOG_INFO,Outgoing,"%s[%d/%d]: Response sent after %fs",
              client->idstring,sock,trans_id,u8_elapsed_time()-xstart);
-    kno_decref(expr); kno_decref(value);
+    kno_decref(expr);
+    kno_decref(value);
     kno_swapcheck();
     return 0;}
 }
