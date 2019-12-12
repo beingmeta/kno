@@ -610,29 +610,33 @@ static lispval server_pool_data(lispval session_id)
 
 static lispval iserver_get(lispval key)
 {
-  return kno_index_get((kno_index)(primary_index),key);
+  if (PAIRP(key))
+    return kno_prim_find((lispval)primary_index,KNO_CAR(key),KNO_CDR(key));
+  else return kno_index_get((kno_index)(primary_index),key);
 }
 static lispval iserver_bulk_get(lispval keys)
 {
   if (VECTORP(keys)) {
-    int i = 0, n = VEC_LEN(keys), retval;
+    int i = 0, n = VEC_LEN(keys);
     lispval *data = VEC_DATA(keys), *results = u8_alloc_n(n,lispval);
     /* |KNO_CHOICE_ISATOMIC */
     lispval aschoice = kno_make_choice
       (n,data,(KNO_CHOICE_DOSORT|KNO_CHOICE_INCREF));
-    retval = kno_index_prefetch((kno_index)(primary_index),aschoice);
-    if (retval<0) {
-      kno_decref(aschoice); u8_free(results);
-      return KNO_ERROR;}
     while (i<n) {
-      results[i]=kno_index_get((kno_index)(primary_index),data[i]); i++;}
+      lispval key = data[i];
+      if (KNO_PAIRP(key))
+	results[i]=kno_prim_find((lispval)primary_index,KNO_CAR(key),KNO_CDR(key));
+      else results[i]=kno_index_get((kno_index)(primary_index),key);
+      i++;}
     kno_decref(aschoice);
     return kno_wrap_vector(n,results);}
   else return kno_type_error("vector","iserver_bulk_get",keys);
 }
 static lispval iserver_get_size(lispval key)
 {
-  lispval value = kno_index_get((kno_index)(primary_index),key);
+  lispval value = (PAIRP(key)) ?
+    (kno_prim_find((lispval)primary_index,KNO_CAR(key),KNO_CDR(key))) :
+    (kno_index_get((kno_index)(primary_index),key));
   int size = KNO_CHOICE_SIZE(value);
   kno_decref(value);
   return KNO_INT(size);
@@ -652,40 +656,29 @@ static lispval iserver_writablep()
 
 static lispval ixserver_get(lispval index,lispval key)
 {
-  if (KNO_INDEXP(index))
-    return kno_index_get(kno_indexptr(index),key);
+  if (KNO_INDEXP(index)) {
+    if (PAIRP(key))
+      return kno_prim_find(index,KNO_CAR(key),KNO_CDR(key));
+    else return kno_index_get((kno_index)index,key);}
   else if (TABLEP(index))
     return kno_get(index,key,EMPTY);
   else return kno_type_error("index","ixserver_get",VOID);
 }
 static lispval ixserver_bulk_get(lispval index,lispval keys)
 {
-  if (KNO_INDEXP(index))
-    if (VECTORP(keys)) {
-      kno_index ix = kno_indexptr(index);
-      int i = 0, n = VEC_LEN(keys);
-      lispval *data = VEC_DATA(keys),
-        *results = u8_alloc_n(n,lispval);
-      lispval aschoice=
-        kno_make_choice(n,data,(KNO_CHOICE_DOSORT|KNO_CHOICE_INCREF));
-      kno_index_prefetch(ix,aschoice);
-      while (i<n) {
-        results[i]=kno_index_get(ix,data[i]); i++;}
-      kno_decref(aschoice);
-      return kno_wrap_vector(n,results);}
-    else return kno_type_error("vector","ixserver_bulk_get",keys);
-  else if (TABLEP(index))
-    if (VECTORP(keys)) {
-      int i = 0, n = VEC_LEN(keys);
-      lispval *data = VEC_DATA(keys),
-        *results = u8_alloc_n(n,lispval);
-      while (i<n) {
-        results[i]=kno_get(index,data[i],EMPTY);
-        i++;}
-      return kno_wrap_vector(n,results);}
-    else return kno_type_error("vector","ixserver_bulk_get",keys);
-  else return kno_type_error("index","ixserver_get",VOID);
+  if (VECTORP(keys)) {
+    int i = 0, n = VEC_LEN(keys), retval;
+    lispval *data = VEC_DATA(keys), *results = u8_alloc_n(n,lispval);
+    while (i<n) {
+      lispval key = data[i];
+      if (KNO_PAIRP(key))
+	results[i]=kno_prim_find(index,KNO_CAR(key),KNO_CDR(key));
+      else results[i]=kno_index_get((kno_index)index,key);
+      i++;}
+    return kno_wrap_vector(n,results);}
+  else return kno_type_error("vector","iserver_bulk_get",keys);
 }
+
 static lispval ixserver_get_size(lispval index,lispval key)
 {
   if (KNO_INDEXP(index)) {
