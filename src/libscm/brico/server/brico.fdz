@@ -8,10 +8,15 @@
       "standard.cfg"))
 (config! 'config (get-component (config 'srvconfig stdconfig)))
 
-(use-module '{brico brico/lookup brico/dterms brico/dtermcache morph morph/en})
+(use-module '{brico brico/lookup brico/dterms brico/dtermcache})
+(use-module '{brico/wikid})
+(use-module '{morph morph/en})
 
-(config! 'servepools brico.pool)
-;;(config! 'serveindexes (get-component (get dbdata 'indexes) (get-component "data/brico.db")))
+(config! 'servepools {brico.pool wikid.pool})
+(config! 'serveindexes {brico.index wikid.index})
+
+(define core core.index)
+(module-export! '{core})
 
 (define (help) "This is the server for the BRICO knowledge base")
 (define (doswap) (swapout))
