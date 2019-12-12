@@ -49,20 +49,26 @@ static int server_supportsp(struct KNO_NETWORK_INDEX *ni,lispval operation)
 }
 
 KNO_EXPORT kno_index kno_open_network_index(u8_string spec,
-                                         kno_storage_flags flags,
-                                         lispval opts)
+					    kno_storage_flags flags,
+					    lispval opts)
 {
-  struct KNO_NETWORK_INDEX *ix;
-  lispval writable_response; u8_string xid = NULL;
-  u8_connpool cp = u8_open_connpool(spec,kno_dbconn_reserve_default,
-                                    kno_dbconn_cap_default,
-                                    kno_dbconn_init_default);
+  lispval writable_response;
+  int spec_len = strlen(spec);
+  u8_byte host_spec[spec_len+1], *slash, *xname=NULL;
+  strcpy(host_spec,spec);
+  if (slash=strchr(host_spec,'/')) {
+    *slash = '\0';
+    xname=slash+1;}
+  u8_connpool cp = u8_open_connpool(host_spec,kno_dbconn_reserve_default,
+				    kno_dbconn_cap_default,
+				    kno_dbconn_init_default);
   if (cp == NULL) return NULL;
-  ix = u8_alloc(struct KNO_NETWORK_INDEX); memset(ix,0,sizeof(*ix));
+  struct KNO_NETWORK_INDEX *ix = u8_zalloc(struct KNO_NETWORK_INDEX);
   kno_init_index((kno_index)ix,&netindex_handler,
-                spec,xid,xid,
-                flags,KNO_VOID,opts);
-  ix->index_connpool = cp; ix->xname = VOID;
+		 spec,NULL,NULL,
+		 flags,KNO_VOID,opts);
+  ix->index_connpool = cp;
+  ix->xname = (xname) ? (kno_getsym(xname)) : (KNO_VOID);
   writable_response = kno_dtcall(ix->index_connpool,1,iserver_writable);
   if ((KNO_ABORTP(writable_response))||
       (!(FALSEP(writable_response))))
@@ -88,7 +94,7 @@ static lispval netindex_fetch(kno_index ix,lispval key)
   if (VOIDP(nix->xname))
     return kno_dtcall(nix->index_connpool,2,iserver_fetch,key);
   else return kno_dtcall_x(nix->index_connpool,3,3,
-                          ixserver_fetch,nix->xname,key);
+			   ixserver_fetch,nix->xname,key);
 }
 
 static int netindex_fetchsize(kno_index ix,lispval key)
@@ -98,7 +104,7 @@ static int netindex_fetchsize(kno_index ix,lispval key)
   if (VOIDP(nix->xname))
     result = kno_dtcall(nix->index_connpool,2,iserver_fetchsize,key);
   else result = kno_dtcall_x(nix->index_connpool,3,3,
-                            ixserver_fetchsize,nix->xname,key);
+			     ixserver_fetchsize,nix->xname,key);
   if (KNO_ABORTP(result))
     return -1;
   else return kno_getint(result);
@@ -112,7 +118,7 @@ static lispval *netindex_fetchn(kno_index ix,int n,const lispval *keys)
   if (VOIDP(nix->xname))
     result = kno_dtcall(nix->index_connpool,2,iserver_fetchn,vector);
   else result = kno_dtcall_x(nix->index_connpool,3,3,
-                            ixserver_fetchn,nix->xname,vector);
+			     ixserver_fetchn,nix->xname,vector);
   if (KNO_ABORTP(result)) return NULL;
   else if (VECTORP(result)) {
     lispval *results = u8_alloc_n(n,lispval);
@@ -120,7 +126,7 @@ static lispval *netindex_fetchn(kno_index ix,int n,const lispval *keys)
     return results;}
   else {
     kno_seterr(kno_BadServerResponse,"netindex_fetchn",ix->indexid,
-              kno_incref(result));
+	       kno_incref(result));
     return NULL;}
 }
 
@@ -149,10 +155,10 @@ static lispval *netindex_fetchkeys(kno_index ix,int *n)
 }
 
 static int netindex_save(struct KNO_INDEX *ix,
-                         struct KNO_CONST_KEYVAL *adds,int n_adds,
-                         struct KNO_CONST_KEYVAL *drops,int n_drops,
-                         struct KNO_CONST_KEYVAL *stores,int n_stores,
-                         lispval changed_metadata)
+			 struct KNO_CONST_KEYVAL *adds,int n_adds,
+			 struct KNO_CONST_KEYVAL *drops,int n_drops,
+			 struct KNO_CONST_KEYVAL *stores,int n_stores,
+			 lispval changed_metadata)
 {
   struct KNO_NETWORK_INDEX *nix = (struct KNO_NETWORK_INDEX *)ix;
   lispval xname = nix->xname;
@@ -161,78 +167,78 @@ static int netindex_save(struct KNO_INDEX *ix,
   if (n_stores) {
     if (nix->capabilities&KNO_ISERVER_RESET) {
       int i = 0; while ( i< n_stores ) {
-        lispval result = VOID;
-        lispval key = stores[i].kv_key;
-        lispval val = stores[i].kv_val;
-        if (VOIDP(xname))
-          result = kno_dtcall(nix->index_connpool,3,iserver_reset,key,val);
-        else result = kno_dtcall_nrx(nix->index_connpool,3,4,
-                                    ixserver_reset,xname,key,val);
-        if (KNO_ABORTP(result)) {
-          kno_clear_errors(1);}
-        else n_transactions++;
-        i++;}}}
+	lispval result = VOID;
+	lispval key = stores[i].kv_key;
+	lispval val = stores[i].kv_val;
+	if (VOIDP(xname))
+	  result = kno_dtcall(nix->index_connpool,3,iserver_reset,key,val);
+	else result = kno_dtcall_nrx(nix->index_connpool,3,4,
+				     ixserver_reset,xname,key,val);
+	if (KNO_ABORTP(result)) {
+	  kno_clear_errors(1);}
+	else n_transactions++;
+	i++;}}}
 
   if (n_drops) {
     if (nix->capabilities&KNO_ISERVER_DROP) {
       int i = 0; while ( i< n_drops ) {
-        lispval result = VOID;
-        lispval key = drops[i].kv_key;
-        lispval val = drops[i].kv_val;
-        if (VOIDP(xname))
-          result = kno_dtcall(nix->index_connpool,3,iserver_drop,key,val);
-        else result = kno_dtcall_x(nix->index_connpool,3,4,ixserver_drop,xname,key,val);
-        if (KNO_ABORTP(result)) {
-          kno_clear_errors(1);}
-        else n_transactions++;
-        i++;}}}
+	lispval result = VOID;
+	lispval key = drops[i].kv_key;
+	lispval val = drops[i].kv_val;
+	if (VOIDP(xname))
+	  result = kno_dtcall(nix->index_connpool,3,iserver_drop,key,val);
+	else result = kno_dtcall_x(nix->index_connpool,3,4,ixserver_drop,xname,key,val);
+	if (KNO_ABORTP(result)) {
+	  kno_clear_errors(1);}
+	else n_transactions++;
+	i++;}}}
 
   if (n_adds) {
     if (nix->capabilities&KNO_ISERVER_ADDN) {
       lispval vector = kno_make_vector(n_adds*2,NULL), result=KNO_VOID;
       int i=0; while (i<n_adds) {
-        lispval key = adds[i].kv_key, val = adds[i].kv_val;
-        KNO_VECTOR_SET(vector,i*2,key); kno_incref(key);
-        KNO_VECTOR_SET(vector,i*2+1,val); kno_incref(val);
-        i=i+2;}
+	lispval key = adds[i].kv_key, val = adds[i].kv_val;
+	KNO_VECTOR_SET(vector,i*2,key); kno_incref(key);
+	KNO_VECTOR_SET(vector,i*2+1,val); kno_incref(val);
+	i=i+2;}
       if (VOIDP(xname))
-        result = kno_dtcall_nr(nix->index_connpool,2,iserver_addn,vector);
+	result = kno_dtcall_nr(nix->index_connpool,2,iserver_addn,vector);
       else result = kno_dtcall_nrx(nix->index_connpool,3,3,ixserver_addn,xname,vector);
       if (KNO_ABORTP(result)) {
-        kno_clear_errors(1);}
+	kno_clear_errors(1);}
       n_transactions++;}
     else {
       int i = 0; while (i < n_adds) {
-        lispval result = VOID;
-        lispval key = adds[i].kv_key, val = adds[i].kv_val;
-        if (VOIDP(xname))
-          result = kno_dtcall_nr(nix->index_connpool,3,iserver_add,key,val);
-        else result = kno_dtcall_nr(nix->index_connpool,4,iserver_add,xname,key,val);
-        if (KNO_ABORTP(result))
-          kno_clear_errors(1);
-        else n_transactions++;
-        i++;}}}
+	lispval result = VOID;
+	lispval key = adds[i].kv_key, val = adds[i].kv_val;
+	if (VOIDP(xname))
+	  result = kno_dtcall_nr(nix->index_connpool,3,iserver_add,key,val);
+	else result = kno_dtcall_nr(nix->index_connpool,4,iserver_add,xname,key,val);
+	if (KNO_ABORTP(result))
+	  kno_clear_errors(1);
+	else n_transactions++;
+	i++;}}}
 
   return n_transactions;
 }
 
 static int netindex_commit(kno_index ix,kno_commit_phase phase,
-                           struct KNO_INDEX_COMMITS *commit)
+			   struct KNO_INDEX_COMMITS *commit)
 {
   switch (phase) {
   case kno_commit_write: {
     return netindex_save(ix,
-                         (struct KNO_CONST_KEYVAL *)commit->commit_adds,
-                         commit->commit_n_adds,
-                         (struct KNO_CONST_KEYVAL *)commit->commit_drops,
-                         commit->commit_n_drops,
-                         (struct KNO_CONST_KEYVAL *)commit->commit_stores,
-                         commit->commit_n_stores,
-                         commit->commit_metadata);}
+			 (struct KNO_CONST_KEYVAL *)commit->commit_adds,
+			 commit->commit_n_adds,
+			 (struct KNO_CONST_KEYVAL *)commit->commit_drops,
+			 commit->commit_n_drops,
+			 (struct KNO_CONST_KEYVAL *)commit->commit_stores,
+			 commit->commit_n_stores,
+			 commit->commit_metadata);}
   default: {
     u8_logf(LOG_INFO,"NoPhasedCommit",
-            "The index %s doesn't support phased commits",
-            ix->indexid);
+	    "The index %s doesn't support phased commits",
+	    ix->indexid);
     return 0;}
   }
 }
