@@ -790,6 +790,69 @@ static lispval ptrlock_prim(lispval x,lispval mod)
     return KNO_INT(hashval);}
 }
 
+/* Rawptr ops */
+
+DEFPRIM2("rawptr?",rawptrp_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	 "`(rawptr? *obj* [*type*])` returns true if *obj* is a raw pointer "
+	 "object with a typetag of *type* (if provided).",
+	 kno_any_type,KNO_VOID,-1,KNO_VOID);
+static lispval rawptrp_prim(lispval x,lispval tag)
+{
+  if (! (KNO_TYPEP(x,kno_rawptr_type)) )
+    return KNO_FALSE;
+  if ( (KNO_VOIDP(tag)) || (KNO_DEFAULTP(tag)) )
+    return KNO_TRUE;
+  struct KNO_RAWPTR *obj = (kno_rawptr) x;
+  if (obj->typetag == tag)
+    return KNO_TRUE;
+  else return KNO_FALSE;
+}
+
+DEFPRIM1("rawptr/type",rawptr_type_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "`(rawptr/type *obj*)` returns the type tag for *obj* "
+	 "if it is a raw pointer object.",
+	 kno_rawptr_type,KNO_VOID);
+static lispval rawptr_type_prim(lispval x)
+{
+  struct KNO_RAWPTR *obj = (kno_rawptr) x;
+  return kno_incref(obj->typetag);
+}
+
+DEFPRIM1("rawptr/id",rawptr_id_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "`(rawptr/id *obj*)` returns the idstring for the raw pointer *obj* "
+	 "if it is a raw pointer object.",
+	 kno_rawptr_type,KNO_VOID);
+static lispval rawptr_id_prim(lispval x)
+{
+  struct KNO_RAWPTR *obj = (kno_rawptr) x;
+  if (obj->idstring)
+    return knostring(obj->idstring);
+  else return KNO_FALSE;
+}
+
+DEFPRIM1("rawptr/notes",rawptr_notes_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	 "`(rawptr/notes *obj*)` returns the notes object "
+	 "for the raw pointer *obj* if it is a raw pointer object.",
+	 kno_rawptr_type,KNO_VOID);
+static lispval rawptr_notes_prim(lispval x)
+{
+  struct KNO_RAWPTR *obj = (kno_rawptr) x;
+  return kno_incref(obj->raw_annotations);
+}
+
+DEFPRIM2("rawptr/id!",rawptr_setid_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	 "`(rawptr/id! *obj* *string*)` sets the idstring of "
+	 "the raw pointer *obj*, returning it",
+	 kno_rawptr_type,KNO_VOID,kno_string_type,KNO_VOID);
+static lispval rawptr_setid_prim(lispval x,lispval id)
+{
+  struct KNO_RAWPTR *obj = (kno_rawptr) x;
+  u8_string oldid = obj->idstring;
+  obj->idstring=u8_strdup(KNO_CSTRING(id));
+  u8_free(oldid);
+  return kno_incref(x);
+}
+
 /* GETSOURCEIDS */
 
 static void add_sourceid(u8_string s,void *vp)
@@ -916,4 +979,10 @@ static void link_local_cprims()
   KNO_LINK_PRIM("empty-list?",nullp,1,kno_scheme_module);
   KNO_LINK_ALIAS("null?",nullp,kno_scheme_module);
   KNO_LINK_ALIAS("nil?",nullp,kno_scheme_module);
+
+  KNO_LINK_PRIM("rawptr?",rawptrp_prim,2,kno_scheme_module);
+  KNO_LINK_PRIM("rawptr/type",rawptr_type_prim,1,kno_scheme_module);
+  KNO_LINK_PRIM("rawptr/id",rawptr_id_prim,1,kno_scheme_module);
+  KNO_LINK_PRIM("rawptr/notes",rawptr_notes_prim,1,kno_scheme_module);
+  KNO_LINK_PRIM("rawptr/id!",rawptr_setid_prim,2,kno_scheme_module);
 }
