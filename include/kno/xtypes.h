@@ -25,16 +25,16 @@ typedef enum xt_type_code {
   xt_default = 0x05,
   xt_void = 0x06,
   /* Scalars */
-  xt_pos_int = 0x20, /* + <varint> */
-  xt_neg_int = 0x21, /* + <varint> */
-  xt_pos_big = 0x22, /* + <varint(len)> <byte>+ */
-  xt_neg_big = 0x23, /* + <varint(len)> <byte>+ */
-  xt_float = 0x24, /* + 4bytes */
-  xt_double = 0x25, /* + 8bytes */
-  xt_character = 0x26, /* + <varint> */
-  xt_oid = 0x27, /* 8 bytes */
-  xt_objid = 0x28, /* 12 bytes */
-  xt_uuid = 0x29, /* 16 bytes */
+  xt_float = 0x20, /* + 4bytes */
+  xt_double = 0x21, /* + 8bytes */
+  xt_oid = 0x22, /* 8 bytes */
+  xt_objid = 0x23, /* 12 bytes */
+  xt_uuid = 0x24, /* 16 bytes */
+  xt_pos_int = 0x27, /* + <varint> */
+  xt_neg_int = 0x28, /* + <varint> */
+  xt_pos_big = 0x29, /* + <varint(len)> <byte>+ */
+  xt_neg_big = 0x2a, /* + <varint(len)> <byte>+ */
+  xt_character = 0x2b, /* + <varint> */
   /* Pair types (format: <code> <xtype> <xtype>) */
   xt_pair = 0x30,
   xt_rational = 0x31,
@@ -48,21 +48,10 @@ typedef enum xt_type_code {
   xt_packet = 0x41,
   xt_secret = 0x42,
   xt_symbol = 0x42,
-  xt_tagged_packet = 0x43,
   /* Repeated types (format: <code> <len> <xtype>*) */
   xt_vector = 0x48,
   xt_choice = 0x49,
   xt_table = 0x4a,
-  xt_tagged_vector = 0x4b,
-  /* Type codes, used in combination with xt_tagged and
-     xt_vector/xt_packet types */
-  xt_type_short16_vec = 0x50,
-  xt_type_int32_vec = 0x51,
-  xt_type_long64_vec = 0x52,
-  xt_type_float_vec = 0x53,
-  xt_type_double_vec = 0x54,
-  xt_type_hashset = 0x55,
-  xt_type_hashtable = 0x56,
   /* Refs */
   xt_ref = 0x60, /* + <varint> */
   xt_pool_ref = 0x61 /* + <varint> <xtype(base)> */

@@ -619,7 +619,7 @@ static void threadexit_cleanup(void *calldata)
 
   if (tstruct->finished < 0) {
     lispval reason = tstruct->result;
-    int status = (ABORTED(reason)) ? (-1) : (1);
+    // int status = (ABORTED(reason)) ? (-1) : (1);
     u8_lock_mutex(&(tstruct->exit_lock));
     if (tstruct->finished>=0)
       u8_unlock_mutex(&(tstruct->exit_lock));
@@ -1046,7 +1046,7 @@ static lispval thread_cancel_prim(lispval thread_arg,lispval reason)
     else {
       kno_incref(reason);
       thread->flags |= KNO_THREAD_CANCELLED;
-      int status = (ABORTED(reason)) ? (-1) : (1);
+      // int status = (ABORTED(reason)) ? (-1) : (1);
       u8_lock_mutex(&(thread->exit_lock));
       if (thread->finished<0)
 	thread->finished = u8_elapsed_time();

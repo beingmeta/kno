@@ -43,35 +43,11 @@ static ssize_t xt_read_varint(kno_inbuf in)
   return result<<7|probe;
 }
 
-static ssize_t xt_read_len(kno_inbuf in,int code)
-{
-  int len_code = code%4;
-  if (len_code == 3)
-    return xt_read_varint(in);
-  else {
-    int result = 0, byte = kno_read_byte(in);
-    if (PRED_FALSE(byte < 0))
-      return byte;
-    else result = byte;
-    if (len_code == 0)
-      return (ssize_t) result;
-    else byte = kno_read_byte(in);
-    if (PRED_FALSE(byte < 0))
-      return byte;
-    else result = result<<8|byte;
-    if (len_code == )
-      return result;
-    else byte = kno_read_byte(in);
-    if (PRED_FALSE(byte < 0))
-      return byte;
-    else return result<<8|byte;}
-}
-
 KNO_EXPORT lispval kno_read_xtype(kno_inbuf in,xtype_refs refs)
 {
   int byte = kno_read_byte(in);
   xt_type_code type = (xt_type_code) byte;
-  if (code < xt_fixnum_b) switch (code) {
+  if (code < xt_post_int) switch (code) {
     case xt_true: return KNO_TRUE;
     case xt_false: return KNO_FALSE;
     case xt_empty_choice: return KNO_EMPTY;
@@ -80,23 +56,62 @@ KNO_EXPORT lispval kno_read_xtype(kno_inbuf in,xtype_refs refs)
     case xt_void: return KNO_VOID;
     default: {
       return xt_error(BadXType,"kno_read_xtype",NULL,VOID);}}
-  else if (code < xt_utf8_b) {
-    ssize_t len = xt_read_len(in,code);
+  else if (code < xt_pos_int) switch (code) {
+    case dt_float:
+      return;
+    case dt_double:}
+  else if (code < xt_pair) {
+    ssize_t len = xt_read_varint(in);
     if (len < 0) return len;
-    if ( (code & 0x30) == xt_utf8_b ) {
-      struct KNO_STRING *str = u8_malloc(sizeof(KNO_STRING)+len);
-      KNO_INIT_CONS(ptr,kno_string_type);
-      ptr->str_bytelen = len;
-      ptr->str_bytes = ;
-      ptr->str_freebytes = freedata;
-
-      unsigned char buf[len];
-      int bytes_read = kno_read_bytes(buf,inbuf,len);
-      if (bytes_read < len) return KNO_UNEXPECTED_EOD;
-
-
-    }
-  }
+    switch (code) {
+    case xt_pos_int:
+      return KNO_INT(len);
+    case xt_neg_int:
+      return KNO_INT(-len);
+    case xt_pos_big: case xt_neg_big: {}
+    case xt_character:
+      return KNO_CODE2CHAR(len);
+    default:
+      kno_seterr("BadXTCode","xtread",NULL,VOID);
+      return -1;}}
+  else if (code < xt_utf8) {
+    lispval left = xt_read_type(in);
+    if (ABORTED(left)) return left;
+    lispval right = xt_read_type(in);
+    if (ABORTED(right)) {
+      kno_decref(left);
+      return right;}
+    switch (code) {
+    case xt_pair:
+      return kno_init_pair(NULL,left,right);
+    case xt_rational:
+      return kno_make_rational(NULL,left,right);
+    case xt_complex:
+      return kno_make_complex(NULL,left,right);
+    default:
+      return kno_init_pair(NULL,left,right);}}
+  else if (code < xt_vector) {
+    ssize_t len = xt_read_varint(in,code);
+    u8_byte buf[len+1];
+    ssize_t bytes_read = kno_read_bytes(buf,inbuf,len);
+    if (bytes_read < len) return KNO_UNEXPECTED_EOD;
+    else /* Just in case */ buf[len]='\0';
+    switch (code) {
+    case xt_string:
+      return kno_make_string(NULL,len,buf);
+    case xt_packet:
+      return kno_make_packet(NULL,len,buf);
+    case xt_secret: {
+      lispval v = kno_make_packet(NULL,len,buf);
+      KNO_SET_CONS_TYPE(v,kno_secret_type);
+      return v;}
+    case xt_symbol:
+      return kno_intern(buf);
+    default:}}
+  else if (code < xt_type_short16_vec) {}
+  else if (code == xt_ref) {}
+  else if (code == xt_pool_ref) {}
+  else return xt_error(BadXType,"kno_read_xtype",NULL,VOID);}}
 }
 
 static ssize_t validate_dtype(int pos,const unsigned char *ptr,
