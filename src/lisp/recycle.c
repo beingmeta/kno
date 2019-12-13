@@ -155,12 +155,13 @@ static void recycle_rawptr(struct KNO_RAW_CONS *c)
   struct KNO_TYPEINFO *info = rawptr->typeinfo;
   if (info->type_freefn)
     info->type_freefn((lispval)c,info);
-  if (rawptr->raw_recycler)
+  void *ptrval = rawptr->ptrval; rawptr->ptrval=NULL;
+  if ( (rawptr->raw_recycler) && (ptrval) )
     rawptr->raw_recycler(rawptr->ptrval);
-  if (rawptr->idstring) u8_free(rawptr->idstring);
-  rawptr->ptrval   = NULL;
-  rawptr->idstring = NULL;
-  kno_decref(rawptr->typetag);
+  u8_string idstring = rawptr->idstring; rawptr->idstring=NULL;
+  if (idstring) u8_free(idstring);
+  lispval typetag = rawptr->typetag; rawptr->typetag = KNO_VOID;
+  kno_decref(typetag);
   u8_free(c);
 }
 

@@ -291,6 +291,7 @@ static int unparse_regex(struct U8_OUTPUT *out,lispval x)
 /* Raw pointers */
 
 KNO_EXPORT lispval kno_wrap_pointer(void *ptrval,
+				    ssize_t rawlen,
                                     kno_raw_recyclefn recycler,
                                     lispval typetag,
                                     u8_string idstring)
@@ -299,6 +300,7 @@ KNO_EXPORT lispval kno_wrap_pointer(void *ptrval,
   KNO_INIT_CONS(rawptr,kno_rawptr_type);
   struct KNO_TYPEINFO *info = kno_use_typeinfo(typetag);
   rawptr->ptrval = ptrval;
+  rawptr->rawlen = rawlen;
   rawptr->raw_recycler = recycler;
   if (CONSP(typetag))
     rawptr->typetag = kno_incref(info->typetag);
@@ -308,6 +310,38 @@ KNO_EXPORT lispval kno_wrap_pointer(void *ptrval,
     rawptr->idstring = u8_strdup(idstring);
   else rawptr->idstring = NULL;
   return (lispval) rawptr;
+}
+
+KNO_EXPORT int kno_set_pointer(lispval rawptr,lispval typetag,
+			       void *ptrval,ssize_t len,
+			       u8_string idstring)
+{
+  if (! (KNO_TYPEP(rawptr,kno_rawptr_type)) )
+    return kno_reterr("Not a raw pointer","kno_set_pointer",
+		      (SYMBOLP(typetag))?(SYMBOL_NAME(typetag)):
+		      (STRINGP(typetag))?(CSTRING(typetag)):(NULL),
+		      rawptr);
+  struct KNO_RAWPTR *raw = (kno_rawptr) rawptr;
+  if (raw->typetag != typetag)
+    return kno_reterr("Wrong raw pointer type","kno_set_pointer",
+		      (SYMBOLP(typetag))?(SYMBOL_NAME(typetag)):
+		      (STRINGP(typetag))?(CSTRING(typetag)):(NULL),
+		      rawptr);
+  void *cur = raw->ptrval;
+  if (ptrval) {
+    if (cur == ptrval) {}
+    else {
+      if ( (cur) && (raw->raw_recycler) )
+	raw->raw_recycler(cur);
+      raw->ptrval = ptrval;}}
+  if (len >= 0) raw->rawlen=len;
+  if (idstring) {
+    if (raw->idstring) {
+      u8_string curstring = raw->idstring;
+      raw->idstring=NULL;
+      u8_free(curstring);}
+    raw->idstring=idstring;}
+  return 1;
 }
 
 
