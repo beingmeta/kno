@@ -667,7 +667,7 @@ static lispval ixserver_get(lispval index,lispval key)
 static lispval ixserver_bulk_get(lispval index,lispval keys)
 {
   if (VECTORP(keys)) {
-    int i = 0, n = VEC_LEN(keys), retval;
+    int i = 0, n = VEC_LEN(keys);
     lispval *data = VEC_DATA(keys), *results = u8_alloc_n(n,lispval);
     while (i<n) {
       lispval key = data[i];

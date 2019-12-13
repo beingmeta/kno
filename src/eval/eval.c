@@ -536,7 +536,6 @@ KNO_EXPORT lispval kno_fcn_ref(lispval sym,kno_lexenv env,lispval val)
 	     sym,val);
       return kno_incref(val);}
     lispval bindings = env->env_bindings;
-    lispval exports = env->env_exports;
     if (KNO_HASHTABLEP(bindings)) {
       /* Update fcnids if needed */
       lispval fcnids = kno_get(bindings,fcnids_symbol,KNO_VOID);
@@ -554,7 +553,7 @@ KNO_EXPORT lispval kno_fcn_ref(lispval sym,kno_lexenv env,lispval val)
 	kno_hashtable_op((kno_hashtable)fcnids,
 			 kno_table_default,sym,new_fcnid);
 	fcnid = kno_get(fcnids,sym,KNO_VOID);}
-      if ( (KNO_FCNIDP(fcnid)) && (KNO_CONSP(val)) && 
+      if ( (KNO_FCNIDP(fcnid)) && (KNO_CONSP(val)) &&
 	   ( (KNO_FUNCTIONP(val)) || (KNO_APPLICABLEP(val)) )) {
 	kno_set_fcnid(fcnid,val);}
       kno_decref(fcnids);
@@ -2318,37 +2317,27 @@ DEFPRIM("%buildinfo",kno_get_build_info,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
 static void link_local_cprims()
 {
   KNO_LINK_VARARGS("ffi/proc",ffi_proc,kno_scheme_module);
-  KNO_LINK_PRIM("symbol-bound-in?",symbol_boundin_prim,2,kno_scheme_module);
-
-  KNO_LINK_PRIM("symbol-bound-in?",symbol_boundin_prim,2,kno_scheme_module);
-
-  KNO_LINK_PRIM("%lexref",lexref_prim,2,kno_scheme_module);
-
-  KNO_LINK_PRIM("%choiceref",choiceref_prim,2,kno_scheme_module);
-
-  KNO_LINK_PRIM("get-arg",get_arg_prim,3,kno_scheme_module);
-
   KNO_LINK_PRIM("ffi/found?",ffi_foundp_prim,2,kno_scheme_module);
 
-  KNO_LINK_PRIM("documentation",get_documentation,1,kno_scheme_module);
-  KNO_LINK_PRIM("environment?",environmentp_prim,1,kno_scheme_module);
-  KNO_LINK_PRIM("%lexrefval",lexref_value_prim,1,kno_scheme_module);
+  KNO_LINK_PRIM("symbol-bound-in?",symbol_boundin_prim,2,kno_scheme_module);
+  KNO_LINK_PRIM("%choiceref",choiceref_prim,2,kno_scheme_module);
+  KNO_LINK_PRIM("get-arg",get_arg_prim,3,kno_scheme_module);
 
+  KNO_LINK_PRIM("documentation",get_documentation,1,kno_scheme_module);
+
+  KNO_LINK_PRIM("environment?",environmentp_prim,1,kno_scheme_module);
+  KNO_LINK_PRIM("%lexref",lexref_prim,2,kno_scheme_module);
+  KNO_LINK_PRIM("%lexrefval",lexref_value_prim,1,kno_scheme_module);
   KNO_LINK_PRIM("%lexref?",lexrefp_prim,1,kno_scheme_module);
 
   KNO_LINK_PRIM("%coderef",coderef_prim,1,kno_scheme_module);
-
   KNO_LINK_PRIM("%coderefval",coderef_value_prim,1,kno_scheme_module);
   KNO_LINK_PRIM("coderef?",coderefp_prim,1,kno_scheme_module);
-
   KNO_LINK_PRIM("make-coderef",make_coderef,1,kno_scheme_module);
 
   KNO_LINK_PRIM("opcode-name",opcode_name_prim,1,kno_scheme_module);
-
   KNO_LINK_PRIM("name->opcode",name2opcode_prim,1,kno_scheme_module);
-
   KNO_LINK_PRIM("make-opcode",make_opcode,1,kno_scheme_module);
-
   KNO_LINK_PRIM("opcode?",opcodep,1,kno_scheme_module);
 
   KNO_LINK_PRIM("%fixchoice",fixchoice_prim,1,kno_scheme_module);
@@ -2356,19 +2345,15 @@ static void link_local_cprims()
   KNO_LINK_PRIM("call/cc",callcc,1,kno_scheme_module);
   KNO_LINK_ALIAS("call-with-current-continuation",callcc,kno_scheme_module);
 
-  KNO_LINK_PRIM("use-threadcache",use_threadcache_prim,1,kno_scheme_module);
-
-  KNO_LINK_PRIM("clear-callcache!",clear_callcache,1,kno_scheme_module);
-
   KNO_LINK_VARARGS("apply",apply_lexpr,kno_scheme_module);
 
+  KNO_LINK_PRIM("use-threadcache",use_threadcache_prim,1,kno_scheme_module);
+  KNO_LINK_PRIM("clear-callcache!",clear_callcache,1,kno_scheme_module);
   KNO_LINK_VARARGS("thread/cachecall",tcachecall,kno_scheme_module);
-
   KNO_LINK_VARARGS("cachecall",cachecall,kno_scheme_module);
-
   KNO_LINK_VARARGS("cachecall/probe",cachecall_probe,kno_scheme_module);
-
   KNO_LINK_VARARGS("cachedcall?",cachedcallp,kno_scheme_module);
+
   KNO_LINK_VARARGS("check-version",check_version_prim,kno_scheme_module);
   KNO_LINK_VARARGS("require-version",require_version_prim,kno_scheme_module);
   KNO_LINK_PRIM("%buildinfo",kno_get_build_info,0,kno_scheme_module);

@@ -56,7 +56,7 @@ KNO_EXPORT kno_index kno_open_network_index(u8_string spec,
   int spec_len = strlen(spec);
   u8_byte host_spec[spec_len+1], *slash, *xname=NULL;
   strcpy(host_spec,spec);
-  if (slash=strchr(host_spec,'/')) {
+  if ((slash=strchr(host_spec,'/'))) {
     *slash = '\0';
     xname=slash+1;}
   u8_connpool cp = u8_open_connpool(host_spec,kno_dbconn_reserve_default,
