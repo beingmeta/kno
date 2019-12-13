@@ -38,6 +38,7 @@ static lispval float_symbol, double_symbol, size_t_symbol, lisp_symbol;
 static lispval lispref_symbol, strcpy_symbol, void_symbol, mallocd_symbol;
 static lispval byte_symbol, basetype_symbol, typetag_symbol;
 static lispval ffi_result_symbol, time_t_symbol, null_symbol;
+static lispval strlen_symbol, packetlen_symbol, ptrloc_symbol, loclen_symbol;
 static lispval nullable_symbol;
 
 static void init_symbols(void);
@@ -68,7 +69,9 @@ static ffi_type *get_ffi_type(lispval arg)
     return KNO_ERR(NULL,"BadFFItype","get_ffi_type",NULL,arg);
   else if ( (arg == ulong_symbol) || (arg == lisp_symbol) )
     return &ffi_type_uint64;
-  else if ( (arg == long_symbol) || (arg == size_t_symbol) )
+  else if ( (arg == long_symbol) || (arg == size_t_symbol) ||
+	    (arg == packetlen_symbol) || (arg == strlen_symbol) ||
+	    (arg == loclen_symbol) )
     return &ffi_type_sint64;
   else if (arg == uint_symbol)
     return &ffi_type_uint32;
@@ -88,9 +91,9 @@ static ffi_type *get_ffi_type(lispval arg)
     return &ffi_type_double;
   else if (arg == void_symbol)
     return &ffi_type_void;
-  else if ((arg == ptr_symbol) || (arg == cons_symbol) ||
-           (arg == string_symbol) || (arg == packet_symbol) ||
-           (arg == null_symbol) )
+  else if ( (arg == ptr_symbol) || (arg == cons_symbol) ||
+	    (arg == string_symbol) || (arg == packet_symbol) ||
+	    (arg == null_symbol) || (arg == ptrloc_symbol) )
     return &ffi_type_pointer;
   else if ( (arg == time_t_symbol) && (sizeof(time_t) == 8) )
     return &ffi_type_sint64;
@@ -178,6 +181,9 @@ static int handle_ffi_arg(lispval arg,lispval spec,
   lispval basetype = (SYMBOLP(spec)) ? (spec) :
     (TABLEP(spec)) ? (kno_getopt(spec,basetype_symbol,VOID)) :
     (VOID);
+  lispval typetag = (TABLEP(spec)) ?
+    (kno_getopt(spec,typetag_symbol,VOID)) :
+    (KNO_VOID);
   int nullable = (TABLEP(spec)) && (kno_testopt(spec,nullable_symbol,VOID));
   int defaultp = (TABLEP(spec)) && (kno_testopt(spec,KNOSYM_DEFAULT,VOID));
   if (VOIDP(basetype)) {
@@ -199,6 +205,13 @@ static int handle_ffi_arg(lispval arg,lispval spec,
     if (CONSP(arg))
       *valptr = (void *)arg;
     else return ffi_type_error("CONS",arg);}
+  else if (basetype == ptrloc_symbol) {
+    if (KNO_PRIM_TYPEP(arg,kno_rawptr_type)) {
+      struct KNO_RAWPTR *raw=(kno_rawptr)arg;
+      if (raw->typetag != typetag)
+	return ffi_type_error("rawpointer",arg);
+      *valptr=&(raw->ptrval);}
+    else return ffi_type_error("rawpointer",arg);}
   else if (spec == ptr_symbol) {
     if (KNO_PRIM_TYPEP(arg,kno_rawptr_type)) {
       struct KNO_RAWPTR *raw=(kno_rawptr)arg;
@@ -303,12 +316,22 @@ static int handle_ffi_arg(lispval arg,lispval spec,
       *valptr = (void *)CSTRING(arg);
       *argptr = valptr;
       return 1;}
+    else if (basetype == strlen_symbol) {
+      size_t len = KNO_STRLEN(arg);
+      *valptr = (void *)len;
+      *argptr = valptr;
+      return 1;}
     else if (SYMBOLP(spec))
       return ffi_type_error(SYM_NAME(spec),arg);
     else return ffi_type_error("ctype",arg);}
   else if (PACKETP(arg)) {
     if (basetype == packet_symbol) {
       *valptr = (void *)CSTRING(arg);
+      *argptr = valptr;
+      return 1;}
+    else if (basetype == packetlen_symbol) {
+      size_t len = KNO_PACKET_LENGTH(arg);
+      *valptr = (void *)len;
       *argptr = valptr;
       return 1;}
     else if (SYMBOLP(spec))
@@ -374,7 +397,8 @@ KNO_EXPORT lispval kno_ffi_call(struct KNO_FUNCTION *fn,int n,lispval *args)
       void *value = NULL;
       ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&value,argptrs);
       kno_raw_recyclefn recycler = (mallocdp) ? (_u8_free) : (NULL);
-      lispval wv = kno_wrap_pointer(value,recycler,return_type,NULL);
+      ssize_t len = kno_getfixopt(return_spec,"length",-1);
+      lispval wv = kno_wrap_pointer(value,len,recycler,return_type,NULL);
       kno_decref(return_type);
       return wv;}
     else if (return_type == string_symbol) {
@@ -586,6 +610,8 @@ static void init_symbols()
   string_symbol = kno_intern("string");
   strcpy_symbol = kno_intern("strcpy");
   packet_symbol = kno_intern("packet");
+  strlen_symbol = kno_intern("strlen");
+  packetlen_symbol = kno_intern("packetlen");
   ptr_symbol = kno_intern("ptr");
   cons_symbol = kno_intern("cons");
   lisp_symbol = kno_intern("lisp");
@@ -597,6 +623,9 @@ static void init_symbols()
 
   basetype_symbol = kno_intern("basetype");
   typetag_symbol = kno_intern("typetag");
+
+  ptrloc_symbol = kno_intern("ptrloc");
+  loclen_symbol = kno_intern("loclen");
 
   ffi_result_symbol = kno_intern("result");
 }
