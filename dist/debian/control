@@ -257,7 +257,8 @@ Package: kno-full
 Architecture: any
 Depends: ${misc:Depends}, kno-core, kno-stdlib, kno-doc,
 	 kno-zeromq, kno-imagetools, kno-sundown, kno-tidy,
-	 kno-mysql, kno-mongodb, kno-sqlite, kno-leveldb, kno-rocksdb,
+	 kno-mysql, kno-mongo | kno-mongodb, kno-sqlite,
+	 kno-leveldb, kno-rocksdb,
 	 kno-parseltongue,
 	 elpa-knoc
 Description: Installs all standard Kno modules
@@ -267,7 +268,7 @@ Architecture: any
 Depends: ${misc:Depends}, kno-full, 
 	 kno-imagetools-dbg,
 	 kno-mysql-dbg,
-	 kno-mongodb-dbg,
+	 kno-mongo-dbg | kno-mongodb-dbg,
 	 kno-leveldb-dbg,
 	 kno-sqlite-dbg,
 	 kno-zeromq-dbg,
