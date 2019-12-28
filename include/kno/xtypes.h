@@ -13,64 +13,112 @@
 
 #include "bufio.h"
 
+#ifndef KNO_INLINE_XTYPE_REFS
+#define KNO_INLINE_XTYPE_REFS 0
+#endif
+
 /* DTYPE constants */
 
-typedef enum xt_type_code {
-  /* One-byte codes (format: <code> ) */
-  xt_invalid = 0x00,
-  xt_true = 0x01,
-  xt_false = 0x02,
-  xt_empty_choice = 0x03,
-  xt_empty_list = 0x04,
-  xt_default = 0x05,
-  xt_void = 0x06,
-  /* Scalars */
-  xt_float = 0x20, /* + 4bytes */
-  xt_double = 0x21, /* + 8bytes */
-  xt_oid = 0x22, /* 8 bytes */
-  xt_objid = 0x23, /* 12 bytes */
-  xt_uuid = 0x24, /* 16 bytes */
-  xt_pos_int = 0x27, /* + <varint> */
-  xt_neg_int = 0x28, /* + <varint> */
-  xt_pos_big = 0x29, /* + <varint(len)> <byte>+ */
-  xt_neg_big = 0x2a, /* + <varint(len)> <byte>+ */
-  xt_character = 0x2b, /* + <varint> */
-  /* Pair types (format: <code> <xtype> <xtype>) */
-  xt_pair = 0x30,
-  xt_rational = 0x31,
-  xt_complex = 0x32,
-  xt_tagged = 0x33,
-  xt_compressed = 0x34,
-  xt_encrypted = 0x35,
-  xt_mime = 0x36,
-  /* Packet types (format: <code> <len> <byte>*) */
-  xt_utf8 = 0x40,
-  xt_packet = 0x41,
-  xt_secret = 0x42,
-  xt_symbol = 0x42,
-  /* Repeated types (format: <code> <len> <xtype>*) */
-  xt_vector = 0x48,
-  xt_choice = 0x49,
-  xt_table = 0x4a,
-  /* Refs */
-  xt_ref = 0x60, /* + <varint> */
-  xt_pool_ref = 0x61 /* + <varint> <xtype(base)> */
-} xt_type_code;
+#define XT_SCALAR(n) ((n)+0x80)
+#define XT_FIXVAL(n) ((n)+0x88)
+#define XT_STRING(n) ((n)+0x90)
+#define XT_VECTOR(n) ((n)+0x98)
+#define XT_TABLE(n)  ((n)+0x9C)
+#define XT_PAIR(n)   ((n)+0xA0)
+#define XT_XREF(n)   ((n)+0xB0)
+
+typedef enum XT_TYPE_CODE 
+  {
+   /* One-byte codes (format: <code> ) */
+   xt_invalid      = XT_SCALAR(0x00),
+   xt_true         = XT_SCALAR(0x01),
+   xt_false        = XT_SCALAR(0x02),
+   xt_empty_choice = XT_SCALAR(0x03),
+   xt_empty_list   = XT_SCALAR(0x04),
+   xt_default      = XT_SCALAR(0x05),
+   xt_void         = XT_SCALAR(0x06),
+
+   xt_float        = XT_FIXVAL(0x00),
+   xt_double       = XT_FIXVAL(0x01),
+   xt_oid          = XT_FIXVAL(0x02),
+   xt_objid        = XT_FIXVAL(0x03),
+   xt_uuid         = XT_FIXVAL(0x04),
+   xt_posint       = XT_FIXVAL(0x05),
+   xt_negint       = XT_FIXVAL(0x06),
+   xt_character    = XT_FIXVAL(0x07),
+
+   xt_utf8         = XT_STRING(0x00),
+   xt_packet       = XT_STRING(0x01),
+   xt_secret       = XT_STRING(0x02),
+   xt_symbol       = XT_STRING(0x03),
+   xt_posbig       = XT_STRING(0x04),
+   xt_negbig       = XT_STRING(0x05),
+   xt_block        = XT_STRING(0x06),
+
+   xt_choice       = XT_VECTOR(0x00),
+   xt_vector       = XT_VECTOR(0x01),
+
+   xt_table        = XT_TABLE(0x00),
+
+   xt_pair         = XT_PAIR(0x00),
+   xt_tagged       = XT_PAIR(0x01),
+   xt_annotated    = XT_PAIR(0x02),
+   xt_mimeobj      = XT_PAIR(0x03),
+   xt_compressed   = XT_PAIR(0x04),
+   xt_encrypted    = XT_PAIR(0x05),
+
+   xt_absref       = XT_REF(0x00),
+   xt_offref       = XT_REF(0x01),
+   xt_absdef       = XT_REF(0x02)
+  } xt_type_code;
 
 typedef struct XTYPE_REFS {
-  size_t xt_nrefs;
-  size_t xt_refslen;
+  int xt_refs_flags;
+  size_t xt_n_refs;
+  size_t xt_refs_len;
   lispval *xt_refs;
   struct KNO_HASHTABLE xt_lookup;} XTYPE_REFS;
 typedef struct XTYPE_REFS *xtype_refs;
 
+#define XTYPE_REFS_DELTA_MAX 4096
+#define XTYPE_REFS_MAX 16384
+
+#define XTYPE_REFS_READ_ONLY 1
+
 /* XTYPE flags */
 
-#define XTYPE_FLAGS_BASE      (KNO_DTYPEIO_FLAGS << 1)
+#define XTYPE_FLAGS_BASE      (KNO_BUFIO_MAX_FLAG)
 #define XTYPE_WRITE_OPAQUE    (XTYPE_FLAGS_BASE)
 #define XTYPE_NATSORT_VALUES  (XTYPE_FLAGS_BASE << 1)
 #define XTYPE_USE_XTREFS      (XTYPE_FLAGS_BASE << 2)
-#define XTYPE_ADD_XTREFS      (XTYPE_FLAGS_BASE << 3)
+#define XTYPE_ADD_SYMREFS     (XTYPE_FLAGS_BASE << 3)
+#define XTYPE_ADD_OIDREFS     (XTYPE_FLAGS_BASE << 4)
+
+KNO_EXPORT ssize_t kno_add_xtype_ref(lispval x,xtype_refs refs);
+
+#if KNO_INLINE_XTYPE_REFS
+static ssize_t kno_xtype_ref(lispval x,xtype_refs refs,int add)
+{
+  if ((KNO_OIDP(x)) || (KNO_SYMBOLP(x))) {
+    if ( (add==0) && (refs->xt_nrefs<=0) )
+      return -1;
+    lispval v = fd_hashtable_get(&(refs->xt_lookup),x,KNO_VOID);
+    if (KNO_FIXNUMP(v))
+      return KNO_FIX2INT(v);
+    else if (KNO_VOIDP(v)) {
+      if (!(add))
+	return -1;}
+    else {
+      u8_log(LOG_ERR,"BadXTypeRef","For %q=%q",x,v);
+      kno_decre(v);
+      if (!(add))
+	return -1;}
+    return kno_add_xtype_ref(x,refs);}
+  else return -1;
+}
+#else
+#define kno_xtype_ref _kno_xtype_ref
+#endif
 
 /* The top level functions */
 

@@ -81,25 +81,26 @@ REVISION	:= $(shell etc/gitrev)
 GITBRANCH	:= $(shell etc/gitbranch)
 LIBSCM	 	= @LIBSCM@
 LISP_HEADERS=\
- include/kno/knosource.h                          \
- include/kno/config.h                            \
- include/kno/common.h                            \
+ include/kno/knosource.h                        \
+ include/kno/config.h                           \
+ include/kno/common.h                           \
  include/kno/errobjs.h                          \
- include/kno/defines.h                           \
- include/kno/support.h                           \
- include/kno/numbers.h                           \
- include/kno/bigints.h                           \
- include/kno/malloc.h                            \
- include/kno/lisp.h    			     \
- include/kno/pprint.h    			     \
- include/kno/ptr.h				     \
- include/kno/cons.h        			     \
- include/kno/compounds.h			     \
- include/kno/choices.h			     \
- include/kno/tables.h  			     \
- include/kno/sequences.h  			     \
- include/kno/knoregex.h  			     \
- include/kno/bufio.h			     \
+ include/kno/defines.h				\
+ include/kno/support.h                          \
+ include/kno/numbers.h                          \
+ include/kno/bigints.h                          \
+ include/kno/malloc.h                           \
+ include/kno/lisp.h    			     	\
+ include/kno/pprint.h    			\
+ include/kno/ptr.h				\
+ include/kno/cons.h        			\
+ include/kno/compounds.h			\
+ include/kno/choices.h			        \
+ include/kno/tables.h  			     	\
+ include/kno/sequences.h  			\
+ include/kno/knoregex.h  			\
+ include/kno/bufio.h			     	\
+ include/kno/xtypes.h 				\
  include/kno/dtypeio.h
 APPLY_HEADERS=\
  include/kno/apply.h   \
@@ -156,6 +157,7 @@ LISP_OBJS=\
 	src/lisp/bufio.o src/lisp/pprint.o  			\
 	src/lisp/listing.o src/lisp/consblocks.o		\
 	src/lisp/dtread.o src/lisp/dtwrite.o			\
+	src/lisp/xtread.o src/lisp/xtwrite.o			\
 	src/lisp/lisp.o
 
 SYS_OBJS=						\
@@ -406,11 +408,12 @@ KNO_SOURCES=\
 	src/lisp/choices.c src/lisp/sequences.c					\
 	src/lisp/tables.c src/lisp/compounds.c src/lisp/consblocks.c		\
         src/lisp/bufio.c src/lisp/dtread.c src/lisp/dtread.c 			\
+        src/lisp/xtread.c src/lisp/xtread.c 					\
 	src/lisp/parse.c src/lisp/unparse.c src/lisp/lisp.c 			\
-	src/sys/buildinfo.c src/sys/sourcebase.c			\
-	src/sys/support.c src/sys/config.c src/sys/posix.c		\
-	src/sys/errobjs.c src/sys/logging.c src/sys/getopt.c	\
-	src/sys/startup.c src/sys/fluid.c src/sys/signals.c		\
+	src/sys/buildinfo.c src/sys/sourcebase.c				\
+	src/sys/support.c src/sys/config.c src/sys/posix.c			\
+	src/sys/errobjs.c src/sys/logging.c src/sys/getopt.c			\
+	src/sys/startup.c src/sys/fluid.c src/sys/signals.c			\
 	src/apply/apply.c src/apply/stacks.c src/apply/lexenv.c 		\
 	src/apply/ffi.c src/apply/apply_cprims.h				\
 	src/storage/storage.c src/storage/streams.c src/storage/hashdtype.c	\

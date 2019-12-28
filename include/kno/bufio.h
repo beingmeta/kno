@@ -74,8 +74,9 @@ typedef size_t (*kno_byte_flushfn)(kno_outbuf,void *);
 #define KNO_IN_STREAM         0x0002
 #define KNO_BUFFER_NO_FLUSH   0x0004
 #define KNO_BUFFER_NO_GROW    0x0008
+#define KNO_BUFFER_OVERFLOW   0x0010
 /* This is the mask for the BUFIO_ALLOC value */
-#define KNO_BUFFER_ALLOC      0x0030
+#define KNO_BUFFER_ALLOC      0x0060
 
 typedef enum BUFIO_ALLOC {
   KNO_STATIC_BUFFER     = 0x0000,
