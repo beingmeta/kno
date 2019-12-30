@@ -836,6 +836,11 @@ KNO_EXPORT lispval kno_intern(u8_string string);
 KNO_EXPORT lispval kno_getsym(u8_string string);
 KNO_EXPORT lispval kno_all_symbols(void);
 
+#define DEF_KNOSYM(s) \
+  static lispval s ## _symbol = KNO_NULL
+#define KNOSYM(s) \
+  ( (s ## _symbol) ? (s ## _symbol) : ((s ## _symbol=kno_intern(# s))) )
+
 KNO_EXPORT int kno_flipcase_fix;
 
 KNO_EXPORT lispval KNOSYM_ADD, KNOSYM_ADJUNCT, KNOSYM_ALL, KNOSYM_ALWAYS;
