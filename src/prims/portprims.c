@@ -20,6 +20,7 @@
 #include "kno/frames.h"
 #include "kno/streams.h"
 #include "kno/dtypeio.h"
+#include "kno/xtypes.h"
 #include "kno/ports.h"
 #include "kno/pprint.h"
 #include "kno/history.h"
@@ -30,10 +31,24 @@
 
 #include <zlib.h>
 
+static lispval refs_symbol, nrefs_symbol, lookup_symbol;
+static lispval xtrefs_typetag;
 
 u8_condition kno_UnknownEncoding=_("Unknown encoding");
 
 #define fast_eval(x,env) (kno_stack_eval(x,env,_stack,0))
+
+static long long getposfixopt(lispval opts,lispval sym,long long dflt)
+{
+  lispval intval = kno_getopt(opts,sym,KNO_VOID);
+  if (KNO_UINTP(intval))
+    return (long long) (KNO_FIX2INT(intval));
+  kno_decref(intval);
+  return dflt;
+}
+
+DEF_KNOSYM(addsyms);
+DEF_KNOSYM(addoids);
 
 /* Making ports */
 
@@ -156,6 +171,145 @@ static lispval lisp2packet(lispval object,lispval initsize)
       (NULL,out.bufwrite-out.buffer,out.buffer);
     kno_close_outbuf(&out);
     return packet;}
+}
+
+/* DTYPE streams */
+
+DEFPRIM2("xtype->lisp",xtype2lisp,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	 "`(xtype->lisp *packet*)` "
+	 "parses the XTYPE representation in *packet* and "
+	 "returns the corresponding object.",
+	 kno_packet_type,KNO_VOID,-1,KNO_VOID);
+static lispval xtype2lisp(lispval packet,lispval opts)
+{
+  lispval object;
+  lispval refs_arg = kno_getopt(opts,refs_symbol,KNO_VOID);
+  struct XTYPE_REFS *refs = (KNO_RAW_TYPEP(refs_arg,xtrefs_typetag)) ?
+    (KNO_RAWPTR_VALUE(refs_arg)) : (NULL);
+  struct KNO_INBUF in = { 0 };
+  KNO_INIT_BYTE_INPUT(&in,KNO_PACKET_DATA(packet),
+		      KNO_PACKET_LENGTH(packet));
+  object = kno_read_xtype(&in,refs);
+  kno_decref(refs_arg);
+  return object;
+}
+
+DEFPRIM2("lisp->xtype",lisp2xtype,MIN_ARGS(1),
+	 "`(xtype->lisp *object* [*opts*])` returns "
+	 "a packet containing the XType representation of object. "
+	 "*bufsize*, if provided, specifies the initial size "
+	 "of the output buffer to be reserved.",
+	 -1,KNO_VOID,-1,KNO_FALSE)
+static lispval lisp2xtype(lispval object,lispval opts)
+{
+  size_t size = getposfixopt(opts,KNOSYM_BUFSIZE,8000);
+  struct KNO_OUTBUF out = { 0 };
+  KNO_INIT_BYTE_OUTPUT(&out,size);
+  lispval refs_arg = kno_getopt(opts,refs_symbol,KNO_VOID);
+  struct XTYPE_REFS *refs = (KNO_RAW_TYPEP(refs_arg,xtrefs_typetag)) ?
+    (KNO_RAWPTR_VALUE(refs_arg)) : (NULL);
+  ssize_t bytes = kno_write_xtype(&out,object,refs);
+  kno_decref(refs_arg);
+  if (bytes<0)
+    return KNO_ERROR;
+  else if ( (BUFIO_ALLOC(&out)) == KNO_HEAP_BUFFER )
+    return kno_init_packet(NULL,bytes,out.buffer);
+  else {
+    lispval packet = kno_make_packet
+      (NULL,out.bufwrite-out.buffer,out.buffer);
+    kno_close_outbuf(&out);
+    return packet;}
+}
+
+static void recycle_xtype_refs(void *ptr);
+
+DEFPRIM2("xtype/refs",make_xtype_refs,MIN_ARGS(1),
+	 "`(xtype/refs *vector* [*opts*])` returns a rawptr object "
+	 "for an xtype refs object.",
+	 kno_vector_type,KNO_VOID,-1,KNO_FALSE)
+static lispval make_xtype_refs(lispval vec,lispval opts)
+{
+  struct XTYPE_REFS *refs = u8_alloc(struct XTYPE_REFS);
+  unsigned int flags = 0;
+  if ( (kno_testopt(opts,KNOSYM_READONLY,KNO_VOID)) &&
+       (!(kno_testopt(opts,KNOSYM_READONLY,KNO_FALSE))) ||
+       (!(kno_testopt(opts,KNOSYM_READONLY,KNO_DEFAULT)) ))
+    flags |= XTYPE_REFS_READ_ONLY;
+  else {
+    if (kno_testopt(opts,KNOSYM(addoids),KNO_FALSE))
+      flags |= XTYPE_REFS_ADD_OIDS;
+    if (kno_testopt(opts,KNOSYM(addsyms),KNO_FALSE))
+      flags |= XTYPE_REFS_ADD_SYMS;}
+  size_t n_refs = KNO_VECTOR_LENGTH(vec);
+  size_t len    = ( flags & XTYPE_REFS_READ_ONLY) ? (n_refs) :
+    ((n_refs/256)+2)*256;
+  lispval *inits = KNO_VECTOR_ELTS(vec), *elts = u8_alloc_n(len,lispval);
+  size_t i = 0; while (i<len) {
+    lispval elt = inits[i];
+    kno_incref(elt);
+    elts[i]=elt;
+    i++;}
+  kno_init_xrefs(refs,n_refs,len,flags,elts,NULL);
+  return kno_wrap_pointer((void *)refs,sizeof(struct XTYPE_REFS),
+			  recycle_xtype_refs,
+			  xtrefs_typetag,NULL);
+}
+
+DEFPRIM3("xtype/refs/encode",xtype_refs_encode,MIN_ARGS(2),
+	 "`(xtype/refs/encode *xtrefs* *ref*)` returns the numeric "
+	 "reference code for *ref* in *xtrefs* or false otherwise.",
+	 kno_rawptr_type,KNO_VOID,-1,KNO_FALSE,-1,KNO_FALSE)
+static lispval xtype_refs_encode(lispval refs_arg,lispval val,lispval add)
+{
+  if (PRED_FALSE(!(KNO_RAW_TYPEP(refs_arg,xtrefs_typetag))))
+    return kno_err("NotXTypeRefs","xtype_refs_encode",NULL,refs_arg);
+  struct XTYPE_REFS *refs = KNO_RAWPTR_VALUE(refs_arg);
+  int add_flag = (KNO_FALSEP(add)) ? (0) :
+    ( (KNO_VOIDP(add)) || (KNO_DEFAULTP(add)) ) ? (-1) : (1);
+  if ( (add_flag == 1) && (refs->xt_refs_flags & XTYPE_REFS_READ_ONLY) )
+    return kno_err("ReadOnlyXTRefs","xtype_refs_encode",NULL,refs_arg);
+  ssize_t off = kno_xtype_ref(val,refs,add_flag);
+  if (off<0)
+    return KNO_FALSE;
+  else return KNO_INT(off);
+}
+
+DEFPRIM2("xtype/refs/decode",xtype_refs_decode,MIN_ARGS(2),
+	 "`(xtype/refs/decode *xtrefs* *offset*)` returns the object "
+	 "associated with the numeric reference code *offset* "
+	 "in *xtrefs*.",
+	 kno_rawptr_type,KNO_VOID,kno_fixnum_type,KNO_FALSE)
+static lispval xtype_refs_decode(lispval refs_arg,lispval off_arg)
+{
+  if (PRED_FALSE(!(KNO_RAW_TYPEP(refs_arg,xtrefs_typetag))))
+    return kno_err("NotXTypeRefs","xtype_refs_decode",NULL,refs_arg);
+  struct XTYPE_REFS *refs = KNO_RAWPTR_VALUE(refs_arg);
+  ssize_t off = KNO_FIX2INT(off_arg);
+  if (off<0)
+    return kno_err("InvalidXRefCode","xtype_refs_decode",NULL,off_arg);
+  else if (off < refs->xt_n_refs)
+    return kno_incref(refs->xt_refs[off]);
+  else return kno_err("XRefRangeError","xtype_refs_decode",NULL,off_arg);
+}
+
+DEFPRIM1("xtype/refs/count",xtype_refs_count,MIN_ARGS(1),
+	 "`(xtype/refs/count *xtrefs*)` returns the number of objects "
+	 "encoded in *xtrefs*",
+	 kno_rawptr_type,KNO_VOID)
+static lispval xtype_refs_count(lispval refs_arg)
+{
+  if (PRED_FALSE(!(KNO_RAW_TYPEP(refs_arg,xtrefs_typetag))))
+    return kno_err("NotXTypeRefs","xtype_refs_count",NULL,refs_arg);
+  struct XTYPE_REFS *refs = KNO_RAWPTR_VALUE(refs_arg);
+  return KNO_INT(refs->xt_n_refs);
+}
+
+static void recycle_xtype_refs(void *ptr)
+{
+  struct XTYPE_REFS *refs = (xtype_refs) ptr;
+  u8_free(refs->xt_refs); refs->xt_refs = NULL;
+  kno_recycle_hashtable(refs->xt_lookup); refs->xt_lookup=NULL;
+  u8_free(refs);
 }
 
 /* Output strings */
@@ -1241,6 +1395,10 @@ static void init_portprims_symbols()
   label_symbol = kno_intern("label");
   output_symbol = kno_intern("output");
   detail_symbol = kno_intern("detail");
+  refs_symbol = kno_intern("refs");
+  nrefs_symbol = kno_intern("nrefs");
+  lookup_symbol = kno_intern("lookup");
+  xtrefs_typetag = kno_intern("%xtype-refs");
 }
 
 /* The init function */
@@ -1294,6 +1452,12 @@ static void link_local_cprims()
   KNO_LINK_PRIM("open-output-string",open_output_string,0,kno_io_module);
   KNO_LINK_PRIM("dtype->packet",lisp2packet,2,kno_io_module);
   KNO_LINK_PRIM("packet->dtype",packet2dtype,1,kno_io_module);
+  KNO_LINK_PRIM("lisp->xtype",lisp2xtype,2,kno_io_module);
+  KNO_LINK_PRIM("xtype->lisp",xtype2lisp,2,kno_io_module);
+  KNO_LINK_PRIM("xtype/refs",make_xtype_refs,2,kno_io_module);
+  KNO_LINK_PRIM("xtype/refs/encode",xtype_refs_encode,3,kno_io_module);
+  KNO_LINK_PRIM("xtype/refs/decode",xtype_refs_decode,2,kno_io_module);
+  KNO_LINK_PRIM("xtype/refs/count",xtype_refs_decode,2,kno_io_module);
   KNO_LINK_PRIM("eof-object?",eofp,1,kno_io_module);
   KNO_LINK_PRIM("port?",portp,1,kno_io_module);
   KNO_LINK_PRIM("input-port?",input_portp,1,kno_io_module);

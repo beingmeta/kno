@@ -156,8 +156,7 @@ LISP_OBJS=\
 	src/lisp/parse.o src/lisp/unparse.o			\
 	src/lisp/bufio.o src/lisp/pprint.o  			\
 	src/lisp/listing.o src/lisp/consblocks.o		\
-	src/lisp/dtread.o src/lisp/dtwrite.o			\
-	src/lisp/xtread.o src/lisp/xtwrite.o			\
+	src/lisp/dtread.o src/lisp/dtwrite.o src/lisp/xtypes.o  \
 	src/lisp/lisp.o
 
 SYS_OBJS=						\
@@ -407,8 +406,7 @@ KNO_SOURCES=\
         src/lisp/compare.c src/lisp/walk.c src/lisp/fcnids.c			\
 	src/lisp/choices.c src/lisp/sequences.c					\
 	src/lisp/tables.c src/lisp/compounds.c src/lisp/consblocks.c		\
-        src/lisp/bufio.c src/lisp/dtread.c src/lisp/dtread.c 			\
-        src/lisp/xtread.c src/lisp/xtread.c 					\
+        src/lisp/bufio.c src/lisp/dtread.c src/lisp/dtread.c src/lisp/xtypes.c  \
 	src/lisp/parse.c src/lisp/unparse.c src/lisp/lisp.c 			\
 	src/sys/buildinfo.c src/sys/sourcebase.c				\
 	src/sys/support.c src/sys/config.c src/sys/posix.c			\
