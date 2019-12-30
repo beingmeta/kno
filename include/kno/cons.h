@@ -842,7 +842,7 @@ typedef struct KNO_TYPEINFO {
   KNO_CONS_HEADER;
   lispval typetag, type_props, type_handlers;
   u8_string type_name, type_description;
-  char type_isopaque, type_ismutable;
+  char type_isopaque, type_ismutable, type_issequence, type_istable;
   kno_type_parsefn type_parsefn;
   kno_type_unparsefn type_unparsefn;
   kno_type_freefn type_freefn;
@@ -913,7 +913,7 @@ typedef struct KNO_RAWPTR {
   void *ptrval;
   ssize_t rawlen;
   u8_string idstring;
-  lispval raw_annotations;
+  lispval raw_annotations, raw_cleanup;
   kno_raw_recyclefn raw_recycler;} KNO_RAWPTR;
 typedef struct KNO_RAWPTR *kno_rawptr;
 
@@ -928,6 +928,12 @@ KNO_EXPORT int kno_set_pointer
 
 KNO_EXPORT int kno_compound_set_unparser(u8_string pname,
 					 kno_type_unparsefn fn);
+
+#define KNO_RAWPTR_TAG(x) (((kno_rawptr)x)->typetag)
+#define KNO_RAWPTR_VALUE(x) (((kno_rawptr)x)->ptrval)
+
+#define KNO_RAW_TYPEP(x,tag)                        \
+  ((KNO_TYPEOF(x) == kno_rawptr_type) && (KNO_RAWPTR_TAG(x) == tag))
 
 /* Cons compare */
 
