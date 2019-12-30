@@ -309,6 +309,8 @@ KNO_EXPORT lispval kno_wrap_pointer(void *ptrval,
   if (idstring)
     rawptr->idstring = u8_strdup(idstring);
   else rawptr->idstring = NULL;
+  rawptr->raw_annotations=KNO_VOID;
+  rawptr->raw_cleanup=KNO_EMPTY;
   return (lispval) rawptr;
 }
 

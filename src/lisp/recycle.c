@@ -157,9 +157,11 @@ static void recycle_rawptr(struct KNO_RAW_CONS *c)
     info->type_freefn((lispval)c,info);
   void *ptrval = rawptr->ptrval; rawptr->ptrval=NULL;
   if ( (rawptr->raw_recycler) && (ptrval) )
-    rawptr->raw_recycler(rawptr->ptrval);
+    rawptr->raw_recycler(ptrval);
   u8_string idstring = rawptr->idstring; rawptr->idstring=NULL;
   if (idstring) u8_free(idstring);
+  kno_decref(rawptr->raw_annotations); rawptr->raw_annotations=KNO_FALSE;
+  kno_decref(rawptr->raw_cleanup); rawptr->raw_cleanup=KNO_EMPTY;
   lispval typetag = rawptr->typetag; rawptr->typetag = KNO_VOID;
   kno_decref(typetag);
   u8_free(c);
@@ -265,13 +267,13 @@ void kno_decref_vec(lispval *vec,size_t n)
 
 void kno_init_recycle_c()
 {
-
   kno_recyclers[kno_exception_type]=recycle_exception;
   kno_recyclers[kno_mystery_type]=recycle_mystery;
   kno_recyclers[kno_uuid_type]=recycle_uuid;
   kno_recyclers[kno_timestamp_type]=recycle_timestamp;
   kno_recyclers[kno_regex_type]=recycle_regex;
 
+  kno_recyclers[kno_rawptr_type]=recycle_rawptr;
   kno_recyclers[kno_compound_type]=recycle_compound;
 
   u8_register_source_file(_FILEINFO);
