@@ -830,7 +830,7 @@ static lispval rawptr_id_prim(lispval x)
   else return KNO_FALSE;
 }
 
-DEFPRIM1("rawptr/notes",rawptr_notes_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+DEFPRIM1("rawptr/notes",rawptr_notes_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "`(rawptr/notes *obj*)` returns the notes object "
 	 "for the raw pointer *obj* if it is a raw pointer object.",
 	 kno_rawptr_type,KNO_VOID);
