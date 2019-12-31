@@ -1301,6 +1301,43 @@ static PyObject *lispfn(PyObject *self,PyObject *args)
   else return lispeval(self,args);
 }
 
+static PyObject *lispmod(PyObject *self,PyObject *args)
+{
+  if ((PyTuple_Check(args)) && (PyTuple_GET_SIZE(args)==1)) {
+    lispval modname = py2lispx(PyTuple_GET_ITEM(args,0));
+    lispval module  = kno_find_module(modname,0);
+    lispval methods = KNO_VOID;
+    if (KNO_HASHTABLEP(module))
+      methods = module;
+    else if (KNO_LEXENVP(module)) {
+      kno_lexenv env = (kno_lexenv) module;
+      methods = env->env_exports;}
+    else NO_ELSE;
+    kno_incref(methods);
+    kno_decref(module);
+    if (KNO_HASHTABLEP(methods))
+      return lisp2py(methods);
+    else return NULL;}
+  else return lispeval(self,args);
+}
+
+#if PY_MAJOR_VERSION >= 3
+static struct PyMethodDef kno_methods[]=
+  {{"ref",pylisp_ref,METH_VARARGS,"Resolve a LISP reference"},
+   {"pool",usepool,METH_VARARGS,"Resolve a LISP reference"},
+   {"usepool",usepool,METH_VARARGS,"Resolve a LISP reference"},
+   {"useindex",useindex,METH_VARARGS,"Resolve a LISP reference"},
+   {"index",openindex,METH_VARARGS,"Resolve a LISP reference"},
+   {"openindex",openindex,METH_VARARGS,"Resolve a LISP reference"},
+   {"setcachelevel",setcachelevel,METH_VARARGS,"Resolve a LISP reference"},
+   {"get",lispget,METH_VARARGS,"Resolve a LISP reference"},
+   {"find",lispfind,METH_VARARGS,"Resolve a LISP reference"},
+   /* {"call",lispcall}, */
+   {"eval",lispeval,METH_VARARGS,"Resolve a LISP reference"},
+   {"method",lispfn,METH_VARARGS,"Resolve a LISP reference"},
+   {"module",lispmod,METH_VARARGS,"Resolve a LISP reference"},
+   {NULL,NULL,0,NULL}};
+#else
 static struct PyMethodDef kno_methods[]=
   {{"ref",pylisp_ref},
    {"pool",usepool},
@@ -1314,7 +1351,9 @@ static struct PyMethodDef kno_methods[]=
    /* {"call",lispcall}, */
    {"eval",lispeval},
    {"method",lispfn},
+   {"module",lispmod},
    {NULL,NULL}};
+#endif
 
 /* Table methods for Python objects */
 
@@ -2070,7 +2109,7 @@ static void link_local_cprims()
 }
 
 #if PY_MAJOR_VERSION >= 3
-static struct PyModuleDef parseltongue_mod = {
+static struct PyModuleDef kno_mod = {
   PyModuleDef_HEAD_INIT,
   "parseltongue",
   "Provides a bridge between KNO and Python",
@@ -2081,15 +2120,19 @@ static struct PyModuleDef parseltongue_mod = {
   NULL,
   NULL};
 
-static void init_python_module()
+static PyObject *python_kno_module = NULL;
+
+static PyObject *init_python_module()
 {
-  PyObject *m;
-  if (python_init_done) return;
-  m = PyModule_Create(&parseltongue_mod);
+  if (python_kno_module)
+    return python_kno_module;
+  PyObject *m = PyModule_Create(&kno_mod);
   kno_error=PyErr_NewException("kno.error",NULL,NULL);
   Py_INCREF(kno_error);
   PyModule_AddObject(m,"error",kno_error);
   python_init_done=1;
+  python_kno_module=m;
+  return m;
 }
 #else
 static void init_python_module()
@@ -2125,16 +2168,18 @@ void kno_init_parseltongue()
 {
   if (!(Py_IsInitialized())) Py_Initialize();
   PySys_SetArgvEx(py_argc,py_argv,0);
+  fprintf(stderr,"Setup compare methods\n");
   setup_rich_compare_methods();
+  fprintf(stderr,"Init kno module\n");
   init_kno_module();
-  init_python_module();
+  fprintf(stderr,"Init python module\n");
 }
 
 #if PY_MAJOR_VERSION >= 3
-PyMODINIT_FUNC PyIinit_parseltongue(void)
+PyMODINIT_FUNC PyInit_kno(void)
 {
   kno_init_parseltongue();
-  return NULL;
+  return init_python_module();
 }
 #else
 PyMODINIT_FUNC initparseltongue(void)

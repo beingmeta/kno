@@ -35,6 +35,7 @@ DEBBUILD      = -b
 INDENTOPTS    = -br -ce -psl -Tknodtype -Tu8_string -Tkno_stream -Tkno_inbuf \
 		-Tkno_outbuf -Tkno_rawbuf -Tkno_function -Tkno_pair -Tkno_choice
 GCOVR_FLAGS   = -e "./src/cmodules/" -e "./src/exe/" -e "./tests/storage/"
+PYLIBS        = -lknowebtools -lknotexttools -lknoscheme -lknodrivers -lknostorage -lknocore ${LIBS}
 
 DESTDIR		=
 PACKAGE		= kno
@@ -1256,6 +1257,17 @@ lib/kno/parseltongue.dylib: src/python/parseltongue.o ${CMODULE_DEPENDS}
 lib/kno/parseltongue.@KNO_MAJOR@.dylib: lib/kno/parseltongue.dylib
 	@ln -sf $(*F).dylib $@
 
+lib/python3/kno.so: src/python/parseltongue.o
+	@$(MKSO) -L./lib -L./ -o $@ $< ${MODLIBS} @PYTHON3_LDFLAGS@ ${EXELIBS} ${PYLIBS}
+	@ln -sf $(@F) $(@D)/$(@F).@KNO_MAJOR@
+	@$(MSG) MKSO  $@ $<
+lib/python3/kno.dylib: src/python/parseltongue.o ${CMODULE_DEPENDS}
+	@$(MACLIBTOOL) -install_name \
+		`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
+		$(DYLIB_FLAGS) ${PYLIBS} ${MODLIBS} @PYTHON3_LDFLAGS@ \
+		-o $@ $< 
+	@$(MSG) MACLIBTOOL  $@ $<
+
 parseltongue: lib/kno/parseltongue.@shared_suffix@
 
 install-parseltongue: ${CMODULES}/parseltongue.@shared_suffix@ \
@@ -1277,6 +1289,17 @@ lib/kno/parseltongue2.dylib: src/python/parseltongue2.o ${CMODULE_DEPENDS}
 	@$(MSG) MACLIBTOOL  $@ $<
 lib/kno/parseltongue2.@KNO_MAJOR@.dylib: lib/kno/parseltongue2.dylib
 	@ln -sf $(*F).dylib $@
+
+lib/python2/kno.so: src/python/parseltongue.o
+	@$(MKSO) -L./lib -L./ -o $@ $< ${MODLIBS} @PYTHON2_LDFLAGS@ ${EXELIBS} ${PYLIBS}
+	@ln -sf $(@F) $(@D)/$(@F).@KNO_MAJOR@
+	@$(MSG) MKSO  $@ $<
+lib/python2/kno.dylib: src/python/parseltongue2.o ${CMODULE_DEPENDS}
+	@$(MACLIBTOOL) -install_name \
+		`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
+		$(DYLIB_FLAGS) ${MODLIBS} $(PYLIBS} \
+		@PYTHON2_LDFLAGS@ -o $@ $< 
+	@$(MSG) MACLIBTOOL  $@ $<
 
 parseltongue2: lib/kno/parseltongue2.@shared_suffix@
 
