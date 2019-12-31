@@ -18,7 +18,7 @@
 	     (optimize-module! mod)))
 	 (lambda (ex) (set! trouble ex) (reraise ex)))))
 
-(optimize-module! 'optimize)
+;;(optimize-module! 'optimize)
 
 (load-component "stdlib.scm")
 
