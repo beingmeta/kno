@@ -75,7 +75,7 @@ static ssize_t write_opaque(struct KNO_OUTBUF *out,lispval x)
   kno_output_byte(out,dt_compound);
   kno_output_byte(out,dt_symbol);
   kno_output_4bytes(out,7);
-  kno_output_bytes(out,"%OPAQUE",7);
+  kno_output_bytes(out,"%opaque",7);
   kno_output_byte(out,dt_string);
   kno_output_4bytes(out,slen);  /* 18 bytes up to here */
   kno_output_bytes(out,srep,slen);
@@ -652,7 +652,7 @@ KNO_EXPORT void kno_init_dtwrite_c()
 
   error_symbol = kno_intern("%error");
 
-  kno_set_unparsefn(kno_intern("%OPAQUE"),opaque_unparser);
+  kno_set_unparsefn(kno_intern("%opaque"),opaque_unparser);
 
   kno_register_config
     ("USEDTBLOCK",_("Use the DTBLOCK dtype code when appropriate"),
