@@ -80,9 +80,9 @@ typedef size_t (*kno_byte_flushfn)(kno_outbuf,void *);
 
 typedef enum BUFIO_ALLOC {
   KNO_STATIC_BUFFER     = 0x0000,
-  KNO_HEAP_BUFFER       = 0x0010,
-  KNO_BIGALLOC_BUFFER   = 0x0020,
-  KNO_MMAP_BUFFER       = 0x0030}
+  KNO_HEAP_BUFFER       = 0x0020,
+  KNO_BIGALLOC_BUFFER   = 0x0040,
+  KNO_MMAP_BUFFER       = 0x0060}
   bufio_alloc;
 
 /* This is the max flag value reserved for BUFIO itself */
