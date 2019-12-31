@@ -92,8 +92,10 @@
     (if (or vecval (not (singleton? value))) (printout "]"))))
 
 (defambda (jsonfield+ field value (valuefn #f) 
-		      (prefix #f) (context #f) (vecval))
+		      (prefix #f) (context #f)
+		      (vecval) (symval))
   (default! vecval (overlaps? field *json-vecslots*))
+  (default! symval (overlaps? field *json-symslots*))
   (unless (string? field)
     (set! field
       (if (symbol? field) (downcase field)
