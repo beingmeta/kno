@@ -22,51 +22,56 @@
 #define XT_SCALAR(n)   ((n)+0x80)
 #define XT_FIXVAL(n)   ((n)+0x88)
 #define XT_STRING(n)   ((n)+0x90)
-#define XT_COMPOUND(n) ((n)+0xA0)
-#define XT_XREF(n)     ((n)+0xB0)
+#define XT_PAIR(n)     ((n)+0x98)
+#define XT_VECTOR(n)   ((n)+0xA0)
+#define XT_XREF(n)     ((n)+0xA8)
+#define XT_TYPE(n)     ((n)+0xB0)
 
-typedef enum XT_TYPE_CODE 
-  {
-   /* One-byte codes (format: <code> ) */
-   xt_invalid      = XT_SCALAR(0x00),
-   xt_true         = XT_SCALAR(0x01),
-   xt_false        = XT_SCALAR(0x02),
-   xt_empty_choice = XT_SCALAR(0x03),
-   xt_empty_list   = XT_SCALAR(0x04),
-   xt_default      = XT_SCALAR(0x05),
-   xt_void         = XT_SCALAR(0x06),
+typedef enum XT_TYPE_CODE {
+  /* One-byte codes (format: <code> ) */
+  xt_invalid      = XT_SCALAR(0x00),
+  xt_true         = XT_SCALAR(0x01),
+  xt_false        = XT_SCALAR(0x02),
+  xt_empty_choice = XT_SCALAR(0x03),
+  xt_empty_list   = XT_SCALAR(0x04),
+  xt_default      = XT_SCALAR(0x05),
+  xt_void         = XT_SCALAR(0x06),
 
-   xt_float        = XT_FIXVAL(0x00),
-   xt_double       = XT_FIXVAL(0x01),
-   xt_oid          = XT_FIXVAL(0x02),
-   xt_objid        = XT_FIXVAL(0x03),
-   xt_uuid         = XT_FIXVAL(0x04),
-   xt_posint       = XT_FIXVAL(0x05),
-   xt_negint       = XT_FIXVAL(0x06),
-   xt_character    = XT_FIXVAL(0x07),
+  xt_double       = XT_FIXVAL(0x00),
+  xt_oid          = XT_FIXVAL(0x01),
+  xt_objid        = XT_FIXVAL(0x02),
+  xt_uuid         = XT_FIXVAL(0x03),
+  xt_posint       = XT_FIXVAL(0x04),
+  xt_negint       = XT_FIXVAL(0x05),
+  xt_character    = XT_FIXVAL(0x06),
 
-   xt_utf8         = XT_STRING(0x00),
-   xt_packet       = XT_STRING(0x01),
-   xt_secret       = XT_STRING(0x02),
-   xt_symbol       = XT_STRING(0x03),
-   xt_posbig       = XT_STRING(0x04),
-   xt_negbig       = XT_STRING(0x05),
-   xt_block        = XT_STRING(0x06),
+  xt_utf8         = XT_STRING(0x00),
+  xt_packet       = XT_STRING(0x01),
+  xt_secret       = XT_STRING(0x02),
+  xt_symbol       = XT_STRING(0x03),
+  xt_posbig       = XT_STRING(0x04),
+  xt_negbig       = XT_STRING(0x05),
+  xt_block        = XT_STRING(0x06),
 
-   xt_choice       = XT_COMPOUND(0x00),
-   xt_vector       = XT_COMPOUND(0x01),
-   xt_compound     = XT_COMPOUND(0x02),
-   xt_table        = XT_COMPOUND(0x03),
-   xt_pair         = XT_COMPOUND(0x04),
-   xt_tagged       = XT_COMPOUND(0x05),
-   xt_mimeobj      = XT_COMPOUND(0x06),
-   xt_compressed   = XT_COMPOUND(0x07),
-   xt_encrypted    = XT_COMPOUND(0x08),
+  xt_pair         = XT_PAIR(0x00),
+  xt_tagged       = XT_PAIR(0x01),
+  xt_mimeobj      = XT_PAIR(0x02),
+  xt_compressed   = XT_PAIR(0x03),
+  xt_encrypted    = XT_PAIR(0x04),
 
-   xt_absref       = XT_XREF(0x00),
-   xt_offref       = XT_XREF(0x01),
-   xt_absdef       = XT_XREF(0x02)
-  } xt_type_code;
+  xt_choice       = XT_VECTOR(0x00),
+  xt_vector       = XT_VECTOR(0x01),
+  xt_table        = XT_VECTOR(0x02),
+
+  xt_absref       = XT_XREF(0x00),
+  xt_offref       = XT_XREF(0x01),
+  xt_absdef       = XT_XREF(0x02),
+
+  xt_rational     = XT_TYPE(0x00),
+  xt_complex      = XT_TYPE(0x01),
+  xt_timestamp    = XT_TYPE(0x02)
+
+} xt_type_code;
 
 typedef struct XTYPE_REFS {
   int xt_refs_flags;
@@ -82,6 +87,9 @@ typedef struct XTYPE_REFS *xtype_refs;
 #define XTYPE_REFS_READ_ONLY 1
 #define XTYPE_REFS_ADD_OIDS  2
 #define XTYPE_REFS_ADD_SYMS  4
+
+typedef ssize_t (*kno_xtype_fn)(struct KNO_OUTBUF *,lispval,xtype_refs);
+KNO_EXPORT kno_xtype_fn kno_xtype_writers[KNO_TYPE_MAX];
 
 /* XTYPE flags */
 

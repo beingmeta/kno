@@ -175,12 +175,12 @@ static lispval lisp2packet(lispval object,lispval initsize)
 
 /* DTYPE streams */
 
-DEFPRIM2("xtype->lisp",xtype2lisp,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "`(xtype->lisp *packet*)` "
+DEFPRIM2("read-xtype",read_xtype,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	 "`(read-xtype *packet*)` "
 	 "parses the XTYPE representation in *packet* and "
 	 "returns the corresponding object.",
 	 kno_packet_type,KNO_VOID,-1,KNO_VOID);
-static lispval xtype2lisp(lispval packet,lispval opts)
+static lispval read_xtype(lispval packet,lispval opts)
 {
   lispval object;
   lispval refs_arg = kno_getopt(opts,refs_symbol,KNO_VOID);
@@ -194,13 +194,13 @@ static lispval xtype2lisp(lispval packet,lispval opts)
   return object;
 }
 
-DEFPRIM2("lisp->xtype",lisp2xtype,MIN_ARGS(1),
-	 "`(xtype->lisp *object* [*opts*])` returns "
+DEFPRIM2("emit-xtype",emit_xtype,MIN_ARGS(1),
+	 "`(emit-xtype *object* [*opts*])` returns "
 	 "a packet containing the XType representation of object. "
 	 "*bufsize*, if provided, specifies the initial size "
 	 "of the output buffer to be reserved.",
 	 -1,KNO_VOID,-1,KNO_FALSE)
-static lispval lisp2xtype(lispval object,lispval opts)
+static lispval emit_xtype(lispval object,lispval opts)
 {
   size_t size = getposfixopt(opts,KNOSYM_BUFSIZE,8000);
   struct KNO_OUTBUF out = { 0 };
@@ -232,8 +232,8 @@ static lispval make_xtype_refs(lispval vec,lispval opts)
   struct XTYPE_REFS *refs = u8_alloc(struct XTYPE_REFS);
   unsigned int flags = 0;
   if ( (kno_testopt(opts,KNOSYM_READONLY,KNO_VOID)) &&
-       (!(kno_testopt(opts,KNOSYM_READONLY,KNO_FALSE))) ||
-       (!(kno_testopt(opts,KNOSYM_READONLY,KNO_DEFAULT)) ))
+       ( (!(kno_testopt(opts,KNOSYM_READONLY,KNO_FALSE))) ||
+	 (!(kno_testopt(opts,KNOSYM_READONLY,KNO_DEFAULT)) ) ) )
     flags |= XTYPE_REFS_READ_ONLY;
   else {
     if (kno_testopt(opts,KNOSYM(addoids),KNO_FALSE))
@@ -1452,12 +1452,12 @@ static void link_local_cprims()
   KNO_LINK_PRIM("open-output-string",open_output_string,0,kno_io_module);
   KNO_LINK_PRIM("dtype->packet",lisp2packet,2,kno_io_module);
   KNO_LINK_PRIM("packet->dtype",packet2dtype,1,kno_io_module);
-  KNO_LINK_PRIM("lisp->xtype",lisp2xtype,2,kno_io_module);
-  KNO_LINK_PRIM("xtype->lisp",xtype2lisp,2,kno_io_module);
+  KNO_LINK_PRIM("emit-xtype",emit_xtype,2,kno_io_module);
+  KNO_LINK_PRIM("read-xtype",read_xtype,2,kno_io_module);
   KNO_LINK_PRIM("xtype/refs",make_xtype_refs,2,kno_io_module);
   KNO_LINK_PRIM("xtype/refs/encode",xtype_refs_encode,3,kno_io_module);
   KNO_LINK_PRIM("xtype/refs/decode",xtype_refs_decode,2,kno_io_module);
-  KNO_LINK_PRIM("xtype/refs/count",xtype_refs_decode,2,kno_io_module);
+  KNO_LINK_PRIM("xtype/refs/count",xtype_refs_count,1,kno_io_module);
   KNO_LINK_PRIM("eof-object?",eofp,1,kno_io_module);
   KNO_LINK_PRIM("port?",portp,1,kno_io_module);
   KNO_LINK_PRIM("input-port?",input_portp,1,kno_io_module);

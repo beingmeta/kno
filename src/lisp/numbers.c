@@ -47,6 +47,7 @@
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
+#include "kno/xtypes.h"
 #include "kno/bigints.h"
 #include "kno/numbers.h"
 #include "kno/hash.h"
@@ -1943,6 +1944,21 @@ static ssize_t write_flonum_dtype(struct KNO_OUTBUF *out,lispval x)
   return 11;
 }
 
+static ssize_t write_flonum_xtype(struct KNO_OUTBUF *out,lispval x,xtype_refs refs)
+{
+  struct KNO_FLONUM *d = kno_consptr(struct KNO_FLONUM *,x,kno_flonum_type);
+  unsigned char bytes[8]; int i = 0;
+  double *f = (double *)&bytes;
+  *f = d->floval;
+  kno_write_byte(out,xt_double);
+#if WORDS_BIGENDIAN
+  while (i<8) {kno_write_byte(out,bytes[i]); i++;}
+#else
+  i = 7; while (i>=0) {kno_write_byte(out,bytes[i]); i--;}
+#endif
+  return 11;
+}
+
 static void recycle_flonum(struct KNO_RAW_CONS *c)
 {
   if (KNO_MALLOCD_CONSP(c)) u8_free(c);
@@ -3491,6 +3507,75 @@ static int compare_bigint(lispval x,lispval y,kno_compare_flags flags)
   default: return 0;}
 }
 
+static ssize_t write_bigint_xtype
+(struct KNO_OUTBUF *out,lispval x,xtype_refs refs)
+{
+  kno_bigint bi = kno_consptr(kno_bigint,x,kno_bigint_type);
+  if (kno_bigint_fits_in_word_p(bi,32,1)) {
+    /* We'll only get here if fixnums are smaller than 32 bits */
+    long fixed = kno_bigint_to_long(bi);
+    if (fixed<0) {
+      kno_write_byte(out,xt_negint);
+      return 1+kno_write_varint(out,-fixed);}
+    else {
+      kno_write_byte(out,xt_posint);
+      return 1+kno_write_varint(out,fixed);}}
+  else if (BIGINT_ZERO_P (bi)) {
+    kno_write_byte(out,xt_posint);
+    return 1+kno_write_varint(out,0);}
+  else {
+    int negative = BIGINT_NEGATIVE_P(bi);
+    int n_bytes = kno_bigint_length_in_bytes(bi);
+    unsigned char _bytes[64], *bytes, *scan;
+    if (negative)
+      kno_write_byte(out,xt_posbig);
+    else kno_write_byte(out,xt_negbig);
+    if (n_bytes >= 64)
+      scan = bytes = u8_malloc(n_bytes);
+    else scan = bytes = _bytes;
+    kno_bigint_to_digit_stream
+      (bi,256,(bigint_consumer)output_bigint_byte,(void *)&scan);
+    n_bytes = scan-bytes;
+    int xtype_len = 1 + kno_write_varint(out,n_bytes) + n_bytes;
+    scan--; while (scan>=bytes) {
+      int digit = *scan--;
+      kno_write_byte(out,digit);}
+    if (bytes != _bytes) u8_free(bytes);
+    return xtype_len;}
+}
+
+static ssize_t write_rational_xtype
+(struct KNO_OUTBUF *out,lispval x,xtype_refs refs)
+{
+  struct KNO_PAIR *p = (kno_pair) p;
+  ssize_t rv = kno_write_byte(out,xt_tagged);
+  if (rv<0) return rv; else rv=kno_write_byte(out,xt_rational);
+  if (rv<0) return rv; else rv=kno_write_byte(out,xt_pair);
+  if (rv<0) return rv;
+  rv=kno_write_xtype(out,p->car,refs);
+  if (rv<0) return rv;
+  ssize_t xtype_len = 3+rv;
+  rv=kno_write_xtype(out,p->cdr,refs);
+  if (rv<0) return rv;
+  else return xtype_len+rv;
+}
+
+static ssize_t write_complex_xtype
+(struct KNO_OUTBUF *out,lispval x,xtype_refs refs)
+{
+  struct KNO_PAIR *p = (kno_pair) p;
+  ssize_t rv = kno_write_byte(out,xt_tagged);
+  if (rv<0) return rv; else rv=kno_write_byte(out,xt_complex);
+  if (rv<0) return rv; else rv=kno_write_byte(out,xt_pair);
+  if (rv<0) return rv;
+  rv=kno_write_xtype(out,p->car,refs);
+  if (rv<0) return rv;
+  ssize_t xtype_len = 3+rv;
+  rv=kno_write_xtype(out,p->cdr,refs);
+  if (rv<0) return rv;
+  else return xtype_len+rv;
+}
+
 static kno_bigint bigint_magic_modulus;
 
 static int hash_bigint(lispval x,unsigned int (*fn)(lispval))
@@ -3518,6 +3603,15 @@ static lispval unpack_bigint(ssize_t n,unsigned char *packet)
   kno_bigint bi = kno_digit_stream_to_bigint
     (n_digits,(bigint_producer)read_bigint_byte,(void *)&scan,256,packet[0]);
   u8_free(packet);
+  if (bi)
+    return simplify_bigint(bi);
+  else return VOID;
+}
+lispval restore_bigint(ssize_t n_digits,unsigned char *bytes,int negp)
+{
+  unsigned char *scan = bytes;
+  kno_bigint bi = kno_digit_stream_to_bigint
+    (n_digits,(bigint_producer)read_bigint_byte,(void *)&scan,256,negp);
   if (bi)
     return simplify_bigint(bi);
   else return VOID;
@@ -3764,6 +3858,11 @@ void kno_init_numbers_c()
 
   kno_dtype_writers[kno_bigint_type]=write_bigint_dtype;
   kno_dtype_writers[kno_flonum_type]=write_flonum_dtype;
+
+  kno_xtype_writers[kno_flonum_type]=write_flonum_xtype;
+  kno_xtype_writers[kno_rational_type]=write_rational_xtype;
+  kno_xtype_writers[kno_complex_type]=write_complex_xtype;
+  kno_xtype_writers[kno_bigint_type]=write_bigint_xtype;
 
   kno_register_packet_unpacker
     (dt_numeric_package,dt_double,unpack_flonum);
