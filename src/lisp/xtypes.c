@@ -393,11 +393,15 @@ static lispval read_xtype(kno_inbuf in,xtype_refs refs)
     if (rv<0) return KNO_ERROR;}
   case xt_posbig: case xt_negbig: {
     ssize_t n_digits = xt_read_varint(in);
-    unsigned char bytes[n_digits];
+    unsigned char _bytes[128], *bytes=_bytes;
+    if (n_digits > 128) bytes=u8_malloc(n_digits);
     int rv = kno_read_bytes(bytes,in,n_digits);
-    if (rv<0) return KNO_ERROR;
+    if (rv<0) {
+      if (bytes != _bytes) u8_free(bytes);
+      return KNO_ERROR;}
     lispval result =
       restore_bigint(n_digits,bytes,(xt_code == xt_negbig));
+    if (bytes != _bytes) u8_free(bytes);
     if (KNO_BIGINTP(result))
       return result;
     else return KNO_ERROR;}
