@@ -119,6 +119,7 @@ STORAGE_HEADERS=\
  include/kno/dtproc.h			\
  include/kno/dtcall.h			\
  include/kno/frames.h			\
+ include/kno/sqldb.h 			\
  include/kno/methods.h
 
 DRIVERS_H=include/kno/drivers.h
