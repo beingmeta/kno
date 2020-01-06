@@ -275,8 +275,7 @@ CMODULE_OBJS=src/cmodules/odbc.o src/cmodules/sqlite.o src/cmodules/mysql.o 	\
 	     src/cmodules/crypto.o src/cmodules/zlib.o 				\
 	     src/cmodules/qrcode.o src/cmodules/exif.o 				\
 	     src/cmodules/imagick.o src/cmodules/libarchive.o 			\
-	     src/cmodules/ziptools.o src/cmodules/testcapi.o 			\
-	     src/cmodules/hyphenate.o
+	     src/cmodules/ziptools.o src/cmodules/testcapi.o
 
 EXECUTABLES=exe/knox@suffix@ exe/knoc@suffix@ exe/knotask@suffix@  \
 	    exe/knocgi@suffix@ exe/knod@suffix@
@@ -377,7 +376,6 @@ CMODULE_SOURCES=\
 	src/cmodules/odbc.c src/cmodules/sqlite.c src/cmodules/mysql.c		\
 	src/cmodules/leveldb.c src/cmodules/rocksdb.c  				\
 	src/cmodules/ziptools.c src/cmodules/libarchive.c			\
-	src/cmodules/hyphenate.c				\
 	src/cmodules/qrcode.c src/cmodules/exif.c src/cmodules/imagick.c	\
 	src/cmodules/gperftools.c 						\
 	src/cmodules/crypto.c src/cmodules/zeromq.c
@@ -1078,10 +1076,6 @@ lib/kno/qrcode.so lib/kno/qrcode.dylib : MODLIBS=-lqrencode -lpng
 lib/kno/qrcode.so: src/cmodules/qrcode.o
 lib/kno/qrcode.dylib: src/cmodules/qrcode.o ${CMODULE_DEPENDS}
 
-lib/kno/hyphenate.so lib/kno/hyphenate.dylib : MODLIBS=-lhyphen
-lib/kno/hyphenate.so: src/cmodules/hyphenate.o
-lib/kno/hyphenate.dylib: src/cmodules/hyphenate.o ${CMODULE_DEPENDS}
-
 lib/kno/zlib.so lib/kno/zlib.dylib : MODLIBS="-lz"
 lib/kno/zlib.so: src/cmodules/zlib.o
 lib/kno/zlib.dylib: src/cmodules/zlib.o
@@ -1489,7 +1483,6 @@ install-odbc: ${CMODULES}/odbc.@shared_suffix@ ${CMODULES}/odbc.@vshared_suffix@
 install-sqlite: ${CMODULES}/sqlite.@shared_suffix@ ${CMODULES}/sqlite.@vshared_suffix@
 install-mysql: ${CMODULES}/mysql.@shared_suffix@ ${CMODULES}/mysql.@vshared_suffix@
 install-qrcode: ${CMODULES}/qrcode.@shared_suffix@ ${CMODULES}/qrcode.@vshared_suffix@
-install-hyphenate: ${CMODULES}/hyphenate.@shared_suffix@ ${CMODULES}/hyphenate.@vshared_suffix@
 install-ziptools: ${CMODULES}/ziptools.@shared_suffix@ ${CMODULES}/ziptools.@vshared_suffix@
 install-imagick: ${CMODULES}/imagick.@shared_suffix@ ${CMODULES}/imagick.@vshared_suffix@
 install-leveldb: ${CMODULES}/leveldb.@shared_suffix@ ${CMODULES}/leveldb.@vshared_suffix@

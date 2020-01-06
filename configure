@@ -978,7 +978,6 @@ enable_imagick
 enable_ziptools
 with_mysql
 enable_odbc
-enable_hyphenate
 with_exif
 with_qrcode
 with_bootsystem
@@ -1640,7 +1639,6 @@ Optional Features:
 --en/disable-imagick Build and install imagemagick module
 --with-ziptools Build and install ziptools
 --en/disable-odbc Build odbc modules
---en/disable-hyphenate Build and install the hyphenate module
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
@@ -3083,7 +3081,6 @@ with_ziptools_default="yes"
 with_mysql_default="yes"
 with_crypto_default="yes"
 with_imagick_default="yes"
-with_hyphenate_default="yes"
 use_dtblock_default="yes"
 default_bootsystem="none"
 BOOTSETUP="none"
@@ -13005,92 +13002,6 @@ fi
 
 if test ! "${sqlite_included}" = "yes"; then
    missing="sqlite ${missing}";
-fi
-
-### Hyphenate library
-
-# Check whether --enable-hyphenate was given.
-if test "${enable_hyphenate+set}" = set; then :
-  enableval=$enable_hyphenate;
-else
-  enable_hyphenate="yes"
-fi
-
-hyphen_ok="no"
-
-if test "$enable_hyphenate" = "yes"; then
-  for ac_header in hyphen.h
-do :
-  ac_fn_c_check_header_mongrel "$LINENO" "hyphen.h" "ac_cv_header_hyphen_h" "$ac_includes_default"
-if test "x$ac_cv_header_hyphen_h" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_HYPHEN_H 1
-_ACEOF
-
-fi
-
-done
-
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for hnj_hyphen_hyphenate2 in -lhyphen" >&5
-$as_echo_n "checking for hnj_hyphen_hyphenate2 in -lhyphen... " >&6; }
-if ${ac_cv_lib_hyphen_hnj_hyphen_hyphenate2+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lhyphen  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char hnj_hyphen_hyphenate2 ();
-int
-main ()
-{
-return hnj_hyphen_hyphenate2 ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_hyphen_hnj_hyphen_hyphenate2=yes
-else
-  ac_cv_lib_hyphen_hnj_hyphen_hyphenate2=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_hyphen_hnj_hyphen_hyphenate2" >&5
-$as_echo "$ac_cv_lib_hyphen_hnj_hyphen_hyphenate2" >&6; }
-if test "x$ac_cv_lib_hyphen_hnj_hyphen_hyphenate2" = xyes; then :
-  hyphen_ok="yes"
-fi
-
-fi
-
-if test "$enable_hyphenate" = "yes" &&
-   test "$ac_cv_header_hyphen_h" = "yes" &&
-   test "$hyphen_ok" = "yes"; then
-  TEXT_CMODULES="lib/kno/hyphenate.$shared_suffix ${TEXT_CMODULES}"
-  INSTALL_TEXT_CMODULES="install-hyphenate ${INSTALL_TEXT_CMODULES}"
-  DATAFILES="src/cmodules/hyph_en_US.dic ${DATAFILES}"
-  TEST_TEXT_CMODULES="${TEST_TEXT_CMODULES} hyphenate"
-elif test "$enable_hyphenate" = "force"; then
-  TEXT_CMODULES="lib/kno/hyphenate.$shared_suffix ${TEXT_CMODULES}"
-  INSTALL_TEXT_CMODULES="install-hyphenate ${INSTALL_TEXT_CMODULES}"
-  DATAFILES="src/cmodules/hyph_en_US.dic ${DATAFILES}"
-  TEST_TEXT_CMODULES="${TEST_TEXT_CMODULES} hyphenate"
-  force_enabled="hyphenate ${force_enabled}";
-elif test "$enable_hyphenate" = "yes"; then
-  auto_disabled="hyphenate $auto_disabled";
-  enable_hyphenate="failed";
-else
-  manually_disabled="hyphenate $manually_disabled";
 fi
 
 ### exif (extract metadata from image files)

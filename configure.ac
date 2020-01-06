@@ -159,7 +159,6 @@ with_ziptools_default="yes"
 with_mysql_default="yes"
 with_crypto_default="yes"
 with_imagick_default="yes"
-with_hyphenate_default="yes"
 use_dtblock_default="yes"
 default_bootsystem="none"
 BOOTSETUP="none"
@@ -1890,36 +1889,6 @@ fi
 if test ! "${sqlite_included}" = "yes"; then
    missing="sqlite ${missing}";
 fi   
-
-### Hyphenate library
-
-AC_ARG_ENABLE(hyphenate,--en/disable-hyphenate Build and install the hyphenate module,,enable_hyphenate="yes")
-hyphen_ok="no"
-
-if test "$enable_hyphenate" = "yes"; then
-  AC_CHECK_HEADERS(hyphen.h)
-  AC_CHECK_LIB(hyphen,hnj_hyphen_hyphenate2,hyphen_ok="yes")
-fi
-
-if test "$enable_hyphenate" = "yes" &&
-   test "$ac_cv_header_hyphen_h" = "yes" &&
-   test "$hyphen_ok" = "yes"; then
-  TEXT_CMODULES="lib/kno/hyphenate.$shared_suffix ${TEXT_CMODULES}"
-  INSTALL_TEXT_CMODULES="install-hyphenate ${INSTALL_TEXT_CMODULES}"
-  DATAFILES="src/cmodules/hyph_en_US.dic ${DATAFILES}"
-  TEST_TEXT_CMODULES="${TEST_TEXT_CMODULES} hyphenate"
-elif test "$enable_hyphenate" = "force"; then
-  TEXT_CMODULES="lib/kno/hyphenate.$shared_suffix ${TEXT_CMODULES}"
-  INSTALL_TEXT_CMODULES="install-hyphenate ${INSTALL_TEXT_CMODULES}"
-  DATAFILES="src/cmodules/hyph_en_US.dic ${DATAFILES}"
-  TEST_TEXT_CMODULES="${TEST_TEXT_CMODULES} hyphenate"
-  force_enabled="hyphenate ${force_enabled}";
-elif test "$enable_hyphenate" = "yes"; then
-  auto_disabled="hyphenate $auto_disabled";
-  enable_hyphenate="failed";
-else
-  manually_disabled="hyphenate $manually_disabled";
-fi
 
 ### exif (extract metadata from image files)
 

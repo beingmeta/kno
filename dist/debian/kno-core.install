@@ -7,7 +7,6 @@ usr/lib/libknowebtools.so*
 usr/lib/libknotexttools.so*
 usr/lib/kno/crypto.so*
 usr/lib/kno/ziptools.so*
-usr/lib/kno/hyphenate.so*
 usr/lib/kno/libarchive.so*
 usr/lib/kno/zlib.so*
 usr/bin/knoc
@@ -42,7 +41,6 @@ usr/share/kno/gdbinit
 usr/share/kno/knoc.el
 usr/share/kno/makefile.include
 usr/share/kno/webinfo.knocgi
-usr/share/kno/data/hyph_en_US.dic
 etc/logrotate.d/kno
 usr/share/kno/libscm/kno-*/bugjar/*.scm
 usr/share/kno/libscm/kno-*/bugjar/resources/*
