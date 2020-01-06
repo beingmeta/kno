@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-11-23 21:07+0000\n"
+"POT-Creation-Date: 2019-12-31 13:44-0800\n"
 "PO-Revision-Date: 2005-03-04 22:55-0500\n"
 "Last-Translator: Kenneth Haase <kh@beingmeta.com>\n"
 "Language-Team: Spanish <es@li.org>\n"
@@ -105,7 +105,7 @@ msgstr ""
 msgid "Not an OID"
 msgstr ""
 
-#: src/lisp/misctypes.c:243
+#: src/lisp/misctypes.c:245
 msgid "Regular expression error"
 msgstr ""
 
@@ -403,15 +403,15 @@ msgstr ""
 msgid "oid"
 msgstr ""
 
-#: src/lisp/lisp.c:206 src/lisp/lisp.c:207 src/sys/config.c:767
-#: src/eval/eval.c:1462 src/eval/opcode_defs.c:586 src/prims/dbprims.c:3103
-#: src/prims/portprims.c:676 src/eval/choiceops.c:1455
+#: src/lisp/lisp.c:206 src/lisp/lisp.c:207 src/sys/config.c:834
+#: src/eval/eval.c:1461 src/eval/opcode_defs.c:586 src/prims/dbprims.c:3103
+#: src/prims/portprims.c:677 src/eval/choiceops.c:1455
 #: src/eval/choiceops.c:1493 src/eval/choiceops.c:1519
 #: src/eval/choiceops.c:1555 src/eval/choiceops.c:1569
 #: src/eval/choiceops.c:1573 src/eval/choiceops.c:1574 src/prims/seqprims.c:361
 #: src/text/texttools.c:2318 src/text/match.c:3605 src/text/match.c:3622
-#: src/text/match.c:3651 src/text/match.c:3683 src/exe/knocgi.c:279
-#: src/exe/knocgi.c:294 src/exe/knocgi.c:312 src/exe/knocgi.c:328
+#: src/text/match.c:3651 src/text/match.c:3683 src/exe/knocgi.c:281
+#: src/exe/knocgi.c:296 src/exe/knocgi.c:314 src/exe/knocgi.c:330
 msgid "fixnum"
 msgstr ""
 
@@ -427,7 +427,7 @@ msgstr ""
 msgid "constant"
 msgstr ""
 
-#: src/lisp/lisp.c:216 src/lisp/lisp.c:217 src/eval/eval.c:1304
+#: src/lisp/lisp.c:216 src/lisp/lisp.c:217 src/eval/eval.c:1303
 #: src/eval/modules.c:378 src/eval/reflection.c:977
 msgid "symbol"
 msgstr ""
@@ -436,11 +436,11 @@ msgstr ""
 msgid "fcnid"
 msgstr ""
 
-#: src/lisp/lisp.c:220 src/lisp/lisp.c:221 src/eval/eval.c:2088
+#: src/lisp/lisp.c:220 src/lisp/lisp.c:221 src/eval/eval.c:2087
 msgid "lexref"
 msgstr ""
 
-#: src/lisp/lisp.c:222 src/lisp/lisp.c:223 src/eval/eval.c:2094
+#: src/lisp/lisp.c:222 src/lisp/lisp.c:223 src/eval/eval.c:2093
 msgid "opcode"
 msgstr ""
 
@@ -448,17 +448,17 @@ msgstr ""
 msgid "typeref"
 msgstr ""
 
-#: src/lisp/lisp.c:226 src/lisp/lisp.c:227 src/eval/eval.c:2092
+#: src/lisp/lisp.c:226 src/lisp/lisp.c:227 src/eval/eval.c:2091
 msgid "coderef"
 msgstr ""
 
-#: src/lisp/lisp.c:228 src/lisp/lisp.c:229 src/storage/pools.c:2808
+#: src/lisp/lisp.c:228 src/lisp/lisp.c:229 src/storage/pools.c:2813
 #: src/prims/dbprims.c:269 src/prims/dbprims.c:1889
 msgid "pool"
 msgstr ""
 
-#: src/lisp/lisp.c:230 src/lisp/lisp.c:231 src/storage/indexes.c:1125
-#: src/storage/indexes.c:2379 src/storage/slotindexes.c:227
+#: src/lisp/lisp.c:230 src/lisp/lisp.c:231 src/storage/indexes.c:1130
+#: src/storage/indexes.c:2384 src/storage/slotindexes.c:227
 #: src/prims/dbprims.c:748 src/prims/dbprims.c:1857 src/prims/dbprims.c:1872
 #: src/prims/dbprims.c:1903
 msgid "index"
@@ -468,11 +468,11 @@ msgstr ""
 msgid "histref"
 msgstr ""
 
-#: src/lisp/lisp.c:235 src/lisp/lisp.c:236 src/sys/config.c:696
-#: src/sys/config.c:715 src/sys/config.c:734 src/sys/startup.c:254
+#: src/lisp/lisp.c:235 src/lisp/lisp.c:236 src/sys/config.c:763
+#: src/sys/config.c:782 src/sys/config.c:801 src/sys/startup.c:254
 #: src/sys/startup.c:632 src/prims/dbprims.c:306 src/prims/dbprims.c:327
-#: src/prims/dbprims.c:348 src/prims/portprims.c:184 src/prims/portprims.c:597
-#: src/prims/portprims.c:682 src/prims/streamprims.c:560
+#: src/prims/dbprims.c:348 src/prims/portprims.c:184 src/prims/portprims.c:598
+#: src/prims/portprims.c:683 src/prims/streamprims.c:560
 #: src/prims/streamprims.c:605 src/prims/streamprims.c:694
 #: src/prims/streamprims.c:726 src/prims/streamprims.c:744
 #: src/prims/streamprims.c:767 src/prims/streamprims.c:801
@@ -482,7 +482,7 @@ msgstr ""
 #: src/prims/fileprims.c:673 src/web/cgiexec.c:1320 src/web/cgiexec.c:1347
 #: src/web/htmlout.c:583 src/web/uriprims.c:424 src/web/mime.c:114
 #: src/web/curl.c:700 src/text/texttools.c:142 src/text/texttools.c:172
-#: src/text/texttools.c:568 src/exe/knocgi.c:261 src/exe/webcommon.h:262
+#: src/text/texttools.c:568 src/exe/knocgi.c:263 src/exe/webcommon.h:262
 #: src/exe/webcommon.h:321
 msgid "string"
 msgstr ""
@@ -499,7 +499,7 @@ msgstr ""
 msgid "bigint"
 msgstr ""
 
-#: src/lisp/lisp.c:243 src/lisp/lisp.c:244 src/eval/eval.c:1463
+#: src/lisp/lisp.c:243 src/lisp/lisp.c:244 src/eval/eval.c:1462
 #: src/eval/opcode_defs.c:748 src/eval/opcode_defs.c:750
 #: src/eval/opcode_defs.c:763 src/eval/opcode_defs.c:765
 msgid "pair"
@@ -768,67 +768,71 @@ msgstr ""
 msgid "value of UNPACKAGE_DIR"
 msgstr ""
 
-#: src/sys/config.c:34
+#: src/sys/config.c:35
 msgid "Configuration error"
 msgstr ""
 
-#: src/sys/config.c:35
+#: src/sys/config.c:36
 msgid "Read-only config setting"
 msgstr ""
 
-#: src/sys/config.c:751
+#: src/sys/config.c:818
 msgid "small fixnum"
 msgstr ""
 
-#: src/sys/config.c:793 src/sys/config.c:796
+#: src/sys/config.c:860 src/sys/config.c:863
 msgid "size_t sized value"
 msgstr ""
 
-#: src/sys/config.c:1084
+#: src/sys/config.c:1151
 msgid "Get the Kno version string"
 msgstr ""
 
-#: src/sys/config.c:1087
+#: src/sys/config.c:1154
 msgid "Get the Kno revision identifier"
 msgstr ""
 
-#: src/sys/config.c:1090
+#: src/sys/config.c:1157
 msgid "Get the Kno branch name"
 msgstr ""
 
-#: src/sys/config.c:1093
+#: src/sys/config.c:1160
 msgid "Get the Kno major version number"
 msgstr ""
 
-#: src/sys/config.c:1096
+#: src/sys/config.c:1163
 msgid "Get the libu8 version string"
 msgstr ""
 
-#: src/sys/config.c:1099
+#: src/sys/config.c:1166
 msgid "Get the libu8 revision identifier"
 msgstr ""
 
-#: src/sys/config.c:1102
+#: src/sys/config.c:1169
 msgid "Get the libu8 major version number"
 msgstr ""
 
-#: src/sys/config.c:1107
-msgid "Directory for looking up config entries"
+#: src/sys/config.c:1176
+msgid "Default directory for looking up config entries"
 msgstr ""
 
-#: src/sys/config.c:1116 src/sys/config.c:1120
+#: src/sys/config.c:1181
+msgid "Directory/path (cumulative) for looking up config settings"
+msgstr ""
+
+#: src/sys/config.c:1189 src/sys/config.c:1193
 msgid "Get/set the current working directory"
 msgstr ""
 
-#: src/sys/config.c:1124
+#: src/sys/config.c:1197
 msgid "Get the time elapsed since this process started"
 msgstr ""
 
-#: src/sys/config.c:1127
+#: src/sys/config.c:1200
 msgid "Get hostname of the computer running KNO"
 msgstr ""
 
-#: src/sys/config.c:1166
+#: src/sys/config.c:1239
 msgid "whether to trace configuration"
 msgstr ""
 
@@ -1225,7 +1229,7 @@ msgstr ""
 msgid "FFI type error"
 msgstr ""
 
-#: src/apply/ffi.c:447
+#: src/apply/ffi.c:471
 msgid "Not an foreign function interface"
 msgstr ""
 
@@ -1277,7 +1281,7 @@ msgstr ""
 msgid "Error getting metadata"
 msgstr ""
 
-#: src/storage/storage.c:385 src/storage/pools.c:2690 src/prims/dbprims.c:1428
+#: src/storage/storage.c:385 src/storage/pools.c:2695 src/prims/dbprims.c:1428
 #: src/prims/dbprims.c:1442 src/prims/dbprims.c:1453 src/prims/dbprims.c:1465
 #: src/prims/dbprims.c:1509 src/prims/dbprims.c:1525 src/prims/dbprims.c:1544
 #: src/prims/dbprims.c:1559 src/prims/dbprims.c:1573 src/prims/dbprims.c:1594
@@ -1522,71 +1526,71 @@ msgstr ""
 msgid "not an index"
 msgstr ""
 
-#: src/storage/indexes.c:1275
+#: src/storage/indexes.c:1280
 #, c-format
 msgid "Syncing %d changes to %s"
 msgstr ""
 
-#: src/storage/indexes.c:1282
+#: src/storage/indexes.c:1287
 #, c-format
 msgid "(after %fs) syncing %d changes to %s, rolling back"
 msgstr ""
 
-#: src/storage/indexes.c:1286
+#: src/storage/indexes.c:1291
 #, c-format
 msgid "Synced %d changes to %s in %f secs"
 msgstr ""
 
-#: src/storage/indexes.c:1423
+#: src/storage/indexes.c:1428
 #, c-format
 msgid "Committing %d %s (+%d-%d:=%d%s) to %s"
 msgstr ""
 
-#: src/storage/indexes.c:1438
+#: src/storage/indexes.c:1443
 #, c-format
 msgid "Wrote %d changes to %s after %f secs"
 msgstr ""
 
-#: src/storage/indexes.c:1444
+#: src/storage/indexes.c:1449
 #, c-format
 msgid "Error writing %d changes to %s after %f secs, rolling back"
 msgstr ""
 
-#: src/storage/indexes.c:1516
+#: src/storage/indexes.c:1521
 #, c-format
 msgid ""
 "for %d %supdated keys from %s after %f secstotal=%f, start=%f, setup=%f, "
 "save=%f, finalize=%f, apply=%f, cleanup=%f"
 msgstr ""
 
-#: src/storage/indexes.c:1529
+#: src/storage/indexes.c:1534
 #, c-format
 msgid ""
 "Committed %d changes%s from '%s' in %f\n"
 "total=%f, start=%f, setup=%f, save=%f, finalize=%f, apply=%f, cleanup=%f"
 msgstr ""
 
-#: src/storage/indexes.c:1679
+#: src/storage/indexes.c:1684
 #, c-format
 msgid "Saving %d changes (+%d-%d=%d%s) to %s"
 msgstr ""
 
-#: src/storage/indexes.c:1960
+#: src/storage/indexes.c:1965
 #, c-format
 msgid "#<%s %s (%s) cx=%d+%d%s #!%llx \"%s...\">"
 msgstr ""
 
-#: src/storage/indexes.c:1963
+#: src/storage/indexes.c:1968
 #, c-format
 msgid "#<%s %s (%s) cx=%d+%d%s #!%llx \"%s\">"
 msgstr ""
 
-#: src/storage/indexes.c:1965
+#: src/storage/indexes.c:1970
 #, c-format
 msgid "#<%s %s (%s) cx=%d+%d%s #!%llx>"
 msgstr ""
 
-#: src/storage/indexes.c:2383
+#: src/storage/indexes.c:2388
 msgid "raw index"
 msgstr ""
 
@@ -1706,19 +1710,19 @@ msgstr ""
 msgid "Corrupted pool table"
 msgstr ""
 
-#: src/storage/pools.c:1745
+#: src/storage/pools.c:1750
 msgid "not a pool"
 msgstr ""
 
-#: src/storage/pools.c:2677
+#: src/storage/pools.c:2682
 msgid "Config mis-config"
 msgstr ""
 
-#: src/storage/pools.c:2813
+#: src/storage/pools.c:2818
 msgid "raw pool"
 msgstr ""
 
-#: src/storage/pools.c:2869
+#: src/storage/pools.c:2874
 msgid "Default location for new OID allocation"
 msgstr ""
 
@@ -1747,7 +1751,7 @@ msgid "The head file has no data"
 msgstr ""
 
 #: src/storage/compress.c:131 src/storage/compress.c:170
-#: src/prims/portprims.c:1159 src/drivers/headers/zcompress.h:27
+#: src/prims/portprims.c:1160 src/drivers/headers/zcompress.h:27
 #: src/drivers/headers/zcompress.h:65
 msgid "ZLIB ran out of memory"
 msgstr ""
@@ -1761,7 +1765,7 @@ msgid "ZLIB uncompress data error"
 msgstr ""
 
 #: src/storage/compress.c:145 src/storage/compress.c:183
-#: src/prims/portprims.c:1172 src/drivers/headers/zcompress.h:40
+#: src/prims/portprims.c:1173 src/drivers/headers/zcompress.h:40
 #: src/drivers/headers/zcompress.h:78
 msgid "Bad ZLIB return code"
 msgstr ""
@@ -1770,7 +1774,7 @@ msgstr ""
 msgid "pool value compression ran out of memory"
 msgstr ""
 
-#: src/storage/compress.c:181 src/prims/portprims.c:1170
+#: src/storage/compress.c:181 src/prims/portprims.c:1171
 #: src/drivers/headers/zcompress.h:76
 msgid "ZLIB compress data error"
 msgstr ""
@@ -1803,19 +1807,19 @@ msgstr ""
 msgid "Trace ipeval execution"
 msgstr ""
 
-#: src/drivers/filepool.c:496
+#: src/drivers/filepool.c:503
 #, c-format
 msgid "Stored %d oid values in oidpool %s in %f seconds"
 msgstr ""
 
-#: src/drivers/filepool.c:806 src/drivers/oidpool.c:1545
-#: src/drivers/bigpool.c:2256 src/cmodules/leveldb.c:1502
+#: src/drivers/filepool.c:813 src/drivers/oidpool.c:1552
+#: src/drivers/bigpool.c:2260 src/cmodules/leveldb.c:1502
 #: src/cmodules/rocksdb.c:1509
 msgid "FileAlreadyExists"
 msgstr ""
 
-#: src/drivers/filepool.c:900 src/drivers/oidpool.c:1640
-#: src/drivers/bigpool.c:2055 src/drivers/fileindex.c:1199
+#: src/drivers/filepool.c:907 src/drivers/oidpool.c:1647
+#: src/drivers/bigpool.c:2059 src/drivers/fileindex.c:1199
 #: src/drivers/hashindex.c:3829
 msgid "cachelevel"
 msgstr ""
@@ -1840,7 +1844,7 @@ msgstr ""
 msgid "Bad compress level"
 msgstr ""
 
-#: src/drivers/oidpool.c:822
+#: src/drivers/oidpool.c:829
 msgid "Out of luck"
 msgstr ""
 
@@ -1977,11 +1981,11 @@ msgstr ""
 msgid "opcode name"
 msgstr ""
 
-#: src/eval/eval.c:767 src/eval/opcode_defs.c:86 src/eval/reflection.c:763
+#: src/eval/eval.c:766 src/eval/opcode_defs.c:86 src/eval/reflection.c:763
 msgid "macro expansion"
 msgstr ""
 
-#: src/eval/eval.c:1326 src/eval/reflection.c:937 src/eval/reflection.c:994
+#: src/eval/eval.c:1325 src/eval/reflection.c:937 src/eval/reflection.c:994
 msgid "environment"
 msgstr ""
 
@@ -2251,15 +2255,15 @@ msgstr ""
 msgid "offset base"
 msgstr ""
 
-#: src/prims/logprims.c:227 src/prims/logprims.c:273
+#: src/prims/logprims.c:227 src/prims/logprims.c:274
 msgid "LOGIF condition expression cannot be a string"
 msgstr ""
 
-#: src/prims/logprims.c:286 src/prims/logprims.c:289
+#: src/prims/logprims.c:287 src/prims/logprims.c:290
 msgid "LOGIF+ loglevel invalid"
 msgstr ""
 
-#: src/prims/logprims.c:345
+#: src/prims/logprims.c:346
 msgid "No more information"
 msgstr ""
 
@@ -2279,17 +2283,17 @@ msgstr ""
 msgid "output port"
 msgstr ""
 
-#: src/prims/portprims.c:566 src/prims/portprims.c:594
-#: src/prims/portprims.c:620 src/prims/portprims.c:640
-#: src/prims/portprims.c:672 src/text/texttools.c:2315
+#: src/prims/portprims.c:567 src/prims/portprims.c:595
+#: src/prims/portprims.c:621 src/prims/portprims.c:641
+#: src/prims/portprims.c:673 src/text/texttools.c:2315
 msgid "input port"
 msgstr ""
 
-#: src/prims/portprims.c:600
+#: src/prims/portprims.c:601
 msgid "fixum"
 msgstr ""
 
-#: src/prims/portprims.c:1167
+#: src/prims/portprims.c:1168
 msgid "OIDPOOL compress ran out of memory"
 msgstr ""
 
@@ -2844,99 +2848,99 @@ msgstr ""
 msgid ";; %s computed in %f seconds, %d/%d object/index loads\n"
 msgstr ""
 
-#: src/exe/knoc.c:790
+#: src/exe/knoc.c:795
 msgid "Threshold for displaying execution time"
 msgstr ""
 
-#: src/exe/knoc.c:792
+#: src/exe/knoc.c:797
 msgid "Eval prompt (within #||#s)"
 msgstr ""
 
-#: src/exe/knoc.c:796
+#: src/exe/knoc.c:801
 msgid "Max number of string characters to display in debug message"
 msgstr ""
 
-#: src/exe/knoc.c:800
+#: src/exe/knoc.c:805
 msgid "Max number of sequence/choice elements to display in debug message"
 msgstr ""
 
-#: src/exe/knoc.c:803
+#: src/exe/knoc.c:808
 msgid "Whether to minimize console output"
 msgstr ""
 
-#: src/exe/knoc.c:806
+#: src/exe/knoc.c:811
 msgid "Report startup times when longer than N seconds"
 msgstr ""
 
-#: src/exe/knoc.c:810
+#: src/exe/knoc.c:815
 msgid "Number of characters available for pretty-printing console output"
 msgstr ""
 
-#: src/exe/knoc.c:814
+#: src/exe/knoc.c:819
 msgid "Number of elements to initially show in displaying results"
 msgstr ""
 
-#: src/exe/knoc.c:817
+#: src/exe/knoc.c:822
 msgid "Where to create directories for saving backtraces"
 msgstr ""
 
-#: src/exe/knoc.c:820
+#: src/exe/knoc.c:825
 msgid "The base URL for referencing HTML backtraces"
 msgstr ""
 
-#: src/exe/knoc.c:823
+#: src/exe/knoc.c:828
 msgid "The command to use to open saved backtraces"
 msgstr ""
 
-#: src/exe/knoc.c:826
+#: src/exe/knoc.c:831
 msgid "Whether to dump HTML versions of backtraces"
 msgstr ""
 
-#: src/exe/knoc.c:829
+#: src/exe/knoc.c:834
 msgid "Whether to dump LISP object versions of backtraces"
 msgstr ""
 
-#: src/exe/knoc.c:832
+#: src/exe/knoc.c:837
 msgid "Whether to dump binary DTYPE versions of backtraces"
 msgstr ""
 
-#: src/exe/knoc.c:835
+#: src/exe/knoc.c:840
 msgid "Whether to plaintext versions of backtraces"
 msgstr ""
 
-#: src/exe/knoc.c:838
+#: src/exe/knoc.c:843
 msgid "Whether to always save backtraces in the history"
 msgstr ""
 
-#: src/exe/knoc.c:841
+#: src/exe/knoc.c:846
 msgid "Whether to always output backtraces to stderr"
 msgstr ""
 
-#: src/exe/knoc.c:844
+#: src/exe/knoc.c:849
 msgid "Whether load .knoc or other dot files"
 msgstr ""
 
-#: src/exe/knoc.c:847
+#: src/exe/knoc.c:852
 msgid "Where to dump console errors"
 msgstr ""
 
-#: src/exe/knoc.c:892 src/exe/knox.c:247 src/exe/knox.c:252
+#: src/exe/knoc.c:897 src/exe/knox.c:247 src/exe/knox.c:252
 msgid "File to wait to exist before starting"
 msgstr ""
 
-#: src/exe/knoc.c:984
+#: src/exe/knoc.c:989
 msgid "Whether to use EDITLINE for the console"
 msgstr ""
 
-#: src/exe/knoc.c:988
+#: src/exe/knoc.c:993
 msgid "Emit void marker (#|<void|#) when void is returned"
 msgstr ""
 
-#: src/exe/knoc.c:1018
+#: src/exe/knoc.c:1023
 msgid ";; Bound %q\n"
 msgstr ""
 
-#: src/exe/knoc.c:1019
+#: src/exe/knoc.c:1024
 msgid ";; Bad command result %q\n"
 msgstr ""
 
@@ -2984,87 +2988,87 @@ msgstr ""
 msgid "No servers configured"
 msgstr ""
 
-#: src/exe/knocgi.c:1834
+#: src/exe/knocgi.c:1839
 msgid "Trace web transactions over N seconds"
 msgstr ""
 
-#: src/exe/knocgi.c:1837 src/exe/knod.c:1182
+#: src/exe/knocgi.c:1842 src/exe/knod.c:1091
 msgid "Number of pending connection requests allowed"
 msgstr ""
 
-#: src/exe/knocgi.c:1839 src/exe/knod.c:1185
+#: src/exe/knocgi.c:1844 src/exe/knod.c:1094
 msgid "Max number of requests to keep queued"
 msgstr ""
 
-#: src/exe/knocgi.c:1842
+#: src/exe/knocgi.c:1847
 msgid "Max number of concurrent connections to allow (NYI)"
 msgstr ""
 
-#: src/exe/knocgi.c:1845 src/exe/knod.c:1189
+#: src/exe/knocgi.c:1850 src/exe/knod.c:1098
 msgid "Number of clients to prepare for/grow by"
 msgstr ""
 
-#: src/exe/knocgi.c:1848 src/exe/knocgi.c:1851 src/exe/knod.c:1192
+#: src/exe/knocgi.c:1853 src/exe/knocgi.c:1856 src/exe/knod.c:1101
 msgid "Number of threads in the thread pool"
 msgstr ""
 
-#: src/exe/knocgi.c:1854
+#: src/exe/knocgi.c:1859
 msgid "File for recording status reports"
 msgstr ""
 
-#: src/exe/knocgi.c:1857
+#: src/exe/knocgi.c:1862
 msgid "Milliseconds (roughly) between updates to .status"
 msgstr ""
 
-#: src/exe/knocgi.c:1860
+#: src/exe/knocgi.c:1865
 msgid "Milliseconds (roughly) between logging status information"
 msgstr ""
 
-#: src/exe/knocgi.c:1863 src/exe/knod.c:1258
+#: src/exe/knocgi.c:1868 src/exe/knod.c:1164
 msgid "How long (μs) to wait for tasks during shutdown"
 msgstr ""
 
-#: src/exe/knocgi.c:1867 src/exe/knod.c:1166
+#: src/exe/knocgi.c:1872 src/exe/knod.c:1075
 msgid "Remove existing socket files with extreme prejudice"
 msgstr ""
 
-#: src/exe/knocgi.c:1871
+#: src/exe/knocgi.c:1876
 msgid "Whether to check for existing PID files"
 msgstr ""
 
-#: src/exe/knocgi.c:1875
+#: src/exe/knocgi.c:1880
 msgid "Ports for listening for connections"
 msgstr ""
 
-#: src/exe/knocgi.c:1878 src/exe/knod.c:1254
+#: src/exe/knocgi.c:1883 src/exe/knod.c:1160
 msgid "Whether to run in asynchronous mode"
 msgstr ""
 
-#: src/exe/knocgi.c:1882
+#: src/exe/knocgi.c:1887
 msgid "Whether to have libu8 log each monitored address"
 msgstr ""
 
-#: src/exe/knocgi.c:1886
+#: src/exe/knocgi.c:1891
 msgid "Timeout for the poll loop (lower bound of status updates)"
 msgstr ""
 
-#: src/exe/knocgi.c:1890 src/exe/knod.c:1219
+#: src/exe/knocgi.c:1895 src/exe/knod.c:1128
 msgid "Whether to have libu8 log each connection"
 msgstr ""
 
-#: src/exe/knocgi.c:1894 src/exe/knod.c:1224
+#: src/exe/knocgi.c:1899 src/exe/knod.c:1133
 msgid "Whether to have libu8 log each transaction"
 msgstr ""
 
-#: src/exe/knocgi.c:1898
+#: src/exe/knocgi.c:1903
 msgid "Whether to have libu8 log queue activity"
 msgstr ""
 
-#: src/exe/knocgi.c:1904
+#: src/exe/knocgi.c:1909
 msgid "Whether to have libu8 log data transmission/receiption"
 msgstr ""
 
-#: src/exe/knocgi.c:1911 src/exe/knod.c:1236
+#: src/exe/knocgi.c:1916 src/exe/knod.c:1145
 msgid "Whether to support thread-asynchronous transactions"
 msgstr ""
 
@@ -3108,79 +3112,71 @@ msgstr ""
 msgid "Outgoing"
 msgstr ""
 
-#: src/exe/knod.c:222
-msgid "Log file error"
-msgstr ""
-
-#: src/exe/knod.c:1169
+#: src/exe/knod.c:1078
 msgid "Loglevel for knodaemon itself"
 msgstr ""
 
-#: src/exe/knod.c:1172
+#: src/exe/knod.c:1081
 msgid "Whether to run in the foreground"
 msgstr ""
 
-#: src/exe/knod.c:1175
+#: src/exe/knod.c:1084
 msgid "Whether to enable auto-restart"
 msgstr ""
 
-#: src/exe/knod.c:1178
+#: src/exe/knod.c:1087
 msgid "Whether to wait for the servlet PID file"
 msgstr ""
 
-#: src/exe/knod.c:1195
+#: src/exe/knod.c:1104
 msgid "modules to provide in the server environment"
 msgstr ""
 
-#: src/exe/knod.c:1198
+#: src/exe/knod.c:1107
 msgid "whether to provide full scheme interpreter"
 msgstr ""
 
-#: src/exe/knod.c:1201
+#: src/exe/knod.c:1110
 msgid "Whether to log each request and response"
 msgstr ""
 
-#: src/exe/knod.c:1204
+#: src/exe/knod.c:1113
 msgid "Whether to log each transaction"
 msgstr ""
 
-#: src/exe/knod.c:1208
+#: src/exe/knod.c:1117
 msgid "Whether to log errors returned by the server to clients"
 msgstr ""
 
-#: src/exe/knod.c:1212
+#: src/exe/knod.c:1121
 msgid "Whether to include a detailed backtrace when logging errors"
 msgstr ""
 
-#: src/exe/knod.c:1215
+#: src/exe/knod.c:1124
 msgid "Line width for logged backtraces"
 msgstr ""
 
-#: src/exe/knod.c:1230
+#: src/exe/knod.c:1139
 msgid "Whether to have libu8 log all data transfers"
 msgstr ""
 
-#: src/exe/knod.c:1242
+#: src/exe/knod.c:1151
 msgid "Max number of string characters to display in debug messages"
 msgstr ""
 
-#: src/exe/knod.c:1247
+#: src/exe/knod.c:1156
 msgid "Max number of object elements to display in debug messages"
 msgstr ""
 
-#: src/exe/knod.c:1251
-msgid "Where to write server pid/nid files"
-msgstr ""
-
-#: src/exe/knod.c:1262
+#: src/exe/knod.c:1168
 msgid "Whether to automatically reload changed files"
 msgstr ""
 
-#: src/exe/knod.c:1266
+#: src/exe/knod.c:1172
 msgid "Whether to disable exported Kno DB API"
 msgstr ""
 
-#: src/exe/knod.c:1424
+#: src/exe/knod.c:1330
 msgid "port or port@host to listen on"
 msgstr ""
 
