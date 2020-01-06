@@ -8,15 +8,20 @@
 [submodule "src/extmods/sundown"]
 	path = src/submods/sundown
 	url = git@github.com:beingmeta/kno-sundown.git
+	branch = trunk
 [submodule "src/extmods/mongodb"]
 	path = src/submods/mongodb
 	url = git@github.com:beingmeta/kno-mongo.git
+	branch = trunk
 [submodule "src/extmods/tidy"]
 	path = src/submods/tidy
 	url = git@github.com:beingmeta/kno-tidy.git
+	branch = trunk
 [submodule "src/extmods/hyphenate"]
 	path = src/submods/hyphenate
 	url = git@github.com:beingmeta/kno-hyphenate.git
+	branch = trunk
 [submodule "src/extmods/mysql"]
 	path = src/submods/mysql
 	url = git@github.com:beingmeta/kno-mysql.git
+	branch = trunk
