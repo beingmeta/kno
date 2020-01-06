@@ -6,22 +6,22 @@
 	path = docs/wiki
 	url = git@github.com:beingmeta/kno.wiki.git
 [submodule "src/extmods/sundown"]
-	path = src/submods/sundown
+	path = src/extmods/sundown
 	url = git@github.com:beingmeta/kno-sundown.git
 	branch = trunk
 [submodule "src/extmods/mongodb"]
-	path = src/submods/mongodb
+	path = src/extmods/mongodb
 	url = git@github.com:beingmeta/kno-mongo.git
 	branch = trunk
 [submodule "src/extmods/tidy"]
-	path = src/submods/tidy
+	path = src/extmods/tidy
 	url = git@github.com:beingmeta/kno-tidy.git
 	branch = trunk
 [submodule "src/extmods/hyphenate"]
-	path = src/submods/hyphenate
+	path = src/extmods/hyphenate
 	url = git@github.com:beingmeta/kno-hyphenate.git
 	branch = trunk
 [submodule "src/extmods/mysql"]
-	path = src/submods/mysql
+	path = src/extmods/mysql
 	url = git@github.com:beingmeta/kno-mysql.git
 	branch = trunk
