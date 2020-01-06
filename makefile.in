@@ -269,24 +269,6 @@ TEXT_OBJS=\
 	src/text/match.o \
 	src/text/porter.o \
 	src/text/phonetic.o
-SUNDOWN_OBJS=\
-	src/cmodules/ext/sundown/autolink.o \
-	src/cmodules/ext/sundown/buffer.o \
-	src/cmodules/ext/sundown/houdini_href_e.o \
-	src/cmodules/ext/sundown/houdini_html_e.o \
-	src/cmodules/ext/sundown/html.o src/cmodules/ext/sundown/html_smartypants.o \
-	src/cmodules/ext/sundown/markdown.o \
-	src/cmodules/ext/sundown/stack.o \
-	src/cmodules/sundown.o
-
-SUNDOWN_OBJECTS=src/cmodules/ext/sundown/autolink.o src/cmodules/ext/sundown/buffer.o \
-	src/cmodules/ext/sundown/markdown.o src/cmodules/ext/sundown/stack.o \
-	src/cmodules/ext/sundown/html.o src/cmodules/ext/sundown/html_smartypants.o \
-	src/cmodules/ext/sundown/houdini_href_e.o src/cmodules/ext/sundown/houdini_html_e.o
-SUNDOWN_H_FILES=src/cmodules/ext/sundown/autolink.h src/cmodules/ext/sundown/buffer.h \
-	src/cmodules/ext/sundown/markdown.h src/cmodules/ext/sundown/stack.h \
-	src/cmodules/ext/sundown/html_blocks.h src/cmodules/ext/sundown/html.h \
-	src/cmodules/ext/sundown/houdini.h
 
 TIDY_OBJECTS=\
 	src/cmodules/ext/tidy5/access.o 	\
@@ -365,7 +347,7 @@ CMODULE_OBJS=src/cmodules/odbc.o src/cmodules/sqlite.o src/cmodules/mysql.o 	\
 	     src/cmodules/imagick.o src/cmodules/libarchive.o 			\
 	     src/cmodules/ziptools.o src/cmodules/testcapi.o 			\
 	     src/cmodules/hyphenate.o \
-	     ${SUNDOWN_OBJS} ${TIDY_OBJECTS}
+	     ${TIDY_OBJECTS}
 
 EXECUTABLES=exe/knox@suffix@ exe/knoc@suffix@ exe/knotask@suffix@  \
 	    exe/knocgi@suffix@ exe/knod@suffix@
@@ -391,7 +373,6 @@ CLEANDIRS=include/kno src/drivers/headers 		\
 	src/eval src/prims				\
 	src/text src/web src/stdlib			\
 	src/cmodules					\
-	src/cmodules/ext/sundown 			\
 	src/cmodules/ext/tidy5 				\
 	etc
 
@@ -468,8 +449,7 @@ CMODULE_SOURCES=\
 	src/cmodules/odbc.c src/cmodules/sqlite.c src/cmodules/mysql.c		\
 	src/cmodules/leveldb.c src/cmodules/rocksdb.c  				\
 	src/cmodules/ziptools.c src/cmodules/libarchive.c			\
-	src/cmodules/tidy.c src/cmodules/sundown.c 				\
-	src/cmodules/hyphenate.c 			 			\
+	src/cmodules/tidy.c src/cmodules/hyphenate.c				\
 	src/cmodules/qrcode.c src/cmodules/exif.c src/cmodules/imagick.c	\
 	src/cmodules/gperftools.c 						\
 	src/cmodules/crypto.c src/cmodules/zeromq.c
@@ -783,11 +763,7 @@ $(DESTDIR)@config_dir@/boot/%.d: etc/sysv/%.d $(DESTDIR)@config_dir@/boot
 dist/%.changelog: dist/equivs.changelog
 	etc/make-equivs-changelog `basename $@ .changelog` dist/equivs.changelog > $@
 
-src/cmodules/ext/sundown/%.o: src/cmodules/ext/sundown/%.c $(SUNDOWN_H_FILES)
-	@$(CC) $(CFLAGS) -I./src/cmodules/ext/sundown/ -o $@ -c $<
-	@$(MSG) CC "(SUNDOWN)" $@
-
-src/cmodules/ext/tidy5/%.o: src/cmodules/ext/tidy5/%.c $(SUNDOWN_H_FILES)
+src/cmodules/ext/tidy5/%.o: src/cmodules/ext/tidy5/%.c
 	@$(CC) $(CFLAGS) -I./src/cmodules/ext/tidy5/ -o $@ -c $<
 	@$(MSG) CC "(TIDY5)" $@
 
@@ -1200,18 +1176,6 @@ lib/kno/gperftools.o: src/cmodules/gperftools.c
 lib/kno/gperftools.so: src/cmodules/gperftools.o
 lib/kno/gperftools.dylib: src/cmodules/gperftools.o ${CMODULE_DEPENDS}
 
-lib/kno/sundown.so: src/cmodules/sundown.c $(SUNDOWN_OBJECTS)
-	@$(MKSO) $(CFLAGS) -o $@ src/cmodules/sundown.c $(SUNDOWN_OBJECTS)
-	@$(MSG) MKSO  $@ $<
-	@ln -sf $(@F) $(@D)/$(@F).@KNO_MAJOR@
-lib/kno/sundown.dylib: \
-	src/cmodules/sundown.c $(SUNDOWN_OBJECTS) ${CMODULE_DEPENDS}
-	@$(MACLIBTOOL) -install_name \
-		`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
-		${CFLAGS} -o $@ $(DYLIB_FLAGS) \
-		src/cmodules/sundown.c $(SUNDOWN_OBJECTS)
-	@$(MSG) MACLIBTOOL  $@ $<
-
 lib/kno/tidy.so: src/cmodules/tidy.c $(TIDY_OBJECTS)
 	@$(MKSO) $(CFLAGS) -o $@ src/cmodules/tidy.c $(TIDY_OBJECTS)
 	@$(MSG) MKSO  $@ $<
@@ -1623,7 +1587,6 @@ install-rocksdb: ${CMODULES}/rocksdb.@shared_suffix@ ${CMODULES}/rocksdb.@vshare
 install-libarchive: ${CMODULES}/libarchive.@shared_suffix@ ${CMODULES}/libarchive.@vshared_suffix@
 install-exif: ${CMODULES}/exif.@shared_suffix@ ${CMODULES}/exif.@vshared_suffix@
 install-zlib: ${CMODULES}/zlib.@shared_suffix@ ${CMODULES}/zlib.@vshared_suffix@
-install-sundown: ${CMODULES}/sundown.@shared_suffix@ ${CMODULES}/sundown.@vshared_suffix@
 install-gperftools: ${CMODULES}/gperftools.@shared_suffix@ ${CMODULES}/gperftools.@vshared_suffix@
 
 # Setup targets

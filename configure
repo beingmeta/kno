@@ -980,7 +980,6 @@ with_mysql
 enable_odbc
 enable_tidy
 enable_hyphenate
-with_sundown
 with_exif
 with_qrcode
 with_bootsystem
@@ -1713,7 +1712,6 @@ Optional Packages:
 --with/out-sudo use sudo with install
 --with/out-fastcgi Use fastcgi
 --with/out-mysql Use alternate mysql lib
---with/out-sundown Compile the sundown module
 --with/out-exif Use libexif in webtools
 --with/out-qrcode Create qrcode binary module
 --with-bootsystem Setup boot method
@@ -13111,22 +13109,6 @@ elif test "$enable_hyphenate" = "yes"; then
   enable_hyphenate="failed";
 else
   manually_disabled="hyphenate $manually_disabled";
-fi
-
-# Sundown library for converting markdown to HTML
-
-
-# Check whether --with-sundown was given.
-if test "${with_sundown+set}" = set; then :
-  withval=$with_sundown;
-else
-  with_sundown="yes"
-fi
-
-if test "$with_sundown" = "yes"; then
-  TEXT_CMODULES="lib/kno/sundown.$shared_suffix ${TEXT_CMODULES}"
-  INSTALL_TEXT_CMODULES="install-sundown ${INSTALL_TEXT_CMODULES}"
-  TEST_TEXT_CMODULES="${TEST_TEXT_CMODULES} sundown"
 fi
 
 ### exif (extract metadata from image files)

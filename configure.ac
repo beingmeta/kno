@@ -1931,15 +1931,6 @@ else
   manually_disabled="hyphenate $manually_disabled";
 fi
 
-# Sundown library for converting markdown to HTML
-
-AC_ARG_WITH(sundown,--with/out-sundown Compile the sundown module,,with_sundown="yes")
-if test "$with_sundown" = "yes"; then
-  TEXT_CMODULES="lib/kno/sundown.$shared_suffix ${TEXT_CMODULES}"
-  INSTALL_TEXT_CMODULES="install-sundown ${INSTALL_TEXT_CMODULES}"
-  TEST_TEXT_CMODULES="${TEST_TEXT_CMODULES} sundown"
-fi
-
 ### exif (extract metadata from image files)
 
 dnl Build with primitives accessing libexif, if it is available

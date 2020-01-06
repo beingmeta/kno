@@ -179,20 +179,6 @@ Depends:
     ${misc:Depends}
 Description: This package contains the debugging symbols for kno-imagetools
 
-Package: kno-sundown
-Architecture: any
-Depends: kno-core (= ${binary:Version})
-Description: Markdown conversion (bindings) for Kno
-
-Package: kno-sundown-dbg
-Architecture: any
-Section: debug
-Depends: 
-    kno-core-dbg (= ${binary:Version}),
-    kno-sundown (= ${binary:Version}),
-    ${misc:Depends}
-Description: This package contains the debugging symbols for kno-sundown
-
 Package: kno-tidy
 Architecture: any
 Depends: kno-core (= ${binary:Version})
@@ -240,7 +226,7 @@ Description: Provides an Emacs mode for interacting with knoc
 Package: kno-full
 Architecture: any
 Depends: ${misc:Depends}, kno-core, kno-stdlib, kno-doc,
-	 kno-zeromq, kno-imagetools, kno-sundown, kno-tidy,
+	 kno-zeromq, kno-imagetools, kno-tidy,
 	 kno-mysql, kno-sqlite,
 	 kno-leveldb, kno-rocksdb,
 	 kno-parseltongue,
@@ -255,7 +241,6 @@ Depends: ${misc:Depends}, kno-full,
 	 kno-leveldb-dbg,
 	 kno-sqlite-dbg,
 	 kno-zeromq-dbg,
-	 kno-sundown-dbg,
 	 kno-parseltongue-dbg,
 	 kno-tidy-dbg
 Description: Installs all standard Kno modules
