@@ -1891,16 +1891,6 @@ if test ! "${sqlite_included}" = "yes"; then
    missing="sqlite ${missing}";
 fi   
 
-### HTML TIDY
-
-AC_ARG_ENABLE(tidy,--en/disable-tidy Build and install tidy module,,enable_tidy="yes")
-
-if test "$enable_tidy" = "yes"; then
-  TEXT_CMODULES="lib/kno/tidy.$shared_suffix ${TEXT_CMODULES}"
-  INSTALL_TEXT_CMODULES="install-tidy ${INSTALL_TEXT_CMODULES}"
-  TEST_TEXT_CMODULES="${TEST_TEXT_CMODULES} tidy"
-fi
-
 ### Hyphenate library
 
 AC_ARG_ENABLE(hyphenate,--en/disable-hyphenate Build and install the hyphenate module,,enable_hyphenate="yes")

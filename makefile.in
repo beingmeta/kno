@@ -270,84 +270,13 @@ TEXT_OBJS=\
 	src/text/porter.o \
 	src/text/phonetic.o
 
-TIDY_OBJECTS=\
-	src/cmodules/ext/tidy5/access.o 	\
-	src/cmodules/ext/tidy5/alloc.o 	\
-	src/cmodules/ext/tidy5/attrask.o 	\
-	src/cmodules/ext/tidy5/attrdict.o 	\
-	src/cmodules/ext/tidy5/attrget.o 	\
-	src/cmodules/ext/tidy5/attrs.o 	\
-	src/cmodules/ext/tidy5/buffio.o 	\
-	src/cmodules/ext/tidy5/charsets.o 	\
-	src/cmodules/ext/tidy5/clean.o 	\
-	src/cmodules/ext/tidy5/config.o 	\
-	src/cmodules/ext/tidy5/entities.o 	\
-	src/cmodules/ext/tidy5/fileio.o 	\
-	src/cmodules/ext/tidy5/gdoc.o 	\
-	src/cmodules/ext/tidy5/iconvtc.o 	\
-	src/cmodules/ext/tidy5/istack.o 	\
-	src/cmodules/ext/tidy5/language.o 	\
-	src/cmodules/ext/tidy5/lexer.o 	\
-	src/cmodules/ext/tidy5/mappedio.o 	\
-	src/cmodules/ext/tidy5/message.o 	\
-	src/cmodules/ext/tidy5/parser.o 	\
-	src/cmodules/ext/tidy5/pprint.o 	\
-	src/cmodules/ext/tidy5/sprtf.o 	\
-	src/cmodules/ext/tidy5/streamio.o 	\
-	src/cmodules/ext/tidy5/tagask.o 	\
-	src/cmodules/ext/tidy5/tags.o 	\
-	src/cmodules/ext/tidy5/tidylib.o 	\
-	src/cmodules/ext/tidy5/tmbstr.o 	\
-	src/cmodules/ext/tidy5/utf8.o 	\
-	src/cmodules/ext/tidy5/win32tc.o
-
-TIDY_H_FILES=\
-	src/cmodules/ext/tidy5/access.h 	\
-	src/cmodules/ext/tidy5/attrdict.h 	\
-	src/cmodules/ext/tidy5/attrs.h 	\
-	src/cmodules/ext/tidy5/buffio.h 	\
-	src/cmodules/ext/tidy5/charsets.h 	\
-	src/cmodules/ext/tidy5/clean.h 	\
-	src/cmodules/ext/tidy5/config.h 	\
-	src/cmodules/ext/tidy5/entities.h 	\
-	src/cmodules/ext/tidy5/fileio.h 	\
-	src/cmodules/ext/tidy5/forward.h 	\
-	src/cmodules/ext/tidy5/gdoc.h 	\
-	src/cmodules/ext/tidy5/iconvtc.h 	\
-	src/cmodules/ext/tidy5/language_en_gb.h 	\
-	src/cmodules/ext/tidy5/language_en.h 	\
-	src/cmodules/ext/tidy5/language_es.h 	\
-	src/cmodules/ext/tidy5/language_es_mx.h 	\
-	src/cmodules/ext/tidy5/language_fr.h 	\
-	src/cmodules/ext/tidy5/language.h 	\
-	src/cmodules/ext/tidy5/language_zh_cn.h 	\
-	src/cmodules/ext/tidy5/lexer.h 	\
-	src/cmodules/ext/tidy5/mappedio.h 	\
-	src/cmodules/ext/tidy5/message.h 	\
-	src/cmodules/ext/tidy5/parser.h 	\
-	src/cmodules/ext/tidy5/platform.h 	\
-	src/cmodules/ext/tidy5/pprint.h 	\
-	src/cmodules/ext/tidy5/sprtf.h 	\
-	src/cmodules/ext/tidy5/streamio.h 	\
-	src/cmodules/ext/tidy5/tags.h 	\
-	src/cmodules/ext/tidy5/tidybuffio.h 	\
-	src/cmodules/ext/tidy5/tidyenum.h 	\
-	src/cmodules/ext/tidy5/tidy.h 	\
-	src/cmodules/ext/tidy5/tidy-int.h 	\
-	src/cmodules/ext/tidy5/tidyplatform.h 	\
-	src/cmodules/ext/tidy5/tmbstr.h 	\
-	src/cmodules/ext/tidy5/utf8.h 	\
-	src/cmodules/ext/tidy5/version.h 	\
-	src/cmodules/ext/tidy5/win32tc.h
-
 CMODULE_OBJS=src/cmodules/odbc.o src/cmodules/sqlite.o src/cmodules/mysql.o 	\
 	     src/cmodules/rocksdb.o src/cmodules/leveldb.o 			\
 	     src/cmodules/crypto.o src/cmodules/zlib.o 				\
 	     src/cmodules/qrcode.o src/cmodules/exif.o 				\
 	     src/cmodules/imagick.o src/cmodules/libarchive.o 			\
 	     src/cmodules/ziptools.o src/cmodules/testcapi.o 			\
-	     src/cmodules/hyphenate.o \
-	     ${TIDY_OBJECTS}
+	     src/cmodules/hyphenate.o
 
 EXECUTABLES=exe/knox@suffix@ exe/knoc@suffix@ exe/knotask@suffix@  \
 	    exe/knocgi@suffix@ exe/knod@suffix@
@@ -373,7 +302,6 @@ CLEANDIRS=include/kno src/drivers/headers 		\
 	src/eval src/prims				\
 	src/text src/web src/stdlib			\
 	src/cmodules					\
-	src/cmodules/ext/tidy5 				\
 	etc
 
 KNO_HEADERS= \
@@ -449,7 +377,7 @@ CMODULE_SOURCES=\
 	src/cmodules/odbc.c src/cmodules/sqlite.c src/cmodules/mysql.c		\
 	src/cmodules/leveldb.c src/cmodules/rocksdb.c  				\
 	src/cmodules/ziptools.c src/cmodules/libarchive.c			\
-	src/cmodules/tidy.c src/cmodules/hyphenate.c				\
+	src/cmodules/hyphenate.c				\
 	src/cmodules/qrcode.c src/cmodules/exif.c src/cmodules/imagick.c	\
 	src/cmodules/gperftools.c 						\
 	src/cmodules/crypto.c src/cmodules/zeromq.c
@@ -762,10 +690,6 @@ $(DESTDIR)@config_dir@/boot/%.d: etc/sysv/%.d $(DESTDIR)@config_dir@/boot
 
 dist/%.changelog: dist/equivs.changelog
 	etc/make-equivs-changelog `basename $@ .changelog` dist/equivs.changelog > $@
-
-src/cmodules/ext/tidy5/%.o: src/cmodules/ext/tidy5/%.c
-	@$(CC) $(CFLAGS) -I./src/cmodules/ext/tidy5/ -o $@ -c $<
-	@$(MSG) CC "(TIDY5)" $@
 
 exe/knox@suffix@ exe/knotask@suffix@ exe/knoc@suffix@: \
 	$(STATIC_LIBS) $(SHARED_LIBS)
@@ -1176,18 +1100,6 @@ lib/kno/gperftools.o: src/cmodules/gperftools.c
 lib/kno/gperftools.so: src/cmodules/gperftools.o
 lib/kno/gperftools.dylib: src/cmodules/gperftools.o ${CMODULE_DEPENDS}
 
-lib/kno/tidy.so: src/cmodules/tidy.c $(TIDY_OBJECTS)
-	@$(MKSO) $(CFLAGS) -o $@ src/cmodules/tidy.c $(TIDY_OBJECTS)
-	@$(MSG) MKSO  $@ $<
-	@ln -sf $(@F) $(@D)/$(@F).@KNO_MAJOR@
-lib/kno/tidy.dylib: \
-	src/cmodules/tidy.c $(TIDY_OBJECTS) ${CMODULE_DEPENDS}
-	@$(MACLIBTOOL) -install_name \
-		`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
-		${CFLAGS} -o $@ $(DYLIB_FLAGS) \
-		src/cmodules/tidy.c $(TIDY_OBJECTS)
-	@$(MSG) MACLIBTOOL  $@ $<
-
 # Parseltongue (default: v3)
 src/python/parseltongue.o: src/python/parseltongue.c
 	$(CC) @PYTHON3_CFLAGS@ $(CFLAGS) -o $@ -c $< ${MODLIBS}
@@ -1580,7 +1492,6 @@ install-mysql: ${CMODULES}/mysql.@shared_suffix@ ${CMODULES}/mysql.@vshared_suff
 install-qrcode: ${CMODULES}/qrcode.@shared_suffix@ ${CMODULES}/qrcode.@vshared_suffix@
 install-hyphenate: ${CMODULES}/hyphenate.@shared_suffix@ ${CMODULES}/hyphenate.@vshared_suffix@
 install-ziptools: ${CMODULES}/ziptools.@shared_suffix@ ${CMODULES}/ziptools.@vshared_suffix@
-install-tidy: ${CMODULES}/tidy.@shared_suffix@ ${CMODULES}/tidy.@vshared_suffix@
 install-imagick: ${CMODULES}/imagick.@shared_suffix@ ${CMODULES}/imagick.@vshared_suffix@
 install-leveldb: ${CMODULES}/leveldb.@shared_suffix@ ${CMODULES}/leveldb.@vshared_suffix@
 install-rocksdb: ${CMODULES}/rocksdb.@shared_suffix@ ${CMODULES}/rocksdb.@vshared_suffix@

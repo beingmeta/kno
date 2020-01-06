@@ -978,7 +978,6 @@ enable_imagick
 enable_ziptools
 with_mysql
 enable_odbc
-enable_tidy
 enable_hyphenate
 with_exif
 with_qrcode
@@ -1641,7 +1640,6 @@ Optional Features:
 --en/disable-imagick Build and install imagemagick module
 --with-ziptools Build and install ziptools
 --en/disable-odbc Build odbc modules
---en/disable-tidy Build and install tidy module
 --en/disable-hyphenate Build and install the hyphenate module
 
 Optional Packages:
@@ -13007,22 +13005,6 @@ fi
 
 if test ! "${sqlite_included}" = "yes"; then
    missing="sqlite ${missing}";
-fi
-
-### HTML TIDY
-
-# Check whether --enable-tidy was given.
-if test "${enable_tidy+set}" = set; then :
-  enableval=$enable_tidy;
-else
-  enable_tidy="yes"
-fi
-
-
-if test "$enable_tidy" = "yes"; then
-  TEXT_CMODULES="lib/kno/tidy.$shared_suffix ${TEXT_CMODULES}"
-  INSTALL_TEXT_CMODULES="install-tidy ${INSTALL_TEXT_CMODULES}"
-  TEST_TEXT_CMODULES="${TEST_TEXT_CMODULES} tidy"
 fi
 
 ### Hyphenate library

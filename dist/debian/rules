@@ -37,7 +37,6 @@ override_dh_strip:
 	dh_strip -pkno-sqlite     --dbg-package=kno-sqlite-dbg
 	dh_strip -pkno-mysql      --dbg-package=kno-mysql-dbg
 	dh_strip -pkno-leveldb    --dbg-package=kno-leveldb-dbg
-	dh_strip -pkno-tidy       --dbg-package=kno-tidy-dbg
 	dh_strip -pkno-imagetools --dbg-package=kno-imagetools-dbg
 	dh_strip -pkno-parseltongue --dbg-package=kno-parseltongue-dbg
 	dh_strip -pkno-parseltongue2 --dbg-package=kno-parseltongue2-dbg

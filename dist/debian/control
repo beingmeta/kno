@@ -179,20 +179,6 @@ Depends:
     ${misc:Depends}
 Description: This package contains the debugging symbols for kno-imagetools
 
-Package: kno-tidy
-Architecture: any
-Depends: kno-core (= ${binary:Version})
-Description: HTML Tidy (bindings) for Kno
-
-Package: kno-tidy-dbg
-Architecture: any
-Section: debug
-Depends: 
-    kno-core-dbg (= ${binary:Version}),
-    kno-tidy (= ${binary:Version}),
-    ${misc:Depends}
-Description: This package contains the debugging symbols for kno-tidy
-
 Package: kno-doc
 Architecture: any
 Description: documentation for kno
@@ -226,7 +212,7 @@ Description: Provides an Emacs mode for interacting with knoc
 Package: kno-full
 Architecture: any
 Depends: ${misc:Depends}, kno-core, kno-stdlib, kno-doc,
-	 kno-zeromq, kno-imagetools, kno-tidy,
+	 kno-zeromq, kno-imagetools,
 	 kno-mysql, kno-sqlite,
 	 kno-leveldb, kno-rocksdb,
 	 kno-parseltongue,
@@ -241,8 +227,7 @@ Depends: ${misc:Depends}, kno-full,
 	 kno-leveldb-dbg,
 	 kno-sqlite-dbg,
 	 kno-zeromq-dbg,
-	 kno-parseltongue-dbg,
-	 kno-tidy-dbg
+	 kno-parseltongue-dbg
 Description: Installs all standard Kno modules
 
 Package: kno-dev
