@@ -722,9 +722,6 @@ IMAGICK_LDFLAGS
 IMAGICK_CFLAGS
 LIBZIP_LDFLAGS
 LIBZIP_CFLAGS
-MONGODB_LDFLAGS
-MONGODB_CFLAGS
-MONGODB_BUNDLED
 MYSQL_LDFLAGS
 MYSQL_CFLAGS
 MALLOC_FLAGS
@@ -979,7 +976,6 @@ enable_leveldb
 enable_rocksdb
 enable_imagick
 enable_ziptools
-enable_mongodb
 with_mysql
 enable_odbc
 enable_tidy
@@ -1645,7 +1641,6 @@ Optional Features:
 --en/disable-rocksdb Build and install Rocksdb module
 --en/disable-imagick Build and install imagemagick module
 --with-ziptools Build and install ziptools
---en/disable-mongodb Build and install MongoDB module
 --en/disable-odbc Build odbc modules
 --en/disable-tidy Build and install tidy module
 --en/disable-hyphenate Build and install the hyphenate module
@@ -3103,10 +3098,6 @@ CLANG=no
 MALLOC_FLAGS="-fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free"
 MYSQL_CFLAGS=
 MYSQL_LDFLAGS=
-MONGODB_ENABLED=
-MONGODB_BUNDLED=
-MONGODB_CFLAGS=
-MONGODB_LDFLAGS=
 IMAGICK_CFLAGS=
 IMAGICK_LDFLAGS=
 LIBZIP_CFLAGS=
@@ -3190,9 +3181,6 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/kno/knosource.h include/kno/config.h"
-
-
-
 
 
 
@@ -12699,46 +12687,6 @@ done
 else
     manually_disabled="ziptools ${manually_disabled}";
 fi
-
-### MongoDB
-
-# Check whether --enable-mongodb was given.
-if test "${enable_mongodb+set}" = set; then :
-  enableval=$enable_mongodb;
-else
-  enable_mongodb="yes"
-fi
-
-
-if test "$enable_mongodb" = "yes" ||
-   test "$enable_mongodb" = "force"; then
-  if test $pkg_config != "na" &&
-     $pkg_config --exists libmongoc-1.0; then
-    MONGODB_CFLAGS=`$pkg_config libmongoc-1.0 --cflags`
-    MONGODB_LDFLAGS=`$pkg_config libmongoc-1.0 --libs`
-    DB_CMODULES="lib/kno/mongodb.$shared_suffix ${DB_CMODULES}";
-    INSTALL_DB_CMODULES="install-mongodb ${INSTALL_DB_CMODULES}";
-    TEST_DB_CMODULES="${TEST_DB_CMODULES} mongodb"
-    MONGODB_ENABLED=yes
-  elif test "$enable_mongodb" = "force"; then
-    force_enabled="mongodb ${force_enabled}";
-    DB_CMODULES="lib/kno/mongodb.$shared_suffix ${DB_CMODULES}";
-    INSTALL_DB_CMODULES="install-mongodb ${INSTALL_DB_CMODULES}";
-    TEST_DB_CMODULES="${TEST_DB_CMODULES} mongodb"
-    MONGODB_ENABLED=yes
-  else
-    auto_disabled="mongodb ${auto_disabled}";
-  fi;
-elif test "$enable_mongodb" = "bundled"; then
-    MONGODB_BUNDLED=mongodb.bundled
-    MONGODB_CFLAGS="-I./include/bson -I./include/mongoc"
-    MONGODB_LDFLAGS="-Wl,--whole-archive -Wl,-Bstatic -lmongoc -Wl,--no-whole-archive  -lbson -Wl,-Bdynamic"
-    DB_CMODULES="lib/kno/mongodb.$shared_suffix ${DB_CMODULES}";
-    INSTALL_DB_CMODULES="install-mongodb ${INSTALL_DB_CMODULES}";
-    TEST_DB_CMODULES="${TEST_DB_CMODULES} mongodb"
-else
-    manually_disabled="mongodb ${manually_disabled}";
-fi;
 
 ### MySQL
 

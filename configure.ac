@@ -170,10 +170,6 @@ CLANG=no
 MALLOC_FLAGS="-fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free"
 MYSQL_CFLAGS=
 MYSQL_LDFLAGS=
-MONGODB_ENABLED=
-MONGODB_BUNDLED=
-MONGODB_CFLAGS=
-MONGODB_LDFLAGS=
 IMAGICK_CFLAGS=
 IMAGICK_LDFLAGS=
 LIBZIP_CFLAGS=
@@ -361,9 +357,6 @@ AC_SUBST(TEST_ARCHIVE_CMODULES)
 AC_SUBST(MALLOC_FLAGS)
 AC_SUBST(MYSQL_CFLAGS)
 AC_SUBST(MYSQL_LDFLAGS)
-AC_SUBST(MONGODB_BUNDLED)
-AC_SUBST(MONGODB_CFLAGS)
-AC_SUBST(MONGODB_LDFLAGS)
 AC_SUBST(LIBZIP_CFLAGS)
 AC_SUBST(LIBZIP_LDFLAGS)
 AC_SUBST(IMAGICK_CFLAGS)
@@ -1812,40 +1805,6 @@ if test "$enable_ziptools" = "yes" ||
 else
     manually_disabled="ziptools ${manually_disabled}";
 fi
-
-### MongoDB
-
-AC_ARG_ENABLE(mongodb,--en/disable-mongodb Build and install MongoDB module,,enable_mongodb="yes")
-
-if test "$enable_mongodb" = "yes" ||
-   test "$enable_mongodb" = "force"; then
-  if test $pkg_config != "na" &&
-     $pkg_config --exists libmongoc-1.0; then
-    MONGODB_CFLAGS=`$pkg_config libmongoc-1.0 --cflags` 
-    MONGODB_LDFLAGS=`$pkg_config libmongoc-1.0 --libs` 
-    DB_CMODULES="lib/kno/mongodb.$shared_suffix ${DB_CMODULES}";
-    INSTALL_DB_CMODULES="install-mongodb ${INSTALL_DB_CMODULES}";
-    TEST_DB_CMODULES="${TEST_DB_CMODULES} mongodb"
-    MONGODB_ENABLED=yes
-  elif test "$enable_mongodb" = "force"; then
-    force_enabled="mongodb ${force_enabled}";
-    DB_CMODULES="lib/kno/mongodb.$shared_suffix ${DB_CMODULES}";
-    INSTALL_DB_CMODULES="install-mongodb ${INSTALL_DB_CMODULES}";
-    TEST_DB_CMODULES="${TEST_DB_CMODULES} mongodb"
-    MONGODB_ENABLED=yes
-  else
-    auto_disabled="mongodb ${auto_disabled}";
-  fi;
-elif test "$enable_mongodb" = "bundled"; then
-    MONGODB_BUNDLED=mongodb.bundled
-    MONGODB_CFLAGS="-I./include/bson -I./include/mongoc"
-    MONGODB_LDFLAGS="-Wl,--whole-archive -Wl,-Bstatic -lmongoc -Wl,--no-whole-archive  -lbson -Wl,-Bdynamic"
-    DB_CMODULES="lib/kno/mongodb.$shared_suffix ${DB_CMODULES}";
-    INSTALL_DB_CMODULES="install-mongodb ${INSTALL_DB_CMODULES}";
-    TEST_DB_CMODULES="${TEST_DB_CMODULES} mongodb"
-else
-    manually_disabled="mongodb ${manually_disabled}";      
-fi;
 
 ### MySQL
 

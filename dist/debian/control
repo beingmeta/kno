@@ -2,7 +2,7 @@ Source: kno
 Section: Libraries
 Priority: optional
 Maintainer: Kenneth Benefiel Haase <kh@beingmeta.com>
-Build-Depends: debhelper (>= 8.0.0), autotools-dev, equivs, dh-systemd, dh-elpa, debsigs, devscripts, libgoogle-perftools-dev, libjemalloc-dev, libsnappy-dev, libzstd-dev, sqlite3, apache2-dev, default-libmysqlclient-dev | libmysqlclient-dev, libcurl4-openssl-dev, libarchive-dev, libexif-dev, libzip-dev, libqrencode-dev, libu8-dev (>= 2.6.9), python-dev, libpython2.7-dev, python3-dev, libpython3-dev, libhyphen-dev, libedit-dev, libsasl2-dev, mongo-c-driver | libbson-dev, libmagickwand-dev, mongo-c-driver | libmongoc-dev, libldns-dev, libleveldb-dev, librocksdb-dev [i386 amd64], libsqlite3-dev, ronn | ruby-ronn
+Build-Depends: debhelper (>= 8.0.0), autotools-dev, equivs, dh-systemd, dh-elpa, debsigs, devscripts, libgoogle-perftools-dev, libjemalloc-dev, libsnappy-dev, libzstd-dev, sqlite3, apache2-dev, default-libmysqlclient-dev | libmysqlclient-dev, libcurl4-openssl-dev, libarchive-dev, libexif-dev, libzip-dev, libqrencode-dev, libu8-dev (>= 2.6.9), python-dev, libpython2.7-dev, python3-dev, libpython3-dev, libhyphen-dev, libedit-dev, libsasl2-dev, libmagickwand-dev, libldns-dev, libleveldb-dev, librocksdb-dev [i386 amd64], libsqlite3-dev, ronn | ruby-ronn
 Standards-Version: 3.9.4
 Homepage: http://www.kno.dev/
 
@@ -102,22 +102,6 @@ Depends:
     kno-zeromq (= ${binary:Version}),
     ${misc:Depends}
 Description: This package contains the debugging symbols for kno-zeromq
-
-Package: kno-mongodb
-Architecture: any
-Depends: kno-core (= ${binary:Version}), mongo-c-driver | libbson-dev, mongo-c-driver | libmongoc-dev
-Description: MongoDB interface for Kno
-
-Package: kno-mongodb-dbg
-Architecture: any
-Section: debug
-Depends: 
-    kno-core-dbg (= ${binary:Version}),
-    kno-mongodb (= ${binary:Version}),
-    mongo-c-driver | libmongoc-dev,
-    mongo-c-driver | libbson-dev,
-    ${misc:Depends}
-Description: This package contains the debugging symbols for kno-mongodb
 
 Package: kno-leveldb
 Architecture: any
@@ -257,7 +241,7 @@ Package: kno-full
 Architecture: any
 Depends: ${misc:Depends}, kno-core, kno-stdlib, kno-doc,
 	 kno-zeromq, kno-imagetools, kno-sundown, kno-tidy,
-	 kno-mysql, kno-mongo | kno-mongodb, kno-sqlite,
+	 kno-mysql, kno-sqlite,
 	 kno-leveldb, kno-rocksdb,
 	 kno-parseltongue,
 	 elpa-knoc
@@ -268,7 +252,6 @@ Architecture: any
 Depends: ${misc:Depends}, kno-full, 
 	 kno-imagetools-dbg,
 	 kno-mysql-dbg,
-	 kno-mongo-dbg | kno-mongodb-dbg,
 	 kno-leveldb-dbg,
 	 kno-sqlite-dbg,
 	 kno-zeromq-dbg,

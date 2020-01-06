@@ -36,7 +36,6 @@ override_dh_strip:
 	dh_strip -pkno-core       --dbg-package=kno-core-dbg
 	dh_strip -pkno-sqlite     --dbg-package=kno-sqlite-dbg
 	dh_strip -pkno-mysql      --dbg-package=kno-mysql-dbg
-	dh_strip -pkno-mongodb    --dbg-package=kno-mongodb-dbg
 	dh_strip -pkno-leveldb    --dbg-package=kno-leveldb-dbg
 	dh_strip -pkno-sundown    --dbg-package=kno-sundown-dbg
 	dh_strip -pkno-tidy       --dbg-package=kno-tidy-dbg

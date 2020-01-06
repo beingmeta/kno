@@ -127,7 +127,6 @@ SCHEME_HEADERS=include/kno/eval.h include/kno/threads.h \
 	include/kno/opcodes.h include/kno/seqprims.h \
 	include/kno/procprims.h include/kno/getsource.h
 LIB_HEADERS=include/kno/texttools.h include/kno/webtools.h \
-		include/kno/mongodb.h \
 	        include/kno/leveldb.h \
 	        include/kno/rocksdb.h
 
@@ -359,13 +358,12 @@ TIDY_H_FILES=\
 	src/cmodules/ext/tidy5/version.h 	\
 	src/cmodules/ext/tidy5/win32tc.h
 
-CMODULE_OBJS=src/cmodules/odbc.o src/cmodules/sqlite.o \
-	     src/cmodules/mysql.o src/cmodules/mongodb.o \
-	     src/cmodules/rocksdb.o src/cmodules/leveldb.o \
-	     src/cmodules/crypto.o src/cmodules/zlib.o \
-	     src/cmodules/qrcode.o src/cmodules/exif.o \
-	     src/cmodules/imagick.o src/cmodules/libarchive.o \
-	     src/cmodules/ziptools.o src/cmodules/testcapi.o \
+CMODULE_OBJS=src/cmodules/odbc.o src/cmodules/sqlite.o src/cmodules/mysql.o 	\
+	     src/cmodules/rocksdb.o src/cmodules/leveldb.o 			\
+	     src/cmodules/crypto.o src/cmodules/zlib.o 				\
+	     src/cmodules/qrcode.o src/cmodules/exif.o 				\
+	     src/cmodules/imagick.o src/cmodules/libarchive.o 			\
+	     src/cmodules/ziptools.o src/cmodules/testcapi.o 			\
 	     src/cmodules/hyphenate.o \
 	     ${SUNDOWN_OBJS} ${TIDY_OBJECTS}
 
@@ -467,8 +465,7 @@ KNO_SOURCES=\
 	src/exe/knocgi.c src/exe/knocgi.c src/exe/knod.c
 
 CMODULE_SOURCES=\
-	src/cmodules/odbc.c src/cmodules/sqlite.c 				\
-	src/cmodules/mysql.c src/cmodules/mongodb.c  				\
+	src/cmodules/odbc.c src/cmodules/sqlite.c src/cmodules/mysql.c		\
 	src/cmodules/leveldb.c src/cmodules/rocksdb.c  				\
 	src/cmodules/ziptools.c src/cmodules/libarchive.c			\
 	src/cmodules/tidy.c src/cmodules/sundown.c 				\
@@ -1098,20 +1095,6 @@ lib/kno/mysql.dylib: src/cmodules/mysql.o ${CMODULE_DEPENDS}
 		-o $@ src/cmodules/mysql.o @MYSQL_LDFLAGS@
 	@$(MSG) MACLIBTOOL "(MYSQL)" $@
 
-src/cmodules/mongodb.o: src/cmodules/mongodb.c ${CONFIG_HDRS} @MONGODB_BUNDLED@
-	@$(CC) @MONGODB_CFLAGS@ $(CFLAGS)  -o $@ -c $<
-	@$(MSG) CC "(MONGODB)" $@
-lib/kno/mongodb.so: src/cmodules/mongodb.o @MONGODB_BUNDLED@
-	@$(MKSO) -L./ -L./lib@ -o $@ $< @MONGODB_LDFLAGS@
-	@ln -sf $(@F) $(@D)/$(@F).4
-	@$(MSG) MKSO "(MONGODB)" $@
-lib/kno/mongodb.dylib: src/cmodules/mongodb.o ${CMODULE_DEPENDS} @MONGODB_BUNDLED@
-	@$(MACLIBTOOL) -install_name \
-		`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
-		$(DYLIB_FLAGS) \
-		-o $@ src/cmodules/mongodb.o @MONGODB_LDFLAGS@
-	@$(MSG) MACLIBTOOL "(MONGODB)" $@
-
 src/cmodules/imagick.o: src/cmodules/imagick.c ${CONFIG_HDRS}
 	@$(CC) @IMAGICK_CFLAGS@ $(CFLAGS)  -o $@ -c $<
 	@$(MSG) CC "(IMAGICK)" $@
@@ -1635,7 +1618,6 @@ install-hyphenate: ${CMODULES}/hyphenate.@shared_suffix@ ${CMODULES}/hyphenate.@
 install-ziptools: ${CMODULES}/ziptools.@shared_suffix@ ${CMODULES}/ziptools.@vshared_suffix@
 install-tidy: ${CMODULES}/tidy.@shared_suffix@ ${CMODULES}/tidy.@vshared_suffix@
 install-imagick: ${CMODULES}/imagick.@shared_suffix@ ${CMODULES}/imagick.@vshared_suffix@
-install-mongodb: ${CMODULES}/mongodb.@shared_suffix@ ${CMODULES}/mongodb.@vshared_suffix@
 install-leveldb: ${CMODULES}/leveldb.@shared_suffix@ ${CMODULES}/leveldb.@vshared_suffix@
 install-rocksdb: ${CMODULES}/rocksdb.@shared_suffix@ ${CMODULES}/rocksdb.@vshared_suffix@
 install-libarchive: ${CMODULES}/libarchive.@shared_suffix@ ${CMODULES}/libarchive.@vshared_suffix@
@@ -2089,20 +2071,6 @@ gcovr_fresh:
 .PHONY: lcov_html gcovr_details
 
 .PRECIOUS: %.gcda %.gcno
-
-# DIY rules
-
-mongodb.bundled: include/bson include/mongoc lib/libbson.a lib/libmongoc.a
-
-include/bson include/mongoc lib/libbson.a lib/libmongoc.a: DIY/mongo-c-driver/built
-	cd DIY; make mongo-c-driver/built;
-	ln -sf ../DIY/mongo-c-driver/src/libbson/src/bson include/bson
-	ln -sf ../DIY/mongo-c-driver/src/libmongoc/src/mongoc include/mongoc
-	cp DIY/mongo-c-driver/libmongoc.a lib
-	cp DIY/mongo-c-driver/libbson.a lib
-
-DIY/mongo-c-driver/built:
-	cd DIY; make mongo-c-driver/built
 
 # Meta operations
 
