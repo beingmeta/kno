@@ -134,6 +134,7 @@ SUINSTALL=
 RPMDIR=${RPMDIR:-dist}
 RPMFLAGS=${RPMFLAGS:-}
 APTREPO=${APTREPO:-/srv/repo/apt}
+PKGCONFIG_DIR=
 GPG=`which gpg2 || which gpg || gpg`
 GPGID=${GPGID:-FE1BC737F9F323D732AA26330620266BE5AFF294}
 GITDESCRIBE=""
@@ -392,6 +393,7 @@ AC_SUBST(RPMDIR)
 AC_SUBST(RPMFLAGS)
 AC_SUBST(GPGID)
 AC_SUBST(APTREPO)
+AC_SUBST(PKGCONFIG_DIR)
 AC_SUBST(GPG)
 
 AC_PATH_PROG(binenv,env)
@@ -526,6 +528,11 @@ AC_ARG_WITH(rpath,--with-rpath dir,rpath=$withval,rpath=$rpath_default)
 if test "$rpath" != "none" && test "$rpath" != "/usr" && test "$rpath" != "/usr/local"; then
   EXEFLAGS=" $EXEFLAGS \$(RPATHFLAGS) "
 fi
+
+AC_ARG_WITH(pkgconfig_dir,--with-pkgconfig-dir pathname,,with_pkgconfig_dir=$prefix/share/pkgconfig)
+PKGCONFIG_DIR=${with_pkgconfig_dir}
+AC_DEFINE_UNQUOTED(KNO_PKGCONFIG_DIR,"$with_pkgconfig_dir")
+
 
 ### Checking the compiler
 
@@ -1997,6 +2004,7 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   exe/.lldbinit
 	   dbg/runenv.sh dbg/.gdbinit dbg/.lldbinit dbg/.valgrind
 	   tests/lisp/.gdbinit tests/storage/.gdbinit
+	   etc/kno.pc
 	   etc/kno_start_servlets etc/kno_start_daemons etc/kno_stop_jobs
 	   etc/knostart etc/knostop etc/knostartall etc/knostopall etc/knocleanup
 	   etc/knosignal etc/knoinject etc/knostatus etc/knolog 

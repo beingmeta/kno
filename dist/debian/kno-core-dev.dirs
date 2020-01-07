@@ -1,2 +1,4 @@
 usr/lib
 usr/include
+usr/share
+usr/share/pkgconfig

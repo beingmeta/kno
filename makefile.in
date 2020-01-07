@@ -1372,9 +1372,10 @@ install: install-status install-core 			\
 	  echo "Installed" $(shell cat .buildmode) "build linked with" $(shell cat .malloc); \
 	fi;
 install-bin: install-static install-shared install-exe
-install-text: install-headers install-scripts install-support
+install-text: install-headers install-pkgconfig install-scripts install-support
 install-core: confdirs workdirs @INSTALLI18N@           \
 	 install-bin install-text install-data
+install-dev: install-headers install-pkgconfig install-static
 
 $(INCINSTALLDIR):
 	@$(SYSINSTALL) @install_dir_opts@ $(INCINSTALLDIR)
@@ -1436,6 +1437,14 @@ install-headers: $(INCINSTALLDIR)
 		   $(SCHEME_HEADERS) $(LIB_HEADERS)	\
 		   $(REVISION_H)			\
 		$(INCINSTALLDIR)
+
+install-pkgconfig: $(DESTDIR)@PKGCONFIG_DIR@
+	@echo "# (kno) Installing kno pkgconfig file in $(DESTDIR)@PKGCONFIG_DIR@"
+	@$(INSTALL) etc/kno.pc $(DESTDIR)@PKGCONFIG_DIR@
+$(DESTDIR)@PKGCONFIG_DIR@:
+	$(INSTALL) -d $(DESTDIR)@PKGCONFIG_DIR@
+
+
 
 install-data: $(DATADIR)
 	@$(SYSINSTALL) @install_file_opts@ docs/misc/data.README \

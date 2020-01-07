@@ -1,0 +1,19 @@
+prefix=@prefix@
+exec_prefix=${prefix}
+libdir=@libdir@
+includedir=${exec_prefix}/include
+cmodules=@libdir@/kno
+localmods=@local_module_dir@
+configdir=@local_config@
+configs=@local_config@
+major=@KNO_MAJOR@
+minor=@KNO_MINOR@
+abi=@KNO_MAJOR@.@KNO_MINOR@
+datadir=@data_dir@
+
+Name: kno
+Description: The KNO language and library
+Version: @VERSION@
+Requires: libu8
+Libs: -L${libdir} -lknocore -lknostorage -lknodrivers -lknoscheme
+Cflags: -I${includedir}

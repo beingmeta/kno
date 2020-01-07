@@ -10,3 +10,4 @@ usr/lib/libknoscheme.so
 usr/lib/libknowebtools.a
 usr/lib/libknotexttools.a
 usr/include/kno/*.h
+usr/share/pkgconfig/*.pc
