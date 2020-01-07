@@ -25,3 +25,7 @@
 	path = src/extmods/mysql
 	url = git@github.com:beingmeta/kno-mysql.git
 	branch = trunk
+[submodule "src/extmods/imagetools"]
+	path = src/extmods/imagetools
+	url = git@github.com:beingmeta/kno-imagetools.git
+	branch = trunk
