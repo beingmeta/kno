@@ -1,3 +1,9 @@
+kno (1910.1.1-7) stable; urgency=medium
+
+  * Separate out extmods from kno core
+
+ -- Ken Haase <kh@beingmeta.com>  Tue, 07 Jan 2020 15:17:29 -0800
+
 kno (1910.0.1-6) stable; urgency=medium
 
   * Moved to CALVER for major releases

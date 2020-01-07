@@ -6,7 +6,6 @@ usr/lib/libknodbserv.so*
 usr/lib/libknowebtools.so*
 usr/lib/libknotexttools.so*
 usr/lib/kno/crypto.so*
-usr/lib/kno/ziptools.so*
 usr/lib/kno/libarchive.so*
 usr/lib/kno/zlib.so*
 usr/bin/knoc

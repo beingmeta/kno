@@ -88,7 +88,7 @@ BINPATH=${PATH}
 RPATHFLAGS="-Wl,'-rpath \$(RPATH)'"
 SHARED_LIB_TARGET=shared-libs
 KNO_MAJOR=1910
-KNO_MINOR=0
+KNO_MINOR=1
 KNO_RELEASE=`cat etc/release`
 KNO_VERSION=${KNO_MAJOR}.${KNO_MINOR}.${KNO_RELEASE}
 VERSION=$KNO_VERSION
@@ -1666,23 +1666,6 @@ if test "${have_zstd_h}" = "yes"; then
    AC_CHECK_FUNCS(ZSTD_getFrameContentSize)
 fi;
 
-have_libzmq=no
-ZMQ_LIBS=
-
-AC_CHECK_HEADER(zmq.h,have_zmq_h="yes",have_zmq_h="no")
-if test "${have_zmq_h}" = "yes"; then
-   AC_CHECK_LIB(zmq,zmq_socket,have_libzmq=yes)
-   AC_DEFINE(HAVE_ZMQ_H,1)
-fi;
-
-if test "${have_zmq_h}" = "yes" &&
-   test "${have_libzmq}" = "yes"; then
-   ZEROMQ_LIBS=-lzmq
-   CORE_CMODULES="lib/kno/zeromq.$shared_suffix ${CORE_CMODULES}"
-   INSTALL_CORE_CMODULES="install-zeromq ${INSTALL_CORE_CMODULES}"
-   TEST_CORE_CMODULES="${TEST_CORE_CMODULES} zeromq"	
-fi;
-
 ### LevelDB cmodule build
 
 AC_ARG_ENABLE(leveldb,--en/disable-leveldb Build and install LevelDB module,,enable_leveldb="yes")
@@ -1739,29 +1722,6 @@ else
    manually_disabled="rocksdb ${auto_disabled}";
 fi
 
-### ImageMagick cmodule build
-
-AC_ARG_ENABLE(imagick,--en/disable-imagick Build and install imagemagick module,,enable_imagick="yes")
-
-if test "$enable_imagick" = "yes" &&
-   test $pkg_config != "na" &&
-   $pkg_config --exists MagickWand; then
-  IMAGICK_CFLAGS=`$pkg_config MagickWand --cflags`;
-  IMAGICK_LDFLAGS=`$pkg_config MagickWand --libs`;
-  GRAPHICS_CMODULES="lib/kno/imagick.$shared_suffix ${GRAPHICS_CMODULES}";
-  INSTALL_GRAPHICS_CMODULES="install-imagick ${INSTALL_GRAPHICS_CMODULES}";
-  TEST_GRAPHICS_CMODULES="${TEST_GRAPHICS_CMODULES} imagick"
-elif test "$enable_imagick" = "force"; then
-  GRAPHICS_CMODULES="lib/kno/imagick.$shared_suffix ${GRAPHICS_CMODULES}";
-  INSTALL_GRAPHICS_CMODULES="install-imagick ${INSTALL_GRAPHICS_CMODULES}";
-  TEST_GRAPHICS_CMODULES="${TEST_GRAPHICS_CMODULES} imagick"
-elif test "$enable_imagick" = "yes"; then
-  auto_disabled="imagick ${auto_disabled}";
-  enable_imagick="failed";
-else
-  manually_disabled="imagick ${manually_disabled}";
-fi
-
 ### archive library (manipulates various kinds of archives)
 
 AC_CHECK_HEADERS(archive.h)
@@ -1773,74 +1733,6 @@ if test "${ac_cv_header_archive_h}" == "yes" && \
   TEST_ARCHIVE_CMODULES="${TEST_ARCHIVE_CMODULES} libarchive"
 else
   missing="libarchive ${missing}"
-fi
-
-### ziptools library (manipulates zip archives)
-
-AC_ARG_ENABLE(ziptools,--with-ziptools Build and install ziptools,,enable_ziptools="yes")
-
-if test "$enable_ziptools" = "yes" ||
-   test "$enable_ziptools" = "force"; then
-  AC_CHECK_HEADER(zip.h,have_zip_h="yes",have_zip_h="no")
-  AC_CHECK_LIB(zip,zip_add,have_libzip="yes",have_libzip="no")
-  AC_CHECK_FUNCS(zip_set_file_compression zip_set_file_comment zip_set_file_extra)
-  if test $pkg_config != "na" &&
-     $pkg_config --exists libzip; then
-    LIBZIP_CFLAGS=`$pkg_config libzip --cflags` 
-    LIBZIP_LDFLAGS=`$pkg_config libzip --libs` 
-    CFLAGS="${CFLAGS} ${LIBZIP_CFLAGS}"
-    CPPFLAGS="${CPPFLAGS} ${LIBZIP_CFLAGS}"
-    LDFLAGS="${LDFLAGS} ${LIBZIP_LDFLAGS}"
-    ARCHIVE_CMODULES="lib/kno/ziptools.$shared_suffix ${ARCHIVE_CMODULES}";
-    INSTALL_ARCHIVE_CMODULES="install-ziptools ${INSTALL_ARCHIVE_CMODULES}";
-    TEST_ARCHIVE_CMODULES="${TEST_ARCHIVE_CMODULES} ziptools"
-  elif test "$have_zip_h" = "yes" &&
-       test "$have_libzip" = "yes"; then
-    ARCHIVE_CMODULES="lib/kno/ziptools.$shared_suffix ${ARCHIVE_CMODULES}";
-    INSTALL_ARCHIVE_CMODULES="install-ziptools ${INSTALL_ARCHIVE_CMODULES}";
-    TEST_ARCHIVE_CMODULES="${TEST_ARCHIVE_CMODULES} ziptools"
-  elif test "$enable_ziptools" = "force"; then
-    ARCHIVE_CMODULES="lib/kno/ziptools.$shared_suffix ${ARCHIVE_CMODULES}";
-    INSTALL_ARCHIVE_CMODULES="install-ziptools ${INSTALL_ARCHIVE_CMODULES}";
-    TEST_ARCHIVE_CMODULES="${TEST_ARCHIVE_CMODULES} ziptools"
-    force_enabled="ziptools ${force_enabled}";
-  else
-    auto_disabled="ziptools ${auto_disabled}";
-    enable_ziptools="failed";
-  fi;
-else
-    manually_disabled="ziptools ${manually_disabled}";
-fi
-
-### MySQL
-
-AC_CHECK_PROGS(mysql_config,mysql_config /usr/local/bin/mysql_config /opt/bin/mysql_config /opt/local/bin/mysql_config ,"na")
-
-if test $mysql_config != "na"; then
-   with_mysql_default="auto"
-else
-   with_mysql_default="no";
-fi
-
-AC_ARG_WITH(mysql,--with/out-mysql Use alternate mysql lib,,with_mysql=$with_mysql_default)
-
-if test "$with_mysql" = "auto"; then
-  MYSQL_CFLAGS=`$mysql_config --cflags`
-  MYSQL_LDFLAGS=`$mysql_config --libs_r`
-elif test "$with_mysql" = "yes"; then
-  MYSQL_CFLAGS=\`$mysql_config --cflags\`
-  MYSQL_LDFLAGS=\`$mysql_config --libs_r\`
-elif test "$with_mysql" != "no"; then
-  MYSQL_CFLAGS="-I$with_mysql/include"
-  MYSQL_LDFLAGS="-I$with_mysql/lib"
-fi
-
-if test "$with_mysql" != "no"; then
-  DB_CMODULES="lib/kno/mysql.$shared_suffix ${DB_CMODULES}"
-  INSTALL_DB_CMODULES="install-mysql ${INSTALL_DB_CMODULES}"
-  TEST_DB_CMODULES="${TEST_DB_CMODULES} mysql"
-else
-  missing="mysql ${missing}"
 fi
 
 ### ODBC
@@ -1896,46 +1788,6 @@ fi
 if test ! "${sqlite_included}" = "yes"; then
    missing="sqlite ${missing}";
 fi   
-
-### exif (extract metadata from image files)
-
-dnl Build with primitives accessing libexif, if it is available
-AC_CHECK_LIB(exif,exif_data_new_from_data,exif_default="yes")
-AC_CHECK_HEADER(libexif/exif-data.h,exif_default=$exif_default,exif_default="no")
-AC_ARG_WITH(exif,--with/out-exif Use libexif in webtools,,with_exif=$exif_default)
-if test "$with_exif" = "yes"; then
-  AC_CHECK_HEADERS(libexif/exif-data.h)
-  GRAPHICS_CMODULES="lib/kno/exif.$shared_suffix ${GRAPHICS_CMODULES}"
-  INSTALL_GRAPHICS_CMODULES="install-exif ${INSTALL_GRAPHICS_CMODULES}"
-  TEST_GRAPHICS_CMODULES="${TEST_GRAPHICS_CMODULES} exif"
-else
-  missing="curl ${missing}"
-fi
-
-### qrencode
-
-dnl Build with primitives accessing qrcoding, if available
-AC_CHECK_HEADER(png.h,have_png_h="yes",have_png_h="no")
-AC_CHECK_HEADER(qrencode.h,have_qrencode_h="yes",have_qrencode_h="no")
-
-AC_ARG_WITH(qrcode,--with/out-qrcode Create qrcode binary module,,with_qrcode="yes")
-libpng_ok="no"
-qrcode_ok="no"
-
-if (test "$with_qrcode" = "yes"); then
-  AC_CHECK_LIB(png,png_create_write_struct,libpng_ok="yes")
-  AC_CHECK_LIB(qrencode,QRcode_encodeString8bit,qrcode_ok="yes")
-  if ( (test "$have_png_h" = "yes") && (test "$have_qrencode_h" = "yes") &&
-       (test "$libpng_ok" = "yes") && (test "$qrcode_ok" = "yes") ); then
-    GRAPHICS_CMODULES="lib/kno/qrcode.$shared_suffix ${GRAPHICS_CMODULES}"
-    INSTALL_GRAPHICS_CMODULES="install-qrcode ${INSTALL_GRAPHICS_CMODULES}"
-    TEST_GRAPHICS_CMODULES="${TEST_GRAPHICS_CMODULES} qrencode"
-  else			    
-    missing="qrcode ${missing}"
-  fi;
-else
-  missing="qrcode ${missing}"
-fi
 
 ### Boot systems
 

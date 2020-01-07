@@ -621,7 +621,6 @@ ac_includes_default="\
 
 ac_subst_vars='LTLIBOBJS
 LIBOBJS
-mysql_config
 sudo_program
 PYTHON2_LIB
 PYTHON2_INCLUDE_DIR
@@ -976,12 +975,7 @@ with_sudo
 with_fastcgi
 enable_leveldb
 enable_rocksdb
-enable_imagick
-enable_ziptools
-with_mysql
 enable_odbc
-with_exif
-with_qrcode
 with_bootsystem
 with_systemd
 '
@@ -1638,8 +1632,6 @@ Optional Features:
 --en/disable-lockfree Enables lock-free reference counting
 --en/disable-leveldb Build and install LevelDB module
 --en/disable-rocksdb Build and install Rocksdb module
---en/disable-imagick Build and install imagemagick module
---with-ziptools Build and install ziptools
 --en/disable-odbc Build odbc modules
 
 Optional Packages:
@@ -1710,9 +1702,6 @@ Optional Packages:
 --with/out-parseltongue Build parseltongue libraries for connecting Kno and Python
 --with/out-sudo use sudo with install
 --with/out-fastcgi Use fastcgi
---with/out-mysql Use alternate mysql lib
---with/out-exif Use libexif in webtools
---with/out-qrcode Create qrcode binary module
 --with-bootsystem Setup boot method
 --with-systemd Specify systemd install directory
 
@@ -3013,7 +3002,7 @@ BINPATH=${PATH}
 RPATHFLAGS="-Wl,'-rpath \$(RPATH)'"
 SHARED_LIB_TARGET=shared-libs
 KNO_MAJOR=1910
-KNO_MINOR=0
+KNO_MINOR=1
 KNO_RELEASE=`cat etc/release`
 KNO_VERSION=${KNO_MAJOR}.${KNO_MINOR}.${KNO_RELEASE}
 VERSION=$KNO_VERSION
@@ -12270,70 +12259,6 @@ done
 
 fi;
 
-have_libzmq=no
-ZMQ_LIBS=
-
-ac_fn_c_check_header_mongrel "$LINENO" "zmq.h" "ac_cv_header_zmq_h" "$ac_includes_default"
-if test "x$ac_cv_header_zmq_h" = xyes; then :
-  have_zmq_h="yes"
-else
-  have_zmq_h="no"
-fi
-
-
-if test "${have_zmq_h}" = "yes"; then
-   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for zmq_socket in -lzmq" >&5
-$as_echo_n "checking for zmq_socket in -lzmq... " >&6; }
-if ${ac_cv_lib_zmq_zmq_socket+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lzmq  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char zmq_socket ();
-int
-main ()
-{
-return zmq_socket ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_zmq_zmq_socket=yes
-else
-  ac_cv_lib_zmq_zmq_socket=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_zmq_zmq_socket" >&5
-$as_echo "$ac_cv_lib_zmq_zmq_socket" >&6; }
-if test "x$ac_cv_lib_zmq_zmq_socket" = xyes; then :
-  have_libzmq=yes
-fi
-
-   $as_echo "#define HAVE_ZMQ_H 1" >>confdefs.h
-
-fi;
-
-if test "${have_zmq_h}" = "yes" &&
-   test "${have_libzmq}" = "yes"; then
-   ZEROMQ_LIBS=-lzmq
-   CORE_CMODULES="lib/kno/zeromq.$shared_suffix ${CORE_CMODULES}"
-   INSTALL_CORE_CMODULES="install-zeromq ${INSTALL_CORE_CMODULES}"
-   TEST_CORE_CMODULES="${TEST_CORE_CMODULES} zeromq"
-fi;
-
 ### LevelDB cmodule build
 
 # Check whether --enable-leveldb was given.
@@ -12502,35 +12427,6 @@ else
    manually_disabled="rocksdb ${auto_disabled}";
 fi
 
-### ImageMagick cmodule build
-
-# Check whether --enable-imagick was given.
-if test "${enable_imagick+set}" = set; then :
-  enableval=$enable_imagick;
-else
-  enable_imagick="yes"
-fi
-
-
-if test "$enable_imagick" = "yes" &&
-   test $pkg_config != "na" &&
-   $pkg_config --exists MagickWand; then
-  IMAGICK_CFLAGS=`$pkg_config MagickWand --cflags`;
-  IMAGICK_LDFLAGS=`$pkg_config MagickWand --libs`;
-  GRAPHICS_CMODULES="lib/kno/imagick.$shared_suffix ${GRAPHICS_CMODULES}";
-  INSTALL_GRAPHICS_CMODULES="install-imagick ${INSTALL_GRAPHICS_CMODULES}";
-  TEST_GRAPHICS_CMODULES="${TEST_GRAPHICS_CMODULES} imagick"
-elif test "$enable_imagick" = "force"; then
-  GRAPHICS_CMODULES="lib/kno/imagick.$shared_suffix ${GRAPHICS_CMODULES}";
-  INSTALL_GRAPHICS_CMODULES="install-imagick ${INSTALL_GRAPHICS_CMODULES}";
-  TEST_GRAPHICS_CMODULES="${TEST_GRAPHICS_CMODULES} imagick"
-elif test "$enable_imagick" = "yes"; then
-  auto_disabled="imagick ${auto_disabled}";
-  enable_imagick="failed";
-else
-  manually_disabled="imagick ${manually_disabled}";
-fi
-
 ### archive library (manipulates various kinds of archives)
 
 for ac_header in archive.h
@@ -12597,188 +12493,6 @@ if test "${ac_cv_header_archive_h}" == "yes" && \
   TEST_ARCHIVE_CMODULES="${TEST_ARCHIVE_CMODULES} libarchive"
 else
   missing="libarchive ${missing}"
-fi
-
-### ziptools library (manipulates zip archives)
-
-# Check whether --enable-ziptools was given.
-if test "${enable_ziptools+set}" = set; then :
-  enableval=$enable_ziptools;
-else
-  enable_ziptools="yes"
-fi
-
-
-if test "$enable_ziptools" = "yes" ||
-   test "$enable_ziptools" = "force"; then
-  ac_fn_c_check_header_mongrel "$LINENO" "zip.h" "ac_cv_header_zip_h" "$ac_includes_default"
-if test "x$ac_cv_header_zip_h" = xyes; then :
-  have_zip_h="yes"
-else
-  have_zip_h="no"
-fi
-
-
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for zip_add in -lzip" >&5
-$as_echo_n "checking for zip_add in -lzip... " >&6; }
-if ${ac_cv_lib_zip_zip_add+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lzip  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char zip_add ();
-int
-main ()
-{
-return zip_add ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_zip_zip_add=yes
-else
-  ac_cv_lib_zip_zip_add=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_zip_zip_add" >&5
-$as_echo "$ac_cv_lib_zip_zip_add" >&6; }
-if test "x$ac_cv_lib_zip_zip_add" = xyes; then :
-  have_libzip="yes"
-else
-  have_libzip="no"
-fi
-
-  for ac_func in zip_set_file_compression zip_set_file_comment zip_set_file_extra
-do :
-  as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
-ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"
-if eval test \"x\$"$as_ac_var"\" = x"yes"; then :
-  cat >>confdefs.h <<_ACEOF
-#define `$as_echo "HAVE_$ac_func" | $as_tr_cpp` 1
-_ACEOF
-
-fi
-done
-
-  if test $pkg_config != "na" &&
-     $pkg_config --exists libzip; then
-    LIBZIP_CFLAGS=`$pkg_config libzip --cflags`
-    LIBZIP_LDFLAGS=`$pkg_config libzip --libs`
-    CFLAGS="${CFLAGS} ${LIBZIP_CFLAGS}"
-    CPPFLAGS="${CPPFLAGS} ${LIBZIP_CFLAGS}"
-    LDFLAGS="${LDFLAGS} ${LIBZIP_LDFLAGS}"
-    ARCHIVE_CMODULES="lib/kno/ziptools.$shared_suffix ${ARCHIVE_CMODULES}";
-    INSTALL_ARCHIVE_CMODULES="install-ziptools ${INSTALL_ARCHIVE_CMODULES}";
-    TEST_ARCHIVE_CMODULES="${TEST_ARCHIVE_CMODULES} ziptools"
-  elif test "$have_zip_h" = "yes" &&
-       test "$have_libzip" = "yes"; then
-    ARCHIVE_CMODULES="lib/kno/ziptools.$shared_suffix ${ARCHIVE_CMODULES}";
-    INSTALL_ARCHIVE_CMODULES="install-ziptools ${INSTALL_ARCHIVE_CMODULES}";
-    TEST_ARCHIVE_CMODULES="${TEST_ARCHIVE_CMODULES} ziptools"
-  elif test "$enable_ziptools" = "force"; then
-    ARCHIVE_CMODULES="lib/kno/ziptools.$shared_suffix ${ARCHIVE_CMODULES}";
-    INSTALL_ARCHIVE_CMODULES="install-ziptools ${INSTALL_ARCHIVE_CMODULES}";
-    TEST_ARCHIVE_CMODULES="${TEST_ARCHIVE_CMODULES} ziptools"
-    force_enabled="ziptools ${force_enabled}";
-  else
-    auto_disabled="ziptools ${auto_disabled}";
-    enable_ziptools="failed";
-  fi;
-else
-    manually_disabled="ziptools ${manually_disabled}";
-fi
-
-### MySQL
-
-for ac_prog in mysql_config /usr/local/bin/mysql_config /opt/bin/mysql_config /opt/local/bin/mysql_config
-do
-  # Extract the first word of "$ac_prog", so it can be a program name with args.
-set dummy $ac_prog; ac_word=$2
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if ${ac_cv_prog_mysql_config+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  if test -n "$mysql_config"; then
-  ac_cv_prog_mysql_config="$mysql_config" # Let the user override the test.
-else
-as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_prog_mysql_config="$ac_prog"
-    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-fi
-fi
-mysql_config=$ac_cv_prog_mysql_config
-if test -n "$mysql_config"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $mysql_config" >&5
-$as_echo "$mysql_config" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-
-
-  test -n "$mysql_config" && break
-done
-test -n "$mysql_config" || mysql_config=""na""
-
-
-if test $mysql_config != "na"; then
-   with_mysql_default="auto"
-else
-   with_mysql_default="no";
-fi
-
-
-# Check whether --with-mysql was given.
-if test "${with_mysql+set}" = set; then :
-  withval=$with_mysql;
-else
-  with_mysql=$with_mysql_default
-fi
-
-
-if test "$with_mysql" = "auto"; then
-  MYSQL_CFLAGS=`$mysql_config --cflags`
-  MYSQL_LDFLAGS=`$mysql_config --libs_r`
-elif test "$with_mysql" = "yes"; then
-  MYSQL_CFLAGS=\`$mysql_config --cflags\`
-  MYSQL_LDFLAGS=\`$mysql_config --libs_r\`
-elif test "$with_mysql" != "no"; then
-  MYSQL_CFLAGS="-I$with_mysql/include"
-  MYSQL_LDFLAGS="-I$with_mysql/lib"
-fi
-
-if test "$with_mysql" != "no"; then
-  DB_CMODULES="lib/kno/mysql.$shared_suffix ${DB_CMODULES}"
-  INSTALL_DB_CMODULES="install-mysql ${INSTALL_DB_CMODULES}"
-  TEST_DB_CMODULES="${TEST_DB_CMODULES} mysql"
-else
-  missing="mysql ${missing}"
 fi
 
 ### ODBC
@@ -13022,207 +12736,6 @@ fi
 
 if test ! "${sqlite_included}" = "yes"; then
    missing="sqlite ${missing}";
-fi
-
-### exif (extract metadata from image files)
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for exif_data_new_from_data in -lexif" >&5
-$as_echo_n "checking for exif_data_new_from_data in -lexif... " >&6; }
-if ${ac_cv_lib_exif_exif_data_new_from_data+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lexif  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char exif_data_new_from_data ();
-int
-main ()
-{
-return exif_data_new_from_data ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_exif_exif_data_new_from_data=yes
-else
-  ac_cv_lib_exif_exif_data_new_from_data=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_exif_exif_data_new_from_data" >&5
-$as_echo "$ac_cv_lib_exif_exif_data_new_from_data" >&6; }
-if test "x$ac_cv_lib_exif_exif_data_new_from_data" = xyes; then :
-  exif_default="yes"
-fi
-
-ac_fn_c_check_header_mongrel "$LINENO" "libexif/exif-data.h" "ac_cv_header_libexif_exif_data_h" "$ac_includes_default"
-if test "x$ac_cv_header_libexif_exif_data_h" = xyes; then :
-  exif_default=$exif_default
-else
-  exif_default="no"
-fi
-
-
-
-# Check whether --with-exif was given.
-if test "${with_exif+set}" = set; then :
-  withval=$with_exif;
-else
-  with_exif=$exif_default
-fi
-
-if test "$with_exif" = "yes"; then
-  for ac_header in libexif/exif-data.h
-do :
-  ac_fn_c_check_header_mongrel "$LINENO" "libexif/exif-data.h" "ac_cv_header_libexif_exif_data_h" "$ac_includes_default"
-if test "x$ac_cv_header_libexif_exif_data_h" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBEXIF_EXIF_DATA_H 1
-_ACEOF
-
-fi
-
-done
-
-  GRAPHICS_CMODULES="lib/kno/exif.$shared_suffix ${GRAPHICS_CMODULES}"
-  INSTALL_GRAPHICS_CMODULES="install-exif ${INSTALL_GRAPHICS_CMODULES}"
-  TEST_GRAPHICS_CMODULES="${TEST_GRAPHICS_CMODULES} exif"
-else
-  missing="curl ${missing}"
-fi
-
-### qrencode
-
-ac_fn_c_check_header_mongrel "$LINENO" "png.h" "ac_cv_header_png_h" "$ac_includes_default"
-if test "x$ac_cv_header_png_h" = xyes; then :
-  have_png_h="yes"
-else
-  have_png_h="no"
-fi
-
-
-ac_fn_c_check_header_mongrel "$LINENO" "qrencode.h" "ac_cv_header_qrencode_h" "$ac_includes_default"
-if test "x$ac_cv_header_qrencode_h" = xyes; then :
-  have_qrencode_h="yes"
-else
-  have_qrencode_h="no"
-fi
-
-
-
-
-# Check whether --with-qrcode was given.
-if test "${with_qrcode+set}" = set; then :
-  withval=$with_qrcode;
-else
-  with_qrcode="yes"
-fi
-
-libpng_ok="no"
-qrcode_ok="no"
-
-if (test "$with_qrcode" = "yes"); then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for png_create_write_struct in -lpng" >&5
-$as_echo_n "checking for png_create_write_struct in -lpng... " >&6; }
-if ${ac_cv_lib_png_png_create_write_struct+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lpng  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char png_create_write_struct ();
-int
-main ()
-{
-return png_create_write_struct ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_png_png_create_write_struct=yes
-else
-  ac_cv_lib_png_png_create_write_struct=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_png_png_create_write_struct" >&5
-$as_echo "$ac_cv_lib_png_png_create_write_struct" >&6; }
-if test "x$ac_cv_lib_png_png_create_write_struct" = xyes; then :
-  libpng_ok="yes"
-fi
-
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for QRcode_encodeString8bit in -lqrencode" >&5
-$as_echo_n "checking for QRcode_encodeString8bit in -lqrencode... " >&6; }
-if ${ac_cv_lib_qrencode_QRcode_encodeString8bit+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lqrencode  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char QRcode_encodeString8bit ();
-int
-main ()
-{
-return QRcode_encodeString8bit ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_qrencode_QRcode_encodeString8bit=yes
-else
-  ac_cv_lib_qrencode_QRcode_encodeString8bit=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_qrencode_QRcode_encodeString8bit" >&5
-$as_echo "$ac_cv_lib_qrencode_QRcode_encodeString8bit" >&6; }
-if test "x$ac_cv_lib_qrencode_QRcode_encodeString8bit" = xyes; then :
-  qrcode_ok="yes"
-fi
-
-  if ( (test "$have_png_h" = "yes") && (test "$have_qrencode_h" = "yes") &&
-       (test "$libpng_ok" = "yes") && (test "$qrcode_ok" = "yes") ); then
-    GRAPHICS_CMODULES="lib/kno/qrcode.$shared_suffix ${GRAPHICS_CMODULES}"
-    INSTALL_GRAPHICS_CMODULES="install-qrcode ${INSTALL_GRAPHICS_CMODULES}"
-    TEST_GRAPHICS_CMODULES="${TEST_GRAPHICS_CMODULES} qrencode"
-  else
-    missing="qrcode ${missing}"
-  fi;
-else
-  missing="qrcode ${missing}"
 fi
 
 ### Boot systems

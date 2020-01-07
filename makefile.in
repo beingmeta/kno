@@ -269,12 +269,11 @@ TEXT_OBJS=\
 	src/text/porter.o \
 	src/text/phonetic.o
 
-CMODULE_OBJS=src/cmodules/odbc.o src/cmodules/sqlite.o src/cmodules/mysql.o 	\
-	     src/cmodules/rocksdb.o src/cmodules/leveldb.o 			\
-	     src/cmodules/crypto.o src/cmodules/zlib.o 				\
-	     src/cmodules/qrcode.o src/cmodules/exif.o 				\
-	     src/cmodules/imagick.o src/cmodules/libarchive.o 			\
-	     src/cmodules/ziptools.o src/cmodules/testcapi.o
+CMODULE_OBJS=src/cmodules/odbc.o src/cmodules/sqlite.o  	\
+	     src/cmodules/rocksdb.o src/cmodules/leveldb.o	\
+	     src/cmodules/crypto.o src/cmodules/zlib.o		\
+	     src/cmodules/libarchive.o 				\
+	     src/cmodules/testcapi.o
 
 EXECUTABLES=exe/knox@suffix@ exe/knoc@suffix@ exe/knotask@suffix@  \
 	    exe/knocgi@suffix@ exe/knod@suffix@
@@ -372,12 +371,11 @@ KNO_SOURCES=\
 	src/exe/knocgi.c src/exe/knocgi.c src/exe/knod.c
 
 CMODULE_SOURCES=\
-	src/cmodules/odbc.c src/cmodules/sqlite.c src/cmodules/mysql.c		\
-	src/cmodules/leveldb.c src/cmodules/rocksdb.c  				\
-	src/cmodules/ziptools.c src/cmodules/libarchive.c			\
-	src/cmodules/qrcode.c src/cmodules/exif.c src/cmodules/imagick.c	\
-	src/cmodules/gperftools.c 						\
-	src/cmodules/crypto.c src/cmodules/zeromq.c
+	src/cmodules/odbc.c src/cmodules/sqlite.c	\
+	src/cmodules/leveldb.c src/cmodules/rocksdb.c	\
+	src/cmodules/libarchive.c			\
+	src/cmodules/gperftools.c			\
+	src/cmodules/crypto.c
 
 STATIC_LIBS=lib/libknocore@suffix@.a 	\
 	lib/libknostorage@suffix@.a	\
@@ -977,49 +975,6 @@ lib/libknotexttools@suffix@.dylib: $(TEXT_OBJS) \
 		-o $@ $(TEXT_OBJS)
 	@$(MSG) MACLIBTOOL $@
 
-src/cmodules/mysql.o: src/cmodules/mysql.c ${CONFIG_HDRS}
-	@$(CC) @MYSQL_CFLAGS@ $(CFLAGS)  -o $@ -c $<
-	@$(MSG) CC "(MYSQL)" $@
-lib/kno/mysql.so: src/cmodules/mysql.o # ${CMODULE_DEPENDS}
-	@$(MKSO) -L./ -L./lib \
-		-o $@ $< @MYSQL_LDFLAGS@ # ${CMODULE_DEPENDS}
-	@ln -sf $(@F) $(@D)/$(@F).@KNO_MAJOR@
-	@$(MSG) MKSO "(MYSQL)" $@
-lib/kno/mysql.dylib: src/cmodules/mysql.o ${CMODULE_DEPENDS}
-	@$(MACLIBTOOL) -install_name \
-		`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
-		$(DYLIB_FLAGS) \
-		-o $@ src/cmodules/mysql.o @MYSQL_LDFLAGS@
-	@$(MSG) MACLIBTOOL "(MYSQL)" $@
-
-src/cmodules/imagick.o: src/cmodules/imagick.c ${CONFIG_HDRS}
-	@$(CC) @IMAGICK_CFLAGS@ $(CFLAGS)  -o $@ -c $<
-	@$(MSG) CC "(IMAGICK)" $@
-lib/kno/imagick.so: src/cmodules/imagick.o
-	$(MKSO) -L./ -L./lib -o $@ $< @IMAGICK_LDFLAGS@
-	@ln -sf $(@F) $(@D)/$(@F).@KNO_MAJOR@
-	@$(MSG) MKSO "(IMAGICK)" $@
-lib/kno/imagick.dylib: src/cmodules/imagick.o ${CMODULE_DEPENDS}
-	@$(MACLIBTOOL) -install_name \
-		`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
-		$(DYLIB_FLAGS) \
-		-o $@ src/cmodules/imagick.o @IMAGICK_LDFLAGS@
-	@$(MSG) MACLIBTOOL "(IMAGICK)" $@
-
-src/cmodules/ziptools.o: src/cmodules/ziptools.c ${CONFIG_HDRS}
-	@$(CC) $(CFLAGS) @LIBZIP_CFLAGS@ -o $@ -c $<
-	@$(MSG) CC "(ZIPTOOLS)"  $@ $<
-lib/kno/ziptools.so: src/cmodules/ziptools.o
-	@$(MKSO) -L./ -L./lib -o $@ $< @LIBZIP_LDFLAGS@
-	@ln -sf $(@F) $(@D)/$(@F).@KNO_MAJOR@
-	@$(MSG) MKSO "(ZIPTOOLS)"  $@ $<
-lib/kno/ziptools.dylib: src/cmodules/ziptools.o ${CMODULE_DEPENDS}
-	@$(MACLIBTOOL) -install_name \
-		`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
-		$(DYLIB_FLAGS) \
-		-o $@ $<
-	@$(MSG) MACLIBTOOL "(ZIPTOOLS)" $@
-
 src/cmodules/libarchive.o: src/cmodules/libarchive.c ${CONFIG_HDRS}
 	@$(CC) $(CFLAGS) @LIBZIP_CFLAGS@ -o $@ -c $<
 	@$(MSG) CC "(LIBARCHIVE)"  $@ $<
@@ -1034,17 +989,6 @@ lib/kno/libarchive.dylib: src/cmodules/libarchive.o ${CMODULE_DEPENDS}
 		-o $@ $<
 	@$(MSG) MACLIBTOOL "(LIBARCHIVE)" $@
 
-lib/kno/exif.so: src/cmodules/exif.o
-	@$(MKSO) -L./ -L./lib -o $@ $^ $(MODLIBS) -lexif
-	@ln -sf $(@F) $(@D)/$(@F).@KNO_MAJOR@
-	@$(MSG) MKSO $@
-lib/kno/exif.dylib: src/cmodules/exif.o ${CMODULE_DEPENDS}
-	@$(MACLIBTOOL) -install_name \
-		`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
-		$(DYLIB_FLAGS) \
-		-lexif -o $@ $^
-	@$(MSG) MACLIBTOOL $@
-
 src/cmodules/crypto.o: src/cmodules/crypto.c
 lib/kno/crypto.so: src/cmodules/crypto.o
 lib/kno/crypto.dylib: src/cmodules/crypto.o ${CMODULE_DEPENDS}
@@ -1052,10 +996,6 @@ lib/kno/crypto.dylib: src/cmodules/crypto.o ${CMODULE_DEPENDS}
 src/cmodules/testcapi.o: src/cmodules/testcapi.c
 lib/kno/testcapi.so: src/cmodules/testcapi.o
 lib/kno/testcapi.dylib: src/cmodules/testcapi.o ${CMODULE_DEPENDS}
-
-lib/kno/zeromq.so lib/kno/zeromq.dylib : MODLIBS="@ZEROMQ_LIBS@"
-lib/kno/zeromq.so: src/cmodules/zeromq.o
-lib/kno/zeromq.dylib: src/cmodules/zeromq.o ${CMODULE_DEPENDS}
 
 lib/kno/odbc.o: src/cmodules/odbc.c
 lib/kno/odbc.so: src/cmodules/odbc.o
@@ -1070,10 +1010,6 @@ lib/kno/sqlite.dylib: src/cmodules/sqlite.o ${CMODULE_DEPENDS}
 lib/kno/libarchive.o: src/cmodules/libarchive.c
 lib/kno/libarchive.so: src/cmodules/libarchive.o
 lib/kno/libarchive.dylib: src/cmodules/libarchive.o ${CMODULE_DEPENDS}
-
-lib/kno/qrcode.so lib/kno/qrcode.dylib : MODLIBS=-lqrencode -lpng
-lib/kno/qrcode.so: src/cmodules/qrcode.o
-lib/kno/qrcode.dylib: src/cmodules/qrcode.o ${CMODULE_DEPENDS}
 
 lib/kno/zlib.so lib/kno/zlib.dylib : MODLIBS="-lz"
 lib/kno/zlib.so: src/cmodules/zlib.o
@@ -1476,23 +1412,18 @@ install-fastcgi: $(BININSTALLDIR)/knocgi@suffix@
 $(BININSTALLDIR)/knocgi@suffix@:
 	@$(SYSINSTALL) -p @install_exe_opts@ exe/knocgi@suffix@ $(BININSTALLDIR)
 
-install-cmodules: install-core-cmodules install-db-cmodules install-text-cmodules \
-	install-graphics-cmodules install-archive-cmodules
+install-cmodules: install-core-cmodules install-db-cmodules \
+			install-text-cmodules \
+			install-archive-cmodules
 
 install-core-cmodules: @INSTALL_CORE_CMODULES@
 install-db-cmodules: @INSTALL_DB_CMODULES@
 install-text-cmodules: @INSTALL_TEXT_CMODULES@
-install-graphics-cmodules: @INSTALL_GRAPHICS_CMODULES@
 install-archive-cmodules: @INSTALL_ARCHIVE_CMODULES@
 install-testcapi: ${CMODULES}/testcapi.@shared_suffix@ ${CMODULES}/testcapi.@vshared_suffix@
 install-crypto: ${CMODULES}/crypto.@shared_suffix@ ${CMODULES}/crypto.@vshared_suffix@
-install-zeromq: ${CMODULES}/zeromq.@shared_suffix@ ${CMODULES}/zeromq.@vshared_suffix@
 install-odbc: ${CMODULES}/odbc.@shared_suffix@ ${CMODULES}/odbc.@vshared_suffix@
 install-sqlite: ${CMODULES}/sqlite.@shared_suffix@ ${CMODULES}/sqlite.@vshared_suffix@
-install-mysql: ${CMODULES}/mysql.@shared_suffix@ ${CMODULES}/mysql.@vshared_suffix@
-install-qrcode: ${CMODULES}/qrcode.@shared_suffix@ ${CMODULES}/qrcode.@vshared_suffix@
-install-ziptools: ${CMODULES}/ziptools.@shared_suffix@ ${CMODULES}/ziptools.@vshared_suffix@
-install-imagick: ${CMODULES}/imagick.@shared_suffix@ ${CMODULES}/imagick.@vshared_suffix@
 install-leveldb: ${CMODULES}/leveldb.@shared_suffix@ ${CMODULES}/leveldb.@vshared_suffix@
 install-rocksdb: ${CMODULES}/rocksdb.@shared_suffix@ ${CMODULES}/rocksdb.@vshared_suffix@
 install-libarchive: ${CMODULES}/libarchive.@shared_suffix@ ${CMODULES}/libarchive.@vshared_suffix@
@@ -1698,15 +1629,8 @@ staging/build-setup.debian.core:
 		libarchive-dev libsasl2-dev libsqlite3-dev \
 		dh-make devscripts dpkg-dev dh-systemd debsigs && \
 	touch $@
-staging/build-setup.debian.text: staging/build-setup.debian.core
-	sudo apt-get install -ym libhyphen-dev && \
-	touch $@
-staging/build-setup.debian.graphics: staging/build-setup.debian.core
-	sudo apt-get install -ym libexif-dev libmagickwand-dev \
-		libqrencode-dev && \
-	touch $@
-staging/build-setup.debian.db: staging/build-setup.debian.odbc \
-	staging/build-setup.debian.mongo staging/build-setup.debian.mysql
+
+staging/build-setup.debian.db: staging/build-setup.debian.odbc
 staging/build-setup.debian.malloc: staging/build-setup.debian.core
 	sudo apt install -ym libgoogle-perftools-dev libjemalloc-dev && \
 	touch $@
@@ -1714,17 +1638,9 @@ staging/build-setup.debian.malloc: staging/build-setup.debian.core
 staging/build-setup.debian.odbc: staging/build-setup.debian.core
 	sudo apt-get install -ym  unixodbc-dev && \
 	touch $@
-staging/build-setup.debian.mongo: staging/build-setup.debian.core
-	sudo apt-get install -ym libmongoc-dev libbson-dev && \
-	touch $@
-staging/build-setup.debian.mysql: staging/build-setup.debian.core
-	sudo apt-get install -ym libmysqlclient-dev || \
-	sudo apt-get install -ym default-libmysqlclient-dev && \
-	touch $@
 
 build-setup.debian: staging/build-setup.debian.core \
 	staging/build-setup.debian.text \
-	staging/build-setup.debian.graphics \
 	staging/build-setup.debian.db \
 	staging/build-setup.debian.malloc
 
