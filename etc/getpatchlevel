@@ -1,0 +1,2 @@
+#!/bin/sh
+git rev-list --count $(git log --follow -1 --pretty=%H etc/release)..HEAD
