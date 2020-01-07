@@ -29,3 +29,7 @@
 	path = src/extmods/imagetools
 	url = git@github.com:beingmeta/kno-imagetools.git
 	branch = trunk
+[submodule "src/extmods/zeromq"]
+	path = src/extmods/zeromq
+	url = git@github.com:beingmeta/kno-zeromq.git
+	branch = trunk
