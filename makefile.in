@@ -143,8 +143,7 @@ SRC_HEADERS=src/lisp/biginternals.h 		\
 	src/drivers/headers/oidpool.h	 	\
 	src/drivers/headers/hashindex.h		\
 	src/drivers/headers/netindex.h		\
-	src/drivers/headers/netpool.h		\
-	src/cmodules/knosqlite.h			\
+	src/drivers/headers/netpool.h
 
 LISP_OBJS=\
 	src/lisp/oids.o src/lisp/fcnids.o 			\
