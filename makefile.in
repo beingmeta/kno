@@ -1440,9 +1440,9 @@ install-headers: $(INCINSTALLDIR)
 
 install-pkgconfig: $(DESTDIR)@PKGCONFIG_DIR@
 	@echo "# (kno) Installing kno pkgconfig file in $(DESTDIR)@PKGCONFIG_DIR@"
-	@$(INSTALL) etc/kno.pc $(DESTDIR)@PKGCONFIG_DIR@
+	@$(SYSINSTALL) etc/kno.pc $(DESTDIR)@PKGCONFIG_DIR@
 $(DESTDIR)@PKGCONFIG_DIR@:
-	$(INSTALL) -d $(DESTDIR)@PKGCONFIG_DIR@
+	$(SYSINSTALL) -d $(DESTDIR)@PKGCONFIG_DIR@
 
 
 
