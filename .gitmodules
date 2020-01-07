@@ -33,3 +33,6 @@
 	path = src/extmods/zeromq
 	url = git@github.com:beingmeta/kno-zeromq.git
 	branch = trunk
+[submodule "src/extmods/ziptools"]
+	path = src/extmods/ziptools
+	url = git@github.com:beingmeta/kno-ziptools.git
