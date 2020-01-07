@@ -15,7 +15,7 @@
 (define wikid.pool #f)
 (define wikid.index #f)
 (define wikid.indexes #f)
-(define wikid.background #f)
+(define wikid.background #t)
 (define wikid.opts #f)
 
 (define (setup-wikid source (opts wikid.opts) (err))
