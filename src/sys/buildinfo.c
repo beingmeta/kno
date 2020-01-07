@@ -541,6 +541,10 @@ KNO_EXPORT void kno_init_build_info()
 #ifdef KNO_RELEASE_VERSION
   config_int(KNO_RELEASE_VERSION);
 #endif
+#ifdef KNO_PATCH_LEVEL
+  config_int(KNO_PATCH_LEVEL);
+#endif
+
 
 #ifdef KNO_ENABLE_LOCKFREE
   config_bool(KNO_ENABLE_LOCKFREE);
