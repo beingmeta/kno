@@ -1,9 +1,16 @@
 #!/bin/sh
-dir=$1
-if [ ! -d "${dir}" ]; then
-   echo "No subdir specified";
-   exit;
-else
-    shift;
+ALLDIRS="hyphenate imagetools mongodb mysql odbc sundown tidy zeromq ziptools"
+DIRS=
+ARGS=
+if [ $# = 1 ]; then
+    DIRS=${ALLDIRS}
+    ARGS=$*
+else while [ $# -gt 0 ]; do
+	 if [ -d $1 ]; then
+	     DIRS="${DIRS} $1";
+	 else
+	     ARGS="${ARGS} $1";
+	 fi;
+	 shift; done;
 fi;
-cd ${dir}; make $*
+for dir in ${DIRS}; do make -C ${dir} ${ARGS}; done
