@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-12-31 13:44-0800\n"
+"POT-Creation-Date: 2020-01-08 13:02-0800\n"
 "PO-Revision-Date: 2005-03-04 22:55-0500\n"
 "Last-Translator: Kenneth Haase <kh@beingmeta.com>\n"
 "Language-Team: Spanish <es@li.org>\n"
@@ -405,7 +405,7 @@ msgstr ""
 
 #: src/lisp/lisp.c:206 src/lisp/lisp.c:207 src/sys/config.c:834
 #: src/eval/eval.c:1461 src/eval/opcode_defs.c:586 src/prims/dbprims.c:3103
-#: src/prims/portprims.c:677 src/eval/choiceops.c:1455
+#: src/prims/portprims.c:831 src/eval/choiceops.c:1455
 #: src/eval/choiceops.c:1493 src/eval/choiceops.c:1519
 #: src/eval/choiceops.c:1555 src/eval/choiceops.c:1569
 #: src/eval/choiceops.c:1573 src/eval/choiceops.c:1574 src/prims/seqprims.c:361
@@ -471,8 +471,8 @@ msgstr ""
 #: src/lisp/lisp.c:235 src/lisp/lisp.c:236 src/sys/config.c:763
 #: src/sys/config.c:782 src/sys/config.c:801 src/sys/startup.c:254
 #: src/sys/startup.c:632 src/prims/dbprims.c:306 src/prims/dbprims.c:327
-#: src/prims/dbprims.c:348 src/prims/portprims.c:184 src/prims/portprims.c:598
-#: src/prims/portprims.c:683 src/prims/streamprims.c:560
+#: src/prims/dbprims.c:348 src/prims/portprims.c:338 src/prims/portprims.c:752
+#: src/prims/portprims.c:837 src/prims/streamprims.c:560
 #: src/prims/streamprims.c:605 src/prims/streamprims.c:694
 #: src/prims/streamprims.c:726 src/prims/streamprims.c:744
 #: src/prims/streamprims.c:767 src/prims/streamprims.c:801
@@ -1751,7 +1751,7 @@ msgid "The head file has no data"
 msgstr ""
 
 #: src/storage/compress.c:131 src/storage/compress.c:170
-#: src/prims/portprims.c:1160 src/drivers/headers/zcompress.h:27
+#: src/prims/portprims.c:1314 src/drivers/headers/zcompress.h:27
 #: src/drivers/headers/zcompress.h:65
 msgid "ZLIB ran out of memory"
 msgstr ""
@@ -1765,7 +1765,7 @@ msgid "ZLIB uncompress data error"
 msgstr ""
 
 #: src/storage/compress.c:145 src/storage/compress.c:183
-#: src/prims/portprims.c:1173 src/drivers/headers/zcompress.h:40
+#: src/prims/portprims.c:1327 src/drivers/headers/zcompress.h:40
 #: src/drivers/headers/zcompress.h:78
 msgid "Bad ZLIB return code"
 msgstr ""
@@ -1774,7 +1774,7 @@ msgstr ""
 msgid "pool value compression ran out of memory"
 msgstr ""
 
-#: src/storage/compress.c:181 src/prims/portprims.c:1171
+#: src/storage/compress.c:181 src/prims/portprims.c:1325
 #: src/drivers/headers/zcompress.h:76
 msgid "ZLIB compress data error"
 msgstr ""
@@ -2267,33 +2267,33 @@ msgstr ""
 msgid "No more information"
 msgstr ""
 
-#: src/prims/portprims.c:34
+#: src/prims/portprims.c:37
 msgid "Unknown encoding"
 msgstr ""
 
-#: src/prims/portprims.c:197 src/prims/portprims.c:214
+#: src/prims/portprims.c:351 src/prims/portprims.c:368
 #: src/prims/fileprims.c:1368 src/prims/fileprims.c:1396
 #: src/prims/fileprims.c:1423 src/prims/fileprims.c:1450
 msgid "port"
 msgstr ""
 
-#: src/prims/portprims.c:235 src/prims/portprims.c:255
-#: src/prims/portprims.c:278 src/prims/portprims.c:294
+#: src/prims/portprims.c:389 src/prims/portprims.c:409
+#: src/prims/portprims.c:432 src/prims/portprims.c:448
 #: src/prims/fileprims.c:297
 msgid "output port"
 msgstr ""
 
-#: src/prims/portprims.c:567 src/prims/portprims.c:595
-#: src/prims/portprims.c:621 src/prims/portprims.c:641
-#: src/prims/portprims.c:673 src/text/texttools.c:2315
+#: src/prims/portprims.c:721 src/prims/portprims.c:749
+#: src/prims/portprims.c:775 src/prims/portprims.c:795
+#: src/prims/portprims.c:827 src/text/texttools.c:2315
 msgid "input port"
 msgstr ""
 
-#: src/prims/portprims.c:601
+#: src/prims/portprims.c:755
 msgid "fixum"
 msgstr ""
 
-#: src/prims/portprims.c:1168
+#: src/prims/portprims.c:1322
 msgid "OIDPOOL compress ran out of memory"
 msgstr ""
 
@@ -3188,96 +3188,12 @@ msgstr ""
 msgid "SQLite Error"
 msgstr ""
 
-#: src/cmodules/mysql.c:40
-msgid "MYSQL server reset"
-msgstr ""
-
-#: src/cmodules/mysql.c:41
-msgid "MYSQL unused parameter type"
-msgstr ""
-
-#: src/cmodules/mysql.c:132
-msgid "MySQL Error"
-msgstr ""
-
-#: src/cmodules/mysql.c:133
-msgid "Can't convert value to SQL"
-msgstr ""
-
-#: src/cmodules/mongodb.c:38
-msgid "MongoDB error"
-msgstr ""
-
-#: src/cmodules/mongodb.c:39
-msgid "BSON conversion error"
-msgstr ""
-
-#: src/cmodules/mongodb.c:40
-msgid "MongoDB warning"
-msgstr ""
-
-#: src/cmodules/mongodb.c:41
-msgid "BSON input error"
-msgstr ""
-
-#: src/cmodules/mongodb.c:42
-msgid "BSON/Kno compound overflow"
-msgstr ""
-
-#: src/cmodules/mongodb.c:126
-msgid "MongoDB/get_client"
-msgstr ""
-
-#: src/cmodules/mongodb.c:130
-msgid "MongoDB/got_client"
-msgstr ""
-
-#: src/cmodules/mongodb.c:138
-msgid "MongoDB/release_client"
-msgstr ""
-
-#: src/cmodules/mongodb.c:897
-msgid "MissingDBName"
-msgstr ""
-
-#: src/cmodules/mongodb.c:1002 src/cmodules/mongodb.c:1089
-msgid "MongoDB collection"
-msgstr ""
-
-#: src/cmodules/mongodb.c:1894 src/cmodules/mongodb.c:1997
-msgid "MongoDB"
-msgstr ""
-
-#: src/cmodules/ziptools.c:30
-msgid "Zip file error"
-msgstr ""
-
-#: src/cmodules/tidy.c:24
-msgid "Tidy Error"
-msgstr ""
-
-#: src/cmodules/exif.c:253
-msgid "filename or packet"
-msgstr ""
-
-#: src/cmodules/exif.c:270
-msgid "exif tag"
-msgstr ""
-
 #: src/cmodules/crypto.c:207 src/cmodules/crypto.c:213
 msgid "Byte init value"
 msgstr ""
 
 #: src/cmodules/crypto.c:209
 msgid "uint len"
-msgstr ""
-
-#: src/cmodules/zeromq.c:35
-msgid "ZeroMQ error"
-msgstr ""
-
-#: src/cmodules/zeromq.c:37
-msgid "Using ZeroMQ socket from different thread"
 msgstr ""
 
 #: src/exe/webcommon.h:686
