@@ -1877,15 +1877,15 @@ include/kno/revision.h: $(KNO_SOURCES) $(KNO_HEADERS) makefile
 	@if test -f etc/revision.h; then				\
 	    cp etc/revision.h etc/use_revision.h; 			\
 	elif $(GITDESCRIBE) > /dev/null 2>&1; then			\
-	    echo "#define KNO_REVISION \""`@GITDESCRIBE@`"\"" 	\
+	    echo "#define KNO_REVISION \""`@GITDESCRIBE@`"\"" 		\
 		> etc/use_revision.h; 					\
-	    echo "#define KNO_PATCH_LEVEL ${PATCHLEVEL}" >> etc/use_revision.h; 					\
-	    echo "#define KNO_BRANCH \"${GITBRANCH}\"" \
+	    echo "#define KNO_PATCH_LEVEL ${PATCHLEVEL}" 		\
+		>> etc/use_revision.h; 					\
+	    echo "#define KNO_BRANCH \"${GITBRANCH}\"" 			\
 		>> etc/use_revision.h; 					\
 	else echo "#define KNO_REVISION \"@KNO_VERSION@-exported\""	\
 		> etc/use_revision.h; 					\
-	    echo "#define KNO_PATCH_LEVEL ${PATCHLEVEL}" >> etc/use_revision.h; 					\
-	    echo "#define KNO_BRANCH \"exported\"" >> 		\
+	    echo "#define KNO_BRANCH \"exported\"" >> 			\
 		etc/use_revision.h; 					\
 	fi;
 	@if test ! -f $@; then 						\
