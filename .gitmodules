@@ -37,3 +37,6 @@
 	path = src/extmods/ziptools
 	url = git@github.com:beingmeta/kno-ziptools.git
 	branch = trunk
+[submodule "src/extmods/odbc"]
+	path = src/extmods/odbc
+	url = git@github.com:beingmeta/kno-odbc.git
