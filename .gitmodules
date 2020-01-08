@@ -36,3 +36,4 @@
 [submodule "src/extmods/ziptools"]
 	path = src/extmods/ziptools
 	url = git@github.com:beingmeta/kno-ziptools.git
+	branch = trunk

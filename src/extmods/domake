@@ -1,0 +1,9 @@
+#!/bin/sh
+dir=$1
+if [ ! -d "${dir}" ]; then
+   echo "No subdir specified";
+   exit;
+else
+    shift;
+fi;
+cd ${dir}; make $*
