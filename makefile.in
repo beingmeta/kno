@@ -1649,6 +1649,12 @@ build-setup.debian: staging/build-setup.debian.core \
 build-setup.redhat:
 	sudo rpm -Uvh libedit-devel
 
+staging/build-setup.apk:
+	sudo apk add alpine-sdk autoconf zlib zlib-dev python3 python3-dev \
+		     findutils findutils-doc libffi libffi-dev sqlite sqlite-dev \
+		     snappy snappy-dev gettext gettext-dev libintl libintl-dev \
+		     zlib zlib-dev zstd zstd-dev
+	touch $@
 macports-build-setup:
 	sudo port install  curl curl-ca-bundle exif libexif qrencode libpng imagemagick ldns unixODBC sqlite3 \
 		leveldb snappy rocksdb mongo-c-driver libarchive libzip zlib zmq-devel hyphen python37
