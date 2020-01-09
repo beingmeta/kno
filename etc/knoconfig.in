@@ -75,6 +75,8 @@ case ${option} in
     lib)
 	echo "@libdir@";;
     libs)
+	echo "@LIBS@ -lknocore -lknostorage -lknodrivers -lknoscheme";;
+    deplibs)
 	echo "@LIBS@";;
     bin)
 	echo "@exec_prefix@/bin";;
