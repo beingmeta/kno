@@ -8,7 +8,7 @@
 	touch $@
 
 
-default: full.image base.image
+default: base.image full.image
 pushed: full.pushed base.pushed
 clean:
 	rm -f *.image *.pushed
