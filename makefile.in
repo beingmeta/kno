@@ -1532,11 +1532,11 @@ $(DESTDIR)/etc/init.d/kno: etc/sysv/kno-rc.d $(DESTDIR)/etc/init.d
 		   etc/sysv/kno-rc.d $(DESTDIR)/etc/init.d/kno
 $(DESTDIR)@kno_rundir@:
 	@$(MSG) Installing Kno run directory
-	@$(SYSINSTALL) -m 0775  @knodaemoninstall@ @admininstall@ -d \
+	@$(SYSINSTALL) -m 0775  @knouserinstall@ @admininstall@ -d \
 		   $(DESTDIR)@kno_rundir@
 $(DESTDIR)@daemon_rundir@: $(DESTDIR)@kno_rundir@
 	@$(MSG) Installing Kno daemon run directory
-	@$(SYSINSTALL) -m 0775  @knodaemoninstall@ @admininstall@ -d \
+	@$(SYSINSTALL) -m 0775  @knouserinstall@ @admininstall@ -d \
 		   $(DESTDIR)@daemon_rundir@
 $(DESTDIR)@servlet_rundir@: $(DESTDIR)@kno_rundir@
 	@$(MSG) Installing Kno servlet run directory
@@ -1544,14 +1544,14 @@ $(DESTDIR)@servlet_rundir@: $(DESTDIR)@kno_rundir@
 		   $(DESTDIR)@servlet_rundir@
 $(DESTDIR)@kno_logdir@:
 	@$(MSG) Installing Kno log directory
-	@$(SYSINSTALL) -m 0775 @knodaemoninstall@  @admininstall@ -d \
+	@$(SYSINSTALL) -m 0775 @knouserinstall@  @admininstall@ -d \
 		   $(DESTDIR)@kno_logdir@
 $(DESTDIR)@bugjar@: $(DESTDIR)@kno_logdir@
 	@$(MSG) Installing Kno bugjar directory
-	@$(SYSINSTALL) -m 0777 @knodaemoninstall@  @admininstall@ -d \
+	@$(SYSINSTALL) -m 0777 @knouserinstall@  @admininstall@ -d \
 		   $(DESTDIR)@bugjar@
 $(DESTDIR)@daemon_logdir@:  $(DESTDIR)@kno_logdir@
-	@$(SYSINSTALL) -m 0775 @knodaemoninstall@ @admininstall@ \
+	@$(SYSINSTALL) -m 0775 @knouserinstall@ @admininstall@ \
 		-d $(DESTDIR)@daemon_logdir@
 $(DESTDIR)@servlet_logdir@: $(DESTDIR)@kno_logdir@
 	@$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
