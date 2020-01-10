@@ -8615,7 +8615,7 @@ $as_echo "$found_group" >&6; }
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for user default_daemonid" >&5
 $as_echo_n "checking for user default_daemonid... " >&6; }
   found_user="none";
-  for user in knodaemon _knodaemon knod _knod daemon nobody;
+  for user in knod _knod knodaemon _knodaemon daemon nobody;
   do
   if grep ^$user: /etc/passwd > /dev/null;
   then

@@ -992,7 +992,7 @@ AC_CHECK_PROGS(rpm,"lsb-rpm","rpm","na")
 ### System users, groups, and paths for Kno
 
 AC_CHECK_GROUP(default_admin_group,kno _kno adm admin)
-AC_CHECK_USER(default_daemonid,knodaemon _knodaemon knod _knod daemon nobody)
+AC_CHECK_USER(default_daemonid,knod _knod knodaemon _knodaemon daemon nobody)
 AC_CHECK_USER(default_daemon,xdaemon knod _knod knodaemon _knodaemon daemon nobody)
 AC_CHECK_USER(default_webuser,www apache httpd www-data _www)
 AC_CHECK_USER(default_webgroup,www apache httpd www-data _www)
