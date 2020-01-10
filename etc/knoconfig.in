@@ -29,7 +29,7 @@ usage() {
 	echo "\t"local_modules\|localmods "\t(Where locally installed source modules live)";
 	echo "\t"cmodules "\t\t\t(Where compiled dynamic modules live)";
 	echo "\t"webuser "\t\t\t(The name of the web content user account for this installation)";
-	echo "\t"knodaemon "\t\t\t(The name of the knodaemon user account for this installation)";
+	echo "\t"knouser "\t\t\t(The name of the knouser user account for this installation)";
 	echo "\t"admin_group "\t\t\t(The name of the administrator account for this installation)";
 	echo "\t"state "\t\t\t\t(Ephemeral state directory for Kno)";
 	echo "\t"rundir "\t\t\t\t(Where ephemeral state is stored for Kno applications and services)";
@@ -96,8 +96,8 @@ case ${option} in
 	echo "@libdir@/kno";;
     webuser)
 	echo "@webuser@";;
-    knodaemon)
-	echo "@knodaemon@";;
+    knouser)
+	echo "@knouser@";;
     admin|admingroup|admin_group)
 	echo "@admin_group@";;
     state)

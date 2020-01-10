@@ -48,8 +48,8 @@ webgroup=""
 wwwinstall=""
 admin_group=""
 admininstall=""
-knodaemon=""
-knodaemoninstall=""
+knouser=""
+knouserinstall=""
 libc_pthreads="no"
 libc_dlopen="no"
 calltracko=""
@@ -269,8 +269,8 @@ AC_SUBST(apache_modinfo)
 AC_SUBST(webuser)
 AC_SUBST(webgroup)
 AC_SUBST(wwwinstall)
-AC_SUBST(knodaemon)
-AC_SUBST(knodaemoninstall)
+AC_SUBST(knouser)
+AC_SUBST(knouserinstall)
 AC_SUBST(admin_group)
 AC_SUBST(admininstall)
 AC_SUBST(daemonid)
@@ -1021,13 +1021,13 @@ AC_DEFINE_UNQUOTED(KNO_ADMIN_GROUP,"$admin_group")
 dnl Specifies a daemon identity user/group for managed Kno servers
 AC_ARG_WITH(daemonid,--with-daemonid The identity (user) for Kno servers to run as,,with_daemonid=$default_daemonid)
 if test $with_daemonid != "none"; then
-   knodaemon=$with_daemonid
+   knouser=$with_daemonid
    if test "$chowning" = "yes"; then
-     knodaemoninstall="-o $knodaemon";
+     knouserinstall="-o $knouser";
    fi;
 else
-   knodaemoninstall=""
-   knodaemon=$default_daemonid
+   knouserinstall=""
+   knouser=$default_daemonid
 fi
 
 AC_DEFINE_UNQUOTED(KNO_DAEMON,"$knoaemon")
@@ -1734,32 +1734,6 @@ if test "${ac_cv_header_archive_h}" == "yes" && \
 else
   missing="libarchive ${missing}"
 fi
-
-### ODBC
-
-AC_CHECK_HEADERS(sql.h)
-
-AC_ARG_ENABLE(odbc,--en/disable-odbc Build odbc modules,,enable_odbc="yes")
-ODBC_LIBS=
-odbc_included=no
-
-if test "$enable_odbc" = "yes"; then
-   AC_CHECK_HEADER(sql.h,have_sql_h="yes",have_sql_h="no")
-   if test "$have_sql_h" = "yes"; then
-     AC_CHECK_LIB(iodbc,SQLNumResultCols,ODBC_LIBS="-liodbc")
-     AC_CHECK_LIB(odbc,SQLNumResultCols,ODBC_LIBS="-lodbc")
-     if test ! -z "${ODBC_LIBS}"; then
-       DB_CMODULES="lib/kno/odbc.$shared_suffix ${DB_CMODULES}"
-       INSTALL_DB_CMODULES="install-odbc ${INSTALL_DB_CMODULES}"
-       TEST_DB_CMODULES="${TEST_DB_CMODULES} odbc"
-       odbc_included=yes
-     fi;
-   fi;
-fi;
-
-if test ! "${odbc_included}" = "yes"; then
-   missing="odbc ${missing}";
-fi   
 
 ### SQLITE3
 

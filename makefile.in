@@ -271,7 +271,7 @@ TEXT_OBJS=\
 	src/text/porter.o \
 	src/text/phonetic.o
 
-CMODULE_OBJS=src/cmodules/odbc.o src/cmodules/sqlite.o  	\
+CMODULE_OBJS=src/cmodules/sqlite.o  	\
 	     src/cmodules/rocksdb.o src/cmodules/leveldb.o	\
 	     src/cmodules/crypto.o src/cmodules/zlib.o		\
 	     src/cmodules/libarchive.o 				\
@@ -373,7 +373,7 @@ KNO_SOURCES=\
 	src/exe/knocgi.c src/exe/knocgi.c src/exe/knod.c
 
 CMODULE_SOURCES=\
-	src/cmodules/odbc.c src/cmodules/sqlite.c	\
+	src/cmodules/sqlite.c	\
 	src/cmodules/leveldb.c src/cmodules/rocksdb.c	\
 	src/cmodules/libarchive.c			\
 	src/cmodules/gperftools.c			\
@@ -999,12 +999,6 @@ src/cmodules/testcapi.o: src/cmodules/testcapi.c
 lib/kno/testcapi.so: src/cmodules/testcapi.o
 lib/kno/testcapi.dylib: src/cmodules/testcapi.o ${CMODULE_DEPENDS}
 
-lib/kno/odbc.o: src/cmodules/odbc.c
-lib/kno/odbc.so: src/cmodules/odbc.o
-lib/kno/odbc.dylib: src/cmodules/odbc.o ${CMODULE_DEPENDS}
-lib/kno/odbc.so : MODLIBS="@ODBC_LIBS@"
-lib/kno/odbc.dylib : MODLIBS="@ODBC_LIBS@"
-
 lib/kno/sqlite.so lib/kno/sqlite.dylib : MODLIBS=-lsqlite3
 lib/kno/sqlite.so: src/cmodules/sqlite.o
 lib/kno/sqlite.dylib: src/cmodules/sqlite.o ${CMODULE_DEPENDS}
@@ -1424,7 +1418,6 @@ install-text-cmodules: @INSTALL_TEXT_CMODULES@
 install-archive-cmodules: @INSTALL_ARCHIVE_CMODULES@
 install-testcapi: ${CMODULES}/testcapi.@shared_suffix@ ${CMODULES}/testcapi.@vshared_suffix@
 install-crypto: ${CMODULES}/crypto.@shared_suffix@ ${CMODULES}/crypto.@vshared_suffix@
-install-odbc: ${CMODULES}/odbc.@shared_suffix@ ${CMODULES}/odbc.@vshared_suffix@
 install-sqlite: ${CMODULES}/sqlite.@shared_suffix@ ${CMODULES}/sqlite.@vshared_suffix@
 install-leveldb: ${CMODULES}/leveldb.@shared_suffix@ ${CMODULES}/leveldb.@vshared_suffix@
 install-rocksdb: ${CMODULES}/rocksdb.@shared_suffix@ ${CMODULES}/rocksdb.@vshared_suffix@
@@ -1632,13 +1625,8 @@ staging/build-setup.debian.core:
 		dh-make devscripts dpkg-dev dh-systemd debsigs && \
 	touch $@
 
-staging/build-setup.debian.db: staging/build-setup.debian.odbc
 staging/build-setup.debian.malloc: staging/build-setup.debian.core
 	sudo apt install -ym libgoogle-perftools-dev libjemalloc-dev && \
-	touch $@
-
-staging/build-setup.debian.odbc: staging/build-setup.debian.core
-	sudo apt-get install -ym  unixodbc-dev && \
 	touch $@
 
 build-setup.debian: staging/build-setup.debian.core \
@@ -1656,8 +1644,9 @@ staging/build-setup.apk:
 		     zlib zlib-dev zstd zstd-dev
 	touch $@
 macports-build-setup:
-	sudo port install  curl curl-ca-bundle exif libexif qrencode libpng imagemagick ldns unixODBC sqlite3 \
-		leveldb snappy rocksdb mongo-c-driver libarchive libzip zlib zmq-devel hyphen python37
+	sudo port install  curl curl-ca-bundle exif libexif qrencode libpng imagemagick ldns \
+		unixODBC sqlite3 leveldb snappy rocksdb mongo-c-driver \
+		libarchive libzip zlib zmq-devel hyphen python37
 
 .PHONY: debian-build-setup rpm-build-setup
 

@@ -10,7 +10,7 @@ limit core unlimited unlimited
 kill timeout 90 # wait 90s between SIGTERM and SIGKILL.
 
 env LOGDIR=@logdir@/kno
-setuid @knodaemon@
+setuid @knouser@
 setgid @admin_group@
 exec @prefix@/bin/knod ${CTL} STATEDIR=@daemon_rundir@
 

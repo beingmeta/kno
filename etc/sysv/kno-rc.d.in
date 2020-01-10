@@ -17,7 +17,7 @@
 
 export KNOD=@prefix@/bin/knod
 export KNOCGI=@prefix@/bin/knocgi
-export KNODAEMON_USER=@knoaemon@
+export KNOUSER_USER=@knoaemon@
 export KNODAEMON_GROUP=@admin_group@
 export WEB_USER=@webuser@
 CTLFILE=@config_dir@/servers

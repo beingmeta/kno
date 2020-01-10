@@ -6,12 +6,12 @@ After=kno-daemons.service upsource.target
 [Service]
 Type=simple
 RemainAfterExit=true
-Environment=KNO_LAUNCHER=%%NAME%%.service RUNUSER=@knodaemon@ RUNGROUP=@admin_group@ RUNDIR=@kno_rundir@/daemons/ LOGDIR=@kno_logdir@/daemons/
+Environment=KNO_LAUNCHER=%%NAME%%.service RUNUSER=@knouser@ RUNGROUP=@admin_group@ RUNDIR=@kno_rundir@/daemons/ LOGDIR=@kno_logdir@/daemons/
 PassEnvironment=KNO_LAUNCHER RUNUSER RUNGROUP
 TimeoutStartSec=900
 TimeoutStopSec=300
 ExecStartPre=/bin/mkdir -p @kno_rundir@/daemons/ @kno_logdir@/daemons/ @kno_logdir@/bugjar/
-ExecStartPre=/bin/chown @knodaemon@ @kno_rundir@/daemons/ @kno_logdir@/daemons/ @kno_logdir@/bugjar/
+ExecStartPre=/bin/chown @knouser@ @kno_rundir@/daemons/ @kno_logdir@/daemons/ @kno_logdir@/bugjar/
 ExecStartPre=/bin/chgrp @admin_group@ @kno_rundir@/daemons/ @kno_logdir@/daemons/ @kno_logdir@/bugjar/
 ExecStartPre=/bin/chmod g+rwx @kno_rundir@/daemons/ @kno_logdir@/daemons/
 ExecStartPre=/bin/chmod go+rwx @kno_logdir@/bugjar/

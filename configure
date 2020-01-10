@@ -805,8 +805,8 @@ daemonidinstall
 daemonid
 admininstall
 admin_group
-knodaemoninstall
-knodaemon
+knouserinstall
+knouser
 wwwinstall
 webgroup
 webuser
@@ -975,7 +975,6 @@ with_sudo
 with_fastcgi
 enable_leveldb
 enable_rocksdb
-enable_odbc
 with_bootsystem
 with_systemd
 '
@@ -1632,7 +1631,6 @@ Optional Features:
 --en/disable-lockfree Enables lock-free reference counting
 --en/disable-leveldb Build and install LevelDB module
 --en/disable-rocksdb Build and install Rocksdb module
---en/disable-odbc Build odbc modules
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
@@ -2962,8 +2960,8 @@ webgroup=""
 wwwinstall=""
 admin_group=""
 admininstall=""
-knodaemon=""
-knodaemoninstall=""
+knouser=""
+knouserinstall=""
 libc_pthreads="no"
 libc_dlopen="no"
 calltracko=""
@@ -8710,13 +8708,13 @@ else
 fi
 
 if test $with_daemonid != "none"; then
-   knodaemon=$with_daemonid
+   knouser=$with_daemonid
    if test "$chowning" = "yes"; then
-     knodaemoninstall="-o $knodaemon";
+     knouserinstall="-o $knouser";
    fi;
 else
-   knodaemoninstall=""
-   knodaemon=$default_daemonid
+   knouserinstall=""
+   knouser=$default_daemonid
 fi
 
 cat >>confdefs.h <<_ACEOF
@@ -12493,134 +12491,6 @@ if test "${ac_cv_header_archive_h}" == "yes" && \
   TEST_ARCHIVE_CMODULES="${TEST_ARCHIVE_CMODULES} libarchive"
 else
   missing="libarchive ${missing}"
-fi
-
-### ODBC
-
-for ac_header in sql.h
-do :
-  ac_fn_c_check_header_mongrel "$LINENO" "sql.h" "ac_cv_header_sql_h" "$ac_includes_default"
-if test "x$ac_cv_header_sql_h" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_SQL_H 1
-_ACEOF
-
-fi
-
-done
-
-
-# Check whether --enable-odbc was given.
-if test "${enable_odbc+set}" = set; then :
-  enableval=$enable_odbc;
-else
-  enable_odbc="yes"
-fi
-
-ODBC_LIBS=
-odbc_included=no
-
-if test "$enable_odbc" = "yes"; then
-   ac_fn_c_check_header_mongrel "$LINENO" "sql.h" "ac_cv_header_sql_h" "$ac_includes_default"
-if test "x$ac_cv_header_sql_h" = xyes; then :
-  have_sql_h="yes"
-else
-  have_sql_h="no"
-fi
-
-
-   if test "$have_sql_h" = "yes"; then
-     { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SQLNumResultCols in -liodbc" >&5
-$as_echo_n "checking for SQLNumResultCols in -liodbc... " >&6; }
-if ${ac_cv_lib_iodbc_SQLNumResultCols+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-liodbc  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char SQLNumResultCols ();
-int
-main ()
-{
-return SQLNumResultCols ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_iodbc_SQLNumResultCols=yes
-else
-  ac_cv_lib_iodbc_SQLNumResultCols=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_iodbc_SQLNumResultCols" >&5
-$as_echo "$ac_cv_lib_iodbc_SQLNumResultCols" >&6; }
-if test "x$ac_cv_lib_iodbc_SQLNumResultCols" = xyes; then :
-  ODBC_LIBS="-liodbc"
-fi
-
-     { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SQLNumResultCols in -lodbc" >&5
-$as_echo_n "checking for SQLNumResultCols in -lodbc... " >&6; }
-if ${ac_cv_lib_odbc_SQLNumResultCols+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lodbc  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char SQLNumResultCols ();
-int
-main ()
-{
-return SQLNumResultCols ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_odbc_SQLNumResultCols=yes
-else
-  ac_cv_lib_odbc_SQLNumResultCols=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_odbc_SQLNumResultCols" >&5
-$as_echo "$ac_cv_lib_odbc_SQLNumResultCols" >&6; }
-if test "x$ac_cv_lib_odbc_SQLNumResultCols" = xyes; then :
-  ODBC_LIBS="-lodbc"
-fi
-
-     if test ! -z "${ODBC_LIBS}"; then
-       DB_CMODULES="lib/kno/odbc.$shared_suffix ${DB_CMODULES}"
-       INSTALL_DB_CMODULES="install-odbc ${INSTALL_DB_CMODULES}"
-       TEST_DB_CMODULES="${TEST_DB_CMODULES} odbc"
-       odbc_included=yes
-     fi;
-   fi;
-fi;
-
-if test ! "${odbc_included}" = "yes"; then
-   missing="odbc ${missing}";
 fi
 
 ### SQLITE3
