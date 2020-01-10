@@ -31,7 +31,7 @@
 
 (define havezip #f)
 
-(cond ((get-module 'ziptools)
+(cond ((onerror (get-module 'ziptools) #f)
        (use-module 'ziptools)
        (set! havezip #t))
       (else 
