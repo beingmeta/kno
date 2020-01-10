@@ -40,3 +40,8 @@
 [submodule "src/extmods/odbc"]
 	path = src/extmods/odbc
 	url = git@github.com:beingmeta/kno-odbc.git
+	branch = trunk
+[submodule "src/extmods/mod_knocgi"]
+	path = src/extmods/mod_knocgi
+	url = git@github.com:beingmeta/mod_knocgi.git
+	branch = trunk
