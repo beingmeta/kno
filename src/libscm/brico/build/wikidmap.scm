@@ -68,7 +68,7 @@
 	(store! wikidmap wikidstring found)
 	(store! wikidmap wikid found)
 	(or found (fail)))))
-(define wikid/brico wikidata->brico)
+(define wikid/brico (fcn/alias wikidata->brico))
 
 (define (copy-lexslots wikid brico index)
   ;; We should use 'index' here

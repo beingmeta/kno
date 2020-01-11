@@ -14,7 +14,8 @@
 		  buildmap.table
 		  wikidata.props
 		  wikidata/ref wikid/ref
-		  wikidata/find wikid/find})
+		  wikidata/find wikid/find
+		  wikidata/makeid})
 
 (module-export! '{wikidata/save!})
 
@@ -127,6 +128,17 @@
 		  wikids.index buildmap.table
 		  has.index}))
 
+(define (wikidata/makeid wf)
+  `(wikidata ,(get wf 'id)
+	     ,@(if (singleton? (get wf 'norms))
+		   `(norm ,(get wf 'norms))
+		   (if (singleton? (get wf 'words))
+		       `(words ,(get wf 'words))
+		       '()))
+	     ,@(if (singleton? (get wf 'gloss))
+		   `(gloss ,(get wf 'gloss))
+		   '())))
+
 (define (wikidata/ref arg . ignored)
   (cond ((not wikidata.pool) (error |WikdataNotConfigured|))
 	((oid? arg)
@@ -153,3 +165,4 @@
   (apply find-frames wikidata.index specs))
 
 (define wikid/find wikidata/find)
+
