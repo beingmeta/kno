@@ -19,3 +19,6 @@ usr/share/kno/modules/stdlib/textindex/data/*
 usr/share/kno/modules/stdlib/twitter/*.scm
 usr/share/kno/modules/stdlib/twilio/*.scm
 usr/share/kno/modules/stdlib/xhtml/*.scm
+usr/share/kno/modules/stdlib/brico/*.scm
+usr/share/kno/modules/stdlib/brico/build/*.scm
+usr/share/kno/modules/stdlib/brico/data/*

@@ -21,5 +21,8 @@ usr/share/kno/modules/stdlib/textindex/data
 usr/share/kno/modules/stdlib/twitter
 usr/share/kno/modules/stdlib/twilio
 usr/share/kno/modules/stdlib/xhtml
+usr/share/kno/modules/stdlib/brico/
+usr/share/kno/modules/stdlib/brico/build
+usr/share/kno/modules/stdlib/brico/data
 
 

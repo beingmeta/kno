@@ -404,6 +404,7 @@ SHARED_LIBS=lib/libknocore@suffix@.@shared_suffix@  		\
 
 SCHEME_MODULES=src/stdlib/*.scm \
 	src/stdlib/aws/*.scm \
+	src/stdlib/brico/*.scm	src/stdlib/brico/build/*.scm \
 	src/stdlib/facebook/*.scm src/stdlib/google/*.scm \
 	src/stdlib/paypal/*.scm src/stdlib/twitter/*.scm \
 	src/stdlib/dropbox/*.scm src/stdlib/twilio/*.scm \
@@ -1155,8 +1156,11 @@ staging/kno-@KNO_VERSION@: include/kno/revision.h \
 	            -o staging/kno-@KNO_VERSION@.tar HEAD
 	cd src/stdlib; git archive --prefix=kno-@KNO_VERSION@/src/stdlib/ \
 	            -o ../../staging/kno_modules-@KNO_VERSION@.tar HEAD;
+	cd src/stdlib/brico; git archive --prefix=kno-@KNO_VERSION@/src/stdlib/brico/ \
+	            -o ../../../staging/kno_brico-@KNO_VERSION@.tar HEAD;
 	cd staging; tar -xf kno-@KNO_VERSION@.tar; rm kno-@KNO_VERSION@.tar
 	cd staging; tar -xf kno_modules-@KNO_VERSION@.tar; rm kno_modules-@KNO_VERSION@.tar;
+	cd staging; tar -xf kno_brico-@KNO_VERSION@.tar; rm kno_brico-@KNO_VERSION@.tar;
 	cp include/kno/revision.h staging/kno-@KNO_VERSION@/etc/revision.h;
 	cp dist/kno-@KNO_MAJOR@.@KNO_MINOR@.spec staging/kno-@KNO_VERSION@/dist
 staging/kno_@KNO_VERSION@: include/kno/revision.h \
@@ -1165,8 +1169,11 @@ staging/kno_@KNO_VERSION@: include/kno/revision.h \
 	            -o staging/kno_@KNO_VERSION@.tar HEAD;
 	cd src/stdlib; git archive --prefix=kno_@KNO_VERSION@/src/stdlib/ \
 	            -o ../../staging/kno_modules_@KNO_VERSION@.tar HEAD;
+	cd src/stdlib/brico; git archive --prefix=kno-@KNO_VERSION@/src/stdlib/brico/ \
+	            -o ../../../staging/kno_brico-@KNO_VERSION@.tar HEAD;
 	cd staging; tar -xf kno_@KNO_VERSION@.tar; rm kno_@KNO_VERSION@.tar;
 	cd staging; tar -xf kno_modules_@KNO_VERSION@.tar; rm kno_modules_@KNO_VERSION@.tar;
+	cd staging; tar -xf kno_brico-@KNO_VERSION@.tar; rm kno_brico-@KNO_VERSION@.tar;
 	cp include/kno/revision.h staging/kno_@KNO_VERSION@/etc/revision.h;
 	cd staging; tar -czf $(DEBNAME).orig.tar.gz kno_@KNO_VERSION@;
 	mv staging/kno_@KNO_VERSION@/dist/debian staging/kno_@KNO_VERSION@/debian;
@@ -1451,10 +1458,11 @@ $(DESTDIR)@unpackage_dir@:
 
 upstartdirs: $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets
 
-EXT_MODULE_DIRS=xhtml domutils textindex morph misc tests knodules knoml \
-		jwt aws facebook paypal twitter twilio dropbox google bench
+STDLIB_MODULE_DIRS=xhtml domutils textindex morph misc tests knodules knoml \
+		jwt aws facebook paypal twitter twilio dropbox google bench \
+		brico brico/build brico/build/index brico/build/scripts
 
-EXT_MODULE_DATA=textindex/data knodules/data aws/templates morph/data
+STDLIB_MODULE_DATA=textindex/data knodules/data aws/templates morph/data brico/data
 
 install-stdlib: install-standard-modules
 install-standard-modules: install-module-source install-module-data
@@ -1463,7 +1471,7 @@ install-module-source: $(DESTDIR)@stdlib_module_dir@
 	@$(ECHO) Copying standard Scheme modules to @stdlib_module_dir@
 	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/stdlib/*.scm 		\
 		$(DESTDIR)@stdlib_module_dir@;
-	@for dir in $(EXT_MODULE_DIRS); do					\
+	@for dir in $(STDLIB_MODULE_DIRS); do					\
 	  install_dir="$(DESTDIR)@stdlib_module_dir@/$${dir}";			\
 	  echo "Installing $${dir} module at $${install_dir}";			\
 	  $(SYSINSTALL) @install_dir_opts@ $${install_dir};			\
@@ -1473,7 +1481,7 @@ install-module-source: $(DESTDIR)@stdlib_module_dir@
 
 install-module-data: $(DESTDIR)@stdlib_module_dir@
 	@$(ECHO) Copying module data to @stdlib_module_dir@;
-	@for dir in $(EXT_MODULE_DATA); do					\
+	@for dir in $(STDLIB_MODULE_DATA); do					\
 	  src_dir="$(BUILD)/src/stdlib/$${dir}";				\
 	  install_dir="$(DESTDIR)@stdlib_module_dir@/$${dir}";			\
 	  echo Installing data from $${src_dir} to $${install_dir};		\
@@ -1488,8 +1496,8 @@ install-support: $(DESTDIR)@share_dir@
 	cd $(BUILD)/src/web; $(SYSINSTALL) @install_file_opts@ 	\
 		webinfo.knocgi $(DESTDIR)@share_dir@
 
-LIBSCM_DIRS=optimize bugjar bench knodb brico brico/build mongodb xhtml
-LIBSCM_DATA_DIRS=brico/data
+LIBSCM_DIRS=optimize bugjar bench knodb mongodb xhtml
+LIBSCM_DATA_DIRS=
 install-libscm:
 	@if [ ! -d ${DESTDIR}${LIBSCM} ]; then 						\
 	  make really-install-libscm; 							\
@@ -1506,9 +1514,6 @@ really-install-libscm:
 	$(SYSINSTALL) @install_dir_opts@ $(DESTDIR)${LIBSCM}/bugjar/resources;
 	$(SYSINSTALL) @install_file_opts@ src/libscm/bugjar/resources/*	\
 	       $(DESTDIR)${LIBSCM}/bugjar/resources;
-	$(SYSINSTALL) @install_dir_opts@ $(DESTDIR)${LIBSCM}/brico/data;
-	$(SYSINSTALL) @install_file_opts@ src/libscm/brico/data/*		\
-	       $(DESTDIR)${LIBSCM}/brico/data;
 
 logdirs: $(DESTDIR)@kno_logdir@ $(DESTDIR)@servlet_logdir@ \
 	$(DESTDIR)@daemon_logdir@

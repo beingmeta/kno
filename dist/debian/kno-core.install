@@ -43,9 +43,6 @@ usr/share/kno/webinfo.knocgi
 etc/logrotate.d/kno
 usr/share/kno/libscm/kno-*/bugjar/*.scm
 usr/share/kno/libscm/kno-*/bugjar/resources/*
-usr/share/kno/libscm/kno-*/brico/*.scm
-usr/share/kno/libscm/kno-*/brico/build/*.scm
-usr/share/kno/libscm/kno-*/brico/data/*
 usr/share/kno/libscm/kno-*/optimize/*.scm
 usr/share/kno/libscm/kno-*/knodb/*.scm
 usr/share/kno/libscm/kno-*/mongodb/*.scm

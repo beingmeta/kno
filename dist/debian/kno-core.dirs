@@ -14,9 +14,6 @@ usr/share/kno/libscm
 usr/share/kno/libscm/bench
 usr/share/kno/libscm/bugjar
 usr/share/kno/libscm/bugjar/resources
-usr/share/kno/libscm/brico/
-usr/share/kno/libscm/brico/build
-usr/share/kno/libscm/brico/data
 usr/share/kno/libscm/optimize
 usr/share/kno/libscm/flexdb
 usr/share/kno/libscm/storage
