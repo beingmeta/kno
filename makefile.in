@@ -1169,7 +1169,7 @@ staging/kno_@KNO_VERSION@: include/kno/revision.h \
 	            -o staging/kno_@KNO_VERSION@.tar HEAD;
 	cd src/stdlib; git archive --prefix=kno_@KNO_VERSION@/src/stdlib/ \
 	            -o ../../staging/kno_modules_@KNO_VERSION@.tar HEAD;
-	cd src/stdlib/brico; git archive --prefix=kno-@KNO_VERSION@/src/stdlib/brico/ \
+	cd src/stdlib/brico; git archive --prefix=kno_@KNO_VERSION@/src/stdlib/brico/ \
 	            -o ../../../staging/kno_brico-@KNO_VERSION@.tar HEAD;
 	cd staging; tar -xf kno_@KNO_VERSION@.tar; rm kno_@KNO_VERSION@.tar;
 	cd staging; tar -xf kno_modules_@KNO_VERSION@.tar; rm kno_modules_@KNO_VERSION@.tar;
