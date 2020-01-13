@@ -8,22 +8,22 @@ OPTFLAGS      = "@OPTFLAGS@"
 XOPTFLAGS     = "@XOPTFLAGS@"
 ARCHFLAGS     = @archflags@
 EXECFLAGS     = @CFLAGS@ ${OPTFLAGS} @MALLOC_FLAGS@ @DREENTRANT@ \
-		@PROFILING@ @GCOV_CFLAGS@ \
-		-I./include $(XCFLAGS) $(ARCHFLAGS)
+@PROFILING@ @GCOV_CFLAGS@ \
+-I./include $(XCFLAGS) $(ARCHFLAGS)
 DYNAMIC_CFLAG = @dynamic_cflag@
 CFLAGS        = -I./include @CFLAGS@ ${OPTFLAGS} \
-		@MALLOC_FLAGS@ @PROFILING@ @GCOV_CFLAGS@ @DREENTRANT@ \
-		@PTHREAD_LIBS@ $(DYNAMIC_CFLAG) \
-		-I./include $(XCFLAGS)  $(ARCHFLAGS)
+@MALLOC_FLAGS@ @PROFILING@ @GCOV_CFLAGS@ @DREENTRANT@ \
+@PTHREAD_LIBS@ $(DYNAMIC_CFLAG) \
+-I./include $(XCFLAGS)  $(ARCHFLAGS)
 RPATH         = @rpath@
 RPATHFLAGS    = @RPATHFLAGS@
 LDFLAGS       = -L./ -L./lib @LDFLAGS@ @PTHREAD_LIBS@ @GCOV_LDFLAGS@ $(XLDFLAGS)
 DYLIB_FLAGS   = -compatibility_version @KNO_MAJOR@.0.0 \
-		-current_version @KNO_MAJOR@.@KNO_MINOR@.@KNO_RELEASE@
+-current_version @KNO_MAJOR@.@KNO_MINOR@.@KNO_RELEASE@
 EXEFLAGS      = @EXEFLAGS@
 EXELIBS       = @EXELIBS@
 STATIC_CFLAGS = -I./include @CFLAGS@ @PROFILING@ @DREENTRANT@ \
-		$(DYNAMIC_CFLAG) -I./include $(XCFLAGS)
+$(DYNAMIC_CFLAG) -I./include $(XCFLAGS)
 TEST_CFLAGS   = -DKNO_TESTCONFIG=1 ${STATIC_CFLAGS}
 STATIC_LDFLAGS= -L./lib @LDFLAGS@ $(EFENCE) @GCOV_LDFLAGS@ @TESTLDFLAGS@ -L./lib
 TEST_LDFLAGS  = ${STATIC_LDFLAGS}
@@ -33,7 +33,7 @@ LIBS          = $(XLIBS) @LIBS@
 PATH          = @BINPATH@
 DEBBUILD      = -b
 INDENTOPTS    = -br -ce -psl -Tknodtype -Tu8_string -Tkno_stream -Tkno_inbuf \
-		-Tkno_outbuf -Tkno_rawbuf -Tkno_function -Tkno_pair -Tkno_choice
+-Tkno_outbuf -Tkno_rawbuf -Tkno_function -Tkno_pair -Tkno_choice
 GCOVR_FLAGS   = -e "./src/cmodules/" -e "./src/exe/" -e "./tests/storage/"
 PYLIBS        = -lknowebtools -lknotexttools -lknoscheme -lknodrivers -lknostorage -lknocore ${LIBS}
 
@@ -64,7 +64,7 @@ MKSTATIC	= @MKSTATIC@ -o
 CODENAME	= @CODENAME@
 MKSO		= $(CC) -shared @GCOV_CFLAGS@ $(LDFLAGS)
 MACLIBTOOL	= $(CC) -dynamiclib -single_module -undefined dynamic_lookup \
-			$(LDFLAGS)
+$(LDFLAGS)
 BUILD		= `pwd`
 BUILDMODE       := `cat .buildmode || echo none`
 LINKEDWITH      := `cat .malloc || echo standard libraries`
@@ -84,340 +84,340 @@ PATCHLEVEL	:= $(shell etc/getpatchlevel)
 DPKGNAME	:= kno-@KNO_MAJOR@.@KNO_MINOR@.$(shell etc/getpatchlevel)
 LIBSCM	 	:= @LIBSCM@
 LISP_HEADERS=\
- include/kno/knosource.h                        \
- include/kno/config.h                           \
- include/kno/common.h                           \
- include/kno/errobjs.h                          \
- include/kno/defines.h				\
- include/kno/support.h                          \
- include/kno/numbers.h                          \
- include/kno/bigints.h                          \
- include/kno/malloc.h                           \
- include/kno/lisp.h    			     	\
- include/kno/pprint.h    			\
- include/kno/ptr.h				\
- include/kno/cons.h        			\
- include/kno/compounds.h			\
- include/kno/choices.h			        \
- include/kno/tables.h  			     	\
- include/kno/sequences.h  			\
- include/kno/knoregex.h  			\
- include/kno/bufio.h			     	\
- include/kno/xtypes.h 				\
- include/kno/dtypeio.h
+include/kno/knosource.h                        \
+include/kno/config.h                           \
+include/kno/common.h                           \
+include/kno/errobjs.h                          \
+include/kno/defines.h				\
+include/kno/support.h                          \
+include/kno/numbers.h                          \
+include/kno/bigints.h                          \
+include/kno/malloc.h                           \
+include/kno/lisp.h    			     	\
+include/kno/pprint.h    			\
+include/kno/ptr.h				\
+include/kno/cons.h        			\
+include/kno/compounds.h			\
+include/kno/choices.h			        \
+include/kno/tables.h  			     	\
+include/kno/sequences.h  			\
+include/kno/knoregex.h  			\
+include/kno/bufio.h			     	\
+include/kno/xtypes.h 				\
+include/kno/dtypeio.h
 APPLY_HEADERS=\
- include/kno/apply.h   \
- include/kno/cprims.h   \
- include/kno/stacks.h  \
- include/kno/lexenv.h  \
- include/kno/ffi.h
+include/kno/apply.h   \
+include/kno/cprims.h   \
+include/kno/stacks.h  \
+include/kno/lexenv.h  \
+include/kno/ffi.h
 STORAGE_HEADERS=\
- include/kno/components/storage_layer.h	\
- include/kno/streams.h			\
- include/kno/storage.h			\
- include/kno/pools.h			\
- include/kno/indexes.h			\
- include/kno/bloom.h  			\
- include/kno/dtproc.h			\
- include/kno/dtcall.h			\
- include/kno/frames.h			\
- include/kno/sqldb.h 			\
- include/kno/methods.h
+include/kno/components/storage_layer.h	\
+include/kno/streams.h			\
+include/kno/storage.h			\
+include/kno/pools.h			\
+include/kno/indexes.h			\
+include/kno/bloom.h  			\
+include/kno/dtproc.h			\
+include/kno/dtcall.h			\
+include/kno/frames.h			\
+include/kno/sqldb.h 			\
+include/kno/methods.h
 
 DRIVERS_H=include/kno/drivers.h
 SCHEME_HEADERS=include/kno/eval.h include/kno/threads.h \
-	include/kno/opcodes.h include/kno/seqprims.h \
-	include/kno/procprims.h include/kno/getsource.h
+include/kno/opcodes.h include/kno/seqprims.h \
+include/kno/procprims.h include/kno/getsource.h
 LIB_HEADERS=include/kno/texttools.h include/kno/webtools.h \
-	        include/kno/leveldb.h \
-	        include/kno/rocksdb.h
+include/kno/leveldb.h \
+include/kno/rocksdb.h
 
 # Headers which don't live in include/kno
 SRC_HEADERS=src/lisp/biginternals.h 		\
-	src/eval/eval_internals.h 		\
-	src/apply/apply_cprims.h 		\
-	src/exe/webcommon.h 			\
-	src/drivers/headers/zcompress.h 	\
-	src/drivers/headers/filepool.h 		\
-	src/drivers/headers/fileindex.h 	\
-	src/drivers/headers/memindex.h	 	\
-	src/drivers/headers/bigpool.h	 	\
-	src/drivers/headers/oidpool.h	 	\
-	src/drivers/headers/hashindex.h		\
-	src/drivers/headers/netindex.h		\
-	src/drivers/headers/netpool.h
+src/eval/eval_internals.h 		\
+src/apply/apply_cprims.h 		\
+src/exe/webcommon.h 			\
+src/drivers/headers/zcompress.h 	\
+src/drivers/headers/filepool.h 		\
+src/drivers/headers/fileindex.h 	\
+src/drivers/headers/memindex.h	 	\
+src/drivers/headers/bigpool.h	 	\
+src/drivers/headers/oidpool.h	 	\
+src/drivers/headers/hashindex.h		\
+src/drivers/headers/netindex.h		\
+src/drivers/headers/netpool.h
 
 LISP_OBJS=\
-	src/lisp/oids.o src/lisp/fcnids.o 			\
-	src/lisp/symbols.o src/lisp/cons.o 			\
-	src/lisp/recycle.o src/lisp/copy.o 			\
-	src/lisp/compare.o src/lisp/walk.o			\
-	src/lisp/tables.o src/lisp/sequences.o			\
-	src/lisp/choices.o src/lisp/numbers.o 			\
-	src/lisp/compounds.o src/lisp/misctypes.o		\
-	src/lisp/parse.o src/lisp/unparse.o			\
-	src/lisp/bufio.o src/lisp/pprint.o  			\
-	src/lisp/listing.o src/lisp/consblocks.o		\
-	src/lisp/dtread.o src/lisp/dtwrite.o src/lisp/xtypes.o  \
-	src/lisp/lisp.o
+src/lisp/oids.o src/lisp/fcnids.o 			\
+src/lisp/symbols.o src/lisp/cons.o 			\
+src/lisp/recycle.o src/lisp/copy.o 			\
+src/lisp/compare.o src/lisp/walk.o			\
+src/lisp/tables.o src/lisp/sequences.o			\
+src/lisp/choices.o src/lisp/numbers.o 			\
+src/lisp/compounds.o src/lisp/misctypes.o		\
+src/lisp/parse.o src/lisp/unparse.o			\
+src/lisp/bufio.o src/lisp/pprint.o  			\
+src/lisp/listing.o src/lisp/consblocks.o		\
+src/lisp/dtread.o src/lisp/dtwrite.o src/lisp/xtypes.o  \
+src/lisp/lisp.o
 
 SYS_OBJS=						\
-	src/sys/buildinfo.o src/sys/support.o	\
-	src/sys/config.o src/sys/errobjs.o	\
-	src/sys/logging.o src/sys/getopt.o	\
-	src/sys/startup.o src/sys/fluid.o 	\
-	src/sys/signals.o src/sys/posix.o 	\
-	src/sys/sourcebase.o src/sys/history.o
+src/sys/buildinfo.o src/sys/support.o	\
+src/sys/config.o src/sys/errobjs.o	\
+src/sys/logging.o src/sys/getopt.o	\
+src/sys/startup.o src/sys/fluid.o 	\
+src/sys/signals.o src/sys/posix.o 	\
+src/sys/sourcebase.o src/sys/history.o
 
 APPLY_OBJS=\
-	src/apply/apply.o src/apply/stacks.o 			\
-	src/apply/ffi.o src/apply/cprims.o			\
-	src/apply/lexenv.o
+src/apply/apply.o src/apply/stacks.o 			\
+src/apply/ffi.o src/apply/cprims.o			\
+src/apply/lexenv.o
 
 REVISION_H   =include/kno/revision.h
 CONFIG_H     =include/kno/config.h
 CONFIG_HDRS  =${REVISION_H} ${CONFIG_H}
 
 STORAGE_OBJS=\
-	src/storage/storage.o src/storage/streams.o 		\
-	src/storage/hashdtype.o src/storage/compress.o 	\
-	src/storage/pools.o src/storage/indexes.o 		\
-	src/storage/aggregates.o				\
-	src/storage/dtproc.o src/storage/dtcall.o 		\
-	src/storage/bloom.o src/storage/alcor.o			\
-	src/storage/methods.o src/storage/oidstore.o 		\
-	src/storage/cachecall.o src/storage/threadcache.o	\
-	src/storage/extindex.o src/storage/extpool.o		\
-	src/storage/procpool.o src/storage/procindex.o		\
-	src/storage/mempool.o src/storage/tempindex.o		\
-	src/storage/frames.o src/storage/slotindexes.o 		\
-	src/storage/drivers.o					\
-	@ipevalo@ 
+src/storage/storage.o src/storage/streams.o 		\
+src/storage/hashdtype.o src/storage/compress.o 	\
+src/storage/pools.o src/storage/indexes.o 		\
+src/storage/aggregates.o				\
+src/storage/dtproc.o src/storage/dtcall.o 		\
+src/storage/bloom.o src/storage/alcor.o			\
+src/storage/methods.o src/storage/oidstore.o 		\
+src/storage/cachecall.o src/storage/threadcache.o	\
+src/storage/extindex.o src/storage/extpool.o		\
+src/storage/procpool.o src/storage/procindex.o		\
+src/storage/mempool.o src/storage/tempindex.o		\
+src/storage/frames.o src/storage/slotindexes.o 		\
+src/storage/drivers.o					\
+@ipevalo@ 
 
 DRIVER_OBJS=\
-	src/drivers/builtin_drivers.o			\
-	src/drivers/filepool.o src/drivers/oidpool.o	\
-	src/drivers/netpool.o src/drivers/bigpool.o	\
-	src/drivers/fileindex.o src/drivers/hashindex.o	\
-	src/drivers/memindex.o src/drivers/netindex.o
+src/drivers/builtin_drivers.o			\
+src/drivers/filepool.o src/drivers/oidpool.o	\
+src/drivers/netpool.o src/drivers/bigpool.o	\
+src/drivers/fileindex.o src/drivers/hashindex.o	\
+src/drivers/memindex.o src/drivers/netindex.o
 
 DBSERV_OBJS=src/storage/dbserv.o
 
 CORE_SCHEME_OBJS=\
-	src/eval/eval.o\
-	src/eval/getsource.o\
-	src/eval/debug.o\
-	src/eval/options.o\
-	src/eval/testops.o\
-	src/eval/appenv.o\
-	src/eval/binders.o\
-	src/eval/lambda.o\
-	src/eval/macros.o\
-	src/eval/threads.o\
-	src/eval/quasiquote.o \
-	src/eval/struct_eval.o \
-	src/eval/errfns.o\
-	src/eval/conditionals.o\
-	src/eval/iterators.o\
-	src/eval/repl.o
+src/eval/eval.o\
+src/eval/getsource.o\
+src/eval/debug.o\
+src/eval/options.o\
+src/eval/testops.o\
+src/eval/appenv.o\
+src/eval/binders.o\
+src/eval/lambda.o\
+src/eval/macros.o\
+src/eval/threads.o\
+src/eval/quasiquote.o \
+src/eval/struct_eval.o \
+src/eval/errfns.o\
+src/eval/conditionals.o\
+src/eval/iterators.o\
+src/eval/repl.o
 
 SCHEME_OBJS=\
-	$(CORE_SCHEME_OBJS) \
-	src/eval/modules.o \
-	src/eval/load.o \
-	src/eval/reflection.o \
-	src/eval/compoundfns.o \
-	src/eval/choiceops.o \
-	src/eval/coreops.o \
-	src/eval/configops.o \
-	src/eval/dteval.o \
-	src/eval/arith.o \
-	src/eval/regex.o \
-	src/eval/promises.o \
-	src/eval/requests.o \
-	src/prims/dbprims.o \
-	src/prims/tableprims.o \
-	src/prims/seqprims.o \
-	src/prims/stringprims.o \
-	src/prims/portprims.o \
-	src/prims/logprims.o \
-	src/prims/streamprims.o \
-	src/prims/timeprims.o \
-	src/prims/sysprims.o \
-	src/prims/procprims.o \
-	@ipevalopso@ \
-	src/prims/sqldbprims.o \
-	src/prims/fileprims.o \
-	src/prims/driverprims.o \
-	src/eval/loadmods.o
+$(CORE_SCHEME_OBJS) \
+src/eval/modules.o \
+src/eval/load.o \
+src/eval/reflection.o \
+src/eval/compoundfns.o \
+src/eval/choiceops.o \
+src/eval/coreops.o \
+src/eval/configops.o \
+src/eval/dteval.o \
+src/eval/arith.o \
+src/eval/regex.o \
+src/eval/promises.o \
+src/eval/requests.o \
+src/prims/dbprims.o \
+src/prims/tableprims.o \
+src/prims/seqprims.o \
+src/prims/stringprims.o \
+src/prims/portprims.o \
+src/prims/logprims.o \
+src/prims/streamprims.o \
+src/prims/timeprims.o \
+src/prims/sysprims.o \
+src/prims/procprims.o \
+@ipevalopso@ \
+src/prims/sqldbprims.o \
+src/prims/fileprims.o \
+src/prims/driverprims.o \
+src/eval/loadmods.o
 
 WEB_OBJS=\
-	src/web/webtools.o \
-	src/web/xmloutput.o \
-	src/web/htmlout.o \
-	src/web/xmlinput.o \
-	src/web/xmldata.o \
-	src/web/mime.o \
-	src/web/email.o \
-	src/web/uriprims.o \
-	src/web/xmleval.o \
-	src/web/cgiexec.o \
-	src/web/json.o \
-	@ldnso@ @curlo@
+src/web/webtools.o \
+src/web/xmloutput.o \
+src/web/htmlout.o \
+src/web/xmlinput.o \
+src/web/xmldata.o \
+src/web/mime.o \
+src/web/email.o \
+src/web/uriprims.o \
+src/web/xmleval.o \
+src/web/cgiexec.o \
+src/web/json.o \
+@ldnso@ @curlo@
 
 TEXT_OBJS=\
-	src/text/texttools.o \
-	src/text/match.o \
-	src/text/porter.o \
-	src/text/phonetic.o
+src/text/texttools.o \
+src/text/match.o \
+src/text/porter.o \
+src/text/phonetic.o
 
 CMODULE_OBJS=src/cmodules/sqlite.o  	\
-	     src/cmodules/rocksdb.o src/cmodules/leveldb.o	\
-	     src/cmodules/crypto.o src/cmodules/zlib.o		\
-	     src/cmodules/libarchive.o 				\
-	     src/cmodules/testcapi.o
+src/cmodules/rocksdb.o src/cmodules/leveldb.o	\
+src/cmodules/crypto.o src/cmodules/zlib.o		\
+src/cmodules/libarchive.o 				\
+src/cmodules/testcapi.o
 
 EXECUTABLES=exe/knox@suffix@ exe/knoc@suffix@ exe/knotask@suffix@  \
-	    exe/knocgi@suffix@ exe/knod@suffix@
+exe/knocgi@suffix@ exe/knod@suffix@
 STATIC_EXECUTABLES=static/kno@suffix@ static/knoc@suffix@ \
-	static/knotask@suffix@ \
-	static/knocgi@suffix@ static/knod@suffix@
+static/knotask@suffix@ \
+static/knocgi@suffix@ static/knod@suffix@
 DEBUG_EXECUTABLES=dbg/knox dbg/knoc dbg/knotask dbg/knocgi dbg/knod
 SHELL_SCRIPTS=etc/knosetconfig etc/knogetconfig etc/knoconfig \
-	etc/knostart etc/knostop etc/knostartall etc/knostopall \
-	etc/kno_start_daemons etc/kno_start_servlets etc/kno_stop_jobs \
-	etc/knosignal etc/knoinject etc/knostatus etc/knolog  \
-	etc/knorestart etc/knoctl etc/knogdb etc/knodbgexec \
-	etc/knocleanup etc/knojob
+etc/knostart etc/knostop etc/knostartall etc/knostopall \
+etc/kno_start_daemons etc/kno_start_servlets etc/kno_stop_jobs \
+etc/knosignal etc/knoinject etc/knostatus etc/knolog  \
+etc/knorestart etc/knoctl etc/knogdb etc/knodbgexec \
+etc/knocleanup etc/knojob
 SCHEME_SCRIPTS=exe/scripts/pack-pool exe/scripts/pack-index \
-	       exe/scripts/merge-indexes exe/scripts/knopkg
+exe/scripts/merge-indexes exe/scripts/knopkg
 
 CONFDIRS=$(DESTDIR)@config_dir@ $(DESTDIR)@config_dir@/config $(DESTDIR)@share_dir@ \
-	$(DESTDIR)@stdlib_module_dir@ $(DESTDIR)@local_module_dir@
+$(DESTDIR)@stdlib_module_dir@ $(DESTDIR)@local_module_dir@
 
 CLEANDIRS=include/kno src/drivers/headers 		\
-	src/lisp src/apply src/sys 			\
-	src/storage src/drivers				\
-	src/eval src/prims				\
-	src/text src/web src/stdlib			\
-	src/cmodules					\
-	etc
+src/lisp src/apply src/sys 			\
+src/storage src/drivers				\
+src/eval src/prims				\
+src/text src/web src/stdlib			\
+src/cmodules					\
+etc
 
 KNO_HEADERS= \
-	$(LISP_HEADERS) $(STORAGE_HEADERS) \
-	$(APPLY_HEADERS) $(SCHEME_HEADERS) \
-	$(DRIVERS_H) $(SRC_HEADERS)
+$(LISP_HEADERS) $(STORAGE_HEADERS) \
+$(APPLY_HEADERS) $(SCHEME_HEADERS) \
+$(DRIVERS_H) $(SRC_HEADERS)
 
 KNO_SOURCES=\
-	src/lisp/cons.c src/lisp/oids.c src/lisp/symbols.c           		\
-	src/lisp/copy.c src/lisp/recycle.c src/lisp/misctypes.c       		\
-        src/lisp/compare.c src/lisp/walk.c src/lisp/fcnids.c			\
-	src/lisp/choices.c src/lisp/sequences.c					\
-	src/lisp/tables.c src/lisp/compounds.c src/lisp/consblocks.c		\
-        src/lisp/bufio.c src/lisp/dtread.c src/lisp/dtread.c src/lisp/xtypes.c  \
-	src/lisp/parse.c src/lisp/unparse.c src/lisp/lisp.c 			\
-	src/sys/buildinfo.c src/sys/sourcebase.c				\
-	src/sys/support.c src/sys/config.c src/sys/posix.c			\
-	src/sys/errobjs.c src/sys/logging.c src/sys/getopt.c			\
-	src/sys/startup.c src/sys/fluid.c src/sys/signals.c			\
-	src/apply/apply.c src/apply/stacks.c src/apply/lexenv.c 		\
-	src/apply/ffi.c src/apply/apply_cprims.h				\
-	src/storage/storage.c src/storage/streams.c src/storage/hashdtype.c	\
-	src/storage/drivers.c src/storage/indexes.c src/storage/pools.c		\
-	src/storage/oidstore.c  src/storage/frames.c src/storage/slotindexes.c  \
-	src/storage/aggregates.c src/storage/cachecall.c src/storage/methods.c	\
-	src/storage/alcor.c src/storage/compress.c src/storage/threadcache.c  	\
-	src/storage/bloom.c src/storage/dtproc.c src/storage/dtcall.c      	\
-	src/storage/ipeval.c 	       						\
-	src/drivers/builtin_drivers.c  						\
-	src/drivers/filepool.c src/drivers/oidpool.c 				\
-	src/drivers/bigpool.c 							\
-	src/drivers/fileindex.c src/drivers/hashindex.c				\
-	src/storage/extindex.c src/storage/tempindex.c				\
-	src/storage/mempool.c src/storage/extpool.c				\
-	src/drivers/netpool.c src/drivers/netindex.c 				\
-	src/storage/procpool.c src/storage/procindex.c 				\
-	src/drivers/memindex.c							\
-	src/drivers/netpool.c src/drivers/netindex.c				\
-	src/eval/eval.c src/eval/opcode_defs.c src/eval/opcode_names.h		\
-	src/eval/options.c src/eval/appenv.c					\
-	src/eval/testops.c src/eval/debug.c					\
-	src/eval/binders.c src/eval/lambda.c 					\
-	src/eval/macros.c src/eval/errfns.c     				\
-	src/eval/conditionals.c src/eval/iterators.c               		\
-        src/eval/threads.c src/eval/quasiquote.c src/eval/struct_eval.c		\
-	src/eval/modules.c src/eval/load.c src/eval/reflection.c 		\
-	src/eval/compoundfns.c src/eval/repl.c					\
-	src/eval/coreops.c                  					\
-	src/eval/arith.c 			              			\
-	src/eval/regex.c 			              			\
-	src/eval/promises.c 			              			\
-	src/prims/dbprims.c 							\
-	src/prims/logprims.c							\
-	src/prims/portprims.c							\
-	src/prims/streamprims.c                    				\
-	src/prims/tableprims.c src/eval/choiceops.c               		\
-	src/prims/seqprims.c src/prims/stringprims.c                 		\
-	src/prims/fileprims.c src/prims/driverprims.c                		\
-	src/eval/loadmods.c                                            		\
-	src/prims/timeprims.c src/prims/sysprims.c 				\
-	src/prims/sqldbprims.c                    				\
-	src/eval/requests.c src/eval/dteval.c src/eval/configops.c		\
-	src/web/webtools.c src/web/json.c src/web/ldns.c            		\
-	src/web/xmloutput.c src/web/xmlinput.c src/web/xmldata.c 		\
-	src/web/xmleval.c src/web/cgiexec.c src/web/htmlout.c 			\
-	src/web/uriprims.c src/web/mime.c src/web/email.c src/web/curl.c	\
-	src/text/texttools.c src/text/match.c                			\
-	src/text/porter.c src/text/phonetic.c                			\
-	src/exe/knoc.c src/exe/knox.c src/exe/knotask.c				\
-	src/exe/knocgi.c src/exe/knocgi.c src/exe/knod.c
+src/lisp/cons.c src/lisp/oids.c src/lisp/symbols.c           		\
+src/lisp/copy.c src/lisp/recycle.c src/lisp/misctypes.c       		\
+src/lisp/compare.c src/lisp/walk.c src/lisp/fcnids.c			\
+src/lisp/choices.c src/lisp/sequences.c					\
+src/lisp/tables.c src/lisp/compounds.c src/lisp/consblocks.c		\
+src/lisp/bufio.c src/lisp/dtread.c src/lisp/dtread.c src/lisp/xtypes.c  \
+src/lisp/parse.c src/lisp/unparse.c src/lisp/lisp.c 			\
+src/sys/buildinfo.c src/sys/sourcebase.c				\
+src/sys/support.c src/sys/config.c src/sys/posix.c			\
+src/sys/errobjs.c src/sys/logging.c src/sys/getopt.c			\
+src/sys/startup.c src/sys/fluid.c src/sys/signals.c			\
+src/apply/apply.c src/apply/stacks.c src/apply/lexenv.c 		\
+src/apply/ffi.c src/apply/apply_cprims.h				\
+src/storage/storage.c src/storage/streams.c src/storage/hashdtype.c	\
+src/storage/drivers.c src/storage/indexes.c src/storage/pools.c		\
+src/storage/oidstore.c  src/storage/frames.c src/storage/slotindexes.c  \
+src/storage/aggregates.c src/storage/cachecall.c src/storage/methods.c	\
+src/storage/alcor.c src/storage/compress.c src/storage/threadcache.c  	\
+src/storage/bloom.c src/storage/dtproc.c src/storage/dtcall.c      	\
+src/storage/ipeval.c 	       						\
+src/drivers/builtin_drivers.c  						\
+src/drivers/filepool.c src/drivers/oidpool.c 				\
+src/drivers/bigpool.c 							\
+src/drivers/fileindex.c src/drivers/hashindex.c				\
+src/storage/extindex.c src/storage/tempindex.c				\
+src/storage/mempool.c src/storage/extpool.c				\
+src/drivers/netpool.c src/drivers/netindex.c 				\
+src/storage/procpool.c src/storage/procindex.c 				\
+src/drivers/memindex.c							\
+src/drivers/netpool.c src/drivers/netindex.c				\
+src/eval/eval.c src/eval/opcode_defs.c src/eval/opcode_names.h		\
+src/eval/options.c src/eval/appenv.c					\
+src/eval/testops.c src/eval/debug.c					\
+src/eval/binders.c src/eval/lambda.c 					\
+src/eval/macros.c src/eval/errfns.c     				\
+src/eval/conditionals.c src/eval/iterators.c               		\
+src/eval/threads.c src/eval/quasiquote.c src/eval/struct_eval.c		\
+src/eval/modules.c src/eval/load.c src/eval/reflection.c 		\
+src/eval/compoundfns.c src/eval/repl.c					\
+src/eval/coreops.c                  					\
+src/eval/arith.c 			              			\
+src/eval/regex.c 			              			\
+src/eval/promises.c 			              			\
+src/prims/dbprims.c 							\
+src/prims/logprims.c							\
+src/prims/portprims.c							\
+src/prims/streamprims.c                    				\
+src/prims/tableprims.c src/eval/choiceops.c               		\
+src/prims/seqprims.c src/prims/stringprims.c                 		\
+src/prims/fileprims.c src/prims/driverprims.c                		\
+src/eval/loadmods.c                                            		\
+src/prims/timeprims.c src/prims/sysprims.c 				\
+src/prims/sqldbprims.c                    				\
+src/eval/requests.c src/eval/dteval.c src/eval/configops.c		\
+src/web/webtools.c src/web/json.c src/web/ldns.c            		\
+src/web/xmloutput.c src/web/xmlinput.c src/web/xmldata.c 		\
+src/web/xmleval.c src/web/cgiexec.c src/web/htmlout.c 			\
+src/web/uriprims.c src/web/mime.c src/web/email.c src/web/curl.c	\
+src/text/texttools.c src/text/match.c                			\
+src/text/porter.c src/text/phonetic.c                			\
+src/exe/knoc.c src/exe/knox.c src/exe/knotask.c				\
+src/exe/knocgi.c src/exe/knocgi.c src/exe/knod.c
 
 CMODULE_SOURCES=\
-	src/cmodules/sqlite.c	\
-	src/cmodules/leveldb.c src/cmodules/rocksdb.c	\
-	src/cmodules/libarchive.c			\
-	src/cmodules/gperftools.c			\
-	src/cmodules/crypto.c
+src/cmodules/sqlite.c	\
+src/cmodules/leveldb.c src/cmodules/rocksdb.c	\
+src/cmodules/libarchive.c			\
+src/cmodules/gperftools.c			\
+src/cmodules/crypto.c
 
 STATIC_LIBS=lib/libknocore@suffix@.a 	\
-	lib/libknostorage@suffix@.a	\
-        lib/libknodbserv@suffix@.a 	\
-	lib/libknodrivers@suffix@.a  	\
-	lib/libknoscheme@suffix@.a 	\
-	lib/libknowebtools@suffix@.a 		\
-	lib/libknotexttools@suffix@.a
+lib/libknostorage@suffix@.a	\
+lib/libknodbserv@suffix@.a 	\
+lib/libknodrivers@suffix@.a  	\
+lib/libknoscheme@suffix@.a 	\
+lib/libknowebtools@suffix@.a 		\
+lib/libknotexttools@suffix@.a
 
 SHARED_LIBS=lib/libknocore@suffix@.@shared_suffix@  		\
-	lib/libknostorage@suffix@.@shared_suffix@        	\
-        lib/libknodrivers@suffix@.@shared_suffix@    		\
-	lib/libknodbserv@suffix@.@shared_suffix@     		\
-	lib/libknoscheme@suffix@.@shared_suffix@    		\
-	lib/libknowebtools@suffix@.@shared_suffix@       		\
-	lib/libknotexttools@suffix@.@shared_suffix@		\
-	lib/libknocore@suffix@.@mshared_suffix@  		\
-	lib/libknostorage@suffix@.@mshared_suffix@        	\
-        lib/libknodrivers@suffix@.@mshared_suffix@    		\
-	lib/libknodbserv@suffix@.@mshared_suffix@     		\
-	lib/libknoscheme@suffix@.@mshared_suffix@    		\
-	lib/libknowebtools@suffix@.@mshared_suffix@       		\
-	lib/libknotexttools@suffix@.@mshared_suffix@
+lib/libknostorage@suffix@.@shared_suffix@        	\
+lib/libknodrivers@suffix@.@shared_suffix@    		\
+lib/libknodbserv@suffix@.@shared_suffix@     		\
+lib/libknoscheme@suffix@.@shared_suffix@    		\
+lib/libknowebtools@suffix@.@shared_suffix@       		\
+lib/libknotexttools@suffix@.@shared_suffix@		\
+lib/libknocore@suffix@.@mshared_suffix@  		\
+lib/libknostorage@suffix@.@mshared_suffix@        	\
+lib/libknodrivers@suffix@.@mshared_suffix@    		\
+lib/libknodbserv@suffix@.@mshared_suffix@     		\
+lib/libknoscheme@suffix@.@mshared_suffix@    		\
+lib/libknowebtools@suffix@.@mshared_suffix@       		\
+lib/libknotexttools@suffix@.@mshared_suffix@
 
 SCHEME_MODULES=src/stdlib/*.scm \
-	src/stdlib/aws/*.scm \
-	src/stdlib/brico/*.scm	src/stdlib/brico/build/*.scm \
-	src/stdlib/facebook/*.scm src/stdlib/google/*.scm \
-	src/stdlib/paypal/*.scm src/stdlib/twitter/*.scm \
-	src/stdlib/dropbox/*.scm src/stdlib/twilio/*.scm \
-	src/stdlib/misc/*.scm src/stdlib/tests/*.scm \
-	src/stdlib/domutils/*.scm src/stdlib/knodules/*.scm \
-	src/stdlib/textindex/*.scm src/stdlib/jwt/*.scm \
-	src/stdlib/bench/*.scm
+src/stdlib/aws/*.scm \
+src/stdlib/brico/*.scm	src/stdlib/brico/build/*.scm \
+src/stdlib/facebook/*.scm src/stdlib/google/*.scm \
+src/stdlib/paypal/*.scm src/stdlib/twitter/*.scm \
+src/stdlib/dropbox/*.scm src/stdlib/twilio/*.scm \
+src/stdlib/misc/*.scm src/stdlib/tests/*.scm \
+src/stdlib/domutils/*.scm src/stdlib/knodules/*.scm \
+src/stdlib/textindex/*.scm src/stdlib/jwt/*.scm \
+src/stdlib/bench/*.scm
 
 # These might be neccessary on MacOS
 CMODULE_DEPENDS=lib/libknocore@suffix@.@shared_suffix@	\
-	lib/libknostorage@suffix@.@shared_suffix@ 	\
-	lib/libknostorage@suffix@.@shared_suffix@ 	\
-	lib/libknoscheme@suffix@.@shared_suffix@
+lib/libknostorage@suffix@.@shared_suffix@ 	\
+lib/libknostorage@suffix@.@shared_suffix@ 	\
+lib/libknoscheme@suffix@.@shared_suffix@
 
 ALL=testbin exe cmodules @TAGS@
 
@@ -426,44 +426,44 @@ ALL=testbin exe cmodules @TAGS@
 default: @DEFAULTMAKETARGET@
 
 update: .buildmode
-	@if test -f .malloc && test -f .buildmode; then \
-	  echo "Updating" $(shell cat .buildmode) "build linked with" \
-		$(shell cat .malloc); \
-	fi;
-	@+make -s `cat .buildmode`
+@if test -f .malloc && test -f .buildmode; then \
+echo "Updating" $(shell cat .buildmode) "build linked with" \
+$(shell cat .malloc); \
+fi;
+@+make -s `cat .buildmode`
 normal:
-	@echo Building NORMAL configuration
-	@if test -f .malloc; then \
-	  echo With $(shell cat .malloc) malloc; fi;
-	@+make -s testbin exe cmodules etc @TAGS@
+@echo Building NORMAL configuration
+@if test -f .malloc; then \
+echo With $(shell cat .malloc) malloc; fi;
+@+make -s testbin exe cmodules etc @TAGS@
 debugging:
-	@echo Building DEBUGGING configuration
-	@if test -f .malloc; then \
-	  echo With $(shell cat .malloc) malloc; fi;
-	@+make -s XCFLAGS="@debugcflags@ -O0 -Wall -Wno-unknown-pragmas $(XCFLAGS)"	\
-	          XLDFLAGS="@debugldflags@ $(XLDFLAGS)"		\
-	          XOPTFLAGS="-O0" OPTFLAGS="-O0" 		\
-		  XLIBS="@debuglibs@ $(XLIBS)" 			\
-	  testbin exe cmodules etc @TAGS@
+@echo Building DEBUGGING configuration
+@if test -f .malloc; then \
+echo With $(shell cat .malloc) malloc; fi;
+@+make -s XCFLAGS="@debugcflags@ -O0 -Wall -Wno-unknown-pragmas $(XCFLAGS)"	\
+XLDFLAGS="@debugldflags@ $(XLDFLAGS)"		\
+XOPTFLAGS="-O0" OPTFLAGS="-O0" 		\
+XLIBS="@debuglibs@ $(XLIBS)" 			\
+testbin exe cmodules etc @TAGS@
 
 optimizing:
-	@echo Building OPTIMIZING configuration
-	@if test -f .malloc; then \
-	  echo With $(shell cat .malloc) malloc; fi;
-	@+make -s XCFLAGS="-O3" testbin exe cmodules etc @TAGS@
+@echo Building OPTIMIZING configuration
+@if test -f .malloc; then \
+echo With $(shell cat .malloc) malloc; fi;
+@+make -s XCFLAGS="-O3" testbin exe cmodules etc @TAGS@
 zooming:
-	@echo Building Zooming configuration
-	@if test -f .malloc; then \
-	  echo With $(shell cat .malloc) malloc; fi;
-	@+make -s XCFLAGS="-O3 -g0" testbin exe cmodules etc @TAGS@
+@echo Building Zooming configuration
+@if test -f .malloc; then \
+echo With $(shell cat .malloc) malloc; fi;
+@+make -s XCFLAGS="-O3 -g0" testbin exe cmodules etc @TAGS@
 nitpicking:
-	@echo Building NITPICKING configuration
-	@if test -f .malloc; then \
-	  echo With $(shell cat .malloc) malloc; fi;
-	@+make -s XCFLAGS="-Wall -Wno-unknown-pragmas ${XCFLAGS}" testbin exe cmodules etc @TAGS@
+@echo Building NITPICKING configuration
+@if test -f .malloc; then \
+echo With $(shell cat .malloc) malloc; fi;
+@+make -s XCFLAGS="-Wall -Wno-unknown-pragmas ${XCFLAGS}" testbin exe cmodules etc @TAGS@
 distribution:
-	@echo Building DISTRIBUTION configuration
-	@+make -s exe cmodules etc scripts @TAGS@
+@echo Building DISTRIBUTION configuration
+@+make -s exe cmodules etc scripts @TAGS@
 
 
 
@@ -471,135 +471,135 @@ all: testbin debug-exe exe cmodules etc i18n @TAGS@
 packaged: exe cmodules etc i18n
 
 fresh: clean
-	make -s update
+make -s update
 
 # Handy targets
 
 debug:
-	@if test $(BUILDMODE) != "debugging"; then echo debugging > .buildmode; fi
-	@make -s `cat .buildmode`
+@if test $(BUILDMODE) != "debugging"; then echo debugging > .buildmode; fi
+@make -s `cat .buildmode`
 nodebug standard usable working:
-	@if test $(BUILDMODE) != "normal"; then echo normal > .buildmode; fi
-	@make -s `cat .buildmode`
+@if test $(BUILDMODE) != "normal"; then echo normal > .buildmode; fi
+@make -s `cat .buildmode`
 nitpick:
-	@if test $(BUILDMODE) != "nitpicking"; then echo nitpicking > .buildmode; fi
-	@make -s `cat .buildmode`
+@if test $(BUILDMODE) != "nitpicking"; then echo nitpicking > .buildmode; fi
+@make -s `cat .buildmode`
 optimized fast:
-	@if test $(BUILDMODE) != "optimizing"; then echo optimizing > .buildmode; fi
-	@make -s `cat .buildmode`
+@if test $(BUILDMODE) != "optimizing"; then echo optimizing > .buildmode; fi
+@make -s `cat .buildmode`
 faster:
-	@if test $(BUILDMODE) != "zooming"; then echo zooming > .buildmode; fi
-	@make -s `cat .buildmode`
+@if test $(BUILDMODE) != "zooming"; then echo zooming > .buildmode; fi
+@make -s `cat .buildmode`
 .buildmode:
-	@echo normal > .buildmode
+@echo normal > .buildmode
 showbuildmode showmode showbuild: .buildmode
-	@cat .buildmode
+@cat .buildmode
 cleandebug: clean
-	make debug
+make debug
 
 # configure/autoconf stuff
 
 makefile: makefile.in config.status
-	if test -x ./config.status; then ./config.status; fi
+if test -x ./config.status; then ./config.status; fi
 ./config.status: configure
-	if test -x ./config.status; then ./config.status --recheck; fi
+if test -x ./config.status; then ./config.status --recheck; fi
 configure: configure.ac etc/release
-	@if test -f .staticautoconf; then \
-	    echo "WARNING: configure may be out of date"; \
-	else echo "REBUILDING configure"; autoconf; fi
+@if test -f .staticautoconf; then \
+echo "WARNING: configure may be out of date"; \
+else echo "REBUILDING configure"; autoconf; fi
 include/kno/config.h: include/kno/config.h.in
-	if test -x ./config.status; then ./config.status; fi
-	touch $@
+if test -x ./config.status; then ./config.status; fi
+touch $@
 include/kno/knosource.h: include/kno/knosource.h.in
-	if test -x ./config.status; then ./config.status; fi
-	touch $@
+if test -x ./config.status; then ./config.status; fi
+touch $@
 
 tests/lisp/makefile: tests/lisp/makefile.in ./config.status
-	./config.status
+./config.status
 tests/storage/makefile: tests/storage/makefile.in ./config.status
-	./config.status
+./config.status
 tests/makefile: tests/makefile.in ./config.status
-	./config.status
+./config.status
 tests/lisp/.gdbinit: tests/lisp/.gdbinit.in ./config.status
-	./config.status
+./config.status
 tests/storage/.gdbinit: tests/storage/.gdbinit.in ./config.status
-	./config.status
+./config.status
 dbg/.gdbinit: dbg/.gdbinit.in ./config.status
-	./config.status
+./config.status
 exe/.gdbinit: exe/.gdbinit.in ./config.status
-	./config.status
+./config.status
 
 etc: etc/logrotate etc/install-script etc/sysv/kno-rc.d etc/logrotate    	\
-        etc/knoconfig etc/knosetconfig etc/knogetconfig			\
-        etc/knojob etc/knosignal                             		\
-        tests/lisp/.gdbinit tests/storage/.gdbinit dbg/.gdbinit         \
-        exe/.gdbinit
+etc/knoconfig etc/knosetconfig etc/knogetconfig			\
+etc/knojob etc/knosignal                             		\
+tests/lisp/.gdbinit tests/storage/.gdbinit dbg/.gdbinit         \
+exe/.gdbinit
 
 # Fileinfo gets version-related information about a file to pass in
 # with -D
 
 @abs_top_srcdir@/fileinfo: etc/fileinfo.c
-	$(CC) -o @abs_top_srcdir@/fileinfo etc/fileinfo.c
+$(CC) -o @abs_top_srcdir@/fileinfo etc/fileinfo.c
 
 # Makes everything and then sudoes the install, keeping build files
 # non-root
 
 suinstall:
-	make all
-	@$(SUDO) make install
+make all
+@$(SUDO) make install
 dbginstall:
-	make XCFLAGS="-O0" all
-	@$(SUDO) make install
+make XCFLAGS="-O0" all
+@$(SUDO) make install
 
 # Implicit make rules
 
 %.o: %.c @abs_top_srcdir@/fileinfo ${CONFIG_HDRS}
-	@$(CC) $(CFLAGS) @definefileinfo@ -o $@ -c $<
-	@$(MSG) CC $@ $<
+@$(CC) $(CFLAGS) @definefileinfo@ -o $@ -c $<
+@$(MSG) CC $@ $<
 
 exe/scripts/%: src/scripts/%.scm
-	@$(ECHO) "#!"@prefix@/bin/knox | cat - $< > $@
-	@chmod a+x $@
-	@$(MSG) MAKESCRIPT $@ $<
+@$(ECHO) "#!"@prefix@/bin/knox | cat - $< > $@
+@chmod a+x $@
+@$(MSG) MAKESCRIPT $@ $<
 
 exe/%@suffix@: src/exe/%.c ${CONFIG_HDRS}
-	$(CC) $(CFLAGS) $(LDFLAGS) $(EXEFLAGS)                  	\
-		-o $@ $<                                           	\
-		-lknodbserv@suffix@                 	 	   	\
-		@xdynamic_scheme_libs@                             	\
-		-lknowebtools@suffix@ -lknotexttools@suffix@ 		\
-		-lknoscheme@suffix@ 					\
-		-lknodrivers@suffix@ -lknostorage@suffix@ 		\
-		-lknocore@suffix@ 					\
-	        -lu8stdio $(LIBS) $(EXELIBS)
-	@$(MSG) MKEXE $@ $<
+$(CC) $(CFLAGS) $(LDFLAGS) $(EXEFLAGS)                  	\
+-o $@ $<                                           	\
+-lknodbserv@suffix@                 	 	   	\
+@xdynamic_scheme_libs@                             	\
+-lknowebtools@suffix@ -lknotexttools@suffix@ 		\
+-lknoscheme@suffix@ 					\
+-lknodrivers@suffix@ -lknostorage@suffix@ 		\
+-lknocore@suffix@ 					\
+-lu8stdio $(LIBS) $(EXELIBS)
+@$(MSG) MKEXE $@ $<
 
 src/cmodules/%.o: src/cmodules/%.c ${CONFIG_HDRS}
-	@$(CC) $(CFLAGS) -o $@ -c $<
-	@$(MSG) CC_MODULE  $@ $<
+@$(CC) $(CFLAGS) -o $@ -c $<
+@$(MSG) CC_MODULE  $@ $<
 lib/kno/%.so: src/cmodules/%.o # ${CMODULE_DEPENDS}
-	@$(MKSO) -L./lib -L./ -o $@ $< ${MODLIBS}
-	@ln -sf $(@F) $(@D)/$(@F).@KNO_MAJOR@
-	@$(MSG) MKSO  $@ $<
+@$(MKSO) -L./lib -L./ -o $@ $< ${MODLIBS}
+@ln -sf $(@F) $(@D)/$(@F).@KNO_MAJOR@
+@$(MSG) MKSO  $@ $<
 lib/kno/%.dylib: src/cmodules/%.o ${CMODULE_DEPENDS}
-	@$(MACLIBTOOL) -install_name \
-		`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
-		$(DYLIB_FLAGS) ${MODLIBS} -o $@ $< 
-	@$(MSG) MACLIBTOOL  $@ $<
+@$(MACLIBTOOL) -install_name \
+`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
+$(DYLIB_FLAGS) ${MODLIBS} -o $@ $< 
+@$(MSG) MACLIBTOOL  $@ $<
 lib/kno/%.@KNO_MAJOR@.dylib: lib/kno/%.dylib
-	@ln -sf $(*F).dylib $@
+@ln -sf $(*F).dylib $@
 
 dbg/%: src/exe/%.c $(STATIC_LIBS)
-	@echo MKEXE_DEBUG $@
-	$(CC) $(TEST_CFLAGS) -o $@ $^ 		\
-	      @STATICLDFLAGS@ $(TEST_LDFLAGS) $(TEST_EXEFLAGS) 	\
-	      -lu8 -lu8stdio -lu8syslog 		\
-	      $(LIBS) $(EXELIBS)
+@echo MKEXE_DEBUG $@
+$(CC) $(TEST_CFLAGS) -o $@ $^ 		\
+@STATICLDFLAGS@ $(TEST_LDFLAGS) $(TEST_EXEFLAGS) 	\
+-lu8 -lu8stdio -lu8syslog 		\
+$(LIBS) $(EXELIBS)
 dbg/%: ${REVISION_H} ${CONFIG_H} src/exe/main.h src/exe/webcommon.h
 
 etc/%: etc/%.in ./config.status
-	@echo "Configuring $@"
-	@./config.status
+@echo "Configuring $@"
+@./config.status
 
 # docs/man/%: docs/ronn/%.ronn
 # 	ronn --roff < $< > $@
@@ -611,98 +611,98 @@ etc/%: etc/%.in ./config.status
 # We can selectively link some executables statically to avoid 
 # library dependencies with programs which will typically run as daemons
 static/%@suffix@: src/exe/%.c $(STATIC_LIBS) ${REVISION_H} ${CONFIG_H}
-	@echo MKEXE_STATIC $@
-	$(CC) $(STATIC_CFLAGS) -o $@ $^ $(STATIC_LDFLAGS) -lu8stdio -lu8syslog $(LIBS) $(EXELIBS) @xstatic_exe_libs@
-	@$(MSG) MKEXE_STATIC $@
+@echo MKEXE_STATIC $@
+$(CC) $(STATIC_CFLAGS) -o $@ $^ $(STATIC_LDFLAGS) -lu8stdio -lu8syslog $(LIBS) $(EXELIBS) @xstatic_exe_libs@
+@$(MSG) MKEXE_STATIC $@
 
 lib/%@suffix@.a:
-	@$(MKSTATIC) $@ $^
-	@$(MSG) MKSTATIC $@
+@$(MKSTATIC) $@ $^
+@$(MSG) MKSTATIC $@
 lib/%@suffix@.so.@KNO_MAJOR@: lib/%@suffix@.so
-	@ln -sf $(*F).so $@
+@ln -sf $(*F).so $@
 lib/%@suffix@.so:
-	@$(MKSO) -Wl,-soname=$(@F).@KNO_MAJOR@ -Wl,--as-needed -L./lib -L./ \
-		-o $@ $^ -lu8 $(MODLIBS)
-	@ln -sf $(@F) $(@D)/$(@F).@KNO_MAJOR@
-	@echo MKSO $@
+@$(MKSO) -Wl,-soname=$(@F).@KNO_MAJOR@ -Wl,--as-needed -L./lib -L./ \
+-o $@ $^ -lu8 $(MODLIBS)
+@ln -sf $(@F) $(@D)/$(@F).@KNO_MAJOR@
+@echo MKSO $@
 lib/%@suffix@.@KNO_MAJOR@.dylib: lib/%@suffix@.dylib
-	@ln -sf $(*F).dylib $@
+@ln -sf $(*F).dylib $@
 lib/%@suffix@.dylib:
-	@$(MACLIBTOOL) -install_name \
-		@rpath/lib/`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
-		$(DYLIB_FLAGS) -o $@ $^
-	@ln -sf $(@F) $(@D)/`basename $(@F) .dylib`.@KNO_MAJOR@.dylib
-	@$(MSG) MACLIBTOOL $@
+@$(MACLIBTOOL) -install_name \
+@rpath/lib/`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
+$(DYLIB_FLAGS) -o $@ $^
+@ln -sf $(@F) $(@D)/`basename $(@F) .dylib`.@KNO_MAJOR@.dylib
+@$(MSG) MACLIBTOOL $@
 
 $(LIBINSTALLDIR)/%.a: lib/%.a
-	@$(SYSINSTALL) @install_dir_opts@ $(LIBINSTALLDIR)
-	@$(SYSINSTALL) @install_file_opts@ $< $(LIBINSTALLDIR)
-	@$(MSG) INSTALL $@
+@$(SYSINSTALL) @install_dir_opts@ $(LIBINSTALLDIR)
+@$(SYSINSTALL) @install_file_opts@ $< $(LIBINSTALLDIR)
+@$(MSG) INSTALL $@
 
 $(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@: lib/%@suffix@.@shared_suffix@
-	@echo Installing $@
-	@$(SYSINSTALL) -d $(@D)
-	@$(SYSINSTALL) $< $@
+@echo Installing $@
+@$(SYSINSTALL) -d $(@D)
+@$(SYSINSTALL) $< $@
 $(LIBINSTALLDIR)/%@suffix@.@mmshared_suffix@: $(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@
-	@$(SUINSTALL) ln -sf $(*F).@vshared_suffix@ $@
-	@$(MSG)  Linking $@ to $(*F).@vshared_suffix@
+@$(SUINSTALL) ln -sf $(*F).@vshared_suffix@ $@
+@$(MSG)  Linking $@ to $(*F).@vshared_suffix@
 $(LIBINSTALLDIR)/%@suffix@.@mshared_suffix@: $(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@
-	@$(SUINSTALL) ln -sf $(*F).@vshared_suffix@ $@
-	@$(MSG)  Linking $@ to $(*F).@vshared_suffix@
+@$(SUINSTALL) ln -sf $(*F).@vshared_suffix@ $@
+@$(MSG)  Linking $@ to $(*F).@vshared_suffix@
 $(LIBINSTALLDIR)/%@suffix@.@shared_suffix@: $(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@
-	@$(SUINSTALL) ln -sf $(*F).@vshared_suffix@ $@
-	@$(MSG)  Linking $@ to $(*F).@vshared_suffix@
+@$(SUINSTALL) ln -sf $(*F).@vshared_suffix@ $@
+@$(MSG)  Linking $@ to $(*F).@vshared_suffix@
 
 ${CMODULES}/%@suffix@.@vshared_suffix@: lib/kno/%@suffix@.@shared_suffix@
-	@echo Installing $@
-	@$(SYSINSTALL) -d $(@D)
-	@$(SYSINSTALL) $< $@
+@echo Installing $@
+@$(SYSINSTALL) -d $(@D)
+@$(SYSINSTALL) $< $@
 ${CMODULES}/%@suffix@.@mmshared_suffix@: ${CMODULES}/%@suffix@.@vshared_suffix@
-	@$(SUINSTALL) ln -sf $(*F).@vshared_suffix@ $@
-	@$(MSG)  Linking $@ to $(*F).@vshared_suffix@
+@$(SUINSTALL) ln -sf $(*F).@vshared_suffix@ $@
+@$(MSG)  Linking $@ to $(*F).@vshared_suffix@
 ${CMODULES}/%@suffix@.@mshared_suffix@: ${CMODULES}/%@suffix@.@vshared_suffix@ 
-	@$(SUINSTALL) ln -sf $(*F).@vshared_suffix@ $@
-	@$(MSG)  Linking $@ to $(*F).@vshared_suffix@
+@$(SUINSTALL) ln -sf $(*F).@vshared_suffix@ $@
+@$(MSG)  Linking $@ to $(*F).@vshared_suffix@
 ${CMODULES}/%@suffix@.@shared_suffix@: ${CMODULES}/%@suffix@.@vshared_suffix@ 
-	@make -s ${CMODULES}/$(*F)@suffix@.@mmshared_suffix@ \
-		 ${CMODULES}/$(*F)@suffix@.@mshared_suffix@
-	@$(SUINSTALL) ln -sf $(*F).@vshared_suffix@ $@
-	@$(MSG) Linking $@ to $(*F).@vshared_suffix@
+@make -s ${CMODULES}/$(*F)@suffix@.@mmshared_suffix@ \
+${CMODULES}/$(*F)@suffix@.@mshared_suffix@
+@$(SUINSTALL) ln -sf $(*F).@vshared_suffix@ $@
+@$(MSG) Linking $@ to $(*F).@vshared_suffix@
 
 $(BININSTALLDIR)/%: exe/%
 
 $(BININSTALLDIR)/%: src/scripts/%.scm
-	@$(MSG) Installing script $@
-	@etc/install-script $<
+@$(MSG) Installing script $@
+@etc/install-script $<
 
 $(DESTDIR)@config_dir@/boot/%: etc/% $(DESTDIR)@config_dir@/boot
-	@$(SYSINSTALL) @install_file_opts@ $< $(DESTDIR)@config_dir@/boot
+@$(SYSINSTALL) @install_file_opts@ $< $(DESTDIR)@config_dir@/boot
 $(DESTDIR)@config_dir@/boot/%.service: etc/systemd/%.service $(DESTDIR)@config_dir@/boot
-	@$(SYSINSTALL) @install_file_opts@ $< $@
+@$(SYSINSTALL) @install_file_opts@ $< $@
 $(DESTDIR)@config_dir@/boot/%.target: etc/systemd/%.target $(DESTDIR)@config_dir@/boot
-	@$(SYSINSTALL) @install_file_opts@ $< $@
+@$(SYSINSTALL) @install_file_opts@ $< $@
 $(DESTDIR)@config_dir@/boot/%.conf: etc/upstart/%.conf $(DESTDIR)@config_dir@/boot
-	@$(SYSINSTALL) @install_file_opts@ $< $@
+@$(SYSINSTALL) @install_file_opts@ $< $@
 $(DESTDIR)@config_dir@/boot/%.d: etc/sysv/%.d $(DESTDIR)@config_dir@/boot
-	@$(SYSINSTALL) @install_file_opts@ $< $@
+@$(SYSINSTALL) @install_file_opts@ $< $@
 
 dist/%.changelog: dist/equivs.changelog
-	etc/make-equivs-changelog `basename $@ .changelog` dist/equivs.changelog > $@
+etc/make-equivs-changelog `basename $@ .changelog` dist/equivs.changelog > $@
 
 exe/knox@suffix@ exe/knotask@suffix@ exe/knoc@suffix@: \
-	$(STATIC_LIBS) $(SHARED_LIBS)
+$(STATIC_LIBS) $(SHARED_LIBS)
 exe/knocgi@suffix@ exe/knod@suffix@ exe/knocgi@suffix@: \
-	$(STATIC_LIBS) $(SHARED_LIBS)
+$(STATIC_LIBS) $(SHARED_LIBS)
 exe/knocgi@suffix@ exe/knocgi@suffix@: src/exe/webcommon.h
 
 # Custom rules for making include files with CSS headers
 src/web/htmlout.o: src/web/backtrace_css.h src/web/backtrace_js.h src/web/backtrace.css src/web/backtrace.js
 src/web/backtrace_css.h: src/web/backtrace.css etc/text2include
-	@echo Generating $@ from text in $<
-	@./etc/text2include KNO_BACKTRACE_CSS $< $@
+@echo Generating $@ from text in $<
+@./etc/text2include KNO_BACKTRACE_CSS $< $@
 src/web/backtrace_js.h: src/web/backtrace.js etc/text2include
-	@echo Generating $@ from text in $<
-	@./etc/text2include KNO_BACKTRACE_JS $< $@
+@echo Generating $@ from text in $<
+@./etc/text2include KNO_BACKTRACE_JS $< $@
 
 # This can be helpful for some debugging 
 etc/usememory: etc/usememory.c
@@ -722,11 +722,11 @@ scripts: shell-scripts scheme-scripts
 
 testbin: constestbin dbtestbin debug-exe etc/usememory
 constestbin: libs tests/lisp/makefile tests/lisp/.gdbinit
-	@make -s XCFLAGS="$(XCFLAGS)" XLDFLAGS="$(XLDFLAGS)" XLIBS="$(XLIBS)" \
-		-C tests/lisp
+@make -s XCFLAGS="$(XCFLAGS)" XLDFLAGS="$(XLDFLAGS)" XLIBS="$(XLIBS)" \
+-C tests/lisp
 dbtestbin: libs tests/storage/makefile tests/storage/.gdbinit
-	@make -s  XCFLAGS="$(XCFLAGS)" XLDFLAGS="$(XLDFLAGS)" XLIBS="$(XLIBS)" \
-		-C tests/storage
+@make -s  XCFLAGS="$(XCFLAGS)" XLDFLAGS="$(XLDFLAGS)" XLIBS="$(XLIBS)" \
+-C tests/storage
 cmodules: core-modules db-modules text-modules graphics-modules archive-modules
 core-modules: @CORE_CMODULES@
 db-modules: @DB_CMODULES@
@@ -735,164 +735,164 @@ graphics-modules: @GRAPHICS_CMODULES@
 archive-modules: @ARCHIVE_CMODULES@
 
 dbg/knocgi.webuser: dbg/knocgi
-	@echo "Making" $@
-	@cp dbg/knocgi dbg/knocgi.webuser
-	@sudo chown @webuser@:@admin_group@ dbg/knocgi.webuser
-	@sudo chmod ug+s dbg/knocgi.webuser
+@echo "Making" $@
+@cp dbg/knocgi dbg/knocgi.webuser
+@sudo chown @webuser@:@admin_group@ dbg/knocgi.webuser
+@sudo chmod ug+s dbg/knocgi.webuser
 
 # Uninstall
 
 LIBBASE=libknocore libknostorage libknodrivers libknodbserv \
-	libknoscheme libknowebtools libknotexttools
+libknoscheme libknowebtools libknotexttools
 
 uninstall-core:
-	./etc/uninstall $(DESTDIR)$(BININSTALLDIR) "" $(EXECUTABLES) knocgi
-	./etc/uninstall $(DESTDIR)$(BININSTALLDIR) "" $(SHELL_SCRIPTS)
-	./etc/uninstall $(DESTDIR)$(BININSTALLDIR) "" $(SCHEME_SCRIPTS)
-	./etc/uninstall $(DESTDIR)$(LIBINSTALLDIR) "@suffix@.a" $(LIBBASE)
-	./etc/uninstall $(DESTDIR)$(LIBINSTALLDIR) "@suffix@.@KNO_VERSION@.@shared_suffix@" $(LIBBASE)
-	./etc/uninstall $(DESTDIR)$(LIBINSTALLDIR) "@suffix@.@KNO_MAJOR@.@shared_suffix@" $(LIBBASE)
-	./etc/uninstall $(DESTDIR)$(LIBINSTALLDIR) "@suffix@.@KNO_MAJOR@.@KNO_MINOR@.@shared_suffix@" $(LIBBASE)
-	./etc/uninstall $(DESTDIR)$(LIBINSTALLDIR) "@suffix@.@shared_suffix@" $(LIBBASE)
-	rm -rf $(DESTDIR)${CMODULES}
+./etc/uninstall $(DESTDIR)$(BININSTALLDIR) "" $(EXECUTABLES) knocgi
+./etc/uninstall $(DESTDIR)$(BININSTALLDIR) "" $(SHELL_SCRIPTS)
+./etc/uninstall $(DESTDIR)$(BININSTALLDIR) "" $(SCHEME_SCRIPTS)
+./etc/uninstall $(DESTDIR)$(LIBINSTALLDIR) "@suffix@.a" $(LIBBASE)
+./etc/uninstall $(DESTDIR)$(LIBINSTALLDIR) "@suffix@.@KNO_VERSION@.@shared_suffix@" $(LIBBASE)
+./etc/uninstall $(DESTDIR)$(LIBINSTALLDIR) "@suffix@.@KNO_MAJOR@.@shared_suffix@" $(LIBBASE)
+./etc/uninstall $(DESTDIR)$(LIBINSTALLDIR) "@suffix@.@KNO_MAJOR@.@KNO_MINOR@.@shared_suffix@" $(LIBBASE)
+./etc/uninstall $(DESTDIR)$(LIBINSTALLDIR) "@suffix@.@shared_suffix@" $(LIBBASE)
+rm -rf $(DESTDIR)${CMODULES}
 uninstall-all: uninstall-core
-	rm -rf $(DESTDIR)@share_dir@ $(DESTDIR)@config_dir@ \
-		$(DESTDIR)@local_config@ $(DESTDIR)@shared_config@ \
-		$(DESTDIR)@stdlib_module_dir@
+rm -rf $(DESTDIR)@share_dir@ $(DESTDIR)@config_dir@ \
+$(DESTDIR)@local_config@ $(DESTDIR)@shared_config@ \
+$(DESTDIR)@stdlib_module_dir@
 uninstall: uninstall-core
-	@if (test -d $(DESTDIR)@share_dir@); then \
-	  $(MSG) $(DESTDIR)@share_dir@ "still exists"; fi
-	@if (test -d $(DESTDIR)@config_dir@); then \
-	  $(MSG) $(DESTDIR)@config_dir@ "still exists"; fi
-	@if (test -d $(DESTDIR)@local_config@); then \
-	  $(MSG) $(DESTDIR)@local_config@ "still exists"; fi
-	@if (test -d $(DESTDIR)@shared_config@); then \
-	  $(MSG) $(DESTDIR)@shared_config@ "still exists"; fi
-	@if (test -d $(DESTDIR)@module_dir@); then \
-	  $(MSG) $(DESTDIR)@module_dir@ "still exists"; fi
+@if (test -d $(DESTDIR)@share_dir@); then \
+$(MSG) $(DESTDIR)@share_dir@ "still exists"; fi
+@if (test -d $(DESTDIR)@config_dir@); then \
+$(MSG) $(DESTDIR)@config_dir@ "still exists"; fi
+@if (test -d $(DESTDIR)@local_config@); then \
+$(MSG) $(DESTDIR)@local_config@ "still exists"; fi
+@if (test -d $(DESTDIR)@shared_config@); then \
+$(MSG) $(DESTDIR)@shared_config@ "still exists"; fi
+@if (test -d $(DESTDIR)@module_dir@); then \
+$(MSG) $(DESTDIR)@module_dir@ "still exists"; fi
 
 # Utility targets
 
 TAGS: makefile.in configure.ac include/kno/config.h.in		\
-		tests/lisp/*.c tests/storage/*.c  			\
-		src/exe/*.c src/exe/*.h include/kno/*.h 		\
-		src/lisp/*.c src/sys/*.c src/apply/*.c		\
-		src/storage/*.c src/drivers/*.c 			\
-		src/eval/*.c src/prims/*.c     				\
-		src/text/*.c src/web/*.c 				\
-		src/cmodules/*.c 					\
-		src/libscm/*.scm src/libscm/*/*.scm			\
-		include/kno/components/*.h				\
-		etc/*.in ${SRC_HEADERS} 				\
-		dbg/.gdbinit.in tests/*.scm 
-	@echo Building TAGS file
-	@etags makefile.in configure.ac 		\
-		include/kno/config.h.in     	\
-		include/kno/knosource.h.in     	\
-	        tests/*/*.in tests/*.in dbg/*.in 	\
-		etc/*.in etc/*/*.in include/kno/*.h 		\
-		include/kno/components/*.h		\
-		${SRC_HEADERS};
-	@etags -o TAGS -a src/exe/*.c src/exe/*.h 
-	@etags -o TAGS -a src/lisp/*.c src/sys/*.c src/apply/*.c 
-	@etags -o TAGS -a src/storage/*.c
-	@etags -o TAGS -a src/drivers/*.c src/drivers/headers/*.h
-	@etags -o TAGS -a src/eval/*.c src/prims/*.c
-	@etags -o TAGS -a src/web/*.c src/text/*.c;
-	@etags -o TAGS -a tests/lisp/*.c tests/storage/*.c tests/*.scm;
-	@etags -o TAGS -a src/cmodules/*.c;
-	@etags -o TAGS -a src/scripts/*.scm;
-	@find src/libscm/ -name "*.scm" -type f | xargs etags -a -o TAGS;
+tests/lisp/*.c tests/storage/*.c  			\
+src/exe/*.c src/exe/*.h include/kno/*.h 		\
+src/lisp/*.c src/sys/*.c src/apply/*.c		\
+src/storage/*.c src/drivers/*.c 			\
+src/eval/*.c src/prims/*.c     				\
+src/text/*.c src/web/*.c 				\
+src/cmodules/*.c 					\
+src/libscm/*.scm src/libscm/*/*.scm			\
+include/kno/components/*.h				\
+etc/*.in ${SRC_HEADERS} 				\
+dbg/.gdbinit.in tests/*.scm 
+@echo Building TAGS file
+@etags makefile.in configure.ac 		\
+include/kno/config.h.in     	\
+include/kno/knosource.h.in     	\
+tests/*/*.in tests/*.in dbg/*.in 	\
+etc/*.in etc/*/*.in include/kno/*.h 		\
+include/kno/components/*.h		\
+${SRC_HEADERS};
+@etags -o TAGS -a src/exe/*.c src/exe/*.h 
+@etags -o TAGS -a src/lisp/*.c src/sys/*.c src/apply/*.c 
+@etags -o TAGS -a src/storage/*.c
+@etags -o TAGS -a src/drivers/*.c src/drivers/headers/*.h
+@etags -o TAGS -a src/eval/*.c src/prims/*.c
+@etags -o TAGS -a src/web/*.c src/text/*.c;
+@etags -o TAGS -a tests/lisp/*.c tests/storage/*.c tests/*.scm;
+@etags -o TAGS -a src/cmodules/*.c;
+@etags -o TAGS -a src/scripts/*.scm;
+@find src/libscm/ -name "*.scm" -type f | xargs etags -a -o TAGS;
 
 CTAGS: makefile.in configure.ac include/kno/config.h.in	\
-	tests/lisp/*.c tests/storage/*.c tests/*.c	\
-	src/lisp/*.c src/sys/*.c src/apply/*.c src/storage/*.c 		\
-	src/eval/*.c src/prims/*.c src/web/*.c src/text/*.c 	\
-	include/kno/*.h ${SRC_HEADERS} etc/*.in 		\
-	include/kno/components/*.h				\
-	src/exe/*.c src/cmodules/*.c
-	@echo Building C TAGS file
-	@etags -o CTAGS 
-	      makefile.in configure.ac include/kno/config.h.in      \
-	      tests/lisp/*.c tests/apply/*.c tests/storage/*.c 		\
-	      tests/eval/*.c tests/prims/*.c src/exe/*.c src/exe/*.h	\
-	      src/lisp/*.c src/sys/*.c src/storage/*.c 		\
-	      src/eval/*.c src/prims/*.c src/web/*.c src/text/*.c	\
-	      src/cmodules/*.c src/cmodules/*.h				\
-	      include/kno/*.h etc/*.in 				\
-	      include/kno/components/*.h				\
-	      ${SRC_HEADERS}
+tests/lisp/*.c tests/storage/*.c tests/*.c	\
+src/lisp/*.c src/sys/*.c src/apply/*.c src/storage/*.c 		\
+src/eval/*.c src/prims/*.c src/web/*.c src/text/*.c 	\
+include/kno/*.h ${SRC_HEADERS} etc/*.in 		\
+include/kno/components/*.h				\
+src/exe/*.c src/cmodules/*.c
+@echo Building C TAGS file
+@etags -o CTAGS 
+makefile.in configure.ac include/kno/config.h.in      \
+tests/lisp/*.c tests/apply/*.c tests/storage/*.c 		\
+tests/eval/*.c tests/prims/*.c src/exe/*.c src/exe/*.h	\
+src/lisp/*.c src/sys/*.c src/storage/*.c 		\
+src/eval/*.c src/prims/*.c src/web/*.c src/text/*.c	\
+src/cmodules/*.c src/cmodules/*.h				\
+include/kno/*.h etc/*.in 				\
+include/kno/components/*.h				\
+${SRC_HEADERS}
 
 CSOURCETAGS: src/lisp/*.c src/sys/*.c src/apply/*.c	\
-	src/storage/*.c src/eval/*.c src/prims/*.c 	\
-	src/web/*.c src/text/*.c 			\
-	src/drivers/*.c src/drivers/headers/*.h		\
-	src/exe/*.c src/exe/*.h
-	@echo Building KNO_SOURCE TAGS file
-	@etags -o $@ $^
+src/storage/*.c src/eval/*.c src/prims/*.c 	\
+src/web/*.c src/text/*.c 			\
+src/drivers/*.c src/drivers/headers/*.h		\
+src/exe/*.c src/exe/*.h
+@echo Building KNO_SOURCE TAGS file
+@etags -o $@ $^
 
 SCHEMETAGS: ${SCHEME_MODULES}
-	@echo Building SCHEMETAGS file
-	@rm -f SCHEMETAGS
-	@# We skip module.scm files because they are always links
-	@#  to other files (with more distinctive names)
-	@find src/libscm -name "*.scm" -type f | xargs etags -o SCHEMETAGS -a
-	@find src/stdlib -name "*.scm" -type f | xargs etags -o SCHEMETAGS -a
-	@find src/scripts -name "*.scm" -type f | xargs etags -o SCHEMETAGS -a
-	@find tests -name "*.scm" -type f | xargs etags -o SCHEMETAGS -a
-	@ls -l SCHEMETAGS
+@echo Building SCHEMETAGS file
+@rm -f SCHEMETAGS
+@# We skip module.scm files because they are always links
+@#  to other files (with more distinctive names)
+@find src/libscm -name "*.scm" -type f | xargs etags -o SCHEMETAGS -a
+@find src/stdlib -name "*.scm" -type f | xargs etags -o SCHEMETAGS -a
+@find src/scripts -name "*.scm" -type f | xargs etags -o SCHEMETAGS -a
+@find tests -name "*.scm" -type f | xargs etags -o SCHEMETAGS -a
+@ls -l SCHEMETAGS
 
 profile-clean:
-	@find . -name "*.gcda" -type f | xargs rm -f
-	@find . -name "*.gcno" -type f | xargs rm -f
-	@find . -name "*.gcov" -type f | xargs rm -f
-	@find . -name "*.bb" -type f | xargs rm -f
-	@find . -name "*.bbg" -type f | xargs rm -f
-	@find . -name "*.da" -type f | xargs rm -f
-	@find . -name "gmon.out" | xargs rm -f
+@find . -name "*.gcda" -type f | xargs rm -f
+@find . -name "*.gcno" -type f | xargs rm -f
+@find . -name "*.gcov" -type f | xargs rm -f
+@find . -name "*.bb" -type f | xargs rm -f
+@find . -name "*.bbg" -type f | xargs rm -f
+@find . -name "*.da" -type f | xargs rm -f
+@find . -name "gmon.out" | xargs rm -f
 tidy: profile-clean
-	@for dir in ${CLEANDIRS}; do \
-	  rm -f $${dir}/*~ $${dir}/*.o; \
-	done
-	make testclean
-	rm -f config.log
+@for dir in ${CLEANDIRS}; do \
+rm -f $${dir}/*~ $${dir}/*.o; \
+done
+make testclean
+rm -f config.log
 clean: tidy
-	@for dir in ${CLEANDIRS}; do rm -f ${dir}/*.o; done
-	rm -rf etc/*.o etc/.libs
-	rm -f lib/*.a lib/*@suffix@.so lib/*.dylib
-	rm -f lib/*@suffix@.so.*
-	rm -f lib/kno/*@suffix@.so lib/kno/*@suffix@.so.* 
-	rm -f lib/kno/*.dylib
-	rm -f exe/kno@suffix@ exe/knotask@suffix@
-	rm -f exe/knocgi@suffix@ exe/knod@suffix@
-	rm -f exe/knoc@suffix@ exe/knocgi@suffix@
-	rm -f TAGS
-	cd tests/lisp; make -s clean
-	cd tests/storage; make -s clean
-	cd tests; make -s clean
-	find . -name "*.dSYM" -writable | xargs rm -rf
+@for dir in ${CLEANDIRS}; do rm -f ${dir}/*.o; done
+rm -rf etc/*.o etc/.libs
+rm -f lib/*.a lib/*@suffix@.so lib/*.dylib
+rm -f lib/*@suffix@.so.*
+rm -f lib/kno/*@suffix@.so lib/kno/*@suffix@.so.* 
+rm -f lib/kno/*.dylib
+rm -f exe/kno@suffix@ exe/knotask@suffix@
+rm -f exe/knocgi@suffix@ exe/knod@suffix@
+rm -f exe/knoc@suffix@ exe/knocgi@suffix@
+rm -f TAGS
+cd tests/lisp; make -s clean
+cd tests/storage; make -s clean
+cd tests; make -s clean
+find . -name "*.dSYM" -writable | xargs rm -rf
 distclean: clean
-	rm -f .buildmode
-	rm -f makefile config.log config.status config.cache
-	rm -f tests/lisp/makefile tests/storage/makefile tests/makefile
-	rm -f tests/lisp/.gdbinit tests/storage/.gdbinit tests/.gdbinit
-	rm -f dbg/gdbinit
-	rm -f etc/knogetconfig etc/knosetconfig
-	rm -f etc/sysv/kno-rc.d etc/sysv/ex_servlet-init.d etc/sysv/ex_daemon-init.d
-	rm -f exe/.gdbinit include/kno/config.h include/kno/revision.h
+rm -f .buildmode
+rm -f makefile config.log config.status config.cache
+rm -f tests/lisp/makefile tests/storage/makefile tests/makefile
+rm -f tests/lisp/.gdbinit tests/storage/.gdbinit tests/.gdbinit
+rm -f dbg/gdbinit
+rm -f etc/knogetconfig etc/knosetconfig
+rm -f etc/sysv/kno-rc.d etc/sysv/ex_servlet-init.d etc/sysv/ex_daemon-init.d
+rm -f exe/.gdbinit include/kno/config.h include/kno/revision.h
 
 commit:
-	git commit
-	touch makefile
+git commit
+touch makefile
 pull:
-	git pull
-	touch makefile
+git pull
+touch makefile
 
 # Custom dependencies
 
 src/apply/apply.o: src/apply/apply_cprims.h
 src/eval/binders.o src/eval/conditionals.o src/eval/iterators.o: \
-	src/eval/eval_internals.h
+src/eval/eval_internals.h
 src/eval/eval.o: src/eval/eval_internals.h src/eval/opcode_defs.c src/eval/opcode_names.h
 
 # Custom rules
@@ -920,77 +920,77 @@ lib/libknostorage@suffix@.dylib: $(STORAGE_OBJS) lib/libknocore@suffix@.dylib
 
 lib/libknodrivers@suffix@.a: $(DRIVER_OBJS)
 lib/libknodrivers@suffix@.so: $(DRIVER_OBJS) \
-	lib/libknocore@suffix@.so lib/libknostorage@suffix@.so
+lib/libknocore@suffix@.so lib/libknostorage@suffix@.so
 lib/libknodrivers@suffix@.dylib: $(DRIVER_OBJS) \
-	lib/libknostorage@suffix@.dylib lib/libknocore@suffix@.dylib
+lib/libknostorage@suffix@.dylib lib/libknocore@suffix@.dylib
 
 lib/libknodbserv@suffix@.a: $(DBSERV_OBJS)
 lib/libknodbserv@suffix@.so: $(DBSERV_OBJS) \
-	lib/libknocore@suffix@.so lib/libknostorage@suffix@.so \
-	lib/libknodrivers@suffix@.so
+lib/libknocore@suffix@.so lib/libknostorage@suffix@.so \
+lib/libknodrivers@suffix@.so
 lib/libknodbserv@suffix@.dylib: $(DBSERV_OBJS) 	\
-	lib/libknoscheme@suffix@.dylib         	\
-	lib/libknodrivers@suffix@.dylib		\
-	lib/libknostorage@suffix@.dylib		\
-	lib/libknocore@suffix@.dylib
-	@$(MACLIBTOOL) -install_name \
-		@rpath/lib/`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
-		$(DYLIB_FLAGS) -o $@ $^
-	@$(MSG) MACLIBTOOL $@
+lib/libknoscheme@suffix@.dylib         	\
+lib/libknodrivers@suffix@.dylib		\
+lib/libknostorage@suffix@.dylib		\
+lib/libknocore@suffix@.dylib
+@$(MACLIBTOOL) -install_name \
+@rpath/lib/`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
+$(DYLIB_FLAGS) -o $@ $^
+@$(MSG) MACLIBTOOL $@
 
 lib/libknoscheme@suffix@.a: $(SCHEME_OBJS)
 lib/libknoscheme@suffix@.so: $(SCHEME_OBJS) 		\
-	lib/libknocore@suffix@.so lib/libknostorage@suffix@.so	\
-	lib/libknodrivers@suffix@.so
+lib/libknocore@suffix@.so lib/libknostorage@suffix@.so	\
+lib/libknodrivers@suffix@.so
 lib/libknoscheme@suffix@.dylib: $(SCHEME_OBJS) 			\
-	lib/libknocore@suffix@.dylib  lib/libknostorage@suffix@.dylib	\
-        lib/libknodrivers@suffix@.dylib
+lib/libknocore@suffix@.dylib  lib/libknostorage@suffix@.dylib	\
+lib/libknodrivers@suffix@.dylib
 
 lib/libknowebtools@suffix@.a: $(WEB_OBJS)
 lib/libknowebtools@suffix@.so: $(WEB_OBJS) \
-	lib/libknocore@suffix@.so \
-	lib/libknostorage@suffix@.so \
-	lib/libknodrivers@suffix@.so \
-	lib/libknoscheme@suffix@.so
+lib/libknocore@suffix@.so \
+lib/libknostorage@suffix@.so \
+lib/libknodrivers@suffix@.so \
+lib/libknoscheme@suffix@.so
 lib/libknowebtools@suffix@.dylib: $(WEB_OBJS) \
-	lib/libknoscheme@suffix@.dylib     \
-	lib/libknodrivers@suffix@.dylib     \
-	lib/libknostorage@suffix@.dylib         \
-        lib/libknocore@suffix@.dylib
-	@$(MACLIBTOOL) -install_name \
-		@rpath/lib/`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
-		$(DYLIB_FLAGS) \
-		-o $@ $(WEB_OBJS)
-	@$(MSG) MACLIBTOOL $@
+lib/libknoscheme@suffix@.dylib     \
+lib/libknodrivers@suffix@.dylib     \
+lib/libknostorage@suffix@.dylib         \
+lib/libknocore@suffix@.dylib
+@$(MACLIBTOOL) -install_name \
+@rpath/lib/`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
+$(DYLIB_FLAGS) \
+-o $@ $(WEB_OBJS)
+@$(MSG) MACLIBTOOL $@
 
 lib/libknotexttools@suffix@.a: $(TEXT_OBJS)
 lib/libknotexttools@suffix@.so: $(TEXT_OBJS) \
-	lib/libknocore@suffix@.so lib/libknostorage@suffix@.so \
-	lib/libknostorage@suffix@.so lib/libknoscheme@suffix@.so
+lib/libknocore@suffix@.so lib/libknostorage@suffix@.so \
+lib/libknostorage@suffix@.so lib/libknoscheme@suffix@.so
 lib/libknotexttools@suffix@.dylib: $(TEXT_OBJS) \
-	lib/libknoscheme@suffix@.dylib \
-	lib/libknodrivers@suffix@.dylib \
-	lib/libknostorage@suffix@.dylib \
-	lib/libknocore@suffix@.dylib
-	@$(MACLIBTOOL) -install_name \
-		@rpath/lib/`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
-		$(DYLIB_FLAGS) \
-		-o $@ $(TEXT_OBJS)
-	@$(MSG) MACLIBTOOL $@
+lib/libknoscheme@suffix@.dylib \
+lib/libknodrivers@suffix@.dylib \
+lib/libknostorage@suffix@.dylib \
+lib/libknocore@suffix@.dylib
+@$(MACLIBTOOL) -install_name \
+@rpath/lib/`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
+$(DYLIB_FLAGS) \
+-o $@ $(TEXT_OBJS)
+@$(MSG) MACLIBTOOL $@
 
 src/cmodules/libarchive.o: src/cmodules/libarchive.c ${CONFIG_HDRS}
-	@$(CC) $(CFLAGS) @LIBZIP_CFLAGS@ -o $@ -c $<
-	@$(MSG) CC "(LIBARCHIVE)"  $@ $<
+@$(CC) $(CFLAGS) @LIBZIP_CFLAGS@ -o $@ -c $<
+@$(MSG) CC "(LIBARCHIVE)"  $@ $<
 lib/kno/libarchive.so: src/cmodules/libarchive.o
-	@$(MKSO) -L./ -L./lib -o $@ $< -larchive
-	@ln -sf $(@F) $(@D)/$(@F).@KNO_MAJOR@
-	@$(MSG) MKSO "(LIBARCHIVE)"  $@ $<
+@$(MKSO) -L./ -L./lib -o $@ $< -larchive
+@ln -sf $(@F) $(@D)/$(@F).@KNO_MAJOR@
+@$(MSG) MKSO "(LIBARCHIVE)"  $@ $<
 lib/kno/libarchive.dylib: src/cmodules/libarchive.o ${CMODULE_DEPENDS}
-	@$(MACLIBTOOL) -install_name \
-		`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
-		$(DYLIB_FLAGS) \
-		-o $@ $<
-	@$(MSG) MACLIBTOOL "(LIBARCHIVE)" $@
+@$(MACLIBTOOL) -install_name \
+`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
+$(DYLIB_FLAGS) \
+-o $@ $<
+@$(MSG) MACLIBTOOL "(LIBARCHIVE)" $@
 
 src/cmodules/crypto.o: src/cmodules/crypto.c
 lib/kno/crypto.so: src/cmodules/crypto.o
@@ -1028,86 +1028,86 @@ lib/kno/gperftools.dylib: src/cmodules/gperftools.o ${CMODULE_DEPENDS}
 
 # Parseltongue (default: v3)
 src/python/parseltongue.o: src/python/parseltongue.c
-	$(CC) @PYTHON3_CFLAGS@ $(CFLAGS) -o $@ -c $< ${MODLIBS}
-	@$(MSG) CC_PYTHON $@ $<
+$(CC) @PYTHON3_CFLAGS@ $(CFLAGS) -o $@ -c $< ${MODLIBS}
+@$(MSG) CC_PYTHON $@ $<
 
 lib/kno/parseltongue.so: src/python/parseltongue.o
-	@$(MKSO) -L./lib -L./ -o $@ $< ${MODLIBS} @PYTHON3_LDFLAGS@
-	@ln -sf $(@F) $(@D)/$(@F).@KNO_MAJOR@
-	@$(MSG) MKSO  $@ $<
+@$(MKSO) -L./lib -L./ -o $@ $< ${MODLIBS} @PYTHON3_LDFLAGS@
+@ln -sf $(@F) $(@D)/$(@F).@KNO_MAJOR@
+@$(MSG) MKSO  $@ $<
 lib/kno/parseltongue.dylib: src/python/parseltongue.o ${CMODULE_DEPENDS}
-	@$(MACLIBTOOL) -install_name \
-		`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
-		$(DYLIB_FLAGS) ${MODLIBS} @PYTHON3_LDFLAGS@ -o $@ $< 
-	@$(MSG) MACLIBTOOL  $@ $<
+@$(MACLIBTOOL) -install_name \
+`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
+$(DYLIB_FLAGS) ${MODLIBS} @PYTHON3_LDFLAGS@ -o $@ $< 
+@$(MSG) MACLIBTOOL  $@ $<
 lib/kno/parseltongue.@KNO_MAJOR@.dylib: lib/kno/parseltongue.dylib
-	@ln -sf $(*F).dylib $@
+@ln -sf $(*F).dylib $@
 
 lib/python3/kno.so: src/python/parseltongue.o
-	@$(MKSO) -L./lib -L./ -o $@ $< ${MODLIBS} @PYTHON3_LDFLAGS@ ${EXELIBS} ${PYLIBS}
-	@ln -sf $(@F) $(@D)/$(@F).@KNO_MAJOR@
-	@$(MSG) MKSO  $@ $<
+@$(MKSO) -L./lib -L./ -o $@ $< ${MODLIBS} @PYTHON3_LDFLAGS@ ${EXELIBS} ${PYLIBS}
+@ln -sf $(@F) $(@D)/$(@F).@KNO_MAJOR@
+@$(MSG) MKSO  $@ $<
 lib/python3/kno.dylib: src/python/parseltongue.o ${CMODULE_DEPENDS}
-	@$(MACLIBTOOL) -install_name \
-		`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
-		$(DYLIB_FLAGS) ${PYLIBS} ${MODLIBS} @PYTHON3_LDFLAGS@ \
-		-o $@ $< 
-	@$(MSG) MACLIBTOOL  $@ $<
+@$(MACLIBTOOL) -install_name \
+`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
+$(DYLIB_FLAGS) ${PYLIBS} ${MODLIBS} @PYTHON3_LDFLAGS@ \
+-o $@ $< 
+@$(MSG) MACLIBTOOL  $@ $<
 
 parseltongue: lib/kno/parseltongue.@shared_suffix@
 
 install-parseltongue: ${CMODULES}/parseltongue.@shared_suffix@ \
-	${CMODULES}/parseltongue.@vshared_suffix@
+${CMODULES}/parseltongue.@vshared_suffix@
 
 # Parseltongue (v2)
 src/python/parseltongue2.o: src/python/parseltongue.c
-	$(CC) @PYTHON2_CFLAGS@ $(CFLAGS) -o $@ -c $< ${MODLIBS}
-	@$(MSG) CC_PYTHON $@ $<
+$(CC) @PYTHON2_CFLAGS@ $(CFLAGS) -o $@ -c $< ${MODLIBS}
+@$(MSG) CC_PYTHON $@ $<
 
 lib/kno/parseltongue2.so: src/python/parseltongue2.o
-	@$(MKSO) -L./lib -L./ -o $@ $< ${MODLIBS} @PYTHON2_LDFLAGS@
-	@ln -sf $(@F) $(@D)/$(@F).@KNO_MAJOR@
-	@$(MSG) MKSO  $@ $<
+@$(MKSO) -L./lib -L./ -o $@ $< ${MODLIBS} @PYTHON2_LDFLAGS@
+@ln -sf $(@F) $(@D)/$(@F).@KNO_MAJOR@
+@$(MSG) MKSO  $@ $<
 lib/kno/parseltongue2.dylib: src/python/parseltongue2.o ${CMODULE_DEPENDS}
-	@$(MACLIBTOOL) -install_name \
-		`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
-		$(DYLIB_FLAGS) ${MODLIBS} @PYTHON2_LDFLAGS@ -o $@ $< 
-	@$(MSG) MACLIBTOOL  $@ $<
+@$(MACLIBTOOL) -install_name \
+`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
+$(DYLIB_FLAGS) ${MODLIBS} @PYTHON2_LDFLAGS@ -o $@ $< 
+@$(MSG) MACLIBTOOL  $@ $<
 lib/kno/parseltongue2.@KNO_MAJOR@.dylib: lib/kno/parseltongue2.dylib
-	@ln -sf $(*F).dylib $@
+@ln -sf $(*F).dylib $@
 
 lib/python2/kno.so: src/python/parseltongue.o
-	@$(MKSO) -L./lib -L./ -o $@ $< ${MODLIBS} @PYTHON2_LDFLAGS@ ${EXELIBS} ${PYLIBS}
-	@ln -sf $(@F) $(@D)/$(@F).@KNO_MAJOR@
-	@$(MSG) MKSO  $@ $<
+@$(MKSO) -L./lib -L./ -o $@ $< ${MODLIBS} @PYTHON2_LDFLAGS@ ${EXELIBS} ${PYLIBS}
+@ln -sf $(@F) $(@D)/$(@F).@KNO_MAJOR@
+@$(MSG) MKSO  $@ $<
 lib/python2/kno.dylib: src/python/parseltongue2.o ${CMODULE_DEPENDS}
-	@$(MACLIBTOOL) -install_name \
-		`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
-		$(DYLIB_FLAGS) ${MODLIBS} $(PYLIBS} \
-		@PYTHON2_LDFLAGS@ -o $@ $< 
-	@$(MSG) MACLIBTOOL  $@ $<
+@$(MACLIBTOOL) -install_name \
+`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
+$(DYLIB_FLAGS) ${MODLIBS} $(PYLIBS} \
+@PYTHON2_LDFLAGS@ -o $@ $< 
+@$(MSG) MACLIBTOOL  $@ $<
 
 parseltongue2: lib/kno/parseltongue2.@shared_suffix@
 
 install-parseltongue2: ${CMODULES}/parseltongue2.@shared_suffix@ \
-	${CMODULES}/parseltongue2.@vshared_suffix@
+${CMODULES}/parseltongue2.@vshared_suffix@
 
 # Internationalization stuff
 
 $(LOCALEDIR)/%/LC_MESSAGES/kno.mo: etc/intl/%.gmo
-	@$(SUINSTALL) install -D $^ $@
+@$(SUINSTALL) install -D $^ $@
 
 etc/intl/kno.pot:
-	@XGETTEXT@ --from-code=utf-8 -dfdstorage -oetc/intl/kno.pot -k_ \
-		$(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
+@XGETTEXT@ --from-code=utf-8 -dfdstorage -oetc/intl/kno.pot -k_ \
+$(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
 etc/intl/%.po: etc/intl/kno.pot
-	@MSGMERGE@ -U $@ $<
+@MSGMERGE@ -U $@ $<
 etc/intl/%.gmo: etc/intl/%.po
-	@MSGFMT@ $^ -o $@ 
+@MSGFMT@ $^ -o $@ 
 
 install-i18n: $(LOCALEDIR)/fr/LC_MESSAGES/kno.mo   \
-		$(LOCALEDIR)/es/LC_MESSAGES/kno.mo \
-		$(LOCALEDIR)/nl/LC_MESSAGES/kno.mo
+$(LOCALEDIR)/es/LC_MESSAGES/kno.mo \
+$(LOCALEDIR)/nl/LC_MESSAGES/kno.mo
 i18n: etc/intl/fr.gmo etc/intl/nl.gmo etc/intl/es.gmo
 
 # Documentation
@@ -1115,15 +1115,15 @@ i18n: etc/intl/fr.gmo etc/intl/nl.gmo etc/intl/es.gmo
 docs: docs/built
 
 docs/built: docs/ronn/knox.1.ronn docs/ronn/knoc.1.ronn docs/ronn/kno_config.8.ronn
-	cd docs; make && touch built
+cd docs; make && touch built
 
 $(MANDIR)/man1 $(MANDIR)/man8 $(DOCDIR)/html:
-	@$(SYSINSTALL) -d $@
+@$(SYSINSTALL) -d $@
 
 install-docs: $(MANDIR)/man1 $(MANDIR)/man8 $(DOCDIR)/html docs
-	@for file in docs/man/*.1; do $(SYSINSTALL) $${file} $(MANDIR)/man1; done
-	@for file in docs/man/*.8; do $(SYSINSTALL) $${file} $(MANDIR)/man8; done
-	@for file in docs/man.html/*.html; do $(SYSINSTALL) $${file} $(DOCDIR)/html; done
+@for file in docs/man/*.1; do $(SYSINSTALL) $${file} $(MANDIR)/man1; done
+@for file in docs/man/*.8; do $(SYSINSTALL) $${file} $(MANDIR)/man8; done
+@for file in docs/man.html/*.html; do $(SYSINSTALL) $${file} $(DOCDIR)/html; done
 
 # Packaging targets
 
@@ -1132,165 +1132,165 @@ debian deb debs: dist/debs.done
 debsource: dist/debsource.done
 
 cleandist cleanrpms cleandeb rpmclean debclean: 
-	rm -rf dist/rpms.done dist/rpms.ready
-	rm -f dist/debs.signed dist/debs.built dist/debs.done
-	rm -f dist/*.deb dist/*.tar dist/*.gz dist/*.dsc dist/*.changes dist/*.buildinfo
-	find dist -name "*.rpm" -writable | xargs -r rm
-	rm -rf staging/kno*
+rm -rf dist/rpms.done dist/rpms.ready
+rm -f dist/debs.signed dist/debs.built dist/debs.done
+rm -f dist/*.deb dist/*.tar dist/*.gz dist/*.dsc dist/*.changes dist/*.buildinfo
+find dist -name "*.rpm" -writable | xargs -r rm
+rm -rf staging/kno*
 
 debfresh freshdeb:
-	make -s debclean
-	rm -f include/kno/revision.h; make include/kno/revision.h
-	make -s debian
+make -s debclean
+rm -f include/kno/revision.h; make include/kno/revision.h
+make -s debian
 
 debupdate:
-	@if [ "${DEBNAME}" = "kno_${APTVERSION}" ]; then 	\
-	  echo "Debian build of Kno is up to date"; 		\
-	else make debfresh; fi;
+@if [ "${DEBNAME}" = "kno_${APTVERSION}" ]; then 	\
+echo "Debian build of Kno is up to date"; 		\
+else make debfresh; fi;
 
 # Creating staging areas from GIT
 
 staging/kno-@KNO_VERSION@: include/kno/revision.h \
-	$(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
-	@git archive --prefix=kno-@KNO_VERSION@/ \
-	            -o staging/kno-@KNO_VERSION@.tar HEAD
-	cd src/stdlib; git archive --prefix=kno-@KNO_VERSION@/src/stdlib/ \
-	            -o ../../staging/kno_modules-@KNO_VERSION@.tar HEAD;
-	cd src/stdlib/brico; git archive --prefix=kno-@KNO_VERSION@/src/stdlib/brico/ \
-	            -o ../../../staging/kno_brico-@KNO_VERSION@.tar HEAD;
-	cd staging; tar -xf kno-@KNO_VERSION@.tar; rm kno-@KNO_VERSION@.tar
-	cd staging; tar -xf kno_modules-@KNO_VERSION@.tar; rm kno_modules-@KNO_VERSION@.tar;
-	cd staging; tar -xf kno_brico-@KNO_VERSION@.tar; rm kno_brico-@KNO_VERSION@.tar;
-	cp include/kno/revision.h staging/kno-@KNO_VERSION@/etc/revision.h;
-	cp dist/kno-@KNO_MAJOR@.@KNO_MINOR@.spec staging/kno-@KNO_VERSION@/dist
+$(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
+@git archive --prefix=kno-@KNO_VERSION@/ \
+-o staging/kno-@KNO_VERSION@.tar HEAD
+cd src/stdlib; git archive --prefix=kno-@KNO_VERSION@/src/stdlib/ \
+-o ../../staging/kno_modules-@KNO_VERSION@.tar HEAD;
+cd src/stdlib/brico; git archive --prefix=kno-@KNO_VERSION@/src/stdlib/brico/ \
+-o ../../../staging/kno_brico-@KNO_VERSION@.tar HEAD;
+cd staging; tar -xf kno-@KNO_VERSION@.tar; rm kno-@KNO_VERSION@.tar
+cd staging; tar -xf kno_modules-@KNO_VERSION@.tar; rm kno_modules-@KNO_VERSION@.tar;
+cd staging; tar -xf kno_brico-@KNO_VERSION@.tar; rm kno_brico-@KNO_VERSION@.tar;
+cp include/kno/revision.h staging/kno-@KNO_VERSION@/etc/revision.h;
+cp dist/kno-@KNO_MAJOR@.@KNO_MINOR@.spec staging/kno-@KNO_VERSION@/dist
 staging/kno_@KNO_VERSION@: include/kno/revision.h \
-	$(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
-	@git archive --prefix=kno_@KNO_VERSION@/ \
-	            -o staging/kno_@KNO_VERSION@.tar HEAD;
-	cd src/stdlib; git archive --prefix=kno_@KNO_VERSION@/src/stdlib/ \
-	            -o ../../staging/kno_modules_@KNO_VERSION@.tar HEAD;
-	cd src/stdlib/brico; git archive --prefix=kno_@KNO_VERSION@/src/stdlib/brico/ \
-	            -o ../../../staging/kno_brico-@KNO_VERSION@.tar HEAD;
-	cd staging; tar -xf kno_@KNO_VERSION@.tar; rm kno_@KNO_VERSION@.tar;
-	cd staging; tar -xf kno_modules_@KNO_VERSION@.tar; rm kno_modules_@KNO_VERSION@.tar;
-	cd staging; tar -xf kno_brico-@KNO_VERSION@.tar; rm kno_brico-@KNO_VERSION@.tar;
-	cp include/kno/revision.h staging/kno_@KNO_VERSION@/etc/revision.h;
-	cd staging; tar -czf $(DEBNAME).orig.tar.gz kno_@KNO_VERSION@;
-	mv staging/kno_@KNO_VERSION@/dist/debian staging/kno_@KNO_VERSION@/debian;
-	etc/gitchangelog kno ${CODENAME} < dist/debian/changelog \
-	   > staging/kno_@KNO_VERSION@/debian/changelog;
+$(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
+@git archive --prefix=kno_@KNO_VERSION@/ \
+-o staging/kno_@KNO_VERSION@.tar HEAD;
+cd src/stdlib; git archive --prefix=kno_@KNO_VERSION@/src/stdlib/ \
+-o ../../staging/kno_modules_@KNO_VERSION@.tar HEAD;
+cd src/stdlib/brico; git archive --prefix=kno_@KNO_VERSION@/src/stdlib/brico/ \
+-o ../../../staging/kno_brico-@KNO_VERSION@.tar HEAD;
+cd staging; tar -xf kno_@KNO_VERSION@.tar; rm kno_@KNO_VERSION@.tar;
+cd staging; tar -xf kno_modules_@KNO_VERSION@.tar; rm kno_modules_@KNO_VERSION@.tar;
+cd staging; tar -xf kno_brico-@KNO_VERSION@.tar; rm kno_brico-@KNO_VERSION@.tar;
+cp include/kno/revision.h staging/kno_@KNO_VERSION@/etc/revision.h;
+cd staging; tar -czf $(DEBNAME).orig.tar.gz kno_@KNO_VERSION@;
+mv staging/kno_@KNO_VERSION@/dist/debian staging/kno_@KNO_VERSION@/debian;
+etc/gitchangelog kno ${CODENAME} < dist/debian/changelog \
+> staging/kno_@KNO_VERSION@/debian/changelog;
 staging/kno-@KNO_VERSION@.tar.gz: \
-	$(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
-	make -s staging/kno-@KNO_VERSION@
-	tar -czf staging/kno-@KNO_VERSION@.tar.gz -C staging kno-@KNO_VERSION@
-	cd staging; ln -s ${DEBNAME}.tar.gz kno_@KNO_VERSION@.tar.gz
+$(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
+make -s staging/kno-@KNO_VERSION@
+tar -czf staging/kno-@KNO_VERSION@.tar.gz -C staging kno-@KNO_VERSION@
+cd staging; ln -s ${DEBNAME}.tar.gz kno_@KNO_VERSION@.tar.gz
 
 staging/kno_@KNO_VERSION@.orig.tar.gz: \
-	$(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
-	make -s staging/kno_@KNO_VERSION@
-	tar -czf staging/$(DEBNAME).orig.tar.gz -C staging kno_@KNO_VERSION@
-	cd staging; ln -s ${DEBNAME}.orig.tar.gz kno_@KNO_VERSION@.orig.tar.gz
+$(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
+make -s staging/kno_@KNO_VERSION@
+tar -czf staging/$(DEBNAME).orig.tar.gz -C staging kno_@KNO_VERSION@
+cd staging; ln -s ${DEBNAME}.orig.tar.gz kno_@KNO_VERSION@.orig.tar.gz
 
 # RPM rules
 
 dist/rpms.ready: staging/kno-@KNO_VERSION@ \
-	staging/kno-@KNO_VERSION@.tar.gz
-	@buildrpm@ $(RPMFLAGS)  			\
-	   --define="_rpmdir $(RPMDIR)"			\
-	   --define="_srcrpmdir $(RPMDIR)" 		\
-	   --nodeps -ta 				\
-	    staging/kno-@KNO_VERSION@.tar.gz && 	\
-	touch dist/rpms.ready
+staging/kno-@KNO_VERSION@.tar.gz
+@buildrpm@ $(RPMFLAGS)  			\
+--define="_rpmdir $(RPMDIR)"			\
+--define="_srcrpmdir $(RPMDIR)" 		\
+--nodeps -ta 				\
+staging/kno-@KNO_VERSION@.tar.gz && 	\
+touch dist/rpms.ready
 dist/rpms.done: dist/rpms.ready
-	@if (test "x$(GPGID)" = "xnone"); then 			\
-	    touch dist/rpms.done;				\
-	elif (test "x$(GPGID)" = "x"); then 			\
-	   echo "Enter passphrase for the RPM signing key:"; 	\
-	   @rpm@ --addsign 					\
-		--define="__gpg_sign_cmd $(RPMGPG)"		\
-		$(RPMDIR)/kno-@KNO_VERSION@-*.src.rpm 	\
-		$(RPMDIR)/*/kno*-@KNO_VERSION@-*.rpm; 	\
-	   else 						\
-	     echo "Enter passphrase for '$(GPGID)':"; 		\
-	     @rpm@ --addsign --define="_gpg_name $(GPGID)" 	\
-		--define="__gpg_sign_cmd $(RPMGPG)"		\
-		$(RPMDIR)/kno-@KNO_VERSION@*.src.rpm 		\
-		$(RPMDIR)/*/kno*-@KNO_VERSION@-*.rpm; 	\
-	fi && touch dist/rpms.done;
-	@ls -l $(RPMDIR)/kno-@KNO_VERSION@-*.src.rpm \
-		$(RPMDIR)/*/kno*-@KNO_VERSION@-*.rpm;
+@if (test "x$(GPGID)" = "xnone"); then 			\
+touch dist/rpms.done;				\
+elif (test "x$(GPGID)" = "x"); then 			\
+echo "Enter passphrase for the RPM signing key:"; 	\
+@rpm@ --addsign 					\
+--define="__gpg_sign_cmd $(RPMGPG)"		\
+$(RPMDIR)/kno-@KNO_VERSION@-*.src.rpm 	\
+$(RPMDIR)/*/kno*-@KNO_VERSION@-*.rpm; 	\
+else 						\
+echo "Enter passphrase for '$(GPGID)':"; 		\
+@rpm@ --addsign --define="_gpg_name $(GPGID)" 	\
+--define="__gpg_sign_cmd $(RPMGPG)"		\
+$(RPMDIR)/kno-@KNO_VERSION@*.src.rpm 		\
+$(RPMDIR)/*/kno*-@KNO_VERSION@-*.rpm; 	\
+fi && touch dist/rpms.done;
+@ls -l $(RPMDIR)/kno-@KNO_VERSION@-*.src.rpm \
+$(RPMDIR)/*/kno*-@KNO_VERSION@-*.rpm;
 
 rpmupdate update-rpms freshrpms: cleanrpms
-	rm -f dist/rpms.done dist/rpms.ready
-	make -s dist/rpms.done
+rm -f dist/rpms.done dist/rpms.ready
+make -s dist/rpms.done
 dist/rpms.zip: dist/rpms.done
-	@rm -f dist/rpms.zip
-	@zip dist/rpms.zip \
-		$(RPMDIR)/kno*-@KNO_VERSION@-*.src.rpm \
-		$(RPMDIR)/*/kno-*-@KNO_VERSION@-*.rpm
+@rm -f dist/rpms.zip
+@zip dist/rpms.zip \
+$(RPMDIR)/kno*-@KNO_VERSION@-*.src.rpm \
+$(RPMDIR)/*/kno-*-@KNO_VERSION@-*.rpm
 
 # Rules for Debian building
 
 dist/debs.built: staging/kno_@KNO_VERSION@
-	(cd staging/kno_@KNO_VERSION@; \
-	 dpkg-buildpackage -sa -us -uc -b -rfakeroot) && \
-	touch dist/debs.built;
+(cd staging/kno_@KNO_VERSION@; \
+dpkg-buildpackage -sa -us -uc -b -rfakeroot) && \
+touch dist/debs.built;
 dist/debsource.built: staging/kno_@KNO_VERSION@
-	(cd staging/kno_@KNO_VERSION@; \
-	 dpkg-buildpackage -sa -us -uc -F -rfakeroot) && \
-	touch dist/debs.built dist/debsource.built;
+(cd staging/kno_@KNO_VERSION@; \
+dpkg-buildpackage -sa -us -uc -F -rfakeroot) && \
+touch dist/debs.built dist/debsource.built;
 
 dist/debs.signed: dist/debs.built
-	(cd staging; debsign -p${GPG} --re-sign -k${GPGID} 	\
-		kno_@KNO_VERSION@*.changes) && 		\
-	(cd staging; cp kno_@KNO_VERSION@*.tar.?z ../dist) && \
-	(cd staging; mv kno*_@KNO_VERSION@*.*               	\
-			sysv-kno_@KNO_VERSION@*.deb  		\
-			upstart-kno_@KNO_VERSION@*.deb  	\
-			systemd-kno_@KNO_VERSION@*.deb  	\
-			elpa-knoc_@KNO_VERSION@*.deb  \
-			../dist) &&                             \
-	touch dist/debs.signed;
+(cd staging; debsign -p${GPG} --re-sign -k${GPGID} 	\
+kno_@KNO_VERSION@*.changes) && 		\
+(cd staging; cp kno_@KNO_VERSION@*.tar.?z ../dist) && \
+(cd staging; mv kno*_@KNO_VERSION@*.*               	\
+sysv-kno_@KNO_VERSION@*.deb  		\
+upstart-kno_@KNO_VERSION@*.deb  	\
+systemd-kno_@KNO_VERSION@*.deb  	\
+elpa-knoc_@KNO_VERSION@*.deb  \
+../dist) &&                             \
+touch dist/debs.signed;
 dist/debsource.signed: dist/debsource.built
-	(cd staging; debsign -p${GPG} --re-sign -k${GPGID} 	\
-		kno_@KNO_VERSION@*.changes) && 		\
-	(cd staging; cp kno_@KNO_VERSION@*.tar.?z ../dist) && \
-	(cd staging; mv kno*_@KNO_VERSION@*.*               	\
-			sysv-kno_@KNO_VERSION@*.deb  		\
-			upstart-kno_@KNO_VERSION@*.deb  	\
-			systemd-kno_@KNO_VERSION@*.deb  	\
-			elpa-knoc_@KNO_VERSION@*.deb  \
-			../dist) &&                             \
-	touch dist/debsource.signed;
-	touch dist/debs.signed;
+(cd staging; debsign -p${GPG} --re-sign -k${GPGID} 	\
+kno_@KNO_VERSION@*.changes) && 		\
+(cd staging; cp kno_@KNO_VERSION@*.tar.?z ../dist) && \
+(cd staging; mv kno*_@KNO_VERSION@*.*               	\
+sysv-kno_@KNO_VERSION@*.deb  		\
+upstart-kno_@KNO_VERSION@*.deb  	\
+systemd-kno_@KNO_VERSION@*.deb  	\
+elpa-knoc_@KNO_VERSION@*.deb  \
+../dist) &&                             \
+touch dist/debsource.signed;
+touch dist/debs.signed;
 
 dist/debs.done: dist/debs.signed
-	touch dist/debs.done
+touch dist/debs.done
 dist/debsource.done: dist/debsource.signed
-	touch dist/debsource.done dist/debs.done
+touch dist/debsource.done dist/debs.done
 
 install-debian install-debs debinstall installdebs: dist/debs.done
-	@cd dist; @SUDO@ dpkg -i kno*@KNO_VERSION@*.deb \
-		elpa-knoc*@KNO_VERSION@*.deb
+@cd dist; @SUDO@ dpkg -i kno*@KNO_VERSION@*.deb \
+elpa-knoc*@KNO_VERSION@*.deb
 
 update-local-apt-repo: dist/debs.done
-	for change in dist/*.changes; do \
-	  reprepro -Vb ${APTREPO} include ${CODENAME} $${change} && \
-	  rm -f $${change}; \
-	done
+for change in dist/*.changes; do \
+reprepro -Vb ${APTREPO} include ${CODENAME} $${change} && \
+rm -f $${change}; \
+done
 
 update-remote-apt-repo: dist/debs.done
-	cd dist; for change in *.changes; do \
-	  dupload -c ./dupload.conf --nomail --to ${CODENAME} $${change} && \
-	  rm -f $${change}; \
-	done
+cd dist; for change in *.changes; do \
+dupload -c ./dupload.conf --nomail --to ${CODENAME} $${change} && \
+rm -f $${change}; \
+done
 
 update-apt update-apt-repo: dist/debs.done
-	if test -d ${APTREPO}; then	\
-	  make update-local-apt-repo;	\
-	else				\
-	  make update-remote-apt-repo;	\
-	fi;
+if test -d ${APTREPO}; then	\
+make update-local-apt-repo;	\
+else				\
+make update-remote-apt-repo;	\
+fi;
 
 apt-upload upload-apt upload-deb: update-remote-apt-repo
 
@@ -1300,124 +1300,124 @@ apt-upload upload-apt upload-deb: update-remote-apt-repo
 # Installation targets
 
 install-status:
-	@if test -f .malloc && test -f .buildmode; then \
-	  echo "Installing" $(shell cat .buildmode) "build linked with" $(shell cat .malloc); \
-	fi;
+@if test -f .malloc && test -f .buildmode; then \
+echo "Installing" $(shell cat .buildmode) "build linked with" $(shell cat .malloc); \
+fi;
 install: install-status install-core 			\
-		install-cmodules 			\
-		install-libscm install-stdlib 		\
-		@setup_target@
-	@if test -f .malloc && test -f .buildmode; then \
-	  echo "Installed" $(shell cat .buildmode) "build linked with" $(shell cat .malloc); \
-	fi;
+install-cmodules 			\
+install-libscm install-stdlib 		\
+@setup_target@
+@if test -f .malloc && test -f .buildmode; then \
+echo "Installed" $(shell cat .buildmode) "build linked with" $(shell cat .malloc); \
+fi;
 install-bin: install-static install-shared install-exe
 install-text: install-headers install-pkgconfig install-scripts install-support
 install-core: confdirs workdirs @INSTALLI18N@           \
-	 install-bin install-text install-data
+install-bin install-text install-data
 install-dev: install-headers install-pkgconfig install-static
 
 $(INCINSTALLDIR):
-	@$(SYSINSTALL) @install_dir_opts@ $(INCINSTALLDIR)
+@$(SYSINSTALL) @install_dir_opts@ $(INCINSTALLDIR)
 $(BININSTALLDIR):
-	@$(SYSINSTALL) @install_dir_opts@ $(BININSTALLDIR)
+@$(SYSINSTALL) @install_dir_opts@ $(BININSTALLDIR)
 $(LIBINSTALLDIR):
-	@$(SYSINSTALL) @install_dir_opts@ $(LIBINSTALLDIR)
+@$(SYSINSTALL) @install_dir_opts@ $(LIBINSTALLDIR)
 ${CMODULES}:
-	@$(SYSINSTALL) @install_dir_opts@ ${CMODULES}
+@$(SYSINSTALL) @install_dir_opts@ ${CMODULES}
 $(DESTDIR)@config_dir@ $(DESTDIR)@share_dir@ $(DATADIR):
-	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
+@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
 $(DESTDIR)@local_config@ $(DESTDIR)@shared_config@:
-	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
+@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
 $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets $(DESTDIR)@config_dir@/config_files: $(DESTDIR)@config_dir@
-	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
+@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
 
 install-static:  static-libs $(LIBINSTALLDIR)
-	make $(LIBINSTALLDIR)/libknocore@suffix@.a        \
-		$(LIBINSTALLDIR)/libknostorage@suffix@.a       \
-		$(LIBINSTALLDIR)/libknodrivers@suffix@.a   \
-		$(LIBINSTALLDIR)/libknodbserv@suffix@.a    \
-		$(LIBINSTALLDIR)/libknoscheme@suffix@.a   \
-		$(LIBINSTALLDIR)/libknowebtools@suffix@.a      \
-		$(LIBINSTALLDIR)/libknotexttools@suffix@.a
+make $(LIBINSTALLDIR)/libknocore@suffix@.a        \
+$(LIBINSTALLDIR)/libknostorage@suffix@.a       \
+$(LIBINSTALLDIR)/libknodrivers@suffix@.a   \
+$(LIBINSTALLDIR)/libknodbserv@suffix@.a    \
+$(LIBINSTALLDIR)/libknoscheme@suffix@.a   \
+$(LIBINSTALLDIR)/libknowebtools@suffix@.a      \
+$(LIBINSTALLDIR)/libknotexttools@suffix@.a
 install-shared: install-status shared-libs $(LIBINSTALLDIR) 				\
-    $(LIBINSTALLDIR)/libknocore@suffix@.@vshared_suffix@			\
-    $(LIBINSTALLDIR)/libknocore@suffix@.@mmshared_suffix@		\
-    $(LIBINSTALLDIR)/libknocore@suffix@.@mshared_suffix@			\
-    $(LIBINSTALLDIR)/libknocore@suffix@.@shared_suffix@			\
-    $(LIBINSTALLDIR)/libknostorage@suffix@.@vshared_suffix@			\
-    $(LIBINSTALLDIR)/libknostorage@suffix@.@mmshared_suffix@			\
-    $(LIBINSTALLDIR)/libknostorage@suffix@.@mshared_suffix@			\
-    $(LIBINSTALLDIR)/libknostorage@suffix@.@shared_suffix@			\
-    $(LIBINSTALLDIR)/libknodbserv@suffix@.@vshared_suffix@		\
-    $(LIBINSTALLDIR)/libknodbserv@suffix@.@mmshared_suffix@		\
-    $(LIBINSTALLDIR)/libknodbserv@suffix@.@mshared_suffix@		\
-    $(LIBINSTALLDIR)/libknodbserv@suffix@.@shared_suffix@			\
-    $(LIBINSTALLDIR)/libknodrivers@suffix@.@vshared_suffix@		\
-    $(LIBINSTALLDIR)/libknodrivers@suffix@.@mmshared_suffix@		\
-    $(LIBINSTALLDIR)/libknodrivers@suffix@.@mshared_suffix@		\
-    $(LIBINSTALLDIR)/libknodrivers@suffix@.@shared_suffix@		\
-    $(LIBINSTALLDIR)/libknoscheme@suffix@.@vshared_suffix@		\
-    $(LIBINSTALLDIR)/libknoscheme@suffix@.@mmshared_suffix@		\
-    $(LIBINSTALLDIR)/libknoscheme@suffix@.@mshared_suffix@		\
-    $(LIBINSTALLDIR)/libknoscheme@suffix@.@shared_suffix@		\
-    $(LIBINSTALLDIR)/libknowebtools@suffix@.@vshared_suffix@			\
-    $(LIBINSTALLDIR)/libknowebtools@suffix@.@mmshared_suffix@			\
-    $(LIBINSTALLDIR)/libknowebtools@suffix@.@mshared_suffix@			\
-    $(LIBINSTALLDIR)/libknowebtools@suffix@.@shared_suffix@			\
-    $(LIBINSTALLDIR)/libknotexttools@suffix@.@vshared_suffix@		\
-    $(LIBINSTALLDIR)/libknotexttools@suffix@.@mmshared_suffix@		\
-    $(LIBINSTALLDIR)/libknotexttools@suffix@.@mshared_suffix@		\
-    $(LIBINSTALLDIR)/libknotexttools@suffix@.@shared_suffix@
+$(LIBINSTALLDIR)/libknocore@suffix@.@vshared_suffix@			\
+$(LIBINSTALLDIR)/libknocore@suffix@.@mmshared_suffix@		\
+$(LIBINSTALLDIR)/libknocore@suffix@.@mshared_suffix@			\
+$(LIBINSTALLDIR)/libknocore@suffix@.@shared_suffix@			\
+$(LIBINSTALLDIR)/libknostorage@suffix@.@vshared_suffix@			\
+$(LIBINSTALLDIR)/libknostorage@suffix@.@mmshared_suffix@			\
+$(LIBINSTALLDIR)/libknostorage@suffix@.@mshared_suffix@			\
+$(LIBINSTALLDIR)/libknostorage@suffix@.@shared_suffix@			\
+$(LIBINSTALLDIR)/libknodbserv@suffix@.@vshared_suffix@		\
+$(LIBINSTALLDIR)/libknodbserv@suffix@.@mmshared_suffix@		\
+$(LIBINSTALLDIR)/libknodbserv@suffix@.@mshared_suffix@		\
+$(LIBINSTALLDIR)/libknodbserv@suffix@.@shared_suffix@			\
+$(LIBINSTALLDIR)/libknodrivers@suffix@.@vshared_suffix@		\
+$(LIBINSTALLDIR)/libknodrivers@suffix@.@mmshared_suffix@		\
+$(LIBINSTALLDIR)/libknodrivers@suffix@.@mshared_suffix@		\
+$(LIBINSTALLDIR)/libknodrivers@suffix@.@shared_suffix@		\
+$(LIBINSTALLDIR)/libknoscheme@suffix@.@vshared_suffix@		\
+$(LIBINSTALLDIR)/libknoscheme@suffix@.@mmshared_suffix@		\
+$(LIBINSTALLDIR)/libknoscheme@suffix@.@mshared_suffix@		\
+$(LIBINSTALLDIR)/libknoscheme@suffix@.@shared_suffix@		\
+$(LIBINSTALLDIR)/libknowebtools@suffix@.@vshared_suffix@			\
+$(LIBINSTALLDIR)/libknowebtools@suffix@.@mmshared_suffix@			\
+$(LIBINSTALLDIR)/libknowebtools@suffix@.@mshared_suffix@			\
+$(LIBINSTALLDIR)/libknowebtools@suffix@.@shared_suffix@			\
+$(LIBINSTALLDIR)/libknotexttools@suffix@.@vshared_suffix@		\
+$(LIBINSTALLDIR)/libknotexttools@suffix@.@mmshared_suffix@		\
+$(LIBINSTALLDIR)/libknotexttools@suffix@.@mshared_suffix@		\
+$(LIBINSTALLDIR)/libknotexttools@suffix@.@shared_suffix@
 
 install-headers: $(INCINSTALLDIR)
-	@$(SYSINSTALL) -p @install_file_opts@		\
-		   $(LISP_HEADERS) $(APPLY_HEADERS) 	\
-		   $(STORAGE_HEADERS) $(DRIVERS_H)	\
-		   $(SCHEME_HEADERS) $(LIB_HEADERS)	\
-		   $(REVISION_H)			\
-		$(INCINSTALLDIR)
+@$(SYSINSTALL) -p @install_file_opts@		\
+$(LISP_HEADERS) $(APPLY_HEADERS) 	\
+$(STORAGE_HEADERS) $(DRIVERS_H)	\
+$(SCHEME_HEADERS) $(LIB_HEADERS)	\
+$(REVISION_H)			\
+$(INCINSTALLDIR)
 
 install-pkgconfig: $(DESTDIR)@PKGCONFIG_DIR@
-	@echo "# (kno) Installing kno pkgconfig file in $(DESTDIR)@PKGCONFIG_DIR@"
-	@$(SYSINSTALL) etc/kno.pc $(DESTDIR)@PKGCONFIG_DIR@
+@echo "# (kno) Installing kno pkgconfig file in $(DESTDIR)@PKGCONFIG_DIR@"
+@$(SYSINSTALL) etc/kno.pc $(DESTDIR)@PKGCONFIG_DIR@
 $(DESTDIR)@PKGCONFIG_DIR@:
-	$(SYSINSTALL) -d $(DESTDIR)@PKGCONFIG_DIR@
+$(SYSINSTALL) -d $(DESTDIR)@PKGCONFIG_DIR@
 
 
 
 install-data: $(DATADIR)
-	@$(SYSINSTALL) @install_file_opts@ docs/misc/data.README \
-		$(DATADIR)/README
-	@$(SYSINSTALL) @install_file_opts@ @DATAFILES@ $(DATADIR)
+@$(SYSINSTALL) @install_file_opts@ docs/misc/data.README \
+$(DATADIR)/README
+@$(SYSINSTALL) @install_file_opts@ @DATAFILES@ $(DATADIR)
 
 install-exe: $(BININSTALLDIR) $(EXECUTABLES)
-	@$(SYSINSTALL) -p @install_exe_opts@ $(EXECUTABLES) $(BININSTALLDIR)
+@$(SYSINSTALL) -p @install_exe_opts@ $(EXECUTABLES) $(BININSTALLDIR)
 
 install-scripts: install-shell-scripts install-scheme-scripts
 install-shell-scripts:
-	@$(SYSINSTALL) @install_exe_opts@ $(SHELL_SCRIPTS) $(BININSTALLDIR)
+@$(SYSINSTALL) @install_exe_opts@ $(SHELL_SCRIPTS) $(BININSTALLDIR)
 install-scheme-scripts: $(BININSTALLDIR) $(SCHEME_SCRIPTS)
-	@$(SYSINSTALL) @install_exe_opts@ $(SCHEME_SCRIPTS) $(BININSTALLDIR)
+@$(SYSINSTALL) @install_exe_opts@ $(SCHEME_SCRIPTS) $(BININSTALLDIR)
 
 install-data: \
-	$(DESTDIR)@config_dir@/boot/ex_daemon.service   \
-	$(DESTDIR)@config_dir@/boot/ex_servlet.service  \
-	$(DESTDIR)@config_dir@/boot/kno.target		\
-	$(DESTDIR)@config_dir@/boot/kno-daemons.service	\
-	$(DESTDIR)@config_dir@/boot/kno-servlets.service	\
-	$(DESTDIR)@config_dir@/boot/kno-rc.d 		\
-	$(DESTDIR)@config_dir@/boot/ex_servlet-init.d 		\
-	$(DESTDIR)@config_dir@/boot/ex_daemon-init.d 		\
-	$(DESTDIR)@config_dir@/boot/kno.conf 		\
-	$(DESTDIR)@config_dir@/boot/logrotate
+$(DESTDIR)@config_dir@/boot/ex_daemon.service   \
+$(DESTDIR)@config_dir@/boot/ex_servlet.service  \
+$(DESTDIR)@config_dir@/boot/kno.target		\
+$(DESTDIR)@config_dir@/boot/kno-daemons.service	\
+$(DESTDIR)@config_dir@/boot/kno-servlets.service	\
+$(DESTDIR)@config_dir@/boot/kno-rc.d 		\
+$(DESTDIR)@config_dir@/boot/ex_servlet-init.d 		\
+$(DESTDIR)@config_dir@/boot/ex_daemon-init.d 		\
+$(DESTDIR)@config_dir@/boot/kno.conf 		\
+$(DESTDIR)@config_dir@/boot/logrotate
 
 install-fastcgi: $(BININSTALLDIR)/knocgi@suffix@
 $(BININSTALLDIR)/knocgi@suffix@:
-	@$(SYSINSTALL) -p @install_exe_opts@ exe/knocgi@suffix@ $(BININSTALLDIR)
+@$(SYSINSTALL) -p @install_exe_opts@ exe/knocgi@suffix@ $(BININSTALLDIR)
 
 install-cmodules: install-core-cmodules install-db-cmodules \
-			install-text-cmodules \
-			install-archive-cmodules
+install-text-cmodules \
+install-archive-cmodules
 
 install-core-cmodules: @INSTALL_CORE_CMODULES@
 install-db-cmodules: @INSTALL_DB_CMODULES@
@@ -1436,31 +1436,31 @@ install-gperftools: ${CMODULES}/gperftools.@shared_suffix@ ${CMODULES}/gperftool
 # Setup targets
 
 workdirs: $(DESTDIR)@kno_rundir@ $(DESTDIR)@kno_logdir@ \
-	$(DESTDIR)@daemon_rundir@ $(DESTDIR)@daemon_logdir@ \
-	$(DESTDIR)@servlet_rundir@ $(DESTDIR)@servlet_logdir@ \
-	$(DESTDIR)@bugjar@
+$(DESTDIR)@daemon_rundir@ $(DESTDIR)@daemon_logdir@ \
+$(DESTDIR)@servlet_rundir@ $(DESTDIR)@servlet_logdir@ \
+$(DESTDIR)@bugjar@
 
 confdirs: $(DESTDIR)@stdlib_module_dir@ $(DESTDIR)@installed_module_dir@ \
-	  $(DESTDIR)@local_module_dir@ $(DESTDIR)@unpackage_dir@ \
-	  $(DESTDIR)@local_config@ $(DESTDIR)@shared_config@ \
-	  $(DESTDIR)@config_dir@  $(DESTDIR)@config_dir@/config_files \
-	  $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets \
-	  $(DESTDIR)@config_dir@/config
-	@$(MSG) Setting up configuration directories
-	@if test ! -f $(DESTDIR)@config_dir@/servers; then \
-		$(SYSINSTALL) @install_file_opts@ /dev/null \
-			$(DESTDIR)@config_dir@/servers; fi
+$(DESTDIR)@local_module_dir@ $(DESTDIR)@unpackage_dir@ \
+$(DESTDIR)@local_config@ $(DESTDIR)@shared_config@ \
+$(DESTDIR)@config_dir@  $(DESTDIR)@config_dir@/config_files \
+$(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets \
+$(DESTDIR)@config_dir@/config
+@$(MSG) Setting up configuration directories
+@if test ! -f $(DESTDIR)@config_dir@/servers; then \
+$(SYSINSTALL) @install_file_opts@ /dev/null \
+$(DESTDIR)@config_dir@/servers; fi
 
 $(DESTDIR)@stdlib_module_dir@ $(DESTDIR)@installed_module_dir@ $(DESTDIR)@local_module_dir@:
-	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
+@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
 $(DESTDIR)@unpackage_dir@:
-	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
+@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
 
 upstartdirs: $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets
 
 STDLIB_MODULE_DIRS=xhtml domutils textindex morph misc tests knodules knoml \
-		jwt aws facebook paypal twitter twilio dropbox google bench \
-		brico brico/build brico/build/index brico/build/scripts
+jwt aws facebook paypal twitter twilio dropbox google bench \
+brico brico/build brico/build/index brico/build/scripts
 
 STDLIB_MODULE_DATA=textindex/data knodules/data aws/templates morph/data brico/data
 
@@ -1468,139 +1468,139 @@ install-stdlib: install-standard-modules
 install-standard-modules: install-module-source install-module-data
 
 install-module-source: $(DESTDIR)@stdlib_module_dir@
-	@$(ECHO) Copying standard Scheme modules to @stdlib_module_dir@
-	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/stdlib/*.scm 		\
-		$(DESTDIR)@stdlib_module_dir@;
-	@for dir in $(STDLIB_MODULE_DIRS); do					\
-	  install_dir="$(DESTDIR)@stdlib_module_dir@/$${dir}";			\
-	  echo "Installing $${dir} module at $${install_dir}";			\
-	  $(SYSINSTALL) @install_dir_opts@ $${install_dir};			\
-	  $(SYSINSTALL) @install_file_opts@ $(BUILD)/src/stdlib/$${dir}/*.scm	\
-	      $${install_dir};							\
-	done;
+@$(ECHO) Copying standard Scheme modules to @stdlib_module_dir@
+@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/stdlib/*.scm 		\
+$(DESTDIR)@stdlib_module_dir@;
+@for dir in $(STDLIB_MODULE_DIRS); do					\
+install_dir="$(DESTDIR)@stdlib_module_dir@/$${dir}";			\
+echo "Installing $${dir} module at $${install_dir}";			\
+$(SYSINSTALL) @install_dir_opts@ $${install_dir};			\
+$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/stdlib/$${dir}/*.scm	\
+$${install_dir};							\
+done;
 
 install-module-data: $(DESTDIR)@stdlib_module_dir@
-	@$(ECHO) Copying module data to @stdlib_module_dir@;
-	@for dir in $(STDLIB_MODULE_DATA); do					\
-	  src_dir="$(BUILD)/src/stdlib/$${dir}";				\
-	  install_dir="$(DESTDIR)@stdlib_module_dir@/$${dir}";			\
-	  echo Installing data from $${src_dir} to $${install_dir};		\
-	  $(SYSINSTALL) @install_dir_opts@ $${install_dir};			\
-	  $(SYSINSTALL) @install_file_opts@ $${src_dir}/* $${install_dir};	\
-	done
+@$(ECHO) Copying module data to @stdlib_module_dir@;
+@for dir in $(STDLIB_MODULE_DATA); do					\
+src_dir="$(BUILD)/src/stdlib/$${dir}";				\
+install_dir="$(DESTDIR)@stdlib_module_dir@/$${dir}";			\
+echo Installing data from $${src_dir} to $${install_dir};		\
+$(SYSINSTALL) @install_dir_opts@ $${install_dir};			\
+$(SYSINSTALL) @install_file_opts@ $${src_dir}/* $${install_dir};	\
+done
 
 install-support: $(DESTDIR)@share_dir@
-	cd $(BUILD)/etc; $(SYSINSTALL) @install_file_opts@ 	\
-		gdbinit makefile.include knoc.el 		\
-		$(DESTDIR)@share_dir@
-	cd $(BUILD)/src/web; $(SYSINSTALL) @install_file_opts@ 	\
-		webinfo.knocgi $(DESTDIR)@share_dir@
+cd $(BUILD)/etc; $(SYSINSTALL) @install_file_opts@ 	\
+gdbinit makefile.include knoc.el 		\
+$(DESTDIR)@share_dir@
+cd $(BUILD)/src/web; $(SYSINSTALL) @install_file_opts@ 	\
+webinfo.knocgi $(DESTDIR)@share_dir@
 
 LIBSCM_DIRS=optimize bugjar bench knodb mongodb xhtml
 LIBSCM_DATA_DIRS=
 install-libscm:
-	@if [ ! -d ${DESTDIR}${LIBSCM} ]; then 						\
-	  make really-install-libscm; 							\
-	elif [ "$(realpath ${DESTDIR}${LIBSCM})" != "$(realpath ./src/libscm)" ]; then 	\
-	  make really-install-libscm; 							\
-	fi;
+@if [ ! -d ${DESTDIR}${LIBSCM} ]; then 						\
+make really-install-libscm; 							\
+elif [ "$(realpath ${DESTDIR}${LIBSCM})" != "$(realpath ./src/libscm)" ]; then 	\
+make really-install-libscm; 							\
+fi;
 really-install-libscm:
-	@$(SYSINSTALL) @install_dir_opts@ $(DESTDIR)${LIBSCM};
-	@$(SYSINSTALL) @install_file_opts@ src/libscm/*.scm $(DESTDIR)${LIBSCM};
-	@for dir in ${LIBSCM_DIRS}; do 						\
-	  $(SYSINSTALL) @install_dir_opts@ $(DESTDIR)${LIBSCM}/$$dir;		\
-	  $(SYSINSTALL) @install_file_opts@ src/libscm/$$dir/*.scm 		\
-	    $(DESTDIR)${LIBSCM}/$$dir; done;
-	$(SYSINSTALL) @install_dir_opts@ $(DESTDIR)${LIBSCM}/bugjar/resources;
-	$(SYSINSTALL) @install_file_opts@ src/libscm/bugjar/resources/*	\
-	       $(DESTDIR)${LIBSCM}/bugjar/resources;
+@$(SYSINSTALL) @install_dir_opts@ $(DESTDIR)${LIBSCM};
+@$(SYSINSTALL) @install_file_opts@ src/libscm/*.scm $(DESTDIR)${LIBSCM};
+@for dir in ${LIBSCM_DIRS}; do 						\
+$(SYSINSTALL) @install_dir_opts@ $(DESTDIR)${LIBSCM}/$$dir;		\
+$(SYSINSTALL) @install_file_opts@ src/libscm/$$dir/*.scm 		\
+$(DESTDIR)${LIBSCM}/$$dir; done;
+$(SYSINSTALL) @install_dir_opts@ $(DESTDIR)${LIBSCM}/bugjar/resources;
+$(SYSINSTALL) @install_file_opts@ src/libscm/bugjar/resources/*	\
+$(DESTDIR)${LIBSCM}/bugjar/resources;
 
 logdirs: $(DESTDIR)@kno_logdir@ $(DESTDIR)@servlet_logdir@ \
-	$(DESTDIR)@daemon_logdir@
+$(DESTDIR)@daemon_logdir@
 
 statedirs: $(DESTDIR)@rundir@/kno \
-	$(DESTDIR)@daemon_rundir@ \
-	$(DESTDIR)@servlet_rundir@ \
-	logdirs
+$(DESTDIR)@daemon_rundir@ \
+$(DESTDIR)@servlet_rundir@ \
+logdirs
 $(DESTDIR)/etc/init.d:
-	@$(SYSINSTALL) -m 0755 -d $(DESTDIR)/etc/init.d
+@$(SYSINSTALL) -m 0755 -d $(DESTDIR)/etc/init.d
 $(DESTDIR)/etc/init.d/kno: etc/sysv/kno-rc.d $(DESTDIR)/etc/init.d
-	@$(MSG) Installing Kno init.d
-	@$(SYSINSTALL) -m 0555 @admininstall@ \
-		   etc/sysv/kno-rc.d $(DESTDIR)/etc/init.d/kno
+@$(MSG) Installing Kno init.d
+@$(SYSINSTALL) -m 0555 @admininstall@ \
+etc/sysv/kno-rc.d $(DESTDIR)/etc/init.d/kno
 $(DESTDIR)@kno_rundir@:
-	@$(MSG) Installing Kno run directory
-	@$(SYSINSTALL) -m 0775  @knouserinstall@ @admininstall@ -d \
-		   $(DESTDIR)@kno_rundir@
+@$(MSG) Installing Kno run directory
+@$(SYSINSTALL) -m 0775  @knouserinstall@ @admininstall@ -d \
+$(DESTDIR)@kno_rundir@
 $(DESTDIR)@daemon_rundir@: $(DESTDIR)@kno_rundir@
-	@$(MSG) Installing Kno daemon run directory
-	@$(SYSINSTALL) -m 0775  @knouserinstall@ @admininstall@ -d \
-		   $(DESTDIR)@daemon_rundir@
+@$(MSG) Installing Kno daemon run directory
+@$(SYSINSTALL) -m 0775  @knouserinstall@ @admininstall@ -d \
+$(DESTDIR)@daemon_rundir@
 $(DESTDIR)@servlet_rundir@: $(DESTDIR)@kno_rundir@
-	@$(MSG) Installing Kno servlet run directory
-	@$(SYSINSTALL) -m 0775  @wwwinstall@ @admininstall@ -d \
-		   $(DESTDIR)@servlet_rundir@
+@$(MSG) Installing Kno servlet run directory
+@$(SYSINSTALL) -m 0775  @wwwinstall@ @admininstall@ -d \
+$(DESTDIR)@servlet_rundir@
 $(DESTDIR)@kno_logdir@:
-	@$(MSG) Installing Kno log directory
-	@$(SYSINSTALL) -m 0775 @knouserinstall@  @admininstall@ -d \
-		   $(DESTDIR)@kno_logdir@
+@$(MSG) Installing Kno log directory
+@$(SYSINSTALL) -m 0775 @knouserinstall@  @admininstall@ -d \
+$(DESTDIR)@kno_logdir@
 $(DESTDIR)@bugjar@: $(DESTDIR)@kno_logdir@
-	@$(MSG) Installing Kno bugjar directory
-	@$(SYSINSTALL) -m 0777 @knouserinstall@  @admininstall@ -d \
-		   $(DESTDIR)@bugjar@
+@$(MSG) Installing Kno bugjar directory
+@$(SYSINSTALL) -m 0777 @knouserinstall@  @admininstall@ -d \
+$(DESTDIR)@bugjar@
 $(DESTDIR)@daemon_logdir@:  $(DESTDIR)@kno_logdir@
-	@$(SYSINSTALL) -m 0775 @knouserinstall@ @admininstall@ \
-		-d $(DESTDIR)@daemon_logdir@
+@$(SYSINSTALL) -m 0775 @knouserinstall@ @admininstall@ \
+-d $(DESTDIR)@daemon_logdir@
 $(DESTDIR)@servlet_logdir@: $(DESTDIR)@kno_logdir@
-	@$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
-		-d $(DESTDIR)@servlet_logdir@
+@$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
+-d $(DESTDIR)@servlet_logdir@
 
 $(DESTDIR)@config_dir@/boot:
-	@$(SYSINSTALL) @install_dir_opts@ $@
+@$(SYSINSTALL) @install_dir_opts@ $@
 
 setup-sysv: $(DESTDIR)/etc/init.d/kno statedirs
 enable-sysv: setup-sysv
-	@if which update-rc.d; then \
-		$(MSG) Updating rc.d; \
-		$(SUINSTALL) update-rc.d kno defaults; \
-	 fi
+@if which update-rc.d; then \
+$(MSG) Updating rc.d; \
+$(SUINSTALL) update-rc.d kno defaults; \
+fi
 
 info:
-	@echo PREFIX= ${PREFIX}
-	@echo LIBSCM= ${LIBSCM}
+@echo PREFIX= ${PREFIX}
+@echo LIBSCM= ${LIBSCM}
 
 startupdirs: $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets
 
 setup-upstart: $(DESTDIR)/etc/init/kno.conf startupdirs
 
 $(DESTDIR)/etc/init:
-	@$(SYSINSTALL) -m 0775 @admininstall@ -d $(DESTDIR)/etc/init
+@$(SYSINSTALL) -m 0775 @admininstall@ -d $(DESTDIR)/etc/init
 $(DESTDIR)/etc/init/kno.conf: etc/upstart/kno.conf $(DESTDIR)/etc/init
-	@$(MSG) Installing kno Upstart config to $(DESTDIR)/etc/init/kno.conf
-	@$(SYSINSTALL) -m 0555 @admininstall@ \
-		   etc/upstart/kno.conf $(DESTDIR)/etc/init/kno.conf
+@$(MSG) Installing kno Upstart config to $(DESTDIR)/etc/init/kno.conf
+@$(SYSINSTALL) -m 0555 @admininstall@ \
+etc/upstart/kno.conf $(DESTDIR)/etc/init/kno.conf
 
 $(DESTDIR)@systemd_loc@:
-	@$(SYSINSTALL) -m 0775 @admininstall@ -d $(DESTDIR)@systemd_loc@
+@$(SYSINSTALL) -m 0775 @admininstall@ -d $(DESTDIR)@systemd_loc@
 setup-systemd: $(DESTDIR)@systemd_loc@/kno.target \
-		$(DESTDIR)@systemd_loc@/kno-daemons.service \
-		$(DESTDIR)@systemd_loc@/kno-servlets.service \
-		startupdirs
+$(DESTDIR)@systemd_loc@/kno-daemons.service \
+$(DESTDIR)@systemd_loc@/kno-servlets.service \
+startupdirs
 $(DESTDIR)@systemd_loc@/%: etc/systemd/% $(DESTDIR)@systemd_loc@
-	@$(MSG) Installing systemd config in $@
-	@$(SYSINSTALL) -m 0444 @admininstall@ $< $@
-	@if test -z "${DESTDIR}" && test ! -z "${SUDO}"; then 	\
-	   ${MSG} systemctl daemon-reload; 			\
-	   ${SUDO} systemctl daemon-reload; 			\
-	fi
+@$(MSG) Installing systemd config in $@
+@$(SYSINSTALL) -m 0444 @admininstall@ $< $@
+@if test -z "${DESTDIR}" && test ! -z "${SUDO}"; then 	\
+${MSG} systemctl daemon-reload; 			\
+${SUDO} systemctl daemon-reload; 			\
+fi
 
 setup-logrotate: etc/logrotate $(DESTDIR)/etc/logrotate.d/kno logdirs
 $(DESTDIR)/etc/logrotate.d:
-	@$(SYSINSTALL) -m 0755 -d $@
+@$(SYSINSTALL) -m 0755 -d $@
 $(DESTDIR)/etc/logrotate.d/kno: etc/logrotate $(DESTDIR)/etc/logrotate.d
-	@$(MSG) Installing logrotate script
-	@$(SYSINSTALL) -m 0644 etc/logrotate $(DESTDIR)/etc/logrotate.d/kno
-	#@$(SYSINSTALL) -T -m 0644 etc/logrotate $(DESTDIR)/etc/logrotate.d/kno
+@$(MSG) Installing logrotate script
+@$(SYSINSTALL) -m 0644 etc/logrotate $(DESTDIR)/etc/logrotate.d/kno
+#@$(SYSINSTALL) -T -m 0644 etc/logrotate $(DESTDIR)/etc/logrotate.d/kno
 
 setup-allboot: setup-sysv setup-upstart setup-systemd
 
@@ -1608,257 +1608,257 @@ setup-unix: @BOOTSETUP@ setup-logrotate
 setup-linux: setup-unix
 
 setup-osx: @share_dir@ startupdirs statedirs logdirs 
-	@$(MSG) Setting up OSX system configuration
-	@$(SUINSTALL) etc/macos/setup-osx "@share_dir@" \
-		"${INSTALL} @install_dir_opts@" \
-		"${INSTALL} @install_exe_opts@" \
-		"${INSTALL} @install_exe_opts@" \
-		/Library /etc
+@$(MSG) Setting up OSX system configuration
+@$(SUINSTALL) etc/macos/setup-osx "@share_dir@" \
+"${INSTALL} @install_dir_opts@" \
+"${INSTALL} @install_exe_opts@" \
+"${INSTALL} @install_exe_opts@" \
+/Library /etc
 
 setup-none:
-	@echo "Not setting up a boot system"
+@echo "Not setting up a boot system"
 
 .PHONY: setup-none setup-osx setup-linux setup-unix setup-allboot setup-logrotate \
-	setup-sysv setup-upstart setup-systemd
+setup-sysv setup-upstart setup-systemd
 
 # Build setups
 
 staging/build-setup.debian.core:
-	sudo apt-get install -ym libcurl4-openssl-dev libssl-dev libldns-dev \
-		sqlite3 libzip-dev libzstd-dev libedit-dev \
-		libarchive-dev libsasl2-dev libsqlite3-dev \
-		dh-make devscripts dpkg-dev dh-systemd debsigs && \
-	touch $@
+sudo apt-get install -ym libcurl4-openssl-dev libssl-dev libldns-dev \
+sqlite3 libzip-dev libzstd-dev libedit-dev \
+libarchive-dev libsasl2-dev libsqlite3-dev \
+dh-make devscripts dpkg-dev dh-systemd debsigs && \
+touch $@
 
 staging/build-setup.debian.malloc: staging/build-setup.debian.core
-	sudo apt install -ym libgoogle-perftools-dev libjemalloc-dev && \
-	touch $@
+sudo apt install -ym libgoogle-perftools-dev libjemalloc-dev && \
+touch $@
 
 build-setup.debian: staging/build-setup.debian.core \
-	staging/build-setup.debian.text \
-	staging/build-setup.debian.db \
-	staging/build-setup.debian.malloc
+staging/build-setup.debian.text \
+staging/build-setup.debian.db \
+staging/build-setup.debian.malloc
 
 build-setup.redhat:
-	sudo rpm -Uvh libedit-devel
+sudo rpm -Uvh libedit-devel
 
 staging/build-setup.apk:
-	sudo apk add alpine-sdk autoconf zlib zlib-dev python3 python3-dev \
-		     findutils findutils-doc libffi libffi-dev sqlite sqlite-dev \
-		     snappy snappy-dev gettext gettext-dev libintl libintl-dev \
-		     zlib zlib-dev zstd zstd-dev
-	touch $@
+sudo apk add alpine-sdk autoconf zlib zlib-dev python3 python3-dev \
+findutils findutils-doc libffi libffi-dev sqlite sqlite-dev \
+snappy snappy-dev gettext gettext-dev libintl libintl-dev \
+zlib zlib-dev zstd zstd-dev
+touch $@
 macports-build-setup:
-	sudo port install  curl curl-ca-bundle exif libexif qrencode libpng imagemagick ldns \
-		unixODBC sqlite3 leveldb snappy rocksdb mongo-c-driver \
-		libarchive libzip zlib zmq-devel hyphen python37
+sudo port install  curl curl-ca-bundle exif libexif qrencode libpng imagemagick ldns \
+unixODBC sqlite3 leveldb snappy rocksdb mongo-c-driver \
+libarchive libzip zlib zmq-devel hyphen python37
 
 .PHONY: debian-build-setup rpm-build-setup
 
 # The mod_knocgi module
 
 src/apache2/mod_knocgi.so: src/apache2/mod_knocgi.c @abs_top_srcdir@/fileinfo
-	@$(ECHO) "#define _FILEINFO \""`@abs_top_srcdir@/fileinfo src/apache2/mod_knocgi.c .`"\"" \
-		> src/apache2/mod_knocgi_fileinfo.h
-	${APXS} -DUSEDTBLOCK=@USEDTBLOCK@ -DDEBUG_KNOCGI=$(DEBUG_KNOCGI) \
-		-c src/apache2/mod_knocgi.c
+@$(ECHO) "#define _FILEINFO \""`@abs_top_srcdir@/fileinfo src/apache2/mod_knocgi.c .`"\"" \
+> src/apache2/mod_knocgi_fileinfo.h
+${APXS} -DUSEDTBLOCK=@USEDTBLOCK@ -DDEBUG_KNOCGI=$(DEBUG_KNOCGI) \
+-c src/apache2/mod_knocgi.c
 
 mod_knocgi: src/apache2/mod_knocgi.so
 
 # For OSX, try this
 # apxs -Wc,'-arch x86_64' -Wl,'-arch x86_64'  -a -i -c src/apache2/mod_knocgi.c
 install-mod_knocgi: src/apache2/mod_knocgi.so $(DESTDIR)@apache_modinfo@ \
-	$(DESTDIR)@apache_modules_dir@ $(DESTDIR)@servlet_logdir@
-	@cd etc/apache; $(SYSINSTALL) @install_file_opts@ knocgi.conf \
-			$(DESTDIR)@apache_modinfo@;
-	@cd etc/apache; $(SYSINSTALL) @install_file_opts@ knocgi.load \
-			$(DESTDIR)@apache_modinfo@;
-	@$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
-			-d $(DESTDIR)@rundir@/kno/servlets;
-	@cd src/apache2; if test -f mod_knocgi.so; \
-		then $(SUINSTALL) ${APXS} -i mod_knocgi.so; \
-		else $(SUINSTALL) ${APXS} -i mod_knocgi.la; \
-		fi
-	@echo Installed knocgi module with @rundir@/kno/servlets @logdir@/kno/servlets
+$(DESTDIR)@apache_modules_dir@ $(DESTDIR)@servlet_logdir@
+@cd etc/apache; $(SYSINSTALL) @install_file_opts@ knocgi.conf \
+$(DESTDIR)@apache_modinfo@;
+@cd etc/apache; $(SYSINSTALL) @install_file_opts@ knocgi.load \
+$(DESTDIR)@apache_modinfo@;
+@$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
+-d $(DESTDIR)@rundir@/kno/servlets;
+@cd src/apache2; if test -f mod_knocgi.so; \
+then $(SUINSTALL) ${APXS} -i mod_knocgi.so; \
+else $(SUINSTALL) ${APXS} -i mod_knocgi.la; \
+fi
+@echo Installed knocgi module with @rundir@/kno/servlets @logdir@/kno/servlets
 
 update-apache: mod_knocgi
-	make install-mod_knocgi && sudo apachectl restart
+make install-mod_knocgi && sudo apachectl restart
 
 $(DESTDIR)@apache_modules_dir@:
-	@$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
-		-d $(DESTDIR)@apache_modules_dir@
+@$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
+-d $(DESTDIR)@apache_modules_dir@
 $(DESTDIR)@apache_modinfo@:
-	@$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
-		-d $(DESTDIR)@apache_modinfo@
+@$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
+-d $(DESTDIR)@apache_modinfo@
 
 update-mod_knocgi: src/apache2/mod_knocgi.so $(DESTDIR)@apache_modinfo@ \
-		$(DESTDIR)@apache_modules_dir@
-	@$(MSG) "STOPPING and STARTING Apache to INSTALL NEW mod_knocgi"
-	@$(MSG) "THIS REQUIRES sudo PRIVILEGES; you may be prompted for your password"
-	sudo apachectl stop
-	cd etc/apache; sudo ${INSTALL} @install_file_opts@ knocgi.conf knocgi.load \
-			$(DESTDIR)@apache_modinfo@;
-	$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
-			-d $(DESTDIR)@rundir@/kno/servlets;
-	$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
-			-d $(DESTDIR)@logdir@/kno/servlets;
-	cd src/apache2; if test -f mod_knocgi.so; \
-		then sudo ${APXS} -i mod_knocgi.so; \
-		else sudo ${APXS} -i mod_knocgi.la; fi
-	sleep 5; sudo apachectl start
+$(DESTDIR)@apache_modules_dir@
+@$(MSG) "STOPPING and STARTING Apache to INSTALL NEW mod_knocgi"
+@$(MSG) "THIS REQUIRES sudo PRIVILEGES; you may be prompted for your password"
+sudo apachectl stop
+cd etc/apache; sudo ${INSTALL} @install_file_opts@ knocgi.conf knocgi.load \
+$(DESTDIR)@apache_modinfo@;
+$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
+-d $(DESTDIR)@rundir@/kno/servlets;
+$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
+-d $(DESTDIR)@logdir@/kno/servlets;
+cd src/apache2; if test -f mod_knocgi.so; \
+then sudo ${APXS} -i mod_knocgi.so; \
+else sudo ${APXS} -i mod_knocgi.la; fi
+sleep 5; sudo apachectl start
 
 # Test targets
 
 testclean:
-	@make -s -C tests testclean 2>&1 > tests/testclean.log
+@make -s -C tests testclean 2>&1 > tests/testclean.log
 tests: testclean
-	@echo "#### Running test scripts, BUILD=${BUILDMODE} LINKED=${LINKEDWITH}"
-	@if test ! -f tests/data/private.text; then \
-	 echo "#### Can't test primitives on protected files, enable with 'make private_files'"; \
-	 fi;
-	@DATE=`date +%d%b%yT%T`; make -s -C tests -k -j && \
-	 sort tests/state/timing.log -k 2 > tests/logs/timing-$${DATE}.log;
-	@if test ! -f tests/data/private.text; then \
-	 echo "#### Can't test primitives on protected files, enable with 'make private_files'"; \
-	 fi;
+@echo "#### Running test scripts, BUILD=${BUILDMODE} LINKED=${LINKEDWITH}"
+@if test ! -f tests/data/private.text; then \
+echo "#### Can't test primitives on protected files, enable with 'make private_files'"; \
+fi;
+@DATE=`date +%d%b%yT%T`; make -s -C tests -k -j && \
+sort tests/state/timing.log -k 2 > tests/logs/timing-$${DATE}.log;
+@if test ! -f tests/data/private.text; then \
+echo "#### Can't test primitives on protected files, enable with 'make private_files'"; \
+fi;
 
 tests.log: tests/knox tests/makefile.in makefile
-	@echo "#### Running test scripts, output in" $@ "BUILD=${BUILDMODE} LINKED=${LINKEDWITH}"
-	@make -s -C tests testclean 2>&1 > tests/testclean.log
-	@DATE=`date +%d%b%yT%T`; make -s -C tests -k -j 2>&1 > tests.log && \
-	 cp tests.log tests/logs/tests-$${DATE}.log; \
-	 sort tests/state/timing.log -k 2 > tests/logs/timing-$${DATE}.log;
+@echo "#### Running test scripts, output in" $@ "BUILD=${BUILDMODE} LINKED=${LINKEDWITH}"
+@make -s -C tests testclean 2>&1 > tests/testclean.log
+@DATE=`date +%d%b%yT%T`; make -s -C tests -k -j 2>&1 > tests.log && \
+cp tests.log tests/logs/tests-$${DATE}.log; \
+sort tests/state/timing.log -k 2 > tests/logs/timing-$${DATE}.log;
 
 libtests.log: tests/knox tests/makefile.in
-	@echo "#### Running libtests, output in" $@ "BUILD=${BUILDMODE} LINKED=${LINKEDWITH}"
-	@make -s -C tests testclean 2>&1 > tests/testclean.log
-	@DATE=`date +%d%b%yT%T`; \
-	 make -s -C tests -k -j libtests loadmods optmods 2>&1 > libtests.log && \
-	 cp libtests.log tests/logs/libtests-$${DATE}.log;
+@echo "#### Running libtests, output in" $@ "BUILD=${BUILDMODE} LINKED=${LINKEDWITH}"
+@make -s -C tests testclean 2>&1 > tests/testclean.log
+@DATE=`date +%d%b%yT%T`; \
+make -s -C tests -k -j libtests loadmods optmods 2>&1 > libtests.log && \
+cp libtests.log tests/logs/libtests-$${DATE}.log;
 libtests: libtests.log
 
 tests/memtests.log: tests/knox tests/makefile.in
-	@echo "#### Running memory tests, output in" $@ "BUILD=${BUILDMODE} LINKED=${LINKEDWITH}"
-	@make -s -C tests testclean 2>&1 > tests/testclean.log
-	@DATE=`date +%d%b%yT%T`; \
-	 make -s -C tests -k -j memtests 2>&1 > memtests.log && \
-	 cp memtests.log tests/logs/memtests-`date +%d%b%yT%T`.log;
+@echo "#### Running memory tests, output in" $@ "BUILD=${BUILDMODE} LINKED=${LINKEDWITH}"
+@make -s -C tests testclean 2>&1 > tests/testclean.log
+@DATE=`date +%d%b%yT%T`; \
+make -s -C tests -k -j memtests 2>&1 > memtests.log && \
+cp memtests.log tests/logs/memtests-`date +%d%b%yT%T`.log;
 memtests: memtests.log
 
 tests/leaktests.log: tests/knox tests/makefile.in
-	@echo "#### Running leak tests, output in" $@ "BUILD=${BUILDMODE} LINKED=${LINKEDWITH}"
-	@make -s -C tests testclean 2>&1 > tests/testclean.log
-	@DATE=`date +%d%b%yT%T`; make -s -C tests -k -j leaktests 2>&1 > leaktests.log && \
-	cp tests/leaktests.log tests/logs/leaktests-`date +%d%b%yT%T`.log;
+@echo "#### Running leak tests, output in" $@ "BUILD=${BUILDMODE} LINKED=${LINKEDWITH}"
+@make -s -C tests testclean 2>&1 > tests/testclean.log
+@DATE=`date +%d%b%yT%T`; make -s -C tests -k -j leaktests 2>&1 > leaktests.log && \
+cp tests/leaktests.log tests/logs/leaktests-`date +%d%b%yT%T`.log;
 leaktests: leaktests.log
 
 tests/schemetests.log: tests/knox tests/makefile.in
-	@echo "#### Running scheme tests, output in" $@ "BUILD=${BUILDMODE} LINKED=${LINKEDWITH}"
-	@make -s -C tests testclean 2>&1 > tests/testclean.log
-	@DATE=`date +%d%b%yT%T`; \
-	 make -s -C tests -k -j schemetests 2>&1 > schemetests.log && \
-	 cp schemtests.log tests/logs/schemetests-`date +%d%b%yT%T`.log;
+@echo "#### Running scheme tests, output in" $@ "BUILD=${BUILDMODE} LINKED=${LINKEDWITH}"
+@make -s -C tests testclean 2>&1 > tests/testclean.log
+@DATE=`date +%d%b%yT%T`; \
+make -s -C tests -k -j schemetests 2>&1 > schemetests.log && \
+cp schemtests.log tests/logs/schemetests-`date +%d%b%yT%T`.log;
 schemetests: schemetests.log
 
 tests/cmdtests.log: tests/knox tests/makefile.in
-	@echo "#### Running command tests, output in" $@ "BUILD=${BUILDMODE} LINKED=${LINKEDWITH}"
-	@make -s -C tests testclean 2>&1 > tests/testclean.log
-	@DATE=`date +%d%b%yT%T`; \
-	 make -s -C tests -k -j cmdtests 2>&1 > tests/cmdtests.log && \
-	 cp tests/cmdtests.log tests/logs/cmdtests-`date +%d%b%yT%T`.log;
+@echo "#### Running command tests, output in" $@ "BUILD=${BUILDMODE} LINKED=${LINKEDWITH}"
+@make -s -C tests testclean 2>&1 > tests/testclean.log
+@DATE=`date +%d%b%yT%T`; \
+make -s -C tests -k -j cmdtests 2>&1 > tests/cmdtests.log && \
+cp tests/cmdtests.log tests/logs/cmdtests-`date +%d%b%yT%T`.log;
 cmdtests: tests/cmdtests.log
 
 tests/dbtests.log: tests/knox tests/makefile.in
-	@echo "#### Running database tests, output in" $@ "BUILD=${BUILDMODE} LINKED=${LINKEDWITH}"
-	@make -s -C tests testclean 2>&1 > tests/testclean.log
-	@DATE=`date +%d%b%yT%T`; \
-	 make -s -C tests -k -j dbtests 2>&1 > dbtests.log && \
-	 cp dbtests.log tests/logs/dbtests-`date +%d%b%yT%T`.log;
+@echo "#### Running database tests, output in" $@ "BUILD=${BUILDMODE} LINKED=${LINKEDWITH}"
+@make -s -C tests testclean 2>&1 > tests/testclean.log
+@DATE=`date +%d%b%yT%T`; \
+make -s -C tests -k -j dbtests 2>&1 > dbtests.log && \
+cp dbtests.log tests/logs/dbtests-`date +%d%b%yT%T`.log;
 dbtests: tests/dbtests.log
 
 private_files: tests/data/private.text tests/data/private.dtype tests/data/private
 
 tests/data/private.text: tests/data/testobj.text
-	@@SUDO@ cp $< $@
-	@@SUDO@ chown nobody $@
-	@@SUDO@ chmod og-rwx $@
+@@SUDO@ cp $< $@
+@@SUDO@ chown nobody $@
+@@SUDO@ chmod og-rwx $@
 tests/data/private.dtype: tests/data/testobj.dtype
-	@@SUDO@ cp $< $@
-	@@SUDO@ chown nobody $@
-	@@SUDO@ chmod og-rwx $@
+@@SUDO@ cp $< $@
+@@SUDO@ chown nobody $@
+@@SUDO@ chmod og-rwx $@
 tests/data/private:
-	@@SUDO@ mkdir $@
-	@@SUDO@ chown nobody $@
-	@@SUDO@ chmod og-w $@
+@@SUDO@ mkdir $@
+@@SUDO@ chown nobody $@
+@@SUDO@ chmod og-w $@
 
 .PHONY: tests libtests schemetests dbtests cmtdtests memtests leaktests
 
 # GCOV targets
 
 lcov.info:
-	lcov -c -o $@ -b . -d .
+lcov -c -o $@ -b . -d .
 staging/lcov/index.html: lcov.info
-	if test ! -d staging/lcov; then \
-	  mkdir staging/lcov; \
-	else rm -rf staging/lcov/*; fi
-	genhtml -o staging/lcov/ lcov.info
+if test ! -d staging/lcov; then \
+mkdir staging/lcov; \
+else rm -rf staging/lcov/*; fi
+genhtml -o staging/lcov/ lcov.info
 lcov_html: staging/lcov/index.html
 
 gcovr.text: src/lisp/cons.gcda
-	gcovr ${GCOVR_FLAGS} -r . -o gcovr.text
+gcovr ${GCOVR_FLAGS} -r . -o gcovr.text
 gcovr.html: src/lisp/cons.gcda
-	gcovr ${GCOVR_FLAGS} -r . --html -o gcovr.html
+gcovr ${GCOVR_FLAGS} -r . --html -o gcovr.html
 
 tests/gcovr:
-	if test ! -d tests/gcovr; then mkdir tests/gcovr; fi
+if test ! -d tests/gcovr; then mkdir tests/gcovr; fi
 
 tests/gcovr/all.html: src/lisp/cons.gcda tests/gcovr
-	gcovr ${GCOVR_FLAGS} -r . --html --html-details -o $@
+gcovr ${GCOVR_FLAGS} -r . --html --html-details -o $@
 tests/gcovr/core.html: src/lisp/cons.gcda tests/gcovr
-	gcovr ${GCOVR_FLAGS} -r . \
-		-f src/lisp -f src/sys -f src/apply -f src/eval -f include \
-		--html --html-details -o $@
+gcovr ${GCOVR_FLAGS} -r . \
+-f src/lisp -f src/sys -f src/apply -f src/eval -f include \
+--html --html-details -o $@
 tests/gcovr/eval.html: src/lisp/cons.gcda tests/gcovr
-	gcovr ${GCOVR_FLAGS} -r . -f src/eval \
-		--html --html-details -o $@
+gcovr ${GCOVR_FLAGS} -r . -f src/eval \
+--html --html-details -o $@
 tests/gcovr/lisp.html: src/lisp/cons.gcda tests/gcovr
-	gcovr ${GCOVR_FLAGS} -r . -f src/lisp \
-		--html --html-details -o $@
+gcovr ${GCOVR_FLAGS} -r . -f src/lisp \
+--html --html-details -o $@
 tests/gcovr/support.html: src/lisp/cons.gcda tests/gcovr
-	gcovr ${GCOVR_FLAGS} -r . -f src/sys \
-		--html --html-details -o $@
+gcovr ${GCOVR_FLAGS} -r . -f src/sys \
+--html --html-details -o $@
 tests/gcovr/apply.html: src/lisp/cons.gcda tests/gcovr
-	gcovr ${GCOVR_FLAGS} -r . -f src/apply \
-		--html --html-details -o $@
+gcovr ${GCOVR_FLAGS} -r . -f src/apply \
+--html --html-details -o $@
 tests/gcovr/storage.html: src/lisp/cons.gcda tests/gcovr
-	gcovr ${GCOVR_FLAGS} -r . \
-		-f src/storage -f src/drivers -f include \
-		--html --html-details -o $@
+gcovr ${GCOVR_FLAGS} -r . \
+-f src/storage -f src/drivers -f include \
+--html --html-details -o $@
 tests/gcovr/prims.html: src/lisp/cons.gcda tests/gcovr
-	gcovr ${GCOVR_FLAGS} -r . -f src/prims -f include \
-		--html --html-details -o $@
+gcovr ${GCOVR_FLAGS} -r . -f src/prims -f include \
+--html --html-details -o $@
 tests/gcovr/cmodules.html: src/lisp/cons.gcda tests/gcovr
-	gcovr ${GCOVR_FLAGS} -r . -f src/cmodules -f include \
-		--html --html-details -o $@
+gcovr ${GCOVR_FLAGS} -r . -f src/cmodules -f include \
+--html --html-details -o $@
 tests/gcovr/text.html: src/lisp/cons.gcda tests/gcovr
-	gcovr ${GCOVR_FLAGS} -r . -f src/text -f include \
-		--html --html-details -o $@
+gcovr ${GCOVR_FLAGS} -r . -f src/text -f include \
+--html --html-details -o $@
 tests/gcovr/web.html: src/lisp/cons.gcda tests/gcovr
-	gcovr ${GCOVR_FLAGS} -r . -f src/text -f include \
-		--html --html-details -o $@
+gcovr ${GCOVR_FLAGS} -r . -f src/text -f include \
+--html --html-details -o $@
 
 src/lisp/cons.gcda: lib/libknocore.a
-	find . -name "*.gcda" -exec rm '{}' \;
-	cd tests; make libtests;
+find . -name "*.gcda" -exec rm '{}' \;
+cd tests; make libtests;
 
 gcovr_html: tests/gcovr/all.html tests/gcovr/core.html tests/gcovr/storage.html \
-	tests/gcovr/prims.html tests/gcovr/text.html tests/gcovr/web.html \
-	tests/gcovr/cmodules.html tests/gcovr/lisp.html tests/gcovr/support.html \
-	tests/gcovr/apply.html tests/gcovr/eval.html
+tests/gcovr/prims.html tests/gcovr/text.html tests/gcovr/web.html \
+tests/gcovr/cmodules.html tests/gcovr/lisp.html tests/gcovr/support.html \
+tests/gcovr/apply.html tests/gcovr/eval.html
 
 gcovr_fresh:
-	rm -f tests/gcovr/*
-	make gcovr_html
+rm -f tests/gcovr/*
+make gcovr_html
 
 .PHONY: lcov_html gcovr_details
 
@@ -1866,8 +1866,13 @@ gcovr_fresh:
 
 # Meta operations
 
-update-modules:
-	git submodule update --remote --merge src/stdlib
+gitup upgit update-modules update-submodules:
+	if test ! -f src/libscm/gpath.scm; then \
+	  git submodule init; fi
+	git submodule update --remote --merge
+	if test ! -f src/libscm/brico/brico.scm; then \
+	  cd src/stdlib; git submodule init; fi
+	cd src/stdlib; git submodule update --remote --merge
 
 .PHONY: mod_knocgi update-mod_knocgi install-mod_knocgi update-modules
 
