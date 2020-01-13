@@ -2,7 +2,6 @@
 
 CONFIG_ARGS=
 MAKE_ARGS=
-OFFLINE=
 BUILD=$(pwd)
 SRC=$(dirname $(pwd))
 doclean=1;
@@ -12,17 +11,9 @@ else
     with_parseltongue=no
 fi;
 
-if [ -f ./.offline ]; then
-    OFFLINE=yes
-fi;
-
-
 while [ $# -gt 0 ]; do
     arg=$1
     case ${arg} in
-	offline)
-	    OFFLINE=yes;
-	    ;;
 	current|.)
 	    BRANCH="use_current_branch";
 	    ;;
@@ -124,11 +115,7 @@ elif [ ${doclean} ]; then
 else echo "Not cleaning distribution";
 fi;
 
-if [ ! -z "${OFFLINE}" ]; then
-    git submodule init
-    git submodule update
-    cd src/libscm; git submodule init; git submodule update
-fi;
+
 
 ./configure ${CONFIG_ARGS}
 
