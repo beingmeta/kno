@@ -996,19 +996,24 @@ slot of the loop state.
 ;;;; Utility meta-functions
 
 (define (engine/poolfetch pool)
-  (ambda (oids (state #f)) (pool-prefetch! pool oids)))
+  (ambda (oids (batch-state #f) (loop-state #f) (task-state #f)) 
+    (pool-prefetch! pool oids)))
 
 (define (engine/indexfetch index)
-  (ambda (keys (state #f)) (prefetch-keys! index keys)))
+  (ambda (keys (batch-state #f) (loop-state #f) (task-state #f))
+    (prefetch-keys! index keys)))
 
 (define (engine/savepool pool)
-  (ambda (keys (loop-state #f)) (commit pool)))
+  (ambda (keys (batch-state #f) (loop-state #f) (task-state #f))
+    (commit pool)))
 
 (define (engine/saveindex index)
-  (ambda (keys (loop-state #f)) (commit index)))
+  (ambda (keys (batch-state #f) (loop-state #f) (task-state #f))
+    (commit index)))
 
 (define (engine/savetable table file)
-  (ambda (keys (loop-state #f)) (dtype->file table file)))
+  (ambda (keys (batch-state #f) (loop-state #f) (task-state #f))
+    (dtype->file table file)))
 
 (define (engine/interval interval (slot #f) (last (elapsed-time)))
   (defsync (engine/interval/wait (loop-state #f))
