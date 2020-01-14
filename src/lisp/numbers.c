@@ -2,7 +2,7 @@
 
    Copyright (c) 1989-1993 Massachusetts Institute of Technology
    Copyright (c) 1993-2001 Massachusetts Institute of Technology
-   Copyright (c) 2001-2019 beingmeta, inc.
+   Copyright (c) 2001-2020 beingmeta, inc.
 
    Part of this code is based on the bignum code from the Scheme Project at
    MIT, which was used with minor modifications by the Media Laboratory at

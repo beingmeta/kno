@@ -1,6 +1,6 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2019 beingmeta, inc.
+/* Copyright (C) 2004-2020 beingmeta, inc.
    This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -986,7 +986,7 @@ int main(int argc,char **argv)
       u8_close((U8_STREAM *)&out);}
     else u8_log(LOG_WARN,Startup,"Starting beingmeta Knod %s",server_spec);
     u8_log(LOG_WARN,Startup,
-           "Copyright (C) beingmeta 2004-2019, all rights reserved");}
+           "Copyright (C) beingmeta 2004-2020, all rights reserved");}
 
   kno_version = kno_init_scheme();
 
@@ -1334,7 +1334,7 @@ static int run_server(u8_string server_spec)
     exit(-1);
     return -1;}
   write_state_files();
-  u8_message("beingmeta Kno, (C) beingmeta 2004-2019, all rights reserved");
+  u8_message("beingmeta Kno, (C) beingmeta 2004-2020, all rights reserved");
   u8_log(LOG_NOTICE,ServerStartup,
          "Kno (%s) knod %s running, %d/%d pools/indexes, %d ports",
          KNO_REVISION,server_spec,kno_n_pools,

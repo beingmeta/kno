@@ -1,6 +1,6 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2019 beingmeta, inc.
+/* Copyright (C) 2004-2020 beingmeta, inc.
    This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -436,7 +436,7 @@ static int start_fcgi_server(char *socketspec)
         "Kno (%s) knocgi servlet running, %d/%d pools/indexes",
         KNO_REVISION,kno_n_pools,
         kno_n_primary_indexes+kno_n_secondary_indexes);
- u8_message("beingmeta Kno, (C) beingmeta 2004-2019, all rights reserved");
+ u8_message("beingmeta Kno, (C) beingmeta 2004-2020, all rights reserved");
  each_thread = 0; while (each_thread<servlet_threads) {
    void *threadval;
    int retval = pthread_join(threads[each_thread],(void **)&threadval);
