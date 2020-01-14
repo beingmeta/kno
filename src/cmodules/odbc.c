@@ -2,7 +2,7 @@
 
 /* odbc.c
    This implements Kno bindings to odbc.
-   Copyright (C) 2007-2019 beingmeta, inc.
+   Copyright (C) 2007-2020 beingmeta, inc.
 */
 
 #ifndef _FILEINFO
