@@ -44,6 +44,7 @@ lispval restore_bigint(ssize_t n_digits,unsigned char *bytes,int negp);
 /* Object restoration */
 
 static lispval restore_tagged(lispval tag,lispval data,xtype_refs refs);
+static lispval restore_compressed(lispval tag,lispval data,xtype_refs refs);
 static ssize_t write_opaque
 (kno_outbuf out, lispval x,xtype_refs refs);
 static ssize_t write_slotmap
@@ -476,8 +477,7 @@ static lispval read_xtype(kno_inbuf in,xtype_refs refs)
       return kno_init_compound
 	(NULL,mime_symbol,KNO_COMPOUND_USEREF,2,car,cdr);
     else if (xt_code == xt_compressed)
-      return kno_init_compound
-	(NULL,compressed_symbol,KNO_COMPOUND_USEREF,2,car,cdr);
+      return restore_compressed(car,cdr,refs);
     else if (xt_code == xt_encrypted)
       return kno_init_compound
 	(NULL,encrypted_symbol,KNO_COMPOUND_USEREF,2,car,cdr);
@@ -611,6 +611,27 @@ static lispval restore_tagged(lispval tag,lispval data,xtype_refs refs)
 					 KNO_VECTOR_LENGTH(data),
 					 KNO_VECTOR_ELTS(data));
     else return kno_init_compound(NULL,tag,flags,1,data);}
+}
+
+static lispval restore_compressed(lispval tag,lispval data,xtype_refs refs)
+{
+  if (tag == zcompress_xtype_tag) {
+    if (PACKETP(data)) {
+      ssize_t compressed_len = KNO_PACKET_LENGTH(data);
+      const unsigned char *bytes = KNO_PACKET_DATA(data);
+      ssize_t uncompressed_len = 0;
+      unsigned char *uncompressed =
+	do_zuncompress(bytes,compressed_len,
+		       &uncompressed_len,NULL);
+      if (uncompressed) {
+	struct KNO_INBUF inflated = { 0 };
+	KNO_INIT_BYTE_INPUT(&inflated,uncompressed,uncompressed_len);
+	lispval value = kno_read_xtype(&inflated,refs);
+        u8_big_free(uncompressed);
+        return value;}
+      else return kno_err("UncompressFailed","xt_zread",NULL,VOID);}}
+  else return kno_init_compound
+	 (NULL,compressed_symbol,KNO_COMPOUND_USEREF,2,tag,data);
 }
 
 /* Uncompressing */
