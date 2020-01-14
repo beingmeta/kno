@@ -26,10 +26,16 @@
 #define KNO_DEBUG_XTYPEIO 0
 #endif
 
+static unsigned char *do_zuncompress
+(const unsigned char *bytes,size_t n_bytes,
+ ssize_t *dbytes,unsigned char *init_dbuf);
+
+
 static lispval objid_symbol, mime_symbol, encrypted_symbol,
   compressed_symbol, error_symbol, mime_symbol, knopaque_symbol;
 
-static lispval rational_xtype_tag, complex_xtype_tag, timestamp_xtype_tag;
+static lispval rational_xtype_tag, complex_xtype_tag,
+  timestamp_xtype_tag, zcompress_xtype_tag;
 
 kno_xtype_fn kno_xtype_writers[KNO_TYPE_MAX];
 
@@ -37,7 +43,7 @@ lispval restore_bigint(ssize_t n_digits,unsigned char *bytes,int negp);
 
 /* Object restoration */
 
-static lispval restore_tagged(lispval tag,lispval data);
+static lispval restore_tagged(lispval tag,lispval data,xtype_refs refs);
 static ssize_t write_opaque
 (kno_outbuf out, lispval x,xtype_refs refs);
 static ssize_t write_slotmap
@@ -284,6 +290,7 @@ static lispval read_xtype(kno_inbuf in,xtype_refs refs)
   case xt_rational: return rational_xtype_tag;
   case xt_complex: return complex_xtype_tag;
   case xt_timestamp: return timestamp_xtype_tag;
+  case xt_zcompress: return zcompress_xtype_tag;
 
   case xt_absref: {
     ssize_t off = xt_read_varint(in);
@@ -464,7 +471,7 @@ static lispval read_xtype(kno_inbuf in,xtype_refs refs)
     if (xt_code == xt_pair)
       return kno_init_pair(NULL,car,cdr);
     else if (xt_code == xt_tagged)
-      return restore_tagged(car,cdr);
+      return restore_tagged(car,cdr,refs);
     else if (xt_code == xt_mimeobj)
       return kno_init_compound
 	(NULL,mime_symbol,KNO_COMPOUND_USEREF,2,car,cdr);
@@ -557,7 +564,7 @@ static ssize_t write_opaque(kno_outbuf out, lispval x,xtype_refs refs)
 
 /* Restore handlers */
 
-static lispval restore_tagged(lispval tag,lispval data)
+static lispval restore_tagged(lispval tag,lispval data,xtype_refs refs)
 {
   if (tag == rational_xtype_tag) {
     if (PAIRP(data))
@@ -568,6 +575,21 @@ static lispval restore_tagged(lispval tag,lispval data)
   else if (tag == timestamp_xtype_tag) {
     if (FIXNUMP(data))
       return kno_time2timestamp((time_t)(KNO_FIX2INT(data)));}
+  else if (tag == zcompress_xtype_tag) {
+    if (PACKETP(data)) {
+      ssize_t compressed_len = KNO_PACKET_LENGTH(data);
+      const unsigned char *bytes = KNO_PACKET_DATA(data);
+      ssize_t uncompressed_len = 0;
+      unsigned char *uncompressed =
+	do_zuncompress(bytes,compressed_len,
+		       &uncompressed_len,NULL);
+      if (uncompressed) {
+	struct KNO_INBUF inflated = { 0 };
+	KNO_INIT_BYTE_INPUT(&inflated,uncompressed,uncompressed_len);
+	lispval value = kno_read_xtype(&inflated,refs);
+        u8_big_free(uncompressed);
+        return value;}
+      else return kno_err("UncompressFailed","xt_zread",NULL,VOID);}}
   else NO_ELSE;
   struct KNO_TYPEINFO *e = kno_use_typeinfo(tag);
   if ((e) && (e->type_restorefn)) {
@@ -591,6 +613,46 @@ static lispval restore_tagged(lispval tag,lispval data)
     else return kno_init_compound(NULL,tag,flags,1,data);}
 }
 
+/* Uncompressing */
+
+static unsigned char *do_zuncompress
+(const unsigned char *bytes,size_t n_bytes,
+ ssize_t *dbytes,unsigned char *init_dbuf)
+{
+  u8_condition error = NULL; int zerror;
+  unsigned long csize = n_bytes, dsize, dsize_max;
+  Bytef *cbuf = (Bytef *)bytes, *dbuf;
+  if (init_dbuf == NULL) {
+    dsize = dsize_max = csize*4;
+    dbuf = u8_big_alloc(dsize_max);}
+  else {
+    dbuf = init_dbuf;
+    dsize = dsize_max = *dbytes;}
+  while ((zerror = uncompress(dbuf,&dsize,cbuf,csize)) < Z_OK)
+    if (zerror == Z_MEM_ERROR) {
+      error=_("ZLIB ran out of memory"); break;}
+    else if (zerror == Z_BUF_ERROR) {
+      /* We don't use realloc because there's not point in copying
+	 the data and we hope the overhead of free/malloc beats
+	 realloc when we're doubling the buffer. */
+      if (dbuf!=init_dbuf) u8_big_free(dbuf);
+      dbuf = u8_big_alloc(dsize_max*2);
+      if (dbuf == NULL) {
+	error=_("pool value uncompress ran out of memory");
+	break;}
+      dsize = dsize_max = dsize_max*2;}
+    else if (zerror == Z_DATA_ERROR) {
+      error=_("ZLIB uncompress data error"); break;}
+    else {
+      error=_("Bad ZLIB return code"); break;}
+  if (error == NULL) {
+    *dbytes = dsize;
+    return dbuf;}
+  else {
+    if (dbuf != init_dbuf) u8_big_free(dbuf);
+    return KNO_ERR2(NULL,error,"do_zuncompress");}
+}
+
 /* File initialization */
 
 KNO_EXPORT void kno_init_xtypes_c()
@@ -610,5 +672,6 @@ KNO_EXPORT void kno_init_xtypes_c()
   rational_xtype_tag  = kno_register_constant("rational_xttag");
   complex_xtype_tag   = kno_register_constant("complex_xttag");
   timestamp_xtype_tag = kno_register_constant("timestamp_xttag");
+  zcompress_xtype_tag = kno_register_constant("zcompress_xttag");
 
 }
