@@ -48,6 +48,7 @@ int kno_init_netpool_c(void);
 int kno_init_file_pool_c(void);
 int kno_init_oidpool_c(void);
 int kno_init_bigpool_c(void);
+int kno_init_knopool_c(void);
 
 int dbs_initialized = 0;
 
@@ -62,6 +63,7 @@ KNO_EXPORT int kno_init_drivers()
   kno_init_oidpool_c();
   kno_init_bigpool_c();
   kno_init_netpool_c();
+  kno_init_knopool_c();
 
   kno_init_fileindex_c();
   kno_init_hashindex_c();

@@ -11,6 +11,7 @@
    as oidpools and hashindices. */
 
 #include "zcompress.h"
+#include "kno/xtypes.h"
 
 #define KNO_KNOPOOL_MAGIC_NUMBER ((11<<24)|(14<<16)|(15<<8)|(16))
 #define KNO_KNOPOOL_TO_RECOVER ((2<<24)|(7<<16)|(16<<8)|(0xFF))
@@ -24,7 +25,7 @@
 #define KNO_KNOPOOL_FORMAT_POS            0x14
 #define KNO_KNOPOOL_LABEL_POS             0x18
 #define KNO_KNOPOOL_METADATA_POS          0x24
-#define KNO_KNOPOOL_SLOTCODES_POS         0x54
+#define KNO_KNOPOOL_XREFS_POS             0x54
 
 #define KNO_KNOPOOL_FETCHBUF_SIZE 8000
 
@@ -46,7 +47,7 @@ typedef struct KNO_KNOPOOL {
   unsigned int pool_offlen;
   unsigned int knopool_format;
   ssize_t pool_nblocks;
-  struct XTYPE_REFS xtype_refs;} KNO_KNOPOOL;
+  struct XTYPE_REFS pool_xrefs;} KNO_KNOPOOL;
 typedef struct KNO_KNOPOOL *kno_knopool;
 
 struct KNOPOOL_FETCH_SCHEDULE {

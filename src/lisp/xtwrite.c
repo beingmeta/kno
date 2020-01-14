@@ -38,7 +38,8 @@ KNO_EXPORT int kno_init_xrefs(xtype_refs refs,
   if (lookup)
     refs->xt_lookup = lookup;
   else {
-    struct KNO_HASHTABLE *table = (kno_hashtable) kno_make_hashtable(NULL,n_refs);
+    struct KNO_HASHTABLE *table =
+      (kno_hashtable) kno_make_hashtable(NULL,n_refs);
     lispval *vals = u8_zalloc(n_refs);
     int i = 0, n = n_refs; while (i < n) {
       vals[i] = KNO_INT(i);
@@ -56,6 +57,7 @@ KNO_EXPORT ssize_t kno_add_xtype_ref(lispval x,xtype_refs refs)
       return KNO_FIX2INT(v);
     if ( (refs->xt_refs_flags) & (XTYPE_REFS_READ_ONLY) )
       return -1;
+    refs->xt_refs_flags |= XTYPE_REFS_CHANGED;
     size_t ref = refs->xt_n_refs++;
     if (ref >= refs->xt_refs_len) {
       int delta = refs->xt_refs_len;

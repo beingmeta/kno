@@ -87,6 +87,7 @@ typedef struct XTYPE_REFS *xtype_refs;
 #define XTYPE_REFS_READ_ONLY 1
 #define XTYPE_REFS_ADD_OIDS  2
 #define XTYPE_REFS_ADD_SYMS  4
+#define XTYPE_REFS_CHANGED   8
 
 typedef ssize_t (*kno_xtype_fn)(struct KNO_OUTBUF *,lispval,xtype_refs);
 KNO_EXPORT kno_xtype_fn kno_xtype_writers[KNO_TYPE_MAX];

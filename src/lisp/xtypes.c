@@ -10,6 +10,7 @@
 #endif
 
 #define KNO_INLINE_BUFIO 1
+#define KNO_INLINE_XTYPE_REFS 1
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
