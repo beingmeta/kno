@@ -1,10 +1,11 @@
-PACKAGE=${1-:stable}
-DISTRIBUTION=${2-:stable}
+PACKAGE=${1:-kno}
+CODENAME=${2:-debian}
+STATUS=${3:-stable}
 URGENCY=medium
 DATE=`date -R`
 gitid=`git describe`
 version=`git describe | sed -e "s/-g[0123456789ABCDEFabcdef]*$//" | sed -e "s/^${PACKAGE}-//"`
-echo ${PACKAGE} \(${version}-${DISTRIBUTION}\) ${DISTRIBUTION}\; urgency=${URGENCY}
+echo ${PACKAGE} \(${version}-${CODENAME}\) ${STATUS}\; urgency=${URGENCY}
 echo
 echo "  * ${gitid} point release"
 echo
