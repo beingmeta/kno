@@ -13,6 +13,7 @@
 #include "kno/lisp.h"
 #include "kno/hash.h"
 #include "kno/cons.h"
+#include "kno/xtypes.h"
 
 #include "libu8/u8printf.h"
 
@@ -192,6 +193,28 @@ static ssize_t timestamp_dtype(struct KNO_OUTBUF *out,lispval x)
     KNO_VECTOR_SET(vec,2,KNO_INT((int)xtm->u8xtimeval.u8_prec));
     KNO_VECTOR_SET(vec,3,KNO_INT(tzoff));
     size = size+kno_write_dtype(out,vec);
+    kno_decref(vec);}
+  return size;
+}
+
+static ssize_t timestamp_xtype(struct KNO_OUTBUF *out,lispval x,xtype_refs refs)
+{
+  struct KNO_TIMESTAMP *xtm=
+    kno_consptr(struct KNO_TIMESTAMP *,x,kno_timestamp_type);
+  kno_write_byte(out,xt_tagged);
+  kno_write_byte(out,xt_timestamp);
+  ssize_t size = 2;
+  if ((xtm->u8xtimeval.u8_prec == u8_second) && (xtm->u8xtimeval.u8_tzoff==0)) {
+    lispval xval = KNO_INT(xtm->u8xtimeval.u8_tick);
+    size += kno_write_xtype(out,xval,refs);}
+  else {
+    lispval vec = kno_empty_vector(4);
+    int tzoff = xtm->u8xtimeval.u8_tzoff;
+    KNO_VECTOR_SET(vec,0,KNO_INT(xtm->u8xtimeval.u8_tick));
+    KNO_VECTOR_SET(vec,1,KNO_INT(xtm->u8xtimeval.u8_nsecs));
+    KNO_VECTOR_SET(vec,2,KNO_INT((int)xtm->u8xtimeval.u8_prec));
+    KNO_VECTOR_SET(vec,3,KNO_INT(tzoff));
+    size = size+kno_write_xtype(out,vec,refs);
     kno_decref(vec);}
   return size;
 }
@@ -379,6 +402,13 @@ void kno_init_misctypes_c()
     e->type_dumpfn = NULL;
     e->type_restorefn = timestamp_restore;}
   kno_dtype_writers[kno_timestamp_type]=timestamp_dtype;
+
+  {
+    struct KNO_TYPEINFO *e = kno_use_typeinfo(kno_timestamp_xtag);
+    e->type_parsefn = NULL;
+    e->type_dumpfn = NULL;
+    e->type_restorefn = timestamp_restore;}
+  kno_xtype_writers[kno_timestamp_type]=timestamp_xtype;
 
   kno_copiers[kno_timestamp_type]=copy_timestamp;
 

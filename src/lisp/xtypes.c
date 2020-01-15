@@ -34,9 +34,6 @@ static unsigned char *do_zuncompress
 static lispval objid_symbol, mime_symbol, encrypted_symbol,
   compressed_symbol, error_symbol, mime_symbol, knopaque_symbol;
 
-static lispval rational_xtype_tag, complex_xtype_tag,
-  timestamp_xtype_tag, zcompress_xtype_tag;
-
 kno_xtype_fn kno_xtype_writers[KNO_TYPE_MAX];
 
 lispval restore_bigint(ssize_t n_digits,unsigned char *bytes,int negp);
@@ -112,7 +109,7 @@ KNO_EXPORT ssize_t kno_add_xtype_ref(lispval x,xtype_refs refs)
       return KNO_FIX2INT(v);
     if ( (refs->xt_refs_flags) & (XTYPE_REFS_READ_ONLY) )
       return -1;
-    size_t ref = refs->xt_n_refs++;
+    size_t ref = refs->xt_n_refs;
     if (ref >= refs->xt_refs_len) {
       int delta = refs->xt_refs_len;
       if (delta > XTYPE_REFS_DELTA_MAX)
@@ -121,7 +118,7 @@ KNO_EXPORT ssize_t kno_add_xtype_ref(lispval x,xtype_refs refs)
       lispval *refvals = refs->xt_refs, *new_refs =
 	(new_size>XTYPE_REFS_MAX) ? (NULL) :
 	(u8_realloc(refvals,sizeof(lispval)*new_size));
-      if (refvals == NULL) {
+      if (new_refs == NULL) {
 	refs->xt_refs_flags |= XTYPE_REFS_READ_ONLY;
 	return -1;}
       else {
@@ -129,6 +126,7 @@ KNO_EXPORT ssize_t kno_add_xtype_ref(lispval x,xtype_refs refs)
 	refs->xt_refs_len = new_size;}}
     refs->xt_refs_flags |= XTYPE_REFS_CHANGED;
     refs->xt_refs[ref]=x;
+    refs->xt_n_refs++;
     return ref;}
   else return -1;
 }
@@ -260,6 +258,11 @@ static ssize_t write_xtype(kno_outbuf out,lispval x,xtype_refs refs)
     return write_slotmap(out,(kno_slotmap)x,refs);
   case kno_schemap_type:
     return write_schemap(out,(kno_schemap)x,refs);
+  case kno_prechoice_type: {
+    lispval norm = kno_make_simple_choice(x);
+    ssize_t rv = write_xtype(out,norm,refs);
+    kno_decref(norm);
+    return rv;}
   default:
     if (kno_xtype_writers[ctype])
       return kno_xtype_writers[ctype](out,x,refs);
@@ -289,10 +292,10 @@ static lispval read_xtype(kno_inbuf in,xtype_refs refs)
   case xt_default: return KNO_DEFAULT;
   case xt_void: return KNO_VOID;
 
-  case xt_rational: return rational_xtype_tag;
-  case xt_complex: return complex_xtype_tag;
-  case xt_timestamp: return timestamp_xtype_tag;
-  case xt_zcompress: return zcompress_xtype_tag;
+  case xt_rational: return kno_rational_xtag;
+  case xt_complex: return kno_complex_xtag;
+  case xt_timestamp: return kno_timestamp_xtag;
+  case xt_zcompress: return kno_zcompress_xtag;
 
   case xt_absref: {
     ssize_t off = xt_read_varint(in);
@@ -308,9 +311,9 @@ static lispval read_xtype(kno_inbuf in,xtype_refs refs)
     ssize_t base_off = xt_read_varint(in);
     if (PRED_FALSE(base_off<0))
       return kno_err("InvalidBaseOff","read_xtype",NULL,VOID);
-    else if (PRED_FALSE(base_off < refs->xt_n_refs))
-      return kno_err("xtype base ref out of range","read_xtype",NULL,VOID);
-    else base = refs->xt_refs[base_off];
+    else if (base_off < refs->xt_n_refs)
+      base = refs->xt_refs[base_off];
+    else return kno_err("xtype base ref out of range","read_xtype",NULL,VOID);
     ssize_t oid_off  = xt_read_varint(in);
     if (oid_off<0) return kno_err("InvalidBaseOff","read_xtype",NULL,VOID);
     if (!(OIDP(base))) return kno_err("BadBaseRef","read_xtype",NULL,base);
@@ -567,16 +570,16 @@ static ssize_t write_opaque(kno_outbuf out, lispval x,xtype_refs refs)
 
 static lispval restore_tagged(lispval tag,lispval data,xtype_refs refs)
 {
-  if (tag == rational_xtype_tag) {
+  if (tag == kno_rational_xtag) {
     if (PAIRP(data))
       return _kno_make_rational(KNO_CAR(data),KNO_CDR(data));}
-  else if (tag == complex_xtype_tag) {
+  else if (tag == kno_complex_xtag) {
     if (PAIRP(data))
       return _kno_make_complex(KNO_CAR(data),KNO_CDR(data));}
-  else if (tag == timestamp_xtype_tag) {
+  else if (tag == kno_timestamp_xtag) {
     if (FIXNUMP(data))
       return kno_time2timestamp((time_t)(KNO_FIX2INT(data)));}
-  else if (tag == zcompress_xtype_tag) {
+  else if (tag == kno_zcompress_xtag) {
     if (PACKETP(data)) {
       ssize_t compressed_len = KNO_PACKET_LENGTH(data);
       const unsigned char *bytes = KNO_PACKET_DATA(data);
@@ -616,7 +619,7 @@ static lispval restore_tagged(lispval tag,lispval data,xtype_refs refs)
 
 static lispval restore_compressed(lispval tag,lispval data,xtype_refs refs)
 {
-  if (tag == zcompress_xtype_tag) {
+  if (tag == kno_zcompress_xtag) {
     if (PACKETP(data)) {
       ssize_t compressed_len = KNO_PACKET_LENGTH(data);
       const unsigned char *bytes = KNO_PACKET_DATA(data);
@@ -690,10 +693,5 @@ KNO_EXPORT void kno_init_xtypes_c()
 
   int i = 0; while (i < KNO_TYPE_MAX) {
     kno_xtype_writers[i++]=NULL;};
-
-  rational_xtype_tag  = kno_register_constant("rational_xttag");
-  complex_xtype_tag   = kno_register_constant("complex_xttag");
-  timestamp_xtype_tag = kno_register_constant("timestamp_xttag");
-  zcompress_xtype_tag = kno_register_constant("zcompress_xttag");
 
 }
