@@ -43,7 +43,7 @@
 		 (frame-create #f
 		   'type pooltype
 		   'module (or (config 'poolmod #f #t) {})
-		   'compression compression
+ 		   'compression compression
 		   'base @b001/0 
 		   'capacity 100000
 		   'metadata #[status fresh]
@@ -120,6 +120,7 @@
 	      (reset (config 'RESET #f))
 	      (rthreads (get-rthreads))
 	      (wthreads (get-wthreads)))
+  ;;(%watch "pooltest.scm" testcount poolfile reset)
   (set! testcount (floor testcount))
   (when (and reset (not memory-only))
     (when (file-exists? poolfile) (remove-file poolfile))
@@ -170,7 +171,4 @@
       (logwarn |AdjPoolTests| 
 	"Checking adjunct pool load")
       (applytest 42 pool-load adjpool))))
-
-
-
 

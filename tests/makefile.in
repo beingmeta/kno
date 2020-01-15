@@ -64,6 +64,7 @@ TESTFILE	= ${TESTBASE}.file
 KNOX		= ./knox
 OIDPOOL		= POOLTYPE=oidpool
 BIGPOOL		= POOLTYPE=bigpool
+KNOPOOL		= POOLTYPE=knopool
 SNAPPY		= COMPRESSION=snappy
 ZPOOL		= COMPRESSION=zlib
 ZSTDPOOL	= COMPRESSION=zstd
@@ -324,7 +325,7 @@ storage: storagebase pooltest indextest framedb
 pooltest:
 	@${header} "■■■■■■■■ Running pool tests ${TESTBASE} ${RUNCONF}"
 	@rm -rf ${TESTBASE}.pool ${TESTBASE}.adjunct.pool
-	${RUN} ${KNOX} pooltest.scm ${TESTSIZE} ${TESTBASE}.pool ${RUNCONF}
+	${RUN} ${KNOX} pooltest.scm RESET=yes ${TESTSIZE} ${TESTBASE}.pool ${RUNCONF}
 	${RUN} ${KNOX} pooltest.scm ${TESTSIZE} ${TESTBASE}.pool CACHELEVEL=1 ${RUNCONF}
 	${RUN} ${KNOX} pooltest.scm ${TESTSIZE} ${TESTBASE}.pool CACHELEVEL=2 ${RUNCONF}
 	${RUN} ${KNOX} pooltest.scm ${TESTSIZE} ${TESTBASE}.pool CACHELEVEL=3 ${RUNCONF}
@@ -355,11 +356,25 @@ bigpoolzstdtest:
 bigpooltest_nx:
 	@make TESTBASE=bigpool_nx RUNCONF="SLOTCODES=#f ${BIGPOOL} ${RUNCONF}" pooltest
 
+knopooltest:
+	@make TESTBASE=knopool RUNCONF="${KNOPOOL} ${RUNCONF}" pooltest
+knopool32test:
+	@make TESTBASE=knopool32 RUNCONF="${KNOPOOL} ${OFFB32} ${RUNCONF}" pooltest
+knopool64test:
+	@make TESTBASE=knopool64 RUNCONF="${KNOPOOL} ${OFFB64} ${RUNCONF}" pooltest
+knopoolztest:
+	@make TESTBASE=knopool RUNCONF="${KNOPOOL} ${ZPOOL} ${RUNCONF}" pooltest
+knopool32ztest:
+	@make TESTBASE=knopool32 RUNCONF="${KNOPOOL} ${OFFB32} ${ZPOOL} ${RUNCONF}" pooltest
+knopool64ztest:
+	@make TESTBASE=knopool64 RUNCONF="${KNOPOOL} ${OFFB64} ${ZPOOL} ${RUNCONF}" pooltest
+
 lvldbpools lvldbpooltests:
 	@make TESTBASE=lvldbpool RUNCONF="SLOTCODES=#f POOLTYPE=leveldb POOLMOD=leveldb ${RUNCONF}" pooltest
 rckdbpools rckdbpooltests:
 	@make TESTBASE=rckdbpool RUNCONF="SLOTCODES=#f POOLTYPE=rocksdb POOLMOD=rocksdb ${RUNCONF}" pooltest
 
+knopools knopooltests: knopooltest knopool32test knopool64test knopoolztest
 bigpools bigpooltests: bigpooltest bigpool32test bigpool64test bigpooltest_nx bigpoolsnappytest bigpoolzlibtest
 oidpools oidpooltests: oidpooltest oidpool32test oidpool64test
 
