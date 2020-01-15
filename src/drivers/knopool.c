@@ -24,6 +24,7 @@ static int knopool_loglevel = -1;
 #include "kno/pools.h"
 #include "kno/indexes.h"
 #include "kno/drivers.h"
+#include "kno/xtypes.h"
 
 #include "headers/knopool.h"
 
@@ -47,7 +48,9 @@ static int knopool_loglevel = -1;
 #define FETCHBUF_SIZE 16000
 #endif
 
-static lispval load_symbol, xrefs_symbol, compression_symbol;
+static int knopool_max_xrefs = XTYPE_MAX_XREFS;
+
+static lispval load_symbol, xrefs_symbol, compression_symbol, maxrefs_symbol;
 static lispval offmode_symbol, created_upsym, oidrefs_symbol, symrefs_symbol;
 
 static void knopool_setcache(kno_knopool p,int level);
@@ -217,7 +220,7 @@ static kno_pool open_knopool(u8_string fname,kno_storage_flags open_flags,
 			     lispval opts)
 {
   KNO_OID base = KNO_NULL_OID_INIT;
-  unsigned int hi, lo, magicno, capacity, load, n_xrefs;
+  unsigned int hi, lo, magicno, capacity, load, n_xrefs, xrefs_max;
   unsigned int xref_flags = 0, knopool_format = 0;
   kno_off_t label_loc, metadata_loc, xrefs_loc, xrefs_size;
   lispval label;
@@ -369,10 +372,22 @@ static kno_pool open_knopool(u8_string fname,kno_storage_flags open_flags,
       u8_free(pool);
       return NULL;}}
 
+  {
+    lispval max_refs_opt = kno_getopt(opts,KNOSYM(maxrefs),KNO_VOID);
+    if (KNO_VOIDP(max_refs_opt))
+      max_refs_opt = kno_get(metadata,KNOSYM(maxrefs),KNO_VOID);
+    if (KNO_FIXNUMP(max_refs_opt))
+      xrefs_max = KNO_FIX2INT(max_refs_opt);
+    else if ( (KNO_VOIDP(max_refs_opt)) || (KNO_FALSEP(max_refs_opt)) )
+      xrefs_max = -1;
+    else {
+      xrefs_max = knopool_max_xrefs;}
+    if ( (xrefs_max > 0) && (n_xrefs > xrefs_max) )
+      xrefs_max = n_xrefs;}
   kno_init_pool((kno_pool)pool,base,capacity,
-	       &knopool_handler,
-	       fname,abspath,realpath,
-	       open_flags,metadata,opts);
+		&knopool_handler,
+		fname,abspath,realpath,
+		open_flags,metadata,opts);
   u8_free(realpath);
   u8_free(abspath);
 
@@ -405,7 +420,7 @@ static kno_pool open_knopool(u8_string fname,kno_storage_flags open_flags,
       kno_close_stream(stream,0);
       u8_free(pool);
       return NULL;}}
- 
+
   if (xrefs_loc) {
     int xrefs_length = (n_xrefs>256)?((1+(n_xrefs/2))*2):(256);
     lispval *xrefs = u8_alloc_n(xrefs_length,lispval);
@@ -424,11 +439,13 @@ static kno_pool open_knopool(u8_string fname,kno_storage_flags open_flags,
 	return NULL;}
       xrefs[i++]=xref;}
     kno_close_inbuf(in);
-    kno_init_xrefs(&(pool->pool_xrefs),n_xrefs,xrefs_length,
+    kno_init_xrefs(&(pool->pool_xrefs),n_xrefs,xrefs_length,xrefs_max,
 		   xref_flags,xrefs,NULL);}
   else {
     lispval *xrefs = u8_alloc_n(256,lispval);
-    kno_init_xrefs(&(pool->pool_xrefs),0,256,xref_flags,xrefs,NULL);}
+    kno_init_xrefs(&(pool->pool_xrefs),0,256,
+		   xref_flags,xrefs_max,
+		   xrefs,NULL);}
   pool->pool_offdata = NULL;
   pool->pool_offlen = 0;
   if (read_only)
@@ -2225,6 +2242,11 @@ static kno_pool knopool_create(u8_string spec,void *type_data,
   kno_store(metadata,packed_symbol,ltime);
   kno_decref(ltime); ltime = KNO_VOID;
 
+  lispval xrefs_max = kno_getopt(opts,KNOSYM(maxrefs),KNO_VOID);
+  if (!(KNO_VOIDP(xrefs_max))) {
+    kno_store(metadata,KNOSYM(maxrefs),xrefs_max);
+    kno_decref(xrefs_max);}
+
   if (!(kno_test(metadata,init_opts,KNO_VOID)))
     kno_store(metadata,init_opts,opts);
   kno_store(metadata,make_opts,opts);
@@ -2303,6 +2325,10 @@ KNO_EXPORT void kno_init_knopool_c()
 		     "The default loglevel for knopools",
 		     kno_intconfig_get,kno_loglevelconfig_set,
 		     &knopool_loglevel);
+  kno_register_config("KNOPOOL:MAXREFS",
+		     "The default loglevel for knopools",
+		     kno_sizeconfig_get,kno_sizeconfig_set,
+		     &knopool_max_xrefs);
 
   kno_set_default_pool_type("knopool");
 }

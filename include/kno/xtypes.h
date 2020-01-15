@@ -78,12 +78,13 @@ typedef struct XTYPE_REFS {
   int xt_refs_flags;
   size_t xt_n_refs;
   size_t xt_refs_len;
+  size_t xt_refs_max;
   lispval *xt_refs;
   struct KNO_HASHTABLE *xt_lookup;} XTYPE_REFS;
 typedef struct XTYPE_REFS *xtype_refs;
 
 #define XTYPE_REFS_DELTA_MAX 4096
-#define XTYPE_REFS_MAX 16384
+#define XTYPE_MAX_XREFS 16384
 
 #define XTYPE_REFS_READ_ONLY 1
 #define XTYPE_REFS_ADD_OIDS  2
@@ -138,7 +139,8 @@ KNO_EXPORT ssize_t kno_validate_xtype(struct KNO_INBUF *in);
 KNO_EXPORT lispval kno_read_xtype(kno_inbuf in,xtype_refs refs);
 
 KNO_EXPORT int kno_init_xrefs(xtype_refs refs,
-			      int n_refs,int refs_len,int flags,
+			      int n_refs,int refs_len,
+			      int refs_max,int flags,
 			      lispval *elts,
 			      kno_hashtable lookup);
 

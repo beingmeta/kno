@@ -60,12 +60,14 @@ KNO_EXPORT ssize_t kno_add_xtype_ref(lispval x,xtype_refs refs)
     refs->xt_refs_flags |= XTYPE_REFS_CHANGED;
     size_t ref = refs->xt_n_refs++;
     if (ref >= refs->xt_refs_len) {
-      int delta = refs->xt_refs_len;
+      if (refs->xt_refs_len >= refs->xt_refs_max) {
+	refs->xt_refs_flags |= XTYPE_REFS_READ_ONLY;
+	return -1;}
+      ssize_t delta = refs->xt_refs_len;
       if (delta > XTYPE_REFS_DELTA_MAX) delta=XTYPE_REFS_DELTA_MAX;
-      ssize_t new_size = refs->xt_refs_len+delta;
-      lispval *refvals = refs->xt_refs, *new_refs =
-	(new_size>XTYPE_REFS_MAX) ? (NULL) :
-	(u8_realloc(refvals,sizeof(lispval)*new_size));
+      ssize_t new_size = refs->xt_refs_len+delta, max_refs = refs->xt_refs_max;
+      lispval *refvals = refs->xt_refs,
+	*new_refs = u8_realloc(refvals,sizeof(lispval)*new_size);
       if (refvals == NULL) {
 	refs->xt_refs_flags |= XTYPE_REFS_READ_ONLY;
 	return -1;}

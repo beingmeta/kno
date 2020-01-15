@@ -71,12 +71,18 @@ static lispval unexpected_eod()
 /* XREF objects */
 
 KNO_EXPORT int kno_init_xrefs(xtype_refs refs,
-			      int n_refs,int refs_len,int flags,
+			      int n_refs,int refs_len,int refs_max,
+			      int flags,
 			      lispval *elts,
 			      kno_hashtable lookup)
 {
   refs->xt_n_refs = n_refs;
   refs->xt_refs_len = refs_len;
+  if (refs_max>0) {
+    if (refs_max<refs_len) refs_max = refs_len;}
+  else if (refs_max == 0)
+    refs_max = refs_len;
+  else refs->xt_refs_max = XTYPE_MAX_XREFS;
   refs->xt_refs_flags = flags;
   refs->xt_refs = elts;
   if (lookup)
@@ -111,13 +117,15 @@ KNO_EXPORT ssize_t kno_add_xtype_ref(lispval x,xtype_refs refs)
       return -1;
     size_t ref = refs->xt_n_refs;
     if (ref >= refs->xt_refs_len) {
-      int delta = refs->xt_refs_len;
+      if (refs->xt_refs_len >= refs->xt_refs_max) {
+	refs->xt_refs_flags |= XTYPE_REFS_READ_ONLY;
+	return -1;}
+      ssize_t delta = refs->xt_refs_len;
       if (delta > XTYPE_REFS_DELTA_MAX)
 	delta=XTYPE_REFS_DELTA_MAX;
       ssize_t new_size = refs->xt_refs_len+delta;
-      lispval *refvals = refs->xt_refs, *new_refs =
-	(new_size>XTYPE_REFS_MAX) ? (NULL) :
-	(u8_realloc(refvals,sizeof(lispval)*new_size));
+      lispval *refvals = refs->xt_refs,
+	*new_refs = u8_realloc(refvals,sizeof(lispval)*new_size);
       if (new_refs == NULL) {
 	refs->xt_refs_flags |= XTYPE_REFS_READ_ONLY;
 	return -1;}
@@ -459,7 +467,8 @@ static lispval read_xtype(kno_inbuf in,xtype_refs refs)
     lispval map = kno_make_slotmap(n_slots,n_slots,NULL);
     struct KNO_KEYVAL *kv = KNO_SLOTMAP_KEYVALS(map);
     ssize_t i = 0; while (i < n_slots) {
-      lispval key = read_xtype(in,refs), val = read_xtype(in,refs);
+      lispval key = read_xtype(in,refs);
+      lispval val = read_xtype(in,refs);
       kv[i].kv_key = key; kv[i].kv_val = val;
       i++;}
     return map;}

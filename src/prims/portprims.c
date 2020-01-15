@@ -249,7 +249,7 @@ static lispval make_xtype_refs(lispval vec,lispval opts)
     kno_incref(elt);
     elts[i]=elt;
     i++;}
-  kno_init_xrefs(refs,n_refs,len,flags,elts,NULL);
+  kno_init_xrefs(refs,n_refs,len,flags,-1,elts,NULL);
   return kno_wrap_pointer((void *)refs,sizeof(struct XTYPE_REFS),
 			  recycle_xtype_refs,
 			  xtrefs_typetag,NULL);
