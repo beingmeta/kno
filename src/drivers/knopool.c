@@ -48,7 +48,7 @@ static int knopool_loglevel = -1;
 #endif
 
 static lispval load_symbol, xrefs_symbol, compression_symbol;
-static lispval offmode_symbol, created_upsym;
+static lispval offmode_symbol, created_upsym, oidrefs_symbol, symrefs_symbol;
 
 static void knopool_setcache(kno_knopool p,int level);
 static int update_offdata_cache(kno_knopool kp,int level,int chunk_ref_size);
@@ -217,7 +217,8 @@ static kno_pool open_knopool(u8_string fname,kno_storage_flags open_flags,
 			     lispval opts)
 {
   KNO_OID base = KNO_NULL_OID_INIT;
-  unsigned int hi, lo, magicno, capacity, load, n_xrefs, knopool_format = 0;
+  unsigned int hi, lo, magicno, capacity, load, n_xrefs;
+  unsigned int xref_flags = 0, knopool_format = 0;
   kno_off_t label_loc, metadata_loc, xrefs_loc, xrefs_size;
   lispval label;
   struct KNO_KNOPOOL *pool = u8_alloc(struct KNO_KNOPOOL);
@@ -274,6 +275,7 @@ static kno_pool open_knopool(u8_string fname,kno_storage_flags open_flags,
 
   pool->pool_offtype =
     (kno_offset_type)((knopool_format)&(KNO_KNOPOOL_OFFMODE));
+
   kno_compress_type cmptype = (((knopool_format)&(KNO_KNOPOOL_COMPRESSION))>>3);
   pool->pool_compression = kno_compression_type(opts,cmptype);
 
@@ -281,6 +283,23 @@ static kno_pool open_knopool(u8_string fname,kno_storage_flags open_flags,
     open_flags |= KNO_POOL_ADJUNCT;
   if (U8_BITP(knopool_format,KNO_KNOPOOL_SPARSE))
     open_flags |= KNO_POOL_SPARSE;
+
+  lispval optval = kno_getopt(opts,oidrefs_symbol,KNO_VOID);
+  if ( (KNO_VOIDP(optval)) || (KNO_DEFAULTP(optval)) ) {
+    if ( (knopool_format) & (KNO_KNOPOOL_OIDREFS) )
+      xref_flags |= XTYPE_REFS_ADD_OIDS;}
+  else if (!(KNO_FALSEP(optval)))
+    xref_flags |= XTYPE_REFS_ADD_OIDS;
+  else NO_ELSE;
+  kno_decref(optval);
+  optval = kno_getopt(opts,symrefs_symbol,KNO_VOID);
+  if ( (KNO_VOIDP(optval)) || (KNO_DEFAULTP(optval)) ) {
+    if ( (knopool_format) & (KNO_KNOPOOL_SYMREFS) )
+      xref_flags |= XTYPE_REFS_ADD_SYMS;}
+  else if (!(KNO_FALSEP(optval)))
+    xref_flags |= XTYPE_REFS_ADD_SYMS;
+  else NO_ELSE;
+  kno_decref(optval);
 
   kno_setpos(stream,KNO_KNOPOOL_LABEL_POS);
   /* Get the label location */
@@ -406,10 +425,10 @@ static kno_pool open_knopool(u8_string fname,kno_storage_flags open_flags,
       xrefs[i++]=xref;}
     kno_close_inbuf(in);
     kno_init_xrefs(&(pool->pool_xrefs),n_xrefs,xrefs_length,
-		   XREFS_FLAGS,xrefs,NULL);}
+		   xref_flags,xrefs,NULL);}
   else {
     lispval *xrefs = u8_alloc_n(256,lispval);
-    kno_init_xrefs(&(pool->pool_xrefs),0,256,XREFS_FLAGS,xrefs,NULL);}
+    kno_init_xrefs(&(pool->pool_xrefs),0,256,xref_flags,xrefs,NULL);}
   pool->pool_offdata = NULL;
   pool->pool_offlen = 0;
   if (read_only)
@@ -1230,17 +1249,19 @@ static ssize_t knopool_write_value(kno_knopool p,lispval value,
   /* Reset the tmpout stream */
   tmpout->bufwrite = tmpout->buffer;
   kno_write_xtype(tmpout,value,&(p->pool_xrefs));
-  if (0) { /* (p->pool_compression) */
+  if ( (p->pool_compression == KNO_ZLIB) ||
+       (p->pool_compression == KNO_ZLIB9) ) {
     size_t source_length = tmpout->bufwrite-tmpout->buffer;
     size_t compressed_length = 0;
     unsigned char *compressed =
       kno_compress(p->pool_compression,&compressed_length,
 		  tmpout->buffer,source_length,NULL);
     if (compressed) {
-      size_t header = 1;
-      kno_write_byte(outstream,0xFF);
-      header+=kno_write_varint(outstream,(int)p->pool_compression);
-      header+=kno_write_varint(outstream,compressed_length);
+      size_t header = 3;
+      kno_write_byte(outstream,xt_compressed);
+      kno_write_byte(outstream,xt_zcompress);
+      kno_write_byte(outstream,xt_packet);
+      header += kno_write_varint(outstream,compressed_length);
       kno_write_bytes(outstream,compressed,compressed_length);
       u8_big_free(compressed);
       return header+compressed_length;}
@@ -2100,6 +2121,11 @@ static unsigned int get_knopool_format(kno_storage_flags sflags,lispval opts)
   if ( (kno_testopt(opts,KNOSYM_READONLY,VOID)) )
     flags |= KNO_KNOPOOL_READ_ONLY;
 
+  if (! ( (kno_testopt(opts,oidrefs_symbol,KNO_FALSE)) ) )
+    flags |= KNO_KNOPOOL_OIDREFS;
+  if (! ( (kno_testopt(opts,symrefs_symbol,KNO_FALSE)) ) )
+    flags |= KNO_KNOPOOL_SYMREFS;
+
   if ( (kno_testopt(opts,KNOSYM_ISADJUNCT,VOID)) ||
        (kno_testopt(opts,KNOSYM_FLAGS,KNOSYM_ISADJUNCT)) ||
        (kno_testopt(opts,KNOSYM_FORMAT,KNOSYM_ISADJUNCT)) ||
@@ -2270,6 +2296,8 @@ KNO_EXPORT void kno_init_knopool_c()
   offmode_symbol=kno_intern("offmode");
   metadata_readonly_props = kno_intern("_readonly_props");
   created_upsym=kno_intern("CREATED");
+  oidrefs_symbol=kno_intern("oidrefs");
+  symrefs_symbol=kno_intern("symrefs");
 
   kno_register_config("KNOPOOL:LOGLEVEL",
 		     "The default loglevel for knopools",
