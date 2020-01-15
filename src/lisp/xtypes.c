@@ -127,6 +127,7 @@ KNO_EXPORT ssize_t kno_add_xtype_ref(lispval x,xtype_refs refs)
       else {
 	refs->xt_refs = new_refs;
 	refs->xt_refs_len = new_size;}}
+    refs->xt_refs_flags |= XTYPE_REFS_CHANGED;
     refs->xt_refs[ref]=x;
     return ref;}
   else return -1;
@@ -172,7 +173,7 @@ static ssize_t write_xtype(kno_outbuf out,lispval x,xtype_refs refs)
     rv = kno_write_varint(out,len);
     if (KNO_EXPECT_FALSE(rv<0))
       return rv;
-    return kno_write_bytes(out,pname,len);}
+    return 1+rv+kno_write_bytes(out,pname,len);}
   else if (KNO_CHARACTERP(x)) {
     int code = KNO_CHAR2CODE(x);
     kno_write_byte(out,xt_character);
@@ -630,8 +631,8 @@ static lispval restore_compressed(lispval tag,lispval data,xtype_refs refs)
         u8_big_free(uncompressed);
         return value;}
       else return kno_err("UncompressFailed","xt_zread",NULL,VOID);}}
-  else return kno_init_compound
-	 (NULL,compressed_symbol,KNO_COMPOUND_USEREF,2,tag,data);
+  return kno_init_compound
+    (NULL,compressed_symbol,KNO_COMPOUND_USEREF,2,tag,data);
 }
 
 /* Uncompressing */

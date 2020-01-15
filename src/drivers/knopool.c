@@ -211,6 +211,8 @@ static kno_size_t get_maxpos(kno_knopool p)
 
 /* Making and opening knopools */
 
+#define XREFS_FLAGS (XTYPE_REFS_ADD_OIDS|XTYPE_REFS_ADD_SYMS)
+
 static kno_pool open_knopool(u8_string fname,kno_storage_flags open_flags,
 			     lispval opts)
 {
@@ -393,7 +395,7 @@ static kno_pool open_knopool(u8_string fname,kno_storage_flags open_flags,
     int i = 0;
     kno_setpos(stream,xrefs_loc);
     while (_in.bufread < _in.buflim ) {
-      lispval xref = kno_read_dtype(in);
+      lispval xref = kno_read_xtype(in,NULL);
       if (!( (KNO_SYMBOLP(xref)) || (KNO_OIDP(xref)) ||
 	     (KNO_EMPTYP(xref)) || (KNO_VOIDP(xref)) ||
 	     (KNO_FALSEP(xref)) )) {
@@ -403,10 +405,11 @@ static kno_pool open_knopool(u8_string fname,kno_storage_flags open_flags,
 	return NULL;}
       xrefs[i++]=xref;}
     kno_close_inbuf(in);
-    kno_init_xrefs(&(pool->pool_xrefs),n_xrefs,xrefs_length,0,xrefs,NULL);}
+    kno_init_xrefs(&(pool->pool_xrefs),n_xrefs,xrefs_length,
+		   XREFS_FLAGS,xrefs,NULL);}
   else {
     lispval *xrefs = u8_alloc_n(256,lispval);
-    kno_init_xrefs(&(pool->pool_xrefs),0,256,0,xrefs,NULL);}
+    kno_init_xrefs(&(pool->pool_xrefs),0,256,XREFS_FLAGS,xrefs,NULL);}
   pool->pool_offdata = NULL;
   pool->pool_offlen = 0;
   if (read_only)
