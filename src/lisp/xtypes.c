@@ -484,13 +484,19 @@ static lispval read_xtype(kno_inbuf in,xtype_refs refs)
       return cdr;}
     if (xt_code == xt_pair)
       return kno_init_pair(NULL,car,cdr);
-    else if (xt_code == xt_tagged)
-      return restore_tagged(car,cdr,refs);
+    else if (xt_code == xt_tagged) {
+      lispval restored = restore_tagged(car,cdr,refs);
+      kno_decref(car);
+      kno_decref(cdr);
+      return restored;}
     else if (xt_code == xt_mimeobj)
       return kno_init_compound
 	(NULL,mime_symbol,KNO_COMPOUND_USEREF,2,car,cdr);
-    else if (xt_code == xt_compressed)
-      return restore_compressed(car,cdr,refs);
+    else if (xt_code == xt_compressed) {
+      lispval inflated = restore_compressed(car,cdr,refs);
+      kno_decref(car);
+      kno_decref(cdr);
+      return inflated;}
     else if (xt_code == xt_encrypted)
       return kno_init_compound
 	(NULL,encrypted_symbol,KNO_COMPOUND_USEREF,2,car,cdr);
