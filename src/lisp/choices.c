@@ -826,6 +826,8 @@ KNO_EXPORT
 */
 lispval kno_make_qchoice(lispval val)
 {
+  if (KNO_EMPTYP(val))
+    return kno_init_qchoice(NULL,val);
   if (KNO_CHOICEP(val)) {
     kno_incref(val);
     return kno_init_qchoice(NULL,val);}

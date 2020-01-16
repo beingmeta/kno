@@ -70,7 +70,10 @@ typedef enum XT_TYPE_CODE {
   xt_rational	  = XT_TAG(0x00),
   xt_complex	  = XT_TAG(0x01),
   xt_timestamp	  = XT_TAG(0x02),
-  xt_zcompress    = XT_TAG(0x03)
+  xt_regex        = XT_TAG(0x03),
+  xt_qchoice      = XT_TAG(0x04),
+
+  xt_zcompress    = XT_TAG(0x0C)
 
 } xt_type_code;
 

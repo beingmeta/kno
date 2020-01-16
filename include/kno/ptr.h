@@ -870,8 +870,8 @@ KNO_EXPORT lispval KNOSYM_VERSION, KNOSYM_VOID;
 KNO_EXPORT lispval KNOSYM_XTYPE;
 
 KNO_EXPORT lispval kno_timestamp_xtag, kno_zcompress_xtag,
-  kno_rational_xtag, kno_complex_xtag;
-
+  kno_rational_xtag, kno_complex_xtag, kno_regex_xtag,
+  kno_qchoice_xtag;
 
 /* Function IDs */
 

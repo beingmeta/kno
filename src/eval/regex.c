@@ -236,46 +236,6 @@ static lispval regex_matchspan(lispval pat,lispval string,lispval ef)
   else return kno_type_error("unsigned int","regex_matchspan/flags",ef);
 }
 
-/* DTYPEs */
-
-static ssize_t write_regex_dtype(struct KNO_OUTBUF *out,lispval x)
-{
-  struct KNO_REGEX *rx = (kno_regex) x;
-  unsigned char buf[100], *tagname="%regex";
-  u8_string rxsrc = rx->rxsrc;
-  int srclen = strlen(rxsrc), rxflags = rx->rxflags;
-  struct KNO_OUTBUF tmp = { 0 };
-  KNO_INIT_OUTBUF(&tmp,buf,100,0);
-  kno_write_byte(&tmp,dt_compound);
-  kno_write_byte(&tmp,dt_symbol);
-  kno_write_4bytes(&tmp,6);
-  kno_write_bytes(&tmp,tagname,6);
-  kno_write_byte(&tmp,dt_vector);
-  kno_write_4bytes(&tmp,2);
-  kno_write_byte(&tmp,dt_string);
-  kno_write_4bytes(&tmp,srclen);
-  kno_write_bytes(&tmp,rxsrc,srclen);
-  kno_write_byte(&tmp,dt_fixnum);
-  kno_write_4bytes(&tmp,rxflags);
-  ssize_t n_bytes=tmp.bufwrite-tmp.buffer;
-  kno_write_bytes(out,tmp.buffer,n_bytes);
-  kno_close_outbuf(&tmp);
-  return n_bytes;
-}
-
-static lispval regex_restore(lispval U8_MAYBE_UNUSED tag,
-			     lispval x,
-			     kno_typeinfo U8_MAYBE_UNUSED e)
-{
-  if ( (VECTORP(x)) && (KNO_VECTOR_LENGTH(x) == 2) ) {
-    lispval rxsrc = KNO_VECTOR_REF(x,0);
-    lispval rxflags = KNO_VECTOR_REF(x,1);
-    if ( (KNO_STRINGP(rxsrc)) || (KNO_FIXNUMP(rxflags)) )
-      return kno_make_regex(KNO_CSTRING(rxsrc),KNO_FIX2INT(rxflags));
-    else return kno_err("Bad Regex","regex_restore",NULL,x);}
-  else return kno_err("Bad UUID rep","uuid_restore",NULL,x);
-}
-
 /* Initialization */
 
 static int regex_init = 0;
@@ -286,15 +246,10 @@ KNO_EXPORT int kno_init_regex_c()
 {
   if (regex_init) return 0;
 
-  struct KNO_TYPEINFO *info = kno_use_typeinfo(kno_intern("%regex"));
-  info->type_restorefn = regex_restore;
-
   regex_init = 1;
   regex_module = kno_new_cmodule("regex",0,kno_init_regex_c);
 
   link_local_cprims();
-
-  kno_dtype_writers[kno_regex_type] = write_regex_dtype;
 
   kno_finish_module(regex_module);
 

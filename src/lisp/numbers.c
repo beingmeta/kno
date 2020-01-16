@@ -3528,8 +3528,8 @@ static ssize_t write_bigint_xtype
     int n_bytes = kno_bigint_length_in_bytes(bi);
     unsigned char _bytes[64], *bytes, *scan;
     if (negative)
-      kno_write_byte(out,xt_posbig);
-    else kno_write_byte(out,xt_negbig);
+      kno_write_byte(out,xt_negbig);
+    else kno_write_byte(out,xt_posbig);
     if (n_bytes >= 64)
       scan = bytes = u8_malloc(n_bytes);
     else scan = bytes = _bytes;
@@ -3547,7 +3547,7 @@ static ssize_t write_bigint_xtype
 static ssize_t write_rational_xtype
 (struct KNO_OUTBUF *out,lispval x,xtype_refs refs)
 {
-  struct KNO_PAIR *p = (kno_pair) p;
+  struct KNO_PAIR *p = (kno_pair) x;
   ssize_t rv = kno_write_byte(out,xt_tagged);
   if (rv<0) return rv; else rv=kno_write_byte(out,xt_rational);
   if (rv<0) return rv; else rv=kno_write_byte(out,xt_pair);
@@ -3563,7 +3563,7 @@ static ssize_t write_rational_xtype
 static ssize_t write_complex_xtype
 (struct KNO_OUTBUF *out,lispval x,xtype_refs refs)
 {
-  struct KNO_PAIR *p = (kno_pair) p;
+  struct KNO_PAIR *p = (kno_pair) x;
   ssize_t rv = kno_write_byte(out,xt_tagged);
   if (rv<0) return rv; else rv=kno_write_byte(out,xt_complex);
   if (rv<0) return rv; else rv=kno_write_byte(out,xt_pair);

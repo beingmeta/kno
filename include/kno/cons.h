@@ -738,7 +738,6 @@ typedef struct KNO_COMPLEX *kno_complex;
 #define KNO_IMAGPART(x)							\
   ((kno_consptr(struct KNO_COMPLEX *,x,kno_complex_type))->imagpart)
 
-
 /* Parsing regexes */
 
 #include <regex.h>

@@ -27,7 +27,7 @@
    calltrack checkurl codewalker couchdb dropbox ellipsize email fakezip fillin 
    findcycles getcontent gravatar gutdb hashstats histogram hostinfo i18n ice 
    isbn mimeout oauth openlibrary bugjar pump readcsv samplefns savecontent 
-   speling tinygis tracer trackrefs twilio updatefile whocalls ximage})
+   speling tinygis tracer trackrefs twilio updatefile whocalls})
 
 (check-modules '{aws aws/s3 aws/ses aws/simpledb aws/sqs aws/v4
 		 aws/associates aws/dynamodb})

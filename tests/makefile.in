@@ -512,12 +512,21 @@ framedb_keyslot:
 	@make TESTBASE=slotindex RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB40} SEPINDEX=FILENAME" framedb
 framedb_keyslots:
 	@make TESTBASE=slotindex RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB40} SEPINDEX=FILENAME SEPINDEX=IN-FILE^CONTEXT" framedb
+
+framedb_knopool32:
+	@make TESTBASE=tmpknopool32 RUNCONF="${KNOPOOL} ${HASHINDEX} ${OFFB32}" framedb
+framedb_knopool40:
+	@make TESTBASE=tmpknopool40 RUNCONF="${KNOPOOL} ${HASHINDEX} ${OFFB40}" framedb
+framedb_knopool64:
+	@make TESTBASE=tmpknopool64 RUNCONF="${KNOPOOL} ${HASHINDEX} ${OFFB64}" framedb
+
 framedb_bigpool32:
 	@make TESTBASE=tmpbigpool32 RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB32}" framedb
 framedb_bigpool40:
 	@make TESTBASE=tmpbigpool40 RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB40}" framedb
 framedb_bigpool64:
 	@make TESTBASE=tmpbigpool64 RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB64}" framedb
+
 framedb_fileindex:
 	@make TESTBASE=tmpfileindex RUNCONF="${BIGPOOL} ${FILEINDEX} ${OFFB40}" framedb
 framedb_memindex:
@@ -531,7 +540,6 @@ framedb_oidpool64:
 framedb_consindex:
 	@make TESTBASE=tmpbigpool40cx RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB40} CONSINDEX=yes" framedb
 
-
 lvldbframes lvldbframedb:
 	@make TESTBASE=lvldb RUNCONF="POOLTYPE=leveldb INDEXTYPE=leveldb INDEXMOD=leveldb POOLMOD=leveldb" framedb
 rckdbframes rckdbframedb:
@@ -539,6 +547,7 @@ rckdbframes rckdbframedb:
 
 framedbs: framedb_base \
 	framedb_bigpool32 framedb_bigpool40 framedb_bigpool64 \
+	framedb_knopool32 framedb_knopool40 framedb_knopool64 \
 	framedb_aggregate framedb_keyslot \
 	framedb_fileindex framedb_memindex \
 

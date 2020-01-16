@@ -15,6 +15,7 @@
 #include "kno/knosource.h"
 #include "kno/lisp.h"
 #include "kno/compounds.h"
+#include "kno/numbers.h"
 #include "kno/xtypes.h"
 
 #include <libu8/u8elapsed.h>
@@ -42,14 +43,14 @@ lispval restore_bigint(ssize_t n_digits,unsigned char *bytes,int negp);
 
 static lispval restore_tagged(lispval tag,lispval data,xtype_refs refs);
 static lispval restore_compressed(lispval tag,lispval data,xtype_refs refs);
+
 static ssize_t write_opaque
 (kno_outbuf out, lispval x,xtype_refs refs);
-static ssize_t write_slotmap
-(kno_outbuf out,struct KNO_SLOTMAP *map,xtype_refs refs);
-static ssize_t write_schemap
-(kno_outbuf out,struct KNO_SCHEMAP *map,xtype_refs refs);
-
-
+static ssize_t write_slotmap(kno_outbuf out,struct KNO_SLOTMAP *map,xtype_refs refs);
+static ssize_t write_schemap(kno_outbuf out,struct KNO_SCHEMAP *map,xtype_refs refs);
+static ssize_t write_compound(kno_outbuf out,
+			      struct KNO_COMPOUND *cvec,
+			      xtype_refs refs);
 
 /* Utility functions */
 
@@ -202,7 +203,19 @@ static ssize_t write_xtype(kno_outbuf out,lispval x,xtype_refs refs)
     case KNO_VOID:
       rv=kno_write_byte(out,xt_void); break;
     default:
-      if (flags&XTYPE_WRITE_OPAQUE)
+      if (x==kno_rational_xtag)
+	rv=kno_write_byte(out,xt_rational);
+      else if (x==kno_complex_xtag)
+	rv=kno_write_byte(out,xt_complex);
+      else if (x==kno_timestamp_xtag)
+	rv=kno_write_byte(out,xt_timestamp);
+      else if (x==kno_regex_xtag)
+	rv=kno_write_byte(out,xt_regex);
+      else if (x==kno_qchoice_xtag)
+	rv=kno_write_byte(out,xt_qchoice);
+      else if (x==kno_zcompress_xtag)
+	rv=kno_write_byte(out,xt_zcompress);
+      else if (flags&XTYPE_WRITE_OPAQUE)
 	return write_opaque(out,x,refs);
       else {
 	kno_seterr("XType/BadImmediate","xt_write_dtype",NULL,x);
@@ -266,6 +279,15 @@ static ssize_t write_xtype(kno_outbuf out,lispval x,xtype_refs refs)
     return write_slotmap(out,(kno_slotmap)x,refs);
   case kno_schemap_type:
     return write_schemap(out,(kno_schemap)x,refs);
+  case kno_tagged_type:
+    return write_compound(out,(kno_compound)x,refs);
+  case kno_qchoice_type: {
+    struct KNO_QCHOICE *qv = (kno_qchoice) x;
+    kno_write_byte(out,xt_tagged);
+    kno_write_byte(out,xt_qchoice);
+    ssize_t content_len = write_xtype(out,qv->qchoiceval,refs);
+    if (content_len<0) return content_len;
+    else return 2+content_len;}
   case kno_prechoice_type: {
     lispval norm = kno_make_simple_choice(x);
     ssize_t rv = write_xtype(out,norm,refs);
@@ -277,7 +299,8 @@ static ssize_t write_xtype(kno_outbuf out,lispval x,xtype_refs refs)
     else if (flags&XTYPE_WRITE_OPAQUE)
       return write_opaque(out,x,refs);
     else {
-      kno_seterr("CantWriteXType","write_xtype",NULL,x);
+      kno_seterr("CantWriteXType","write_xtype",
+		 kno_type2name(ctype),x);
       return -1;}}
 }
 
@@ -303,6 +326,8 @@ static lispval read_xtype(kno_inbuf in,xtype_refs refs)
   case xt_rational: return kno_rational_xtag;
   case xt_complex: return kno_complex_xtag;
   case xt_timestamp: return kno_timestamp_xtag;
+  case xt_regex: return kno_regex_xtag;
+  case xt_qchoice: return kno_qchoice_xtag;
   case xt_zcompress: return kno_zcompress_xtag;
 
   case xt_absref: {
@@ -562,6 +587,34 @@ static ssize_t write_schemap(kno_outbuf out,
     return xtype_len;}
 }
 
+static ssize_t write_compound(kno_outbuf out,
+			      struct KNO_COMPOUND *cvec,
+			      xtype_refs refs)
+{
+  ssize_t tag_len = -1, content_len = -1;
+  int n_elts = cvec->compound_length;
+  kno_write_byte(out,xt_tagged);
+  tag_len = kno_write_xtype(out,cvec->typetag,refs);
+  if (tag_len<0) return tag_len;
+  if (n_elts == 1) {
+    content_len = kno_write_xtype(out,cvec->compound_0,refs);
+    if (content_len > 0)
+      return 1+tag_len+content_len;
+    else return content_len;}
+  kno_write_byte(out,xt_vector);
+  ssize_t rv = kno_write_varint(out,n_elts);
+  if (rv<0) return rv;
+  content_len = 1+rv;
+  lispval *elts = &(cvec->compound_0);
+  int i = 0; while (i<n_elts) {
+    lispval elt = elts[i];
+    ssize_t xt_len = kno_write_xtype(out,elt,refs);
+    if (xt_len<0) return xt_len;
+    content_len += xt_len;
+    i++;}
+  return 1+tag_len+content_len;
+}
+
 static ssize_t write_opaque(kno_outbuf out, lispval x,xtype_refs refs)
 {
   U8_STATIC_OUTPUT(unparse,128);
@@ -585,37 +638,24 @@ static ssize_t write_opaque(kno_outbuf out, lispval x,xtype_refs refs)
 
 static lispval restore_tagged(lispval tag,lispval data,xtype_refs refs)
 {
-  if (tag == kno_rational_xtag) {
-    if (PAIRP(data))
-      return _kno_make_rational(KNO_CAR(data),KNO_CDR(data));}
-  else if (tag == kno_complex_xtag) {
-    if (PAIRP(data))
-      return _kno_make_complex(KNO_CAR(data),KNO_CDR(data));}
-  else if (tag == kno_timestamp_xtag) {
+  if (tag == kno_timestamp_xtag) {
     if (FIXNUMP(data))
       return kno_time2timestamp((time_t)(KNO_FIX2INT(data)));}
-  else if (tag == kno_zcompress_xtag) {
-    if (PACKETP(data)) {
-      ssize_t compressed_len = KNO_PACKET_LENGTH(data);
-      const unsigned char *bytes = KNO_PACKET_DATA(data);
-      ssize_t uncompressed_len = 0;
-      unsigned char *uncompressed =
-	do_zuncompress(bytes,compressed_len,
-		       &uncompressed_len,NULL);
-      if (uncompressed) {
-	struct KNO_INBUF inflated = { 0 };
-	KNO_INIT_BYTE_INPUT(&inflated,uncompressed,uncompressed_len);
-	lispval value = kno_read_xtype(&inflated,refs);
-        u8_big_free(uncompressed);
-        return value;}
-      else return kno_err("UncompressFailed","xt_zread",NULL,VOID);}}
+  else if (tag == kno_qchoice_xtag)
+      return kno_make_qchoice(data);
+  else if (tag == kno_rational_xtag) {
+    if (PAIRP(data))
+      return kno_make_rational(KNO_CAR(data),KNO_CDR(data));}
+  else if (tag == kno_complex_xtag) {
+    if (PAIRP(data))
+      return kno_make_complex(KNO_CAR(data),KNO_CDR(data));}
   else NO_ELSE;
   struct KNO_TYPEINFO *e = kno_use_typeinfo(tag);
   if ((e) && (e->type_restorefn)) {
     lispval result = e->type_restorefn(tag,data,e);
     return result;}
   else {
-    int flags = 0;
+    int flags = KNO_COMPOUND_INCREF;
     if (e) {
       if (e->type_isopaque)
 	flags |= KNO_COMPOUND_OPAQUE;
