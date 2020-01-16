@@ -130,10 +130,10 @@ static u8_condition InvalidOffset=_("Invalid offset in KNOPOOL");
    0x0c XXXX	 Capacity of pool
    0x10 XXXX	 Load of pool
    0x14 XXXX	 Pool information bits/flags
-   0x18 XXXX	 file offset of the pool label (a dtype) (8 bytes)
+   0x18 XXXX	 file offset of the pool label (an xtype) (8 bytes)
    XXXX	     (64 bits)
-   0x20 XXXX	 byte length of label dtype (4 bytes)
-   0x24 XXXX	 file offset of pool metadata (a dtype) (8 bytes)
+   0x20 XXXX	 byte length of label xtype (4 bytes)
+   0x24 XXXX	 file offset of pool metadata (an xtype) (8 bytes)
    XXXX	     (64 bits)
    0x2c XXXX	 byte length of pool metadata representation (4 bytes)
    0x30 XXXX	 pool creation time_t (8 bytes)
@@ -147,7 +147,7 @@ static u8_condition InvalidOffset=_("Invalid offset in KNOPOOL");
    0x50 XXXX	 number of registered xrefs
    0x54 XXXX	 file offset of the xrefs block
    XXXX	     (64 bits)
-   0x5c XXXX	 size of xrefs dtype representation
+   0x5c XXXX	 size of xrefs xtype representation
 
    0x60 XXXX	 number of value blocks written	 (8 bytes)
    0x64 XXXX	  (64 bits)
@@ -242,7 +242,9 @@ static kno_pool open_knopool(u8_string fname,kno_storage_flags open_flags,
     (( (open_flags) & (KNO_STORAGE_LOUDSYMS) ) ? (KNO_STREAM_LOUDSYMS) : (0));
 
   struct KNO_STREAM *stream=
-    kno_init_file_stream(&(pool->pool_stream),fname,KNO_FILE_READ,stream_flags,-1);
+    kno_init_file_stream(&(pool->pool_stream),fname,
+			 KNO_FILE_READ,stream_flags,
+			 -1);
   struct KNO_INBUF *instream = (stream) ? (kno_readbuf(stream)) : (NULL);
   if (instream == NULL) {
     u8_raise(kno_FileNotFound,"open_knopool",u8_strdup(fname));
@@ -333,7 +335,7 @@ static kno_pool open_knopool(u8_string fname,kno_storage_flags open_flags,
   if (metadata_loc) {
     if (kno_setpos(stream,metadata_loc)>0) {
       kno_inbuf in = kno_readbuf(stream);
-      metadata = kno_read_dtype(in);}
+      metadata = kno_read_xtype(in,NULL);}
     else {
       metadata=KNO_ERROR_VALUE;}
 
@@ -351,7 +353,7 @@ static kno_pool open_knopool(u8_string fname,kno_storage_flags open_flags,
 	stream->buf.raw.buf_flags |= KNO_FIX_DTSYMS;
 	if (kno_setpos(stream,metadata_loc)>0) {
 	  kno_inbuf in = kno_readbuf(stream);
-	  lispval new_metadata = kno_read_dtype(in);
+	  lispval new_metadata = kno_read_xtype(in,NULL);
 	  kno_decref(metadata);
 	  metadata=new_metadata;}
 	else {
@@ -373,17 +375,18 @@ static kno_pool open_knopool(u8_string fname,kno_storage_flags open_flags,
       return NULL;}}
 
   {
-    lispval max_refs_opt = kno_getopt(opts,KNOSYM(maxrefs),KNO_VOID);
-    if (KNO_VOIDP(max_refs_opt))
-      max_refs_opt = kno_get(metadata,KNOSYM(maxrefs),KNO_VOID);
-    if (KNO_FIXNUMP(max_refs_opt))
-      xrefs_max = KNO_FIX2INT(max_refs_opt);
-    else if ( (KNO_VOIDP(max_refs_opt)) || (KNO_FALSEP(max_refs_opt)) )
+    lispval max_refs_val = kno_get(metadata,KNOSYM(maxrefs),KNO_VOID);
+    if (KNO_FIXNUMP(max_refs_val))
+      xrefs_max = KNO_FIX2INT(max_refs_val);
+    else if ( (KNO_VOIDP(max_refs_val)) ||
+	      (KNO_FALSEP(max_refs_val)) ||
+	      (KNO_DEFAULTP(max_refs_val)) )
       xrefs_max = -1;
     else {
-      xrefs_max = knopool_max_xrefs;}
-    if ( (xrefs_max > 0) && (n_xrefs > xrefs_max) )
       xrefs_max = n_xrefs;}
+    if ( (xrefs_max > 0) && (n_xrefs > xrefs_max) )
+      xrefs_max = n_xrefs;
+    kno_decref(max_refs_val);}
   kno_init_pool((kno_pool)pool,base,capacity,
 		&knopool_handler,
 		fname,abspath,realpath,
@@ -398,7 +401,7 @@ static kno_pool open_knopool(u8_string fname,kno_storage_flags open_flags,
 
   if (label_loc) {
     if (kno_setpos(stream,label_loc)>0) {
-      label = kno_read_dtype(instream);
+      label = kno_read_xtype(instream,NULL);
       if (STRINGP(label))
 	pool->pool_label = u8_strdup(CSTRING(label));
       else if (SYMBOLP(label))
@@ -658,7 +661,7 @@ static int make_knopool
     kno_write_4bytes(outstream,real_len);}
   else kno_write_4bytes(outstream,0);
   kno_write_8bytes(outstream,0); /* xrefs offset (may be changed) */
-  kno_write_4bytes(outstream,0); /* xrefs dtype length (may be changed) */
+  kno_write_4bytes(outstream,0); /* xrefs xtype length (may be changed) */
 
   /* Fill the rest of the space. */
   {
@@ -683,8 +686,8 @@ static int make_knopool
   if (label) {
     int len = strlen(label);
     label_pos = kno_getpos(stream);
-    kno_write_byte(outstream,dt_string);
-    kno_write_4bytes(outstream,len);
+    kno_write_byte(outstream,xt_utf8);
+    kno_write_varint(outstream,len);
     kno_write_bytes(outstream,label,len);
     label_size = kno_getpos(stream)-label_pos;}
 
@@ -693,22 +696,15 @@ static int make_knopool
     int i = 0, len = VEC_LEN(xrefs_init);
     xrefs_pos = kno_getpos(stream);
     while (i<len) {
-      lispval slotid = VEC_REF(xrefs_init,i);
-      kno_write_dtype(outstream,slotid);
-      i++;}
-    xrefs_size = kno_getpos(stream)-xrefs_pos;}
-  else if (KNO_FIXNUMP(xrefs_init)) {
-    long long i=0, len = KNO_FIX2INT(xrefs_init);
-    xrefs_pos = kno_getpos(stream);
-    while (i<len) {
-      kno_write_dtype(outstream,KNO_FALSE);
+      lispval xref = VEC_REF(xrefs_init,i);
+      kno_write_xtype(outstream,xref,NULL);
       i++;}
     xrefs_size = kno_getpos(stream)-xrefs_pos;}
   else NO_ELSE;
 
   if (KNO_TABLEP(metadata_init)) {
     metadata_pos = kno_getpos(stream);
-    kno_write_dtype(outstream,metadata_init);
+    kno_write_xtype(outstream,metadata_init,NULL);
     metadata_size = kno_getpos(stream)-metadata_pos;}
 
   if (label_pos) {
@@ -1068,8 +1064,7 @@ static int knopool_storen(kno_pool p,struct KNO_POOL_COMMITS *commits,
     u8_logf(LOG_DEBUG,"KnopoolStore",
 	    "Storing %d oid values in knopool %s",n,p->poolid);
 
-    /* These are used repeatedly for rendering objects to dtypes or to
-       compressed dtypes. */
+    /* These are used repeatedly for rendering objects to xtypes */
     struct KNO_OUTBUF tmpout = { 0 };
     unsigned char *zbuf = u8_malloc(KNO_INIT_ZBUF_SIZE);
     unsigned int zbuf_size = KNO_INIT_ZBUF_SIZE;
@@ -1346,11 +1341,14 @@ static int set_knopool_label(kno_knopool kp,u8_string label)
     size_t len = strlen(label);
     label_pos = kno_endpos(stream);
     kno_outbuf out = kno_writebuf(stream);
-    label_size = strlen(label)+5;
     if (out) {
-      rv = kno_write_byte(out,dt_string);
-      if (rv>0) rv=kno_write_4bytes(out,len);
-      if (rv>0) rv=kno_write_bytes(out,label,len);
+      rv = kno_write_byte(out,xt_utf8);
+      label_size = 1;
+      ssize_t delta = kno_write_varint(out,len);
+      if (delta>0) {
+	label_size += delta;
+	delta = kno_write_bytes(out,label,len);}
+      if (delta>=0) label_size += delta;
       kno_flush_stream(stream);}}
   else {/* Resetting label */}
   if (rv > 0) {
@@ -1401,11 +1399,11 @@ static int write_knopool_metadata(kno_knopool kp,lispval metadata,
 	    "Writing modified metadata for %s",kp->poolid);
     off_t start_pos = kno_endpos(stream), end_pos = start_pos;
     kno_outbuf out = kno_writebuf(stream);
-    int rv=kno_write_dtype(out,metadata);
+    int rv=kno_write_xtype(out,metadata,NULL);
     if (rv<0) {
       u8_exception ex = u8_current_exception;
       u8_condition cond = (ex) ? (ex->u8x_cond) :
-	((u8_condition)"Unknown DType error");
+	((u8_condition)"Unknown XType error");
       u8_logf(LOG_CRIT,cond,"Couldnt'save metadata for knopool %s: %q",
 	      kp->poolid,metadata);
       return rv;}
@@ -2242,10 +2240,26 @@ static kno_pool knopool_create(u8_string spec,void *type_data,
   kno_store(metadata,packed_symbol,ltime);
   kno_decref(ltime); ltime = KNO_VOID;
 
+  ssize_t use_xrefs_max = -1;
   lispval xrefs_max = kno_getopt(opts,KNOSYM(maxrefs),KNO_VOID);
-  if (!(KNO_VOIDP(xrefs_max))) {
-    kno_store(metadata,KNOSYM(maxrefs),xrefs_max);
-    kno_decref(xrefs_max);}
+  if (KNO_FALSEP(xrefs))
+    use_xrefs_max = 0;
+  else if ( (KNO_VOIDP(xrefs_max)) || (KNO_FALSEP(xrefs_max)) ) {}
+  else if (KNO_FIXNUMP(xrefs_max))
+    use_xrefs_max = KNO_FIX2INT(xrefs_max);
+  else if (KNO_TRUEP(xrefs_max))
+    use_xrefs_max = knopool_max_xrefs;
+  else {
+    u8_log(LOGWARN,"BadMaxRefs",
+	   "The specified value %q isn't valid as a maxrefs value.",
+	   xrefs_max);}
+
+  if ( (use_xrefs_max == 0) && (KNO_VECTORP(xrefs)) )
+    use_xrefs_max = KNO_VECTOR_LENGTH(xrefs);
+
+  if (use_xrefs_max >= 0)
+    kno_store(metadata,KNOSYM(maxrefs),KNO_INT(use_xrefs_max));
+  kno_decref(xrefs_max);
 
   if (!(kno_test(metadata,init_opts,KNO_VOID)))
     kno_store(metadata,init_opts,opts);
