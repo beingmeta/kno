@@ -15,7 +15,7 @@ ExecStartPre=/bin/chown @knouser@ @kno_rundir@/daemons/ @kno_logdir@/daemons/ @k
 ExecStartPre=/bin/chgrp @admin_group@ @kno_rundir@/daemons/ @kno_logdir@/daemons/ @kno_logdir@/bugjar/
 ExecStartPre=/bin/chmod g+rwx @kno_rundir@/daemons/ @kno_logdir@/daemons/
 ExecStartPre=/bin/chmod go+rwx @kno_logdir@/bugjar/
-ExecStart=@prefix/knod %%CTL%%
+ExecStart=@prefix@/knod %%CTL%%
 
 [Install]
 WantedBy=default.target
