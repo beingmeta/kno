@@ -120,8 +120,9 @@
 
 ;;; Url loading
 
-(load "https://s3.amazonaws.com/knomods.beingmeta.com/testload.scm")
-(evaltest #t (bound? alt-plus))
+(unless (or (config 'offline) (getenv "OFFLINE"))
+  (load "https://s3.amazonaws.com/knomods.beingmeta.com/testload.scm")
+  (evaltest #t (bound? alt-plus)))
 
 ;;; Errors
 

@@ -35,7 +35,8 @@
 (check-modules '{domutils domutils/index domutils/localize
 		 domutils/styles domutils/css domutils/cleanup
 		 domutils/adjust domutils/analyze
-		 domutils/hyphenate})
+		 ;; domutils/hyphenate
+		 })
 
 (check-modules '{facebook facebook/fbcall facebook/fbml})
 
