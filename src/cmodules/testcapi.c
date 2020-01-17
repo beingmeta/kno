@@ -169,7 +169,7 @@ static lispval modules_testcapi()
 		       kno_make_export_env(astring,NULL),
 		       freefn(kno_free_lexenv));
   errors += check_null("kno_new_lexenv()",
-		       kno_new_lexenv(KNO_VOID),
+		       kno_new_lexenv(KNO_FALSE),
 		       freefn(kno_free_lexenv));
   errors += check_neg("kno_finish_module(string)",
 		       kno_finish_module(astring));
