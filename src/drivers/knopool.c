@@ -282,7 +282,8 @@ static kno_pool open_knopool(u8_string fname,kno_storage_flags open_flags,
   pool->pool_offtype =
     (kno_offset_type)((knopool_format)&(KNO_KNOPOOL_OFFMODE));
 
-  kno_compress_type cmptype = (((knopool_format)&(KNO_KNOPOOL_COMPRESSION))>>3);
+  kno_compress_type cmptype =
+    (((knopool_format)&(KNO_KNOPOOL_COMPRESSION))>>3);
   pool->pool_compression = kno_compression_type(opts,cmptype);
 
   if (U8_BITP(knopool_format,KNO_KNOPOOL_ADJUNCT))
@@ -657,8 +658,9 @@ static int make_knopool
     int real_len = 0; int i =0, lim = VEC_LEN(xrefs_init);
     while (i<lim) {
       lispval slotid = VEC_REF(xrefs_init,i);
-      if ( (KNO_OIDP(slotid)) || (KNO_SYMBOLP(slotid)) )
+      if ( (KNO_OIDP(slotid)) || (KNO_SYMBOLP(slotid)) ) {
 	real_len++;
+	i++;}
       else break;}
     kno_write_4bytes(outstream,real_len);}
   else kno_write_4bytes(outstream,0);
@@ -699,7 +701,8 @@ static int make_knopool
     xrefs_pos = kno_getpos(stream);
     while (i<len) {
       lispval xref = VEC_REF(xrefs_init,i);
-      kno_write_xtype(outstream,xref,NULL);
+      if ( (OIDP(xref)) || (SYMBOLP(xref)) )
+	kno_write_xtype(outstream,xref,NULL);
       i++;}
     xrefs_size = kno_getpos(stream)-xrefs_pos;}
   else NO_ELSE;
@@ -958,7 +961,8 @@ static lispval *knopool_fetchn(kno_pool p,int n,lispval *oids)
 	else values[schedule[i].value_at]=value;}
       i++;}
 
-    if ( (i != n) && ( (kp->pool_flags & KNO_STORAGE_REPAIR) == 0) ) { /* Error */
+    if ( (i != n) && ( (kp->pool_flags & KNO_STORAGE_REPAIR) == 0) ) {
+      /* Error */
       int j = 0; while (j<i) {
 	lispval value = values[schedule[j].value_at];
 	kno_decref(value);
@@ -2266,6 +2270,11 @@ static kno_pool knopool_create(u8_string spec,void *type_data,
   if (!(kno_test(metadata,init_opts,KNO_VOID)))
     kno_store(metadata,init_opts,opts);
   kno_store(metadata,make_opts,opts);
+
+  if (!(kno_testopt(opts,oidrefs_symbol,KNO_FALSE)))
+    flags |= KNO_KNOPOOL_OIDREFS;
+  if (!(kno_testopt(opts,symrefs_symbol,KNO_FALSE)))
+    flags |= KNO_KNOPOOL_SYMREFS;
 
   if (rv<0) return NULL;
   else rv = make_knopool(spec,
