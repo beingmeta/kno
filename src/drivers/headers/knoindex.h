@@ -86,7 +86,7 @@ struct COMMIT_SCHEDULE {
 struct KEYENTRY {
   int ke_nvals, ke_dtrep_size;
   /* This points to the point in keybucket's kb_keybuf
-     where the dtype representation of the key begins. */
+     where the xtype representation of the key begins. */
   const unsigned char *ke_dtstart;
   lispval ke_values;
   KNO_CHUNK_REF ke_vref;};
@@ -104,7 +104,7 @@ typedef struct KNO_BASEOID_LOOKUP {
   unsigned int zindex; KNO_OID baseoid;} KNO_BASEOID_LOOKUP;
 typedef struct KNO_BASEOID_LOOKUP *kno_baseoid_lookup;
 
-/* Utilities for DTYPE I/O */
+/* Utilities for XTYPE I/O */
 
 #define nobytes(in,nbytes) (PRED_FALSE(!(kno_request_bytes(in,nbytes))))
 #define havebytes(in,nbytes) (PRED_TRUE(kno_request_bytes(in,nbytes)))

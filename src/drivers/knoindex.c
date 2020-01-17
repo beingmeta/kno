@@ -20,7 +20,7 @@
    indicating the "hash function" for the bucket and 3 bytes indicating
    other flags and followed by a 4 byte number reserved for customizing
    the hash function. This is followed by a 4 byte offset and a 4 byte
-   size pointing to a DTYPE representation for the index's metadata.
+   size pointing to a XTYPE representation for the index's metadata.
    Following this are
 
    0x00     XXXX    4-byte magic number
@@ -30,13 +30,13 @@
    0x10     XXXX    number of keys
    0x14     XXXX    file offset of slotids vector
    0x18     XXXX     (64 bits)
-   0x1C     XXXX    size of slotids DTYPE representation
+   0x1C     XXXX    size of slotids XTYPE representation
    0x20     XXXX    file offset of baseoids vector
    0x28     XXXX     (64 bits)
-   0x2C     XXXX    size of baseoids DTYPE representation
+   0x2C     XXXX    size of baseoids XTYPE representation
    0x30     XXXX    file offset of index metadata
    0x34     XXXX     (64 bits)
-   0x38     XXXX    size of metadata DTYPE representation
+   0x38     XXXX    size of metadata XTYPE representation
    0x3C     XXXX    number of used buckets
    0x40     XXXX    number of keyblocks
    0x44     XXXX     (64 bits)
@@ -52,24 +52,24 @@
    blocks.  Continuation offsets are not currently supported for key
    blocks.  A value block consists of a byte count, an element count
    (N), and a (possibly zero) continuation pointer, followed by N
-   "zvalue" dtype representations.  A key block consists of a
+   "zvalue" xtype representations.  A key block consists of a
    byte_count, an element_count, and a number of key entries.  A key
    entry consists of a varint-coded size (in bytes) followed by a zkey
-   dtype representation, followed by a varint value_count.  If the
+   xtype representation, followed by a varint value_count.  If the
    value_count is zero, the entry ends, if it is one, it is followed
-   by a single zvalue dtype.  Otherwise, it is followed by a 4 byte
+   by a single zvalue xtype.  Otherwise, it is followed by a 4 byte
    file offset to a value block and a varint coded block size.
 
-   A zvalue dtype representation consists of a varint encoded OID serial
-   number.  If this is zero, it is followed by a regular DTYPE representation.
+   A zvalue xtype representation consists of a varint encoded OID serial
+   number.  If this is zero, it is followed by a regular XTYPE representation.
    Otherwise, it is followed by three bytes of OID offset which are added
    to the base OID associated with the serial number.
 
-   A zkey dtype representation consists of a varint encoded SLOTID
-   serial number followed by a regular DTYPE representation.  If the
-   serial number is zero, the key is the following DTYPE; otherwise,
+   A zkey xtype representation consists of a varint encoded SLOTID
+   serial number followed by a regular XTYPE representation.  If the
+   serial number is zero, the key is the following XTYPE; otherwise,
    the key is a pair of the corresponding SLOTID and the following
-   DTYPE.
+   XTYPE.
 */
 
 extern int kno_storage_loglevel;
@@ -82,7 +82,7 @@ static int knoindex_loglevel = -1;
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
-#include "kno/dtypeio.h"
+#include "kno/xtypeio.h"
 #include "kno/numbers.h"
 #include "kno/storage.h"
 #include "kno/streams.h"
@@ -113,8 +113,8 @@ static int knoindex_loglevel = -1;
 #define KNO_DEBUG_KNOINDEXES 0
 #endif
 
-#ifndef KNO_DEBUG_DTYPEIO
-#define KNO_DEBUG_DTYPEIO 0
+#ifndef KNO_DEBUG_XTYPEIO
+#define KNO_DEBUG_XTYPEIO 0
 #endif
 
 #ifndef KX_KEYBUF_SIZE
@@ -181,7 +181,7 @@ static u8_condition BadHashFn=_("knoindex has unknown hash function");
 static lispval set_symbol, drop_symbol, keycounts_symbol, created_upsym;
 static lispval slotids_symbol, baseoids_symbol, buckets_symbol, nkeys_symbol;
 
-/* Utilities for DTYPE I/O */
+/* Utilities for XTYPE I/O */
 
 #define nobytes(in,nbytes) (PRED_FALSE(!(kno_request_bytes(in,nbytes))))
 #define havebytes(in,nbytes) (PRED_TRUE(kno_request_bytes(in,nbytes)))
@@ -199,7 +199,7 @@ static ssize_t output_symbol_bytes(struct KNO_OUTBUF *out,
                                    size_t len)
 {
   int dtflags = out->buf_flags;
-  if ( ( (dtflags) & KNO_FIX_DTSYMS) || ( kno_dtype_fixcase ) ) {
+  if ( ( (dtflags) & KNO_FIX_DTSYMS) || ( kno_xtype_fixcase ) ) {
     u8_string scan = bytes;
     int c = u8_sgetc(&scan), hascase = 0, fix = u8_islower(c);
     U8_STATIC_OUTPUT(upper,len*2);
@@ -241,12 +241,12 @@ static ssize_t get_chunk_ref_size(kno_knoindex ix)
 
 /* Opening database blocks */
 
-KNO_FASTOP lispval read_dtype_at_pos(kno_stream s,kno_off_t off)
+KNO_FASTOP lispval read_xtype_at_pos(kno_stream s,kno_off_t off)
 {
   kno_off_t retval = kno_setpos(s,off);
   kno_inbuf ins = kno_readbuf(s);
   if (retval<0) return KNO_ERROR;
-  else return kno_read_dtype(ins);
+  else return kno_read_xtype(ins);
 }
 
 /* Opening a hash index */
@@ -375,7 +375,7 @@ static int load_header(struct KNO_KNOINDEX *index,struct KNO_STREAM *stream)
 
   /* Initialize the slotids field used for storing feature keys */
   if (slotids_size) {
-    lispval slotids_vector = read_dtype_at_pos(stream,slotids_pos);
+    lispval slotids_vector = read_xtype_at_pos(stream,slotids_pos);
     if ( (VOIDP(slotids_vector)) || (KNO_FALSEP(slotids_vector)) ) {
       kno_init_slotcoder(&(index->index_slotcodes),-1,NULL);}
     else if (VECTORP(slotids_vector)) {
@@ -391,7 +391,7 @@ static int load_header(struct KNO_KNOINDEX *index,struct KNO_STREAM *stream)
 
   /* Initialize the baseoids field used for compressed OID values */
   if (baseoids_size) {
-    lispval baseoids_vector = read_dtype_at_pos(stream,baseoids_pos);
+    lispval baseoids_vector = read_xtype_at_pos(stream,baseoids_pos);
     if ( (VOIDP(baseoids_vector)) || (KNO_FALSEP(baseoids_vector)) )
       kno_init_oidcoder(&(index->index_oidcodes),-1,NULL);
     else if (VECTORP(baseoids_vector)) {
@@ -410,7 +410,7 @@ static int load_header(struct KNO_KNOINDEX *index,struct KNO_STREAM *stream)
   if ( (metadata_size) && (metadata_loc) ) {
     if (kno_setpos(stream,metadata_loc)>0) {
       kno_inbuf in = kno_readbuf(stream);
-      metadata = kno_read_dtype(in);}
+      metadata = kno_read_xtype(in);}
     else {
       kno_seterr("BadMetaData","open_knoindex",
                 "BadMetadataLocation",KNO_INT(metadata_loc));
@@ -432,7 +432,7 @@ static int load_header(struct KNO_KNOINDEX *index,struct KNO_STREAM *stream)
       stream->buf.raw.buf_flags |= KNO_FIX_DTSYMS;
       if (kno_setpos(stream,metadata_loc)>0) {
         kno_inbuf in = kno_readbuf(stream);
-        lispval new_metadata = kno_read_dtype(in);
+        lispval new_metadata = kno_read_xtype(in);
         kno_decref(metadata);
         metadata=new_metadata;}
       else {
@@ -609,18 +609,18 @@ KNO_EXPORT int make_knoindex
   /* Write the slotids */
   if (VECTORP(slotids_init)) {
     slotids_pos = kno_getpos(stream);
-    kno_write_dtype(outstream,slotids_init);
+    kno_write_xtype(outstream,slotids_init);
     slotids_size = kno_getpos(stream)-slotids_pos;}
 
   /* Write the baseoids */
   if (VECTORP(baseoids_init)) {
     baseoids_pos = kno_getpos(stream);
-    kno_write_dtype(outstream,baseoids_init);
+    kno_write_xtype(outstream,baseoids_init);
     baseoids_size = kno_getpos(stream)-baseoids_pos;}
 
   if (!(KNO_VOIDP(metadata_init))) {
     metadata_pos = kno_getpos(stream);
-    kno_write_dtype(outstream,metadata_init);
+    kno_write_xtype(outstream,metadata_init);
     metadata_size = kno_getpos(stream)-metadata_pos;}
 
   if (slotids_pos) {
@@ -683,9 +683,9 @@ KNO_FASTOP unsigned int hash_bytes(const unsigned char *start,int len)
 
 /* ZKEYs */
 
-static int fast_write_dtype(kno_outbuf out,lispval key)
+static int fast_write_xtype(kno_outbuf out,lispval key)
 {
-  int v2 = ((out->buf_flags)&KNO_USE_DTYPEV2);
+  int v2 = ((out->buf_flags)&KNO_USE_XTYPEV2);
   if (OIDP(key)) {
     KNO_OID addr = KNO_OID_ADDR(key);
     kno_write_byte(out,dt_oid);
@@ -720,7 +720,7 @@ static int fast_write_dtype(kno_outbuf out,lispval key)
       {output_4bytes(out,len);}
       {output_bytes(out,s->str_bytes,len);}
       return len+5;}}
-  else return kno_write_dtype(out,key);
+  else return kno_write_xtype(out,key);
 }
 
 KNO_FASTOP ssize_t write_zkey(kno_knoindex hx,kno_outbuf out,lispval key)
@@ -735,11 +735,11 @@ KNO_FASTOP ssize_t write_zkey(kno_knoindex hx,kno_outbuf out,lispval key)
       slotid_index = kno_slotid2code(&(hx->index_slotcodes),car);
       kno_release_slotcodes(& hx->index_slotcodes );
       if (slotid_index<0)
-        retval = kno_write_byte(out,0)+kno_write_dtype(out,key);
+        retval = kno_write_byte(out,0)+kno_write_xtype(out,key);
       else retval = kno_write_varint(out,slotid_index+1)+
-             fast_write_dtype(out,KNO_CDR(key));}
-    else retval = kno_write_byte(out,0)+kno_write_dtype(out,key);}
-  else retval = kno_write_byte(out,0)+kno_write_dtype(out,key);
+             fast_write_xtype(out,KNO_CDR(key));}
+    else retval = kno_write_byte(out,0)+kno_write_xtype(out,key);}
+  else retval = kno_write_byte(out,0)+kno_write_xtype(out,key);
   if (!(natsort)) out->buf_flags &= ~KNO_NATSORT_VALUES;
   return retval;
 }
@@ -756,16 +756,16 @@ KNO_FASTOP ssize_t write_zkey_wsc(kno_slotcoder sc,kno_outbuf out,lispval key)
       if (slotid_index < 0 )
         slotid_index = kno_add_slotcode(sc,car);
       if (slotid_index < 0)
-        retval = kno_write_byte(out,0)+kno_write_dtype(out,key);
+        retval = kno_write_byte(out,0)+kno_write_xtype(out,key);
       else retval = kno_write_varint(out,slotid_index+1)+
-             fast_write_dtype(out,KNO_CDR(key));}
-    else retval = kno_write_byte(out,0)+kno_write_dtype(out,key);}
-  else retval = kno_write_byte(out,0)+kno_write_dtype(out,key);
+             fast_write_xtype(out,KNO_CDR(key));}
+    else retval = kno_write_byte(out,0)+kno_write_xtype(out,key);}
+  else retval = kno_write_byte(out,0)+kno_write_xtype(out,key);
   if (!(natsort)) out->buf_flags &= ~KNO_NATSORT_VALUES;
   return retval;
 }
 
-static lispval fast_read_dtype(kno_inbuf in)
+static lispval fast_read_xtype(kno_inbuf in)
 {
   if (nobytes(in,1)) return kno_return_errcode(KNO_EOD);
   else {
@@ -812,7 +812,7 @@ static lispval fast_read_dtype(kno_inbuf in)
           memcpy(buf,in->bufread,len); buf[len]='\0';
           in->bufread = in->bufread+len;
           if ( ( (in->buf_flags) & KNO_FIX_DTSYMS) ||
-               ( kno_dtype_fixcase ) )
+               ( kno_xtype_fixcase ) )
             symbol = kno_fixcase_symbol(buf,len);
           else symbol = kno_make_symbol(buf,len);
           return symbol;}}
@@ -827,11 +827,11 @@ static lispval fast_read_dtype(kno_inbuf in)
           memcpy(buf,in->bufread,len); buf[len]='\0';
           in->bufread = in->bufread+len;
           if ( ( (in->buf_flags) & KNO_FIX_DTSYMS) ||
-               ( kno_dtype_fixcase ) )
+               ( kno_xtype_fixcase ) )
             return kno_fixcase_symbol(buf,len);
           else return kno_make_symbol(buf,len);}}
     default:
-      return kno_read_dtype(in);} /* switch */
+      return kno_read_xtype(in);} /* switch */
   } /* else */
 }
 
@@ -839,13 +839,13 @@ KNO_FASTOP lispval read_key(kno_knoindex hx,kno_inbuf in)
 {
   int code = kno_read_varint(in);
   if (code==0)
-    return fast_read_dtype(in);
+    return fast_read_xtype(in);
   else if (hx->index_slotcodes.slotids) {
     lispval slotid = kno_code2slotid(&(hx->index_slotcodes),code-1);
     if ( (KNO_SYMBOLP(slotid)) || (KNO_OIDP(slotid)) ) {
-      lispval cdr = fast_read_dtype(in);
+      lispval cdr = fast_read_xtype(in);
       if (KNO_ABORTP(cdr))
-        return kno_err(CorruptedKnoindex,"read_key/dtype",hx->indexid,VOID);
+        return kno_err(CorruptedKnoindex,"read_key/xtype",hx->indexid,VOID);
       else return kno_conspair(slotid,cdr);}
     else return kno_err(CorruptedKnoindex,"read_key/slotcode",hx->indexid,VOID);}
   else return kno_err(CorruptedKnoindex,"read_key/slotcode",hx->indexid,VOID);
@@ -855,15 +855,15 @@ KNO_EXPORT ssize_t knoindex_bucket(struct KNO_KNOINDEX *hx,lispval key,
                                    ssize_t modulate)
 {
   struct KNO_OUTBUF out = { 0 }; unsigned char buf[1024];
-  unsigned int hashval; int dtype_len;
+  unsigned int hashval; int xtype_len;
   KNO_INIT_BYTE_OUTBUF(&out,buf,1024);
-  if ( (hx->knoindex_format) & (KNO_KNOINDEX_DTYPEV2) )
-    out.buf_flags = out.buf_flags|KNO_USE_DTYPEV2;
+  if ( (hx->knoindex_format) & (KNO_KNOINDEX_XTYPEV2) )
+    out.buf_flags = out.buf_flags|KNO_USE_XTYPEV2;
   if ( (hx->index_stream.stream_flags) & (KNO_STREAM_LOUDSYMS) )
     out.buf_flags |= KNO_FIX_DTSYMS;
   out.buf_flags |= KNO_WRITE_OPAQUE;
-  dtype_len = write_zkey(hx,&out,key);
-  hashval = hash_bytes(out.buffer,dtype_len);
+  xtype_len = write_zkey(hx,&out,key);
+  hashval = hash_bytes(out.buffer,xtype_len);
   kno_close_outbuf(&out);
   if (modulate<0)
     return hashval%(hx->index_n_buckets);
@@ -886,7 +886,7 @@ KNO_FASTOP int write_zvalue(kno_knoindex hx,kno_outbuf out,
       else {}}
     if (oidcode<0) {
       int bytes_written; kno_write_byte(out,0);
-      bytes_written = kno_write_dtype(out,value);
+      bytes_written = kno_write_xtype(out,value);
       if (bytes_written<0)
         return KNO_ERROR;
       else return bytes_written+1;}
@@ -902,7 +902,7 @@ KNO_FASTOP int write_zvalue(kno_knoindex hx,kno_outbuf out,
       return bytes_written;}}
   else {
     int bytes_written; kno_write_byte(out,0);
-    bytes_written = kno_write_dtype(out,value);
+    bytes_written = kno_write_xtype(out,value);
     return bytes_written+1;}
 }
 
@@ -910,7 +910,7 @@ KNO_FASTOP lispval read_zvalue(kno_knoindex hx,kno_inbuf in)
 {
   int prefix = kno_read_varint(in);
   if (prefix==0)
-    return kno_read_dtype(in);
+    return kno_read_xtype(in);
   else {
     lispval baseoid = kno_get_baseoid(&(hx->index_oidcodes),(prefix-1));
     unsigned int base = KNO_OID_BASE_ID(baseoid);
@@ -927,7 +927,7 @@ static lispval knoindex_fetch(kno_index ix,lispval key)
   unsigned int *offdata=hx->index_offdata;
   unsigned char buf[KX_KEYBUF_SIZE];
   struct KNO_OUTBUF out = { 0 };
-  unsigned int hashval, bucket, n_keys, i, dtype_len, n_values;
+  unsigned int hashval, bucket, n_keys, i, xtype_len, n_values;
   kno_off_t vblock_off; size_t vblock_size;
   KNO_CHUNK_REF keyblock;
   KNO_INIT_BYTE_OUTBUF(&out,buf,KX_KEYBUF_SIZE);
@@ -947,13 +947,13 @@ static lispval knoindex_fetch(kno_index ix,lispval key)
 #endif
         kno_close_outbuf(&out);
         return EMPTY;}}}
-  if ( (hx->knoindex_format) & (KNO_KNOINDEX_DTYPEV2) )
-    out.buf_flags |= KNO_USE_DTYPEV2;
+  if ( (hx->knoindex_format) & (KNO_KNOINDEX_XTYPEV2) )
+    out.buf_flags |= KNO_USE_XTYPEV2;
   if ( (hx->index_stream.stream_flags) & (KNO_STREAM_LOUDSYMS) )
     out.buf_flags |= KNO_FIX_DTSYMS;
   out.buf_flags |= KNO_WRITE_OPAQUE;
-  dtype_len = write_zkey(hx,&out,key); {}
-  hashval = hash_bytes(out.buffer,dtype_len);
+  xtype_len = write_zkey(hx,&out,key); {}
+  hashval = hash_bytes(out.buffer,xtype_len);
   bucket = hashval%(hx->index_n_buckets);
   if (offdata)
     keyblock = kno_get_chunk_ref(offdata,hx->index_offtype,bucket,
@@ -978,8 +978,8 @@ static lispval knoindex_fetch(kno_index ix,lispval key)
     n_keys = kno_read_varint(&keystream);
     i = 0; while (i<n_keys) {
       int key_len = kno_read_varint(&keystream);
-      if ((key_len == dtype_len) &&
-          (memcmp(keystream.bufread,out.buffer,dtype_len)==0)) {
+      if ((key_len == xtype_len) &&
+          (memcmp(keystream.bufread,out.buffer,xtype_len)==0)) {
         keystream.bufread = keystream.bufread+key_len;
         n_values = kno_read_varint(&keystream);
         if (n_values==0) {
@@ -1004,7 +1004,7 @@ static lispval knoindex_fetch(kno_index ix,lispval key)
         else if (n_values==1) {
           int code = kno_read_varint(&keystream);
           if (code==0) {
-            lispval val = kno_read_dtype(&keystream);
+            lispval val = kno_read_xtype(&keystream);
             kno_decref(val);}
           else kno_read_varint(&keystream);}
         else {
@@ -1136,16 +1136,16 @@ static int knoindex_fetchsize(kno_index ix,lispval key)
   kno_stream stream = &(hx->index_stream);
   unsigned int *offdata=hx->index_offdata;
   struct KNO_OUTBUF out = { 0 }; unsigned char buf[64];
-  unsigned int hashval, bucket, n_keys, i, dtype_len, n_values;
+  unsigned int hashval, bucket, n_keys, i, xtype_len, n_values;
   KNO_CHUNK_REF keyblock;
   KNO_INIT_BYTE_OUTBUF(&out,buf,64);
-  if ( (hx->knoindex_format) & (KNO_KNOINDEX_DTYPEV2) )
-    out.buf_flags = out.buf_flags|KNO_USE_DTYPEV2;
+  if ( (hx->knoindex_format) & (KNO_KNOINDEX_XTYPEV2) )
+    out.buf_flags = out.buf_flags|KNO_USE_XTYPEV2;
   if ( (hx->index_stream.stream_flags) & (KNO_STREAM_LOUDSYMS) )
     out.buf_flags |= KNO_FIX_DTSYMS;
   out.buf_flags |= KNO_WRITE_OPAQUE;
-  dtype_len = write_zkey(hx,&out,key);
-  hashval = hash_bytes(out.buffer,dtype_len);
+  xtype_len = write_zkey(hx,&out,key);
+  hashval = hash_bytes(out.buffer,xtype_len);
   bucket = hashval%(hx->index_n_buckets);
   if (offdata)
     keyblock = kno_get_chunk_ref(offdata,hx->index_offtype,bucket,
@@ -1168,9 +1168,9 @@ static int knoindex_fetchsize(kno_index ix,lispval key)
       n_values = kno_read_varint(&keystream);
       /* vblock_off = */ (void)(kno_off_t)kno_read_varint(&keystream);
       /* vblock_size = */ (void)(size_t)kno_read_varint(&keystream);
-      if (key_len!=dtype_len)
+      if (key_len!=xtype_len)
         keystream.bufread = keystream.bufread+key_len;
-      else if (memcmp(keystream.bufread,out.buffer,dtype_len)==0) {
+      else if (memcmp(keystream.bufread,out.buffer,xtype_len)==0) {
         kno_close_inbuf(&keystream);
         kno_close_outbuf(&out);
         return n_values;}
@@ -1251,8 +1251,8 @@ static lispval *fetchn(struct KNO_KNOINDEX *hx,int n,const lispval *keys)
 #endif
   /* Initialize sized based on assuming 32 bytes per key */
   KNO_INIT_BYTE_OUTPUT(&keysbuf,n*32);
-  if ( (hx->knoindex_format) & (KNO_KNOINDEX_DTYPEV2) )
-    keysbuf.buf_flags = keysbuf.buf_flags|KNO_USE_DTYPEV2;
+  if ( (hx->knoindex_format) & (KNO_KNOINDEX_XTYPEV2) )
+    keysbuf.buf_flags = keysbuf.buf_flags|KNO_USE_XTYPEV2;
   if ( (hx->index_stream.stream_flags) & (KNO_STREAM_LOUDSYMS) )
     keysbuf.buf_flags |= KNO_FIX_DTSYMS;
 
@@ -1262,7 +1262,7 @@ static lispval *fetchn(struct KNO_KNOINDEX *hx,int n,const lispval *keys)
      key.  If we have an offsets table, we compute the offsets during
      this phase, otherwise we defer to an additional loop.
 
-     This also writes out DTYPE representations for all of the keys
+     This also writes out XTYPE representations for all of the keys
      and we use a direct memcmp to match requested keys to byte ranges
      in fetched buckets. */
   while (i<n) {
@@ -1296,7 +1296,7 @@ static lispval *fetchn(struct KNO_KNOINDEX *hx,int n,const lispval *keys)
       if (keyblock_size==0) {
         /* It is empty, so we don't even need to handle this entry. */
         values[i]=EMPTY;
-        /* We don't need to keep its dtype representation around either,
+        /* We don't need to keep its xtype representation around either,
            so we reset the key stream. */
         keysbuf.bufwrite = keysbuf.buffer+dt_start;}
       else n_entries++;}
@@ -1580,12 +1580,12 @@ static lispval *knoindex_fetchkeys(kno_index ix,int *n)
     n_keys = kno_read_varint(&keyblock);
     while (j<n_keys) {
       lispval key; int n_vals;
-      ssize_t dtype_len = kno_read_varint(&keyblock); /* IGNORE size */
-      if (dtype_len<0) {
+      ssize_t xtype_len = kno_read_varint(&keyblock); /* IGNORE size */
+      if (xtype_len<0) {
         kno_seterr(kno_UnexpectedEOD,"",hx->indexid,KNO_VOID);
         key=KNO_ERROR_VALUE;}
       else {
-        const unsigned char *key_end = keyblock.bufread+dtype_len;
+        const unsigned char *key_end = keyblock.bufread+xtype_len;
         key = read_key(hx,&keyblock);
         if (KNO_ABORTP(key)) keyblock.bufread=key_end;}
       if ( (n_vals = kno_read_varint(&keyblock)) < 0) {
@@ -1610,7 +1610,7 @@ static lispval *knoindex_fetchkeys(kno_index ix,int *n)
       else if (n_vals==1) {
         int code = kno_read_varint(&keyblock);
         if (code==0) {
-          lispval val = kno_read_dtype(&keyblock);
+          lispval val = kno_read_xtype(&keyblock);
           kno_decref(val);}
         else kno_read_varint(&keyblock);}
       else {
@@ -1726,12 +1726,12 @@ static struct KNO_KEY_SIZE *knoindex_fetchinfo(kno_index ix,kno_choice filter,in
     n_keys = kno_read_varint(&keyblock);
     while (j<n_keys) {
       lispval key; int n_vals;
-      ssize_t dtype_len = kno_read_varint(&keyblock); /* IGNORE size */
-      if (dtype_len<0) {
+      ssize_t xtype_len = kno_read_varint(&keyblock); /* IGNORE size */
+      if (xtype_len<0) {
         kno_seterr(kno_UnexpectedEOD,"",hx->indexid,KNO_VOID);
         key=KNO_ERROR_VALUE;}
       else {
-        const unsigned char *key_end = keyblock.bufread+dtype_len;
+        const unsigned char *key_end = keyblock.bufread+xtype_len;
         key = read_key(hx,&keyblock);
         if (KNO_ABORTP(key)) keyblock.bufread=key_end;}
       if ( (n_vals = kno_read_varint(&keyblock)) < 0) {
@@ -1759,7 +1759,7 @@ static struct KNO_KEY_SIZE *knoindex_fetchinfo(kno_index ix,kno_choice filter,in
       else if (n_vals==1) {
         int code = kno_read_varint(&keyblock);
         if (code==0) {
-          lispval val = kno_read_dtype(&keyblock);
+          lispval val = kno_read_xtype(&keyblock);
           kno_decref(val);}
         else kno_read_varint(&keyblock);}
       else {
@@ -1876,7 +1876,7 @@ struct KNO_KEY_SIZE *knoindex_fetchinfo(kno_index ix,kno_choice filter,int *n)
       else if (n_vals==1) {
         int code = kno_read_varint(&keyblkstrm);
         if (code==0) {
-          lispval val = kno_read_dtype(&keyblkstrm);
+          lispval val = kno_read_xtype(&keyblkstrm);
           kno_decref(val);}
         else kno_read_varint(&keyblkstrm);}
       else {
@@ -2086,7 +2086,7 @@ static int sort_br_by_off(const void *p1,const void *p2)
 
    A keybucket structure consists of an array of KEYENTRY structures
    which contain information about each key in the bucket. It also
-   contains a buffer with the DTYPE representations of all of the
+   contains a buffer with the XTYPE representations of all of the
    keys, to avoid regenerating them.
 
    There will often be fewer buckets than keys and so the
@@ -2469,9 +2469,9 @@ KNO_FASTOP kno_off_t write_keybucket
   struct KNO_OUTBUF *outstream = kno_writebuf(stream);
   endpos = endpos+kno_write_varint(outstream,n_keys);
   while (i<n_keys) {
-    int dtype_size = ke[i].ke_dtrep_size, n_values = ke[i].ke_nvals;
-    endpos = endpos+kno_write_varint(outstream,dtype_size);
-    endpos = endpos+kno_write_bytes(outstream,ke[i].ke_dtstart,dtype_size);
+    int xtype_size = ke[i].ke_dtrep_size, n_values = ke[i].ke_nvals;
+    endpos = endpos+kno_write_varint(outstream,xtype_size);
+    endpos = endpos+kno_write_bytes(outstream,ke[i].ke_dtstart,xtype_size);
     endpos = endpos+kno_write_varint(outstream,n_values);
     if (n_values==0) {}
     else if (n_values==1) {
@@ -2589,15 +2589,15 @@ static int knoindex_save(struct KNO_KNOINDEX *hx,
   struct COMMIT_SCHEDULE *schedule=
     u8_big_alloc_n(schedule_max,struct COMMIT_SCHEDULE);
 
-  /* We're going to write DTYPE representations of keys and values,
+  /* We're going to write XTYPE representations of keys and values,
      so we create streams where they'll all be written to one big buffer
      (which we free at the end). */
   struct KNO_OUTBUF out = { 0 }, newkeys = { 0 };
   KNO_INIT_BYTE_OUTPUT(&out,1024);
   KNO_INIT_BYTE_OUTPUT(&newkeys,schedule_max*16);
-  if ( (hx->knoindex_format) & (KNO_KNOINDEX_DTYPEV2) ) {
-    out.buf_flags |= KNO_USE_DTYPEV2;
-    newkeys.buf_flags |= KNO_USE_DTYPEV2;}
+  if ( (hx->knoindex_format) & (KNO_KNOINDEX_XTYPEV2) ) {
+    out.buf_flags |= KNO_USE_XTYPEV2;
+    newkeys.buf_flags |= KNO_USE_XTYPEV2;}
   if ( (hx->index_stream.stream_flags) & (KNO_STREAM_LOUDSYMS) ) {
     out.buf_flags |= KNO_FIX_DTSYMS;
     newkeys.buf_flags |= KNO_FIX_DTSYMS;}
@@ -2928,7 +2928,7 @@ static int update_knoindex_metadata(kno_knoindex hx,
   ssize_t metadata_pos = kno_endpos(stream);
   if (metadata_pos>0) {
     kno_outbuf outbuf = kno_writebuf(stream);
-    ssize_t new_metadata_size = kno_write_dtype(outbuf,metadata);
+    ssize_t new_metadata_size = kno_write_xtype(outbuf,metadata);
     ssize_t metadata_end = kno_getpos(stream);
     if (new_metadata_size<0)
       error=1;
@@ -2963,7 +2963,7 @@ static int update_knoindex_oidcodes(kno_knoindex hx,kno_oidcoder oc,
     vec.vec_length = len;
     vec.vec_free_elts = vec.vec_bigalloc = vec.vec_bigalloc_elts =0;
     vec.vec_elts = oc->baseoids;
-    ssize_t new_baseoids_size = kno_write_dtype(outbuf,(lispval)&vec);
+    ssize_t new_baseoids_size = kno_write_xtype(outbuf,(lispval)&vec);
     ssize_t baseoids_end = kno_getpos(stream);
     if (new_baseoids_size<0)
       error=1;
@@ -2994,7 +2994,7 @@ static int update_knoindex_slotcodes(kno_knoindex hx,
   ssize_t slotids_pos = kno_endpos(stream);
   if (slotids_pos>0) {
     kno_outbuf outbuf = kno_writebuf(stream);
-    ssize_t new_slotids_size = kno_write_dtype(outbuf,(lispval)(sc->slotids));
+    ssize_t new_slotids_size = kno_write_xtype(outbuf,(lispval)(sc->slotids));
     ssize_t slotids_end = kno_getpos(stream);
     if (new_slotids_size<0)
       error=1;
@@ -3263,9 +3263,9 @@ static int interpret_knoindex_flags(lispval opts)
     flags |= (KNO_B32<<4);
   else flags |= (KNO_B40<<4);
 
-  if ( kno_testopt(opts,kno_intern("dtypev2"),VOID) ||
-       kno_testopt(opts,KNOSYM_FLAGS,kno_intern("dtypev2")) )
-    flags |= KNO_KNOINDEX_DTYPEV2;
+  if ( kno_testopt(opts,kno_intern("xtypev2"),VOID) ||
+       kno_testopt(opts,KNOSYM_FLAGS,kno_intern("xtypev2")) )
+    flags |= KNO_KNOINDEX_XTYPEV2;
 
   return flags;
 }
@@ -3514,7 +3514,7 @@ KNO_EXPORT lispval kno_knoindex_keyinfo(lispval lix,
       else if (n_vals==1) {
         int code = kno_read_varint(&keyblkstrm);
         if (code==0) {
-          lispval val=kno_read_dtype(&keyblkstrm);
+          lispval val=kno_read_xtype(&keyblkstrm);
           kno_decref(val);}
         else kno_read_varint(&keyblkstrm);}
       else {
