@@ -79,9 +79,9 @@ typedef enum XT_TYPE_CODE {
 
 typedef struct XTYPE_REFS {
   int xt_refs_flags;
-  size_t xt_n_refs;
-  size_t xt_refs_len;
-  size_t xt_refs_max;
+  ssize_t xt_n_refs;
+  ssize_t xt_refs_len;
+  ssize_t xt_refs_max;
   lispval *xt_refs;
   struct KNO_HASHTABLE *xt_lookup;} XTYPE_REFS;
 typedef struct XTYPE_REFS *xtype_refs;
@@ -93,6 +93,8 @@ typedef struct XTYPE_REFS *xtype_refs;
 #define XTYPE_REFS_ADD_OIDS  2
 #define XTYPE_REFS_ADD_SYMS  4
 #define XTYPE_REFS_CHANGED   8
+
+#define XTYPE_REFS_DEFAULT (XTYPE_REFS_ADD_OIDS|XTYPE_REFS_ADD_SYMS)
 
 typedef ssize_t (*kno_xtype_fn)(struct KNO_OUTBUF *,lispval,xtype_refs);
 KNO_EXPORT kno_xtype_fn kno_xtype_writers[KNO_TYPE_MAX];

@@ -77,7 +77,9 @@
        (let ((cur (or current #())))
 	 (append cur (choice->vector (difference added (elts cur)))))))
 (define (get-compression metadata type)
-  (symbolize (config 'compression (try (get compression-type-map type) #f))))
+  (or (and (config 'compression) (symbolize (config 'compression)))
+      (and type (test compression-type-map type)
+	   (symbolize (get compression-type-map type)))))
 
 (define (get-batchsize n)
   (cond ((and (config 'batchsize) (< (config 'batchsize) 1))

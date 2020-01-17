@@ -72,8 +72,8 @@ static lispval unexpected_eod()
 /* XREF objects */
 
 KNO_EXPORT int kno_init_xrefs(xtype_refs refs,
-			      int n_refs,int refs_len,int refs_max,
-			      int flags,
+			      int n_refs,int refs_len,
+			      int refs_max,int flags,
 			      lispval *elts,
 			      kno_hashtable lookup)
 {
@@ -83,8 +83,10 @@ KNO_EXPORT int kno_init_xrefs(xtype_refs refs,
     if (refs_max<refs_len) refs_max = refs_len;}
   else if (refs_max == 0)
     refs_max = refs_len;
-  else refs->xt_refs_max = XTYPE_MAX_XREFS;
-  refs->xt_refs_flags = flags;
+  else refs->xt_refs_max = -1;
+  if (flags<0)
+    refs->xt_refs_flags = XTYPE_REFS_DEFAULT;
+  else refs->xt_refs_flags = flags;
   refs->xt_refs = elts;
   if (lookup)
     refs->xt_lookup = lookup;
@@ -118,7 +120,8 @@ KNO_EXPORT ssize_t kno_add_xtype_ref(lispval x,xtype_refs refs)
       return -1;
     size_t ref = refs->xt_n_refs;
     if (ref >= refs->xt_refs_len) {
-      if (refs->xt_refs_len >= refs->xt_refs_max) {
+      if ( (refs->xt_refs_max>=0) &&
+	   (refs->xt_refs_len >= refs->xt_refs_max) ) {
 	refs->xt_refs_flags |= XTYPE_REFS_READ_ONLY;
 	return -1;}
       ssize_t delta = refs->xt_refs_len;
@@ -133,10 +136,13 @@ KNO_EXPORT ssize_t kno_add_xtype_ref(lispval x,xtype_refs refs)
       else {
 	refs->xt_refs = new_refs;
 	refs->xt_refs_len = new_size;}}
-    refs->xt_refs_flags |= XTYPE_REFS_CHANGED;
-    refs->xt_refs[ref]=x;
-    refs->xt_n_refs++;
-    return ref;}
+    int rv = kno_hashtable_add(refs->xt_lookup,x,KNO_INT(ref));
+    if (rv>0) {
+      refs->xt_refs_flags |= XTYPE_REFS_CHANGED;
+      refs->xt_refs[ref]=x;
+      refs->xt_n_refs++;
+      return ref;}
+    else return -1;}
   else return -1;
 }
 

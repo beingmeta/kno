@@ -220,7 +220,8 @@ static kno_pool open_knopool(u8_string fname,kno_storage_flags open_flags,
 			     lispval opts)
 {
   KNO_OID base = KNO_NULL_OID_INIT;
-  unsigned int hi, lo, magicno, capacity, load, n_xrefs, xrefs_max;
+  unsigned int hi, lo, magicno, capacity, load;
+  int xrefs_max = -1, n_xrefs;
   unsigned int xref_flags = 0, knopool_format = 0;
   kno_off_t label_loc, metadata_loc, xrefs_loc, xrefs_size;
   lispval label;
@@ -382,8 +383,7 @@ static kno_pool open_knopool(u8_string fname,kno_storage_flags open_flags,
 	      (KNO_FALSEP(max_refs_val)) ||
 	      (KNO_DEFAULTP(max_refs_val)) )
       xrefs_max = -1;
-    else {
-      xrefs_max = n_xrefs;}
+    else xrefs_max = n_xrefs;
     if ( (xrefs_max > 0) && (n_xrefs > xrefs_max) )
       xrefs_max = n_xrefs;
     kno_decref(max_refs_val);}
@@ -442,12 +442,14 @@ static kno_pool open_knopool(u8_string fname,kno_storage_flags open_flags,
 	return NULL;}
       xrefs[i++]=xref;}
     kno_close_inbuf(in);
-    kno_init_xrefs(&(pool->pool_xrefs),n_xrefs,xrefs_length,xrefs_max,
-		   xref_flags,xrefs,NULL);}
+    kno_init_xrefs(&(pool->pool_xrefs),
+		   n_xrefs,xrefs_length,
+		   xrefs_max,xref_flags,
+		   xrefs,NULL);}
   else {
     lispval *xrefs = u8_alloc_n(256,lispval);
     kno_init_xrefs(&(pool->pool_xrefs),0,256,
-		   xref_flags,xrefs_max,
+		   xrefs_max,xref_flags,
 		   xrefs,NULL);}
   pool->pool_offdata = NULL;
   pool->pool_offlen = 0;
@@ -2155,8 +2157,8 @@ static unsigned int get_knopool_format(kno_storage_flags sflags,lispval opts)
 }
 
 static kno_pool knopool_create(u8_string spec,void *type_data,
-			      kno_storage_flags storage_flags,
-			      lispval opts)
+			       kno_storage_flags storage_flags,
+			       lispval opts)
 {
   lispval base_oid = kno_getopt(opts,kno_intern("base"),VOID);
   lispval capacity_arg = kno_getopt(opts,kno_intern("capacity"),VOID);
