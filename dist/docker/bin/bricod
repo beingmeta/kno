@@ -1,0 +1,2 @@
+#!/bin/sh
+u8run /usr/bin/knod /etc/kno/daemons/brico.fdz
