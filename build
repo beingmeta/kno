@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 CONFIG_ARGS=
 MAKE_ARGS=
@@ -7,9 +7,9 @@ BUILD=$(pwd)
 SRC=$(dirname $(pwd))
 doclean=1;
 if test -f ./.with_parseltongue; then
-    with_parseltongue=yes
+    with_parseltongue=yes;
 else
-    with_parseltongue=no
+    with_parseltongue=no;
 fi;
 
 if [ -f ./.offline ]; then
@@ -125,11 +125,16 @@ else echo "Not cleaning distribution";
 fi;
 
 if [ ! -z "${OFFLINE}" ]; then
-    git submodule init
-    git submodule update
+    echo "Updating GIT submodules";
+    git submodule init;
+    git submodule update;
     cd src/stdlib; git submodule init; git submodule update
 fi;
 
 ./configure ${CONFIG_ARGS}
 
+if [ ! -z "${OFFLINE}" ]; then
+    make update-submodules;
+fi;
+    
 make -j ${MAKE_ARGS} $*

@@ -1866,8 +1866,14 @@ gcovr_fresh:
 
 # Meta operations
 
-update-modules:
-	git submodule update --remote --merge src/stdlib
+submodules update-submodules update-git update-modules:
+	git pull;
+	git submodule init;
+	git submodule update;
+	git submodule update --remote --merge src/stdlib;
+	cd src/stdlib; git submodule init; \
+		git submodule update  --remote --merge brico; \
+		git submodule update	
 
 .PHONY: mod_knocgi update-mod_knocgi install-mod_knocgi update-modules
 
