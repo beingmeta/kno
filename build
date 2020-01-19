@@ -125,7 +125,7 @@ else echo "Not cleaning distribution";
 fi;
 
 if [ ! -z "${OFFLINE}" ]; then
-    echo "Updating GIT submodules";
+    echo "Initializing GIT submodules";
     git submodule init;
     git submodule update;
     cd src/stdlib; git submodule init; git submodule update
@@ -133,7 +133,8 @@ fi;
 
 ./configure ${CONFIG_ARGS}
 
-if [ ! -z "${OFFLINE}" ]; then
+if [ -z "${OFFLINE}" ]; then
+    echo "Initializing configured GIT submodules";
     make update-submodules;
 fi;
     
