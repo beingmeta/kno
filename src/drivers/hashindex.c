@@ -3909,7 +3909,7 @@ static lispval hashindex_ctl(kno_index ix,lispval op,int n,kno_argvec args)
     if (n == 0) {
       int n_slotcodes = hx->index_slotcodes.n_slotcodes;
       lispval *elts = u8_alloc_n(n_slotcodes,lispval);
-      lispval *slotids = hx->index_slotcodes.slotids->vec_elts;
+      lispval *slotids = (n_slotcodes) ? (hx->index_slotcodes.slotids->vec_elts) : (NULL);
       int i = 0;
       while (i< n_slotcodes) {
         lispval slotid = slotids[i];
