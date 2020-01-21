@@ -3277,7 +3277,7 @@ static kno_index hashindex_create(u8_string spec,void *typedata,
   int rv = 0;
   lispval metadata_init = kno_getopt(opts,kno_intern("metadata"),KNO_VOID);
   lispval slotids_arg=KNO_VOID, slotids_init =
-    kno_getopt(opts,kno_intern("slotids"),VOID);
+    kno_getopt(opts,slotids_symbol,VOID);
   lispval baseoids_arg=KNO_VOID, baseoids_init =
     kno_getopt(opts,kno_intern("baseoids"),VOID);
   lispval buckets_arg = kno_getopt(opts,kno_intern("buckets"),KNO_VOID);
