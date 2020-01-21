@@ -31,15 +31,35 @@
 	   (logwarn |FileExists|
 	     "Moved existing file " file " " "to " (glom file ".bak"))))))
 
+(define (get-new-type old opts)
+  (getopt opts 'type
+	  (config 'NEWTYPE 
+		  (config 'TYPE 
+			  (or (indexctl old 'metadata 'type)
+			      'hashindex)))))
+
+(define (no-slotids? input (slotids))
+  (set! slotids (dbctl input 'slotids))
+  (or (not slotids) (and (vector? slotids) (zero? (length slotids)))))
+
 (define (main in (out #f))
   (let* ((overwrite (config 'overwrite #f))
 	 (input (open-index in #[register #f]))
+	 (newtype (get-new-type input #f))
+	 (keyslot (->slotid (or (config 'keyslot)
+				(indexctl input 'keyslot))))
 	 (opts (frame-create #f
+		 'type newtype
 		 'newsize (or (config 'newsize) {})
-		 'keyslot (->slotid (or (config 'keyslot)
-					(indexctl input 'keyslot)))
+		 'keyslot keyslot
 		 'mincount (or (config 'mincount) {})
 		 'maxcount (or (config 'maxcount) {})
+		 'slotids 
+		 (tryif (and newtype 
+			     (equal? (downcase newtype) "hashindex")
+			     (not (config 'slotids)))
+		   (tryif (config 'slotcodes #t config:boolean)
+		     #(type)))
 		 'rarefile (or (config 'rare) {})
 		 'uniquefile (or (config 'unique) {})
 		 'repair (config 'repair #f)

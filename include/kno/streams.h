@@ -370,7 +370,9 @@ typedef enum KNO_COMPRESS_TYPE {
   KNO_ZLIB = 1,
   KNO_ZLIB9 = 2,
   KNO_SNAPPY = 3,
-  KNO_ZSTD = 4}
+  KNO_ZSTD = 4,
+  KNO_ZSTD9 = 5,
+  KNO_ZSTD19 = 6}
   kno_compress_type;
 
 KNO_EXPORT unsigned char *kno_compress(kno_compress_type,ssize_t *,

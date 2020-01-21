@@ -47,7 +47,8 @@
 /* Getting compression type from options */
 
 static lispval compression_symbol, snappy_symbol, none_symbol, no_symbol;
-static lispval libz_symbol, zlib_symbol, zlib9_symbol, zstd_symbol;
+static lispval libz_symbol, zlib_symbol, zlib9_symbol;
+static lispval zstd_symbol, zstd9_symbol, zstd19_symbol;
 
 #define DEFAULT_COMPRESSION KNO_ZLIB
 
@@ -59,6 +60,10 @@ kno_compress_type kno_compression_type(lispval opts,kno_compress_type dflt)
     return KNO_SNAPPY;
   else if (opts == zstd_symbol)
     return KNO_ZSTD;
+  else if (opts == zstd9_symbol)
+    return KNO_ZSTD9;
+  else if (opts == zstd19_symbol)
+    return KNO_ZSTD19;
   else if ( (opts == zlib_symbol) || (opts == libz_symbol) )
     return KNO_ZLIB;
   else if ( (opts == zlib9_symbol) ||
@@ -230,7 +235,7 @@ static unsigned char *do_snappy_uncompress
     return NULL;}
 }
 
-/* Snappy */
+/* ZSTD */
 
 #define zstd_error(code) (u8_fromlibc((char *)ZSTD_getErrorName(code)))
 
@@ -310,6 +315,10 @@ KNO_EXPORT unsigned char *kno_compress
   case KNO_ZSTD:
     return do_zstd_compress(result_size,source,source_len,
 			    KNO_DEFAULT_ZSTDLEVEL,state);
+  case KNO_ZSTD9:
+    return do_zstd_compress(result_size,source,source_len,9,state);
+  case KNO_ZSTD19:
+    return do_zstd_compress(result_size,source,source_len,19,state);
   default:
     u8_seterr("BadCompressMethod","kno_compress",NULL);
     return NULL;}
@@ -351,6 +360,8 @@ KNO_EXPORT void kno_init_compress_c()
   zlib9_symbol = kno_intern("zlib9");
   libz_symbol = kno_intern("libz");
   zstd_symbol = kno_intern("zstd");
+  zstd9_symbol = kno_intern("zstd9");
+  zstd19_symbol = kno_intern("zstd19");
   no_symbol = kno_intern("no");
   none_symbol = kno_intern("none");
 

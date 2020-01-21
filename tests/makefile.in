@@ -360,7 +360,9 @@ lvldbpools lvldbpooltests:
 rckdbpools rckdbpooltests:
 	@make TESTBASE=rckdbpool RUNCONF="SLOTCODES=#f POOLTYPE=rocksdb POOLMOD=rocksdb ${RUNCONF}" pooltest
 
-bigpools bigpooltests: bigpooltest bigpool32test bigpool64test bigpooltest_nx bigpoolsnappytest bigpoolzlibtest
+bigpools bigpooltests: bigpooltest bigpool32test bigpool64test \
+        bigpooltest_nx bigpoolsnappytest bigpoolzlibtest \
+        bigpoolzstdtest
 oidpools oidpooltests: oidpooltest oidpool32test oidpool64test
 
 flexpools flexpooltests:
