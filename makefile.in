@@ -1690,10 +1690,10 @@ dist/alpine/APKBUILD: dist/alpine/APKBUILD.in
 
 dist/alpine.done: dist/alpine/APKBUILD include/kno/revision.h
 	cd dist/alpine; \
-		abuild clean cacheclean cleanpkg && \
+		abuild clean cleancache cleanpkg && \
 		abuild checksum && \
 		abuild -P @APKREPO@ && \
-		touch $@
+		cd ../..; touch $@
 
 alpine: dist/alpine.done
 
