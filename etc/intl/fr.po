@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-01-08 13:02-0800\n"
+"POT-Creation-Date: 2020-01-21 16:38-0800\n"
 "PO-Revision-Date: 2005-03-05 16:06-0500\n"
 "Last-Translator: Kenneth Haase <kh@beingmeta.com>\n"
 "Language-Team: French <traduc@traduc.org>\n"
@@ -64,47 +64,47 @@ msgstr "index"
 msgid "NULL lisp pointer"
 msgstr ""
 
-#: src/lisp/cons.c:715
+#: src/lisp/cons.c:719
 msgid "NullPointer"
 msgstr ""
 
-#: src/lisp/cons.c:716
+#: src/lisp/cons.c:720
 msgid "BadOIDPtr"
 msgstr ""
 
-#: src/lisp/cons.c:717
+#: src/lisp/cons.c:721
 msgid "BadCONSPtr"
 msgstr ""
 
-#: src/lisp/cons.c:721
+#: src/lisp/cons.c:725
 msgid "BadImmediateType"
 msgstr ""
 
 # bfd
-#: src/lisp/cons.c:723
+#: src/lisp/cons.c:727
 #, fuzzy
 msgid "BadSymbol"
 msgstr "symbole"
 
 # gas
-#: src/lisp/cons.c:724
+#: src/lisp/cons.c:728
 #, fuzzy
 msgid "BadConstant"
 msgstr "constante"
 
-#: src/lisp/cons.c:725
+#: src/lisp/cons.c:729
 msgid "BadFcnId"
 msgstr ""
 
-#: src/lisp/cons.c:726
+#: src/lisp/cons.c:730
 msgid "BadOpcode"
 msgstr ""
 
-#: src/lisp/cons.c:727
+#: src/lisp/cons.c:731
 msgid "BadLexref"
 msgstr ""
 
-#: src/lisp/cons.c:729
+#: src/lisp/cons.c:733
 msgid "BadImmediate"
 msgstr ""
 
@@ -113,7 +113,7 @@ msgid "Not an OID"
 msgstr ""
 
 # aptitude
-#: src/lisp/misctypes.c:245
+#: src/lisp/misctypes.c:268
 #, fuzzy
 msgid "Regular expression error"
 msgstr "erreur d'analyse syntaxique"
@@ -152,7 +152,7 @@ msgstr "séquence"
 #: src/lisp/sequences.c:157 src/lisp/sequences.c:252 src/lisp/sequences.c:793
 #: src/eval/opcode_defs.c:578 src/eval/opcode_defs.c:585
 #: src/eval/opcode_defs.c:777 src/eval/opcode_defs.c:781
-#: src/prims/dbprims.c:3172 src/prims/dbprims.c:3174 src/prims/seqprims.c:345
+#: src/prims/dbprims.c:3190 src/prims/dbprims.c:3192 src/prims/seqprims.c:345
 #: src/prims/seqprims.c:356 src/prims/seqprims.c:365 src/prims/seqprims.c:531
 #: src/prims/seqprims.c:566 src/prims/seqprims.c:630 src/prims/seqprims.c:655
 #: src/prims/seqprims.c:1557 src/prims/seqprims.c:1613
@@ -319,6 +319,30 @@ msgstr ""
 msgid "whether to check returned and real dtype sizes"
 msgstr ""
 
+#: src/lisp/xtypes.c:747 src/storage/compress.c:136 src/storage/compress.c:175
+#: src/prims/portprims.c:1314 src/drivers/headers/zcompress.h:27
+#: src/drivers/headers/zcompress.h:65
+msgid "ZLIB ran out of memory"
+msgstr ""
+
+#: src/lisp/xtypes.c:755 src/storage/compress.c:144
+#: src/drivers/headers/zcompress.h:35
+msgid "pool value uncompress ran out of memory"
+msgstr ""
+
+# aptitude
+#: src/lisp/xtypes.c:759 src/storage/compress.c:148
+#: src/drivers/headers/zcompress.h:38
+#, fuzzy
+msgid "ZLIB uncompress data error"
+msgstr "erreur d'analyse syntaxique"
+
+#: src/lisp/xtypes.c:761 src/storage/compress.c:150 src/storage/compress.c:188
+#: src/prims/portprims.c:1327 src/drivers/headers/zcompress.h:40
+#: src/drivers/headers/zcompress.h:78
+msgid "Bad ZLIB return code"
+msgstr ""
+
 #: src/lisp/parse.c:49
 msgid "Invalid escape sequence"
 msgstr "séquence d'échappement invalide"
@@ -434,7 +458,7 @@ msgid "oid"
 msgstr "oid"
 
 #: src/lisp/lisp.c:206 src/lisp/lisp.c:207 src/sys/config.c:834
-#: src/eval/eval.c:1461 src/eval/opcode_defs.c:586 src/prims/dbprims.c:3103
+#: src/eval/eval.c:1461 src/eval/opcode_defs.c:586 src/prims/dbprims.c:3121
 #: src/prims/portprims.c:831 src/eval/choiceops.c:1455
 #: src/eval/choiceops.c:1493 src/eval/choiceops.c:1519
 #: src/eval/choiceops.c:1555 src/eval/choiceops.c:1569
@@ -489,14 +513,14 @@ msgid "coderef"
 msgstr ""
 
 #: src/lisp/lisp.c:228 src/lisp/lisp.c:229 src/storage/pools.c:2813
-#: src/prims/dbprims.c:269 src/prims/dbprims.c:1889
+#: src/prims/dbprims.c:269 src/prims/dbprims.c:1907
 msgid "pool"
 msgstr "lot"
 
 #: src/lisp/lisp.c:230 src/lisp/lisp.c:231 src/storage/indexes.c:1130
 #: src/storage/indexes.c:2384 src/storage/slotindexes.c:227
-#: src/prims/dbprims.c:748 src/prims/dbprims.c:1857 src/prims/dbprims.c:1872
-#: src/prims/dbprims.c:1903
+#: src/prims/dbprims.c:748 src/prims/dbprims.c:1875 src/prims/dbprims.c:1890
+#: src/prims/dbprims.c:1921
 msgid "index"
 msgstr "index"
 
@@ -1362,8 +1386,8 @@ msgstr ""
 #: src/prims/dbprims.c:1442 src/prims/dbprims.c:1453 src/prims/dbprims.c:1465
 #: src/prims/dbprims.c:1509 src/prims/dbprims.c:1525 src/prims/dbprims.c:1544
 #: src/prims/dbprims.c:1559 src/prims/dbprims.c:1573 src/prims/dbprims.c:1594
-#: src/prims/dbprims.c:1639 src/prims/dbprims.c:1656 src/prims/dbprims.c:3098
-#: src/prims/dbprims.c:3185
+#: src/prims/dbprims.c:1639 src/prims/dbprims.c:1656 src/prims/dbprims.c:3116
+#: src/prims/dbprims.c:3203
 #, fuzzy
 msgid "pool spec"
 msgstr "lot"
@@ -1864,34 +1888,12 @@ msgstr "trop peu de arguments à «find-frames»"
 msgid "The head file has no data"
 msgstr ""
 
-#: src/storage/compress.c:131 src/storage/compress.c:170
-#: src/prims/portprims.c:1314 src/drivers/headers/zcompress.h:27
-#: src/drivers/headers/zcompress.h:65
-msgid "ZLIB ran out of memory"
-msgstr ""
-
-#: src/storage/compress.c:139 src/drivers/headers/zcompress.h:35
-msgid "pool value uncompress ran out of memory"
-msgstr ""
-
-# aptitude
-#: src/storage/compress.c:143 src/drivers/headers/zcompress.h:38
-#, fuzzy
-msgid "ZLIB uncompress data error"
-msgstr "erreur d'analyse syntaxique"
-
-#: src/storage/compress.c:145 src/storage/compress.c:183
-#: src/prims/portprims.c:1327 src/drivers/headers/zcompress.h:40
-#: src/drivers/headers/zcompress.h:78
-msgid "Bad ZLIB return code"
-msgstr ""
-
-#: src/storage/compress.c:178 src/drivers/headers/zcompress.h:73
+#: src/storage/compress.c:183 src/drivers/headers/zcompress.h:73
 msgid "pool value compression ran out of memory"
 msgstr ""
 
 # aptitude
-#: src/storage/compress.c:181 src/prims/portprims.c:1325
+#: src/storage/compress.c:186 src/prims/portprims.c:1325
 #: src/drivers/headers/zcompress.h:76
 #, fuzzy
 msgid "ZLIB compress data error"
@@ -1931,14 +1933,14 @@ msgid "Stored %d oid values in oidpool %s in %f seconds"
 msgstr ""
 
 #: src/drivers/filepool.c:813 src/drivers/oidpool.c:1552
-#: src/drivers/bigpool.c:2260 src/cmodules/leveldb.c:1502
-#: src/cmodules/rocksdb.c:1509
+#: src/drivers/bigpool.c:2260 src/drivers/knopool.c:2195
+#: src/cmodules/leveldb.c:1502 src/cmodules/rocksdb.c:1509
 msgid "FileAlreadyExists"
 msgstr ""
 
 #: src/drivers/filepool.c:907 src/drivers/oidpool.c:1647
-#: src/drivers/bigpool.c:2059 src/drivers/fileindex.c:1199
-#: src/drivers/hashindex.c:3829
+#: src/drivers/bigpool.c:2059 src/drivers/knopool.c:1999
+#: src/drivers/fileindex.c:1199 src/drivers/hashindex.c:3829
 msgid "cachelevel"
 msgstr ""
 
@@ -1984,6 +1986,21 @@ msgstr "pas une fichiers d'index"
 #: src/drivers/bigpool.c:759
 msgid "BadSlotCode"
 msgstr ""
+
+#: src/drivers/knopool.c:107
+#, fuzzy
+msgid "Corrupt knopool"
+msgstr "table de lots corrompu"
+
+#: src/drivers/knopool.c:108
+#, fuzzy
+msgid "Invalid offset in KNOPOOL"
+msgstr "constante invalide"
+
+#: src/drivers/knopool.c:259
+#, fuzzy
+msgid "Not a knopool"
+msgstr "pas une fichiers d'index"
 
 #: src/drivers/fileindex.c:191
 #, fuzzy
@@ -2149,7 +2166,7 @@ msgid "number|string"
 msgstr "chaîne"
 
 #: src/eval/opcode_defs.c:915 src/eval/opcode_defs.c:919
-#: src/eval/opcode_defs.c:923 src/prims/dbprims.c:2177
+#: src/eval/opcode_defs.c:923 src/prims/dbprims.c:2195
 #: src/prims/tableprims.c:770 src/prims/tableprims.c:792
 #: src/prims/tableprims.c:821 src/prims/tableprims.c:891 src/web/htmlout.c:598
 #: src/web/uriprims.c:204 src/web/uriprims.c:206 src/web/uriprims.c:305
@@ -2352,7 +2369,7 @@ msgstr "L'encodage est inconnu"
 msgid "namefn"
 msgstr ""
 
-#: src/prims/dbprims.c:396 src/prims/dbprims.c:2218 src/prims/dbprims.c:2233
+#: src/prims/dbprims.c:396 src/prims/dbprims.c:2236 src/prims/dbprims.c:2251
 #, fuzzy
 msgid "index spec"
 msgstr "index"
@@ -2385,8 +2402,8 @@ msgstr "slotmap"
 msgid "pool, index, or OIDs"
 msgstr "Il n'y a pas une lot pour cette OID"
 
-#: src/prims/dbprims.c:1270 src/prims/dbprims.c:1693 src/prims/dbprims.c:1920
-#: src/prims/dbprims.c:1939
+#: src/prims/dbprims.c:1270 src/prims/dbprims.c:1693 src/prims/dbprims.c:1938
+#: src/prims/dbprims.c:1957
 #, fuzzy
 msgid "pool or index"
 msgstr "une lot ou index"
@@ -2396,24 +2413,24 @@ msgstr "une lot ou index"
 msgid "pool offset"
 msgstr ""
 
-#: src/prims/dbprims.c:2142
+#: src/prims/dbprims.c:2160
 msgid "value test"
 msgstr ""
 
-#: src/prims/dbprims.c:2543
+#: src/prims/dbprims.c:2561
 msgid "test relation"
 msgstr ""
 
-#: src/prims/dbprims.c:2656
+#: src/prims/dbprims.c:2674
 msgid "test object"
 msgstr ""
 
-#: src/prims/dbprims.c:3161
+#: src/prims/dbprims.c:3179
 #, fuzzy
 msgid "wrong number of args"
 msgstr "trop peu de arguments à «find-frames»"
 
-#: src/prims/dbprims.c:3304 src/prims/dbprims.c:3327
+#: src/prims/dbprims.c:3322 src/prims/dbprims.c:3345
 msgid "offset base"
 msgstr ""
 
@@ -3276,19 +3293,19 @@ msgid "Startup"
 msgstr ""
 
 #: src/exe/knod.c:85
-msgid "Knodaemon/ABORT"
+msgid "Knod/ABORT"
 msgstr ""
 
 #: src/exe/knod.c:86
-msgid "Knodaemon/CONFIG"
+msgid "Knod/CONFIG"
 msgstr ""
 
 #: src/exe/knod.c:87
-msgid "Knodaemon/STARTUP"
+msgid "Knod/STARTUP"
 msgstr ""
 
 #: src/exe/knod.c:88
-msgid "Knodaemon/SHUTDOWN"
+msgid "Knod/SHUTDOWN"
 msgstr ""
 
 #: src/exe/knod.c:92
@@ -3300,7 +3317,7 @@ msgid "Outgoing"
 msgstr ""
 
 #: src/exe/knod.c:1078
-msgid "Loglevel for knodaemon itself"
+msgid "Loglevel for knod itself"
 msgstr ""
 
 #: src/exe/knod.c:1081
@@ -3368,12 +3385,6 @@ msgstr ""
 #: src/exe/knod.c:1330
 msgid "port or port@host to listen on"
 msgstr ""
-
-# gnumeric
-#: src/cmodules/odbc.c:65
-#, fuzzy
-msgid "ODBC error"
-msgstr "Erreur de type"
 
 #: src/cmodules/sqlite.c:54
 msgid "SQLite Error"
@@ -3458,6 +3469,11 @@ msgstr ""
 #: src/exe/webcommon.h:733
 msgid "WEBMAIN default procedure for handling requests"
 msgstr ""
+
+# gnumeric
+#, fuzzy
+#~ msgid "ODBC error"
+#~ msgstr "Erreur de type"
 
 #, fuzzy
 #~ msgid "MYSQL server reset"
