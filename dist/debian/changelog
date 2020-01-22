@@ -1,3 +1,9 @@
+kno (2001.1.1-1) unstable; urgency=medium
+
+  * Introduce 2001, initially unstable
+
+ -- Ken Haase <kh@beingmeta.com>  Tue, 21 Jan 2020 16:21:14 -0800
+
 kno (1910.1.1-7) stable; urgency=medium
 
   * Separate out extmods from kno core
