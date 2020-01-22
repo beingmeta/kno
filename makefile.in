@@ -1689,7 +1689,9 @@ dist/alpine/APKBUILD: dist/alpine/APKBUILD.in
 	./config.status
 
 dist/alpine.done: dist/alpine/APKBUILD include/kno/revision.h
-	cd dist/alpine; abuild checksum && \
+	cd dist/alpine; \
+		abuild clean cacheclean cleanpkg && \
+		abuild checksum && \
 		abuild -P @APKREPO@ && \
 		touch $@
 
