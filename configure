@@ -756,6 +756,7 @@ PROFILING
 VERSION
 DEBVERSION
 RPMVERSION
+KNO_PATCHLEVEL
 KNO_RELEASE
 KNO_MINOR
 KNO_MAJOR
@@ -3006,6 +3007,7 @@ SHARED_LIB_TARGET=shared-libs
 KNO_MAJOR=1910
 KNO_MINOR=1
 KNO_RELEASE=`cat etc/release`
+KNO_PATCHLEVEL=`./etc/patchlevel`
 KNO_VERSION=${KNO_MAJOR}.${KNO_MINOR}.${KNO_RELEASE}
 VERSION=$KNO_VERSION
 RPMVERSION=${KNO_RELEASE}
@@ -3171,6 +3173,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/kno/knosource.h include/kno/config.h"
+
 
 
 

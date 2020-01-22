@@ -1912,13 +1912,13 @@ gcovr_fresh:
 # Meta operations
 
 submodules update-submodules update-git update-modules:
-	git pull;
-	git submodule init;
-	git submodule update;
-	git submodule update --remote --merge src/stdlib;
-	cd src/stdlib; git submodule init; \
+	if test -d .git; then \
+	  git pull; git submodule init; git submodule update; \
+	  git submodule update --remote --merge src/stdlib; \
+	  cd src/stdlib; git submodule init; \
 		git submodule update  --remote --merge brico; \
-		git submodule update	
+		git submodule update; \
+	fi;
 
 .PHONY: mod_knocgi update-mod_knocgi install-mod_knocgi update-modules
 

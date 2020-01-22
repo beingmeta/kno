@@ -2,7 +2,7 @@
 # Maintainer: beingmeta repository manager <repoman@beingmeta.com>
 pkgname=kno
 pkgver=@KNO_MAJOR@.@KNO_MINOR@.@KNO_RELEASE@
-pkgrel=@U8PATCHLEVEL@
+pkgrel=@KNO_PATCHLEVEL@
 pkgdesc="Library and applications for symbolic computing at scale"
 url="https://kno.so/"
 arch="all"
@@ -28,7 +28,7 @@ build() {
 		--prefix=/usr \
 		--sysconfdir=/etc \
 		--mandir=/usr/share/man \
-		--without-parseltongue
+		--without-parseltongue \
 		--localstatedir=/var \
 		--without-sudo
 	make -j
