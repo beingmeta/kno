@@ -134,10 +134,12 @@ SUINSTALL=
 RPMDIR=${RPMDIR:-dist}
 RPMFLAGS=${RPMFLAGS:-}
 APTREPO=${APTREPO:-/srv/repo/apt}
+APKREPO=${APKREPO:-/srv/repo/apk}
 PKGCONFIG_DIR=
 GPG=`which gpg2 || which gpg || gpg`
 GPGID=${GPGID:-FE1BC737F9F323D732AA26330620266BE5AFF294}
 GITDESCRIBE=""
+GITBRANCH=""
 TAGS="TAGS SCHEMETAGS"
 LIBSCM="\${REVISION}"
 default_source_dir="\$prefix/src"
@@ -389,12 +391,19 @@ AC_ARG_VAR(RPMDIR,"Location for writing built RPMs")
 AC_ARG_VAR(RPMFLAGS,"Default flags for building RPMs")
 AC_ARG_VAR(GPG,"GPG executable")
 AC_ARG_VAR(APTREPO,"Location of the APT repository")
+AC_ARG_VAR(APKREPO,"Location of the Alpine APK repository")
 AC_SUBST(RPMDIR)
 AC_SUBST(RPMFLAGS)
 AC_SUBST(GPGID)
 AC_SUBST(APTREPO)
+AC_SUBST(APKREPO)
+AC_SUBST(GITBRANCH)
 AC_SUBST(PKGCONFIG_DIR)
 AC_SUBST(GPG)
+
+if test -z "${GITBRANCH}"; then
+   GITBRANCH=`etc/getbranch`;
+fi;
 
 AC_PATH_PROG(binenv,env)
 AC_CHECK_PROG(SCRIPT_SHELL,sh,,/bin/sh)
@@ -1858,6 +1867,7 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   etc/apache/knocgi.conf 
 	   etc/apache/knocgi.load
 	   etc/install-script 
+	   dist/alpine/APKBUILD
 	   dist/kno-4.3.spec],
 	   [chmod a+x etc/kno* tests/*test])
 

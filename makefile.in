@@ -1683,6 +1683,21 @@ macports-build-setup:
 
 .PHONY: debian-build-setup rpm-build-setup
 
+# Alpine packaging
+
+dist/alpine/APKBUILD: dist/alpine/APKBUILD.in
+	./config.status
+
+dist/alpine.done: dist/alpine/APKBUILD include/kno/revision.h
+	cd dist/alpine; abuild checksum && \
+		abuild -P @APKREPO@ && \
+		touch $@
+
+alpine: dist/alpine.done
+
+.PHONY: alpine
+
+
 # The mod_knocgi module
 
 src/apache2/mod_knocgi.so: src/apache2/mod_knocgi.c @abs_top_srcdir@/fileinfo

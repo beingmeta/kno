@@ -1,0 +1,40 @@
+# Contributor: beingmeta repository manager <repoman@beingmeta.com>
+# Maintainer: beingmeta repository manager <repoman@beingmeta.com>
+pkgname=kno
+pkgver=@KNO_MAJOR@.@KNO_MINOR@.@KNO_RELEASE@
+pkgrel=@U8PATCHLEVEL@
+pkgdesc="Library and applications for symbolic computing at scale"
+url="https://kno.so/"
+arch="all"
+license="GPLV3"
+depends="libu8"
+makedepends="ldns-dev libressl-dev libuuid libc-dev alpine-sdk"
+install=""
+#subpackages="$pkgname-dev $pkgname-doc"
+subpackages=""
+source="https://github.com/beingmeta/kno/archive/@GITBRANCH@.tar.gz"
+builddir="kno-@GITBRANCH@"
+
+build() {
+	pwd
+	./configure \
+		--build=$CBUILD \
+		--host=$CHOST \
+		--prefix=/usr \
+		--sysconfdir=/etc \
+		--mandir=/usr/share/man \
+		--localstatedir=/var \
+		--without-sudo
+	make
+}
+
+check() {
+	cd src/${builddir}
+	pwd
+	make
+}
+
+package() {
+	cd src/${builddir}
+	make DESTDIR="$pkgdir" SUDO= install
+}
