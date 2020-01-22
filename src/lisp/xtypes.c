@@ -21,16 +21,27 @@
 #include <libu8/u8elapsed.h>
 
 #include <zlib.h>
+
+#if HAVE_SNAPPYC_H
+#include <snappy-c.h>
+#endif
+#if HAVE_ZSTD_H
+#include <zstd.h>
+#endif
+
 #include <errno.h>
 
 #ifndef KNO_DEBUG_XTYPEIO
 #define KNO_DEBUG_XTYPEIO 0
 #endif
 
-static unsigned char *do_zuncompress
+static unsigned char *xtype_zlib_uncompress
 (const unsigned char *bytes,size_t n_bytes,
  ssize_t *dbytes,unsigned char *init_dbuf);
-
+static unsigned char *xtype_zstd_uncompress
+(ssize_t *destlen,const unsigned char *source,size_t source_len,void *state);
+static unsigned char *xtype_snappy_uncompress
+(ssize_t *destlen,const unsigned char *source,size_t source_len);
 
 static lispval objid_symbol, mime_symbol, encrypted_symbol,
   compressed_symbol, error_symbol, mime_symbol, knopaque_symbol;
@@ -219,8 +230,12 @@ static ssize_t write_xtype(kno_outbuf out,lispval x,xtype_refs refs)
 	rv=kno_write_byte(out,xt_regex);
       else if (x==kno_qchoice_xtag)
 	rv=kno_write_byte(out,xt_qchoice);
-      else if (x==kno_zcompress_xtag)
-	rv=kno_write_byte(out,xt_zcompress);
+     else if (x==kno_zlib_xtag)
+	rv=kno_write_byte(out,xt_zlib);
+      else if (x==kno_zstd_xtag)
+	rv=kno_write_byte(out,xt_zstd);
+      else if (x==kno_snappy_xtag)
+	rv=kno_write_byte(out,xt_snappy);
       else if (flags&XTYPE_WRITE_OPAQUE)
 	return write_opaque(out,x,refs);
       else {
@@ -334,7 +349,9 @@ static lispval read_xtype(kno_inbuf in,xtype_refs refs)
   case xt_timestamp: return kno_timestamp_xtag;
   case xt_regex: return kno_regex_xtag;
   case xt_qchoice: return kno_qchoice_xtag;
-  case xt_zcompress: return kno_zcompress_xtag;
+  case xt_zlib: return kno_zlib_xtag;
+  case xt_zstd: return kno_zstd_xtag;
+  case xt_snappy: return kno_snappy_xtag;
 
   case xt_absref: {
     ssize_t off = xt_read_varint(in);
@@ -680,28 +697,39 @@ static lispval restore_tagged(lispval tag,lispval data,xtype_refs refs)
 
 static lispval restore_compressed(lispval tag,lispval data,xtype_refs refs)
 {
-  if (tag == kno_zcompress_xtag) {
-    if (PACKETP(data)) {
-      ssize_t compressed_len = KNO_PACKET_LENGTH(data);
-      const unsigned char *bytes = KNO_PACKET_DATA(data);
-      ssize_t uncompressed_len = 0;
-      unsigned char *uncompressed =
-	do_zuncompress(bytes,compressed_len,
-		       &uncompressed_len,NULL);
-      if (uncompressed) {
-	struct KNO_INBUF inflated = { 0 };
-	KNO_INIT_BYTE_INPUT(&inflated,uncompressed,uncompressed_len);
-	lispval value = kno_read_xtype(&inflated,refs);
-        u8_big_free(uncompressed);
-        return value;}
-      else return kno_err("UncompressFailed","xt_zread",NULL,VOID);}}
+  if (!(PACKETP(data)))
+    return kno_init_compound
+      (NULL,compressed_symbol,KNO_COMPOUND_USEREF,2,tag,data);
+  else {
+    ssize_t compressed_len = KNO_PACKET_LENGTH(data);
+    const unsigned char *bytes = KNO_PACKET_DATA(data);
+    unsigned char *uncompressed = NULL;
+    ssize_t uncompressed_len = 0;
+    if (tag == kno_zlib_xtag)
+      uncompressed = xtype_zlib_uncompress
+	(bytes,compressed_len,&uncompressed_len,NULL);
+    else if (tag == kno_zstd_xtag)
+      uncompressed = xtype_zstd_uncompress
+	(&uncompressed_len,bytes,compressed_len,NULL);
+    else if (tag == kno_snappy_xtag)
+      uncompressed = xtype_snappy_uncompress
+	(&uncompressed_len,bytes,compressed_len);
+    else return kno_init_compound
+	   (NULL,compressed_symbol,KNO_COMPOUND_USEREF,2,tag,data);
+    if (uncompressed) {
+      struct KNO_INBUF inflated = { 0 };
+      KNO_INIT_BYTE_INPUT(&inflated,uncompressed,uncompressed_len);
+      lispval value = kno_read_xtype(&inflated,refs);
+      u8_big_free(uncompressed);
+      return value;}
+    else return kno_err("UncompressFailed","xt_zread",NULL,VOID);}
   return kno_init_compound
     (NULL,compressed_symbol,KNO_COMPOUND_USEREF,2,tag,data);
 }
 
 /* Uncompressing */
 
-static unsigned char *do_zuncompress
+static unsigned char *xtype_zlib_uncompress
 (const unsigned char *bytes,size_t n_bytes,
  ssize_t *dbytes,unsigned char *init_dbuf)
 {
@@ -737,6 +765,61 @@ static unsigned char *do_zuncompress
   else {
     if (dbuf != init_dbuf) u8_big_free(dbuf);
     return KNO_ERR2(NULL,error,"do_zuncompress");}
+}
+
+static unsigned char *xtype_snappy_uncompress
+(ssize_t *destlen,const unsigned char *source,size_t source_len)
+{
+  size_t uncompressed_size;
+  snappy_status size_rv =
+    snappy_uncompressed_length(source,source_len,&uncompressed_size);
+  if (size_rv == SNAPPY_OK) {
+    unsigned char *uncompressed = u8_big_alloc(uncompressed_size);
+    snappy_status uncompress_rv=
+      snappy_uncompress(source,source_len,uncompressed,&uncompressed_size);
+    if (uncompress_rv == SNAPPY_OK) {
+      *destlen = uncompressed_size;
+      return uncompressed;}
+    else {
+      u8_big_free(uncompressed);
+      u8_seterr("SnappyUncompressFailed","xtype_snappy_uncompress",NULL);}
+      return NULL;}
+  else {
+    u8_seterr("SnappyUncompressFailed","xtype_snappy_uncompress",NULL);
+    return NULL;}
+}
+
+#define zstd_error(code) (u8_fromlibc((char *)ZSTD_getErrorName(code)))
+static unsigned char *xtype_zstd_uncompress
+(ssize_t *destlen,const unsigned char *source,size_t source_len,void *state)
+{
+#if HAVE_ZSTD_GETFRAMECONTENTSIZE
+  size_t alloc_size = ZSTD_getFrameContentSize(source,source_len);
+  if (PRED_FALSE(alloc_size == ZSTD_CONTENTSIZE_UNKNOWN)) {
+    u8_seterr("UnknownContentSize","xtype_zstd_uncompress",
+	      zstd_error(alloc_size));
+    return NULL;}
+  else if (PRED_FALSE(alloc_size == ZSTD_CONTENTSIZE_ERROR)) {
+    u8_seterr("ZSTD_ContentSizeError","xtype_zstd_uncompress",
+	      zstd_error(alloc_size));
+    return NULL;}
+#else
+  size_t alloc_size = ZSTD_getDecompressedSize(source,source_len);
+#endif
+  unsigned char *uncompressed = u8_big_alloc(alloc_size);
+  size_t uncompressed_size =
+    ZSTD_decompress(uncompressed,alloc_size,source,source_len);
+  if (ZSTD_isError(uncompressed_size)) {
+    u8_seterr("ZSTD_UncompressError","xtype_zstd_uncompress",
+	      zstd_error(uncompressed_size));
+    u8_big_free(uncompressed);
+    return NULL;}
+  else {
+    if ( (uncompressed_size*2) < alloc_size) {
+      unsigned char *new_data = u8_big_realloc(uncompressed,uncompressed_size);
+      if (new_data) uncompressed = new_data;}
+    *destlen = uncompressed_size;
+    return uncompressed;}
 }
 
 /* File initialization */

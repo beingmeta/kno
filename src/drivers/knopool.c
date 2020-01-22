@@ -1267,17 +1267,30 @@ static ssize_t knopool_write_value(kno_knopool p,lispval value,
   /* Reset the tmpout stream */
   tmpout->bufwrite = tmpout->buffer;
   kno_write_xtype(tmpout,value,&(p->pool_xrefs));
-  if ( (p->pool_compression == KNO_ZLIB) ||
-       (p->pool_compression == KNO_ZLIB9) ) {
+  if (p->pool_compression) {
     size_t source_length = tmpout->bufwrite-tmpout->buffer;
     size_t compressed_length = 0;
     unsigned char *compressed =
       kno_compress(p->pool_compression,&compressed_length,
-		  tmpout->buffer,source_length,NULL);
+		   tmpout->buffer,source_length,NULL);
     if (compressed) {
       size_t header = 3;
       kno_write_byte(outstream,xt_compressed);
-      kno_write_byte(outstream,xt_zcompress);
+      if ( (p->pool_compression == KNO_ZLIB) ||
+	   (p->pool_compression == KNO_ZLIB9) )
+	kno_write_byte(outstream,xt_zlib);
+      else if ( (p->pool_compression == KNO_ZSTD) ||
+		(p->pool_compression == KNO_ZSTD9) ||
+		(p->pool_compression == KNO_ZSTD19) )
+	kno_write_byte(outstream,xt_zstd);
+      else if (p->pool_compression == KNO_SNAPPY)
+	kno_write_byte(outstream,xt_snappy);
+      else {
+	u8_log(LOGWARN,"InternalCompressionError",
+	       "Invalid compression type code %d in pool %s",
+	       p->pool_compression,p->poolid);
+	u8_big_free(compressed);
+	return -1;}
       kno_write_byte(outstream,xt_packet);
       header += kno_write_varint(outstream,compressed_length);
       kno_write_bytes(outstream,compressed,compressed_length);

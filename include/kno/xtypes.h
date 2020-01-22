@@ -73,7 +73,9 @@ typedef enum XT_TYPE_CODE {
   xt_regex        = XT_TAG(0x03),
   xt_qchoice      = XT_TAG(0x04),
 
-  xt_zcompress    = XT_TAG(0x0C)
+  xt_zlib         = XT_TAG(0x08),
+  xt_zstd         = XT_TAG(0x09),
+  xt_snappy       = XT_TAG(0x0a),
 
 } xt_type_code;
 

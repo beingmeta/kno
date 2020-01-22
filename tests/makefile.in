@@ -67,7 +67,7 @@ BIGPOOL		= POOLTYPE=bigpool
 KNOPOOL		= POOLTYPE=knopool
 SNAPPY		= COMPRESSION=snappy
 ZPOOL		= COMPRESSION=zlib
-ZSTDPOOL	= COMPRESSION=zstd
+ZSTD	        = COMPRESSION=zstd
 FILEPOOL	= POOLTYPE=filepool
 FILEINDEX	= INDEXTYPE=fileindex
 HASHINDEX	= INDEXTYPE=hashindex
@@ -351,7 +351,7 @@ bigpoolsnappytest:
 bigpoolzlibtest:
 	@make TESTBASE=bigpoolzlib RUNCONF="${BIGPOOL} ${ZPOOL} ${RUNCONF}" pooltest
 bigpoolzstdtest:
-	@make TESTBASE=bigpoolzlib RUNCONF="${BIGPOOL} ${ZSTDPOOL} ${RUNCONF}" pooltest
+	@make TESTBASE=bigpoolzlib RUNCONF="${BIGPOOL} ${ZSTD} ${RUNCONF}" pooltest
 # This doesn't do any slotcoding to check those code paths
 bigpooltest_nx:
 	@make TESTBASE=bigpool_nx RUNCONF="SLOTCODES=#f ${BIGPOOL} ${RUNCONF}" pooltest
@@ -363,18 +363,23 @@ knopool32test:
 knopool64test:
 	@make TESTBASE=knopool64 RUNCONF="${KNOPOOL} ${OFFB64} ${RUNCONF}" pooltest
 knopoolztest:
-	@make TESTBASE=knopool RUNCONF="${KNOPOOL} ${ZPOOL} ${RUNCONF}" pooltest
+	@make TESTBASE=knopoolz RUNCONF="${KNOPOOL} ${ZPOOL} ${RUNCONF}" pooltest
 knopool32ztest:
-	@make TESTBASE=knopool32 RUNCONF="${KNOPOOL} ${OFFB32} ${ZPOOL} ${RUNCONF}" pooltest
+	@make TESTBASE=knopool32z RUNCONF="${KNOPOOL} ${OFFB32} ${ZPOOL} ${RUNCONF}" pooltest
 knopool64ztest:
-	@make TESTBASE=knopool64 RUNCONF="${KNOPOOL} ${OFFB64} ${ZPOOL} ${RUNCONF}" pooltest
+	@make TESTBASE=knopool64z RUNCONF="${KNOPOOL} ${OFFB64} ${ZPOOL} ${RUNCONF}" pooltest
+knopoolsnappytest:
+	@make TESTBASE=knopoolsnappy RUNCONF="${KNOPOOL} ${SNAPPY} ${RUNCONF}" pooltest
+knopoolzstdtest:
+	@make TESTBASE=knopoolzstd RUNCONF="${KNOPOOL} ${ZSTD} ${RUNCONF}" pooltest
 
 lvldbpools lvldbpooltests:
 	@make TESTBASE=lvldbpool RUNCONF="SLOTCODES=#f POOLTYPE=leveldb POOLMOD=leveldb ${RUNCONF}" pooltest
 rckdbpools rckdbpooltests:
 	@make TESTBASE=rckdbpool RUNCONF="SLOTCODES=#f POOLTYPE=rocksdb POOLMOD=rocksdb ${RUNCONF}" pooltest
 
-knopools knopooltests: knopooltest knopool32test knopool64test knopoolztest
+knopools knopooltests: knopooltest knopool32test knopool64test knopoolztest \
+        knopoolsnappytest knopoolzstdtest
 bigpools bigpooltests: bigpooltest bigpool32test bigpool64test \
         bigpooltest_nx bigpoolsnappytest bigpoolzlibtest \
         bigpoolzstdtest

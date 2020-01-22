@@ -58,7 +58,7 @@ int kno_check_utf8 = 0;
 
 lispval kno_timestamp_xtag, kno_qchoice_xtag, kno_regex_xtag,
   kno_rational_xtag, kno_complex_xtag;
-lispval kno_zcompress_xtag;
+lispval kno_zlib_xtag, kno_zstd_xtag, kno_snappy_xtag;
 
 const char *kno_constant_names[256]={
   "#void","#f","#t","{}","()","#default","#tailcall",
@@ -947,6 +947,8 @@ void kno_init_cons_c()
   kno_qchoice_xtag = kno_register_constant("qchoice_xtag");
   kno_regex_xtag     = kno_register_constant("regex_xtag");
 
-  kno_zcompress_xtag = kno_register_constant("zcompress_xtag");
+  kno_zlib_xtag = kno_register_constant("zlib_xtag");
+  kno_zstd_xtag = kno_register_constant("zstd_xtag");
+  kno_snappy_xtag = kno_register_constant("snappy_xtag");
 }
 
