@@ -90,6 +90,7 @@ SHARED_LIB_TARGET=shared-libs
 KNO_MAJOR=2001
 KNO_MINOR=1
 KNO_RELEASE=`cat etc/release`
+KNO_PATCHLEVEL=`./etc/patchlevel`
 KNO_VERSION=${KNO_MAJOR}.${KNO_MINOR}.${KNO_RELEASE}
 VERSION=$KNO_VERSION
 RPMVERSION=${KNO_RELEASE}
@@ -134,10 +135,12 @@ SUINSTALL=
 RPMDIR=${RPMDIR:-dist}
 RPMFLAGS=${RPMFLAGS:-}
 APTREPO=${APTREPO:-/srv/repo/apt}
+APKREPO=${APKREPO:-/srv/repo/apk}
 PKGCONFIG_DIR=
 GPG=`which gpg2 || which gpg || gpg`
 GPGID=${GPGID:-FE1BC737F9F323D732AA26330620266BE5AFF294}
 GITDESCRIBE=""
+GITBRANCH=""
 TAGS="TAGS SCHEMETAGS"
 LIBSCM="\${REVISION}"
 default_source_dir="\$prefix/src"
@@ -325,6 +328,7 @@ AC_SUBST(KNO_VERSION)
 AC_SUBST(KNO_MAJOR)
 AC_SUBST(KNO_MINOR)
 AC_SUBST(KNO_RELEASE)
+AC_SUBST(KNO_PATCHLEVEL)
 AC_SUBST(RPMVERSION)
 AC_SUBST(DEBVERSION)
 AC_SUBST(VERSION)
@@ -389,12 +393,19 @@ AC_ARG_VAR(RPMDIR,"Location for writing built RPMs")
 AC_ARG_VAR(RPMFLAGS,"Default flags for building RPMs")
 AC_ARG_VAR(GPG,"GPG executable")
 AC_ARG_VAR(APTREPO,"Location of the APT repository")
+AC_ARG_VAR(APKREPO,"Location of the Alpine APK repository")
 AC_SUBST(RPMDIR)
 AC_SUBST(RPMFLAGS)
 AC_SUBST(GPGID)
 AC_SUBST(APTREPO)
+AC_SUBST(APKREPO)
+AC_SUBST(GITBRANCH)
 AC_SUBST(PKGCONFIG_DIR)
 AC_SUBST(GPG)
+
+if test -z "${GITBRANCH}"; then
+   GITBRANCH=`etc/getbranch`;
+fi;
 
 AC_PATH_PROG(binenv,env)
 AC_CHECK_PROG(SCRIPT_SHELL,sh,,/bin/sh)
@@ -1858,6 +1869,7 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   etc/apache/knocgi.conf 
 	   etc/apache/knocgi.load
 	   etc/install-script 
+	   dist/alpine/APKBUILD
 	   dist/kno-4.3.spec],
 	   [chmod a+x etc/kno* tests/*test])
 

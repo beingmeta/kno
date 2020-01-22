@@ -1,0 +1,46 @@
+# Contributor: beingmeta repository manager <repoman@beingmeta.com>
+# Maintainer: beingmeta repository manager <repoman@beingmeta.com>
+pkgname=kno
+pkgver=@KNO_MAJOR@.@KNO_MINOR@.@KNO_RELEASE@
+pkgrel=@KNO_PATCHLEVEL@
+pkgdesc="Library and applications for symbolic computing at scale"
+url="https://kno.so/"
+arch="all"
+license="GPLV3"
+depends="libu8 libressl ldns"
+makedepends="ldns-dev libressl-dev libuuid libc-dev alpine-sdk snappy-dev curl-dev"
+install=""
+#subpackages="$pkgname-dev $pkgname-doc"
+subpackages=""
+source="https://github.com/beingmeta/kno/archive/@GITBRANCH@.tar.gz"
+builddir="kno-@GITBRANCH@"
+
+build() {
+	wget https://github.com/beingmeta/stdlib/archive/trunk.tar.gz
+	tar -xf trunk.tar.gz; rm trunk.tar.gz
+	wget https://github.com/beingmeta/brico/archive/trunk.tar.gz
+	tar -xf trunk.tar.gz; rm trunk.tar.gz
+	rmdir src/stdlib; mv stdlib-trunk src/stdlib
+	rmdir src/stdlib/brico; mv brico-trunk src/stdlib/brico
+	./configure \
+		--build=$CBUILD \
+		--host=$CHOST \
+		--prefix=/usr \
+		--sysconfdir=/etc \
+		--mandir=/usr/share/man \
+		--without-parseltongue \
+		--localstatedir=/var \
+		--without-sudo
+	make -j
+}
+
+check() {
+	cd src/${builddir}
+	pwd
+	make
+}
+
+package() {
+	cd src/${builddir}
+	make DESTDIR="$pkgdir" SUDO= install
+}

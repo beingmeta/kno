@@ -39,6 +39,13 @@ usage() {
 	echo "\t"daemons "\t\t\t(Where Kno daemon control files are stored)";
 	echo "\t"share "\t\t\t\t(Where shared kno configuration information is stored)";
 	echo "\t"data "\t\t\t\t(Where Kno persistent application data are stored)";
+	echo "\t"apkrepo "\t\t\t\t(Where APK packages should be written)";
+	echo "\t"aptrepo "\t\t\t\t(Where APT packages should be written)";
+	echo "\t"branch "\t\t\t\t(The KNO source branch for this build)";
+	echo "\t"patchlevel "\t\t\t\t(The KNO patch level for this build)";
+	echo "\t"gitbranch "\t\t\t\t(The git branch for the current source directory (cwd))";
+f	echo "\t"gitpath "\t\t\t\t(The git patchlevel for the current source directory (cwd))";
+	echo "\t"aptrepo "\t\t\t\t(Where APT packages should be written)";
 }
 if test -z ${option};
    then option="usage";
@@ -68,6 +75,10 @@ case ${option} in
 	echo "@shared_config@";;
     cflags)
 	echo "@CFLAGS@";;
+    aptrepo)
+        echo "@APTREPO@";;
+    apkrepo)
+        echo "@APKREPO@";;
     ldflags)
 	echo "@LDFLAGS@ @PTHREAD_LIBS@ ${XLDFLAGS}";;
     include)
@@ -118,6 +129,17 @@ case ${option} in
 	echo "@data_dir@";;
     kno.py)
     	echo "@libdir@/kno/kno.@shared_suffix@";;
+    branch)
+        echo "@GITBRANCH@";;
+    patchlevel)
+        echo "@KNO_PATCHLEVEL@";;
+    gitbranch)
+        branch_name=$(git symbolic-ref -q HEAD 2> /dev/null);
+        branch_name=${branch_name##refs/heads/};
+        echo ${branch_name:-trunk};;
+    gitpatch)
+       git describe | sed -e "s/-g[a-zA-Z0-9]*$//" | \
+       	   sed -e "s/.*-\([0-9]*\)$/\\1/";;
     get)
 	if [ $# -gt 0 ]; then
 	  cvar=$1; shift;
