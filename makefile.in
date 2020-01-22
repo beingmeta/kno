@@ -405,6 +405,28 @@ SHARED_LIBS=lib/libknocore@suffix@.@shared_suffix@  		\
 	lib/libknowebtools@suffix@.@mshared_suffix@       		\
 	lib/libknotexttools@suffix@.@mshared_suffix@
 
+STRIPPED_LIBS=lib/stripped/libknocore@suffix@.a 	\
+	lib/stripped/libknostorage@suffix@.a	\
+        lib/stripped/libknodbserv@suffix@.a 	\
+	lib/stripped/libknodrivers@suffix@.a  	\
+	lib/stripped/libknoscheme@suffix@.a 	\
+	lib/stripped/libknowebtools@suffix@.a 		\
+	lib/stripped/libknotexttools@suffix@.a \
+	lib/stripped/libknocore@suffix@.@shared_suffix@  		\
+	lib/stripped/libknostorage@suffix@.@shared_suffix@        	\
+        lib/stripped/libknodrivers@suffix@.@shared_suffix@    		\
+	lib/stripped/libknodbserv@suffix@.@shared_suffix@     		\
+	lib/stripped/libknoscheme@suffix@.@shared_suffix@    		\
+	lib/stripped/libknowebtools@suffix@.@shared_suffix@       		\
+	lib/stripped/libknotexttools@suffix@.@shared_suffix@		\
+	lib/stripped/libknocore@suffix@.@mshared_suffix@  		\
+	lib/stripped/libknostorage@suffix@.@mshared_suffix@        	\
+        lib/stripped/libknodrivers@suffix@.@mshared_suffix@    		\
+	lib/stripped/libknodbserv@suffix@.@mshared_suffix@     		\
+	lib/stripped/libknoscheme@suffix@.@mshared_suffix@    		\
+	lib/stripped/libknowebtools@suffix@.@mshared_suffix@       		\
+	lib/stripped/libknotexttools@suffix@.@mshared_suffix@
+
 SCHEME_MODULES=src/stdlib/*.scm \
 	src/stdlib/aws/*.scm \
 	src/stdlib/brico/*.scm	src/stdlib/brico/build/*.scm \
@@ -636,6 +658,13 @@ lib/%@suffix@.dylib:
 		$(DYLIB_FLAGS) -o $@ $^
 	@ln -sf $(@F) $(@D)/`basename $(@F) .dylib`.@KNO_MAJOR@.dylib
 	@$(MSG) MACLIBTOOL $@
+
+lib/stripped/%: lib/%
+	@cp $< $@
+	@strip $@
+
+stripped: ${STRIPPED_LIBS}
+.PHONY: stripped
 
 $(LIBINSTALLDIR)/%.a: lib/%.a
 	@$(SYSINSTALL) @install_dir_opts@ $(LIBINSTALLDIR)
