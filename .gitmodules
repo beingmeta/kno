@@ -45,3 +45,6 @@
 	path = src/extmods/mod_knocgi
 	url = git@github.com:beingmeta/mod_knocgi.git
 	branch = trunk
+[submodule "src/extmods/nng"]
+	path = src/extmods/nng
+	url = git@github.com:beingmeta/kno-nng.git
