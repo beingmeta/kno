@@ -1,6 +1,11 @@
 #!@SCRIPT_SHELL@
-FILE=$1
-shift;
+# -*- Mode: shell-script[sh]; -*-
+
+usage( ) {
+       echo "Usage: knojob <file> <args...>";
+       echo "Env:   BASE=<jobid> RUNDIR=<statedir>";
+       echo "Env:   LOGFILE=<logfile> ERRFILE=<errlog>"
+}
 abspath( ) {
     file=$1
     dir=$(dirname ${file})
@@ -8,6 +13,19 @@ abspath( ) {
     base=$(basename ${file})
     echo ${absdir}/${base};
 }
+
+if [ $# -eq 0 ]; then
+   usage;
+   exit;
+elif [ ! -f $1 ]; then
+     echo "Error: The file '$1' does not exist";
+     usage;
+     exit;
+else
+     FILE=$1
+     shift;
+fi;
+
 KNOX=@BINDIR@/knox
 BASE=_$(basename ${FILE} .scm)
 FULLPATH=$(abspath ${FILE})
