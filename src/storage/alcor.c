@@ -24,6 +24,7 @@
 #include <libu8/u8fileio.h>
 #include <libu8/u8printf.h>
 #include <libu8/libu8io.h>
+#include <libu8/u8rusage.h>
 
 #include <fcntl.h>
 #include <sys/types.h>
@@ -45,6 +46,14 @@ u8_condition TruncatedHead=_("The head file has no data");
 
 #define graberrno(context,details) u8_graberrno(context,((details) ? (u8_strdup(details)) : (NULL)))
 
+static size_t get_mmap_size(size_t len)
+{
+  ssize_t page_size = u8_getpagesize();
+  if ( (len%page_size) == 0)
+    return len;
+  else return (len/page_size+1)*page_size;
+}
+
 #if USE_MMAP
 static ssize_t save_head(int in,int out,size_t head_len,size_t source_len)
 {
@@ -53,27 +62,29 @@ static ssize_t save_head(int in,int out,size_t head_len,size_t source_len)
   if (trunc_rv<0) {
     u8_graberrno("save_head/trunc/grow",NULL);
     return -1;}
-  unsigned char *inbuf = mmap(NULL,head_len,PROT_READ,MAP_SHARED,in,0);
+  unsigned char *inbuf = mmap(NULL,get_mmap_size(head_len),
+			      PROT_READ,MAP_SHARED,in,0);
   if ( (inbuf == NULL) || (inbuf == MAP_FAILED) ) {
     u8_graberrno("save_head/inbuf",NULL);
     return -1;}
   unsigned char *outbuf =
-    mmap(NULL,head_len+8,PROT_READ|PROT_WRITE,
-         MAP_PRIVATE|MAP_POPULATE,
-         out,0);
+    mmap(NULL,get_mmap_size(head_len+8),
+	 PROT_READ|PROT_WRITE,MAP_POPULATE|MAP_SHARED,
+	 out,0);
   if ( (outbuf == NULL) || (outbuf == MAP_FAILED) ) {
     u8_graberrno("save_head/outbuf",NULL);
-    munmap(inbuf,head_len); errno=0;
+    munmap(inbuf,get_mmap_size(head_len)); errno=0;
     return -1;}
   else {
     struct KNO_OUTBUF buf;
     if (memcpy(outbuf,inbuf,head_len) == outbuf) {
       KNO_INIT_OUTBUF(&buf,outbuf+head_len,8,0);
       kno_write_8bytes(&buf,source_len);
-      if (msync(outbuf,head_len+8,MS_SYNC) < 0) error=1;}
+      if (msync(outbuf,head_len+8,MS_SYNC) < 0)
+	error=1;}
     else error = 1;
-    if (munmap(outbuf,head_len+8) < 0) error=1;}
-  if (munmap(inbuf,head_len) < 0) error=1;
+    if (munmap(outbuf,get_mmap_size(head_len+8)) < 0) error=1;}
+  if (munmap(inbuf,get_mmap_size(head_len)) < 0) error=1;
   if (error)
     return -1;
   else return head_len+8;
@@ -109,27 +120,30 @@ static ssize_t save_head(int in,int out,size_t head_len,size_t source_len)
 static ssize_t apply_head(int in,int out,size_t head_len)
 {
   int ok = 1;
-  unsigned char *inbuf = mmap(NULL,head_len,PROT_READ,MAP_SHARED,in,0);
+  unsigned char *inbuf = mmap(NULL,get_mmap_size(head_len+8),
+			      PROT_READ,MAP_SHARED,
+			      in,0);
   if ( (inbuf == NULL) || (inbuf == MAP_FAILED) ) {
     u8_graberrno("apply_head",NULL);
     return -1;}
   unsigned char *outbuf =
-    mmap(NULL,head_len,PROT_READ|PROT_WRITE,MAP_SHARED,out,0);
+    mmap(NULL,get_mmap_size(head_len),
+	 PROT_READ|PROT_WRITE,MAP_SHARED,
+	 out,0);
   if (! ( (outbuf == NULL) || (outbuf == MAP_FAILED) ) ) {
-    ssize_t copy_len = head_len - 8;
     struct KNO_INBUF buf;
-    KNO_INIT_INBUF(&buf,inbuf+copy_len,8,0);
+    KNO_INIT_INBUF(&buf,inbuf+head_len,8,0);
     ssize_t trunc_len = kno_read_8bytes(&buf);
-    if ( trunc_len < copy_len ) {
+    if ( trunc_len < head_len ) {
       u8_seterr("MalformedHeadFile","apply_head",NULL);
       ok = 0;}
-    else if (memcpy(outbuf,inbuf,copy_len) != outbuf) {
+    else if (memcpy(outbuf,inbuf,head_len) != outbuf) {
       u8_graberrno("apply_head",NULL);
       ok = 0;}
     else if (msync(outbuf,head_len,MS_SYNC) < 0)
       ok=0;
     else {}
-    if (munmap(outbuf,head_len) < 0) ok=0;
+    if (munmap(outbuf,get_mmap_size(head_len)) < 0) ok=0;
     if (ok) {
       int rv = ftruncate(out,trunc_len);
       if (rv < 0) {
@@ -194,7 +208,8 @@ static ssize_t apply_head(int in,int out,size_t head_len)
 }
 #endif
 
-KNO_EXPORT ssize_t kno_save_head(u8_string source,u8_string dest,size_t head_len)
+KNO_EXPORT ssize_t kno_save_head(u8_string source,u8_string dest,
+				 size_t head_len)
 {
   int in = u8_open_fd(source,O_RDONLY,0644);
   if (in<0) {
@@ -217,12 +232,7 @@ KNO_EXPORT ssize_t kno_save_head(u8_string source,u8_string dest,size_t head_len
     u8_close_fd(in);
     u8_close_fd(out);
     return -1;}
-  else {
-    int rv = ftruncate(out,0);
-    if (rv<0) {
-      graberrno("kno_save_head/truncate",dest);
-      u8_close_fd(in);
-      u8_close_fd(out);}}
+  else {}
   struct stat info={0};
   ssize_t rv = -1;
   if (fstat(in,&info)>=0) {
@@ -244,27 +254,27 @@ KNO_EXPORT ssize_t kno_apply_head(u8_string head,u8_string tofile)
   struct stat info={0};
   int in = u8_open_fd(head,O_RDONLY,0644);
   if (in<0) {
-    graberrno("kno_apply_head/open",head);
+    graberrno("kno_apply_head/in/open",head);
     return -1;}
   else if (u8_lock_fd(in,0)<0) {
-    graberrno("kno_apply_head/lock",head);
+    graberrno("kno_apply_head/in/lock",head);
     u8_close_fd(in);
     return -1;}
   else NO_ELSE;
   int out = u8_open_fd(tofile,O_RDWR,0644);
   if (out<0) {
-    graberrno("kno_apply_head/open",tofile);
+    graberrno("kno_apply_head/out/open",tofile);
     u8_close_fd(in);
     return -1;}
   else if (u8_lock_fd(out,1)<0) {
-    graberrno("kno_apply_head/lock",tofile);
+    graberrno("kno_apply_head/out/lock",tofile);
     u8_close_fd(in);
     u8_close_fd(out);
     return -1;}
   else NO_ELSE;
   ssize_t rv = -1;
   if (fstat(in,&info)>=0)
-    rv = apply_head(in,out,info.st_size);
+    rv = apply_head(in,out,info.st_size-8);
   else u8_graberr(errno,"kno_apply_head",u8_strdup("fstat failed"));
   if (rv<0)
     u8_seterr("ApplyHeadFailed","kno_apply_head",
