@@ -1,0 +1,157 @@
+#!@SCRIPT_SHELL@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+option=$1
+usage() {
+	echo "  knoconfig (embedded in $(pwd))"
+	echo "  knoconfig get *CONFIGVAR*"
+	echo "  knoconfig <setting>, where <setting> can be:"
+	echo "\t"version "\t\t\t(Kno version)";
+	echo "\t"major "\t\t\t\t(Kno major version number)";
+	echo "\t"minor "\t\t\t\t(Kno minor version number)";
+	echo "\t"release "\t\t\t(Kno release version number)";
+	echo "\t"prefix "\t\t\t\t(Installation prefix for Kno)";
+	echo "\t"execprefix "\t\t\t(Binary (executable) Installation prefix for Kno)";
+	echo "\t"config "\t\t\t\t(Default config directory)";
+	echo "\t"localconfig "\t\t\t(Local config directory)";
+	echo "\t"sharedconfig "\t\t\t(Shared config directory)";
+	echo "\t"cflags "\t\t\t\t(Compiler flags for building executables)";
+	echo "\t"ldflags "\t\t\t(Linker flags for building libraries)";
+	echo "\t"include "\t\t\t(Include directory for Kno)";
+	echo "\t"libdir "\t\t\t\t(Directory where Kno libraries are installed)";
+	echo "\t"deplibs "\t\t\t(Libraries which Kno is linked against)";
+	echo "\t"libs "\t\t\t\t(Libraries refs for the Kno core)";
+	echo "\t"bin "\t\t\t\t(Where Kno executables are installed)";
+	echo "\t"libsuffix "\t\t\t(The suffix for shared objects)";
+	echo "\t"loadpath "\t\t\t(The path used to search for source modules)";
+	echo "\t"modulepath "\t\t\t(The path used to search for source modules)";
+	echo "\t"stdlib_modules "\t\t\t(Where built-in Kno source modules live)";
+	echo "\t"installed_modules\|installmods "\t(Where installed source modules live)";
+	echo "\t"local_modules\|localmods "\t(Where locally installed source modules live)";
+	echo "\t"cmodules "\t\t\t(Where compiled dynamic modules live)";
+	echo "\t"webuser "\t\t\t(The name of the web content user account for this installation)";
+	echo "\t"knouser "\t\t\t(The name of the knouser user account for this installation)";
+	echo "\t"admin_group "\t\t\t(The name of the administrator account for this installation)";
+	echo "\t"state "\t\t\t\t(Ephemeral state directory for Kno)";
+	echo "\t"rundir "\t\t\t\t(Where ephemeral state is stored for Kno applications and services)";
+	echo "\t"logdir "\t\t\t\t(Where persistent logs are stored for Kno applications and services)";
+	echo "\t"etc "\t\t\t\t(The directory this installation uses for 'etc')";
+	echo "\t"servlets "\t\t\t(Where Kno servlet configuration files are stored)";
+	echo "\t"daemons "\t\t\t(Where Kno daemon control files are stored)";
+	echo "\t"share "\t\t\t\t(Where shared kno configuration information is stored)";
+	echo "\t"data "\t\t\t\t(Where Kno persistent application data are stored)";
+	echo "\t"apkrepo "\t\t\t\t(Where APK packages should be written)";
+	echo "\t"aptrepo "\t\t\t\t(Where APT packages should be written)";
+	echo "\t"branch "\t\t\t\t(The KNO source branch for this build)";
+	echo "\t"patchlevel "\t\t\t\t(The KNO patch level for this build)";
+	echo "\t"gitbranch "\t\t\t\t(The git branch for the current source directory (cwd))";
+f	echo "\t"gitpath "\t\t\t\t(The git patchlevel for the current source directory (cwd))";
+	echo "\t"aptrepo "\t\t\t\t(Where APT packages should be written)";
+}
+if test -z ${option};
+   then option="usage";
+else
+   shift;
+fi
+case ${option} in
+   help|usage)
+    usage;;
+   version)
+	echo "@KNO_VERSION@";;
+    major)
+	echo "@KNO_MAJOR@";;
+    minor)
+	echo "@KNO_MINOR@";;
+    release)
+	echo "@KNO_RELEASE@";;
+    prefix)
+	echo "@prefix@";;
+    execprefix|exec_prefix)
+	echo "@exec_prefix@";;
+    config)
+	echo "@config_dir@";;
+    localconfig|local_config)
+	echo "@local_config@";;
+    sharedconfig|shared_config)
+	echo "@shared_config@";;
+    cflags)
+	echo "@CFLAGS@";;
+    aptrepo)
+        echo "@APTREPO@";;
+    apkrepo)
+        echo "@APKREPO@";;
+    ldflags)
+	echo "@LDFLAGS@ @PTHREAD_LIBS@ -L../../lib ${XLDFLAGS}";;
+    include)
+	echo "../../include/kno";;
+    lib)
+	echo "../../lib";;
+    libs)
+	echo "@LIBS@ -lknocore -lknostorage -lknodrivers -lknoscheme";;
+    deplibs)
+	echo "@LIBS@";;
+    bin)
+	echo "@exec_prefix@/bin";;
+    libsuffix)
+	echo "@shared_suffix@";;
+    loadpath)
+	echo "@default_module_path@";;
+    modulepath)
+	echo "@default_module_path@";;
+    stdlib_modules)
+	echo "../../src/stdlib";;
+    installed_modules|installmods)
+	echo "@installed_module_dir@";;
+    local_modules|localmods)
+	echo "@local_module_dir@";;
+    cmodules)
+	echo "@libdir@/kno";;
+    webuser)
+	echo "@webuser@";;
+    knouser)
+	echo "@knouser@";;
+    admin|admingroup|admin_group)
+	echo "@admin_group@";;
+    state)
+	echo "@localstatedir@";;
+    rundir)
+	echo "@kno_rundir@";;
+    logdir)
+	echo "@kno_logdir@";;
+    etc)
+	echo "@config_dir@";;
+    servlets)
+	echo "@config_dir@/servlets/";;
+    daemons)
+	echo "@config_dir@/daemons/";;
+    share)
+	echo "@share_dir@";;
+    data)
+	echo "@data_dir@";;
+    kno.py)
+    	echo "@libdir@/kno/kno.@shared_suffix@";;
+    branch)
+        echo "@GITBRANCH@";;
+    patchlevel)
+        echo "@KNO_PATCHLEVEL@";;
+    gitbranch)
+        branch_name=$(git symbolic-ref -q HEAD 2> /dev/null);
+        branch_name=${branch_name##refs/heads/};
+        echo ${branch_name:-trunk};;
+    gitpatch)
+       git describe | sed -e "s/-g[a-zA-Z0-9]*$//" | \
+       	   sed -e "s/.*-\([0-9]*\)$/\\1/";;
+    get)
+	if [ $# -gt 0 ]; then
+	  cvar=$1; shift;
+	  echo "\n(define (main) (lineout (config '${cvar})))\n" | knox QUIET=yes LOADSTDIN=yes
+	else
+	  echo "Usage: knoconfig get *confvar*" LOADSTDIN=yes
+	fi;
+	;;
+    *)
+	echo "Unrecognized config setting $1";
+	usage;
+	echo "Unrecognized config setting $1";
+	;;
+esac

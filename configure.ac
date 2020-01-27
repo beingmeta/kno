@@ -1851,6 +1851,7 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   tests/runtest tests/memtest
 	   tests/leaktest tests/knoxtest
 	   src/scripts/knopkg.scm
+	   src/extmods/knoconfig
 	   etc/knojob
 	   etc/logrotate
 	   etc/sysv/kno-rc.d
@@ -1871,7 +1872,7 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   etc/install-script 
 	   dist/alpine/APKBUILD
 	   dist/kno-4.3.spec],
-	   [chmod a+x etc/kno* tests/*test])
+	   [chmod a+x etc/kno* tests/*test src/extmods/knoconfig])
 
 if test ! -z "$gperftools"; then
    echo  "Built with malloc=$using_malloc, gperftools=${gperftools}";
