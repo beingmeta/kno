@@ -48,3 +48,6 @@
 [submodule "src/extmods/nng"]
 	path = src/extmods/nng
 	url = git@github.com:beingmeta/kno-nng.git
+[submodule "src/brico"]
+	path = src/brico
+	url = git@github.com:beingmeta/brico.git

@@ -1490,16 +1490,26 @@ $(DESTDIR)@unpackage_dir@:
 
 upstartdirs: $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets
 
-STDLIB_MODULE_DIRS=xhtml domutils textindex morph misc tests knodules knoml \
-		jwt aws facebook paypal twitter twilio dropbox google bench \
-		brico brico/build brico/build/index brico/build/scripts
+STDLIB_MODULE_DIRS=\
+	src/stdlib/xhtml src/stdlib/domutils src/stdlib/textindex src/stdlib/morph \
+	src/stdlib/misc src/stdlib/tests src/stdlib/knodules src/stdlib/knoml \
+	src/stdlib/jwt src/stdlib/aws src/stdlib/facebook src/stdlib/paypal \
+	src/stdlib/twitter src/stdlib/twilio src/stdlib/dropbox src/stdlib/google \
+	src/stdlib/bench \
+	src/brico src/brico/build src/brico/build/index src/brico/build/scripts
 
-STDLIB_MODULE_DATA=textindex/data knodules/data aws/templates morph/data brico/data
+STDLIB_MODULE_DATA=\
+	src/stdlib/textindex/data src/stdlib/knodules/data src/stdlib/aws/templates \
+	src/stdlib/morph/data \
+	src/brico/data
 
-install-stdlib: install-standard-modules
-install-standard-modules: install-module-source install-module-data
+install-stdlib: install-stdlib-source install-stdlib-data
 
-install-module-source: $(DESTDIR)@stdlib_module_dir@
+src/stdlib/.git src/brico/.git:
+	git submodule init
+	git submodule update
+
+install-stdlib-source: $(DESTDIR)@stdlib_module_dir@ src/stdlib/.git src/brico/.git
 	@$(ECHO) Copying standard Scheme modules to @stdlib_module_dir@
 	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/stdlib/*.scm 		\
 		$(DESTDIR)@stdlib_module_dir@;
@@ -1507,14 +1517,14 @@ install-module-source: $(DESTDIR)@stdlib_module_dir@
 	  install_dir="$(DESTDIR)@stdlib_module_dir@/$${dir}";			\
 	  echo "Installing $${dir} module at $${install_dir}";			\
 	  $(SYSINSTALL) @install_dir_opts@ $${install_dir};			\
-	  $(SYSINSTALL) @install_file_opts@ $(BUILD)/src/stdlib/$${dir}/*.scm	\
+	  $(SYSINSTALL) @install_file_opts@ $(BUILD)/$${dir}/*.scm		\
 	      $${install_dir};							\
 	done;
 
-install-module-data: $(DESTDIR)@stdlib_module_dir@
+install-stdlib-data: $(DESTDIR)@stdlib_module_dir@ src/stdlib/.git src/brico/.git
 	@$(ECHO) Copying module data to @stdlib_module_dir@;
 	@for dir in $(STDLIB_MODULE_DATA); do					\
-	  src_dir="$(BUILD)/src/stdlib/$${dir}";				\
+	  src_dir="$(BUILD)/$${dir}";				\
 	  install_dir="$(DESTDIR)@stdlib_module_dir@/$${dir}";			\
 	  echo Installing data from $${src_dir} to $${install_dir};		\
 	  $(SYSINSTALL) @install_dir_opts@ $${install_dir};			\
@@ -1547,12 +1557,9 @@ really-install-libscm:
 	$(SYSINSTALL) @install_file_opts@ src/libscm/bugjar/resources/*	\
 	       $(DESTDIR)${LIBSCM}/bugjar/resources;
 
-logdirs: $(DESTDIR)@kno_logdir@ $(DESTDIR)@servlet_logdir@ \
-	$(DESTDIR)@daemon_logdir@
+logdirs: $(DESTDIR)@kno_logdir@ $(DESTDIR)@servlet_logdir@ $(DESTDIR)@daemon_logdir@
 
-statedirs: $(DESTDIR)@rundir@/kno \
-	$(DESTDIR)@daemon_rundir@ \
-	$(DESTDIR)@servlet_rundir@ \
+statedirs: $(DESTDIR)@rundir@/kno $(DESTDIR)@daemon_rundir@ $(DESTDIR)@servlet_rundir@ \
 	logdirs
 $(DESTDIR)/etc/init.d:
 	@$(SYSINSTALL) -m 0755 -d $(DESTDIR)/etc/init.d
