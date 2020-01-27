@@ -146,6 +146,7 @@ SRC_HEADERS=src/lisp/biginternals.h 		\
 	src/drivers/headers/knopool.h	 	\
 	src/drivers/headers/oidpool.h	 	\
 	src/drivers/headers/hashindex.h		\
+	src/drivers/headers/knoindex.h		\
 	src/drivers/headers/netindex.h		\
 	src/drivers/headers/netpool.h
 
@@ -202,7 +203,8 @@ DRIVER_OBJS=\
 	src/drivers/netpool.o src/drivers/bigpool.o	\
 	src/drivers/knopool.o	\
 	src/drivers/fileindex.o src/drivers/hashindex.o	\
-	src/drivers/memindex.o src/drivers/netindex.o
+	src/drivers/memindex.o src/drivers/netindex.o   \
+	src/drivers/knoindex.o
 
 DBSERV_OBJS=src/storage/dbserv.o
 
@@ -335,7 +337,7 @@ KNO_SOURCES=\
 	src/drivers/builtin_drivers.c  						\
 	src/drivers/filepool.c src/drivers/oidpool.c 				\
 	src/drivers/bigpool.c src/drivers/knopool.c 							\
-	src/drivers/fileindex.c src/drivers/hashindex.c				\
+	src/drivers/fileindex.c src/drivers/hashindex.c src/drivers/knoindex.c  \
 	src/storage/extindex.c src/storage/tempindex.c				\
 	src/storage/mempool.c src/storage/extpool.c				\
 	src/drivers/netpool.c src/drivers/netindex.c 				\
@@ -429,14 +431,15 @@ STRIPPED_LIBS=lib/stripped/libknocore@suffix@.a 	\
 
 SCHEME_MODULES=src/stdlib/*.scm \
 	src/stdlib/aws/*.scm \
-	src/stdlib/brico/*.scm	src/stdlib/brico/build/*.scm \
 	src/stdlib/facebook/*.scm src/stdlib/google/*.scm \
 	src/stdlib/paypal/*.scm src/stdlib/twitter/*.scm \
 	src/stdlib/dropbox/*.scm src/stdlib/twilio/*.scm \
 	src/stdlib/misc/*.scm src/stdlib/tests/*.scm \
 	src/stdlib/domutils/*.scm src/stdlib/knodules/*.scm \
 	src/stdlib/textindex/*.scm src/stdlib/jwt/*.scm \
-	src/stdlib/bench/*.scm
+	src/stdlib/bench/*.scm \
+	src/brico/*.scm	src/brico/build/index/*.scm \
+	src/brico/build/*.scm
 
 # These might be neccessary on MacOS
 CMODULE_DEPENDS=lib/libknocore@suffix@.@shared_suffix@	\
@@ -1986,4 +1989,5 @@ src/drivers/oidpool.o: src/drivers/headers/oidpool.h src/drivers/headers/zcompre
 src/drivers/bigpool.o: src/drivers/headers/bigpool.h src/drivers/headers/zcompress.h
 src/drivers/knopool.o: src/drivers/headers/knopool.h src/drivers/headers/zcompress.h
 src/drivers/hashindex.o: src/drivers/headers/hashindex.h  src/drivers/headers/zcompress.h
+src/drivers/knoindex.o: src/drivers/headers/knoindex.h  src/drivers/headers/zcompress.h
 src/drivers/memindex.o: src/drivers/headers/memindex.h

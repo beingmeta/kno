@@ -164,12 +164,35 @@ KNO_EXPORT ssize_t _kno_xtype_ref(lispval x,xtype_refs refs,int add)
 
 KNO_EXPORT void kno_recycle_xrefs(xtype_refs refs)
 {
-  int n_refs = refs->xt_n_refs;
   kno_hashtable ht = refs->xt_lookup;
   lispval *elts = refs->xt_refs;
   memset(refs,0,sizeof(struct XTYPE_REFS));
   kno_recycle_hashtable(ht);
   u8_free(elts);
+}
+
+/* Writing sorted choices */
+
+static ssize_t write_choice_xtype(kno_outbuf out,kno_choice ch,xtype_refs refs)
+{
+  int n_choices = KNO_XCHOICE_SIZE(ch);
+  lispval _natsorted[17];
+  lispval *natsorted = kno_natsort_choice(ch,_natsorted,17);
+  const lispval *data = natsorted;
+  int i = 0; ssize_t xtype_len = 0;
+  int rv = kno_write_byte(out,xt_choice);
+  if (rv<0) return rv;
+  else rv = kno_write_varint(out,n_choices);
+  if (rv<0) return rv;
+  else xtype_len = rv+1;
+  while (i < n_choices) {
+    lispval elt = data[i];
+    ssize_t elt_size = kno_write_xtype(out,elt,refs);
+    if (elt_size<0) return elt_size;
+    xtype_len += elt_size;
+    i++;}
+  if (natsorted!=_natsorted) u8_free(natsorted);
+  return xtype_len;
 }
 
 /* Writing XTYPEs */
@@ -277,17 +300,12 @@ static ssize_t write_xtype(kno_outbuf out,lispval x,xtype_refs refs)
     kno_write_byte(out,xt_code);
     return 1+kno_write_varint(out,len)+
       kno_write_bytes(out,s->str_bytes,len);}
-  case kno_choice_type: case kno_vector_type: {
-    int xt_code; ssize_t n_elts; lispval *elts;
-    if (ctype == kno_choice_type) {
-      xt_code=xt_choice;
-      n_elts = KNO_CHOICE_SIZE(x);
-      elts = (lispval *) KNO_CHOICE_DATA(x);}
-    else {
-      xt_code=xt_vector;
-      n_elts = KNO_VECTOR_LENGTH(x);
-      elts = KNO_VECTOR_ELTS(x);}
-    kno_write_byte(out,xt_code);
+  case kno_choice_type:
+    return write_choice_xtype(out,(kno_choice)x,refs);
+  case kno_vector_type: {
+    ssize_t n_elts = KNO_VECTOR_LENGTH(x);
+    lispval *elts = KNO_VECTOR_ELTS(x);
+    kno_write_byte(out,xt_vector);
     ssize_t n_written = 1+kno_write_varint(out,n_elts);
     ssize_t i = 0; while (i<n_elts) {
       /* Check for output buffer overflow */

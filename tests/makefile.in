@@ -71,6 +71,7 @@ ZSTD	        = COMPRESSION=zstd
 FILEPOOL	= POOLTYPE=filepool
 FILEINDEX	= INDEXTYPE=fileindex
 HASHINDEX	= INDEXTYPE=hashindex
+KNOINDEX	= INDEXTYPE=knoindex
 MEMINDEX	= INDEXTYPE=memindex
 OFFB40		= OFFTYPE=B40
 OFFB64		= OFFTYPE=B64
@@ -476,6 +477,15 @@ hashindex64:
 hashindex40x:
 	@make TESTBASE=tmphash40x.index RUNCONF="INDEXTYPE=hashindex OFFTYPE=B40 SLOTCODES=yes OIDCODES=yes" indextest
 
+knoindex32:
+	@make TESTBASE=tmpkno32.index RUNCONF="INDEXTYPE=knoindex OFFTYPE=B32" indextest
+knoindex40:
+	@make TESTBASE=tmpkno40.index RUNCONF="INDEXTYPE=knoindex OFFTYPE=B40" indextest
+knoindex64:
+	@make TESTBASE=tmpkno64.index RUNCONF="INDEXTYPE=knoindex OFFTYPE=B64" indextest
+knoindex40x:
+	@make TESTBASE=tmpkno40x.index RUNCONF="INDEXTYPE=knoindex OFFTYPE=B40 SLOTCODES=yes OIDCODES=yes" indextest
+
 aggindex:
 	@make TESTBASE=aggindex.index RUNCONF="INDEXTYPE=hashindex OFFTYPE=B40 AGGINDEX=yes" indextest
 aggindex_consed:
@@ -484,8 +494,9 @@ aggindexes: aggindex aggindex_consed
 
 
 hashindexes hashindex: hashindex32 hashindex40 hashindex40x hashindex64
+knoindexes knoindex: knoindex32 knoindex40 knoindex40x knoindex64
 
-indextests indexes: fileindexes hashindexes memindexes
+indextests indexes: fileindexes hashindexes memindexes knoindexes
 
 .PHONY: indexes indextests fileindexes hashindexes memindexes aggindexes
 
@@ -547,14 +558,24 @@ framedb_oidpool64:
 framedb_consindex:
 	@make TESTBASE=tmpbigpool40cx RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB40} CONSINDEX=yes" framedb
 
+framedb_knodb40:
+	@make TESTBASE=tmpknodb40 RUNCONF="${KNOPOOL} ${KNOINDEX} ${OFFB40}" framedb
+framedb_knodb64:
+	@make TESTBASE=tmpknodb64 RUNCONF="${KNOPOOL} ${KNOINDEX} ${OFFB64}" framedb
+framedb_knodb32:
+	@make TESTBASE=tmpknodb32 RUNCONF="${KNOPOOL} ${KNOINDEX} ${OFFB32}" framedb
+
 lvldbframes lvldbframedb:
 	@make TESTBASE=lvldb RUNCONF="POOLTYPE=leveldb INDEXTYPE=leveldb INDEXMOD=leveldb POOLMOD=leveldb" framedb
 rckdbframes rckdbframedb:
 	@make TESTBASE=rckdb RUNCONF="POOLTYPE=rocksdb INDEXTYPE=rocksdb INDEXMOD=rocksdb POOLMOD=rocksdb" framedb
 
+framedb_knodb: framedb_knodb32 framedb_knodb40 framedb_knodb64
+
 framedbs: framedb_base \
 	framedb_bigpool32 framedb_bigpool40 framedb_bigpool64 \
 	framedb_knopool32 framedb_knopool40 framedb_knopool64 \
+	framedb_knodb32 framedb_knodb40 framedb_knodb64 \
 	framedb_aggregate framedb_keyslot \
 	framedb_fileindex framedb_memindex \
 

@@ -1956,7 +1956,7 @@ static ssize_t write_flonum_xtype(struct KNO_OUTBUF *out,lispval x,xtype_refs re
 #else
   i = 7; while (i>=0) {kno_write_byte(out,bytes[i]); i--;}
 #endif
-  return 11;
+  return 9;
 }
 
 static void recycle_flonum(struct KNO_RAW_CONS *c)

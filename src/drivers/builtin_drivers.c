@@ -43,6 +43,7 @@ int kno_init_netindex_c(void);
 int kno_init_fileindex_c(void);
 int kno_init_hashindex_c(void);
 int kno_init_memindex_c(void);
+int kno_init_knoindex_c(void);
 
 int kno_init_netpool_c(void);
 int kno_init_file_pool_c(void);
@@ -67,6 +68,7 @@ KNO_EXPORT int kno_init_drivers()
 
   kno_init_fileindex_c();
   kno_init_hashindex_c();
+  kno_init_knoindex_c();
 
   kno_init_netindex_c();
   kno_init_memindex_c();

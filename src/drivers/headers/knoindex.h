@@ -14,24 +14,25 @@
 #define KNO_KNOINDEX_MAGIC_NUMBER 0x9011308
 #define KNO_KNOINDEX_TO_RECOVER 0x9011328
 
-#define KNO_KNOINDEX_FN_MASK       0x0F
+#define KNO_KNOINDEX_FN_MASK	   0x0F
 #define KNO_KNOINDEX_OFFTYPE_MASK  0x30
-#define KNO_KNOINDEX_ODDKEYS       0x40
-#define KNO_KNOINDEX_READ_ONLY     0x80
-#define KNO_KNOINDEX_ONESLOT       0x100
+#define KNO_KNOINDEX_ODDKEYS	   0x40
+#define KNO_KNOINDEX_READ_ONLY	   0x80
+#define KNO_KNOINDEX_ONESLOT	   0x100
 
 /* Used to generate hash codes */
 #define MAGIC_MODULUS 16777213 /* 256000001 */
 #define MIDDLIN_MODULUS 573786077 /* 256000001 */
 #define MYSTERIOUS_MODULUS 2000239099 /* 256000001 */
 
-#define KNO_KNOINDEX_KEYCOUNT_POS 16
-#define KNO_KNOINDEX_SLOTIDS_POS 20
-#define KNO_KNOINDEX_BASEOIDS_POS 32
-#define KNO_KNOINDEX_METADATA_POS 44
-#define KNO_KNOINDEX_NBUCKETS_POS 4
-#define KNO_KNOINDEX_FORMAT_POS 8
-#define KNO_KNOINDEX_NKEYS_POS 16
+#define KNO_KNOINDEX_NBUCKETS_POS	4
+#define KNO_KNOINDEX_FORMAT_POS		8
+#define KNO_KNOINDEX_NKEYS_POS	       16
+#define KNO_KNOINDEX_KEYCOUNT_POS      16
+#define KNO_KNOINDEX_NREFS_POS	       20
+#define KNO_KNOINDEX_XREFS_POS	       24
+#define KNO_KNOINDEX_XREFS_SIZE_POS    32
+#define KNO_KNOINDEX_METADATA_POS      36
 
 /* The hash index structure */
 
@@ -47,7 +48,7 @@ typedef struct KNO_KNOINDEX {
 
   kno_off_t kx_metadata_pos;
   kno_off_t kx_xrefs_pos;
-  struct XTYPE_REFS xtype_refs;
+  struct XTYPE_REFS index_xrefs;
 
   /* Pointers to keyblocks for the hashtable */
   unsigned int *index_offdata;
