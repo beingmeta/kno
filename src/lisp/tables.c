@@ -2009,6 +2009,11 @@ static int hashtable_test(struct KNO_HASHTABLE *ht,lispval key,lispval val)
     return 0;}
 }
 
+KNO_EXPORT int kno_hashtable_test(struct KNO_HASHTABLE *ht,lispval key,lispval val)
+{
+  return hashtable_test(ht,key,val);
+}
+
 KNO_EXPORT int kno_hashtable_probe_novoid(struct KNO_HASHTABLE *ht,lispval key)
 {
   struct KNO_KEYVAL *result; int unlock=0;

@@ -639,6 +639,8 @@ KNO_EXPORT lispval kno_hashtable_get_noref
    (struct KNO_HASHTABLE *ht,lispval key,lispval dflt);
 KNO_EXPORT lispval kno_hashtable_get_nolockref
    (struct KNO_HASHTABLE *ht,lispval key,lispval dflt);
+KNO_EXPORT int kno_hashtable_test
+   (struct KNO_HASHTABLE *ht,lispval key,lispval val);
 KNO_EXPORT int kno_hashtable_store(kno_hashtable ht,lispval key,lispval value);
 KNO_EXPORT int kno_hashtable_add(kno_hashtable ht,lispval key,lispval value);
 KNO_EXPORT int kno_hashtable_drop(kno_hashtable ht,lispval key,lispval value);
