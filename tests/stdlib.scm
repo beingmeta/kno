@@ -24,9 +24,9 @@
 
 (check-modules
  '{opts hashfs rulesets meltcache curlcache saveopt signature cachequeue 
-   calltrack checkurl codewalker couchdb dropbox ellipsize email fakezip fillin 
-   findcycles getcontent gravatar gutdb hashstats histogram hostinfo i18n ice 
-   isbn mimeout oauth openlibrary bugjar pump readcsv samplefns savecontent 
+   checkurl codewalker couchdb dropbox ellipsize email fakezip fillin 
+   findcycles getcontent gravatar hashstats histogram hostinfo i18n ice 
+   mimeout oauth bugjar pump readcsv samplefns savecontent 
    speling tinygis tracer trackrefs twilio updatefile whocalls})
 
 (check-modules '{aws aws/s3 aws/ses aws/simpledb aws/sqs aws/v4
