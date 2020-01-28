@@ -81,9 +81,9 @@ typedef enum XT_TYPE_CODE {
 
 typedef struct XTYPE_REFS {
   int xt_refs_flags;
-  ssize_t xt_n_refs;
-  ssize_t xt_refs_len;
-  ssize_t xt_refs_max;
+  int xt_n_refs;
+  int xt_refs_len;
+  int xt_refs_max;
   lispval *xt_refs;
   struct KNO_HASHTABLE *xt_lookup;} XTYPE_REFS;
 typedef struct XTYPE_REFS *xtype_refs;

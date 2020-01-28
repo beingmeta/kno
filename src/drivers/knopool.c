@@ -452,6 +452,7 @@ static kno_pool open_knopool(u8_string fname,kno_storage_flags open_flags,
     kno_init_xrefs(&(pool->pool_xrefs),0,256,
 		   xrefs_max,xref_flags,
 		   xrefs,NULL);}
+
   pool->pool_offdata = NULL;
   pool->pool_offlen = 0;
   if (read_only)
