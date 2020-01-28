@@ -162,6 +162,16 @@ KNO_EXPORT ssize_t _kno_xtype_ref(lispval x,xtype_refs refs,int add)
   return kno_xtype_ref(x,refs,add);
 }
 
+KNO_EXPORT void kno_recycle_xrefs(xtype_refs refs)
+{
+  int n_refs = refs->xt_n_refs;
+  kno_hashtable ht = refs->xt_lookup;
+  lispval *elts = refs->xt_refs;
+  memset(refs,0,sizeof(struct XTYPE_REFS));
+  kno_recycle_hashtable(ht);
+  u8_free(elts);
+}
+
 /* Writing XTYPEs */
 
 static ssize_t write_xtype(kno_outbuf out,lispval x,xtype_refs refs)

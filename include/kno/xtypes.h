@@ -150,6 +150,7 @@ KNO_EXPORT int kno_init_xrefs(xtype_refs refs,
 			      int refs_max,int flags,
 			      lispval *elts,
 			      kno_hashtable lookup);
+KNO_EXPORT void kno_recycle_xrefs(xtype_refs refs);
 
 /* Returning error codes */
 
