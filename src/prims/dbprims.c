@@ -9,10 +9,10 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define KNO_PROVIDE_FASTEVAL (!(KNO_AVOID_CHOICES))
-#define KNO_INLINE_CHOICES (!(KNO_AVOID_CHOICES))
-#define KNO_INLINE_TABLES (!(KNO_AVOID_CHOICES))
-#define KNO_FAST_CHOICE_CONTAINSP (!(KNO_AVOID_CHOICES))
+#define KNO_PROVIDE_FASTEVAL	  (!(KNO_AVOID_INLINE))
+#define KNO_INLINE_CHOICES	  (!(KNO_AVOID_INLINE))
+#define KNO_INLINE_TABLES	  (!(KNO_AVOID_INLINE))
+#define KNO_FAST_CHOICE_CONTAINSP (!(KNO_AVOID_INLINE))
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
@@ -300,7 +300,7 @@ static lispval try_pool(lispval arg1,lispval opts)
 {
   if (load_db_module(opts,"try_pool")<0)
     return KNO_ERROR;
-  else  if ( (KNO_POOLP(arg1)) || (TYPEP(arg1,kno_consed_pool_type)) )
+  else	if ( (KNO_POOLP(arg1)) || (TYPEP(arg1,kno_consed_pool_type)) )
     return kno_incref(arg1);
   else if (!(STRINGP(arg1)))
     return kno_type_error(_("string"),"load_pool",arg1);
@@ -4114,7 +4114,7 @@ KNO_EXPORT void kno_init_dbprims_c()
   readonly_symbol = kno_intern("readonly");
   phased_symbol = kno_intern("phased");
 
-  sparse_symbol    = kno_intern("sparse");
+  sparse_symbol	   = kno_intern("sparse");
   adjunct_symbol    = kno_intern("adjunct");
   background_symbol = kno_intern("background");
   repair_symbol = kno_intern("repair");

@@ -19,7 +19,6 @@
 #include "kno/sequences.h"
 #include "kno/cprims.h"
 
-
 static u8_condition SchemeError=_("Undistinguished Scheme Error");
 
 static lispval stack_entry_symbol;

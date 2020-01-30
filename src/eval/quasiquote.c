@@ -9,9 +9,9 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define KNO_PROVIDE_FASTEVAL 1
-#define KNO_INLINE_TABLES 1
-#define KNO_INLINE_FCNIDS 1
+#define KNO_INLINE_TABLES       (!(KNO_AVOID_INLINE))
+#define KNO_INLINE_FCNIDS       (!(KNO_AVOID_INLINE))
+#define KNO_PROVIDE_FASTEVAL    (!(KNO_AVOID_INLINE))
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"

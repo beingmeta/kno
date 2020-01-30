@@ -79,8 +79,8 @@ static int knoindex_loglevel = -1;
 
 #define KNO_INLINE_BUFIO 1
 #define KNO_INLINE_XTYPE_REFS 1
-#define KNO_INLINE_CHOICES (!(KNO_AVOID_CHOICES))
-#define KNO_FAST_CHOICE_CONTAINSP (!(KNO_AVOID_CHOICES))
+#define KNO_INLINE_CHOICES (!(KNO_AVOID_INLINE))
+#define KNO_FAST_CHOICE_CONTAINSP (!(KNO_AVOID_INLINE))
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"

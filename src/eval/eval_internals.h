@@ -50,8 +50,8 @@ KNO_FASTOP lispval _pop_arg(lispval *scan)
   ( (KNO_PRECHOICEP(v)) ? (kno_simplify_choice(v)) : (v) )
 
 KNO_FASTOP lispval eval_body(lispval body,kno_lexenv env,kno_stack stack,
-                             u8_context cxt,u8_string label,
-                             int tail)
+			     u8_context cxt,u8_string label,
+			     int tail)
 {
   if (KNO_EMPTY_LISTP(body))
     return KNO_VOID;

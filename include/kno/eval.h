@@ -90,13 +90,13 @@ typedef struct KNO_EVALFN *kno_evalfn;
 
 KNO_EXPORT lispval kno_make_evalfn(u8_string name,kno_eval_handler fn);
 KNO_EXPORT void kno_new_evalfn(lispval mod,u8_string name,u8_string cname,
-			       u8_string filename,
-			       u8_string doc,
-			       kno_eval_handler fn);
+                               u8_string filename,
+                               u8_string doc,
+                               kno_eval_handler fn);
 
-#define kno_def_evalfn(mod,name,evalfn,doc)				\
-  kno_new_evalfn(mod,name,# evalfn,					\
-		 _FILEINFO " L#" STRINGIFY(__LINE__),doc,evalfn)
+#define kno_def_evalfn(mod,name,evalfn,doc)                             \
+  kno_new_evalfn(mod,name,# evalfn,                                     \
+                 _FILEINFO " L#" STRINGIFY(__LINE__),doc,evalfn)
 
 typedef struct KNO_EVALFN_INFO {
   u8_string pname, cname, filename, docstring;} KNO_EVALFN_INFO;
@@ -109,7 +109,7 @@ typedef struct KNO_EVALFN_INFO *kno_evalfn_info;
 
 #define KNO_LINK_EVALFN(module,cname) \
   kno_new_evalfn(module,cname ## _info.pname,# cname,cname ## _info.filename, \
-		 cname ## _info.docstring,cname);
+                 cname ## _info.docstring,cname);
 
 
 typedef struct KNO_MACRO {
@@ -195,7 +195,7 @@ KNO_EXPORT int kno_record_source;
   else {}
 
 KNO_EXPORT lispval kno_apply_lambda(struct KNO_STACK *,struct KNO_LAMBDA *fn,
-				    int n,kno_argvec args);
+                                    int n,kno_argvec args);
 KNO_EXPORT lispval kno_xapply_lambda
 (struct KNO_LAMBDA *fn,void *data,lispval (*getval)(void *,lispval));
 
@@ -233,7 +233,12 @@ lispval kno_stack_eval(lispval expr,kno_lexenv env,
                      int tail);
 #define kno_tail_eval(expr,env) (kno_stack_eval(expr,env,kno_stackptr,1))
 
-KNO_EXPORT lispval kno_eval_exprs(lispval exprs,kno_lexenv env,kno_stack s,int);
+lispval kno_eval_body(lispval body,kno_lexenv env,kno_stack s,
+                      u8_context cxt,u8_string label,
+                      int tail);
+KNO_EXPORT lispval kno_eval_exprs(lispval exprs,kno_lexenv env,
+                                  kno_stack s,int);
+
 
 /* These are for non-static/inline versions */
 KNO_EXPORT lispval _kno_eval(lispval expr,kno_lexenv env);
@@ -349,7 +354,8 @@ KNO_EXPORT lispval _kno_symeval(lispval,kno_lexenv);
 #define kno_get_body(x,i) _kno_get_body(x,i)
 #endif
 
-/* Body iteration */
+#define kno_simplify_value(v) \
+  ( (KNO_PRECHOICEP(v)) ? (kno_simplify_choice(v)) : (v) )
 
 /* Bindings iteration */
 

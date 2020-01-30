@@ -9,13 +9,13 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define KNO_INLINE_CHOICES (!(KNO_AVOID_CHOICES))
-#define KNO_INLINE_TABLES (!(KNO_AVOID_CHOICES))
-#define KNO_INLINE_FCNIDS (!(KNO_AVOID_CHOICES))
-#define KNO_INLINE_STACKS (!(KNO_AVOID_CHOICES))
-#define KNO_INLINE_LEXENV (!(KNO_AVOID_CHOICES))
+#define KNO_INLINE_CHOICES (!(KNO_AVOID_INLINE))
+#define KNO_INLINE_TABLES  (!(KNO_AVOID_INLINE))
+#define KNO_INLINE_FCNIDS  (!(KNO_AVOID_INLINE))
+#define KNO_INLINE_STACKS  (!(KNO_AVOID_INLINE))
+#define KNO_INLINE_LEXENV  (!(KNO_AVOID_INLINE))
 
-#define KNO_PROVIDE_FASTEVAL (!(KNO_AVOID_CHOICES))
+/* #define KNO_PROVIDE_FASTEVAL (!(KNO_AVOID_INLINE)) */
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
@@ -30,8 +30,6 @@
 #include "kno/ffi.h"
 #include "kno/cprims.h"
 
-#include "eval_internals.h"
-
 #include <libu8/u8timefns.h>
 #include <libu8/u8filefns.h>
 #include <libu8/u8pathfns.h>
@@ -43,7 +41,6 @@
 
 #if HAVE_MTRACE && HAVE_MCHECK_H
 #include <mcheck.h>
-
 #endif
 
 static char *cpu_profilename = NULL;
@@ -149,7 +146,7 @@ static lispval watchcall(lispval expr,kno_lexenv env,int with_proc)
   while (i<n_args) {
     lispval arg = kno_get_arg(watch,i);
     lispval val = kno_eval(arg,env);
-    val = simplify_value(val);
+    val = kno_simplify_value(val);
     if (KNO_ABORTED(val)) {
       u8_string errstring = kno_errstring(NULL);
       i--; while (i>=0) {kno_decref(rail[i]); i--;}
@@ -192,7 +189,7 @@ static lispval watchcall(lispval expr,kno_lexenv env,int with_proc)
   u8_free(rail);
   if (label!=dflt_label) {u8_free(label); u8_free(arglabel);}
   u8_free(out.u8_outbuf);
-  return simplify_value(result);
+  return kno_simplify_value(result);
 }
 
 KNO_DEF_EVALFN("%wc",watchcall_evalfn,
@@ -307,7 +304,7 @@ static lispval watchcons_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     if (refcount == 0)
       u8_log(U8_LOGWARN,"%WATCHCONS","Not a cons: %q",value);
     else {
-      lispval result = eval_body(body,env,_stack,"%WATCHCONS",label,0);
+      lispval result = kno_eval_body(body,env,_stack,"%WATCHCONS",label,0);
       int after = KNO_CONS_REFCOUNT(value);
       if (refcount != after) {
 	if (after == 0)
@@ -334,7 +331,7 @@ static lispval watchcons_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 	kno_decref(value);
 	return result;}}}
   else u8_log(U8_LOGWARN,"%WATCHCONS","Not a cons: %q",value);
-  return eval_body(body,env,_stack,"%WATCHCONS",label,0);
+  return kno_eval_body(body,env,_stack,"%WATCHCONS",label,0);
 }
 
 DEFPRIM2("%watchptrval",watchptr_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDOP,
@@ -938,8 +935,8 @@ static lispval with_log_context_evalfn(lispval expr,kno_lexenv env,kno_stack _st
         (KNO_STRINGP(label)) ? (KNO_CSTRING(label)) : (NULL);
       kno_thread_set(logcxt_symbol,label);
       u8_set_log_context(local_context);
-      lispval result=eval_body(kno_get_body(expr,2),env,_stack,
-                               "with_log_context",KNO_CSTRING(label),1);
+      lispval result=kno_eval_body(kno_get_body(expr,2),env,_stack,
+				   "with_log_context",KNO_CSTRING(label),1);
       kno_thread_set(logcxt_symbol,outer_lisp_context);
       u8_set_log_context(outer_context);
       kno_decref(label);

@@ -459,6 +459,7 @@ update: .buildmode
 		$(shell cat .malloc); \
 	fi;
 	@+make -s `cat .buildmode`
+
 normal:
 	@echo Building NORMAL configuration
 	@if test -f .malloc; then \
@@ -640,7 +641,7 @@ etc/%: etc/%.in ./config.status
 # library dependencies with programs which will typically run as daemons
 static/%@suffix@: src/exe/%.c $(STATIC_LIBS) ${REVISION_H} ${CONFIG_H}
 	@echo MKEXE_STATIC $@
-	$(CC) $(STATIC_CFLAGS) -o $@ $^ $(STATIC_LDFLAGS) -lu8stdio -lu8syslog $(LIBS) $(EXELIBS) @xstatic_exe_libs@
+	$(CC) $(STATIC_CFLAGS) -o $@ $^ $(STATIC_LDFLAGS) -lu8stdio -lu8syslog $(LIBS) $(EXELIBS)
 	@$(MSG) MKEXE_STATIC $@
 
 lib/%@suffix@.a:
@@ -749,11 +750,13 @@ static-libs: $(STATIC_LIBS)
 shared-libs: $(SHARED_LIBS)
 
 exe: $(EXECUTABLES) exe/.gdbinit
-static-exe: $(STATIC_EXECUTABLES)
+static static-exe: $(STATIC_EXECUTABLES)
 debug-exe: $(DEBUG_EXECUTABLES) dbg/.gdbinit
 shell-scripts: $(SHELL_SCRIPTS)
 scheme-scripts: $(SCHEME_SCRIPTS)
 scripts: shell-scripts scheme-scripts
+
+.PHONY: static
 
 testbin: constestbin dbtestbin debug-exe etc/usememory
 constestbin: libs tests/lisp/makefile tests/lisp/.gdbinit
@@ -1345,11 +1348,11 @@ install: install-status install-core 			\
 	@if test -f .malloc && test -f .buildmode; then \
 	  echo "Installed" $(shell cat .buildmode) "build linked with" $(shell cat .malloc); \
 	fi;
-install-bin: install-static install-shared install-exe
+install-bin: install-static-libs install-shared-libs install-exe
 install-text: install-headers install-pkgconfig install-scripts install-support
 install-core: confdirs workdirs @INSTALLI18N@           \
 	 install-bin install-text install-data
-install-dev: install-headers install-pkgconfig install-static
+install-dev: install-headers install-pkgconfig install-static-libs
 
 $(INCINSTALLDIR):
 	@$(SYSINSTALL) @install_dir_opts@ $(INCINSTALLDIR)
@@ -1366,27 +1369,27 @@ $(DESTDIR)@local_config@ $(DESTDIR)@shared_config@:
 $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets $(DESTDIR)@config_dir@/config_files: $(DESTDIR)@config_dir@
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
 
-install-static:  static-libs $(LIBINSTALLDIR)
-	make $(LIBINSTALLDIR)/libknocore@suffix@.a        \
-		$(LIBINSTALLDIR)/libknostorage@suffix@.a       \
-		$(LIBINSTALLDIR)/libknodrivers@suffix@.a   \
-		$(LIBINSTALLDIR)/libknodbserv@suffix@.a    \
-		$(LIBINSTALLDIR)/libknoscheme@suffix@.a   \
-		$(LIBINSTALLDIR)/libknowebtools@suffix@.a      \
+install-static-libs:  static-libs $(LIBINSTALLDIR)
+	make $(LIBINSTALLDIR)/libknocore@suffix@.a        	\
+		$(LIBINSTALLDIR)/libknostorage@suffix@.a	\
+		$(LIBINSTALLDIR)/libknodrivers@suffix@.a   	\
+		$(LIBINSTALLDIR)/libknodbserv@suffix@.a    	\
+		$(LIBINSTALLDIR)/libknoscheme@suffix@.a   	\
+		$(LIBINSTALLDIR)/libknowebtools@suffix@.a      	\
 		$(LIBINSTALLDIR)/libknotexttools@suffix@.a
-install-shared: install-status shared-libs $(LIBINSTALLDIR) 				\
-    $(LIBINSTALLDIR)/libknocore@suffix@.@vshared_suffix@			\
+install-shared-libs: install-status shared-libs $(LIBINSTALLDIR)	\
+    $(LIBINSTALLDIR)/libknocore@suffix@.@vshared_suffix@		\
     $(LIBINSTALLDIR)/libknocore@suffix@.@mmshared_suffix@		\
-    $(LIBINSTALLDIR)/libknocore@suffix@.@mshared_suffix@			\
+    $(LIBINSTALLDIR)/libknocore@suffix@.@mshared_suffix@		\
     $(LIBINSTALLDIR)/libknocore@suffix@.@shared_suffix@			\
-    $(LIBINSTALLDIR)/libknostorage@suffix@.@vshared_suffix@			\
-    $(LIBINSTALLDIR)/libknostorage@suffix@.@mmshared_suffix@			\
-    $(LIBINSTALLDIR)/libknostorage@suffix@.@mshared_suffix@			\
-    $(LIBINSTALLDIR)/libknostorage@suffix@.@shared_suffix@			\
+    $(LIBINSTALLDIR)/libknostorage@suffix@.@vshared_suffix@		\
+    $(LIBINSTALLDIR)/libknostorage@suffix@.@mmshared_suffix@		\
+    $(LIBINSTALLDIR)/libknostorage@suffix@.@mshared_suffix@		\
+    $(LIBINSTALLDIR)/libknostorage@suffix@.@shared_suffix@		\
     $(LIBINSTALLDIR)/libknodbserv@suffix@.@vshared_suffix@		\
     $(LIBINSTALLDIR)/libknodbserv@suffix@.@mmshared_suffix@		\
     $(LIBINSTALLDIR)/libknodbserv@suffix@.@mshared_suffix@		\
-    $(LIBINSTALLDIR)/libknodbserv@suffix@.@shared_suffix@			\
+    $(LIBINSTALLDIR)/libknodbserv@suffix@.@shared_suffix@		\
     $(LIBINSTALLDIR)/libknodrivers@suffix@.@vshared_suffix@		\
     $(LIBINSTALLDIR)/libknodrivers@suffix@.@mmshared_suffix@		\
     $(LIBINSTALLDIR)/libknodrivers@suffix@.@mshared_suffix@		\
@@ -1395,10 +1398,10 @@ install-shared: install-status shared-libs $(LIBINSTALLDIR) 				\
     $(LIBINSTALLDIR)/libknoscheme@suffix@.@mmshared_suffix@		\
     $(LIBINSTALLDIR)/libknoscheme@suffix@.@mshared_suffix@		\
     $(LIBINSTALLDIR)/libknoscheme@suffix@.@shared_suffix@		\
-    $(LIBINSTALLDIR)/libknowebtools@suffix@.@vshared_suffix@			\
-    $(LIBINSTALLDIR)/libknowebtools@suffix@.@mmshared_suffix@			\
-    $(LIBINSTALLDIR)/libknowebtools@suffix@.@mshared_suffix@			\
-    $(LIBINSTALLDIR)/libknowebtools@suffix@.@shared_suffix@			\
+    $(LIBINSTALLDIR)/libknowebtools@suffix@.@vshared_suffix@		\
+    $(LIBINSTALLDIR)/libknowebtools@suffix@.@mmshared_suffix@		\
+    $(LIBINSTALLDIR)/libknowebtools@suffix@.@mshared_suffix@		\
+    $(LIBINSTALLDIR)/libknowebtools@suffix@.@shared_suffix@		\
     $(LIBINSTALLDIR)/libknotexttools@suffix@.@vshared_suffix@		\
     $(LIBINSTALLDIR)/libknotexttools@suffix@.@mmshared_suffix@		\
     $(LIBINSTALLDIR)/libknotexttools@suffix@.@mshared_suffix@		\
@@ -1426,6 +1429,8 @@ install-data: $(DATADIR)
 	@$(SYSINSTALL) @install_file_opts@ @DATAFILES@ $(DATADIR)
 
 install-exe: $(BININSTALLDIR) $(EXECUTABLES)
+	@$(SYSINSTALL) -p @install_exe_opts@ $(EXECUTABLES) $(BININSTALLDIR)
+install-static-exe: $(BININSTALLDIR) $(EXECUTABLES)
 	@$(SYSINSTALL) -p @install_exe_opts@ $(EXECUTABLES) $(BININSTALLDIR)
 
 install-scripts: install-shell-scripts install-scheme-scripts
@@ -1962,18 +1967,18 @@ include/kno/revision.h: $(KNO_SOURCES) $(KNO_HEADERS) makefile
 	  mv etc/use_revision.h $@;					\
 	fi;
 ### Depending on the .buildmode
-$(EXECUTABLES) $(STATIC_EXECUTABLES): .buildmode $(REVISION_H)
-$(LISP_OBJS): $(LISP_HEADERS) $(REVISION_H)
-$(SYS_OBJS): $(LISP_HEADERS) $(REVISION_H)
-$(APPLY_OBJS): $(LISP_HEADERS) $(APPLY_HEADERS) $(REVISION_H)
-$(STORAGE_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(REVISION_H)
-$(DRIVER_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) $(REVISION_H)
+$(EXECUTABLES) $(STATIC_EXECUTABLES): $(REVISION_H)
+$(LISP_OBJS): $(LISP_HEADERS) $(REVISION_H) .buildmode 
+$(SYS_OBJS): $(LISP_HEADERS) $(REVISION_H) .buildmode 
+$(APPLY_OBJS): $(LISP_HEADERS) $(APPLY_HEADERS) $(REVISION_H) .buildmode 
+$(STORAGE_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(REVISION_H) .buildmode 
+$(DRIVER_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) $(REVISION_H) .buildmode 
 $(SCHEME_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
-	$(APPLY_HEADERS) $(SCHEME_HEADERS) $(REVISION_H)
+	$(APPLY_HEADERS) $(SCHEME_HEADERS) $(REVISION_H) .buildmode 
 $(WEB_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
-	$(APPLY_HEADERS) $(SCHEME_HEADERS) $(REVISION_H) ./include/kno/webtools.h
+	$(APPLY_HEADERS) $(SCHEME_HEADERS) $(REVISION_H) ./include/kno/webtools.h .buildmode 
 $(TEXT_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
-	$(APPLY_HEADERS) $(REVISION_H) $(SCHEME_HEADERS) ./include/kno/texttools.h
+	$(APPLY_HEADERS) $(REVISION_H) $(SCHEME_HEADERS) ./include/kno/texttools.h .buildmode 
 $(LISP_OBJS) $(SYS_OBJS) $(APPLY_OBJS): .buildmode
 $(STORAGE_OBJS) $(DRIVER_OBJS): .buildmode
 $(SCHEME_OBJS): .buildmode

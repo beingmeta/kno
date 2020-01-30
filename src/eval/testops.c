@@ -11,14 +11,6 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define KNO_INLINE_CHOICES (!(KNO_AVOID_CHOICES))
-#define KNO_INLINE_TABLES (!(KNO_AVOID_CHOICES))
-#define KNO_INLINE_FCNIDS (!(KNO_AVOID_CHOICES))
-#define KNO_INLINE_STACKS (!(KNO_AVOID_CHOICES))
-#define KNO_INLINE_LEXENV (!(KNO_AVOID_CHOICES))
-
-#define KNO_PROVIDE_FASTEVAL (!(KNO_AVOID_CHOICES))
-
 #include "kno/knosource.h"
 #include "kno/lisp.h"
 #include "kno/support.h"
@@ -32,8 +24,6 @@
 #include "kno/history.h"
 #include "kno/ffi.h"
 #include "kno/cprims.h"
-
-#include "eval_internals.h"
 
 #include <libu8/u8timefns.h>
 #include <libu8/u8filefns.h>

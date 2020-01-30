@@ -9,7 +9,7 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define KNO_PROVIDE_FASTEVAL 1
+/* #define KNO_PROVIDE_FASTEVAL 1 */
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
@@ -30,8 +30,6 @@
 #include <libu8/u8streamio.h>
 #include <libu8/u8netfns.h>
 #include <libu8/u8xfiles.h>
-
-#define fast_eval(x,env) (_kno_fast_eval(x,env,_stack,0))
 
 #include <stdlib.h>
 
@@ -308,8 +306,9 @@ static lispval simple_fileout_evalfn(lispval expr,kno_lexenv env,kno_stack _stac
   u8_set_default_output(f);
   {lispval body = kno_get_body(expr,2);
     KNO_DOLIST(ex,body)  {
-      lispval value = fast_eval(ex,env);
-      if (printout_helper(f,value)) kno_decref(value);
+      lispval value = kno_eval(ex,env);
+      if (printout_helper(f,value))
+	kno_decref(value);
       else {
 	u8_set_default_output(oldf);
 	kno_decref(filename_val);
@@ -329,7 +328,7 @@ static lispval simple_system_evalfn(lispval expr,kno_lexenv env,kno_stack _stack
   U8_INIT_OUTPUT(&out,256);
   {lispval string_exprs = kno_get_body(expr,1);
     KNO_DOLIST(string_expr,string_exprs) {
-      lispval value = fast_eval(string_expr,env);
+      lispval value = kno_eval(string_expr,env);
       if (KNO_ABORTP(value)) return value;
       else if (VOIDP(value)) continue;
       else if (STRINGP(value))

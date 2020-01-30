@@ -9,7 +9,7 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define KNO_PROVIDE_FASTEVAL 1
+/* #define KNO_PROVIDE_FASTEVAL 1 */
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
