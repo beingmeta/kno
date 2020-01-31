@@ -1689,7 +1689,8 @@ build-setup.redhat:
 	sudo rpm -Uvh libedit-devel
 
 staging/build-setup.apk:
-	sudo apk add alpine-sdk autoconf zlib zlib-dev python3 python3-dev \
+	sudo apk add alpine-sdk autoconf zlib zlib-dev \
+		     python2 python2-dev python3 python3-dev \
 		     findutils findutils-doc libffi libffi-dev sqlite sqlite-dev \
 		     snappy snappy-dev gettext gettext-dev libintl libintl-dev \
 		     zlib zlib-dev zstd zstd-dev
