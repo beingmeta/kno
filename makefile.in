@@ -1488,15 +1488,22 @@ $(DESTDIR)@unpackage_dir@:
 upstartdirs: $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets
 
 STDLIB_MODULE_DIRS=\
-	src/stdlib/xhtml src/stdlib/domutils src/stdlib/textindex src/stdlib/morph \
-	src/stdlib/misc src/stdlib/tests src/stdlib/knodules src/stdlib/knoml \
-	src/stdlib/jwt src/stdlib/aws src/stdlib/facebook src/stdlib/paypal \
-	src/stdlib/twitter src/stdlib/twilio src/stdlib/dropbox src/stdlib/google \
+	src/stdlib/xhtml src/stdlib/domutils \
+	src/stdlib/textindex src/stdlib/morph \
+	src/stdlib/misc src/stdlib/tests \
+	src/stdlib/knodules src/stdlib/knoml \
+	src/stdlib/jwt src/stdlib/aws \
+	src/stdlib/facebook src/stdlib/paypal \
+	src/stdlib/twitter src/stdlib/twilio \
+	src/stdlib/dropbox src/stdlib/google \
 	src/stdlib/bench \
-	src/brico src/brico/build src/brico/build/index src/brico/build/scripts
+	src/brico src/brico/build \
+	src/brico/build/index src/brico/build/scripts
 
 STDLIB_MODULE_DATA=\
-	src/stdlib/textindex/data src/stdlib/knodules/data src/stdlib/aws/templates \
+	src/stdlib/textindex/data \
+	src/stdlib/knodules/data \
+	src/stdlib/aws/templates \
 	src/stdlib/morph/data \
 	src/brico/data
 
@@ -1506,7 +1513,8 @@ src/stdlib/.git src/brico/.git:
 	git submodule init
 	git submodule update
 
-install-stdlib-source: $(DESTDIR)@stdlib_module_dir@ src/stdlib/.git src/brico/.git
+install-stdlib-source: $(DESTDIR)@stdlib_module_dir@ \
+			src/stdlib/.git src/brico/.git
 	@$(ECHO) Copying standard Scheme modules to @stdlib_module_dir@
 	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/stdlib/*.scm 		\
 		$(DESTDIR)@stdlib_module_dir@;
