@@ -1193,11 +1193,11 @@ staging/kno-@KNO_VERSION@: include/kno/revision.h \
 	@git archive --prefix=kno-@KNO_VERSION@/ \
 	            -o staging/kno-@KNO_VERSION@.tar HEAD
 	cd src/stdlib; git archive --prefix=kno-@KNO_VERSION@/src/stdlib/ \
-	            -o ../../staging/kno_modules-@KNO_VERSION@.tar HEAD;
-	cd src/stdlib/brico; git archive --prefix=kno-@KNO_VERSION@/src/stdlib/brico/ \
-	            -o ../../../staging/kno_brico-@KNO_VERSION@.tar HEAD;
+	            -o ../../staging/kno_stdlib-@KNO_VERSION@.tar HEAD;
+	cd src/brico; git archive --prefix=kno-@KNO_VERSION@/src/brico/ \
+	      	          -o ../../staging/kno_brico-@KNO_VERSION@.tar HEAD;
 	cd staging; tar -xf kno-@KNO_VERSION@.tar; rm kno-@KNO_VERSION@.tar
-	cd staging; tar -xf kno_modules-@KNO_VERSION@.tar; rm kno_modules-@KNO_VERSION@.tar;
+	cd staging; tar -xf kno_stdlib-@KNO_VERSION@.tar; rm kno_stdlib-@KNO_VERSION@.tar;
 	cd staging; tar -xf kno_brico-@KNO_VERSION@.tar; rm kno_brico-@KNO_VERSION@.tar;
 	cp include/kno/revision.h staging/kno-@KNO_VERSION@/etc/revision.h;
 	cp dist/kno-@KNO_MAJOR@.@KNO_MINOR@.spec staging/kno-@KNO_VERSION@/dist
@@ -1206,9 +1206,9 @@ staging/kno_@KNO_VERSION@: include/kno/revision.h \
 	@git archive --prefix=kno_@KNO_VERSION@/ \
 	            -o staging/kno_@KNO_VERSION@.tar HEAD;
 	cd src/stdlib; git archive --prefix=kno_@KNO_VERSION@/src/stdlib/ \
-	            -o ../../staging/kno_modules_@KNO_VERSION@.tar HEAD;
-	cd src/stdlib/brico; git archive --prefix=kno_@KNO_VERSION@/src/stdlib/brico/ \
-	            -o ../../../staging/kno_brico-@KNO_VERSION@.tar HEAD;
+	                -o ../../staging/kno_modules_@KNO_VERSION@.tar HEAD;
+	cd src/brico; git archive --prefix=kno_@KNO_VERSION@/src/brico/ \
+	                -o ../../staging/kno_brico-@KNO_VERSION@.tar HEAD;
 	cd staging; tar -xf kno_@KNO_VERSION@.tar; rm kno_@KNO_VERSION@.tar;
 	cd staging; tar -xf kno_modules_@KNO_VERSION@.tar; rm kno_modules_@KNO_VERSION@.tar;
 	cd staging; tar -xf kno_brico-@KNO_VERSION@.tar; rm kno_brico-@KNO_VERSION@.tar;
@@ -1491,7 +1491,9 @@ confdirs: $(DESTDIR)@stdlib_module_dir@ $(DESTDIR)@installed_module_dir@ \
 		$(SYSINSTALL) @install_file_opts@ /dev/null \
 			$(DESTDIR)@config_dir@/servers; fi
 
-$(DESTDIR)@stdlib_module_dir@ $(DESTDIR)@installed_module_dir@ $(DESTDIR)@local_module_dir@:
+$(DESTDIR)@stdlib_module_dir@ $(DESTDIR)@stdlib_module_dir@/brico \
+	 $(DESTDIR)@installed_module_dir@ \
+	 $(DESTDIR)@local_module_dir@:
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
 $(DESTDIR)@unpackage_dir@:
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
@@ -1499,17 +1501,24 @@ $(DESTDIR)@unpackage_dir@:
 upstartdirs: $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets
 
 STDLIB_MODULE_DIRS=\
-	src/stdlib/xhtml src/stdlib/domutils src/stdlib/textindex src/stdlib/morph \
-	src/stdlib/misc src/stdlib/tests src/stdlib/knodules src/stdlib/knoml \
-	src/stdlib/jwt src/stdlib/aws src/stdlib/facebook src/stdlib/paypal \
-	src/stdlib/twitter src/stdlib/twilio src/stdlib/dropbox src/stdlib/google \
-	src/stdlib/bench \
-	src/brico src/brico/build src/brico/build/index src/brico/build/scripts
+	stdlib/xhtml stdlib/domutils \
+	stdlib/textindex stdlib/morph \
+	stdlib/misc stdlib/tests \
+	stdlib/knodules stdlib/knoml \
+	stdlib/jwt stdlib/aws \
+	stdlib/facebook stdlib/paypal \
+	stdlib/twitter stdlib/twilio \
+	stdlib/dropbox stdlib/google \
+	stdlib/bench \
+	brico brico/build \
+	brico/build/index brico/build/scripts
 
 STDLIB_MODULE_DATA=\
-	src/stdlib/textindex/data src/stdlib/knodules/data src/stdlib/aws/templates \
-	src/stdlib/morph/data \
-	src/brico/data
+	stdlib/textindex/data \
+	stdlib/knodules/data \
+	stdlib/aws/templates \
+	stdlib/morph/data \
+	brico/data
 
 install-stdlib: install-stdlib-source install-stdlib-data
 
@@ -1517,27 +1526,40 @@ src/stdlib/.git src/brico/.git:
 	git submodule init
 	git submodule update
 
-install-stdlib-source: $(DESTDIR)@stdlib_module_dir@ src/stdlib/.git src/brico/.git
+install-stdlib-source: $(DESTDIR)@stdlib_module_dir@ src/stdlib/.git \
+	         $(DESTDIR)@stdlib_module_dir@/brico src/brico/.git
 	@$(ECHO) Copying standard Scheme modules to @stdlib_module_dir@
 	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/stdlib/*.scm 		\
 		$(DESTDIR)@stdlib_module_dir@;
+	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/brico/*.scm 		\
+		$(DESTDIR)@stdlib_module_dir@/brico;
 	@for dir in $(STDLIB_MODULE_DIRS); do					\
-	  install_dir="$(DESTDIR)@stdlib_module_dir@/$${dir}";			\
-	  echo "Installing $${dir} module at $${install_dir}";			\
-	  $(SYSINSTALL) @install_dir_opts@ $${install_dir};			\
-	  $(SYSINSTALL) @install_file_opts@ $(BUILD)/$${dir}/*.scm		\
+	 case $${dir} in 							\
+	  stdlib/*) 								\
+	    install_dir="$(DESTDIR)@stdlib_module_dir@/../$${dir}";; 	\
+	  *) 									\
+	    install_dir="$(DESTDIR)@stdlib_module_dir@/$${dir}";; 		\
+	esac; 									\
+	echo "Installing $${dir} module at $${install_dir}";			\
+	$(SYSINSTALL) @install_dir_opts@ $${install_dir};			\
+	$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/$${dir}/*.scm		\
 	      $${install_dir};							\
 	done;
 
 install-stdlib-data: $(DESTDIR)@stdlib_module_dir@ src/stdlib/.git src/brico/.git
 	@$(ECHO) Copying module data to @stdlib_module_dir@;
 	@for dir in $(STDLIB_MODULE_DATA); do					\
-	  src_dir="$(BUILD)/$${dir}";				\
-	  install_dir="$(DESTDIR)@stdlib_module_dir@/$${dir}";			\
-	  echo Installing data from $${src_dir} to $${install_dir};		\
-	  $(SYSINSTALL) @install_dir_opts@ $${install_dir};			\
-	  $(SYSINSTALL) @install_file_opts@ $${src_dir}/* $${install_dir};	\
-	done
+	 src_dir="$(BUILD)/src/$${dir}";				\
+	 case $${dir} in 							\
+	  stdlib/*) 								\
+	    install_dir="$(DESTDIR)@stdlib_module_dir@/../$${dir}";; 	\
+	  *) 									\
+	    install_dir="$(DESTDIR)@stdlib_module_dir@/$${dir}";; 		\
+	 esac; 									\
+	 echo Installing data from $${src_dir} to $${install_dir};		\
+	 $(SYSINSTALL) @install_dir_opts@ $${install_dir};			\
+	 $(SYSINSTALL) @install_file_opts@ $${src_dir}/* $${install_dir};	\
+	done;
 
 install-support: $(DESTDIR)@share_dir@
 	cd $(BUILD)/etc; $(SYSINSTALL) @install_file_opts@ 	\
