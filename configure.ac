@@ -217,6 +217,7 @@ gperftools=""
 asan=""
 static_libgcc="no"
 CODENAME="beingmeta"
+RELSTATUS="stable"
 
 gperftools_default="yes"
 
@@ -381,6 +382,7 @@ AC_SUBST(MKDIR)
 AC_SUBST(CHGRP)
 AC_SUBST(APTLY)
 AC_SUBST(CODENAME)
+AC_SUBST(RELSTATUS)
 AC_SUBST(BINPATH)
 AC_SUBST(LIBSCM)
 AC_SUBST(ODBC_LIBS)
@@ -1008,6 +1010,12 @@ fi
 
 AC_ARG_WITH(codename,--with-codename for distribution,with_codename=$withval,with_codename=$CODENAME)
 CODENAME=$with_codename
+
+AC_ARG_WITH(relstatus,--with-relstatus e.g. stable or testing,with_relstatus=$withval)
+
+if test ! -z "${with_relstatus}"; then
+   RELSTATUS=$with_relstatus
+fi;
 
 AC_CHECK_PROGS(buildrpm,"lsb-rpmbuild","rpmbuild","lsb-rpm","na")
 AC_CHECK_PROGS(rpm,"lsb-rpm","rpm","na")
@@ -1854,6 +1862,7 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   dbg/runenv.sh dbg/.gdbinit dbg/.lldbinit dbg/.valgrind
 	   tests/lisp/.gdbinit tests/storage/.gdbinit
 	   etc/kno.pc
+	   etc/knomod
 	   etc/kno_start_servlets etc/kno_start_daemons etc/kno_stop_jobs
 	   etc/knostart etc/knostop etc/knostartall etc/knostopall etc/knocleanup
 	   etc/knosignal etc/knoinject etc/knostatus etc/knolog 

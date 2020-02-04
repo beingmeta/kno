@@ -62,6 +62,7 @@ SUDO	        = @SUDO@
 INSTALL		= @INSTALL@
 MKSTATIC	= @MKSTATIC@ -o 
 CODENAME	= @CODENAME@
+RELSTATUS	= @RELSTATUS@
 DISTRIBUTION	= $(cat etc/distribution)
 MKSO		= $(CC) -shared @GCOV_CFLAGS@ $(LDFLAGS)
 MACLIBTOOL	= $(CC) -dynamiclib -single_module -undefined dynamic_lookup \
@@ -293,7 +294,8 @@ SHELL_SCRIPTS=etc/knosetconfig etc/knogetconfig etc/knoconfig \
 	etc/kno_start_daemons etc/kno_start_servlets etc/kno_stop_jobs \
 	etc/knosignal etc/knoinject etc/knostatus etc/knolog  \
 	etc/knorestart etc/knoctl etc/knogdb etc/knodbgexec \
-	etc/knocleanup etc/knojob
+	etc/knocleanup etc/knojob \
+	etc/knomod
 SCHEME_SCRIPTS=exe/scripts/pack-pool exe/scripts/pack-index \
 	       exe/scripts/merge-indexes exe/scripts/knopkg
 
@@ -1271,11 +1273,11 @@ dist/rpms.zip: dist/rpms.done
 
 dist/debs.built: staging/kno_@KNO_VERSION@
 	(cd staging/kno_@KNO_VERSION@; \
-	 dpkg-buildpackage -sa -us -uc -b -rfakeroot) && \
+	 dpkg-buildpackage -sa -us -uc -b) && \
 	touch dist/debs.built;
 dist/debsource.built: staging/kno_@KNO_VERSION@
 	(cd staging/kno_@KNO_VERSION@; \
-	 dpkg-buildpackage -sa -us -uc -F -rfakeroot) && \
+	 dpkg-buildpackage -sa -us -uc -F) && \
 	touch dist/debs.built dist/debsource.built;
 
 dist/debs.signed: dist/debs.built
@@ -1313,7 +1315,7 @@ install-debian install-debs debinstall installdebs: dist/debs.done
 
 update-local-apt-repo: dist/debs.done
 	for change in dist/*.changes; do \
-	  @APTLY@ repo include -repo ${CODENAME} $${change} && \
+	  @APTLY@ repo include $${change} && \
 	  rm -f $${change}; \
 	done
 

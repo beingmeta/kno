@@ -1,13 +1,18 @@
-PACKAGE=${1:-kno}
-CODENAME=${2:-debian}
-STATUS=${3:-stable}
-URGENCY=medium
-DATE=`date -R`
-gitid=`git describe`
-version=`git describe | sed -e "s/-g[0123456789ABCDEFabcdef]*$//" | sed -e "s/^${PACKAGE}-//"`
-echo ${PACKAGE} \(${version}-${CODENAME}\) ${STATUS}\; urgency=${URGENCY}
+#!/bin/sh
+PACKAGE=${1:-kno};
+CODENAME=${2:-debian};
+STATUS=${3:-stable};
+URGENCY=${4:-medium};
+DATE=`date -R`;
+gitid=`git describe`;
+version=`git describe | sed -e "s/-g[0123456789ABCDEFabcdef]*$//" | sed -e "s/^${PACKAGE}-//"`;
+if [ -z "${STATUS}" ] || [ ${STATUS} = "stable" ]; then
+    echo ${PACKAGE} \(${version}\) ${CODENAME}\; urgency=${URGENCY}
+else
+    echo ${PACKAGE} \(${version}\) ${CODENAME}-${STATUS}\; urgency=${URGENCY}
+fi;
 echo
-echo "  * ${gitid} point release"
+echo "  * ${gitid} point release for ${CODENAME} (${STATUS})"
 echo
 echo " -- Repository Manager <repoman@beingmeta.com>  ${DATE}"
 echo
