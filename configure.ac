@@ -134,6 +134,8 @@ SUDO=""
 SUINSTALL=
 RPMDIR=${RPMDIR:-dist}
 RPMFLAGS=${RPMFLAGS:-}
+APTLY=
+APTLY_FLAGS=
 APTREPO=${APTREPO:-/srv/repo/apt}
 APKREPO=${APKREPO:-/srv/repo/apk}
 PKGCONFIG_DIR=
@@ -377,6 +379,7 @@ AC_SUBST(COPYFILE)
 AC_SUBST(TOUCHFILE)
 AC_SUBST(MKDIR)
 AC_SUBST(CHGRP)
+AC_SUBST(APTLY)
 AC_SUBST(CODENAME)
 AC_SUBST(BINPATH)
 AC_SUBST(LIBSCM)
@@ -417,6 +420,7 @@ AC_CHECK_PROG(CHGRP_DEFAULT,chgrp,,/bin/chgrp)
 AC_CHECK_PROG(COPYFILE_DEFAULT,cp,,/bin/cp)
 AC_CHECK_PROG(DELETEFILE_DEFAULT,rm,,/bin/rm)
 AC_CHECK_PROG(TOUCHFILE_DEFAULT,touch,,/bin/touch)
+AC_CHECK_PROG(APTLY,aptly,,/usr/bin/aptly)
 AC_PATH_PROG(VALGRIND,valgrind,none)
 AC_PATH_PROG(DUMA,duma,none)
 AC_PATH_PROG(CLANG,clang,none)
@@ -468,8 +472,16 @@ TOUCHFILE=$with_touchfile
 AC_ARG_WITH(apxs,--with-apxs command,with_apxs=$withval,with_apxs=$APXS)
 APXS=$with_apxs
 
-AC_ARG_WITH(make-target,--with-make-target default-target,with_make_target=$withval,with_make_target=update)
-DEFAULTMAKETARGET=$with_make_target
+AC_ARG_WITH(aptly,--with-aptly command,with_aptly=$withval)
+if test ! -z "${with_aptly}"; then
+   case $with_aptly in
+   /*) APTLY=$with_aptly;;
+   -*) APTLY="${APTLY} $with_aptly";;
+   esac;
+fi;
+
+AC_ARG_WITH(default-target,--with-default-target default-make-target,with_default_target=$withval,with_default_target=update)
+DEFAULTMAKETARGET=$with_default_target
 
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET

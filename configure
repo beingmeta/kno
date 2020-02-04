@@ -708,6 +708,7 @@ ODBC_LIBS
 LIBSCM
 BINPATH
 CODENAME
+APTLY
 CHGRP
 MKDIR
 TOUCHFILE
@@ -907,7 +908,8 @@ with_deletefile
 with_copyfile
 with_touchfile
 with_apxs
-with_make_target
+with_aptly
+with_default_target
 with_suffix
 with_optinclude
 with_optlib
@@ -1650,7 +1652,8 @@ Optional Packages:
 --with-copyfile command
 --with-touchfile command
 --with-apxs command
---with-make-target default-target
+--with-aptly command
+--with-default-target default-make-target
 --with-suffix string
 --with-optinclude Use optional include directory
 --with-optlib Use optional library directory
@@ -3051,6 +3054,8 @@ SUDO=""
 SUINSTALL=
 RPMDIR=${RPMDIR:-dist}
 RPMFLAGS=${RPMFLAGS:-}
+APTLY=
+APTLY_FLAGS=
 APTREPO=${APTREPO:-/srv/repo/apt}
 APKREPO=${APKREPO:-/srv/repo/apk}
 PKGCONFIG_DIR=
@@ -3173,6 +3178,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/kno/knosource.h include/kno/config.h"
+
 
 
 
@@ -3729,6 +3735,44 @@ TOUCHFILE_DEFAULT=$ac_cv_prog_TOUCHFILE_DEFAULT
 if test -n "$TOUCHFILE_DEFAULT"; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: $TOUCHFILE_DEFAULT" >&5
 $as_echo "$TOUCHFILE_DEFAULT" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+# Extract the first word of "aptly", so it can be a program name with args.
+set dummy aptly; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_prog_APTLY+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test -n "$APTLY"; then
+  ac_cv_prog_APTLY="$APTLY" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_prog_APTLY=""
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  test -z "$ac_cv_prog_APTLY" && ac_cv_prog_APTLY="/usr/bin/aptly"
+fi
+fi
+APTLY=$ac_cv_prog_APTLY
+if test -n "$APTLY"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $APTLY" >&5
+$as_echo "$APTLY" >&6; }
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
@@ -4420,14 +4464,27 @@ fi
 APXS=$with_apxs
 
 
-# Check whether --with-make-target was given.
-if test "${with_make_target+set}" = set; then :
-  withval=$with_make_target; with_make_target=$withval
-else
-  with_make_target=update
+# Check whether --with-aptly was given.
+if test "${with_aptly+set}" = set; then :
+  withval=$with_aptly; with_aptly=$withval
 fi
 
-DEFAULTMAKETARGET=$with_make_target
+if test ! -z "${with_aptly}"; then
+   case $with_aptly in
+   /*) APTLY=$with_aptly;;
+   -*) APTLY="${APTLY} $with_aptly";;
+   esac;
+fi;
+
+
+# Check whether --with-default-target was given.
+if test "${with_default_target+set}" = set; then :
+  withval=$with_default_target; with_default_target=$withval
+else
+  with_default_target=update
+fi
+
+DEFAULTMAKETARGET=$with_default_target
 
 # Make sure we can run config.sub.
 $SHELL "$ac_aux_dir/config.sub" sun4 >/dev/null 2>&1 ||

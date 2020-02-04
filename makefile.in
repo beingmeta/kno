@@ -1313,7 +1313,7 @@ install-debian install-debs debinstall installdebs: dist/debs.done
 
 update-local-apt-repo: dist/debs.done
 	for change in dist/*.changes; do \
-	  reprepro -Vb ${APTREPO} include ${CODENAME} $${change} && \
+	  @APTLY@ repo include -repo ${CODENAME} $${change} && \
 	  rm -f $${change}; \
 	done
 
