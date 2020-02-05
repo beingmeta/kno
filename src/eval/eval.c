@@ -22,7 +22,7 @@
 #include "kno/support.h"
 #include "kno/storage.h"
 #include "kno/eval.h"
-#include "kno/netproc.h"
+#include "kno/dtproc.h"
 #include "kno/numbers.h"
 #include "kno/sequences.h"
 #include "kno/ports.h"
@@ -2232,7 +2232,7 @@ KNO_EXPORT void kno_init_eval_getopt_c(void);
 KNO_EXPORT void kno_init_eval_debug_c(void);
 KNO_EXPORT void kno_init_eval_testops_c(void);
 KNO_EXPORT void kno_init_configops_c(void);
-KNO_EXPORT void kno_init_neteval_c(void);
+KNO_EXPORT void kno_init_dteval_c(void);
 
 static void init_eval_core()
 {
@@ -2242,7 +2242,7 @@ static void init_eval_core()
   kno_init_eval_getopt_c();
   kno_init_eval_debug_c();
   kno_init_eval_testops_c();
-  kno_init_neteval_c();
+  kno_init_dteval_c();
   kno_init_tableprims_c();
   kno_init_loadmods_c();
   kno_init_modules_c();

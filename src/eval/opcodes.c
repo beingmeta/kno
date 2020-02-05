@@ -24,7 +24,7 @@
 #include "kno/storage.h"
 #include "kno/eval.h"
 #include "kno/opcodes.h"
-#include "kno/netproc.h"
+#include "kno/dtproc.h"
 #include "kno/numbers.h"
 #include "kno/sequences.h"
 #include "kno/dbprims.h"

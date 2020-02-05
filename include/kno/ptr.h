@@ -220,7 +220,7 @@ typedef enum KNO_LISP_TYPE {
   kno_stream_type = KNO_CONS_TYPECODE(41),
   kno_regex_type = KNO_CONS_TYPECODE(42),
 
-  kno_evalserver_type = KNO_CONS_TYPECODE(43),
+  kno_dtserver_type = KNO_CONS_TYPECODE(43),
   kno_bloom_filter_type = KNO_CONS_TYPECODE(44),
 
   kno_sqldb_type = KNO_CONS_TYPECODE(45),

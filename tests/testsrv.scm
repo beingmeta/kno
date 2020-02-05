@@ -1,8 +1,8 @@
 (define testexpr (config 'TESTEXPR '(PLUS 11 99)))
 
 (define (evaln server n)
-  (let ((s (open-evalserver server)))
-    (dotimes (i n) (neteval s (or testexpr i)))))
+  (let ((s (open-dtserver server)))
+    (dotimes (i n) (dteval s (or testexpr i)))))
 
 (define (evalmn server m n)
   (let ((start (elapsed-time))

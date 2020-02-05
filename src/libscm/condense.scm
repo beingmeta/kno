@@ -164,7 +164,7 @@
 	((or (and (compound? object) (compound-opaque? object))
 	     (macro? object) (special-form? object)
 	     (dtype-stream? object) (port? object)
-	     (%lexref? object) (evalserver? object)
+	     (%lexref? object) (dtserver? object)
 	     (opcode? object) (thread? object) (synchronizer? object))
 	 (debug%watch "Wrapping OPAQUE object " object)
 	 (try (get uuids (hashptr object))

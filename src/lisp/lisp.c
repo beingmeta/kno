@@ -333,8 +333,8 @@ static void init_type_names()
   kno_type_names[kno_sqlproc_type]=_("sqldbproc");
   kno_type_docs[kno_sqlproc_type]=_("sqldbproc");
 
-  kno_type_names[kno_evalserver_type]=_("evalserver");
-  kno_type_docs[kno_evalserver_type]=_("evalserver");
+  kno_type_names[kno_dtserver_type]=_("dtserver");
+  kno_type_docs[kno_dtserver_type]=_("dtserver");
   kno_type_names[kno_bloom_filter_type]=_("bloom_filter");
   kno_type_docs[kno_bloom_filter_type]=_("bloom_filter");
 }

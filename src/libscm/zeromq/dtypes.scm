@@ -4,9 +4,9 @@
 
 (use-module '{zeromq logger varconfig})
 
-(module-export! '{zmq/evalserver zmq/dtclient zmq/dteval})
+(module-export! '{zmq/dtserver zmq/dtclient zmq/dteval})
 
-(define (zmq/evalserver addr)
+(define (zmq/dtserver addr)
   (let* ((socket (zmq/listen addr 'reply))
 	 (packet (zmq/recv socket)))
     (while packet
