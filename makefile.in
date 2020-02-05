@@ -120,7 +120,9 @@ STORAGE_HEADERS=\
  include/kno/pools.h			\
  include/kno/indexes.h			\
  include/kno/bloom.h  			\
- include/kno/dtproc.h			\
+ include/kno/netproc.h			\
+ include/kno/evalserver.h		\
+ include/kno/xtcall.h			\
  include/kno/dtcall.h			\
  include/kno/frames.h			\
  include/kno/sqldb.h 			\
@@ -181,26 +183,27 @@ CONFIG_H     =include/kno/config.h
 CONFIG_HDRS  =${REVISION_H} ${CONFIG_H}
 
 STORAGE_OBJS=\
-	src/storage/storage.o src/storage/streams.o 		\
-	src/storage/hashdtype.o src/storage/compress.o 	\
-	src/storage/pools.o src/storage/indexes.o 		\
-	src/storage/aggregates.o				\
-	src/storage/dtproc.o src/storage/dtcall.o 		\
-	src/storage/bloom.o src/storage/alcor.o			\
-	src/storage/methods.o src/storage/oidstore.o 		\
-	src/storage/cachecall.o src/storage/threadcache.o	\
-	src/storage/extindex.o src/storage/extpool.o		\
-	src/storage/procpool.o src/storage/procindex.o		\
-	src/storage/mempool.o src/storage/tempindex.o		\
-	src/storage/frames.o src/storage/slotindexes.o 		\
-	src/storage/drivers.o					\
+	src/storage/storage.o src/storage/streams.o 			\
+	src/storage/hashdtype.o src/storage/compress.o 			\
+	src/storage/pools.o src/storage/indexes.o 			\
+	src/storage/aggregates.o					\
+	src/storage/netproc.o src/storage/evalserver.c 			\
+	src/storage/dtcall.o src/storage/xtcall.o 			\
+	src/storage/bloom.o src/storage/alcor.o				\
+	src/storage/methods.o src/storage/oidstore.o 			\
+	src/storage/cachecall.o src/storage/threadcache.o		\
+	src/storage/extindex.o src/storage/extpool.o			\
+	src/storage/procpool.o src/storage/procindex.o			\
+	src/storage/mempool.o src/storage/tempindex.o			\
+	src/storage/frames.o src/storage/slotindexes.o 			\
+	src/storage/drivers.o						\
 	@ipevalo@ 
 
 DRIVER_OBJS=\
 	src/drivers/builtin_drivers.o			\
 	src/drivers/filepool.o src/drivers/oidpool.o	\
 	src/drivers/netpool.o src/drivers/bigpool.o	\
-	src/drivers/knopool.o	\
+	src/drivers/knopool.o				\
 	src/drivers/fileindex.o src/drivers/hashindex.o	\
 	src/drivers/memindex.o src/drivers/netindex.o   \
 	src/drivers/knoindex.o
@@ -234,7 +237,7 @@ SCHEME_OBJS=\
 	src/eval/choiceops.o \
 	src/eval/coreops.o \
 	src/eval/configops.o \
-	src/eval/dteval.o \
+	src/eval/neteval.o \
 	src/eval/arith.o \
 	src/eval/regex.o \
 	src/eval/promises.o \
@@ -331,11 +334,13 @@ KNO_SOURCES=\
 	src/storage/oidstore.c  src/storage/frames.c src/storage/slotindexes.c  \
 	src/storage/aggregates.c src/storage/cachecall.c src/storage/methods.c	\
 	src/storage/alcor.c src/storage/compress.c src/storage/threadcache.c  	\
-	src/storage/bloom.c src/storage/dtproc.c src/storage/dtcall.c      	\
+	src/storage/bloom.c 							\
+	src/storage/netproc.c src/storage/evalserver.c				\
+	src/storage/dtcall.c src/storage/xtcall.c      				\
 	src/storage/ipeval.c 	       						\
 	src/drivers/builtin_drivers.c  						\
 	src/drivers/filepool.c src/drivers/oidpool.c 				\
-	src/drivers/bigpool.c src/drivers/knopool.c 							\
+	src/drivers/bigpool.c src/drivers/knopool.c				\
 	src/drivers/fileindex.c src/drivers/hashindex.c src/drivers/knoindex.c  \
 	src/storage/extindex.c src/storage/tempindex.c				\
 	src/storage/mempool.c src/storage/extpool.c				\
@@ -366,7 +371,7 @@ KNO_SOURCES=\
 	src/eval/loadmods.c                                            		\
 	src/prims/timeprims.c src/prims/sysprims.c 				\
 	src/prims/sqldbprims.c                    				\
-	src/eval/requests.c src/eval/dteval.c src/eval/configops.c		\
+	src/eval/requests.c src/eval/neteval.c src/eval/configops.c		\
 	src/web/webtools.c src/web/json.c src/web/ldns.c            		\
 	src/web/xmloutput.c src/web/xmlinput.c src/web/xmldata.c 		\
 	src/web/xmleval.c src/web/cgiexec.c src/web/htmlout.c 			\

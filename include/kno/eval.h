@@ -18,7 +18,7 @@
 /* If KNO_INLINE_EVAL is true, those inline versions are made (via macros)
    the default versions of those operations. */
 
-/* #include "kno/xtypes.h" */
+#include "kno/xtypes.h"
 #include "kno/lexenv.h"
 #include "kno/apply.h"
 #include "kno/threads.h"
@@ -138,18 +138,6 @@ KNO_EXPORT lispval kno_printout_to(U8_OUTPUT *,lispval,kno_lexenv);
 /* Getting documentation strings */
 
 KNO_EXPORT u8_string kno_get_documentation(lispval x);
-
-/* DT servers */
-
-typedef struct KNO_DTSERVER {
-  KNO_CONS_HEADER;
-  u8_string dtserverid, dtserver_addr;
-  /*
-  enum { dtype_protocol=0, xtype_protocol=1 } evalserver_protocol 
-  struct XTYPE_REFS refs;
-  */
-  struct U8_CONNPOOL *connpool;} KNO_DTSERVER;
-typedef struct KNO_DTSERVER *kno_stream_erver;
 
 /* Modules */
 
