@@ -707,7 +707,9 @@ SQLITE3_LIBS
 ODBC_LIBS
 LIBSCM
 BINPATH
+RELSTATUS
 CODENAME
+APTLY
 CHGRP
 MKDIR
 TOUCHFILE
@@ -907,7 +909,8 @@ with_deletefile
 with_copyfile
 with_touchfile
 with_apxs
-with_make_target
+with_aptly
+with_default_target
 with_suffix
 with_optinclude
 with_optlib
@@ -932,6 +935,7 @@ enable_largefiles
 enable_htmldump
 enable_prefetching
 with_codename
+with_relstatus
 with_admin_group
 with_daemonid
 with_rundir
@@ -976,8 +980,6 @@ with_libu8
 with_parseltongue
 with_sudo
 with_fastcgi
-enable_leveldb
-enable_rocksdb
 with_bootsystem
 with_systemd
 '
@@ -1633,8 +1635,6 @@ Optional Features:
 --en/disable-dtblock DTBlock dtype for net I/O
 --enable-thread-debug Use libu8 thread tracing and debugging
 --en/disable-lockfree Enables lock-free reference counting
---en/disable-leveldb Build and install LevelDB module
---en/disable-rocksdb Build and install Rocksdb module
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
@@ -1650,7 +1650,8 @@ Optional Packages:
 --with-copyfile command
 --with-touchfile command
 --with-apxs command
---with-make-target default-target
+--with-aptly command
+--with-default-target default-make-target
 --with-suffix string
 --with-optinclude Use optional include directory
 --with-optlib Use optional library directory
@@ -1670,6 +1671,7 @@ Optional Packages:
 --with/out-curl Use libcurl in webtools
 --with/out-dns Use dns in web
 --with-codename for distribution
+--with-relstatus e.g. stable or testing
 --with-admin-group Install files with admin group and group write permissions
 --with-daemonid The identity (user) for Kno servers to run as
 --with-rundir The default location for server state files
@@ -3004,7 +3006,7 @@ EXELIBS=
 BINPATH=${PATH}
 RPATHFLAGS="-Wl,'-rpath \$(RPATH)'"
 SHARED_LIB_TARGET=shared-libs
-KNO_MAJOR=1910
+KNO_MAJOR=2001
 KNO_MINOR=1
 KNO_RELEASE=`cat etc/release`
 KNO_PATCHLEVEL=`./etc/patchlevel`
@@ -3051,6 +3053,8 @@ SUDO=""
 SUINSTALL=
 RPMDIR=${RPMDIR:-dist}
 RPMFLAGS=${RPMFLAGS:-}
+APTLY=
+APTLY_FLAGS=
 APTREPO=${APTREPO:-/srv/repo/apt}
 APKREPO=${APKREPO:-/srv/repo/apk}
 PKGCONFIG_DIR=
@@ -3132,6 +3136,7 @@ gperftools=""
 asan=""
 static_libgcc="no"
 CODENAME="beingmeta"
+RELSTATUS="stable"
 
 gperftools_default="yes"
 
@@ -3173,6 +3178,8 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/kno/knosource.h include/kno/config.h"
+
+
 
 
 
@@ -3729,6 +3736,44 @@ TOUCHFILE_DEFAULT=$ac_cv_prog_TOUCHFILE_DEFAULT
 if test -n "$TOUCHFILE_DEFAULT"; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: $TOUCHFILE_DEFAULT" >&5
 $as_echo "$TOUCHFILE_DEFAULT" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+# Extract the first word of "aptly", so it can be a program name with args.
+set dummy aptly; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_prog_APTLY+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test -n "$APTLY"; then
+  ac_cv_prog_APTLY="$APTLY" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_prog_APTLY=""
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  test -z "$ac_cv_prog_APTLY" && ac_cv_prog_APTLY="/usr/bin/aptly"
+fi
+fi
+APTLY=$ac_cv_prog_APTLY
+if test -n "$APTLY"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $APTLY" >&5
+$as_echo "$APTLY" >&6; }
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
@@ -4420,14 +4465,27 @@ fi
 APXS=$with_apxs
 
 
-# Check whether --with-make-target was given.
-if test "${with_make_target+set}" = set; then :
-  withval=$with_make_target; with_make_target=$withval
-else
-  with_make_target=update
+# Check whether --with-aptly was given.
+if test "${with_aptly+set}" = set; then :
+  withval=$with_aptly; with_aptly=$withval
 fi
 
-DEFAULTMAKETARGET=$with_make_target
+if test ! -z "${with_aptly}"; then
+   case $with_aptly in
+   /*) APTLY=$with_aptly;;
+   -*) APTLY="${APTLY} $with_aptly";;
+   esac;
+fi;
+
+
+# Check whether --with-default-target was given.
+if test "${with_default_target+set}" = set; then :
+  withval=$with_default_target; with_default_target=$withval
+else
+  with_default_target=update
+fi
+
+DEFAULTMAKETARGET=$with_default_target
 
 # Make sure we can run config.sub.
 $SHELL "$ac_aux_dir/config.sub" sun4 >/dev/null 2>&1 ||
@@ -8523,6 +8581,17 @@ fi
 
 CODENAME=$with_codename
 
+
+# Check whether --with-relstatus was given.
+if test "${with_relstatus+set}" = set; then :
+  withval=$with_relstatus; with_relstatus=$withval
+fi
+
+
+if test ! -z "${with_relstatus}"; then
+   RELSTATUS=$with_relstatus
+fi;
+
 for ac_prog in "lsb-rpmbuild"
 do
   # Extract the first word of "$ac_prog", so it can be a program name with args.
@@ -12273,174 +12342,6 @@ done
 
 fi;
 
-### LevelDB cmodule build
-
-# Check whether --enable-leveldb was given.
-if test "${enable_leveldb+set}" = set; then :
-  enableval=$enable_leveldb;
-else
-  enable_leveldb="yes"
-fi
-
-leveldb_ok="no"
-
-if test "${enable_leveldb}" = "yes" ||
-   test "${enable_leveldb}" = "force"; then
-   for ac_header in leveldb/c.h
-do :
-  ac_fn_c_check_header_mongrel "$LINENO" "leveldb/c.h" "ac_cv_header_leveldb_c_h" "$ac_includes_default"
-if test "x$ac_cv_header_leveldb_c_h" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LEVELDB_C_H 1
-_ACEOF
-
-fi
-
-done
-
-   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for leveldb_open in -lleveldb" >&5
-$as_echo_n "checking for leveldb_open in -lleveldb... " >&6; }
-if ${ac_cv_lib_leveldb_leveldb_open+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lleveldb  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char leveldb_open ();
-int
-main ()
-{
-return leveldb_open ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_leveldb_leveldb_open=yes
-else
-  ac_cv_lib_leveldb_leveldb_open=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_leveldb_leveldb_open" >&5
-$as_echo "$ac_cv_lib_leveldb_leveldb_open" >&6; }
-if test "x$ac_cv_lib_leveldb_leveldb_open" = xyes; then :
-  leveldb_ok="yes"
-fi
-
-   if test "${enable_leveldb}" = "yes" &&
-      test "${ac_cv_header_leveldb_c_h}" = "yes" &&
-      test "${leveldb_ok}" = "yes"; then
-      DB_CMODULES="${DB_CMODULES} lib/kno/leveldb.${shared_suffix}";
-      INSTALL_DB_CMODULES="${INSTALL_DB_CMODULES} install-leveldb";
-      TEST_DB_CMODULES="${TEST_DB_CMODULES} leveldb"
-   elif test "${enable_leveldb}" = "force"; then
-     DB_CMODULES="lib/kno/leveldb.${shared_suffix} ${DB_CMODULES}";
-     INSTALL_DB_CMODULES="${INSTALL_DB_CMODULES} install-leveldb";
-     force_enabled="leveldb ${force_enabled}";
-     TEST_DB_CMODULES="${TEST_DB_CMODULES} leveldb"
-   else
-     auto_disabled="leveldb ${auto_disabled}";
-     enable_leveldb="no";
-   fi;
-else
-   manually_disabled="leveldb ${auto_disabled}";
-fi
-
-### RocksDB cmodule build
-
-# Check whether --enable-rocksdb was given.
-if test "${enable_rocksdb+set}" = set; then :
-  enableval=$enable_rocksdb;
-else
-  enable_rocksdb="yes"
-fi
-
-rocksdb_ok="no"
-
-if test "${enable_rocksdb}" = "yes" ||
-   test "${enable_rocksdb}" = "force"; then
-   for ac_header in rocksdb/c.h
-do :
-  ac_fn_c_check_header_mongrel "$LINENO" "rocksdb/c.h" "ac_cv_header_rocksdb_c_h" "$ac_includes_default"
-if test "x$ac_cv_header_rocksdb_c_h" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_ROCKSDB_C_H 1
-_ACEOF
-
-fi
-
-done
-
-   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for rocksdb_open in -lrocksdb" >&5
-$as_echo_n "checking for rocksdb_open in -lrocksdb... " >&6; }
-if ${ac_cv_lib_rocksdb_rocksdb_open+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lrocksdb  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char rocksdb_open ();
-int
-main ()
-{
-return rocksdb_open ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_rocksdb_rocksdb_open=yes
-else
-  ac_cv_lib_rocksdb_rocksdb_open=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_rocksdb_rocksdb_open" >&5
-$as_echo "$ac_cv_lib_rocksdb_rocksdb_open" >&6; }
-if test "x$ac_cv_lib_rocksdb_rocksdb_open" = xyes; then :
-  rocksdb_ok="yes"
-fi
-
-   if test "${enable_rocksdb}" = "yes" &&
-      test "${ac_cv_header_rocksdb_c_h}" = "yes";
-      test "${rocksdb_ok}" = "yes"; then
-     DB_CMODULES="lib/kno/rocksdb.${shared_suffix} ${DB_CMODULES}";
-     INSTALL_DB_CMODULES="install-rocksdb ${INSTALL_DB_CMODULES}";
-     TEST_DB_CMODULES="${TEST_DB_CMODULES} rocksdb"
-   elif test "${enable_rocksdb}" = "force"; then
-     DB_CMODULES="lib/kno/rocksdb.${shared_suffix} ${DB_CMODULES}";
-     INSTALL_DB_CMODULES="install-rocksdb ${INSTALL_DB_CMODULES}";
-     TEST_DB_CMODULES="${TEST_DB_CMODULES} rocksdb"
-     force_enabled="rocksdb ${force_enabled}";
-   else
-     auto_disabled="rocksdb ${auto_disabled}";
-     enable_rocksdb="no";
-   fi;
-else
-   manually_disabled="rocksdb ${auto_disabled}";
-fi
-
 ### archive library (manipulates various kinds of archives)
 
 for ac_header in archive.h
@@ -12698,7 +12599,7 @@ fi;
 
 ### Here's where stuff gets made
 
-ac_config_files="$ac_config_files makefile etc/version etc/makefile.include tests/lisp/makefile tests/storage/makefile tests/makefile DIY/makefile etc/gdbinit etc/lldbinit exe/.gdbinit exe/.lldbinit dbg/runenv.sh dbg/.gdbinit dbg/.lldbinit dbg/.valgrind tests/lisp/.gdbinit tests/storage/.gdbinit etc/kno.pc etc/kno_start_servlets etc/kno_start_daemons etc/kno_stop_jobs etc/knostart etc/knostop etc/knostartall etc/knostopall etc/knocleanup etc/knosignal etc/knoinject etc/knostatus etc/knolog etc/knoreload etc/knorestart etc/knoctl etc/knogdb etc/knodbgexec etc/knosetconfig etc/knogetconfig etc/knoconfig tests/testenv.sh tests/xtest tests/runtest tests/memtest tests/leaktest tests/knoxtest src/scripts/knopkg.scm etc/knojob etc/logrotate etc/sysv/kno-rc.d etc/sysv/ex_servlet-init.d etc/sysv/ex_daemon-init.d etc/upstart/kno.conf etc/upstart/knod.conf etc/upstart/knoservlets.conf etc/upstart/ex_knoservlet.conf etc/systemd/ex_servlet.service etc/systemd/ex_daemon.service etc/systemd/kno-daemons.service etc/systemd/kno-servlets.service etc/macos/OSXStartupItem/KNO etc/macos/KNO.plist etc/apache/knocgi.conf etc/apache/knocgi.load etc/install-script dist/alpine/APKBUILD dist/kno-4.3.spec"
+ac_config_files="$ac_config_files makefile etc/version etc/makefile.include tests/lisp/makefile tests/storage/makefile tests/makefile DIY/makefile etc/gdbinit etc/lldbinit exe/.gdbinit exe/.lldbinit dbg/runenv.sh dbg/.gdbinit dbg/.lldbinit dbg/.valgrind tests/lisp/.gdbinit tests/storage/.gdbinit etc/kno.pc etc/knomod etc/kno_start_servlets etc/kno_start_daemons etc/kno_stop_jobs etc/knostart etc/knostop etc/knostartall etc/knostopall etc/knocleanup etc/knosignal etc/knoinject etc/knostatus etc/knolog etc/knoreload etc/knorestart etc/knoctl etc/knogdb etc/knodbgexec etc/knosetconfig etc/knogetconfig etc/knoconfig tests/testenv.sh tests/xtest tests/runtest tests/memtest tests/leaktest tests/knoxtest src/scripts/knopkg.scm src/extmods/knoconfig etc/knojob etc/logrotate etc/sysv/kno-rc.d etc/sysv/ex_servlet-init.d etc/sysv/ex_daemon-init.d etc/upstart/kno.conf etc/upstart/knod.conf etc/upstart/knoservlets.conf etc/upstart/ex_knoservlet.conf etc/systemd/ex_servlet.service etc/systemd/ex_daemon.service etc/systemd/kno-daemons.service etc/systemd/kno-servlets.service etc/macos/OSXStartupItem/KNO etc/macos/KNO.plist etc/apache/knocgi.conf etc/apache/knocgi.load etc/install-script dist/alpine/APKBUILD dist/kno-4.3.spec"
 
 ac_config_commands="$ac_config_commands default"
 
@@ -13417,6 +13318,7 @@ do
     "tests/lisp/.gdbinit") CONFIG_FILES="$CONFIG_FILES tests/lisp/.gdbinit" ;;
     "tests/storage/.gdbinit") CONFIG_FILES="$CONFIG_FILES tests/storage/.gdbinit" ;;
     "etc/kno.pc") CONFIG_FILES="$CONFIG_FILES etc/kno.pc" ;;
+    "etc/knomod") CONFIG_FILES="$CONFIG_FILES etc/knomod" ;;
     "etc/kno_start_servlets") CONFIG_FILES="$CONFIG_FILES etc/kno_start_servlets" ;;
     "etc/kno_start_daemons") CONFIG_FILES="$CONFIG_FILES etc/kno_start_daemons" ;;
     "etc/kno_stop_jobs") CONFIG_FILES="$CONFIG_FILES etc/kno_stop_jobs" ;;
@@ -13444,6 +13346,7 @@ do
     "tests/leaktest") CONFIG_FILES="$CONFIG_FILES tests/leaktest" ;;
     "tests/knoxtest") CONFIG_FILES="$CONFIG_FILES tests/knoxtest" ;;
     "src/scripts/knopkg.scm") CONFIG_FILES="$CONFIG_FILES src/scripts/knopkg.scm" ;;
+    "src/extmods/knoconfig") CONFIG_FILES="$CONFIG_FILES src/extmods/knoconfig" ;;
     "etc/knojob") CONFIG_FILES="$CONFIG_FILES etc/knojob" ;;
     "etc/logrotate") CONFIG_FILES="$CONFIG_FILES etc/logrotate" ;;
     "etc/sysv/kno-rc.d") CONFIG_FILES="$CONFIG_FILES etc/sysv/kno-rc.d" ;;
@@ -14020,7 +13923,7 @@ $as_echo "$as_me: executing $ac_file commands" >&6;}
 
 
   case $ac_file$ac_mode in
-    "default":C) chmod a+x etc/kno* tests/*test ;;
+    "default":C) chmod a+x etc/kno* tests/*test src/extmods/knoconfig ;;
 
   esac
 done # for ac_tag

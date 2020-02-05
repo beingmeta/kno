@@ -17,17 +17,12 @@
 		 xhtml/exceptions xhtml/include
 		 xhtml/pagedate xhtml/tableout})
 
-(when (get-module 'mongodb)
-  (check-modules '{mongodb/utils
-		   mongodb/pools mongodb/indexes 
-		   mongodb/slots mongodb/orm}))
-
 (check-modules
  '{opts hashfs rulesets meltcache curlcache saveopt signature cachequeue 
-   calltrack checkurl codewalker couchdb dropbox ellipsize email fakezip fillin 
-   findcycles getcontent gravatar gutdb hashstats histogram hostinfo i18n ice 
-   isbn mimeout oauth openlibrary bugjar pump readcsv samplefns savecontent 
-   speling tinygis tracer trackrefs twilio updatefile whocalls ximage})
+   checkurl codewalker couchdb dropbox ellipsize email fakezip fillin 
+   findcycles getcontent gravatar hashstats histogram hostinfo i18n ice 
+   mimeout oauth bugjar pump readcsv samplefns savecontent 
+   speling tinygis tracer trackrefs twilio updatefile whocalls})
 
 (check-modules '{aws aws/s3 aws/ses aws/simpledb aws/sqs aws/v4
 		 aws/associates aws/dynamodb})
@@ -35,7 +30,8 @@
 (check-modules '{domutils domutils/index domutils/localize
 		 domutils/styles domutils/css domutils/cleanup
 		 domutils/adjust domutils/analyze
-		 domutils/hyphenate})
+		 ;; domutils/hyphenate
+		 })
 
 (check-modules '{facebook facebook/fbcall facebook/fbml})
 

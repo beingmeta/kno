@@ -9,9 +9,10 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define KNO_PROVIDE_FASTEVAL 1
-#define KNO_INLINE_TABLES 1
-#define KNO_INLINE_FCNIDS 1
+#define KNO_INLINE_TABLES      (!(KNO_AVOID_INLINE))
+#define KNO_INLINE_FCNIDS      (!(KNO_AVOID_INLINE))
+
+#define KNO_INLINE_EVAL   (!(KNO_AVOID_INLINE))
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
@@ -1681,6 +1682,7 @@ static void thread_sigint(int signum,siginfo_t *info,void *stuff)
   else u8_raise(kno_ThreadInterrupted,"thread_sigint",NULL);
 }
 
+#if 0
 static void thread_siginfo(int signum,siginfo_t *info,void *stuff)
 {
   /* What should this do? */
@@ -1707,6 +1709,7 @@ static void thread_siginfo(int signum,siginfo_t *info,void *stuff)
   if (! (emissions) )
     u8_log(-LOGNOTICE,"ThreadInfo","None available");
 }
+#endif
 
 static void init_signal_handling()
 {

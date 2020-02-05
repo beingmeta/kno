@@ -2122,7 +2122,7 @@ static struct PyModuleDef kno_mod = {
 
 static PyObject *python_kno_module = NULL;
 
-static PyObject *init_python_module()
+PyObject *init_python_module()
 {
   if (python_kno_module)
     return python_kno_module;
@@ -2135,7 +2135,7 @@ static PyObject *init_python_module()
   return m;
 }
 #else
-static void init_python_module()
+void init_python_module()
 {
   PyObject *m;
   if (python_init_done) return;

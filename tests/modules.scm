@@ -160,5 +160,5 @@
     (update-module  "https://s3.amazonaws.com/knomods.beingmeta.com/kno/tests/testmod.scm")
     (update-module  "https://s3.amazonaws.com/knomods.beingmeta.com/kno/tests/testmod.scm" #t)))
 
-(test-webmods)
+(unless (or (config 'offline) (getenv "OFFLINE")) (test-webmods))
 

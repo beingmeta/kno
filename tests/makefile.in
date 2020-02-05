@@ -12,7 +12,7 @@ export LD_LIBRARY_PATH=../lib
 export DYLD_LIBRARY_PATH=../lib
 export PPROF_PATH      = @GOOGLE_PPROF@
 export KNO_QUIET        = yes
-export KNO_HYPHENDICT=../src/cmodules/hyph_en_US.dic
+export KNO_OFFLINE=${OFFLINE}
 
 # Change this to echo to output test headers. Note that these aren't
 # much use when running tests with -j
@@ -64,12 +64,14 @@ TESTFILE	= ${TESTBASE}.file
 KNOX		= ./knox
 OIDPOOL		= POOLTYPE=oidpool
 BIGPOOL		= POOLTYPE=bigpool
+KNOPOOL		= POOLTYPE=knopool
 SNAPPY		= COMPRESSION=snappy
 ZPOOL		= COMPRESSION=zlib
-ZSTDPOOL	= COMPRESSION=zstd
+ZSTD	        = COMPRESSION=zstd
 FILEPOOL	= POOLTYPE=filepool
 FILEINDEX	= INDEXTYPE=fileindex
 HASHINDEX	= INDEXTYPE=hashindex
+KNOINDEX	= INDEXTYPE=knoindex
 MEMINDEX	= INDEXTYPE=memindex
 OFFB40		= OFFTYPE=B40
 OFFB64		= OFFTYPE=B64
@@ -324,7 +326,7 @@ storage: storagebase pooltest indextest framedb
 pooltest:
 	@${header} "■■■■■■■■ Running pool tests ${TESTBASE} ${RUNCONF}"
 	@rm -rf ${TESTBASE}.pool ${TESTBASE}.adjunct.pool
-	${RUN} ${KNOX} pooltest.scm ${TESTSIZE} ${TESTBASE}.pool ${RUNCONF}
+	${RUN} ${KNOX} pooltest.scm RESET=yes ${TESTSIZE} ${TESTBASE}.pool ${RUNCONF}
 	${RUN} ${KNOX} pooltest.scm ${TESTSIZE} ${TESTBASE}.pool CACHELEVEL=1 ${RUNCONF}
 	${RUN} ${KNOX} pooltest.scm ${TESTSIZE} ${TESTBASE}.pool CACHELEVEL=2 ${RUNCONF}
 	${RUN} ${KNOX} pooltest.scm ${TESTSIZE} ${TESTBASE}.pool CACHELEVEL=3 ${RUNCONF}
@@ -350,16 +352,35 @@ bigpoolsnappytest:
 bigpoolzlibtest:
 	@make TESTBASE=bigpoolzlib RUNCONF="${BIGPOOL} ${ZPOOL} ${RUNCONF}" pooltest
 bigpoolzstdtest:
-	@make TESTBASE=bigpoolzlib RUNCONF="${BIGPOOL} ${ZSTDPOOL} ${RUNCONF}" pooltest
+	@make TESTBASE=bigpoolzstd RUNCONF="${BIGPOOL} ${ZSTD} ${RUNCONF}" pooltest
 # This doesn't do any slotcoding to check those code paths
 bigpooltest_nx:
 	@make TESTBASE=bigpool_nx RUNCONF="SLOTCODES=#f ${BIGPOOL} ${RUNCONF}" pooltest
+
+knopooltest:
+	@make TESTBASE=knopool RUNCONF="${KNOPOOL} ${RUNCONF}" pooltest
+knopool32test:
+	@make TESTBASE=knopool32 RUNCONF="${KNOPOOL} ${OFFB32} ${RUNCONF}" pooltest
+knopool64test:
+	@make TESTBASE=knopool64 RUNCONF="${KNOPOOL} ${OFFB64} ${RUNCONF}" pooltest
+knopoolztest:
+	@make TESTBASE=knopoolz RUNCONF="${KNOPOOL} ${ZPOOL} ${RUNCONF}" pooltest
+knopool32ztest:
+	@make TESTBASE=knopool32z RUNCONF="${KNOPOOL} ${OFFB32} ${ZPOOL} ${RUNCONF}" pooltest
+knopool64ztest:
+	@make TESTBASE=knopool64z RUNCONF="${KNOPOOL} ${OFFB64} ${ZPOOL} ${RUNCONF}" pooltest
+knopoolsnappytest:
+	@make TESTBASE=knopoolsnappy RUNCONF="${KNOPOOL} ${SNAPPY} ${RUNCONF}" pooltest
+knopoolzstdtest:
+	@make TESTBASE=knopoolzstd RUNCONF="${KNOPOOL} ${ZSTD} ${RUNCONF}" pooltest
 
 lvldbpools lvldbpooltests:
 	@make TESTBASE=lvldbpool RUNCONF="SLOTCODES=#f POOLTYPE=leveldb POOLMOD=leveldb ${RUNCONF}" pooltest
 rckdbpools rckdbpooltests:
 	@make TESTBASE=rckdbpool RUNCONF="SLOTCODES=#f POOLTYPE=rocksdb POOLMOD=rocksdb ${RUNCONF}" pooltest
 
+knopools knopooltests: knopooltest knopool32test knopool64test knopoolztest \
+        knopoolsnappytest knopoolzstdtest
 bigpools bigpooltests: bigpooltest bigpool32test bigpool64test \
         bigpooltest_nx bigpoolsnappytest bigpoolzlibtest \
         bigpoolzstdtest
@@ -456,6 +477,15 @@ hashindex64:
 hashindex40x:
 	@make TESTBASE=tmphash40x.index RUNCONF="INDEXTYPE=hashindex OFFTYPE=B40 SLOTCODES=yes OIDCODES=yes" indextest
 
+knoindex32:
+	@make TESTBASE=tmpkno32.index RUNCONF="INDEXTYPE=knoindex OFFTYPE=B32" indextest
+knoindex40:
+	@make TESTBASE=tmpkno40.index RUNCONF="INDEXTYPE=knoindex OFFTYPE=B40" indextest
+knoindex64:
+	@make TESTBASE=tmpkno64.index RUNCONF="INDEXTYPE=knoindex OFFTYPE=B64" indextest
+knoindex40x:
+	@make TESTBASE=tmpkno40x.index RUNCONF="INDEXTYPE=knoindex OFFTYPE=B40 SLOTCODES=yes OIDCODES=yes" indextest
+
 aggindex:
 	@make TESTBASE=aggindex.index RUNCONF="INDEXTYPE=hashindex OFFTYPE=B40 AGGINDEX=yes" indextest
 aggindex_consed:
@@ -464,8 +494,9 @@ aggindexes: aggindex aggindex_consed
 
 
 hashindexes hashindex: hashindex32 hashindex40 hashindex40x hashindex64
+knoindexes knoindex: knoindex32 knoindex40 knoindex40x knoindex64
 
-indextests indexes: fileindexes hashindexes memindexes
+indextests indexes: fileindexes hashindexes memindexes knoindexes
 
 .PHONY: indexes indextests fileindexes hashindexes memindexes aggindexes
 
@@ -499,12 +530,21 @@ framedb_keyslot:
 	@make TESTBASE=slotindex RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB40} SEPINDEX=FILENAME" framedb
 framedb_keyslots:
 	@make TESTBASE=slotindex RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB40} SEPINDEX=FILENAME SEPINDEX=IN-FILE^CONTEXT" framedb
+
+framedb_knopool32:
+	@make TESTBASE=tmpknopool32 RUNCONF="${KNOPOOL} ${HASHINDEX} ${OFFB32}" framedb
+framedb_knopool40:
+	@make TESTBASE=tmpknopool40 RUNCONF="${KNOPOOL} ${HASHINDEX} ${OFFB40}" framedb
+framedb_knopool64:
+	@make TESTBASE=tmpknopool64 RUNCONF="${KNOPOOL} ${HASHINDEX} ${OFFB64}" framedb
+
 framedb_bigpool32:
 	@make TESTBASE=tmpbigpool32 RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB32}" framedb
 framedb_bigpool40:
 	@make TESTBASE=tmpbigpool40 RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB40}" framedb
 framedb_bigpool64:
 	@make TESTBASE=tmpbigpool64 RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB64}" framedb
+
 framedb_fileindex:
 	@make TESTBASE=tmpfileindex RUNCONF="${BIGPOOL} ${FILEINDEX} ${OFFB40}" framedb
 framedb_memindex:
@@ -518,14 +558,24 @@ framedb_oidpool64:
 framedb_consindex:
 	@make TESTBASE=tmpbigpool40cx RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB40} CONSINDEX=yes" framedb
 
+framedb_knodb40:
+	@make TESTBASE=tmpknodb40 RUNCONF="${KNOPOOL} ${KNOINDEX} ${OFFB40}" framedb
+framedb_knodb64:
+	@make TESTBASE=tmpknodb64 RUNCONF="${KNOPOOL} ${KNOINDEX} ${OFFB64}" framedb
+framedb_knodb32:
+	@make TESTBASE=tmpknodb32 RUNCONF="${KNOPOOL} ${KNOINDEX} ${OFFB32}" framedb
 
 lvldbframes lvldbframedb:
 	@make TESTBASE=lvldb RUNCONF="POOLTYPE=leveldb INDEXTYPE=leveldb INDEXMOD=leveldb POOLMOD=leveldb" framedb
 rckdbframes rckdbframedb:
 	@make TESTBASE=rckdb RUNCONF="POOLTYPE=rocksdb INDEXTYPE=rocksdb INDEXMOD=rocksdb POOLMOD=rocksdb" framedb
 
+framedb_knodb: framedb_knodb32 framedb_knodb40 framedb_knodb64
+
 framedbs: framedb_base \
 	framedb_bigpool32 framedb_bigpool40 framedb_bigpool64 \
+	framedb_knopool32 framedb_knopool40 framedb_knopool64 \
+	framedb_knodb32 framedb_knodb40 framedb_knodb64 \
 	framedb_aggregate framedb_keyslot \
 	framedb_fileindex framedb_memindex \
 

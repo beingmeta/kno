@@ -9,13 +9,13 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define KNO_INLINE_CHOICES (!(KNO_AVOID_CHOICES))
-#define KNO_INLINE_TABLES (!(KNO_AVOID_CHOICES))
-#define KNO_INLINE_FCNIDS (!(KNO_AVOID_CHOICES))
-#define KNO_INLINE_STACKS (!(KNO_AVOID_CHOICES))
-#define KNO_INLINE_LEXENV (!(KNO_AVOID_CHOICES))
+#define KNO_INLINE_CHOICES      (!(KNO_AVOID_INLINE))
+#define KNO_INLINE_TABLES       (!(KNO_AVOID_INLINE))
+#define KNO_INLINE_FCNIDS       (!(KNO_AVOID_INLINE))
+#define KNO_INLINE_STACKS       (!(KNO_AVOID_INLINE))
+#define KNO_INLINE_LEXENV       (!(KNO_AVOID_INLINE))
 
-#define KNO_PROVIDE_FASTEVAL (!(KNO_AVOID_CHOICES))
+#define KNO_INLINE_EVAL    (!(KNO_AVOID_INLINE))
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
@@ -429,11 +429,18 @@ KNO_EXPORT int kno_choice_evalp(lispval x)
 }
 
 KNO_EXPORT
+lispval kno_eval_body(lispval body,kno_lexenv env,kno_stack stack,
+		      u8_context cxt,u8_string label,
+		      int tail)
+{
+  return eval_body(body,env,stack,cxt,label,tail);
+}
+
+KNO_EXPORT
 lispval kno_eval_exprs(lispval body,kno_lexenv env,kno_stack stack,int tail)
 {
   return eval_body(body,env,stack,"kno_eval_exprs",NULL,tail);
 }
-
 
 /* Symbol lookup */
 

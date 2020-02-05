@@ -22,5 +22,5 @@ if [ -z "$DIRS" ]; then
     DIRS=${ALLDIRS};
 fi;
 for dir in ${DIRS}; do
-    make -C ${dir} ${ARGS};
+    make -C ${dir} KNOCONFIG=../knoconfig COPY_CMODS=../../../lib/kno ${ARGS};
 done

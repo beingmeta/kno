@@ -17,7 +17,6 @@ usr/share/kno/libscm/bugjar/resources
 usr/share/kno/libscm/optimize
 usr/share/kno/libscm/flexdb
 usr/share/kno/libscm/storage
-usr/share/kno/libscm/mongodb
 usr/share/kno/libscm/xhtml
 usr/share/kno/packages
 etc

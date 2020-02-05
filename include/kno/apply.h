@@ -361,9 +361,9 @@ KNO_EXPORT lispval _kno_stack_apply(struct KNO_STACK *stack,lispval fn,int n_arg
 KNO_EXPORT lispval _kno_stack_dapply(struct KNO_STACK *stack,lispval fn,int n_args,kno_argvec);
 KNO_EXPORT lispval _kno_stack_ndapply(struct KNO_STACK *stack,lispval fn,int n_args,kno_argvec);
 
-#if KNO_INLINE_APPLY
+#if KNO_INLINE_APPLY || KNO_FAST_APPLY
 U8_MAYBE_UNUSED static
-lispval kno_stack_apply(struct KNO_STACK *stack,lispval fn,int n_args,kno_argvec args)
+lispval __kno_stack_apply(struct KNO_STACK *stack,lispval fn,int n_args,kno_argvec args)
 {
   lispval result= (stack) ?
     (kno_call(stack,fn,n_args,args)) :
@@ -371,7 +371,7 @@ lispval kno_stack_apply(struct KNO_STACK *stack,lispval fn,int n_args,kno_argvec
   return kno_finish_call(result);
 }
 static U8_MAYBE_UNUSED
-lispval kno_stack_dapply(struct KNO_STACK *stack,lispval fn,int n_args,kno_argvec args)
+lispval __kno_stack_dapply(struct KNO_STACK *stack,lispval fn,int n_args,kno_argvec args)
 {
   lispval result= (stack) ?
     (kno_dcall(stack,fn,n_args,args)) :
@@ -379,13 +379,19 @@ lispval kno_stack_dapply(struct KNO_STACK *stack,lispval fn,int n_args,kno_argve
   return kno_finish_call(result);
 }
 static U8_MAYBE_UNUSED
-lispval kno_stack_ndapply(struct KNO_STACK *stack,lispval fn,int n_args,kno_argvec args)
+lispval __kno_stack_ndapply(struct KNO_STACK *stack,lispval fn,int n_args,kno_argvec args)
 {
   lispval result= (stack) ?
     (kno_ndcall(stack,fn,n_args,args)) :
     (kno_ndcall(kno_stackptr,fn,n_args,args));
   return kno_finish_call(result);
 }
+#endif
+
+#if KNO_INLINE_APPLY
+#define kno_stack_apply __kno_stack_apply
+#define kno_stack_dapply __kno_stack_dapply
+#define kno_stack_ndapply __kno_stack_ndapply
 #else
 #define kno_stack_apply _kno_stack_apply
 #define kno_stack_dapply _kno_stack_dapply

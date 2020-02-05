@@ -34,6 +34,7 @@ usr/bin/knostopall
 usr/bin/knorestart
 usr/bin/knostatus
 usr/bin/knopkg
+usr/bin/knomod
 etc/kno/servers
 etc/kno/boot/*
 usr/share/kno/gdbinit
@@ -45,7 +46,6 @@ usr/share/kno/libscm/kno-*/bugjar/*.scm
 usr/share/kno/libscm/kno-*/bugjar/resources/*
 usr/share/kno/libscm/kno-*/optimize/*.scm
 usr/share/kno/libscm/kno-*/knodb/*.scm
-usr/share/kno/libscm/kno-*/mongodb/*.scm
 usr/share/kno/libscm/kno-*/xhtml/*.scm
 usr/share/kno/libscm/kno-*/bench/*.scm
 usr/share/kno/libscm/kno-*/*.scm

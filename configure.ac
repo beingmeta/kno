@@ -87,7 +87,7 @@ EXELIBS=
 BINPATH=${PATH}
 RPATHFLAGS="-Wl,'-rpath \$(RPATH)'"
 SHARED_LIB_TARGET=shared-libs
-KNO_MAJOR=1910
+KNO_MAJOR=2001
 KNO_MINOR=1
 KNO_RELEASE=`cat etc/release`
 KNO_PATCHLEVEL=`./etc/patchlevel`
@@ -134,6 +134,8 @@ SUDO=""
 SUINSTALL=
 RPMDIR=${RPMDIR:-dist}
 RPMFLAGS=${RPMFLAGS:-}
+APTLY=
+APTLY_FLAGS=
 APTREPO=${APTREPO:-/srv/repo/apt}
 APKREPO=${APKREPO:-/srv/repo/apk}
 PKGCONFIG_DIR=
@@ -215,6 +217,7 @@ gperftools=""
 asan=""
 static_libgcc="no"
 CODENAME="beingmeta"
+RELSTATUS="stable"
 
 gperftools_default="yes"
 
@@ -377,7 +380,9 @@ AC_SUBST(COPYFILE)
 AC_SUBST(TOUCHFILE)
 AC_SUBST(MKDIR)
 AC_SUBST(CHGRP)
+AC_SUBST(APTLY)
 AC_SUBST(CODENAME)
+AC_SUBST(RELSTATUS)
 AC_SUBST(BINPATH)
 AC_SUBST(LIBSCM)
 AC_SUBST(ODBC_LIBS)
@@ -417,6 +422,7 @@ AC_CHECK_PROG(CHGRP_DEFAULT,chgrp,,/bin/chgrp)
 AC_CHECK_PROG(COPYFILE_DEFAULT,cp,,/bin/cp)
 AC_CHECK_PROG(DELETEFILE_DEFAULT,rm,,/bin/rm)
 AC_CHECK_PROG(TOUCHFILE_DEFAULT,touch,,/bin/touch)
+AC_CHECK_PROG(APTLY,aptly,,/usr/bin/aptly)
 AC_PATH_PROG(VALGRIND,valgrind,none)
 AC_PATH_PROG(DUMA,duma,none)
 AC_PATH_PROG(CLANG,clang,none)
@@ -468,8 +474,16 @@ TOUCHFILE=$with_touchfile
 AC_ARG_WITH(apxs,--with-apxs command,with_apxs=$withval,with_apxs=$APXS)
 APXS=$with_apxs
 
-AC_ARG_WITH(make-target,--with-make-target default-target,with_make_target=$withval,with_make_target=update)
-DEFAULTMAKETARGET=$with_make_target
+AC_ARG_WITH(aptly,--with-aptly command,with_aptly=$withval)
+if test ! -z "${with_aptly}"; then
+   case $with_aptly in
+   /*) APTLY=$with_aptly;;
+   -*) APTLY="${APTLY} $with_aptly";;
+   esac;
+fi;
+
+AC_ARG_WITH(default-target,--with-default-target default-make-target,with_default_target=$withval,with_default_target=update)
+DEFAULTMAKETARGET=$with_default_target
 
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
@@ -996,6 +1010,12 @@ fi
 
 AC_ARG_WITH(codename,--with-codename for distribution,with_codename=$withval,with_codename=$CODENAME)
 CODENAME=$with_codename
+
+AC_ARG_WITH(relstatus,--with-relstatus e.g. stable or testing,with_relstatus=$withval)
+
+if test ! -z "${with_relstatus}"; then
+   RELSTATUS=$with_relstatus
+fi;
 
 AC_CHECK_PROGS(buildrpm,"lsb-rpmbuild","rpmbuild","lsb-rpm","na")
 AC_CHECK_PROGS(rpm,"lsb-rpm","rpm","na")
@@ -1677,62 +1697,6 @@ if test "${have_zstd_h}" = "yes"; then
    AC_CHECK_FUNCS(ZSTD_getFrameContentSize)
 fi;
 
-### LevelDB cmodule build
-
-AC_ARG_ENABLE(leveldb,--en/disable-leveldb Build and install LevelDB module,,enable_leveldb="yes")
-leveldb_ok="no"
-
-if test "${enable_leveldb}" = "yes" ||
-   test "${enable_leveldb}" = "force"; then
-   AC_CHECK_HEADERS(leveldb/c.h)
-   AC_CHECK_LIB(leveldb,leveldb_open,leveldb_ok="yes")
-   if test "${enable_leveldb}" = "yes" &&
-      test "${ac_cv_header_leveldb_c_h}" = "yes" &&
-      test "${leveldb_ok}" = "yes"; then
-      DB_CMODULES="${DB_CMODULES} lib/kno/leveldb.${shared_suffix}";
-      INSTALL_DB_CMODULES="${INSTALL_DB_CMODULES} install-leveldb";
-      TEST_DB_CMODULES="${TEST_DB_CMODULES} leveldb"
-   elif test "${enable_leveldb}" = "force"; then
-     DB_CMODULES="lib/kno/leveldb.${shared_suffix} ${DB_CMODULES}";
-     INSTALL_DB_CMODULES="${INSTALL_DB_CMODULES} install-leveldb";
-     force_enabled="leveldb ${force_enabled}";
-     TEST_DB_CMODULES="${TEST_DB_CMODULES} leveldb"
-   else
-     auto_disabled="leveldb ${auto_disabled}";
-     enable_leveldb="no";
-   fi;
-else
-   manually_disabled="leveldb ${auto_disabled}";
-fi
-
-### RocksDB cmodule build
-
-AC_ARG_ENABLE(rocksdb,--en/disable-rocksdb Build and install Rocksdb module,,enable_rocksdb="yes")
-rocksdb_ok="no"
-
-if test "${enable_rocksdb}" = "yes" ||
-   test "${enable_rocksdb}" = "force"; then
-   AC_CHECK_HEADERS(rocksdb/c.h)
-   AC_CHECK_LIB(rocksdb,rocksdb_open,rocksdb_ok="yes")
-   if test "${enable_rocksdb}" = "yes" && 
-      test "${ac_cv_header_rocksdb_c_h}" = "yes";
-      test "${rocksdb_ok}" = "yes"; then
-     DB_CMODULES="lib/kno/rocksdb.${shared_suffix} ${DB_CMODULES}";
-     INSTALL_DB_CMODULES="install-rocksdb ${INSTALL_DB_CMODULES}";
-     TEST_DB_CMODULES="${TEST_DB_CMODULES} rocksdb"
-   elif test "${enable_rocksdb}" = "force"; then
-     DB_CMODULES="lib/kno/rocksdb.${shared_suffix} ${DB_CMODULES}";
-     INSTALL_DB_CMODULES="install-rocksdb ${INSTALL_DB_CMODULES}";
-     TEST_DB_CMODULES="${TEST_DB_CMODULES} rocksdb"
-     force_enabled="rocksdb ${force_enabled}";
-   else
-     auto_disabled="rocksdb ${auto_disabled}";
-     enable_rocksdb="no";
-   fi;
-else
-   manually_disabled="rocksdb ${auto_disabled}";
-fi
-
 ### archive library (manipulates various kinds of archives)
 
 AC_CHECK_HEADERS(archive.h)
@@ -1842,6 +1806,7 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   dbg/runenv.sh dbg/.gdbinit dbg/.lldbinit dbg/.valgrind
 	   tests/lisp/.gdbinit tests/storage/.gdbinit
 	   etc/kno.pc
+	   etc/knomod
 	   etc/kno_start_servlets etc/kno_start_daemons etc/kno_stop_jobs
 	   etc/knostart etc/knostop etc/knostartall etc/knostopall etc/knocleanup
 	   etc/knosignal etc/knoinject etc/knostatus etc/knolog 
@@ -1851,6 +1816,7 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   tests/runtest tests/memtest
 	   tests/leaktest tests/knoxtest
 	   src/scripts/knopkg.scm
+	   src/extmods/knoconfig
 	   etc/knojob
 	   etc/logrotate
 	   etc/sysv/kno-rc.d
@@ -1871,7 +1837,7 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   etc/install-script 
 	   dist/alpine/APKBUILD
 	   dist/kno-4.3.spec],
-	   [chmod a+x etc/kno* tests/*test])
+	   [chmod a+x etc/kno* tests/*test src/extmods/knoconfig])
 
 if test ! -z "$gperftools"; then
    echo  "Built with malloc=$using_malloc, gperftools=${gperftools}";

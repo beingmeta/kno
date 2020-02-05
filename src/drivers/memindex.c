@@ -10,9 +10,9 @@
 #endif
 
 #include "kno/components/storage_layer.h"
-#define KNO_INLINE_BUFIO (!(KNO_AVOID_CHOICES))
-#define KNO_INLINE_CHOICES (!(KNO_AVOID_CHOICES))
-#define KNO_FAST_CHOICE_CONTAINSP (!(KNO_AVOID_CHOICES))
+#define KNO_INLINE_BUFIO (!(KNO_AVOID_INLINE))
+#define KNO_INLINE_CHOICES (!(KNO_AVOID_INLINE))
+#define KNO_FAST_CHOICE_CONTAINSP (!(KNO_AVOID_INLINE))
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"

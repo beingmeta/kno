@@ -13,6 +13,7 @@
 #include "kno/lisp.h"
 #include "kno/hash.h"
 #include "kno/cons.h"
+#include "kno/xtypes.h"
 
 #include "libu8/u8printf.h"
 
@@ -196,6 +197,28 @@ static ssize_t timestamp_dtype(struct KNO_OUTBUF *out,lispval x)
   return size;
 }
 
+static ssize_t timestamp_xtype(struct KNO_OUTBUF *out,lispval x,xtype_refs refs)
+{
+  struct KNO_TIMESTAMP *xtm=
+    kno_consptr(struct KNO_TIMESTAMP *,x,kno_timestamp_type);
+  kno_write_byte(out,xt_tagged);
+  kno_write_byte(out,xt_timestamp);
+  ssize_t size = 2;
+  if ((xtm->u8xtimeval.u8_prec == u8_second) && (xtm->u8xtimeval.u8_tzoff==0)) {
+    lispval xval = KNO_INT(xtm->u8xtimeval.u8_tick);
+    size += kno_write_xtype(out,xval,refs);}
+  else {
+    lispval vec = kno_empty_vector(4);
+    int tzoff = xtm->u8xtimeval.u8_tzoff;
+    KNO_VECTOR_SET(vec,0,KNO_INT(xtm->u8xtimeval.u8_tick));
+    KNO_VECTOR_SET(vec,1,KNO_INT(xtm->u8xtimeval.u8_nsecs));
+    KNO_VECTOR_SET(vec,2,KNO_INT((int)xtm->u8xtimeval.u8_prec));
+    KNO_VECTOR_SET(vec,3,KNO_INT(tzoff));
+    size = size+kno_write_xtype(out,vec,refs);
+    kno_decref(vec);}
+  return size;
+}
+
 static lispval timestamp_restore(lispval tag,lispval x,kno_typeinfo e)
 {
   if (FIXNUMP(x)) {
@@ -287,6 +310,72 @@ static int unparse_regex(struct U8_OUTPUT *out,lispval x)
   return 1;
 }
 
+static ssize_t write_regex_dtype(struct KNO_OUTBUF *out,lispval x)
+{
+  struct KNO_REGEX *rx = (kno_regex) x;
+  unsigned char buf[100], *tagname="%regex";
+  u8_string rxsrc = rx->rxsrc;
+  int srclen = strlen(rxsrc), rxflags = rx->rxflags;
+  struct KNO_OUTBUF tmp = { 0 };
+  KNO_INIT_OUTBUF(&tmp,buf,100,0);
+  kno_write_byte(&tmp,dt_compound);
+  kno_write_byte(&tmp,dt_symbol);
+  kno_write_4bytes(&tmp,6);
+  kno_write_bytes(&tmp,tagname,6);
+  kno_write_byte(&tmp,dt_vector);
+  kno_write_4bytes(&tmp,2);
+  kno_write_byte(&tmp,dt_string);
+  kno_write_4bytes(&tmp,srclen);
+  kno_write_bytes(&tmp,rxsrc,srclen);
+  kno_write_byte(&tmp,dt_fixnum);
+  kno_write_4bytes(&tmp,rxflags);
+  ssize_t n_bytes=tmp.bufwrite-tmp.buffer;
+  kno_write_bytes(out,tmp.buffer,n_bytes);
+  kno_close_outbuf(&tmp);
+  return n_bytes;
+}
+
+static ssize_t write_regex_xtype(struct KNO_OUTBUF *out,lispval x,
+				 xtype_refs refs)
+{
+  struct KNO_REGEX *rx = (kno_regex) x;
+  u8_string rxsrc = rx->rxsrc;
+  int srclen = strlen(rxsrc);
+  int rxflags = rx->rxflags;
+  struct KNO_OUTBUF tmp = { 0 };
+  unsigned char buf[100];
+  KNO_INIT_OUTBUF(&tmp,buf,100,0);
+  kno_write_byte(&tmp,xt_tagged);
+  kno_write_byte(&tmp,xt_regex);
+
+  kno_write_byte(&tmp,xt_vector);
+  kno_write_varint(&tmp,2);
+
+  kno_write_byte(&tmp,xt_utf8);
+  kno_write_varint(&tmp,srclen);
+  kno_write_bytes(&tmp,rxsrc,srclen);
+
+  kno_write_byte(&tmp,xt_posint);
+  kno_write_varint(&tmp,rxflags);
+
+  ssize_t n_bytes=tmp.bufwrite-tmp.buffer;
+  kno_write_bytes(out,tmp.buffer,n_bytes);
+  kno_close_outbuf(&tmp);
+  return n_bytes;
+}
+
+static lispval regex_restore(lispval U8_MAYBE_UNUSED tag,
+			     lispval x,
+			     kno_typeinfo U8_MAYBE_UNUSED e)
+{
+  if ( (VECTORP(x)) && (KNO_VECTOR_LENGTH(x) == 2) ) {
+    lispval rxsrc = KNO_VECTOR_REF(x,0);
+    lispval rxflags = KNO_VECTOR_REF(x,1);
+    if ( (KNO_STRINGP(rxsrc)) || (KNO_FIXNUMP(rxflags)) )
+      return kno_make_regex(KNO_CSTRING(rxsrc),KNO_FIX2INT(rxflags));
+    else return kno_err("Bad Regex","regex_restore",NULL,x);}
+  else return kno_err("Bad UUID rep","uuid_restore",NULL,x);
+}
 
 /* Raw pointers */
 
@@ -380,6 +469,13 @@ void kno_init_misctypes_c()
     e->type_restorefn = timestamp_restore;}
   kno_dtype_writers[kno_timestamp_type]=timestamp_dtype;
 
+  {
+    struct KNO_TYPEINFO *e = kno_use_typeinfo(kno_timestamp_xtag);
+    e->type_parsefn = NULL;
+    e->type_dumpfn = NULL;
+    e->type_restorefn = timestamp_restore;}
+  kno_xtype_writers[kno_timestamp_type]=timestamp_xtype;
+
   kno_copiers[kno_timestamp_type]=copy_timestamp;
 
   lispval_symbol = kno_intern("%lispval");
@@ -389,6 +485,15 @@ void kno_init_misctypes_c()
     e->type_dumpfn = NULL;
     e->type_restorefn = lispval_restore;}
   kno_dtype_writers[kno_timestamp_type]=timestamp_dtype;
+
+  {
+    struct KNO_TYPEINFO *info = kno_use_typeinfo(kno_intern("%regex"));
+    info->type_restorefn = regex_restore;}
+  {
+    struct KNO_TYPEINFO *info = kno_use_typeinfo(kno_regex_xtag);
+    info->type_restorefn = regex_restore;}
+  kno_dtype_writers[kno_regex_type] = write_regex_dtype;
+  kno_xtype_writers[kno_regex_type] = write_regex_xtype;
 
   u8_register_source_file(_FILEINFO);
 }

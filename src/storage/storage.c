@@ -620,6 +620,7 @@ KNO_EXPORT void kno_init_threadcache_c(void);
 KNO_EXPORT void kno_init_pools_c(void);
 KNO_EXPORT void kno_init_compress_c(void);
 KNO_EXPORT void kno_init_indexes_c(void);
+KNO_EXPORT void kno_init_xtcall_c(void);
 KNO_EXPORT void kno_init_dtcall_c(void);
 KNO_EXPORT void kno_init_oidobj_c(void);
 KNO_EXPORT void kno_init_dtproc_c(void);
@@ -650,6 +651,7 @@ KNO_EXPORT int kno_init_storage()
   kno_init_indexes_c();
   kno_init_frames_c();
   kno_init_drivers_c();
+  /* kno_init_xtcall_c(); */
   kno_init_dtcall_c();
   kno_init_dtproc_c();
 #if KNO_IPEVAL_ENABLED

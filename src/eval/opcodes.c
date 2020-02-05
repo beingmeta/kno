@@ -9,13 +9,13 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define KNO_INLINE_CHOICES (!(KNO_AVOID_CHOICES))
-#define KNO_INLINE_TABLES (!(KNO_AVOID_CHOICES))
-#define KNO_INLINE_FCNIDS (!(KNO_AVOID_CHOICES))
-#define KNO_INLINE_STACKS (!(KNO_AVOID_CHOICES))
-#define KNO_INLINE_LEXENV (!(KNO_AVOID_CHOICES))
+#define KNO_INLINE_CHOICES      (!(KNO_AVOID_INLINE))
+#define KNO_INLINE_TABLES       (!(KNO_AVOID_INLINE))
+#define KNO_INLINE_FCNIDS       (!(KNO_AVOID_INLINE))
+#define KNO_INLINE_STACKS       (!(KNO_AVOID_INLINE))
+#define KNO_INLINE_LEXENV       (!(KNO_AVOID_INLINE))
 
-#define KNO_PROVIDE_FASTEVAL (!(KNO_AVOID_CHOICES))
+#define KNO_INLINE_EVAL    (!(KNO_AVOID_INLINE))
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
@@ -779,7 +779,7 @@ static lispval opcode_dispatch_inner(lispval opcode,lispval expr,
       _stack->stack_type = kno_evalstack_type;
       if (KNO_PAIRP(expr))
         return kno_pair_eval(opcode,expr,env,_stack,tail);
-      else return _kno_fast_eval(expr,env,_stack,tail);}}
+      else return __kno_fast_eval(expr,env,_stack,tail);}}
   lispval args = KNO_CDR(expr);
   switch (opcode) {
   case KNO_SYMREF_OPCODE: {

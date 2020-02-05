@@ -869,6 +869,11 @@ KNO_EXPORT lispval KNOSYM_UTF8;
 KNO_EXPORT lispval KNOSYM_VERSION, KNOSYM_VOID;
 KNO_EXPORT lispval KNOSYM_XTYPE;
 
+KNO_EXPORT lispval kno_timestamp_xtag,
+  kno_rational_xtag, kno_complex_xtag, kno_regex_xtag,
+  kno_qchoice_xtag;
+KNO_EXPORT lispval kno_zlib_xtag, kno_zstd_xtag, kno_snappy_xtag;
+
 /* Function IDs */
 
 /* Function IDs are immediate values which refer to

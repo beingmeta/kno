@@ -9,10 +9,10 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define KNO_PROVIDE_FASTEVAL (!(KNO_AVOID_CHOICES))
-#define KNO_INLINE_CHOICES (!(KNO_AVOID_CHOICES))
-#define KNO_INLINE_TABLES (!(KNO_AVOID_CHOICES))
-#define KNO_FAST_CHOICE_CONTAINSP (!(KNO_AVOID_CHOICES))
+#define KNO_INLINE_EVAL	  (!(KNO_AVOID_INLINE))
+#define KNO_INLINE_CHOICES	  (!(KNO_AVOID_INLINE))
+#define KNO_INLINE_TABLES	  (!(KNO_AVOID_INLINE))
+#define KNO_FAST_CHOICE_CONTAINSP (!(KNO_AVOID_INLINE))
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
@@ -300,7 +300,7 @@ static lispval try_pool(lispval arg1,lispval opts)
 {
   if (load_db_module(opts,"try_pool")<0)
     return KNO_ERROR;
-  else  if ( (KNO_POOLP(arg1)) || (TYPEP(arg1,kno_consed_pool_type)) )
+  else	if ( (KNO_POOLP(arg1)) || (TYPEP(arg1,kno_consed_pool_type)) )
     return kno_incref(arg1);
   else if (!(STRINGP(arg1)))
     return kno_type_error(_("string"),"load_pool",arg1);
@@ -1695,22 +1695,40 @@ static lispval cachecount(lispval arg)
 
 /* OID functions */
 
-DEFPRIM1("oid-hi",oidhi,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("oid-hi",oid_hi,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "`(OID-HI *arg0*)` **undocumented**",
 	 kno_oid_type,KNO_VOID);
-static lispval oidhi(lispval x)
+static lispval oid_hi(lispval x)
 {
   KNO_OID addr = KNO_OID_ADDR(x);
   return KNO_INT(KNO_OID_HI(addr));
 }
 
-DEFPRIM1("oid-lo",oidlo,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("oid-lo",oid_lo,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "`(OID-LO *arg0*)` **undocumented**",
 	 kno_oid_type,KNO_VOID);
-static lispval oidlo(lispval x)
+static lispval oid_lo(lispval x)
 {
   KNO_OID addr = KNO_OID_ADDR(x);
   return KNO_INT(KNO_OID_LO(addr));
+}
+
+DEFPRIM2("oid-base",oid_base,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	 "`(OID-LO *arg0*)` **undocumented**",
+	 kno_oid_type,KNO_VOID,kno_fixnum_type,KNO_INT(0x100000));
+static lispval oid_base(lispval oid,lispval modulo)
+{
+  long long modval = KNO_FIX2INT(modulo);
+  if (modval > 100000000)
+    return kno_err("Modulo too large","oid_base",NULL,modulo);
+  if (modval <= KNO_OID_BUCKET_SIZE) {
+    long base = KNO_OID_BASE_ID(oid);
+    long off  = KNO_OID_BASE_OFFSET(oid);
+    return KNO_CONSTRUCT_OID(base,modval*(off/modval));}
+  KNO_OID addr = KNO_OID_ADDR(oid);
+  long hi = KNO_OID_HI(addr);
+  long lo = KNO_OID_LO(addr);
+  return KNO_MAKE_OID(hi,modval*(lo/modval));
 }
 
 DEFPRIM1("oid?",oidp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
@@ -4096,7 +4114,7 @@ KNO_EXPORT void kno_init_dbprims_c()
   readonly_symbol = kno_intern("readonly");
   phased_symbol = kno_intern("phased");
 
-  sparse_symbol    = kno_intern("sparse");
+  sparse_symbol	   = kno_intern("sparse");
   adjunct_symbol    = kno_intern("adjunct");
   background_symbol = kno_intern("background");
   repair_symbol = kno_intern("repair");
@@ -4190,8 +4208,9 @@ static void link_local_cprims()
   KNO_LINK_PRIM("in-pool?",inpoolp,2,kno_db_module);
   KNO_LINK_PRIM("oid-pool",oidpool,1,kno_db_module);
   KNO_LINK_PRIM("oid?",oidp,1,kno_db_module);
-  KNO_LINK_PRIM("oid-lo",oidlo,1,kno_db_module);
-  KNO_LINK_PRIM("oid-hi",oidhi,1,kno_db_module);
+  KNO_LINK_PRIM("oid-lo",oid_lo,1,kno_db_module);
+  KNO_LINK_PRIM("oid-hi",oid_hi,1,kno_db_module);
+  KNO_LINK_PRIM("oid-base",oid_base,2,kno_db_module);
   KNO_LINK_PRIM("cachecount",cachecount,1,kno_db_module);
   KNO_LINK_PRIM("pool-vector",pool_vec,1,kno_db_module);
   KNO_LINK_PRIM("random-oid",random_oid,1,kno_db_module);

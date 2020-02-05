@@ -8,12 +8,12 @@
 export DH_OPTIONS
 
 %:
-	dh $@ --with elpa --with systemd --parallel
+	dh $@ --parallel --with elpa --with systemd
 
 override_dh_auto_configure:
 	dh_auto_configure -- --libdir=$(DESTDIR)/usr/lib 	\
 		--without-sudo --with-bootsystem=allboot 	\
-		--with-make-target=packaged		 	\
+		--with-default-target=packaged		 	\
 		--with-parseltongue				\
 		--with-libscm=version			 	\
                 --with-malloc=jemalloc

@@ -62,6 +62,8 @@ SUDO	        = @SUDO@
 INSTALL		= @INSTALL@
 MKSTATIC	= @MKSTATIC@ -o 
 CODENAME	= @CODENAME@
+RELSTATUS	= @RELSTATUS@
+DISTRIBUTION	= $(cat etc/distribution)
 MKSO		= $(CC) -shared @GCOV_CFLAGS@ $(LDFLAGS)
 MACLIBTOOL	= $(CC) -dynamiclib -single_module -undefined dynamic_lookup \
 			$(LDFLAGS)
@@ -128,9 +130,7 @@ DRIVERS_H=include/kno/drivers.h
 SCHEME_HEADERS=include/kno/eval.h include/kno/threads.h \
 	include/kno/opcodes.h include/kno/seqprims.h \
 	include/kno/procprims.h include/kno/getsource.h
-LIB_HEADERS=include/kno/texttools.h include/kno/webtools.h \
-	        include/kno/leveldb.h \
-	        include/kno/rocksdb.h
+LIB_HEADERS=include/kno/texttools.h include/kno/webtools.h
 
 # Headers which don't live in include/kno
 SRC_HEADERS=src/lisp/biginternals.h 		\
@@ -142,8 +142,10 @@ SRC_HEADERS=src/lisp/biginternals.h 		\
 	src/drivers/headers/fileindex.h 	\
 	src/drivers/headers/memindex.h	 	\
 	src/drivers/headers/bigpool.h	 	\
+	src/drivers/headers/knopool.h	 	\
 	src/drivers/headers/oidpool.h	 	\
 	src/drivers/headers/hashindex.h		\
+	src/drivers/headers/knoindex.h		\
 	src/drivers/headers/netindex.h		\
 	src/drivers/headers/netpool.h
 
@@ -198,8 +200,10 @@ DRIVER_OBJS=\
 	src/drivers/builtin_drivers.o			\
 	src/drivers/filepool.o src/drivers/oidpool.o	\
 	src/drivers/netpool.o src/drivers/bigpool.o	\
+	src/drivers/knopool.o	\
 	src/drivers/fileindex.o src/drivers/hashindex.o	\
-	src/drivers/memindex.o src/drivers/netindex.o
+	src/drivers/memindex.o src/drivers/netindex.o   \
+	src/drivers/knoindex.o
 
 DBSERV_OBJS=src/storage/dbserv.o
 
@@ -272,7 +276,6 @@ TEXT_OBJS=\
 	src/text/phonetic.o
 
 CMODULE_OBJS=src/cmodules/sqlite.o  	\
-	     src/cmodules/rocksdb.o src/cmodules/leveldb.o	\
 	     src/cmodules/crypto.o src/cmodules/zlib.o		\
 	     src/cmodules/libarchive.o 				\
 	     src/cmodules/testcapi.o
@@ -288,7 +291,8 @@ SHELL_SCRIPTS=etc/knosetconfig etc/knogetconfig etc/knoconfig \
 	etc/kno_start_daemons etc/kno_start_servlets etc/kno_stop_jobs \
 	etc/knosignal etc/knoinject etc/knostatus etc/knolog  \
 	etc/knorestart etc/knoctl etc/knogdb etc/knodbgexec \
-	etc/knocleanup etc/knojob
+	etc/knocleanup etc/knojob \
+	etc/knomod
 SCHEME_SCRIPTS=exe/scripts/pack-pool exe/scripts/pack-index \
 	       exe/scripts/merge-indexes exe/scripts/knopkg
 
@@ -331,8 +335,8 @@ KNO_SOURCES=\
 	src/storage/ipeval.c 	       						\
 	src/drivers/builtin_drivers.c  						\
 	src/drivers/filepool.c src/drivers/oidpool.c 				\
-	src/drivers/bigpool.c 							\
-	src/drivers/fileindex.c src/drivers/hashindex.c				\
+	src/drivers/bigpool.c src/drivers/knopool.c 							\
+	src/drivers/fileindex.c src/drivers/hashindex.c src/drivers/knoindex.c  \
 	src/storage/extindex.c src/storage/tempindex.c				\
 	src/storage/mempool.c src/storage/extpool.c				\
 	src/drivers/netpool.c src/drivers/netindex.c 				\
@@ -374,7 +378,6 @@ KNO_SOURCES=\
 
 CMODULE_SOURCES=\
 	src/cmodules/sqlite.c	\
-	src/cmodules/leveldb.c src/cmodules/rocksdb.c	\
 	src/cmodules/libarchive.c			\
 	src/cmodules/gperftools.c			\
 	src/cmodules/crypto.c
@@ -426,14 +429,15 @@ STRIPPED_LIBS=lib/stripped/libknocore@suffix@.a 	\
 
 SCHEME_MODULES=src/stdlib/*.scm \
 	src/stdlib/aws/*.scm \
-	src/stdlib/brico/*.scm	src/stdlib/brico/build/*.scm \
 	src/stdlib/facebook/*.scm src/stdlib/google/*.scm \
 	src/stdlib/paypal/*.scm src/stdlib/twitter/*.scm \
 	src/stdlib/dropbox/*.scm src/stdlib/twilio/*.scm \
 	src/stdlib/misc/*.scm src/stdlib/tests/*.scm \
 	src/stdlib/domutils/*.scm src/stdlib/knodules/*.scm \
 	src/stdlib/textindex/*.scm src/stdlib/jwt/*.scm \
-	src/stdlib/bench/*.scm
+	src/stdlib/bench/*.scm \
+	src/brico/*.scm	src/brico/build/index/*.scm \
+	src/brico/build/*.scm
 
 # These might be neccessary on MacOS
 CMODULE_DEPENDS=lib/libknocore@suffix@.@shared_suffix@	\
@@ -453,6 +457,7 @@ update: .buildmode
 		$(shell cat .malloc); \
 	fi;
 	@+make -s `cat .buildmode`
+
 normal:
 	@echo Building NORMAL configuration
 	@if test -f .malloc; then \
@@ -634,7 +639,7 @@ etc/%: etc/%.in ./config.status
 # library dependencies with programs which will typically run as daemons
 static/%@suffix@: src/exe/%.c $(STATIC_LIBS) ${REVISION_H} ${CONFIG_H}
 	@echo MKEXE_STATIC $@
-	$(CC) $(STATIC_CFLAGS) -o $@ $^ $(STATIC_LDFLAGS) -lu8stdio -lu8syslog $(LIBS) $(EXELIBS) @xstatic_exe_libs@
+	$(CC) $(STATIC_CFLAGS) -o $@ $^ $(STATIC_LDFLAGS) -lu8stdio -lu8syslog $(LIBS) $(EXELIBS)
 	@$(MSG) MKEXE_STATIC $@
 
 lib/%@suffix@.a:
@@ -743,11 +748,13 @@ static-libs: $(STATIC_LIBS)
 shared-libs: $(SHARED_LIBS)
 
 exe: $(EXECUTABLES) exe/.gdbinit
-static-exe: $(STATIC_EXECUTABLES)
+static static-exe: $(STATIC_EXECUTABLES)
 debug-exe: $(DEBUG_EXECUTABLES) dbg/.gdbinit
 shell-scripts: $(SHELL_SCRIPTS)
 scheme-scripts: $(SCHEME_SCRIPTS)
 scripts: shell-scripts scheme-scripts
+
+.PHONY: static
 
 testbin: constestbin dbtestbin debug-exe etc/usememory
 constestbin: libs tests/lisp/makefile tests/lisp/.gdbinit
@@ -1041,15 +1048,6 @@ lib/kno/zlib.so lib/kno/zlib.dylib : MODLIBS="-lz"
 lib/kno/zlib.so: src/cmodules/zlib.o
 lib/kno/zlib.dylib: src/cmodules/zlib.o
 
-lib/kno/leveldb.so lib/kno/leveldb.dylib : MODLIBS="-lleveldb"
-lib/kno/leveldb.so: src/cmodules/leveldb.o
-lib/kno/leveldb.dylib: src/cmodules/leveldb.o ${CMODULE_DEPENDS}
-
-lib/kno/rocksdb.so lib/kno/rocksdb.dylib : MODLIBS="-lrocksdb"
-lib/kno/rocksdb.o: src/cmodules/rocksdb.c
-lib/kno/rocksdb.so: src/cmodules/rocksdb.o
-lib/kno/rocksdb.dylib: src/cmodules/rocksdb.o ${CMODULE_DEPENDS}
-
 lib/kno/gperftools.so : MODLIBS="-lprofiler"
 lib/kno/gperftools.o: src/cmodules/gperftools.c
 lib/kno/gperftools.so: src/cmodules/gperftools.o
@@ -1184,11 +1182,11 @@ staging/kno-@KNO_VERSION@: include/kno/revision.h \
 	@git archive --prefix=kno-@KNO_VERSION@/ \
 	            -o staging/kno-@KNO_VERSION@.tar HEAD
 	cd src/stdlib; git archive --prefix=kno-@KNO_VERSION@/src/stdlib/ \
-	            -o ../../staging/kno_modules-@KNO_VERSION@.tar HEAD;
-	cd src/stdlib/brico; git archive --prefix=kno-@KNO_VERSION@/src/stdlib/brico/ \
-	            -o ../../../staging/kno_brico-@KNO_VERSION@.tar HEAD;
+	            -o ../../staging/kno_stdlib-@KNO_VERSION@.tar HEAD;
+	cd src/brico; git archive --prefix=kno-@KNO_VERSION@/src/brico/ \
+	      	          -o ../../staging/kno_brico-@KNO_VERSION@.tar HEAD;
 	cd staging; tar -xf kno-@KNO_VERSION@.tar; rm kno-@KNO_VERSION@.tar
-	cd staging; tar -xf kno_modules-@KNO_VERSION@.tar; rm kno_modules-@KNO_VERSION@.tar;
+	cd staging; tar -xf kno_stdlib-@KNO_VERSION@.tar; rm kno_stdlib-@KNO_VERSION@.tar;
 	cd staging; tar -xf kno_brico-@KNO_VERSION@.tar; rm kno_brico-@KNO_VERSION@.tar;
 	cp include/kno/revision.h staging/kno-@KNO_VERSION@/etc/revision.h;
 	cp dist/kno-@KNO_MAJOR@.@KNO_MINOR@.spec staging/kno-@KNO_VERSION@/dist
@@ -1197,16 +1195,16 @@ staging/kno_@KNO_VERSION@: include/kno/revision.h \
 	@git archive --prefix=kno_@KNO_VERSION@/ \
 	            -o staging/kno_@KNO_VERSION@.tar HEAD;
 	cd src/stdlib; git archive --prefix=kno_@KNO_VERSION@/src/stdlib/ \
-	            -o ../../staging/kno_modules_@KNO_VERSION@.tar HEAD;
-	cd src/stdlib/brico; git archive --prefix=kno_@KNO_VERSION@/src/stdlib/brico/ \
-	            -o ../../../staging/kno_brico-@KNO_VERSION@.tar HEAD;
+	                -o ../../staging/kno_modules_@KNO_VERSION@.tar HEAD;
+	cd src/brico; git archive --prefix=kno_@KNO_VERSION@/src/brico/ \
+	                -o ../../staging/kno_brico-@KNO_VERSION@.tar HEAD;
 	cd staging; tar -xf kno_@KNO_VERSION@.tar; rm kno_@KNO_VERSION@.tar;
 	cd staging; tar -xf kno_modules_@KNO_VERSION@.tar; rm kno_modules_@KNO_VERSION@.tar;
 	cd staging; tar -xf kno_brico-@KNO_VERSION@.tar; rm kno_brico-@KNO_VERSION@.tar;
 	cp include/kno/revision.h staging/kno_@KNO_VERSION@/etc/revision.h;
 	cd staging; tar -czf $(DEBNAME).orig.tar.gz kno_@KNO_VERSION@;
 	mv staging/kno_@KNO_VERSION@/dist/debian staging/kno_@KNO_VERSION@/debian;
-	etc/gitchangelog kno ${CODENAME} < dist/debian/changelog \
+	etc/gitchangelog kno ${CODENAME} ${STATUS} < dist/debian/changelog \
 	   > staging/kno_@KNO_VERSION@/debian/changelog;
 staging/kno-@KNO_VERSION@.tar.gz: \
 	$(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
@@ -1262,11 +1260,11 @@ dist/rpms.zip: dist/rpms.done
 
 dist/debs.built: staging/kno_@KNO_VERSION@
 	(cd staging/kno_@KNO_VERSION@; \
-	 dpkg-buildpackage -sa -us -uc -b -rfakeroot) && \
+	 dpkg-buildpackage -sa -us -uc -b) && \
 	touch dist/debs.built;
 dist/debsource.built: staging/kno_@KNO_VERSION@
 	(cd staging/kno_@KNO_VERSION@; \
-	 dpkg-buildpackage -sa -us -uc -F -rfakeroot) && \
+	 dpkg-buildpackage -sa -us -uc -F) && \
 	touch dist/debs.built dist/debsource.built;
 
 dist/debs.signed: dist/debs.built
@@ -1304,7 +1302,7 @@ install-debian install-debs debinstall installdebs: dist/debs.done
 
 update-local-apt-repo: dist/debs.done
 	for change in dist/*.changes; do \
-	  reprepro -Vb ${APTREPO} include ${CODENAME} $${change} && \
+	  @APTLY@ repo include $${change} && \
 	  rm -f $${change}; \
 	done
 
@@ -1339,11 +1337,11 @@ install: install-status install-core 			\
 	@if test -f .malloc && test -f .buildmode; then \
 	  echo "Installed" $(shell cat .buildmode) "build linked with" $(shell cat .malloc); \
 	fi;
-install-bin: install-static install-shared install-exe
+install-bin: install-static-libs install-shared-libs install-exe
 install-text: install-headers install-pkgconfig install-scripts install-support
 install-core: confdirs workdirs @INSTALLI18N@           \
 	 install-bin install-text install-data
-install-dev: install-headers install-pkgconfig install-static
+install-dev: install-headers install-pkgconfig install-static-libs
 
 $(INCINSTALLDIR):
 	@$(SYSINSTALL) @install_dir_opts@ $(INCINSTALLDIR)
@@ -1360,27 +1358,27 @@ $(DESTDIR)@local_config@ $(DESTDIR)@shared_config@:
 $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets $(DESTDIR)@config_dir@/config_files: $(DESTDIR)@config_dir@
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
 
-install-static:  static-libs $(LIBINSTALLDIR)
-	make $(LIBINSTALLDIR)/libknocore@suffix@.a        \
-		$(LIBINSTALLDIR)/libknostorage@suffix@.a       \
-		$(LIBINSTALLDIR)/libknodrivers@suffix@.a   \
-		$(LIBINSTALLDIR)/libknodbserv@suffix@.a    \
-		$(LIBINSTALLDIR)/libknoscheme@suffix@.a   \
-		$(LIBINSTALLDIR)/libknowebtools@suffix@.a      \
+install-static-libs:  static-libs $(LIBINSTALLDIR)
+	make $(LIBINSTALLDIR)/libknocore@suffix@.a        	\
+		$(LIBINSTALLDIR)/libknostorage@suffix@.a	\
+		$(LIBINSTALLDIR)/libknodrivers@suffix@.a   	\
+		$(LIBINSTALLDIR)/libknodbserv@suffix@.a    	\
+		$(LIBINSTALLDIR)/libknoscheme@suffix@.a   	\
+		$(LIBINSTALLDIR)/libknowebtools@suffix@.a      	\
 		$(LIBINSTALLDIR)/libknotexttools@suffix@.a
-install-shared: install-status shared-libs $(LIBINSTALLDIR) 				\
-    $(LIBINSTALLDIR)/libknocore@suffix@.@vshared_suffix@			\
+install-shared-libs: install-status shared-libs $(LIBINSTALLDIR)	\
+    $(LIBINSTALLDIR)/libknocore@suffix@.@vshared_suffix@		\
     $(LIBINSTALLDIR)/libknocore@suffix@.@mmshared_suffix@		\
-    $(LIBINSTALLDIR)/libknocore@suffix@.@mshared_suffix@			\
+    $(LIBINSTALLDIR)/libknocore@suffix@.@mshared_suffix@		\
     $(LIBINSTALLDIR)/libknocore@suffix@.@shared_suffix@			\
-    $(LIBINSTALLDIR)/libknostorage@suffix@.@vshared_suffix@			\
-    $(LIBINSTALLDIR)/libknostorage@suffix@.@mmshared_suffix@			\
-    $(LIBINSTALLDIR)/libknostorage@suffix@.@mshared_suffix@			\
-    $(LIBINSTALLDIR)/libknostorage@suffix@.@shared_suffix@			\
+    $(LIBINSTALLDIR)/libknostorage@suffix@.@vshared_suffix@		\
+    $(LIBINSTALLDIR)/libknostorage@suffix@.@mmshared_suffix@		\
+    $(LIBINSTALLDIR)/libknostorage@suffix@.@mshared_suffix@		\
+    $(LIBINSTALLDIR)/libknostorage@suffix@.@shared_suffix@		\
     $(LIBINSTALLDIR)/libknodbserv@suffix@.@vshared_suffix@		\
     $(LIBINSTALLDIR)/libknodbserv@suffix@.@mmshared_suffix@		\
     $(LIBINSTALLDIR)/libknodbserv@suffix@.@mshared_suffix@		\
-    $(LIBINSTALLDIR)/libknodbserv@suffix@.@shared_suffix@			\
+    $(LIBINSTALLDIR)/libknodbserv@suffix@.@shared_suffix@		\
     $(LIBINSTALLDIR)/libknodrivers@suffix@.@vshared_suffix@		\
     $(LIBINSTALLDIR)/libknodrivers@suffix@.@mmshared_suffix@		\
     $(LIBINSTALLDIR)/libknodrivers@suffix@.@mshared_suffix@		\
@@ -1389,10 +1387,10 @@ install-shared: install-status shared-libs $(LIBINSTALLDIR) 				\
     $(LIBINSTALLDIR)/libknoscheme@suffix@.@mmshared_suffix@		\
     $(LIBINSTALLDIR)/libknoscheme@suffix@.@mshared_suffix@		\
     $(LIBINSTALLDIR)/libknoscheme@suffix@.@shared_suffix@		\
-    $(LIBINSTALLDIR)/libknowebtools@suffix@.@vshared_suffix@			\
-    $(LIBINSTALLDIR)/libknowebtools@suffix@.@mmshared_suffix@			\
-    $(LIBINSTALLDIR)/libknowebtools@suffix@.@mshared_suffix@			\
-    $(LIBINSTALLDIR)/libknowebtools@suffix@.@shared_suffix@			\
+    $(LIBINSTALLDIR)/libknowebtools@suffix@.@vshared_suffix@		\
+    $(LIBINSTALLDIR)/libknowebtools@suffix@.@mmshared_suffix@		\
+    $(LIBINSTALLDIR)/libknowebtools@suffix@.@mshared_suffix@		\
+    $(LIBINSTALLDIR)/libknowebtools@suffix@.@shared_suffix@		\
     $(LIBINSTALLDIR)/libknotexttools@suffix@.@vshared_suffix@		\
     $(LIBINSTALLDIR)/libknotexttools@suffix@.@mmshared_suffix@		\
     $(LIBINSTALLDIR)/libknotexttools@suffix@.@mshared_suffix@		\
@@ -1420,6 +1418,8 @@ install-data: $(DATADIR)
 	@$(SYSINSTALL) @install_file_opts@ @DATAFILES@ $(DATADIR)
 
 install-exe: $(BININSTALLDIR) $(EXECUTABLES)
+	@$(SYSINSTALL) -p @install_exe_opts@ $(EXECUTABLES) $(BININSTALLDIR)
+install-static-exe: $(BININSTALLDIR) $(EXECUTABLES)
 	@$(SYSINSTALL) -p @install_exe_opts@ $(EXECUTABLES) $(BININSTALLDIR)
 
 install-scripts: install-shell-scripts install-scheme-scripts
@@ -1455,8 +1455,6 @@ install-archive-cmodules: @INSTALL_ARCHIVE_CMODULES@
 install-testcapi: ${CMODULES}/testcapi.@shared_suffix@ ${CMODULES}/testcapi.@vshared_suffix@
 install-crypto: ${CMODULES}/crypto.@shared_suffix@ ${CMODULES}/crypto.@vshared_suffix@
 install-sqlite: ${CMODULES}/sqlite.@shared_suffix@ ${CMODULES}/sqlite.@vshared_suffix@
-install-leveldb: ${CMODULES}/leveldb.@shared_suffix@ ${CMODULES}/leveldb.@vshared_suffix@
-install-rocksdb: ${CMODULES}/rocksdb.@shared_suffix@ ${CMODULES}/rocksdb.@vshared_suffix@
 install-libarchive: ${CMODULES}/libarchive.@shared_suffix@ ${CMODULES}/libarchive.@vshared_suffix@
 install-exif: ${CMODULES}/exif.@shared_suffix@ ${CMODULES}/exif.@vshared_suffix@
 install-zlib: ${CMODULES}/zlib.@shared_suffix@ ${CMODULES}/zlib.@vshared_suffix@
@@ -1480,7 +1478,9 @@ confdirs: $(DESTDIR)@stdlib_module_dir@ $(DESTDIR)@installed_module_dir@ \
 		$(SYSINSTALL) @install_file_opts@ /dev/null \
 			$(DESTDIR)@config_dir@/servers; fi
 
-$(DESTDIR)@stdlib_module_dir@ $(DESTDIR)@installed_module_dir@ $(DESTDIR)@local_module_dir@:
+$(DESTDIR)@stdlib_module_dir@ $(DESTDIR)@stdlib_module_dir@/brico \
+	 $(DESTDIR)@installed_module_dir@ \
+	 $(DESTDIR)@local_module_dir@:
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
 $(DESTDIR)@unpackage_dir@:
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
@@ -1488,24 +1488,24 @@ $(DESTDIR)@unpackage_dir@:
 upstartdirs: $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets
 
 STDLIB_MODULE_DIRS=\
-	src/stdlib/xhtml src/stdlib/domutils \
-	src/stdlib/textindex src/stdlib/morph \
-	src/stdlib/misc src/stdlib/tests \
-	src/stdlib/knodules src/stdlib/knoml \
-	src/stdlib/jwt src/stdlib/aws \
-	src/stdlib/facebook src/stdlib/paypal \
-	src/stdlib/twitter src/stdlib/twilio \
-	src/stdlib/dropbox src/stdlib/google \
-	src/stdlib/bench \
-	src/brico src/brico/build \
-	src/brico/build/index src/brico/build/scripts
+	stdlib/xhtml stdlib/domutils \
+	stdlib/textindex stdlib/morph \
+	stdlib/misc stdlib/tests \
+	stdlib/knodules stdlib/knoml \
+	stdlib/jwt stdlib/aws \
+	stdlib/facebook stdlib/paypal \
+	stdlib/twitter stdlib/twilio \
+	stdlib/dropbox stdlib/google \
+	stdlib/bench \
+	brico brico/build \
+	brico/build/index brico/build/scripts
 
 STDLIB_MODULE_DATA=\
-	src/stdlib/textindex/data \
-	src/stdlib/knodules/data \
-	src/stdlib/aws/templates \
-	src/stdlib/morph/data \
-	src/brico/data
+	stdlib/textindex/data \
+	stdlib/knodules/data \
+	stdlib/aws/templates \
+	stdlib/morph/data \
+	brico/data
 
 install-stdlib: install-stdlib-source install-stdlib-data
 
@@ -1513,28 +1513,40 @@ src/stdlib/.git src/brico/.git:
 	git submodule init
 	git submodule update
 
-install-stdlib-source: $(DESTDIR)@stdlib_module_dir@ \
-			src/stdlib/.git src/brico/.git
+install-stdlib-source: $(DESTDIR)@stdlib_module_dir@ src/stdlib/.git \
+	         $(DESTDIR)@stdlib_module_dir@/brico src/brico/.git
 	@$(ECHO) Copying standard Scheme modules to @stdlib_module_dir@
 	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/stdlib/*.scm 		\
 		$(DESTDIR)@stdlib_module_dir@;
+	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/brico/*.scm 		\
+		$(DESTDIR)@stdlib_module_dir@/brico;
 	@for dir in $(STDLIB_MODULE_DIRS); do					\
-	  install_dir="$(DESTDIR)@stdlib_module_dir@/$${dir}";			\
-	  echo "Installing $${dir} module at $${install_dir}";			\
-	  $(SYSINSTALL) @install_dir_opts@ $${install_dir};			\
-	  $(SYSINSTALL) @install_file_opts@ $(BUILD)/$${dir}/*.scm		\
+	 case $${dir} in 							\
+	  stdlib/*) 								\
+	    install_dir="$(DESTDIR)@stdlib_module_dir@/../$${dir}";; 	\
+	  *) 									\
+	    install_dir="$(DESTDIR)@stdlib_module_dir@/$${dir}";; 		\
+	esac; 									\
+	echo "Installing $${dir} module at $${install_dir}";			\
+	$(SYSINSTALL) @install_dir_opts@ $${install_dir};			\
+	$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/$${dir}/*.scm		\
 	      $${install_dir};							\
 	done;
 
 install-stdlib-data: $(DESTDIR)@stdlib_module_dir@ src/stdlib/.git src/brico/.git
 	@$(ECHO) Copying module data to @stdlib_module_dir@;
 	@for dir in $(STDLIB_MODULE_DATA); do					\
-	  src_dir="$(BUILD)/$${dir}";				\
-	  install_dir="$(DESTDIR)@stdlib_module_dir@/$${dir}";			\
-	  echo Installing data from $${src_dir} to $${install_dir};		\
-	  $(SYSINSTALL) @install_dir_opts@ $${install_dir};			\
-	  $(SYSINSTALL) @install_file_opts@ $${src_dir}/* $${install_dir};	\
-	done
+	 src_dir="$(BUILD)/src/$${dir}";				\
+	 case $${dir} in 							\
+	  stdlib/*) 								\
+	    install_dir="$(DESTDIR)@stdlib_module_dir@/../$${dir}";; 	\
+	  *) 									\
+	    install_dir="$(DESTDIR)@stdlib_module_dir@/$${dir}";; 		\
+	 esac; 									\
+	 echo Installing data from $${src_dir} to $${install_dir};		\
+	 $(SYSINSTALL) @install_dir_opts@ $${install_dir};			\
+	 $(SYSINSTALL) @install_file_opts@ $${src_dir}/* $${install_dir};	\
+	done;
 
 install-support: $(DESTDIR)@share_dir@
 	cd $(BUILD)/etc; $(SYSINSTALL) @install_file_opts@ 	\
@@ -1686,14 +1698,15 @@ build-setup.redhat:
 	sudo rpm -Uvh libedit-devel
 
 staging/build-setup.apk:
-	sudo apk add alpine-sdk autoconf zlib zlib-dev python3 python3-dev \
+	sudo apk add alpine-sdk autoconf zlib zlib-dev \
+		     python2 python2-dev python3 python3-dev \
 		     findutils findutils-doc libffi libffi-dev sqlite sqlite-dev \
 		     snappy snappy-dev gettext gettext-dev libintl libintl-dev \
 		     zlib zlib-dev zstd zstd-dev
 	touch $@
 macports-build-setup:
 	sudo port install  curl curl-ca-bundle exif libexif qrencode libpng imagemagick ldns \
-		unixODBC sqlite3 leveldb snappy rocksdb mongo-c-driver \
+		unixODBC sqlite3 snappy mongo-c-driver leveldb rocksdb \
 		libarchive libzip zlib zmq-devel hyphen python37
 
 .PHONY: debian-build-setup rpm-build-setup
@@ -1703,17 +1716,45 @@ macports-build-setup:
 dist/alpine/APKBUILD: dist/alpine/APKBUILD.in
 	./config.status
 
-dist/alpine.done: dist/alpine/APKBUILD include/kno/revision.h
-	cd dist/alpine; \
-		abuild clean cleancache cleanpkg && \
+@APKREPO@/dist/x86_64:
+	@@INSTALL@ -d $@
+
+staging/alpine:
+	@@INSTALL@ -d $@
+
+staging/alpine/APKBUILD: dist/alpine/APKBUILD staging/alpine
+	cp dist/alpine/APKBUILD staging/alpine
+
+staging/alpine/kno-@KNO_VERSION@.tar: staging/alpine
+	# Get archives of this and submodule repositories
+	git archive --prefix=kno/ -o staging/alpine/kno.tar HEAD
+	cd src/stdlib; git archive --prefix=stdlib/ -o ../../staging/alpine/stdlib.tar HEAD
+	cd src/brico; git archive --prefix=brico/ -o ../../staging/alpine/brico.tar HEAD
+	cd staging/alpine; tar -xf kno.tar;
+	cd staging/alpine/kno/src; tar -xf ../../stdlib.tar;
+	cd staging/alpine/kno/src; tar -xf ../../brico.tar;
+	if $(GITDESCRIBE) > /dev/null 2>&1; then			\
+	  echo "#define KNO_REVISION \""`@GITDESCRIBE@`"\"" 	\
+		> staging/alpine/kno/etc/revision.h;             \
+	else echo "#define KNO_REVISION \"@KNO_VERSION@-exported\""	\
+		> staging/alpine/kno/etc/revision.h;             \
+	fi
+	cd staging/alpine; tar -cf kno-@KNO_VERSION@.tar kno;
+	cd staging/alpine; rm -rf kno kno.tar stdlib.tar brico.tar
+
+
+dist/alpine.done: dist/alpine/APKBUILD include/kno/revision.h makefile \
+	staging/alpine/kno-@KNO_VERSION@.tar staging/alpine/APKBUILD \
+	@APKREPO@/dist/x86_64
+	cd staging/alpine; \
+		abuild -P @APKREPO@ clean cleancache cleanpkg && \
 		abuild checksum && \
 		abuild -P @APKREPO@ && \
-		cd ../..; touch $@
+		touch ../../$@
 
 alpine: dist/alpine.done
 
 .PHONY: alpine
-
 
 # The mod_knocgi module
 
@@ -1927,12 +1968,10 @@ gcovr_fresh:
 # Meta operations
 
 submodules update-submodules update-git update-modules:
-	if test -d .git; then \
-	  git pull; git submodule init; git submodule update; \
-	  git submodule update --remote --merge src/stdlib; \
-	  cd src/stdlib; git submodule init; \
-		git submodule update  --remote --merge brico; \
-		git submodule update; \
+	if test -d .git; then 					\
+	  git pull; git submodule init; git submodule update; 	\
+	  git submodule update --remote --merge src/stdlib; 	\
+	  git submodule update --remote --merge src/brico; 	\
 	fi;
 
 .PHONY: mod_knocgi update-mod_knocgi install-mod_knocgi update-modules
@@ -1964,18 +2003,18 @@ include/kno/revision.h: $(KNO_SOURCES) $(KNO_HEADERS) makefile
 	  mv etc/use_revision.h $@;					\
 	fi;
 ### Depending on the .buildmode
-$(EXECUTABLES) $(STATIC_EXECUTABLES): .buildmode $(REVISION_H)
-$(LISP_OBJS): $(LISP_HEADERS) $(REVISION_H)
-$(SYS_OBJS): $(LISP_HEADERS) $(REVISION_H)
-$(APPLY_OBJS): $(LISP_HEADERS) $(APPLY_HEADERS) $(REVISION_H)
-$(STORAGE_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(REVISION_H)
-$(DRIVER_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) $(REVISION_H)
+$(EXECUTABLES) $(STATIC_EXECUTABLES): $(REVISION_H)
+$(LISP_OBJS): $(LISP_HEADERS) $(REVISION_H) .buildmode 
+$(SYS_OBJS): $(LISP_HEADERS) $(REVISION_H) .buildmode 
+$(APPLY_OBJS): $(LISP_HEADERS) $(APPLY_HEADERS) $(REVISION_H) .buildmode 
+$(STORAGE_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(REVISION_H) .buildmode 
+$(DRIVER_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) $(REVISION_H) .buildmode 
 $(SCHEME_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
-	$(APPLY_HEADERS) $(SCHEME_HEADERS) $(REVISION_H)
+	$(APPLY_HEADERS) $(SCHEME_HEADERS) $(REVISION_H) .buildmode 
 $(WEB_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
-	$(APPLY_HEADERS) $(SCHEME_HEADERS) $(REVISION_H) ./include/kno/webtools.h
+	$(APPLY_HEADERS) $(SCHEME_HEADERS) $(REVISION_H) ./include/kno/webtools.h .buildmode 
 $(TEXT_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
-	$(APPLY_HEADERS) $(REVISION_H) $(SCHEME_HEADERS) ./include/kno/texttools.h
+	$(APPLY_HEADERS) $(REVISION_H) $(SCHEME_HEADERS) ./include/kno/texttools.h .buildmode 
 $(LISP_OBJS) $(SYS_OBJS) $(APPLY_OBJS): .buildmode
 $(STORAGE_OBJS) $(DRIVER_OBJS): .buildmode
 $(SCHEME_OBJS): .buildmode
@@ -1989,5 +2028,7 @@ src/drivers/filepool.o: src/drivers/headers/filepool.h
 src/drivers/fileindex.o: src/drivers/headers/fileindex.h
 src/drivers/oidpool.o: src/drivers/headers/oidpool.h src/drivers/headers/zcompress.h
 src/drivers/bigpool.o: src/drivers/headers/bigpool.h src/drivers/headers/zcompress.h
+src/drivers/knopool.o: src/drivers/headers/knopool.h src/drivers/headers/zcompress.h
 src/drivers/hashindex.o: src/drivers/headers/hashindex.h  src/drivers/headers/zcompress.h
+src/drivers/knoindex.o: src/drivers/headers/knoindex.h  src/drivers/headers/zcompress.h
 src/drivers/memindex.o: src/drivers/headers/memindex.h

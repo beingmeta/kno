@@ -91,17 +91,7 @@ KNO_EXPORT
 struct KNO_KEYVAL *_kno_keyvec_get
 (lispval kno_key,struct KNO_KEYVAL *keyvals,int size)
 {
-  const struct KNO_KEYVAL *scan=keyvals, *limit=scan+size;
-  if (ATOMICP(kno_key))
-    while (scan<limit)
-      if (scan->kv_key==kno_key)
-        return (struct KNO_KEYVAL *)scan;
-      else scan++;
-  else while (scan<limit)
-         if (LISP_EQUAL(scan->kv_key,kno_key))
-           return (struct KNO_KEYVAL *) scan;
-         else scan++;
-  return NULL;
+  return _kno_keyvec_get(kno_key,keyvals,size);
 }
 
 KNO_EXPORT
@@ -177,8 +167,8 @@ static void cons_sort_keyvals(struct KNO_KEYVAL *v,int n)
   while (n > 1) {
     swap_keyvals(&v[0], &v[n/2]);
     for (i = 0, j = n; ; ) {
-      do --j; while (cons_compare(v[j].kv_key,v[0].kv_key)>0);
-      do ++i; while (i < j && ((cons_compare(v[i].kv_key,v[0].kv_key))<0));
+      do --j; while (__kno_cons_compare(v[j].kv_key,v[0].kv_key)>0);
+      do ++i; while (i < j && ((__kno_cons_compare(v[i].kv_key,v[0].kv_key))<0));
       if (i >= j) break; else {}
       swap_keyvals(&v[i], &v[j]);}
     swap_keyvals(&v[j], &v[0]);
@@ -202,7 +192,7 @@ static void sort_keyvals(struct KNO_KEYVAL *v,int n)
 KNO_EXPORT struct KNO_KEYVAL *_kno_sortvec_get
 (lispval key,struct KNO_KEYVAL *keyvals,int size)
 {
-  return kno_sortvec_get(key,keyvals,size);
+  return __kno_sortvec_get(key,keyvals,size);
 }
 
 KNO_EXPORT struct KNO_KEYVAL *kno_sortvec_insert
@@ -242,7 +232,7 @@ KNO_EXPORT struct KNO_KEYVAL *kno_sortvec_insert
   else while (top>=bottom) {
       middle=bottom+(top-bottom)/2;
       if (middle>=limit) break;
-      int comparison = cons_compare(key,middle->kv_key);
+      int comparison = __kno_cons_compare(key,middle->kv_key);
       if (comparison==0) {
         dir=0; break;}
       else if (comparison<0) {
@@ -293,12 +283,12 @@ static int slotmap_fail(struct KNO_SLOTMAP *sm,u8_context caller)
 KNO_EXPORT lispval _kno_slotmap_get
 (struct KNO_SLOTMAP *sm,lispval key,lispval dflt)
 {
-  return kno_slotmap_get(sm,key,dflt);
+  return __kno_slotmap_get(sm,key,dflt);
 }
 
 KNO_EXPORT lispval _kno_slotmap_test(struct KNO_SLOTMAP *sm,lispval key,lispval val)
 {
-  return kno_slotmap_test(sm,key,val);
+  return __kno_slotmap_test(sm,key,val);
 }
 
 KNO_EXPORT int kno_slotmap_store(struct KNO_SLOTMAP *sm,lispval key,lispval value)
@@ -1235,13 +1225,13 @@ KNO_EXPORT lispval kno_init_schemap
 KNO_EXPORT lispval _kno_schemap_get
 (struct KNO_SCHEMAP *sm,lispval key,lispval dflt)
 {
-  return kno_schemap_get(sm,key,dflt);
+  return __kno_schemap_get(sm,key,dflt);
 }
 
 KNO_EXPORT lispval _kno_schemap_test
 (struct KNO_SCHEMAP *sm,lispval key,lispval val)
 {
-  return kno_schemap_test(sm,key,val);
+  return __kno_schemap_test(sm,key,val);
 }
 
 
@@ -1263,7 +1253,7 @@ KNO_EXPORT int kno_schemap_store
     unlock=1;}
   else NO_ELSE;
   size=KNO_XSCHEMAP_SIZE(sm);
-  slotno=_kno_get_slotno(key,sm->table_schema,size,sm->schemap_sorted);
+  slotno=__kno_get_slotno(key,sm->table_schema,size,sm->schemap_sorted);
   if (slotno>=0) {
     if (sm->schemap_stackvals) {
       kno_incref_vec(sm->schema_values,size);
@@ -1300,7 +1290,7 @@ KNO_EXPORT int kno_schemap_add
     unlock=1;}
   else NO_ELSE;
   size=KNO_XSCHEMAP_SIZE(sm);
-  slotno=_kno_get_slotno(key,sm->table_schema,size,sm->schemap_sorted);
+  slotno=__kno_get_slotno(key,sm->table_schema,size,sm->schemap_sorted);
   if (slotno>=0) {
     kno_incref(value);
     if (sm->schemap_stackvals) {
@@ -1337,7 +1327,7 @@ KNO_EXPORT int kno_schemap_drop
     unlock=1;}
   else NO_ELSE;
   size=KNO_XSCHEMAP_SIZE(sm);
-  slotno=_kno_get_slotno(key,sm->table_schema,size,sm->schemap_sorted);
+  slotno=__kno_get_slotno(key,sm->table_schema,size,sm->schemap_sorted);
   if (slotno>=0) {
     if (sm->schemap_stackvals) {
       kno_incref_vec(sm->schema_values,size);
@@ -1713,7 +1703,7 @@ KNO_FASTOP struct KNO_KEYVAL *hash_bucket_insert
   while (top>=bottom) { /* (!(top<bottom)) */
     middle=bottom+(top-bottom)/2;
     if (LISP_EQUAL(key,middle->kv_key)) {found=1; break;}
-    else if (cons_compare(key,middle->kv_key)<0) top=middle-1;
+    else if (__kno_cons_compare(key,middle->kv_key)<0) top=middle-1;
     else bottom=middle+1;}
   if (found)
     return middle;
@@ -2007,6 +1997,11 @@ static int hashtable_test(struct KNO_HASHTABLE *ht,lispval key,lispval val)
   else {
     if (unlock) kno_unlock_table(ht);
     return 0;}
+}
+
+KNO_EXPORT int kno_hashtable_test(struct KNO_HASHTABLE *ht,lispval key,lispval val)
+{
+  return hashtable_test(ht,key,val);
 }
 
 KNO_EXPORT int kno_hashtable_probe_novoid(struct KNO_HASHTABLE *ht,lispval key)
@@ -3585,7 +3580,7 @@ static int choice_containsp(lispval x,struct KNO_CHOICE *choice)
   else {
     while (top>=bottom) {
       const lispval *middle = bottom+(top-bottom)/2;
-      int comparison = cons_compare(x,*middle);
+      int comparison = __kno_cons_compare(x,*middle);
       if (comparison == 0) return 1;
       else if (comparison<0) top = middle-1;
       else bottom = middle+1;}

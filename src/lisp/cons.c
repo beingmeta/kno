@@ -56,6 +56,10 @@ ssize_t kno_bigvec_threshold = KNO_BIGVEC_THRESHOLD;
 ssize_t kno_max_strlen = -1;
 int kno_check_utf8 = 0;
 
+lispval kno_timestamp_xtag, kno_qchoice_xtag, kno_regex_xtag,
+  kno_rational_xtag, kno_complex_xtag;
+lispval kno_zlib_xtag, kno_zstd_xtag, kno_snappy_xtag;
+
 const char *kno_constant_names[256]={
   "#void","#f","#t","{}","()","#default","#tailcall",
   "#eof","#eod","#eox", "#bad_dtype","#bad_parse","#oom",
@@ -937,5 +941,14 @@ void kno_init_cons_c()
   if (plugh != kno_register_constant("plugh"))
     u8_log(LOGERR,"RegisterConstant","Doesn't handle repeated calls");
 
+  kno_rational_xtag  = kno_register_constant("rational_xtag");
+  kno_complex_xtag   = kno_register_constant("complex_xtag");
+  kno_timestamp_xtag = kno_register_constant("timestamp_xtag");
+  kno_qchoice_xtag = kno_register_constant("qchoice_xtag");
+  kno_regex_xtag     = kno_register_constant("regex_xtag");
+
+  kno_zlib_xtag = kno_register_constant("zlib_xtag");
+  kno_zstd_xtag = kno_register_constant("zstd_xtag");
+  kno_snappy_xtag = kno_register_constant("snappy_xtag");
 }
 
