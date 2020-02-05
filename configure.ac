@@ -1697,62 +1697,6 @@ if test "${have_zstd_h}" = "yes"; then
    AC_CHECK_FUNCS(ZSTD_getFrameContentSize)
 fi;
 
-### LevelDB cmodule build
-
-AC_ARG_ENABLE(leveldb,--en/disable-leveldb Build and install LevelDB module,,enable_leveldb="yes")
-leveldb_ok="no"
-
-if test "${enable_leveldb}" = "yes" ||
-   test "${enable_leveldb}" = "force"; then
-   AC_CHECK_HEADERS(leveldb/c.h)
-   AC_CHECK_LIB(leveldb,leveldb_open,leveldb_ok="yes")
-   if test "${enable_leveldb}" = "yes" &&
-      test "${ac_cv_header_leveldb_c_h}" = "yes" &&
-      test "${leveldb_ok}" = "yes"; then
-      DB_CMODULES="${DB_CMODULES} lib/kno/leveldb.${shared_suffix}";
-      INSTALL_DB_CMODULES="${INSTALL_DB_CMODULES} install-leveldb";
-      TEST_DB_CMODULES="${TEST_DB_CMODULES} leveldb"
-   elif test "${enable_leveldb}" = "force"; then
-     DB_CMODULES="lib/kno/leveldb.${shared_suffix} ${DB_CMODULES}";
-     INSTALL_DB_CMODULES="${INSTALL_DB_CMODULES} install-leveldb";
-     force_enabled="leveldb ${force_enabled}";
-     TEST_DB_CMODULES="${TEST_DB_CMODULES} leveldb"
-   else
-     auto_disabled="leveldb ${auto_disabled}";
-     enable_leveldb="no";
-   fi;
-else
-   manually_disabled="leveldb ${auto_disabled}";
-fi
-
-### RocksDB cmodule build
-
-AC_ARG_ENABLE(rocksdb,--en/disable-rocksdb Build and install Rocksdb module,,enable_rocksdb="yes")
-rocksdb_ok="no"
-
-if test "${enable_rocksdb}" = "yes" ||
-   test "${enable_rocksdb}" = "force"; then
-   AC_CHECK_HEADERS(rocksdb/c.h)
-   AC_CHECK_LIB(rocksdb,rocksdb_open,rocksdb_ok="yes")
-   if test "${enable_rocksdb}" = "yes" && 
-      test "${ac_cv_header_rocksdb_c_h}" = "yes";
-      test "${rocksdb_ok}" = "yes"; then
-     DB_CMODULES="lib/kno/rocksdb.${shared_suffix} ${DB_CMODULES}";
-     INSTALL_DB_CMODULES="install-rocksdb ${INSTALL_DB_CMODULES}";
-     TEST_DB_CMODULES="${TEST_DB_CMODULES} rocksdb"
-   elif test "${enable_rocksdb}" = "force"; then
-     DB_CMODULES="lib/kno/rocksdb.${shared_suffix} ${DB_CMODULES}";
-     INSTALL_DB_CMODULES="install-rocksdb ${INSTALL_DB_CMODULES}";
-     TEST_DB_CMODULES="${TEST_DB_CMODULES} rocksdb"
-     force_enabled="rocksdb ${force_enabled}";
-   else
-     auto_disabled="rocksdb ${auto_disabled}";
-     enable_rocksdb="no";
-   fi;
-else
-   manually_disabled="rocksdb ${auto_disabled}";
-fi
-
 ### archive library (manipulates various kinds of archives)
 
 AC_CHECK_HEADERS(archive.h)

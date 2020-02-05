@@ -130,9 +130,7 @@ DRIVERS_H=include/kno/drivers.h
 SCHEME_HEADERS=include/kno/eval.h include/kno/threads.h \
 	include/kno/opcodes.h include/kno/seqprims.h \
 	include/kno/procprims.h include/kno/getsource.h
-LIB_HEADERS=include/kno/texttools.h include/kno/webtools.h \
-	        include/kno/leveldb.h \
-	        include/kno/rocksdb.h
+LIB_HEADERS=include/kno/texttools.h include/kno/webtools.h
 
 # Headers which don't live in include/kno
 SRC_HEADERS=src/lisp/biginternals.h 		\
@@ -278,7 +276,6 @@ TEXT_OBJS=\
 	src/text/phonetic.o
 
 CMODULE_OBJS=src/cmodules/sqlite.o  	\
-	     src/cmodules/rocksdb.o src/cmodules/leveldb.o	\
 	     src/cmodules/crypto.o src/cmodules/zlib.o		\
 	     src/cmodules/libarchive.o 				\
 	     src/cmodules/testcapi.o
@@ -381,7 +378,6 @@ KNO_SOURCES=\
 
 CMODULE_SOURCES=\
 	src/cmodules/sqlite.c	\
-	src/cmodules/leveldb.c src/cmodules/rocksdb.c	\
 	src/cmodules/libarchive.c			\
 	src/cmodules/gperftools.c			\
 	src/cmodules/crypto.c
@@ -1052,15 +1048,6 @@ lib/kno/zlib.so lib/kno/zlib.dylib : MODLIBS="-lz"
 lib/kno/zlib.so: src/cmodules/zlib.o
 lib/kno/zlib.dylib: src/cmodules/zlib.o
 
-lib/kno/leveldb.so lib/kno/leveldb.dylib : MODLIBS="-lleveldb"
-lib/kno/leveldb.so: src/cmodules/leveldb.o
-lib/kno/leveldb.dylib: src/cmodules/leveldb.o ${CMODULE_DEPENDS}
-
-lib/kno/rocksdb.so lib/kno/rocksdb.dylib : MODLIBS="-lrocksdb"
-lib/kno/rocksdb.o: src/cmodules/rocksdb.c
-lib/kno/rocksdb.so: src/cmodules/rocksdb.o
-lib/kno/rocksdb.dylib: src/cmodules/rocksdb.o ${CMODULE_DEPENDS}
-
 lib/kno/gperftools.so : MODLIBS="-lprofiler"
 lib/kno/gperftools.o: src/cmodules/gperftools.c
 lib/kno/gperftools.so: src/cmodules/gperftools.o
@@ -1468,8 +1455,6 @@ install-archive-cmodules: @INSTALL_ARCHIVE_CMODULES@
 install-testcapi: ${CMODULES}/testcapi.@shared_suffix@ ${CMODULES}/testcapi.@vshared_suffix@
 install-crypto: ${CMODULES}/crypto.@shared_suffix@ ${CMODULES}/crypto.@vshared_suffix@
 install-sqlite: ${CMODULES}/sqlite.@shared_suffix@ ${CMODULES}/sqlite.@vshared_suffix@
-install-leveldb: ${CMODULES}/leveldb.@shared_suffix@ ${CMODULES}/leveldb.@vshared_suffix@
-install-rocksdb: ${CMODULES}/rocksdb.@shared_suffix@ ${CMODULES}/rocksdb.@vshared_suffix@
 install-libarchive: ${CMODULES}/libarchive.@shared_suffix@ ${CMODULES}/libarchive.@vshared_suffix@
 install-exif: ${CMODULES}/exif.@shared_suffix@ ${CMODULES}/exif.@vshared_suffix@
 install-zlib: ${CMODULES}/zlib.@shared_suffix@ ${CMODULES}/zlib.@vshared_suffix@
@@ -1721,7 +1706,7 @@ staging/build-setup.apk:
 	touch $@
 macports-build-setup:
 	sudo port install  curl curl-ca-bundle exif libexif qrencode libpng imagemagick ldns \
-		unixODBC sqlite3 leveldb snappy rocksdb mongo-c-driver \
+		unixODBC sqlite3 snappy mongo-c-driver leveldb rocksdb \
 		libarchive libzip zlib zmq-devel hyphen python37
 
 .PHONY: debian-build-setup rpm-build-setup
@@ -1986,9 +1971,8 @@ submodules update-submodules update-git update-modules:
 	if test -d .git; then \
 	  git pull; git submodule init; git submodule update; \
 	  git submodule update --remote --merge src/stdlib; \
-	  cd src/stdlib; git submodule init; \
-		git submodule update  --remote --merge brico; \
-		git submodule update; \
+	  cd src/stdlib; git submodule init; git submodule update;
+	  cd src/brico; git submodule init; git submodule update;
 	fi;
 
 .PHONY: mod_knocgi update-mod_knocgi install-mod_knocgi update-modules
