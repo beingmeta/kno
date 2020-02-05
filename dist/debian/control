@@ -2,7 +2,7 @@ Source: kno
 Section: Libraries
 Priority: optional
 Maintainer: Kenneth Benefiel Haase <kh@beingmeta.com>
-Build-Depends: debhelper (>= 8.0.0), autotools-dev, equivs, dh-systemd, dh-elpa, debsigs, devscripts, libgoogle-perftools-dev, libjemalloc-dev, libsnappy-dev, libzstd-dev, sqlite3, apache2-dev, libcurl4-openssl-dev, libarchive-dev, libzip-dev, libu8-dev (>= 2.6.9), python-dev, libpython2.7-dev, python3-dev, libpython3-dev, libedit-dev, libsasl2-dev, libldns-dev, libleveldb-dev, librocksdb-dev [i386 amd64], libsqlite3-dev, ronn | ruby-ronn
+Build-Depends: debhelper (>= 8.0.0), autotools-dev, equivs, dh-systemd, dh-elpa, debsigs, devscripts, libgoogle-perftools-dev, libjemalloc-dev, libsnappy-dev, libzstd-dev, sqlite3, libcurl4-openssl-dev, libarchive-dev, libzip-dev, libu8-dev (>= 2.6.9), python-dev, libpython2.7-dev, python3-dev, libpython3-dev, libedit-dev, libsasl2-dev, libldns-dev, libsqlite3-dev, ronn | ruby-ronn
 Standards-Version: 3.9.4
 Homepage: http://www.kno.dev/
 
@@ -75,38 +75,6 @@ Depends:
     ${misc:Depends}
 Description: This package contains the debugging symbols for kno-sqlite
 
-Package: kno-leveldb
-Architecture: any
-Depends: kno-core (= ${binary:Version}), libleveldb1d | libleveldb1v5
-Description: Leveldb interface for Kno
-
-Package: kno-leveldb-dbg
-Architecture: any
-Section: debug
-Depends: 
-    kno-core-dbg (= ${binary:Version}),
-    kno-leveldb (= ${binary:Version}),
-    libleveldb-dev,
-    ${misc:Depends}
-Suggests: libleveldb-dbg
-Description: This package contains the debugging symbols for kno-leveldb
-
-Package: kno-rocksdb
-Architecture: i386 amd64
-Depends: kno-core (= ${binary:Version}), librocksdb5.17 | librocksdb5.10 | librocksdb5.8 | librocksdb4.5 | librocksdb4.1
-Description: Rocksdb interface for Kno
-
-Package: kno-rocksdb-dbg
-Architecture: i386 amd64
-Section: debug
-Depends: 
-    kno-core-dbg (= ${binary:Version}),
-    kno-rocksdb (= ${binary:Version}),
-#    librocksdb5.10-dbg | librocksdb5.8-dbg | librocksdb4.5-dbg | librocksdb4.1-dbg,
-    librocksdb-dev,
-    ${misc:Depends}
-Description: This package contains the debugging symbols for kno-rocksdb
-
 Package: kno-parseltongue
 Architecture: any
 Depends: kno-core, python3
@@ -169,7 +137,6 @@ Package: kno-full
 Architecture: any
 Depends: ${misc:Depends}, kno-core, kno-stdlib, kno-doc,
 	 kno-sqlite,
-	 kno-leveldb, kno-rocksdb,
 	 kno-parseltongue,
 	 elpa-knoc
 Description: Installs all standard Kno modules
@@ -177,7 +144,6 @@ Description: Installs all standard Kno modules
 Package: kno-full-dbg
 Architecture: any
 Depends: ${misc:Depends}, kno-full, 
-	 kno-leveldb-dbg,
 	 kno-sqlite-dbg,
 	 kno-parseltongue-dbg
 Description: Installs all standard Kno modules
