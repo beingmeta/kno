@@ -129,8 +129,8 @@ static void cons_sort(lispval *v,int n)
   while (n > 1) {
     swap(&v[0], &v[n/2]);
     for (i = 0, j = n; ; ) {
-      do --j; while (cons_compare(v[j],v[0])>0);
-      do ++i; while (i < j && (cons_compare(v[i],v[0])<0));
+      do --j; while (__kno_cons_compare(v[j],v[0])>0);
+      do ++i; while (i < j && (__kno_cons_compare(v[i],v[0])<0));
       if (i >= j) break; else {}
       swap(&v[i], &v[j]);}
     swap(&v[j], &v[0]);
@@ -169,10 +169,10 @@ static int compress_choice(lispval *v,int n,int atomicp)
       lispval elt = *scan;
       if (KNO_EMPTYP(elt)) {
         scan++;}
-      else if (cons_compare(pt,elt)==0) {
+      else if (__kno_cons_compare(pt,elt)==0) {
         kno_decref(*scan);
         scan++;
-        while ((scan<limit) && (cons_compare(pt,*scan)==0)) {
+        while ((scan<limit) && (__kno_cons_compare(pt,*scan)==0)) {
           kno_decref(*scan);
           scan++;}}
       else *write++=pt = *scan++;}
@@ -197,7 +197,7 @@ static int choice_containsp(lispval x,struct KNO_CHOICE *choice)
   else {
     while (top>=bottom) {
       const lispval *middle = bottom+(top-bottom)/2;
-      int comparison = cons_compare(x,*middle);
+      int comparison = __kno_cons_compare(x,*middle);
       if (comparison == 0) return 1;
       else if (comparison<0) top = middle-1;
       else bottom = middle+1;}
@@ -364,7 +364,7 @@ lispval kno_make_prechoice(lispval x,lispval y)
     ch->prechoice_write[0]=nx;
     ch->prechoice_write[1]=ny;
     ch->prechoice_muddled = 1;}
-  else if (cons_compare(nx,ny)<1) {
+  else if (__kno_cons_compare(nx,ny)<1) {
     ch->prechoice_write[0]=nx;
     ch->prechoice_write[1]=ny;}
   else {
@@ -420,7 +420,7 @@ KNO_EXPORT
 */
 lispval _kno_add_to_choice(lispval current,lispval v)
 {
-  return _add_to_choice(current,v);
+  return __kno_add_to_choice(current,v);
 }
 
 KNO_EXPORT
@@ -432,7 +432,7 @@ KNO_EXPORT
 */
 void _kno_prechoice_add(struct KNO_PRECHOICE *ch,lispval v)
 {
-  kno_prechoice_add(ch,v);
+  __kno_prechoice_add(ch,v);
 }
 
 KNO_EXPORT
@@ -444,7 +444,7 @@ KNO_EXPORT
 */
 int _kno_contains_atomp(lispval x,lispval ch)
 {
-  return kno_contains_atomp(x,ch);
+  return __kno_contains_atomp(x,ch);
 }
 
 /* Converting prechoices to choices */
@@ -600,7 +600,7 @@ lispval _kno_simplify_choice(lispval x)
 
 KNO_EXPORT int _kno_choice_size(lispval x)
 {
-  return kno_choice_size(x);
+  return __kno_choice_size(x);
 }
 
 /* Merging choices */
@@ -624,7 +624,7 @@ static int resort_scanners(struct KNO_CHOICE_SCANNER *v,int n,int atomic)
     if (atomic)
       while (i<n) if (head<=v[i].top) break; else i++;
     else while (i<n)
-           if (cons_compare(head,v[i].top)<=0) break;
+           if (__kno_cons_compare(head,v[i].top)<=0) break;
            else i++;
     memmove(v,v+1,sizeof(struct KNO_CHOICE_SCANNER)*(i-1));
     v[i-1].top = head; v[i-1].ptr = ptr; v[i-1].lim = lim;
@@ -646,7 +646,7 @@ static int scanner_loop(struct KNO_CHOICE_SCANNER *scanners,
     else {
       top = scanners[0].top = scanners[0].ptr[0];
       if (n_scanners==1) {}
-      else if (cons_compare(top,scanners[1].top)<0) {}
+      else if (__kno_cons_compare(top,scanners[1].top)<0) {}
       else n_scanners = resort_scanners(scanners,n_scanners,0);}}
   if (n_scanners==1) {
     const lispval top = scanners[0].top, *read, *limit;
@@ -687,7 +687,7 @@ static int compare_scanners(const void *x,const void *y)
 {
   struct KNO_CHOICE_SCANNER *xs = (struct KNO_CHOICE_SCANNER *)x;
   struct KNO_CHOICE_SCANNER *ys = (struct KNO_CHOICE_SCANNER *)y;
-  return cons_compare(xs->top,ys->top);
+  return __kno_cons_compare(xs->top,ys->top);
 }
 
 static int compare_scanners_atomic(const void *x,const void *y)
@@ -1109,7 +1109,7 @@ static lispval compute_choice_difference
       if (LISP_EQUAL(*wscan,*pscan)) {
         wscan++;
         pscan++;}
-      else if (cons_compare(*wscan,*pscan)<0) {
+      else if (__kno_cons_compare(*wscan,*pscan)<0) {
         *write = kno_incref(*wscan);
         write++;
         wscan++;}

@@ -952,7 +952,7 @@ KNO_EXPORT int kno_compound_set_unparser(u8_string pname,
    (x . #(y x y x...))
    #((y . x) (x) x y x...)
 */
-#if KNO_INLINE_COMPARE
+#if KNO_SOURCE || KNO_INLINE_COMPARE || KNO_INLINE_TABLES || KNO_INLINE_CHOICES
 static int base_compare(lispval x,lispval y)
 {
   if (KNO_ATOMICP(x))
@@ -1008,7 +1008,7 @@ static int base_compare(lispval x,lispval y)
       default:
 	return LISP_COMPARE(x,y,KNO_COMPARE_QUICK);}}
 }
-static int cons_compare(lispval x,lispval y)
+static int __kno_cons_compare(lispval x,lispval y)
 {
   if (KNO_ATOMICP(x))
     if (KNO_ATOMICP(y))
@@ -1063,7 +1063,6 @@ static int cons_compare(lispval x,lispval y)
       default:
 	return LISP_COMPARE(x,y,KNO_COMPARE_QUICK);}}
 }
-
 #endif
 
 KNO_EXPORT kno_compare_flags kno_get_compare_flags(lispval spec);

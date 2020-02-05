@@ -1,10 +1,10 @@
 static U8_MAYBE_UNUSED lispval moduleid_symbol;
 
-#define fast_eval(x,env) (_kno_fast_eval(x,env,_stack,0))
-#define fast_stack_eval(x,env,stack) (_kno_fast_eval(x,env,stack,0))
-#define fast_tail_eval(x,env) (_kno_fast_eval(x,env,_stack,1))
-#define stack_eval(x,env,s) (_kno_fast_eval(x,env,s,0))
-#define stack_tail_eval(x,env,s) (_kno_fast_eval(x,env,s,1))
+#define fast_eval(x,env) (__kno_fast_eval(x,env,_stack,0))
+#define fast_stack_eval(x,env,stack) (__kno_fast_eval(x,env,stack,0))
+#define fast_tail_eval(x,env) (__kno_fast_eval(x,env,_stack,1))
+#define stack_eval(x,env,s) (__kno_fast_eval(x,env,s,0))
+#define stack_tail_eval(x,env,s) (__kno_fast_eval(x,env,s,1))
 
 static int testeval(lispval expr,kno_lexenv env,int fail_val,
                     lispval *whoops,kno_stack s) U8_MAYBE_UNUSED;
@@ -13,7 +13,7 @@ static int testeval(lispval expr,kno_lexenv env,int fail_val,
 		    lispval *whoops,
                     kno_stack _stack)
 {
-  lispval val = _kno_fast_eval(expr,env,_stack,0);
+  lispval val = __kno_fast_eval(expr,env,_stack,0);
   if (KNO_CONSP(val)) {
     kno_decref(val);
     return 1;}
@@ -70,7 +70,7 @@ KNO_FASTOP lispval eval_body(lispval body,kno_lexenv env,kno_stack stack,
           return v;
         else kno_decref(v);}
       else if (KNO_EMPTY_LISTP(scan))
-        return _kno_fast_eval(subex,env,stack,tail);
+        return __kno_fast_eval(subex,env,stack,tail);
       else return kno_err(kno_SyntaxError,
                           ( (cxt) && (label) ) ? (cxt) :
                           ((u8_string)"eval_inner_body"),

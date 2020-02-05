@@ -220,8 +220,8 @@ KNO_EXPORT int _KNO_CHOICE_SIZE(lispval x);
    (KNO_PRECHOICEP(x)) ? (KNO_PRECHOICE_SIZE(x)) : (1))
 #endif
 
-#if KNO_INLINE_CHOICES
-KNO_FASTOP U8_MAYBE_UNUSED int kno_choice_size(lispval x)
+#if KNO_SOURCE
+KNO_FASTOP U8_MAYBE_UNUSED int __kno_choice_size(lispval x)
 {
   if (KNO_EMPTY_CHOICEP(x)) return 0;
   else if (!(KNO_CONSP(x))) return 1;
@@ -231,18 +231,24 @@ KNO_FASTOP U8_MAYBE_UNUSED int kno_choice_size(lispval x)
     return KNO_PRECHOICE_SIZE(x);
   else return 1;
 }
-KNO_FASTOP U8_MAYBE_UNUSED lispval kno_simplify_choice(lispval x)
+KNO_FASTOP U8_MAYBE_UNUSED lispval __kno_simplify_choice(lispval x)
 {
   if (KNO_PRECHOICEP(x))
     return _kno_simplify_choice(x);
   else return x;
 }
-KNO_FASTOP U8_MAYBE_UNUSED lispval kno_make_simple_choice(lispval x)
+KNO_FASTOP U8_MAYBE_UNUSED lispval __kno_make_simple_choice(lispval x)
 {
   if (KNO_PRECHOICEP(x))
     return _kno_make_simple_choice(x);
   else return kno_incref(x);
 }
+#endif
+
+#if KNO_INLINE_CHOICES && KNO_SOURCE
+#define kno_choice_size __kno_choice_size
+#define kno_simplify_choice __kno_simplify_choice
+#define kno_make_simple_choice __kno_make_simple_choice
 #else
 #define kno_choice_size(x) _kno_choice_size(x)
 #define kno_simplify_choice(x) _kno_simplify_choice(x)
@@ -279,8 +285,8 @@ KNO_EXPORT lispval kno_make_qchoice(lispval val);
 
 /* Generic choice operations */
 
-#if KNO_INLINE_CHOICES
-static void _prechoice_add(struct KNO_PRECHOICE *ch,lispval v)
+#if KNO_SOURCE
+static void __kno_prechoice_add(struct KNO_PRECHOICE *ch,lispval v)
 {
   int old_size, new_size, write_off, comparison;
   lispval nv;
@@ -290,7 +296,7 @@ static void _prechoice_add(struct KNO_PRECHOICE *ch,lispval v)
   if (KNO_EMPTY_CHOICEP(nv)) return;
   else if (ch->prechoice_write>ch->prechoice_data)
     if (KNO_EQ(nv,*(ch->prechoice_write-1))) comparison=0;
-    else comparison=cons_compare(*(ch->prechoice_write-1),nv);
+    else comparison=__kno_cons_compare(*(ch->prechoice_write-1),nv);
   else comparison=1;
   if (comparison==0) {kno_decref(nv); return;}
   if (ch->prechoice_uselock) u8_lock_mutex(&(ch->prechoice_lock));
@@ -322,8 +328,7 @@ static void _prechoice_add(struct KNO_PRECHOICE *ch,lispval v)
   if (ch->prechoice_uselock)
     u8_unlock_mutex(&(ch->prechoice_lock));
 }
-#define kno_prechoice_add _prechoice_add
-static U8_MAYBE_UNUSED lispval _add_to_choice(lispval current,lispval new)
+static U8_MAYBE_UNUSED lispval __kno_add_to_choice(lispval current,lispval new)
 {
   KNO_PTR_CHECK1(new,"_add_to_choice");
   if ( (KNO_EMPTY_CHOICEP(new)) || (KNO_VOIDP(new)) )
@@ -342,17 +347,16 @@ static U8_MAYBE_UNUSED lispval _add_to_choice(lispval current,lispval new)
     kno_decref(new);
     return current;}
   else if (KNO_PRECHOICEP(current)) {
-    _prechoice_add((struct KNO_PRECHOICE *)current,new);
+    __kno_prechoice_add((struct KNO_PRECHOICE *)current,new);
     return current;}
   else if (LISP_EQUAL(current,new)) {
     kno_decref(new);
     return current;}
   else return kno_make_prechoice(current,new);
 }
-#define KNO_ADD_TO_CHOICE(x,v) x=_add_to_choice(x,v)
 /* This does a simple binary search of a sorted choice vector made up,
    solely of atoms.  */
-static U8_MAYBE_UNUSED int _choice_contains_atomp(lispval x,lispval ch)
+static U8_MAYBE_UNUSED int __kno_contains_atomp(lispval x,lispval ch)
 {
   if (KNO_ATOMICP(ch)) return (x==ch);
   else {
@@ -367,7 +371,12 @@ static U8_MAYBE_UNUSED int _choice_contains_atomp(lispval x,lispval ch)
       else bottom=middle+1;}
     return 0;}
 }
-#define kno_contains_atomp _choice_contains_atomp
+#endif
+
+#if KNO_INLINE_CHOICES && KNO_SOURCE
+#define kno_prechoice_add __kno_prechoice_add
+#define KNO_ADD_TO_CHOICE(x,v) x=__kno_add_to_choice(x,v)
+#define kno_contains_atomp __kno_contains_atomp
 #else
 #define kno_prechoice_add _kno_prechoice_add
 #define KNO_ADD_TO_CHOICE(x,v)                    \
@@ -396,7 +405,7 @@ static U8_MAYBE_UNUSED int fast_choice_containsp(lispval x,struct KNO_CHOICE *ch
   else {
     while (top>=bottom) {
         const lispval *middle = bottom+(top-bottom)/2;
-        int comparison = cons_compare(x,*middle);
+        int comparison = __kno_cons_compare(x,*middle);
         if (comparison == 0) return 1;
         else if (comparison<0) top = middle-1;
         else bottom = middle+1;}

@@ -111,8 +111,8 @@ KNO_EXPORT kno_xtype_fn kno_xtype_writers[KNO_TYPE_MAX];
 KNO_EXPORT ssize_t kno_add_xtype_ref(lispval x,xtype_refs refs);
 KNO_EXPORT ssize_t _kno_xtype_ref(lispval x,xtype_refs refs,int add);
 
-#if KNO_INLINE_XTYPE_REFS
-static ssize_t kno_xtype_ref(lispval x,xtype_refs refs,int add)
+#if KNO_INLINE_XTYPE_REFS || KNO_FAST_XTYPE_REFS
+static ssize_t __kno_xtype_ref(lispval x,xtype_refs refs,int add)
 {
   if ((KNO_OIDP(x)) || (KNO_SYMBOLP(x))) {
     if ( (add==0) && (refs->xt_n_refs<=0) )
@@ -135,6 +135,10 @@ static ssize_t kno_xtype_ref(lispval x,xtype_refs refs,int add)
     return kno_add_xtype_ref(x,refs);}
   else return -1;
 }
+#endif
+
+#if KNO_INLINE_XTYPE_REFS
+#define kno_xtype_ref __kno_xtype_ref
 #else
 #define kno_xtype_ref _kno_xtype_ref
 #endif

@@ -15,7 +15,7 @@
 #define KNO_INLINE_STACKS       (!(KNO_AVOID_INLINE))
 #define KNO_INLINE_LEXENV       (!(KNO_AVOID_INLINE))
 
-#define KNO_PROVIDE_FASTEVAL    (!(KNO_AVOID_INLINE))
+#define KNO_INLINE_EVAL    (!(KNO_AVOID_INLINE))
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"

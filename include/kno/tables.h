@@ -224,8 +224,8 @@ KNO_EXPORT struct KNO_KEYVAL *_kno_sortvec_get
    (lispval key,struct KNO_KEYVAL *keyvals,int size);
 
 
-#if KNO_INLINE_TABLES
-static struct KNO_KEYVAL *kno_keyvec_get
+#if KNO_SOURCE || KNO_INLINE_TABLES
+static U8_MAYBE_UNUSED struct KNO_KEYVAL *__kno_keyvec_get
    (lispval key,struct KNO_KEYVAL *keyvals,int size)
 {
   const struct KNO_KEYVAL *scan = keyvals, *limit = scan+size;
@@ -240,11 +240,11 @@ static struct KNO_KEYVAL *kno_keyvec_get
 	 else scan++;
   return NULL;
 }
-static U8_MAYBE_UNUSED struct KNO_KEYVAL *kno_sortvec_get
-   (lispval key,struct KNO_KEYVAL *keyvals,int size)
+static U8_MAYBE_UNUSED struct KNO_KEYVAL *__kno_sortvec_get
+(lispval key,struct KNO_KEYVAL *keyvals,int size)
 {
   if (size<4)
-    return kno_keyvec_get(key,keyvals,size);
+    return __kno_keyvec_get(key,keyvals,size);
   else {
     int found = 0;
     const struct KNO_KEYVAL
@@ -261,7 +261,7 @@ static U8_MAYBE_UNUSED struct KNO_KEYVAL *kno_sortvec_get
       int comparison;
       middle = bottom+(top-bottom)/2;
       if (middle>=limit) break;
-      comparison = cons_compare(key,middle->kv_key);
+      comparison = __kno_cons_compare(key,middle->kv_key);
       if (comparison==0) {found = 1; break;}
       else if (comparison<0) top = middle-1;
       else bottom = middle+1;}
@@ -269,6 +269,11 @@ static U8_MAYBE_UNUSED struct KNO_KEYVAL *kno_sortvec_get
       return (struct KNO_KEYVAL *) middle;
     else return NULL;}
 }
+#endif
+
+#if KNO_INLINE_TABLES
+#define kno_keyvec_get __kno_keyvec_get
+#define kno_sortvec_get __kno_sortvec_get
 #else
 #define kno_keyvec_get _kno_keyvec_get
 #define kno_sortvec_get _kno_sortvec_get
@@ -281,9 +286,8 @@ KNO_EXPORT lispval _kno_slotmap_test
 KNO_EXPORT void kno_free_slotmap(struct KNO_SLOTMAP *sm);
 KNO_EXPORT void kno_free_keyvals(struct KNO_KEYVAL *kvals,int n_kvals);
 
-#if KNO_INLINE_TABLES
-static U8_MAYBE_UNUSED lispval kno_slotmap_get
-  (struct KNO_SLOTMAP *sm,lispval key,lispval dflt)
+#if KNO_SOURCE || KNO_INLINE_TABLES
+static U8_MAYBE_UNUSED lispval __kno_slotmap_get(struct KNO_SLOTMAP *sm,lispval key,lispval dflt)
 {
   unsigned int unlock = 0;
   struct KNO_KEYVAL *result; int size;
@@ -307,8 +311,7 @@ static U8_MAYBE_UNUSED lispval kno_slotmap_get
     if (unlock) u8_rw_unlock(&sm->table_rwlock);
     return kno_incref(dflt);}
 }
-static U8_MAYBE_UNUSED lispval kno_slotmap_test
-  (struct KNO_SLOTMAP *sm,lispval key,lispval val)
+static U8_MAYBE_UNUSED lispval __kno_slotmap_test(struct KNO_SLOTMAP *sm,lispval key,lispval val)
 {
   unsigned int unlock = 0;
   struct KNO_KEYVAL *result; int size;
@@ -335,6 +338,11 @@ static U8_MAYBE_UNUSED lispval kno_slotmap_test
     if (unlock) u8_rw_unlock(&sm->table_rwlock);
     return 0;}
 }
+#endif
+
+#if KNO_INLINE_TABLES
+#define kno_slotmap_get __kno_slotmap_get
+#define kno_slotmap_test __kno_slotmap_test
 #else
 #define kno_slotmap_get _kno_slotmap_get
 #define kno_slotmap_test _kno_slotmap_test
@@ -436,8 +444,8 @@ KNO_EXPORT lispval kno_schemap_assocs(struct KNO_SCHEMAP *ht);
 KNO_EXPORT lispval *kno_register_schema(int n,lispval *v);
 KNO_EXPORT void kno_sort_schema(int n,lispval *v);
 
-#if KNO_INLINE_TABLES
-static U8_MAYBE_UNUSED int _kno_get_slotno
+#if KNO_SOURCE || KNO_INLINE_TABLES
+static U8_MAYBE_UNUSED int __kno_get_slotno
   (lispval key,lispval *schema,int size,int sorted)
 {
   if ((sorted) && (size>7)) {
@@ -459,7 +467,7 @@ static U8_MAYBE_UNUSED int _kno_get_slotno
       else scan++;
     return -1;}
 }
-static U8_MAYBE_UNUSED lispval kno_schemap_get
+static U8_MAYBE_UNUSED lispval __kno_schemap_get
   (struct KNO_SCHEMAP *sm,lispval key,lispval dflt)
 {
   int unlock = 0;
@@ -471,7 +479,7 @@ static U8_MAYBE_UNUSED lispval kno_schemap_get
     unlock = 1;}
   size = KNO_XSCHEMAP_SIZE(sm);
   sorted = KNO_XSCHEMAP_SORTEDP(sm);
-  slotno=_kno_get_slotno(key,sm->table_schema,size,sorted);
+  slotno=__kno_get_slotno(key,sm->table_schema,size,sorted);
   if (slotno>=0) {
     lispval v = sm->schema_values[slotno];
     if (KNO_PRECHOICEP(v))
@@ -485,7 +493,7 @@ static U8_MAYBE_UNUSED lispval kno_schemap_get
     if (unlock) u8_rw_unlock(&(sm->table_rwlock));
     return kno_incref(dflt);}
 }
-static U8_MAYBE_UNUSED lispval kno_schemap_test
+static U8_MAYBE_UNUSED lispval __kno_schemap_test
   (struct KNO_SCHEMAP *sm,lispval key,lispval val)
 {
   int unlock = 0, size, slotno;
@@ -497,7 +505,7 @@ static U8_MAYBE_UNUSED lispval kno_schemap_test
     u8_read_lock(&(sm->table_rwlock));
     unlock = 1;}
   size = KNO_XSCHEMAP_SIZE(sm);
-  slotno=_kno_get_slotno(key,sm->table_schema,size,sm->schemap_sorted);
+  slotno=__kno_get_slotno(key,sm->table_schema,size,sm->schemap_sorted);
   if (slotno>=0) {
     lispval current = sm->schema_values[slotno]; int cmp;
     if (KNO_VOIDP(val)) cmp = 1;
@@ -513,6 +521,11 @@ static U8_MAYBE_UNUSED lispval kno_schemap_test
     if (unlock) u8_rw_unlock(&sm->table_rwlock);
     return 0;}
 }
+#endif
+
+#if KNO_INLINE_TABLES
+#define kno_schemap_get __kno_schemap_get
+#define kno_schemap_test __kno_schemap_test
 #else
 #define kno_schemap_get _kno_schemap_get
 #define kno_schemap_test _kno_schemap_test
