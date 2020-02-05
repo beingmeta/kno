@@ -12,7 +12,7 @@ else
     echo ${PACKAGE} \(${version}\) ${CODENAME}-${STATUS}\; urgency=${URGENCY}
 fi;
 echo
-echo "  * ${gitid} point release for ${CODENAME} (${STATUS})"
+echo "  * ${gitid} point release of ${PACKAGE} for ${CODENAME} (${STATUS})"
 echo
 echo " -- Repository Manager <repoman@beingmeta.com>  ${DATE}"
 echo
