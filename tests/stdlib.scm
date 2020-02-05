@@ -17,11 +17,6 @@
 		 xhtml/exceptions xhtml/include
 		 xhtml/pagedate xhtml/tableout})
 
-(when (get-module 'mongodb)
-  (check-modules '{mongodb/utils
-		   mongodb/pools mongodb/indexes 
-		   mongodb/slots mongodb/orm}))
-
 (check-modules
  '{opts hashfs rulesets meltcache curlcache saveopt signature cachequeue 
    checkurl codewalker couchdb dropbox ellipsize email fakezip fillin 
