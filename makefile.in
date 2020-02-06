@@ -1509,12 +1509,15 @@ STDLIB_MODULE_DATA=\
 
 install-stdlib: install-stdlib-source install-stdlib-data
 
-src/stdlib/.git src/brico/.git:
-	git submodule init
-	git submodule update
+src/stdlib/pem.scm:
+	git submodule init && \
+	git submodule update --remote --merge src/stdlib;
+src/brico/brico.scm:
+	git submodule init && \
+	git submodule update --remote --merge src/brico;
 
-install-stdlib-source: $(DESTDIR)@stdlib_module_dir@ src/stdlib/.git \
-	         $(DESTDIR)@stdlib_module_dir@/brico src/brico/.git
+install-stdlib-source: $(DESTDIR)@stdlib_module_dir@ src/stdlib/pem.scm \
+	         $(DESTDIR)@stdlib_module_dir@/brico src/brico/brico.scm
 	@$(ECHO) Copying standard Scheme modules to @stdlib_module_dir@
 	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/stdlib/*.scm 		\
 		$(DESTDIR)@stdlib_module_dir@;
@@ -1533,7 +1536,8 @@ install-stdlib-source: $(DESTDIR)@stdlib_module_dir@ src/stdlib/.git \
 	      $${install_dir};							\
 	done;
 
-install-stdlib-data: $(DESTDIR)@stdlib_module_dir@ src/stdlib/.git src/brico/.git
+install-stdlib-data: $(DESTDIR)@stdlib_module_dir@ \
+			src/stdlib/pem.scm src/brico/brico.scm
 	@$(ECHO) Copying module data to @stdlib_module_dir@;
 	@for dir in $(STDLIB_MODULE_DATA); do					\
 	 src_dir="$(BUILD)/src/$${dir}";				\
@@ -1969,7 +1973,7 @@ gcovr_fresh:
 
 submodules update-submodules update-git update-modules:
 	if test -d .git; then 					\
-	  git pull; git submodule init; git submodule update; 	\
+	  git pull; git submodule init; 			\
 	  git submodule update --remote --merge src/stdlib; 	\
 	  git submodule update --remote --merge src/brico; 	\
 	fi;
