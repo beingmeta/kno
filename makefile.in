@@ -1692,7 +1692,7 @@ build-setup.debian: staging/build-setup.debian.core \
 build-setup.redhat:
 	sudo rpm -Uvh libedit-devel
 
-staging/build-setup.apk:
+staging/build-setup.alpine:
 	sudo apk add alpine-sdk autoconf zlib zlib-dev \
 		     python2 python2-dev python3 python3-dev \
 		     findutils findutils-doc libffi libffi-dev sqlite sqlite-dev \
