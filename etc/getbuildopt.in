@@ -1,0 +1,32 @@
+#!/bin/sh
+
+usage() {
+    echo "getconfopt optname [default]";
+    echo "Gets a configuration option, trying (in order):";
+    echo "  1. the file .optname in the current directory";
+    echo "  2. the file .opts/optname in your (the user's) home directory";
+    echo "  3. the file optname in the @buildopts_dir@ directory";
+    echo "  4. any defined value for opt_optname in the environment";
+    echo "  5. the default argument, if provided";
+}
+
+if [ $# -lt 1 ]; then
+    usage;
+    exit;
+fi;
+
+optname=$1
+dflt=$2
+env_name="${optname}_buildopt"
+
+if [ -f ./.${optname} ]; then
+   cat ./.${optname};
+elif [ -f ~/.opts/${optname} ]; then
+    cat ~/.opts/${optname};
+elif [ -f @buildopts_dir@/${optname} ]; then
+    cat ~/.opts/${optname};
+elif printenv ${env_name} 2>&1 > /dev/null; then
+    printenv ${env_name};
+elif [ $# -gt 1 ]; then
+    echo $dflt;
+fi;

@@ -693,8 +693,6 @@ binenv
 PKGCONFIG_DIR
 GITBRANCH
 GPGID
-APKREPO
-APTREPO
 GPG
 RPMFLAGS
 RPMDIR
@@ -823,6 +821,7 @@ source_dir
 data_dir
 shared_config
 local_config
+buildopts_dir
 config_dir
 default_module_path
 local_module_dir
@@ -951,6 +950,7 @@ enable_xprofiling
 with_share_dir
 with_data_dir
 with_config_dir
+with_buildopts
 with_local_config
 with_shared_config
 with_unpackage_dir
@@ -989,8 +989,6 @@ target_alias
 RPMDIR
 RPMFLAGS
 GPG
-APTREPO
-APKREPO
 CC
 CFLAGS
 LDFLAGS
@@ -1685,6 +1683,7 @@ Optional Packages:
 --with-share-dir location
 --with-data-dir location
 --with-config-dir location
+--with-buildopts-dir location used by getbuildopt
 --with-local-config location
 --with-shared-config location
 --with-unpackage-dir location
@@ -1713,8 +1712,6 @@ Some influential environment variables:
   RPMDIR      "Location for writing built RPMs"
   RPMFLAGS    "Default flags for building RPMs"
   GPG         "GPG executable"
-  APTREPO     "Location of the APT repository"
-  APKREPO     "Location of the Alpine APK repository"
   CC          C compiler command
   CFLAGS      C compiler flags
   LDFLAGS     linker flags, e.g. -L<lib dir> if you have libraries in a
@@ -3055,8 +3052,6 @@ RPMDIR=${RPMDIR:-dist}
 RPMFLAGS=${RPMFLAGS:-}
 APTLY=
 APTLY_FLAGS=
-APTREPO=${APTREPO:-/srv/repo/apt}
-APKREPO=${APKREPO:-/srv/repo/apk}
 PKGCONFIG_DIR=
 GPG=`which gpg2 || which gpg || gpg`
 GPGID=${GPGID:-FE1BC737F9F323D732AA26330620266BE5AFF294}
@@ -3066,6 +3061,7 @@ TAGS="TAGS SCHEMETAGS"
 LIBSCM="\${REVISION}"
 default_source_dir="\$prefix/src"
 default_config_dir="\$prefix/etc/kno"
+default_buildopts_dir="\$prefix/etc/beingmeta/opts"
 local_config="\$prefix/etc/kno"
 shared_config="\$prefix/etc/kno"
 rundir=$localstatedir/run
@@ -3178,9 +3174,6 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/kno/knosource.h include/kno/config.h"
-
-
-
 
 
 
@@ -9502,8 +9495,10 @@ data_dir=$with_data_dir
 
 if test $prefix == "/usr"; then
    default_config_dir=/etc/kno;
+   default_buildopts_dir=/etc/beingmeta/opts;
 else
    default_config_dir=$prefix/etc/kno;
+   default_buildopts_dir=$prefix/etc/beingmeta/opts;
 fi
 
 
@@ -9515,6 +9510,16 @@ else
 fi
 
 config_dir=$with_config_dir
+
+
+# Check whether --with-buildopts was given.
+if test "${with_buildopts+set}" = set; then :
+  withval=$with_buildopts;
+else
+  with_buildopts_dir=$default_buildopts_dir
+fi
+
+buildopts_dir=$with_buildopts_dir
 
 
 # Check whether --with-local_config was given.
@@ -12599,7 +12604,7 @@ fi;
 
 ### Here's where stuff gets made
 
-ac_config_files="$ac_config_files makefile etc/version etc/makefile.include tests/lisp/makefile tests/storage/makefile tests/makefile DIY/makefile etc/gdbinit etc/lldbinit exe/.gdbinit exe/.lldbinit dbg/runenv.sh dbg/.gdbinit dbg/.lldbinit dbg/.valgrind tests/lisp/.gdbinit tests/storage/.gdbinit etc/kno.pc etc/knomod etc/kno_start_servlets etc/kno_start_daemons etc/kno_stop_jobs etc/knostart etc/knostop etc/knostartall etc/knostopall etc/knocleanup etc/knosignal etc/knoinject etc/knostatus etc/knolog etc/knoreload etc/knorestart etc/knoctl etc/knogdb etc/knodbgexec etc/knosetconfig etc/knogetconfig etc/knoconfig tests/testenv.sh tests/xtest tests/runtest tests/memtest tests/leaktest tests/knoxtest src/scripts/knopkg.scm src/extmods/knoconfig etc/knojob etc/logrotate etc/sysv/kno-rc.d etc/sysv/ex_servlet-init.d etc/sysv/ex_daemon-init.d etc/upstart/kno.conf etc/upstart/knod.conf etc/upstart/knoservlets.conf etc/upstart/ex_knoservlet.conf etc/systemd/ex_servlet.service etc/systemd/ex_daemon.service etc/systemd/kno-daemons.service etc/systemd/kno-servlets.service etc/macos/OSXStartupItem/KNO etc/macos/KNO.plist etc/apache/knocgi.conf etc/apache/knocgi.load etc/install-script dist/alpine/APKBUILD dist/kno-4.3.spec"
+ac_config_files="$ac_config_files makefile etc/version etc/makefile.include tests/lisp/makefile tests/storage/makefile tests/makefile DIY/makefile etc/gdbinit etc/lldbinit exe/.gdbinit exe/.lldbinit dbg/runenv.sh dbg/.gdbinit dbg/.lldbinit dbg/.valgrind tests/lisp/.gdbinit tests/storage/.gdbinit etc/kno.pc etc/getbuildopt etc/knobuild etc/kno_start_servlets etc/kno_start_daemons etc/kno_stop_jobs etc/knostart etc/knostop etc/knostartall etc/knostopall etc/knocleanup etc/knosignal etc/knoinject etc/knostatus etc/knolog etc/knoreload etc/knorestart etc/knoctl etc/knogdb etc/knodbgexec etc/knosetconfig etc/knogetconfig etc/knoconfig tests/testenv.sh tests/xtest tests/runtest tests/memtest tests/leaktest tests/knoxtest src/scripts/knopkg.scm src/extmods/knoconfig etc/knojob etc/logrotate etc/sysv/kno-rc.d etc/sysv/ex_servlet-init.d etc/sysv/ex_daemon-init.d etc/upstart/kno.conf etc/upstart/knod.conf etc/upstart/knoservlets.conf etc/upstart/ex_knoservlet.conf etc/systemd/ex_servlet.service etc/systemd/ex_daemon.service etc/systemd/kno-daemons.service etc/systemd/kno-servlets.service etc/macos/OSXStartupItem/KNO etc/macos/KNO.plist etc/apache/knocgi.conf etc/apache/knocgi.load etc/install-script dist/alpine/APKBUILD dist/kno-4.3.spec"
 
 ac_config_commands="$ac_config_commands default"
 
@@ -13318,7 +13323,8 @@ do
     "tests/lisp/.gdbinit") CONFIG_FILES="$CONFIG_FILES tests/lisp/.gdbinit" ;;
     "tests/storage/.gdbinit") CONFIG_FILES="$CONFIG_FILES tests/storage/.gdbinit" ;;
     "etc/kno.pc") CONFIG_FILES="$CONFIG_FILES etc/kno.pc" ;;
-    "etc/knomod") CONFIG_FILES="$CONFIG_FILES etc/knomod" ;;
+    "etc/getbuildopt") CONFIG_FILES="$CONFIG_FILES etc/getbuildopt" ;;
+    "etc/knobuild") CONFIG_FILES="$CONFIG_FILES etc/knobuild" ;;
     "etc/kno_start_servlets") CONFIG_FILES="$CONFIG_FILES etc/kno_start_servlets" ;;
     "etc/kno_start_daemons") CONFIG_FILES="$CONFIG_FILES etc/kno_start_daemons" ;;
     "etc/kno_stop_jobs") CONFIG_FILES="$CONFIG_FILES etc/kno_stop_jobs" ;;
@@ -13923,7 +13929,7 @@ $as_echo "$as_me: executing $ac_file commands" >&6;}
 
 
   case $ac_file$ac_mode in
-    "default":C) chmod a+x etc/kno* tests/*test src/extmods/knoconfig ;;
+    "default":C) chmod a+x etc/kno* tests/*test etc/getbuildopt src/extmods/knoconfig ;;
 
   esac
 done # for ac_tag

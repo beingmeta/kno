@@ -2,89 +2,100 @@
 # Copyright © 2004-2020 beingmeta, inc
 # This file is a part of beingmeta's Kno implementation
 
-CC	      = @CC@
-XCFLAGS       =
-OPTFLAGS      = "@OPTFLAGS@"
-XOPTFLAGS     = "@XOPTFLAGS@"
-ARCHFLAGS     = @archflags@
-EXECFLAGS     = @CFLAGS@ ${OPTFLAGS} @MALLOC_FLAGS@ @DREENTRANT@ \
-		@PROFILING@ @GCOV_CFLAGS@ \
-		-I./include $(XCFLAGS) $(ARCHFLAGS)
-DYNAMIC_CFLAG = @dynamic_cflag@
-CFLAGS        = -I./include @CFLAGS@ ${OPTFLAGS} \
-		@MALLOC_FLAGS@ @PROFILING@ @GCOV_CFLAGS@ @DREENTRANT@ \
-		@PTHREAD_LIBS@ $(DYNAMIC_CFLAG) \
-		-I./include $(XCFLAGS)  $(ARCHFLAGS)
-RPATH         = @rpath@
-RPATHFLAGS    = @RPATHFLAGS@
-LDFLAGS       = -L./ -L./lib @LDFLAGS@ @PTHREAD_LIBS@ @GCOV_LDFLAGS@ $(XLDFLAGS)
-DYLIB_FLAGS   = -compatibility_version @KNO_MAJOR@.0.0 \
-		-current_version @KNO_MAJOR@.@KNO_MINOR@.@KNO_RELEASE@
-EXEFLAGS      = @EXEFLAGS@
-EXELIBS       = @EXELIBS@
-STATIC_CFLAGS = -I./include @CFLAGS@ @PROFILING@ @DREENTRANT@ \
-		$(DYNAMIC_CFLAG) -I./include $(XCFLAGS)
-TEST_CFLAGS   = -DKNO_TESTCONFIG=1 ${STATIC_CFLAGS}
-STATIC_LDFLAGS= -L./lib @LDFLAGS@ $(EFENCE) @GCOV_LDFLAGS@ @TESTLDFLAGS@ -L./lib
-TEST_LDFLAGS  = ${STATIC_LDFLAGS}
-TEST_EXEFLAGS = @EXEFLAGS@
-XLIBS         =
-LIBS          = $(XLIBS) @LIBS@
-PATH          = @BINPATH@
-DEBBUILD      = -b
-INDENTOPTS    = -br -ce -psl -Tknodtype -Tu8_string -Tkno_stream -Tkno_inbuf \
-		-Tkno_outbuf -Tkno_rawbuf -Tkno_function -Tkno_pair -Tkno_choice
-GCOVR_FLAGS   = -e "./src/cmodules/" -e "./src/exe/" -e "./tests/storage/"
-PYLIBS        = -lknowebtools -lknotexttools -lknoscheme -lknodrivers -lknostorage -lknocore ${LIBS}
+CC	          = @CC@
+XCFLAGS           =
+OPTFLAGS          = "@OPTFLAGS@"
+XOPTFLAGS         = "@XOPTFLAGS@"
+ARCHFLAGS         = @archflags@
+EXECFLAGS         = @CFLAGS@ ${OPTFLAGS} @MALLOC_FLAGS@ @DREENTRANT@ \
+		    @PROFILING@ @GCOV_CFLAGS@ \
+		    -I./include $(XCFLAGS) $(ARCHFLAGS)
+DYNAMIC_CFLAG     = @dynamic_cflag@
+CFLAGS            = -I./include @CFLAGS@ ${OPTFLAGS} \
+		    @MALLOC_FLAGS@ @PROFILING@ @GCOV_CFLAGS@ @DREENTRANT@ \
+		    @PTHREAD_LIBS@ $(DYNAMIC_CFLAG) \
+		    -I./include $(XCFLAGS)  $(ARCHFLAGS)
+RPATH             = @rpath@
+RPATHFLAGS        = @RPATHFLAGS@
+LDFLAGS           = -L./ -L./lib @LDFLAGS@ @PTHREAD_LIBS@ @GCOV_LDFLAGS@ \
+		    $(XLDFLAGS)
+DYLIB_FLAGS       = -compatibility_version @KNO_MAJOR@.0.0 \
+		    -current_version @KNO_MAJOR@.@KNO_MINOR@.@KNO_RELEASE@
+EXEFLAGS          = @EXEFLAGS@
+EXELIBS           = @EXELIBS@
+STATIC_CFLAGS     = -I./include @CFLAGS@ @PROFILING@ @DREENTRANT@ \
+		    $(DYNAMIC_CFLAG) -I./include $(XCFLAGS)
+TEST_CFLAGS       = -DKNO_TESTCONFIG=1 ${STATIC_CFLAGS}
+STATIC_LDFLAGS    = -L./lib @LDFLAGS@ $(EFENCE) @GCOV_LDFLAGS@ \
+		    @STATICLDFLAGS@ -L./lib
+TEST_LDFLAGS      = ${STATIC_LDFLAGS} @TESTLDFLAGS@
+TEST_EXEFLAGS     = @EXEFLAGS@
+XLIBS             =
+LIBS              = $(XLIBS) @LIBS@
+PATH              = @BINPATH@
+DEBBUILD          = -b
+INDENTOPTS        = -br -ce -psl -Tknodtype -Tu8_string \
+		    -Tkno_stream -Tkno_inbuf -Tkno_outbuf \
+		    -Tkno_rawbuf -Tkno_function -Tkno_pair \
+		    -Tkno_choice
+GCOVR_FLAGS       = -e "./src/cmodules/" -e "./src/exe/" -e "./tests/storage/"
+PYLIBS            = -lknowebtools -lknotexttools -lknoscheme \
+		    -lknodrivers -lknostorage -lknocore \
+		    ${LIBS}
 
-DESTDIR		=
-PACKAGE		= kno
-prefix		= @prefix@
-exec_prefix	= @exec_prefix@
-datarootdir	= @datarootdir@
-datadir		= @datadir@
-INCINSTALLDIR	= $(DESTDIR)@prefix@/include/kno
-LIBINSTALLDIR	= $(DESTDIR)@libdir@
-BININSTALLDIR	= $(DESTDIR)@exec_prefix@/bin
-LOCALEDIR	= $(DESTDIR)@exec_prefix@/share/locale
-DATADIR		= $(DESTDIR)@datadir@/kno/data
-MANDIR		= $(DESTDIR)@mandir@
-DOCDIR		= $(DESTDIR)@docdir@
-CMODULES	= ${LIBINSTALLDIR}/kno
-APXS		= @APXS@ -S LIBEXECDIR=$(DESTDIR)@apache_modules_dir@
-PPROF_PATH      = @GOOGLE_PPROF@
-CLEAN		= @CLEAN@
-ECHO		= @ECHO@
-MSG		= @MSG@
-SUINSTALL	= @SUINSTALL@
-SYSINSTALL	= @SUINSTALL@@INSTALL@
-SUDO	        = @SUDO@
-INSTALL		= @INSTALL@
-MKSTATIC	= @MKSTATIC@ -o 
-CODENAME	= @CODENAME@
-RELSTATUS	= @RELSTATUS@
-DISTRIBUTION	= $(cat etc/distribution)
-MKSO		= $(CC) -shared @GCOV_CFLAGS@ $(LDFLAGS)
-MACLIBTOOL	= $(CC) -dynamiclib -single_module -undefined dynamic_lookup \
+DESTDIR	  	  =
+PACKAGE		  = kno
+prefix		  = @prefix@
+exec_prefix	  = @exec_prefix@
+datarootdir	  = @datarootdir@
+datadir		  = @datadir@
+INCINSTALLDIR	  = $(DESTDIR)@prefix@/include/kno
+LIBINSTALLDIR	  = $(DESTDIR)@libdir@
+BININSTALLDIR	  = $(DESTDIR)@exec_prefix@/bin
+LOCALEDIR	  = $(DESTDIR)@exec_prefix@/share/locale
+DATADIR		  = $(DESTDIR)@datadir@/kno/data
+MANDIR		  = $(DESTDIR)@mandir@
+DOCDIR		  = $(DESTDIR)@docdir@
+CMODULES	  = ${LIBINSTALLDIR}/kno
+APXS		  = @APXS@ -S LIBEXECDIR=$(DESTDIR)@apache_modules_dir@
+PPROF_PATH        = @GOOGLE_PPROF@
+CLEAN		  = @CLEAN@
+ECHO		  = @ECHO@
+MSG		  = @MSG@
+SUINSTALL	  = @SUINSTALL@
+SYSINSTALL	  = @SUINSTALL@@INSTALL@
+SUDO	          = @SUDO@
+INSTALL		  = @INSTALL@
+MKSTATIC	  = @MKSTATIC@ -o 
+CODENAME	  = @CODENAME@
+RELSTATUS	  = @RELSTATUS@
+DISTRIBUTION	  = $(cat etc/distribution)
+MKSO		  = $(CC) -shared @GCOV_CFLAGS@ $(LDFLAGS)
+MACLIBTOOL	  = $(CC) -dynamiclib -single_module -undefined dynamic_lookup \
 			$(LDFLAGS)
-BUILD		= `pwd`
-BUILDMODE       := `cat .buildmode || echo none`
-LINKEDWITH      := `cat .malloc || echo standard libraries`
-DEBUG_KNOCGI    = 0
-RPMFLAGS	= @RPMFLAGS@
-RPMDIR		= @RPMDIR@
-GPG		= @GPG@
-GPGID		= @GPGID@
-RPMGPG		= %__gpg gpg --force-v3-sigs --digest-algo=sha1 -u \"%{_gpg_name}\" --no-armor --no-secmem-warning -sbo %{__signature_filename} %{__plaintext_filename}
-APTREPO		= @APTREPO@
-KNOVERSION	= @KNO_VERSION@
-DEBNAME		:= $(shell etc/dpkgname kno)
-APTVERSION	:= $(shell etc/aptversion kno)
-REVISION	:= $(shell etc/gitrev)
-GITBRANCH	:= $(shell etc/gitbranch)
-PATCHLEVEL	:= $(shell etc/getpatchlevel)
-DPKGNAME	:= kno-@KNO_MAJOR@.@KNO_MINOR@.$(shell etc/getpatchlevel)
-LIBSCM	 	:= @LIBSCM@
+
+KNOVERSION	  = @KNO_VERSION@
+LIBSCM	 	  = @LIBSCM@
+BUILD		  = `pwd`
+DEBUG_KNOCGI      = 0
+RPMFLAGS	  = @RPMFLAGS@
+RPMDIR		  = @RPMDIR@
+GPG		  = @GPG@
+GPGID		  = @GPGID@
+RPMGPG		  = %__gpg gpg --force-v3-sigs --digest-algo=sha1 -u \"%{_gpg_name}\" --no-armor --no-secmem-warning -sbo %{__signature_filename} %{__plaintext_filename}
+
+BUILDMODE       ::= $(cat .buildmode || echo none)
+LINKEDWITH      ::= $(cat .malloc || echo standard libraries)
+APKREPO	        ::= $(shell ./etc/getbuildopt APKREPO /srv/repo/kno/apk)
+DEBNAME		::= $(shell ./etc/dpkgname kno)
+APTVERSION	::= $(shell ./etc/aptversion kno)
+REVISION	::= $(shell ./etc/gitrev)
+GITBRANCH	::= $(shell ./etc/gitbranch)
+PATCHLEVEL	::= $(shell ./etc/getpatchlevel)
+DPKGNAME	::= kno-@KNO_MAJOR@.@KNO_MINOR@.$(shell ./etc/getpatchlevel)
+ARCH            ::= $(shell /bin/arch)
+APK_ARCH_DIR	::= ${APKREPO}/staging/${ARCH}
+
 LISP_HEADERS=\
  include/kno/knosource.h                        \
  include/kno/config.h                           \
@@ -292,7 +303,7 @@ SHELL_SCRIPTS=etc/knosetconfig etc/knogetconfig etc/knoconfig \
 	etc/knosignal etc/knoinject etc/knostatus etc/knolog  \
 	etc/knorestart etc/knoctl etc/knogdb etc/knodbgexec \
 	etc/knocleanup etc/knojob \
-	etc/knomod
+	etc/knobuild
 SCHEME_SCRIPTS=exe/scripts/pack-pool exe/scripts/pack-index \
 	       exe/scripts/merge-indexes exe/scripts/knopkg
 
@@ -809,24 +820,27 @@ uninstall: uninstall-core
 
 # Utility targets
 
-TAGS: makefile.in configure.ac include/kno/config.h.in		\
+TAGS: makefile.in configure.ac include/kno/config.h.in			\
 		tests/lisp/*.c tests/storage/*.c  			\
 		src/exe/*.c src/exe/*.h include/kno/*.h 		\
-		src/lisp/*.c src/sys/*.c src/apply/*.c		\
+		src/lisp/*.c src/sys/*.c src/apply/*.c			\
 		src/storage/*.c src/drivers/*.c 			\
 		src/eval/*.c src/prims/*.c     				\
 		src/text/*.c src/web/*.c 				\
 		src/cmodules/*.c 					\
-		src/libscm/*.scm src/libscm/*/*.scm			\
+		src/libscm/*.scm src/libscm/*/*.scm 			\
+		src/scripts/*.scm					\
 		include/kno/components/*.h				\
-		etc/*.in ${SRC_HEADERS} 				\
-		dbg/.gdbinit.in tests/*.scm 
+		etc/*.in src/extmods/*.in 				\
+		dbg/.gdbinit.in tests/*.scm 				\
+		${SRC_HEADERS}
 	@echo Building TAGS file
 	@etags makefile.in configure.ac 		\
-		include/kno/config.h.in     	\
-		include/kno/knosource.h.in     	\
+		include/kno/config.h.in     		\
+		include/kno/knosource.h.in     		\
 	        tests/*/*.in tests/*.in dbg/*.in 	\
-		etc/*.in etc/*/*.in include/kno/*.h 		\
+		etc/*.in etc/*/*.in include/kno/*.h	\
+		src/extmods/*.in src/extmods/*/makefile	\
 		include/kno/components/*.h		\
 		${SRC_HEADERS};
 	@etags -o TAGS -a src/exe/*.c src/exe/*.h 
@@ -838,6 +852,7 @@ TAGS: makefile.in configure.ac include/kno/config.h.in		\
 	@etags -o TAGS -a tests/lisp/*.c tests/storage/*.c tests/*.scm;
 	@etags -o TAGS -a src/cmodules/*.c;
 	@etags -o TAGS -a src/scripts/*.scm;
+	@etags -o TAGS -a src/extmods/*/makefile
 	@find src/libscm/ -name "*.scm" -type f | xargs etags -a -o TAGS;
 
 CTAGS: makefile.in configure.ac include/kno/config.h.in	\
@@ -1300,30 +1315,6 @@ install-debian install-debs debinstall installdebs: dist/debs.done
 	@cd dist; @SUDO@ dpkg -i kno*@KNO_VERSION@*.deb \
 		elpa-knoc*@KNO_VERSION@*.deb
 
-update-local-apt-repo: dist/debs.done
-	for change in dist/*.changes; do \
-	  @APTLY@ repo include $${change} && \
-	  rm -f $${change}; \
-	done
-
-update-remote-apt-repo: dist/debs.done
-	cd dist; for change in *.changes; do \
-	  dupload -c ./dupload.conf --nomail --to ${CODENAME} $${change} && \
-	  rm -f $${change}; \
-	done
-
-update-apt update-apt-repo: dist/debs.done
-	if test -d ${APTREPO}; then	\
-	  make update-local-apt-repo;	\
-	else				\
-	  make update-remote-apt-repo;	\
-	fi;
-
-apt-upload upload-apt upload-deb: update-remote-apt-repo
-
-.PHONY: apt-upload upload-apt upload-deb
-.PHONY: update-apt-repo update-remote-apt-repo update-local-apt-repo
-
 # Installation targets
 
 install-status:
@@ -1720,9 +1711,6 @@ macports-build-setup:
 dist/alpine/APKBUILD: dist/alpine/APKBUILD.in
 	./config.status
 
-@APKREPO@/dist/x86_64:
-	@@INSTALL@ -d $@
-
 staging/alpine:
 	@@INSTALL@ -d $@
 
@@ -1748,12 +1736,13 @@ staging/alpine/kno-@KNO_VERSION@.tar: staging/alpine
 
 
 dist/alpine.done: dist/alpine/APKBUILD include/kno/revision.h makefile \
-	staging/alpine/kno-@KNO_VERSION@.tar staging/alpine/APKBUILD \
-	@APKREPO@/dist/x86_64
+	staging/alpine/kno-@KNO_VERSION@.tar staging/alpine/APKBUILD
+	if test ! -d ${APK_ARCH_DIR}; then \
+	  mkdir -p ${APK_ARCH_DIR}; fi;
 	cd staging/alpine; \
-		abuild -P @APKREPO@ clean cleancache cleanpkg && \
+		abuild -P ${APKREPO} clean cleancache cleanpkg && \
 		abuild checksum && \
-		abuild -P @APKREPO@ && \
+		abuild -P ${APKREPO} && \
 		touch ../../$@
 
 alpine: dist/alpine.done

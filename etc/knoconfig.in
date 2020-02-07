@@ -40,8 +40,6 @@ usage() {
 	echo "\t"daemons "\t\t\t(Where Kno daemon control files are stored)";
 	echo "\t"share "\t\t\t\t(Where shared kno configuration information is stored)";
 	echo "\t"data "\t\t\t\t(Where Kno persistent application data are stored)";
-	echo "\t"apkrepo "\t\t\t\t(Where APK packages should be written)";
-	echo "\t"aptrepo "\t\t\t\t(Where APT packages should be written)";
 	echo "\t"branch "\t\t\t\t(The KNO source branch for this build)";
 	echo "\t"patchlevel "\t\t\t\t(The KNO patch level for this build)";
 	echo "\t"gitbranch "\t\t\t\t(The git branch for the current source directory (cwd))";
@@ -79,10 +77,6 @@ case ${option} in
 	echo "@shared_config@";;
     cflags)
 	echo "@CFLAGS@";;
-    aptrepo)
-        echo "@APTREPO@";;
-    apkrepo)
-        echo "@APKREPO@";;
     ldflags)
 	echo "@LDFLAGS@ @PTHREAD_LIBS@ ${XLDFLAGS}";;
     include)

@@ -136,8 +136,6 @@ RPMDIR=${RPMDIR:-dist}
 RPMFLAGS=${RPMFLAGS:-}
 APTLY=
 APTLY_FLAGS=
-APTREPO=${APTREPO:-/srv/repo/apt}
-APKREPO=${APKREPO:-/srv/repo/apk}
 PKGCONFIG_DIR=
 GPG=`which gpg2 || which gpg || gpg`
 GPGID=${GPGID:-FE1BC737F9F323D732AA26330620266BE5AFF294}
@@ -147,6 +145,7 @@ TAGS="TAGS SCHEMETAGS"
 LIBSCM="\${REVISION}"
 default_source_dir="\$prefix/src"
 default_config_dir="\$prefix/etc/kno"
+default_buildopts_dir="\$prefix/etc/beingmeta/opts"
 local_config="\$prefix/etc/kno"
 shared_config="\$prefix/etc/kno"
 rundir=$localstatedir/run
@@ -264,6 +263,7 @@ AC_SUBST(installed_module_dir)
 AC_SUBST(local_module_dir)
 AC_SUBST(default_module_path)
 AC_SUBST(config_dir)
+AC_SUBST(buildopts_dir)
 AC_SUBST(local_config)
 AC_SUBST(shared_config)
 AC_SUBST(data_dir)
@@ -397,13 +397,9 @@ AC_SUBST(PYTHON3_LDFLAGS)
 AC_ARG_VAR(RPMDIR,"Location for writing built RPMs")
 AC_ARG_VAR(RPMFLAGS,"Default flags for building RPMs")
 AC_ARG_VAR(GPG,"GPG executable")
-AC_ARG_VAR(APTREPO,"Location of the APT repository")
-AC_ARG_VAR(APKREPO,"Location of the Alpine APK repository")
 AC_SUBST(RPMDIR)
 AC_SUBST(RPMFLAGS)
 AC_SUBST(GPGID)
-AC_SUBST(APTREPO)
-AC_SUBST(APKREPO)
 AC_SUBST(GITBRANCH)
 AC_SUBST(PKGCONFIG_DIR)
 AC_SUBST(GPG)
@@ -1273,12 +1269,17 @@ data_dir=$with_data_dir
 
 if test $prefix == "/usr"; then
    default_config_dir=/etc/kno;
+   default_buildopts_dir=/etc/beingmeta/opts;
 else
    default_config_dir=$prefix/etc/kno;
+   default_buildopts_dir=$prefix/etc/beingmeta/opts;
 fi
 
 AC_ARG_WITH(config_dir,--with-config-dir location,,with_config_dir=$default_config_dir)
 config_dir=$with_config_dir
+
+AC_ARG_WITH(buildopts,--with-buildopts-dir location used by getbuildopt,,with_buildopts_dir=$default_buildopts_dir)
+buildopts_dir=$with_buildopts_dir
 
 AC_ARG_WITH(local_config,--with-local-config location,,with_local_config=$config_dir/config)
 local_config=$with_local_config
@@ -1806,7 +1807,8 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   dbg/runenv.sh dbg/.gdbinit dbg/.lldbinit dbg/.valgrind
 	   tests/lisp/.gdbinit tests/storage/.gdbinit
 	   etc/kno.pc
-	   etc/knomod
+	   etc/getbuildopt
+	   etc/knobuild
 	   etc/kno_start_servlets etc/kno_start_daemons etc/kno_stop_jobs
 	   etc/knostart etc/knostop etc/knostartall etc/knostopall etc/knocleanup
 	   etc/knosignal etc/knoinject etc/knostatus etc/knolog 
@@ -1837,7 +1839,7 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   etc/install-script 
 	   dist/alpine/APKBUILD
 	   dist/kno-4.3.spec],
-	   [chmod a+x etc/kno* tests/*test src/extmods/knoconfig])
+	   [chmod a+x etc/kno* tests/*test etc/getbuildopt src/extmods/knoconfig])
 
 if test ! -z "$gperftools"; then
    echo  "Built with malloc=$using_malloc, gperftools=${gperftools}";
