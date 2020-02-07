@@ -544,6 +544,9 @@ KNO_EXPORT void kno_init_build_info()
 #ifdef KNO_PATCH_LEVEL
   config_int(KNO_PATCH_LEVEL);
 #endif
+#ifdef KNO_BRANCH
+  config_int(KNO_BRANCH);
+#endif
 
 
 #ifdef KNO_ENABLE_LOCKFREE
