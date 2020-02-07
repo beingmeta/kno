@@ -545,7 +545,7 @@ KNO_EXPORT void kno_init_build_info()
   config_int(KNO_PATCH_LEVEL);
 #endif
 #ifdef KNO_BRANCH
-  config_int(KNO_BRANCH);
+  config_string(KNO_BRANCH);
 #endif
 
 
