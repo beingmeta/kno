@@ -13974,6 +13974,7 @@ if test ! -z "$gperftools"; then
 else
    echo "Built with malloc=$using_malloc";
 fi;
+echo "Patch level is ${KNO_PATCHLEVEL}";
 echo $using_malloc > ./.malloc;
 if test ! -z "$manually_disabled"; then
    echo "+++ These components have been explicitly disabled: $manually_disabled"; fi
