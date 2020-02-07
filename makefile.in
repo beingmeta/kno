@@ -93,7 +93,7 @@ REVISION	::= $(shell ./etc/gitrev)
 GITBRANCH	::= $(shell ./etc/gitbranch)
 PATCHLEVEL	::= $(shell ./etc/getpatchlevel)
 DPKGNAME	::= kno-@KNO_MAJOR@.@KNO_MINOR@.$(shell ./etc/getpatchlevel)
-ARCH            ::= $(shell /bin/arch)
+ARCH            ::= $(shell ./etc/getbuildopt BUILD_ARCH || uname -m)
 APK_ARCH_DIR	::= ${APKREPO}/staging/${ARCH}
 
 LISP_HEADERS=\

@@ -29,4 +29,7 @@ elif printenv ${env_name} 2>&1 > /dev/null; then
     printenv ${env_name};
 elif [ $# -gt 1 ]; then
     echo $dflt;
+else
+    return 1;
 fi;
+return 0;
