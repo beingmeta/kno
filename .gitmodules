@@ -43,3 +43,6 @@
 [submodule "src/extmods/rocksdb"]
 	path = src/extmods/rocksdb
 	url = git@github.com:beingmeta/kno-rocksdb.git
+[submodule "src/extmods/leveldb"]
+	path = src/extmods/leveldb
+	url = git@github.com:beingmeta/kno-leveldb.git
