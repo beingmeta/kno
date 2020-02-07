@@ -1,0 +1,29 @@
+#!/bin/sh
+ALLDIRS="hyphenate imagetools mongodb mysql odbc sundown tidy zeromq ziptools"
+DIRS=
+ARGS=
+if [ $# = 1 ]; then
+    if [ -d $1 ]; then
+	DIRS=$1;
+	ARGS=;
+    else
+	DIRS=${ALLDIRS};
+	ARGS=$*;
+    fi;
+else while [ $# -gt 0 ]; do
+	 if [ -d $1 ]; then
+	     DIRS="${DIRS} $1";
+	 else
+	     ARGS="${ARGS} $1";
+	 fi;
+	 shift; done;
+fi;
+if [ -z "$DIRS" ]; then
+    DIRS=${ALLDIRS};
+fi;
+for dir in ${DIRS}; do
+    if [ ! -f ${dir}.skip ]; then
+	echo "Executing in ${dir}";
+	cd ${dir}; (${ARGS} || echo "Command failed in ${dir}"); cd ..;
+    fi;
+done
