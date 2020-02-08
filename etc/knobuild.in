@@ -32,80 +32,124 @@ debchangelog_usage() {
     echo "   ./etc/release";
 }
 
+get_git_branch() {
+    branch=$(git branch | \
+		 grep "^ *[*-+0123456789][0123456789]*" | \
+		 sed -e 's/^ *[*-+0123456789][0123456789]* *//')
+    if [ -z $branch ]; then return 1; fi
+    echo $branch;
+    return 0;
+}
+get_git_version() {
+    STRIP_PACKAGE=$1
+    version=$(git describe | \
+		  sed -e "s/-g[0123456789ABCDEFabcdef]*$//" | \
+		  sed -e "s/^${STRIP_PACKAGE}-//")
+    if [ -z $version ]; then return 1; fi
+    echo $version;
+    return 0;
+}
+
+debchangelog_head() {
+    PKGNAME=${1:-kno};
+    CODENAME=${2:-debian};
+    BRANCH=$3;
+    STATUS=${4:-stable};
+    URGENCY=${5:-medium};
+    DATE=`date -R`;
+    gitid=$(git describe);
+    version=$(get_git_version ${PKGNAME});
+    if [ -z ${BRANCH} ] || [ ${BRANCH} = "current" ]; then
+	BRANCH=$(get_git_branch);
+    fi;
+    if [ -z "${STATUS}" ] || 
+	   [ ${STATUS} = "stable" ] || 
+	   [ ${STATUS} = "default" ]; then
+	STATUS=
+    else
+	STATUS="-${STATUS}";
+    fi;
+    if [ -z "${BRANCH}" ] || \
+	   [ ${BRANCH} = "trunk" ] || \
+	   [ ${BRANCH} = "master" ] || \
+	   [ ${BRANCH} = "default" ]; then
+	DBRANCH=
+    else
+	DBRANCH="-${BRANCH}";
+    fi;
+    echo ${PKGNAME} \(${version}-${CODENAME}${DBRANCH}\) ${CODENAME}${DBRANCH}${STATUS}\; urgency=${URGENCY}
+    echo
+    if [ -z ${DBRANCH} ]; then
+	echo "  * ${gitid} point release of ${PKGNAME} for ${CODENAME} (${STATUS})"
+    else
+	echo "  * ${gitid} point release of ${PKGNAME} (branch ${BRANCH}) for ${CODENAME} (${STATUS})"
+    fi;
+    echo
+    echo " -- Repository Manager <repoman@beingmeta.com>  ${DATE}"
+    echo
+}
+
+getbuildopt() {
+    optname=$1
+    dflt=$2
+    env_name="${optname}_buildopt"
+    if [ -f ./.${optname} ]; then
+	cat ./.${optname};
+    elif [ -f ~/.opts/${optname} ]; then
+	cat ~/.opts/${optname};
+    elif [ -f @buildopts_dir@/${optname} ]; then
+	cat ~/.opts/${optname};
+    elif printenv ${env_name} 2>&1 > /dev/null; then
+	printenv ${env_name};
+    elif [ $# -gt 1 ]; then
+	echo $dflt;
+    else
+	return 1;
+    fi;
+    return 0;
+}
+
+show_help() {
+    if [ $# -lt 2 ]; then
+	usage;
+	exit;
+    else case $2 in
+	     getbuildopt)
+		 getbuildopt_usage;;
+	     debchangelog)
+		 debchangelog_usage;;
+	     help|usage)
+		 echo "Just leave off the second help";;
+	     default)
+		 echo "Unknown command $2";
+	 esac;
+    fi;
+}
+
 cmd=$1; shift;
 case $cmd in
     debchangelog)
-	PKGNAME=${1:-${PKG_NAME}};
-	DISTRO=${2:-debian};
-	STATUS=${3:-stable};
-	VERSION=$4;
-	if [ -z "${URGENCY}" ]; then URGENCY=medium; fi
-	URGENCY=${5:-medium};
-	DATE=`date -R`;
-	if [ ! -z "${VERSION}" ]; then
-	    version=${VERSION};
-	elif which git 2>&1 > /dev/null && git describe 2>&1 > /dev/null; then
-	    gitid=`git describe`;
-	    version=`git describe | sed -e "s/-g[0123456789ABCDEFabcdef]*$//" | sed -e "s/^${PKGNAME}-//"`;
-	elif [ ! -z "${USE_VERSION}" ]; then
-	    version="${USE_VERSION}";
-	elif [ -f etc/version ]; then
-	    version=$(cat etc/version);
-	elif [ -f etc/release ]; then
-	    version=$(knoconfig major).$(knoconfig minor).$(cat etc/release);
-	else
-	    version=$(knoconfig version);
-	fi;
-	if [ -z "${STATUS}" ] || [ ${STATUS} = "stable" ]; then
-	    echo ${PKGNAME} \(${version}\) ${DISTRO}\; urgency=${URGENCY}
-	else
-	    echo ${PKGNAME} \(${version}\) ${DISTRO}-${STATUS}\; urgency=${URGENCY}
-	fi;
-	echo
-	echo "  * ${gitid} point release of ${PKGNAME} for ${DISTRO} (${STATUS})"
-	echo
-	echo " -- Repository Manager <repoman@beingmeta.com>  ${DATE}"
-	echo
-	cat -
+	debchangelog_head $* && cat -
 	;;
     getbuildopt)
 	if [ $# -lt 1 ]; then
 	    getbuildopt_usage;
-	else
-	    optname=$1
-	    dflt=$2
-	    env_name="${optname}_buildopt"
-	    if [ -f ./.${optname} ]; then
-		cat ./.${optname};
-	    elif [ -f ~/.opts/${optname} ]; then
-		cat ~/.opts/${optname};
-	    elif [ -f @buildopts_dir@/${optname} ]; then
-		cat ~/.opts/${optname};
-	    elif printenv ${env_name} 2>&1 > /dev/null; then
-		printenv ${env_name};
-	    elif [ $# -gt 1 ]; then
-		echo $dflt;
-	    else
+	elif [ $# = 1 ]; then
+	    if getbuildopt $1; then
 		return 1;
+	    else return 0;
 	    fi;
+	elif [ $# = 2 ]; then
+	    if getbuildopt $1 $2; then
+		return 1;
+	    else return 0;
+	    fi;
+	else
+	    getbuildopt_usage;
 	fi;
-	return 0;
 	;;
     help|usage) 
-	if [ $# -lt 2 ]; then
-	    usage;
-	    exit;
-	else case $2 in
-		 getbuildopt)
-		     getbuildopt_usage;;
-		 debchangelog)
-		     debchangelog_usage;;
-		 help|usage)
-		     echo "Just leave off the second help";;
-		 default)
-		     echo "Unknown command $2";
-	     esac;
-	fi;;
+	show_help $*;;
     *)
 	usage;
 	exit;

@@ -68,8 +68,9 @@ SUDO	          = @SUDO@
 INSTALL		  = @INSTALL@
 MKSTATIC	  = @MKSTATIC@ -o 
 CODENAME	  = @CODENAME@
-RELSTATUS	  = @RELSTATUS@
-DISTRIBUTION	  = $(cat etc/distribution)
+REL_BRANCH      ::= $(shell ./etc/getbuildopt REL_BRANCH current)
+REL_STATUS      ::= $(shell ./etc/getbuildopt REL_STATUS stable)
+REL_PRIORITY    ::= $(shell ./etc/getbuildopt REL_PRIORITY medium)
 MKSO		  = $(CC) -shared @GCOV_CFLAGS@ $(LDFLAGS)
 MACLIBTOOL	  = $(CC) -dynamiclib -single_module -undefined dynamic_lookup \
 			$(LDFLAGS)
@@ -1219,8 +1220,10 @@ staging/kno_@KNO_VERSION@: include/kno/revision.h \
 	cp include/kno/revision.h staging/kno_@KNO_VERSION@/etc/revision.h;
 	cd staging; tar -czf $(DEBNAME).orig.tar.gz kno_@KNO_VERSION@;
 	mv staging/kno_@KNO_VERSION@/dist/debian staging/kno_@KNO_VERSION@/debian;
-	etc/gitchangelog kno ${CODENAME} ${STATUS} < dist/debian/changelog \
-	   > staging/kno_@KNO_VERSION@/debian/changelog;
+	etc/gitchangelog kno ${CODENAME} \
+		${REL_BRANCH} ${REL_STATUS} ${REL_PRIORITY} \
+			< dist/debian/changelog \
+			> staging/kno_@KNO_VERSION@/debian/changelog;
 staging/kno-@KNO_VERSION@.tar.gz: \
 	$(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
 	make -s staging/kno-@KNO_VERSION@
