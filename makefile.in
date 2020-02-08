@@ -1,4 +1,4 @@
-# -*- Mode: Makefile; -*-
+# -*- Mode: Makefile; -*-e
 # Copyright © 2004-2020 beingmeta, inc
 # This file is a part of beingmeta's Kno implementation
 
@@ -30,6 +30,8 @@ STATIC_LDFLAGS    = -L./lib @LDFLAGS@ $(EFENCE) @GCOV_LDFLAGS@ \
 		    @STATICLDFLAGS@ -L./lib
 TEST_LDFLAGS      = ${STATIC_LDFLAGS} @TESTLDFLAGS@
 TEST_EXEFLAGS     = @EXEFLAGS@
+LIBSOURCE	  = @LIBSOURCE@
+EXESOURCE	  = @EXESOURCE@
 XLIBS             =
 LIBS              = $(XLIBS) @LIBS@
 PATH              = @BINPATH@
@@ -292,8 +294,8 @@ CMODULE_OBJS=src/cmodules/sqlite.o  	\
 	     src/cmodules/libarchive.o 				\
 	     src/cmodules/testcapi.o
 
-EXECUTABLES=exe/knox@suffix@ exe/knoc@suffix@ exe/knotask@suffix@  \
-	    exe/knocgi@suffix@ exe/knod@suffix@
+EXECUTABLES=${EXESOURCE}/knox@suffix@ ${EXESOURCE}/knoc@suffix@ ${EXESOURCE}/knotask@suffix@  \
+	    ${EXESOURCE}/knocgi@suffix@ ${EXESOURCE}/knod@suffix@
 STATIC_EXECUTABLES=static/kno@suffix@ static/knoc@suffix@ \
 	static/knotask@suffix@ \
 	static/knocgi@suffix@ static/knod@suffix@
@@ -394,28 +396,28 @@ CMODULE_SOURCES=\
 	src/cmodules/gperftools.c			\
 	src/cmodules/crypto.c
 
-STATIC_LIBS=lib/libknocore@suffix@.a 	\
-	lib/libknostorage@suffix@.a	\
-        lib/libknodbserv@suffix@.a 	\
-	lib/libknodrivers@suffix@.a  	\
-	lib/libknoscheme@suffix@.a 	\
-	lib/libknowebtools@suffix@.a 		\
-	lib/libknotexttools@suffix@.a
+STATIC_LIBS=${LIBSOURCE}/libknocore@suffix@.a 	\
+	${LIBSOURCE}/libknostorage@suffix@.a	\
+        ${LIBSOURCE}/libknodbserv@suffix@.a 	\
+	${LIBSOURCE}/libknodrivers@suffix@.a  	\
+	${LIBSOURCE}/libknoscheme@suffix@.a 	\
+	${LIBSOURCE}/libknowebtools@suffix@.a 		\
+	${LIBSOURCE}/libknotexttools@suffix@.a
 
-SHARED_LIBS=lib/libknocore@suffix@.@shared_suffix@  		\
-	lib/libknostorage@suffix@.@shared_suffix@        	\
-        lib/libknodrivers@suffix@.@shared_suffix@    		\
-	lib/libknodbserv@suffix@.@shared_suffix@     		\
-	lib/libknoscheme@suffix@.@shared_suffix@    		\
-	lib/libknowebtools@suffix@.@shared_suffix@       		\
-	lib/libknotexttools@suffix@.@shared_suffix@		\
-	lib/libknocore@suffix@.@mshared_suffix@  		\
-	lib/libknostorage@suffix@.@mshared_suffix@        	\
-        lib/libknodrivers@suffix@.@mshared_suffix@    		\
-	lib/libknodbserv@suffix@.@mshared_suffix@     		\
-	lib/libknoscheme@suffix@.@mshared_suffix@    		\
-	lib/libknowebtools@suffix@.@mshared_suffix@       		\
-	lib/libknotexttools@suffix@.@mshared_suffix@
+SHARED_LIBS=${LIBSOURCE}/libknocore@suffix@.@shared_suffix@  		\
+	${LIBSOURCE}/libknostorage@suffix@.@shared_suffix@        	\
+        ${LIBSOURCE}/libknodrivers@suffix@.@shared_suffix@    		\
+	${LIBSOURCE}/libknodbserv@suffix@.@shared_suffix@     		\
+	${LIBSOURCE}/libknoscheme@suffix@.@shared_suffix@    		\
+	${LIBSOURCE}/libknowebtools@suffix@.@shared_suffix@       		\
+	${LIBSOURCE}/libknotexttools@suffix@.@shared_suffix@		\
+	${LIBSOURCE}/libknocore@suffix@.@mshared_suffix@  		\
+	${LIBSOURCE}/libknostorage@suffix@.@mshared_suffix@        	\
+        ${LIBSOURCE}/libknodrivers@suffix@.@mshared_suffix@    		\
+	${LIBSOURCE}/libknodbserv@suffix@.@mshared_suffix@     		\
+	${LIBSOURCE}/libknoscheme@suffix@.@mshared_suffix@    		\
+	${LIBSOURCE}/libknowebtools@suffix@.@mshared_suffix@       		\
+	${LIBSOURCE}/libknotexttools@suffix@.@mshared_suffix@
 
 STRIPPED_LIBS=lib/stripped/libknocore@suffix@.a 	\
 	lib/stripped/libknostorage@suffix@.a	\
@@ -677,16 +679,24 @@ lib/stripped/%: lib/%
 	@cp $< $@
 	@strip $@
 
+exe/stripped/%: exe/%
+	@cp $< $@
+	@strip $@
+
+static/stripped/%: static/%
+	@cp $< $@
+	@strip $@
+
 stripped: ${STRIPPED_LIBS}
 .PHONY: stripped
 
-$(LIBINSTALLDIR)/%.a: lib/%.a
+$(LIBINSTALLDIR)/%.a: ${LIBSOURCE}/%.a
 	@$(SYSINSTALL) @install_dir_opts@ $(LIBINSTALLDIR)
 	@$(SYSINSTALL) @install_file_opts@ $< $(LIBINSTALLDIR)
 	@$(MSG) INSTALL $@
 
-$(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@: lib/%@suffix@.@shared_suffix@
-	@echo Installing $@
+$(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@: ${LIBSOURCE}/%@suffix@.@shared_suffix@
+	@echo Installing $@ from $<
 	@$(SYSINSTALL) -d $(@D)
 	@$(SYSINSTALL) $< $@
 $(LIBINSTALLDIR)/%@suffix@.@mmshared_suffix@: $(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@
@@ -699,7 +709,7 @@ $(LIBINSTALLDIR)/%@suffix@.@shared_suffix@: $(LIBINSTALLDIR)/%@suffix@.@vshared_
 	@$(SUINSTALL) ln -sf $(*F).@vshared_suffix@ $@
 	@$(MSG)  Linking $@ to $(*F).@vshared_suffix@
 
-${CMODULES}/%@suffix@.@vshared_suffix@: lib/kno/%@suffix@.@shared_suffix@
+${CMODULES}/%@suffix@.@vshared_suffix@: ${LIBSOURCE}/kno/%@suffix@.@shared_suffix@
 	@echo Installing $@
 	@$(SYSINSTALL) -d $(@D)
 	@$(SYSINSTALL) $< $@
@@ -715,9 +725,11 @@ ${CMODULES}/%@suffix@.@shared_suffix@: ${CMODULES}/%@suffix@.@vshared_suffix@
 	@$(SUINSTALL) ln -sf $(*F).@vshared_suffix@ $@
 	@$(MSG) Linking $@ to $(*F).@vshared_suffix@
 
-$(BININSTALLDIR)/%: exe/%
-
 $(BININSTALLDIR)/%: src/scripts/%.scm
+	@$(MSG) Installing executable $@ from $<
+	@${SYSINSTALL} $@ $<
+
+$(BININSTALLDIR)/%: ${EXESOURCE}/%
 	@$(MSG) Installing script $@
 	@etc/install-script $<
 
@@ -1436,7 +1448,7 @@ install-data: \
 
 install-fastcgi: $(BININSTALLDIR)/knocgi@suffix@
 $(BININSTALLDIR)/knocgi@suffix@:
-	@$(SYSINSTALL) -p @install_exe_opts@ exe/knocgi@suffix@ $(BININSTALLDIR)
+	@$(SYSINSTALL) -p @install_exe_opts@ ${EXESOURCE}/knocgi@suffix@ $(BININSTALLDIR)
 
 install-cmodules: install-core-cmodules install-db-cmodules \
 			install-text-cmodules \
@@ -1553,7 +1565,7 @@ install-support: $(DESTDIR)@share_dir@
 	cd $(BUILD)/src/web; $(SYSINSTALL) @install_file_opts@ 	\
 		webinfo.knocgi $(DESTDIR)@share_dir@
 
-LIBSCM_DIRS=optimize bugjar bench knodb mongodb xhtml
+LIBSCM_DIRS=optimize bugjar bench knodb xhtml
 LIBSCM_DATA_DIRS=
 install-libscm:
 	@if [ ! -d ${DESTDIR}${LIBSCM} ]; then 						\
