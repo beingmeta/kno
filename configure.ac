@@ -528,7 +528,7 @@ if test $with_extra_sources != "none"; then
 fi
 
 AC_ARG_ENABLE(stripping,--enable-stripping strip libraries and executables before installing,,enable_stripping="no")
-if test $enable_stripping != "no"; then
+if test "$enable_stripping" != "no"; then
    LIBSOURCE=lib/stripped
    EXESOURCE=exe/stripped
 fi
