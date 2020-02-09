@@ -754,6 +754,7 @@ GITDESCRIBE
 MKSTATIC
 PROFILING
 VERSION
+STATICEXE
 EXESOURCE
 LIBSOURCE
 DEBVERSION
@@ -3017,6 +3018,7 @@ RPMVERSION=${KNO_RELEASE}
 DEBVERSION=${KNO_RELEASE}
 LIBSOURCE=lib
 EXESOURCE=exe
+STATICEXE=static
 mshared_suffix=so.${KNO_MAJOR}
 mmshared_suffix=so.${KNO_MAJOR}.${KNO_MINOR}
 vshared_suffix=so.${KNO_VERSION}
@@ -3180,6 +3182,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/kno/knosource.h include/kno/config.h"
+
 
 
 
@@ -5932,6 +5935,7 @@ fi
 if test "$enable_stripping" != "no"; then
    LIBSOURCE=lib/stripped
    EXESOURCE=exe/stripped
+   STATICEXE=static/stripped
 fi
 
 

@@ -97,6 +97,7 @@ RPMVERSION=${KNO_RELEASE}
 DEBVERSION=${KNO_RELEASE}
 LIBSOURCE=lib
 EXESOURCE=exe
+STATICEXE=static
 mshared_suffix=so.${KNO_MAJOR}
 mmshared_suffix=so.${KNO_MAJOR}.${KNO_MINOR}
 vshared_suffix=so.${KNO_VERSION}
@@ -338,6 +339,7 @@ AC_SUBST(RPMVERSION)
 AC_SUBST(DEBVERSION)
 AC_SUBST(LIBSOURCE)
 AC_SUBST(EXESOURCE)
+AC_SUBST(STATICEXE)
 AC_SUBST(VERSION)
 AC_SUBST(PROFILING)
 AC_SUBST(MKSTATIC)
@@ -531,6 +533,7 @@ AC_ARG_ENABLE(stripping,--enable-stripping strip libraries and executables befor
 if test "$enable_stripping" != "no"; then
    LIBSOURCE=lib/stripped
    EXESOURCE=exe/stripped
+   STATICEXE=static/stripped
 fi
 
 AC_ARG_WITH(optdir,--with-optdir Use optional header/lib,,with_optdir="/opt/local")

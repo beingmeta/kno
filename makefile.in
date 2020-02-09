@@ -32,6 +32,7 @@ TEST_LDFLAGS      = ${STATIC_LDFLAGS} @TESTLDFLAGS@
 TEST_EXEFLAGS     = @EXEFLAGS@
 LIBSOURCE	  = @LIBSOURCE@
 EXESOURCE	  = @EXESOURCE@
+STATICEXE	  = @STATICEXE@
 XLIBS             =
 LIBS              = $(XLIBS) @LIBS@
 PATH              = @BINPATH@
@@ -296,9 +297,9 @@ CMODULE_OBJS=src/cmodules/sqlite.o  	\
 
 EXECUTABLES=${EXESOURCE}/knox@suffix@ ${EXESOURCE}/knoc@suffix@ ${EXESOURCE}/knotask@suffix@  \
 	    ${EXESOURCE}/knocgi@suffix@ ${EXESOURCE}/knod@suffix@
-STATIC_EXECUTABLES=static/kno@suffix@ static/knoc@suffix@ \
-	static/knotask@suffix@ \
-	static/knocgi@suffix@ static/knod@suffix@
+STATIC_EXECUTABLES=${STATICEXE}/kno@suffix@ ${STATICEXE}/knoc@suffix@ \
+	${STATICEXE}/knotask@suffix@ \
+	${STATICEXE}/knocgi@suffix@ ${STATICEXE}/knod@suffix@
 DEBUG_EXECUTABLES=dbg/knox dbg/knoc dbg/knotask dbg/knocgi dbg/knod
 SHELL_SCRIPTS=etc/knosetconfig etc/knogetconfig etc/knoconfig \
 	etc/knostart etc/knostop etc/knostartall etc/knostopall \
@@ -396,7 +397,15 @@ CMODULE_SOURCES=\
 	src/cmodules/gperftools.c			\
 	src/cmodules/crypto.c
 
-STATIC_LIBS=${LIBSOURCE}/libknocore@suffix@.a 	\
+STATIC_LIBS=lib/libknocore@suffix@.a 	\
+	lib/libknostorage@suffix@.a	\
+        lib/libknodbserv@suffix@.a 	\
+	lib/libknodrivers@suffix@.a  	\
+	lib/libknoscheme@suffix@.a 	\
+	lib/libknowebtools@suffix@.a 		\
+	lib/libknotexttools@suffix@.a
+
+INSTALL_STATIC=${LIBSOURCE}/libknocore@suffix@.a 	\
 	${LIBSOURCE}/libknostorage@suffix@.a	\
         ${LIBSOURCE}/libknodbserv@suffix@.a 	\
 	${LIBSOURCE}/libknodrivers@suffix@.a  	\
@@ -404,19 +413,34 @@ STATIC_LIBS=${LIBSOURCE}/libknocore@suffix@.a 	\
 	${LIBSOURCE}/libknowebtools@suffix@.a 		\
 	${LIBSOURCE}/libknotexttools@suffix@.a
 
-SHARED_LIBS=${LIBSOURCE}/libknocore@suffix@.@shared_suffix@  		\
+SHARED_LIBS=lib/libknocore@suffix@.@shared_suffix@  		\
+	lib/libknostorage@suffix@.@shared_suffix@        	\
+        lib/libknodrivers@suffix@.@shared_suffix@    		\
+	lib/libknodbserv@suffix@.@shared_suffix@     		\
+	lib/libknoscheme@suffix@.@shared_suffix@    		\
+	lib/libknowebtools@suffix@.@shared_suffix@       		\
+	lib/libknotexttools@suffix@.@shared_suffix@		\
+	lib/libknocore@suffix@.@mshared_suffix@  		\
+	lib/libknostorage@suffix@.@mshared_suffix@        	\
+        lib/libknodrivers@suffix@.@mshared_suffix@    		\
+	lib/libknodbserv@suffix@.@mshared_suffix@     		\
+	lib/libknoscheme@suffix@.@mshared_suffix@    		\
+	lib/libknowebtools@suffix@.@mshared_suffix@       		\
+	lib/libknotexttools@suffix@.@mshared_suffix@
+
+INSTALL_SHARED=${LIBSOURCE}/libknocore@suffix@.@shared_suffix@		\
 	${LIBSOURCE}/libknostorage@suffix@.@shared_suffix@        	\
         ${LIBSOURCE}/libknodrivers@suffix@.@shared_suffix@    		\
 	${LIBSOURCE}/libknodbserv@suffix@.@shared_suffix@     		\
 	${LIBSOURCE}/libknoscheme@suffix@.@shared_suffix@    		\
-	${LIBSOURCE}/libknowebtools@suffix@.@shared_suffix@       		\
+	${LIBSOURCE}/libknowebtools@suffix@.@shared_suffix@		\
 	${LIBSOURCE}/libknotexttools@suffix@.@shared_suffix@		\
 	${LIBSOURCE}/libknocore@suffix@.@mshared_suffix@  		\
 	${LIBSOURCE}/libknostorage@suffix@.@mshared_suffix@        	\
         ${LIBSOURCE}/libknodrivers@suffix@.@mshared_suffix@    		\
 	${LIBSOURCE}/libknodbserv@suffix@.@mshared_suffix@     		\
 	${LIBSOURCE}/libknoscheme@suffix@.@mshared_suffix@    		\
-	${LIBSOURCE}/libknowebtools@suffix@.@mshared_suffix@       		\
+	${LIBSOURCE}/libknowebtools@suffix@.@mshared_suffix@		\
 	${LIBSOURCE}/libknotexttools@suffix@.@mshared_suffix@
 
 STRIPPED_LIBS=lib/stripped/libknocore@suffix@.a 	\
@@ -725,12 +749,12 @@ ${CMODULES}/%@suffix@.@shared_suffix@: ${CMODULES}/%@suffix@.@vshared_suffix@
 	@$(SUINSTALL) ln -sf $(*F).@vshared_suffix@ $@
 	@$(MSG) Linking $@ to $(*F).@vshared_suffix@
 
-$(BININSTALLDIR)/%: src/scripts/%.scm
-	@$(MSG) Installing executable $@ from $<
+$(BININSTALLDIR)/%: src/scripts/%
+	@$(MSG) Installing script $@ from $<
 	@${SYSINSTALL} $@ $<
 
-$(BININSTALLDIR)/%: ${EXESOURCE}/%
-	@$(MSG) Installing script $@
+$(BININSTALLDIR)/%: ${EXECSOURCE}/%
+	@$(MSG) Installing executable $@ from $<
 	@etc/install-script $<
 
 $(DESTDIR)@config_dir@/boot/%: etc/% $(DESTDIR)@config_dir@/boot
@@ -1344,10 +1368,13 @@ install: install-status install-core 			\
 	  echo "Installed" $(shell cat .buildmode) "build linked with" $(shell cat .malloc); \
 	fi;
 install-bin: install-static-libs install-shared-libs install-exe
+install-stripped:
+	make LIBSOURCE=lib/stripped EXECSOURCE=exe/stripped install-bin
 install-text: install-headers install-pkgconfig install-scripts install-support
-install-core: confdirs workdirs @INSTALLI18N@           \
-	 install-bin install-text install-data
-install-dev: install-headers install-pkgconfig install-static-libs
+install-dirs: confdirs workdirs
+install-core: install-dirs install-bin @INSTALLI18N@ install-text install-data
+install-dev:  install-headers install-pkgconfig install-static-libs
+install-etc:  confdirs workdirs install-text install-data @INSTALLI18N@
 
 $(INCINSTALLDIR):
 	@$(SYSINSTALL) @install_dir_opts@ $(INCINSTALLDIR)
@@ -1364,7 +1391,7 @@ $(DESTDIR)@local_config@ $(DESTDIR)@shared_config@:
 $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets $(DESTDIR)@config_dir@/config_files: $(DESTDIR)@config_dir@
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
 
-install-static-libs:  static-libs $(LIBINSTALLDIR)
+install-static-libs: static-libs $(LIBINSTALLDIR)
 	make $(LIBINSTALLDIR)/libknocore@suffix@.a        	\
 		$(LIBINSTALLDIR)/libknostorage@suffix@.a	\
 		$(LIBINSTALLDIR)/libknodrivers@suffix@.a   	\
@@ -1416,8 +1443,6 @@ install-pkgconfig: $(DESTDIR)@PKGCONFIG_DIR@
 $(DESTDIR)@PKGCONFIG_DIR@:
 	$(SYSINSTALL) -d $(DESTDIR)@PKGCONFIG_DIR@
 
-
-
 install-data: $(DATADIR)
 	@$(SYSINSTALL) @install_file_opts@ docs/misc/data.README \
 		$(DATADIR)/README
@@ -1448,7 +1473,7 @@ install-data: \
 
 install-fastcgi: $(BININSTALLDIR)/knocgi@suffix@
 $(BININSTALLDIR)/knocgi@suffix@:
-	@$(SYSINSTALL) -p @install_exe_opts@ ${EXESOURCE}/knocgi@suffix@ $(BININSTALLDIR)
+	@$(SYSINSTALL) -p @install_exe_opts@ knocgi@suffix@ $(BININSTALLDIR)
 
 install-cmodules: install-core-cmodules install-db-cmodules \
 			install-text-cmodules \
