@@ -4,6 +4,7 @@ usage (){
     echo "Usage: knobuild cmd args..., e.g.";
     echo "  debchangelog pkgname [distro] [status=stable] [version] < base_changelog";
     echo "  getbuildopt optname [default]";
+    echo "  dosubst file [pat1 replace1]....";
     echo "  help cmd";
 }
 
@@ -109,6 +110,54 @@ getbuildopt() {
     return 0;
 }
 
+dosubst() {
+    if [ $# -lt 1 ]; then
+	echo "Usage: dosubst file [pat1 replace1] ...";
+	return 1;
+    fi;
+    tmpfile=
+    file=$1; shift;
+    if [ ${file} = "-" ]; then
+	tmpfile=${TMPFILE:-dosubst.tmp};
+	cat > ${tmpfile};
+	file=${tmpfile}
+	stream=yes;
+    elif [ ! -f ${file} ]; then
+	echo "The file '${file}' does not exist";
+	return 1;
+    fi;
+    sepchar=${SEPCHAR:-|}
+    echo "file=${file} tmpfile=${tmpfile} sepchar=${sepchar}" > /tmp/log
+    while [ $# -gt 1 ]; do
+	pat=$1;
+	replace=$2;
+	expr="s${sepchar}${pat}${sepchar}${replace}${sepchar}"
+	echo "subst pat='${pat}' replace='${replace}' expr='${expr}'" >> /tmp/log
+	sed -i ${file} -e "${expr}";
+	shift; shift;
+    done;
+    if [ ! -z ${tmpfile} ]; then
+	cat ${tmpfile};
+	rm ${tmpfile};
+    fi;
+    return 0;
+}
+
+
+dosubst_help() {
+    echo "Usage: dosubst file [pat1 replace1] ...";
+    echo "  Replaces each of pat1 with replace1, in order, editing in place";
+    echo "  If *file* is a dash (-), it operates as a *pipe*, substituting ";
+    echo "    on the stdin and writing the results to stdout";
+    echo "  When operating as a pipe, the environment variable TMPFILE can specify "
+    echo "    the temporary file used for the actual editing.";
+    echo "  This uses `sed` to make the changes and uses '/' as the separating ";
+    echo "  character in the substitution expression. Providing another character in ";
+    echo "  the environment variable SEPCHAR allows the use of patterns and replacements ";
+    echo "  which contain the slash character.";
+}
+
+
 show_help() {
     if [ $# -lt 2 ]; then
 	usage;
@@ -118,6 +167,8 @@ show_help() {
 		 getbuildopt_usage;;
 	     debchangelog)
 		 debchangelog_usage;;
+	     dosubst)
+		 dosubst_usage;;
 	     help|usage)
 		 echo "Just leave off the second help";;
 	     default)
@@ -130,6 +181,9 @@ cmd=$1; shift;
 case $cmd in
     debchangelog)
 	debchangelog_head $* && cat -
+	;;
+    dosubst)
+	dosubst $*
 	;;
     getbuildopt)
 	if [ $# -lt 1 ]; then
