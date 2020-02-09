@@ -95,6 +95,8 @@ KNO_VERSION=${KNO_MAJOR}.${KNO_MINOR}.${KNO_RELEASE}
 VERSION=$KNO_VERSION
 RPMVERSION=${KNO_RELEASE}
 DEBVERSION=${KNO_RELEASE}
+LIBSOURCE=lib
+EXESOURCE=exe
 mshared_suffix=so.${KNO_MAJOR}
 mmshared_suffix=so.${KNO_MAJOR}.${KNO_MINOR}
 vshared_suffix=so.${KNO_VERSION}
@@ -334,6 +336,8 @@ AC_SUBST(KNO_RELEASE)
 AC_SUBST(KNO_PATCHLEVEL)
 AC_SUBST(RPMVERSION)
 AC_SUBST(DEBVERSION)
+AC_SUBST(LIBSOURCE)
+AC_SUBST(EXESOURCE)
 AC_SUBST(VERSION)
 AC_SUBST(PROFILING)
 AC_SUBST(MKSTATIC)
@@ -521,6 +525,12 @@ AC_ARG_WITH(sourcedir,--with-sourcedir source directory,source_dir=$withval,sour
 AC_ARG_WITH(extra_sources,--with-extra_sources Configure extra source directories for gdb,,with_extra_sources="none")
 if test $with_extra_sources != "none"; then
    extra_sources=${with_extra_sources};
+fi
+
+AC_ARG_ENABLE(stripping,--enable-stripping strip libraries and executables before installing,,enable_stripping="no")
+if test enable_stripping != "no"; then
+   LIBSOURCE=lib/stripped
+   EXESOURCE=exe/stripped
 fi
 
 AC_ARG_WITH(optdir,--with-optdir Use optional header/lib,,with_optdir="/opt/local")

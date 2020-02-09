@@ -754,6 +754,8 @@ GITDESCRIBE
 MKSTATIC
 PROFILING
 VERSION
+EXESOURCE
+LIBSOURCE
 DEBVERSION
 RPMVERSION
 KNO_PATCHLEVEL
@@ -915,6 +917,7 @@ with_optinclude
 with_optlib
 with_sourcedir
 with_extra_sources
+enable_stripping
 with_optdir
 with_extlib
 with_rpath
@@ -1618,6 +1621,7 @@ Optional Features:
   --disable-option-checking  ignore unrecognized --enable/--with options
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
+--enable-stripping strip libraries and executables before installing
   --enable-gcov           enable coverage testing with gcov
 --en/disable-ipeval Enable IPEVAL
 --en/disable-largefiles Enable use of large (> 2GB) file support
@@ -3011,6 +3015,8 @@ KNO_VERSION=${KNO_MAJOR}.${KNO_MINOR}.${KNO_RELEASE}
 VERSION=$KNO_VERSION
 RPMVERSION=${KNO_RELEASE}
 DEBVERSION=${KNO_RELEASE}
+LIBSOURCE=lib
+EXESOURCE=exe
 mshared_suffix=so.${KNO_MAJOR}
 mmshared_suffix=so.${KNO_MAJOR}.${KNO_MINOR}
 vshared_suffix=so.${KNO_VERSION}
@@ -3174,6 +3180,8 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/kno/knosource.h include/kno/config.h"
+
+
 
 
 
@@ -5912,6 +5920,18 @@ fi
 
 if test $with_extra_sources != "none"; then
    extra_sources=${with_extra_sources};
+fi
+
+# Check whether --enable-stripping was given.
+if test "${enable_stripping+set}" = set; then :
+  enableval=$enable_stripping;
+else
+  enable_stripping="no"
+fi
+
+if test enable_stripping != "no"; then
+   LIBSOURCE=lib/stripped
+   EXESOURCE=exe/stripped
 fi
 
 

@@ -127,8 +127,8 @@ fi;
 if [ ! -z "${OFFLINE}" ]; then
     echo "Initializing GIT submodules";
     git submodule init;
-    git submodule update;
-    cd src/stdlib; git submodule init; git submodule update
+    git submodule update --remote --merge src/stdlib;
+    git submodule update --remote --merge src/brico;
 fi;
 
 ./configure ${CONFIG_ARGS}

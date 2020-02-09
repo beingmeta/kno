@@ -34,7 +34,7 @@ usr/bin/knostopall
 usr/bin/knorestart
 usr/bin/knostatus
 usr/bin/knopkg
-usr/bin/knomod
+usr/bin/knobuild
 etc/kno/servers
 etc/kno/boot/*
 usr/share/kno/gdbinit
