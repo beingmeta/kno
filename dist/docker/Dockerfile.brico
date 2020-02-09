@@ -1,7 +1,6 @@
 FROM kno:full
 MAINTAINER repoman@beingmeta.com
-RUN apt-get -yqq update && apt-get -yqq full-upgrade && \
-    apt-get autoclean && apt-get clean
+RUN apk update; apk upgrade;
 COPY configs/brico /app/configs/brico
 WORKDIR /data
 ADD https://kno.s3.amazonaws.com/brico/latest/brico.tar.bz2 .

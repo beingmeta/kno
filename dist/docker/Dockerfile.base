@@ -1,23 +1,11 @@
-FROM ubuntu:18.04
+FROM alpine:3.10
 ENV TERM=linux
-RUN echo 'debconf debconf/frontend select Noninteractive' | \
-    	 debconf-set-selections
 MAINTAINER repoman@beingmeta.com
-RUN apt-get -yqq update && \
-    apt-get -yqq install \
-    	    apt-utils software-properties-common tzdata gnupg2 \
-	    zile httpie wget curl && \
-    apt-get -yqq full-upgrade
-COPY apt/*.list /etc/apt/sources.list.d/
-COPY apt/*.gpg /tmp/
-RUN apt-key add /tmp/*.gpg && rm /tmp/*.gpg && \
-    apt-get -yqq update && \
-    apt-get -yqq install libu8 libu8-encodings \
-    	    	 	 kno-core kno-stdlib kno-parseltongue \
-     	     	         kno-sqlite kno-leveldb kno-rocksdb \
-			 kno-mysql kno-mongo \
-			 kno-sundown kno-tidy \
-			 kno-zeromq
+RUN apk update && apk upgrade
+RUN echo https://kno.s3.amazonaws.com/repo/apk/alpine310 >> /etc/apk/repositories
+COPY apk/*.pub /etc/apk/keys
+RUN apk add less findutils findutils-doc gnupg bash
+RUN apk add libu8 kno kno-mongodb kno-nng
 RUN for dir in /app /data \
     	       /app/bin /app/configs /app/log /app/run /app/db /app/data \
 	       /app/kno /app/kno/config \
