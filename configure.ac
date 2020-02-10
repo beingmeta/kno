@@ -601,8 +601,6 @@ AC_CHECK_SIZEOF(long,4)
 AC_CHECK_SIZEOF(long long,8)
 AC_CHECK_SIZEOF(void *,8)
 AC_CHECK_SIZEOF(time_t,8)
-AC_CHECK_SIZEOF(off_t,8)
-AC_CHECK_SIZEOF(size_t,8)
 AC_CHECK_TYPES(uchar)
 
 case $host_os in
@@ -988,9 +986,16 @@ dnl Compile for access to large files, essentially defining off_t as 64 bits.
 AC_ARG_ENABLE(largefiles,--en/disable-largefiles Enable use of large (> 2GB) file support,,enable_largefiles=yes)
 if test $enable_largefiles = "yes"; then
   AC_DEFINE(KNO_LARGEFILES_ENABLED,1)
+  AC_SYS_LARGEFILE
+  AC_CHECK_SIZEOF(off_t)
+  AC_CHECK_SIZEOF(size_t)
 else
   AC_DEFINE(KNO_LARGEFILES_ENABLED,0)
+  AC_CHECK_SIZEOF(off_t)
+  AC_CHECK_SIZEOF(size_t)
+
 fi
+
 
 dnl This integrates the webtools module into executables by default; otherwise
 dnl  it is built and installed as a plugin library
@@ -1535,12 +1540,34 @@ fi
 
 AC_CHECK_HEADERS(stdatomic.h)
 
-AC_ARG_ENABLE(lockfree,--en/disable-lockfree Enables lock-free reference counting,,enable_lockfree="yes")
+# __atomic_XXX
+have_atomic_operations=no
+AC_MSG_CHECKING([whether CC supports builtin atomic intrinsics])
+if test -z "$cc_has_builtin_atomic_operations"; then
+	cc_has_builtin_atomic_operations=no
+	AC_TRY_LINK([],
+		    [int i;
+		     __atomic_load_n(&i, __ATOMIC_ACQUIRE);
+		     __atomic_exchange_n(&i, 0, __ATOMIC_RELEASE);
+		     ],
+		     [cc_has_builtin_atomic_operations=yes],
+		     [cc_has_builtin_atomic_operations=no])
+fi
+AC_MSG_RESULT($cc_has_builtin_atomic_operations)
+if test "$cc_has_builtin_atomic_operations" = "yes"; then
+	AC_DEFINE_UNQUOTED(HAVE_CC_BUILTINS_FOR_ATOMIC_OPERATIONS, 1,
+			   [have builtin atomic operations])
+        have_atomic_operations=yes;
+else
+	AC_CHECK_LIB(atomic,__atomic_load,have_atomic_operations="yes",have_atomic_operations="no")
+fi
+
+default_enable_lockfree=$have_atomic_operations;
+
+AC_ARG_ENABLE(lockfree,--en/disable-lockfree Enables lock-free reference counting,,enable_lockfree=$default_enable_lockfree)
 if test "$enable_lockfree" = "yes"; then
   AC_DEFINE(KNO_ENABLE_LOCKFREE,1)
-else
-  AC_DEFINE(KNO_ENABLE_LOCKFREE,0)
-fi
+fi;
 
 dnl ***********************************
 dnl *** Checks for working __thread ***
