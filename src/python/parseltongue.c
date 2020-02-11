@@ -291,7 +291,8 @@ static int unparse_python_object(u8_output out,lispval obj)
   struct KNO_PYTHON_OBJECT *pyo = (struct KNO_PYTHON_OBJECT *)obj;
   PyObject *as_string = PyObject_Repr(pyo->pyval);
   if (as_string == NULL) {
-    u8_printf(out,"#<PYTHON Weird #x%llx>",(unsigned long long) pyo->pyval);
+    u8_printf(out,"#<PYTHON Weird #x%llx>",
+	      (unsigned long long)((kno_ptrval)pyo->pyval));
     return 1;}
   PyObject *utf8 = PyUnicode_AsUTF8String(as_string);
   u8_string repr = PyBytes_AS_STRING(utf8);

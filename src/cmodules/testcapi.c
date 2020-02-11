@@ -102,7 +102,7 @@ static int  U8_MAYBE_UNUSED check_null
     u8_free_exception(ex,0);
     rv = 0;}
   else u8_log(LOG_ERROR,cxt,"Test failed to generate expected NULL error"
-	      "returned %llx",(unsigned long long)result);
+	      "returned %llx",(unsigned long long)((kno_ptrval)result));
   if ( (fn) && (result) )
     fn(result);
   return rv;
