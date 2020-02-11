@@ -5889,7 +5889,7 @@ else
   with_optinclude="none"
 fi
 
-if test $with_optinclude != "none"; then
+if test "$with_optinclude" != "none"; then
   CPPFLAGS="$CPPFLAGS -I$with_optinclude"
   CFLAGS="$CFLAGS -I$with_optinclude"
 fi
@@ -5902,7 +5902,7 @@ else
   with_optlib="none"
 fi
 
-if test $with_optlib != "none"; then
+if test "$with_optlib" != "none"; then
   LDFLAGS="$LDFLAGS -L$with_optlib"
 fi
 
@@ -5923,7 +5923,7 @@ else
   with_extra_sources="none"
 fi
 
-if test $with_extra_sources != "none"; then
+if test "$with_extra_sources" != "none"; then
    extra_sources=${with_extra_sources};
 fi
 
@@ -9050,7 +9050,7 @@ else
   with_admin_group=$default_admin_group
 fi
 
-if test $with_admin_group != "none"; then
+if test "$with_admin_group" != "none"; then
    if test "$chowning" = "yes"; then
      install_dir_opts="-g $with_admin_group -m 0775 $install_dir_opts"
      install_file_opts="-g $with_admin_group $install_file_opts"
@@ -9079,7 +9079,7 @@ else
   with_daemonid=$default_daemonid
 fi
 
-if test $with_daemonid != "none"; then
+if test "$with_daemonid" != "none"; then
    knouser=$with_daemonid
    if test "$chowning" = "yes"; then
      knouserinstall="-o $knouser";
@@ -10477,7 +10477,7 @@ _ACEOF
 fi
 done
 
-if test $libc_dlopen != "yes"; then
+if test "$libc_dlopen" != "yes"; then
    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for dlopen in -ldl" >&5
 $as_echo_n "checking for dlopen in -ldl... " >&6; }
 if ${ac_cv_lib_dl_dlopen+:} false; then :
@@ -11703,6 +11703,8 @@ if test "${enable_thread_debug}" != "no"; then
 
 fi
 
+default_enable_lockfree="yes";
+
 for ac_header in stdatomic.h
 do :
   ac_fn_c_check_header_mongrel "$LINENO" "stdatomic.h" "ac_cv_header_stdatomic_h" "$ac_includes_default"
@@ -11716,45 +11718,8 @@ fi
 done
 
 
-# __atomic_XXX
-have_atomic_operations=no
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether CC supports builtin atomic intrinsics" >&5
-$as_echo_n "checking whether CC supports builtin atomic intrinsics... " >&6; }
-if test -z "$cc_has_builtin_atomic_operations"; then
-	cc_has_builtin_atomic_operations=no
-	cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-int
-main ()
-{
-int i;
-		     __atomic_load_n(&i, __ATOMIC_ACQUIRE);
-		     __atomic_exchange_n(&i, 0, __ATOMIC_RELEASE);
-
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  cc_has_builtin_atomic_operations=yes
-else
-  cc_has_builtin_atomic_operations=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $cc_has_builtin_atomic_operations" >&5
-$as_echo "$cc_has_builtin_atomic_operations" >&6; }
-if test "$cc_has_builtin_atomic_operations" = "yes"; then
-
-cat >>confdefs.h <<_ACEOF
-#define HAVE_CC_BUILTINS_FOR_ATOMIC_OPERATIONS 1
-_ACEOF
-
-        have_atomic_operations=yes;
-else
-	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for __atomic_load in -latomic" >&5
+if test "$ac_cv_header_stdatomic_h" = "yes"; then
+   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for __atomic_load in -latomic" >&5
 $as_echo_n "checking for __atomic_load in -latomic... " >&6; }
 if ${ac_cv_lib_atomic___atomic_load+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -11791,14 +11756,17 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_atomic___atomic_load" >&5
 $as_echo "$ac_cv_lib_atomic___atomic_load" >&6; }
 if test "x$ac_cv_lib_atomic___atomic_load" = xyes; then :
-  have_atomic_operations="yes"
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBATOMIC 1
+_ACEOF
+
+  LIBS="-latomic $LIBS"
+
+fi
+
 else
-  have_atomic_operations="no"
-fi
-
-fi
-
-default_enable_lockfree=$have_atomic_operations;
+   default_enable_lockfree="no";
+fi;
 
 # Check whether --enable-lockfree was given.
 if test "${enable_lockfree+set}" = set; then :
@@ -12928,7 +12896,7 @@ else
 fi
 
 
-if test $with_bootsystem != "none"; then
+if test "$with_bootsystem" != "none"; then
   BOOTSETUP="setup-$with_bootsystem"
 fi
 

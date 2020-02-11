@@ -512,20 +512,20 @@ else enable_ipeval_default="no;
 fi
 
 AC_ARG_WITH(optinclude,--with-optinclude Use optional include directory,,with_optinclude="none")
-if test $with_optinclude != "none"; then
+if test "$with_optinclude" != "none"; then
   CPPFLAGS="$CPPFLAGS -I$with_optinclude"
   CFLAGS="$CFLAGS -I$with_optinclude"
 fi
 
 AC_ARG_WITH(optlib,--with-optlib Use optional library directory,,with_optlib="none")
-if test $with_optlib != "none"; then
+if test "$with_optlib" != "none"; then
   LDFLAGS="$LDFLAGS -L$with_optlib"
 fi
 
 AC_ARG_WITH(sourcedir,--with-sourcedir source directory,source_dir=$withval,source_dir=$prefix/src)
 
 AC_ARG_WITH(extra_sources,--with-extra_sources Configure extra source directories for gdb,,with_extra_sources="none")
-if test $with_extra_sources != "none"; then
+if test "$with_extra_sources" != "none"; then
    extra_sources=${with_extra_sources};
 fi
 
@@ -1045,7 +1045,7 @@ AC_CHECK_USER(default_webgroup,www apache httpd www-data _www)
 dnl Specifies an admin group; files written by installation scripts will be
 dnl owned by this group and the group will have full rwX access.
 AC_ARG_WITH(admin_group,--with-admin-group Install files with admin group and group write permissions,,with_admin_group=$default_admin_group)
-if test $with_admin_group != "none"; then
+if test "$with_admin_group" != "none"; then
    if test "$chowning" = "yes"; then
      install_dir_opts="-g $with_admin_group -m 0775 $install_dir_opts"
      install_file_opts="-g $with_admin_group $install_file_opts"
@@ -1065,7 +1065,7 @@ AC_DEFINE_UNQUOTED(KNO_ADMIN_GROUP,"$admin_group")
 
 dnl Specifies a daemon identity user/group for managed Kno servers
 AC_ARG_WITH(daemonid,--with-daemonid The identity (user) for Kno servers to run as,,with_daemonid=$default_daemonid)
-if test $with_daemonid != "none"; then
+if test "$with_daemonid" != "none"; then
    knouser=$with_daemonid
    if test "$chowning" = "yes"; then
      knouserinstall="-o $knouser";
@@ -1435,7 +1435,7 @@ AC_CHECK_LIB(z,compress2)
 
 # Ditto, though it's almost always there
 AC_CHECK_FUNCS(dlopen,libc_dlopen="yes")
-if test $libc_dlopen != "yes"; then
+if test "$libc_dlopen" != "yes"; then
    AC_CHECK_LIB(dl,dlopen)
 fi
 
@@ -1538,31 +1538,15 @@ if test "${enable_thread_debug}" != "no"; then
    AC_DEFINE(U8_THREAD_DEBUG,1)
 fi
 
+default_enable_lockfree="yes";
+
 AC_CHECK_HEADERS(stdatomic.h)
 
-# __atomic_XXX
-have_atomic_operations=no
-AC_MSG_CHECKING([whether CC supports builtin atomic intrinsics])
-if test -z "$cc_has_builtin_atomic_operations"; then
-	cc_has_builtin_atomic_operations=no
-	AC_TRY_LINK([],
-		    [int i;
-		     __atomic_load_n(&i, __ATOMIC_ACQUIRE);
-		     __atomic_exchange_n(&i, 0, __ATOMIC_RELEASE);
-		     ],
-		     [cc_has_builtin_atomic_operations=yes],
-		     [cc_has_builtin_atomic_operations=no])
-fi
-AC_MSG_RESULT($cc_has_builtin_atomic_operations)
-if test "$cc_has_builtin_atomic_operations" = "yes"; then
-	AC_DEFINE_UNQUOTED(HAVE_CC_BUILTINS_FOR_ATOMIC_OPERATIONS, 1,
-			   [have builtin atomic operations])
-        have_atomic_operations=yes;
+if test "$ac_cv_header_stdatomic_h" = "yes"; then
+   AC_CHECK_LIB(atomic,__atomic_load)
 else
-	AC_CHECK_LIB(atomic,__atomic_load,have_atomic_operations="yes",have_atomic_operations="no")
-fi
-
-default_enable_lockfree=$have_atomic_operations;
+   default_enable_lockfree="no";
+fi;
 
 AC_ARG_ENABLE(lockfree,--en/disable-lockfree Enables lock-free reference counting,,enable_lockfree=$default_enable_lockfree)
 if test "$enable_lockfree" = "yes"; then
@@ -1795,7 +1779,7 @@ fi
 
 AC_ARG_WITH(bootsystem,--with-bootsystem Setup boot method,,with_bootsystem=$default_bootsystem)
 
-if test $with_bootsystem != "none"; then
+if test "$with_bootsystem" != "none"; then
   BOOTSETUP="setup-$with_bootsystem"
 fi
 
