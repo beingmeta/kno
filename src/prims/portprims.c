@@ -31,6 +31,8 @@
 
 #include <zlib.h>
 
+KNO_EXPORT kno_compress_type kno_compression_type(lispval,kno_compress_type);
+
 static lispval refs_symbol, nrefs_symbol, lookup_symbol;
 static lispval xtrefs_typetag;
 
@@ -194,6 +196,9 @@ static lispval read_xtype(lispval packet,lispval opts)
   return object;
 }
 
+static lispval compress_xtype(kno_compress_type compression,
+			      kno_outbuf uncompressed);
+
 DEFPRIM2("emit-xtype",emit_xtype,MIN_ARGS(1),
 	 "`(emit-xtype *object* [*opts*])` returns "
 	 "a packet containing the XType representation of object. "
@@ -210,15 +215,58 @@ static lispval emit_xtype(lispval object,lispval opts)
     (KNO_RAWPTR_VALUE(refs_arg)) : (NULL);
   ssize_t bytes = kno_write_xtype(&out,object,refs);
   kno_decref(refs_arg);
-  if (bytes<0)
-    return KNO_ERROR;
-  else if ( (BUFIO_ALLOC(&out)) == KNO_HEAP_BUFFER )
-    return kno_init_packet(NULL,bytes,out.buffer);
-  else {
-    lispval packet = kno_make_packet
-      (NULL,out.bufwrite-out.buffer,out.buffer);
-    kno_close_outbuf(&out);
-    return packet;}
+  if (bytes<0) return KNO_ERROR;
+  kno_compress_type compression = kno_compression_type(opts,KNO_NOCOMPRESS);
+  if (compression == KNO_NOCOMPRESS) {
+    if ( (BUFIO_ALLOC(&out)) == KNO_HEAP_BUFFER )
+      return kno_init_packet(NULL,bytes,out.buffer);
+    else {
+      lispval packet = kno_make_packet
+	(NULL,out.bufwrite-out.buffer,out.buffer);
+      kno_close_outbuf(&out);
+      return packet;}}
+  else return compress_xtype(compression,&out);
+}
+
+static lispval compress_xtype(kno_compress_type compression,
+			      kno_outbuf uncompressed)
+{
+    int compression_code =
+      (compression == KNO_SNAPPY) ? (xt_snappy) :
+      (compression == KNO_ZLIB) ? (xt_zlib) :
+      (compression == KNO_ZLIB9) ? (xt_zlib) :
+      (compression == KNO_ZSTD) ? (xt_zstd) :
+      (compression == KNO_ZSTD9) ? (xt_zstd) :
+      (compression == KNO_ZSTD19) ? (xt_zstd) :
+      (-1);
+    if (compression_code < 0)
+      return kno_err("BadCompressionCode","emit_xtype",NULL,KNO_VOID);
+    ssize_t compressed_len = -1;
+    unsigned char *compressed =
+      kno_compress(compression,&compressed_len,
+		   uncompressed->buffer,
+		   uncompressed->bufwrite-uncompressed->buffer,
+		   NULL);
+    if (compressed == NULL) {
+      kno_close_outbuf(uncompressed);
+      return KNO_ERROR;}
+    else {
+      ssize_t output_len = 1+1+1+9+compressed_len;
+      lispval packet = kno_make_packet(NULL,output_len,NULL);
+      if (KNO_ABORTED(packet)) {
+	kno_close_outbuf(uncompressed);
+	return KNO_ERROR;}
+      struct KNO_STRING *str = (kno_string) packet;
+      unsigned char *data = (unsigned char *) str->str_bytes;
+      struct KNO_OUTBUF cmpout = { 0 };
+      KNO_INIT_OUTBUF(&cmpout,data,output_len,0);
+      kno_write_byte(&cmpout,xt_compressed);
+      kno_write_byte(&cmpout,compression_code);
+      kno_write_byte(&cmpout,xt_packet);
+      kno_write_varint(&cmpout,compressed_len);
+      kno_write_bytes(&cmpout,compressed,compressed_len);
+      str->str_bytelen = cmpout.bufwrite-cmpout.buffer;
+      return packet;}
 }
 
 static void recycle_xtype_refs(void *ptr);

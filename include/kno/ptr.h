@@ -871,7 +871,7 @@ KNO_EXPORT lispval KNOSYM_XTYPE;
 
 KNO_EXPORT lispval kno_timestamp_xtag,
   kno_rational_xtag, kno_complex_xtag, kno_regex_xtag,
-  kno_qchoice_xtag;
+  kno_qchoice_xtag, kno_bigtable_xtag;
 KNO_EXPORT lispval kno_zlib_xtag, kno_zstd_xtag, kno_snappy_xtag;
 
 /* Function IDs */
