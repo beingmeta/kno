@@ -8874,7 +8874,7 @@ fi
 if test "${enable_htmldump+set}" = set; then :
   enableval=$enable_htmldump;
 else
-  enable_htmldump="yes"
+  enable_htmldump="no"
 fi
 
 if test $enable_htmldump = "yes"; then
@@ -8883,6 +8883,9 @@ if test $enable_htmldump = "yes"; then
   xstatic_exe_libs="lib/libknowebtools${suffix}.a $xstatic_exe_libs"
   xstatic_scheme_libs=" ../../lib/libknowebtools${suffix}.a $xstatic_scheme_libs"
   $as_echo "#define KNO_HTMLDUMP_ENABLED 1" >>confdefs.h
+
+else
+  $as_echo "#define KNO_HTMLDUMP_ENABLED 0" >>confdefs.h
 
 fi
 

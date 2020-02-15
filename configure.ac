@@ -1002,13 +1002,15 @@ fi
 
 dnl This integrates the webtools module into executables by default; otherwise
 dnl  it is built and installed as a plugin library
-AC_ARG_ENABLE(htmldump,--en/disable-htmldump write HTML backtraces,,enable_htmldump="yes")
+AC_ARG_ENABLE(htmldump,--en/disable-htmldump write HTML backtraces,,enable_htmldump="no")
 if test $enable_htmldump = "yes"; then
   scheme_builtins_init="$scheme_builtins_init; kno_init_webtools()"
   xdynamic_scheme_libs="$xdynamic_scheme_libs -lknowebtools${suffix}"
   xstatic_exe_libs="lib/libknowebtools${suffix}.a $xstatic_exe_libs"
   xstatic_scheme_libs=" ../../lib/libknowebtools${suffix}.a $xstatic_scheme_libs"
   AC_DEFINE(KNO_HTMLDUMP_ENABLED,1)
+else
+  AC_DEFINE(KNO_HTMLDUMP_ENABLED,0)
 fi
 
 ### Object/index database prefetching

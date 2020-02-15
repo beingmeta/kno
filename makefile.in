@@ -638,7 +638,16 @@ exe/%@suffix@: src/exe/%.c ${CONFIG_HDRS}
 		-o $@ $<                                           	\
 		-lknodbserv@suffix@                 	 	   	\
 		@xdynamic_scheme_libs@                             	\
-		-lknowebtools@suffix@ -lknotexttools@suffix@ 		\
+		-lkno@suffix@ 					\
+	        -lu8stdio $(LIBS) $(EXELIBS)
+	@$(MSG) MKEXE $@ $<
+
+exe/knocgi@suffix@: src/exe/knocgi.c ${CONFIG_HDRS}
+	$(CC) $(CFLAGS) $(LDFLAGS) $(EXEFLAGS)                  	\
+		-o $@ $<                                           	\
+		-lknodbserv@suffix@                 	 	   	\
+		@xdynamic_scheme_libs@                             	\
+	        -lknowebtools \
 		-lkno@suffix@ 					\
 	        -lu8stdio $(LIBS) $(EXELIBS)
 	@$(MSG) MKEXE $@ $<
@@ -691,7 +700,7 @@ lib/%@suffix@.so.@KNO_MAJOR@: lib/%@suffix@.so
 	@ln -sf $(*F).so $@
 lib/%@suffix@.so:
 	@$(MKSO) -Wl,-soname=$(@F).@KNO_MAJOR@ -Wl,--as-needed -L./lib -L./ \
-		-o $@ $^ -lu8 $(MODLIBS)
+		-o $@ $^ -lu8 $(MODLIBS) $(XLIBS)
 	@ln -sf $(@F) $(@D)/$(@F).@KNO_MAJOR@
 	@echo MKSO $@
 lib/%@suffix@.@KNO_MAJOR@.dylib: lib/%@suffix@.dylib
@@ -777,7 +786,7 @@ dist/%.changelog: dist/equivs.changelog
 
 exe/knox@suffix@ exe/knotask@suffix@ exe/knoc@suffix@: \
 	$(STATIC_LIBS) $(SHARED_LIBS)
-exe/knocgi@suffix@ exe/knod@suffix@ exe/knocgi@suffix@: \
+exe/knocgi@suffix@ exe/knod@suffix@: \
 	$(STATIC_LIBS) $(SHARED_LIBS)
 exe/knocgi@suffix@ exe/knocgi@suffix@: src/exe/webcommon.h
 
