@@ -15,5 +15,5 @@ Name: kno
 Description: The KNO language and library
 Version: @VERSION@
 Requires: libu8
-Libs: -L${libdir} -lknocore -lknostorage -lknodrivers -lknoscheme
+Libs: -L${libdir} -lkno
 Cflags: -I${includedir}

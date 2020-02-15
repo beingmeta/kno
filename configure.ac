@@ -889,7 +889,10 @@ fi
 # libu8 configuration
 
 AC_CHECK_LIB(u8,u8_raise)
-AC_CHECK_LIB(u8io,u8_open_xinput)
+AC_CHECK_LIB(u8,u8_open_xinput)
+if test "$ac_cv_lib_u8_u8_open_xinput" != "yes"; then
+      AC_CHECK_LIB(u8io,u8_open_xinput)
+fi
 AC_CHECK_LIB(u8data,u8_init_chardata_c)
 dnl Check for cryptic in in libu8
 AC_CHECK_FUNCS(u8_cryptic,with_crypto_default="yes")

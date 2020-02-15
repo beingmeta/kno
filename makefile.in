@@ -42,9 +42,7 @@ INDENTOPTS        = -br -ce -psl -Tknodtype -Tu8_string \
 		    -Tkno_rawbuf -Tkno_function -Tkno_pair \
 		    -Tkno_choice
 GCOVR_FLAGS       = -e "./src/cmodules/" -e "./src/exe/" -e "./tests/storage/"
-PYLIBS            = -lknowebtools -lknotexttools -lknoscheme \
-		    -lknodrivers -lknostorage -lknocore \
-		    ${LIBS}
+PYLIBS            = -lknowebtools -lknotexttools -lkno ${LIBS}
 
 DESTDIR	  	  =
 PACKAGE		  = kno
@@ -397,38 +395,46 @@ CMODULE_SOURCES=\
 	src/cmodules/gperftools.c			\
 	src/cmodules/crypto.c
 
-STATIC_LIBS=lib/libknocore@suffix@.a 	\
+STATIC_LIBS=lib/libkno@suffix@.a 	\
+	lib/libknocore@suffix@.a 	\
 	lib/libknostorage@suffix@.a	\
         lib/libknodbserv@suffix@.a 	\
 	lib/libknodrivers@suffix@.a  	\
 	lib/libknoscheme@suffix@.a 	\
-	lib/libknowebtools@suffix@.a 		\
+	lib/libknowebtools@suffix@.a	\
 	lib/libknotexttools@suffix@.a
 
-INSTALL_STATIC=${LIBSOURCE}/libknocore@suffix@.a 	\
+LINK_STATIC_LIBS=lib/libkno@suffix@.a 	\
+	lib/libknowebtools@suffix@.a	\
+	lib/libknotexttools@suffix@.a
+
+INSTALL_STATIC=${LIBSOURCE}/libkno@suffix@.a 	\
+	${LIBSOURCE}/libknocore@suffix@.a 	\
 	${LIBSOURCE}/libknostorage@suffix@.a	\
         ${LIBSOURCE}/libknodbserv@suffix@.a 	\
 	${LIBSOURCE}/libknodrivers@suffix@.a  	\
 	${LIBSOURCE}/libknoscheme@suffix@.a 	\
-	${LIBSOURCE}/libknowebtools@suffix@.a 		\
+	${LIBSOURCE}/libknowebtools@suffix@.	\
 	${LIBSOURCE}/libknotexttools@suffix@.a
 
-SHARED_LIBS=lib/libknocore@suffix@.@shared_suffix@  		\
+SHARED_LIBS=lib/libkno@suffix@.@shared_suffix@  		\
+	lib/libknocore@suffix@.@shared_suffix@  		\
 	lib/libknostorage@suffix@.@shared_suffix@        	\
         lib/libknodrivers@suffix@.@shared_suffix@    		\
 	lib/libknodbserv@suffix@.@shared_suffix@     		\
 	lib/libknoscheme@suffix@.@shared_suffix@    		\
-	lib/libknowebtools@suffix@.@shared_suffix@       		\
+	lib/libknowebtools@suffix@.@shared_suffix@       	\
 	lib/libknotexttools@suffix@.@shared_suffix@		\
 	lib/libknocore@suffix@.@mshared_suffix@  		\
 	lib/libknostorage@suffix@.@mshared_suffix@        	\
         lib/libknodrivers@suffix@.@mshared_suffix@    		\
 	lib/libknodbserv@suffix@.@mshared_suffix@     		\
 	lib/libknoscheme@suffix@.@mshared_suffix@    		\
-	lib/libknowebtools@suffix@.@mshared_suffix@       		\
+	lib/libknowebtools@suffix@.@mshared_suffix@		\
 	lib/libknotexttools@suffix@.@mshared_suffix@
 
-INSTALL_SHARED=${LIBSOURCE}/libknocore@suffix@.@shared_suffix@		\
+INSTALL_SHARED=${LIBSOURCE}/libkno@suffix@.@shared_suffix@		\
+	${LIBSOURCE}/libknocore@suffix@.@shared_suffix@			\
 	${LIBSOURCE}/libknostorage@suffix@.@shared_suffix@        	\
         ${LIBSOURCE}/libknodrivers@suffix@.@shared_suffix@    		\
 	${LIBSOURCE}/libknodbserv@suffix@.@shared_suffix@     		\
@@ -443,26 +449,29 @@ INSTALL_SHARED=${LIBSOURCE}/libknocore@suffix@.@shared_suffix@		\
 	${LIBSOURCE}/libknowebtools@suffix@.@mshared_suffix@		\
 	${LIBSOURCE}/libknotexttools@suffix@.@mshared_suffix@
 
-STRIPPED_LIBS=lib/stripped/libknocore@suffix@.a 	\
-	lib/stripped/libknostorage@suffix@.a	\
-        lib/stripped/libknodbserv@suffix@.a 	\
-	lib/stripped/libknodrivers@suffix@.a  	\
-	lib/stripped/libknoscheme@suffix@.a 	\
-	lib/stripped/libknowebtools@suffix@.a 		\
-	lib/stripped/libknotexttools@suffix@.a \
-	lib/stripped/libknocore@suffix@.@shared_suffix@  		\
-	lib/stripped/libknostorage@suffix@.@shared_suffix@        	\
-        lib/stripped/libknodrivers@suffix@.@shared_suffix@    		\
-	lib/stripped/libknodbserv@suffix@.@shared_suffix@     		\
-	lib/stripped/libknoscheme@suffix@.@shared_suffix@    		\
-	lib/stripped/libknowebtools@suffix@.@shared_suffix@       		\
-	lib/stripped/libknotexttools@suffix@.@shared_suffix@		\
-	lib/stripped/libknocore@suffix@.@mshared_suffix@  		\
-	lib/stripped/libknostorage@suffix@.@mshared_suffix@        	\
-        lib/stripped/libknodrivers@suffix@.@mshared_suffix@    		\
-	lib/stripped/libknodbserv@suffix@.@mshared_suffix@     		\
-	lib/stripped/libknoscheme@suffix@.@mshared_suffix@    		\
-	lib/stripped/libknowebtools@suffix@.@mshared_suffix@       		\
+STRIPPED_LIBS=lib/stripped/libkno@suffix@.a 			\
+	lib/stripped/libknocore@suffix@.a 			\
+	lib/stripped/libknostorage@suffix@.a			\
+        lib/stripped/libknodbserv@suffix@.a 			\
+	lib/stripped/libknodrivers@suffix@.a  			\
+	lib/stripped/libknoscheme@suffix@.a 			\
+	lib/stripped/libknowebtools@suffix@.a 			\
+	lib/stripped/libknotexttools@suffix@.a 			\
+	lib/stripped/libkno@suffix@.@shared_suffix@		\
+	lib/stripped/libknocore@suffix@.@shared_suffix@		\
+	lib/stripped/libknostorage@suffix@.@shared_suffix@	\
+        lib/stripped/libknodrivers@suffix@.@shared_suffix@	\
+	lib/stripped/libknodbserv@suffix@.@shared_suffix@	\
+	lib/stripped/libknoscheme@suffix@.@shared_suffix@	\
+	lib/stripped/libknowebtools@suffix@.@shared_suffix@	\
+	lib/stripped/libknotexttools@suffix@.@shared_suffix@	\
+	lib/stripped/libkno@suffix@.@mshared_suffix@  		\
+	lib/stripped/libknocore@suffix@.@mshared_suffix@	\
+	lib/stripped/libknostorage@suffix@.@mshared_suffix@	\
+        lib/stripped/libknodrivers@suffix@.@mshared_suffix@	\
+	lib/stripped/libknodbserv@suffix@.@mshared_suffix@	\
+	lib/stripped/libknoscheme@suffix@.@mshared_suffix@	\
+	lib/stripped/libknowebtools@suffix@.@mshared_suffix@	\
 	lib/stripped/libknotexttools@suffix@.@mshared_suffix@
 
 SCHEME_MODULES=src/stdlib/*.scm \
@@ -478,10 +487,7 @@ SCHEME_MODULES=src/stdlib/*.scm \
 	src/brico/build/*.scm
 
 # These might be neccessary on MacOS
-CMODULE_DEPENDS=lib/libknocore@suffix@.@shared_suffix@	\
-	lib/libknostorage@suffix@.@shared_suffix@ 	\
-	lib/libknostorage@suffix@.@shared_suffix@ 	\
-	lib/libknoscheme@suffix@.@shared_suffix@
+CMODULE_DEPENDS=lib/libkno@suffix@.@shared_suffix@
 
 ALL=testbin exe cmodules @TAGS@
 
@@ -633,9 +639,7 @@ exe/%@suffix@: src/exe/%.c ${CONFIG_HDRS}
 		-lknodbserv@suffix@                 	 	   	\
 		@xdynamic_scheme_libs@                             	\
 		-lknowebtools@suffix@ -lknotexttools@suffix@ 		\
-		-lknoscheme@suffix@ 					\
-		-lknodrivers@suffix@ -lknostorage@suffix@ 		\
-		-lknocore@suffix@ 					\
+		-lkno@suffix@ 					\
 	        -lu8stdio $(LIBS) $(EXELIBS)
 	@$(MSG) MKEXE $@ $<
 
@@ -654,7 +658,7 @@ lib/kno/%.dylib: src/cmodules/%.o ${CMODULE_DEPENDS}
 lib/kno/%.@KNO_MAJOR@.dylib: lib/kno/%.dylib
 	@ln -sf $(*F).dylib $@
 
-dbg/%: src/exe/%.c $(STATIC_LIBS)
+dbg/%: src/exe/%.c $(LINK_STATIC_LIBS)
 	@echo MKEXE_DEBUG $@
 	$(CC) $(TEST_CFLAGS) -o $@ $^ 		\
 	      @STATICLDFLAGS@ $(TEST_LDFLAGS) $(TEST_EXEFLAGS) 	\
@@ -675,7 +679,7 @@ etc/%: etc/%.in ./config.status
 
 # We can selectively link some executables statically to avoid 
 # library dependencies with programs which will typically run as daemons
-static/%@suffix@: src/exe/%.c $(STATIC_LIBS) ${REVISION_H} ${CONFIG_H}
+static/%@suffix@: src/exe/%.c $(LINK_STATIC_LIBS) ${REVISION_H} ${CONFIG_H}
 	@echo MKEXE_STATIC $@
 	$(CC) $(STATIC_CFLAGS) -o $@ $^ $(STATIC_LDFLAGS) -lu8stdio -lu8syslog $(LIBS) $(EXELIBS)
 	@$(MSG) MKEXE_STATIC $@
@@ -826,7 +830,7 @@ dbg/knocgi.webuser: dbg/knocgi
 
 # Uninstall
 
-LIBBASE=libknocore libknostorage libknodrivers libknodbserv \
+LIBBASE=libkno libknocore libknostorage libknodrivers libknodbserv \
 	libknoscheme libknowebtools libknotexttools
 
 uninstall-core:
@@ -997,6 +1001,16 @@ src/eval/lambda.o : XCFLAGS="${XOPTFLAGS}"
 src/text/matcher.o src/text/texttools.o : XCFLAGS="${XOPTFLAGS}"
 
 # Library targets
+
+lib/libkno@suffix@.a: $(LISP_OBJS) $(SYS_OBJS) $(APPLY_OBJS) 	\
+	$(STORAGE_OBJS) $(DRIVER_OBJS) $(DBSERV_OBJS) 		\
+	 $(SCHEME_OBJS)
+lib/libkno@suffix@.so: $(LISP_OBJS) $(SYS_OBJS) $(APPLY_OBJS) 	\
+	$(STORAGE_OBJS) $(DRIVER_OBJS) $(DBSERV_OBJS) 	\
+	$(SCHEME_OBJS)
+lib/libkno@suffix@.dylib: $(LISP_OBJS) $(SYS_OBJS) $(APPLY_OBJS) \
+	$(STORAGE_OBJS) $(DRIVER_OBJS) $(DBSERV_OBJS) 		 \
+	$(SCHEME_OBJS)
 
 lib/libknocore@suffix@.a: $(LISP_OBJS) $(SYS_OBJS) $(APPLY_OBJS)
 lib/libknocore@suffix@.so: $(LISP_OBJS) $(SYS_OBJS) $(APPLY_OBJS)
@@ -1392,7 +1406,8 @@ $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets $(DESTDIR)@config
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
 
 install-static-libs: static-libs $(LIBINSTALLDIR)
-	make $(LIBINSTALLDIR)/libknocore@suffix@.a        	\
+	make $(LIBINSTALLDIR)/libkno@suffix@.a        		\
+		$(LIBINSTALLDIR)/libknocore@suffix@.a        	\
 		$(LIBINSTALLDIR)/libknostorage@suffix@.a	\
 		$(LIBINSTALLDIR)/libknodrivers@suffix@.a   	\
 		$(LIBINSTALLDIR)/libknodbserv@suffix@.a    	\
@@ -1400,6 +1415,10 @@ install-static-libs: static-libs $(LIBINSTALLDIR)
 		$(LIBINSTALLDIR)/libknowebtools@suffix@.a      	\
 		$(LIBINSTALLDIR)/libknotexttools@suffix@.a
 install-shared-libs: install-status shared-libs $(LIBINSTALLDIR)	\
+    $(LIBINSTALLDIR)/libkno@suffix@.@vshared_suffix@			\
+    $(LIBINSTALLDIR)/libkno@suffix@.@mmshared_suffix@			\
+    $(LIBINSTALLDIR)/libkno@suffix@.@mshared_suffix@			\
+    $(LIBINSTALLDIR)/libkno@suffix@.@shared_suffix@			\
     $(LIBINSTALLDIR)/libknocore@suffix@.@vshared_suffix@		\
     $(LIBINSTALLDIR)/libknocore@suffix@.@mmshared_suffix@		\
     $(LIBINSTALLDIR)/libknocore@suffix@.@mshared_suffix@		\
@@ -1981,7 +2000,7 @@ tests/gcovr/web.html: src/lisp/cons.gcda tests/gcovr
 	gcovr ${GCOVR_FLAGS} -r . -f src/text -f include \
 		--html --html-details -o $@
 
-src/lisp/cons.gcda: lib/libknocore.a
+src/lisp/cons.gcda: lib/libknocore.a lib/libkno.a
 	find . -name "*.gcda" -exec rm '{}' \;
 	cd tests; make libtests;
 

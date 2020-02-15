@@ -84,7 +84,7 @@ case ${option} in
     lib)
 	echo "@libdir@";;
     libs)
-	echo "@LIBS@ -lknocore -lknostorage -lknodrivers -lknoscheme";;
+	echo "@LIBS@ -lkno";;
     deplibs)
 	echo "@LIBS@";;
     bin)
