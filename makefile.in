@@ -700,7 +700,7 @@ lib/%@suffix@.so.@KNO_MAJOR@: lib/%@suffix@.so
 	@ln -sf $(*F).so $@
 lib/%@suffix@.so:
 	@$(MKSO) -Wl,-soname=$(@F).@KNO_MAJOR@ -Wl,--as-needed -L./lib -L./ \
-		-o $@ $^ -lu8 $(MODLIBS) $(XLIBS)
+		-o $@ $^ -lu8 $(MODLIBS) $(XLIBS) $(LIBS)
 	@ln -sf $(@F) $(@D)/$(@F).@KNO_MAJOR@
 	@echo MKSO $@
 lib/%@suffix@.@KNO_MAJOR@.dylib: lib/%@suffix@.dylib
