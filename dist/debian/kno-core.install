@@ -1,3 +1,4 @@
+usr/lib/libkno.so.*
 usr/lib/libknocore.so.*
 usr/lib/libknostorage.so.*
 usr/lib/libknodrivers.so.*

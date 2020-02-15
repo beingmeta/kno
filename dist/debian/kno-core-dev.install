@@ -1,3 +1,5 @@
+usr/lib/libkno.a
+usr/lib/libkno.so
 usr/lib/libknocore.a
 usr/lib/libknocore.so
 usr/lib/libknostorage.a
