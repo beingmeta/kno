@@ -206,7 +206,7 @@ STORAGE_OBJS=\
 	src/storage/procpool.o src/storage/procindex.o		\
 	src/storage/mempool.o src/storage/tempindex.o		\
 	src/storage/frames.o src/storage/slotindexes.o 		\
-	src/storage/drivers.o					\
+	src/storage/drivers.o src/storage/dbserv.o		\
 	@ipevalo@ 
 
 DRIVER_OBJS=\
@@ -217,8 +217,6 @@ DRIVER_OBJS=\
 	src/drivers/fileindex.o src/drivers/hashindex.o	\
 	src/drivers/memindex.o src/drivers/netindex.o   \
 	src/drivers/knoindex.o
-
-DBSERV_OBJS=src/storage/dbserv.o
 
 CORE_SCHEME_OBJS=\
 	src/eval/eval.o\
@@ -398,7 +396,6 @@ CMODULE_SOURCES=\
 STATIC_LIBS=lib/libkno@suffix@.a 	\
 	lib/libknocore@suffix@.a 	\
 	lib/libknostorage@suffix@.a	\
-        lib/libknodbserv@suffix@.a 	\
 	lib/libknodrivers@suffix@.a  	\
 	lib/libknoscheme@suffix@.a 	\
 	lib/libknowebtools@suffix@.a	\
@@ -411,7 +408,6 @@ LINK_STATIC_LIBS=lib/libkno@suffix@.a 	\
 INSTALL_STATIC=${LIBSOURCE}/libkno@suffix@.a 	\
 	${LIBSOURCE}/libknocore@suffix@.a 	\
 	${LIBSOURCE}/libknostorage@suffix@.a	\
-        ${LIBSOURCE}/libknodbserv@suffix@.a 	\
 	${LIBSOURCE}/libknodrivers@suffix@.a  	\
 	${LIBSOURCE}/libknoscheme@suffix@.a 	\
 	${LIBSOURCE}/libknowebtools@suffix@.	\
@@ -421,14 +417,12 @@ SHARED_LIBS=lib/libkno@suffix@.@shared_suffix@  		\
 	lib/libknocore@suffix@.@shared_suffix@  		\
 	lib/libknostorage@suffix@.@shared_suffix@        	\
         lib/libknodrivers@suffix@.@shared_suffix@    		\
-	lib/libknodbserv@suffix@.@shared_suffix@     		\
 	lib/libknoscheme@suffix@.@shared_suffix@    		\
 	lib/libknowebtools@suffix@.@shared_suffix@       	\
 	lib/libknotexttools@suffix@.@shared_suffix@		\
 	lib/libknocore@suffix@.@mshared_suffix@  		\
 	lib/libknostorage@suffix@.@mshared_suffix@        	\
         lib/libknodrivers@suffix@.@mshared_suffix@    		\
-	lib/libknodbserv@suffix@.@mshared_suffix@     		\
 	lib/libknoscheme@suffix@.@mshared_suffix@    		\
 	lib/libknowebtools@suffix@.@mshared_suffix@		\
 	lib/libknotexttools@suffix@.@mshared_suffix@
@@ -437,14 +431,12 @@ INSTALL_SHARED=${LIBSOURCE}/libkno@suffix@.@shared_suffix@		\
 	${LIBSOURCE}/libknocore@suffix@.@shared_suffix@			\
 	${LIBSOURCE}/libknostorage@suffix@.@shared_suffix@        	\
         ${LIBSOURCE}/libknodrivers@suffix@.@shared_suffix@    		\
-	${LIBSOURCE}/libknodbserv@suffix@.@shared_suffix@     		\
 	${LIBSOURCE}/libknoscheme@suffix@.@shared_suffix@    		\
 	${LIBSOURCE}/libknowebtools@suffix@.@shared_suffix@		\
 	${LIBSOURCE}/libknotexttools@suffix@.@shared_suffix@		\
 	${LIBSOURCE}/libknocore@suffix@.@mshared_suffix@  		\
 	${LIBSOURCE}/libknostorage@suffix@.@mshared_suffix@        	\
         ${LIBSOURCE}/libknodrivers@suffix@.@mshared_suffix@    		\
-	${LIBSOURCE}/libknodbserv@suffix@.@mshared_suffix@     		\
 	${LIBSOURCE}/libknoscheme@suffix@.@mshared_suffix@    		\
 	${LIBSOURCE}/libknowebtools@suffix@.@mshared_suffix@		\
 	${LIBSOURCE}/libknotexttools@suffix@.@mshared_suffix@
@@ -452,7 +444,6 @@ INSTALL_SHARED=${LIBSOURCE}/libkno@suffix@.@shared_suffix@		\
 STRIPPED_LIBS=lib/stripped/libkno@suffix@.a 			\
 	lib/stripped/libknocore@suffix@.a 			\
 	lib/stripped/libknostorage@suffix@.a			\
-        lib/stripped/libknodbserv@suffix@.a 			\
 	lib/stripped/libknodrivers@suffix@.a  			\
 	lib/stripped/libknoscheme@suffix@.a 			\
 	lib/stripped/libknowebtools@suffix@.a 			\
@@ -461,7 +452,6 @@ STRIPPED_LIBS=lib/stripped/libkno@suffix@.a 			\
 	lib/stripped/libknocore@suffix@.@shared_suffix@		\
 	lib/stripped/libknostorage@suffix@.@shared_suffix@	\
         lib/stripped/libknodrivers@suffix@.@shared_suffix@	\
-	lib/stripped/libknodbserv@suffix@.@shared_suffix@	\
 	lib/stripped/libknoscheme@suffix@.@shared_suffix@	\
 	lib/stripped/libknowebtools@suffix@.@shared_suffix@	\
 	lib/stripped/libknotexttools@suffix@.@shared_suffix@	\
@@ -469,7 +459,6 @@ STRIPPED_LIBS=lib/stripped/libkno@suffix@.a 			\
 	lib/stripped/libknocore@suffix@.@mshared_suffix@	\
 	lib/stripped/libknostorage@suffix@.@mshared_suffix@	\
         lib/stripped/libknodrivers@suffix@.@mshared_suffix@	\
-	lib/stripped/libknodbserv@suffix@.@mshared_suffix@	\
 	lib/stripped/libknoscheme@suffix@.@mshared_suffix@	\
 	lib/stripped/libknowebtools@suffix@.@mshared_suffix@	\
 	lib/stripped/libknotexttools@suffix@.@mshared_suffix@
@@ -636,7 +625,6 @@ exe/scripts/%: src/scripts/%.scm
 exe/%@suffix@: src/exe/%.c ${CONFIG_HDRS}
 	$(CC) $(CFLAGS) $(LDFLAGS) $(EXEFLAGS)                  	\
 		-o $@ $<                                           	\
-		-lknodbserv@suffix@                 	 	   	\
 		@xdynamic_scheme_libs@                             	\
 		-lkno@suffix@ 					\
 	        -lu8stdio $(LIBS) $(EXELIBS)
@@ -645,7 +633,6 @@ exe/%@suffix@: src/exe/%.c ${CONFIG_HDRS}
 exe/knocgi@suffix@: src/exe/knocgi.c ${CONFIG_HDRS}
 	$(CC) $(CFLAGS) $(LDFLAGS) $(EXEFLAGS)                  	\
 		-o $@ $<                                           	\
-		-lknodbserv@suffix@                 	 	   	\
 		@xdynamic_scheme_libs@                             	\
 	        -lknowebtools \
 		-lkno@suffix@ 					\
@@ -839,8 +826,8 @@ dbg/knocgi.webuser: dbg/knocgi
 
 # Uninstall
 
-LIBBASE=libkno libknocore libknostorage libknodrivers libknodbserv \
-	libknoscheme libknowebtools libknotexttools
+LIBBASE=libkno libknocore libknostorage libknodrivers libknoscheme \
+	libknowebtools libknotexttools
 
 uninstall-core:
 	./etc/uninstall $(DESTDIR)$(BININSTALLDIR) "" $(EXECUTABLES) knocgi
@@ -1012,14 +999,11 @@ src/text/matcher.o src/text/texttools.o : XCFLAGS="${XOPTFLAGS}"
 # Library targets
 
 lib/libkno@suffix@.a: $(LISP_OBJS) $(SYS_OBJS) $(APPLY_OBJS) 	\
-	$(STORAGE_OBJS) $(DRIVER_OBJS) $(DBSERV_OBJS) 		\
-	 $(SCHEME_OBJS)
+	$(STORAGE_OBJS) $(DRIVER_OBJS) $(SCHEME_OBJS)
 lib/libkno@suffix@.so: $(LISP_OBJS) $(SYS_OBJS) $(APPLY_OBJS) 	\
-	$(STORAGE_OBJS) $(DRIVER_OBJS) $(DBSERV_OBJS) 	\
-	$(SCHEME_OBJS)
+	$(STORAGE_OBJS) $(DRIVER_OBJS) $(SCHEME_OBJS)
 lib/libkno@suffix@.dylib: $(LISP_OBJS) $(SYS_OBJS) $(APPLY_OBJS) \
-	$(STORAGE_OBJS) $(DRIVER_OBJS) $(DBSERV_OBJS) 		 \
-	$(SCHEME_OBJS)
+	$(STORAGE_OBJS) $(DRIVER_OBJS) $(SCHEME_OBJS)
 
 lib/libknocore@suffix@.a: $(LISP_OBJS) $(SYS_OBJS) $(APPLY_OBJS)
 lib/libknocore@suffix@.so: $(LISP_OBJS) $(SYS_OBJS) $(APPLY_OBJS)
@@ -1034,20 +1018,6 @@ lib/libknodrivers@suffix@.so: $(DRIVER_OBJS) \
 	lib/libknocore@suffix@.so lib/libknostorage@suffix@.so
 lib/libknodrivers@suffix@.dylib: $(DRIVER_OBJS) \
 	lib/libknostorage@suffix@.dylib lib/libknocore@suffix@.dylib
-
-lib/libknodbserv@suffix@.a: $(DBSERV_OBJS)
-lib/libknodbserv@suffix@.so: $(DBSERV_OBJS) \
-	lib/libknocore@suffix@.so lib/libknostorage@suffix@.so \
-	lib/libknodrivers@suffix@.so
-lib/libknodbserv@suffix@.dylib: $(DBSERV_OBJS) 	\
-	lib/libknoscheme@suffix@.dylib         	\
-	lib/libknodrivers@suffix@.dylib		\
-	lib/libknostorage@suffix@.dylib		\
-	lib/libknocore@suffix@.dylib
-	@$(MACLIBTOOL) -install_name \
-		@rpath/lib/`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
-		$(DYLIB_FLAGS) -o $@ $^
-	@$(MSG) MACLIBTOOL $@
 
 lib/libknoscheme@suffix@.a: $(SCHEME_OBJS)
 lib/libknoscheme@suffix@.so: $(SCHEME_OBJS) 		\
@@ -1411,7 +1381,9 @@ $(DESTDIR)@config_dir@ $(DESTDIR)@share_dir@ $(DATADIR):
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
 $(DESTDIR)@local_config@ $(DESTDIR)@shared_config@:
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
-$(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets $(DESTDIR)@config_dir@/config_files: $(DESTDIR)@config_dir@
+$(DESTDIR)@config_dir@/daemons \
+		$(DESTDIR)@config_dir@/servlets \
+		$(DESTDIR)@config_dir@/config_files: $(DESTDIR)@config_dir@
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
 
 install-static-libs: static-libs $(LIBINSTALLDIR)
@@ -1419,7 +1391,6 @@ install-static-libs: static-libs $(LIBINSTALLDIR)
 		$(LIBINSTALLDIR)/libknocore@suffix@.a        	\
 		$(LIBINSTALLDIR)/libknostorage@suffix@.a	\
 		$(LIBINSTALLDIR)/libknodrivers@suffix@.a   	\
-		$(LIBINSTALLDIR)/libknodbserv@suffix@.a    	\
 		$(LIBINSTALLDIR)/libknoscheme@suffix@.a   	\
 		$(LIBINSTALLDIR)/libknowebtools@suffix@.a      	\
 		$(LIBINSTALLDIR)/libknotexttools@suffix@.a
@@ -1436,10 +1407,6 @@ install-shared-libs: install-status shared-libs $(LIBINSTALLDIR)	\
     $(LIBINSTALLDIR)/libknostorage@suffix@.@mmshared_suffix@		\
     $(LIBINSTALLDIR)/libknostorage@suffix@.@mshared_suffix@		\
     $(LIBINSTALLDIR)/libknostorage@suffix@.@shared_suffix@		\
-    $(LIBINSTALLDIR)/libknodbserv@suffix@.@vshared_suffix@		\
-    $(LIBINSTALLDIR)/libknodbserv@suffix@.@mmshared_suffix@		\
-    $(LIBINSTALLDIR)/libknodbserv@suffix@.@mshared_suffix@		\
-    $(LIBINSTALLDIR)/libknodbserv@suffix@.@shared_suffix@		\
     $(LIBINSTALLDIR)/libknodrivers@suffix@.@vshared_suffix@		\
     $(LIBINSTALLDIR)/libknodrivers@suffix@.@mmshared_suffix@		\
     $(LIBINSTALLDIR)/libknodrivers@suffix@.@mshared_suffix@		\
