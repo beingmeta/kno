@@ -54,7 +54,7 @@ static() {
         cd ${builddir}
 	# echo "@dev pwd=$(pwd) startdir=${startdir} srcdir=${srcdir} pkgdir=${pkgdir} "
 	# echo "     builddir=${builddir} subpkgdir=${subpkgdir}"
-        make DESTDIR="${subpkgdir}" SUDO= install-static
+        make DESTDIR="${subpkgdir}" SUDO= install-static-libs
 }
 
 doc() {

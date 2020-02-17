@@ -680,6 +680,7 @@ APXS
 CLANG
 DUMA
 VALGRIND
+GZIP
 TOUCHFILE_DEFAULT
 DELETEFILE_DEFAULT
 COPYFILE_DEFAULT
@@ -3780,6 +3781,44 @@ APTLY=$ac_cv_prog_APTLY
 if test -n "$APTLY"; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: $APTLY" >&5
 $as_echo "$APTLY" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+# Extract the first word of "gzip", so it can be a program name with args.
+set dummy gzip; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_prog_GZIP+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test -n "$GZIP"; then
+  ac_cv_prog_GZIP="$GZIP" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_prog_GZIP=""
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  test -z "$ac_cv_prog_GZIP" && ac_cv_prog_GZIP="/usr/bin/gzip"
+fi
+fi
+GZIP=$ac_cv_prog_GZIP
+if test -n "$GZIP"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $GZIP" >&5
+$as_echo "$GZIP" >&6; }
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
