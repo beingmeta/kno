@@ -1360,21 +1360,20 @@ install-status:
 	@if test -f .malloc && test -f .buildmode; then \
 	  echo "Installing" $(shell cat .buildmode) "build linked with" $(shell cat .malloc); \
 	fi;
-install: install-status install-core 			\
+install: install-status install-core install-static	\
 		install-cmodules 			\
 		install-libscm install-stdlib 		\
 		@setup_target@
 	@if test -f .malloc && test -f .buildmode; then \
 	  echo "Installed" $(shell cat .buildmode) "build linked with" $(shell cat .malloc); \
 	fi;
-install-bin: install-static-libs install-shared-libs install-exe
+install-bin: install-shared-libs install-exe
 install-stripped:
 	make LIBSOURCE=lib/stripped EXECSOURCE=exe/stripped install-bin
-install-text: install-headers install-pkgconfig install-scripts install-support
+install-text: install-libscm install-scripts install-support
 install-dirs: confdirs workdirs
 install-core: install-dirs install-bin @INSTALLI18N@ install-text install-data
-install-dev:  install-headers install-pkgconfig install-static-libs
-install-etc:  confdirs workdirs install-text install-data @INSTALLI18N@
+install-dev:  install-headers install-pkgconfig
 
 $(INCINSTALLDIR):
 	@$(SYSINSTALL) @install_dir_opts@ $(INCINSTALLDIR)

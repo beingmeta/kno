@@ -10,10 +10,11 @@ license="GPLV3"
 depends="libu8 libressl ldns"
 makedepends="ldns-dev libressl-dev libuuid libc-dev alpine-sdk snappy-dev curl-dev"
 install=""
-subpackages=""
-#subpackages="$pkgname-dev $pkgname-doc $pkgname-static"
-#depends_dev="$pkgname"
-#depends_doc="$pkgname"
+#subpackages=""
+subpackages="$pkgname-dev $pkgname-doc $pkgname-static"
+depends_dev="$pkgname"
+depends_doc="$pkgname"
+depends_static="$pkgname $pkgname-dev"
 source="kno-@KNO_VERSION@.tar"
 builddir="${srcdir}/kno"
 
@@ -39,5 +40,27 @@ check() {
 
 package() {
 	echo "@package pwd=$(pwd) startdir=${startdir} srcdir=${srcdir} pkgdir=${pkgdir} builddir=${builddir}"
-        make DESTDIR="$pkgdir" SUDO= install
+        make DESTDIR="$pkgdir" SUDO= install-core
 }
+
+dev() {
+        cd ${builddir}
+	# echo "@dev pwd=$(pwd) startdir=${startdir} srcdir=${srcdir} pkgdir=${pkgdir} "
+	# echo "     builddir=${builddir} subpkgdir=${subpkgdir}"
+        make DESTDIR="${subpkgdir}" SUDO= install-dev
+}
+
+static() {
+        cd ${builddir}
+	# echo "@dev pwd=$(pwd) startdir=${startdir} srcdir=${srcdir} pkgdir=${pkgdir} "
+	# echo "     builddir=${builddir} subpkgdir=${subpkgdir}"
+        make DESTDIR="${subpkgdir}" SUDO= install-static
+}
+
+doc() {
+        cd ${builddir}
+	# echo "@doc pwd=$(pwd) startdir=${startdir} srcdir=${srcdir} pkgdir=${pkgdir} "
+	# echo "     builddir=${builddir} subpkgdir=${subpkgdir}"
+        make DESTDIR="${subpkgdir}" SUDO= install-docs
+}
+
