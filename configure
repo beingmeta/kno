@@ -11889,9 +11889,9 @@ if ac_fn_c_try_link "$LINENO"; then :
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
-          { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ax_have_atomics" >&5
-$as_echo "$ax_have_atomics" >&6; }
 	 fi;
+        { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ax_have_atomics" >&5
+$as_echo "$ax_have_atomics" >&6; }
    fi;
 ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
@@ -11952,7 +11952,8 @@ else
   enable_lockfree=$default_enable_lockfree
 fi
 
-if test "$enable_lockfree" = "yes"; then
+
+if test "$enable_lockfree" = "yes" && test "$ax_have_atomics" != "no"; then
   $as_echo "#define KNO_ENABLE_LOCKFREE 1" >>confdefs.h
 
 fi;

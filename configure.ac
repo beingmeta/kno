@@ -1548,7 +1548,8 @@ fi
 default_enable_lockfree="yes";
 
 AC_ARG_ENABLE(lockfree,--en/disable-lockfree Enables lock-free reference counting,,enable_lockfree=$default_enable_lockfree)
-if test "$enable_lockfree" = "yes"; then
+
+if test "$enable_lockfree" = "yes" && test "$ax_have_atomics" != "no"; then
   AC_DEFINE(KNO_ENABLE_LOCKFREE,1)
 fi;
 

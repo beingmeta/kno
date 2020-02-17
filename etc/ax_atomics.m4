@@ -116,8 +116,8 @@ if test "$ac_cv_header_stdatomic_h" = "yes"; then
 			   }])],
 			 [ax_have_atomics=libatomic],
 			[])
-          AC_MSG_RESULT([$ax_have_atomics])
 	 fi;
+        AC_MSG_RESULT([$ax_have_atomics])
    fi;
 AC_LANG_POP
 ])dnl AX_ATOMICS
