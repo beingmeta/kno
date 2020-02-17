@@ -102,18 +102,23 @@ if test "$ac_cv_header_stdatomic_h" = "yes"; then
 		        atomic_fetch_add(&x,12);
 		        long long z = atomic_load(&x);
 			}])],
-			[ax_built_in_atomics=yes],
+			[ax_have_atomics=builtin],
 			[])
-        if test "${ax_built_in_atomics}" = "no"; then
-	  AC_CHECK_LIB(atomic,__atomic_load)
-	else
-	 ax_have_atomics=builtin;
-        fi;	
-	if test "${ac_cv_have___atomic_load_in_libatomic}" = "yes"; then
-	  ax_have_atomics=lib;
-	fi;
-        AC_MSG_RESULT([$ax_have_atomics])
-fi;
+        if test "${ax_have_atomics}" != "builtin"; then
+	  ax_atomics_save_LIBS=$LIBS
+	  LIBS="-latomic ${LIBS}"
+          AC_LINK_IFELSE([AC_LANG_PROGRAM([#include <stdatomic.h>],
+		         [{_Atomic long long x;
+		           atomic_store(&x,3);
+		           long long y = atomic_load(&x);
+		           atomic_fetch_add(&x,12);
+		           long long z = atomic_load(&x);
+			   }])],
+			 [ax_have_atomics=libatomic],
+			[])
+          AC_MSG_RESULT([$ax_have_atomics])
+	 fi;
+   fi;
 AC_LANG_POP
 ])dnl AX_ATOMICS
 

@@ -11861,65 +11861,38 @@ main ()
 }
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
-  ax_built_in_atomics=yes
+  ax_have_atomics=builtin
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
-        if test "${ax_built_in_atomics}" = "no"; then
-	  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for __atomic_load in -latomic" >&5
-$as_echo_n "checking for __atomic_load in -latomic... " >&6; }
-if ${ac_cv_lib_atomic___atomic_load+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-latomic  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+        if test "${ax_have_atomics}" != "builtin"; then
+	  ax_atomics_save_LIBS=$LIBS
+	  LIBS="-latomic ${LIBS}"
+          cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char __atomic_load ();
+#include <stdatomic.h>
 int
 main ()
 {
-return __atomic_load ();
+{_Atomic long long x;
+		           atomic_store(&x,3);
+		           long long y = atomic_load(&x);
+		           atomic_fetch_add(&x,12);
+		           long long z = atomic_load(&x);
+			   }
   ;
   return 0;
 }
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_atomic___atomic_load=yes
-else
-  ac_cv_lib_atomic___atomic_load=no
+  ax_have_atomics=libatomic
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_atomic___atomic_load" >&5
-$as_echo "$ac_cv_lib_atomic___atomic_load" >&6; }
-if test "x$ac_cv_lib_atomic___atomic_load" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBATOMIC 1
-_ACEOF
-
-  LIBS="-latomic $LIBS"
-
-fi
-
-	else
-	 ax_have_atomics=builtin;
-        fi;
-	if test "${ac_cv_have___atomic_load_in_libatomic}" = "yes"; then
-	  ax_have_atomics=lib;
-	fi;
-        { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ax_have_atomics" >&5
+          { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ax_have_atomics" >&5
 $as_echo "$ax_have_atomics" >&6; }
-fi;
+	 fi;
+   fi;
 ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
