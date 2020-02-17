@@ -512,20 +512,20 @@ else enable_ipeval_default="no;
 fi
 
 AC_ARG_WITH(optinclude,--with-optinclude Use optional include directory,,with_optinclude="none")
-if test $with_optinclude != "none"; then
+if test "$with_optinclude" != "none"; then
   CPPFLAGS="$CPPFLAGS -I$with_optinclude"
   CFLAGS="$CFLAGS -I$with_optinclude"
 fi
 
 AC_ARG_WITH(optlib,--with-optlib Use optional library directory,,with_optlib="none")
-if test $with_optlib != "none"; then
+if test "$with_optlib" != "none"; then
   LDFLAGS="$LDFLAGS -L$with_optlib"
 fi
 
 AC_ARG_WITH(sourcedir,--with-sourcedir source directory,source_dir=$withval,source_dir=$prefix/src)
 
 AC_ARG_WITH(extra_sources,--with-extra_sources Configure extra source directories for gdb,,with_extra_sources="none")
-if test $with_extra_sources != "none"; then
+if test "$with_extra_sources" != "none"; then
    extra_sources=${with_extra_sources};
 fi
 
@@ -585,6 +585,7 @@ elif test "${GCC}" = "yes"; then
 fi;
 
 m4_include([etc/ax_pthread.m4])
+m4_include([etc/ax_atomics.m4])
 m4_include([etc/ax_check_link_flag.m4])
 m4_include([etc/ax_python.m4])
 m4_include([etc/ax_gcov.m4])
@@ -601,8 +602,6 @@ AC_CHECK_SIZEOF(long,4)
 AC_CHECK_SIZEOF(long long,8)
 AC_CHECK_SIZEOF(void *,8)
 AC_CHECK_SIZEOF(time_t,8)
-AC_CHECK_SIZEOF(off_t,8)
-AC_CHECK_SIZEOF(size_t,8)
 AC_CHECK_TYPES(uchar)
 
 case $host_os in
@@ -891,7 +890,10 @@ fi
 # libu8 configuration
 
 AC_CHECK_LIB(u8,u8_raise)
-AC_CHECK_LIB(u8io,u8_open_xinput)
+AC_CHECK_LIB(u8,u8_open_xinput)
+if test "$ac_cv_lib_u8_u8_open_xinput" != "yes"; then
+      AC_CHECK_LIB(u8io,u8_open_xinput)
+fi
 AC_CHECK_LIB(u8data,u8_init_chardata_c)
 dnl Check for cryptic in in libu8
 AC_CHECK_FUNCS(u8_cryptic,with_crypto_default="yes")
@@ -988,19 +990,28 @@ dnl Compile for access to large files, essentially defining off_t as 64 bits.
 AC_ARG_ENABLE(largefiles,--en/disable-largefiles Enable use of large (> 2GB) file support,,enable_largefiles=yes)
 if test $enable_largefiles = "yes"; then
   AC_DEFINE(KNO_LARGEFILES_ENABLED,1)
+  AC_SYS_LARGEFILE
+  AC_CHECK_SIZEOF(off_t)
+  AC_CHECK_SIZEOF(size_t)
 else
   AC_DEFINE(KNO_LARGEFILES_ENABLED,0)
+  AC_CHECK_SIZEOF(off_t)
+  AC_CHECK_SIZEOF(size_t)
+
 fi
+
 
 dnl This integrates the webtools module into executables by default; otherwise
 dnl  it is built and installed as a plugin library
-AC_ARG_ENABLE(htmldump,--en/disable-htmldump write HTML backtraces,,enable_htmldump="yes")
+AC_ARG_ENABLE(htmldump,--en/disable-htmldump write HTML backtraces,,enable_htmldump="no")
 if test $enable_htmldump = "yes"; then
   scheme_builtins_init="$scheme_builtins_init; kno_init_webtools()"
   xdynamic_scheme_libs="$xdynamic_scheme_libs -lknowebtools${suffix}"
   xstatic_exe_libs="lib/libknowebtools${suffix}.a $xstatic_exe_libs"
   xstatic_scheme_libs=" ../../lib/libknowebtools${suffix}.a $xstatic_scheme_libs"
   AC_DEFINE(KNO_HTMLDUMP_ENABLED,1)
+else
+  AC_DEFINE(KNO_HTMLDUMP_ENABLED,0)
 fi
 
 ### Object/index database prefetching
@@ -1040,7 +1051,7 @@ AC_CHECK_USER(default_webgroup,www apache httpd www-data _www)
 dnl Specifies an admin group; files written by installation scripts will be
 dnl owned by this group and the group will have full rwX access.
 AC_ARG_WITH(admin_group,--with-admin-group Install files with admin group and group write permissions,,with_admin_group=$default_admin_group)
-if test $with_admin_group != "none"; then
+if test "$with_admin_group" != "none"; then
    if test "$chowning" = "yes"; then
      install_dir_opts="-g $with_admin_group -m 0775 $install_dir_opts"
      install_file_opts="-g $with_admin_group $install_file_opts"
@@ -1060,7 +1071,7 @@ AC_DEFINE_UNQUOTED(KNO_ADMIN_GROUP,"$admin_group")
 
 dnl Specifies a daemon identity user/group for managed Kno servers
 AC_ARG_WITH(daemonid,--with-daemonid The identity (user) for Kno servers to run as,,with_daemonid=$default_daemonid)
-if test $with_daemonid != "none"; then
+if test "$with_daemonid" != "none"; then
    knouser=$with_daemonid
    if test "$chowning" = "yes"; then
      knouserinstall="-o $knouser";
@@ -1430,7 +1441,7 @@ AC_CHECK_LIB(z,compress2)
 
 # Ditto, though it's almost always there
 AC_CHECK_FUNCS(dlopen,libc_dlopen="yes")
-if test $libc_dlopen != "yes"; then
+if test "$libc_dlopen" != "yes"; then
    AC_CHECK_LIB(dl,dlopen)
 fi
 
@@ -1510,6 +1521,7 @@ fi
 
 AX_PTHREAD
 AX_PTHREAD(threads_default="yes",threads_default="no")
+AX_ATOMICS
 
 dnl This forces the use of the threadlocal storage functions from the pthreads
 dnl  library.  Otherwise, the executable will use __thread storage declarations
@@ -1533,14 +1545,13 @@ if test "${enable_thread_debug}" != "no"; then
    AC_DEFINE(U8_THREAD_DEBUG,1)
 fi
 
-AC_CHECK_HEADERS(stdatomic.h)
+default_enable_lockfree="yes";
 
-AC_ARG_ENABLE(lockfree,--en/disable-lockfree Enables lock-free reference counting,,enable_lockfree="yes")
-if test "$enable_lockfree" = "yes"; then
+AC_ARG_ENABLE(lockfree,--en/disable-lockfree Enables lock-free reference counting,,enable_lockfree=$default_enable_lockfree)
+
+if test "$enable_lockfree" = "yes" && test "$ax_have_atomics" != "no"; then
   AC_DEFINE(KNO_ENABLE_LOCKFREE,1)
-else
-  AC_DEFINE(KNO_ENABLE_LOCKFREE,0)
-fi
+fi;
 
 dnl ***********************************
 dnl *** Checks for working __thread ***
@@ -1768,7 +1779,7 @@ fi
 
 AC_ARG_WITH(bootsystem,--with-bootsystem Setup boot method,,with_bootsystem=$default_bootsystem)
 
-if test $with_bootsystem != "none"; then
+if test "$with_bootsystem" != "none"; then
   BOOTSETUP="setup-$with_bootsystem"
 fi
 

@@ -1,8 +1,4 @@
-usr/lib/libknocore.so.*
-usr/lib/libknostorage.so.*
-usr/lib/libknodrivers.so.*
-usr/lib/libknoscheme.so.*
-usr/lib/libknodbserv.so*
+usr/lib/libkno.so.*
 usr/lib/libknowebtools.so*
 usr/lib/libknotexttools.so*
 usr/lib/kno/crypto.so*

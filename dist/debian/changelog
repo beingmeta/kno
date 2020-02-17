@@ -1,3 +1,9 @@
+kno (2001.2.2-1) stable; urgency=medium
+
+  * Don't bake in jemalloc, handle merged libu8
+
+ -- Ken Haase <kh@beingmeta.com>  Tue, 15 Feb 2020 15:17:17 -0400
+
 kno (2001.2.1-1) stable; urgency=medium
 
   * Now stable (relatively)

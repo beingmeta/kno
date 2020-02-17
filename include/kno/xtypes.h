@@ -58,6 +58,7 @@ typedef enum XT_TYPE_CODE {
   xt_mimeobj	  = XT_PAIR(0x02),
   xt_compressed	  = XT_PAIR(0x03),
   xt_encrypted	  = XT_PAIR(0x04),
+  xt_refcoded	  = XT_PAIR(0x05),
 
   xt_choice	  = XT_VECTOR(0x00),
   xt_vector	  = XT_VECTOR(0x01),
@@ -72,6 +73,7 @@ typedef enum XT_TYPE_CODE {
   xt_timestamp	  = XT_TAG(0x02),
   xt_regex        = XT_TAG(0x03),
   xt_qchoice      = XT_TAG(0x04),
+  xt_bigtable     = XT_TAG(0x05),
 
   xt_zlib         = XT_TAG(0x08),
   xt_zstd         = XT_TAG(0x09),

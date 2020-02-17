@@ -15,8 +15,7 @@ override_dh_auto_configure:
 		--without-sudo --with-bootsystem=allboot 	\
 		--with-default-target=packaged		 	\
 		--with-parseltongue				\
-		--with-libscm=version			 	\
-                --with-malloc=jemalloc
+		--with-libscm=version
 
 override_dh_make:
 	make distribution docs
