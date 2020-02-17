@@ -585,6 +585,7 @@ elif test "${GCC}" = "yes"; then
 fi;
 
 m4_include([etc/ax_pthread.m4])
+m4_include([etc/ax_atomics.m4])
 m4_include([etc/ax_check_link_flag.m4])
 m4_include([etc/ax_python.m4])
 m4_include([etc/ax_gcov.m4])
@@ -1520,6 +1521,7 @@ fi
 
 AX_PTHREAD
 AX_PTHREAD(threads_default="yes",threads_default="no")
+AX_ATOMICS
 
 dnl This forces the use of the threadlocal storage functions from the pthreads
 dnl  library.  Otherwise, the executable will use __thread storage declarations
@@ -1544,14 +1546,6 @@ if test "${enable_thread_debug}" != "no"; then
 fi
 
 default_enable_lockfree="yes";
-
-AC_CHECK_HEADERS(stdatomic.h)
-
-if test "$ac_cv_header_stdatomic_h" = "yes"; then
-   AC_CHECK_LIB(atomic,__atomic_load)
-else
-   default_enable_lockfree="no";
-fi;
 
 AC_ARG_ENABLE(lockfree,--en/disable-lockfree Enables lock-free reference counting,,enable_lockfree=$default_enable_lockfree)
 if test "$enable_lockfree" = "yes"; then

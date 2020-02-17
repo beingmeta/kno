@@ -6126,6 +6126,113 @@ fi;
 
 
 # ===========================================================================
+#        http://www.gnu.org/software/autoconf-archive/ax_pthread.html
+# ===========================================================================
+#
+# SYNOPSIS
+#
+#   AX_PTHREAD([ACTION-IF-FOUND[, ACTION-IF-NOT-FOUND]])
+#
+# DESCRIPTION
+#
+#   This macro figures out how to build C programs using POSIX threads. It
+#   sets the PTHREAD_LIBS output variable to the threads library and linker
+#   flags, and the PTHREAD_CFLAGS output variable to any special C compiler
+#   flags that are needed. (The user can also force certain compiler
+#   flags/libs to be tested by setting these environment variables.)
+#
+#   Also sets PTHREAD_CC to any special C compiler that is needed for
+#   multi-threaded programs (defaults to the value of CC otherwise). (This
+#   is necessary on AIX to use the special cc_r compiler alias.)
+#
+#   NOTE: You are assumed to not only compile your program with these flags,
+#   but also link it with them as well. e.g. you should link with
+#   $PTHREAD_CC $CFLAGS $PTHREAD_CFLAGS $LDFLAGS ... $PTHREAD_LIBS $LIBS
+#
+#   If you are only building threads programs, you may wish to use these
+#   variables in your default LIBS, CFLAGS, and CC:
+#
+#     LIBS="$PTHREAD_LIBS $LIBS"
+#     CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
+#     CC="$PTHREAD_CC"
+#
+#   In addition, if the PTHREAD_CREATE_JOINABLE thread-attribute constant
+#   has a nonstandard name, defines PTHREAD_CREATE_JOINABLE to that name
+#   (e.g. PTHREAD_CREATE_UNDETACHED on AIX).
+#
+#   Also HAVE_PTHREAD_PRIO_INHERIT is defined if pthread is found and the
+#   PTHREAD_PRIO_INHERIT symbol is defined when compiling with
+#   PTHREAD_CFLAGS.
+#
+#   ACTION-IF-FOUND is a list of shell commands to run if a threads library
+#   is found, and ACTION-IF-NOT-FOUND is a list of commands to run it if it
+#   is not found. If ACTION-IF-FOUND is not specified, the default action
+#   will define HAVE_PTHREAD.
+#
+#   Please let the authors know if this macro fails on any platform, or if
+#   you have any other suggestions or comments. This macro was based on work
+#   by SGJ on autoconf scripts for FFTW (http://www.fftw.org/) (with help
+#   from M. Frigo), as well as ac_pthread and hb_pthread macros posted by
+#   Alejandro Forero Cuervo to the autoconf macro repository. We are also
+#   grateful for the helpful feedback of numerous users.
+#
+#   Updated for Autoconf 2.68 by Daniel Richard G.
+#
+# LICENSE
+#
+#   Copyright (c) 2008 Steven G. Johnson <stevenj@alum.mit.edu>
+#   Copyright (c) 2011 Daniel Richard G. <skunk@iSKUNK.ORG>
+#
+#   This program is free software: you can redistribute it and/or modify it
+#   under the terms of the GNU General Public License as published by the
+#   Free Software Foundation, either version 3 of the License, or (at your
+#   option) any later version.
+#
+#   This program is distributed in the hope that it will be useful, but
+#   WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+#   Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License along
+#   with this program. If not, see <http://www.gnu.org/licenses/>.
+#
+#   As a special exception, the respective Autoconf Macro's copyright owner
+#   gives unlimited permission to copy, distribute and modify the configure
+#   scripts that are the output of Autoconf when processing the Macro. You
+#   need not follow the terms of the GNU General Public License when using
+#   or distributing such scripts, even though portions of the text of the
+#   Macro appear in them. The GNU General Public License (GPL) does govern
+#   all other use of the material that constitutes the Autoconf Macro.
+#
+#   This special exception to the GPL applies to versions of the Autoconf
+#   Macro released by the Autoconf Archive. When you make and distribute a
+#   modified version of the Autoconf Macro, you may extend this special
+#   exception to the GPL to apply to your modified version as well.
+
+#serial 21
+
+# This is what autoupdate's m4 run will expand.  It fires
+# the warning (with _au_warn_XXX), outputs it into the
+# updated configure.ac (with AC_DIAGNOSE), and then outputs
+# the replacement expansion.
+
+
+# This is an auxiliary macro that is also run when
+# autoupdate runs m4.  It simply calls m4_warning, but
+# we need a wrapper so that each warning is emitted only
+# once.  We break the quoting in m4_warning's argument in
+# order to expand this macro's arguments, not AU_DEFUN's.
+
+
+# Finally, this is the expansion that is picked up by
+# autoconf.  It tells the user to run autoupdate, and
+# then outputs the replacement expansion.  We do not care
+# about autoupdate's warning because that contains
+# information on what to do *after* running autoupdate.
+
+
+
+# ===========================================================================
 #    http://www.gnu.org/software/autoconf-archive/ax_check_link_flag.html
 # ===========================================================================
 #
@@ -11712,48 +11819,14 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 
-# Check whether --with-tls was given.
-if test "${with_tls+set}" = set; then :
-  withval=$with_tls;
-else
-  with_tls=$tls_default
-fi
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
-if test $with_tls = "yes"; then
-  $as_echo "#define KNO_FORCE_TLS 1" >>confdefs.h
-
-else
-  $as_echo "#define KNO_FORCE_TLS 0" >>confdefs.h
-
-fi
-
-
-# Check whether --with-nptrlocks was given.
-if test "${with_nptrlocks+set}" = set; then :
-  withval=$with_nptrlocks;
-fi
-
-if test ! -z $with_nptrlocks; then
-   cat >>confdefs.h <<_ACEOF
-#define KNO_N_PTRLOCKS $with_nptrlocks
-_ACEOF
-
-fi
-
-# Check whether --enable-thread_debug was given.
-if test "${enable_thread_debug+set}" = set; then :
-  enableval=$enable_thread_debug; enable_thread_debug=$enableval
-else
-  enable_thread_debug="no"
-fi
-
-
-if test "${enable_thread_debug}" != "no"; then
-   $as_echo "#define U8_THREAD_DEBUG 1" >>confdefs.h
-
-fi
-
-default_enable_lockfree="yes";
+ax_built_in_atomics=no
+ax_have_atomics=no
 
 for ac_header in stdatomic.h
 do :
@@ -11769,7 +11842,31 @@ done
 
 
 if test "$ac_cv_header_stdatomic_h" = "yes"; then
-   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for __atomic_load in -latomic" >&5
+        { $as_echo "$as_me:${as_lineno-$LINENO}: checking for atomic functions builtin or library" >&5
+$as_echo_n "checking for atomic functions builtin or library... " >&6; }
+        cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <stdatomic.h>
+int
+main ()
+{
+{_Atomic long long x;
+		        atomic_store(&x,3);
+		        long long y = atomic_load(&x);
+		        atomic_fetch_add(&x,12);
+		        long long z = atomic_load(&x);
+			}
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ax_built_in_atomics=yes
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+        if test "${ax_built_in_atomics}" = "no"; then
+	  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for __atomic_load in -latomic" >&5
 $as_echo_n "checking for __atomic_load in -latomic... " >&6; }
 if ${ac_cv_lib_atomic___atomic_load+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -11814,9 +11911,66 @@ _ACEOF
 
 fi
 
-else
-   default_enable_lockfree="no";
+	else
+	 ax_have_atomics=builtin;
+        fi;
+	if test "${ac_cv_have___atomic_load_in_libatomic}" = "yes"; then
+	  ax_have_atomics=lib;
+	fi;
+        { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ax_have_atomics" >&5
+$as_echo "$ax_have_atomics" >&6; }
 fi;
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+
+
+
+# Check whether --with-tls was given.
+if test "${with_tls+set}" = set; then :
+  withval=$with_tls;
+else
+  with_tls=$tls_default
+fi
+
+if test $with_tls = "yes"; then
+  $as_echo "#define KNO_FORCE_TLS 1" >>confdefs.h
+
+else
+  $as_echo "#define KNO_FORCE_TLS 0" >>confdefs.h
+
+fi
+
+
+# Check whether --with-nptrlocks was given.
+if test "${with_nptrlocks+set}" = set; then :
+  withval=$with_nptrlocks;
+fi
+
+if test ! -z $with_nptrlocks; then
+   cat >>confdefs.h <<_ACEOF
+#define KNO_N_PTRLOCKS $with_nptrlocks
+_ACEOF
+
+fi
+
+# Check whether --enable-thread_debug was given.
+if test "${enable_thread_debug+set}" = set; then :
+  enableval=$enable_thread_debug; enable_thread_debug=$enableval
+else
+  enable_thread_debug="no"
+fi
+
+
+if test "${enable_thread_debug}" != "no"; then
+   $as_echo "#define U8_THREAD_DEBUG 1" >>confdefs.h
+
+fi
+
+default_enable_lockfree="yes";
 
 # Check whether --enable-lockfree was given.
 if test "${enable_lockfree+set}" = set; then :
