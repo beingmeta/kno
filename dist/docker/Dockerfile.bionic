@@ -8,14 +8,14 @@ RUN apt-get -yqq update && \
     	    apt-utils software-properties-common tzdata gnupg2 \
 	    zile httpie wget curl && \
     apt-get -yqq full-upgrade
-COPY apt/*.list /etc/apt/sources.list.d/
+COPY apt/bionic.list /etc/apt/sources.list.d/
 COPY apt/*.gpg /tmp/
 RUN apt-key add /tmp/*.gpg && rm /tmp/*.gpg && \
     apt-get -yqq update && \
     apt-get -yqq install libu8 libu8-encodings \
     	    	 	 kno-core kno-stdlib kno-parseltongue \
      	     	         kno-sqlite kno-leveldb kno-rocksdb \
-			 kno-mysql kno-mongo \
+			 kno-mysql kno-mongodb \
 			 kno-sundown kno-tidy \
 			 kno-zeromq
 RUN for dir in /app /data \

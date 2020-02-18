@@ -1,1 +1,0 @@
-deb [arch=amd64,arch=i386.arch=arm64,arch=armhf] https://repo.beingmeta.com/apt bionic main

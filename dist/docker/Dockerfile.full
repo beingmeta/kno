@@ -1,7 +1,7 @@
 FROM kno:base
 MAINTAINER repoman@beingmeta.com
-RUN apk add kno-mongodb kno-sundown kno-tidy kno-zeromq #  kno-leveldb kno-rocksdb
-RUN apk add apache2 apache2-ssl apache2-http2 apache2-ctl apache2-utils apache2-doc mod-knocgi
+RUN apk update && apk add kno-mongodb kno-nng kno-sundown kno-tidy kno-zeromq kno-leveldb kno-rocksdb kno-odbc
+RUN apk update && apk add apache2 apache2-ssl apache2-http2 apache2-ctl apache2-utils apache2-doc mod-knocgi
 RUN echo kno:full > /app/kno/config/DOCKERIMAGE; \
     date > /app/kno/config/DOCKER:BUILD:FULL;
 CMD "/usr/bin/knoc"

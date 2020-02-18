@@ -2,10 +2,11 @@ FROM alpine:3.10
 ENV TERM=linux
 MAINTAINER repoman@beingmeta.com
 RUN apk update && apk upgrade
+RUN echo http://nl.alpinelinux.org/alpine/edge/testing >> /etc/apk/repositories
 RUN echo https://kno.s3.amazonaws.com/repo/apk/alpine310 >> /etc/apk/repositories
 COPY apk/*.pub /etc/apk/keys
 RUN apk add less findutils findutils-doc gnupg bash
-RUN apk add libu8 kno kno-mongodb kno-nng
+RUN apk add libu8 libu8-doc kno kno-doc
 RUN for dir in /app /data \
     	       /app/bin /app/configs /app/log /app/run /app/db /app/data \
 	       /app/kno /app/kno/config \
