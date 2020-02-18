@@ -63,7 +63,6 @@ PPROF_PATH        = @GOOGLE_PPROF@
 CLEAN		  = @CLEAN@
 ECHO		  = @ECHO@
 MSG		  = @MSG@
-GZIP		  = @GZIP@
 SUINSTALL	  = @SUINSTALL@
 SYSINSTALL	  = @SUINSTALL@@INSTALL@
 SUDO	          = @SUDO@
@@ -1194,11 +1193,12 @@ $(MANDIR)/man1 $(MANDIR)/man8 $(DOCDIR)/html:
 	@$(SYSINSTALL) -d $@
 
 install-docs: $(MANDIR)/man1 $(MANDIR)/man8 $(DOCDIR)/html docs
-	@for file in docs/man/*.1; do ${GZIP} $${file}; done
-	@for file in docs/man/*.8; do $(GZIP) $${file}; done
-	@for file in docs/man/*.1.gz; do $(SYSINSTALL) $${file} $(MANDIR)/man1; done
+	@for file in docs/man/*.1; do gzip $${file}; done
+	@for file in docs/man/*.8; do gzip $${file}; done
+	@for file in docs/man/*.1.gz; do $(SYSINSTALL) $${file} $(MANDIR)/man1; done;
 	@for file in docs/man/*.8.gz; do $(SYSINSTALL) $${file} $(MANDIR)/man8; done
-	@for file in docs/man.html/*.html; do $(SYSINSTALL) $${file} $(DOCDIR)/html; done
+	@for file in docs/man.html/*.html; do \
+	   $(SYSINSTALL) $${file} $(DOCDIR)/html; done
 
 # Packaging targets
 
