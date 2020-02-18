@@ -26,10 +26,10 @@ build() {
 		--prefix=/usr \
 		--sysconfdir=/etc \
 		--mandir=/usr/share/man \
-		--enable-stripping \
 		--without-parseltongue \
 		--localstatedir=/var \
 		--without-sudo
+#		--enable-stripping
 	make -j
 }
 
