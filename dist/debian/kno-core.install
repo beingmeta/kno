@@ -45,6 +45,6 @@ usr/share/kno/libscm/kno-*/knodb/*.scm
 usr/share/kno/libscm/kno-*/xhtml/*.scm
 usr/share/kno/libscm/kno-*/bench/*.scm
 usr/share/kno/libscm/kno-*/*.scm
-usr/share/man/man1/*.1
-usr/share/man/man8/*.8
+usr/share/man/man1/*.1*
+usr/share/man/man8/*.8*
 usr/share/doc/kno/html/*.html

@@ -21,7 +21,7 @@ override_dh_make:
 	make distribution docs
 
 override_dh_auto_install:
-	make DESTDIR=$$(pwd)/debian/tmp install install-i18n install-docs \
+	make DESTDIR=$$(pwd)/debian/tmp install install-dev install-i18n install-docs \
 		setup-upstart setup-sysv setup-systemd setup-logrotate
 
 override_dh_install:
