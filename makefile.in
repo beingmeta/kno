@@ -1719,9 +1719,11 @@ staging/alpine/APKBUILD: dist/alpine/APKBUILD staging/alpine
 staging/alpine/kno-@KNO_VERSION@.tar: staging/alpine
 	# Get archives of this and submodule repositories
 	git archive --prefix=kno/ -o staging/alpine/kno.tar HEAD
+	cd tests; git archive --prefix=tests/ -o ../staging/alpine/tests.tar HEAD
 	cd src/stdlib; git archive --prefix=stdlib/ -o ../../staging/alpine/stdlib.tar HEAD
 	cd src/brico; git archive --prefix=brico/ -o ../../staging/alpine/brico.tar HEAD
 	cd staging/alpine; tar -xf kno.tar;
+	cd staging/alpine/kno; tar -xf ../tests.tar;
 	cd staging/alpine/kno/src; tar -xf ../../stdlib.tar;
 	cd staging/alpine/kno/src; tar -xf ../../brico.tar;
 	if $(GITDESCRIBE) > /dev/null 2>&1; then			\
