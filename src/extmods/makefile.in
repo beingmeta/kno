@@ -1,6 +1,25 @@
 EXTMODS=@EXTMODS@
 
-default: ${EXTMODS}
+default: extmods
+
+extmods: ${EXTMODS}
+
+build: extmods
+	domake ${EXTMODS}
+testbuild: extmods
+	submake ${EXTMODS}
+fresh: extmods
+	domake ${EXTMODS} fresh
+clean: extmods
+	domake ${EXTMODS} clean
+install: extmods
+	domake ${EXTMODS} install
+alpine: extmods
+	domake ${EXTMODS} alpine
+debfresh: extmods
+	domake ${EXTMODS} debfresh
+
+.PHONY: extmods build fresh clean install alpine debfresh testbuild
 
 hyphenate hyphenate/.git:
 	git clone git@github.com:beingmeta/kno-hyphenate.git hyphenate
@@ -9,7 +28,7 @@ imagetools imagetools/.git:
 leveldb leveldb/.git:
 	git clone git@github.com:beingmeta/kno-leveldb.git leveldb
 mod_knocgi mod_knocgi/.git:
-	git clone git@github.com:beingmeta/kno-mod_knocgi.git mod_knocgi
+	git clone git@github.com:beingmeta/mod_knocgi.git mod_knocgi
 mongodb mongodb/.git:
 	git clone git@github.com:beingmeta/kno-mongodb.git mongodb
 mysql mysql/.git:
