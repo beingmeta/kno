@@ -547,8 +547,8 @@ KNO_EXPORT int kno_n_base_oids, kno_oid_buckets_len;
   (KNO_OID_PLUS(kno_base_oids[((x>>2)&(KNO_OID_BUCKET_MASK))],\
                (x>>((KNO_OID_BUCKET_WIDTH)+2))))
 #define KNO_CONSTRUCT_OID(baseid,offset) \
-  ((lispval) ((((kno_ptrbits)baseid)<<2)|\
-             (((kno_ptrbits)offset)<<((KNO_OID_BUCKET_WIDTH)+2))|3))
+  ((lispval) ((((kno_ptrbits)(baseid))<<2)|				\
+	      (((kno_ptrbits)(offset))<<((KNO_OID_BUCKET_WIDTH)+2))|3))
 KNO_EXPORT lispval kno_make_oid(KNO_OID addr);
 KNO_EXPORT int kno_get_oid_base_index(KNO_OID addr,int add);
 
