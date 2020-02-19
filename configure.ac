@@ -117,21 +117,10 @@ local_module_dir=""
 default_module_path=""
 module_path=""
 source_dir=""
-CORE_CMODULES=""
-DB_CMODULES=""
-TEXT_MODULES=""
-GRAPHICS_CMODULES=""
-ARCHIVE_CMODULES=""
-INSTALL_CORE_CMODULES=""
-INSTALL_DB_CMODULES=""
-INSTALL_TEXT_MODULES=""
-INSTALL_GRAPHICS_CMODULES=""
-INSTALL_ARCHIVE_CMODULES=""
-TEST_CORE_CMODULES=""
-TEST_DB_CMODULES=""
-TEST_TEXT_CMODULES=""
-TEST_GRAPHICS_CMODULES=""
-TEST_ARCHIVE_CMODULES=""
+EXTMODS="hyphenate imagetools leveldb mod_knocgi mongodb mysql nng odbc rocksdb sundown tidy zeromq ziptools"
+CMODULES=""
+INSTALL_CMODULES=""
+TEST_CMODULES=""
 DATAFILES="etc/version"
 SUDO=""
 SUINSTALL=
@@ -350,23 +339,12 @@ AC_SUBST(INSTALLI18N)
 AC_SUBST(SUDO)
 AC_SUBST(SUINSTALL)
 AC_SUBST(WWWUSER)
-AC_SUBST(CORE_CMODULES)
-AC_SUBST(DB_CMODULES)
-AC_SUBST(TEXT_CMODULES)
-AC_SUBST(GRAPHICS_CMODULES)
-AC_SUBST(ARCHIVE_CMODULES)
+AC_SUBST(EXTMODS)
+AC_SUBST(CMODULES)
+AC_SUBST(INSTALL_CMODULES)
+AC_SUBST(TEST_CMODULES)
 AC_SUBST(DATAFILES)
 AC_SUBST(BOOTSETUP)
-AC_SUBST(INSTALL_CORE_CMODULES)
-AC_SUBST(INSTALL_DB_CMODULES)
-AC_SUBST(INSTALL_TEXT_CMODULES)
-AC_SUBST(INSTALL_GRAPHICS_CMODULES)
-AC_SUBST(INSTALL_ARCHIVE_CMODULES)
-AC_SUBST(TEST_CORE_CMODULES)
-AC_SUBST(TEST_DB_CMODULES)
-AC_SUBST(TEST_TEXT_CMODULES)
-AC_SUBST(TEST_GRAPHICS_CMODULES)
-AC_SUBST(TEST_ARCHIVE_CMODULES)
 AC_SUBST(MALLOC_FLAGS)
 AC_SUBST(MYSQL_CFLAGS)
 AC_SUBST(MYSQL_LDFLAGS)
@@ -627,8 +605,8 @@ esac
 
 # Now that we have shared_suffix defined, set some things up
 
-CORE_CMODULES="lib/kno/testcapi.${shared_suffix} ${CORE_CMODULES}"
-INSTALL_CORE_CMODULES="install-testcapi ${INSTALL_CORE_CMODULES}"
+CMODULES="lib/kno/testcapi.${shared_suffix} ${CMODULES}"
+INSTALL_CMODULES="install-testcapi ${INSTALL_CMODULES}"
 
 AX_CHECK_LINK_FLAG("-static-libgcc",static_libgcc="yes")
 
@@ -848,8 +826,8 @@ else
   elif test "$gperftools" = "profile"; then
     AC_CHECK_LIB(tcmalloc,malloc,EXELIBS="-ltcmalloc $EXELIBS")
     AC_CHECK_LIB(profiler,ProfilerStart,EXELIBS="-lprofiler $EXELIBS")
-    CORE_CMODULES="lib/kno/gperftools.${shared_suffix} ${CORE_CMODULES}"
-    INSTALL_CORE_CMODULES="install-gperftools ${INSTALL_CORE_CMODULES}"
+    CMODULES="lib/kno/gperftools.${shared_suffix} ${CMODULES}"
+    INSTALL_CMODULES="install-gperftools ${INSTALL_CMODULES}"
   elif test "$gperftools" = "minimal"; then
     AC_CHECK_LIB(tcmalloc_minimal,malloc,EXELIBS="-ltcmalloc_minimal $EXELIBS")
   else
@@ -899,9 +877,9 @@ dnl Check for cryptic in in libu8
 AC_CHECK_FUNCS(u8_cryptic,with_crypto_default="yes")
 AC_ARG_WITH(crypto,--with/out-crypto Compile the crypto module,,with_crypto=$with_crypto_default)
 if test $with_crypto = "yes"; then
-  CORE_CMODULES="lib/kno/crypto.$shared_suffix ${CORE_CMODULES}"
-  INSTALL_CORE_CMODULES="install-crypto ${INSTALL_CORE_CMODULES}"
-  TEST_CORE_CMODULES="crypto ${TEST_CORE_CMODULES}"
+  CMODULES="lib/kno/crypto.$shared_suffix ${CMODULES}"
+  INSTALL_CMODULES="install-crypto ${INSTALL_CMODULES}"
+  TEST_CMODULES="crypto ${TEST_CMODULES}"
 fi
 
 # OpenSSL checks
@@ -1644,14 +1622,14 @@ else
 fi;	     
 
 if test ! -z "${PYTHON3_CFLAGS}"; then
-   CORE_CMODULES="lib/kno/parseltongue.$shared_suffix ${CORE_CMODULES}"
-   INSTALL_CORE_CMODULES="install-parseltongue ${INSTALL_CORE_CMODULES}"
+   CMODULES="lib/kno/parseltongue.$shared_suffix ${CMODULES}"
+   INSTALL_CMODULES="install-parseltongue ${INSTALL_CMODULES}"
 else
    auto_disabled="parseltongue3 ${auto_disabled}";
 fi
 if test ! -z "${PYTHON2_CFLAGS}"; then
-   CORE_CMODULES="lib/kno/parseltongue2.$shared_suffix ${CORE_CMODULES}"
-   INSTALL_CORE_CMODULES="install-parseltongue2 ${INSTALL_CORE_CMODULES}"
+   CMODULES="lib/kno/parseltongue2.$shared_suffix ${CMODULES}"
+   INSTALL_CMODULES="install-parseltongue2 ${INSTALL_CMODULES}"
 else
    auto_disabled="parseltongue2 ${auto_disabled}";
 fi
@@ -1693,9 +1671,9 @@ if (test "$have_zlib_h" = "yes"); then
 fi
 
 if (test "$have_libz" = "yes"); then
-  ARCHIVE_CMODULES="lib/kno/zlib.$shared_suffix ${ARCHIVE_CMODULES}"
-  INSTALL_ARCHIVE_CMODULES="install-zlib ${INSTALL_ARCHIVE_CMODULES}"
-  TEST_ARCHIVE_CMODULES="${TEST_ARCHIVE_CMODULES} zlib"
+  CMODULES="lib/kno/zlib.$shared_suffix ${CMODULES}"
+  INSTALL_CMODULES="install-zlib ${INSTALL_CMODULES}"
+  TEST_CMODULES="${TEST_CMODULES} zlib"
 fi
 
 AC_CHECK_HEADER(zlib.h,have_zlib_h="yes",have_zlib_h="no")
@@ -1728,9 +1706,9 @@ AC_CHECK_HEADERS(archive.h)
 AC_CHECK_LIB(archive,archive_read_new)
 if test "${ac_cv_header_archive_h}" == "yes" && \
    test "${ac_cv_lib_archive_archive_read_new}" == "yes"; then
-  ARCHIVE_CMODULES="lib/kno/libarchive.${shared_suffix} ${ARCHIVE_CMODULES}"
-  INSTALL_ARCHIVE_CMODULES="install-libarchive ${INSTALL_ARCHIVE_CMODULES}"
-  TEST_ARCHIVE_CMODULES="${TEST_ARCHIVE_CMODULES} libarchive"
+  CMODULES="lib/kno/libarchive.${shared_suffix} ${CMODULES}"
+  INSTALL_CMODULES="install-libarchive ${INSTALL_CMODULES}"
+  TEST_CMODULES="${TEST_CMODULES} libarchive"
 else
   missing="libarchive ${missing}"
 fi
@@ -1748,9 +1726,9 @@ if test $have_sqlite3_h = "yes"; then
   AC_CHECK_LIB(sqlite3,sqlite3_open,sqlite3_ok="yes")
   AC_CHECK_LIB(sqlite3,sqlite3_open_v2,sqlite3v2_ok="yes")
   if test "$sqlite3_ok" = "yes"; then
-    DB_CMODULES="lib/kno/sqlite.$shared_suffix ${DB_CMODULES}";
-    INSTALL_DB_CMODULES="install-sqlite ${INSTALL_DB_CMODULES}";
-    TEST_DB_CMODULES="${TEST_DB_CMODULES} sqlite"
+    CMODULES="lib/kno/sqlite.$shared_suffix ${CMODULES}";
+    INSTALL_CMODULES="install-sqlite ${INSTALL_CMODULES}";
+    TEST_CMODULES="${TEST_CMODULES} sqlite"
     SQLITE3_LIBS=-lsqlite3
     sqlite_included=no
     if test "${sqlite3v2_ok}" == "yes"; then
@@ -1822,14 +1800,13 @@ fi;
 ### Here's where stuff gets made
 
 AC_OUTPUT([makefile etc/version etc/makefile.include
-           tests/lisp/makefile tests/storage/makefile
-	   tests/makefile DIY/makefile 
+           src/extmods/makefile DIY/makefile 
+	   tests/makefile tests/libtests/makefile
            etc/gdbinit
            etc/lldbinit
 	   exe/.gdbinit
 	   exe/.lldbinit
 	   dbg/runenv.sh dbg/.gdbinit dbg/.lldbinit dbg/.valgrind
-	   tests/lisp/.gdbinit tests/storage/.gdbinit
 	   etc/kno.pc
 	   etc/getbuildopt
 	   etc/knobuild

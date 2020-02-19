@@ -1,5 +1,0 @@
-set terminal epslatex
-set xlabel "Elapsed time (seconds)"
-set ylabel "Number of fetches"
-set output "timeline.eps"
-plot "sample" using 2:3:5 with boxes fs solid title "Fetch Cycles"

@@ -1,9 +1,0 @@
-Received: by media-lab (5.57/4.8)  id AA10965; Sun, 22 Apr 90 15:10:16 EDT
-To: mt, dfr, kwh
-Subject: funny line in a .sig
-   and in subject
-Date: Sun, 22 Apr 90 15:10:14 EDT
-From: alanr
-
-"Sorry I took so long to get here.  Where's Beckett?" -- Godot.
-

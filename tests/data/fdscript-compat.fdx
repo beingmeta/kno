@@ -1,8 +1,0 @@
-(define qchoice qc)
-(define (timer expr)
-  (let* ((start (xtimestamp))
-	 (value (eval expr))
-	 (finish (xtimestamp)))
-    (notify "Completed in " (timestamp-diff finish start) " seconds")
-    value))
-(define (swapout) (swap-out-all) (clear-slot-cache!))

@@ -1,0 +1,31 @@
+EXTMODS=@EXTMODS@
+
+default: ${EXTMODS}
+
+hyphenate hyphenate/.git:
+	git clone git@github.com:beingmeta/kno-hyphenate.git hyphenate
+imagetools imagetools/.git:
+	git clone git@github.com:beingmeta/kno-imagetools.git imagetools
+leveldb leveldb/.git:
+	git clone git@github.com:beingmeta/kno-leveldb.git leveldb
+mod_knocgi mod_knocgi/.git:
+	git clone git@github.com:beingmeta/kno-mod_knocgi.git mod_knocgi
+mongodb mongodb/.git:
+	git clone git@github.com:beingmeta/kno-mongodb.git mongodb
+mysql mysql/.git:
+	git clone git@github.com:beingmeta/kno-mysql.git mysql
+nng nng/.git:
+	git clone git@github.com:beingmeta/kno-nng.git nng
+odbc odbc/.git:
+	git clone git@github.com:beingmeta/kno-odbc.git odbc
+rocksdb rocksdb/.git:
+	git clone git@github.com:beingmeta/kno-rocksdb.git rocksdb
+sundown sundown/.git:
+	git clone git@github.com:beingmeta/kno-sundown.git sundown
+tidy tidy/.git:
+	git clone git@github.com:beingmeta/kno-tidy.git tidy
+zeromq zeromq/.git:
+	git clone git@github.com:beingmeta/kno-zeromq.git zeromq
+ziptools ziptools/.git:
+	git clone git@github.com:beingmeta/kno-ziptools.git ziptools
+

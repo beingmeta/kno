@@ -1,5 +1,0 @@
-set xlabel "Elapsed time (seconds)"
-set ylabel "Number of fetches"
-set mxtics 10
-set terminal x11 3
-plot "sample" using 2:3:5 with boxes fs solid title "Fetch Cycles"

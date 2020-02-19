@@ -1,6 +1,0 @@
-#!/bin/bash
-pushd $1/hyponyms; gnuplot gplot/doall.gplot; popd;
-pushd $1/specls; gnuplot gplot/doall.gplot; popd;
-pushd $1/disambig; gnuplot gplot/doall.gplot; popd;
-#cd $1/getrelated; gnuplot gplot/doall.gplot
-#cd $1/makedterm; gnuplot gplot/doall.gplot

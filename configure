@@ -727,23 +727,12 @@ LIBZIP_CFLAGS
 MYSQL_LDFLAGS
 MYSQL_CFLAGS
 MALLOC_FLAGS
-TEST_ARCHIVE_CMODULES
-TEST_GRAPHICS_CMODULES
-TEST_TEXT_CMODULES
-TEST_DB_CMODULES
-TEST_CORE_CMODULES
-INSTALL_ARCHIVE_CMODULES
-INSTALL_GRAPHICS_CMODULES
-INSTALL_TEXT_CMODULES
-INSTALL_DB_CMODULES
-INSTALL_CORE_CMODULES
 BOOTSETUP
 DATAFILES
-ARCHIVE_CMODULES
-GRAPHICS_CMODULES
-TEXT_CMODULES
-DB_CMODULES
-CORE_CMODULES
+TEST_CMODULES
+INSTALL_CMODULES
+CMODULES
+EXTMODS
 WWWUSER
 SUINSTALL
 SUDO
@@ -3040,21 +3029,10 @@ local_module_dir=""
 default_module_path=""
 module_path=""
 source_dir=""
-CORE_CMODULES=""
-DB_CMODULES=""
-TEXT_MODULES=""
-GRAPHICS_CMODULES=""
-ARCHIVE_CMODULES=""
-INSTALL_CORE_CMODULES=""
-INSTALL_DB_CMODULES=""
-INSTALL_TEXT_MODULES=""
-INSTALL_GRAPHICS_CMODULES=""
-INSTALL_ARCHIVE_CMODULES=""
-TEST_CORE_CMODULES=""
-TEST_DB_CMODULES=""
-TEST_TEXT_CMODULES=""
-TEST_GRAPHICS_CMODULES=""
-TEST_ARCHIVE_CMODULES=""
+EXTMODS="hyphenate imagetools leveldb mod_knocgi mongodb mysql nng odbc rocksdb sundown tidy zeromq ziptools"
+CMODULES=""
+INSTALL_CMODULES=""
+TEST_CMODULES=""
 DATAFILES="etc/version"
 SUDO=""
 SUINSTALL=
@@ -3184,17 +3162,6 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/kno/knosource.h include/kno/config.h"
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -6926,8 +6893,8 @@ esac
 
 # Now that we have shared_suffix defined, set some things up
 
-CORE_CMODULES="lib/kno/testcapi.${shared_suffix} ${CORE_CMODULES}"
-INSTALL_CORE_CMODULES="install-testcapi ${INSTALL_CORE_CMODULES}"
+CMODULES="lib/kno/testcapi.${shared_suffix} ${CMODULES}"
+INSTALL_CMODULES="install-testcapi ${INSTALL_CMODULES}"
 
 as_CACHEVAR=`$as_echo "ax_cv_check_ldflags__"-static-libgcc"" | $as_tr_sh`
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether the linker accepts \"-static-libgcc\"" >&5
@@ -7791,8 +7758,8 @@ if test "x$ac_cv_lib_profiler_ProfilerStart" = xyes; then :
   EXELIBS="-lprofiler $EXELIBS"
 fi
 
-    CORE_CMODULES="lib/kno/gperftools.${shared_suffix} ${CORE_CMODULES}"
-    INSTALL_CORE_CMODULES="install-gperftools ${INSTALL_CORE_CMODULES}"
+    CMODULES="lib/kno/gperftools.${shared_suffix} ${CMODULES}"
+    INSTALL_CMODULES="install-gperftools ${INSTALL_CMODULES}"
   elif test "$gperftools" = "minimal"; then
     { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc_minimal" >&5
 $as_echo_n "checking for malloc in -ltcmalloc_minimal... " >&6; }
@@ -8172,9 +8139,9 @@ else
 fi
 
 if test $with_crypto = "yes"; then
-  CORE_CMODULES="lib/kno/crypto.$shared_suffix ${CORE_CMODULES}"
-  INSTALL_CORE_CMODULES="install-crypto ${INSTALL_CORE_CMODULES}"
-  TEST_CORE_CMODULES="crypto ${TEST_CORE_CMODULES}"
+  CMODULES="lib/kno/crypto.$shared_suffix ${CMODULES}"
+  INSTALL_CMODULES="install-crypto ${INSTALL_CMODULES}"
+  TEST_CMODULES="crypto ${TEST_CMODULES}"
 fi
 
 # OpenSSL checks
@@ -12465,14 +12432,14 @@ fi
 fi;
 
 if test ! -z "${PYTHON3_CFLAGS}"; then
-   CORE_CMODULES="lib/kno/parseltongue.$shared_suffix ${CORE_CMODULES}"
-   INSTALL_CORE_CMODULES="install-parseltongue ${INSTALL_CORE_CMODULES}"
+   CMODULES="lib/kno/parseltongue.$shared_suffix ${CMODULES}"
+   INSTALL_CMODULES="install-parseltongue ${INSTALL_CMODULES}"
 else
    auto_disabled="parseltongue3 ${auto_disabled}";
 fi
 if test ! -z "${PYTHON2_CFLAGS}"; then
-   CORE_CMODULES="lib/kno/parseltongue2.$shared_suffix ${CORE_CMODULES}"
-   INSTALL_CORE_CMODULES="install-parseltongue2 ${INSTALL_CORE_CMODULES}"
+   CMODULES="lib/kno/parseltongue2.$shared_suffix ${CMODULES}"
+   INSTALL_CMODULES="install-parseltongue2 ${INSTALL_CMODULES}"
 else
    auto_disabled="parseltongue2 ${auto_disabled}";
 fi
@@ -12673,9 +12640,9 @@ fi
 fi
 
 if (test "$have_libz" = "yes"); then
-  ARCHIVE_CMODULES="lib/kno/zlib.$shared_suffix ${ARCHIVE_CMODULES}"
-  INSTALL_ARCHIVE_CMODULES="install-zlib ${INSTALL_ARCHIVE_CMODULES}"
-  TEST_ARCHIVE_CMODULES="${TEST_ARCHIVE_CMODULES} zlib"
+  CMODULES="lib/kno/zlib.$shared_suffix ${CMODULES}"
+  INSTALL_CMODULES="install-zlib ${INSTALL_CMODULES}"
+  TEST_CMODULES="${TEST_CMODULES} zlib"
 fi
 
 ac_fn_c_check_header_mongrel "$LINENO" "zlib.h" "ac_cv_header_zlib_h" "$ac_includes_default"
@@ -12929,9 +12896,9 @@ fi
 
 if test "${ac_cv_header_archive_h}" == "yes" && \
    test "${ac_cv_lib_archive_archive_read_new}" == "yes"; then
-  ARCHIVE_CMODULES="lib/kno/libarchive.${shared_suffix} ${ARCHIVE_CMODULES}"
-  INSTALL_ARCHIVE_CMODULES="install-libarchive ${INSTALL_ARCHIVE_CMODULES}"
-  TEST_ARCHIVE_CMODULES="${TEST_ARCHIVE_CMODULES} libarchive"
+  CMODULES="lib/kno/libarchive.${shared_suffix} ${CMODULES}"
+  INSTALL_CMODULES="install-libarchive ${INSTALL_CMODULES}"
+  TEST_CMODULES="${TEST_CMODULES} libarchive"
 else
   missing="libarchive ${missing}"
 fi
@@ -13035,9 +13002,9 @@ if test "x$ac_cv_lib_sqlite3_sqlite3_open_v2" = xyes; then :
 fi
 
   if test "$sqlite3_ok" = "yes"; then
-    DB_CMODULES="lib/kno/sqlite.$shared_suffix ${DB_CMODULES}";
-    INSTALL_DB_CMODULES="install-sqlite ${INSTALL_DB_CMODULES}";
-    TEST_DB_CMODULES="${TEST_DB_CMODULES} sqlite"
+    CMODULES="lib/kno/sqlite.$shared_suffix ${CMODULES}";
+    INSTALL_CMODULES="install-sqlite ${INSTALL_CMODULES}";
+    TEST_CMODULES="${TEST_CMODULES} sqlite"
     SQLITE3_LIBS=-lsqlite3
     sqlite_included=no
     if test "${sqlite3v2_ok}" == "yes"; then
@@ -13125,7 +13092,7 @@ fi;
 
 ### Here's where stuff gets made
 
-ac_config_files="$ac_config_files makefile etc/version etc/makefile.include tests/lisp/makefile tests/storage/makefile tests/makefile DIY/makefile etc/gdbinit etc/lldbinit exe/.gdbinit exe/.lldbinit dbg/runenv.sh dbg/.gdbinit dbg/.lldbinit dbg/.valgrind tests/lisp/.gdbinit tests/storage/.gdbinit etc/kno.pc etc/getbuildopt etc/knobuild etc/kno_start_servlets etc/kno_start_daemons etc/kno_stop_jobs etc/knostart etc/knostop etc/knostartall etc/knostopall etc/knocleanup etc/knosignal etc/knoinject etc/knostatus etc/knolog etc/knoreload etc/knorestart etc/knoctl etc/knogdb etc/knodbgexec etc/knosetconfig etc/knogetconfig etc/knoconfig tests/testenv.sh tests/xtest tests/runtest tests/memtest tests/leaktest tests/knoxtest src/scripts/knopkg.scm src/extmods/knoconfig etc/knojob etc/logrotate etc/sysv/kno-rc.d etc/sysv/ex_servlet-init.d etc/sysv/ex_daemon-init.d etc/upstart/kno.conf etc/upstart/knod.conf etc/upstart/knoservlets.conf etc/upstart/ex_knoservlet.conf etc/systemd/ex_servlet.service etc/systemd/ex_daemon.service etc/systemd/kno-daemons.service etc/systemd/kno-servlets.service etc/macos/OSXStartupItem/KNO etc/macos/KNO.plist etc/apache/knocgi.conf etc/apache/knocgi.load etc/install-script dist/alpine/APKBUILD dist/kno-4.3.spec"
+ac_config_files="$ac_config_files makefile etc/version etc/makefile.include src/extmods/makefile DIY/makefile tests/makefile tests/libtests/makefile etc/gdbinit etc/lldbinit exe/.gdbinit exe/.lldbinit dbg/runenv.sh dbg/.gdbinit dbg/.lldbinit dbg/.valgrind etc/kno.pc etc/getbuildopt etc/knobuild etc/kno_start_servlets etc/kno_start_daemons etc/kno_stop_jobs etc/knostart etc/knostop etc/knostartall etc/knostopall etc/knocleanup etc/knosignal etc/knoinject etc/knostatus etc/knolog etc/knoreload etc/knorestart etc/knoctl etc/knogdb etc/knodbgexec etc/knosetconfig etc/knogetconfig etc/knoconfig tests/testenv.sh tests/xtest tests/runtest tests/memtest tests/leaktest tests/knoxtest src/scripts/knopkg.scm src/extmods/knoconfig etc/knojob etc/logrotate etc/sysv/kno-rc.d etc/sysv/ex_servlet-init.d etc/sysv/ex_daemon-init.d etc/upstart/kno.conf etc/upstart/knod.conf etc/upstart/knoservlets.conf etc/upstart/ex_knoservlet.conf etc/systemd/ex_servlet.service etc/systemd/ex_daemon.service etc/systemd/kno-daemons.service etc/systemd/kno-servlets.service etc/macos/OSXStartupItem/KNO etc/macos/KNO.plist etc/apache/knocgi.conf etc/apache/knocgi.load etc/install-script dist/alpine/APKBUILD dist/kno-4.3.spec"
 
 ac_config_commands="$ac_config_commands default"
 
@@ -13829,10 +13796,10 @@ do
     "makefile") CONFIG_FILES="$CONFIG_FILES makefile" ;;
     "etc/version") CONFIG_FILES="$CONFIG_FILES etc/version" ;;
     "etc/makefile.include") CONFIG_FILES="$CONFIG_FILES etc/makefile.include" ;;
-    "tests/lisp/makefile") CONFIG_FILES="$CONFIG_FILES tests/lisp/makefile" ;;
-    "tests/storage/makefile") CONFIG_FILES="$CONFIG_FILES tests/storage/makefile" ;;
-    "tests/makefile") CONFIG_FILES="$CONFIG_FILES tests/makefile" ;;
+    "src/extmods/makefile") CONFIG_FILES="$CONFIG_FILES src/extmods/makefile" ;;
     "DIY/makefile") CONFIG_FILES="$CONFIG_FILES DIY/makefile" ;;
+    "tests/makefile") CONFIG_FILES="$CONFIG_FILES tests/makefile" ;;
+    "tests/libtests/makefile") CONFIG_FILES="$CONFIG_FILES tests/libtests/makefile" ;;
     "etc/gdbinit") CONFIG_FILES="$CONFIG_FILES etc/gdbinit" ;;
     "etc/lldbinit") CONFIG_FILES="$CONFIG_FILES etc/lldbinit" ;;
     "exe/.gdbinit") CONFIG_FILES="$CONFIG_FILES exe/.gdbinit" ;;
@@ -13841,8 +13808,6 @@ do
     "dbg/.gdbinit") CONFIG_FILES="$CONFIG_FILES dbg/.gdbinit" ;;
     "dbg/.lldbinit") CONFIG_FILES="$CONFIG_FILES dbg/.lldbinit" ;;
     "dbg/.valgrind") CONFIG_FILES="$CONFIG_FILES dbg/.valgrind" ;;
-    "tests/lisp/.gdbinit") CONFIG_FILES="$CONFIG_FILES tests/lisp/.gdbinit" ;;
-    "tests/storage/.gdbinit") CONFIG_FILES="$CONFIG_FILES tests/storage/.gdbinit" ;;
     "etc/kno.pc") CONFIG_FILES="$CONFIG_FILES etc/kno.pc" ;;
     "etc/getbuildopt") CONFIG_FILES="$CONFIG_FILES etc/getbuildopt" ;;
     "etc/knobuild") CONFIG_FILES="$CONFIG_FILES etc/knobuild" ;;

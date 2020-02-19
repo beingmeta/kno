@@ -574,26 +574,21 @@ include/kno/knosource.h: include/kno/knosource.h.in
 	if test -x ./config.status; then ./config.status; fi
 	touch $@
 
-tests/lisp/makefile: tests/lisp/makefile.in ./config.status
-	./config.status
-tests/storage/makefile: tests/storage/makefile.in ./config.status
+tests/libtests/makefile: tests/libtests/makefile.in ./config.status
 	./config.status
 tests/makefile: tests/makefile.in ./config.status
 	./config.status
-tests/lisp/.gdbinit: tests/lisp/.gdbinit.in ./config.status
-	./config.status
-tests/storage/.gdbinit: tests/storage/.gdbinit.in ./config.status
+tests/libtests/.gdbinit: tests/libtests/.gdbinit.in ./config.status
 	./config.status
 dbg/.gdbinit: dbg/.gdbinit.in ./config.status
 	./config.status
 exe/.gdbinit: exe/.gdbinit.in ./config.status
 	./config.status
 
-etc: etc/logrotate etc/install-script etc/sysv/kno-rc.d etc/logrotate    	\
+etc: etc/logrotate etc/install-script etc/sysv/kno-rc.d etc/logrotate	\
         etc/knoconfig etc/knosetconfig etc/knogetconfig			\
         etc/knojob etc/knosignal                             		\
-        tests/lisp/.gdbinit tests/storage/.gdbinit dbg/.gdbinit         \
-        exe/.gdbinit
+        tests/libtests/.gdbinit dbg/.gdbinit exe/.gdbinit
 
 # Fileinfo gets version-related information about a file to pass in
 # with -D
@@ -804,19 +799,11 @@ scripts: shell-scripts scheme-scripts
 
 .PHONY: static
 
-testbin: constestbin dbtestbin debug-exe etc/usememory
-constestbin: libs tests/lisp/makefile tests/lisp/.gdbinit
+testbin: libtestbin debug-exe etc/usememory
+libtestbin: libs tests/libtests/makefile tests/libtests/.gdbinit
 	@make -s XCFLAGS="$(XCFLAGS)" XLDFLAGS="$(XLDFLAGS)" XLIBS="$(XLIBS)" \
-		-C tests/lisp
-dbtestbin: libs tests/storage/makefile tests/storage/.gdbinit
-	@make -s  XCFLAGS="$(XCFLAGS)" XLDFLAGS="$(XLDFLAGS)" XLIBS="$(XLIBS)" \
-		-C tests/storage
-cmodules: core-modules db-modules text-modules graphics-modules archive-modules
-core-modules: @CORE_CMODULES@
-db-modules: @DB_CMODULES@
-text-modules: @TEXT_CMODULES@
-graphics-modules: @GRAPHICS_CMODULES@
-archive-modules: @ARCHIVE_CMODULES@
+		-C tests/libtests
+cmodules: @CMODULES@
 
 dbg/knocgi.webuser: dbg/knocgi
 	@echo "Making" $@
@@ -858,7 +845,7 @@ uninstall: uninstall-core
 # Utility targets
 
 TAGS: makefile.in configure.ac include/kno/config.h.in			\
-		tests/lisp/*.c tests/storage/*.c  			\
+		tests/libtests/*.c		  			\
 		src/exe/*.c src/exe/*.h include/kno/*.h 		\
 		src/lisp/*.c src/sys/*.c src/apply/*.c			\
 		src/storage/*.c src/drivers/*.c 			\
@@ -886,14 +873,14 @@ TAGS: makefile.in configure.ac include/kno/config.h.in			\
 	@etags -o TAGS -a src/drivers/*.c src/drivers/headers/*.h
 	@etags -o TAGS -a src/eval/*.c src/prims/*.c
 	@etags -o TAGS -a src/web/*.c src/text/*.c;
-	@etags -o TAGS -a tests/lisp/*.c tests/storage/*.c tests/*.scm;
+	@etags -o TAGS -a tests/libtests/*.c tests/*.scm;
 	@etags -o TAGS -a src/cmodules/*.c;
 	@etags -o TAGS -a src/scripts/*.scm;
 	@etags -o TAGS -a src/extmods/*/makefile
 	@find src/libscm/ -name "*.scm" -type f | xargs etags -a -o TAGS;
 
 CTAGS: makefile.in configure.ac include/kno/config.h.in	\
-	tests/lisp/*.c tests/storage/*.c tests/*.c	\
+	tests/libtests/*.c tests/*.c	\
 	src/lisp/*.c src/sys/*.c src/apply/*.c src/storage/*.c 		\
 	src/eval/*.c src/prims/*.c src/web/*.c src/text/*.c 	\
 	include/kno/*.h ${SRC_HEADERS} etc/*.in 		\
@@ -901,13 +888,12 @@ CTAGS: makefile.in configure.ac include/kno/config.h.in	\
 	src/exe/*.c src/cmodules/*.c
 	@echo Building C TAGS file
 	@etags -o CTAGS 
-	      makefile.in configure.ac include/kno/config.h.in      \
-	      tests/lisp/*.c tests/apply/*.c tests/storage/*.c 		\
-	      tests/eval/*.c tests/prims/*.c src/exe/*.c src/exe/*.h	\
-	      src/lisp/*.c src/sys/*.c src/storage/*.c 		\
+	      makefile.in configure.ac include/kno/config.h.in      	\
+	      tests/libtests/*.c src/exe/*.c src/exe/*.h		\
+	      src/lisp/*.c src/sys/*.c src/storage/*.c 			\
 	      src/eval/*.c src/prims/*.c src/web/*.c src/text/*.c	\
 	      src/cmodules/*.c src/cmodules/*.h				\
-	      include/kno/*.h etc/*.in 				\
+	      include/kno/*.h etc/*.in 					\
 	      include/kno/components/*.h				\
 	      ${SRC_HEADERS}
 
@@ -955,15 +941,13 @@ clean: tidy
 	rm -f exe/knocgi@suffix@ exe/knod@suffix@
 	rm -f exe/knoc@suffix@ exe/knocgi@suffix@
 	rm -f TAGS
-	cd tests/lisp; make -s clean
-	cd tests/storage; make -s clean
+	cd tests/libtests; make -s clean
 	cd tests; make -s clean
 	find . -name "*.dSYM" -writable | xargs rm -rf
 distclean: clean
 	rm -f .buildmode
 	rm -f makefile config.log config.status config.cache
-	rm -f tests/lisp/makefile tests/storage/makefile tests/makefile
-	rm -f tests/lisp/.gdbinit tests/storage/.gdbinit tests/.gdbinit
+	rm -f tests/libtests/makefile tests/makefile tests/lisp/.gdbinit
 	rm -f dbg/gdbinit
 	rm -f etc/knogetconfig etc/knosetconfig
 	rm -f etc/sysv/kno-rc.d etc/sysv/ex_servlet-init.d etc/sysv/ex_daemon-init.d

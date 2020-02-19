@@ -1,6 +1,0 @@
-source @abs_top_srcdir@/etc/gdbinit
-directory @abs_top_srcdir@/src/dtype:@abs_top_srcdir@/src/db:@abs_top_srcdir@/src/scheme:@abs_top_srcdir@/src/misc:@abs_top_srcdir@/include/fdb
-
-
-
-
