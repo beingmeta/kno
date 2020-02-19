@@ -1492,7 +1492,7 @@ static lispval pool_elts(lispval arg,lispval start,lispval count)
 	KNO_OID addr=KNO_OID_PLUS(base,off);
 	bucket_no=kno_get_oid_base_index(addr,1);
 	partition=off/KNO_OID_BUCKET_SIZE;
-	bucket_start=off;}
+	bucket_start=partition*KNO_OID_BUCKET_SIZE;}
       lispval each=KNO_CONSTRUCT_OID(bucket_no,off-bucket_start);
       CHOICE_ADD(result,each);
       off++;}
