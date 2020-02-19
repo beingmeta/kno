@@ -1437,8 +1437,9 @@ DEFPRIM3("pick-max",nmax_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDOP,
 static lispval nmax_prim(lispval choices,lispval karg,lispval keyfn)
 {
   if ( (VOIDP(keyfn)) || (DEFAULTP(keyfn)) || (FALSEP(keyfn)) ) {}
-  else if (!(KNO_APPLICABLEP(keyfn)))
-    return kno_type_error(_("applicable"),"nmax_prim",keyfn);
+  else if (!( (KNO_APPLICABLEP(keyfn)) || (KNO_TABLEP(keyfn)) ) )
+    return kno_type_error(_("keyfn"),"nmax_prim",keyfn);
+  else NO_ELSE;
   if (KNO_UINTP(karg)) {
     size_t k = FIX2INT(karg);
     size_t n = KNO_CHOICE_SIZE(choices);
@@ -1456,15 +1457,16 @@ static lispval nmax_prim(lispval choices,lispval karg,lispval keyfn)
   else return kno_type_error(_("fixnum"),"nmax_prim",karg);
 }
 
-DEFPRIM3("max/sorted",nmax2vec_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDOP,
+DEFPRIM3("max/sorted",max_sorted_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDOP,
 	 "`(MAX/SORTED *choices* *count* [*keyfn*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_fixnum_type,KNO_VOID,
 	 kno_any_type,KNO_VOID);
-static lispval nmax2vec_prim(lispval choices,lispval karg,lispval keyfn)
+static lispval max_sorted_prim(lispval choices,lispval karg,lispval keyfn)
 {
   if ( (VOIDP(keyfn)) || (DEFAULTP(keyfn)) || (FALSEP(keyfn)) ) {}
-  else if (!(KNO_APPLICABLEP(keyfn)))
-    return kno_type_error(_("applicable"),"nmax2vecprim",keyfn);
+  else if (!( (KNO_APPLICABLEP(keyfn)) || (KNO_TABLEP(keyfn)) ) )
+    return kno_type_error(_("keyfn"),"nmax2vecprim",keyfn);
+  else NO_ELSE;
   if (KNO_UINTP(karg)) {
     size_t k = FIX2INT(karg);
     size_t n = KNO_CHOICE_SIZE(choices);
@@ -1501,8 +1503,9 @@ DEFPRIM3("pick-min",nmin_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDOP,
 static lispval nmin_prim(lispval choices,lispval karg,lispval keyfn)
 {
   if ( (VOIDP(keyfn)) || (DEFAULTP(keyfn)) || (FALSEP(keyfn)) ) {}
-  else if (!(KNO_APPLICABLEP(keyfn)))
-    return kno_type_error(_("applicable"),"nmin_prim",keyfn);
+  else if (!( (KNO_APPLICABLEP(keyfn)) || (KNO_TABLEP(keyfn)) ) )
+    return kno_type_error(_("keyfn"),"nmin_prim",keyfn);
+  else NO_ELSE;
   if (KNO_UINTP(karg)) {
     size_t k = FIX2INT(karg);
     size_t n = KNO_CHOICE_SIZE(choices);
@@ -1520,15 +1523,16 @@ static lispval nmin_prim(lispval choices,lispval karg,lispval keyfn)
   else return kno_type_error(_("fixnum"),"nmax_prim",karg);
 }
 
-DEFPRIM3("min/sorted",nmin2vec_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDOP,
+DEFPRIM3("min/sorted",min_sorted_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDOP,
 	 "`(MIN/SORTED *choices* *count* [*keyfn*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_fixnum_type,KNO_VOID,
 	 kno_any_type,KNO_VOID);
-static lispval nmin2vec_prim(lispval choices,lispval karg,lispval keyfn)
+static lispval min_sorted_prim(lispval choices,lispval karg,lispval keyfn)
 {
   if ( (VOIDP(keyfn)) || (DEFAULTP(keyfn)) || (FALSEP(keyfn)) ) {}
-  else if (!(KNO_APPLICABLEP(keyfn)))
-    return kno_type_error(_("applicable"),"nmin2vecprim",keyfn);
+  else if (!( (KNO_APPLICABLEP(keyfn)) || (KNO_TABLEP(keyfn)) ) )
+    return kno_type_error(_("keyfn"),"min_sorted_prim",keyfn);
+  else NO_ELSE;
   if (KNO_UINTP(karg)) {
     size_t k = FIX2INT(karg);
     size_t n = KNO_CHOICE_SIZE(choices);
@@ -1786,9 +1790,9 @@ static void link_local_cprims()
   KNO_LINK_PRIM("pickoids",pick_oids_prim,1,scheme_module);
   KNO_LINK_PRIM("pick>",pick_gt_prim,3,scheme_module);
   KNO_LINK_PRIM("getrange",getrange_prim,2,scheme_module);
-  KNO_LINK_PRIM("min/sorted",nmin2vec_prim,3,scheme_module);
+  KNO_LINK_PRIM("min/sorted",min_sorted_prim,3,scheme_module);
   KNO_LINK_PRIM("pick-min",nmin_prim,3,scheme_module);
-  KNO_LINK_PRIM("max/sorted",nmax2vec_prim,3,scheme_module);
+  KNO_LINK_PRIM("max/sorted",max_sorted_prim,3,scheme_module);
   KNO_LINK_PRIM("pick-max",nmax_prim,3,scheme_module);
   KNO_LINK_PRIM("lexsorted",lexsorted_prim,2,scheme_module);
   KNO_LINK_PRIM("rsorted",rsorted_prim,3,scheme_module);
@@ -1841,8 +1845,8 @@ static void link_local_cprims()
   KNO_LINK_ALIAS("| |",choicesize_prim,scheme_module);
   KNO_LINK_ALIAS("",choicesize_prim,scheme_module);
   KNO_LINK_ALIAS("nmax",nmax_prim,scheme_module);
-  KNO_LINK_ALIAS("nmax->vector",nmax2vec_prim,scheme_module);
+  KNO_LINK_ALIAS("nmax->vector",max_sorted_prim,scheme_module);
   KNO_LINK_ALIAS("nmin",nmin_prim,scheme_module);
-  KNO_LINK_ALIAS("nmin->vector",nmin2vec_prim,scheme_module);
+  KNO_LINK_ALIAS("nmin->vector",min_sorted_prim,scheme_module);
 
 }
