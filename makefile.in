@@ -1209,29 +1209,19 @@ debupdate:
 
 # Creating staging areas from GIT
 
-staging/kno-@KNO_VERSION@: include/kno/revision.h \
-	$(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
-	@git archive --prefix=kno-@KNO_VERSION@/ \
-	            -o staging/kno-@KNO_VERSION@.tar HEAD
-	cd src/stdlib; git archive --prefix=kno-@KNO_VERSION@/src/stdlib/ \
-	            -o ../../staging/kno_stdlib-@KNO_VERSION@.tar HEAD;
-	cd src/brico; git archive --prefix=kno-@KNO_VERSION@/src/brico/ \
-	      	          -o ../../staging/kno_brico-@KNO_VERSION@.tar HEAD;
-	cd staging; tar -xf kno-@KNO_VERSION@.tar; rm kno-@KNO_VERSION@.tar
-	cd staging; tar -xf kno_stdlib-@KNO_VERSION@.tar; rm kno_stdlib-@KNO_VERSION@.tar;
-	cd staging; tar -xf kno_brico-@KNO_VERSION@.tar; rm kno_brico-@KNO_VERSION@.tar;
-	cp include/kno/revision.h staging/kno-@KNO_VERSION@/etc/revision.h;
-	cp dist/kno-@KNO_MAJOR@.@KNO_MINOR@.spec staging/kno-@KNO_VERSION@/dist
 staging/kno_@KNO_VERSION@: include/kno/revision.h \
 	$(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
 	@git archive --prefix=kno_@KNO_VERSION@/ \
 	            -o staging/kno_@KNO_VERSION@.tar HEAD;
+	cd tests; git archive --prefix=kno_@KNO_VERSION@/tests/ \
+	                -o ../staging/kno_tests-@KNO_VERSION@.tar HEAD;
 	cd src/stdlib; git archive --prefix=kno_@KNO_VERSION@/src/stdlib/ \
-	                -o ../../staging/kno_modules_@KNO_VERSION@.tar HEAD;
+	                -o ../../staging/kno_stdlib-@KNO_VERSION@.tar HEAD;
 	cd src/brico; git archive --prefix=kno_@KNO_VERSION@/src/brico/ \
 	                -o ../../staging/kno_brico-@KNO_VERSION@.tar HEAD;
 	cd staging; tar -xf kno_@KNO_VERSION@.tar; rm kno_@KNO_VERSION@.tar;
-	cd staging; tar -xf kno_modules_@KNO_VERSION@.tar; rm kno_modules_@KNO_VERSION@.tar;
+	cd staging; tar -xf kno_tests-@KNO_VERSION@.tar; rm kno_tests-@KNO_VERSION@.tar;
+	cd staging; tar -xf kno_stdlib-@KNO_VERSION@.tar; rm kno_stdlib-@KNO_VERSION@.tar;
 	cd staging; tar -xf kno_brico-@KNO_VERSION@.tar; rm kno_brico-@KNO_VERSION@.tar;
 	cp include/kno/revision.h staging/kno_@KNO_VERSION@/etc/revision.h;
 	cd staging; tar -czf $(DEBNAME).orig.tar.gz kno_@KNO_VERSION@;
@@ -1240,12 +1230,6 @@ staging/kno_@KNO_VERSION@: include/kno/revision.h \
 		${REL_BRANCH} ${REL_STATUS} ${REL_PRIORITY} \
 			< dist/debian/changelog \
 			> staging/kno_@KNO_VERSION@/debian/changelog;
-staging/kno-@KNO_VERSION@.tar.gz: \
-	$(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
-	make -s staging/kno-@KNO_VERSION@
-	tar -czf staging/kno-@KNO_VERSION@.tar.gz -C staging kno-@KNO_VERSION@
-	cd staging; ln -s ${DEBNAME}.tar.gz kno_@KNO_VERSION@.tar.gz
-
 staging/kno_@KNO_VERSION@.orig.tar.gz: \
 	$(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
 	make -s staging/kno_@KNO_VERSION@
@@ -1457,19 +1441,12 @@ install-fastcgi: $(BININSTALLDIR)/knocgi@suffix@
 $(BININSTALLDIR)/knocgi@suffix@:
 	@$(SYSINSTALL) -p @install_exe_opts@ knocgi@suffix@ $(BININSTALLDIR)
 
-install-cmodules: install-core-cmodules install-db-cmodules \
-			install-text-cmodules \
-			install-archive-cmodules
+install-cmodules: @INSTALL_CMODULES@
 
-install-core-cmodules: @INSTALL_CORE_CMODULES@
-install-db-cmodules: @INSTALL_DB_CMODULES@
-install-text-cmodules: @INSTALL_TEXT_CMODULES@
-install-archive-cmodules: @INSTALL_ARCHIVE_CMODULES@
 install-testcapi: ${CMODULES}/testcapi.@shared_suffix@ ${CMODULES}/testcapi.@vshared_suffix@
 install-crypto: ${CMODULES}/crypto.@shared_suffix@ ${CMODULES}/crypto.@vshared_suffix@
 install-sqlite: ${CMODULES}/sqlite.@shared_suffix@ ${CMODULES}/sqlite.@vshared_suffix@
 install-libarchive: ${CMODULES}/libarchive.@shared_suffix@ ${CMODULES}/libarchive.@vshared_suffix@
-install-exif: ${CMODULES}/exif.@shared_suffix@ ${CMODULES}/exif.@vshared_suffix@
 install-zlib: ${CMODULES}/zlib.@shared_suffix@ ${CMODULES}/zlib.@vshared_suffix@
 install-gperftools: ${CMODULES}/gperftools.@shared_suffix@ ${CMODULES}/gperftools.@vshared_suffix@
 
