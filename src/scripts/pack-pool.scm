@@ -46,7 +46,7 @@
 		       (type (symbolize (config 'pooltype 'knopool)))
 		       (adjslot (CONFIG 'ADJSLOT (CONFIG 'ADJUNCTSLOT #f))))
   (let ((metadata (or (poolctl old '%metadata) #[]))
-	(xrefs (tryif (eq? type 'knopool) (compute-xrefs old))))
+	(xrefs (and (eq? type 'knopool) (compute-xrefs old))))
     (when (eq? type 'knopool)
       (if xrefs
 	  (lognotice |XRefs| "Identified " (length xrefs) " xrefs")
@@ -69,11 +69,11 @@
 	'slotids (get-slotids metadata type)
 	'xrefs (tryif xrefs xrefs)
 	'oidrefs
-	(tryif (eq? type 'knopool)
+	(tryif (eq? type 'bigpool)
 	  (if (not xrefs) #f 
 	      (tryif (not (config 'oidrefs #t config:boolean)) #f)))
 	'symrefs 
-	(tryif (eq? type 'knopool)
+	(tryif (eq? type 'bigpool)
 	  (if (not xrefs) #f 
 	      (tryif (not (config 'symrefs #t config:boolean)) #f)))
 	'maxrefs (config 'maxrefs #{})
