@@ -258,6 +258,7 @@ SCHEME_OBJS=\
 	src/prims/logprims.o \
 	src/prims/streamprims.o \
 	src/prims/dtypeprims.o \
+	src/prims/xtypeprims.o \
 	src/prims/timeprims.o \
 	src/prims/sysprims.o \
 	src/prims/procprims.o \
@@ -371,7 +372,7 @@ KNO_SOURCES=\
 	src/prims/dbprims.c 							\
 	src/prims/logprims.c							\
 	src/prims/portprims.c							\
-	src/prims/streamprims.c src/prims/dtypeprims.c				\
+	src/prims/streamprims.c src/prims/dtypeprims.c src/prims/xtypeprims.c	\
 	src/prims/tableprims.c src/eval/choiceops.c               		\
 	src/prims/seqprims.c src/prims/stringprims.c                 		\
 	src/prims/fileprims.c src/prims/driverprims.c                		\

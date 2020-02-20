@@ -2281,6 +2281,7 @@ static void init_eval_core()
   kno_init_portprims_c();
   kno_init_streamprims_c();
   kno_init_dtypeprims_c();
+  kno_init_xtypeprims_c();
   kno_init_timeprims_c();
   kno_init_sysprims_c();
   kno_init_sqldbprims_c();

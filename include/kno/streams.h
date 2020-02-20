@@ -375,6 +375,8 @@ typedef enum KNO_COMPRESS_TYPE {
   KNO_ZSTD19 = 6}
   kno_compress_type;
 
+KNO_EXPORT kno_compress_type kno_compression_type(lispval,kno_compress_type);
+
 KNO_EXPORT unsigned char *kno_compress(kno_compress_type,ssize_t *,
                                      const unsigned char *,size_t,
                                      void *);

@@ -20,7 +20,7 @@
 #include "kno/indexes.h"
 #include "kno/frames.h"
 #include "kno/streams.h"
-#include "kno/xtypeio.h"
+#include "kno/xtypes.h"
 #include "kno/ports.h"
 #include "kno/cprims.h"
 
@@ -73,7 +73,7 @@ static lispval read_xtype(lispval stream,lispval opts_arg,
       return kno_type_error("file position","read_type",pos);
     kno_lock_stream(ds);
     kno_setpos(ds,filepos);
-    lispval object = kno_read_xtype(kno_readbuf(ds));
+    lispval object = kno_read_xtype(kno_readbuf(ds),refs);
     kno_unlock_stream(ds);
     return object;}
   else {
@@ -96,23 +96,25 @@ DEFPRIM5("write-xtype",write_xtype,KNO_MAX_ARGS(5)|KNO_MIN_ARGS(2),
 	 "a larger representation and the value may also be "
 	 "used for allocating temporary buffers, etc.",
 	 kno_any_type,KNO_VOID,kno_stream_type,KNO_VOID,
-	 kno_fixnum_type,KNO_VOID,kno_fixnum_type,KNO_VOID);
+	 kno_any_type,KNO_FALSE,
+	 kno_fixnum_type,KNO_VOID,
+	 kno_fixnum_type,KNO_VOID);
 static lispval write_xtype(lispval object,lispval stream,
-			   lispval refs_arg,
+			   lispval opts_arg,
 			   lispval pos,
 			   lispval max_bytes)
 {
   struct KNO_STREAM *ds=
     kno_consptr(struct KNO_STREAM *,stream,kno_stream_type);
-  kno_compression_type compress =
+  kno_compress_type compress =
     kno_compression_type(opts_arg,KNO_NOCOMPRESS);
   struct XTYPE_REFS *refs = NULL;
-  if (KNO_RAW_TYPEP(refs_arg,xtrefs_typetag))
-    refs = KNO_RAWPTR_VALUE(refs_arg);
-  else if (TABLEP(refs_arg)) {
-    lispval refs_opt = kno_getopt(refs_arg,refs_symbol,KNO_VOID);
+  if (KNO_RAW_TYPEP(opts_arg,xtrefs_typetag))
+    refs = KNO_RAWPTR_VALUE(opts_arg);
+  else if (TABLEP(opts_arg)) {
+    lispval refs_opt = kno_getopt(opts_arg,refs_symbol,KNO_VOID);
     if (KNO_RAW_TYPEP(refs_opt,xtrefs_typetag))
-      refs = KNO_RAWPTR_VALUE(refs_arg);
+      refs = KNO_RAWPTR_VALUE(opts_arg);
     /* We assume it won't be freed while we still hold onto the
        opts object. */
     kno_decref(refs_opt);}
@@ -234,12 +236,65 @@ static lispval xtype2file(lispval object,lispval filename,
 
 #define flushp(b) ( (((b).buflim)-((b).bufwrite)) < ((b).buflen)/5 )
 
+static ssize_t write_xtypes(lispval xtypes,struct KNO_STREAM *out,
+			    xtype_refs refs)
+{
+  ssize_t bytes=0, rv=0;
+  kno_off_t start= kno_endpos(out);
+  if ( start != out->stream_maxpos ) start=-1;
+  struct KNO_OUTBUF tmp = { 0 };
+  unsigned char tmpbuf[1000];
+  KNO_INIT_BYTE_OUTBUF(&tmp,tmpbuf,1000);
+  if (CHOICEP(xtypes)) {
+    /* This writes out the objects sequentially, writing into memory
+       first and then to disk, to reduce the danger of malformed
+       XTYPEs on the disk. */
+    DO_CHOICES(xtype,xtypes) {
+      ssize_t write_size=0;
+      if ( (flushp(tmp)) ) {
+	write_size=kno_stream_write(out,tmp.bufwrite-tmp.buffer,tmp.buffer);
+	tmp.bufwrite=tmp.buffer;}
+      if (write_size>=0) {
+	ssize_t xtype_size=kno_write_xtype(&tmp,xtype,refs);
+	if (xtype_size<0)
+	  write_size=xtype_size;
+	else if (flushp(tmp)) {
+	  write_size=kno_stream_write(out,tmp.bufwrite-tmp.buffer,tmp.buffer);
+	  tmp.bufwrite=tmp.buffer;}
+	else write_size=xtype_size;}
+      if (write_size<0) {
+	rv=write_size;
+	KNO_STOP_DO_CHOICES;
+	break;}
+      else bytes=bytes+write_size;}
+    if (tmp.bufwrite > tmp.buffer) {
+      ssize_t written = kno_stream_write
+	(out,tmp.bufwrite-tmp.buffer,tmp.buffer);
+      tmp.bufwrite=tmp.buffer;
+      bytes += written;}}
+  else {
+    bytes=kno_write_xtype(&tmp,xtypes,refs);
+    if (bytes>0)
+      rv=kno_stream_write (out,tmp.bufwrite-tmp.buffer,tmp.buffer);}
+  kno_close_outbuf(&tmp);
+  if (rv<0) {
+    if (start>=0) {
+      int rv = ftruncate(out->stream_fileno,start);
+      if (rv<0) {
+	int got_err = errno; errno=0;
+	u8_log(LOG_WARN,"TruncateFailed",
+	       "Couldn't undo write to %s (errno=%d:%s)",
+	       out->streamid,got_err,u8_strerror(got_err));}}
+    return rv;}
+  else return bytes;
+}
+
 DEFPRIM3("xtypes->file+",add_xtypes2file,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDOP,
 	 "`(XTYPES->FILE+ *xtypes* *filename* [*opts/refs*])"
 	 " **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
-	 kno-any_type,KNO_FALSE);
+	 kno_any_type,KNO_FALSE);
 static lispval add_xtypes2file(lispval object,lispval filename,
 			       lispval opts_arg)
 {
@@ -339,14 +394,14 @@ static lispval file2xtypes(lispval filename,lispval opts_arg)
       return KNO_ERROR;
     else {
       kno_inbuf inbuf = kno_readbuf(in);
-      object = kno_read_xtype(inbuf);
+      object = kno_read_xtype(inbuf,refs);
       while (!(KNO_EODP(object))) {
 	if (KNO_ABORTP(object)) {
 	  kno_decref(results);
 	  kno_close_stream(in,KNO_STREAM_FREEDATA);
 	  return object;}
 	CHOICE_ADD(results,object);
-	object = kno_read_xtype(inbuf);}
+	object = kno_read_xtype(inbuf,refs);}
       kno_close_stream(in,KNO_STREAM_FREEDATA);
       return results;}}
   else return kno_type_error(_("string"),"file2xtypes",filename);
@@ -378,29 +433,12 @@ static void link_local_cprims()
 {
   lispval scheme_module = kno_scheme_module;
 
-  KNO_LINK_PRIM("zfile->xtypes",zipfile2xtypes,1,xtypeprims_module);
-  KNO_LINK_PRIM("file->xtypes",file2xtypes,1,xtypeprims_module);
-  KNO_LINK_PRIM("zfile->xtypes",zipfile2xtypes,1,xtypeprims_module);
-  KNO_LINK_PRIM("zfile->xtype",zipfile2xtype,1,xtypeprims_module);
-  KNO_LINK_PRIM("file->xtype",file2xtype,1,xtypeprims_module);
-  KNO_LINK_PRIM("zfile->xtype",zipfile2xtype,1,xtypeprims_module);
-  KNO_LINK_PRIM("xtype->zfile+",add_lisp2zipfile,2,xtypeprims_module);
-  KNO_LINK_PRIM("xtypes->file+",add_xtypes2file,2,xtypeprims_module);
-  KNO_LINK_PRIM("xtype->zfile+",add_lisp2zipfile,2,xtypeprims_module);
-  KNO_LINK_PRIM("xtype->zfile",lisp2zipfile,3,xtypeprims_module);
-  KNO_LINK_PRIM("xtype->file",lisp2file,3,xtypeprims_module);
-  KNO_LINK_PRIM("xtype->zfile",lisp2zipfile,3,xtypeprims_module);
-  KNO_LINK_PRIM("zwrite-xtypes",zwrite_xtypes,2,kno_scheme_module);
-  KNO_LINK_PRIM("zwrite-xtype",zwrite_xtype,2,kno_scheme_module);
-  KNO_LINK_PRIM("zread-xtype",zread_xtype,1,kno_scheme_module);
-  KNO_LINK_PRIM("write-xtype",write_xtype,4,kno_scheme_module);
-  KNO_LINK_PRIM("write-bytes",write_bytes,3,kno_scheme_module);
-  KNO_LINK_PRIM("read-xtype",read_xtype,3,kno_scheme_module);
+  KNO_LINK_PRIM("file->xtypes",file2xtypes,2,xtypeprims_module);
+  KNO_LINK_PRIM("file->xtype",file2xtype,2,xtypeprims_module);
+  KNO_LINK_PRIM("xtypes->file+",add_xtypes2file,3,xtypeprims_module);
+  KNO_LINK_PRIM("xtype->file",xtype2file,3,xtypeprims_module);
+  KNO_LINK_PRIM("write-xtype",write_xtype,5,kno_scheme_module);
+  KNO_LINK_PRIM("read-xtype",read_xtype,4,kno_scheme_module);
 
   KNO_LINK_ALIAS("xtype->file+",add_xtypes2file,xtypeprims_module);
-  KNO_LINK_ALIAS("xtype->zipfile",lisp2zipfile,xtypeprims_module);
-  KNO_LINK_ALIAS("xtype->zipfile+",add_lisp2zipfile,xtypeprims_module);
-  KNO_LINK_ALIAS("zipfile->xtype",zipfile2xtype,xtypeprims_module);
-  KNO_LINK_ALIAS("zipfile->xtypes",zipfile2xtypes,xtypeprims_module);
-
 }
