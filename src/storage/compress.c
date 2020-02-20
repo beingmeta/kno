@@ -84,6 +84,10 @@ kno_compress_type kno_compression_type(lispval opts,kno_compress_type dflt)
     return dflt;
   else if (kno_testopt(opts,compression_symbol,zstd_symbol))
     return KNO_ZSTD;
+  else if (kno_testopt(opts,compression_symbol,zstd9_symbol))
+    return KNO_ZSTD9;
+  else if (kno_testopt(opts,compression_symbol,zstd19_symbol))
+    return KNO_ZSTD19;
   else if ( (kno_testopt(opts,compression_symbol,zlib_symbol)) ||
 	    (kno_testopt(opts,compression_symbol,libz_symbol)) )
     return KNO_ZLIB;
