@@ -879,8 +879,8 @@ static lispval extend_byte_file(lispval fname)
     return (lispval) stream;}
 }
 
-DEFPRIM1("dtype-stream?",streamp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(DTYPE-STREAM? *arg0*)` **undocumented**",
+DEFPRIM1("byte-stream?",streamp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "`(BYTE-STREAM? *arg0*)` **undocumented**",
 	 kno_any_type,KNO_VOID);
 static lispval streamp(lispval arg)
 {
@@ -889,10 +889,10 @@ static lispval streamp(lispval arg)
   else return KNO_FALSE;
 }
 
-DEFPRIM1("dtype-input?",dtype_inputp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(DTYPE-INPUT? *arg0*)` **undocumented**",
+DEFPRIM1("byte-input?",byte_inputp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "`(BYTE-INPUT? *arg0*)` **undocumented**",
 	 kno_any_type,KNO_VOID);
-static lispval dtype_inputp(lispval arg)
+static lispval byte_inputp(lispval arg)
 {
   if (TYPEP(arg,kno_stream_type)) {
     struct KNO_STREAM *dts = (kno_stream)arg;
@@ -902,10 +902,10 @@ static lispval dtype_inputp(lispval arg)
   else return KNO_FALSE;
 }
 
-DEFPRIM1("dtype-output?",dtype_outputp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(DTYPE-OUTPUT? *arg0*)` **undocumented**",
+DEFPRIM1("byte-output?",byte_outputp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "`(BYTE-OUTPUT? *arg0*)` **undocumented**",
 	 kno_any_type,KNO_VOID);
-static lispval dtype_outputp(lispval arg)
+static lispval byte_outputp(lispval arg)
 {
   if (TYPEP(arg,kno_stream_type)) {
     struct KNO_STREAM *dts = (kno_stream)arg;
@@ -1005,7 +1005,7 @@ static lispval ftruncate_prim(lispval arg,lispval offset)
 
 static int scheme_streamprims_initialized = 0;
 
-static lispval streamprims_module;
+lispval streamprims_module;
 
 KNO_EXPORT void kno_init_streamprims_c()
 {
@@ -1029,9 +1029,12 @@ static void link_local_cprims()
 
   KNO_LINK_PRIM("ftruncate",ftruncate_prim,2,streamprims_module);
   KNO_LINK_PRIM("streampos",streampos_prim,2,streamprims_module);
-  KNO_LINK_PRIM("dtype-output?",dtype_outputp,1,streamprims_module);
-  KNO_LINK_PRIM("dtype-input?",dtype_inputp,1,streamprims_module);
-  KNO_LINK_PRIM("dtype-stream?",streamp,1,streamprims_module);
+  KNO_LINK_PRIM("byte-output?",byte_outputp,1,streamprims_module);
+  KNO_LINK_ALIAS("dtype-output?",byte_outputp,streamprims_module);
+  KNO_LINK_PRIM("byte-input?",byte_inputp,1,streamprims_module);
+  KNO_LINK_ALIAS("dtype-input?",byte_inputp,streamprims_module);
+  KNO_LINK_PRIM("byte-stream?",streamp,1,streamprims_module);
+  KNO_LINK_ALIAS("dtype-stream?",streamp,streamprims_module);
   KNO_LINK_PRIM("extend-byte-file",extend_byte_file,1,streamprims_module);
   KNO_LINK_ALIAS("extend-dtype-file",extend_byte_file,streamprims_module);
   KNO_LINK_PRIM("open-byte-input",open_byte_input_file,2,streamprims_module);
