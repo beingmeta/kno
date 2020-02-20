@@ -400,7 +400,7 @@ static lispval read_xtype(kno_inbuf in,xtype_refs refs)
     if (PRED_FALSE(refs==NULL))
       return kno_err("No xtype refs declared","read_xtype",NULL,VOID);
     ssize_t oid_off  = xt_read_varint(in);
-    if (oid_off<0) return kno_err("InvalidBaseOff","read_xtype",NULL,VOID);
+    if (oid_off<0) return kno_err("InvalidRefOff","read_xtype",NULL,VOID);
     lispval base = KNO_VOID;
     ssize_t base_off = xt_read_varint(in);
     if (PRED_FALSE(base_off<0))
