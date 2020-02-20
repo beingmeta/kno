@@ -210,12 +210,12 @@ static ssize_t write_xtype(kno_outbuf out,lispval x,xtype_refs refs)
       if (xtref >= 0) {
 	if (kno_write_byte(out,xt_offref) > 0) {
 	  long long offset = KNO_OID_BASE_OFFSET(x);
-	  ssize_t base_len = kno_write_varint(out,xtref);
-	  if (base_len<0) return base_len;
 	  ssize_t off_len = kno_write_varint(out,offset);
-	  if (off_len > 0)
+	  if (off_len<0) return off_len;
+	  ssize_t base_len = kno_write_varint(out,xtref);
+	  if (base_len > 0)
 	    return 1+base_len+off_len;
-	  else return off_len;}}}
+	  else return base_len;}}}
     KNO_OID addr = KNO_OID_ADDR(x);
     kno_write_byte(out,xt_oid);
     kno_write_4bytes(out,KNO_OID_HI(addr));
@@ -399,6 +399,8 @@ static lispval read_xtype(kno_inbuf in,xtype_refs refs)
   case xt_offref: {
     if (PRED_FALSE(refs==NULL))
       return kno_err("No xtype refs declared","read_xtype",NULL,VOID);
+    ssize_t oid_off  = xt_read_varint(in);
+    if (oid_off<0) return kno_err("InvalidBaseOff","read_xtype",NULL,VOID);
     lispval base = KNO_VOID;
     ssize_t base_off = xt_read_varint(in);
     if (PRED_FALSE(base_off<0))
@@ -406,8 +408,6 @@ static lispval read_xtype(kno_inbuf in,xtype_refs refs)
     else if (base_off < refs->xt_n_refs)
       base = refs->xt_refs[base_off];
     else return kno_err("xtype base ref out of range","read_xtype",NULL,VOID);
-    ssize_t oid_off  = xt_read_varint(in);
-    if (oid_off<0) return kno_err("InvalidBaseOff","read_xtype",NULL,VOID);
     if (!(OIDP(base))) return kno_err("BadBaseRef","read_xtype",NULL,base);
     int baseid = KNO_OID_BASE_ID(base);
     return KNO_CONSTRUCT_OID(baseid,oid_off);}
