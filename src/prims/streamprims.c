@@ -822,10 +822,10 @@ static lispval zipfile2dtypes(lispval filename)
   else return kno_type_error(_("string"),"zipfile2dtypes",filename);;
 }
 
-DEFPRIM2("open-dtype-output",open_dtype_output_file,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "`(OPEN-DTYPE-OUTPUT *arg0* [*arg1*])` **undocumented**",
+DEFPRIM2("open-byte-output",open_byte_output_file,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	 "`(OPEN-BYTE-OUTPUT *filename* [*opts*])` **undocumented**",
 	 kno_string_type,KNO_VOID,kno_any_type,KNO_VOID);
-static lispval open_dtype_output_file(lispval fname,lispval opts)
+static lispval open_byte_output_file(lispval fname,lispval opts)
 {
   u8_string filename = CSTRING(fname);
   struct KNO_STREAM *dts=
@@ -839,18 +839,18 @@ static lispval open_dtype_output_file(lispval fname,lispval opts)
     return LISP_CONS(dts);}
   else {
     u8_free(dts);
-    u8_graberrno("open_dtype_output_file",u8_strdup(filename));
+    u8_graberrno("open_byte_output_file",u8_strdup(filename));
     return KNO_ERROR;}
 }
 
-DEFPRIM2("open-dtype-input",open_dtype_input_file,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "`(OPEN-DTYPE-INPUT *arg0* [*arg1*])` **undocumented**",
+DEFPRIM2("open-byte-input",open_byte_input_file,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	 "`(OPEN-BYTE-INPUT *filename* [*opts*])` **undocumented**",
 	 kno_string_type,KNO_VOID,kno_any_type,KNO_VOID);
-static lispval open_dtype_input_file(lispval fname,lispval opts)
+static lispval open_byte_input_file(lispval fname,lispval opts)
 {
   u8_string filename = CSTRING(fname);
   if (!(u8_file_existsp(filename))) {
-    kno_seterr(kno_FileNotFound,"open_dtype_input_file",filename,VOID);
+    kno_seterr(kno_FileNotFound,"open_byte_input_file",filename,VOID);
     return KNO_ERROR;}
   else {
     struct KNO_STREAM *stream = kno_open_file(filename,KNO_STREAM_READ_ONLY);
@@ -862,10 +862,10 @@ static lispval open_dtype_input_file(lispval fname,lispval opts)
     else return KNO_ERROR_VALUE;}
 }
 
-DEFPRIM1("extend-dtype-file",extend_dtype_file,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(EXTEND-DTYPE-FILE *arg0*)` **undocumented**",
+DEFPRIM1("extend-byte-file",extend_byte_file,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "`(EXTEND-BYTE-FILE *filename*)` **undocumented**",
 	 kno_string_type,KNO_VOID);
-static lispval extend_dtype_file(lispval fname)
+static lispval extend_byte_file(lispval fname)
 {
   u8_string filename = CSTRING(fname);
   struct KNO_STREAM *stream = NULL;
@@ -1032,10 +1032,13 @@ static void link_local_cprims()
   KNO_LINK_PRIM("dtype-output?",dtype_outputp,1,streamprims_module);
   KNO_LINK_PRIM("dtype-input?",dtype_inputp,1,streamprims_module);
   KNO_LINK_PRIM("dtype-stream?",streamp,1,streamprims_module);
-  KNO_LINK_PRIM("extend-dtype-file",extend_dtype_file,1,streamprims_module);
-  KNO_LINK_ALIAS("open-dtype-file",open_dtype_input_file,streamprims_module);
-  KNO_LINK_PRIM("open-dtype-input",open_dtype_input_file,2,streamprims_module);
-  KNO_LINK_PRIM("open-dtype-output",open_dtype_output_file,2,streamprims_module);
+  KNO_LINK_PRIM("extend-byte-file",extend_byte_file,1,streamprims_module);
+  KNO_LINK_ALIAS("extend-dtype-file",extend_byte_file,streamprims_module);
+  KNO_LINK_PRIM("open-byte-input",open_byte_input_file,2,streamprims_module);
+  KNO_LINK_PRIM("open-byte-output",open_byte_output_file,2,streamprims_module);
+  KNO_LINK_ALIAS("open-dtype-input",open_byte_input_file,streamprims_module);
+  KNO_LINK_ALIAS("open-dtype-output",open_byte_output_file,streamprims_module);
+  KNO_LINK_ALIAS("open-dtype-file",open_byte_input_file,streamprims_module);
   KNO_LINK_PRIM("zfile->dtypes",zipfile2dtypes,1,streamprims_module);
   KNO_LINK_PRIM("file->dtypes",file2dtypes,1,streamprims_module);
   KNO_LINK_PRIM("zfile->dtypes",zipfile2dtypes,1,streamprims_module);
