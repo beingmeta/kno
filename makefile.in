@@ -578,8 +578,6 @@ tests/libtests/makefile: tests/libtests/makefile.in ./config.status
 	./config.status
 tests/makefile: tests/makefile.in ./config.status
 	./config.status
-tests/libtests/.gdbinit: tests/libtests/.gdbinit.in ./config.status
-	./config.status
 dbg/.gdbinit: dbg/.gdbinit.in ./config.status
 	./config.status
 exe/.gdbinit: exe/.gdbinit.in ./config.status
@@ -588,7 +586,7 @@ exe/.gdbinit: exe/.gdbinit.in ./config.status
 etc: etc/logrotate etc/install-script etc/sysv/kno-rc.d etc/logrotate	\
         etc/knoconfig etc/knosetconfig etc/knogetconfig			\
         etc/knojob etc/knosignal                             		\
-        tests/libtests/.gdbinit dbg/.gdbinit exe/.gdbinit
+        dbg/.gdbinit exe/.gdbinit
 
 # Fileinfo gets version-related information about a file to pass in
 # with -D
@@ -800,7 +798,7 @@ scripts: shell-scripts scheme-scripts
 .PHONY: static
 
 testbin: libtestbin debug-exe etc/usememory
-libtestbin: libs tests/libtests/makefile tests/libtests/.gdbinit
+libtestbin: libs tests/libtests/makefile
 	@make -s XCFLAGS="$(XCFLAGS)" XLDFLAGS="$(XLDFLAGS)" XLIBS="$(XLIBS)" \
 		-C tests/libtests
 cmodules: @CMODULES@
