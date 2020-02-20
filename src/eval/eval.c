@@ -2215,6 +2215,8 @@ KNO_EXPORT void kno_init_getsource_c(void);
 KNO_EXPORT void kno_init_logprims_c(void);
 KNO_EXPORT void kno_init_portprims_c(void);
 KNO_EXPORT void kno_init_streamprims_c(void);
+KNO_EXPORT void kno_init_dtypeprims_c(void);
+KNO_EXPORT void kno_init_xtypeprims_c(void);
 KNO_EXPORT void kno_init_timeprims_c(void);
 KNO_EXPORT void kno_init_sysprims_c(void);
 KNO_EXPORT void kno_init_arith_c(void);
@@ -2278,6 +2280,7 @@ static void init_eval_core()
   kno_init_logprims_c();
   kno_init_portprims_c();
   kno_init_streamprims_c();
+  kno_init_dtypeprims_c();
   kno_init_timeprims_c();
   kno_init_sysprims_c();
   kno_init_sqldbprims_c();

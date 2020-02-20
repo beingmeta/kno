@@ -257,6 +257,7 @@ SCHEME_OBJS=\
 	src/prims/portprims.o \
 	src/prims/logprims.o \
 	src/prims/streamprims.o \
+	src/prims/dtypeprims.o \
 	src/prims/timeprims.o \
 	src/prims/sysprims.o \
 	src/prims/procprims.o \
@@ -370,7 +371,7 @@ KNO_SOURCES=\
 	src/prims/dbprims.c 							\
 	src/prims/logprims.c							\
 	src/prims/portprims.c							\
-	src/prims/streamprims.c                    				\
+	src/prims/streamprims.c src/prims/dtypeprims.c				\
 	src/prims/tableprims.c src/eval/choiceops.c               		\
 	src/prims/seqprims.c src/prims/stringprims.c                 		\
 	src/prims/fileprims.c src/prims/driverprims.c                		\
@@ -387,10 +388,10 @@ KNO_SOURCES=\
 	src/exe/knoc.c src/exe/knox.c src/exe/knotask.c				\
 	src/exe/knocgi.c src/exe/knocgi.c src/exe/knod.c
 
-CMODULE_SOURCES=\
-	src/cmodules/sqlite.c	\
-	src/cmodules/libarchive.c			\
-	src/cmodules/gperftools.c			\
+CMODULE_SOURCES=			\
+	src/cmodules/sqlite.c		\
+	src/cmodules/libarchive.c	\
+	src/cmodules/gperftools.c	\
 	src/cmodules/crypto.c
 
 STATIC_LIBS=lib/libkno@suffix@.a 	\

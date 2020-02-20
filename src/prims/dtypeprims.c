@@ -539,7 +539,6 @@ static void link_local_cprims()
   KNO_LINK_PRIM("zwrite-dtype",zwrite_dtype,2,kno_scheme_module);
   KNO_LINK_PRIM("zread-dtype",zread_dtype,1,kno_scheme_module);
   KNO_LINK_PRIM("write-dtype",write_dtype,4,kno_scheme_module);
-  KNO_LINK_PRIM("write-bytes",write_bytes,3,kno_scheme_module);
   KNO_LINK_PRIM("read-dtype",read_dtype,3,kno_scheme_module);
 
   KNO_LINK_ALIAS("dtype->file+",add_dtypes2file,dtypeprims_module);
