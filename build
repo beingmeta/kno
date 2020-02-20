@@ -95,7 +95,7 @@ while [ $# -gt 0 ]; do
     shift;
 done;
 
-if [ "${with_parseltongue}" == "yes" ]; then
+if [ "${with_parseltongue}" = "yes" ]; then
     CONFIG_ARGS="--with-parseltongue ${CONFIG_ARGS}"
 fi;
 
