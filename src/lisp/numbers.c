@@ -2513,7 +2513,7 @@ lispval kno_inexact_divide(lispval x,lispval y)
 {
   kno_lisp_type xt = KNO_TYPEOF(x), yt = KNO_TYPEOF(y);
   if ((xt == kno_fixnum_type) && (yt == kno_fixnum_type)) {
-    if (yt == KNO_FIXZERO)
+    if (y == KNO_FIXZERO)
       return kno_err("DivideByZero","kno_inexact_divide",NULL,x);
     else {
       long long result = FIX2INT(x)/FIX2INT(y);
