@@ -50,6 +50,9 @@ kno_xtype_fn kno_xtype_writers[KNO_TYPE_MAX];
 
 lispval restore_bigint(ssize_t n_digits,unsigned char *bytes,int negp);
 
+#define nobytes(in,nbytes) (PRED_FALSE(!(kno_request_bytes(in,nbytes))))
+#define havebytes(in,nbytes) (PRED_TRUE(kno_request_bytes(in,nbytes)))
+
 /* Object restoration */
 
 static lispval read_tagged(lispval tag,kno_inbuf in,xtype_refs refs);
@@ -369,241 +372,246 @@ KNO_EXPORT ssize_t kno_write_xtype(kno_outbuf out,lispval x,xtype_refs refs)
 
 static lispval read_xtype(kno_inbuf in,xtype_refs refs)
 {
-  int byte = kno_read_byte(in);
-  xt_type_code xt_code = (xt_type_code) byte;
-  switch (xt_code) {
-  case xt_true: return KNO_TRUE;
-  case xt_false: return KNO_FALSE;
-  case xt_empty_choice: return KNO_EMPTY;
-  case xt_empty_list: return KNO_NIL;
-  case xt_default: return KNO_DEFAULT;
-  case xt_void: return KNO_VOID;
+  if (PRED_FALSE(KNO_ISWRITING(in)))
+    return kno_lisp_iswritebuf(in);
+  else if (PRED_TRUE(havebytes(in,1))) {
+    int byte = kno_read_byte(in);
+    xt_type_code xt_code = (xt_type_code) byte;
+    switch (xt_code) {
+    case xt_true: return KNO_TRUE;
+    case xt_false: return KNO_FALSE;
+    case xt_empty_choice: return KNO_EMPTY;
+    case xt_empty_list: return KNO_NIL;
+    case xt_default: return KNO_DEFAULT;
+    case xt_void: return KNO_VOID;
 
-  case xt_rational: return kno_rational_xtag;
-  case xt_complex: return kno_complex_xtag;
-  case xt_timestamp: return kno_timestamp_xtag;
-  case xt_regex: return kno_regex_xtag;
-  case xt_qchoice: return kno_qchoice_xtag;
-  case xt_bigtable: return kno_bigtable_xtag;
-  case xt_zlib: return kno_zlib_xtag;
-  case xt_zstd: return kno_zstd_xtag;
-  case xt_snappy: return kno_snappy_xtag;
+    case xt_rational: return kno_rational_xtag;
+    case xt_complex: return kno_complex_xtag;
+    case xt_timestamp: return kno_timestamp_xtag;
+    case xt_regex: return kno_regex_xtag;
+    case xt_qchoice: return kno_qchoice_xtag;
+    case xt_bigtable: return kno_bigtable_xtag;
+    case xt_zlib: return kno_zlib_xtag;
+    case xt_zstd: return kno_zstd_xtag;
+    case xt_snappy: return kno_snappy_xtag;
 
-  case xt_absref: {
-    ssize_t off = xt_read_varint(in);
-    if ( (refs) && (off < refs->xt_n_refs) )
-      return refs->xt_refs[off];
-    else if (refs == NULL)
-      return kno_err("No xtype refs declared","read_xtype",NULL,VOID);
-    else return kno_err("No xtype ref out of range","read_xtype",NULL,VOID);}
-  case xt_offref: {
-    if (PRED_FALSE(refs==NULL))
-      return kno_err("No xtype refs declared","read_xtype",NULL,VOID);
-    ssize_t oid_off  = xt_read_varint(in);
-    if (oid_off<0) return kno_err("InvalidRefOff","read_xtype",NULL,VOID);
-    lispval base = KNO_VOID;
-    ssize_t base_off = xt_read_varint(in);
-    if (PRED_FALSE(base_off<0))
-      return kno_err("InvalidBaseOff","read_xtype",NULL,VOID);
-    else if (base_off < refs->xt_n_refs)
-      base = refs->xt_refs[base_off];
-    else return kno_err("xtype base ref out of range","read_xtype",NULL,VOID);
-    if (!(OIDP(base))) return kno_err("BadBaseRef","read_xtype",NULL,base);
-    int baseid = KNO_OID_BASE_ID(base);
-    return KNO_CONSTRUCT_OID(baseid,oid_off);}
+    case xt_absref: {
+      ssize_t off = xt_read_varint(in);
+      if ( (refs) && (off < refs->xt_n_refs) )
+	return refs->xt_refs[off];
+      else if (refs == NULL)
+	return kno_err("No xtype refs declared","read_xtype",NULL,VOID);
+      else return kno_err("No xtype ref out of range","read_xtype",NULL,VOID);}
+    case xt_offref: {
+      if (PRED_FALSE(refs==NULL))
+	return kno_err("No xtype refs declared","read_xtype",NULL,VOID);
+      ssize_t oid_off  = xt_read_varint(in);
+      if (oid_off<0) return kno_err("InvalidRefOff","read_xtype",NULL,VOID);
+      lispval base = KNO_VOID;
+      ssize_t base_off = xt_read_varint(in);
+      if (PRED_FALSE(base_off<0))
+	return kno_err("InvalidBaseOff","read_xtype",NULL,VOID);
+      else if (base_off < refs->xt_n_refs)
+	base = refs->xt_refs[base_off];
+      else return kno_err("xtype base ref out of range","read_xtype",NULL,VOID);
+      if (!(OIDP(base))) return kno_err("BadBaseRef","read_xtype",NULL,base);
+      int baseid = KNO_OID_BASE_ID(base);
+      return KNO_CONSTRUCT_OID(baseid,oid_off);}
 
-  case xt_double: {
-    char bytes[8];
-    double flonum, *f;
-    int rv = kno_read_bytes(bytes,in,8);
-    if (rv<0) return unexpected_eod();
+    case xt_double: {
+      char bytes[8];
+      double flonum, *f;
+      int rv = kno_read_bytes(bytes,in,8);
+      if (rv<0) return unexpected_eod();
 #if WORDS_BIGENDIAN
-    f = (double *)&bytes;
+      f = (double *)&bytes;
 #else
-    char reversed[8]; int i = 0; while (i<8) {
-      reversed[i] = bytes[7-i]; i++;}
-    f = (double *) &reversed;
+      char reversed[8]; int i = 0; while (i<8) {
+	reversed[i] = bytes[7-i]; i++;}
+      f = (double *) &reversed;
 #endif
-    flonum = *f;
-    return _kno_make_double(flonum);}
+      flonum = *f;
+      return _kno_make_double(flonum);}
 
-  case xt_oid: {
-    long long hival=kno_read_4bytes(in), loval;
-    if (PRED_FALSE(hival<0))
-      return unexpected_eod();
-    else loval=kno_read_4bytes(in);
-    if (PRED_FALSE(loval<0))
-      return unexpected_eod();
-    else {
-      KNO_OID addr = KNO_NULL_OID_INIT;
-      KNO_SET_OID_HI(addr,hival);
-      KNO_SET_OID_LO(addr,loval);
-      return kno_make_oid(addr);}}
-  case xt_objid: {
-    lispval packet = kno_init_packet(NULL,12,NULL);
-    unsigned char *data = (unsigned char *) (KNO_PACKET_DATA(packet));
-    int rv = kno_read_bytes(data,in,12);
-    if (rv<0) return KNO_ERROR;
-    else return kno_init_compound(NULL,objid_symbol,0,1,packet);}
-  case xt_uuid: {
-    struct KNO_UUID *uuid = u8_alloc(struct KNO_UUID);
-    KNO_INIT_CONS(uuid,kno_uuid_type);
-    int rv = kno_read_bytes(uuid->uuid16,in,16);
-    if (rv<0) return KNO_ERROR;
-    else return LISP_CONS(uuid);}
+    case xt_oid: {
+      long long hival=kno_read_4bytes(in), loval;
+      if (PRED_FALSE(hival<0))
+	return unexpected_eod();
+      else loval=kno_read_4bytes(in);
+      if (PRED_FALSE(loval<0))
+	return unexpected_eod();
+      else {
+	KNO_OID addr = KNO_NULL_OID_INIT;
+	KNO_SET_OID_HI(addr,hival);
+	KNO_SET_OID_LO(addr,loval);
+	return kno_make_oid(addr);}}
+    case xt_objid: {
+      lispval packet = kno_init_packet(NULL,12,NULL);
+      unsigned char *data = (unsigned char *) (KNO_PACKET_DATA(packet));
+      int rv = kno_read_bytes(data,in,12);
+      if (rv<0) return KNO_ERROR;
+      else return kno_init_compound(NULL,objid_symbol,0,1,packet);}
+    case xt_uuid: {
+      struct KNO_UUID *uuid = u8_alloc(struct KNO_UUID);
+      KNO_INIT_CONS(uuid,kno_uuid_type);
+      int rv = kno_read_bytes(uuid->uuid16,in,16);
+      if (rv<0) return KNO_ERROR;
+      else return LISP_CONS(uuid);}
 
-  case xt_posint: case xt_negint: case xt_character: {
-    long long ival = xt_read_varint(in);
-    if (ival<0) return KNO_ERROR;
-    else switch (xt_code) {
-      case xt_posint:
-	return KNO_INT(ival);
-      case xt_negint:
-	ival = -ival;
-	return KNO_INT(ival);
-      default:
-	return KNO_CODE2CHAR(ival);}}
+    case xt_posint: case xt_negint: case xt_character: {
+      long long ival = xt_read_varint(in);
+      if (ival<0) return KNO_ERROR;
+      else switch (xt_code) {
+	case xt_posint:
+	  return KNO_INT(ival);
+	case xt_negint:
+	  ival = -ival;
+	  return KNO_INT(ival);
+	default:
+	  return KNO_CODE2CHAR(ival);}}
 
-  case xt_utf8: case xt_packet: case xt_secret: {
-    ssize_t len = xt_read_varint(in);
-    int cons_type = (xt_code == xt_utf8) ? (kno_string_type) :
-      (xt_code == xt_packet) ? (kno_packet_type) :
-      (kno_secret_type);
-    struct KNO_STRING *s = u8_malloc(sizeof(KNO_STRING)+(len+1));
-    u8_byte *buf = ((u8_byte*)s)+sizeof(struct KNO_STRING);
-    KNO_INIT_CONS(s,cons_type);
-    s->str_freebytes = 0;
-    s->str_bytelen   = len;
-    s->str_bytes     = buf;
-    int rv = kno_read_bytes(buf,in,len);
-    if (rv<0) {
-      u8_free(s);
-      return KNO_ERROR;}
-    buf[len]=0;
-    return LISP_CONS(s);}
-  case xt_symbol: {
-    ssize_t len = xt_read_varint(in);
-    if (len<0) return KNO_ERROR;
-    u8_byte pname[len+1];
-    int rv = kno_read_bytes(pname,in,len);
-    if (rv<0) return KNO_ERROR;
-    pname[len]='\0';
-    return kno_intern(pname);}
+    case xt_utf8: case xt_packet: case xt_secret: {
+      ssize_t len = xt_read_varint(in);
+      int cons_type = (xt_code == xt_utf8) ? (kno_string_type) :
+	(xt_code == xt_packet) ? (kno_packet_type) :
+	(kno_secret_type);
+      struct KNO_STRING *s = u8_malloc(sizeof(KNO_STRING)+(len+1));
+      u8_byte *buf = ((u8_byte*)s)+sizeof(struct KNO_STRING);
+      KNO_INIT_CONS(s,cons_type);
+      s->str_freebytes = 0;
+      s->str_bytelen   = len;
+      s->str_bytes     = buf;
+      int rv = kno_read_bytes(buf,in,len);
+      if (rv<0) {
+	u8_free(s);
+	return KNO_ERROR;}
+      buf[len]=0;
+      return LISP_CONS(s);}
+    case xt_symbol: {
+      ssize_t len = xt_read_varint(in);
+      if (len<0) return KNO_ERROR;
+      u8_byte pname[len+1];
+      int rv = kno_read_bytes(pname,in,len);
+      if (rv<0) return KNO_ERROR;
+      pname[len]='\0';
+      return kno_intern(pname);}
 
-  case xt_block: {
-    ssize_t len = xt_read_varint(in);
-    if (len<0) return KNO_ERROR;
-    unsigned char *buf = u8_malloc(len);
-    int rv = kno_read_bytes(buf,in,len);
-    if (rv<0) return KNO_ERROR;}
-  case xt_posbig: case xt_negbig: {
-    ssize_t n_digits = xt_read_varint(in);
-    unsigned char _bytes[128], *bytes=_bytes;
-    if (n_digits > 128) bytes=u8_malloc(n_digits);
-    int rv = kno_read_bytes(bytes,in,n_digits);
-    if (rv<0) {
+    case xt_block: {
+      ssize_t len = xt_read_varint(in);
+      if (len<0) return KNO_ERROR;
+      unsigned char *buf = u8_malloc(len);
+      int rv = kno_read_bytes(buf,in,len);
+      if (rv<0) return KNO_ERROR;}
+    case xt_posbig: case xt_negbig: {
+      ssize_t n_digits = xt_read_varint(in);
+      unsigned char _bytes[128], *bytes=_bytes;
+      if (n_digits > 128) bytes=u8_malloc(n_digits);
+      int rv = kno_read_bytes(bytes,in,n_digits);
+      if (rv<0) {
+	if (bytes != _bytes) u8_free(bytes);
+	return KNO_ERROR;}
+      lispval result =
+	restore_bigint(n_digits,bytes,(xt_code == xt_negbig));
       if (bytes != _bytes) u8_free(bytes);
-      return KNO_ERROR;}
-    lispval result =
-      restore_bigint(n_digits,bytes,(xt_code == xt_negbig));
-    if (bytes != _bytes) u8_free(bytes);
-    if (KNO_BIGINTP(result))
-      return result;
-    else return KNO_ERROR;}
-  case xt_choice: {
-    ssize_t n_elts = xt_read_varint(in);
-    struct KNO_CHOICE *ch = kno_alloc_choice(n_elts);
-    lispval *elts = (lispval *) KNO_XCHOICE_ELTS(ch);
-    KNO_INIT_CONS(ch,kno_choice_type);
-    ch->choice_size=n_elts;
-    int atomicp = 1; ssize_t i = 0; while (i < n_elts) {
-      lispval elt = read_xtype(in,refs);
-      if (KNO_ABORTED(elt)) {
-	int j = 0; while (j<i) {
-	  lispval gc_elt = elts[j]; kno_decref(gc_elt); j++;}
-	return elt;}
-      if ( (atomicp) && (KNO_CONSP(elt)) ) atomicp=0;
-      elts[i]=elt;
-      i++;}
-    return kno_init_choice(ch,n_elts,elts,
-			   ((atomicp)?(KNO_CHOICE_ISATOMIC):
-			    (KNO_CHOICE_ISCONSES)) |
-			   KNO_CHOICE_DOSORT|KNO_CHOICE_COMPRESS|
-			   KNO_CHOICE_REALLOC);}
-  case xt_vector: {
-    ssize_t n_elts = xt_read_varint(in);
-    lispval vec = kno_make_vector(n_elts,NULL);
-    lispval *elts = KNO_VECTOR_ELTS(vec);
-    int atomicp = 1; ssize_t i = 0; while (i < n_elts) {
-      lispval elt = read_xtype(in,refs);
-      if (KNO_ABORTED(elt)) {
-	int j = 0; while (j<i) {
-	  lispval gc_elt = elts[j]; kno_decref(gc_elt); j++;}
-	return elt;}
-      if ( (atomicp) && (KNO_CONSP(elt)) ) atomicp=0;
-      elts[i]=elt;
-      i++;}
-    return vec;}
-  case xt_table: {
-    ssize_t n_elts = xt_read_varint(in), n_slots = n_elts/2;
-    if (n_elts%2)
-      return kno_err("CorruptXTypeTable","read_xtype",NULL,VOID);
-    lispval map = kno_make_slotmap(n_slots,n_slots,NULL);
-    struct KNO_KEYVAL *kv = KNO_SLOTMAP_KEYVALS(map);
-    ssize_t i = 0; while (i < n_slots) {
-      lispval key = read_xtype(in,refs);
-      lispval val = read_xtype(in,refs);
-      kv[i].kv_key = key; kv[i].kv_val = val;
-      i++;}
-    return map;}
+      if (KNO_BIGINTP(result))
+	return result;
+      else return KNO_ERROR;}
+    case xt_choice: {
+      ssize_t n_elts = xt_read_varint(in);
+      struct KNO_CHOICE *ch = kno_alloc_choice(n_elts);
+      lispval *elts = (lispval *) KNO_XCHOICE_ELTS(ch);
+      KNO_INIT_CONS(ch,kno_choice_type);
+      ch->choice_size=n_elts;
+      int atomicp = 1; ssize_t i = 0; while (i < n_elts) {
+	lispval elt = read_xtype(in,refs);
+	if (KNO_ABORTED(elt)) {
+	  int j = 0; while (j<i) {
+	    lispval gc_elt = elts[j]; kno_decref(gc_elt); j++;}
+	  return elt;}
+	if ( (atomicp) && (KNO_CONSP(elt)) ) atomicp=0;
+	elts[i]=elt;
+	i++;}
+      return kno_init_choice(ch,n_elts,elts,
+			     ((atomicp)?(KNO_CHOICE_ISATOMIC):
+			      (KNO_CHOICE_ISCONSES)) |
+			     KNO_CHOICE_DOSORT|KNO_CHOICE_COMPRESS|
+			     KNO_CHOICE_REALLOC);}
+    case xt_vector: {
+      ssize_t n_elts = xt_read_varint(in);
+      lispval vec = kno_make_vector(n_elts,NULL);
+      lispval *elts = KNO_VECTOR_ELTS(vec);
+      int atomicp = 1; ssize_t i = 0; while (i < n_elts) {
+	lispval elt = read_xtype(in,refs);
+	if (KNO_ABORTED(elt)) {
+	  int j = 0; while (j<i) {
+	    lispval gc_elt = elts[j]; kno_decref(gc_elt); j++;}
+	  return elt;}
+	if ( (atomicp) && (KNO_CONSP(elt)) ) atomicp=0;
+	elts[i]=elt;
+	i++;}
+      return vec;}
+    case xt_table: {
+      ssize_t n_elts = xt_read_varint(in), n_slots = n_elts/2;
+      if (n_elts%2)
+	return kno_err("CorruptXTypeTable","read_xtype",NULL,VOID);
+      lispval map = kno_make_slotmap(n_slots,n_slots,NULL);
+      struct KNO_KEYVAL *kv = KNO_SLOTMAP_KEYVALS(map);
+      ssize_t i = 0; while (i < n_slots) {
+	lispval key = read_xtype(in,refs);
+	lispval val = read_xtype(in,refs);
+	kv[i].kv_key = key; kv[i].kv_val = val;
+	i++;}
+      return map;}
 
-  case xt_tagged: {
-    lispval tag = read_xtype(in,refs);
-    if (ABORTED(tag)) return tag;
-    return read_tagged(tag,in,refs);}
+    case xt_tagged: {
+      lispval tag = read_xtype(in,refs);
+      if (ABORTED(tag)) return tag;
+      return read_tagged(tag,in,refs);}
 
-  case xt_pair:
-  case xt_mimeobj: case xt_compressed:
-  case xt_encrypted: {
-    lispval car = read_xtype(in,refs);
-    if (ABORTED(car)) return car;
-    lispval cdr = read_xtype(in,refs);
-    if (ABORTED(cdr)) {
-      kno_decref(car);
-      return cdr;}
-    if (xt_code == xt_pair)
-      return kno_init_pair(NULL,car,cdr);
-    else if (xt_code == xt_mimeobj)
-      return kno_init_compound
-	(NULL,mime_symbol,KNO_COMPOUND_USEREF,2,car,cdr);
-    else if (xt_code == xt_compressed) {
-      lispval inflated = restore_compressed(car,cdr,refs);
-      kno_decref(car);
-      kno_decref(cdr);
-      return inflated;}
-    else if (xt_code == xt_encrypted)
-      return kno_init_compound
-	(NULL,encrypted_symbol,KNO_COMPOUND_USEREF,2,car,cdr);
-    else return KNO_VOID;}
+    case xt_pair:
+    case xt_mimeobj: case xt_compressed:
+    case xt_encrypted: {
+      lispval car = read_xtype(in,refs);
+      if (ABORTED(car)) return car;
+      lispval cdr = read_xtype(in,refs);
+      if (ABORTED(cdr)) {
+	kno_decref(car);
+	return cdr;}
+      if (xt_code == xt_pair)
+	return kno_init_pair(NULL,car,cdr);
+      else if (xt_code == xt_mimeobj)
+	return kno_init_compound
+	  (NULL,mime_symbol,KNO_COMPOUND_USEREF,2,car,cdr);
+      else if (xt_code == xt_compressed) {
+	lispval inflated = restore_compressed(car,cdr,refs);
+	kno_decref(car);
+	kno_decref(cdr);
+	return inflated;}
+      else if (xt_code == xt_encrypted)
+	return kno_init_compound
+	  (NULL,encrypted_symbol,KNO_COMPOUND_USEREF,2,car,cdr);
+      else return KNO_VOID;}
 
-  case xt_refcoded: {
-    lispval refvec = read_xtype(in,refs);
-    if (ABORTED(refvec)) return refvec;
-    else if (!(KNO_VECTORP(refvec))) {
-      kno_seterr("XTypeError","read_xtype(xt_refcoded)",NULL,refvec);
-      kno_decref(refvec);
-      return KNO_ERROR;}
-    struct XTYPE_REFS xrefs;
-    ssize_t n_refs = KNO_VECTOR_LENGTH(refvec);
-    kno_init_xrefs(&xrefs,n_refs,n_refs,n_refs,0,
-		   KNO_VECTOR_ELTS(refvec),
-		   NULL);
-    lispval decoded = read_xtype(in,&xrefs);
-    kno_recycle_xrefs(&xrefs);
-    return decoded;}
+    case xt_refcoded: {
+      lispval refvec = read_xtype(in,refs);
+      if (ABORTED(refvec)) return refvec;
+      else if (!(KNO_VECTORP(refvec))) {
+	kno_seterr("XTypeError","read_xtype(xt_refcoded)",NULL,refvec);
+	kno_decref(refvec);
+	return KNO_ERROR;}
+      struct XTYPE_REFS xrefs;
+      ssize_t n_refs = KNO_VECTOR_LENGTH(refvec);
+      kno_init_xrefs(&xrefs,n_refs,n_refs,n_refs,0,
+		     KNO_VECTOR_ELTS(refvec),
+		     NULL);
+      lispval decoded = read_xtype(in,&xrefs);
+      kno_recycle_xrefs(&xrefs);
+      return decoded;}
 
-  default:
-    return kno_err("BadXType","kno_read_xtype",NULL,VOID);}
+    default:
+      return kno_err("BadXType","kno_read_xtype",NULL,VOID);}
+  }
+  else return KNO_EOD;
 }
 
 KNO_EXPORT lispval kno_read_xtype(kno_inbuf in,xtype_refs refs)

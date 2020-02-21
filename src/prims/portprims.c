@@ -177,17 +177,22 @@ static lispval lisp2packet(lispval object,lispval initsize)
 
 /* DTYPE streams */
 
-DEFPRIM2("read-xtype",read_xtype,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "`(read-xtype *packet*)` "
+DEFPRIM2("decode-xtype",decode_xtype,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	 "`(decode-xtype *packet* [*xrefs*])` "
 	 "parses the XTYPE representation in *packet* and "
 	 "returns the corresponding object.",
 	 kno_packet_type,KNO_VOID,-1,KNO_VOID);
-static lispval read_xtype(lispval packet,lispval opts)
+static lispval decode_xtype(lispval packet,lispval opts)
 {
   lispval object;
-  lispval refs_arg = kno_getopt(opts,refs_symbol,KNO_VOID);
-  struct XTYPE_REFS *refs = (KNO_RAW_TYPEP(refs_arg,xtrefs_typetag)) ?
-    (KNO_RAWPTR_VALUE(refs_arg)) : (NULL);
+  lispval refs_arg = KNO_VOID;
+  struct XTYPE_REFS *refs = NULL;
+  if (KNO_RAW_TYPEP(opts,xtrefs_typetag))
+    refs = (KNO_RAWPTR_VALUE(opts));
+  else {
+    refs_arg = kno_getopt(opts,refs_symbol,KNO_VOID);
+    if (KNO_RAW_TYPEP(opts,xtrefs_typetag))
+      refs = (KNO_RAWPTR_VALUE(refs_arg));}
   struct KNO_INBUF in = { 0 };
   KNO_INIT_BYTE_INPUT(&in,KNO_PACKET_DATA(packet),
 		      KNO_PACKET_LENGTH(packet));
@@ -1501,7 +1506,7 @@ static void link_local_cprims()
   KNO_LINK_PRIM("dtype->packet",lisp2packet,2,kno_io_module);
   KNO_LINK_PRIM("packet->dtype",packet2dtype,1,kno_io_module);
   KNO_LINK_PRIM("emit-xtype",emit_xtype,2,kno_io_module);
-  KNO_LINK_PRIM("read-xtype",read_xtype,2,kno_io_module);
+  KNO_LINK_PRIM("decode-xtype",decode_xtype,2,kno_io_module);
   KNO_LINK_PRIM("xtype/refs",make_xtype_refs,2,kno_io_module);
   KNO_LINK_PRIM("xtype/refs/encode",xtype_refs_encode,3,kno_io_module);
   KNO_LINK_PRIM("xtype/refs/decode",xtype_refs_decode,2,kno_io_module);

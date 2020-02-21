@@ -455,7 +455,7 @@ KNO_EXPORT kno_stream kno_init_file_stream
       mode=KNO_FILE_READ;
     else if (!(u8_file_existsp(fname)))
       mode=KNO_FILE_CREATE;
-    else if (!(u8_file_writablep(fname)))
+    else if (u8_file_writablep(fname))
       mode=KNO_FILE_MODIFY;
     else mode=KNO_FILE_READ;}
   switch (mode) {

@@ -365,6 +365,48 @@ KNO_EXPORT unsigned char *kno_uncompress
     return NULL;}
 }
 
+/* Writing compressed xtypes */
+
+KNO_EXPORT ssize_t kno_compress_xtype(kno_outbuf out,lispval x,xtype_refs refs,
+				      kno_compress_type compress)
+{
+  if (compress == KNO_NOCOMPRESS)
+    return kno_write_xtype(out,x,refs);
+  KNO_DECL_OUTBUF(tmp,2000);
+  ssize_t source_len = kno_write_xtype(&tmp,x,refs);
+  if (source_len<0) {
+    kno_close_outbuf(&tmp);
+    return source_len;}
+  ssize_t compressed_len = -1;
+  unsigned char *compressed_data =
+    kno_compress(compress,&compressed_len,
+		 tmp.buffer,source_len,
+		 NULL);
+  kno_close_outbuf(&tmp);
+  if ( (compressed_data == NULL) || (compressed_len < 0) ) {
+    if (compressed_data) u8_free(compressed_data);
+    return -1;}
+  kno_write_byte(out,xt_compressed);
+  switch (compress) {
+  case KNO_SNAPPY:
+    kno_write_byte(out,xt_snappy); break;
+  case KNO_ZLIB: case KNO_ZLIB9:
+    kno_write_byte(out,xt_zlib); break;
+  case KNO_ZSTD: case KNO_ZSTD9: case KNO_ZSTD19:
+    kno_write_byte(out,xt_zlib); break;
+  default:
+    u8_free(compressed_data);
+    return kno_err("BadCompressTypeCode","kno_compress_xtype",NULL,KNO_VOID);
+  }
+  kno_write_byte(out,xt_packet);
+  ssize_t len_len = kno_write_varint(out,compressed_len);
+  if ( (len_len < 0) || (kno_write_bytes(out,compressed_data,compressed_len)<0) ) {
+    u8_free(compressed_data);
+    return len_len;}
+  u8_free(compressed_data);
+  return 1+1+1+len_len+compressed_len;
+}
+
 /* Initialization */
 
 static time_t compress_c_initialized = 0;
