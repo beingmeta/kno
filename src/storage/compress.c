@@ -106,6 +106,22 @@ kno_compress_type kno_compression_type(lispval opts,kno_compress_type dflt)
   else return dflt;
 }
 
+KNO_EXPORT
+lispval kno_compression_name(kno_compress_type ctype)
+{
+  switch (ctype) {
+  case KNO_SNAPPY: return snappy_symbol;
+  case KNO_ZLIB: return zlib_symbol;
+  case KNO_ZLIB9: return zlib9_symbol;
+  case KNO_ZSTD: return zstd_symbol;
+  case KNO_ZSTD9: return zstd9_symbol;
+  case KNO_ZSTD19: return zstd19_symbol;
+  case KNO_NOCOMPRESS: return KNO_FALSE;
+  default:
+    return kno_err("InvalidCompressionType","kno_compression_name",
+		   NULL,KNO_VOID);}
+}
+
 /* no compression */
 
 static unsigned char *just_copy

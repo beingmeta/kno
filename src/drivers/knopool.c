@@ -2051,22 +2051,15 @@ static lispval knopool_ctl(kno_pool p,lispval op,int n,kno_argvec args)
       kno_store(base,offmode_symbol,kno_intern("b64"));
       kno_add(base,KNOSYM_FORMAT,kno_intern("b64"));}
     else kno_store(base,offmode_symbol,kno_intern("!!invalid!!"));
-    if ( kp->pool_compression == KNO_NOCOMPRESS ) {
-      kno_store(base,compression_symbol,KNO_FALSE);
-      kno_add(base,KNOSYM_FORMAT,kno_intern("nocompress"));}
-    else if ( kp->pool_compression == KNO_ZLIB ) {
-      kno_store(base,compression_symbol,kno_intern("zlib"));
-      kno_add(base,KNOSYM_FORMAT,kno_intern("zlib"));}
-    else if ( kp->pool_compression == KNO_ZLIB9 ) {
-      kno_store(base,compression_symbol,kno_intern("zlib9"));
-      kno_add(base,KNOSYM_FORMAT,kno_intern("zlib9"));}
-    else if ( kp->pool_compression == KNO_SNAPPY ) {
-      kno_store(base,compression_symbol,kno_intern("snappy"));
-      kno_add(base,KNOSYM_FORMAT,kno_intern("snappy"));}
-    else if ( kp->pool_compression == KNO_ZSTD ) {
-      kno_store(base,compression_symbol,kno_intern("zstd"));
-      kno_add(base,KNOSYM_FORMAT,kno_intern("zstd"));}
-    else kno_store(base,compression_symbol,kno_intern("!!invalid!!"));
+
+    lispval cname = kno_compression_name(kp->pool_compression);
+    if (KNO_ABORTP(cname)) {
+      u8_log(LOG_WARN,"BadCompressionType","for knopool %s, code=0x%x",
+	     kp->poolid,((unsigned int)(kp->pool_compression)));
+      u8_pop_exception();}
+    else kno_store(base,compression_symbol,cname);
+    if (KNO_SYMBOLP(cname)) kno_add(base,KNOSYM_FORMAT,cname);
+
     kno_add(base,metadata_readonly_props,load_symbol);
     kno_add(base,metadata_readonly_props,xrefs_symbol);
     kno_add(base,metadata_readonly_props,compression_symbol);
@@ -2076,20 +2069,8 @@ static lispval knopool_ctl(kno_pool p,lispval op,int n,kno_argvec args)
     return KNO_INT(kp->pool_load);
   else if ( ( ( op == compression_symbol ) && (n == 0) ) ||
 	    ( ( op == kno_metadata_op ) && (n == 1) &&
-	      ( args[0] == compression_symbol ) ) ) {
-    if ( kp->pool_compression == KNO_NOCOMPRESS )
-      return KNO_FALSE;
-    else if ( kp->pool_compression == KNO_ZLIB )
-      return kno_intern("zlib");
-    else if ( kp->pool_compression == KNO_ZLIB9 )
-      return kno_intern("zlib9");
-    else if ( kp->pool_compression == KNO_SNAPPY )
-      return kno_intern("snappy");
-    else if ( kp->pool_compression == KNO_ZSTD )
-      return kno_intern("zstd");
-    else {
-      kno_seterr("BadCompressionType","knopool_ctl",kp->poolid,KNO_VOID);
-      return KNO_ERROR;}}
+	      ( args[0] == compression_symbol ) ) )
+    return kno_compression_name(kp->pool_compression);
   else if ( ( ( op == KNOSYM_READONLY ) && (n == 0) ) ||
 	    ( ( op == kno_metadata_op ) && (n == 1) &&
 	      ( args[0] == KNOSYM_READONLY ) ) ) {
