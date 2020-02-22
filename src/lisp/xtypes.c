@@ -43,8 +43,11 @@ static unsigned char *xtype_zstd_uncompress
 static unsigned char *xtype_snappy_uncompress
 (ssize_t *destlen,const unsigned char *source,size_t source_len);
 
+lispval kno_xtrefs_typetag;
+
 static lispval objid_symbol, mime_symbol, encrypted_symbol,
-  compressed_symbol, error_symbol, mime_symbol, knopaque_symbol;
+  compressed_symbol, error_symbol, mime_symbol, knopaque_symbol,
+  xrefs_symbol;
 
 kno_xtype_fn kno_xtype_writers[KNO_TYPE_MAX];
 
@@ -125,6 +128,15 @@ KNO_EXPORT int kno_init_xrefs(xtype_refs refs,
       return -1;}
     refs->xt_lookup = table;}
   return n_refs;
+}
+
+static void recycle_xtype_refs(void *ptr)
+{
+  struct XTYPE_REFS *refs = (xtype_refs) ptr;
+  u8_free(refs->xt_refs); refs->xt_refs = NULL;
+  kno_recycle_hashtable(refs->xt_lookup);
+  refs->xt_lookup=NULL;
+  u8_free(refs);
 }
 
 KNO_EXPORT ssize_t kno_add_xtype_ref(lispval x,xtype_refs refs)
@@ -955,6 +967,73 @@ static unsigned char *xtype_zstd_uncompress
     return uncompressed;}
 }
 
+/* Getting xrefs from lisp objects */
+
+KNO_EXPORT lispval kno_wrap_xrefs(struct XTYPE_REFS *refs)
+{
+  return kno_wrap_pointer((void *)refs,sizeof(struct XTYPE_REFS),
+			  recycle_xtype_refs,
+			  kno_xtrefs_typetag,
+			  NULL);
+}
+
+KNO_EXPORT lispval kno_getxrefs(lispval arg)
+{
+  int free_arg = 0;
+  if (KNO_TABLEP(arg)) {
+    arg = kno_getopt(arg,xrefs_symbol,KNO_VOID);
+    free_arg = 1;}
+  if (KNO_RAW_TYPEP(arg,kno_xtrefs_typetag)) {
+    if (free_arg)
+      return arg;
+    else return kno_incref(arg);}
+  
+  /* negative is an error, zero is uncreated, >0 is created */
+
+  const lispval *elts = NULL; ssize_t n_elts = 0;
+  if (KNO_PRECHOICEP(arg)) {
+    if (free_arg)
+      arg = kno_simplify_choice(arg);
+    else {
+      arg=kno_make_simple_choice(arg);
+      free_arg=1;}}
+  if (KNO_VECTORP(arg)) {
+    elts =   KNO_VECTOR_ELTS(arg);
+    n_elts = KNO_VECTOR_LENGTH(arg);}
+  else if (KNO_CHOICEP(arg)) {
+    elts =   KNO_CHOICE_ELTS(arg);
+    n_elts = KNO_CHOICE_SIZE(arg);}
+  else {
+    elts = &arg; n_elts = 1;}
+  
+  if ( (elts) && (n_elts) ) {
+    lispval *copy = u8_alloc_n(n_elts,lispval);
+    ssize_t i = 0; while (i < n_elts) {
+      lispval elt = elts[i];
+      if ( (OIDP(elt)) || (SYMBOLP(elt)) ) {
+	copy[i] = elt;
+	kno_incref(elt);
+	i++;}
+      else {
+	kno_seterr("InvalidXRef","kno_getxrefs",NULL,elt);
+	u8_free(copy);
+	if (free_arg) kno_decref(arg);
+	return KNO_ERROR;}}
+    if (free_arg) kno_decref(arg);
+    struct XTYPE_REFS *refs = u8_alloc(struct XTYPE_REFS);
+    int init_rv = 
+      kno_init_xrefs(refs,n_elts,n_elts,-1,XTYPE_REFS_READ_ONLY,
+		     copy,NULL);
+    if (init_rv<0) {
+      u8_free(copy);
+      u8_free(refs);
+      kno_seterr("XRefInitFailed","kno_getxrefs",NULL,VOID);
+      return KNO_ERROR;}
+    else return kno_wrap_xrefs(refs);}
+  if (free_arg) kno_decref(arg);
+  return KNO_FALSE;
+}
+
 /* File initialization */
 
 KNO_EXPORT void kno_init_xtypes_c()
@@ -967,6 +1046,10 @@ KNO_EXPORT void kno_init_xtypes_c()
   compressed_symbol = kno_intern("%compressed");
   error_symbol = kno_intern("%error");
   knopaque_symbol = kno_intern("_knopaque");
+
+  xrefs_symbol = kno_intern("xrefs");
+
+  kno_xtrefs_typetag = kno_intern("%xtype-refs");
 
   int i = 0; while (i < KNO_TYPE_MAX) {
     kno_xtype_writers[i++]=NULL;};

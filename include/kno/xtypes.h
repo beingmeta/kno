@@ -81,6 +81,9 @@ typedef enum XT_TYPE_CODE {
 
 } xt_type_code;
 
+/* Used for xtype_refs rawptrs */
+KNO_EXPORT lispval kno_xtrefs_typetag;
+
 typedef struct XTYPE_REFS {
   int xt_refs_flags;
   int xt_n_refs;
@@ -157,6 +160,10 @@ KNO_EXPORT int kno_init_xrefs(xtype_refs refs,
 			      lispval *elts,
 			      kno_hashtable lookup);
 KNO_EXPORT void kno_recycle_xrefs(xtype_refs refs);
+
+/* Converting objects into xrefs */
+KNO_EXPORT lispval kno_wrap_xrefs(struct XTYPE_REFS *refs);
+KNO_EXPORT lispval kno_getxrefs(lispval arg);
 
 /* Returning error codes */
 
