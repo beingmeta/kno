@@ -324,7 +324,8 @@ KNO_FASTOP lispval nd_reduce_op(kno_stack stack,
 		KNO_STOP_DO_CHOICES;
 		result = reduced;
 		goto error_exit;}
-	      else {KNO_ADD_TO_CHOICE(new_state,reduced);}}}}
+	      else {KNO_ADD_TO_CHOICE(new_state,reduced);}}}
+	  kno_decref(arg);}
 	else {
 	  KNO_DO_CHOICES(state_x,state) {
 	    lispval reduced = fn(state_x,arg,&done);
@@ -342,11 +343,12 @@ KNO_FASTOP lispval nd_reduce_op(kno_stack stack,
 	    KNO_STOP_DO_CHOICES;
 	    result = reduced;
 	    goto error_exit;}
-	  else {KNO_ADD_TO_CHOICE(new_state,reduced);}}}
+	  else {KNO_ADD_TO_CHOICE(new_state,reduced);}}
+	kno_decref(arg);}
       kno_decref(state);
       state = kno_simplify_choice(new_state);}
     else {
-      lispval reduced = fn(state,arg,&done);
+      lispval reduced = fn(state,arg,&done) ;
       if (KNO_ABORTP(reduced)) {
 	kno_decref(state);
 	kno_decref(arg);
@@ -354,8 +356,10 @@ KNO_FASTOP lispval nd_reduce_op(kno_stack stack,
       else if (state != reduced) {
 	lispval prev_state = state;
 	state = kno_simplify_choice(reduced);
-	kno_decref(prev_state);}
-      else NO_ELSE;}}
+	kno_decref(prev_state);
+	if (state!=arg) kno_decref(arg);}
+      else NO_ELSE;
+      arg=KNO_VOID;}} /* NO_ELSE */
   return kno_simplify_choice(state);
  error_exit:
   kno_decref(state);
@@ -1513,6 +1517,8 @@ KNO_FASTOP lispval plus_reduce(lispval state,lispval step,int *done)
     return step;
   else if (step == KNO_FIXNUM_ZERO)
     return state;
+  else if (state == KNO_FIXNUM_ZERO)
+    return step;
   else if ( (KNO_FIXNUMP(state)) && (KNO_FIXNUMP(step)) ) {
     long long istate = FIX2INT(state);
     long long istep = FIX2INT(step);
