@@ -1513,6 +1513,8 @@ KNO_FASTOP lispval plus_reduce(lispval state,lispval step,int *done)
     return step;
   else if (step == KNO_FIXNUM_ZERO)
     return state;
+  else if (state == KNO_FIXNUM_ZERO)
+    return kno_incref(step);
   else if ( (KNO_FIXNUMP(state)) && (KNO_FIXNUMP(step)) ) {
     long long istate = FIX2INT(state);
     long long istep = FIX2INT(step);
@@ -1552,7 +1554,7 @@ KNO_FASTOP lispval minus_reduce(lispval state,lispval step,int *done)
   else if (KNO_VOIDP(state))
     return step;
   else if (step == KNO_FIXNUM_ZERO)
-    return state;
+    return kno_incref(state);
   else if ( (KNO_FIXNUMP(state)) && (KNO_FIXNUMP(step)) ) {
     long long istate = FIX2INT(state);
     long long istep = FIX2INT(step);
@@ -1628,9 +1630,9 @@ KNO_FASTOP lispval mult_reduce(lispval state,lispval step,int *done)
     *done = 1;
     return step;}
   else if (step == KNO_FIXNUM_ONE)
-    return state;
+    return kno_incref(state);
   else if (state == KNO_FIXNUM_ONE)
-    return step;
+    return kno_incref(step);
   else if ( (KNO_FIXNUMP(state)) && (KNO_FIXNUMP(step)) ) {
     long long ix = FIX2INT(state);
     long long iy = FIX2INT(step);
