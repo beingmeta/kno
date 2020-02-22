@@ -130,26 +130,6 @@ lispval lambda_call(struct KNO_STACK *_stack,
   else if (args == vals) {
     /* The rest of vals should be already be void */
     i = max_positional;}
-#if 0
-  while (i < last_positional) {
-    lispval arg = args[i];
-    if (PRED_FALSE(KNO_QCHOICEP(arg))) {
-      fix_qchoice(arg,&vals[i],(vals==args));}
-    else {
-      lispval old_arg = vals[i];
-      if (arg != old_arg) {
-	vals[i] = arg;
-	kno_incref(arg);
-	kno_decref(old_arg);}
-      else if (vals != args)
-	kno_incref(arg);
-      else NO_ELSE;}
-    i++;}
-  while (i < max_positional) {
-      lispval old_arg = vals[i];
-      vals[i++] = VOID;
-      kno_decref(old_arg);}
-#endif
   if (arity < 0) {
     lispval old_arg = vals[i];
     if (i<n)
