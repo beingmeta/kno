@@ -729,7 +729,7 @@ static ssize_t write_hashtable(kno_outbuf out,struct KNO_HASHTABLE *hashtable,
 {
   int i = 0, n_keys = -1;
   struct KNO_KEYVAL *keyvals = kno_hashtable_keyvals(hashtable,&n_keys,1);
-  if (PRED_FALSE( (keyvals == NULL) || (n_keys < 0) )) return -1;
+  if (PRED_FALSE(n_keys < 0)) return -1;
   int len = n_keys*2;
   kno_output_byte(out,xt_tagged); kno_output_byte(out,xt_bigtable);
   kno_output_byte(out,xt_table);
@@ -984,6 +984,8 @@ KNO_EXPORT lispval kno_getxrefs(lispval arg)
     return KNO_FALSE;
   if (KNO_TABLEP(arg)) {
     arg = kno_getopt(arg,xrefs_symbol,KNO_VOID);
+    if ( (KNO_FALSEP(arg)) || (KNO_VOIDP(arg)) || (KNO_DEFAULTP(arg)) )
+      return KNO_FALSE;
     free_arg = 1;}
   if (KNO_RAW_TYPEP(arg,kno_xtrefs_typetag)) {
     if (free_arg)
@@ -1005,8 +1007,9 @@ KNO_EXPORT lispval kno_getxrefs(lispval arg)
   else if (KNO_CHOICEP(arg)) {
     elts =   KNO_CHOICE_ELTS(arg);
     n_elts = KNO_CHOICE_SIZE(arg);}
-  else {
+  else if ( (KNO_SYMBOLP(arg)) || (KNO_OIDP(arg)) ) {
     elts = &arg; n_elts = 1;}
+  else return kno_err("InvalidXRefValue","kno_getxrefs",NULL,arg);
   
   if ( (elts) && (n_elts) ) {
     lispval *copy = u8_alloc_n(n_elts,lispval);
