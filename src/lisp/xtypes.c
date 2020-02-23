@@ -980,6 +980,8 @@ KNO_EXPORT lispval kno_wrap_xrefs(struct XTYPE_REFS *refs)
 KNO_EXPORT lispval kno_getxrefs(lispval arg)
 {
   int free_arg = 0;
+  if ( (KNO_FALSEP(arg)) || (KNO_VOIDP(arg)) || (KNO_DEFAULTP(arg)) )
+    return KNO_FALSE;
   if (KNO_TABLEP(arg)) {
     arg = kno_getopt(arg,xrefs_symbol,KNO_VOID);
     free_arg = 1;}
