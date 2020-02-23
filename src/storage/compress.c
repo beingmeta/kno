@@ -403,7 +403,7 @@ KNO_EXPORT ssize_t kno_compress_xtype(kno_outbuf out,lispval x,xtype_refs refs,
   if ( (len_len < 0) || (kno_write_bytes(out,compressed_data,compressed_len)<0) ) {
     u8_free(compressed_data);
     return len_len;}
-  u8_free(compressed_data);
+  u8_big_free(compressed_data);
   return 1+1+1+len_len+compressed_len;
 }
 
