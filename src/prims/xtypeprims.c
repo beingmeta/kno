@@ -197,8 +197,9 @@ static lispval read_xtype_at_prim(lispval stream,lispval opts,
   if (KNO_VOIDP(pos)) {
     lispval object = kno_read_xtype(kno_readbuf(ds),refs);
     kno_decref(refs_arg);
-    if (object == KNO_EOD)
+    if (object == KNO_EOD) {
       kno_decref(refs_arg);
+      return object;}
     else return object;}
   else if (KNO_VOIDP(len)) {
     long long filepos = KNO_FIX2INT(pos);

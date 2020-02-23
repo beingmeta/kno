@@ -521,8 +521,6 @@ KNO_EXPORT void kno_init_dtypeprims_c()
 
 static void link_local_cprims()
 {
-  lispval scheme_module = kno_scheme_module;
-
   KNO_LINK_PRIM("zfile->dtypes",zipfile2dtypes,1,dtypeprims_module);
   KNO_LINK_PRIM("file->dtypes",file2dtypes,1,dtypeprims_module);
   KNO_LINK_PRIM("zfile->dtypes",zipfile2dtypes,1,dtypeprims_module);
