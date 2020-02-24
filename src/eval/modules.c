@@ -528,7 +528,7 @@ lispval kno_use_module(kno_lexenv env,lispval module)
 }
 
 DEFPRIM1("get-exports",get_exports_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-         "`(GET-EXPORTS *arg0*)` **undocumented**",
+         "`(GET-EXPORTS *arg0*)` returns the exported symbols of a module or environment",
          kno_any_type,KNO_VOID);
 static lispval get_exports_prim(lispval arg)
 {
@@ -551,6 +551,29 @@ static lispval get_exports_prim(lispval arg)
     lispval keys = kno_getkeys(expval);
     kno_decref(module);
     return keys;}
+  else return EMPTY;
+}
+
+DEFPRIM1("get-exported",get_export_table_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+         "`(GET-EXPORTED *arg0*)` returns the exports table of a module or environment.",
+         kno_any_type,KNO_VOID);
+static lispval get_export_table_prim(lispval arg)
+{
+  lispval module = arg;
+  if ((STRINGP(arg))||(SYMBOLP(arg)))
+    module = kno_find_module(arg,0);
+  else kno_incref(module);
+  if (KNO_ABORTP(module)) return module;
+  else if (VOIDP(module))
+    return kno_err(kno_NoSuchModule,"USE-MODULE",NULL,arg);
+  else if (HASHTABLEP(module))
+    return module;
+  else if (TYPEP(module,kno_lexenv_type)) {
+    kno_lexenv expenv=
+      kno_consptr(kno_lexenv,module,kno_lexenv_type);
+    lispval expval = (lispval)kno_get_exports(expenv);
+    kno_decref(module);
+    return expval;}
   else return EMPTY;
 }
 
@@ -828,6 +851,7 @@ static void link_local_cprims()
   KNO_LINK_PRIM("get-binding",get_binding_prim,3,kno_sys_module);
   KNO_LINK_PRIM("get-source",get_source_prim,1,kno_sys_module);
   KNO_LINK_PRIM("get-exports",get_exports_prim,1,kno_sys_module);
+  KNO_LINK_PRIM("get-export-table",get_export_table_prim,1,kno_sys_module);
   KNO_LINK_PRIM("get-loaded-module",get_loaded_module,1,kno_sys_module);
   KNO_LINK_PRIM("get-module",get_module,1,kno_sys_module);
 
