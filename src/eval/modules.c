@@ -554,10 +554,10 @@ static lispval get_exports_prim(lispval arg)
   else return EMPTY;
 }
 
-DEFPRIM1("get-exported",get_export_table_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-         "`(GET-EXPORTED *arg0*)` returns the exports table of a module or environment.",
+DEFPRIM1("get-exports-table",get_exports_table_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+         "`(GET-EXPORTS-TABLE *arg0*)` returns the exports table of a module or environment.",
          kno_any_type,KNO_VOID);
-static lispval get_export_table_prim(lispval arg)
+static lispval get_exports_table_prim(lispval arg)
 {
   lispval module = arg;
   if ((STRINGP(arg))||(SYMBOLP(arg)))
@@ -851,7 +851,7 @@ static void link_local_cprims()
   KNO_LINK_PRIM("get-binding",get_binding_prim,3,kno_sys_module);
   KNO_LINK_PRIM("get-source",get_source_prim,1,kno_sys_module);
   KNO_LINK_PRIM("get-exports",get_exports_prim,1,kno_sys_module);
-  KNO_LINK_PRIM("get-export-table",get_export_table_prim,1,kno_sys_module);
+  KNO_LINK_PRIM("get-exports-table",get_exports_table_prim,1,kno_sys_module);
   KNO_LINK_PRIM("get-loaded-module",get_loaded_module,1,kno_sys_module);
   KNO_LINK_PRIM("get-module",get_module,1,kno_sys_module);
 
