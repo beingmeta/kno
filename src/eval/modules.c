@@ -534,7 +534,7 @@ static lispval get_exports_prim(lispval arg)
 {
   lispval module = arg;
   if ((STRINGP(arg))||(SYMBOLP(arg)))
-    module = kno_find_module(arg,0);
+    module = kno_find_module(arg,1);
   else kno_incref(module);
   if (KNO_ABORTP(module)) return module;
   else if (VOIDP(module))
@@ -561,11 +561,9 @@ static lispval get_exports_table_prim(lispval arg)
 {
   lispval module = arg;
   if ((STRINGP(arg))||(SYMBOLP(arg)))
-    module = kno_find_module(arg,0);
+    module = kno_find_module(arg,1);
   else kno_incref(module);
   if (KNO_ABORTP(module)) return module;
-  else if (VOIDP(module))
-    return kno_err(kno_NoSuchModule,"USE-MODULE",NULL,arg);
   else if (HASHTABLEP(module))
     return module;
   else if (TYPEP(module,kno_lexenv_type)) {
@@ -574,7 +572,7 @@ static lispval get_exports_table_prim(lispval arg)
     lispval expval = (lispval)kno_get_exports(expenv);
     kno_decref(module);
     return expval;}
-  else return EMPTY;
+  else return KNO_FALSE;
 }
 
 static lispval get_source(lispval arg)
