@@ -297,7 +297,8 @@ KNO_EXPORT int kno_register_config_x
     retval = setfn(symbol,last,data);}
   else retval = setfn(symbol,current,data);
   if (old_configdoc) u8_free(old_configdoc);
-  scan->configflags |= KNO_CONFIG_ALREADY_MODIFIED;
+  if (!(VOIDP(current)))
+    scan->configflags |= KNO_CONFIG_ALREADY_MODIFIED;
   kno_decref(current);
   return retval;
 }
