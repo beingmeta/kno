@@ -1012,16 +1012,8 @@ lib/libknoscheme@suffix@.dylib: $(SCHEME_OBJS) 			\
         lib/libknodrivers@suffix@.dylib
 
 lib/libknowebtools@suffix@.a: $(WEB_OBJS)
-lib/libknowebtools@suffix@.so: $(WEB_OBJS) \
-	lib/libknocore@suffix@.so \
-	lib/libknostorage@suffix@.so \
-	lib/libknodrivers@suffix@.so \
-	lib/libknoscheme@suffix@.so
-lib/libknowebtools@suffix@.dylib: $(WEB_OBJS) \
-	lib/libknoscheme@suffix@.dylib     \
-	lib/libknodrivers@suffix@.dylib     \
-	lib/libknostorage@suffix@.dylib         \
-        lib/libknocore@suffix@.dylib
+lib/libknowebtools@suffix@.so: $(WEB_OBJS) lib/libkno@suffix@.so
+lib/libknowebtools@suffix@.dylib: $(WEB_OBJS) lib/libkno@suffix@.dylib
 	@$(MACLIBTOOL) -install_name \
 		@rpath/lib/`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
 		$(DYLIB_FLAGS) \
@@ -1029,14 +1021,8 @@ lib/libknowebtools@suffix@.dylib: $(WEB_OBJS) \
 	@$(MSG) MACLIBTOOL $@
 
 lib/libknotexttools@suffix@.a: $(TEXT_OBJS)
-lib/libknotexttools@suffix@.so: $(TEXT_OBJS) \
-	lib/libknocore@suffix@.so lib/libknostorage@suffix@.so \
-	lib/libknostorage@suffix@.so lib/libknoscheme@suffix@.so
-lib/libknotexttools@suffix@.dylib: $(TEXT_OBJS) \
-	lib/libknoscheme@suffix@.dylib \
-	lib/libknodrivers@suffix@.dylib \
-	lib/libknostorage@suffix@.dylib \
-	lib/libknocore@suffix@.dylib
+lib/libknotexttools@suffix@.so: $(TEXT_OBJS) lib/libkno@suffix@.so
+lib/libknotexttools@suffix@.dylib: $(TEXT_OBJS) lib/libkno@suffix@.dylib
 	@$(MACLIBTOOL) -install_name \
 		@rpath/lib/`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
 		$(DYLIB_FLAGS) \
