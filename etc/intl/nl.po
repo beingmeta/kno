@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-02-15 15:53-0500\n"
+"POT-Creation-Date: 2020-02-26 10:52-0500\n"
 "PO-Revision-Date: 2005-03-04 22:55-0500\n"
 "Last-Translator: Kenneth Haase <kh@beingmeta.com>\n"
 "Language-Team: Dutch <nl@li.org>\n"
@@ -297,24 +297,24 @@ msgstr ""
 msgid "whether to check returned and real dtype sizes"
 msgstr ""
 
-#: src/lisp/xtypes.c:872 src/storage/compress.c:136 src/storage/compress.c:175
-#: src/prims/portprims.c:1362 src/drivers/headers/zcompress.h:27
+#: src/lisp/xtypes.c:892 src/storage/compress.c:156 src/storage/compress.c:195
+#: src/prims/portprims.c:1351 src/drivers/headers/zcompress.h:27
 #: src/drivers/headers/zcompress.h:65
 msgid "ZLIB ran out of memory"
 msgstr ""
 
-#: src/lisp/xtypes.c:880 src/storage/compress.c:144
+#: src/lisp/xtypes.c:900 src/storage/compress.c:164
 #: src/drivers/headers/zcompress.h:35
 msgid "pool value uncompress ran out of memory"
 msgstr ""
 
-#: src/lisp/xtypes.c:884 src/storage/compress.c:148
+#: src/lisp/xtypes.c:904 src/storage/compress.c:168
 #: src/drivers/headers/zcompress.h:38
 msgid "ZLIB uncompress data error"
 msgstr ""
 
-#: src/lisp/xtypes.c:886 src/storage/compress.c:150 src/storage/compress.c:188
-#: src/prims/portprims.c:1375 src/drivers/headers/zcompress.h:40
+#: src/lisp/xtypes.c:906 src/storage/compress.c:170 src/storage/compress.c:208
+#: src/prims/portprims.c:1364 src/drivers/headers/zcompress.h:40
 #: src/drivers/headers/zcompress.h:78
 msgid "Bad ZLIB return code"
 msgstr ""
@@ -425,12 +425,12 @@ msgstr ""
 msgid "oid"
 msgstr ""
 
-#: src/lisp/lisp.c:206 src/lisp/lisp.c:207 src/sys/config.c:834
+#: src/lisp/lisp.c:206 src/lisp/lisp.c:207 src/sys/config.c:835
 #: src/eval/eval.c:1468 src/eval/opcode_defs.c:586 src/prims/dbprims.c:3121
-#: src/prims/portprims.c:879 src/eval/choiceops.c:1456
-#: src/eval/choiceops.c:1494 src/eval/choiceops.c:1520
-#: src/eval/choiceops.c:1556 src/eval/choiceops.c:1570
-#: src/eval/choiceops.c:1574 src/eval/choiceops.c:1575 src/prims/seqprims.c:361
+#: src/prims/portprims.c:868 src/eval/choiceops.c:1457
+#: src/eval/choiceops.c:1496 src/eval/choiceops.c:1523
+#: src/eval/choiceops.c:1560 src/eval/choiceops.c:1574
+#: src/eval/choiceops.c:1578 src/eval/choiceops.c:1579 src/prims/seqprims.c:361
 #: src/text/texttools.c:2318 src/text/match.c:3605 src/text/match.c:3622
 #: src/text/match.c:3651 src/text/match.c:3683 src/exe/knocgi.c:281
 #: src/exe/knocgi.c:296 src/exe/knocgi.c:314 src/exe/knocgi.c:330
@@ -490,15 +490,15 @@ msgstr ""
 msgid "histref"
 msgstr ""
 
-#: src/lisp/lisp.c:235 src/lisp/lisp.c:236 src/sys/config.c:763
-#: src/sys/config.c:782 src/sys/config.c:801 src/sys/startup.c:254
+#: src/lisp/lisp.c:235 src/lisp/lisp.c:236 src/sys/config.c:764
+#: src/sys/config.c:783 src/sys/config.c:802 src/sys/startup.c:254
 #: src/sys/startup.c:632 src/prims/dbprims.c:306 src/prims/dbprims.c:327
-#: src/prims/dbprims.c:348 src/prims/portprims.c:386 src/prims/portprims.c:800
-#: src/prims/portprims.c:885 src/prims/streamprims.c:560
-#: src/prims/streamprims.c:605 src/prims/streamprims.c:694
-#: src/prims/streamprims.c:726 src/prims/streamprims.c:744
-#: src/prims/streamprims.c:767 src/prims/streamprims.c:801
-#: src/prims/streamprims.c:822 src/prims/stringprims.c:478
+#: src/prims/dbprims.c:348 src/prims/portprims.c:375 src/prims/portprims.c:789
+#: src/prims/portprims.c:874 src/prims/dtypeprims.c:237
+#: src/prims/dtypeprims.c:282 src/prims/dtypeprims.c:371
+#: src/prims/dtypeprims.c:403 src/prims/dtypeprims.c:421
+#: src/prims/dtypeprims.c:444 src/prims/dtypeprims.c:478
+#: src/prims/dtypeprims.c:499 src/prims/stringprims.c:478
 #: src/prims/stringprims.c:663 src/prims/stringprims.c:690
 #: src/prims/stringprims.c:1588 src/prims/fileprims.c:304
 #: src/prims/fileprims.c:672 src/web/cgiexec.c:1320 src/web/cgiexec.c:1347
@@ -694,7 +694,7 @@ msgstr ""
 msgid "bloom_filter"
 msgstr ""
 
-#: src/lisp/lisp.c:387
+#: src/lisp/lisp.c:388
 msgid "RUSAGE Failed"
 msgstr ""
 
@@ -798,63 +798,63 @@ msgstr ""
 msgid "Read-only config setting"
 msgstr ""
 
-#: src/sys/config.c:818
+#: src/sys/config.c:819
 msgid "small fixnum"
 msgstr ""
 
-#: src/sys/config.c:860 src/sys/config.c:863
+#: src/sys/config.c:861 src/sys/config.c:864
 msgid "size_t sized value"
 msgstr ""
 
-#: src/sys/config.c:1151
+#: src/sys/config.c:1152
 msgid "Get the Kno version string"
 msgstr ""
 
-#: src/sys/config.c:1154
+#: src/sys/config.c:1155
 msgid "Get the Kno revision identifier"
 msgstr ""
 
-#: src/sys/config.c:1157
+#: src/sys/config.c:1158
 msgid "Get the Kno branch name"
 msgstr ""
 
-#: src/sys/config.c:1160
+#: src/sys/config.c:1161
 msgid "Get the Kno major version number"
 msgstr ""
 
-#: src/sys/config.c:1163
+#: src/sys/config.c:1164
 msgid "Get the libu8 version string"
 msgstr ""
 
-#: src/sys/config.c:1166
+#: src/sys/config.c:1167
 msgid "Get the libu8 revision identifier"
 msgstr ""
 
-#: src/sys/config.c:1169
+#: src/sys/config.c:1170
 msgid "Get the libu8 major version number"
 msgstr ""
 
-#: src/sys/config.c:1176
+#: src/sys/config.c:1177
 msgid "Default directory for looking up config entries"
 msgstr ""
 
-#: src/sys/config.c:1181
+#: src/sys/config.c:1182
 msgid "Directory/path (cumulative) for looking up config settings"
 msgstr ""
 
-#: src/sys/config.c:1189 src/sys/config.c:1193
+#: src/sys/config.c:1190 src/sys/config.c:1194
 msgid "Get/set the current working directory"
 msgstr ""
 
-#: src/sys/config.c:1197
+#: src/sys/config.c:1198
 msgid "Get the time elapsed since this process started"
 msgstr ""
 
-#: src/sys/config.c:1200
+#: src/sys/config.c:1201
 msgid "Get hostname of the computer running KNO"
 msgstr ""
 
-#: src/sys/config.c:1239
+#: src/sys/config.c:1240
 msgid "whether to trace configuration"
 msgstr ""
 
@@ -1772,11 +1772,11 @@ msgstr ""
 msgid "The head file has no data"
 msgstr ""
 
-#: src/storage/compress.c:183 src/drivers/headers/zcompress.h:73
+#: src/storage/compress.c:203 src/drivers/headers/zcompress.h:73
 msgid "pool value compression ran out of memory"
 msgstr ""
 
-#: src/storage/compress.c:186 src/prims/portprims.c:1373
+#: src/storage/compress.c:206 src/prims/portprims.c:1362
 #: src/drivers/headers/zcompress.h:76
 msgid "ZLIB compress data error"
 msgstr ""
@@ -1815,7 +1815,7 @@ msgid "Stored %d oid values in oidpool %s in %f seconds"
 msgstr ""
 
 #: src/drivers/filepool.c:813 src/drivers/oidpool.c:1552
-#: src/drivers/bigpool.c:2260 src/drivers/knopool.c:2196
+#: src/drivers/bigpool.c:2241 src/drivers/knopool.c:2177
 msgid "FileAlreadyExists"
 msgstr ""
 
@@ -2021,12 +2021,12 @@ msgid "Invalid opcode"
 msgstr ""
 
 #: src/eval/opcode_defs.c:836 src/eval/opcode_defs.c:1511
-#: src/eval/opcode_defs.c:1534 src/eval/opcode_defs.c:1551
-#: src/eval/opcode_defs.c:1571 src/eval/opcode_defs.c:1624
-#: src/eval/opcode_defs.c:1658 src/eval/opcode_defs.c:1673
-#: src/eval/opcode_defs.c:1686 src/eval/opcode_defs.c:1728
-#: src/eval/opcode_defs.c:1767 src/eval/opcode_defs.c:1805
-#: src/eval/opcode_defs.c:1843 src/eval/opcode_defs.c:1881 src/eval/arith.c:294
+#: src/eval/opcode_defs.c:1536 src/eval/opcode_defs.c:1553
+#: src/eval/opcode_defs.c:1573 src/eval/opcode_defs.c:1626
+#: src/eval/opcode_defs.c:1660 src/eval/opcode_defs.c:1675
+#: src/eval/opcode_defs.c:1688 src/eval/opcode_defs.c:1730
+#: src/eval/opcode_defs.c:1769 src/eval/opcode_defs.c:1807
+#: src/eval/opcode_defs.c:1845 src/eval/opcode_defs.c:1883 src/eval/arith.c:294
 msgid "number"
 msgstr ""
 
@@ -2124,9 +2124,8 @@ msgstr ""
 msgid "time interval"
 msgstr ""
 
-#: src/eval/threads.c:878 src/eval/threads.c:960 src/eval/choiceops.c:1441
-#: src/eval/choiceops.c:1467 src/eval/choiceops.c:1505
-#: src/eval/choiceops.c:1531 src/text/match.c:3551 src/text/match.c:3580
+#: src/eval/threads.c:878 src/eval/threads.c:960 src/text/match.c:3551
+#: src/text/match.c:3580
 msgid "applicable"
 msgstr ""
 
@@ -2158,7 +2157,7 @@ msgstr ""
 msgid "Can't reload a read-only module"
 msgstr ""
 
-#: src/eval/modules.c:608 src/eval/reflection.c:803 src/eval/reflection.c:822
+#: src/eval/modules.c:629 src/eval/reflection.c:803 src/eval/reflection.c:822
 #: src/eval/reflection.c:847 src/eval/reflection.c:896
 #: src/eval/reflection.c:901
 msgid "module"
@@ -2293,38 +2292,43 @@ msgstr ""
 msgid "No more information"
 msgstr ""
 
-#: src/prims/portprims.c:39
+#: src/prims/portprims.c:38
 msgid "Unknown encoding"
 msgstr ""
 
-#: src/prims/portprims.c:399 src/prims/portprims.c:416
+#: src/prims/portprims.c:388 src/prims/portprims.c:405
 #: src/prims/fileprims.c:1367 src/prims/fileprims.c:1395
 #: src/prims/fileprims.c:1422 src/prims/fileprims.c:1449
 msgid "port"
 msgstr ""
 
-#: src/prims/portprims.c:437 src/prims/portprims.c:457
-#: src/prims/portprims.c:480 src/prims/portprims.c:496
+#: src/prims/portprims.c:426 src/prims/portprims.c:446
+#: src/prims/portprims.c:469 src/prims/portprims.c:485
 #: src/prims/fileprims.c:295
 msgid "output port"
 msgstr ""
 
-#: src/prims/portprims.c:769 src/prims/portprims.c:797
-#: src/prims/portprims.c:823 src/prims/portprims.c:843
-#: src/prims/portprims.c:875 src/text/texttools.c:2315
+#: src/prims/portprims.c:758 src/prims/portprims.c:786
+#: src/prims/portprims.c:812 src/prims/portprims.c:832
+#: src/prims/portprims.c:864 src/text/texttools.c:2315
 msgid "input port"
 msgstr ""
 
-#: src/prims/portprims.c:803
+#: src/prims/portprims.c:792
 msgid "fixum"
 msgstr ""
 
-#: src/prims/portprims.c:1370
+#: src/prims/portprims.c:1359
 msgid "OIDPOOL compress ran out of memory"
 msgstr ""
 
-#: src/prims/streamprims.c:940 src/prims/streamprims.c:947
+#: src/prims/streamprims.c:477 src/prims/streamprims.c:484
 msgid "Out of file range"
+msgstr ""
+
+#: src/eval/choiceops.c:1441 src/eval/choiceops.c:1468
+#: src/eval/choiceops.c:1507 src/eval/choiceops.c:1534
+msgid "keyfn"
 msgstr ""
 
 #: src/prims/seqprims.c:33

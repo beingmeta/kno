@@ -1326,6 +1326,8 @@ install-dirs: confdirs workdirs
 install-core: install-dirs install-bin @INSTALLI18N@ install-text install-data
 install-dev:  install-headers install-pkgconfig
 
+install-all install-full: install install-dev
+
 $(INCINSTALLDIR):
 	@$(SYSINSTALL) @install_dir_opts@ $(INCINSTALLDIR)
 $(BININSTALLDIR):
