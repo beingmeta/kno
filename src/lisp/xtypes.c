@@ -380,6 +380,29 @@ KNO_EXPORT ssize_t kno_write_xtype(kno_outbuf out,lispval x,xtype_refs refs)
   return write_xtype(out,x,refs);
 }
 
+KNO_EXPORT ssize_t kno_embed_xtype(kno_outbuf out,lispval x,xtype_refs refs)
+{
+  if (refs == NULL)
+    return write_xtype(out,x,refs);
+  kno_write_byte(out,xt_refcoded);
+  kno_write_byte(out,xt_vector);
+  int i=0, n_refs = refs->xt_n_refs;
+  ssize_t result_len = 2;
+  ssize_t rv = kno_write_varint(out,n_refs);
+  if (rv<=0) return -1;
+  else result_len += rv;
+  lispval *elts = refs->xt_refs;
+  while (i < n_refs) {
+    lispval ref = elts[i];
+    ssize_t rv = write_xtype(out,ref,NULL);
+    if (rv<=0) return -1;
+    else result_len += rv;
+    i++;}
+  rv = write_xtype(out,x,refs);
+  if (rv<=0) return -1;
+  else return result_len+rv;
+}
+
 /* Reading XTYPEs */
 
 static lispval read_xtype(kno_inbuf in,xtype_refs refs)
@@ -991,7 +1014,7 @@ KNO_EXPORT lispval kno_getxrefs(lispval arg)
     if (free_arg)
       return arg;
     else return kno_incref(arg);}
-  
+
   /* negative is an error, zero is uncreated, >0 is created */
 
   const lispval *elts = NULL; ssize_t n_elts = 0;

@@ -33,7 +33,7 @@
 
 KNO_EXPORT kno_compress_type kno_compression_type(lispval,kno_compress_type);
 
-static lispval refs_symbol, nrefs_symbol, lookup_symbol;
+static lispval refs_symbol, nrefs_symbol, lookup_symbol, embed_symbol;
 
 u8_condition kno_UnknownEncoding=_("Unknown encoding");
 
@@ -214,7 +214,9 @@ static lispval encode_xtype(lispval object,lispval opts)
   lispval refs_arg = kno_getxrefs(opts);
   struct XTYPE_REFS *refs = (KNO_RAW_TYPEP(refs_arg,kno_xtrefs_typetag)) ?
     (KNO_RAWPTR_VALUE(refs_arg)) : (NULL);
-  ssize_t bytes = kno_write_xtype(&out,object,refs);
+  ssize_t bytes = (kno_testopt(opts,embed_symbol,KNO_VOID)) ?
+    (kno_embed_xtype(&out,object,refs)) :
+    (kno_write_xtype(&out,object,refs));
   kno_decref(refs_arg);
   if (bytes<0) return KNO_ERROR;
   kno_compress_type compression = kno_compression_type(opts,KNO_NOCOMPRESS);
@@ -1435,6 +1437,7 @@ static void init_portprims_symbols()
   refs_symbol = kno_intern("refs");
   nrefs_symbol = kno_intern("nrefs");
   lookup_symbol = kno_intern("lookup");
+  embed_symbol = kno_intern("embed");
 }
 
 /* The init function */

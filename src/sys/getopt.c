@@ -126,9 +126,9 @@ KNO_EXPORT int kno_testopt(lispval opts,lispval key,lispval val)
 {
   if (VOIDP(opts)) return 0;
   else if ((CHOICEP(opts)) || (PRECHOICEP(opts))) {
-    DO_CHOICES(opt,opts)
-      if (kno_testopt(opt,key,val)) {
-        KNO_STOP_DO_CHOICES; return 1;}
+    DO_CHOICES(opt,opts) {
+      if (kno_testopt(opt,key,val))
+	return 1;}
     return 0;}
   else if (VOIDP(val))
     return boolopt(opts,key);

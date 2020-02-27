@@ -153,6 +153,9 @@ static ssize_t __kno_xtype_ref(lispval x,xtype_refs refs,int add)
 KNO_EXPORT ssize_t kno_write_xtype(kno_outbuf out,lispval x,xtype_refs refs);
 KNO_EXPORT ssize_t kno_validate_xtype(struct KNO_INBUF *in);
 KNO_EXPORT lispval kno_read_xtype(kno_inbuf in,xtype_refs refs);
+KNO_EXPORT ssize_t kno_embed_xtype(kno_outbuf out,lispval x,xtype_refs refs);
+
+
 
 KNO_EXPORT int kno_init_xrefs(xtype_refs refs,
 			      int n_refs,int refs_len,

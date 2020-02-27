@@ -386,8 +386,10 @@ KNO_EXPORT unsigned char *kno_uncompress(kno_compress_type,ssize_t *,
                                        void *);
 KNO_EXPORT lispval kno_compression_name(kno_compress_type ctype);
 
-KNO_EXPORT ssize_t kno_compress_xtype(kno_outbuf out,lispval x,xtype_refs refs,
-				      kno_compress_type compress);
+KNO_EXPORT ssize_t kno_compress_xtype
+(kno_outbuf out,lispval x,xtype_refs refs,
+ kno_compress_type compress,
+ int embed);
 
 /* Full sized chunk refs, usually passed and returned but not
    directly stored on disk. */

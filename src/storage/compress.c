@@ -367,13 +367,18 @@ KNO_EXPORT unsigned char *kno_uncompress
 
 /* Writing compressed xtypes */
 
-KNO_EXPORT ssize_t kno_compress_xtype(kno_outbuf out,lispval x,xtype_refs refs,
-				      kno_compress_type compress)
+KNO_EXPORT ssize_t kno_compress_xtype
+(kno_outbuf out,lispval x,xtype_refs refs,
+ kno_compress_type compress,
+ int embed)
 {
-  if (compress == KNO_NOCOMPRESS)
-    return kno_write_xtype(out,x,refs);
+  if (compress == KNO_NOCOMPRESS) {
+    if (embed)
+      return kno_embed_xtype(out,x,refs);
+    else return kno_write_xtype(out,x,refs);}
   KNO_DECL_OUTBUF(tmp,2000);
-  ssize_t source_len = kno_write_xtype(&tmp,x,refs);
+  ssize_t source_len = (embed) ? (kno_embed_xtype(&tmp,x,refs)) :
+    (kno_write_xtype(&tmp,x,refs));
   if (source_len<0) {
     kno_close_outbuf(&tmp);
     return source_len;}
