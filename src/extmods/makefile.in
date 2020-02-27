@@ -1,8 +1,23 @@
 EXTMODS=@EXTMODS@
+BRANCH=trunk
 
 default: extmods
 
 extmods: ${EXTMODS}
+checkout update:
+	for dir in ${EXTMODS}; do \
+	  if test -f $${dir}.skip; then \
+	    echo > /dev/null; \
+	  elif test -d $${dir}/.git; then \
+	    command cd $${dir}; \
+	    git checkout trunk; \
+	    git pull; \
+	    command cd ..; \
+	  else \
+	    echo "Making local .git repo"; \
+	    make "$${dir}/.git"; \
+	  fi; \
+	done
 
 build: extmods
 	domake ${EXTMODS}
