@@ -1591,6 +1591,12 @@ AC_ARG_WITH(parseltongue,--with/out-parseltongue Build parseltongue libraries fo
 
 if test "$with_parseltongue" = "no" || test "$with_parseltongue" = "2"; then
    echo "Not building parseltongue3 library";
+elif test ! -z "$pkg_config" && $pkg_config --exists python-3.9; then
+   PYTHON3_LDFLAGS=`$pkg_config python-3.9 --libs`;
+   PYTHON3_CFLAGS=`$pkg_config python-3.9 --cflags`;
+elif test ! -z "$pkg_config" && $pkg_config --exists python-3.8; then
+   PYTHON3_LDFLAGS=`$pkg_config python-3.8 --libs`;
+   PYTHON3_CFLAGS=`$pkg_config python-3.8 --cflags`;
 elif test ! -z "$pkg_config" && $pkg_config --exists python-3.7; then
    PYTHON3_LDFLAGS=`$pkg_config python-3.7 --libs`;
    PYTHON3_CFLAGS=`$pkg_config python-3.7 --cflags`;
