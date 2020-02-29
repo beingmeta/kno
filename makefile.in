@@ -1314,6 +1314,7 @@ install: install-status install-core 		\
 		install-static-libs     	\
 		install-cmodules		\
 		install-libscm install-stdlib	\
+		install-dev			\
 		@setup_target@
 	@if test -f .malloc && test -f .buildmode; then \
 	  echo "Installed" $(shell cat .buildmode) "build linked with" $(shell cat .malloc); \

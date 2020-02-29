@@ -727,6 +727,7 @@ LIBZIP_CFLAGS
 MYSQL_LDFLAGS
 MYSQL_CFLAGS
 MALLOC_FLAGS
+PKG_CFLAGS
 BOOTSETUP
 DATAFILES
 TEST_CMODULES
@@ -3072,6 +3073,7 @@ use_dtblock_default="yes"
 default_bootsystem="none"
 BOOTSETUP="none"
 CFLAGS="-DLIBU8_SOURCE -DKNO_SOURCE -fPIC"
+PKG_CFLAGS="-fPIC"
 OPTFLAGS=
 XOPTFLAGS=
 CLANG=no
@@ -3162,6 +3164,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/kno/knosource.h include/kno/config.h"
+
 
 
 
@@ -5815,6 +5818,7 @@ fi
 
 
 CFLAGS="-I$prefix/include/$host/ $CFLAGS"
+PKG_CFLAGS="-I$prefix/include/$host/ $PKG_CFLAGS"
 
 cat >>confdefs.h <<_ACEOF
 #define KNO_VERSION "$KNO_VERSION"
@@ -6880,6 +6884,7 @@ case $host_os in
    mmshared_suffix=${KNO_MAJOR}.${KNO_MINOR}.dylib
    APXS="apxs -Wc,'-arch x86_64' -Wl,'-arch x86_64'  -a $APXSFLAGS"
    CFLAGS="-D_DARWIN_C_SOURCE $CFLAGS"
+   PKG_CFLAGS="-D_DARWIN_C_SOURCE $PKG_CFLAGS"
    RPATHFLAGS=" -rpath \$(RPATH) "
    STATICLDFLAGS=" -lc++"
    ifmacosx=""
