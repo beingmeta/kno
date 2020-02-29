@@ -398,7 +398,7 @@ KNO_EXPORT ssize_t kno_compress_xtype
   case KNO_ZLIB: case KNO_ZLIB9:
     kno_write_byte(out,xt_zlib); break;
   case KNO_ZSTD: case KNO_ZSTD9: case KNO_ZSTD19:
-    kno_write_byte(out,xt_zlib); break;
+    kno_write_byte(out,xt_zstd); break;
   default:
     u8_free(compressed_data);
     return kno_err("BadCompressTypeCode","kno_compress_xtype",NULL,KNO_VOID);
