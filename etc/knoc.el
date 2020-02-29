@@ -19,6 +19,7 @@
 
 (let ((st scheme-mode-syntax-table))
   (modify-syntax-entry ?\[ "(]" scheme-mode-syntax-table)
+  (modify-syntax-entry ?| "\"" scheme-mode-syntax-table)
   (modify-syntax-entry ?\] ")[" scheme-mode-syntax-table)
   (modify-syntax-entry ?{ "(}" scheme-mode-syntax-table)
   (modify-syntax-entry ?} "){" scheme-mode-syntax-table)
@@ -323,6 +324,10 @@
 	name))))
 (defun knoc-process () (scheme-proc))
 
+(defun knoc-send-string (string)
+  (let ((process (knoc-process)))
+    (comint-send-string process "\n")))
+
 (defun knoc-send-region (start end)
   (let ((module (knoc-get-module-name))
 	(process (knoc-process)))
@@ -369,6 +374,19 @@
 		 (split-command-line (substring string pos
 						(length string)))))))))
 
+(defun knoc-get-old-input ()
+  "Snarf the sexp ending at point."
+  (save-excursion
+    (let ((end (point)))
+      (backward-sexp)
+      (let ((s (buffer-substring (point) end)))
+	(if (string-match-p comint-prompt-regexp s) "" s)))))
+
+(defun reset-comint-input ()
+  (interactive)
+  (comint-set-process-mark)
+  (knoc-send-string "\"Reset\"\n"))
+
 (defvar comint-prompt-read-only nil)
 (defvar comint-output-read-only nil)
 
@@ -393,6 +411,11 @@
 (defvar knoc-mode-hooks '())
 
 (autoload 'comint-check-proc "comint")
+
+(setq commands-log '())
+
+(defun record-knoc-input (cmd)
+  (setq commands-log (cons cmd commands-log)))
 
 (defun knoc (cmd)
   "Run an inferior KNO scheme process, input and output via buffer *knoc*.
@@ -428,7 +451,8 @@ run). \(Type \\[describe-mode] in the process buffer for a list of commands.)"
     (setq scheme-buffer bufname)
     (setq knoc-cmdline cmd)
     (pop-to-buffer bufname)
-    (setq comint-prompt-regexp "^#|[^>]+>|")
+    (setq comint-prompt-regexp "^#|[^>]+>|#")
+    (setq comint-get-old-input #'knoc-get-old-input)
     (run-hooks 'knoc-mode-hooks)
     ;; (message "Sending '%s'" knoc-startup)
     (when knoc-startup
