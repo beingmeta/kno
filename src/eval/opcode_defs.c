@@ -186,6 +186,8 @@ lispval op_eval_expr(struct KNO_STACK *eval_stack,
     int i = 0; while (i<gc_args) {
       lispval arg = free_args[i++];
       kno_decref(arg);}}
+  if ( (!(tail)) && (KNO_TAILCALLP(result)) )
+    return kno_finish_call(result);
   return result;
 }
       
