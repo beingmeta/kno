@@ -523,7 +523,8 @@ slot of the loop state.
 	(lognotice |Engine| 
 	  "Processing " ($count n-items) " " count-term " "
 	  (when (and batchsize (> batchsize 1))
-	    (printout "in " ($count (length batches)) " batches "))
+	    (printout "in " ($count (length batches)) " batches "
+	      "of <" batchsize " " count-term " "))
 	  "using " (or rthreads "no") " threads with "
 	  (if (procedure-name fcn)
 	      (printout (procedure-name fcn)
