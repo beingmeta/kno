@@ -356,7 +356,7 @@
 
 (define (usedb-config var (val))
   (if (bound? val)
-      (db/ref val)
+      (knodb/ref val)
       (|| {(config 'pools) (config 'indexes)})))
 
 (config-def! 'usedb usedb-config)
