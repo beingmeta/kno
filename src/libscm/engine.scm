@@ -516,7 +516,8 @@ slot of the loop state.
 
     (when (and (exists? logfns) logfns)
       (do-choices (logfn (difference logfns #t))
-	(unless (and (applicable? logfn) (overlaps? (procedure-arity logfn) {1 3 6}))
+	(unless (and (applicable? logfn) 
+		     (overlaps? (procedure-arity logfn) {1 3 6}))
 	  (irritant logfn |ENGINE/InvalidLogfn| engine/run))))
 
     (if (vector? batches)
@@ -524,7 +525,7 @@ slot of the loop state.
 	  "Processing " ($count n-items) " " count-term " "
 	  (when (and batchsize (> batchsize 1))
 	    (printout "in " ($count (length batches)) " batches "
-	      "of <" batchsize " " count-term " "))
+	      "of up to " batchsize " " count-term " "))
 	  "using " (or rthreads "no") " threads with "
 	  (if (procedure-name fcn)
 	      (printout (procedure-name fcn)
@@ -659,7 +660,8 @@ slot of the loop state.
 	  (printout "(" (show% (fifo/load fifo) (fifo-size fifo) 2)") "))
 	"Processed " ($num (choice-size batch)) " " count-term " in " 
 	(secs->string (elapsed-time (get batch-state 'started)) 1) " or ~"
-	($showrate (/~ (choice-size batch) (elapsed-time (get batch-state 'started))))
+	($showrate (/~ (choice-size batch)
+		       (elapsed-time (get batch-state 'started))))
 	" " count-term "/second for this batch and thread."))
     (debug%watch "ENGINE/LOG" loop-state)
     (lognotice |Engine/Progress|
@@ -677,7 +679,8 @@ slot of the loop state.
 		(printout (if (zero? (remainder i 4)) "\n   " ", ")
 		  ($num count) " " (downcase counter)
 		  (when (overlaps? counter logrates)
-		    (printout " (" ($showrate rate) " " (downcase counter) "/sec)"))))))
+		    (printout " (" ($showrate rate) " " 
+		      (downcase counter) "/sec)"))))))
 	  (do-choices (counter (difference (get loop-state 'counters) 'items) i)
 	    (when (test loop-state counter)
 	      (let* ((count (get loop-state counter))
@@ -685,16 +688,17 @@ slot of the loop state.
 		(printout (if (zero? (remainder i 4)) "\n   " ", ")
 		  ($num count) " " (downcase counter)
 		  (when (overlaps? counter logrates)
-		    (printout " (" ($showrate rate) " " (downcase counter) "/sec)")))))))
+		    (printout " (" ($showrate rate) " "
+		      (downcase counter) "/sec)")))))))
       (cond (loopmax
 	     (let* ((togo (- loopmax count))
 		    (timeleft (/~ togo rate))
 		    (finished (timestamp+ (timestamp) timeleft))
 		    (timetotal (/~ loopmax rate)))
 	       (printout "\nAt " ($showrate rate) " " count-term "/sec, "
-		 "the loop's " ($num loopmax) " " count-term " should be finished in "
-		 "~" (secs->string timeleft 1) " (~"
-		 (get finished 'timestring) 
+		 "the loop's " ($num loopmax) " " count-term
+		 " should be finished in " "~" (secs->string timeleft 1)
+		 " (~" (get finished 'timestring) 
 		 (if (not (equal? (get (timestamp) 'datestring)
 				  (get finished 'datestring))) " ")
 		 (cond ((equal? (get (timestamp) 'datestring)
@@ -721,8 +725,8 @@ slot of the loop state.
 	      (printout (if (zero? (remainder i 3)) "\n   " ", ")
 		($num count) " " (downcase counter)
 		(when (overlaps? counter logrates)
-		  (printout
-		    " (" ($showrate rate) " " (downcase counter) "/sec)"))))))))))
+		  (printout " (" ($showrate rate) " " 
+		    (downcase counter) "/sec)"))))))))))
 
 (define (engine/logrates batch proctime time batch-state loop-state state)
   (let ((elapsed (elapsed-time (get loop-state 'started)))
