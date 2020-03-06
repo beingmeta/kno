@@ -19,7 +19,7 @@ RPATH             = @rpath@
 RPATHFLAGS        = @RPATHFLAGS@
 LDFLAGS           = -L./ -L./lib @LDFLAGS@ @PTHREAD_LIBS@ @GCOV_LDFLAGS@ \
 		    $(XLDFLAGS)
-DYLIB_FLAGS       = -compatibility_version @KNO_MAJOR@.0.0 \
+DYLIB_FLAGS       = -compatibility_version @KNO_MAJOR@.@KNO_MINOR@ \
 		    -current_version @KNO_MAJOR@.@KNO_MINOR@.@KNO_RELEASE@
 EXEFLAGS          = @EXEFLAGS@
 EXELIBS           = @EXELIBS@
