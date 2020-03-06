@@ -867,7 +867,6 @@ infodir
 docdir
 oldincludedir
 includedir
-runstatedir
 localstatedir
 sharedstatedir
 sysconfdir
@@ -919,13 +918,13 @@ with_profiling
 enable_gcov
 with_duma
 with_malloc
-with_crypto
 enable_ipeval
 with_global_ipeval
 with_curl
 with_dns
 enable_largefiles
 enable_largefile
+with_crypto
 enable_htmldump
 enable_prefetching
 with_codename
@@ -1028,7 +1027,6 @@ datadir='${datarootdir}'
 sysconfdir='${prefix}/etc'
 sharedstatedir='${prefix}/com'
 localstatedir='${prefix}/var'
-runstatedir='${localstatedir}/run'
 includedir='${prefix}/include'
 oldincludedir='/usr/include'
 docdir='${datarootdir}/doc/${PACKAGE}'
@@ -1281,15 +1279,6 @@ do
   | -silent | --silent | --silen | --sile | --sil)
     silent=yes ;;
 
-  -runstatedir | --runstatedir | --runstatedi | --runstated \
-  | --runstate | --runstat | --runsta | --runst | --runs \
-  | --run | --ru | --r)
-    ac_prev=runstatedir ;;
-  -runstatedir=* | --runstatedir=* | --runstatedi=* | --runstated=* \
-  | --runstate=* | --runstat=* | --runsta=* | --runst=* | --runs=* \
-  | --run=* | --ru=* | --r=*)
-    runstatedir=$ac_optarg ;;
-
   -sbindir | --sbindir | --sbindi | --sbind | --sbin | --sbi | --sb)
     ac_prev=sbindir ;;
   -sbindir=* | --sbindir=* | --sbindi=* | --sbind=* | --sbin=* \
@@ -1427,7 +1416,7 @@ fi
 for ac_var in	exec_prefix prefix bindir sbindir libexecdir datarootdir \
 		datadir sysconfdir sharedstatedir localstatedir includedir \
 		oldincludedir docdir infodir htmldir dvidir pdfdir psdir \
-		libdir localedir mandir runstatedir
+		libdir localedir mandir
 do
   eval ac_val=\$$ac_var
   # Remove trailing slashes.
@@ -1580,7 +1569,6 @@ Fine tuning of the installation directories:
   --sysconfdir=DIR        read-only single-machine data [PREFIX/etc]
   --sharedstatedir=DIR    modifiable architecture-independent data [PREFIX/com]
   --localstatedir=DIR     modifiable single-machine data [PREFIX/var]
-  --runstatedir=DIR       modifiable per-process data [LOCALSTATEDIR/run]
   --libdir=DIR            object code libraries [EPREFIX/lib]
   --includedir=DIR        C header files [PREFIX/include]
   --oldincludedir=DIR     C header files for non-gcc [/usr/include]
@@ -1661,10 +1649,10 @@ Optional Packages:
 --with/out-profiling compile to generate profile information
 --with-duma Build with Detect Unintended Memory Access
 --with-malloc Use custom malloc: e.g. $WITHMALLOC_OPTS
---with/out-crypto Compile the crypto module
 --with/out-global-ipeval Use global lock and variables for ipeval
 --with/out-curl Use libcurl in webtools
 --with/out-dns Use dns in web
+--with/out-crypto Compile the crypto module
 --with-codename for distribution
 --with-relstatus e.g. stable or testing
 --with-admin-group Install files with admin group and group write permissions
@@ -6876,7 +6864,7 @@ fi
 
 case $host_os in
   darwin*)
-   MKSTATIC="libtool -static "
+#   MKSTATIC="libtool -static "
    dynamic_cflag="-dynamic"
    shared_suffix="dylib"
    vshared_suffix=${KNO_VERSION}.dylib
@@ -7940,215 +7928,6 @@ if test "${VALGRIND}" != "none" && test -z "${custom_malloc}"; then
   LEAKTESTER="KNO_INVALGRIND=yes valgrind --tool=memcheck --leak-check=full --num-callers=24"
 fi
 
-# libu8 configuration
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for u8_raise in -lu8" >&5
-$as_echo_n "checking for u8_raise in -lu8... " >&6; }
-if ${ac_cv_lib_u8_u8_raise+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lu8  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char u8_raise ();
-int
-main ()
-{
-return u8_raise ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_u8_u8_raise=yes
-else
-  ac_cv_lib_u8_u8_raise=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_u8_u8_raise" >&5
-$as_echo "$ac_cv_lib_u8_u8_raise" >&6; }
-if test "x$ac_cv_lib_u8_u8_raise" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBU8 1
-_ACEOF
-
-  LIBS="-lu8 $LIBS"
-
-fi
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for u8_open_xinput in -lu8" >&5
-$as_echo_n "checking for u8_open_xinput in -lu8... " >&6; }
-if ${ac_cv_lib_u8_u8_open_xinput+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lu8  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char u8_open_xinput ();
-int
-main ()
-{
-return u8_open_xinput ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_u8_u8_open_xinput=yes
-else
-  ac_cv_lib_u8_u8_open_xinput=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_u8_u8_open_xinput" >&5
-$as_echo "$ac_cv_lib_u8_u8_open_xinput" >&6; }
-if test "x$ac_cv_lib_u8_u8_open_xinput" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBU8 1
-_ACEOF
-
-  LIBS="-lu8 $LIBS"
-
-fi
-
-if test "$ac_cv_lib_u8_u8_open_xinput" != "yes"; then
-      { $as_echo "$as_me:${as_lineno-$LINENO}: checking for u8_open_xinput in -lu8io" >&5
-$as_echo_n "checking for u8_open_xinput in -lu8io... " >&6; }
-if ${ac_cv_lib_u8io_u8_open_xinput+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lu8io  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char u8_open_xinput ();
-int
-main ()
-{
-return u8_open_xinput ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_u8io_u8_open_xinput=yes
-else
-  ac_cv_lib_u8io_u8_open_xinput=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_u8io_u8_open_xinput" >&5
-$as_echo "$ac_cv_lib_u8io_u8_open_xinput" >&6; }
-if test "x$ac_cv_lib_u8io_u8_open_xinput" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBU8IO 1
-_ACEOF
-
-  LIBS="-lu8io $LIBS"
-
-fi
-
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for u8_init_chardata_c in -lu8data" >&5
-$as_echo_n "checking for u8_init_chardata_c in -lu8data... " >&6; }
-if ${ac_cv_lib_u8data_u8_init_chardata_c+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lu8data  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char u8_init_chardata_c ();
-int
-main ()
-{
-return u8_init_chardata_c ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_u8data_u8_init_chardata_c=yes
-else
-  ac_cv_lib_u8data_u8_init_chardata_c=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_u8data_u8_init_chardata_c" >&5
-$as_echo "$ac_cv_lib_u8data_u8_init_chardata_c" >&6; }
-if test "x$ac_cv_lib_u8data_u8_init_chardata_c" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBU8DATA 1
-_ACEOF
-
-  LIBS="-lu8data $LIBS"
-
-fi
-
-for ac_func in u8_cryptic
-do :
-  ac_fn_c_check_func "$LINENO" "u8_cryptic" "ac_cv_func_u8_cryptic"
-if test "x$ac_cv_func_u8_cryptic" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_U8_CRYPTIC 1
-_ACEOF
- with_crypto_default="yes"
-fi
-done
-
-
-# Check whether --with-crypto was given.
-if test "${with_crypto+set}" = set; then :
-  withval=$with_crypto;
-else
-  with_crypto=$with_crypto_default
-fi
-
-if test $with_crypto = "yes"; then
-  CMODULES="lib/kno/crypto.$shared_suffix ${CMODULES}"
-  INSTALL_CMODULES="install-crypto ${INSTALL_CMODULES}"
-  TEST_CMODULES="crypto ${TEST_CMODULES}"
-fi
-
 # OpenSSL checks
 for ac_func in CRYPTO_set_locking_callback
 do :
@@ -8635,7 +8414,7 @@ else
     We can't simply define LARGE_OFF_T to be 9223372036854775807,
     since some C++ compilers masquerading as C compilers
     incorrectly reject 9223372036854775807.  */
-#define LARGE_OFF_T ((((off_t) 1 << 31) << 31) - 1 + (((off_t) 1 << 31) << 31))
+#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
   int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
 		       && LARGE_OFF_T % 2147483647 == 1)
 		      ? 1 : -1];
@@ -8681,7 +8460,7 @@ else
     We can't simply define LARGE_OFF_T to be 9223372036854775807,
     since some C++ compilers masquerading as C compilers
     incorrectly reject 9223372036854775807.  */
-#define LARGE_OFF_T ((((off_t) 1 << 31) << 31) - 1 + (((off_t) 1 << 31) << 31))
+#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
   int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
 		       && LARGE_OFF_T % 2147483647 == 1)
 		      ? 1 : -1];
@@ -8705,7 +8484,7 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
     We can't simply define LARGE_OFF_T to be 9223372036854775807,
     since some C++ compilers masquerading as C compilers
     incorrectly reject 9223372036854775807.  */
-#define LARGE_OFF_T ((((off_t) 1 << 31) << 31) - 1 + (((off_t) 1 << 31) << 31))
+#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
   int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
 		       && LARGE_OFF_T % 2147483647 == 1)
 		      ? 1 : -1];
@@ -8750,7 +8529,7 @@ else
     We can't simply define LARGE_OFF_T to be 9223372036854775807,
     since some C++ compilers masquerading as C compilers
     incorrectly reject 9223372036854775807.  */
-#define LARGE_OFF_T ((((off_t) 1 << 31) << 31) - 1 + (((off_t) 1 << 31) << 31))
+#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
   int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
 		       && LARGE_OFF_T % 2147483647 == 1)
 		      ? 1 : -1];
@@ -8774,7 +8553,7 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
     We can't simply define LARGE_OFF_T to be 9223372036854775807,
     since some C++ compilers masquerading as C compilers
     incorrectly reject 9223372036854775807.  */
-#define LARGE_OFF_T ((((off_t) 1 << 31) << 31) - 1 + (((off_t) 1 << 31) << 31))
+#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
   int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
 		       && LARGE_OFF_T % 2147483647 == 1)
 		      ? 1 : -1];
@@ -8948,6 +8727,214 @@ _ACEOF
 
 fi
 
+# libu8 configuration
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for u8_raise in -lu8" >&5
+$as_echo_n "checking for u8_raise in -lu8... " >&6; }
+if ${ac_cv_lib_u8_u8_raise+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lu8  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char u8_raise ();
+int
+main ()
+{
+return u8_raise ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_u8_u8_raise=yes
+else
+  ac_cv_lib_u8_u8_raise=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_u8_u8_raise" >&5
+$as_echo "$ac_cv_lib_u8_u8_raise" >&6; }
+if test "x$ac_cv_lib_u8_u8_raise" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBU8 1
+_ACEOF
+
+  LIBS="-lu8 $LIBS"
+
+fi
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for u8_open_xinput in -lu8" >&5
+$as_echo_n "checking for u8_open_xinput in -lu8... " >&6; }
+if ${ac_cv_lib_u8_u8_open_xinput+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lu8  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char u8_open_xinput ();
+int
+main ()
+{
+return u8_open_xinput ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_u8_u8_open_xinput=yes
+else
+  ac_cv_lib_u8_u8_open_xinput=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_u8_u8_open_xinput" >&5
+$as_echo "$ac_cv_lib_u8_u8_open_xinput" >&6; }
+if test "x$ac_cv_lib_u8_u8_open_xinput" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBU8 1
+_ACEOF
+
+  LIBS="-lu8 $LIBS"
+
+fi
+
+if test "$ac_cv_lib_u8_u8_open_xinput" != "yes"; then
+      { $as_echo "$as_me:${as_lineno-$LINENO}: checking for u8_open_xinput in -lu8io" >&5
+$as_echo_n "checking for u8_open_xinput in -lu8io... " >&6; }
+if ${ac_cv_lib_u8io_u8_open_xinput+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lu8io  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char u8_open_xinput ();
+int
+main ()
+{
+return u8_open_xinput ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_u8io_u8_open_xinput=yes
+else
+  ac_cv_lib_u8io_u8_open_xinput=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_u8io_u8_open_xinput" >&5
+$as_echo "$ac_cv_lib_u8io_u8_open_xinput" >&6; }
+if test "x$ac_cv_lib_u8io_u8_open_xinput" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBU8IO 1
+_ACEOF
+
+  LIBS="-lu8io $LIBS"
+
+fi
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for u8_init_chardata_c in -lu8data" >&5
+$as_echo_n "checking for u8_init_chardata_c in -lu8data... " >&6; }
+if ${ac_cv_lib_u8data_u8_init_chardata_c+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lu8data  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char u8_init_chardata_c ();
+int
+main ()
+{
+return u8_init_chardata_c ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_u8data_u8_init_chardata_c=yes
+else
+  ac_cv_lib_u8data_u8_init_chardata_c=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_u8data_u8_init_chardata_c" >&5
+$as_echo "$ac_cv_lib_u8data_u8_init_chardata_c" >&6; }
+if test "x$ac_cv_lib_u8data_u8_init_chardata_c" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBU8DATA 1
+_ACEOF
+
+  LIBS="-lu8data $LIBS"
+
+fi
+
+for ac_func in u8_cryptic
+do :
+  ac_fn_c_check_func "$LINENO" "u8_cryptic" "ac_cv_func_u8_cryptic"
+if test "x$ac_cv_func_u8_cryptic" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_U8_CRYPTIC 1
+_ACEOF
+ with_crypto_default="yes"
+fi
+done
+
+
+# Check whether --with-crypto was given.
+if test "${with_crypto+set}" = set; then :
+  withval=$with_crypto;
+else
+  with_crypto=$with_crypto_default
+fi
+
+if test $with_crypto = "yes"; then
+  CMODULES="lib/kno/crypto.$shared_suffix ${CMODULES}"
+  INSTALL_CMODULES="install-crypto ${INSTALL_CMODULES}"
+  TEST_CMODULES="crypto ${TEST_CMODULES}"
+fi
 
 # Check whether --enable-htmldump was given.
 if test "${enable_htmldump+set}" = set; then :

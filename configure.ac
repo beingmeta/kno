@@ -587,7 +587,7 @@ AC_CHECK_TYPES(uchar)
 
 case $host_os in
   darwin*)
-   MKSTATIC="libtool -static "
+#   MKSTATIC="libtool -static "
    dynamic_cflag="-dynamic"
    shared_suffix="dylib"
    vshared_suffix=${KNO_VERSION}.dylib
@@ -869,23 +869,6 @@ if test "${VALGRIND}" != "none" && test -z "${custom_malloc}"; then
   LEAKTESTER="KNO_INVALGRIND=yes valgrind --tool=memcheck --leak-check=full --num-callers=24"
 fi
 
-# libu8 configuration
-
-AC_CHECK_LIB(u8,u8_raise)
-AC_CHECK_LIB(u8,u8_open_xinput)
-if test "$ac_cv_lib_u8_u8_open_xinput" != "yes"; then
-      AC_CHECK_LIB(u8io,u8_open_xinput)
-fi
-AC_CHECK_LIB(u8data,u8_init_chardata_c)
-dnl Check for cryptic in in libu8
-AC_CHECK_FUNCS(u8_cryptic,with_crypto_default="yes")
-AC_ARG_WITH(crypto,--with/out-crypto Compile the crypto module,,with_crypto=$with_crypto_default)
-if test $with_crypto = "yes"; then
-  CMODULES="lib/kno/crypto.$shared_suffix ${CMODULES}"
-  INSTALL_CMODULES="install-crypto ${INSTALL_CMODULES}"
-  TEST_CMODULES="crypto ${TEST_CMODULES}"
-fi
-
 # OpenSSL checks
 AC_CHECK_FUNCS(CRYPTO_set_locking_callback)
 
@@ -982,6 +965,22 @@ else
 
 fi
 
+# libu8 configuration
+
+AC_CHECK_LIB(u8,u8_raise)
+AC_CHECK_LIB(u8,u8_open_xinput)
+if test "$ac_cv_lib_u8_u8_open_xinput" != "yes"; then
+      AC_CHECK_LIB(u8io,u8_open_xinput)
+fi
+AC_CHECK_LIB(u8data,u8_init_chardata_c)
+dnl Check for cryptic in in libu8
+AC_CHECK_FUNCS(u8_cryptic,with_crypto_default="yes")
+AC_ARG_WITH(crypto,--with/out-crypto Compile the crypto module,,with_crypto=$with_crypto_default)
+if test $with_crypto = "yes"; then
+  CMODULES="lib/kno/crypto.$shared_suffix ${CMODULES}"
+  INSTALL_CMODULES="install-crypto ${INSTALL_CMODULES}"
+  TEST_CMODULES="crypto ${TEST_CMODULES}"
+fi
 
 dnl This integrates the webtools module into executables by default; otherwise
 dnl  it is built and installed as a plugin library
