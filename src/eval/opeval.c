@@ -112,27 +112,38 @@ static lispval op_get_headval(lispval head,kno_lexenv env,kno_stack eval_stack,
 			      int *gc_headval)
 {
   lispval headval = VOID;
-  if (KNO_IMMEDIATEP(head)) {
-    kno_lisp_type head_type = KNO_IMMEDIATE_TYPE(head);
-    switch (head_type)
-    case kno_lexref_type: {
-      headval=kno_lexref(head,env);
-      if ( (KNO_CONSP(headval)) && (KNO_MALLOCD_CONSP(headval)) )
-	*gc_headval=1;
-      return headval;}
-  case kno_symbol_type:
-    if (head == quote_symbol)
-      return KNO_QUOTE_OPCODE;
-    else {
-      headval=kno_symeval(head,env);
-      if (KNO_CONSP(headval)) *gc_headval=1;
-      return headval;}
-  default:
-    return kno_err("NotEvalable","op_pair_eval",NULL,head);}
-  else if ( (KNO_PAIRP(head)) || (CHOICEP(head)) ) {
-    headval=op_eval(head,env,eval_stack);
-    headval=simplify_value(headval);
-    if (MALLOCD_CONSP(headval)) *gc_headval=1;
-    return headval;}
-  else return kno_err("NotEvalable","op_pair_eval",NULL,head);
+  if (KNO_CONSP(head)) {
+    kno_lisp_type ctype = KNO_CONSTPR_TYPE(head);
+    switch (ctype) {
+    case kno_pair_type: case kno_choice_type: {
+      headval=op_eval(head,env,eval_stack);
+      headval=simplify_value(headval);
+      break;}
+    case kno_cprim_type: case kno_lambda_type:
+    case kno_ffi_type: case kno_rpcproc_type:
+    case kno_evalfn_type: case kno_macro_type:
+      return head;
+    default:
+      if (KNO_APPLICABLEP(head))
+	return head;
+      else return kno_err("InvalidOP","op_get_headval",NULL,head);}}
+  else if (KNO_LEXREFP(head))
+    headval = kno_lexref(head,env);
+  else if (KNO_SYMBOLP(head)) {
+    if (head == quote_symbol) return KNO_QUOTE_OPCODE;
+    else headval=kno_symeval(head,env);}
+  else if (KNO_OPCODEP(head))
+    headval=head;
+  else return kno_err("InvalidOP","op_get_headval",NULL,head);
+  if (KNO_FCNIDP(headval))
+    return kno_fcnid_ref(headval);
+  else if (KNO_CONSP(headval)) {
+    kno_lisp_type ctype = KNO_CONSTPR_TYPE(head);
+    if ( (KNO_APPLICABLE_TYPEP(ctype)) ||
+	 (ctype == kno_evalfn_type) ||
+	 (ctype == kno_macro_type) )
+      return headval;
+    else return kno_err("InvalidOPVal","op_get_headval",NULL,headval);}
+  else return kno_err("InvalidOPVal","op_get_headval",NULL,headval);
 }
+

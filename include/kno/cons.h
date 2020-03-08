@@ -1093,15 +1093,15 @@ U8_MAYBE_UNUSED static int _kno_applicablep(lispval x)
     return ( (objtype == kno_cprim_type) ||
 	     (objtype == kno_lambda_type) ||
 	     (kno_applyfns[objtype] != NULL) );}
-  else if (KNO_IMMEDIATEP(x)) {
-    kno_lisp_type xtype = KNO_IMMEDIATE_TYPE(x);
-    if (xtype == kno_fcnid_type) {
+  else if (KNO_IMMEDIATE_TYPEP(x,kno_fcnid_type)) {
       lispval fcn = kno_fcnid_ref(x);
       kno_lisp_type objtype = KNO_TYPEOF(fcn);
       return ( (objtype == kno_cprim_type) ||
 	       (objtype == kno_lambda_type) ||
 	       (kno_applyfns[objtype] != NULL) );}
-    else return (kno_applyfns[xtype] != NULL);}
+  else if (KNO_IMMEDIATEP(x)) {
+    kno_lisp_type itype = KNO_IMMEDIATE_TYPE(x);
+    return (kno_applyfns[itype] != NULL);}
   else return 0;
 }
 
@@ -1126,8 +1126,7 @@ U8_MAYBE_UNUSED static int _kno_extended_typep(lispval x,int typecode)
     (_kno_extended_typep((x),(typecode))) :				\
     ( (typecode) >= 0x84) ?						\
     ( (KNO_CONSP(x)) && (KNO_CONSPTR_TYPE(x) == typecode) ) :		\
-    ( (typecode) >= 0x04) ?						\
-    ( (KNO_IMMEDIATEP(x)) && (KNO_IMM_TYPE(x) == typecode ) ) :		\
+    ( (typecode) >= 0x04) ? (KNO_IMMEDIATE_TYPEPP(x,typecode)) :	\
     ( (typecode) >= 0x00) ? ( ( (x) & (0x3) ) == typecode) : (1) )
 
 /* The zero-pool */

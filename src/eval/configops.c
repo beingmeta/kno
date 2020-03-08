@@ -34,6 +34,8 @@
 u8_condition LoadConfig=_("Loading config");
 u8_condition UnconfiguredSource;
 
+static lispval simple_symbol = KNO_NULL;
+
 static u8_string get_config_path(u8_string spec)
 {
   if (*spec == '/')
@@ -228,8 +230,8 @@ static int lconfig_set(lispval var,lispval val,void *data)
 
 static int reuse_lconfig(struct KNO_CONFIG_HANDLER *e);
 
-DEFPRIM3("config-def!",config_def,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 "`(CONFIG/DEF! *config_name* *handler* [*doc*])` "
+DEFPRIM4("config-def!",config_def,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
+	 "`(CONFIG/DEF! *config_name* *handler* [*doc*] [*opts*])` "
 	 "Defines the procedure *handler* as the config "
 	 "handler for the *config_name* configuration "
 	 "setting, with *doc* if it's provided. *handler* "
@@ -238,11 +240,16 @@ DEFPRIM3("config-def!",config_def,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
 	 "provided, the configuration setting is being set; "
 	 "otherwise, it is just being requested.",
 	 kno_symbol_type,KNO_VOID,kno_any_type,KNO_VOID,
-	 kno_string_type,KNO_VOID);
-static lispval config_def(lispval var,lispval handler,lispval docstring)
+	 kno_string_type,KNO_VOID,kno_any_type,KNO_VOID);
+static lispval config_def(lispval var,lispval handler,lispval docstring,
+			  lispval opts)
 {
-  int retval;
+  int retval, flags = 0;
   kno_incref(handler);
+  if ( (KNO_TRUEP(opts)) ||
+       ( (KNO_TABLEP(opts)) &&
+	 (kno_testopt(opts,KNOSYM(simple),KNO_VOID)) ) )
+    flags = flags | KNO_CONFIG_SINGLE_VALUE;
   retval = kno_register_config_x
     (SYM_NAME(var),
      ((STRINGP(docstring)) ? (CSTRING(docstring)) : (NULL)),
@@ -503,7 +510,7 @@ static void link_local_cprims()
   KNO_LINK_PRIM("read-config",lisp_read_config,1,scheme_module);
   KNO_LINK_PRIM("load-default-config",lisp_load_default_config,1,scheme_module);
   KNO_LINK_PRIM("load-config",lisp_load_config,1,scheme_module);
-  KNO_LINK_PRIM("config-def!",config_def,3,scheme_module);
+  KNO_LINK_PRIM("config-def!",config_def,4,scheme_module);
   KNO_LINK_PRIM("find-configs",find_configs,2,scheme_module);
   KNO_LINK_PRIM("config-default!",set_default_config,2,scheme_module);
   KNO_LINK_VARARGS("config!",set_config,scheme_module);

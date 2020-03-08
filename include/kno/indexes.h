@@ -296,7 +296,7 @@ KNO_FASTOP U8_MAYBE_UNUSED kno_index kno_ref2index(lispval x)
 }
 KNO_FASTOP U8_MAYBE_UNUSED kno_index kno_indexptr(lispval x)
 {
-  if (KNO_IMMEDIATEP(x)) {
+  if (KNO_IMMEDIATE_TYPEP(x,kno_index_type)) {
     int serial = KNO_GET_IMMEDIATE(x,kno_index_type);
     if (serial<0) return NULL;
     else if (serial<KNO_N_PRIMARY_INDEXES)
@@ -304,7 +304,7 @@ KNO_FASTOP U8_MAYBE_UNUSED kno_index kno_indexptr(lispval x)
     else if (serial<(KNO_N_PRIMARY_INDEXES+kno_n_secondary_indexes))
       return _kno_ref2index(x);
     else return NULL;}
-  else if ((KNO_CONSP(x))&&(KNO_TYPEP(x,kno_consed_index_type)))
+  else if ( (KNO_CONSP(x)) && (KNO_TYPEP(x,kno_consed_index_type)) )
     return (kno_index)x;
   else return (kno_index)NULL;
 }

@@ -99,27 +99,8 @@ static unsigned int hash_pair_dtype1(lispval string);
 */
 KNO_FASTOP unsigned int hash_lisp1(lispval x)
 {
-  if (KNO_IMMEDIATEP(x))
-    if ((NILP(x)) || (FALSEP(x))) return 37;
-    else if (KNO_TRUEP(x)) return 17;
-    else if (EMPTYP(x)) return 13;
-    else if (SYMBOLP(x))
-      return hash_symbol_dtype1(x);
-    else return 19;
-  else if (FIXNUMP(x))
+  if (FIXNUMP(x))
     return (FIX2INT(x))%(MAGIC_MODULUS);
-  else if (STRINGP(x)) {
-    const u8_byte *scan = CSTRING(x), *lim = scan+STRLEN(x);
-    while (scan<lim)
-      if (*scan>=0x80) return hash_unicode_string_dtype1(x);
-      else scan++;
-    return hash_string_dtype1(x);}
-  else if (PACKETP(x))
-    return hash_packet(x);
-  else if (PAIRP(x))
-    return hash_pair_dtype1(x);
-  else if (SYMBOLP(x))
-    return hash_symbol_dtype1(x);
   else if (OIDP(x)) {
     KNO_OID id = KNO_OID_ADDR(x);
 #if KNO_STRUCT_OIDS
@@ -131,46 +112,70 @@ KNO_FASTOP unsigned int hash_lisp1(lispval x)
     return id%(MAGIC_MODULUS);
 #endif
       }
-  else if (CHOICEP(x)) {
-    unsigned int sum = 0;
-    DO_CHOICES(elt,x)
-      sum = ((sum+hash_lisp1(elt))%MAGIC_MODULUS);
-    return sum;}
-  else if (QCHOICEP(x)) {
-    struct KNO_QCHOICE *qc = KNO_XQCHOICE(x);
-    return hash_lisp1(qc->qchoiceval);}
-  else if (KNO_CHARACTERP(x)) return (KNO_CHARCODE(x))%(MAGIC_MODULUS);
-  else if (KNO_FLONUMP(x)) {
-    unsigned int as_int;
-    float *f = (float *)(&as_int);
-    *f = KNO_FLONUM(x);
-    return (as_int)%(MAGIC_MODULUS);}
-  else if (VECTORP(x)) {
-    int size = VEC_LEN(x); unsigned int i = 0, sum = 0;
-    while (i < size) {
-      sum = (((sum<<4)+(hash_lisp1(VEC_REF(x,i))))%MAGIC_MODULUS);
-      i++;}
-    return sum;}
-  else if (SLOTMAPP(x)) {
-    unsigned int sum = 0;
-    struct KNO_SLOTMAP *sm = KNO_XSLOTMAP(x);
-    const struct KNO_KEYVAL *scan = sm->sm_keyvals;
-    const struct KNO_KEYVAL *limit = scan+KNO_XSLOTMAP_NUSED(sm);
-    while (scan<limit) {
-      sum = (sum+hash_lisp1(scan->kv_key))%MAGIC_MODULUS;
-      sum = (sum+(kno_flip_word(hash_lisp1(scan->kv_val))%MAGIC_MODULUS))%MAGIC_MODULUS;
-      scan++;}
-    return sum;}
-  else if (TYPEP(x,kno_rational_type)) {
-    struct KNO_PAIR *p = KNO_CONSPTR(kno_pair,x);
-    unsigned int sum = hash_lisp1(p->car)%MAGIC_MODULUS;
-    sum = (sum<<4)+hash_lisp1(p->cdr)%MAGIC_MODULUS;
-    return sum%MAGIC_MODULUS;}
-  else if (TYPEP(x,kno_complex_type)) {
-    struct KNO_PAIR *p = KNO_CONSPTR(kno_pair,x);
-    unsigned int sum = hash_lisp1(p->car)%MAGIC_MODULUS;
-    sum = (sum<<4)+hash_lisp1(p->cdr)%MAGIC_MODULUS;
-    return sum%MAGIC_MODULUS;}
+  else if (CONSP(x)) {
+    kno_lisp_type constype = KNO_XCONS_TYPE(x);
+    switch (constype) {
+    case kno_string_type: {
+      const u8_byte *scan = CSTRING(x), *lim = scan+STRLEN(x);
+      while (scan<lim)
+	if (*scan>=0x80) return hash_unicode_string_dtype1(x);
+	else scan++;
+      return hash_string_dtype1(x);}
+    case kno_packet_type:
+      return hash_packet(x);
+    case kno_pair_type:
+      return hash_pair_dtype1(x);
+    case kno_choice_type: {
+	unsigned int sum = 0;
+	DO_CHOICES(elt,x)
+	  sum = ((sum+hash_lisp1(elt))%MAGIC_MODULUS);
+	return sum;}
+    case kno_qchoice_type: {
+      struct KNO_QCHOICE *qc = KNO_XQCHOICE(x);
+      return hash_lisp1(qc->qchoiceval);}
+    case kno_flonum_type: {
+      unsigned int as_int;
+      float *f = (float *)(&as_int);
+      *f = KNO_FLONUM(x);
+      return (as_int)%(MAGIC_MODULUS);}
+    case kno_vector_type: {
+      int size = VEC_LEN(x); unsigned int i = 0, sum = 0;
+      while (i < size) {
+	sum = (((sum<<4)+(hash_lisp1(VEC_REF(x,i))))%MAGIC_MODULUS);
+	i++;}
+      return sum;}
+    case kno_slotmap_type: {
+      unsigned int sum = 0;
+      struct KNO_SLOTMAP *sm = KNO_XSLOTMAP(x);
+      const struct KNO_KEYVAL *scan = sm->sm_keyvals;
+      const struct KNO_KEYVAL *limit = scan+KNO_XSLOTMAP_NUSED(sm);
+      while (scan<limit) {
+	sum = (sum+hash_lisp1(scan->kv_key))%MAGIC_MODULUS;
+	sum = (sum+(kno_flip_word(hash_lisp1(scan->kv_val))%MAGIC_MODULUS))%MAGIC_MODULUS;
+	scan++;}
+      return sum;}
+    case kno_rational_type: {
+      struct KNO_PAIR *p = KNO_CONSPTR(kno_pair,x);
+      unsigned int sum = hash_lisp1(p->car)%MAGIC_MODULUS;
+      sum = (sum<<4)+hash_lisp1(p->cdr)%MAGIC_MODULUS;
+      return sum%MAGIC_MODULUS;}
+    case kno_complex_type: {
+      struct KNO_PAIR *p = KNO_CONSPTR(kno_pair,x);
+      unsigned int sum = hash_lisp1(p->car)%MAGIC_MODULUS;
+      sum = (sum<<4)+hash_lisp1(p->cdr)%MAGIC_MODULUS;
+      return sum%MAGIC_MODULUS;}
+    default:
+      return 17;}}
+  else if (SYMBOLP(x))
+    return hash_symbol_dtype1(x);
+
+  else if (SYMBOLP(x))
+    return hash_symbol_dtype1(x);
+  else if (KNO_CHARACTERP(x))
+    return (KNO_CHARCODE(x))%(MAGIC_MODULUS);
+  else if ((NILP(x)) || (FALSEP(x))) return 37;
+  else if (KNO_TRUEP(x)) return 17;
+  else if (EMPTYP(x)) return 13;
   else return 17;
 }
 
@@ -266,16 +271,7 @@ KNO_FASTOP unsigned int hash_string_lisp2(lispval x)
 
 KNO_FASTOP unsigned int hash_lisp2(lispval x)
 {
-  if (KNO_IMMEDIATEP(x)) {
-    if ((NILP(x)) || (FALSEP(x))) return 37;
-    else if (KNO_TRUEP(x)) return 17;
-    else if (EMPTYP(x)) return 13;
-    else if (SYMBOLP(x))
-      return hash_symbol_lisp2(x);
-    else if (KNO_CHARACTERP(x))
-      return (KNO_CHARCODE(x))%(MAGIC_MODULUS);
-    else return 19;}
-  else if (FIXNUMP(x))
+  if (FIXNUMP(x))
     return (FIX2INT(x))%(MAGIC_MODULUS);
   else if (OIDP(x)) {
     KNO_OID id = KNO_OID_ADDR(x);
@@ -288,8 +284,8 @@ KNO_FASTOP unsigned int hash_lisp2(lispval x)
     return id%(MAGIC_MODULUS);
 #endif
   }
-  else { /*  if (CONSP(x)) */
-    int ctype = KNO_TYPEOF(x);
+  else if (CONSP(x)) {
+    int ctype = KNO_XCONS_TYPE(x);
     switch (ctype) {
     case kno_string_type:
       return hash_string_lisp2(x);
@@ -331,6 +327,17 @@ KNO_FASTOP unsigned int hash_lisp2(lispval x)
       if ((ctype<KNO_TYPE_MAX) && (kno_hashfns[ctype]))
         return kno_hashfns[ctype](x,kno_hash_lisp2);
       else return 17;}}
+  else if (SYMBOLP(x))
+    return hash_symbol_lisp2(x);
+  else if (KNO_CHARACTERP(x))
+    return (KNO_CHARCODE(x))%(MAGIC_MODULUS);
+  else if ((NILP(x)) || (FALSEP(x)))
+    return 37;
+  else if (KNO_TRUEP(x))
+    return 17;
+  else if (EMPTYP(x))
+    return 13;
+  else return 19;
 }
 
 /* hash_symbol_lisp2: (static)
@@ -406,16 +413,7 @@ static unsigned int hash_pair_dtype3(lispval x)
 
 KNO_FASTOP unsigned int hash_lisp3(lispval x)
 {
-  if (KNO_IMMEDIATEP(x)) {
-    if ((NILP(x)) || (FALSEP(x))) return 37;
-    else if (KNO_TRUEP(x)) return 17;
-    else if (EMPTYP(x)) return 13;
-    else if (SYMBOLP(x))
-      return hash_symbol_lisp2(x);
-    else if (KNO_CHARACTERP(x))
-      return (KNO_CHARCODE(x))%(MAGIC_MODULUS);
-    else return 19;}
-  else if (FIXNUMP(x))
+  if (FIXNUMP(x))
     return (FIX2INT(x))%(MAGIC_MODULUS);
   else if (OIDP(x)) {
     KNO_OID id = KNO_OID_ADDR(x);
@@ -428,8 +426,8 @@ KNO_FASTOP unsigned int hash_lisp3(lispval x)
     return id%(MYSTERIOUS_MODULUS);
 #endif
   }
-  else { /*  if (CONSP(x)) */
-    int ctype = KNO_TYPEOF(x);
+  else if (CONSP(x)) { /*  if (CONSP(x)) */
+    int ctype = KNO_XCONS_TYPE(x);
     switch (ctype) {
     case kno_string_type:
       return hash_string_lisp2(x);
@@ -471,6 +469,17 @@ KNO_FASTOP unsigned int hash_lisp3(lispval x)
       if ((ctype<KNO_TYPE_MAX) && (kno_hashfns[ctype]))
         return kno_hashfns[ctype](x,kno_hash_lisp3);
       else return 17;}}
+  else if (SYMBOLP(x))
+    return hash_symbol_lisp2(x);
+  else if (KNO_CHARACTERP(x))
+    return (KNO_CHARCODE(x))%(MAGIC_MODULUS);
+  else if ((NILP(x)) || (FALSEP(x)))
+    return 37;
+  else if (KNO_TRUEP(x))
+    return 17;
+  else if (EMPTYP(x))
+    return 13;
+  else return 19;
 }
 
 KNO_EXPORT
