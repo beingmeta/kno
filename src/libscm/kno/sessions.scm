@@ -41,7 +41,7 @@
 	  (else (set! *session* val)
 		(start-session val)))))
 
-(unless *session*
+(unless (or *session* (config 'quick) (config 'session))
   (cond ((file-directory? (abspath ".knoc"))
 	 (config! 'session (abspath ".knoc")))
 	((file-directory? (abspath "_knoc"))
