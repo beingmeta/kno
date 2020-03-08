@@ -389,6 +389,8 @@ KNO_FASTOP U8_MAYBE_UNUSED int _KNO_ISDTYPE(lispval x){ return 1;}
 #define KNO_IMMEDIATE_TYPE(x) ((((LISPVAL(x))>>25)&0x7F)+0x4)
 #define KNO_IMMEDIATE_DATA(x) ((LISPVAL(x))>>2)
 #define KNO_IMM_TYPE(x) ((((LISPVAL(x))>>25)&0x7F)+0x4)
+#define KNO_IMMEDIATE_TYPEP(x,typecode) \
+  ((((x)&(0x7f<<25))|(0x3))==((((typecode)-0x4)<<25)|0x3))
 #define KNO_IMMEDIATE_MAX (1<<24)
 
 KNO_EXPORT kno_lisp_type _KNO_TYPEOF(lispval x);
@@ -706,7 +708,10 @@ KNO_EXPORT lispval _KNO_INT2LISP(long long intval);
 #define KNO_LOCKHOLDER             KNO_CONSTANT(21)
 #define KNO_UNALLOCATED_OID        KNO_CONSTANT(22)
 
-#define KNO_N_BUILTIN_CONSTANTS 23
+#define KNO_TAIL                   KNO_TAIL_LOOP
+
+#define KNO_N_BUILTIN_CONSTANTS   23
+#define KNO_MAX_BUILTIN_CONSTANTS 32
 
 KNO_EXPORT const char *kno_constant_names[];
 KNO_EXPORT int kno_n_constants;
@@ -759,32 +764,27 @@ KNO_EXPORT int _KNO_ERRORP(lispval x);
 #define KNO_ABORTED(x) (KNO_EXPECT_FALSE(KNO_ABORTP(x)))
 #define KNO_INTERRUPTED() (KNO_EXPECT_FALSE(u8_current_exception!=(NULL)))
 
-#define KNO_CONSTANTP(x) \
-  ((KNO_IMMEDIATEP(x)) && ((KNO_IMMEDIATE_TYPE(x)) == kno_constant_type))
+#define KNO_CONSTANTP(x) (KNO_IMMEDIATE_TYPEP(x,kno_constant_type))
 
 #define KNO_NIL (KNO_EMPTY_LIST)
 
 /* Characters */
 
-#define KNO_CHARACTERP(x) \
-  ((KNO_PTR_MANIFEST_TYPE(x) == kno_immediate_type) && \
-   (KNO_IMMEDIATE_TYPE(x) == kno_character_type))
-#define KNO_CODE2CHAR(x) (LISPVAL_IMMEDIATE(kno_character_type,x))
-#define KNO_CHARCODE(x) (KNO_GET_IMMEDIATE(x,kno_character_type))
-#define KNO_CHAR2CODE(x) (KNO_GET_IMMEDIATE(x,kno_character_type))
+#define KNO_CHARACTERP(x) (KNO_IMMEDIATE_TYPEP(x,kno_character_type))
+#define KNO_CODE2CHAR(x)  (LISPVAL_IMMEDIATE(kno_character_type,x))
+#define KNO_CHARCODE(x)   (KNO_GET_IMMEDIATE(x,kno_character_type))
+#define KNO_CHAR2CODE(x)  (KNO_GET_IMMEDIATE(x,kno_character_type))
 
 /* CODEREFS */
 
-#define KNO_CODEREFP(x) \
-  ((KNO_PTR_MANIFEST_TYPE(x) == kno_immediate_ptr_type) && \
-   (KNO_IMMEDIATE_TYPE(x) == kno_coderef_type))
+#define KNO_CODEREFP(x)     (KNO_IMMEDIATE_TYPEP(x,kno_codref_type))
 #define KNO_DECODEREF(cref) (KNO_IMMEDIATE_DATA(cref))
-#define KNO_ENCODEREF(off) (LISPVAL_IMMEDIATE(kno_coderef_type,off))
+#define KNO_ENCODEREF(off)  (LISPVAL_IMMEDIATE(kno_coderef_type,off))
 
 /* Lexrefs */
 
-#define KNO_LEXREFP(x) (KNO_TYPEP(x,kno_lexref_type))
-#define KNO_LEXREF_UP(x) ((KNO_GET_IMMEDIATE((x),kno_lexref_type))/32)
+#define KNO_LEXREFP(x)       (KNO_IMMEDIATE_TYPEP(x,kno_lexref_type))
+#define KNO_LEXREF_UP(x) (   (KNO_GET_IMMEDIATE((x),kno_lexref_type))/32)
 #define KNO_LEXREF_ACROSS(x) ((KNO_GET_IMMEDIATE((x),kno_lexref_type))%32)
 
 /* Opcodes */
@@ -793,9 +793,7 @@ KNO_EXPORT int _KNO_ERRORP(lispval x);
    rather than dyanmically, so that they can be compile time constants
    and dispatch very quickly. */
 
-#define KNO_OPCODEP(x) \
-  ((KNO_PTR_MANIFEST_TYPE(x) == kno_immediate_ptr_type) && \
-   (KNO_IMMEDIATE_TYPE(x) == kno_opcode_type))
+#define KNO_OPCODEP(x) (KNO_IMMEDIATE_TYPEP(x,kno_opcode_type))
 
 #define KNO_OPCODE(num) (LISPVAL_IMMEDIATE(kno_opcode_type,num))
 #define KNO_OPCODE_NUM(op) (KNO_GET_IMMEDIATE(op,kno_opcode_type))
@@ -811,13 +809,10 @@ KNO_EXPORT lispval *kno_symbol_names;
 KNO_EXPORT int kno_n_symbols;
 KNO_EXPORT u8_rwlock kno_symbol_lock;
 
-#define KNO_SYMBOLP(x) \
-  ((KNO_PTR_MANIFEST_TYPE(x) == kno_immediate_ptr_type) && \
-   (KNO_IMMEDIATE_TYPE(x) == kno_symbol_type))
+#define KNO_SYMBOLP(x) (KNO_IMMEDIATE_TYPEP(x,kno_symbol_type))
 
 #define KNO_GOOD_SYMBOLP(x) \
-  ((KNO_PTR_MANIFEST_TYPE(x) == kno_immediate_ptr_type) && \
-   (KNO_IMMEDIATE_TYPE(x) == kno_symbol_type) && \
+  ((KNO_IMMEDIATE_TYPEP(x,kno_symbol_type)) && \
    (KNO_GET_IMMEDIATE(x,kno_symbol_type)<kno_n_symbols))
 
 #define KNO_SYMBOL2ID(x) (KNO_GET_IMMEDIATE(x,kno_symbol_type))
@@ -881,9 +876,7 @@ KNO_EXPORT lispval kno_zlib_xtag, kno_zstd_xtag, kno_snappy_xtag;
    persistent pointers are not subject to GC, so they can
    be passed much more quickly and without thread contention. */
 
-#define KNO_FCNIDP(x) \
-  ((KNO_PTR_MANIFEST_TYPE(x) == kno_immediate_ptr_type) && \
-   (KNO_IMMEDIATE_TYPE(x) == kno_fcnid_type))
+#define KNO_FCNIDP(x) (KNO_IMMEDIATE_TYPEP(x,kno_fcnid_type))
 
 KNO_EXPORT struct KNO_CONS **_kno_fcnids[];
 KNO_EXPORT int _kno_fcnid_count;
@@ -914,7 +907,7 @@ KNO_EXPORT u8_condition kno_InvalidFCNID, kno_FCNIDOverflow;
 #if KNO_INLINE_FCNIDS
 static U8_MAYBE_UNUSED lispval _kno_fcnid_ref(lispval ref)
 {
-  if (KNO_TYPEP(ref,kno_fcnid_type)) {
+  if (KNO_IMMEDIATE_TYPEP(ref,kno_fcnid_type)) {
     int serialno = KNO_GET_IMMEDIATE(ref,kno_fcnid_type);
     if (KNO_EXPECT_FALSE(serialno>_kno_fcnid_count))
       return kno_err(kno_InvalidFCNID,"_kno_fcnid_ref",NULL,ref);
