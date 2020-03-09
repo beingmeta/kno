@@ -533,6 +533,8 @@ all: testbin debug-exe exe cmodules etc i18n @TAGS@
 packaged: exe cmodules etc i18n
 
 fresh: clean
+	make -s debugging
+freshdebug dbgfresh freshbug: clean
 	make -s update
 
 # Handy targets
