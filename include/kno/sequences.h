@@ -49,21 +49,20 @@ KNO_EXPORT int _KNO_SEQUENCEP(lispval x);
 #if KNO_EXTREME_PROFILING
 #define KNO_SEQUENCEP _KNO_SEQUENCEP
 #else
-#define KNO_SEQUENCEP(x)                                           \
-  ( (KNO_CONSP(x)) ?                                               \
-    ( ( (KNO_CONSPTR_TYPE(x) >= kno_string_type) &&                \
-        (KNO_CONSPTR_TYPE(x) <= kno_pair_type) ) ||                \
-      ( (kno_seqfns[KNO_CONSPTR_TYPE(x)] != NULL ) &&                   \
-        ( (kno_seqfns[KNO_CONSPTR_TYPE(x)]->sequencep == NULL ) ||      \
-          (kno_seqfns[KNO_CONSPTR_TYPE(x)]->sequencep(x)) ) ) ) :       \
-    (KNO_IMMEDIATEP(x)) ?                                               \
-    ( (x == KNO_EMPTY_LIST) ||                                          \
-      ( (kno_seqfns[KNO_IMMEDIATE_TYPE(x)] != NULL ) &&                 \
-        ( (kno_seqfns[KNO_IMMEDIATE_TYPE(x)]->sequencep == NULL ) ||    \
-          (kno_seqfns[KNO_IMMEDIATE_TYPE(x)]->sequencep(x)) ) ) ) :     \
+#define KNO_SEQUENCEP(x)						\
+  ( (KNO_CONSP(x)) ?							\
+    ( ( (KNO_CONSPTR_TYPE(x) >= kno_string_type) &&			\
+	(KNO_CONSPTR_TYPE(x) <= kno_pair_type) ) ||			\
+      ( (kno_seqfns[KNO_CONSPTR_TYPE(x)] != NULL ) &&			\
+	( (kno_seqfns[KNO_CONSPTR_TYPE(x)]->sequencep == NULL ) ||	\
+	  (kno_seqfns[KNO_CONSPTR_TYPE(x)]->sequencep(x)) ) ) ) :       \
+    (x == KNO_EMPTY_LIST) ? (1) :					\
+    (KNO_IMMEDIATEP(x)) ?						\
+    ( (kno_seqfns[KNO_IMMEDIATE_TYPE(x)] != NULL ) &&			\
+      ( (kno_seqfns[KNO_IMMEDIATE_TYPE(x)]->sequencep == NULL ) ||	\
+	(kno_seqfns[KNO_IMMEDIATE_TYPE(x)]->sequencep(x)) ) )  :	\
     (0))
 #endif
-/* #define KNO_SEQUENCEP(x) ((KNO_EMPTY_LISTP(x)) || ((kno_seqfns[KNO_TYPEOF(x)])!=NULL)) */
 
 
 lispval *kno_seq_elts(lispval seq,int *len);

@@ -77,7 +77,7 @@ KNO_EXPORT int _KNO_TYPEP(lispval ptr,int type)
       return 1;
     else return 0;
   else if (type >= 0x04)
-    if ( (KNO_IMMEDIATEP(ptr)) && (KNO_IMM_TYPE(ptr) == type ) )
+    if ( (KNO_IMMEDIATE_TYPEP(ptr,type) ) )
       return 1;
     else return 0;
   else return 0;
@@ -116,12 +116,12 @@ KNO_EXPORT int _KNO_SEQUENCEP(lispval x)
                 (kno_seqfns[KNO_CONSPTR_TYPE(x)]->sequencep(x)) ) )
       return 1;
     else return 0;
+  else if (x == KNO_EMPTY_LIST)
+    return 1;
   else if (KNO_IMMEDIATEP(x))
-    if (x == KNO_EMPTY_LIST)
-      return 1;
-    else if ( (kno_seqfns[KNO_IMMEDIATE_TYPE(x)] != NULL ) &&
-              ( (kno_seqfns[KNO_IMMEDIATE_TYPE(x)]->sequencep == NULL ) ||
-                (kno_seqfns[KNO_IMMEDIATE_TYPE(x)]->sequencep(x)) ) )
+    if ( (kno_seqfns[KNO_IMMEDIATE_TYPE(x)] != NULL ) &&
+	 ( (kno_seqfns[KNO_IMMEDIATE_TYPE(x)]->sequencep == NULL ) ||
+	   (kno_seqfns[KNO_IMMEDIATE_TYPE(x)]->sequencep(x)) ) )
       return 1;
     else return 0;
   else return 0;

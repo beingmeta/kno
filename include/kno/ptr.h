@@ -351,13 +351,13 @@ KNO_FASTOP U8_MAYBE_UNUSED int _KNO_ISDTYPE(lispval x){ return 1;}
 #define KNO_CONSPTR_TYPE(x) (KNO_CONS_TYPE((kno_cons)x))
 
 #define KNO_XCONS_TYPE(x) \
-  (( ((x)->conshead) & (KNO_XCONS_TYPE_MASK) )+(KNO_CONS_TYPE_OFF))
+  (( (((kno_cons)(x))->conshead) & (KNO_XCONS_TYPE_MASK) )+(KNO_CONS_TYPE_OFF))
 #define KNO_XCONS_TYPEOF(x) (KNO_XCONS_TYPE((kno_cons)(x)))
 #define KNO_XCONS_TYPEP(x,type) \
   ( (KNO_CONSP(x)) && ( (KNO_XXCONS_TYPE((kno_cons)(x))) == ((type)&0xFe) ) )
 
 #define KNO_XXCONS_TYPE(x) \
-  (( ((x)->conshead) & (KNO_XXCONS_TYPE_MASK) )+(KNO_CONS_TYPE_OFF))
+  (( (((kno_cons)(x))->conshead) & (KNO_XXCONS_TYPE_MASK) )+(KNO_CONS_TYPE_OFF))
 #define KNO_XXCONS_TYPEOF(x) (KNO_XXCONS_TYPE((kno_cons)(x)))
 #define KNO_XXCONS_TYPEP(x,type) \
   ( (KNO_CONSP(x)) && ( (KNO_XXCONS_TYPE((kno_cons)(x))) == ((type)&0xFc) ) )
@@ -390,7 +390,7 @@ KNO_FASTOP U8_MAYBE_UNUSED int _KNO_ISDTYPE(lispval x){ return 1;}
 #define KNO_IMMEDIATE_DATA(x) ((LISPVAL(x))>>2)
 #define KNO_IMM_TYPE(x) ((((LISPVAL(x))>>25)&0x7F)+0x4)
 #define KNO_IMMEDIATE_TYPEP(x,typecode) \
-  ((((x)&(0x7f<<25))|(0x3))==((((typecode)-0x4)<<25)|0x3))
+  (((x)&((0x7f<<25)|(0x3)))==((((typecode)-0x4)<<25)|0x1))
 #define KNO_IMMEDIATE_MAX (1<<24)
 
 KNO_EXPORT kno_lisp_type _KNO_TYPEOF(lispval x);
@@ -411,8 +411,7 @@ KNO_EXPORT int _KNO_TYPEP(lispval ptr,int type);
 #define KNO_TYPEP(ptr,type)                                       \
   ((type >= 0x84) ? \
    ( (KNO_CONSP(ptr)) && (KNO_CONSPTR_TYPE(ptr) == type) ) :		\
-   (type >= 0x04) ? \
-   ( (KNO_IMMEDIATEP(ptr)) && (KNO_IMM_TYPE(ptr) == type ) ) :	\
+   (type >= 0x04) ? (KNO_IMMEDIATE_TYPEP(ptr,type)) : \
    ( ( (ptr) & (0x3) ) == type) )
 #endif
 #define KNO_PRIM_TYPEP(x,tp)   ( KNO_TYPEP(x,tp) )

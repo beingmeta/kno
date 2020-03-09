@@ -652,19 +652,7 @@ lispval kno_stack_eval(lispval expr,kno_lexenv env,
 		       int tail)
 {
   if (_stack==NULL) _stack=kno_stackptr;
-  if (KNO_IMMEDIATEP(expr)) {
-    switch (KNO_TYPEOF(expr)) {
-    case kno_lexref_type:
-      return kno_lexref(expr,env);
-    case kno_symbol_type: {
-      lispval val = kno_symeval(expr,env);
-      if (PRED_FALSE(VOIDP(val)))
-	return kno_err(kno_UnboundIdentifier,"kno_eval",
-		       SYM_NAME(expr),expr);
-      else return simplify_value(val);}
-    default:
-      return expr;}}
-  else if (KNO_CONSP(expr))
+  if (KNO_CONSP(expr)) {
     if (KNO_STATIC_CONSP(expr))
       return op_eval(_stack,expr,env,tail);
     else {
@@ -687,7 +675,15 @@ lispval kno_stack_eval(lispval expr,kno_lexenv env,
 	kno_pop_stack(eval_stack);
 	return result;}
       default:
-	return kno_incref(expr);}}
+	return kno_incref(expr);}}}
+  else if (KNO_LEXREFP(expr))
+    return kno_lexref(expr,env);
+  else if (KNO_SYMBOLP(expr)) {
+    lispval val = kno_symeval(expr,env);
+    if (PRED_FALSE(VOIDP(val)))
+      return kno_err(kno_UnboundIdentifier,"kno_eval",
+		     SYM_NAME(expr),expr);
+    else return simplify_value(val);}
   else return expr;
 }
 
@@ -829,10 +825,7 @@ static lispval get_headval(lispval head,kno_lexenv env,kno_stack eval_stack,
 			   int *gc_headval)
 {
   lispval headval = VOID;
-  if (KNO_IMMEDIATEP(head)) {
-    kno_lisp_type head_type = KNO_IMMEDIATE_TYPE(head);
-    switch (head_type) {
-    case kno_lexref_type: {
+  if (KNO_LEXREFP(head)) {
       headval=kno_lexref(head,env);
       if (KNO_FCNIDP(headval))
 	headval = kno_fcnid_ref(headval);
@@ -840,23 +833,22 @@ static lispval get_headval(lispval head,kno_lexenv env,kno_stack eval_stack,
 	*gc_headval=1;
       else NO_ELSE;
       return headval;}
-    case kno_fcnid_type: {
+  else if (KNO_FCNIDP(head)) {
       headval=kno_fcnid_ref(head);
       *gc_headval=0;
       return headval;}
-    case kno_symbol_type:
-      if (head == quote_symbol)
+  else if (KNO_SYMBOLP(head)) {
+    if (head == quote_symbol)
 	return KNO_QUOTE_OPCODE;
-      else {
-	headval=kno_symeval(head,env);
-	if (KNO_FCNIDP(headval))
-	  headval = kno_fcnid_ref(headval);
-	else if ( (KNO_CONSP(headval)) && (KNO_MALLOCD_CONSP(headval)) )
-	  *gc_headval=1;
-	else NO_ELSE;
-	return headval;}
-    default:
-      return kno_err("NotEvalable","op_pair_eval",NULL,head);}}
+    headval=kno_symeval(head,env);
+    if (KNO_FCNIDP(headval))
+      headval = kno_fcnid_ref(headval);
+    else if ( (KNO_CONSP(headval)) && (KNO_MALLOCD_CONSP(headval)) )
+      *gc_headval=1;
+    else NO_ELSE;
+    return headval;}
+  else if (KNO_IMMEDIATEP(head))
+    return kno_err("NotEvalable","op_pair_eval",NULL,head);
   else if ( (KNO_FUNCTIONP(head)) ||
 	    (TYPEP(head,kno_evalfn_type)) ||
 	    (KNO_APPLICABLEP(head)) )
@@ -879,9 +871,9 @@ KNO_FASTOP lispval arg_eval(lispval x,kno_lexenv env,struct KNO_STACK *stack)
   case kno_oid_ptr_type: case kno_fixnum_ptr_type:
     return x;
   case kno_immediate_ptr_type:
-    if (KNO_TYPEP(x,kno_lexref_type))
+    if (KNO_IMMEDIATE_TYPE(x)==kno_lexref_type)
       return kno_lexref(x,env);
-    else if (KNO_SYMBOLP(x)) {
+    else if (KNO_IMMEDIATE_TYPE(x)==kno_symbol_type) {
       lispval val = kno_symeval(x,env);
       if (PRED_FALSE(KNO_VOIDP(val)))
 	return kno_err(kno_UnboundIdentifier,"kno_eval",KNO_SYMBOL_NAME(x),x);

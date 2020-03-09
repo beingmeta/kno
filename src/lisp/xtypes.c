@@ -255,6 +255,13 @@ static ssize_t write_xtype(kno_outbuf out,lispval x,xtype_refs refs)
     ssize_t code_len = kno_write_varint(out,code);
     if (code_len < 0) return code_len;
     else return 1+code_len;}
+  else if (KNO_FIXNUMP(x)) {
+    ssize_t intval = KNO_FIX2INT(x);
+    if (intval<0) {
+      kno_write_byte(out,xt_negint);
+      return 1+kno_write_varint(out,(-intval));}
+    kno_write_byte(out,xt_posint);
+    return 1+kno_write_varint(out,intval);}
   else if (KNO_IMMEDIATEP(x)) {
     int rv = -1;
     switch (x) {
@@ -295,13 +302,6 @@ static ssize_t write_xtype(kno_outbuf out,lispval x,xtype_refs refs)
 	kno_seterr("XType/BadImmediate","xt_write_dtype",NULL,x);
 	return -1;}}
     return rv;}
-  else if (KNO_FIXNUMP(x)) {
-    ssize_t intval = KNO_FIX2INT(x);
-    if (intval<0) {
-      kno_write_byte(out,xt_negint);
-      return 1+kno_write_varint(out,(-intval));}
-    kno_write_byte(out,xt_posint);
-    return 1+kno_write_varint(out,intval);}
   else NO_ELSE;
   kno_lisp_type ctype = KNO_CONSPTR_TYPE(x);
   switch (ctype) {
