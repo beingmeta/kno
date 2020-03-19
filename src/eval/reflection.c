@@ -271,7 +271,7 @@ static lispval set_procedure_documentation(lispval x,lispval doc)
 {
   lispval proc = (KNO_FCNIDP(x)) ? (kno_fcnid_ref(x)) : (x);
   kno_lisp_type proctype = KNO_TYPEOF(proc);
-  if (kno_function_types[proctype]) {
+  if (kno_isfunctionp[proctype]) {
     struct KNO_FUNCTION *f = KNO_GETFUNCTION(x);
     u8_string to_free = ( (f->fcn_doc) && (KNO_FCN_FREE_DOCP(f)) ) ?
       (f->fcn_doc) : (NULL);
@@ -298,7 +298,7 @@ static lispval procedure_tailablep(lispval x)
 {
   lispval proc = (KNO_FCNIDP(x)) ? (kno_fcnid_ref(x)) : (x);
   kno_lisp_type proctype = KNO_TYPEOF(proc);
-  if (kno_function_types[proctype]) {
+  if (kno_isfunctionp[proctype]) {
     struct KNO_FUNCTION *f = KNO_GETFUNCTION(x);
     if (FCN_NOTAILP(f))
       return KNO_FALSE;
@@ -312,7 +312,7 @@ static lispval set_procedure_tailable(lispval x,lispval bool)
 {
   lispval proc = (KNO_FCNIDP(x)) ? (kno_fcnid_ref(x)) : (x);
   kno_lisp_type proctype = KNO_TYPEOF(proc);
-  if (kno_function_types[proctype]) {
+  if (kno_isfunctionp[proctype]) {
     struct KNO_FUNCTION *f = KNO_GETFUNCTION(x);
     if (KNO_FALSEP(bool))
       f->fcn_call |= KNO_FCN_CALL_NOTAIL;
@@ -443,7 +443,7 @@ static lispval get_proc_attribs(lispval x,int create)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
   kno_lisp_type proctype = KNO_TYPEOF(x);
-  if (kno_function_types[proctype]) {
+  if (kno_isfunctionp[proctype]) {
     struct KNO_FUNCTION *f = KNO_GETFUNCTION(x);
     lispval attribs = f->fcn_attribs;
     if (!(create)) {
@@ -475,7 +475,7 @@ DEFPRIM2("reflect/set-attribs!",set_procedure_attribs,KNO_MAX_ARGS(2)|KNO_MIN_AR
 static lispval set_procedure_attribs(lispval x,lispval value)
 {
   kno_lisp_type proctype = KNO_TYPEOF(x);
-  if (kno_function_types[proctype]) {
+  if (kno_isfunctionp[proctype]) {
     struct KNO_FUNCTION *f = KNO_GETFUNCTION(x);
     lispval table = f->fcn_attribs;
     if (table!=KNO_NULL) kno_decref(table);

@@ -119,7 +119,7 @@ KNO_EXPORT void kno_init_dtproc_c()
 
   kno_type_names[kno_rpcproc_type]=_("dtproc");
   kno_applyfns[kno_rpcproc_type]=(kno_applyfn)dtapply;
-  kno_function_types[kno_rpcproc_type]=1;
+  kno_isfunctionp[kno_rpcproc_type]=1;
 
   kno_unparsers[kno_rpcproc_type]=unparse_dtproc;
   kno_recyclers[kno_rpcproc_type]=recycle_dtproc;

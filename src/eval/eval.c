@@ -775,7 +775,7 @@ lispval pair_eval(lispval head,lispval expr,kno_lexenv env,
 			-1,KNO_CDR(expr),env,eval_stack,0);
     break;}
   default:
-    if (kno_function_types[headtype]) {
+    if (kno_isfunctionp[headtype]) {
       struct KNO_FUNCTION *f = (struct KNO_FUNCTION *) headval;
       result = eval_apply(f->fcn_name,headval,-1,KNO_CDR(expr),env,
 			  eval_stack,tail);}
@@ -1697,7 +1697,7 @@ KNO_EXPORT u8_string kno_get_documentation(lispval x)
       lambda->fcn_doc = out.u8_outbuf;
       lambda->fcn_free |= KNO_FCN_FREE_DOC;
       return u8_strdup(out.u8_outbuf);}}
-  else if (kno_function_types[proctype]) {
+  else if (kno_isfunctionp[proctype]) {
     struct KNO_FUNCTION *f = KNO_GETFUNCTION(proc);
     return u8_strdup(f->fcn_doc);}
   else if (TYPEP(x,kno_evalfn_type)) {

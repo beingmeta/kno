@@ -1074,10 +1074,10 @@ typedef const lispval *kno_argvec;
 
 typedef lispval (*kno_applyfn)(lispval f,int n,kno_argvec);
 KNO_EXPORT kno_applyfn kno_applyfns[];
-
-/* This maps types to whether they have function (KNO_FUNCTION_FIELDS)
-   header. */
-KNO_EXPORT short kno_function_types[];
+/* Whether function application should pass choice arguments directly */
+KNO_EXPORT unsigned char kno_isndfunctionp[];
+/* Whether an applyfn type is a cons with the KNO_FUNCTION_FIELDS header. */
+KNO_EXPORT unsigned char kno_isfunctionp[];
 
 /* Choices, tables, regexes */
 

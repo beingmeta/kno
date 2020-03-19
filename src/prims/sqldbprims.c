@@ -379,7 +379,7 @@ KNO_EXPORT void kno_init_sqldbprims_c()
   kno_recyclers[kno_sqlproc_type]=recycle_sqlproc;
   kno_unparsers[kno_sqlproc_type]=unparse_sqlproc;
   kno_applyfns[kno_sqlproc_type]=(kno_applyfn)callsqlproc;
-  kno_function_types[kno_sqlproc_type]=1;
+  kno_isfunctionp[kno_sqlproc_type]=1;
 
   link_local_cprims();
   kno_register_config("SQLEXEC",

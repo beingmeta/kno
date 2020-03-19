@@ -21,9 +21,6 @@
 
 /* Stack frames */
 
-typedef int (*kno_stack_cleanupfn)(struct KNO_STACK *);
-typedef lispval (*kno_stack_dumpfn)(struct KNO_STACK *);
-
 struct KNO_STACK_HEAD {
   long long stack_threadid;
   unsigned int stack_flags;
@@ -35,11 +32,10 @@ struct KNO_STACK_HEAD {
   int stack_depth, stack_size;				\
   struct KNO_STACK_HEAD *stack_head;			\
   struct KNO_STACK *stack_caller;			\
-  kno_stack_cleanupfn stack_cleanupfn;			\
-  kno_stack_cleanupfn stack_dumpfn;			\
+  int (*stack_cleanupfn)(struct KNO_STACK *);		\
+  lispval (*stack_dumpfn)(struct KNO_STACK *);		\
   unsigned int stack_bits, stack_flags, stack_crumb;	\
   u8_string stack_label, stack_file;			\
-  u8_string stack_status; u8_byte stack_status_buf[32];	\
   lispval stack_refs, *stack_resultp;			\
   lispval stack_op;					\
   kno_argvec stack_args;				\
@@ -50,13 +46,16 @@ typedef struct KNO_STACK {
 } KNO_STACK;
 typedef struct KNO_STACK *kno_stack;
 
-typedef struct KNO_EVAL_STACK {
+typedef int (*kno_stack_cleanupfn)(struct KNO_STACK *);
+typedef lispval (*kno_stack_dumpfn)(struct KNO_STACK *);
+
+typedef struct KNO_SCHEME_STACK {
   KNO_STACK_HEADER;
   /* Eval specific */
   lispval stack_source, stack_expr, stack_point;
   struct KNO_LEXENV *stack_env;
-} KNO_EVAL_STACK;
-typedef struct KNO_EVAL_STACK *kno_eval_stack;
+} KNO_SCHEME_STACK;
+typedef struct KNO_SCHEME_STACK *kno_scheme_stack;
 
 KNO_EXPORT u8_string kno_stack_types[8];
 
@@ -74,33 +73,40 @@ typedef enum KNO_STACK_TYPE
 #define KNO_STACK_TYPE(stack) \
   ((kno_stack_type)((stack->stack_bits)&(KNO_STACK_TYPE_MASK)))
 
-#define KNO_STACK_TAILPOS        0x08
-#define KNO_STACK_NDCALL         0x10
+#define KNO_STACK_TAILPOS        0x0008
+#define KNO_STACK_NDCALL         0x0010
 
-#define KNO_STACK_DECREF_OP      0x100
-#define KNO_STACK_DECREF_ARGS    0x200
-#define KNO_STACK_FREE_ARGS      0x400
+#define KNO_STACK_DECREF_OP      0x0100
+#define KNO_STACK_DECREF_ARGS    0x0200
+#define KNO_STACK_FREE_ARGS      0x0400
 #define KNO_STACK_FREE_LABEL     0x1000
 #define KNO_STACK_FREE_SRC       0x2000
 
-#define KNO_STACK_NEED_CLEANUP						\
+#define KNO_STACK_NEEDS_CLEANUP						\
   (KNO_STACK_DECREF_OP|KNO_STACK_DECREF_ARGS|KNO_STACK_FREE_ARGS|	\
    KNO_STACK_FREE_LABEL|KNO_STACK_FREE_SRC)
 
 /* Stack error flags */
 
-#define KNO_STACK_ERR_DEBUG      0x01   /* Return stack info */
-#define KNO_STACK_ERR_DUMP       0x02   /* Dump stack info when critical */
-#define KNO_STACK_ERR_CATCH      0x04   /* Errors *might* be caught */
-#define KNO_STACK_ERR_CATCHALL   0x08   /* Errors **will** be caught */
-#define KNO_STACK_ERR_RUSAGE     0x10   /* Include rusage in errpoint */
-#define KNO_STACK_ERR_REQDATA    0x20   /* Include reqdata in errpoint */
-#define KNO_STACK_ERR_THREAD     0x40   /* Include thread bindings in errpoint */
-#define KNO_STACK_ERR_FULLSTACK  0x80   /* Dump entire stack (including environments) */
-#define KNO_STACK_ERR_CALLSTACK  0x100  /* Dump only calls and EXPRS */
+#define KNO_STACK_ERR_DEBUG      0x0001   /* Return stack info */
+#define KNO_STACK_ERR_DUMP       0x0002   /* Dump stack info when critical */
+#define KNO_STACK_ERR_CATCH      0x0004   /* Errors *might* be caught */
+#define KNO_STACK_ERR_CATCHALL   0x0008   /* Errors **will** be caught */
+#define KNO_STACK_ERR_RUSAGE     0x0010   /* Include rusage in errpoint */
+#define KNO_STACK_ERR_REQDATA    0x0020   /* Include reqdata in errpoint */
+#define KNO_STACK_ERR_THREAD     0x0040   /* Include thread bindings in errpoint */
+#define KNO_STACK_ERR_FULLSTACK  0x0080   /* Dump entire stack (including environments) */
+#define KNO_STACK_ERR_CALLSTACK  0x0100  /* Dump only calls and EXPRS */
+
+#define KNO_STACK_NO_PROFILING   0x010000  /* Don't check for profiling */
+#define KNO_STACK_NO_CONTOURS    0x020000  /* Don't have apply maintain error handling contours */
+/* Not currently used */
+#define KNO_STACK_NO_PUSHING     0x040000  /* Don't use the stack at all */
 
 #define KNO_STACK_ERR_DEFAULT    \
   (KNO_STACK_ERR_DEBUG | KNO_STACK_ERR_DUMP | KNO_STACK_ERR_FULLSTACK)
+#define KNO_STACK_CALL_MASK    \
+  (KNO_STACK_NO_PROFILING | KNO_STACK_NO_CONTOURS | KNO_STACK_NO_PUSHING)
 
 #if (U8_USE_TLS)
 KNO_EXPORT u8_tld_key kno_stackptr_key;
@@ -118,12 +124,11 @@ KNO_EXPORT __thread struct KNO_STACK *kno_stackptr;
     ( (u8_stack_direction > 0) ? ( (stack) > (caller) ) :       \
       ( (stack) < (caller) ) ) )
 
-#define KNO_SETUP_STACK(stack,caller,label,bits)	\
-  *(stack) = { 0 };					\
-  (stack)->stack_size   = sizeof(*(stack));		\
-  (stack)->stack_label  = label;			\
-  (stack)->stack_bits   = bits;				\
-  (stack)->stack_refs   = KNO_EMPTY;			\
+#define KNO_SETUP_STACK(stack,label,bits)	\
+  (stack)->stack_size   = sizeof(*(stack));	\
+  (stack)->stack_label  = label;		\
+  (stack)->stack_bits   = bits;			\
+  (stack)->stack_refs   = KNO_EMPTY;		\
   (stack)->stack_op     = KNO_VOID
 
 #define KNO_STACK_SET_CALLER(stack,caller)		\
@@ -154,6 +159,8 @@ KNO_EXPORT __thread struct KNO_STACK *kno_stackptr;
 KNO_EXPORT void _kno_free_stack(struct KNO_STACK *stack);
 KNO_EXPORT void _kno_pop_stack(struct KNO_STACK *stack);
 
+#define KNO_STACK_REF(stack,v)  \
+  if (KNO_CONSP(v)) {KNO_ADD_TO_CHOICE((stack)->stack_refs,(v));} else {}
 #define KNO_STACK_DECREF(v) \
   if (KNO_CONSP(v)) {KNO_ADD_TO_CHOICE(_stack->stack_refs,v);} else {}
 
@@ -173,12 +180,8 @@ KNO_FASTOP void kno_free_stack(struct KNO_STACK *stack)
       u8_free(stack->stack_label);
       stack->stack_label=NULL;}
     if ((stack->stack_bits)&(KNO_STACK_FREE_SRC)) {
-      u8_free(stack->stack_src);
-      stack->stack_src=NULL;}
-    if ( (stack->stack_status) &&
-	 (stack->stack_status != stack->stack_status_buf) ) {
-      u8_free(stack->stack_status);
-      stack->stack_status=NULL;}
+      u8_free(stack->stack_file);
+      stack->stack_file=NULL;}
 
     if ((stack->stack_bits)&(KNO_STACK_DECREF_OP)) {
       lispval op = stack->stack_op; stack->stack_op=KNO_VOID;
@@ -186,15 +189,13 @@ KNO_FASTOP void kno_free_stack(struct KNO_STACK *stack)
 
     if ((stack->stack_bits)&(KNO_STACK_DECREF_ARGS)) {
       int i = 0, width = stack->stack_width;
-      lispval *args = stack->stack_args;
-      stack->stack_args = NULL;
+      lispval *args = (lispval *)stack->stack_args;
       while (i<width) {
 	lispval arg = args[i];
 	args[i++] = KNO_VOID;
 	kno_decref(arg);}}
     if ((stack->stack_bits)&(KNO_STACK_FREE_ARGS))
       u8_free(stack->stack_args);}
-
   stack->stack_args = NULL;
 
   if (KNO_CONSP(stack->stack_refs)) {

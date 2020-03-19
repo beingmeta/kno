@@ -1160,7 +1160,7 @@ KNO_EXPORT void kno_init_lambdas_c()
   moduleid_symbol = kno_intern("%moduleid");
 
   kno_applyfns[kno_lambda_type]=apply_lambda;
-  kno_function_types[kno_lambda_type]=1;
+  kno_isfunctionp[kno_lambda_type]=1;
 
   kno_unparsers[kno_lambda_type]=unparse_lambda;
   kno_recyclers[kno_lambda_type]=recycle_lambda;

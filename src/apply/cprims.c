@@ -592,7 +592,7 @@ KNO_EXPORT void kno_init_cprims_c()
 
   moduleid_symbol = kno_intern("%moduleid");
 
-  kno_function_types[kno_cprim_type]=1;
+  kno_isfunctionp[kno_cprim_type]=1;
 
   kno_unparsers[kno_cprim_type]=unparse_cprim;
   kno_recyclers[kno_cprim_type]=recycle_cprim;
