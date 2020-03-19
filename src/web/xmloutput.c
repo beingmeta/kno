@@ -26,7 +26,7 @@
 
 #include <ctype.h>
 
-#define fast_eval(x,env) (kno_stack_eval(x,env,_stack,0))
+#define fast_eval(x,env) (kno_stack_eval(x,env,_stack))
 
 #include <libu8/u8xfiles.h>
 

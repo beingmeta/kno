@@ -37,7 +37,7 @@ static lispval refs_symbol, nrefs_symbol, lookup_symbol, embed_symbol;
 
 u8_condition kno_UnknownEncoding=_("Unknown encoding");
 
-#define fast_eval(x,env) (kno_stack_eval(x,env,_stack,0))
+#define fast_eval(x,env) (kno_stack_eval(x,env,_stack))
 
 static long long getposfixopt(lispval opts,lispval sym,long long dflt)
 {

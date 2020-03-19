@@ -282,7 +282,7 @@ KNO_DEF_EVALFN("%watchptr",watchptr_evalfn,
 static lispval watchptr_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
 {
   lispval val_expr = kno_get_arg(expr,1);
-  lispval value = kno_stack_eval(val_expr,env,_stack,0);
+  lispval value = kno_stack_eval(val_expr,env,_stack);
   log_ptr(value,KNO_VOID,val_expr);
   return value;
 }
@@ -298,7 +298,7 @@ static lispval watchcons_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STAC
   u8_string label = (KNO_SYMBOLP(name_spec)) ? (SYMBOL_NAME(name_spec)) :
     (KNO_STRINGP(name_spec)) ? (KNO_CSTRING(name_spec)) : (NULL);
   lispval body = (label) ? (kno_get_body(expr,3)) : (kno_get_body(expr,2));
-  lispval value = kno_stack_eval(val_expr,env,_stack,0);
+  lispval value = kno_stack_eval(val_expr,env,_stack);
   if (KNO_CONSP(value)) {
     int refcount = KNO_CONS_REFCOUNT(value);
     if (refcount == 0)
@@ -481,7 +481,7 @@ static lispval watched_cond_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_S
             (KNO_EQ(KNO_CAR(KNO_CAR(clauses)),unquote_symbol))) {
     lispval label_expr = KNO_CADR(KNO_CAR(clauses));
     clauses = KNO_CDR(clauses);
-    label_arg = kno_stack_eval(label_expr,env,_stack,0);
+    label_arg = kno_stack_eval(label_expr,env,_stack);
     if (KNO_ABORTP(label_arg)) {
       u8_exception ex = u8_erreify();
       u8_string errstring = kno_errstring(ex);
@@ -560,7 +560,7 @@ static lispval watched_try_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_ST
             (KNO_EQ(KNO_CAR(KNO_CAR(clauses)),unquote_symbol))) {
     lispval label_expr = KNO_CADR(KNO_CAR(clauses));
     clauses = KNO_CDR(clauses);
-    label_arg = kno_stack_eval(label_expr,env,_stack,0);
+    label_arg = kno_stack_eval(label_expr,env,_stack);
     if (KNO_ABORTP(label_arg)) {
       u8_exception ex = u8_erreify();
       u8_string errstring = kno_errstring(ex);
@@ -925,7 +925,7 @@ static lispval with_log_context_evalfn(lispval expr,kno_lexenv env,struct KNO_EV
   if (KNO_VOIDP(label_expr))
     return kno_err(kno_SyntaxError,"with_context_evalfn",NULL,expr);
   else {
-    lispval label=kno_stack_eval(label_expr,env,_stack,0);
+    lispval label=kno_stack_eval(label_expr,env,_stack);
     if (KNO_ABORTED(label))
       return label;
     else {
@@ -973,7 +973,7 @@ KNO_DEF_EVALFN("eval1",eval1,
 	       "contexts in a way which is visible in C debuggers.");
 static DONT_OPTIMIZE lispval eval1(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *s)
 {
-  lispval result = kno_stack_eval(kno_get_arg(expr,1),env,s,0);
+  lispval result = kno_stack_eval(kno_get_arg(expr,1),env,s);
   return result;
 }
 
@@ -983,7 +983,7 @@ KNO_DEF_EVALFN("eval2",eval2,
 	       "contexts in a way which is visible in C debuggers.");
 static DONT_OPTIMIZE lispval eval2(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *s)
 {
-  lispval result = kno_stack_eval(kno_get_arg(expr,1),env,s,0);
+  lispval result = kno_stack_eval(kno_get_arg(expr,1),env,s);
   return result;
 }
 
@@ -993,7 +993,7 @@ KNO_DEF_EVALFN("eval3",eval3,
 	       "contexts in a way which is visible in C debuggers.");
 static DONT_OPTIMIZE lispval eval3(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *s)
 {
-  lispval result = kno_stack_eval(kno_get_arg(expr,1),env,s,0);
+  lispval result = kno_stack_eval(kno_get_arg(expr,1),env,s);
   return result;
 }
 
@@ -1003,7 +1003,7 @@ KNO_DEF_EVALFN("eval4",eval4,
 	       "contexts in a way which is visible in C debuggers.");
 static DONT_OPTIMIZE lispval eval4(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *s)
 {
-  lispval result = kno_stack_eval(kno_get_arg(expr,1),env,s,0);
+  lispval result = kno_stack_eval(kno_get_arg(expr,1),env,s);
   return result;
 }
 
@@ -1013,7 +1013,7 @@ KNO_DEF_EVALFN("eval5",eval5,
 	       "contexts in a way which is visible in C debuggers.");
 static DONT_OPTIMIZE lispval eval5(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *s)
 {
-  lispval result = kno_stack_eval(kno_get_arg(expr,1),env,s,0);
+  lispval result = kno_stack_eval(kno_get_arg(expr,1),env,s);
   return result;
 }
 
@@ -1023,7 +1023,7 @@ KNO_DEF_EVALFN("eval6",eval6,
 	       "contexts in a way which is visible in C debuggers.");
 static DONT_OPTIMIZE lispval eval6(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *s)
 {
-  lispval result = kno_stack_eval(kno_get_arg(expr,1),env,s,0);
+  lispval result = kno_stack_eval(kno_get_arg(expr,1),env,s);
   return result;
 }
 
@@ -1033,7 +1033,7 @@ KNO_DEF_EVALFN("eval7",eval7,
 	       "contexts in a way which is visible in C debuggers.");
 static DONT_OPTIMIZE lispval eval7(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *s)
 {
-  lispval result = kno_stack_eval(kno_get_arg(expr,1),env,s,0);
+  lispval result = kno_stack_eval(kno_get_arg(expr,1),env,s);
   return result;
 }
 

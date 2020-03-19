@@ -85,10 +85,11 @@ KNO_EXPORT int kno_pop_eval(struct KNO_EVAL_STACK *);
   struct KNO_EVAL_STACK _ ## name, *name = &_ ## name;  \
   KNO_SETUP_STACK(&_ ## name,label,kno_eval_stack);	\
   KNO_STACK_SET_CALLER(&_ ## name,((kno_stack)caller));	\
-  _ ## name.stack_expr = _ ## name.stack_point = expr;	\
-  _ ## name.stack_expr = _ ## name.stack_point = expr;	\
+  _ ## name.stack_expr = _ ## name.stack_point =	\
+    _ ## name.stack_op = expr;				\
   _ ## name.stack_cleanupfn = _kno_eval_cleanupfn;	\
   KNO_PUSH_STACK(((kno_stack)(& _ ## name)))
+
 #define KNO_NEW_EVAL(label,op,caller)			\
   KNO_START_EVAL(_stack,label,op,caller);
 #define KNO_PUSH_EVAL(name,label,expr)		\
@@ -145,6 +146,7 @@ typedef struct KNO_EVALFN_INFO *kno_evalfn_info;
   kno_new_evalfn(module,cname ## _info.pname,# cname,cname ## _info.filename, \
                  cname ## _info.docstring,cname);
 
+/* Macros */
 
 typedef struct KNO_MACRO {
   KNO_CONS_HEADER;
@@ -164,18 +166,6 @@ KNO_EXPORT lispval kno_printout_to(U8_OUTPUT *,lispval,kno_lexenv);
 /* Getting documentation strings */
 
 KNO_EXPORT u8_string kno_get_documentation(lispval x);
-
-/* DT servers */
-
-typedef struct KNO_DTSERVER {
-  KNO_CONS_HEADER;
-  u8_string dtserverid, dtserver_addr;
-  /*
-  enum { dtype_protocol=0, xtype_protocol=1 } evalserver_protocol 
-  struct XTYPE_REFS refs;
-  */
-  struct U8_CONNPOOL *connpool;} KNO_DTSERVER;
-typedef struct KNO_DTSERVER *kno_stream_erver;
 
 /* Modules */
 
@@ -265,11 +255,7 @@ typedef struct KNO_CONFIG_RECORD {
 
 /* The Evaluator */
 
-KNO_EXPORT
-lispval kno_stack_eval(lispval expr,kno_lexenv env,
-                     struct KNO_EVAL_STACK *stack,
-                     int tail);
-#define kno_tail_eval(expr,env) (kno_stack_eval(expr,env,kno_eval_stackptr,1))
+#define kno_tail_eval(expr,env) (kno_evaluate(expr,env,kno_eval_stackptr,1,1))
 
 lispval kno_eval_body(lispval body,kno_lexenv env,
 		      struct KNO_EVAL_STACK *,
@@ -279,6 +265,12 @@ KNO_EXPORT lispval kno_eval_exprs(lispval exprs,kno_lexenv env,
                                   struct KNO_EVAL_STACK *,
 				  int);
 
+KNO_EXPORT lispval kno_cons_eval(lispval expr,kno_lexenv env,
+				 struct KNO_EVAL_STACK *stack,
+				 int tail,int push);
+KNO_EXPORT lispval _kno_evaluate(lispval expr,kno_lexenv env,
+				 struct KNO_EVAL_STACK *stack,
+				 int tail,int push);
 
 /* These are for non-static/inline versions */
 KNO_EXPORT lispval _kno_eval(lispval expr,kno_lexenv env);
@@ -333,36 +325,45 @@ KNO_FASTOP lispval __kno_symeval(lispval symbol,kno_lexenv env)
       env = env->env_copy;}
   return KNO_VOID;
 }
-KNO_FASTOP lispval __kno_fast_eval(lispval x,kno_lexenv env,
-                                  struct KNO_EVAL_STACK *stack,
-                                  int tail)
+KNO_FASTOP lispval eval_symbol(lispval symbol,kno_lexenv env)
+{
+  if (env == NULL)
+    return kno_err("NoEnvironment","eval_symbol",NULL,symbol);
+  if (env->env_copy) env = env->env_copy;
+  while (env) {
+    lispval val = fastget(env->env_bindings,symbol);
+    if (val == KNO_UNBOUND)
+      env = env->env_parent;
+    else return val;
+    if ((env) && (env->env_copy))
+      env = env->env_copy;}
+  return kno_err(kno_UnboundIdentifier,"kno_eval",
+		 KNO_SYMBOL_NAME(symbol),symbol);
+}
+KNO_FASTOP lispval __kno_evaluate(lispval x,kno_lexenv env,
+				  struct KNO_EVAL_STACK *stack,
+				  int tail,int push)
 {
   switch (KNO_PTR_MANIFEST_TYPE(x)) {
   case kno_oid_ptr_type: case kno_fixnum_ptr_type:
     return x;
-  case kno_immediate_ptr_type:
-    if (KNO_TYPEP(x,kno_lexref_type))
+  case kno_immediate_ptr_type: {
+    switch (KNO_IMMEDIATE_TYPE(x)) {
+    case kno_lexref_type:
       return __kno_lexref(x,env);
-    else if (KNO_SYMBOLP(x)) {
-      lispval val = __kno_symeval(x,env);
-      if (KNO_EXPECT_FALSE(KNO_VOIDP(val)))
-        return kno_err(kno_UnboundIdentifier,"kno_eval",KNO_SYMBOL_NAME(x),x);
-      else return val;}
-    else return x;
+    case kno_symbol_type:
+      return __kno_symeval(x,env);
+    default:
+      return x;}}}
+  kno_lisp_type type = KNO_CONSPTR_TYPE(x);
+  switch (type) {
+  case kno_pair_type: case kno_choice_type:
+  case kno_prechoice_type: case kno_schemap_type:
+    return kno_cons_eval(x,env,stack,tail,push);
   case kno_slotmap_type:
     return kno_deep_copy(x);
-  case kno_cons_ptr_type: {
-    kno_lisp_type type = KNO_CONSPTR_TYPE(x);
-    switch (type) {
-    case kno_pair_type: case kno_choice_type: case kno_prechoice_type:
-    case kno_schemap_type:
-      return kno_stack_eval(x,env,stack,tail);
-    case kno_slotmap_type:
-      return kno_deep_copy(x);
-    default:
-      return kno_incref(x);}}
-  default: return x; /* Never reached */
-  }
+  default:
+    return kno_incref(x);}
 }
 KNO_FASTOP lispval __kno_get_arg(lispval expr,int i)
 {
@@ -396,7 +397,7 @@ KNO_FASTOP int __kno_pop_eval(struct KNO_EVAL_STACK *stack)
 #endif
 
 #if KNO_INLINE_EVAL
-#define kno_eval(x,env) (__kno_fast_eval(x,env,kno_eval_stackptr,0))
+#define kno_evaluate __kno_evaluate
 #define kno_symeval(x,env) __kno_symeval(x,env)
 #define kno_lexref(x,env) __kno_lexref(x,env)
 #define kno_get_arg(x,i) __kno_get_arg(x,i)
@@ -404,7 +405,7 @@ KNO_FASTOP int __kno_pop_eval(struct KNO_EVAL_STACK *stack)
 #define kno_cleanup_eval(x) __kno_cleanup_eval(x)
 #define kno_pop_eval(x) __kno_pop_eval(x)
 #else
-#define kno_eval(x,env) _kno_eval(x,env)
+#define kno_evaluate _kno_evaluate
 #define kno_symeval(x,env) _kno_symeval(x,env)
 #define kno_lexref(x,env) _kno_lexref(x,env)
 #define kno_get_arg(x,i) _kno_get_arg(x,i)
@@ -413,12 +414,18 @@ KNO_FASTOP int __kno_pop_eval(struct KNO_EVAL_STACK *stack)
 #define kno_pop_eval(x) _kno_pop_eval(x)
 #endif
 
+#define kno_eval(x,env) kno_evaluate(x,env,kno_eval_stackptr,0,1)
+#define kno_stack_eval(x,env,stack) kno_evaluate(x,env,stack,0,1)
+
 #define kno_simplify_value(v) \
   ( (KNO_PRECHOICEP(v)) ? (kno_simplify_choice(v)) : (v) )
 
-#define _eval_return return kno_pop_eval(_stack),
 #define kno_eval_return(v) return (kno_pop_eval(_stack),(v))
 #define kno_eval_return_from(stack,v) return (kno_pop_eval(stack),(v))
+
+#if KNO_SOURCE
+#define _eval_return return kno_pop_eval(_stack),
+#endif
 
 /* Bindings iteration */
 
@@ -474,6 +481,18 @@ KNO_EXPORT lispval kno_force_promise(lispval promise);
 
 KNO_EXPORT kno_thread kno_thread_call(lispval *,lispval,int,lispval *,int);
 KNO_EXPORT kno_thread kno_thread_eval(lispval *,lispval,kno_lexenv,int);
+
+/* DT servers */
+
+typedef struct KNO_DTSERVER {
+  KNO_CONS_HEADER;
+  u8_string dtserverid, dtserver_addr;
+  /*
+  enum { dtype_protocol=0, xtype_protocol=1 } evalserver_protocol 
+  struct XTYPE_REFS refs;
+  */
+  struct U8_CONNPOOL *connpool;} KNO_DTSERVER;
+typedef struct KNO_DTSERVER *kno_stream_erver;
 
 /* Opcodes */
 

@@ -662,8 +662,6 @@ static void *_kno_thread_main(void *data)
     tstruct->errnop = &(errno);
     tstruct->threadid = u8_threadid();
 
-    KNO_INIT_STACK();
-
     KNO_NEW_EVAL("thread",VOID,((struct KNO_EVAL_STACK *)NULL));
     _stack->stack_label=u8_mkstring("thread%lld",u8_threadid());
     U8_SETBITS(_stack->stack_flags,KNO_STACK_FREE_LABEL);
@@ -963,7 +961,7 @@ static lispval threadcallx_prim(int n,kno_argvec args)
 static lispval spawn_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
 {
   lispval to_eval = kno_get_arg(expr,1);
-  lispval opts = kno_stack_eval(kno_get_arg(expr,2),env,_stack,0);
+  lispval opts = kno_stack_eval(kno_get_arg(expr,2),env,_stack);
   if (KNO_ABORTED(opts)) {
     return opts;}
   int flags = threadopts(opts)|KNO_EVAL_THREAD;

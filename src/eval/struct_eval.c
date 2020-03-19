@@ -54,7 +54,7 @@ static lispval vector_evalfn(lispval vec,kno_lexenv env,struct KNO_EVAL_STACK *s
   lispval *result_elts = KNO_VECTOR_DATA(result);
   while (i < len) {
     lispval expr = eval_elts[i];
-    lispval val = __kno_fast_eval(expr,env,stackptr,0);
+    lispval val = kno_stack_eval(expr,env,stackptr);
     if (KNO_ABORTP(val)) {
       kno_decref(result);
       return val;}
@@ -77,7 +77,7 @@ static lispval slotmap_evalfn(lispval sm,kno_lexenv env,struct KNO_EVAL_STACK *s
   while (read_slot < n_slots) {
     lispval slotid = old_kv[read_slot].kv_key;
     lispval eval_expr = old_kv[read_slot].kv_val;
-    lispval val = __kno_fast_eval(eval_expr,env,stackptr,0);
+    lispval val = kno_stack_eval(eval_expr,env,stackptr);
     if (KNO_ABORTP(val)) {
       if (unlock) u8_rw_unlock(&(smap->table_rwlock));
       kno_decref(result);

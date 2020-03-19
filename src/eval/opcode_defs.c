@@ -83,7 +83,7 @@ lispval op_eval_expr(struct KNO_EVAL_STACK *eval_stack,
       u8_string show_name = macrofn->macro_name;
       if (show_name == NULL) show_name = label;
       return kno_err(kno_SyntaxError,_("macro expansion"),show_name,new_expr);}
-    result = kno_stack_eval(new_expr,env,eval_stack,tail);
+    result = kno_evaluate(new_expr,env,eval_stack,tail,-1);
     kno_decref(new_expr);
     eval_stack->stack_op = restore_op;
     if (restore_env) eval_stack->stack_env = restore_env;
@@ -1074,7 +1074,7 @@ static lispval until_opcode(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *s
   lispval test_expr = KNO_CAR(params), loop_body = KNO_CDR(params);
   if (VOIDP(test_expr))
     return kno_err(kno_SyntaxError,"KNO_LOOP_OPCODE",NULL,expr);
-  lispval test_val = __kno_fast_eval(test_expr,env,stack,0);
+  lispval test_val = kno_evaluate(test_expr,env,stack,0,1);
   if (ABORTED(test_val))
     return test_val;
   else while ( (FALSEP(test_val)) || (EMPTYP(test_val)) ) {
@@ -1084,7 +1084,7 @@ static lispval until_opcode(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *s
       else if (KNO_ABORTED(body_result))
         return body_result;
       else kno_decref(body_result);
-      test_val = __kno_fast_eval(test_expr,env,stack,0);
+      test_val = kno_evaluate(test_expr,env,stack,0,0);
       if (KNO_ABORTED(test_val))
         return test_val;}
   return test_val;
@@ -1152,7 +1152,7 @@ static lispval assignop(struct KNO_EVAL_STACK *stack,kno_lexenv env,
               return cur;
             else return VOID;}
           else {
-            lispval value = __kno_fast_eval(expr,env,stack,0);
+            lispval value = kno_stack_eval(expr,env,stack);
             /* This gnarly bit of code handles the case where
                evaluating 'expr' changed the environment structure,
                by, for instance, creating a lambda which made a
@@ -1194,7 +1194,7 @@ static lispval assignop(struct KNO_EVAL_STACK *stack,kno_lexenv env,
            (TABLEP(KNO_CDR(var)))) {
     int rv=-1;
     lispval table=KNO_CDR(var), sym=KNO_CAR(var);
-    lispval value = __kno_fast_eval(expr,env,stack,0);
+    lispval value = kno_stack_eval(expr,env,stack);
     if (KNO_ABORTED(value))
       return value;
     else if ( (combiner == KNO_FALSE) || (combiner == VOID) ) {
@@ -1236,7 +1236,7 @@ static lispval bindop(lispval op,
   kno_lexenv env_copy=NULL;
   while (i<n) {
     lispval val_expr = pop_arg(scan_inits);
-    lispval val = __kno_fast_eval(val_expr,bound,bind_stack,0);
+    lispval val = kno_stack_eval(val_expr,bound,bind_stack);
     if (KNO_ABORTED(val))
       _eval_return val;
     if ( (env_copy == NULL) && (bound->env_copy) ) {
@@ -1261,7 +1261,7 @@ static lispval vector_bindop(lispval op,
   kno_lexenv env_copy=NULL;
   while (i<n) {
     lispval val_expr=exprs[i];
-    lispval val=__kno_fast_eval(val_expr,bound,bind_stack,0);
+    lispval val=kno_stack_eval(val_expr,bound,bind_stack);
     if (KNO_ABORTED(val))
       _eval_return val;
     if ( (env_copy == NULL) && (bound->env_copy) ) {
@@ -1476,7 +1476,7 @@ static lispval handle_special_opcode(lispval opcode,lispval args,lispval expr,
       return KNO_FALSE;}}
 
   case KNO_NOT_OPCODE: {
-    lispval arg_val = __kno_fast_eval(pop_arg(args),env,_stack,0);
+    lispval arg_val = kno_stack_eval(pop_arg(args),env,_stack);
     if (FALSEP(arg_val))
       return KNO_TRUE;
     else {

@@ -89,6 +89,16 @@ KNO_EXPORT lispval _kno_get_body(lispval expr,int i)
   return kno_get_body(expr,i);
 }
 
+/* Top level functions */
+
+KNO_EXPORT lispval _kno_evaluate(lispval x,kno_lexenv env,
+				 struct KNO_EVAL_STACK *stack,
+				 int tail,int push)
+{
+  return kno_evaluate(x,env,stack,tail,push);
+}
+
+
 /* Environment functions */
 
 static int bound_in_envp(lispval symbol,kno_lexenv env)
@@ -591,7 +601,7 @@ static lispval fcnalias_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK
   lispval env_expr = kno_get_arg(expr,2), free_env = KNO_VOID;
   kno_lexenv use_env = env;
   if (!(KNO_VOIDP(env_expr))) {
-    lispval env_arg = kno_stack_eval(env_expr,env,stack,0);
+    lispval env_arg = kno_stack_eval(env_expr,env,stack);
     if (KNO_LEXENVP(env_arg)) {
       kno_lexenv e = (kno_lexenv) env_arg;
       if (KNO_HASHTABLEP(e->env_bindings))
@@ -661,44 +671,34 @@ static lispval choice_eval(lispval expr,kno_lexenv env,
 			   int tail);
 
 KNO_EXPORT
-lispval kno_stack_eval(lispval expr,kno_lexenv env,
-		       struct KNO_EVAL_STACK *_stack,
-		       int tail)
+lispval kno_cons_eval(lispval expr,kno_lexenv env,
+		      struct KNO_EVAL_STACK *_stack,
+		      int tail,int push)
 {
-  if (_stack==NULL) _stack = (struct KNO_EVAL_STACK *) kno_eval_stackptr;
-  if (KNO_CONSP(expr)) {
-    if (KNO_STATIC_CONSP(expr))
-      return op_eval(_stack,expr,env,tail);
-    else {
-      kno_lisp_type ctype = KNO_CONSPTR_TYPE(expr);
-      switch (ctype) {
-      case kno_pair_type: {
-	lispval result = VOID;
-	KNO_PUSH_EVAL(eval_stack,NULL,expr);
-	result = pair_eval(KNO_CAR(expr),expr,env,eval_stack,tail,1);
-	kno_pop_eval(eval_stack);
-	return result;}
-      case kno_choice_type:
-	return choice_eval(expr,env,_stack,tail);
-      case kno_slotmap_type:
-	return kno_deep_copy(expr);
-      case kno_schemap_type: {
-	lispval result = VOID;
-	KNO_PUSH_EVAL(eval_stack,NULL,expr);
-	result = schemap_eval(expr,env,eval_stack);
-	kno_pop_eval(eval_stack);
-	return result;}
-      default:
-	return kno_incref(expr);}}}
-  else if (KNO_LEXREFP(expr))
-    return kno_lexref(expr,env);
-  else if (KNO_SYMBOLP(expr)) {
-    lispval val = kno_symeval(expr,env);
-    if (PRED_FALSE(VOIDP(val)))
-      return kno_err(kno_UnboundIdentifier,"kno_eval",
-		     SYM_NAME(expr),expr);
-    else return simplify_value(val);}
-  else return expr;
+  if (push) {
+    KNO_START_EVAL(eval_stack,NULL,expr,_stack);
+    return kno_cons_eval(expr,env,eval_stack,tail,1);}
+  else  {
+    kno_lisp_type ctype = KNO_CONSPTR_TYPE(expr);
+    switch (ctype) {
+    case kno_pair_type: {
+      lispval result = VOID;
+      KNO_PUSH_EVAL(eval_stack,NULL,expr);
+      result = pair_eval(KNO_CAR(expr),expr,env,eval_stack,tail,1);
+      kno_pop_eval(eval_stack);
+      return result;}
+    case kno_choice_type:
+      return choice_eval(expr,env,_stack,tail);
+    case kno_slotmap_type:
+      return kno_deep_copy(expr);
+    case kno_schemap_type: {
+      lispval result = VOID;
+      KNO_PUSH_EVAL(eval_stack,NULL,expr);
+      result = schemap_eval(expr,env,eval_stack);
+      kno_pop_eval(eval_stack);
+      return result;}
+    default:
+      return kno_incref(expr);}}
 }
 
 static lispval choice_eval(lispval expr,kno_lexenv env,
@@ -780,7 +780,7 @@ lispval pair_eval(lispval head,lispval expr,kno_lexenv env,
       u8_string show_name = macrofn->macro_name;
       if (show_name == NULL) show_name = label;
       result = kno_err(kno_SyntaxError,_("macro expansion"),show_name,new_expr);}
-    else result = kno_stack_eval(new_expr,env,eval_stack,tail);
+    else result = kno_evaluate(new_expr,env,eval_stack,tail,1);
     kno_decref(new_expr);
     break;}
   case kno_choice_type: {
@@ -898,7 +898,7 @@ KNO_FASTOP lispval arg_eval(lispval x,kno_lexenv env,struct KNO_EVAL_STACK *stac
     case kno_pair_type:
       return pair_eval(KNO_CAR(x),x,env,stack,0,0);
     case kno_choice_type: case kno_prechoice_type:
-      return kno_stack_eval(x,env,stack,0);
+      return kno_stack_eval(x,env,stack);
     case kno_slotmap_type:
       return kno_deep_copy(x);
     case kno_schemap_type:
@@ -1115,9 +1115,9 @@ KNO_EXPORT void kno_new_evalfn(lispval mod,u8_string name,u8_string cname,
 static lispval eval_evalfn(lispval x,kno_lexenv env,struct KNO_EVAL_STACK *stack)
 {
   lispval expr_expr = kno_get_arg(x,1);
-  lispval expr = kno_stack_eval(expr_expr,env,stack,0);
+  lispval expr = kno_stack_eval(expr_expr,env,stack);
   if (KNO_ABORTED(expr)) return expr;
-  lispval result = kno_stack_eval(expr,env,stack,0);
+  lispval result = kno_stack_eval(expr,env,stack);
   kno_decref(expr);
   return result;
 }
@@ -1344,7 +1344,7 @@ static lispval symbol_boundp_evalfn(lispval expr,kno_lexenv env,
   kno_lexenv use_env = NULL;
   if (VOIDP(symbol_expr))
     return kno_err(kno_SyntaxError,"symbol_boundp_evalfn",NULL,expr);
-  else symbol = kno_stack_eval(symbol_expr,env,stack,0);
+  else symbol = kno_stack_eval(symbol_expr,env,stack);
   if (KNO_ABORTED(symbol))
     return symbol;
   else if (!(KNO_SYMBOLP(symbol))) {
@@ -1356,7 +1356,7 @@ static lispval symbol_boundp_evalfn(lispval expr,kno_lexenv env,
   if (VOIDP(env_expr))
     use_env = env;
   else {
-    env_value = kno_stack_eval(env_expr,env,stack,0);
+    env_value = kno_stack_eval(env_expr,env,stack);
     if (KNO_FALSEP(env_value))
       use_env = env;
     else if (KNO_LEXENVP(env_value))
@@ -1862,7 +1862,7 @@ static lispval void_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_s
 {
   lispval body = KNO_CDR(expr);
   KNO_DOLIST(subex,body) {
-    lispval v = kno_stack_eval(subex,env,_stack,0);
+    lispval v = kno_stack_eval(subex,env,_stack);
     if (KNO_ABORTED(v))
       return v;
     else kno_decref(v);}
@@ -1879,7 +1879,7 @@ static lispval break_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_
 {
   lispval body = KNO_CDR(expr);
   KNO_DOLIST(subex,body) {
-    lispval v = kno_stack_eval(subex,env,_stack,0);
+    lispval v = kno_stack_eval(subex,env,_stack);
     if (KNO_BREAKP(v))
       return KNO_BREAK;
     else if (KNO_ABORTED(v))

@@ -759,7 +759,8 @@ static lispval macroexpand(lispval expander,lispval expr)
       if (kno_applyfns[xformer_type]) {
 	/* These are evalfns which do all the evaluating themselves */
 	lispval new_expr=
-	  kno_dcall(kno_eval_stackptr,kno_fcnid_ref(macrofn->macro_transformer),1,&expr);
+	  kno_dcall(kno_stackptr,kno_fcnid_ref(macrofn->macro_transformer),
+		    1,&expr);
 	new_expr = kno_finish_call(new_expr);
 	if (ABORTED(new_expr)) return kno_err(kno_SyntaxError,_("macro expansion"),NULL,new_expr);
 	else return new_expr;}
@@ -1428,7 +1429,7 @@ static lispval with_sourcebase_evalfn(lispval expr,kno_lexenv env,struct KNO_EVA
   if (!(PAIRP(body)))
     return kno_err(kno_SyntaxError,"with_sourcebase_evalfn",NULL,expr);
 
-  lispval usebase = kno_stack_eval(usebase_expr,env,stack,0);
+  lispval usebase = kno_stack_eval(usebase_expr,env,stack);
   u8_string temp_base;
   if (ABORTED(usebase)) return usebase;
   else if (KNO_STRINGP(usebase))

@@ -408,7 +408,7 @@ static lispval define_return_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_
   if ( (VOIDP(var)) || (VOIDP(val_expr)) )
     return kno_err(kno_TooFewExpressions,"DEF+",NULL,expr);
   else if (SYMBOLP(var)) {
-    lispval value = fast_stack_eval(val_expr,env,_stack);
+    lispval value = kno_stack_eval(val_expr,env,_stack);
     if (KNO_ABORTED(value))
       return value;
     else if (kno_bind_value(var,value,env)<0) {
@@ -438,7 +438,7 @@ static lispval define_import_evalfn(lispval expr,kno_lexenv env,
   if (KNO_VOIDP(import_name)) import_name = var;
 
   int decref_module = 0;
-  lispval module_spec = kno_stack_eval(module_expr,env,_stack,0);
+  lispval module_spec = kno_stack_eval(module_expr,env,_stack);
   if (KNO_ABORTP(module_spec)) return module_spec;
 
   lispval module = module_spec;

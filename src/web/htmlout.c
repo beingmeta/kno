@@ -31,7 +31,7 @@
 
 #include <ctype.h>
 
-#define fast_eval(x,env) (kno_stack_eval(x,env,_stack,0))
+#define fast_eval(x,env) (kno_stack_eval(x,env,_stack))
 
 #ifndef KNO_HTMLOUT_MAX
 #define KNO_HTMLOUT_MAX 15000000

@@ -61,7 +61,7 @@ lispval op_eval_expr(struct KNO_EVAL_STACK *eval_stack,
       u8_string show_name = macrofn->macro_name;
       if (show_name == NULL) show_name = label;
       eval_result = kno_err(kno_SyntaxError,_("macro expansion"),show_name,new_expr);}
-    else eval_result = kno_stack_eval(new_expr,env,eval_stack,tail);
+    else eval_result = kno_evaluate(new_expr,env,eval_stack,tail,-1);
     kno_decref(new_expr);
     return eval_result;}
   case kno_opcode_type:

@@ -206,7 +206,9 @@ KNO_FASTOP void kno_pop_stack(struct KNO_STACK *stack)
 #define kno_pop_stack(stack) (_kno_pop_stack(stack))
 #endif
 
+#if KNO_SOURCE
 #define _return return kno_pop_stack(_stack),
+#endif
 
 #define kno_return(v) return (kno_pop_stack(_stack),(v))
 #define kno_return_from(stack,v) return (kno_pop_stack(stack),(v))

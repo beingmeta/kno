@@ -98,91 +98,91 @@ static lispval parse_control_spec
    It tries to stack allocate as much as possible for locality and convenience sake.
    Note that this treats a non-choice as a choice of one element.
    It returns VOID. */
-static lispval dochoices_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
+static lispval dochoices_evalfn(lispval expr,kno_lexenv env,
+				struct KNO_EVAL_STACK *eval_stack)
 {
   lispval steps = kno_get_body(expr,2);
   if (! (PRED_TRUE( (KNO_PAIRP(steps)) || (steps == KNO_NIL) )) )
     return kno_err(kno_SyntaxError,"dochoices_evalfn",NULL,expr);
   lispval var, count_var, choices=
-    parse_control_spec(expr,&var,&count_var,env,_stack);
+    parse_control_spec(expr,&var,&count_var,env,eval_stack);
   if (KNO_ABORTED(var)) return var;
   else if (KNO_ABORTED(choices)) return choices;
   else if (EMPTYP(choices))
     return VOID;
-  KNO_ADD_TO_CHOICE(_stack->stack_refs,choices);
-  u8_string varname = (KNO_SYMBOLP(var)) ? (KNO_SYMBOL_NAME(var)) : (NULL);
-  ssize_t var_len = (varname) ? (strlen(varname)) : (-1);
-  ssize_t prefix_len = strlen("dochoices.");
-  u8_byte label[prefix_len+var_len+1];
-  memcpy(label,"dochoices.",prefix_len);
-  if (var_len<0)
-    label[prefix_len-1]='\0';
-  else strncpy(label+prefix_len,varname,var_len+1);
-  KNO_PUSH_EVAL(dochoices_stack,label,expr);
-  INIT_STACK_ENV(dochoices_stack,dochoices,env,2);
+
+  lispval result = KNO_VOID;
+  KNO_INIT_ITER_LOOP(dochoices,var,choices,2,eval_stack,env);
   dochoices_vars[0]=var;
   if (SYMBOLP(count_var))
     dochoices_vars[1]=count_var;
   else dochoices_bindings.schema_length=1;
+  int finished = 0;
   int i = 0; DO_CHOICES(elt,choices) {
     dochoices_vals[0]=kno_incref(elt);
-    dochoices_vals[1]=KNO_INT(i);
+    dochoices_stack->stack_op=dochoices_vals[1]=KNO_INT(i);
     {KNO_DOLIST(step,steps) {
-	lispval val = kno_stack_eval(step,dochoices,dochoices_stack,0);
-	if (KNO_BROKEP(val))
-	  _eval_return KNO_VOID;
+	lispval val = kno_cons_eval(step,dochoices,dochoices_stack,0,0);
+	if (KNO_BROKEP(val)) {
+	  finished=1; break;}
 	else if (KNO_ABORTED(val)) {
-	  _eval_return val;}
+	  result = val; finished=1; break;}
 	else kno_decref(val);}}
     reset_env(dochoices);
     kno_decref(dochoices_vals[0]);
     dochoices_vals[0]=VOID;
     kno_decref(dochoices_vals[1]);
     dochoices_vals[1]=VOID;
-    i++;}
-  _eval_return VOID;
+    if (finished) break; else i++;}
+  kno_pop_eval(dochoices_stack);
+  return result;
 }
 
 /* This iterates over a set of choices, evaluating its body for each value.
    It returns the first non-empty result of evaluating the body.
    Note that this treats a non-choice as a choice of one element.
    It returns VOID. */
-static lispval trychoices_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
+static lispval trychoices_evalfn(lispval expr,kno_lexenv env,
+				 struct KNO_EVAL_STACK *eval_stack)
 {
   lispval steps = kno_get_body(expr,2);
   if (! (PRED_TRUE( (KNO_PAIRP(steps)) || (steps == KNO_NIL) )) )
     return kno_err(kno_SyntaxError,"trychoices_evalfn",NULL,expr);
   lispval var, count_var, choices=
-    parse_control_spec(expr,&var,&count_var,env,_stack);
+    parse_control_spec(expr,&var,&count_var,env,eval_stack);
   if (KNO_ABORTED(var)) return var;
   else if (KNO_ABORTED(choices)) return choices;
   else if (EMPTYP(choices))
     return EMPTY;
-  KNO_ADD_TO_CHOICE(_stack->stack_refs,choices);
-  INIT_STACK_ENV(_stack,trychoices,env,2);
+  lispval result = KNO_EMPTY;
+  KNO_INIT_ITER_LOOP(trychoices,var,choices,2,eval_stack,env);
   trychoices_vars[0]=var;
   if (SYMBOLP(count_var))
     trychoices_vars[1]=count_var;
   else trychoices_bindings.schema_length=1;
+  int finished = 0;
   int i = 0; DO_CHOICES(elt,choices) {
     lispval val = VOID;
     trychoices_vals[0]=kno_incref(elt);
     trychoices_vals[1]=KNO_INT(i);
     KNO_DOLIST(step,steps) {
       kno_decref(val);
-      val = fast_eval(step,trychoices);
-      if (KNO_BROKEP(val))
-	_eval_return EMPTY;
-      else if (KNO_ABORTED(val))
-	_eval_return val;}
+      val = kno_evaluate(step,trychoices,trychoices_stack,0,0);
+      if (KNO_BROKEP(val)) {
+	finished = 1; break;}
+      else if (KNO_ABORTED(val)) {
+	result = val; finished=1; break;}}
     reset_env(trychoices);
     kno_decref(trychoices_vals[0]);
     trychoices_vals[0]=VOID;
     kno_decref(trychoices_vals[1]);
     trychoices_vals[1]=VOID;
-    if (!(EMPTYP(val))) _eval_return val;
-    i++;}
-  _eval_return EMPTY;
+    if (finished) break;
+    else if (!(EMPTYP(val))) {
+      result = val; break;}
+    else i++;}
+  kno_pop_eval(trychoices_stack);
+  return result;
 }
 
 /* This iterates over a set of choices, evaluating its body for each value, and
@@ -190,47 +190,53 @@ static lispval trychoices_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STA
    It tries to stack allocate as much as possible for locality and convenience sake.
    Note that this treats a non-choice as a choice of one element.
    It returns the combined results of its body's execution. */
-static lispval forchoices_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
+static lispval forchoices_evalfn(lispval expr,kno_lexenv env,
+				 struct KNO_EVAL_STACK *eval_stack)
 {
   lispval steps = kno_get_body(expr,2);
   if (! (PRED_TRUE( (KNO_PAIRP(steps)) || (steps == KNO_NIL) )) )
     return kno_err(kno_SyntaxError,"forchoices_evalfn",NULL,expr);
-  lispval results = EMPTY;
   lispval var, count_var, choices=
-    parse_control_spec(expr,&var,&count_var,env,_stack);
+    parse_control_spec(expr,&var,&count_var,env,eval_stack);
   if (KNO_ABORTED(var)) return var;
   else if (KNO_ABORTED(choices))
     return choices;
   else if (EMPTYP(choices))
     return EMPTY;
-  KNO_ADD_TO_CHOICE(_stack->stack_refs,choices);
-  INIT_STACK_ENV(_stack,forchoices,env,2);
+
+  lispval results = KNO_EMPTY;
+  KNO_INIT_ITER_LOOP(forchoices,var,choices,2,eval_stack,env);
   forchoices_vars[0]=var;
   if (SYMBOLP(count_var))
     forchoices_vars[1]=count_var;
   else forchoices_bindings.schema_length=1;
+  int finished = 0;
   int i = 0; DO_CHOICES(elt,choices) {
     lispval val = VOID;
     forchoices_vals[0]=kno_incref(elt);
     forchoices_vals[1]=KNO_INT(i);
     KNO_DOLIST(step,steps) {
       kno_decref(val);
-      val = fast_eval(step,forchoices);
+      val = kno_evaluate(step,forchoices,forchoices_stack,0,0);
       if (KNO_BROKEP(val)) {
-	lispval result = kno_simplify_choice(results);
-	_eval_return result;}
+	results = kno_simplify_choice(results);
+	finished=1;
+	break;}
       else if (KNO_ABORTED(val)) {
 	kno_decref(results);
-	_eval_return val;}
+	results=val;
+	finished=1;
+	break;}
       else NO_ELSE;}
-    CHOICE_ADD(results,val);
     reset_env(forchoices);
     kno_decref(forchoices_vals[0]);
     forchoices_vals[0]=VOID;
     kno_decref(forchoices_vals[1]);
     forchoices_vals[1]=VOID;
-    i++;}
-  _eval_return kno_simplify_choice(results);
+    if (finished) break;
+    else i++;}
+  kno_pop_eval(forchoices_stack);
+  return kno_simplify_choice(results);
 }
 
 /* This iterates over a set of choices, evaluating its third subexpression for each value, and
@@ -238,38 +244,42 @@ static lispval forchoices_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STA
    It tries to stack allocate as much as possible for locality and convenience sake.
    Note that this treats a non-choice as a choice of one element.
    It returns the subset of values which pass the body. */
-static lispval filterchoices_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
+static lispval filterchoices_evalfn(lispval expr,kno_lexenv env,
+				    struct KNO_EVAL_STACK *eval_stack)
 {
   lispval steps = kno_get_body(expr,2);
   if (! (PRED_TRUE( (KNO_PAIRP(steps)) || (steps == KNO_NIL) )) )
     return kno_err(kno_SyntaxError,"filterchoices_evalfn",NULL,expr);
-  lispval results = EMPTY;
   lispval var, count_var, choices=
-    parse_control_spec(expr,&var,&count_var,env,_stack);
+    parse_control_spec(expr,&var,&count_var,env,eval_stack);
   if (KNO_ABORTED(var)) return var;
   else if (KNO_ABORTED(choices))
     return choices;
   else if (EMPTYP(choices))
     return EMPTY;
-  KNO_ADD_TO_CHOICE(_stack->stack_refs,choices);
-  INIT_STACK_ENV(_stack,filterchoices,env,2);
+  lispval results = EMPTY;
+  KNO_INIT_ITER_LOOP(filterchoices,var,choices,2,eval_stack,env);
   filterchoices_vars[0]=var;
   if (SYMBOLP(count_var))
     filterchoices_vars[1]=count_var;
   else filterchoices_bindings.schema_length=1;
+  int finished = 0;
   int i = 0; DO_CHOICES(elt,choices) {
     lispval val = VOID;
     filterchoices_vals[0]=kno_incref(elt);
     filterchoices_vals[1]=KNO_INT(i);
     KNO_DOLIST(step,steps) {
       kno_decref(val);
-      val = fast_eval(step,filterchoices);
+      val = kno_evaluate(step,filterchoices,filterchoices_stack,0,0);
       if (KNO_BROKEP(val)) {
-	lispval result = kno_simplify_choice(results);
-	_eval_return result;}
+	results = kno_simplify_choice(results);
+	finished=1;
+	break;}
       else if (KNO_ABORTED(val)) {
 	kno_decref(results);
-	_eval_return val;}
+	results = val;
+	finished = 1;
+	break;}
       else if (!(FALSEP(val))) {
 	kno_incref(elt);
 	CHOICE_ADD(results,elt);
@@ -280,8 +290,9 @@ static lispval filterchoices_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_
     filterchoices_vals[0]=VOID;
     kno_decref(filterchoices_vals[1]);
     filterchoices_vals[1]=VOID;
-    i++;}
-  _eval_return kno_simplify_choice(results);
+    if (finished) break; else i++;}
+  kno_pop_eval(filterchoices_stack);
+  return kno_simplify_choice(results);
 }
 
 /* Choice functions */
@@ -343,7 +354,7 @@ static lispval try_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_st
   KNO_DOLIST(clause,clauses) {
     int ipe_state = kno_ipeval_status();
     kno_decref(value);
-    value = kno_eval(clause,env);
+    value = kno_evaluate(clause,env,_stack,0,0);
     if (KNO_ABORTED(value))
       return value;
     else if (VOIDP(value)) {
@@ -704,34 +715,6 @@ static lispval difference_lexpr(int n,kno_argvec args)
       i++;}
   return kno_simplify_choice(result);
 }
-
-/* Prechoice elements */
-
-#if 0
-static lispval choicevec_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
-{
-  lispval sub_expr = kno_get_arg(expr,1);
-  if (KNO_VOIDP(sub_expr))
-    return kno_err(kno_SyntaxError,"choicevec_evalfn",NULL,expr);
-  else {
-    lispval result = kno_stack_eval(sub_expr,env,_stack,0);
-    if (KNO_ABORTED(result))
-      return result;
-    else if (KNO_CHOICEP(result)) {
-      struct KNO_CHOICE *ch = (kno_choice) result;
-      const lispval *elts = KNO_XCHOICE_ELTS(ch);
-      int size = ch->choice_size;
-      lispval vector = kno_make_vector(size,(lispval *)elts);
-      if (ch->choice_isatomic)
-	return vector;
-      else {
-	kno_incref_vec((lispval *)elts,size);
-	return vector;}}
-    else {
-      lispval data[1]={result};
-      return kno_make_vector(1,data);}}
-}
-#endif
 
 /* Conversion functions */
 

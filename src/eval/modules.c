@@ -455,7 +455,7 @@ static lispval export_alias_helper(lispval expr,kno_lexenv env,struct KNO_EVAL_S
   if (KNO_VOIDP(modexpr))
     return kno_err(kno_SyntaxError,"export_alias_helper",NULL,expr);
   lispval old_exports = env->env_exports;
-  lispval modname = kno_stack_eval(modexpr,env,_stack,0);
+  lispval modname = kno_stack_eval(modexpr,env,_stack);
   if (KNO_ABORTP(modname)) return modname;
   lispval module = kno_find_module(modname,1);
   if (KNO_ABORTP(module)) return module;

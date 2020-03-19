@@ -52,7 +52,7 @@ static u8_output get_output_port(lispval portarg)
   else return NULL;
 }
 
-#define fast_eval(x,env) (kno_stack_eval(x,env,_stack,0))
+#define fast_eval(x,env) (kno_evaluate(x,env,_stack,0,1))
 
 static lispval message_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
 {
@@ -159,7 +159,7 @@ static lispval log_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_st
     if (KNO_SYMBOLP(cond_expr))
       condition = SYM_NAME(KNO_CAR(body));
     else if (KNO_EVALP(cond_expr)) {
-      lispval condition_name = kno_stack_eval(cond_expr,env,_stack,0);
+      lispval condition_name = kno_stack_eval(cond_expr,env,_stack);
       if (KNO_SYMBOLP(condition_name))
         condition = SYM_NAME(condition_name);
       else if (!(KNO_VOIDP(condition_name)))
@@ -195,7 +195,7 @@ static lispval logreport_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STAC
     if (KNO_SYMBOLP(cond_expr))
       condition = SYM_NAME(KNO_CAR(body));
     else if (KNO_EVALP(cond_expr)) {
-      lispval condition_name = kno_stack_eval(cond_expr,env,_stack,0);
+      lispval condition_name = kno_stack_eval(cond_expr,env,_stack);
       if (KNO_SYMBOLP(condition_name))
         condition = SYM_NAME(condition_name);
       else if (!(KNO_VOIDP(condition_name)))
@@ -240,7 +240,7 @@ static lispval logif_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_
       if (KNO_SYMBOLP(cond_expr))
         condition = SYM_NAME(KNO_CAR(body));
       else if (KNO_EVALP(cond_expr)) {
-        lispval condition_name = kno_stack_eval(cond_expr,env,_stack,0);
+        lispval condition_name = kno_stack_eval(cond_expr,env,_stack);
         if (KNO_SYMBOLP(condition_name))
           condition = SYM_NAME(condition_name);
         else if (!(KNO_VOIDP(condition_name)))
@@ -299,7 +299,7 @@ static lispval logifplus_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STAC
       if (KNO_SYMBOLP(cond_expr))
         condition = SYM_NAME(KNO_CAR(body));
       else if (KNO_EVALP(cond_expr)) {
-        lispval condition_name = kno_stack_eval(cond_expr,env,_stack,0);
+        lispval condition_name = kno_stack_eval(cond_expr,env,_stack);
         if (KNO_SYMBOLP(condition_name))
           condition = SYM_NAME(condition_name);
         else if (!(KNO_VOIDP(condition_name)))

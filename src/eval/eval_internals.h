@@ -1,10 +1,7 @@
 static U8_MAYBE_UNUSED lispval moduleid_symbol;
 
-#define fast_eval(x,env) (__kno_fast_eval(x,env,_stack,0))
-#define fast_stack_eval(x,env,stack) (__kno_fast_eval(x,env,stack,0))
-#define fast_tail_eval(x,env) (__kno_fast_eval(x,env,_stack,1))
-#define stack_eval(x,env,s) (__kno_fast_eval(x,env,s,0))
-#define stack_tail_eval(x,env,s) (__kno_fast_eval(x,env,s,1))
+#define fast_eval(x,env) (kno_evaluate(x,env,_stack,0,1))
+#define stack_eval(x,env,s) (kno_evaluate(x,env,s,1,0))
 
 static int testeval(lispval expr,kno_lexenv env,int fail_val,
 		    lispval *whoops,struct KNO_EVAL_STACK *s) U8_MAYBE_UNUSED;
@@ -13,7 +10,7 @@ static int testeval(lispval expr,kno_lexenv env,int fail_val,
 		    lispval *whoops,
 		    struct KNO_EVAL_STACK *_stack)
 {
-  lispval val = __kno_fast_eval(expr,env,_stack,0);
+  lispval val = kno_evaluate(expr,env,_stack,0,1);
   if (KNO_CONSP(val)) {
     kno_decref(val);
     return 1;}
@@ -71,7 +68,7 @@ KNO_FASTOP lispval eval_body(lispval body,kno_lexenv env,
 	  return v;
 	else kno_decref(v);}
       else if (KNO_EMPTY_LISTP(scan))
-	return __kno_fast_eval(subex,env,stack,tail);
+	return kno_evaluate(subex,env,stack,tail,0);
       else return kno_err(kno_SyntaxError,
 			  ( (cxt) && (label) ) ? (cxt) :
 			  ((u8_string)"eval_inner_body"),
@@ -123,7 +120,7 @@ KNO_FASTOP kno_lexenv init_static_env
   lispval name ## _vals[n];			      \
   kno_init_elts(name ## _vars,n,KNO_VOID);		    \
   kno_init_elts(name ## _vals,n,KNO_VOID);		    \
-  _stack->stack_env =				     \
+  stack->stack_env =				     \
     init_static_env(n,parent,			     \
 		    &name ## _bindings,		     \
 		    &_ ## name,			     \
@@ -150,6 +147,26 @@ void reset_env(kno_lexenv env)
     kno_free_lexenv(env->env_copy);
     env->env_copy=NULL;}
 }
+
+static void set_stack_label(struct KNO_STACK *stack,u8_string label)
+{
+  if ( (stack->stack_label) &&
+       (stack->stack_flags&KNO_STACK_FREE_LABEL) ) {
+    stack->stack_flags &= (~KNO_STACK_FREE_LABEL);
+    u8_free(stack->stack_label);
+    stack->stack_label=label;}
+  else stack->stack_label=label;
+}
+
+#define KNO_INIT_ITER_LOOP(name,var,value,n_vars,caller,parent_env)	\
+  KNO_STACK_REF(caller,value);				\
+  u8_byte iter_label_buf[32];						\
+  u8_string label = (KNO_SYMBOLP(var)) ?				\
+    u8_bprintf(iter_label_buf,"%s.%s", # name,KNO_SYMBOL_NAME(var)) :	\
+    ((u8_string)(# name));						\
+  KNO_START_EVAL(name ## _stack,NULL,expr,caller);			\
+  set_stack_label((kno_stack)caller,label);				\
+  INIT_STACK_ENV(name ## _stack,name,parent_env,n_vars);
 
 /* Environment utilities */
 

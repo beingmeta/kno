@@ -34,7 +34,7 @@ typedef struct KNO_THREAD {
   double finished;
   sigset_t sigmask;
   u8_condition interrupt;
-  struct KNO_STACK *thread_stackptr;
+  struct KNO_EVAL_STACK *thread_stackptr;
   struct KNO_THREAD *ring_left, *ring_right;
   lispval *resultptr, result;
   union {
