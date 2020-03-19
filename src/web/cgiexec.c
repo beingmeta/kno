@@ -572,7 +572,7 @@ static void add_remote_info(lispval cgidata)
 /* Generating headers */
 
 static lispval do_xmlout(U8_OUTPUT *out,lispval body,
-                         kno_lexenv env,kno_stack _stack)
+                         kno_lexenv env,struct KNO_EVAL_STACK *_stack)
 {
   U8_OUTPUT *prev = u8_current_output;
   u8_set_default_output(out);
@@ -591,7 +591,7 @@ static lispval do_xmlout(U8_OUTPUT *out,lispval body,
   return VOID;
 }
 
-static lispval httpheader(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval httpheader(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
 {
   U8_OUTPUT out; lispval result;
   U8_INIT_OUTPUT(&out,64);
@@ -616,7 +616,7 @@ static lispval addhttpheader(lispval header)
   return VOID;
 }
 
-static lispval htmlheader(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval htmlheader(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
 {
   U8_OUTPUT out; lispval header_string; lispval result;
   U8_INIT_OUTPUT(&out,64);
@@ -792,7 +792,7 @@ static lispval add_javascript(lispval url)
   return VOID;
 }
 
-static lispval title_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval title_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
 {
   U8_OUTPUT out; lispval result;
   U8_INIT_OUTPUT(&out,64);
@@ -810,7 +810,7 @@ static lispval title_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     return VOID;}
 }
 
-static lispval jsout_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval jsout_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
 {
   U8_OUTPUT *prev = u8_current_output;
   U8_OUTPUT _out, *out = &_out; lispval result = VOID;
@@ -845,7 +845,7 @@ static lispval jsout_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     return VOID;}
 }
 
-static lispval cssout_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval cssout_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
 {
   U8_OUTPUT *prev = u8_current_output;
   U8_OUTPUT _out, *out = &_out;
@@ -1234,7 +1234,7 @@ static lispval urldata_parse(lispval qstring)
 
 /* Bind request and output */
 
-static lispval withreqout_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval withreqout_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
 {
   U8_OUTPUT *oldout = u8_current_output;
   U8_OUTPUT _out, *out = &_out;

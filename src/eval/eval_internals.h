@@ -7,11 +7,11 @@ static U8_MAYBE_UNUSED lispval moduleid_symbol;
 #define stack_tail_eval(x,env,s) (__kno_fast_eval(x,env,s,1))
 
 static int testeval(lispval expr,kno_lexenv env,int fail_val,
-                    lispval *whoops,kno_stack s) U8_MAYBE_UNUSED;
+		    lispval *whoops,struct KNO_EVAL_STACK *s) U8_MAYBE_UNUSED;
 
 static int testeval(lispval expr,kno_lexenv env,int fail_val,
 		    lispval *whoops,
-                    kno_stack _stack)
+		    struct KNO_EVAL_STACK *_stack)
 {
   lispval val = __kno_fast_eval(expr,env,_stack,0);
   if (KNO_CONSP(val)) {
@@ -49,7 +49,8 @@ KNO_FASTOP lispval _pop_arg(lispval *scan)
 #define simplify_value(v) \
   ( (KNO_PRECHOICEP(v)) ? (kno_simplify_choice(v)) : (v) )
 
-KNO_FASTOP lispval eval_body(lispval body,kno_lexenv env,kno_stack stack,
+KNO_FASTOP lispval eval_body(lispval body,kno_lexenv env,
+			     struct KNO_EVAL_STACK *stack,
 			     u8_context cxt,u8_string label,
 			     int tail)
 {
@@ -57,39 +58,39 @@ KNO_FASTOP lispval eval_body(lispval body,kno_lexenv env,kno_stack stack,
     return KNO_VOID;
   else if (!(KNO_PAIRP(body)))
     return kno_err(kno_SyntaxError,
-                   ( (cxt) && (label) ) ? (cxt) :
-                   ((u8_string)"eval_inner_body"),
-                   (label) ? (label) : (cxt) ? (cxt) : (NULL),
-                   body);
+		   ( (cxt) && (label) ) ? (cxt) :
+		   ((u8_string)"eval_inner_body"),
+		   (label) ? (label) : (cxt) ? (cxt) : (NULL),
+		   body);
   lispval scan = body;
   while (PAIRP(scan)) {
       lispval subex = pop_arg(scan);
       if (PAIRP(scan)) {
-        lispval v = stack_eval(subex,env,stack);
-        if (KNO_ABORTED(v))
-          return v;
-        else kno_decref(v);}
+	lispval v = stack_eval(subex,env,stack);
+	if (KNO_ABORTED(v))
+	  return v;
+	else kno_decref(v);}
       else if (KNO_EMPTY_LISTP(scan))
-        return __kno_fast_eval(subex,env,stack,tail);
+	return __kno_fast_eval(subex,env,stack,tail);
       else return kno_err(kno_SyntaxError,
-                          ( (cxt) && (label) ) ? (cxt) :
-                          ((u8_string)"eval_inner_body"),
-                          (label) ? (label) : (cxt) ? (cxt) : (NULL),
-                          body);}
+			  ( (cxt) && (label) ) ? (cxt) :
+			  ((u8_string)"eval_inner_body"),
+			  (label) ? (label) : (cxt) ? (cxt) : (NULL),
+			  body);}
   return KNO_VOID;
 }
 
-#define KNO_VOID_RESULT(result)                          \
-  if (KNO_ABORTP(result)) return result;                 \
-  else if (KNO_TYPEP(result,kno_tailcall_type)) {         \
-    struct KNO_TAILCALL *tc = (kno_tailcall)result;         \
-    tc->tailcall_flags |= KNO_TAILCALL_VOID_VALUE;}        \
+#define KNO_VOID_RESULT(result)				 \
+  if (KNO_ABORTP(result)) return result;		 \
+  else if (KNO_TYPEP(result,kno_tailcall_type)) {	  \
+    struct KNO_TAILCALL *tc = (kno_tailcall)result;	    \
+    tc->tailcall_flags |= KNO_TAILCALL_VOID_VALUE;}	   \
   else { kno_decref(result); result = KNO_VOID; }
 
-#define KNO_DISCARD_RESULT(result)               \
-  if (KNO_ABORTP(result)) return result;         \
-  result = kno_finish_call(result);                \
-  if (KNO_ABORTP(result)) return result;         \
+#define KNO_DISCARD_RESULT(result)		 \
+  if (KNO_ABORTP(result)) return result;	 \
+  result = kno_finish_call(result);		   \
+  if (KNO_ABORTP(result)) return result;	 \
   else { kno_decref(result); result = KNO_VOID;}
 
 
@@ -115,31 +116,31 @@ KNO_FASTOP kno_lexenv init_static_env
   return envstruct;
 }
 
-#define INIT_STACK_ENV(stack,name,parent,n)          \
-  struct KNO_SCHEMAP name ## _bindings;               \
+#define INIT_STACK_ENV(stack,name,parent,n)	     \
+  struct KNO_SCHEMAP name ## _bindings;		      \
   struct KNO_LEXENV _ ## name, *name=&_ ## name; \
-  lispval name ## _vars[n];                           \
-  lispval name ## _vals[n];                           \
-  kno_init_elts(name ## _vars,n,KNO_VOID);                  \
-  kno_init_elts(name ## _vals,n,KNO_VOID);                  \
-  _stack->stack_env =                                \
-    init_static_env(n,parent,                        \
-                    &name ## _bindings,              \
-                    &_ ## name,                      \
-                    name ## _vars,                   \
-                    name ## _vals)
+  lispval name ## _vars[n];			      \
+  lispval name ## _vals[n];			      \
+  kno_init_elts(name ## _vars,n,KNO_VOID);		    \
+  kno_init_elts(name ## _vals,n,KNO_VOID);		    \
+  _stack->stack_env =				     \
+    init_static_env(n,parent,			     \
+		    &name ## _bindings,		     \
+		    &_ ## name,			     \
+		    name ## _vars,		     \
+		    name ## _vals)
 
-#define INIT_STACK_SCHEMA(stack,name,parent,n,schema)   \
-  struct KNO_SCHEMAP name ## _bindings;                  \
+#define INIT_STACK_SCHEMA(stack,name,parent,n,schema)	\
+  struct KNO_SCHEMAP name ## _bindings;			 \
   struct KNO_LEXENV _ ## name, *name=&_ ## name;    \
-  lispval name ## _vals[n];                              \
-  kno_init_elts(name ## _vals,n,KNO_VOID);                \
-  stack->stack_env =                                    \
-    init_static_env(n,parent,                           \
-                    &name ## _bindings,                 \
-                    &_ ## name,                         \
-                    schema,                             \
-                    name ## _vals)
+  lispval name ## _vals[n];				 \
+  kno_init_elts(name ## _vals,n,KNO_VOID);		  \
+  stack->stack_env =					\
+    init_static_env(n,parent,				\
+		    &name ## _bindings,			\
+		    &_ ## name,				\
+		    schema,				\
+		    name ## _vals)
 
 
 U8_MAYBE_UNUSED KNO_FASTOP
@@ -158,8 +159,8 @@ KNO_FASTOP int check_bindexprs(lispval bindexprs,lispval *why_not)
     int n = 0; KNO_DOLIST(bindexpr,bindexprs) {
       lispval var = kno_get_arg(bindexpr,0);
       if (VOIDP(var)) {
-        *why_not = kno_err(kno_BindSyntaxError,NULL,NULL,bindexpr);
-        return -1;}
+	*why_not = kno_err(kno_BindSyntaxError,NULL,NULL,bindexpr);
+	return -1;}
       else n++;}
     return n;}
   else return -1;

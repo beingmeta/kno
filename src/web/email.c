@@ -84,7 +84,7 @@ static lispval smtp_function(lispval dest,lispval headers,lispval content,
   else return KNO_TRUE;
 }
 
-static lispval mailout_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval mailout_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
 {
   const u8_byte *mailhost = mailhost_dflt, *maildomain = maildomain_dflt;
   const u8_byte *mailfrom = mailfrom_dflt;

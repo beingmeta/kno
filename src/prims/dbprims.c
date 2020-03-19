@@ -2180,7 +2180,7 @@ static lispval getpathstar_prim(int n,kno_argvec args)
 
 /* Cache gets */
 
-static lispval cacheget_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval cacheget_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
 {
   lispval table_arg = kno_get_arg(expr,1), key_arg = kno_get_arg(expr,2);
   lispval default_expr = kno_get_arg(expr,3);

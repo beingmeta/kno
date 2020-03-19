@@ -347,7 +347,7 @@ KNO_EXPORT int kno_xmlout_helper
   return 1;
 }
 
-static lispval xmlout_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval xmlout_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
 {
   lispval body = kno_get_body(expr,1);
   U8_OUTPUT *out = u8_current_output, tmpout;
@@ -379,7 +379,7 @@ KNO_EXPORT int kno_lisp2xml(u8_output out,lispval x,kno_lexenv env)
   return retval;
 }
 
-static lispval raw_xhtml_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval raw_xhtml_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
 {
   lispval body = kno_get_body(expr,1);
   U8_OUTPUT *out = u8_current_output, tmpout;
@@ -444,7 +444,7 @@ static lispval xmlemptyelt(int n,kno_argvec args)
   return VOID;
 }
 
-static lispval xmlentry_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval xmlentry_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
 {
   U8_OUTPUT *out = u8_current_output;
   lispval head = kno_get_arg(expr,1), args = KNO_CDR(KNO_CDR(expr));
@@ -466,7 +466,7 @@ static lispval xmlentry_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     return VOID;}
 }
 
-static lispval xmlstart_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval xmlstart_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
 {
   U8_OUTPUT *out = u8_current_output;
   lispval head = kno_get_arg(expr,1), args = KNO_CDR(KNO_CDR(expr));
@@ -504,7 +504,7 @@ static lispval xmlend_prim(lispval head)
 }
 
 static lispval doxmlblock(lispval expr,kno_lexenv env,
-                          kno_stack _stack,int newline)
+                          struct KNO_EVAL_STACK *_stack,int newline)
 {
   lispval tagspec = kno_get_arg(expr,1), attribs, body;
   lispval xmloidfn = kno_symeval(xmloidfn_symbol,env);
@@ -571,17 +571,17 @@ static lispval doxmlblock(lispval expr,kno_lexenv env,
 }
 
 /* Does a block without wrapping content in newlines */
-static lispval xmlblock_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval xmlblock_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
 {
   return doxmlblock(expr,env,_stack,0);
 }
 /* Does a block and wraps content in newlines */
-static lispval xmlblockn_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval xmlblockn_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
 {
   return doxmlblock(expr,env,_stack,1);
 }
 
-static lispval handle_markup(lispval expr,kno_lexenv env,kno_stack _stack,
+static lispval handle_markup(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack,
                              int star,int block)
 {
   if ((PAIRP(expr)) && (SYMBOLP(KNO_CAR(expr)))) {
@@ -629,27 +629,27 @@ static lispval handle_markup(lispval expr,kno_lexenv env,kno_stack _stack,
   else return kno_err(kno_SyntaxError,"XML markup",NULL,kno_incref(expr));
 }
 
-static lispval markup_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval markup_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
 {
   return handle_markup(expr,env,_stack,0,0);
 }
 
-static lispval markupblock_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval markupblock_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
 {
   return handle_markup(expr,env,_stack,0,1);
 }
 
-static lispval markupstarblock_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval markupstarblock_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
 {
   return handle_markup(expr,env,_stack,1,1);
 }
 
-static lispval markupstar_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval markupstar_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
 {
   return handle_markup(expr,env,_stack,1,0);
 }
 
-static lispval emptymarkup_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval emptymarkup_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
 {
   u8_byte tagbuf[128];
   U8_OUTPUT *out = u8_current_output;
@@ -781,7 +781,7 @@ static int browseinfo_config_set(lispval var,lispval val,void *ignored)
 
 /* Doing anchor output */
 
-static lispval doanchor_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval doanchor_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
 {
   U8_OUTPUT *out = u8_current_output, tmpout;
   lispval target = kno_eval(kno_get_arg(expr,1),env), xmloidfn;
@@ -844,7 +844,7 @@ static int has_class_attrib(lispval attribs)
   return 0;
 }
 
-static lispval doanchor_star_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval doanchor_star_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
 {
   U8_OUTPUT *out = u8_current_output, tmpout;
   lispval target = kno_eval(kno_get_arg(expr,1),env), xmloidfn = VOID;
@@ -937,7 +937,7 @@ static lispval xmloid(lispval oid_arg)
 
 /* XMLEVAL primitives */
 
-static lispval xmleval_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval xmleval_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
 {
   lispval xmlarg = kno_get_arg(expr,1);
   if (VOIDP(xmlarg))
@@ -1008,7 +1008,7 @@ static lispval xml2string_prim(lispval xml,lispval env_arg,lispval xml_env_arg)
     return kno_stream2string(&out);}
 }
 
-static lispval xmlopen_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval xmlopen_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
 {
   if (!(PAIRP(KNO_CDR(expr))))
     return kno_err(kno_SyntaxError,"xmleval_evalfn",NULL,VOID);
@@ -1105,7 +1105,7 @@ static lispval output_javascript(u8_output out,lispval args,kno_lexenv env)
     return VOID;}
 }
 
-static lispval javascript_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval javascript_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
 {
   lispval retval; struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,256);
   retval = output_javascript(&out,KNO_CDR(expr),env);
@@ -1115,7 +1115,7 @@ static lispval javascript_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     u8_free(out.u8_outbuf); return retval;}
 }
 
-static lispval javastmt_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval javastmt_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
 {
   lispval retval; struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,256);
   retval = output_javascript(&out,KNO_CDR(expr),env);
@@ -1138,7 +1138,7 @@ static u8_string soapbodyclose="</SOAP-ENV:Body>";
 static u8_string soapheaderopen="  <SOAP-ENV:Header>\n";
 static u8_string soapheaderclose="\n  </SOAP-ENV:Header>";
 
-static lispval soapenvelope_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval soapenvelope_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
 {
   U8_OUTPUT *out = u8_current_output;
   lispval header_arg = kno_get_arg(expr,1);

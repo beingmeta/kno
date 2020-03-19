@@ -13,7 +13,8 @@
 
 KNO_EXPORT lispval kno_opcode_dispatch
 (lispval opcode,lispval expr,kno_lexenv env,
- kno_stack caller,int tail);
+ struct KNO_EVAL_STACK *caller,
+ int tail);
 
 /* Opcodes */
 

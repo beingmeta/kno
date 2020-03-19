@@ -759,7 +759,7 @@ static lispval macroexpand(lispval expander,lispval expr)
       if (kno_applyfns[xformer_type]) {
 	/* These are evalfns which do all the evaluating themselves */
 	lispval new_expr=
-	  kno_dcall(kno_stackptr,kno_fcnid_ref(macrofn->macro_transformer),1,&expr);
+	  kno_dcall(kno_eval_stackptr,kno_fcnid_ref(macrofn->macro_transformer),1,&expr);
 	new_expr = kno_finish_call(new_expr);
 	if (ABORTED(new_expr)) return kno_err(kno_SyntaxError,_("macro expansion"),NULL,new_expr);
 	else return new_expr;}
@@ -901,7 +901,7 @@ static lispval module_exports(lispval arg)
   else return kno_type_error(_("module"),"module_exports",arg);
 }
 
-static lispval local_bindings_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval local_bindings_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
 {
   if (env->env_copy)
     return kno_incref(env->env_copy->env_bindings);
@@ -916,7 +916,7 @@ static lispval local_bindings_evalfn(lispval expr,kno_lexenv env,kno_stack _stac
 /* Finding where a symbol comes from */
 
 static lispval wherefrom_evalfn(lispval expr,kno_lexenv call_env,
-				kno_stack _stack)
+				struct KNO_EVAL_STACK *_stack)
 {
   lispval symbol_arg = kno_get_arg(expr,1);
   lispval symbol = kno_eval(symbol_arg,call_env);
@@ -982,7 +982,7 @@ static lispval wherefrom_evalfn(lispval expr,kno_lexenv call_env,
 
 /* Finding all the modules used from an environment */
 
-static lispval getmodules_evalfn(lispval expr,kno_lexenv call_env,kno_stack _stack)
+static lispval getmodules_evalfn(lispval expr,kno_lexenv call_env,struct KNO_EVAL_STACK *_stack)
 {
   lispval env_arg = kno_eval(kno_get_arg(expr,1),call_env);
   lispval modules = EMPTY;
@@ -1419,7 +1419,7 @@ static lispval profile_nitems(lispval profile)
 
 /* with sourcebase */
 
-static lispval with_sourcebase_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
+static lispval with_sourcebase_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *stack)
 {
   lispval usebase_expr = kno_get_arg(expr,1);
   lispval body = kno_get_body(expr,2);

@@ -563,7 +563,7 @@ static void output_xhtml_table(U8_OUTPUT *out,lispval tbl,lispval keys,
   u8_printf(out,"</table>\n");
 }
 
-static lispval table2html_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval table2html_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
 {
   u8_string classname = NULL;
   U8_OUTPUT *out = u8_current_output;

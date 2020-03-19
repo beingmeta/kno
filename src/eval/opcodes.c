@@ -53,9 +53,9 @@ static lispval elt_opcode(lispval arg1,lispval arg2);
 static lispval xref_opcode(lispval x,long long i,lispval tag);
 static lispval tableop(lispval opcode,lispval arg1,lispval arg2,lispval arg3);
 
-static lispval op_eval(lispval x,kno_lexenv env,kno_stack stack,int tail);
+static lispval op_eval(lispval x,kno_lexenv env,struct KNO_EVAL_STACK *stack,int tail);
 
-KNO_FASTOP lispval op_eval_body(lispval body,kno_lexenv env,kno_stack stack,int tail)
+KNO_FASTOP lispval op_eval_body(lispval body,kno_lexenv env,struct KNO_EVAL_STACK *stack,int tail)
 {
   lispval result=VOID;
   if (body == NIL)
@@ -507,7 +507,7 @@ static lispval binary_nd_dispatch(lispval opcode,lispval arg1,lispval arg2)
 }
 
 static lispval try_op(lispval exprs,kno_lexenv env,
-                     kno_stack stack,int tail)
+                     struct KNO_EVAL_STACK *stack,int tail)
 {
   while (PAIRP(exprs)) {
     lispval expr = next_qcode(exprs);
@@ -522,7 +522,7 @@ static lispval try_op(lispval exprs,kno_lexenv env,
   return EMPTY;
 }
 
-static lispval and_op(lispval exprs,kno_lexenv env,kno_stack stack,int tail)
+static lispval and_op(lispval exprs,kno_lexenv env,struct KNO_EVAL_STACK *stack,int tail)
 {
   while (PAIRP(exprs)) {
     lispval expr = next_qcode(exprs);
@@ -537,7 +537,7 @@ static lispval and_op(lispval exprs,kno_lexenv env,kno_stack stack,int tail)
   return KNO_TRUE;
 }
 
-static lispval or_op(lispval exprs,kno_lexenv env,kno_stack stack,int tail)
+static lispval or_op(lispval exprs,kno_lexenv env,struct KNO_EVAL_STACK *stack,int tail)
 {
   while (PAIRP(exprs)) {
     lispval expr = next_qcode(exprs);
@@ -554,7 +554,7 @@ static lispval or_op(lispval exprs,kno_lexenv env,kno_stack stack,int tail)
 
 /* Loop */
 
-static lispval until_opcode(lispval expr,kno_lexenv env,kno_stack stack)
+static lispval until_opcode(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *stack)
 {
   lispval params = KNO_CDR(expr);
   lispval test_expr = KNO_CAR(params), loop_body = KNO_CDR(params);
@@ -608,7 +608,7 @@ static lispval combine_values(lispval combiner,lispval cur,lispval value)
     return value;
   }
 }
-static lispval assignop(kno_stack stack,kno_lexenv env,
+static lispval assignop(struct KNO_EVAL_STACK *stack,kno_lexenv env,
                         lispval var,lispval expr,lispval combiner)
 {
   if (KNO_LEXREFP(var)) {
@@ -708,12 +708,12 @@ static lispval assignop(kno_stack stack,kno_lexenv env,
 /* Binding */
 
 static lispval bindop(lispval op,
-                      struct KNO_STACK *_stack,kno_lexenv env,
+                      struct KNO_EVAL_STACK *_stack,kno_lexenv env,
                       lispval vars,lispval inits,lispval body,
                       int tail)
 {
   int i=0, n=VEC_LEN(vars);
-  KNO_PUSH_STACK(bind_stack,"bindop","opframe",op);
+  KNO_PUSH_STACK(bind_stack,"bindop",op);
   INIT_STACK_SCHEMA(bind_stack,bound,env,n,VEC_DATA(vars));
   lispval *values=bound_bindings.schema_values;
   lispval *exprs=VEC_DATA(inits);
@@ -721,13 +721,13 @@ static lispval bindop(lispval op,
   while (i<n) {
     lispval val_expr=exprs[i];
     lispval val=op_eval(val_expr,bound,bind_stack,0);
-    if (KNO_ABORTED(val)) _return val;
+    if (KNO_ABORTED(val)) _eval_return val;
     if ( (env_copy == NULL) && (bound->env_copy) ) {
       env_copy=bound->env_copy; bound=env_copy;
       values=((kno_schemap)(bound->env_bindings))->schema_values;}
     values[i++]=val;}
   lispval result = op_eval_body(body,bound,bind_stack,tail);
-  kno_pop_stack(bind_stack);
+  kno_pop_eval(bind_stack);
   return result;
 }
 
@@ -743,7 +743,7 @@ static void reset_env_op(kno_lexenv env)
 
 static lispval opcode_dispatch_inner(lispval opcode,lispval expr,
                                      kno_lexenv env,
-                                     kno_stack _stack,
+                                     struct KNO_EVAL_STACK *_stack,
                                      int tail)
 {
   if (opcode == KNO_QUOTE_OPCODE)
@@ -751,7 +751,7 @@ static lispval opcode_dispatch_inner(lispval opcode,lispval expr,
   if (opcode == KNO_SOURCEREF_OPCODE) {
     if (!(KNO_PAIRP(KNO_CDR(expr)))) {
       lispval err = kno_err(kno_SyntaxError,"opcode_dispatch",NULL,expr);
-      _return err;}
+      _eval_return err;}
     /* Unpack sourcerefs */
     while (opcode == KNO_SOURCEREF_OPCODE) {
       lispval source = KNO_CAR(KNO_CDR(expr));
@@ -964,17 +964,17 @@ static lispval opcode_dispatch_inner(lispval opcode,lispval expr,
 }
 
 static lispval opcode_dispatch(lispval opcode,lispval expr,
-                              kno_lexenv env,
-                              kno_stack caller,
-                              int tail)
+			       kno_lexenv env,
+			       struct KNO_EVAL_STACK *caller,
+			       int tail)
 {
-  KNO_NEW_STACK(caller,"opcode",opcode_name(opcode),expr);
+  KNO_START_EVAL(caller,"opcode",opcode_name(opcode),expr);
   lispval result = opcode_dispatch_inner(opcode,expr,env,_stack,tail);
-  _return simplify_value(result);
+  _eval_return simplify_value(result);
 }
 
 KNO_FASTOP lispval op_eval(lispval x,kno_lexenv env,
-                         struct KNO_STACK *stack,
+                         struct KNO_EVAL_STACK *stack,
                          int tail)
 {
   switch (KNO_PTR_MANIFEST_TYPE(x)) {
@@ -1256,7 +1256,7 @@ static double opcodes_initialized = 0;
 
 KNO_EXPORT
 lispval kno_opcode_dispatch(lispval opcode,lispval expr,kno_lexenv env,
-                          struct KNO_STACK *stack,int tail)
+                          struct KNO_EVAL_STACK *stack,int tail)
 {
   return opcode_dispatch(opcode,expr,env,stack,tail);
 }

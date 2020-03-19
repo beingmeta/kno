@@ -564,7 +564,7 @@ cleandebug: clean
 knocore:    lib/libknocore@suffix@.a
 knostorage: lib/libknostorage@suffix@.a
 knodrivers: lib/libknodrivers@suffix@.a
-noscheme:   lib/libknoscheme@suffix@.a
+knoscheme:  lib/libknoscheme@suffix@.a
 knoweb:     lib/libknowebtools@suffix@.a
 knotext:    lib/libknotexttools@suffix@.a
 knodb:
@@ -917,6 +917,11 @@ CSOURCETAGS: src/lisp/*.c src/sys/*.c src/apply/*.c	\
 	src/exe/*.c src/exe/*.h
 	@echo Building KNO_SOURCE TAGS file
 	@etags -o $@ $^
+
+KNOSCHEMETAGS: src/eval/*.c src/prims/*.c src/web/*.c src/text/*.c
+	@echo Building scheme-implementation TAGS file
+	@etags -o $@ $^
+
 
 SCHEMETAGS: ${SCHEME_MODULES}
 	@echo Building SCHEMETAGS file

@@ -353,7 +353,7 @@ lispval kno_quasiquote(lispval obj,kno_lexenv env,int level)
   else return kno_incref(obj);
 }
 
-static lispval quasiquote_evalfn(lispval obj,kno_lexenv env,kno_stack s)
+static lispval quasiquote_evalfn(lispval obj,kno_lexenv env,struct KNO_EVAL_STACK *s)
 {
   if ((PAIRP(KNO_CDR(obj))) &&
       (NILP(KNO_CDR(KNO_CDR(obj))))) {

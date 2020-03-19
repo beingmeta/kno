@@ -100,7 +100,7 @@ static int ipeval_letstar_binding
   return kno_ipeval_call((kno_ipevalfn)ipeval_letstar_step,&bindstruct);
 }
 
-static lispval letq_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval letq_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
 {
   lispval bindexprs = kno_get_arg(expr,1), result = VOID;
   int n;
@@ -129,7 +129,7 @@ static lispval letq_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 }
 
 static lispval letqstar_evalfn
-(lispval expr,kno_lexenv env,kno_stack _stack)
+(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
 {
   lispval bindexprs = kno_get_arg(expr,1), result = VOID;
   int n;
@@ -171,7 +171,7 @@ static int ipeval_step(struct IPEVAL_STRUCT *s)
   else return 1;
 }
 
-static lispval ipeval_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval ipeval_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
 {
   struct IPEVAL_STRUCT tmp;
   tmp.ipv_expr = kno_refcar(kno_refcdr(expr));
@@ -180,7 +180,7 @@ static lispval ipeval_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   return tmp.ipv_value;
 }
 
-static lispval trace_ipeval_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval trace_ipeval_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
 {
   struct IPEVAL_STRUCT tmp; int old_trace = kno_trace_ipeval;
   tmp.ipv_expr = kno_refcar(kno_refcdr(expr));
@@ -192,7 +192,7 @@ static lispval trace_ipeval_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   return tmp.ipv_value;
 }
 
-static lispval track_ipeval_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval track_ipeval_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
 {
   struct IPEVAL_STRUCT tmp;
   int n_cycles; double total_time;

@@ -1,7 +1,7 @@
-static lispval op_get_headval(lispval head,kno_lexenv env,kno_stack eval_stack,
+static lispval op_get_headval(lispval head,kno_lexenv env,struct KNO_EVAL_STACK *eval_stack,
 			      int *gc_headval);
 
-lispval op_eval_expr(struct KNO_STACK *eval_stack,
+lispval op_eval_expr(struct KNO_EVAL_STACK *eval_stack,
 		     lispval head,lispval expr,kno_lexenv env,
 		     int tail)
 {
@@ -22,7 +22,7 @@ lispval op_eval_expr(struct KNO_STACK *eval_stack,
   else if (CHOICEP(headval))
     return eval_apply();
   else if (gc_head) {
-    KNO_ADD_TO_CHOICE(eval_stack->stack_vals,headval);}
+    KNO_ADD_TO_CHOICE(eval_stack->stack_refs,headval);}
   else NO_ELSE;
   kno_lisp_type headtype = KNO_TYPEOF(headval);
   kno_function f = (KNO_FUNCTION_TYPEP(headtype)) ?
@@ -55,7 +55,7 @@ lispval op_eval_expr(struct KNO_STACK *eval_stack,
       kno_consptr(struct KNO_MACRO *,headval,kno_macro_type);
     eval_stack->stack_type="macro";
     lispval xformer = macrofn->macro_transformer;
-    lispval new_expr = kno_dcall(eval_stack,xformer,1,&expr);
+    lispval new_expr = kno_dcall((kno_stack)eval_stack,xformer,1,&expr);
     lipsval eval_result = VOID;
     if (KNO_ABORTED(new_expr)) {
       u8_string show_name = macrofn->macro_name;
@@ -102,13 +102,13 @@ lispval op_eval_expr(struct KNO_STACK *eval_stack,
     if (KNO_QCHOICEP(arg_value)) qc_args++;
     args[i++] = arg_value;}
   if ( ((nd_args) && (isndop == 0) ) || (qc_args) )
-    return kno_ndcall(stack,headval,n_args,argvec);
+    return kno_call((kno_stack)stack,headval,n_args,argvec);
   else if ( (nd_args == 0) || (nd_op) )
-    return kno_dcall(stack,headval,n_args,argvec);
+    return kno_dcall((kno_stack)stack,headval,n_args,argvec);
   else return kno_call(stack,headval,n_args,argvec);
 }
       
-static lispval op_get_headval(lispval head,kno_lexenv env,kno_stack eval_stack,
+static lispval op_get_headval(lispval head,kno_lexenv env,struct KNO_EVAL_STACK *eval_stack,
 			      int *gc_headval)
 {
   lispval headval = VOID;

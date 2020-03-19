@@ -63,7 +63,7 @@ static int optionsp(lispval arg)
   else return 0;
 }
 
-static lispval getopt_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval getopt_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
 {
   lispval opts_arg = kno_get_arg(expr,1);
   if (KNO_VOIDP(opts_arg))
@@ -101,7 +101,7 @@ static lispval getopt_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       else return simplify_value(results);}}
 }
 #if 0
-static lispval tryopt_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval tryopt_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
 {
   lispval opts_arg = kno_get_arg(expr,1);
   if (KNO_VOIDP(opts_arg))

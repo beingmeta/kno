@@ -279,7 +279,7 @@ static int printout_helper(U8_OUTPUT *out,lispval x)
   return 1;
 }
 
-static lispval simple_fileout_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval simple_fileout_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
 {
   lispval filename_arg = kno_get_arg(expr,1);
   lispval filename_val = kno_eval(filename_arg,env);
@@ -322,7 +322,7 @@ static lispval simple_fileout_evalfn(lispval expr,kno_lexenv env,kno_stack _stac
 
 /* Not really I/O but related structurally and logically */
 
-static lispval simple_system_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval simple_system_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
 {
   struct U8_OUTPUT out; int result;
   U8_INIT_OUTPUT(&out,256);
@@ -1649,7 +1649,7 @@ int kno_snapback(kno_lexenv env,u8_string filename)
   return actions;
 }
 
-static lispval snapshot_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval snapshot_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
 {
   kno_lexenv save_env; u8_string save_file; int retval = 0;
   lispval arg1 = kno_eval(kno_get_arg(expr,1),env), arg2 = kno_eval(kno_get_arg(expr,2),env);
@@ -1679,7 +1679,7 @@ static lispval snapshot_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   else return KNO_INT(retval);
 }
 
-static lispval snapback_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval snapback_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
 {
   kno_lexenv save_env; u8_string save_file; int retval = 0;
   lispval arg1 = kno_eval(kno_get_arg(expr,1),env), arg2 = kno_eval(kno_get_arg(expr,2),env);

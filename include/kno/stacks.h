@@ -49,14 +49,6 @@ typedef struct KNO_STACK *kno_stack;
 typedef int (*kno_stack_cleanupfn)(struct KNO_STACK *);
 typedef lispval (*kno_stack_dumpfn)(struct KNO_STACK *);
 
-typedef struct KNO_SCHEME_STACK {
-  KNO_STACK_HEADER;
-  /* Eval specific */
-  lispval stack_source, stack_expr, stack_point;
-  struct KNO_LEXENV *stack_env;
-} KNO_SCHEME_STACK;
-typedef struct KNO_SCHEME_STACK *kno_scheme_stack;
-
 KNO_EXPORT u8_string kno_stack_types[8];
 
 typedef enum KNO_STACK_TYPE

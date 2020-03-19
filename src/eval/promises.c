@@ -26,7 +26,7 @@
 
 /* Promises, Delays, etc */
 
-static lispval delay_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval delay_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
 {
   lispval delay_expr = kno_get_arg(expr,1);
   if (KNO_VOIDP(delay_expr))
@@ -63,7 +63,7 @@ static lispval force_promise_prim(lispval promise)
         u8_unlock_mutex(&p->promise_lock);
         return kno_incref(p->promise_value);}
       lispval result = kno_stack_eval
-        (p->promise_expr,p->promise_env,kno_stackptr,0);
+        (p->promise_expr,p->promise_env,kno_eval_stackptr,0);
       if (KNO_ABORTED(result)) {
         u8_exception ex = u8_current_exception;
         /* p->promise_value = kno_simple_exception(ex); */
@@ -91,7 +91,7 @@ KNO_EXPORT lispval kno_force_promise(lispval promise)
         u8_unlock_mutex(&p->promise_lock);
         return kno_incref(p->promise_value);}
       lispval result = kno_stack_eval
-        (p->promise_expr,p->promise_env,kno_stackptr,0);
+        (p->promise_expr,p->promise_env,kno_eval_stackptr,0);
       if (KNO_ABORTED(result)) {
         u8_exception ex = u8_current_exception;
         /* p->promise_value = kno_simple_exception(ex); */

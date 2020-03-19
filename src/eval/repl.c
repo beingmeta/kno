@@ -34,7 +34,7 @@ static lispval repl_module=VOID;
 static lispval history_symbol, histref_typetag;
 
 KNO_EXPORT lispval with_history_evalfn
-(lispval expr,kno_lexenv env,kno_stack stack)
+(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *stack)
 {
   lispval history_arg = kno_stack_eval(kno_get_arg(expr,1),env,stack,0);
   if (KNO_VOIDP(history_arg)) {
