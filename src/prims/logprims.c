@@ -54,7 +54,7 @@ static u8_output get_output_port(lispval portarg)
 
 #define fast_eval(x,env) (kno_evaluate(x,env,_stack,0,1))
 
-static lispval message_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
+static lispval message_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 {
   lispval body = kno_get_body(expr,1);
   U8_OUTPUT *out = u8_open_output_string(1024);
@@ -74,7 +74,7 @@ static lispval message_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK 
   return VOID;
 }
 
-static lispval notify_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
+static lispval notify_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 {
   lispval body = kno_get_body(expr,1);
   U8_OUTPUT *out = u8_open_output_string(1024);
@@ -94,7 +94,7 @@ static lispval notify_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *
   return VOID;
 }
 
-static lispval status_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
+static lispval status_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 {
   lispval body = kno_get_body(expr,1);
   U8_OUTPUT *out = u8_open_output_string(1024);
@@ -114,7 +114,7 @@ static lispval status_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *
   return VOID;
 }
 
-static lispval warning_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
+static lispval warning_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 {
   lispval body = kno_get_body(expr,1);
   U8_OUTPUT *out = u8_open_output_string(1024);
@@ -140,7 +140,7 @@ static int get_loglevel(lispval level_arg)
   else return -1;
 }
 
-static lispval log_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
+static lispval log_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 {
   lispval level_arg = kno_eval(kno_get_arg(expr,1),env);
   lispval body = kno_get_body(expr,2);
@@ -182,7 +182,7 @@ static lispval log_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_st
   return VOID;
 }
 
-static lispval logreport_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
+static lispval logreport_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 {
   lispval body = kno_get_body(expr,1);
   int level = - LOG_NOTICE;
@@ -218,7 +218,7 @@ static lispval logreport_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STAC
   return VOID;
 }
 
-static lispval logif_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
+static lispval logif_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 {
   lispval test_expr = kno_get_arg(expr,1), value = KNO_FALSE;
   if (KNO_ABORTP(test_expr)) return test_expr;
@@ -265,7 +265,7 @@ static lispval logif_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_
     return VOID;}
 }
 
-static lispval logifplus_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
+static lispval logifplus_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 {
   lispval test_expr = kno_get_arg(expr,1), value = KNO_FALSE, loglevel_arg;
   if (KNO_ABORTP(test_expr)) return test_expr;

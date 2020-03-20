@@ -205,7 +205,7 @@ KNO_FASTOP int setup_call_stack(kno_stack stack,
     *fcnp = NULL;
   else NO_ELSE;
 
-  stack->stack_op = fn;
+  stack->stack_point = fn;
   stack->stack_args = args;
 
   return 1;
@@ -224,7 +224,7 @@ static lispval profiled_dcall
     struct KNO_FUNCTION *f;
     struct KNO_PROFILE *profile;
     struct KNO_STACK stack = { 0 };
-    KNO_SETUP_STACK((&stack),NULL,kno_apply_stack);
+    KNO_SETUP_STACK((&stack),NULL,kno_apply_stacktype);
     int setup = setup_call_stack(&stack,fn,n,argvec,&f);
     if (setup < 0) return KNO_ERROR;
     KNO_PUSH_STACK(&stack);
@@ -261,7 +261,7 @@ static lispval contoured_dcall
 
     struct KNO_FUNCTION *f = NULL;
     struct KNO_STACK stack = { 0 };
-    KNO_SETUP_STACK((&stack),NULL,kno_apply_stack);
+    KNO_SETUP_STACK((&stack),NULL,kno_apply_stacktype);
     int setup = setup_call_stack(&stack,fn,n,argvec,&f);
     if (setup < 0) return KNO_ERROR;
     KNO_PUSH_STACK(&stack);
@@ -288,7 +288,7 @@ static lispval reckless_dcall
 {
   struct KNO_FUNCTION *f = NULL;
   struct KNO_STACK stack = { 0 };
-  KNO_SETUP_STACK((&stack),NULL,kno_apply_stack);
+  KNO_SETUP_STACK((&stack),NULL,kno_apply_stacktype);
   int setup = setup_call_stack(&stack,fn,n,argvec,&f);
   if (setup < 0) return KNO_ERROR;
   KNO_PUSH_STACK(&stack);
@@ -550,7 +550,7 @@ KNO_EXPORT lispval kno_call(struct KNO_STACK *_stack,
   else NO_ELSE;
   if (iter_choices) {
     struct KNO_STACK iter_stack = { 0 };
-    KNO_SETUP_STACK(&iter_stack,"fnchoices",kno_iter_stack);
+    KNO_SETUP_STACK(&iter_stack,"fnchoices",kno_iter_stacktype);
     int checked = setup_call_stack(&iter_stack,handler,n,args,NULL);
     if (checked < 0) return KNO_ERROR;
     KNO_PUSH_STACK(&iter_stack);

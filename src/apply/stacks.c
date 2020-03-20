@@ -111,7 +111,7 @@ static lispval stack2lisp(struct KNO_STACK *stack,struct KNO_STACK *inner)
   lispval label	  = knostring(stack->stack_label);
   lispval file	  = (stack->stack_file) ?
     (knostring(stack->stack_file)) : (KNO_FALSE);
-  lispval op	  = kno_incref(stack->stack_op);
+  lispval op	  = kno_incref(stack->stack_point);
   lispval args	  = ( (stack->stack_args) && (stack->stack_width) ) ?
     (copy_args(stack->stack_width,stack->stack_args)) :
     (KNO_EMPTY_LIST);

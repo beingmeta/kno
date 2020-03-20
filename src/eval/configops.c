@@ -118,7 +118,7 @@ static lispval config_get(lispval vars,lispval dflt,lispval valfn)
   else return result;
 }
 
-static lispval config_macro(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *ptr)
+static lispval config_macro(lispval expr,kno_lexenv env,kno_eval_stack ptr)
 {
   lispval var = kno_get_arg(expr,1);
   if (KNO_SYMBOLP(var)) {

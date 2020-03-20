@@ -8,7 +8,7 @@ static int testeval(lispval expr,kno_lexenv env,int fail_val,
 
 static int testeval(lispval expr,kno_lexenv env,int fail_val,
 		    lispval *whoops,
-		    struct KNO_EVAL_STACK *_stack)
+		    kno_eval_stack _stack)
 {
   lispval val = kno_evaluate(expr,env,_stack,0,1);
   if (KNO_CONSP(val)) {
@@ -47,7 +47,7 @@ KNO_FASTOP lispval _pop_arg(lispval *scan)
   ( (KNO_PRECHOICEP(v)) ? (kno_simplify_choice(v)) : (v) )
 
 KNO_FASTOP lispval eval_body(lispval body,kno_lexenv env,
-			     struct KNO_EVAL_STACK *stack,
+			     kno_eval_stack stack,
 			     u8_context cxt,u8_string label,
 			     int tail)
 {

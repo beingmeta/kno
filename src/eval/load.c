@@ -45,7 +45,7 @@ KNO_EXPORT lispval kno_load_stream(u8_input loadstream,kno_lexenv env,
 {
   u8_string outer_sourcebase = kno_bind_sourcebase(sourcebase);
   double start = u8_elapsed_time();
-  struct KNO_EVAL_STACK *_stack = kno_eval_stackptr;
+  kno_eval_stack _stack = kno_eval_stackptr;
   lispval postload = VOID;
   KNO_CHECK_ERRNO(loadstream,"before loading");
   KNO_PUSH_EVAL(load_stack,u8_strdup(sourcebase),VOID);
@@ -169,7 +169,7 @@ static u8_string get_component(u8_string spec)
 
 /* Scheme primitives */
 
-static lispval load_source_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
+static lispval load_source_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 {
   lispval source_expr = kno_get_arg(expr,1), source, result;
   lispval encname_expr = kno_get_arg(expr,2), encval = VOID;
@@ -242,7 +242,7 @@ static lispval load_into_env_prim(lispval source,lispval envarg,lispval resultfn
   return (lispval) env;
 }
 
-static lispval load_component_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
+static lispval load_component_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 {
   lispval source_expr = kno_get_arg(expr,1), source, result;
   lispval encname_expr = kno_get_arg(expr,2), encval = VOID;
@@ -290,7 +290,7 @@ static lispval lisp_get_component(lispval string,lispval base)
     return kno_wrapstring(thepath);}
 }
 
-static lispval path_macro(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *ptr)
+static lispval path_macro(lispval expr,kno_lexenv env,kno_eval_stack ptr)
 {
   lispval arg = kno_get_arg(expr,1);
   if (KNO_STRINGP(arg)) {
@@ -408,7 +408,7 @@ int kno_load_latest(u8_string filename,kno_lexenv env,u8_string base)
     return 1;}
 }
 
-static lispval load_latest_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
+static lispval load_latest_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 {
   if (NILP(KNO_CDR(expr))) {
     int loads = kno_load_latest(NULL,env,NULL);

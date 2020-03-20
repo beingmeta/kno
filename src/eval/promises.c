@@ -26,7 +26,7 @@
 
 /* Promises, Delays, etc */
 
-static lispval delay_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
+static lispval delay_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 {
   lispval delay_expr = kno_get_arg(expr,1);
   if (KNO_VOIDP(delay_expr))

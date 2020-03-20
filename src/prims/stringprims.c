@@ -1707,7 +1707,7 @@ static lispval glom_lexpr(int n,kno_argvec args)
 
 /* Text if */
 
-static lispval textif_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
+static lispval textif_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 {
   lispval test_expr = kno_get_arg(expr,1), test_val = VOID;
   if (VOIDP(test_expr))

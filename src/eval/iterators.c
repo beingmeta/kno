@@ -25,7 +25,7 @@ static lispval iter_var;
 
 /* Simple iterations */
 
-static lispval while_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
+static lispval while_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 {
   lispval test_expr = kno_get_arg(expr,1);
   lispval body = kno_get_body(expr,2);
@@ -48,7 +48,7 @@ static lispval while_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_
   else return VOID;
 }
 
-static lispval until_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
+static lispval until_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 {
   lispval test_expr = kno_get_arg(expr,1);
   lispval body = kno_get_body(expr,2);
@@ -75,7 +75,7 @@ static lispval until_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_
 
 static lispval parse_control_spec
   (lispval expr,lispval *varp,lispval *count_var,
-   kno_lexenv env,struct KNO_EVAL_STACK *_stack)
+   kno_lexenv env,kno_eval_stack _stack)
 {
   lispval control_expr = kno_get_arg(expr,1);
   if (VOIDP(control_expr))
@@ -103,7 +103,7 @@ static lispval parse_control_spec
 /* DOTIMES */
 
 static lispval dotimes_evalfn(lispval expr,kno_lexenv env,
-			      struct KNO_EVAL_STACK *eval_stack)
+			      kno_eval_stack eval_stack)
 {
   int i = 0, limit;
   lispval body = kno_get_body(expr,2);
@@ -141,7 +141,7 @@ static lispval dotimes_evalfn(lispval expr,kno_lexenv env,
 /* DOSEQ */
 
 static lispval doseq_evalfn(lispval expr,kno_lexenv env,
-			    struct KNO_EVAL_STACK *eval_stack)
+			    kno_eval_stack eval_stack)
 {
   int i = 0, lim, islist = 0;
   lispval var, count_var = VOID;
@@ -197,7 +197,7 @@ static lispval doseq_evalfn(lispval expr,kno_lexenv env,
 /* FORSEQ */
 
 static lispval forseq_evalfn(lispval expr,kno_lexenv env,
-			     struct KNO_EVAL_STACK *eval_stack)
+			     kno_eval_stack eval_stack)
 {
   size_t i = 0, lim=0; int islist=0;
   lispval body = kno_get_body(expr,2), pairscan=VOID;
@@ -266,7 +266,7 @@ static lispval forseq_evalfn(lispval expr,kno_lexenv env,
 /* TRYSEQ */
 
 static lispval tryseq_evalfn(lispval expr,kno_lexenv env,
-			     struct KNO_EVAL_STACK *eval_stack)
+			     kno_eval_stack eval_stack)
 {
   size_t i = 0, lim=0; int islist=0;
   lispval body = kno_get_body(expr,2), pairscan=VOID;
@@ -330,7 +330,7 @@ static lispval tryseq_evalfn(lispval expr,kno_lexenv env,
 /* DOLIST */
 
 static lispval dolist_evalfn(lispval expr,kno_lexenv env,
-			     struct KNO_EVAL_STACK *eval_stack)
+			     kno_eval_stack eval_stack)
 {
   int i = 0;
   lispval body = kno_get_body(expr,2);
@@ -381,13 +381,13 @@ static lispval dolist_evalfn(lispval expr,kno_lexenv env,
 /* BEGIN, PROG1, and COMMENT */
 
 static lispval begin_evalfn(lispval begin_expr,kno_lexenv env,
-			    struct KNO_EVAL_STACK *_stack)
+			    kno_eval_stack _stack)
 {
   return eval_body(KNO_CDR(begin_expr),env,_stack,"BEGIN",NULL,1);
 }
 
 static lispval onbreak_evalfn(lispval begin_expr,kno_lexenv env,
-			      struct KNO_EVAL_STACK *_stack)
+			      kno_eval_stack _stack)
 {
   lispval body = kno_get_body(begin_expr,2);
   lispval result = eval_body(body,env,_stack,"ONBREAK",NULL,1);
@@ -397,7 +397,7 @@ static lispval onbreak_evalfn(lispval begin_expr,kno_lexenv env,
 }
 
 static lispval prog1_evalfn(lispval prog1_expr,kno_lexenv env,
-			    struct KNO_EVAL_STACK *_stack)
+			    kno_eval_stack _stack)
 {
   lispval arg1 = kno_get_arg(prog1_expr,1);
   if (VOIDP(arg1))
@@ -418,7 +418,7 @@ static lispval prog1_evalfn(lispval prog1_expr,kno_lexenv env,
     return result;}
 }
 
-static lispval comment_evalfn(lispval comment_expr,kno_lexenv env,struct KNO_EVAL_STACK *stack)
+static lispval comment_evalfn(lispval comment_expr,kno_lexenv env,kno_eval_stack stack)
 {
   return VOID;
 }

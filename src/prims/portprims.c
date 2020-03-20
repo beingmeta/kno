@@ -516,7 +516,7 @@ static int printout_helper(U8_OUTPUT *out,lispval x)
 KNO_EXPORT
 lispval kno_printout(lispval body,kno_lexenv env)
 {
-  struct KNO_EVAL_STACK *_stack=kno_eval_stackptr;
+  kno_eval_stack _stack=kno_eval_stackptr;
   U8_OUTPUT *out = u8_current_output;
   while (PAIRP(body)) {
     lispval value = fast_eval(KNO_CAR(body),env);
@@ -534,7 +534,7 @@ lispval kno_printout(lispval body,kno_lexenv env)
 KNO_EXPORT
 lispval kno_printout_to(U8_OUTPUT *out,lispval body,kno_lexenv env)
 {
-  struct KNO_EVAL_STACK *_stack=kno_eval_stackptr;
+  kno_eval_stack _stack=kno_eval_stackptr;
   u8_output prev = u8_current_output;
   u8_set_default_output(out);
   while (PAIRP(body)) {
@@ -609,7 +609,7 @@ static lispval uniscape(lispval arg,lispval excluding)
   return VOID;
 }
 
-static lispval printout_to_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
+static lispval printout_to_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 {
   lispval dest_arg = kno_get_arg(expr,1);
   if (KNO_VOIDP(dest_arg))
@@ -645,11 +645,11 @@ static lispval printout_to_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_ST
   return VOID;
 }
 
-static lispval printout_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
+static lispval printout_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 {
   return kno_printout(kno_get_body(expr,1),env);
 }
-static lispval lineout_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
+static lispval lineout_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 {
   U8_OUTPUT *out = u8_current_output;
   lispval value = kno_printout(kno_get_body(expr,1),env);
@@ -659,7 +659,7 @@ static lispval lineout_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK 
   return VOID;
 }
 
-static lispval stringout_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
+static lispval stringout_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 {
   struct U8_OUTPUT out; lispval result; u8_byte buf[256];
   U8_INIT_OUTPUT_X(&out,256,buf,0);

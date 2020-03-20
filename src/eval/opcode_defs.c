@@ -2,17 +2,17 @@
 
 static lispval handle_special_opcode(lispval opcode,lispval args,lispval expr,
                                      kno_lexenv env,
-                                     struct KNO_EVAL_STACK *_stack,
+                                     kno_eval_stack _stack,
 				     int tail);
-static lispval get_headval(lispval head,kno_lexenv env,struct KNO_EVAL_STACK *eval_stack,
+static lispval get_headval(lispval head,kno_lexenv env,kno_eval_stack eval_stack,
 			      int *gc_headval);
-KNO_FASTOP lispval op_eval(struct KNO_EVAL_STACK *_stack,lispval x,kno_lexenv env,int tail);
+KNO_FASTOP lispval op_eval(kno_eval_stack _stack,lispval x,kno_lexenv env,int tail);
 static lispval handle_table_opcode(lispval opcode,lispval expr,
                                    kno_lexenv env,
-                                   struct KNO_EVAL_STACK *_stack);
+                                   kno_eval_stack _stack);
 static lispval handle_numeric_opcode(lispval opcode,lispval expr,
 				     kno_lexenv env,
-				     struct KNO_EVAL_STACK *_stack);
+				     kno_eval_stack _stack);
 static lispval nd1_call(lispval opcode,lispval arg1);
 static lispval nd2_call(lispval opcode,lispval arg1,lispval arg2);
 static lispval d1_call(lispval opcode,lispval arg1);
@@ -20,7 +20,7 @@ static lispval d2_call(lispval opcode,lispval arg1,lispval arg2);
 static lispval d1_loop(lispval opcode,lispval arg1);
 static lispval d2_loop(lispval opcode,lispval arg1,lispval arg2);
 
-lispval op_eval_expr(struct KNO_EVAL_STACK *eval_stack,
+lispval op_eval_expr(kno_eval_stack eval_stack,
 		     lispval head,lispval expr,kno_lexenv env,
 		     int tail)
 {
@@ -56,11 +56,11 @@ lispval op_eval_expr(struct KNO_EVAL_STACK *eval_stack,
     (!((KNO_D1_OPCODEP(headval)) ||
        (KNO_D2_OPCODEP(headval)) ) ) :
     (0);
-  lispval restore_op = eval_stack->stack_op;
+  lispval restore_op = eval_stack->stack_point;
   kno_lexenv restore_env = eval_stack->stack_env;
   u8_string restore_label = eval_stack->stack_label;
   if (env == restore_env) restore_env = NULL;
-  eval_stack->stack_op = restore_op;
+  eval_stack->stack_point = restore_op;
   if (restore_env)
     eval_stack->stack_env = restore_env;
   eval_stack->stack_label = restore_label;
@@ -85,7 +85,7 @@ lispval op_eval_expr(struct KNO_EVAL_STACK *eval_stack,
       return kno_err(kno_SyntaxError,_("macro expansion"),show_name,new_expr);}
     result = kno_evaluate(new_expr,env,eval_stack,tail,-1);
     kno_decref(new_expr);
-    eval_stack->stack_op = restore_op;
+    eval_stack->stack_point = restore_op;
     if (restore_env) eval_stack->stack_env = restore_env;
     eval_stack->stack_label = restore_label;
     return result;}
@@ -176,7 +176,7 @@ lispval op_eval_expr(struct KNO_EVAL_STACK *eval_stack,
   else if (KNO_APPLICABLEP(headval))
     result = kno_dcall((kno_stack)eval_stack,headval,n_args,args);
   else result = kno_err(kno_NotAFunction,"op_eval",NULL,expr);
-  eval_stack->stack_op = restore_op;
+  eval_stack->stack_point = restore_op;
   if (restore_env) eval_stack->stack_env = restore_env;
   eval_stack->stack_label = restore_label;
   if (gc_args) {
@@ -194,7 +194,7 @@ static lispval unbound_error(lispval sym,kno_lexenv env)
   return kno_err(kno_UnboundIdentifier,"kno_eval",KNO_SYMBOL_NAME(sym),sym);
 }
 
-KNO_FASTOP lispval op_eval(struct KNO_EVAL_STACK *_stack,lispval x,kno_lexenv env,int tail)
+KNO_FASTOP lispval op_eval(kno_eval_stack _stack,lispval x,kno_lexenv env,int tail)
 {
   switch (KNO_PTR_MANIFEST_TYPE(x)) {
   case kno_oid_ptr_type: case kno_fixnum_ptr_type:
@@ -217,7 +217,7 @@ KNO_FASTOP lispval op_eval(struct KNO_EVAL_STACK *_stack,lispval x,kno_lexenv en
     case kno_pair_type:
       return op_eval_expr(_stack,KNO_CAR(x),x,env,tail);
     case kno_choice_type:
-      return choice_eval(x,env,_stack,tail);
+      return choice_eval(x,env,_stack);
     case kno_schemap_type: {
       lispval result = VOID;
       KNO_PUSH_EVAL(eval_stack,NULL,x);
@@ -230,7 +230,7 @@ KNO_FASTOP lispval op_eval(struct KNO_EVAL_STACK *_stack,lispval x,kno_lexenv en
       return kno_incref(x);}}}
 }
 
-KNO_FASTOP lispval op_eval_body(lispval body,kno_lexenv env,struct KNO_EVAL_STACK *stack,
+KNO_FASTOP lispval op_eval_body(lispval body,kno_lexenv env,kno_eval_stack stack,
 				u8_context cxt,u8_string label,
 				int tail)
 {
@@ -264,7 +264,7 @@ KNO_FASTOP lispval op_eval_body(lispval body,kno_lexenv env,struct KNO_EVAL_STAC
 
 typedef lispval (*reducefn)(lispval state,lispval arg,int *done);
 
-KNO_FASTOP lispval reduce_op(struct KNO_EVAL_STACK *stack,
+KNO_FASTOP lispval reduce_op(kno_eval_stack stack,
 			     lispval exprs,
 			     kno_lexenv env,
 			     lispval state,
@@ -297,7 +297,7 @@ KNO_FASTOP lispval reduce_op(struct KNO_EVAL_STACK *stack,
   return kno_simplify_choice(state);
 }
 
-KNO_FASTOP lispval nd_reduce_op(struct KNO_EVAL_STACK *stack,
+KNO_FASTOP lispval nd_reduce_op(kno_eval_stack stack,
 				lispval exprs,
 				kno_lexenv env,
 				lispval state,
@@ -370,7 +370,7 @@ KNO_FASTOP lispval try_reduce(lispval state,lispval step,int *done)
   return step;
 }
 
-static lispval try_op(lispval exprs,kno_lexenv env,struct KNO_EVAL_STACK *stack,int tail)
+static lispval try_op(lispval exprs,kno_lexenv env,kno_eval_stack stack,int tail)
 {
   return reduce_op(stack,exprs,env,
 		   KNO_EMPTY_CHOICE,KNO_VOID,
@@ -387,7 +387,7 @@ KNO_FASTOP lispval union_reduce(lispval state,lispval step,int *done)
     return state;}
 }
 
-static lispval union_op(lispval exprs,kno_lexenv env,struct KNO_EVAL_STACK *stack)
+static lispval union_op(lispval exprs,kno_lexenv env,kno_eval_stack stack)
 {
   return reduce_op(stack,exprs,env,
 		   KNO_EMPTY_CHOICE,KNO_VOID,
@@ -413,7 +413,7 @@ KNO_FASTOP lispval intersect_reduce(lispval state,lispval step,int *done)
     else return intersection;}
 }
 
-static lispval intersect_op(lispval exprs,kno_lexenv env,struct KNO_EVAL_STACK *stack)
+static lispval intersect_op(lispval exprs,kno_lexenv env,kno_eval_stack stack)
 {
   return reduce_op(stack,exprs,env,
 		   KNO_VOID,KNO_EMPTY_CHOICE,
@@ -440,7 +440,7 @@ KNO_FASTOP lispval difference_reduce(lispval state,lispval step,int *done)
     else return diff;}
 }
 
-static lispval difference_op(lispval exprs,kno_lexenv env,struct KNO_EVAL_STACK *stack)
+static lispval difference_op(lispval exprs,kno_lexenv env,kno_eval_stack stack)
 {
   return reduce_op(stack,exprs,env,
 		   KNO_VOID,KNO_EMPTY_CHOICE,
@@ -456,7 +456,7 @@ KNO_FASTOP lispval and_reduce(lispval state,lispval step,int *done)
   else return step;
 }
 
-static lispval and_op(lispval exprs,kno_lexenv env,struct KNO_EVAL_STACK *stack,int tail)
+static lispval and_op(lispval exprs,kno_lexenv env,kno_eval_stack stack,int tail)
 {
   return reduce_op(stack,exprs,env,KNO_TRUE,KNO_EMPTY_CHOICE,and_reduce);
 }
@@ -470,7 +470,7 @@ KNO_FASTOP lispval or_reduce(lispval state,lispval step,int *done)
   else return KNO_FALSE;
 }
 
-static lispval or_op(lispval exprs,kno_lexenv env,struct KNO_EVAL_STACK *stack,int tail)
+static lispval or_op(lispval exprs,kno_lexenv env,kno_eval_stack stack,int tail)
 {
   /* ??: is NO_PRUNE the right thing? */
   return reduce_op(stack,exprs,env,KNO_FALSE,KNO_EMPTY_CHOICE,or_reduce);
@@ -1068,7 +1068,7 @@ static lispval nd2_call(lispval opcode,lispval arg1,lispval arg2)
 
 /* Loop */
 
-static lispval until_opcode(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *stack)
+static lispval until_opcode(lispval expr,kno_lexenv env,kno_eval_stack stack)
 {
   lispval params = KNO_CDR(expr);
   lispval test_expr = KNO_CAR(params), loop_body = KNO_CDR(params);
@@ -1122,7 +1122,7 @@ static lispval combine_values(lispval combiner,lispval cur,lispval value)
     return value;
   }
 }
-static lispval assignop(struct KNO_EVAL_STACK *stack,kno_lexenv env,
+static lispval assignop(kno_eval_stack stack,kno_lexenv env,
                         lispval var,lispval expr,lispval combiner)
 {
   if (KNO_LEXREFP(var)) {
@@ -1224,7 +1224,7 @@ static lispval assignop(struct KNO_EVAL_STACK *stack,kno_lexenv env,
 /* Binding */
 
 static lispval bindop(lispval op,
-                      struct KNO_EVAL_STACK *_stack,kno_lexenv env,
+                      kno_eval_stack _stack,kno_lexenv env,
                       lispval vars,lispval inits,lispval body,
                       int tail)
 {
@@ -1249,7 +1249,7 @@ static lispval bindop(lispval op,
 }
 
 static lispval vector_bindop(lispval op,
-                     struct KNO_EVAL_STACK *_stack,kno_lexenv env,
+                     kno_eval_stack _stack,kno_lexenv env,
                              lispval vars,lispval inits,lispval body,
                              int tail)
 {
@@ -1292,7 +1292,7 @@ static lispval handle_table_result(int rv)
 
 static lispval handle_table_opcode(lispval opcode,lispval expr,
                                    kno_lexenv env,
-                                   struct KNO_EVAL_STACK *_stack)
+                                   kno_eval_stack _stack)
 {
   lispval args = KNO_CDR(expr);
   lispval subject_arg = pop_arg(args);
@@ -1382,7 +1382,7 @@ static lispval handle_table_opcode(lispval opcode,lispval expr,
 
 static lispval handle_special_opcode(lispval opcode,lispval args,lispval expr,
                                      kno_lexenv env,
-                                     struct KNO_EVAL_STACK *_stack,
+                                     kno_eval_stack _stack,
                                      int tail)
 {
   switch (opcode) {
@@ -1536,7 +1536,7 @@ KNO_FASTOP lispval plus_reduce(lispval state,lispval step,int *done)
   else return kno_plus(state,step);
 }
 
-static lispval plus_op(lispval exprs,kno_lexenv env,struct KNO_EVAL_STACK *stack)
+static lispval plus_op(lispval exprs,kno_lexenv env,kno_eval_stack stack)
 {
   return nd_reduce_op(stack,exprs,env,
 		      KNO_FIXNUM_ZERO,
@@ -1573,7 +1573,7 @@ KNO_FASTOP lispval minus_reduce(lispval state,lispval step,int *done)
   else return kno_subtract(state,step);
 }
 
-static lispval minus_op(lispval exprs,kno_lexenv env,struct KNO_EVAL_STACK *stack)
+static lispval minus_op(lispval exprs,kno_lexenv env,kno_eval_stack stack)
 {
   lispval arg0_expr = pop_arg(exprs);
   lispval arg0 = op_eval(stack,arg0_expr,env,0);
@@ -1660,7 +1660,7 @@ KNO_FASTOP lispval mult_reduce(lispval state,lispval step,int *done)
   else return kno_multiply(state,step);
 }
 
-static lispval mult_op(lispval exprs,kno_lexenv env,struct KNO_EVAL_STACK *stack)
+static lispval mult_op(lispval exprs,kno_lexenv env,kno_eval_stack stack)
 {
   return nd_reduce_op(stack,exprs,env,KNO_FIXNUM_ONE,mult_reduce);
 }
@@ -1688,7 +1688,7 @@ static lispval flodiv_reduce(lispval state,lispval step,int *done)
   else return kno_inexact_divide(state,step);
 }
 
-static lispval flodiv_op(lispval exprs,kno_lexenv env,struct KNO_EVAL_STACK *stack)
+static lispval flodiv_op(lispval exprs,kno_lexenv env,kno_eval_stack stack)
 {
   lispval arg0_expr = pop_arg(exprs);
   lispval arg0 = op_eval(stack,arg0_expr,env,0);
@@ -1753,7 +1753,7 @@ KNO_FASTOP lispval numeq_reduce(lispval state,lispval step,int *done)
     return KNO_FALSE;}
 }
 
-static lispval numeq_op(lispval exprs,kno_lexenv env,struct KNO_EVAL_STACK *stack)
+static lispval numeq_op(lispval exprs,kno_lexenv env,kno_eval_stack stack)
 {
   return bool_result(nd_reduce_op(stack,exprs,env,KNO_VOID,numeq_reduce));
 }
@@ -1792,7 +1792,7 @@ KNO_FASTOP lispval numgt_reduce(lispval state,lispval step,int *done)
     return KNO_FALSE;}
 }
 
-static lispval numgt_op(lispval exprs,kno_lexenv env,struct KNO_EVAL_STACK *stack)
+static lispval numgt_op(lispval exprs,kno_lexenv env,kno_eval_stack stack)
 {
   return bool_result(nd_reduce_op(stack,exprs,env,KNO_VOID,numgt_reduce));
 }
@@ -1830,7 +1830,7 @@ KNO_FASTOP lispval numgte_reduce(lispval state,lispval step,int *done)
     return KNO_FALSE;}
 }
 
-static lispval numgte_op(lispval exprs,kno_lexenv env,struct KNO_EVAL_STACK *stack)
+static lispval numgte_op(lispval exprs,kno_lexenv env,kno_eval_stack stack)
 {
   return bool_result(nd_reduce_op(stack,exprs,env,KNO_VOID,numgte_reduce));
 }
@@ -1868,7 +1868,7 @@ KNO_FASTOP lispval numlte_reduce(lispval state,lispval step,int *done)
     return KNO_FALSE;}
 }
 
-static lispval numlte_op(lispval exprs,kno_lexenv env,struct KNO_EVAL_STACK *stack)
+static lispval numlte_op(lispval exprs,kno_lexenv env,kno_eval_stack stack)
 {
   return bool_result(nd_reduce_op(stack,exprs,env,KNO_VOID,numlte_reduce));
 }
@@ -1906,7 +1906,7 @@ KNO_FASTOP lispval numlt_reduce(lispval state,lispval step,int *done)
     return KNO_FALSE;}
 }
 
-static lispval numlt_op(lispval exprs,kno_lexenv env,struct KNO_EVAL_STACK *stack)
+static lispval numlt_op(lispval exprs,kno_lexenv env,kno_eval_stack stack)
 {
   return bool_result(nd_reduce_op(stack,exprs,env,KNO_VOID,numlt_reduce));
 }
@@ -1914,7 +1914,7 @@ static lispval numlt_op(lispval exprs,kno_lexenv env,struct KNO_EVAL_STACK *stac
 
 static lispval handle_numeric_opcode(lispval opcode,lispval expr,
 				     kno_lexenv env,
-				     struct KNO_EVAL_STACK *_stack)
+				     kno_eval_stack _stack)
 {
   switch (opcode) {
   case KNO_PLUS_OPCODE:

@@ -1,7 +1,7 @@
-static lispval op_get_headval(lispval head,kno_lexenv env,struct KNO_EVAL_STACK *eval_stack,
+static lispval op_get_headval(lispval head,kno_lexenv env,kno_eval_stack eval_stack,
 			      int *gc_headval);
 
-lispval op_eval_expr(struct KNO_EVAL_STACK *eval_stack,
+lispval op_eval_expr(kno_eval_stack eval_stack,
 		     lispval head,lispval expr,kno_lexenv env,
 		     int tail)
 {
@@ -30,13 +30,13 @@ lispval op_eval_expr(struct KNO_EVAL_STACK *eval_stack,
     (NULL);
   int isndop = (f) && (f->fcn_call_flags & KNO_FCN_CALL_NDOP);
   int flags = eval_stack->stack_flags;
-  lispval restore_op = eval_stack->stack_op;
+  lispval restore_op = eval_stack->stack_point;
   lispval restore_env = eval_stack->stack_env;
   u8_string restore_label = eval_stack->stack_label;
   if (env == restore_env) restore_env = NULL;
-  eval_stack->stack_op = expr;
+  eval_stack->stack_point = expr;
   if (restore_env)
-    eval_stack->stack_op = env;
+    eval_stack->stack_point = env;
   eval_stack->stack_label = label;
   switch (headtype) {
   case kno_evalfn_type: {
@@ -44,7 +44,7 @@ lispval op_eval_expr(struct KNO_EVAL_STACK *eval_stack,
     /* These are evalfns which do all the evaluating themselves */
     if (handler->evalfn_name) eval_stack->stack_label=handler->evalfn_name;
     lispval eval_result = handler->evalfn_handler(expr,env,eval_stack);
-    eval_stack->stack_op = restore_op;
+    eval_stack->stack_point = restore_op;
     eval_stack->stack_env = restore_env;
     eval_stack->stack_label = restore_label;
     return eval_result;}
@@ -108,7 +108,7 @@ lispval op_eval_expr(struct KNO_EVAL_STACK *eval_stack,
   else return kno_call(stack,headval,n_args,argvec);
 }
       
-static lispval op_get_headval(lispval head,kno_lexenv env,struct KNO_EVAL_STACK *eval_stack,
+static lispval op_get_headval(lispval head,kno_lexenv env,kno_eval_stack eval_stack,
 			      int *gc_headval)
 {
   lispval headval = VOID;

@@ -173,7 +173,7 @@ static lispval reqval_prim(lispval vars,lispval dflt)
 }
 
 #if 0
-static lispval hashcolon_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
+static lispval hashcolon_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 {
   lispval var = kno_get_arg(expr,1);
   if (VOIDP(var))
@@ -181,7 +181,7 @@ static lispval hashcolon_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STAC
   else return reqget_prim(var,EMPTY);
 }
 
-static lispval hashcoloncolon_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
+static lispval hashcoloncolon_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 {
   lispval var = kno_get_arg(expr,1);
   if (VOIDP(var))
@@ -195,7 +195,7 @@ static lispval hashcoloncolon_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL
     else return val;}
 }
 
-static lispval hashcolondollar_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
+static lispval hashcolondollar_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 {
   lispval var = kno_get_arg(expr,1);
   if (VOIDP(var))
@@ -216,7 +216,7 @@ static lispval hashcolondollar_evalfn(lispval expr,kno_lexenv env,struct KNO_EVA
       return result;}}
 }
 
-static lispval hashcolonquestion_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
+static lispval hashcolonquestion_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 {
   lispval var = kno_get_arg(expr,1);
   if (VOIDP(var))
@@ -298,7 +298,7 @@ lispval reqdata_prim()
   return kno_req_call(kno_deep_copy);
 }
 
-static lispval withreq_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
+static lispval withreq_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 {
   lispval reqdata_expr = kno_get_arg(expr,1);
   lispval reqdata = kno_stack_eval(reqdata_expr,env,_stack);
@@ -349,7 +349,7 @@ KNO_EXPORT lispval reqloglen_prim()
     return KNO_INT(len);}
 }
 
-KNO_EXPORT lispval reqlog_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
+KNO_EXPORT lispval reqlog_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 {
   struct U8_XTIME xt;
   struct U8_OUTPUT *reqout = kno_reqlog(1);

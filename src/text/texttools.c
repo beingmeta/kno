@@ -2240,7 +2240,7 @@ static lispval morphrule(lispval string,lispval rules,lispval lexicon)
 
 /* textclosure prim */
 
-static lispval textclosure_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
+static lispval textclosure_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 {
   lispval pattern_arg = kno_get_arg(expr,1);
   lispval pattern = kno_eval(pattern_arg,env);

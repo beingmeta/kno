@@ -227,7 +227,7 @@ static u8_string name2string(lispval x)
   else return NULL;
 }
 
-static lispval evaltest_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *s)
+static lispval evaltest_evalfn(lispval expr,kno_lexenv env,kno_eval_stack s)
 {
   lispval testexpr  = kno_get_arg(expr,2), return_value = KNO_TRUE;
   if (VOIDP(testexpr))
@@ -298,7 +298,7 @@ static lispval evaltest_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK
   return return_value;
 }
 
-static lispval errtest_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *s)
+static lispval errtest_evalfn(lispval expr,kno_lexenv env,kno_eval_stack s)
 {
   lispval test_expr = kno_get_arg(expr,1);
   lispval v = kno_stack_eval(test_expr,env,s);

@@ -53,7 +53,7 @@ static lispval unquote_symbol, else_symbol, apply_marker, logcxt_symbol;
 KNO_DEF_EVALFN("TIMEVAL",timed_eval_evalfn,
 	       "`(TIMEVAL *expr* [*env*])` evaluates *expr* in *env*, logging "
 	       "the execution time.");
-static lispval timed_eval_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *stack)
+static lispval timed_eval_evalfn(lispval expr,kno_lexenv env,kno_eval_stack stack)
 {
   lispval toeval = kno_get_arg(expr,1);
   double start = u8_elapsed_time();
@@ -69,7 +69,7 @@ KNO_DEF_EVALFN("%TIMEVAL",timed_evalx_evalfn,
 	       "returning a vector of the result and the execution time. "
 	       "If *expr* signals an error, the description exception object "
 	       "is used as the value");
-static lispval timed_evalx_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *stack)
+static lispval timed_evalx_evalfn(lispval expr,kno_lexenv env,kno_eval_stack stack)
 {
   lispval toeval = kno_get_arg(expr,1);
   double start = u8_elapsed_time();
@@ -196,7 +196,7 @@ KNO_DEF_EVALFN("%wc",watchcall_evalfn,
 	       "`(%WC *fn* *args...*)` applies *fn* to *args*, logging "
 	       "each *arg* (and its value) as well as the final result of "
 	       "applying *fn*.");
-static lispval watchcall_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
+static lispval watchcall_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 {
   return watchcall(expr,env,0);
 }
@@ -205,7 +205,7 @@ KNO_DEF_EVALFN("%wc+",watchcall_plus_evalfn,
 	       "each *arg* (and its value) as well as the final result of "
 	       "applying *fn*. This also displays the expression for *fn* "
 	       "and the resulting function *objects* which are applied.");
-static lispval watchcall_plus_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
+static lispval watchcall_plus_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 {
   return watchcall(expr,env,1);
 }
@@ -279,7 +279,7 @@ static void log_ptr(lispval val,lispval label_arg,lispval expr)
 KNO_DEF_EVALFN("%watchptr",watchptr_evalfn,
 	       "`(%WATCHPTR *arg*)` evaluates *arg* and describes the "
 	       "resulting pointer value.");
-static lispval watchptr_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
+static lispval watchptr_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 {
   lispval val_expr = kno_get_arg(expr,1);
   lispval value = kno_stack_eval(val_expr,env,_stack);
@@ -291,7 +291,7 @@ KNO_DEF_EVALFN("%watchcons",watchcons_evalfn,
 	       "`(%WATCHCONS *ptrval* *exprs...*)` evaluates *exprs...* "
 	       "reporting any changes to the reference count data for the "
 	       "result of evaluating *ptrval*.");
-static lispval watchcons_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
+static lispval watchcons_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 {
   lispval val_expr = kno_get_arg(expr,1);
   lispval name_spec = kno_get_arg(expr,2);
@@ -356,7 +356,7 @@ KNO_DEF_EVALFN("%watch",watchpoint_evalfn,
 	       "*valname*=*result*. If *valname* starts with a newline "
 	       "character, the display starts on a new line and the value "
 	       "is displayed using `LISTDATA`.");
-static lispval watchpoint_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *stack)
+static lispval watchpoint_evalfn(lispval expr,kno_lexenv env,kno_eval_stack stack)
 {
   lispval toeval = kno_get_arg(expr,1);
   double start; int oneout = 0;
@@ -468,7 +468,7 @@ static lispval watchpoint_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STA
 KNO_DEF_EVALFN("%watchcond",watched_cond_evalfn,
 	       "`(%WATCHCOND ((*test* *consequents...)) *more clauses...*) "
 	       "executes a `COND` form but identifies which branch was taken.");
-static lispval watched_cond_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
+static lispval watched_cond_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 {
   lispval label_arg = KNO_VOID;
   u8_string label="%WCOND";
@@ -547,7 +547,7 @@ KNO_DEF_EVALFN("%watchtry",watched_try_evalfn,
 	       "`(%WATCHTRY ((*test* *consequents...)) *more clauses...*) "
 	       "executes a `TRY` form and logs which alternate returned "
 	       "non empty.");
-static lispval watched_try_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
+static lispval watched_try_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 {
   lispval label_arg = KNO_VOID;
   u8_string label="%WTRY";
@@ -620,7 +620,7 @@ KNO_DEF_EVALFN("dbg",dbg_evalfn,
 	       "on the result which can be used as a breakpoint in a C-level "
 	       "debugger. The value returned by _kno_dbg is the value "
 	       "returned by `DBG`.");
-static lispval dbg_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *stack)
+static lispval dbg_evalfn(lispval expr,kno_lexenv env,kno_eval_stack stack)
 {
   lispval arg_expr=kno_get_arg(expr,1);
   lispval msg_expr=kno_get_arg(expr,2);
@@ -785,7 +785,7 @@ KNO_DEF_EVALFN("google/profile",google_profile_evalfn,
 	       "in *body* with Google CPU profiling activated. If the second "
 	       "argument is a string, it is used as the outfile for the profiling "
 	       "information.");
-static lispval gprofile_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
+static lispval gprofile_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 {
   int start = 1; char *filename = NULL;
   if ( (PAIRP(KNO_CDR(expr))) && (STRINGP(KNO_CAR(KNO_CDR(expr)))) ) {
@@ -834,7 +834,7 @@ KNO_DEF_EVALFN("PROFILE",profiled_eval_evalfn,
 	       "the resulting value. The time taken to evaluate *expr* is "
 	       "tracked and added the the value of *label* in the hashtable "
 	       "which is the value of ``profile`` in the current enviroment.");
-static lispval profiled_eval_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *stack)
+static lispval profiled_eval_evalfn(lispval expr,kno_lexenv env,kno_eval_stack stack)
 {
   lispval toeval = kno_get_arg(expr,1);
   double start = u8_elapsed_time();
@@ -919,7 +919,7 @@ KNO_DEF_EVALFN("with-log-context",with_log_context_evalfn,
 	       "evaluating *label-expr*. This log context will be displayed "
 	       "together with all the log messages emitted during the "
 	       "execution of *body*.");
-static lispval with_log_context_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
+static lispval with_log_context_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 {
   lispval label_expr=kno_get_arg(expr,1);
   if (KNO_VOIDP(label_expr))
@@ -971,7 +971,7 @@ KNO_DEF_EVALFN("eval1",eval1,
 	       "`(EVAL1 *expr*)` evaulates *expr* and returns the "
 	       "result. This is used for debugging by labelling eval "
 	       "contexts in a way which is visible in C debuggers.");
-static DONT_OPTIMIZE lispval eval1(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *s)
+static DONT_OPTIMIZE lispval eval1(lispval expr,kno_lexenv env,kno_eval_stack s)
 {
   lispval result = kno_stack_eval(kno_get_arg(expr,1),env,s);
   return result;
@@ -981,7 +981,7 @@ KNO_DEF_EVALFN("eval2",eval2,
 	       "`(EVAL2 *expr*)` evaulates *expr* and returns the "
 	       "result. This is used for debugging by labelling eval "
 	       "contexts in a way which is visible in C debuggers.");
-static DONT_OPTIMIZE lispval eval2(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *s)
+static DONT_OPTIMIZE lispval eval2(lispval expr,kno_lexenv env,kno_eval_stack s)
 {
   lispval result = kno_stack_eval(kno_get_arg(expr,1),env,s);
   return result;
@@ -991,7 +991,7 @@ KNO_DEF_EVALFN("eval3",eval3,
 	       "`(EVAL3 *expr*)` evaulates *expr* and returns the "
 	       "result. This is used for debugging by labelling eval "
 	       "contexts in a way which is visible in C debuggers.");
-static DONT_OPTIMIZE lispval eval3(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *s)
+static DONT_OPTIMIZE lispval eval3(lispval expr,kno_lexenv env,kno_eval_stack s)
 {
   lispval result = kno_stack_eval(kno_get_arg(expr,1),env,s);
   return result;
@@ -1001,7 +1001,7 @@ KNO_DEF_EVALFN("eval4",eval4,
 	       "`(EVAL4 *expr*)` evaulates *expr* and returns the "
 	       "result. This is used for debugging by labelling eval "
 	       "contexts in a way which is visible in C debuggers.");
-static DONT_OPTIMIZE lispval eval4(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *s)
+static DONT_OPTIMIZE lispval eval4(lispval expr,kno_lexenv env,kno_eval_stack s)
 {
   lispval result = kno_stack_eval(kno_get_arg(expr,1),env,s);
   return result;
@@ -1011,7 +1011,7 @@ KNO_DEF_EVALFN("eval5",eval5,
 	       "`(EVAL5 *expr*)` evaulates *expr* and returns the "
 	       "result. This is used for debugging by labelling eval "
 	       "contexts in a way which is visible in C debuggers.");
-static DONT_OPTIMIZE lispval eval5(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *s)
+static DONT_OPTIMIZE lispval eval5(lispval expr,kno_lexenv env,kno_eval_stack s)
 {
   lispval result = kno_stack_eval(kno_get_arg(expr,1),env,s);
   return result;
@@ -1021,7 +1021,7 @@ KNO_DEF_EVALFN("eval6",eval6,
 	       "`(EVAL6 *expr*)` evaulates *expr* and returns the "
 	       "result. This is used for debugging by labelling eval "
 	       "contexts in a way which is visible in C debuggers.");
-static DONT_OPTIMIZE lispval eval6(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *s)
+static DONT_OPTIMIZE lispval eval6(lispval expr,kno_lexenv env,kno_eval_stack s)
 {
   lispval result = kno_stack_eval(kno_get_arg(expr,1),env,s);
   return result;
@@ -1031,7 +1031,7 @@ KNO_DEF_EVALFN("eval7",eval7,
 	       "`(EVAL7 *expr*)` evaulates *expr* and returns the "
 	       "result. This is used for debugging by labelling eval "
 	       "contexts in a way which is visible in C debuggers.");
-static DONT_OPTIMIZE lispval eval7(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *s)
+static DONT_OPTIMIZE lispval eval7(lispval expr,kno_lexenv env,kno_eval_stack s)
 {
   lispval result = kno_stack_eval(kno_get_arg(expr,1),env,s);
   return result;

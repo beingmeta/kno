@@ -40,7 +40,7 @@ KNO_EXPORT lispval kno_make_macro(u8_string name,lispval xformer)
   else return kno_err(kno_InvalidMacro,NULL,name,xformer);
 }
 
-static lispval macro_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
+static lispval macro_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 {
   if ((PAIRP(expr)) && (PAIRP(KNO_CDR(expr))) &&
       (SYMBOLP(KNO_CADR(expr))) &&

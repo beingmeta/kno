@@ -20,7 +20,7 @@
 
 static lispval else_symbol;
 
-static lispval if_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
+static lispval if_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 {
   lispval test_expr = kno_get_arg(expr,1), test_result;
   lispval consequent_expr = kno_get_arg(expr,2);
@@ -40,7 +40,7 @@ static lispval if_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_sta
     else return kno_eval(consequent_expr,env);}
 }
 
-static lispval tryif_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
+static lispval tryif_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 {
   lispval test_expr = kno_get_arg(expr,1), test_result;
   lispval first_consequent = kno_get_arg(expr,2);
@@ -76,7 +76,7 @@ static lispval not_prim(lispval arg)
 
 static lispval apply_marker;
 
-static lispval cond_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
+static lispval cond_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 {
   KNO_DOLIST(clause,KNO_CDR(expr)) {
     lispval test_val;
@@ -111,7 +111,7 @@ static lispval cond_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_s
   return VOID;
 }
 
-static lispval case_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
+static lispval case_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 {
   lispval key_expr = kno_get_arg(expr,1), keyval;
   if (VOIDP(key_expr))
@@ -134,7 +134,7 @@ static lispval case_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_s
     return VOID;}
 }
 
-static lispval when_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
+static lispval when_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 {
   lispval test_expr = kno_get_arg(expr,1), test_val;
   if (VOIDP(test_expr))
@@ -150,7 +150,7 @@ static lispval when_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_s
     return result;}
 }
 
-static lispval unless_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
+static lispval unless_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 {
   lispval test_expr = kno_get_arg(expr,1), test_val;
   if (VOIDP(test_expr))
@@ -168,7 +168,7 @@ static lispval unless_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *
     return VOID;}
 }
 
-static lispval and_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
+static lispval and_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 {
   lispval value = KNO_TRUE;
   /* Evaluate clauses until you get an error or a false/empty value */
@@ -183,7 +183,7 @@ static lispval and_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_st
   return value;
 }
 
-static lispval or_evalfn(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *_stack)
+static lispval or_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 {
   lispval value = KNO_FALSE;
   /* Evaluate clauses until you get an error or a non-false/non-empty value */

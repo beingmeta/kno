@@ -51,12 +51,15 @@ KNO_EXPORT int (*kno_dump_exception)(lispval bt);
 KNO_EXPORT int kno_choice_evalp(lispval x);
 
 #define KNO_NEED_EVALP(x) \
-  ((KNO_SYMBOLP(x)) || (KNO_LEXREFP(x)) ||        \
-   (KNO_PAIRP(x)))
+  ((KNO_SYMBOLP(x)) || (KNO_LEXREFP(x)) || (KNO_PAIRP(x)))
 #define KNO_EVALP(x) \
-  ( (KNO_SYMBOLP(x)) || (KNO_LEXREFP(x)) || \
-    (KNO_PAIRP(x))  ||       \
+  ( (KNO_SYMBOLP(x)) || (KNO_LEXREFP(x)) || (KNO_PAIRP(x)) || \
     ( (KNO_AMBIGP(x)) && (kno_choice_evalp(x)) ) )
+
+#define KNO_IMMEDIATE_EVAL(expr,env)			\
+  ( (KNO_LEXREFP(expr)) ? (kno_lexref(expr,env)) :	\
+    (KNO_SYMBOLP(expr)) ? (kno_eval_symbol(expr,env)) : \
+    (expr))
 
 KNO_EXPORT u8_string kno_evalstack_type, kno_ndevalstack_type;
 KNO_EXPORT u8_string kno_lambda_stack_type;
@@ -73,25 +76,33 @@ KNO_EXPORT u8_string kno_lambda_stack_type;
 typedef struct KNO_EVAL_STACK {
   KNO_STACK_HEADER;
   /* Eval specific */
-  lispval stack_source, stack_expr, stack_point;
+  lispval eval_source, eval_context;
+  struct KNO_EVAL_STACK *eval_tail;
   struct KNO_LEXENV *stack_env;} KNO_EVAL_STACK;
+typedef struct KNO_EVAL_STACK *kno_eval_stack;
 
-#define kno_eval_stackptr ((struct KNO_EVAL_STACK *)(kno_stackptr))
+#define kno_eval_stackptr ((kno_eval_stack)(kno_stackptr))
 
 KNO_EXPORT int _kno_eval_cleanupfn(struct KNO_STACK *);
-KNO_EXPORT int kno_pop_eval(struct KNO_EVAL_STACK *);
+KNO_EXPORT int kno_pop_eval(kno_eval_stack *);
 
 #define KNO_START_EVAL(name,label,expr,caller)		\
   struct KNO_EVAL_STACK _ ## name, *name = &_ ## name;  \
-  KNO_SETUP_STACK(&_ ## name,label,kno_eval_stack);	\
+  KNO_SETUP_STACK(&_ ## name,label,kno_eval_stacktype);	\
   KNO_STACK_SET_CALLER(&_ ## name,((kno_stack)caller));	\
-  _ ## name.stack_expr = _ ## name.stack_point =	\
-    _ ## name.stack_op = expr;				\
+  _ ## name.stack_point = expr;				\
   _ ## name.stack_cleanupfn = _kno_eval_cleanupfn;	\
   KNO_PUSH_STACK(((kno_stack)(& _ ## name)))
 
-#define KNO_NEW_EVAL(label,op,caller)			\
-  KNO_START_EVAL(_stack,label,op,caller);
+#define KNO_STACK_SET_TAIL(stack)			   \
+  if ((stack)->stack_caller)				   \
+    (stack)->eval_tail = (stack)->stack_caller->eval_tail; \
+  else KNO_ELSE;
+
+#define KNO_NEW_EVAL(label,expr,caller)			\
+  KNO_START_EVAL(_stack,label,expr,caller);		\
+  _stack->eval_context =_stack->eval_source = expr
+
 #define KNO_PUSH_EVAL(name,label,expr)		\
   KNO_START_EVAL(name,label,expr,((kno_stack)_stack))
 
@@ -222,7 +233,7 @@ KNO_EXPORT int kno_record_source;
   s->lambda_source=src; kno_incref(s->lambda_source);}   \
   else {}
 
-KNO_EXPORT lispval kno_apply_lambda(struct KNO_EVAL_STACK *,struct KNO_LAMBDA *fn,
+KNO_EXPORT lispval kno_apply_lambda(kno_eval_stack *,struct KNO_LAMBDA *fn,
                                     int n,kno_argvec args);
 KNO_EXPORT lispval kno_xapply_lambda
 (struct KNO_LAMBDA *fn,void *data,lispval (*getval)(void *,lispval));
@@ -258,18 +269,18 @@ typedef struct KNO_CONFIG_RECORD {
 #define kno_tail_eval(expr,env) (kno_evaluate(expr,env,kno_eval_stackptr,1,1))
 
 lispval kno_eval_body(lispval body,kno_lexenv env,
-		      struct KNO_EVAL_STACK *,
+		      kno_eval_stack stack,
                       u8_context cxt,u8_string label,
                       int tail);
 KNO_EXPORT lispval kno_eval_exprs(lispval exprs,kno_lexenv env,
-                                  struct KNO_EVAL_STACK *,
+                                  kno_eval_stack ,
 				  int);
 
 KNO_EXPORT lispval kno_cons_eval(lispval expr,kno_lexenv env,
-				 struct KNO_EVAL_STACK *stack,
+				 kno_eval_stack stack,
 				 int tail,int push);
 KNO_EXPORT lispval _kno_evaluate(lispval expr,kno_lexenv env,
-				 struct KNO_EVAL_STACK *stack,
+				 kno_eval_stack stack,
 				 int tail,int push);
 
 /* These are for non-static/inline versions */
@@ -277,8 +288,8 @@ KNO_EXPORT lispval _kno_eval(lispval expr,kno_lexenv env);
 KNO_EXPORT lispval _kno_get_arg(lispval expr,int i);
 KNO_EXPORT lispval _kno_get_body(lispval expr,int i);
 KNO_EXPORT lispval _kno_symeval(lispval,kno_lexenv);
-KNO_EXPORT int _kno_cleanup_eval(struct KNO_EVAL_STACK *stack);
-KNO_EXPORT int _kno_pop_eval(struct KNO_EVAL_STACK *arg);
+KNO_EXPORT int _kno_cleanup_eval(kno_eval_stack stack);
+KNO_EXPORT int _kno_pop_eval(kno_eval_stack arg);
 
 #if KNO_FAST_EVAL || KNO_INLINE_EVAL
 KNO_FASTOP lispval fastget(lispval table,lispval key)
@@ -341,7 +352,7 @@ KNO_FASTOP lispval eval_symbol(lispval symbol,kno_lexenv env)
 		 KNO_SYMBOL_NAME(symbol),symbol);
 }
 KNO_FASTOP lispval __kno_evaluate(lispval x,kno_lexenv env,
-				  struct KNO_EVAL_STACK *stack,
+				  kno_eval_stack stack,
 				  int tail,int push)
 {
   switch (KNO_PTR_MANIFEST_TYPE(x)) {
@@ -385,10 +396,10 @@ KNO_FASTOP lispval __kno_get_body(lispval expr,int i)
     else {expr = KNO_CDR(expr); i--;}
   return expr;
 }
-KNO_FASTOP int __kno_cleanup_eval(struct KNO_EVAL_STACK *stack)
+KNO_FASTOP int __kno_cleanup_eval(kno_eval_stack stack)
 {
 }
-KNO_FASTOP int __kno_pop_eval(struct KNO_EVAL_STACK *stack)
+KNO_FASTOP int __kno_pop_eval(kno_eval_stack stack)
 {
   int rv = __kno_cleanup_eval(stack);
   stack->stack_cleanupfn = NULL;

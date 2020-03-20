@@ -1105,7 +1105,7 @@ static lispval microtime_prim()
   else return KNO_INT(now);
 }
 
-static lispval now_macro(lispval expr,kno_lexenv env,struct KNO_EVAL_STACK *ptr)
+static lispval now_macro(lispval expr,kno_lexenv env,kno_eval_stack ptr)
 {
   lispval field = kno_get_arg(expr,1);
   lispval now = kno_make_timestamp(NULL);
