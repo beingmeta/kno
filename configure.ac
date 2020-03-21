@@ -361,6 +361,7 @@ AC_SUBST(MSG)
 AC_SUBST(BINDIR)
 AC_SUBST(CHOWN)
 AC_SUBST(CHMOD)
+AC_SUBST(GZIP)
 AC_SUBST(DELETEFILE)
 AC_SUBST(COPYFILE)
 AC_SUBST(TOUCHFILE)
@@ -416,6 +417,8 @@ AC_PATH_PROG(GOOGLE_PPROF,google-pprof)
 AC_PATH_PROG(XGETTEXT,xgettext)
 AC_PATH_PROG(MSGMERGE,msgmerge)
 AC_PATH_PROG(MSGFMT,msgfmt)
+
+AC_CHECK_PROGS(GZIP,"gzip","na")
 
 AC_ARG_WITH(execwrapper,--with-execwrapper program to use when calling exec(),,with_execwrapper=$binenv)
 if test "$with_execwrapper" != ""; then

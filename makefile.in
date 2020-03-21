@@ -62,11 +62,13 @@ APXS		  = @APXS@ -S LIBEXECDIR=$(DESTDIR)@apache_modules_dir@
 PPROF_PATH        = @GOOGLE_PPROF@
 CLEAN		  = @CLEAN@
 ECHO		  = @ECHO@
+GZIP		  = @GZIP@
 MSG		  = @MSG@
 SUINSTALL	  = @SUINSTALL@
 SYSINSTALL	  = @SUINSTALL@@INSTALL@
 SUDO	          = @SUDO@
 INSTALL		  = @INSTALL@
+MANINSTALL	  = $(SUDO)$(GZIP) -cf
 MKSTATIC	  = @MKSTATIC@ -o 
 CODENAME	  = @CODENAME@
 REL_BRANCH      ::= $(shell ./etc/getbuildopt REL_BRANCH current)
@@ -491,15 +493,18 @@ update: .buildmode
 	  echo "Updating" $(shell cat .buildmode) "build linked with" \
 		$(shell cat .malloc); \
 	fi;
+	make TAGS
 	@+make -s `cat .buildmode`
 
 normal:
 	@echo Building NORMAL configuration
+	@make TAGS
 	@if test -f .malloc; then \
 	  echo With $(shell cat .malloc) malloc; fi;
 	@+make -s testbin exe cmodules etc @TAGS@
 debugging:
 	@echo Building DEBUGGING configuration
+	@make TAGS
 	@if test -f .malloc; then \
 	  echo With $(shell cat .malloc) malloc; fi;
 	@+make -s XCFLAGS="@debugcflags@ -O0 -Wall -Wno-unknown-pragmas $(XCFLAGS)"	\
@@ -533,9 +538,10 @@ all: testbin debug-exe exe cmodules etc i18n @TAGS@
 packaged: exe cmodules etc i18n
 
 fresh: clean
-	make -s debugging
+	make update
 freshdebug dbgfresh freshbug: clean
-	make -s update
+	make TAGS
+	make -s debugging
 
 # Handy targets
 
@@ -1181,10 +1187,8 @@ $(MANDIR)/man1 $(MANDIR)/man8 $(DOCDIR)/html:
 	@$(SYSINSTALL) -d $@
 
 install-docs: $(MANDIR)/man1 $(MANDIR)/man8 $(DOCDIR)/html docs
-	@for file in docs/man/*.1; do gzip $${file}; done
-	@for file in docs/man/*.8; do gzip $${file}; done
-	@for file in docs/man/*.1.gz; do $(SYSINSTALL) $${file} $(MANDIR)/man1; done;
-	@for file in docs/man/*.8.gz; do $(SYSINSTALL) $${file} $(MANDIR)/man8; done
+	@for file in docs/man/*.1; do ${MANINSTALL} $(MANDIR)/man1/$$(basename $${file}).gz; done
+	@for file in docs/man/*.8; do ${MANINSTALL} $(MANDIR)/man8/$$(basename $${file}).gz; done
 	@for file in docs/man.html/*.html; do \
 	   $(SYSINSTALL) $${file} $(DOCDIR)/html; done
 
