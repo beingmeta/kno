@@ -317,12 +317,12 @@ void kno_log_exception(u8_exception ex)
   if (ex->u8x_xdata) {
     lispval irritant = kno_get_irritant(ex);
     u8_log(LOG_WARN,ex->u8x_cond,"%m (%m)\n\t%Q",
-           (U8ALT((ex->u8x_details),((U8S0())))),
-           (U8ALT((ex->u8x_context),((U8S0())))),
+           (U8ALT((ex->u8x_details),((U8S0)))),
+           (U8ALT((ex->u8x_context),((U8S0)))),
            irritant);}
   else u8_log(LOG_WARN,ex->u8x_cond,"%m (%m)",
-              (U8ALT((ex->u8x_details),((U8S0())))),
-              (U8ALT((ex->u8x_context),((U8S0())))));
+              (U8ALT((ex->u8x_details),((U8S0)))),
+              (U8ALT((ex->u8x_context),((U8S0)))));
 }
 
 KNO_EXPORT

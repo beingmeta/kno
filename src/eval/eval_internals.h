@@ -1,7 +1,7 @@
 static U8_MAYBE_UNUSED lispval moduleid_symbol;
 
-#define fast_eval(x,env) (kno_evaluate(x,env,_stack,0,1))
-#define stack_eval(x,env,s) (kno_evaluate(x,env,s,1,0))
+#define fast_eval(x,env) (kno_evaluate(x,env,_stack,0))
+#define stack_eval(x,env,s) (kno_evaluate(x,env,s,1))
 
 static int testeval(lispval expr,kno_lexenv env,int fail_val,
 		    lispval *whoops,struct KNO_EVAL_STACK *s) U8_MAYBE_UNUSED;
@@ -10,7 +10,7 @@ static int testeval(lispval expr,kno_lexenv env,int fail_val,
 		    lispval *whoops,
 		    kno_eval_stack _stack)
 {
-  lispval val = kno_evaluate(expr,env,_stack,0,1);
+  lispval val = kno_evaluate(expr,env,_stack,0);
   if (KNO_CONSP(val)) {
     kno_decref(val);
     return 1;}
@@ -68,7 +68,7 @@ KNO_FASTOP lispval eval_body(lispval body,kno_lexenv env,
 	  return v;
 	else kno_decref(v);}
       else if (KNO_EMPTY_LISTP(scan))
-	return kno_evaluate(subex,env,stack,tail,0);
+	return kno_evaluate(subex,env,stack,tail);
       else return kno_err(kno_SyntaxError,
 			  ( (cxt) && (label) ) ? (cxt) :
 			  ((u8_string)"eval_inner_body"),
@@ -79,14 +79,9 @@ KNO_FASTOP lispval eval_body(lispval body,kno_lexenv env,
 
 #define KNO_VOID_RESULT(result)				 \
   if (KNO_ABORTP(result)) return result;		 \
-  else if (KNO_TYPEP(result,kno_tailcall_type)) {	  \
-    struct KNO_TAILCALL *tc = (kno_tailcall)result;	    \
-    tc->tailcall_flags |= KNO_TAILCALL_VOID_VALUE;}	   \
   else { kno_decref(result); result = KNO_VOID; }
 
 #define KNO_DISCARD_RESULT(result)		 \
-  if (KNO_ABORTP(result)) return result;	 \
-  result = kno_finish_call(result);		   \
   if (KNO_ABORTP(result)) return result;	 \
   else { kno_decref(result); result = KNO_VOID;}
 
@@ -113,34 +108,51 @@ KNO_FASTOP kno_lexenv init_static_env
   return envstruct;
 }
 
-#define INIT_STACK_ENV(stack,name,parent,n)	     \
+static U8_MAYBE_UNUSED
+void release_stack_env(struct KNO_EVAL_STACK *stack)
+{
+  kno_lexenv env = stack->eval_env;
+  stack->eval_env = NULL;
+  if (env) {
+    if (env->env_copy) {
+      kno_free_lexenv(env->env_copy);
+      env->env_copy=NULL;}
+    if (KNO_SCHEMAPP(env->env_bindings)) {
+      struct KNO_SCHEMAP *map = (kno_schemap) env->env_bindings;
+      lispval *vals = map->schema_values;
+      int i = 0, n = map->schema_length;
+      while (i < n) {
+	kno_decref(vals[i]); i++;}}}
+}
+
+#define INIT_STACK_ENV(stack,name,parent,n)	      \
   struct KNO_SCHEMAP name ## _bindings;		      \
-  struct KNO_LEXENV _ ## name, *name=&_ ## name; \
+  struct KNO_LEXENV _ ## name, *name=&_ ## name;      \
   lispval name ## _vars[n];			      \
-  lispval name ## _vals[n];			      \
+  lispval name ## _vals[n];				    \
   kno_init_elts(name ## _vars,n,KNO_VOID);		    \
   kno_init_elts(name ## _vals,n,KNO_VOID);		    \
-  stack->stack_env =				     \
-    init_static_env(n,parent,			     \
-		    &name ## _bindings,		     \
-		    &_ ## name,			     \
-		    name ## _vars,		     \
+  stack->eval_env =					    \
+    init_static_env(n,parent,				    \
+		    &name ## _bindings,			    \
+		    &_ ## name,				    \
+		    name ## _vars,			    \
 		    name ## _vals)
 
-#define INIT_STACK_SCHEMA(stack,name,parent,n,schema)	\
+#define INIT_STACK_SCHEMA(stack,name,parent,n,schema)	 \
   struct KNO_SCHEMAP name ## _bindings;			 \
-  struct KNO_LEXENV _ ## name, *name=&_ ## name;    \
-  lispval name ## _vals[n];				 \
+  struct KNO_LEXENV _ ## name, *name=&_ ## name;	 \
+  lispval name ## _vals[n];				  \
   kno_init_elts(name ## _vals,n,KNO_VOID);		  \
-  stack->stack_env =					\
-    init_static_env(n,parent,				\
-		    &name ## _bindings,			\
-		    &_ ## name,				\
-		    schema,				\
+  stack->eval_env =					  \
+    init_static_env(n,parent,				  \
+		    &name ## _bindings,			  \
+		    &_ ## name,				  \
+		    schema,				  \
 		    name ## _vals)
 
 
-U8_MAYBE_UNUSED KNO_FASTOP
+KNO_FASTOP U8_MAYBE_UNUSED
 void reset_env(kno_lexenv env)
 {
   if (env->env_copy) {
@@ -148,7 +160,8 @@ void reset_env(kno_lexenv env)
     env->env_copy=NULL;}
 }
 
-static void set_stack_label(struct KNO_STACK *stack,u8_string label)
+static U8_MAYBE_UNUSED
+void set_stack_label(struct KNO_STACK *stack,u8_string label)
 {
   if ( (stack->stack_label) &&
        (stack->stack_flags&KNO_STACK_FREE_LABEL) ) {

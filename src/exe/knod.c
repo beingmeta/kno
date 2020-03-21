@@ -864,7 +864,7 @@ static lispval asyncok()
   else return KNO_FALSE;
 }
 
-static lispval boundp_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval boundp_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 {
   lispval symbol = kno_get_arg(expr,1);
   if (!(SYMBOLP(symbol)))
@@ -933,7 +933,7 @@ int main(int argc,char **argv)
 
   kno_main_errno_ptr = &errno;
 
-  KNO_INIT_STACK();
+  KNO_INIT_STACK_ROOT();
 
   server_sigmask = kno_default_sigmask;
   sigactions_init();
@@ -1037,10 +1037,6 @@ int main(int argc,char **argv)
 
   /* Now process all the configuration arguments */
   kno_handle_argv(argc,argv,arg_mask,NULL);
-
-  KNO_NEW_STACK(((struct KNO_STACK *)NULL),"knod",NULL,VOID);
-  _stack->stack_label=u8_strdup(u8_appid());
-  U8_SETBITS(_stack->stack_flags,KNO_STACK_FREE_LABEL);
 
   /* Store server initialization information in the configuration
      environment. */

@@ -761,7 +761,6 @@ static lispval macroexpand(lispval expander,lispval expr)
 	lispval new_expr=
 	  kno_dcall(kno_stackptr,kno_fcnid_ref(macrofn->macro_transformer),
 		    1,&expr);
-	new_expr = kno_finish_call(new_expr);
 	if (ABORTED(new_expr)) return kno_err(kno_SyntaxError,_("macro expansion"),NULL,new_expr);
 	else return new_expr;}
       else return kno_err(kno_InvalidMacro,NULL,macrofn->macro_name,expr);}

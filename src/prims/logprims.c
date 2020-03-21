@@ -52,7 +52,7 @@ static u8_output get_output_port(lispval portarg)
   else return NULL;
 }
 
-#define fast_eval(x,env) (kno_evaluate(x,env,_stack,0,1))
+#define fast_eval(x,env) (kno_evaluate(x,env,_stack,0))
 
 static lispval message_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 {

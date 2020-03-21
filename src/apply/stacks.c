@@ -70,8 +70,6 @@ static lispval stack_entry_symbol, stack_target_symbol, opaque_symbol,
   pbound_symbol, pargs_symbol;
 static lispval null_sym, unbound_sym, void_sym, default_sym, nofile_symbol;
 
-static int tidy_stack_frames = 1;
-
 /* This is for the C stack */
 lispval kno_default_stackspec = VOID;
 
@@ -79,14 +77,39 @@ static lispval copy_args(int width,kno_argvec args);
 
 /* Call stack (not used yet) */
 
-KNO_EXPORT void _kno_free_stack(struct KNO_STACK *stack)
+KNO_EXPORT int _kno_pop_stack_error(struct KNO_STACK *stack)
 {
-  kno_pop_stack(stack);
+  u8_string details = NULL;
+  if (KNO_STACK_TYPE(stack) == 0) {
+    kno_stack caller = stack->stack_caller;
+    details =
+      u8_mkstring("Popping dead stack 0x%llx (%s) caller = 0x%llx (%s)",
+		  (kno_ptrval)stack,
+		  (stack)? U8S(stack->stack_label) : (U8S0),
+		  (kno_ptrval)caller,
+		  (caller)? U8S(caller->stack_label) : (U8S0));}
+  else if (stack != kno_stackptr) {
+    kno_stack cur = kno_stackptr;
+    details =
+      u8_mkstring("Attempt to pop %s stack 0x%llx (%s) which isn't 0x%llx (%s)",
+		  (stack>cur) ? U8S("old") : U8S("earlier"),
+		  (kno_ptrval)stack,( (stack) ? (stack->stack_label) : (U8S0)),
+		  (kno_ptrval)cur,( (cur) ? (cur->stack_label) : (U8S0)));}
+  else details =
+	 u8_mkstring("For stack 0x%llx (%s)",(kno_ptrval)stack,
+		     ( (stack) ? (stack->stack_label) : (U8S0)));
+  u8_seterr("StackCorruption","kno_pop_stack",details);
+  return -1;
 }
 
-KNO_EXPORT void _kno_pop_stack(struct KNO_STACK *stack)
+KNO_EXPORT int _kno_free_stack(struct KNO_STACK *stack)
 {
-  kno_pop_stack(stack);
+  return kno_free_stack(stack);
+}
+
+KNO_EXPORT int _kno_pop_stack(struct KNO_STACK *stack)
+{
+  return kno_pop_stack(stack);
 }
 
 /* Stacks are rendered into LISP as vectors as follows:

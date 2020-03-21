@@ -56,6 +56,8 @@ u8_condition kno_TooManyArgs=_("too many arguments");
 u8_condition kno_TooFewArgs=_("too few arguments");
 u8_condition kno_NoDefault=_("no default value for #default argument");
 u8_condition kno_ProfilingDisabled=_("profiling not built");
+u8_condition kno_VoidArgument=_("VOID result passed as argument");
+
 
 static lispval moduleid_symbol;
 
@@ -110,7 +112,7 @@ KNO_FASTOP lispval core_call(kno_stack stack,
     else return kno_applyfns[fntype](fn,width,argvec);}
   else {
     lispval callbuf[width];
-    argcheck = setup_call(stack,width,fn,callbuf,width,argvec);
+    argcheck = setup_call(stack,fn,width,callbuf,n,argvec);
     if (argcheck<0) return KNO_ERROR;
     KNO_STACK_SET_CALL(stack,fn,width,(kno_argvec)callbuf);
     if (f)
@@ -221,12 +223,13 @@ static lispval profiled_dcall
   /* Make the call */
   if (stackcheck()) {
     lispval result=VOID;
-    struct KNO_FUNCTION *f;
-    struct KNO_PROFILE *profile;
+    struct KNO_FUNCTION *f = NULL;
+    struct KNO_PROFILE *profile = NULL;
     struct KNO_STACK stack = { 0 };
     KNO_SETUP_STACK((&stack),NULL,kno_apply_stacktype);
     int setup = setup_call_stack(&stack,fn,n,argvec,&f);
     if (setup < 0) return KNO_ERROR;
+    if (f) profile = f->fcn_profile;
     KNO_PUSH_STACK(&stack);
 
     U8_WITH_CONTOUR(fname,0) {
@@ -327,48 +330,45 @@ static lispval simple_dcall(lispval fn,int n,kno_argvec args)
 
 /* Calling non-deterministically */
 
-#define KNO_ADD_RESULT(to,result)               \
-  if (to == EMPTY) to = result;                 \
-  else {                                           \
-    if (TYPEP(to,kno_tailcall_type))               \
-      to = kno_finish_call(to);                    \
-    if (TYPEP(result,kno_tailcall_type))           \
-      result = kno_finish_call(result);            \
-    CHOICE_ADD(to,result);}
+#define KNO_ADD_RESULT(to,result)		\
+  if (to == EMPTY) to = result;			\
+  else {CHOICE_ADD(to,result);}
 
 static lispval ndcall_loop
 (struct KNO_STACK *_stack,
  lispval f,lispval *results,
  int i,int n,kno_argvec nd_args,lispval *d_args)
 {
-  lispval retval=VOID;
   if (i == n) {
     lispval result = kno_dcall(_stack,f,n,d_args);
     if (KNO_ABORTED(result))
-      retval = result;
-    else {KNO_ADD_TO_CHOICE(*results,result);}}
+      return result;
+    else {KNO_ADD_TO_CHOICE(*results,result);}
+    return result;}
   else {
-    lispval nd_arg = nd_args[i], free_val = KNO_VOID;
+    lispval nd_arg = nd_args[i],
+      free_simple = KNO_VOID,
+      retval = VOID;
     if (!(KNO_CONSP(nd_arg))) {
       d_args[i]=nd_arg;
       return ndcall_loop(_stack,f,results,i+1,n,nd_args,d_args);}
     if (PRECHOICEP(nd_arg)) {
-      free_val = kno_make_simple_choice(nd_arg);
-      nd_arg = free_val;}
+      nd_arg = kno_make_simple_choice(nd_arg);
+      free_simple = nd_arg;}
     if (CHOICEP(nd_arg)) {
       DO_CHOICES(elt,nd_args[i]) {
 	d_args[i]=elt;
 	retval = ndcall_loop(_stack,f,results,i+1,n,nd_args,d_args);
 	if (ABORTED(retval)) break;}
-      kno_decref(free_val);
+      kno_decref(free_simple);
       return retval;}
     else if (QCHOICEP(nd_arg))
       d_args[i] = KNO_QCHOICEVAL(nd_arg);
     else d_args[i] = nd_arg;
-    if (KNO_VOIDP(free_val))
+    if (KNO_VOIDP(free_simple))
       return ndcall_loop(_stack,f,results,i+1,n,nd_args,d_args);
     retval = ndcall_loop(_stack,f,results,i+1,n,nd_args,d_args);
-    kno_decref(free_val);
+    kno_decref(free_simple);
     return retval;}
 }
 
@@ -382,10 +382,8 @@ static lispval ndapply1(kno_stack _stack,
     if (KNO_ABORTP(r)) {
       KNO_STOP_DO_CHOICES;
       kno_decref(results);
-      kno_pop_stack(_stack);
       return r;}
     else {KNO_ADD_RESULT(results,r);}}
-  kno_pop_stack(_stack);
   return kno_simplify_choice(results);
 }
 
@@ -407,7 +405,6 @@ static lispval ndapply2(kno_stack _stack,
     if (KNO_ABORTP(results)) {
       KNO_STOP_DO_CHOICES;
       break;}}
-  kno_pop_stack(_stack);
   return kno_simplify_choice(results);
 }
 
@@ -433,7 +430,6 @@ static lispval ndapply3(kno_stack _stack,
     if (KNO_ABORTP(results)) {
       KNO_STOP_DO_CHOICES;
       break;}}
-  kno_pop_stack(_stack);
   return kno_simplify_choice(results);
 }
 
@@ -464,7 +460,6 @@ static lispval ndapply4(kno_stack _stack,
     if (KNO_ABORTP(results)) {
       KNO_STOP_DO_CHOICES;
       break;}}
-  kno_pop_stack(_stack);
   return kno_simplify_choice(results);
 }
 
@@ -520,7 +515,8 @@ static int nd_argp(int n,kno_argvec args)
     lispval arg = args[i];
     if (KNO_CONSP(arg)) {
       kno_lisp_type argtype = KNO_TYPEOF(arg);
-      if ( (arg == kno_choice_type) || (arg == kno_prechoice_type) )
+      if ( (argtype == kno_choice_type) ||
+	   (argtype == kno_prechoice_type) )
 	return 1;
       else i++;}
     else i++;}

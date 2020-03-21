@@ -998,14 +998,12 @@ KNO_FASTOP lispval op_eval(lispval x,kno_lexenv env,
       if (TYPEP(car,kno_opcode_type)) {
         if (tail)
           return opcode_dispatch(car,x,env,stack,tail);
-        else {
-          lispval v = opcode_dispatch(car,x,env,stack,tail);
-          return kno_finish_call(v);}}
+        else return opcode_dispatch(car,x,env,stack,tail);}
       else if (tail)
-        return kno_tail_eval(x,env);
-      else return kno_eval(x,env);}
+	return kno_tail_eval(x,env,stack);
+      else return kno_stack_eval(x,env,stack);}
     case kno_choice_type: case kno_prechoice_type:
-      return kno_eval(x,env);
+      return kno_stack_eval(x,env,stack);
     case kno_slotmap_type:
       return kno_deep_copy(x);
     default:

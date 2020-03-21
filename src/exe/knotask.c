@@ -156,16 +156,12 @@ int main(int argc,char **argv)
   u8_log_show_elapsed=1;
 
   kno_main_errno_ptr = &errno;
-  KNO_INIT_STACK();
+  KNO_INIT_STACK_ROOT();
 
   /* We just initialize this for now. */
   u8_log_show_procinfo = 1;
 
   args = handle_argv(argc,argv,&n_args,&exe_name,&source_file,"_");
-
-  KNO_NEW_STACK(((struct KNO_STACK *)NULL),"knotask",NULL,VOID);
-  _stack->stack_label=u8_strdup(u8_appid());
-  U8_SETBITS(_stack->stack_flags,KNO_STACK_FREE_LABEL);
 
   kno_register_config("LOGAPPEND",
                      _("Whether to extend existing log files or truncate them"),

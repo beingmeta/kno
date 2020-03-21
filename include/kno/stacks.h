@@ -68,15 +68,17 @@ typedef enum KNO_STACK_TYPE
 
 /* Stack bits */
 
-#define KNO_STACK_DECREF_OP	 0x0001
-#define KNO_STACK_DECREF_ARGS	 0x0002
-#define KNO_STACK_FREE_ARGS	 0x0004
-#define KNO_STACK_FREE_LABEL	 0x0010
-#define KNO_STACK_FREE_FILE	 0x0020
+#define KNO_STACK_DECREF_OP	 0x0008
+#define KNO_STACK_DECREF_ARGS	 0x0010
+#define KNO_STACK_FREE_ARGS	 0x0020
+#define KNO_STACK_FREE_LABEL	 0x0040
+#define KNO_STACK_FREE_FILE	 0x0080
 
 #define KNO_STACK_NEEDS_CLEANUP						\
   (KNO_STACK_DECREF_OP|KNO_STACK_DECREF_ARGS|KNO_STACK_FREE_ARGS|	\
    KNO_STACK_FREE_LABEL|KNO_STACK_FREE_FILE)
+
+#define KNO_STACK_TAIL_LOOP	 0x0100
 
 /*
   Stack flags (inherited by default)
@@ -136,47 +138,54 @@ KNO_EXPORT __thread struct KNO_STACK *kno_stackptr;
 
 #define KNO_STACK_SET_CALLER(stack,caller)		\
   (stack)->stack_caller = caller;			\
-  (stack)->stack_depth	= (caller)->stack_depth+1;	\
-  (stack)->stack_head	= caller->stack_head;		\
-  (stack)->stack_flags	= caller->stack_flags;
+  if (caller) {							\
+    (stack)->stack_depth	= (caller)->stack_depth+1;	\
+    (stack)->stack_head	= caller->stack_head;			\
+    (stack)->stack_flags	= caller->stack_flags;}
 
 #define KNO_STACK_SET_CALL(stack,op,n,args)		\
   (stack)->stack_point    = op;				\
   (stack)->stack_width = n;				\
   (stack)->stack_args  = args
 
-#define KNO_PUSH_STACK(stack)		   \
-  KNO_STACK_SET_CALLER(stack,kno_stackptr);	\
+#define KNO_PUSH_STACK(stack)				\
+  KNO_STACK_SET_CALLER(stack,kno_stackptr);		\
   set_call_stack(stack);
 
 #define KNO_INIT_STACK_ROOT()			 \
-  kno_init_cstack();				 \
-  set_call_stack(((kno_stack)NULL))
+  kno_init_cstack();					 \
+  u8_byte label[128];							\
+  u8_string appid = u8_appid();						\
+  u8_sprintf(label,128,"%s.root",appid);				\
+  struct KNO_STACK __stack = { 0 }, *_stack=&__stack;			\
+  KNO_SETUP_STACK(_stack,label,kno_apply_stacktype);			\
+  set_call_stack(_stack)
 
 #define KNO_INIT_THREAD_STACK()				 \
   kno_init_cstack();					 \
-  u8_byte label[128];					\
-  u8_sprintf(label,128,"thread%d",u8_threadid());	\
-  KNO_NEW_STACK(((struct KNO_STACK *)NULL),"thread",label,KNO_VOID)
-
-KNO_EXPORT void _kno_free_stack(struct KNO_STACK *stack);
-KNO_EXPORT void _kno_pop_stack(struct KNO_STACK *stack);
+  u8_byte label[128];					 \
+  u8_string appid = u8_appid();						\
+  u8_sprintf(label,128,"%sthread%d",appid,u8_threadid());		\
+  KNO_EVAL_ROOT(_stack,label,KNO_VOID)
 
 #define KNO_STACK_REF(stack,v)	\
   if (KNO_CONSP(v)) {KNO_ADD_TO_CHOICE((stack)->stack_refs,(v));} else {}
 #define KNO_STACK_DECREF(v) \
   if (KNO_CONSP(v)) {KNO_ADD_TO_CHOICE(_stack->stack_refs,v);} else {}
 
+KNO_EXPORT int _kno_free_stack(struct KNO_STACK *stack);
+KNO_EXPORT int _kno_pop_stack(struct KNO_STACK *stack);
+KNO_EXPORT int _kno_pop_stack_error(struct KNO_STACK *stack);
+
 #if KNO_INLINE_STACKS
-KNO_FASTOP void kno_free_stack(struct KNO_STACK *stack)
+KNO_FASTOP int __kno_free_stack(struct KNO_STACK *stack)
 {
   kno_stack_type type = KNO_STACK_TYPE(stack);
 
-  if (type == kno_null_stacktype) return;
-
+  if (type == kno_null_stacktype) return -1;
   int rv = (stack->stack_cleanupfn) ?
     ( (stack->stack_cleanupfn)(stack) ) : (0);
-  if (rv != 0) return;
+  if (rv != 0) return rv;
 
   if ((stack->stack_bits)&(KNO_STACK_NEEDS_CLEANUP)) {
     if ((stack->stack_bits)&(KNO_STACK_FREE_LABEL)) {
@@ -204,17 +213,26 @@ KNO_FASTOP void kno_free_stack(struct KNO_STACK *stack)
   if (KNO_CONSP(stack->stack_refs)) {
     kno_decref(stack->stack_refs);
     stack->stack_refs=KNO_EMPTY_CHOICE; }
-}
-KNO_FASTOP void kno_pop_stack(struct KNO_STACK *stack)
-{
-  if (KNO_STACK_TYPE(stack)) {
-    struct KNO_STACK *caller = stack->stack_caller;
-    kno_free_stack(stack);
-    set_call_stack(caller);}
-}
 
+  return 0;
+}
+KNO_FASTOP int __kno_pop_stack(struct KNO_STACK *stack)
+{
+  if ( (stack) && (KNO_STACK_TYPE(stack)) && (stack == kno_stackptr) ) {
+    struct KNO_STACK *caller = stack->stack_caller;
+    int rv = __kno_free_stack(stack);
+    set_call_stack(caller);
+    return rv;}
+  else return _kno_pop_stack_error(stack);
+}
+#endif /* KNO_INLINE_STACKS */
+
+#if KNO_INLINE_STACKS
+#define kno_free_stack __kno_free_stack
+#define kno_pop_stack __kno_pop_stack
 #else /* not KNO_INLINE_STACKS */
-#define kno_pop_stack(stack) (_kno_pop_stack(stack))
+#define kno_free_stack _kno_free_stack
+#define kno_pop_stack _kno_pop_stack
 #endif
 
 #if KNO_SOURCE

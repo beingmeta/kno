@@ -2,7 +2,8 @@
 
 KNO_EXPORT u8_condition kno_VoidArgument;
 
-static int check_args(int n,kno_argvec args)
+static U8_MAYBE_UNUSED
+int check_args(int n,kno_argvec args)
 {
   int needs_work = 0;
   int i = 0; while (i<n) {
@@ -36,7 +37,8 @@ static void arg_error(lispval fcn,lispval arg,int i)
   else kno_badptr_err(arg,"docall",details);
 }
 
-static void errno_warning(u8_string label)
+static U8_MAYBE_UNUSED
+void errno_warning(u8_string label)
 {
   if (errno) {
     u8_string cond=u8_strerror(errno);
@@ -45,7 +47,8 @@ static void errno_warning(u8_string label)
     errno=0;}
 }
 
-static int too_few_args(lispval fn,u8_string fname,int n,int min,int max)
+static U8_MAYBE_UNUSED
+int too_few_args(lispval fn,u8_string fname,int n,int min,int max)
 {
   kno_lisp_type ftype = KNO_TYPEOF(fn);
   u8_byte buf[64], namebuf[64];
@@ -63,7 +66,8 @@ static int too_few_args(lispval fn,u8_string fname,int n,int min,int max)
   return -1;
 }
 
-static int too_many_args(lispval fn,u8_string fname,int n,int min,int max)
+static U8_MAYBE_UNUSED
+int too_many_args(lispval fn,u8_string fname,int n,int min,int max)
 {
   kno_lisp_type ftype = KNO_TYPEOF(fn);
   u8_byte buf[64], namebuf[64];
@@ -78,9 +82,10 @@ static int too_many_args(lispval fn,u8_string fname,int n,int min,int max)
   return -1;
 }
 
-static int setup_call(kno_stack stack,lispval fcn,
-		      int width,lispval *callbuf,
-		      int n,kno_argvec args)
+static U8_MAYBE_UNUSED
+int setup_call(kno_stack stack,lispval fcn,
+	       int width,lispval *callbuf,
+	       int n,kno_argvec args)
 {
   int i = 0; while (i<n) {
     lispval arg = args[i];

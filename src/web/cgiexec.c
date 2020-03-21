@@ -29,7 +29,7 @@
 #include <libu8/u8stringfns.h>
 #include <libu8/u8streamio.h>
 
-#define fast_eval(x,env) (__kno_fast_eval(x,env,_stack,0))
+#define fast_eval(x,env) (kno_evaluate(x,env,kno_eval_stackptr,0))
 
 #include <ctype.h>
 
@@ -1172,7 +1172,6 @@ static int U8_MAYBE_UNUSED cgiexecstep(void *data)
   else call->cgiout->u8_write = call->cgiout->u8_outbuf+call->outlen;
   value = kno_xapply_lambda((kno_lambda)proc,(void *)cgidata,
                             (lispval (*)(void *,lispval))cgigetvar);
-  value = kno_finish_call(value);
   call->result = value;
   return 1;
 }
@@ -1205,10 +1204,9 @@ KNO_EXPORT lispval kno_cgiexec(lispval proc,lispval cgidata)
 #else
     int ipeval = 0;
 #endif
-    if (!(ipeval)) {
+    if (!(ipeval))
       value = kno_xapply_lambda((kno_lambda)proc,(void *)cgidata,
-                                (lispval (*)(void *,lispval))cgigetvar);
-      value = kno_finish_call(value);}
+				(lispval (*)(void *,lispval))cgigetvar);
 #if KNO_IPEVAL_ENABLED
     else {
       struct U8_OUTPUT *out = u8_current_output;

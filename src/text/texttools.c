@@ -1680,7 +1680,7 @@ static int framify(lispval f,u8_output out,lispval xtract)
 	  kno_decref(stringval);}
 	else if (KNO_APPLICABLEP(parser)) {
 	  lispval stringval = kno_stream2string(&_out);
-	  lispval parsed_val = kno_finish_call(kno_dapply(parser,1,&stringval));
+	  lispval parsed_val = kno_dapply(parser,1,&stringval);
 	  if (!(KNO_ABORTP(parsed_val))) kno_add(f,slotid,parsed_val);
 	  kno_decref(parsed_val);
 	  kno_decref(stringval);
@@ -2082,7 +2082,7 @@ static lispval check_string(lispval string,lispval lexicon)
 	kno_decref(value); kno_decref(subvalue);
 	return string;}}}
   else if (KNO_APPLICABLEP(lexicon)) {
-    lispval result = kno_finish_call(kno_dapply(lexicon,1,&string));
+    lispval result = kno_dapply(lexicon,1,&string);
     if (KNO_ABORTP(result)) return KNO_ERROR;
     else if (EMPTYP(result)) return EMPTY;
     else if (FALSEP(result)) return EMPTY;

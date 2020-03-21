@@ -31,7 +31,7 @@ lispval op_eval_expr(kno_eval_stack eval_stack,
   int isndop = (f) && (f->fcn_call_flags & KNO_FCN_CALL_NDOP);
   int flags = eval_stack->stack_flags;
   lispval restore_op = eval_stack->stack_point;
-  lispval restore_env = eval_stack->stack_env;
+  lispval restore_env = eval_stack->eval_env;
   u8_string restore_label = eval_stack->stack_label;
   if (env == restore_env) restore_env = NULL;
   eval_stack->stack_point = expr;
@@ -45,7 +45,7 @@ lispval op_eval_expr(kno_eval_stack eval_stack,
     if (handler->evalfn_name) eval_stack->stack_label=handler->evalfn_name;
     lispval eval_result = handler->evalfn_handler(expr,env,eval_stack);
     eval_stack->stack_point = restore_op;
-    eval_stack->stack_env = restore_env;
+    eval_stack->eval_env = restore_env;
     eval_stack->stack_label = restore_label;
     return eval_result;}
   case kno_macro_type: {

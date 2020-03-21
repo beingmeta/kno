@@ -36,10 +36,10 @@ static lispval keyfn_get(lispval val,lispval keyfn)
       return kno_get(keyfn,val,EMPTY);
     case kno_lambda_type:
     case kno_cprim_type:
-      return kno_finish_call(kno_dapply(keyfn,1,&val));
+      return kno_dapply(keyfn,1,&val);
     default:
       if (KNO_APPLICABLEP(keyfn))
-	return kno_finish_call(kno_dapply(keyfn,1,&val));
+	return kno_dapply(keyfn,1,&val);
       else if (KNO_TABLEP(keyfn))
 	return kno_get(keyfn,val,EMPTY);
       else if (OIDP(val))
@@ -122,7 +122,7 @@ static lispval dochoices_evalfn(lispval expr,kno_lexenv env,
     dochoices_vals[0]=kno_incref(elt);
     dochoices_stack->stack_point=dochoices_vals[1]=KNO_INT(i);
     {KNO_DOLIST(step,steps) {
-	lispval val = kno_cons_eval(step,dochoices,dochoices_stack,0,0);
+	lispval val = kno_cons_eval(step,dochoices,dochoices_stack,0);
 	if (KNO_BROKEP(val)) {
 	  finished=1; break;}
 	else if (KNO_ABORTED(val)) {
@@ -167,7 +167,7 @@ static lispval trychoices_evalfn(lispval expr,kno_lexenv env,
     trychoices_vals[1]=KNO_INT(i);
     KNO_DOLIST(step,steps) {
       kno_decref(val);
-      val = kno_evaluate(step,trychoices,trychoices_stack,0,0);
+      val = kno_evaluate(step,trychoices,trychoices_stack,0);
       if (KNO_BROKEP(val)) {
 	finished = 1; break;}
       else if (KNO_ABORTED(val)) {
@@ -217,7 +217,7 @@ static lispval forchoices_evalfn(lispval expr,kno_lexenv env,
     forchoices_vals[1]=KNO_INT(i);
     KNO_DOLIST(step,steps) {
       kno_decref(val);
-      val = kno_evaluate(step,forchoices,forchoices_stack,0,0);
+      val = kno_evaluate(step,forchoices,forchoices_stack,0);
       if (KNO_BROKEP(val)) {
 	results = kno_simplify_choice(results);
 	finished=1;
@@ -270,7 +270,7 @@ static lispval filterchoices_evalfn(lispval expr,kno_lexenv env,
     filterchoices_vals[1]=KNO_INT(i);
     KNO_DOLIST(step,steps) {
       kno_decref(val);
-      val = kno_evaluate(step,filterchoices,filterchoices_stack,0,0);
+      val = kno_evaluate(step,filterchoices,filterchoices_stack,0);
       if (KNO_BROKEP(val)) {
 	results = kno_simplify_choice(results);
 	finished=1;
@@ -354,7 +354,7 @@ static lispval try_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
   KNO_DOLIST(clause,clauses) {
     int ipe_state = kno_ipeval_status();
     kno_decref(value);
-    value = kno_evaluate(clause,env,_stack,0,0);
+    value = kno_evaluate(clause,env,_stack,0);
     if (KNO_ABORTED(value))
       return value;
     else if (VOIDP(value)) {
@@ -511,7 +511,7 @@ static int test_exists(struct KNO_FUNCTION *fn,
 		       int skip_errs)
 {
   if (i == n) {
-    lispval val = kno_finish_call(kno_dapply((lispval)fn,n,d_args));
+    lispval val = kno_dapply((lispval)fn,n,d_args);
     if ((FALSEP(val)) || (EMPTYP(val))) {
       return 0;}
     else if (KNO_ABORTED(val))
@@ -607,7 +607,7 @@ static int test_forall(struct KNO_FUNCTION *fn,int i,int n,
 		       int skip_errs)
 {
   if (i == n) {
-    lispval val = kno_finish_call(kno_dapply((lispval)fn,n,d_args));
+    lispval val = kno_dapply((lispval)fn,n,d_args);
     if (FALSEP(val))
       return 0;
     else if (EMPTYP(val))

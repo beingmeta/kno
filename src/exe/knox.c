@@ -185,10 +185,6 @@ static lispval *handle_argv(int argc,char **argv,size_t *arglenp,
 
   kno_init_lisp_types();
 
-  KNO_NEW_STACK(((kno_stack)NULL),"startup",argv[0],VOID);
-  _stack->stack_label=u8_strdup(u8_appid());
-  U8_SETBITS(_stack->stack_flags,KNO_STACK_FREE_LABEL);
-
   args = kno_handle_argv(argc,argv,arg_mask,arglenp);
 
   if (u8_appid() == NULL) {
@@ -206,8 +202,6 @@ static lispval *handle_argv(int argc,char **argv,size_t *arglenp,
 
   if (source_filep == NULL) u8_free(source_file);
   if (exe_namep == NULL) u8_free(exe_name);
-
-  kno_pop_stack(_stack);
 
   return args;
 }
@@ -376,8 +370,7 @@ int do_main(int argc,char **argv,
 	result = KNO_VOID;}}
     else if (KNO_APPLICABLEP(main_proc)) {
       kno_decref(result);
-      result = kno_apply(main_proc,n_args,args);
-      result = kno_finish_call(result);}
+      result = kno_apply(main_proc,n_args,args);}
     else {
       u8_log(LOGWARN,"BadMain",
 	     "The main procedure for %s (%q) isn't applicable",
@@ -425,19 +418,13 @@ int main(int argc,char **argv)
 
   kno_main_errno_ptr = &errno;
 
-  KNO_INIT_STACK();
+  KNO_INIT_STACK_ROOT();
 
 #if KNO_TESTCONFIG
   kno_autoload_config("TESTMODS","TESTLOAD","TESTINIT");
 #endif
 
   args = handle_argv(argc,argv,&n_args,&exe_name,&source_file,NULL);
-
-  KNO_NEW_STACK(((struct KNO_STACK *)NULL),"kno",NULL,VOID);
-  u8_string appid=u8_appid();
-  if (appid==NULL) appid=argv[0];
-  _stack->stack_label=u8_strdup(appid);
-  U8_SETBITS(_stack->stack_flags,KNO_STACK_FREE_LABEL);
 
   if (source_file)
     exec_script = kno_wrapstring(source_file);

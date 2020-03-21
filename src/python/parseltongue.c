@@ -1500,14 +1500,14 @@ static lispval pyimport(lispval modname)
 }
 
 static lispval py_use_module_evalfn
-(lispval expr,kno_lexenv env,kno_stack _stack)
+(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 {
   lispval modname_expr = kno_get_arg(expr,1);
   lispval imports_expr = kno_get_arg(expr,2);
   PyObject *module = NULL;
   if ( (KNO_VOIDP(modname_expr)) || (KNO_VOIDP(imports_expr)) )
     return kno_err(kno_SyntaxError,"py_use_module_evalfn",NULL,expr);
-  lispval modname = kno_stack_eval(modname_expr,env,_stack,0);
+  lispval modname = kno_stack_eval(modname_expr,env,_stack);
   if (ABORTED(modname)) return modname;
   else if (KNO_STRINGP(modname)) {
     PyObject *pmodulename=lisp2py(modname);
@@ -1536,7 +1536,7 @@ static lispval py_use_module_evalfn
       return KNO_ERROR;}
     else return KNO_VOID;}
   else NO_ELSE;
-  lispval imports = kno_stack_eval(imports_expr,env,_stack,0);
+  lispval imports = kno_stack_eval(imports_expr,env,_stack);
   if (ABORTED(imports)) {
     Py_DECREF(module);
     return imports;}

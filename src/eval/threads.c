@@ -681,7 +681,6 @@ static void *_kno_thread_main(void *data)
       result = kno_dapply(tstruct->applydata.fn,
 			  tstruct->applydata.n_args,
 			  tstruct->applydata.args);
-    result = kno_finish_call(result);
 
     u8_lock_mutex(&(tstruct->exit_lock));
     tstruct->flags = tstruct->flags|KNO_THREAD_DONE;
@@ -1611,8 +1610,8 @@ static int walk_thread_struct(kno_walker walker,lispval x,
     kno_eval_stack stackptr = tstruct->thread_stackptr;
     if (kno_walk(walker,stackptr->stack_point,walkdata,flags,depth-1)<0) {
       return -1;}
-    if ((stackptr->stack_env) &&
-	(kno_walk(walker,((lispval)stackptr->stack_env),walkdata,flags,depth-1)<0))
+    if ((stackptr->eval_env) &&
+	(kno_walk(walker,((lispval)stackptr->eval_env),walkdata,flags,depth-1)<0))
       return -1;
     if (!(KNO_EMPTYP(stackptr->stack_refs))) {
       KNO_DO_CHOICES(stack_val,stackptr->stack_refs) {

@@ -22,6 +22,7 @@
 #include "stacks.h"
 
 KNO_EXPORT u8_condition kno_NotAFunction, kno_TooManyArgs, kno_TooFewArgs;
+KNO_EXPORT u8_condition kno_VoidArgument;
 
 KNO_EXPORT int kno_wrap_apply;
 
@@ -318,38 +319,6 @@ KNO_EXPORT int kno_stackcheck(void);
 KNO_EXPORT ssize_t kno_init_cstack(void);
 
 #define KNO_INIT_CSTACK() kno_init_cstack()
-
-/* Tail calls */
-
-#define KNO_TAILCALL_ND_ARGS	 1
-#define KNO_TAILCALL_ATOMIC_ARGS 2
-#define KNO_TAILCALL_VOID_VALUE	 4
-
-typedef struct KNO_TAILCALL {
-  KNO_CONS_HEADER;
-  int tailcall_flags;
-  int tailcall_arity;
-  lispval tailcall_head;} *kno_tailcall;
-
-KNO_EXPORT lispval kno_tail_call(lispval fcn,int n,lispval *vec);
-KNO_EXPORT lispval kno_step_call(lispval c);
-KNO_EXPORT lispval _kno_finish_call(lispval);
-
-#define KNO_TAILCALLP(x) (KNO_TYPEP((x),kno_tailcall_type))
-
-KNO_INLINE_FCN lispval kno_finish_call(lispval pt)
-{
-  if (!(KNO_EXPECT_TRUE(KNO_CHECK_PTR(pt))))
-    return kno_badptr_err(pt,"kno_finish_call",NULL);
-  else if (KNO_TAILCALLP(pt)) {
-    lispval v = _kno_finish_call(pt);
-    if (KNO_PRECHOICEP(v))
-      return kno_simplify_choice(v);
-    else return v;}
-  else if (KNO_PRECHOICEP(pt))
-    return kno_simplify_choice(pt);
-  else return pt;
-}
 
 /* Apply functions */
 

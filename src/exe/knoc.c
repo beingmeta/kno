@@ -247,7 +247,8 @@ static int output_result(struct U8_OUTPUT *out,lispval result,
 
 static lispval history_symbol, histref_symbol;
 
-static lispval histref_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval histref_evalfn(lispval expr,kno_lexenv env,
+			      kno_eval_stack _stack)
 {
   lispval history = kno_thread_get(history_symbol);
   if (KNO_ABORTP(history))
@@ -887,9 +888,7 @@ int main(int argc,char **argv)
 
   kno_handle_argv(argc,argv,arg_mask,NULL);
 
-  KNO_NEW_STACK(((struct KNO_STACK *)NULL),"knoc",NULL,VOID);
-  _stack->stack_label=u8_strdup(u8_appid());
-  U8_SETBITS(_stack->stack_flags,KNO_STACK_FREE_LABEL);
+  KNO_INIT_STACK_ROOT();
 
   stop_file=kno_runbase_filename(".stop");
   kno_register_config
