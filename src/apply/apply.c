@@ -106,7 +106,7 @@ KNO_FASTOP lispval core_call(kno_stack stack,
   int argcheck = -1;
   kno_lisp_type fntype = KNO_PRIM_TYPE(fn);
   if ( (width == n) && (argcheck=check_args(n,argvec) == 0) ) {
-    KNO_STACK_SET_CALL(stack,fn,n,argvec);
+    KNO_STACK_SET_CALL(stack,fn,n,argvec,KNO_STACK_STATIC_CALL);
     if (f)
       return function_call(stack->stack_label,f,n,argvec,stack);
     else return kno_applyfns[fntype](fn,width,argvec);}
@@ -114,11 +114,13 @@ KNO_FASTOP lispval core_call(kno_stack stack,
     lispval callbuf[width];
     argcheck = setup_call(stack,fn,width,callbuf,n,argvec);
     if (argcheck<0) return KNO_ERROR;
-    KNO_STACK_SET_CALL(stack,fn,width,(kno_argvec)callbuf);
+    KNO_STACK_SET_CALL(stack,fn,width,(kno_argvec)callbuf,
+		       KNO_STACK_STATIC_CALL);
     if (f)
-      return function_call(stack->stack_label,f,width,(kno_argvec)callbuf,
+      return function_call(stack->stack_label,f,
+			   n,(kno_argvec)callbuf,
 			   stack);
-    else return kno_applyfns[fntype](fn,width,(kno_argvec)callbuf);}
+    else return kno_applyfns[fntype](fn,n,(kno_argvec)callbuf);}
 }
 
 static lispval profiled_call(kno_stack stack,
@@ -194,8 +196,8 @@ KNO_FASTOP int setup_call_stack(kno_stack stack,
     int max_arity = f->fcn_arity;
     u8_string label = stack->stack_label;
     if (fcnp) *fcnp = f;
-    if ( (label) && (stack->stack_flags & (KNO_STACK_FREE_LABEL) ) ) {
-      U8_CLEARBITS(stack->stack_flags,(KNO_STACK_FREE_LABEL));
+    if ( (label) && (stack->stack_bits & (KNO_STACK_FREE_LABEL) ) ) {
+      U8_CLEARBITS(stack->stack_bits,(KNO_STACK_FREE_LABEL));
       u8_free(label);}
     stack->stack_label = label = f->fcn_name;
     if ( (min_arity > 0) && (n < min_arity) )
@@ -207,8 +209,7 @@ KNO_FASTOP int setup_call_stack(kno_stack stack,
     *fcnp = NULL;
   else NO_ELSE;
 
-  stack->stack_point = fn;
-  stack->stack_args = args;
+  KNO_STACK_SET_CALL(stack,fn,n,args,KNO_STACK_STATIC_CALL);
 
   return 1;
 }
@@ -236,13 +237,16 @@ static lispval profiled_dcall
       if (profile == NULL)
 	result = core_call(&stack,fn,f,n,argvec);
       else result = profiled_call(&stack,fn,f,n,argvec,profile);
+      if (!(KNO_CHECK_PTR(result))) {
+	result = KNO_ERROR;
+	badptr_err(result,fn);}
       if (errno) errno_warning(stack.stack_label);}
     U8_ON_EXCEPTION {
       U8_CLEAR_CONTOUR();
       result = KNO_ERROR;}
     U8_END_EXCEPTION;
     if (KNO_PRECHOICEP(result)) {
-      lispval result = kno_simplify_choice(result);
+      result = kno_simplify_choice(result);
       kno_return_from(&stack,result);}
     else kno_return_from(&stack,result);}
   else {
@@ -476,16 +480,16 @@ static lispval ndcall(struct KNO_STACK *stack,lispval h,int n,kno_argvec args)
 	  ((n <= (f->fcn_arity)) &&
 	   (n >= (f->fcn_min_arity)))) {
 	/* Check the arg count */
-	int i = 0; while (i<n) {
+	int i = 0, no_choices = 1; while (i<n) {
 	  lispval arg = args[i++];
 	  if (KNO_EMPTYP(arg))
 	    return KNO_EMPTY_CHOICE;
-	  else if ( (KNO_CHOICEP(arg)) || (KNO_PRECHOICEP(arg)) )
-	    break;
+	  else if ( (KNO_CHOICEP(arg)) || (KNO_PRECHOICEP(arg)) ) {
+	    no_choices = 0; break;}
 	  else NO_ELSE;}
-	if (i == n)
+	if (no_choices)
 	  return kno_dcall(stack,h,n,args);
-	if (n==1)
+	else if (n==1)
 	  return ndapply1(stack,h,args[0]);
 	else if (n==2)
 	  return ndapply2(stack,h,args[0],args[1]);

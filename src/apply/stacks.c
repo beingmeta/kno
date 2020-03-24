@@ -102,6 +102,28 @@ KNO_EXPORT int _kno_pop_stack_error(struct KNO_STACK *stack)
   return -1;
 }
 
+KNO_EXPORT void
+_KNO_STACK_ADDREF(kno_stack stack,lispval v)
+{
+  KNO_STACK_ADDREF(stack,v);
+}
+
+KNO_EXPORT void
+_KNO_STACK_SET_ARGS(kno_stack stack,int n,kno_argvec args,
+		    unsigned int flags)
+{
+  KNO_STACK_SET_ARGS(stack,n,args,flags);
+}
+
+KNO_EXPORT void
+_KNO_STACK_SET_CALL(kno_stack stack,lispval op,
+		    int n,kno_argvec args,
+		    unsigned int flags)
+{
+  _KNO_STACK_SET_CALL(stack,op,n,args, flags);
+}
+
+
 KNO_EXPORT int _kno_free_stack(struct KNO_STACK *stack)
 {
   return kno_free_stack(stack);
@@ -131,9 +153,12 @@ static lispval stack2lisp(struct KNO_STACK *stack,struct KNO_STACK *inner)
 
   lispval depth	  = KNO_INT(stack->stack_depth);
   lispval typesym = stack_type_symbols[type];
-  lispval label	  = knostring(stack->stack_label);
+  lispval label	  = (stack->stack_label) ?
+    (knostring(stack->stack_label)) :
+    (KNO_FALSE);
   lispval file	  = (stack->stack_file) ?
-    (knostring(stack->stack_file)) : (KNO_FALSE);
+    (knostring(stack->stack_file)) :
+    (KNO_FALSE);
   lispval op	  = kno_incref(stack->stack_point);
   lispval args	  = ( (stack->stack_args) && (stack->stack_width) ) ?
     (copy_args(stack->stack_width,stack->stack_args)) :
@@ -144,6 +169,8 @@ static lispval stack2lisp(struct KNO_STACK *stack,struct KNO_STACK *inner)
     icrumb = u8_random(UINT_MAX);
     if (icrumb > KNO_MAX_FIXNUM) icrumb = icrumb%KNO_MAX_FIXNUM;
     stack->stack_crumb=icrumb;}
+
+  if (op == KNO_VOID) op = KNO_FALSE;
 
   return kno_init_compound
     (NULL,stack_entry_symbol,STACK_CREATE_OPTS,

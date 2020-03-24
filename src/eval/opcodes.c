@@ -721,7 +721,9 @@ static lispval bindop(lispval op,
   while (i<n) {
     lispval val_expr=exprs[i];
     lispval val=op_eval(val_expr,bound,bind_stack,0);
-    if (KNO_ABORTED(val)) _eval_return val;
+    if (KNO_ABORTED(val)) {
+      kno_pop_eval(bind_stack);
+      return val;}
     if ( (env_copy == NULL) && (bound->env_copy) ) {
       env_copy=bound->env_copy; bound=env_copy;
       values=((kno_schemap)(bound->env_bindings))->schema_values;}
@@ -749,9 +751,8 @@ static lispval opcode_dispatch_inner(lispval opcode,lispval expr,
   if (opcode == KNO_QUOTE_OPCODE)
     return kno_incref(next_qcode(expr));
   if (opcode == KNO_SOURCEREF_OPCODE) {
-    if (!(KNO_PAIRP(KNO_CDR(expr)))) {
-      lispval err = kno_err(kno_SyntaxError,"opcode_dispatch",NULL,expr);
-      _eval_return err;}
+    if (!(KNO_PAIRP(KNO_CDR(expr))))
+      return kno_err(kno_SyntaxError,"opcode_dispatch",NULL,expr);
     /* Unpack sourcerefs */
     while (opcode == KNO_SOURCEREF_OPCODE) {
       lispval source = KNO_CAR(KNO_CDR(expr));
@@ -970,7 +971,8 @@ static lispval opcode_dispatch(lispval opcode,lispval expr,
 {
   KNO_START_EVAL(caller,"opcode",opcode_name(opcode),expr);
   lispval result = opcode_dispatch_inner(opcode,expr,env,_stack,tail);
-  _eval_return simplify_value(result);
+  kno_pop_eval(caller);
+  return simplify_value(result);
 }
 
 KNO_FASTOP lispval op_eval(lispval x,kno_lexenv env,

@@ -49,7 +49,7 @@ KNO_EXPORT lispval kno_load_stream(u8_input loadstream,kno_lexenv env,
   lispval postload = VOID;
   KNO_CHECK_ERRNO(loadstream,"before loading");
   KNO_PUSH_EVAL(load_stack,u8_strdup(sourcebase),VOID);
-  load_stack->stack_flags |= KNO_STACK_FREE_LABEL;
+  load_stack->stack_bits |= KNO_STACK_FREE_LABEL;
   {
     /* This does a read/eval loop. */
     lispval result = VOID;
@@ -68,7 +68,10 @@ KNO_EXPORT lispval kno_load_stream(u8_input loadstream,kno_lexenv env,
       if (KNO_ABORTP(result)) {
 	if (KNO_TROUBLEP(result)) {
 	  u8_exception ex = u8_current_exception;
-	  if (log_load_errs)
+	  if (ex == NULL)
+	    u8_log(LOG_ERR,"UnknownError", "Errorin %s while evaluating %q",
+		   sourcebase,expr);
+	  else if (log_load_errs)
 	    u8_log(LOG_ERR,ex->u8x_cond,
 		   "Error (%s:%s) in %s while evaluating %q",
 		   ((ex->u8x_context)?(ex->u8x_context):((u8_string)"")),

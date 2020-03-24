@@ -228,6 +228,7 @@ static lispval forchoices_evalfn(lispval expr,kno_lexenv env,
 	finished=1;
 	break;}
       else NO_ELSE;}
+    if (!(finished)) {CHOICE_ADD(results,val);}
     reset_env(forchoices);
     kno_decref(forchoices_vals[0]);
     forchoices_vals[0]=VOID;
@@ -790,8 +791,7 @@ static lispval dosubsets_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stac
   if (KNO_ABORTED(choices)) return choices;
   else {KNO_SIMPLIFY_CHOICE(choices);}
   if (EMPTYP(choices)) return VOID;
-  KNO_ADD_TO_CHOICE(_stack->stack_refs,choices);
-  INIT_STACK_ENV(_stack,dosubsets,env,2);
+  KNO_INIT_ITER_LOOP(dosubsets,var,choices,2,_stack,env);
   dosubsets_vars[0]=var;
   if (SYMBOLP(count_var))
     dosubsets_vars[1]=count_var;
@@ -834,7 +834,8 @@ static lispval dosubsets_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stac
     kno_decref(dosubsets_vals[1]);
     dosubsets_vals[1]=VOID;
     i++;}
-  _eval_return VOID;
+  kno_pop_eval(dosubsets_stack);
+  return KNO_VOID;
 }
 
 /* Standard kinds of reduce choice */

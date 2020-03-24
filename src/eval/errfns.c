@@ -190,6 +190,7 @@ static lispval onerror_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
     else if (KNO_APPLICABLEP(handler)) {
       lispval err_value = kno_wrap_exception(ex);
       lispval handler_result = kno_apply(handler,1,&err_value);
+      kno_decref(err_value);
       if (KNO_ABORTP(handler_result)) {
 	u8_exception handler_ex = u8_erreify();
 	/* Clear this field so we can decref err_value while leaving
@@ -205,12 +206,10 @@ static lispval onerror_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 	u8_restore_exception(handler_ex);
 	kno_decref(value);
 	kno_decref(handler);
-	kno_decref(err_value);
 	return handler_result;}
       else {
 	kno_decref(value);
 	kno_decref(handler);
-	kno_decref(err_value);
 	kno_clear_errors(1);
 	u8_free_exception(ex,1);
 	return handler_result;}}
@@ -775,20 +774,28 @@ static lispval stack_entry_label(lispval stackobj)
   return kno_compound_ref(stackobj,stack_entry_symbol,2,KNO_FALSE);
 }
 
-DEFPRIM1("stack-op",stack_entry_op,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "Returns the op of a stack entry",
-	 kno_compound_type,KNO_VOID);
-static lispval stack_entry_op(lispval stackobj)
-{
-  return kno_compound_ref(stackobj,stack_entry_symbol,3,KNO_FALSE);
-}
-
 DEFPRIM1("stack-filename",stack_entry_filename,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns the label of a stack entry",
 	 kno_compound_type,KNO_VOID);
 static lispval stack_entry_filename(lispval stackobj)
 {
+  return kno_compound_ref(stackobj,stack_entry_symbol,3,KNO_FALSE);
+}
+
+DEFPRIM1("stack-op",stack_entry_op,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "Returns the op of a stack entry",
+	 kno_compound_type,KNO_VOID);
+static lispval stack_entry_op(lispval stackobj)
+{
   return kno_compound_ref(stackobj,stack_entry_symbol,4,KNO_FALSE);
+}
+
+DEFPRIM1("stack-args",stack_entry_args,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "Returns the args of a stack entry",
+	 kno_compound_type,KNO_VOID);
+static lispval stack_entry_args(lispval stackobj)
+{
+  return kno_compound_ref(stackobj,stack_entry_symbol,6,KNO_FALSE);
 }
 
 DEFPRIM1("stack-crumb",stack_entry_crumb,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
@@ -798,14 +805,6 @@ DEFPRIM1("stack-crumb",stack_entry_crumb,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 static lispval stack_entry_crumb(lispval stackobj)
 {
   return kno_compound_ref(stackobj,stack_entry_symbol,5,KNO_FALSE);
-}
-
-DEFPRIM1("stack-args",stack_entry_args,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "Returns the args of a stack entry",
-	 kno_compound_type,KNO_VOID);
-static lispval stack_entry_args(lispval stackobj)
-{
-  return kno_compound_ref(stackobj,stack_entry_symbol,6,KNO_FALSE);
 }
 
 DEFPRIM1("stack-source",stack_entry_source,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),

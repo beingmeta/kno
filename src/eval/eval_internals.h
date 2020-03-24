@@ -132,6 +132,7 @@ void release_stack_env(struct KNO_EVAL_STACK *stack)
   lispval name ## _vals[n];				    \
   kno_init_elts(name ## _vars,n,KNO_VOID);		    \
   kno_init_elts(name ## _vals,n,KNO_VOID);		    \
+  stack->stack_bits |= KNO_STACK_FREE_ENV;		    \
   stack->eval_env =					    \
     init_static_env(n,parent,				    \
 		    &name ## _bindings,			    \
@@ -155,30 +156,49 @@ void release_stack_env(struct KNO_EVAL_STACK *stack)
 KNO_FASTOP U8_MAYBE_UNUSED
 void reset_env(kno_lexenv env)
 {
+  /* This decrefs any dynamic copy of this env, resetting it to its initial bindings. */
   if (env->env_copy) {
     kno_free_lexenv(env->env_copy);
     env->env_copy=NULL;}
 }
 
-static U8_MAYBE_UNUSED
-void set_stack_label(struct KNO_STACK *stack,u8_string label)
+KNO_FASTOP U8_MAYBE_UNUSED
+void reset_stack_env(kno_eval_stack stack)
 {
-  if ( (stack->stack_label) &&
-       (stack->stack_flags&KNO_STACK_FREE_LABEL) ) {
-    stack->stack_flags &= (~KNO_STACK_FREE_LABEL);
-    u8_free(stack->stack_label);
-    stack->stack_label=label;}
-  else stack->stack_label=label;
+  kno_lexenv env = stack->eval_env;
+  if (PRED_TRUE(env != NULL)) {
+    stack->eval_env=NULL;
+    if (env->env_copy) {
+      kno_free_lexenv(env->env_copy);
+      env->env_copy=NULL;}}
+}
+
+static U8_MAYBE_UNUSED
+void set_stack_label(struct KNO_STACK *stack,u8_string label,int needs_free)
+{
+  if (stack->stack_label) {
+    u8_string old_label = stack->stack_label;
+    stack->stack_label = label;
+    int free_old = ( (stack->stack_bits) & (KNO_STACK_FREE_LABEL) );
+    if (free_old) u8_free(old_label);
+    if (needs_free) {
+      if (!(free_old)) KNO_STACK_SET(stack,KNO_STACK_FREE_LABEL);}
+    else if (free_old)
+      KNO_STACK_CLEAR(stack,KNO_STACK_FREE_LABEL);
+    else NO_ELSE;}
+  else {
+    stack->stack_label = label;
+    if (needs_free) KNO_STACK_SET(stack,KNO_STACK_FREE_LABEL);}
 }
 
 #define KNO_INIT_ITER_LOOP(name,var,value,n_vars,caller,parent_env)	\
-  KNO_STACK_REF(caller,value);				\
+  KNO_STACK_ADDREF(((kno_stack)caller),value);				\
   u8_byte iter_label_buf[32];						\
   u8_string label = (KNO_SYMBOLP(var)) ?				\
     u8_bprintf(iter_label_buf,"%s.%s", # name,KNO_SYMBOL_NAME(var)) :	\
     ((u8_string)(# name));						\
   KNO_START_EVAL(name ## _stack,NULL,expr,caller);			\
-  set_stack_label((kno_stack)caller,label);				\
+  set_stack_label((kno_stack)caller,label,0);				\
   INIT_STACK_ENV(name ## _stack,name,parent_env,n_vars);
 
 /* Environment utilities */

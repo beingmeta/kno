@@ -384,9 +384,13 @@ int do_main(int argc,char **argv,
     int old_maxelts = kno_unparse_maxelts, old_maxchars = kno_unparse_maxchars;
     u8_exception e = u8_erreify();
 
-    kno_unparse_maxchars = debug_maxchars; kno_unparse_maxelts = debug_maxelts;
-    kno_output_errstack(&out,e);
-    kno_unparse_maxelts = old_maxelts; kno_unparse_maxchars = old_maxchars;
+    if (e) {
+      kno_unparse_maxchars = debug_maxchars;
+      kno_unparse_maxelts = debug_maxelts;
+      kno_output_errstack(&out,e);
+      kno_unparse_maxelts = old_maxelts;
+      kno_unparse_maxchars = old_maxchars;}
+    else u8_puts(&out,"Null error object!");
     fputs(out.u8_outbuf,stderr);
     fputc('\n',stderr);
 

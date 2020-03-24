@@ -257,6 +257,7 @@ static lispval forseq_evalfn(lispval expr,kno_lexenv env,
     result=kno_makeseq(KNO_TYPEOF(seq),lim,results);
   kno_decref_vec(results,i);
   u8_free(results);
+  kno_pop_eval(forseq_stack);
   return result;
 }
 
@@ -372,6 +373,7 @@ static lispval dolist_evalfn(lispval expr,kno_lexenv env,
     if (finished) break;
     pairscan = KNO_CDR(pairscan);
     i++;}
+  kno_pop_eval(dolist_stack);
   return result;
 }
 

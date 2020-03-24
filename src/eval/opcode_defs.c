@@ -1191,8 +1191,9 @@ static lispval bindop(lispval op,
   while (i<n) {
     lispval val_expr = pop_arg(scan_inits);
     lispval val = kno_stack_eval(val_expr,bound,bind_stack);
-    if (KNO_ABORTED(val))
-      _eval_return val;
+    if (KNO_ABORTED(val)) {
+      kno_pop_eval(bind_stack);
+      return val;}
     if ( (env_copy == NULL) && (bound->env_copy) ) {
       env_copy=bound->env_copy; bound=env_copy;
       values=((kno_schemap)(bound->env_bindings))->schema_values;}
@@ -1216,8 +1217,9 @@ static lispval vector_bindop(lispval op,
   while (i<n) {
     lispval val_expr=exprs[i];
     lispval val=kno_stack_eval(val_expr,bound,bind_stack);
-    if (KNO_ABORTED(val))
-      _eval_return val;
+    if (KNO_ABORTED(val)) {
+      kno_pop_eval(bind_stack);
+      return val;}
     if ( (env_copy == NULL) && (bound->env_copy) ) {
       env_copy=bound->env_copy; bound=env_copy;
       values=((kno_schemap)(bound->env_bindings))->schema_values;}

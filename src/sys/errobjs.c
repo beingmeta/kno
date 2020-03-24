@@ -384,9 +384,10 @@ void kno_output_errstack(u8_output out,u8_exception ex)
   while (scan) {
     kno_output_exception(out,scan);
     scan=scan->u8x_prev;}
-  lispval stack = KNO_U8X_STACK(ex);
-  if (!(KNO_VOIDP(stack)))
-    kno_compact_backtrace(out,stack,kno_sum_stack_max);
+  if (ex) {
+    lispval stack = KNO_U8X_STACK(ex);
+    if (!(KNO_VOIDP(stack)))
+      kno_compact_backtrace(out,stack,kno_sum_stack_max);}
 }
 
 KNO_EXPORT

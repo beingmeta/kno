@@ -664,7 +664,7 @@ static void *_kno_thread_main(void *data)
 
     KNO_NEW_EVAL("thread",VOID,((kno_eval_stack )NULL));
     _stack->stack_label=u8_mkstring("thread%lld",u8_threadid());
-    U8_SETBITS(_stack->stack_flags,KNO_STACK_FREE_LABEL);
+    U8_SETBITS(_stack->stack_bits,KNO_STACK_FREE_LABEL);
     tstruct->thread_stackptr=_stack;
 
     /* Run any thread init functions */
@@ -1613,11 +1613,13 @@ static int walk_thread_struct(kno_walker walker,lispval x,
     if ((stackptr->eval_env) &&
 	(kno_walk(walker,((lispval)stackptr->eval_env),walkdata,flags,depth-1)<0))
       return -1;
+    /*
     if (!(KNO_EMPTYP(stackptr->stack_refs))) {
       KNO_DO_CHOICES(stack_val,stackptr->stack_refs) {
 	if (kno_walk(walker,stack_val,walkdata,flags,depth-1)<0) {
 	  KNO_STOP_DO_CHOICES;
 	  return -1;}}}
+    */
     if (stackptr->stack_width) {
       const lispval *args = stackptr->stack_args;
       int i=0, n=stackptr->stack_width; while (i<n) {

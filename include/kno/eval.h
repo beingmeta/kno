@@ -373,7 +373,7 @@ KNO_FASTOP lispval __kno_evaluate(lispval x,kno_lexenv env,
     case kno_lexref_type:
       return __kno_lexref(x,env);
     case kno_symbol_type:
-      return __kno_symeval(x,env);
+      return __kno_eval_symbol(x,env);
     default:
       return x;}}}
   kno_lisp_type type = KNO_CONSPTR_TYPE(x);
@@ -408,6 +408,13 @@ KNO_FASTOP lispval __kno_get_body(lispval expr,int i)
 }
 KNO_FASTOP int __kno_cleanup_eval(kno_eval_stack stack)
 {
+  if (stack->stack_cleanupfn == _kno_eval_cleanupfn)
+    stack->stack_cleanupfn=NULL;
+  kno_lexenv env = stack->eval_env;
+  if (env) {
+    stack->eval_env = NULL;
+    if (stack->stack_bits & KNO_STACK_FREE_ENV) {
+      kno_free_lexenv(env);}}
   return 0;
 }
 KNO_FASTOP int __kno_pop_eval(kno_eval_stack stack)

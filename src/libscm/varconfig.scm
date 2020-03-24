@@ -69,7 +69,8 @@
 (define varconfig!
   (macro expr
     (let* ((confspec (cadr expr))
-	   (confarg (if (symbol? confspec) `(quote ,confspec)
+	   (confarg (if (symbol? confspec) 
+			`(quote ,confspec)
 			(if (string? confspec)
 			    `(quote ,(string->symbol confspec))
 			    confspec)))

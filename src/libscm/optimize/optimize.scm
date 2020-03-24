@@ -20,7 +20,7 @@
 (use-module 'varconfig)
 (use-module 'logger)
 
-(define-init %loglevel %warning%)
+(define-init %loglevel %warn%)
 
 ;; OPTLEVEL interpretations
 ;; 0: no optimization

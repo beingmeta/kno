@@ -98,20 +98,26 @@ lispval lambda_call(kno_eval_stack _stack,
       _stack->stack_label=fn->fcn_name;
     else {
       _stack->stack_label=lambda_id(fn);
-      U8_SETBITS(_stack->stack_flags,KNO_STACK_FREE_LABEL);}}
+      U8_SETBITS(_stack->stack_bits,KNO_STACK_FREE_LABEL);}}
 
   int i = 0, max_positional = (arity < 0) ? (n_vars-1) : (arity);
   int last_positional = (arity < 0) ?
     ((n < max_positional) ? (n) : (max_positional)) :
     (n);
-  lispval callbuf[n_vars];
-  _stack->stack_args = callbuf;
-  _stack->stack_bits &= (~KNO_STACK_FREE_ARGS);
+  int call_flags = 0;
+  lispval *callbuf;
+  if (n_vars<_stack->eval_callbuf_len)
+    callbuf = _stack->eval_callbuf;
+  else {
+    callbuf = u8_alloc_n(n_vars,lispval);
+    call_flags |= KNO_STACK_FREE_ARGS;}
 
   /* Handle positional arguments */
   while (i<last_positional) {
-    callbuf[i] = args[i];
-    i++;}
+    lispval arg = args[i];
+    if (QCHOICEP(arg))
+      callbuf[i++]=KNO_QCHOICEVAL(arg);
+    else callbuf[i++] = arg;}
 
   /* Handle positional arguments */
   lispval *inits = fn->lambda_inits;
@@ -131,20 +137,29 @@ lispval lambda_call(kno_eval_stack _stack,
       if (ABORTED(init_val)) {
 	_stack->stack_width=i;
 	return init_val;}
-      callbuf[i++]=init_val;}}
+      callbuf[i++]=init_val;
+      if (KNO_MALLOCDP(init_val)) {
+	KNO_STACK_ADDREF((kno_stack)_stack,init_val);};}}
 
   /* Now accumulate a .rest arg if it's needed */
   if (arity < 0) {
-    if (i<n)
-      callbuf[i] = get_rest_arg(args+i,n-i);
+    if (i<n) {
+      lispval rest_arg = get_rest_arg(args+i,n-i);
+      KNO_STACK_ADDREF((kno_stack)_stack,rest_arg);
+      callbuf[i] = rest_arg;}
     else callbuf[i] = KNO_EMPTY_LIST;
-    while (i<n) { kno_decref(args[i++]); }
     i++;}
+  while (i<n_vars) { callbuf[i++] = KNO_VOID;}
+
+  lispval original[n_vars];
+  memcpy(original,callbuf,sizeof(lispval)*n_vars);
+  int j=0; while (j<n_vars) {kno_incref(original[j]); j++;}
+
+  KNO_STACK_SET_ARGS(((kno_stack)_stack),i,callbuf,call_flags);
 
   struct KNO_LEXENV stack_env = { 0 };
   struct KNO_SCHEMAP bindings = { 0 };
-  init_static_env(n_vars,proc_env,&bindings,&stack_env,
-		  vars,callbuf);
+  init_static_env(n_vars,proc_env,&bindings,&stack_env,vars,callbuf);
   _stack->eval_env     = call_env = &stack_env;
   _stack->stack_args   = callbuf;
   _stack->stack_width  = n_vars;
@@ -159,13 +174,45 @@ lispval lambda_call(kno_eval_stack _stack,
 
   if (fn->lambda_synchronized) { u8_unlock_mutex(&(fn->lambda_lock));}
 
-  if ( (_stack->eval_env) && (_stack->eval_env->env_copy) ) {
-    kno_decref((lispval)_stack->eval_env->env_copy);
-    _stack->eval_env->env_copy=NULL;}
-  _stack->eval_env=NULL;
+  kno_free_lexenv(&stack_env);
 
   return result;
 }
+
+lispval lambda_activate(kno_eval_stack stack)
+{
+  lispval point = stack->stack_point;
+  struct KNO_LAMBDA *proc = (kno_lambda) point;
+  kno_lexenv proc_env = proc->lambda_env;
+  kno_lexenv call_env = proc_env;
+  int n_vars = proc->lambda_n_vars;
+  lispval *vars  = proc->lambda_vars;
+  kno_argvec vals  = stack->stack_args;
+  int tail = proc->lambda_synchronized;
+
+  struct KNO_LEXENV  eval_env = { 0 };
+  struct KNO_SCHEMAP bindings = { 0 };
+  init_static_env(n_vars,proc_env,
+		  &bindings,&eval_env,
+		  vars,(lispval *)vals);
+  stack->eval_env    = call_env = &eval_env;
+  stack->stack_args  = vals;
+  stack->stack_width = n_vars;
+
+  /* If we're synchronized, lock the mutex. */
+  if (proc->lambda_synchronized) u8_lock_mutex(&(proc->lambda_lock));
+
+  lispval result = eval_body(proc->lambda_start,call_env,stack,
+			     ":LAMBDA",proc->fcn_name,tail);
+
+  if (proc->lambda_synchronized) u8_unlock_mutex(&(proc->lambda_lock));
+
+  reset_stack_env(stack);
+
+  return result;
+}
+
+
 
 KNO_EXPORT lispval kno_apply_lambda(kno_eval_stack stack,
 				    struct KNO_LAMBDA *fn,
@@ -865,9 +912,11 @@ lispval kno_xapply_lambda
       lispval default_expr = KNO_CADR(argspec);
       lispval default_value = kno_eval(default_expr,fn->lambda_env);
       kno_schemap_store(&call_env_bindings,argname,default_value);
+      KNO_STACK_ADDREF((kno_stack)_stack,default_value);
       kno_decref(default_value);}
     else {
       kno_schemap_store(&call_env_bindings,argname,argval);
+      KNO_STACK_ADDREF((kno_stack)_stack,argval);
       kno_decref(argval);}
     arglist = KNO_CDR(arglist);}
   /* This means we have a lexpr arg. */
