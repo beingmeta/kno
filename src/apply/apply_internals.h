@@ -144,7 +144,7 @@ static int cprim_prep(kno_stack stack,
     while (i<width) {
       args[i] = defaults[i];
       i++;}}
-  else while (i<width) args[i]=KNO_VOID;
+  else while (i<width) args[i++]=KNO_VOID;
   return width;
 }
 

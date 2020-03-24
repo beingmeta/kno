@@ -648,8 +648,11 @@ static lispval handle_sourcerefs(lispval expr,kno_eval_stack stack)
 {
   lispval source = expr;
   while (KNO_CAR(expr) == KNO_SOURCEREF_OPCODE) {
-    expr = KNO_CDR(expr);
-    source = KNO_CAR(expr);
+    lispval next = KNO_CDR(expr);
+    if (KNO_PAIRP(next)) {
+      expr = KNO_CDR(next);
+      source = KNO_CAR(next);}
+    else return kno_err(kno_SyntaxError,"handle_sourcerefs",NULL,expr);
     if (!(KNO_PAIRP(expr))) break;}
   stack->eval_source = source;
   return expr;
@@ -936,13 +939,13 @@ static lispval op_eval(lispval op,lispval expr,kno_lexenv env,
     else {
       kno_seterr("NotApplicable",opcode_name(op),NULL,fn_val);
       return KNO_ERROR;}
-    if (fn_val == KNO_APPLY_N_OPCODE) {
+    if (op == KNO_APPLY_N_OPCODE) {
       lispval arg_count = pop_arg(arg_exprs);
       int argc = (KNO_FIXNUMP(arg_count)) ? (KNO_FIX2INT(arg_count)) : (-1);
       if (argc < 0)
 	return kno_err(kno_SyntaxError,"apply_op",NULL,expr);
       else n_args = argc;}
-    else n_args = ((KNO_IMMEDIATE_DATA(fn_val))&0xF);
+    else n_args = ((KNO_IMMEDIATE_DATA(op))&0xF);
     return eval_apply(fname,fn_val,n_args,arg_exprs,env,eval_stack,0);}
   else return eval_apply(opcode_name(op),op,-1,KNO_CDR(expr),env,
 			 eval_stack,0);
@@ -1037,8 +1040,7 @@ static lispval eval_apply(u8_string fname,
 	break;}
       default:
 	arg = kno_incref(arg_expr);}
-      if ( (KNO_IMMEDIATEP(arg)) &&
-	   ( (KNO_BROKEP(arg)) || (KNO_THROWP(arg)) || (ABORTED(arg)) ) ) {
+      if (ABORTED(arg)) {
 	exit_val = arg; goto err_exit; }
       else if ( (EMPTYP(arg)) && (!(ndop)) ) {
 	exit_val = KNO_EMPTY; goto err_exit;}
@@ -1070,7 +1072,7 @@ static lispval eval_apply(u8_string fname,
       if (count == 2) {
 	if (nd_call)
 	  return d2_loop(fn,callbuf[0],callbuf[1]);
-	else return d2_call(fn,callbuf[0],callbuf[2]);}
+	else return d2_call(fn,callbuf[0],callbuf[1]);}
       expected_args = 1;}
     else NO_ELSE;
     if (expected_args < 0) {

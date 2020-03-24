@@ -85,19 +85,19 @@ KNO_EXPORT int _kno_pop_stack_error(struct KNO_STACK *stack)
     details =
       u8_mkstring("Popping dead stack 0x%llx (%s) caller = 0x%llx (%s)",
 		  (kno_ptrval)stack,
-		  (stack)? U8S(stack->stack_label) : (U8S0),
+		  (stack)? U8S(stack->stack_label) : (U8SNUL),
 		  (kno_ptrval)caller,
-		  (caller)? U8S(caller->stack_label) : (U8S0));}
+		  (caller)? U8S(caller->stack_label) : (U8SNUL));}
   else if (stack != kno_stackptr) {
     kno_stack cur = kno_stackptr;
     details =
       u8_mkstring("Attempt to pop %s stack 0x%llx (%s) which isn't 0x%llx (%s)",
 		  (stack>cur) ? U8S("old") : U8S("earlier"),
-		  (kno_ptrval)stack,( (stack) ? (stack->stack_label) : (U8S0)),
-		  (kno_ptrval)cur,( (cur) ? (cur->stack_label) : (U8S0)));}
+		  (kno_ptrval)stack,( (stack) ? (stack->stack_label) : (U8SNUL)),
+		  (kno_ptrval)cur,( (cur) ? (cur->stack_label) : (U8SNUL)));}
   else details =
 	 u8_mkstring("For stack 0x%llx (%s)",(kno_ptrval)stack,
-		     ( (stack) ? (stack->stack_label) : (U8S0)));
+		     ( (stack) ? (stack->stack_label) : (U8SNUL)));
   u8_seterr("StackCorruption","kno_pop_stack",details);
   return -1;
 }

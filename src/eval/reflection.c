@@ -1054,13 +1054,14 @@ static lispval profile_fcn_prim(lispval fcn,lispval bool)
 {
   if (KNO_FUNCTIONP(fcn)) {
     struct KNO_FUNCTION *f = KNO_GETFUNCTION(fcn);
+    struct KNO_PROFILE *profile = f->fcn_profile;
     if (KNO_FALSEP(bool)) {
-      struct KNO_PROFILE *profile = f->fcn_profile;
-      if (profile)
-	return kno_err("NotYetImplemented","profile_fcn_prim",
-		       "Unprofiling of functions isn't yet supported",
-		       fcn);
+      if (profile) {
+	profile->prof_disabled=1;
+	return KNO_FALSE;}
       else return KNO_FALSE;}
+    else if (f->fcn_profile)
+      profile->prof_disabled=0;
     else f->fcn_profile = kno_make_profile(f->fcn_name);
     return KNO_TRUE;}
   else return kno_type_error("function","profile_fcn",fcn);
@@ -1160,7 +1161,8 @@ static int getprofile_info(lispval fcn,int err,
   else return 0;
 }
 
-DEFPRIM1("profile/getcalls",getcalls_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM2("profile/getcalls",getcalls_prim,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "`(PROFILE/GETCALLS *fcn* *error*)`"
 	 "Returns the profile information for *fcn*, a "
 	 "vector of *fcn*, the number of calls, the number "
@@ -1168,7 +1170,7 @@ DEFPRIM1("profile/getcalls",getcalls_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "but isn't being profiled, this returns #f. "
 	 "If *fcn* is not a function, this returns an error unless "
 	 "*error* is false.",
-	 kno_any_type,KNO_VOID);
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval getcalls_prim(lispval fcn,lispval errp)
 {
   if (KNO_FUNCTIONP(fcn)) {

@@ -249,8 +249,22 @@ KNO_EXPORT struct KNO_CPRIM *kno_init_cprim
  int *typeinfo,
  lispval *defaults)
 {
-  return make_cprim(name,cname,filename,doc,flags|KNO_MAX_ARGS(arity),
-		    typeinfo,defaults);
+  if (arity >= 0x80) {
+    u8_seterr("BadPrimitiveArity","kno_init_cprim",
+	      u8_mkstring("Arity for %s/%s in %s is too large: %d",
+			  name,cname,filename,arity));
+    return NULL;}
+  int flag_arity = flags & 0x8F;
+  if (flag_arity == 0)
+    flags |= KNO_MAX_ARGS(arity);
+  else if ( ! ( ( (flag_arity == 0x80) && (arity <= 0) ) ||
+	   ( arity == flag_arity ) ) ) {
+    u8_log(LOGWARN,"BadArityFlags",
+	   "Reparing flags for %s/%s in %s for immediate arity %d",
+	   name,cname,filename,arity);
+    flags = ( (flags) & (~(0x8F)) ) | ( (arity<0) ? (0x80) : (arity&0x7f) );}
+  else NO_ELSE;
+  return make_cprim(name,cname,filename,doc,flags,typeinfo,defaults);
 }
 
 static void link_cprim(struct KNO_CPRIM *cprim,u8_string pname,lispval module)

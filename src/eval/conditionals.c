@@ -144,8 +144,8 @@ static lispval when_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
   else if (FALSEP(test_val)) return VOID;
   else if (EMPTYP(test_val)) return VOID;
   else {
-    lispval result = kno_eval_exprs(KNO_CDR(KNO_CDR(expr)),env,_stack,1);
     kno_decref(test_val);
+    lispval result = kno_eval_exprs(KNO_CDR(KNO_CDR(expr)),env,_stack,1);
     KNO_VOID_RESULT(result);
     return result;}
 }

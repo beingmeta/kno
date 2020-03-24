@@ -92,7 +92,9 @@ static lispval write_xtype_prim(lispval object,lispval dest,lispval opts)
     /* Write to packet */
     KNO_INIT_BYTE_OUTPUT(&_outbuf,2000);
     outbuf=&_outbuf;}
-  else return kno_err("NotStreamOrFilename","write_xtype",NULL,dest);
+  else {
+    kno_decref(refs_arg);
+    return kno_err("NotStreamOrFilename","write_xtype",NULL,dest);}
 
   ssize_t rv = kno_compress_xtype(outbuf,object,refs,compress,embed);
   kno_decref(refs_arg);

@@ -1036,7 +1036,7 @@ static lispval until_opcode(lispval expr,kno_lexenv env,kno_eval_stack stack)
       if (KNO_BROKEP(body_result))
         return KNO_FALSE;
       else if (KNO_ABORTED(body_result))
-        return body_result;
+	return body_result;
       else kno_decref(body_result);
       test_val = kno_evaluate(test_expr,env,stack,0);
       if (KNO_ABORTED(test_val))
@@ -1197,8 +1197,9 @@ static lispval bindop(lispval op,
     if ( (env_copy == NULL) && (bound->env_copy) ) {
       env_copy=bound->env_copy; bound=env_copy;
       values=((kno_schemap)(bound->env_bindings))->schema_values;}
-    values[i++]=val;}
+    values[i++]  = val;}
   lispval result = op_eval_body(body,bound,bind_stack,"#BINDOP",NULL,tail);
+  release_stack_env(bind_stack);
   kno_pop_eval(bind_stack);
   return result;
 }

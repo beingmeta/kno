@@ -21,6 +21,8 @@
 
 #include <libu8/u8printf.h>
 
+#include <sys/resource.h>
+
 u8_string kno_lambda_stack_type = "lambda";
 
 u8_condition kno_BadArglist=_("Malformed argument list");
@@ -29,6 +31,11 @@ u8_condition kno_BadDefineForm=_("Bad procedure defining form");
 int kno_record_source=1;
 
 static lispval tail_symbol, decls_symbol, flags_symbol;
+
+static void update_profile(kno_profile profile,
+			   struct rusage *before,
+			   struct timespec start);
+
 
 static u8_string lambda_id(struct KNO_LAMBDA *fn)
 {
@@ -84,6 +91,22 @@ lispval lambda_call(kno_eval_stack _stack,
   kno_lexenv call_env=proc_env;
   int n_vars = fn->lambda_n_vars;
   int arity = fn->fcn_arity, min_arity = fn->fcn_min_arity;
+  kno_profile profile = fn->fcn_profile;
+  if ( (profile) && (profile->prof_disabled) ) profile=NULL;
+#if ( (KNO_EXTENDED_PROFILING) && (HAVE_DECL_RUSAGE_THREAD) )
+  struct rusage before = { 0 };
+#endif
+#if HAVE_CLOCK_GETTIME
+  struct timespec start;
+#endif
+  if (profile) {
+#if HAVE_CLOCK_GETTIME
+    clock_gettime(CLOCK_MONOTONIC,&start);
+#endif
+#if ( (KNO_EXTENDED_PROFILING) && (HAVE_DECL_RUSAGE_THREAD) )
+    if (kno_extended_profiling) getrusage(RUSAGE_THREAD,&before);
+#endif
+  }
 
   if (_stack == NULL) _stack=kno_eval_stackptr;
 
@@ -151,9 +174,7 @@ lispval lambda_call(kno_eval_stack _stack,
     i++;}
   while (i<n_vars) { callbuf[i++] = KNO_VOID;}
 
-  lispval original[n_vars];
-  memcpy(original,callbuf,sizeof(lispval)*n_vars);
-  int j=0; while (j<n_vars) {kno_incref(original[j]); j++;}
+  int j=0; while (j<n_vars) {kno_incref(callbuf[j]); j++;}
 
   KNO_STACK_SET_ARGS(((kno_stack)_stack),i,callbuf,call_flags);
 
@@ -176,6 +197,9 @@ lispval lambda_call(kno_eval_stack _stack,
 
   kno_free_lexenv(&stack_env);
 
+  if (profile)
+    update_profile(profile,&before,start);
+
   return result;
 }
 
@@ -189,6 +213,22 @@ lispval lambda_activate(kno_eval_stack stack)
   lispval *vars  = proc->lambda_vars;
   kno_argvec vals  = stack->stack_args;
   int tail = proc->lambda_synchronized;
+  kno_profile profile = proc->fcn_profile;
+  if ( (profile) && (profile->prof_disabled) ) profile=NULL;
+#if ( (KNO_EXTENDED_PROFILING) && (HAVE_DECL_RUSAGE_THREAD) )
+  struct rusage before = { 0 };
+#endif
+#if HAVE_CLOCK_GETTIME
+  struct timespec start;
+#endif
+  if (profile) {
+#if HAVE_CLOCK_GETTIME
+    clock_gettime(CLOCK_MONOTONIC,&start);
+#endif
+#if ( (KNO_EXTENDED_PROFILING) && (HAVE_DECL_RUSAGE_THREAD) )
+    if (kno_extended_profiling) getrusage(RUSAGE_THREAD,&before);
+#endif
+  }
 
   struct KNO_LEXENV  eval_env = { 0 };
   struct KNO_SCHEMAP bindings = { 0 };
@@ -209,7 +249,46 @@ lispval lambda_activate(kno_eval_stack stack)
 
   reset_stack_env(stack);
 
+  if (profile)
+    update_profile(profile,&before,start);
+
   return result;
+}
+
+static void update_profile(kno_profile profile,
+			   struct rusage *before,
+			   struct timespec start)
+{
+  long long nsecs = 0;
+  long long stime = 0, utime = 0;
+  long long n_waits = 0, n_pauses = 0, n_faults = 0;
+#if HAVE_CLOCK_GETTIME
+  struct timespec end;
+  clock_gettime(CLOCK_MONOTONIC,&end);
+  nsecs = ((end.tv_sec*1000000000)+(end.tv_nsec)) -
+    ((start.tv_sec*1000000000)+(start.tv_nsec));
+#endif
+#if ( (KNO_EXTENDED_PROFILING) && (HAVE_DECL_RUSAGE_THREAD) )
+  if ( (before) &&  (kno_extended_profiling) ) {
+    struct rusage after = { 0 };
+    getrusage(RUSAGE_THREAD,&after);
+    utime = (after.ru_utime.tv_sec*1000000000+after.ru_utime.tv_usec*1000)-
+      (before->ru_utime.tv_sec*1000000000+before->ru_utime.tv_usec*1000);
+    stime = (after.ru_stime.tv_sec*1000000000+after.ru_stime.tv_usec*1000)-
+      (before->ru_stime.tv_sec*1000000000+before->ru_stime.tv_usec*1000);
+#if HAVE_STRUCT_RUSAGE_RU_NVCSW
+    n_waits = after.ru_nvcsw - before->ru_nvcsw;
+#endif
+#if HAVE_STRUCT_RUSAGE_RU_MAJFLT
+    n_faults = after.ru_majflt - before->ru_majflt;
+#endif
+#if HAVE_STRUCT_RUSAGE_RU_NIVCSW
+    n_pauses = after.ru_nivcsw - before->ru_nivcsw;
+#endif
+  }
+#endif
+  kno_profile_record(profile,0,nsecs,utime,stime,
+		     n_waits,n_pauses,n_faults);
 }
 
 

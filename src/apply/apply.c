@@ -129,28 +129,35 @@ static lispval profiled_call(kno_stack stack,
 			     kno_profile profile)
 {
   lispval result = KNO_VOID;
-  long long nsecs = 0;
-  long long stime = 0, utime = 0;
-  long long n_waits = 0, n_pauses = 0, n_faults = 0;
-#if ( (KNO_EXTENDED_PROFILING) && (HAVE_DECL_RUSAGE_THREAD) )
-  struct rusage before = { 0 }, after = { 0 };
-  if (kno_extended_profiling) getrusage(RUSAGE_THREAD,&before);
+#if (KNO_EXTENDED_PROFILING)
+  struct rusage before = { 0 };
+  if (kno_extended_profiling)
+#if (HAVE_DECL_RUSAGE_THREAD)
+    getrusage(RUSAGE_THREAD,&before);
+#else
+    getrusage(RUSAGE_SELF,&before);
+#endif
 #endif
 #if HAVE_CLOCK_GETTIME
-  struct timespec start, end;
+    struct timespec start;
   clock_gettime(CLOCK_MONOTONIC,&start);
 #endif
 
   /* Here's where we actually apply the function */
   result = core_call(stack,fn,f,n,argvec);
 
+  long long nsecs = 0;
+  long long stime = 0, utime = 0;
+  long long n_waits = 0, n_pauses = 0, n_faults = 0;
 #if HAVE_CLOCK_GETTIME
+  struct timespec end;
   clock_gettime(CLOCK_MONOTONIC,&end);
   nsecs = ((end.tv_sec*1000000000)+(end.tv_nsec)) -
     ((start.tv_sec*1000000000)+(start.tv_nsec));
 #endif
 #if ( (KNO_EXTENDED_PROFILING) && (HAVE_DECL_RUSAGE_THREAD) )
   if (kno_extended_profiling) {
+    struct rusage after = { 0 };
     getrusage(RUSAGE_THREAD,&after);
     utime = (after.ru_utime.tv_sec*1000000000+after.ru_utime.tv_usec*1000)-
       (before.ru_utime.tv_sec*1000000000+before.ru_utime.tv_usec*1000);
@@ -169,6 +176,7 @@ static lispval profiled_call(kno_stack stack,
 #endif
   kno_profile_record(profile,0,nsecs,utime,stime,
 		     n_waits,n_pauses,n_faults);
+
   return result;
 }
 
@@ -231,6 +239,7 @@ static lispval profiled_dcall
     int setup = setup_call_stack(&stack,fn,n,argvec,&f);
     if (setup < 0) return KNO_ERROR;
     if (f) profile = f->fcn_profile;
+    if ( (profile) && (profile->prof_disabled) ) profile=NULL;
     KNO_PUSH_STACK(&stack);
 
     U8_WITH_CONTOUR(fname,0) {

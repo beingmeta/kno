@@ -14,6 +14,7 @@
 #if HAVE_STDATOMIC_H
 typedef struct KNO_PROFILE {
   u8_string prof_label;
+  int prof_disabled;
   _Atomic long long prof_calls;
   _Atomic long long prof_items;
   _Atomic long long prof_nsecs;
@@ -25,6 +26,7 @@ typedef struct KNO_PROFILE {
 #else
 typedef struct KNO_PROFILE {
   u8_string prof_label;
+  int prof_disabled;
   long long prof_calls;
   long long prof_items;
   long long prof_nsecs;
@@ -42,6 +44,7 @@ U8_MAYBE_UNUSED static void kno_profile_record
  long long nsecs,long long nsecs_user,long long nsecs_system,
  long long n_waits,long long n_pauses,long long n_faults)
 {
+  if (p->prof_disabled) return;
   if (items) atomic_fetch_add(&(p->prof_items),items);
   atomic_fetch_add(&(p->prof_calls),1);
   atomic_fetch_add(&(p->prof_nsecs),nsecs);
@@ -59,6 +62,7 @@ static void kno_profile_record
  long long nsecs,long long nsecs_user,long long nsecs_system,
  long long n_waits,long long n_pauses,long long n_faults)
 {
+  if (p->prof_disabled) return;
   u8_lock_mutex(&(p->prof_lock));
   if (items) p->prof_items += items;
   p->prof_calls++;
@@ -77,7 +81,8 @@ static void kno_profile_record
 static U8_MAYBE_UNUSED struct KNO_PROFILE *kno_make_profile(u8_string name)
 {
   struct KNO_PROFILE *result = u8_alloc(struct KNO_PROFILE);
-  result->prof_label = (name) ? (u8_strdup(name)) : (NULL);
+  result->prof_label    = (name) ? (u8_strdup(name)) : (NULL);
+  result->prof_disabled = 0;
 #if HAVE_STDATOMIC_H
   result->prof_calls        = ATOMIC_VAR_INIT(0);
   result->prof_items        = ATOMIC_VAR_INIT(0);

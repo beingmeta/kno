@@ -35,17 +35,16 @@ static lispval while_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
   else if (! (PRED_TRUE( (KNO_PAIRP(body)) || (body == KNO_NIL) )) )
     return kno_err(kno_SyntaxError,"WHILE",NULL,expr);
   else {
+    int exited = 0;
     while (testeval(test_expr,env,TESTEVAL_FAIL_FALSE,&result,_stack) == 1) {
       KNO_DOLIST(iter_expr,body) {
 	lispval val = kno_stack_eval(iter_expr,env,_stack);
-        if (KNO_BROKEP(val))
-          return KNO_VOID;
-        else if (KNO_ABORTED(val))
-          return val;
-        kno_decref(val);}}}
-  if (KNO_ABORTED(result))
-    return result;
-  else return VOID;
+	if (ABORTED(val)) {result=val; exited=1; break;}
+	kno_decref(val);}
+      if (exited) break;}
+    if (KNO_BROKEP(result))
+      return VOID;
+    else return result;}
 }
 
 static lispval until_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
@@ -58,17 +57,15 @@ static lispval until_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
   else if (! (PRED_TRUE( (KNO_PAIRP(body)) || (body == KNO_NIL) )) )
     return kno_err(kno_SyntaxError,"UNTIL",NULL,expr);
   else {
+    int exited = 0;
     while (testeval(test_expr,env,TESTEVAL_FAIL_TRUE,&result,_stack) == 0) {
       KNO_DOLIST(iter_expr,body) {
         lispval val = kno_stack_eval(iter_expr,env,_stack);
-        if (KNO_BROKEP(val))
-          return KNO_VOID;
-        else if (KNO_ABORTED(val))
-          return val;
-        else kno_decref(val);}}}
-  if (KNO_ABORTED(result))
-    return result;
-  else return VOID;
+	if (ABORTED(val)) { result = val; exited = 1; break;}
+	kno_decref(val);}
+      if (exited) break;}
+    if (KNO_BROKEP(result)) return KNO_VOID;
+    else return result;}
 }
 
 /* Parsing for more complex iterations. */
@@ -105,7 +102,8 @@ static lispval parse_control_spec
 static lispval dotimes_evalfn(lispval expr,kno_lexenv env,
 			      kno_eval_stack eval_stack)
 {
-  int i = 0, limit;
+  lispval result = KNO_VOID;
+  int i = 0, exited = 0, limit;
   lispval body = kno_get_body(expr,2);
   if (! (PRED_TRUE( (KNO_PAIRP(body)) || (body == KNO_NIL) )) )
     return kno_err(kno_SyntaxError,"dotimes_evalfn",NULL,expr);
@@ -118,7 +116,6 @@ static lispval dotimes_evalfn(lispval expr,kno_lexenv env,
     kno_decref(limit_val);
     return err;}
   else limit = FIX2INT(limit_val);
-  lispval result = KNO_VOID;
   KNO_INIT_ITER_LOOP(dotimes,var,limit_val,1,eval_stack,env);
   dotimes_vars[0]=var;
   dotimes_vals[0]=KNO_INT(0);
@@ -126,11 +123,13 @@ static lispval dotimes_evalfn(lispval expr,kno_lexenv env,
     dotimes_vals[0]=KNO_INT(i);
     {KNO_DOLIST(subexpr,body) {
 	lispval val = kno_evaluate(subexpr,dotimes,dotimes_stack,0);
-	if (KNO_BROKEP(val)) break;
-	else if (KNO_ABORTED(val)) {result=val; break;}
-	else kno_decref(val);}}
+	if (ABORTED(val)) {
+	  exited=1;
+	  if (!(KNO_BROKEP(val))) result=val;
+	  break;}
+	kno_decref(val);}}
     reset_env(dotimes);
-    i++;}
+    if (exited) break; else i++;}
   kno_pop_eval(dotimes_stack);
   return result;
 }
@@ -168,23 +167,23 @@ static lispval doseq_evalfn(lispval expr,kno_lexenv env,
   if (SYMBOLP(count_var))
     doseq_vars[1]=count_var;
   else doseq_bindings.schema_length=1;
-  int finished = 0;
+  int exited = 0;
   while (i<lim) {
     lispval elt = (islist) ? (kno_refcar(pairscan)) : (kno_seq_elt(seq,i));
     doseq_vals[0]=elt;
     doseq_vals[1]=KNO_INT(i);
     {KNO_DOLIST(subexpr,body) {
 	lispval val = kno_evaluate(subexpr,doseq,doseq_stack,0);
-	if (KNO_BROKEP(val)) {
-	  finished = 1; break;}
-	else if (KNO_ABORTED(val)) {
-	  result = val; finished=1; break;}
-        else kno_decref(val);}}
+	if (ABORTED(val)) {
+	  exited=1;
+	  if (!(KNO_BROKEP(val))) result=val;
+	  break;}
+	kno_decref(val);}}
     reset_env(doseq);
     kno_decref(doseq_vals[0]);
     doseq_vals[0]=VOID;
     doseq_vals[1]=VOID;
-    if (finished) break;
+    if (exited) break;
     if (islist) pairscan = KNO_CDR(pairscan);
     i++;}
   kno_pop_eval(doseq_stack);
@@ -227,33 +226,30 @@ static lispval forseq_evalfn(lispval expr,kno_lexenv env,
     forseq_vals[1]=KNO_FIXZERO;}
   else forseq_bindings.schema_length=1;
   results = kno_init_elts(NULL,lim,VOID);
-  int finished = 0;
+  int exited = 0;
   while ( i < lim ) {
     lispval elt = (islist) ? (kno_refcar(pairscan)) : (kno_seq_elt(seq,i));
     lispval val = VOID;
     forseq_vals[0]=elt;
     forseq_vals[1]=KNO_INT(i);
     {KNO_DOLIST(subexpr,body) {
-        kno_decref(val);
+	kno_decref(val);
 	val = kno_evaluate(subexpr,forseq,forseq_stack,0);
-        if (KNO_BROKEP(val)) {
-          result=kno_makeseq(KNO_TYPEOF(seq),i,results);
-	  finished = 1;
-	  break;}
-	else if (KNO_ABORTED(val)) {
-	  kno_decref_vec(results,i);
-	  result=val;
-	  finished=1;
-	  break;}}
+	if (ABORTED(val)) {
+	  exited=1;
+	  if (KNO_BROKEP(val))
+	    result=kno_makeseq(KNO_TYPEOF(seq),i,results);
+	  else result=val;
+	  break;}}}
       results[i]=val;
       reset_env(forseq);
       kno_decref(forseq_vals[0]);
       forseq_vals[0]=VOID;
       forseq_vals[1]=VOID;
       if (islist) pairscan = KNO_CDR(pairscan);
-      if (finished) break;
-      i++;}}
-  if (!(finished))
+      if (exited) break;
+      i++;}
+  if (!(exited))
     result=kno_makeseq(KNO_TYPEOF(seq),lim,results);
   kno_decref_vec(results,i);
   u8_free(results);
@@ -266,6 +262,7 @@ static lispval forseq_evalfn(lispval expr,kno_lexenv env,
 static lispval tryseq_evalfn(lispval expr,kno_lexenv env,
 			     kno_eval_stack eval_stack)
 {
+  lispval result = KNO_EMPTY;
   size_t i = 0, lim=0; int islist=0;
   lispval body = kno_get_body(expr,2), pairscan=VOID;
   if (! (PRED_TRUE( (KNO_PAIRP(body)) || (body == KNO_NIL) )) )
@@ -290,32 +287,30 @@ static lispval tryseq_evalfn(lispval expr,kno_lexenv env,
     islist = 1;
     pairscan = seq;}
   else {}
-  lispval result = KNO_EMPTY;
   KNO_INIT_ITER_LOOP(tryseq,var,seq,2,eval_stack,env);
   tryseq_vars[0]=var;
   if (SYMBOLP(count_var)) {
     tryseq_vars[1]=count_var;
     tryseq_vals[1]=KNO_FIXZERO;}
   else tryseq_bindings.schema_length=1;
-  int finished = 0;
+  int exited = 0;
   while ( i < lim ) {
     lispval elt = (islist) ? (kno_refcar(pairscan)) : (kno_seq_elt(seq,i));
     lispval val = VOID;
     tryseq_vals[0]=elt;
     tryseq_vals[1]=KNO_INT(i);
     {KNO_DOLIST(subexpr,body) {
-        kno_decref(val);
+	kno_decref(val);
 	val = kno_evaluate(subexpr,tryseq,tryseq_stack,0);
-	if (KNO_BROKEP(val)) {
-	  finished=1; break;}
-	else if (KNO_ABORTED(val)) {
-	  result = val; finished=1; break;}
-	else NO_ELSE;}}
+	if (ABORTED(val)) {
+	  exited = 1;
+	  if (!(KNO_BROKEP(val))) result=val;
+	  break;}}}
     reset_env(tryseq);
     kno_decref(tryseq_vals[0]);
     tryseq_vals[0]=VOID;
     tryseq_vals[1]=VOID;
-    if (finished) break;
+    if (exited) break;
     else if (! (EMPTYP(val)) ) {
       result = val; break;}
     else {
@@ -331,6 +326,7 @@ static lispval dolist_evalfn(lispval expr,kno_lexenv env,
 			     kno_eval_stack eval_stack)
 {
   int i = 0;
+  lispval result = KNO_VOID;
   lispval body = kno_get_body(expr,2);
   if (! (PRED_TRUE( (KNO_PAIRP(body)) || (body == KNO_NIL) )) )
     return kno_err(kno_SyntaxError,"dolist_evalfn",NULL,expr);
@@ -348,29 +344,28 @@ static lispval dolist_evalfn(lispval expr,kno_lexenv env,
     kno_decref(seq);
     return KNO_ERROR;}
   else pairscan = seq;
-  lispval result = KNO_VOID;
   KNO_INIT_ITER_LOOP(dolist,var,seq,2,eval_stack,env);
   dolist_vars[0]=var;
   if (SYMBOLP(count_var))
     dolist_vars[1]=count_var;
   else dolist_bindings.schema_length=1;
-  int finished = 0;
+  int exited = 0;
   while (PAIRP(pairscan)) {
     lispval elt = KNO_CAR(pairscan); kno_incref(elt);
     dolist_vals[0]=elt;
     dolist_vals[1]=KNO_INT(i);
     {KNO_DOLIST(subexpr,body) {
 	lispval val = kno_evaluate(subexpr,dolist,dolist_stack,0);
-	if (KNO_BROKEP(val)) {
-	  finished=1; break;}
-	else if (KNO_ABORTED(val)) {
-	  result=val; finished=1; break;}
+	if ((ABORTED(val))) {
+	  exited = 1;
+	  if (!(KNO_BROKEP(val))) result = val;
+	  break;}
 	else kno_decref(val);}}
     reset_env(dolist);
     kno_decref(dolist_vals[0]);
     dolist_vals[0]=VOID;
     dolist_vals[1]=VOID;
-    if (finished) break;
+    if (exited) break;
     pairscan = KNO_CDR(pairscan);
     i++;}
   kno_pop_eval(dolist_stack);

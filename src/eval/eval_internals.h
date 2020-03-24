@@ -78,7 +78,8 @@ KNO_FASTOP lispval eval_body(lispval body,kno_lexenv env,
 }
 
 #define KNO_VOID_RESULT(result)				 \
-  if (KNO_ABORTP(result)) return result;		 \
+  if (KNO_BROKEP(result)) return KNO_VOID;	\
+  else if (KNO_ABORTP(result)) return result;		 \
   else { kno_decref(result); result = KNO_VOID; }
 
 #define KNO_DISCARD_RESULT(result)		 \

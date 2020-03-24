@@ -123,10 +123,10 @@ static lispval dochoices_evalfn(lispval expr,kno_lexenv env,
     dochoices_stack->stack_point=dochoices_vals[1]=KNO_INT(i);
     {KNO_DOLIST(step,steps) {
 	lispval val = kno_cons_eval(step,dochoices,dochoices_stack,0);
-	if (KNO_BROKEP(val)) {
-	  finished=1; break;}
-	else if (KNO_ABORTED(val)) {
-	  result = val; finished=1; break;}
+	if (KNO_ABORTED(val)) {
+	  if (KNO_BROKEP(val)) result = KNO_VOID; else result=val;
+	  finished=1;
+	  break;}
 	else kno_decref(val);}}
     reset_env(dochoices);
     kno_decref(dochoices_vals[0]);
@@ -168,10 +168,10 @@ static lispval trychoices_evalfn(lispval expr,kno_lexenv env,
     KNO_DOLIST(step,steps) {
       kno_decref(val);
       val = kno_evaluate(step,trychoices,trychoices_stack,0);
-      if (KNO_BROKEP(val)) {
-	finished = 1; break;}
-      else if (KNO_ABORTED(val)) {
-	result = val; finished=1; break;}}
+      if (KNO_ABORTED(val)) {
+	if (KNO_BROKEP(val)) result = KNO_EMPTY; else result=val;
+	finished=1;
+	break;}}
     reset_env(trychoices);
     kno_decref(trychoices_vals[0]);
     trychoices_vals[0]=VOID;
@@ -218,16 +218,13 @@ static lispval forchoices_evalfn(lispval expr,kno_lexenv env,
     KNO_DOLIST(step,steps) {
       kno_decref(val);
       val = kno_evaluate(step,forchoices,forchoices_stack,0);
-      if (KNO_BROKEP(val)) {
-	results = kno_simplify_choice(results);
+      if (KNO_ABORTED(val)) {
+	if ( (KNO_ERRORP(val)) || (KNO_THROWP(val)) ) {
+	  kno_decref(results);
+	  results=val;}
+	else results = kno_simplify_choice(results);
 	finished=1;
-	break;}
-      else if (KNO_ABORTED(val)) {
-	kno_decref(results);
-	results=val;
-	finished=1;
-	break;}
-      else NO_ELSE;}
+	break;}}
     if (!(finished)) {CHOICE_ADD(results,val);}
     reset_env(forchoices);
     kno_decref(forchoices_vals[0]);
@@ -272,15 +269,16 @@ static lispval filterchoices_evalfn(lispval expr,kno_lexenv env,
     KNO_DOLIST(step,steps) {
       kno_decref(val);
       val = kno_evaluate(step,filterchoices,filterchoices_stack,0);
-      if (KNO_BROKEP(val)) {
-	results = kno_simplify_choice(results);
-	finished=1;
-	break;}
-      else if (KNO_ABORTED(val)) {
-	kno_decref(results);
-	results = val;
-	finished = 1;
-	break;}
+      if (KNO_ABORTED(val)) {
+	if (KNO_BROKEP(val)) {
+	  results = kno_simplify_choice(results);
+	  finished=1;
+	  break;}
+	else {
+	  kno_decref(results);
+	  results = val;
+	  finished = 1;
+	  break;}}
       else if (!(FALSEP(val))) {
 	kno_incref(elt);
 	CHOICE_ADD(results,elt);
@@ -767,6 +765,7 @@ static lispval choice2list(lispval x)
    This returns VOID.  */
 static lispval dosubsets_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 {
+  lispval result = KNO_VOID;
   lispval body = kno_get_body(expr,2);
   if (! (PRED_TRUE( (KNO_PAIRP(body)) || (body == KNO_NIL) )) )
     return kno_err(kno_SyntaxError,"forchoices_evalfn",NULL,expr);
@@ -799,6 +798,7 @@ static lispval dosubsets_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stac
   int i = 0, n = KNO_CHOICE_SIZE(choices), n_blocks = 1+n/blocksize;
   int all_atomicp = ((CHOICEP(choices)) ?
 		     (KNO_ATOMIC_CHOICEP(choices)) : (0));
+  int finished = 0;
   const lispval *data=
     ((CHOICEP(choices))?(KNO_CHOICE_DATA(choices)):(NULL));
   if ((n%blocksize)==0) n_blocks--;
@@ -823,19 +823,20 @@ static lispval dosubsets_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stac
     dosubsets_vals[1]=KNO_INT(i);
     {KNO_DOLIST(subexpr,body) {
 	lispval val = fast_eval(subexpr,dosubsets);
-	if (KNO_BROKEP(val)) {
-	  _eval_return VOID;}
-	else if (KNO_ABORTED(val))
-	  _eval_return val;
+	if (KNO_ABORTED(val)) {
+	  finished = 1;
+	  if (!(KNO_BROKEP(val)))
+	    result=val;
+	  break;}
 	else kno_decref(val);}}
     reset_env(dosubsets);
     kno_decref(dosubsets_vals[0]);
     dosubsets_vals[0]=VOID;
     kno_decref(dosubsets_vals[1]);
     dosubsets_vals[1]=VOID;
-    i++;}
+    if (!(finished)) i++;}
   kno_pop_eval(dosubsets_stack);
-  return KNO_VOID;
+  return result;
 }
 
 /* Standard kinds of reduce choice */

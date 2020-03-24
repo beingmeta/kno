@@ -1343,7 +1343,7 @@
       (optimize-block handler expr env bound opts)))
 
 (define (optimize-evaltest handler expr env bound opts)
-  `(,evaltest ,(second expr) ,(optimize-expr (third expr) env bound opts)))
+  `(,evaltest ,(second expr) ,(optimize (third expr) env bound opts)))
 
 (define (optimize-case handler expr env bound opts)
   `(,handler 

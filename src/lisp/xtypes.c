@@ -135,6 +135,7 @@ static void recycle_xtype_refs(void *ptr)
   struct XTYPE_REFS *refs = (xtype_refs) ptr;
   u8_free(refs->xt_refs); refs->xt_refs = NULL;
   kno_recycle_hashtable(refs->xt_lookup);
+  u8_free(refs->xt_lookup);
   refs->xt_lookup=NULL;
   u8_free(refs);
 }
@@ -1005,15 +1006,18 @@ KNO_EXPORT lispval kno_getxrefs(lispval arg)
   int free_arg = 0;
   if ( (KNO_FALSEP(arg)) || (KNO_VOIDP(arg)) || (KNO_DEFAULTP(arg)) )
     return KNO_FALSE;
-  if (KNO_TABLEP(arg)) {
+  if (KNO_RAW_TYPEP(arg,kno_xtrefs_typetag))
+    return kno_incref(arg);
+  else if (KNO_TABLEP(arg)) {
     arg = kno_getopt(arg,xrefs_symbol,KNO_VOID);
     if ( (KNO_FALSEP(arg)) || (KNO_VOIDP(arg)) || (KNO_DEFAULTP(arg)) )
       return KNO_FALSE;
-    free_arg = 1;}
-  if (KNO_RAW_TYPEP(arg,kno_xtrefs_typetag)) {
-    if (free_arg)
+    else if (KNO_RAW_TYPEP(arg,kno_xtrefs_typetag))
       return arg;
-    else return kno_incref(arg);}
+    else free_arg=1;}
+  else NO_ELSE;
+
+  /* Now process the arg to generate a wrapped XREFS object */
 
   /* negative is an error, zero is uncreated, >0 is created */
 
