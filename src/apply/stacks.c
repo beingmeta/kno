@@ -120,7 +120,7 @@ _KNO_STACK_SET_CALL(kno_stack stack,lispval op,
 		    int n,kno_argvec args,
 		    unsigned int flags)
 {
-  _KNO_STACK_SET_CALL(stack,op,n,args, flags);
+  KNO_STACK_SET_CALL(stack,op,n,args, flags);
 }
 
 

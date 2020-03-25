@@ -4,11 +4,11 @@ static U8_MAYBE_UNUSED lispval moduleid_symbol;
 #define stack_eval(x,env,s) (kno_evaluate(x,env,s,1))
 
 static int testeval(lispval expr,kno_lexenv env,int fail_val,
-		    lispval *whoops,struct KNO_EVAL_STACK *s) U8_MAYBE_UNUSED;
+		    lispval *whoops,struct KNO_STACK *s) U8_MAYBE_UNUSED;
 
 static int testeval(lispval expr,kno_lexenv env,int fail_val,
 		    lispval *whoops,
-		    kno_eval_stack _stack)
+		    kno_stack _stack)
 {
   lispval val = kno_evaluate(expr,env,_stack,0);
   if (KNO_CONSP(val)) {
@@ -47,9 +47,8 @@ KNO_FASTOP lispval _pop_arg(lispval *scan)
   ( (KNO_PRECHOICEP(v)) ? (kno_simplify_choice(v)) : (v) )
 
 KNO_FASTOP lispval eval_body(lispval body,kno_lexenv env,
-			     kno_eval_stack stack,
-			     u8_context cxt,u8_string label,
-			     int tail)
+			     kno_stack stack,
+			     u8_context cxt,u8_string label)
 {
   if (KNO_EMPTY_LISTP(body))
     return KNO_VOID;
@@ -68,7 +67,7 @@ KNO_FASTOP lispval eval_body(lispval body,kno_lexenv env,
 	  return v;
 	else kno_decref(v);}
       else if (KNO_EMPTY_LISTP(scan))
-	return kno_evaluate(subex,env,stack,tail);
+	return kno_evaluate(subex,env,stack,1);
       else return kno_err(kno_SyntaxError,
 			  ( (cxt) && (label) ) ? (cxt) :
 			  ((u8_string)"eval_inner_body"),
@@ -110,7 +109,7 @@ KNO_FASTOP kno_lexenv init_static_env
 }
 
 static U8_MAYBE_UNUSED
-void release_stack_env(struct KNO_EVAL_STACK *stack)
+void release_stack_env(struct KNO_STACK *stack)
 {
   kno_lexenv env = stack->eval_env;
   stack->eval_env = NULL;
@@ -164,7 +163,7 @@ void reset_env(kno_lexenv env)
 }
 
 KNO_FASTOP U8_MAYBE_UNUSED
-void reset_stack_env(kno_eval_stack stack)
+void reset_stack_env(kno_stack stack)
 {
   kno_lexenv env = stack->eval_env;
   if (PRED_TRUE(env != NULL)) {

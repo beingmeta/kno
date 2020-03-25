@@ -99,7 +99,7 @@ static lispval getenv_prim(lispval var)
   else return kno_wrapstring(enval);
 }
 
-static lispval getenv_macro(lispval expr,kno_lexenv env,kno_eval_stack ptr)
+static lispval getenv_macro(lispval expr,kno_lexenv env,kno_stack ptr)
 {
   lispval var = kno_get_arg(expr,1);
   if ( (KNO_STRINGP(var)) || (KNO_SYMBOLP(var)) ) {

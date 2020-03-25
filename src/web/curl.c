@@ -1550,7 +1550,7 @@ static lispval urlpost(int n,kno_argvec args)
   else return result;
 }
 
-static lispval urlpostdata_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
+static lispval urlpostdata_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval urlarg = kno_get_arg(expr,1), url = kno_eval(urlarg,env);
   lispval ctype, curl, conn, body = VOID;

@@ -153,8 +153,8 @@ static void _concise_stack_frame(struct KNO_STACK *stack)
     struct KNO_EVALFN *evalfn=(kno_evalfn)op;
     fprintf(stderr,", op=%s",evalfn->evalfn_name);}
   else {}
-  if (stack_type == kno_eval_stacktype) {
-    kno_eval_stack estack = (kno_eval_stack) stack;
+  if (stack_type == kno_reduce_stack) {
+    kno_stack estack = (kno_stack) stack;
     if ((estack->eval_env) && (SCHEMAPP(estack->eval_env->env_bindings))) {
       struct KNO_SCHEMAP *sm = (kno_schemap)(estack->eval_env->env_bindings);
       lispval *schema=sm->table_schema;
@@ -174,8 +174,8 @@ KNO_EXPORT void _knodbg_show_stack_frame(void *arg)
   kno_stack_type stack_type = KNO_STACK_TYPE(stack);
   kno_lexenv env = NULL;
   _concise_stack_frame(stack);
-  if (stack_type == kno_eval_stacktype) {
-    kno_eval_stack estack = (kno_eval_stack)stack;
+  if (stack_type == kno_reduce_stack) {
+    kno_stack estack = (kno_stack)stack;
     if (estack->eval_env) {
       env = estack->eval_env;
       _knodbg_show_env(env,20);}}
@@ -207,8 +207,8 @@ KNO_EXPORT lispval _knodbg_get_stack_arg(void *arg,int n)
 
 KNO_EXPORT lispval _knodbg_get_stack_var(void *arg,u8_string varname)
 {
-  struct KNO_EVAL_STACK *stack=(kno_eval_stack)_get_stack_frame(arg);
-  if (KNO_STACK_TYPE(stack) == kno_eval_stacktype) {
+  struct KNO_STACK *stack=(kno_stack)_get_stack_frame(arg);
+  if (KNO_STACK_TYPE(stack) == kno_reduce_stack) {
     if (stack->eval_env) {
       lispval sym = kno_getsym(varname);
       return kno_symeval(sym,stack->eval_env);}}
@@ -231,11 +231,11 @@ KNO_EXPORT void _knodbg_show_stack(void *arg,int limit)
 
 KNO_EXPORT void _knodbg_show_stack_env(void *arg)
 {
-  struct KNO_EVAL_STACK *stack=(kno_eval_stack)_get_stack_frame(arg);
+  struct KNO_STACK *stack=(kno_stack)_get_stack_frame(arg);
   if (stack==NULL) {
     fprintf(stderr,"!! No stack\n");
     return;}
-  else if (KNO_STACK_TYPE(stack) != kno_eval_stacktype) {
+  else if (KNO_STACK_TYPE(stack) != kno_reduce_stack) {
     fprintf(stderr,"!! No env\n");
     return;}
   else {

@@ -59,7 +59,7 @@ static lispval keyfn_get(lispval val,lispval keyfn)
 
 static lispval parse_control_spec
 (lispval expr,lispval *iter_var,lispval *count_var,
- kno_lexenv env,kno_eval_stack _stack)
+ kno_lexenv env,kno_stack _stack)
 {
   lispval control_expr = kno_get_arg(expr,1);
   if (VOIDP(control_expr))
@@ -99,7 +99,7 @@ static lispval parse_control_spec
    Note that this treats a non-choice as a choice of one element.
    It returns VOID. */
 static lispval dochoices_evalfn(lispval expr,kno_lexenv env,
-				kno_eval_stack eval_stack)
+				kno_stack eval_stack)
 {
   lispval steps = kno_get_body(expr,2);
   if (! (PRED_TRUE( (KNO_PAIRP(steps)) || (steps == KNO_NIL) )) )
@@ -134,7 +134,7 @@ static lispval dochoices_evalfn(lispval expr,kno_lexenv env,
     kno_decref(dochoices_vals[1]);
     dochoices_vals[1]=VOID;
     if (finished) break; else i++;}
-  kno_pop_eval(dochoices_stack);
+  kno_pop_stack(dochoices_stack);
   return result;
 }
 
@@ -143,7 +143,7 @@ static lispval dochoices_evalfn(lispval expr,kno_lexenv env,
    Note that this treats a non-choice as a choice of one element.
    It returns VOID. */
 static lispval trychoices_evalfn(lispval expr,kno_lexenv env,
-				 kno_eval_stack eval_stack)
+				 kno_stack eval_stack)
 {
   lispval steps = kno_get_body(expr,2);
   if (! (PRED_TRUE( (KNO_PAIRP(steps)) || (steps == KNO_NIL) )) )
@@ -181,7 +181,7 @@ static lispval trychoices_evalfn(lispval expr,kno_lexenv env,
     else if (!(EMPTYP(val))) {
       result = val; break;}
     else i++;}
-  kno_pop_eval(trychoices_stack);
+  kno_pop_stack(trychoices_stack);
   return result;
 }
 
@@ -191,7 +191,7 @@ static lispval trychoices_evalfn(lispval expr,kno_lexenv env,
    Note that this treats a non-choice as a choice of one element.
    It returns the combined results of its body's execution. */
 static lispval forchoices_evalfn(lispval expr,kno_lexenv env,
-				 kno_eval_stack eval_stack)
+				 kno_stack eval_stack)
 {
   lispval steps = kno_get_body(expr,2);
   if (! (PRED_TRUE( (KNO_PAIRP(steps)) || (steps == KNO_NIL) )) )
@@ -233,7 +233,7 @@ static lispval forchoices_evalfn(lispval expr,kno_lexenv env,
     forchoices_vals[1]=VOID;
     if (finished) break;
     else i++;}
-  kno_pop_eval(forchoices_stack);
+  kno_pop_stack(forchoices_stack);
   return kno_simplify_choice(results);
 }
 
@@ -243,7 +243,7 @@ static lispval forchoices_evalfn(lispval expr,kno_lexenv env,
    Note that this treats a non-choice as a choice of one element.
    It returns the subset of values which pass the body. */
 static lispval filterchoices_evalfn(lispval expr,kno_lexenv env,
-				    kno_eval_stack eval_stack)
+				    kno_stack eval_stack)
 {
   lispval steps = kno_get_body(expr,2);
   if (! (PRED_TRUE( (KNO_PAIRP(steps)) || (steps == KNO_NIL) )) )
@@ -290,7 +290,7 @@ static lispval filterchoices_evalfn(lispval expr,kno_lexenv env,
     kno_decref(filterchoices_vals[1]);
     filterchoices_vals[1]=VOID;
     if (finished) break; else i++;}
-  kno_pop_eval(filterchoices_stack);
+  kno_pop_stack(filterchoices_stack);
   return kno_simplify_choice(results);
 }
 
@@ -346,7 +346,7 @@ static lispval qchoicex_prim(int n,kno_argvec args)
 
 /* TRY */
 
-static lispval try_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
+static lispval try_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval value = EMPTY;
   lispval clauses = kno_get_body(expr,1);
@@ -368,7 +368,7 @@ static lispval try_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 
 /* IFEXISTS */
 
-static lispval ifexists_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
+static lispval ifexists_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval value_expr = kno_get_arg(expr,1);
   lispval value = EMPTY;
@@ -483,7 +483,7 @@ static lispval simplify(lispval x)
   return kno_make_simple_choice(x);
 }
 
-static lispval qchoicep_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
+static lispval qchoicep_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   /* This is an evalfn because application often reduces qchoices to
      choices. */
@@ -632,7 +632,7 @@ static int test_forall(struct KNO_FUNCTION *fn,int i,int n,
     return test_forall(fn,i+1,n,nd_args,d_args,skip_errs);}
 }
 
-static lispval whenexists_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
+static lispval whenexists_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval to_eval = kno_get_arg(expr,1), value;
   if (VOIDP(to_eval))
@@ -763,7 +763,7 @@ static lispval choice2list(lispval x)
    It tries to stack allocate as much as possible for locality and convenience sake.
    Note that this treats a non-choice as a choice of one element.
    This returns VOID.  */
-static lispval dosubsets_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
+static lispval dosubsets_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval result = KNO_VOID;
   lispval body = kno_get_body(expr,2);
@@ -835,7 +835,7 @@ static lispval dosubsets_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stac
     kno_decref(dosubsets_vals[1]);
     dosubsets_vals[1]=VOID;
     if (!(finished)) i++;}
-  kno_pop_eval(dosubsets_stack);
+  kno_pop_stack(dosubsets_stack);
   return result;
 }
 

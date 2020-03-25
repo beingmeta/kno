@@ -46,7 +46,7 @@
 
 static lispval struct_eval_symbol;
 
-static lispval vector_evalfn(lispval vec,kno_lexenv env,kno_eval_stack stackptr)
+static lispval vector_evalfn(lispval vec,kno_lexenv env,kno_stack stackptr)
 {
   lispval *eval_elts = KNO_VECTOR_DATA(vec);
   int i = 0, len = KNO_VECTOR_LENGTH(vec);
@@ -62,7 +62,7 @@ static lispval vector_evalfn(lispval vec,kno_lexenv env,kno_eval_stack stackptr)
   return result;
 }
 
-static lispval slotmap_evalfn(lispval sm,kno_lexenv env,kno_eval_stack stackptr)
+static lispval slotmap_evalfn(lispval sm,kno_lexenv env,kno_stack stackptr)
 {
   int unlock = 0;
   struct KNO_SLOTMAP *smap = (kno_slotmap) sm;
@@ -103,7 +103,7 @@ static lispval slotmap_evalfn(lispval sm,kno_lexenv env,kno_eval_stack stackptr)
   return result;
 }
 
-static lispval struct_evalfn(lispval expr,kno_lexenv env,kno_eval_stack stackptr)
+static lispval struct_evalfn(lispval expr,kno_lexenv env,kno_stack stackptr)
 {
   if ( ( !(KNO_PAIRP(expr)) ) || (!(KNO_PAIRP(KNO_CDR(expr)))) )
     return kno_err(kno_SyntaxError,"struct_evalfn",NULL,expr);

@@ -466,7 +466,7 @@ static lispval sync_read_lock(lispval lck)
   else return kno_type_error("lockable","synchro_read_lock",lck);
 }
 
-static lispval with_lock_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
+static lispval with_lock_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval lock_expr = kno_get_arg(expr,1), lck, value = VOID;
   u8_mutex *mutex = NULL; u8_rwlock *rwlock = NULL;
@@ -662,7 +662,7 @@ static void *_kno_thread_main(void *data)
     tstruct->errnop = &(errno);
     tstruct->threadid = u8_threadid();
 
-    KNO_NEW_EVAL("thread",VOID,((kno_eval_stack )NULL));
+    KNO_NEW_EVAL("thread",VOID,((kno_stack )NULL));
     _stack->stack_label=u8_mkstring("thread%lld",u8_threadid());
     U8_SETBITS(_stack->stack_bits,KNO_STACK_FREE_LABEL);
     tstruct->thread_stackptr=_stack;
@@ -772,7 +772,7 @@ static void *_kno_thread_main(void *data)
       tstruct->evaldata.env = NULL;
       kno_decref(free_env);}
     tstruct->thread_stackptr = NULL;
-    kno_pop_eval(_stack);}
+    kno_pop_stack(_stack);}
   pthread_cleanup_pop(1);
 
   return NULL;
@@ -957,7 +957,7 @@ static lispval threadcallx_prim(int n,kno_argvec args)
     return kno_type_error(_("applicable"),"threadcallx_prim",fn);}
 }
 
-static lispval spawn_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
+static lispval spawn_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval to_eval = kno_get_arg(expr,1);
   lispval opts = kno_stack_eval(kno_get_arg(expr,2),env,_stack);
@@ -977,7 +977,7 @@ static lispval spawn_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
   return results;
 }
 
-static lispval threadeval_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
+static lispval threadeval_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval to_eval = kno_eval(kno_get_arg(expr,1),env);
   if (KNO_ABORTED(to_eval))
@@ -1391,7 +1391,7 @@ static lispval threadwaitbang_prim(lispval threads,lispval U8_MAYBE_UNUSED opts)
   return KNO_VOID;
 }
 
-static lispval parallel_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
+static lispval parallel_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   kno_thread _threads[6], *threads;
   lispval _results[6], *results, scan = KNO_CDR(expr), result = EMPTY;
@@ -1459,7 +1459,7 @@ static u8_mutex sassign_lock;
    wraps a mutex around a regular set call, including evaluation of the
    value expression.  This can be used, for instance, to safely increment
    a variable. */
-static lispval sassign_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
+static lispval sassign_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   int retval;
   lispval var = kno_get_arg(expr,1), val_expr = kno_get_arg(expr,2), value;
@@ -1548,7 +1548,7 @@ static lispval thread_add(lispval var,lispval val)
   else return VOID;
 }
 
-static lispval thread_ref_evalfn(lispval expr,kno_lexenv env,kno_eval_stack stack)
+static lispval thread_ref_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
 {
   lispval sym_arg = kno_get_arg(expr,1), sym, val;
   lispval dflt_expr = kno_get_arg(expr,2);
@@ -1607,7 +1607,7 @@ static int walk_thread_struct(kno_walker walker,lispval x,
 	return -1;
       else i++;}}
   if (tstruct->thread_stackptr) {
-    kno_eval_stack stackptr = tstruct->thread_stackptr;
+    kno_stack stackptr = tstruct->thread_stackptr;
     if (kno_walk(walker,stackptr->stack_point,walkdata,flags,depth-1)<0) {
       return -1;}
     if ((stackptr->eval_env) &&
@@ -1687,7 +1687,7 @@ static void thread_siginfo(int signum,siginfo_t *info,void *stuff)
   /* What should this do? */
   lispval cur_thread = kno_current_thread;
   u8_string log_context = u8_log_context;
-  kno_eval_stack stackptr = kno_eval_stackptr;
+  kno_stack stackptr = kno_stackptr;
   int emissions = 0;
   if (TYPEP(cur_thread,kno_thread_type)) {
     u8_log(-LOGNOTICE,"Thread","%q",cur_thread);

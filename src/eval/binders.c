@@ -27,7 +27,7 @@ u8_condition kno_BindSyntaxError=_("Bad binding expression");
 
 /* Set operations */
 
-static lispval assign_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
+static lispval assign_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   int retval;
   lispval var = kno_get_arg(expr,1), val_expr = kno_get_arg(expr,2), value;
@@ -54,7 +54,7 @@ static lispval assign_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
   else return kno_err(kno_BindError,"SET!",SYM_NAME(var),var);
 }
 
-static lispval assign_plus_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
+static lispval assign_plus_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval var = kno_get_arg(expr,1), val_expr = kno_get_arg(expr,2), value;
   if (VOIDP(var))
@@ -72,7 +72,7 @@ static lispval assign_plus_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _st
   return VOID;
 }
 
-static lispval assign_default_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
+static lispval assign_default_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval symbol = kno_get_arg(expr,1);
   lispval value_expr = kno_get_arg(expr,2);
@@ -99,7 +99,7 @@ static lispval assign_default_evalfn(lispval expr,kno_lexenv env,kno_eval_stack 
       return VOID;}}
 }
 
-static lispval assign_false_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
+static lispval assign_false_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval symbol = kno_get_arg(expr,1);
   lispval value_expr = kno_get_arg(expr,2);
@@ -127,7 +127,7 @@ static lispval assign_false_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _s
       return VOID;}}
 }
 
-static lispval bind_default_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
+static lispval bind_default_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval symbol = kno_get_arg(expr,1);
   lispval value_expr = kno_get_arg(expr,2);
@@ -154,7 +154,7 @@ static lispval bind_default_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _s
 
 /* Simple binders */
 
-static lispval let_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
+static lispval let_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval bindexprs = kno_get_arg(expr,1), result = VOID;
   int n;
@@ -178,12 +178,11 @@ static lispval let_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 	  letenv_vals[i]=value;
 	  i++;}}}
     result = eval_body(kno_get_body(expr,2),letenv,_stack,
-		       ":LET",SYM_NAME(letenv_vars[0]),
-		       1);
+		       ":LET",SYM_NAME(letenv_vars[0]));
     _env_return result;}
 }
 
-static lispval letstar_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
+static lispval letstar_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval bindexprs = kno_get_arg(expr,1), result = VOID;
   int n;
@@ -214,13 +213,13 @@ static lispval letstar_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 	  letseq_vals[i]=value;}
 	i++;}}
     result = eval_body(kno_get_body(expr,2),letseq,_stack,
-		       ":LET*",SYM_NAME(letseq_vars[0]),1);
+		       ":LET*",SYM_NAME(letseq_vars[0]));
     _env_return result;}
 }
 
 /* LETREC */
 
-static lispval letrec_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
+static lispval letrec_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval bindexprs = kno_get_arg(expr,1), result = VOID;
   int n;
@@ -252,14 +251,13 @@ static lispval letrec_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 	  letrec_vals[i]=value;}
 	i++;}}
     result = eval_body(kno_get_body(expr,2),letrec,_stack,
-		       ":LETREC",SYM_NAME(letrec_vars[0]),
-		       1);
+		       ":LETREC",SYM_NAME(letrec_vars[0]));
     _env_return result;}
 }
 
 /* DO */
 
-static lispval do_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
+static lispval do_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   int n = -1;
   lispval do_result = VOID;
@@ -341,8 +339,7 @@ static lispval do_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
     else if (!(KNO_EMPTY_LISTP(KNO_CDR(exitexprs)))) {
       kno_decref(do_result);
       do_result = eval_body(kno_get_body(exitexprs,1),do_env,_stack,
-			    ":DO",SYM_NAME(do_env_vars[0]),
-			    1);}
+			    ":DO",SYM_NAME(do_env_vars[0]));}
     else NO_ELSE;
     /* Free the environment. */
     _env_return do_result;}
@@ -353,7 +350,7 @@ static lispval do_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 /* This defines an identifier in the local environment to
    the value it would have anyway by environment inheritance.
    This is helpful if it was to rexport it, for example. */
-static lispval define_local_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
+static lispval define_local_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval var = kno_get_arg(expr,1);
   if (VOIDP(var))
@@ -377,7 +374,7 @@ static lispval define_local_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _s
 
 /* This defines an identifier in the local environment only if
    it is not currently defined. */
-static lispval define_init_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
+static lispval define_init_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval var = kno_get_arg(expr,1);
   lispval init_expr = kno_get_arg(expr,2);
@@ -405,7 +402,7 @@ static lispval define_init_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _st
 /* This defines an identifier in the local environment to
    the value it would have anyway by environment inheritance.
    This is helpful if it was to rexport it, for example. */
-static lispval define_return_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
+static lispval define_return_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval var = kno_get_arg(expr,1), val_expr = kno_get_arg(expr,2);
   if ( (VOIDP(var)) || (VOIDP(val_expr)) )
@@ -426,7 +423,7 @@ static lispval define_return_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _
 /* This defines an identifier in the local environment only if
    it is not currently defined. */
 static lispval define_import_evalfn(lispval expr,kno_lexenv env,
-				    kno_eval_stack _stack)
+				    kno_stack _stack)
 {
   lispval var = kno_get_arg(expr,1);
   lispval module_expr = kno_get_arg(expr,2);
@@ -471,7 +468,7 @@ static lispval define_import_evalfn(lispval expr,kno_lexenv env,
     return kno_err("NotAModule","define_import_evalfn",NULL,module);}
 }
 
-static lispval define_import(lispval expr,kno_lexenv env,kno_eval_stack _stack)
+static lispval define_import(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   return define_import_evalfn(expr,env,_stack);
 }

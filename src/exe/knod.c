@@ -864,7 +864,7 @@ static lispval asyncok()
   else return KNO_FALSE;
 }
 
-static lispval boundp_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
+static lispval boundp_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval symbol = kno_get_arg(expr,1);
   if (!(SYMBOLP(symbol)))

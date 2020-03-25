@@ -1,7 +1,7 @@
-static lispval op_get_headval(lispval head,kno_lexenv env,kno_eval_stack eval_stack,
+static lispval op_get_headval(lispval head,kno_lexenv env,kno_stack eval_stack,
 			      int *gc_headval);
 
-lispval op_eval_expr(kno_eval_stack eval_stack,
+lispval op_eval_expr(kno_stack eval_stack,
 		     lispval head,lispval expr,kno_lexenv env,
 		     int tail)
 {
@@ -108,7 +108,7 @@ lispval op_eval_expr(kno_eval_stack eval_stack,
   else return kno_call(stack,headval,n_args,argvec);
 }
       
-static lispval op_get_headval(lispval head,kno_lexenv env,kno_eval_stack eval_stack,
+static lispval op_get_headval(lispval head,kno_lexenv env,kno_stack eval_stack,
 			      int *gc_headval)
 {
   lispval headval = VOID;

@@ -270,7 +270,7 @@ static kno_lexenv become_module(kno_lexenv env,lispval module_name,int create)
   return env;
 }
 
-static lispval in_module_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
+static lispval in_module_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval module_name = kno_get_arg(expr,1);
   if (VOIDP(module_name))
@@ -279,7 +279,7 @@ static lispval in_module_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stac
   else return KNO_ERROR;
 }
 
-static lispval within_module_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
+static lispval within_module_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval module_name = kno_get_arg(expr,1);
   if (VOIDP(module_name))
@@ -323,7 +323,7 @@ static kno_lexenv make_hybrid_env(kno_lexenv base,lispval module_spec)
     return NULL;}
 }
 
-static lispval accessing_module_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
+static lispval accessing_module_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval module_name = kno_eval(kno_get_arg(expr,1),env);
   kno_lexenv hybrid;
@@ -364,7 +364,7 @@ KNO_EXPORT kno_hashtable kno_get_exports(kno_lexenv env)
   return exports;
 }
 
-static lispval module_export_evalfn(lispval expr,kno_lexenv env,kno_eval_stack stack)
+static lispval module_export_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
 {
   kno_hashtable exports;
   lispval symbols_spec = kno_get_arg(expr,1), symbols;
@@ -444,12 +444,12 @@ static lispval use_module_helper(lispval expr,kno_lexenv env)
     return VOID;}
 }
 
-static lispval use_module_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
+static lispval use_module_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   return use_module_helper(expr,env);
 }
 
-static lispval export_alias_helper(lispval expr,kno_lexenv env,kno_eval_stack _stack)
+static lispval export_alias_helper(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval modexpr = kno_get_arg(expr,1);
   if (KNO_VOIDP(modexpr))
@@ -471,7 +471,7 @@ static lispval export_alias_helper(lispval expr,kno_lexenv env,kno_eval_stack _s
   return KNO_VOID;
 }
 
-static lispval export_alias_evalfn(lispval expr,kno_lexenv env,kno_eval_stack _stack)
+static lispval export_alias_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   return export_alias_helper(expr,env,_stack);
 }

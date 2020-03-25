@@ -235,7 +235,7 @@ static lispval profiled_dcall
     struct KNO_FUNCTION *f = NULL;
     struct KNO_PROFILE *profile = NULL;
     struct KNO_STACK stack = { 0 };
-    KNO_SETUP_STACK((&stack),NULL,kno_apply_stacktype);
+    KNO_SETUP_STACK((&stack),NULL,kno_apply_stack);
     int setup = setup_call_stack(&stack,fn,n,argvec,&f);
     if (setup < 0) return KNO_ERROR;
     if (f) profile = f->fcn_profile;
@@ -277,7 +277,7 @@ static lispval contoured_dcall
 
     struct KNO_FUNCTION *f = NULL;
     struct KNO_STACK stack = { 0 };
-    KNO_SETUP_STACK((&stack),NULL,kno_apply_stacktype);
+    KNO_SETUP_STACK((&stack),NULL,kno_apply_stack);
     int setup = setup_call_stack(&stack,fn,n,argvec,&f);
     if (setup < 0) return KNO_ERROR;
     KNO_PUSH_STACK(&stack);
@@ -304,7 +304,7 @@ static lispval reckless_dcall
 {
   struct KNO_FUNCTION *f = NULL;
   struct KNO_STACK stack = { 0 };
-  KNO_SETUP_STACK((&stack),NULL,kno_apply_stacktype);
+  KNO_SETUP_STACK((&stack),NULL,kno_apply_stack);
   int setup = setup_call_stack(&stack,fn,n,argvec,&f);
   if (setup < 0) return KNO_ERROR;
   KNO_PUSH_STACK(&stack);

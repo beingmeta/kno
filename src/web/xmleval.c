@@ -582,7 +582,7 @@ static lispval xmlapply(u8_output out,lispval fn,lispval xml,
   if (TYPEP(fn,kno_evalfn_type)) {
     struct KNO_EVALFN *sf=
       kno_consptr(kno_evalfn,fn,kno_evalfn_type);
-    result = sf->evalfn_handler(xml,scheme_env,kno_eval_stackptr);}
+    result = sf->evalfn_handler(xml,scheme_env,kno_stackptr);}
   else if (KNO_LAMBDAP(fn))
     result = kno_xapply_lambda((struct KNO_LAMBDA *)fn,&cxt,xmlgetarg);
   else {
@@ -1276,7 +1276,7 @@ static lispval do_else(lispval expr,kno_lexenv env);
 
 /* Simple execution */
 
-static lispval knoml_insert(lispval expr,kno_lexenv env,kno_eval_stack _stack)
+static lispval knoml_insert(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval value = knoml_get(expr,value_symbol,env);
   u8_output out = u8_current_output;
@@ -1286,7 +1286,7 @@ static lispval knoml_insert(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 
 /* Conditionals */
 
-static lispval knoml_if(lispval expr,kno_lexenv env,kno_eval_stack _stack)
+static lispval knoml_if(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval test = knoml_get(expr,test_symbol,env);
   if (FALSEP(test))
@@ -1296,7 +1296,7 @@ static lispval knoml_if(lispval expr,kno_lexenv env,kno_eval_stack _stack)
     return do_body(expr,env);}
 }
 
-static lispval knoml_alt(lispval expr,kno_lexenv env,kno_eval_stack _stack)
+static lispval knoml_alt(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval content = kno_get(expr,content_slotid,VOID);
   if ((PAIRP(content))||(VECTORP(content))) {
@@ -1313,7 +1313,7 @@ static lispval knoml_alt(lispval expr,kno_lexenv env,kno_eval_stack _stack)
   return VOID;
 }
 
-static lispval knoml_ifreq(lispval expr,kno_lexenv env,kno_eval_stack _stack)
+static lispval knoml_ifreq(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval test = kno_get(expr,test_symbol,VOID);
   lispval value = knoml_get(expr,value_symbol,env);
@@ -1358,7 +1358,7 @@ static lispval do_else(lispval expr,kno_lexenv env)
 
 /* Choice/Set operations */
 
-static lispval knoml_try(lispval expr,kno_lexenv env,kno_eval_stack _stack)
+static lispval knoml_try(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   u8_output out = u8_current_output;
   lispval body = kno_get(expr,content_slotid,VOID), result = EMPTY;
@@ -1378,7 +1378,7 @@ static lispval knoml_try(lispval expr,kno_lexenv env,kno_eval_stack _stack)
   return result;
 }
 
-static lispval knoml_union(lispval expr,kno_lexenv env,kno_eval_stack _stack)
+static lispval knoml_union(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   u8_output out = u8_current_output;
   lispval body = kno_get(expr,content_slotid,VOID), result = EMPTY;
@@ -1398,7 +1398,7 @@ static lispval knoml_union(lispval expr,kno_lexenv env,kno_eval_stack _stack)
   return result;
 }
 
-static lispval knoml_intersection(lispval expr,kno_lexenv env,kno_eval_stack _stack)
+static lispval knoml_intersection(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   u8_output out = u8_current_output;
   lispval body = kno_get(expr,content_slotid,VOID);
@@ -1430,7 +1430,7 @@ static lispval knoml_intersection(lispval expr,kno_lexenv env,kno_eval_stack _st
 
 /* Binding */
 
-static lispval knoml_binding(lispval expr,kno_lexenv env,kno_eval_stack _stack)
+static lispval knoml_binding(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   u8_output out = u8_current_output;
   lispval body = kno_get(expr,content_slotid,VOID), result = VOID;
@@ -1478,7 +1478,7 @@ static lispval knoml_seq_loop(lispval var,lispval count_var,lispval xpr,kno_lexe
 static lispval knoml_choice_loop(lispval var,lispval count_var,lispval xpr,kno_lexenv env);
 static lispval knoml_range_loop(lispval var,lispval count_var,lispval xpr,kno_lexenv env);
 
-static lispval knoml_loop(lispval expr,kno_lexenv env,kno_eval_stack _stack)
+static lispval knoml_loop(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   if (!(kno_test(expr,each_symbol,VOID)))
     return kno_err(MissingAttrib,"knoml:loop",NULL,each_symbol);
@@ -1660,7 +1660,7 @@ static lispval knoml_range_loop(lispval var,lispval count_var,
 
 static lispval index_symbol, with_symbol, slot_symbol, value_symbol;
 
-static lispval knoml_find(lispval expr,kno_lexenv env,kno_eval_stack _stack)
+static lispval knoml_find(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval index_arg = knoml_get(expr,index_symbol,env), results;
   lispval *slotvals = u8_alloc_n(16,lispval);
@@ -1687,7 +1687,7 @@ static lispval knoml_find(lispval expr,kno_lexenv env,kno_eval_stack _stack)
 
 static lispval xmlarg_symbol, doseq_symbol, knoml_define_body;
 
-static lispval knoml_define(lispval expr,kno_lexenv env,kno_eval_stack _stack)
+static lispval knoml_define(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   if (!(kno_test(expr,id_symbol,VOID)))
     return kno_err(MissingAttrib,"knoml:loop",NULL,id_symbol);

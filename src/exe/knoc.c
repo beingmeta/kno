@@ -248,7 +248,7 @@ static int output_result(struct U8_OUTPUT *out,lispval result,
 static lispval history_symbol, histref_symbol;
 
 static lispval histref_evalfn(lispval expr,kno_lexenv env,
-			      kno_eval_stack _stack)
+			      kno_stack _stack)
 {
   lispval history = kno_thread_get(history_symbol);
   if (KNO_ABORTP(history))

@@ -866,9 +866,11 @@ uninstall: uninstall-core
 TAGS: makefile.in configure.ac include/kno/config.h.in			\
 		tests/libtests/*.c		  			\
 		src/exe/*.c src/exe/*.h include/kno/*.h 		\
-		src/lisp/*.c src/sys/*.c src/apply/*.c			\
+		src/lisp/*.c src/sys/*.c 				\
+		src/apply/*.c src/apply/*.h				\
 		src/storage/*.c src/drivers/*.c 			\
-		src/eval/*.c src/prims/*.c     				\
+		src/eval/*.c src/eval/*.h				\
+		src/prims/*.c     					\
 		src/text/*.c src/web/*.c 				\
 		src/cmodules/*.c 					\
 		src/libscm/*.scm src/libscm/*/*.scm 			\
@@ -886,11 +888,11 @@ TAGS: makefile.in configure.ac include/kno/config.h.in			\
 		src/extmods/*.in src/extmods/*/makefile	\
 		include/kno/components/*.h		\
 		${SRC_HEADERS};
-	@etags -o TAGS -a src/exe/*.c src/exe/*.h 
-	@etags -o TAGS -a src/lisp/*.c src/sys/*.c src/apply/*.c 
+	@etags -o TAGS -a src/exe/*.c src/exe/*.h
+	@etags -o TAGS -a src/lisp/*.c src/sys/*.c src/apply/*.c  src/apply/*.h 
 	@etags -o TAGS -a src/storage/*.c
 	@etags -o TAGS -a src/drivers/*.c src/drivers/headers/*.h
-	@etags -o TAGS -a src/eval/*.c src/prims/*.c
+	@etags -o TAGS -a src/eval/*.c src/eval/*.h src/prims/*.c
 	@etags -o TAGS -a src/web/*.c src/text/*.c;
 	@etags -o TAGS -a tests/libtests/*.c tests/*.scm;
 	@etags -o TAGS -a src/cmodules/*.c;
