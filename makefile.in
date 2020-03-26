@@ -873,6 +873,7 @@ TAGS: makefile.in configure.ac include/kno/config.h.in			\
 		src/prims/*.c     					\
 		src/text/*.c src/web/*.c 				\
 		src/cmodules/*.c 					\
+		src/python/*.c 						\
 		src/libscm/*.scm src/libscm/*/*.scm 			\
 		src/scripts/*.scm					\
 		include/kno/components/*.h				\
@@ -896,6 +897,7 @@ TAGS: makefile.in configure.ac include/kno/config.h.in			\
 	@etags -o TAGS -a src/web/*.c src/text/*.c;
 	@etags -o TAGS -a tests/libtests/*.c tests/*.scm;
 	@etags -o TAGS -a src/cmodules/*.c;
+	@etags -o TAGS -a src/python/*.c;
 	@etags -o TAGS -a src/scripts/*.scm;
 	@etags -o TAGS -a src/extmods/*/makefile
 	@find src/libscm/ -name "*.scm" -type f | xargs etags -a -o TAGS;
