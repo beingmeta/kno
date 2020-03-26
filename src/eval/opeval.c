@@ -28,7 +28,7 @@ lispval op_eval_expr(kno_stack eval_stack,
   kno_function f = (KNO_FUNCTION_TYPEP(headtype)) ?
     ((kno_function)headval) :
     (NULL);
-  int isndop = (f) && (f->fcn_call_flags & KNO_FCN_CALL_NDOP);
+  int isndop = (f) && (f->fcn_call_flags & KNO_FCN_CALL_NDCALL);
   int flags = eval_stack->stack_flags;
   lispval restore_op = eval_stack->stack_point;
   lispval restore_env = eval_stack->eval_env;
@@ -61,7 +61,7 @@ lispval op_eval_expr(kno_stack eval_stack,
       u8_string show_name = macrofn->macro_name;
       if (show_name == NULL) show_name = label;
       eval_result = kno_err(kno_SyntaxError,_("macro expansion"),show_name,new_expr);}
-    else eval_result = kno_evaluate(new_expr,env,eval_stack,tail,-1);
+    else eval_result = kno_eval(new_expr,env,eval_stack,tail,-1);
     kno_decref(new_expr);
     return eval_result;}
   case kno_opcode_type:

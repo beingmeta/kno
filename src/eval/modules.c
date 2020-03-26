@@ -220,7 +220,7 @@ int kno_module_finished(lispval module,int flags)
 
 static kno_lexenv become_module(kno_lexenv env,lispval module_name,int create)
 {
-  lispval module_spec = kno_eval(module_name,env), module;
+  lispval module_spec = kno_eval_expr(module_name,env), module;
   if (ABORTP(module_spec))
     return NULL;
   else if (SYMBOLP(module_spec))
@@ -288,7 +288,7 @@ static lispval within_module_evalfn(lispval expr,kno_lexenv env,kno_stack _stack
   if (become_module(consed_env,module_name,0)) {
     lispval result = VOID, body = kno_get_body(expr,2);
     KNO_DOLIST(elt,body) {
-      kno_decref(result); result = kno_eval(elt,consed_env);}
+      kno_decref(result); result = kno_eval_expr(elt,consed_env);}
     kno_decref((lispval)consed_env);
     return result;}
   else {
@@ -325,7 +325,7 @@ static kno_lexenv make_hybrid_env(kno_lexenv base,lispval module_spec)
 
 static lispval accessing_module_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  lispval module_name = kno_eval(kno_get_arg(expr,1),env);
+  lispval module_name = kno_eval_expr(kno_get_arg(expr,1),env);
   kno_lexenv hybrid;
   if (VOIDP(module_name))
     return kno_err(kno_TooFewExpressions,"WITHIN-MODULE",NULL,expr);
@@ -335,7 +335,7 @@ static lispval accessing_module_evalfn(lispval expr,kno_lexenv env,kno_stack _st
     KNO_DOLIST(elt,body) {
       if (KNO_ABORTP(result)) break;
       kno_decref(result);
-      result = kno_eval(elt,hybrid);}
+      result = kno_eval_expr(elt,hybrid);}
     kno_decref(module_name);
     kno_decref((lispval)hybrid);
     return result;}
@@ -370,7 +370,7 @@ static lispval module_export_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
   lispval symbols_spec = kno_get_arg(expr,1), symbols;
   if (VOIDP(symbols_spec))
     return kno_err(kno_TooFewExpressions,"MODULE-EXPORT!",NULL,expr);
-  symbols = kno_eval(symbols_spec,env);
+  symbols = kno_eval_expr(symbols_spec,env);
   if (KNO_ABORTP(symbols)) return symbols;
   {DO_CHOICES(symbol,symbols)
       if (!(SYMBOLP(symbol))) {
@@ -400,7 +400,7 @@ static int uses_bindings(kno_lexenv env,lispval bindings)
 
 static lispval use_module_helper(lispval expr,kno_lexenv env)
 {
-  lispval module_names = kno_eval(kno_get_arg(expr,1),env);
+  lispval module_names = kno_eval_expr(kno_get_arg(expr,1),env);
   kno_lexenv modify_env = env;
   if (VOIDP(module_names))
     return kno_err(kno_TooFewExpressions,"USE-MODULE",NULL,expr);

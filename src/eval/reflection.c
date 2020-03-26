@@ -14,12 +14,13 @@
 #include "kno/compounds.h"
 #include "kno/eval.h"
 #include "kno/ffi.h"
-#include "kno/profiles.h"
 #include "kno/cprims.h"
 
 #include "libu8/u8streamio.h"
 #include "libu8/u8printf.h"
 
+#include <sys/resource.h>
+#include "kno/profiles.h"
 
 #ifndef _FILEINFO
 #define _FILEINFO __FILE__
@@ -919,7 +920,7 @@ static lispval wherefrom_evalfn(lispval expr,kno_lexenv call_env,
 				kno_stack _stack)
 {
   lispval symbol_arg = kno_get_arg(expr,1);
-  lispval symbol = kno_eval(symbol_arg,call_env);
+  lispval symbol = kno_eval_expr(symbol_arg,call_env);
   if (SYMBOLP(symbol)) {
     kno_lexenv env = NULL, scan = env;
     int lookup_ids = 1, decref_env = 0;
@@ -928,7 +929,7 @@ static lispval wherefrom_evalfn(lispval expr,kno_lexenv call_env,
     if (KNO_VOIDP(env_arg))
       env = call_env;
     else {
-      env_val = kno_eval(env_arg,call_env);
+      env_val = kno_eval_expr(env_arg,call_env);
       if (KNO_ABORTED(env_val))
 	return env_val;
       else if (TYPEP(env_val,kno_lexenv_type)) {
@@ -940,7 +941,7 @@ static lispval wherefrom_evalfn(lispval expr,kno_lexenv call_env,
 	return err;}}
     lispval lookup = kno_get_arg(expr,3);
     if (!(KNO_VOIDP(lookup))) {
-      lookup = kno_eval(lookup,call_env);
+      lookup = kno_eval_expr(lookup,call_env);
       if (KNO_ABORTED(lookup)) {
 	if (decref_env) kno_decref(env_val);
 	return lookup;}
@@ -984,7 +985,7 @@ static lispval wherefrom_evalfn(lispval expr,kno_lexenv call_env,
 
 static lispval getmodules_evalfn(lispval expr,kno_lexenv call_env,kno_stack _stack)
 {
-  lispval env_arg = kno_eval(kno_get_arg(expr,1),call_env);
+  lispval env_arg = kno_eval_expr(kno_get_arg(expr,1),call_env);
   lispval modules = EMPTY;
   kno_lexenv env = call_env;
   if (VOIDP(env_arg)) {}

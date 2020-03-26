@@ -109,13 +109,6 @@ _KNO_STACK_ADDREF(kno_stack stack,lispval v)
 }
 
 KNO_EXPORT void
-_KNO_STACK_SET_ARGS(kno_stack stack,int n,kno_argvec args,
-		    unsigned int flags)
-{
-  KNO_STACK_SET_ARGS(stack,n,args,flags);
-}
-
-KNO_EXPORT void
 _KNO_STACK_SET_CALL(kno_stack stack,lispval op,
 		    int n,kno_argvec args,
 		    unsigned int flags)
@@ -127,6 +120,11 @@ _KNO_STACK_SET_CALL(kno_stack stack,lispval op,
 KNO_EXPORT int _kno_free_stack(struct KNO_STACK *stack)
 {
   return kno_free_stack(stack);
+}
+
+KNO_EXPORT int _kno_reset_stack(struct KNO_STACK *stack)
+{
+  return kno_reset_stack(stack);
 }
 
 KNO_EXPORT int _kno_pop_stack(struct KNO_STACK *stack)

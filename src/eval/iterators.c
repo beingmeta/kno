@@ -122,7 +122,7 @@ static lispval dotimes_evalfn(lispval expr,kno_lexenv env,
   while (i < limit) {
     dotimes_vals[0]=KNO_INT(i);
     {KNO_DOLIST(subexpr,body) {
-	lispval val = kno_evaluate(subexpr,dotimes,dotimes_stack,0);
+	lispval val = kno_eval(subexpr,dotimes,dotimes_stack,0);
 	if (ABORTED(val)) {
 	  exited=1;
 	  if (!(KNO_BROKEP(val))) result=val;
@@ -173,7 +173,7 @@ static lispval doseq_evalfn(lispval expr,kno_lexenv env,
     doseq_vals[0]=elt;
     doseq_vals[1]=KNO_INT(i);
     {KNO_DOLIST(subexpr,body) {
-	lispval val = kno_evaluate(subexpr,doseq,doseq_stack,0);
+	lispval val = kno_eval(subexpr,doseq,doseq_stack,0);
 	if (ABORTED(val)) {
 	  exited=1;
 	  if (!(KNO_BROKEP(val))) result=val;
@@ -234,7 +234,7 @@ static lispval forseq_evalfn(lispval expr,kno_lexenv env,
     forseq_vals[1]=KNO_INT(i);
     {KNO_DOLIST(subexpr,body) {
 	kno_decref(val);
-	val = kno_evaluate(subexpr,forseq,forseq_stack,0);
+	val = kno_eval(subexpr,forseq,forseq_stack,0);
 	if (ABORTED(val)) {
 	  exited=1;
 	  if (KNO_BROKEP(val))
@@ -301,7 +301,7 @@ static lispval tryseq_evalfn(lispval expr,kno_lexenv env,
     tryseq_vals[1]=KNO_INT(i);
     {KNO_DOLIST(subexpr,body) {
 	kno_decref(val);
-	val = kno_evaluate(subexpr,tryseq,tryseq_stack,0);
+	val = kno_eval(subexpr,tryseq,tryseq_stack,0);
 	if (ABORTED(val)) {
 	  exited = 1;
 	  if (!(KNO_BROKEP(val))) result=val;
@@ -355,7 +355,7 @@ static lispval dolist_evalfn(lispval expr,kno_lexenv env,
     dolist_vals[0]=elt;
     dolist_vals[1]=KNO_INT(i);
     {KNO_DOLIST(subexpr,body) {
-	lispval val = kno_evaluate(subexpr,dolist,dolist_stack,0);
+	lispval val = kno_eval(subexpr,dolist,dolist_stack,0);
 	if ((ABORTED(val))) {
 	  exited = 1;
 	  if (!(KNO_BROKEP(val))) result = val;
@@ -377,16 +377,16 @@ static lispval dolist_evalfn(lispval expr,kno_lexenv env,
 static lispval begin_evalfn(lispval begin_expr,kno_lexenv env,
 			    kno_stack _stack)
 {
-  return eval_body(KNO_CDR(begin_expr),env,_stack,"BEGIN",NULL);
+  return eval_body(KNO_CDR(begin_expr),env,_stack,"BEGIN",NULL,1);
 }
 
 static lispval onbreak_evalfn(lispval begin_expr,kno_lexenv env,
 			      kno_stack _stack)
 {
   lispval body = kno_get_body(begin_expr,2);
-  lispval result = eval_body(body,env,_stack,"ONBREAK",NULL);
+  lispval result = eval_body(body,env,_stack,"ONBREAK",NULL,0);
   if (KNO_BREAKP(result))
-    result = kno_evaluate(kno_get_arg(begin_expr,1),env,_stack,0);
+    result = kno_eval(kno_get_arg(begin_expr,1),env,_stack,0);
   return result;
 }
 

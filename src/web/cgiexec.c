@@ -29,7 +29,7 @@
 #include <libu8/u8stringfns.h>
 #include <libu8/u8streamio.h>
 
-#define fast_eval(x,env) (kno_evaluate(x,env,kno_stackptr,0))
+#define fast_eval(x,env) (kno_eval(x,env,kno_stackptr,0))
 
 #include <ctype.h>
 
@@ -822,7 +822,7 @@ static lispval jsout_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       if (STRINGP(x))
         u8_puts(&_out,CSTRING(x));
       else if ((SYMBOLP(x))||(PAIRP(x))) {
-        result = kno_eval(x,env);
+        result = kno_eval_expr(x,env);
         if (KNO_ABORTP(result)) break;
         else if ((VOIDP(result))||(FALSEP(result))||
                  (EMPTYP(result))) {}
@@ -857,7 +857,7 @@ static lispval cssout_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       if (STRINGP(x))
         u8_puts(&_out,CSTRING(x));
       else if ((SYMBOLP(x))||(PAIRP(x))) {
-        result = kno_eval(x,env);
+        result = kno_eval_expr(x,env);
         if (KNO_ABORTP(result)) break;
         else if ((VOIDP(result))||(FALSEP(result))||
                  (EMPTYP(result))) {}
@@ -1247,7 +1247,7 @@ static lispval withreqout_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
         u8_free(_out.u8_outbuf);
         return result;}
       kno_decref(result);
-      result = kno_eval(ex,env);}}
+      result = kno_eval_expr(ex,env);}}
   u8_set_default_output(oldout);
   kno_output_xhtml_preface(oldout,reqinfo);
   u8_putn(oldout,_out.u8_outbuf,(_out.u8_write-_out.u8_outbuf));

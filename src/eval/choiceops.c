@@ -167,7 +167,7 @@ static lispval trychoices_evalfn(lispval expr,kno_lexenv env,
     trychoices_vals[1]=KNO_INT(i);
     KNO_DOLIST(step,steps) {
       kno_decref(val);
-      val = kno_evaluate(step,trychoices,trychoices_stack,0);
+      val = kno_eval(step,trychoices,trychoices_stack,0);
       if (KNO_ABORTED(val)) {
 	if (KNO_BROKEP(val)) result = KNO_EMPTY; else result=val;
 	finished=1;
@@ -217,7 +217,7 @@ static lispval forchoices_evalfn(lispval expr,kno_lexenv env,
     forchoices_vals[1]=KNO_INT(i);
     KNO_DOLIST(step,steps) {
       kno_decref(val);
-      val = kno_evaluate(step,forchoices,forchoices_stack,0);
+      val = kno_eval(step,forchoices,forchoices_stack,0);
       if (KNO_ABORTED(val)) {
 	if ( (KNO_ERRORP(val)) || (KNO_THROWP(val)) ) {
 	  kno_decref(results);
@@ -268,7 +268,7 @@ static lispval filterchoices_evalfn(lispval expr,kno_lexenv env,
     filterchoices_vals[1]=KNO_INT(i);
     KNO_DOLIST(step,steps) {
       kno_decref(val);
-      val = kno_evaluate(step,filterchoices,filterchoices_stack,0);
+      val = kno_eval(step,filterchoices,filterchoices_stack,0);
       if (KNO_ABORTED(val)) {
 	if (KNO_BROKEP(val)) {
 	  results = kno_simplify_choice(results);
@@ -353,7 +353,7 @@ static lispval try_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   KNO_DOLIST(clause,clauses) {
     int ipe_state = kno_ipeval_status();
     kno_decref(value);
-    value = kno_evaluate(clause,env,_stack,0);
+    value = kno_eval(clause,env,_stack,0);
     if (KNO_ABORTED(value))
       return value;
     else if (VOIDP(value)) {
@@ -376,7 +376,7 @@ static lispval ifexists_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     return kno_err(kno_SyntaxError,"ifexists_evalfn",NULL,expr);
   else if (!(NILP(KNO_CDR(KNO_CDR(expr)))))
     return kno_err(kno_SyntaxError,"ifexists_evalfn",NULL,expr);
-  else value = kno_eval(value_expr,env);
+  else value = kno_eval_expr(value_expr,env);
   if (KNO_ABORTED(value))
     return value;
   if (EMPTYP(value))
@@ -490,7 +490,7 @@ static lispval qchoicep_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   if (!((PAIRP(expr)) && (PAIRP(KNO_CDR(expr)))))
     return kno_err(kno_SyntaxError,"qchoice_evalfn",NULL,expr);
   else {
-    lispval val = kno_eval(KNO_CADR(expr),env);
+    lispval val = kno_eval_expr(KNO_CADR(expr),env);
     if (KNO_ABORTED(val)) return val;
     if (QCHOICEP(val)) {
       kno_decref(val);
@@ -637,7 +637,7 @@ static lispval whenexists_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   lispval to_eval = kno_get_arg(expr,1), value;
   if (VOIDP(to_eval))
     return kno_err(kno_SyntaxError,"whenexists_evalfn",NULL,expr);
-  else value = kno_eval(to_eval,env);
+  else value = kno_eval_expr(to_eval,env);
   if (KNO_ABORTED(value)) {
     kno_clear_errors(0);
     return VOID;}
@@ -781,12 +781,12 @@ static lispval dosubsets_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   count_var = kno_get_arg(control_spec,3);
   if (!((VOIDP(count_var)) || (SYMBOLP(count_var))))
     return kno_err(kno_SyntaxError,"dosubsets_evalfn",NULL,VOID);
-  bsize = kno_eval(KNO_CADR(KNO_CDR(control_spec)),env);
+  bsize = kno_eval_expr(KNO_CADR(KNO_CDR(control_spec)),env);
   if (KNO_ABORTED(bsize)) return bsize;
   else if (!(FIXNUMP(bsize)))
     return kno_type_error("fixnum","dosubsets_evalfn",bsize);
   else blocksize = FIX2INT(bsize);
-  choices = kno_eval(KNO_CADR(control_spec),env);
+  choices = kno_eval_expr(KNO_CADR(control_spec),env);
   if (KNO_ABORTED(choices)) return choices;
   else {KNO_SIMPLIFY_CHOICE(choices);}
   if (EMPTYP(choices)) return VOID;

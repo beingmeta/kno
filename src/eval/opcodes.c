@@ -969,7 +969,7 @@ static lispval opcode_dispatch(lispval opcode,lispval expr,
 			       kno_stack caller,
 			       int tail)
 {
-  KNO_START_EVAL(caller,"opcode",opcode_name(opcode),expr);
+  KNO_START_EVAL(caller,"opcode",opcode_name(opcode),env,expr);
   lispval result = opcode_dispatch_inner(opcode,expr,env,_stack,tail);
   kno_pop_stack(caller);
   return simplify_value(result);

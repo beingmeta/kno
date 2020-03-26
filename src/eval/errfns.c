@@ -128,7 +128,7 @@ static lispval irritant_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   else printout_body = kno_get_body(expr,2);
 
   if (VOIDP(irritant))
-    irritant = kno_eval(irritant_expr,env);
+    irritant = kno_eval_expr(irritant_expr,env);
 
   if (KNO_ABORTP(irritant)) {
     u8_exception ex = u8_erreify();

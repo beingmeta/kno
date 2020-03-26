@@ -234,15 +234,15 @@ static lispval evaltest_evalfn(lispval expr,kno_lexenv env,kno_stack s)
   lispval name_expr = kno_get_arg(expr,3);
   lispval name_value = (KNO_VOIDP(name_expr)) ? (KNO_VOID) :
     (KNO_SYMBOLP(name_expr)) ? (name_expr) :
-    (kno_eval(name_expr,env));
+    (kno_eval_expr(name_expr,env));
   u8_string name = name2string(name_value);
   lispval expected_expr = kno_get_arg(expr,1);
-  lispval expected  = kno_eval(expected_expr,env), result = KNO_VOID;
+  lispval expected  = kno_eval_expr(expected_expr,env), result = KNO_VOID;
   if (KNO_ABORTED(expected)) {
     kno_seterr("BadExpectedValue","evaltest_evalfn",name,expected_expr);
     return expected;}
   else {
-    result = kno_eval(testexpr,env);
+    result = kno_eval_expr(testexpr,env);
     if ( (KNO_ERRORP(result)) && (expected == err_symbol) ) {
       u8_exception ex = u8_erreify();
       u8_logf(LOG_INFO,"Tests/ExpectedError","%m (from %s: %s) evaluating %q",

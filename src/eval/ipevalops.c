@@ -59,7 +59,7 @@ static int ipeval_let_step(struct IPEVAL_BINDSTRUCT *bs)
     kno_decref(bindings[i]); bindings[i++]=VOID;}
   i = 0; while (PAIRP(scan)) {
     lispval binding = KNO_CAR(scan), val_expr = KNO_CADR(binding);
-    lispval val = kno_eval(val_expr,env);
+    lispval val = kno_eval_expr(val_expr,env);
     if (KNO_ABORTED(val)) kno_interr(val);
     else bindings[i++]=val;
     scan = KNO_CDR(scan);}
@@ -75,7 +75,7 @@ static int ipeval_letstar_step(struct IPEVAL_BINDSTRUCT *bs)
     kno_decref(bindings[i]); bindings[i++]=KNO_UNBOUND;}
   i = 0; while (PAIRP(scan)) {
     lispval binding = KNO_CAR(scan), val_expr = KNO_CADR(binding);
-    lispval val = kno_eval(val_expr,env);
+    lispval val = kno_eval_expr(val_expr,env);
     if (KNO_ABORTED(val)) kno_interr(val);
     else bindings[i++]=val;
     scan = KNO_CDR(scan);}
@@ -164,7 +164,7 @@ static lispval letqstar_evalfn
 #if KNO_IPEVAL_ENABLED
 static int ipeval_step(struct IPEVAL_STRUCT *s)
 {
-  lispval kno_value = kno_eval(s->ipv_expr,s->ipv_env);
+  lispval kno_value = kno_eval_expr(s->ipv_expr,s->ipv_env);
   kno_decref(s->ipv_value); s->ipv_value = kno_value;
   if (KNO_ABORTED(kno_value))
     return -1;

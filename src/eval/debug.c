@@ -57,7 +57,7 @@ static lispval timed_eval_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
 {
   lispval toeval = kno_get_arg(expr,1);
   double start = u8_elapsed_time();
-  lispval value = kno_eval(toeval,env);
+  lispval value = kno_eval_expr(toeval,env);
   double finish = u8_elapsed_time();
   u8_message(";; Executed %q in %f seconds, yielding\n;;\t%q",
 	     toeval,(finish-start),value);
@@ -73,7 +73,7 @@ static lispval timed_evalx_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
 {
   lispval toeval = kno_get_arg(expr,1);
   double start = u8_elapsed_time();
-  lispval value = kno_eval(toeval,env);
+  lispval value = kno_eval_expr(toeval,env);
   double finish = u8_elapsed_time();
   if (KNO_ABORTED(value)) {
     u8_exception ex = u8_erreify();
@@ -145,7 +145,7 @@ static lispval watchcall(lispval expr,kno_lexenv env,int with_proc)
   out.u8_write = out.u8_outbuf;
   while (i<n_args) {
     lispval arg = kno_get_arg(watch,i);
-    lispval val = kno_eval(arg,env);
+    lispval val = kno_eval_expr(arg,env);
     val = kno_simplify_value(val);
     if (KNO_ABORTED(val)) {
       u8_string errstring = kno_errstring(NULL);
@@ -398,7 +398,7 @@ static lispval watchpoint_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
         lispval label = towatch; u8_string lbl = CSTRING(label);
         towatch = KNO_CAR(KNO_CDR(scan)); scan = KNO_CDR(KNO_CDR(scan));
         wval = ((SYMBOLP(towatch))?(kno_symeval(towatch,env)):
-                (kno_eval(towatch,env)));
+                (kno_eval_expr(towatch,env)));
         if (KNO_ABORTED(wval)) {
           u8_exception ex = u8_erreify();
           wval = kno_wrap_exception(ex);}
@@ -426,7 +426,7 @@ static lispval watchpoint_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
         kno_decref(wval); wval = VOID;}
       else {
         wval = ((SYMBOLP(towatch))?(kno_symeval(towatch,env)):
-                (kno_eval(towatch,env)));
+                (kno_eval_expr(towatch,env)));
         if (KNO_ABORTED(wval)) {
           u8_exception ex = u8_erreify();
           wval = kno_wrap_exception(ex);}
@@ -443,13 +443,13 @@ static lispval watchpoint_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
     u8_free(out.u8_outbuf);}
   start = u8_elapsed_time();
   if (SYMBOLP(toeval))
-    return kno_eval(toeval,env);
+    return kno_eval_expr(toeval,env);
   else if (STRINGP(toeval)) {
     /* This is probably the 'side effect' form of %WATCH, so
        we don't bother 'timing' it. */
     return kno_incref(toeval);}
   else {
-    lispval value = kno_eval(toeval,env);
+    lispval value = kno_eval_expr(toeval,env);
     double howlong = u8_elapsed_time()-start;
     if (KNO_ABORTED(value)) {
       u8_exception ex = u8_erreify();
@@ -509,7 +509,7 @@ static lispval watched_cond_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       lispval value = kno_eval_exprs(KNO_CDR(clause),env,_stack,0);
       u8_log(U8_LOG_MSG,label,"COND ? ELSE => %Q => ",KNO_CDR(clause),value);
       return value;}
-    else test_val = kno_eval(KNO_CAR(clause),env);
+    else test_val = kno_eval_expr(KNO_CAR(clause),env);
     if (KNO_ABORTED(test_val)) return test_val;
     else if (FALSEP(test_val)) {}
     else {
@@ -521,7 +521,7 @@ static lispval watched_cond_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       if (applyp) {
         if (PAIRP(KNO_CDR(KNO_CDR(clause)))) {
           lispval fnexpr = KNO_CAR(KNO_CDR(KNO_CDR(clause)));
-          lispval fn = kno_eval(fnexpr,env);
+          lispval fn = kno_eval_expr(fnexpr,env);
           if (KNO_ABORTED(fn)) {
             kno_decref(test_val);
             return fn;}
@@ -583,7 +583,7 @@ static lispval watched_try_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   KNO_DOLIST(clause,clauses) {
     int ipe_state = kno_ipeval_status();
     kno_decref(value);
-    value = kno_eval(clause,env);
+    value = kno_eval_expr(clause,env);
     if (KNO_ABORTED(value))
       return value;
     else if (VOIDP(value)) {
@@ -624,11 +624,11 @@ static lispval dbg_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
 {
   lispval arg_expr=kno_get_arg(expr,1);
   lispval msg_expr=kno_get_arg(expr,2);
-  lispval arg=kno_eval(arg_expr,env);
+  lispval arg=kno_eval_expr(arg_expr,env);
   if (VOIDP(msg_expr))
     u8_message("Debug %q",arg);
   else {
-    lispval msg=kno_eval(msg_expr,env);
+    lispval msg=kno_eval_expr(msg_expr,env);
     if (VOIDP(msg_expr))
       u8_message("Debug %q",arg);
     else if (FALSEP(msg)) {}
@@ -808,7 +808,7 @@ static lispval gprofile_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     lispval value = VOID;
     lispval body = kno_get_body(expr,start);
     KNO_DOLIST(ex,body) {
-      kno_decref(value); value = kno_eval(ex,env);
+      kno_decref(value); value = kno_eval_expr(ex,env);
       if (KNO_ABORTED(value)) {
         ProfilerStop();
         return value;}
@@ -838,7 +838,7 @@ static lispval profiled_eval_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
 {
   lispval toeval = kno_get_arg(expr,1);
   double start = u8_elapsed_time();
-  lispval value = kno_eval(toeval,env);
+  lispval value = kno_eval_expr(toeval,env);
   if (KNO_ABORTED(value)) return value;
   double finish = u8_elapsed_time();
   lispval tag = kno_get_arg(expr,2);

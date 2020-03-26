@@ -1,5 +1,3 @@
-#include "../apply/apply_internals.h"
-
 static lispval handle_special_opcode(lispval opcode,lispval args,lispval expr,
                                      kno_lexenv env,
                                      kno_stack _stack,
@@ -42,7 +40,7 @@ lispval op_eval_expr(kno_stack eval_stack,
   kno_function f = (KNO_FUNCTION_TYPEP(headtype)) ?
     ((kno_function)headval) :
     (NULL);
-  int isndop = (f) ? (f->fcn_call & KNO_FCN_CALL_NDOP) :
+  int isndop = (f) ? (f->fcn_call & KNO_FCN_CALL_NDCALL) :
     (KNO_OPCODEP(headval)) ?
     (!((KNO_D1_OPCODEP(headval)) ||
        (KNO_D2_OPCODEP(headval)) ) ) :
@@ -74,7 +72,7 @@ lispval op_eval_expr(kno_stack eval_stack,
       u8_string show_name = macrofn->macro_name;
       if (show_name == NULL) show_name = label;
       return kno_err(kno_SyntaxError,_("macro expansion"),show_name,new_expr);}
-    result = kno_evaluate(new_expr,env,eval_stack,tail,-1);
+    result = kno_eval(new_expr,env,eval_stack,tail,-1);
     kno_decref(new_expr);
     eval_stack->stack_point = restore_op;
     if (restore_env) eval_stack->eval_env = restore_env;
@@ -104,7 +102,7 @@ lispval op_eval_expr(kno_stack eval_stack,
       headval = head = fn_val;
       if (KNO_FUNCTIONP(fn_val)) f = (kno_function) fn_val;
       headtype = KNO_TYPEOF(fn_val);
-      isndop = (f) ? (f->fcn_call & KNO_FCN_CALL_NDOP) : (0);}
+      isndop = (f) ? (f->fcn_call & KNO_FCN_CALL_NDCALL) : (0);}
     else NO_ELSE;
     break;}
   default: {
@@ -1028,7 +1026,7 @@ static lispval until_opcode(lispval expr,kno_lexenv env,kno_stack stack)
   lispval test_expr = KNO_CAR(params), loop_body = KNO_CDR(params);
   if (VOIDP(test_expr))
     return kno_err(kno_SyntaxError,"KNO_LOOP_OPCODE",NULL,expr);
-  lispval test_val = kno_evaluate(test_expr,env,stack,0);
+  lispval test_val = kno_eval(test_expr,env,stack,0);
   if (ABORTED(test_val))
     return test_val;
   else while ( (FALSEP(test_val)) || (EMPTYP(test_val)) ) {
@@ -1038,7 +1036,7 @@ static lispval until_opcode(lispval expr,kno_lexenv env,kno_stack stack)
       else if (KNO_ABORTED(body_result))
 	return body_result;
       else kno_decref(body_result);
-      test_val = kno_evaluate(test_expr,env,stack,0);
+      test_val = kno_eval(test_expr,env,stack,0);
       if (KNO_ABORTED(test_val))
         return test_val;}
   return test_val;
@@ -1183,7 +1181,7 @@ static lispval bindop(lispval op,
                       int tail)
 {
   int i=0, n=VEC_LEN(vars);
-  KNO_PUSH_EVAL(bind_stack,"bindop",op);
+  KNO_PUSH_EVAL(bind_stack,"bindop",op,env);
   INIT_STACK_SCHEMA(bind_stack,bound,env,n,VEC_DATA(vars));
   lispval *values=bound_bindings.schema_values;
   lispval scan_inits = inits;
@@ -1210,7 +1208,7 @@ static lispval vector_bindop(lispval op,
                              int tail)
 {
   int i=0, n=VEC_LEN(vars);
-  KNO_PUSH_EVAL(bind_stack,"vector_bindop",op);
+  KNO_PUSH_EVAL(bind_stack,"vector_bindop",op,env);
   INIT_STACK_SCHEMA(bind_stack,bound,env,n,VEC_DATA(vars));
   lispval *values=bound_bindings.schema_values;
   lispval *exprs=VEC_DATA(inits);

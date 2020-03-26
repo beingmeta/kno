@@ -110,13 +110,15 @@ int setup_call(kno_stack stack,lispval fcn,
     else callbuf[i]=arg;
     i++;}
   while (i<width) callbuf[i++]=KNO_VOID;
+  stack->stack_args  = callbuf;
+  stack->stack_width = width;
+  stack->stack_argc  = n;
   return n;
 }
 
 static int cprim_prep(kno_stack stack,
 		      u8_string fname,
 		      int n,int width,
-		      kno_argvec given,
 		      lispval *args,
 		      const kno_lisp_type *typeinfo,
 		      const lispval *defaults)
@@ -124,13 +126,11 @@ static int cprim_prep(kno_stack stack,
   int i = 0;
   if (typeinfo) {
     int i = 0; while (i<n) {
-      lispval arg = given[i];
+      lispval arg = args[i];
       kno_lisp_type type = typeinfo[i];
       kno_lisp_type arg_type = KNO_TYPEOF(arg);
-      if (type<0)
-	args[i++] = arg;
-      else if (arg_type == type)
-	args[i++] = arg;
+      if (type<0) i++;
+      else if (arg_type == type) i++;
       else {
 	u8_byte buf[128];
 	kno_seterr(kno_TypeError,kno_type_names[type],
@@ -138,7 +138,7 @@ static int cprim_prep(kno_stack stack,
 			      kno_type_names[arg_type]),
 		   arg);
 	return -1;}}}
-  else memcpy(args,given,n*sizeof(lispval));
+  else NO_ELSE;
   i = n;
   if (defaults) {
     while (i<width) {
@@ -154,11 +154,19 @@ KNO_FASTOP lispval cprim_call(u8_string fname,kno_cprim cp,
 {
   kno_lisp_type *typeinfo = cp->fcn_typeinfo;
   const lispval *defaults = cp->fcn_defaults;
-  int call_width = cp->fcn_call_width;
+  int call_width = cp->fcn_call_width, rv = -1;
   if (call_width<0) call_width=n;
-  lispval args[call_width];
-  int rv = cprim_prep(stack,fname,n,call_width,given,args,
-		      typeinfo,defaults);
+  lispval *args, _args[call_width];
+  if (call_width <= stack->stack_width) {
+    rv = cprim_prep(stack,fname,n,call_width,
+		    (lispval *)given,
+		    typeinfo,defaults);
+    args = (lispval *)given;}
+  else {
+    rv = cprim_prep(stack,fname,n,call_width,
+		    _args,
+		    typeinfo,defaults);
+    args = _args;}
   int arity = cp->fcn_arity;
   if (rv<0)
     return KNO_ERROR;
@@ -233,3 +241,4 @@ KNO_FASTOP lispval cprim_call(u8_string fname,kno_cprim cp,
 	return cp->fcn_handler.xcalln(stack,(kno_function)cp,n,args);
       else return cp->fcn_handler.calln(n,args);}
 }
+

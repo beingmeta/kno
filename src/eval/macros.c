@@ -49,7 +49,7 @@ static lispval macro_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     lispval lambda_form=
       kno_conspair(lambda_symbol,
                   kno_conspair(kno_make_list(1,name),kno_incref(body)));
-    lispval transformer = kno_eval(lambda_form,env);
+    lispval transformer = kno_eval_expr(lambda_form,env);
     lispval macro = kno_make_macro(SYM_NAME(name),transformer);
     kno_decref(lambda_form);
     kno_decref(transformer);

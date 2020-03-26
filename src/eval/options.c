@@ -76,7 +76,7 @@ static lispval getopt_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     if (KNO_VOIDP(keys_arg)) {
       kno_decref(opts);
       return kno_err(kno_SyntaxError,"getopt_evalfn/arg2",NULL,expr);}
-    lispval keys = kno_eval(keys_arg,env);
+    lispval keys = kno_eval_expr(keys_arg,env);
     if (KNO_ABORTED(keys)) {
       kno_decref(opts);
       return keys;}
@@ -113,7 +113,7 @@ static lispval tryopt_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   if (KNO_VOIDP(keys_arg)) {
     kno_decref(opts);
     return kno_err(kno_SyntaxError,"getopt_evalfn/arg2",NULL,expr);}
-  lispval keys = kno_eval(keys_arg,env);
+  lispval keys = kno_eval_expr(keys_arg,env);
   if (KNO_ABORTED(keys)) {
     kno_decref(opts);
     return keys;}

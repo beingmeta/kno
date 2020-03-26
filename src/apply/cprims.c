@@ -168,7 +168,7 @@ static struct KNO_CPRIM *make_cprim(u8_string name,
   f->fcn_moduleid = KNO_VOID;
   f->fcn_call = KNO_FCN_CALL_NOTAIL | KNO_FCN_CALL_CPRIM |
     ( (varargs) ? (KNO_FCN_CALL_LEXPR) : (0) ) |
-    ( (non_deterministic) ? (KNO_FCN_CALL_NDOP) : (0) ) |
+    ( (non_deterministic) ? (KNO_FCN_CALL_NDCALL) : (0) ) |
     ( (extended_call) ? (KNO_FCN_CALL_XCALL) : (0) );
   f->fcn_call_width = f->fcn_arity = arity;
   f->fcn_min_arity = min_arity;

@@ -18,9 +18,7 @@
 #include "kno/lisp.h"
 #include "kno/lexenv.h"
 #include "kno/stacks.h"
-#include "kno/profiles.h"
 #include "kno/apply.h"
-
 #include "apply_internals.h"
 
 #include <libu8/u8printf.h>
@@ -43,6 +41,8 @@
 #endif
 
 #include <sys/resource.h>
+#include "kno/profiles.h"
+
 #include <stdarg.h>
 
 u8_string kno_ndcallstack_type = "ndapply";
@@ -129,53 +129,14 @@ static lispval profiled_call(kno_stack stack,
 			     kno_profile profile)
 {
   lispval result = KNO_VOID;
-#if (KNO_EXTENDED_PROFILING)
-  struct rusage before = { 0 };
-  if (kno_extended_profiling)
-#if (HAVE_DECL_RUSAGE_THREAD)
-    getrusage(RUSAGE_THREAD,&before);
-#else
-    getrusage(RUSAGE_SELF,&before);
-#endif
-#endif
-#if HAVE_CLOCK_GETTIME
-    struct timespec start;
-  clock_gettime(CLOCK_MONOTONIC,&start);
-#endif
+
+  struct rusage before; struct timespec start;
+  if (profile) kno_profile_start(&before,&start);
 
   /* Here's where we actually apply the function */
   result = core_call(stack,fn,f,n,argvec);
 
-  long long nsecs = 0;
-  long long stime = 0, utime = 0;
-  long long n_waits = 0, n_pauses = 0, n_faults = 0;
-#if HAVE_CLOCK_GETTIME
-  struct timespec end;
-  clock_gettime(CLOCK_MONOTONIC,&end);
-  nsecs = ((end.tv_sec*1000000000)+(end.tv_nsec)) -
-    ((start.tv_sec*1000000000)+(start.tv_nsec));
-#endif
-#if ( (KNO_EXTENDED_PROFILING) && (HAVE_DECL_RUSAGE_THREAD) )
-  if (kno_extended_profiling) {
-    struct rusage after = { 0 };
-    getrusage(RUSAGE_THREAD,&after);
-    utime = (after.ru_utime.tv_sec*1000000000+after.ru_utime.tv_usec*1000)-
-      (before.ru_utime.tv_sec*1000000000+before.ru_utime.tv_usec*1000);
-    stime = (after.ru_stime.tv_sec*1000000000+after.ru_stime.tv_usec*1000)-
-      (before.ru_stime.tv_sec*1000000000+before.ru_stime.tv_usec*1000);
-#if HAVE_STRUCT_RUSAGE_RU_NVCSW
-    n_waits = after.ru_nvcsw - before.ru_nvcsw;
-#endif
-#if HAVE_STRUCT_RUSAGE_RU_MAJFLT
-    n_faults = after.ru_majflt - before.ru_majflt;
-#endif
-#if HAVE_STRUCT_RUSAGE_RU_NIVCSW
-    n_pauses = after.ru_nivcsw - before.ru_nivcsw;
-#endif
-  }
-#endif
-  kno_profile_record(profile,0,nsecs,utime,stime,
-		     n_waits,n_pauses,n_faults);
+  kno_profile_update(profile,&before,&start,1);
 
   return result;
 }
@@ -254,6 +215,7 @@ static lispval profiled_dcall
       U8_CLEAR_CONTOUR();
       result = KNO_ERROR;}
     U8_END_EXCEPTION;
+
     if (KNO_PRECHOICEP(result)) {
       result = kno_simplify_choice(result);
       kno_return_from(&stack,result);}
@@ -481,7 +443,7 @@ static lispval ndcall(struct KNO_STACK *stack,lispval h,int n,kno_argvec args)
   kno_lisp_type fntype = KNO_TYPEOF(h);
   if (KNO_FUNCTION_TYPEP(fntype)) {
     struct KNO_FUNCTION *f = KNO_GETFUNCTION(h);
-    if ( (f->fcn_arity==0) || (f->fcn_call & KNO_FCN_CALL_NDOP) )
+    if ( (f->fcn_arity==0) || (f->fcn_call & KNO_FCN_CALL_NDCALL) )
       return kno_dcall(stack,h,n,args);
     else {
       if ((f->fcn_arity < 0) ?
@@ -547,7 +509,7 @@ KNO_EXPORT lispval kno_call(struct KNO_STACK *_stack,
     iter_choices = 1;
   else if (KNO_FUNCTIONP(handler)) {
     kno_function f = (kno_function) handler;
-    if (f->fcn_call & KNO_FCN_CALL_NDOP)
+    if (f->fcn_call & KNO_FCN_CALL_NDCALL)
       iter_choices = 0;
     else if (nd_argp(n,args))
       iter_choices = 1;
@@ -715,6 +677,129 @@ KNO_EXPORT kno_function _KNO_XFUNCTION(lispval x)
     return (kno_function) x;
   else return KNO_ERR(NULL,kno_NotAFunction,NULL,NULL,x);
 }
+
+/* Support for profiling */
+
+KNO_EXPORT struct KNO_PROFILE *kno_make_profile(u8_string name)
+{
+  struct KNO_PROFILE *result = u8_alloc(struct KNO_PROFILE);
+  result->prof_label    = (name) ? (u8_strdup(name)) : (NULL);
+  result->prof_disabled = 0;
+#if HAVE_STDATOMIC_H
+  result->prof_calls        = ATOMIC_VAR_INIT(0);
+  result->prof_items        = ATOMIC_VAR_INIT(0);
+  result->prof_nsecs        = ATOMIC_VAR_INIT(0);
+#if KNO_EXTENDED_PROFILING
+  result->prof_nsecs_user   = ATOMIC_VAR_INIT(0);
+  result->prof_nsecs_system = ATOMIC_VAR_INIT(0);
+  result->prof_n_waits      = ATOMIC_VAR_INIT(0);
+  result->prof_n_pauses      = ATOMIC_VAR_INIT(0);
+  result->prof_n_faults     = ATOMIC_VAR_INIT(0);
+#endif
+#else
+  u8_init_mutex(&(result->prof_lock));
+#endif
+  return result;
+}
+
+KNO_EXPORT void kno_profile_update
+(struct KNO_PROFILE *profile,struct rusage *before,struct timespec *start,
+ int calls)
+{
+  if (profile->prof_disabled) return;
+
+  long long nsecs = 0;
+  long long stime = 0, utime = 0;
+  long long n_waits = 0, n_pauses = 0, n_faults = 0;
+#if HAVE_CLOCK_GETTIME
+  struct timespec end;
+  clock_gettime(CLOCK_MONOTONIC,&end);
+  nsecs = ((end.tv_sec*1000000000)+(end.tv_nsec)) -
+    ((start->tv_sec*1000000000)+(start->tv_nsec));
+#endif
+#if ( (KNO_EXTENDED_PROFILING) && (HAVE_DECL_RUSAGE_THREAD) )
+  if (kno_extended_profiling) {
+    struct rusage after = { 0 };
+    getrusage(RUSAGE_THREAD,&after);
+    utime = (after.ru_utime.tv_sec*1000000000+after.ru_utime.tv_usec*1000)-
+      (before->ru_utime.tv_sec*1000000000+before->ru_utime.tv_usec*1000);
+    stime = (after.ru_stime.tv_sec*1000000000+after.ru_stime.tv_usec*1000)-
+      (before->ru_stime.tv_sec*1000000000+before->ru_stime.tv_usec*1000);
+#if HAVE_STRUCT_RUSAGE_RU_NVCSW
+    n_waits = after.ru_nvcsw - before->ru_nvcsw;
+#endif
+#if HAVE_STRUCT_RUSAGE_RU_MAJFLT
+    n_faults = after.ru_majflt - before->ru_majflt;
+#endif
+#if HAVE_STRUCT_RUSAGE_RU_NIVCSW
+    n_pauses = after.ru_nivcsw - before->ru_nivcsw;
+#endif
+  }
+#endif
+
+  kno_profile_record(profile,0,nsecs,utime,stime,
+		     n_waits,n_pauses,n_faults,
+		     calls);
+  return;
+}
+
+#if HAVE_STDATOMIC_H
+KNO_EXPORT void kno_profile_record
+(struct KNO_PROFILE *p,long long items,
+ long long nsecs,long long nsecs_user,long long nsecs_system,
+ long long n_waits,long long n_pauses,long long n_faults,
+ int calls)
+{
+  if (p->prof_disabled) return;
+  if (items) atomic_fetch_add(&(p->prof_items),items);
+  if (calls) atomic_fetch_add(&(p->prof_calls),calls);
+  atomic_fetch_add(&(p->prof_nsecs),nsecs);
+#if KNO_EXTENDED_PROFILING
+  atomic_fetch_add(&(p->prof_nsecs_user),nsecs_user);
+  atomic_fetch_add(&(p->prof_nsecs_system),nsecs_system);
+  atomic_fetch_add(&(p->prof_n_waits),n_waits);
+  atomic_fetch_add(&(p->prof_n_pauses),n_pauses);
+  atomic_fetch_add(&(p->prof_n_faults),n_faults);
+#endif
+}
+#else
+KNO_EXPORT void kno_profile_record
+(struct KNO_PROFILE *p,long long items,
+ long long nsecs,long long nsecs_user,long long nsecs_system,
+ long long n_waits,long long n_pauses,long long n_faults,
+ int calls)
+{
+  if (p->prof_disabled) return;
+  u8_lock_mutex(&(p->prof_lock));
+  if (items) p->prof_items += items;
+  p->prof_calls += calls;
+  p->prof_nsecs += nsecs;
+#if KNO_EXTENDED_PROFILING
+  p->prof_nsecs_user += nsecs_user;
+  p->prof_nsecs_system += nsecs_system;
+  p->prof_n_waits += n_waits;
+  p->prof_n_pauses += n_pauses;
+  p->prof_n_nfaults += n_faults;
+#endif
+  u8_lock_mutex(&(p->prof_lock));
+}
+#endif
+
+KNO_EXPORT void kno_profile_start(struct rusage *before,struct timespec *start)
+{
+#if HAVE_CLOCK_GETTIME
+  clock_gettime(CLOCK_MONOTONIC,start);
+#endif
+#if ( (KNO_EXTENDED_PROFILING) && (HAVE_DECL_RUSAGE_THREAD) )
+  if (kno_extended_profiling) getrusage(RUSAGE_THREAD,before);
+#elif (KNO_EXTENDED_PROFILING)
+  if (kno_extended_profiling) getrusage(RUSAGE_SELF,before);
+#else
+  return 0;
+#endif
+}
+
+
 
 /* Initializations */
 

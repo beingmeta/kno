@@ -54,7 +54,7 @@ static lispval quasiquote_list(lispval obj,kno_lexenv env,int level)
         if ((PAIRP(KNO_CDR(obj))) &&
             (NILP(KNO_CDR(KNO_CDR(obj))))) {
           if (level==1) {
-            lispval splice_at_end = kno_eval(KNO_CADR(obj),env);
+            lispval splice_at_end = kno_eval_expr(KNO_CADR(obj),env);
             if (KNO_ABORTED(splice_at_end)) {
               kno_decref(head);
               return splice_at_end;}
@@ -84,7 +84,7 @@ static lispval quasiquote_list(lispval obj,kno_lexenv env,int level)
         return kno_err(kno_SyntaxError,"malformed UNQUOTE",NULL,elt);}
       else if (KNO_EQ(KNO_CAR(elt),unquote)) {
         if (level==1) {
-          new_elt = kno_eval(KNO_CADR(elt),env);
+          new_elt = kno_eval_expr(KNO_CADR(elt),env);
           if (VOIDP(new_elt))
             new_elt = kno_err(kno_VoidArgument,"quasiquote_list",
                              NULL,KNO_CADR(elt));}
@@ -100,7 +100,7 @@ static lispval quasiquote_list(lispval obj,kno_lexenv env,int level)
           return new_elt;}}
       else if (KNO_EQ(KNO_CAR(elt),unquotestar))
         if (level==1) {
-          lispval insertion = kno_eval(KNO_CADR(elt),env);
+          lispval insertion = kno_eval_expr(KNO_CADR(elt),env);
           if (KNO_ABORTED(insertion)) {
               kno_decref(head);
               return insertion;}
@@ -184,7 +184,7 @@ static lispval quasiquote_vector(lispval obj,kno_lexenv env,int level)
           (KNO_EQ(KNO_CAR(elt),unquotestar)) &&
           (PAIRP(KNO_CDR(elt)))) {
         if (level==1) {
-          lispval insertion = kno_eval(KNO_CADR(elt),env); int addlen = 0;
+          lispval insertion = kno_eval_expr(KNO_CADR(elt),env); int addlen = 0;
           if (KNO_ABORTED(insertion)) {
             kno_decref_vec(newelts,j);
             u8_free(newelts);
@@ -331,7 +331,7 @@ lispval kno_quasiquote(lispval obj,kno_lexenv env,int level)
       else return kno_err(kno_SyntaxError,"malformed QUASIQUOTE",NULL,obj);
     else if (KNO_EQ(KNO_CAR(obj),unquote))
       if (level==1) {
-        lispval result=kno_eval(KNO_CAR(KNO_CDR(obj)),env);
+        lispval result=kno_eval_expr(KNO_CAR(KNO_CDR(obj)),env);
         if (KNO_VOIDP(result))
           return kno_err(kno_VoidArgument,"kno_quasiquote",NULL,obj);
         return result;}

@@ -52,7 +52,7 @@ static u8_output get_output_port(lispval portarg)
   else return NULL;
 }
 
-#define fast_eval(x,env) (kno_evaluate(x,env,_stack,0))
+#define fast_eval(x,env) (kno_eval(x,env,_stack,0))
 
 static lispval message_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
@@ -142,7 +142,7 @@ static int get_loglevel(lispval level_arg)
 
 static lispval log_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  lispval level_arg = kno_eval(kno_get_arg(expr,1),env);
+  lispval level_arg = kno_eval_expr(kno_get_arg(expr,1),env);
   lispval body = kno_get_body(expr,2);
   int level = get_loglevel(level_arg);
   U8_OUTPUT *out = u8_open_output_string(1024);
@@ -279,7 +279,7 @@ static lispval logifplus_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
            (EMPTYP(value)) || (NILP(value)))
     return VOID;
   kno_decref(value);
-  loglevel_arg = kno_eval(kno_get_arg(expr,2),env);
+  loglevel_arg = kno_eval_expr(kno_get_arg(expr,2),env);
   if (KNO_ABORTP(loglevel_arg))
     return loglevel_arg;
   else if (VOIDP(loglevel_arg))
