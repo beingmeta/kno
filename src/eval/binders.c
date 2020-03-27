@@ -172,7 +172,7 @@ static lispval let_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 	else if (VOIDP(value)) {
 	  kno_seterr(kno_VoidBinding,"let_evalfn",
 		    KNO_SYMBOL_NAME(var),val_expr);
-	  return KNO_ERROR_VALUE;}
+	  _env_return KNO_ERROR_VALUE;}
 	else {
 	  letenv_vars[i]=var;
 	  letenv_vals[i]=value;
@@ -204,8 +204,8 @@ static lispval letstar_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 	  _env_return value;
 	else if (VOIDP(value)) {
 	  kno_seterr(kno_VoidBinding,"letstar_evalfn",
-		    KNO_SYMBOL_NAME(var),val_expr);
-	  return KNO_ERROR_VALUE;}
+		     KNO_SYMBOL_NAME(var),val_expr);
+	  release_stack_env(_stack);}
 	else if (letseq->env_copy) {
 	  kno_bind_value(var,value,letseq->env_copy);
 	  kno_decref(value);}
@@ -243,8 +243,7 @@ static lispval letrec_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 	else if (VOIDP(value)) {
 	  kno_seterr(kno_VoidBinding,"letstar_evalfn",
 		    KNO_SYMBOL_NAME(var),val_expr);
-	  kno_decref_vec(letrec_vals,i);
-	  return KNO_ERROR_VALUE;}
+	  _env_return KNO_ERROR;}
 	else if (letrec->env_copy) {
 	  kno_bind_value(var,value,letrec->env_copy);
 	  kno_decref(value);}
@@ -278,6 +277,8 @@ static lispval do_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     return do_result;
   else {
     INIT_STACK_ENV(_stack,do_env,env,n);
+    kno_lexenv use_env = _stack->eval_env;
+    _stack->eval_env = NULL;
     lispval updaters[n], tmp[n];
     int i = 0;
     /* Do the initial bindings */
@@ -285,7 +286,7 @@ static lispval do_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       lispval var = kno_get_arg(bindexpr,0);
       lispval value_expr = kno_get_arg(bindexpr,1);
       if ( (!(SYMBOLP(var))) || (KNO_VOIDP(value_expr)) )
-	return kno_err(kno_SyntaxError,"do_evalfn",NULL,expr);
+	_env_return kno_err(kno_SyntaxError,"do_evalfn",NULL,expr);
       lispval update_expr = kno_get_arg(bindexpr,2);
       lispval value = kno_eval_expr(value_expr,env);
       if (KNO_ABORTED(value))
@@ -296,6 +297,7 @@ static lispval do_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 	updaters[i]=update_expr;
 	tmp[i]=KNO_VOID;
 	i++;}}}
+    _stack->eval_env = use_env;
     /* First test */
     testval = kno_eval_expr(testexpr,do_env);
     if (KNO_ABORTED(testval))

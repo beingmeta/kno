@@ -106,7 +106,8 @@ KNO_FASTOP lispval core_call(kno_stack stack,
   int argcheck = -1;
   kno_lisp_type fntype = KNO_PRIM_TYPE(fn);
   if ( (width == n) && (argcheck=check_args(n,argvec) == 0) ) {
-    KNO_STACK_SET_CALL(stack,fn,n,argvec,KNO_STACK_STATIC_CALL);
+    stack->stack_point = fn;
+    KNO_STACK_SET_ARGS(stack,(lispval *)argvec,width,n,KNO_STACK_STATIC_CALL);
     if (f)
       return function_call(stack->stack_label,f,n,argvec,stack);
     else return kno_applyfns[fntype](fn,width,argvec);}
@@ -114,8 +115,8 @@ KNO_FASTOP lispval core_call(kno_stack stack,
     lispval callbuf[width];
     argcheck = setup_call(stack,fn,width,callbuf,n,argvec);
     if (argcheck<0) return KNO_ERROR;
-    KNO_STACK_SET_CALL(stack,fn,width,(kno_argvec)callbuf,
-		       KNO_STACK_STATIC_CALL);
+    stack->stack_point = fn;
+    KNO_STACK_SET_ARGS(stack,callbuf,width,n,KNO_STACK_STATIC_CALL);
     if (f)
       return function_call(stack->stack_label,f,
 			   n,(kno_argvec)callbuf,
@@ -178,7 +179,8 @@ KNO_FASTOP int setup_call_stack(kno_stack stack,
     *fcnp = NULL;
   else NO_ELSE;
 
-  KNO_STACK_SET_CALL(stack,fn,n,args,KNO_STACK_STATIC_CALL);
+  stack->stack_point = fn;
+  KNO_STACK_SET_ARGS(stack,(lispvec)args,n,n,KNO_STACK_STATIC_CALL);
 
   return 1;
 }

@@ -18,7 +18,6 @@
 /* If KNO_INLINE_EVAL is true, those inline versions are made (via macros)
    the default versions of those operations. */
 
-/* #include "kno/xtypes.h" */
 #include "kno/lexenv.h"
 #include "kno/apply.h"
 #include "kno/threads.h"

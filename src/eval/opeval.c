@@ -56,7 +56,7 @@ lispval op_eval_expr(kno_stack eval_stack,
     eval_stack->stack_type="macro";
     lispval xformer = macrofn->macro_transformer;
     lispval new_expr = kno_dcall((kno_stack)eval_stack,xformer,1,&expr);
-    lipsval eval_result = VOID;
+    lispval eval_result = VOID;
     if (KNO_ABORTED(new_expr)) {
       u8_string show_name = macrofn->macro_name;
       if (show_name == NULL) show_name = label;

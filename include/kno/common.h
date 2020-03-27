@@ -49,6 +49,8 @@ typedef unsigned int kno_wideint;
 #define SIZEOF_LISPVAL SIZEOF_INT
 #endif
 
+typedef lispval *lispvec;
+
 #define LISPVAL_LEN (sizeof(lispval))
 #define LISPVEC_BYTELEN(n) (sizeof(lispval)*(n))
 

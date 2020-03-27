@@ -114,7 +114,8 @@ void release_stack_env(struct KNO_STACK *stack)
       lispval *vals = map->schema_values;
       int i = 0, n = map->schema_length;
       while (i < n) {
-	kno_decref(vals[i]); i++;}}}
+	kno_decref(vals[i]);
+	i++;}}}
 }
 
 #define INIT_STACK_ENV(stack,name,parent,n)	      \
