@@ -1621,7 +1621,7 @@ static int walk_thread_struct(kno_walker walker,lispval x,
 	  return -1;}}}
     */
     if (stackptr->stack_width) {
-      const lispval *args = stackptr->stack_args;
+      const lispval *args = stackptr->stack_valbuf;
       int i=0, n=stackptr->stack_width; while (i<n) {
 	if (kno_walk(walker,args[i],walkdata,flags,depth-1)<0) {
 	  return -1;}

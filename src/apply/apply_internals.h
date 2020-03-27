@@ -110,7 +110,7 @@ int setup_call(kno_stack stack,lispval fcn,
     else callbuf[i]=arg;
     i++;}
   while (i<width) callbuf[i++]=KNO_VOID;
-  stack->stack_args  = callbuf;
+  stack->stack_valbuf  = callbuf;
   stack->stack_width = width;
   stack->stack_argc  = n;
   return n;

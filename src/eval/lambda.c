@@ -82,7 +82,7 @@ int lambda_prep(kno_stack stack)
   int n_vars = proc->lambda_n_vars;
   int arity = proc->fcn_arity, min_arity = proc->fcn_min_arity;
 
-  lispval *args = (lispval *) stack->stack_args;
+  lispval *args = (lispval *) stack->stack_valbuf;
   int n = stack->stack_argc;
 
   if (n < min_arity) {
@@ -107,10 +107,12 @@ int lambda_prep(kno_stack stack)
   /* Handle positional arguments */
   while (i<last_positional) {
     lispval arg = args[i];
-    if (QCHOICEP(arg))
-      args[i++]=KNO_QCHOICEVAL(arg);
-    else if (ABORTED(arg)) return -1;
-    else args[i++] = arg;}
+    if (ABORTED(arg)) return -1;
+    else if (QCHOICEP(arg))
+      arg=KNO_QCHOICEVAL(arg);
+    else NO_ELSE;
+    kno_incref(arg);
+    args[i++] = arg;}
 
   /* Handle argument defaults */
   lispval *inits = proc->lambda_inits;
@@ -128,22 +130,16 @@ int lambda_prep(kno_stack stack)
 	init_val = kno_lexref(init_expr,proc_env);
       else init_val = init_expr;
       if (ABORTED(init_val)) return -1;
-      else args[i++]=init_val;
-      if (KNO_MALLOCDP(init_val)) {
-	KNO_STACK_ADDREF(stack,init_val);};}}
+      else args[i++]=init_val;;}}
 
   /* Now accumulate a .rest arg if it's needed */
   if (arity < 0) {
     if (i<n) {
       lispval rest_arg = get_rest_arg(args+i,n-i);
-      KNO_STACK_ADDREF((kno_stack)stack,rest_arg);
       args[i] = rest_arg;}
     else args[i] = KNO_EMPTY_LIST;
     i++;}
   while (i<n_vars) { args[i++] = KNO_VOID;}
-
-  int j=0; while (j<n_vars) {kno_incref(args[j]); j++;}
-  KNO_STACK_SET_BITS(stack,KNO_STACK_FREE_ENV);
 
   if (profile)
     kno_profile_update(profile,&before,&start,0);
@@ -156,7 +152,7 @@ lispval lambda_activate(kno_stack stack)
   struct KNO_LAMBDA *proc = (kno_lambda) (stack->stack_point);
   /* KNO_START_EVAL(lambda_stack,proc->fcn_name,stack->eval_source,stack); */
   kno_stack lambda_stack = stack;
-  lispval *args = (lispval *) stack->stack_args;
+  lispval *args = (lispval *) stack->stack_valbuf;
   kno_lexenv proc_env=proc->lambda_env;
   int n_vars = proc->lambda_n_vars;
   lispval *vars = proc->lambda_vars;
@@ -174,7 +170,7 @@ lispval lambda_activate(kno_stack stack)
 		  &bindings,&eval_env,
 		  vars,args);
   lambda_stack->eval_env    = &eval_env;
-  lambda_stack->stack_args  = (kno_argvec) args;
+  lambda_stack->stack_valbuf  = (kno_argvec) args;
   lambda_stack->stack_width = n_vars;
   lambda_stack->stack_argc  = n_vars;
 
@@ -194,6 +190,7 @@ lispval lambda_activate(kno_stack stack)
 
   kno_free_lexenv(&eval_env);
   stack->eval_env = NULL;
+  KNO_STACK_CLEAR_BITS(stack,KNO_STACK_FREE_ENV);
 
   if (profile)
     kno_profile_update(profile,&before,&start,1);

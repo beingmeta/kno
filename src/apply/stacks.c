@@ -158,8 +158,8 @@ static lispval stack2lisp(struct KNO_STACK *stack,struct KNO_STACK *inner)
     (knostring(stack->stack_file)) :
     (KNO_FALSE);
   lispval op	  = kno_incref(stack->stack_point);
-  lispval args	  = ( (stack->stack_args) && (stack->stack_width) ) ?
-    (copy_args(stack->stack_width,stack->stack_args)) :
+  lispval args	  = ( (stack->stack_valbuf) && (stack->stack_width) ) ?
+    (copy_args(stack->stack_width,stack->stack_valbuf)) :
     (KNO_EMPTY_LIST);
 
   unsigned int icrumb = stack->stack_crumb;
