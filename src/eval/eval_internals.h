@@ -121,17 +121,17 @@ void release_stack_env(struct KNO_STACK *stack)
 #define INIT_STACK_ENV(stack,name,parent,n)	      \
   struct KNO_SCHEMAP name ## _bindings;		      \
   struct KNO_LEXENV _ ## name, *name=&_ ## name;      \
-  lispval name ## _vars[n];			      \
+  lispval name ## _vars[n];				    \
   lispval name ## _vals[n];				    \
   kno_init_elts(name ## _vars,n,KNO_VOID);		    \
   kno_init_elts(name ## _vals,n,KNO_VOID);		    \
   stack->stack_bits |= KNO_STACK_FREE_ENV;		    \
   stack->eval_env =					    \
-    init_static_env(n,parent,				    \
-		    &name ## _bindings,			    \
-		    &_ ## name,				    \
-		    name ## _vars,			    \
-		    name ## _vals)
+  init_static_env(n,parent,				    \
+		  &name ## _bindings,			    \
+		  &_ ## name,				    \
+		  name ## _vars,			    \
+		  name ## _vals)
 
 #define INIT_STACK_SCHEMA(stack,name,parent,n,schema)	 \
   struct KNO_SCHEMAP name ## _bindings;			 \
@@ -140,11 +140,11 @@ void release_stack_env(struct KNO_STACK *stack)
   kno_init_elts(name ## _vals,n,KNO_VOID);		  \
   stack->stack_bits |= KNO_STACK_FREE_ENV;		  \
   stack->eval_env =					  \
-    init_static_env(n,parent,				  \
-		    &name ## _bindings,			  \
-		    &_ ## name,				  \
-		    schema,				  \
-		    name ## _vals)
+  init_static_env(n,parent,				  \
+		  &name ## _bindings,			  \
+		  &_ ## name,				  \
+		  schema,				  \
+		  name ## _vals)
 
 
 KNO_FASTOP U8_MAYBE_UNUSED

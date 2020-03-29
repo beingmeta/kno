@@ -167,10 +167,8 @@ static lispval stack2lisp(struct KNO_STACK *stack,struct KNO_STACK *inner)
   lispval file	  = (stack->stack_file) ?
     (knostring(stack->stack_file)) :
     (KNO_FALSE);
-  lispval op	  = kno_incref(stack->stack_point);
-  lispval args	  = ( (STACK_ARGS(stack)) && (STACK_WIDTH(stack)) ) ?
-    (copy_args(STACK_WIDTH(stack),STACK_ARGS(stack))) :
-    (KNO_EMPTY_LIST);
+  lispval point	  = kno_incref(stack->stack_point);
+  kno_lexenv env = stack->eval_env;
 
   unsigned int icrumb = stack->stack_crumb;
   if (icrumb == 0) {
@@ -178,11 +176,16 @@ static lispval stack2lisp(struct KNO_STACK *stack,struct KNO_STACK *inner)
     if (icrumb > KNO_MAX_FIXNUM) icrumb = icrumb%KNO_MAX_FIXNUM;
     stack->stack_crumb=icrumb;}
 
-  if (op == KNO_VOID) op = KNO_FALSE;
+  if (point == KNO_VOID) point = KNO_FALSE;
 
   return kno_init_compound
     (NULL,stack_entry_symbol,STACK_CREATE_OPTS,
-     6,depth,typesym,label,file,op,args,KNO_INT(icrumb));
+     6,depth,typesym,label,file,point,
+     ((env) ? (kno_deep_copy(env->env_bindings)) :
+      ((STACK_ARGS(stack)) && (STACK_WIDTH(stack))) ?
+      (copy_args(STACK_WIDTH(stack),STACK_ARGS(stack))) :
+      (KNO_EMPTY_LIST)),
+     KNO_INT(icrumb));
 }
 
 static lispval copy_args(int width,kno_argvec args)

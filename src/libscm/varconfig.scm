@@ -76,7 +76,8 @@
 			    confspec)))
 	   (confbody (extract-doc (cddr expr))))
       `(config-def! ,confarg (varconfigfn ,@(cdr confbody))
-		    ,(or (car confbody) `(,make-docstring ',(cadr confbody) (,%env)))))))
+		    ,(or (car confbody)
+			 `(,make-docstring ',(cadr confbody) (,%env)))))))
 
 (define optconfigfn
   (macro expr

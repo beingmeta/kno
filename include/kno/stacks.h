@@ -149,7 +149,7 @@ typedef struct KNO_STACK {
   //  eval_context the LISP source context for this computation,
   // this generally contains eval_source as a sub-expression.
   lispval eval_context;
-  // the lexical environment for this frame
+  // Any bindings established by this stack frame, usually a schemap
   struct KNO_LEXENV *eval_env;
   // stack_depth is the number of frames above this one
   unsigned int stack_depth;
@@ -287,8 +287,8 @@ KNO_EXPORT __thread struct KNO_STACK *kno_stackptr;
     (stack)->stack_depth	= (caller)->stack_depth+1;	\
     (stack)->stack_flags	= caller->stack_flags;}
 
-#define KNO_STACK_SET_ENV(stack,env,freeit)	\
-  kno_lexenv _cur_env = stack->eval_env;		       \
+#define KNO_STACK_SET_ENV(stack,env,freeit)		       \
+  kno_lexenv _cur_env = stack->eval_env;				\
   int _free_cur = (KNO_STACK_BITP(stack,KNO_STACK_FREE_ENV) );		\
   if (_cur_env != env) {						\
     stack->eval_env = env;						\
@@ -367,6 +367,7 @@ KNO_FASTOP int __kno_free_stack(struct KNO_STACK *stack)
   unsigned int bits = stack->stack_bits;
 
   lispval *args = STACK_ARGS(stack);
+
   kno_lexenv env = stack->eval_env;
   if ( (env) && ((bits)&(KNO_STACK_FREE_ENV)) ) {
     KNO_STACK_CLEAR_BITS(stack,KNO_STACK_FREE_ENV);
@@ -381,8 +382,9 @@ KNO_FASTOP int __kno_free_stack(struct KNO_STACK *stack)
 	  kno_free_lexenv(env);}
 	else kno_free_lexenv(env);}
       else kno_free_lexenv(env);}}
-
+  
   /* Other cleanup */
+
   if ((bits)&(KNO_STACK_NEEDS_CLEANUP)) {
     if ((bits)&(KNO_STACK_FREE_LABEL)) {
       u8_free(stack->stack_label);
@@ -394,8 +396,9 @@ KNO_FASTOP int __kno_free_stack(struct KNO_STACK *stack)
   kno_decref_stackvec(&(stack->stack_refs));
 
   if (args) {
-    if (bits & KNO_STACK_DECREF_ARGS)
+    if (bits & KNO_STACK_DECREF_ARGS) {
       kno_decref_stackvec(&(stack->stack_args));
+      KNO_STACK_CLEAR_BITS(stack,KNO_STACK_DECREF_ARGS);}
     else kno_free_stackvec(&(stack->stack_args));}
 
   stack->stack_point = KNO_VOID;
@@ -409,14 +412,13 @@ KNO_FASTOP int __kno_reset_stack(struct KNO_STACK *stack)
   if (type == kno_null_stacktype) return -1;
 
   unsigned int bits = stack->stack_bits;
-
-  kno_decref_stackvec(&(stack->stack_refs));
-
   kno_lexenv env = stack->eval_env;
   if ( (env) && ((bits)&(KNO_STACK_FREE_ENV)) ) {
     kno_free_lexenv(env);
     KNO_STACK_CLEAR_BITS(stack,KNO_STACK_FREE_ENV);}
   if (env) stack->eval_env = NULL;
+
+  kno_decref_stackvec(&(stack->stack_refs));
 
   STACK_ARGCOUNT(stack) = 0;
 
@@ -446,6 +448,7 @@ void __KNO_STACK_SET_ARGS(kno_stack stack,lispval *buf,
       while (i<n) {
 	lispval arg = args[i++];
 	kno_decref(arg);}}
+    KNO_STACK_CLEAR_BITS(stack,KNO_STACK_DECREF_ARGS);
     if (STACK_ARGS(stack)) {
       if (cur_free) u8_free(STACK_ARGS(stack));}}
 
