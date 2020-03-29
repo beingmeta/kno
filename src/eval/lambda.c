@@ -32,11 +32,12 @@ u8_condition kno_BadDefineForm=_("Bad procedure defining form");
 
 int kno_record_source=1;
 
-lispval lambda_activate(kno_stack stack);
+lispval lambda_eval(kno_stack stack);
 int lambda_prep(kno_stack stack);
 
 static lispval tail_symbol, decls_symbol, flags_symbol;
 
+#if 0
 static u8_string lambda_id(struct KNO_LAMBDA *fn)
 {
   if ((fn->fcn_name)&&(fn->fcn_filename))
@@ -52,6 +53,7 @@ static u8_string lambda_id(struct KNO_LAMBDA *fn)
                           ((unsigned long)
                            ((KNO_LONGVAL(fn))&0xFFFFFFFF)));
 }
+#endif
 
 static int add_autodocp(u8_string s)
 {
@@ -77,11 +79,11 @@ static lispval lambda_call(kno_stack caller,
 		     KNO_STACK_STATIC_ARGBUF);
   memcpy(callbuf,args,n*sizeof(lispval));
   lambda_stack->stack_point   = (lispval) proc;
-  lambda_stack->stack_argcount  = n;
+  STACK_ARGCOUNT(lambda_stack)  = n;
   lispval result = KNO_VOID;
   int rv = lambda_prep(lambda_stack);
   if (rv<0) result = KNO_ERROR;
-  else result = lambda_activate(lambda_stack);
+  else result = lambda_eval(lambda_stack);
   kno_pop_stack(lambda_stack);
   return result;
 }

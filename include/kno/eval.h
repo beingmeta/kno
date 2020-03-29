@@ -66,10 +66,6 @@ KNO_EXPORT u8_string kno_lambda_stack_type;
 #define KNO_MODULE_OPTIONAL 0
 #define KNO_MODULE_DEFAULT 1
 
-/* Constants */
-
-#define KNO_STACK_ARGS 6
-
 /* Eval stacks */
 
 #define KNO_START_EVAL(name,label,expr,env,caller)		\

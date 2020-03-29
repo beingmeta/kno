@@ -103,14 +103,27 @@ KNO_EXPORT int _kno_pop_stack_error(struct KNO_STACK *stack)
 }
 
 KNO_EXPORT void
-_KNO_STACK_ADDREF(kno_stack stack,lispval v)
+_kno_stackvec_push(kno_stackvec sv,lispval v)
 {
-  KNO_STACK_ADDREF(stack,v);
+  kno_stackvec_push(sv,v);
+}
+
+KNO_EXPORT void
+_kno_decref_stackvec(kno_stackvec sv)
+{
+  kno_decref_stackvec(sv);
+}
+
+KNO_EXPORT void
+_kno_add_stack_ref(kno_stack stack,lispval v)
+{
+  kno_add_stack_ref(stack,v);
 }
 
 KNO_EXPORT void
 _KNO_STACK_SET_ARGS(kno_stack stack,lispval *args,
-		    int width,int n,int needs_free)
+		    int width,int n,
+		    int needs_free)
 {
   KNO_STACK_SET_ARGS(stack,args,width,n,needs_free);
 }
@@ -155,8 +168,8 @@ static lispval stack2lisp(struct KNO_STACK *stack,struct KNO_STACK *inner)
     (knostring(stack->stack_file)) :
     (KNO_FALSE);
   lispval op	  = kno_incref(stack->stack_point);
-  lispval args	  = ( (stack->stack_args) && (stack->stack_width) ) ?
-    (copy_args(stack->stack_width,stack->stack_args)) :
+  lispval args	  = ( (STACK_ARGS(stack)) && (STACK_WIDTH(stack)) ) ?
+    (copy_args(STACK_WIDTH(stack),STACK_ARGS(stack))) :
     (KNO_EMPTY_LIST);
 
   unsigned int icrumb = stack->stack_crumb;

@@ -114,20 +114,21 @@ typedef lispval (*kno_xprimn)(kno_stack,kno_function,int n,kno_argvec);
     void *fnptr;}							  \
     fcn_handler
 
-#define KNO_FCN_FREE_DOC 1
-#define KNO_FCN_FREE_TYPEINFO 2
-#define KNO_FCN_FREE_DEFAULTS 4
+#define KNO_FCN_FREE_DOC      0x01
+#define KNO_FCN_FREE_TYPEINFO 0x02
+#define KNO_FCN_FREE_DEFAULTS 0x04
 
-#define KNO_FCN_TRACE_PROFILE 1
-#define KNO_FCN_TRACE_LOGGING 2
-#define KNO_FCN_TRACE_TRACEFN 4
-#define KNO_FCN_TRACE_BREAK   8
+#define KNO_FCN_TRACE_PROFILE 0x01
+#define KNO_FCN_TRACE_LOGGING 0x02
+#define KNO_FCN_TRACE_TRACEFN 0x04
+#define KNO_FCN_TRACE_BREAK   0x08
 
-#define KNO_FCN_CALL_NDCALL 1
-#define KNO_FCN_CALL_LEXPR  2
-#define KNO_FCN_CALL_NOTAIL 4
-#define KNO_FCN_CALL_CPRIM  8
-#define KNO_FCN_CALL_XCALL  16
+#define KNO_FCN_CALL_NDCALL 0x01
+#define KNO_FCN_CALL_LEXPR  0x02
+#define KNO_FCN_CALL_NOTAIL 0x04
+#define KNO_FCN_CALL_CPRIM  0x08
+#define KNO_FCN_CALL_XCALL  0x10
+#define KNO_FCN_CALL_PRUNE  0x20
 
 #define KNO_FCN_PROFILEP(f) ( ((f)->fcn_trace) & (KNO_FCN_TRACE_PROFILE) )
 #define KNO_FCN_LOGGEDP(f)  ( ((f)->fcn_trace) & (KNO_FCN_CALL_LOGGING) )
@@ -216,7 +217,7 @@ KNO_EXPORT lispval kno_cons_cprimN
 /* Adding primitives */
 
 #define KNO_XCALL   0x10000
-#define KNO_NDOP  0x20000
+#define KNO_NDOP    0x20000
 #define KNO_LEXPR   0x40000
 #define KNO_VARARGS KNO_LEXPR
 
@@ -235,6 +236,9 @@ KNO_EXPORT int _KNO_APPLICABLE_TYPEP(int typecode);
 #define KNO_FUNCTION_TYPEP(typecode) \
   ( (((typecode)&0xfc) == kno_function_type) ||	\
     (kno_isfunctionp[typecode]) )
+#define KNO_FAST_FUNCTIONP(obj) \
+  ( (KNO_CONSP(obj)) && \
+    (((KNO_CONSPTR_TYPE(obj))&0xfc) == kno_function_type) )
 
 #define KNO_FUNCTIONP(x)		       \
   ( (KNO_XXCONS_TYPEP(x,kno_function_type)) ||		\
@@ -323,11 +327,9 @@ KNO_EXPORT ssize_t kno_init_cstack(void);
 /* Apply functions */
 
 KNO_EXPORT lispval kno_call(struct KNO_STACK *stack,lispval fp,int n,kno_argvec args);
-KNO_EXPORT lispval kno_ndcall(struct KNO_STACK *stack,lispval,int n,kno_argvec args);
 KNO_EXPORT lispval kno_dcall(struct KNO_STACK *stack,lispval,int n,kno_argvec rgs);
 
 #define kno_apply(fn,n_args,argv) (kno_call(kno_stackptr,fn,n_args,argv))
-#define kno_ndapply(fn,n_args,argv) (kno_ndcall(kno_stackptr,fn,n_args,argv))
 #define kno_dapply(fn,n_args,argv) (kno_dcall(kno_stackptr,fn,n_args,argv))
 
 KNO_EXPORT int _KNO_APPLICABLEP(lispval x);

@@ -187,7 +187,7 @@ void set_stack_label(struct KNO_STACK *stack,u8_string label,int needs_free)
 }
 
 #define KNO_INIT_ITER_LOOP(name,var,value,n_vars,caller,parent_env)	\
-  KNO_STACK_ADDREF(((kno_stack)caller),value);				\
+  kno_add_stack_ref(((kno_stack)caller),value);				\
   u8_byte iter_label_buf[32];						\
   u8_string label = (KNO_SYMBOLP(var)) ?				\
     u8_bprintf(iter_label_buf,"%s.%s", # name,KNO_SYMBOL_NAME(var)) :	\

@@ -19,16 +19,113 @@
 #include <obstack.h>
 #endif
 
-/* Stack frames */
+/* Stack vectors (stackvecs) */
 
-struct KNO_STACK_HEAD {
-  long long stack_threadid;
-  unsigned int stack_flags;
-  struct obstack *stack_obstack; /* Unused */
-};
+typedef struct KNO_STACKVEC {
+  lispval *elts;
+  unsigned int len;
+  unsigned int count;} KNO_STACKVEC;
+typedef struct KNO_STACKVEC *kno_stackvec;
 
-#define KNO_STACK_HEADER				\
+#define KNO_DECL_STACKVEC(name,init_len) \
+  lispval _ ## name ## _elts[init_len]; \
+  struct KNO_STACKVEC _ ## name = { _ ## name ## _elts, init_len, 0 };	\
+  struct KNO_STACKVEC * name = & _ ## name
 
+#ifndef KNO_STACKVEC_INIT_LEN
+#define KNO_STACKVEC_INIT_LEN 7
+#endif
+
+#ifndef KNO_STACKVEC_MAX_DELTA
+#define KNO_STACKVEC_MAX_DELTA 1000
+#endif
+
+#define KNO_STACKVEC_HEAPBIT (0x10000000)
+#define KNO_STACKVEC_LENMASK (~(0x10000000))
+
+#define KNO_STACKVEC_ELTS(sv)   ((sv)->elts)
+#define KNO_STACKVEC_ARGS(sv)   ((kno_argvec)((sv)->elts))
+#define KNO_STACKVEC_COUNT(sv)  ((sv)->count)
+#define KNO_STACKVEC_LEN(sv)    (((sv)->len)&(KNO_STACKVEC_LENMASK))
+#define KNO_STACKVEC_ONHEAP(sv) (((sv)->len)&(KNO_STACKVEC_HEAPBIT))
+
+#if KNO_SOURCE
+#define STACKVEC_ELTS(sv)   ((sv)->elts)
+#define STACKVEC_ARGS(sv)   ((kno_argvec)((sv)->elts))
+#define STACKVEC_COUNT(sv)  ((sv)->count)
+#define STACKVEC_LEN(sv)    (((sv)->len)&(KNO_STACKVEC_LENMASK))
+#define STACKVEC_ONHEAP(sv) (((sv)->len)&(KNO_STACKVEC_HEAPBIT))
+#endif
+
+KNO_EXPORT void _kno_stackvec_push(struct KNO_STACKVEC *stack,lispval v);
+KNO_EXPORT void _kno_decref_stackvec(struct KNO_STACKVEC *stack);
+KNO_EXPORT void _kno_free_stackvec(struct KNO_STACKVEC *stack);
+
+#if KNO_INLINE_STACKS
+#define kno_stackvec_push    __kno_stackvec_push
+#define kno_decref_stackvec  __kno_decref_stackvec
+#define kno_free_stackvec    __kno_free_stackvec
+#else
+#define kno_stackvec_push   _kno_stackvec_push
+#define kno_decref_stackvec _kno_decref_stackvec
+#define kno_free_stackvec   _kno_free_stackvec
+#endif
+
+#if KNO_INLINE_STACKS
+static void __kno_stackvec_grow(struct KNO_STACKVEC *sv,int delta)
+{
+  lispval *elts = KNO_STACKVEC_ELTS(sv);
+  if (elts == NULL) {
+    elts = u8_alloc_n(KNO_STACKVEC_INIT_LEN,lispval);
+    sv->elts  = elts;
+    sv->count = 0;
+    sv->len   = KNO_STACKVEC_HEAPBIT|KNO_STACKVEC_INIT_LEN;}
+  else {
+    int count     = KNO_STACKVEC_COUNT (sv);
+    int len       = KNO_STACKVEC_LEN   (sv);
+    int onheap    = KNO_STACKVEC_ONHEAP(sv);
+    int new_len   = len +
+      ( (delta>0) ? (delta) :
+	(len > KNO_STACKVEC_MAX_DELTA) ? (KNO_STACKVEC_MAX_DELTA) :
+	(len*2) );
+    if (onheap) {
+      lispval *new_elts = u8_realloc(elts,new_len*sizeof(lispval));
+      sv->elts = new_elts;
+      sv->len  = KNO_STACKVEC_HEAPBIT|new_len;
+      return;}
+    else {
+      lispval *new_elts = u8_alloc_n(new_len,lispval);
+      memcpy(new_elts,elts,count*sizeof(lispval));
+      sv->elts = new_elts;
+      sv->len  = KNO_STACKVEC_HEAPBIT|new_len;
+      return;}}
+}
+KNO_FASTOP void __kno_stackvec_push(struct KNO_STACKVEC *sv,lispval v)
+{
+  if ( (sv->count) >= (KNO_STACKVEC_LEN(sv)) )
+    __kno_stackvec_grow(sv,-1);
+  sv->elts[(sv->count)++] = v;
+}
+KNO_FASTOP void __kno_decref_stackvec(struct KNO_STACKVEC *sv)
+{
+  lispval *elts = KNO_STACKVEC_ELTS(sv);
+  int count     = KNO_STACKVEC_COUNT(sv);
+  if (count) {
+    int i = 0; while (i<count) {
+      lispval elt = elts[i++];
+      kno_decref(elt);}}
+  if (KNO_STACKVEC_ONHEAP(sv)) u8_free(elts);
+  memset(sv,0,sizeof(struct KNO_STACKVEC));
+}
+KNO_FASTOP void __kno_free_stackvec(struct KNO_STACKVEC *sv)
+{
+  lispval *elts = KNO_STACKVEC_ELTS(sv);
+  if (KNO_STACKVEC_ONHEAP(sv)) u8_free(elts);
+  memset(sv,0,sizeof(struct KNO_STACKVEC));
+}
+#endif
+
+/* Stacks */
 
 typedef struct KNO_STACK {
   // stack_bits bits describing this stack frame in particular
@@ -41,20 +138,13 @@ typedef struct KNO_STACK {
   // stack_point  the expression being evaluated, the function
   //  being applied, or the value being processed
   lispval stack_point;
-  // stack_args an array of lispvals used as either arguments for
-  //  application or values in an environment
-  lispval *stack_args;
-  // stack_width the allocated length of the stack_args array
-  unsigned int stack_width;
-  // stack_argcount  the used length of the stack_args array
-  unsigned int stack_argcount;
-  // stack_refs an array of lisp pointers to free on exti
-  lispval *stack_refs;
-  //  stack_n_refs how many pointers are stored in stack_refs
-  int stack_n_refs;
-  // stack_refs_len the allocated length of the stack_refs array
-  int stack_refs_len;
-  // eval_source the LISP source expression for this computation
+  // stack_args are a vector of ordered arguments for the current
+  // operation
+  struct KNO_STACKVEC stack_args;
+  // stack_refs are references to be freed on exit
+  struct KNO_STACKVEC stack_refs;
+  // eval source is the original (unoptimized) expression for the
+  // current operation
   lispval eval_source;
   //  eval_context the LISP source context for this computation,
   // this generally contains eval_source as a sub-expression.
@@ -76,7 +166,15 @@ typedef struct KNO_STACK {
 } KNO_STACK;
 typedef struct KNO_STACK *kno_stack;
 
-typedef lispval (*kno_stack_dumpfn)(struct KNO_STACK *);
+#define KNO_STACK_ARGS(stack)     ((stack)->stack_args.elts)
+#define KNO_STACK_WIDTH(stack)    ((stack)->stack_args.len)
+#define KNO_STACK_ARGCOUNT(stack) ((stack)->stack_args.count)
+
+#if KNO_SOURCE
+#define STACK_ARGS(stack)     ((stack)->stack_args.elts)
+#define STACK_WIDTH(stack)    ((stack)->stack_args.len)
+#define STACK_ARGCOUNT(stack) ((stack)->stack_args.count)
+#endif
 
 KNO_EXPORT u8_string kno_stack_types[8];
 
@@ -103,10 +201,9 @@ typedef enum KNO_STACK_TYPE
 /* Stack bits */
 
 #define KNO_STACK_DECREF_ARGS	 0x0008
-#define KNO_STACK_FREE_ARGS	 0x0010
-#define KNO_STACK_FREE_LABEL	 0x0020
-#define KNO_STACK_FREE_FILE	 0x0040
-#define KNO_STACK_FREE_REFS	 0x0080
+#define KNO_STACK_FREE_LABEL	 0x0010
+#define KNO_STACK_FREE_FILE	 0x0020
+#define KNO_STACK_FREE_REFS	 0x0040
 
 /* Reserved for the evaluator */
 #define KNO_STACK_EVAL_LOOP	 0x0100
@@ -115,7 +212,7 @@ typedef enum KNO_STACK_TYPE
 #define KNO_STACK_FREE_ENV	 0x0800
 
 #define KNO_STACK_NEEDS_CLEANUP						\
-  (KNO_STACK_FREE_ARGS|KNO_STACK_FREE_LABEL|KNO_STACK_FREE_FILE)
+  (KNO_STACK_FREE_LABEL|KNO_STACK_FREE_FILE)
 
 #define KNO_STACK_STATIC_CALL    0x0000
 #define KNO_STACK_STATIC_ARGS    0x0000
@@ -176,14 +273,13 @@ KNO_EXPORT __thread struct KNO_STACK *kno_stackptr;
     ( (u8_stack_direction > 0) ? ( (stack) > (caller) ) :	\
       ( (stack) < (caller) ) ) )
 
-#define KNO_SETUP_STACK(stack,label,bits)	\
-  (stack)->stack_size	  = sizeof(*(stack));	\
-  (stack)->stack_label	  = label;			\
-  (stack)->stack_bits	  = bits;			\
-  (stack)->stack_refs	  = NULL;			\
-  (stack)->stack_n_refs	  = 0;				\
-  (stack)->stack_refs_len    = 0;				\
-  (stack)->stack_point	  = KNO_VOID
+#define KNO_SETUP_STACK(stack,label,bits)			\
+  (stack)->stack_size	     = sizeof(*(stack));		\
+  (stack)->stack_label	     = label;				\
+  (stack)->stack_bits	     = bits;				\
+  (stack)->stack_point	     = KNO_VOID;			\
+  (stack)->eval_source	     = KNO_VOID;			\
+  (stack)->eval_context      = KNO_VOID
 
 #define KNO_STACK_SET_CALLER(stack,caller)		\
   (stack)->stack_caller = caller;				\
@@ -232,16 +328,36 @@ KNO_EXPORT __thread struct KNO_STACK *kno_stackptr;
   KNO_EVAL_ROOT(_stack,label,KNO_VOID)
 
 
+KNO_EXPORT void _kno_add_stack_ref(struct KNO_STACK *stack,lispval v);
 KNO_EXPORT int _kno_free_stack(struct KNO_STACK *stack);
 KNO_EXPORT int _kno_reset_stack(struct KNO_STACK *stack);
 KNO_EXPORT int _kno_pop_stack(struct KNO_STACK *stack);
 KNO_EXPORT int _kno_pop_stack_error(struct KNO_STACK *stack);
-KNO_EXPORT void _KNO_STACK_ADDREF(struct KNO_STACK *stack,lispval v);
 KNO_EXPORT void _KNO_STACK_SET_ARGS(kno_stack stack,lispval *buf,
 				    int width,int argcount,
 				    int needs_free);
 
 #if KNO_INLINE_STACKS
+#define kno_add_stack_ref __kno_add_stack_ref
+#define kno_free_stack __kno_free_stack
+#define kno_reset_stack __kno_reset_stack
+#define kno_pop_stack __kno_pop_stack
+#define KNO_STACK_SET_ARGS __KNO_STACK_SET_ARGS
+#else /* not KNO_INLINE_STACKS */
+#define kno_add_stack_ref _kno_add_stack_ref
+#define kno_free_stack _kno_free_stack
+#define kno_reset_stack _kno_reset_stack
+#define kno_pop_stack _kno_pop_stack
+#define KNO_STACK_SET_ARGS _KNO_STACK_SET_ARGS
+#endif
+
+#define kno_free_stack_refs(stack) (kno_decref_stackvec(&(stack->stack_refs)))
+
+#if KNO_INLINE_STACKS
+KNO_FASTOP void __kno_add_stack_ref(struct KNO_STACK *stack,lispval v)
+{
+  if (KNO_MALLOCDP(v)) kno_stackvec_push(&(stack->stack_refs),v);
+}
 KNO_FASTOP int __kno_free_stack(struct KNO_STACK *stack)
 {
   kno_stack_type type = KNO_STACK_TYPE(stack);
@@ -250,7 +366,7 @@ KNO_FASTOP int __kno_free_stack(struct KNO_STACK *stack)
 
   unsigned int bits = stack->stack_bits;
 
-  lispval *args = stack->stack_args;
+  lispval *args = STACK_ARGS(stack);
   kno_lexenv env = stack->eval_env;
   if ( (env) && ((bits)&(KNO_STACK_FREE_ENV)) ) {
     KNO_STACK_CLEAR_BITS(stack,KNO_STACK_FREE_ENV);
@@ -275,27 +391,14 @@ KNO_FASTOP int __kno_free_stack(struct KNO_STACK *stack)
       u8_free(stack->stack_file);
       stack->stack_file=NULL;}}
 
+  kno_decref_stackvec(&(stack->stack_refs));
+
   if (args) {
-    if (bits & KNO_STACK_DECREF_ARGS) {
-      int i =0, n = stack->stack_argcount;
-      while (i< n) {
-	lispval arg = args[i++];
-	kno_decref(arg);}}
-    if (bits&KNO_STACK_FREE_ARGS) u8_free(args);}
+    if (bits & KNO_STACK_DECREF_ARGS)
+      kno_decref_stackvec(&(stack->stack_args));
+    else kno_free_stackvec(&(stack->stack_args));}
 
   stack->stack_point = KNO_VOID;
-
-  if (stack->stack_n_refs) {
-    lispval *refs = stack->stack_refs;
-    int i = 0, n = stack->stack_n_refs;
-    while (i<n) {
-      lispval ref = refs[i++];
-      kno_decref(ref);}
-    if ((bits)&(KNO_STACK_FREE_REFS))
-      u8_free(stack->stack_refs);
-    stack->stack_refs = NULL;
-    stack->stack_n_refs = 0;
-    stack->stack_refs_len  = 0;}
 
   return 0;
 }
@@ -307,14 +410,7 @@ KNO_FASTOP int __kno_reset_stack(struct KNO_STACK *stack)
 
   unsigned int bits = stack->stack_bits;
 
-  if (stack->stack_n_refs) {
-    lispval *refs = stack->stack_refs;
-    int i = 0, n = stack->stack_n_refs;
-    while (i<n) {
-      lispval ref = refs[i++];
-      kno_decref(ref);}
-    stack->stack_n_refs = 0;
-    stack->stack_refs_len  = 0;}
+  kno_decref_stackvec(&(stack->stack_refs));
 
   kno_lexenv env = stack->eval_env;
   if ( (env) && ((bits)&(KNO_STACK_FREE_ENV)) ) {
@@ -322,7 +418,7 @@ KNO_FASTOP int __kno_reset_stack(struct KNO_STACK *stack)
     KNO_STACK_CLEAR_BITS(stack,KNO_STACK_FREE_ENV);}
   if (env) stack->eval_env = NULL;
 
-  stack->stack_argcount = 0;
+  STACK_ARGCOUNT(stack) = 0;
 
   return 0;
 }
@@ -341,67 +437,25 @@ void __KNO_STACK_SET_ARGS(kno_stack stack,lispval *buf,
 			  int needs_free)
 {
   int stack_bits = stack->stack_bits;
-  lispval *args  = stack->stack_args;
-  int cur_free = (stack_bits & KNO_STACK_FREE_ARGS);
+  lispval *args  = STACK_ARGS(stack);
+  int cur_free   = STACKVEC_ONHEAP(&(stack->stack_args));
   if (args) {
     int cur_decref = (stack_bits & KNO_STACK_DECREF_ARGS);
     if (cur_decref) {
-      int i = 0, n = stack->stack_argcount;
+      int i = 0, n = STACK_ARGCOUNT(stack);
       while (i<n) {
 	lispval arg = args[i++];
 	kno_decref(arg);}}
-    if (stack->stack_args) {
-      if (cur_free) u8_free(stack->stack_args);}}
+    if (STACK_ARGS(stack)) {
+      if (cur_free) u8_free(STACK_ARGS(stack));}}
 
-  stack->stack_args     = buf;
-  stack->stack_argcount = argcount;
-  stack->stack_width    = width;
-
-  if (cur_free != needs_free)
-    if (needs_free)
-      KNO_STACK_SET_BITS(stack,KNO_STACK_FREE_ARGS);
-    else KNO_STACK_CLEAR_BITS(stack,KNO_STACK_FREE_ARGS);
-  else NO_ELSE;
-}
-KNO_FASTOP void __KNO_STACK_ADDREF(struct KNO_STACK *stack,lispval v)
-{
-  if (KNO_MALLOCDP(v)) {
-    if (stack->stack_refs == NULL) {
-      lispval *refs = u8_alloc_n(7,lispval);
-      KNO_STACK_SET_BITS(stack,KNO_STACK_FREE_REFS);
-      stack->stack_refs  = refs;
-      stack->stack_refs_len = 7;}
-    else if ( stack->stack_n_refs >= stack->stack_refs_len ) {
-      int new_len = 2*(stack->stack_refs_len);
-      lispval *new_refs;
-      if (stack->stack_bits & KNO_STACK_FREE_REFS)
-	new_refs = u8_realloc(stack->stack_refs,new_len*sizeof(lispval));
-      else {
-	lispval *refs = stack->stack_refs;
-	new_refs = u8_alloc_n(new_len,lispval);
-	int i = 0, n = stack->stack_n_refs; while (i<n) {
-	  new_refs[i] = refs[i]; i++;}}
-      KNO_STACK_SET_BITS(stack,KNO_STACK_FREE_REFS);
-      stack->stack_refs = new_refs;
-      stack->stack_refs_len = new_len;}
-    else NO_ELSE;
-    stack->stack_refs[(stack->stack_n_refs)++] = v;}
+  STACK_ARGS(stack)     = buf;
+  STACK_ARGCOUNT(stack) = argcount;
+  if (needs_free)
+    stack->stack_args.len = (KNO_STACKVEC_HEAPBIT|width);
+  else stack->stack_args.len = width;
 }
 #endif /* KNO_INLINE_STACKS */
-
-#if KNO_INLINE_STACKS
-#define kno_free_stack __kno_free_stack
-#define kno_reset_stack __kno_reset_stack
-#define kno_pop_stack __kno_pop_stack
-#define KNO_STACK_ADDREF __KNO_STACK_ADDREF
-#define KNO_STACK_SET_ARGS __KNO_STACK_SET_ARGS
-#else /* not KNO_INLINE_STACKS */
-#define kno_free_stack _kno_free_stack
-#define kno_reset_stack _kno_reset_stack
-#define kno_pop_stack _kno_pop_stack
-#define KNO_STACK_ADDREF _KNO_STACK_ADDREF
-#define KNO_STACK_SET_ARGS _KNO_STACK_SET_ARGS
-#endif
 
 #if KNO_SOURCE
 #define _return return kno_pop_stack(_stack),

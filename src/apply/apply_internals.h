@@ -99,20 +99,20 @@ int setup_call(kno_stack stack,lispval fcn,
     else if (CONSP(arg)) {
       if (KNO_PRECHOICEP(arg)) {
 	lispval simple = kno_make_simple_choice(arg);
-	KNO_STACK_ADDREF(stack,simple);
+	kno_add_stack_ref(stack,simple);
 	callbuf[i]=simple;}
       else if (KNO_QCHOICEP(arg)) {
 	lispval v = KNO_QCHOICEVAL(arg);
 	kno_incref(v);
-	KNO_STACK_ADDREF(stack,v);
+	kno_add_stack_ref(stack,v);
 	callbuf[i]=v;}
       else callbuf[i]=arg;}
     else callbuf[i]=arg;
     i++;}
   while (i<width) callbuf[i++]=KNO_VOID;
-  stack->stack_args  = callbuf;
-  stack->stack_width = width;
-  stack->stack_argcount  = n;
+  STACK_ARGS(stack)  = callbuf;
+  STACK_WIDTH(stack) = width;
+  STACK_ARGCOUNT(stack)  = n;
   return n;
 }
 
@@ -157,7 +157,7 @@ KNO_FASTOP lispval cprim_call(u8_string fname,kno_cprim cp,
   int call_width = cp->fcn_call_width, rv = -1;
   if (call_width<0) call_width=n;
   lispval *args, _args[call_width];
-  if (call_width <= stack->stack_width) {
+  if (call_width <= STACK_WIDTH(stack)) {
     rv = cprim_prep(stack,fname,n,call_width,
 		    (lispval *)given,
 		    typeinfo,defaults);

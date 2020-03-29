@@ -22,7 +22,7 @@ lispval op_eval_expr(kno_stack eval_stack,
   else if (CHOICEP(headval))
     return eval_apply();
   else if (gc_head) {
-    KNO_STACK_ADDREF(eval_stack,headval);}
+    kno_add_stack_ref(eval_stack,headval);}
   else NO_ELSE;
   kno_lisp_type headtype = KNO_TYPEOF(headval);
   kno_function f = (KNO_FUNCTION_TYPEP(headtype)) ?

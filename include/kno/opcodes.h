@@ -128,6 +128,7 @@ KNO_EXPORT int kno_opcodes_length;
 #define KNO_MINUS_OPCODE      KNO_NUMERIC_OPCODE(0x07)
 #define KNO_TIMES_OPCODE      KNO_NUMERIC_OPCODE(0x08)
 #define KNO_FLODIV_OPCODE     KNO_NUMERIC_OPCODE(0x09)
+#define KNO_DIV_OPCODE        KNO_NUMERIC_OPCODE(0x0a)
 
 #define KNO_TABLE_OPCODE(x)     KNO_OPCODE(0x700+x)
 #define KNO_TABLE_OPCODEP(x)    (((x)>=KNO_OPCODE(0x600))&&((x)<KNO_OPCODE(0x800)))
@@ -162,6 +163,11 @@ KNO_EXPORT int kno_opcodes_length;
 #define KNO_APPLY14_OPCODE       KNO_APPLY_OPCODE(0x0e)
 #define KNO_APPLY15_OPCODE       KNO_APPLY_OPCODE(0x0f)
 #define KNO_APPLY_N_OPCODE       KNO_APPLY_OPCODE(0x10)
+
+#define KNO_ND_OPCODEP(op)    \
+  ( (KNO_TABLE_OPCODEP(op)) || \
+    (KNO_ND1_OPCODEP(op)) ||   \
+    (KNO_ND2_OPCODEP(op)) )
 
 #endif /* KNO_OPCODES_H */
 
