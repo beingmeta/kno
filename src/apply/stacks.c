@@ -123,9 +123,9 @@ _kno_add_stack_ref(kno_stack stack,lispval v)
 KNO_EXPORT void
 _KNO_STACK_SET_ARGS(kno_stack stack,lispval *args,
 		    int width,int n,
-		    int needs_free)
+		    int flags)
 {
-  KNO_STACK_SET_ARGS(stack,args,width,n,needs_free);
+  KNO_STACK_SET_ARGS(stack,args,width,n,flags);
 }
 
 

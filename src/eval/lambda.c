@@ -32,10 +32,9 @@ u8_condition kno_BadDefineForm=_("Bad procedure defining form");
 
 int kno_record_source=1;
 
-lispval lambda_eval(kno_stack stack);
-int lambda_prep(kno_stack stack);
-
 static lispval tail_symbol, decls_symbol, flags_symbol;
+
+lispval execute_lambda(kno_stack);
 
 #if 0
 static u8_string lambda_id(struct KNO_LAMBDA *fn)
@@ -67,7 +66,7 @@ static int add_autodocp(u8_string s)
 
 /* LAMBDAs */
 
-static lispval lambda_call(kno_stack caller,
+static lispval lambda_docall(kno_stack caller,
 			   struct KNO_LAMBDA *proc,
 			   short n,kno_argvec args)
 {
@@ -75,15 +74,12 @@ static lispval lambda_call(kno_stack caller,
   KNO_START_EVAL(lambda_stack,proc->fcn_name,KNO_VOID,NULL,caller);
   if (n>use_width) use_width=n;
   lispval callbuf[use_width];
-  KNO_STACK_SET_ARGS(lambda_stack,callbuf,use_width,n,
-		     KNO_STACK_STATIC_ARGBUF);
+  KNO_STACK_SET_ARGS(lambda_stack,callbuf,use_width,n,KNO_STATIC_ARGS);
   memcpy(callbuf,args,n*sizeof(lispval));
+  int i = n; while (i<use_width) callbuf[i++] = KNO_VOID;
   lambda_stack->stack_point   = (lispval) proc;
   STACK_ARGCOUNT(lambda_stack)  = n;
-  lispval result = KNO_VOID;
-  int rv = lambda_prep(lambda_stack);
-  if (rv<0) result = KNO_ERROR;
-  else result = lambda_eval(lambda_stack);
+  lispval result = execute_lambda(lambda_stack);;
   kno_pop_stack(lambda_stack);
   return result;
 }
@@ -92,13 +88,13 @@ KNO_EXPORT lispval kno_lambda_call(kno_stack caller,
 				   struct KNO_LAMBDA *proc,
 				   int n,kno_argvec args)
 {
-  return lambda_call(caller,proc,n,args);
+  return lambda_docall(caller,proc,n,args);
 }
 
 static lispval apply_lambda(lispval fn,int n,kno_argvec args)
 {
   struct KNO_LAMBDA *proc = (kno_lambda) fn;
-  return lambda_call(kno_stackptr,proc,n,args);
+  return lambda_docall(kno_stackptr,proc,n,args);
 }
 
 KNO_EXPORT int kno_set_lambda_schema(struct KNO_LAMBDA *s,lispval args)
@@ -266,7 +262,7 @@ _make_lambda(u8_string name,
 
   s->fcn_call = ( ((nd) ? (KNO_FCN_CALL_NDCALL) : (0)) |
 		  (KNO_FCN_CALL_XCALL) );
-  s->fcn_handler.xcalln = (kno_xprimn) lambda_call;
+  s->fcn_handler.xcalln = (kno_xprimn) lambda_docall;
   s->fcn_filename = NULL;
   s->fcn_attribs = VOID;
   s->fcnid = VOID;
@@ -803,6 +799,7 @@ lispval kno_xapply_lambda
 		       0);
     if (fn->lambda_synchronized)
       u8_unlock_mutex(&(fn->lambda_lock));}
+  kno_free_lexenv(call_env);
   kno_pop_stack(_stack);
   return result;
 }
