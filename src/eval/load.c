@@ -232,6 +232,8 @@ static lispval load_into_env_prim(lispval source,lispval envarg,lispval resultfn
     result = kno_load_source(CSTRING(source),env,NULL);
   else return kno_type_error("pathname","load_into_env_prim",source);
   if (KNO_ABORTP(result)) {
+    if (HASHTABLEP(env->env_bindings))
+      kno_reset_hashtable((kno_hashtable)(env->env_bindings),0,1);
     kno_recycle_lexenv(env);
     return result;}
   if (KNO_APPLICABLEP(resultfn)) {
