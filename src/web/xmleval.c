@@ -9,8 +9,6 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define KNO_INLINE_EVAL 1
-
 #include "kno/knosource.h"
 #include "kno/lisp.h"
 #include "kno/storage.h"

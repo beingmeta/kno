@@ -15,8 +15,6 @@
 #define KNO_INLINE_STACKS    (!(KNO_AVOID_INLINE))
 #define KNO_INLINE_LEXENV    (!(KNO_AVOID_INLINE))
 
-#define KNO_INLINE_EVAL (!(KNO_AVOID_INLINE))
-
 #include "kno/knosource.h"
 #include "kno/lisp.h"
 #include "kno/support.h"
@@ -29,8 +27,6 @@
 #include "kno/dtcall.h"
 #include "kno/ffi.h"
 #include "kno/cprims.h"
-
-#include "eval_internals.h"
 
 #include <libu8/u8timefns.h>
 #include <libu8/u8filefns.h>

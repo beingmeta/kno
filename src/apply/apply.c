@@ -59,8 +59,6 @@ u8_condition kno_ProfilingDisabled=_("profiling not built");
 u8_condition kno_VoidArgument=_("VOID result passed as argument");
 
 
-static lispval moduleid_symbol;
-
 /* Whether to always use extended apply profiling */
 int kno_extended_profiling = 0;
 
@@ -559,7 +557,7 @@ KNO_EXPORT void kno_defn(lispval table,lispval fcn)
   if (kno_store(table,kno_getsym(f->fcn_name),fcn)<0)
     u8_raise(DefnFailed,"kno_defn",NULL);
   if ( (KNO_NULLP(f->fcn_moduleid)) || (KNO_VOIDP(f->fcn_moduleid)) ) {
-    lispval moduleid = kno_get(table,moduleid_symbol,KNO_VOID);
+    lispval moduleid = kno_get(table,KNOSYM_MODULEID,KNO_VOID);
     if (!(KNO_VOIDP(moduleid))) f->fcn_moduleid=moduleid;}
 }
 
@@ -569,7 +567,7 @@ KNO_EXPORT void kno_idefn(lispval table,lispval fcn)
   if (kno_store(table,kno_getsym(f->fcn_name),fcn)<0)
     u8_raise(DefnFailed,"kno_defn",NULL);
   if ( (KNO_NULLP(f->fcn_moduleid)) || (KNO_VOIDP(f->fcn_moduleid)) ) {
-    lispval moduleid = kno_get(table,moduleid_symbol,KNO_VOID);
+    lispval moduleid = kno_get(table,KNOSYM_MODULEID,KNO_VOID);
     if (!(KNO_VOIDP(moduleid))) f->fcn_moduleid=moduleid;}
   kno_decref(fcn);
 }
@@ -811,8 +809,6 @@ KNO_EXPORT void kno_profile_start(struct rusage *before,struct timespec *start)
 
 KNO_EXPORT void kno_init_apply_c()
 {
-  moduleid_symbol = kno_getsym("%MODULEID");
-
   kno_isfunctionp[kno_fcnid_type]=1;
 
   kno_applyfns[kno_cprim_type]=simple_dcall;

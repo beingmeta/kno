@@ -301,7 +301,7 @@ lispval reqdata_prim()
 static lispval withreq_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval reqdata_expr = kno_get_arg(expr,1);
-  lispval reqdata = kno_stack_eval(reqdata_expr,env,_stack);
+  lispval reqdata = kno_eval(reqdata_expr,env,_stack,0);
   lispval body = kno_get_body(expr,2), result = VOID;
   kno_use_reqinfo(reqdata); kno_reqlog(1);
   {KNO_DOLIST(ex,body) {
@@ -362,7 +362,7 @@ KNO_EXPORT lispval reqlog_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   else if (KNO_STRINGP(arg))
     cond = KNO_CSTRING(arg);
   else {
-    cond_val = kno_stack_eval(arg,env,_stack);
+    cond_val = kno_eval(arg,env,_stack,0);
     if (KNO_ABORTP(cond_val)) {
       u8_exception ex = u8_erreify();
       cond = free_cond = kno_errstring(ex);

@@ -9,7 +9,7 @@
 #define _FILEINFO __FILE__
 #endif
 
-/* #define KNO_INLINE_EVAL 1 */
+/* #define KNO_EVAL_INTERNALS 1 */
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
@@ -159,7 +159,7 @@ static lispval log_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     if (KNO_SYMBOLP(cond_expr))
       condition = SYM_NAME(KNO_CAR(body));
     else if (KNO_EVALP(cond_expr)) {
-      lispval condition_name = kno_stack_eval(cond_expr,env,_stack);
+      lispval condition_name = kno_eval(cond_expr,env,_stack,0);
       if (KNO_SYMBOLP(condition_name))
         condition = SYM_NAME(condition_name);
       else if (!(KNO_VOIDP(condition_name)))
@@ -195,7 +195,7 @@ static lispval logreport_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     if (KNO_SYMBOLP(cond_expr))
       condition = SYM_NAME(KNO_CAR(body));
     else if (KNO_EVALP(cond_expr)) {
-      lispval condition_name = kno_stack_eval(cond_expr,env,_stack);
+      lispval condition_name = kno_eval(cond_expr,env,_stack,0);
       if (KNO_SYMBOLP(condition_name))
         condition = SYM_NAME(condition_name);
       else if (!(KNO_VOIDP(condition_name)))
@@ -240,7 +240,7 @@ static lispval logif_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       if (KNO_SYMBOLP(cond_expr))
         condition = SYM_NAME(KNO_CAR(body));
       else if (KNO_EVALP(cond_expr)) {
-        lispval condition_name = kno_stack_eval(cond_expr,env,_stack);
+	lispval condition_name = kno_eval(cond_expr,env,_stack,0);
         if (KNO_SYMBOLP(condition_name))
           condition = SYM_NAME(condition_name);
         else if (!(KNO_VOIDP(condition_name)))
@@ -299,7 +299,7 @@ static lispval logifplus_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       if (KNO_SYMBOLP(cond_expr))
         condition = SYM_NAME(KNO_CAR(body));
       else if (KNO_EVALP(cond_expr)) {
-        lispval condition_name = kno_stack_eval(cond_expr,env,_stack);
+	lispval condition_name = kno_eval(cond_expr,env,_stack,0);
         if (KNO_SYMBOLP(condition_name))
           condition = SYM_NAME(condition_name);
         else if (!(KNO_VOIDP(condition_name)))

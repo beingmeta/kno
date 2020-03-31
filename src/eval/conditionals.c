@@ -9,7 +9,7 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define KNO_INLINE_EVAL 1
+#define KNO_EVAL_INTERNALS 1
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
@@ -200,7 +200,6 @@ KNO_EXPORT void kno_init_conditionals_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  moduleid_symbol = kno_intern("%moduleid");
   apply_marker = kno_intern("=>");
   else_symbol = kno_intern("else");
 

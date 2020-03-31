@@ -9,7 +9,7 @@
 #define _FILEINFO __FILE__
 #endif
 
-/* #define KNO_INLINE_EVAL 1 */
+/* #define KNO_EVAL_INTERNALS 1 */
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
@@ -37,7 +37,7 @@ static lispval refs_symbol, nrefs_symbol, lookup_symbol, embed_symbol;
 
 u8_condition kno_UnknownEncoding=_("Unknown encoding");
 
-#define fast_eval(x,env) (kno_stack_eval(x,env,_stack))
+#define fast_eval(x,env) (kno_eval(x,env,_stack,0))
 
 static long long getposfixopt(lispval opts,lispval sym,long long dflt)
 {

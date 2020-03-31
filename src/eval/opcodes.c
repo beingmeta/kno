@@ -15,7 +15,7 @@
 #define KNO_INLINE_STACKS       (!(KNO_AVOID_INLINE))
 #define KNO_INLINE_LEXENV       (!(KNO_AVOID_INLINE))
 
-#define KNO_INLINE_EVAL    (!(KNO_AVOID_INLINE))
+#define KNO_EVAL_INTERNALS    (!(KNO_AVOID_INLINE))
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
@@ -780,7 +780,7 @@ static lispval opcode_dispatch_inner(lispval opcode,lispval expr,
       _stack->stack_type = kno_reduce_stack;
       if (KNO_PAIRP(expr))
         return kno_pair_eval(opcode,expr,env,_stack,tail);
-      else return __kno_fast_eval(expr,env,_stack,tail);}}
+      else return kno_eval(expr,env,_stack,tail);}}
   lispval args = KNO_CDR(expr);
   switch (opcode) {
   case KNO_SYMREF_OPCODE: {
@@ -836,7 +836,7 @@ static lispval opcode_dispatch_inner(lispval opcode,lispval expr,
     lispval type_arg = next_qcode(args);
     lispval obj_expr = next_qcode(args);
     if ( (FIXNUMP(off_arg)) && (! (VOIDP(obj_expr)) ) ) {
-      lispval obj_arg=fast_eval(obj_expr,env);
+      lispval obj_arg = kno_eval(obj_expr,env,_stack,env);
       return xref_opcode(kno_simplify_choice(obj_arg),
                          FIX2INT(off_arg),
                          type_arg);}
@@ -1003,9 +1003,9 @@ KNO_FASTOP lispval op_eval(lispval x,kno_lexenv env,
         else return opcode_dispatch(car,x,env,stack,tail);}
       else if (tail)
 	return kno_tail_eval(x,env,stack);
-      else return kno_stack_eval(x,env,stack);}
+      else return kno_eval(x,env,stack,0);}
     case kno_choice_type: case kno_prechoice_type:
-      return kno_stack_eval(x,env,stack);
+      return kno_eval(x,env,stack,0);
     case kno_slotmap_type:
       return kno_deep_copy(x);
     default:

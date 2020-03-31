@@ -308,7 +308,7 @@ static lispval evaltest_evalfn(lispval expr,kno_lexenv env,kno_stack s)
 static lispval errtest_evalfn(lispval expr,kno_lexenv env,kno_stack s)
 {
   lispval test_expr = kno_get_arg(expr,1);
-  lispval v = kno_stack_eval(test_expr,env,s);
+  lispval v = kno_eval(test_expr,env,s,0);
   if (KNO_ABORTP(v)) {
     u8_exception ex = u8_erreify();
     if (ex) {

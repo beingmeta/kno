@@ -10,7 +10,6 @@
 #endif
 
 #define U8_INLINE_IO 1
-#define KNO_INLINE_EVAL 1
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
@@ -31,7 +30,7 @@
 
 #include <ctype.h>
 
-#define fast_eval(x,env) (kno_stack_eval(x,env,_stack))
+#define fast_eval(x,env) (kno_eval(x,env,_stack,0))
 
 #ifndef KNO_HTMLOUT_MAX
 #define KNO_HTMLOUT_MAX 15000000
@@ -233,8 +232,6 @@ KNO_EXPORT void kno_lisp2html(u8_output s,lispval v,u8_string tag,u8_string cl)
 }
 
 /* XHTML error report */
-
-static lispval moduleid_symbol;
 
 static int isexprp(lispval expr)
 {
@@ -648,8 +645,6 @@ KNO_EXPORT void kno_init_htmlout_c()
   error_script_symbol = kno_intern("%errorscript");
   modules_symbol = kno_intern("%modules");
   xml_env_symbol = kno_intern("%xmlenv");
-
-  moduleid_symbol = kno_intern("%moduleid");
 
   kno_register_config
     ("ERRORSTYLESHEET",_("Default style sheet for web errors"),

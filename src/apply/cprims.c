@@ -30,8 +30,6 @@
 
 #include <stdarg.h>
 
-static lispval moduleid_symbol;
-
 int unparse_cprim(u8_output out,lispval x)
 {
   struct KNO_CPRIM *fcn = (kno_cprim)x;
@@ -273,7 +271,7 @@ static void link_cprim(struct KNO_CPRIM *cprim,u8_string pname,lispval module)
   if (rv>0) {
     if ( (KNO_NULLP(cprim->fcn_moduleid)) ||
 	 (KNO_VOIDP(cprim->fcn_moduleid)) ) {
-      lispval moduleid = kno_get(module,moduleid_symbol,KNO_VOID);
+      lispval moduleid = kno_get(module,KNOSYM_MODULEID,KNO_VOID);
       if (!(KNO_VOIDP(moduleid)))
 	cprim->fcn_moduleid=moduleid;}}
   kno_decref((lispval)cprim);
@@ -603,8 +601,6 @@ KNO_EXPORT void kno_init_cprims_c()
   u8_register_source_file(_FILEINFO);
 
   link_local_cprims();
-
-  moduleid_symbol = kno_intern("%moduleid");
 
   kno_isfunctionp[kno_cprim_type]=1;
 

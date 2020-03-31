@@ -9,7 +9,7 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define KNO_INLINE_EVAL 1
+#define KNO_EVAL_INTERNALS 1
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
@@ -37,7 +37,7 @@ static lispval assign_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     return kno_err(kno_NotAnIdentifier,"SET!",NULL,expr);
   else if (VOIDP(val_expr))
     return kno_err(kno_TooFewExpressions,"SET!",SYM_NAME(var),expr);
-  value = fast_eval(val_expr,env);
+  value = kno_eval(val_expr,env,_stack,0);
   if (KNO_ABORTED(value)) return value;
   else if ((retval = (kno_assign_value(var,value,env)))) {
     kno_decref(value);
@@ -63,7 +63,7 @@ static lispval assign_plus_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     return kno_err(kno_NotAnIdentifier,"SET+!",NULL,expr);
   else if (VOIDP(val_expr))
     return kno_err(kno_TooFewExpressions,"SET+!",NULL,expr);
-  value = fast_eval(val_expr,env);
+  value = kno_eval(val_expr,env,_stack,0);
   if (KNO_ABORTED(value)) return value;
   else if (kno_add_value(var,value,env)>0) {}
   else if (kno_bind_value(var,value,env)>=0) {}
@@ -166,7 +166,7 @@ static lispval let_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     INIT_STACK_ENV(_stack,letenv,env,n);
     int i = 0;
     {KNO_DOBINDINGS(var,val_expr,bindexprs) {
-	lispval value = fast_eval(val_expr,env);
+	lispval value = kno_eval(val_expr,env,_stack,0);
 	if (KNO_ABORTED(value))
 	  _env_return value;
 	else if (VOIDP(value)) {
@@ -199,7 +199,7 @@ static lispval letstar_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 	letseq_vals[j]=KNO_UNBOUND;
 	j++;}}
     {KNO_DOBINDINGS(var,val_expr,bindexprs) {
-	lispval value = fast_eval(val_expr,letseq);
+	lispval value = kno_eval(val_expr,letseq,_stack,0);
 	if (KNO_ABORTED(value))
 	  _env_return value;
 	else if (VOIDP(value)) {
@@ -237,7 +237,7 @@ static lispval letrec_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 	letrec_vals[j]=KNO_UNBOUND;
 	j++;}}
     {KNO_DOBINDINGS(var,val_expr,bindexprs) {
-	lispval value = fast_eval(val_expr,letrec);
+	lispval value = kno_eval(val_expr,letrec,_stack,0);
 	if (KNO_ABORTED(value))
 	  _env_return value;
 	else if (VOIDP(value)) {
@@ -307,7 +307,7 @@ static lispval do_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       int i = 0;
       /* Execute the body */
       KNO_DOLIST(bodyexpr,body) {
-	lispval result = fast_eval(bodyexpr,do_env);
+	lispval result = kno_eval(bodyexpr,do_env,_stack,0);
 	if (KNO_ABORTED(result))
 	  _env_return result;
 	else kno_decref(result);}
@@ -414,7 +414,7 @@ static lispval define_return_evalfn(lispval expr,kno_lexenv env,kno_stack _stack
   if ( (VOIDP(var)) || (VOIDP(val_expr)) )
     return kno_err(kno_TooFewExpressions,"DEF+",NULL,expr);
   else if (SYMBOLP(var)) {
-    lispval value = kno_stack_eval(val_expr,env,_stack);
+    lispval value = kno_eval(val_expr,env,_stack,0);
     if (KNO_ABORTED(value))
       return value;
     else if (kno_bind_value(var,value,env)<0) {
@@ -444,7 +444,7 @@ static lispval define_import_evalfn(lispval expr,kno_lexenv env,
   if (KNO_VOIDP(import_name)) import_name = var;
 
   int decref_module = 0;
-  lispval module_spec = kno_stack_eval(module_expr,env,_stack);
+  lispval module_spec = kno_eval(module_expr,env,_stack,0);
   if (KNO_ABORTP(module_spec)) return module_spec;
 
   lispval module = module_spec;
@@ -484,8 +484,6 @@ static lispval define_import(lispval expr,kno_lexenv env,kno_stack _stack)
 KNO_EXPORT void kno_init_binders_c()
 {
   u8_register_source_file(_FILEINFO);
-
-  moduleid_symbol = kno_intern("%moduleid");
 
   kno_def_evalfn(kno_scheme_module,"SET!",assign_evalfn,
 		 "*undocumented*");

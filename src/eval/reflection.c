@@ -7,7 +7,6 @@
 
 
 #define KNO_INLINE_FCNIDS    (!(KNO_AVOID_INLINE))
-#define KNO_INLINE_EVAL (!(KNO_AVOID_INLINE))
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
@@ -26,7 +25,7 @@
 #define _FILEINFO __FILE__
 #endif
 
-static lispval moduleid_symbol, source_symbol, void_symbol;
+static lispval source_symbol, void_symbol;
 
 #define GETEVALFN(x) ((kno_evalfn)(kno_fcnid_ref(x)))
 
@@ -815,11 +814,11 @@ static lispval module_getsource(lispval arg)
     kno_lexenv envptr = kno_consptr(kno_lexenv,arg,kno_lexenv_type);
     ids = kno_get(envptr->env_bindings,source_symbol,KNO_VOID);
     if (KNO_VOIDP(ids))
-      ids = kno_get(envptr->env_bindings,moduleid_symbol,KNO_VOID);}
+      ids = kno_get(envptr->env_bindings,KNOSYM_MODULEID,KNO_VOID);}
   else if (TABLEP(arg)) {
     ids = kno_get(arg,source_symbol,KNO_VOID);
     if (KNO_VOIDP(ids))
-      ids = kno_get(arg,moduleid_symbol,KNO_VOID);}
+      ids = kno_get(arg,KNOSYM_MODULEID,KNO_VOID);}
   else return kno_type_error(_("module"),"module_bindings",arg);
   if (KNO_VOIDP(ids)) return KNO_FALSE;
   else {
@@ -871,11 +870,11 @@ static lispval modulep(lispval arg)
   if (KNO_LEXENVP(arg)) {
     struct KNO_LEXENV *env=
       kno_consptr(struct KNO_LEXENV *,arg,kno_lexenv_type);
-    if (kno_test(env->env_bindings,moduleid_symbol,VOID))
+    if (kno_test(env->env_bindings,KNOSYM_MODULEID,VOID))
       return KNO_TRUE;
     else return KNO_FALSE;}
   else if ((HASHTABLEP(arg)) || (SLOTMAPP(arg)) || (SCHEMAPP(arg))) {
-    if (kno_test(arg,moduleid_symbol,VOID))
+    if (kno_test(arg,KNOSYM_MODULEID,VOID))
       return KNO_TRUE;
     else return KNO_FALSE;}
   else return KNO_FALSE;
@@ -956,7 +955,7 @@ static lispval wherefrom_evalfn(lispval expr,kno_lexenv call_env,
       if (kno_test(scan->env_bindings,symbol,VOID)) {
 	lispval bindings = scan->env_bindings;
 	if (!(CONSP(bindings))) return KNO_FALSE;
-	lispval id = kno_get(bindings,moduleid_symbol,KNO_VOID);
+	lispval id = kno_get(bindings,KNOSYM_MODULEID,KNO_VOID);
 	if ( (KNO_SYMBOLP(id)) &&
 	     ( (lookup_ids) || (!(KNO_MALLOCD_CONSP((kno_cons)bindings))) ) ) {
 	  lispval mod = kno_get_module(id);
@@ -998,8 +997,8 @@ static lispval getmodules_evalfn(lispval expr,kno_lexenv call_env,kno_stack _sta
     return err;}
   if (env->env_copy) env = env->env_copy;
   while (env) {
-    if (kno_test(env->env_bindings,moduleid_symbol,VOID)) {
-      lispval ids = kno_get(env->env_bindings,moduleid_symbol,VOID);
+    if (kno_test(env->env_bindings,KNOSYM_MODULEID,VOID)) {
+      lispval ids = kno_get(env->env_bindings,KNOSYM_MODULEID,VOID);
       if (CHOICEP(ids)) {
 	DO_CHOICES(id,ids) {
 	  if (SYMBOLP(id)) {CHOICE_ADD(modules,id);}}}
@@ -1431,7 +1430,7 @@ static lispval with_sourcebase_evalfn(lispval expr,kno_lexenv env,kno_stack stac
   if (!(PAIRP(body)))
     return kno_err(kno_SyntaxError,"with_sourcebase_evalfn",NULL,expr);
 
-  lispval usebase = kno_stack_eval(usebase_expr,env,stack);
+  lispval usebase = kno_eval(usebase_expr,env,stack,0);
   u8_string temp_base;
   if (ABORTED(usebase)) return usebase;
   else if (KNO_STRINGP(usebase))
@@ -1475,7 +1474,6 @@ KNO_EXPORT void kno_init_reflection_c()
   lispval module = reflection_module =
     kno_new_cmodule("reflection",0,kno_init_reflection_c);
 
-  moduleid_symbol = kno_intern("%moduleid");
   source_symbol = kno_intern("%source");
   call_profile_symbol = kno_intern("%callprofile");
   void_symbol = kno_intern("%void");

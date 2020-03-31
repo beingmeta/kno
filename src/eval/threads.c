@@ -12,8 +12,6 @@
 #define KNO_INLINE_TABLES      (!(KNO_AVOID_INLINE))
 #define KNO_INLINE_FCNIDS      (!(KNO_AVOID_INLINE))
 
-#define KNO_INLINE_EVAL   (!(KNO_AVOID_INLINE))
-
 #include "kno/knosource.h"
 #include "kno/lisp.h"
 #include "kno/support.h"
@@ -25,8 +23,6 @@
 #include "kno/ports.h"
 #include "kno/dtcall.h"
 #include "kno/cprims.h"
-
-#include "eval_internals.h"
 
 #include <libu8/u8elapsed.h>
 #include <libu8/u8strings.h>
@@ -960,7 +956,7 @@ static lispval threadcallx_prim(int n,kno_argvec args)
 static lispval spawn_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval to_eval = kno_get_arg(expr,1);
-  lispval opts = kno_stack_eval(kno_get_arg(expr,2),env,_stack);
+  lispval opts = kno_eval(kno_get_arg(expr,2),env,_stack,0);
   if (KNO_ABORTED(opts)) {
     return opts;}
   int flags = threadopts(opts)|KNO_EVAL_THREAD;
@@ -1470,7 +1466,7 @@ static lispval sassign_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   else if (VOIDP(val_expr))
     return kno_err(kno_TooFewExpressions,"SSET!",NULL,expr);
   u8_lock_mutex(&sassign_lock);
-  value = fast_eval(val_expr,env);
+  value = kno_eval(val_expr,env,_stack,0);
   if (KNO_ABORTED(value)) {
     u8_unlock_mutex(&sassign_lock);
     return value;}

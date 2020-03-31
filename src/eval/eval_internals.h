@@ -1,7 +1,113 @@
-static U8_MAYBE_UNUSED lispval moduleid_symbol;
-
-#define fast_eval(x,env) (kno_eval(x,env,_stack,0))
-#define stack_eval(x,env,s) (kno_eval(x,env,s,0))
+KNO_FASTOP lispval fastget(lispval table,lispval key)
+{
+  kno_lisp_type argtype = KNO_TYPEOF(table);
+  switch (argtype) {
+  case kno_schemap_type:
+    return kno_schemap_get((kno_schemap)table,key,KNO_UNBOUND);
+  case kno_hashtable_type:
+    return kno_hashtable_get((kno_hashtable)table,key,KNO_UNBOUND);
+  default: return kno_get(table,key,KNO_UNBOUND);}
+}
+KNO_FASTOP lispval __kno_lexref(lispval lexref,kno_lexenv env_arg)
+{
+  int code = KNO_GET_IMMEDIATE(lexref,kno_lexref_type);
+  int up = code/32, across = code%32;
+  kno_lexenv env = env_arg;
+  while ((env) && (up)) {
+    if (env->env_copy) env = env->env_copy;
+    env = env->env_parent;
+    up--;}
+  if (KNO_EXPECT_TRUE(env != NULL)) {
+    if (env->env_copy) env = env->env_copy;
+    lispval bindings = env->env_bindings;
+    if (KNO_EXPECT_TRUE(KNO_SCHEMAPP(bindings))) {
+      struct KNO_SCHEMAP *s = (struct KNO_SCHEMAP *)bindings;
+      if ( across < s->schema_length) {
+	lispval v = s->schema_values[across];
+	if (KNO_PRECHOICEP(v))
+	  return kno_make_simple_choice(v);
+	else return kno_incref(v);}}}
+  lispval env_ptr = (lispval) env_arg;
+  u8_byte errbuf[64];
+  return kno_err("Bad lexical reference","kno_lexref",
+                 u8_bprintf(errbuf,"up=%d,across=%d",up, across),
+                 ((KNO_STATICP(env_ptr)) ? KNO_FALSE : (env_ptr)));
+}
+KNO_FASTOP lispval __kno_symeval(lispval symbol,kno_lexenv env)
+{
+  if (env == NULL) return KNO_VOID;
+  if (env->env_copy) env = env->env_copy;
+  while (env) {
+    lispval val = fastget(env->env_bindings,symbol);
+    if (val == KNO_UNBOUND)
+      env = env->env_parent;
+    else return val;
+    if ((env) && (env->env_copy))
+      env = env->env_copy;}
+  return KNO_VOID;
+}
+KNO_FASTOP lispval __kno_symbol_eval(lispval symbol,kno_lexenv env)
+{
+  if (env == NULL)
+    return kno_err("NoEnvironment","eval_symbol",NULL,symbol);
+  if (env->env_copy) env = env->env_copy;
+  while (env) {
+    lispval val = fastget(env->env_bindings,symbol);
+    if (val == KNO_UNBOUND)
+      env = env->env_parent;
+    else if (val == KNO_VOID)
+      break;
+    else return val;
+    if ((env) && (env->env_copy))
+      env = env->env_copy;}
+  return kno_err(kno_UnboundIdentifier,"kno_eval",
+		 KNO_SYMBOL_NAME(symbol),symbol);
+}
+KNO_FASTOP lispval __kno_eval(lispval x,kno_lexenv env,
+			      kno_stack stack,
+			      int tail)
+{
+  switch (KNO_PTR_MANIFEST_TYPE(x)) {
+  case kno_oid_ptr_type: case kno_fixnum_ptr_type:
+    return x;
+  case kno_immediate_ptr_type: {
+    switch (KNO_IMMEDIATE_TYPE(x)) {
+    case kno_lexref_type:
+      return __kno_lexref(x,env);
+    case kno_symbol_type:
+      return __kno_symbol_eval(x,env);
+    default:
+      return x;}}}
+  kno_lisp_type type = KNO_CONSPTR_TYPE(x);
+  switch (type) {
+  case kno_pair_type: case kno_choice_type:
+  case kno_prechoice_type: case kno_schemap_type:
+    return _kno_cons_eval(x,env,stack,tail);
+  case kno_slotmap_type:
+    return kno_deep_copy(x);
+  default:
+    return kno_incref(x);}
+}
+KNO_FASTOP lispval __kno_get_arg(lispval expr,int i)
+{
+  while (KNO_PAIRP(expr))
+    if ((KNO_PAIRP(KNO_CAR(expr))) &&
+        (KNO_EQ(KNO_CAR(KNO_CAR(expr)),_kno_comment_symbol)))
+      expr = KNO_CDR(expr);
+    else if (i == 0) return KNO_CAR(expr);
+    else {expr = KNO_CDR(expr); i--;}
+  return KNO_VOID;
+}
+KNO_FASTOP lispval __kno_get_body(lispval expr,int i)
+{
+  while (KNO_PAIRP(expr))
+    if (i == 0) break;
+    else if ((KNO_PAIRP(KNO_CAR(expr))) &&
+             (KNO_EQ(KNO_CAR(KNO_CAR(expr)),_kno_comment_symbol)))
+      expr = KNO_CDR(expr);
+    else {expr = KNO_CDR(expr); i--;}
+  return expr;
+}
 
 static int testeval(lispval expr,kno_lexenv env,int fail_val,
 		    lispval *whoops,struct KNO_STACK *s) U8_MAYBE_UNUSED;
@@ -63,7 +169,7 @@ KNO_FASTOP lispval eval_body(lispval body,kno_lexenv env,
   while (PAIRP(scan)) {
       lispval subex = pop_arg(scan);
       if (PAIRP(scan)) {
-	lispval v = stack_eval(subex,env,stack);
+	lispval v = kno_eval(subex,env,stack,0);
 	if (KNO_ABORTED(v))
 	  return v;
 	else kno_decref(v);}

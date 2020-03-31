@@ -9,7 +9,7 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define KNO_INLINE_EVAL 1
+#define KNO_EVAL_INTERNALS 1
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
@@ -65,7 +65,7 @@ static lispval parse_control_spec
   if (VOIDP(control_expr))
     return kno_err(kno_TooFewExpressions,NULL,NULL,expr);
   else if (SYMBOLP(control_expr)) {
-    lispval values = fast_eval(control_expr,env);
+    lispval values = kno_eval(control_expr,env,_stack,0);
     if (KNO_ABORTED(values)) {
       *iter_var = VOID;
       return values;}
@@ -85,7 +85,7 @@ static lispval parse_control_spec
     else if (!((VOIDP(ivar)) || (SYMBOLP(ivar))))
       return kno_err(kno_SyntaxError,
 		     _("identifier is not a symbol"),NULL,control_expr);
-    val = fast_eval(val_expr,env);
+    val = kno_eval(val_expr,env,_stack,0);
     if (KNO_ABORTED(val)) {
       *iter_var = VOID;
       return val;}
@@ -822,7 +822,7 @@ static lispval dosubsets_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     dosubsets_vals[0]=block;
     dosubsets_vals[1]=KNO_INT(i);
     {KNO_DOLIST(subexpr,body) {
-	lispval val = fast_eval(subexpr,dosubsets);
+	lispval val = kno_eval(subexpr,dosubsets,_stack,0);
 	if (KNO_ABORTED(val)) {
 	  finished = 1;
 	  if (!(KNO_BROKEP(val)))

@@ -10,7 +10,6 @@
 #endif
 
 #define U8_INLINE_IO 1
-#define KNO_INLINE_EVAL 1
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
@@ -26,7 +25,7 @@
 
 #include <ctype.h>
 
-#define fast_eval(x,env) (kno_stack_eval(x,env,_stack))
+#define fast_eval(x,env) (kno_eval(x,env,_stack,0))
 
 #include <libu8/u8xfiles.h>
 

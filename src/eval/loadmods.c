@@ -73,7 +73,7 @@ static lispval load_source_for_module
 (lispval spec,u8_string module_source);
 static u8_string get_module_source(lispval spec);
 
-static lispval moduleid_symbol, source_symbol;
+static lispval source_symbol;
 
 static struct MODULE_LOADER {
   int (*loader)(lispval,void *); void *data;
@@ -790,7 +790,6 @@ KNO_EXPORT void kno_init_loadmods_c()
   u8_init_mutex(&module_wait_lock);
   u8_init_condvar(&module_wait);
 
-  moduleid_symbol = kno_intern("%moduleid");
   source_symbol = kno_intern("%source");
   loadstamp_symbol = kno_intern("%loadstamp");
 

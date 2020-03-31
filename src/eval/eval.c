@@ -15,7 +15,7 @@
 #define KNO_INLINE_STACKS       (!(KNO_AVOID_INLINE))
 #define KNO_INLINE_LEXENV       (!(KNO_AVOID_INLINE))
 
-#define KNO_INLINE_EVAL    (!(KNO_AVOID_INLINE))
+#define KNO_EVAL_INTERNALS 1
 
 #ifndef KNO_EVAL_CALLBUF_WIDTH
 #define KNO_EVAL_CALLBUF_WIDTH 11
@@ -34,7 +34,7 @@
 #endif
 
 #ifndef KNO_WITH_TAIL_CALLS
-#define KNO_WITH_TAIL_CALLS 0
+#define KNO_WITH_TAIL_CALLS 1
 #endif
 
 #include "kno/knosource.h"
@@ -50,6 +50,7 @@
 #include "kno/dbprims.h"
 #include "kno/ffi.h"
 #include "kno/cprims.h"
+#include "kno/profiles.h"
 
 #include "../apply/apply_internals.h"
 #include "eval_internals.h"
@@ -62,8 +63,6 @@
 #include <math.h>
 #include <pthread.h>
 #include <errno.h>
-#include <sys/resource.h>
-#include "kno/profiles.h"
 
 int kno_scheme_initialized = 0;
 
@@ -72,11 +71,12 @@ int kno_enable_tail_calls = 1;
 lispval _kno_comment_symbol, fcnids_symbol, sourceref_tag;
 static lispval consfn_symbol, stringfn_symbol;
 
-static lispval quote_symbol, comment_symbol, moduleid_symbol, source_symbol;
+static lispval quote_symbol, comment_symbol, source_symbol;
 
-static u8_condition ExpiredThrow=_("Continuation is no longer valid");
-static u8_condition DoubleThrow=_("Continuation used twice");
-static u8_condition LostThrow=_("Lost invoked continuation");
+static u8_condition ExpiredThrow  =_("Continuation is no longer valid");
+static u8_condition DoubleThrow   =_("Continuation used twice");
+static u8_condition LostThrow     =_("Lost invoked continuation");
+static u8_condition TailArgument  =_("Argument is tail object, internal error!");
 
 u8_condition kno_SyntaxError=_("SCHEME expression syntax error"),
   kno_InvalidMacro=_("invalid macro transformer"),
@@ -97,22 +97,6 @@ static u8_condition BadExpressionHead=_("BadExpressionHead");
   ( (SYMBOLP(head)) ? (SYM_NAME(head)) : \
     (KNO_OPCODEP(head)) ? (opcode_name(head)) : \
     (NULL) )
-
-/* Reading from expressions */
-
-KNO_EXPORT lispval _kno_get_arg(lispval expr,int i)
-{
-  return kno_get_arg(expr,i);
-}
-KNO_EXPORT lispval _kno_get_body(lispval expr,int i)
-{
-  return kno_get_body(expr,i);
-}
-
-KNO_EXPORT lispval _kno_eval_symbol(lispval sym,kno_lexenv env)
-{
-  return kno_eval_symbol(sym,env);
-}
 
 /* Top level functions */
 
@@ -383,7 +367,7 @@ static lispval fcnalias_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
   lispval env_expr = kno_get_arg(expr,2), free_env = KNO_VOID;
   kno_lexenv use_env = env;
   if (!(KNO_VOIDP(env_expr))) {
-    lispval env_arg = kno_stack_eval(env_expr,env,stack);
+    lispval env_arg = kno_eval(env_expr,env,stack,0);
     if (KNO_LEXENVP(env_arg)) {
       kno_lexenv e = (kno_lexenv) env_arg;
       if (KNO_HASHTABLEP(e->env_bindings))
@@ -428,12 +412,12 @@ static lispval choice_eval(lispval expr,kno_lexenv env,
 
 static lispval eval_loop(kno_stack eval_stack);
 
-lispval eval_pair(lispval expr,kno_lexenv env,
+lispval kno_pair_eval(lispval expr,kno_lexenv env,
 		  kno_stack stack,
 		  int tail);
 
 KNO_EXPORT
-lispval kno_cons_eval(lispval expr,kno_lexenv env,
+lispval _kno_cons_eval(lispval expr,kno_lexenv env,
 		      kno_stack stack,
 		      int tail)
 {
@@ -679,7 +663,7 @@ lispval execute_lambda(kno_stack stack,int tail)
 	else init_val = kno_incref(init_expr);}
       else if (KNO_VOIDP(init_expr)) {}
       else if (KNO_SYMBOLP(init_expr))
-	init_val = kno_eval_symbol(init_expr,proc_env);
+	init_val = kno_symbol_eval(init_expr,proc_env);
       else if (KNO_LEXREFP(init_expr))
 	init_val = kno_lexref(init_expr,proc_env);
       else init_val = init_expr;
@@ -828,9 +812,9 @@ static lispval get_headval(lispval head,kno_lexenv env,
 
 /* Evaluating pair expressions */
 
-lispval eval_pair(lispval expr,kno_lexenv env,
-		  kno_stack stack,
-		  int tail)
+lispval __kno_pair_eval(lispval expr,kno_lexenv env,
+			kno_stack stack,
+			int tail)
 {
   lispval result = KNO_VOID, source = expr;
   lispval old_point  = stack->stack_point;
@@ -863,9 +847,9 @@ lispval eval_pair(lispval expr,kno_lexenv env,
     result = headval; goto clean_exit;}
   else if (PRED_FALSE(( (VOIDP(headval)) || (KNO_FALSEP(headval))))) {
     if (KNO_SYMBOLP(head)) {
-      result = kno_err(kno_UnboundIdentifier,"eval_pair",
+      result = kno_err(kno_UnboundIdentifier,"kno_pair_eval",
 		       KNO_SYMBOL_NAME(head),head);}
-    else {result = kno_err(BadExpressionHead,"eval_pair",NULL,head);}
+    else {result = kno_err(BadExpressionHead,"kno_pair_eval",NULL,head);}
     goto clean_exit;}
   else if (EMPTYP(headval) ) {
     result = KNO_EMPTY;
@@ -886,7 +870,7 @@ lispval eval_pair(lispval expr,kno_lexenv env,
       lispval fn = pop_arg(exprs);
       if (KNO_APPLICABLEP(fn)) op = fn;
       else {
-	result = kno_err(kno_NotAFunction,"eval_pair",
+	result = kno_err(kno_NotAFunction,"kno_pair_eval",
 			 (KNO_SYMBOLP(head))? (KNO_SYMBOL_NAME(head)) : (NULL),
 			 headval);
 	goto clean_exit;}
@@ -915,7 +899,7 @@ lispval eval_pair(lispval expr,kno_lexenv env,
   default:
     if (KNO_FUNCTION_TYPEP(headtype)) {}
     else if (kno_applyfns[headtype] == NULL) {
-      result = kno_err(kno_NotAFunction,"eval_pair",
+      result = kno_err(kno_NotAFunction,"kno_pair_eval",
 		       (KNO_SYMBOLP(head))? (KNO_SYMBOL_NAME(head)) : (NULL),
 		       headval);
       goto clean_exit;}
@@ -941,9 +925,9 @@ lispval eval_pair(lispval expr,kno_lexenv env,
       case kno_lexref_type:
 	arg = kno_lexref(arg_expr,env); break;
       case kno_symbol_type:
-	arg = kno_eval_symbol(arg_expr,env); break;
+	arg = kno_symbol_eval(arg_expr,env); break;
       case kno_pair_type:
-	arg = eval_pair(arg_expr,env,stack,0); break;
+	arg = kno_pair_eval(arg_expr,env,stack,0); break;
       case kno_schemap_type:
 	arg = schemap_eval(arg_expr,env,stack); break;
       case kno_choice_type:
@@ -954,7 +938,7 @@ lispval eval_pair(lispval expr,kno_lexenv env,
 	result = arg;
 	goto cleanup_args;}
       else if (arg == KNO_TAIL) {
-	kno_seterr("TailValueReturned","eval_pair",NULL,arg_expr);
+	kno_seterr(TailArgument,"kno_pair_eval",NULL,arg_expr);
 	result = KNO_ERROR;
 	goto cleanup_args;}
       else if ( (KNO_EMPTYP(arg)) && (!(nd_op)) ) {
@@ -1032,7 +1016,7 @@ lispval eval_pair(lispval expr,kno_lexenv env,
 
 KNO_EXPORT lispval _kno_eval_expr(lispval expr,kno_lexenv env)
 {
-  lispval result = kno_stack_eval(expr,env,kno_stackptr);
+  lispval result = kno_eval(expr,env,kno_stackptr,0);
   return result;
 }
 
@@ -1040,9 +1024,9 @@ KNO_EXPORT lispval _kno_eval_expr(lispval expr,kno_lexenv env)
 
 static lispval eval_loop(kno_stack loop_stack)
 {
+  lispval result = KNO_TAIL;
   lispval point  = loop_stack->stack_point;
   kno_lexenv env = loop_stack->eval_env;
-  lispval result = KNO_TAIL;
   kno_lisp_type point_type = KNO_TYPEOF(point);
   while (result == KNO_TAIL) {
     if (point_type == kno_lambda_type)
@@ -1051,7 +1035,7 @@ static lispval eval_loop(kno_stack loop_stack)
       KNO_START_EVAL(eval_stack,"eval",point,env,loop_stack);
       KNO_STACK_SET_BITS(eval_stack,KNO_STACK_TAIL_POS);
       eval_stack->eval_source = point;
-      result = eval_pair(point,env,eval_stack,1);
+      result = kno_pair_eval(point,env,eval_stack,1);
       kno_pop_stack(eval_stack);}
     else if (KNO_APPLICABLE_TYPEP(point_type))
       result = kno_call(loop_stack,point,STACK_ARGCOUNT(loop_stack),
@@ -1335,7 +1319,7 @@ KNO_EXPORT void kno_new_evalfn(lispval mod,u8_string name,u8_string cname,
   f->evalfn_cname = u8_strdup(cname);
   f->evalfn_documentation = u8_strdup(doc);
   kno_store(mod,kno_getsym(name),LISP_CONS(f));
-  f->evalfn_moduleid = kno_get(mod,moduleid_symbol,KNO_VOID);
+  f->evalfn_moduleid = kno_get(mod,KNOSYM_MODULEID,KNO_VOID);
   kno_decref(LISP_CONS(f));
 }
 
@@ -1344,9 +1328,9 @@ KNO_EXPORT void kno_new_evalfn(lispval mod,u8_string name,u8_string cname,
 static lispval eval_evalfn(lispval x,kno_lexenv env,kno_stack stack)
 {
   lispval expr_expr = kno_get_arg(x,1);
-  lispval expr = kno_stack_eval(expr_expr,env,stack);
+  lispval expr = kno_eval(expr_expr,env,stack,0);
   if (KNO_ABORTED(expr)) return expr;
-  lispval result = kno_stack_eval(expr,env,stack);
+  lispval result = kno_eval(expr,env,stack,0);
   kno_decref(expr);
   return result;
 }
@@ -1573,7 +1557,7 @@ static lispval symbol_boundp_evalfn(lispval expr,kno_lexenv env,
   kno_lexenv use_env = NULL;
   if (VOIDP(symbol_expr))
     return kno_err(kno_SyntaxError,"symbol_boundp_evalfn",NULL,expr);
-  else symbol = kno_stack_eval(symbol_expr,env,stack);
+  else symbol = kno_eval(symbol_expr,env,stack,0);
   if (KNO_ABORTED(symbol))
     return symbol;
   else if (!(KNO_SYMBOLP(symbol))) {
@@ -1585,7 +1569,7 @@ static lispval symbol_boundp_evalfn(lispval expr,kno_lexenv env,
   if (VOIDP(env_expr))
     use_env = env;
   else {
-    env_value = kno_stack_eval(env_expr,env,stack);
+    env_value = kno_eval(env_expr,env,stack,0);
     if (KNO_FALSEP(env_value))
       use_env = env;
     else if (KNO_LEXENVP(env_value))
@@ -2091,7 +2075,7 @@ static lispval void_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval body = KNO_CDR(expr);
   KNO_DOLIST(subex,body) {
-    lispval v = kno_stack_eval(subex,env,_stack);
+    lispval v = kno_eval(subex,env,_stack,0);
     if (KNO_ABORTED(v))
       return v;
     else kno_decref(v);}
@@ -2108,7 +2092,7 @@ static lispval break_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval body = KNO_CDR(expr);
   KNO_DOLIST(subex,body) {
-    lispval v = kno_stack_eval(subex,env,_stack);
+    lispval v = kno_eval(subex,env,_stack,0);
     if (KNO_BREAKP(v))
       return KNO_BREAK;
     else if (KNO_ABORTED(v))
@@ -2302,8 +2286,27 @@ static lispval ffi_foundp_prim(lispval name,lispval modname)
 }
 #endif
 
-/* Opcode eval */
+/* External versions of internal functions */
 
+KNO_EXPORT lispval _kno_get_arg(lispval expr,int i)
+{
+  return kno_get_arg(expr,i);
+}
+KNO_EXPORT lispval _kno_get_body(lispval expr,int i)
+{
+  return kno_get_body(expr,i);
+}
+
+KNO_EXPORT lispval _kno_symbol_eval(lispval sym,kno_lexenv env)
+{
+  return kno_symbol_eval(sym,env);
+}
+
+KNO_EXPORT
+lispval _kno_pair_eval(lispval expr,kno_lexenv env,kno_stack s,int tail)
+{
+  return kno_pair_eval(expr,env,s,tail);
+}
 
 /* Initialization */
 
@@ -2337,7 +2340,6 @@ static void init_types_and_tables()
 
   quote_symbol = kno_intern("quote");
   _kno_comment_symbol = comment_symbol = kno_intern("comment");
-  moduleid_symbol = kno_intern("%moduleid");
   source_symbol = kno_intern("%source");
   fcnids_symbol = kno_intern("%fcnids");
   sourceref_tag = kno_intern("%sourceref");

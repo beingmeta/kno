@@ -9,7 +9,7 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define KNO_INLINE_EVAL (!(KNO_AVOID_INLINE))
+#define KNO_EVAL_INTERNALS 1
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
@@ -121,7 +121,7 @@ static lispval letq_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     {lispval body = kno_get_body(expr,2);
      KNO_DOLIST(bodyexpr,body) {
       kno_decref(result);
-      result = fast_eval(bodyexpr,inner_env);
+      result = kno_eval(bodyexpr,inner_env,_stack,0);
       if (KNO_ABORTED(result))
         return result;}}
     kno_free_lexenv(inner_env);
@@ -150,7 +150,7 @@ static lispval letqstar_evalfn
     {lispval body = kno_get_body(expr,2);
      KNO_DOLIST(bodyexpr,body) {
       kno_decref(result);
-      result = fast_eval(bodyexpr,inner_env);
+      result = kno_eval(bodyexpr,inner_env,_stack,0);
       if (KNO_ABORTED(result))
         return result;}}
     if (inner_env->env_copy) kno_free_lexenv(inner_env->env_copy);
@@ -223,8 +223,6 @@ static lispval track_ipeval_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 KNO_EXPORT void kno_init_ipevalprims_c()
 {
   u8_register_source_file(_FILEINFO);
-
-  moduleid_symbol = kno_intern("%moduleid");
 
   kno_def_evalfn(kno_scheme_module,"LETQ",letq_evalfn,
 		 "*undocumented*");

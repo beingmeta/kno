@@ -9,7 +9,7 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define KNO_INLINE_EVAL (!(KNO_AVOID_INLINE))
+#define KNO_EVAL_INTERNALS 1
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
@@ -613,7 +613,7 @@ static void init_definition(lispval fcn,lispval expr,kno_lexenv env)
 {
   struct KNO_FUNCTION *f = (kno_function) fcn;
   if ( (KNO_NULLP(f->fcn_moduleid)) || (KNO_VOIDP(f->fcn_moduleid)) ) {
-    lispval moduleid = kno_get(env->env_bindings,moduleid_symbol,KNO_VOID);
+    lispval moduleid = kno_get(env->env_bindings,KNOSYM_MODULEID,KNO_VOID);
     if (!(KNO_VOIDP(moduleid)))
       f->fcn_moduleid = moduleid;}
   if (f->fcn_filename == NULL) {
@@ -646,7 +646,7 @@ static lispval define_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 	struct KNO_MACRO *macro = (kno_macro) fvalue;
 	if (KNO_VOIDP(macro->macro_moduleid)) {
 	  macro->macro_moduleid =
-	    kno_get(env->env_bindings,moduleid_symbol,KNO_VOID);}
+	    kno_get(env->env_bindings,KNOSYM_MODULEID,KNO_VOID);}
 	if (macro->macro_name == NULL)
 	  macro->macro_name = u8_strdup(KNO_SYMBOL_NAME(var));}
       else NO_ELSE;
@@ -997,7 +997,6 @@ KNO_EXPORT void kno_init_lambdas_c()
   tail_symbol = kno_intern("%tail");
   decls_symbol = kno_intern("%decls");
   flags_symbol = kno_intern("flags");
-  moduleid_symbol = kno_intern("%moduleid");
 
   kno_applyfns[kno_lambda_type]=apply_lambda;
   kno_isfunctionp[kno_lambda_type]=1;

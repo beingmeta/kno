@@ -28,7 +28,7 @@ static lispval stack_entry_symbol;
 static lispval catcherr_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval toeval = kno_get_arg(expr,1);
-  lispval value = kno_stack_eval(toeval,env,_stack);
+  lispval value = kno_eval(toeval,env,_stack,0);
   if (KNO_THROWP(value))
     return value;
   else if (KNO_ABORTP(value)) {
@@ -176,14 +176,14 @@ static lispval onerror_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   lispval toeval = kno_get_arg(expr,1);
   lispval error_handler = kno_get_arg(expr,2);
   lispval default_handler = kno_get_arg(expr,3);
-  lispval value = kno_stack_eval(toeval,env,_stack);
+  lispval value = kno_eval(toeval,env,_stack,0);
   if (KNO_THROWP(value))
     return value;
   else if (KNO_BREAKP(value))
     return value;
   else if (KNO_ABORTP(value)) {
     u8_exception ex = u8_erreify();
-    lispval handler = kno_stack_eval(error_handler,env,_stack);
+    lispval handler = kno_eval(error_handler,env,_stack,0);
     if (KNO_ABORTP(handler)) {
       u8_restore_exception(ex);
       return handler;}
@@ -220,7 +220,7 @@ static lispval onerror_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   else if (VOIDP(default_handler))
     return value;
   else {
-    lispval handler = kno_stack_eval(default_handler,env,_stack);
+    lispval handler = kno_eval(default_handler,env,_stack,0);
     if (KNO_ABORTP(handler))
       return handler;
     else if (KNO_APPLICABLEP(handler)) {
@@ -241,7 +241,7 @@ static lispval onerror_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 static lispval report_errors_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval toeval = kno_get_arg(expr,1);
-  lispval value = kno_stack_eval(toeval,env,_stack);
+  lispval value = kno_eval(toeval,env,_stack,0);
   if (KNO_THROWP(value))
     return value;
   else if (KNO_ABORTP(value)) {
@@ -256,7 +256,7 @@ static lispval ignore_errors_evalfn(lispval expr,kno_lexenv env,kno_stack _stack
 {
   lispval toeval = kno_get_arg(expr,1);
   lispval dflt = kno_get_arg(expr,2);
-  lispval value = kno_stack_eval(toeval,env,_stack);
+  lispval value = kno_eval(toeval,env,_stack,0);
   if (KNO_THROWP(value))
     return value;
   else if (KNO_ABORTP(value)) {
@@ -264,7 +264,7 @@ static lispval ignore_errors_evalfn(lispval expr,kno_lexenv env,kno_stack _stack
     if (KNO_VOIDP(dflt))
       return KNO_FALSE;
     else {
-      lispval to_return = kno_stack_eval(dflt,env,_stack);
+      lispval to_return = kno_eval(dflt,env,_stack,0);
       if (KNO_ABORTP(to_return)) {
 	kno_clear_errors(0);
 	return KNO_FALSE;}
@@ -644,14 +644,14 @@ static lispval dynamic_wind_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   if ((VOIDP(wind)) || (VOIDP(doit)) || (VOIDP(unwind)))
     return kno_err(kno_SyntaxError,"dynamic_wind_evalfn",NULL,expr);
   else {
-    wind = kno_stack_eval(wind,env,_stack);
+    wind = kno_eval(wind,env,_stack,0);
     if (KNO_ABORTP(wind))
       return wind;
     else if (!(thunkp(wind))) {
       lispval err=kno_type_error("thunk","dynamic_wind_evalfn",wind);
       kno_decref(wind);
       return err;}
-    else doit = kno_stack_eval(doit,env,_stack);
+    else doit = kno_eval(doit,env,_stack,0);
     if (KNO_ABORTP(doit)) {
       kno_decref(wind);
       return doit;}
@@ -659,7 +659,7 @@ static lispval dynamic_wind_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       lispval err=kno_type_error("thunk","dynamic_wind_evalfn",doit);
       kno_decref(wind); kno_decref(doit);
       return err;}
-    else unwind = kno_stack_eval(unwind,env,_stack);
+    else unwind = kno_eval(unwind,env,_stack,0);
     if (KNO_ABORTP(unwind)) {
       kno_decref(wind);
       kno_decref(doit);
@@ -697,7 +697,7 @@ static lispval unwind_protect_evalfn(lispval uwp,kno_lexenv env,kno_stack _stack
   lispval heart = kno_get_arg(uwp,1);
   lispval result;
   {U8_WITH_CONTOUR("UNWIND-PROTECT(body)",0)
-      result = kno_stack_eval(heart,env,_stack);
+      result = kno_eval(heart,env,_stack,0);
     U8_ON_EXCEPTION {
       U8_CLEAR_CONTOUR();
       result = KNO_ERROR;}
@@ -705,7 +705,7 @@ static lispval unwind_protect_evalfn(lispval uwp,kno_lexenv env,kno_stack _stack
   {U8_WITH_CONTOUR("UNWIND-PROTECT(unwind)",0)
       {lispval unwinds = kno_get_body(uwp,2);
 	KNO_DOLIST(expr,unwinds) {
-	  lispval uw_result = kno_stack_eval(expr,env,_stack);
+	  lispval uw_result = kno_eval(expr,env,_stack,0);
 	  if (KNO_ABORTP(uw_result))
 	    if (KNO_ABORTP(result)) {
 	      kno_interr(result); kno_interr(uw_result);

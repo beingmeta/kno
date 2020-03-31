@@ -9,7 +9,7 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define KNO_INLINE_EVAL (!(KNO_AVOID_INLINE))
+#define KNO_EVAL_INTERNALS 1
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
@@ -38,7 +38,7 @@ static lispval while_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     int exited = 0;
     while (testeval(test_expr,env,TESTEVAL_FAIL_FALSE,&result,_stack) == 1) {
       KNO_DOLIST(iter_expr,body) {
-	lispval val = kno_stack_eval(iter_expr,env,_stack);
+	lispval val = kno_eval(iter_expr,env,_stack,0);
 	if (ABORTED(val)) {result=val; exited=1; break;}
 	kno_decref(val);}
       if (exited) break;}
@@ -60,7 +60,7 @@ static lispval until_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     int exited = 0;
     while (testeval(test_expr,env,TESTEVAL_FAIL_TRUE,&result,_stack) == 0) {
       KNO_DOLIST(iter_expr,body) {
-        lispval val = kno_stack_eval(iter_expr,env,_stack);
+	lispval val = kno_eval(iter_expr,env,_stack,0);
 	if (ABORTED(val)) { result = val; exited = 1; break;}
 	kno_decref(val);}
       if (exited) break;}
@@ -89,7 +89,7 @@ static lispval parse_control_spec
     else if (!((VOIDP(ivar)) || (SYMBOLP(ivar))))
       return kno_err(kno_SyntaxError,
                      _("identifier is not a symbol"),NULL,control_expr);
-    val = fast_eval(val_expr,env);
+    val = kno_eval(val_expr,env,_stack,0);
     if (KNO_ABORTED(val))
       return val;
     *varp = var;
@@ -399,12 +399,12 @@ static lispval prog1_evalfn(lispval prog1_expr,kno_lexenv env,
   lispval prog1_body = kno_get_body(prog1_expr,2);
   if (! (PRED_TRUE( (KNO_PAIRP(prog1_body)) || (prog1_body == KNO_NIL) )) )
     return kno_err(kno_SyntaxError,"prog1_evalfn",NULL,prog1_expr);
-  lispval result = kno_stack_eval(arg1,env,_stack);
+  lispval result = kno_eval(arg1,env,_stack,0);
   if (KNO_ABORTED(result))
     return result;
   else {
     KNO_DOLIST(subexpr,prog1_body) {
-      lispval tmp = fast_eval(subexpr,env);
+      lispval tmp = kno_eval(subexpr,env,_stack,0);
       if (KNO_ABORTED(tmp)) {
         kno_decref(result);
         return tmp;}
@@ -421,7 +421,6 @@ static lispval comment_evalfn(lispval comment_expr,kno_lexenv env,kno_stack stac
 
 KNO_EXPORT void kno_init_iterators_c()
 {
-  moduleid_symbol = kno_intern("%moduleid");
   iter_var = kno_intern("%iter");
 
   u8_register_source_file(_FILEINFO);

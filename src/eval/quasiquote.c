@@ -11,7 +11,7 @@
 
 #define KNO_INLINE_TABLES       (!(KNO_AVOID_INLINE))
 #define KNO_INLINE_FCNIDS       (!(KNO_AVOID_INLINE))
-#define KNO_INLINE_EVAL    (!(KNO_AVOID_INLINE))
+#define KNO_EVAL_INTERNALS    (!(KNO_AVOID_INLINE))
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"

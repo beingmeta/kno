@@ -11,6 +11,8 @@
 #define KNO_PROFILES_H_INFO "include/kno/profiles.h"
 #endif
 
+#include <sys/resource.h>
+
 #if HAVE_STDATOMIC_H
 typedef struct KNO_PROFILE {
   u8_string prof_label;
