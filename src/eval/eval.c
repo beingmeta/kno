@@ -423,6 +423,8 @@ lispval _kno_cons_eval(lispval expr,kno_lexenv env,
 {
   kno_lisp_type ctype = KNO_CONSPTR_TYPE(expr);
   kno_stack caller = stack->stack_caller;
+  if (tail) KNO_STACK_SET_BITS(stack,KNO_STACK_TAIL_POS);
+  else KNO_STACK_CLEAR_BITS(stack,KNO_STACK_TAIL_POS);
   switch (ctype) {
   case kno_slotmap_type:
     return kno_deep_copy(expr);
