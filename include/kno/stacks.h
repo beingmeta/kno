@@ -170,11 +170,13 @@ typedef struct KNO_STACK *kno_stack;
 
 #define KNO_STACK_ARGS(stack)     ((stack)->stack_args.elts)
 #define KNO_STACK_WIDTH(stack)    ((stack)->stack_args.len)
+#define KNO_STACK_LENGTH(stack)    ((stack)->stack_args.count)
 #define KNO_STACK_ARGCOUNT(stack) ((stack)->stack_args.count)
 
 #if KNO_SOURCE
 #define STACK_ARGS(stack)     ((stack)->stack_args.elts)
 #define STACK_WIDTH(stack)    ((stack)->stack_args.len)
+#define STACK_LENGTH(stack)    ((stack)->stack_args.count)
 #define STACK_ARGCOUNT(stack) ((stack)->stack_args.count)
 #endif
 

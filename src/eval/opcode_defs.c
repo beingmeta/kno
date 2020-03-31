@@ -1079,7 +1079,7 @@ static lispval handle_table_opcode(lispval opcode,int n,kno_argvec args)
   case KNO_RETRACT_OPCODE:
     return handle_table_result(kno_retract(subject,slotid,value));
   default:
-    return kno_err("BadOpcode","handle_table_opcode",NULL,opcode);}
+    return kno_err(kno_BadOpcode,"handle_table_opcode",NULL,opcode);}
 }
 
 /* Opcode dispatch */
@@ -1207,11 +1207,17 @@ static lispval handle_special_opcode(lispval opcode,lispval args,lispval expr,
 
 typedef int (reducer)(lispval *result,lispval cur,lispval arg);
 
-static lispval not_a_number(lispval *result,u8_context opname,lispval arg)
+static int reduce_not_a_number(lispval *result,u8_context opname,lispval arg)
 {
-  kno_seterr(kno_NotANumber,opname,NULL,arg);
+  kno_seterr(kno_NotANumber,opname,
+	     kno_type2name(KNO_TYPEOF(arg)),
+	     arg);
+  lispval cur = *result; *result = KNO_ERROR;
+  kno_decref(cur);
   return -1;
 }
+
+#define NOT_A_NUMBERP(x) (PRED_FALSE(!(KNO_NUMBERP(x))))
 
 static lispval do_reduce(reducer fn,lispval start,int n,kno_argvec args)
 {
@@ -1223,7 +1229,8 @@ static lispval do_reduce(reducer fn,lispval start,int n,kno_argvec args)
 
 static int plus_reduce(lispval *result,lispval sum,lispval add)
 {
-  if (!(NUMBERP(add))) return not_a_number(result,"plus",add);
+  if (NOT_A_NUMBERP(add))
+    return reduce_not_a_number(result,"plus",add);
   if (KNO_ZEROP(add)) return 0;
   kno_lisp_type sumtype = KNO_TYPEOF(sum);
   // kno_lisp_type argtype = KNO_TYPEOF(add);
@@ -1242,7 +1249,8 @@ static lispval plus_handler(int n,kno_argvec args)
 
 static int minus_reduce(lispval *result,lispval sum,lispval sub)
 {
-  if (!(NUMBERP(sub))) return not_a_number(result,"minus",sub);
+  if (NOT_A_NUMBERP(sub))
+    return reduce_not_a_number(result,"minus",sub);
   if (KNO_ZEROP(sub)) return 1;
   kno_lisp_type sumtype = KNO_TYPEOF(sum);
   // kno_lisp_type argtype = KNO_TYPEOF(sub);
@@ -1263,7 +1271,8 @@ static lispval minus_handler(int n,kno_argvec args)
 
 static int times_reduce(lispval *result,lispval sum,lispval add)
 {
-  if (!(NUMBERP(add))) return not_a_number(result,"times",add);
+  if (NOT_A_NUMBERP(add))
+    return reduce_not_a_number(result,"times",add);
   if (add == KNO_INT(1)) return 1;
   kno_lisp_type sumtype = KNO_TYPEOF(sum);
   // kno_lisp_type argtype = KNO_TYPEOF(add);
@@ -1282,7 +1291,8 @@ static lispval times_handler(int n,kno_argvec args)
 
 static int flodiv_reduce(lispval *result,lispval sum,lispval div)
 {
-  if (!(NUMBERP(div))) return not_a_number(result,"flodiv",div);
+  if (NOT_A_NUMBERP(div))
+    return reduce_not_a_number(result,"flodiv",div);
   // kno_lisp_type sumtype = KNO_TYPEOF(sum);
   // kno_lisp_type argtype = KNO_TYPEOF(div);
   if (!(KNO_NUMBERP(div))) {
@@ -1311,7 +1321,8 @@ static lispval flodiv_handler(int n,kno_argvec args)
 
 static int div_reduce(lispval *result,lispval sum,lispval div)
 {
-  if (!(NUMBERP(div))) return not_a_number(result,"divide",div);
+  if (NOT_A_NUMBERP(div))
+    return reduce_not_a_number(result,"divide",div);
   if (KNO_ZEROP(div)) {
     *result = kno_err("DivisionByZero","div_reduce",NULL,div);
     return -1;}
@@ -1337,10 +1348,13 @@ static lispval div_handler(int n,kno_argvec args)
 static lispval cmp_args(lispval op,int dir,int eq,int n,kno_argvec args)
 {
   if (n<2) return op_arity_error(op,n,2);
-  int i = 1, lim = n;
   lispval v = args[0];
+  int i = 1, lim = n;
+  if (NOT_A_NUMBERP(v)) return kno_err(kno_NotANumber,opcode_name(op),NULL,v);
   while (i<lim) {
     lispval arg = args[i];
+    if (NOT_A_NUMBERP(arg))
+      return kno_err(kno_NotANumber,opcode_name(op),NULL,arg);
     int cmp = kno_numcompare(v,arg);
     if ( (cmp != dir) && ( (!eq) || (cmp == 0) ) )
       return KNO_FALSE;
@@ -1351,7 +1365,12 @@ static lispval cmp_args(lispval op,int dir,int eq,int n,kno_argvec args)
 
 static lispval handle_numeric_opcode(lispval opcode,int n,kno_argvec args)
 {
-  switch (opcode) {
+  if (PRED_FALSE(n<1)) return op_arity_error(opcode,n,1);
+  else if (NOT_A_NUMBERP(args[0]))
+    return kno_err(kno_NotANumber,opcode_name(opcode),
+		   kno_type2name(KNO_TYPEOF(args[0])),
+		   args[0]);
+  else switch (opcode) {
   case KNO_PLUS_OPCODE:
     return plus_handler(n,args);
   case KNO_MINUS_OPCODE:
@@ -1373,6 +1392,6 @@ static lispval handle_numeric_opcode(lispval opcode,int n,kno_argvec args)
   case KNO_LT_OPCODE:
     return cmp_args(opcode,-1,0,n,args);
   default:
-    return kno_err("BadOPCODE","handle_numeric_opcode",NULL,opcode);
+    return kno_err(kno_BadOpcode,"handle_numeric_opcode",NULL,opcode);
   }
 }

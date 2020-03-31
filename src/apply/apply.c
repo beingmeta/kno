@@ -90,7 +90,9 @@ KNO_FASTOP lispval function_call(u8_string name,kno_function f,
     int ctype = KNO_CONS_TYPE(f);
     if (kno_applyfns[ctype])
       return kno_applyfns[ctype]((lispval)f,n,argvec);
-    else return kno_err("NotApplicable","apply_fcn",f->fcn_name,(lispval)f);}
+    lispval lf = (lispval) f;
+    u8_string details = (f->fcn_name) ? (f->fcn_name) : kno_type_name(lf);
+    return kno_err("NotApplicable","apply_fcn",details,lf);}
   else if (KNO_FCN_CPRIMP(f))
     return cprim_call(name,(kno_cprim)f,n,argvec,stack);
   else if (FCN_XCALLP(f))
@@ -108,8 +110,10 @@ KNO_FASTOP lispval core_call(kno_stack stack,
   if ( (width == n) && (argcheck=check_args(n,argvec) == 0) ) {
     stack->stack_point = fn;
     KNO_STACK_SET_ARGS(stack,(lispval *)argvec,width,n,KNO_STATIC_ARGS);
-    if (f)
-      return function_call(stack->stack_label,f,n,argvec,stack);
+    if (f) return function_call(stack->stack_label,f,n,argvec,stack);
+    kno_applyfn handler = kno_applyfns[fntype];
+    if (PRED_FALSE(handler==NULL))
+      return kno_err(kno_NotAFunction,"core_call",kno_type_name(fn),fn);
     else return kno_applyfns[fntype](fn,width,argvec);}
   else {
     lispval callbuf[width];

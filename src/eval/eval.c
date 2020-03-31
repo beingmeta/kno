@@ -88,6 +88,7 @@ u8_condition kno_SyntaxError=_("SCHEME expression syntax error"),
   kno_NotAnIdentifier=_("not an identifier"),
   kno_TooFewExpressions=_("too few subexpressions"),
   kno_CantBind=_("can't add binding to environment"),
+  kno_BadOpcode=_("Bad opcode in compiled code"),
   kno_ReadOnlyEnv=_("Read only environment");
 
 static u8_condition BadExpressionHead=_("BadExpressionHead");
@@ -571,8 +572,7 @@ static lispval opcode_dispatch(lispval op,int n,kno_argvec args)
     return handle_numeric_opcode(op,n,args);
   else if (KNO_TABLE_OPCODEP(op))
     return handle_table_opcode(op,n,args);
-  else return kno_err("BadOpcode","opcode_dispatch",
-		      opcode_name(op),op);
+  else return kno_err(kno_BadOpcode,"opcode_dispatch",opcode_name(op),op);
 }
 
 KNO_FASTOP int opcode_choice_loop(lispval *resultp,
@@ -636,7 +636,7 @@ lispval execute_lambda(kno_stack stack,int tail)
   KNO_START_EVAL(lambda_stack,label,(lispval)proc,NULL,stack);
   lispval args[n_vars];
   _lambda_stack.stack_args.elts  = args;
-  _lambda_stack.stack_args.count = n_vars;
+  _lambda_stack.stack_args.count = 0;
   _lambda_stack.stack_args.len   = n_vars;
   KNO_STACK_SET_BITS(lambda_stack,KNO_STACK_DECREF_ARGS);
 
@@ -684,10 +684,11 @@ lispval execute_lambda(kno_stack stack,int tail)
 	init_val = kno_lexref(init_expr,proc_env);
       else init_val = init_expr;
       if (ABORTED(init_val)) {
-	lambda_stack->stack_args.count = i-1;
 	kno_pop_stack(lambda_stack);
 	return init_val;}
-      else args[i++]=init_val;;}}
+      else {
+	args[i++]=init_val;
+	_lambda_stack.stack_args.count=i;}}}
 
   /* Now accumulate a .rest arg if it's needed */
   if (arity < 0) {
@@ -861,9 +862,10 @@ lispval eval_pair(lispval expr,kno_lexenv env,
   else if (KNO_ABORTED(headval)) {
     result = headval; goto clean_exit;}
   else if (PRED_FALSE(( (VOIDP(headval)) || (KNO_FALSEP(headval))))) {
-    u8_condition condition = (KNO_SYMBOLP(head)) ? (kno_UnboundIdentifier) :
-      (BadExpressionHead);
-    result = kno_err(condition,"eval_pair",NULL,head);
+    if (KNO_SYMBOLP(head)) {
+      result = kno_err(kno_UnboundIdentifier,"eval_pair",
+		       KNO_SYMBOL_NAME(head),head);}
+    else {result = kno_err(BadExpressionHead,"eval_pair",NULL,head);}
     goto clean_exit;}
   else if (EMPTYP(headval) ) {
     result = KNO_EMPTY;
@@ -926,10 +928,10 @@ lispval eval_pair(lispval expr,kno_lexenv env,
     KNO_DECL_STACKVEC(args,argbuf_len);
     int decref_args=0;
     kno_lisp_type optype = KNO_TYPEOF(op);
-    int ndop = (f) ? (KNO_FCN_NDCALLP(f)) :
+    int nd_op = (f) ? (KNO_FCN_NDCALLP(f)) :
       (KNO_OPCODEP(head)) ? (KNO_ND_OPCODEP(head)) :
       (kno_isndfunctionp[optype]);
-    int ndcall = (KNO_CHOICEP(head)) ? (1) : (ndop) ? (-1) : (0);
+    int nd_args = 0;
     while (PAIRP(exprs)) {
       lispval arg_expr = pop_arg(exprs), arg = KNO_VOID;
       kno_lisp_type arg_type = KNO_TYPEOF(arg_expr);
@@ -955,13 +957,13 @@ lispval eval_pair(lispval expr,kno_lexenv env,
 	kno_seterr("TailValueReturned","eval_pair",NULL,arg_expr);
 	result = KNO_ERROR;
 	goto cleanup_args;}
-      else if ( (KNO_EMPTYP(arg)) && (!(ndop)) ) {
+      else if ( (KNO_EMPTYP(arg)) && (!(nd_op)) ) {
 	if (decref_args) kno_decref_stackvec(args);
 	kno_free_stackvec(args);
 	return KNO_EMPTY;}
       else if (KNO_CONSP(arg)) {
-	if ( (ndcall == 0) && (CHOICEP(arg)) )
-	  ndcall = 1;
+	if ( (nd_args == 0) && (CHOICEP(arg)) )
+	  nd_args = 1;
 	decref_args = 1;}
       else NO_ELSE;
       kno_stackvec_push(args,arg);}
@@ -979,25 +981,34 @@ lispval eval_pair(lispval expr,kno_lexenv env,
     else KNO_STACK_SET_BITS(stack,KNO_STACK_DECREF_ARGS);
     args = NULL;
 
-    if (ndcall)
+    int ndcall = (nd_args) && (!(nd_op));
+    switch (optype) {
+    case kno_opcode_type: {
+      if (ndcall) {
+	lispval combined = KNO_EMPTY;
+	lispval d_args[n_args];
+	int rv = opcode_choice_loop(&combined,head,0,n_args,argbuf,d_args);
+	if (rv<0) {
+	  kno_decref(result);
+	  result = KNO_ERROR;}
+	else result = combined;}
+      else result = opcode_dispatch(head,n_args,argbuf);
+      break;}
+    case kno_choice_type:
       result = kno_call(stack,op,n_args,argbuf);
-    else switch (optype) {
-      case kno_opcode_type: {
-	if (ndcall) {
-	  lispval d_args[n_args];
-	  int rv = opcode_choice_loop(&result,head,0,n_args,argbuf,d_args);
-	  if (rv<0) {
-	    kno_decref(result);
-	    result = KNO_ERROR;}}
-	else result = opcode_dispatch(head,n_args,argbuf);
-	break;}
-      case kno_lambda_type:
-	result = lambda_call(stack,tail); break;
-      default:
-	if (ndcall)
-	  result = kno_call(stack,op,n_args,argbuf);
-	else result = kno_dcall(stack,op,n_args,argbuf);}
+      break;
+    case kno_lambda_type: {
+      if (ndcall)
+	result = kno_call(stack,op,n_args,argbuf);
+      else result = lambda_call(stack,tail);
+      break;}
+    default: {
+      if (ndcall)
+	result = kno_call(stack,op,n_args,argbuf);
+      else result = kno_dcall(stack,op,n_args,argbuf);}
+    } /* switch(optype) */
   cleanup_args:
+    /* We jump here if we haven't yet put *args* on the stack */
     if (args) {
       if (decref_args) kno_decref_stackvec(&_args);
       kno_free_stackvec(&_args);}
@@ -1007,7 +1018,7 @@ lispval eval_pair(lispval expr,kno_lexenv env,
 	kno_decref_stackvec(&(stack->stack_args));}
       kno_free_stackvec(&(stack->stack_args));}}
 
-  /* And finally */
+  /* Restore old things */
  clean_exit:
   if (old_tail) {KNO_STACK_SET_BITS(stack,KNO_STACK_TAIL_POS);}
   else {KNO_STACK_CLEAR_BITS(stack,KNO_STACK_TAIL_POS);}

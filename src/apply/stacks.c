@@ -182,7 +182,7 @@ static lispval stack2lisp(struct KNO_STACK *stack,struct KNO_STACK *inner)
     (NULL,stack_entry_symbol,STACK_CREATE_OPTS,
      6,depth,typesym,label,file,point,
      ((env) ? (kno_deep_copy(env->env_bindings)) :
-      ((STACK_ARGS(stack)) && (STACK_WIDTH(stack))) ?
+      ((STACK_ARGS(stack)) && (STACK_LENGTH(stack))) ?
       (copy_args(STACK_WIDTH(stack),STACK_ARGS(stack))) :
       (KNO_EMPTY_LIST)),
      KNO_INT(icrumb));
