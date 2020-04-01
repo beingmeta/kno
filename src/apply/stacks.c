@@ -61,10 +61,9 @@ __thread struct KNO_STACK *kno_stackptr=NULL;
 struct KNO_STACK *kno_stackptr=NULL;
 #endif
 
-u8_string kno_stack_types[8]=
-  {"deadstack","applystack","iterstack","evalstack",
-   "stack4","stack5","stack6","stack7"};
-static lispval stack_type_symbols[8];
+#if KNO_DEBUG_STACKS
+int kno_debug_stacks = 0;
+#endif
 
 static lispval stack_entry_symbol, stack_target_symbol, opaque_symbol,
   pbound_symbol, pargs_symbol;
@@ -77,29 +76,44 @@ static lispval copy_args(int width,kno_argvec args);
 
 /* Call stack (not used yet) */
 
-KNO_EXPORT int _kno_pop_stack_error(struct KNO_STACK *stack)
+KNO_EXPORT void _kno_stack_push_error(kno_stack stack,u8_context loc)
 {
-  u8_string details = NULL;
-  if (KNO_STACK_TYPE(stack) == 0) {
-    kno_stack caller = stack->stack_caller;
-    details =
-      u8_mkstring("Popping dead stack 0x%llx (%s) caller = 0x%llx (%s)",
-		  (kno_ptrval)stack,
-		  (stack)? U8S(stack->stack_label) : (U8SNUL),
-		  (kno_ptrval)caller,
-		  (caller)? U8S(caller->stack_label) : (U8SNUL));}
-  else if (stack != kno_stackptr) {
-    kno_stack cur = kno_stackptr;
-    details =
-      u8_mkstring("Attempt to pop %s stack 0x%llx (%s) which isn't 0x%llx (%s)",
-		  (stack>cur) ? U8S("old") : U8S("earlier"),
-		  (kno_ptrval)stack,( (stack) ? (stack->stack_label) : (U8SNUL)),
-		  (kno_ptrval)cur,( (cur) ? (cur->stack_label) : (U8SNUL)));}
-  else details =
-	 u8_mkstring("For stack 0x%llx (%s)",(kno_ptrval)stack,
-		     ( (stack) ? (stack->stack_label) : (U8SNUL)));
-  u8_seterr("StackCorruption","kno_pop_stack",details);
-  return -1;
+  kno_stack cur = kno_stackptr;
+  kno_stack caller = stack->stack_caller;
+  u8_condition cond =
+    (cur == NULL) ? ("NullStackPtr(push)") :
+    (caller == NULL) ? ("NullCaller(push)") :
+    (!(STACK_LIVEP(caller))) ? ("DeadCaller(push)") :
+    (caller < kno_stackptr) ? ("CallerAlreadyExited(push)") :
+    (caller > kno_stackptr) ? ("CallerNotCurrent(push)") :
+    ("OddStackError(push)");
+  u8_log(LOGCRIT,cond,
+	 "Push stack 0x%llx; caller 0x%llx; stackptr 0x%llx @ %s",
+	 (unsigned long long)stack,
+	 (unsigned long long)caller,
+	 (unsigned long long)cur,
+	 loc);
+  u8_raise(cond,loc,NULL);
+}
+
+KNO_EXPORT void _kno_stack_pop_error(kno_stack stack,u8_context loc)
+{
+  kno_stack cur = kno_stackptr;
+  kno_stack caller = stack->stack_caller;
+  u8_condition cond =
+    (cur == NULL) ? ("NullStackPtr(pop)") :
+    (!(STACK_LIVEP(cur))) ? ("DeadStack(pop)") :
+    (caller == NULL) ? ("NullCaller(pop)") :
+    (stack < kno_stackptr) ? ("FrameAlreadyExited(pop)") :
+    (stack > kno_stackptr) ? ("FrameNotCurrent(pop)") :
+    ("OddStackError(pop)");
+  u8_log(LOGCRIT,cond,
+	 "Pop stack 0x%llx; caller 0x%llx; stackptr 0x%llx @ %s",
+	 (unsigned long long)stack,
+	 (unsigned long long)caller,
+	 (unsigned long long)cur,
+	 loc);
+  u8_raise(cond,loc,NULL);
 }
 
 KNO_EXPORT void
@@ -139,11 +153,6 @@ KNO_EXPORT int _kno_reset_stack(struct KNO_STACK *stack)
   return kno_reset_stack(stack);
 }
 
-KNO_EXPORT int _kno_pop_stack(struct KNO_STACK *stack)
-{
-  return kno_pop_stack(stack);
-}
-
 /* Stacks are rendered into LISP as vectors as follows:
    1. depth  (integer, increasing with calls)
    2. type   (apply, eval, load, other)
@@ -157,10 +166,7 @@ KNO_EXPORT int _kno_pop_stack(struct KNO_STACK *stack)
 
 static lispval stack2lisp(struct KNO_STACK *stack,struct KNO_STACK *inner)
 {
-  kno_stack_type type = KNO_STACK_TYPE(stack);
-
   lispval depth	  = KNO_INT(stack->stack_depth);
-  lispval typesym = stack_type_symbols[type];
   lispval label	  = (stack->stack_label) ?
     (knostring(stack->stack_label)) :
     (KNO_FALSE);
@@ -180,7 +186,7 @@ static lispval stack2lisp(struct KNO_STACK *stack,struct KNO_STACK *inner)
 
   return kno_init_compound
     (NULL,stack_entry_symbol,STACK_CREATE_OPTS,
-     6,depth,typesym,label,file,point,
+     5,depth,label,file,point,
      ((env) ? (kno_deep_copy(env->env_bindings)) :
       ((STACK_ARGS(stack)) && (STACK_LENGTH(stack))) ?
       (copy_args(STACK_WIDTH(stack),STACK_ARGS(stack))) :
@@ -413,13 +419,13 @@ void kno_init_stacks_c()
   default_sym = kno_intern("#default");
   nofile_symbol = kno_intern("nofile");
 
-  int i = 0; while (i<8) {
-    stack_type_symbols[i]=kno_intern(kno_stack_types[i]);
-    i++;}
-
   kno_register_config
     ("STACKLIMIT",
      _("Size of the stack (in bytes or as a factor of the current size)"),
      kno_sizeconfig_get,kno_sizeconfig_set,&kno_default_stackspec);
+  kno_register_config
+    ("STACK:DEBUG",_("Whether to trace all stack push/pop operations"),
+     kno_boolconfig_get,kno_boolconfig_set,&kno_debug_stacks);
+
 }
 

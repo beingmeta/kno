@@ -163,24 +163,26 @@ static lispval let_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   else if ((n = check_bindexprs(bindexprs,&result))<0)
     return result;
   else {
-    INIT_STACK_ENV(_stack,letenv,env,n);
+    PUSH_STACK_ENV(letenv,env,n,_stack);
     int i = 0;
     {KNO_DOBINDINGS(var,val_expr,bindexprs) {
-	lispval value = kno_eval(val_expr,env,_stack,0);
-	if (KNO_ABORTED(value))
-	  _env_return value;
+	lispval value = kno_eval(val_expr,env,letenv_stack,0);
+	if (KNO_ABORTED(value)) {
+	  result = value; goto pop_stack;}
 	else if (VOIDP(value)) {
-	  kno_seterr(kno_VoidBinding,"let_evalfn",
-		    KNO_SYMBOL_NAME(var),val_expr);
-	  _env_return KNO_ERROR_VALUE;}
+	  result = kno_err(kno_VoidBinding,"let_evalfn",
+			   KNO_SYMBOL_NAME(var),val_expr);
+	  goto pop_stack;}
 	else {
 	  letenv_vars[i]=var;
 	  letenv_vals[i]=value;
 	  i++;}}}
-    result = eval_body(kno_get_body(expr,2),letenv,_stack,
+    result = eval_body(kno_get_body(expr,2),letenv,letenv_stack,
 		       ":LET",SYM_NAME(letenv_vars[0]),
 		       1);
-    _env_return result;}
+  pop_stack:
+    kno_pop_stack(letenv_stack);
+    return result;}
 }
 
 static lispval letstar_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
@@ -192,31 +194,33 @@ static lispval letstar_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   else if ((n = check_bindexprs(bindexprs,&result))<0)
     return result;
   else {
-    INIT_STACK_ENV(_stack,letseq,env,n);
+    PUSH_STACK_ENV(letstar,env,n,_stack);
     int i = 0, j = 0;
     {KNO_DOBINDINGS(var,val_expr,bindexprs) {
-	letseq_vars[j]=var;
-	letseq_vals[j]=KNO_UNBOUND;
+	letstar_vars[j]=var;
+	letstar_vals[j]=KNO_UNBOUND;
 	j++;}}
     {KNO_DOBINDINGS(var,val_expr,bindexprs) {
-	lispval value = kno_eval(val_expr,letseq,_stack,0);
-	if (KNO_ABORTED(value))
-	  _env_return value;
+	lispval value = kno_eval(val_expr,letstar,letstar_stack,0);
+	if (KNO_ABORTED(value)) {
+	  result = value; goto pop_stack;}
 	else if (VOIDP(value)) {
-	  kno_seterr(kno_VoidBinding,"letstar_evalfn",
-		     KNO_SYMBOL_NAME(var),val_expr);
-	  release_stack_env(_stack);}
-	else if (letseq->env_copy) {
-	  kno_bind_value(var,value,letseq->env_copy);
+	  result = kno_err(kno_VoidBinding,"letstar_evalfn",
+			   KNO_SYMBOL_NAME(var),val_expr);
+	  goto pop_stack;}
+	else if (letstar->env_copy) {
+	  kno_bind_value(var,value,letstar->env_copy);
 	  kno_decref(value);}
 	else {
-	  letseq_vars[i]=var;
-	  letseq_vals[i]=value;}
+	  letstar_vars[i]=var;
+	  letstar_vals[i]=value;}
 	i++;}}
-    result = eval_body(kno_get_body(expr,2),letseq,_stack,
-		       ":LET*",SYM_NAME(letseq_vars[0]),
+    result = eval_body(kno_get_body(expr,2),letstar,letstar_stack,
+		       ":LET*",SYM_NAME(letstar_vars[0]),
 		       1);
-    _env_return result;}
+  pop_stack:
+    kno_pop_stack(letstar_stack);
+    return result;}
 }
 
 /* LETREC */
@@ -230,20 +234,20 @@ static lispval letrec_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   else if ((n = check_bindexprs(bindexprs,&result))<0)
     return result;
   else {
-    INIT_STACK_ENV(_stack,letrec,env,n);
+    PUSH_STACK_ENV(letrec,env,n,_stack);
     int i = 0, j = 0;
     {KNO_DOBINDINGS(var,val_expr,bindexprs) {
 	letrec_vars[j]=var;
 	letrec_vals[j]=KNO_UNBOUND;
 	j++;}}
     {KNO_DOBINDINGS(var,val_expr,bindexprs) {
-	lispval value = kno_eval(val_expr,letrec,_stack,0);
-	if (KNO_ABORTED(value))
-	  _env_return value;
+	lispval value = kno_eval(val_expr,letrec,letrec_stack,0);
+	if (KNO_ABORTED(value)) {
+	  result = value; goto pop_stack;}
 	else if (VOIDP(value)) {
-	  kno_seterr(kno_VoidBinding,"letstar_evalfn",
-		    KNO_SYMBOL_NAME(var),val_expr);
-	  _env_return KNO_ERROR;}
+	  result = kno_err(kno_VoidBinding,"letstar_evalfn",
+			   KNO_SYMBOL_NAME(var),val_expr);
+	  goto pop_stack;}
 	else if (letrec->env_copy) {
 	  kno_bind_value(var,value,letrec->env_copy);
 	  kno_decref(value);}
@@ -251,10 +255,12 @@ static lispval letrec_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 	  letrec_vars[i]=var;
 	  letrec_vals[i]=value;}
 	i++;}}
-    result = eval_body(kno_get_body(expr,2),letrec,_stack,
+    result = eval_body(kno_get_body(expr,2),letrec,letrec_stack,
 		       ":LETREC",SYM_NAME(letrec_vars[0]),
 		       1);
-    _env_return result;}
+  pop_stack:
+    kno_pop_stack(letrec_stack);
+    return result;}
 }
 
 /* DO */
@@ -262,7 +268,7 @@ static lispval letrec_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 static lispval do_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   int n = -1;
-  lispval do_result = VOID;
+  lispval doloop_result = VOID;
   lispval bindexprs = kno_get_arg(expr,1);
   lispval exitexprs = kno_get_arg(expr,2);
   lispval testexpr = kno_get_arg(exitexprs,0), testval = VOID;
@@ -273,10 +279,10 @@ static lispval do_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     return kno_err(kno_BindSyntaxError,"DO",NULL,expr);
   else if (!(PAIRP(exitexprs)))
     return kno_err(kno_BindSyntaxError,"DO",NULL,expr);
-  else if ((n = check_bindexprs(bindexprs,&do_result))<0)
-    return do_result;
+  else if ((n = check_bindexprs(bindexprs,&doloop_result))<0)
+    return doloop_result;
   else {
-    INIT_STACK_ENV(_stack,do_env,env,n);
+    PUSH_STACK_ENV(doloop,env,n,_stack);
     kno_lexenv use_env = _stack->eval_env;
     _stack->eval_env = NULL;
     lispval updaters[n], tmp[n];
@@ -285,70 +291,71 @@ static lispval do_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     {KNO_DOLIST(bindexpr,bindexprs) {
       lispval var = kno_get_arg(bindexpr,0);
       lispval value_expr = kno_get_arg(bindexpr,1);
-      if ( (!(SYMBOLP(var))) || (KNO_VOIDP(value_expr)) )
-	_env_return kno_err(kno_SyntaxError,"do_evalfn",NULL,expr);
+      if ( (!(SYMBOLP(var))) || (KNO_VOIDP(value_expr)) ) {
+	doloop_result = kno_err(kno_SyntaxError,"do_evalfn",NULL,expr);
+	goto pop_stack;}
       lispval update_expr = kno_get_arg(bindexpr,2);
-      lispval value = kno_eval_expr(value_expr,env);
-      if (KNO_ABORTED(value))
-	_env_return value;
+      lispval value = kno_eval(value_expr,env,doloop_stack,0);
+      if (KNO_ABORTED(value)) {
+	doloop_result = value; goto pop_stack;}
       else {
-	do_env_vars[i]=var;
-	do_env_vals[i]=value;
+	doloop_vars[i]=var;
+	doloop_vals[i]=value;
 	updaters[i]=update_expr;
 	tmp[i]=KNO_VOID;
 	i++;}}}
     _stack->eval_env = use_env;
     /* First test */
-    testval = kno_eval_expr(testexpr,do_env);
-    if (KNO_ABORTED(testval))
-      _env_return testval;
+    testval = kno_eval(testexpr,doloop,doloop_stack,0);
+    if (KNO_ABORTED(testval)) {
+      doloop_result = testval; goto pop_stack;}
     /* The iteration itself */
     while (FALSEP(testval)) {
       int i = 0;
       /* Execute the body */
       KNO_DOLIST(bodyexpr,body) {
-	lispval result = kno_eval(bodyexpr,do_env,_stack,0);
-	if (KNO_ABORTED(result))
-	  _env_return result;
+	lispval result = kno_eval(bodyexpr,doloop,doloop_stack,0);
+	if (KNO_ABORTED(result)) {
+	  doloop_result = result; goto pop_stack;}
 	else kno_decref(result);}
       /* Do an update, storing new values in tmp[] to be consistent. */
       while (i < n) {
-	lispval new_val = (VOIDP(updaters[i])) ? (kno_incref(do_env_vals[i])) :
-	  (kno_eval_expr(updaters[i],do_env));
+	lispval new_val = (VOIDP(updaters[i])) ? (kno_incref(doloop_vals[i])) :
+	  (kno_eval(updaters[i],doloop,doloop_stack,0));
 	if (KNO_ABORTED(new_val)) {
 	  /* GC the updated values you've generated so far.
 	     Note that tmp[i] (the exception) is not freed. */
 	  kno_decref_vec(tmp,i);
-	  _env_return new_val;}
+	  doloop_result = new_val; goto pop_stack;}
 	else tmp[i++] = new_val;}
       /* Now, free the current values and replace them with the values
 	 from tmp[]. */
       i = 0; while (i < n) {
-	lispval val = do_env_vals[i];
+	lispval val = doloop_vals[i];
 	if ((CONSP(val))&&(KNO_MALLOCD_CONSP((kno_cons)val))) {
 	  kno_decref(val);}
-	do_env_vals[i] = tmp[i];
+	doloop_vals[i] = tmp[i];
 	i++;}
       /* Decref/recycle any dynamic copis of the environment */
-      if (_do_env.env_copy) {
-	kno_recycle_lexenv(_do_env.env_copy);
-	_do_env.env_copy = NULL;}
+      reset_env(doloop);
       /* Free the old testval and evaluate it again. */
       kno_decref(testval);
-      testval = kno_eval_expr(testexpr,do_env);
-      if (KNO_ABORTED(testval))
-	_env_return testval;}
+      testval = kno_eval(testexpr,doloop,doloop_stack,0);
+      if (KNO_ABORTED(testval)) {
+	doloop_result = testval; goto pop_stack;}}
     /* Now we're done, so we set result to testval. */
-    do_result = testval;
+    doloop_result = testval;
     if (KNO_EMPTYP(testval)) {}
     else if (!(KNO_EMPTY_LISTP(KNO_CDR(exitexprs)))) {
-      kno_decref(do_result);
-      do_result = eval_body(kno_get_body(exitexprs,1),do_env,_stack,
-			    ":DO",SYM_NAME(do_env_vars[0]),
+      kno_decref(doloop_result);
+      doloop_result = eval_body(kno_get_body(exitexprs,1),doloop,doloop_stack,
+			    ":DO",SYM_NAME(doloop_vars[0]),
 			    1);}
     else NO_ELSE;
+  pop_stack:
+    kno_pop_stack(doloop_stack);
     /* Free the environment. */
-    _env_return do_result;}
+    return doloop_result;}
 }
 
 /* DEFINE-LOCAL */

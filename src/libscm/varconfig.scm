@@ -36,13 +36,13 @@
 	 (lambda (var (val))
 	   (if (bound? val)
 	       (set! ,varname
-		     ,(cond ((and convertfn combinefn)
-			     `(_combine (_convert val) ,varname))
-			    (convertfn
-			     `(try (_convert val) ,varname))
-			    (combinefn
-			     `(_combine val ,varname))
-			    (else 'val)))
+		 ,(cond ((and convertfn combinefn)
+			 `(_combine (_convert val) ,varname))
+			(convertfn
+			 `(try (_convert val) ,varname))
+			(combinefn
+			 `(_combine val ,varname))
+			(else 'val)))
 	       ,varname))))))
 
 (define (extract-doc body (before '()))

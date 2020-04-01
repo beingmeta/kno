@@ -34,8 +34,6 @@ int kno_record_source=1;
 
 static lispval tail_symbol, decls_symbol, flags_symbol;
 
-lispval execute_lambda(kno_stack);
-
 #if 0
 static u8_string lambda_id(struct KNO_LAMBDA *fn)
 {
@@ -79,7 +77,7 @@ static lispval lambda_docall(kno_stack caller,
   int i = n; while (i<use_width) callbuf[i++] = KNO_VOID;
   lambda_stack->stack_point   = (lispval) proc;
   STACK_ARGCOUNT(lambda_stack)  = n;
-  lispval result = execute_lambda(lambda_stack);;
+  lispval result = execute_lambda(lambda_stack,0);
   kno_pop_stack(lambda_stack);
   return result;
 }
@@ -799,8 +797,7 @@ lispval kno_xapply_lambda
 		       0);
     if (fn->lambda_synchronized)
       u8_unlock_mutex(&(fn->lambda_lock));}
-  kno_free_lexenv(call_env);
-  kno_pop_stack(_stack);
+   kno_pop_stack(_stack);
   return result;
 }
 

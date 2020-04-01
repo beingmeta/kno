@@ -28,14 +28,16 @@ static lispval if_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   if ((VOIDP(test_expr)) || (VOIDP(consequent_expr)))
     return kno_err(kno_TooFewExpressions,"IF",NULL,expr);
   test_result = kno_eval_expr(test_expr,env);
+  int tail_arg =
+    (KNO_STACK_BITP(_stack,KNO_STACK_TAIL_POS)) ? (KNO_TAIL_EVAL) : (0);
   if (KNO_ABORTED(test_result)) return test_result;
   else if (FALSEP(test_result))
     if (VOIDP(else_expr))
       return KNO_VOID;
-    else return kno_eval(else_expr,env,_stack,KNO_TAIL_EVAL);
+    else return kno_eval(else_expr,env,_stack,tail_arg);
   else {
     kno_decref(test_result);
-    return kno_eval(consequent_expr,env,_stack,KNO_TAIL_EVAL);}
+    return kno_eval(consequent_expr,env,_stack,tail_arg);}
 }
 
 static lispval tryif_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)

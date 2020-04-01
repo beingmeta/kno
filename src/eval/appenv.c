@@ -89,7 +89,7 @@ KNO_EXPORT void kno_setup_app_env()
   kno_decref((lispval)exit_handler);
 }
 
-static int run_init(lispval init,kno_lexenv env)
+static int run_init(lispval init,kno_lexenv env,kno_stack stack)
 {
   lispval v = KNO_VOID;
   {U8_UNWIND_PROTECT("run_init",0) {
@@ -98,11 +98,11 @@ static int run_init(lispval init,kno_lexenv env)
 	if (KNO_FUNCTIONP(init)) {
 	  struct KNO_FUNCTION *f = (kno_function) init;
 	  v = (f->fcn_arity==0) ?
-	    (kno_apply(init,0,NULL)) :
-	    (kno_apply(init,1,(lispval *)(&env)));}
+	    (kno_dcall(stack,init,0,NULL)) :
+	    (kno_dcall(stack,init,1,(lispval *)(&env)));}
 	else v = kno_apply(init,0,NULL);}
       else if (KNO_PAIRP(init))
-	v = kno_eval_expr(init,env);
+	v = kno_eval(init,env,stack,0);
       else NO_ELSE;
       if (KNO_ABORTP(v))
 	inits_failed = kno_conspair(kno_incref(init),inits_failed);
@@ -133,6 +133,8 @@ KNO_EXPORT void kno_set_app_env(kno_lexenv env)
     kno_decref((lispval)old_env);}
   kno_app_env=env;
   if (env) {
+    KNO_START_EVAL(appinit,"appenv_setup",KNO_VOID,env,
+		   kno_stackptr);
     int modules_loaded = 0, files_loaded = 0;
     int modules_failed = 0, files_failed = 0;
     int inits_run = 0, inits_failed = 0;
@@ -170,11 +172,12 @@ KNO_EXPORT void kno_set_app_env(kno_lexenv env)
     files=KNO_VOID;
     lispval inits = init_list;
     {KNO_DOLIST(init,inits) {
-	int rv = run_init(init,env);
+	int rv = run_init(init,env,appinit);
 	if (rv > 0) inits_run++;
 	else if (rv<0) inits_failed++;
 	else NO_ELSE;}}
     kno_decref(inits); inits=KNO_VOID;
+    kno_pop_stack(appinit);
     u8_log(LOG_INFO,"AppEnv",
 	   "%d:%d:%d modules:files:inits loaded/run, "
 	   "%d:%d:%d modules:files:init failed",
@@ -344,10 +347,12 @@ static int inits_config_set(lispval var,lispval inits,void *d)
       kno_incref(init);
       init_list = kno_conspair(init,init_list);}}
   else {
+    KNO_START_EVAL(runinit,"appinit",inits,kno_app_env,kno_stackptr);
     KNO_DO_CHOICES(init,inits) {
-      int rv = run_init(init,kno_app_env);
+      int rv = run_init(init,kno_app_env,runinit);
       if (rv > 0) {
-	run_count++;}}}
+	run_count++;}}
+    kno_pop_stack(runinit);}
   return run_count;
 }
 

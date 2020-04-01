@@ -37,8 +37,6 @@ static lispval refs_symbol, nrefs_symbol, lookup_symbol, embed_symbol;
 
 u8_condition kno_UnknownEncoding=_("Unknown encoding");
 
-#define fast_eval(x,env) (kno_eval(x,env,_stack,0))
-
 static long long getposfixopt(lispval opts,lispval sym,long long dflt)
 {
   lispval intval = kno_getopt(opts,sym,KNO_VOID);
@@ -50,6 +48,8 @@ static long long getposfixopt(lispval opts,lispval sym,long long dflt)
 
 DEF_KNOSYM(addsyms);
 DEF_KNOSYM(addoids);
+
+#define printout_eval(x,env) kno_eval((x),(env),kno_stackptr,0)
 
 /* Making ports */
 
@@ -519,7 +519,7 @@ lispval kno_printout(lispval body,kno_lexenv env)
   kno_stack _stack=kno_stackptr;
   U8_OUTPUT *out = u8_current_output;
   while (PAIRP(body)) {
-    lispval value = fast_eval(KNO_CAR(body),env);
+    lispval value = kno_eval(KNO_CAR(body),env,_stack,0);
     if (KNO_ABORTED(value)) {
       u8_flush(out);
       return value;}
@@ -538,7 +538,7 @@ lispval kno_printout_to(U8_OUTPUT *out,lispval body,kno_lexenv env)
   u8_output prev = u8_current_output;
   u8_set_default_output(out);
   while (PAIRP(body)) {
-    lispval value = fast_eval(KNO_CAR(body),env);
+    lispval value = kno_eval(KNO_CAR(body),env,_stack,0);
     if (KNO_ABORTED(value)) {
       u8_flush(out);
       u8_set_default_output(prev);
@@ -614,7 +614,7 @@ static lispval printout_to_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   lispval dest_arg = kno_get_arg(expr,1);
   if (KNO_VOIDP(dest_arg))
     return kno_err(kno_SyntaxError,"printout_to_evalfn",NULL,expr);
-  lispval dest = fast_eval(dest_arg,env);
+  lispval dest = kno_eval(dest_arg,env,_stack,0);
   if (ABORTED(dest)) return dest;
   u8_output f = NULL;
   if (KNO_PORTP(dest)) {
@@ -628,7 +628,7 @@ static lispval printout_to_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   u8_set_default_output(f);
   {lispval body = kno_get_body(expr,2);
     KNO_DOLIST(ex,body)  {
-      lispval value = fast_eval(ex,env);
+      lispval value = kno_eval(ex,env,_stack,0);
       if (ABORTED(value)) {
 	kno_decref(dest);
 	u8_set_default_output(oldf);

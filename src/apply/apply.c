@@ -48,9 +48,6 @@
 u8_string kno_ndcallstack_type = "ndapply";
 u8_string kno_callstack_type   = "apply";
 
-#define KNO_APPLY_STACK(name,fname,fn)			\
-  KNO_PUSH_STACK(name,kno_callstack_type,fname,fn)
-
 u8_condition kno_NotAFunction=_("calling a non function");
 u8_condition kno_TooManyArgs=_("too many arguments");
 u8_condition kno_TooFewArgs=_("too few arguments");
@@ -168,9 +165,6 @@ KNO_FASTOP int setup_call_stack(kno_stack stack,
     int max_arity = f->fcn_arity;
     u8_string label = stack->stack_label;
     if (fcnp) *fcnp = f;
-    if ( (label) && (stack->stack_bits & (KNO_STACK_FREE_LABEL) ) ) {
-      U8_CLEARBITS(stack->stack_bits,(KNO_STACK_FREE_LABEL));
-      u8_free(label);}
     stack->stack_label = label = f->fcn_name;
     if ( (min_arity > 0) && (n < min_arity) )
       return too_few_args(fn,label,n,min_arity,max_arity);
@@ -200,11 +194,12 @@ static lispval profiled_dcall
     struct KNO_FUNCTION *f = NULL;
     struct KNO_PROFILE *profile = NULL;
     struct KNO_STACK stack = { 0 };
-    KNO_SETUP_STACK((&stack),NULL,kno_apply_stack);
+    KNO_SETUP_STACK((&stack),NULL);
     int setup = setup_call_stack(&stack,fn,n,argvec,&f);
     if (setup < 0) return KNO_ERROR;
     if (f) profile = f->fcn_profile;
     if ( (profile) && (profile->prof_disabled) ) profile=NULL;
+    KNO_STACK_SET_CALLER(&stack,caller);
     KNO_PUSH_STACK(&stack);
 
     U8_WITH_CONTOUR(fname,0) {
@@ -220,10 +215,10 @@ static lispval profiled_dcall
       result = KNO_ERROR;}
     U8_END_EXCEPTION;
 
-    if (KNO_PRECHOICEP(result)) {
+    if (KNO_PRECHOICEP(result))
       result = kno_simplify_choice(result);
-      kno_return_from(&stack,result);}
-    else kno_return_from(&stack,result);}
+    kno_pop_stack(&stack);
+    return result;}
   else {
     u8_string limit=u8_mkstring("%lld",kno_stack_limit);
     lispval depth=KNO_INT2LISP(u8_stack_depth());
@@ -243,9 +238,10 @@ static lispval contoured_dcall
 
     struct KNO_FUNCTION *f = NULL;
     struct KNO_STACK stack = { 0 };
-    KNO_SETUP_STACK((&stack),NULL,kno_apply_stack);
+    KNO_SETUP_STACK((&stack),NULL);
     int setup = setup_call_stack(&stack,fn,n,argvec,&f);
     if (setup < 0) return KNO_ERROR;
+    KNO_STACK_SET_CALLER(&stack,caller);
     KNO_PUSH_STACK(&stack);
 
     U8_WITH_CONTOUR(fname,0) {
@@ -254,10 +250,10 @@ static lispval contoured_dcall
       U8_CLEAR_CONTOUR();
       result = KNO_ERROR;}
     U8_END_EXCEPTION;
-    if (KNO_PRECHOICEP(result)) {
+    if (KNO_PRECHOICEP(result))
       result = kno_simplify_choice(result);
-      kno_return_from(&stack,result);}
-    else kno_return_from(&stack,result);}
+    kno_pop_stack(&stack);
+    return result;}
   else {
     u8_string limit=u8_mkstring("%lld",kno_stack_limit);
     lispval depth=KNO_INT2LISP(u8_stack_depth());
@@ -270,9 +266,10 @@ static lispval reckless_dcall
 {
   struct KNO_FUNCTION *f = NULL;
   struct KNO_STACK stack = { 0 };
-  KNO_SETUP_STACK((&stack),NULL,kno_apply_stack);
+  KNO_SETUP_STACK((&stack),NULL);
   int setup = setup_call_stack(&stack,fn,n,argvec,&f);
   if (setup < 0) return KNO_ERROR;
+  KNO_STACK_SET_CALLER(&stack,caller);
   KNO_PUSH_STACK(&stack);
 
   lispval result = core_call(&stack,fn,f,n,argvec);
@@ -281,10 +278,10 @@ static lispval reckless_dcall
     result = KNO_ERROR;
     badptr_err(result,fn);}
 
-  if (KNO_PRECHOICEP(result)) {
+  if (KNO_PRECHOICEP(result))
     result = kno_simplify_choice(result);
-    kno_return_from(&stack,result);}
-  else kno_return_from(&stack,result);
+  kno_pop_stack(&stack);
+  return result;
 }
 
 KNO_EXPORT lispval kno_dcall(struct KNO_STACK *caller,
@@ -525,9 +522,10 @@ KNO_EXPORT lispval kno_call(struct KNO_STACK *_stack,
   else NO_ELSE;
   if (iter_choices) {
     struct KNO_STACK iter_stack = { 0 };
-    KNO_SETUP_STACK(&iter_stack,"fnchoices",kno_iter_stacktype);
+    KNO_SETUP_STACK(&iter_stack,"fnchoices");
     int checked = setup_call_stack(&iter_stack,handler,n,args,NULL);
     if (checked < 0) return KNO_ERROR;
+    KNO_STACK_SET_CALLER(&iter_stack,_stack);
     KNO_PUSH_STACK(&iter_stack);
     lispval results=EMPTY;
     if (CHOICEP(handler)) {

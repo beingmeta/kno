@@ -27,3 +27,4 @@ static U8_MAYBE_UNUSED void _kno_lisp2stderr(lispval x)
   u8_fprintf(stderr,"%q\n",x);
 }
 
+KNO_EXPORT void _kno_finish_threads(void);

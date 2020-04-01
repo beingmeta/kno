@@ -71,7 +71,7 @@ KNO_EXPORT u8_string kno_lambda_stack_type;
 
 #define KNO_START_EVAL(name,label,expr,env,caller)		\
   struct KNO_STACK _ ## name = { 0 }, *name = &_ ## name;	\
-  KNO_SETUP_STACK(&_ ## name,label,kno_reduce_stack);		\
+  KNO_SETUP_STACK(&_ ## name,label);		\
   KNO_STACK_SET_CALLER(&_ ## name,((kno_stack)caller));		\
   _ ## name.stack_point = expr;					\
   _ ## name.eval_env = env;					\
@@ -79,7 +79,7 @@ KNO_EXPORT u8_string kno_lambda_stack_type;
 
 #define KNO_EVAL_ROOT(name,label,expr)				\
   struct KNO_STACK _ ## name = { 0 }, *name = &_ ## name;	\
-  KNO_SETUP_STACK(&_ ## name,label,kno_reduce_stack);		\
+  KNO_SETUP_STACK(&_ ## name,label);		\
   _ ## name.stack_point = expr;					\
   set_call_stack(_ ##name)
 

@@ -1,3 +1,5 @@
+lispval execute_lambda(kno_stack,int);
+
 KNO_FASTOP lispval fastget(lispval table,lispval key)
 {
   kno_lisp_type argtype = KNO_TYPEOF(table);
@@ -224,33 +226,67 @@ void release_stack_env(struct KNO_STACK *stack)
 	i++;}}}
 }
 
-#define INIT_STACK_ENV(stack,name,parent,n)	      \
-  struct KNO_SCHEMAP name ## _bindings;		      \
-  struct KNO_LEXENV _ ## name, *name=&_ ## name;      \
+#define INIT_STACK_ENV(stack,name,parent,n)		    \
+  struct KNO_SCHEMAP name ## _bindings;			    \
+  struct KNO_LEXENV _ ## name, *name=&_ ## name;	    \
   lispval name ## _vars[n];				    \
   lispval name ## _vals[n];				    \
   kno_init_elts(name ## _vars,n,KNO_VOID);		    \
   kno_init_elts(name ## _vals,n,KNO_VOID);		    \
   stack->stack_bits |= KNO_STACK_FREE_ENV;		    \
+  stack->stack_args.elts = name ## _vals;		    \
+  stack->stack_args.count = n;				    \
+  stack->stack_args.len = n;				    \
   stack->eval_env =					    \
-  init_static_env(n,parent,				    \
-		  &name ## _bindings,			    \
-		  &_ ## name,				    \
-		  name ## _vars,			    \
-		  name ## _vals)
+    init_static_env(n,parent,				    \
+		    &name ## _bindings,			    \
+		    &_ ## name,				    \
+		    name ## _vars,			    \
+		    name ## _vals);			    \
+  KNO_STACK_SET((stack),KNO_STACK_OWNS_ENV)
 
-#define INIT_STACK_SCHEMA(stack,name,parent,n,schema)	 \
-  struct KNO_SCHEMAP name ## _bindings;			 \
-  struct KNO_LEXENV _ ## name, *name=&_ ## name;	 \
-  lispval name ## _vals[n];				  \
-  kno_init_elts(name ## _vals,n,KNO_VOID);		  \
-  stack->stack_bits |= KNO_STACK_FREE_ENV;		  \
-  stack->eval_env =					  \
-  init_static_env(n,parent,				  \
-		  &name ## _bindings,			  \
-		  &_ ## name,				  \
-		  schema,				  \
-		  name ## _vals)
+#define INIT_STACK_SCHEMA(stack,name,parent,n,schema)	    \
+  struct KNO_SCHEMAP name ## _bindings;			    \
+  struct KNO_LEXENV _ ## name, *name=&_ ## name;	    \
+  lispval name ## _vals[n];				    \
+  kno_init_elts(name ## _vals,n,KNO_VOID);		    \
+  stack->stack_args.elts = name ## _vals;		    \
+  stack->stack_args.count = n;				    \
+  stack->stack_args.len = n;				    \
+  stack->stack_bits |= KNO_STACK_FREE_ENV;		    \
+  stack->eval_env =					    \
+    init_static_env(n,parent,				    \
+		    &name ## _bindings,			    \
+		    &_ ## name,				    \
+		    schema,				    \
+		    name ## _vals);			    \
+  KNO_STACK_SET((stack),KNO_STACK_OWNS_ENV)
+
+#define ENV_STACK_FLAGS (KNO_STACK_OWNS_ENV|KNO_STACK_FREE_ENV)
+
+#define PUSH_STACK_ENV(name,parent,n,caller)		     \
+  struct KNO_STACK _ ## name ## _stack = { 0 };		     \
+  struct KNO_STACK *name ## _stack = &(_ ## name ## _stack); \
+  struct KNO_SCHEMAP name ## _bindings;			     \
+  struct KNO_LEXENV _ ## name, *name=&_ ## name;	     \
+  lispval name ## _vars[n];				     \
+  lispval name ## _vals[n];				     \
+  KNO_SETUP_STACK((name ## _stack),# name);		\
+  KNO_STACK_SET_BITS(name ## _stack,ENV_STACK_FLAGS); \
+  KNO_STACK_SET_CALLER((name ## _stack),(caller));			\
+  kno_init_elts(name ## _vars,n,KNO_VOID);				\
+  kno_init_elts(name ## _vals,n,KNO_VOID);				\
+  (name ## _stack)->stack_bits |= KNO_STACK_FREE_ENV;			\
+  (name ## _stack)->stack_args.elts = name ## _vals;			\
+  (name ## _stack)->stack_args.count = n;				\
+  (name ## _stack)->stack_args.len = n;					\
+  (name ## _stack)->eval_env =						\
+    init_static_env(n,parent,						\
+		    &name ## _bindings,					\
+		    &_ ## name,						\
+		    name ## _vars,					\
+		    name ## _vals);					\
+  KNO_PUSH_STACK(name ## _stack)
 
 
 KNO_FASTOP U8_MAYBE_UNUSED
@@ -274,32 +310,16 @@ void reset_stack_env(kno_stack stack)
       env->env_copy=NULL;}}
 }
 
-static U8_MAYBE_UNUSED
-void set_stack_label(struct KNO_STACK *stack,u8_string label,int needs_free)
-{
-  if (stack->stack_label) {
-    u8_string old_label = stack->stack_label;
-    stack->stack_label = label;
-    int free_old = ( (stack->stack_bits) & (KNO_STACK_FREE_LABEL) );
-    if (free_old) u8_free(old_label);
-    if (needs_free) {
-      if (!(free_old)) KNO_STACK_SET(stack,KNO_STACK_FREE_LABEL);}
-    else if (free_old)
-      KNO_STACK_CLEAR(stack,KNO_STACK_FREE_LABEL);
-    else NO_ELSE;}
-  else {
-    stack->stack_label = label;
-    if (needs_free) KNO_STACK_SET(stack,KNO_STACK_FREE_LABEL);}
-}
+#define set_stack_label(stack,label) (stack)->stack_label=label
 
 #define KNO_INIT_ITER_LOOP(name,var,value,n_vars,caller,parent_env)	\
-  kno_add_stack_ref(((kno_stack)caller),value);				\
   u8_byte iter_label_buf[32];						\
   u8_string label = (KNO_SYMBOLP(var)) ?				\
     u8_bprintf(iter_label_buf,"%s.%s", # name,KNO_SYMBOL_NAME(var)) :	\
     ((u8_string)(# name));						\
   KNO_START_EVAL(name ## _stack,# name,expr,NULL,caller);		\
-  set_stack_label((kno_stack)caller,label,0);				\
+  set_stack_label((kno_stack)caller,label);				\
+  kno_add_stack_ref((name ## _stack),value);				\
   INIT_STACK_ENV(name ## _stack,name,parent_env,n_vars);
 
 /* Environment utilities */

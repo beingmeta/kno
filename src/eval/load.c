@@ -47,9 +47,9 @@ KNO_EXPORT lispval kno_load_stream(u8_input loadstream,kno_lexenv env,
   double start = u8_elapsed_time();
   kno_stack _stack = kno_stackptr;
   lispval postload = VOID;
+  u8_byte label[strlen(sourcebase)+1]; strcpy(label,sourcebase);
   KNO_CHECK_ERRNO(loadstream,"before loading");
-  KNO_PUSH_EVAL(load_stack,u8_strdup(sourcebase),VOID,env);
-  load_stack->stack_bits |= KNO_STACK_FREE_LABEL;
+  KNO_PUSH_EVAL(load_stack,label,VOID,env);
   {
     /* This does a read/eval loop. */
     lispval result = VOID;
@@ -90,6 +90,7 @@ KNO_EXPORT lispval kno_load_stream(u8_input loadstream,kno_lexenv env,
 	KNO_CHECK_ERRNO_OBJ(expr,"after evaluating");}
       else NO_ELSE;
       kno_decref(last_expr);
+      kno_decref_stackvec(&(load_stack->stack_refs));
       last_expr = expr;
       kno_skip_whitespace(loadstream);
       expr = kno_parse_expr(loadstream);}
@@ -217,7 +218,8 @@ DEFPRIM3("load->env",load_into_env_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
 	 kno_any_type,KNO_VOID);
 static lispval load_into_env_prim(lispval source,lispval envarg,lispval resultfn)
 {
-  lispval result = VOID; kno_lexenv env;
+  lispval result = VOID;
+  kno_lexenv env;
   if (!((VOIDP(resultfn))||(KNO_APPLICABLEP(resultfn))))
     return kno_type_error("callback procedure","LOAD->ENV",envarg);
   if ( (VOIDP(envarg)) || (KNO_TRUEP(envarg)) || (KNO_DEFAULTP(envarg)))
@@ -243,7 +245,6 @@ static lispval load_into_env_prim(lispval source,lispval envarg,lispval resultfn
     if (KNO_ABORTP(tmp)) kno_clear_errors(1);
     kno_decref(tmp);}
   kno_decref(result);
-  /* kno_recycle_lexenv(env); */
   return (lispval) env;
 }
 

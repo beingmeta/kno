@@ -822,7 +822,7 @@ static lispval dosubsets_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     dosubsets_vals[0]=block;
     dosubsets_vals[1]=KNO_INT(i);
     {KNO_DOLIST(subexpr,body) {
-	lispval val = kno_eval(subexpr,dosubsets,_stack,0);
+	lispval val = kno_eval(subexpr,dosubsets,dosubsets_stack,0);
 	if (KNO_ABORTED(val)) {
 	  finished = 1;
 	  if (!(KNO_BROKEP(val)))

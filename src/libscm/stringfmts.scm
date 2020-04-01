@@ -69,7 +69,7 @@
 	 (printnum (quotient~ num 1000) prec (>= num 1000000) sep)
 	 (printout sep (printnum (rem~ num 1000) prec #t)))
 	(else 
-	 (printout (if pad (getpad num))
+	 (printout (dbg) (if pad (getpad num))
 	   (if (and prec (inexact? num))
 	       (if (> num 1)
 		   (inexact->string num prec)
