@@ -445,9 +445,11 @@ int main(int argc,char **argv)
   if (exe_name) u8_free(exe_name);
   if (source_file) u8_free(source_file);
 
-  kno_doexit(KNO_FALSE);
+  /* Call this here, where it might be easier to debug, even
+     though it's alos an atexit handler */
+  _kno_finish_threads();
 
-  return retval;
+ return retval;
 }
 #endif
 

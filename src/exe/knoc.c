@@ -1173,6 +1173,11 @@ int main(int argc,char **argv)
   u8_threadexit();
   kno_pop_stack(_stack);
   kno_doexit(KNO_FALSE);
+
+  /* Call this here, where it might be easier to debug, even
+     though it's alos an atexit handler */
+  _kno_finish_threads();
+
   exit(0);
   return 0;
 }

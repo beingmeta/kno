@@ -2154,7 +2154,15 @@ int main(int argc,char **argv)
 
   u8_use_syslog(0);
 
-  return run_servlet(socket_spec);
+  int rv = run_servlet(socket_spec);
+
+  kno_doexit(KNO_FALSE);
+
+  /* Call this here, where it might be easier to debug, even
+     though it's alos an atexit handler */
+  _kno_finish_threads();
+
+  return rv;
 }
 
 static int run_servlet(u8_string socket_spec)

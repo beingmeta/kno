@@ -1060,8 +1060,16 @@ int main(int argc,char **argv)
 
   init_server_env(server_spec,core_env);
 
-  return run_server(server_spec);
+  int rv = run_server(server_spec);
 
+  u8_threadexit();
+  kno_doexit(KNO_FALSE);
+
+  /* Call this here, where it might be easier to debug, even
+     though it's alos an atexit handler */
+  _kno_finish_threads();
+
+  return rv;
 }
 
 static void init_configs()
