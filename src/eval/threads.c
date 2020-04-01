@@ -649,6 +649,7 @@ static void *_kno_thread_main(void *data)
     ((flags)&(KNO_THREAD_TRACE_EXIT)) ||
     (((flags)&(KNO_THREAD_QUIET_EXIT)) ? (0) :
      (thread_log_exit));
+  u8_byte label_buf[64];
 
   /* Set (block) most signals */
   pthread_sigmask(SIG_SETMASK,&(tstruct->sigmask),NULL);
@@ -659,8 +660,7 @@ static void *_kno_thread_main(void *data)
     tstruct->threadid = u8_threadid();
 
     KNO_NEW_EVAL("thread",VOID,NULL,((kno_stack )NULL));
-    _stack->stack_label=u8_mkstring("thread%lld",u8_threadid());
-    U8_SETBITS(_stack->stack_bits,KNO_STACK_FREE_LABEL);
+    _stack->stack_label=u8_bprintf(label_buf,"thread%lld",u8_threadid());
     tstruct->thread_stackptr=_stack;
 
     /* Run any thread init functions */
@@ -1730,13 +1730,14 @@ static void init_signal_handling()
 static int thread_grace = 2*1000*1000;
 static int detach_on_exit = 0;
 
-static void finish_threads()
+KNO_EXPORT void _kno_finish_threads()
 {
   if (n_threads == 0) return;
   u8_lock_mutex(&thread_ring_lock);
   int live_threads = n_threads;
   pthread_t thread_ids[n_threads];
   unsigned char live[n_threads];
+  struct KNO_THREAD *tstructs[n_threads];
   struct KNO_THREAD *scan = thread_ring;
   int i= 0; while (scan) {
     struct KNO_THREAD *tstruct = (kno_thread) scan;
@@ -1744,66 +1745,86 @@ static void finish_threads()
 	 (tstruct->finished < 0) ) {
       thread_ids[i]=tstruct->tid;
       tstruct->interrupt = kno_ThreadTerminated;
+      tstructs[i]=tstruct;
       live[i]=1;
       i++;}
+    else live[i]=0;
     scan=scan->ring_right;}
   u8_unlock_mutex(&thread_ring_lock);
-  int n = i; i=0; while (i<n) {
-    pthread_kill(thread_ids[i],kno_thread_sigint);
-    i++;}
 #if HAVE_PTHREAD_TRYJOIN_NP
+  /* Kill any threads which aren't finished */
+  int n = i; i=0; while (i<n) {
+    struct KNO_THREAD *thread = tstructs[i];
+    pthread_t pthread = thread_ids[i];
+    if (live[i]==0) {}
+    else if ( (thread->finished > 0) ||
+	      (pthread_tryjoin_np(pthread,NULL) == 0) ) {
+      live[i]=0;
+      live_threads--;}
+    else pthread_kill(thread_ids[i],kno_thread_sigint);
+    i++;}
   /* 'Join' any threads which have finished */
   i=0; while (i<n) {
     if (live[i]) {
+      struct KNO_THREAD *thread = tstructs[i];
       pthread_t pthread = thread_ids[i];
-      if (pthread_tryjoin_np(pthread,NULL) == 0) {
-	live_threads--;
-	live[i] = 0;}
+      if (live[i]==0) {}
+      else if ( (thread->finished > 0) ||
+		(pthread_tryjoin_np(pthread,NULL) == 0) ) {
+	live[i]=0;
+	live_threads--;}
       else errno=0;
       i++;}
     else i++;}
+  /* If any are left, wait for them */
   if (live_threads) {
     int nsecs = (thread_grace*1000)/live_threads;
     struct timespec limit = { 0, nsecs };
     i=0; while (i<n) {
-      if (live[i]) {
-	pthread_t pthread = thread_ids[i];
-	if (pthread_timedjoin_np(pthread,NULL,&limit) == 0) {
-	  live_threads--;
-	  live[i] = 0;}
-	else errno=0;
-	i++;}
-      else i++;}}
+      pthread_t pthread = thread_ids[i];
+      struct KNO_THREAD *thread = tstructs[i];
+      if (live[i]==0) {}
+      else if ( (thread->finished > 0) ||
+		(pthread_timedjoin_np(pthread,NULL,&limit) == 0) ){
+	live[i]=1; live_threads--;}
+      else errno=0;
+      i++;}}
   /* Get stragglers */
-  if (live_threads) {
-    i=0; while (i<n) {
-      if (live[i]) {
-	pthread_t pthread = thread_ids[i];
-	if (pthread_tryjoin_np(pthread,NULL) == 0) {
-	  live_threads--;
-	  live[i] = 0;}
-	else errno=0;
-	i++;}
-      else i++;}}
+  i=0; while (i<n) {
+    if (live[i]) {
+      struct KNO_THREAD *tstruct = tstructs[i];
+      pthread_t pthread = thread_ids[i];
+      if (live[i]==0) {}
+      else if ( (tstruct->finished > 0) ||
+		(pthread_tryjoin_np(pthread,NULL) == 0) ) {
+	live[i]=0;
+	live_threads--;}
+      else errno=0;
+      i++;}
+    else i++;}
 #else
+  int n = i; i=0; while (i<n) {
+    pthread_kill(thread_ids[i],kno_thread_sigint);
+    i++;}
   int secs = thread_grace/1000000;
   sleep(secs);
 #endif
   /* Detach all the recalcitrants and latecomers */
-  {u8_lock_mutex(&thread_ring_lock);
-    struct KNO_THREAD *scan = thread_ring;
-    while (scan) {
-      struct KNO_THREAD *tstruct = (kno_thread) scan;
-      if ( (tstruct->tid > 0) ||
-	   (tstruct->finished < 0) ) {
-	u8_log(LOG_ERR,_("StubbornThread"),"Thread %q isn't done, %s",
-	       (lispval)(tstruct),
-	       (detach_on_exit) ? ("detaching") : ("cancelling"));
-	if (detach_on_exit)
-	  pthread_detach(tstruct->tid);
-	else pthread_cancel(tstruct->tid);}
-      scan=scan->ring_right;}
-    u8_unlock_mutex(&thread_ring_lock);}
+  while (i<n) {
+    struct KNO_THREAD *tstruct = tstructs[i];
+    if (!(live[i])) {}
+    else if (tstructs[i]->finished > 0) {
+      live[i]=0; live_threads--;}
+    else {
+      u8_string action_msg = (detach_on_exit) ? ("detaching") : ("cancelling");
+      u8_log(LOG_ERR,_("StubbornThread"),
+	     "Thread %q isn't done, %s",
+	     (lispval)(tstruct),action_msg);
+      if (detach_on_exit)
+	pthread_detach(tstruct->tid);
+      else pthread_cancel(tstruct->tid);}
+    i++;}
+  n_threads = 0;
 }
 
 /* Initialization */
@@ -1892,7 +1913,7 @@ KNO_EXPORT void kno_init_threads_c()
 
   init_signal_handling();
 
-  atexit(finish_threads);
+  atexit(_kno_finish_threads);
 
   u8_register_source_file(_FILEINFO);
 }
