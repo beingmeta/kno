@@ -1,4 +1,5 @@
 lispval execute_lambda(kno_stack,int);
+lispval __kno_pair_eval(lispval,kno_lexenv,kno_stack,int);
 
 KNO_FASTOP lispval fastget(lispval table,lispval key)
 {
@@ -64,31 +65,6 @@ KNO_FASTOP lispval __kno_symbol_eval(lispval symbol,kno_lexenv env)
       env = env->env_copy;}
   return kno_err(kno_UnboundIdentifier,"kno_eval",
 		 KNO_SYMBOL_NAME(symbol),symbol);
-}
-KNO_FASTOP lispval __kno_eval(lispval x,kno_lexenv env,
-			      kno_stack stack,
-			      int tail)
-{
-  switch (KNO_PTR_MANIFEST_TYPE(x)) {
-  case kno_oid_ptr_type: case kno_fixnum_ptr_type:
-    return x;
-  case kno_immediate_ptr_type: {
-    switch (KNO_IMMEDIATE_TYPE(x)) {
-    case kno_lexref_type:
-      return __kno_lexref(x,env);
-    case kno_symbol_type:
-      return __kno_symbol_eval(x,env);
-    default:
-      return x;}}}
-  kno_lisp_type type = KNO_CONSPTR_TYPE(x);
-  switch (type) {
-  case kno_pair_type: case kno_choice_type:
-  case kno_prechoice_type: case kno_schemap_type:
-    return _kno_cons_eval(x,env,stack,tail);
-  case kno_slotmap_type:
-    return kno_deep_copy(x);
-  default:
-    return kno_incref(x);}
 }
 KNO_FASTOP lispval __kno_get_arg(lispval expr,int i)
 {
@@ -317,9 +293,9 @@ void reset_stack_env(kno_stack stack)
   u8_string label = (KNO_SYMBOLP(var)) ?				\
     u8_bprintf(iter_label_buf,"%s.%s", # name,KNO_SYMBOL_NAME(var)) :	\
     ((u8_string)(# name));						\
-  KNO_START_EVAL(name ## _stack,# name,expr,NULL,caller);		\
+  KNO_START_EVALX(name ## _stack,# name,expr,NULL,caller,5);		\
   set_stack_label((kno_stack)caller,label);				\
-  kno_add_stack_ref((name ## _stack),value);				\
+  kno_add_stack_ref(caller,value);					\
   INIT_STACK_ENV(name ## _stack,name,parent_env,n_vars);
 
 /* Environment utilities */

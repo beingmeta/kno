@@ -11,7 +11,7 @@
 
 #define KNO_INLINE_TABLES       (!(KNO_AVOID_INLINE))
 #define KNO_INLINE_FCNIDS       (!(KNO_AVOID_INLINE))
-#define KNO_EVAL_INTERNALS    (!(KNO_AVOID_INLINE))
+#define KNO_EVAL_INTERNALS      1
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
@@ -23,6 +23,8 @@
 #include "kno/sequences.h"
 #include "kno/ports.h"
 #include "kno/dtcall.h"
+
+#include "eval_internals.h"
 
 #include <libu8/u8timefns.h>
 #include <libu8/u8printf.h>

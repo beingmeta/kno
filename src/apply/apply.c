@@ -79,6 +79,8 @@ KNO_FASTOP lispval function_call(u8_string name,kno_function f,
 				 int n,kno_argvec argvec,
 				 struct KNO_STACK *stack)
 {
+  if (f->fcn_filename) stack->stack_file = f->fcn_filename;
+  if (f->fcn_name) stack->stack_label = f->fcn_name;
   if (PRED_FALSE(f->fcn_handler.fnptr == NULL)) {
     /* There's no explicit method on this function object, so we use
        the method associated with the lisp type (if there is one) */
@@ -444,7 +446,8 @@ static lispval ndcall(struct KNO_STACK *stack,lispval h,int n,kno_argvec args)
   kno_lisp_type fntype = KNO_TYPEOF(h);
   if (KNO_FUNCTION_TYPEP(fntype)) {
     struct KNO_FUNCTION *f = KNO_GETFUNCTION(h);
-    if ( (f->fcn_arity==0) || (f->fcn_call & KNO_FCN_CALL_NDCALL) )
+    int ndop = (f->fcn_call & KNO_FCN_CALL_NDCALL);
+    if ( (f->fcn_arity==0) || (ndop) )
       return kno_dcall(stack,h,n,args);
     else {
       if ((f->fcn_arity < 0) ?
@@ -485,42 +488,29 @@ static lispval ndcall(struct KNO_STACK *stack,lispval h,int n,kno_argvec args)
   else return kno_type_error("Applicable","ndcall",h);
 }
 
-static int nd_argp(int n,kno_argvec args)
-{
-  int i = 0; while (i<n) {
-    lispval arg = args[i];
-    if (KNO_CONSP(arg)) {
-      kno_lisp_type argtype = KNO_TYPEOF(arg);
-      if ( (argtype == kno_choice_type) ||
-	   (argtype == kno_prechoice_type) )
-	return 1;
-      else i++;}
-    else i++;}
-  return 0;
-}
-
 KNO_EXPORT lispval kno_call(struct KNO_STACK *_stack,
 			    lispval fp,int n,kno_argvec args)
 {
   lispval handler = (KNO_FCNIDP(fp) ? (kno_fcnid_ref(fp)) : (fp));
   if (EMPTYP(handler)) return EMPTY;
-
-  int iter_choices = 0;
-  if ( (KNO_CHOICEP(handler)) || (KNO_PRECHOICEP(handler)) )
-    iter_choices = 1;
-  else if (KNO_FUNCTIONP(handler)) {
+  int iter_choices = 1;
+  int ambig_args   = ( (KNO_CHOICEP(handler)) || (KNO_PRECHOICEP(handler)) );
+  if (KNO_FUNCTIONP(handler)) {
     kno_function f = (kno_function) handler;
     if (f->fcn_call & KNO_FCN_CALL_NDCALL)
       iter_choices = 0;
-    else if (nd_argp(n,args))
-      iter_choices = 1;
     else NO_ELSE;}
-  else if (kno_isndfunctionp[KNO_PRIM_TYPE(handler)])
-    iter_choices = 0;
-  else if (nd_argp(n,args))
-    iter_choices = 1;
+  else if (kno_isndfunctionp[KNO_PRIM_TYPE(handler)]) {
+    iter_choices = 0;}
   else NO_ELSE;
   if (iter_choices) {
+    int i = 0; while (i<n) {
+      lispval arg = args[i++];
+      if (EMPTYP(arg)) return KNO_EMPTY;
+      else if (KNO_CHOICEP(arg)) {
+	ambig_args = 1; break;}
+      else NO_ELSE;}}
+  if ( (iter_choices) || (ambig_args) ) {
     struct KNO_STACK iter_stack = { 0 };
     KNO_SETUP_STACK(&iter_stack,"fnchoices");
     int checked = setup_call_stack(&iter_stack,handler,n,args,NULL);

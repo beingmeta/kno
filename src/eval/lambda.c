@@ -69,7 +69,7 @@ static lispval lambda_docall(kno_stack caller,
 			   short n,kno_argvec args)
 {
   int use_width = proc->fcn_call_width;
-  KNO_START_EVAL(lambda_stack,proc->fcn_name,KNO_VOID,NULL,caller);
+  KNO_START_EVALX(lambda_stack,proc->fcn_name,KNO_VOID,NULL,caller,7);
   if (n>use_width) use_width=n;
   lispval callbuf[use_width];
   KNO_STACK_SET_ARGS(lambda_stack,callbuf,use_width,n,KNO_STATIC_ARGS);
@@ -760,7 +760,7 @@ lispval kno_xapply_lambda
 (struct KNO_LAMBDA *fn,void *data,lispval (*getval)(void *,lispval))
 {
   u8_string label = (fn->fcn_name) ? (fn->fcn_name) : ((u8_string)"xapply");
-  KNO_START_EVAL(_stack,label,((lispval)fn),NULL,kno_stackptr);
+  KNO_START_EVALX(_stack,label,((lispval)fn),NULL,kno_stackptr,7);
   int n = fn->lambda_n_vars;
   lispval arglist = fn->lambda_arglist, result = VOID;
   kno_lexenv env = fn->lambda_env;

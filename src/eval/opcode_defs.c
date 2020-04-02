@@ -1356,7 +1356,7 @@ static lispval cmp_args(lispval op,int dir,int eq,int n,kno_argvec args)
     if (NOT_A_NUMBERP(arg))
       return kno_err(kno_NotANumber,opcode_name(op),NULL,arg);
     int cmp = kno_numcompare(v,arg);
-    if ( (cmp != dir) && ( (!eq) || (cmp == 0) ) )
+    if (! ( (cmp == dir) || ( (eq) && (cmp==0) ) ) )
       return KNO_FALSE;
     v=arg;
     i++;}

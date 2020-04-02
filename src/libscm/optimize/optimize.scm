@@ -1345,6 +1345,29 @@
 (define (optimize-evaltest handler expr env bound opts)
   `(,evaltest ,(second expr) ,(optimize (third expr) env bound opts)))
 
+(define (optimize-numeric handler expr env bound opts)
+  (cond ((null? (cdr expr))
+	 (cond ((overlaps? handler {+ #OP_PLUS}) 0)
+	       ((overlaps? handler {* #OP_MULT}) 1)
+	       (else (logwarn)
+		     expr)))
+	((and (pair? (cdr expr)) (null? (cddr expr)))
+	 (cond ((overlaps? handler {>= = <= < >})
+		(logwarn)
+		expr)
+	       ((overlaps? handler {+ #OP_PLUS * #OP_MULT})
+		(optimize (cadr expr)))
+	       (else (cons handler (optimize-args (cdr expr) env bound opts)))))
+	((opcode? handler)
+	 (cons handler (optimize-args (cdr expr) env bound opts)))
+	((test opcode-map handler)
+	 (cons (get opcode-map handler)
+	       (optimize-args (cdr expr) env bound opts)))
+	(else (cons handler (optimize-args (cdr expr) env bound opts)))))
+
+(define (optimize-choice handler expr env bound opts)
+  (elts (cdr expr)))
+
 (define (optimize-case handler expr env bound opts)
   `(,handler 
     ,(optimize (cadr expr) env bound opts)
@@ -1549,6 +1572,9 @@
 
 (add! special-form-optimizers while optimize-while)
 (add! special-form-optimizers until optimize-until)
+
+(add! procedure-optimizers {+ - * /} optimize-numeric)
+(add! procedure-optimizers choice optimize-choice)
 
 (when (bound? ipeval)
   (add! special-form-optimizers

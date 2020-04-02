@@ -15,6 +15,10 @@ KNO_EXPORT lispval kno_opcode_dispatch
 (lispval opcode,lispval expr,kno_lexenv env,
  kno_stack caller,
  int tail);
+KNO_EXPORT lispval kno_get_opcode(u8_string name);
+KNO_EXPORT u8_string kno_opcode_name(lispval opcode);
+
+
 
 /* Opcodes */
 

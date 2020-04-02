@@ -133,8 +133,8 @@ KNO_EXPORT void kno_set_app_env(kno_lexenv env)
     kno_decref((lispval)old_env);}
   kno_app_env=env;
   if (env) {
-    KNO_START_EVAL(appinit,"appenv_setup",KNO_VOID,env,
-		   kno_stackptr);
+    KNO_START_EVALX(appinit,"appenv_setup",KNO_VOID,env,
+		    kno_stackptr,17);
     int modules_loaded = 0, files_loaded = 0;
     int modules_failed = 0, files_failed = 0;
     int inits_run = 0, inits_failed = 0;
@@ -347,7 +347,7 @@ static int inits_config_set(lispval var,lispval inits,void *d)
       kno_incref(init);
       init_list = kno_conspair(init,init_list);}}
   else {
-    KNO_START_EVAL(runinit,"appinit",inits,kno_app_env,kno_stackptr);
+    KNO_START_EVALX(runinit,"appinit",inits,kno_app_env,kno_stackptr,17);
     KNO_DO_CHOICES(init,inits) {
       int rv = run_init(init,kno_app_env,runinit);
       if (rv > 0) {

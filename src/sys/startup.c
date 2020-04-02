@@ -192,7 +192,7 @@ KNO_EXPORT lispval *kno_handle_argv(int argc,char **argv,
       if (return_args) {
 	return_args[n]=lisp_arg;
 	kno_incref(lisp_arg);}
-      _kno_argv[n]=lisp_arg; kno_incref(lisp_arg);
+      _kno_argv[n]=lisp_arg;
       KNO_VECTOR_SET(lisp_args,n,lisp_arg); kno_incref(lisp_arg);
       KNO_VECTOR_SET(string_args,n,string_arg);
       u8_log(LOG_INFO,kno_CmdArg,"[%d] %s => %q",n+1,arg,lisp_arg);

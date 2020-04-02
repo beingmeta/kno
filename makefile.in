@@ -245,6 +245,7 @@ SCHEME_OBJS=\
 	src/eval/reflection.o \
 	src/eval/compoundfns.o \
 	src/eval/choiceops.o \
+	src/eval/evalops.o \
 	src/eval/coreops.o \
 	src/eval/configops.o \
 	src/eval/dteval.o \
@@ -367,6 +368,7 @@ KNO_SOURCES=\
         src/eval/threads.c src/eval/quasiquote.c src/eval/struct_eval.c		\
 	src/eval/modules.c src/eval/load.c src/eval/reflection.c 		\
 	src/eval/compoundfns.c src/eval/repl.c					\
+	src/eval/evalops.c                  					\
 	src/eval/coreops.c                  					\
 	src/eval/arith.c 			              			\
 	src/eval/regex.c 			              			\
