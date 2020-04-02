@@ -265,7 +265,7 @@ set overload-resolution off
 break u8_log_break
 break u8_new_exception
 break u8_utf8_warning
-break _kno_debug
+break dbg_evalfn:debugger
 break _u8_dbg
 break u8_raise
 break TCMalloc_Printer::printf

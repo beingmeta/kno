@@ -637,7 +637,8 @@ static lispval dbg_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
     else u8_message("Debug (%q) %q",msg,arg);
     kno_decref(msg);}
   log_ptr(arg,KNO_VOID,arg_expr);
-  return _kno_dbg(arg);
+ debugger:
+  return arg;
 }
 
 /* Recording bugs */
