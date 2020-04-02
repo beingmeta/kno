@@ -78,12 +78,13 @@ static lispval apply_marker;
 
 static lispval cond_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
+  int tail = KNO_STACK_BITP(_stack,KNO_STACK_TAIL_POS);
   KNO_DOLIST(clause,KNO_CDR(expr)) {
     lispval test_val;
     if (!(PAIRP(clause)))
       return kno_err(kno_SyntaxError,_("invalid cond clause"),NULL,expr);
     else if (KNO_EQ(KNO_CAR(clause),else_symbol))
-      return kno_eval_exprs(KNO_CDR(clause),env,_stack,1);
+      return eval_body(KNO_CDR(clause),env,_stack,"COND","else",1);
     else test_val = kno_eval_expr(KNO_CAR(clause),env);
     if (KNO_ABORTED(test_val)) return test_val;
     else if (FALSEP(test_val)) {}
@@ -107,7 +108,7 @@ static lispval cond_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 	else return kno_err(kno_SyntaxError,"cond_evalfn","apply syntax",expr);
       else {
 	kno_decref(test_val);
-	return eval_body(KNO_CDR(clause),env,_stack,"COND",NULL,1);}}}
+	return eval_body(KNO_CDR(clause),env,_stack,"COND",NULL,tail);}}}
   return VOID;
 }
 
@@ -119,16 +120,17 @@ static lispval case_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   else keyval = kno_eval_expr(key_expr,env);
   if (KNO_ABORTED(keyval)) return keyval;
   else {
+    int tail = KNO_STACK_BITP(_stack,KNO_STACK_TAIL_POS);
     KNO_DOLIST(clause,KNO_CDR(KNO_CDR(expr)))
       if (PAIRP(clause))
 	if (PAIRP(KNO_CAR(clause))) {
 	  lispval keys = KNO_CAR(clause);
 	  KNO_DOLIST(key,keys)
 	    if (KNO_EQ(keyval,key))
-	      return eval_body(KNO_CDR(clause),env,_stack,"CASE",NULL,1);}
+	      return eval_body(KNO_CDR(clause),env,_stack,"CASE",NULL,tail);}
 	else if (KNO_EQ(KNO_CAR(clause),else_symbol)) {
 	  kno_decref(keyval);
-	  return kno_eval_exprs(KNO_CDR(clause),env,_stack,1);}
+	  return eval_body(KNO_CDR(clause),env,_stack,"CASE","else",1);}
 	else return kno_err(kno_SyntaxError,"case_evalfn",NULL,clause);
       else return kno_err(kno_SyntaxError,"case_evalfn",NULL,clause);
     return VOID;}
@@ -144,10 +146,11 @@ static lispval when_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   else if (FALSEP(test_val)) return VOID;
   else if (EMPTYP(test_val)) return VOID;
   else {
+    int tail_flags = (KNO_STACK_BITP(_stack,KNO_STACK_TAIL_POS)) ?
+      (KNO_TAIL_EVAL|KNO_VOID_VAL) : (0);
     kno_decref(test_val);
-    lispval result = kno_eval_exprs
-      (KNO_CDR(KNO_CDR(expr)),env,_stack,
-       KNO_TAIL_EVAL|KNO_VOID_VAL);
+    lispval result = eval_body
+      (KNO_CDR(KNO_CDR(expr)),env,_stack,"WHEN",NULL,tail_flags);
     return result;}
 }
 
@@ -159,8 +162,11 @@ static lispval unless_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   else test_val = kno_eval_expr(test_expr,env);
   if (KNO_ABORTED(test_val)) return test_val;
   else if (FALSEP(test_val)) {
-    lispval result = kno_eval_exprs
-      (KNO_CDR(KNO_CDR(expr)),env,_stack,KNO_TAIL_EVAL|KNO_VOID_VAL);
+    int tail_flags = (KNO_STACK_BITP(_stack,KNO_STACK_TAIL_POS)) ?
+      (KNO_TAIL_EVAL|KNO_VOID_VAL) : (0);
+    lispval result = eval_body(KNO_CDR(KNO_CDR(expr)),env,_stack,
+			       "UNLESS",NULL,
+			       tail_flags);
     return result;}
   else if (EMPTYP(test_val))
     return VOID;

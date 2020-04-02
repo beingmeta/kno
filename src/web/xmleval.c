@@ -1518,7 +1518,7 @@ static lispval knoml_seq_loop(lispval var,lispval count_var,lispval xpr,kno_lexe
     return VOID;}
   KNO_INIT_STATIC_CONS(&envstruct,kno_lexenv_type);
   KNO_INIT_STATIC_CONS(&bindings,kno_schemap_type);
-  bindings.table_schema = vars; bindings.schema_values = vals;
+  bindings.table_schema = vars; bindings.table_values = vals;
   bindings.schema_length = 1; bindings.schemap_onstack = 1;
   u8_init_rwlock(&(bindings.table_rwlock));
   envstruct.env_parent = env;
@@ -1575,7 +1575,7 @@ static lispval knoml_choice_loop(lispval var,lispval count_var,lispval xpr,kno_l
     bindings.schema_length = 2;
     vars[0]=var; vals[0]=VOID; vloc = &(vals[0]);
     vars[1]=count_var; vals[1]=KNO_INT(0); iloc = &(vals[1]);}
-  bindings.table_schema = vars; bindings.schema_values = vals;
+  bindings.table_schema = vars; bindings.table_values = vals;
   bindings.schemap_onstack = 1;
   u8_init_rwlock(&(bindings.table_rwlock));
   envstruct.env_parent = env;
@@ -1626,7 +1626,7 @@ static lispval knoml_range_loop(lispval var,lispval count_var,
   KNO_INIT_STATIC_CONS(&envstruct,kno_lexenv_type);
   KNO_INIT_STATIC_CONS(&bindings,kno_schemap_type);
   bindings.table_schema = vars;
-  bindings.schema_values = vals;
+  bindings.table_values = vals;
   bindings.schema_length = 1;
   bindings.schemap_onstack = 1;
   u8_init_rwlock(&(bindings.table_rwlock));

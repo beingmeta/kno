@@ -1447,7 +1447,7 @@ static lispval with_sourcebase_evalfn(lispval expr,kno_lexenv env,kno_stack stac
   u8_string old_base = NULL;
   U8_UNWIND_PROTECT("with-sourcebase",0) {
     old_base = kno_bind_sourcebase(temp_base);
-    result = kno_eval_exprs(body,env,stack,0);}
+    result = kno_eval_body(body,env,stack,"WITH-SOURCEBASE",temp_base,0);}
   U8_ON_UNWIND {
     kno_restore_sourcebase(old_base);
     kno_decref(usebase);}

@@ -157,7 +157,7 @@ static lispval bind_default_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 static lispval let_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval bindexprs = kno_get_arg(expr,1), result = VOID;
-  int n;
+  int n, tail = KNO_STACK_BITP(_stack,KNO_STACK_TAIL_POS);
   if (PRED_FALSE(! ( (bindexprs == KNO_NIL) || (PAIRP(bindexprs)) ) ))
     return kno_err(kno_BindSyntaxError,"LET",NULL,expr);
   else if ((n = check_bindexprs(bindexprs,&result))<0)
@@ -178,8 +178,7 @@ static lispval let_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 	  letenv_vals[i]=value;
 	  i++;}}}
     result = eval_body(kno_get_body(expr,2),letenv,letenv_stack,
-		       ":LET",SYM_NAME(letenv_vars[0]),
-		       1);
+		       "LET",SYM_NAME(letenv_vars[0]),tail);
   pop_stack:
     kno_pop_stack(letenv_stack);
     return result;}
@@ -188,7 +187,7 @@ static lispval let_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 static lispval letstar_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval bindexprs = kno_get_arg(expr,1), result = VOID;
-  int n;
+  int n, tail = KNO_STACK_BITP(_stack,KNO_STACK_TAIL_POS);
   if (PRED_FALSE(! ( (bindexprs == KNO_NIL) || (PAIRP(bindexprs)) ) ))
     return kno_err(kno_BindSyntaxError,"LET*",NULL,expr);
   else if ((n = check_bindexprs(bindexprs,&result))<0)
@@ -216,8 +215,7 @@ static lispval letstar_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 	  letstar_vals[i]=value;}
 	i++;}}
     result = eval_body(kno_get_body(expr,2),letstar,letstar_stack,
-		       ":LET*",SYM_NAME(letstar_vars[0]),
-		       1);
+		       "LET*",SYM_NAME(letstar_vars[0]),tail);
   pop_stack:
     kno_pop_stack(letstar_stack);
     return result;}
@@ -228,7 +226,7 @@ static lispval letstar_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 static lispval letrec_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval bindexprs = kno_get_arg(expr,1), result = VOID;
-  int n;
+  int n, tail = KNO_STACK_BITP(_stack,KNO_STACK_TAIL_POS);
   if (PRED_FALSE(! ( (bindexprs == KNO_NIL) || (PAIRP(bindexprs)) ) ))
     return kno_err(kno_BindSyntaxError,"LETREC",NULL,expr);
   else if ((n = check_bindexprs(bindexprs,&result))<0)
@@ -256,8 +254,7 @@ static lispval letrec_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 	  letrec_vals[i]=value;}
 	i++;}}
     result = eval_body(kno_get_body(expr,2),letrec,letrec_stack,
-		       ":LETREC",SYM_NAME(letrec_vars[0]),
-		       1);
+		       "LETREC",SYM_NAME(letrec_vars[0]),tail);
   pop_stack:
     kno_pop_stack(letrec_stack);
     return result;}
@@ -267,7 +264,7 @@ static lispval letrec_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 
 static lispval do_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  int n = -1;
+  int n = -1, tail = KNO_STACK_BITP(_stack,KNO_STACK_TAIL_POS);
   lispval doloop_result = VOID;
   lispval bindexprs = kno_get_arg(expr,1);
   lispval exitexprs = kno_get_arg(expr,2);
@@ -349,8 +346,7 @@ static lispval do_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     else if (!(KNO_EMPTY_LISTP(KNO_CDR(exitexprs)))) {
       kno_decref(doloop_result);
       doloop_result = eval_body(kno_get_body(exitexprs,1),doloop,doloop_stack,
-			    ":DO",SYM_NAME(doloop_vars[0]),
-			    1);}
+				"DO",SYM_NAME(doloop_vars[0]),tail);}
     else NO_ELSE;
   pop_stack:
     kno_pop_stack(doloop_stack);

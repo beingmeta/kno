@@ -884,7 +884,7 @@ static lispval assignop(kno_stack stack,kno_lexenv env,
         struct KNO_SCHEMAP *map = (struct KNO_SCHEMAP *)bindings;
         int map_len = map->schema_length;
         if (PRED_TRUE( across < map_len )) {
-          lispval *values = map->schema_values;
+          lispval *values = map->table_values;
           lispval cur     = values[across];
           if ( map->schemap_stackvals ) {
             kno_incref_vec(values,map_len);
@@ -908,7 +908,7 @@ static lispval assignop(kno_stack stack,kno_lexenv env,
                    (PRED_TRUE(SCHEMAPP(bindings))) ) {
                 struct KNO_SCHEMAP *new_map =
                   (struct KNO_SCHEMAP *) new_bindings;
-                values = new_map->schema_values;
+                values = new_map->table_values;
                 cur = values[across];}}
             if (KNO_ABORTED(value))
               return value;
@@ -974,7 +974,7 @@ static lispval bindop(lispval op,
   int i=0, n=VEC_LEN(vars);
   KNO_PUSH_EVAL(bind_stack,"bindop",op,env);
   INIT_STACK_SCHEMA(bind_stack,bound,env,n,VEC_DATA(vars));
-  lispval *values=bound_bindings.schema_values;
+  lispval *values=bound_bindings.table_values;
   lispval scan_inits = inits;
   kno_lexenv env_copy=NULL;
   while (i<n) {
@@ -985,7 +985,7 @@ static lispval bindop(lispval op,
       return val;}
     if ( (env_copy == NULL) && (bound->env_copy) ) {
       env_copy=bound->env_copy; bound=env_copy;
-      values=((kno_schemap)(bound->env_bindings))->schema_values;}
+      values=((kno_schemap)(bound->env_bindings))->table_values;}
     values[i++]  = val;}
   lispval result = op_eval_body(body,bound,bind_stack,"#BINDOP",NULL,tail);
   release_stack_env(bind_stack);
@@ -1001,7 +1001,7 @@ static lispval vector_bindop(lispval op,
   int i=0, n=VEC_LEN(vars);
   KNO_PUSH_EVAL(bind_stack,"vector_bindop",op,env);
   INIT_STACK_SCHEMA(bind_stack,bound,env,n,VEC_DATA(vars));
-  lispval *values=bound_bindings.schema_values;
+  lispval *values=bound_bindings.table_values;
   lispval *exprs=VEC_DATA(inits);
   kno_lexenv env_copy=NULL;
   while (i<n) {
@@ -1012,7 +1012,7 @@ static lispval vector_bindop(lispval op,
       return val;}
     if ( (env_copy == NULL) && (bound->env_copy) ) {
       env_copy=bound->env_copy; bound=env_copy;
-      values=((kno_schemap)(bound->env_bindings))->schema_values;}
+      values=((kno_schemap)(bound->env_bindings))->table_values;}
     values[i++]=val;}
   lispval result = op_eval_body(body,bound,bind_stack,"#VECTORBIND",NULL,tail);
   kno_pop_stack(bind_stack);

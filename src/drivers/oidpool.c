@@ -797,7 +797,7 @@ static int oidpool_write_value(lispval value,kno_stream stream,
       kno_write_varint(tmpout,schema_id+1);
       if (SCHEMAPP(value)) {
         struct KNO_SCHEMAP *sm = (kno_schemap)value;
-        lispval *values = sm->schema_values;
+        lispval *values = sm->table_values;
         int i = 0, size = sm->schema_length;
         kno_write_varint(tmpout,size);
         while (i<size) {

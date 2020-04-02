@@ -227,12 +227,6 @@ lispval kno_eval_body(lispval body,kno_lexenv env,kno_stack stack,
   return eval_body(body,env,stack,cxt,label,tail);
 }
 
-KNO_EXPORT
-lispval kno_eval_exprs(lispval body,kno_lexenv env,kno_stack stack,int tail)
-{
-  return eval_body(body,env,stack,"kno_eval_exprs",NULL,tail);
-}
-
 /* Symbol lookup */
 
 KNO_EXPORT lispval _kno_symeval(lispval sym,kno_lexenv env)
@@ -471,7 +465,7 @@ lispval schemap_eval(lispval expr,kno_lexenv env,
   struct KNO_SCHEMAP *skmap = (kno_schemap) expr;
   int n = skmap->schema_length;
   lispval *schema = skmap->table_schema;
-  lispval *vals = skmap->schema_values;
+  lispval *vals = skmap->table_values;
   lispval result = KNO_VOID, new_vals[n];
   KNO_PUSH_EVAL(keyval_stack,NULL,KNO_VOID,env);
   int i = 0; while (i < n) {

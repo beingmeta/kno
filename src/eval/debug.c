@@ -506,7 +506,8 @@ static lispval watched_cond_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       return kno_err(kno_SyntaxError,_("invalid cond clause"),NULL,expr);
     else if (KNO_EQ(KNO_CAR(clause),else_symbol)) {
       u8_log(U8_LOG_MSG,label,"COND ? ELSE => %Q",KNO_CDR(clause));
-      lispval value = kno_eval_exprs(KNO_CDR(clause),env,_stack,0);
+      lispval value = kno_eval_body
+	(KNO_CDR(clause),env,_stack,"%WATCHCOND","else",0);
       u8_log(U8_LOG_MSG,label,"COND ? ELSE => %Q => ",KNO_CDR(clause),value);
       return value;}
     else test_val = kno_eval_expr(KNO_CAR(clause),env);
@@ -536,7 +537,8 @@ static lispval watched_cond_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
                (kno_SyntaxError,"watched_cond_evalfn","apply syntax",expr);}
       else {
         kno_decref(test_val);
-        lispval value = kno_eval_exprs(KNO_CDR(clause),env,_stack,0);
+	lispval value =
+	  kno_eval_body(KNO_CDR(clause),env,_stack,"COND","==>",0);
         u8_log(U8_LOG_MSG,label,"COND => %q => %q",
                KNO_CAR(clause),value);
         return value;}}}
@@ -937,7 +939,7 @@ static lispval with_log_context_evalfn(lispval expr,kno_lexenv env,kno_stack _st
       kno_thread_set(logcxt_symbol,label);
       u8_set_log_context(local_context);
       lispval result=kno_eval_body(kno_get_body(expr,2),env,_stack,
-				   "with_log_context",KNO_CSTRING(label),1);
+				   "with_log_context",KNO_CSTRING(label),0);
       kno_thread_set(logcxt_symbol,outer_lisp_context);
       u8_set_log_context(outer_context);
       kno_decref(label);

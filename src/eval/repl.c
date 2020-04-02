@@ -47,7 +47,7 @@ KNO_EXPORT lispval with_history_evalfn
     kno_hist_init(KNO_FIX2INT(history_arg));
   else kno_hist_init(200);
   lispval body = kno_get_body(expr,2);
-  lispval value = kno_eval_exprs(body,env,stack,0);
+  lispval value = kno_eval_body(body,env,stack,"WITH-HISTORY",NULL,0);
   kno_thread_set(history_symbol,outer_history);
   kno_decref(outer_history);
   kno_decref(history_arg);

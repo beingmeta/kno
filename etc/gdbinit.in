@@ -215,7 +215,7 @@ define showflo
 end
 define schemap
   printf "schema=%d\n",(&(((struct KNO_SCHEMAP *)$arg0)->table_schema))
-  printf "values=%d\n",(&(((struct KNO_SCHEMAP *)$arg0)->schema_values))
+  printf "values=%d\n",(&(((struct KNO_SCHEMAP *)$arg0)->table_values))
   printf "size=%d\n",(((struct KNO_SCHEMAP *)$arg0)->schema_length)
   print (*((struct KNO_SCHEMAP *)$arg0))
 end
@@ -224,7 +224,7 @@ define showschemapk
   showtype $
 end
 define showschemapv
-  print (((struct KNO_SCHEMAP *)$arg0)->schema_values)[$arg1]
+  print (((struct KNO_SCHEMAP *)$arg0)->table_values)[$arg1]
   showtype $
 end
 define slotmap

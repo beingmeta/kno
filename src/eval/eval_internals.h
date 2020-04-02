@@ -29,7 +29,7 @@ KNO_FASTOP lispval __kno_lexref(lispval lexref,kno_lexenv env_arg)
     if (KNO_EXPECT_TRUE(KNO_SCHEMAPP(bindings))) {
       struct KNO_SCHEMAP *s = (struct KNO_SCHEMAP *)bindings;
       if ( across < s->schema_length) {
-	lispval v = s->schema_values[across];
+	lispval v = s->table_values[across];
 	if (KNO_PRECHOICEP(v))
 	  return kno_make_simple_choice(v);
 	else return kno_incref(v);}}}
@@ -133,18 +133,17 @@ KNO_FASTOP lispval _pop_arg(lispval *scan)
 #define simplify_value(v) \
   ( (KNO_PRECHOICEP(v)) ? (kno_simplify_choice(v)) : (v) )
 
-KNO_FASTOP lispval eval_body(lispval body,kno_lexenv env,
-			     kno_stack stack,
+KNO_FASTOP lispval eval_body(lispval body,kno_lexenv env,kno_stack stack,
 			     u8_context cxt,u8_string label,
 			     int tail)
 {
+  if (!(KNO_STACK_BITP(stack,KNO_STACK_TAIL_POS))) tail = 0;
   if (KNO_EMPTY_LISTP(body))
     return KNO_VOID;
   else if (!(KNO_PAIRP(body)))
     return kno_err(kno_SyntaxError,
-		   ( (cxt) && (label) ) ? (cxt) :
-		   ((u8_string)"eval_inner_body"),
-		   (label) ? (label) : (cxt) ? (cxt) : (NULL),
+		   U8ALT(cxt,"eval_body"),
+		   label,
 		   body);
   lispval scan = body;
   while (PAIRP(scan)) {
@@ -155,15 +154,14 @@ KNO_FASTOP lispval eval_body(lispval body,kno_lexenv env,
 	  if (KNO_ABORTED(v))
 	    return v;
 	  else if (v==KNO_TAIL) {
-	    kno_seterr(TailArgument,"eval_body",label,subex);
+	    kno_seterr(TailArgument,cxt,label,subex);
 	    return KNO_ERROR;}}
 	else kno_decref(v);}
       else if (KNO_EMPTY_LISTP(scan))
 	return kno_eval(subex,env,stack,tail);
       else return kno_err(kno_SyntaxError,
-			  ( (cxt) && (label) ) ? (cxt) :
-			  ((u8_string)"eval_inner_body"),
-			  (label) ? (label) : (cxt) ? (cxt) : (NULL),
+			  U8ALT(cxt,"eval_body"),
+			  label,
 			  body);}
   return KNO_VOID;
 }
@@ -179,7 +177,7 @@ KNO_FASTOP kno_lexenv init_static_env
   KNO_INIT_STATIC_CONS(bindings,kno_schemap_type);
   bindings->schemap_onstack = 1;
   bindings->table_schema = vars;
-  bindings->schema_values = vals;
+  bindings->table_values = vals;
   bindings->schema_length = n;
   bindings->table_uselock = 0;
   // u8_init_rwlock(&(bindings->table_rwlock));
@@ -202,7 +200,7 @@ void release_stack_env(struct KNO_STACK *stack)
       env->env_copy=NULL;}
     if (KNO_SCHEMAPP(env->env_bindings)) {
       struct KNO_SCHEMAP *map = (kno_schemap) env->env_bindings;
-      lispval *vals = map->schema_values;
+      lispval *vals = map->table_values;
       int i = 0, n = map->schema_length;
       while (i < n) {
 	kno_decref(vals[i]);

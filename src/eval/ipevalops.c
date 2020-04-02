@@ -112,7 +112,7 @@ static lispval letq_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     struct KNO_LEXENV *inner_env = make_dynamic_env(n,env);
     lispval bindings = inner_env->env_bindings;
     struct KNO_SCHEMAP *sm = (struct KNO_SCHEMAP *)bindings;
-    lispval *vars = sm->table_schema, *vals = sm->schema_values;
+    lispval *vars = sm->table_schema, *vals = sm->table_values;
     int i = 0; lispval scan = bindexprs; while (i<n) {
       lispval bind_expr = KNO_CAR(scan), var = KNO_CAR(bind_expr);
       vars[i]=var; vals[i]=VOID; scan = KNO_CDR(scan); i++;}
@@ -141,7 +141,7 @@ static lispval letqstar_evalfn
     struct KNO_LEXENV *inner_env = make_dynamic_env(n,env);
     lispval bindings = inner_env->env_bindings;
     struct KNO_SCHEMAP *sm = (struct KNO_SCHEMAP *)bindings;
-    lispval *vars = sm->table_schema, *vals = sm->schema_values;
+    lispval *vars = sm->table_schema, *vals = sm->table_values;
     int i = 0; lispval scan = bindexprs; while (i<n) {
       lispval bind_expr = KNO_CAR(scan), var = KNO_CAR(bind_expr);
       vars[i]=var; vals[i]=KNO_UNBOUND; scan = KNO_CDR(scan); i++;}

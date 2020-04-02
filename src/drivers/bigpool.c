@@ -1295,7 +1295,7 @@ static ssize_t bigpool_write_value(kno_bigpool p,lispval value,
   if (SCHEMAPP(value)) {
     struct KNO_SCHEMAP *sm = (kno_schemap)value;
     lispval *schema = sm->table_schema;
-    lispval *values = sm->schema_values;
+    lispval *values = sm->table_values;
     int i = 0, size = sm->schema_length;
     kno_write_byte(tmpout,0xF0);
     kno_write_varint(tmpout,size);

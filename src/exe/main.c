@@ -197,7 +197,7 @@ KNO_EXPORT void _knodbg_show_stack_frame(void *arg)
       if (KNO_SCHEMAPP(bindings)) {
 	kno_schemap map = (kno_schemap)bindings;
 	lispval *schema = map->table_schema;
-	lispval *values = map->schema_values;
+	lispval *values = map->table_values;
 	int i = 0, n = map->schema_length;
 	while (i<n) {
 	  lispval key = schema[i];

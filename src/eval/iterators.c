@@ -377,7 +377,8 @@ static lispval dolist_evalfn(lispval expr,kno_lexenv env,
 static lispval begin_evalfn(lispval begin_expr,kno_lexenv env,
 			    kno_stack _stack)
 {
-  return eval_body(KNO_CDR(begin_expr),env,_stack,"BEGIN",NULL,1);
+  return eval_body(KNO_CDR(begin_expr),env,_stack,"BEGIN",NULL,
+		   (KNO_STACK_BITP(_stack,KNO_STACK_TAIL_POS)));
 }
 
 static lispval onbreak_evalfn(lispval begin_expr,kno_lexenv env,

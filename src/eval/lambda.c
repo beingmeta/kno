@@ -793,8 +793,7 @@ lispval kno_xapply_lambda
     /* If we're synchronized, lock the mutex. */
     if (fn->lambda_synchronized) u8_lock_mutex(&(fn->lambda_lock));
     result = eval_body(fn->lambda_start,call_env,_stack,
-		       ":XPROC",fn->fcn_name,
-		       0);
+		       ":XPROC",fn->fcn_name,0);
     if (fn->lambda_synchronized)
       u8_unlock_mutex(&(fn->lambda_lock));}
    kno_pop_stack(_stack);

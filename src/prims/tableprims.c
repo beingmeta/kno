@@ -265,7 +265,7 @@ static lispval schemap2slotmap_prim(lispval in)
 {
   struct KNO_SCHEMAP *schemap = (kno_schemap) in;
   lispval *schema = schemap->table_schema;
-  lispval *values = schemap->schema_values;
+  lispval *values = schemap->table_values;
   int size = schemap->schema_length;
   struct KNO_KEYVAL kv[size];
   int i = 0; while (i < size) {
@@ -286,7 +286,7 @@ static lispval slotmap2schemap_prim(lispval map)
   lispval result = kno_init_schemap(NULL,slotmap->n_slots,slotmap->sm_keyvals);
   struct KNO_SCHEMAP *schemap = (kno_schemap) result;
   kno_incref_vec(schemap->table_schema,schemap->schema_length);
-  kno_incref_vec(schemap->schema_values,schemap->schema_length);
+  kno_incref_vec(schemap->table_values,schemap->schema_length);
   return result;
 }
 

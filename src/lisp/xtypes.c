@@ -730,7 +730,7 @@ static ssize_t write_schemap(kno_outbuf out,
   ssize_t xtype_len = 1;
   kno_read_lock_table(map);
   {
-    lispval *schema = map->table_schema, *values = map->schema_values;
+    lispval *schema = map->table_schema, *values = map->table_values;
     int i = 0, schemasize = KNO_XSCHEMAP_SIZE(map), len = schemasize*2;
     kno_output_byte(out,xt_table);
     xtype_len += kno_write_varint(out,len);

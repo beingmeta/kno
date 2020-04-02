@@ -270,14 +270,9 @@ typedef struct KNO_CONFIG_RECORD {
 #define KNO_TAIL_EVAL 0x01
 #define KNO_VOID_VAL  0x02
 
-lispval kno_eval_body(lispval body,kno_lexenv env,
-		      kno_stack stack,
-                      u8_context cxt,u8_string label,
-                      int tail);
-KNO_EXPORT lispval kno_eval_exprs(lispval exprs,kno_lexenv env,
-                                  kno_stack ,
-				  int);
-
+lispval kno_eval_body(lispval body,kno_lexenv env,kno_stack stack,
+		      u8_context cxt,u8_string label,
+		      int tail);
 KNO_EXPORT lispval _kno_cons_eval(lispval expr,kno_lexenv env,
 				  kno_stack stack,
 				  int tail);

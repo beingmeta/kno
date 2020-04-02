@@ -116,7 +116,7 @@ static int cons_walk(kno_walker walker,int constype,
       kno_read_lock_table(schemap);
       int i = 0, len = KNO_SCHEMAP_SIZE(obj);
       lispval *slotids = schemap->table_schema;
-      lispval *slotvals = schemap->schema_values;
+      lispval *slotvals = schemap->table_values;
       while (i<len) {
         if ((fast_walk(walker,slotids[i],walkdata,flags,depth-1)<0) ||
             (fast_walk(walker,slotvals[i],walkdata,flags,depth-1)<0) ) {
