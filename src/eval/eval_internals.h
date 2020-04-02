@@ -1,3 +1,6 @@
+u8_condition BadExpressionHead, TailArgument;
+
+
 lispval execute_lambda(kno_stack,int);
 lispval __kno_pair_eval(lispval,kno_lexenv,kno_stack,int);
 
@@ -148,8 +151,12 @@ KNO_FASTOP lispval eval_body(lispval body,kno_lexenv env,
       lispval subex = pop_arg(scan);
       if (PAIRP(scan)) {
 	lispval v = kno_eval(subex,env,stack,0);
-	if (KNO_ABORTED(v))
-	  return v;
+	if (KNO_IMMEDIATEP(v)) {
+	  if (KNO_ABORTED(v))
+	    return v;
+	  else if (v==KNO_TAIL) {
+	    kno_seterr(TailArgument,"eval_body",label,subex);
+	    return KNO_ERROR;}}
 	else kno_decref(v);}
       else if (KNO_EMPTY_LISTP(scan))
 	return kno_eval(subex,env,stack,tail);
