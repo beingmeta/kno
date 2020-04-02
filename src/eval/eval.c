@@ -985,7 +985,7 @@ lispval __kno_pair_eval(lispval expr,kno_lexenv env,
     stack->stack_args = _args;
     if (decref_args)
       KNO_STACK_SET_BITS(stack,KNO_STACK_DECREF_ARGS);
-    else KNO_STACK_SET_BITS(stack,KNO_STACK_DECREF_ARGS);
+    else KNO_STACK_CLEAR_BITS(stack,KNO_STACK_DECREF_ARGS);
     args = NULL;
 
     int ndcall = (nd_args) && (!(nd_op));
@@ -1029,10 +1029,6 @@ lispval __kno_pair_eval(lispval expr,kno_lexenv env,
  clean_exit:
   stack->stack_label = old_label;
   stack->eval_env    = old_env;
-#if 0
-  if (old_tail) {KNO_STACK_SET_BITS(stack,KNO_STACK_TAIL_POS);}
-  else {KNO_STACK_CLEAR_BITS(stack,KNO_STACK_TAIL_POS);}
-#endif
   if (result != KNO_TAIL) {
     stack->stack_point = old_point;
     stack->eval_source = old_source;}

@@ -9,7 +9,6 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define KNO_EVAL_INTERNALS (!(KNO_AVOID_INLINE))
 #define KNO_INLINE_CHOICES   (!(KNO_AVOID_INLINE))
 #define KNO_INLINE_TABLES    (!(KNO_AVOID_INLINE))
 
@@ -22,7 +21,6 @@
 #include "kno/indexes.h"
 #include "kno/frames.h"
 #include "kno/numbers.h"
-
 
 DEFPRIM("TABLE?",tablep,MAX_ARGS(1),
         "`(TABLE? *obj*)` returns #t if *obj* is a table, #f otherwise.")

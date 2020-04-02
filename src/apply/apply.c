@@ -507,10 +507,10 @@ KNO_EXPORT lispval kno_call(struct KNO_STACK *_stack,
     int i = 0; while (i<n) {
       lispval arg = args[i++];
       if (EMPTYP(arg)) return KNO_EMPTY;
-      else if (KNO_CHOICEP(arg)) {
-	ambig_args = 1; break;}
+      else if ( (ambig_args == 0) && (KNO_CHOICEP(arg)) ) {
+	ambig_args = 1; continue;}
       else NO_ELSE;}}
-  if ( (iter_choices) || (ambig_args) ) {
+  if ( (iter_choices) && (ambig_args) ) {
     struct KNO_STACK iter_stack = { 0 };
     KNO_SETUP_STACK(&iter_stack,"fnchoices");
     int checked = setup_call_stack(&iter_stack,handler,n,args,NULL);

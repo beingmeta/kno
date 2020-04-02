@@ -16,6 +16,7 @@
 #include "kno/eval.h"
 #include "kno/numbers.h"
 #include "kno/cprims.h"
+#include "eval_internals.h"
 
 #define REALP(x)							\
   ((FIXNUMP(x)) || (KNO_FLONUMP(x)) || (KNO_BIGINTP(x)) || (KNO_RATIONALP(x)))
