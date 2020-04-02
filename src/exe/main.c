@@ -102,7 +102,9 @@ KNO_EXPORT void _knodbg_show_env(kno_lexenv start,int limit)
       if (KNO_SYMBOLP(key)) {
         lispval val=kno_get(bindings,key,KNO_VOID);
         u8_string vstring=u8_sprintf(buf,128,"%q",val);
-        fprintf(stderr,"  %s\t=\t%s\n",KNO_SYMBOL_NAME(key),vstring);
+        fprintf(stderr,"  %s\t 0x%llx\t%s\n",
+		KNO_SYMBOL_NAME(key),(unsigned long long)val,
+		vstring);
         kno_decref(val);}}
     kno_decref(keys);}
   else while ( (env) && (depth < limit) ) {
@@ -191,7 +193,21 @@ KNO_EXPORT void _knodbg_show_stack_frame(void *arg)
     if (stack->eval_env) {
       env = stack->eval_env;
       fprintf(stderr,"Env 0x%llx\n",KNO_LONGVAL(env));
-      _knodbg_show_env(env,20);}}
+      lispval bindings = env->env_bindings;
+      if (KNO_SCHEMAPP(bindings)) {
+	kno_schemap map = (kno_schemap)bindings;
+	lispval *schema = map->table_schema;
+	lispval *values = map->schema_values;
+	int i = 0, n = map->schema_length;
+	while (i<n) {
+	  lispval key = schema[i];
+	  lispval val = values[i];
+	  u8_byte buf[80];
+	  fputs(u8_bprintf
+		(buf,"  %q\t0x%llx\t%q\n",
+		 key,(unsigned long long)val,val),
+		stderr);
+	  i++;}}}}
   else if (stack->stack_args.count) {
     kno_stackvec argvec = &(stack->stack_args);
     u8_byte buf[128];
