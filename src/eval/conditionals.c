@@ -84,7 +84,7 @@ static lispval cond_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     if (!(PAIRP(clause)))
       return kno_err(kno_SyntaxError,_("invalid cond clause"),NULL,expr);
     else if (KNO_EQ(KNO_CAR(clause),else_symbol))
-      return eval_body(KNO_CDR(clause),env,_stack,"COND","else",1);
+      return eval_body(KNO_CDR(clause),env,_stack,"COND","else",tail);
     else test_val = kno_eval_expr(KNO_CAR(clause),env);
     if (KNO_ABORTED(test_val)) return test_val;
     else if (FALSEP(test_val)) {}
@@ -130,7 +130,7 @@ static lispval case_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 	      return eval_body(KNO_CDR(clause),env,_stack,"CASE",NULL,tail);}
 	else if (KNO_EQ(KNO_CAR(clause),else_symbol)) {
 	  kno_decref(keyval);
-	  return eval_body(KNO_CDR(clause),env,_stack,"CASE","else",1);}
+	  return eval_body(KNO_CDR(clause),env,_stack,"CASE","else",tail);}
 	else return kno_err(kno_SyntaxError,"case_evalfn",NULL,clause);
       else return kno_err(kno_SyntaxError,"case_evalfn",NULL,clause);
     return VOID;}
