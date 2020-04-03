@@ -600,6 +600,8 @@ static lispval get_rest_arg(kno_argvec args,int n)
 lispval execute_lambda(kno_stack stack,int tail)
 {
   struct KNO_LAMBDA *proc = (kno_lambda) (stack->stack_point);
+
+
   int synchronized = proc->lambda_synchronized;
   kno_lexenv proc_env=proc->lambda_env;
   int arity = proc->fcn_arity;
@@ -609,15 +611,16 @@ lispval execute_lambda(kno_stack stack,int tail)
   u8_string filename = (proc->fcn_filename) ? (proc->fcn_filename) : (NULL);
   KNO_START_EVAL(lambda_stack,label,(lispval)proc,NULL,stack);
   lambda_stack->stack_file = filename;
+
   lispval args[n_vars];
   _lambda_stack.stack_args.elts	 = args;
   _lambda_stack.stack_args.count = 0;
   _lambda_stack.stack_args.len	 = n_vars;
   KNO_STACK_SET_BITS(lambda_stack,KNO_STACK_DECREF_ARGS);
   lispval refs[7];
-  _lambda_stack.stack_args.elts	 = refs;
-  _lambda_stack.stack_args.count = 0;
-  _lambda_stack.stack_args.len	 = 7;
+  _lambda_stack.stack_refs.elts	 = refs;
+  _lambda_stack.stack_refs.count = 0;
+  _lambda_stack.stack_refs.len	 = 7;
 
   lispval *given = KNO_STACK_ARGS(stack);
   int	 n_given = STACK_ARGCOUNT(stack);
@@ -642,6 +645,7 @@ lispval execute_lambda(kno_stack stack,int tail)
     else NO_ELSE;
     kno_incref(arg);
     args[i++] = arg;}
+  _lambda_stack.stack_args.count = n_given;
 
   /* If we're synchronized, lock the mutex.
      We include argument defaults within the lock ?? */
@@ -666,8 +670,8 @@ lispval execute_lambda(kno_stack stack,int tail)
 	kno_pop_stack(lambda_stack);
 	return init_val;}
       else {
-	args[i++]=init_val;
-	_lambda_stack.stack_args.count=i;}}}
+	_lambda_stack.stack_args.count=i;
+	args[i++]=init_val;}}}
 
   /* Now accumulate a .rest arg if it's needed */
   if (arity < 0) {
@@ -709,6 +713,7 @@ lispval execute_lambda(kno_stack stack,int tail)
   /* If we're synchronized, unlock the mutex. */
   if (synchronized) u8_unlock_mutex(&(proc->lambda_lock));
 
+  
   kno_pop_stack(lambda_stack);
 
   if (profile)
@@ -924,6 +929,8 @@ lispval __kno_pair_eval(lispval expr,kno_lexenv env,
   /* Straightforward eval/apply */
 
   {
+    struct KNO_STACKVEC old_args = stack->stack_args;
+    int old_decref = KNO_STACK_BITP(stack,KNO_STACK_DECREF_ARGS);
     KNO_DECL_STACKVEC(args,argbuf_len);
     int decref_args=0, nd_args = (KNO_CHOICEP(op));
     kno_lisp_type optype = KNO_TYPEOF(op);
@@ -972,14 +979,11 @@ lispval __kno_pair_eval(lispval expr,kno_lexenv env,
     kno_argvec argbuf = STACKVEC_ARGS(args);
     int n_args	      = STACKVEC_COUNT(args);
 
-    if (KNO_STACK_BITP(stack,KNO_STACK_DECREF_ARGS))
-      kno_decref_stackvec(&(stack->stack_args));
-    kno_free_stackvec(&(stack->stack_args));
-
     stack->stack_args = _args;
     if (decref_args)
       KNO_STACK_SET_BITS(stack,KNO_STACK_DECREF_ARGS);
     else KNO_STACK_CLEAR_BITS(stack,KNO_STACK_DECREF_ARGS);
+
     args = NULL;
 
     int ndcall = (nd_args) && (!(nd_op));
@@ -1009,7 +1013,8 @@ lispval __kno_pair_eval(lispval expr,kno_lexenv env,
       else result = kno_dcall(stack,op,n_args,argbuf);}
     } /* switch(optype) */
   cleanup_args:
-    /* We jump here if we haven't yet put *args* on the stack */
+    /* We jump here if we haven't yet put *args* on the stack, i.e.
+       there was an error while processing them. */
     if (args) {
       if (decref_args) kno_decref_stackvec(&_args);
       kno_free_stackvec(&_args);}
@@ -1017,7 +1022,11 @@ lispval __kno_pair_eval(lispval expr,kno_lexenv env,
       if (KNO_STACK_BITP(stack,KNO_STACK_DECREF_ARGS)) {
 	KNO_STACK_CLEAR_BITS(stack,KNO_STACK_DECREF_ARGS);
 	kno_decref_stackvec(&(stack->stack_args));}
-      kno_free_stackvec(&(stack->stack_args));}}
+      kno_free_stackvec(&(stack->stack_args));}
+    stack->stack_args = old_args;
+    if (old_decref)
+      KNO_STACK_SET_BITS(stack,KNO_STACK_DECREF_ARGS);
+    else KNO_STACK_CLEAR_BITS(stack,KNO_STACK_DECREF_ARGS);}
 
   /* Restore old things */
  clean_exit:
