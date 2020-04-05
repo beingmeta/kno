@@ -146,7 +146,7 @@ static lispval irritant_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   if (cxt == NULL) {
     kno_stack cur = kno_stackptr;
     while ( (cur) && (cxt==NULL) ) {
-      lispval op = cur->stack_point;
+      lispval op = cur->stack_op;
       if (SYMBOLP(op))
 	cxt=KNO_SYMBOL_NAME(op);
       else if (KNO_FUNCTIONP(op)) {

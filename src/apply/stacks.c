@@ -153,9 +153,9 @@ KNO_EXPORT int _kno_reset_stack(struct KNO_STACK *stack)
   return kno_reset_stack(stack);
 }
 
-KNO_EXPORT  void _KNO_STACK_SET_POINT(kno_stack s,lispval new)
+KNO_EXPORT  void _KNO_STACK_SET_OP(kno_stack s,lispval new,int free)
 {
-  KNO_STACK_SET_POINT(s,new);
+  KNO_STACK_SET_OP(s,new,free);
 }
 
 
@@ -179,7 +179,7 @@ static lispval stack2lisp(struct KNO_STACK *stack,struct KNO_STACK *inner)
   lispval file	  = (stack->stack_file) ?
     (knostring(stack->stack_file)) :
     (KNO_FALSE);
-  lispval point	  = kno_incref(stack->stack_point);
+  lispval point	  = kno_incref(stack->stack_op);
   kno_lexenv env = stack->eval_env;
 
   unsigned int icrumb = stack->stack_crumb;

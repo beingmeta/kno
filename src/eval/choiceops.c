@@ -120,7 +120,7 @@ static lispval dochoices_evalfn(lispval expr,kno_lexenv env,
   int finished = 0;
   int i = 0; DO_CHOICES(elt,choices) {
     dochoices_vals[0]=kno_incref(elt);
-    dochoices_stack->stack_point=dochoices_vals[1]=KNO_INT(i);
+    dochoices_stack->stack_op=dochoices_vals[1]=KNO_INT(i);
     {KNO_DOLIST(step,steps) {
 	lispval val = kno_eval(step,dochoices,dochoices_stack,0);
 	if (KNO_ABORTED(val)) {

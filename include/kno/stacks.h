@@ -146,9 +146,9 @@ typedef struct KNO_STACK {
   unsigned int stack_flags;
   // stack_caller is a pointer to the caller of this frame
   struct KNO_STACK *stack_caller;
-  // stack_point  the expression being evaluated, the function
+  // stack_op  the expression being evaluated, the function
   //  being applied, or the value being processed
-  lispval stack_point;
+  lispval stack_op;
   // stack_args are a vector of ordered arguments for the current
   // operation
   struct KNO_STACKVEC stack_args;
@@ -180,8 +180,9 @@ typedef struct KNO_STACK *kno_stack;
 /* Stack bits */
 
 #define KNO_STACK_LIVE	         0x0001
-#define KNO_STACK_DECREF_ARGS	 0x0002
-#define KNO_STACK_OWNS_ENV	 0x0004
+#define KNO_STACK_DECREF_OP      0x0002
+#define KNO_STACK_DECREF_ARGS	 0x0004
+#define KNO_STACK_OWNS_ENV	 0x0008
 
 /* Reserved for the evaluator */
 #define KNO_STACK_REDUCE_LOOP	 0x0100
@@ -274,7 +275,7 @@ KNO_EXPORT __thread struct KNO_STACK *kno_stackptr;
   (stack)->stack_size	     = sizeof(*(stack));		\
   (stack)->stack_label	     = label;				\
   (stack)->stack_bits	     = 0x00;				\
-  (stack)->stack_point	     = KNO_VOID;			\
+  (stack)->stack_op	     = KNO_VOID;			\
   (stack)->eval_source	     = KNO_VOID;			\
   (stack)->eval_context      = KNO_VOID
 
@@ -356,26 +357,31 @@ KNO_EXPORT void _kno_stack_pop_error(kno_stack stack,u8_context loc);
   KNO_EVAL_ROOT(_stack,label,KNO_VOID)
 
 
-/* Stack set point */
+/* Stack set op */
 
-KNO_EXPORT  void _KNO_STACK_SET_POINT(kno_stack stack,lispval newpt);
+  KNO_EXPORT  void _KNO_STACK_SET_OP(kno_stack stack,lispval newop,int free);
 
 #if KNO_INLINE_STACKS
 KNO_FASTOP U8_MAYBE_UNUSED
-void __KNO_STACK_SET_POINT(kno_stack stack,lispval newpt)
+void __KNO_STACK_SET_OP(kno_stack stack,lispval newop,int free)
 {
-  stack->stack_point = newpt;
+  int free_cur = KNO_STACK_BITP(stack,KNO_STACK_DECREF_OP);
+  if (free_cur) {
+    lispval cur = stack->stack_op;
+    kno_decref(cur);}
+  stack->stack_op = newop;
+  KNO_STACK_SET_BIT(stack,KNO_STACK_DECREF_OP,free);
 }
-#define KNO_STACK_SET_POINT __KNO_STACK_SET_POINT
+#define KNO_STACK_SET_OP __KNO_STACK_SET_OP
 #else
-#define KNO_STACK_SET_POINT _KNO_STACK_SET_POINT
+#define KNO_STACK_SET_OP _KNO_STACK_SET_OP
 #endif
 
 /* Stack set args */
 
 #define KNO_STATIC_ARGS 0x00
 #define KNO_DECREF_ARGS 0x01
-#define KNO_FREE_ARGBUF 0x01
+#define KNO_FREE_ARGBUF 0x02
 
 KNO_EXPORT void _KNO_STACK_SET_ARGS(kno_stack stack,lispval *buf,
 				    int width,int argcount,
@@ -460,7 +466,8 @@ KNO_FASTOP int __kno_free_stack(struct KNO_STACK *stack)
     KNO_STACK_CLEAR_BITS(stack,KNO_STACK_FREE_ENV);
     kno_free_lexenv(env);}
 
-  stack->stack_point = KNO_VOID;
+  if (bits&KNO_STACK_DECREF_OP) kno_decref(stack->stack_op);
+  stack->stack_op = KNO_VOID;
   stack->eval_env   = NULL;
 
   return 0;

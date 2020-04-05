@@ -1,11 +1,11 @@
 u8_condition BadExpressionHead, TailArgument;
 
-lispval get_evalop(lispval head,kno_lexenv env,kno_stack eval_stack);
+lispval get_evalop(lispval head,kno_lexenv env,kno_stack eval_stack,int *freep);
 
-lispval lambda_apply(kno_stack stack,
-		      lispval fn,
-		      int n_given,kno_argvec given,
-		      int tail);
+lispval lambda_call(kno_stack stack,
+		    struct KNO_LAMBDA *proc,
+		    int n,kno_argvec args,
+		    int tail);
 lispval eval(lispval,kno_lexenv,kno_stack,int);
 
 KNO_FASTOP lispval fastget(lispval table,lispval key)

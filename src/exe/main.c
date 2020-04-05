@@ -125,7 +125,7 @@ KNO_EXPORT void _knodbg_show_env(kno_lexenv start,int limit)
 
 static void _concise_stack_frame(struct KNO_STACK *stack)
 {
-  lispval op = stack->stack_point;
+  lispval op = stack->stack_op;
   kno_stackvec args = &(stack->stack_args);
   kno_stackvec refs = &(stack->stack_refs);
   if (stack->stack_label)
@@ -184,10 +184,10 @@ KNO_EXPORT void _knodbg_show_stack_frame(void *arg)
   struct KNO_STACK *stack=_get_stack_frame(arg);
   kno_lexenv env = NULL;
   _concise_stack_frame(stack);
-  if (PAIRP(stack->stack_point))
-    u8_fprintf(stderr,"%Q",stack->stack_point);
-  else if (KNO_APPLICABLEP(stack->stack_point))
-    u8_fprintf(stderr,"Applying %q",stack->stack_point);
+  if (PAIRP(stack->stack_op))
+    u8_fprintf(stderr,"%Q",stack->stack_op);
+  else if (KNO_APPLICABLEP(stack->stack_op))
+    u8_fprintf(stderr,"Applying %q",stack->stack_op);
   else NO_ELSE;
   if ( (KNO_STACK_BITP(stack,KNO_STACK_OWNS_ENV)) ) {
     if (stack->eval_env) {

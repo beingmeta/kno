@@ -152,7 +152,7 @@ static lispval applytest(int n,kno_argvec args)
     u8_exception ex = u8_erreify();
     u8_logf(LOG_INFO,"Tests/ExpectedError","%m (from %s: %s) for %s",
 	    ex->u8x_cond,ex->u8x_context,ex->u8x_details,testid);
-    u8_free_exception(ex,0);
+    u8_free_exception(ex,1);
     return_value = KNO_TRUE;}
   else if (KNO_ABORTP(result)) {
     u8_exception ex = u8_current_exception;

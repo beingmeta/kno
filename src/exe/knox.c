@@ -331,12 +331,12 @@ int do_main(int argc,char **argv,
 
   if ( (source_file) && (!(no_loadarg)) ) {
     lispval src = kno_wrapstring(u8_realpath(source_file,NULL));
+    kno_set_config("SOURCE",src);
     result = kno_load_source(source_file,env,NULL);
     if (KNO_ABORTED(result)) {
       u8_exception ex = u8_current_exception;
       if (ex == NULL)
 	u8_seterr("LoadFailed","knox/main()",u8_strdup(source_file));}
-    kno_set_config("SOURCE",src);
     kno_decref(src);}
   else if (interpret_stdin)
     result = load_stdin(env);

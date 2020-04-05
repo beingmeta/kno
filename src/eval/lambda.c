@@ -68,15 +68,7 @@ static lispval lambda_docall(kno_stack caller,
 			     struct KNO_LAMBDA *proc,
 			     short n,kno_argvec args)
 {
-  KNO_START_EVALX(lambda_stack,proc->fcn_name,KNO_VOID,NULL,caller,7);
-  _lambda_stack.stack_args.elts  = (lispval *) args;
-  _lambda_stack.stack_args.count = n;
-  _lambda_stack.stack_args.len   = n;
-  lambda_stack->stack_point   = (lispval) proc;
-  lispval result = lambda_apply
-    (lambda_stack,(lispval)proc,n,args,0);
-  kno_pop_stack(lambda_stack);
-  return result;
+  return lambda_call(caller,proc,n,args,0);
 }
 
 KNO_EXPORT lispval kno_lambda_call(kno_stack caller,

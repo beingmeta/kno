@@ -1605,7 +1605,7 @@ static int walk_thread_struct(kno_walker walker,lispval x,
       else i++;}}
   if (tstruct->thread_stackptr) {
     kno_stack stackptr = tstruct->thread_stackptr;
-    if (kno_walk(walker,stackptr->stack_point,walkdata,flags,depth-1)<0) {
+    if (kno_walk(walker,stackptr->stack_op,walkdata,flags,depth-1)<0) {
       return -1;}
     if ((stackptr->eval_env) &&
 	(kno_walk(walker,((lispval)stackptr->eval_env),walkdata,flags,depth-1)<0))
@@ -1696,7 +1696,7 @@ static void thread_siginfo(int signum,siginfo_t *info,void *stuff)
 	   stackptr->stack_type,
 	   stackptr->stack_label,
 	   stackptr->stack_file,
-	   stackptr->stack_point);
+	   stackptr->stack_op);
     emissions++;}
   if (log_context) {
     u8_log(-LOGNOTICE,"LogContext","%s",log_context);
