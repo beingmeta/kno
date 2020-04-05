@@ -468,7 +468,7 @@ static lispval with_lock_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   u8_mutex *mutex = NULL; u8_rwlock *rwlock = NULL;
   if (VOIDP(lock_expr))
     return kno_err(kno_SyntaxError,"with_lock_evalfn",NULL,expr);
-  else lck = kno_eval_expr(lock_expr,env);
+  else lck = kno_eval(lock_expr,env,_stack,0);
   if (KNO_ABORTED(lck))
     return lck;
   else if (TYPEP(lck,kno_synchronizer_type)) {
@@ -498,7 +498,7 @@ static lispval with_lock_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       else u8_write_lock(rwlock);
       KNO_DOLIST(elt_expr,KNO_CDDR(expr)) {
 	kno_decref(value);
-	value = kno_eval_expr(elt_expr,env);
+	value = kno_eval(elt_expr,env,_stack,0);
 	if (KNO_ABORTED(value)) {
 	  if (mutex)
 	    u8_unlock_mutex(mutex);
@@ -672,7 +672,8 @@ static void *_kno_thread_main(void *data)
     u8_init_condvar(&(tstruct->exit_cvar));
 
     if (tstruct->flags&KNO_EVAL_THREAD)
-      result = kno_eval_expr(tstruct->evaldata.expr,tstruct->evaldata.env);
+      result = kno_eval(tstruct->evaldata.expr,tstruct->evaldata.env,
+			_stack,0);
     else
       result = kno_dapply(tstruct->applydata.fn,
 			  tstruct->applydata.n_args,
@@ -975,14 +976,14 @@ static lispval spawn_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 
 static lispval threadeval_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  lispval to_eval = kno_eval_expr(kno_get_arg(expr,1),env);
+  lispval to_eval = kno_eval(kno_get_arg(expr,1),env,_stack,0);
   if (KNO_ABORTED(to_eval))
     return to_eval;
-  lispval env_arg = kno_eval_expr(kno_get_arg(expr,2),env);
+  lispval env_arg = kno_eval(kno_get_arg(expr,2),env,_stack,0);
   if (KNO_ABORTED(env_arg)) {
     kno_decref(to_eval);
     return env_arg;}
-  lispval opts_arg = kno_eval_expr(kno_get_arg(expr,3),env);
+  lispval opts_arg = kno_eval(kno_get_arg(expr,3),env,_stack,0);
   if (KNO_ABORTED(opts_arg)) {
     kno_decref(to_eval);
     kno_decref(env_arg);
@@ -1554,7 +1555,7 @@ static lispval thread_ref_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
   else if (VOIDP(dflt_expr))
     return kno_err(kno_SyntaxError,"thread_ref",
 		   "No generating expression",expr);
-  else sym = kno_eval_expr(sym_arg,env);
+  else sym = kno_eval(sym_arg,env,stack,0);
   if (KNO_ABORTP(sym))
     return sym;
   else if (!(SYMBOLP(sym)))
@@ -1563,7 +1564,7 @@ static lispval thread_ref_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
   if (KNO_ABORTP(val))
     return val;
   else if (VOIDP(val)) {
-    lispval useval = kno_eval_expr(dflt_expr,env);
+    lispval useval = kno_eval(dflt_expr,env,stack,0);
     if (KNO_ABORTP(useval))
       return useval;
     else if (KNO_VOIDP(useval))

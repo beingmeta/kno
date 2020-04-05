@@ -105,6 +105,11 @@ KNO_EXPORT u8_string kno_lambda_stack_type;
 #define KNO_PUSH_EVAL(name,label,expr,env)			\
   KNO_START_EVAL(name,label,expr,env,((kno_stack)_stack))
 
+#define KNO_STACK_TAILP(stack) (KNO_STACK_BITP((stack),KNO_STACK_TAIL_POS))
+
+#define KNO_STACK_SET_TAIL(stack,on) \
+  KNO_STACK_SET_BIT((stack),KNO_STACK_TAIL_POS,(on))
+
 /* Environments */
 
 KNO_EXPORT int kno_assign_value(lispval,lispval,kno_lexenv);
@@ -295,7 +300,7 @@ KNO_EXPORT int _kno_pop_stack(kno_stack arg);
 
 #if KNO_EVAL_INTERNALS
 #define kno_eval __kno_eval
-#define kno_pair_eval __kno_pair_eval
+#define kno_pair_eval eval
 #define kno_symeval(x,env) __kno_symeval(x,env)
 #define kno_symbol_eval(x,env) __kno_symbol_eval(x,env)
 #define kno_lexref(x,env) __kno_lexref(x,env)
@@ -306,7 +311,7 @@ KNO_FASTOP lispval __kno_symeval(lispval symbol,kno_lexenv env);
 KNO_FASTOP lispval __kno_symbol_eval(lispval symbol,kno_lexenv env);
 KNO_FASTOP lispval __kno_get_arg(lispval expr,int i);
 KNO_FASTOP lispval __kno_get_body(lispval expr,int i);
-lispval __kno_pair_eval(lispval,kno_lexenv,kno_stack,int);
+lispval eval(lispval,kno_lexenv,kno_stack,int);
 #else
 #if KNO_FAST_EVAL
 #define kno_eval __kno_eval

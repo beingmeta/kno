@@ -115,7 +115,9 @@ KNO_EXPORT lispval *kno_handle_argv(int argc,char **argv,
     if (exe_name[0]=='/')
       exec_path = exe_name;
     else if ( (u8_file_existsp("/proc/self/exe")) &&
-              (exec_path = u8_filestring("/proc/self/exe",NULL)) ) {}
+              (exec_path = u8_filestring("/proc/self/exe",NULL)) ) {
+      /* Got from /proc */
+    }
     else if (strchr(exe_name,'/'))
       exec_path = u8_abspath(exe_name,NULL);
     else if (u8_file_existsp(exe_name))

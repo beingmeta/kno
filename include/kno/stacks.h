@@ -184,7 +184,7 @@ typedef struct KNO_STACK *kno_stack;
 #define KNO_STACK_OWNS_ENV	 0x0004
 
 /* Reserved for the evaluator */
-#define KNO_STACK_EVAL_LOOP	 0x0100
+#define KNO_STACK_REDUCE_LOOP	 0x0100
 #define KNO_STACK_TAIL_POS	 0x0200
 #define KNO_STACK_VOID_VAL	 0x0400
 #define KNO_STACK_FREE_ENV	 0x0800
@@ -249,6 +249,10 @@ typedef struct KNO_STACK *kno_stack;
   ( ( ((stack)->stack_bits) & (bits) ) == bits)
 #define KNO_STACK_SET_BITS(stack,bits)   (stack)->stack_bits |= bits
 #define KNO_STACK_CLEAR_BITS(stack,bits) (stack)->stack_bits &= (~(bits))
+
+#define KNO_STACK_SET_BIT(stack,bit,bool) \
+  if (bool) KNO_STACK_SET_BITS(stack,bit); else KNO_STACK_CLEAR_BITS(stack,bit)
+
 
 #if (U8_USE_TLS)
 KNO_EXPORT u8_tld_key kno_stackptr_key;
@@ -324,8 +328,7 @@ KNO_EXPORT void _kno_stack_pop_error(kno_stack stack,u8_context loc);
     stack->eval_env = env;						\
     if (_free_cur) { kno_free_lexenv(_cur_env); }			\
     if ( (env) && (freeit != _free_cur) ) {				\
-      if (freeit) KNO_STACK_SET_BITS(stack,KNO_STACK_FREE_ENV);		\
-      else KNO_STACK_CLEAR_BITS(stack,KNO_STACK_FREE_ENV);}}
+      KNO_STACK_SET_BIT(stack,KNO_STACK_FREE_ENV,freeit);}}
 
 #define KNO_STACK_STATIC_ARGBUF  0
 #define KNO_STACK_MALLOCD_ARGBUF 1
@@ -352,6 +355,21 @@ KNO_EXPORT void _kno_stack_pop_error(kno_stack stack,u8_context loc);
   u8_sprintf(label,128,"%sthread%d",appid,u8_threadid());		\
   KNO_EVAL_ROOT(_stack,label,KNO_VOID)
 
+
+/* Stack set point */
+
+KNO_EXPORT  void _KNO_STACK_SET_POINT(kno_stack stack,lispval newpt);
+
+#if KNO_INLINE_STACKS
+KNO_FASTOP U8_MAYBE_UNUSED
+void __KNO_STACK_SET_POINT(kno_stack stack,lispval newpt)
+{
+  stack->stack_point = newpt;
+}
+#define KNO_STACK_SET_POINT __KNO_STACK_SET_POINT
+#else
+#define KNO_STACK_SET_POINT _KNO_STACK_SET_POINT
+#endif
 
 /* Stack set args */
 
@@ -385,8 +403,7 @@ void __KNO_STACK_SET_ARGS(kno_stack stack,lispval *buf,
     stack->stack_args.len = (KNO_STACKVEC_HEAPBIT|width);
   else stack->stack_args.len = width;
   if (decref != cur_decref) {
-    if (decref) KNO_STACK_SET_BITS(stack,KNO_STACK_DECREF_ARGS);
-    else KNO_STACK_SET_BITS(stack,KNO_STACK_DECREF_ARGS);}
+    KNO_STACK_SET_BIT(stack,KNO_STACK_DECREF_ARGS,decref);}
 }
 #define KNO_STACK_SET_ARGS __KNO_STACK_SET_ARGS
 #else

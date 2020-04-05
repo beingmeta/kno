@@ -153,6 +153,12 @@ KNO_EXPORT int _kno_reset_stack(struct KNO_STACK *stack)
   return kno_reset_stack(stack);
 }
 
+KNO_EXPORT  void _KNO_STACK_SET_POINT(kno_stack s,lispval new)
+{
+  KNO_STACK_SET_POINT(s,new);
+}
+
+
 /* Stacks are rendered into LISP as vectors as follows:
    1. depth  (integer, increasing with calls)
    2. type   (apply, eval, load, other)

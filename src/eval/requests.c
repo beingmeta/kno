@@ -311,7 +311,7 @@ static lispval withreq_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
         kno_reqlog(-1);
         return result;}
       kno_decref(result);
-      result = kno_eval_expr(ex,env);}}
+      result = kno_eval(ex,env,_stack,0);}}
   kno_use_reqinfo(EMPTY);
   kno_decref(reqdata);
   kno_reqlog(-1);

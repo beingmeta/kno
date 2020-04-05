@@ -1,4 +1,3 @@
-static lispval get_headval(lispval head,kno_lexenv env,kno_stack eval_stack);
 static lispval nd1_call(lispval opcode,lispval arg1);
 static lispval nd2_call(lispval opcode,lispval arg1,lispval arg2);
 static lispval d1_call(lispval opcode,lispval arg1);

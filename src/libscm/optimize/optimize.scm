@@ -406,7 +406,8 @@
 (define dont-touch-decls '{%unoptimized %volatile %nosubst})
 
 (defambda (optimize expr env bound opts)
-  (logdebug "Optimizing " expr " given " bound)
+  (logdebug |Optimize| expr " given " bound)
+  ;;(%watchptr optimize-expr)
   (cond ((and (ambiguous? expr) (use-opcodes? opts))
 	 `(#OP_UNION ,@(forseq (each (choice->list expr))
 			 (optimize each env bound opts))))
@@ -1050,7 +1051,7 @@
       `(#OP_BRANCH
 	(#OP_TRY ,(optimize (cadr expr) env bound opts) #f)
 	(#OP_BEGIN ,@(optimize-body (cddr expr))
-	 (,void-opcode)))
+		   (,void-opcode)))
       (optimize-block handler expr env bound opts)))
 (define (optimize-unless handler expr env bound opts)
   (if (and (use-opcodes? opts) (rewrite? opts))
@@ -1601,7 +1602,7 @@
 (add! special-form-optimizers {"FILEOUT" "SYSTEM"} optimize-block)
 
 (add! special-form-optimizers 
-      ({procedure-name (lambda (x) x) 
+    ({procedure-name (lambda (x) x) 
 	(lambda (x) (string->symbol (procedure-name x)))}
        quasiquote)
       optimize-quasiquote)

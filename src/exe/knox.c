@@ -53,6 +53,7 @@ static int debug_maxelts = 32, debug_maxchars = 80;
 static char *configs[MAX_CONFIGS], *exe_arg = NULL, *file_arg = NULL;
 static int n_configs = 0;
 static int interpret_stdin = 0;
+static int no_loadarg = 0;
 
 static int chain_fast_exit=1;
 
@@ -174,9 +175,10 @@ static lispval *handle_argv(int argc,char **argv,size_t *arglenp,
       i++;}
     else if (source_file) i++;
     else {
+      file_arg = argv[i];
       arg_mask[i] = 'X';
-      file_arg = argv[i++];
-      source_file = u8_fromlibc(file_arg);}}
+      source_file = u8_fromlibc(file_arg);
+      i++;}}
 
   if (source_file == NULL) {}
   else if (source_filep) {
@@ -251,6 +253,12 @@ int do_main(int argc,char **argv,
      kno_boolconfig_get,kno_boolconfig_set,
      &interpret_stdin);
   kno_register_config
+    ("NOLOADARG",
+     _("Whether to take the first command line argument as a source "
+       "file to load"),
+     kno_boolconfig_get,kno_boolconfig_set,
+     &no_loadarg);
+  kno_register_config
     ("MAIN",
      _("The name of the (main) routine for this file"),
      kno_lconfig_get,kno_symconfig_set,
@@ -321,12 +329,14 @@ int do_main(int argc,char **argv,
 
   link_local_cprims();
 
-  if (source_file) {
+  if ( (source_file) && (!(no_loadarg)) ) {
     lispval src = kno_wrapstring(u8_realpath(source_file,NULL));
     result = kno_load_source(source_file,env,NULL);
-
+    if (KNO_ABORTED(result)) {
+      u8_exception ex = u8_current_exception;
+      if (ex == NULL)
+	u8_seterr("LoadFailed","knox/main()",u8_strdup(source_file));}
     kno_set_config("SOURCE",src);
-
     kno_decref(src);}
   else if (interpret_stdin)
     result = load_stdin(env);

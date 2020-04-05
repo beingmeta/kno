@@ -83,7 +83,7 @@ static lispval assign_default_evalfn(lispval expr,kno_lexenv env,kno_stack _stac
   else {
     lispval val = kno_symeval(symbol,env);
     if ((VOIDP(val))||(val == KNO_UNBOUND)||(val == KNO_DEFAULT_VALUE)) {
-      lispval value = kno_eval_expr(value_expr,env);
+      lispval value = kno_eval(value_expr,env,_stack,0);
       if (KNO_ABORTED(value))
 	return value;
       /* Try to assign/bind it, checking for error return values */
@@ -111,7 +111,7 @@ static lispval assign_false_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     lispval val = kno_symeval(symbol,env);
     if ((VOIDP(val))||(FALSEP(val))||
 	(val == KNO_UNBOUND)||(val == KNO_DEFAULT_VALUE)) {
-      lispval value = kno_eval_expr(value_expr,env);
+      lispval value = kno_eval(value_expr,env,_stack,0);
       if (KNO_ABORTED(value))
 	return value;
       /* Try to assign/bind it, checking for error return values */
@@ -140,7 +140,7 @@ static lispval bind_default_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   else {
     lispval val = kno_get(env->env_bindings,symbol,VOID);
     if ((VOIDP(val))||(val == KNO_UNBOUND)||(val == KNO_DEFAULT_VALUE)) {
-      lispval value = kno_eval_expr(value_expr,env);
+      lispval value = kno_eval(value_expr,env,_stack,0);
       if (KNO_ABORTED(value))
 	return value;
       int rv = kno_bind_value(symbol,value,env);
@@ -398,7 +398,8 @@ static lispval define_init_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       kno_decref(current);
       return VOID;}
     else {
-      lispval init_value = kno_eval_expr(init_expr,env); int bound = 0;
+      int bound = 0;
+      lispval init_value = kno_eval(init_expr,env,_stack,0);
       if (KNO_ABORTED(init_value)) return init_value;
       else bound = kno_bind_value(var,init_value,env);
       if (bound>0) {

@@ -306,7 +306,7 @@ static lispval simple_fileout_evalfn(lispval expr,kno_lexenv env,kno_stack _stac
   u8_set_default_output(f);
   {lispval body = kno_get_body(expr,2);
     KNO_DOLIST(ex,body)  {
-      lispval value = kno_eval_expr(ex,env);
+      lispval value = kno_eval(ex,env,_stack,0);
       if (printout_helper(f,value))
 	kno_decref(value);
       else {
@@ -328,7 +328,7 @@ static lispval simple_system_evalfn(lispval expr,kno_lexenv env,kno_stack _stack
   U8_INIT_OUTPUT(&out,256);
   {lispval string_exprs = kno_get_body(expr,1);
     KNO_DOLIST(string_expr,string_exprs) {
-      lispval value = kno_eval_expr(string_expr,env);
+      lispval value = kno_eval(string_expr,env,_stack,0);
       if (KNO_ABORTP(value)) return value;
       else if (VOIDP(value)) continue;
       else if (STRINGP(value))

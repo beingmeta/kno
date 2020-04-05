@@ -64,7 +64,7 @@ KNO_EXPORT lispval kno_load_stream(u8_input loadstream,kno_lexenv env,
 	KNO_CHECK_ERRNO_OBJ(expr,"before evaluating");
 	start_time = u8_elapsed_time();}
       else start_time = -1.0;
-      result = kno_eval_expr(expr,env);
+      result = kno_eval(expr,env,load_stack,0);
       if (KNO_ABORTP(result)) {
 	if (KNO_TROUBLEP(result)) {
 	  u8_exception ex = u8_current_exception;
@@ -144,8 +144,9 @@ KNO_EXPORT lispval kno_load_source_with_date
   u8_string sourcebase = NULL;
   u8_string encoding = ((enc_name)?(enc_name):((u8_string)("auto")));
   u8_string content = kno_get_source(sourceid,encoding,&sourcebase,modtime,NULL);
-  if (content == NULL)
-    return KNO_ERROR;
+  if (content == NULL) {
+    kno_seterr(kno_FileNotFound,"kno_load_source_with_date",sourceid,KNO_VOID);
+    return KNO_ERROR;}
   const u8_byte *input = content;
   if ((trace_load) || (trace_load_eval))
     u8_log(LOG_WARN,FileLoad,

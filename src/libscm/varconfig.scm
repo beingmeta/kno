@@ -47,7 +47,7 @@
 
 (define (extract-doc body (before '()))
   (if (null? body)
-       (cons #f (reverse before))
+      (cons #f (reverse before))
       (if (string? (car body))
 	  (cons (car body) (append (reverse before) (cdr body)))
 	  (extract-doc (cdr body) (cons (car body) before)))))

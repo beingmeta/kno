@@ -2188,15 +2188,15 @@ static lispval cacheget_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 		 (VOIDP(default_expr))))
     return kno_err(kno_SyntaxError,"cacheget_evalfn",NULL,expr);
   else {
-    lispval table = kno_eval_expr(table_arg,env), key, value;
+    lispval table = kno_eval(table_arg,env,_stack,0), key, value;
     if (KNO_ABORTED(table)) return table;
-    else if (TABLEP(table)) key = kno_eval_expr(key_arg,env);
+    else if (TABLEP(table)) key = kno_eval(key_arg,env,_stack,0);
     else return kno_type_error(_("table"),"cachget_evalfn",table);
     if (KNO_ABORTED(key)) {
       kno_decref(table); return key;}
     else value = kno_get(table,key,VOID);
     if (VOIDP(value)) {
-      lispval dflt = kno_eval_expr(default_expr,env);
+      lispval dflt = kno_eval(default_expr,env,_stack,0);
       if (KNO_ABORTED(dflt)) {
 	kno_decref(table); kno_decref(key);
 	return dflt;}
