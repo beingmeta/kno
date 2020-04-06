@@ -130,14 +130,23 @@ KNO_EXPORT int kno_init_xrefs(xtype_refs refs,
   return n_refs;
 }
 
+static void recycle_xrefs(struct XTYPE_REFS *xrefs)
+{
+  int static_refs = (xrefs->xt_refs_flags)&(XTYPE_STATIC_REFS);
+  lispval *refs = xrefs->xt_refs;
+  xrefs->xt_refs = NULL;
+  if (!(static_refs)) u8_free(refs);
+  struct KNO_HASHTABLE *lookup = xrefs->xt_lookup;
+  xrefs->xt_lookup=NULL;
+  kno_recycle_hashtable(lookup);
+  u8_free(lookup);
+}
+
 static void recycle_xtype_refs(void *ptr)
 {
-  struct XTYPE_REFS *refs = (xtype_refs) ptr;
-  u8_free(refs->xt_refs); refs->xt_refs = NULL;
-  kno_recycle_hashtable(refs->xt_lookup);
-  u8_free(refs->xt_lookup);
-  refs->xt_lookup=NULL;
-  u8_free(refs);
+  struct XTYPE_REFS *xrefs = (xtype_refs) ptr;
+  recycle_xrefs(xrefs);
+  u8_free(xrefs);
 }
 
 KNO_EXPORT ssize_t kno_add_xtype_ref(lispval x,xtype_refs refs)
@@ -181,13 +190,9 @@ KNO_EXPORT ssize_t _kno_xtype_ref(lispval x,xtype_refs refs,int add)
   return kno_xtype_ref(x,refs,add);
 }
 
-KNO_EXPORT void kno_recycle_xrefs(xtype_refs refs)
+KNO_EXPORT void kno_recycle_xrefs(xtype_refs xrefs)
 {
-  kno_hashtable ht = refs->xt_lookup;
-  lispval *elts = refs->xt_refs;
-  memset(refs,0,sizeof(struct XTYPE_REFS));
-  kno_recycle_hashtable(ht);
-  u8_free(elts);
+  recycle_xrefs(xrefs);
 }
 
 /* Writing sorted choices */
@@ -637,11 +642,13 @@ static lispval read_xtype(kno_inbuf in,xtype_refs refs)
 	return KNO_ERROR;}
       struct XTYPE_REFS xrefs;
       ssize_t n_refs = KNO_VECTOR_LENGTH(refvec);
-      kno_init_xrefs(&xrefs,n_refs,n_refs,n_refs,0,
+      kno_init_xrefs(&xrefs,n_refs,n_refs,n_refs,
+		     XTYPE_STATIC_REFS,
 		     KNO_VECTOR_ELTS(refvec),
 		     NULL);
       lispval decoded = read_xtype(in,&xrefs);
       kno_recycle_xrefs(&xrefs);
+      kno_decref(refvec);
       return decoded;}
 
     default:
