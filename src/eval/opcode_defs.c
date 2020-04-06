@@ -992,7 +992,6 @@ static lispval bindop(lispval op,
       values=((kno_schemap)(bound->env_bindings))->table_values;}
     values[i++]  = val;}
   lispval result = op_eval_body(body,bound,bind_stack,"#BINDOP",NULL,tail);
-  release_stack_env(bind_stack);
   kno_pop_stack(bind_stack);
   return result;
 }
@@ -1044,7 +1043,7 @@ static lispval handle_table_opcode(lispval opcode,int n,kno_argvec args)
 {
   lispval subject = (n>0) ? (args[0]) : (KNO_EMPTY);
   lispval slotid  = (n>1) ? (args[1]) : (KNO_EMPTY);
-  lispval value   = (n>2) ? (args[1]) : (KNO_VOID);
+  lispval value   = (n>2) ? (args[2]) : (KNO_VOID);
 
   if ( (EMPTYP(subject)) || (EMPTYP(slotid)) ) {
     switch (opcode) {

@@ -1054,7 +1054,6 @@
       (optimize-block handler expr env bound opts)))
 
 (define (optimize-when handler expr env bound opts)
-  (dbg expr)
   (if (and (use-opcodes? opts) (rewrite? opts))
       `(#OP_BRANCH
 	(#OP_TRY ,(optimize (cadr expr) env bound opts) #f)

@@ -1062,6 +1062,7 @@ static lispval reduce_loop(kno_stack loop_stack,int tail)
   lispval op	 = loop_stack->stack_op;
   kno_lisp_type op_type = KNO_TYPEOF(op);
   KNO_STACK_SET_BITS(loop_stack,KNO_STACK_REDUCE_LOOP);
+  KNO_STACK_SET_TAIL(loop_stack,tail);
   if (op_type == kno_pair_type)
     loop_stack->eval_source  = op;
   if (KNO_VOIDP(loop_stack->eval_context))
