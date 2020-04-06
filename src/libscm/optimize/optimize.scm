@@ -340,6 +340,7 @@
 (def-opcode PICKOIDS    #OP_PICKOIDS 1)
 (def-opcode PICKSTRINGS #OP_PICKSTRINGS 1)
 (def-opcode PICKNUMS    #OP_PICKNUMS 1)
+(def-opcode PICKMAPS    #OP_PICKMAPS 1)
 (def-opcode PICK-ONE    #OP_PICKONE 1)
 (def-opcode IFEXISTS    #OP_IFEXISTS 1)
 (def-opcode SOMETRUE    #OP_SOMETRUE 1)
@@ -355,6 +356,9 @@
 (def-opcode STRING?    #OP_STRINGP 1)
 (def-opcode OID?       #OP_OIDP 1)
 (def-opcode SYMBOL?    #OP_SYMBOLP 1)
+(def-opcode FIXNUM?    #OP_FIXNUMP 1)
+(def-opcode FLONUM?    #OP_FLONUMP 1)
+(def-opcode TABLE?     #OP_TABLEP 1)
 (def-opcode FIRST      #OP_FIRST 1)
 (def-opcode SECOND     #OP_SECOND 1)
 (def-opcode THIRD      #OP_THIRD 1)
@@ -364,6 +368,7 @@
 (def-opcode CDDDR      #OP_CDDDR 1)
 (def-opcode ->NUMBER   #OP_2NUMBER 1)
 
+(def-opcode ELTS       #OP_SEQELTS 1)
 (def-opcode GETKEYS    #OP_GETKEYS 1)
 (def-opcode GETVALUES  #OP_GETVALUES 1)
 (def-opcode GETASSOCS  #OP_GETASSOCS 1)
@@ -389,6 +394,8 @@
 (def-opcode EQV?         #OP_EQVP 2)
 (def-opcode EQUAL?       #OP_EQUALP 2)
 (def-opcode ELT          #OP_SEQELT 2)
+
+(def-opcode CONS       #OP_CONSPAIR 2)
 
 (def-opcode GET        #OP_FGET 2)
 (def-opcode TEST       #OP_FTEST 3)
