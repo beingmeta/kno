@@ -142,13 +142,6 @@ KNO_FASTOP lispval eval_body(lispval body,kno_lexenv env,kno_stack stack,
 			     int tail)
 {
   if (!(KNO_STACK_BITP(stack,KNO_STACK_TAIL_POS))) tail = 0;
-  if (KNO_EMPTY_LISTP(body))
-    return KNO_VOID;
-  else if (!(KNO_PAIRP(body)))
-    return kno_err(kno_SyntaxError,
-		   U8ALT(cxt,"eval_body"),
-		   label,
-		   body);
   lispval scan = body;
   while (PAIRP(scan)) {
       lispval subex = pop_arg(scan);
@@ -167,7 +160,12 @@ KNO_FASTOP lispval eval_body(lispval body,kno_lexenv env,kno_stack stack,
 			  U8ALT(cxt,"eval_body"),
 			  label,
 			  body);}
-  return KNO_VOID;
+  if (KNO_EMPTY_LISTP(body))
+    return KNO_VOID;
+  else return kno_err(kno_SyntaxError,
+		      U8ALT(cxt,"eval_body"),
+		      label,
+		      body);
 }
 
 KNO_FASTOP kno_lexenv init_static_env

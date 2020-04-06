@@ -3,35 +3,38 @@ static lispval nd2_call(lispval opcode,lispval arg1,lispval arg2);
 static lispval d1_call(lispval opcode,lispval arg1);
 static lispval d2_call(lispval opcode,lispval arg1,lispval arg2);
 
+static lispval op_eval_body_error(u8_context cxt,u8_string label,
+				  lispval body,lispval scan);
 KNO_FASTOP lispval op_eval_body(lispval body,kno_lexenv env,kno_stack stack,
 				u8_context cxt,u8_string label,
 				int tail)
 {
-  if (KNO_EMPTY_LISTP(body))
-    return KNO_VOID;
-  else if (!(KNO_PAIRP(body)))
-    return kno_err(kno_SyntaxError,
-                   ( (cxt) && (label) ) ? (cxt) :
-                   ((u8_string)"eval_inner_body"),
-                   (label) ? (label) : (cxt) ? (cxt) : (NULL),
-                   body);
   lispval scan = body;
   while (PAIRP(scan)) {
-      lispval subex = pop_arg(scan);
-      if (PAIRP(scan)) {
-	lispval v = kno_eval(subex,env,stack,0);
-	if (KNO_ABORTED(v))
-          return v;
-	else kno_decref(v);}
-      else if (KNO_EMPTY_LISTP(scan))
-	return kno_eval(subex,env,stack,0);
-      else return kno_err(kno_SyntaxError,
-			  ( (cxt) && (label) ) ? (cxt) :
-			  ((u8_string)"eval_inner_body"),
-			  (label) ? (label) : (cxt) ? (cxt) : (NULL),
-			  body);}
-  return KNO_VOID;
+    lispval subex = pop_arg(scan);
+    if (PAIRP(scan)) {
+      lispval v = kno_eval(subex,env,stack,0);
+      if (KNO_ABORTED(v))
+	return v;
+      else kno_decref(v);}
+    else if (KNO_EMPTY_LISTP(scan))
+      return kno_eval(subex,env,stack,0);
+    else break;}
+  if (KNO_EMPTY_LISTP(body))
+    return KNO_VOID;
+  else return op_eval_body_error(cxt,label,body,scan);
 }
+
+static lispval op_eval_body_error(u8_context cxt,u8_string label,
+				  lispval body,lispval scan)
+{
+  return kno_err(kno_SyntaxError,
+		 ( (cxt) && (label) ) ? (cxt) :
+		 ((u8_string)"eval_body"),
+		 (label) ? (label) : (cxt) ? (cxt) : (NULL),
+		 body);
+}
+
 
 /* Reduce ops */
 
