@@ -279,7 +279,7 @@ static void log_ptr(lispval val,lispval label_arg,lispval expr)
 }
 
 KNO_DEF_EVALFN("%watchptr",watchptr_evalfn,
-	       "`(%WATCHPTR *arg*)` evaluates *arg* and describes the "
+	       "`(%watchptr *arg*)` evaluates *arg* and describes the "
 	       "resulting pointer value.");
 static lispval watchptr_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
@@ -290,7 +290,7 @@ static lispval watchptr_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 }
 
 KNO_DEF_EVALFN("%watchcons",watchcons_evalfn,
-	       "`(%WATCHCONS *ptrval* *exprs...*)` evaluates *exprs...* "
+	       "`(%watchcons *ptrval* *exprs...*)` evaluates *exprs...* "
 	       "reporting any changes to the reference count data for the "
 	       "result of evaluating *ptrval*.");
 static lispval watchcons_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
@@ -337,7 +337,7 @@ static lispval watchcons_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 }
 
 DEFPRIM2("%watchptrval",watchptr_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDOP,
-         "`(%WATCHPTRVAL *ptrval* [*arg1*])` Describes the Kno pointer "
+         "`(%watchptrval *ptrval* [*arg1*])` Describes the Kno pointer "
 	 "characteristics of *ptrval*, using a label string dervied "
 	 "from *label* if provided",
          kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
@@ -364,6 +364,8 @@ static lispval watchpoint_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
   double start; int oneout = 0;
   lispval scan = KNO_CDR(expr);
   u8_string label="%WATCH";
+  int old_tail = KNO_STACK_TAILP(stack);
+  KNO_STACK_SET_TAIL(stack,0);
   if ((PAIRP(toeval))) {
     /* EXPR "label" . watchexprs */
     scan = KNO_CDR(scan);
@@ -444,6 +446,7 @@ static lispval watchpoint_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
     u8_logger(U8_LOG_MSG,label,out.u8_outbuf);
     u8_free(out.u8_outbuf);}
   start = u8_elapsed_time();
+  KNO_STACK_SET_TAIL(stack,old_tail);
   if (SYMBOLP(toeval))
     return kno_eval(toeval,env,stack,0);
   else if (STRINGP(toeval)) {
@@ -451,8 +454,10 @@ static lispval watchpoint_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
        we don't bother 'timing' it. */
     return kno_incref(toeval);}
   else {
+    KNO_STACK_SET_TAIL(stack,0);
     lispval value = kno_eval_expr(toeval,env);
     double howlong = u8_elapsed_time()-start;
+    KNO_STACK_SET_TAIL(stack,old_tail);
     if (KNO_ABORTED(value)) {
       u8_exception ex = u8_erreify();
       value = kno_wrap_exception(ex);}

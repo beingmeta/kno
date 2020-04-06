@@ -729,14 +729,14 @@ static kno_stack find_loop_frame(kno_stack stack)
 {
   kno_stack scan = stack, loop = NULL;
   while (scan) {
+    if (!(KNO_STACK_BITP(scan,KNO_STACK_TAIL_POS))) break;
     if (KNO_STACK_BITP(scan,KNO_STACK_REDUCE_LOOP)) {
       /* We disable this bit on this entry so we can throw through it
 	 if there's a 'better' loop higher up the stack.
 	 We reset the bit on the outermost loop. */
       KNO_STACK_CLEAR_BITS(scan,KNO_STACK_REDUCE_LOOP);
       loop=scan;}
-    if (!(KNO_STACK_BITP(scan,KNO_STACK_TAIL_POS))) break;
-    else scan = scan->stack_caller;}
+    scan = scan->stack_caller;}
   if (loop) KNO_STACK_SET_BITS(loop,KNO_STACK_REDUCE_LOOP);
   return loop;
 }
