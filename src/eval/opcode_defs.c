@@ -681,18 +681,20 @@ static lispval d1_call(lispval opcode,lispval arg1)
     else if (KNO_CHARACTERP(arg1))
       return KNO_INT(KNO_CHARCODE(arg1));
     else return kno_type_error(_("number|string"),"opcode ->number",arg1);
+  case KNO_ELTS_OPCODE: {
+    int n_elts = -1;
+    lispval *elts = kno_seq_elts(arg1,&n_elts);
+    if (elts == NULL) return KNO_ERROR;
+    else return kno_make_choice(n_elts,elts,
+				KNO_CHOICE_COMPRESS|
+				KNO_CHOICE_DOSORT|
+				KNO_CHOICE_REALLOC|
+				KNO_CHOICE_FREEDATA);}
   case KNO_GETKEYS_OPCODE:
-    if (KNO_TABLEP(arg1))
-      return kno_getkeys(arg1);
-    else return kno_type_error(_("table"),"opcode GETKEYS",arg1);
+    return kno_getkeys(arg1);
   case KNO_GETVALUES_OPCODE:
-    if (KNO_TABLEP(arg1))
-      return kno_getvalues(arg1);
-    else return kno_type_error(_("table"),"opcode GETVALUES",arg1);
-  case KNO_GETASSOCS_OPCODE:
-    if (KNO_TABLEP(arg1))
-      return kno_getassocs(arg1);
-    else return kno_type_error(_("table"),"opcode GETASSOCS",arg1);
+    return kno_getvalues(arg1);
+    return kno_getassocs(arg1);
   default:
     return kno_err(_("Invalid opcode"),"opcode eval",NULL,VOID);
   }

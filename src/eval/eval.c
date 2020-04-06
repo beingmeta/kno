@@ -990,6 +990,11 @@ lispval eval(lispval expr,kno_lexenv env,kno_stack stack,
       else if (KNO_CONSP(arg)) {
 	if ( (nd_args == 0) && (CHOICEP(arg)) )
 	  nd_args = 1;
+	else if (KNO_QCHOICEP(arg)) {
+	  lispval unwrapped = KNO_QCHOICEVAL(arg);
+	  kno_incref(unwrapped);
+	  kno_decref(arg);
+	  arg = unwrapped;}
 	decref_args = 1;}
       else NO_ELSE;
       kno_stackvec_push(args,arg);}
