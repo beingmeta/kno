@@ -124,8 +124,9 @@ static int bound_in_envp(lispval symbol,kno_lexenv env)
 
 /* Opcodes */
 
-u8_string kno_opcode_names[0xF00]={NULL};
-int kno_opcodes_length = 0xF00;
+u8_string kno_opcode_names[0xF00]         ={NULL};
+unsigned char kno_opcode_call_info[0xF00] = { 0 };
+const int kno_opcodes_length = 0xF00;
 
 u8_string opcode_name(lispval opcode)
 {
@@ -896,9 +897,18 @@ lispval eval(lispval expr,kno_lexenv env,kno_stack stack,
     case kno_evalfn_type: {
       struct KNO_EVALFN *handler = (kno_evalfn)evalop;
       /* These are evalfns which do all the evaluating themselves */
-      stack->stack_label=handler->evalfn_name;
-      KNO_STACK_SET_TAIL(stack,tail);
-      result = handler->evalfn_handler(expr,env,stack);
+      int notail = handler->evalfn_notail;
+      if (handler->evalfn_push) {
+	KNO_START_EVAL(evalfn_stack,handler->evalfn_name,expr,env,stack);
+	if (notail) KNO_STACK_SET_TAIL(stack,0);
+	else KNO_STACK_SET_TAIL(stack,tail);
+	result = handler->evalfn_handler(expr,env,stack);
+	kno_pop_stack(evalfn_stack);}
+      else {
+	stack->stack_label=handler->evalfn_name;
+	if (notail) KNO_STACK_SET_TAIL(stack,0);
+	else KNO_STACK_SET_TAIL(stack,tail);
+	result = handler->evalfn_handler(expr,env,stack);}
       goto clean_exit;}
     case kno_opcode_type:
       if (KNO_SPECIAL_OPCODEP(evalop)) {
@@ -956,9 +966,12 @@ lispval eval(lispval expr,kno_lexenv env,kno_stack stack,
     KNO_DECL_STACKVEC(args,argbuf_len);
     kno_lisp_type apply_type = KNO_TYPEOF(applyop);
     int nd_args = (KNO_CHOICEP(evalop));
-    int nd_op = (f) ? (KNO_FCN_NDCALLP(f)) :
-      (KNO_OPCODEP(evalop)) ? (KNO_ND_OPCODEP(evalop)) :
-      (kno_isndfunctionp[apply_type]);
+    int call_bits = (f) ? (f->fcn_call) :
+      (KNO_OPCODEP(applyop)) ?
+      (kno_opcode_call_info[KNO_IMMEDIATE_DATA(applyop)]) :
+      (kno_type_call_info[apply_type]);
+    int prune = (!((call_bits)&(KNO_CALL_XPRUNE)));
+    int iter  = (!((call_bits)&(KNO_CALL_XITER)));
   eval_apply:
     while (PAIRP(exprs)) {
       lispval arg_expr = pop_arg(exprs);
@@ -971,7 +984,7 @@ lispval eval(lispval expr,kno_lexenv env,kno_stack stack,
 	  kno_seterr(TailArgument,"kno_pair_eval",NULL,arg_expr);
 	  result = KNO_ERROR;
 	  goto cleanup_args;}
-	else if ( (KNO_EMPTYP(arg)) && (!(nd_op)) ) {
+	else if ( (KNO_EMPTYP(arg)) && (prune) ) {
 	  result = arg;
 	  goto cleanup_args;}}
       else if (KNO_CONSP(arg)) {
@@ -983,7 +996,7 @@ lispval eval(lispval expr,kno_lexenv env,kno_stack stack,
 
     lispval *argbuf = KNO_STACKVEC_ELTS(args);
     int n_args = KNO_STACKVEC_COUNT(args);
-    int ndcall = (nd_args) && (!(nd_op));
+    int ndcall = (nd_args) && (iter);
   call_op:
     if (apply_type == kno_opcode_type) {
       if (ndcall) {
@@ -1001,6 +1014,7 @@ lispval eval(lispval expr,kno_lexenv env,kno_stack stack,
       if (PRED_TRUE(lambda_check_arity(proc,n_args))) {
 	kno_stack loop = (tail) ? (find_loop_frame(stack)) : (NULL);
 	if (loop) {
+	tail:
 	  setup_tail_call(loop,proc,n_args,argbuf,decref_op,decref_args);
 	  return KNO_TAIL;}
 	else result = lambda_call(stack,proc,n_args,(kno_argvec)argbuf,tail);}
@@ -1148,6 +1162,17 @@ static void set_opcode_name(lispval opcode,u8_string name)
   u8_free(constname);
 }
 
+static void set_opcode_info(lispval opcode,u8_string name,
+			    unsigned char call_flags)
+{
+  int off = KNO_OPCODE_NUM(opcode);
+  u8_string constname=u8_string_append("#",name,NULL);
+  kno_opcode_names[off] = name;
+  kno_opcode_call_info[off] = call_flags;
+  kno_add_constname(constname,opcode);
+  u8_free(constname);
+}
+
 KNO_EXPORT lispval kno_get_opcode(u8_string name)
 {
   int i = 0; while (i<kno_opcodes_length) {
@@ -1182,18 +1207,21 @@ static int validate_opcode(lispval opcode)
 
 /* Making some functions */
 
-KNO_EXPORT lispval kno_make_evalfn(u8_string name,kno_eval_handler fn)
+KNO_EXPORT lispval kno_make_evalfn(u8_string name,int flags,
+				   kno_eval_handler fn)
 {
   struct KNO_EVALFN *f = u8_alloc(struct KNO_EVALFN);
   KNO_INIT_CONS(f,kno_evalfn_type);
   f->evalfn_name = u8_strdup(name);
   f->evalfn_filename = NULL;
   f->evalfn_handler = fn;
+  f->evalfn_push = U8_BITP(flags,KNO_EVALFN_PUSH);
+  f->evalfn_notail = U8_BITP(flags,KNO_EVALFN_NOTAIL);
   return LISP_CONS(f);
 }
 
 KNO_EXPORT void kno_new_evalfn(lispval mod,u8_string name,u8_string cname,
-			       u8_string filename,u8_string doc,
+			       u8_string filename,u8_string doc,int flags,
 			       kno_eval_handler fn)
 {
   struct KNO_EVALFN *f = u8_alloc(struct KNO_EVALFN);
@@ -1203,6 +1231,8 @@ KNO_EXPORT void kno_new_evalfn(lispval mod,u8_string name,u8_string cname,
   f->evalfn_filename = filename;
   f->evalfn_cname = u8_strdup(cname);
   f->evalfn_documentation = u8_strdup(doc);
+  f->evalfn_push = U8_BITP(flags,KNO_EVALFN_PUSH);
+  f->evalfn_notail = U8_BITP(flags,KNO_EVALFN_NOTAIL);
   kno_store(mod,kno_getsym(name),LISP_CONS(f));
   f->evalfn_moduleid = kno_get(mod,KNOSYM_MODULEID,KNO_VOID);
   kno_decref(LISP_CONS(f));

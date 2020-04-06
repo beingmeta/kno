@@ -389,7 +389,7 @@ KNO_FASTOP U8_MAYBE_UNUSED int _KNO_ISDTYPE(lispval x){ return 1;}
 #define KNO_GET_IMMEDIATE(x,tcode) (((LISPVAL(x))>>2)&0x7FFFFF)
 #define KNO_IMMEDIATE_TYPE_FIELD(x) (((LISPVAL(x))>>25)&0x7F)
 #define KNO_IMMEDIATE_TYPE(x) ((((LISPVAL(x))>>25)&0x7F)+0x4)
-#define KNO_IMMEDIATE_DATA(x) ((LISPVAL(x))>>2)
+#define KNO_IMMEDIATE_DATA(x) (((LISPVAL(x))>>2)&0x7FFFFF)
 #define KNO_IMM_TYPE(x) ((((LISPVAL(x))>>25)&0x7F)+0x4)
 #define KNO_IMMEDIATE_TYPEP(x,typecode) \
   (((x)&((0x7f<<25)|(0x3)))==((((typecode)-0x4)<<25)|0x1))

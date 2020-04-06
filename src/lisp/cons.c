@@ -43,7 +43,7 @@ kno_compare_fn kno_comparators[KNO_TYPE_MAX];
 
 kno_applyfn kno_applyfns[KNO_TYPE_MAX];
 /* Whether function application should pass choice arguments directly */
-unsigned char kno_isndfunctionp[KNO_TYPE_MAX];
+unsigned char kno_type_call_info[KNO_TYPE_MAX];
 /* Whether an applyfn type is a cons with the KNO_FUNCTION_FIELDS header. */
 unsigned char kno_isfunctionp[KNO_TYPE_MAX];
 
@@ -875,7 +875,7 @@ void kno_init_cons_c()
   i = 0; while (i < KNO_TYPE_MAX) kno_copiers[i++]=NULL;
   i = 0; while (i < KNO_TYPE_MAX) kno_applyfns[i++]=NULL;
   i = 0; while (i < KNO_TYPE_MAX) kno_isfunctionp[i++]=0;
-  i = 0; while (i < KNO_TYPE_MAX) kno_isndfunctionp[i++]=0;
+  i = 0; while (i < KNO_TYPE_MAX) kno_type_call_info[i++]=0;
 
   kno_immediate_checkfns[kno_constant_type]=validate_constant;
 

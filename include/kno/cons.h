@@ -1073,7 +1073,7 @@ typedef const lispval *kno_argvec;
 typedef lispval (*kno_applyfn)(lispval f,int n,kno_argvec);
 KNO_EXPORT kno_applyfn kno_applyfns[];
 /* Whether function application should pass choice arguments directly */
-KNO_EXPORT unsigned char kno_isndfunctionp[];
+KNO_EXPORT unsigned char kno_type_call_info[];
 /* Whether an applyfn type is a cons with the KNO_FUNCTION_FIELDS header. */
 KNO_EXPORT unsigned char kno_isfunctionp[];
 

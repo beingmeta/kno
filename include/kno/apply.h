@@ -114,6 +114,13 @@ typedef lispval (*kno_xprimn)(kno_stack,kno_function,int n,kno_argvec);
     void *fnptr;}							  \
     fcn_handler
 
+#define KNO_CALL_XITER    0x01
+#define KNO_CALL_VARARGS  0x02
+#define KNO_CALL_NOTAIL   0x04
+#define KNO_CALL_CPRIM    0x08
+#define KNO_CALL_XCALL    0x10
+#define KNO_CALL_XPRUNE   0x20
+
 #define KNO_FCN_FREE_DOC      0x01
 #define KNO_FCN_FREE_TYPEINFO 0x02
 #define KNO_FCN_FREE_DEFAULTS 0x04
@@ -123,28 +130,21 @@ typedef lispval (*kno_xprimn)(kno_stack,kno_function,int n,kno_argvec);
 #define KNO_FCN_TRACE_TRACEFN 0x04
 #define KNO_FCN_TRACE_BREAK   0x08
 
-#define KNO_FCN_CALL_XITER  0x01
-#define KNO_FCN_CALL_LEXPR  0x02
-#define KNO_FCN_CALL_NOTAIL 0x04
-#define KNO_FCN_CALL_CPRIM  0x08
-#define KNO_FCN_CALL_XCALL  0x10
-#define KNO_FCN_CALL_XPRUNE 0x20
-
-#define KNO_FCN_CALL_NDCALL  (KNO_FCN_CALL_XITER|KNO_FCN_CALL_XPRUNE)
+#define KNO_CALL_NDCALL  (KNO_CALL_XITER|KNO_CALL_XPRUNE)
 
 #define KNO_FCN_PROFILEP(f) ( ((f)->fcn_trace) & (KNO_FCN_TRACE_PROFILE) )
-#define KNO_FCN_LOGGEDP(f)  ( ((f)->fcn_trace) & (KNO_FCN_CALL_LOGGING) )
-#define KNO_FCN_TRACEDP(f)  ( ((f)->fcn_trace) & (KNO_FCN_CALL_TRACEFN) )
-#define KNO_FCN_BREAKP(f)   ( ((f)->fcn_trace) & (KNO_FCN_CALL_BREAK) )
+#define KNO_FCN_LOGGEDP(f)  ( ((f)->fcn_trace) & (KNO_CALL_LOGGING) )
+#define KNO_FCN_TRACEDP(f)  ( ((f)->fcn_trace) & (KNO_CALL_TRACEFN) )
+#define KNO_FCN_BREAKP(f)   ( ((f)->fcn_trace) & (KNO_CALL_BREAK) )
 
-#define KNO_FCN_ITERP(f)   (! ( ((f)->fcn_call) & (KNO_FCN_CALL_XITER) ) )
-#define KNO_FCN_LEXPRP(f)  ( ((f)->fcn_call) & (KNO_FCN_CALL_LEXPR) )
-#define KNO_FCN_NOTAILP(f) ( ((f)->fcn_call) & (KNO_FCN_CALL_NOTAIL) )
-#define KNO_FCN_CPRIMP(f)  ( ((f)->fcn_call) & (KNO_FCN_CALL_CPRIM) )
-#define KNO_FCN_XCALLP(f)  ( ((f)->fcn_call) & (KNO_FCN_CALL_XCALL) )
-#define KNO_FCN_PRUNEP(f)  (! ( ((f)->fcn_call) & (KNO_FCN_CALL_XPRUNE) ) )
+#define KNO_FCN_ITERP(f)   (! ( ((f)->fcn_call) & (KNO_CALL_XITER) ) )
+#define KNO_FCN_VARARGP(f)  ( ((f)->fcn_call) & (KNO_CALL_VARARGS) )
+#define KNO_FCN_NOTAILP(f) ( ((f)->fcn_call) & (KNO_CALL_NOTAIL) )
+#define KNO_FCN_CPRIMP(f)  ( ((f)->fcn_call) & (KNO_CALL_CPRIM) )
+#define KNO_FCN_XCALLP(f)  ( ((f)->fcn_call) & (KNO_CALL_XCALL) )
+#define KNO_FCN_PRUNEP(f)  (! ( ((f)->fcn_call) & (KNO_CALL_XPRUNE) ) )
 
-#define KNO_FCN_NDCALLP(f) ( ((f)->fcn_call) & (KNO_FCN_CALL_NDCALL) )
+#define KNO_FCN_NDCALLP(f) ( ((f)->fcn_call) & (KNO_CALL_NDCALL) )
 
 #define KNO_FCN_FREE_DOCP(f)	  ( ((f)->fcn_free) & (KNO_FCN_FREE_DOC) )
 #define KNO_FCN_FREE_TYPEINFOP(f) ( ((f)->fcn_free) & (KNO_FCN_FREE_TYPEINFO) )
@@ -381,7 +381,7 @@ KNO_EXPORT int kno_unparse_function
 #define FCN_NDOPP KNO_FCN_NDCALLP
 #define FCN_NOTAILP KNO_FCN_NOTAILP
 #define FCN_XCALLP KNO_FCN_XCALLP
-#define FCN_LEXPRP KNO_FCN_LEXPRP
+#define FCN_VARARGP KNO_FCN_VARARGP
 #endif
 
 #endif /* KNO_APPLY_H */

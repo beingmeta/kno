@@ -446,7 +446,7 @@ static lispval ndcall(struct KNO_STACK *stack,lispval h,int n,kno_argvec args)
   kno_lisp_type fntype = KNO_TYPEOF(h);
   if (KNO_FUNCTION_TYPEP(fntype)) {
     struct KNO_FUNCTION *f = KNO_GETFUNCTION(h);
-    int ndop = (f->fcn_call & KNO_FCN_CALL_NDCALL);
+    int ndop = (f->fcn_call & KNO_CALL_NDCALL);
     if ( (f->fcn_arity==0) || (ndop) )
       return kno_dcall(stack,h,n,args);
     else {
@@ -497,10 +497,10 @@ KNO_EXPORT lispval kno_call(struct KNO_STACK *_stack,
   int ambig_args   = ( (KNO_CHOICEP(handler)) || (KNO_PRECHOICEP(handler)) );
   if (KNO_FUNCTIONP(handler)) {
     kno_function f = (kno_function) handler;
-    if (f->fcn_call & KNO_FCN_CALL_NDCALL)
+    if (f->fcn_call & KNO_CALL_NDCALL)
       iter_choices = 0;
     else NO_ELSE;}
-  else if (kno_isndfunctionp[KNO_PRIM_TYPE(handler)]) {
+  else if ((kno_type_call_info[KNO_PRIM_TYPE(handler)])&(KNO_CALL_NDCALL)) {
     iter_choices = 0;}
   else NO_ELSE;
   if (iter_choices) {

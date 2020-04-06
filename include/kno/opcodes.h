@@ -18,12 +18,11 @@ KNO_EXPORT lispval kno_opcode_dispatch
 KNO_EXPORT lispval kno_get_opcode(u8_string name);
 KNO_EXPORT u8_string kno_opcode_name(lispval opcode);
 
-
-
 /* Opcodes */
 
 KNO_EXPORT u8_string kno_opcode_names[];
-KNO_EXPORT int kno_opcodes_length;
+KNO_EXPORT unsigned char kno_opcode_call_info[];
+KNO_EXPORT const int kno_opcodes_length;
 
 #define KNO_SPECIAL_OPCODE(x)  KNO_OPCODE(x+0x00)
 #define KNO_SPECIAL_OPCODEP(x) ((x>=KNO_OPCODE(0x00))&&(x<KNO_OPCODE(0x100)))
@@ -87,6 +86,7 @@ KNO_EXPORT int kno_opcodes_length;
 #define KNO_FLONUMP_OPCODE     KNO_D1_OPCODE(0x0c)
 #define KNO_SEQUENCEP_OPCODE   KNO_D1_OPCODE(0x0d)
 #define KNO_TABLEP_OPCODE      KNO_D1_OPCODE(0x0e)
+
 #define KNO_FIRST_OPCODE       KNO_D1_OPCODE(0x0f)
 #define KNO_SECOND_OPCODE      KNO_D1_OPCODE(0x10)
 #define KNO_THIRD_OPCODE       KNO_D1_OPCODE(0x11)
@@ -113,6 +113,7 @@ KNO_EXPORT int kno_opcodes_length;
 #define KNO_IDENTICAL_OPCODE  KNO_ND2_OPCODE(0x01)
 #define KNO_OVERLAPS_OPCODE   KNO_ND2_OPCODE(0x02)
 #define KNO_CONTAINSP_OPCODE  KNO_ND2_OPCODE(0x03)
+
 /*
 #define KNO_UNION_OPCODE      KNO_ND2_OPCODE(0x04)
 #define KNO_INTERSECT_OPCODE  KNO_ND2_OPCODE(0x05)

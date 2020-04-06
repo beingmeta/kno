@@ -135,31 +135,44 @@ typedef struct KNO_EVALFN {
   u8_string evalfn_name, evalfn_cname, evalfn_filename;
   u8_string evalfn_documentation;
   lispval evalfn_moduleid;
+  unsigned char evalfn_notail, evalfn_push;
   kno_eval_handler evalfn_handler;} KNO_EVALFN;
 typedef struct KNO_EVALFN *kno_evalfn;
 
-KNO_EXPORT lispval kno_make_evalfn(u8_string name,kno_eval_handler fn);
+#define KNO_EVALFN_PUSH    0x01
+#define KNO_EVALFN_NOTAIL  0x02
+
+KNO_EXPORT lispval kno_make_evalfn(u8_string name,int flags,kno_eval_handler fn);
 KNO_EXPORT void kno_new_evalfn(lispval mod,u8_string name,u8_string cname,
                                u8_string filename,
                                u8_string doc,
-                               kno_eval_handler fn);
+			       int flags,
+			       kno_eval_handler fn);
 
 #define kno_def_evalfn(mod,name,evalfn,doc)                             \
   kno_new_evalfn(mod,name,# evalfn,                                     \
-                 _FILEINFO " L#" STRINGIFY(__LINE__),doc,evalfn)
+		 _FILEINFO " L#" STRINGIFY(__LINE__),doc,0,evalfn)
+#define kno_def_xevalfn(mod,name,evalfn,flags,doc)			\
+  kno_new_evalfn(mod,name,# evalfn,                                     \
+		 _FILEINFO " L#" STRINGIFY(__LINE__),doc,flags,evalfn)
 
 typedef struct KNO_EVALFN_INFO {
-  u8_string pname, cname, filename, docstring;} KNO_EVALFN_INFO;
+  u8_string pname, cname, filename, docstring;
+  int flags;} KNO_EVALFN_INFO;
 typedef struct KNO_EVALFN_INFO *kno_evalfn_info;
 
 #define KNO_DEF_EVALFN(pname,cname,docstring) \
   struct KNO_EVALFN_INFO cname ## _info = { \
     pname, # cname, _FILEINFO " L#" STRINGIFY(__LINE__), \
-    docstring};
+    docstring, 0};
+#define KNO_DEF_XEVALFN(pname,cname,flags,docstring)	\
+  struct KNO_EVALFN_INFO cname ## _info = { \
+    pname, # cname, _FILEINFO " L#" STRINGIFY(__LINE__), \
+    docstring, flags};
 
 #define KNO_LINK_EVALFN(module,cname) \
   kno_new_evalfn(module,cname ## _info.pname,# cname,cname ## _info.filename, \
-                 cname ## _info.docstring,cname);
+		 cname ## _info.docstring,cname ## _info.flags,cname);
 
 /* Macros */
 

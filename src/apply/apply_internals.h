@@ -172,7 +172,7 @@ KNO_FASTOP lispval cprim_call(u8_string fname,kno_cprim cp,
     return KNO_ERROR;
   else if (FCN_XCALLP(cp))
     return cp->fcn_handler.xcalln(stack,(kno_function)cp,n,args);
-  else if ( (FCN_LEXPRP(cp)) || (arity < 0) )
+  else if ( (FCN_VARARGP(cp)) || (arity < 0) )
     return cp->fcn_handler.calln(n,args);
   else switch (arity) {
     case 0: return cp->fcn_handler.call0();

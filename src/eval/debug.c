@@ -347,25 +347,23 @@ static lispval watchptr_prim(lispval val,lispval label_arg)
   return kno_incref(val);
 }
 
-KNO_DEF_EVALFN("%watch",watchpoint_evalfn,
-	       "`(%WATCH [*expr*|*label*] [*expr* | *valname* *expr*]+)` "
-	       "logs information from the  current environment. Unless the "
-	       "first argument is a literal string, it is evaluated and "
-	       "both the expression and result are logged. Any remaining "
-	       "arguments are either expressions (which are displayed "
-	       "as *expr*=*value* or a literal *valname* string followed by "
-	       "an expression to be evaulated. The value is displayed as "
-	       "*valname*=*result*. If *valname* starts with a newline "
-	       "character, the display starts on a new line and the value "
-	       "is displayed using `LISTDATA`.");
-static lispval watchpoint_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
+KNO_DEF_XEVALFN("%watch",watch_evalfn,KNO_EVALFN_NOTAIL,
+		"`(%WATCH [*expr*|*label*] [*expr* | *valname* *expr*]+)` "
+		"logs information from the  current environment. Unless the "
+		"first argument is a literal string, it is evaluated and "
+		"both the expression and result are logged. Any remaining "
+		"arguments are either expressions (which are displayed "
+		"as *expr*=*value* or a literal *valname* string followed by "
+		"an expression to be evaulated. The value is displayed as "
+		"*valname*=*result*. If *valname* starts with a newline "
+		"character, the display starts on a new line and the value "
+		"is displayed using `LISTDATA`.");
+static lispval watch_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
 {
   lispval toeval = kno_get_arg(expr,1);
   double start; int oneout = 0;
   lispval scan = KNO_CDR(expr);
   u8_string label="%WATCH";
-  int old_tail = KNO_STACK_TAILP(stack);
-  KNO_STACK_SET_TAIL(stack,0);
   if ((PAIRP(toeval))) {
     /* EXPR "label" . watchexprs */
     scan = KNO_CDR(scan);
@@ -446,7 +444,6 @@ static lispval watchpoint_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
     u8_logger(U8_LOG_MSG,label,out.u8_outbuf);
     u8_free(out.u8_outbuf);}
   start = u8_elapsed_time();
-  KNO_STACK_SET_TAIL(stack,old_tail);
   if (SYMBOLP(toeval))
     return kno_eval(toeval,env,stack,0);
   else if (STRINGP(toeval)) {
@@ -454,10 +451,8 @@ static lispval watchpoint_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
        we don't bother 'timing' it. */
     return kno_incref(toeval);}
   else {
-    KNO_STACK_SET_TAIL(stack,0);
     lispval value = kno_eval_expr(toeval,env);
     double howlong = u8_elapsed_time()-start;
-    KNO_STACK_SET_TAIL(stack,old_tail);
     if (KNO_ABORTED(value)) {
       u8_exception ex = u8_erreify();
       value = kno_wrap_exception(ex);}
@@ -1347,7 +1342,7 @@ KNO_EXPORT void kno_init_eval_debug_c()
   KNO_LINK_EVALFN(kno_scheme_module,timed_eval_evalfn);
   KNO_LINK_EVALFN(kno_scheme_module,timed_evalx_evalfn);
   KNO_LINK_EVALFN(kno_scheme_module,watchptr_evalfn);
-  KNO_LINK_EVALFN(kno_scheme_module,watchpoint_evalfn);
+  KNO_LINK_EVALFN(kno_scheme_module,watch_evalfn);
   KNO_LINK_EVALFN(kno_scheme_module,profiled_eval_evalfn);
   KNO_LINK_EVALFN(kno_scheme_module,watchcall_evalfn);
   KNO_LINK_EVALFN(kno_scheme_module,watchcall_plus_evalfn);

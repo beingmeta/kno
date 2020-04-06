@@ -315,8 +315,8 @@ static lispval set_procedure_tailable(lispval x,lispval bool)
   if (kno_isfunctionp[proctype]) {
     struct KNO_FUNCTION *f = KNO_GETFUNCTION(x);
     if (KNO_FALSEP(bool))
-      f->fcn_call |= KNO_FCN_CALL_NOTAIL;
-    else f->fcn_call &= ~KNO_FCN_CALL_NOTAIL;
+      f->fcn_call |= KNO_CALL_NOTAIL;
+    else f->fcn_call &= ~KNO_CALL_NOTAIL;
     return VOID;}
   else return kno_err("Not Handled","set_procedure_tailable",NULL,x);
 }

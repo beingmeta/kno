@@ -1180,23 +1180,23 @@ static u8_string markup_printf_handler
 
 static lispval webtools_module, xhtml_module;
 
+#define markupfn(string,handler) \
+  kno_make_evalfn(string,KNO_EVALFN_NOTAIL,handler)
+
 KNO_EXPORT void kno_init_xmloutput_c()
 {
   webtools_module = kno_new_module("WEBTOOLS",0);
   xhtml_module = kno_new_module("XHTML",0);
 
-  lispval markup_prim = kno_make_evalfn("markup",markup_evalfn);
-  lispval markupstar_prim = kno_make_evalfn("markup*",markupstar_evalfn);
-  lispval markupblock_prim=
-    kno_make_evalfn("markupblock",markupblock_evalfn);
-  lispval markupstarblock_prim=
-    kno_make_evalfn("markup*block",markupstarblock_evalfn);
-  lispval emptymarkup_prim=
-    kno_make_evalfn("emptymarkup",emptymarkup_evalfn);
-  lispval xmlout_prim = kno_make_evalfn("XMLOUT",xmlout_evalfn);
-  lispval xmlblock_prim = kno_make_evalfn("XMLBLOCK",xmlblock_evalfn);
-  lispval xmlblockn_prim = kno_make_evalfn("XMLBLOCKN",xmlblockn_evalfn);
-  lispval xmlelt_prim = kno_make_evalfn("XMLELT",xmlentry_evalfn);
+  lispval markup_prim          = markupfn("markup",markup_evalfn);
+  lispval markupstar_prim      = markupfn("markup*",markupstar_evalfn);
+  lispval markupblock_prim     = markupfn("markupblock",markupblock_evalfn);
+  lispval markupstarblock_prim = markupfn("markup*block",markupstarblock_evalfn);
+  lispval emptymarkup_prim     = markupfn("emptymarkup",emptymarkup_evalfn);
+  lispval xmlout_prim          = markupfn("XMLOUT",xmlout_evalfn);
+  lispval xmlblock_prim        = markupfn("XMLBLOCK",xmlblock_evalfn);
+  lispval xmlblockn_prim       = markupfn("XMLBLOCKN",xmlblockn_evalfn);
+  lispval xmlelt_prim          = markupfn("XMLELT",xmlentry_evalfn);
 
   u8_printf_handlers['k']=markup_printf_handler;
 

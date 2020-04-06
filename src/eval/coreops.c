@@ -760,7 +760,8 @@ static lispval hashptr_prim(lispval x)
 }
 
 DEFPRIM1("hashref",hashref_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(HASHREF *arg0*)` **undocumented**",
+	 "`(HASHREF *arg0*)` returns a hashpointer string "
+	 "(#!0x...) which can be read if hashpointer reading is enabled.",
 	 kno_any_type,KNO_VOID);
 static lispval hashref_prim(lispval x)
 {
@@ -772,7 +773,8 @@ static lispval hashref_prim(lispval x)
 }
 
 DEFPRIM2("ptrlock",ptrlock_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "`(PTRLOCK *arg0* [*arg1*])` **undocumented**",
+	 "`(PTRLOCK *ptr* [*mod*])` Returns the integer pointer "
+	 "value of *ptr* modulo *mod*.",
 	 kno_any_type,KNO_VOID,kno_fixnum_type,KNO_VOID);
 static lispval ptrlock_prim(lispval x,lispval mod)
 {

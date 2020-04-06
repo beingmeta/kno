@@ -643,7 +643,7 @@ static lispval d1_call(lispval opcode,lispval arg1)
   case KNO_SEQUENCEP_OPCODE:
     if (KNO_SEQUENCEP(arg1)) return KNO_TRUE; else return KNO_FALSE;
   case KNO_TABLEP_OPCODE:
-    if (KNO_SEQUENCEP(arg1)) return KNO_TRUE; else return KNO_FALSE;
+    if (KNO_TABLEP(arg1)) return KNO_TRUE; else return KNO_FALSE;
   case KNO_CADR_OPCODE: {
     lispval cdr = KNO_CDR(arg1);
     if (PAIRP(cdr)) return kno_incref(KNO_CAR(cdr));

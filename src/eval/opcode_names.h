@@ -13,25 +13,34 @@ static void init_opcode_names()
   set_opcode_name(KNO_OR_OPCODE,"OP_OR");
   set_opcode_name(KNO_TRY_OPCODE,"OP_TRY");
   set_opcode_name(KNO_CHOICEREF_OPCODE,"OP_CHOICEREF");
-  set_opcode_name(KNO_FIXCHOICE_OPCODE,"OP_FIXCHOICE");
 
   set_opcode_name(KNO_SOURCEREF_OPCODE,"OP_SOURCEREF");
   set_opcode_name(KNO_RESET_ENV_OPCODE,"OP_RESET_ENV");
 
-  set_opcode_name(KNO_AMBIGP_OPCODE,"OP_AMBIGP");
-  set_opcode_name(KNO_SINGLETONP_OPCODE,"OP_SINGLETONP");
-  set_opcode_name(KNO_FAILP_OPCODE,"OP_FAILP");
-  set_opcode_name(KNO_EXISTSP_OPCODE,"OP_EXISTSP");
-  set_opcode_name(KNO_SINGLETON_OPCODE,"OP_SINGLETON");
-  set_opcode_name(KNO_CAR_OPCODE,"OP_CAR");
-  set_opcode_name(KNO_CDR_OPCODE,"OP_CDR");
-  set_opcode_name(KNO_LENGTH_OPCODE,"OP_LENGTH");
-  set_opcode_name(KNO_QCHOICE_OPCODE,"OP_QCHOICE");
-  set_opcode_name(KNO_CHOICE_SIZE_OPCODE,"OP_CHOICESIZE");
-  set_opcode_name(KNO_PICKOIDS_OPCODE,"OP_PICKOIDS");
-  set_opcode_name(KNO_PICKSTRINGS_OPCODE,"OP_PICKSTRINGS");
-  set_opcode_name(KNO_PICKONE_OPCODE,"OP_PICKONE");
-  set_opcode_name(KNO_IFEXISTS_OPCODE,"OP_IFEXISTS");
+  /* ND ops */
+  set_opcode_info(KNO_AMBIGP_OPCODE,"OP_AMBIGP",KNO_CALL_NDCALL);
+  set_opcode_info(KNO_SINGLETONP_OPCODE,"OP_SINGLETONP",KNO_CALL_NDCALL);
+  set_opcode_info(KNO_FAILP_OPCODE,"OP_FAILP",KNO_CALL_NDCALL);
+  set_opcode_info(KNO_EXISTSP_OPCODE,"OP_EXISTSP",KNO_CALL_NDCALL);
+  set_opcode_info(KNO_SINGLETON_OPCODE,"OP_SINGLETON",KNO_CALL_NDCALL);
+  set_opcode_info(KNO_CAR_OPCODE,"OP_CAR",KNO_CALL_XITER);
+  set_opcode_info(KNO_CDR_OPCODE,"OP_CDR",KNO_CALL_XITER);
+  set_opcode_info(KNO_LENGTH_OPCODE,"OP_LENGTH",KNO_CALL_XITER);
+  set_opcode_info(KNO_QCHOICE_OPCODE,"OP_QCHOICE",KNO_CALL_NDCALL);
+  set_opcode_info(KNO_CHOICE_SIZE_OPCODE,"OP_CHOICESIZE",KNO_CALL_NDCALL);
+  set_opcode_info(KNO_PICKOIDS_OPCODE,"OP_PICKOIDS",KNO_CALL_XITER);
+  set_opcode_info(KNO_PICKSTRINGS_OPCODE,"OP_PICKSTRINGS",KNO_CALL_XITER);
+  set_opcode_info(KNO_PICKONE_OPCODE,"OP_PICKONE",KNO_CALL_XITER);
+  set_opcode_info(KNO_FIXCHOICE_OPCODE,"OP_FIXCHOICE",KNO_CALL_XITER);
+  set_opcode_info(KNO_IFEXISTS_OPCODE,"OP_IFEXISTS",KNO_CALL_NDCALL);
+  set_opcode_info(KNO_PICKNUMS_OPCODE,"OP_PICKNUMS",KNO_CALL_XITER);
+  set_opcode_info(KNO_PICKMAPS_OPCODE,"OP_PICKMAPS",KNO_CALL_XITER);
+  set_opcode_info(KNO_SOMETRUE_OPCODE,"OP_SOMETRUE",KNO_CALL_NDCALL);
+  set_opcode_info(KNO_UNION_OPCODE,"OP_UNION",KNO_CALL_NDCALL);
+  set_opcode_info(KNO_INTERSECT_OPCODE,"OP_INTERSECTION",KNO_CALL_XITER);
+  set_opcode_info(KNO_DIFFERENCE_OPCODE,"OP_DIFFERENCE",KNO_CALL_NDCALL);
+
+
   set_opcode_name(KNO_MINUS1_OPCODE,"OP_MINUS1");
   set_opcode_name(KNO_PLUS1_OPCODE,"OP_PLUS1");
   set_opcode_name(KNO_NUMBERP_OPCODE,"OP_NUMBERP");
@@ -42,6 +51,11 @@ static void init_opcode_names()
   set_opcode_name(KNO_STRINGP_OPCODE,"OP_STRINGP");
   set_opcode_name(KNO_OIDP_OPCODE,"OP_OIDP");
   set_opcode_name(KNO_SYMBOLP_OPCODE,"OP_SYMBOLP");
+  set_opcode_name(KNO_FIXNUMP_OPCODE,"OP_FIXNUMP");
+  set_opcode_name(KNO_FLONUMP_OPCODE,"OP_FLONUMP");
+  set_opcode_name(KNO_SEQUENCEP_OPCODE,"OP_SEQUENCEP");
+  set_opcode_name(KNO_TABLEP_OPCODE,"OP_TABLEP");
+
   set_opcode_name(KNO_FIRST_OPCODE,"OP_FIRST");
   set_opcode_name(KNO_SECOND_OPCODE,"OP_SECOND");
   set_opcode_name(KNO_THIRD_OPCODE,"OP_THIRD");
@@ -50,6 +64,22 @@ static void init_opcode_names()
   set_opcode_name(KNO_CADDR_OPCODE,"OP_CADDR");
   set_opcode_name(KNO_CDDDR_OPCODE,"OP_CDDDR");
   set_opcode_name(KNO_TONUMBER_OPCODE,"OP_2NUMBER");
+
+  set_opcode_name(KNO_ELTS_OPCODE,"OP_SEQELTS");
+  set_opcode_name(KNO_GETKEYS_OPCODE,"OP_GETKEYS");
+  set_opcode_name(KNO_GETVALUES_OPCODE,"OP_GETVALUES");
+  set_opcode_name(KNO_GETASSOCS_OPCODE,"OP_GETASSOCS");
+
+  set_opcode_name(KNO_EQ_OPCODE,"OP_EQP");
+  set_opcode_name(KNO_EQV_OPCODE,"OP_EQVP");
+  set_opcode_name(KNO_EQUAL_OPCODE,"OP_EQUALP");
+  set_opcode_name(KNO_ELT_OPCODE,"OP_SEQELT");
+  set_opcode_name(KNO_CONS_OPCODE,"OP_CONSPAIR");
+
+  set_opcode_info(KNO_IDENTICAL_OPCODE,"OP_IDENTICALP",KNO_CALL_NDCALL);
+  set_opcode_info(KNO_OVERLAPS_OPCODE,"OP_OVERLAPSP",KNO_CALL_NDCALL);
+  set_opcode_info(KNO_CONTAINSP_OPCODE,"OP_CONTAINSP",KNO_CALL_NDCALL);
+
   set_opcode_name(KNO_NUMEQ_OPCODE,"OP_NUMEQ");
   set_opcode_name(KNO_GT_OPCODE,"OP_GT");
   set_opcode_name(KNO_GTE_OPCODE,"OP_GTE");
@@ -59,16 +89,8 @@ static void init_opcode_names()
   set_opcode_name(KNO_MINUS_OPCODE,"OP_MINUS");
   set_opcode_name(KNO_TIMES_OPCODE,"OP_MULT");
   set_opcode_name(KNO_FLODIV_OPCODE,"OP_FLODIV");
-  set_opcode_name(KNO_IDENTICAL_OPCODE,"OP_IDENTICALP");
-  set_opcode_name(KNO_OVERLAPS_OPCODE,"OP_OVERLAPSP");
-  set_opcode_name(KNO_CONTAINSP_OPCODE,"OP_CONTAINSP");
-  set_opcode_name(KNO_UNION_OPCODE,"OP_UNION");
-  set_opcode_name(KNO_INTERSECT_OPCODE,"OP_INTERSECTION");
-  set_opcode_name(KNO_DIFFERENCE_OPCODE,"OP_DIFFERENCE");
-  set_opcode_name(KNO_EQ_OPCODE,"OP_EQP");
-  set_opcode_name(KNO_EQV_OPCODE,"OP_EQVP");
-  set_opcode_name(KNO_EQUAL_OPCODE,"OP_EQUALP");
-  set_opcode_name(KNO_ELT_OPCODE,"OP_SEQELT");
+  set_opcode_name(KNO_DIV_OPCODE,"OP_DIVIDE");
+
   set_opcode_name(KNO_ASSERT_OPCODE,"OP_ASSERT");
   set_opcode_name(KNO_RETRACT_OPCODE,"OP_RETRACT");
   set_opcode_name(KNO_GET_OPCODE,"OP_FGET");
@@ -81,13 +103,6 @@ static void init_opcode_names()
   set_opcode_name(KNO_PRIMGET_OPCODE,"OP_PGET");
   set_opcode_name(KNO_PRIMTEST_OPCODE,"OP_PTEST");
   set_opcode_name(KNO_STORE_OPCODE,"OP_PSTORE");
-
-  set_opcode_name(KNO_PICKNUMS_OPCODE,"OP_PICKNUMS");
-  set_opcode_name(KNO_PICKMAPS_OPCODE,"OP_PICKMAPS");
-  set_opcode_name(KNO_SOMETRUE_OPCODE,"OP_SOMETRUE");
-  set_opcode_name(KNO_GETKEYS_OPCODE,"OP_GETKEYS");
-  set_opcode_name(KNO_GETVALUES_OPCODE,"OP_GETVALUES");
-  set_opcode_name(KNO_GETASSOCS_OPCODE,"OP_GETASSOCS");
 
   set_opcode_name(KNO_APPLY0_OPCODE,"OP_APPLY0");
   set_opcode_name(KNO_APPLY1_OPCODE,"OP_APPLY1");

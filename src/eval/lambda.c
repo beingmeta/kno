@@ -249,8 +249,8 @@ _make_lambda(u8_string name,
   KNO_INIT_FRESH_CONS(s,kno_lambda_type);
   s->fcn_name = ((name) ? (u8_strdup(name)) : (NULL));
 
-  s->fcn_call = ( ((nd) ? (KNO_FCN_CALL_NDCALL) : (0)) |
-		  (KNO_FCN_CALL_XCALL) );
+  s->fcn_call = ( ((nd) ? (KNO_CALL_NDCALL) : (0)) |
+		  (KNO_CALL_XCALL) );
   s->fcn_handler.xcalln = (kno_xprimn) lambda_docall;
   s->fcn_filename = NULL;
   s->fcn_attribs = VOID;

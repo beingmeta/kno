@@ -154,7 +154,7 @@ KNO_EXPORT struct KNO_FFI_PROC *kno_make_ffi_proc
     proc->ffi_argtypes = ffi_argtypes;
     proc->ffi_return_spec = return_spec; kno_incref(return_spec);
     proc->ffi_argspecs = savespecs;
-    proc->fcn_call = KNO_FCN_CALL_XCALL;
+    proc->fcn_call = KNO_CALL_XCALL;
     // Defer arity checking to kno_ffi_call
     proc->fcn_handler.xcalln = NULL;
     proc->ffi_dlsym = symbol;

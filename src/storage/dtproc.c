@@ -36,10 +36,10 @@ KNO_EXPORT lispval kno_make_dtproc(u8_string name,u8_string server,
   f->dtprocserver = u8_strdup(server);
   f->dtprocname = kno_intern(name);
   if (ndcall)
-    f->fcn_call |= KNO_FCN_CALL_NDCALL;
+    f->fcn_call |= KNO_CALL_NDCALL;
   f->fcn_min_arity = min_arity;
   f->fcn_call_width = f->fcn_arity = arity;
-  f->fcn_call |= KNO_FCN_CALL_XCALL;
+  f->fcn_call |= KNO_CALL_XCALL;
   f->fcn_handler.fnptr = NULL;
   if (minsock<0) minsock = 2;
   if (maxsock<0) maxsock = minsock+3;
