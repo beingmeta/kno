@@ -717,6 +717,7 @@ KNO_EXPORT lispval _KNO_INT2LISP(long long intval);
 KNO_EXPORT const char *kno_constant_names[];
 KNO_EXPORT int kno_n_constants;
 KNO_EXPORT lispval kno_register_constant(u8_string name);
+KNO_EXPORT u8_string kno_constant_name(lispval x);
 
 KNO_EXPORT lispval _kno_return_errcode(lispval x);
 

@@ -623,8 +623,7 @@
 			     (test from '%nosubst head))
 			 head)
 			((test from '%volatile head) `(#OP_SYMREF ,from ,head))
-			(else (get-headop headvalue head n-exprs
-					  env bound opts)))
+			(else (get-headop headvalue head n-exprs env bound opts)))
 		  (optimize-args (cdr expr) env bound opts))
 		 expr opts)))
 	  ((%lexref? headvalue)

@@ -987,7 +987,11 @@ static lispval bindop(lispval op,
     if (KNO_ABORTED(val)) {
       kno_pop_stack(bind_stack);
       return val;}
-    if ( (env_copy == NULL) && (bound->env_copy) ) {
+    else if (KNO_BAD_ARGP(val)) {
+      lispval err = kno_bad_arg(val,"letrec_evalfn",val_expr);
+      kno_pop_stack(bind_stack);
+      return err;}
+    else if ( (env_copy == NULL) && (bound->env_copy) ) {
       env_copy=bound->env_copy; bound=env_copy;
       values=((kno_schemap)(bound->env_bindings))->table_values;}
     values[i++]  = val;}
@@ -1013,6 +1017,10 @@ static lispval vector_bindop(lispval op,
     if (KNO_ABORTED(val)) {
       kno_pop_stack(bind_stack);
       return val;}
+    else if (KNO_BAD_ARGP(val)) {
+      lispval err = kno_bad_arg(val,"letrec_evalfn",val_expr);
+      kno_pop_stack(bind_stack);
+      return err;}
     if ( (env_copy == NULL) && (bound->env_copy) ) {
       env_copy=bound->env_copy; bound=env_copy;
       values=((kno_schemap)(bound->env_bindings))->table_values;}
@@ -1132,12 +1140,12 @@ static lispval handle_special_opcode(lispval opcode,lispval args,lispval expr,
     else if (KNO_FALSEP(test_val)) { /* (  || (KNO_EMPTYP(test_val)) ) */
       pop_arg(args);
       lispval else_expr = pop_arg(args);
-      return kno_tail_eval(else_expr,env,_stack);}
+      return kno_eval(else_expr,env,_stack,tail);}
     else {
       lispval then_expr = pop_arg(args);
       U8_MAYBE_UNUSED lispval ignore = pop_arg(args);
       kno_decref(test_val);
-      return kno_tail_eval(then_expr,env,_stack);}}
+      return kno_eval(then_expr,env,_stack,tail);}}
 
   case KNO_BIND_OPCODE: {
     lispval vars=pop_arg(args);

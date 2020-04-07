@@ -1,4 +1,4 @@
-u8_condition BadExpressionHead, TailArgument;
+u8_condition BadExpressionHead;
 
 lispval get_evalop(lispval head,kno_lexenv env,kno_stack eval_stack,int *freep);
 
@@ -6,7 +6,7 @@ lispval lambda_call(kno_stack stack,
 		    struct KNO_LAMBDA *proc,
 		    int n,kno_argvec args,
 		    int tail);
-lispval eval(lispval,kno_lexenv,kno_stack,int);
+lispval core_eval(lispval,kno_lexenv,kno_stack,int);
 
 KNO_FASTOP lispval fastget(lispval table,lispval key)
 {
@@ -151,7 +151,7 @@ KNO_FASTOP lispval eval_body(lispval body,kno_lexenv env,kno_stack stack,
 	  if (KNO_ABORTED(v))
 	    return v;
 	  else if (v==KNO_TAIL) {
-	    kno_seterr(TailArgument,cxt,label,subex);
+	    kno_seterr(kno_TailArgument,cxt,label,subex);
 	    return KNO_ERROR;}}
 	else kno_decref(v);}
       else if (KNO_EMPTY_LISTP(scan))

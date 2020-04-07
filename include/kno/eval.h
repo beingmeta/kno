@@ -33,6 +33,8 @@ KNO_EXPORT u8_condition kno_TooFewExpressions, kno_NotAnIdentifier;
 KNO_EXPORT u8_condition kno_InvalidMacro, KNO_BadArglist;
 KNO_EXPORT u8_condition kno_ReadOnlyEnv;
 KNO_EXPORT u8_condition kno_BadOpcode;
+KNO_EXPORT u8_condition kno_TailArgument;
+KNO_EXPORT u8_condition kno_BadArgument;
 
 KNO_EXPORT lispval kno_scheme_module;
 KNO_EXPORT lispval kno_io_module;
@@ -66,6 +68,9 @@ KNO_EXPORT u8_string kno_lambda_stack_type;
 
 #define KNO_MODULE_OPTIONAL 0
 #define KNO_MODULE_DEFAULT 1
+
+KNO_EXPORT lispval kno_bad_arg(lispval arg,u8_context cxt,lispval source_expr);
+#define KNO_BAD_ARGP(x) ( ( (x) == KNO_VOID) || ( ( (x) == KNO_TAIL) ) )
 
 /* Eval stacks */
 
@@ -283,8 +288,6 @@ typedef struct KNO_CONFIG_RECORD {
 
 /* The Evaluator */
 
-#define kno_tail_eval(expr,env,stack) (kno_eval(expr,env,stack,1))
-
 #define KNO_TAIL_EVAL 0x01
 #define KNO_VOID_VAL  0x02
 
@@ -313,7 +316,7 @@ KNO_EXPORT int _kno_pop_stack(kno_stack arg);
 
 #if KNO_EVAL_INTERNALS
 #define kno_eval __kno_eval
-#define kno_pair_eval eval
+#define kno_pair_eval core_eval
 #define kno_symeval(x,env) __kno_symeval(x,env)
 #define kno_symbol_eval(x,env) __kno_symbol_eval(x,env)
 #define kno_lexref(x,env) __kno_lexref(x,env)
@@ -324,7 +327,7 @@ KNO_FASTOP lispval __kno_symeval(lispval symbol,kno_lexenv env);
 KNO_FASTOP lispval __kno_symbol_eval(lispval symbol,kno_lexenv env);
 KNO_FASTOP lispval __kno_get_arg(lispval expr,int i);
 KNO_FASTOP lispval __kno_get_body(lispval expr,int i);
-lispval eval(lispval,kno_lexenv,kno_stack,int);
+lispval core_eval(lispval,kno_lexenv,kno_stack,int);
 #else
 #if KNO_FAST_EVAL
 #define kno_eval __kno_eval

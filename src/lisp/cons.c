@@ -111,6 +111,15 @@ lispval kno_register_constant(u8_string name)
     return constant;}
 }
 
+KNO_EXPORT u8_string kno_constant_name(lispval x)
+{
+  if (KNO_CONSTANTP(x)) {
+    int off = KNO_IMMEDIATE_DATA(x);
+    if (off<256) return kno_constant_names[off];}
+  return NULL;
+}
+
+
 static int validate_constant(lispval x)
 {
   int num = (KNO_GET_IMMEDIATE(x,kno_constant_type));
