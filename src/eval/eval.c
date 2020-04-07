@@ -1099,6 +1099,8 @@ lispval core_eval(lispval expr,kno_lexenv env,kno_stack stack,int tail)
       else result = KNO_ERROR;}
     else if (ndcall)
       result = kno_call(stack,fn,n_args,argbuf);
+    else if (CHOICEP(fn))
+      result = kno_call(stack,fn,n_args,argbuf);
     else result = kno_dcall(stack,fn,n_args,argbuf);
   cleanup_args:
     /* We jump here if we haven't yet put *args* on the stack, i.e.
