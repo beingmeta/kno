@@ -344,6 +344,8 @@
 (def-opcode PICK-ONE    #OP_PICKONE 1)
 (def-opcode IFEXISTS    #OP_IFEXISTS 1)
 (def-opcode SOMETRUE    #OP_SOMETRUE 1)
+(def-opcode NOT         #OP_NOT 1)
+(def-opcode FALSE?      #OP_NOT 1)
 
 (def-opcode 1-         #OP_MINUS1 1)
 (def-opcode -1+        #OP_MINUS1 1)
@@ -644,7 +646,7 @@
   #(#OP_APPLY0 #OP_APPLY1 #OP_APPLY2 #OP_APPLY3 #OP_APPLY4))
 
 (define (callcons head tail)
-  (if (and (not (opcode? head)) use-apply-opcodes)
+  (if (and (or (applicable? head) (fcnid? head)) use-apply-opcodes)
       (let ((len (length tail))
 	    (args (->list tail)))
 	(if (< len (length apply-opcodes))
