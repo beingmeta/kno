@@ -2,6 +2,9 @@ u8_condition BadExpressionHead;
 
 lispval get_evalop(lispval head,kno_lexenv env,kno_stack eval_stack,int *freep);
 
+lispval schemap_eval(lispval expr,kno_lexenv env,kno_stack stack);
+lispval choice_eval(lispval expr,kno_lexenv env,kno_stack stack);
+
 lispval lambda_call(kno_stack stack,
 		    struct KNO_LAMBDA *proc,
 		    int n,kno_argvec args,
@@ -92,6 +95,35 @@ KNO_FASTOP lispval __kno_get_body(lispval expr,int i)
       expr = KNO_CDR(expr);
     else {expr = KNO_CDR(expr); i--;}
   return expr;
+}
+
+KNO_FASTOP lispval __kno_eval(lispval x,kno_lexenv env,
+			      kno_stack stack,
+			      int tail)
+{
+  switch (KNO_PTR_MANIFEST_TYPE(x)) {
+  case kno_oid_ptr_type: case kno_fixnum_ptr_type:
+    return x;
+  case kno_immediate_ptr_type: {
+    switch (KNO_IMMEDIATE_TYPE(x)) {
+    case kno_lexref_type:
+      return __kno_lexref(x,env);
+    case kno_symbol_type:
+      return __kno_symbol_eval(x,env);
+    default:
+      return x;}}}
+  kno_lisp_type type = KNO_CONSPTR_TYPE(x);
+  switch (type) {
+  case kno_pair_type:
+    return kno_pair_eval(x,env,stack,tail);
+  case kno_choice_type: case kno_prechoice_type:
+    return choice_eval(x,env,stack);
+  case kno_schemap_type:
+    return schemap_eval(x,env,stack);
+  case kno_slotmap_type:
+    return kno_deep_copy(x);
+  default:
+    return kno_incref(x);}
 }
 
 static int testeval(lispval expr,kno_lexenv env,int fail_val,
