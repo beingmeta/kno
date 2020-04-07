@@ -65,7 +65,7 @@ static void init_opcode_names()
   set_opcode_name(KNO_CDDDR_OPCODE,"OP_CDDDR");
   set_opcode_name(KNO_TONUMBER_OPCODE,"OP_2NUMBER");
 
-  set_opcode_name(KNO_ELTS_OPCODE,"OP_SEQELTS");
+  set_opcode_name(KNO_ELTS_OPCODE,"OP_ELTS");
   set_opcode_name(KNO_GETKEYS_OPCODE,"OP_GETKEYS");
   set_opcode_name(KNO_GETVALUES_OPCODE,"OP_GETVALUES");
   set_opcode_name(KNO_GETASSOCS_OPCODE,"OP_GETASSOCS");

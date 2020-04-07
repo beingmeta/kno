@@ -370,7 +370,7 @@
 (def-opcode CDDDR      #OP_CDDDR 1)
 (def-opcode ->NUMBER   #OP_2NUMBER 1)
 
-(def-opcode ELTS       #OP_SEQELTS 1)
+(def-opcode ELTS       #OP_ELTS 1)
 (def-opcode GETKEYS    #OP_GETKEYS 1)
 (def-opcode GETVALUES  #OP_GETVALUES 1)
 (def-opcode GETASSOCS  #OP_GETASSOCS 1)

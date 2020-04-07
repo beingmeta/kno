@@ -689,10 +689,10 @@ static lispval d1_call(lispval opcode,lispval arg1)
     lispval *elts = kno_seq_elts(arg1,&n_elts);
     if (elts == NULL) return KNO_ERROR;
     else return kno_make_choice(n_elts,elts,
-				KNO_CHOICE_COMPRESS|
-				KNO_CHOICE_DOSORT|
-				KNO_CHOICE_REALLOC|
-				KNO_CHOICE_FREEDATA);}
+				( KNO_CHOICE_COMPRESS |
+				  KNO_CHOICE_DOSORT   |
+				  KNO_CHOICE_REALLOC  |
+				  KNO_CHOICE_FREEDATA ));}
   case KNO_GETKEYS_OPCODE:
     return kno_getkeys(arg1);
   case KNO_GETVALUES_OPCODE:

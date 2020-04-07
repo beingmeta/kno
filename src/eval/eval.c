@@ -583,7 +583,7 @@ KNO_FASTOP int opcode_choice_loop(lispval *resultp,
   return -1;
 }
 
-KNO_FASTOP int opcode_1choice_loop(lispval op,lispval args)
+KNO_FASTOP lispval opcode_1choice_loop(lispval op,lispval args)
 {
   lispval results = KNO_EMPTY;
   KNO_DO_CHOICES(arg,args) {
@@ -595,7 +595,7 @@ KNO_FASTOP int opcode_1choice_loop(lispval op,lispval args)
   return results;
 }
 
-KNO_FASTOP int opcode_2choice_loop(lispval op,lispval args1,lispval args2)
+KNO_FASTOP lispval opcode_2choice_loop(lispval op,lispval args1,lispval args2)
 {
   lispval results = KNO_EMPTY, err = KNO_VOID;
   if ( (KNO_CHOICEP(args1)) && (KNO_CHOICEP(args2)) ) {
@@ -957,8 +957,7 @@ lispval core_eval(lispval expr,kno_lexenv env,kno_stack stack,int tail)
   if (KNO_SPECIAL_OPCODEP(head)) {
     stack->stack_label=opcode_name(head);
     KNO_STACK_SET_TAIL(stack,tail);
-    result = handle_special_opcode
-      (head,KNO_CDR(expr),expr,env,stack,tail);
+    result = handle_special_opcode(head,KNO_CDR(expr),expr,env,stack,tail);
     goto clean_exit;}
   else if (KNO_IMMEDIATEP(head)) {
     int decref = 1;
@@ -988,7 +987,6 @@ lispval core_eval(lispval expr,kno_lexenv env,kno_stack stack,int tail)
     else {op = head; goto odd_op;}}
   else { op = head; goto odd_op;}
 
-  kno_function f = NULL;
   kno_lisp_type optype = KNO_TYPEOF(op);
   switch (optype) {
   case kno_opcode_type: case kno_choice_type:
@@ -1009,10 +1007,11 @@ lispval core_eval(lispval expr,kno_lexenv env,kno_stack stack,int tail)
   default:
     if (!(KNO_APPLICABLE_TYPEP(optype))) goto odd_op;}
 
-  int argbuf_len = INIT_ARGBUF_LEN;
   lispval fn = op;
+  kno_function f = NULL;
   kno_lisp_type fntype = KNO_TYPEOF(op);
   lispval exprs = KNO_CDR(expr);
+  int argbuf_len = INIT_ARGBUF_LEN;
  eval_apply:
   if (KNO_APPLY_OPCODEP(op)) {
     lispval fn_expr = pop_arg(exprs);
@@ -1043,7 +1042,7 @@ lispval core_eval(lispval expr,kno_lexenv env,kno_stack stack,int tail)
       (kno_type_call_info[fntype]);
     int prune = (!((call_bits)&(KNO_CALL_XPRUNE)));
     int iter  = (!((call_bits)&(KNO_CALL_XITER)));
-    
+
   eval_args:
     while (PAIRP(exprs)) {
       lispval arg_expr = pop_arg(exprs);
@@ -1784,7 +1783,7 @@ lispval _kno_reduce_loop(kno_stack stack,int tail)
 
 void kno_init_module_tables(void);
 
-#include "opcode_names.h"
+#include "opcode_info.h"
 
 static void init_types_and_tables()
 {
