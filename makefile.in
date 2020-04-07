@@ -672,7 +672,7 @@ lib/kno/%.@KNO_MAJOR@.dylib: lib/kno/%.dylib
 
 dbg/%: src/exe/%.c $(LINK_STATIC_LIBS)
 	@echo MKEXE_DEBUG $@
-	$(CC) $(TEST_CFLAGS) -o $@ $^ 		\
+	$(CC) $(TEST_CFLAGS) -o $@ $< $(LINK_STATIC_LIBS) \
 	      @STATICLDFLAGS@ $(TEST_LDFLAGS) $(TEST_EXEFLAGS) 	\
 	      -lu8 -lu8stdio -lu8syslog 		\
 	      $(LIBS) $(EXELIBS)
@@ -2014,7 +2014,7 @@ include/kno/revision.h: $(KNO_SOURCES) $(KNO_HEADERS) makefile
 	  mv etc/use_revision.h $@;					\
 	fi;
 ### Depending on the .buildmode
-$(EXECUTABLES) $(STATIC_EXECUTABLES): $(REVISION_H)
+$(EXECUTABLES) $(STATIC_EXECUTABLES) $(DEBUG_EXECUTABLES): $(REVISION_H) src/exe/main.c
 $(LISP_OBJS): $(LISP_HEADERS) $(REVISION_H) .buildmode 
 $(SYS_OBJS): $(LISP_HEADERS) $(REVISION_H) .buildmode 
 $(APPLY_OBJS): $(LISP_HEADERS) $(APPLY_HEADERS) $(REVISION_H) .buildmode 
