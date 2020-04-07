@@ -179,8 +179,12 @@ static lispval stack2lisp(struct KNO_STACK *stack,struct KNO_STACK *inner)
   lispval file	  = (stack->stack_file) ?
     (knostring(stack->stack_file)) :
     (KNO_FALSE);
-  lispval point	  = kno_incref(stack->stack_op);
-  kno_lexenv env = stack->eval_env;
+  lispval op	  = kno_incref(stack->stack_op);
+  kno_lexenv env  = stack->eval_env;
+  lispval source  = stack->eval_source;
+  int is_apply = (!(KNO_PAIRP(op)));
+  int show_source =  (is_apply) ? (0) : (KNO_VOIDP(source)) ? (0) :
+    (!(op == source));
 
   unsigned int icrumb = stack->stack_crumb;
   if (icrumb == 0) {
@@ -188,16 +192,30 @@ static lispval stack2lisp(struct KNO_STACK *stack,struct KNO_STACK *inner)
     if (icrumb > KNO_MAX_FIXNUM) icrumb = icrumb%KNO_MAX_FIXNUM;
     stack->stack_crumb=icrumb;}
 
-  if (point == KNO_VOID) point = KNO_FALSE;
+  if (op == KNO_VOID) op = KNO_FALSE;
 
-  return kno_init_compound
-    (NULL,stack_entry_symbol,STACK_CREATE_OPTS,
-     5,depth,label,file,point,
-     ((env) ? (kno_deep_copy(env->env_bindings)) :
-      ((STACK_ARGS(stack)) && (STACK_LENGTH(stack))) ?
-      (copy_args(STACK_WIDTH(stack),STACK_ARGS(stack))) :
-      (KNO_EMPTY_LIST)),
-     KNO_INT(icrumb));
+  if (is_apply)
+    return kno_init_compound
+      (NULL,stack_entry_symbol,STACK_CREATE_OPTS,
+       5,depth,label,file,op,
+       (((STACK_ARGS(stack)) && (STACK_LENGTH(stack))) ?
+	(copy_args(STACK_WIDTH(stack),STACK_ARGS(stack))) :
+	(KNO_EMPTY_LIST)),
+       KNO_INT(icrumb));
+  else if (show_source)
+    return kno_init_compound
+      (NULL,stack_entry_symbol,STACK_CREATE_OPTS,
+       6,depth,label,file,source,
+       ((env) ? (kno_deep_copy(env->env_bindings)) :
+	((STACK_ARGS(stack)) && (STACK_LENGTH(stack))) ?
+	(copy_args(STACK_WIDTH(stack),STACK_ARGS(stack))) :
+	(KNO_EMPTY_LIST)),
+       op,KNO_INT(icrumb));
+    else return kno_init_compound
+	   (NULL,stack_entry_symbol,STACK_CREATE_OPTS,
+	    5,depth,label,file,op,
+	    ((env) ? (kno_deep_copy(env->env_bindings)) : (KNO_FALSE)),
+	    KNO_INT(icrumb));
 }
 
 static lispval copy_args(int width,kno_argvec args)
