@@ -235,19 +235,10 @@ static int add_modname(lispval modname)
     if (KNO_ABORTP(module))
       return -1;
     else if ( (KNO_VOIDP(module)) || (KNO_FALSEP(module)) ) {
-      u8_log(LOG_WARN,kno_NoSuchModule,"module_config_set",
+      u8_log(LOG_WARN,kno_NoSuchModule,
 	     "No module found for %q",modname);
       return -1;}
     kno_use_module(kno_app_env,module);
-#if 0
-    if (KNO_ABORTP(used)) {
-      u8_log(LOG_WARN,"LoadModuleError",
-	     "Error using module %q",module);
-      kno_clear_errors(1);
-      kno_decref(module);
-      kno_decref(used);
-      return -1;}
-#endif
     module_list = kno_conspair(modname,module_list);
     kno_incref(modname);
     kno_decref(module);
