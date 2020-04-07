@@ -368,23 +368,12 @@ define sfield
 end
 
 # Commands for the new stack
-define stackframe
-  if ($argc == 1)
-    call _knodbg_show_stack_frame($arg0)
-  else
-   call _knodbg_show_stack_frame((void *)0)
-  end
-end
-
 define showstack
   if ($argc == 0)
    call _knodbg_show_stack((void *)0,-1)
   end
   if ($argc == 1)
     call _knodbg_show_stack_frame($arg0)
-  end
-  if ($argc == 2)
-   call _knodbg_show_stack($arg1,$arg0)
   end
 end
 
