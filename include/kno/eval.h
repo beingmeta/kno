@@ -32,7 +32,7 @@ KNO_EXPORT u8_condition kno_NoSuchModule, kno_SyntaxError, kno_BindSyntaxError;
 KNO_EXPORT u8_condition kno_TooFewExpressions, kno_NotAnIdentifier;
 KNO_EXPORT u8_condition kno_InvalidMacro, KNO_BadArglist;
 KNO_EXPORT u8_condition kno_ReadOnlyEnv;
-KNO_EXPORT u8_condition kno_BadOpcode;
+KNO_EXPORT u8_condition kno_BadOpcode, kno_BadEvalOp, kno_OpcodeSyntaxError;
 KNO_EXPORT u8_condition kno_TailArgument;
 KNO_EXPORT u8_condition kno_BadArgument;
 
