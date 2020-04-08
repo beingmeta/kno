@@ -76,6 +76,12 @@ KNO_FASTOP lispval __kno_symbol_eval(lispval symbol,kno_lexenv env)
   return kno_err(kno_UnboundIdentifier,"kno_eval",
 		 KNO_SYMBOL_NAME(symbol),symbol);
 }
+KNO_FASTOP lispval __kno_fcnid_eval(lispval fcnid)
+{
+  lispval v = kno_fcnid_ref(fcnid);
+  kno_incref(v);
+  return v;
+}
 KNO_FASTOP lispval __kno_get_arg(lispval expr,int i)
 {
   while (KNO_PAIRP(expr))
@@ -110,6 +116,8 @@ KNO_FASTOP lispval __kno_eval(lispval x,kno_lexenv env,
       return __kno_lexref(x,env);
     case kno_symbol_type:
       return __kno_symbol_eval(x,env);
+    case kno_fcnid_type:
+      return __kno_fcnid_eval(x);
     default:
       return x;}}}
   kno_lisp_type type = KNO_CONSPTR_TYPE(x);

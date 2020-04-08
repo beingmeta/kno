@@ -61,6 +61,7 @@ KNO_EXPORT int kno_choice_evalp(lispval x);
 #define KNO_IMMEDIATE_EVAL(expr,env)			\
   ( (KNO_LEXREFP(expr)) ? (kno_lexref(expr,env)) :	\
     (KNO_SYMBOLP(expr)) ? (kno_symbol_eval(expr,env)) : \
+    (KNO_FCNIDP(expr)) ? (kno_fcnid_eval(expr,env)) : \
     (expr))
 
 KNO_EXPORT u8_string kno_evalstack_type, kno_ndevalstack_type;
@@ -308,6 +309,8 @@ KNO_EXPORT lispval _kno_eval(lispval expr,kno_lexenv env,
 KNO_EXPORT lispval _kno_eval_expr(lispval expr,kno_lexenv env);
 KNO_EXPORT lispval _kno_get_arg(lispval expr,int i);
 KNO_EXPORT lispval _kno_get_body(lispval expr,int i);
+KNO_EXPORT lispval _kno_fcnid_eval(lispval);
+KNO_EXPORT lispval _kno_lexref_eval(lispval,kno_lexenv);
 KNO_EXPORT lispval _kno_symeval(lispval,kno_lexenv);
 KNO_EXPORT lispval _kno_symbol_eval(lispval,kno_lexenv);
 KNO_EXPORT lispval _kno_choice_eval(lispval,kno_lexenv,kno_stack);
@@ -318,11 +321,13 @@ KNO_EXPORT int _kno_pop_stack(kno_stack arg);
 #define kno_eval __kno_eval
 #define kno_pair_eval core_eval
 #define kno_symeval(x,env) __kno_symeval(x,env)
+#define kno_fcnid_eval(x) __kno_fcnid_eval(x)
 #define kno_symbol_eval(x,env) __kno_symbol_eval(x,env)
 #define kno_lexref(x,env) __kno_lexref(x,env)
 #define kno_get_arg(x,i) __kno_get_arg(x,i)
 #define kno_get_body(x,i) __kno_get_body(x,i)
 KNO_FASTOP lispval __kno_lexref(lispval lexref,kno_lexenv env_arg);
+KNO_FASTOP lispval __kno_fcnid_eval(lispval);
 KNO_FASTOP lispval __kno_symeval(lispval symbol,kno_lexenv env);
 KNO_FASTOP lispval __kno_symbol_eval(lispval symbol,kno_lexenv env);
 KNO_FASTOP lispval __kno_get_arg(lispval expr,int i);
@@ -336,8 +341,9 @@ lispval core_eval(lispval,kno_lexenv,kno_stack,int);
 #endif
 #define kno_pair_eval _kno_pair_eval
 #define kno_symeval(x,env) _kno_symeval(x,env)
-#define kno_symbol_eval(x,env) _kno_symbol_eval(x,env)
 #define kno_lexref(x,env) _kno_lexref(x,env)
+#define kno_fcnid_eval(x) _kno_fcnid(x)
+#define kno_symbol_eval(x,env) _kno_symbol_eval(x,env)
 #define kno_get_arg(x,i) _kno_get_arg(x,i)
 #define kno_get_body(x,i) _kno_get_body(x,i)
 #endif
