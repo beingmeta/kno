@@ -66,6 +66,9 @@
 (define-init keep-source-default #t)
 (varconfig! optimize:keepsource keep-source-default)
 
+(define-init use-apply-opcodes #f)
+(varconfig! optimize:applyops use-apply-opcodes)
+
 (define (optmode-macro optname thresh varname)
   (macro expr
     `(getopt ,(cadr expr) ',optname
@@ -648,8 +651,6 @@
 	       "doesn't appear to be a applicable given "
 	       (apply append bound)))
 	   expr))))
-
-(define use-apply-opcodes #t)
 
 (define apply-opcodes
   #(#OP_APPLY0 #OP_APPLY1 #OP_APPLY2 #OP_APPLY3 #OP_APPLY4))
