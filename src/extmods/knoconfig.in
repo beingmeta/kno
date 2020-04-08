@@ -107,7 +107,7 @@ case ${option} in
     local_modules|localmods)
 	echo "@local_module_dir@";;
     cmodules)
-	echo "@libdir@/kno";;
+	echo "@libdir@/kno@suffix@";;
     webuser)
 	echo "@webuser@";;
     knouser)

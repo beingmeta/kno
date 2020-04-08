@@ -51,6 +51,9 @@ while [ $# -gt 0 ]; do
 	tests|memtests|leaktests|libtests|schemetests|dbtests|cmdtests)
 	    MAKE_ARGS="${MAKE_ARGS} ${arg}";
 	    ;;
+	nt|next|beta|alpha)
+	    CONFIG_ARGS="--with-suffix=$arg ${CONFIG_ARGS}";
+	    ;;
 	python|parseltongue)
 	    with_parseltongue = yes
 	    ;;
@@ -62,6 +65,9 @@ while [ $# -gt 0 ]; do
 	    ;;
 	-M*)
 	    MAKE_ARGS="${arg#-M} ${MAKE_ARGS}"; 
+	    ;;
+	--suffix=*)
+	    CONFIG_ARGS=--with-suffix="${arg#--suffix=} ${CONFIG_ARGS}"; 
 	    ;;
 	--make=*)
 	    MAKE_ARGS="${arg#--make=} ${MAKE_ARGS}"; 

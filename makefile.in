@@ -57,7 +57,7 @@ LOCALEDIR	  = $(DESTDIR)@exec_prefix@/share/locale
 DATADIR		  = $(DESTDIR)@datadir@/kno/data
 MANDIR		  = $(DESTDIR)@mandir@
 DOCDIR		  = $(DESTDIR)@docdir@
-CMODULES	  = ${LIBINSTALLDIR}/kno
+CMODULES	  = ${LIBINSTALLDIR}/kno@suffix@
 APXS		  = @APXS@ -S LIBEXECDIR=$(DESTDIR)@apache_modules_dir@
 PPROF_PATH        = @GOOGLE_PPROF@
 CLEAN		  = @CLEAN@
@@ -749,19 +749,19 @@ $(LIBINSTALLDIR)/%@suffix@.@shared_suffix@: $(LIBINSTALLDIR)/%@suffix@.@vshared_
 	@$(SUINSTALL) ln -sf $(*F).@vshared_suffix@ $@
 	@$(MSG)  Linking $@ to $(*F).@vshared_suffix@
 
-${CMODULES}/%@suffix@.@vshared_suffix@: ${LIBSOURCE}/kno/%@suffix@.@shared_suffix@
+${CMODULES}/%.@vshared_suffix@: ${LIBSOURCE}/kno/%@suffix@.@shared_suffix@
 	@echo Installing $@
 	@$(SYSINSTALL) -d $(@D)
 	@$(SYSINSTALL) $< $@
-${CMODULES}/%@suffix@.@mmshared_suffix@: ${CMODULES}/%@suffix@.@vshared_suffix@
+${CMODULES}/%.@mmshared_suffix@: ${CMODULES}/%@suffix@.@vshared_suffix@
 	@$(SUINSTALL) ln -sf $(*F).@vshared_suffix@ $@
 	@$(MSG)  Linking $@ to $(*F).@vshared_suffix@
 ${CMODULES}/%@suffix@.@mshared_suffix@: ${CMODULES}/%@suffix@.@vshared_suffix@ 
 	@$(SUINSTALL) ln -sf $(*F).@vshared_suffix@ $@
 	@$(MSG)  Linking $@ to $(*F).@vshared_suffix@
-${CMODULES}/%@suffix@.@shared_suffix@: ${CMODULES}/%@suffix@.@vshared_suffix@ 
-	@make -s ${CMODULES}/$(*F)@suffix@.@mmshared_suffix@ \
-		 ${CMODULES}/$(*F)@suffix@.@mshared_suffix@
+${CMODULES}/%.@shared_suffix@: ${CMODULES}/%.@vshared_suffix@ 
+	@make -s ${CMODULES}/$(*F.@mmshared_suffix@ \
+		 ${CMODULES}/$(*F).@mshared_suffix@
 	@$(SUINSTALL) ln -sf $(*F).@vshared_suffix@ $@
 	@$(MSG) Linking $@ to $(*F).@vshared_suffix@
 

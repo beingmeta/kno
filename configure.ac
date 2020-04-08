@@ -1207,10 +1207,10 @@ elif test "${ac_cv_lib_ffi_ffi_prep_cif}" != "yes"; then
    missing="${missing} ffi";
 fi
 
-VSHARED_LOADPATH="${prefix}/lib/kno/%.${vshared_suffix}:${prefix}/lib/%.${vshared_suffix}:${prefix}/lib/libkno%.${vshared_suffix}"
-MMSHARED_LOADPATH="${prefix}/lib/kno/%.${mmshared_suffix}:${prefix}/lib/%.${mmshared_suffix}:${prefix}/lib/libkno%.${mmshared_suffix}"
-MSHARED_LOADPATH="${prefix}/lib/kno/%.${mshared_suffix}:${prefix}/lib/%.${mshared_suffix}:${prefix}/lib/libkno%.${mshared_suffix}"
-SHARED_LOADPATH="${prefix}/lib/kno/%.${shared_suffix}:${prefix}/lib/%.${shared_suffix}:${prefix}/lib/libkno%.${shared_suffix}"
+VSHARED_LOADPATH="${prefix}/lib/kno${suffix}/%.${vshared_suffix}:${prefix}/lib/%.${vshared_suffix}:${prefix}/lib/libkno%.${vshared_suffix}"
+MMSHARED_LOADPATH="${prefix}/lib/kno${suffix}/%.${mmshared_suffix}:${prefix}/lib/%.${mmshared_suffix}:${prefix}/lib/libkno%.${mmshared_suffix}"
+MSHARED_LOADPATH="${prefix}/lib/kno${suffix}/%.${mshared_suffix}:${prefix}/lib/%.${mshared_suffix}:${prefix}/lib/libkno%.${mshared_suffix}"
+SHARED_LOADPATH="${prefix}/lib/kno${suffix}/%.${shared_suffix}:${prefix}/lib/%.${shared_suffix}:${prefix}/lib/libkno%.${shared_suffix}"
 LSHARED_LOADPATH="${prefix}/lib/lib%.${vshared_suffix}:${prefix}/lib/lib%.${mmshared_suffix}:${prefix}/lib/lib%.${mshared_suffix}:${prefix}/lib/lib%.${shared_suffix}"
 DEFAULT_DLOADPATH="${VSHARED_LOADPATH}:${MMSHARED_LOADPATH}:${MSHARED_LOADPATH}:${SHARED_LOADPATH}"
 
