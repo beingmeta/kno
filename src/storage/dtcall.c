@@ -146,14 +146,12 @@ KNO_EXPORT lispval kno_sock_dteval(u8_socket sock,lispval expr)
   return dteval_sock(sock,expr);
 }
 
-static lispval quote_symbol;
-
 KNO_FASTOP lispval quote_lisp(lispval x,int dorefs,int doeval)
 {
   if (dorefs) kno_incref(x);
   if (doeval) return x;
   else if ((SYMBOLP(x)) || (PAIRP(x)))
-    return kno_conspair(quote_symbol,kno_conspair(x,NIL));
+    return kno_conspair(KNOSYM_QUOTE,kno_conspair(x,NIL));
   else return x;
 }
 static lispval dtapply(struct U8_CONNPOOL *cp,int n,int dorefs,int doeval,
@@ -233,7 +231,6 @@ KNO_EXPORT lispval kno_dtcall_nrx(struct U8_CONNPOOL *cp,int doeval,int n,...)
 
 KNO_EXPORT void kno_init_dtcall_c()
 {
-  quote_symbol = kno_intern("quote");
   kno_register_config("ASYNC",
                      _("Assume asynchronous DType servers"),
                      kno_boolconfig_get,kno_boolconfig_set,&default_async);

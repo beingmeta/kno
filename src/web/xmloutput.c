@@ -29,7 +29,7 @@
 
 #include <libu8/u8xfiles.h>
 
-static lispval xmloidfn_symbol, obj_name, id_symbol, quote_symbol;
+static lispval xmloidfn_symbol, obj_name, id_symbol;
 static lispval href_symbol, class_symbol, rawtag_symbol, browseinfo_symbol;
 static lispval embedded_symbol, estylesheet_symbol, xmltag_symbol;
 static lispval modules_symbol, xml_env_symbol;
@@ -245,7 +245,7 @@ static int open_markup(u8_output out,u8_output tmp,u8_string eltname,
   while (PAIRP(attribs)) {
     lispval elt = KNO_CAR(attribs);
     /* Kludge to handle case where the attribute name is quoted. */
-    if ((PAIRP(elt)) && (KNO_CAR(elt) == quote_symbol) &&
+    if ((PAIRP(elt)) && (KNO_CAR(elt) == KNOSYM_QUOTE) &&
         (PAIRP(KNO_CDR(elt))) && (SYMBOLP(KNO_CADR(elt))))
       elt = KNO_CADR(elt);
     if (STRINGP(elt)) {
@@ -1296,7 +1296,6 @@ KNO_EXPORT void kno_init_xmloutput_c()
   href_symbol = kno_intern("href");
   class_symbol = kno_intern("class");
   obj_name = kno_intern("obj-name");
-  quote_symbol = kno_intern("quote");
   xmltag_symbol = kno_intern("%xmltag");
   rawtag_symbol = kno_intern("%rawtag");
   browseinfo_symbol = kno_intern("browseinfo");

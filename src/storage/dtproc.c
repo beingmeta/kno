@@ -23,8 +23,6 @@
 #include <libu8/u8netfns.h>
 #include <libu8/u8printf.h>
 
-static lispval quote_symbol;
-
 KNO_EXPORT lispval kno_make_dtproc(u8_string name,u8_string server,
                                  int ndcall,int arity,int min_arity,
                                  int minsock,int maxsock,int initsock)
@@ -81,7 +79,7 @@ static lispval dtapply(struct KNO_DTPROC *dtp,int n,lispval *args)
   kno_init_stream(&stream,NULL,conn,KNO_STREAM_SOCKET,kno_network_bufsize);
   while (i>=0) {
     if ((SYMBOLP(args[i])) || (PAIRP(args[i])))
-      expr = kno_conspair(kno_make_list(2,quote_symbol,kno_incref(args[i])),
+      expr = kno_conspair(kno_make_list(2,KNOSYM_QUOTE,kno_incref(args[i])),
                          expr);
     else expr = kno_conspair(kno_incref(args[i]),expr);
     i--;}
@@ -112,8 +110,6 @@ static lispval dtapply(struct KNO_DTPROC *dtp,int n,lispval *args)
 
 KNO_EXPORT void kno_init_dtproc_c()
 {
-  quote_symbol = kno_intern("quote");
-
   u8_register_source_file(_FILEINFO);
   u8_register_source_file(KNO_DTPROC_H_INFO);
 

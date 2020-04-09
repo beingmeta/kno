@@ -48,7 +48,7 @@ int (*kno_unparse_error)(U8_OUTPUT *,lispval x,u8_string details) = NULL;
 
 int kno_numeric_oids = 0;
 
-static lispval quote_symbol, histref_symbol, comment_symbol;
+static lispval histref_symbol, comment_symbol;
 static lispval quasiquote_symbol, unquote_symbol, unquotestar_symbol;
 
 /* Unparsing */
@@ -234,7 +234,7 @@ static int unparse_pair(U8_OUTPUT *out,lispval x)
   if ((SYMBOLP(car)) && (PAIRP(KNO_CDR(x))) &&
       ((KNO_CDR(KNO_CDR(x))) == NIL)) {
     int false_alarm = 0;
-    if (car == quote_symbol) u8_puts(out,"'");
+    if (car == KNOSYM_QUOTE) u8_puts(out,"'");
     else if (car == quasiquote_symbol) u8_puts(out,"`");
     else if (car == unquote_symbol) u8_puts(out,",");
     else if (car == unquotestar_symbol) u8_puts(out,",@");
@@ -569,7 +569,6 @@ KNO_EXPORT void kno_init_unparse_c()
   if (kno_unparsers[kno_rawptr_type]==NULL)
     kno_unparsers[kno_rawptr_type]=unparse_rawptr;
 
-  quote_symbol = kno_intern("quote");
   quasiquote_symbol = kno_intern("quasiquote");
   unquote_symbol = kno_intern("unquote");
   unquotestar_symbol = kno_intern("unquote*");

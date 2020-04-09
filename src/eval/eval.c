@@ -62,7 +62,7 @@ int kno_enable_tail_calls = 1;
 
 lispval _kno_comment_symbol, fcnids_symbol, sourceref_tag;
 
-static lispval quote_symbol, comment_symbol, source_symbol;
+static lispval comment_symbol, source_symbol;
 
 u8_condition kno_SyntaxError=_("SCHEME expression syntax error"),
   kno_InvalidMacro=_("invalid macro transformer"),
@@ -1775,7 +1775,6 @@ static void init_types_and_tables()
   kno_unparsers[kno_opcode_type]=unparse_opcode;
   kno_immediate_checkfns[kno_opcode_type]=validate_opcode;
 
-  quote_symbol = kno_intern("quote");
   _kno_comment_symbol = comment_symbol = kno_intern("comment");
   source_symbol = kno_intern("%source");
   fcnids_symbol = kno_intern("%fcnids");

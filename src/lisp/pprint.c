@@ -69,7 +69,7 @@ static lispval get_pprint_rule(lispval car,pprint_context ppcxt);
 
 /* Pretty printing */
 
-static lispval quote_symbol, comment_symbol;
+static lispval comment_symbol;
 static lispval unquote_symbol, quasiquote_symbol, unquote_star_symbol;
 
 static int output_keyval(u8_output out,lispval key,lispval val,
@@ -132,7 +132,7 @@ int kno_pprinter(u8_output out,lispval x,int indent,int col,int depth,
       (PAIRP(KNO_CDR(x))) &&
       (NILP(KNO_CDR(KNO_CDR(x))))) {
     lispval car = KNO_CAR(x);
-    if (KNO_EQ(car,quote_symbol)) {
+    if (KNO_EQ(car,KNOSYM_QUOTE)) {
       u8_putc(out,'\''); indent++; x = KNO_CAR(KNO_CDR(x));}
     else if (KNO_EQ(car,unquote_symbol)) {
       indent++; u8_putc(out,','); x = KNO_CAR(KNO_CDR(x));}
@@ -673,7 +673,6 @@ KNO_EXPORT void kno_init_pprint_c()
 
   u8_printf_handlers['Q']=lisp_pprintf_handler;
 
-  quote_symbol = kno_intern("quote");
   quasiquote_symbol = kno_intern("quasiquote");
   unquote_symbol = kno_intern("unquote");
   unquote_star_symbol = kno_intern("unquote*");

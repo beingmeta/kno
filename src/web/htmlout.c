@@ -48,7 +48,7 @@ KNO_EXPORT void kno_html_exception(u8_output s,u8_exception ex,int backtrace);
 static u8_string error_stylesheet=NULL;
 static u8_string error_javascript=NULL;
 
-static lispval xmloidfn_symbol, obj_name, id_symbol, quote_symbol;
+static lispval xmloidfn_symbol, obj_name, id_symbol;
 static lispval href_symbol, class_symbol, rawtag_symbol, browseinfo_symbol;
 static lispval embedded_symbol, error_style_symbol, error_script_symbol;
 static lispval modules_symbol, xml_env_symbol, xmltag_symbol;;
@@ -636,7 +636,6 @@ KNO_EXPORT void kno_init_htmlout_c()
   href_symbol = kno_intern("href");
   class_symbol = kno_intern("class");
   obj_name = kno_intern("obj-name");
-  quote_symbol = kno_intern("quote");
   xmltag_symbol = kno_intern("%xmltag");
   rawtag_symbol = kno_intern("%rawtag");
   browseinfo_symbol = kno_intern("browseinfo");

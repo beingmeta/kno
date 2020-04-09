@@ -33,7 +33,7 @@ static struct KNO_POOL_HANDLER netpool_handler;
 static lispval pool_data_symbol, new_oid_symbol, get_load_symbol;
 static lispval oid_value_symbol, fetch_oids_symbol;
 static lispval lock_oid_symbol, unlock_oid_symbol, clear_oid_lock_symbol;
-static lispval boundp, bulk_commit_symbol, quote_symbol;
+static lispval boundp, bulk_commit_symbol;
 
 static lispval client_id = VOID;
 static void init_client_id(void);
@@ -307,7 +307,6 @@ KNO_EXPORT void kno_init_netpool_c()
   bulk_commit_symbol = kno_intern("bulk-commit");
   get_load_symbol = kno_intern("get-load");
   boundp = kno_intern("bound?");
-  quote_symbol = kno_intern("quote");
 
   kno_register_pool_type
     ("network_pool",

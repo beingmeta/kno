@@ -35,7 +35,7 @@
 
 /* QUASIQUOTE */
 
-static lispval quasiquote, unquote, unquotestar, quote_symbol;
+static lispval quasiquote, unquote, unquotestar;
 KNO_EXPORT lispval kno_quasiquote(lispval obj,kno_lexenv env,
 				  kno_stack stack,int level);
 
@@ -376,7 +376,6 @@ static lispval quasiquote_evalfn(lispval obj,kno_lexenv env,kno_stack stack)
 
 KNO_EXPORT void kno_init_quasiquote_c()
 {
-  quote_symbol = kno_intern("quote");
   quasiquote = kno_intern("quasiquote");
   unquote = kno_intern("unquote");
   unquotestar = kno_intern("unquote*");

@@ -618,7 +618,7 @@ static lispval xmlapply(u8_output out,lispval fn,lispval xml,
    we are using.
  */
 
-static lispval get_symbol, elt_symbol, quote_symbol;
+static lispval get_symbol, elt_symbol;
 
 static lispval extract_var(u8_string start,u8_string end)
 {
@@ -638,7 +638,7 @@ static lispval parse_infix(u8_string start)
     if (split == start) return kno_parse(start);
    /* Record form x.y ==> (get x 'y) */
     return kno_make_list(3,get_symbol,extract_var(start,split),
-                        kno_make_list(2,quote_symbol,kno_parse(split+1)));}
+                        kno_make_list(2,KNOSYM_QUOTE,kno_parse(split+1)));}
   else if ((split = (strchr(start,'#')))) {
     if (split == start) return kno_parse(start);
     /* Call form x#y ==> (y x) */
@@ -1719,7 +1719,7 @@ static lispval knoml_define(lispval expr,kno_lexenv env,kno_stack _stack)
           arglist = pair;}}
 
     /* Construct the body */
-    body = kno_make_list(2,quote_symbol,kno_incref(content));
+    body = kno_make_list(2,KNOSYM_QUOTE,kno_incref(content));
     body = kno_make_list(2,xmlarg_symbol,body);
     body = kno_make_list(3,doseq_symbol,body,kno_incref(knoml_define_body));
     body = kno_make_list(1,body);
@@ -1825,7 +1825,6 @@ KNO_EXPORT void kno_init_xmleval_c()
   attribids = kno_intern("%attribids");
 
   begin_symbol = kno_intern("begin");
-  quote_symbol = kno_intern("quote");
   xmlarg_symbol = kno_intern("%xmlarg");
   doseq_symbol = kno_intern("doseq");
   knoml_define_body = kno_make_list(2,kno_intern("xmleval"),xmlarg_symbol);
