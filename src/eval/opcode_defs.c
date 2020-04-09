@@ -728,31 +728,6 @@ static lispval d2_call(lispval opcode,lispval arg1,lispval arg2)
   }
 }
 
-KNO_FASTOP int numeric_argp(lispval x)
-{
-  /* This checks if there is a type error.
-     The empty choice isn't a type error since it will just
-     generate an empty choice as a result. */
-  if ((EMPTYP(x))||(FIXNUMP(x)))
-    return 1;
-  else if (!(CONSP(x)))
-    return 0;
-  else switch (KNO_CONSPTR_TYPE(x)) {
-    case kno_flonum_type: case kno_bigint_type:
-    case kno_rational_type: case kno_complex_type:
-      return 1;
-    case kno_choice_type: case kno_prechoice_type: {
-      DO_CHOICES(a,x) {
-        if (FIXNUMP(a)) {}
-        else if (PRED_TRUE(NUMBERP(a))) {}
-        else {
-          KNO_STOP_DO_CHOICES;
-          return 0;}}
-      return 1;}
-    default:
-      return 0;}
-}
-
 static lispval nd2_call(lispval opcode,lispval arg1,lispval arg2)
 {
   lispval result = KNO_ERROR_VALUE;
