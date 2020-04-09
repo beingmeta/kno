@@ -1552,7 +1552,7 @@ static lispval urlpost(int n,kno_argvec args)
 
 static lispval urlpostdata_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  lispval urlarg = kno_get_arg(expr,1), url = kno_eval_expr(urlarg,env);
+  lispval urlarg = kno_get_arg(expr,1), url = kno_eval_arg(urlarg,env);
   lispval ctype, curl, conn, body = VOID;
   struct U8_OUTPUT out;
   INBUF data; OUTBUF rdbuf; CURLcode retval;
@@ -1563,7 +1563,7 @@ static lispval urlpostdata_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   else if (!((STRINGP(url))||(TYPEP(url,kno_secret_type))))
     return kno_type_error("url","urlpostdata_evalfn",url);
   else {
-    ctype = kno_eval_expr(kno_get_arg(expr,2),env);
+    ctype = kno_eval_arg(kno_get_arg(expr,2),env);
     body = kno_get_body(expr,3);}
 
   if (KNO_ABORTP(ctype)) {
@@ -1572,7 +1572,7 @@ static lispval urlpostdata_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     kno_decref(url);
     return kno_type_error("mime type","urlpostdata_evalfn",ctype);}
   else {
-    curl = kno_eval_expr(kno_get_arg(expr,3),env);
+    curl = kno_eval_arg(kno_get_arg(expr,3),env);
     body = kno_get_body(expr,4);}
 
   conn = curl_arg(curl,"urlpostdata");

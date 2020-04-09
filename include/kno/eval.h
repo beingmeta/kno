@@ -298,15 +298,15 @@ KNO_EXPORT lispval kno_eval_body(lispval body,kno_lexenv env,kno_stack stack,
 KNO_EXPORT lispval _kno_cons_eval(lispval expr,kno_lexenv env,
 				  kno_stack stack,
 				  int tail);
-KNO_EXPORT lispval _kno_pair_eval(lispval expr,kno_lexenv env,
-				  kno_stack stack,
+KNO_EXPORT lispval _kno_eval_expr(lispval head,lispval expr,
+				  kno_lexenv env,kno_stack stack,
 				  int tail);
 KNO_EXPORT lispval _kno_eval(lispval expr,kno_lexenv env,
 			     kno_stack stack,
 			     int tail);
 
 /* These are for non-static/inline versions */
-KNO_EXPORT lispval _kno_eval_expr(lispval expr,kno_lexenv env);
+KNO_EXPORT lispval _kno_eval_arg(lispval expr,kno_lexenv env);
 KNO_EXPORT lispval _kno_get_arg(lispval expr,int i);
 KNO_EXPORT lispval _kno_get_body(lispval expr,int i);
 KNO_EXPORT lispval _kno_fcnid_eval(lispval);
@@ -319,7 +319,7 @@ KNO_EXPORT int _kno_pop_stack(kno_stack arg);
 
 #if KNO_EVAL_INTERNALS
 #define kno_eval __kno_eval
-#define kno_pair_eval core_eval
+#define kno_eval_expr eval_expr
 #define kno_symeval(x,env) __kno_symeval(x,env)
 #define kno_fcnid_eval(x) __kno_fcnid_eval(x)
 #define kno_symbol_eval(x,env) __kno_symbol_eval(x,env)
@@ -332,14 +332,14 @@ KNO_FASTOP lispval __kno_symeval(lispval symbol,kno_lexenv env);
 KNO_FASTOP lispval __kno_symbol_eval(lispval symbol,kno_lexenv env);
 KNO_FASTOP lispval __kno_get_arg(lispval expr,int i);
 KNO_FASTOP lispval __kno_get_body(lispval expr,int i);
-lispval core_eval(lispval,kno_lexenv,kno_stack,int);
+lispval eval_expr(lispval,lispval,kno_lexenv,kno_stack,int);
 #else
 #if KNO_FAST_EVAL
 #define kno_eval __kno_eval
 #else
 #define kno_eval _kno_eval
 #endif
-#define kno_pair_eval _kno_pair_eval
+#define kno_eval_expr _kno_eval_expr
 #define kno_symeval(x,env) _kno_symeval(x,env)
 #define kno_lexref(x,env) _kno_lexref(x,env)
 #define kno_fcnid_eval(x) _kno_fcnid(x)
@@ -367,7 +367,7 @@ KNO_FASTOP lispval __kno_eval(lispval x,kno_lexenv env,
   kno_lisp_type type = KNO_CONSPTR_TYPE(x);
   switch (type) {
   case kno_pair_type:
-    return kno_pair_eval(x,env,stack,tail);
+    return kno_eval_expr(KNO_CAR(x),x,env,stack,tail);
   case kno_choice_type: case kno_prechoice_type:
     return _kno_choice_eval(x,env,stack);
   case kno_schemap_type:
@@ -379,7 +379,7 @@ KNO_FASTOP lispval __kno_eval(lispval x,kno_lexenv env,
 }
 #endif
 
-#define kno_eval_expr(x,env) _kno_eval_expr(x,env)
+#define kno_eval_arg(x,env) _kno_eval_arg(x,env)
 
 #define kno_simplify_value(v) \
   ( (KNO_PRECHOICEP(v)) ? (kno_simplify_choice(v)) : (v) )

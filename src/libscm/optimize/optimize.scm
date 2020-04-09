@@ -359,6 +359,8 @@
 (def-opcode NOT         #OP_NOT 1)
 (def-opcode FALSE?      #OP_NOT 1)
 
+(def-opcode QUOTE       #OP_QUOTE 1)
+
 (def-opcode 1-         #OP_MINUS1 1)
 (def-opcode -1+        #OP_MINUS1 1)
 (def-opcode 1+         #OP_PLUS1 1)
@@ -510,6 +512,10 @@
 		 expr)
 		;; If it's a primitive or special form, replace it
 		;; with its value
+		((and module (singleton? value)
+		      (or (primitive? value) (applicable? value))
+		      (use-fcnrefs? opts))
+		 (fcnref value expr env opts))
 		((and (singleton? value)
 		      (or (primitive? value) (special-form? value)))
 		 value)
@@ -523,8 +529,6 @@
 		     (if use-opcodes
 			 (list quote-opcode (qc value))
 			 (list 'quote (qc value)))))
-		((forall applicable? value)
-		 (fcnref value expr module opts))
 		;; TODO: add 'modrefs' which resolves module.var to a
 		;; fcnref and uses that for the symbol
 		(else `(,(try (tryif use-opcodes #OP_SYMREF)
@@ -868,7 +872,7 @@
 
 (defambda (module-arg? arg)
   (or (fail? arg) (string? arg)
-      (and (pair? arg) (eq? (car arg) 'quote))
+      (and (pair? arg) (or (eq? (car arg) 'quote) (eq? (car arg) #op_quote)))
       (and (ambiguous? arg) (fail? (reject arg module-arg?)))))
 
 (define (optimize*! . args)
@@ -908,9 +912,10 @@
 (define use!
   (macro expr
     (let ((modarg (if (and (pair? (cadr expr))
-			   (eq? (car (cadr expr)) 'quote))
+			   (or (eq? (car (cadr expr)) 'quote)
+			       (eq? (car (cadr expr)) #OP_QUOTE)))
 		      (cadr expr)
-		      (list 'quote (cadr expr))))) 
+		      (list #OP_QUOTE (cadr expr))))) 
       `(begin
 	(use-module ,modarg)
 	(optimize! ,modarg)
@@ -937,7 +942,8 @@
 		  (set! result (cons spec result))))
 	    (if (symbol? (car args))
 		(set! result (cons `',(car args) result))
-		(if (and (pair? (car args)) (eq? (caar args) 'quote))
+		(if (and (pair? (car args)) 
+			 (or (eq? (caar args) 'quote)  (eq? (caar args) #OP_QUOTE)))
 		    (do-choices (spec (cadr (car args)))
 		      (if (symbol? spec)
 			  (set! result (cons `',spec result))
@@ -963,9 +969,10 @@
 
 (define (convert-arg arg)
   (if (symbol? arg)
-      (list 'quote arg)
+      (list #OP_QUOTE arg)
       (if (pair? arg)
-	  (if (and (pair? (car arg)) (eq? (caar arg) 'quote))
+	  (if (and (pair? (car arg)) 
+		   (or (eq? (caar arg) 'quote)  (eq? (caar arg) #OP_QUOTE)))
 	      (convert-arg (cadr (car arg)))
 	      arg)
 	  {})))
@@ -1487,12 +1494,12 @@
   (cond ((not (pair? attribs)) attribs)
 	((pair? (cdr attribs))
 	 `(,(if (and (pair? (car attribs))
-		     (not (eq? (car (car attribs)) 'quote)))
+		     (not (overlaps? (car (car attribs)) '{quote #OP_QUOTE})))
 		`(,(car (car attribs))
 		  ,(optimize (cadr (car attribs)) env bound opts))
 		(car attribs))
 	   ,(if (and (pair? (car attribs))
-		     (not (eq? (car (car attribs)) 'quote)))
+		     (not (overlaps? (car (car attribs)) '{quote #OP_QUOTE})))
 		(if (pair? (cadr attribs))
 		    `(,(car (cadr attribs))
 		      ,(optimize (cadr (cadr attribs)) env bound opts))

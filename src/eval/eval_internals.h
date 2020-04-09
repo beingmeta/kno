@@ -1,7 +1,5 @@
 u8_condition BadExpressionHead;
 
-lispval get_evalop(lispval head,kno_lexenv env,kno_stack eval_stack,int *freep);
-
 lispval schemap_eval(lispval expr,kno_lexenv env,kno_stack stack);
 lispval choice_eval(lispval expr,kno_lexenv env,kno_stack stack);
 
@@ -9,7 +7,6 @@ lispval lambda_call(kno_stack stack,
 		    struct KNO_LAMBDA *proc,
 		    int n,kno_argvec args,
 		    int tail);
-lispval core_eval(lispval,kno_lexenv,kno_stack,int);
 
 KNO_FASTOP lispval fastget(lispval table,lispval key)
 {
@@ -123,7 +120,7 @@ KNO_FASTOP lispval __kno_eval(lispval x,kno_lexenv env,
   kno_lisp_type type = KNO_CONSPTR_TYPE(x);
   switch (type) {
   case kno_pair_type:
-    return kno_pair_eval(x,env,stack,tail);
+    return kno_eval_expr(KNO_CAR(x),x,env,stack,tail);
   case kno_choice_type: case kno_prechoice_type:
     return choice_eval(x,env,stack);
   case kno_schemap_type:
@@ -177,9 +174,12 @@ KNO_FASTOP lispval _pop_arg(lispval *scan)
 #define simplify_value(v) \
   ( (KNO_PRECHOICEP(v)) ? (kno_simplify_choice(v)) : (v) )
 
-KNO_FASTOP lispval eval_body(lispval body,kno_lexenv env,kno_stack stack,
-			     u8_context cxt,u8_string label,
-			     int tail)
+static lispval eval_body_error(u8_context cxt,u8_string label,lispval body);
+
+KNO_FASTOP
+lispval eval_body(lispval body,kno_lexenv env,kno_stack stack,
+		  u8_context cxt,u8_string label,
+		  int tail)
 {
   if (!(KNO_STACK_BITP(stack,KNO_STACK_TAIL_POS))) tail = 0;
   lispval scan = body;
@@ -190,22 +190,25 @@ KNO_FASTOP lispval eval_body(lispval body,kno_lexenv env,kno_stack stack,
 	if (KNO_IMMEDIATEP(v)) {
 	  if (KNO_ABORTED(v))
 	    return v;
-	  else if (v==KNO_TAIL) {
-	    kno_seterr(kno_TailArgument,cxt,label,subex);
-	    return KNO_ERROR;}}
+	  else if (v==KNO_TAIL)
+	    return kno_err(kno_TailArgument,cxt,label,subex);
+	  else NO_ELSE;}
 	else kno_decref(v);}
       else if (KNO_EMPTY_LISTP(scan))
 	return kno_eval(subex,env,stack,tail);
-      else return kno_err(kno_SyntaxError,
-			  U8ALT(cxt,"eval_body"),
-			  label,
-			  body);}
+      else return eval_body_error(cxt,label,body);}
   if (KNO_EMPTY_LISTP(body))
     return KNO_VOID;
-  else return kno_err(kno_SyntaxError,
-		      U8ALT(cxt,"eval_body"),
-		      label,
-		      body);
+  else return eval_body_error(cxt,label,body);
+}
+
+static lispval eval_body_error(u8_context cxt,u8_string label,lispval body)
+{
+  return kno_err(kno_SyntaxError,
+		 ( (cxt) && (label) ) ? (cxt) :
+		 ((u8_string)"eval_body"),
+		 (label) ? (label) : (cxt) ? (cxt) : (NULL),
+		 body);
 }
 
 KNO_FASTOP kno_lexenv init_static_env

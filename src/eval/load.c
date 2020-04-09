@@ -182,7 +182,7 @@ static lispval load_source_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   u8_string encname;
   if (VOIDP(source_expr))
     return kno_err(kno_TooFewExpressions,"LOAD",NULL,expr);
-  else source = kno_eval_expr(source_expr,env);
+  else source = kno_eval_arg(source_expr,env);
   if (SYMBOLP(source)) {
     lispval config_val = kno_config_get(SYM_NAME(source));
     if (STRINGP(config_val)) {
@@ -201,7 +201,7 @@ static lispval load_source_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     lispval err = kno_type_error("filename","LOAD",source);
     kno_decref(source);
     return err;}
-  encval = kno_eval_expr(encname_expr,env);
+  encval = kno_eval_arg(encname_expr,env);
   if (VOIDP(encval)) encname="auto";
   else if (STRINGP(encval))
     encname = CSTRING(encval);
@@ -257,14 +257,14 @@ static lispval load_component_evalfn(lispval expr,kno_lexenv env,kno_stack _stac
   u8_string encname;
   if (VOIDP(source_expr))
     return kno_err(kno_TooFewExpressions,"LOAD-COMPONENT",NULL,expr);
-  else source = kno_eval_expr(source_expr,env);
+  else source = kno_eval_arg(source_expr,env);
   if (KNO_ABORTP(source))
     return source;
   else if (!(STRINGP(source))) {
     lispval err = kno_type_error("filename","LOAD-COMPONENT",source);
     kno_decref(source);
     return err;}
-  encval = kno_eval_expr(encname_expr,env);
+  encval = kno_eval_arg(encname_expr,env);
   if (VOIDP(encval)) encname="auto";
   else if (STRINGP(encval))
     encname = CSTRING(encval);
@@ -424,7 +424,7 @@ static lispval load_latest_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   else {
     int retval = -1;
     lispval path_expr = kno_get_arg(expr,1);
-    lispval path = kno_eval_expr(path_expr,env);
+    lispval path = kno_eval_arg(path_expr,env);
     if (!(STRINGP(path))) {
       lispval err = kno_type_error("pathname","load_latest",path);
       kno_decref(path);

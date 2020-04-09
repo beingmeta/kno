@@ -497,7 +497,7 @@ static int dtypeserver(u8_client ucl)
       u8_log(-LOG_INFO,Incoming,
              "%s[%d/%d]: Received request for execution",
              client->idstring,sock,trans_id);
-    value = kno_eval_expr(expr,client->env);
+    value = kno_eval_arg(expr,client->env);
     elapsed = u8_elapsed_time()-xstart;
     if (KNO_ABORTP(value)) {
       u8_exception ex = u8_erreify();

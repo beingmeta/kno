@@ -1282,7 +1282,7 @@ static PyObject *lispeval(PyObject *self,PyObject *pyexpr)
   lispval expr=py2lispx(pyexpr), value;
   PyObject *pyvalue;
   Py_BEGIN_ALLOW_THREADS {
-    value=kno_eval_expr(expr,default_env);}
+    value=kno_eval_arg(expr,default_env);}
   Py_END_ALLOW_THREADS;
   pyvalue=lisp2py(value);
   kno_decref(expr); kno_decref(value);

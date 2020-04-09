@@ -451,7 +451,7 @@ static lispval watch_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
        we don't bother 'timing' it. */
     return kno_incref(toeval);}
   else {
-    lispval value = kno_eval_expr(toeval,env);
+    lispval value = kno_eval_arg(toeval,env);
     double howlong = u8_elapsed_time()-start;
     if (KNO_ABORTED(value)) {
       u8_exception ex = u8_erreify();

@@ -2243,7 +2243,7 @@ static lispval morphrule(lispval string,lispval rules,lispval lexicon)
 static lispval textclosure_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval pattern_arg = kno_get_arg(expr,1);
-  lispval pattern = kno_eval_expr(pattern_arg,env);
+  lispval pattern = kno_eval_arg(pattern_arg,env);
   if (VOIDP(pattern_arg))
     return kno_err(kno_SyntaxError,"textclosure_evalfn",NULL,expr);
   else if (KNO_ABORTP(pattern)) return pattern;

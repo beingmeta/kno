@@ -95,9 +95,9 @@ static lispval mailout_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   struct U8_MAILHEADER *mh;
   struct U8_OUTPUT out;
   u8_string *to_free;
-  dest = kno_eval_expr(dest_arg,env); if (KNO_ABORTP(dest)) return dest;
+  dest = kno_eval_arg(dest_arg,env); if (KNO_ABORTP(dest)) return dest;
   if (SLOTMAPP(headers_arg)) headers = kno_incref(headers_arg);
-  else headers = kno_eval_expr(headers_arg,env);
+  else headers = kno_eval_arg(headers_arg,env);
   if (KNO_ABORTP(headers)) {
     kno_decref(dest); return headers;}
   get_mailinfo(headers,&mailhost,&maildomain,&mailfrom);

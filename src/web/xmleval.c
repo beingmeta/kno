@@ -151,7 +151,7 @@ static int output_attribval(u8_output out,
         value = kno_symeval(expr,xml_env);
       if (VOIDP(value))
         value = kno_req_get(expr,VOID);}
-    else value = kno_eval_expr(expr,scheme_env);
+    else value = kno_eval_arg(expr,scheme_env);
     if (KNO_ABORTED(value)) return kno_interr(value);
     else if ((VOIDP(value))&&(SYMBOLP(expr)))
       as_string = u8_strdup("");
@@ -376,7 +376,7 @@ static int test_if(lispval xml,kno_lexenv scheme_env,kno_lexenv xml_env)
     if ((VOIDP(val))||(FALSEP(val))) return 0;
     else {kno_decref(val); return 1;}}
   else if (PAIRP(test)) {
-    lispval value = kno_eval_expr(test,scheme_env);
+    lispval value = kno_eval_arg(test,scheme_env);
     kno_decref(test);
     if (KNO_ABORTED(value)) return kno_interr(value);
     else if (VOIDP(value)) return 0;
@@ -529,7 +529,7 @@ KNO_EXPORT lispval knoml_get(lispval xml,lispval sym,kno_lexenv env)
         if (PAIRP(value))
           if  ((KNO_EQ(KNO_CAR(value),xmleval_tag)) ||
                (KNO_EQ(KNO_CAR(value),xmleval2expr_tag))) {
-            lispval result = kno_eval_expr(KNO_CDR(value),env);
+            lispval result = kno_eval_arg(KNO_CDR(value),env);
             if (KNO_ABORTED(result)) {
               kno_decref(results);
               KNO_STOP_DO_CHOICES;
@@ -553,7 +553,7 @@ KNO_EXPORT lispval knoml_get(lispval xml,lispval sym,kno_lexenv env)
     else if (PAIRP(values))
       if ((KNO_EQ(KNO_CAR(values),xmleval_tag)) ||
           (KNO_EQ(KNO_CAR(values),xmleval2expr_tag))) {
-        lispval result = kno_eval_expr(KNO_CDR(values),env);
+        lispval result = kno_eval_arg(KNO_CDR(values),env);
         kno_decref(values);
         return result;}
       else return values;
@@ -1090,10 +1090,10 @@ lispval kno_xmlevalout(u8_output out,lispval xml,
         val = kno_symeval(xml,(kno_lexenv)xml_env);
       else val = kno_req_get(xml,VOID);
       if ((KNO_TROUBLEP(val))||(VOIDP(val)))
-        result = kno_eval_expr(xml,scheme_env);
+        result = kno_eval_arg(xml,scheme_env);
       else result = val;}
     /* Non-symbols always get evaluated in the scheme environment */
-    else result = kno_eval_expr(xml,scheme_env);
+    else result = kno_eval_arg(xml,scheme_env);
     /* This is where we have a symbol or list embedded in
        the document (via escapes, for instance) */
     if (VOIDP(result)) {}

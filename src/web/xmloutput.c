@@ -205,7 +205,7 @@ static int output_markup_attrib
   if (SYMBOLP(name_expr)) attrib_name = SYM_NAME(name_expr);
   else if (STRINGP(name_expr)) attrib_name = CSTRING(name_expr);
   else if ((env) && (PAIRP(name_expr))) {
-    free_name = kno_eval_expr(name_expr,env);
+    free_name = kno_eval_arg(name_expr,env);
     if (KNO_ABORTED(free_name)) return free_name;
     else if (SYMBOLP(free_name)) attrib_name = SYM_NAME(free_name);
     else if (STRINGP(free_name)) attrib_name = CSTRING(free_name);
@@ -213,7 +213,7 @@ static int output_markup_attrib
   else attrib_name = NULL;
   if (attrib_name) {
     if ((env)&&(KNO_NEED_EVALP(value_expr))) {
-      free_value = kno_eval_expr(value_expr,env);
+      free_value = kno_eval_arg(value_expr,env);
       if (KNO_ABORTED(free_value)) {
         kno_decref(free_name);
         return -1;}
@@ -448,7 +448,7 @@ static lispval xmlentry_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   U8_OUTPUT *out = u8_current_output;
   lispval head = kno_get_arg(expr,1), args = KNO_CDR(KNO_CDR(expr));
   u8_byte tagbuf[128]; u8_string tagname;
-  if ((PAIRP(head)))  head = kno_eval_expr(head,env);
+  if ((PAIRP(head)))  head = kno_eval_arg(head,env);
   else head = kno_incref(head);
   if (KNO_ABORTED(head)) return head;
   tagname = get_tagname(head,tagbuf,128);
@@ -470,7 +470,7 @@ static lispval xmlstart_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   U8_OUTPUT *out = u8_current_output;
   lispval head = kno_get_arg(expr,1), args = KNO_CDR(KNO_CDR(expr));
   u8_byte tagbuf[128]; u8_string tagname;
-  if ((PAIRP(head)))  head = kno_eval_expr(head,env);
+  if ((PAIRP(head)))  head = kno_eval_arg(head,env);
   else head = kno_incref(head);
   if (KNO_ABORTED(head)) return head;
   tagname = get_tagname(head,tagbuf,128);
@@ -518,7 +518,7 @@ static lispval doxmlblock(lispval expr,kno_lexenv env,
     kno_incref(tagspec); eval_attribs = 1;}
   else {
     body = kno_get_body(expr,2);
-    tagspec = kno_eval_expr(tagspec,env);
+    tagspec = kno_eval_arg(tagspec,env);
     if (KNO_ABORTED(tagspec)) {
       kno_decref(xmloidfn);
       return tagspec;}
@@ -783,7 +783,7 @@ static int browseinfo_config_set(lispval var,lispval val,void *ignored)
 static lispval doanchor_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   U8_OUTPUT *out = u8_current_output, tmpout;
-  lispval target = kno_eval_expr(kno_get_arg(expr,1),env), xmloidfn;
+  lispval target = kno_eval_arg(kno_get_arg(expr,1),env), xmloidfn;
   lispval body = kno_get_body(expr,2);
   u8_byte buf[128]; U8_INIT_STATIC_OUTPUT_BUF(tmpout,128,buf);
   if (KNO_ABORTED(target))
@@ -846,7 +846,7 @@ static int has_class_attrib(lispval attribs)
 static lispval doanchor_star_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   U8_OUTPUT *out = u8_current_output, tmpout;
-  lispval target = kno_eval_expr(kno_get_arg(expr,1),env), xmloidfn = VOID;
+  lispval target = kno_eval_arg(kno_get_arg(expr,1),env), xmloidfn = VOID;
   lispval attribs = kno_get_arg(expr,2);
   lispval body = kno_get_body(expr,3);
   u8_byte buf[128]; U8_INIT_STATIC_OUTPUT_BUF(tmpout,128,buf);
@@ -949,11 +949,11 @@ static lispval xmleval_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       else emit_xmlcontent(out,data);
       return VOID;}
     else {
-      lispval xml = kno_eval_expr(xmlarg,env);
+      lispval xml = kno_eval_arg(xmlarg,env);
       if (KNO_ABORTED(xml)) return xml;
-      lispval env_arg = kno_eval_expr(kno_get_arg(expr,2),env);
+      lispval env_arg = kno_eval_arg(kno_get_arg(expr,2),env);
       if (KNO_ABORTED(env_arg)) { kno_decref(xml); return env_arg;}
-      lispval xml_env_arg = kno_eval_expr(kno_get_arg(expr,3),env);
+      lispval xml_env_arg = kno_eval_arg(kno_get_arg(expr,3),env);
       if (KNO_ABORTED(xml_env_arg)) {
         kno_decref(env_arg);
         kno_decref(xml);
@@ -1012,7 +1012,7 @@ static lispval xmlopen_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   if (!(PAIRP(KNO_CDR(expr))))
     return kno_err(kno_SyntaxError,"xmleval_evalfn",NULL,VOID);
   else {
-    lispval node = kno_eval_expr(KNO_CADR(expr),env);
+    lispval node = kno_eval_arg(KNO_CADR(expr),env);
     if (KNO_ABORTED(node))
       return node;
     else if (TABLEP(node)) {
@@ -1047,7 +1047,7 @@ static lispval output_javascript(u8_output out,lispval args,kno_lexenv env)
     return kno_err(kno_SyntaxError,"output_javascript",NULL,args);
   else {
     int i = 0;
-    lispval head_expr = KNO_CAR(args), head = kno_eval_expr(head_expr,env), body = KNO_CDR(args);
+    lispval head_expr = KNO_CAR(args), head = kno_eval_arg(head_expr,env), body = KNO_CDR(args);
     if (KNO_ABORTED(head))
       return head;
     else if (!(STRINGP(head)))
@@ -1059,7 +1059,7 @@ static lispval output_javascript(u8_output out,lispval args,kno_lexenv env)
         if (i>0) u8_putc(out,',');
         i++;
         if (KNO_NEED_EVALP(elt))
-          val = kno_eval_expr(elt,env);
+          val = kno_eval_arg(elt,env);
         else val = kno_incref(elt);
         if (KNO_ABORTED(val))
           return val;
@@ -1146,7 +1146,7 @@ static lispval soapenvelope_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   if (KNO_NEED_EVALP(header_arg)) {
     lispval value;
     u8_puts(out,soapheaderopen);
-    value = kno_eval_expr(header_arg,env);
+    value = kno_eval_arg(header_arg,env);
     if (KNO_ABORTED(value)) return value;
     if (STRINGP(value)) u8_puts(out,CSTRING(value));
     kno_decref(value);
