@@ -815,7 +815,7 @@ KNO_FASTOP void setup_tail_call(kno_stack loop,
   if (KNO_STACK_BITP(loop,KNO_STACK_DECREF_ARGS)) {
     kno_decref_stackvec(&(loop->stack_args));}
   if (loop_width < need_width) {
-    __kno_stackvec_grow(&(loop->stack_args),need_width);}
+    kno_stackvec_grow(&(loop->stack_args),need_width);}
   /* Copy the arguments */
   memcpy(loop->stack_args.elts,args,n*sizeof(lispval));
   loop->stack_args.count = n;

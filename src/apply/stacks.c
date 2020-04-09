@@ -116,6 +116,31 @@ KNO_EXPORT void _kno_stack_pop_error(kno_stack stack,u8_context loc)
   u8_raise(cond,loc,NULL);
 }
 
+KNO_EXPORT void kno_stackvec_grow(struct KNO_STACKVEC *sv,int len)
+{
+  if ( (KNO_STACKVEC_LEN(sv)) > len ) return;
+  lispval *elts = KNO_STACKVEC_ELTS(sv);
+  if (elts == NULL) {
+    elts = u8_alloc_n(len,lispval);
+    sv->elts  = elts;
+    sv->count = 0;
+    sv->len   = KNO_STACKVEC_HEAPBIT|len;}
+  else {
+    int count     = KNO_STACKVEC_COUNT (sv);
+    int onheap    = KNO_STACKVEC_ONHEAP(sv);
+    if (onheap) {
+      lispval *new_elts = u8_realloc(elts,len*sizeof(lispval));
+      sv->elts = new_elts;
+      sv->len  = KNO_STACKVEC_HEAPBIT|len;
+      return;}
+    else {
+      lispval *new_elts = u8_alloc_n(len,lispval);
+      memcpy(new_elts,elts,count*sizeof(lispval));
+      sv->elts = new_elts;
+      sv->len  = KNO_STACKVEC_HEAPBIT|len;
+      return;}}
+}
+
 KNO_EXPORT void
 _kno_stackvec_push(kno_stackvec sv,lispval v)
 {

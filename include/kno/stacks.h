@@ -40,8 +40,8 @@ typedef struct KNO_STACKVEC *kno_stackvec;
   struct KNO_STACKVEC _ ## name = { _ ## name ## _elts, init_len, 0 };	\
   struct KNO_STACKVEC * name = & _ ## name
 
-#ifndef KNO_STACKVEC_INIT_LEN
-#define KNO_STACKVEC_INIT_LEN 7
+#ifndef KNO_STACKVEC_INIT_DELTA
+#define KNO_STACKVEC_INIT_DELTA 7
 #endif
 
 #ifndef KNO_STACKVEC_MAX_DELTA
@@ -65,48 +65,27 @@ typedef struct KNO_STACKVEC *kno_stackvec;
 #define STACKVEC_ONHEAP(sv) (((sv)->len)&(KNO_STACKVEC_HEAPBIT))
 #endif
 
+KNO_EXPORT void kno_stackvec_grow(struct KNO_STACKVEC *stack,int n);
+
 KNO_EXPORT void _kno_stackvec_push(struct KNO_STACKVEC *stack,lispval v);
-KNO_EXPORT void _kno_stackvec_grow(struct KNO_STACKVEC *stack,int n);
+KNO_EXPORT void _kno_stackvec_merge(struct KNO_STACKVEC *into,
+				    struct KNO_STACKVEC *from);
 KNO_EXPORT void _kno_decref_stackvec(struct KNO_STACKVEC *stack);
 KNO_EXPORT void _kno_free_stackvec(struct KNO_STACKVEC *stack);
 
 #if KNO_INLINE_STACKS
 #define kno_stackvec_push    __kno_stackvec_push
-#define kno_stackvec_grow    __kno_stackvec_grow
+#define kno_stackvec_merge   __kno_stackvec_merge
 #define kno_decref_stackvec  __kno_decref_stackvec
 #define kno_free_stackvec    __kno_free_stackvec
 #else
 #define kno_stackvec_push   _kno_stackvec_push
-#define kno_stackvec_grow    _kno_stackvec_grow
+#define kno_stackvec_merge  _kno_stackvec_merge
 #define kno_decref_stackvec _kno_decref_stackvec
 #define kno_free_stackvec   _kno_free_stackvec
 #endif
 
 #if KNO_INLINE_STACKS
-static void __kno_stackvec_grow(struct KNO_STACKVEC *sv,int len)
-{
-  if ( (KNO_STACKVEC_LEN(sv)) > len ) return;
-  lispval *elts = KNO_STACKVEC_ELTS(sv);
-  if (elts == NULL) {
-    elts = u8_alloc_n(len,lispval);
-    sv->elts  = elts;
-    sv->count = 0;
-    sv->len   = KNO_STACKVEC_HEAPBIT|len;}
-  else {
-    int count     = KNO_STACKVEC_COUNT (sv);
-    int onheap    = KNO_STACKVEC_ONHEAP(sv);
-    if (onheap) {
-      lispval *new_elts = u8_realloc(elts,len*sizeof(lispval));
-      sv->elts = new_elts;
-      sv->len  = KNO_STACKVEC_HEAPBIT|len;
-      return;}
-    else {
-      lispval *new_elts = u8_alloc_n(len,lispval);
-      memcpy(new_elts,elts,count*sizeof(lispval));
-      sv->elts = new_elts;
-      sv->len  = KNO_STACKVEC_HEAPBIT|len;
-      return;}}
-}
 KNO_FASTOP void __kno_stackvec_push(struct KNO_STACKVEC *sv,lispval v)
 {
   int count = KNO_STACKVEC_COUNT(sv);
@@ -114,9 +93,29 @@ KNO_FASTOP void __kno_stackvec_push(struct KNO_STACKVEC *sv,lispval v)
   if ( count >= len ) {
     int new_len = len +
       ( (len > KNO_STACKVEC_MAX_DELTA) ? (KNO_STACKVEC_MAX_DELTA) :
-	(len>0) ? (len) : (KNO_STACKVEC_INIT_LEN) );
-    __kno_stackvec_grow(sv,new_len);}
+	(len>0) ? (len) : (KNO_STACKVEC_INIT_DELTA) );
+    kno_stackvec_grow(sv,new_len);}
   sv->elts[(sv->count)++] = v;
+}
+KNO_FASTOP void __kno_stackvec_merge(struct KNO_STACKVEC *into,
+				     struct KNO_STACKVEC *from)
+{
+  int new_count = KNO_STACKVEC_COUNT(into) + KNO_STACKVEC_COUNT(from);
+  int len   = KNO_STACKVEC_LEN(into);
+  if ( new_count >= len ) {
+    int new_len = len;
+    while (new_count >= new_len) {
+      new_len = ( (new_len > KNO_STACKVEC_MAX_DELTA) ?
+		  (KNO_STACKVEC_MAX_DELTA) :
+		  (len>0) ? (len) : (KNO_STACKVEC_INIT_DELTA) );
+      kno_stackvec_grow(into,new_len);}}
+  lispval *dest_elts = KNO_STACKVEC_ELTS(into);
+  lispval *src_elts = KNO_STACKVEC_ELTS(from);
+  size_t dest_off = KNO_STACKVEC_COUNT(into);
+  size_t n_bytes = KNO_STACKVEC_COUNT(from)*sizeof(lispval);
+  memcpy(dest_elts+dest_off,src_elts,n_bytes);
+  into->count += KNO_STACKVEC_COUNT(from);
+  KNO_STACKVEC_COUNT(from) = 0;
 }
 KNO_FASTOP void __kno_decref_stackvec(struct KNO_STACKVEC *sv)
 {
