@@ -963,13 +963,10 @@ tidy: profile-clean
 clean: tidy
 	@for dir in ${CLEANDIRS}; do rm -f ${dir}/*.o; done
 	rm -rf etc/*.o etc/.libs
-	rm -f lib/*.a lib/*@suffix@.so lib/*.dylib
-	rm -f lib/*@suffix@.so.*
-	rm -f lib/kno/*@suffix@.so lib/kno/*@suffix@.so.* 
-	rm -f lib/kno/*.dylib
-	rm -f exe/kno@suffix@ exe/knotask@suffix@
-	rm -f exe/knocgi@suffix@ exe/knod@suffix@
-	rm -f exe/knoc@suffix@ exe/knocgi@suffix@
+	rm -f lib/*.a lib/*.so lib/*.dylib
+	rm -f lib/*.so lib/*.so.* lib/*.dylib lib/*.dylib.*
+	rm -f lib/kno/*.so lib/kno/*.so.* lib/kno/*.dylib lib/kno/*.dylib.*
+	rm -f exe/kno* dbg/kno* static/kno* static/stripped/kno*
 	rm -f TAGS
 	cd tests/libtests; make -s clean
 	cd tests; make -s clean
