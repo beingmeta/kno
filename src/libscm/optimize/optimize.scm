@@ -452,7 +452,7 @@
 	      (not (test env '%nowarn (car expr))))
 	 ;; This is the case where the head is a symbol which we can't
 	 ;; resolve it.
-	 (codewarning (cons* 'UNBOUND expr bound))
+	 (codewarning (cons* '|Unbound| expr bound))
 	 (when optwarn
 	   (logwarn |UnboundVariable|
 	     "The symbol " (car expr) " in " expr
@@ -1374,16 +1374,15 @@
 
 (define (optimize-numeric handler expr env bound opts)
   (cond ((null? (cdr expr))
+	 ;; (codewarning (cons* '|NoArguments| expr))
 	 (cond ((overlaps? handler {+ #OP_PLUS}) 0)
 	       ((overlaps? handler {* #OP_MULT}) 1)
-	       (else (logwarn)
+	       (else (codewarning (cons* '|NoArguments| expr))
 		     expr)))
 	((and (pair? (cdr expr)) (null? (cddr expr)))
 	 (cond ((overlaps? handler {>= = <= < >})
-		(logwarn)
+		(codewarning (cons* '|TooFewArguments| expr))
 		expr)
-	       ((overlaps? handler {+ #OP_PLUS * #OP_MULT})
-		(optimize (cadr expr)))
 	       (else (cons handler (optimize-args (cdr expr) env bound opts)))))
 	((opcode? handler)
 	 (cons handler (optimize-args (cdr expr) env bound opts)))
@@ -1414,7 +1413,15 @@
 	   (or (eq? (car expr) 'unquote) 
 	       (eq? (car expr) 'unquote*)))
       (list (car expr) (qc (optimize-unquote (cadr expr) env bound opts)))
-      (optimize (qc expr) env bound opts)))
+      (optimize-embedded-quote (qc expr) env bound opts)))
+(define (optimize-embedded-quote expr env bound opts)
+  (if (and (pair? expr) (eq? (car expr) 'quote)
+	   (pair? (cdr expr)) (empty-list? (cddr expr)))
+      (if (qchoice? (cadr expr))
+	  `(quote ,(cadr expr))
+	  (list 'quote (optimize-quasiquote-node (cadr expr) env bound opts)))
+      (optimize expr env bound opts)))
+
 
 (defambda (optimize-quasiquote-node expr env bound opts)
   (cond ((ambiguous? expr)
@@ -1423,6 +1430,10 @@
 	((and (pair? expr) 
 	      (or (eq? (car expr) 'unquote) (eq? (car expr) 'unquote*)))
 	 (optimize-unquote (qc expr) env bound opts))
+	((and (pair? expr) (eq? (car expr) 'quote) 
+	      (pair? (cdr expr)) (empty-list? (cddr expr)))
+	 (if (qchoice? (cadr expr)) expr
+	     (list 'quote (optimize-quasiquote-node (cadr expr) env bound opts))))
 	((pair? expr)
 	 (let ((backwards '()) (scan expr))
 	   (while (pair? scan)
@@ -1431,7 +1442,7 @@
 	   (if (and (empty-list? scan) (pair? (cdr backwards)) 
 		    (or (eq? (cadr backwards) 'unquote)
 			(eq? (cadr backwards) 'unquote*)))
-	       (reverse (cons* (optimize (car backwards) env bound opts)
+	       (reverse (cons* (optimize-embedded-quote (car backwards) env bound opts)
 			       (cadr backwards)
 			       (forseq (elt (cddr backwards))
 				 (optimize-quasiquote-node elt env bound opts))))
