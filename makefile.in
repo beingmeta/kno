@@ -740,14 +740,14 @@ $(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@: ${LIBSOURCE}/%@suffix@.@shared_suff
 	@$(SYSINSTALL) -d $(@D)
 	@$(SYSINSTALL) $< $@
 $(LIBINSTALLDIR)/%@suffix@.@mmshared_suffix@: $(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@
-	@$(SUINSTALL) ln -sf $(*F).@vshared_suffix@ $@
-	@$(MSG)  Linking $@ to $(*F).@vshared_suffix@
+	@$(SUINSTALL) ln -sf $(*F)@suffix@.@vshared_suffix@ $@
+	@$(MSG)  Linking $@ to $(*F)@suffix@.@vshared_suffix@
 $(LIBINSTALLDIR)/%@suffix@.@mshared_suffix@: $(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@
-	@$(SUINSTALL) ln -sf $(*F).@vshared_suffix@ $@
-	@$(MSG)  Linking $@ to $(*F).@vshared_suffix@
+	@$(SUINSTALL) ln -sf $(*F)@suffix@.@vshared_suffix@ $@
+	@$(MSG)  Linking $@ to $(*F)@suffix@.@vshared_suffix@
 $(LIBINSTALLDIR)/%@suffix@.@shared_suffix@: $(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@
-	@$(SUINSTALL) ln -sf $(*F).@vshared_suffix@ $@
-	@$(MSG)  Linking $@ to $(*F).@vshared_suffix@
+	@$(SUINSTALL) ln -sf $(*F)@suffix@.@vshared_suffix@ $@
+	@$(MSG)  Linking $@ to $(*F)@suffix@.@vshared_suffix@
 
 ${CMODULES}/%.@vshared_suffix@: ${LIBSOURCE}/kno/%@suffix@.@shared_suffix@
 	@echo Installing $@
