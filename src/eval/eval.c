@@ -767,8 +767,8 @@ lispval lambda_call(kno_stack stack,
     int tail_arg = ( (tailable) && (KNO_EMPTY_LISTP(scan)) ) ?
       (KNO_TAIL_EVAL) : (0);
     if (KNO_PAIRP(body_expr))
-      result = reduce_loop(lambda_stack,tailable);
-    else result = fast_eval(body_expr,&eval_env,lambda_stack,tailable);
+      result = reduce_loop(lambda_stack,tail_arg);
+    else result = fast_eval(body_expr,&eval_env,lambda_stack,tail_arg);
 
     if (ABORTED(result)) break;}
 
