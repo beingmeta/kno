@@ -578,7 +578,8 @@
       (when (and from (table? from))
 	(add! env '%modrefs
 	      (pick (get from '%moduleid) symbol?))))
-    (cond ((or (and from (test from dont-touch-decls head))
+    (cond ((eq? head 'quote) (list #OP_QUOTE (cadr expr)))
+	  ((or (and from (test from dont-touch-decls head))
 	       (and env (test env dont-touch-decls head)))
 	   expr)
 	  ((and from (%test from '%rewrite)
