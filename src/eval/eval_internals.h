@@ -1,14 +1,23 @@
+#if (!(KNO_AVOID_INLINE))
+#define INLINE_DEF static inline
+#else
+#define INLINE_DEF static
+#endif
+
 u8_condition BadExpressionHead;
 
-lispval schemap_eval(lispval expr,kno_lexenv env,kno_stack stack);
-lispval choice_eval(lispval expr,kno_lexenv env,kno_stack stack);
+lispval eval_schemap(lispval expr,kno_lexenv env,kno_stack stack);
+lispval eval_choice(lispval expr,kno_lexenv env,kno_stack stack);
+lispval eval_expr(lispval head,lispval expr,
+		  kno_lexenv env,kno_stack stack,
+		  int tail);
 
 lispval lambda_call(kno_stack stack,
 		    struct KNO_LAMBDA *proc,
 		    int n,kno_argvec args,
 		    int tail);
 
-KNO_FASTOP lispval fastget(lispval table,lispval key)
+INLINE_DEF lispval fastget(lispval table,lispval key)
 {
   kno_lisp_type argtype = KNO_TYPEOF(table);
   switch (argtype) {
@@ -18,7 +27,7 @@ KNO_FASTOP lispval fastget(lispval table,lispval key)
     return kno_hashtable_get((kno_hashtable)table,key,KNO_UNBOUND);
   default: return kno_get(table,key,KNO_UNBOUND);}
 }
-KNO_FASTOP lispval __kno_lexref(lispval lexref,kno_lexenv env_arg)
+INLINE_DEF lispval eval_lexref(lispval lexref,kno_lexenv env_arg)
 {
   int code = KNO_GET_IMMEDIATE(lexref,kno_lexref_type);
   int up = code/32, across = code%32;
@@ -43,7 +52,7 @@ KNO_FASTOP lispval __kno_lexref(lispval lexref,kno_lexenv env_arg)
                  u8_bprintf(errbuf,"up=%d,across=%d",up, across),
                  ((KNO_STATICP(env_ptr)) ? KNO_FALSE : (env_ptr)));
 }
-KNO_FASTOP lispval __kno_symeval(lispval symbol,kno_lexenv env)
+INLINE_DEF lispval symeval(lispval symbol,kno_lexenv env)
 {
   if (env == NULL) return KNO_VOID;
   if (env->env_copy) env = env->env_copy;
@@ -56,7 +65,7 @@ KNO_FASTOP lispval __kno_symeval(lispval symbol,kno_lexenv env)
       env = env->env_copy;}
   return KNO_VOID;
 }
-KNO_FASTOP lispval __kno_symbol_eval(lispval symbol,kno_lexenv env)
+INLINE_DEF lispval eval_symbol(lispval symbol,kno_lexenv env)
 {
   if (env == NULL)
     return kno_err("NoEnvironment","eval_symbol",NULL,symbol);
@@ -73,13 +82,13 @@ KNO_FASTOP lispval __kno_symbol_eval(lispval symbol,kno_lexenv env)
   return kno_err(kno_UnboundIdentifier,"kno_eval",
 		 KNO_SYMBOL_NAME(symbol),symbol);
 }
-KNO_FASTOP lispval __kno_fcnid_eval(lispval fcnid)
+INLINE_DEF lispval eval_fcnid(lispval fcnid)
 {
   lispval v = kno_fcnid_ref(fcnid);
   kno_incref(v);
   return v;
 }
-KNO_FASTOP lispval __kno_get_arg(lispval expr,int i)
+INLINE_DEF lispval get_arg(lispval expr,int i)
 {
   while (KNO_PAIRP(expr))
     if ((KNO_PAIRP(KNO_CAR(expr))) &&
@@ -89,7 +98,7 @@ KNO_FASTOP lispval __kno_get_arg(lispval expr,int i)
     else {expr = KNO_CDR(expr); i--;}
   return KNO_VOID;
 }
-KNO_FASTOP lispval __kno_get_body(lispval expr,int i)
+INLINE_DEF lispval get_body(lispval expr,int i)
 {
   while (KNO_PAIRP(expr))
     if (i == 0) break;
@@ -100,9 +109,9 @@ KNO_FASTOP lispval __kno_get_body(lispval expr,int i)
   return expr;
 }
 
-KNO_FASTOP lispval __kno_eval(lispval x,kno_lexenv env,
-			      kno_stack stack,
-			      int tail)
+INLINE_DEF lispval fast_eval(lispval x,kno_lexenv env,
+			     kno_stack stack,
+			     int tail)
 {
   switch (KNO_PTR_MANIFEST_TYPE(x)) {
   case kno_oid_ptr_type: case kno_fixnum_ptr_type:
@@ -110,21 +119,21 @@ KNO_FASTOP lispval __kno_eval(lispval x,kno_lexenv env,
   case kno_immediate_ptr_type: {
     switch (KNO_IMMEDIATE_TYPE(x)) {
     case kno_lexref_type:
-      return __kno_lexref(x,env);
+      return eval_lexref(x,env);
     case kno_symbol_type:
-      return __kno_symbol_eval(x,env);
+      return eval_symbol(x,env);
     case kno_fcnid_type:
-      return __kno_fcnid_eval(x);
+      return eval_fcnid(x);
     default:
       return x;}}}
   kno_lisp_type type = KNO_CONSPTR_TYPE(x);
   switch (type) {
   case kno_pair_type:
-    return kno_eval_expr(KNO_CAR(x),x,env,stack,tail);
+    return eval_expr(KNO_CAR(x),x,env,stack,tail);
   case kno_choice_type: case kno_prechoice_type:
-    return choice_eval(x,env,stack);
+    return eval_choice(x,env,stack);
   case kno_schemap_type:
-    return schemap_eval(x,env,stack);
+    return eval_schemap(x,env,stack);
   case kno_slotmap_type:
     return kno_deep_copy(x);
   default:
@@ -134,11 +143,11 @@ KNO_FASTOP lispval __kno_eval(lispval x,kno_lexenv env,
 static int testeval(lispval expr,kno_lexenv env,int fail_val,
 		    lispval *whoops,struct KNO_STACK *s) U8_MAYBE_UNUSED;
 
-static int testeval(lispval expr,kno_lexenv env,int fail_val,
-		    lispval *whoops,
-		    kno_stack _stack)
+INLINE_DEF int testeval(lispval expr,kno_lexenv env,int fail_val,
+			lispval *whoops,
+			kno_stack _stack)
 {
-  lispval val = kno_eval(expr,env,_stack,0);
+  lispval val = fast_eval(expr,env,_stack,0);
   if (KNO_CONSP(val)) {
     kno_decref(val);
     return 1;}
@@ -157,7 +166,7 @@ static int testeval(lispval expr,kno_lexenv env,int fail_val,
 #define TESTEVAL_FAIL_FALSE 0
 #define TESTEVAL_FAIL_TRUE  1
 
-KNO_FASTOP lispval _pop_arg(lispval *scan)
+INLINE_DEF lispval _pop_arg(lispval *scan)
 {
   lispval expr = *scan;
   if (PAIRP(expr)) {
@@ -176,7 +185,7 @@ KNO_FASTOP lispval _pop_arg(lispval *scan)
 
 static lispval eval_body_error(u8_context cxt,u8_string label,lispval body);
 
-KNO_FASTOP
+INLINE_DEF
 lispval eval_body(lispval body,kno_lexenv env,kno_stack stack,
 		  u8_context cxt,u8_string label,
 		  int tail)
@@ -186,7 +195,7 @@ lispval eval_body(lispval body,kno_lexenv env,kno_stack stack,
   while (PAIRP(scan)) {
       lispval subex = pop_arg(scan);
       if (PAIRP(scan)) {
-	lispval v = kno_eval(subex,env,stack,0);
+	lispval v = fast_eval(subex,env,stack,0);
 	if (KNO_IMMEDIATEP(v)) {
 	  if (KNO_ABORTED(v))
 	    return v;
@@ -195,7 +204,7 @@ lispval eval_body(lispval body,kno_lexenv env,kno_stack stack,
 	  else NO_ELSE;}
 	else kno_decref(v);}
       else if (KNO_EMPTY_LISTP(scan))
-	return kno_eval(subex,env,stack,tail);
+	return fast_eval(subex,env,stack,tail);
       else return eval_body_error(cxt,label,body);}
   if (KNO_EMPTY_LISTP(body))
     return KNO_VOID;
@@ -231,25 +240,6 @@ KNO_FASTOP kno_lexenv init_static_env
   envstruct->env_parent = parent;
   envstruct->env_copy = NULL;
   return envstruct;
-}
-
-static U8_MAYBE_UNUSED
-void release_stack_env(struct KNO_STACK *stack)
-{
-  kno_lexenv env = stack->eval_env;
-  if (env) {
-    stack->stack_bits &= (~(KNO_STACK_FREE_ENV));
-    stack->eval_env = NULL;
-    if (env->env_copy) {
-      kno_free_lexenv(env->env_copy);
-      env->env_copy=NULL;}
-    if (KNO_SCHEMAPP(env->env_bindings)) {
-      struct KNO_SCHEMAP *map = (kno_schemap) env->env_bindings;
-      lispval *vals = map->table_values;
-      int i = 0, n = map->schema_length;
-      while (i < n) {
-	kno_decref(vals[i]);
-	i++;}}}
 }
 
 #define INIT_STACK_ENV(stack,name,parent,n)		    \

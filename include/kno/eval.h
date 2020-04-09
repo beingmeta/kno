@@ -60,7 +60,7 @@ KNO_EXPORT int kno_choice_evalp(lispval x);
 
 #define KNO_IMMEDIATE_EVAL(expr,env)			\
   ( (KNO_LEXREFP(expr)) ? (kno_lexref(expr,env)) :	\
-    (KNO_SYMBOLP(expr)) ? (kno_symbol_eval(expr,env)) : \
+    (KNO_SYMBOLP(expr)) ? (kno_eval_symbol(expr,env)) : \
     (KNO_FCNIDP(expr)) ? (kno_fcnid_eval(expr,env)) : \
     (expr))
 
@@ -295,91 +295,19 @@ typedef struct KNO_CONFIG_RECORD {
 KNO_EXPORT lispval kno_eval_body(lispval body,kno_lexenv env,kno_stack stack,
 				 u8_context cxt,u8_string label,
 				 int tail);
-KNO_EXPORT lispval _kno_cons_eval(lispval expr,kno_lexenv env,
-				  kno_stack stack,
-				  int tail);
-KNO_EXPORT lispval _kno_eval_expr(lispval head,lispval expr,
-				  kno_lexenv env,kno_stack stack,
-				  int tail);
-KNO_EXPORT lispval _kno_eval(lispval expr,kno_lexenv env,
-			     kno_stack stack,
-			     int tail);
+KNO_EXPORT lispval kno_eval_expr(lispval head,lispval expr,
+				 kno_lexenv env,kno_stack stack,
+				 int tail);
+KNO_EXPORT lispval kno_eval(lispval expr,kno_lexenv env,
+			    kno_stack stack,
+			    int tail);
+KNO_EXPORT lispval kno_eval_arg(lispval expr,kno_lexenv env);
 
-/* These are for non-static/inline versions */
-KNO_EXPORT lispval _kno_eval_arg(lispval expr,kno_lexenv env);
-KNO_EXPORT lispval _kno_get_arg(lispval expr,int i);
-KNO_EXPORT lispval _kno_get_body(lispval expr,int i);
-KNO_EXPORT lispval _kno_fcnid_eval(lispval);
-KNO_EXPORT lispval _kno_lexref_eval(lispval,kno_lexenv);
-KNO_EXPORT lispval _kno_symeval(lispval,kno_lexenv);
-KNO_EXPORT lispval _kno_symbol_eval(lispval,kno_lexenv);
-KNO_EXPORT lispval _kno_choice_eval(lispval,kno_lexenv,kno_stack);
-KNO_EXPORT lispval _kno_schemap_eval(lispval,kno_lexenv,kno_stack);
-KNO_EXPORT int _kno_pop_stack(kno_stack arg);
 
-#if KNO_EVAL_INTERNALS
-#define kno_eval __kno_eval
-#define kno_eval_expr eval_expr
-#define kno_symeval(x,env) __kno_symeval(x,env)
-#define kno_fcnid_eval(x) __kno_fcnid_eval(x)
-#define kno_symbol_eval(x,env) __kno_symbol_eval(x,env)
-#define kno_lexref(x,env) __kno_lexref(x,env)
-#define kno_get_arg(x,i) __kno_get_arg(x,i)
-#define kno_get_body(x,i) __kno_get_body(x,i)
-KNO_FASTOP lispval __kno_lexref(lispval lexref,kno_lexenv env_arg);
-KNO_FASTOP lispval __kno_fcnid_eval(lispval);
-KNO_FASTOP lispval __kno_symeval(lispval symbol,kno_lexenv env);
-KNO_FASTOP lispval __kno_symbol_eval(lispval symbol,kno_lexenv env);
-KNO_FASTOP lispval __kno_get_arg(lispval expr,int i);
-KNO_FASTOP lispval __kno_get_body(lispval expr,int i);
-lispval eval_expr(lispval,lispval,kno_lexenv,kno_stack,int);
-#else
-#if KNO_FAST_EVAL
-#define kno_eval __kno_eval
-#else
-#define kno_eval _kno_eval
-#endif
-#define kno_eval_expr _kno_eval_expr
-#define kno_symeval(x,env) _kno_symeval(x,env)
-#define kno_lexref(x,env) _kno_lexref(x,env)
-#define kno_fcnid_eval(x) _kno_fcnid(x)
-#define kno_symbol_eval(x,env) _kno_symbol_eval(x,env)
-#define kno_get_arg(x,i) _kno_get_arg(x,i)
-#define kno_get_body(x,i) _kno_get_body(x,i)
-#endif
-
-#if (!KNO_EVAL_INTERNALS) && KNO_FAST_EVAL
-KNO_FASTOP lispval __kno_eval(lispval x,kno_lexenv env,
-			      kno_stack stack,
-			      int tail)
-{
-  switch (KNO_PTR_MANIFEST_TYPE(x)) {
-  case kno_oid_ptr_type: case kno_fixnum_ptr_type:
-    return x;
-  case kno_immediate_ptr_type: {
-    switch (KNO_IMMEDIATE_TYPE(x)) {
-    case kno_lexref_type:
-      return __kno_lexref(x,env);
-    case kno_symbol_type:
-      return __kno_symbol_eval(x,env);
-    default:
-      return x;}}}
-  kno_lisp_type type = KNO_CONSPTR_TYPE(x);
-  switch (type) {
-  case kno_pair_type:
-    return kno_eval_expr(KNO_CAR(x),x,env,stack,tail);
-  case kno_choice_type: case kno_prechoice_type:
-    return _kno_choice_eval(x,env,stack);
-  case kno_schemap_type:
-    return _kno_schemap_eval(x,env,stack);
-  case kno_slotmap_type:
-    return kno_deep_copy(x);
-  default:
-    return kno_incref(x);}
-}
-#endif
-
-#define kno_eval_arg(x,env) _kno_eval_arg(x,env)
+KNO_EXPORT lispval kno_get_arg(lispval expr,int i);
+KNO_EXPORT lispval kno_get_body(lispval expr,int i);
+KNO_EXPORT lispval kno_symeval(lispval sym,kno_lexenv env);
+KNO_EXPORT lispval kno_lexref(lispval lexref,kno_lexenv env);
 
 #define kno_simplify_value(v) \
   ( (KNO_PRECHOICEP(v)) ? (kno_simplify_choice(v)) : (v) )

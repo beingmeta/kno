@@ -22,9 +22,6 @@
 u8_condition kno_BindError=_("Can't bind variable");
 u8_condition kno_BindSyntaxError=_("Bad binding expression");
 
-#define _env_return \
-  return release_stack_env(_stack),
-
 /* Set operations */
 
 static lispval assign_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
