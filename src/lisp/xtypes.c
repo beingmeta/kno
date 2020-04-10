@@ -43,6 +43,8 @@ static unsigned char *xtype_zstd_uncompress
 static unsigned char *xtype_snappy_uncompress
 (ssize_t *destlen,const unsigned char *source,size_t source_len);
 
+static ssize_t write_xtype(kno_outbuf out,lispval x,xtype_refs refs);
+
 lispval kno_xtrefs_typetag;
 
 static lispval objid_symbol, mime_symbol, encrypted_symbol,
@@ -130,23 +132,12 @@ KNO_EXPORT int kno_init_xrefs(xtype_refs refs,
   return n_refs;
 }
 
-static void recycle_xrefs(struct XTYPE_REFS *xrefs)
-{
-  int static_refs = (xrefs->xt_refs_flags)&(XTYPE_STATIC_REFS);
-  lispval *refs = xrefs->xt_refs;
-  xrefs->xt_refs = NULL;
-  if (!(static_refs)) u8_free(refs);
-  struct KNO_HASHTABLE *lookup = xrefs->xt_lookup;
-  xrefs->xt_lookup=NULL;
-  kno_recycle_hashtable(lookup);
-  u8_free(lookup);
-}
-
+/* Recycle method for wrapped xtype refs */
 static void recycle_xtype_refs(void *ptr)
 {
-  struct XTYPE_REFS *xrefs = (xtype_refs) ptr;
-  recycle_xrefs(xrefs);
-  u8_free(xrefs);
+  struct XTYPE_REFS *refs = (xtype_refs) ptr;
+  kno_recycle_xrefs(refs);
+  u8_free(refs);
 }
 
 KNO_EXPORT ssize_t kno_add_xtype_ref(lispval x,xtype_refs refs)
@@ -190,9 +181,18 @@ KNO_EXPORT ssize_t _kno_xtype_ref(lispval x,xtype_refs refs,int add)
   return kno_xtype_ref(x,refs,add);
 }
 
-KNO_EXPORT void kno_recycle_xrefs(xtype_refs xrefs)
+KNO_EXPORT void kno_recycle_xrefs(xtype_refs refs)
 {
-  recycle_xrefs(xrefs);
+  if ( ( (refs->xt_refs_flags) & (XTYPE_REFS_EXT_ELTS) ) == 0) {
+    kno_recycle_hashtable(refs->xt_lookup);
+    u8_free(refs->xt_lookup);}
+  if ( ( (refs->xt_refs_flags) & (XTYPE_REFS_EXT_ELTS) ) == 0) {
+    if ( ( (refs->xt_refs_flags) & (XTYPE_REFS_CONS_ELTS) ) ) {
+      lispval *elts = refs->xt_refs;
+      int i = 0, len = refs->xt_n_refs; while (i<len) {
+	lispval elt = elts[i++]; kno_decref(elt);}}
+    u8_free(refs->xt_refs);}
+  memset(refs,0,sizeof(struct XTYPE_REFS));
 }
 
 /* Writing sorted choices */
@@ -211,7 +211,7 @@ static ssize_t write_choice_xtype(kno_outbuf out,kno_choice ch,xtype_refs refs)
   else xtype_len = rv+1;
   while (i < n_choices) {
     lispval elt = data[i];
-    ssize_t elt_size = kno_write_xtype(out,elt,refs);
+    ssize_t elt_size = write_xtype(out,elt,refs);
     if (elt_size<0) return elt_size;
     xtype_len += elt_size;
     i++;}
@@ -579,30 +579,46 @@ static lispval read_xtype(kno_inbuf in,xtype_refs refs)
 			     KNO_CHOICE_REALLOC);}
     case xt_vector: {
       ssize_t n_elts = xt_read_varint(in);
-      lispval vec = kno_make_vector(n_elts,NULL);
+      lispval vec = kno_make_vector(n_elts,NULL), err = KNO_VOID;
       lispval *elts = KNO_VECTOR_ELTS(vec);
       int atomicp = 1; ssize_t i = 0; while (i < n_elts) {
 	lispval elt = read_xtype(in,refs);
-	if (KNO_ABORTED(elt)) {
-	  int j = 0; while (j<i) {
-	    lispval gc_elt = elts[j]; kno_decref(gc_elt); j++;}
-	  return elt;}
+	if (ABORTED(elt)) { err=elt; break;}
 	if ( (atomicp) && (KNO_CONSP(elt)) ) atomicp=0;
 	elts[i]=elt;
 	i++;}
-      return vec;}
+      if (ABORTED(err)) {
+	i--; while (i>=0) {
+	    lispval gc_elt = elts[i];
+	    kno_decref(gc_elt);
+	    i--;}
+	return err;}
+      else return vec;}
     case xt_table: {
       ssize_t n_elts = xt_read_varint(in), n_slots = n_elts/2;
       if (n_elts%2)
 	return kno_err("CorruptXTypeTable","read_xtype",NULL,VOID);
-      lispval map = kno_make_slotmap(n_slots,n_slots,NULL);
+      lispval map = kno_make_slotmap(n_slots,n_slots,NULL), err = KNO_VOID;
       struct KNO_KEYVAL *kv = KNO_SLOTMAP_KEYVALS(map);
       ssize_t i = 0; while (i < n_slots) {
 	lispval key = read_xtype(in,refs);
+	if (ABORTED(key)) {err = key; break;}
 	lispval val = read_xtype(in,refs);
+	if (ABORTED(val)) {
+	  kno_decref(key);
+	  err = val;
+	  break;}
 	kv[i].kv_key = key; kv[i].kv_val = val;
 	i++;}
-      return map;}
+      if (ABORTED(err)) {
+	i--; while (i>=0) {
+	  lispval key = kv[i].kv_key;
+	  lispval val = kv[i].kv_val;
+	  kno_decref(key);
+	  kno_decref(val);
+	  i--;}
+	return map;}
+      else return map;}
 
     case xt_tagged: {
       lispval tag = read_xtype(in,refs);
@@ -641,14 +657,13 @@ static lispval read_xtype(kno_inbuf in,xtype_refs refs)
 	kno_decref(refvec);
 	return KNO_ERROR;}
       struct XTYPE_REFS xrefs;
-      ssize_t n_refs = KNO_VECTOR_LENGTH(refvec);
+      int n_refs = KNO_VECTOR_LENGTH(refvec);
       kno_init_xrefs(&xrefs,n_refs,n_refs,n_refs,
-		     XTYPE_STATIC_REFS,
+		     (XTYPE_REFS_EXT_ELTS|XTYPE_REFS_READ_ONLY),
 		     KNO_VECTOR_ELTS(refvec),
 		     NULL);
       lispval decoded = read_xtype(in,&xrefs);
       kno_recycle_xrefs(&xrefs);
-      kno_decref(refvec);
       return decoded;}
 
     default:
@@ -793,10 +808,10 @@ static ssize_t write_compound(kno_outbuf out,
   ssize_t tag_len = -1, content_len = -1;
   int n_elts = cvec->compound_length;
   kno_write_byte(out,xt_tagged);
-  tag_len = kno_write_xtype(out,cvec->typetag,refs);
+  tag_len = write_xtype(out,cvec->typetag,refs);
   if (tag_len<0) return tag_len;
   if (n_elts == 1) {
-    content_len = kno_write_xtype(out,cvec->compound_0,refs);
+    content_len = write_xtype(out,cvec->compound_0,refs);
     if (content_len > 0)
       return 1+tag_len+content_len;
     else return content_len;}
@@ -807,7 +822,7 @@ static ssize_t write_compound(kno_outbuf out,
   lispval *elts = &(cvec->compound_0);
   int i = 0; while (i<n_elts) {
     lispval elt = elts[i];
-    ssize_t xt_len = kno_write_xtype(out,elt,refs);
+    ssize_t xt_len = write_xtype(out,elt,refs);
     if (xt_len<0) return xt_len;
     content_len += xt_len;
     i++;}
@@ -895,7 +910,7 @@ static lispval restore_compressed(lispval tag,lispval data,xtype_refs refs)
     if (uncompressed) {
       struct KNO_INBUF inflated = { 0 };
       KNO_INIT_BYTE_INPUT(&inflated,uncompressed,uncompressed_len);
-      lispval value = kno_read_xtype(&inflated,refs);
+      lispval value = read_xtype(&inflated,refs);
       u8_big_free(uncompressed);
       return value;}
     else return kno_err("UncompressFailed","xt_zread",NULL,VOID);}
@@ -1013,22 +1028,19 @@ KNO_EXPORT lispval kno_getxrefs(lispval arg)
   int free_arg = 0;
   if ( (KNO_FALSEP(arg)) || (KNO_VOIDP(arg)) || (KNO_DEFAULTP(arg)) )
     return KNO_FALSE;
-  if (KNO_RAW_TYPEP(arg,kno_xtrefs_typetag))
-    return kno_incref(arg);
-  else if (KNO_TABLEP(arg)) {
+  if (KNO_TABLEP(arg)) {
     arg = kno_getopt(arg,xrefs_symbol,KNO_VOID);
     if ( (KNO_FALSEP(arg)) || (KNO_VOIDP(arg)) || (KNO_DEFAULTP(arg)) )
       return KNO_FALSE;
-    else if (KNO_RAW_TYPEP(arg,kno_xtrefs_typetag))
+    free_arg = 1;}
+  if (KNO_RAW_TYPEP(arg,kno_xtrefs_typetag)) {
+    if (free_arg)
       return arg;
-    else free_arg=1;}
-  else NO_ELSE;
-
-  /* Now process the arg to generate a wrapped XREFS object */
+    else return kno_incref(arg);}
 
   /* negative is an error, zero is uncreated, >0 is created */
 
-  const lispval *elts = NULL; ssize_t n_elts = 0;
+  const lispval *elts = NULL; int n_elts = 0;
   if (KNO_PRECHOICEP(arg)) {
     if (free_arg)
       arg = kno_simplify_choice(arg);
@@ -1047,7 +1059,7 @@ KNO_EXPORT lispval kno_getxrefs(lispval arg)
   
   if ( (elts) && (n_elts) ) {
     lispval *copy = u8_alloc_n(n_elts,lispval);
-    ssize_t i = 0; while (i < n_elts) {
+    int i = 0; while (i < n_elts) {
       lispval elt = elts[i];
       if ( (OIDP(elt)) || (SYMBOLP(elt)) ) {
 	copy[i] = elt;
@@ -1060,7 +1072,7 @@ KNO_EXPORT lispval kno_getxrefs(lispval arg)
 	return KNO_ERROR;}}
     if (free_arg) kno_decref(arg);
     struct XTYPE_REFS *refs = u8_alloc(struct XTYPE_REFS);
-    int init_rv = 
+    int init_rv =
       kno_init_xrefs(refs,n_elts,n_elts,-1,XTYPE_REFS_READ_ONLY,
 		     copy,NULL);
     if (init_rv<0) {
