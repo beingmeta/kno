@@ -345,7 +345,7 @@ KNO_EXPORT int _KNO_APPLICABLE_TYPEP(int typecode);
 #define KNO_APPLICABLE_TYPEP _KNO_APPLICABLE_TYPEP
 #else
 #define KNO_APPLICABLE_TYPEP(typecode) \
-  ( ( ((typecode) >= kno_cprim_type) && ((typecode) <= kno_rpcproc_type) ) || \
+  ( ( ((typecode) >= kno_cprim_type) && ((typecode) <= kno_rpc_type) ) || \
     ( (kno_applyfns[typecode]) != NULL) )
 
 #define KNO_APPLICABLEP(x)			 \

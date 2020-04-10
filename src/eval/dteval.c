@@ -73,7 +73,7 @@ KNO_EXPORT lispval kno_open_dtserver(u8_string server,int bufsiz)
     u8_free(dts);
     return KNO_ERROR;}
   /* Otherwise, returh a dtserver object */
-  KNO_INIT_CONS(dts,kno_dtserver_type);
+  KNO_INIT_CONS(dts,kno_evalserver_type);
   return LISP_CONS(dts);
 }
 
@@ -83,7 +83,7 @@ DEFPRIM1("dtserver?",dtserverp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 kno_any_type,KNO_VOID);
 static lispval dtserverp(lispval arg)
 {
-  if (TYPEP(arg,kno_dtserver_type))
+  if (TYPEP(arg,kno_evalserver_type))
     return KNO_TRUE;
   else return KNO_FALSE;
 }
@@ -91,7 +91,7 @@ static lispval dtserverp(lispval arg)
 DEFPRIM1("dtserver-id",dtserver_id,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns the ID of a dtype server (the argument "
 	 "used to create it)",
-	 kno_dtserver_type,KNO_VOID);
+	 kno_evalserver_type,KNO_VOID);
 static lispval dtserver_id(lispval arg)
 {
   struct KNO_DTSERVER *dts = (struct KNO_DTSERVER *) arg;
@@ -100,7 +100,7 @@ static lispval dtserver_id(lispval arg)
 
 DEFPRIM1("dtserver-address",dtserver_address,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns the address (host/port) of a dtype server",
-	 kno_dtserver_type,KNO_VOID);
+	 kno_evalserver_type,KNO_VOID);
 static lispval dtserver_address(lispval arg)
 {
   struct KNO_DTSERVER *dts = (struct KNO_DTSERVER *) arg;
@@ -112,9 +112,9 @@ DEFPRIM2("dteval",dteval,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval dteval(lispval server,lispval expr)
 {
-  if (TYPEP(server,kno_dtserver_type))  {
+  if (TYPEP(server,kno_evalserver_type))  {
     struct KNO_DTSERVER *dtsrv=
-      kno_consptr(kno_stream_erver,server,kno_dtserver_type);
+      kno_consptr(kno_stream_erver,server,kno_evalserver_type);
     return kno_dteval(dtsrv->connpool,expr);}
   else if (STRINGP(server)) {
     lispval s = kno_open_dtserver(CSTRING(server),-1);
@@ -132,7 +132,7 @@ static lispval dtcall(int n,kno_argvec args)
 {
   lispval server; lispval request = NIL, result; int i = n-1;
   if (n<2) return kno_err(kno_SyntaxError,"dtcall",NULL,VOID);
-  if (TYPEP(args[0],kno_dtserver_type))
+  if (TYPEP(args[0],kno_evalserver_type))
     server = kno_incref(args[0]);
   else if (STRINGP(args[0])) server = kno_open_dtserver(CSTRING(args[0]),-1);
   else return kno_type_error(_("server"),"eval/dtcall",args[0]);

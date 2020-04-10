@@ -981,7 +981,7 @@ inline lispval _eval_expr(lispval head,lispval expr,
   switch (optype) {
   case kno_opcode_type: case kno_choice_type:
   case kno_cprim_type: case kno_lambda_type:
-  case kno_ffi_type: case kno_rpcproc_type:
+  case kno_ffi_type: case kno_rpc_type:
     return eval_apply(op,KNO_CDR(expr),env,stack,decref_op,tail);
   case kno_evalfn_type: {
     result = call_evalfn(op,expr,env,stack,tail);
@@ -1895,7 +1895,7 @@ KNO_EXPORT void kno_init_eval_getopt_c(void);
 KNO_EXPORT void kno_init_eval_debug_c(void);
 KNO_EXPORT void kno_init_eval_testops_c(void);
 KNO_EXPORT void kno_init_configops_c(void);
-KNO_EXPORT void kno_init_dteval_c(void);
+KNO_EXPORT void kno_init_neteval_c(void);
 
 static void init_eval_core()
 {
@@ -1906,7 +1906,7 @@ static void init_eval_core()
   kno_init_eval_debug_c();
   kno_init_eval_testops_c();
   kno_init_evalops_c();
-  kno_init_dteval_c();
+  // kno_init_neteval_c();
   kno_init_tableprims_c();
   kno_init_loadmods_c();
   kno_init_modules_c();

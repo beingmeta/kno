@@ -9,7 +9,7 @@
 
 typedef struct KNO_NETWORK_POOL {
   KNO_POOL_FIELDS;
-  struct U8_CONNPOOL *pool_connpool;
+  kno_evalserver pool_server;
   int bulk_commitp;} KNO_NETWORK_POOL;
 typedef struct KNO_NETWORK_POOL *kno_network_pool;
 

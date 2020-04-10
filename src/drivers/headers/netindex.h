@@ -11,7 +11,7 @@ typedef struct KNO_NETWORK_INDEX {
   KNO_INDEX_FIELDS;
   int sock; lispval xname;
   int capabilities;
-  struct U8_CONNPOOL *index_connpool;} KNO_NETWORK_INDEX;
+  kno_evalserver index_server;} KNO_NETWORK_INDEX;
 typedef struct KNO_NETWORK_INDEX *kno_network_index;
 
 KNO_EXPORT kno_index kno_open_network_index(u8_string spec,kno_storage_flags flags,

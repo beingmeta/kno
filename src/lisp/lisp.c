@@ -311,8 +311,8 @@ static void init_type_names()
   kno_type_docs[kno_ffi_type]=_("ffi");
   kno_type_names[kno_lambda_type]=_("lambda");
   kno_type_docs[kno_lambda_type]=_("lambda");
-  kno_type_names[kno_rpcproc_type]=_("rpcproc");
-  kno_type_docs[kno_rpcproc_type]=_("rpcproc");
+  kno_type_names[kno_rpc_type]=_("rpcproc");
+  kno_type_docs[kno_rpc_type]=_("rpcproc");
 
   kno_type_names[kno_lexenv_type]=_("lexenv");
   kno_type_docs[kno_lexenv_type]=_("lexenv");
@@ -363,8 +363,8 @@ static void init_type_names()
   kno_type_names[kno_sqlproc_type]=_("sqldbproc");
   kno_type_docs[kno_sqlproc_type]=_("sqldbproc");
 
-  kno_type_names[kno_dtserver_type]=_("dtserver");
-  kno_type_docs[kno_dtserver_type]=_("dtserver");
+  kno_type_names[kno_evalserver_type]=_("dtserver");
+  kno_type_docs[kno_evalserver_type]=_("dtserver");
   kno_type_names[kno_bloom_filter_type]=_("bloom_filter");
   kno_type_docs[kno_bloom_filter_type]=_("bloom_filter");
 }

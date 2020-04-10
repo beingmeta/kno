@@ -625,12 +625,13 @@ KNO_EXPORT void kno_init_indexes_c(void);
 KNO_EXPORT void kno_init_xtcall_c(void);
 KNO_EXPORT void kno_init_dtcall_c(void);
 KNO_EXPORT void kno_init_oidobj_c(void);
-KNO_EXPORT void kno_init_dtproc_c(void);
+KNO_EXPORT void kno_init_netproc_c(void);
 KNO_EXPORT void kno_init_frames_c(void);
 KNO_EXPORT void kno_init_cachecall_c(void);
 KNO_EXPORT void kno_init_ipeval_c(void);
 KNO_EXPORT void kno_init_methods_c(void);
 KNO_EXPORT int kno_init_drivers_c(void);
+KNO_EXPORT void kno_init_evalserver_c(void);
 KNO_EXPORT void kno_init_bloom_c(void);
 
 KNO_EXPORT int kno_init_storage()
@@ -654,8 +655,9 @@ KNO_EXPORT int kno_init_storage()
   kno_init_frames_c();
   kno_init_drivers_c();
   /* kno_init_xtcall_c(); */
-  kno_init_dtcall_c();
-  kno_init_dtproc_c();
+  //  kno_init_evalserver_c();
+  //  kno_init_dtcall_c();
+  //  kno_init_netproc_c();
 #if KNO_IPEVAL_ENABLED
   kno_init_ipeval_c();
 #endif

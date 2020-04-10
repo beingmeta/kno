@@ -615,7 +615,7 @@ static int config_add_profiled(lispval var,lispval val,void *data)
 static int APPLICABLE_TYPEP(int typecode)
 {
   if ( ((typecode) >= kno_cprim_type) &&
-       ((typecode) <= kno_rpcproc_type) )
+       ((typecode) <= kno_rpc_type) )
     return 1;
   else return ( (kno_applyfns[typecode]) != NULL);
 }
