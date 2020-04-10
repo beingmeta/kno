@@ -23,8 +23,6 @@
 #include <libu8/u8netfns.h>
 #include <libu8/u8printf.h>
 
-static lispval quote_symbol;
-
 KNO_EXPORT lispval kno_make_dtproc(u8_string name,u8_string server,
                                  int ndcall,int arity,int min_arity,
                                  int minsock,int maxsock,int initsock)
@@ -36,10 +34,10 @@ KNO_EXPORT lispval kno_make_dtproc(u8_string name,u8_string server,
   f->dtprocserver = u8_strdup(server);
   f->dtprocname = kno_intern(name);
   if (ndcall)
-    f->fcn_call |= KNO_FCN_CALL_NDOP;
+    f->fcn_call |= KNO_CALL_NDCALL;
   f->fcn_min_arity = min_arity;
   f->fcn_call_width = f->fcn_arity = arity;
-  f->fcn_call |= KNO_FCN_CALL_XCALL;
+  f->fcn_call |= KNO_CALL_XCALL;
   f->fcn_handler.fnptr = NULL;
   if (minsock<0) minsock = 2;
   if (maxsock<0) maxsock = minsock+3;
@@ -81,7 +79,7 @@ static lispval dtapply(struct KNO_DTPROC *dtp,int n,lispval *args)
   kno_init_stream(&stream,NULL,conn,KNO_STREAM_SOCKET,kno_network_bufsize);
   while (i>=0) {
     if ((SYMBOLP(args[i])) || (PAIRP(args[i])))
-      expr = kno_conspair(kno_make_list(2,quote_symbol,kno_incref(args[i])),
+      expr = kno_conspair(kno_make_list(2,KNOSYM_QUOTE,kno_incref(args[i])),
                          expr);
     else expr = kno_conspair(kno_incref(args[i]),expr);
     i--;}
@@ -112,14 +110,12 @@ static lispval dtapply(struct KNO_DTPROC *dtp,int n,lispval *args)
 
 KNO_EXPORT void kno_init_dtproc_c()
 {
-  quote_symbol = kno_intern("quote");
-
   u8_register_source_file(_FILEINFO);
   u8_register_source_file(KNO_DTPROC_H_INFO);
 
   kno_type_names[kno_rpcproc_type]=_("dtproc");
   kno_applyfns[kno_rpcproc_type]=(kno_applyfn)dtapply;
-  kno_function_types[kno_rpcproc_type]=1;
+  kno_isfunctionp[kno_rpcproc_type]=1;
 
   kno_unparsers[kno_rpcproc_type]=unparse_dtproc;
   kno_recyclers[kno_rpcproc_type]=recycle_dtproc;

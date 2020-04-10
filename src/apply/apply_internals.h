@@ -1,4 +1,9 @@
-static int check_args(int n,kno_argvec args)
+#include <libu8/u8printf.h>
+
+KNO_EXPORT u8_condition kno_VoidArgument;
+
+static U8_MAYBE_UNUSED
+int check_args(int n,kno_argvec args)
 {
   int needs_work = 0;
   int i = 0; while (i<n) {
@@ -6,7 +11,8 @@ static int check_args(int n,kno_argvec args)
     if (! (PRED_TRUE(KNO_CHECK_PTR(arg))) )
       return -(i+1);
     else if (CONSP(arg)) {
-      if (KNO_PRECHOICEP(arg)) {needs_work = 1;}}
+      if (KNO_PRECHOICEP(arg)) {needs_work = 1;}
+      else if (KNO_QCHOICEP(arg)) {needs_work = 1;}}
     else if ( (KNO_ABORTED(arg)) || (KNO_VOIDP(arg)) )
       return -(i+1);
     else NO_ELSE;
@@ -23,16 +29,17 @@ static void arg_error(lispval fcn,lispval arg,int i)
     ( (fcn_name) ?
       (u8_bprintf(buf,"%s[%d]",fcn_name,i)) :
       (u8_bprintf(buf,"%q[%d]",fcn,i)) );
-  if (arg == NULL)
+  if (arg == KNO_NULL)
     kno_seterr(kno_NullPtr,"docall",details,fcn);
   else if (KNO_ABORTP(arg))
     kno_seterr("ArgumentError","docall",details,fcn);
   else if (KNO_VOIDP(arg))
-    kno_seterr(kno_VoidArg,"docall",details,fcn);
-  else kno_badptr_error(arg,"docall",details);
+    kno_seterr(kno_VoidArgument,"docall",details,fcn);
+  else kno_badptr_err(arg,"docall",details);
 }
 
-static void errno_warning(u8_string label)
+static U8_MAYBE_UNUSED
+void errno_warning(u8_string label)
 {
   if (errno) {
     u8_string cond=u8_strerror(errno);
@@ -41,7 +48,8 @@ static void errno_warning(u8_string label)
     errno=0;}
 }
 
-static int too_few_args(lispval fn,u8_string fname,int n,int min,int max)
+static U8_MAYBE_UNUSED
+int too_few_args(lispval fn,u8_string fname,int n,int min,int max)
 {
   kno_lisp_type ftype = KNO_TYPEOF(fn);
   u8_byte buf[64], namebuf[64];
@@ -59,7 +67,8 @@ static int too_few_args(lispval fn,u8_string fname,int n,int min,int max)
   return -1;
 }
 
-static int too_many_args(lispval fn,u8_string fname,int n,int min,int max)
+static U8_MAYBE_UNUSED
+int too_many_args(lispval fn,u8_string fname,int n,int min,int max)
 {
   kno_lisp_type ftype = KNO_TYPEOF(fn);
   u8_byte buf[64], namebuf[64];
@@ -74,95 +83,97 @@ static int too_many_args(lispval fn,u8_string fname,int n,int min,int max)
   return -1;
 }
 
-static int setup_call(kno_stack stack,lispval fcn,
-		      int width,lispval *callbuf,
-		      int n,kno_argvec args)
+static U8_MAYBE_UNUSED
+int setup_call(kno_stack stack,lispval fcn,
+	       int width,lispval *callbuf,
+	       int n,kno_argvec args)
 {
   int i = 0; while (i<n) {
     lispval arg = args[i];
-    if (PRED_FALSE ( (arg==NULL) ||
+    if (PRED_FALSE ( (arg == KNO_NULL) ||
 		     (KNO_VOIDP(arg)) ||
-		     (KNO_ABORTEDP(arg)) ||
+		     (KNO_ABORTED(arg)) ||
 		     (!(KNO_CHECK_PTR(arg))) ) ) {
       arg_error(fcn,arg,i);
       return -1;}
     else if (CONSP(arg)) {
       if (KNO_PRECHOICEP(arg)) {
 	lispval simple = kno_make_simple_choice(arg);
-	callbuf[i]=simple;
-	KNO_STACK_DECREF(stack,simple);}
+	kno_add_stack_ref(stack,simple);
+	callbuf[i]=simple;}
       else if (KNO_QCHOICEP(arg)) {
 	lispval v = KNO_QCHOICEVAL(arg);
 	kno_incref(v);
-	KNO_STACK_DECREF(stack,v);
+	kno_add_stack_ref(stack,v);
 	callbuf[i]=v;}
       else callbuf[i]=arg;}
     else callbuf[i]=arg;
     i++;}
   while (i<width) callbuf[i++]=KNO_VOID;
+  STACK_ARGS(stack)  = callbuf;
+  STACK_WIDTH(stack) = width;
+  STACK_ARGCOUNT(stack)  = n;
   return n;
 }
 
-static int cprim_prep(u8_string fname,
-		      int width,lispval *args,
+static int cprim_prep(kno_stack stack,
+		      u8_string fname,
+		      int n,int width,
+		      lispval *args,
 		      const kno_lisp_type *typeinfo,
 		      const lispval *defaults)
 {
-  if ( (typeinfo) && (defaults) ) {
-    int i = 0; while (i < width) {
+  int i = 0;
+  if (typeinfo) {
+    int i = 0; while (i<n) {
       lispval arg = args[i];
-      if ( (KNO_VOIDP(arg)) || (KNO_DEFAULTP(arg)) ) {
-	/* Note that the defaults for cprims can't be conses, so we don't bother with
-	   incref/decref */
-	args[i] = defaults[i]; i++;
-	/* We don't check the type of defaults, since it lets
-	   the handler use non-standard arguments as signals. */
-	continue;}
-      kno_ptr_type type = typeinfo[i];
-      if (! ( (type<0) || (PRED_TRUE(KNO_TYPEP(arg,type))) ) ) {
+      kno_lisp_type type = typeinfo[i];
+      kno_lisp_type arg_type = KNO_TYPEOF(arg);
+      if (type<0) i++;
+      else if (arg_type == type) i++;
+      else {
 	u8_byte buf[128];
 	kno_seterr(kno_TypeError,kno_type_names[type],
-		   u8_bprintf(buf,"%s[%d]",fname,i),
+		   u8_bprintf(buf,"%s[%d](%s)",fname,i,
+			      kno_type_names[arg_type]),
 		   arg);
-	return -1;}
+	return -1;}}}
+  else NO_ELSE;
+  i = n;
+  if (defaults) {
+    while (i<width) {
+      args[i] = defaults[i];
       i++;}}
-  else if (defaults) {
-    int i = 0; while (i < width) {
-      lispval arg = args[i];
-      if ( (KNO_VOIDP(arg)) || (KNO_DEFAULTP(arg)) )
-	/* Note that the defaults for cprims can't be conses, so we don't bother with
-	   incref/decref */
-	args[i] = defaults[i];
-      i++;}}
-  else if (typeinfo) {
-    int i = 0; while (i < width) {
-      lispval arg = args[i];
-      kno_ptr_type type = typeinfo[i];
-      if (! ( (type<0) || (PRED_TRUE(KNO_TYPEP(arg,type))) ) ) {
-	u8_byte buf[128];
-	kno_seterr(kno_TypeError,kno_type_names[type],
-		   u8_bprintf(buf,"%s[%d]",fname,i),
-		   arg);
-	return -1;}
-      i++;}}
-  else  {}
-  return i;
+  else while (i<width) args[i++]=KNO_VOID;
+  return width;
 }
 
 KNO_FASTOP lispval cprim_call(u8_string fname,kno_cprim cp,
-			      int n,kno_argvec args,
+			      int n,kno_argvec given,
 			      kno_stack stack)
 {
   kno_lisp_type *typeinfo = cp->fcn_typeinfo;
   const lispval *defaults = cp->fcn_defaults;
-  int rv = cprim_prep(fname,n,(lispval *)args,typeinfo,defaults);
+  int call_width = cp->fcn_call_width, rv = -1;
+  if (call_width<0) call_width=n;
+  lispval *args, _args[call_width];
+  if (call_width <= STACK_WIDTH(stack)) {
+    rv = cprim_prep(stack,fname,n,call_width,
+		    (lispval *)given,
+		    typeinfo,defaults);
+    args = (lispval *)given;}
+  else {
+    rv = cprim_prep(stack,fname,n,call_width,
+		    _args,
+		    typeinfo,defaults);
+    args = _args;}
+  int arity = cp->fcn_arity;
   if (rv<0)
     return KNO_ERROR;
-  else if (FCN_XCALLP(f))
-    return f->fcn_handler.xcalln(stack,(kno_function)f,n,args);
-  else if ( (FCN_LEXPRP(f)) || (arity < 0) )
-    return f->fcn_handler.calln(n,argbuf);
-  else NO_ELSE;
+  else if (FCN_XCALLP(cp))
+    return cp->fcn_handler.xcalln(stack,(kno_function)cp,n,args);
+  else if ( (FCN_VARARGP(cp)) || (arity < 0) )
+    return cp->fcn_handler.calln(n,args);
   else switch (arity) {
     case 0: return cp->fcn_handler.call0();
     case 1: return cp->fcn_handler.call1(args[0]);
@@ -226,7 +237,8 @@ KNO_FASTOP lispval cprim_call(u8_string fname,kno_cprim cp,
 	 args[9],args[10],args[11],
 	 args[12],args[13],args[14]);
     default:
-      if (FCN_XCALLP(f))
-	return cp->fcn_handler.xcalln(stack,f,n,args);
+      if (FCN_XCALLP(cp))
+	return cp->fcn_handler.xcalln(stack,(kno_function)cp,n,args);
       else return cp->fcn_handler.calln(n,args);}
 }
+

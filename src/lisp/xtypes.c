@@ -130,13 +130,23 @@ KNO_EXPORT int kno_init_xrefs(xtype_refs refs,
   return n_refs;
 }
 
+static void recycle_xrefs(struct XTYPE_REFS *xrefs)
+{
+  int static_refs = (xrefs->xt_refs_flags)&(XTYPE_STATIC_REFS);
+  lispval *refs = xrefs->xt_refs;
+  xrefs->xt_refs = NULL;
+  if (!(static_refs)) u8_free(refs);
+  struct KNO_HASHTABLE *lookup = xrefs->xt_lookup;
+  xrefs->xt_lookup=NULL;
+  kno_recycle_hashtable(lookup);
+  u8_free(lookup);
+}
+
 static void recycle_xtype_refs(void *ptr)
 {
-  struct XTYPE_REFS *refs = (xtype_refs) ptr;
-  u8_free(refs->xt_refs); refs->xt_refs = NULL;
-  kno_recycle_hashtable(refs->xt_lookup);
-  refs->xt_lookup=NULL;
-  u8_free(refs);
+  struct XTYPE_REFS *xrefs = (xtype_refs) ptr;
+  recycle_xrefs(xrefs);
+  u8_free(xrefs);
 }
 
 KNO_EXPORT ssize_t kno_add_xtype_ref(lispval x,xtype_refs refs)
@@ -180,13 +190,9 @@ KNO_EXPORT ssize_t _kno_xtype_ref(lispval x,xtype_refs refs,int add)
   return kno_xtype_ref(x,refs,add);
 }
 
-KNO_EXPORT void kno_recycle_xrefs(xtype_refs refs)
+KNO_EXPORT void kno_recycle_xrefs(xtype_refs xrefs)
 {
-  kno_hashtable ht = refs->xt_lookup;
-  lispval *elts = refs->xt_refs;
-  memset(refs,0,sizeof(struct XTYPE_REFS));
-  kno_recycle_hashtable(ht);
-  u8_free(elts);
+  recycle_xrefs(xrefs);
 }
 
 /* Writing sorted choices */
@@ -636,11 +642,13 @@ static lispval read_xtype(kno_inbuf in,xtype_refs refs)
 	return KNO_ERROR;}
       struct XTYPE_REFS xrefs;
       ssize_t n_refs = KNO_VECTOR_LENGTH(refvec);
-      kno_init_xrefs(&xrefs,n_refs,n_refs,n_refs,0,
+      kno_init_xrefs(&xrefs,n_refs,n_refs,n_refs,
+		     XTYPE_STATIC_REFS,
 		     KNO_VECTOR_ELTS(refvec),
 		     NULL);
       lispval decoded = read_xtype(in,&xrefs);
       kno_recycle_xrefs(&xrefs);
+      kno_decref(refvec);
       return decoded;}
 
     default:
@@ -729,7 +737,7 @@ static ssize_t write_schemap(kno_outbuf out,
   ssize_t xtype_len = 1;
   kno_read_lock_table(map);
   {
-    lispval *schema = map->table_schema, *values = map->schema_values;
+    lispval *schema = map->table_schema, *values = map->table_values;
     int i = 0, schemasize = KNO_XSCHEMAP_SIZE(map), len = schemasize*2;
     kno_output_byte(out,xt_table);
     xtype_len += kno_write_varint(out,len);
@@ -1005,15 +1013,18 @@ KNO_EXPORT lispval kno_getxrefs(lispval arg)
   int free_arg = 0;
   if ( (KNO_FALSEP(arg)) || (KNO_VOIDP(arg)) || (KNO_DEFAULTP(arg)) )
     return KNO_FALSE;
-  if (KNO_TABLEP(arg)) {
+  if (KNO_RAW_TYPEP(arg,kno_xtrefs_typetag))
+    return kno_incref(arg);
+  else if (KNO_TABLEP(arg)) {
     arg = kno_getopt(arg,xrefs_symbol,KNO_VOID);
     if ( (KNO_FALSEP(arg)) || (KNO_VOIDP(arg)) || (KNO_DEFAULTP(arg)) )
       return KNO_FALSE;
-    free_arg = 1;}
-  if (KNO_RAW_TYPEP(arg,kno_xtrefs_typetag)) {
-    if (free_arg)
+    else if (KNO_RAW_TYPEP(arg,kno_xtrefs_typetag))
       return arg;
-    else return kno_incref(arg);}
+    else free_arg=1;}
+  else NO_ELSE;
+
+  /* Now process the arg to generate a wrapped XREFS object */
 
   /* negative is an error, zero is uncreated, >0 is created */
 

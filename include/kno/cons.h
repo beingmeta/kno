@@ -218,8 +218,6 @@ KNO_EXPORT u8_mutex _kno_ptr_locks[KNO_N_PTRLOCKS];
 #define KNO_STATIC_CONSP(x)  (!(KNO_MALLOCD_CONSP(x)))
 
 #define KNO_MALLOCDP(x) ( (KNO_CONSP(x)) &&  ((KNO_CONSBITS(x))>=0x80) )
-
-
 #define KNO_STATICP(x) ((!(KNO_CONSP(x)))||(KNO_STATIC_CONSP((kno_cons)x)))
 
 #define kno_getref(x)				\
@@ -1074,10 +1072,10 @@ typedef const lispval *kno_argvec;
 
 typedef lispval (*kno_applyfn)(lispval f,int n,kno_argvec);
 KNO_EXPORT kno_applyfn kno_applyfns[];
-
-/* This maps types to whether they have function (KNO_FUNCTION_FIELDS)
-   header. */
-KNO_EXPORT short kno_function_types[];
+/* Whether function application should pass choice arguments directly */
+KNO_EXPORT unsigned char kno_type_call_info[];
+/* Whether an applyfn type is a cons with the KNO_FUNCTION_FIELDS header. */
+KNO_EXPORT unsigned char kno_isfunctionp[];
 
 /* Choices, tables, regexes */
 

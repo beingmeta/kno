@@ -115,7 +115,9 @@ KNO_EXPORT lispval *kno_handle_argv(int argc,char **argv,
     if (exe_name[0]=='/')
       exec_path = exe_name;
     else if ( (u8_file_existsp("/proc/self/exe")) &&
-              (exec_path = u8_filestring("/proc/self/exe",NULL)) ) {}
+              (exec_path = u8_filestring("/proc/self/exe",NULL)) ) {
+      /* Got from /proc */
+    }
     else if (strchr(exe_name,'/'))
       exec_path = u8_abspath(exe_name,NULL);
     else if (u8_file_existsp(exe_name))
@@ -192,8 +194,8 @@ KNO_EXPORT lispval *kno_handle_argv(int argc,char **argv,
       if (return_args) {
 	return_args[n]=lisp_arg;
 	kno_incref(lisp_arg);}
-      _kno_argv[n]=lisp_arg; kno_incref(lisp_arg);
-      KNO_VECTOR_SET(lisp_args,n,lisp_arg);
+      _kno_argv[n]=lisp_arg;
+      KNO_VECTOR_SET(lisp_args,n,lisp_arg); kno_incref(lisp_arg);
       KNO_VECTOR_SET(string_args,n,string_arg);
       u8_log(LOG_INFO,kno_CmdArg,"[%d] %s => %q",n+1,arg,lisp_arg);
       u8_free(arg);
@@ -1020,7 +1022,7 @@ static void remove_pidfile()
   else if (pid_filename) {
     if (u8_file_existsp(pid_filename))
       u8_removefile(pid_filename);}
-  else kno_doexit(KNO_FALSE);
+  else NO_ELSE;
 }
 
 /* Full startup */

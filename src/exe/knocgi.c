@@ -1967,7 +1967,7 @@ int main(int argc,char **argv)
   u8_string socket_spec = NULL;
   u8_string load_source = NULL;
 
-  KNO_INIT_STACK();
+  KNO_INIT_STACK_ROOT();
 
   if (u8_version<0) {
     u8_log(LOG_CRIT,ServletAbort,"Can't initialize libu8");
@@ -2034,10 +2034,6 @@ int main(int argc,char **argv)
       u8_string servlets_dir = u8_mkpath(KNO_RUN_DIR,"servlets");
       kno_setapp(socket_spec,servlets_dir);
       u8_free(servlets_dir);}}
-
-  KNO_NEW_STACK(((struct KNO_STACK *)NULL),"servlet",NULL,VOID);
-  _stack->stack_label=u8_strdup(u8_appid());
-  U8_SETBITS(_stack->stack_flags,KNO_STACK_FREE_LABEL);
 
   if (argc > 2) {
     struct U8_OUTPUT out; unsigned char buf[2048]; int i = 1;
@@ -2158,7 +2154,15 @@ int main(int argc,char **argv)
 
   u8_use_syslog(0);
 
-  return run_servlet(socket_spec);
+  int rv = run_servlet(socket_spec);
+
+  kno_doexit(KNO_FALSE);
+
+  /* Call this here, where it might be easier to debug, even
+     though it's alos an atexit handler */
+  _kno_finish_threads();
+
+  return rv;
 }
 
 static int run_servlet(u8_string socket_spec)

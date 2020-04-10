@@ -247,7 +247,8 @@ static int output_result(struct U8_OUTPUT *out,lispval result,
 
 static lispval history_symbol, histref_symbol;
 
-static lispval histref_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval histref_evalfn(lispval expr,kno_lexenv env,
+			      kno_stack _stack)
 {
   lispval history = kno_thread_get(history_symbol);
   if (KNO_ABORTP(history))
@@ -887,9 +888,7 @@ int main(int argc,char **argv)
 
   kno_handle_argv(argc,argv,arg_mask,NULL);
 
-  KNO_NEW_STACK(((struct KNO_STACK *)NULL),"knoc",NULL,VOID);
-  _stack->stack_label=u8_strdup(u8_appid());
-  U8_SETBITS(_stack->stack_flags,KNO_STACK_FREE_LABEL);
+  KNO_INIT_STACK_ROOT();
 
   stop_file=kno_runbase_filename(".stop");
   kno_register_config
@@ -1048,7 +1047,7 @@ int main(int argc,char **argv)
         kno_write_dtype(kno_writebuf(eval_server),expr);
         kno_flush_stream(eval_server);
         result = kno_read_dtype(kno_readbuf(eval_server));}
-      else result = kno_eval(expr,env);}
+      else result = kno_eval(expr,env,_stack,0);}
     if (errno) {
       u8_log(LOG_WARN,u8_strerror(errno),"Unexpected errno after eval");
       errno = 0;}
@@ -1174,6 +1173,11 @@ int main(int argc,char **argv)
   u8_threadexit();
   kno_pop_stack(_stack);
   kno_doexit(KNO_FALSE);
+
+  /* Call this here, where it might be easier to debug, even
+     though it's alos an atexit handler */
+  _kno_finish_threads();
+
   exit(0);
   return 0;
 }

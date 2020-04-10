@@ -65,7 +65,7 @@ u8_condition kno_UnterminatedBlockComment=_("Unterminated block (#|..|#) comment
 
 int kno_interpret_pointers = 1;
 
-static lispval quote_symbol, histref_symbol, comment_symbol;
+static lispval histref_symbol, comment_symbol;
 static lispval quasiquote_symbol, unquote_symbol, unquotestar_symbol;
 static lispval opaque_tag, struct_eval_symbol;
 
@@ -1127,7 +1127,7 @@ lispval kno_parser(u8_input in)
       content = kno_parser(in);
       if (PARSE_ABORTP(content))
         return content;
-      else return kno_make_list(2,quote_symbol,content);}
+      else return kno_make_list(2,KNOSYM_QUOTE,content);}
     case '`': {
       lispval content;
       u8_getc(in); /* Skip the quote mark */
@@ -1556,7 +1556,6 @@ KNO_EXPORT void kno_init_parse_c()
 
   u8_init_rwlock(&constnames_lock);
 
-  quote_symbol = kno_intern("quote");
   quasiquote_symbol = kno_intern("quasiquote");
   unquote_symbol = kno_intern("unquote");
   unquotestar_symbol = kno_intern("unquote*");

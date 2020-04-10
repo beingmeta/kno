@@ -9,7 +9,7 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define KNO_INLINE_EVAL (!(KNO_AVOID_INLINE))
+#define KNO_EVAL_INTERNALS 1
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
@@ -59,7 +59,7 @@ static int ipeval_let_step(struct IPEVAL_BINDSTRUCT *bs)
     kno_decref(bindings[i]); bindings[i++]=VOID;}
   i = 0; while (PAIRP(scan)) {
     lispval binding = KNO_CAR(scan), val_expr = KNO_CADR(binding);
-    lispval val = kno_eval(val_expr,env);
+    lispval val = kno_eval_arg(val_expr,env);
     if (KNO_ABORTED(val)) kno_interr(val);
     else bindings[i++]=val;
     scan = KNO_CDR(scan);}
@@ -75,7 +75,7 @@ static int ipeval_letstar_step(struct IPEVAL_BINDSTRUCT *bs)
     kno_decref(bindings[i]); bindings[i++]=KNO_UNBOUND;}
   i = 0; while (PAIRP(scan)) {
     lispval binding = KNO_CAR(scan), val_expr = KNO_CADR(binding);
-    lispval val = kno_eval(val_expr,env);
+    lispval val = kno_eval_arg(val_expr,env);
     if (KNO_ABORTED(val)) kno_interr(val);
     else bindings[i++]=val;
     scan = KNO_CDR(scan);}
@@ -112,7 +112,7 @@ static lispval letq_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     struct KNO_LEXENV *inner_env = make_dynamic_env(n,env);
     lispval bindings = inner_env->env_bindings;
     struct KNO_SCHEMAP *sm = (struct KNO_SCHEMAP *)bindings;
-    lispval *vars = sm->table_schema, *vals = sm->schema_values;
+    lispval *vars = sm->table_schema, *vals = sm->table_values;
     int i = 0; lispval scan = bindexprs; while (i<n) {
       lispval bind_expr = KNO_CAR(scan), var = KNO_CAR(bind_expr);
       vars[i]=var; vals[i]=VOID; scan = KNO_CDR(scan); i++;}
@@ -121,7 +121,7 @@ static lispval letq_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     {lispval body = kno_get_body(expr,2);
      KNO_DOLIST(bodyexpr,body) {
       kno_decref(result);
-      result = fast_eval(bodyexpr,inner_env);
+      result = kno_eval(bodyexpr,inner_env,_stack,0);
       if (KNO_ABORTED(result))
         return result;}}
     kno_free_lexenv(inner_env);
@@ -141,7 +141,7 @@ static lispval letqstar_evalfn
     struct KNO_LEXENV *inner_env = make_dynamic_env(n,env);
     lispval bindings = inner_env->env_bindings;
     struct KNO_SCHEMAP *sm = (struct KNO_SCHEMAP *)bindings;
-    lispval *vars = sm->table_schema, *vals = sm->schema_values;
+    lispval *vars = sm->table_schema, *vals = sm->table_values;
     int i = 0; lispval scan = bindexprs; while (i<n) {
       lispval bind_expr = KNO_CAR(scan), var = KNO_CAR(bind_expr);
       vars[i]=var; vals[i]=KNO_UNBOUND; scan = KNO_CDR(scan); i++;}
@@ -150,7 +150,7 @@ static lispval letqstar_evalfn
     {lispval body = kno_get_body(expr,2);
      KNO_DOLIST(bodyexpr,body) {
       kno_decref(result);
-      result = fast_eval(bodyexpr,inner_env);
+      result = kno_eval(bodyexpr,inner_env,_stack,0);
       if (KNO_ABORTED(result))
         return result;}}
     if (inner_env->env_copy) kno_free_lexenv(inner_env->env_copy);
@@ -164,7 +164,7 @@ static lispval letqstar_evalfn
 #if KNO_IPEVAL_ENABLED
 static int ipeval_step(struct IPEVAL_STRUCT *s)
 {
-  lispval kno_value = kno_eval(s->ipv_expr,s->ipv_env);
+  lispval kno_value = kno_eval_arg(s->ipv_expr,s->ipv_env);
   kno_decref(s->ipv_value); s->ipv_value = kno_value;
   if (KNO_ABORTED(kno_value))
     return -1;
@@ -223,8 +223,6 @@ static lispval track_ipeval_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 KNO_EXPORT void kno_init_ipevalprims_c()
 {
   u8_register_source_file(_FILEINFO);
-
-  moduleid_symbol = kno_intern("%moduleid");
 
   kno_def_evalfn(kno_scheme_module,"LETQ",letq_evalfn,
 		 "*undocumented*");

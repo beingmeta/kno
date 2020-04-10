@@ -3,6 +3,7 @@
 CONFIG_ARGS=
 MAKE_ARGS=
 OFFLINE=
+SUFFIX=
 BUILD=$(pwd)
 SRC=$(dirname $(pwd))
 doclean=1;
@@ -15,7 +16,6 @@ fi;
 if [ -f ./.offline ]; then
     OFFLINE=yes
 fi;
-
 
 while [ $# -gt 0 ]; do
     arg=$1
@@ -51,6 +51,9 @@ while [ $# -gt 0 ]; do
 	tests|memtests|leaktests|libtests|schemetests|dbtests|cmdtests)
 	    MAKE_ARGS="${MAKE_ARGS} ${arg}";
 	    ;;
+	nt|next|beta|alpha)
+	    SUFFIX=".$arg";
+	    ;;
 	python|parseltongue)
 	    with_parseltongue = yes
 	    ;;
@@ -62,6 +65,12 @@ while [ $# -gt 0 ]; do
 	    ;;
 	-M*)
 	    MAKE_ARGS="${arg#-M} ${MAKE_ARGS}"; 
+	    ;;
+	--suffix=.*)
+	    SUFFIX=${arg#--suffix=}
+	    ;;
+	--suffix=*)
+	    SUFFIX=".${arg#--suffix=}"
 	    ;;
 	--make=*)
 	    MAKE_ARGS="${arg#--make=} ${MAKE_ARGS}"; 
@@ -97,6 +106,13 @@ done;
 
 if [ "${with_parseltongue}" = "yes" ]; then
     CONFIG_ARGS="--with-parseltongue ${CONFIG_ARGS}"
+fi;
+
+if [ ! -z "${SUFFIX}" ]; then
+    CONFIG_ARGS="--with-suffix=${SUFFIX} ${CONFIG_ARGS}";
+elif [ -f .suffix ]; then
+    SUFFIX=$(cat .suffix)
+    CONFIG_ARGS="--with-suffix=${SUFFIX} ${CONFIG_ARGS}";
 fi;
 
 # Check if the branch is current, if so make the value "use_current_branch"

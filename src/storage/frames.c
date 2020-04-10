@@ -457,7 +457,7 @@ KNO_EXPORT lispval kno_frame_get(lispval f,lispval slotid)
           struct KNO_FUNCTION *fn = lookup_method(method);
           if (fn) {
             lispval args[2], value; args[0]=f; args[1]=slotid;
-            value = kno_finish_call(kno_dapply((lispval)fn,2,args));
+	    value = kno_dapply((lispval)fn,2,args);
             if (KNO_ABORTP(value)) {
               kno_decref(computed);
               kno_decref(methods);

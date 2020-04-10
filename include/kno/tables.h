@@ -367,7 +367,7 @@ typedef struct KNO_SCHEMAP {
   unsigned int schemap_shared:1;
   unsigned int schemap_stackvals:1;
   unsigned int schemap_stackvec:1;
-  lispval *table_schema, *schema_values;
+  lispval *table_schema, *table_values;
   lispval schemap_template;
   U8_RWLOCK_DECL(table_rwlock);} KNO_SCHEMAP;
 
@@ -481,7 +481,7 @@ static U8_MAYBE_UNUSED lispval __kno_schemap_get
   sorted = KNO_XSCHEMAP_SORTEDP(sm);
   slotno=__kno_get_slotno(key,sm->table_schema,size,sorted);
   if (slotno>=0) {
-    lispval v = sm->schema_values[slotno];
+    lispval v = sm->table_values[slotno];
     if (KNO_PRECHOICEP(v))
       v = kno_make_simple_choice(v);
     else if (KNO_CONSP(v))
@@ -507,7 +507,7 @@ static U8_MAYBE_UNUSED lispval __kno_schemap_test
   size = KNO_XSCHEMAP_SIZE(sm);
   slotno=__kno_get_slotno(key,sm->table_schema,size,sm->schemap_sorted);
   if (slotno>=0) {
-    lispval current = sm->schema_values[slotno]; int cmp;
+    lispval current = sm->table_values[slotno]; int cmp;
     if (KNO_VOIDP(val)) cmp = 1;
     else if (KNO_EQ(val,current)) cmp = 1;
     else if ((KNO_CHOICEP(val)) || (KNO_PRECHOICEP(val)) ||

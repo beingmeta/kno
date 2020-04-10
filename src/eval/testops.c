@@ -36,8 +36,7 @@
 
 
 static lispval err_testfail = KNO_TRUE;
-static lispval err_symbol;
-static lispval void_symbol;
+static lispval err_symbol, break_symbol, void_symbol;
 
 static u8_condition TestFailed=_("Test failed");
 static u8_condition TestError=_("Test error");
@@ -153,7 +152,7 @@ static lispval applytest(int n,kno_argvec args)
     u8_exception ex = u8_erreify();
     u8_logf(LOG_INFO,"Tests/ExpectedError","%m (from %s: %s) for %s",
 	    ex->u8x_cond,ex->u8x_context,ex->u8x_details,testid);
-    u8_free_exception(ex,0);
+    u8_free_exception(ex,1);
     return_value = KNO_TRUE;}
   else if (KNO_ABORTP(result)) {
     u8_exception ex = u8_current_exception;
@@ -235,38 +234,46 @@ static lispval evaltest_evalfn(lispval expr,kno_lexenv env,kno_stack s)
   lispval name_expr = kno_get_arg(expr,3);
   lispval name_value = (KNO_VOIDP(name_expr)) ? (KNO_VOID) :
     (KNO_SYMBOLP(name_expr)) ? (name_expr) :
-    (kno_eval(name_expr,env));
+    (kno_eval(name_expr,env,s,0));
   u8_string name = name2string(name_value);
   lispval expected_expr = kno_get_arg(expr,1);
-  lispval expected  = kno_eval(expected_expr,env), result = KNO_VOID;
+  lispval expected  = kno_eval(expected_expr,env,s,0), result = KNO_VOID;
   if (KNO_ABORTED(expected)) {
     kno_seterr("BadExpectedValue","evaltest_evalfn",name,expected_expr);
     return expected;}
   else {
-    result = kno_eval(testexpr,env);
-    if ( (KNO_ABORTED(result)) && (expected == err_symbol) ) {
+    result = kno_eval(testexpr,env,s,0);
+    if ( (KNO_ERRORP(result)) && (expected == err_symbol) ) {
       u8_exception ex = u8_erreify();
       u8_logf(LOG_INFO,"Tests/ExpectedError","%m (from %s: %s) evaluating %q",
 	      ex->u8x_cond,ex->u8x_context,ex->u8x_details,testexpr);
       u8_free_exception(ex,0);
       return_value = KNO_TRUE;}
-    else if (KNO_ABORTED(result)) {
-      u8_exception ex = u8_current_exception;
-      u8_string msg =
-	u8_mkstring("%s%s%s%q signaled an error %m <%s> %s%s%s, expecting %q",
-		    U8OPTSTR("(",name,") "),testexpr,
-		    ex->u8x_cond,ex->u8x_context,
-		    U8OPTSTR(" (",ex->u8x_details,")"),
-		    expected);
-      return_value = kno_err(TestError,"evaltest",msg,result);
-      u8_free(msg);}
     else if ( (KNO_VOIDP(result)) && (expected == void_symbol) ) {
+      u8_logf(LOG_INFO,"Tests/ExpectedVoidValue","Evaluating %q",testexpr);
+      return_value = KNO_TRUE;;}
+    else if ( (KNO_BROKEP(result)) && (expected == break_symbol) ) {
       u8_logf(LOG_INFO,"Tests/ExpectedVoidValue","Evaluating %q",testexpr);
       return_value = KNO_TRUE;;}
     else if (KNO_VOIDP(result)) {
       u8_logf(LOG_NOTICE,"Tests/UnexpectedVoidValue","Evaluating %q",testexpr);
       return_value =
 	kno_err("Tests/UnexpectedVoidValue","applytest",NULL,testexpr);}
+    else if (KNO_ERRORP(result)) {
+      u8_exception ex = u8_current_exception;
+      if (ex) {
+	u8_string msg =
+	  u8_mkstring("%s%s%s%q signaled an error %m <%s> %s%s%s, expecting %q",
+		      U8OPTSTR("(",name,") "),testexpr,
+		      ex->u8x_cond,ex->u8x_context,
+		      U8OPTSTR(" (",ex->u8x_details,")"),
+		      expected);
+	return_value = kno_err(TestError,"evaltest",msg,result);
+	u8_free(msg);}
+      else {
+	return_value = kno_err(TestError,"evaltest",
+			       "Error returned but no exception set",
+			       result);}}
     else if (test_match(result,expected)) {
       u8_logf(LOG_INFO,"Tests/Passed",
 	      "Received %q from %q",result,testexpr);
@@ -301,7 +308,7 @@ static lispval evaltest_evalfn(lispval expr,kno_lexenv env,kno_stack s)
 static lispval errtest_evalfn(lispval expr,kno_lexenv env,kno_stack s)
 {
   lispval test_expr = kno_get_arg(expr,1);
-  lispval v = kno_stack_eval(test_expr,env,s,0);
+  lispval v = kno_eval(test_expr,env,s,0);
   if (KNO_ABORTP(v)) {
     u8_exception ex = u8_erreify();
     if (ex) {
@@ -334,6 +341,7 @@ KNO_EXPORT void kno_init_eval_testops_c()
   u8_register_source_file(_FILEINFO);
 
   err_symbol = kno_intern("err");
+  break_symbol = kno_intern("break");
   void_symbol = kno_intern("void");
 
   link_local_cprims();

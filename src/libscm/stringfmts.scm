@@ -212,6 +212,38 @@
 			  ((>= secs 10) (inexact->string seconds 2))
 			  (else seconds)))))))
 
+(define (short-interval-string secs (precise #t))
+  (if (< secs 180)
+      (stringout (cond ((< secs 0) secs)
+		       ((and (not precise) (> secs 2))
+			(printout (inexact->exact (round secs))))
+		       ((< secs 10) (inexact->string secs 3))
+		       (else (inexact->string secs 2)))
+		 " secs")
+      (let* ((days (inexact->exact (/ secs (* 3600 24))))
+	     (hours (inexact->exact (/ (- secs (* days 3600 24))
+				       3600)))
+	     (minutes (inexact->exact
+		       (/ (- secs (* days 3600 24) (* hours 3600))
+			  60)))
+	     (raw-seconds (- secs (* days 3600 24)
+			     (* hours 3600)
+			     (* minutes 60)))
+	     (seconds (if precise raw-seconds
+			  (inexact->exact (round raw-seconds)))))
+	(stringout
+	  (cond ((= days 1) "one day, ")
+		((> days 0) (printout days " days, ")))
+	  (when (> hours 0) (printout hours ":"))
+	  (printout 
+	    (if (and (> hours 0) (< minutes 10)) "0")
+	    minutes ":")
+	  (printout (if (< seconds 10) "0")
+		    (cond (precise seconds)
+			  ((> secs 600) (inexact->exact (round seconds)))
+			  ((>= secs 10) (inexact->string seconds 2))
+			  (else seconds)))))))
+
 (define (minimal-interval-string secs (precise #t))
   (cond ((< secs 180)
 	 (stringout secs " seconds"))

@@ -1079,7 +1079,7 @@ KNO_EXPORT lispval kno_make_schemap
   if (flags&KNO_SCHEMAP_SORTED) ptr->schemap_sorted=1;
   if (flags&KNO_SCHEMAP_READONLY) ptr->table_readonly=1;
   if (flags&KNO_SCHEMAP_MODIFIED) ptr->table_modified=1;
-  ptr->schema_values=vec;
+  ptr->table_values=vec;
   ptr->schemap_stackvec = stackvec;
   if (vec == values) {}
   else if (values)
@@ -1124,7 +1124,7 @@ KNO_EXPORT lispval *kno_register_schema(int n,lispval *schema)
 
 KNO_EXPORT void kno_reset_schemap(struct KNO_SCHEMAP *ptr)
 {
-  lispval *scan = ptr->schema_values;
+  lispval *scan = ptr->table_values;
   lispval *limit = scan+ptr->schema_length;
   while (scan < limit) {
     lispval value = *scan;
@@ -1140,7 +1140,7 @@ static lispval copy_schemap(lispval schemap,int flags)
   int i=0, size=KNO_XSCHEMAP_SIZE(ptr);
   struct KNO_SCHEMAP *nptr =
     u8_malloc(sizeof(struct KNO_SCHEMAP)+(size*sizeof(lispval)));
-  lispval *ovalues=ptr->schema_values;
+  lispval *ovalues=ptr->table_values;
   lispval *values= (lispval *)(((void *)nptr)+sizeof(struct KNO_SCHEMAP));
   lispval *schema=ptr->table_schema, *nschema=NULL;
   if (KNO_XSCHEMAP_USELOCKP(ptr)) {
@@ -1177,7 +1177,7 @@ static lispval copy_schemap(lispval schemap,int flags)
   else while (i < size) {
       values[i]=kno_incref(ovalues[i]);
       i++;}
-  nptr->schema_values=values;
+  nptr->table_values=values;
   nptr->schema_length=size;
   if  ( ptr->table_schema == nptr->table_schema ) {
     ptr->schemap_shared=nptr->schemap_shared=1;}
@@ -1203,7 +1203,7 @@ KNO_EXPORT lispval kno_init_schemap
     new_vals = u8_alloc_n(size,lispval);}
   new_schema=u8_alloc_n(size,lispval);
   ptr->schemap_template=KNO_VOID;
-  ptr->schema_values=new_vals;
+  ptr->table_values=new_vals;
   ptr->schema_length=size;
   ptr->schemap_sorted=0;
   sort_keyvals(init,size);
@@ -1256,10 +1256,10 @@ KNO_EXPORT int kno_schemap_store
   slotno=__kno_get_slotno(key,sm->table_schema,size,sm->schemap_sorted);
   if (slotno>=0) {
     if (sm->schemap_stackvals) {
-      kno_incref_vec(sm->schema_values,size);
+      kno_incref_vec(sm->table_values,size);
       sm->schemap_stackvals = 0;}
-    kno_decref(sm->schema_values[slotno]);
-    sm->schema_values[slotno]=kno_incref(value);
+    kno_decref(sm->table_values[slotno]);
+    sm->table_values[slotno]=kno_incref(value);
     KNO_XSCHEMAP_MARK_MODIFIED(sm);
     if (unlock) kno_unlock_table(sm);
     return 1;}
@@ -1294,9 +1294,9 @@ KNO_EXPORT int kno_schemap_add
   if (slotno>=0) {
     kno_incref(value);
     if (sm->schemap_stackvals) {
-      kno_incref_vec(sm->schema_values,size);
+      kno_incref_vec(sm->table_values,size);
       sm->schemap_stackvals = 0;}
-    CHOICE_ADD(sm->schema_values[slotno],value);
+    CHOICE_ADD(sm->table_values[slotno],value);
     KNO_XSCHEMAP_MARK_MODIFIED(sm);
     if (unlock) kno_unlock_table(sm);
     return 1;}
@@ -1330,9 +1330,9 @@ KNO_EXPORT int kno_schemap_drop
   slotno=__kno_get_slotno(key,sm->table_schema,size,sm->schemap_sorted);
   if (slotno>=0) {
     if (sm->schemap_stackvals) {
-      kno_incref_vec(sm->schema_values,size);
+      kno_incref_vec(sm->table_values,size);
       sm->schemap_stackvals = 0;}
-    lispval oldval=sm->schema_values[slotno];
+    lispval oldval=sm->table_values[slotno];
     lispval newval=((VOIDP(value)) ? (EMPTY) :
                     (kno_difference(oldval,value)));
     if (newval == oldval)
@@ -1340,7 +1340,7 @@ KNO_EXPORT int kno_schemap_drop
     else {
       KNO_XSCHEMAP_MARK_MODIFIED(sm);
       kno_decref(oldval);
-      sm->schema_values[slotno]=newval;}
+      sm->table_values[slotno]=newval;}
     if (unlock) kno_unlock_table(sm);
     return 1;}
   else {
@@ -1418,7 +1418,7 @@ KNO_EXPORT lispval kno_schemap_assocs(struct KNO_SCHEMAP *sm)
     if (size==1) {
       lispval result = kno_init_pair(NULL,
                                      kno_incref(sm->table_schema[0]),
-                                     kno_incref(sm->schema_values[0]));
+                                     kno_incref(sm->table_values[0]));
       if (unlock) u8_rw_unlock(&(sm->table_rwlock));
       return result;}
     else {
@@ -1427,7 +1427,7 @@ KNO_EXPORT lispval kno_schemap_assocs(struct KNO_SCHEMAP *sm)
       int i = 0; while (i<size) {
         lispval assoc =  kno_init_pair
           (NULL,kno_incref(sm->table_schema[i]),
-           kno_incref(sm->schema_values[i]));
+           kno_incref(sm->table_values[i]));
         *write++ = assoc;
         i++;}
       if (unlock) u8_rw_unlock(&(sm->table_rwlock));
@@ -1450,12 +1450,12 @@ static void recycle_schemap(struct KNO_RAW_CONS *c)
     sm->schemap_template=KNO_VOID;}
   int schemap_size=KNO_XSCHEMAP_SIZE(sm);
   int stack_vals = sm->schemap_stackvals;
-  if ( (sm->schema_values) &&  (PRED_TRUE (! stack_vals ) ) ) {
-    lispval *scan=sm->schema_values;
-    lispval *limit=sm->schema_values+schemap_size;
+  if ( (sm->table_values) &&  (PRED_TRUE (! stack_vals ) ) ) {
+    lispval *scan=sm->table_values;
+    lispval *limit=sm->table_values+schemap_size;
     while (scan < limit) {kno_decref(*scan); scan++;}
     if (! (sm->schemap_stackvec) )
-      u8_free(sm->schema_values);}
+      u8_free(sm->table_values);}
   if ((sm->table_schema) && (!(sm->schemap_shared)))
     u8_free(sm->table_schema);
   if (unlock) kno_unlock_table(sm);
@@ -1469,7 +1469,7 @@ static int unparse_schemap(u8_output out,lispval x)
   kno_read_lock_table(sm);
   {
     int i=0, schemap_size=KNO_XSCHEMAP_SIZE(sm);
-    lispval *schema=sm->table_schema, *values=sm->schema_values;
+    lispval *schema=sm->table_schema, *values=sm->table_values;
     u8_puts(out,"[");
     if (i<schemap_size) {
       kno_unparse(out,schema[i]); u8_putc(out,' ');
@@ -1495,7 +1495,7 @@ static int compare_schemaps(lispval x,lispval y,kno_compare_flags flags)
     else if (xsize<ysize) result=-1;
     else {
       lispval *xschema=smx->table_schema, *yschema=smy->table_schema;
-      lispval *xvalues=smx->schema_values, *yvalues=smy->schema_values;
+      lispval *xvalues=smx->table_values, *yvalues=smy->table_values;
       int i=0; while (i < xsize) {
         int cmp=KNO_QCOMPARE(xschema[i],yschema[i]);
         if (cmp) {result=cmp; break;}

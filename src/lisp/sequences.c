@@ -711,12 +711,12 @@ lispval kno_makeseq(kno_lisp_type ctype,int n,kno_argvec v)
   case kno_pair_type:
     if (n == 0) return NIL;
     else {
-      lispval head = NIL, *tail = &head;
-      int i = 0; while (i < n) {
-        lispval cons = kno_make_pair(v[i],NIL);
-        *tail = cons; tail = &(((struct KNO_PAIR *)cons)->cdr);
-        i++;}
-      return head;}
+      lispval result = NIL;
+      int i = n-1; while (i >= 0) {
+	lispval elt = v[i]; kno_incref(elt);
+	result = kno_init_pair(NULL,elt,result);
+	i--;}
+      return result;}
   default:
     if ((kno_seqfns[ctype]) && (kno_seqfns[ctype]->make))
       return (kno_seqfns[ctype]->make)(n,v);

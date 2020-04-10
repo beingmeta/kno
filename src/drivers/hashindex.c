@@ -1865,7 +1865,7 @@ struct KNO_KEY_SIZE *hashindex_fetchinfo(kno_index ix,kno_choice filter,int *n)
     n_keys = kno_read_varint(&keyblkstrm);
     while (j<n_keys) {
       /* size = */ kno_read_varint(&keyblkstrm);
-      lipsval key = read_key(hx,&keyblkstrm);
+      lispval key = read_key(hx,&keyblkstrm);
       int n_vals = kno_read_varint(&keyblkstrm);
       if ( (filter == NULL) || (fast_choice_containsp(key,filter)) ) {
         sizes[key_count].keysize_key = key;

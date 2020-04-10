@@ -20,7 +20,7 @@
 (use-module 'varconfig)
 (use-module 'logger)
 
-(define-init %loglevel %warning%)
+(define-init %loglevel %warn%)
 
 ;; OPTLEVEL interpretations
 ;; 0: no optimization
@@ -65,6 +65,9 @@
 
 (define-init keep-source-default #t)
 (varconfig! optimize:keepsource keep-source-default)
+
+(define-init use-apply-opcodes #f)
+(varconfig! optimize:applyops use-apply-opcodes)
 
 (define (optmode-macro optname thresh varname)
   (macro expr
@@ -170,9 +173,19 @@
 
 (define (fcnref value sym env opts (from))
   (default! from (and (symbol? sym) (wherefrom sym env)))
-  (cond ((not (or (applicable? value) (special-form? value)))
-	 sym)
+  (cond ((not (or (applicable? value) (special-form? value))) sym)
 	((not (cons? value)) sym)
+	((and sym from
+	      (or (special-form? value) (primitive? value))
+	      (or (getopt opts 'aliasprims aliasprims-default)
+		  (getopt opts 'aliasfns aliasfns-default))
+	      (use-fcnrefs? opts))
+	 (get-fcnid sym from value))
+	((and sym from (applicable? value)
+	      (getopt opts 'aliasfns aliasfns-default)
+	      (use-fcnrefs? opts))
+	 (get-fcnid sym from value))
+	((not (symbol? sym)) (fcnval value opts))
 	((or (%test env '%constants sym)
 	     (and from (%test from '%constants sym))
 	     (if (or (special-form? value) (primitive? value))
@@ -180,7 +193,6 @@
 		     (getopt opts 'aliasfns aliasfns-default))
 		 (getopt opts 'aliasfns aliasfns-default)))
 	 (fcnval value opts))
-	((not (symbol? sym)) (fcnval value opts))
 	((or (not from) (not (test from sym value))) sym)
 	((or (not (use-fcnrefs? opts))
 	     (test env '%volatile sym)
@@ -340,9 +352,14 @@
 (def-opcode PICKOIDS    #OP_PICKOIDS 1)
 (def-opcode PICKSTRINGS #OP_PICKSTRINGS 1)
 (def-opcode PICKNUMS    #OP_PICKNUMS 1)
+(def-opcode PICKMAPS    #OP_PICKMAPS 1)
 (def-opcode PICK-ONE    #OP_PICKONE 1)
 (def-opcode IFEXISTS    #OP_IFEXISTS 1)
 (def-opcode SOMETRUE    #OP_SOMETRUE 1)
+(def-opcode NOT         #OP_NOT 1)
+(def-opcode FALSE?      #OP_NOT 1)
+
+(def-opcode QUOTE       #OP_QUOTE 1)
 
 (def-opcode 1-         #OP_MINUS1 1)
 (def-opcode -1+        #OP_MINUS1 1)
@@ -355,6 +372,9 @@
 (def-opcode STRING?    #OP_STRINGP 1)
 (def-opcode OID?       #OP_OIDP 1)
 (def-opcode SYMBOL?    #OP_SYMBOLP 1)
+(def-opcode FIXNUM?    #OP_FIXNUMP 1)
+(def-opcode FLONUM?    #OP_FLONUMP 1)
+(def-opcode TABLE?     #OP_TABLEP 1)
 (def-opcode FIRST      #OP_FIRST 1)
 (def-opcode SECOND     #OP_SECOND 1)
 (def-opcode THIRD      #OP_THIRD 1)
@@ -364,6 +384,7 @@
 (def-opcode CDDDR      #OP_CDDDR 1)
 (def-opcode ->NUMBER   #OP_2NUMBER 1)
 
+(def-opcode ELTS       #OP_ELTS 1)
 (def-opcode GETKEYS    #OP_GETKEYS 1)
 (def-opcode GETVALUES  #OP_GETVALUES 1)
 (def-opcode GETASSOCS  #OP_GETASSOCS 1)
@@ -390,6 +411,8 @@
 (def-opcode EQUAL?       #OP_EQUALP 2)
 (def-opcode ELT          #OP_SEQELT 2)
 
+(def-opcode CONS       #OP_CONSPAIR 2)
+
 (def-opcode GET        #OP_FGET 2)
 (def-opcode TEST       #OP_FTEST 3)
 (def-opcode TEST       #OP_FTEST 2)
@@ -406,7 +429,8 @@
 (define dont-touch-decls '{%unoptimized %volatile %nosubst})
 
 (defambda (optimize expr env bound opts)
-  (logdebug "Optimizing " expr " given " bound)
+  (logdebug |Optimize| expr " given " bound)
+  ;;(%watchptr optimize-expr)
   (cond ((and (ambiguous? expr) (use-opcodes? opts))
 	 `(#OP_UNION ,@(forseq (each (choice->list expr))
 			 (optimize each env bound opts))))
@@ -428,7 +452,7 @@
 	      (not (test env '%nowarn (car expr))))
 	 ;; This is the case where the head is a symbol which we can't
 	 ;; resolve it.
-	 (codewarning (cons* 'UNBOUND expr bound))
+	 (codewarning (cons* '|Unbound| expr bound))
 	 (when optwarn
 	   (logwarn |UnboundVariable|
 	     "The symbol " (car expr) " in " expr
@@ -488,6 +512,10 @@
 		 expr)
 		;; If it's a primitive or special form, replace it
 		;; with its value
+		((and module (singleton? value)
+		      (or (primitive? value) (applicable? value))
+		      (use-fcnrefs? opts))
+		 (fcnref value expr env opts))
 		((and (singleton? value)
 		      (or (primitive? value) (special-form? value)))
 		 value)
@@ -501,8 +529,6 @@
 		     (if use-opcodes
 			 (list quote-opcode (qc value))
 			 (list 'quote (qc value)))))
-		((forall applicable? value)
-		 (fcnref value expr module opts))
 		;; TODO: add 'modrefs' which resolves module.var to a
 		;; fcnref and uses that for the symbol
 		(else `(,(try (tryif use-opcodes #OP_SYMREF)
@@ -552,7 +578,8 @@
       (when (and from (table? from))
 	(add! env '%modrefs
 	      (pick (get from '%moduleid) symbol?))))
-    (cond ((or (and from (test from dont-touch-decls head))
+    (cond ((eq? head 'quote) (list #OP_QUOTE (cadr expr)))
+	  ((or (and from (test from dont-touch-decls head))
 	       (and env (test env dont-touch-decls head)))
 	   expr)
 	  ((and from (%test from '%rewrite)
@@ -615,8 +642,7 @@
 			     (test from '%nosubst head))
 			 head)
 			((test from '%volatile head) `(#OP_SYMREF ,from ,head))
-			(else (get-headop headvalue head n-exprs
-					  env bound opts)))
+			(else (get-headop headvalue head n-exprs env bound opts)))
 		  (optimize-args (cdr expr) env bound opts))
 		 expr opts)))
 	  ((%lexref? headvalue)
@@ -631,13 +657,11 @@
 	       (apply append bound)))
 	   expr))))
 
-(define use-apply-opcodes #t)
-
 (define apply-opcodes
   #(#OP_APPLY0 #OP_APPLY1 #OP_APPLY2 #OP_APPLY3 #OP_APPLY4))
 
 (define (callcons head tail)
-  (if (and (not (opcode? head)) use-apply-opcodes)
+  (if (and (or (applicable? head) (fcnid? head)) use-apply-opcodes)
       (let ((len (length tail))
 	    (args (->list tail)))
 	(if (< len (length apply-opcodes))
@@ -849,7 +873,7 @@
 
 (defambda (module-arg? arg)
   (or (fail? arg) (string? arg)
-      (and (pair? arg) (eq? (car arg) 'quote))
+      (and (pair? arg) (or (eq? (car arg) 'quote) (eq? (car arg) #op_quote)))
       (and (ambiguous? arg) (fail? (reject arg module-arg?)))))
 
 (define (optimize*! . args)
@@ -889,9 +913,10 @@
 (define use!
   (macro expr
     (let ((modarg (if (and (pair? (cadr expr))
-			   (eq? (car (cadr expr)) 'quote))
+			   (or (eq? (car (cadr expr)) 'quote)
+			       (eq? (car (cadr expr)) #OP_QUOTE)))
 		      (cadr expr)
-		      (list 'quote (cadr expr))))) 
+		      (list #OP_QUOTE (cadr expr))))) 
       `(begin
 	(use-module ,modarg)
 	(optimize! ,modarg)
@@ -918,7 +943,8 @@
 		  (set! result (cons spec result))))
 	    (if (symbol? (car args))
 		(set! result (cons `',(car args) result))
-		(if (and (pair? (car args)) (eq? (caar args) 'quote))
+		(if (and (pair? (car args)) 
+			 (or (eq? (caar args) 'quote)  (eq? (caar args) #OP_QUOTE)))
 		    (do-choices (spec (cadr (car args)))
 		      (if (symbol? spec)
 			  (set! result (cons `',spec result))
@@ -944,9 +970,10 @@
 
 (define (convert-arg arg)
   (if (symbol? arg)
-      (list 'quote arg)
+      (list #OP_QUOTE arg)
       (if (pair? arg)
-	  (if (and (pair? (car arg)) (eq? (caar arg) 'quote))
+	  (if (and (pair? (car arg)) 
+		   (or (eq? (caar arg) 'quote)  (eq? (caar arg) #OP_QUOTE)))
 	      (convert-arg (cadr (car arg)))
 	      arg)
 	  {})))
@@ -1050,7 +1077,7 @@
       `(#OP_BRANCH
 	(#OP_TRY ,(optimize (cadr expr) env bound opts) #f)
 	(#OP_BEGIN ,@(optimize-body (cddr expr))
-	 (,void-opcode)))
+		   (,void-opcode)))
       (optimize-block handler expr env bound opts)))
 (define (optimize-unless handler expr env bound opts)
   (if (and (use-opcodes? opts) (rewrite? opts))
@@ -1343,7 +1370,29 @@
       (optimize-block handler expr env bound opts)))
 
 (define (optimize-evaltest handler expr env bound opts)
-  `(,evaltest ,(second expr) ,(optimize-expr (third expr) env bound opts)))
+  `(,evaltest ,(second expr) ,(optimize (third expr) env bound opts)))
+
+(define (optimize-numeric handler expr env bound opts)
+  (cond ((null? (cdr expr))
+	 ;; (codewarning (cons* '|NoArguments| expr))
+	 (cond ((overlaps? handler {+ #OP_PLUS}) 0)
+	       ((overlaps? handler {* #OP_MULT}) 1)
+	       (else (codewarning (cons* '|NoArguments| expr))
+		     expr)))
+	((and (pair? (cdr expr)) (null? (cddr expr)))
+	 (cond ((overlaps? handler {>= = <= < >})
+		(codewarning (cons* '|TooFewArguments| expr))
+		expr)
+	       (else (cons handler (optimize-args (cdr expr) env bound opts)))))
+	((opcode? handler)
+	 (cons handler (optimize-args (cdr expr) env bound opts)))
+	((test opcode-map handler)
+	 (cons (get opcode-map handler)
+	       (optimize-args (cdr expr) env bound opts)))
+	(else (cons handler (optimize-args (cdr expr) env bound opts)))))
+
+(define (optimize-choice handler expr env bound opts)
+  (elts (cdr expr)))
 
 (define (optimize-case handler expr env bound opts)
   `(,handler 
@@ -1364,7 +1413,15 @@
 	   (or (eq? (car expr) 'unquote) 
 	       (eq? (car expr) 'unquote*)))
       (list (car expr) (qc (optimize-unquote (cadr expr) env bound opts)))
-      (optimize (qc expr) env bound opts)))
+      (optimize-embedded-quote (qc expr) env bound opts)))
+(define (optimize-embedded-quote expr env bound opts)
+  (if (and (pair? expr) (eq? (car expr) 'quote)
+	   (pair? (cdr expr)) (empty-list? (cddr expr)))
+      (if (qchoice? (cadr expr))
+	  `(quote ,(cadr expr))
+	  (list 'quote (optimize-quasiquote-node (cadr expr) env bound opts)))
+      (optimize expr env bound opts)))
+
 
 (defambda (optimize-quasiquote-node expr env bound opts)
   (cond ((ambiguous? expr)
@@ -1373,6 +1430,10 @@
 	((and (pair? expr) 
 	      (or (eq? (car expr) 'unquote) (eq? (car expr) 'unquote*)))
 	 (optimize-unquote (qc expr) env bound opts))
+	((and (pair? expr) (eq? (car expr) 'quote) 
+	      (pair? (cdr expr)) (empty-list? (cddr expr)))
+	 (if (qchoice? (cadr expr)) expr
+	     (list 'quote (optimize-quasiquote-node (cadr expr) env bound opts))))
 	((pair? expr)
 	 (let ((backwards '()) (scan expr))
 	   (while (pair? scan)
@@ -1381,7 +1442,7 @@
 	   (if (and (empty-list? scan) (pair? (cdr backwards)) 
 		    (or (eq? (cadr backwards) 'unquote)
 			(eq? (cadr backwards) 'unquote*)))
-	       (reverse (cons* (optimize (car backwards) env bound opts)
+	       (reverse (cons* (optimize-embedded-quote (car backwards) env bound opts)
 			       (cadr backwards)
 			       (forseq (elt (cddr backwards))
 				 (optimize-quasiquote-node elt env bound opts))))
@@ -1445,12 +1506,12 @@
   (cond ((not (pair? attribs)) attribs)
 	((pair? (cdr attribs))
 	 `(,(if (and (pair? (car attribs))
-		     (not (eq? (car (car attribs)) 'quote)))
+		     (not (overlaps? (car (car attribs)) '{quote #OP_QUOTE})))
 		`(,(car (car attribs))
 		  ,(optimize (cadr (car attribs)) env bound opts))
 		(car attribs))
 	   ,(if (and (pair? (car attribs))
-		     (not (eq? (car (car attribs)) 'quote)))
+		     (not (overlaps? (car (car attribs)) '{quote #OP_QUOTE})))
 		(if (pair? (cadr attribs))
 		    `(,(car (cadr attribs))
 		      ,(optimize (cadr (cadr attribs)) env bound opts))
@@ -1550,6 +1611,9 @@
 (add! special-form-optimizers while optimize-while)
 (add! special-form-optimizers until optimize-until)
 
+(add! procedure-optimizers {+ - * /} optimize-numeric)
+(add! procedure-optimizers choice optimize-choice)
+
 (when (bound? ipeval)
   (add! special-form-optimizers
 	(choice ipeval tipeval)
@@ -1575,7 +1639,7 @@
 (add! special-form-optimizers {"FILEOUT" "SYSTEM"} optimize-block)
 
 (add! special-form-optimizers 
-      ({procedure-name (lambda (x) x) 
+    ({procedure-name (lambda (x) x) 
 	(lambda (x) (string->symbol (procedure-name x)))}
        quasiquote)
       optimize-quasiquote)

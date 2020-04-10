@@ -214,6 +214,13 @@ typedef int kno_size_t;
 #define ftello(f) ftell(f)
 #endif
 
+/* Help with tracking down bugs */
+
+#define __KNO_STRINGIFY(x) #x
+#define __KNO_TO_STRING(x) __KNO_STRINGIFY(x)
+#define KNO_FILEPOS  (__FILE__ ":" __KNO_TO_STRING(__LINE__))
+
+
 /* This can be configured with --with-nptrlocks.
 
    Larger values for this are useful when you're being more

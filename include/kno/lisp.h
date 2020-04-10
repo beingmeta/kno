@@ -14,6 +14,7 @@
 #endif
 
 #include "common.h"
+#include "errors.h"
 #include "ptr.h"
 #include "cons.h"
 #include "compounds.h"

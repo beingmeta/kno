@@ -10,7 +10,6 @@
 #endif
 
 #define U8_INLINE_IO 1
-#define KNO_INLINE_EVAL 1
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
@@ -31,7 +30,7 @@
 
 #include <ctype.h>
 
-#define fast_eval(x,env) (kno_stack_eval(x,env,_stack,0))
+#define fast_eval(x,env) (kno_eval(x,env,_stack,0))
 
 #ifndef KNO_HTMLOUT_MAX
 #define KNO_HTMLOUT_MAX 15000000
@@ -49,7 +48,7 @@ KNO_EXPORT void kno_html_exception(u8_output s,u8_exception ex,int backtrace);
 static u8_string error_stylesheet=NULL;
 static u8_string error_javascript=NULL;
 
-static lispval xmloidfn_symbol, obj_name, id_symbol, quote_symbol;
+static lispval xmloidfn_symbol, obj_name, id_symbol;
 static lispval href_symbol, class_symbol, rawtag_symbol, browseinfo_symbol;
 static lispval embedded_symbol, error_style_symbol, error_script_symbol;
 static lispval modules_symbol, xml_env_symbol, xmltag_symbol;;
@@ -233,8 +232,6 @@ KNO_EXPORT void kno_lisp2html(u8_output s,lispval v,u8_string tag,u8_string cl)
 }
 
 /* XHTML error report */
-
-static lispval moduleid_symbol;
 
 static int isexprp(lispval expr)
 {
@@ -569,11 +566,11 @@ static lispval table2html_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   U8_OUTPUT *out = u8_current_output;
   lispval xmloidfn = kno_symeval(xmloidfn_symbol,env);
   lispval tables, classarg, slotids;
-  tables = kno_eval(kno_get_arg(expr,1),env);
+  tables = kno_eval_arg(kno_get_arg(expr,1),env);
   if (KNO_ABORTP(tables))return tables;
   else if (VOIDP(tables))
     return kno_err(kno_SyntaxError,"table2html_evalfn",NULL,expr);
-  classarg = kno_eval(kno_get_arg(expr,2),env);
+  classarg = kno_eval_arg(kno_get_arg(expr,2),env);
   if (KNO_ABORTP(classarg)) {
     kno_decref(tables); return classarg;}
   else if (STRINGP(classarg)) classname = CSTRING(classarg);
@@ -581,7 +578,7 @@ static lispval table2html_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   else {
     kno_decref(tables);
     return kno_type_error(_("string"),"table2html_evalfn",classarg);}
-  slotids = kno_eval(kno_get_arg(expr,3),env);
+  slotids = kno_eval_arg(kno_get_arg(expr,3),env);
   if (KNO_ABORTP(slotids)) {
     kno_decref(tables); kno_decref(classarg); return slotids;}
   {
@@ -639,7 +636,6 @@ KNO_EXPORT void kno_init_htmlout_c()
   href_symbol = kno_intern("href");
   class_symbol = kno_intern("class");
   obj_name = kno_intern("obj-name");
-  quote_symbol = kno_intern("quote");
   xmltag_symbol = kno_intern("%xmltag");
   rawtag_symbol = kno_intern("%rawtag");
   browseinfo_symbol = kno_intern("browseinfo");
@@ -648,8 +644,6 @@ KNO_EXPORT void kno_init_htmlout_c()
   error_script_symbol = kno_intern("%errorscript");
   modules_symbol = kno_intern("%modules");
   xml_env_symbol = kno_intern("%xmlenv");
-
-  moduleid_symbol = kno_intern("%moduleid");
 
   kno_register_config
     ("ERRORSTYLESHEET",_("Default style sheet for web errors"),

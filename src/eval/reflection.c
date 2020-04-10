@@ -7,25 +7,25 @@
 
 
 #define KNO_INLINE_FCNIDS    (!(KNO_AVOID_INLINE))
-#define KNO_INLINE_EVAL (!(KNO_AVOID_INLINE))
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
 #include "kno/compounds.h"
 #include "kno/eval.h"
 #include "kno/ffi.h"
-#include "kno/profiles.h"
 #include "kno/cprims.h"
 
 #include "libu8/u8streamio.h"
 #include "libu8/u8printf.h"
 
+#include <sys/resource.h>
+#include "kno/profiles.h"
 
 #ifndef _FILEINFO
 #define _FILEINFO __FILE__
 #endif
 
-static lispval moduleid_symbol, source_symbol, void_symbol;
+static lispval source_symbol, void_symbol;
 
 #define GETEVALFN(x) ((kno_evalfn)(kno_fcnid_ref(x)))
 
@@ -271,7 +271,7 @@ static lispval set_procedure_documentation(lispval x,lispval doc)
 {
   lispval proc = (KNO_FCNIDP(x)) ? (kno_fcnid_ref(x)) : (x);
   kno_lisp_type proctype = KNO_TYPEOF(proc);
-  if (kno_function_types[proctype]) {
+  if (kno_isfunctionp[proctype]) {
     struct KNO_FUNCTION *f = KNO_GETFUNCTION(x);
     u8_string to_free = ( (f->fcn_doc) && (KNO_FCN_FREE_DOCP(f)) ) ?
       (f->fcn_doc) : (NULL);
@@ -298,7 +298,7 @@ static lispval procedure_tailablep(lispval x)
 {
   lispval proc = (KNO_FCNIDP(x)) ? (kno_fcnid_ref(x)) : (x);
   kno_lisp_type proctype = KNO_TYPEOF(proc);
-  if (kno_function_types[proctype]) {
+  if (kno_isfunctionp[proctype]) {
     struct KNO_FUNCTION *f = KNO_GETFUNCTION(x);
     if (FCN_NOTAILP(f))
       return KNO_FALSE;
@@ -312,11 +312,11 @@ static lispval set_procedure_tailable(lispval x,lispval bool)
 {
   lispval proc = (KNO_FCNIDP(x)) ? (kno_fcnid_ref(x)) : (x);
   kno_lisp_type proctype = KNO_TYPEOF(proc);
-  if (kno_function_types[proctype]) {
+  if (kno_isfunctionp[proctype]) {
     struct KNO_FUNCTION *f = KNO_GETFUNCTION(x);
     if (KNO_FALSEP(bool))
-      f->fcn_call |= KNO_FCN_CALL_NOTAIL;
-    else f->fcn_call &= ~KNO_FCN_CALL_NOTAIL;
+      f->fcn_call |= KNO_CALL_NOTAIL;
+    else f->fcn_call &= ~KNO_CALL_NOTAIL;
     return VOID;}
   else return kno_err("Not Handled","set_procedure_tailable",NULL,x);
 }
@@ -443,7 +443,7 @@ static lispval get_proc_attribs(lispval x,int create)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
   kno_lisp_type proctype = KNO_TYPEOF(x);
-  if (kno_function_types[proctype]) {
+  if (kno_isfunctionp[proctype]) {
     struct KNO_FUNCTION *f = KNO_GETFUNCTION(x);
     lispval attribs = f->fcn_attribs;
     if (!(create)) {
@@ -475,7 +475,7 @@ DEFPRIM2("reflect/set-attribs!",set_procedure_attribs,KNO_MAX_ARGS(2)|KNO_MIN_AR
 static lispval set_procedure_attribs(lispval x,lispval value)
 {
   kno_lisp_type proctype = KNO_TYPEOF(x);
-  if (kno_function_types[proctype]) {
+  if (kno_isfunctionp[proctype]) {
     struct KNO_FUNCTION *f = KNO_GETFUNCTION(x);
     lispval table = f->fcn_attribs;
     if (table!=KNO_NULL) kno_decref(table);
@@ -759,8 +759,8 @@ static lispval macroexpand(lispval expander,lispval expr)
       if (kno_applyfns[xformer_type]) {
 	/* These are evalfns which do all the evaluating themselves */
 	lispval new_expr=
-	  kno_dcall(kno_stackptr,kno_fcnid_ref(macrofn->macro_transformer),1,&expr);
-	new_expr = kno_finish_call(new_expr);
+	  kno_dcall(kno_stackptr,kno_fcnid_ref(macrofn->macro_transformer),
+		    1,&expr);
 	if (ABORTED(new_expr)) return kno_err(kno_SyntaxError,_("macro expansion"),NULL,new_expr);
 	else return new_expr;}
       else return kno_err(kno_InvalidMacro,NULL,macrofn->macro_name,expr);}
@@ -814,11 +814,11 @@ static lispval module_getsource(lispval arg)
     kno_lexenv envptr = kno_consptr(kno_lexenv,arg,kno_lexenv_type);
     ids = kno_get(envptr->env_bindings,source_symbol,KNO_VOID);
     if (KNO_VOIDP(ids))
-      ids = kno_get(envptr->env_bindings,moduleid_symbol,KNO_VOID);}
+      ids = kno_get(envptr->env_bindings,KNOSYM_MODULEID,KNO_VOID);}
   else if (TABLEP(arg)) {
     ids = kno_get(arg,source_symbol,KNO_VOID);
     if (KNO_VOIDP(ids))
-      ids = kno_get(arg,moduleid_symbol,KNO_VOID);}
+      ids = kno_get(arg,KNOSYM_MODULEID,KNO_VOID);}
   else return kno_type_error(_("module"),"module_bindings",arg);
   if (KNO_VOIDP(ids)) return KNO_FALSE;
   else {
@@ -870,11 +870,11 @@ static lispval modulep(lispval arg)
   if (KNO_LEXENVP(arg)) {
     struct KNO_LEXENV *env=
       kno_consptr(struct KNO_LEXENV *,arg,kno_lexenv_type);
-    if (kno_test(env->env_bindings,moduleid_symbol,VOID))
+    if (kno_test(env->env_bindings,KNOSYM_MODULEID,VOID))
       return KNO_TRUE;
     else return KNO_FALSE;}
   else if ((HASHTABLEP(arg)) || (SLOTMAPP(arg)) || (SCHEMAPP(arg))) {
-    if (kno_test(arg,moduleid_symbol,VOID))
+    if (kno_test(arg,KNOSYM_MODULEID,VOID))
       return KNO_TRUE;
     else return KNO_FALSE;}
   else return KNO_FALSE;
@@ -919,7 +919,7 @@ static lispval wherefrom_evalfn(lispval expr,kno_lexenv call_env,
 				kno_stack _stack)
 {
   lispval symbol_arg = kno_get_arg(expr,1);
-  lispval symbol = kno_eval(symbol_arg,call_env);
+  lispval symbol = kno_eval_arg(symbol_arg,call_env);
   if (SYMBOLP(symbol)) {
     kno_lexenv env = NULL, scan = env;
     int lookup_ids = 1, decref_env = 0;
@@ -928,7 +928,7 @@ static lispval wherefrom_evalfn(lispval expr,kno_lexenv call_env,
     if (KNO_VOIDP(env_arg))
       env = call_env;
     else {
-      env_val = kno_eval(env_arg,call_env);
+      env_val = kno_eval_arg(env_arg,call_env);
       if (KNO_ABORTED(env_val))
 	return env_val;
       else if (TYPEP(env_val,kno_lexenv_type)) {
@@ -940,7 +940,7 @@ static lispval wherefrom_evalfn(lispval expr,kno_lexenv call_env,
 	return err;}}
     lispval lookup = kno_get_arg(expr,3);
     if (!(KNO_VOIDP(lookup))) {
-      lookup = kno_eval(lookup,call_env);
+      lookup = kno_eval_arg(lookup,call_env);
       if (KNO_ABORTED(lookup)) {
 	if (decref_env) kno_decref(env_val);
 	return lookup;}
@@ -955,7 +955,7 @@ static lispval wherefrom_evalfn(lispval expr,kno_lexenv call_env,
       if (kno_test(scan->env_bindings,symbol,VOID)) {
 	lispval bindings = scan->env_bindings;
 	if (!(CONSP(bindings))) return KNO_FALSE;
-	lispval id = kno_get(bindings,moduleid_symbol,KNO_VOID);
+	lispval id = kno_get(bindings,KNOSYM_MODULEID,KNO_VOID);
 	if ( (KNO_SYMBOLP(id)) &&
 	     ( (lookup_ids) || (!(KNO_MALLOCD_CONSP((kno_cons)bindings))) ) ) {
 	  lispval mod = kno_get_module(id);
@@ -984,7 +984,7 @@ static lispval wherefrom_evalfn(lispval expr,kno_lexenv call_env,
 
 static lispval getmodules_evalfn(lispval expr,kno_lexenv call_env,kno_stack _stack)
 {
-  lispval env_arg = kno_eval(kno_get_arg(expr,1),call_env);
+  lispval env_arg = kno_eval_arg(kno_get_arg(expr,1),call_env);
   lispval modules = EMPTY;
   kno_lexenv env = call_env;
   if (VOIDP(env_arg)) {}
@@ -997,8 +997,8 @@ static lispval getmodules_evalfn(lispval expr,kno_lexenv call_env,kno_stack _sta
     return err;}
   if (env->env_copy) env = env->env_copy;
   while (env) {
-    if (kno_test(env->env_bindings,moduleid_symbol,VOID)) {
-      lispval ids = kno_get(env->env_bindings,moduleid_symbol,VOID);
+    if (kno_test(env->env_bindings,KNOSYM_MODULEID,VOID)) {
+      lispval ids = kno_get(env->env_bindings,KNOSYM_MODULEID,VOID);
       if (CHOICEP(ids)) {
 	DO_CHOICES(id,ids) {
 	  if (SYMBOLP(id)) {CHOICE_ADD(modules,id);}}}
@@ -1054,13 +1054,14 @@ static lispval profile_fcn_prim(lispval fcn,lispval bool)
 {
   if (KNO_FUNCTIONP(fcn)) {
     struct KNO_FUNCTION *f = KNO_GETFUNCTION(fcn);
+    struct KNO_PROFILE *profile = f->fcn_profile;
     if (KNO_FALSEP(bool)) {
-      struct KNO_PROFILE *profile = f->fcn_profile;
-      if (profile)
-	return kno_err("NotYetImplemented","profile_fcn_prim",
-		       "Unprofiling of functions isn't yet supported",
-		       fcn);
+      if (profile) {
+	profile->prof_disabled=1;
+	return KNO_FALSE;}
       else return KNO_FALSE;}
+    else if (f->fcn_profile)
+      profile->prof_disabled=0;
     else f->fcn_profile = kno_make_profile(f->fcn_name);
     return KNO_TRUE;}
   else return kno_type_error("function","profile_fcn",fcn);
@@ -1160,7 +1161,8 @@ static int getprofile_info(lispval fcn,int err,
   else return 0;
 }
 
-DEFPRIM1("profile/getcalls",getcalls_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM2("profile/getcalls",getcalls_prim,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "`(PROFILE/GETCALLS *fcn* *error*)`"
 	 "Returns the profile information for *fcn*, a "
 	 "vector of *fcn*, the number of calls, the number "
@@ -1168,7 +1170,7 @@ DEFPRIM1("profile/getcalls",getcalls_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "but isn't being profiled, this returns #f. "
 	 "If *fcn* is not a function, this returns an error unless "
 	 "*error* is false.",
-	 kno_any_type,KNO_VOID);
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval getcalls_prim(lispval fcn,lispval errp)
 {
   if (KNO_FUNCTIONP(fcn)) {
@@ -1428,7 +1430,7 @@ static lispval with_sourcebase_evalfn(lispval expr,kno_lexenv env,kno_stack stac
   if (!(PAIRP(body)))
     return kno_err(kno_SyntaxError,"with_sourcebase_evalfn",NULL,expr);
 
-  lispval usebase = kno_stack_eval(usebase_expr,env,stack,0);
+  lispval usebase = kno_eval(usebase_expr,env,stack,0);
   u8_string temp_base;
   if (ABORTED(usebase)) return usebase;
   else if (KNO_STRINGP(usebase))
@@ -1445,7 +1447,7 @@ static lispval with_sourcebase_evalfn(lispval expr,kno_lexenv env,kno_stack stac
   u8_string old_base = NULL;
   U8_UNWIND_PROTECT("with-sourcebase",0) {
     old_base = kno_bind_sourcebase(temp_base);
-    result = kno_eval_exprs(body,env,stack,0);}
+    result = kno_eval_body(body,env,stack,"WITH-SOURCEBASE",temp_base,0);}
   U8_ON_UNWIND {
     kno_restore_sourcebase(old_base);
     kno_decref(usebase);}
@@ -1472,7 +1474,6 @@ KNO_EXPORT void kno_init_reflection_c()
   lispval module = reflection_module =
     kno_new_cmodule("reflection",0,kno_init_reflection_c);
 
-  moduleid_symbol = kno_intern("%moduleid");
   source_symbol = kno_intern("%source");
   call_profile_symbol = kno_intern("%callprofile");
   void_symbol = kno_intern("%void");

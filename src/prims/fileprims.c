@@ -9,7 +9,7 @@
 #define _FILEINFO __FILE__
 #endif
 
-/* #define KNO_INLINE_EVAL 1 */
+/* #define KNO_EVAL_INTERNALS 1 */
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
@@ -282,7 +282,7 @@ static int printout_helper(U8_OUTPUT *out,lispval x)
 static lispval simple_fileout_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval filename_arg = kno_get_arg(expr,1);
-  lispval filename_val = kno_eval(filename_arg,env);
+  lispval filename_val = kno_eval_arg(filename_arg,env);
   U8_OUTPUT *f, *oldf = NULL; int doclose;
   if (KNO_ABORTP(filename_val)) return filename_val;
   else if (KNO_PORTP(filename_val)) {
@@ -306,7 +306,7 @@ static lispval simple_fileout_evalfn(lispval expr,kno_lexenv env,kno_stack _stac
   u8_set_default_output(f);
   {lispval body = kno_get_body(expr,2);
     KNO_DOLIST(ex,body)  {
-      lispval value = kno_eval(ex,env);
+      lispval value = kno_eval(ex,env,_stack,0);
       if (printout_helper(f,value))
 	kno_decref(value);
       else {
@@ -328,7 +328,7 @@ static lispval simple_system_evalfn(lispval expr,kno_lexenv env,kno_stack _stack
   U8_INIT_OUTPUT(&out,256);
   {lispval string_exprs = kno_get_body(expr,1);
     KNO_DOLIST(string_expr,string_exprs) {
-      lispval value = kno_eval(string_expr,env);
+      lispval value = kno_eval(string_expr,env,_stack,0);
       if (KNO_ABORTP(value)) return value;
       else if (VOIDP(value)) continue;
       else if (STRINGP(value))
@@ -1652,7 +1652,7 @@ int kno_snapback(kno_lexenv env,u8_string filename)
 static lispval snapshot_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   kno_lexenv save_env; u8_string save_file; int retval = 0;
-  lispval arg1 = kno_eval(kno_get_arg(expr,1),env), arg2 = kno_eval(kno_get_arg(expr,2),env);
+  lispval arg1 = kno_eval_arg(kno_get_arg(expr,1),env), arg2 = kno_eval_arg(kno_get_arg(expr,2),env);
   if (VOIDP(arg1)) {
     lispval saveto = kno_symeval(snapshotfile,env);
     save_env = env;
@@ -1682,7 +1682,7 @@ static lispval snapshot_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 static lispval snapback_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   kno_lexenv save_env; u8_string save_file; int retval = 0;
-  lispval arg1 = kno_eval(kno_get_arg(expr,1),env), arg2 = kno_eval(kno_get_arg(expr,2),env);
+  lispval arg1 = kno_eval_arg(kno_get_arg(expr,1),env), arg2 = kno_eval_arg(kno_get_arg(expr,2),env);
   if (VOIDP(arg1)) {
     lispval saveto = kno_symeval(snapshotfile,env);
     save_env = env;

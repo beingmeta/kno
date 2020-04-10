@@ -466,7 +466,7 @@ static ssize_t write_schemap(struct KNO_OUTBUF *out,struct KNO_SCHEMAP *v)
   ssize_t dtype_len;
   kno_read_lock_table(v);
   {
-    lispval *schema = v->table_schema, *values = v->schema_values;
+    lispval *schema = v->table_schema, *values = v->table_values;
     int i = 0, schemasize = KNO_XSCHEMAP_SIZE(v), len = schemasize*2;
     kno_output_byte(out,dt_kno_package);
     if (len < 256) {

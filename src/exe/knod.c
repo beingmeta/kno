@@ -497,7 +497,7 @@ static int dtypeserver(u8_client ucl)
       u8_log(-LOG_INFO,Incoming,
              "%s[%d/%d]: Received request for execution",
              client->idstring,sock,trans_id);
-    value = kno_eval(expr,client->env);
+    value = kno_eval_arg(expr,client->env);
     elapsed = u8_elapsed_time()-xstart;
     if (KNO_ABORTP(value)) {
       u8_exception ex = u8_erreify();
@@ -933,7 +933,7 @@ int main(int argc,char **argv)
 
   kno_main_errno_ptr = &errno;
 
-  KNO_INIT_STACK();
+  KNO_INIT_STACK_ROOT();
 
   server_sigmask = kno_default_sigmask;
   sigactions_init();
@@ -1038,10 +1038,6 @@ int main(int argc,char **argv)
   /* Now process all the configuration arguments */
   kno_handle_argv(argc,argv,arg_mask,NULL);
 
-  KNO_NEW_STACK(((struct KNO_STACK *)NULL),"knod",NULL,VOID);
-  _stack->stack_label=u8_strdup(u8_appid());
-  U8_SETBITS(_stack->stack_flags,KNO_STACK_FREE_LABEL);
-
   /* Store server initialization information in the configuration
      environment. */
   if (source_file) {
@@ -1064,8 +1060,16 @@ int main(int argc,char **argv)
 
   init_server_env(server_spec,core_env);
 
-  return run_server(server_spec);
+  int rv = run_server(server_spec);
 
+  u8_threadexit();
+  kno_doexit(KNO_FALSE);
+
+  /* Call this here, where it might be easier to debug, even
+     though it's alos an atexit handler */
+  _kno_finish_threads();
+
+  return rv;
 }
 
 static void init_configs()
