@@ -495,7 +495,7 @@ update: .buildmode
 	  echo "Updating" $(shell cat .buildmode) "build linked with" \
 		$(shell cat .malloc); \
 	fi;
-	make TAGS
+	@make TAGS
 	@+make -s `cat .buildmode`
 
 normal:
