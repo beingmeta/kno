@@ -655,9 +655,8 @@ KNO_EXPORT int kno_init_storage()
   kno_init_frames_c();
   kno_init_drivers_c();
   /* kno_init_xtcall_c(); */
-  //  kno_init_evalserver_c();
-  //  kno_init_dtcall_c();
-  //  kno_init_netproc_c();
+  kno_init_evalserver_c();
+  kno_init_netproc_c();
 #if KNO_IPEVAL_ENABLED
   kno_init_ipeval_c();
 #endif

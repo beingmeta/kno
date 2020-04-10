@@ -195,8 +195,6 @@ REVISION_H   =include/kno/revision.h
 CONFIG_H     =include/kno/config.h
 CONFIG_HDRS  =${REVISION_H} ${CONFIG_H}
 
-#	src/storage/dtproc.o src/storage/dtcall.o
-
 STORAGE_OBJS=\
 	src/storage/storage.o src/storage/streams.o 		\
 	src/storage/hashdtype.o src/storage/compress.o 	\
@@ -208,18 +206,20 @@ STORAGE_OBJS=\
 	src/storage/extindex.o src/storage/extpool.o		\
 	src/storage/procpool.o src/storage/procindex.o		\
 	src/storage/mempool.o src/storage/tempindex.o		\
+	src/storage/netproc.o src/storage/evalserver.o		\
+	src/storage/remote.o src/storage/xtcall.o		\
 	src/storage/frames.o src/storage/slotindexes.o 		\
 	src/storage/drivers.o src/storage/dbserv.o		\
 	@ipevalo@ 
 
-# src/drivers/netpool.o  src/drivers/netindex.o
 DRIVER_OBJS=\
 	src/drivers/builtin_drivers.o			\
+	src/drivers/netpool.o src/drivers/netindex.o	\
 	src/drivers/filepool.o src/drivers/oidpool.o	\
-	src/drivers/bigpool.o	\
-	src/drivers/knopool.o	\
+	src/drivers/bigpool.o				\
+	src/drivers/knopool.o				\
 	src/drivers/fileindex.o src/drivers/hashindex.o	\
-	src/drivers/memindex.o   \
+	src/drivers/memindex.o   			\
 	src/drivers/knoindex.o
 
 CORE_SCHEME_OBJS=\
@@ -240,7 +240,6 @@ CORE_SCHEME_OBJS=\
 	src/eval/iterators.o\
 	src/eval/repl.o
 
-#	src/eval/dteval.o
 SCHEME_OBJS=\
 	$(CORE_SCHEME_OBJS) \
 	src/eval/modules.o \
@@ -251,6 +250,7 @@ SCHEME_OBJS=\
 	src/eval/evalops.o \
 	src/eval/coreops.o \
 	src/eval/configops.o \
+	src/eval/neteval.o \
 	src/eval/arith.o \
 	src/eval/regex.o \
 	src/eval/promises.o \

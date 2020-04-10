@@ -1906,7 +1906,7 @@ static void init_eval_core()
   kno_init_eval_debug_c();
   kno_init_eval_testops_c();
   kno_init_evalops_c();
-  // kno_init_neteval_c();
+  kno_init_neteval_c();
   kno_init_tableprims_c();
   kno_init_loadmods_c();
   kno_init_modules_c();
