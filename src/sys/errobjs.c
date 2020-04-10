@@ -42,12 +42,6 @@ int kno_sum_stack_max = 200;
 
 /* Managing error data */
 
-KNO_EXPORT void kno_decref_u8x_xdata(void *ptr)
-{
-  lispval v = (lispval)ptr;
-  kno_decref(v);
-}
-
 KNO_EXPORT void kno_decref_embedded_exception(void *ptr)
 {
   lispval v = (lispval)ptr;
@@ -78,9 +72,10 @@ static lispval get_exception_context(u8_exception ex)
     return kno_make_slotmap(4,1,&init_kv);}
 }
 
-static u8_exception mkerr(u8_condition c,u8_context caller,
-                          u8_string details,
-                          lispval irritant)
+KNO_EXPORT
+u8_exception kno_mkerr(u8_condition c,u8_context caller,
+		       u8_string details,lispval irritant,
+		       int push)
 {
   u8_exception ex = u8_current_exception;
   u8_condition condition = (c) ? (c) : (ex) ? (ex->u8x_cond) :
@@ -102,21 +97,11 @@ static u8_exception mkerr(u8_condition c,u8_context caller,
      u8_threadid());
   kno_incref(irritant);
   /* if (ex) u8_free_exception(ex,1); */
-  return u8_new_exception(condition,caller,u8_strdup(details),
-                          (void *)exception,kno_decref_embedded_exception);
-}
-
-KNO_EXPORT u8_exception kno_mkerr
-(u8_condition c,u8_context caller,u8_string details,lispval irritant)
-{
-  return mkerr(c,caller,details,irritant);
-}
-
-KNO_EXPORT void kno_seterr
-(u8_condition c,u8_context caller,u8_string details,lispval irritant)
-{
-  u8_exception ex = mkerr(c,caller,details,irritant);
-  u8_expush(ex);
+  u8_exception new_ex =
+    u8_new_exception(condition,caller,u8_strdup(details),
+		     (void *)exception,kno_decref_embedded_exception);
+  if (push) u8_expush(new_ex);
+  return new_ex;
 }
 
 KNO_EXPORT void kno_restore_exception(struct KNO_EXCEPTION *exo)
@@ -221,13 +206,6 @@ KNO_EXPORT struct KNO_EXCEPTION *kno_exception_object(u8_exception ex)
   else return NULL;
 }
 
-KNO_EXPORT void kno_raise
-(u8_condition c,u8_context cxt,u8_string details,lispval irritant)
-{
-  u8_exception ex = kno_mkerr(c,cxt,details,irritant);
-  u8_raise_exception(ex);
-}
-
 KNO_EXPORT int kno_poperr
 (u8_condition *c,u8_context *cxt,u8_string *details,lispval *irritant)
 {
@@ -269,19 +247,6 @@ KNO_EXPORT int kno_reterr
 KNO_EXPORT int kno_interr(lispval x)
 {
   return -1;
-}
-
-KNO_EXPORT lispval kno_err
-(u8_condition ex,u8_context cxt,u8_string details,lispval irritant)
-{
-  if (KNO_CHECK_PTR(irritant)) {
-    if (details)
-      kno_seterr(ex,cxt,details,irritant);
-    else kno_seterr(ex,cxt,NULL,irritant);}
-  else if (details)
-    kno_seterr(ex,cxt,details,VOID);
-  else kno_seterr(ex,cxt,NULL,VOID);
-  return KNO_ERROR;
 }
 
 KNO_EXPORT lispval kno_type_error(u8_string type_name,u8_context cxt,lispval irritant)
@@ -792,6 +757,8 @@ void kno_init_err_c()
 {
   u8_register_source_file(_FILEINFO);
 
+  _kno_mkerr = kno_mkerr;
+
   kno_copiers[kno_exception_type]=copy_exception;
   if (kno_dtype_writers[kno_exception_type]==NULL)
     kno_dtype_writers[kno_exception_type]=write_exception_dtype;
@@ -801,4 +768,3 @@ void kno_init_err_c()
   stack_entry_symbol=kno_intern("%%stack");
   exception_stack_symbol = kno_intern("exception-stack");
 }
-

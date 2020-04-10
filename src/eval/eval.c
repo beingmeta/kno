@@ -946,8 +946,7 @@ inline lispval _eval_expr(lispval head,lispval expr,
   /* Extract core expression, note source */
   if (root_call) {
     stack->eval_source = source;
-    KNO_STACK_SET_OP(stack,expr,0);
-    stack->eval_env     = env;}
+    KNO_STACK_SET_OP(stack,expr,0);}
   else if ( (tail) &&
 	    (KNO_STACK_BITP(stack,KNO_STACK_REDUCE_LOOP)) &&
 	    (env == stack->eval_env) ) {
@@ -957,8 +956,7 @@ inline lispval _eval_expr(lispval head,lispval expr,
     return KNO_TAIL;}
   else {
     KNO_STACK_SET_OP(stack,expr,0);
-    stack->eval_source = source;
-    stack->eval_env    = env;}
+    stack->eval_source = source;}
 
   if (KNO_OPCODEP(head)) {
     if (KNO_SPECIAL_OPCODEP(head))

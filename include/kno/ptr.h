@@ -93,6 +93,7 @@
 #endif
 
 #include "common.h"
+#include "errors.h"
 
 #define KNO_CONS_TYPECODE(i) (0x84+i)
 #define KNO_IMMEDIATE_TYPECODE(i) (0x04+i)
@@ -904,8 +905,6 @@ KNO_EXPORT lispval kno_resolve_fcnid(lispval ref);
 KNO_EXPORT lispval kno_register_fcnid(lispval obj);
 KNO_EXPORT lispval kno_set_fcnid(lispval ref,lispval newval);
 KNO_EXPORT int kno_deregister_fcnid(lispval id,lispval value);
-
-KNO_EXPORT lispval kno_err(u8_condition,u8_context,u8_string,lispval);
 
 KNO_EXPORT u8_condition kno_InvalidFCNID, kno_FCNIDOverflow;
 

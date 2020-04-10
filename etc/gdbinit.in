@@ -262,19 +262,23 @@ set breakpoint pending on
 #set disable-randomization off
 set overload-resolution off
 
-break u8_log_break
-break u8_new_exception
-break u8_utf8_warning
 break dbg_evalfn:debugger
-break _u8_dbg
+break kno_mkerr
 break u8_raise
-break TCMalloc_Printer::printf
 break __msan_warning
 break __msan_warning_noreturn
 break __asan_report_error
 break abort
-#break exit
 
+def debug_utf8
+break u8_utf8_warning
+end
+
+def debug_libu8
+break u8_log_break
+break _u8_dbg
+break u8_new_exception
+end
 
 # For LIBC
 set env MALLOC_CHECK_=2
