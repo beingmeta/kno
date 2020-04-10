@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-02-26 10:52-0500\n"
+"POT-Creation-Date: 2020-04-10 17:05-0400\n"
 "PO-Revision-Date: 2005-03-04 22:55-0500\n"
 "Last-Translator: Kenneth Haase <kh@beingmeta.com>\n"
 "Language-Team: Spanish <es@li.org>\n"
@@ -138,8 +138,8 @@ msgid "NotASequence"
 msgstr ""
 
 #: src/lisp/sequences.c:157 src/lisp/sequences.c:252 src/lisp/sequences.c:793
-#: src/eval/opcode_defs.c:578 src/eval/opcode_defs.c:585
-#: src/eval/opcode_defs.c:777 src/eval/opcode_defs.c:781
+#: src/eval/opcode_defs.c:580 src/eval/opcode_defs.c:587
+#: src/eval/opcode_defs.c:779 src/eval/opcode_defs.c:783
 #: src/prims/dbprims.c:3190 src/prims/dbprims.c:3192 src/prims/seqprims.c:345
 #: src/prims/seqprims.c:356 src/prims/seqprims.c:365 src/prims/seqprims.c:531
 #: src/prims/seqprims.c:566 src/prims/seqprims.c:630 src/prims/seqprims.c:655
@@ -297,24 +297,24 @@ msgstr ""
 msgid "whether to check returned and real dtype sizes"
 msgstr ""
 
-#: src/lisp/xtypes.c:892 src/storage/compress.c:156 src/storage/compress.c:195
-#: src/prims/portprims.c:1351 src/drivers/headers/zcompress.h:27
+#: src/lisp/xtypes.c:915 src/storage/compress.c:156 src/storage/compress.c:195
+#: src/prims/portprims.c:1353 src/drivers/headers/zcompress.h:27
 #: src/drivers/headers/zcompress.h:65
 msgid "ZLIB ran out of memory"
 msgstr ""
 
-#: src/lisp/xtypes.c:900 src/storage/compress.c:164
+#: src/lisp/xtypes.c:923 src/storage/compress.c:164
 #: src/drivers/headers/zcompress.h:35
 msgid "pool value uncompress ran out of memory"
 msgstr ""
 
-#: src/lisp/xtypes.c:904 src/storage/compress.c:168
+#: src/lisp/xtypes.c:927 src/storage/compress.c:168
 #: src/drivers/headers/zcompress.h:38
 msgid "ZLIB uncompress data error"
 msgstr ""
 
-#: src/lisp/xtypes.c:906 src/storage/compress.c:170 src/storage/compress.c:208
-#: src/prims/portprims.c:1364 src/drivers/headers/zcompress.h:40
+#: src/lisp/xtypes.c:929 src/storage/compress.c:170 src/storage/compress.c:208
+#: src/prims/portprims.c:1366 src/drivers/headers/zcompress.h:40
 #: src/drivers/headers/zcompress.h:78
 msgid "Bad ZLIB return code"
 msgstr ""
@@ -426,8 +426,8 @@ msgid "oid"
 msgstr ""
 
 #: src/lisp/lisp.c:206 src/lisp/lisp.c:207 src/sys/config.c:835
-#: src/eval/eval.c:1468 src/eval/opcode_defs.c:586 src/prims/dbprims.c:3121
-#: src/prims/portprims.c:868 src/eval/choiceops.c:1457
+#: src/eval/eval.c:1460 src/eval/opcode_defs.c:588 src/prims/dbprims.c:3121
+#: src/prims/portprims.c:870 src/eval/choiceops.c:1457
 #: src/eval/choiceops.c:1496 src/eval/choiceops.c:1523
 #: src/eval/choiceops.c:1560 src/eval/choiceops.c:1574
 #: src/eval/choiceops.c:1578 src/eval/choiceops.c:1579 src/prims/seqprims.c:361
@@ -449,7 +449,7 @@ msgstr ""
 msgid "constant"
 msgstr ""
 
-#: src/lisp/lisp.c:216 src/lisp/lisp.c:217 src/eval/eval.c:1310
+#: src/lisp/lisp.c:216 src/lisp/lisp.c:217 src/eval/eval.c:1302
 #: src/eval/modules.c:378 src/eval/reflection.c:978
 msgid "symbol"
 msgstr ""
@@ -458,11 +458,11 @@ msgstr ""
 msgid "fcnid"
 msgstr ""
 
-#: src/lisp/lisp.c:220 src/lisp/lisp.c:221 src/eval/eval.c:2094
+#: src/lisp/lisp.c:220 src/lisp/lisp.c:221 src/eval/eval.c:2086
 msgid "lexref"
 msgstr ""
 
-#: src/lisp/lisp.c:222 src/lisp/lisp.c:223 src/eval/eval.c:2100
+#: src/lisp/lisp.c:222 src/lisp/lisp.c:223 src/eval/eval.c:2092
 msgid "opcode"
 msgstr ""
 
@@ -470,7 +470,7 @@ msgstr ""
 msgid "typeref"
 msgstr ""
 
-#: src/lisp/lisp.c:226 src/lisp/lisp.c:227 src/eval/eval.c:2098
+#: src/lisp/lisp.c:226 src/lisp/lisp.c:227 src/eval/eval.c:2090
 msgid "coderef"
 msgstr ""
 
@@ -493,8 +493,8 @@ msgstr ""
 #: src/lisp/lisp.c:235 src/lisp/lisp.c:236 src/sys/config.c:764
 #: src/sys/config.c:783 src/sys/config.c:802 src/sys/startup.c:254
 #: src/sys/startup.c:632 src/prims/dbprims.c:306 src/prims/dbprims.c:327
-#: src/prims/dbprims.c:348 src/prims/portprims.c:375 src/prims/portprims.c:789
-#: src/prims/portprims.c:874 src/prims/dtypeprims.c:237
+#: src/prims/dbprims.c:348 src/prims/portprims.c:377 src/prims/portprims.c:791
+#: src/prims/portprims.c:876 src/prims/dtypeprims.c:237
 #: src/prims/dtypeprims.c:282 src/prims/dtypeprims.c:371
 #: src/prims/dtypeprims.c:403 src/prims/dtypeprims.c:421
 #: src/prims/dtypeprims.c:444 src/prims/dtypeprims.c:478
@@ -521,9 +521,9 @@ msgstr ""
 msgid "bigint"
 msgstr ""
 
-#: src/lisp/lisp.c:243 src/lisp/lisp.c:244 src/eval/eval.c:1469
-#: src/eval/opcode_defs.c:748 src/eval/opcode_defs.c:750
-#: src/eval/opcode_defs.c:763 src/eval/opcode_defs.c:765
+#: src/lisp/lisp.c:243 src/lisp/lisp.c:244 src/eval/eval.c:1461
+#: src/eval/opcode_defs.c:750 src/eval/opcode_defs.c:752
+#: src/eval/opcode_defs.c:765 src/eval/opcode_defs.c:767
 msgid "pair"
 msgstr ""
 
@@ -1776,7 +1776,7 @@ msgstr ""
 msgid "pool value compression ran out of memory"
 msgstr ""
 
-#: src/storage/compress.c:206 src/prims/portprims.c:1362
+#: src/storage/compress.c:206 src/prims/portprims.c:1364
 #: src/drivers/headers/zcompress.h:76
 msgid "ZLIB compress data error"
 msgstr ""
@@ -2007,35 +2007,35 @@ msgstr ""
 msgid "opcode name"
 msgstr ""
 
-#: src/eval/eval.c:773 src/eval/opcode_defs.c:86 src/eval/reflection.c:764
+#: src/eval/eval.c:769 src/eval/opcode_defs.c:86 src/eval/reflection.c:764
 msgid "macro expansion"
 msgstr ""
 
-#: src/eval/eval.c:1332 src/eval/reflection.c:938 src/eval/reflection.c:995
+#: src/eval/eval.c:1324 src/eval/reflection.c:938 src/eval/reflection.c:995
 msgid "environment"
 msgstr ""
 
-#: src/eval/opcode_defs.c:821 src/eval/opcode_defs.c:925
-#: src/eval/opcode_defs.c:963 src/eval/opcode_defs.c:1065
+#: src/eval/opcode_defs.c:823 src/eval/opcode_defs.c:927
+#: src/eval/opcode_defs.c:965 src/eval/opcode_defs.c:1067
 msgid "Invalid opcode"
 msgstr ""
 
-#: src/eval/opcode_defs.c:836 src/eval/opcode_defs.c:1511
-#: src/eval/opcode_defs.c:1536 src/eval/opcode_defs.c:1553
-#: src/eval/opcode_defs.c:1573 src/eval/opcode_defs.c:1626
-#: src/eval/opcode_defs.c:1660 src/eval/opcode_defs.c:1675
-#: src/eval/opcode_defs.c:1688 src/eval/opcode_defs.c:1730
-#: src/eval/opcode_defs.c:1769 src/eval/opcode_defs.c:1807
-#: src/eval/opcode_defs.c:1845 src/eval/opcode_defs.c:1883 src/eval/arith.c:294
+#: src/eval/opcode_defs.c:838 src/eval/opcode_defs.c:1513
+#: src/eval/opcode_defs.c:1538 src/eval/opcode_defs.c:1555
+#: src/eval/opcode_defs.c:1575 src/eval/opcode_defs.c:1628
+#: src/eval/opcode_defs.c:1662 src/eval/opcode_defs.c:1677
+#: src/eval/opcode_defs.c:1690 src/eval/opcode_defs.c:1732
+#: src/eval/opcode_defs.c:1771 src/eval/opcode_defs.c:1809
+#: src/eval/opcode_defs.c:1847 src/eval/opcode_defs.c:1885 src/eval/arith.c:294
 msgid "number"
 msgstr ""
 
-#: src/eval/opcode_defs.c:911
+#: src/eval/opcode_defs.c:913
 msgid "number|string"
 msgstr ""
 
-#: src/eval/opcode_defs.c:915 src/eval/opcode_defs.c:919
-#: src/eval/opcode_defs.c:923 src/prims/dbprims.c:2195
+#: src/eval/opcode_defs.c:917 src/eval/opcode_defs.c:921
+#: src/eval/opcode_defs.c:925 src/prims/dbprims.c:2195
 #: src/prims/tableprims.c:770 src/prims/tableprims.c:792
 #: src/prims/tableprims.c:821 src/prims/tableprims.c:891 src/web/htmlout.c:598
 #: src/web/uriprims.c:204 src/web/uriprims.c:206 src/web/uriprims.c:305
@@ -2187,8 +2187,8 @@ msgstr ""
 msgid "procedure"
 msgstr ""
 
-#: src/eval/reflection.c:781 src/eval/configops.c:82 src/eval/configops.c:147
-#: src/eval/configops.c:172 src/cmodules/sqlite.c:162
+#: src/eval/reflection.c:781 src/eval/configops.c:84 src/eval/configops.c:149
+#: src/eval/configops.c:174 src/cmodules/sqlite.c:162
 msgid "string or symbol"
 msgstr ""
 
@@ -2296,29 +2296,29 @@ msgstr ""
 msgid "Unknown encoding"
 msgstr ""
 
-#: src/prims/portprims.c:388 src/prims/portprims.c:405
+#: src/prims/portprims.c:390 src/prims/portprims.c:407
 #: src/prims/fileprims.c:1367 src/prims/fileprims.c:1395
 #: src/prims/fileprims.c:1422 src/prims/fileprims.c:1449
 msgid "port"
 msgstr ""
 
-#: src/prims/portprims.c:426 src/prims/portprims.c:446
-#: src/prims/portprims.c:469 src/prims/portprims.c:485
+#: src/prims/portprims.c:428 src/prims/portprims.c:448
+#: src/prims/portprims.c:471 src/prims/portprims.c:487
 #: src/prims/fileprims.c:295
 msgid "output port"
 msgstr ""
 
-#: src/prims/portprims.c:758 src/prims/portprims.c:786
-#: src/prims/portprims.c:812 src/prims/portprims.c:832
-#: src/prims/portprims.c:864 src/text/texttools.c:2315
+#: src/prims/portprims.c:760 src/prims/portprims.c:788
+#: src/prims/portprims.c:814 src/prims/portprims.c:834
+#: src/prims/portprims.c:866 src/text/texttools.c:2315
 msgid "input port"
 msgstr ""
 
-#: src/prims/portprims.c:792
+#: src/prims/portprims.c:794
 msgid "fixum"
 msgstr ""
 
-#: src/prims/portprims.c:1359
+#: src/prims/portprims.c:1361
 msgid "OIDPOOL compress ran out of memory"
 msgstr ""
 
