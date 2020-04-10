@@ -13,12 +13,16 @@
 
 KNO_EXPORT lispval kno_opcode_dispatch
 (lispval opcode,lispval expr,kno_lexenv env,
- kno_stack caller,int tail);
+ kno_stack caller,
+ int tail);
+KNO_EXPORT lispval kno_get_opcode(u8_string name);
+KNO_EXPORT u8_string kno_opcode_name(lispval opcode);
 
 /* Opcodes */
 
 KNO_EXPORT u8_string kno_opcode_names[];
-KNO_EXPORT int kno_opcodes_length;
+KNO_EXPORT unsigned char kno_opcode_call_info[];
+KNO_EXPORT const int kno_opcodes_length;
 
 #define KNO_SPECIAL_OPCODE(x)  KNO_OPCODE(x+0x00)
 #define KNO_SPECIAL_OPCODEP(x) ((x>=KNO_OPCODE(0x00))&&(x<KNO_OPCODE(0x100)))
@@ -82,6 +86,7 @@ KNO_EXPORT int kno_opcodes_length;
 #define KNO_FLONUMP_OPCODE     KNO_D1_OPCODE(0x0c)
 #define KNO_SEQUENCEP_OPCODE   KNO_D1_OPCODE(0x0d)
 #define KNO_TABLEP_OPCODE      KNO_D1_OPCODE(0x0e)
+
 #define KNO_FIRST_OPCODE       KNO_D1_OPCODE(0x0f)
 #define KNO_SECOND_OPCODE      KNO_D1_OPCODE(0x10)
 #define KNO_THIRD_OPCODE       KNO_D1_OPCODE(0x11)
@@ -108,6 +113,7 @@ KNO_EXPORT int kno_opcodes_length;
 #define KNO_IDENTICAL_OPCODE  KNO_ND2_OPCODE(0x01)
 #define KNO_OVERLAPS_OPCODE   KNO_ND2_OPCODE(0x02)
 #define KNO_CONTAINSP_OPCODE  KNO_ND2_OPCODE(0x03)
+
 /*
 #define KNO_UNION_OPCODE      KNO_ND2_OPCODE(0x04)
 #define KNO_INTERSECT_OPCODE  KNO_ND2_OPCODE(0x05)
@@ -127,6 +133,7 @@ KNO_EXPORT int kno_opcodes_length;
 #define KNO_MINUS_OPCODE      KNO_NUMERIC_OPCODE(0x07)
 #define KNO_TIMES_OPCODE      KNO_NUMERIC_OPCODE(0x08)
 #define KNO_FLODIV_OPCODE     KNO_NUMERIC_OPCODE(0x09)
+#define KNO_DIV_OPCODE        KNO_NUMERIC_OPCODE(0x0a)
 
 #define KNO_TABLE_OPCODE(x)     KNO_OPCODE(0x700+x)
 #define KNO_TABLE_OPCODEP(x)    (((x)>=KNO_OPCODE(0x600))&&((x)<KNO_OPCODE(0x800)))
@@ -161,6 +168,11 @@ KNO_EXPORT int kno_opcodes_length;
 #define KNO_APPLY14_OPCODE       KNO_APPLY_OPCODE(0x0e)
 #define KNO_APPLY15_OPCODE       KNO_APPLY_OPCODE(0x0f)
 #define KNO_APPLY_N_OPCODE       KNO_APPLY_OPCODE(0x10)
+
+#define KNO_ND_OPCODEP(op)    \
+  ( (KNO_TABLE_OPCODEP(op)) || \
+    (KNO_ND1_OPCODEP(op)) ||   \
+    (KNO_ND2_OPCODEP(op)) )
 
 #endif /* KNO_OPCODES_H */
 

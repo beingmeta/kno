@@ -24,7 +24,7 @@
 #define _FILEINFO __FILE__
 #endif
 
-static lispval moduleid_symbol, source_symbol, loadstamp_symbol, dlsource_symbol;
+static lispval source_symbol, loadstamp_symbol, dlsource_symbol;
 
 u8_condition kno_NotAModule=_("Argument is not a module (table)");
 u8_condition kno_NoSuchModule=_("Can't find named module");
@@ -109,9 +109,9 @@ KNO_EXPORT lispval kno_register_module_x(lispval name,lispval module,int flags)
   /* Set the module ID*/
   if (KNO_LEXENVP(module)) {
     kno_lexenv env = (kno_lexenv)module;
-    kno_add(env->env_bindings,moduleid_symbol,name);}
+    kno_add(env->env_bindings,KNOSYM_MODULEID,name);}
   else if (HASHTABLEP(module))
-    kno_add(module,moduleid_symbol,name);
+    kno_add(module,KNOSYM_MODULEID,name);
   else {}
 
   /* Add to the appropriate default environment */
@@ -137,7 +137,7 @@ KNO_EXPORT lispval kno_new_module(char *name,int flags)
   if (kno_scheme_initialized==0) kno_init_scheme();
   module_name = kno_getsym(name);
   module = kno_make_hashtable(NULL,0);
-  kno_add(module,moduleid_symbol,module_name);
+  kno_add(module,KNOSYM_MODULEID,module_name);
   struct KNO_HASHTABLE *modmap = &module_map;
   kno_hashtable_op(modmap,kno_table_default,module_name,module);
   as_stored = kno_get((lispval)modmap,module_name,VOID);
@@ -199,7 +199,7 @@ int kno_module_finished(lispval module,int flags)
   else {
     struct U8_XTIME xtptr; lispval timestamp;
     lispval cur_timestamp = kno_get(module,loadstamp_symbol,VOID);
-    lispval moduleid = kno_get(module,moduleid_symbol,VOID);
+    lispval moduleid = kno_get(module,KNOSYM_MODULEID,VOID);
     u8_init_xtime(&xtptr,-1,u8_second,0,0,0);
     timestamp = kno_make_timestamp(&xtptr);
     kno_store(module,loadstamp_symbol,timestamp);
@@ -220,7 +220,7 @@ int kno_module_finished(lispval module,int flags)
 
 static kno_lexenv become_module(kno_lexenv env,lispval module_name,int create)
 {
-  lispval module_spec = kno_eval(module_name,env), module;
+  lispval module_spec = kno_eval_arg(module_name,env), module;
   if (ABORTP(module_spec))
     return NULL;
   else if (SYMBOLP(module_spec))
@@ -259,7 +259,7 @@ static kno_lexenv become_module(kno_lexenv env,lispval module_name,int create)
 		 "become_module",NULL,module_spec);
       return NULL;}
     else {}
-    kno_store(env->env_exports,moduleid_symbol,module_spec);
+    kno_store(env->env_exports,KNOSYM_MODULEID,module_spec);
     kno_register_module(SYM_NAME(module_spec),(lispval)env,0);}
   else {
     kno_seterr(kno_NotAModule,"use_module",
@@ -288,7 +288,7 @@ static lispval within_module_evalfn(lispval expr,kno_lexenv env,kno_stack _stack
   if (become_module(consed_env,module_name,0)) {
     lispval result = VOID, body = kno_get_body(expr,2);
     KNO_DOLIST(elt,body) {
-      kno_decref(result); result = kno_eval(elt,consed_env);}
+      kno_decref(result); result = kno_eval_arg(elt,consed_env);}
     kno_decref((lispval)consed_env);
     return result;}
   else {
@@ -325,7 +325,7 @@ static kno_lexenv make_hybrid_env(kno_lexenv base,lispval module_spec)
 
 static lispval accessing_module_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  lispval module_name = kno_eval(kno_get_arg(expr,1),env);
+  lispval module_name = kno_eval_arg(kno_get_arg(expr,1),env);
   kno_lexenv hybrid;
   if (VOIDP(module_name))
     return kno_err(kno_TooFewExpressions,"WITHIN-MODULE",NULL,expr);
@@ -335,7 +335,7 @@ static lispval accessing_module_evalfn(lispval expr,kno_lexenv env,kno_stack _st
     KNO_DOLIST(elt,body) {
       if (KNO_ABORTP(result)) break;
       kno_decref(result);
-      result = kno_eval(elt,hybrid);}
+      result = kno_eval_arg(elt,hybrid);}
     kno_decref(module_name);
     kno_decref((lispval)hybrid);
     return result;}
@@ -356,9 +356,9 @@ KNO_EXPORT kno_hashtable kno_get_exports(kno_lexenv env)
     u8_unlock_mutex(&exports_lock);
     return (kno_hashtable) env->env_exports;}
   exports = (kno_hashtable)(env->env_exports = kno_make_hashtable(NULL,16));
-  lispval moduleid = kno_get(env->env_bindings,moduleid_symbol,VOID);
+  lispval moduleid = kno_get(env->env_bindings,KNOSYM_MODULEID,VOID);
   if (!(VOIDP(moduleid)))
-    kno_hashtable_store(exports,moduleid_symbol,moduleid);
+    kno_hashtable_store(exports,KNOSYM_MODULEID,moduleid);
   u8_unlock_mutex(&exports_lock);
   kno_decref(moduleid);
   return exports;
@@ -370,7 +370,7 @@ static lispval module_export_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
   lispval symbols_spec = kno_get_arg(expr,1), symbols;
   if (VOIDP(symbols_spec))
     return kno_err(kno_TooFewExpressions,"MODULE-EXPORT!",NULL,expr);
-  symbols = kno_eval(symbols_spec,env);
+  symbols = kno_eval_arg(symbols_spec,env);
   if (KNO_ABORTP(symbols)) return symbols;
   {DO_CHOICES(symbol,symbols)
       if (!(SYMBOLP(symbol))) {
@@ -400,7 +400,7 @@ static int uses_bindings(kno_lexenv env,lispval bindings)
 
 static lispval use_module_helper(lispval expr,kno_lexenv env)
 {
-  lispval module_names = kno_eval(kno_get_arg(expr,1),env);
+  lispval module_names = kno_eval_arg(kno_get_arg(expr,1),env);
   kno_lexenv modify_env = env;
   if (VOIDP(module_names))
     return kno_err(kno_TooFewExpressions,"USE-MODULE",NULL,expr);
@@ -455,7 +455,7 @@ static lispval export_alias_helper(lispval expr,kno_lexenv env,kno_stack _stack)
   if (KNO_VOIDP(modexpr))
     return kno_err(kno_SyntaxError,"export_alias_helper",NULL,expr);
   lispval old_exports = env->env_exports;
-  lispval modname = kno_stack_eval(modexpr,env,_stack,0);
+  lispval modname = kno_eval(modexpr,env,_stack,0);
   if (KNO_ABORTP(modname)) return modname;
   lispval module = kno_find_module(modname,1);
   if (KNO_ABORTP(module)) return module;
@@ -586,11 +586,11 @@ static lispval get_source(lispval arg)
     kno_lexenv envptr = kno_consptr(kno_lexenv,arg,kno_lexenv_type);
     ids = kno_get(envptr->env_bindings,source_symbol,KNO_VOID);
     if (KNO_VOIDP(ids))
-      ids = kno_get(envptr->env_bindings,moduleid_symbol,KNO_VOID);}
+      ids = kno_get(envptr->env_bindings,KNOSYM_MODULEID,KNO_VOID);}
   else if (TABLEP(arg)) {
     ids = kno_get(arg,source_symbol,KNO_VOID);
     if (KNO_VOIDP(ids))
-      ids = kno_get(arg,moduleid_symbol,KNO_VOID);}
+      ids = kno_get(arg,KNOSYM_MODULEID,KNO_VOID);}
   else if (KNO_SYMBOLP(arg)) {
     lispval mod = kno_find_module(arg,1);
     if (KNO_ABORTP(mod))
@@ -785,7 +785,6 @@ void kno_init_module_tables()
   else module_tables_initialized=1;
 
   loadstamp_symbol = kno_intern("%loadstamp");
-  moduleid_symbol = kno_intern("%moduleid");
   source_symbol = kno_intern("%source");
   dlsource_symbol = kno_intern("%dlsource");
 

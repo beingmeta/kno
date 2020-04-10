@@ -154,7 +154,7 @@ KNO_EXPORT struct KNO_FFI_PROC *kno_make_ffi_proc
     proc->ffi_argtypes = ffi_argtypes;
     proc->ffi_return_spec = return_spec; kno_incref(return_spec);
     proc->ffi_argspecs = savespecs;
-    proc->fcn_call = KNO_FCN_CALL_XCALL;
+    proc->fcn_call = KNO_CALL_XCALL;
     // Defer arity checking to kno_ffi_call
     proc->fcn_handler.xcalln = NULL;
     proc->ffi_dlsym = symbol;
@@ -572,7 +572,7 @@ KNO_EXPORT void kno_init_ffi_c()
   kno_unparsers[kno_ffi_type]=unparse_ffi_proc;
   kno_recyclers[kno_ffi_type]=recycle_ffi_proc;
 
-  kno_function_types[kno_ffi_type]=1;
+  kno_isfunctionp[kno_ffi_type]=1;
   kno_applyfns[kno_ffi_type]=(kno_applyfn)kno_ffi_call;
 
   init_symbols();

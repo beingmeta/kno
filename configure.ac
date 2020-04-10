@@ -87,8 +87,8 @@ EXELIBS=
 BINPATH=${PATH}
 RPATHFLAGS="-Wl,'-rpath \$(RPATH)'"
 SHARED_LIB_TARGET=shared-libs
-KNO_MAJOR=2001
-KNO_MINOR=2
+KNO_MAJOR=2004
+KNO_MINOR=0
 KNO_RELEASE=`cat etc/release`
 KNO_PATCHLEVEL=`./etc/patchlevel`
 KNO_VERSION=${KNO_MAJOR}.${KNO_MINOR}.${KNO_RELEASE}
@@ -159,7 +159,7 @@ with_imagick_default="yes"
 use_dtblock_default="yes"
 default_bootsystem="none"
 BOOTSETUP="none"
-CFLAGS="-DLIBU8_SOURCE -DKNO_SOURCE -fPIC"
+CFLAGS="-DLIBU8_SOURCE -DKNO_SOURCE -fPIC -Wno-unused-label"
 PKG_CFLAGS="-fPIC"
 OPTFLAGS=
 XOPTFLAGS=
@@ -361,6 +361,7 @@ AC_SUBST(MSG)
 AC_SUBST(BINDIR)
 AC_SUBST(CHOWN)
 AC_SUBST(CHMOD)
+AC_SUBST(GZIP)
 AC_SUBST(DELETEFILE)
 AC_SUBST(COPYFILE)
 AC_SUBST(TOUCHFILE)
@@ -416,6 +417,8 @@ AC_PATH_PROG(GOOGLE_PPROF,google-pprof)
 AC_PATH_PROG(XGETTEXT,xgettext)
 AC_PATH_PROG(MSGMERGE,msgmerge)
 AC_PATH_PROG(MSGFMT,msgfmt)
+
+AC_CHECK_PROGS(GZIP,"gzip","na")
 
 AC_ARG_WITH(execwrapper,--with-execwrapper program to use when calling exec(),,with_execwrapper=$binenv)
 if test "$with_execwrapper" != ""; then

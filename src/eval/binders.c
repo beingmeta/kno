@@ -9,7 +9,7 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define KNO_INLINE_EVAL 1
+#define KNO_EVAL_INTERNALS 1
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
@@ -34,8 +34,10 @@ static lispval assign_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     return kno_err(kno_NotAnIdentifier,"SET!",NULL,expr);
   else if (VOIDP(val_expr))
     return kno_err(kno_TooFewExpressions,"SET!",SYM_NAME(var),expr);
-  value = fast_eval(val_expr,env);
+  value = kno_eval(val_expr,env,_stack,0);
   if (KNO_ABORTED(value)) return value;
+  else if (KNO_BAD_ARGP(value))
+    return kno_bad_arg(value,"assign_evalfn",val_expr);
   else if ((retval = (kno_assign_value(var,value,env)))) {
     kno_decref(value);
     if (PRED_FALSE(retval<0)) {
@@ -60,8 +62,10 @@ static lispval assign_plus_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     return kno_err(kno_NotAnIdentifier,"SET+!",NULL,expr);
   else if (VOIDP(val_expr))
     return kno_err(kno_TooFewExpressions,"SET+!",NULL,expr);
-  value = fast_eval(val_expr,env);
+  value = kno_eval(val_expr,env,_stack,0);
   if (KNO_ABORTED(value)) return value;
+  else if (KNO_BAD_ARGP(value))
+    return kno_bad_arg(value,"assign_plus_evalfn",val_expr);
   else if (kno_add_value(var,value,env)>0) {}
   else if (kno_bind_value(var,value,env)>=0) {}
   else return KNO_ERROR;
@@ -80,16 +84,18 @@ static lispval assign_default_evalfn(lispval expr,kno_lexenv env,kno_stack _stac
   else {
     lispval val = kno_symeval(symbol,env);
     if ((VOIDP(val))||(val == KNO_UNBOUND)||(val == KNO_DEFAULT_VALUE)) {
-      lispval value = kno_eval(value_expr,env);
-      if (KNO_ABORTED(value))
-        return value;
+      lispval value = kno_eval(value_expr,env,_stack,0);
+      if (KNO_ABORTED(value)) return value;
+      else if (KNO_BAD_ARGP(value))
+	return kno_bad_arg(value,"assign_default_evalfn",value_expr);
+      else NO_ELSE;
       /* Try to assign/bind it, checking for error return values */
       int rv = kno_assign_value(symbol,value,env);
       if (rv==0)
-        rv=kno_bind_value(symbol,value,env);
+	rv=kno_bind_value(symbol,value,env);
       kno_decref(value);
       if (rv<0)
-        return KNO_ERROR;
+	return KNO_ERROR;
       else return KNO_VOID;}
     else {
       kno_decref(val);
@@ -107,17 +113,19 @@ static lispval assign_false_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   else {
     lispval val = kno_symeval(symbol,env);
     if ((VOIDP(val))||(FALSEP(val))||
-        (val == KNO_UNBOUND)||(val == KNO_DEFAULT_VALUE)) {
-      lispval value = kno_eval(value_expr,env);
+	(val == KNO_UNBOUND)||(val == KNO_DEFAULT_VALUE)) {
+      lispval value = kno_eval(value_expr,env,_stack,0);
       if (KNO_ABORTED(value))
-        return value;
+	return value;
+      else if (KNO_BAD_ARGP(value))
+	return kno_bad_arg(value,"assign_false_evalfn",value_expr);
       /* Try to assign/bind it, checking for error return values */
       int rv = kno_assign_value(symbol,value,env);
       if (rv == 0)
-        rv = kno_bind_value(symbol,value,env);
+	rv = kno_bind_value(symbol,value,env);
       kno_decref(value);
       if (rv<0)
-        return KNO_ERROR;
+	return KNO_ERROR;
       else return VOID;}
     else {
       kno_decref(val);
@@ -137,13 +145,15 @@ static lispval bind_default_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   else {
     lispval val = kno_get(env->env_bindings,symbol,VOID);
     if ((VOIDP(val))||(val == KNO_UNBOUND)||(val == KNO_DEFAULT_VALUE)) {
-      lispval value = kno_eval(value_expr,env);
+      lispval value = kno_eval(value_expr,env,_stack,0);
       if (KNO_ABORTED(value))
-        return value;
+	return value;
+      else if (KNO_BAD_ARGP(value))
+	return kno_bad_arg(value,"bind_default_evalfn",value_expr);
       int rv = kno_bind_value(symbol,value,env);
       kno_decref(value);
       if (rv<0)
-        return KNO_ERROR;
+	return KNO_ERROR;
       else return VOID;}
     else {
       kno_decref(val); return VOID;}}
@@ -154,65 +164,66 @@ static lispval bind_default_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 static lispval let_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval bindexprs = kno_get_arg(expr,1), result = VOID;
-  int n;
+  int n, tail = KNO_STACK_BITP(_stack,KNO_STACK_TAIL_POS);
   if (PRED_FALSE(! ( (bindexprs == KNO_NIL) || (PAIRP(bindexprs)) ) ))
     return kno_err(kno_BindSyntaxError,"LET",NULL,expr);
   else if ((n = check_bindexprs(bindexprs,&result))<0)
     return result;
   else {
-    INIT_STACK_ENV(_stack,letenv,env,n);
+    PUSH_STACK_ENV(letenv,env,n,_stack);
     int i = 0;
     {KNO_DOBINDINGS(var,val_expr,bindexprs) {
-        lispval value = fast_eval(val_expr,env);
-        if (KNO_ABORTED(value)) {
-          _return value;}
-        else if (VOIDP(value)) {
-          kno_seterr(kno_VoidBinding,"let_evalfn",
-                    KNO_SYMBOL_NAME(var),val_expr);
-          return KNO_ERROR_VALUE;}
-        else {
-          letenv_vars[i]=var;
-          letenv_vals[i]=value;
-          i++;}}}
-    result = eval_body(kno_get_body(expr,2),letenv,_stack,
-                       ":LET",SYM_NAME(letenv_vars[0]),
-                       1);
-    _return result;}
+	lispval value = kno_eval(val_expr,env,letenv_stack,0);
+	if (KNO_ABORTED(value)) {
+	  result = value; goto pop_stack;}
+	else if (KNO_BAD_ARGP(value)) {
+	  result = kno_bad_arg(value,"let_evalfn",val_expr);
+	  goto pop_stack;}
+	else {
+	  letenv_vars[i]=var;
+	  letenv_vals[i]=value;
+	  i++;}}}
+    result = eval_body(kno_get_body(expr,2),letenv,letenv_stack,
+		       "LET",SYM_NAME(letenv_vars[0]),tail);
+  pop_stack:
+    kno_pop_stack(letenv_stack);
+    return result;}
 }
 
 static lispval letstar_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval bindexprs = kno_get_arg(expr,1), result = VOID;
-  int n;
+  int n, tail = KNO_STACK_BITP(_stack,KNO_STACK_TAIL_POS);
   if (PRED_FALSE(! ( (bindexprs == KNO_NIL) || (PAIRP(bindexprs)) ) ))
     return kno_err(kno_BindSyntaxError,"LET*",NULL,expr);
   else if ((n = check_bindexprs(bindexprs,&result))<0)
     return result;
   else {
-    INIT_STACK_ENV(_stack,letseq,env,n);
+    PUSH_STACK_ENV(letstar,env,n,_stack);
     int i = 0, j = 0;
     {KNO_DOBINDINGS(var,val_expr,bindexprs) {
-        letseq_vars[j]=var;
-        letseq_vals[j]=KNO_UNBOUND;
-        j++;}}
+	letstar_vars[j]=var;
+	letstar_vals[j]=KNO_UNBOUND;
+	j++;}}
     {KNO_DOBINDINGS(var,val_expr,bindexprs) {
-        lispval value = fast_eval(val_expr,letseq);
-        if (KNO_ABORTED(value))
-          _return value;
-        else if (VOIDP(value)) {
-          kno_seterr(kno_VoidBinding,"letstar_evalfn",
-                    KNO_SYMBOL_NAME(var),val_expr);
-          return KNO_ERROR_VALUE;}
-        else if (letseq->env_copy) {
-          kno_bind_value(var,value,letseq->env_copy);
-          kno_decref(value);}
-        else {
-          letseq_vars[i]=var;
-          letseq_vals[i]=value;}
-        i++;}}
-    result = eval_body(kno_get_body(expr,2),letseq,_stack,
-                       ":LET*",SYM_NAME(letseq_vars[0]),1);
-    _return result;}
+	lispval value = kno_eval(val_expr,letstar,letstar_stack,0);
+	if (KNO_ABORTED(value)) {
+	  result = value; goto pop_stack;}
+	else if (KNO_BAD_ARGP(value)) {
+	  result = kno_bad_arg(value,"letstar_evalfn",val_expr);
+	  goto pop_stack;}
+	else if (letstar->env_copy) {
+	  kno_bind_value(var,value,letstar->env_copy);
+	  kno_decref(value);}
+	else {
+	  letstar_vars[i]=var;
+	  letstar_vals[i]=value;}
+	i++;}}
+    result = eval_body(kno_get_body(expr,2),letstar,letstar_stack,
+		       "LET*",SYM_NAME(letstar_vars[0]),tail);
+  pop_stack:
+    kno_pop_stack(letstar_stack);
+    return result;}
 }
 
 /* LETREC */
@@ -220,46 +231,45 @@ static lispval letstar_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 static lispval letrec_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval bindexprs = kno_get_arg(expr,1), result = VOID;
-  int n;
+  int n, tail = KNO_STACK_BITP(_stack,KNO_STACK_TAIL_POS);
   if (PRED_FALSE(! ( (bindexprs == KNO_NIL) || (PAIRP(bindexprs)) ) ))
     return kno_err(kno_BindSyntaxError,"LETREC",NULL,expr);
   else if ((n = check_bindexprs(bindexprs,&result))<0)
     return result;
   else {
-    INIT_STACK_ENV(_stack,letrec,env,n);
+    PUSH_STACK_ENV(letrec,env,n,_stack);
     int i = 0, j = 0;
     {KNO_DOBINDINGS(var,val_expr,bindexprs) {
-        letrec_vars[j]=var;
-        letrec_vals[j]=KNO_UNBOUND;
-        j++;}}
+	letrec_vars[j]=var;
+	letrec_vals[j]=KNO_UNBOUND;
+	j++;}}
     {KNO_DOBINDINGS(var,val_expr,bindexprs) {
-        lispval value = fast_eval(val_expr,letrec);
-        if (KNO_ABORTED(value))
-          _return value;
-        else if (VOIDP(value)) {
-          kno_seterr(kno_VoidBinding,"letstar_evalfn",
-                    KNO_SYMBOL_NAME(var),val_expr);
-          kno_decref_vec(letrec_vals,i);
-          return KNO_ERROR_VALUE;}
-        else if (letrec->env_copy) {
-          kno_bind_value(var,value,letrec->env_copy);
-          kno_decref(value);}
-        else {
-          letrec_vars[i]=var;
-          letrec_vals[i]=value;}
-        i++;}}
-    result = eval_body(kno_get_body(expr,2),letrec,_stack,
-                       ":LETREC",SYM_NAME(letrec_vars[0]),
-                       1);
-    _return result;}
+	lispval value = kno_eval(val_expr,letrec,letrec_stack,0);
+	if (KNO_ABORTED(value)) {
+	  result = value; goto pop_stack;}
+	else if (KNO_BAD_ARGP(value)) {
+	  result = kno_bad_arg(value,"letrec_evalfn",val_expr);
+	  goto pop_stack;}
+	else if (letrec->env_copy) {
+	  kno_bind_value(var,value,letrec->env_copy);
+	  kno_decref(value);}
+	else {
+	  letrec_vars[i]=var;
+	  letrec_vals[i]=value;}
+	i++;}}
+    result = eval_body(kno_get_body(expr,2),letrec,letrec_stack,
+		       "LETREC",SYM_NAME(letrec_vars[0]),tail);
+  pop_stack:
+    kno_pop_stack(letrec_stack);
+    return result;}
 }
 
 /* DO */
 
 static lispval do_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  int n = -1;
-  lispval do_result = VOID;
+  int n = -1, tail = KNO_STACK_BITP(_stack,KNO_STACK_TAIL_POS);
+  lispval doloop_result = VOID;
   lispval bindexprs = kno_get_arg(expr,1);
   lispval exitexprs = kno_get_arg(expr,2);
   lispval testexpr = kno_get_arg(exitexprs,0), testval = VOID;
@@ -270,79 +280,85 @@ static lispval do_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     return kno_err(kno_BindSyntaxError,"DO",NULL,expr);
   else if (!(PAIRP(exitexprs)))
     return kno_err(kno_BindSyntaxError,"DO",NULL,expr);
-  else if ((n = check_bindexprs(bindexprs,&do_result))<0)
-    return do_result;
+  else if ((n = check_bindexprs(bindexprs,&doloop_result))<0)
+    return doloop_result;
   else {
-    INIT_STACK_ENV(_stack,do_env,env,n);
+    PUSH_STACK_ENV(doloop,env,n,_stack);
+    kno_lexenv use_env = _stack->eval_env;
+    _stack->eval_env = NULL;
     lispval updaters[n], tmp[n];
     int i = 0;
     /* Do the initial bindings */
     {KNO_DOLIST(bindexpr,bindexprs) {
       lispval var = kno_get_arg(bindexpr,0);
       lispval value_expr = kno_get_arg(bindexpr,1);
-      if ( (!(SYMBOLP(var))) || (KNO_VOIDP(value_expr)) )
-        return kno_err(kno_SyntaxError,"do_evalfn",NULL,expr);
+      if ( (!(SYMBOLP(var))) || (KNO_VOIDP(value_expr)) ) {
+	doloop_result = kno_err(kno_SyntaxError,"do_evalfn",NULL,expr);
+	goto pop_stack;}
       lispval update_expr = kno_get_arg(bindexpr,2);
-      lispval value = kno_eval(value_expr,env);
-      if (KNO_ABORTED(value))
-        _return value;
+      lispval value = kno_eval(value_expr,env,doloop_stack,0);
+      if (KNO_ABORTED(value)) {
+	doloop_result = value; goto pop_stack;}
+      else if (KNO_BAD_ARGP(value)) {
+	doloop_result = kno_bad_arg(value,"do_evalfn",value_expr);
+	goto pop_stack;}
       else {
-        do_env_vars[i]=var;
-        do_env_vals[i]=value;
-        updaters[i]=update_expr;
-        tmp[i]=KNO_VOID;
-        i++;}}}
+	doloop_vars[i]=var;
+	doloop_vals[i]=value;
+	updaters[i]=update_expr;
+	tmp[i]=KNO_VOID;
+	i++;}}}
+    _stack->eval_env = use_env;
     /* First test */
-    testval = kno_eval(testexpr,do_env);
-    if (KNO_ABORTED(testval))
-      _return testval;
+    testval = kno_eval(testexpr,doloop,doloop_stack,0);
+    if (KNO_ABORTED(testval)) {
+      doloop_result = testval; goto pop_stack;}
     /* The iteration itself */
     while (FALSEP(testval)) {
       int i = 0;
       /* Execute the body */
       KNO_DOLIST(bodyexpr,body) {
-        lispval result = fast_eval(bodyexpr,do_env);
-        if (KNO_ABORTED(result))
-          _return result;
-        else kno_decref(result);}
+	lispval result = kno_eval(bodyexpr,doloop,doloop_stack,0);
+	if (KNO_ABORTED(result)) {
+	  doloop_result = result; goto pop_stack;}
+	else kno_decref(result);}
       /* Do an update, storing new values in tmp[] to be consistent. */
       while (i < n) {
-        lispval new_val = (VOIDP(updaters[i])) ? (kno_incref(do_env_vals[i])) :
-          (kno_eval(updaters[i],do_env));
-        if (KNO_ABORTED(new_val)) {
-          /* GC the updated values you've generated so far.
-             Note that tmp[i] (the exception) is not freed. */
-          kno_decref_vec(tmp,i);
-          _return new_val;}
-        else tmp[i++] = new_val;}
+	lispval new_val = (VOIDP(updaters[i])) ? (kno_incref(doloop_vals[i])) :
+	  (kno_eval(updaters[i],doloop,doloop_stack,0));
+	if (KNO_ABORTED(new_val)) {
+	  /* GC the updated values you've generated so far.
+	     Note that tmp[i] (the exception) is not freed. */
+	  kno_decref_vec(tmp,i);
+	  doloop_result = new_val; goto pop_stack;}
+	else tmp[i++] = new_val;}
       /* Now, free the current values and replace them with the values
-         from tmp[]. */
+	 from tmp[]. */
       i = 0; while (i < n) {
-        lispval val = do_env_vals[i];
-        if ((CONSP(val))&&(KNO_MALLOCD_CONSP((kno_cons)val))) {
-          kno_decref(val);}
-        do_env_vals[i] = tmp[i];
-        i++;}
+	lispval val = doloop_vals[i];
+	if ((CONSP(val))&&(KNO_MALLOCD_CONSP((kno_cons)val))) {
+	  kno_decref(val);}
+	doloop_vals[i] = tmp[i];
+	i++;}
       /* Decref/recycle any dynamic copis of the environment */
-      if (_do_env.env_copy) {
-        kno_recycle_lexenv(_do_env.env_copy);
-        _do_env.env_copy = NULL;}
+      reset_env(doloop);
       /* Free the old testval and evaluate it again. */
       kno_decref(testval);
-      testval = kno_eval(testexpr,do_env);
-      if (KNO_ABORTED(testval))
-        _return testval;}
+      testval = kno_eval(testexpr,doloop,doloop_stack,0);
+      if (KNO_ABORTED(testval)) {
+	doloop_result = testval; goto pop_stack;}}
     /* Now we're done, so we set result to testval. */
-    do_result = testval;
+    doloop_result = testval;
     if (KNO_EMPTYP(testval)) {}
     else if (!(KNO_EMPTY_LISTP(KNO_CDR(exitexprs)))) {
-      kno_decref(do_result);
-      do_result = eval_body(kno_get_body(exitexprs,1),do_env,_stack,
-                            ":DO",SYM_NAME(do_env_vars[0]),
-                            1);}
+      kno_decref(doloop_result);
+      doloop_result = eval_body(kno_get_body(exitexprs,1),doloop,doloop_stack,
+				"DO",SYM_NAME(doloop_vars[0]),tail);}
     else NO_ELSE;
+  pop_stack:
+    kno_pop_stack(doloop_stack);
     /* Free the environment. */
-    _return do_result;}
+    return doloop_result;}
 }
 
 /* DEFINE-LOCAL */
@@ -360,7 +376,7 @@ static lispval define_local_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     if (KNO_ABORTED(inherited)) return inherited;
     else if (VOIDP(inherited))
       return kno_err(kno_UnboundIdentifier,"DEFINE-LOCAL",
-                     SYM_NAME(var),var);
+		     SYM_NAME(var),var);
     else if (kno_bind_value(var,inherited,env)<0)  {
       kno_decref(inherited);
       return KNO_ERROR;}
@@ -389,12 +405,13 @@ static lispval define_init_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       kno_decref(current);
       return VOID;}
     else {
-      lispval init_value = kno_eval(init_expr,env); int bound = 0;
+      int bound = 0;
+      lispval init_value = kno_eval(init_expr,env,_stack,0);
       if (KNO_ABORTED(init_value)) return init_value;
       else bound = kno_bind_value(var,init_value,env);
       if (bound>0) {
-        kno_decref(init_value);
-        return VOID;}
+	kno_decref(init_value);
+	return VOID;}
       else return KNO_ERROR;}}
   else return kno_err(kno_NotAnIdentifier,"DEFINE_INIT",NULL,var);
 }
@@ -408,7 +425,7 @@ static lispval define_return_evalfn(lispval expr,kno_lexenv env,kno_stack _stack
   if ( (VOIDP(var)) || (VOIDP(val_expr)) )
     return kno_err(kno_TooFewExpressions,"DEF+",NULL,expr);
   else if (SYMBOLP(var)) {
-    lispval value = fast_stack_eval(val_expr,env,_stack);
+    lispval value = kno_eval(val_expr,env,_stack,0);
     if (KNO_ABORTED(value))
       return value;
     else if (kno_bind_value(var,value,env)<0) {
@@ -423,7 +440,7 @@ static lispval define_return_evalfn(lispval expr,kno_lexenv env,kno_stack _stack
 /* This defines an identifier in the local environment only if
    it is not currently defined. */
 static lispval define_import_evalfn(lispval expr,kno_lexenv env,
-                                    kno_stack _stack)
+				    kno_stack _stack)
 {
   lispval var = kno_get_arg(expr,1);
   lispval module_expr = kno_get_arg(expr,2);
@@ -438,7 +455,7 @@ static lispval define_import_evalfn(lispval expr,kno_lexenv env,
   if (KNO_VOIDP(import_name)) import_name = var;
 
   int decref_module = 0;
-  lispval module_spec = kno_stack_eval(module_expr,env,_stack,0);
+  lispval module_spec = kno_eval(module_expr,env,_stack,0);
   if (KNO_ABORTP(module_spec)) return module_spec;
 
   lispval module = module_spec;
@@ -454,8 +471,8 @@ static lispval define_import_evalfn(lispval expr,kno_lexenv env,
       result = import_value;
     else if (KNO_VOIDP(import_value)) {
       result = kno_err("UndefinedImport","define_import",
-                       KNO_SYMBOL_NAME(import_name),
-                       module);}
+		       KNO_SYMBOL_NAME(import_name),
+		       module);}
     else if (kno_bind_value(var,import_value,env) < 0)
       result = KNO_ERROR;
     else NO_ELSE;
@@ -478,8 +495,6 @@ static lispval define_import(lispval expr,kno_lexenv env,kno_stack _stack)
 KNO_EXPORT void kno_init_binders_c()
 {
   u8_register_source_file(_FILEINFO);
-
-  moduleid_symbol = kno_intern("%moduleid");
 
   kno_def_evalfn(kno_scheme_module,"SET!",assign_evalfn,
 		 "*undocumented*");

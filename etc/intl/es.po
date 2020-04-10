@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-02-26 10:52-0500\n"
+"POT-Creation-Date: 2020-04-08 11:21-0400\n"
 "PO-Revision-Date: 2005-03-04 22:55-0500\n"
 "Last-Translator: Kenneth Haase <kh@beingmeta.com>\n"
 "Language-Team: Spanish <es@li.org>\n"
@@ -61,43 +61,43 @@ msgstr ""
 msgid "NULL lisp pointer"
 msgstr ""
 
-#: src/lisp/cons.c:719
+#: src/lisp/cons.c:730
 msgid "NullPointer"
 msgstr ""
 
-#: src/lisp/cons.c:720
+#: src/lisp/cons.c:731
 msgid "BadOIDPtr"
 msgstr ""
 
-#: src/lisp/cons.c:721
+#: src/lisp/cons.c:732
 msgid "BadCONSPtr"
 msgstr ""
 
-#: src/lisp/cons.c:725
+#: src/lisp/cons.c:736
 msgid "BadImmediateType"
 msgstr ""
 
-#: src/lisp/cons.c:727
+#: src/lisp/cons.c:738
 msgid "BadSymbol"
 msgstr ""
 
-#: src/lisp/cons.c:728
+#: src/lisp/cons.c:739
 msgid "BadConstant"
 msgstr ""
 
-#: src/lisp/cons.c:729
+#: src/lisp/cons.c:740
 msgid "BadFcnId"
 msgstr ""
 
-#: src/lisp/cons.c:730
+#: src/lisp/cons.c:741
 msgid "BadOpcode"
 msgstr ""
 
-#: src/lisp/cons.c:731
+#: src/lisp/cons.c:742
 msgid "BadLexref"
 msgstr ""
 
-#: src/lisp/cons.c:733
+#: src/lisp/cons.c:744
 msgid "BadImmediate"
 msgstr ""
 
@@ -138,9 +138,9 @@ msgid "NotASequence"
 msgstr ""
 
 #: src/lisp/sequences.c:157 src/lisp/sequences.c:252 src/lisp/sequences.c:793
-#: src/eval/opcode_defs.c:578 src/eval/opcode_defs.c:585
-#: src/eval/opcode_defs.c:777 src/eval/opcode_defs.c:781
-#: src/prims/dbprims.c:3190 src/prims/dbprims.c:3192 src/prims/seqprims.c:345
+#: src/eval/opcode_defs.c:353 src/eval/opcode_defs.c:360
+#: src/eval/opcode_defs.c:552 src/eval/opcode_defs.c:556
+#: src/prims/dbprims.c:3189 src/prims/dbprims.c:3191 src/prims/seqprims.c:345
 #: src/prims/seqprims.c:356 src/prims/seqprims.c:365 src/prims/seqprims.c:531
 #: src/prims/seqprims.c:566 src/prims/seqprims.c:630 src/prims/seqprims.c:655
 #: src/prims/seqprims.c:1557 src/prims/seqprims.c:1613
@@ -297,24 +297,24 @@ msgstr ""
 msgid "whether to check returned and real dtype sizes"
 msgstr ""
 
-#: src/lisp/xtypes.c:892 src/storage/compress.c:156 src/storage/compress.c:195
-#: src/prims/portprims.c:1351 src/drivers/headers/zcompress.h:27
+#: src/lisp/xtypes.c:923 src/storage/compress.c:156 src/storage/compress.c:195
+#: src/prims/portprims.c:1353 src/drivers/headers/zcompress.h:27
 #: src/drivers/headers/zcompress.h:65
 msgid "ZLIB ran out of memory"
 msgstr ""
 
-#: src/lisp/xtypes.c:900 src/storage/compress.c:164
+#: src/lisp/xtypes.c:931 src/storage/compress.c:164
 #: src/drivers/headers/zcompress.h:35
 msgid "pool value uncompress ran out of memory"
 msgstr ""
 
-#: src/lisp/xtypes.c:904 src/storage/compress.c:168
+#: src/lisp/xtypes.c:935 src/storage/compress.c:168
 #: src/drivers/headers/zcompress.h:38
 msgid "ZLIB uncompress data error"
 msgstr ""
 
-#: src/lisp/xtypes.c:906 src/storage/compress.c:170 src/storage/compress.c:208
-#: src/prims/portprims.c:1364 src/drivers/headers/zcompress.h:40
+#: src/lisp/xtypes.c:937 src/storage/compress.c:170 src/storage/compress.c:208
+#: src/prims/portprims.c:1366 src/drivers/headers/zcompress.h:40
 #: src/drivers/headers/zcompress.h:78
 msgid "Bad ZLIB return code"
 msgstr ""
@@ -426,11 +426,11 @@ msgid "oid"
 msgstr ""
 
 #: src/lisp/lisp.c:206 src/lisp/lisp.c:207 src/sys/config.c:835
-#: src/eval/eval.c:1468 src/eval/opcode_defs.c:586 src/prims/dbprims.c:3121
-#: src/prims/portprims.c:868 src/eval/choiceops.c:1457
-#: src/eval/choiceops.c:1496 src/eval/choiceops.c:1523
-#: src/eval/choiceops.c:1560 src/eval/choiceops.c:1574
-#: src/eval/choiceops.c:1578 src/eval/choiceops.c:1579 src/prims/seqprims.c:361
+#: src/eval/opcode_defs.c:361 src/eval/evalops.c:292 src/prims/dbprims.c:3120
+#: src/prims/portprims.c:870 src/eval/choiceops.c:1451
+#: src/eval/choiceops.c:1490 src/eval/choiceops.c:1517
+#: src/eval/choiceops.c:1554 src/eval/choiceops.c:1568
+#: src/eval/choiceops.c:1572 src/eval/choiceops.c:1573 src/prims/seqprims.c:361
 #: src/text/texttools.c:2318 src/text/match.c:3605 src/text/match.c:3622
 #: src/text/match.c:3651 src/text/match.c:3683 src/exe/knocgi.c:281
 #: src/exe/knocgi.c:296 src/exe/knocgi.c:314 src/exe/knocgi.c:330
@@ -449,8 +449,8 @@ msgstr ""
 msgid "constant"
 msgstr ""
 
-#: src/lisp/lisp.c:216 src/lisp/lisp.c:217 src/eval/eval.c:1310
-#: src/eval/modules.c:378 src/eval/reflection.c:978
+#: src/lisp/lisp.c:216 src/lisp/lisp.c:217 src/eval/modules.c:378
+#: src/eval/reflection.c:978 src/eval/evalops.c:238
 msgid "symbol"
 msgstr ""
 
@@ -458,11 +458,11 @@ msgstr ""
 msgid "fcnid"
 msgstr ""
 
-#: src/lisp/lisp.c:220 src/lisp/lisp.c:221 src/eval/eval.c:2094
+#: src/lisp/lisp.c:220 src/lisp/lisp.c:221 src/eval/eval.c:1759
 msgid "lexref"
 msgstr ""
 
-#: src/lisp/lisp.c:222 src/lisp/lisp.c:223 src/eval/eval.c:2100
+#: src/lisp/lisp.c:222 src/lisp/lisp.c:223 src/eval/eval.c:1765
 msgid "opcode"
 msgstr ""
 
@@ -470,19 +470,19 @@ msgstr ""
 msgid "typeref"
 msgstr ""
 
-#: src/lisp/lisp.c:226 src/lisp/lisp.c:227 src/eval/eval.c:2098
+#: src/lisp/lisp.c:226 src/lisp/lisp.c:227 src/eval/eval.c:1763
 msgid "coderef"
 msgstr ""
 
 #: src/lisp/lisp.c:228 src/lisp/lisp.c:229 src/storage/pools.c:2813
-#: src/prims/dbprims.c:269 src/prims/dbprims.c:1907
+#: src/prims/dbprims.c:268 src/prims/dbprims.c:1906
 msgid "pool"
 msgstr ""
 
 #: src/lisp/lisp.c:230 src/lisp/lisp.c:231 src/storage/indexes.c:1130
 #: src/storage/indexes.c:2384 src/storage/slotindexes.c:227
-#: src/prims/dbprims.c:748 src/prims/dbprims.c:1875 src/prims/dbprims.c:1890
-#: src/prims/dbprims.c:1921
+#: src/prims/dbprims.c:747 src/prims/dbprims.c:1874 src/prims/dbprims.c:1889
+#: src/prims/dbprims.c:1920
 msgid "index"
 msgstr ""
 
@@ -491,18 +491,18 @@ msgid "histref"
 msgstr ""
 
 #: src/lisp/lisp.c:235 src/lisp/lisp.c:236 src/sys/config.c:764
-#: src/sys/config.c:783 src/sys/config.c:802 src/sys/startup.c:254
-#: src/sys/startup.c:632 src/prims/dbprims.c:306 src/prims/dbprims.c:327
-#: src/prims/dbprims.c:348 src/prims/portprims.c:375 src/prims/portprims.c:789
-#: src/prims/portprims.c:874 src/prims/dtypeprims.c:237
+#: src/sys/config.c:783 src/sys/config.c:802 src/sys/startup.c:256
+#: src/sys/startup.c:634 src/prims/dbprims.c:305 src/prims/dbprims.c:326
+#: src/prims/dbprims.c:347 src/prims/portprims.c:377 src/prims/portprims.c:791
+#: src/prims/portprims.c:876 src/prims/dtypeprims.c:237
 #: src/prims/dtypeprims.c:282 src/prims/dtypeprims.c:371
 #: src/prims/dtypeprims.c:403 src/prims/dtypeprims.c:421
 #: src/prims/dtypeprims.c:444 src/prims/dtypeprims.c:478
 #: src/prims/dtypeprims.c:499 src/prims/stringprims.c:478
 #: src/prims/stringprims.c:663 src/prims/stringprims.c:690
 #: src/prims/stringprims.c:1588 src/prims/fileprims.c:304
-#: src/prims/fileprims.c:672 src/web/cgiexec.c:1320 src/web/cgiexec.c:1347
-#: src/web/htmlout.c:583 src/web/uriprims.c:424 src/web/mime.c:114
+#: src/prims/fileprims.c:672 src/web/cgiexec.c:1317 src/web/cgiexec.c:1344
+#: src/web/htmlout.c:580 src/web/uriprims.c:424 src/web/mime.c:114
 #: src/web/curl.c:700 src/text/texttools.c:142 src/text/texttools.c:172
 #: src/text/texttools.c:568 src/exe/knocgi.c:263 src/exe/webcommon.h:262
 #: src/exe/webcommon.h:321
@@ -521,9 +521,9 @@ msgstr ""
 msgid "bigint"
 msgstr ""
 
-#: src/lisp/lisp.c:243 src/lisp/lisp.c:244 src/eval/eval.c:1469
-#: src/eval/opcode_defs.c:748 src/eval/opcode_defs.c:750
-#: src/eval/opcode_defs.c:763 src/eval/opcode_defs.c:765
+#: src/lisp/lisp.c:243 src/lisp/lisp.c:244 src/eval/opcode_defs.c:523
+#: src/eval/opcode_defs.c:525 src/eval/opcode_defs.c:538
+#: src/eval/opcode_defs.c:540 src/eval/evalops.c:293
 msgid "pair"
 msgstr ""
 
@@ -579,7 +579,7 @@ msgstr ""
 msgid "hashtable"
 msgstr ""
 
-#: src/lisp/lisp.c:275 src/lisp/lisp.c:276 src/prims/tableprims.c:971
+#: src/lisp/lisp.c:275 src/lisp/lisp.c:276 src/prims/tableprims.c:969
 #: src/text/match.c:3421 src/text/match.c:3457 src/text/match.c:3483
 #: src/text/match.c:3525
 msgid "hashset"
@@ -629,8 +629,8 @@ msgstr ""
 msgid "promise"
 msgstr ""
 
-#: src/lisp/lisp.c:301 src/lisp/lisp.c:302 src/eval/threads.c:1258
-#: src/eval/threads.c:1296 src/eval/threads.c:1380
+#: src/lisp/lisp.c:301 src/lisp/lisp.c:302 src/eval/threads.c:1252
+#: src/eval/threads.c:1290 src/eval/threads.c:1374
 msgid "thread"
 msgstr ""
 
@@ -872,7 +872,7 @@ msgstr ""
 msgid "object is not a %m"
 msgstr ""
 
-#: src/sys/errobjs.c:642
+#: src/sys/errobjs.c:643
 msgid "Poorly Restored Error"
 msgstr ""
 
@@ -964,194 +964,194 @@ msgstr ""
 msgid "Unhandled exception at exit"
 msgstr ""
 
-#: src/sys/startup.c:142
+#: src/sys/startup.c:144
 #, c-format
 msgid "The argc length %d is not valid (>0)"
 msgstr ""
 
-#: src/sys/startup.c:146
+#: src/sys/startup.c:148
 msgid "The argv argument cannot be NULL!"
 msgstr ""
 
-#: src/sys/startup.c:463
+#: src/sys/startup.c:465
 msgid "RLIMIT too high"
 msgstr ""
 
-#: src/sys/startup.c:851
+#: src/sys/startup.c:853
 #, c-format
 msgid ""
 "(kno:%s:%lld) %-s@%-s:%-s (%s)\n"
 "%s %s%s"
 msgstr ""
 
-#: src/sys/startup.c:1039
+#: src/sys/startup.c:1041
 msgid "Avoid unneccessary verbiage"
 msgstr ""
 
-#: src/sys/startup.c:1041
+#: src/sys/startup.c:1043
 msgid "system process ID (read-only)"
 msgstr ""
 
-#: src/sys/startup.c:1043
+#: src/sys/startup.c:1045
 msgid "parent's process ID (read-only)"
 msgstr ""
 
-#: src/sys/startup.c:1046
+#: src/sys/startup.c:1048
 msgid "warn on bad UTF-8 sequences"
 msgstr ""
 
-#: src/sys/startup.c:1048
+#: src/sys/startup.c:1050
 msgid "fail (error) on bad UTF-8 sequences"
 msgstr ""
 
-#: src/sys/startup.c:1050
+#: src/sys/startup.c:1052
 msgid "random seed used for stochastic operations"
 msgstr ""
 
-#: src/sys/startup.c:1053
+#: src/sys/startup.c:1055
 msgid "check that strings are valid UTF-8 on creation"
 msgstr ""
 
-#: src/sys/startup.c:1056
+#: src/sys/startup.c:1058
 msgid "application ID used in messages and SESSIONID"
 msgstr ""
 
-#: src/sys/startup.c:1060
+#: src/sys/startup.c:1062
 msgid ""
 "the command line arguments as a string, with arguments numbered and "
 "separated by newlines"
 msgstr ""
 
-#: src/sys/startup.c:1064
+#: src/sys/startup.c:1066
 msgid "the command line arguments as a string"
 msgstr ""
 
-#: src/sys/startup.c:1067 src/sys/startup.c:1070 src/sys/startup.c:1079
-#: src/sys/startup.c:1085
+#: src/sys/startup.c:1069 src/sys/startup.c:1072 src/sys/startup.c:1081
+#: src/sys/startup.c:1087
 msgid "the vector of args (before parsing) to the application (no configs)"
 msgstr ""
 
-#: src/sys/startup.c:1073 src/sys/startup.c:1076
+#: src/sys/startup.c:1075 src/sys/startup.c:1078
 msgid "the vector of parsed args to the application (no configs)"
 msgstr ""
 
-#: src/sys/startup.c:1082
+#: src/sys/startup.c:1084
 msgid "config arguments passed to the application (unparsed)"
 msgstr ""
 
-#: src/sys/startup.c:1091
+#: src/sys/startup.c:1093
 msgid "Whether to display command line args on entry and exit"
 msgstr ""
 
-#: src/sys/startup.c:1096
+#: src/sys/startup.c:1098
 msgid "unique session identifier"
 msgstr ""
 
-#: src/sys/startup.c:1098 src/sys/startup.c:1100
+#: src/sys/startup.c:1100 src/sys/startup.c:1102
 msgid "whether to recycle session state on exit"
 msgstr ""
 
-#: src/sys/startup.c:1102
+#: src/sys/startup.c:1104
 msgid "Set the user ID for this process"
 msgstr ""
 
-#: src/sys/startup.c:1104
+#: src/sys/startup.c:1106
 msgid "Set the group ID for this process"
 msgstr ""
 
-#: src/sys/startup.c:1108
+#: src/sys/startup.c:1110
 msgid "Path prefix for program state files"
 msgstr ""
 
-#: src/sys/startup.c:1111 src/sys/startup.c:1113
+#: src/sys/startup.c:1113 src/sys/startup.c:1115
 msgid "Redirect standard output to file"
 msgstr ""
 
-#: src/sys/startup.c:1115
+#: src/sys/startup.c:1117
 msgid "Redirect standard input to file"
 msgstr ""
 
-#: src/sys/startup.c:1117
+#: src/sys/startup.c:1119
 msgid "Write PID to file, delete on exit"
 msgstr ""
 
-#: src/sys/startup.c:1122 src/sys/startup.c:1157
+#: src/sys/startup.c:1124 src/sys/startup.c:1159
 msgid "Max CPU execution time limit"
 msgstr ""
 
-#: src/sys/startup.c:1127 src/sys/startup.c:1163
+#: src/sys/startup.c:1129 src/sys/startup.c:1165
 msgid "Max resident set (RSS) size"
 msgstr ""
 
-#: src/sys/startup.c:1132 src/sys/startup.c:1168
+#: src/sys/startup.c:1134 src/sys/startup.c:1170
 msgid "Max core dump size"
 msgstr ""
 
-#: src/sys/startup.c:1137 src/sys/startup.c:1173
+#: src/sys/startup.c:1139 src/sys/startup.c:1175
 msgid "Max number of subprocesses"
 msgstr ""
 
-#: src/sys/startup.c:1142 src/sys/startup.c:1178
+#: src/sys/startup.c:1144 src/sys/startup.c:1180
 msgid "Max number of open file descriptors"
 msgstr ""
 
-#: src/sys/startup.c:1147 src/sys/startup.c:1183
+#: src/sys/startup.c:1149 src/sys/startup.c:1185
 msgid "Max stack depth"
 msgstr ""
 
-#: src/sys/startup.c:1191
+#: src/sys/startup.c:1193
 msgid "Root Kno logging directories"
 msgstr ""
 
-#: src/sys/startup.c:1195
+#: src/sys/startup.c:1197
 msgid "Shared config/data directory for Kno"
 msgstr ""
 
-#: src/sys/startup.c:1199
+#: src/sys/startup.c:1201
 msgid "Data directory for Kno"
 msgstr ""
 
-#: src/sys/startup.c:1202
+#: src/sys/startup.c:1204
 msgid "Registered source files"
 msgstr ""
 
-#: src/sys/startup.c:1207
+#: src/sys/startup.c:1209
 msgid "Size at which u8_big_alloc starts using MMAP"
 msgstr ""
 
-#: src/sys/startup.c:1211
+#: src/sys/startup.c:1213
 msgid "Number of buckets at which hashtables use bigalloc"
 msgstr ""
 
-#: src/sys/startup.c:1215
+#: src/sys/startup.c:1217
 msgid "Size of binary buffers to use bigalloc"
 msgstr ""
 
-#: src/sys/startup.c:1219
+#: src/sys/startup.c:1221
 msgid "Procedures to call on exit"
 msgstr ""
 
-#: src/sys/startup.c:1222
+#: src/sys/startup.c:1224
 msgid "Whether this process is exiting"
 msgstr ""
 
-#: src/sys/startup.c:1227
+#: src/sys/startup.c:1229
 msgid "Set core size limit"
 msgstr ""
 
-#: src/sys/startup.c:1230
+#: src/sys/startup.c:1232
 msgid "Set cpu time limit (in seconds)"
 msgstr ""
 
-#: src/sys/startup.c:1233
+#: src/sys/startup.c:1235
 msgid "Set resident memory limit"
 msgstr ""
 
-#: src/sys/startup.c:1236
+#: src/sys/startup.c:1238
 msgid "Set total VMEM limit"
 msgstr ""
 
-#: src/sys/startup.c:1239
+#: src/sys/startup.c:1241
 msgid "Set total heap (DATA segment) limit"
 msgstr ""
 
@@ -1163,72 +1163,72 @@ msgstr ""
 msgid "Signals to trigger exits"
 msgstr ""
 
-#: src/apply/apply.c:53
+#: src/apply/apply.c:51
 msgid "calling a non function"
 msgstr ""
 
-#: src/apply/apply.c:54
+#: src/apply/apply.c:52
 msgid "too many arguments"
 msgstr ""
 
-#: src/apply/apply.c:55
+#: src/apply/apply.c:53
 msgid "too few arguments"
 msgstr ""
 
-#: src/apply/apply.c:56
+#: src/apply/apply.c:54
 msgid "no default value for #default argument"
 msgstr ""
 
-#: src/apply/apply.c:57
+#: src/apply/apply.c:55
 msgid "profiling not built"
 msgstr ""
 
-#: src/apply/apply.c:60
-msgid "Stack checking is not available in this build of Kno"
+#: src/apply/apply.c:56
+msgid "VOID result passed as argument"
 msgstr ""
 
-#: src/apply/apply.c:62
-msgid "This value is too small for an application stack limit"
-msgstr ""
-
-#: src/apply/apply.c:64
-msgid "This value is larger than the available stack space"
-msgstr ""
-
-#: src/apply/apply.c:66
-msgid "This is an invalid stack size"
-msgstr ""
-
-#: src/apply/apply.c:68
-msgid "This is an invalid stack resize factor"
-msgstr ""
-
-#: src/apply/apply.c:70
-msgid "Internal stack size didn't make any sense, punting"
-msgstr ""
-
-#: src/apply/apply.c:987
+#: src/apply/apply.c:540
 msgid "Definition Failed"
 msgstr ""
 
-#: src/apply/apply.c:1152
-msgid "Size of the stack (in bytes or as a factor of the current size)"
-msgstr ""
-
-#: src/apply/apply.c:1156
+#: src/apply/apply.c:814
 msgid "Whether to use extended apply profiling"
 msgstr ""
 
-#: src/apply/apply.c:1160
+#: src/apply/apply.c:818
 msgid "Functions declared for profiling"
 msgstr ""
 
-#: src/apply/apply.c:1164
-msgid "How careful to be calling functions"
+#: src/apply/stacks.c:36
+msgid "Stack checking is not available in this build of Kno"
 msgstr ""
 
-#: src/apply/stacks.c:308
-msgid "Whether to include raw ops in stacks when source is available"
+#: src/apply/stacks.c:38
+msgid "This value is too small for an application stack limit"
+msgstr ""
+
+#: src/apply/stacks.c:40
+msgid "This value is larger than the available stack space"
+msgstr ""
+
+#: src/apply/stacks.c:42
+msgid "This is an invalid stack size"
+msgstr ""
+
+#: src/apply/stacks.c:44
+msgid "This is an invalid stack resize factor"
+msgstr ""
+
+#: src/apply/stacks.c:46
+msgid "Internal stack size didn't make any sense, punting"
+msgstr ""
+
+#: src/apply/stacks.c:448
+msgid "Size of the stack (in bytes or as a factor of the current size)"
+msgstr ""
+
+#: src/apply/stacks.c:451
+msgid "Whether to trace all stack push/pop operations"
 msgstr ""
 
 #: src/apply/ffi.c:27
@@ -1303,64 +1303,64 @@ msgstr ""
 msgid "Error getting metadata"
 msgstr ""
 
-#: src/storage/storage.c:385 src/storage/pools.c:2695 src/prims/dbprims.c:1428
-#: src/prims/dbprims.c:1442 src/prims/dbprims.c:1453 src/prims/dbprims.c:1465
-#: src/prims/dbprims.c:1509 src/prims/dbprims.c:1525 src/prims/dbprims.c:1544
-#: src/prims/dbprims.c:1559 src/prims/dbprims.c:1573 src/prims/dbprims.c:1594
-#: src/prims/dbprims.c:1639 src/prims/dbprims.c:1656 src/prims/dbprims.c:3116
-#: src/prims/dbprims.c:3203
+#: src/storage/storage.c:387 src/storage/pools.c:2695 src/prims/dbprims.c:1427
+#: src/prims/dbprims.c:1441 src/prims/dbprims.c:1452 src/prims/dbprims.c:1464
+#: src/prims/dbprims.c:1508 src/prims/dbprims.c:1524 src/prims/dbprims.c:1543
+#: src/prims/dbprims.c:1558 src/prims/dbprims.c:1572 src/prims/dbprims.c:1593
+#: src/prims/dbprims.c:1638 src/prims/dbprims.c:1655 src/prims/dbprims.c:3115
+#: src/prims/dbprims.c:3202
 msgid "pool spec"
 msgstr ""
 
-#: src/storage/storage.c:695
+#: src/storage/storage.c:697
 msgid "Sets a level of time/memory tradeoff [0-3], default 1"
 msgstr ""
 
-#: src/storage/storage.c:700
+#: src/storage/storage.c:702
 msgid "Default oid display level [0-3]"
 msgstr ""
 
-#: src/storage/storage.c:705
+#: src/storage/storage.c:707
 msgid "Default log level for database messages"
 msgstr ""
 
-#: src/storage/storage.c:709
+#: src/storage/storage.c:711
 msgid "Whether to prefetch for large operations"
 msgstr ""
 
-#: src/storage/storage.c:714
+#: src/storage/storage.c:716
 msgid "pools used for OID resolution"
 msgstr ""
 
-#: src/storage/storage.c:717
+#: src/storage/storage.c:719
 msgid "indexes opened"
 msgstr ""
 
-#: src/storage/storage.c:720
+#: src/storage/storage.c:722
 msgid "indexes in the default search background"
 msgstr ""
 
-#: src/storage/storage.c:725
+#: src/storage/storage.c:727
 msgid "Number of connections to keep for each DB server"
 msgstr ""
 
-#: src/storage/storage.c:728
+#: src/storage/storage.c:730
 msgid "Max number of connections (default) for each DB server"
 msgstr ""
 
-#: src/storage/storage.c:732
+#: src/storage/storage.c:734
 msgid "Number of connections to initially create for each DB server"
 msgstr ""
 
-#: src/storage/storage.c:736
+#: src/storage/storage.c:738
 msgid "Functions and slotids for lookup up objects by name (@?name)"
 msgstr ""
 
-#: src/storage/storage.c:739
+#: src/storage/storage.c:741
 msgid "Functions to run when saving databases"
 msgstr ""
 
-#: src/storage/storage.c:744
+#: src/storage/storage.c:746
 msgid "Whether to convert legacy uppercase to lowercase"
 msgstr ""
 
@@ -1776,7 +1776,7 @@ msgstr ""
 msgid "pool value compression ran out of memory"
 msgstr ""
 
-#: src/storage/compress.c:206 src/prims/portprims.c:1362
+#: src/storage/compress.c:206 src/prims/portprims.c:1364
 #: src/drivers/headers/zcompress.h:76
 msgid "ZLIB compress data error"
 msgstr ""
@@ -1943,138 +1943,124 @@ msgstr ""
 msgid "NotMemindex"
 msgstr ""
 
-#: src/eval/eval.c:57
-msgid "Continuation is no longer valid"
-msgstr ""
-
-#: src/eval/eval.c:58
-msgid "Continuation used twice"
-msgstr ""
-
-#: src/eval/eval.c:59
-msgid "Lost invoked continuation"
-msgstr ""
-
-#: src/eval/eval.c:61
+#: src/eval/eval.c:75
 msgid "SCHEME expression syntax error"
 msgstr ""
 
-#: src/eval/eval.c:62
+#: src/eval/eval.c:76
 msgid "invalid macro transformer"
 msgstr ""
 
-#: src/eval/eval.c:63
+#: src/eval/eval.c:77
 msgid "the variable is unbound"
 msgstr ""
 
-#: src/eval/eval.c:64
-msgid "VOID result passed as argument"
-msgstr ""
-
-#: src/eval/eval.c:65
+#: src/eval/eval.c:78
 msgid "VOID result used as variable binding"
 msgstr ""
 
-#: src/eval/eval.c:66
+#: src/eval/eval.c:79
 msgid "VOID result used as sort key"
 msgstr ""
 
-#: src/eval/eval.c:67
+#: src/eval/eval.c:80
 msgid "Unexpected VOID result returned"
 msgstr ""
 
-#: src/eval/eval.c:68
+#: src/eval/eval.c:81
 msgid "VOID result as boolean value"
 msgstr ""
 
-#: src/eval/eval.c:69
+#: src/eval/eval.c:82
 msgid "not an identifier"
 msgstr ""
 
-#: src/eval/eval.c:70
+#: src/eval/eval.c:83
 msgid "too few subexpressions"
 msgstr ""
 
-#: src/eval/eval.c:71
+#: src/eval/eval.c:84
 msgid "can't add binding to environment"
 msgstr ""
 
-#: src/eval/eval.c:72
+#: src/eval/eval.c:85
+msgid "Invalid evaluator operation"
+msgstr ""
+
+#: src/eval/eval.c:86
+msgid "Bad opcode in compiled code"
+msgstr ""
+
+#: src/eval/eval.c:87
+msgid "Bad opcode syntax"
+msgstr ""
+
+#: src/eval/eval.c:88
 msgid "Read only environment"
 msgstr ""
 
-#: src/eval/eval.c:292
-msgid "opcode name"
+#: src/eval/eval.c:89
+msgid "EvalError/RawTailValue"
 msgstr ""
 
-#: src/eval/eval.c:773 src/eval/opcode_defs.c:86 src/eval/reflection.c:764
+#: src/eval/eval.c:90
+msgid "EvalError/BadArgument/Value"
+msgstr ""
+
+#: src/eval/eval.c:92
+msgid "BadExpressionHead"
+msgstr ""
+
+#: src/eval/eval.c:505 src/eval/reflection.c:764
 msgid "macro expansion"
 msgstr ""
 
-#: src/eval/eval.c:1332 src/eval/reflection.c:938 src/eval/reflection.c:995
-msgid "environment"
-msgstr ""
-
-#: src/eval/opcode_defs.c:821 src/eval/opcode_defs.c:925
-#: src/eval/opcode_defs.c:963 src/eval/opcode_defs.c:1065
+#: src/eval/opcode_defs.c:596 src/eval/opcode_defs.c:702
+#: src/eval/opcode_defs.c:727 src/eval/opcode_defs.c:811
 msgid "Invalid opcode"
 msgstr ""
 
-#: src/eval/opcode_defs.c:836 src/eval/opcode_defs.c:1511
-#: src/eval/opcode_defs.c:1536 src/eval/opcode_defs.c:1553
-#: src/eval/opcode_defs.c:1573 src/eval/opcode_defs.c:1626
-#: src/eval/opcode_defs.c:1660 src/eval/opcode_defs.c:1675
-#: src/eval/opcode_defs.c:1688 src/eval/opcode_defs.c:1730
-#: src/eval/opcode_defs.c:1769 src/eval/opcode_defs.c:1807
-#: src/eval/opcode_defs.c:1845 src/eval/opcode_defs.c:1883 src/eval/arith.c:294
+#: src/eval/opcode_defs.c:611 src/eval/arith.c:295
 msgid "number"
 msgstr ""
 
-#: src/eval/opcode_defs.c:911
+#: src/eval/opcode_defs.c:686
 msgid "number|string"
 msgstr ""
 
-#: src/eval/opcode_defs.c:915 src/eval/opcode_defs.c:919
-#: src/eval/opcode_defs.c:923 src/prims/dbprims.c:2195
-#: src/prims/tableprims.c:770 src/prims/tableprims.c:792
-#: src/prims/tableprims.c:821 src/prims/tableprims.c:891 src/web/htmlout.c:598
-#: src/web/uriprims.c:204 src/web/uriprims.c:206 src/web/uriprims.c:305
-msgid "table"
-msgstr ""
-
-#: src/eval/appenv.c:320
+#: src/eval/appenv.c:310
 msgid "load error"
 msgstr ""
 
-#: src/eval/appenv.c:364
+#: src/eval/appenv.c:356
 msgid "Which modules to load into the application environment"
 msgstr ""
 
-#: src/eval/appenv.c:367
+#: src/eval/appenv.c:359
 msgid "Which files to load into the application environment"
 msgstr ""
 
-#: src/eval/appenv.c:370
+#: src/eval/appenv.c:362
 msgid "Which functions/forms to execute to set up the application environment"
 msgstr ""
 
-#: src/eval/appenv.c:388 src/eval/appenv.c:391 src/eval/appenv.c:394
+#: src/eval/appenv.c:380 src/eval/appenv.c:383 src/eval/appenv.c:386
 msgid "Init expressions or functions which failed"
 msgstr ""
 
-#: src/eval/testops.c:42
+#: src/eval/testops.c:41
 msgid "Test failed"
 msgstr ""
 
-#: src/eval/testops.c:43
+#: src/eval/testops.c:42
 msgid "Test error"
 msgstr ""
 
-#: src/eval/debug.c:506 src/eval/conditionals.c:84
+#: src/eval/debug.c:508 src/eval/conditionals.c:86
 msgid "invalid cond clause"
 msgstr ""
 
-#: src/eval/debug.c:766
+#: src/eval/debug.c:771
 msgid "missing directory"
 msgstr ""
 
@@ -2086,11 +2072,11 @@ msgstr ""
 msgid "Bad binding expression"
 msgstr ""
 
-#: src/eval/lambda.c:26
+#: src/eval/lambda.c:30
 msgid "Malformed argument list"
 msgstr ""
 
-#: src/eval/lambda.c:27
+#: src/eval/lambda.c:31
 msgid "Bad procedure defining form"
 msgstr ""
 
@@ -2098,42 +2084,42 @@ msgstr ""
 msgid "Undistinguished Scheme Error"
 msgstr ""
 
-#: src/eval/iterators.c:91 src/eval/iterators.c:94 src/eval/choiceops.c:84
+#: src/eval/iterators.c:88 src/eval/iterators.c:91 src/eval/choiceops.c:84
 #: src/eval/choiceops.c:87
 msgid "identifier is not a symbol"
 msgstr ""
 
-#: src/eval/threads.c:44
+#: src/eval/threads.c:40
 msgid "ThreadError"
 msgstr ""
 
-#: src/eval/threads.c:45
+#: src/eval/threads.c:41
 msgid "ThreadBacktrace"
 msgstr ""
 
-#: src/eval/threads.c:46
+#: src/eval/threads.c:42
 msgid "ThreadExit"
 msgstr ""
 
-#: src/eval/threads.c:543 src/eval/threads.c:565 src/eval/threads.c:584
-#: src/eval/threads.c:587
+#: src/eval/threads.c:539 src/eval/threads.c:561 src/eval/threads.c:580
+#: src/eval/threads.c:583
 msgid "valid condvar"
 msgstr ""
 
-#: src/eval/threads.c:557 src/eval/threads.c:559 src/prims/timeprims.c:1324
+#: src/eval/threads.c:553 src/eval/threads.c:555 src/prims/timeprims.c:1324
 msgid "time interval"
 msgstr ""
 
-#: src/eval/threads.c:878 src/eval/threads.c:960 src/text/match.c:3551
+#: src/eval/threads.c:872 src/eval/threads.c:954 src/text/match.c:3551
 #: src/text/match.c:3580
 msgid "applicable"
 msgstr ""
 
-#: src/eval/threads.c:1015
+#: src/eval/threads.c:1009
 msgid "lispenv"
 msgstr ""
 
-#: src/eval/threads.c:1805
+#: src/eval/threads.c:1821
 msgid "StubbornThread"
 msgstr ""
 
@@ -2177,7 +2163,7 @@ msgstr ""
 
 #: src/eval/reflection.c:108 src/eval/reflection.c:153
 #: src/eval/reflection.c:185 src/eval/reflection.c:209
-#: src/eval/reflection.c:233 src/eval/choiceops.c:531 src/eval/choiceops.c:639
+#: src/eval/reflection.c:233 src/eval/choiceops.c:550 src/eval/choiceops.c:658
 #: src/prims/seqprims.c:669 src/prims/seqprims.c:707
 msgid "function"
 msgstr ""
@@ -2187,25 +2173,45 @@ msgstr ""
 msgid "procedure"
 msgstr ""
 
-#: src/eval/reflection.c:781 src/eval/configops.c:82 src/eval/configops.c:147
-#: src/eval/configops.c:172 src/cmodules/sqlite.c:162
+#: src/eval/reflection.c:781 src/eval/configops.c:84 src/eval/configops.c:149
+#: src/eval/configops.c:174 src/cmodules/sqlite.c:162
 msgid "string or symbol"
+msgstr ""
+
+#: src/eval/reflection.c:938 src/eval/reflection.c:995 src/eval/evalops.c:260
+msgid "environment"
 msgstr ""
 
 #: src/eval/compoundfns.c:216 src/eval/compoundfns.c:325
 msgid "Immutable record"
 msgstr ""
 
-#: src/eval/arith.c:461 src/eval/arith.c:974 src/eval/arith.c:994
-#: src/eval/arith.c:1014 src/eval/arith.c:1045
+#: src/eval/evalops.c:31
+msgid "Continuation is no longer valid"
+msgstr ""
+
+#: src/eval/evalops.c:32
+msgid "Continuation used twice"
+msgstr ""
+
+#: src/eval/evalops.c:33
+msgid "Lost invoked continuation"
+msgstr ""
+
+#: src/eval/evalops.c:148
+msgid "opcode name"
+msgstr ""
+
+#: src/eval/arith.c:462 src/eval/arith.c:975 src/eval/arith.c:995
+#: src/eval/arith.c:1015 src/eval/arith.c:1046
 msgid "scalar"
 msgstr ""
 
-#: src/eval/arith.c:1299 src/eval/arith.c:1318
+#: src/eval/arith.c:1300 src/eval/arith.c:1319
 msgid "negative numbers can't be rendered as non-decimal"
 msgstr ""
 
-#: src/eval/arith.c:1434
+#: src/eval/arith.c:1435
 msgid "string or number"
 msgstr ""
 
@@ -2213,70 +2219,77 @@ msgstr ""
 msgid "Invalid Regex operation"
 msgstr ""
 
-#: src/prims/dbprims.c:253
+#: src/prims/dbprims.c:252
 msgid "Unknown pool name"
 msgstr ""
 
-#: src/prims/dbprims.c:273
+#: src/prims/dbprims.c:272
 msgid "namefn"
 msgstr ""
 
-#: src/prims/dbprims.c:396 src/prims/dbprims.c:2236 src/prims/dbprims.c:2251
+#: src/prims/dbprims.c:395 src/prims/dbprims.c:2235 src/prims/dbprims.c:2250
 msgid "index spec"
 msgstr ""
 
-#: src/prims/dbprims.c:500 src/prims/dbprims.c:501
+#: src/prims/dbprims.c:499 src/prims/dbprims.c:500
 msgid "BadPoolType"
 msgstr ""
 
-#: src/prims/dbprims.c:541 src/prims/dbprims.c:542
+#: src/prims/dbprims.c:540 src/prims/dbprims.c:541
 msgid "BadIndexType"
 msgstr ""
 
-#: src/prims/dbprims.c:744
+#: src/prims/dbprims.c:743
 msgid "eternal (not-ephemeral) index"
 msgstr ""
 
-#: src/prims/dbprims.c:749
+#: src/prims/dbprims.c:748
 msgid "aggregate index"
 msgstr ""
 
-#: src/prims/dbprims.c:1113 src/prims/dbprims.c:1138
+#: src/prims/dbprims.c:1112 src/prims/dbprims.c:1137
 msgid "slotid"
 msgstr ""
 
-#: src/prims/dbprims.c:1197 src/prims/dbprims.c:1202 src/prims/dbprims.c:1221
-#: src/prims/dbprims.c:1243
+#: src/prims/dbprims.c:1196 src/prims/dbprims.c:1201 src/prims/dbprims.c:1220
+#: src/prims/dbprims.c:1242
 msgid "pool, index, or OIDs"
 msgstr ""
 
-#: src/prims/dbprims.c:1270 src/prims/dbprims.c:1693 src/prims/dbprims.c:1938
-#: src/prims/dbprims.c:1957
+#: src/prims/dbprims.c:1269 src/prims/dbprims.c:1692 src/prims/dbprims.c:1937
+#: src/prims/dbprims.c:1956
 msgid "pool or index"
 msgstr ""
 
-#: src/prims/dbprims.c:1474 src/prims/dbprims.c:1478 src/prims/dbprims.c:1483
-#: src/prims/dbprims.c:1488
+#: src/prims/dbprims.c:1473 src/prims/dbprims.c:1477 src/prims/dbprims.c:1482
+#: src/prims/dbprims.c:1487
 msgid "pool offset"
 msgstr ""
 
-#: src/prims/dbprims.c:2160
+#: src/prims/dbprims.c:2159
 msgid "value test"
 msgstr ""
 
-#: src/prims/dbprims.c:2561
+#: src/prims/dbprims.c:2194 src/prims/tableprims.c:768
+#: src/prims/tableprims.c:790 src/prims/tableprims.c:819
+#: src/prims/tableprims.c:889 src/web/htmlout.c:595 src/web/uriprims.c:204
+#: src/web/uriprims.c:206 src/web/uriprims.c:305
+msgid "table"
+msgstr ""
+
+#: src/prims/dbprims.c:2560
 msgid "test relation"
 msgstr ""
 
-#: src/prims/dbprims.c:2674
+#: src/prims/dbprims.c:2673
 msgid "test object"
 msgstr ""
 
-#: src/prims/dbprims.c:3179
+#: src/prims/dbprims.c:3178
 msgid "wrong number of args"
 msgstr ""
 
-#: src/prims/dbprims.c:3322 src/prims/dbprims.c:3345
+#: src/prims/dbprims.c:3321 src/prims/dbprims.c:3344
 msgid "offset base"
 msgstr ""
 
@@ -2296,29 +2309,29 @@ msgstr ""
 msgid "Unknown encoding"
 msgstr ""
 
-#: src/prims/portprims.c:388 src/prims/portprims.c:405
+#: src/prims/portprims.c:390 src/prims/portprims.c:407
 #: src/prims/fileprims.c:1367 src/prims/fileprims.c:1395
 #: src/prims/fileprims.c:1422 src/prims/fileprims.c:1449
 msgid "port"
 msgstr ""
 
-#: src/prims/portprims.c:426 src/prims/portprims.c:446
-#: src/prims/portprims.c:469 src/prims/portprims.c:485
+#: src/prims/portprims.c:428 src/prims/portprims.c:448
+#: src/prims/portprims.c:471 src/prims/portprims.c:487
 #: src/prims/fileprims.c:295
 msgid "output port"
 msgstr ""
 
-#: src/prims/portprims.c:758 src/prims/portprims.c:786
-#: src/prims/portprims.c:812 src/prims/portprims.c:832
-#: src/prims/portprims.c:864 src/text/texttools.c:2315
+#: src/prims/portprims.c:760 src/prims/portprims.c:788
+#: src/prims/portprims.c:814 src/prims/portprims.c:834
+#: src/prims/portprims.c:866 src/text/texttools.c:2315
 msgid "input port"
 msgstr ""
 
-#: src/prims/portprims.c:792
+#: src/prims/portprims.c:794
 msgid "fixum"
 msgstr ""
 
-#: src/prims/portprims.c:1359
+#: src/prims/portprims.c:1361
 msgid "OIDPOOL compress ran out of memory"
 msgstr ""
 
@@ -2326,8 +2339,8 @@ msgstr ""
 msgid "Out of file range"
 msgstr ""
 
-#: src/eval/choiceops.c:1441 src/eval/choiceops.c:1468
-#: src/eval/choiceops.c:1507 src/eval/choiceops.c:1534
+#: src/eval/choiceops.c:1435 src/eval/choiceops.c:1462
+#: src/eval/choiceops.c:1501 src/eval/choiceops.c:1528
 msgid "keyfn"
 msgstr ""
 
@@ -2627,11 +2640,11 @@ msgstr ""
 msgid "whether direct execution of SQL strings is allowed"
 msgstr ""
 
-#: src/eval/dteval.c:37
+#: src/eval/dteval.c:35
 msgid "Server unconfigured"
 msgstr ""
 
-#: src/eval/dteval.c:128 src/eval/dteval.c:140
+#: src/eval/dteval.c:126 src/eval/dteval.c:138
 msgid "server"
 msgstr ""
 
@@ -2639,40 +2652,40 @@ msgstr ""
 msgid "Loading config"
 msgstr ""
 
-#: src/web/xmloutput.c:267
+#: src/web/xmloutput.c:266
 #, c-format
 msgid "missing alternating attrib value for %s"
 msgstr ""
 
-#: src/web/xmloutput.c:429
+#: src/web/xmloutput.c:428
 msgid "invalid XML element name"
 msgstr ""
 
-#: src/web/xmloutput.c:441
+#: src/web/xmloutput.c:440
 msgid "odd number of arguments"
 msgstr ""
 
-#: src/web/xmloutput.c:442
+#: src/web/xmloutput.c:441
 msgid "invalid XML attribute name"
 msgstr ""
 
-#: src/web/xmloutput.c:813 src/web/xmloutput.c:883
+#: src/web/xmloutput.c:812 src/web/xmloutput.c:882
 msgid "valid anchor target"
 msgstr ""
 
-#: src/web/xmloutput.c:1055
+#: src/web/xmloutput.c:1054
 msgid "javascript function name"
 msgstr ""
 
-#: src/web/xmloutput.c:1311
+#: src/web/xmloutput.c:1310
 msgid "How to display OIDs for browsing in HTML/XML"
 msgstr ""
 
-#: src/web/xmloutput.c:1315
+#: src/web/xmloutput.c:1314
 msgid "Default anchor URI for OID references"
 msgstr ""
 
-#: src/web/xmloutput.c:1319
+#: src/web/xmloutput.c:1318
 msgid "Default HTML CSS class for OID references"
 msgstr ""
 
@@ -2688,71 +2701,71 @@ msgstr ""
 msgid "string or port"
 msgstr ""
 
-#: src/web/xmleval.c:919
+#: src/web/xmleval.c:915
 #, c-format
 msgid "In config '%s' %m"
 msgstr ""
 
-#: src/web/xmleval.c:922
+#: src/web/xmleval.c:918
 #, c-format
 msgid "In config '%s' %m@%s"
 msgstr ""
 
-#: src/web/xmleval.c:925
+#: src/web/xmleval.c:921
 #, c-format
 msgid "In config '%s' [%m@%s] %s"
 msgstr ""
 
-#: src/web/xmleval.c:927
+#: src/web/xmleval.c:923
 msgid "In config '%s' [%m@%s] %s %q"
 msgstr ""
 
-#: src/web/xmleval.c:932
+#: src/web/xmleval.c:928
 #, c-format
 msgid "In config '%s', unknown error"
 msgstr ""
 
-#: src/web/xmleval.c:1477
+#: src/web/xmleval.c:1473
 msgid "Missing XML attribute"
 msgstr ""
 
-#: src/web/xmleval.c:1502
+#: src/web/xmleval.c:1498
 msgid "no LOOP arg"
 msgstr ""
 
-#: src/web/xmleval.c:1838
+#: src/web/xmleval.c:1834
 msgid "Whether to cache markup generated from unparsing XML"
 msgstr ""
 
-#: src/web/cgiexec.c:452 src/web/cgiexec.c:467 src/web/cgiexec.c:486
+#: src/web/cgiexec.c:451 src/web/cgiexec.c:466 src/web/cgiexec.c:485
 msgid "malformed cookie"
 msgstr ""
 
-#: src/web/cgiexec.c:1471
+#: src/web/cgiexec.c:1468
 msgid "Functions to execute between parsing and responding to a CGI request"
 msgstr ""
 
-#: src/web/cgiexec.c:1475
+#: src/web/cgiexec.c:1472
 msgid "Header for using the web server's X-SENDFILE functionality"
 msgstr ""
 
-#: src/web/cgiexec.c:1479
+#: src/web/cgiexec.c:1476
 msgid "Header for using the web server's X-REDIRECT functionality"
 msgstr ""
 
-#: src/web/cgiexec.c:1482
+#: src/web/cgiexec.c:1479
 msgid "Whether to log CGI bindings passed to Kno"
 msgstr ""
 
-#: src/web/cgiexec.c:1486
+#: src/web/cgiexec.c:1483
 msgid "Whether to parse REST query args when there is POST data"
 msgstr ""
 
-#: src/web/cgiexec.c:1489
+#: src/web/cgiexec.c:1486
 msgid "Fields to avoid binding directly for CGI requests"
 msgstr ""
 
-#: src/web/htmlout.c:655
+#: src/web/htmlout.c:650
 msgid "Default style sheet for web errors"
 msgstr ""
 
@@ -2878,131 +2891,136 @@ msgstr ""
 msgid ";; %s computed in %f seconds, %d/%d object/index loads\n"
 msgstr ""
 
-#: src/exe/knoc.c:795
+#: src/exe/knoc.c:796
 msgid "Threshold for displaying execution time"
 msgstr ""
 
-#: src/exe/knoc.c:797
+#: src/exe/knoc.c:798
 msgid "Eval prompt (within #||#s)"
 msgstr ""
 
-#: src/exe/knoc.c:801
+#: src/exe/knoc.c:802
 msgid "Max number of string characters to display in debug message"
 msgstr ""
 
-#: src/exe/knoc.c:805
+#: src/exe/knoc.c:806
 msgid "Max number of sequence/choice elements to display in debug message"
 msgstr ""
 
-#: src/exe/knoc.c:808
+#: src/exe/knoc.c:809
 msgid "Whether to minimize console output"
 msgstr ""
 
-#: src/exe/knoc.c:811
+#: src/exe/knoc.c:812
 msgid "Report startup times when longer than N seconds"
 msgstr ""
 
-#: src/exe/knoc.c:815
+#: src/exe/knoc.c:816
 msgid "Number of characters available for pretty-printing console output"
 msgstr ""
 
-#: src/exe/knoc.c:819
+#: src/exe/knoc.c:820
 msgid "Number of elements to initially show in displaying results"
 msgstr ""
 
-#: src/exe/knoc.c:822
+#: src/exe/knoc.c:823
 msgid "Where to create directories for saving backtraces"
 msgstr ""
 
-#: src/exe/knoc.c:825
+#: src/exe/knoc.c:826
 msgid "The base URL for referencing HTML backtraces"
 msgstr ""
 
-#: src/exe/knoc.c:828
+#: src/exe/knoc.c:829
 msgid "The command to use to open saved backtraces"
 msgstr ""
 
-#: src/exe/knoc.c:831
+#: src/exe/knoc.c:832
 msgid "Whether to dump HTML versions of backtraces"
 msgstr ""
 
-#: src/exe/knoc.c:834
+#: src/exe/knoc.c:835
 msgid "Whether to dump LISP object versions of backtraces"
 msgstr ""
 
-#: src/exe/knoc.c:837
+#: src/exe/knoc.c:838
 msgid "Whether to dump binary DTYPE versions of backtraces"
 msgstr ""
 
-#: src/exe/knoc.c:840
+#: src/exe/knoc.c:841
 msgid "Whether to plaintext versions of backtraces"
 msgstr ""
 
-#: src/exe/knoc.c:843
+#: src/exe/knoc.c:844
 msgid "Whether to always save backtraces in the history"
 msgstr ""
 
-#: src/exe/knoc.c:846
+#: src/exe/knoc.c:847
 msgid "Whether to always output backtraces to stderr"
 msgstr ""
 
-#: src/exe/knoc.c:849
+#: src/exe/knoc.c:850
 msgid "Whether load .knoc or other dot files"
 msgstr ""
 
-#: src/exe/knoc.c:852
+#: src/exe/knoc.c:853
 msgid "Where to dump console errors"
 msgstr ""
 
-#: src/exe/knoc.c:897 src/exe/knox.c:247 src/exe/knox.c:252
+#: src/exe/knoc.c:896 src/exe/knox.c:243 src/exe/knox.c:248
 msgid "File to wait to exist before starting"
 msgstr ""
 
-#: src/exe/knoc.c:989
+#: src/exe/knoc.c:988
 msgid "Whether to use EDITLINE for the console"
 msgstr ""
 
-#: src/exe/knoc.c:993
+#: src/exe/knoc.c:992
 msgid "Emit void marker (#|<void|#) when void is returned"
 msgstr ""
 
-#: src/exe/knoc.c:1023
+#: src/exe/knoc.c:1022
 msgid ";; Bound %q\n"
 msgstr ""
 
-#: src/exe/knoc.c:1024
+#: src/exe/knoc.c:1023
 msgid ";; Bad command result %q\n"
 msgstr ""
 
-#: src/exe/knox.c:59
+#: src/exe/knox.c:60
 msgid "FILEWAIT"
 msgstr ""
 
-#: src/exe/knox.c:85
+#: src/exe/knox.c:86
 msgid "Too many configs to CHAIN"
 msgstr ""
 
-#: src/exe/knox.c:237
+#: src/exe/knox.c:233
 msgid "Max number of chars in strings output in error reports"
 msgstr ""
 
-#: src/exe/knox.c:242
+#: src/exe/knox.c:238
 msgid "Max number of sequence/choice elements to display in error reports"
 msgstr ""
 
-#: src/exe/knox.c:256
+#: src/exe/knox.c:252
 msgid "Read additional source from STDIN"
 msgstr ""
 
-#: src/exe/knox.c:261
+#: src/exe/knox.c:257
+msgid ""
+"Whether to take the first command line argument as a source file to load"
+msgstr ""
+
+#: src/exe/knox.c:263
 msgid "The name of the (main) routine for this file"
 msgstr ""
 
-#: src/exe/knox.c:266
+#: src/exe/knox.c:268
 msgid "The name of the root file being executed for this application"
 msgstr ""
 
-#: src/exe/knotask.c:171 src/exe/knotask.c:175
+#: src/exe/knotask.c:167 src/exe/knotask.c:171
 msgid "Whether to extend existing log files or truncate them"
 msgstr ""
 
@@ -3022,11 +3040,11 @@ msgstr ""
 msgid "Trace web transactions over N seconds"
 msgstr ""
 
-#: src/exe/knocgi.c:1842 src/exe/knod.c:1091
+#: src/exe/knocgi.c:1842 src/exe/knod.c:1095
 msgid "Number of pending connection requests allowed"
 msgstr ""
 
-#: src/exe/knocgi.c:1844 src/exe/knod.c:1094
+#: src/exe/knocgi.c:1844 src/exe/knod.c:1098
 msgid "Max number of requests to keep queued"
 msgstr ""
 
@@ -3034,11 +3052,11 @@ msgstr ""
 msgid "Max number of concurrent connections to allow (NYI)"
 msgstr ""
 
-#: src/exe/knocgi.c:1850 src/exe/knod.c:1098
+#: src/exe/knocgi.c:1850 src/exe/knod.c:1102
 msgid "Number of clients to prepare for/grow by"
 msgstr ""
 
-#: src/exe/knocgi.c:1853 src/exe/knocgi.c:1856 src/exe/knod.c:1101
+#: src/exe/knocgi.c:1853 src/exe/knocgi.c:1856 src/exe/knod.c:1105
 msgid "Number of threads in the thread pool"
 msgstr ""
 
@@ -3054,11 +3072,11 @@ msgstr ""
 msgid "Milliseconds (roughly) between logging status information"
 msgstr ""
 
-#: src/exe/knocgi.c:1868 src/exe/knod.c:1164
+#: src/exe/knocgi.c:1868 src/exe/knod.c:1168
 msgid "How long (μs) to wait for tasks during shutdown"
 msgstr ""
 
-#: src/exe/knocgi.c:1872 src/exe/knod.c:1075
+#: src/exe/knocgi.c:1872 src/exe/knod.c:1079
 msgid "Remove existing socket files with extreme prejudice"
 msgstr ""
 
@@ -3070,7 +3088,7 @@ msgstr ""
 msgid "Ports for listening for connections"
 msgstr ""
 
-#: src/exe/knocgi.c:1883 src/exe/knod.c:1160
+#: src/exe/knocgi.c:1883 src/exe/knod.c:1164
 msgid "Whether to run in asynchronous mode"
 msgstr ""
 
@@ -3082,11 +3100,11 @@ msgstr ""
 msgid "Timeout for the poll loop (lower bound of status updates)"
 msgstr ""
 
-#: src/exe/knocgi.c:1895 src/exe/knod.c:1128
+#: src/exe/knocgi.c:1895 src/exe/knod.c:1132
 msgid "Whether to have libu8 log each connection"
 msgstr ""
 
-#: src/exe/knocgi.c:1899 src/exe/knod.c:1133
+#: src/exe/knocgi.c:1899 src/exe/knod.c:1137
 msgid "Whether to have libu8 log each transaction"
 msgstr ""
 
@@ -3098,7 +3116,7 @@ msgstr ""
 msgid "Whether to have libu8 log data transmission/receiption"
 msgstr ""
 
-#: src/exe/knocgi.c:1916 src/exe/knod.c:1145
+#: src/exe/knocgi.c:1916 src/exe/knod.c:1149
 msgid "Whether to support thread-asynchronous transactions"
 msgstr ""
 
@@ -3142,71 +3160,71 @@ msgstr ""
 msgid "Outgoing"
 msgstr ""
 
-#: src/exe/knod.c:1078
+#: src/exe/knod.c:1082
 msgid "Loglevel for knod itself"
 msgstr ""
 
-#: src/exe/knod.c:1081
+#: src/exe/knod.c:1085
 msgid "Whether to run in the foreground"
 msgstr ""
 
-#: src/exe/knod.c:1084
+#: src/exe/knod.c:1088
 msgid "Whether to enable auto-restart"
 msgstr ""
 
-#: src/exe/knod.c:1087
+#: src/exe/knod.c:1091
 msgid "Whether to wait for the servlet PID file"
 msgstr ""
 
-#: src/exe/knod.c:1104
+#: src/exe/knod.c:1108
 msgid "modules to provide in the server environment"
 msgstr ""
 
-#: src/exe/knod.c:1107
+#: src/exe/knod.c:1111
 msgid "whether to provide full scheme interpreter"
 msgstr ""
 
-#: src/exe/knod.c:1110
+#: src/exe/knod.c:1114
 msgid "Whether to log each request and response"
 msgstr ""
 
-#: src/exe/knod.c:1113
+#: src/exe/knod.c:1117
 msgid "Whether to log each transaction"
 msgstr ""
 
-#: src/exe/knod.c:1117
+#: src/exe/knod.c:1121
 msgid "Whether to log errors returned by the server to clients"
 msgstr ""
 
-#: src/exe/knod.c:1121
+#: src/exe/knod.c:1125
 msgid "Whether to include a detailed backtrace when logging errors"
 msgstr ""
 
-#: src/exe/knod.c:1124
+#: src/exe/knod.c:1128
 msgid "Line width for logged backtraces"
 msgstr ""
 
-#: src/exe/knod.c:1139
+#: src/exe/knod.c:1143
 msgid "Whether to have libu8 log all data transfers"
 msgstr ""
 
-#: src/exe/knod.c:1151
+#: src/exe/knod.c:1155
 msgid "Max number of string characters to display in debug messages"
 msgstr ""
 
-#: src/exe/knod.c:1156
+#: src/exe/knod.c:1160
 msgid "Max number of object elements to display in debug messages"
 msgstr ""
 
-#: src/exe/knod.c:1168
+#: src/exe/knod.c:1172
 msgid "Whether to automatically reload changed files"
 msgstr ""
 
-#: src/exe/knod.c:1172
+#: src/exe/knod.c:1176
 msgid "Whether to disable exported Kno DB API"
 msgstr ""
 
-#: src/exe/knod.c:1330
+#: src/exe/knod.c:1334
 msgid "port or port@host to listen on"
 msgstr ""
 

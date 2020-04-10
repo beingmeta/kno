@@ -14,6 +14,5 @@ set env KNO_DISPLAYMAXCHARS=1024
 set env KNO_TRACEWEB=yes
 set env KNO_WEBDEBUG=yes
 set env KNO_WEBALLOWDEBUG=yes
-set env KNO_LOADMOD=kno/sessions
 set env KNO_LIBSCM_DIR=@abs_top_srcdir@/src/libscm/
 source .gdbinit.local

@@ -50,7 +50,7 @@ void kno_free_lexenv(struct KNO_LEXENV *env)
     else {
       struct KNO_SCHEMAP *sm = KNO_XSCHEMAP(env->env_bindings);
       int i = 0, n = KNO_XSCHEMAP_SIZE(sm);
-      lispval *vals = sm->schema_values;
+      lispval *vals = sm->table_values;
       if ( sm->schemap_stackvals == 0)
 	while (i < n) {
 	  lispval val = vals[i++];
@@ -61,7 +61,7 @@ void kno_free_lexenv(struct KNO_LEXENV *env)
   else {
     struct KNO_SCHEMAP *sm = KNO_XSCHEMAP(env->env_bindings);
     int i = 0, n = KNO_XSCHEMAP_SIZE(sm);
-    lispval *vals = sm->schema_values;
+    lispval *vals = sm->table_values;
     if ( sm->schemap_stackvals == 0)
       while (i < n) {
 	lispval val = vals[i++];

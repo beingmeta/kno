@@ -25,8 +25,6 @@ KNO_EXPORT lispval kno_simple_exception(u8_exception ex);
 KNO_EXPORT void kno_simplify_exception(u8_exception ex);
 KNO_EXPORT struct KNO_EXCEPTION *kno_exception_object(u8_exception ex);
 
-KNO_EXPORT lispval kno_err(u8_condition,u8_context,u8_string,lispval);
-
 KNO_EXPORT lispval kno_type_error(u8_string,u8_context,lispval);
 
 KNO_EXPORT void kno_sum_exception(U8_OUTPUT *out,u8_exception e);
@@ -44,11 +42,9 @@ KNO_EXPORT lispval kno_exception_backtrace(u8_exception ex);
 KNO_EXPORT void kno_compact_backtrace(u8_output out,lispval stack,int limit);
 
 KNO_EXPORT U8_NOINLINE u8_exception kno_mkerr
-  (u8_condition c,u8_context cxt,u8_string details,lispval irritant);
-KNO_EXPORT U8_NOINLINE void kno_seterr
-  (u8_condition c,u8_context cxt,u8_string details,lispval irritant);
+(u8_condition c,u8_context cxt,u8_string details,lispval irritant,int);
 KNO_EXPORT U8_NOINLINE void kno_raise
-  (u8_condition c,u8_context cxt,u8_string details,lispval irritant);
+(u8_condition c,u8_context cxt,u8_string details,lispval irritant);
 
 #define kno_seterr3(c,cxt,details) \
    kno_seterr(c,cxt,details,KNO_VOID)

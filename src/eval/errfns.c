@@ -28,7 +28,7 @@ static lispval stack_entry_symbol;
 static lispval catcherr_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval toeval = kno_get_arg(expr,1);
-  lispval value = kno_stack_eval(toeval,env,_stack,0);
+  lispval value = kno_eval(toeval,env,_stack,0);
   if (KNO_THROWP(value))
     return value;
   else if (KNO_ABORTP(value)) {
@@ -128,7 +128,7 @@ static lispval irritant_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   else printout_body = kno_get_body(expr,2);
 
   if (VOIDP(irritant))
-    irritant = kno_eval(irritant_expr,env);
+    irritant = kno_eval(irritant_expr,env,_stack,0);
 
   if (KNO_ABORTP(irritant)) {
     u8_exception ex = u8_erreify();
@@ -155,7 +155,7 @@ static lispval irritant_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 	  cxt=fcn->fcn_name;
 	else cxt="FUNCTIONCALL";}
       else {}
-      cur=cur->stack_caller;}}
+      cur = (kno_stack )(cur->stack_caller);}}
 
   u8_string details=NULL;
   U8_OUTPUT out; U8_INIT_OUTPUT(&out,256);
@@ -176,20 +176,21 @@ static lispval onerror_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   lispval toeval = kno_get_arg(expr,1);
   lispval error_handler = kno_get_arg(expr,2);
   lispval default_handler = kno_get_arg(expr,3);
-  lispval value = kno_stack_eval(toeval,env,_stack,0);
+  lispval value = kno_eval(toeval,env,_stack,0);
   if (KNO_THROWP(value))
     return value;
   else if (KNO_BREAKP(value))
     return value;
   else if (KNO_ABORTP(value)) {
     u8_exception ex = u8_erreify();
-    lispval handler = kno_stack_eval(error_handler,env,_stack,0);
+    lispval handler = kno_eval(error_handler,env,_stack,0);
     if (KNO_ABORTP(handler)) {
       u8_restore_exception(ex);
       return handler;}
     else if (KNO_APPLICABLEP(handler)) {
       lispval err_value = kno_wrap_exception(ex);
       lispval handler_result = kno_apply(handler,1,&err_value);
+      kno_decref(err_value);
       if (KNO_ABORTP(handler_result)) {
 	u8_exception handler_ex = u8_erreify();
 	/* Clear this field so we can decref err_value while leaving
@@ -205,12 +206,10 @@ static lispval onerror_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 	u8_restore_exception(handler_ex);
 	kno_decref(value);
 	kno_decref(handler);
-	kno_decref(err_value);
 	return handler_result;}
       else {
 	kno_decref(value);
 	kno_decref(handler);
-	kno_decref(err_value);
 	kno_clear_errors(1);
 	u8_free_exception(ex,1);
 	return handler_result;}}
@@ -221,14 +220,14 @@ static lispval onerror_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   else if (VOIDP(default_handler))
     return value;
   else {
-    lispval handler = kno_stack_eval(default_handler,env,_stack,0);
+    lispval handler = kno_eval(default_handler,env,_stack,0);
     if (KNO_ABORTP(handler))
       return handler;
     else if (KNO_APPLICABLEP(handler)) {
       lispval result;
       if (VOIDP(value))
-	result = kno_finish_call(kno_dapply(handler,0,&value));
-      else result = kno_finish_call(kno_dapply(handler,1,&value));
+	result = kno_dapply(handler,0,&value);
+      else result = kno_dapply(handler,1,&value);
       kno_decref(value);
       kno_decref(handler);
       return result;}
@@ -242,7 +241,7 @@ static lispval onerror_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 static lispval report_errors_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval toeval = kno_get_arg(expr,1);
-  lispval value = kno_stack_eval(toeval,env,_stack,0);
+  lispval value = kno_eval(toeval,env,_stack,0);
   if (KNO_THROWP(value))
     return value;
   else if (KNO_ABORTP(value)) {
@@ -257,7 +256,7 @@ static lispval ignore_errors_evalfn(lispval expr,kno_lexenv env,kno_stack _stack
 {
   lispval toeval = kno_get_arg(expr,1);
   lispval dflt = kno_get_arg(expr,2);
-  lispval value = kno_stack_eval(toeval,env,_stack,0);
+  lispval value = kno_eval(toeval,env,_stack,0);
   if (KNO_THROWP(value))
     return value;
   else if (KNO_ABORTP(value)) {
@@ -265,7 +264,7 @@ static lispval ignore_errors_evalfn(lispval expr,kno_lexenv env,kno_stack _stack
     if (KNO_VOIDP(dflt))
       return KNO_FALSE;
     else {
-      lispval to_return = kno_stack_eval(dflt,env,_stack,0);
+      lispval to_return = kno_eval(dflt,env,_stack,0);
       if (KNO_ABORTP(to_return)) {
 	kno_clear_errors(0);
 	return KNO_FALSE;}
@@ -645,14 +644,14 @@ static lispval dynamic_wind_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   if ((VOIDP(wind)) || (VOIDP(doit)) || (VOIDP(unwind)))
     return kno_err(kno_SyntaxError,"dynamic_wind_evalfn",NULL,expr);
   else {
-    wind = kno_stack_eval(wind,env,_stack,0);
+    wind = kno_eval(wind,env,_stack,0);
     if (KNO_ABORTP(wind))
       return wind;
     else if (!(thunkp(wind))) {
       lispval err=kno_type_error("thunk","dynamic_wind_evalfn",wind);
       kno_decref(wind);
       return err;}
-    else doit = kno_stack_eval(doit,env,_stack,0);
+    else doit = kno_eval(doit,env,_stack,0);
     if (KNO_ABORTP(doit)) {
       kno_decref(wind);
       return doit;}
@@ -660,7 +659,7 @@ static lispval dynamic_wind_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       lispval err=kno_type_error("thunk","dynamic_wind_evalfn",doit);
       kno_decref(wind); kno_decref(doit);
       return err;}
-    else unwind = kno_stack_eval(unwind,env,_stack,0);
+    else unwind = kno_eval(unwind,env,_stack,0);
     if (KNO_ABORTP(unwind)) {
       kno_decref(wind);
       kno_decref(doit);
@@ -698,7 +697,7 @@ static lispval unwind_protect_evalfn(lispval uwp,kno_lexenv env,kno_stack _stack
   lispval heart = kno_get_arg(uwp,1);
   lispval result;
   {U8_WITH_CONTOUR("UNWIND-PROTECT(body)",0)
-      result = kno_stack_eval(heart,env,_stack,0);
+      result = kno_eval(heart,env,_stack,0);
     U8_ON_EXCEPTION {
       U8_CLEAR_CONTOUR();
       result = KNO_ERROR;}
@@ -706,7 +705,7 @@ static lispval unwind_protect_evalfn(lispval uwp,kno_lexenv env,kno_stack _stack
   {U8_WITH_CONTOUR("UNWIND-PROTECT(unwind)",0)
       {lispval unwinds = kno_get_body(uwp,2);
 	KNO_DOLIST(expr,unwinds) {
-	  lispval uw_result = kno_stack_eval(expr,env,_stack,0);
+	  lispval uw_result = kno_eval(expr,env,_stack,0);
 	  if (KNO_ABORTP(uw_result))
 	    if (KNO_ABORTP(result)) {
 	      kno_interr(result); kno_interr(uw_result);
@@ -775,20 +774,28 @@ static lispval stack_entry_label(lispval stackobj)
   return kno_compound_ref(stackobj,stack_entry_symbol,2,KNO_FALSE);
 }
 
-DEFPRIM1("stack-op",stack_entry_op,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "Returns the op of a stack entry",
-	 kno_compound_type,KNO_VOID);
-static lispval stack_entry_op(lispval stackobj)
-{
-  return kno_compound_ref(stackobj,stack_entry_symbol,3,KNO_FALSE);
-}
-
 DEFPRIM1("stack-filename",stack_entry_filename,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns the label of a stack entry",
 	 kno_compound_type,KNO_VOID);
 static lispval stack_entry_filename(lispval stackobj)
 {
+  return kno_compound_ref(stackobj,stack_entry_symbol,3,KNO_FALSE);
+}
+
+DEFPRIM1("stack-op",stack_entry_op,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "Returns the op of a stack entry",
+	 kno_compound_type,KNO_VOID);
+static lispval stack_entry_op(lispval stackobj)
+{
   return kno_compound_ref(stackobj,stack_entry_symbol,4,KNO_FALSE);
+}
+
+DEFPRIM1("stack-args",stack_entry_args,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "Returns the args of a stack entry",
+	 kno_compound_type,KNO_VOID);
+static lispval stack_entry_args(lispval stackobj)
+{
+  return kno_compound_ref(stackobj,stack_entry_symbol,6,KNO_FALSE);
 }
 
 DEFPRIM1("stack-crumb",stack_entry_crumb,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
@@ -798,14 +805,6 @@ DEFPRIM1("stack-crumb",stack_entry_crumb,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 static lispval stack_entry_crumb(lispval stackobj)
 {
   return kno_compound_ref(stackobj,stack_entry_symbol,5,KNO_FALSE);
-}
-
-DEFPRIM1("stack-args",stack_entry_args,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "Returns the args of a stack entry",
-	 kno_compound_type,KNO_VOID);
-static lispval stack_entry_args(lispval stackobj)
-{
-  return kno_compound_ref(stackobj,stack_entry_symbol,6,KNO_FALSE);
 }
 
 DEFPRIM1("stack-source",stack_entry_source,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),

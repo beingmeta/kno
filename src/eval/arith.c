@@ -9,13 +9,14 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define KNO_INLINE_EVAL 1
+#define KNO_EVAL_INTERNALS 1
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
 #include "kno/eval.h"
 #include "kno/numbers.h"
 #include "kno/cprims.h"
+#include "eval_internals.h"
 
 #define REALP(x)							\
   ((FIXNUMP(x)) || (KNO_FLONUMP(x)) || (KNO_BIGINTP(x)) || (KNO_RATIONALP(x)))

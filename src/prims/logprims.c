@@ -9,7 +9,7 @@
 #define _FILEINFO __FILE__
 #endif
 
-/* #define KNO_INLINE_EVAL 1 */
+/* #define KNO_EVAL_INTERNALS 1 */
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
@@ -52,7 +52,7 @@ static u8_output get_output_port(lispval portarg)
   else return NULL;
 }
 
-#define fast_eval(x,env) (kno_stack_eval(x,env,_stack,0))
+#define fast_eval(x,env) (kno_eval(x,env,_stack,0))
 
 static lispval message_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
@@ -142,7 +142,7 @@ static int get_loglevel(lispval level_arg)
 
 static lispval log_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  lispval level_arg = kno_eval(kno_get_arg(expr,1),env);
+  lispval level_arg = kno_eval(kno_get_arg(expr,1),env,_stack,0);
   lispval body = kno_get_body(expr,2);
   int level = get_loglevel(level_arg);
   U8_OUTPUT *out = u8_open_output_string(1024);
@@ -159,7 +159,7 @@ static lispval log_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     if (KNO_SYMBOLP(cond_expr))
       condition = SYM_NAME(KNO_CAR(body));
     else if (KNO_EVALP(cond_expr)) {
-      lispval condition_name = kno_stack_eval(cond_expr,env,_stack,0);
+      lispval condition_name = kno_eval(cond_expr,env,_stack,0);
       if (KNO_SYMBOLP(condition_name))
         condition = SYM_NAME(condition_name);
       else if (!(KNO_VOIDP(condition_name)))
@@ -195,7 +195,7 @@ static lispval logreport_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     if (KNO_SYMBOLP(cond_expr))
       condition = SYM_NAME(KNO_CAR(body));
     else if (KNO_EVALP(cond_expr)) {
-      lispval condition_name = kno_stack_eval(cond_expr,env,_stack,0);
+      lispval condition_name = kno_eval(cond_expr,env,_stack,0);
       if (KNO_SYMBOLP(condition_name))
         condition = SYM_NAME(condition_name);
       else if (!(KNO_VOIDP(condition_name)))
@@ -240,7 +240,7 @@ static lispval logif_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       if (KNO_SYMBOLP(cond_expr))
         condition = SYM_NAME(KNO_CAR(body));
       else if (KNO_EVALP(cond_expr)) {
-        lispval condition_name = kno_stack_eval(cond_expr,env,_stack,0);
+	lispval condition_name = kno_eval(cond_expr,env,_stack,0);
         if (KNO_SYMBOLP(condition_name))
           condition = SYM_NAME(condition_name);
         else if (!(KNO_VOIDP(condition_name)))
@@ -279,7 +279,7 @@ static lispval logifplus_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
            (EMPTYP(value)) || (NILP(value)))
     return VOID;
   kno_decref(value);
-  loglevel_arg = kno_eval(kno_get_arg(expr,2),env);
+  loglevel_arg = kno_eval(kno_get_arg(expr,2),env,_stack,0);
   if (KNO_ABORTP(loglevel_arg))
     return loglevel_arg;
   else if (VOIDP(loglevel_arg))
@@ -299,7 +299,7 @@ static lispval logifplus_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       if (KNO_SYMBOLP(cond_expr))
         condition = SYM_NAME(KNO_CAR(body));
       else if (KNO_EVALP(cond_expr)) {
-        lispval condition_name = kno_stack_eval(cond_expr,env,_stack,0);
+	lispval condition_name = kno_eval(cond_expr,env,_stack,0);
         if (KNO_SYMBOLP(condition_name))
           condition = SYM_NAME(condition_name);
         else if (!(KNO_VOIDP(condition_name)))

@@ -215,7 +215,7 @@ define showflo
 end
 define schemap
   printf "schema=%d\n",(&(((struct KNO_SCHEMAP *)$arg0)->table_schema))
-  printf "values=%d\n",(&(((struct KNO_SCHEMAP *)$arg0)->schema_values))
+  printf "values=%d\n",(&(((struct KNO_SCHEMAP *)$arg0)->table_values))
   printf "size=%d\n",(((struct KNO_SCHEMAP *)$arg0)->schema_length)
   print (*((struct KNO_SCHEMAP *)$arg0))
 end
@@ -224,7 +224,7 @@ define showschemapk
   showtype $
 end
 define showschemapv
-  print (((struct KNO_SCHEMAP *)$arg0)->schema_values)[$arg1]
+  print (((struct KNO_SCHEMAP *)$arg0)->table_values)[$arg1]
   showtype $
 end
 define slotmap
@@ -262,19 +262,23 @@ set breakpoint pending on
 #set disable-randomization off
 set overload-resolution off
 
-break u8_log_break
-break u8_new_exception
-break u8_utf8_warning
-break _kno_debug
-break _u8_dbg
+break dbg_evalfn:debugger
+break kno_mkerr
 break u8_raise
-break TCMalloc_Printer::printf
 break __msan_warning
 break __msan_warning_noreturn
 break __asan_report_error
 break abort
-#break exit
 
+def debug_utf8
+break u8_utf8_warning
+end
+
+def debug_libu8
+break u8_log_break
+break _u8_dbg
+break u8_new_exception
+end
 
 # For LIBC
 set env MALLOC_CHECK_=2
@@ -339,6 +343,10 @@ define staticweb
     set args /var/run/knoweb/static.sock
 end
 
+define sessions
+  set environment KNO_LOADMOD kno/sessions
+end
+
 define dotload
   unset environment KNO_SKIP_DOTLOAD
 end
@@ -364,23 +372,12 @@ define sfield
 end
 
 # Commands for the new stack
-define stackframe
-  if ($argc == 1)
-    call _knodbg_show_stack_frame($arg0)
-  else
-   call _knodbg_show_stack_frame((void *)0)
-  end
-end
-
 define showstack
   if ($argc == 0)
    call _knodbg_show_stack((void *)0,-1)
   end
   if ($argc == 1)
     call _knodbg_show_stack_frame($arg0)
-  end
-  if ($argc == 2)
-   call _knodbg_show_stack($arg1,$arg0)
   end
 end
 

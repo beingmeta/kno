@@ -42,8 +42,10 @@ kno_recycle_fn kno_recyclers[KNO_TYPE_MAX];
 kno_compare_fn kno_comparators[KNO_TYPE_MAX];
 
 kno_applyfn kno_applyfns[KNO_TYPE_MAX];
-/* This is set if the type is a CONS with a FUNCTION header */
-short kno_function_types[KNO_TYPE_MAX];
+/* Whether function application should pass choice arguments directly */
+unsigned char kno_type_call_info[KNO_TYPE_MAX];
+/* Whether an applyfn type is a cons with the KNO_FUNCTION_FIELDS header. */
+unsigned char kno_isfunctionp[KNO_TYPE_MAX];
 
 static u8_mutex constant_registry_lock;
 int kno_n_constants = KNO_N_BUILTIN_CONSTANTS;
@@ -108,6 +110,15 @@ lispval kno_register_constant(u8_string name)
     kno_constant_names[kno_n_constants++]=name;
     return constant;}
 }
+
+KNO_EXPORT u8_string kno_constant_name(lispval x)
+{
+  if (KNO_CONSTANTP(x)) {
+    int off = KNO_IMMEDIATE_DATA(x);
+    if (off<256) return kno_constant_names[off];}
+  return NULL;
+}
+
 
 static int validate_constant(lispval x)
 {
@@ -871,6 +882,9 @@ void kno_init_cons_c()
   i = 0; while (i < KNO_TYPE_MAX) kno_dtype_writers[i++]=NULL;
   i = 0; while (i < KNO_TYPE_MAX) kno_comparators[i++]=NULL;
   i = 0; while (i < KNO_TYPE_MAX) kno_copiers[i++]=NULL;
+  i = 0; while (i < KNO_TYPE_MAX) kno_applyfns[i++]=NULL;
+  i = 0; while (i < KNO_TYPE_MAX) kno_isfunctionp[i++]=0;
+  i = 0; while (i < KNO_TYPE_MAX) kno_type_call_info[i++]=0;
 
   kno_immediate_checkfns[kno_constant_type]=validate_constant;
 

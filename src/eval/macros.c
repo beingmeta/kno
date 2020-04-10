@@ -9,12 +9,9 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define KNO_INLINE_EVAL (!(KNO_AVOID_INLINE))
-
 #include "kno/knosource.h"
 #include "kno/lisp.h"
 #include "kno/eval.h"
-#include "eval_internals.h"
 #include "kno/storage.h"
 
 #include <libu8/u8printf.h>
@@ -49,7 +46,7 @@ static lispval macro_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     lispval lambda_form=
       kno_conspair(lambda_symbol,
                   kno_conspair(kno_make_list(1,name),kno_incref(body)));
-    lispval transformer = kno_eval(lambda_form,env);
+    lispval transformer = kno_eval(lambda_form,env,_stack,0);
     lispval macro = kno_make_macro(SYM_NAME(name),transformer);
     kno_decref(lambda_form);
     kno_decref(transformer);
@@ -102,7 +99,6 @@ KNO_EXPORT void kno_init_macros_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  moduleid_symbol = kno_intern("%moduleid");
   lambda_symbol = kno_intern("lambda");
 
   kno_walkers[kno_macro_type]=walk_macro;

@@ -1,3 +1,15 @@
+kno (2004.0.1-4) unstable; urgency=medium
+
+  * New packaging for 2004, improved Scheme/QCode interpreter
+
+ -- Ken Haase <kh@beingmeta.com>  Wed, 01 Apr 2020 20:07:59 -0400
+
+kno (2001.2.2-2) unstable; urgency=medium
+
+  * Updated control file to require latest libu8 when building
+
+ -- Ken Haase <kh@beingmeta.com>  Sat, 28 Mar 2020 11:22:34 -0400
+
 kno (2001.2.2-1) stable; urgency=medium
 
   * Don't bake in jemalloc, handle merged libu8

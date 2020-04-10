@@ -31,8 +31,6 @@
 
 #include <stdarg.h>
 
-static lispval moduleid_symbol;
-
 static kno_lexenv copy_lexenv(kno_lexenv env);
 
 KNO_EXPORT
@@ -196,7 +194,7 @@ static int unparse_lexenv(u8_output out,lispval x)
   struct KNO_LEXENV *env=
     kno_consptr(struct KNO_LEXENV *,x,kno_lexenv_type);
   if (HASHTABLEP(env->env_bindings)) {
-    lispval ids = kno_get(env->env_bindings,moduleid_symbol,EMPTY);
+    lispval ids = kno_get(env->env_bindings,KNOSYM_MODULEID,EMPTY);
     lispval mid = VOID;
     /* The symbol in the module_id binding is the actual module name,
        if it is a module (at least a registered one). */
@@ -215,7 +213,7 @@ static ssize_t lexenv_dtype(struct KNO_OUTBUF *out,lispval x)
     kno_consptr(struct KNO_LEXENV *,x,kno_lexenv_type);
   u8_string modname=NULL,  modfile=NULL;
   if (HASHTABLEP(env->env_bindings)) {
-    lispval ids = kno_get(env->env_bindings,moduleid_symbol,EMPTY);
+    lispval ids = kno_get(env->env_bindings,KNOSYM_MODULEID,EMPTY);
     DO_CHOICES(id,ids) {
       if (SYMBOLP(id))
         modname=SYM_NAME(id);
@@ -265,8 +263,6 @@ static ssize_t lexenv_dtype(struct KNO_OUTBUF *out,lispval x)
 
 KNO_EXPORT void kno_init_lexenv_c()
 {
-  moduleid_symbol = kno_intern("%moduleid");
-
   kno_unparsers[kno_lexenv_type]=unparse_lexenv;
   kno_copiers[kno_lexenv_type]=lisp_copy_lexenv;
   kno_recyclers[kno_lexenv_type]=recycle_lexenv;

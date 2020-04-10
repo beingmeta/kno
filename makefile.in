@@ -62,11 +62,13 @@ APXS		  = @APXS@ -S LIBEXECDIR=$(DESTDIR)@apache_modules_dir@
 PPROF_PATH        = @GOOGLE_PPROF@
 CLEAN		  = @CLEAN@
 ECHO		  = @ECHO@
+GZIP		  = @GZIP@
 MSG		  = @MSG@
 SUINSTALL	  = @SUINSTALL@
 SYSINSTALL	  = @SUINSTALL@@INSTALL@
 SUDO	          = @SUDO@
 INSTALL		  = @INSTALL@
+MANINSTALL	  = $(SUDO)$(GZIP) -cf
 MKSTATIC	  = @MKSTATIC@ -o 
 CODENAME	  = @CODENAME@
 REL_BRANCH      ::= $(shell ./etc/getbuildopt REL_BRANCH current)
@@ -148,7 +150,7 @@ LIB_HEADERS=include/kno/texttools.h include/kno/webtools.h
 # Headers which don't live in include/kno
 SRC_HEADERS=src/lisp/biginternals.h 		\
 	src/eval/eval_internals.h 		\
-	src/apply/apply_cprims.h 		\
+	src/apply/apply_internals.h 		\
 	src/exe/webcommon.h 			\
 	src/drivers/headers/zcompress.h 	\
 	src/drivers/headers/filepool.h 		\
@@ -243,6 +245,7 @@ SCHEME_OBJS=\
 	src/eval/reflection.o \
 	src/eval/compoundfns.o \
 	src/eval/choiceops.o \
+	src/eval/evalops.o \
 	src/eval/coreops.o \
 	src/eval/configops.o \
 	src/eval/dteval.o \
@@ -338,7 +341,7 @@ KNO_SOURCES=\
 	src/sys/errobjs.c src/sys/logging.c src/sys/getopt.c			\
 	src/sys/startup.c src/sys/fluid.c src/sys/signals.c			\
 	src/apply/apply.c src/apply/stacks.c src/apply/lexenv.c 		\
-	src/apply/ffi.c src/apply/apply_cprims.h				\
+	src/apply/ffi.c src/apply/apply_internals.h				\
 	src/storage/storage.c src/storage/streams.c src/storage/hashdtype.c	\
 	src/storage/drivers.c src/storage/indexes.c src/storage/pools.c		\
 	src/storage/oidstore.c  src/storage/frames.c src/storage/slotindexes.c  \
@@ -356,7 +359,7 @@ KNO_SOURCES=\
 	src/storage/procpool.c src/storage/procindex.c 				\
 	src/drivers/memindex.c							\
 	src/drivers/netpool.c src/drivers/netindex.c				\
-	src/eval/eval.c src/eval/opcode_defs.c src/eval/opcode_names.h		\
+	src/eval/eval.c src/eval/opcode_defs.c src/eval/opcode_info.h		\
 	src/eval/options.c src/eval/appenv.c					\
 	src/eval/testops.c src/eval/debug.c					\
 	src/eval/binders.c src/eval/lambda.c 					\
@@ -365,6 +368,7 @@ KNO_SOURCES=\
         src/eval/threads.c src/eval/quasiquote.c src/eval/struct_eval.c		\
 	src/eval/modules.c src/eval/load.c src/eval/reflection.c 		\
 	src/eval/compoundfns.c src/eval/repl.c					\
+	src/eval/evalops.c                  					\
 	src/eval/coreops.c                  					\
 	src/eval/arith.c 			              			\
 	src/eval/regex.c 			              			\
@@ -538,7 +542,8 @@ packaged: exe cmodules etc i18n
 fresh: clean
 	make update
 freshdebug dbgfresh freshbug: clean
-	make debugging
+	make TAGS
+	make -s debugging
 
 # Handy targets
 
@@ -563,6 +568,17 @@ showbuildmode showmode showbuild: .buildmode
 	@cat .buildmode
 cleandebug: clean
 	make debug
+
+knocore:    lib/libknocore@suffix@.a
+knostorage: lib/libknostorage@suffix@.a
+knodrivers: lib/libknodrivers@suffix@.a
+knoscheme:  lib/libknoscheme@suffix@.a
+knoweb:     lib/libknowebtools@suffix@.a
+knotext:    lib/libknotexttools@suffix@.a
+knodb:
+	make knocore
+	make knostorage
+	make knodrivers
 
 # configure/autoconf stuff
 
@@ -656,7 +672,7 @@ lib/kno/%.@KNO_MAJOR@.dylib: lib/kno/%.dylib
 
 dbg/%: src/exe/%.c $(LINK_STATIC_LIBS)
 	@echo MKEXE_DEBUG $@
-	$(CC) $(TEST_CFLAGS) -o $@ $^ 		\
+	$(CC) $(TEST_CFLAGS) -o $@ $< $(LINK_STATIC_LIBS) \
 	      @STATICLDFLAGS@ $(TEST_LDFLAGS) $(TEST_EXEFLAGS) 	\
 	      -lu8 -lu8stdio -lu8syslog 		\
 	      $(LIBS) $(EXELIBS)
@@ -852,11 +868,14 @@ uninstall: uninstall-core
 TAGS: makefile.in configure.ac include/kno/config.h.in			\
 		tests/libtests/*.c		  			\
 		src/exe/*.c src/exe/*.h include/kno/*.h 		\
-		src/lisp/*.c src/sys/*.c src/apply/*.c			\
+		src/lisp/*.c src/sys/*.c 				\
+		src/apply/*.c src/apply/*.h				\
 		src/storage/*.c src/drivers/*.c 			\
-		src/eval/*.c src/prims/*.c     				\
+		src/eval/*.c src/eval/*.h				\
+		src/prims/*.c     					\
 		src/text/*.c src/web/*.c 				\
 		src/cmodules/*.c 					\
+		src/python/*.c 						\
 		src/libscm/*.scm src/libscm/*/*.scm 			\
 		src/scripts/*.scm					\
 		include/kno/components/*.h				\
@@ -872,14 +891,15 @@ TAGS: makefile.in configure.ac include/kno/config.h.in			\
 		src/extmods/*.in src/extmods/*/makefile	\
 		include/kno/components/*.h		\
 		${SRC_HEADERS};
-	@etags -o TAGS -a src/exe/*.c src/exe/*.h 
-	@etags -o TAGS -a src/lisp/*.c src/sys/*.c src/apply/*.c 
+	@etags -o TAGS -a src/exe/*.c src/exe/*.h
+	@etags -o TAGS -a src/lisp/*.c src/sys/*.c src/apply/*.c  src/apply/*.h 
 	@etags -o TAGS -a src/storage/*.c
 	@etags -o TAGS -a src/drivers/*.c src/drivers/headers/*.h
-	@etags -o TAGS -a src/eval/*.c src/prims/*.c
+	@etags -o TAGS -a src/eval/*.c src/eval/*.h src/prims/*.c
 	@etags -o TAGS -a src/web/*.c src/text/*.c;
 	@etags -o TAGS -a tests/libtests/*.c tests/*.scm;
 	@etags -o TAGS -a src/cmodules/*.c;
+	@etags -o TAGS -a src/python/*.c;
 	@etags -o TAGS -a src/scripts/*.scm;
 	@etags -o TAGS -a src/extmods/*/makefile
 	@find src/libscm/ -name "*.scm" -type f | xargs etags -a -o TAGS;
@@ -910,6 +930,11 @@ CSOURCETAGS: src/lisp/*.c src/sys/*.c src/apply/*.c	\
 	@echo Building KNO_SOURCE TAGS file
 	@etags -o $@ $^
 
+KNOSCHEMETAGS: src/eval/*.c src/prims/*.c src/web/*.c src/text/*.c
+	@echo Building scheme-implementation TAGS file
+	@etags -o $@ $^
+
+
 SCHEMETAGS: ${SCHEME_MODULES}
 	@echo Building SCHEMETAGS file
 	@rm -f SCHEMETAGS
@@ -938,13 +963,10 @@ tidy: profile-clean
 clean: tidy
 	@for dir in ${CLEANDIRS}; do rm -f ${dir}/*.o; done
 	rm -rf etc/*.o etc/.libs
-	rm -f lib/*.a lib/*@suffix@.so lib/*.dylib
-	rm -f lib/*@suffix@.so.*
-	rm -f lib/kno/*@suffix@.so lib/kno/*@suffix@.so.* 
-	rm -f lib/kno/*.dylib
-	rm -f exe/kno@suffix@ exe/knotask@suffix@
-	rm -f exe/knocgi@suffix@ exe/knod@suffix@
-	rm -f exe/knoc@suffix@ exe/knocgi@suffix@
+	rm -f lib/*.a lib/*.so lib/*.dylib
+	rm -f lib/*.so lib/*.so.* lib/*.dylib lib/*.dylib.*
+	rm -f lib/kno/*.so lib/kno/*.so.* lib/kno/*.dylib lib/kno/*.dylib.*
+	rm -f exe/kno* dbg/kno* static/kno* static/stripped/kno*
 	rm -f TAGS
 	cd tests/libtests; make -s clean
 	cd tests; make -s clean
@@ -967,10 +989,10 @@ pull:
 
 # Custom dependencies
 
-src/apply/apply.o: src/apply/apply_cprims.h
+src/apply/apply.o: src/apply/apply_internals.h
 src/eval/binders.o src/eval/conditionals.o src/eval/iterators.o: \
 	src/eval/eval_internals.h
-src/eval/eval.o: src/eval/eval_internals.h src/eval/opcode_defs.c src/eval/opcode_names.h
+src/eval/eval.o: src/eval/eval_internals.h src/eval/opcode_defs.c src/eval/opcode_info.h
 
 # Custom rules
 
@@ -1168,10 +1190,8 @@ $(MANDIR)/man1 $(MANDIR)/man8 $(DOCDIR)/html:
 	@$(SYSINSTALL) -d $@
 
 install-docs: $(MANDIR)/man1 $(MANDIR)/man8 $(DOCDIR)/html docs
-	@for file in docs/man/*.1; do gzip $${file}; done
-	@for file in docs/man/*.8; do gzip $${file}; done
-	@for file in docs/man/*.1.gz; do $(SYSINSTALL) $${file} $(MANDIR)/man1; done;
-	@for file in docs/man/*.8.gz; do $(SYSINSTALL) $${file} $(MANDIR)/man8; done
+	@for file in docs/man/*.1; do ${MANINSTALL} $(MANDIR)/man1/$$(basename $${file}).gz; done
+	@for file in docs/man/*.8; do ${MANINSTALL} $(MANDIR)/man8/$$(basename $${file}).gz; done
 	@for file in docs/man.html/*.html; do \
 	   $(SYSINSTALL) $${file} $(DOCDIR)/html; done
 
@@ -1543,7 +1563,7 @@ install-support: $(DESTDIR)@share_dir@
 	cd $(BUILD)/src/web; $(SYSINSTALL) @install_file_opts@ 	\
 		webinfo.knocgi $(DESTDIR)@share_dir@
 
-LIBSCM_DIRS=optimize bugjar bench knodb xhtml
+LIBSCM_DIRS=optimize bugjar bench knodb xhtml kno
 LIBSCM_DATA_DIRS=
 install-libscm:
 	@if [ ! -d ${DESTDIR}${LIBSCM} ]; then 						\
@@ -1991,7 +2011,7 @@ include/kno/revision.h: $(KNO_SOURCES) $(KNO_HEADERS) makefile
 	  mv etc/use_revision.h $@;					\
 	fi;
 ### Depending on the .buildmode
-$(EXECUTABLES) $(STATIC_EXECUTABLES): $(REVISION_H)
+$(EXECUTABLES) $(STATIC_EXECUTABLES) $(DEBUG_EXECUTABLES): $(REVISION_H) src/exe/main.c
 $(LISP_OBJS): $(LISP_HEADERS) $(REVISION_H) .buildmode 
 $(SYS_OBJS): $(LISP_HEADERS) $(REVISION_H) .buildmode 
 $(APPLY_OBJS): $(LISP_HEADERS) $(APPLY_HEADERS) $(REVISION_H) .buildmode 

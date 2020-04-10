@@ -9,8 +9,6 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define KNO_INLINE_EVAL 1
-
 #include "kno/knosource.h"
 #include "kno/lisp.h"
 #include "kno/storage.h"
@@ -153,7 +151,7 @@ static int output_attribval(u8_output out,
         value = kno_symeval(expr,xml_env);
       if (VOIDP(value))
         value = kno_req_get(expr,VOID);}
-    else value = kno_eval(expr,scheme_env);
+    else value = kno_eval_arg(expr,scheme_env);
     if (KNO_ABORTED(value)) return kno_interr(value);
     else if ((VOIDP(value))&&(SYMBOLP(expr)))
       as_string = u8_strdup("");
@@ -378,7 +376,7 @@ static int test_if(lispval xml,kno_lexenv scheme_env,kno_lexenv xml_env)
     if ((VOIDP(val))||(FALSEP(val))) return 0;
     else {kno_decref(val); return 1;}}
   else if (PAIRP(test)) {
-    lispval value = kno_eval(test,scheme_env);
+    lispval value = kno_eval_arg(test,scheme_env);
     kno_decref(test);
     if (KNO_ABORTED(value)) return kno_interr(value);
     else if (VOIDP(value)) return 0;
@@ -531,7 +529,7 @@ KNO_EXPORT lispval knoml_get(lispval xml,lispval sym,kno_lexenv env)
         if (PAIRP(value))
           if  ((KNO_EQ(KNO_CAR(value),xmleval_tag)) ||
                (KNO_EQ(KNO_CAR(value),xmleval2expr_tag))) {
-            lispval result = kno_eval(KNO_CDR(value),env);
+            lispval result = kno_eval_arg(KNO_CDR(value),env);
             if (KNO_ABORTED(result)) {
               kno_decref(results);
               KNO_STOP_DO_CHOICES;
@@ -555,7 +553,7 @@ KNO_EXPORT lispval knoml_get(lispval xml,lispval sym,kno_lexenv env)
     else if (PAIRP(values))
       if ((KNO_EQ(KNO_CAR(values),xmleval_tag)) ||
           (KNO_EQ(KNO_CAR(values),xmleval2expr_tag))) {
-        lispval result = kno_eval(KNO_CDR(values),env);
+        lispval result = kno_eval_arg(KNO_CDR(values),env);
         kno_decref(values);
         return result;}
       else return values;
@@ -589,8 +587,6 @@ static lispval xmlapply(u8_output out,lispval fn,lispval xml,
     kno_decref(bind);
     return kno_type_error("function","xmlapply",fn);}
 
-  result = kno_finish_call(result);
-
   if (KNO_ABORTED(result))
     return result;
   else if (VOIDP(bind)) return result;
@@ -622,7 +618,7 @@ static lispval xmlapply(u8_output out,lispval fn,lispval xml,
    we are using.
  */
 
-static lispval get_symbol, elt_symbol, quote_symbol;
+static lispval get_symbol, elt_symbol;
 
 static lispval extract_var(u8_string start,u8_string end)
 {
@@ -642,7 +638,7 @@ static lispval parse_infix(u8_string start)
     if (split == start) return kno_parse(start);
    /* Record form x.y ==> (get x 'y) */
     return kno_make_list(3,get_symbol,extract_var(start,split),
-                        kno_make_list(2,quote_symbol,kno_parse(split+1)));}
+                        kno_make_list(2,KNOSYM_QUOTE,kno_parse(split+1)));}
   else if ((split = (strchr(start,'#')))) {
     if (split == start) return kno_parse(start);
     /* Call form x#y ==> (y x) */
@@ -1094,10 +1090,10 @@ lispval kno_xmlevalout(u8_output out,lispval xml,
         val = kno_symeval(xml,(kno_lexenv)xml_env);
       else val = kno_req_get(xml,VOID);
       if ((KNO_TROUBLEP(val))||(VOIDP(val)))
-        result = kno_eval(xml,scheme_env);
+        result = kno_eval_arg(xml,scheme_env);
       else result = val;}
     /* Non-symbols always get evaluated in the scheme environment */
-    else result = kno_eval(xml,scheme_env);
+    else result = kno_eval_arg(xml,scheme_env);
     /* This is where we have a symbol or list embedded in
        the document (via escapes, for instance) */
     if (VOIDP(result)) {}
@@ -1522,7 +1518,7 @@ static lispval knoml_seq_loop(lispval var,lispval count_var,lispval xpr,kno_lexe
     return VOID;}
   KNO_INIT_STATIC_CONS(&envstruct,kno_lexenv_type);
   KNO_INIT_STATIC_CONS(&bindings,kno_schemap_type);
-  bindings.table_schema = vars; bindings.schema_values = vals;
+  bindings.table_schema = vars; bindings.table_values = vals;
   bindings.schema_length = 1; bindings.schemap_onstack = 1;
   u8_init_rwlock(&(bindings.table_rwlock));
   envstruct.env_parent = env;
@@ -1579,7 +1575,7 @@ static lispval knoml_choice_loop(lispval var,lispval count_var,lispval xpr,kno_l
     bindings.schema_length = 2;
     vars[0]=var; vals[0]=VOID; vloc = &(vals[0]);
     vars[1]=count_var; vals[1]=KNO_INT(0); iloc = &(vals[1]);}
-  bindings.table_schema = vars; bindings.schema_values = vals;
+  bindings.table_schema = vars; bindings.table_values = vals;
   bindings.schemap_onstack = 1;
   u8_init_rwlock(&(bindings.table_rwlock));
   envstruct.env_parent = env;
@@ -1630,7 +1626,7 @@ static lispval knoml_range_loop(lispval var,lispval count_var,
   KNO_INIT_STATIC_CONS(&envstruct,kno_lexenv_type);
   KNO_INIT_STATIC_CONS(&bindings,kno_schemap_type);
   bindings.table_schema = vars;
-  bindings.schema_values = vals;
+  bindings.table_values = vals;
   bindings.schema_length = 1;
   bindings.schemap_onstack = 1;
   u8_init_rwlock(&(bindings.table_rwlock));
@@ -1723,7 +1719,7 @@ static lispval knoml_define(lispval expr,kno_lexenv env,kno_stack _stack)
           arglist = pair;}}
 
     /* Construct the body */
-    body = kno_make_list(2,quote_symbol,kno_incref(content));
+    body = kno_make_list(2,KNOSYM_QUOTE,kno_incref(content));
     body = kno_make_list(2,xmlarg_symbol,body);
     body = kno_make_list(3,doseq_symbol,body,kno_incref(knoml_define_body));
     body = kno_make_list(1,body);
@@ -1829,7 +1825,6 @@ KNO_EXPORT void kno_init_xmleval_c()
   attribids = kno_intern("%attribids");
 
   begin_symbol = kno_intern("begin");
-  quote_symbol = kno_intern("quote");
   xmlarg_symbol = kno_intern("%xmlarg");
   doseq_symbol = kno_intern("doseq");
   knoml_define_body = kno_make_list(2,kno_intern("xmleval"),xmlarg_symbol);

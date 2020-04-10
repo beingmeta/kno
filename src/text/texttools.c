@@ -1680,7 +1680,7 @@ static int framify(lispval f,u8_output out,lispval xtract)
 	  kno_decref(stringval);}
 	else if (KNO_APPLICABLEP(parser)) {
 	  lispval stringval = kno_stream2string(&_out);
-	  lispval parsed_val = kno_finish_call(kno_dapply(parser,1,&stringval));
+	  lispval parsed_val = kno_dapply(parser,1,&stringval);
 	  if (!(KNO_ABORTP(parsed_val))) kno_add(f,slotid,parsed_val);
 	  kno_decref(parsed_val);
 	  kno_decref(stringval);
@@ -2082,7 +2082,7 @@ static lispval check_string(lispval string,lispval lexicon)
 	kno_decref(value); kno_decref(subvalue);
 	return string;}}}
   else if (KNO_APPLICABLEP(lexicon)) {
-    lispval result = kno_finish_call(kno_dapply(lexicon,1,&string));
+    lispval result = kno_dapply(lexicon,1,&string);
     if (KNO_ABORTP(result)) return KNO_ERROR;
     else if (EMPTYP(result)) return EMPTY;
     else if (FALSEP(result)) return EMPTY;
@@ -2243,7 +2243,7 @@ static lispval morphrule(lispval string,lispval rules,lispval lexicon)
 static lispval textclosure_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval pattern_arg = kno_get_arg(expr,1);
-  lispval pattern = kno_eval(pattern_arg,env);
+  lispval pattern = kno_eval_arg(pattern_arg,env);
   if (VOIDP(pattern_arg))
     return kno_err(kno_SyntaxError,"textclosure_evalfn",NULL,expr);
   else if (KNO_ABORTP(pattern)) return pattern;

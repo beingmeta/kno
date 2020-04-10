@@ -15,7 +15,7 @@
 #define KNO_INLINE_STACKS       (!(KNO_AVOID_INLINE))
 #define KNO_INLINE_LEXENV       (!(KNO_AVOID_INLINE))
 
-#define KNO_INLINE_EVAL    (!(KNO_AVOID_INLINE))
+#define KNO_EVAL_INTERNALS      1
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
@@ -46,7 +46,7 @@
 
 static lispval struct_eval_symbol;
 
-static lispval vector_evalfn(lispval vec,kno_lexenv env,struct KNO_STACK *stackptr)
+static lispval vector_evalfn(lispval vec,kno_lexenv env,kno_stack stackptr)
 {
   lispval *eval_elts = KNO_VECTOR_DATA(vec);
   int i = 0, len = KNO_VECTOR_LENGTH(vec);
@@ -54,7 +54,7 @@ static lispval vector_evalfn(lispval vec,kno_lexenv env,struct KNO_STACK *stackp
   lispval *result_elts = KNO_VECTOR_DATA(result);
   while (i < len) {
     lispval expr = eval_elts[i];
-    lispval val = __kno_fast_eval(expr,env,stackptr,0);
+    lispval val = kno_eval(expr,env,stackptr,0);
     if (KNO_ABORTP(val)) {
       kno_decref(result);
       return val;}
@@ -62,7 +62,7 @@ static lispval vector_evalfn(lispval vec,kno_lexenv env,struct KNO_STACK *stackp
   return result;
 }
 
-static lispval slotmap_evalfn(lispval sm,kno_lexenv env,struct KNO_STACK *stackptr)
+static lispval slotmap_evalfn(lispval sm,kno_lexenv env,kno_stack stackptr)
 {
   int unlock = 0;
   struct KNO_SLOTMAP *smap = (kno_slotmap) sm;
@@ -77,7 +77,7 @@ static lispval slotmap_evalfn(lispval sm,kno_lexenv env,struct KNO_STACK *stackp
   while (read_slot < n_slots) {
     lispval slotid = old_kv[read_slot].kv_key;
     lispval eval_expr = old_kv[read_slot].kv_val;
-    lispval val = __kno_fast_eval(eval_expr,env,stackptr,0);
+    lispval val = kno_eval(eval_expr,env,stackptr,0);
     if (KNO_ABORTP(val)) {
       if (unlock) u8_rw_unlock(&(smap->table_rwlock));
       kno_decref(result);
@@ -103,7 +103,7 @@ static lispval slotmap_evalfn(lispval sm,kno_lexenv env,struct KNO_STACK *stackp
   return result;
 }
 
-static lispval struct_evalfn(lispval expr,kno_lexenv env,struct KNO_STACK *stackptr)
+static lispval struct_evalfn(lispval expr,kno_lexenv env,kno_stack stackptr)
 {
   if ( ( !(KNO_PAIRP(expr)) ) || (!(KNO_PAIRP(KNO_CDR(expr)))) )
     return kno_err(kno_SyntaxError,"struct_evalfn",NULL,expr);
@@ -113,7 +113,7 @@ static lispval struct_evalfn(lispval expr,kno_lexenv env,struct KNO_STACK *stack
   else if (KNO_SLOTMAPP(x))
     return slotmap_evalfn(x,env,stackptr);
   else if (KNO_PAIRP(x))
-    return __kno_fast_eval(x,env,stackptr,0);
+    return kno_eval(x,env,stackptr,0);
   else return x;
 }
 

@@ -10,7 +10,6 @@
 #endif
 
 #define U8_INLINE_IO 1
-#define KNO_INLINE_EVAL 1
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
@@ -29,7 +28,7 @@
 #include <libu8/u8stringfns.h>
 #include <libu8/u8streamio.h>
 
-#define fast_eval(x,env) (__kno_fast_eval(x,env,_stack,0))
+#define fast_eval(x,env) (kno_eval(x,env,kno_stackptr,0))
 
 #include <ctype.h>
 
@@ -822,7 +821,7 @@ static lispval jsout_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       if (STRINGP(x))
         u8_puts(&_out,CSTRING(x));
       else if ((SYMBOLP(x))||(PAIRP(x))) {
-        result = kno_eval(x,env);
+	result = kno_eval(x,env,_stack,0);
         if (KNO_ABORTP(result)) break;
         else if ((VOIDP(result))||(FALSEP(result))||
                  (EMPTYP(result))) {}
@@ -857,7 +856,7 @@ static lispval cssout_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       if (STRINGP(x))
         u8_puts(&_out,CSTRING(x));
       else if ((SYMBOLP(x))||(PAIRP(x))) {
-        result = kno_eval(x,env);
+	result = kno_eval(x,env,_stack,0);
         if (KNO_ABORTP(result)) break;
         else if ((VOIDP(result))||(FALSEP(result))||
                  (EMPTYP(result))) {}
@@ -1172,7 +1171,6 @@ static int U8_MAYBE_UNUSED cgiexecstep(void *data)
   else call->cgiout->u8_write = call->cgiout->u8_outbuf+call->outlen;
   value = kno_xapply_lambda((kno_lambda)proc,(void *)cgidata,
                             (lispval (*)(void *,lispval))cgigetvar);
-  value = kno_finish_call(value);
   call->result = value;
   return 1;
 }
@@ -1205,10 +1203,9 @@ KNO_EXPORT lispval kno_cgiexec(lispval proc,lispval cgidata)
 #else
     int ipeval = 0;
 #endif
-    if (!(ipeval)) {
+    if (!(ipeval))
       value = kno_xapply_lambda((kno_lambda)proc,(void *)cgidata,
-                                (lispval (*)(void *,lispval))cgigetvar);
-      value = kno_finish_call(value);}
+				(lispval (*)(void *,lispval))cgigetvar);
 #if KNO_IPEVAL_ENABLED
     else {
       struct U8_OUTPUT *out = u8_current_output;
@@ -1249,7 +1246,7 @@ static lispval withreqout_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
         u8_free(_out.u8_outbuf);
         return result;}
       kno_decref(result);
-      result = kno_eval(ex,env);}}
+      result = kno_eval(ex,env,_stack,0);}}
   u8_set_default_output(oldout);
   kno_output_xhtml_preface(oldout,reqinfo);
   u8_putn(oldout,_out.u8_outbuf,(_out.u8_write-_out.u8_outbuf));

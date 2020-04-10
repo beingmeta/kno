@@ -16,6 +16,7 @@
 #define TOSTRING(x) #x
 #define STRINGIFY(x) TOSTRING(x)
 
+
 #define KNO_MAX_ARGS(n) ( (n < 0) ? (0x80) : ((n)&(0x7F)) )
 #define KNO_MIN_ARGS(n) ( (n < 0) ? (0x00) : ( (0x8000) | (((n)&(0x7F))<<8) ) )
 #define KNO_OPTARGS   0x08000

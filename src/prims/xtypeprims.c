@@ -9,7 +9,7 @@
 #define _FILEINFO __FILE__
 #endif
 
-/* #define KNO_INLINE_EVAL 1 */
+/* #define KNO_EVAL_INTERNALS 1 */
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
@@ -92,7 +92,9 @@ static lispval write_xtype_prim(lispval object,lispval dest,lispval opts)
     /* Write to packet */
     KNO_INIT_BYTE_OUTPUT(&_outbuf,2000);
     outbuf=&_outbuf;}
-  else return kno_err("NotStreamOrFilename","write_xtype",NULL,dest);
+  else {
+    kno_decref(refs_arg);
+    return kno_err("NotStreamOrFilename","write_xtype",NULL,dest);}
 
   ssize_t rv = kno_compress_xtype(outbuf,object,refs,compress,embed);
   kno_decref(refs_arg);

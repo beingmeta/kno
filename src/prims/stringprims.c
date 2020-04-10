@@ -9,7 +9,7 @@
 #define _FILEINFO __FILE__
 #endif
 
-/* #define KNO_INLINE_EVAL 1 */
+/* #define KNO_EVAL_INTERNALS 1 */
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
@@ -1712,7 +1712,7 @@ static lispval textif_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   lispval test_expr = kno_get_arg(expr,1), test_val = VOID;
   if (VOIDP(test_expr))
     return kno_err(kno_SyntaxError,"textif_evalfn",NULL,VOID);
-  else test_val = kno_eval(test_expr,env);
+  else test_val = kno_eval(test_expr,env,_stack,0);
   if (KNO_ABORTED(test_val)) return test_val;
   else if ((FALSEP(test_val))||(EMPTYP(test_val)))
     return kno_make_string(NULL,0,"");
@@ -1721,7 +1721,7 @@ static lispval textif_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     kno_decref(test_val);
     if (len==0) return kno_make_string(NULL,0,NULL);
     else if (len==1) {
-      lispval text = kno_eval(kno_get_arg(body,0),env);
+      lispval text = kno_eval(kno_get_arg(body,0),env,_stack,0);
       if (STRINGP(text)) return kno_incref(text);
       else if ((FALSEP(text))||(EMPTYP(text)))
 	return kno_make_string(NULL,0,"");
@@ -1732,7 +1732,7 @@ static lispval textif_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,128);
       if (PAIRP(body)) {
 	KNO_DOLIST(text_expr,body) {
-	  lispval text = kno_eval(text_expr,env);
+	  lispval text = kno_eval(text_expr,env,_stack,0);
 	  if (KNO_ABORTED(text))
 	    return kno_err("Bad text clause","textif_evalfn",
 			   out.u8_outbuf,text_expr);
@@ -1743,7 +1743,7 @@ static lispval textif_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       else {
 	int i = 0; while (i<len) {
 	  lispval text_expr = kno_get_arg(body,i++);
-	  lispval text = kno_eval(text_expr,env);
+	  lispval text = kno_eval(text_expr,env,_stack,0);
 	  if (KNO_ABORTED(text))
 	    return kno_err("Bad text clause","textif_evalfn",
 			   out.u8_outbuf,text_expr);

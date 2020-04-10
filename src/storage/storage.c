@@ -193,7 +193,9 @@ static lispval better_parse_oid(u8_string start,int len)
     copy_start = copy_end+1; copy_end = start+len;
     strncpy(suffix,copy_start,(copy_end-copy_start));
     suffix[(copy_end-copy_start)]='\0';
-    if (sscanf(suffix,"%x",&delta)<1)  return KNO_PARSE_ERROR;
+    if (sscanf(suffix,"%x",&delta)<1)  {
+      kno_seterr("InvalidOIDReference","better_parse_oid",start,KNO_VOID);
+      return KNO_PARSE_ERROR;}
     result = KNO_OID_PLUS(base,delta);
     return kno_make_oid(result);}
   else return kno_parse_oid_addr(start,len);

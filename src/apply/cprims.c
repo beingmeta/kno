@@ -30,8 +30,6 @@
 
 #include <stdarg.h>
 
-static lispval moduleid_symbol;
-
 int unparse_cprim(u8_output out,lispval x)
 {
   struct KNO_CPRIM *fcn = (kno_cprim)x;
@@ -166,10 +164,10 @@ static struct KNO_CPRIM *make_cprim(u8_string name,
   f->fcn_filename = filename;
   f->fcn_doc = doc;
   f->fcn_moduleid = KNO_VOID;
-  f->fcn_call = KNO_FCN_CALL_NOTAIL |
-    ( (varargs) ? (KNO_FCN_CALL_LEXPR) : (0) ) |
-    ( (non_deterministic) ? (KNO_FCN_CALL_NDOP) : (0) ) |
-    ( (extended_call) ? (KNO_FCN_CALL_XCALL) : (0) );
+  f->fcn_call = KNO_CALL_NOTAIL | KNO_CALL_CPRIM |
+    ( (varargs) ? (KNO_CALL_VARARGS) : (0) ) |
+    ( (non_deterministic) ? (KNO_CALL_NDCALL) : (0) ) |
+    ( (extended_call) ? (KNO_CALL_XCALL) : (0) );
   f->fcn_call_width = f->fcn_arity = arity;
   f->fcn_min_arity = min_arity;
   f->fcn_typeinfo = prim_typeinfo;
@@ -249,8 +247,22 @@ KNO_EXPORT struct KNO_CPRIM *kno_init_cprim
  int *typeinfo,
  lispval *defaults)
 {
-  return make_cprim(name,cname,filename,doc,flags|KNO_MAX_ARGS(arity),
-		    typeinfo,defaults);
+  if (arity >= 0x80) {
+    u8_seterr("BadPrimitiveArity","kno_init_cprim",
+	      u8_mkstring("Arity for %s/%s in %s is too large: %d",
+			  name,cname,filename,arity));
+    return NULL;}
+  int flag_arity = flags & 0x8F;
+  if (flag_arity == 0)
+    flags |= KNO_MAX_ARGS(arity);
+  else if ( ! ( ( (flag_arity == 0x80) && (arity <= 0) ) ||
+	   ( arity == flag_arity ) ) ) {
+    u8_log(LOGWARN,"BadArityFlags",
+	   "Reparing flags for %s/%s in %s for immediate arity %d",
+	   name,cname,filename,arity);
+    flags = ( (flags) & (~(0x8F)) ) | ( (arity<0) ? (0x80) : (arity&0x7f) );}
+  else NO_ELSE;
+  return make_cprim(name,cname,filename,doc,flags,typeinfo,defaults);
 }
 
 static void link_cprim(struct KNO_CPRIM *cprim,u8_string pname,lispval module)
@@ -259,7 +271,7 @@ static void link_cprim(struct KNO_CPRIM *cprim,u8_string pname,lispval module)
   if (rv>0) {
     if ( (KNO_NULLP(cprim->fcn_moduleid)) ||
 	 (KNO_VOIDP(cprim->fcn_moduleid)) ) {
-      lispval moduleid = kno_get(module,moduleid_symbol,KNO_VOID);
+      lispval moduleid = kno_get(module,KNOSYM_MODULEID,KNO_VOID);
       if (!(KNO_VOIDP(moduleid)))
 	cprim->fcn_moduleid=moduleid;}}
   kno_decref((lispval)cprim);
@@ -590,9 +602,7 @@ KNO_EXPORT void kno_init_cprims_c()
 
   link_local_cprims();
 
-  moduleid_symbol = kno_intern("%moduleid");
-
-  kno_function_types[kno_cprim_type]=1;
+  kno_isfunctionp[kno_cprim_type]=1;
 
   kno_unparsers[kno_cprim_type]=unparse_cprim;
   kno_recyclers[kno_cprim_type]=recycle_cprim;

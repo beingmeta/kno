@@ -53,6 +53,7 @@ static int debug_maxelts = 32, debug_maxchars = 80;
 static char *configs[MAX_CONFIGS], *exe_arg = NULL, *file_arg = NULL;
 static int n_configs = 0;
 static int interpret_stdin = 0;
+static int no_loadarg = 0;
 
 static int chain_fast_exit=1;
 
@@ -174,9 +175,10 @@ static lispval *handle_argv(int argc,char **argv,size_t *arglenp,
       i++;}
     else if (source_file) i++;
     else {
+      file_arg = argv[i];
       arg_mask[i] = 'X';
-      file_arg = argv[i++];
-      source_file = u8_fromlibc(file_arg);}}
+      source_file = u8_fromlibc(file_arg);
+      i++;}}
 
   if (source_file == NULL) {}
   else if (source_filep) {
@@ -184,10 +186,6 @@ static lispval *handle_argv(int argc,char **argv,size_t *arglenp,
   else {}
 
   kno_init_lisp_types();
-
-  KNO_NEW_STACK(((kno_stack)NULL),"startup",argv[0],VOID);
-  _stack->stack_label=u8_strdup(u8_appid());
-  U8_SETBITS(_stack->stack_flags,KNO_STACK_FREE_LABEL);
 
   args = kno_handle_argv(argc,argv,arg_mask,arglenp);
 
@@ -206,8 +204,6 @@ static lispval *handle_argv(int argc,char **argv,size_t *arglenp,
 
   if (source_filep == NULL) u8_free(source_file);
   if (exe_namep == NULL) u8_free(exe_name);
-
-  kno_pop_stack(_stack);
 
   return args;
 }
@@ -256,6 +252,12 @@ int do_main(int argc,char **argv,
     ("LOADSTDIN",_("Read additional source from STDIN"),
      kno_boolconfig_get,kno_boolconfig_set,
      &interpret_stdin);
+  kno_register_config
+    ("NOLOADARG",
+     _("Whether to take the first command line argument as a source "
+       "file to load"),
+     kno_boolconfig_get,kno_boolconfig_set,
+     &no_loadarg);
   kno_register_config
     ("MAIN",
      _("The name of the (main) routine for this file"),
@@ -327,12 +329,14 @@ int do_main(int argc,char **argv,
 
   link_local_cprims();
 
-  if (source_file) {
+  if ( (source_file) && (!(no_loadarg)) ) {
     lispval src = kno_wrapstring(u8_realpath(source_file,NULL));
-    result = kno_load_source(source_file,env,NULL);
-
     kno_set_config("SOURCE",src);
-
+    result = kno_load_source(source_file,env,NULL);
+    if (KNO_ABORTED(result)) {
+      u8_exception ex = u8_current_exception;
+      if (ex == NULL)
+	u8_seterr("LoadFailed","knox/main()",u8_strdup(source_file));}
     kno_decref(src);}
   else if (interpret_stdin)
     result = load_stdin(env);
@@ -376,8 +380,7 @@ int do_main(int argc,char **argv,
 	result = KNO_VOID;}}
     else if (KNO_APPLICABLEP(main_proc)) {
       kno_decref(result);
-      result = kno_apply(main_proc,n_args,args);
-      result = kno_finish_call(result);}
+      result = kno_apply(main_proc,n_args,args);}
     else {
       u8_log(LOGWARN,"BadMain",
 	     "The main procedure for %s (%q) isn't applicable",
@@ -391,9 +394,13 @@ int do_main(int argc,char **argv,
     int old_maxelts = kno_unparse_maxelts, old_maxchars = kno_unparse_maxchars;
     u8_exception e = u8_erreify();
 
-    kno_unparse_maxchars = debug_maxchars; kno_unparse_maxelts = debug_maxelts;
-    kno_output_errstack(&out,e);
-    kno_unparse_maxelts = old_maxelts; kno_unparse_maxchars = old_maxchars;
+    if (e) {
+      kno_unparse_maxchars = debug_maxchars;
+      kno_unparse_maxelts = debug_maxelts;
+      kno_output_errstack(&out,e);
+      kno_unparse_maxelts = old_maxelts;
+      kno_unparse_maxchars = old_maxchars;}
+    else u8_puts(&out,"Null error object!");
     fputs(out.u8_outbuf,stderr);
     fputc('\n',stderr);
 
@@ -425,19 +432,13 @@ int main(int argc,char **argv)
 
   kno_main_errno_ptr = &errno;
 
-  KNO_INIT_STACK();
+  KNO_INIT_STACK_ROOT();
 
 #if KNO_TESTCONFIG
   kno_autoload_config("TESTMODS","TESTLOAD","TESTINIT");
 #endif
 
   args = handle_argv(argc,argv,&n_args,&exe_name,&source_file,NULL);
-
-  KNO_NEW_STACK(((struct KNO_STACK *)NULL),"kno",NULL,VOID);
-  u8_string appid=u8_appid();
-  if (appid==NULL) appid=argv[0];
-  _stack->stack_label=u8_strdup(appid);
-  U8_SETBITS(_stack->stack_flags,KNO_STACK_FREE_LABEL);
 
   if (source_file)
     exec_script = kno_wrapstring(source_file);
@@ -454,9 +455,11 @@ int main(int argc,char **argv)
   if (exe_name) u8_free(exe_name);
   if (source_file) u8_free(source_file);
 
-  kno_doexit(KNO_FALSE);
+  /* Call this here, where it might be easier to debug, even
+     though it's alos an atexit handler */
+  _kno_finish_threads();
 
-  return retval;
+ return retval;
 }
 #endif
 

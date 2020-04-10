@@ -9,17 +9,21 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define KNO_INLINE_EVAL (!(KNO_AVOID_INLINE))
+#define KNO_EVAL_INTERNALS 1
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
-#include "kno/profiles.h"
 #include "kno/eval.h"
 #include "kno/cprims.h"
-#include "eval_internals.h"
 #include "kno/storage.h"
 
+#include "eval_internals.h"
+#include "../apply/apply_internals.h"
+
 #include <libu8/u8printf.h>
+
+#include <sys/resource.h>
+#include "kno/profiles.h"
 
 u8_string kno_lambda_stack_type = "lambda";
 
@@ -30,6 +34,7 @@ int kno_record_source=1;
 
 static lispval tail_symbol, decls_symbol, flags_symbol;
 
+#if 0
 static u8_string lambda_id(struct KNO_LAMBDA *fn)
 {
   if ((fn->fcn_name)&&(fn->fcn_filename))
@@ -45,17 +50,7 @@ static u8_string lambda_id(struct KNO_LAMBDA *fn)
                           ((unsigned long)
                            ((KNO_LONGVAL(fn))&0xFFFFFFFF)));
 }
-
-static lispval get_rest_arg(kno_argvec args,int n)
-{
-  lispval result=NIL; n--;
-  while (n>=0) {
-    lispval arg=args[n];
-    kno_incref(arg);
-    result=kno_init_pair(NULL,arg,result);
-    n--;}
-  return result;
-}
+#endif
 
 static int add_autodocp(u8_string s)
 {
@@ -69,196 +64,24 @@ static int add_autodocp(u8_string s)
 
 /* LAMBDAs */
 
-KNO_FASTOP
-lispval lambda_call(struct KNO_STACK *_stack,
-                    struct KNO_LAMBDA *fn,
-                    int n,kno_argvec args)
+static lispval lambda_docall(kno_stack caller,
+			     struct KNO_LAMBDA *proc,
+			     short n,kno_argvec args)
 {
-  lispval result = VOID;
-  lispval *proc_vars=fn->lambda_vars;
-  kno_lexenv proc_env=fn->lambda_env;
-  kno_lexenv call_env=proc_env;
-  int n_vars = fn->lambda_n_vars;
-  int arity = fn->fcn_arity, min_arity = fn->fcn_min_arity;
-
-  if (_stack == NULL) _stack=kno_stackptr;
-
-  if (n < min_arity)
-    return kno_err(kno_TooFewArgs,fn->fcn_name,NULL,VOID);
-  else if ( (arity>=0) && (n>arity) )
-    return kno_err(kno_TooManyArgs,fn->fcn_name,NULL,VOID);
-  else {}
-
-  if (_stack->stack_label == NULL) {
-    if (fn->fcn_name)
-      _stack->stack_label=fn->fcn_name;
-    else {
-      _stack->stack_label=lambda_id(fn);
-      U8_SETBITS(_stack->stack_flags,KNO_STACK_FREE_LABEL);}}
-
-  lispval *vals = _stack->stack_buf;
-  _stack->stack_type = kno_lambda_stack_type;
-
-  int tail = (fn->lambda_synchronized) ? (0) :
-    ( (_stack->stack_caller) &&
-      (_stack->stack_caller->stack_flags & KNO_STACK_TAILPOS) &&
-      (! ((fn->fcn_call) & KNO_FCN_CALL_NOTAIL) ) );
-
-  int i = 0, max_positional = (arity < 0) ? (n_vars-1) : (arity);
-  int last_positional = (arity < 0) ?
-    ((n < max_positional) ? (n) : (max_positional)) :
-    (n);
-  lispval *inits = fn->lambda_inits;
-  if (args != vals)
-    while (i < last_positional) {
-      lispval arg = args[i];
-      if ( (KNO_VOIDP(arg)) || (KNO_DEFAULTP(arg)) ) {
-	vals[i++] = KNO_VOID;
-	continue;}
-      else vals[i++] = kno_incref(arg);}
-  else i = n;
-  if (inits) {
-    while (i < max_positional) {
-      lispval default_expr = inits[i];
-      if (VOIDP(default_expr))
-	vals[i++] = KNO_VOID;
-      else {
-	lispval default_value = fast_stack_eval(default_expr,proc_env,_stack);
-	if (KNO_ABORTED(default_value))
-	  _return default_value;
-	else vals[i++] = default_value;}}}
-  else if (args == vals) {
-    /* The rest of vals should be already be void */
-    i = max_positional;}
-  if (arity < 0) {
-    lispval old_arg = vals[i];
-    if (i<n)
-      vals[i] = get_rest_arg(args+i,n-i);
-    else vals[i] = KNO_EMPTY_LIST;
-    if (vals == args) kno_decref(old_arg);
-    i++;}
-
-  _stack->stack_flags |= (tail? (KNO_STACK_TAILPOS) : (0));
-  _stack->stack_flags |= KNO_STACK_DECREF_CALLBUF;
-
-  struct KNO_LEXENV stack_env = { 0 };
-  struct KNO_SCHEMAP bindings = { 0 };
-  init_static_env(n_vars,proc_env,&bindings,&stack_env,
-		  proc_vars,vals);
-  _stack->stack_env = call_env = &stack_env;
-  _stack->stack_args = vals;
-  _stack->stack_arglen = n_vars;
-
-  /* If we're synchronized, lock the mutex. */
-  if (fn->lambda_synchronized) u8_lock_mutex(&(fn->lambda_lock));
-
-  result = eval_body(fn->lambda_start,call_env,_stack,
-		     ":LAMBDA",fn->fcn_name,tail);
-
-  if (fn->lambda_synchronized) {
-    /* If we're synchronized, finish any tail calls and unlock the
-       mutex. */
-    result = kno_finish_call(result);
-    u8_unlock_mutex(&(fn->lambda_lock));}
-
-  if ( (_stack->stack_env) && (_stack->stack_env->env_copy) ) {
-    kno_decref((lispval)_stack->stack_env->env_copy);
-    _stack->stack_env->env_copy=NULL;}
-  _stack->stack_env=NULL;
-
-  return result;
+  return lambda_call(caller,proc,n,args,0);
 }
 
-lispval direct_lambda_call(struct KNO_STACK *_stack,
-			   struct KNO_LAMBDA *fn,
-			   int n,lispval *args)
+KNO_EXPORT lispval kno_lambda_call(kno_stack caller,
+				   struct KNO_LAMBDA *proc,
+				   int n,kno_argvec args)
 {
-  lispval result = VOID;
-  lispval *proc_vars=fn->lambda_vars;
-  kno_lexenv proc_env=fn->lambda_env;
-  kno_lexenv call_env=proc_env;
-  int n_vars = fn->lambda_n_vars;
-  int arity = fn->fcn_arity, min_arity = fn->fcn_min_arity;
-
-  if (_stack == NULL) _stack=kno_stackptr;
-
-  if (n < min_arity)
-    return kno_err(kno_TooFewArgs,fn->fcn_name,NULL,VOID);
-  else if ( (arity>=0) && (n>arity) )
-    return kno_err(kno_TooManyArgs,fn->fcn_name,NULL,VOID);
-  else {}
-
-  if (_stack->stack_label == NULL) {
-    if (fn->fcn_name)
-      _stack->stack_label=fn->fcn_name;
-    else {
-      _stack->stack_label=lambda_id(fn);
-      U8_SETBITS(_stack->stack_flags,KNO_STACK_FREE_LABEL);}}
-
-  _stack->stack_type = kno_lambda_stack_type;
-
-  int tail = (fn->lambda_synchronized) ? (0) :
-    ( (_stack->stack_caller) &&
-      (_stack->stack_caller->stack_flags & KNO_STACK_TAILPOS) &&
-      (! ((fn->fcn_call) & KNO_FCN_CALL_NOTAIL) ) );
-
-  int i = 0, max_positional = (arity < 0) ? (n_vars-1) : (arity);
-  int last_positional = (arity < 0) ?
-    ((n < max_positional) ? (n) : (max_positional)) :
-    (n);
-  lispval *inits = fn->lambda_inits;
-  while (i < last_positional) {
-    lispval arg = args[i];
-    if (KNO_DEFAULTP(arg)) {args[i] = KNO_VOID;}
-    i++;}
-  if (inits) {
-    while (i < max_positional) {
-      lispval default_expr = inits[i];
-      if (!(VOIDP(default_expr))) {
-	lispval default_value = fast_stack_eval(default_expr,proc_env,_stack);
-	if (KNO_ABORTED(default_value))
-	  return default_value;
-	args[i++] = default_value;}}}
-  else i = max_positional;
-  if (arity < 0) {
-    lispval old_arg = args[i];
-    if (i<n)
-      args[i] = get_rest_arg(args+i,n-i);
-    else args[i] = KNO_EMPTY_LIST;
-    kno_decref(old_arg);
-    i++;}
-
-  struct KNO_LEXENV stack_env = { 0 };
-  struct KNO_SCHEMAP bindings = { 0 };
-  init_static_env(n_vars,proc_env,&bindings,&stack_env,
-		  proc_vars,args);
-
-  /* If we're synchronized, lock the mutex. */
-  if (fn->lambda_synchronized) u8_lock_mutex(&(fn->lambda_lock));
-
-  result = eval_body(fn->lambda_start,call_env,_stack,
-		     ":LAMBDA",fn->fcn_name,tail);
-
-  if (fn->lambda_synchronized) {
-    /* If we're synchronized, finish any tail calls and unlock the
-       mutex. */
-    result = kno_finish_call(result);
-    u8_unlock_mutex(&(fn->lambda_lock));}
-
-  kno_recycle_lexenv(call_env);
-  return result;
-}
-
-KNO_EXPORT lispval kno_apply_lambda(struct KNO_STACK *stack,
-                                    struct KNO_LAMBDA *fn,
-				    int n,kno_argvec args)
-{
-  return lambda_call(stack,fn,n,args);
+  return lambda_docall(caller,proc,n,args);
 }
 
 static lispval apply_lambda(lispval fn,int n,kno_argvec args)
 {
-  return lambda_call(kno_stackptr,(struct KNO_LAMBDA *)fn,n,args);
+  struct KNO_LAMBDA *proc = (kno_lambda) fn;
+  return lambda_docall(kno_stackptr,proc,n,args);
 }
 
 KNO_EXPORT int kno_set_lambda_schema(struct KNO_LAMBDA *s,lispval args)
@@ -377,7 +200,8 @@ static lispval process_docstring(struct KNO_LAMBDA *s,u8_string name,
   return body;
 }
 
-static lispval process_decls(struct KNO_LAMBDA *s,lispval body,kno_lexenv env)
+static lispval process_decls(struct KNO_LAMBDA *s,lispval body,
+			     kno_lexenv env,kno_stack stack)
 {
   lispval decls = KNO_CAR(body);
   int decref_table = 0;
@@ -385,7 +209,7 @@ static lispval process_decls(struct KNO_LAMBDA *s,lispval body,kno_lexenv env)
   if (KNO_SLOTMAPP(decls))
     table = decls;
   else if (KNO_SCHEMAPP(decls)) {
-    table = kno_eval(decls,env);
+    table = kno_eval(decls,env,stack,0);
     decref_table = 1;}
   else return body;
   if (KNO_ABORTP(table)) return table;
@@ -401,7 +225,7 @@ static lispval process_decls(struct KNO_LAMBDA *s,lispval body,kno_lexenv env)
 
 static lispval process_body(struct KNO_LAMBDA *s,u8_string name,
                             lispval arglist,lispval body,
-                            kno_lexenv env)
+			    kno_lexenv env,kno_stack stack)
 {
   lispval scan = body;
   while ( (KNO_PAIRP(scan)) && (KNO_PAIRP(KNO_CDR(scan))) ) {
@@ -409,14 +233,15 @@ static lispval process_body(struct KNO_LAMBDA *s,u8_string name,
     if (KNO_STRINGP(elt))
       scan = process_docstring(s,name,arglist,scan);
     else if ( (KNO_SLOTMAPP(elt)) || (KNO_SCHEMAPP(elt)) )
-      scan = process_decls(s,scan,env);
+      scan = process_decls(s,scan,env,stack);
     else return scan;}
   return scan;
 }
 
 static lispval
 _make_lambda(u8_string name,
-             lispval arglist,lispval body,kno_lexenv env,
+             lispval arglist,lispval body,
+	     kno_lexenv env,kno_stack stack,
              int nd,int sync,
              int incref,int copy_env)
 {
@@ -424,9 +249,9 @@ _make_lambda(u8_string name,
   KNO_INIT_FRESH_CONS(s,kno_lambda_type);
   s->fcn_name = ((name) ? (u8_strdup(name)) : (NULL));
 
-  s->fcn_call = ( ((nd) ? (KNO_FCN_CALL_NDOP) : (0)) |
-		  (KNO_FCN_CALL_XCALL) );
-  s->fcn_handler.xcalln = (kno_xprimn) lambda_call;
+  s->fcn_call = ( ((nd) ? (KNO_CALL_NDCALL) : (0)) |
+		  (KNO_CALL_XCALL) );
+  s->fcn_handler.xcalln = (kno_xprimn) lambda_docall;
   s->fcn_filename = NULL;
   s->fcn_attribs = VOID;
   s->fcnid = VOID;
@@ -443,7 +268,7 @@ _make_lambda(u8_string name,
     s->lambda_inits = NULL;}
 
   /* Process the body */
-  body = process_body(s,name,arglist,body,env);
+  body = process_body(s,name,arglist,body,env,stack);
   if (KNO_ABORTP(body)) {
     return body;}
   else if (incref) {
@@ -469,17 +294,19 @@ _make_lambda(u8_string name,
 }
 
 static lispval make_lambda(u8_string name,
-                           lispval arglist,lispval body,kno_lexenv env,
+                           lispval arglist,lispval body,
+			   kno_lexenv env,kno_stack stack,
                            int nd,int sync)
 {
-  return _make_lambda(name,arglist,body,env,nd,sync,1,1);
+  return _make_lambda(name,arglist,body,env,stack,nd,sync,1,1);
 }
 
 KNO_EXPORT lispval kno_make_lambda(u8_string name,
-                                   lispval arglist,lispval body,kno_lexenv env,
-                                   int nd,int sync)
+				   lispval arglist,lispval body,
+				   kno_lexenv env,
+				   int nd,int sync)
 {
-  return make_lambda(name,arglist,body,env,nd,sync);
+  return make_lambda(name,arglist,body,env,kno_stackptr,nd,sync);
 }
 
 KNO_EXPORT void recycle_lambda(struct KNO_RAW_CONS *c)
@@ -649,7 +476,7 @@ static lispval lambda_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   lispval proc = VOID;
   if (VOIDP(arglist))
     return kno_err(kno_TooFewExpressions,"LAMBDA",NULL,expr);
-  proc=make_lambda(NULL,arglist,body,env,0,0);
+  proc=make_lambda(NULL,arglist,body,env,_stack,0,0);
   if (KNO_ABORTED(proc))
     return proc;
   KNO_SET_LAMBDA_SOURCE(proc,expr);
@@ -663,7 +490,7 @@ static lispval ambda_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   lispval proc = VOID;
   if (VOIDP(arglist))
     return kno_err(kno_TooFewExpressions,"AMBDA",NULL,expr);
-  proc=make_lambda(NULL,arglist,body,env,1,0);
+  proc=make_lambda(NULL,arglist,body,env,_stack,1,0);
   if (KNO_ABORTED(proc))
     return proc;
   KNO_SET_LAMBDA_SOURCE(proc,expr);
@@ -679,7 +506,7 @@ static lispval nlambda_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   u8_string namestring = NULL;
   if ((VOIDP(name_expr))||(VOIDP(arglist)))
     return kno_err(kno_TooFewExpressions,"NLAMBDA",NULL,expr);
-  else name = kno_eval(name_expr,env);
+  else name = kno_eval(name_expr,env,_stack,0);
   if (KNO_ABORTED(name))
     return name;
   else if (SYMBOLP(name))
@@ -691,7 +518,7 @@ static lispval nlambda_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
                                  "nlambda_evalfn",name);
     kno_decref(name);
     return err;}
-  proc=make_lambda(namestring,arglist,body,env,1,0);
+  proc=make_lambda(namestring,arglist,body,env,_stack,1,0);
   kno_decref(name);
   if (KNO_ABORTED(proc))
     return proc;
@@ -699,7 +526,9 @@ static lispval nlambda_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   return proc;
 }
 
-static lispval def_helper(lispval expr,kno_lexenv env,int nd,int sync)
+static lispval def_helper(lispval expr,
+			  kno_lexenv env,kno_stack stack,
+			  int nd,int sync)
 {
   lispval template = kno_get_arg(expr,1);
   if (!(KNO_PAIRP(template)))
@@ -713,7 +542,7 @@ static lispval def_helper(lispval expr,kno_lexenv env,int nd,int sync)
   else if (STRINGP(name)) namestring = CSTRING(name);
   else return kno_type_error
          ("procedure name (string or symbol)","def_evalfn",name);
-  proc=make_lambda(namestring,arglist,body,env,nd,sync);
+  proc=make_lambda(namestring,arglist,body,env,stack,nd,sync);
   if (KNO_ABORTED(proc))
     return proc;
   KNO_SET_LAMBDA_SOURCE(proc,expr);
@@ -722,17 +551,17 @@ static lispval def_helper(lispval expr,kno_lexenv env,int nd,int sync)
 
 static lispval def_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  return def_helper(expr,env,0,0);
+  return def_helper(expr,env,_stack,0,0);
 }
 
 static lispval defamb_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  return def_helper(expr,env,1,0);
+  return def_helper(expr,env,_stack,1,0);
 }
 
 static lispval defsync_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  return def_helper(expr,env,0,1);
+  return def_helper(expr,env,_stack,0,1);
 }
 
 static lispval slambda_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
@@ -742,7 +571,7 @@ static lispval slambda_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   lispval proc = VOID;
   if (VOIDP(arglist))
     return kno_err(kno_TooFewExpressions,"SLAMBDA",NULL,expr);
-  proc=make_lambda(NULL,arglist,body,env,0,1);
+  proc=make_lambda(NULL,arglist,body,env,_stack,0,1);
   KNO_SET_LAMBDA_SOURCE(proc,expr);
   return proc;
 }
@@ -754,7 +583,7 @@ static lispval sambda_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   lispval proc = VOID;
   if (VOIDP(arglist))
     return kno_err(kno_TooFewExpressions,"SLAMBDA",NULL,expr);
-  proc=make_lambda(NULL,arglist,body,env,1,1);
+  proc=make_lambda(NULL,arglist,body,env,_stack,1,1);
   if (KNO_ABORTED(proc))
     return proc;
   KNO_SET_LAMBDA_SOURCE(proc,expr);
@@ -764,7 +593,7 @@ static lispval sambda_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 static lispval thunk_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval body = kno_get_body(expr,1);
-  lispval proc = make_lambda(NULL,NIL,body,env,0,0);
+  lispval proc = make_lambda(NULL,NIL,body,env,_stack,0,0);
   if (KNO_ABORTED(proc))
     return proc;
   KNO_SET_LAMBDA_SOURCE(proc,expr);
@@ -777,7 +606,7 @@ static void init_definition(lispval fcn,lispval expr,kno_lexenv env)
 {
   struct KNO_FUNCTION *f = (kno_function) fcn;
   if ( (KNO_NULLP(f->fcn_moduleid)) || (KNO_VOIDP(f->fcn_moduleid)) ) {
-    lispval moduleid = kno_get(env->env_bindings,moduleid_symbol,KNO_VOID);
+    lispval moduleid = kno_get(env->env_bindings,KNOSYM_MODULEID,KNO_VOID);
     if (!(KNO_VOIDP(moduleid)))
       f->fcn_moduleid = moduleid;}
   if (f->fcn_filename == NULL) {
@@ -799,7 +628,7 @@ static lispval define_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     lispval val_expr = kno_get_arg(expr,2);
     if (VOIDP(val_expr))
       return kno_err(kno_TooFewExpressions,"DEFINE",NULL,expr);
-    lispval value = kno_eval(val_expr,env);
+    lispval value = kno_eval(val_expr,env,_stack,0);
     if (KNO_ABORTED(value))
       return value;
     else if (kno_bind_value(var,value,env)>=0) {
@@ -810,7 +639,7 @@ static lispval define_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 	struct KNO_MACRO *macro = (kno_macro) fvalue;
 	if (KNO_VOIDP(macro->macro_moduleid)) {
 	  macro->macro_moduleid =
-	    kno_get(env->env_bindings,moduleid_symbol,KNO_VOID);}
+	    kno_get(env->env_bindings,KNOSYM_MODULEID,KNO_VOID);}
 	if (macro->macro_name == NULL)
 	  macro->macro_name = u8_strdup(KNO_SYMBOL_NAME(var));}
       else NO_ELSE;
@@ -825,7 +654,7 @@ static lispval define_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     if (!(SYMBOLP(fn_name)))
       return kno_err(kno_NotAnIdentifier,"DEFINE",NULL,fn_name);
     else {
-      lispval value = make_lambda(SYM_NAME(fn_name),args,body,env,0,0);
+      lispval value = make_lambda(SYM_NAME(fn_name),args,body,env,_stack,0,0);
       if (KNO_ABORTED(value))
         return value;
       else if (kno_bind_value(fn_name,value,env)>=0) {
@@ -867,7 +696,7 @@ static lispval defslambda_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       return kno_err(kno_NotAnIdentifier,"DEFINE-SYNCHRONIZED",NULL,fn_name);
     else {
       lispval body = kno_get_body(expr,2);
-      lispval value = make_lambda(SYM_NAME(fn_name),args,body,env,0,1);
+      lispval value = make_lambda(SYM_NAME(fn_name),args,body,env,_stack,0,1);
       if (KNO_ABORTED(value))
         return value;
       else if (kno_bind_value(fn_name,value,env)>=0) {
@@ -895,7 +724,7 @@ static lispval defambda_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     if (!(SYMBOLP(fn_name)))
       return kno_err(kno_NotAnIdentifier,"DEFINE-AMB",NULL,fn_name);
     else {
-      lispval value = make_lambda(SYM_NAME(fn_name),args,body,env,1,0);
+      lispval value = make_lambda(SYM_NAME(fn_name),args,body,env,_stack,1,0);
       if (KNO_ABORTED(value))
         return value;
       else if (kno_bind_value(fn_name,value,env)>=0) {
@@ -925,43 +754,45 @@ KNO_EXPORT
 lispval kno_xapply_lambda
 (struct KNO_LAMBDA *fn,void *data,lispval (*getval)(void *,lispval))
 {
-  KNO_SETUP_NAMED_STACK(_stack,kno_stackptr,"xapply",fn->fcn_name,(lispval)fn);
+  u8_string label = (fn->fcn_name) ? (fn->fcn_name) : ((u8_string)"xapply");
+  KNO_START_EVALX(_stack,label,((lispval)fn),NULL,kno_stackptr,7);
   int n = fn->lambda_n_vars;
   lispval arglist = fn->lambda_arglist, result = VOID;
   kno_lexenv env = fn->lambda_env;
   INIT_STACK_SCHEMA(_stack,call_env,env,n,fn->lambda_vars);
+  KNO_STACK_SET_BITS(_stack,KNO_STACK_FREE_ENV);
   while (PAIRP(arglist)) {
     lispval argspec = KNO_CAR(arglist), argname = VOID, argval;
     if (SYMBOLP(argspec)) argname = argspec;
     else if (PAIRP(argspec)) argname = KNO_CAR(argspec);
-    if (!(SYMBOLP(argname)))
-      _return kno_err(kno_BadArglist,fn->fcn_name,NULL,fn->lambda_arglist);
+    if (!(SYMBOLP(argname))) {
+      result =kno_err(kno_BadArglist,fn->fcn_name,NULL,fn->lambda_arglist);
+      break;}
     argval = getval(data,argname);
-    if (KNO_ABORTED(argval))
-      _return argval;
+    if (KNO_ABORTED(argval)) {
+      result = argval;
+      break;}
     else if (( (VOIDP(argval)) || (argval == KNO_DEFAULT_VALUE) ||
-               (EMPTYP(argval)) ) &&
-             (PAIRP(argspec)) &&
-             (PAIRP(KNO_CDR(argspec)))) {
+	       (EMPTYP(argval)) ) &&
+	     (PAIRP(argspec)) &&
+	     (PAIRP(KNO_CDR(argspec)))) {
       lispval default_expr = KNO_CADR(argspec);
-      lispval default_value = kno_eval(default_expr,fn->lambda_env);
+      lispval default_value = kno_eval(default_expr,fn->lambda_env,_stack,0);
       kno_schemap_store(&call_env_bindings,argname,default_value);
       kno_decref(default_value);}
     else {
       kno_schemap_store(&call_env_bindings,argname,argval);
       kno_decref(argval);}
     arglist = KNO_CDR(arglist);}
-  /* This means we have a lexpr arg. */
-  /* If we're synchronized, lock the mutex. */
-  if (fn->lambda_synchronized) u8_lock_mutex(&(fn->lambda_lock));
-  result = eval_body(fn->lambda_start,call_env,_stack,
-                     ":XPROC",fn->fcn_name,1);
-  /* if (fn->lambda_synchronized) result = kno_finish_call(result); */
-  /* We always finish tail calls here */
-  result = kno_finish_call(result);
-  if (fn->lambda_synchronized)
-    u8_unlock_mutex(&(fn->lambda_lock));
-  _return result;
+  if (!(ABORTED(result))) {
+    /* If we're synchronized, lock the mutex. */
+    if (fn->lambda_synchronized) u8_lock_mutex(&(fn->lambda_lock));
+    result = eval_body(fn->lambda_start,call_env,_stack,
+		       ":XPROC",fn->fcn_name,0);
+    if (fn->lambda_synchronized)
+      u8_unlock_mutex(&(fn->lambda_lock));}
+   kno_pop_stack(_stack);
+  return result;
 }
 
 static lispval tablegetval(void *obj,lispval var)
@@ -1157,10 +988,9 @@ KNO_EXPORT void kno_init_lambdas_c()
   tail_symbol = kno_intern("%tail");
   decls_symbol = kno_intern("%decls");
   flags_symbol = kno_intern("flags");
-  moduleid_symbol = kno_intern("%moduleid");
 
   kno_applyfns[kno_lambda_type]=apply_lambda;
-  kno_function_types[kno_lambda_type]=1;
+  kno_isfunctionp[kno_lambda_type]=1;
 
   kno_unparsers[kno_lambda_type]=unparse_lambda;
   kno_recyclers[kno_lambda_type]=recycle_lambda;

@@ -93,6 +93,7 @@
 #endif
 
 #include "common.h"
+#include "errors.h"
 
 #define KNO_CONS_TYPECODE(i) (0x84+i)
 #define KNO_IMMEDIATE_TYPECODE(i) (0x04+i)
@@ -258,6 +259,8 @@ KNO_EXPORT u8_string kno_type_docs[KNO_TYPE_MAX];
    ((u8_string)"oddtype"):      \
    (kno_type_names[tc]))
 
+#define kno_type_name(x) (kno_type2name(KNO_TYPEOF((x))))
+
 KNO_EXPORT u8_condition kno_get_pointer_exception(lispval x);
 KNO_EXPORT lispval kno_badptr_err(lispval badx,u8_context cxt,u8_string details);
 
@@ -349,6 +352,7 @@ KNO_FASTOP U8_MAYBE_UNUSED int _KNO_ISDTYPE(lispval x){ return 1;}
 #define KNO_CONS_TYPE(x) \
   (( ((x)->conshead) & (KNO_CONS_TYPE_MASK) )+(KNO_CONS_TYPE_OFF))
 #define KNO_CONSPTR_TYPE(x) (KNO_CONS_TYPE((kno_cons)x))
+#define KNO_CONS_TYPEOF(x) KNO_CONS_TYPE((kno_cons)x)
 
 #define KNO_XCONS_TYPE(x) \
   (( (((kno_cons)(x))->conshead) & (KNO_XCONS_TYPE_MASK) )+(KNO_CONS_TYPE_OFF))
@@ -386,12 +390,14 @@ KNO_FASTOP U8_MAYBE_UNUSED int _KNO_ISDTYPE(lispval x){ return 1;}
   ((lispval)(((((tcode)-0x04)&0x7F)<<25)|((serial)<<2)|kno_immediate_ptr_type))
 #define KNO_GET_IMMEDIATE(x,tcode) (((LISPVAL(x))>>2)&0x7FFFFF)
 #define KNO_IMMEDIATE_TYPE_FIELD(x) (((LISPVAL(x))>>25)&0x7F)
-#define KNO_IMMEDIATE_TYPE(x) ((((LISPVAL(x))>>25)&0x7F)+0x4)
-#define KNO_IMMEDIATE_DATA(x) ((LISPVAL(x))>>2)
+#define KNO_IMMEDIATE_TYPEOF(x) ((((LISPVAL(x))>>25)&0x7F)+0x4)
+#define KNO_IMMEDIATE_DATA(x) (((LISPVAL(x))>>2)&0x7FFFFF)
 #define KNO_IMM_TYPE(x) ((((LISPVAL(x))>>25)&0x7F)+0x4)
 #define KNO_IMMEDIATE_TYPEP(x,typecode) \
   (((x)&((0x7f<<25)|(0x3)))==((((typecode)-0x4)<<25)|0x1))
 #define KNO_IMMEDIATE_MAX (1<<24)
+
+#define KNO_IMMEDIATE_TYPE KNO_IMMEDIATE_TYPEOF
 
 KNO_EXPORT kno_lisp_type _KNO_TYPEOF(lispval x);
 #if KNO_EXTREME_PROFILING
@@ -715,6 +721,7 @@ KNO_EXPORT lispval _KNO_INT2LISP(long long intval);
 KNO_EXPORT const char *kno_constant_names[];
 KNO_EXPORT int kno_n_constants;
 KNO_EXPORT lispval kno_register_constant(u8_string name);
+KNO_EXPORT u8_string kno_constant_name(lispval x);
 
 KNO_EXPORT lispval _kno_return_errcode(lispval x);
 
@@ -849,7 +856,7 @@ KNO_EXPORT lispval KNOSYM_HISTORY_THREADVAL, KNOSYM_INDEX, KNOSYM_INPUT;
 KNO_EXPORT lispval KNOSYM_ISADJUNCT, KNOSYM_KEYSLOT;
 KNO_EXPORT lispval KNOSYM_LABEL, KNOSYM_LAZY, KNOSYM_LENGTH, KNOSYM_LOGLEVEL;
 KNO_EXPORT lispval KNOSYM_MAIN, KNOSYM_MERGE, KNOSYM_METADATA;
-KNO_EXPORT lispval KNOSYM_MINUS, KNOSYM_MODULE;
+KNO_EXPORT lispval KNOSYM_MINUS, KNOSYM_MODULE, KNOSYM_MODULEID;
 KNO_EXPORT lispval KNOSYM_NAME, KNOSYM_NO, KNOSYM_NONE, KNOSYM_NOT;
 KNO_EXPORT lispval KNOSYM_OPT, KNOSYM_OPTS, KNOSYM_OUTPUT;
 KNO_EXPORT lispval KNOSYM_PACKET, KNOSYM_PCTID, KNOSYM_PLUS, KNOSYM_POOL;
@@ -898,8 +905,6 @@ KNO_EXPORT lispval kno_resolve_fcnid(lispval ref);
 KNO_EXPORT lispval kno_register_fcnid(lispval obj);
 KNO_EXPORT lispval kno_set_fcnid(lispval ref,lispval newval);
 KNO_EXPORT int kno_deregister_fcnid(lispval id,lispval value);
-
-KNO_EXPORT lispval kno_err(u8_condition,u8_context,u8_string,lispval);
 
 KNO_EXPORT u8_condition kno_InvalidFCNID, kno_FCNIDOverflow;
 

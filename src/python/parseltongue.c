@@ -1282,7 +1282,7 @@ static PyObject *lispeval(PyObject *self,PyObject *pyexpr)
   lispval expr=py2lispx(pyexpr), value;
   PyObject *pyvalue;
   Py_BEGIN_ALLOW_THREADS {
-    value=kno_eval(expr,default_env);}
+    value=kno_eval_arg(expr,default_env);}
   Py_END_ALLOW_THREADS;
   pyvalue=lisp2py(value);
   kno_decref(expr); kno_decref(value);
@@ -1507,7 +1507,7 @@ static lispval py_use_module_evalfn
   PyObject *module = NULL;
   if ( (KNO_VOIDP(modname_expr)) || (KNO_VOIDP(imports_expr)) )
     return kno_err(kno_SyntaxError,"py_use_module_evalfn",NULL,expr);
-  lispval modname = kno_stack_eval(modname_expr,env,_stack,0);
+  lispval modname = kno_eval(modname_expr,env,_stack,0);
   if (ABORTED(modname)) return modname;
   else if (KNO_STRINGP(modname)) {
     PyObject *pmodulename=lisp2py(modname);
@@ -1536,7 +1536,7 @@ static lispval py_use_module_evalfn
       return KNO_ERROR;}
     else return KNO_VOID;}
   else NO_ELSE;
-  lispval imports = kno_stack_eval(imports_expr,env,_stack,0);
+  lispval imports = kno_eval(imports_expr,env,_stack,0);
   if (ABORTED(imports)) {
     Py_DECREF(module);
     return imports;}

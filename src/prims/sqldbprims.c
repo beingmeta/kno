@@ -34,7 +34,7 @@
 #define _FILEINFO __FILE__
 #endif
 
-/* #define KNO_INLINE_EVAL 1 */
+/* #define KNO_EVAL_INTERNALS 1 */
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
@@ -196,7 +196,7 @@ static void recycle_sqlproc(struct KNO_RAW_CONS *c)
 static lispval callsqlproc(struct KNO_FUNCTION *xdbproc,int n,lispval *args)
 {
   struct KNO_SQLPROC *dbp = (struct KNO_SQLPROC *)xdbproc;
-  return dbp->fcn_handler.xcalln(kno_stackptr,xdbproc,n,args);
+  return dbp->fcn_handler.xcalln((kno_stack)kno_stackptr,xdbproc,n,args);
 }
 
 /* SQLDB primitives */
@@ -379,7 +379,7 @@ KNO_EXPORT void kno_init_sqldbprims_c()
   kno_recyclers[kno_sqlproc_type]=recycle_sqlproc;
   kno_unparsers[kno_sqlproc_type]=unparse_sqlproc;
   kno_applyfns[kno_sqlproc_type]=(kno_applyfn)callsqlproc;
-  kno_function_types[kno_sqlproc_type]=1;
+  kno_isfunctionp[kno_sqlproc_type]=1;
 
   link_local_cprims();
   kno_register_config("SQLEXEC",

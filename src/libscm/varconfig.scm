@@ -36,13 +36,13 @@
 	 (lambda (var (val))
 	   (if (bound? val)
 	       (set! ,varname
-		     ,(cond ((and convertfn combinefn)
-			     `(_combine (_convert val) ,varname))
-			    (convertfn
-			     `(try (_convert val) ,varname))
-			    (combinefn
-			     `(_combine val ,varname))
-			    (else 'val)))
+		 ,(cond ((and convertfn combinefn)
+			 `(_combine (_convert val) ,varname))
+			(convertfn
+			 `(try (_convert val) ,varname))
+			(combinefn
+			 `(_combine val ,varname))
+			(else 'val)))
 	       ,varname))))))
 
 (define (extract-doc body (before '()))
@@ -69,13 +69,15 @@
 (define varconfig!
   (macro expr
     (let* ((confspec (cadr expr))
-	   (confarg (if (symbol? confspec) `(quote ,confspec)
+	   (confarg (if (symbol? confspec) 
+			`(quote ,confspec)
 			(if (string? confspec)
 			    `(quote ,(string->symbol confspec))
 			    confspec)))
 	   (confbody (extract-doc (cddr expr))))
       `(config-def! ,confarg (varconfigfn ,@(cdr confbody))
-		    ,(or (car confbody) `(,make-docstring ',(cadr confbody) (,%env)))))))
+		    ,(or (car confbody)
+			 `(,make-docstring ',(cadr confbody) (,%env)))))))
 
 (define optconfigfn
   (macro expr
