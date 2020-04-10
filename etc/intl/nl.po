@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-04-08 11:21-0400\n"
+"POT-Creation-Date: 2020-04-10 15:14-0400\n"
 "PO-Revision-Date: 2005-03-04 22:55-0500\n"
 "Last-Translator: Kenneth Haase <kh@beingmeta.com>\n"
 "Language-Team: Dutch <nl@li.org>\n"
@@ -155,7 +155,7 @@ msgstr ""
 msgid "Not a sequence"
 msgstr ""
 
-#: src/lisp/sequences.c:688 src/lisp/lisp.c:214 src/lisp/lisp.c:215
+#: src/lisp/sequences.c:688 src/lisp/lisp.c:244 src/lisp/lisp.c:245
 #: src/prims/seqprims.c:1676 src/prims/seqprims.c:1685
 msgid "character"
 msgstr ""
@@ -421,11 +421,11 @@ msgstr ""
 msgid "Thread interrupted"
 msgstr ""
 
-#: src/lisp/lisp.c:204 src/lisp/lisp.c:205
+#: src/lisp/lisp.c:234 src/lisp/lisp.c:235
 msgid "oid"
 msgstr ""
 
-#: src/lisp/lisp.c:206 src/lisp/lisp.c:207 src/sys/config.c:835
+#: src/lisp/lisp.c:236 src/lisp/lisp.c:237 src/sys/config.c:835
 #: src/eval/opcode_defs.c:361 src/eval/evalops.c:292 src/prims/dbprims.c:3120
 #: src/prims/portprims.c:870 src/eval/choiceops.c:1451
 #: src/eval/choiceops.c:1490 src/eval/choiceops.c:1517
@@ -437,60 +437,60 @@ msgstr ""
 msgid "fixnum"
 msgstr ""
 
-#: src/lisp/lisp.c:208 src/lisp/lisp.c:209
+#: src/lisp/lisp.c:238 src/lisp/lisp.c:239
 msgid "cons"
 msgstr ""
 
-#: src/lisp/lisp.c:210 src/lisp/lisp.c:211
+#: src/lisp/lisp.c:240 src/lisp/lisp.c:241
 msgid "immediate"
 msgstr ""
 
-#: src/lisp/lisp.c:212 src/lisp/lisp.c:213
+#: src/lisp/lisp.c:242 src/lisp/lisp.c:243
 msgid "constant"
 msgstr ""
 
-#: src/lisp/lisp.c:216 src/lisp/lisp.c:217 src/eval/modules.c:378
+#: src/lisp/lisp.c:246 src/lisp/lisp.c:247 src/eval/modules.c:378
 #: src/eval/reflection.c:978 src/eval/evalops.c:238
 msgid "symbol"
 msgstr ""
 
-#: src/lisp/lisp.c:218 src/lisp/lisp.c:219
+#: src/lisp/lisp.c:248 src/lisp/lisp.c:249
 msgid "fcnid"
 msgstr ""
 
-#: src/lisp/lisp.c:220 src/lisp/lisp.c:221 src/eval/eval.c:1759
+#: src/lisp/lisp.c:250 src/lisp/lisp.c:251 src/eval/eval.c:1766
 msgid "lexref"
 msgstr ""
 
-#: src/lisp/lisp.c:222 src/lisp/lisp.c:223 src/eval/eval.c:1765
+#: src/lisp/lisp.c:252 src/lisp/lisp.c:253 src/eval/eval.c:1772
 msgid "opcode"
 msgstr ""
 
-#: src/lisp/lisp.c:224 src/lisp/lisp.c:225
+#: src/lisp/lisp.c:254 src/lisp/lisp.c:255
 msgid "typeref"
 msgstr ""
 
-#: src/lisp/lisp.c:226 src/lisp/lisp.c:227 src/eval/eval.c:1763
+#: src/lisp/lisp.c:256 src/lisp/lisp.c:257 src/eval/eval.c:1770
 msgid "coderef"
 msgstr ""
 
-#: src/lisp/lisp.c:228 src/lisp/lisp.c:229 src/storage/pools.c:2813
+#: src/lisp/lisp.c:258 src/lisp/lisp.c:259 src/storage/pools.c:2813
 #: src/prims/dbprims.c:268 src/prims/dbprims.c:1906
 msgid "pool"
 msgstr ""
 
-#: src/lisp/lisp.c:230 src/lisp/lisp.c:231 src/storage/indexes.c:1130
+#: src/lisp/lisp.c:260 src/lisp/lisp.c:261 src/storage/indexes.c:1130
 #: src/storage/indexes.c:2384 src/storage/slotindexes.c:227
 #: src/prims/dbprims.c:747 src/prims/dbprims.c:1874 src/prims/dbprims.c:1889
 #: src/prims/dbprims.c:1920
 msgid "index"
 msgstr ""
 
-#: src/lisp/lisp.c:232 src/lisp/lisp.c:233
+#: src/lisp/lisp.c:262 src/lisp/lisp.c:263
 msgid "histref"
 msgstr ""
 
-#: src/lisp/lisp.c:235 src/lisp/lisp.c:236 src/sys/config.c:764
+#: src/lisp/lisp.c:265 src/lisp/lisp.c:266 src/sys/config.c:764
 #: src/sys/config.c:783 src/sys/config.c:802 src/sys/startup.c:256
 #: src/sys/startup.c:634 src/prims/dbprims.c:305 src/prims/dbprims.c:326
 #: src/prims/dbprims.c:347 src/prims/portprims.c:377 src/prims/portprims.c:791
@@ -509,192 +509,192 @@ msgstr ""
 msgid "string"
 msgstr ""
 
-#: src/lisp/lisp.c:237 src/lisp/lisp.c:238
+#: src/lisp/lisp.c:267 src/lisp/lisp.c:268
 msgid "packet"
 msgstr ""
 
-#: src/lisp/lisp.c:239 src/lisp/lisp.c:240
+#: src/lisp/lisp.c:269 src/lisp/lisp.c:270
 msgid "secret"
 msgstr ""
 
-#: src/lisp/lisp.c:241 src/lisp/lisp.c:242
+#: src/lisp/lisp.c:271 src/lisp/lisp.c:272
 msgid "bigint"
 msgstr ""
 
-#: src/lisp/lisp.c:243 src/lisp/lisp.c:244 src/eval/opcode_defs.c:523
+#: src/lisp/lisp.c:273 src/lisp/lisp.c:274 src/eval/opcode_defs.c:523
 #: src/eval/opcode_defs.c:525 src/eval/opcode_defs.c:538
 #: src/eval/opcode_defs.c:540 src/eval/evalops.c:293
 msgid "pair"
 msgstr ""
 
-#: src/lisp/lisp.c:245 src/lisp/lisp.c:246
+#: src/lisp/lisp.c:275 src/lisp/lisp.c:276
 msgid "cdrcode"
 msgstr ""
 
-#: src/lisp/lisp.c:248 src/lisp/lisp.c:249
+#: src/lisp/lisp.c:278 src/lisp/lisp.c:279
 msgid "typeinfo"
 msgstr ""
 
-#: src/lisp/lisp.c:250 src/lisp/lisp.c:251
+#: src/lisp/lisp.c:280 src/lisp/lisp.c:281
 msgid "compound"
 msgstr ""
 
-#: src/lisp/lisp.c:252 src/lisp/lisp.c:253
+#: src/lisp/lisp.c:282 src/lisp/lisp.c:283
 msgid "wrapper"
 msgstr ""
 
-#: src/lisp/lisp.c:254 src/lisp/lisp.c:255
+#: src/lisp/lisp.c:284 src/lisp/lisp.c:285
 msgid "rawptr"
 msgstr ""
 
-#: src/lisp/lisp.c:257 src/lisp/lisp.c:258
+#: src/lisp/lisp.c:287 src/lisp/lisp.c:288
 msgid "choice"
 msgstr ""
 
-#: src/lisp/lisp.c:259 src/lisp/lisp.c:260
+#: src/lisp/lisp.c:289 src/lisp/lisp.c:290
 msgid "prechoice"
 msgstr ""
 
-#: src/lisp/lisp.c:261 src/lisp/lisp.c:262
+#: src/lisp/lisp.c:291 src/lisp/lisp.c:292
 msgid "qchoice"
 msgstr ""
 
-#: src/lisp/lisp.c:264 src/lisp/lisp.c:265
+#: src/lisp/lisp.c:294 src/lisp/lisp.c:295
 msgid "vector"
 msgstr ""
 
-#: src/lisp/lisp.c:266 src/lisp/lisp.c:267
+#: src/lisp/lisp.c:296 src/lisp/lisp.c:297
 msgid "numeric_vector"
 msgstr ""
 
-#: src/lisp/lisp.c:269 src/lisp/lisp.c:270
+#: src/lisp/lisp.c:299 src/lisp/lisp.c:300
 msgid "slotmap"
 msgstr ""
 
-#: src/lisp/lisp.c:271 src/lisp/lisp.c:272
+#: src/lisp/lisp.c:301 src/lisp/lisp.c:302
 msgid "schemap"
 msgstr ""
 
-#: src/lisp/lisp.c:273 src/lisp/lisp.c:274
+#: src/lisp/lisp.c:303 src/lisp/lisp.c:304
 msgid "hashtable"
 msgstr ""
 
-#: src/lisp/lisp.c:275 src/lisp/lisp.c:276 src/prims/tableprims.c:969
+#: src/lisp/lisp.c:305 src/lisp/lisp.c:306 src/prims/tableprims.c:969
 #: src/text/match.c:3421 src/text/match.c:3457 src/text/match.c:3483
 #: src/text/match.c:3525
 msgid "hashset"
 msgstr ""
 
-#: src/lisp/lisp.c:278 src/lisp/lisp.c:279
+#: src/lisp/lisp.c:308 src/lisp/lisp.c:309
 msgid "cprim"
 msgstr ""
 
-#: src/lisp/lisp.c:280 src/lisp/lisp.c:281
+#: src/lisp/lisp.c:310 src/lisp/lisp.c:311
 msgid "ffi"
 msgstr ""
 
-#: src/lisp/lisp.c:282 src/lisp/lisp.c:283
+#: src/lisp/lisp.c:312 src/lisp/lisp.c:313
 msgid "lambda"
 msgstr ""
 
-#: src/lisp/lisp.c:284 src/lisp/lisp.c:285
+#: src/lisp/lisp.c:314 src/lisp/lisp.c:315
 msgid "rpcproc"
 msgstr ""
 
-#: src/lisp/lisp.c:287 src/lisp/lisp.c:288
+#: src/lisp/lisp.c:317 src/lisp/lisp.c:318
 msgid "lexenv"
 msgstr ""
 
-#: src/lisp/lisp.c:289 src/lisp/lisp.c:290
+#: src/lisp/lisp.c:319 src/lisp/lisp.c:320
 msgid "evalfn"
 msgstr ""
 
-#: src/lisp/lisp.c:291 src/lisp/lisp.c:292
+#: src/lisp/lisp.c:321 src/lisp/lisp.c:322
 msgid "macro"
 msgstr ""
 
-#: src/lisp/lisp.c:293 src/lisp/lisp.c:294
+#: src/lisp/lisp.c:323 src/lisp/lisp.c:324
 msgid "stackframe"
 msgstr ""
 
-#: src/lisp/lisp.c:295 src/lisp/lisp.c:296
+#: src/lisp/lisp.c:325 src/lisp/lisp.c:326
 msgid "tailcall"
 msgstr ""
 
-#: src/lisp/lisp.c:297 src/lisp/lisp.c:298
+#: src/lisp/lisp.c:327 src/lisp/lisp.c:328
 msgid "exception"
 msgstr ""
 
-#: src/lisp/lisp.c:299 src/lisp/lisp.c:300 src/eval/promises.c:237
+#: src/lisp/lisp.c:329 src/lisp/lisp.c:330 src/eval/promises.c:237
 msgid "promise"
 msgstr ""
 
-#: src/lisp/lisp.c:301 src/lisp/lisp.c:302 src/eval/threads.c:1252
+#: src/lisp/lisp.c:331 src/lisp/lisp.c:332 src/eval/threads.c:1252
 #: src/eval/threads.c:1290 src/eval/threads.c:1374
 msgid "thread"
 msgstr ""
 
-#: src/lisp/lisp.c:303 src/lisp/lisp.c:304
+#: src/lisp/lisp.c:333 src/lisp/lisp.c:334
 msgid "synchronizer"
 msgstr ""
 
-#: src/lisp/lisp.c:306 src/lisp/lisp.c:307
+#: src/lisp/lisp.c:336 src/lisp/lisp.c:337
 msgid "complex"
 msgstr ""
 
-#: src/lisp/lisp.c:308 src/lisp/lisp.c:309
+#: src/lisp/lisp.c:338 src/lisp/lisp.c:339
 msgid "rational"
 msgstr ""
 
-#: src/lisp/lisp.c:310 src/lisp/lisp.c:311
+#: src/lisp/lisp.c:340 src/lisp/lisp.c:341
 msgid "flonum"
 msgstr ""
 
-#: src/lisp/lisp.c:313 src/lisp/lisp.c:314
+#: src/lisp/lisp.c:343 src/lisp/lisp.c:344
 msgid "timestamp"
 msgstr ""
 
-#: src/lisp/lisp.c:315 src/lisp/lisp.c:316
+#: src/lisp/lisp.c:345 src/lisp/lisp.c:346
 msgid "uuid"
 msgstr ""
 
-#: src/lisp/lisp.c:318 src/lisp/lisp.c:319
+#: src/lisp/lisp.c:348 src/lisp/lisp.c:349
 msgid "mystery"
 msgstr ""
 
-#: src/lisp/lisp.c:320 src/lisp/lisp.c:321
+#: src/lisp/lisp.c:350 src/lisp/lisp.c:351
 msgid "ioport"
 msgstr ""
 
-#: src/lisp/lisp.c:322 src/lisp/lisp.c:323
+#: src/lisp/lisp.c:352 src/lisp/lisp.c:353
 msgid "stream"
 msgstr ""
 
-#: src/lisp/lisp.c:325 src/lisp/lisp.c:326
+#: src/lisp/lisp.c:355 src/lisp/lisp.c:356
 msgid "regex"
 msgstr ""
 
-#: src/lisp/lisp.c:328 src/lisp/lisp.c:329
+#: src/lisp/lisp.c:358 src/lisp/lisp.c:359
 msgid "consblock"
 msgstr ""
 
-#: src/lisp/lisp.c:331 src/lisp/lisp.c:332
+#: src/lisp/lisp.c:361 src/lisp/lisp.c:362
 msgid "sqldb"
 msgstr ""
 
-#: src/lisp/lisp.c:333 src/lisp/lisp.c:334
+#: src/lisp/lisp.c:363 src/lisp/lisp.c:364
 msgid "sqldbproc"
 msgstr ""
 
-#: src/lisp/lisp.c:336 src/lisp/lisp.c:337
+#: src/lisp/lisp.c:366 src/lisp/lisp.c:367
 msgid "dtserver"
 msgstr ""
 
-#: src/lisp/lisp.c:338 src/lisp/lisp.c:339
+#: src/lisp/lisp.c:368 src/lisp/lisp.c:369
 msgid "bloom_filter"
 msgstr ""
 
-#: src/lisp/lisp.c:388
+#: src/lisp/lisp.c:418
 msgid "RUSAGE Failed"
 msgstr ""
 
@@ -866,13 +866,13 @@ msgstr ""
 msgid "The default group for the ucrrent process"
 msgstr ""
 
-#: src/sys/errobjs.c:290 src/sys/errobjs.c:297 src/eval/modules.c:49
+#: src/sys/errobjs.c:255 src/sys/errobjs.c:262 src/eval/modules.c:49
 #: src/eval/modules.c:73
 #, c-format
 msgid "object is not a %m"
 msgstr ""
 
-#: src/sys/errobjs.c:643
+#: src/sys/errobjs.c:608
 msgid "Poorly Restored Error"
 msgstr ""
 
@@ -1223,11 +1223,11 @@ msgstr ""
 msgid "Internal stack size didn't make any sense, punting"
 msgstr ""
 
-#: src/apply/stacks.c:448
+#: src/apply/stacks.c:473
 msgid "Size of the stack (in bytes or as a factor of the current size)"
 msgstr ""
 
-#: src/apply/stacks.c:451
+#: src/apply/stacks.c:476
 msgid "Whether to trace all stack push/pop operations"
 msgstr ""
 
@@ -1797,11 +1797,11 @@ msgstr ""
 msgid "Attempt to set in-use threadcache"
 msgstr ""
 
-#: src/storage/dtproc.c:120
+#: src/storage/dtproc.c:116
 msgid "dtproc"
 msgstr ""
 
-#: src/storage/dtcall.c:238
+#: src/storage/dtcall.c:235
 msgid "Assume asynchronous DType servers"
 msgstr ""
 
@@ -1943,80 +1943,80 @@ msgstr ""
 msgid "NotMemindex"
 msgstr ""
 
-#: src/eval/eval.c:75
+#: src/eval/eval.c:67
 msgid "SCHEME expression syntax error"
 msgstr ""
 
-#: src/eval/eval.c:76
+#: src/eval/eval.c:68
 msgid "invalid macro transformer"
 msgstr ""
 
-#: src/eval/eval.c:77
+#: src/eval/eval.c:69
 msgid "the variable is unbound"
 msgstr ""
 
-#: src/eval/eval.c:78
+#: src/eval/eval.c:70
 msgid "VOID result used as variable binding"
 msgstr ""
 
-#: src/eval/eval.c:79
+#: src/eval/eval.c:71
 msgid "VOID result used as sort key"
 msgstr ""
 
-#: src/eval/eval.c:80
+#: src/eval/eval.c:72
 msgid "Unexpected VOID result returned"
 msgstr ""
 
-#: src/eval/eval.c:81
+#: src/eval/eval.c:73
 msgid "VOID result as boolean value"
 msgstr ""
 
-#: src/eval/eval.c:82
+#: src/eval/eval.c:74
 msgid "not an identifier"
 msgstr ""
 
-#: src/eval/eval.c:83
+#: src/eval/eval.c:75
 msgid "too few subexpressions"
 msgstr ""
 
-#: src/eval/eval.c:84
+#: src/eval/eval.c:76
 msgid "can't add binding to environment"
 msgstr ""
 
-#: src/eval/eval.c:85
+#: src/eval/eval.c:77
 msgid "Invalid evaluator operation"
 msgstr ""
 
-#: src/eval/eval.c:86
+#: src/eval/eval.c:78
 msgid "Bad opcode in compiled code"
 msgstr ""
 
-#: src/eval/eval.c:87
+#: src/eval/eval.c:79
 msgid "Bad opcode syntax"
 msgstr ""
 
-#: src/eval/eval.c:88
+#: src/eval/eval.c:80
 msgid "Read only environment"
 msgstr ""
 
-#: src/eval/eval.c:89
+#: src/eval/eval.c:81
 msgid "EvalError/RawTailValue"
 msgstr ""
 
-#: src/eval/eval.c:90
+#: src/eval/eval.c:82
 msgid "EvalError/BadArgument/Value"
 msgstr ""
 
-#: src/eval/eval.c:92
+#: src/eval/eval.c:84
 msgid "BadExpressionHead"
 msgstr ""
 
-#: src/eval/eval.c:505 src/eval/reflection.c:764
+#: src/eval/eval.c:504 src/eval/reflection.c:764
 msgid "macro expansion"
 msgstr ""
 
 #: src/eval/opcode_defs.c:596 src/eval/opcode_defs.c:702
-#: src/eval/opcode_defs.c:727 src/eval/opcode_defs.c:811
+#: src/eval/opcode_defs.c:727 src/eval/opcode_defs.c:786
 msgid "Invalid opcode"
 msgstr ""
 
@@ -2677,15 +2677,15 @@ msgstr ""
 msgid "javascript function name"
 msgstr ""
 
-#: src/web/xmloutput.c:1310
+#: src/web/xmloutput.c:1309
 msgid "How to display OIDs for browsing in HTML/XML"
 msgstr ""
 
-#: src/web/xmloutput.c:1314
+#: src/web/xmloutput.c:1313
 msgid "Default anchor URI for OID references"
 msgstr ""
 
-#: src/web/xmloutput.c:1318
+#: src/web/xmloutput.c:1317
 msgid "Default HTML CSS class for OID references"
 msgstr ""
 
@@ -2733,7 +2733,7 @@ msgstr ""
 msgid "no LOOP arg"
 msgstr ""
 
-#: src/web/xmleval.c:1834
+#: src/web/xmleval.c:1833
 msgid "Whether to cache markup generated from unparsing XML"
 msgstr ""
 
@@ -2765,7 +2765,7 @@ msgstr ""
 msgid "Fields to avoid binding directly for CGI requests"
 msgstr ""
 
-#: src/web/htmlout.c:650
+#: src/web/htmlout.c:649
 msgid "Default style sheet for web errors"
 msgstr ""
 
