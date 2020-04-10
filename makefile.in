@@ -57,7 +57,7 @@ LOCALEDIR	  = $(DESTDIR)@exec_prefix@/share/locale
 DATADIR		  = $(DESTDIR)@datadir@/kno/data
 MANDIR		  = $(DESTDIR)@mandir@
 DOCDIR		  = $(DESTDIR)@docdir@
-CMODULES	  = ${LIBINSTALLDIR}/kno
+CMODULES	  = ${LIBINSTALLDIR}/kno@suffix@
 APXS		  = @APXS@ -S LIBEXECDIR=$(DESTDIR)@apache_modules_dir@
 PPROF_PATH        = @GOOGLE_PPROF@
 CLEAN		  = @CLEAN@
@@ -491,15 +491,18 @@ update: .buildmode
 	  echo "Updating" $(shell cat .buildmode) "build linked with" \
 		$(shell cat .malloc); \
 	fi;
+	@make TAGS
 	@+make -s `cat .buildmode`
 
 normal:
 	@echo Building NORMAL configuration
+	@make TAGS
 	@if test -f .malloc; then \
 	  echo With $(shell cat .malloc) malloc; fi;
 	@+make -s testbin exe cmodules etc @TAGS@
 debugging:
 	@echo Building DEBUGGING configuration
+	@make TAGS
 	@if test -f .malloc; then \
 	  echo With $(shell cat .malloc) malloc; fi;
 	@+make -s XCFLAGS="@debugcflags@ -O0 -Wall -Wno-unknown-pragmas $(XCFLAGS)"	\
@@ -533,9 +536,9 @@ all: testbin debug-exe exe cmodules etc i18n @TAGS@
 packaged: exe cmodules etc i18n
 
 fresh: clean
-	make -s debugging
+	make update
 freshdebug dbgfresh freshbug: clean
-	make -s update
+	make debugging
 
 # Handy targets
 
@@ -721,28 +724,28 @@ $(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@: ${LIBSOURCE}/%@suffix@.@shared_suff
 	@$(SYSINSTALL) -d $(@D)
 	@$(SYSINSTALL) $< $@
 $(LIBINSTALLDIR)/%@suffix@.@mmshared_suffix@: $(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@
-	@$(SUINSTALL) ln -sf $(*F).@vshared_suffix@ $@
-	@$(MSG)  Linking $@ to $(*F).@vshared_suffix@
+	@$(SUINSTALL) ln -sf $(*F)@suffix@.@vshared_suffix@ $@
+	@$(MSG)  Linking $@ to $(*F)@suffix@.@vshared_suffix@
 $(LIBINSTALLDIR)/%@suffix@.@mshared_suffix@: $(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@
-	@$(SUINSTALL) ln -sf $(*F).@vshared_suffix@ $@
-	@$(MSG)  Linking $@ to $(*F).@vshared_suffix@
+	@$(SUINSTALL) ln -sf $(*F)@suffix@.@vshared_suffix@ $@
+	@$(MSG)  Linking $@ to $(*F)@suffix@.@vshared_suffix@
 $(LIBINSTALLDIR)/%@suffix@.@shared_suffix@: $(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@
-	@$(SUINSTALL) ln -sf $(*F).@vshared_suffix@ $@
-	@$(MSG)  Linking $@ to $(*F).@vshared_suffix@
+	@$(SUINSTALL) ln -sf $(*F)@suffix@.@vshared_suffix@ $@
+	@$(MSG)  Linking $@ to $(*F)@suffix@.@vshared_suffix@
 
-${CMODULES}/%@suffix@.@vshared_suffix@: ${LIBSOURCE}/kno/%@suffix@.@shared_suffix@
+${CMODULES}/%.@vshared_suffix@: ${LIBSOURCE}/kno/%@suffix@.@shared_suffix@
 	@echo Installing $@
 	@$(SYSINSTALL) -d $(@D)
 	@$(SYSINSTALL) $< $@
-${CMODULES}/%@suffix@.@mmshared_suffix@: ${CMODULES}/%@suffix@.@vshared_suffix@
+${CMODULES}/%.@mmshared_suffix@: ${CMODULES}/%@suffix@.@vshared_suffix@
 	@$(SUINSTALL) ln -sf $(*F).@vshared_suffix@ $@
 	@$(MSG)  Linking $@ to $(*F).@vshared_suffix@
 ${CMODULES}/%@suffix@.@mshared_suffix@: ${CMODULES}/%@suffix@.@vshared_suffix@ 
 	@$(SUINSTALL) ln -sf $(*F).@vshared_suffix@ $@
 	@$(MSG)  Linking $@ to $(*F).@vshared_suffix@
-${CMODULES}/%@suffix@.@shared_suffix@: ${CMODULES}/%@suffix@.@vshared_suffix@ 
-	@make -s ${CMODULES}/$(*F)@suffix@.@mmshared_suffix@ \
-		 ${CMODULES}/$(*F)@suffix@.@mshared_suffix@
+${CMODULES}/%.@shared_suffix@: ${CMODULES}/%.@vshared_suffix@ 
+	@make -s ${CMODULES}/$(*F.@mmshared_suffix@ \
+		 ${CMODULES}/$(*F).@mshared_suffix@
 	@$(SUINSTALL) ln -sf $(*F).@vshared_suffix@ $@
 	@$(MSG) Linking $@ to $(*F).@vshared_suffix@
 
