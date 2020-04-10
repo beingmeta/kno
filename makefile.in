@@ -291,6 +291,10 @@ TEXT_OBJS=\
 	src/text/porter.o \
 	src/text/phonetic.o
 
+PYTHON_OBJS=\
+	src/python/parseltongue.o \
+	src/python/parseltongue2.o
+
 CMODULE_OBJS=src/cmodules/sqlite.o  	\
 	     src/cmodules/crypto.o src/cmodules/zlib.o		\
 	     src/cmodules/libarchive.o 				\
@@ -2027,6 +2031,7 @@ $(LISP_OBJS) $(SYS_OBJS) $(APPLY_OBJS): .buildmode
 $(STORAGE_OBJS) $(DRIVER_OBJS): .buildmode
 $(SCHEME_OBJS): .buildmode
 $(WEB_OBJS) $(TEXT_OBJS): .buildmode
+$(PYTHON_OBJS) $(TEXT_OBJS): $(LISP_HEADERS) $(APPLY_HEADERS) $(SCHEME_HEADERS) $(REVISION_H) .buildmode
 $(CMODULE_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
 	$(APPLY_HEADERS) $(SCHEME_HEADERS) $(REVISION_H) .buildmode
 src/eval/choiceops.o src/prims/seqprims.o: include/kno/sorting.h
