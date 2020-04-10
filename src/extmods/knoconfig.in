@@ -77,15 +77,15 @@ case ${option} in
     sharedconfig|shared_config)
 	echo "@shared_config@";;
     cflags)
-	echo "@CFLAGS@";;
+	echo "@CFLAGS@ -I../../../include";;
     aptrepo)
         echo "@APTREPO@";;
     apkrepo)
         echo "@APKREPO@";;
     ldflags)
-	echo "@LDFLAGS@ @PTHREAD_LIBS@ -L../../lib ${XLDFLAGS}";;
+	echo "@LDFLAGS@ @PTHREAD_LIBS@ -L../../../lib ${XLDFLAGS}";;
     include)
-	echo "../../include/kno";;
+	echo "../../../include/kno";;
     lib)
 	echo "../../lib";;
     libs)
