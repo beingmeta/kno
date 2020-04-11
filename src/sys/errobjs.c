@@ -73,9 +73,9 @@ static lispval get_exception_context(u8_exception ex)
 }
 
 KNO_EXPORT
-u8_exception kno_mkerr(u8_condition c,u8_context caller,
-		       u8_string details,lispval irritant,
-		       int push)
+lispval kno_mkerr(u8_condition c,u8_context caller,
+		  u8_string details,lispval irritant,
+		  u8_exception *push)
 {
   u8_exception ex = u8_current_exception;
   u8_condition condition = (c) ? (c) : (ex) ? (ex->u8x_cond) :
@@ -100,8 +100,9 @@ u8_exception kno_mkerr(u8_condition c,u8_context caller,
   u8_exception new_ex =
     u8_new_exception(condition,caller,u8_strdup(details),
 		     (void *)exception,kno_decref_embedded_exception);
-  if (push) u8_expush(new_ex);
-  return new_ex;
+  if (push) *push = new_ex;
+  else u8_expush(new_ex);
+  return KNO_ERROR;
 }
 
 KNO_EXPORT void kno_restore_exception(struct KNO_EXCEPTION *exo)

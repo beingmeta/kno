@@ -19,15 +19,21 @@
 
 /* Errors */
 
-KNO_EXPORT u8_exception kno_simple_error
-(u8_condition c,u8_context cxt,u8_string details,lispval irritant,int push);
-KNO_EXPORT u8_exception (*_kno_mkerr)(u8_condition c,u8_context caller,
-				      u8_string details,lispval irritant,
-				      int push);
-#define kno_seterr(condition,caller,details,irritant) \
-  _kno_mkerr(condition,caller,details,irritant,1)
+KNO_EXPORT lispval kno_simple_error
+(u8_condition c,u8_context cxt,u8_string details,lispval irritant,
+ u8_exception *push);
+KNO_EXPORT lispval (*_kno_mkerr)(u8_condition c,u8_context caller,
+				 u8_string details,lispval irritant,
+				 u8_exception *push);
+KNO_EXPORT U8_NOINLINE void kno_raise
+(u8_condition c,u8_context cxt,u8_string details,lispval irritant);
+
+#define kno_seterr(condition,caller,details,irritant)	\
+  _kno_mkerr(condition,caller,details,irritant,NULL)
 #define kno_err(condition,caller,details,irritant) \
-  ((_kno_mkerr(condition,caller,details,irritant,1)),(KNO_ERROR_VALUE))
+  (_kno_mkerr(condition,caller,details,irritant,NULL))
+
+
 
 #endif /* ndef KNO_ERRORS_H */
 

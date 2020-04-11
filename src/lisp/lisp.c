@@ -184,25 +184,28 @@ KNO_EXPORT void kno_decref_u8x_xdata(void *ptr)
   kno_decref(v);
 }
 
-KNO_EXPORT u8_exception kno_simple_error
-(u8_condition c,u8_context cxt,u8_string details,lispval irritant,int push)
+KNO_EXPORT lispval kno_simple_error
+(u8_condition c,u8_context cxt,u8_string details,lispval irritant,
+ u8_exception *push)
 {
   u8_exception ex = u8_new_exception
     (c,cxt,(details)?(u8_strdup(details)):(NULL),(void *)irritant,
      kno_decref_u8x_xdata);
-  if (push) u8_expush(ex);
-  return ex;
+  if (push) *push = ex;
+  else u8_expush(ex);
+  return KNO_ERROR;
 }
 
-u8_exception (*_kno_mkerr)
+lispval (*_kno_mkerr)
 (u8_condition c,u8_context caller,
  u8_string details,lispval irritant,
- int push) = kno_simple_error;
+ u8_exception *push) = kno_simple_error;
 
 KNO_EXPORT void kno_raise
 (u8_condition c,u8_context cxt,u8_string details,lispval irritant)
 {
-  u8_exception ex = kno_mkerr(c,cxt,details,irritant,0);
+  u8_exception ex = NULL;
+  _kno_mkerr(c,cxt,details,irritant,&ex);
   u8_raise_exception(ex);
 }
 
