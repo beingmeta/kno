@@ -36,8 +36,6 @@
 
 /* Remote evaluation */
 
-static u8_condition ServerUndefined=_("Server unconfigured");
-
 DEFPRIM1("evalserver?",evalserverp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns true if it's argument is a dtype server "
 	 "object",
@@ -125,7 +123,7 @@ static lispval open_evalserver(lispval server,lispval opts)
 
 /* Making NETPROCs */
 
-DEFPRIM4("netproc",make_netproc,KNO_MAX_ARGS(5)|KNO_MIN_ARGS(2),
+DEFPRIM4("netproc",make_netproc,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
 	 "`(NETPROC *arg0* *arg1* [*arg2*] [*arg3*] [*arg4*])` **undocumented**",
 	 kno_evalserver_type,KNO_VOID,kno_symbol_type,KNO_VOID,
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
