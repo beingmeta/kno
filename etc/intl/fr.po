@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-04-10 15:14-0400\n"
+"POT-Creation-Date: 2020-04-10 17:24-0400\n"
 "PO-Revision-Date: 2005-03-05 16:06-0500\n"
 "Last-Translator: Kenneth Haase <kh@beingmeta.com>\n"
 "Language-Team: French <traduc@traduc.org>\n"
@@ -319,25 +319,25 @@ msgstr ""
 msgid "whether to check returned and real dtype sizes"
 msgstr ""
 
-#: src/lisp/xtypes.c:923 src/storage/compress.c:156 src/storage/compress.c:195
+#: src/lisp/xtypes.c:938 src/storage/compress.c:156 src/storage/compress.c:195
 #: src/prims/portprims.c:1353 src/drivers/headers/zcompress.h:27
 #: src/drivers/headers/zcompress.h:65
 msgid "ZLIB ran out of memory"
 msgstr ""
 
-#: src/lisp/xtypes.c:931 src/storage/compress.c:164
+#: src/lisp/xtypes.c:946 src/storage/compress.c:164
 #: src/drivers/headers/zcompress.h:35
 msgid "pool value uncompress ran out of memory"
 msgstr ""
 
 # aptitude
-#: src/lisp/xtypes.c:935 src/storage/compress.c:168
+#: src/lisp/xtypes.c:950 src/storage/compress.c:168
 #: src/drivers/headers/zcompress.h:38
 #, fuzzy
 msgid "ZLIB uncompress data error"
 msgstr "erreur d'analyse syntaxique"
 
-#: src/lisp/xtypes.c:937 src/storage/compress.c:170 src/storage/compress.c:208
+#: src/lisp/xtypes.c:952 src/storage/compress.c:170 src/storage/compress.c:208
 #: src/prims/portprims.c:1366 src/drivers/headers/zcompress.h:40
 #: src/drivers/headers/zcompress.h:78
 msgid "Bad ZLIB return code"
@@ -1392,56 +1392,56 @@ msgstr ""
 msgid "pool spec"
 msgstr "lot"
 
-#: src/storage/storage.c:697
+#: src/storage/storage.c:698
 msgid "Sets a level of time/memory tradeoff [0-3], default 1"
 msgstr ""
 
-#: src/storage/storage.c:702
+#: src/storage/storage.c:703
 msgid "Default oid display level [0-3]"
 msgstr ""
 
-#: src/storage/storage.c:707
+#: src/storage/storage.c:708
 msgid "Default log level for database messages"
 msgstr ""
 
-#: src/storage/storage.c:711
+#: src/storage/storage.c:712
 msgid "Whether to prefetch for large operations"
 msgstr ""
 
-#: src/storage/storage.c:716
+#: src/storage/storage.c:717
 msgid "pools used for OID resolution"
 msgstr ""
 
-#: src/storage/storage.c:719
+#: src/storage/storage.c:720
 #, fuzzy
 msgid "indexes opened"
 msgstr "index"
 
-#: src/storage/storage.c:722
+#: src/storage/storage.c:723
 msgid "indexes in the default search background"
 msgstr ""
 
-#: src/storage/storage.c:727
+#: src/storage/storage.c:728
 msgid "Number of connections to keep for each DB server"
 msgstr ""
 
-#: src/storage/storage.c:730
+#: src/storage/storage.c:731
 msgid "Max number of connections (default) for each DB server"
 msgstr ""
 
-#: src/storage/storage.c:734
+#: src/storage/storage.c:735
 msgid "Number of connections to initially create for each DB server"
 msgstr ""
 
-#: src/storage/storage.c:738
+#: src/storage/storage.c:739
 msgid "Functions and slotids for lookup up objects by name (@?name)"
 msgstr ""
 
-#: src/storage/storage.c:741
+#: src/storage/storage.c:742
 msgid "Functions to run when saving databases"
 msgstr ""
 
-#: src/storage/storage.c:746
+#: src/storage/storage.c:747
 msgid "Whether to convert legacy uppercase to lowercase"
 msgstr ""
 
