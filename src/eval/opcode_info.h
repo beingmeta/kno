@@ -91,36 +91,36 @@ static void init_opcode_names()
   set_opcode_name(KNO_FLODIV_OPCODE,"OP_FLODIV");
   set_opcode_name(KNO_DIV_OPCODE,"OP_DIVIDE");
 
-  set_opcode_name(KNO_ASSERT_OPCODE,"OP_ASSERT");
-  set_opcode_name(KNO_RETRACT_OPCODE,"OP_RETRACT");
-  set_opcode_name(KNO_GET_OPCODE,"OP_FGET");
-  set_opcode_name(KNO_TEST_OPCODE,"OP_FTEST");
-  set_opcode_name(KNO_ADD_OPCODE,"OP_ADD");
-  set_opcode_name(KNO_DROP_OPCODE,"OP_DROP");
-  set_opcode_name(KNO_XREF_OPCODE,"OP_XREF");
+  set_opcode_info(KNO_ASSERT_OPCODE,"OP_ASSERT",KNO_CALL_NDCALL);
+  set_opcode_info(KNO_RETRACT_OPCODE,"OP_RETRACT",KNO_CALL_NDCALL);
+  set_opcode_info(KNO_GET_OPCODE,"OP_FGET",KNO_CALL_NDCALL);
+  set_opcode_info(KNO_TEST_OPCODE,"OP_FTEST",KNO_CALL_NDCALL);
+  set_opcode_info(KNO_ADD_OPCODE,"OP_ADD",KNO_CALL_NDCALL);
+  set_opcode_info(KNO_DROP_OPCODE,"OP_DROP",KNO_CALL_NDCALL);
+  set_opcode_info(KNO_XREF_OPCODE,"OP_XREF",KNO_CALL_NDCALL);
   set_opcode_name(KNO_XPRED_OPCODE,"OP_XPRED");
   set_opcode_name(KNO_BREAK_OPCODE,"OP_BREAK");
-  set_opcode_name(KNO_PRIMGET_OPCODE,"OP_PGET");
-  set_opcode_name(KNO_PRIMTEST_OPCODE,"OP_PTEST");
-  set_opcode_name(KNO_STORE_OPCODE,"OP_PSTORE");
+  set_opcode_info(KNO_PRIMGET_OPCODE,"OP_PGET",KNO_CALL_NDCALL);
+  set_opcode_info(KNO_PRIMTEST_OPCODE,"OP_PTEST",KNO_CALL_NDCALL);
+  set_opcode_info(KNO_STORE_OPCODE,"OP_PSTORE",KNO_CALL_NDCALL);
 
-  set_opcode_name(KNO_APPLY0_OPCODE,"OP_APPLY0");
-  set_opcode_name(KNO_APPLY1_OPCODE,"OP_APPLY1");
-  set_opcode_name(KNO_APPLY2_OPCODE,"OP_APPLY2");
-  set_opcode_name(KNO_APPLY3_OPCODE,"OP_APPLY3");
-  set_opcode_name(KNO_APPLY4_OPCODE,"OP_APPLY4");
-  set_opcode_name(KNO_APPLY5_OPCODE,"OP_APPLY5");
-  set_opcode_name(KNO_APPLY6_OPCODE,"OP_APPLY6");
-  set_opcode_name(KNO_APPLY7_OPCODE,"OP_APPLY7");
-  set_opcode_name(KNO_APPLY8_OPCODE,"OP_APPLY8");
-  set_opcode_name(KNO_APPLY9_OPCODE,"OP_APPLY9");
-  set_opcode_name(KNO_APPLY10_OPCODE,"OP_APPLY10");
-  set_opcode_name(KNO_APPLY11_OPCODE,"OP_APPLY11");
-  set_opcode_name(KNO_APPLY12_OPCODE,"OP_APPLY12");
-  set_opcode_name(KNO_APPLY13_OPCODE,"OP_APPLY13");
-  set_opcode_name(KNO_APPLY14_OPCODE,"OP_APPLY14");
-  set_opcode_name(KNO_APPLY15_OPCODE,"OP_APPLY15");
-  set_opcode_name(KNO_APPLY_N_OPCODE,"OP_APPLY_N");
+  set_opcode_info(KNO_APPLY0_OPCODE,"OP_APPLY0",KNO_CALL_NDCALL);
+  set_opcode_info(KNO_APPLY1_OPCODE,"OP_APPLY1",KNO_CALL_NDCALL);
+  set_opcode_info(KNO_APPLY2_OPCODE,"OP_APPLY2",KNO_CALL_NDCALL);
+  set_opcode_info(KNO_APPLY3_OPCODE,"OP_APPLY3",KNO_CALL_NDCALL);
+  set_opcode_info(KNO_APPLY4_OPCODE,"OP_APPLY4",KNO_CALL_NDCALL);
+  set_opcode_info(KNO_APPLY5_OPCODE,"OP_APPLY5",KNO_CALL_NDCALL);
+  set_opcode_info(KNO_APPLY6_OPCODE,"OP_APPLY6",KNO_CALL_NDCALL);
+  set_opcode_info(KNO_APPLY7_OPCODE,"OP_APPLY7",KNO_CALL_NDCALL);
+  set_opcode_info(KNO_APPLY8_OPCODE,"OP_APPLY8",KNO_CALL_NDCALL);
+  set_opcode_info(KNO_APPLY9_OPCODE,"OP_APPLY9",KNO_CALL_NDCALL);
+  set_opcode_info(KNO_APPLY10_OPCODE,"OP_APPLY10",KNO_CALL_NDCALL);
+  set_opcode_info(KNO_APPLY11_OPCODE,"OP_APPLY11",KNO_CALL_NDCALL);
+  set_opcode_info(KNO_APPLY12_OPCODE,"OP_APPLY12",KNO_CALL_NDCALL);
+  set_opcode_info(KNO_APPLY13_OPCODE,"OP_APPLY13",KNO_CALL_NDCALL);
+  set_opcode_info(KNO_APPLY14_OPCODE,"OP_APPLY14",KNO_CALL_NDCALL);
+  set_opcode_info(KNO_APPLY15_OPCODE,"OP_APPLY15",KNO_CALL_NDCALL);
+  set_opcode_info(KNO_APPLY_N_OPCODE,"OP_APPLY_N",KNO_CALL_NDCALL);
 
 }
 
