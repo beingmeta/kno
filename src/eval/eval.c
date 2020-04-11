@@ -525,6 +525,35 @@ static lispval op_arity_error(lispval op,int got,int expected)
 
 static lispval opcode_dispatch(lispval op,int n,kno_argvec args)
 {
+  lispval opcode_class = KNO_OPCODE_CLASS(op);
+  switch (opcode_class) {
+  case KNO_D1_OPCODE_CLASS:
+    if (PRED_FALSE(n != 1))
+      return op_arity_error(op,n,1);
+    else return d1_call(op,args[0]);
+  case KNO_D2_OPCODE_CLASS:
+    if (PRED_FALSE(n != 2))
+      return op_arity_error(op,n,2);
+    else return d2_call(op,args[0],args[1]);
+  case KNO_ND1_OPCODE_CLASS:
+    if (PRED_FALSE(n != 1))
+      return op_arity_error(op,n,1);
+    else return nd1_call(op,args[0]);
+  case KNO_ND2_OPCODE_CLASS:
+    if (PRED_FALSE(n != 2))
+      return op_arity_error(op,n,2);
+    else return nd2_call(op,args[0],args[1]);
+  case KNO_NUMERIC_OPCODE_CLASS:
+    return handle_numeric_opcode(op,n,args);
+  case KNO_TABLE_OPCODE_CLASS:
+    return handle_table_opcode(op,n,args);
+  default:
+    return kno_err(kno_BadOpcode,"opcode_dispatch",opcode_name(op),op);}
+}
+
+#if 0
+static lispval opcode_dispatch(lispval op,int n,kno_argvec args)
+{
   if (KNO_D1_OPCODEP(op))
     if (PRED_FALSE(n != 1))
       return op_arity_error(op,n,1);
@@ -547,6 +576,7 @@ static lispval opcode_dispatch(lispval op,int n,kno_argvec args)
     return handle_table_opcode(op,n,args);
   else return kno_err(kno_BadOpcode,"opcode_dispatch",opcode_name(op),op);
 }
+#endif
 
 static int opcode_choice_loop(lispval *resultp,
 			      lispval op,int i,int n,
@@ -958,6 +988,7 @@ inline lispval _eval_expr(lispval head,lispval expr,
     KNO_STACK_SET_OP(stack,expr,0);
     stack->eval_source = source;}
 
+  /* A bit of a kludge, but it benchmarks well for non-compiled code */
   if (KNO_OPCODEP(head)) {
     if (KNO_SPECIAL_OPCODEP(head))
       return handle_special_opcode(head,KNO_CDR(expr),expr,env,stack,tail);
