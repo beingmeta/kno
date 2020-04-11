@@ -81,8 +81,11 @@ lispval kno_mkerr(u8_condition c,u8_context caller,
   u8_condition condition = (c) ? (c) : (ex) ? (ex->u8x_cond) :
     ((u8_condition)"Unknown (NULL) error");
   /* Don't grab contexts or backtraces for thread termination */
-  if (c == kno_ThreadTerminated)
-    return u8_new_exception(condition,caller,NULL,NULL,NULL);
+  if (c == kno_ThreadTerminated) {
+    u8_exception new_ex = u8_new_exception(condition,caller,NULL,NULL,NULL);
+    if (push) *push=new_ex;
+    else u8_expush(new_ex);
+    return KNO_ERROR;}
   struct KNO_EXCEPTION *exo = (ex) ? (kno_exception_object(ex)) : (NULL);
   lispval backtrace = ( (exo) && (KNO_CONSP(exo->ex_stack)) ) ?
     (kno_incref(exo->ex_stack)) :
