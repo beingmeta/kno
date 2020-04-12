@@ -814,6 +814,19 @@ static lispval getline_prim(lispval port,lispval eos_arg,
   else return kno_type_error(_("input port"),"getline_prim",port);
 }
 
+DEFPRIM1("decode-string",decode_string_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "`(decode-string *string*)` interprets escape characters "
+	 "in *string* and returns the corresponding unescaped version. "
+	 "Escaped character includes C character escapes (e.g. \\n or \\f) "
+	 "as well as numeric unicode escapes (e.g. \\u0065 or \\u2323)",
+	 kno_string_type,KNO_VOID);
+static lispval decode_string_prim(lispval string)
+{
+  struct U8_INPUT in;
+  U8_INIT_STRING_INPUT(&in,KNO_STRLEN(string),KNO_STRDATA(string));
+  return kno_decode_string(&in);
+}
+
 DEFPRIM("read",read_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
 	"`(READ [*port*])` "
 	"reads an object from *port*. If *port* is #t or "
@@ -1479,6 +1492,7 @@ static void link_local_cprims()
   KNO_LINK_PRIM("$histval",histval_prim,2,kno_io_module);
   KNO_LINK_PRIM("$histref",histref_prim,2,kno_io_module);
   KNO_LINK_PRIM("$histstring",histstring_prim,2,kno_io_module);
+  KNO_LINK_PRIM("decode-string",decode_string_prim,1,kno_io_module);
   KNO_LINK_PRIM("uniscape",uniscape,2,kno_io_module);
   KNO_LINK_PRIM("substringout",substringout,3,kno_io_module);
   KNO_LINK_PRIM("newline",newline_prim,1,kno_io_module);

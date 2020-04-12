@@ -58,6 +58,7 @@ KNO_EXPORT u8_string kno_unparse_arg(lispval obj);
 KNO_EXPORT lispval kno_read_arg(u8_input s);
 KNO_EXPORT int kno_skip_whitespace(u8_input s);
 KNO_EXPORT int kno_read_escape(u8_input in);
+KNO_EXPORT lispval kno_decode_string(u8_input in);
 
 KNO_EXPORT int kno_unparse(u8_output,lispval);
 KNO_EXPORT u8_string kno_lisp2string(lispval x);
