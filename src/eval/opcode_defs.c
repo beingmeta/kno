@@ -1237,7 +1237,7 @@ static int minus_reduce(lispval *result,lispval sum,lispval sub)
 {
   if (NOT_A_NUMBERP(sub))
     return reduce_not_a_number(result,"minus",sub);
-  if (KNO_ZEROP(sub)) return 1;
+  if (KNO_ZEROP(sub)) return 0;
   kno_lisp_type sumtype = KNO_TYPEOF(sum);
   // kno_lisp_type argtype = KNO_TYPEOF(sub);
   switch (sumtype) {
@@ -1245,7 +1245,7 @@ static int minus_reduce(lispval *result,lispval sum,lispval sub)
     lispval r = kno_subtract(sum,sub);
     if (KNO_CONSP(sum)) kno_decref(sum);
     *result = r;
-    return 1;}}
+    return 0;}}
 }
 
 static lispval minus_handler(int n,kno_argvec args)
@@ -1259,7 +1259,7 @@ static int times_reduce(lispval *result,lispval sum,lispval add)
 {
   if (NOT_A_NUMBERP(add))
     return reduce_not_a_number(result,"times",add);
-  if (add == KNO_INT(1)) return 1;
+  if (add == KNO_INT(1)) return 0;
   kno_lisp_type sumtype = KNO_TYPEOF(sum);
   // kno_lisp_type argtype = KNO_TYPEOF(add);
   switch (sumtype) {
@@ -1267,7 +1267,7 @@ static int times_reduce(lispval *result,lispval sum,lispval add)
     lispval r = kno_multiply(sum,add);
     if (KNO_CONSP(sum)) kno_decref(sum);
     *result = r;
-    return 1;}}
+    return 0;}}
 }
 
 static lispval times_handler(int n,kno_argvec args)
@@ -1289,7 +1289,7 @@ static int flodiv_reduce(lispval *result,lispval sum,lispval div)
   double divided = nval/dval;
   *result = kno_make_flonum(divided);
   kno_decref(sum);
-  return 1;
+  return 0;
 }
 
 static lispval flodiv_handler(int n,kno_argvec args)
