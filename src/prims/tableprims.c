@@ -138,6 +138,17 @@ static lispval static_hashtable(lispval table)
   return kno_incref(table);
 }
 
+DEFPRIM2("READONLY-HASHTABLE!",readonly_hashtable_prim,MAX_ARGS(2)|MIN_ARGS(1),
+	 "`(READONLY-HASHTABLE! *hashtable* [*flag*])` makes *hashtable* "
+	 "be read-only and disables locking for improved performance.",
+	 kno_hashtable_type,KNO_VOID,-1,KNO_TRUE)
+static lispval readonly_hashtable_prim(lispval table,lispval flag)
+{
+  int rv = kno_hashtable_set_readonly((kno_hashtable)table,KNO_TRUEP(flag));
+  if (rv<0) return KNO_ERROR;
+  else return kno_incref(table);
+}
+
 DEFPRIM1("UNSAFE-HASHTABLE",unsafe_hashtable,MAX_ARGS(1),
          "`(UNSAFE-TABLE *table* )` disables locking for *table*. "
          "This may improve performance.",
@@ -1127,6 +1138,7 @@ static void link_local_cprims()
   KNO_LINK_PRIM("RESET-HASHTABLE!",reset_hashtable,2,kno_scheme_module);
   KNO_LINK_PRIM("STATIC-HASHTABLE",static_hashtable,1,kno_scheme_module);
   KNO_LINK_PRIM("UNSAFE-HASHTABLE",unsafe_hashtable,1,kno_scheme_module);
+  KNO_LINK_PRIM("READONLY-HASHTABLE!",readonly_hashtable_prim,2,kno_scheme_module);
   KNO_LINK_PRIM("RESAFE-HASHTABLE",resafe_hashtable,1,kno_scheme_module);
   KNO_LINK_PRIM("HASH-LISP",hash_lisp_prim,1,kno_scheme_module);
   KNO_LINK_PRIM("%GET",table_get,3,kno_scheme_module);
