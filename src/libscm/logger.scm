@@ -117,17 +117,18 @@
   (macro expr
     `(logif+ (>= %loglevel ,(cadr expr)) ,(cadr expr) ,@(cddr expr))))
 
-;; These all call the regular log function
-(define logswamp! (macro expr `(logmsg 9 ,@(cdr expr))))
-(define logdeluge! (macro expr `(logmsg 9 ,@(cdr expr))))
-(define logdetail! (macro expr `(logmsg 8 ,@(cdr expr))))
-(define logdebug! (macro expr `(logmsg 7 ,@(cdr expr))))
-(define loginfo! (macro expr `(logmsg 6 ,@(cdr expr))))
-(define lognotice! (macro expr `(logmsg 5 ,@(cdr expr))))
-(define logwarn! (macro expr `(logmsg 4 ,@(cdr expr))))
-(define logerr! (macro expr `(logmsg %error% ,@(cdr expr))))
-(define logcrit! (macro expr `(logmsg %critical% ,@(cdr expr))))
-(define logalert! (macro expr `(logmsg %alert% ,@(cdr expr))))
+;; These all call the regular log function but will ignore the loglevel (both local and global)
+
+(define logswamp! (macro expr `(logmsg -9 ,@(cdr expr))))
+(define logdeluge! (macro expr `(logmsg -9 ,@(cdr expr))))
+(define logdetail! (macro expr `(logmsg -8 ,@(cdr expr))))
+(define logdebug! (macro expr `(logmsg -7 ,@(cdr expr))))
+(define loginfo! (macro expr `(logmsg -6 ,@(cdr expr))))
+(define lognotice! (macro expr `(logmsg -5 ,@(cdr expr))))
+(define logwarn! (macro expr `(logmsg -4 ,@(cdr expr))))
+(define logerr! (macro expr `(logmsg -3 ,@(cdr expr))))
+(define logcrit! (macro expr `(logmsg -2 ,@(cdr expr))))
+(define logalert! (macro expr `(logmsg -1 ,@(cdr expr))))
 (define logpanic! (macro expr `(logmsg %panic% ,@(cdr expr))))
 
 ;;; These all check the local %loglevel, except if the priority is

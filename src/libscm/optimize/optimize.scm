@@ -1468,8 +1468,8 @@
 	(else expr)))
 
 (define (optimize-logmsg handler expr env bound opts)
-  (if (or (symbol? (cadr expr)) (number? (cadr expr)))
-      (if (or (symbol? (caddr expr)) (number? (caddr expr)))
+  (if (or (symbol? (cadr expr)) (number? (cadr expr)) (not (cadr expr)))
+      (if (symbol? (caddr expr))
 	  `(,handler ,(cadr expr)
 		     ,(caddr expr)
 		     ,@(optimize-body (cdddr expr)))
@@ -1637,6 +1637,7 @@
       {"ONERROR" "UNWIND-PROTECT" "DYNAMIC-WIND"}
       optimize-block)
 (add! special-form-optimizers {"FILEOUT" "SYSTEM"} optimize-block)
+(add! special-form-optimizers {dbg dbgeval} optimize-block)
 
 (add! special-form-optimizers 
     ({procedure-name (lambda (x) x) 
