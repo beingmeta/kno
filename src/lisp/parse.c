@@ -528,6 +528,34 @@ static lispval parse_string(U8_INPUT *in)
   return result;
 }
 
+KNO_EXPORT lispval kno_decode_string(u8_input in)
+{
+  lispval result = VOID;
+  size_t out_len = (in->u8_inlim-in->u8_inbuf);
+  if (out_len<256) out_len = 256;
+  u8_byte buf[out_len];
+  struct U8_OUTPUT out; int c;
+  U8_INIT_OUTPUT_X(&out,out_len,buf,0);
+  while ((c = u8_getc(in))>=0)
+    if (c == '\\') {
+      int nextc = u8_getc(in);
+      if (nextc=='\n') {
+	while (u8_isspace(nextc)) nextc = u8_getc(in);
+	u8_putc(&out,nextc);
+	continue;}
+      else u8_ungetc(in,nextc);
+      c = read_escape(in);
+      if (c<0) {
+	if ((out.u8_streaminfo)&(U8_STREAM_OWNS_BUF))
+	  u8_free(out.u8_outbuf);
+	return KNO_ERROR;}
+      else u8_putc(&out,c);}
+    else u8_putc(&out,c);
+  result = kno_make_string(NULL,u8_outlen(&out),u8_outstring(&out));
+  u8_close_output(&out);
+  return result;
+}
+
 static lispval make_regex(u8_string src_arg,u8_string opts);
 
 static lispval parse_regex(U8_INPUT *in)
