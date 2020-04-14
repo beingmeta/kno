@@ -262,13 +262,26 @@ set breakpoint pending on
 #set disable-randomization off
 set overload-resolution off
 
-break dbg_evalfn:debugger
+break dbg_evalfn:examine_result
+set $dbger = $bpnum
+break dbgeval_evalfn:examine_expr
+set $dbgex = $bpnum
+break dbgeval_evalfn:examine_result
+set $dbgexv = $bpnum
 break kno_mkerr
+set $dbgmkerr = $bpnum
 break u8_raise
 break __msan_warning
 break __msan_warning_noreturn
 break __asan_report_error
 break abort
+
+def breakon
+enable $dbger
+enable $dbgex
+enable $dbgexv
+enable $dbgmkerr
+end
 
 def debug_utf8
 break u8_utf8_warning
