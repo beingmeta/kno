@@ -1276,11 +1276,11 @@ AC_DEFINE_UNQUOTED(KNO_DATA_DIR,"$with_data_dir")
 data_dir=$with_data_dir
 
 if test $prefix == "/usr"; then
-   default_config_dir=/etc/kno;
-   default_buildopts_dir=/etc/beingmeta/opts;
+   default_config_dir="/etc/kno${suffix}";
+   default_buildopts_dir="/etc/beingmeta/opts";
 else
-   default_config_dir=$prefix/etc/kno;
-   default_buildopts_dir=$prefix/etc/beingmeta/opts;
+   default_config_dir="$prefix/etc/kno${suffix}";
+   default_buildopts_dir="$prefix/etc/beingmeta/opts";
 fi
 
 AC_ARG_WITH(config_dir,--with-config-dir location,,with_config_dir=$default_config_dir)
