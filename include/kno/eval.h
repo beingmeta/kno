@@ -302,6 +302,7 @@ KNO_EXPORT lispval kno_eval(lispval expr,kno_lexenv env,
 			    kno_stack stack,
 			    int tail);
 KNO_EXPORT lispval kno_eval_arg(lispval expr,kno_lexenv env);
+KNO_EXPORT lispval kno_stack_eval(lispval expr,kno_lexenv env,kno_stack stack);
 
 
 KNO_EXPORT lispval kno_get_arg(lispval expr,int i);

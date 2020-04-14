@@ -64,7 +64,7 @@ KNO_EXPORT lispval kno_load_stream(u8_input loadstream,kno_lexenv env,
 	KNO_CHECK_ERRNO_OBJ(expr,"before evaluating");
 	start_time = u8_elapsed_time();}
       else start_time = -1.0;
-      result = kno_eval(expr,env,load_stack,0);
+      result = kno_stack_eval(expr,env,load_stack);
       kno_reset_stack(load_stack);
       if (KNO_ABORTP(result)) {
 	if (KNO_TROUBLEP(result)) {
