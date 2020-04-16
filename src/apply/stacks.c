@@ -9,6 +9,8 @@
 #define _FILEINFO __FILE__
 #endif
 
+#define KNO_APPLY_STACKS_C 1
+
 #define KNO_INLINE_FCNIDS 1
 #define KNO_INLINE_STACKS 1
 #define KNO_INLINE_LEXENV 1
@@ -141,22 +143,27 @@ KNO_EXPORT void kno_stackvec_grow(struct KNO_STACKVEC *sv,int len)
       return;}}
 }
 
+KNO_EXPORT void _kno_free_stackvec(struct KNO_STACKVEC *sv)
+{
+  __kno_free_stackvec(sv);
+}
+
 KNO_EXPORT void
 _kno_stackvec_push(kno_stackvec sv,lispval v)
 {
-  kno_stackvec_push(sv,v);
+  __kno_stackvec_push(sv,v);
 }
 
 KNO_EXPORT void
 _kno_decref_stackvec(kno_stackvec sv)
 {
-  kno_decref_stackvec(sv);
+  __kno_decref_stackvec(sv);
 }
 
 KNO_EXPORT void
 _kno_add_stack_ref(kno_stack stack,lispval v)
 {
-  kno_add_stack_ref(stack,v);
+  __kno_add_stack_ref(stack,v);
 }
 
 KNO_EXPORT void
@@ -164,23 +171,23 @@ _KNO_STACK_SET_ARGS(kno_stack stack,lispval *args,
 		    int width,int n,
 		    int flags)
 {
-  KNO_STACK_SET_ARGS(stack,args,width,n,flags);
+  __KNO_STACK_SET_ARGS(stack,args,width,n,flags);
 }
 
 
 KNO_EXPORT int _kno_free_stack(struct KNO_STACK *stack)
 {
-  return kno_free_stack(stack);
+  return __kno_free_stack(stack);
 }
 
 KNO_EXPORT int _kno_reset_stack(struct KNO_STACK *stack)
 {
-  return kno_reset_stack(stack);
+  return __kno_reset_stack(stack);
 }
 
 KNO_EXPORT  void _KNO_STACK_SET_OP(kno_stack s,lispval new,int free)
 {
-  KNO_STACK_SET_OP(s,new,free);
+  __KNO_STACK_SET_OP(s,new,free);
 }
 
 

@@ -1313,7 +1313,7 @@ static int finish_commit(kno_pool p,struct KNO_POOL_COMMITS *commits)
 	 1. it hasn't been modified since we picked it (finished) and
 	 2. the only pointers to it are in *values and the hashtable
 	 (refcount<=2) */
-      if ((finished) && (KNO_CONS_REFCOUNT(v)<=2)) {
+      if ((finished) && (KNO_REFCOUNT(v)<=2)) {
 	*unlock++=oids[i];
 	values[i]=VOID;
 	kv->kv_val=VOID;

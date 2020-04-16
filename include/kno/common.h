@@ -17,7 +17,7 @@
 
 #include "defines.h"
 
-#if ( HAVE_STDATOMIC_H && KNO_LOCKFREE_REFCOUNTS && KNO_INLINE_REFCOUNTS )
+#if ( HAVE_STDATOMIC_H && KNO_LOCKFREE_REFCOUNTS )
 #include <stdatomic.h>
 #endif
 

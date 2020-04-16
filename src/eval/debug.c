@@ -302,12 +302,12 @@ static lispval watchcons_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   lispval body = (label) ? (kno_get_body(expr,3)) : (kno_get_body(expr,2));
   lispval value = kno_eval(val_expr,env,_stack,0);
   if (KNO_CONSP(value)) {
-    int refcount = KNO_CONS_REFCOUNT(value);
+    int refcount = KNO_CONS_REFCOUNT((kno_cons)value);
     if (refcount == 0)
       u8_log(U8_LOGWARN,"%WATCHCONS","Not a cons: %q",value);
     else {
       lispval result = kno_eval_body(body,env,_stack,"%WATCHCONS",label,0);
-      int after = KNO_CONS_REFCOUNT(value);
+      int after = KNO_CONS_REFCOUNT((kno_cons)value);
       if (refcount != after) {
 	if (after == 0)
 	  u8_log(U8_LOGWARN,"%WATCHCONS",

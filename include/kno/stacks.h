@@ -11,6 +11,10 @@
 #define KNO_STACKS_H_INFO "include/kno/stacks.h"
 #endif
 
+#ifndef KNO_APPLY_STACKS_C
+#define KNO_APPLY_STACKS_C 0
+#endif
+
 #ifndef KNO_INLINE_STACKS
 #define KNO_INLINE_STACKS 0
 #endif
@@ -85,7 +89,7 @@ KNO_EXPORT void _kno_free_stackvec(struct KNO_STACKVEC *stack);
 #define kno_free_stackvec   _kno_free_stackvec
 #endif
 
-#if KNO_INLINE_STACKS
+#if (KNO_INLINE_STACKS || KNO_APPLY_STACKS_C)
 KNO_FASTOP void __kno_stackvec_push(struct KNO_STACKVEC *sv,lispval v)
 {
   int count = KNO_STACKVEC_COUNT(sv);
@@ -386,7 +390,7 @@ KNO_EXPORT void _KNO_STACK_SET_ARGS(kno_stack stack,lispval *buf,
 				    int width,int argcount,
 				    int flags);
 
-#if KNO_INLINE_STACKS
+#if KNO_INLINE_STACKS || KNO_APPLY_STACKS_C
 KNO_FASTOP U8_MAYBE_UNUSED
 void __KNO_STACK_SET_ARGS(kno_stack stack,lispval *buf,
 			  int width,int argcount,
@@ -436,7 +440,7 @@ KNO_EXPORT int _kno_reset_stack(struct KNO_STACK *stack);
   (kno_decref_stackvec(&(stack->stack_refs)),\
    kno_free_stackvec(&(stack->stack_refs)))
 
-#if KNO_INLINE_STACKS
+#if KNO_INLINE_STACKS || KNO_APPLY_STACKS_C
 KNO_FASTOP void __kno_add_stack_ref(struct KNO_STACK *stack,lispval v)
 {
   if (KNO_MALLOCDP(v)) kno_stackvec_push(&(stack->stack_refs),v);

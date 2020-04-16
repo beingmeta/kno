@@ -23,12 +23,6 @@
 /* Define if integers should be aligned  */
 #undef KNO_WORDS_ARE_ALIGNED
 
-/* Whether to suppress inline declarations  */
-#undef KNO_AVOID_INLINE
-
-/* Whether to suppress inline declarations  */
-#undef KNO_EXTREME_PROFILING
-
 /* Whether you can use the stdatomic.h header file */
 #undef HAVE_STDATOMIC_H
 
@@ -45,7 +39,7 @@
 #undef KNO_PREFETCHING_ENABLED
 
 /* Define if profiling is enabled.  */
-#undef KNO_PROFILING_ENABLED
+#undef KNO_PROFILING
 
 /* Define to have frame operations prefetch when possible */
 #undef KNO_PATHMODS_ENABLED

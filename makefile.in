@@ -105,6 +105,7 @@ LISP_HEADERS=\
  include/kno/config.h                           \
  include/kno/common.h                           \
  include/kno/errobjs.h                          \
+ include/kno/errors.h                          	\
  include/kno/defines.h				\
  include/kno/support.h                          \
  include/kno/numbers.h                          \
@@ -509,6 +510,7 @@ normal:
 	@if test -f .malloc; then \
 	  echo With $(shell cat .malloc) malloc; fi;
 	@+make -s testbin exe cmodules etc @TAGS@
+
 debugging:
 	@echo Building DEBUGGING configuration
 	@make TAGS
@@ -519,6 +521,17 @@ debugging:
 	          XOPTFLAGS="-O0" OPTFLAGS="-O0" 		\
 		  XLIBS="@debuglibs@ $(XLIBS)" 			\
 	  testbin exe cmodules etc @TAGS@
+
+profiling:
+	@echo Building PROFILING configuration
+	@make TAGS
+	@if test -f .malloc; then \
+	  echo With $(shell cat .malloc) malloc; fi;
+	@+make -s XCFLAGS="@profilecflags@ -O0 -Wall -Wno-unknown-pragmas $(XCFLAGS) @profiledefines@"	\
+	          XLDFLAGS="@profileldflags@ $(XLDFLAGS)"		\
+	          XOPTFLAGS="-O0" OPTFLAGS="-O0" 		\
+		  XLIBS="@debuglibs@ $(XLIBS)" 			\
+	  	testbin libs exe cmodules etc @TAGS@
 
 optimizing:
 	@echo Building OPTIMIZING configuration

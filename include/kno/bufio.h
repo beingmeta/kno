@@ -511,6 +511,7 @@ KNO_FASTOP kno_8bytes kno_read_varint(struct KNO_INBUF *s)
 #define kno_probe_byte   _kno_probe_byte
 #define kno_unread_byte _kno_unread_byte
 #define kno_read_4bytes _kno_read_4bytes
+#define kno_read_8bytes _kno_read_8bytes
 #define kno_read_bytes  _kno_read_bytes
 #define kno_read_varint   _kno_read_varint
 #endif
