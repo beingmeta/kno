@@ -87,7 +87,7 @@ static lispval *memindex_fetchkeys(kno_index ix,int *n)
   if (KNO_CHOICEP(keys)) {
     int count = KNO_CHOICE_SIZE(keys);
     lispval *keyv = u8_big_alloc_n(count,lispval);
-    if (KNO_CONS_REFCOUNT(keys) == 1) {
+    if (KNO_REFCOUNT(keys) == 1) {
       struct KNO_CHOICE *ch = (kno_choice) keys;
       memmove(keyv,KNO_CHOICE_ELTS(keys),count*LISPVAL_LEN);
       kno_free_choice(ch);}

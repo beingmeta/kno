@@ -43,19 +43,21 @@
 #define KNO_FASTOP static inline
 #endif
 
-/* This is for C profiling and helps generate code which is easier to profile. */
-#ifndef KNO_PROFILING_ENABLED
-#define KNO_PROFILING_ENABLED 0
+#ifndef KNO_PROFILING
+#define KNO_PROFILING 0
 #endif
 
-#ifndef KNO_EXTREME_PROFILING
-#define KNO_EXTREME_PROFILING 0
-#endif
+#define KNO_DEEP_PROFILING    ( KNO_PROFILING > 1 )
+#define KNO_EXTREME_PROFILING ( KNO_PROFILING > 2 )
 
-#if KNO_EXTREME_PROFILING
-#define KNO_DO_INLINE 1
+#if KNO_PROFILING > 1
+#define KNO_DO_INLINE 0
 #else
 #define KNO_DO_INLINE 1
+#endif
+
+#ifndef KNO_AVOID_INLINE
+#define KNO_AVOID_INLINE      ( KNO_PROFILING )
 #endif
 
 #ifndef HAVE_CONSTRUCTOR_ATTRIBUTES
@@ -275,7 +277,7 @@ typedef int kno_size_t;
 #endif
 
 #ifndef KNO_INLINE_REFCOUNTS
-#define KNO_INLINE_REFCOUNTS 1
+#define KNO_INLINE_REFCOUNTS (!(KNO_EXTREME_PROFILING))
 #endif
 
 #ifndef KNO_USE_THREADCACHE

@@ -181,6 +181,9 @@ MSG=echo
 debugcflags=" -Og -g3 -ggdb3 -fno-inline -fno-omit-frame-pointer "
 debugldflags=""
 debuglibs=""
+profilecflags=" -O0 -g3 -ggdb3 -fno-inline -fno-omit-frame-pointer "
+profileldflags=""
+profiledefines=""
 manually_disabled=""
 auto_disabled=""
 force_enabled=""
@@ -293,6 +296,10 @@ AC_SUBST(extra_sources)
 AC_SUBST(debugcflags)
 AC_SUBST(debugldflags)
 AC_SUBST(debuglibs)
+AC_SUBST(profilecflags)
+AC_SUBST(profileldflags)
+AC_SUBST(profileldefines)
+AC_SUBST(profilellibs)
 
 AC_SUBST(test_env)
 AC_SUBST(memtest_env)
@@ -632,16 +639,39 @@ if ! test "${with_stackcheck}" = "no"; then
    AC_DEFINE_UNQUOTED(KNO_STACKCHECK,1)
 fi
 
-### GNU Profiling
+# profiling
 
 dnl This compiles a version to be used with the GNU profiling tools
-AC_ARG_WITH(profiling,--with/out-profiling compile to generate profile information,,with_profiling="no")
-if test $with_profiling = "yes"; then
-  AC_DEFINE(KNO_WITH_PROFILING,1)
-  PROFILING="-O0 -pg -fno-inline -fprofile-arcs -ftest-coverage"
+AC_ARG_ENABLE(cprofiling,--en/disable-cprofiling compile to support profiling and coverage tools,,enable_cprofiling="no")
+
+if test -z "$enable_cprofiling" || test "$enable_cprofiling" = "no"; then
+  AC_DEFINE(KNO_PROFILING,0)
+  PROFILING=""
+elif test $enable_cprofiling = "yes"; then
+  AC_DEFINE(KNO_PROFILING,1)
+  PROFILING="-O0 -fno-inline"
+elif test $enable_cprofiling = "deep" || test $enable_cprofiling = "2" ; then
+  AC_DEFINE(KNO_PROFILING,2)
+  PROFILING="-O0 -fno-inline"
+elif test $enable_cprofiling = "extreme" || test $enable_cprofiling = "3" ; then
+  AC_DEFINE(KNO_PROFILING,3)
+  PROFILING="-O0 -fno-inline"
 else 
+  AC_DEFINE(KNO_PROFILING,0)
   PROFILING=""
 fi
+
+dnl This compiles a version to be used with the GNU profiling tools
+AC_ARG_WITH(gnuprof,--with/out-gnuprof compile to generate GNU profiling information,,with_gnuprof="no")
+
+if test "$with_gnuprof" = "yes"; then
+   if test -z "$PROFILING" ; then
+     AC_DEFINE(KNO_PROFILING,2)
+     PROFILING="-O0 -pg -fno-inline -fprofile-arcs -ftest-coverage"
+    else
+      PROFILING="${PROFILING} -pg"
+    fi;
+fi;
 
 ### GNU Coverage checking
 
@@ -650,10 +680,10 @@ AC_SUBST(GCOV_CFLAGS)
 AC_SUBST(GCOV_LDFLAGS)
 
 if test "${use_gcov}" == "yes"; then
-   OPTFLAGS=
-   XOPTFLAGS=
-   AC_DEFINE(KNO_AVOID_INLINE,1)
-   AC_DEFINE(KNO_EXTREME_PROFILING,1)
+  AC_DEFINE(KNO_PROFILING,2)
+  PROFILING="${PROFILING} -fprofile-arcs -ftest-coverage"
+  OPTFLAGS=
+  XOPTFLAGS=
 fi;
 
 ### Check some compiler fancies
@@ -1258,13 +1288,6 @@ AC_CHECK_MEMBERS([struct rusage.ru_inblock, struct rusage.ru_nvcsw, struct rusag
 AC_CHECK_MEMBERS([struct stat.st_mtim, struct stat.st_mtimespec],[],[],[#include <sys/stat.h>])
 AC_CHECK_DECLS([RUSAGE_THREAD],[],[],[#include <sys/resource.h>])
 
-AC_ARG_ENABLE(xprofiling,--enable-xprofiling use xprofiling information,enable_xprofiling=$withval,enable_xprofiling="yes")
-if test "${enable_xprofiling}" != "no"; then
-   AC_DEFINE(KNO_EXTENDED_PROFILING,1)
-else
-   AC_DEFINE(KNO_EXTENDED_PROFILING,0)
-fi;
-
 dnl Various directory/path configuration options
 
 AC_ARG_WITH(share_dir,--with-share-dir location,,with_share_dir=$prefix/share/kno)
@@ -1311,6 +1334,13 @@ else
   AC_DEFINE(KNO_FILECONFIG_ENABLED,0)
   AC_DEFINE(KNO_FILECONFIG_DEFAULTS,0)
 fi
+
+AC_ARG_ENABLE(xprofiling,--enable-xprofiling use xprofiling information,enable_xprofiling=$withval,enable_xprofiling="yes")
+if test "${enable_xprofiling}" != "no"; then
+   AC_DEFINE(KNO_EXTENDED_PROFILING,1)
+else
+   AC_DEFINE(KNO_EXTENDED_PROFILING,0)
+fi;
 
 ### Scheme Module search paths
 

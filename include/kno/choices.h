@@ -411,6 +411,8 @@ static U8_MAYBE_UNUSED int fast_choice_containsp(lispval x,struct KNO_CHOICE *ch
         else bottom = middle+1;}
       return 0;}
 }
+#else
+#define fast_choice_containsp(x,ch) (kno_choice_containsp(x,((lispval)ch)))
 #endif
 
 static U8_MAYBE_UNUSED void

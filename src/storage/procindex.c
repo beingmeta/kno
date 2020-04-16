@@ -254,7 +254,7 @@ static int copy_keyinfo(lispval info,struct KNO_KEY_SIZE *keyinfo)
       keyinfo->keysize_key   = key;
       keyinfo->keysize_count = icount;
       retval=1;}
-    if (KNO_CONS_REFCOUNT(info) > 1) {
+    if (KNO_REFCOUNT(info) > 1) {
       kno_incref(key);}
     else {
       KNO_SETCAR(info,KNO_VOID);

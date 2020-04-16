@@ -38,7 +38,7 @@ while [ $# -gt 0 ]; do
 	xprofile|xprofiling)
 	    CONFIG_ARGS="--enable-xprofiling ${CONFIG_ARGS}";
 	    ;;
-	profile|profiling|gcov)
+	coverage|gcov)
 	    CONFIG_ARGS="--enable-gcov ${CONFIG_ARGS}";
 	    MAKE_ARGS="${MAKE_ARGS} debug";
 	    ;;
@@ -47,6 +47,12 @@ while [ $# -gt 0 ]; do
 	    ;;
 	debug|production|install|nitpick|fast|install-bin|standard|usable|working|optimized|faster)
 	    MAKE_ARGS="${MAKE_ARGS} ${arg}";
+	    ;;
+	cprofiling)
+	    CONFIG_ARGS="--enable-cprofiling=deep"
+	    ;;
+	xcprofiling)
+	    CONFIG_ARGS="--enable-cprofiling=extreme"
 	    ;;
 	tests|memtests|leaktests|libtests|schemetests|dbtests|cmdtests)
 	    MAKE_ARGS="${MAKE_ARGS} ${arg}";

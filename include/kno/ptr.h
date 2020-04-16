@@ -301,7 +301,7 @@ typedef struct KNO_CONS *kno_cons;
 struct KNO_RAW_CONS { kno_consbits conshead;};
 typedef struct KNO_RAW_CONS *kno_raw_cons;
 
-#if KNO_INLINE_REFCOUNTS
+#if KNO_LOCKFREE_REFCOUNTS
 struct KNO_REF_CONS { KNO_ATOMIC_CONSHEAD kno_consbits conshead;};
 typedef struct KNO_REF_CONS *kno_ref_cons;
 #define KNO_REF_CONS(x) ((struct KNO_REF_CONS *)(x))
@@ -621,10 +621,6 @@ KNO_EXPORT lispval kno_make_bigint(long long intval);
 
 /* The sizeof check here avoids *tautological* range errors
    when n can't be too big for a fixnum. */
-#if KNO_EXTREME_PROFILING
-KNO_EXPORT lispval _KNO_INT2LISP(long long intval);
-#define KNO_INT2LISP _KNO_INT2LISP
-#else
 #define KNO_INT2LISP(n)               \
   ( (sizeof(n) < KNO_FIXNUM_BYTES) ?                      \
     (KNO_INT2FIX(n)) :                                    \
@@ -632,7 +628,6 @@ KNO_EXPORT lispval _KNO_INT2LISP(long long intval);
       (((long long)(n)) < KNO_MIN_FIXNUM) ) ?                 \
     (kno_make_bigint(n)) :                                    \
     (KNO_INT2FIX(n)))
-#endif
 #define KNO_INT(x) (KNO_INT2LISP(x))
 #define KNO_MAKEINT(x) (KNO_INT2LISP(x))
 

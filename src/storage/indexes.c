@@ -9,6 +9,7 @@
 #define _FILEINFO __FILE__
 #endif
 
+#define KNO_STORAGE_INDEX_C 1
 #define KNO_INLINE_INDEXES 1
 #define KNO_INLINE_CHOICES KNO_DO_INLINE
 #define KNO_INLINE_IPEVAL KNO_DO_INLINE
@@ -64,6 +65,24 @@ static lispval edit_result(lispval key,lispval result,
       result=new_result;}}
   return result;
 }
+
+/* Non-static primitives */
+
+KNO_EXPORT kno_index _kno_indexptr(lispval x)
+{
+  return __kno_indexptr(x);
+
+}
+KNO_EXPORT lispval _kno_index2lisp(kno_index ix)
+{
+  return __kno_index2lisp(ix);
+}
+KNO_EXPORT kno_index _kno_get_writable_index(kno_index ix)
+{
+  return __kno_get_writable_index(ix);
+}
+
+/* Various init values */
 
 int kno_index_cache_init    = KNO_INDEX_CACHE_INIT;
 int kno_index_adds_init     = KNO_INDEX_ADDS_INIT;
@@ -260,16 +279,6 @@ KNO_EXPORT void kno_register_index(kno_index ix)
   u8_rw_unlock(&indexes_lock);
   if ((ix->index_flags)&(KNO_INDEX_IN_BACKGROUND))
     kno_add_to_background(ix);
-}
-
-KNO_EXPORT lispval _kno_index2lisp(kno_index ix)
-{
-  return kno_index2lisp(ix);
-}
-
-KNO_EXPORT kno_index _kno_indexptr(lispval lix)
-{
-  return kno_indexptr(lix);
 }
 
 KNO_EXPORT lispval kno_index_ref(kno_index ix)

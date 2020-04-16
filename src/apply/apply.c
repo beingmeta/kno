@@ -787,7 +787,7 @@ KNO_EXPORT void kno_profile_start(struct rusage *before,struct timespec *start)
 #elif (KNO_EXTENDED_PROFILING)
   if (kno_extended_profiling) getrusage(RUSAGE_SELF,before);
 #else
-  return 0;
+  return;
 #endif
 }
 
