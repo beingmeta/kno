@@ -230,7 +230,7 @@ static lispval stack2lisp(struct KNO_STACK *stack,struct KNO_STACK *inner)
   else if (show_source)
     return kno_init_compound
       (NULL,stack_entry_symbol,STACK_CREATE_OPTS,
-       6,depth,label,file,source,
+       6,depth,label,file,kno_incref(source),
        ((env) ? (kno_deep_copy(env->env_bindings)) :
 	((STACK_ARGS(stack)) && (STACK_LENGTH(stack))) ?
 	(copy_args(STACK_WIDTH(stack),STACK_ARGS(stack))) :

@@ -1,8 +1,4 @@
-#if (!(KNO_AVOID_INLINE))
-#define INLINE_DEF static inline
-#else
 #define INLINE_DEF static
-#endif
 
 u8_condition BadExpressionHead;
 
@@ -33,19 +29,21 @@ INLINE_DEF lispval eval_lexref(lispval lexref,kno_lexenv env_arg)
   int up = code/32, across = code%32;
   kno_lexenv env = env_arg;
   while ((env) && (up)) {
-    if (env->env_copy) env = env->env_copy;
+    if (PRED_FALSE((env->env_copy!=NULL))) env = env->env_copy;
     env = env->env_parent;
     up--;}
   if (KNO_EXPECT_TRUE(env != NULL)) {
-    if (env->env_copy) env = env->env_copy;
+    if (PRED_FALSE((env->env_copy!=NULL))) env = env->env_copy;
     lispval bindings = env->env_bindings;
     if (KNO_EXPECT_TRUE(KNO_SCHEMAPP(bindings))) {
       struct KNO_SCHEMAP *s = (struct KNO_SCHEMAP *)bindings;
       if ( across < s->schema_length) {
 	lispval v = s->table_values[across];
-	if (KNO_PRECHOICEP(v))
-	  return kno_make_simple_choice(v);
-	else return kno_incref(v);}}}
+	if (KNO_CONSP(v)) {
+	  if (PRED_FALSE((KNO_CONS_TYPE(((kno_cons)v))) == kno_prechoice_type))
+	    return _kno_make_simple_choice(v);
+	  else return kno_incref(v);}
+	else return v;}}}
   lispval env_ptr = (lispval) env_arg;
   u8_byte errbuf[64];
   return kno_err("Bad lexical reference","kno_lexref",
