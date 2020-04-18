@@ -565,13 +565,13 @@ static lispval setoidvalue(lispval o,lispval v,lispval nocopy)
   if (KNO_TRUEP(nocopy)) {kno_incref(v);}
   else if (SLOTMAPP(v)) {
     v = kno_deep_copy(v);
-    KNO_SLOTMAP_MARK_MODIFIED(v);}
+    KNO_TABLE_SET_MODIFIED(v,1);}
   else if (SCHEMAPP(v)) {
     v = kno_deep_copy(v);
-    KNO_SCHEMAP_MARK_MODIFIED(v);}
+    KNO_TABLE_SET_MODIFIED(v,1);}
   else if (HASHTABLEP(v)) {
     v = kno_deep_copy(v);
-    KNO_HASHTABLE_MARK_MODIFIED(v);}
+    KNO_TABLE_SET_MODIFIED(v,1);}
   else v = kno_incref(v);
   retval = kno_set_oid_value(o,v);
   kno_decref(v);
@@ -2807,7 +2807,7 @@ static lispval hashtable_filter(lispval candidates,kno_hashtable ht,int pick)
     lispval simple = kno_make_simple_choice(candidates);
     int n = KNO_CHOICE_SIZE(simple), unlock = 0, isatomic = 1;
     lispval *keep = u8_alloc_n(n,lispval), *write = keep;
-    if (ht->table_uselock) {kno_read_lock_table(ht); unlock = 1;}
+    if (KNO_XTABLE_USELOCKP(ht)) {kno_read_lock_table(ht); unlock = 1;}
     {struct KNO_HASH_BUCKET **slots = ht->ht_buckets;
       int n_slots = ht->ht_n_buckets;
       DO_CHOICES(c,candidates) {
@@ -3769,10 +3769,10 @@ static int oidmodifiedp(kno_pool p,lispval oid)
     if ((VOIDP(v)) || (v == KNO_LOCKHOLDER))
       modified = 0;
     else if (SLOTMAPP(v))
-      if (KNO_SLOTMAP_MODIFIEDP(v)) {}
+      if (KNO_TABLE_MODIFIEDP(v)) {}
       else modified = 0;
     else if (SCHEMAPP(v)) {
-      if (KNO_SCHEMAP_MODIFIEDP(v)) {}
+      if (KNO_TABLE_MODIFIEDP(v)) {}
       else modified = 0;}
     else {}
     kno_decref(v);

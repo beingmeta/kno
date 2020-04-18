@@ -166,7 +166,8 @@ static lispval get_reqinfo()
   else {
     lispval newinfo = kno_empty_slotmap();
     kno_slotmap sm = kno_consptr(kno_slotmap,newinfo,kno_slotmap_type);
-    u8_write_lock(&(sm->table_rwlock)); sm->table_uselock = 0;
+    u8_write_lock(&(sm->table_rwlock)); 
+    KNO_XTABLE_SET_USELOCK(sm,0);
     u8_tld_set(reqinfo_key,(void *)newinfo);
     return newinfo;}
 }
@@ -187,7 +188,8 @@ static lispval get_reqinfo()
   else {
     lispval newinfo = kno_empty_slotmap();
     kno_slotmap sm = kno_consptr(kno_slotmap,newinfo,kno_slotmap_type);
-    u8_write_lock(&(sm->table_rwlock)); sm->table_uselock = 0;
+    u8_write_lock(&(sm->table_rwlock));
+    KNO_XTABLE_SET_USELOCK(sm,0);
     reqinfo = newinfo;
     return newinfo;}
 }
@@ -258,13 +260,13 @@ KNO_EXPORT void kno_use_reqinfo(lispval newinfo)
   if ((KNO_TRUEP(newinfo))&&(TABLEP(curinfo))) return;
   if (SLOTMAPP(curinfo)) {
     kno_slotmap sm = kno_consptr(kno_slotmap,curinfo,kno_slotmap_type);
-    if (sm->table_uselock==0) {
-      sm->table_uselock = 1;
+    if (!(KNO_XTABLE_USELOCKP(sm))) {
+      KNO_XTABLE_SET_USELOCK(sm,1);
       u8_rw_unlock(&(sm->table_rwlock));}}
   else if (HASHTABLEP(curinfo)) {
     kno_hashtable ht = kno_consptr(kno_hashtable,curinfo,kno_hashtable_type);
-    if (ht->table_uselock==0) {
-      ht->table_uselock = 1;
+    if (!(KNO_XTABLE_USELOCKP(ht))) {
+      KNO_XTABLE_SET_USELOCK(ht,1);
       u8_rw_unlock(&(ht->table_rwlock));}}
   else {}
   if ((FALSEP(newinfo))||
@@ -276,7 +278,8 @@ KNO_EXPORT void kno_use_reqinfo(lispval newinfo)
   else if (KNO_TRUEP(newinfo)) {
     kno_slotmap sm; newinfo = kno_empty_slotmap();
     sm = kno_consptr(kno_slotmap,newinfo,kno_slotmap_type);
-    u8_write_lock(&(sm->table_rwlock)); sm->table_uselock = 0;}
+    u8_write_lock(&(sm->table_rwlock));
+    KNO_XTABLE_SET_USELOCK(sm,0);}
   else if ((SLOTMAPP(newinfo))||(SLOTMAPP(curinfo)))
     kno_incref(newinfo);
   else {
@@ -284,15 +287,16 @@ KNO_EXPORT void kno_use_reqinfo(lispval newinfo)
            "USE_REQINFO arg isn't slotmap or table: %q",newinfo);
     kno_slotmap sm; newinfo = kno_empty_slotmap();
     sm = kno_consptr(kno_slotmap,newinfo,kno_slotmap_type);
-    u8_write_lock(&(sm->table_rwlock)); sm->table_uselock = 0;}
+    u8_write_lock(&(sm->table_rwlock));
+    KNO_XTABLE_SET_USELOCK(sm,0);}
   if (SLOTMAPP(newinfo)) {
     kno_slotmap sm = kno_consptr(kno_slotmap,newinfo,kno_slotmap_type);
     u8_write_lock(&(sm->table_rwlock));
-    sm->table_uselock = 0;}
+    KNO_XTABLE_SET_USELOCK(sm,0);}
   else if (HASHTABLEP(newinfo)) {
     kno_hashtable ht = kno_consptr(kno_hashtable,newinfo,kno_hashtable_type);
     u8_write_lock(&(ht->table_rwlock));
-    ht->table_uselock = 0;}
+    KNO_XTABLE_SET_USELOCK(ht,0);}
   set_reqinfo(newinfo);
   kno_decref(curinfo);
 }
@@ -303,13 +307,13 @@ KNO_EXPORT lispval kno_push_reqinfo(lispval newinfo)
   if (curinfo == newinfo) return curinfo;
   if (SLOTMAPP(curinfo)) {
     kno_slotmap sm = kno_consptr(kno_slotmap,curinfo,kno_slotmap_type);
-    if (sm->table_uselock==0) {
-      sm->table_uselock = 1;
+    if (!(KNO_XTABLE_USELOCKP(sm))) {
+      KNO_XTABLE_SET_USELOCK(sm,1);
       u8_rw_unlock(&(sm->table_rwlock));}}
   else if (HASHTABLEP(curinfo)) {
     kno_hashtable ht = kno_consptr(kno_hashtable,curinfo,kno_hashtable_type);
-    if (ht->table_uselock==0) {
-      ht->table_uselock = 1;
+    if (!(KNO_XTABLE_USELOCKP(ht))) {
+      KNO_XTABLE_SET_USELOCK(ht,1);
       u8_rw_unlock(&(ht->table_rwlock));}}
   if ((FALSEP(newinfo))||
       (VOIDP(newinfo))||
@@ -326,11 +330,11 @@ KNO_EXPORT lispval kno_push_reqinfo(lispval newinfo)
   if (SLOTMAPP(newinfo)) {
     kno_slotmap sm = kno_consptr(kno_slotmap,newinfo,kno_slotmap_type);
     u8_write_lock(&(sm->table_rwlock));
-    sm->table_uselock = 0;}
+    KNO_XTABLE_SET_USELOCK(sm,0);}
   else if (HASHTABLEP(newinfo)) {
     kno_hashtable ht = kno_consptr(kno_hashtable,newinfo,kno_hashtable_type);
     u8_write_lock(&(ht->table_rwlock));
-    ht->table_uselock = 0;}
+    KNO_XTABLE_SET_USELOCK(ht,0);}
   set_reqinfo(newinfo);
   return curinfo;
 }

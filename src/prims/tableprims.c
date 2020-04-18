@@ -133,7 +133,7 @@ static lispval static_hashtable(lispval table)
   struct KNO_HASHTABLE *ht = (kno_hashtable)table;
   kno_write_lock_table(ht);
   kno_static_hashtable(ht,-1);
-  ht->table_uselock = 0;
+  KNO_XTABLE_SET_USELOCK(ht,0);
   kno_unlock_table(ht);
   return kno_incref(table);
 }
@@ -157,7 +157,7 @@ static lispval unsafe_hashtable(lispval table)
 {
   struct KNO_HASHTABLE *ht = (kno_hashtable)table;
   kno_write_lock_table(ht);
-  ht->table_uselock = 0;
+  KNO_XTABLE_SET_USELOCK(ht,0);
   kno_unlock_table(ht);
   return kno_incref(table);
 }
@@ -170,7 +170,7 @@ static lispval resafe_hashtable(lispval table)
 {
   struct KNO_HASHTABLE *ht = (kno_hashtable)table;
   kno_write_lock_table(ht);
-  ht->table_uselock = 1;
+  KNO_XTABLE_SET_USELOCK(ht,1);
   kno_unlock_table(ht);
   return kno_incref(table);
 }

@@ -566,7 +566,8 @@ static lispval read_oid_value(kno_oidpool op,
          translation is stored in the mapin field. */
       while (i<n_vals) {
         values[mapin[i]]=kno_read_dtype(in); i++;}
-      return kno_make_schemap(NULL,n_vals,KNO_SCHEMAP_SORTED|KNO_SCHEMAP_TAGGED,
+      return kno_make_schemap
+	(NULL,n_vals,KNO_SCHEMAP_SORTED|KNO_SCHEMAP_TAGGED_SCHEMA,
                              se->op_slotids,values);}
     else return kno_err(kno_SchemaInconsistency,cxt,op->poolid,VOID);}
 }
@@ -745,10 +746,10 @@ static lispval *oidpool_fetchn(kno_pool p,int n,lispval *oids)
 
 static int get_schema_id(kno_oidpool op,lispval value)
 {
-  if ( (SCHEMAPP(value)) && (KNO_SCHEMAP_SORTEDP(value)) ) {
+  if ( (SCHEMAPP(value)) && (KNO_TABLE_BITP(value,KNO_SCHEMAP_SORTED)) ) {
     struct KNO_SCHEMAP *sm = (kno_schemap)value;
     lispval *slotids = sm->table_schema, size = sm->schema_length;
-    if (sm->schemap_tagged) {
+    if (KNO_TABLE_BITP(value,KNO_SCHEMAP_TAGGED_SCHEMA)) {
       lispval pos = slotids[size];
       int intpos = kno_getint(pos);
       if ((intpos<op->oidpool_n_schemas) &&

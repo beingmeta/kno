@@ -1365,13 +1365,13 @@ static int index_docommit(kno_index ix,struct KNO_INDEX_COMMITS *use_commits)
 
     int n_adds=0, n_drops=0, n_stores=0;
     /* Lock the changes for the index */
-    if (adds_table->table_uselock) {
+    if (KNO_XTABLE_USELOCKP(adds_table)) {
       kno_write_lock_table(adds_table);
       unlock_adds=1;}
-    if (drops_table->table_uselock) {
+    if (KNO_XTABLE_USELOCKP(drops_table)) {
       kno_write_lock_table(drops_table);
       unlock_drops=1;}
-    if (stores_table->table_uselock) {
+    if (KNO_XTABLE_USELOCKP(stores_table)) {
       kno_write_lock_table(stores_table);
       unlock_stores=1;}
 
@@ -1472,13 +1472,13 @@ static int index_docommit(kno_index ix,struct KNO_INDEX_COMMITS *use_commits)
     struct KNO_HASHTABLE *drops_table = &(ix->index_drops);
     struct KNO_HASHTABLE *stores_table = &(ix->index_stores);
     /* Lock the adds and edits again */
-    if (adds_table->table_uselock) {
+    if (KNO_XTABLE_USELOCKP(adds_table)) {
       kno_write_lock_table(adds_table);
       unlock_adds=1;}
-    if (drops_table->table_uselock) {
+    if (KNO_XTABLE_USELOCKP(drops_table)) {
       kno_write_lock_table(drops_table);
       unlock_drops=1;}
-    if (stores_table->table_uselock) {
+    if (KNO_XTABLE_USELOCKP(stores_table)) {
       kno_write_lock_table(stores_table);
       unlock_stores=1;}
 
@@ -1874,7 +1874,7 @@ KNO_EXPORT void kno_init_index(kno_index ix,
   else {
     kno_init_slotmap(&(ix->index_metadata),17,NULL);
     ix->index_keyslot = VOID;}
-  ix->index_metadata.table_modified = 0;
+  KNO_XTABLE_SET_MODIFIED(&(ix->index_metadata),0);
   ix->index_keyslot = keyslot;
 
   /* This was what was specified */
@@ -1913,7 +1913,7 @@ KNO_EXPORT int kno_index_set_metadata(kno_index ix,lispval metadata)
     KNO_INIT_STATIC_CONS(&(ix->index_metadata),kno_slotmap_type);
     kno_init_slotmap(&(ix->index_metadata),17,NULL);
     ix->index_keyslot = VOID;}
-  ix->index_metadata.table_modified = 0;
+  KNO_XTABLE_SET_MODIFIED(&(ix->index_metadata),0);
   return 0;
 }
 

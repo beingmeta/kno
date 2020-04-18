@@ -233,16 +233,12 @@ static lispval compound_set(lispval x,lispval offset,lispval value,lispval tag)
 
 static lispval apply_modifier(lispval modifier,lispval old_value,lispval value)
 {
-  if ( (modifier == KNOSYM_ADD) || 
+  if ( (modifier == KNOSYM_ADD) ||
        (modifier == choice_fcnid) ||
        (modifier == choice_prim) ) {
-    lispval new_value = old_value;
-    kno_incref(value);
-    CHOICE_ADD(new_value,value);
-    if ( (new_value == old_value) ||
-	 (KNO_PRECHOICEP(old_value)) )
-      return kno_incref(new_value);
-    else return new_value;}
+    kno_incref(old_value); kno_incref(value);
+    CHOICE_ADD(old_value,value);
+    return old_value;}
   else if ( (modifier == KNOSYM_DROP) ||
 	    (modifier == difference_fcnid) ||
 	    (modifier == difference_prim) )
@@ -279,7 +275,8 @@ DEFPRIM5
 ("compound-modify!",compound_modify,
  KNO_MAX_ARGS(5)|KNO_MIN_ARGS(4)|KNO_NDOP,
  "`(compound-modify! *compound* *tag* *eltno* *modfn* *modval*)` "
- "**undocumented**",
+ "Modifies a field of *compound* atomically, replacing it with "
+ "(*modfn* *curval* *modval*) while holding any locks on the compound.",
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
  kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
  kno_any_type,KNO_VOID);
