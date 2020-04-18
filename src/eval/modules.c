@@ -254,7 +254,7 @@ static kno_lexenv become_module(kno_lexenv env,lispval module_name,int create)
   else if (VOIDP(module)) {
     if (!(HASHTABLEP(env->env_exports)))
       env->env_exports = kno_make_hashtable(NULL,0);
-    else if (KNO_HASHTABLE_READONLYP(env->env_exports)) {
+    else if (KNO_TABLE_READONLYP(env->env_exports)) {
       kno_seterr(_("Can't reload a read-only module"),
 		 "become_module",NULL,module_spec);
       return NULL;}

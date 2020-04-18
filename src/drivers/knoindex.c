@@ -432,8 +432,8 @@ static int load_header(struct KNO_KNOINDEX *index,struct KNO_STREAM *stream)
   if (KNO_VOIDP(metadata)) {}
   else if (KNO_SLOTMAPP(metadata)) {
     kno_index_set_metadata((kno_index)index,metadata);
-    if (modified_metadata)
-      index->index_metadata.table_modified = 1;
+    if (modified_metadata) {
+      KNO_XTABLE_SET_MODIFIED(&(index->index_metadata),1);}
     index->kx_metadata_pos = metadata_loc;}
   else {
     u8_log(LOG_WARN,"BadMetadata",
@@ -3166,8 +3166,8 @@ KNO_EXPORT lispval kno_knoindex_keyinfo(lispval lix,
         keyinfo_values[3] = KNO_INT(hashval);
         lispval sm =
           kno_make_schemap(NULL,4,
-                          KNO_SCHEMAP_FIXED|KNO_SCHEMAP_READONLY,
-                          keyinfo_schema,keyinfo_values);
+			   KNO_SCHEMAP_FIXED_SCHEMA|KNO_TABLE_READONLY_BIT,
+			   keyinfo_schema,keyinfo_values);
         elts[key_count++]=(lispval)sm;}
       else kno_decref(key);
       if (n_vals==0) {}
@@ -3294,7 +3294,7 @@ static lispval hashbucket_info(struct KNO_KNOINDEX *hx,lispval bucket_nums)
         kno_read_varint(&keyblkstrm);}
       lispval sm =
         kno_make_schemap(NULL,n_slots,
-                        KNO_SCHEMAP_FIXED|KNO_SCHEMAP_READONLY,
+                        KNO_SCHEMAP_FIXED_SCHEMA|KNO_TABLE_READONLY_BIT,
                         keyinfo_schema,keyinfo_values);
       KNO_ADD_TO_CHOICE(keyinfo,sm);
       j++;}
@@ -3373,7 +3373,7 @@ static lispval hashrange_info(struct KNO_KNOINDEX *hx,
         kno_read_varint(&keyblkstrm);}
       lispval sm = kno_make_schemap
         (NULL,n_slots,
-         KNO_SCHEMAP_FIXED|KNO_SCHEMAP_READONLY,
+         KNO_SCHEMAP_FIXED_SCHEMA|KNO_TABLE_READONLY_BIT,
          keyinfo_schema,keyinfo_values);
       KNO_ADD_TO_CHOICE(keyinfo,sm);
       j++;}

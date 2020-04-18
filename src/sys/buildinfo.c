@@ -577,6 +577,6 @@ KNO_EXPORT void kno_init_build_info()
                       config_get_build_info,NULL,NULL);
 
   struct KNO_SLOTMAP *table= (kno_slotmap) build_info;
-  table->table_readonly=1;
+  KNO_XTABLE_SET_READONLY(table,1);
 }
 

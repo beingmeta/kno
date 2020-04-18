@@ -227,11 +227,10 @@ KNO_FASTOP kno_lexenv init_static_env
   memset(bindings,0,KNO_SCHEMAP_LEN);
   KNO_INIT_STATIC_CONS(envstruct,kno_lexenv_type);
   KNO_INIT_STATIC_CONS(bindings,kno_schemap_type);
-  bindings->schemap_onstack = 1;
+  bindings->table_bits = KNO_SCHEMAP_STATIC_SCHEMA | KNO_SCHEMAP_STATIC_VALUES;
   bindings->table_schema = vars;
   bindings->table_values = vals;
   bindings->schema_length = n;
-  bindings->table_uselock = 0;
   // u8_init_rwlock(&(bindings->table_rwlock));
   envstruct->env_bindings = LISP_CONS((bindings));
   envstruct->env_exports = KNO_VOID;

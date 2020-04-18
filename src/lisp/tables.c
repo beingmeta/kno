@@ -301,9 +301,9 @@ KNO_EXPORT int kno_slotmap_store(struct KNO_SLOTMAP *sm,lispval key,lispval valu
     return kno_interr(value);
   else if (KNO_EMPTYP(key))
     return 0;
-  else if (sm->table_readonly)
+  else if (KNO_XTABLE_READONLYP(sm))
     return KNO_ERR(-1,kno_ReadOnlyTable,"kno_slotmap_store",NULL,key);
-  else if (sm->table_uselock) {
+  else if (KNO_XTABLE_USELOCKP(sm)) {
     u8_write_lock(&sm->table_rwlock);
     unlock=1;}
   else NO_ELSE;
@@ -313,20 +313,21 @@ KNO_EXPORT int kno_slotmap_store(struct KNO_SLOTMAP *sm,lispval key,lispval valu
     int cur_allocd=KNO_XSLOTMAP_NALLOCATED(sm), allocd=cur_allocd;
     struct KNO_KEYVAL *cur_keyvals=sm->sm_keyvals;;
     struct KNO_KEYVAL *result=
-      (sm->sm_sort_keyvals) ?
+      (KNO_XTABLE_BITP(sm,KNO_SLOTMAP_SORT_KEYVALS)) ?
       (kno_sortvec_insert(key,&(sm->sm_keyvals),
                           &nslots,&allocd,SHRT_MAX,
-                          sm->sm_free_keyvals)) :
+			  (KNO_XTABLE_BITP(sm,KNO_SLOTMAP_FREE_KEYVALS)))) :
       (kno_keyvec_insert(key,&(sm->sm_keyvals),
                          &nslots,&allocd,SHRT_MAX,
-                         sm->sm_free_keyvals));
+			 (KNO_XTABLE_BITP(sm,KNO_SLOTMAP_FREE_KEYVALS))));
     if (PRED_FALSE(result==NULL)) {
       if (unlock) u8_rw_unlock(&(sm->table_rwlock));
       return slotmap_fail(sm,"kno_slotmap_store");}
-    if (sm->sm_keyvals!=cur_keyvals) sm->sm_free_keyvals=1;
+    if (sm->sm_keyvals!=cur_keyvals) {
+      KNO_XTABLE_SET_BIT(sm,KNO_SLOTMAP_FREE_KEYVALS,1);}
     kno_decref(result->kv_val);
     result->kv_val=kno_incref(value);
-    KNO_XSLOTMAP_MARK_MODIFIED(sm);
+    KNO_XTABLE_SET_MODIFIED(sm,1);
     if (cur_allocd != allocd) { KNO_XSLOTMAP_SET_NALLOCATED(sm,allocd); }
     if (cur_nslots != nslots) {
       KNO_XSLOTMAP_SET_NSLOTS(sm,nslots);
@@ -347,9 +348,9 @@ KNO_EXPORT int kno_slotmap_add(struct KNO_SLOTMAP *sm,lispval key,lispval value)
     return 0;
   else if (EMPTYP(value))
     return 0;
-  else if (sm->table_readonly)
+  else if (KNO_XTABLE_READONLYP(sm))
     return KNO_ERR(-1,kno_ReadOnlyTable,"kno_slotmap_store",NULL,key);
-  else if (sm->table_uselock) {
+  else if (KNO_XTABLE_USELOCKP(sm)) {
     u8_write_lock(&sm->table_rwlock);
     unlock=1;}
   else NO_ELSE;
@@ -358,26 +359,26 @@ KNO_EXPORT int kno_slotmap_add(struct KNO_SLOTMAP *sm,lispval key,lispval value)
     int cur_space=KNO_XSLOTMAP_NALLOCATED(sm), space=cur_space;
     struct KNO_KEYVAL *cur_keyvals=sm->sm_keyvals;
     struct KNO_KEYVAL *result=
-      (sm->sm_sort_keyvals) ?
+      (KNO_XTABLE_BITP(sm,KNO_SLOTMAP_SORT_KEYVALS)) ?
       (kno_sortvec_insert(key,&(sm->sm_keyvals),
                           &size,&space,SHRT_MAX,
-                          sm->sm_free_keyvals)) :
+			  (KNO_XTABLE_BITP(sm,KNO_SLOTMAP_FREE_KEYVALS)))) :
       (kno_keyvec_insert(key,&(sm->sm_keyvals),
                          &size,&space,SHRT_MAX,
-                         sm->sm_free_keyvals));
+                         (KNO_XTABLE_BITP(sm,KNO_SLOTMAP_FREE_KEYVALS))));
     if (PRED_FALSE(result==NULL)) {
       if (unlock) u8_rw_unlock(&sm->table_rwlock);
       return slotmap_fail(sm,"kno_slotmap_add");}
     /* If this allocated a new keyvals structure, it needs to be
        freed.  (sm_free_kevyvals==0) when the keyvals are allocated at
        the end of the slotmap structure itself. */
-    if (sm->sm_keyvals!=cur_keyvals)
-      sm->sm_free_keyvals=1;
+    if (sm->sm_keyvals!=cur_keyvals) {
+      KNO_XTABLE_SET_BIT(sm,KNO_SLOTMAP_FREE_KEYVALS,1);}
     kno_incref(value);
     if ( (result->kv_val == VOID) || (result->kv_val == KNO_UNBOUND) )
       result->kv_val=value;
     else {CHOICE_ADD(result->kv_val,value);}
-    KNO_XSLOTMAP_MARK_MODIFIED(sm);
+    KNO_XTABLE_SET_MODIFIED(sm,1);
     if (cur_space != space) {
       KNO_XSLOTMAP_SET_NALLOCATED(sm,space); }
     if (cur_size  != size) {
@@ -397,9 +398,9 @@ KNO_EXPORT int kno_slotmap_drop(struct KNO_SLOTMAP *sm,lispval key,lispval value
     return kno_interr(value);
   else if (EMPTYP(key))
     return 0;
-  else if (sm->table_readonly)
+  else if (KNO_XTABLE_READONLYP(sm))
     return KNO_ERR(-1,kno_ReadOnlyTable,"kno_slotmap_store",NULL,key);
-  else if (sm->table_uselock) {
+  else if (KNO_XTABLE_USELOCKP(sm)) {
     u8_write_lock(&sm->table_rwlock);
     unlock=1;}
   else NO_ELSE;
@@ -416,7 +417,7 @@ KNO_EXPORT int kno_slotmap_drop(struct KNO_SLOTMAP *sm,lispval key,lispval value
          dropping the slot actually removes it from the slotmap. */
       kno_decref(newval);}
     else {
-      KNO_XSLOTMAP_MARK_MODIFIED(sm);
+      KNO_XTABLE_SET_MODIFIED(sm,1);
       if (EMPTYP(newval)) {
         int entries_to_move=(size-(result-sm->sm_keyvals))-1;
         kno_decref(result->kv_key); kno_decref(result->kv_val);
@@ -439,9 +440,9 @@ KNO_EXPORT int kno_slotmap_delete(struct KNO_SLOTMAP *sm,lispval key)
     return kno_interr(key);
   else if (EMPTYP(key))
     return 0;
-  else if (sm->table_readonly)
+  else if (KNO_XTABLE_READONLYP(sm))
     return KNO_ERR(-1,kno_ReadOnlyTable,"kno_slotmap_store",NULL,key);
-  else if (sm->table_uselock) {
+  else if (KNO_XTABLE_USELOCKP(sm)) {
     u8_write_lock(&sm->table_rwlock);
     unlock=1;}
   else NO_ELSE;
@@ -451,7 +452,7 @@ KNO_EXPORT int kno_slotmap_delete(struct KNO_SLOTMAP *sm,lispval key)
     int entries_to_move=(size-(result-sm->sm_keyvals))-1;
     kno_decref(result->kv_key); kno_decref(result->kv_val);
     memmove(result,result+1,entries_to_move*KNO_KEYVAL_LEN);
-    KNO_XSLOTMAP_MARK_MODIFIED(sm);
+    KNO_XTABLE_SET_MODIFIED(sm,1);
     KNO_XSLOTMAP_SET_NSLOTS(sm,size-1);}
   if (unlock) u8_rw_unlock(&sm->table_rwlock);
   if (result) return 1; else return 0;
@@ -466,28 +467,28 @@ static int slotmap_getsize(struct KNO_SLOTMAP *ptr)
 static int slotmap_modified(struct KNO_SLOTMAP *ptr,int flag)
 {
   KNO_CHECK_TYPE_RET(ptr,kno_slotmap_type);
-  int modified=KNO_XSLOTMAP_MODIFIEDP(ptr);
+  int modified=KNO_XTABLE_MODIFIEDP(ptr);
   if (flag<0)
     return modified;
   else if (flag) {
-    KNO_XSLOTMAP_MARK_MODIFIED(ptr);
+    KNO_XTABLE_SET_MODIFIED(ptr,1);
     return modified;}
   else {
-    KNO_XSLOTMAP_CLEAR_MODIFIED(ptr);
+    KNO_XTABLE_SET_MODIFIED(ptr,0);
     return modified;}
 }
 
 static int slotmap_readonly(struct KNO_SLOTMAP *ptr,int flag)
 {
   KNO_CHECK_TYPE_RET(ptr,kno_slotmap_type);
-  int readonly=KNO_XSLOTMAP_READONLYP(ptr);
+  int readonly=KNO_XTABLE_READONLYP(ptr);
   if (flag<0)
     return readonly;
   else if (flag) {
-    KNO_XSLOTMAP_SET_READONLY(ptr);
+    KNO_XTABLE_SET_READONLY(ptr,1);
     return readonly;}
   else {
-    KNO_XSLOTMAP_CLEAR_READONLY(ptr);
+    KNO_XTABLE_SET_READONLY(ptr,0);
     return readonly;}
 }
 
@@ -497,7 +498,7 @@ KNO_EXPORT lispval kno_slotmap_keys(struct KNO_SLOTMAP *sm)
   struct KNO_CHOICE *result;
   lispval *write; int size, atomic=1;
   KNO_CHECK_TYPE_RETDTYPE(sm,kno_slotmap_type);
-  if (sm->table_uselock) {
+  if (KNO_XTABLE_USELOCKP(sm)) {
     u8_read_lock(&sm->table_rwlock);
     unlock=1;}
   size=KNO_XSLOTMAP_NUSED(sm);
@@ -531,7 +532,7 @@ KNO_EXPORT lispval kno_slotmap_values(struct KNO_SLOTMAP *sm)
   struct KNO_PRECHOICE *prechoice; lispval results;
   KNO_CHECK_TYPE_RETDTYPE(sm,kno_slotmap_type);
   if (KNO_XSLOTMAP_NUSED(sm) == 0) return KNO_EMPTY;
-  if (sm->table_uselock) {
+  if (KNO_XTABLE_USELOCKP(sm)) {
     u8_read_lock(&sm->table_rwlock);
     unlock=1;}
   int size=KNO_XSLOTMAP_NUSED(sm);
@@ -561,7 +562,7 @@ KNO_EXPORT lispval kno_slotmap_assocs(struct KNO_SLOTMAP *sm)
   struct KNO_PRECHOICE *prechoice; lispval results;
   int size;
   KNO_CHECK_TYPE_RETDTYPE(sm,kno_slotmap_type);
-  if (sm->table_uselock) {
+  if (KNO_XTABLE_USELOCKP(sm)) {
     u8_read_lock(&sm->table_rwlock);
     unlock=1;}
   size=KNO_XSLOTMAP_NUSED(sm);
@@ -595,7 +596,7 @@ KNO_EXPORT lispval kno_slotmap_max
   int size, unlock=0;
   KNO_CHECK_TYPE_RETDTYPE(sm,kno_slotmap_type);
   if (EMPTYP(scope)) return result;
-  if (sm->table_uselock) {
+  if (KNO_XTABLE_USELOCKP(sm)) {
     u8_read_lock(&sm->table_rwlock);
     unlock=1;}
   size=KNO_XSLOTMAP_NUSED(sm);
@@ -632,7 +633,7 @@ KNO_EXPORT lispval kno_slotmap_skim(struct KNO_SLOTMAP *sm,lispval maxval,
   KNO_CHECK_TYPE_RETDTYPE(sm,kno_slotmap_type);
   if (EMPTYP(scope))
     return result;
-  if (sm->table_uselock) {
+  if (KNO_XTABLE_USELOCKP(sm)) {
     u8_read_lock(&sm->table_rwlock);
     unlock=1;}
   size=KNO_XSLOTMAP_NUSED(sm);
@@ -669,10 +670,7 @@ KNO_EXPORT lispval kno_init_slotmap
   else {
     ptr->n_slots=0;
     ptr->sm_keyvals=NULL;}
-  ptr->table_modified=ptr->table_readonly=0;
-  ptr->table_uselock=1;
-  ptr->sm_free_keyvals=1;
-  ptr->sm_sort_keyvals=0;
+  ptr->table_bits = KNO_TABLE_USELOCKS_BIT|KNO_SLOTMAP_FREE_KEYVALS;
   u8_init_rwlock(&(ptr->table_rwlock));
   return LISP_CONS(ptr);
 }
@@ -698,9 +696,7 @@ KNO_EXPORT lispval kno_make_slotmap(int space,int len,struct KNO_KEYVAL *data)
     kv[i].kv_val=VOID;
     i++;}
   ptr->sm_keyvals=kv;
-  ptr->table_modified=ptr->table_readonly=0;
-  ptr->table_uselock=1;
-  ptr->sm_free_keyvals=0; ptr->sm_sort_keyvals=0;
+  ptr->table_bits = KNO_TABLE_USELOCKS_BIT;
   u8_init_rwlock(&(ptr->table_rwlock));
   return LISP_CONS(ptr);
 }
@@ -708,7 +704,7 @@ KNO_EXPORT lispval kno_make_slotmap(int space,int len,struct KNO_KEYVAL *data)
 KNO_EXPORT void kno_reset_slotmap(struct KNO_SLOTMAP *ptr)
 {
   int unlock = 0;
-  if (ptr->table_uselock) {
+  if (KNO_XTABLE_USELOCKP(ptr)) {
     u8_write_lock(&(ptr->table_rwlock));
     unlock=1;}
   struct KNO_KEYVAL *scan = KNO_XSLOTMAP_KEYVALS(ptr);
@@ -728,7 +724,7 @@ static lispval copy_slotmap(lispval smap,int flags)
 {
   struct KNO_SLOTMAP *cur=kno_consptr(kno_slotmap,smap,kno_slotmap_type);
   struct KNO_SLOTMAP *fresh; int unlock=0;
-  if (!(cur->sm_free_keyvals)) {
+  if (!(KNO_XTABLE_BITP(cur,KNO_SLOTMAP_FREE_KEYVALS))) {
     /* If the original doesn't 'own' its keyvals, it's probably block
        allocated (with the keyvals in memory right after the slotmap
        struct. In this case, we assume we want to give the copy the
@@ -740,7 +736,7 @@ static lispval copy_slotmap(lispval smap,int flags)
     copy=kno_make_slotmap(cur->n_allocd,cur->n_slots,cur->sm_keyvals);
     consed=(struct KNO_SLOTMAP *)copy;
     kvals=consed->sm_keyvals; len=consed->n_slots;
-    if (cur->table_uselock) {
+    if (KNO_XTABLE_USELOCKP(cur)) {
       kno_read_lock_table(cur);
       unlock=1;}
     while (i<len) {
@@ -757,18 +753,15 @@ static lispval copy_slotmap(lispval smap,int flags)
   else fresh=u8_alloc(struct KNO_SLOTMAP);
   KNO_INIT_STRUCT(fresh,struct KNO_SLOTMAP);
   KNO_INIT_CONS(fresh,kno_slotmap_type);
-  if (cur->table_uselock) {
+  if (KNO_XTABLE_USELOCKP(cur)) {
     kno_read_lock_table(cur);
     unlock=1;}
-  fresh->table_modified=0;
-  fresh->table_readonly=0;
-  fresh->table_uselock=1;
-  fresh->sm_free_keyvals=1;
-  fresh->sm_sort_keyvals=0;
+  int bits = KNO_TABLE_USELOCKS_BIT;
   if (KNO_XSLOTMAP_NUSED(cur)) {
     int n=KNO_XSLOTMAP_NUSED(cur);
     struct KNO_KEYVAL *read=cur->sm_keyvals, *read_limit=read+n;
     struct KNO_KEYVAL *write=u8_alloc_n(n,struct KNO_KEYVAL);
+    bits |= KNO_SLOTMAP_FREE_KEYVALS;
     fresh->n_allocd=fresh->n_slots=n;
     fresh->sm_keyvals=write;
     memset(write,0,n*KNO_KEYVAL_LEN);
@@ -790,6 +783,7 @@ static lispval copy_slotmap(lispval smap,int flags)
   else {
     fresh->n_allocd=fresh->n_slots=0;
     fresh->sm_keyvals=NULL;}
+  fresh->table_bits = bits;
   if (unlock) kno_unlock_table(cur);
   u8_init_rwlock(&(fresh->table_rwlock));
   return LISP_CONS(fresh);
@@ -810,18 +804,16 @@ KNO_EXPORT int kno_copy_slotmap(struct KNO_SLOTMAP *src,
         scan->kv_key=VOID;
         scan->kv_val=VOID;
         scan++;}}
-    if (dest->sm_free_keyvals) u8_free(dest->sm_keyvals);
+    if (KNO_XTABLE_BITP(dest,KNO_SLOTMAP_FREE_KEYVALS))
+      u8_free(dest->sm_keyvals);
     dest->sm_keyvals=NULL;
     u8_destroy_rwlock(&(dest->table_rwlock));}
   dest->n_slots = src->n_slots;
   dest->n_allocd = src->n_allocd;
   dest->sm_keyvals = u8_alloc_n(src->n_allocd,struct KNO_KEYVAL);
-  dest->table_readonly = src->table_readonly;
-  dest->table_modified = src->table_modified;
-  dest->table_finished = src->table_finished;
-  dest->sm_sort_keyvals = src->sm_sort_keyvals;
-  dest->sm_free_keyvals = 1;
-  dest->table_uselock = 1;
+  dest->table_bits = src->table_bits |
+    KNO_SLOTMAP_FREE_KEYVALS |
+    KNO_TABLE_USELOCKS_BIT;
   u8_init_rwlock(&(dest->table_rwlock));
   struct KNO_KEYVAL *read = src->sm_keyvals;
   struct KNO_KEYVAL *limit = read + src->n_slots;
@@ -847,7 +839,7 @@ KNO_EXPORT void kno_free_slotmap(struct KNO_SLOTMAP *c)
 {
   struct KNO_SLOTMAP *sm=(struct KNO_SLOTMAP *)c;
   int unlock=0;
-  if (sm->table_uselock) {
+  if (KNO_XTABLE_USELOCKP(sm)) {
     kno_write_lock_table(sm);
     unlock=1;}
   int slotmap_size=KNO_XSLOTMAP_NUSED(sm);
@@ -857,7 +849,8 @@ KNO_EXPORT void kno_free_slotmap(struct KNO_SLOTMAP *c)
     kno_decref(scan->kv_key);
     kno_decref(scan->kv_val);
     scan++;}
-  if (sm->sm_free_keyvals) u8_free(sm->sm_keyvals);
+  if (KNO_XTABLE_BITP(sm,KNO_SLOTMAP_FREE_KEYVALS))
+    u8_free(sm->sm_keyvals);
   if (unlock) kno_unlock_table(sm);
   u8_destroy_rwlock(&(sm->table_rwlock));
   memset(sm,0,KNO_SLOTMAP_LEN);
@@ -875,7 +868,7 @@ static int unparse_slotmap(u8_output out,lispval x)
 {
   int unlock = 0;
   struct KNO_SLOTMAP *sm=KNO_XSLOTMAP(x);
-  if (sm->table_uselock) {
+  if (KNO_XTABLE_USELOCKP(sm)) {
     kno_read_lock_table(sm);
     unlock=1;}
   {
@@ -904,8 +897,8 @@ static int compare_slotmaps(lispval x,lispval y,kno_compare_flags flags)
   struct KNO_SLOTMAP *smy=(struct KNO_SLOTMAP *)y;
   int compare_lengths=(!(flags&KNO_COMPARE_RECURSIVE));
   int compare_slots=(flags&KNO_COMPARE_SLOTS);
-  if (smx->table_uselock) {kno_read_lock_table(smx); unlockx=1;}
-  if (smy->table_uselock) {kno_read_lock_table(smy); unlocky=1;}
+  if (KNO_XTABLE_USELOCKP(smx)) {kno_read_lock_table(smx); unlockx=1;}
+  if (KNO_XTABLE_USELOCKP(smy)) {kno_read_lock_table(smy); unlocky=1;}
   int xsize=KNO_XSLOTMAP_NUSED(smx), ysize=KNO_XSLOTMAP_NUSED(smy);
   {
     if ((compare_lengths) && (xsize>ysize)) result=1;
@@ -990,19 +983,19 @@ KNO_EXPORT int kno_sort_slotmap(lispval slotmap,int sorted)
   else {
     struct KNO_SLOTMAP *sm=(kno_slotmap)slotmap;
     if (!(sorted)) {
-      if (sm->sm_sort_keyvals) {
-        sm->sm_sort_keyvals=0;
+      if (KNO_XTABLE_BITP(sm,KNO_SLOTMAP_SORT_KEYVALS)) {
+	KNO_XTABLE_SET_BIT(sm,KNO_SLOTMAP_SORT_KEYVALS,0);
         return 1;}
       else return 0;}
-    else if (sm->sm_sort_keyvals)
+    else if (KNO_XTABLE_BITP(sm,KNO_SLOTMAP_SORT_KEYVALS))
       return 0;
     else if (sm->n_slots==0) {
-      sm->sm_sort_keyvals=1;
+      KNO_XTABLE_SET_BIT(sm,KNO_SLOTMAP_SORT_KEYVALS,1);
       return 1;}
     else {
       struct KNO_KEYVAL *keyvals=sm->sm_keyvals;
       sort_keyvals(keyvals,sm->n_slots);
-      sm->sm_sort_keyvals=1;
+      KNO_XTABLE_SET_BIT(sm,KNO_SLOTMAP_SORT_KEYVALS,1);
       return 1;}}
 }
 
@@ -1053,7 +1046,7 @@ KNO_EXPORT lispval kno_make_schemap
   int i=0, stackvec = 0;
   lispval *vec = values;
   if (ptr == NULL) {
-    if (flags&KNO_SCHEMAP_INLINE) {
+    if (flags&KNO_SCHEMAP_STATIC_VALUES) {
       void *consed = u8_malloc(sizeof(struct KNO_SCHEMAP)+(sizeof(lispval)*size));
       ptr = (struct KNO_SCHEMAP *) consed;
       vec = (lispval *) (consed + sizeof(struct KNO_SCHEMAP));
@@ -1064,29 +1057,27 @@ KNO_EXPORT lispval kno_make_schemap
   KNO_INIT_CONS(ptr,kno_schemap_type);
   ptr->schemap_template=KNO_VOID;
   ptr->schema_length=size;
+  ptr->table_bits = flags;
   if (flags&KNO_SCHEMAP_PRIVATE) {
-    ptr->schemap_shared=0;
+    KNO_XTABLE_SET_BIT(ptr,KNO_SCHEMAP_PRIVATE,1);
     ptr->table_schema=schema;}
   else if ( (flags) & (KNO_SCHEMAP_COPY_SCHEMA) ) {
     lispval *copied = u8_alloc_n(size,lispval);
     memcpy(copied,schema,sizeof(lispval)*size);
     kno_incref_vec(copied,size),
       ptr->table_schema=copied;
-    ptr->schemap_shared=0;}
+    KNO_XTABLE_SET_BIT(ptr,KNO_SCHEMAP_PRIVATE,1);}
   else {
     ptr->table_schema=schema;
-    ptr->schemap_shared=1;}
-  if (flags&KNO_SCHEMAP_SORTED) ptr->schemap_sorted=1;
-  if (flags&KNO_SCHEMAP_READONLY) ptr->table_readonly=1;
-  if (flags&KNO_SCHEMAP_MODIFIED) ptr->table_modified=1;
+    KNO_XTABLE_SET_BIT(ptr,KNO_SCHEMAP_PRIVATE,0);}
   ptr->table_values=vec;
-  ptr->schemap_stackvec = stackvec;
+  KNO_XTABLE_SET_BIT(ptr,KNO_SCHEMAP_STATIC_VALUES,stackvec);
   if (vec == values) {}
   else if (values)
     memcpy(vec,values,sizeof(lispval)*size);
   else while (i<size) vec[i++]=VOID;
   u8_init_rwlock(&(ptr->table_rwlock));
-  ptr->table_uselock=1;
+  KNO_XTABLE_SET_USELOCK(ptr,1);
   return LISP_CONS(ptr);
 }
 
@@ -1143,14 +1134,16 @@ static lispval copy_schemap(lispval schemap,int flags)
   lispval *ovalues=ptr->table_values;
   lispval *values= (lispval *)(((void *)nptr)+sizeof(struct KNO_SCHEMAP));
   lispval *schema=ptr->table_schema, *nschema=NULL;
-  if (KNO_XSCHEMAP_USELOCKP(ptr)) {
+  int bits = KNO_TABLE_USELOCKS_BIT | KNO_SCHEMAP_STATIC_VALUES;
+  if (KNO_XTABLE_USELOCKP(ptr)) {
     kno_read_lock_table(ptr);
     unlock=1;}
   KNO_INIT_STRUCT(nptr,struct KNO_SCHEMAP);
   KNO_INIT_CONS(nptr,kno_schemap_type);
   nptr->schemap_template=KNO_VOID;
-  if (ptr->schemap_onstack)
+  if (KNO_XTABLE_BITP(ptr,KNO_SCHEMAP_STATIC_SCHEMA)) {
     nptr->table_schema=nschema=u8_alloc_n(size,lispval);
+    bits |= KNO_SCHEMAP_PRIVATE;}
   else nptr->table_schema=schema;
   if ( (nptr->table_schema != schema) )
     while (i < size) {
@@ -1179,11 +1172,8 @@ static lispval copy_schemap(lispval schemap,int flags)
       i++;}
   nptr->table_values=values;
   nptr->schema_length=size;
-  if  ( ptr->table_schema == nptr->table_schema ) {
-    ptr->schemap_shared=nptr->schemap_shared=1;}
+  nptr->table_bits = bits;
   if (unlock) kno_unlock_table(ptr);
-  nptr->schemap_stackvec=1;
-  nptr->table_uselock=1;
   u8_init_rwlock(&(nptr->table_rwlock));
   return LISP_CONS(nptr);
 }
@@ -1205,7 +1195,7 @@ KNO_EXPORT lispval kno_init_schemap
   ptr->schemap_template=KNO_VOID;
   ptr->table_values=new_vals;
   ptr->schema_length=size;
-  ptr->schemap_sorted=0;
+  int bits = KNO_TABLE_USELOCKS_BIT;
   sort_keyvals(init,size);
   while (i<size) {
     new_schema[i]=init[i].kv_key;
@@ -1214,11 +1204,10 @@ KNO_EXPORT lispval kno_init_schemap
   /* ptr->table_schema=kno_register_schema(size,new_schema); */
   ptr->table_schema = new_schema;
   if (ptr->table_schema != new_schema) {
-    ptr->schemap_shared=1;
     u8_free(new_schema);}
-  if (stackvec) ptr->schemap_stackvec = 1;
+  else {KNO_XTABLE_SET_BIT(ptr,KNO_SCHEMAP_PRIVATE,1);}
+  if (stackvec) ptr->table_bits |= KNO_SCHEMAP_STATIC_VALUES;
   u8_init_rwlock(&(ptr->table_rwlock));
-  ptr->table_uselock=1;
   return LISP_CONS(ptr);
 }
 
@@ -1246,21 +1235,22 @@ KNO_EXPORT int kno_schemap_store
     return kno_interr(value);
   else if (EMPTYP(key))
     return 0;
-  else if (sm->table_readonly)
+  else if (KNO_XTABLE_READONLYP(sm))
     return KNO_ERR(-1,kno_ReadOnlyTable,"kno_schemap_store",NULL,key);
-  else if (KNO_XSCHEMAP_USELOCKP(sm)) {
+  else if (KNO_XTABLE_USELOCKP(sm)) {
     kno_write_lock_table(sm);
     unlock=1;}
   else NO_ELSE;
   size=KNO_XSCHEMAP_SIZE(sm);
-  slotno=__kno_get_slotno(key,sm->table_schema,size,sm->schemap_sorted);
+  slotno=__kno_get_slotno(key,sm->table_schema,size,
+			  (KNO_XTABLE_BITP(sm,KNO_SCHEMAP_SORTED)));
   if (slotno>=0) {
-    if (sm->schemap_stackvals) {
+    if (KNO_XTABLE_BITP(sm,KNO_SCHEMAP_STACK_VALUES)) {
       kno_incref_vec(sm->table_values,size);
-      sm->schemap_stackvals = 0;}
+      KNO_XTABLE_SET_BIT(sm,KNO_SCHEMAP_STACK_VALUES,0);}
     kno_decref(sm->table_values[slotno]);
     sm->table_values[slotno]=kno_incref(value);
-    KNO_XSCHEMAP_MARK_MODIFIED(sm);
+    KNO_XTABLE_SET_MODIFIED(sm,1);
     if (unlock) kno_unlock_table(sm);
     return 1;}
   else {
@@ -1283,21 +1273,22 @@ KNO_EXPORT int kno_schemap_add
     return 0;
   else if ((KNO_TROUBLEP(value)))
     return kno_interr(value);
-  else if (sm->table_readonly)
+  else if (KNO_XTABLE_READONLYP(sm))
     return KNO_ERR(-1,kno_ReadOnlyTable,"kno_schemap_add",NULL,key);
-  else if (KNO_XSCHEMAP_USELOCKP(sm)) {
+  else if (KNO_XTABLE_USELOCKP(sm)) {
     kno_write_lock_table(sm);
     unlock=1;}
   else NO_ELSE;
   size=KNO_XSCHEMAP_SIZE(sm);
-  slotno=__kno_get_slotno(key,sm->table_schema,size,sm->schemap_sorted);
+  slotno=__kno_get_slotno(key,sm->table_schema,size,
+			  (KNO_XTABLE_BITP(sm,KNO_SCHEMAP_SORTED)));
   if (slotno>=0) {
     kno_incref(value);
-    if (sm->schemap_stackvals) {
+    if (KNO_XTABLE_BITP(sm,KNO_SCHEMAP_STACK_VALUES)) {
       kno_incref_vec(sm->table_values,size);
-      sm->schemap_stackvals = 0;}
+      KNO_XTABLE_SET_BIT(sm,KNO_SCHEMAP_STACK_VALUES,0);}
     CHOICE_ADD(sm->table_values[slotno],value);
-    KNO_XSCHEMAP_MARK_MODIFIED(sm);
+    KNO_XTABLE_SET_MODIFIED(sm,1);
     if (unlock) kno_unlock_table(sm);
     return 1;}
   else {
@@ -1320,25 +1311,26 @@ KNO_EXPORT int kno_schemap_drop
     return 0;
   else if ((KNO_TROUBLEP(value)))
     return kno_interr(value);
-  else if (sm->table_readonly)
+  else if (KNO_XTABLE_READONLYP(sm))
     return KNO_ERR(-1,kno_ReadOnlyTable,"kno_schemap_drop",NULL,key);
-  else if (KNO_XSCHEMAP_USELOCKP(sm)) {
+  else if (KNO_XTABLE_USELOCKP(sm)) {
     kno_write_lock_table(sm);
     unlock=1;}
   else NO_ELSE;
   size=KNO_XSCHEMAP_SIZE(sm);
-  slotno=__kno_get_slotno(key,sm->table_schema,size,sm->schemap_sorted);
+  slotno=__kno_get_slotno(key,sm->table_schema,size,
+			  (KNO_XTABLE_BITP(sm,KNO_SCHEMAP_SORTED)));
   if (slotno>=0) {
-    if (sm->schemap_stackvals) {
+    if (KNO_XTABLE_BITP(sm,KNO_SCHEMAP_STACK_VALUES)) {
       kno_incref_vec(sm->table_values,size);
-      sm->schemap_stackvals = 0;}
+      KNO_XTABLE_SET_BIT(sm,KNO_SCHEMAP_STACK_VALUES,0);}
     lispval oldval=sm->table_values[slotno];
     lispval newval=((VOIDP(value)) ? (EMPTY) :
                     (kno_difference(oldval,value)));
     if (newval == oldval)
       kno_decref(newval);
     else {
-      KNO_XSCHEMAP_MARK_MODIFIED(sm);
+      KNO_XTABLE_SET_MODIFIED(sm,1);
       kno_decref(oldval);
       sm->table_values[slotno]=newval;}
     if (unlock) kno_unlock_table(sm);
@@ -1357,28 +1349,30 @@ static int schemap_getsize(struct KNO_SCHEMAP *ptr)
 static int schemap_modified(struct KNO_SCHEMAP *ptr,int flag)
 {
   KNO_CHECK_TYPE_RET(ptr,kno_schemap_type);
-  int modified=KNO_XSCHEMAP_MODIFIEDP(ptr);
+  int modified=KNO_XTABLE_MODIFIEDP(ptr);
   if (flag<0)
     return modified;
   else if (flag) {
-    ptr->table_modified=1;
+    KNO_XTABLE_SET_MODIFIED(ptr,1);
     return modified;}
   else {
-    ptr->table_modified=0;
+    KNO_XTABLE_SET_MODIFIED(ptr,0);
     return modified;}
 }
 
 static int schemap_readonly(struct KNO_SCHEMAP *ptr,int flag)
 {
   KNO_CHECK_TYPE_RET(ptr,kno_schemap_type);
-  int readonly=KNO_XSCHEMAP_READONLYP(ptr);
+  int readonly=KNO_XTABLE_READONLYP(ptr);
   if (flag<0)
     return readonly;
   else if (flag) {
-    ptr->table_readonly=1;
+    KNO_XTABLE_SET_BIT(ptr,KNO_TABLE_READONLY_BIT,1);
+    KNO_XTABLE_SET_BIT(ptr,KNO_TABLE_USELOCKS_BIT,0);
     return readonly;}
   else {
-    ptr->table_readonly=0;
+    KNO_XTABLE_SET_BIT(ptr,KNO_TABLE_READONLY_BIT,0);
+    KNO_XTABLE_SET_BIT(ptr,KNO_TABLE_USELOCKS_BIT,1);
     return readonly;}
 }
 
@@ -1395,7 +1389,7 @@ KNO_EXPORT lispval kno_schemap_keys(struct KNO_SCHEMAP *sm)
       struct KNO_CHOICE *ch=kno_alloc_choice(size);
       memcpy((lispval *)KNO_XCHOICE_DATA(ch),sm->table_schema,
              LISPVEC_BYTELEN(size));
-      if (sm->schemap_sorted)
+      if (KNO_XTABLE_BITP(sm,KNO_SCHEMAP_SORTED))
         return kno_init_choice(ch,size,sm->table_schema,0);
       else return kno_init_choice(ch,size,sm->table_schema,
                                   KNO_CHOICE_INCREF|KNO_CHOICE_DOSORT);}}
@@ -1408,7 +1402,7 @@ KNO_EXPORT lispval kno_schemap_assocs(struct KNO_SCHEMAP *sm)
     int size=KNO_XSCHEMAP_SIZE(sm), unlock = 0;
     if (size==0)
       return EMPTY;
-    if (sm->table_uselock) {
+    if (KNO_XTABLE_USELOCKP(sm)) {
       u8_read_lock(&(sm->table_rwlock));
       unlock = 1;}
     /* It *might* have changed */
@@ -1440,7 +1434,7 @@ static void recycle_schemap(struct KNO_RAW_CONS *c)
 {
   int unlock = 0;
   struct KNO_SCHEMAP *sm=(struct KNO_SCHEMAP *)c;
-  if (KNO_XSCHEMAP_USELOCKP(sm)) {
+  if (KNO_XTABLE_USELOCKP(sm)) {
     kno_write_lock_table(sm);
     unlock = 1;}
   else {}
@@ -1449,14 +1443,14 @@ static void recycle_schemap(struct KNO_RAW_CONS *c)
     kno_decref(template);
     sm->schemap_template=KNO_VOID;}
   int schemap_size=KNO_XSCHEMAP_SIZE(sm);
-  int stack_vals = sm->schemap_stackvals;
-  if ( (sm->table_values) &&  (PRED_TRUE (! stack_vals ) ) ) {
+  int stack_vals = (KNO_XTABLE_BITP(sm,KNO_SCHEMAP_STACK_VALUES));
+  if ( (sm->table_values) && (stack_vals == 0) ) {
     lispval *scan=sm->table_values;
     lispval *limit=sm->table_values+schemap_size;
-    while (scan < limit) {kno_decref(*scan); scan++;}
-    if (! (sm->schemap_stackvec) )
-      u8_free(sm->table_values);}
-  if ((sm->table_schema) && (!(sm->schemap_shared)))
+    while (scan < limit) {kno_decref(*scan); scan++;}}
+  if (! (KNO_XTABLE_BITP(sm,KNO_SCHEMAP_STATIC_VALUES)) )
+    u8_free(sm->table_values);
+  if ((sm->table_schema) && (KNO_XTABLE_BITP(sm,KNO_SCHEMAP_PRIVATE)))
     u8_free(sm->table_schema);
   if (unlock) kno_unlock_table(sm);
   u8_destroy_rwlock(&(sm->table_rwlock));
@@ -1826,7 +1820,7 @@ KNO_EXPORT lispval kno_hashtable_get
     return EMPTY;
   else if (ht->table_n_keys == 0)
     return kno_incref(dflt);
-  else if (ht->table_uselock) {
+  else if (KNO_XTABLE_USELOCKP(ht)) {
     kno_read_lock_table(ht);
     unlock=1; }
   else NO_ELSE;
@@ -1893,7 +1887,7 @@ KNO_EXPORT lispval kno_hashtable_get_noref
     return KNO_EMPTY;
   else if (ht->table_n_keys == 0)
     return dflt;
-  else if (ht->table_uselock) {
+  else if (KNO_XTABLE_USELOCKP(ht)) {
     kno_read_lock_table(ht);
     unlock=1; }
   else NO_ELSE;
@@ -1946,7 +1940,7 @@ KNO_EXPORT int kno_hashtable_probe(struct KNO_HASHTABLE *ht,lispval key)
     return KNO_EMPTY;
   else if (ht->table_n_keys == 0)
     return 0;
-  else if (ht->table_uselock) {
+  else if (KNO_XTABLE_USELOCKP(ht)) {
     kno_read_lock_table(ht);
     unlock=1; }
   else NO_ELSE;
@@ -1970,7 +1964,7 @@ static int hashtable_test(struct KNO_HASHTABLE *ht,lispval key,lispval val)
     return KNO_EMPTY;
   else if (ht->table_n_keys == 0)
     return 0;
-  else if (ht->table_uselock) {
+  else if (KNO_XTABLE_USELOCKP(ht)) {
     kno_read_lock_table(ht);
     unlock=1;}
   else NO_ELSE;
@@ -2012,7 +2006,7 @@ KNO_EXPORT int kno_hashtable_probe_novoid(struct KNO_HASHTABLE *ht,lispval key)
     return KNO_EMPTY;
   else if (ht->table_n_keys == 0)
     return 0;
-  else if (ht->table_uselock) {
+  else if (KNO_XTABLE_USELOCKP(ht)) {
     kno_read_lock_table(ht);
     unlock=1;}
   else NO_ELSE;
@@ -2034,10 +2028,10 @@ static struct KNO_HASH_BUCKET **get_buckets(struct KNO_HASHTABLE *ht,int n)
   size_t buckets_size = n*sizeof(kno_hash_bucket);
   int use_bigalloc = ( buckets_size > kno_hash_bigthresh );
   if (use_bigalloc) {
-    ht->ht_big_buckets=1;
+    KNO_TABLE_SET_BIT(ht,KNO_HASHTABLE_BIG_BUCKETS,1);
     buckets = u8_big_alloc(buckets_size);}
   else {
-    ht->ht_big_buckets=0;
+    KNO_TABLE_SET_BIT(ht,KNO_HASHTABLE_BIG_BUCKETS,0);
     buckets = u8_malloc(buckets_size);}
   memset(buckets,0,buckets_size);
   return buckets;
@@ -2048,7 +2042,7 @@ static void setup_hashtable(struct KNO_HASHTABLE *ptr,int n_buckets)
   if (n_buckets < 0) n_buckets=kno_get_hashtable_size(-n_buckets);
   ptr->ht_n_buckets=n_buckets;
   ptr->table_n_keys=0;
-  ptr->table_modified=0;
+  KNO_XTABLE_SET_MODIFIED(ptr,0);
 
   ptr->ht_buckets = get_buckets(ptr,n_buckets);
 }
@@ -2065,9 +2059,9 @@ KNO_EXPORT int kno_hashtable_store(kno_hashtable ht,lispval key,lispval value)
     return 0;
   else if (KNO_TROUBLEP(key))
     return kno_interr(key);
-  else if (ht->table_readonly)
+  else if (KNO_XTABLE_READONLYP(ht))
     return KNO_ERR(-1,kno_ReadOnlyHashtable,"kno_hashtable_store",NULL,key);
-  else if (ht->table_uselock) {
+  else if (KNO_XTABLE_USELOCKP(ht)) {
     kno_write_lock_table(ht);
     unlock = 1;}
   else {}
@@ -2076,7 +2070,7 @@ KNO_EXPORT int kno_hashtable_store(kno_hashtable ht,lispval key,lispval value)
   n_keys=ht->table_n_keys;
   result=hashvec_insert(key,ht->ht_buckets,ht->ht_n_buckets,&(ht->table_n_keys));
   if ( (ht->table_n_keys) > n_keys ) added=1; else added=0;
-  ht->table_modified=1;
+  KNO_XTABLE_SET_MODIFIED(ht,1);
   oldv=result->kv_val;
   if (PRECHOICEP(value))
     /* Copy prechoices */
@@ -2103,7 +2097,7 @@ static int add_to_hashtable(kno_hashtable ht,lispval key,lispval value)
   int added=0, n_keys=ht->table_n_keys;
   if (KNO_TROUBLEP(value))
     return kno_interr(value);
-  else if (ht->table_readonly)
+  else if (KNO_XTABLE_READONLYP(ht))
     return KNO_ERR(-1,kno_ReadOnlyHashtable,"kno_hashtable_add",NULL,key);
   else if (PRED_FALSE(EMPTYP(value)))
     return 0;
@@ -2116,7 +2110,7 @@ static int add_to_hashtable(kno_hashtable ht,lispval key,lispval value)
   result=hashvec_insert(key,ht->ht_buckets,ht->ht_n_buckets,
                         &(ht->table_n_keys));
   if (ht->table_n_keys>n_keys) added=1;
-  ht->table_modified=1;
+  KNO_XTABLE_SET_MODIFIED(ht,1);
   if (VOIDP(result->kv_val))
     result->kv_val=value;
   else {CHOICE_ADD(result->kv_val,value);}
@@ -2152,7 +2146,7 @@ KNO_EXPORT int kno_hashtable_add(kno_hashtable ht,lispval key,lispval value)
   KEY_CHECK(key,ht); KNO_CHECK_TYPE_RET(ht,kno_hashtable_type);
   if (EMPTYP(key))
     return 0;
-  else if (ht->table_readonly)
+  else if (KNO_XTABLE_READONLYP(ht))
     return KNO_ERR(-1,kno_ReadOnlyHashtable,"kno_hashtable_add",NULL,key);
   else if (PRED_FALSE(EMPTYP(value)))
     return 0;
@@ -2160,7 +2154,7 @@ KNO_EXPORT int kno_hashtable_add(kno_hashtable ht,lispval key,lispval value)
     return kno_interr(value);
   else if ((KNO_TROUBLEP(key)))
     return kno_interr(key);
-  else if (ht->table_uselock) {
+  else if (KNO_XTABLE_USELOCKP(ht)) {
     kno_write_lock_table(ht);
     unlock=1;}
   else {}
@@ -2195,9 +2189,9 @@ KNO_EXPORT int kno_hashtable_drop
     return kno_interr(value);
   else if (ht->table_n_keys == 0)
     return 0;
-  else if (ht->table_readonly)
+  else if (KNO_XTABLE_READONLYP(ht))
     return KNO_ERR(-1,kno_ReadOnlyHashtable,"kno_hashtable_drop",NULL,key);
-  else if (ht->table_uselock) {
+  else if (KNO_XTABLE_USELOCKP(ht)) {
     kno_write_lock_table(ht);
     unlock=1;}
   else NO_ELSE;
@@ -2219,7 +2213,7 @@ KNO_EXPORT int kno_hashtable_drop
       ht->table_n_keys--;
       kno_decref(key);}
     else result->kv_val = new;
-    if (changed) ht->table_modified=1;
+    if (changed) KNO_XTABLE_SET_MODIFIED(ht,1);
     kno_unlock_table(ht);
     return 1;}
   if (unlock) kno_unlock_table(ht);
@@ -2244,7 +2238,7 @@ static lispval restore_hashtable(lispval tag,lispval alist,
   new=(struct KNO_HASHTABLE *)kno_make_hashtable(NULL,n*2);
   kno_hashtable_iter(new,kno_table_add,n,keys,vals);
   u8_free(keys); u8_free(vals);
-  new->table_modified=0;
+  KNO_XTABLE_SET_MODIFIED(new,0);
   return LISP_CONS(new);
 }
 
@@ -2299,7 +2293,7 @@ static int do_hashtable_op(struct KNO_HASHTABLE *ht,kno_tableop op,
   else if (KNO_TROUBLEP(value))
     return kno_interr(value);
   else NO_ELSE;
-  if ( (ht->table_readonly) && ( ! (TESTOP(op) ) ) )
+  if ( (KNO_XTABLE_READONLYP(ht)) && ( ! (TESTOP(op) ) ) )
     return KNO_ERR2(-1,kno_ReadOnlyHashtable,"do_hashtable_op");
   switch (op) {
   case kno_table_replace: case kno_table_replace_novoid: case kno_table_drop:
@@ -2507,7 +2501,7 @@ static int do_hashtable_op(struct KNO_HASHTABLE *ht,kno_tableop op,
                 u8_sprintf(buf,64,"0x%x",op));
     break;}
   }
-  ht->table_modified=1;
+  KNO_XTABLE_SET_MODIFIED(ht,1);
   if ( (result) && (PRECHOICEP(result->kv_val)) ) {
     struct KNO_PRECHOICE *ch=KNO_XPRECHOICE(result->kv_val);
     if (ch->prechoice_uselock) {
@@ -2527,7 +2521,7 @@ KNO_EXPORT int kno_hashtable_op
     return kno_interr(key);
   else if (KNO_TROUBLEP(value))
     return kno_interr(value);
-  else if (ht->table_uselock) {
+  else if (KNO_XTABLE_USELOCKP(ht)) {
     kno_write_lock_table(ht);
     unlock=1;}
   else NO_ELSE;
@@ -2568,7 +2562,7 @@ KNO_EXPORT int kno_hashtable_iter
 {
   int i=0, added=0, unlock=0;
   KNO_CHECK_TYPE_RET(ht,kno_hashtable_type);
-  if (ht->table_uselock) {
+  if (KNO_XTABLE_USELOCKP(ht)) {
     kno_write_lock_table(ht);
     unlock=1;}
   while (i < n) {
@@ -2595,7 +2589,7 @@ KNO_EXPORT int kno_hashtable_iter_kv
 {
   int i=0, added=0, unlock=0;
   KNO_CHECK_TYPE_RET(ht,kno_hashtable_type);
-  if ( (lock) && (ht->table_uselock) ) {
+  if ( (lock) && (KNO_XTABLE_USELOCKP(ht)) ) {
     kno_write_lock_table(ht);
     unlock=1;}
   while (i < n) {
@@ -2622,7 +2616,7 @@ KNO_EXPORT int kno_hashtable_iterkeys
 {
   int i=0, added=0; int unlock=0;
   KNO_CHECK_TYPE_RET(ht,kno_hashtable_type);
-  if (ht->table_uselock) {
+  if (KNO_XTABLE_USELOCKP(ht)) {
     kno_write_lock_table(ht);
     unlock=1;}
   while (i < n) {
@@ -2650,7 +2644,7 @@ KNO_EXPORT int kno_hashtable_itervals
 {
   int i=0, added=0; int unlock=0;
   KNO_CHECK_TYPE_RET(ht,kno_hashtable_type);
-  if (ht->table_uselock) {
+  if (KNO_XTABLE_USELOCKP(ht)) {
     kno_write_lock_table(ht);
     unlock=1;}
   while (i < n) {
@@ -2680,28 +2674,30 @@ static int hashtable_getsize(struct KNO_HASHTABLE *ptr)
 static int hashtable_modified(struct KNO_HASHTABLE *ptr,int flag)
 {
   KNO_CHECK_TYPE_RET(ptr,kno_hashtable_type);
-  int modified=ptr->table_modified;
+  int modified=KNO_XTABLE_MODIFIEDP(ptr);
   if (flag<0)
     return modified;
   else if (flag) {
-    ptr->table_modified=1;
+    KNO_XTABLE_SET_MODIFIED(ptr,1);
     return modified;}
   else {
-    ptr->table_modified=0;
+    KNO_XTABLE_SET_MODIFIED(ptr,0);
     return modified;}
 }
 
 static int hashtable_readonly(struct KNO_HASHTABLE *ptr,int flag)
 {
   KNO_CHECK_TYPE_RET(ptr,kno_hashtable_type);
-  int readonly=ptr->table_readonly;
+  int readonly=KNO_XTABLE_READONLYP(ptr);
   if (flag<0)
     return readonly;
   else if (flag) {
-    ptr->table_readonly=1;
+    KNO_XTABLE_SET_BIT(ptr,KNO_TABLE_READONLY_BIT,1);
+    KNO_XTABLE_SET_BIT(ptr,KNO_TABLE_USELOCKS_BIT,0);
     return readonly;}
   else {
-    ptr->table_readonly=0;
+    KNO_XTABLE_SET_BIT(ptr,KNO_TABLE_READONLY_BIT,0);
+    KNO_XTABLE_SET_BIT(ptr,KNO_TABLE_USELOCKS_BIT,1);
     return readonly;}
 }
 
@@ -2709,7 +2705,7 @@ KNO_EXPORT lispval kno_hashtable_keys(struct KNO_HASHTABLE *ptr)
 {
   lispval result=EMPTY; int unlock=0;
   KNO_CHECK_TYPE_RETDTYPE(ptr,kno_hashtable_type);
-  if (ptr->table_uselock) {u8_read_lock(&ptr->table_rwlock); unlock=1;}
+  if (KNO_XTABLE_USELOCKP(ptr)) {u8_read_lock(&ptr->table_rwlock); unlock=1;}
   {
     struct KNO_HASH_BUCKET **scan=ptr->ht_buckets, **lim=scan+ptr->ht_n_buckets;
     while (scan < lim)
@@ -2736,7 +2732,7 @@ KNO_EXPORT lispval kno_hashtable_values(struct KNO_HASHTABLE *ptr)
   int size = ptr->table_n_keys;
   if (size == 0) return KNO_EMPTY;
   KNO_CHECK_TYPE_RETDTYPE(ptr,kno_hashtable_type);
-  if (ptr->table_uselock) {u8_read_lock(&ptr->table_rwlock); unlock=1;}
+  if (KNO_XTABLE_USELOCKP(ptr)) {u8_read_lock(&ptr->table_rwlock); unlock=1;}
   size=ptr->table_n_keys;
   if (size == 0) {
     /* Race condition */
@@ -2773,7 +2769,7 @@ KNO_EXPORT lispval kno_hashtable_assocs(struct KNO_HASHTABLE *ptr)
   struct KNO_PRECHOICE *prechoice; lispval results;
   int size;
   KNO_CHECK_TYPE_RETDTYPE(ptr,kno_hashtable_type);
-  if (ptr->table_uselock) {
+  if (KNO_XTABLE_USELOCKP(ptr)) {
     u8_read_lock(&ptr->table_rwlock);
     unlock=1;}
   size=ptr->table_n_keys;
@@ -2843,12 +2839,12 @@ KNO_EXPORT int kno_reset_hashtable
   KNO_CHECK_TYPE_RET(ht,kno_hashtable_type);
   if (n_buckets<0)
     n_buckets=ht->ht_n_buckets;
-  if ((lock) && (ht->table_uselock)) {
+  if ((lock) && (KNO_XTABLE_USELOCKP(ht))) {
     kno_write_lock_table(ht);
     unlock=1;}
   /* Grab the buckets and their length. We'll free them after we've reset
      the table and released its lock. */
-  big=ht->ht_big_buckets;
+  big=KNO_XTABLE_BITP(ht,KNO_HASHTABLE_BIG_BUCKETS);
   buckets=ht->ht_buckets;
   buckets_to_free=ht->ht_n_buckets;
   /* Now initialize the structure.  */
@@ -2882,13 +2878,13 @@ KNO_EXPORT int kno_fast_reset_hashtable
   if (bucketsptr==NULL)
     return kno_reset_hashtable(ht,n_buckets,lock);
   if (n_buckets<0) n_buckets=ht->ht_n_buckets;
-  if ((lock) && (ht->table_uselock)) {
+  if ((lock) && (KNO_XTABLE_USELOCKP(ht))) {
     kno_write_lock_table(ht);
     unlock=1;}
   /* Grab the buckets and their length. We'll free them after we've reset
      the table and released its lock. */
   *bucketsptr=ht->ht_buckets;
-  *bigbuckets=ht->ht_big_buckets;
+  *bigbuckets=KNO_XTABLE_BITP(ht,KNO_HASHTABLE_BIG_BUCKETS);
   *buckets_to_free=ht->ht_n_buckets;
   /* Now initialize the structure.  */
   if (n_buckets == 0) {
@@ -2919,7 +2915,7 @@ KNO_EXPORT int kno_swap_hashtable(struct KNO_HASHTABLE *src,
   KNO_CHECK_TYPE_RET(src,kno_hashtable_type);
 
   if (!(locked)) {
-    if (src->table_uselock) {
+    if (KNO_XTABLE_USELOCKP(src)) {
       u8_write_lock(&(src->table_rwlock));
       unlock=1;}}
 
@@ -2931,9 +2927,10 @@ KNO_EXPORT int kno_swap_hashtable(struct KNO_HASHTABLE *src,
   COPYFIELD(table_load_factor);
   COPYFIELD(ht_n_buckets);
   COPYFIELD(ht_buckets);
-  COPYFIELD(ht_big_buckets);
-
-  dest->table_uselock=1;
+  KNO_XTABLE_SET_BIT(dest,KNO_HASHTABLE_BIG_BUCKETS,
+		     (KNO_XTABLE_BITP(src,KNO_HASHTABLE_BIG_BUCKETS)));
+  
+  KNO_XTABLE_SET_USELOCK(dest,1);
   u8_init_rwlock(&(dest->table_rwlock));
 
   /* Now, reset the source table */
@@ -2941,8 +2938,7 @@ KNO_EXPORT int kno_swap_hashtable(struct KNO_HASHTABLE *src,
   src->ht_n_buckets=n_buckets;
   src->ht_buckets = get_buckets(dest,n_buckets);
   src->table_n_keys=0;
-  src->table_modified=0;
-  src->table_readonly=0;
+  KNO_TABLE_SET_BIT(src,(KNO_TABLE_MODIFIED_BIT|KNO_TABLE_READONLY_BIT),0);
 
   if (unlock) u8_rw_unlock(&(src->table_rwlock));
 
@@ -2955,7 +2951,7 @@ KNO_EXPORT int kno_static_hashtable(struct KNO_HASHTABLE *ptr,int type)
   int n_conversions=0, unlock=0;
   kno_lisp_type keeptype=(kno_lisp_type) type;
   KNO_CHECK_TYPE_RET(ptr,kno_hashtable_type);
-  if (ptr->table_uselock) {
+  if (KNO_XTABLE_USELOCKP(ptr)) {
     u8_write_lock(&ptr->table_rwlock);
     unlock=1;}
   {
@@ -2995,10 +2991,8 @@ KNO_EXPORT lispval kno_make_hashtable(struct KNO_HASHTABLE *ptr,int n_buckets)
     u8_init_rwlock(&(ptr->table_rwlock));}
 
   if (n_buckets == 0) {
-
     ptr->ht_n_buckets=ptr->table_n_keys=0;
-    ptr->table_readonly=ptr->table_modified=0;
-    ptr->table_uselock=1;
+    ptr->table_bits = KNO_TABLE_USELOCKS_BIT;
     ptr->table_load_factor=default_hashtable_loading;
     ptr->ht_buckets=NULL;
     return LISP_CONS(ptr);}
@@ -3006,9 +3000,8 @@ KNO_EXPORT lispval kno_make_hashtable(struct KNO_HASHTABLE *ptr,int n_buckets)
     if (n_buckets < 0) n_buckets=-n_buckets;
     else n_buckets=kno_get_hashtable_size(n_buckets);
 
-    ptr->table_readonly=ptr->table_modified=0;
+    ptr->table_bits = KNO_TABLE_USELOCKS_BIT;
     ptr->table_n_keys=0;
-    ptr->table_uselock=1;
     ptr->ht_n_buckets=n_buckets;
     ptr->table_load_factor=default_hashtable_loading;
     ptr->ht_buckets=get_buckets(ptr,n_buckets);
@@ -3033,9 +3026,7 @@ KNO_EXPORT lispval kno_init_hashtable(struct KNO_HASHTABLE *ptr,int init_keys,
   ptr->ht_buckets=buckets=get_buckets(ptr,n_buckets);
 
   ptr->table_load_factor=default_hashtable_loading;
-  ptr->table_modified=0;
-  ptr->table_readonly=0;
-  ptr->table_uselock=1;
+  ptr->table_bits = KNO_TABLE_USELOCKS_BIT;
 
   if (inits) {
     int i=0; while (i<init_keys) {
@@ -3045,7 +3036,7 @@ KNO_EXPORT lispval kno_init_hashtable(struct KNO_HASHTABLE *ptr,int init_keys,
       kno_incref(hv->kv_val);
       i++;}}
 
-  ptr->table_uselock=1;
+  KNO_XTABLE_SET_USELOCK(ptr,1);
   u8_init_rwlock(&(ptr->table_rwlock));
 
   return LISP_CONS(ptr);
@@ -3069,9 +3060,7 @@ KNO_EXPORT lispval kno_initialize_hashtable(struct KNO_HASHTABLE *ptr,
   ptr->ht_buckets=buckets=get_buckets(ptr,n_buckets);
 
   ptr->table_load_factor=default_hashtable_loading;
-  ptr->table_modified=0;
-  ptr->table_readonly=0;
-  ptr->table_uselock=1;
+  ptr->table_bits = KNO_TABLE_USELOCKS_BIT;
 
   if (inits) {
     int i=0; while (i<init_keys) {
@@ -3083,7 +3072,7 @@ KNO_EXPORT lispval kno_initialize_hashtable(struct KNO_HASHTABLE *ptr,
       ki->kv_val=ki->kv_key=VOID;
       i++;}}
 
-  ptr->table_uselock=1;
+  KNO_XTABLE_SET_USELOCK(ptr,1);
   u8_init_rwlock(&(ptr->table_rwlock));
 
   return LISP_CONS(ptr);
@@ -3094,10 +3083,10 @@ static int resize_hashtable(struct KNO_HASHTABLE *ptr,int n_buckets,
 {
   int unlock=0;
   KNO_CHECK_TYPE_RET(ptr,kno_hashtable_type);
-  if ( (need_lock) && (ptr->table_uselock) ) {
+  if ( (need_lock) && (KNO_XTABLE_USELOCKP(ptr)) ) {
     kno_write_lock_table(ptr);
     unlock=1; }
-  int big_buckets = ptr->ht_big_buckets;
+  int big_buckets = KNO_XTABLE_BITP(ptr,KNO_HASHTABLE_BIG_BUCKETS);
 
   struct KNO_HASH_BUCKET **new_buckets=get_buckets(ptr,n_buckets);
   struct KNO_HASH_BUCKET **scan=ptr->ht_buckets, **lim=scan+ptr->ht_n_buckets;
@@ -3146,7 +3135,7 @@ KNO_EXPORT int kno_remove_deadwood(struct KNO_HASHTABLE *ptr,
   int n_buckets=ptr->ht_n_buckets, n_keys=ptr->table_n_keys; int unlock=0;
   KNO_CHECK_TYPE_RET(ptr,kno_hashtable_type);
   if ((n_buckets == 0) || (n_keys == 0)) return 0;
-  if (ptr->table_uselock) {
+  if (KNO_XTABLE_USELOCKP(ptr)) {
     kno_write_lock_table(ptr);
     unlock=1;}
   while (1) {
@@ -3189,7 +3178,7 @@ KNO_EXPORT int kno_devoid_hashtable(struct KNO_HASHTABLE *ptr,int locked)
 
   KNO_CHECK_TYPE_RET(ptr,kno_hashtable_type);
   if ((n_buckets == 0) || (n_keys == 0)) return 0;
-  if ((locked<0)?(ptr->table_uselock):(!(locked))) {
+  if ((locked<0)?(KNO_XTABLE_USELOCKP(ptr)):(!(locked))) {
     kno_write_lock_table(ptr);
     /* Avoid race condition */
     n_keys=ptr->table_n_keys;
@@ -3199,7 +3188,7 @@ KNO_EXPORT int kno_devoid_hashtable(struct KNO_HASHTABLE *ptr,int locked)
   struct KNO_HASH_BUCKET **new_buckets=get_buckets(ptr,n_buckets);
   struct KNO_HASH_BUCKET **scan=ptr->ht_buckets;
   struct KNO_HASH_BUCKET **lim=scan+ptr->ht_n_buckets;
-  int remaining_keys=0, big_buckets = ptr->ht_big_buckets;
+  int remaining_keys=0, big_buckets = KNO_XTABLE_BITP(ptr,KNO_HASHTABLE_BIG_BUCKETS);
 
   if (new_buckets==NULL) {
     if (unlock) kno_unlock_table(ptr);
@@ -3246,7 +3235,7 @@ KNO_EXPORT int kno_hashtable_stats
   int n_filled=0, max_bucket=0, n_collisions=0;
   int n_vals=0, max_vals=0;
   KNO_CHECK_TYPE_RET(ptr,kno_hashtable_type);
-  if (ptr->table_uselock) { kno_read_lock_table(ptr); unlock=1;}
+  if (KNO_XTABLE_USELOCKP(ptr)) { kno_read_lock_table(ptr); unlock=1;}
 
   struct KNO_HASH_BUCKET **scan=ptr->ht_buckets;
   struct KNO_HASH_BUCKET **lim=scan+ptr->ht_n_buckets;
@@ -3317,15 +3306,13 @@ kno_copy_hashtable(KNO_HASHTABLE *dest_arg,
   if (dest_arg==NULL)
     dest=u8_alloc(struct KNO_HASHTABLE);
   else dest=dest_arg;
-  if ( (locksrc) && (src->table_uselock) ) {
+  if ( (locksrc) && (KNO_XTABLE_USELOCKP(src)) ) {
     kno_read_lock_table(src);
     unlock=1;}
   if (dest_arg) {
     KNO_INIT_STATIC_CONS(dest,kno_hashtable_type);}
   else {KNO_INIT_CONS(dest,kno_hashtable_type);}
-  dest->table_modified=0;
-  dest->table_readonly=0;
-  dest->table_uselock=1;
+  dest->table_bits = KNO_TABLE_USELOCKS_BIT;
   dest->ht_n_buckets=n_buckets=src->ht_n_buckets;
   dest->table_n_keys=n_keys=src->table_n_keys;
   read=buckets=src->ht_buckets;
@@ -3382,19 +3369,20 @@ static int unparse_hashtable(u8_output out,lispval x)
 KNO_EXPORT int kno_hashtable_set_readonly(KNO_HASHTABLE *ht,int readonly)
 {
   if (readonly) {
-    if ((ht->table_readonly) && (ht->table_uselock==0))
+    if ( (KNO_XTABLE_READONLYP(ht)) && (!(KNO_XTABLE_USELOCKP(ht))) )
       return 0;
-    else if ((!(ht->table_readonly)) && (ht->table_uselock==0))
+    else if ((!(KNO_XTABLE_READONLYP(ht))) && (!(KNO_XTABLE_USELOCKP(ht))))
       return KNO_ERR2(-1,"Can't make non-locking hashtable readonly",
                       "kno_hashtable_set_readonly");
     kno_read_lock_table(ht);
-    ht->table_readonly=1;
-    ht->table_uselock=0;
+    KNO_XTABLE_SET_READONLY(ht,1);
+    KNO_XTABLE_SET_USELOCK(ht,0);
     return 1;}
   else {
-    if (ht->table_uselock) return 0;
-    ht->table_uselock=1;
-    ht->table_readonly=0;
+    if (KNO_XTABLE_READONLYP(ht)) return 0;
+    if (KNO_XTABLE_USELOCKP(ht)) return 0;
+    KNO_XTABLE_SET_READONLY(ht,0);
+    KNO_XTABLE_SET_USELOCK(ht,1);
     kno_unlock_table(ht);
     return 1;}
 }
@@ -3403,7 +3391,7 @@ KNO_EXPORT int kno_recycle_hashtable(struct KNO_HASHTABLE *c)
 {
   struct KNO_HASHTABLE *ht=(struct KNO_HASHTABLE *)c; int unlock=0;
   KNO_CHECK_TYPE_RET(ht,kno_hashtable_type);
-  if (ht->table_uselock) {
+  if (KNO_XTABLE_USELOCKP(ht)) {
     kno_write_lock_table(ht);
     unlock=1;}
   if (ht->ht_n_buckets==0) {
@@ -3426,7 +3414,7 @@ KNO_EXPORT int kno_recycle_hashtable(struct KNO_HASHTABLE *c)
         u8_free(*scan);
         *scan++=NULL;}
       else scan++;
-    if (ht->ht_big_buckets)
+    if (KNO_XTABLE_BITP(ht,KNO_HASHTABLE_BIG_BUCKETS))
       u8_big_free(ht->ht_buckets);
     else u8_free(ht->ht_buckets);}
   ht->ht_buckets=NULL;
@@ -3453,7 +3441,7 @@ KNO_EXPORT struct KNO_KEYVAL *kno_hashtable_keyvals
   if (ht->table_n_keys == 0) {
     *sizep=0;
     return NULL;}
-  if ( (lock) && (ht->table_uselock) ) {
+  if ( (lock) && (KNO_XTABLE_USELOCKP(ht)) ) {
     kno_read_lock_table(ht);
     unlock=1;}
   if (ht->ht_n_buckets) {
@@ -3484,7 +3472,7 @@ KNO_EXPORT int kno_for_hashtable
   int unlock=0;
   KNO_CHECK_TYPE_RET(ht,kno_hashtable_type);
   if (ht->table_n_keys == 0) return 0;
-  if ((lock)&&(ht->table_uselock)) {kno_read_lock_table(ht); unlock=1;}
+  if ((lock)&&(KNO_XTABLE_USELOCKP(ht))) {kno_read_lock_table(ht); unlock=1;}
   if (ht->ht_n_buckets) {
     struct KNO_HASH_BUCKET **scan=ht->ht_buckets;
     struct KNO_HASH_BUCKET **lim=scan+ht->ht_n_buckets;
@@ -3511,7 +3499,7 @@ KNO_EXPORT int kno_for_hashtable_kv
   int unlock=0;
   KNO_CHECK_TYPE_RET(ht,kno_hashtable_type);
   if (ht->table_n_keys == 0) return 0;
-  if ((lock)&&(ht->table_uselock)) {
+  if ((lock)&&(KNO_XTABLE_USELOCKP(ht))) {
     kno_write_lock_table(ht);
     unlock=1;}
   if (ht->ht_n_buckets) {
@@ -3544,13 +3532,11 @@ KNO_EXPORT void kno_init_hashset(struct KNO_HASHSET *hashset,int size,
     KNO_INIT_STATIC_CONS(hashset,kno_hashset_type);}
   else {KNO_INIT_CONS(hashset,kno_hashset_type);}
   hashset->hs_n_buckets=n_slots;
-  hashset->hs_n_elts=0;
-  hashset->hs_modified=0;
+  hashset->table_bits = KNO_TABLE_USELOCKS_BIT;
   hashset->hs_load_factor=default_hashset_loading;
   hashset->hs_buckets=slots=u8_alloc_n(n_slots,lispval);
   while (i < n_slots) slots[i++]=KNO_EMPTY;
   u8_init_rwlock(&(hashset->table_rwlock));
-  hashset->table_uselock = 1;
   return;
 }
 
@@ -3591,7 +3577,7 @@ KNO_EXPORT int kno_hashset_get(struct KNO_HASHSET *h,lispval key)
 {
   if (h->hs_n_elts==0) return 0;
   int hash = kno_hash_lisp(key), unlock=0;
-  if (h->table_uselock) {
+  if (KNO_XTABLE_USELOCKP(h)) {
     kno_read_lock_table(h);
     unlock=1;}
   lispval *slots = h->hs_buckets;
@@ -3629,7 +3615,7 @@ static lispval hashset_probe(struct KNO_HASHSET *h,lispval key)
   if (h->hs_n_elts==0)
     return KNO_EMPTY;
   int hash = kno_hash_lisp(key), unlock=0;
-  if (h->table_uselock) {
+  if (KNO_XTABLE_USELOCKP(h)) {
     kno_read_lock_table(h);
     unlock=1;}
   lispval *slots = h->hs_buckets;
@@ -3653,7 +3639,7 @@ static lispval hashset_probe(struct KNO_HASHSET *h,lispval key)
 static lispval hashset_intern(struct KNO_HASHSET *h,lispval key)
 {
   int hash = kno_hash_lisp(key), unlock = 0;
-  if (h->table_uselock) {
+  if (KNO_XTABLE_USELOCKP(h)) {
     kno_read_lock_table(h);
     unlock=1;}
   lispval *slots = h->hs_buckets;
@@ -3705,7 +3691,7 @@ KNO_EXPORT lispval kno_hashset_elts(struct KNO_HASHSET *h,int clean)
     return EMPTY;}
   else {
     int unlock = 0;
-    if (h->table_uselock) {
+    if (KNO_XTABLE_USELOCKP(h)) {
       if (clean)
         kno_write_lock_table(h);
       else kno_read_lock_table(h);
@@ -3746,7 +3732,7 @@ KNO_EXPORT int kno_reset_hashset(struct KNO_HASHSET *h)
     return 0;
   else {
     int unlock=0;
-    if (h->table_uselock) {
+    if (KNO_XTABLE_USELOCKP(h)) {
       kno_write_lock_table(h);
       unlock=1;}
     int n_elts=h->hs_n_elts;
@@ -3770,14 +3756,14 @@ static int hashset_getsize(struct KNO_HASHSET *h)
 static int hashset_modified(struct KNO_HASHSET *ptr,int flag)
 {
   KNO_CHECK_TYPE_RET(ptr,kno_hashset_type);
-  int modified=ptr->hs_modified;
+  int modified = KNO_XTABLE_MODIFIEDP(ptr);
   if (flag<0)
     return modified;
   else if (flag) {
-    ptr->hs_modified=1;
+    KNO_XTABLE_SET_MODIFIED(ptr,1);
     return modified;}
   else {
-    ptr->hs_modified=0;
+    KNO_XTABLE_SET_MODIFIED(ptr,0);
     return modified;}
 }
 
@@ -3824,7 +3810,7 @@ static size_t grow_hashset(struct KNO_HASHSET *h,ssize_t target)
 KNO_EXPORT ssize_t kno_grow_hashset(struct KNO_HASHSET *h,ssize_t target)
 {
   int unlock = 0;
-  if (h->table_uselock) {
+  if (KNO_XTABLE_USELOCKP(h)) {
     kno_write_lock_table(h);
     unlock=1;}
   size_t rv=grow_hashset(h,target);
@@ -3913,7 +3899,7 @@ static int hashset_mod(struct KNO_HASHSET *h,lispval key,int add)
 KNO_EXPORT int kno_hashset_mod(struct KNO_HASHSET *h,lispval key,int add)
 {
   int rv=0, unlock=0;
-  if (h->table_uselock) {
+  if (KNO_XTABLE_USELOCKP(h)) {
     kno_write_lock_table(h);
     unlock = 1;}
   rv=hashset_mod(h,key,add);
@@ -3933,7 +3919,7 @@ KNO_EXPORT int kno_hashset_add(struct KNO_HASHSET *h,lispval keys)
     int n_vals=KNO_CHOICE_SIZE(keys), unlock=0;
     size_t need_size=ceil((n_vals+h->hs_n_elts)*h->hs_load_factor), n_adds=0;
     if (need_size>h->hs_n_buckets) kno_grow_hashset(h,need_size);
-    if (h->table_uselock) {
+    if (KNO_XTABLE_USELOCKP(h)) {
       kno_write_lock_table(h);
       unlock=1;}
     {DO_CHOICES(key,keys) {
@@ -3948,7 +3934,7 @@ KNO_EXPORT int kno_hashset_add(struct KNO_HASHSET *h,lispval keys)
 KNO_EXPORT int kno_recycle_hashset(struct KNO_HASHSET *h)
 {
   int unlock = 0;
-  if (h->table_uselock) {
+  if (KNO_XTABLE_USELOCKP(h)) {
     kno_write_lock_table(h);
     unlock = 1;}
   lispval *scan=h->hs_buckets, *lim=scan+h->hs_n_buckets;
@@ -3978,7 +3964,7 @@ static lispval copy_hashset(lispval table,int deep)
 KNO_EXPORT lispval kno_copy_hashset(struct KNO_HASHSET *hnew,struct KNO_HASHSET *h)
 {
   int unlock = 0;
-  if (h->table_uselock) {
+  if (KNO_XTABLE_USELOCKP(h)) {
     kno_read_lock_table(h);
     unlock = 1;}
   int n_slots = h->hs_n_buckets;
@@ -3996,9 +3982,8 @@ KNO_EXPORT lispval kno_copy_hashset(struct KNO_HASHSET *hnew,struct KNO_HASHSET 
     else *write++=kno_incref(v);}
   hnew->hs_n_elts=h->hs_n_elts;
   hnew->hs_load_factor=h->hs_load_factor;
-  hnew->hs_modified=0;
+  hnew->table_bits = KNO_TABLE_USELOCKS_BIT;
   if (unlock) kno_unlock_table(h);
-  hnew->table_uselock=1;
   u8_init_rwlock((&hnew->table_rwlock));
   return (lispval) hnew;
 }
@@ -4007,7 +3992,7 @@ static int unparse_hashset(u8_output out,lispval x)
 {
   struct KNO_HASHSET *hs=((struct KNO_HASHSET *)x);
   u8_printf(out,"#<HASHSET%s %d/%d>",
-            ((hs->hs_modified)?("(m)"):("")),
+	    ((KNO_XTABLE_MODIFIEDP(hs))?("(m)"):("")),
             hs->hs_n_elts,hs->hs_n_buckets);
   return 1;
 }
@@ -4614,7 +4599,7 @@ void kno_init_tables_c()
   kno_recyclers[kno_slotmap_type]   = recycle_slotmap;
   kno_unparsers[kno_slotmap_type]   = unparse_slotmap;
   kno_copiers[kno_slotmap_type]     = copy_slotmap;
-  kno_comparators[kno_slotmap_type] =compare_slotmaps;
+  kno_comparators[kno_slotmap_type] = compare_slotmaps;
 
   /* SCHEMAP */
   kno_recyclers[kno_schemap_type]   = recycle_schemap;
