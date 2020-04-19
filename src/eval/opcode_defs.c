@@ -18,7 +18,7 @@ KNO_FASTOP lispval op_eval_body(lispval body,kno_lexenv env,kno_stack stack,
 	return v;
       else kno_decref(v);}
     else if (KNO_EMPTY_LISTP(scan))
-      return kno_eval(subex,env,stack,0);
+      return kno_eval(subex,env,stack,tail);
     else break;}
   if (KNO_EMPTY_LISTP(body))
     return KNO_VOID;
@@ -1075,6 +1075,7 @@ static lispval handle_special_opcode(lispval opcode,lispval args,lispval expr,
 				     kno_stack _stack,
 				     int tail)
 {
+  KNO_STACK_SET_TAIL(_stack,tail);
   switch (opcode) {
   case KNO_QUOTE_OPCODE: {
     lispval arg = pop_arg(args);

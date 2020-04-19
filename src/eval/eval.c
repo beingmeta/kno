@@ -918,22 +918,14 @@ static lispval call_evalfn(lispval evalop,lispval expr,kno_lexenv env,
   struct KNO_EVALFN *handler = (kno_evalfn)evalop;
   /* These are evalfns which do all the evaluating themselves */
   int notail = handler->evalfn_notail;
-  if (handler->evalfn_push) {
-    lispval result = KNO_VOID;
-    KNO_START_EVAL(evalfn_stack,handler->evalfn_name,expr,env,stack);
-    if (notail) KNO_STACK_SET_TAIL(stack,0);
-    else KNO_STACK_SET_TAIL(stack,tail);
-    result = handler->evalfn_handler(expr,env,stack);
-    kno_pop_stack(evalfn_stack);
-    return result;}
-  else {
-    u8_string old_label = stack->stack_label;
-    stack->stack_label=handler->evalfn_name;
-    if (notail) KNO_STACK_SET_TAIL(stack,0);
-    else KNO_STACK_SET_TAIL(stack,tail);
-    lispval result = handler->evalfn_handler(expr,env,stack);
-    stack->stack_label = old_label;
-    return result;}
+  lispval result = KNO_VOID;
+  KNO_STACK_SET_TAIL(stack,tail);
+  KNO_START_EVAL(evalfn_stack,handler->evalfn_name,expr,env,stack);
+  if (notail) KNO_STACK_SET_TAIL(evalfn_stack,0);
+  else KNO_STACK_SET_TAIL(evalfn_stack,tail);
+  result = handler->evalfn_handler(expr,env,evalfn_stack);
+  kno_pop_stack(evalfn_stack);
+  return result;
 }
 
 lispval eval_apply(lispval fn,lispval exprs,
@@ -1069,6 +1061,8 @@ lispval eval_apply(lispval fn,lispval exprs,
       decref_args = 1;}
     else NO_ELSE;
     kno_stackvec_push(args,arg);}
+
+  /* KNO_STACK_SET_OP(stack,fn); */
 
   lispval *argbuf = KNO_STACKVEC_ELTS(args);
   int n_args = KNO_STACKVEC_COUNT(args);
@@ -1295,7 +1289,6 @@ KNO_EXPORT lispval kno_make_evalfn(u8_string name,int flags,
   f->evalfn_name = u8_strdup(name);
   f->evalfn_filename = NULL;
   f->evalfn_handler = fn;
-  f->evalfn_push = U8_BITP(flags,KNO_EVALFN_PUSH);
   f->evalfn_notail = U8_BITP(flags,KNO_EVALFN_NOTAIL);
   return LISP_CONS(f);
 }
@@ -1311,7 +1304,6 @@ KNO_EXPORT void kno_new_evalfn(lispval mod,u8_string name,u8_string cname,
   f->evalfn_filename = filename;
   f->evalfn_cname = u8_strdup(cname);
   f->evalfn_documentation = u8_strdup(doc);
-  f->evalfn_push = U8_BITP(flags,KNO_EVALFN_PUSH);
   f->evalfn_notail = U8_BITP(flags,KNO_EVALFN_NOTAIL);
   kno_store(mod,kno_getsym(name),LISP_CONS(f));
   f->evalfn_moduleid = kno_get(mod,KNOSYM_MODULEID,KNO_VOID);
