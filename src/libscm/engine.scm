@@ -390,7 +390,8 @@ slot of the loop state.
 		 (set! batchno (1+ batchno))
 		 (set! start (elapsed-time))
 		 (set! batch-state
-		   `#[loop ,loop-state started ,start batchno ,batchno]))))))))
+		   `#[loop ,loop-state started ,start batchno ,batchno])))))))
+  (fifo/finished! fifo))
 
 (define (pick-spacing opts nthreads)
  (let ((spacing (getopt opts 'spacing 0.1)))
@@ -489,8 +490,9 @@ slot of the loop state.
 		       'filling #f
 		       'opts opts
 		       'cycles 1))
+	 (%loglevel (getopt opts 'loglevel %loglevel))
 	 (count 0))
-    
+
     (when (table? loop-init)
       (do-choices (key (getkeys loop-init))
 	(unless (test loop-state key)
@@ -544,6 +546,9 @@ slot of the loop state.
 		  (getopt opts 'monitors)
 		  stop))
 	    (when spacing (sleep spacing)))
+	  (loginfo |Engine/Threads| fifo fcn
+		   (do-choices (thread threads)
+		     (lineout "  " (thread-id thread) "\t" thread)))
 	  (thread/wait threads))
 	(engine-threadfn 
 	 fcn fifo opts 
@@ -836,7 +841,8 @@ slot of the loop state.
   (let ((%loglevel (getopt loop-state '%loglevel %loglevel))
 	(state (and (test loop-state 'state) (get loop-state 'state)))
 	(started (elapsed-time))
-	(success #f))
+	(success #f)
+	(paused #f))
     (if (or force (check/start! loop-state))
 	(unwind-protect 
 	    (begin 
@@ -844,6 +850,7 @@ slot of the loop state.
 		"For " fifo " loop state=\n  " (void (pprint loop-state)))
 	      (when (and fifo (getopt loop-state 'checkpause #t))
 		(fifo/pause! fifo 'readwrite)
+		(set! paused #t)
 		(when (and (not force)
 			   (getopt loop-state 'checksync)
 			   (not (fifo-pause fifo)))
@@ -868,6 +875,7 @@ slot of the loop state.
 	      (when (getopt (get loop-state 'opts) 'logchecks #f)
 		(engine-logger (qc) 0 (elapsed-time (get loop-state 'started)) 
 			       #[] loop-state (get loop-state 'state)))
+	      (when paused (fifo/pause! fifo #f))
 	      (set! success #t))
 	  (begin (drop! loop-state 'checkthread) ;; lets check/start! work again
 	    (store! loop-state 'checkdone (elapsed-time))
