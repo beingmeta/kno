@@ -13,6 +13,7 @@
    fifo/pop fifo/remove!
    fifo/push!
    fifo/push/n!
+   fifo/finished!
    fifo/jump! 
    fifo/wait
    fifo/pause!
@@ -55,14 +56,22 @@
 	(- (fifo-end fifo) (fifo-start fifo)) "/" (length (fifo-queue fifo)) 
 	"-r" (choice-size (fifo-running fifo)) "-w" (choice-size (fifo-waiting fifo)) " "
 	(if (not (fifo-live? fifo)) " (exhausted)")
-	(if (fifo-debug fifo) " (debug)")
+	(when (fifo-pause fifo) (printout " paused=" (fifo-pause fifo)))
+	(when (fifo-debug fifo)
+	  (printout)" (debug)"
+	  " running=" (fifo-running fifo)
+	  " waiting=" (fifo-waiting fifo))
 	">")
       (stringout "#<FIFO "
 	(- (fifo-end fifo) (fifo-start fifo)) "/" (length (fifo-queue fifo)) 
 	"-r" (choice-size (fifo-running fifo)) "-w" (choice-size (fifo-waiting fifo)) " "
 	(glom "0x" (number->string (hashptr fifo) 16)) 
 	(if (not (fifo-live? fifo)) " (exhausted)")
-	(if (fifo-debug fifo) " (debug)")
+	(when (fifo-pause fifo) (printout " paused=" (fifo-pause fifo)))
+	(when (fifo-debug fifo)
+	  (printout)" (debug)"
+	  " running=" (fifo-running fifo)
+	  " waiting=" (fifo-waiting fifo))
 	">")))
 
 (defrecord (fifo MUTABLE OPAQUE `(stringfn . fifo->string))
@@ -76,8 +85,8 @@
   items   ;; a hashset of items waiting in the queue, if nodups is set
   (live? #t)  ;; Whether the FIFO is active (callers should wait)
   (pause #f)  ;; Whether the FIFO is paused (value is #f, READ, WRITE, or READWRITE)
-  (waiting {}) ;; How many threads are waiting on the FIFO.
-  (running {}) ;; How many threads are processing results from the FIFO.
+  (waiting {}) ;; The threads waiting on the FIFO.
+  (running {}) ;; The threads currently processing results from the FIFO.
   (debug #f)  ;; Whether we're debugging the FIFO
   )
 
@@ -136,7 +145,7 @@
 	   (set! init-items (compact-queue queue))))
     (cons-fifo name (make-condvar) queue 0 init-items
 	       opts fillfn items
-	       live? #f 0 0 debug)))
+	       live? #f {} {} debug)))
 (define (make-fifo (size 64)) (fifo/make size))
 
 (defambda (->fifo items (opts #f))
@@ -217,7 +226,7 @@
   "just one."
   (fifo/push! fifo item broadcast))
 
-(define (fifo/push/n! fifo items (broadcast #f) (uselock #t))
+(define (fifo/push/n! fifo items (broadcast #t) (uselock #t))
   "Pushes multiple items into the FIFO. If *broadcast* is true, "
   "a broadcast signal is sent to all waiting threads, rather than "
   "just one."
@@ -282,24 +291,43 @@
 	fifo (threadid) (fifo-waiting fifo) (fifo-running fifo)))
   (set! cvar (fifo-condvar fifo))
   (set! tid (threadid))
-  (set-fifo-waiting! fifo (choice (fifo-waiting fifo) tid))
+  (modify-fifo-waiting! fifo choice tid)
   (unless (identical? (thread/get '_fifo) fifo) (thread/set! '_fifo fifo))
-  (set-fifo-running! fifo (difference (fifo-running fifo) tid))
+  (modify-fifo-running! fifo difference tid)
   (condvar/signal (fifo-condvar fifo) #t)
   (choice-size (fifo-waiting fifo)))
 
 (define (fifo-running! fifo (cvar) (tid))
   "Declare that a thread is waiting on the FIFO"
   (if (fifo-debug fifo)
-      (always%watch "FIFO-WAITING!" 
+      (always%watch "FIFO-RUNNING!" 
 	fifo (threadid) (fifo-waiting fifo) (fifo-running fifo))
-      (debug%watch "FIFO-WAITING!" 
+      (debug%watch "FIFO-RUNNING!" 
 	fifo (threadid) (fifo-waiting fifo) (fifo-running fifo)))
   (set! cvar (fifo-condvar fifo))
   (set! tid (threadid))
-  (set-fifo-waiting! fifo (difference (fifo-waiting fifo) tid))
-  (set-fifo-running! fifo (choice (fifo-running fifo) tid))
+  (modify-fifo-waiting! fifo difference tid)
+  (modify-fifo-running! fifo choice tid)
   (condvar/signal (fifo-condvar fifo) #t)
+  (choice-size (fifo-running fifo)))
+
+(define (fifo/finished! fifo (cvar) (tid))
+  "Declare that a thread is finished running or waiting on the FIFO"
+  (if (fifo-debug fifo)
+      (always%watch "FIFO/FINISHED!" 
+	fifo (threadid) (fifo-waiting fifo) (fifo-running fifo))
+      (debug%watch "FIFO/FINISHED!" 
+	fifo (threadid) (fifo-waiting fifo) (fifo-running fifo)))
+  (set! cvar (fifo-condvar fifo))
+  (set! tid (threadid))
+  (loginfo |FIFO/ThreadFinished| "TID=" tid ", cvar=" cvar ", fifo=" fifo)
+  (unless (identical? (thread/get '_fifo) fifo) (thread/set! '_fifo #f))
+  (unwind-protect 
+      (begin (condvar/lock! cvar)
+	(modify-fifo-running! fifo difference tid)
+	(modify-fifo-waiting! fifo difference tid))
+    (condvar/unlock! cvar))
+  (condvar/signal cvar #t)
   (choice-size (fifo-running fifo)))
 
 (define (fifo/fill! fifo (fillfn) (condvar)) 
