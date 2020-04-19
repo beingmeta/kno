@@ -37,6 +37,7 @@ typedef int (*kno_table_modified_fn)(lispval,int);
 typedef int (*kno_table_readonly_fn)(lispval,int);
 typedef int (*kno_table_tablep_fn)(lispval);
 typedef lispval (*kno_table_keys_fn)(lispval);
+typedef lispval *(*kno_table_keyvec_fn)(lispval,int *);
 
 struct KNO_TABLEFNS {
   lispval (*get)(lispval obj,lispval kno_key,lispval dflt);
@@ -49,6 +50,7 @@ struct KNO_TABLEFNS {
   int (*finished)(lispval obj,int op);
   int (*getsize)(lispval obj);
   lispval (*keys)(lispval obj);
+  lispval *(*keyvec_n)(lispval obj,int *);
   struct KNO_KEYVAL (*keyvals)(lispval obj,int *);
   int (*tablep)(lispval obj);
 };
@@ -74,6 +76,7 @@ KNO_EXPORT int kno_set_finished(lispval arg,int val);
 
 KNO_EXPORT int kno_getsize(lispval arg);
 KNO_EXPORT lispval kno_getkeys(lispval arg);
+KNO_EXPORT lispval *kno_getkeyvec_n(lispval arg,int *len);
 KNO_EXPORT lispval kno_getvalues(lispval arg);
 KNO_EXPORT lispval kno_getassocs(lispval arg);
 
@@ -111,10 +114,10 @@ KNO_EXPORT int _KNO_TABLEP(lispval x);
 typedef struct KNO_TABLE {
   KNO_TABLE_HEADER;} *kno_table;
 
-#define KNO_TABLE_READONLY_BIT 0x01
-#define KNO_TABLE_MODIFIED_BIT 0x02
-#define KNO_TABLE_FINISHED_BIT 0x04
-#define KNO_TABLE_USELOCKS_BIT 0x08
+#define KNO_TABLE_USELOCKS 0x01
+#define KNO_TABLE_READONLY 0x02
+#define KNO_TABLE_MODIFIED 0x04
+#define KNO_TABLE_FINISHED 0x08
 
 #define KNO_XTABLE_BITP(table,bitmask) \
   ( ((table)->table_bits) & (bitmask) )
@@ -123,22 +126,22 @@ typedef struct KNO_TABLE {
   else (table)->table_bits &= (~(bitmask))
 
 #define KNO_XTABLE_READONLYP(table) \
-  (KNO_XTABLE_BITP(table,KNO_TABLE_READONLY_BIT))
+  (KNO_XTABLE_BITP(table,KNO_TABLE_READONLY))
 #define KNO_XTABLE_MODIFIEDP(table) \
-  (KNO_XTABLE_BITP(table,KNO_TABLE_MODIFIED_BIT))
+  (KNO_XTABLE_BITP(table,KNO_TABLE_MODIFIED))
 #define KNO_XTABLE_FINISHEDP(table) \
-  (KNO_XTABLE_BITP(table,KNO_TABLE_FINISHED_BIT))
+  (KNO_XTABLE_BITP(table,KNO_TABLE_FINISHED))
 #define KNO_XTABLE_USELOCKP(table) \
-  (KNO_XTABLE_BITP(table,KNO_TABLE_USELOCKS_BIT))
+  (KNO_XTABLE_BITP(table,KNO_TABLE_USELOCKS))
 
 #define KNO_XTABLE_SET_READONLY(table,flag) \
-  KNO_XTABLE_SET_BIT(table,KNO_TABLE_READONLY_BIT,flag)
+  KNO_XTABLE_SET_BIT(table,KNO_TABLE_READONLY,flag)
 #define KNO_XTABLE_SET_MODIFIED(table,flag)		\
-  KNO_XTABLE_SET_BIT(table,KNO_TABLE_MODIFIED_BIT,flag)
+  KNO_XTABLE_SET_BIT(table,KNO_TABLE_MODIFIED,flag)
 #define KNO_XTABLE_SET_FINISHED(table,flag)		\
-  KNO_XTABLE_SET_BIT(table,KNO_TABLE_FINISHED_BIT,flag)
+  KNO_XTABLE_SET_BIT(table,KNO_TABLE_FINISHED,flag)
 #define KNO_XTABLE_SET_USELOCK(table,flag)		\
-  KNO_XTABLE_SET_BIT(table,KNO_TABLE_USELOCKS_BIT,flag)
+  KNO_XTABLE_SET_BIT(table,KNO_TABLE_USELOCKS,flag)
 
 #define KNO_TABLE_BITP(table,bitmask) \
   KNO_XTABLE_BITP(((kno_table)table),bitmask)
@@ -146,22 +149,22 @@ typedef struct KNO_TABLE {
   KNO_XTABLE_SET_BIT(((kno_table)table),bitmask,flag)
 
 #define KNO_TABLE_READONLYP(table) \
-  (KNO_TABLE_BITP(table,KNO_TABLE_READONLY_BIT))
+  (KNO_TABLE_BITP(table,KNO_TABLE_READONLY))
 #define KNO_TABLE_MODIFIEDP(table) \
-  (KNO_TABLE_BITP(table,KNO_TABLE_MODIFIED_BIT))
+  (KNO_TABLE_BITP(table,KNO_TABLE_MODIFIED))
 #define KNO_TABLE_FINISHEDP(table) \
-  (KNO_TABLE_BITP(table,KNO_TABLE_FINISHED_BIT))
+  (KNO_TABLE_BITP(table,KNO_TABLE_FINISHED))
 #define KNO_TABLE_USELOCKP(table) \
-  (KNO_TABLE_BITP(table,KNO_TABLE_USELOCKS_BIT))
+  (KNO_TABLE_BITP(table,KNO_TABLE_USELOCKS))
 
 #define KNO_TABLE_SET_READONLY(table,flag) \
-  KNO_TABLE_SET_BIT(table,KNO_TABLE_READONLY_BIT,flag)
+  KNO_TABLE_SET_BIT(table,KNO_TABLE_READONLY,flag)
 #define KNO_TABLE_SET_MODIFIED(table,flag)		\
-  KNO_TABLE_SET_BIT(table,KNO_TABLE_MODIFIED_BIT,flag)
+  KNO_TABLE_SET_BIT(table,KNO_TABLE_MODIFIED,flag)
 #define KNO_TABLE_SET_FINISHED(table,flag)		\
-  KNO_TABLE_SET_BIT(table,KNO_TABLE_FINISHED_BIT,flag)
+  KNO_TABLE_SET_BIT(table,KNO_TABLE_FINISHED,flag)
 #define KNO_TABLE_SET_USELOCK(table,flag)		\
-  KNO_TABLE_SET_BIT(table,KNO_TABLE_USELOCKS_BIT,flag)
+  KNO_TABLE_SET_BIT(table,KNO_TABLE_USELOCKS,flag)
 
 #define KNO_INIT_SMAP_SIZE 7
 #define KNO_INIT_HASH_SIZE 73
@@ -239,11 +242,11 @@ KNO_EXPORT int kno_copy_slotmap(struct KNO_SLOTMAP *src,struct KNO_SLOTMAP *dest
 KNO_EXPORT lispval kno_slotmap_max
   (struct KNO_SLOTMAP *sm,lispval scope,lispval *maxvalp);
 
-KNO_EXPORT struct KNO_KEYVAL *kno_keyvec_insert
+KNO_EXPORT struct KNO_KEYVAL *kno_keyvals_insert
 (lispval key,struct KNO_KEYVAL **kvp,
  int *sizep,int *spacep,int limit,
  int freedata);
-KNO_EXPORT struct KNO_KEYVAL *_kno_keyvec_get
+KNO_EXPORT struct KNO_KEYVAL *_kno_keyvals_get
    (lispval key,struct KNO_KEYVAL *keyvals,int size);
 
 KNO_EXPORT struct KNO_KEYVAL *kno_sortvec_insert
@@ -255,7 +258,7 @@ KNO_EXPORT struct KNO_KEYVAL *_kno_sortvec_get
 
 
 #if KNO_SOURCE || KNO_INLINE_TABLES
-static U8_MAYBE_UNUSED struct KNO_KEYVAL *__kno_keyvec_get
+static U8_MAYBE_UNUSED struct KNO_KEYVAL *__kno_keyvals_get
    (lispval key,struct KNO_KEYVAL *keyvals,int size)
 {
   const struct KNO_KEYVAL *scan = keyvals, *limit = scan+size;
@@ -274,7 +277,7 @@ static U8_MAYBE_UNUSED struct KNO_KEYVAL *__kno_sortvec_get
 (lispval key,struct KNO_KEYVAL *keyvals,int size)
 {
   if (size<4)
-    return __kno_keyvec_get(key,keyvals,size);
+    return __kno_keyvals_get(key,keyvals,size);
   else {
     int found = 0;
     const struct KNO_KEYVAL
@@ -302,10 +305,10 @@ static U8_MAYBE_UNUSED struct KNO_KEYVAL *__kno_sortvec_get
 #endif
 
 #if KNO_INLINE_TABLES
-#define kno_keyvec_get __kno_keyvec_get
+#define kno_keyvals_get __kno_keyvals_get
 #define kno_sortvec_get __kno_sortvec_get
 #else
-#define kno_keyvec_get _kno_keyvec_get
+#define kno_keyvals_get _kno_keyvals_get
 #define kno_sortvec_get _kno_sortvec_get
 #endif
 
@@ -327,7 +330,7 @@ static U8_MAYBE_UNUSED lispval __kno_slotmap_get(struct KNO_SLOTMAP *sm,lispval 
     u8_read_lock(&sm->table_rwlock);
     unlock = 1;}
   size = KNO_XSLOTMAP_NUSED(sm);
-  result = kno_keyvec_get(key,sm->sm_keyvals,size);
+  result = kno_keyvals_get(key,sm->sm_keyvals,size);
   if (result) {
     lispval v = result->kv_val;
     if (KNO_PRECHOICEP(v))
@@ -352,7 +355,7 @@ static U8_MAYBE_UNUSED lispval __kno_slotmap_test(struct KNO_SLOTMAP *sm,lispval
       (!(KNO_XTABLE_READONLYP(sm)))) {
     u8_read_lock(&sm->table_rwlock); unlock = 1;}
   size = KNO_XSLOTMAP_NUSED(sm);
-  result = kno_keyvec_get(key,sm->sm_keyvals,size);
+  result = kno_keyvals_get(key,sm->sm_keyvals,size);
   if (result) {
     lispval current = result->kv_val; int cmp;
     if (KNO_VOIDP(val)) cmp = 1;
@@ -563,7 +566,8 @@ typedef struct KNO_HASHTABLE {
   struct KNO_HASH_BUCKET **ht_buckets;} KNO_HASHTABLE;
 typedef struct KNO_HASHTABLE *kno_hashtable;
 
-#define KNO_HASHTABLE_BIG_BUCKETS 0x100
+#define KNO_HASHTABLE_COMPARE_EQ  0x100
+#define KNO_HASHTABLE_BIG_BUCKETS 0x200
 
 #define KNO_HASHTABLE_LEN (sizeof(struct KNO_HASHTABLE))
 
@@ -596,6 +600,8 @@ KNO_EXPORT int kno_fast_reset_hashtable
 KNO_EXPORT int kno_swap_hashtable
 (struct KNO_HASHTABLE *src,struct KNO_HASHTABLE *dest,
  int n_keys,int locked);
+
+KNO_EXPORT lispval kno_make_eq_hashtable(kno_hashtable ptr,int n_slots);
 
 KNO_EXPORT int kno_remove_deadwood
 (struct KNO_HASHTABLE *ptr,
@@ -645,6 +651,7 @@ KNO_EXPORT int kno_hashtable_probe_novoid(kno_hashtable ht,lispval key);
 KNO_EXPORT lispval kno_hashtable_keys(kno_hashtable ht);
 KNO_EXPORT struct KNO_KEYVAL *kno_hashtable_keyvals
   (kno_hashtable ht,int *sizep,int lock);
+KNO_EXPORT lispval *kno_hashtable_keyvec(struct KNO_HASHTABLE *ptr,int *len);
 KNO_EXPORT int kno_for_hashtable
   (kno_hashtable ht,kv_valfn f,void *data,int lock);
 KNO_EXPORT int kno_for_hashtable_kv

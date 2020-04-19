@@ -1,4 +1,4 @@
-#define INLINE_DEF static
+#define INLINE_DEF static U8_MAYBE_UNUSED
 
 u8_condition BadExpressionHead;
 
@@ -86,7 +86,7 @@ INLINE_DEF lispval eval_fcnid(lispval fcnid)
   kno_incref(v);
   return v;
 }
-INLINE_DEF lispval get_arg(lispval expr,int i)
+INLINE_DEF U8_MAYBE_UNUSED lispval get_arg(lispval expr,int i)
 {
   while (KNO_PAIRP(expr))
     if ((KNO_PAIRP(KNO_CAR(expr))) &&
@@ -96,7 +96,7 @@ INLINE_DEF lispval get_arg(lispval expr,int i)
     else {expr = KNO_CDR(expr); i--;}
   return KNO_VOID;
 }
-INLINE_DEF lispval get_body(lispval expr,int i)
+INLINE_DEF U8_MAYBE_UNUSED lispval get_body(lispval expr,int i)
 {
   while (KNO_PAIRP(expr))
     if (i == 0) break;

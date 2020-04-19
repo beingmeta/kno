@@ -101,6 +101,11 @@ KNO_EXPORT u8_condition kno_DoubleGC, kno_UsingFreedCons, kno_FreeingNonHeapCons
   if (KNO_EXPECT_FALSE(!((KNO_CONS_TYPE(x)) == typecode)))		\
     return kno_err(kno_TypeError,kno_type_names[typecode],NULL,(lispval)x);
 
+#define KNO_CHECK_TYPE_RETVAL(x,typecode,val)				\
+  if (KNO_EXPECT_FALSE(!((KNO_CONS_TYPE(x)) == typecode))) {		\
+    kno_seterr(kno_TypeError,kno_type_names[typecode],NULL,(lispval)x); \
+    return val;}
+
 #define KNO_PTR2CONS(x,typecode,typecast)                            \
   (((typecode<0) || (KNO_TYPEP(x,typecode))) ?                       \
    ((typecast)(KNO_CONS_DATA(x))) :				      \

@@ -3506,7 +3506,7 @@ KNO_EXPORT lispval kno_hashindex_keyinfo(lispval lix,
         keyinfo_values[3] = KNO_INT(hashval);
         lispval sm =
           kno_make_schemap(NULL,4,
-                          KNO_SCHEMAP_FIXED_SCHEMA|KNO_TABLE_READONLY_BIT,
+                          KNO_SCHEMAP_FIXED_SCHEMA|KNO_TABLE_READONLY,
                           keyinfo_schema,keyinfo_values);
         elts[key_count++]=(lispval)sm;}
       else kno_decref(key);
@@ -3634,7 +3634,7 @@ static lispval hashbucket_info(struct KNO_HASHINDEX *hx,lispval bucket_nums)
       lispval sm =
         kno_make_schemap(NULL,n_slots,
                         KNO_SCHEMAP_FIXED_SCHEMA|
-			 KNO_TABLE_READONLY_BIT,
+			 KNO_TABLE_READONLY,
                         keyinfo_schema,keyinfo_values);
       KNO_ADD_TO_CHOICE(keyinfo,sm);
       j++;}
@@ -3713,7 +3713,7 @@ static lispval hashrange_info(struct KNO_HASHINDEX *hx,
       lispval sm = kno_make_schemap
         (NULL,n_slots,
          KNO_SCHEMAP_FIXED_SCHEMA|
-	 KNO_TABLE_READONLY_BIT,
+	 KNO_TABLE_READONLY,
          keyinfo_schema,keyinfo_values);
       KNO_ADD_TO_CHOICE(keyinfo,sm);
       j++;}
