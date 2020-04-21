@@ -249,7 +249,7 @@ static struct KNO_SEQFNS compound_seqfns = {
   kno_seq_elts,
   NULL};
 
-static struct KNO_TABLEFNS compound_tablefns = 
+static struct KNO_TABLEFNS compound_tablefns =
   {
    compound_table_get,
    compound_table_store,
@@ -262,6 +262,7 @@ static struct KNO_TABLEFNS compound_tablefns =
    compound_table_getsize,
    compound_table_keys,
    NULL, /* keyvals */
+   NULL, /* keyvec */
    compound_tablep
   };
 

@@ -98,6 +98,17 @@ static lispval make_hashtable(lispval size)
   else return kno_make_hashtable(NULL,0);
 }
 
+DEFPRIM1("MAKE-EQ-HASHTABLE",make_eq_hashtable,MIN_ARGS(0),
+         "`(MAKE-EQ-HASHTABLE [*n_buckets*])` returns a hashset. "
+         "*n_buckets*, if provided indicates the number of buckets",
+         kno_fixnum_type,KNO_VOID)
+static lispval make_eq_hashtable(lispval size)
+{
+  if (KNO_UINTP(size))
+    return kno_make_eq_hashtable(NULL,FIX2INT(size));
+  else return kno_make_eq_hashtable(NULL,0);
+}
+
 DEFPRIM1("PICK-HASHTABLE-SIZE", pick_hashtable_size,MAX_ARGS(1),
          "`(PICK-HASHTABLE-SIZE *count*)` picks a good hashtable size "
          "for a table of *count* elements.",
@@ -266,6 +277,18 @@ DEFPRIM("GETVALUES",kno_getvalues,MAX_ARGS(1),
 DEFPRIM("GETASSOCS",kno_getassocs,MAX_ARGS(1),
         "`(GETASSOCS *table*)` returns (key . values) pairs for all "
         "of the keys in *table*.");
+
+DEFPRIM("GETKEYVEC",getkeyvec_prim,MAX_ARGS(1),
+	"`(GETKEYVEC *table*)` returns a vector of all the keys in *table*.")
+static lispval getkeyvec_prim(lispval table)
+{
+  int len = 0;
+  lispval *keyvec = kno_getkeyvec_n(table,&len);
+  if (len<0) return KNO_ERROR;
+  else if (len == 0)
+    return kno_make_vector(0,NULL);
+  else return kno_init_vector(NULL,len,keyvec);
+}
 
 /* Converting schemaps to slotmaps */
 
@@ -1134,6 +1157,7 @@ static void link_local_cprims()
   KNO_LINK_PRIM("HASHTABLE?",hashtablep,1,kno_scheme_module);
   KNO_LINK_PRIM("MAKE-HASHSET",make_hashset,1,kno_scheme_module);
   KNO_LINK_PRIM("MAKE-HASHTABLE",make_hashtable,1,kno_scheme_module);
+  KNO_LINK_PRIM("MAKE-EQ-HASHTABLE",make_eq_hashtable,1,kno_scheme_module);
   KNO_LINK_PRIM("PICK-HASHTABLE-SIZE", pick_hashtable_size,1,kno_scheme_module);
   KNO_LINK_PRIM("RESET-HASHTABLE!",reset_hashtable,2,kno_scheme_module);
   KNO_LINK_PRIM("STATIC-HASHTABLE",static_hashtable,1,kno_scheme_module);
@@ -1193,6 +1217,7 @@ static void link_local_cprims()
   KNO_LINK_PRIM("GETKEYS",kno_getkeys,1,kno_scheme_module);
   KNO_LINK_PRIM("GETVALUES",kno_getvalues,1,kno_scheme_module);
   KNO_LINK_PRIM("GETASSOCS",kno_getassocs,1,kno_scheme_module);
+  KNO_LINK_PRIM("GETKEYVEC",getkeyvec_prim,1,kno_scheme_module);
 
   KNO_LINK_ALIAS("HASHTABLE-MAX",table_max,kno_scheme_module);
   KNO_LINK_ALIAS("HASHTABLE-MAXVAL",table_maxval,kno_scheme_module);

@@ -397,8 +397,8 @@ static kno_pool open_knopool(u8_string fname,kno_storage_flags open_flags,
 
   open_flags = pool->pool_flags;
   kno_decref(metadata);
-  if (metadata_modified)
-    KNO_XTABLE_SET_MODIFIED(&(pool->pool_metadata),1);
+  if (metadata_modified) {
+    KNO_XTABLE_SET_MODIFIED(&(pool->pool_metadata),1);}
 
   if (label_loc) {
     if (kno_setpos(stream,label_loc)>0) {
