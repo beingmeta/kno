@@ -779,6 +779,10 @@ TESTER
 leaktest_env
 memtest_env
 test_env
+profilellibs
+profileldefines
+profileldflags
+profilecflags
 debuglibs
 debugldflags
 debugcflags
@@ -916,7 +920,8 @@ with_rpath
 with_pkgconfig_dir
 with_fileinfo
 with_stackcheck
-with_profiling
+enable_cprofiling
+with_gnuprof
 enable_gcov
 with_duma
 with_malloc
@@ -942,7 +947,6 @@ with_apacheinfo
 with_apachelib
 enable_ffi
 with_arch
-enable_xprofiling
 with_share_dir
 with_data_dir
 with_config_dir
@@ -951,6 +955,7 @@ with_local_config
 with_shared_config
 with_unpackage_dir
 enable_fileconfig
+enable_xprofiling
 with_installed_module_dir
 with_local_modules
 with_stdlib_module_dir
@@ -1615,6 +1620,7 @@ Optional Features:
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
 --enable-stripping strip libraries and executables before installing
+--en/disable-cprofiling compile to support profiling and coverage tools
   --enable-gcov           enable coverage testing with gcov
 --en/disable-ipeval Enable IPEVAL
 --en/disable-largefiles Enable use of large (> 2GB) file support
@@ -1622,8 +1628,8 @@ Optional Features:
 --en/disable-htmldump write HTML backtraces
 --en/disable-prefetching make frame operations prefetch when they can
 --enable-ffi enable the FFI interface
---enable-xprofiling use xprofiling information
 --en/disable-fileconfig enable file-based configuration
+--enable-xprofiling use xprofiling information
 --en/disable-shared Build with/without shared libraries
 --en/disable-maintainer-mode doesn't do anything
 --en/disable-dependency-tracking doesn't do anything
@@ -1659,7 +1665,7 @@ Optional Packages:
 --with-pkgconfig-dir pathname
 --with/out-fileinfo record fileinfo
 --with-stackcheck Build with native stack checking
---with/out-profiling compile to generate profile information
+--with/out-gnuprof compile to generate GNU profiling information
 --with-duma Build with Detect Unintended Memory Access
 --with-malloc Use custom malloc: e.g. $WITHMALLOC_OPTS
 --with/out-global-ipeval Use global lock and variables for ipeval
@@ -3095,6 +3101,9 @@ MSG=echo
 debugcflags=" -Og -g3 -ggdb3 -fno-inline -fno-omit-frame-pointer "
 debugldflags=""
 debuglibs=""
+profilecflags=" -O0 -g3 -ggdb3 -fno-inline -fno-omit-frame-pointer "
+profileldflags=""
+profiledefines=""
 manually_disabled=""
 auto_disabled=""
 force_enabled=""
@@ -3165,6 +3174,10 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/kno/knosource.h include/kno/config.h"
+
+
+
+
 
 
 
@@ -7018,23 +7031,56 @@ _ACEOF
 
 fi
 
-### GNU Profiling
+# profiling
 
-
-# Check whether --with-profiling was given.
-if test "${with_profiling+set}" = set; then :
-  withval=$with_profiling;
+# Check whether --enable-cprofiling was given.
+if test "${enable_cprofiling+set}" = set; then :
+  enableval=$enable_cprofiling;
 else
-  with_profiling="no"
+  enable_cprofiling="no"
 fi
 
-if test $with_profiling = "yes"; then
-  $as_echo "#define KNO_WITH_PROFILING 1" >>confdefs.h
 
-  PROFILING="-O0 -pg -fno-inline -fprofile-arcs -ftest-coverage"
+if test -z "$enable_cprofiling" || test "$enable_cprofiling" = "no"; then
+  $as_echo "#define KNO_PROFILING 0" >>confdefs.h
+
+  PROFILING=""
+elif test $enable_cprofiling = "yes"; then
+  $as_echo "#define KNO_PROFILING 1" >>confdefs.h
+
+  PROFILING="-O0 -fno-inline"
+elif test $enable_cprofiling = "deep" || test $enable_cprofiling = "2" ; then
+  $as_echo "#define KNO_PROFILING 2" >>confdefs.h
+
+  PROFILING="-O0 -fno-inline"
+elif test $enable_cprofiling = "extreme" || test $enable_cprofiling = "3" ; then
+  $as_echo "#define KNO_PROFILING 3" >>confdefs.h
+
+  PROFILING="-O0 -fno-inline"
 else
+  $as_echo "#define KNO_PROFILING 0" >>confdefs.h
+
   PROFILING=""
 fi
+
+
+# Check whether --with-gnuprof was given.
+if test "${with_gnuprof+set}" = set; then :
+  withval=$with_gnuprof;
+else
+  with_gnuprof="no"
+fi
+
+
+if test "$with_gnuprof" = "yes"; then
+   if test -z "$PROFILING" ; then
+     $as_echo "#define KNO_PROFILING 2" >>confdefs.h
+
+     PROFILING="-O0 -pg -fno-inline -fprofile-arcs -ftest-coverage"
+    else
+      PROFILING="${PROFILING} -pg"
+    fi;
+fi;
 
 ### GNU Coverage checking
 
@@ -7270,12 +7316,11 @@ fi
 
 
 if test "${use_gcov}" == "yes"; then
-   OPTFLAGS=
-   XOPTFLAGS=
-   $as_echo "#define KNO_AVOID_INLINE 1" >>confdefs.h
+  $as_echo "#define KNO_PROFILING 2" >>confdefs.h
 
-   $as_echo "#define KNO_EXTREME_PROFILING 1" >>confdefs.h
-
+  PROFILING="${PROFILING} -fprofile-arcs -ftest-coverage"
+  OPTFLAGS=
+  XOPTFLAGS=
 fi;
 
 ### Check some compiler fancies
@@ -9917,21 +9962,6 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
 
-# Check whether --enable-xprofiling was given.
-if test "${enable_xprofiling+set}" = set; then :
-  enableval=$enable_xprofiling; enable_xprofiling=$withval
-else
-  enable_xprofiling="yes"
-fi
-
-if test "${enable_xprofiling}" != "no"; then
-   $as_echo "#define KNO_EXTENDED_PROFILING 1" >>confdefs.h
-
-else
-   $as_echo "#define KNO_EXTENDED_PROFILING 0" >>confdefs.h
-
-fi;
-
 
 
 # Check whether --with-share_dir was given.
@@ -10046,6 +10076,21 @@ else
   $as_echo "#define KNO_FILECONFIG_DEFAULTS 0" >>confdefs.h
 
 fi
+
+# Check whether --enable-xprofiling was given.
+if test "${enable_xprofiling+set}" = set; then :
+  enableval=$enable_xprofiling; enable_xprofiling=$withval
+else
+  enable_xprofiling="yes"
+fi
+
+if test "${enable_xprofiling}" != "no"; then
+   $as_echo "#define KNO_EXTENDED_PROFILING 1" >>confdefs.h
+
+else
+   $as_echo "#define KNO_EXTENDED_PROFILING 0" >>confdefs.h
+
+fi;
 
 ### Scheme Module search paths
 

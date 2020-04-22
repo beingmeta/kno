@@ -99,16 +99,18 @@ static void output_ellipsis(U8_OUTPUT *out,int n,u8_string unit)
 
 }
 
-static int unparse_string(U8_OUTPUT *out,lispval x)
+static int escape_string(U8_OUTPUT *out,lispval x,int ascii,int max_chars)
 {
   struct KNO_STRING *s = (struct KNO_STRING *)x; int n_chars = 0;
   u8_string scan = s->str_bytes, limit = s->str_bytes+s->str_bytelen;
   int unparse_maxchars =
+    (max_chars > 0) ? (max_chars) :
     ( (out->u8_streaminfo) & (U8_STREAM_VERBOSE) ) ? (-1) :
     (kno_unparse_maxchars);
-  u8_putc(out,'"'); while (scan < limit) {
+  while (scan < limit) {
     u8_string chunk = scan;
     while ((scan < limit) &&
+	   ( (ascii==0) || (*scan < 0x80) ) &&
            (*scan != '"') && (*scan != '\\') &&
            (!(iscntrl(*scan)))) {
       n_chars++; u8_sgetc(&scan);
@@ -127,12 +129,33 @@ static int unparse_string(U8_OUTPUT *out,lispval x)
       case '\r': u8_puts(out,"\\r"); break;
       default:
         if (iscntrl(c)) {
-          char buf[32]; sprintf(buf,"\\%03o",c);
+          char buf[32];
+	  if (ascii) sprintf(buf,"\\u%04x",c);
+	  else sprintf(buf,"\\%03o",c);
           u8_puts(out,buf);}
+	else if ( (ascii) && (c>=0x80) ) {
+	  char buf[32];
+	  sprintf(buf,"\\u%04x",c);
+	  u8_puts(out,buf);}
         else u8_putc(out,c);}}}
   /* We don't check for an error value until we get here, which means that
      many of the calls above might have failed, however this shouldn't
      be a functional problem. */
+  return 1;
+}
+
+static int unparse_string(U8_OUTPUT *out,lispval x)
+{
+  u8_putc(out,'"');
+  escape_string(out,x,0,-1);
+  return u8_putc(out,'"');
+}
+
+KNO_EXPORT
+int kno_escape_string(U8_OUTPUT *out,lispval x,int ascii,int max_chars)
+{
+  u8_putc(out,'"');
+  escape_string(out,x,ascii,max_chars);
   return u8_putc(out,'"');
 }
 

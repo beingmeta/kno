@@ -24,7 +24,7 @@
 KNO_FASTOP lispval copy_elt(lispval elt,int flags)
 {
   if (KNO_CONSP(elt)) {
-    if (KNO_STATIC_CONSP(elt))
+    if (KNO_STATIC_CONSP((kno_cons)elt))
       return kno_copier(elt,flags);
     else if (! ( (flags) & (KNO_FULL_COPY) ) )
       return kno_incref(elt);

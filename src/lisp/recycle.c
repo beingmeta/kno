@@ -11,8 +11,8 @@
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
-#include "kno/compounds.h"
 #include "kno/cons.h"
+#include "kno/compounds.h"
 
 /* Builtin recyclers */
 

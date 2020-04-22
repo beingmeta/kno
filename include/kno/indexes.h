@@ -11,6 +11,10 @@
 #define KNO_INDEXES_H_INFO "include/kno/indexes.h"
 #endif
 
+#ifndef KNO_STORAGE_INDEX_C
+#define KNO_STORAGE_INDEX_C 0
+#endif
+
 #include "streams.h"
 
 KNO_EXPORT u8_condition kno_BadIndexSpec,
@@ -280,9 +284,22 @@ KNO_EXPORT struct KNO_AGGREGATE_INDEX *kno_background;
 KNO_EXPORT kno_index _kno_indexptr(lispval lp);
 KNO_EXPORT kno_index _kno_ref2index(lispval indexval);
 KNO_EXPORT lispval _kno_index2lisp(kno_index ix);
+KNO_EXPORT kno_index _kno_get_writable_index(kno_index ix);
 
 #if KNO_INLINE_INDEXES
-KNO_FASTOP U8_MAYBE_UNUSED kno_index kno_ref2index(lispval x)
+#define kno_ref2index          __kno_ref2index
+#define kno_indexptr           __kno_indexptr
+#define kno_index2lisp         __kno_index2lisp
+#define kno_get_writable_index __kno_get_writable_index
+#else
+#define kno_ref2index          _kno_ref2index
+#define kno_indexptr           _kno_indexptr
+#define kno_index2lisp         _kno_index2lisp
+#define kno_get_writable_index _kno_get_writable_index
+#endif
+
+#if KNO_INLINE_INDEXES || KNO_STORAGE_INDEX_C
+KNO_FASTOP U8_MAYBE_UNUSED kno_index __kno_ref2index(lispval x)
 {
   if (KNO_ETERNAL_INDEXP(x)) {
     int serial = KNO_GET_IMMEDIATE(x,kno_index_type);
@@ -294,7 +311,7 @@ KNO_FASTOP U8_MAYBE_UNUSED kno_index kno_ref2index(lispval x)
     else return NULL;}
   else return NULL;
 }
-KNO_FASTOP U8_MAYBE_UNUSED kno_index kno_indexptr(lispval x)
+KNO_FASTOP U8_MAYBE_UNUSED kno_index __kno_indexptr(lispval x)
 {
   if (KNO_IMMEDIATE_TYPEP(x,kno_index_type)) {
     int serial = KNO_GET_IMMEDIATE(x,kno_index_type);
@@ -308,7 +325,7 @@ KNO_FASTOP U8_MAYBE_UNUSED kno_index kno_indexptr(lispval x)
     return (kno_index)x;
   else return (kno_index)NULL;
 }
-KNO_FASTOP U8_MAYBE_UNUSED lispval kno_index2lisp(kno_index ix)
+KNO_FASTOP U8_MAYBE_UNUSED lispval __kno_index2lisp(kno_index ix)
 {
   if (ix == NULL)
     return KNO_ERROR;
@@ -316,7 +333,7 @@ KNO_FASTOP U8_MAYBE_UNUSED lispval kno_index2lisp(kno_index ix)
     return LISPVAL_IMMEDIATE(kno_index_type,ix->index_serialno);
   else return (lispval)ix;
 }
-U8_MAYBE_UNUSED static kno_index kno_get_writable_index(kno_index ix)
+U8_MAYBE_UNUSED static kno_index __kno_get_writable_index(kno_index ix)
 {
   if (ix == NULL) return ix;
   else if (U8_BITP(ix->index_flags,KNO_STORAGE_READ_ONLY)) {
@@ -334,9 +351,6 @@ U8_MAYBE_UNUSED static kno_index kno_get_writable_index(kno_index ix)
     kno_incref_index(ix);
     return ix;}
 }
-#else
-#define kno_indexptr _kno_indexptr
-#define kno_index2lisp _kno_index2lisp
 #endif
 
 /* Inline index adds */

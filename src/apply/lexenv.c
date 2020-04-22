@@ -128,7 +128,7 @@ static int envcountproc(lispval v,void *data)
         return 0;}
       else scan = scan->env_parent;
     return 0;}
-  else if (KNO_CONS_REFCOUNT(v) == 1)
+  else if (KNO_REFCOUNT(v) == 1)
     return 1;
   else return 0;
 }
