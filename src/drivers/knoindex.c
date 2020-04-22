@@ -1323,14 +1323,16 @@ static lispval *knoindex_fetchkeys(kno_index ix,int *n)
       lispval key; int n_vals;
       ssize_t xtype_len = kno_read_varint(&keyblock); /* IGNORE size */
       if (xtype_len<0) {
-        kno_seterr(kno_UnexpectedEOD,"",hx->indexid,KNO_VOID);
+        kno_seterr(kno_UnexpectedEOD,"knoindex_fetchkeys",
+		   hx->indexid,KNO_VOID);
         key=KNO_ERROR_VALUE;}
       else {
         const unsigned char *key_end = keyblock.bufread+xtype_len;
         key = read_key(&keyblock,&(hx->index_xrefs));
         if (KNO_ABORTP(key)) keyblock.bufread=key_end;}
       if ( (n_vals = kno_read_varint(&keyblock)) < 0) {
-        kno_seterr(kno_UnexpectedEOD,"",hx->indexid,KNO_VOID);
+        kno_seterr(kno_UnexpectedEOD,"knoindex_fetchkeys",
+		   hx->indexid,KNO_VOID);
         key=KNO_ERROR_VALUE;}
       if (!(KNO_TROUBLEP(key))) {
         if (key_count >= results_len) {
@@ -1469,14 +1471,16 @@ static struct KNO_KEY_SIZE *knoindex_fetchinfo(kno_index ix,kno_choice filter,in
       lispval key; int n_vals;
       ssize_t xtype_len = kno_read_varint(&keyblock); /* IGNORE size */
       if (xtype_len<0) {
-        kno_seterr(kno_UnexpectedEOD,"",hx->indexid,KNO_VOID);
+        kno_seterr(kno_UnexpectedEOD,"knoindex_fetchinfo",
+		   hx->indexid,KNO_VOID);
         key=KNO_ERROR_VALUE;}
       else {
         const unsigned char *key_end = keyblock.bufread+xtype_len;
         key = read_key(&keyblock,&(hx->index_xrefs));
         if (KNO_ABORTP(key)) keyblock.bufread=key_end;}
       if ( (n_vals = kno_read_varint(&keyblock)) < 0) {
-        kno_seterr(kno_UnexpectedEOD,"",hx->indexid,KNO_VOID);
+        kno_seterr(kno_UnexpectedEOD,"knoindex_fetchinfo",
+		   hx->indexid,KNO_VOID);
         key=KNO_ERROR_VALUE;}
       if ( (!(KNO_TROUBLEP(key))) &&
            ( (filter == NULL) || (fast_choice_containsp(key,filter)) ) ) {
