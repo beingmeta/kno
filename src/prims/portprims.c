@@ -778,18 +778,19 @@ static lispval getline_prim(lispval port,lispval eos_arg,
 			    lispval eof_marker)
 {
   U8_INPUT *in = get_input_port(port);
-  if (VOIDP(eof_marker)) eof_marker = EMPTY;
-  else if (KNO_TRUEP(eof_marker)) eof_marker = KNO_EOF;
-  else {}
+  if ( (VOIDP(eof_marker)) || (KNO_DEFAULTP(eof_marker)) )
+    eof_marker = KNO_EOF;
   if (in) {
     u8_string data, eos;
     int lim, size = 0;
     if (in == NULL)
       return kno_type_error(_("input port"),"getline_prim",port);
-    if (VOIDP(eos_arg)) eos="\n";
+    if ( (VOIDP(eos_arg)) || (KNO_DEFAULTP(eos_arg)) )
+      eos="\n";
     else if (STRINGP(eos_arg)) eos = CSTRING(eos_arg);
     else return kno_type_error(_("string"),"getline_prim",eos_arg);
-    if (VOIDP(lim_arg)) lim = 0;
+    if ( (VOIDP(lim_arg)) || (KNO_DEFAULTP(lim_arg)) )
+      lim = 0;
     else if (FIXNUMP(lim_arg)) lim = FIX2INT(lim_arg);
     else return kno_type_error(_("fixum"),"getline_prim",eos_arg);
     data = u8_gets_x(NULL,lim,in,eos,&size);
@@ -814,17 +815,58 @@ static lispval getline_prim(lispval port,lispval eos_arg,
   else return kno_type_error(_("input port"),"getline_prim",port);
 }
 
-DEFPRIM1("decode-string",decode_string_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(decode-string *string*)` interprets escape characters "
+DEFPRIM1("unescape-string",unescape_string_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "`(unescape-string *string*)` interprets escape characters "
 	 "in *string* and returns the corresponding unescaped version. "
 	 "Escaped character includes C character escapes (e.g. \\n or \\f) "
 	 "as well as numeric unicode escapes (e.g. \\u0065 or \\u2323)",
 	 kno_string_type,KNO_VOID);
-static lispval decode_string_prim(lispval string)
+static lispval unescape_string_prim(lispval string)
 {
   struct U8_INPUT in;
   U8_INIT_STRING_INPUT(&in,KNO_STRLEN(string),KNO_STRDATA(string));
   return kno_decode_string(&in);
+}
+
+DEFPRIM3("escape-string",escape_string_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
+	 "`(escape-string *string* [toascii=#f] [maxlen=#f])` generates an "
+	 "escaped version of *string*, specifically escaping control "
+	 "characters and the string delimiter (\"). If *toascii* is "
+	 "not false, non-ascii Unicode characters are also escaped. If "
+	 "*maxlen* is not false, the result is truncated at *maxlen* bytes.",
+	 kno_string_type,KNO_VOID,kno_constant_type,KNO_FALSE,
+	 kno_fixnum_type,KNO_VOID);
+static lispval escape_string_prim(lispval string,lispval ascii,lispval maxlen)
+{
+  struct U8_OUTPUT out;
+  U8_INIT_OUTPUT(&out,KNO_STRLEN(string));
+  int rv = kno_escape_string
+    (&out,string,(!(KNO_FALSEP(ascii))),
+     (KNO_FIXNUMP(maxlen)) ? (KNO_FIX2INT(maxlen)) : (-1) );
+  if (rv<0) {
+    u8_close_output(&out);
+    return KNO_ERROR;}
+  return kno_stream_string(&out);
+}
+
+DEFPRIM3("escapeout",escapeout_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
+	 "`(escapeout *string* [toascii=#f] [maxlen=#f])` outputs an "
+	 "escaped version of *string* to the default output. This "
+	 "specifically escaping control characters and the string "
+	 "delimiter (\"). If *toascii* is not false, non-ascii Unicode "
+	 "characters are also escaped. If *maxlen* is not false, the "
+	 "result is truncated at *maxlen* bytes.",
+	 kno_string_type,KNO_VOID,kno_constant_type,KNO_FALSE,
+	 kno_fixnum_type,KNO_VOID);
+static lispval escapeout_prim(lispval string,lispval ascii,lispval maxlen)
+{
+  u8_output out = u8_current_output;
+  int rv = kno_escape_string
+    (out,string,(!(KNO_FALSEP(ascii))),
+     (KNO_FIXNUMP(maxlen)) ? (KNO_FIX2INT(maxlen)) : (-1) );
+  if (rv<0)
+    return KNO_ERROR;
+  else return KNO_VOID;
 }
 
 DEFPRIM("read",read_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
@@ -1492,8 +1534,10 @@ static void link_local_cprims()
   KNO_LINK_PRIM("$histval",histval_prim,2,kno_io_module);
   KNO_LINK_PRIM("$histref",histref_prim,2,kno_io_module);
   KNO_LINK_PRIM("$histstring",histstring_prim,2,kno_io_module);
-  KNO_LINK_PRIM("decode-string",decode_string_prim,1,kno_io_module);
+  KNO_LINK_PRIM("unescape-string",unescape_string_prim,1,kno_io_module);
   KNO_LINK_PRIM("uniscape",uniscape,2,kno_io_module);
+  KNO_LINK_PRIM("escape-string",escape_string_prim,3,kno_io_module);
+  KNO_LINK_PRIM("escapeout",escapeout_prim,3,kno_io_module);
   KNO_LINK_PRIM("substringout",substringout,3,kno_io_module);
   KNO_LINK_PRIM("newline",newline_prim,1,kno_io_module);
   KNO_LINK_PRIM("putchar",putchar_prim,2,kno_io_module);
@@ -1518,5 +1562,6 @@ static void link_local_cprims()
 
   KNO_LINK_ALIAS("eof?",eofp,kno_io_module);
   KNO_LINK_ALIAS("write-char",putchar_prim,kno_io_module);
+  KNO_LINK_ALIAS("decode-string",unescape_string_prim,kno_io_module);
 
 }
