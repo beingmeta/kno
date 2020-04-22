@@ -141,12 +141,11 @@ typedef struct KNO_EVALFN {
   u8_string evalfn_name, evalfn_cname, evalfn_filename;
   u8_string evalfn_documentation;
   lispval evalfn_moduleid;
-  unsigned char evalfn_notail, evalfn_push;
+  unsigned char evalfn_notail;
   kno_eval_handler evalfn_handler;} KNO_EVALFN;
 typedef struct KNO_EVALFN *kno_evalfn;
 
-#define KNO_EVALFN_PUSH    0x01
-#define KNO_EVALFN_NOTAIL  0x02
+#define KNO_EVALFN_NOTAIL  0x01
 
 KNO_EXPORT lispval kno_make_evalfn(u8_string name,int flags,kno_eval_handler fn);
 KNO_EXPORT void kno_new_evalfn(lispval mod,u8_string name,u8_string cname,
@@ -308,6 +307,8 @@ KNO_EXPORT lispval kno_stack_eval(lispval expr,kno_lexenv env,kno_stack stack);
 KNO_EXPORT lispval kno_get_arg(lispval expr,int i);
 KNO_EXPORT lispval kno_get_body(lispval expr,int i);
 KNO_EXPORT lispval kno_symeval(lispval sym,kno_lexenv env);
+KNO_EXPORT lispval kno_lexref(lispval lexref,kno_lexenv env);
+KNO_EXPORT lispval kno_eval_symbol(lispval sym,kno_lexenv env);
 KNO_EXPORT lispval kno_lexref(lispval lexref,kno_lexenv env);
 
 #define kno_simplify_value(v) \

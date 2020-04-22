@@ -315,9 +315,9 @@ static int procindex_commit(kno_index ix,kno_commit_phase phase,
                     (kno_keyval)(commits->commit_drops));
     kno_init_slotmap(&store_table,commits->commit_n_stores,
                     (kno_keyval)(commits->commit_stores));
-    add_table.table_readonly=1;
-    drop_table.table_readonly=1;
-    store_table.table_readonly=1;
+    KNO_XTABLE_SET_READONLY(&add_table,1);
+    KNO_XTABLE_SET_READONLY(&drop_table,1);
+    KNO_XTABLE_SET_READONLY(&store_table,1);
     lispval args[7]={lx,
                      pix->index_state,
                      kno_commit_phases[phase],

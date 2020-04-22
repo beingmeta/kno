@@ -67,7 +67,7 @@ static lispval slotmap_evalfn(lispval sm,kno_lexenv env,kno_stack stackptr)
   int unlock = 0;
   struct KNO_SLOTMAP *smap = (kno_slotmap) sm;
   struct KNO_KEYVAL *old_kv = smap->sm_keyvals;
-  if (smap->table_uselock) {
+  if (KNO_XTABLE_USELOCKP(smap)) {
     u8_read_lock(&(smap->table_rwlock));
     unlock = 1;}
   int read_slot = 0, write_slot = 0, n_slots = smap->n_slots;
@@ -97,9 +97,9 @@ static lispval slotmap_evalfn(lispval sm,kno_lexenv env,kno_stack stackptr)
     read_slot++;}
   if (unlock) u8_rw_unlock(&(smap->table_rwlock));
   new_slotmap->n_slots = write_slot;
-  new_slotmap->table_modified = 0;
-  new_slotmap->table_readonly = 0;
-  new_slotmap->sm_sort_keyvals = smap->sm_sort_keyvals;
+  new_slotmap->table_bits = 0;
+  KNO_XTABLE_SET_BIT(new_slotmap,KNO_SLOTMAP_SORT_KEYVALS,
+		     (KNO_XTABLE_BITP(smap,KNO_SLOTMAP_SORT_KEYVALS)));
   return result;
 }
 

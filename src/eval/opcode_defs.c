@@ -18,7 +18,7 @@ KNO_FASTOP lispval op_eval_body(lispval body,kno_lexenv env,kno_stack stack,
 	return v;
       else kno_decref(v);}
     else if (KNO_EMPTY_LISTP(scan))
-      return kno_eval(subex,env,stack,0);
+      return kno_eval(subex,env,stack,tail);
     else break;}
   if (KNO_EMPTY_LISTP(body))
     return KNO_VOID;
@@ -865,10 +865,10 @@ static lispval assignop(kno_stack stack,kno_lexenv env,
         if (PRED_TRUE( across < map_len )) {
           lispval *values = map->table_values;
           lispval cur     = values[across];
-          if ( map->schemap_stackvals ) {
-            kno_incref_vec(values,map_len);
-            map->schemap_stackvals = 0;}
-          if ( ( (combiner == KNO_TRUE) || (combiner == KNO_DEFAULT) ) &&
+	  if (KNO_XTABLE_BITP(map,KNO_SCHEMAP_STACK_VALUES)) {
+	    kno_incref_vec(map->table_values,map_len);
+	    KNO_XTABLE_SET_BIT(map,KNO_SCHEMAP_STACK_VALUES,0);}
+	  if ( ( (combiner == KNO_TRUE) || (combiner == KNO_DEFAULT) ) &&
                ( (CURRENT_VALUEP(cur)) || (KNO_ABORTED(cur)) ) ) {
             if (KNO_ABORTED(cur))
               return cur;
@@ -1075,6 +1075,7 @@ static lispval handle_special_opcode(lispval opcode,lispval args,lispval expr,
 				     kno_stack _stack,
 				     int tail)
 {
+  KNO_STACK_SET_TAIL(_stack,tail);
   switch (opcode) {
   case KNO_QUOTE_OPCODE: {
     lispval arg = pop_arg(args);

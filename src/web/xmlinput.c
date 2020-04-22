@@ -730,7 +730,7 @@ static void cleanup_attribs(lispval table)
   if (SLOTMAPP(table)) {
     struct KNO_SLOTMAP *sm = (struct KNO_SLOTMAP *)table;
     struct KNO_KEYVAL *scan, *limit; int unlock = 0, size;
-    if (sm->table_uselock) { u8_read_lock(&sm->table_rwlock); unlock = 1;}
+    if (KNO_XTABLE_USELOCKP(sm)) { u8_read_lock(&sm->table_rwlock); unlock = 1;}
     size = KNO_XSLOTMAP_NUSED(sm); scan = sm->sm_keyvals; limit = scan+size;
     if (size==0) {
       if (unlock) u8_rw_unlock(&sm->table_rwlock);

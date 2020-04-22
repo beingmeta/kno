@@ -137,15 +137,15 @@ KNO_FASTOP int modify_readonly(lispval table,int val)
     switch (table_type) {
     case kno_slotmap_type: {
       struct KNO_SLOTMAP *tbl=(kno_slotmap)table;
-      tbl->table_readonly=val;
+      KNO_XTABLE_SET_READONLY(tbl,val);
       return 1;}
     case kno_schemap_type: {
       struct KNO_SCHEMAP *tbl=(kno_schemap)table;
-      tbl->table_readonly=val;
+      KNO_XTABLE_SET_READONLY(tbl,val);
       return 1;}
     case kno_hashtable_type: {
       struct KNO_HASHTABLE *tbl=(kno_hashtable)table;
-      tbl->table_readonly=val;
+      KNO_XTABLE_SET_READONLY(tbl,val);
       return 1;}
     default: {
       kno_lisp_type typecode = KNO_TYPEOF(table);
@@ -163,15 +163,15 @@ KNO_FASTOP int modify_modified(lispval table,int val)
     switch (table_type) {
     case kno_slotmap_type: {
       struct KNO_SLOTMAP *tbl=(kno_slotmap)table;
-      tbl->table_modified=val;
+      KNO_XTABLE_SET_MODIFIED(tbl,val);
       return 1;}
     case kno_schemap_type: {
       struct KNO_SCHEMAP *tbl=(kno_schemap)table;
-      tbl->table_modified=val;
+      KNO_XTABLE_SET_MODIFIED(tbl,val);
       return 1;}
     case kno_hashtable_type: {
       struct KNO_HASHTABLE *tbl=(kno_hashtable)table;
-      tbl->table_modified=val;
+      KNO_XTABLE_SET_MODIFIED(tbl,val);
       return 1;}
     default: {
       kno_lisp_type typecode = KNO_TYPEOF(table);
@@ -972,16 +972,16 @@ KNO_EXPORT int kno_pool_finish(kno_pool p,lispval oids)
       lispval v = kno_hashtable_get(changes,oid,VOID);
       if (CONSP(v)) {
 	if (SLOTMAPP(v)) {
-	  if (KNO_SLOTMAP_MODIFIEDP(v)) {
-	    KNO_SLOTMAP_MARK_FINISHED(v);
+	  if (KNO_TABLE_MODIFIEDP(v)) {
+	    KNO_TABLE_SET_FINISHED(v,1);
 	    finished++;}}
 	else if (SCHEMAPP(v)) {
-	  if (KNO_SCHEMAP_MODIFIEDP(v)) {
-	    KNO_SCHEMAP_MARK_FINISHED(v);
+	  if (KNO_TABLE_MODIFIEDP(v)) {
+	    KNO_TABLE_SET_FINISHED(v,1);
 	    finished++;}}
 	else if (HASHTABLEP(v)) {
-	  if (KNO_HASHTABLE_MODIFIEDP(v)) {
-	    KNO_HASHTABLE_MARK_FINISHED(v);
+	  if (KNO_TABLE_MODIFIEDP(v)) {
+	    KNO_TABLE_SET_FINISHED(v,1);
 	    finished++;}}
 	else {}
 	kno_decref(v);}}}
@@ -1303,11 +1303,11 @@ static int finish_commit(kno_pool p,struct KNO_POOL_COMMITS *commits)
       int finished=1;
       lispval cur = kv->kv_val;
       if (SLOTMAPP(v)) {
-	if (KNO_SLOTMAP_MODIFIEDP(v)) finished=0;}
+	if (KNO_TABLE_MODIFIEDP(v)) finished=0;}
       else if (SCHEMAPP(v)) {
-	if (KNO_SCHEMAP_MODIFIEDP(v)) finished=0;}
+	if (KNO_TABLE_MODIFIEDP(v)) finished=0;}
       else if (HASHTABLEP(v)) {
-	if (KNO_HASHTABLE_MODIFIEDP(v)) finished=0;}
+	if (KNO_TABLE_MODIFIEDP(v)) finished=0;}
       else {}
       /* We "swap out" the value (free, dereference, and unlock it) if:
 	 1. it hasn't been modified since we picked it (finished) and
@@ -1345,23 +1345,23 @@ static int savep(lispval v,int only_finished)
 {
   if (!(CONSP(v))) return 1;
   else if (SLOTMAPP(v)) {
-    if (KNO_SLOTMAP_MODIFIEDP(v)) {
-      if ((!(only_finished))||(KNO_SLOTMAP_FINISHEDP(v))) {
-	KNO_SLOTMAP_CLEAR_MODIFIED(v);
+    if (KNO_TABLE_MODIFIEDP(v)) {
+      if ((!(only_finished))||(KNO_TABLE_FINISHEDP(v))) {
+	KNO_TABLE_SET_MODIFIED(v,0);
 	return 1;}
       else return 0;}
     else return 0;}
   else if (SCHEMAPP(v)) {
-    if (KNO_SCHEMAP_MODIFIEDP(v)) {
-      if ((!(only_finished))||(KNO_SCHEMAP_FINISHEDP(v))) {
-	KNO_SCHEMAP_CLEAR_MODIFIED(v);
+    if (KNO_TABLE_MODIFIEDP(v)) {
+      if ((!(only_finished))||(KNO_TABLE_FINISHEDP(v))) {
+	KNO_TABLE_SET_MODIFIED(v,0);
 	return 1;}
       else return 0;}
     else return 0;}
   else if (HASHTABLEP(v)) {
-    if (KNO_HASHTABLE_MODIFIEDP(v)) {
-      if ((!(only_finished))||(KNO_HASHTABLE_READONLYP(v))) {
-	KNO_HASHTABLE_CLEAR_MODIFIED(v);
+    if (KNO_TABLE_MODIFIEDP(v)) {
+      if ((!(only_finished))||(KNO_TABLE_READONLYP(v))) {
+	KNO_TABLE_SET_MODIFIED(v,0);
 	return 1;}
       else return 0;}
     else return 0;}
@@ -1373,11 +1373,11 @@ static int modifiedp(lispval v)
 {
   if (!(CONSP(v))) return 1;
   else if (SLOTMAPP(v))
-    return KNO_SLOTMAP_MODIFIEDP(v);
+    return KNO_TABLE_MODIFIEDP(v);
   else if (SCHEMAPP(v))
-    return KNO_SCHEMAP_MODIFIEDP(v);
+    return KNO_TABLE_MODIFIEDP(v);
   else if (HASHTABLEP(v))
-    return KNO_HASHTABLE_MODIFIEDP(v);
+    return KNO_TABLE_MODIFIEDP(v);
   else return 1;
 }
 
@@ -1412,7 +1412,7 @@ static int pick_modified(kno_pool p,int finished,
 			 struct KNO_POOL_COMMITS *commits)
 {
   kno_hashtable changes = &(p->pool_changes); int unlock = 0;
-  if (changes->table_uselock) {
+  if (KNO_XTABLE_USELOCKP(changes)) {
     u8_read_lock(&(changes->table_rwlock));
     unlock = 1;}
   int n = changes->table_n_keys;
@@ -2050,7 +2050,7 @@ KNO_EXPORT void kno_init_pool(kno_pool p,
     kno_copy_slotmap((kno_slotmap)metadata,&(p->pool_metadata));}
   else {
     kno_init_slotmap(&(p->pool_metadata),17,NULL);}
-  p->pool_metadata.table_modified = 0;
+  KNO_XTABLE_SET_MODIFIED(&(p->pool_metadata),0);
 
   u8_init_rwlock(&(p->pool_struct_lock));
   u8_init_mutex(&(p->pool_commit_lock));
@@ -2061,7 +2061,7 @@ KNO_EXPORT int kno_pool_set_metadata(kno_pool p,lispval metadata)
   if (KNO_SLOTMAPP(metadata)) {
     if (p->pool_metadata.n_allocd) {
       struct KNO_SLOTMAP *sm = & p->pool_metadata;
-      if ( (sm->sm_free_keyvals) && (sm->sm_keyvals) )
+      if ( (KNO_XTABLE_BITP(sm,KNO_SLOTMAP_FREE_KEYVALS)) && (sm->sm_keyvals) )
 	u8_free(sm->sm_keyvals);
       u8_destroy_rwlock(&(sm->table_rwlock));}
     lispval adj = kno_get(metadata,KNOSYM_ADJUNCT,KNO_VOID);
@@ -2072,7 +2072,7 @@ KNO_EXPORT int kno_pool_set_metadata(kno_pool p,lispval metadata)
   else {
     KNO_INIT_STATIC_CONS(&(p->pool_metadata),kno_slotmap_type);
     kno_init_slotmap(&(p->pool_metadata),17,NULL);}
-  p->pool_metadata.table_modified = 0;
+  KNO_XTABLE_SET_MODIFIED(&(p->pool_metadata),0);
   return 0;
 }
 

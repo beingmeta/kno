@@ -103,6 +103,66 @@ KNO_EXPORT int _KNO_TABLEP(lispval x);
 #endif
 /* #define KNO_TABLEP(x) ( ((kno_tablefns[KNO_TYPEOF(x)])!=NULL)  */
 
+#define KNO_TABLE_HEADER \
+  KNO_CONS_HEADER;	     \
+  unsigned short table_bits; \
+  U8_RWLOCK_DECL(table_rwlock)
+
+typedef struct KNO_TABLE {
+  KNO_TABLE_HEADER;} *kno_table;
+
+#define KNO_TABLE_USELOCKS 0x01
+#define KNO_TABLE_READONLY 0x02
+#define KNO_TABLE_MODIFIED 0x04
+#define KNO_TABLE_FINISHED 0x08
+
+#define KNO_XTABLE_BITP(table,bitmask) \
+  ( ((table)->table_bits) & (bitmask) )
+#define KNO_XTABLE_SET_BIT(table,bitmask,flag) \
+  if (flag) (table)->table_bits |= (bitmask);  \
+  else (table)->table_bits &= (~(bitmask))
+
+#define KNO_XTABLE_READONLYP(table) \
+  (KNO_XTABLE_BITP(table,KNO_TABLE_READONLY))
+#define KNO_XTABLE_MODIFIEDP(table) \
+  (KNO_XTABLE_BITP(table,KNO_TABLE_MODIFIED))
+#define KNO_XTABLE_FINISHEDP(table) \
+  (KNO_XTABLE_BITP(table,KNO_TABLE_FINISHED))
+#define KNO_XTABLE_USELOCKP(table) \
+  (KNO_XTABLE_BITP(table,KNO_TABLE_USELOCKS))
+
+#define KNO_XTABLE_SET_READONLY(table,flag) \
+  KNO_XTABLE_SET_BIT(table,KNO_TABLE_READONLY,flag)
+#define KNO_XTABLE_SET_MODIFIED(table,flag)		\
+  KNO_XTABLE_SET_BIT(table,KNO_TABLE_MODIFIED,flag)
+#define KNO_XTABLE_SET_FINISHED(table,flag)		\
+  KNO_XTABLE_SET_BIT(table,KNO_TABLE_FINISHED,flag)
+#define KNO_XTABLE_SET_USELOCK(table,flag)		\
+  KNO_XTABLE_SET_BIT(table,KNO_TABLE_USELOCKS,flag)
+
+#define KNO_TABLE_BITP(table,bitmask) \
+  KNO_XTABLE_BITP(((kno_table)table),bitmask)
+#define KNO_TABLE_SET_BIT(table,bitmask,flag) \
+  KNO_XTABLE_SET_BIT(((kno_table)table),bitmask,flag)
+
+#define KNO_TABLE_READONLYP(table) \
+  (KNO_TABLE_BITP(table,KNO_TABLE_READONLY))
+#define KNO_TABLE_MODIFIEDP(table) \
+  (KNO_TABLE_BITP(table,KNO_TABLE_MODIFIED))
+#define KNO_TABLE_FINISHEDP(table) \
+  (KNO_TABLE_BITP(table,KNO_TABLE_FINISHED))
+#define KNO_TABLE_USELOCKP(table) \
+  (KNO_TABLE_BITP(table,KNO_TABLE_USELOCKS))
+
+#define KNO_TABLE_SET_READONLY(table,flag) \
+  KNO_TABLE_SET_BIT(table,KNO_TABLE_READONLY,flag)
+#define KNO_TABLE_SET_MODIFIED(table,flag)		\
+  KNO_TABLE_SET_BIT(table,KNO_TABLE_MODIFIED,flag)
+#define KNO_TABLE_SET_FINISHED(table,flag)		\
+  KNO_TABLE_SET_BIT(table,KNO_TABLE_FINISHED,flag)
+#define KNO_TABLE_SET_USELOCK(table,flag)		\
+  KNO_TABLE_SET_BIT(table,KNO_TABLE_USELOCKS,flag)
+
 #define KNO_INIT_SMAP_SIZE 7
 #define KNO_INIT_HASH_SIZE 73
 
@@ -126,18 +186,14 @@ typedef int (*kv_valfn)(lispval,lispval,void *);
 typedef int (*kno_kvfn)(struct KNO_KEYVAL *,void *);
 
 typedef struct KNO_SLOTMAP {
-  KNO_CONS_HEADER;
+  KNO_TABLE_HEADER;
   int n_slots;
   int n_allocd;
-  unsigned int table_readonly:1;
-  unsigned int table_modified:1;
-  unsigned int table_finished:1;
-  unsigned int table_uselock:1;
-  unsigned int sm_free_keyvals:1;
-  unsigned int sm_sort_keyvals:1;
-  struct KNO_KEYVAL *sm_keyvals;
-  U8_RWLOCK_DECL(table_rwlock);} KNO_SLOTMAP;
+  struct KNO_KEYVAL *sm_keyvals;} KNO_SLOTMAP;
 typedef struct KNO_SLOTMAP *kno_slotmap;
+
+#define KNO_SLOTMAP_FREE_KEYVALS 0x0100
+#define KNO_SLOTMAP_SORT_KEYVALS 0x0200
 
 #define KNO_SLOTMAP_LEN (sizeof(struct KNO_SLOTMAP))
 
@@ -148,38 +204,12 @@ typedef struct KNO_SLOTMAP *kno_slotmap;
 #define KNO_XSLOTMAP_NUSED(sm) (sm->n_slots)
 #define KNO_XSLOTMAP_NALLOCATED(sm) (sm->n_allocd)
 #define KNO_XSLOTMAP_KEYVALS(sm) ((sm)->sm_keyvals)
-#define KNO_XSLOTMAP_USELOCKP(sm) (sm->table_uselock)
-#define KNO_XSLOTMAP_READONLYP(sm) (sm->table_readonly)
-#define KNO_XSLOTMAP_MODIFIEDP(sm) (sm->table_modified)
-#define KNO_XSLOTMAP_FINISHEDP(sm) (sm->table_finished)
 
-#define KNO_XSLOTMAP_SET_READONLY(sm) (sm)->table_readonly = 1
-#define KNO_XSLOTMAP_CLEAR_READONLY(sm) (sm)->table_readonly = 0
-#define KNO_XSLOTMAP_MARK_MODIFIED(sm) (sm)->table_modified = 1
-#define KNO_XSLOTMAP_CLEAR_MODIFIED(sm) (sm)->table_modified = 0
-#define KNO_XSLOTMAP_MARK_FINISHED(sm) (sm)->table_finished = 1
-#define KNO_XSLOTMAP_CLEAR_FINISHED(sm) (sm)->table_finished = 0
 #define KNO_XSLOTMAP_SET_NSLOTS(sm,sz) (sm)->n_slots = sz
 #define KNO_XSLOTMAP_SET_NALLOCATED(sm,sz) (sm)->n_allocd = sz
 
 #define KNO_SLOTMAP_NSLOTS(x) (KNO_XSLOTMAP_NUSED(KNO_XSLOTMAP(x)))
 #define KNO_SLOTMAP_NUSED(x) (KNO_XSLOTMAP_NUSED(KNO_XSLOTMAP(x)))
-#define KNO_SLOTMAP_READONLYP(x) (KNO_XSLOTMAP_READONLYP(KNO_XSLOTMAP(x)))
-#define KNO_SLOTMAP_MODIFIEDP(x) (KNO_XSLOTMAP_MODIFIEDP(KNO_XSLOTMAP(x)))
-#define KNO_SLOTMAP_FINISHEDP(x) (KNO_XSLOTMAP_FINISHEDP(KNO_XSLOTMAP(x)))
-#define KNO_SLOTMAP_USELOCKP(x) (KNO_XSLOTMAP_USELOCKP(KNO_XSLOTMAP(x)))
-#define KNO_SLOTMAP_SET_READONLY(x) \
-  KNO_XSLOTMAP_SET_READONLY(KNO_XSLOTMAP(x))
-#define KNO_SLOTMAP_CLEAR_READONLY(x) \
-  KNO_XSLOTMAP_CLEAR_READONLY(KNO_XSLOTMAP(x))
-#define KNO_SLOTMAP_MARK_MODIFIED(x) \
-  KNO_XSLOTMAP_MARK_MODIFIED(KNO_XSLOTMAP(x))
-#define KNO_SLOTMAP_CLEAR_MODIFIED(x) \
-  KNO_XSLOTMAP_CLEAR_MODIFIED(KNO_XSLOTMAP(x))
-#define KNO_SLOTMAP_MARK_FINISHED(x) \
-  KNO_XSLOTMAP_MARK_FINISHED(KNO_XSLOTMAP(x))
-#define KNO_SLOTMAP_CLEAR_FINISHED(x) \
-  KNO_XSLOTMAP_CLEAR_FINISHED(KNO_XSLOTMAP(x))
 
 #define KNO_SLOTMAP_KEYVALS(sm) (KNO_XSLOTMAP_KEYVALS(KNO_XSLOTMAP(sm)))
 
@@ -292,8 +322,8 @@ static U8_MAYBE_UNUSED lispval __kno_slotmap_get(struct KNO_SLOTMAP *sm,lispval 
   unsigned int unlock = 0;
   struct KNO_KEYVAL *result; int size;
   KNO_CHECK_TYPE_RETDTYPE(sm,kno_slotmap_type);
-  if ((KNO_XSLOTMAP_USELOCKP(sm))&&
-      (!(KNO_XSLOTMAP_READONLYP(sm)))) {
+  if ((KNO_XTABLE_USELOCKP(sm))&&
+      (!(KNO_XTABLE_READONLYP(sm)))) {
     u8_read_lock(&sm->table_rwlock);
     unlock = 1;}
   size = KNO_XSLOTMAP_NUSED(sm);
@@ -318,8 +348,8 @@ static U8_MAYBE_UNUSED lispval __kno_slotmap_test(struct KNO_SLOTMAP *sm,lispval
   KNO_CHECK_TYPE_RETDTYPE(sm,kno_slotmap_type);
   if ((KNO_ABORTP(val))) return kno_interr(val);
   if ((KNO_ABORTP(key))) return kno_interr(key);
-  if ((KNO_XSLOTMAP_USELOCKP(sm))&&
-      (!(KNO_XSLOTMAP_READONLYP(sm)))) {
+  if ((KNO_XTABLE_USELOCKP(sm))&&
+      (!(KNO_XTABLE_READONLYP(sm)))) {
     u8_read_lock(&sm->table_rwlock); unlock = 1;}
   size = KNO_XSLOTMAP_NUSED(sm);
   result = kno_keyvec_get(key,sm->sm_keyvals,size);
@@ -355,33 +385,29 @@ KNO_EXPORT lispval kno_blist_to_slotmap(lispval binding_list);
 /* Schemamaps */
 
 typedef struct KNO_SCHEMAP {
-  KNO_CONS_HEADER;
+  KNO_TABLE_HEADER;
   int schema_length;
-  unsigned int table_readonly:1;
-  unsigned int table_modified:1;
-  unsigned int table_finished:1;
-  unsigned int table_uselock:1;
+#if 0
   unsigned int schemap_sorted:1;
   unsigned int schemap_onstack:1;
   unsigned int schemap_tagged:1;
   unsigned int schemap_shared:1;
   unsigned int schemap_stackvals:1;
   unsigned int schemap_stackvec:1;
+#endif
   lispval *table_schema, *table_values;
-  lispval schemap_template;
-  U8_RWLOCK_DECL(table_rwlock);} KNO_SCHEMAP;
+  lispval schemap_template;} KNO_SCHEMAP;
 
-#define KNO_SCHEMAP_SORTED 1
-#define KNO_SCHEMAP_PRIVATE 2
-#define KNO_SCHEMAP_MODIFIED 4
-#define KNO_SCHEMAP_STACK_SCHEMA 8
-#define KNO_SCHEMAP_READONLY 16
-/* This disallows the addition or removal of fields */
-#define KNO_SCHEMAP_FIXED 32
-/* Tagged schemaps keep an integer ID in their n+1st element */
-#define KNO_SCHEMAP_TAGGED 64
-#define KNO_SCHEMAP_INLINE 128
-#define KNO_SCHEMAP_COPY_SCHEMA 256
+#define KNO_SCHEMAP_SORTED         0x0100
+#define KNO_SCHEMAP_STACK_VALUES   0x0200
+#define KNO_SCHEMAP_PRIVATE        0x0400
+#define KNO_SCHEMAP_STATIC_SCHEMA  0x0800
+#define KNO_SCHEMAP_STATIC_VALUES  0x1000
+#define KNO_SCHEMAP_FIXED_SCHEMA   0x2000
+#define KNO_SCHEMAP_TAGGED_SCHEMA  0x4000
+
+#define KNO_SCHEMAP_COPY_SCHEMA    0x10000
+#define KNO_SCHEMAP_STACK_SCHEMA KNO_SCHEMAP_STATIC
 
 #define KNO_SCHEMAP_LEN (sizeof(struct KNO_SCHEMAP))
 
@@ -391,22 +417,9 @@ typedef struct KNO_SCHEMAP *kno_schemap;
 #define KNO_XSCHEMAP(x) (kno_consptr(struct KNO_SCHEMAP *,x,kno_schemap_type))
 #define KNO_XSCHEMAP_SIZE(sm) ((sm)->schema_length)
 #define KNO_XSCHEMAP_SORTEDP(sm) ((sm)->schemap_sorted)
-#define KNO_XSCHEMAP_READONLYP(sm) ((sm)->table_readonly)
-#define KNO_XSCHEMAP_USELOCKP(sm) ((sm)->table_uselock)
-#define KNO_XSCHEMAP_SET_READONLY(sm) (sm)->table_readonly = 1
-#define KNO_XSCHEMAP_CLEAR_READONLY(sm) (sm)->table_readonly = 0
-#define KNO_XSCHEMAP_MODIFIEDP(sm) ((sm)->table_modified)
-#define KNO_XSCHEMAP_MARK_MODIFIED(sm) (sm)->table_modified = 1
-#define KNO_XSCHEMAP_CLEAR_MODIFIED(sm) (sm)->table_modified = 0
-#define KNO_XSCHEMAP_FINISHEDP(sm) ((sm)->table_finished)
-#define KNO_XSCHEMAP_MARK_FINISHED(sm) (sm)->table_finished = 1
-#define KNO_XSCHEMAP_CLEAR_FINISHED(sm) (sm)->table_finished = 0
 
 #define KNO_SCHEMAP_SIZE(x) (KNO_XSCHEMAP_SIZE(KNO_XSCHEMAP(x)))
 #define KNO_SCHEMAP_SORTEDP(x) (KNO_XSCHEMAP_SORTEDP(KNO_XSCHEMAP(x)))
-#define KNO_SCHEMAP_READONLYP(x) (KNO_XSCHEMAP_READONLYP(KNO_XSCHEMAP(x)))
-#define KNO_SCHEMAP_MODIFIEDP(x) (KNO_XSCHEMAP_MODIFIEDP(KNO_XSCHEMAP(x)))
-#define KNO_SCHEMAP_FINISHEDP(x) (KNO_XSCHEMAP_FINISHEDP(KNO_XSCHEMAP(x)))
 
 #define KNO_SCHEMAP_SET_READONLY(x) \
   KNO_XSCHEMAP_SET_READONLY(KNO_XSCHEMAP(x))
@@ -473,12 +486,12 @@ static U8_MAYBE_UNUSED lispval __kno_schemap_get
   int unlock = 0;
   int size, slotno, sorted;
   KNO_CHECK_TYPE_RETDTYPE(sm,kno_schemap_type);
-  if ( (!(KNO_XSCHEMAP_READONLYP(sm))) &&
-       (KNO_XSCHEMAP_USELOCKP(sm))) {
+  if ( (!(KNO_XTABLE_READONLYP(sm))) &&
+       (KNO_XTABLE_USELOCKP(sm))) {
     u8_read_lock(&(sm->table_rwlock));
     unlock = 1;}
   size = KNO_XSCHEMAP_SIZE(sm);
-  sorted = KNO_XSCHEMAP_SORTEDP(sm);
+  sorted = KNO_XTABLE_BITP(sm,KNO_SCHEMAP_SORTED);
   slotno=__kno_get_slotno(key,sm->table_schema,size,sorted);
   if (slotno>=0) {
     lispval v = sm->table_values[slotno];
@@ -500,12 +513,12 @@ static U8_MAYBE_UNUSED lispval __kno_schemap_test
   KNO_CHECK_TYPE_RETDTYPE(sm,kno_schemap_type);
   if ((KNO_ABORTP(val)))
     return kno_interr(val);
-  if ( (!(KNO_XSCHEMAP_READONLYP(sm))) &&
-       (KNO_XSCHEMAP_USELOCKP(sm)) ) {
+  if ( (!(KNO_XTABLE_READONLYP(sm))) &&
+       (KNO_XTABLE_USELOCKP(sm)) ) {
     u8_read_lock(&(sm->table_rwlock));
     unlock = 1;}
   size = KNO_XSCHEMAP_SIZE(sm);
-  slotno=__kno_get_slotno(key,sm->table_schema,size,sm->schemap_sorted);
+  slotno=__kno_get_slotno(key,sm->table_schema,size,(KNO_XTABLE_BITP(sm,KNO_SCHEMAP_SORTED)));
   if (slotno>=0) {
     lispval current = sm->table_values[slotno]; int cmp;
     if (KNO_VOIDP(val)) cmp = 1;
@@ -543,19 +556,14 @@ typedef struct KNO_HASH_BUCKET {
 typedef struct KNO_HASH_BUCKET *kno_hash_bucket;
 
 typedef struct KNO_HASHTABLE {
-  KNO_CONS_HEADER;
+  KNO_TABLE_HEADER;
   unsigned int table_n_keys;
-  unsigned int table_readonly:1;
-  unsigned int table_modified:1;
-  unsigned int table_finished:1;
-  unsigned int table_uselock:1;
-
-  unsigned int ht_big_buckets:1;
   unsigned int ht_n_buckets;
   double table_load_factor;
-  struct KNO_HASH_BUCKET **ht_buckets;
-  U8_RWLOCK_DECL(table_rwlock);} KNO_HASHTABLE;
+  struct KNO_HASH_BUCKET **ht_buckets;} KNO_HASHTABLE;
 typedef struct KNO_HASHTABLE *kno_hashtable;
+
+#define KNO_HASHTABLE_BIG_BUCKETS 0x100
 
 #define KNO_HASHTABLE_LEN (sizeof(struct KNO_HASHTABLE))
 
@@ -567,36 +575,9 @@ typedef struct KNO_HASHTABLE *kno_hashtable;
   ((KNO_XHASHTABLE(x))->ht_n_buckets)
 #define KNO_HASHTABLE_NKEYS(x) \
   ((KNO_XHASHTABLE(x))->table_n_keys)
-#define KNO_HASHTABLE_READONLYP(x) \
-  ((KNO_XHASHTABLE(x))->table_readonly)
-#define KNO_HASHTABLE_SET_READONLY(x) \
-  ((KNO_XHASHTABLE(x))->table_readonly) = 1
-#define KNO_HASHTABLE_CLEAR_READONLY(x) \
-  ((KNO_XHASHTABLE(x))->table_readonly) = 0
-#define KNO_HASHTABLE_MODIFIEDP(x) \
-  ((KNO_XHASHTABLE(x))->table_modified)
-#define KNO_HASHTABLE_MARK_MODIFIED(x) \
-  ((KNO_XHASHTABLE(x))->table_modified) = 1
-#define KNO_HASHTABLE_CLEAR_MODIFIED(x) \
-  ((KNO_XHASHTABLE(x))->table_modified) = 0
-#define KNO_HASHTABLE_FINISHEDP(x) \
-  ((KNO_XHASHTABLE(x))->table_finished)
-#define KNO_HASHTABLE_MARK_FINISHED(x) \
-  ((KNO_XHASHTABLE(x))->table_finished) = 1
-#define KNO_HASHTABLE_CLEAR_FINISHED(x) \
-  ((KNO_XHASHTABLE(x))->table_finished) = 0
 
 #define KNO_XHASHTABLE_NBUCKETS(x)          ((x)->ht_n_buckets)
 #define KNO_XHASHTABLE_NKEYS(x)           ((x)->table_n_keys)
-#define KNO_XHASHTABLE_READONLYP(x)      ((x)->table_readonly)
-#define KNO_XHASHTABLE_SET_READONLY(x)   ((x)->table_readonly) = 1
-#define KNO_XHASHTABLE_CLEAR_READONLY(x) ((x)->table_readonly) = 0
-#define KNO_XHASHTABLE_MODIFIEDP(x)      ((x)->table_modified)
-#define KNO_XHASHTABLE_MARK_MODIFIED(x)  ((x)->table_modified) = 1
-#define KNO_XHASHTABLE_CLEAR_MODIFIED(x) ((x)->table_modified) = 0
-#define KNO_XHASHTABLE_FINISHEDP(x)      ((x)->table_finished)
-#define KNO_XHASHTABLE_MARK_FINISHED(x)  ((x)->table_finished) = 1
-#define KNO_XHASHTABLE_CLEAR_FINISHED(x) ((x)->table_finished) = 0
 
 KNO_EXPORT unsigned int kno_get_hashtable_size(unsigned int min);
 KNO_EXPORT unsigned int kno_hash_bytes(u8_string string,int len);
@@ -703,13 +684,10 @@ KNO_EXPORT int kno_hashtable_set_readonly(KNO_HASHTABLE *ht,int readonly);
 /* Hashsets */
 
 typedef struct KNO_HASHSET {
-  KNO_CONS_HEADER;
+  KNO_TABLE_HEADER;
   int hs_n_elts, hs_n_buckets;
-  char hs_modified;
-  char table_uselock;
   double hs_load_factor;
-  lispval *hs_buckets;
-  U8_RWLOCK_DECL(table_rwlock);} KNO_HASHSET;
+  lispval *hs_buckets;} KNO_HASHSET;
 typedef struct KNO_HASHSET *kno_hashset;
 
 #define KNO_HASHSET_LEN (sizeof(struct KNO_HASHSET))

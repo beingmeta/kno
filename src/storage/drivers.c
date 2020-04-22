@@ -775,7 +775,7 @@ KNO_EXPORT int kno_add_slotcode(struct KNO_SLOTCODER *sc,lispval slotid)
     struct KNO_KEYVAL *keyvals = KNO_XSLOTMAP_KEYVALS(sc->lookup);
     struct KNO_SLOTMAP *new_slotmap = (kno_slotmap) new_lookup;
     struct KNO_KEYVAL *new_keyvals = KNO_XSLOTMAP_KEYVALS(new_slotmap);
-    new_slotmap->sm_sort_keyvals = 1;
+    KNO_XTABLE_SET_BIT(new_slotmap,KNO_SLOTMAP_SORT_KEYVALS,1);
     int i = 0, lim = sc->n_slotcodes;
     while (i < lim) {
       lispval slotid = slotids[i];
@@ -827,7 +827,7 @@ KNO_EXPORT int kno_init_slotcoder(struct KNO_SLOTCODER *sc,
     sc->slotids = (kno_vector) slot_vec;
     sc->lookup = (kno_slotmap) lookup;
     sc->lookup->n_slots = j;
-    sc->lookup->sm_sort_keyvals = 1;
+    KNO_XTABLE_SET_BIT(sc->lookup,KNO_SLOTMAP_SORT_KEYVALS,1);
     qsort(keyvals,j,KNO_KEYVAL_LEN,cmp_slotkeys);
     sc->n_slotcodes = j;
     sc->init_n_slotcodes = j;

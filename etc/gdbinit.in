@@ -118,6 +118,14 @@ end
 define lispval
   printf "%s\n",kno_lisp2string($arg0)
 end
+define lprint
+  print $arg0
+  printf "%s\n",kno_lisp2string($arg0)
+end
+define lp
+  print $arg0
+  printf "%s\n",kno_lisp2string($arg0)
+end
 
 define showtype
   printf "type of 0x%llx is 0x%x: %s\n",((lispval)$arg0),(((($arg0)&0x03)==2)?(kno_fixnum_type):((($arg0)&0x3)==3)?(kno_oid_type):((($arg0)&0x3)==0)?((enum KNO_LISP_TYPE)(((((struct KNO_CONS *)($arg0))->conshead)&0x7F)+0x84)):((enum KNO_LISP_TYPE)(((($arg0)>>25)&0x7f)+0x04))),kno_type_names[(((($arg0)&0x03)==2)?(kno_fixnum_type):((($arg0)&0x3)==3)?(kno_oid_type):((($arg0)&0x3)==0)?((enum KNO_LISP_TYPE)(((((struct KNO_CONS *)($arg0))->conshead)&0x7F)+0x84)):((enum KNO_LISP_TYPE)(((($arg0)>>25)&0x7f)+0x04)))]
