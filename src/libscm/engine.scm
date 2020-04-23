@@ -3,7 +3,7 @@
 
 (in-module 'engine)
 
-(use-module '{fifo varconfig mttools stringfmts reflection 
+(use-module '{fifo varconfig kno/threads stringfmts reflection 
 	      bugjar bugjar/html logger})
 (use-module '{knodb knodb/registry knodb/branches})
 
@@ -13,6 +13,7 @@
 		  engine/checkpoint
 		  engine/getopt
 		  engine/test
+		  engine/threadcount
 		  batchup})
 
 (module-export! '{engine/showrates engine/showrusage
@@ -41,6 +42,12 @@
 
 (define check-spacing 60)
 (varconfig! engine:checkspace check-spacing)
+
+(define engine-threadcount #t)
+(varconfig! engine:threadcount engine-threadcount)
+
+(define (engine/threadcount (opts #f))
+  (threadcount (getopt opts 'nthreads engine-threadcount)))
 
 (define-import fifo-condvar 'fifo)
 
@@ -428,7 +435,7 @@ slot of the loop state.
 	 (batchsize (getopt opts 'batchsize (pick-batchsize items opts)))
 	 (threadopt (getopt opts 'nthreads
 			    (config 'engine:threads (config 'nthreads #t))))
-	 (nthreads (mt/threadcount threadopt))
+	 (nthreads (engine/threadcount threadopt))
 	 ;; how much to space the launch of threads
 	 (spacing (pick-spacing opts nthreads))
 	 ;; batchrange is used to randomize the batch size in order to
@@ -1196,5 +1203,4 @@ slot of the loop state.
 	       (if (number? (car test))
 		   (> (- v past) (car test))
 		   #f))))))
-
 
