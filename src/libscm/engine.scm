@@ -3,7 +3,7 @@
 
 (in-module 'engine)
 
-(use-module '{fifo varconfig mttools stringfmts reflection 
+(use-module '{fifo varconfig kno/threads stringfmts reflection 
 	      bugjar bugjar/html logger})
 (use-module '{knodb knodb/registry knodb/branches})
 
@@ -41,6 +41,9 @@
 
 (define check-spacing 60)
 (varconfig! engine:checkspace check-spacing)
+
+(define engine-threadcount #t)
+(varconfig! engine:threadcount engine-threadcount)
 
 (define-import fifo-condvar 'fifo)
 
@@ -428,7 +431,7 @@ slot of the loop state.
 	 (batchsize (getopt opts 'batchsize (pick-batchsize items opts)))
 	 (threadopt (getopt opts 'nthreads
 			    (config 'engine:threads (config 'nthreads #t))))
-	 (nthreads (mt/threadcount threadopt))
+	 (nthreads (threadcount threadopt))
 	 ;; how much to space the launch of threads
 	 (spacing (pick-spacing opts nthreads))
 	 ;; batchrange is used to randomize the batch size in order to
@@ -914,12 +917,11 @@ slot of the loop state.
   (let ((modified (get-modified dbs))
 	(%loglevel (getopt loop-state 'loglevel %loglevel))
 	(started (elapsed-time))
-	(spec-threads 
-	 (mt/threadcount (getopt opts 'threads commit-threads))))
+	(commit-threads (threadcount (getopt opts 'commit-threads commit-threads))))
     (when (exists? modified)
       (let ((timings (make-hashtable))
-	    (n-threads (and spec-threads
-			    (min spec-threads (choice-size modified)))))
+	    (n-threads (and commit-threads
+			    (min commit-threads (choice-size modified)))))
 	(lognotice |Checkpoint/Start|
 	  (if (test loop-state 'stopped) "Final " "Incremental ")
 	  "checkpoint of " (choice-size modified) " modified dbs "
@@ -1196,5 +1198,4 @@ slot of the loop state.
 	       (if (number? (car test))
 		   (> (- v past) (car test))
 		   #f))))))
-
 
