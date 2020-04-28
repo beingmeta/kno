@@ -105,6 +105,7 @@ LISP_HEADERS=\
  include/kno/config.h                           \
  include/kno/common.h                           \
  include/kno/errobjs.h                          \
+ include/kno/errors.h                          	\
  include/kno/defines.h				\
  include/kno/support.h                          \
  include/kno/numbers.h                          \
