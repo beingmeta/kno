@@ -141,7 +141,6 @@ static void _concise_stack_frame(struct KNO_STACK *stack)
 	       args->count,args->len,
 	       refs->count,refs->len);
   unsigned int bits = stack->stack_bits;
-  if (U8_BITP(bits,KNO_STACK_DECREF_ARGS)) fputs(" decref",stderr);
   if (U8_BITP(bits,KNO_STACK_REDUCE_LOOP)) fputs(" loop",stderr);
   if (U8_BITP(bits,KNO_STACK_TAIL_POS)) fputs(" tailpos",stderr);
   if (U8_BITP(bits,KNO_STACK_VOID_VAL)) fputs(" void",stderr);
