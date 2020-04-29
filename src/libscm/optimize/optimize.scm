@@ -1310,41 +1310,47 @@
 		(else (optimize-body clause))))))
 
 (define (optimize-cond handler expr env bound opts)
-  (if (and (use-opcodes? opts)
-	   (not (exists? (lambda (clause) 
-			   (and (pair? clause) (pair? (cdr clause))
-				(identical? (cadr clause) '==>))))))
-      (convert-cond (cdr expr) env bound opts)
-      (cons handler 
-	    (forseq (clause (cdr expr))
-	      (cond ((not (pair? clause))
-		     (codewarning (list 'BADCLAUSE expr clause))
-		     (when optwarn
-		       (logwarn |BadClause|
-			 "The clause " clause " in the CONDitional " 
-			 expr " is malformed."))
-		     clause)
-		    ((eq? (car clause) 'else)
-		     `(ELSE ,@(optimize-body (cdr clause))))
-		    ((and (pair? (cdr clause)) 
-			  (identical? (cadr clause) '=>))
-		     `(,(optimize (car clause) env bound opts)
-		       =>
-		       ,@(optimize-body (cddr clause))))
-		    (else (optimize-body clause)))))))
+  (try
+   (tryif (and (use-opcodes? opts)
+	       (not (some? (lambda (clause) 
+			     (and (pair? clause) (pair? (cdr clause))
+				  (identical? (cadr clause) '==>)))
+			   (cdr expr))))
+     (convert-cond (cdr expr) env bound opts))
+   (cons handler 
+	 (forseq (clause (cdr expr))
+	   (cond ((not (pair? clause))
+		  (codewarning (list 'BADCLAUSE expr clause))
+		  (when optwarn
+		    (logwarn |BadClause|
+		      "The clause " clause " in the CONDitional " 
+		      expr " is malformed."))
+		  clause)
+		 ((eq? (car clause) 'else)
+		  `(ELSE ,@(optimize-body (cdr clause))))
+		 ((and (pair? (cdr clause)) 
+		       (identical? (cadr clause) '=>))
+		  `(,(optimize (car clause) env bound opts)
+		    =>
+		    ,@(optimize-body (cddr clause))))
+		 (else (optimize-body clause)))))))
 
 (define (convert-cond clauses env bound opts)
-  (if (null? clauses) (list void-opcode)
-      `(#OP_BRANCH 
-	,(if (overlaps? (car (car clauses)) '{else default})
-	     #t
-	     (optimize (car (car clauses)) env bound opts))
-	,(if (empty-list? (cdr (cdr clauses)))
-	     (optimize (cadr clauses) env bound opts)
-	     `(#OP_BEGIN 
-	       ,@(forseq (c (cdr (car clauses)))
-		   (optimize c env bound opts))))
-	,(convert-cond (cdr clauses) env bound opts))))
+  (if (null? clauses)
+      (list void-opcode)
+      (let ((clause (car clauses)))
+	(cond ((not (pair? clause)) (fail))
+	      ((overlaps? (car clause) '{else default})
+	       `(#OP_BEGIN ,@(forseq (c (cdr clause)) (optimize c env bound opts))))
+	      (else
+	       `(#OP_BRANCH 
+		 ,(optimize (car clause) env bound opts)
+		 ,(if (empty-list? (cdr (cdr clause)))
+		      (optimize (cadr clause) env bound opts)
+		      `(#OP_BEGIN 
+			,@(forseq (c (cdr clause))
+			    (optimize c env bound opts))))
+		 ,(convert-cond (cdr clauses) env bound opts)))))))
 
 (define (optimize-and handler expr env bound opts)
   (if (use-opcodes? opts)
