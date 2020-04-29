@@ -123,7 +123,7 @@ INSTALL_CMODULES=""
 TEST_CMODULES=""
 DATAFILES="etc/version"
 SUDO=""
-SUINSTALL=
+DOINSTALL=
 RPMDIR=${RPMDIR:-dist}
 RPMFLAGS=${RPMFLAGS:-}
 APTLY=
@@ -345,7 +345,7 @@ AC_SUBST(CLEAN)
 AC_SUBST(I18N)
 AC_SUBST(INSTALLI18N)
 AC_SUBST(SUDO)
-AC_SUBST(SUINSTALL)
+AC_SUBST(DOINSTALL)
 AC_SUBST(WWWUSER)
 AC_SUBST(EXTMODS)
 AC_SUBST(CMODULES)
@@ -1689,11 +1689,11 @@ fi;
 AC_ARG_WITH(sudo,--with/out-sudo use sudo with install,,with_sudo="$SUDO")
 
 if test "$with_sudo" == "yes"; then
-   SUINSTALL="${SUDO} ";
+   DOINSTALL="${SUDO} ";
 elif test "$with_sudo" == "no"; then
-   SUINSTALL="";
+   DOINSTALL="";
 else
-   SUINSTALL="$with_sudo ";
+   DOINSTALL="$with_sudo ";
 fi
 
 ### Build fastcgi executable if possible

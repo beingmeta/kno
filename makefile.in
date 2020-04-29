@@ -64,11 +64,11 @@ CLEAN		  = @CLEAN@
 ECHO		  = @ECHO@
 GZIP		  = @GZIP@
 MSG		  = @MSG@
-SUINSTALL	  = @SUINSTALL@
-SYSINSTALL	  = @SUINSTALL@@INSTALL@
+DOINSTALL	  = @DOINSTALL@
+SYSINSTALL	  = @DOINSTALL@ @INSTALL@
 SUDO	          = @SUDO@
 INSTALL		  = @INSTALL@
-MANINSTALL	  = $(SUDO)$(GZIP) -cf
+GZINSTALL	  = ${DOINSTALL} ${GZIP} -cf
 MKSTATIC	  = @MKSTATIC@ -o 
 CODENAME	  = @CODENAME@
 REL_BRANCH      ::= $(shell ./etc/getbuildopt REL_BRANCH current)
@@ -758,13 +758,13 @@ $(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@: ${LIBSOURCE}/%@suffix@.@shared_suff
 	@$(SYSINSTALL) -d $(@D)
 	@$(SYSINSTALL) $< $@
 $(LIBINSTALLDIR)/%@suffix@.@mmshared_suffix@: $(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@
-	@$(SUINSTALL) ln -sf $(*F)@suffix@.@vshared_suffix@ $@
+	@$(DOINSTALL) ln -sf $(*F)@suffix@.@vshared_suffix@ $@
 	@$(MSG)  Linking $@ to $(*F)@suffix@.@vshared_suffix@
 $(LIBINSTALLDIR)/%@suffix@.@mshared_suffix@: $(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@
-	@$(SUINSTALL) ln -sf $(*F)@suffix@.@vshared_suffix@ $@
+	@$(DOINSTALL) ln -sf $(*F)@suffix@.@vshared_suffix@ $@
 	@$(MSG)  Linking $@ to $(*F)@suffix@.@vshared_suffix@
 $(LIBINSTALLDIR)/%@suffix@.@shared_suffix@: $(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@
-	@$(SUINSTALL) ln -sf $(*F)@suffix@.@vshared_suffix@ $@
+	@$(DOINSTALL) ln -sf $(*F)@suffix@.@vshared_suffix@ $@
 	@$(MSG)  Linking $@ to $(*F)@suffix@.@vshared_suffix@
 
 ${CMODULES}/%.@vshared_suffix@: ${LIBSOURCE}/kno/%@suffix@.@shared_suffix@
@@ -772,15 +772,15 @@ ${CMODULES}/%.@vshared_suffix@: ${LIBSOURCE}/kno/%@suffix@.@shared_suffix@
 	@$(SYSINSTALL) -d $(@D)
 	@$(SYSINSTALL) $< $@
 ${CMODULES}/%.@mmshared_suffix@: ${CMODULES}/%@suffix@.@vshared_suffix@
-	@$(SUINSTALL) ln -sf $(*F).@vshared_suffix@ $@
+	@$(DOINSTALL) ln -sf $(*F).@vshared_suffix@ $@
 	@$(MSG)  Linking $@ to $(*F).@vshared_suffix@
 ${CMODULES}/%@suffix@.@mshared_suffix@: ${CMODULES}/%@suffix@.@vshared_suffix@ 
-	@$(SUINSTALL) ln -sf $(*F).@vshared_suffix@ $@
+	@$(DOINSTALL) ln -sf $(*F).@vshared_suffix@ $@
 	@$(MSG)  Linking $@ to $(*F).@vshared_suffix@
 ${CMODULES}/%.@shared_suffix@: ${CMODULES}/%.@vshared_suffix@ 
 	@make -s ${CMODULES}/$(*F.@mmshared_suffix@ \
 		 ${CMODULES}/$(*F).@mshared_suffix@
-	@$(SUINSTALL) ln -sf $(*F).@vshared_suffix@ $@
+	@$(DOINSTALL) ln -sf $(*F).@vshared_suffix@ $@
 	@$(MSG) Linking $@ to $(*F).@vshared_suffix@
 
 $(BININSTALLDIR)/%: src/scripts/%
@@ -1182,7 +1182,7 @@ install-parseltongue2: ${CMODULES}/parseltongue2.@shared_suffix@ \
 # Internationalization stuff
 
 $(LOCALEDIR)/%/LC_MESSAGES/kno.mo: etc/intl/%.gmo
-	@$(SUINSTALL) install -D $^ $@
+	@$(DOINSTALL) install -D $^ $@
 
 etc/intl/kno.pot:
 	@XGETTEXT@ --from-code=utf-8 -dfdstorage -oetc/intl/kno.pot -k_ \
@@ -1208,9 +1208,13 @@ $(MANDIR)/man1 $(MANDIR)/man8 $(DOCDIR)/html:
 	@$(SYSINSTALL) -d $@
 
 install-docs: $(MANDIR)/man1 $(MANDIR)/man8 $(DOCDIR)/html docs
-	@for file in docs/man/*.1; do ${MANINSTALL} $(MANDIR)/man1/$$(basename $${file}).gz; done
-	@for file in docs/man/*.8; do ${MANINSTALL} $(MANDIR)/man8/$$(basename $${file}).gz; done
-	@for file in docs/man.html/*.html; do \
+	for file in docs/man/*.1; do \
+	  if test -f "$${file}"; then \
+	    ${GZINSTALL} $${file} > $(MANDIR)/man1/$$(basename $${file}).gz; fi; done;
+	for file in docs/man/*.8; do \
+	  if test -f "$${file}"; then \
+	    ${GZINSTALL} $${file} > $(MANDIR)/man8/$$(basename $${file}).gz; fi; done
+	for file in docs/man.html/*.html; do \
 	   $(SYSINSTALL) $${file} $(DOCDIR)/html; done
 
 # Packaging targets
@@ -1644,7 +1648,7 @@ setup-sysv: $(DESTDIR)/etc/init.d/kno statedirs
 enable-sysv: setup-sysv
 	@if which update-rc.d; then \
 		$(MSG) Updating rc.d; \
-		$(SUINSTALL) update-rc.d kno defaults; \
+		$(DOINSTALL) update-rc.d kno defaults; \
 	 fi
 
 info:
@@ -1690,7 +1694,7 @@ setup-linux: setup-unix
 
 setup-osx: @share_dir@ startupdirs statedirs logdirs 
 	@$(MSG) Setting up OSX system configuration
-	@$(SUINSTALL) etc/macos/setup-osx "@share_dir@" \
+	@$(DOINSTALL) etc/macos/setup-osx "@share_dir@" \
 		"${INSTALL} @install_dir_opts@" \
 		"${INSTALL} @install_exe_opts@" \
 		"${INSTALL} @install_exe_opts@" \
@@ -1803,8 +1807,8 @@ install-mod_knocgi: src/apache2/mod_knocgi.so $(DESTDIR)@apache_modinfo@ \
 	@$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
 			-d $(DESTDIR)@rundir@/kno/servlets;
 	@cd src/apache2; if test -f mod_knocgi.so; \
-		then $(SUINSTALL) ${APXS} -i mod_knocgi.so; \
-		else $(SUINSTALL) ${APXS} -i mod_knocgi.la; \
+		then $(DOINSTALL) ${APXS} -i mod_knocgi.so; \
+		else $(DOINSTALL) ${APXS} -i mod_knocgi.la; \
 		fi
 	@echo Installed knocgi module with @rundir@/kno/servlets @logdir@/kno/servlets
 
