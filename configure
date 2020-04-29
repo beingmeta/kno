@@ -736,7 +736,7 @@ INSTALL_CMODULES
 CMODULES
 EXTMODS
 WWWUSER
-SUINSTALL
+DOINSTALL
 SUDO
 INSTALLI18N
 I18N
@@ -3008,7 +3008,7 @@ BINPATH=${PATH}
 RPATHFLAGS="-Wl,'-rpath \$(RPATH)'"
 SHARED_LIB_TARGET=shared-libs
 KNO_MAJOR=2004
-KNO_MINOR=0
+KNO_MINOR=1
 KNO_RELEASE=`cat etc/release`
 KNO_PATCHLEVEL=`./etc/patchlevel`
 KNO_VERSION=${KNO_MAJOR}.${KNO_MINOR}.${KNO_RELEASE}
@@ -3043,7 +3043,7 @@ INSTALL_CMODULES=""
 TEST_CMODULES=""
 DATAFILES="etc/version"
 SUDO=""
-SUINSTALL=
+DOINSTALL=
 RPMDIR=${RPMDIR:-dist}
 RPMFLAGS=${RPMFLAGS:-}
 APTLY=
@@ -12606,11 +12606,11 @@ fi
 
 
 if test "$with_sudo" == "yes"; then
-   SUINSTALL="${SUDO} ";
+   DOINSTALL="${SUDO} ";
 elif test "$with_sudo" == "no"; then
-   SUINSTALL="";
+   DOINSTALL="";
 else
-   SUINSTALL="$with_sudo ";
+   DOINSTALL="$with_sudo ";
 fi
 
 ### Build fastcgi executable if possible

@@ -1,3 +1,9 @@
+kno (2004.1.1-5) stable; urgency=medium
+
+  * New 2004 major release
+
+ -- Ken Haase <kh@beingmeta.com>  Wed, 29 Apr 2020 14:19:24 -0400
+
 kno (2004.0.1-4) unstable; urgency=medium
 
   * New packaging for 2004, improved Scheme/QCode interpreter
