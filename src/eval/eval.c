@@ -1102,6 +1102,7 @@ lispval eval_apply(lispval fn,lispval exprs,
      there was an error while processing them. */
   kno_free_stackvec(&_args);
   kno_decref_stackvec(refs);
+  kno_free_stackvec(refs);
 
   stack->stack_label = old_label;
 
