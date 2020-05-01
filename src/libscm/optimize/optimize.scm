@@ -1318,7 +1318,7 @@
 			   (cdr expr))))
      (convert-cond (cdr expr) env bound opts))
    (cons handler 
-	 (forseq (clause (cdr expr))
+	 (forseq (clause (cdr expr) )
 	   (cond ((not (pair? clause))
 		  (codewarning (list 'BADCLAUSE expr clause))
 		  (when optwarn
@@ -1345,11 +1345,13 @@
 	      (else
 	       `(#OP_BRANCH 
 		 ,(optimize (car clause) env bound opts)
-		 ,(if (empty-list? (cdr (cdr clause)))
-		      (optimize (cadr clause) env bound opts)
-		      `(#OP_BEGIN 
-			,@(forseq (c (cdr clause))
-			    (optimize c env bound opts))))
+		 ,(if (empty-list? (cdr clause))
+		      (list void-opcode)
+		      (if (empty-list? (cdr (cdr clause)))
+			  (optimize (cadr clause) env bound opts)
+			  `(#OP_BEGIN 
+			    ,@(forseq (c (cdr clause))
+				(optimize c env bound opts)))))
 		 ,(convert-cond (cdr clauses) env bound opts)))))))
 
 (define (optimize-and handler expr env bound opts)
