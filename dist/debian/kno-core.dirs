@@ -18,6 +18,7 @@ usr/share/kno/libscm/optimize
 usr/share/kno/libscm/flexdb
 usr/share/kno/libscm/storage
 usr/share/kno/libscm/xhtml
+usr/share/kno/libscm/kno
 usr/share/kno/packages
 etc
 etc/kno
