@@ -154,9 +154,7 @@ static int unparse_string(U8_OUTPUT *out,lispval x)
 KNO_EXPORT
 int kno_escape_string(U8_OUTPUT *out,lispval x,int ascii,int max_chars)
 {
-  u8_putc(out,'"');
-  escape_string(out,x,ascii,max_chars);
-  return u8_putc(out,'"');
+  return escape_string(out,x,ascii,max_chars);
 }
 
 static int get_packet_base(const unsigned char *bytes,int len)
