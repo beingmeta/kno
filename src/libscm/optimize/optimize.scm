@@ -1314,7 +1314,7 @@
    (tryif (and (use-opcodes? opts)
 	       (not (some? (lambda (clause) 
 			     (and (pair? clause) (pair? (cdr clause))
-				  (identical? (cadr clause) '==>)))
+				  (identical? (cadr clause) '=>)))
 			   (cdr expr))))
      (convert-cond (cdr expr) env bound opts))
    (cons handler 
