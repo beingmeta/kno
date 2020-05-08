@@ -253,7 +253,7 @@
   ;; Use define-init to avoid duplicate slambdas/locks when reloading
   (slambda (filename prefix flexbase flexcap partsize partopts (open-opts #f))
     (try (flexpool/find filename prefix)
-	 (init-flexpool filename prefix  flexbase flexcap partsize partopts open-opts))))
+	 (init-flexpool filename prefix flexbase flexcap partsize partopts open-opts))))
 
 (define (init-flexpool filename file-prefix flexbase flexcap partsize partopts 
 		       (open-opts #f))
