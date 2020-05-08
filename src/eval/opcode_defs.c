@@ -13,12 +13,14 @@ KNO_FASTOP lispval op_eval_body(lispval body,kno_lexenv env,kno_stack stack,
   while (PAIRP(scan)) {
     lispval subex = pop_arg(scan);
     if (PAIRP(scan)) {
-      lispval v = kno_eval(subex,env,stack,0);
+      lispval v = (PAIRP(subex)) ?
+	(eval_expr(KNO_CAR(subex),subex,env,stack,0)) :
+	(kno_eval(subex,env,stack,0));
       if (KNO_ABORTED(v))
 	return v;
       else kno_decref(v);}
     else if (KNO_EMPTY_LISTP(scan))
-      return kno_eval(subex,env,stack,tail);
+      return fast_eval(subex,env,stack,tail);
     else break;}
   if (KNO_EMPTY_LISTP(body))
     return KNO_VOID;
