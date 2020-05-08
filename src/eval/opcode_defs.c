@@ -687,7 +687,10 @@ static lispval d1_call(lispval opcode,lispval arg1)
   case KNO_ELTS_OPCODE: {
     int n_elts = -1;
     lispval *elts = kno_seq_elts(arg1,&n_elts);
-    if (elts == NULL) return KNO_ERROR;
+    if (elts == NULL) {
+      if (n_elts == 0)
+	return KNO_EMPTY_CHOICE;
+      else return KNO_ERROR;}
     else return kno_make_choice(n_elts,elts,
 				( KNO_CHOICE_COMPRESS |
 				  KNO_CHOICE_DOSORT   |
