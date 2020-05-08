@@ -1507,14 +1507,25 @@ KNO_EXPORT void kno_init_portprims_c()
   init_portprims_symbols();
   link_local_cprims();
 
-  kno_def_evalfn(kno_io_module,"PRINTOUT-TO",printout_to_evalfn,
-		 "*undocumented*");
-  kno_def_evalfn(kno_io_module,"PRINTOUT",printout_evalfn,
-		 "*undocumented*");
-  kno_def_evalfn(kno_io_module,"LINEOUT",lineout_evalfn,
-		 "*undocumented*");
-  kno_def_evalfn(kno_io_module,"STRINGOUT",stringout_evalfn,
-		 "*undocumented*");
+  kno_def_xevalfn(kno_io_module,"PRINTOUT-TO",
+		  printout_to_evalfn,KNO_EVALFN_NOTAIL,
+		  "`(PRINTOUT-TO *port* ...*args*)` generates output from "
+		  "*args* which is written to *port*. "
+		  "Returns VOID");
+  kno_def_xevalfn(kno_io_module,"PRINTOUT",
+		  printout_evalfn,KNO_EVALFN_NOTAIL,
+		  "`(PRINTOUT ...*args*)` generates output from "
+		  "*args* which is written to the standard output. "
+		  "Returns VOID");
+  kno_def_xevalfn(kno_io_module,"LINEOUT",
+		  lineout_evalfn,KNO_EVALFN_NOTAIL,
+		  "`(LINEOUT ...*args*)` generates output from "
+		  "*args* which is written to the standard output "
+		  "with a trailing newline. Returns VOID.");
+  kno_def_xevalfn(kno_io_module,"STRINGOUT",
+		  stringout_evalfn,KNO_EVALFN_NOTAIL,
+		  "`(STRINGOUT ...*args*)` generates output from "
+		  "*args* and returns the output as a string.");
 }
 
 static void link_local_cprims()

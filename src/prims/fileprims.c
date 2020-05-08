@@ -1817,11 +1817,16 @@ KNO_EXPORT void kno_init_fileprims_c()
   u8_set_global_input((u8_input)&u8stdin);
 
   link_local_cprims();
-  kno_def_evalfn(fileio_module,"FILEOUT",simple_fileout_evalfn,
-		 "*undocumented*");
+  kno_def_xevalfn(fileio_module,"FILEOUT",
+		  simple_fileout_evalfn,KNO_EVALFN_NOTAIL,
+		  "`(FILEOUT *filename* ...*args*)` generates output from "
+		  "*args* which is written to the file *filename*. "
+		  "Returns VOID");
 
-  kno_def_evalfn(fileio_module,"SYSTEM",simple_system_evalfn,
-		 "*undocumented*");
+  kno_def_xevalfn(fileio_module,"SYSTEM",
+		  simple_system_evalfn,KNO_EVALFN_NOTAIL,
+		  "`(SYSTEM ...*args*)` generates output from "
+		  "*args* which is passed as a command to the default shell.");
 
   kno_init_driverfns_c();
 
