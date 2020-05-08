@@ -1341,17 +1341,19 @@
       (let ((clause (car clauses)))
 	(cond ((not (pair? clause)) (fail))
 	      ((overlaps? (car clause) '{else default})
-	       `(#OP_BEGIN ,@(forseq (c (cdr clause)) (optimize c env bound opts))))
+	       `(#OP_BEGIN ,@(forseq (c (cdr clause))
+			       (optimize c env bound opts))))
 	      (else
 	       `(#OP_BRANCH 
 		 ,(optimize (car clause) env bound opts)
-		 ,(if (empty-list? (cdr clause))
-		      (list void-opcode)
-		      (if (empty-list? (cdr (cdr clause)))
-			  (optimize (cadr clause) env bound opts)
-			  `(#OP_BEGIN 
-			    ,@(forseq (c (cdr clause))
-				(optimize c env bound opts)))))
+		 ,(cond ((empty-list? (cdr clause))
+			 `(#OP_VOID))
+			((empty-list? (cdr (cdr clause)))
+			 (optimize (cadr clause) env bound opts))
+			(else 
+			 `(#OP_BEGIN 
+			   ,@(forseq (c (cdr clause))
+			       (optimize c env bound opts)))))
 		 ,(convert-cond (cdr clauses) env bound opts)))))))
 
 (define (optimize-and handler expr env bound opts)
