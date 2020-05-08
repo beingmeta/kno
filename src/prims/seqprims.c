@@ -959,7 +959,7 @@ lispval position_if_not_prim(lispval test,lispval seq,lispval start_arg,
       else end = KNO_FIX2INT(end_arg);
       int ok = interpret_range_args
 	(len,"position_if_not_prim",start_arg,end_arg,&start,&end,&delta);
-      if (ok<0) return range_error("position_if_prim",seq,len,start,end);}
+      if (ok<0) return range_error("position_if_not_prim",seq,len,start,end);}
     else end = KNO_FIX2INT(end_arg);
     while (KNO_PAIRP(scan)) {
       lispval elt = KNO_CAR(scan);
@@ -984,12 +984,12 @@ lispval position_if_not_prim(lispval test,lispval seq,lispval start_arg,
     int len = -1, delta = 1;
     lispval *data = kno_seq_elts(seq,&len);
     if (len < 0) {
-      kno_seterr("UnenumerableSequence","position_if_prim",NULL,seq);
+      kno_seterr("UnenumerableSequence","position_if_not_prim",NULL,seq);
       return KNO_ERROR_VALUE;}
     if (KNO_FIXNUMP(end_arg)) end = KNO_FIX2INT(end_arg); else end = len;
     int ok = interpret_range_args
       (len,"position_if_not_prim",start_arg,end_arg,&start,&end,&delta);
-    if (ok<0) return range_error("position_if_prim",seq,len,start,end);
+    if (ok<0) return range_error("position_if_not_prim",seq,len,start,end);
     int i = start; while (i!=end) {
       lispval v = kno_apply(test,1,data+i);
       if (KNO_ABORTP(v)) {
@@ -1219,12 +1219,12 @@ lispval find_if_not_prim(lispval test,lispval seq,lispval start_arg,
     int len = -1, delta = 1;
     lispval *data = kno_seq_elts(seq,&len);
     if (len < 0) {
-      kno_seterr("UnenumerableSequence","find_if_prim",NULL,seq);
+      kno_seterr("UnenumerableSequence","find_if_not_prim",NULL,seq);
       return KNO_ERROR_VALUE;}
     if (KNO_FIXNUMP(end_arg)) end = KNO_FIX2INT(end_arg); else end = len;
     int ok = interpret_range_args
       (len,"find_if_not_prim",start_arg,end_arg,&start,&end,&delta);
-    if (ok<0) return range_error("find_if_prim",seq,len,start,end);
+    if (ok<0) return range_error("find_if_not_prim",seq,len,start,end);
     int i = start; while (i!=end) {
       lispval v = kno_apply(test,1,data+i);
       if (KNO_ABORTP(v)) {
@@ -1604,7 +1604,7 @@ static lispval seq2list(lispval seq)
     int n = -1;
     lispval *data = kno_seq_elts(seq,&n), result = NIL;
     if (n < 0) {
-      kno_seterr("NonEnumerableSequence","seq2vector",NULL,seq);
+      kno_seterr("NonEnumerableSequence","seq2list",NULL,seq);
       return KNO_ERROR;}
     n--; while (n>=0) {
       result = kno_conspair(data[n],result); n--;}
@@ -1625,7 +1625,7 @@ static lispval seq2packet(lispval seq)
     lispval result = VOID;
     lispval *data = kno_seq_elts(seq,&n);
     if (n < 0) {
-      kno_seterr("NonEnumerableSequence","seq2vector",NULL,seq);
+      kno_seterr("NonEnumerableSequence","seq2packet",NULL,seq);
       return KNO_ERROR;}
     unsigned char *bytes = u8_malloc(n);
     while (i<n) {
@@ -1666,14 +1666,14 @@ static lispval x2string(lispval seq)
     int i = 0, n = -1;
     lispval *data = kno_seq_elts(seq,&n);
     if (n < 0) {
-      kno_seterr("NonEnumerableSequence","seq2vector",NULL,seq);
+      kno_seterr("NonEnumerableSequence","x2string",NULL,seq);
       return KNO_ERROR;}
     U8_INIT_OUTPUT(&out,n*2);
     while (i<n) {
       if (FIXNUMP(data[i])) {
 	long long charcode = FIX2INT(data[i]);
 	if ((charcode<0)||(charcode>=0x10000)) {
-	  lispval err = kno_type_error(_("character"),"seq2string",data[i]);
+	  lispval err = kno_type_error(_("character"),"x2string",data[i]);
 	  kno_decref_vec(data,n);
 	  u8_free(data);
 	  return err;}
@@ -1682,7 +1682,7 @@ static lispval x2string(lispval seq)
 	int charcode = KNO_CHAR2CODE(data[i]);
 	u8_putc(&out,charcode); i++;}
       else {
-	lispval err = kno_type_error(_("character"),"seq2string",data[i]);
+	lispval err = kno_type_error(_("character"),"x2string",data[i]);
 	kno_decref_vec(data,n);
 	u8_free(data);
 	return err;}}
@@ -2165,7 +2165,7 @@ static lispval seq2shortvec(lispval arg)
     int n = -1;
     lispval *data = kno_seq_elts(arg,&n);
     if (n < 0) {
-      kno_seterr("NonEnumerableSequence","seq2vector",NULL,arg);
+      kno_seterr("NonEnumerableSequence","->shortvec",NULL,arg);
       return KNO_ERROR;}
     lispval result = make_short_vector(n,data);
     u8_free(data);
@@ -2209,7 +2209,7 @@ static lispval seq2intvec(lispval arg)
     int n = -1;
     lispval *data = kno_seq_elts(arg,&n);
     if (KNO_EXPECT_FALSE(n < 0)) {
-      kno_seterr("NonEnumerableSequence","seq2vector",NULL,arg);
+      kno_seterr("NonEnumerableSequence","seq2intvec",NULL,arg);
       return KNO_ERROR;}
     lispval result = make_int_vector(n,data);
     u8_free(data);
@@ -2252,7 +2252,7 @@ static lispval seq2longvec(lispval arg)
     int n = -1;
     lispval *data = kno_seq_elts(arg,&n);
     if (KNO_EXPECT_TRUE(n < 0)) {
-      kno_seterr("NonEnumerableSequence","seq2vector",NULL,arg);
+      kno_seterr("NonEnumerableSequence","seq2longvec",NULL,arg);
       return KNO_ERROR;}
     lispval result = make_long_vector(n,data);
     u8_free(data);
@@ -2295,7 +2295,7 @@ static lispval seq2floatvec(lispval arg)
     int n = -1;
     lispval *data = kno_seq_elts(arg,&n);
     if (KNO_EXPECT_TRUE(n < 0)) {
-      kno_seterr("NonEnumerableSequence","seq2vector",NULL,arg);
+      kno_seterr("NonEnumerableSequence","seq2floatvec",NULL,arg);
       return KNO_ERROR;}
     lispval result = make_float_vector(n,data);
     u8_free(data);
@@ -2338,7 +2338,7 @@ static lispval seq2doublevec(lispval arg)
     int n = -1;
     lispval *data = kno_seq_elts(arg,&n);
     if (KNO_EXPECT_TRUE(n < 0)) {
-      kno_seterr("NonEnumerableSequence","seq2vector",NULL,arg);
+      kno_seterr("NonEnumerableSequence","seq2doublevec",NULL,arg);
       return KNO_ERROR;}
     lispval result = make_double_vector(n,data);
     u8_free(data);

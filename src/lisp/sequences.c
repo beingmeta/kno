@@ -90,7 +90,7 @@ struct KNO_SEQFNS *kno_seqfns[KNO_TYPE_MAX];
 KNO_EXPORT int kno_seq_length(lispval x)
 {
   ssize_t len = seq_length(x);
-  if (PRED_FALSE(len<0)) kno_seterr(kno_NotASequence,"kno_seq_elts",NULL,x);
+  if (PRED_FALSE(len<0)) kno_seterr(kno_NotASequence,"kno_seq_length",NULL,x);
   return len;
 }
 
@@ -415,7 +415,7 @@ KNO_EXPORT int kno_generic_position(lispval key,lispval x,int start,int end)
 {
   int len = seq_length(x);
   if (PRED_FALSE(len<0)) {
-    kno_seterr(kno_NotASequence,"kno_seq_elts",NULL,x);
+    kno_seterr(kno_NotASequence,"kno_generic_position",NULL,x);
     return len;}
   else if (end<0)
     end = len+end;
@@ -495,7 +495,7 @@ KNO_EXPORT int kno_generic_search(lispval subseq,lispval seq,int start,int end)
   /* Generic implementation */
   int seqlen = seq_length(seq), subseqlen = seq_length(subseq), pos = start;
   if (subseqlen < 0)
-    return KNO_ERR(-2,kno_NotASequence,"kno_seq_elts",NULL,seq);
+    return KNO_ERR(-2,kno_NotASequence,"kno_generic_search",NULL,seq);
   else if (subseqlen == 0)
     return 0;
   else NO_ELSE;
