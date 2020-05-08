@@ -83,7 +83,7 @@ u8_condition kno_SyntaxError=_("SCHEME expression syntax error"),
 
 u8_condition BadExpressionHead=_("BadExpressionHead");
 
-lispval _eval_expr(lispval head,lispval expr,
+lispval eval_expr(lispval head,lispval expr,
 		   kno_lexenv env,kno_stack stack,
 		   int tail);
 
@@ -154,7 +154,7 @@ KNO_FASTOP lispval eval_arg(lispval arg_expr,kno_lexenv env,
     return eval_fcnid(arg_expr);
   case kno_pair_type: {
     u8_string old_label = stack->stack_label;
-    lispval result = _eval_expr(KNO_CAR(arg_expr),arg_expr,env,stack,0);
+    lispval result = eval_expr(KNO_CAR(arg_expr),arg_expr,env,stack,0);
     stack->stack_label = old_label;
     return result;}
   case kno_schemap_type:
@@ -897,7 +897,7 @@ static lispval get_evalop(lispval head,kno_lexenv env,
 	 (KNO_APPLICABLE_TYPEP(headtype)) )
       return head;
     else if  (headtype == kno_pair_type)
-      op = _eval_expr(KNO_CAR(head),head,env,stack,0);
+      op = eval_expr(KNO_CAR(head),head,env,stack,0);
     else if (headtype == kno_choice_type)
       op = eval_choice(head,env,stack);
     else op = KNO_VOID;}
@@ -932,7 +932,7 @@ lispval eval_apply(lispval fn,lispval exprs,
 		   int tail);
 
 /* Evaluating pair expressions */
-lispval _eval_expr(lispval head,lispval expr,
+lispval eval_expr(lispval head,lispval expr,
 		   kno_lexenv env,kno_stack stack,
 		   int tail)
 {
@@ -1000,22 +1000,16 @@ lispval _eval_expr(lispval head,lispval expr,
       return kno_simplify_choice(result);
     else return result;}}
 
-lispval eval_expr(lispval head,lispval expr,
-		  kno_lexenv env,kno_stack stack,
-		  int tail)
-{
-  return _eval_expr(head,expr,env,stack,tail);
-}
-
 lispval eval_apply(lispval fn,lispval exprs,
 		   kno_lexenv env,kno_stack stack,
 		   int tail)
 {
-  lispval result = KNO_VOID;
+  lispval result = KNO_VOID, old_op = stack->stack_op;
   kno_lisp_type fntype = KNO_TYPEOF(fn);
   kno_function f = NULL;
   int argbuf_len = INIT_ARGBUF_LEN;
   u8_string old_label = stack->stack_label;
+  int old_tail = KNO_STACK_TAILP(stack);
   if (KNO_FUNCTION_TYPEP(fntype)) f = (kno_function) fn;
 
   stack->stack_label = (f) ? (f->fcn_name) :
@@ -1036,6 +1030,7 @@ lispval eval_apply(lispval fn,lispval exprs,
   while (PAIRP(exprs)) {
     lispval arg_expr = pop_arg(exprs);
     lispval arg = eval_arg(arg_expr,env,stack);
+    stack->stack_op = old_op;
     if (KNO_CONSTANTP(arg)) {
       if (KNO_ABORTED(arg)) {
 	result = arg;
@@ -1061,6 +1056,8 @@ lispval eval_apply(lispval fn,lispval exprs,
     kno_stackvec_push(args,arg);}
 
   /* KNO_STACK_SET_OP(stack,fn); */
+
+  KNO_STACK_SET_TAIL(stack,tail);
 
   lispval *argbuf = KNO_STACKVEC_ELTS(args);
   int n_args = KNO_STACKVEC_COUNT(args);
@@ -1088,6 +1085,7 @@ lispval eval_apply(lispval fn,lispval exprs,
 	  setup_tail_call(loop,proc,n_args,argbuf,NULL);}
 	else setup_tail_call(loop,proc,n_args,argbuf,refs);
 	stack->stack_label = old_label;
+	kno_free_stackvec(&_args);
 	return KNO_TAIL;}
       else result = lambda_call(stack,proc,n_args,(kno_argvec)argbuf,tail);}
     else result = KNO_ERROR;}
@@ -1098,6 +1096,7 @@ lispval eval_apply(lispval fn,lispval exprs,
   else result = kno_dcall(stack,fn,n_args,argbuf);
 
  cleanup_args:
+  KNO_STACK_SET_TAIL(stack,old_tail);
   /* We jump here if we haven't yet put *args* on the stack, i.e.
      there was an error while processing them. */
   kno_free_stackvec(&_args);
