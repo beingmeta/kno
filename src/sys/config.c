@@ -834,12 +834,12 @@ KNO_EXPORT int kno_intboolconfig_set(lispval ignored,lispval v,void *vptr)
     *ptr = -1;
     return 1;}
   else if (KNO_FIXNUMP(v)) {
-    long long v = FIX2INT(v);
-    if (v < 0) {
+    long long iv = FIX2INT(v);
+    if (iv < 0) {
       *ptr = -1;
       return 1;}
-    else if (v < INT_MAX) {
-      *ptr = v;
+    else if (iv < INT_MAX) {
+      *ptr = iv;
       return 1;}}
   else NO_ELSE;
   return kno_reterr

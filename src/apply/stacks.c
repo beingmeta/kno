@@ -231,7 +231,7 @@ static lispval stack2lisp(struct KNO_STACK *stack,struct KNO_STACK *inner)
       (NULL,stack_entry_symbol,STACK_CREATE_OPTS,
        5,depth,label,file,op,
        (((STACK_ARGS(stack)) && (STACK_LENGTH(stack))) ?
-	(copy_args(STACK_WIDTH(stack),STACK_ARGS(stack))) :
+	(copy_args(STACK_LENGTH(stack),STACK_ARGS(stack))) :
 	(KNO_EMPTY_LIST)),
        KNO_INT(icrumb));
   else if (show_source)
@@ -240,7 +240,7 @@ static lispval stack2lisp(struct KNO_STACK *stack,struct KNO_STACK *inner)
        6,depth,label,file,kno_incref(source),
        ((env) ? (kno_deep_copy(env->env_bindings)) :
 	((STACK_ARGS(stack)) && (STACK_LENGTH(stack))) ?
-	(copy_args(STACK_WIDTH(stack),STACK_ARGS(stack))) :
+	(copy_args(STACK_LENGTH(stack),STACK_ARGS(stack))) :
 	(KNO_EMPTY_LIST)),
        op,KNO_INT(icrumb));
     else return kno_init_compound
