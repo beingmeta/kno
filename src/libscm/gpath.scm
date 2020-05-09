@@ -12,7 +12,8 @@
    gp/location? gp/location gp/basename gp/rootpath
    gp/has-suffix gp/has-prefix
    gp/fetch gp/fetch+ gp/etag gp/info
-   gp/exists? gp/exists gp/modified gp/newer 
+   gp/exists? gp/exists gp/modtime gp/newer?
+   gp/modified gp/newer
    gp/list gp/list+
    gp/path gp/mkpath gp/subpath gp/makepath
    gpath->string gp/string gp>s gpath->location
@@ -723,9 +724,9 @@
       'hash (tryif hash hash)
       'md5 (tryif hash (packet->base16 hash)))))
 
-(define (gp/modified ref)
+(define (gp/modtime ref)
   (if (urish? ref) (set! ref (->gpath ref)))
-  (cond ((s3loc? ref) (s3/modified ref))
+  (cond ((s3loc? ref) (s3/modtime ref))
 	((and (compound-type? ref) 
 	      (test gpath-handlers (compound-tag ref)))
 	 (get ((gpath-handler-get (get gpath-handlers (compound-tag ref)))
@@ -742,7 +743,7 @@
 	((and (pair? ref) (zipfs? (car ref)))
 	 (get (zipfs/info (car ref) (cdr ref)) 'last-modified))
 	((and (pair? ref) (pair? (car ref)))
-	 (gp/modified (gp/path (car ref) (cdr ref))))
+	 (gp/modtime (gp/path (car ref) (cdr ref))))
 	((and (pair? ref) (compound-type? (car ref))
 	      (test gpath-handlers (compound-tag (car ref))))
 	 (get ((gpath-handler-get (get gpath-handlers (compound-tag (car ref))))
@@ -758,24 +759,26 @@
 	       (try (get response 'last-modified) #f)
 	       #f)))
 	((and (string? ref) (has-prefix ref "s3:"))
-	 (s3/modified (->s3loc ref)))
+	 (s3/modtime (->s3loc ref)))
 	((string? ref) (file-modtime ref))
-	(else (error "Invalid GPATH" GP/MODIFIED #f ref))))
+	(else (error "Invalid GPATH" GP/MODTIME #f ref))))
+(define gp/modified (fcn/alias gp/modtime))
 
-(define (gp/newer ref base)
+(define (gp/newer? ref base)
   (if (urish? ref) (set! ref (->gpath ref)))
   (if (urish? base) (set! base (->gpath base)))
   (if (gp/exists? base) 
       (and (gp/exists? ref)
-	   (let ((bmod (gp/modified base))
-		 (rmod (gp/modified ref)))
+	   (let ((bmod (gp/modtime base))
+		 (rmod (gp/modtime ref)))
 	     (if (and bmod rmod (not (time<? bmod rmod)))
 		 ref
 		 base)))
       (gp/exists ref)))
+(define gp/newer (fcn/alias gp/newer?))
 
 (define (gp/exists? ref)
-  (cond ((s3loc? ref) (s3loc/exists? ref))
+  (cond ((s3loc? ref) (s3/exists? ref))
 	((and (compound-type? ref) 
 	      (test gpath-handlers (compound-tag ref)))
 	 ((gpath-handler-get (get gpath-handlers (compound-tag ref)))
