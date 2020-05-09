@@ -68,6 +68,8 @@ KNO_EXPORT int kno_longconfig_set(lispval,lispval v,void *intptr);
 KNO_EXPORT lispval kno_intconfig_get(lispval,void *intptr);
 KNO_EXPORT int kno_sizeconfig_set(lispval,lispval v,void *intptr);
 KNO_EXPORT lispval kno_sizeconfig_get(lispval,void *intptr);
+KNO_EXPORT int kno_intboolconfig_set(lispval,lispval v,void *intptr);
+KNO_EXPORT lispval kno_intboolconfig_get(lispval,void *intptr);
 KNO_EXPORT int kno_boolconfig_set(lispval,lispval v,void *intptr);
 KNO_EXPORT lispval kno_boolconfig_get(lispval,void *intptr);
 KNO_EXPORT int kno_dblconfig_set(lispval,lispval v,void *dblptr);

@@ -820,6 +820,34 @@ KNO_EXPORT int kno_intconfig_set(lispval ignored,lispval v,void *vptr)
 }
 
 /* For configuration variables which get/set ints. */
+KNO_EXPORT lispval kno_intboolconfig_get(lispval ignored,void *vptr)
+{
+  int *ptr = vptr; int v = *ptr;
+  if (v<0)
+    return KNO_FALSE;
+  else return KNO_INT(v);
+}
+KNO_EXPORT int kno_intboolconfig_set(lispval ignored,lispval v,void *vptr)
+{
+  int *ptr = vptr;
+  if (KNO_FALSEP(v)) {
+    *ptr = -1;
+    return 1;}
+  else if (KNO_FIXNUMP(v)) {
+    long long v = FIX2INT(v);
+    if (v < 0) {
+      *ptr = -1;
+      return 1;}
+    else if (v < INT_MAX) {
+      *ptr = v;
+      return 1;}}
+  else NO_ELSE;
+  return kno_reterr
+    (kno_TypeError,"kno_uintconfig_set",
+     u8_strdup(_("small fixnum")),v);
+}
+
+/* For configuration variables which get/set ints. */
 KNO_EXPORT lispval kno_longconfig_get(lispval ignored,void *vptr)
 {
   long long *ptr = vptr;

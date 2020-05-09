@@ -181,16 +181,16 @@ KNO_EXPORT void kno_init_support_c()
 
   kno_register_config
     ("MAXCHARS",_("Max number of chars to show in strings"),
-     kno_intconfig_get,kno_intconfig_set,
+     kno_intboolconfig_get,kno_intboolconfig_set,
      &kno_unparse_maxchars);
   kno_register_config
     ("MAXELTS",
      _("Max number of elements to show in vectors/lists/choices, etc"),
-     kno_intconfig_get,kno_intconfig_set,
+     kno_intboolconfig_get,kno_intboolconfig_set,
      &kno_unparse_maxelts);
   kno_register_config
     ("NUMVEC:SHOWMAX",_("Max number of elements to show in numeric vectors"),
-     kno_intconfig_get,kno_intconfig_set,
+     kno_intboolconfig_get,kno_intboolconfig_set,
      &kno_numvec_showmax);
   kno_register_config
     ("PACKETFMT",
