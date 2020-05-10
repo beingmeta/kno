@@ -816,6 +816,10 @@ int main(int argc,char **argv)
      _("Number of characters available for pretty-printing console output"),
      kno_intconfig_get,kno_intconfig_set,&console_width);
   kno_register_config
+    ("KNOC:SHOWELTS",
+     _("Number of elements to initially show in displaying results"),
+     kno_intconfig_get,kno_intconfig_set,&result_max_elts);
+  kno_register_config
     ("SHOWELTS",
      _("Number of elements to initially show in displaying results"),
      kno_intconfig_get,kno_intconfig_set,&result_max_elts);
