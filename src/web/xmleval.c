@@ -1747,31 +1747,38 @@ KNO_EXPORT void kno_init_xmleval_c()
   if (xmleval_initialized) return;
   xmleval_initialized = 1;
   kno_init_scheme();
-  knoml_module = kno_make_env(kno_make_hashtable(NULL,17),NULL);
+
+  lispval bindings = kno_make_hashtable(NULL,17);
+  knoml_module = kno_make_env(bindings,NULL);
+  kno_register_module("knoml",(lispval)knoml_module,0);
+
+  kno_incref(bindings);
+  knoml_module->env_exports = bindings;
+
   lispval addtomod = (lispval) knoml_module;
 
   kno_def_evalfn(addtomod,"IF",knoml_if,
-		 "*undocumented*");
+		 "KNOML conditiona construct");
   kno_def_evalfn(addtomod,"ALT",knoml_alt,
 		 "*undocumented*");
   kno_def_evalfn(addtomod,"IFREQ",knoml_ifreq,
-		 "*undocumented*");
+		 "KNOML req/conditional construct");
   kno_def_evalfn(addtomod,"LOOP",knoml_loop,
-		 "*undocumented*");
+		 "*KNOML loop construct");
   kno_def_evalfn(addtomod,"INSERT",knoml_insert,
-		 "*undocumented*");
+		 "*KNOML insert construct");
   kno_def_evalfn(addtomod,"DEFINE",knoml_define,
-		 "*undocumented*");
+		 "KNOML DEFINE construct");
   kno_def_evalfn(addtomod,"FIND",knoml_find,
-		 "*undocumented*");
+		 "KNOML FIND construct");
   kno_def_evalfn(addtomod,"TRY",knoml_try,
-		 "*undocumented*");
+		 "KNOML TRY construct");
   kno_def_evalfn(addtomod,"UNION",knoml_union,
-		 "*undocumented*");
+		 "KNOML UNION construct");
   kno_def_evalfn(addtomod,"INTERSECTION",knoml_intersection,
-		 "*undocumented*");
+		 "KNOML INTERSECTION construct");
   kno_def_evalfn(addtomod,"BINDING",knoml_binding,
-		 "*undocumented*");
+		 "KNOML binding construct");
 
   xmleval_tag = kno_intern("%xmleval");
   xmleval2expr_tag = kno_intern("%xmleval2expr");
