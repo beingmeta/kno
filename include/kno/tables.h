@@ -566,8 +566,8 @@ typedef struct KNO_HASHTABLE {
   struct KNO_HASH_BUCKET **ht_buckets;} KNO_HASHTABLE;
 typedef struct KNO_HASHTABLE *kno_hashtable;
 
-#define KNO_HASHTABLE_COMPARE_EQ  0x100
-#define KNO_HASHTABLE_BIG_BUCKETS 0x200
+#define KNO_HASHTABLE_COMPARE_EQ   0x100
+#define KNO_HASHTABLE_BIG_BUCKETS  0x200
 
 #define KNO_HASHTABLE_LEN (sizeof(struct KNO_HASHTABLE))
 

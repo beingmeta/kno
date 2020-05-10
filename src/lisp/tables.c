@@ -2263,18 +2263,16 @@ KNO_EXPORT int kno_hashtable_probe_novoid(struct KNO_HASHTABLE *ht,lispval key)
     return 0;}
 }
 
-static struct KNO_HASH_BUCKET **get_buckets(struct KNO_HASHTABLE *ht,int n)
+static struct KNO_HASH_BUCKET **new_hash_buckets(struct KNO_HASHTABLE *ht,int n)
 {
-  struct KNO_HASH_BUCKET **buckets = NULL;
   size_t buckets_size = n*sizeof(kno_hash_bucket);
   int use_bigalloc = ( buckets_size > kno_hash_bigthresh );
-  if (use_bigalloc) {
-    KNO_TABLE_SET_BIT(ht,KNO_HASHTABLE_BIG_BUCKETS,1);
-    buckets = u8_big_alloc(buckets_size);}
-  else {
-    KNO_TABLE_SET_BIT(ht,KNO_HASHTABLE_BIG_BUCKETS,0);
-    buckets = u8_malloc(buckets_size);}
+  struct KNO_HASH_BUCKET **buckets = (use_bigalloc) ?
+    (u8_big_alloc(buckets_size)) : (u8_malloc(buckets_size));
+  KNO_XTABLE_SET_BIT(ht,KNO_HASHTABLE_BIG_BUCKETS,use_bigalloc);
   memset(buckets,0,buckets_size);
+  ht->ht_buckets   = buckets;
+  ht->ht_n_buckets = n;
   return buckets;
 }
 
@@ -2284,8 +2282,7 @@ static void setup_hashtable(struct KNO_HASHTABLE *ptr,int n_buckets)
   ptr->ht_n_buckets=n_buckets;
   ptr->table_n_keys=0;
   KNO_XTABLE_SET_MODIFIED(ptr,0);
-
-  ptr->ht_buckets = get_buckets(ptr,n_buckets);
+  new_hash_buckets(ptr,n_buckets);
 }
 
 KNO_EXPORT int kno_hashtable_store(kno_hashtable ht,lispval key,lispval value)
@@ -3115,8 +3112,7 @@ KNO_EXPORT int kno_free_buckets(struct KNO_HASH_BUCKET **buckets,
 KNO_EXPORT int kno_reset_hashtable
 (struct KNO_HASHTABLE *ht,int n_buckets,int lock)
 {
-  struct KNO_HASH_BUCKET **buckets;
-  int buckets_to_free=0, unlock = 0, big=0;
+  int buckets_to_free=0, cur_big=0, unlock = 0;
   KNO_CHECK_TYPE_RET(ht,kno_hashtable_type);
   if (n_buckets<0)
     n_buckets=ht->ht_n_buckets;
@@ -3125,24 +3121,22 @@ KNO_EXPORT int kno_reset_hashtable
     unlock=1;}
   /* Grab the buckets and their length. We'll free them after we've reset
      the table and released its lock. */
-  big=KNO_XTABLE_BITP(ht,KNO_HASHTABLE_BIG_BUCKETS);
-  buckets=ht->ht_buckets;
-  buckets_to_free=ht->ht_n_buckets;
+  int old_len = ht->ht_n_buckets;
+  int old_big = KNO_XTABLE_BITP(ht,KNO_HASHTABLE_BIG_BUCKETS);
+  struct KNO_HASH_BUCKET **old_buckets = ht->ht_buckets;
   /* Now initialize the structure.  */
   if (n_buckets == 0) {
     ht->ht_n_buckets=ht->table_n_keys=0;
     ht->table_load_factor=default_hashtable_loading;
     ht->ht_buckets=NULL;}
   else {
-    struct KNO_HASH_BUCKET **bucketvec;
-    ht->table_n_keys=0;
-    ht->ht_n_buckets=n_buckets;
-    ht->table_load_factor=default_hashtable_loading;
-    ht->ht_buckets = bucketvec = get_buckets(ht,n_buckets);}
-  /* Free the lock, letting other processes use this hashtable. */
+    ht->table_n_keys = 0;
+    ht->table_load_factor = default_hashtable_loading;
+    new_hash_buckets(ht,n_buckets);}
+  /* Free the lock, letting other threads use this hashtable. */
   if (unlock) kno_unlock_table(ht);
   /* Now, free the old data... */
-  free_buckets(buckets,buckets_to_free,big);
+  free_buckets(old_buckets,old_len,old_big);
   return n_buckets;
 }
 
@@ -3158,7 +3152,7 @@ KNO_EXPORT int kno_fast_reset_hashtable
   KNO_CHECK_TYPE_RET(ht,kno_hashtable_type);
   if (bucketsptr==NULL)
     return kno_reset_hashtable(ht,n_buckets,lock);
-  if (n_buckets<0) n_buckets=ht->ht_n_buckets;
+  if (n_buckets<0) n_buckets = ht->ht_n_buckets;
   if ((lock) && (KNO_XTABLE_USELOCKP(ht))) {
     kno_write_lock_table(ht);
     unlock=1;}
@@ -3174,9 +3168,8 @@ KNO_EXPORT int kno_fast_reset_hashtable
     ht->ht_buckets=NULL;}
   else {
     ht->table_n_keys=0;
-    ht->ht_n_buckets=n_buckets;
     ht->table_load_factor=default_hashtable_loading;
-    ht->ht_buckets = get_buckets(ht,n_buckets);}
+    new_hash_buckets(ht,n_buckets);}
   /* Free the lock, letting other processes use this hashtable. */
   if (unlock) kno_unlock_table(ht);
   return n_buckets;
@@ -3216,10 +3209,9 @@ KNO_EXPORT int kno_swap_hashtable(struct KNO_HASHTABLE *src,
 
   /* Now, reset the source table */
 
-  src->ht_n_buckets=n_buckets;
-  src->ht_buckets = get_buckets(dest,n_buckets);
+  new_hash_buckets(dest,n_buckets);
   src->table_n_keys=0;
-  KNO_TABLE_SET_BIT(src,(KNO_TABLE_MODIFIED|KNO_TABLE_READONLY),0);
+  KNO_XTABLE_SET_BIT(src,(KNO_TABLE_MODIFIED|KNO_TABLE_READONLY),0);
 
   if (unlock) u8_rw_unlock(&(src->table_rwlock));
 
@@ -3283,9 +3275,8 @@ KNO_EXPORT lispval kno_make_hashtable(struct KNO_HASHTABLE *ptr,int n_buckets)
 
     ptr->table_bits = KNO_TABLE_USELOCKS;
     ptr->table_n_keys=0;
-    ptr->ht_n_buckets=n_buckets;
     ptr->table_load_factor=default_hashtable_loading;
-    ptr->ht_buckets=get_buckets(ptr,n_buckets);
+    new_hash_buckets(ptr,n_buckets);
 
     return LISP_CONS(ptr);}
 }
@@ -3310,8 +3301,7 @@ KNO_EXPORT lispval kno_make_eq_hashtable(struct KNO_HASHTABLE *ptr,
     if (n_buckets < 0)
       n_buckets=-n_buckets;
     else n_buckets=kno_get_hashtable_size(n_buckets);
-    ptr->ht_n_buckets=n_buckets;
-    ptr->ht_buckets=get_buckets(ptr,n_buckets);
+    new_hash_buckets(ptr,n_buckets);
 
     return LISP_CONS(ptr);}
 }
@@ -3321,19 +3311,17 @@ KNO_EXPORT lispval kno_init_hashtable(struct KNO_HASHTABLE *ptr,int init_keys,
                                       struct KNO_KEYVAL *inits)
 {
   int n_buckets=kno_get_hashtable_size(init_keys);
-  struct KNO_HASH_BUCKET **buckets;
 
   if (ptr == NULL) {
     ptr=u8_alloc(struct KNO_HASHTABLE);
     KNO_INIT_FRESH_CONS(ptr,kno_hashtable_type);}
   else {KNO_SET_CONS_TYPE(ptr,kno_hashtable_type);}
 
-  ptr->table_n_keys=0;
-  ptr->ht_n_buckets=n_buckets;
-  ptr->ht_buckets=buckets=get_buckets(ptr,n_buckets);
-
   ptr->table_load_factor=default_hashtable_loading;
   ptr->table_bits = KNO_TABLE_USELOCKS;
+  ptr->table_n_keys=0;
+
+  struct KNO_HASH_BUCKET **buckets = new_hash_buckets(ptr,n_buckets);
 
   if (inits) {
     int i=0; while (i<init_keys) {
@@ -3355,19 +3343,17 @@ KNO_EXPORT lispval kno_initialize_hashtable(struct KNO_HASHTABLE *ptr,
                                             int init_keys)
 {
   int n_buckets=kno_get_hashtable_size(init_keys);
-  struct KNO_HASH_BUCKET **buckets;
 
   if (ptr == NULL) {
     ptr=u8_alloc(struct KNO_HASHTABLE);
     KNO_INIT_FRESH_CONS(ptr,kno_hashtable_type);}
   else {KNO_SET_CONS_TYPE(ptr,kno_hashtable_type);}
 
-  ptr->table_n_keys=0;
-  ptr->ht_n_buckets=n_buckets;
-  ptr->ht_buckets=buckets=get_buckets(ptr,n_buckets);
-
   ptr->table_load_factor=default_hashtable_loading;
   ptr->table_bits = KNO_TABLE_USELOCKS;
+
+  struct KNO_HASH_BUCKET **buckets = new_hash_buckets(ptr,n_buckets);
+  ptr->table_n_keys=0;
 
   if (inits) {
     int i=0; while (i<init_keys) {
@@ -3393,13 +3379,13 @@ static int resize_hashtable(struct KNO_HASHTABLE *ptr,int n_buckets,
   if ( (need_lock) && (KNO_XTABLE_USELOCKP(ptr)) ) {
     kno_write_lock_table(ptr);
     unlock=1; }
-  int big_buckets = KNO_XTABLE_BITP(ptr,KNO_HASHTABLE_BIG_BUCKETS);
 
-  struct KNO_HASH_BUCKET **new_buckets=get_buckets(ptr,n_buckets);
-  struct KNO_HASH_BUCKET **scan=ptr->ht_buckets, **lim=scan+ptr->ht_n_buckets;
-  struct KNO_HASH_BUCKET **nscan=new_buckets, **nlim=nscan+n_buckets;
-  while (nscan<nlim) *nscan++=NULL;
-  while (scan < lim)
+  struct KNO_HASH_BUCKET **old_buckets = ptr->ht_buckets;
+  int old_len = ptr->ht_n_buckets;
+  int old_big = KNO_XTABLE_BITP(ptr,KNO_HASHTABLE_BIG_BUCKETS);
+  struct KNO_HASH_BUCKET **scan=old_buckets, **lim=scan+old_len;
+  struct KNO_HASH_BUCKET **new_buckets=new_hash_buckets(ptr,n_buckets);
+  while (scan < lim) {
     if (*scan) {
       struct KNO_HASH_BUCKET *e=*scan++;
       int bucket_len=e->bucket_len;
@@ -3411,14 +3397,11 @@ static int resize_hashtable(struct KNO_HASHTABLE *ptr,int n_buckets,
         nkv->kv_val=kvscan->kv_val; kvscan->kv_val=VOID;
         kno_decref(kvscan->kv_key); kvscan++;}
       u8_free(e);}
-    else scan++;
+    else scan++;}
 
-  if (big_buckets)
-    u8_big_free(ptr->ht_buckets);
-  else u8_free(ptr->ht_buckets);
-
-  ptr->ht_n_buckets=n_buckets;
-  ptr->ht_buckets=new_buckets;
+  if (old_big)
+    u8_big_free(old_buckets);
+  else u8_free(old_buckets);
 
   if (unlock) kno_unlock_table(ptr);
 
@@ -3492,10 +3475,12 @@ KNO_EXPORT int kno_devoid_hashtable(struct KNO_HASHTABLE *ptr,int locked)
     n_buckets=ptr->ht_n_buckets,
       unlock=1;}
 
-  struct KNO_HASH_BUCKET **new_buckets=get_buckets(ptr,n_buckets);
-  struct KNO_HASH_BUCKET **scan=ptr->ht_buckets;
-  struct KNO_HASH_BUCKET **lim=scan+ptr->ht_n_buckets;
-  int remaining_keys=0, big_buckets = KNO_XTABLE_BITP(ptr,KNO_HASHTABLE_BIG_BUCKETS);
+  struct KNO_HASH_BUCKET **old_buckets = ptr->ht_buckets;
+  int old_len = ptr->ht_n_buckets;
+  int old_big = KNO_XTABLE_BITP(ptr,KNO_HASHTABLE_BIG_BUCKETS);
+  struct KNO_HASH_BUCKET **scan=old_buckets, **lim=scan+old_len;
+  struct KNO_HASH_BUCKET **new_buckets=new_hash_buckets(ptr,n_buckets);
+  int removed_keys=0;
 
   if (new_buckets==NULL) {
     if (unlock) kno_unlock_table(ptr);
@@ -3509,6 +3494,7 @@ KNO_EXPORT int kno_devoid_hashtable(struct KNO_HASHTABLE *ptr,int locked)
       while (kvscan<kvlimit)
         if (VOIDP(kvscan->kv_val)) {
           kno_decref(kvscan->kv_key);
+	  removed_keys++;
           kvscan++;}
         else {
           struct KNO_KEYVAL *nkv =
@@ -3516,18 +3502,15 @@ KNO_EXPORT int kno_devoid_hashtable(struct KNO_HASHTABLE *ptr,int locked)
           nkv->kv_val=kvscan->kv_val;
           kvscan->kv_val=VOID;
           kno_decref(kvscan->kv_key);
-          remaining_keys++;
-          kvscan++;}
+	  kvscan++;}
       u8_free(e);}
     else scan++;
 
-  if (big_buckets)
-    u8_big_free(ptr->ht_buckets);
-  else u8_free(ptr->ht_buckets);
+  if (old_big)
+    u8_big_free(old_buckets);
+  else u8_free(old_buckets);
 
-  ptr->ht_n_buckets=n_buckets;
-  ptr->ht_buckets=new_buckets;
-  ptr->table_n_keys=remaining_keys;
+  ptr->table_n_keys -= removed_keys;
 
   if (unlock) kno_unlock_table(ptr);
   return n_buckets;
@@ -3626,7 +3609,7 @@ kno_copy_hashtable(KNO_HASHTABLE *dest_arg,
   read_limit=read+n_buckets;
   dest->table_load_factor=src->table_load_factor;
 
-  write=dest->ht_buckets=get_buckets(dest,n_buckets);
+  write=new_hash_buckets(dest,n_buckets);
 
   while ( (read<read_limit) && (copied_keys < n_keys) )  {
     if (*read==NULL) {read++; write++;}
