@@ -94,20 +94,29 @@ KNO_EXPORT int kno_seq_length(lispval x)
   return len;
 }
 
+static lispval range_error(u8_context cxt,lispval x,int i)
+{
+  u8_byte intbuf[64];
+  kno_seterr(kno_RangeError,cxt,u8_bprintf(intbuf,"%d",i),x);
+  return KNO_RANGE_ERROR;
+}
+
 KNO_EXPORT lispval kno_seq_elt(lispval x,int i)
 {
   int ctype = KNO_TYPEOF(x);
+  u8_byte intbuf[32];
   if (i<0)
-    return KNO_RANGE_ERROR;
+    return range_error("kno_seq_elt",x,i);
   else switch (ctype) {
     case kno_vector_type:
-      if (i>=VEC_LEN(x)) return KNO_RANGE_ERROR;
+      if (i>=VEC_LEN(x))
+	return range_error("kno_seq_elt",x,i);
       else return kno_incref(VEC_REF(x,i));
     case kno_secret_type:
-      return KNO_ERR(-2,kno_SecretData,"kno_seq_elt",NULL,x);
+      return KNO_ERR(KNO_ERROR,kno_SecretData,"kno_seq_elt",NULL,x);
     case kno_packet_type:
       if (i>=KNO_PACKET_LENGTH(x))
-        return KNO_RANGE_ERROR;
+	return range_error("kno_seq_elt",x,i);
       else {
         int val = KNO_PACKET_DATA(x)[i];
         return KNO_INT(val);}
@@ -116,11 +125,11 @@ KNO_EXPORT lispval kno_seq_elt(lispval x,int i)
       if (elts == NULL)
         return kno_err("NotACompoundVector","kno_seq_elt",NULL,x);
       else if (i>=len)
-        return KNO_RANGE_ERROR;
+	return range_error("kno_seq_elt",x,i);
       else return kno_incref(elts[i]);}
     case kno_numeric_vector_type:
       if (i>=KNO_NUMVEC_LENGTH(x))
-        return KNO_RANGE_ERROR;
+	return range_error("kno_seq_elt",x,i);
       else switch (KNO_NUMVEC_TYPE(x)) {
         case kno_short_elt:
           return KNO_SHORT2FIX(KNO_NUMVEC_SHORT(x,i));
@@ -139,16 +148,17 @@ KNO_EXPORT lispval kno_seq_elt(lispval x,int i)
       while (PAIRP(scan))
         if (j == i) return kno_incref(KNO_CAR(scan));
         else {j++; scan = KNO_CDR(scan);}
-      return KNO_RANGE_ERROR;}
+      return range_error("kno_seq_elt",x,i);}
     case kno_string_type: {
       const u8_byte *sdata = CSTRING(x);
       const u8_byte *starts = string_start(sdata,i);
       if ((starts) && (starts<sdata+KNO_STRING_LENGTH(x))) {
         int c = u8_sgetc(&starts);
-        return KNO_CODE2CHAR(c);}
-      else return KNO_RANGE_ERROR;}
+	return KNO_CODE2CHAR(c);}
+      return range_error("kno_seq_elt",x,i);}
     default:
-      if (NILP(x)) return KNO_RANGE_ERROR;
+      if (NILP(x))
+	return range_error("kno_seq_elt",x,i);
       else if (EMPTYP(x)) return x;
       else if ((kno_seqfns[ctype]) && (kno_seqfns[ctype]->elt) &&
                ((kno_seqfns[ctype]->elt)!=kno_seq_elt))
