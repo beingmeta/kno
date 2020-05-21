@@ -315,11 +315,20 @@ static lispval errtest_evalfn(lispval expr,kno_lexenv env,kno_stack s)
       u8_log(LOG_INFO,"ExpectedError",
 	     "As expected, %q generated the error %s <%s> (%s)",
 	     test_expr,ex->u8x_cond,ex->u8x_context,ex->u8x_details);
-      u8_free_exception(ex,1);}
-    else u8_log(LOG_NOTICE,"Missing Exception",
-		"As expected, %q generated an error, but no exception was set",
-		test_expr);
-    return KNO_TRUE;}
+      u8_free_exception(ex,1);
+      return KNO_TRUE;}
+    else {
+      u8_string details = u8_mkstring("%q",test_expr);
+      kno_seterr("ErrorWithoutCondition","errtest",details,v);
+      u8_free(details);
+      kno_decref(v);
+      if (! ( (KNO_VOIDP(err_testfail)) || (KNO_FALSEP(err_testfail)) ) )
+	return KNO_ERROR;
+      else {
+	u8_exception ex = u8_erreify();
+	add_failed_test(kno_get_exception(ex));
+	u8_free_exception(ex,LEAVE_EXSTACK);
+	return KNO_FALSE;}}}
   else {
     u8_string details = u8_mkstring("%q",test_expr);
     kno_seterr("ExpectedErrorNotSignalled","errtest",details,v);
