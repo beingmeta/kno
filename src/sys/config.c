@@ -375,7 +375,7 @@ static lispval getenv_config_lookup(lispval symbol,void *ignored)
   lispval result;
   u8_printf(&out,"KNO_%s",SYM_NAME(symbol));
   getenv_result = getenv(out.u8_outbuf);
-  if (getenv_result == NULL) {
+  if ( (getenv_result == NULL) || (getenv_result[0] == '\0') ) {
     u8_close_output(&out);
     return VOID;}
   u8result = u8_fromlibc(getenv_result);
