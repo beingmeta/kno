@@ -274,7 +274,7 @@ KNO_EXPORT int kno_position(lispval key,lispval seq,int start,int limit)
     return KNO_ERR(-2,kno_SecretData,"kno_position",NULL,seq);
   else NO_ELSE;
   int end = (limit<0)?(len+limit+1):(limit>len)?(len):(limit);
-  int delta = (start<end)?(1):(-1);
+  int dir = (start<end)?(1):(-1);
   int min = ((start<end)?(start):(end)), max = ((start<end)?(end):(start));
   if ( (start<0) || (end<0) )
     return -2;
@@ -287,8 +287,8 @@ KNO_EXPORT int kno_position(lispval key,lispval seq,int start,int limit)
         if (LISP_EQUAL(key,data[i])) return i;
         else if (CHOICEP(data[i]))
           if (kno_overlapp(key,data[i])) return i;
-          else i = i+delta;
-        else i = i+delta;}
+          else i = i+dir;
+        else i = i+dir;}
       return -1;}
     case kno_compound_type: {
       lispval *data = KNO_COMPOUND_VECELTS(seq);
@@ -296,8 +296,8 @@ KNO_EXPORT int kno_position(lispval key,lispval seq,int start,int limit)
         if (LISP_EQUAL(key,data[i])) return i;
         else if (CHOICEP(data[i]))
           if (kno_overlapp(key,data[i])) return i;
-          else i = i+delta;
-        else i = i+delta;}
+          else i = i+dir;
+        else i = i+dir;}
       return -1;}
     case kno_secret_type: {
       kno_err(kno_SecretData,"kno_position",NULL,seq);
@@ -308,7 +308,7 @@ KNO_EXPORT int kno_position(lispval key,lispval seq,int start,int limit)
         const unsigned char *data = KNO_PACKET_DATA(seq);
         int i = start; while (i!=end) {
           if (intval == data[i]) return i;
-          else i = i+delta;}
+          else i = i+dir;}
         return -1;}
       else return -1;}
     case kno_numeric_vector_type:
@@ -317,25 +317,25 @@ KNO_EXPORT int kno_position(lispval key,lispval seq,int start,int limit)
       else return kno_generic_position(key,seq,start,end);
     case kno_string_type:
       if (KNO_CHARACTERP(key)) {
-        int code = KNO_CHAR2CODE(key);
-        u8_string data = CSTRING(seq), found;
-        u8_string lower = u8_substring(data,min);
-        u8_string upper = u8_substring(lower,max-min);
-        if (code<0x80) {
-          if (delta<0)
-            found = strrchr(upper,code);
-          else found = strchr(lower,code);
-          if (found == NULL) return -1;
-          else return u8_charoffset(data,found-data);}
-        else {
-          int c, pos = start, last_match = -1;
-          u8_string scan = lower; while (scan<upper) {
-            c = u8_sgetc(&scan);
-            if (c == code) {
-              if (delta<0) last_match = pos;
-              else return pos;}
-            else pos++;}
-          return last_match;}}
+	int code = KNO_CHAR2CODE(key);
+	u8_string data = CSTRING(seq), found;
+	u8_string lower = u8_substring(data,min);
+	u8_string upper = u8_substring(lower,max-min);
+	if (code<0x80) {
+	  if (dir<0)
+	    found = strrchr(upper,code);
+	  else found = strchr(lower,code);
+	  if (found == NULL) return -1;
+	  else return u8_charoffset(data,found-data);}
+	else {
+	  int c, pos = start, last_match = -1;
+	  u8_string scan = lower; while (scan<upper) {
+	    c = u8_sgetc(&scan);
+	    if (c == code) {
+	      if (dir<0) last_match = pos;
+	      else return pos;}
+	    else pos++;}
+	  return last_match;}}
       else return -1;
     case kno_pair_type: {
       int pos = 0; lispval scan = seq;
@@ -367,9 +367,11 @@ KNO_EXPORT int kno_rposition(lispval key,lispval x,int start,int end)
     u8_string data = CSTRING(x);
     int code = KNO_CHAR2CODE(key);
     u8_string found = strrchr(data+start,code);
-    if (found)
-      if (found<data+end) return u8_charoffset(data,found-data);
-      else return -1;
+    if (found) {
+      int found_pos = u8_charoffset(data,found-data);
+      if (found_pos<end)
+	return found_pos;
+      else return -1;}
     else return -1;}
   else switch (KNO_TYPEOF(x)) {
     case kno_vector_type: {
