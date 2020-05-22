@@ -152,6 +152,14 @@ KNO_EXPORT u8_condition kno_TooManyArgs;
 
 static kno_size_t knoindex_default_size=32000;
 
+static int skip_xtype(kno_inbuf in,xtype_refs refs)
+{
+  lispval v = kno_read_xtype(in,refs);
+  if (KNO_ABORTED(v)) return -1;
+  kno_decref(v);
+  return 1;
+}
+
 static kno_size_t get_maxpos(kno_knoindex p)
 {
   switch (p->index_offtype) {
@@ -410,7 +418,6 @@ static int load_header(struct KNO_KNOINDEX *index,struct KNO_STREAM *stream)
              fname);
       index->index_flags |= KNO_STORAGE_LOUDSYMS;
       stream->stream_flags |= KNO_STREAM_LOUDSYMS;
-      stream->buf.raw.buf_flags |= KNO_FIX_DTSYMS;
       if (kno_setpos(stream,metadata_loc)>0) {
         kno_inbuf in = kno_readbuf(stream);
 	lispval new_metadata = read_raw(in);
@@ -656,8 +663,7 @@ KNO_FASTOP unsigned int hash_bytes(const unsigned char *start,int len)
   return hash_combine(prod,asint);
 }
 
-KNO_EXPORT ssize_t knoindex_bucket(struct KNO_KNOINDEX *hx,lispval key,
-                                   ssize_t modulate)
+KNO_EXPORT ssize_t knoindex_bucket(struct KNO_KNOINDEX *hx,lispval key,ssize_t modulate)
 {
   struct KNO_OUTBUF out = { 0 }; unsigned char buf[1024];
   unsigned int hashval; int xtype_len;
@@ -754,11 +760,8 @@ static lispval knoindex_fetch(kno_index ix,lispval key)
         n_values = kno_read_varint(&keystream);
         if (n_values==0) {}
         else if (n_values==1) {
-          int code = kno_read_varint(&keystream);
-          if (code==0) {
-	    lispval val = read_value(&keystream,&(hx->index_xrefs));
-            kno_decref(val);}
-          else kno_read_varint(&keystream);}
+	  skip_xtype(&keystream,&(hx->index_xrefs));
+	  /* Do something here ? */}
         else {
           kno_read_varint(&keystream);
           kno_read_varint(&keystream);}}
@@ -963,7 +966,7 @@ static int match_keybuf(u8_string buf,int size,
                         struct KEY_SCHEDULE *ksched,
                         u8_string keyreps)
 {
-  return ((size == ksched->ksched_dtsize) &&
+  return ((size == ksched->ksched_xtsize) &&
           (memcmp(keyreps+ksched->ksched_keyoff,buf,size)==0));
 }
 
@@ -1010,8 +1013,8 @@ static lispval *fetchn(struct KNO_KNOINDEX *hx,int n,const lispval *keys)
   kno_hashtable lookup = refs->xt_lookup;
   while (i<n) {
     lispval key = keys[i];
-    int dt_start = keysbuf.bufwrite-keysbuf.buffer;
-    int dt_size, bucket;
+    int xt_start = keysbuf.bufwrite-keysbuf.buffer;
+    int xt_size, bucket;
     /* If the index doesn't have oddkeys and you're looking up some feature (pair)
        whose slotid isn't in the slotids, the key isn't in the table. */
     if (PAIRP(key)) {
@@ -1022,12 +1025,12 @@ static lispval *fetchn(struct KNO_KNOINDEX *hx,int n,const lispval *keys)
 	  continue;}}}
     ksched[n_entries].ksched_i = i;
     ksched[n_entries].ksched_key = key;
-    ksched[n_entries].ksched_keyoff = dt_start;
+    ksched[n_entries].ksched_keyoff = xt_start;
     write_key(&keysbuf,key,&(hx->index_xrefs));
-    dt_size = (keysbuf.bufwrite-keysbuf.buffer)-dt_start;
-    ksched[n_entries].ksched_dtsize = dt_size;
+    xt_size = (keysbuf.bufwrite-keysbuf.buffer)-xt_start;
+    ksched[n_entries].ksched_xtsize = xt_size;
     ksched[n_entries].ksched_bucket = bucket=
-      hash_bytes(keysbuf.buffer+dt_start,dt_size)%(hx->index_n_buckets);
+      hash_bytes(keysbuf.buffer+xt_start,xt_size)%(hx->index_n_buckets);
     if (offdata) {
       /* Because we have an offsets table, we can use kno_get_chunk_ref,
          which doesn't touch the stream, and use it immediately. */
@@ -1040,7 +1043,7 @@ static lispval *fetchn(struct KNO_KNOINDEX *hx,int n,const lispval *keys)
         values[i]=EMPTY;
         /* We don't need to keep its xtype representation around either,
            so we reset the key stream. */
-        keysbuf.bufwrite = keysbuf.buffer+dt_start;}
+        keysbuf.bufwrite = keysbuf.buffer+xt_start;}
       else n_entries++;}
     else n_entries++;
     i++;}
@@ -1351,11 +1354,8 @@ static lispval *knoindex_fetchkeys(kno_index ix,int *n)
       if (n_vals<0) {}
       else if (n_vals==0) {}
       else if (n_vals==1) {
-        int code = kno_read_varint(&keyblock);
-        if (code==0) {
-	  lispval val = read_value(&keyblock,&(hx->index_xrefs));
-          kno_decref(val);}
-        else kno_read_varint(&keyblock);}
+	skip_xtype(&keyblock,&(hx->index_xrefs));
+	/* Do something here */}
       else {
         kno_read_varint(&keyblock);
         kno_read_varint(&keyblock);}
@@ -1469,15 +1469,15 @@ static struct KNO_KEY_SIZE *knoindex_fetchinfo(kno_index ix,kno_choice filter,in
     n_keys = kno_read_varint(&keyblock);
     while (j<n_keys) {
       lispval key; int n_vals;
-      ssize_t xtype_len = kno_read_varint(&keyblock); /* IGNORE size */
+      ssize_t xtype_len = kno_read_varint(&keyblock);
       if (xtype_len<0) {
-        kno_seterr(kno_UnexpectedEOD,"knoindex_fetchinfo",
+	kno_seterr(kno_UnexpectedEOD,"knoindex_fetchinfo",
 		   hx->indexid,KNO_VOID);
-        key=KNO_ERROR_VALUE;}
+	key=KNO_ERROR_VALUE;}
       else {
         const unsigned char *key_end = keyblock.bufread+xtype_len;
-        key = read_key(&keyblock,&(hx->index_xrefs));
-        if (KNO_ABORTP(key)) keyblock.bufread=key_end;}
+	key = read_key(&keyblock,&(hx->index_xrefs));
+	if (KNO_ABORTP(key)) {keyblock.bufread=key_end;}}
       if ( (n_vals = kno_read_varint(&keyblock)) < 0) {
         kno_seterr(kno_UnexpectedEOD,"knoindex_fetchinfo",
 		   hx->indexid,KNO_VOID);
@@ -1502,11 +1502,8 @@ static struct KNO_KEY_SIZE *knoindex_fetchinfo(kno_index ix,kno_choice filter,in
       if (n_vals<0) {}
       else if (n_vals==0) {}
       else if (n_vals==1) {
-        int code = kno_read_varint(&keyblock);
-        if (code==0) {
-	  lispval val = read_value(&keyblock,&(hx->index_xrefs));
-          kno_decref(val);}
-        else kno_read_varint(&keyblock);}
+	skip_xtype(&keyblock,&(hx->index_xrefs));
+	/* Do something here */}
       else {
         kno_read_varint(&keyblock);
         kno_read_varint(&keyblock);}
@@ -1997,11 +1994,11 @@ KNO_FASTOP void parse_keybucket(kno_knoindex hx,struct KEYBUCKET *kb,
   xtype_refs refs = &(hx->index_xrefs);
   kb->kb_n_keys = n_keys;
   while (i<n_keys) {
-    int dt_size = kno_read_varint(in), n_values;
+    int xt_size = kno_read_varint(in), n_values;
     struct KEYENTRY *entry = base_entry+i;
-    entry->ke_dtrep_size = dt_size;
-    entry->ke_dtstart    = in->bufread;
-    in->bufread          = in->bufread+dt_size;
+    entry->ke_xtrep_size = xt_size;
+    entry->ke_xtstart    = in->bufread;
+    in->bufread          = in->bufread+xt_size;
     entry->ke_nvals      = n_values = kno_read_varint(in);
     if (n_values==0)
       entry->ke_values = EMPTY;
@@ -2075,8 +2072,8 @@ KNO_FASTOP kno_off_t update_keybucket
     int keysize = keysizes[k-i];
     int key_i = 0, n_keys = kb->kb_n_keys, n_values;
     while (key_i<n_keys) {
-      if ((ke[key_i].ke_dtrep_size)!= keysize) key_i++;
-      else if (memcmp(keydata,ke[key_i].ke_dtstart,keysize)) key_i++;
+      if ((ke[key_i].ke_xtrep_size)!= keysize) key_i++;
+      else if (memcmp(keydata,ke[key_i].ke_xtstart,keysize)) key_i++;
       else if (schedule[k].commit_replace) {
         /* The key is already in there, but we are ignoring
            it's current value.  If key has more than one associated
@@ -2166,10 +2163,10 @@ KNO_FASTOP kno_off_t update_keybucket
         break;}}
     /* This is the case where we are adding a new key to the bucket. */
     if (key_i == n_keys) { /* This should always be true */
-      ke[n_keys].ke_dtrep_size = keysize;
+      ke[n_keys].ke_xtrep_size = keysize;
       ke[n_keys].ke_nvals = n_values =
         KNO_CHOICE_SIZE(schedule[k].commit_values);
-      ke[n_keys].ke_dtstart = newkeys->buffer+keyoffs[k-i];
+      ke[n_keys].ke_xtstart = newkeys->buffer+keyoffs[k-i];
       if (n_values==0) ke[n_keys].ke_values = EMPTY;
       else if (n_values==1)
         /* As above, we don't need to incref this because any value in
@@ -2209,9 +2206,9 @@ KNO_FASTOP kno_off_t write_keybucket
   struct KNO_OUTBUF *outstream = kno_writebuf(stream);
   endpos = endpos+kno_write_varint(outstream,n_keys);
   while (i<n_keys) {
-    int xtype_size = ke[i].ke_dtrep_size, n_values = ke[i].ke_nvals;
+    int xtype_size = ke[i].ke_xtrep_size, n_values = ke[i].ke_nvals;
     endpos = endpos+kno_write_varint(outstream,xtype_size);
-    endpos = endpos+kno_write_bytes(outstream,ke[i].ke_dtstart,xtype_size);
+    endpos = endpos+kno_write_bytes(outstream,ke[i].ke_xtstart,xtype_size);
     endpos = endpos+kno_write_varint(outstream,n_values);
     if (n_values==0) {}
     else if (n_values==1) {
@@ -3615,12 +3612,3 @@ KNO_EXPORT void kno_init_knoindex_c()
 
   kno_set_default_index_type("knoindex");
 }
-
-/* TODO:
- * make baseoids be megapools, use intrinsic tables
- * add memory prefetch recommendations
- * implement dynamic slotid/baseoid addition
- * implement commit
- * implement ACID
- */
-

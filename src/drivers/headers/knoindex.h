@@ -62,7 +62,7 @@ typedef struct KNO_KNOINDEX {
 
 struct KEY_SCHEDULE {
   int ksched_i; lispval ksched_key;
-  unsigned int ksched_keyoff, ksched_dtsize;
+  unsigned int ksched_keyoff, ksched_xtsize;
   int ksched_bucket;
   KNO_CHUNK_REF ksched_chunk;};
 struct VALUE_SCHEDULE {
@@ -85,10 +85,10 @@ struct COMMIT_SCHEDULE {
   int commit_bucket;};
 
 struct KEYENTRY {
-  int ke_nvals, ke_dtrep_size;
+  int ke_nvals, ke_xtrep_size;
   /* This points to the point in keybucket's kb_keybuf
      where the xtype representation of the key begins. */
-  const unsigned char *ke_dtstart;
+  const unsigned char *ke_xtstart;
   lispval ke_values;
   KNO_CHUNK_REF ke_vref;};
 
