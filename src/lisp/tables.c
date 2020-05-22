@@ -3112,7 +3112,7 @@ KNO_EXPORT int kno_free_buckets(struct KNO_HASH_BUCKET **buckets,
 KNO_EXPORT int kno_reset_hashtable
 (struct KNO_HASHTABLE *ht,int n_buckets,int lock)
 {
-  int buckets_to_free=0, cur_big=0, unlock = 0;
+  int unlock = 0;
   KNO_CHECK_TYPE_RET(ht,kno_hashtable_type);
   if (n_buckets<0)
     n_buckets=ht->ht_n_buckets;

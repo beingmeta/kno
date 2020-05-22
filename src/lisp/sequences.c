@@ -104,7 +104,6 @@ static lispval range_error(u8_context cxt,lispval x,int i)
 KNO_EXPORT lispval kno_seq_elt(lispval x,int i)
 {
   int ctype = KNO_TYPEOF(x);
-  u8_byte intbuf[32];
   if (i<0)
     return range_error("kno_seq_elt",x,i);
   else switch (ctype) {
@@ -142,7 +141,7 @@ KNO_EXPORT lispval kno_seq_elt(lispval x,int i)
         case kno_double_elt:
           return kno_make_flonum(KNO_NUMVEC_DOUBLE(x,i));
         default:
-          return kno_err("Corrupted numvec","kno_seq_elt",NULL,kno_incref(x));}
+          return kno_err("Corrupted numvec","kno_seq_elt",NULL,x);}
     case kno_pair_type: {
       int j = 0; lispval scan = x;
       while (PAIRP(scan))
@@ -219,7 +218,7 @@ KNO_EXPORT lispval kno_slice(lispval x,int start,int end)
       case kno_double_elt:
         return kno_make_double_vector(newlen,KNO_NUMVEC_DOUBLE_SLICE(x,start));
       default:
-        return kno_err("Corrupted numvec","kno_seq_elt",NULL,kno_incref(x));}}
+        return kno_err("Corrupted numvec","kno_seq_elt",NULL,x);}}
     case kno_pair_type: {
       int j = 0; lispval scan = x, head = NIL, *tail = &head;
       while (PAIRP(scan))
