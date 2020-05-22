@@ -229,6 +229,7 @@ static u8_string name2string(lispval x)
 static lispval evaltest_evalfn(lispval expr,kno_lexenv env,kno_stack s)
 {
   lispval testexpr  = kno_get_arg(expr,2), return_value = KNO_TRUE;
+  u8_exception cur_ex = u8_current_exception;
   if (VOIDP(testexpr))
     return kno_err(kno_SyntaxError,"evaltest",NULL,expr);
   lispval name_expr = kno_get_arg(expr,3);
@@ -247,8 +248,15 @@ static lispval evaltest_evalfn(lispval expr,kno_lexenv env,kno_stack s)
       u8_exception ex = u8_erreify();
       u8_logf(LOG_INFO,"Tests/ExpectedError","%m (from %s: %s) evaluating %q",
 	      ex->u8x_cond,ex->u8x_context,ex->u8x_details,testexpr);
-      u8_free_exception(ex,0);
-      return_value = KNO_TRUE;}
+      if (ex == cur_ex)
+	return_value = kno_err
+	  (TestError,"evaltest","Error returned but no exception set",KNO_VOID);
+      else {
+	u8_exception scan = ex;
+	while ( (scan) && (scan != cur_ex) ) {
+	  scan = u8_free_exception(scan,0);}
+	if (scan) u8_set_current_exception(scan);
+	return_value = KNO_TRUE;}}
     else if ( (KNO_VOIDP(result)) && (expected == void_symbol) ) {
       u8_logf(LOG_INFO,"Tests/ExpectedVoidValue","Evaluating %q",testexpr);
       return_value = KNO_TRUE;;}

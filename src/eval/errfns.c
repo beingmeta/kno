@@ -103,6 +103,7 @@ static lispval error_prim(lispval condition,lispval caller,
 
 static lispval irritant_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
+  u8_exception cur_ex = u8_current_exception;
   u8_condition ex = SchemeError, cxt = NULL;
   lispval head = kno_get_arg(expr,0);
   lispval irritant_expr = kno_get_arg(expr,1), irritant=VOID;
@@ -131,16 +132,20 @@ static lispval irritant_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     irritant = kno_eval(irritant_expr,env,_stack,0);
 
   if (KNO_ABORTP(irritant)) {
-    u8_exception ex = u8_erreify();
-    if (ex)
+    u8_exception new_ex = u8_current_exception;
+    if (new_ex) {
+      new_ex = u8_erreify();
       u8_log(LOG_CRIT,"RecursiveError",
 	     "Error %s (%s:%s) evaluating irritant arg %q",
-	     ex->u8x_cond,ex->u8x_context,ex->u8x_details,
+	     new_ex->u8x_cond,new_ex->u8x_context,new_ex->u8x_details,
 	     irritant_expr);
+      u8_exception scan = new_ex;
+      while ( (scan) && (scan != cur_ex) )
+	scan = u8_free_exception(scan,0);
+      u8_set_current_exception(scan);}
     else u8_log(LOG_CRIT,"RecursiveError",
 		"Error evaluating irritant arg %q",
 		irritant_expr);
-    u8_free_exception(ex,0);
     irritant=KNO_VOID;}
 
   if (cxt == NULL) {
