@@ -19,6 +19,7 @@
 #include "kno/xtypes.h"
 
 #include <libu8/u8elapsed.h>
+#include <libu8/u8printf.h>
 
 #include <zlib.h>
 
@@ -526,6 +527,8 @@ static lispval read_xtype(kno_inbuf in,xtype_refs refs)
       if (rv<0) {
 	u8_free(s);
 	return KNO_ERROR;}
+      /* NUL-terminate it, even if it's a packet, since it's not counted
+	 in the length. */
       buf[len]=0;
       return LISP_CONS(s);}
     case xt_symbol: {
@@ -678,7 +681,7 @@ KNO_EXPORT lispval kno_read_xtype(kno_inbuf in,xtype_refs refs)
 }
 
 static lispval read_tagged(lispval tag,kno_inbuf in,xtype_refs refs)
-{  
+{
   if ( tag == kno_bigtable_xtag ) {
     int code = kno_read_byte(in);
     if (code != xt_table)
@@ -716,6 +719,152 @@ static lispval read_tagged(lispval tag,kno_inbuf in,xtype_refs refs)
     kno_decref(tag);
     kno_decref(data);
     return restored;}
+}
+
+static int skip_bytes(kno_inbuf in,size_t n_bytes)
+{
+  if (kno_request_bytes(in,n_bytes)) {
+    in->bufread = in->bufread+n_bytes;
+    return 1;}
+  else return -1;
+}
+
+static int validate_xtype(kno_inbuf in,xtype_refs refs)
+{
+  if (PRED_FALSE(KNO_ISWRITING(in))) {
+    kno_lisp_iswritebuf(in);
+    return -1;}
+  else if (PRED_TRUE(havebytes(in,1))) {
+    int byte = kno_read_byte(in);
+    xt_type_code xt_code = (xt_type_code) byte;
+    switch (xt_code) {
+    case xt_true: case xt_false: case xt_empty_choice:
+    case xt_empty_list: case xt_default: case xt_void:
+      return 1;
+    case xt_rational: case xt_complex: case xt_timestamp:
+    case xt_regex: case xt_qchoice: case xt_bigtable:
+    case xt_zlib: case xt_zstd: case xt_snappy:
+      return 1;
+    case xt_absref: {
+      ssize_t off = xt_read_varint(in);
+      if (refs == NULL)
+	return 1;
+      else if (off < refs->xt_n_refs)
+	return 1;
+      else {
+	u8_byte intbuf[32]; 
+	kno_seterr("No xtype ref out of range","read_xtype",
+		   u8_bprintf(intbuf,"%llud",(unsigned long long)off),
+		   VOID);
+	return -1;}}
+    case xt_offref: {
+      ssize_t oid_off  = xt_read_varint(in);
+      if (oid_off<0) {
+	kno_seterr("InvalidRefOff","read_xtype",NULL,VOID);
+	return -1;}
+      lispval base = KNO_VOID;
+      ssize_t base_off = xt_read_varint(in);
+      if (PRED_FALSE(base_off<0)) {
+	kno_err("InvalidBaseOff","read_xtype",NULL,VOID);
+	return -1;}
+      else if (base_off < refs->xt_n_refs)
+	return 1;
+      else {
+	kno_err("xtype base ref out of range","read_xtype",NULL,VOID);
+	return -1;}}
+
+    case xt_double: {
+      char bytes[8];
+      int rv = kno_read_bytes(bytes,in,8);
+      if (rv<0) goto early_eod;
+      return 1;}
+
+    case xt_oid: {
+      long long hival=kno_read_4bytes(in), loval;
+      if (PRED_FALSE(hival<0)) goto early_eod;
+      else loval=kno_read_4bytes(in);
+      if (PRED_FALSE(loval<0)) goto early_eod;
+      return 1;}
+    case xt_objid: {
+      unsigned char data[12];
+      int rv = kno_read_bytes(data,in,12);
+      if (rv<0) goto early_eod;
+      else 1;}
+    case xt_uuid: {
+      unsigned char data[16];
+      int rv = kno_read_bytes(data,in,16);
+      if (rv<0) goto early_eod;
+      else return 1;}
+    case xt_posint: case xt_negint: case xt_character: {
+      long long ival = xt_read_varint(in);
+      if (ival<0) goto early_eod;
+      else return 1;}
+    case xt_utf8: case xt_packet: case xt_secret:
+    case xt_symbol: case xt_posbig: case xt_negbig: {
+      ssize_t len = xt_read_varint(in);
+      if (len<0) goto early_eod;
+      int rv = skip_bytes(in,len);
+      if (rv<0) goto early_eod;
+      else return 1;}
+    case xt_block: {
+      ssize_t len = xt_read_varint(in);
+      if (len<0) goto early_eod;
+      int rv = kno_request_bytes(in,len);
+      if (rv<0) goto early_eod;
+      const unsigned char *buf = in->buffer, *read=in->bufread;
+      rv = validate_xtype(in,refs);
+      if ( (rv>=0) && ( (in->bufread-read) != len) ) {
+	kno_seterr("BadXTypeBlock","skip_xtype",NULL,VOID);
+	rv = -1;}
+      return rv;}
+
+    case xt_choice: case xt_vector: case xt_table: {
+      ssize_t n_elts = xt_read_varint(in);
+      if (n_elts < 0) return -1;
+      int i = 0; while (i<n_elts) {
+	int rv = validate_xtype(in,refs);
+	if (rv<0) return -1;
+	else i++;}
+      return 1;}
+
+    case xt_pair: case xt_tagged:
+    case xt_mimeobj: case xt_compressed:
+    case xt_encrypted: {
+      int rv = validate_xtype(in,refs);
+      if (rv<0) return -1;
+      else rv = validate_xtype(in,refs);
+      if (rv<0) return -1;
+      else return 1;}
+
+    case xt_refcoded: {
+      lispval refvec = read_xtype(in,refs);
+      if (ABORTED(refvec)) return refvec;
+      else if (!(KNO_VECTORP(refvec))) {
+	kno_seterr("XTypeError","read_xtype(xt_refcoded)",NULL,refvec);
+	kno_decref(refvec);
+	return KNO_ERROR;}
+      struct XTYPE_REFS xrefs;
+      int n_refs = KNO_VECTOR_LENGTH(refvec);
+      kno_init_xrefs(&xrefs,n_refs,n_refs,n_refs,
+		     (XTYPE_REFS_EXT_ELTS|XTYPE_REFS_READ_ONLY),
+		     KNO_VECTOR_ELTS(refvec),
+		     NULL);
+      int rv = validate_xtype(in,&xrefs);
+      kno_recycle_xrefs(&xrefs);
+      return rv;}
+
+    default:
+      return kno_err("BadXType","kno_read_xtype",NULL,VOID);}
+  }
+  else return -1;
+ early_eod:
+  kno_err1(kno_UnexpectedEOD);
+  return -1;
+}
+
+KNO_EXPORT int kno_validate_xtype(kno_inbuf in,xtype_refs refs)
+{
+  return validate_xtype(in,refs);
 }
 
 /* Object dump handlers */
