@@ -152,6 +152,12 @@ KNO_EXPORT u8_condition kno_TooManyArgs;
 
 static kno_size_t knoindex_default_size=32000;
 
+#if 1
+static int skip_xtype(kno_inbuf in,xtype_refs refs)
+{
+  return kno_validate_xtype(in,NULL);
+}
+#else
 static int skip_xtype(kno_inbuf in,xtype_refs refs)
 {
   lispval v = kno_read_xtype(in,refs);
@@ -159,6 +165,7 @@ static int skip_xtype(kno_inbuf in,xtype_refs refs)
   kno_decref(v);
   return 1;
 }
+#endif
 
 static kno_size_t get_maxpos(kno_knoindex p)
 {
@@ -760,8 +767,8 @@ static lispval knoindex_fetch(kno_index ix,lispval key)
         n_values = kno_read_varint(&keystream);
         if (n_values==0) {}
         else if (n_values==1) {
-	  skip_xtype(&keystream,&(hx->index_xrefs));
-	  /* Do something here ? */}
+	  if (skip_xtype(&keystream,&(hx->index_xrefs))<0)
+	    return KNO_ERROR;}
         else {
           kno_read_varint(&keystream);
           kno_read_varint(&keystream);}}
@@ -1354,8 +1361,9 @@ static lispval *knoindex_fetchkeys(kno_index ix,int *n)
       if (n_vals<0) {}
       else if (n_vals==0) {}
       else if (n_vals==1) {
-	skip_xtype(&keyblock,&(hx->index_xrefs));
-	/* Do something here */}
+	if (skip_xtype(&keyblock,&(hx->index_xrefs))<0)
+	  key=KNO_ERROR;
+	else NO_ELSE;}
       else {
         kno_read_varint(&keyblock);
         kno_read_varint(&keyblock);}
@@ -1502,8 +1510,9 @@ static struct KNO_KEY_SIZE *knoindex_fetchinfo(kno_index ix,kno_choice filter,in
       if (n_vals<0) {}
       else if (n_vals==0) {}
       else if (n_vals==1) {
-	skip_xtype(&keyblock,&(hx->index_xrefs));
-	/* Do something here */}
+	if (skip_xtype(&keyblock,&(hx->index_xrefs))<0)
+	  key = KNO_ERROR;
+	else NO_ELSE;}
       else {
         kno_read_varint(&keyblock);
         kno_read_varint(&keyblock);}

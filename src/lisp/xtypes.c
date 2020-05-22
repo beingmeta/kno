@@ -767,32 +767,25 @@ static int validate_xtype(kno_inbuf in,xtype_refs refs)
       if (PRED_FALSE(base_off<0)) {
 	kno_err("InvalidBaseOff","read_xtype",NULL,VOID);
 	return -1;}
-      else if (base_off < refs->xt_n_refs)
+      else if ( (refs == NULL) || (base_off < refs->xt_n_refs) )
 	return 1;
       else {
 	kno_err("xtype base ref out of range","read_xtype",NULL,VOID);
 	return -1;}}
 
-    case xt_double: {
+    case xt_double: case xt_oid: {
       char bytes[8];
       int rv = kno_read_bytes(bytes,in,8);
       if (rv<0) goto early_eod;
       return 1;}
 
-    case xt_oid: {
-      long long hival=kno_read_4bytes(in), loval;
-      if (PRED_FALSE(hival<0)) goto early_eod;
-      else loval=kno_read_4bytes(in);
-      if (PRED_FALSE(loval<0)) goto early_eod;
-      return 1;}
     case xt_objid: {
-      unsigned char data[12];
-      int rv = kno_read_bytes(data,in,12);
+      int rv = skip_bytes(in,12);
       if (rv<0) goto early_eod;
-      else 1;}
+      else return 1;}
     case xt_uuid: {
       unsigned char data[16];
-      int rv = kno_read_bytes(data,in,16);
+      int rv = skip_bytes(in,16);
       if (rv<0) goto early_eod;
       else return 1;}
     case xt_posint: case xt_negint: case xt_character: {
