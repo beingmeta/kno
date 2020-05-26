@@ -1554,6 +1554,8 @@ KNO_EXPORT lispval kno_read_dtype_from_file(u8_string filename)
         result = kno_zread_dtype(in);}
       else result = kno_read_dtype(in);
       kno_free_stream(opened);
+      if ( (ABORTED(result)) && (u8_current_exception==NULL))
+	kno_seterr("UndeclaredError","kno_read_dtype_from_file",filename,VOID);
       return result;}
     else {
       u8_free(stream);

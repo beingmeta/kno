@@ -190,7 +190,7 @@ SYS_OBJS=						\
 APPLY_OBJS=\
 	src/apply/apply.o src/apply/stacks.o 			\
 	src/apply/ffi.o src/apply/cprims.o			\
-	src/apply/lexenv.o
+	src/apply/lexenv.o src/apply/exec.o
 
 REVISION_H   =include/kno/revision.h
 CONFIG_H     =include/kno/config.h
@@ -348,7 +348,7 @@ KNO_SOURCES=\
 	src/sys/errobjs.c src/sys/logging.c src/sys/getopt.c			\
 	src/sys/startup.c src/sys/fluid.c src/sys/signals.c			\
 	src/apply/apply.c src/apply/stacks.c src/apply/lexenv.c 		\
-	src/apply/ffi.c src/apply/apply_internals.h				\
+	src/apply/ffi.c src/apply/exec.c src/apply/apply_internals.h		\
 	src/storage/storage.c src/storage/streams.c src/storage/hashdtype.c	\
 	src/storage/drivers.c src/storage/indexes.c src/storage/pools.c		\
 	src/storage/oidstore.c  src/storage/frames.c src/storage/slotindexes.c  \
@@ -358,7 +358,7 @@ KNO_SOURCES=\
 	src/storage/ipeval.c 	       						\
 	src/drivers/builtin_drivers.c  						\
 	src/drivers/filepool.c src/drivers/oidpool.c 				\
-	src/drivers/bigpool.c src/drivers/knopool.c 							\
+	src/drivers/bigpool.c src/drivers/knopool.c				\
 	src/drivers/fileindex.c src/drivers/hashindex.c src/drivers/knoindex.c  \
 	src/storage/extindex.c src/storage/tempindex.c				\
 	src/storage/mempool.c src/storage/extpool.c				\
@@ -1019,7 +1019,7 @@ src/lisp/choices.o : XCFLAGS="${XOPTFLAGS}"
 src/lisp/tables.o src/storage/bloom.o src/lisp/sequences.o : XCFLAGS="${XOPTFLAGS}"
 src/lisp/numbers.o src/lisp/compare.o : XCFLAGS="${XOPTFLAGS}"
 src/storage/streams.o src/storage/pools.o src/storage/indexes.o : XCFLAGS="${XOPTFLAGS}"
-src/apply/apply.o : XCFLAGS="${XOPTFLAGS}"
+src/apply/apply.o src/apply/exec.o : XCFLAGS="${XOPTFLAGS}"
 src/eval/eval.o src/eval/choiceops.o : XCFLAGS="${XOPTFLAGS}"
 src/eval/conditionals.o src/eval/iterators.o : XCFLAGS="${XOPTFLAGS}"
 src/eval/lambda.o : XCFLAGS="${XOPTFLAGS}"

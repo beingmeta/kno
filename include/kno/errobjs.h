@@ -26,6 +26,8 @@ KNO_EXPORT void kno_simplify_exception(u8_exception ex);
 KNO_EXPORT struct KNO_EXCEPTION *kno_exception_object(u8_exception ex);
 
 KNO_EXPORT lispval kno_type_error(u8_string,u8_context,lispval);
+KNO_EXPORT void kno_undeclared_error
+(u8_context caller,u8_string details,lispval irritant);
 
 KNO_EXPORT void kno_sum_exception(U8_OUTPUT *out,u8_exception e);
 KNO_EXPORT u8_string kno_errstring(u8_exception e);

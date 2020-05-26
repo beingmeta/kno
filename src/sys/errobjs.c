@@ -175,7 +175,9 @@ KNO_EXPORT void kno_simplify_exception(u8_exception ex)
    from the underlying u8_condition (if that's an irritant) */
 KNO_EXPORT lispval kno_get_irritant(u8_exception ex)
 {
-  if (ex->u8x_free_xdata == kno_decref_embedded_exception) {
+  if (ex == NULL)
+    return KNO_VOID;
+  else if (ex->u8x_free_xdata == kno_decref_embedded_exception) {
     lispval irritant = (lispval) ex->u8x_xdata;
     if (KNO_EXCEPTIONP(irritant)) {
       struct KNO_EXCEPTION *exo = (kno_exception) irritant;
@@ -190,7 +192,9 @@ KNO_EXPORT lispval kno_get_irritant(u8_exception ex)
    underlying u8_condition (if that's an irritant) */
 KNO_EXPORT lispval kno_get_exception(u8_exception ex)
 {
-  if (ex->u8x_free_xdata == kno_decref_embedded_exception) {
+  if (ex == NULL)
+    return KNO_VOID;
+  else if (ex->u8x_free_xdata == kno_decref_embedded_exception) {
     lispval irritant = (lispval) ex->u8x_xdata;
     if (KNO_EXCEPTIONP(irritant))
       return irritant;
@@ -202,7 +206,9 @@ KNO_EXPORT lispval kno_get_exception(u8_exception ex)
    from the underlying u8_condition (if that's an irritant) */
 KNO_EXPORT struct KNO_EXCEPTION *kno_exception_object(u8_exception ex)
 {
-  if (ex->u8x_free_xdata == kno_decref_embedded_exception) {
+  if (ex == NULL)
+    return NULL;
+  else if (ex->u8x_free_xdata == kno_decref_embedded_exception) {
     lispval irritant = (lispval) ex->u8x_xdata;
     if (KNO_EXCEPTIONP(irritant))
       return (kno_exception) irritant;
@@ -236,7 +242,9 @@ KNO_EXPORT int kno_poperr
 
 KNO_EXPORT lispval kno_exception_xdata(u8_exception ex)
 {
-  if ((ex->u8x_xdata) && (KNO_XDATA_ISLISP(ex)))
+  if (ex == NULL)
+    return VOID;
+  else if ((ex->u8x_xdata) && (KNO_XDATA_ISLISP(ex)))
     return (lispval)(ex->u8x_xdata);
   else return VOID;
 }
@@ -283,7 +291,9 @@ void kno_print_exception(U8_OUTPUT *out,u8_exception ex)
 KNO_EXPORT
 void kno_log_exception(u8_exception ex)
 {
-  if (ex->u8x_xdata) {
+  if (ex==NULL)
+    u8_log(LOG_ERR,"NoException","kno_log_exception called on NULL");
+  else if (ex->u8x_xdata) {
     lispval irritant = kno_get_irritant(ex);
     u8_log(LOG_WARN,ex->u8x_cond,"%m (%m)\n\t%Q",
            (U8ALT((ex->u8x_details),((U8SNUL)))),
@@ -297,6 +307,9 @@ void kno_log_exception(u8_exception ex)
 KNO_EXPORT
 void kno_output_exception(u8_output out,u8_exception ex)
 {
+  if (ex == NULL) {
+    u8_puts(out,";; NULL exception!\n");
+    return;}
   u8_puts(out,";; !! ");
   u8_puts(out,ex->u8x_cond);
   if (ex->u8x_context) {
@@ -329,6 +342,9 @@ void kno_output_exception(u8_output out,u8_exception ex)
 KNO_EXPORT
 void sum_exception(u8_output out,u8_exception ex)
 {
+  if (ex == NULL) {
+    u8_puts(out,"<NULL exception>");
+    return;}
   if (ex->u8x_cond)
     u8_puts(out,ex->u8x_cond);
   else u8_puts(out,"UnknownError");
@@ -755,6 +771,14 @@ static int unparse_exception(struct U8_OUTPUT *out,lispval x)
       u8_printf(out," =%s...",buf);}}
   u8_printf(out,"!>");
   return 1;
+}
+
+KNO_EXPORT void kno_undeclared_error
+(u8_context context,u8_string details,lispval irritant)
+{
+  u8_exception ex = u8_current_exception;
+  if (ex==NULL)
+    kno_seterr("UndeclaredError",context,details,irritant);
 }
 
 void kno_init_err_c()

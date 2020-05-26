@@ -209,6 +209,14 @@ KNO_EXPORT void kno_raise
   u8_raise_exception(ex);
 }
 
+KNO_EXPORT void kno_missing_error(u8_string details)
+{
+  u8_exception ex = u8_current_exception;
+  if (ex==NULL)
+    u8_seterr("UndeclaredError","kno_missing_error",
+	      u8_strdup(details));
+}
+
 /* Initialization procedures */
 
 extern void kno_init_choices_c(void);

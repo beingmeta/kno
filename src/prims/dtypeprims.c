@@ -417,7 +417,9 @@ static lispval file2dtype(lispval filename)
       kno_consptr(struct KNO_STREAM *,filename,kno_stream_type);
     lispval object = kno_read_dtype(kno_readbuf(in));
     if (object == KNO_EOD) return KNO_EOF;
-    else return object;}
+    if ( (ABORTED(object)) && (u8_current_exception==NULL))
+      kno_undeclared_error("zipfile2dtype",in->streamid,filename);
+    return object;}
   else return kno_type_error(_("string"),"read_dtype",filename);
 }
 

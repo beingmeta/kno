@@ -1107,34 +1107,34 @@ int main(int argc,char **argv)
     kno_decref(expr); expr = VOID;
     if (KNO_TROUBLEP(result)) {
       u8_exception ex = u8_erreify();
-      u8_byte tmpbuf[100];
-      lispval irritant = kno_get_irritant(ex);
-      u8_string irritation = (KNO_VOIDP(irritant)) ? (NULL) :
-        (u8_bprintf(tmpbuf,"%q",irritant));
       if (ex) {
-        u8_fprintf(stderr,
-                   ";;!!; There was an unexpected error %m <%s> (%s)\n",
-                   ex->u8x_cond,
-                   U8ALT(ex->u8x_context,"no caller"),
-                   U8ALT(ex->u8x_details,"no details"));
-        if (irritation)
-          u8_fprintf(stderr, ";;!!;\t irritant=%s\n",irritation);
-        lispval exo = kno_get_exception(ex);
-        if (!(KNO_VOIDP(exo))) {
-          if (save_backtrace)
-            u8_fprintf(stderr,";; The exception was saved in #%d\n",
-                       kno_histpush(exo));
-          kno_assign_value(_err_symbol,exo,env);
-          if (console_bugdir) {
-            if (*console_bugdir) kno_dump_bug(exo,console_bugdir);}
-          else if (kno_dump_exception)
-            kno_dump_exception(exo);
-          else NO_ELSE;
-          /* Note that u8_free_exception will decref exo, so we don't
-             need to do so. */
-          u8_free_exception(ex,1);}}
+	u8_byte tmpbuf[100];
+	lispval irritant = kno_get_irritant(ex);
+	u8_string irritation = (KNO_VOIDP(irritant)) ? (NULL) :
+	  (u8_bprintf(tmpbuf,"%q",irritant));
+	  u8_fprintf(stderr,
+		     ";;!!; There was an unexpected error %m <%s> (%s)\n",
+		     ex->u8x_cond,
+		     U8ALT(ex->u8x_context,"no caller"),
+		     U8ALT(ex->u8x_details,"no details"));
+	  if (irritation)
+	    u8_fprintf(stderr, ";;!!;\t irritant=%s\n",irritation);
+	  lispval exo = kno_get_exception(ex);
+	  if (!(KNO_VOIDP(exo))) {
+	    if (save_backtrace)
+	      u8_fprintf(stderr,";; The exception was saved in #%d\n",
+			 kno_histpush(exo));
+	    kno_assign_value(_err_symbol,exo,env);
+	    if (console_bugdir) {
+	      if (*console_bugdir) kno_dump_bug(exo,console_bugdir);}
+	    else if (kno_dump_exception)
+	      kno_dump_exception(exo);
+	    else NO_ELSE;
+	    /* Note that u8_free_exception will decref exo, so we don't
+	       need to do so. */
+	    u8_free_exception(ex,1);}}
       else fprintf(stderr,
-                   ";;; The expression generated a mysterious error!!!!\n");}
+		   ";;; The expression generated a mysterious error!!!!\n");}
     else if (stat_line)
       output_result(out,result,histref_string,console_width,showall);
     else if (VOIDP(result)) {}

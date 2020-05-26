@@ -64,8 +64,7 @@ lispval _kno_comment_symbol, fcnids_symbol, sourceref_tag;
 
 static lispval comment_symbol, source_symbol;
 
-u8_condition kno_SyntaxError=_("SCHEME expression syntax error"),
-  kno_InvalidMacro=_("invalid macro transformer"),
+u8_condition kno_InvalidMacro=_("invalid macro transformer"),
   kno_UnboundIdentifier=_("the variable is unbound"),
   kno_VoidBinding=_("VOID result used as variable binding"),
   kno_VoidSortKey=_("VOID result used as sort key"),

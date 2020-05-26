@@ -28,6 +28,8 @@ KNO_EXPORT lispval (*_kno_mkerr)(u8_condition c,u8_context caller,
 KNO_EXPORT U8_NOINLINE void kno_raise
 (u8_condition c,u8_context cxt,u8_string details,lispval irritant);
 
+KNO_EXPORT void kno_missing_error(u8_string details);
+
 #define kno_seterr(condition,caller,details,irritant)	\
   _kno_mkerr(condition,caller,details,irritant,NULL)
 #define kno_err(condition,caller,details,irritant) \

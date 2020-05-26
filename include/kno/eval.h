@@ -28,7 +28,7 @@
 KNO_EXPORT u8_condition kno_UnboundIdentifier, kno_BindError;
 KNO_EXPORT u8_condition kno_VoidBinding;
 KNO_EXPORT u8_condition kno_VoidBoolean, knoVoid_Result, kno_VoidSortKey;
-KNO_EXPORT u8_condition kno_NoSuchModule, kno_SyntaxError, kno_BindSyntaxError;
+KNO_EXPORT u8_condition kno_NoSuchModule, kno_BindSyntaxError;
 KNO_EXPORT u8_condition kno_TooFewExpressions, kno_NotAnIdentifier;
 KNO_EXPORT u8_condition kno_InvalidMacro, KNO_BadArglist;
 KNO_EXPORT u8_condition kno_ReadOnlyEnv;

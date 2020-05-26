@@ -22,7 +22,7 @@
 #include "stacks.h"
 
 KNO_EXPORT u8_condition kno_NotAFunction, kno_TooManyArgs, kno_TooFewArgs;
-KNO_EXPORT u8_condition kno_VoidArgument;
+KNO_EXPORT u8_condition kno_VoidArgument, kno_SyntaxError;
 
 KNO_EXPORT int kno_wrap_apply;
 

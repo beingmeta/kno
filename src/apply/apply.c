@@ -54,7 +54,7 @@ u8_condition kno_TooFewArgs=_("too few arguments");
 u8_condition kno_NoDefault=_("no default value for #default argument");
 u8_condition kno_ProfilingDisabled=_("profiling not built");
 u8_condition kno_VoidArgument=_("VOID result passed as argument");
-
+u8_condition kno_SyntaxError=_("SCHEME expression syntax error");
 
 /* Whether to always use extended apply profiling */
 int kno_extended_profiling = 0;
@@ -101,17 +101,19 @@ KNO_FASTOP lispval core_call(kno_stack stack,
 			     lispval fn,kno_function f,
 			     int n,kno_argvec argvec)
 {
+  lispval result = KNO_VOID;
   int width = ( (f) && (f->fcn_call_width > n) )? (f->fcn_call_width) : (n);
   int argcheck = -1;
   kno_lisp_type fntype = KNO_PRIM_TYPE(fn);
   if ( (width == n) && (argcheck=check_args(n,argvec) == 0) ) {
     KNO_STACK_SET_OP(stack,fn,0);
     KNO_STACK_SET_ARGS(stack,(lispval *)argvec,width,n,KNO_STATIC_ARGS);
-    if (f) return function_call(stack->stack_label,f,n,argvec,stack);
-    kno_applyfn handler = kno_applyfns[fntype];
-    if (PRED_FALSE(handler==NULL))
-      return kno_err(kno_NotAFunction,"core_call",kno_type_name(fn),fn);
-    else return kno_applyfns[fntype](fn,width,argvec);}
+    if (f) result = function_call(stack->stack_label,f,n,argvec,stack);
+    else {
+      kno_applyfn handler = kno_applyfns[fntype];
+      if (PRED_FALSE(handler==NULL))
+	return kno_err(kno_NotAFunction,"core_call",kno_type_name(fn),fn);
+      else result = kno_applyfns[fntype](fn,width,argvec);}}
   else {
     lispval callbuf[width];
     argcheck = setup_call(stack,fn,width,callbuf,n,argvec);
@@ -119,10 +121,13 @@ KNO_FASTOP lispval core_call(kno_stack stack,
     KNO_STACK_SET_OP(stack,fn,0);
     KNO_STACK_SET_ARGS(stack,callbuf,width,n,KNO_STATIC_ARGS);
     if (f)
-      return function_call(stack->stack_label,f,
-			   n,(kno_argvec)callbuf,
-			   stack);
-    else return kno_applyfns[fntype](fn,n,(kno_argvec)callbuf);}
+      result = function_call
+	(stack->stack_label,f,n,(kno_argvec)callbuf,stack);
+    else result = kno_applyfns[fntype](fn,n,(kno_argvec)callbuf);}
+  if ( (KNO_ABORTED(result)) && ((u8_current_exception)==NULL) )
+    kno_missing_error
+      ( ( (f) && (f->fcn_name)) ? (f->fcn_name) : U8S("core_call"));
+  return result;
 }
 
 static lispval profiled_call(kno_stack stack,
@@ -292,13 +297,13 @@ KNO_EXPORT lispval kno_dcall(struct KNO_STACK *caller,
   if (caller == NULL) caller = kno_stackptr;
   if (caller == NULL)
     return reckless_dcall(caller,fn,n,argvec);
-  int call_flags = ( (caller->stack_flags) & (KNO_STACK_CALL_MASK) );
-  switch (call_flags) {
-  case 0: return profiled_dcall(caller,fn,n,argvec);
-  case KNO_STACK_NO_CONTOURS: return reckless_dcall(caller,fn,n,argvec);
-  case KNO_STACK_NO_PROFILING: return contoured_dcall(caller,fn,n,argvec);
-  default: return profiled_dcall(caller,fn,n,argvec);
-  }
+  else {
+    int call_flags = ( (caller->stack_flags) & (KNO_STACK_CALL_MASK) );
+    switch (call_flags) {
+    case 0: return profiled_dcall(caller,fn,n,argvec);
+    case KNO_STACK_NO_CONTOURS: return reckless_dcall(caller,fn,n,argvec);
+    case KNO_STACK_NO_PROFILING: return contoured_dcall(caller,fn,n,argvec);
+    default: return profiled_dcall(caller,fn,n,argvec);}}
 }
 
 static lispval simple_dcall(lispval fn,int n,kno_argvec args)
@@ -584,6 +589,7 @@ void kno_init_cprims_c(void);
 void kno_init_stacks_c(void);
 void kno_init_lexenv_c(void);
 void kno_init_ffi_c(void);
+void kno_init_exec_c(void);
 
 /* PROFILED functions config */
 
@@ -822,5 +828,6 @@ KNO_EXPORT void kno_init_apply_c()
   kno_init_ffi_c();
   kno_init_stacks_c();
   kno_init_lexenv_c();
+  kno_init_exec_c();
 }
 
