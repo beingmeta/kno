@@ -84,6 +84,21 @@ static lispval compound_tag(lispval x)
   return kno_incref(KNO_COMPOUND_TAG(x));
 }
 
+DEFPRIM1("compound-annotations",compound_annotations,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "`(COMPOUND-ANNOTATIONS *arg0*)` Returns a compound's annotations object, "
+	 "a table, which is the first element of compound's declared as annotated.",
+         kno_compound_type,KNO_VOID);
+static lispval compound_annotations(lispval x)
+{
+  struct KNO_COMPOUND *co = (kno_compound) x;
+  if (co->compound_istable) {
+    if (KNO_TABLEP(co->compound_0))
+      return kno_incref(co->compound_0);
+    else return KNO_EMPTY;}
+  else return KNO_EMPTY;
+}
+
 DEFPRIM1("compound-length",compound_length,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
          "`(COMPOUND-LENGTH *arg0*)` **undocumented**",
          kno_compound_type,KNO_VOID);
@@ -572,6 +587,7 @@ static void link_local_cprims()
   KNO_LINK_PRIM("compound-mutable?",compound_mutablep,1,scheme_module);
   KNO_LINK_PRIM("compound-length",compound_length,1,scheme_module);
   KNO_LINK_PRIM("compound-tag",compound_tag,1,scheme_module);
+  KNO_LINK_PRIM("compound-annotations",compound_annotations,1,scheme_module);
   KNO_LINK_PRIM("pick-compounds",pick_compounds,2,scheme_module);
 
   KNO_LINK_ALIAS("compound-type?",compoundp,scheme_module);
