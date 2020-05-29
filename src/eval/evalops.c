@@ -492,6 +492,65 @@ static lispval type_set_consfn_prim(lispval tag,lispval consfn)
   else return kno_type_error("compound tag","set_compound_consfn_prim",tag);
 }
 
+DEF_KNOSYM(compound);
+DEF_KNOSYM(restore);
+DEF_KNOSYM(annotated);
+DEF_KNOSYM(sequence);
+DEF_KNOSYM(mutable);
+DEF_KNOSYM(opaque);
+
+static lispval restore_method(int n,lispval *args,kno_typeinfo e)
+{
+  int seq_off = -1;
+  int flags = KNO_COMPOUND_INCREF;
+  if ( (e->type_handlers) && (KNO_TABLEP(e->type_handlers)) ) {
+    lispval method = kno_get(e->type_handlers,KNOSYM(restore),VOID);
+    if (KNO_APPLICABLEP(method)) {
+      lispval result = kno_apply(method,n,args);
+      if (! ( (KNO_VOIDP(result)) || (KNO_EMPTYP(result)) ) ) {
+	kno_decref(method);
+	return result;}
+      else if (KNO_ABORTED(result)) {
+	u8_log(LOGERR,"RestoreFailed",
+	       "For %q with %d inits and cons method %q",
+	       e->typetag,n,method);
+	kno_decref(method);}}}
+  if ( (e->type_props) && (KNO_TABLEP(e->type_props)) ) {
+    lispval props = e->type_props;
+    if (kno_test(props,KNOSYM(compound),KNOSYM(opaque)))
+      flags |= KNO_COMPOUND_OPAQUE;
+    if (kno_test(props,KNOSYM(compound),KNOSYM(mutable)))
+      flags |= KNO_COMPOUND_MUTABLE;
+    if (kno_test(props,KNOSYM(compound),KNOSYM(annotated)))
+      flags |= KNO_COMPOUND_TABLE;
+    if (kno_test(props,KNOSYM(compound),KNOSYM(sequence))) {
+      flags |= KNO_COMPOUND_SEQUENCE;
+      if (flags & KNO_COMPOUND_TABLE) flags |= (1<<8);}}
+  /* This is the default restore method */
+  return kno_init_compound_from_elts(NULL,e->typetag,flags,n,args);
+}
+
+DEFPRIM2("type-set-restorefn!",type_set_restorefn_prim,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	 "`(TYPE-SET-RESTOREFN! *arg0* *arg1*)` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+static lispval type_set_restorefn_prim(lispval tag,lispval restorefn)
+{
+  if ((SYMBOLP(tag))||(OIDP(tag)))
+    if (FALSEP(restorefn)) {
+      struct KNO_TYPEINFO *e = kno_use_typeinfo(tag);
+      kno_drop(e->type_handlers,KNOSYM(restore),VOID);
+      e->type_parsefn = NULL;
+      return VOID;}
+    else if (KNO_APPLICABLEP(restorefn)) {
+      struct KNO_TYPEINFO *e = kno_use_typeinfo(tag);
+      kno_store(e->type_handlers,KNOSYM(restore),restorefn);
+      e->type_parsefn = restore_method;
+      return VOID;}
+    else return kno_type_error("applicable","set_compound_restorefn_prim",tag);
+  else return kno_type_error("compound tag","set_compound_restorefn_prim",tag);
+}
+
 DEFPRIM2("type-set-stringfn!",type_set_stringfn_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 "`(TYPE-SET-STRINGFN! *arg0* *arg1*)` **undocumented**",
@@ -543,7 +602,9 @@ static lispval type_handlers_prim(lispval arg,lispval method)
   else return kno_get(e->type_handlers,method,EMPTY);
 }
 
-DEFPRIM3("type-set!",type_set_prim,KNO_MIN_ARGS(3),
+static lispval opaque_symbol, mutable_symbol, table_symbol, sequence_symbol;
+
+DEFPRIM3("type-set!",type_set_prim,KNO_MIN_ARGS(3)|KNO_NDOP,
 	 "`(type-set! *tag* *field* *value*)` stores *value* "
 	 "in *field* of the properties associated with the type tag *tag*.",
 	 kno_any_type,KNO_VOID,kno_symbol_type,KNO_VOID,kno_any_type,KNO_VOID);
@@ -554,7 +615,12 @@ static lispval type_set_prim(lispval arg,lispval field,lispval value)
   int rv = kno_store(e->type_props,field,value);
   if (rv < 0)
     return KNO_ERROR;
-  else if (rv)
+  if (field == KNOSYM(compound) ) {
+    e->type_isopaque = (kno_overlapp(value,KNOSYM(opaque)));
+    e->type_ismutable = (kno_overlapp(value,KNOSYM(mutable)));
+    e->type_istable = (kno_overlapp(value,KNOSYM(annotated)));
+    e->type_issequence = (kno_overlapp(value,KNOSYM(sequence)));}
+  if (rv)
     return KNO_TRUE;
   else return KNO_FALSE;
 }
