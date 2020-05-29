@@ -148,7 +148,9 @@ KNO_EXPORT lispval kno_compound_ref
 KNO_FASTOP int compound_tablep(lispval arg)
 {
   struct KNO_COMPOUND *co = (kno_compound) arg;
-  return (co->compound_istable);
+  return ( (co->compound_istable) &&
+	   (PRED_TRUE(co->compound_length > 0)) &&
+	   (PRED_TRUE(KNO_TABLEP(co->compound_0))) );
 }
 
 static lispval compound_table_get(lispval obj,lispval key,lispval dflt)
