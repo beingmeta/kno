@@ -132,7 +132,7 @@ KNO_EXPORT void _kno_unlock_pool_struct(kno_pool p)
 
 KNO_FASTOP int modify_readonly(lispval table,int val)
 {
-  if (CONSP(table)) {
+  if (TABLEP(table)) {
     kno_lisp_type table_type = KNO_TYPEOF(table);
     switch (table_type) {
     case kno_slotmap_type: {
@@ -158,7 +158,7 @@ KNO_FASTOP int modify_readonly(lispval table,int val)
 
 KNO_FASTOP int modify_modified(lispval table,int val)
 {
-  if (CONSP(table)) {
+  if (TABLEP(table)) {
     kno_lisp_type table_type = KNO_TYPEOF(table);
     switch (table_type) {
     case kno_slotmap_type: {
@@ -1269,7 +1269,7 @@ static void abort_commit(kno_pool p,struct KNO_POOL_COMMITS *commits)
   lispval *scan = commits->commit_vals, *limit = scan+commits->commit_count;
   while (scan<limit) {
     lispval v = *scan++;
-    if (CONSP(v)) {
+    if (TABLEP(v)) {
       modify_modified(v,1);
       kno_decref(v);}}
   u8_big_free(commits->commit_vals);
@@ -1343,7 +1343,7 @@ static int finish_commit(kno_pool p,struct KNO_POOL_COMMITS *commits)
 
 static int savep(lispval v,int only_finished)
 {
-  if (!(CONSP(v))) return 1;
+  if (!(TABLEP(v))) return 1;
   else if (SLOTMAPP(v)) {
     if (KNO_TABLE_MODIFIEDP(v)) {
       if ((!(only_finished))||(KNO_TABLE_FINISHEDP(v))) {
@@ -1371,7 +1371,7 @@ static int savep(lispval v,int only_finished)
 
 static int modifiedp(lispval v)
 {
-  if (!(CONSP(v))) return 1;
+  if (!(TABLEP(v))) return 1;
   else if (SLOTMAPP(v))
     return KNO_TABLE_MODIFIEDP(v);
   else if (SCHEMAPP(v))
@@ -1639,7 +1639,7 @@ KNO_EXPORT lispval kno_fetch_oid(kno_pool p,lispval oid)
       if (KNO_ABORTP(value)) {
 	kno_seterr("FetchFailed","kno_fetch_oid",p->poolid,oid);
 	return value;}
-      if (KNO_CONSP(value)) modify_readonly(value,0);
+      if (KNO_TABLEP(value)) modify_readonly(value,0);
       if ( ! ( (p->pool_flags) & (KNO_STORAGE_VIRTUAL) ) )
 	kno_hashtable_store(&(p->pool_changes),oid,value);
       return value;}
