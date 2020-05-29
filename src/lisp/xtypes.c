@@ -1020,7 +1020,9 @@ static lispval restore_tagged(lispval tag,lispval data,xtype_refs refs)
       if (e->type_issequence)
 	flags |= KNO_COMPOUND_SEQUENCE;
       if (e->type_istable)
-	flags |= KNO_COMPOUND_TABLE;}
+	flags |= KNO_COMPOUND_TABLE;
+      if ( (e->type_issequence) && (e->type_istable) )
+	flags |= (1<<8);}
     if (KNO_VECTORP(data))
       return kno_init_compound_from_elts(NULL,tag,flags,
 					 KNO_VECTOR_LENGTH(data),
