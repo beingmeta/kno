@@ -95,6 +95,7 @@ KNO_VERSION=${KNO_MAJOR}.${KNO_MINOR}.${KNO_RELEASE}
 VERSION=$KNO_VERSION
 RPMVERSION=${KNO_RELEASE}
 DEBVERSION=${KNO_RELEASE}
+DEB_BUILD_TARGET=dist/debs.signed
 LIBSOURCE=lib
 EXESOURCE=exe
 STATICEXE=static
@@ -333,6 +334,7 @@ AC_SUBST(KNO_MINOR)
 AC_SUBST(KNO_RELEASE)
 AC_SUBST(KNO_PATCHLEVEL)
 AC_SUBST(RPMVERSION)
+AC_SUBST(DEB_BUILD_TARGET)
 AC_SUBST(DEBVERSION)
 AC_SUBST(LIBSOURCE)
 AC_SUBST(EXESOURCE)
@@ -526,6 +528,11 @@ if test "$enable_stripping" != "no"; then
    EXESOURCE=exe/stripped
    STATICEXE=static/stripped
 fi
+
+AC_ARG_ENABLE(debsign,--dis[en]able-debian package signing,,enable_debsign="yes")
+if test "$enable_debsign" == "no"; then
+   DEB_BUILD_TARGET=dist/debs.built;
+fi;
 
 AC_ARG_WITH(optdir,--with-optdir Use optional header/lib,,with_optdir="/opt/local")
 if test -d $with_optdir/include; then

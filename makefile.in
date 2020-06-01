@@ -1319,16 +1319,21 @@ dist/debsource.built: staging/kno_@KNO_VERSION@
 	touch dist/debs.built dist/debsource.built;
 
 dist/debs.signed: dist/debs.built
-	(cd staging; debsign -p${GPG} --re-sign -k${GPGID} 	\
-		kno_@KNO_VERSION@*.changes) && 		\
-	(cd staging; cp kno_@KNO_VERSION@*.tar.?z ../dist) && \
-	(cd staging; mv kno*_@KNO_VERSION@*.*               	\
+	@if test "x${GPGID}" = "xnone" || test "x${GPGID}" = "x"; then	\
+	  echo "Skipping GPG signing of debian packages";  	\
+	  touch dist/debs.signed; 				\
+	else 							\
+	  (cd staging; debsign -p${GPG} --re-sign -k${GPGID} 	\
+		kno_@KNO_VERSION@*.changes) && 			\
+	  (cd staging; cp kno_@KNO_VERSION@*.tar.?z ../dist) && \
+	  (cd staging; mv kno*_@KNO_VERSION@*.*               	\
 			sysv-kno_@KNO_VERSION@*.deb  		\
 			upstart-kno_@KNO_VERSION@*.deb  	\
 			systemd-kno_@KNO_VERSION@*.deb  	\
 			elpa-knoc_@KNO_VERSION@*.deb  \
 			../dist) &&                             \
-	touch dist/debs.signed;
+	  touch dist/debs.signed; \
+	fi
 dist/debsource.signed: dist/debsource.built
 	(cd staging; debsign -p${GPG} --re-sign -k${GPGID} 	\
 		kno_@KNO_VERSION@*.changes) && 		\
@@ -1342,7 +1347,7 @@ dist/debsource.signed: dist/debsource.built
 	touch dist/debsource.signed;
 	touch dist/debs.signed;
 
-dist/debs.done: dist/debs.signed
+dist/debs.done: @DEB_BUILD_TARGET@
 	touch dist/debs.done
 dist/debsource.done: dist/debsource.signed
 	touch dist/debsource.done dist/debs.done

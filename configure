@@ -749,6 +749,7 @@ STATICEXE
 EXESOURCE
 LIBSOURCE
 DEBVERSION
+DEB_BUILD_TARGET
 RPMVERSION
 KNO_PATCHLEVEL
 KNO_RELEASE
@@ -914,6 +915,7 @@ with_optlib
 with_sourcedir
 with_extra_sources
 enable_stripping
+enable_debsign
 with_optdir
 with_extlib
 with_rpath
@@ -1620,6 +1622,7 @@ Optional Features:
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
 --enable-stripping strip libraries and executables before installing
+--disenable-debian package signing
 --en/disable-cprofiling compile to support profiling and coverage tools
   --enable-gcov           enable coverage testing with gcov
 --en/disable-ipeval Enable IPEVAL
@@ -3015,6 +3018,7 @@ KNO_VERSION=${KNO_MAJOR}.${KNO_MINOR}.${KNO_RELEASE}
 VERSION=$KNO_VERSION
 RPMVERSION=${KNO_RELEASE}
 DEBVERSION=${KNO_RELEASE}
+DEB_BUILD_TARGET=dist/debs.signed
 LIBSOURCE=lib
 EXESOURCE=exe
 STATICEXE=static
@@ -3174,6 +3178,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/kno/knosource.h include/kno/config.h"
+
 
 
 
@@ -5969,6 +5974,17 @@ if test "$enable_stripping" != "no"; then
    EXESOURCE=exe/stripped
    STATICEXE=static/stripped
 fi
+
+# Check whether --enable-debsign was given.
+if test "${enable_debsign+set}" = set; then :
+  enableval=$enable_debsign;
+else
+  enable_debsign="yes"
+fi
+
+if test "$enable_debsign" == "no"; then
+   DEB_BUILD_TARGET=dist/debs.built;
+fi;
 
 
 # Check whether --with-optdir was given.
