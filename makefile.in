@@ -1310,42 +1310,32 @@ dist/rpms.zip: dist/rpms.done
 # Rules for Debian building
 
 dist/debs.built: staging/kno_@KNO_VERSION@
-	(cd staging/kno_@KNO_VERSION@; \
-	 dpkg-buildpackage -sa -us -uc -b) && \
+	(cd staging/kno_@KNO_VERSION@; 			\
+	 dpkg-buildpackage -sa -us -uc -b) && 		\
+	 cp staging/kno_@KNO_VERSION@*.tar.?z dist &&	\
+	 mv staging/kno*_@KNO_VERSION@*.*		\
+			staging/*_@KNO_VERSION@*.deb	\
+			dist &&				\
 	touch dist/debs.built;
 dist/debsource.built: staging/kno_@KNO_VERSION@
-	(cd staging/kno_@KNO_VERSION@; \
-	 dpkg-buildpackage -sa -us -uc -F) && \
+	(cd staging/kno_@KNO_VERSION@; 			\
+	 dpkg-buildpackage -sa -us -uc -F) && 		\
+	 cp staging/kno_@KNO_VERSION@*.tar.?z dist &&	\
+	 mv staging/kno*_@KNO_VERSION@*.*		\
+			staging/*_@KNO_VERSION@*.deb	\
+			dist &&				\
 	touch dist/debs.built dist/debsource.built;
 
 dist/debs.signed: dist/debs.built
-	@if test "x${GPGID}" = "xnone" || test "x${GPGID}" = "x"; then	\
-	  echo "Skipping GPG signing of debian packages";  	\
-	  touch dist/debs.signed; 				\
-	else 							\
-	  (cd staging; debsign -p${GPG} --re-sign -k${GPGID} 	\
-		kno_@KNO_VERSION@*.changes) && 			\
-	  (cd staging; cp kno_@KNO_VERSION@*.tar.?z ../dist) && \
-	  (cd staging; mv kno*_@KNO_VERSION@*.*               	\
-			sysv-kno_@KNO_VERSION@*.deb  		\
-			upstart-kno_@KNO_VERSION@*.deb  	\
-			systemd-kno_@KNO_VERSION@*.deb  	\
-			elpa-knoc_@KNO_VERSION@*.deb  \
-			../dist) &&                             \
-	  touch dist/debs.signed; \
-	fi
+	@(if test "x${GPGID}" = "xnone" || test "x${GPGID}" = "x"; then	\
+	    echo "Skipping GPG signing of debian packages";  	\
+	  else debsign -p${GPG} --re-sign -k${GPGID} dist/kno_@KNO_VERSION@*.changes; fi) &&
+	 touch dist/debs.signed;
 dist/debsource.signed: dist/debsource.built
-	(cd staging; debsign -p${GPG} --re-sign -k${GPGID} 	\
-		kno_@KNO_VERSION@*.changes) && 		\
-	(cd staging; cp kno_@KNO_VERSION@*.tar.?z ../dist) && \
-	(cd staging; mv kno*_@KNO_VERSION@*.*               	\
-			sysv-kno_@KNO_VERSION@*.deb  		\
-			upstart-kno_@KNO_VERSION@*.deb  	\
-			systemd-kno_@KNO_VERSION@*.deb  	\
-			elpa-knoc_@KNO_VERSION@*.deb  \
-			../dist) &&                             \
-	touch dist/debsource.signed;
-	touch dist/debs.signed;
+	@(if test "x${GPGID}" = "xnone" || test "x${GPGID}" = "x"; then	\
+	    echo "Skipping GPG signing of debian packages";  	\
+	  else debsign -p${GPG} --re-sign -k${GPGID} dist/kno_@KNO_VERSION@*.changes; fi) &&
+	 touch dist/debs.signed dist/debsource.signed;
 
 dist/debs.done: @DEB_BUILD_TARGET@
 	touch dist/debs.done
@@ -1353,8 +1343,7 @@ dist/debsource.done: dist/debsource.signed
 	touch dist/debsource.done dist/debs.done
 
 install-debian install-debs debinstall installdebs: dist/debs.done
-	@cd dist; @SUDO@ dpkg -i kno*@KNO_VERSION@*.deb \
-		elpa-knoc*@KNO_VERSION@*.deb
+	@cd dist; ${SUDO} dpkg -i kno*@KNO_VERSION@*.deb elpa-knoc*@KNO_VERSION@*.deb
 
 # Installation targets
 
@@ -1915,17 +1904,17 @@ dbtests: tests/dbtests.log
 private_files: tests/data/private.text tests/data/private.dtype tests/data/private
 
 tests/data/private.text: tests/data/testobj.text
-	@@SUDO@ cp $< $@
-	@@SUDO@ chown nobody $@
-	@@SUDO@ chmod og-rwx $@
+	@${SUDO} cp $< $@
+	@${SUDO} chown nobody $@
+	@${SUDO} chmod og-rwx $@
 tests/data/private.dtype: tests/data/testobj.dtype
-	@@SUDO@ cp $< $@
-	@@SUDO@ chown nobody $@
-	@@SUDO@ chmod og-rwx $@
+	@${SUDO} cp $< $@
+	@${SUDO} chown nobody $@
+	@${SUDO} chmod og-rwx $@
 tests/data/private:
-	@@SUDO@ mkdir $@
-	@@SUDO@ chown nobody $@
-	@@SUDO@ chmod og-w $@
+	@${SUDO} mkdir $@
+	@${SUDO} chown nobody $@
+	@${SUDO} chmod og-w $@
 
 .PHONY: tests libtests schemetests dbtests cmtdtests memtests leaktests
 
