@@ -1313,17 +1313,13 @@ dist/debs.built: staging/kno_@KNO_VERSION@
 	(cd staging/kno_@KNO_VERSION@; 			\
 	 dpkg-buildpackage -sa -us -uc -b) && 		\
 	 cp staging/kno_@KNO_VERSION@*.tar.?z dist &&	\
-	 mv staging/kno*_@KNO_VERSION@*.*		\
-			staging/*_@KNO_VERSION@*.deb	\
-			dist &&				\
+	 mv staging/*_@KNO_VERSION@*.deb dist &&	\
 	touch dist/debs.built;
 dist/debsource.built: staging/kno_@KNO_VERSION@
 	(cd staging/kno_@KNO_VERSION@; 			\
 	 dpkg-buildpackage -sa -us -uc -F) && 		\
 	 cp staging/kno_@KNO_VERSION@*.tar.?z dist &&	\
-	 mv staging/kno*_@KNO_VERSION@*.*		\
-			staging/*_@KNO_VERSION@*.deb	\
-			dist &&				\
+	 mv staging/*_@KNO_VERSION@*.* dist &&		\
 	touch dist/debs.built dist/debsource.built;
 
 dist/debs.signed: dist/debs.built
