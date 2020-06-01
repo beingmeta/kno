@@ -1313,7 +1313,7 @@ dist/debs.built: staging/kno_@KNO_VERSION@
 	(cd staging/kno_@KNO_VERSION@; 			\
 	 dpkg-buildpackage -sa -us -uc -b) && 		\
 	 cp staging/kno_@KNO_VERSION@*.tar.?z dist &&	\
-	 mv staging/*_@KNO_VERSION@*.deb dist &&	\
+	 mv staging/*_@KNO_VERSION@-* dist &&	\
 	touch dist/debs.built;
 dist/debsource.built: staging/kno_@KNO_VERSION@
 	(cd staging/kno_@KNO_VERSION@; 			\
@@ -1325,12 +1325,12 @@ dist/debsource.built: staging/kno_@KNO_VERSION@
 dist/debs.signed: dist/debs.built
 	@(if test "x${GPGID}" = "xnone" || test "x${GPGID}" = "x"; then	\
 	    echo "Skipping GPG signing of debian packages";  	\
-	  else debsign -p${GPG} --re-sign -k${GPGID} dist/kno_@KNO_VERSION@*.changes; fi) &&
+	  else debsign -p${GPG} --re-sign -k${GPGID} dist/kno_@KNO_VERSION@*.changes; fi) && \
 	 touch dist/debs.signed;
 dist/debsource.signed: dist/debsource.built
 	@(if test "x${GPGID}" = "xnone" || test "x${GPGID}" = "x"; then	\
 	    echo "Skipping GPG signing of debian packages";  	\
-	  else debsign -p${GPG} --re-sign -k${GPGID} dist/kno_@KNO_VERSION@*.changes; fi) &&
+	  else debsign -p${GPG} --re-sign -k${GPGID} dist/kno_@KNO_VERSION@*.changes; fi) && \
 	 touch dist/debs.signed dist/debsource.signed;
 
 dist/debs.done: @DEB_BUILD_TARGET@
