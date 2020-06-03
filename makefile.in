@@ -883,6 +883,9 @@ uninstall: uninstall-core
 
 # Utility targets
 
+NOTAGS:
+	@echo "# (kno)" No TAGS file
+
 TAGS: makefile.in configure.ac include/kno/config.h.in			\
 		tests/libtests/*.c		  			\
 		src/exe/*.c src/exe/*.h include/kno/*.h 		\
@@ -900,7 +903,7 @@ TAGS: makefile.in configure.ac include/kno/config.h.in			\
 		etc/*.in src/extmods/*.in 				\
 		dbg/.gdbinit.in tests/*.scm 				\
 		${SRC_HEADERS}
-	@echo Building TAGS file
+	@echo "# (kno)" Building TAGS file
 	@etags makefile.in configure.ac 		\
 		include/kno/config.h.in     		\
 		include/kno/knosource.h.in     		\

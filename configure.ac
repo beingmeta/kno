@@ -134,7 +134,7 @@ GPG=`which gpg2 || which gpg || gpg`
 GPGID=${GPGID:-FE1BC737F9F323D732AA26330620266BE5AFF294}
 GITDESCRIBE=""
 GITBRANCH=""
-TAGS="TAGS SCHEMETAGS"
+TAGS_TARGET="TAGS SCHEMETAGS"
 LIBSCM="\${REVISION}"
 default_source_dir="\$prefix/src"
 default_config_dir="\$prefix/etc/kno"
@@ -439,7 +439,7 @@ AC_ARG_WITH(chowning,--with/out-chowning,chowning=yes,chowning=no)
 
 AC_CHECK_PROGS(etags,etags,"na")
 if test $etags = "na"; then
-   TAGS=""
+   TAGS_TARGET="NOTAGS"
 fi
 
 AC_CHECK_PROGS(git,"git","na")
