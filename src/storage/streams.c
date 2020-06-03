@@ -863,10 +863,8 @@ ssize_t kno_flush_stream(kno_stream stream)
   else {
     struct KNO_RAWBUF *buf = &(stream->buf.raw);
     if (KNO_STREAM_ISREADING(stream)) {
-      if (buf->buflim == buf->bufpoint) return 0;
-      else {
-        buf->bufpoint = buf->buflim = buf->buffer;
-        return 0;}}
+      buf->bufpoint = buf->buflim = buf->buffer;
+      return 0;}
     else if (buf->bufpoint>buf->buffer) {
       int fileno = stream->stream_fileno;
       size_t n_buffered = buf->bufpoint-buf->buffer;

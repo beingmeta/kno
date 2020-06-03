@@ -219,6 +219,8 @@ KNO_EXPORT int kno_isreadbuf(struct KNO_OUTBUF *b);
 KNO_EXPORT lispval kno_lisp_isreadbuf(struct KNO_OUTBUF *b);
 KNO_EXPORT lispval kno_lisp_iswritebuf(struct KNO_INBUF *b);
 
+KNO_EXPORT int kno_reset_inbuf(struct KNO_INBUF *b);
+
 /* Handle endianness */
 
 KNO_FASTOP unsigned int kno_flip_word(unsigned int _w)

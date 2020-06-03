@@ -2839,6 +2839,7 @@ static int hashindex_commit(kno_index ix,kno_commit_phase phase,
       head_stream=NULL;
       commits->commit_phase = kno_commit_sync;}
     else commits->commit_phase = kno_commit_flush;
+    kno_flush_stream(&(hx->index_stream));
     return rv;}
   case kno_commit_rollback: {
     u8_string rollback_file = u8_string_append(source,".rollback",NULL);
@@ -2868,6 +2869,7 @@ static int hashindex_commit(kno_index ix,kno_commit_phase phase,
       u8_free(commit_file);
       return -1;}
     else {
+      kno_flush_stream(&(hx->index_stream));
       u8_free(commit_file);
       int rv = load_header(hx,stream);
       if (rv<0) {
@@ -2877,6 +2879,7 @@ static int hashindex_commit(kno_index ix,kno_commit_phase phase,
         return -1;}
       else return 1;}}
   case kno_commit_flush: {
+    kno_flush_stream(&(hx->index_stream));
     return 1;}
   case kno_commit_cleanup: {
     if (commits->commit_stream) release_commit_stream(ix,commits);

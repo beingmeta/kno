@@ -73,6 +73,14 @@ KNO_EXPORT lispval kno_lisp_iswritebuf(struct KNO_INBUF *b)
   return KNO_ERROR;
 }
 
+KNO_EXPORT int kno_reset_inbuf(struct KNO_INBUF *b)
+{
+  if (PRED_FALSE(KNO_ISWRITING(b)))
+    return kno_iswritebuf(b);
+  b->bufread=b->buflim=b->buffer;
+  return 0;
+}
+
 /* Closing (freeing) buffers */
 
 KNO_EXPORT size_t _kno_raw_closebuf(struct KNO_RAWBUF *buf)
