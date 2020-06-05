@@ -595,6 +595,9 @@ lispval *kno_seq_elts(lispval seq,int *n)
     return NULL;}
   else {
     kno_lisp_type ctype = KNO_TYPEOF(seq);
+    if ((kno_seqfns[ctype]) && (kno_seqfns[ctype]->elts) &&
+	(kno_seqfns[ctype]->elts != kno_seq_elts))
+      return (kno_seqfns[ctype]->elts)(seq,n);
     lispval *vec = u8_alloc_n(len,lispval);
     *n = len;
     switch (ctype) {
@@ -672,8 +675,16 @@ lispval *kno_seq_elts(lispval seq,int *n)
         vec[i++]=elt;}
       break;}
     default:
-      if ((kno_seqfns[ctype]) && (kno_seqfns[ctype]->elts))
-        return (kno_seqfns[ctype]->elts)(seq,n);
+      if ((kno_seqfns[ctype]) && (kno_seqfns[ctype]->elt)) {
+	lispval (*getelt)(lispval x,int i) = kno_seqfns[ctype]->elt;
+	int i = 0; while (i<len) {
+	  lispval elt = getelt(seq,i);
+	  if (KNO_ABORTED(elt)) {
+	    kno_decref_vec(vec,i);
+	    u8_free(vec);
+	    *n=-1;
+	    return NULL;}
+	  else vec[i++]=elt;}}
       else return NULL;}
     return vec;}
 }
