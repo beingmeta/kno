@@ -762,7 +762,6 @@ static int validate_xtype(kno_inbuf in,xtype_refs refs)
       if (oid_off<0) {
 	kno_seterr("InvalidRefOff","read_xtype",NULL,VOID);
 	return -1;}
-      lispval base = KNO_VOID;
       ssize_t base_off = xt_read_varint(in);
       if (PRED_FALSE(base_off<0)) {
 	kno_err("InvalidBaseOff","read_xtype",NULL,VOID);
@@ -784,7 +783,6 @@ static int validate_xtype(kno_inbuf in,xtype_refs refs)
       if (rv<0) goto early_eod;
       else return 1;}
     case xt_uuid: {
-      unsigned char data[16];
       int rv = skip_bytes(in,16);
       if (rv<0) goto early_eod;
       else return 1;}
@@ -804,7 +802,7 @@ static int validate_xtype(kno_inbuf in,xtype_refs refs)
       if (len<0) goto early_eod;
       int rv = kno_request_bytes(in,len);
       if (rv<0) goto early_eod;
-      const unsigned char *buf = in->buffer, *read=in->bufread;
+      const unsigned char *read=in->bufread;
       rv = validate_xtype(in,refs);
       if ( (rv>=0) && ( (in->bufread-read) != len) ) {
 	kno_seterr("BadXTypeBlock","skip_xtype",NULL,VOID);
@@ -851,7 +849,7 @@ static int validate_xtype(kno_inbuf in,xtype_refs refs)
   }
   else return -1;
  early_eod:
-  kno_err1(kno_UnexpectedEOD);
+  u8_seterr(kno_UnexpectedEOD,"validate_xtype",NULL);
   return -1;
 }
 

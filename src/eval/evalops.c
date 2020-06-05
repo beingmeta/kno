@@ -883,6 +883,7 @@ static void link_local_cprims()
   KNO_LINK_PRIM("type-set-stringfn!",type_set_stringfn_prim,2,kno_scheme_module);
   KNO_LINK_ALIAS("compound-set-stringfn!",type_set_stringfn_prim,kno_scheme_module);
   KNO_LINK_PRIM("type-set-consfn!",type_set_consfn_prim,2,kno_scheme_module);
+  KNO_LINK_PRIM("type-set-restorefn!",type_set_restorefn_prim,2,kno_scheme_module);
   KNO_LINK_PRIM("type-set!",type_set_prim,3,kno_scheme_module);
   KNO_LINK_PRIM("type-props",type_props_prim,2,kno_scheme_module);
   KNO_LINK_PRIM("type-handlers",type_handlers_prim,2,kno_scheme_module);
