@@ -309,7 +309,7 @@ static int unparse_python_object(u8_output out,lispval obj)
       u8_printf(out," keys=%lld",(long long)n_keys);}
     if (PyNumber_Check(pyval)) {
       u8_puts(out," number");}
-    u8_printf(out," %s>");}
+    u8_printf(out," '%s'>",repr);}
   Py_DECREF(as_string);
   Py_DECREF(utf8);
   return 1;
@@ -473,6 +473,36 @@ static u8_string py2string(PyObject *o)
     if (free_temp) Py_DECREF(o);
     kno_seterr("InvalidPythonString","py2string",NULL,KNO_VOID);
     return NULL;}
+}
+
+static lispval py2sym(PyObject *o)
+{
+#if PY_MAJOR_VERSION >= 3
+  if (PyUnicode_Check(o)) {
+    PyObject *utf8 = PyUnicode_AsUTF8String(o);
+    if (utf8) {
+      lispval v = kno_intern((u8_string)PyBytes_AS_STRING(utf8));
+      Py_DECREF(utf8);
+      return v;}
+    else return kno_err("InvalidPythonString","py2lisp",NULL,KNO_VOID);}
+#endif
+#if PY_MAJOR_VERSION < 3
+  if (PyString_Check(o)) {
+    PyObject *u8=PyString_AsEncodedObject(o,"utf8","none");
+    if (u8) {
+      lispval v = kno_intern((u8_string)PyString_AS_STRING(u8));
+      Py_DECREF(u8);
+      return v;}
+    else return kno_err("InvalidPythonString","py2lisp",NULL,KNO_VOID);}
+  else if (PyUnicode_Check(o)) {
+    PyObject *utf8 = PyUnicode_AsUTF8String(o);
+    if (utf8) {
+      lispval v = kno_intern((u8_string)PyBytes_AS_STRING(utf8));
+      Py_DECREF(utf8);
+      return v;}
+    else return kno_err("InvalidPythonString","py2lisp",NULL,KNO_VOID);}
+#endif
+  else return py2lisp(o);
 }
 
 /* This parses string args and is used for calling functions through
@@ -1431,6 +1461,21 @@ static lispval pyerr(u8_context cxt)
   else return kno_err("Mysterious Python error",cxt,NULL,KNO_VOID);
 }
 
+static lispval pyerrobj(u8_context cxt)
+{
+  PyObject *err=PyErr_Occurred();
+  if (err) {
+    PyObject *type, *val, *tb;
+    PyErr_Fetch(&type,&val,&tb);
+    lispval v = kno_make_nvector(3,py2lisp(type),py2lisp(val),py2lisp(tb));
+    if (type) Py_DECREF(type);
+    if (val) Py_DECREF(val);
+    if (tb) Py_DECREF(tb);
+    PyErr_Clear();
+    return v;}
+  else return kno_intern("MysteriousPythonError");
+}
+
 /* This is the KNO apply method for Python functions */
 static lispval pyapply(lispval fcn,int n,kno_argvec args)
 {
@@ -1490,49 +1535,58 @@ static lispval pystring(lispval obj)
   else return kno_err("NotAPythonObject","pystring",NULL,obj);
 }
 
-static int pystore(lispval map,PyObject *obj,PyObject *field)
+static int pystore(lispval map,PyObject *obj,PyObject *field,
+		   int symbolize,int onerr)
 {
-  PyObject *pyval = PyObject_GetItem(obj,field);
-  if (pyval == NULL) pyval = PyObject_GetAttr(obj,field);
-  if (pyval == NULL) return -1;
+  PyObject *pyval = PyObject_GetAttr(obj,field);
+  if (pyval == NULL) {
+    if (onerr == 0) {
+      PyErr_Clear();
+      return 0;}
+    else if (onerr < 0)
+      return -1;
+    else NO_ELSE;}
   if (pyval == Py_None) return 0;
-  lispval slot=py2lisp(field);
-  lispval value=py2lisp(pyval);
+  lispval slot = (symbolize) ? (py2sym(field)) : (py2lisp(field));
+  lispval value = (pyval) ? (py2lisp(pyval)) : (SYMBOLP(slot)) ?
+    (pyerrobj(KNO_SYMBOL_NAME(slot))) : (KNO_STRINGP(slot)) ?
+    (pyerrobj(KNO_CSTRING(slot))) : (kno_intern("error"));
   kno_store(map,slot,value);
   kno_decref(slot); kno_decref(value);
-  Py_DECREF(pyval);
+  if (pyval) Py_DECREF(pyval);
   return 1;
 }
 
-KNO_DEFPRIM("PY/TABLE",pytable,MAX_ARGS(1)|MIN_ARGS(1),
-	    "Returns a table containing the fields and values "
-	    "of a Python object");
-static lispval pytable(lispval obj)
+static lispval pytable_helper(lispval obj,int symbolize,int onerr)
 {
   if (KNO_PRIM_TYPEP(obj,python_object_type)) {
     struct KNO_PYTHON_OBJECT *po=(kno_python_object)obj;
     PyObject *o=po->pyval;
     PyObject *listing = PyObject_Dir(o);
     if (listing) {
+      if (!(PySequence_Check(listing)))
+	return pyerr("pytable: dir() listing not sequence");
+      int i=0, n=PySequence_Length(listing);
+      if (n<0) return pyerr("pytable: bad dir() listing");
       lispval map = kno_empty_slotmap();
-      if (PyTuple_Check(listing)) {
-	int i=0, n=PyTuple_Size(listing);
-	while (i<n) {
-	  PyObject *pelt=PyTuple_GetItem(listing,i);
-	  if (pystore(map,o,pelt)<0) {}
-	  i++;}}
-      else if (PyList_Check(listing)) {
-	int i=0, n=PyList_Size(listing);
-	while (i<n) {
-	  PyObject *pelt=PyList_GetItem(listing,i);
-	  if (pystore(map,o,pelt)<0) {}
-	  i++;}}
-      else {}
+      while (i<n) {
+	PyObject *pelt=PySequence_GetItem(listing,i);
+	if (pystore(map,o,pelt,symbolize,onerr)<0) {
+	  kno_decref(map);
+	  return pyerr("pytable");}
+	i++;}
+      Py_DECREF(listing);
       return map;}
-    else {
-      PyErr_Clear();
-      return kno_incref(obj);}}
+    else return pyerr("py/table");}
   else return kno_err("NotAPythonObject","pytable",NULL,obj);
+}
+
+KNO_DEFPRIM("PY/TABLE",pytable,MAX_ARGS(2)|MIN_ARGS(1),
+	    "Returns a table containing the fields and values "
+	    "of a Python object");
+static lispval pytable(lispval obj)
+{
+  return pytable_helper(obj,1,0);
 }
 
 KNO_DEFPRIM("PY/TYPE",pytype,MAX_ARGS(1)|MIN_ARGS(1),
@@ -1864,9 +1918,7 @@ static lispval pydir(lispval obj)
       lispval r = py2lisp(listing);
       Py_DECREF(listing);
       return r;}
-    else {
-      PyErr_Clear();
-      return KNO_FALSE;}}
+    else return pyerr("py/table");}
   else return kno_err("NotAPythonObject","pydir",NULL,obj);
 }
 
@@ -1880,39 +1932,25 @@ static lispval pydirstar(lispval obj)
     PyObject *o=po->pyval;
     PyObject *listing = PyObject_Dir(o);
     if (listing) {
-      if (PyTuple_Check(listing)) {
-	lispval results = KNO_EMPTY;
-	int i=0, n=PyTuple_Size(listing);
-	while (i<n) {
-	  PyObject *pelt=PyTuple_GetItem(o,i);
-	  lispval elt=py2lisp(pelt);
-	  if (KNO_ABORTP(elt)) {
-	    kno_decref(results);
-	    return elt;}
-	  else {
-	    KNO_ADD_TO_CHOICE(results,elt);
-	    i++;}}
-	return results;}
-      else if (PyList_Check(listing)) {
-	lispval results = KNO_EMPTY;
-	int i=0, n=PyList_Size(listing);
-	while (i<n) {
-	  PyObject *pelt=PyList_GetItem(o,i);
-	  lispval elt=py2lisp(pelt);
-	  if (KNO_ABORTP(elt)) {
-	    kno_decref(results);
-	    return elt;}
-	  else {
-	    KNO_ADD_TO_CHOICE(results,elt);
-	    i++;}}
-	return results;}
-      else {
-	lispval r = py2lisp(listing);
-	Py_DECREF(listing);
-	return r;}}
-    else {
-      PyErr_Clear();
-      return KNO_EMPTY;}}
+      if (!(PySequence_Check(listing)))
+	return pyerr("pytable: dir() listing not sequence");
+      int i=0, n=PySequence_Length(listing);
+      if (n<0) return pyerr("pytable: bad dir() listing");
+      lispval results = KNO_EMPTY;
+      while (i<n) {
+	PyObject *pelt=PySequence_GetItem(listing,i);
+	lispval elt=py2lisp(pelt);
+	Py_DECREF(pelt);
+	if (KNO_ABORTED(elt)) {
+	  kno_decref(results);
+	  Py_DECREF(listing);
+	  return elt;}
+	else {
+	  KNO_ADD_TO_CHOICE(results,elt);
+	  i++;}}
+      Py_DECREF(listing);
+      return results;}
+    else return pyerr("py/dir");}
   else return KNO_EMPTY;
 }
 
