@@ -289,6 +289,7 @@ static void recycle_python_object(struct KNO_RAW_CONS *obj)
 static int unparse_python_object(u8_output out,lispval obj)
 {
   struct KNO_PYTHON_OBJECT *pyo = (struct KNO_PYTHON_OBJECT *)obj;
+  PyObject *pyval = pyo->pyval;
   PyObject *as_string = PyObject_Repr(pyo->pyval);
   if (as_string == NULL) {
     u8_printf(out,"#<PYTHON Weird #x%llx>",
@@ -298,7 +299,17 @@ static int unparse_python_object(u8_output out,lispval obj)
   u8_string repr = PyBytes_AS_STRING(utf8);
   if (repr[0] == '<')
     u8_printf(out,"#🐍%s",repr);
-  else u8_printf(out,"#<PYTHON %s>",repr);
+  else {
+    u8_puts(out,"#<PYTHON");
+    if (PySequence_Check(pyval)) {
+      Py_ssize_t len = PySequence_Length(pyval);
+      u8_printf(out," len=%lld",(long long)len);}
+    if (PyMapping_Check(pyval)) {
+      Py_ssize_t n_keys = PyMapping_Size(pyval);
+      u8_printf(out," keys=%lld",(long long)n_keys);}
+    if (PyNumber_Check(pyval)) {
+      u8_puts(out," number");}
+    u8_printf(out," %s>");}
   Py_DECREF(as_string);
   Py_DECREF(utf8);
   return 1;
@@ -360,6 +371,19 @@ static lispval py2lisp(PyObject *o)
       return (lispval)
 	kno_digit_stream_to_bigint(bytelen,(bigint_producer)read_bigint_byte,
 				  (void *)bytes,256,(sign<0));}}
+#if PY_MAJOR_VERSION >= 3
+  else if (PyUnicode_Check(o)) {
+    PyObject *utf8 = PyUnicode_AsUTF8String(o);
+    if (utf8) {
+      lispval v = knostring((u8_string)PyBytes_AS_STRING(utf8));
+      Py_DECREF(utf8);
+      return v;}
+    else return kno_err("InvalidPythonString","py2lisp",NULL,KNO_VOID);}
+  else if (PyBytes_Check(o)) {
+    Py_ssize_t len = PyBytes_GET_SIZE(o);
+    char *data = PyBytes_AS_STRING(o);
+    return kno_make_packet(NULL,len,data);}
+#endif
 #if PY_MAJOR_VERSION < 3
   else if (PyString_Check(o)) {
     PyObject *u8=PyString_AsEncodedObject(o,"utf8","none");
@@ -375,19 +399,6 @@ static lispval py2lisp(PyObject *o)
       Py_DECREF(utf8);
       return v;}
     else return kno_err("InvalidPythonString","py2lisp",NULL,KNO_VOID);}
-#endif
-#if PY_MAJOR_VERSION >= 3
-  else if (PyUnicode_Check(o)) {
-    PyObject *utf8 = PyUnicode_AsUTF8String(o);
-    if (utf8) {
-      lispval v = knostring((u8_string)PyBytes_AS_STRING(utf8));
-      Py_DECREF(utf8);
-      return v;}
-    else return kno_err("InvalidPythonString","py2lisp",NULL,KNO_VOID);}
-  else if (PyBytes_Check(o)) {
-    Py_ssize_t len = PyBytes_GET_SIZE(o);
-    char *data = PyBytes_AS_STRING(o);
-    return kno_make_packet(NULL,len,data);}
 #endif
   else if (PyTuple_Check(o)) {
     /* TODO: Should we map tuples and lists into separate types? */
@@ -562,7 +573,7 @@ static PyObject *lisp2py(lispval o)
   if (KNO_FIXNUMP(o)) {
     long lval=KNO_FIX2INT(o);
     return PyInt_FromLong(lval);}
-  else if (KNO_IMMEDIATEP(o))
+  else if (KNO_IMMEDIATEP(o)) {
     if (KNO_VOIDP(o)) Py_RETURN_NONE;
     else if (KNO_TRUEP(o)) Py_RETURN_TRUE;
     else if (KNO_FALSEP(o)) Py_RETURN_FALSE;
@@ -573,7 +584,7 @@ static PyObject *lisp2py(lispval o)
     else {
       pylisp *po=newpylisp();
       po->lval=kno_incref(o);
-      return (PyObject *)po;}
+      return (PyObject *)po;}}
   else if (KNO_STRINGP(o))
     return PyUnicode_DecodeUTF8
       ((char *)KNO_STRING_DATA(o),KNO_STRING_LENGTH(o),"none");
@@ -1479,24 +1490,107 @@ static lispval pystring(lispval obj)
   else return kno_err("NotAPythonObject","pystring",NULL,obj);
 }
 
+static int pystore(lispval map,PyObject *obj,PyObject *field)
+{
+  PyObject *pyval = PyObject_GetItem(obj,field);
+  if (pyval == NULL) pyval = PyObject_GetAttr(obj,field);
+  if (pyval == NULL) return -1;
+  if (pyval == Py_None) return 0;
+  lispval slot=py2lisp(field);
+  lispval value=py2lisp(pyval);
+  kno_store(map,slot,value);
+  kno_decref(slot); kno_decref(value);
+  Py_DECREF(pyval);
+  return 1;
+}
+
+KNO_DEFPRIM("PY/TABLE",pytable,MAX_ARGS(1)|MIN_ARGS(1),
+	    "Returns a table containing the fields and values "
+	    "of a Python object");
+static lispval pytable(lispval obj)
+{
+  if (KNO_PRIM_TYPEP(obj,python_object_type)) {
+    struct KNO_PYTHON_OBJECT *po=(kno_python_object)obj;
+    PyObject *o=po->pyval;
+    PyObject *listing = PyObject_Dir(o);
+    if (listing) {
+      lispval map = kno_empty_slotmap();
+      if (PyTuple_Check(listing)) {
+	int i=0, n=PyTuple_Size(listing);
+	while (i<n) {
+	  PyObject *pelt=PyTuple_GetItem(listing,i);
+	  if (pystore(map,o,pelt)<0) {}
+	  i++;}}
+      else if (PyList_Check(listing)) {
+	int i=0, n=PyList_Size(listing);
+	while (i<n) {
+	  PyObject *pelt=PyList_GetItem(listing,i);
+	  if (pystore(map,o,pelt)<0) {}
+	  i++;}}
+      else {}
+      return map;}
+    else {
+      PyErr_Clear();
+      return kno_incref(obj);}}
+  else return kno_err("NotAPythonObject","pytable",NULL,obj);
+}
+
+KNO_DEFPRIM("PY/TYPE",pytype,MAX_ARGS(1)|MIN_ARGS(1),
+	    "Returns the Python type object for a type");
+static lispval pytype(lispval obj)
+{
+  if (KNO_PRIM_TYPEP(obj,python_object_type)) {
+    struct KNO_PYTHON_OBJECT *po=(kno_python_object)obj;
+    PyObject *o=po->pyval;
+    PyObject *ptype = PyObject_Type(o);
+    if ( (ptype == NULL) || (!(PyType_Check(ptype))) )
+      return pyerr("py/type");
+    lispval wrapped = py2lisp(ptype);
+    Py_DECREF(ptype);
+    return wrapped;}
+  else return kno_err("NotAPythonObject","pytable",NULL,obj);
+}
+
+KNO_DEFPRIM("PY/TYPENAME",pytypename,MAX_ARGS(1)|MIN_ARGS(1),
+	    "Returns name of the Python type for an object");
+static lispval pytypename(lispval obj)
+{
+  if (KNO_PRIM_TYPEP(obj,python_object_type)) {
+    struct KNO_PYTHON_OBJECT *po=(kno_python_object)obj;
+    PyObject *o=po->pyval;
+    PyObject *ptype = PyObject_Type(o);
+    if ( (ptype == NULL) || (!(PyType_Check(ptype))) )
+      return pyerr("py/typename");
+    PyTypeObject *pto = (PyTypeObject *) ptype;
+    lispval result = knostring(pto->tp_name);
+    Py_DECREF(ptype);
+    return result;}
+  else return kno_err("NotAPythonObject","pytable",NULL,obj);
+}
+
 KNO_DEFPRIM1("PY/IMPORT",pyimport,MIN_ARGS(1),
 	     "Returns a python module object",
-	     kno_string_type,KNO_VOID);
+	     kno_any_type,KNO_VOID);
 static lispval pyimport(lispval modname)
 {
-  PyObject *o;
+  u8_string modstring = NULL; size_t len = -1;
   if (KNO_STRINGP(modname)) {
-    PyObject *pmodulename=lisp2py(modname);
-    o = PyImport_Import(pmodulename);
-    if (o) {
-      lispval wrapped=py2lisp(o);
-      Py_DECREF(pmodulename);
-      Py_DECREF(o);
-      return wrapped;}
-    else {
-      Py_DECREF(pmodulename);
-      return pyerr("pyimport");}}
-  else return KNO_FALSE;
+    modstring = KNO_CSTRING(modname);
+    len = KNO_STRLEN(modname);}
+  else if (KNO_SYMBOLP(modname)) {
+    modstring = KNO_SYMBOL_NAME(modname);
+    len = strlen(modstring);}
+  else return kno_err("BadPythonModName","pyimport",NULL,modname);
+  PyObject *pmodulename = PyUnicode_DecodeUTF8(modstring,len,"none");
+  PyObject *o = PyImport_Import(pmodulename);
+  if (o) {
+    lispval wrapped=py2lisp(o);
+    Py_DECREF(pmodulename);
+    Py_DECREF(o);
+    return wrapped;}
+  else {
+    Py_DECREF(pmodulename);
+    return pyerr("pyimport");}
 }
 
 static lispval py_use_module_evalfn
@@ -1511,6 +1605,12 @@ static lispval py_use_module_evalfn
   if (ABORTED(modname)) return modname;
   else if (KNO_STRINGP(modname)) {
     PyObject *pmodulename=lisp2py(modname);
+    module = PyImport_Import(pmodulename);
+    Py_DECREF(pmodulename);}
+  else if (KNO_SYMBOLP(modname)) {
+    u8_string pname = KNO_SYMBOL_NAME(modname);
+    size_t len = strlen(pname);
+    PyObject *pmodulename = PyUnicode_DecodeUTF8(pname,len,"none");
     module = PyImport_Import(pmodulename);
     Py_DECREF(pmodulename);}
   else if (KNO_TYPEP(modname,python_object_type))
@@ -1793,6 +1893,19 @@ static lispval pydirstar(lispval obj)
 	    KNO_ADD_TO_CHOICE(results,elt);
 	    i++;}}
 	return results;}
+      else if (PyList_Check(listing)) {
+	lispval results = KNO_EMPTY;
+	int i=0, n=PyList_Size(listing);
+	while (i<n) {
+	  PyObject *pelt=PyList_GetItem(o,i);
+	  lispval elt=py2lisp(pelt);
+	  if (KNO_ABORTP(elt)) {
+	    kno_decref(results);
+	    return elt;}
+	  else {
+	    KNO_ADD_TO_CHOICE(results,elt);
+	    i++;}}
+	return results;}
       else {
 	lispval r = py2lisp(listing);
 	Py_DECREF(listing);
@@ -1847,7 +1960,7 @@ static int python_sequence_length(lispval x)
       Py_ssize_t len = PySequence_Length(pyo->pyval);
       if (len<0)
 	return translate_python_error("python_sequence_length");
-      else return KNO_INT(len);}
+      else return len;}
     else return kno_type_error("python sequence","python_sequence_length",x);}
   else return kno_type_error("python object","python_sequence_length",x);
 }
@@ -1865,7 +1978,7 @@ static lispval python_sequence_elt(lispval x,int i)
 	return kno_err(kno_RangeError,"python_sequence_elt",
 		       u8_bprintf(buf,"%d",i),x);}
       else {
-	PyObject *item = PySequence_Fast_GET_ITEM(pyo->pyval,(Py_ssize_t)i);
+	PyObject *item = PySequence_GetItem(pyo->pyval,(Py_ssize_t)i);
 	return py2lisp(item);}}
     else return kno_type_error("python sequence","python_sequence_elt",x);}
   else return kno_type_error("python object","python_sequence_elt",x);
@@ -2098,9 +2211,15 @@ static void link_local_cprims()
 		 python_object_type,KNO_VOID);
   KNO_LINK_TYPED("PY/STRING",pystring,1,pymodule,
 		 python_object_type,KNO_VOID);
+  KNO_LINK_TYPED("PY/TYPE",pytype,1,pymodule,
+		 python_object_type,KNO_VOID);
   KNO_LINK_TYPED("PY/DIR",pydir,1,pymodule,
 		 python_object_type,KNO_VOID);
+  KNO_LINK_TYPED("PY/TYPENAME",pytypename,1,pymodule,
+		 python_object_type,KNO_VOID);
   KNO_LINK_TYPED("PY/DIR*",pydirstar,1,pymodule,
+		 python_object_type,KNO_VOID);
+  KNO_LINK_TYPED("PY/TABLE",pytable,1,pymodule,
 		 python_object_type,KNO_VOID);
   KNO_LINK_TYPED("PY/GET",pyget,2,pymodule,
 		 python_object_type,KNO_VOID,
@@ -2170,11 +2289,11 @@ void kno_init_parseltongue()
 {
   if (!(Py_IsInitialized())) Py_Initialize();
   PySys_SetArgvEx(py_argc,py_argv,0);
-  fprintf(stderr,"Setup compare methods\n");
+  // fprintf(stderr,"Setup compare methods\n");
   setup_rich_compare_methods();
-  fprintf(stderr,"Init kno module\n");
+  // fprintf(stderr,"Init kno module\n");
   init_kno_module();
-  fprintf(stderr,"Init python module\n");
+  // fprintf(stderr,"Init python module\n");
 }
 
 #if PY_MAJOR_VERSION >= 3

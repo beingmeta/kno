@@ -1634,6 +1634,12 @@ AC_ARG_WITH(parseltongue,--with/out-parseltongue Build parseltongue libraries fo
 
 if test "$with_parseltongue" = "no" || test "$with_parseltongue" = "2"; then
    echo "Not building parseltongue3 library";
+elif test ! -z "$pkg_config" && $pkg_config --exists python3-embed; then
+   PYTHON3_LDFLAGS=`$pkg_config python3-embed --libs`;
+   PYTHON3_CFLAGS=`$pkg_config python3-embed --cflags`;
+elif test ! -z "$pkg_config" && $pkg_config --exists python3; then
+   PYTHON3_LDFLAGS=`$pkg_config python3 --libs`;
+   PYTHON3_CFLAGS=`$pkg_config python3 --cflags`;
 elif test ! -z "$pkg_config" && $pkg_config --exists python-3.9; then
    PYTHON3_LDFLAGS=`$pkg_config python-3.9 --libs`;
    PYTHON3_CFLAGS=`$pkg_config python-3.9 --cflags`;
@@ -1659,6 +1665,9 @@ fi;
 
 if test "$with_parseltongue" = "no" || test "$with_parseltongue" = "3"; then
    echo "Not building parseltongue2 library";
+elif test ! -z "$pkg_config" && $pkg_config --exists python2; then
+   PYTHON2_LDFLAGS=`$pkg_config python2 --libs`;
+   PYTHON2_CFLAGS=`$pkg_config python2 --cflags`;
 elif test ! -z "$pkg_config" && $pkg_config --exists python-2.7; then
    PYTHON2_LDFLAGS=`$pkg_config python-2.7 --libs`;
    PYTHON2_CFLAGS=`$pkg_config python-2.7 --cflags`;
@@ -1668,7 +1677,7 @@ else
      PYTHON2_CFLAGS="-I${PYTHON2_INCLUDE_DIR}";
      PYTHON2_LDFLAGS="-l${PYTHON2_LIB}";
    fi;
-fi;	     
+fi;
 
 if test ! -z "${PYTHON3_CFLAGS}"; then
    CMODULES="lib/kno/parseltongue.$shared_suffix ${CMODULES}"
