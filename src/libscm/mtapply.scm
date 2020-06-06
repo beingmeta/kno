@@ -14,7 +14,7 @@
   (clearcaches)
   #t)
 
-(defamba (mt/apply spec . args)
+(defambda (mt/apply spec . args)
   (let ((opts spec) (fcn #f) (args args))
     (cond ((applicable? opts)
 	   (set! fcn opts) (set! opts #f))

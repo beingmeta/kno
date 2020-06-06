@@ -205,7 +205,7 @@
     (if (exists? good-mods)
 	(session-config! 'appmods good-mods *session*)
 	(logwarn |UseMods| "No modules specified"))))
-(define usemod.command optmods.command)
+(define usemod.command usemods.command)
 (define (optmods.command . modules)
   "Optimize the specified modules for the current session"
   (let ((good-mods (get-good-mods (elts modules) #t)))
