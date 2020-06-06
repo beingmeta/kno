@@ -702,11 +702,6 @@ lispval lambda_call(kno_stack stack,
  stackpush:
   lambda_stack->stack_file = filename;
   lispval args[n_vars];
-#if 0
-  _lambda_stack.stack_args.elts	 = args;
-  _lambda_stack.stack_args.count = 0;
-  _lambda_stack.stack_args.len	 = n_vars;
-#endif
 
   kno_profile profile = proc->fcn_profile;
   struct rusage before; struct timespec start;
@@ -721,6 +716,8 @@ lispval lambda_call(kno_stack stack,
     ((n_given < max_positional) ? (n_given) : (max_positional)) :
     (n_given);
 
+  lispval *inits = proc->lambda_inits;
+
   /* Handle positional arguments */
   while (i<last_positional) {
     lispval arg = given[i];
@@ -729,19 +726,47 @@ lispval lambda_call(kno_stack stack,
       arg=KNO_QCHOICEVAL(arg);
     else if (KNO_BAD_ARGP(arg))
       return kno_bad_arg(arg,"lambda_call",vars[i]);
+    else if ( (arg == KNO_DEFAULT_VALUE) && (inits) ) {
+      lispval init_expr = inits[i];
+      lispval init_val  = init_expr;
+      if (KNO_VOIDP(init_expr)) {}
+      else if (KNO_LEXREFP(init_expr))
+	init_val = eval_lexref(init_expr,proc_env);
+      else if (KNO_SYMBOLP(init_expr))
+	init_val = eval_symbol(init_expr,proc_env);
+      else if (KNO_CONSP(init_expr)) {
+	if (KNO_PAIRP(init_expr))
+	  init_val = eval_expr(KNO_CAR(init_expr),init_expr,proc_env,
+			       lambda_stack,0);
+	else if (KNO_SCHEMAPP(init_expr))
+	  init_val = eval_schemap(init_expr,proc_env,lambda_stack);
+	else if (KNO_CHOICEP(init_expr))
+	  init_val = eval_choice(init_expr,proc_env,lambda_stack);
+	else kno_incref(init_val);}
+      else NO_ELSE;
+      if (KNO_ABORTED(init_val)) {
+	kno_decref_vec(args,i);
+	kno_pop_stack(lambda_stack);
+	return init_val;}
+      else if (init_val == KNO_TAIL) {
+	lispval err = kno_bad_arg(init_val,"lambda_call/default",init_expr);
+	kno_decref_vec(args,i);
+	kno_pop_stack(lambda_stack);
+	return err;}
+      else if (init_val == KNO_VOID)
+	init_val = arg;
+      else NO_ELSE;
+      args[i++] = init_val;
+      continue;}
     else NO_ELSE;
     args[i++] = arg;
     kno_incref(arg);}
-#if 0
-  _lambda_stack.stack_args.count = n_given;
-#endif
 
   /* If we're synchronized, lock the mutex.
      We include argument defaults within the lock ?? */
   if (synchronized) u8_lock_mutex(&(proc->lambda_lock));
 
   /* Handle argument defaults */
-  lispval *inits = proc->lambda_inits;
  eval_inits:
   if (inits) {
     while (i<max_positional) {
@@ -759,11 +784,13 @@ lispval lambda_call(kno_stack stack,
 	init_val = eval_lexref(init_expr,proc_env);
       else init_val = init_expr;
       if (ABORTED(init_val)) {
+	kno_decref_vec(args,i);
 	kno_pop_stack(lambda_stack);
 	return init_val;}
       else if (VOIDP(init_val)) args[i++]=init_val;
       else if (KNO_BAD_ARGP(init_val)) {
 	lispval err = kno_bad_arg(init_val,"lambda_call/default",init_expr);
+	kno_decref_vec(args,i);
 	kno_pop_stack(lambda_stack);
 	return err;}
       else {
