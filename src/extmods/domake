@@ -1,5 +1,5 @@
 #!/bin/sh
-ALLDIRS="hyphenate imagetools mongodb mysql odbc sundown tidy zeromq ziptools"
+ALLDIRS="hyphenate imagetools mongodb mysql odbc sundown tidy zeromq leveldb rocksdb nng ziptools"
 DIRS=
 ARGS=
 if [ $# = 1 ]; then
