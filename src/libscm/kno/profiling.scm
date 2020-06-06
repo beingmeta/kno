@@ -31,10 +31,10 @@
 	       (try (tryif (applicable? sort) sort)
 		    (get sortfns sort)
 		    (irritant sort |BadCallSortFn|)))
-      (reject (profile/getcalls (profile-getprocs module)) profile/ncalls 0)))
+      (reject (profile/getcalls (module-getprocs module)) profile/ncalls 0)))
 
 (define (profile-module! module)
-  (let ((procs (profile-getprocs module)))
+  (let ((procs (module-getprocs module)))
     (config! 'profiled procs)
     (|| procs)))
 
