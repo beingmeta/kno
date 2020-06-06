@@ -1611,6 +1611,37 @@ static lispval withenv_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   return result;
 }
 
+static lispval withbindings_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+{
+  kno_lexenv use_env = env; int free_env = 0;
+  lispval env_expr = kno_get_arg(expr,1), env_arg=KNO_VOID;
+  if (KNO_VOIDP(env_expr))
+    return kno_err(kno_SyntaxError,"withbindings_evalfn",NULL,expr);
+  lispval body = kno_get_body(expr,2);
+  if ( (KNO_PAIRP(body)) || (body == KNO_EMPTY_LIST) ) {
+    env_arg = kno_eval(env_expr,env,_stack,0);
+    if (KNO_ABORTED(env_arg))
+      return env_arg;
+    else if (KNO_LEXENVP(env_arg))
+      use_env=(kno_lexenv) env_arg;
+    else if (KNO_TABLEP(env_arg)) {
+      use_env = kno_make_env(env_arg,env);
+      free_env = 1;}
+    else {
+      kno_seterr("BadBindingsArg","withbindings_evalfn",NULL,env_arg);
+      kno_decref(env_arg);
+      return KNO_ERROR;}
+    lispval result = KNO_VOID;
+    KNO_DOLIST(sub_expr,body) {
+      kno_decref(result);
+      result = kno_eval(sub_expr,use_env,_stack,0);
+      if (KNO_ABORTED(result)) break;}
+    if (use_env != ((kno_lexenv)env_arg)) kno_free_lexenv(use_env);
+    kno_decref(env_arg);
+    return result;}
+  else return kno_err(kno_SyntaxError,"withbindings_evalfn",NULL,expr);
+}
+
 /* Eval/apply related primitives */
 
 /* Table functions used everywhere (:)) */
@@ -1840,6 +1871,12 @@ static void init_localfns()
 
   kno_def_evalfn(kno_scheme_module,"WITHENV",withenv_evalfn,
 		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"WITH-BINDINGS",withbindings_evalfn,
+		 "`(WITH-BINDINGS *bindings* body...)` evaluates body using "
+		 "*bindings*. If *bindings* is an environment, the body is "
+		 "evaluated in that environment; if *bindings* is a table, "
+		 "a new environment is created based on *bindings* and the "
+		 "current environment");
 
   kno_def_evalfn(kno_scheme_module,"VOID",void_evalfn,
 		 "*undocumented*");
