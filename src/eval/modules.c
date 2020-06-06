@@ -694,11 +694,13 @@ get_binding_helper(lispval modarg,lispval symbol,lispval dflt,
   else if (KNO_HASHTABLEP(module)) {
     lispval value = kno_hashtable_get((kno_hashtable)module,symbol,VOID);
     if (VOIDP(value)) {
-      lispval retval=
-        kno_err(kno_UnboundIdentifier,caller,SYMBOL_NAME(symbol),module);
-      if (module == modarg) kno_decref(module);
-      return retval;}
-    else return kno_incref(dflt);}
+      if (VOIDP(dflt)) {
+	lispval retval=
+	  kno_err(kno_UnboundIdentifier,caller,SYMBOL_NAME(symbol),module);
+	if (module == modarg) kno_decref(module);
+	return retval;}
+      else return kno_incref(dflt);}
+    else return value;}
   else if (KNO_LEXENVP(module)) {
     kno_lexenv env = (kno_lexenv) module;
     if (symeval) {
