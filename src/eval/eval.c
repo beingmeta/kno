@@ -1636,8 +1636,9 @@ static lispval withbindings_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       kno_decref(result);
       result = kno_eval(sub_expr,use_env,_stack,0);
       if (KNO_ABORTED(result)) break;}
-    if (use_env != ((kno_lexenv)env_arg)) kno_free_lexenv(use_env);
-    kno_decref(env_arg);
+    if (use_env == ((kno_lexenv)env_arg))
+      kno_decref(env_arg);
+    else kno_free_lexenv(use_env);
     return result;}
   else return kno_err(kno_SyntaxError,"withbindings_evalfn",NULL,expr);
 }
