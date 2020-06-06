@@ -73,43 +73,35 @@
 
 #|Markdown
 
-1. BEFOREFN is called on the batch, the batch-state, the loop-state, and the
-task state)
+1. BEFOREFN is called on the batch, the batch-state, the loop-state, and the task state)
 
-2. PROCESSFN is the item function itself. It is called on each element
-of the batch. If it takes two arguments, it is called on the item and
-the batch state. If it takes 4 arguments, it is called on the item,
-batch state, loop state, and task state.
+2. PROCESSFN is the item function itself. It is called on each element of the batch. If it takes two
+arguments, it is called on the item and the batch state. If it takes 4 arguments, it is called on
+the item, batch state, loop state, and task state.
 
-3. AFTERFN is called on the batch, the batch-state, the loop-state, and the
-task state)
+3. AFTERFN is called on the batch, the batch-state, the loop-state, and the task state)
 
-4. The 'loop state' is then 'bumped'. This updates the total
-'items' (number of items processed), total 'batches' (number of
-batches processed), and 'vtime' (how much realtime this thread spent
-on the batch).
+4. The 'loop state' is then 'bumped'. This updates the total 'items' (number of items processed),
+total 'batches' (number of batches processed), 'coretime' (how much realtime was spent in PROCESSFN)
+and 'threadtime' (how much realtime this thread spent on the batch).
 
 5. LOGFN is then called on:
 * the items processed;
-* the clock time spent on PROCESS
-* the clock time spent on BEFORE+PROCESS+AFTER
+* the clock time spent inside of processfn (CORETIME)
+* the clock time spent on the combined BEFORE+CORETIME+AFTER
 * the batch state
 * the loop state
 * the task state
 
-5. The STOPFNs are then called and if any return non-false, the loop
-'stops'. This means that the current thread stops processing batches
-and all of the other threads stop when they're done with their current
-batch.
+5. The STOPFNs are then called and if any return non-false, the loop 'stops'. This means that the
+current thread stops processing batches and all of the other threads stop when they're done with
+their current batch.
 
-6. If the loop hasn't stopped, the loop's *monitors* are called. A
-monitor is either a function or a pair of functions. In the first
-case, the function is simply called on the loop-state; in the second,
-the CAR is called on the loop-state and the CDR is called if the CAR
-returns #t.
+6. If the loop hasn't stopped, the loop's *monitors* are called. A monitor is either a function or a
+pair of functions. In the first case, the function is simply called on the loop-state; in the
+second, the CAR is called on the loop-state and the CDR is called if the CAR returns #t.
 
-The monitors can stop the loop by storing a value in the 'stopped
-slot of the loop state.
+The monitors can stop the loop by storing a value in the 'stopped slot of the loop state.
 
 |#
 
@@ -168,11 +160,11 @@ slot of the loop state.
       (store! loop-state 'items 
 	      (+ (getopt loop-state 'items 0) count)))
     (when proc-time
-      (store! loop-state 'vproctime 
-	      (+ (getopt loop-state 'vproctime 0.0) proc-time)))
+      (store! loop-state 'coretime 
+	      (+ (getopt loop-state 'coretime 0.0) proc-time)))
     (when thread-time
-      (store! loop-state 'vtime 
-	      (+ (getopt loop-state 'vtime 0.0) thread-time)))
+      (store! loop-state 'threadtime 
+	      (+ (getopt loop-state 'threadtime 0.0) thread-time)))
     (do-choices (counter (get loop-state 'counters))
       (store! loop-state counter
 	      (+ (try (get loop-state counter) 0)
@@ -566,7 +558,7 @@ slot of the loop state.
 	"Finished " ($count n-items) " " count-term " "
 	(when (and batchsize (> batchsize 1))
 	  (printout "across " ($count (length batches)) " batches "))
-	"in " (secs->string elapsed) " "
+	"in " (secs->string elapsed #t) " "
 	"averaging " ($showrate rate) " " count-term "/sec"))
 
     (unless (test loop-state 'stopped)
@@ -650,7 +642,7 @@ slot of the loop state.
 	     (drop! loop-state 'logfns logfn))))))
 
 ;;; The default log function
-(define (engine/log batch proctime time batch-state loop-state state)
+(define (engine/log batch coretime time batch-state loop-state state)
   (let* ((count (getopt loop-state 'items 0))
 	 (count-term (try (get loop-state 'count-term) "items"))
 	 (logrates (get loop-state 'logrates))
@@ -736,7 +728,7 @@ slot of the loop state.
 		  (printout " (" ($showrate rate) " " 
 		    (downcase counter) "/sec)"))))))))))
 
-(define (engine/logrates batch proctime time batch-state loop-state state)
+(define (engine/logrates batch coretime time batch-state loop-state state)
   (let ((elapsed (elapsed-time (get loop-state 'started)))
 	(items (get loop-state 'items)))
     (lognotice |Engine/Counts| (engine/showrates loop-state))))
@@ -751,7 +743,7 @@ slot of the loop state.
       "stime=" (compact-interval-string (get usage 'stime)) "; "
       "elapsed=" (secs->string (get usage 'clock)))))
 
-(define (engine/logrusage batch proctime time batch-state loop-state state)
+(define (engine/logrusage batch coretime time batch-state loop-state state)
   (lognotice |Engine/Resources| (engine/showrusage)))
 
 ;;; Filling the fifo
@@ -822,7 +814,7 @@ slot of the loop state.
 
 (define (get-check-state loop-state (copy (frame-create #f)))
   (do-choices (slot (choice (get loop-state 'counters) 
-			    '{items batches vproctime}))
+			    '{items batches coretime threadtime}))
     (when (exists? (get loop-state slot))
       (store! copy slot (get loop-state slot))))
   copy)
@@ -867,6 +859,7 @@ slot of the loop state.
 	      (when (getopt (get loop-state 'opts) 'logchecks #f)
 		(engine-logger (qc) 0 (elapsed-time (get loop-state 'started)) 
 			       #[] loop-state (get loop-state 'state)))
+
 	      (store! loop-state 'lastcheck (get-check-state loop-state))
 
 	      (engine-commit loop-state (get loop-state 'checkpoint))
