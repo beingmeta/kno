@@ -427,7 +427,11 @@ static double todouble(lispval x)
 }
 
 DEFPRIM("/",div_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(-1),
-	"`(/)` **undocumented**");
+	"`(/ *arg* *divisors*...)` does division, normally "
+	"((*arg*/*divisors*[0])/*divisors[1]) ... etc. If "
+	"given a single argument, this returns 1/*arg*. "
+	"This obeys inexact contagion, so if any argument is "
+	"inexact, the final result is inexact.");
 static lispval div_lexpr(int n,kno_argvec args)
 {
   int all_double = 1, i = 0;
