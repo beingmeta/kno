@@ -1640,7 +1640,7 @@ static lispval withenv_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 
 static lispval withbindings_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  kno_lexenv use_env = env; int free_env = 0;
+  kno_lexenv use_env = env;
   lispval env_expr = kno_get_arg(expr,1), env_arg=KNO_VOID;
   if (KNO_VOIDP(env_expr))
     return kno_err(kno_SyntaxError,"withbindings_evalfn",NULL,expr);
@@ -1652,8 +1652,7 @@ static lispval withbindings_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     else if (KNO_LEXENVP(env_arg))
       use_env=(kno_lexenv) env_arg;
     else if (KNO_TABLEP(env_arg)) {
-      use_env = kno_make_env(env_arg,env);
-      free_env = 1;}
+      use_env = kno_make_env(env_arg,env);}
     else {
       kno_seterr("BadBindingsArg","withbindings_evalfn",NULL,env_arg);
       kno_decref(env_arg);

@@ -21,6 +21,8 @@
 #include "kno/storage.h"
 #include "kno/apply.h"
 
+#include <libu8/u8printf.h>
+
 #include <stdarg.h>
 
 static u8_condition OddFindFramesArgs=_("Odd number of args to find frames");
@@ -496,8 +498,12 @@ int kno_index_frame(kno_index ix,lispval frames,lispval slotids,lispval values)
     kno_index write_index = get_writable_slotindex(ix,slotid);
     if (write_index == NULL) {
       lispval irritant = kno_index2lisp(ix);
-      kno_seterr("Read-only index","kno_index_frame",
-		ix->indexid,irritant);
+      u8_byte errbuf[256];
+      kno_seterr("NoIndexForSlot","kno_index_frame",
+		 (KNO_SYMBOLP(slotid)) ? 
+		 (KNO_SYMBOL_NAME(slotid)) :
+		 (u8_bprintf(errbuf,"%q",slotid)),
+		 irritant);
       kno_decref(irritant);
       return -1;}
     lispval keyslot = write_index->index_keyslot;

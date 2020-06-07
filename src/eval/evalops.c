@@ -501,7 +501,6 @@ DEF_KNOSYM(opaque);
 
 static lispval restore_method(int n,lispval *args,kno_typeinfo e)
 {
-  int seq_off = -1;
   int flags = KNO_COMPOUND_INCREF;
   if ( (e->type_handlers) && (KNO_TABLEP(e->type_handlers)) ) {
     lispval method = kno_get(e->type_handlers,KNOSYM(restore),VOID);
@@ -602,7 +601,7 @@ static lispval type_handlers_prim(lispval arg,lispval method)
   else return kno_get(e->type_handlers,method,EMPTY);
 }
 
-static lispval opaque_symbol, mutable_symbol, table_symbol, sequence_symbol;
+static lispval opaque_symbol, mutable_symbol, sequence_symbol;
 
 DEFPRIM3("type-set!",type_set_prim,KNO_MIN_ARGS(3)|KNO_NDOP,
 	 "`(type-set! *tag* *field* *value*)` stores *value* "
