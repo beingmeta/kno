@@ -202,8 +202,8 @@ KNO_EXPORT void _knodbg_show_stack_frame(void *arg)
       while (i<n) {
 	lispval arg = args[i];
 	u8_string line=u8_bprintf
-	  (buf,"#%d 0x%llx\t%q\n",i,(unsigned long long)arg,arg);
-	fputs(line,stderr);
+	  (buf,"#%d 0x%llx\t%q",i,(unsigned long long)arg,arg);
+	fputs(line,stderr); fputc('\n',stderr);
 	i++;}}}
   else if (CONSP(stack->stack_op)) {
     u8_fprintf(stderr,"Evaluating in 0x%llx %Q\n",
@@ -221,11 +221,12 @@ KNO_EXPORT void _knodbg_show_stack_frame(void *arg)
 	  while (i<n) {
 	    lispval key = schema[i];
 	    lispval val = values[i];
-	    u8_byte buf[80];
+	    u8_byte buf[256];
 	    fputs(u8_bprintf
-		  (buf,"  %q\t0x%llx\t%q\n",
+		  (buf,"  %q\t0x%llx\t%q",
 		   key,(unsigned long long)val,val),
 		  stderr);
+	    fputc('\n',stderr);
 	    i++;}}}}}
   else NO_ELSE;
 }
