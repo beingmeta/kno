@@ -73,8 +73,8 @@ KNO_EXPORT lispval kno_compound_ref(lispval arg,lispval tag,int off,lispval dflt
 #define KNO_COMPOUND_HEADER_LENGTH(flags) \
   ( ((flags)&(KNO_COMPOUND_SEQUENCE)) ?	  \
     ( ((flags)&(KNO_COMPOUND_TABLE)) ?	  \
-      ( (((n)>>8)&(0x8f))+1 )  :	  \
-      (((n)>>8)&(0x8f))) :		  \
+      ( (((flags)>>8)&(0x8f))+1 )  :	  \
+      (((flags)>>8)&(0x8f))) :		  \
     (-1))
 
 #define KNO_BIG_COMPOUND_LENGTH 1024
