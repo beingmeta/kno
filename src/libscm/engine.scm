@@ -417,8 +417,12 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	    vec
 	    (slice vec 0 max)))))
 
-(defambda (engine/run fcn items-arg (opts #f))
-  (let* ((items (get-items-vec items-arg opts))
+(defambda (engine/run fcn items-arg (loop-opts #f) (engine-opts #f))
+  (when (and (not engine-opts) (testopt loop-opts 'loop))
+    (set! engine-opts loop-opts)
+    (set! loop-opts (getopt engine-opts 'loop)))
+  (let* ((opts engine-opts)
+	 (items (get-items-vec items-arg opts))
 	 (n-items (and (vector? items) (length items)))
 	 (batchsize (getopt opts 'batchsize (pick-batchsize items opts)))
 	 (threadopt (getopt opts 'nthreads
@@ -453,7 +457,6 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	 (state (getopt opts 'state (init-state opts)))
 	 (logfns (getopt opts 'logfns {}))
 	 (counters {(getopt state 'counters {}) (getopt opts 'counters {})})
-	 (loop-init (getopt opts 'loop))
 	 (count-term (getopt opts 'count-term "items"))
 	 (loop-state (frame-create #f
 		       'fifo fifo
@@ -488,10 +491,15 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	 (%loglevel (getopt opts 'loglevel %loglevel))
 	 (count 0))
 
-    (when (table? loop-init)
-      (do-choices (key (getkeys loop-init))
+    (when (table? loop-opts)
+      (do-choices (key (getkeys loop-opts))
+	(unless (test loop-opts key)
+	  (add! loop-state key (get loop-opts key)))))
+      
+    (when (table? loop-opts)
+      (do-choices (key (getkeys loop-opts))
 	(unless (test loop-state key)
-	  (add! loop-state key (get loop-init key)))))
+	  (add! loop-state key (get loop-opts key)))))
   
     ;;; Check arguments
     (do-choices fcn
