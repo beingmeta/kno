@@ -55,9 +55,10 @@ KNO_EXPORT lispval kno_init_compound_from_elts
     else p = u8_zmalloc(sizeof(struct KNO_COMPOUND)+(n-1)*LISPVAL_LEN);}
   else NO_ELSE;
   struct KNO_TYPEINFO *info = kno_use_typeinfo(tag);
-  if (n >= KNO_BIG_COMPOUND_LENGTH)
+  if  ( (!(issequence)) && (n >= KNO_BIG_COMPOUND_LENGTH) )
     u8_log(LOGWARN,"HugeCompound",
-	   "Creating a compound of type %q with %d elements",tag,n);
+	   "Creating a non-sequence compound of type %q with %d elements",
+	   tag,n);
   else NO_ELSE;
   KNO_INIT_CONS(p,kno_compound_type);
   if (ismutable) u8_init_rwlock(&(p->compound_rwlock));
