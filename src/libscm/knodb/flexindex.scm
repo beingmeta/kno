@@ -39,6 +39,7 @@
 	 (files (pick (pick (getfiles directory)
 			has-prefix (glom fullpath "."))
 		  has-suffix ".index"))
+	 (include (getopt opts 'include {}))
 	 (serials (get-serial files))
 	 (refpath (textsubst files flex-suffix ""))
 	 (metadata (frame-create #f))
@@ -73,8 +74,8 @@
 				       new-partition-opts)))
 		  (aggregate
 		   (if (and (singleton? (choice indexes front)) (getopt opts 'readonly))
-		       (choice indexes front)
-		       (make-aggregate-index (choice indexes front) `#[register #t]))))
+		       (choice indexes front include)
+		       (make-aggregate-index (choice indexes front include) `#[register #t]))))
 	     (when keyslot (indexctl aggregate 'keyslot keyslot))
 	     (if (and (exists? front) front)
 		 (indexctl aggregate 'props 'front front)
