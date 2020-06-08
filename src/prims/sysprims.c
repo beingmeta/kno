@@ -99,6 +99,60 @@ static lispval getenv_prim(lispval var)
   else return kno_wrapstring(enval);
 }
 
+DEFPRIM3("setenv!",setenv_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+	 "`(SETENV! *envvar* *val* [overwrite])` "
+	 "initializes/sets the value of *envvar* in the environment of "
+	 "the current process to *value*. If *overwrite* is "
+	 "true, this will set the value even if it is already defined.",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
+	 kno_any_type,KNO_FALSE);
+static lispval setenv_prim(lispval var,lispval val,lispval overwrite)
+{
+  u8_string varname = NULL, valstring = NULL;
+  int free_varname = 0, free_valstring = 0;
+  if (KNO_SYMBOLP(var))
+    varname = KNO_SYMBOL_NAME(var);
+  else if (KNO_STRINGP(var)) {
+    varname = u8_downcase(KNO_CSTRING(var));
+    free_varname = 1;}
+  else return kno_err(_("BadEnvironmentVar"),"setenv_prim",NULL,var);
+  if (KNO_SYMBOLP(val))
+    valstring=KNO_SYMBOL_NAME(val);
+  else if (KNO_STRINGP(val))
+    valstring=KNO_CSTRING(val);
+  else {
+    valstring = kno_lisp2string(val);
+    free_valstring=1;}
+  int rv = u8_setenv(varname,valstring,(!(KNO_FALSEP(overwrite))));
+  if (free_varname) u8_free(varname);
+  if (free_valstring) u8_free(valstring);
+  if (rv<0) return KNO_ERROR_VALUE;
+  else if (rv) return KNO_TRUE;
+  else return KNO_FALSE;
+}
+
+DEFPRIM1("unsetenv!",unsetenv_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "`(UNSETENV! *envvar*)` unsets (clears) any value of *envvar*"
+	 "in the environment of the current process. Returns true if "
+	 "this ended up doing anything, and false otherwise.",
+	 kno_any_type,KNO_VOID);
+static lispval unsetenv_prim(lispval var)
+{
+  u8_string varname = NULL, varstring = NULL;
+  int free_varname = 0, free_valstring = 0;
+  if (KNO_SYMBOLP(var))
+    varname = KNO_SYMBOL_NAME(var);
+  else if (KNO_STRINGP(var)) {
+    varname = u8_downcase(KNO_CSTRING(var));
+    free_varname = 1;}
+  else return kno_err(_("BadEnvironmentVar"),"setenv_prim",NULL,var);
+  int rv = u8_unsetenv(varname);
+  if (free_varname) u8_free(varname);
+  if (rv<0) return KNO_ERROR_VALUE;
+  else if (rv) return KNO_TRUE;
+  else return KNO_FALSE;
+}
+
 static lispval getenv_macro(lispval expr,kno_lexenv env,kno_stack ptr)
 {
   lispval var = kno_get_arg(expr,1);
@@ -882,6 +936,8 @@ static void link_local_cprims()
   KNO_LINK_PRIM("loadavg",loadavgs_prim,0,kno_sys_module);
   KNO_LINK_PRIM("getload",loadavg_prim,0,kno_sys_module);
   KNO_LINK_PRIM("getenv",getenv_prim,1,kno_sys_module);
+  KNO_LINK_PRIM("setenv!",setenv_prim,3,kno_sys_module);
+  KNO_LINK_PRIM("unsetenv!",unsetenv_prim,1,kno_sys_module);
   KNO_LINK_PRIM("hostaddrs",hostaddrs_prim,1,kno_sys_module);
   KNO_LINK_PRIM("gethostname",hostname_prim,0,kno_sys_module);
 }
