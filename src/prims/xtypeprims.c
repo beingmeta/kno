@@ -87,6 +87,7 @@ static lispval write_xtype_prim(lispval object,lispval dest,lispval opts)
     if (append) kno_endpos(out);}
   else if (KNO_TYPEP(dest,kno_stream_type)) {
     out = (kno_stream) dest;
+    if (append) kno_endpos(out);
     outbuf=kno_writebuf(out);}
   else if (KNO_FALSEP(dest)) {
     /* Write to packet */
