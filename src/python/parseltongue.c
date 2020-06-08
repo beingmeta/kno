@@ -25,6 +25,7 @@
 #include <libu8/libu8.h>
 #include <libu8/u8strings.h>
 #include <libu8/u8streamio.h>
+#include <libu8/u8pathfns.h>
 #include <libu8/u8printf.h>
 
 /* Compatibility */
@@ -706,7 +707,7 @@ lispval PySequence2Choice(PyObject *pyo,int decref)
       i++;}
     if (decref) Py_DECREF(pyo);
     return kno_simplify_choice(results);}
-  else return kno_type_error("PythonSequence","PyList2Choice",VOID);
+  else return kno_type_error("PythonSequence","PyList2Choice",KNO_VOID);
 }
 
 /* Printed representation */
@@ -2230,6 +2231,41 @@ static void init_kno_module()
   kno_register_config("PYPATH","The search path used by Python",
 		     pypath_config_get,pypath_config_set,NULL);
 
+  /* Try to handle a virtual env declarations */
+  lispval virtual_env = kno_config_get("PYTHON:VENV");
+  if (KNO_STRINGP(virtual_env)) {
+    PyObject* vinfo = PySys_GetObject((char*)"version_info");
+    Py_ssize_t major = -1, minor = -1;
+    u8_setenv("VIRTUAL_ENV",KNO_CSTRING(virtual_env),1);
+    u8_string curpath = u8_getenv("PATH");
+    u8_string vbin_path = u8_mkpath(KNO_CSTRING(virtual_env),"bin");
+    u8_string new_path = u8_string_append(vbin_path,":",curpath,NULL);
+    u8_setenv("PATH",new_path,1);
+    u8_free(new_path); u8_free(vbin_path); u8_free(curpath);
+    if (vinfo) {
+      PyObject *major_val = PyObject_GetAttrString(vinfo,"major");
+      PyObject *minor_val = PyObject_GetAttrString(vinfo,"minor");
+      if ( (major_val) && (PyNumber_Check(major_val)) )
+	major = PyNumber_AsSsize_t(major_val,NULL);
+      if ( (minor_val) && (PyNumber_Check(minor_val)) )
+	minor = PyNumber_AsSsize_t(minor_val,NULL);
+      Py_DECREF(major_val); Py_DECREF(minor_val);
+      if ( (major>1) && (minor>=0) ) {
+	u8_string mod_subdir = u8_mkstring("lib/python%d.%d/site-packages/",major,minor);
+	u8_string path_entry = u8_mkpath(KNO_CSTRING(virtual_env),mod_subdir);
+	lispval add_path = knostring(path_entry);
+	kno_set_config("PYPATH",add_path);
+	kno_decref(add_path);
+	u8_free(mod_subdir);
+	u8_free(path_entry);}
+      else {
+	u8_log(LOGERR,"BadPythonVersionInfo",
+	       "Invalid version info in sys.version_info, not setting PYPATH "
+	       "for %s",KNO_CSTRING(virtual_env));}
+      Py_DECREF(vinfo);}
+    else u8_log(LOGERR,"NoPythonVersionInfo",
+		"No version info sys.version_info to set PYPATH");}
+  kno_decref(virtual_env);
 }
 
 static void link_local_cprims()
