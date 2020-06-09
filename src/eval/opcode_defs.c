@@ -71,7 +71,7 @@ KNO_FASTOP lispval reduce_op(kno_stack stack,
       lispval prev_state = state;
       state = reduced;
       kno_decref(prev_state);}
-    else NO_ELSE;}
+    else kno_decref(arg);}
   return kno_simplify_choice(state);
 }
 
@@ -1097,7 +1097,7 @@ static lispval handle_special_opcode(lispval opcode,lispval args,lispval expr,
     if (HASHTABLEP(refenv))
       return kno_hashtable_get((kno_hashtable)refenv,sym,KNO_UNBOUND);
     else if (KNO_LEXENVP(refenv))
-      return kno_symeval(sym,(kno_lexenv)refenv);
+      return symeval(sym,(kno_lexenv)refenv);
     else if (TABLEP(refenv))
       return kno_get(refenv,sym,KNO_UNBOUND);
     else return kno_err(kno_SyntaxError,"KNO_SYMREF_OPCODE/badenv",NULL,expr);}
