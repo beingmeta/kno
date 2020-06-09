@@ -177,9 +177,10 @@ static void _concise_stack_frame(struct KNO_STACK *stack)
   else if (TYPEP(op,kno_evalfn_type)) {
     struct KNO_EVALFN *evalfn=(kno_evalfn)op;
     fprintf(stderr," point=z#%s",evalfn->evalfn_name);}
-  else {
+  else if (!(KNO_CONSP(op))) {
     u8_byte buf[64];
-    fprintf(stderr," point=\n\t%s",u8_bprintf(buf,"%q",op));}
+    fprintf(stderr," point=%s",u8_bprintf(buf,"%q",op));}
+  else fprintf(stderr," point=%s",kno_type_name(op));
   fprintf(stderr,"\n");
 }
 
@@ -208,26 +209,26 @@ KNO_EXPORT void _knodbg_show_stack_frame(void *arg)
   else if (CONSP(stack->stack_op)) {
     u8_fprintf(stderr,"Evaluating in 0x%llx %Q\n",
 	       (unsigned long long)(stack->eval_env),
-	       stack->stack_op);
-    if ( (KNO_STACK_BITP(stack,KNO_STACK_OWNS_ENV)) ) {
-      if (stack->eval_env) {
-	env = stack->eval_env;
-	lispval bindings = env->env_bindings;
-	if (KNO_SCHEMAPP(bindings)) {
-	  kno_schemap map = (kno_schemap)bindings;
-	  lispval *schema = map->table_schema;
-	  lispval *values = map->table_values;
-	  int i = 0, n = map->schema_length;
-	  while (i<n) {
-	    lispval key = schema[i];
-	    lispval val = values[i];
-	    u8_byte buf[256];
-	    fputs(u8_bprintf
-		  (buf,"  %q\t0x%llx\t%q",
-		   key,(unsigned long long)val,val),
-		  stderr);
-	    fputc('\n',stderr);
-	    i++;}}}}}
+	       stack->stack_op);}
+  if ( (KNO_STACK_BITP(stack,KNO_STACK_OWNS_ENV)) ) {
+    if (stack->eval_env) {
+      env = stack->eval_env;
+      lispval bindings = env->env_bindings;
+      if (KNO_SCHEMAPP(bindings)) {
+	kno_schemap map = (kno_schemap)bindings;
+	lispval *schema = map->table_schema;
+	lispval *values = map->table_values;
+	int i = 0, n = map->schema_length;
+	while (i<n) {
+	  lispval key = schema[i];
+	  lispval val = values[i];
+	  u8_byte buf[256];
+	  fputs(u8_bprintf
+		(buf,"  %q\t0x%llx\t%q",
+		 key,(unsigned long long)val,val),
+		stderr);
+	  fputc('\n',stderr);
+	  i++;}}}}
   else NO_ELSE;
 }
 

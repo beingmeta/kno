@@ -138,8 +138,8 @@ DEFPRIM1("unsetenv!",unsetenv_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 kno_any_type,KNO_VOID);
 static lispval unsetenv_prim(lispval var)
 {
-  u8_string varname = NULL, varstring = NULL;
-  int free_varname = 0, free_valstring = 0;
+  u8_string varname = NULL;
+  int free_varname = 0;
   if (KNO_SYMBOLP(var))
     varname = KNO_SYMBOL_NAME(var);
   else if (KNO_STRINGP(var)) {
