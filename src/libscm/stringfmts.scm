@@ -15,7 +15,7 @@
    padnum printnum numstring
    $count $countstring
    $num $numstring
-   $size $sizestring
+   $size $sizestring $nelts
    $bytes $bytestring
    $bytes/sec
    $rate})
@@ -92,7 +92,7 @@
     (if spellout
 	(if (= n 0) "zero"
 	    (if (= n 1) "one"
-		(printnum n)))
+		(printnum n 2)))
 	n)
     (when singular
       (printout " "
@@ -102,6 +102,8 @@
   (stringout (apply $count n singular plural spellout)))
 
 (defambda ($size values (word #f) (plural #f))
+  ($count (choice-size values) word plural))
+(defambda ($nelts values (word #f) (plural #f))
   ($count (choice-size values) word plural))
 
 ;;; Byte sizes
