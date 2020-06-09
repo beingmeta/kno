@@ -58,7 +58,7 @@ KNO_FASTOP lispval reduce_op(kno_stack stack,
       return arg;}
     else NO_ELSE;
     lispval reduced = fn(state,arg,&done);
-    if (KNO_ABORTP(reduced)) {
+    if (KNO_ABORTED(reduced)) {
       kno_decref(state);
       kno_decref(arg);
       return reduced;}
@@ -71,7 +71,9 @@ KNO_FASTOP lispval reduce_op(kno_stack stack,
       lispval prev_state = state;
       state = reduced;
       kno_decref(prev_state);}
-    else kno_decref(arg);}
+    else NO_ELSE;
+    if (state != arg)
+      kno_decref(arg);}
   return kno_simplify_choice(state);
 }
 
@@ -162,6 +164,7 @@ KNO_FASTOP lispval union_reduce(lispval state,lispval step,int *done)
   else {
     if (!(KNO_PRECHOICEP(state))) kno_incref(state);
     KNO_ADD_TO_CHOICE(state,step);
+    kno_incref(step);
     return state;}
 }
 
