@@ -19,8 +19,10 @@ typedef struct KNO_LEXENV {
   KNO_CONS_HEADER;
   lispval env_bindings;
   lispval env_exports;
+  lispval *env_vals, *env_pvals;
   struct KNO_LEXENV *env_parent;
-  struct KNO_LEXENV *env_copy;} KNO_LEXENV;
+  struct KNO_LEXENV *env_copy;
+  unsigned int env_flags;} KNO_LEXENV;
 typedef struct KNO_LEXENV *kno_lexenv;
 
 KNO_EXPORT kno_lexenv kno_copy_env(kno_lexenv env);

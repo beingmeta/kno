@@ -33,8 +33,8 @@ static void recycle_prechoice(struct KNO_RAW_CONS *c)
     const lispval *read = ch->prechoice_data, *lim = ch->prechoice_write;
     if ((ch->prechoice_atomic==0) || (ch->prechoice_nested))
       while (read < lim) {
-        lispval v = *read++;
-        kno_decref(v);}
+	lispval v = *read++;
+	kno_decref(v);}
     if (ch->prechoice_mallocd) {
       kno_free_choice(ch->prechoice_choicedata);
       ch->prechoice_choicedata = NULL;
@@ -160,21 +160,21 @@ static int compress_choice(lispval *v,int n,int atomicp)
     while (scan < limit) {
       lispval elt = *scan;
       if (KNO_EMPTYP(elt)) {
-        scan++;}
+	scan++;}
       else if (pt== elt) {
-        scan++;
-        while ((scan<limit) && (pt== *scan)) scan++;}
+	scan++;
+	while ((scan<limit) && (pt== *scan)) scan++;}
       else *write++=pt = *scan++;}
   else while (scan < limit) {
       lispval elt = *scan;
       if (KNO_EMPTYP(elt)) {
-        scan++;}
+	scan++;}
       else if (__kno_cons_compare(pt,elt)==0) {
-        kno_decref(*scan);
-        scan++;
-        while ((scan<limit) && (__kno_cons_compare(pt,*scan)==0)) {
-          kno_decref(*scan);
-          scan++;}}
+	kno_decref(*scan);
+	scan++;
+	while ((scan<limit) && (__kno_cons_compare(pt,*scan)==0)) {
+	  kno_decref(*scan);
+	  scan++;}}
       else *write++=pt = *scan++;}
   return write-v;
 }
@@ -209,7 +209,7 @@ KNO_EXPORT
    Arguments: two dtype pointers
    Returns: 1 or 0
    This returns 1 if the first argument is in the choice represented by
-   the second argument.  Note that if the second argument isn't a choice,
+   the second argument.	 Note that if the second argument isn't a choice,
    this is the same as LISP_EQUAL. */
 int kno_choice_containsp(lispval key,lispval x)
 {
@@ -232,7 +232,7 @@ struct KNO_CHOICE *kno_cleanup_choice(struct KNO_CHOICE *ch,unsigned int flags)
 {
   if (ch == NULL) {
     u8_log(LOG_CRIT,"kno_cleanup_choice",
-           "The argument to kno_cleanup_choice is NULL");
+	   "The argument to kno_cleanup_choice is NULL");
     return KNO_ERR2(NULL,_("choice arg is NULL"),"kno_make_choice");}
   else {
     int atomicp = 1; int n = ch->choice_size;
@@ -241,7 +241,7 @@ struct KNO_CHOICE *kno_cleanup_choice(struct KNO_CHOICE *ch,unsigned int flags)
     if (flags&KNO_CHOICE_ISATOMIC) atomicp = 1;
     else if (flags&KNO_CHOICE_ISCONSES) atomicp = 0;
     else while (scan<limit) {
-        if (ATOMICP(*scan)) scan++; else {atomicp = 0; break;}}
+	if (ATOMICP(*scan)) scan++; else {atomicp = 0; break;}}
     /* Now sort and compress it if requested */
     if (flags&KNO_CHOICE_DOSORT) {
       if (atomicp) atomic_sort((lispval *)base,n);
@@ -449,7 +449,7 @@ int _kno_contains_atomp(lispval x,lispval ch)
 
 /* Converting prechoices to choices */
 
-/* PRECHOICEs are accumulating choices which accumulate values.  PRECHOICEs
+/* PRECHOICEs are accumulating choices which accumulate values.	 PRECHOICEs
    have a ->normalized field which, when non-void, is the simple choice
    version of the prechoice. */
 
@@ -537,14 +537,14 @@ static lispval normalize_choice(lispval x,int free_prechoice)
     while (scan<limit) {
       lispval v = *scan++;
       if (KNO_CHOICEP(v))
-        *write_choices++ = (kno_choice)v;
+	*write_choices++ = (kno_choice)v;
       else {
-        if (KNO_CONSP(v)) is_atomic=0;
-        *write++=v;}}
+	if (KNO_CONSP(v)) is_atomic=0;
+	*write++=v;}}
     kno_init_choice(loners,write-xdata,NULL,
-                    KNO_CHOICE_INCREF|KNO_CHOICE_DOSORT|KNO_CHOICE_COMPRESS|
-                    ((is_atomic) ? (KNO_CHOICE_ISATOMIC) :
-                     (KNO_CHOICE_ISCONSES)));
+		    KNO_CHOICE_INCREF|KNO_CHOICE_DOSORT|KNO_CHOICE_COMPRESS|
+		    ((is_atomic) ? (KNO_CHOICE_ISATOMIC) :
+		     (KNO_CHOICE_ISCONSES)));
     lispval combined = kno_merge_choices(choices,nested+1);
     if (free_prechoice) {
       if (ch->prechoice_uselock) unlock_prechoice(ch);
@@ -624,16 +624,16 @@ static int resort_scanners(struct KNO_CHOICE_SCANNER *v,int n,int atomic)
     if (atomic)
       while (i<n) if (head<=v[i].top) break; else i++;
     else while (i<n)
-           if (__kno_cons_compare(head,v[i].top)<=0) break;
-           else i++;
+	   if (__kno_cons_compare(head,v[i].top)<=0) break;
+	   else i++;
     memmove(v,v+1,sizeof(struct KNO_CHOICE_SCANNER)*(i-1));
     v[i-1].top = head; v[i-1].ptr = ptr; v[i-1].lim = lim;
     return n;}
 }
 
 static int scanner_loop(struct KNO_CHOICE_SCANNER *scanners,
-                        int n_scanners,
-                        lispval *vals)
+			int n_scanners,
+			lispval *vals)
 {
   lispval *write = vals, last = KNO_NEVERSEEN;
   while (n_scanners>1) {
@@ -658,8 +658,8 @@ static int scanner_loop(struct KNO_CHOICE_SCANNER *scanners,
 }
 
 static int atomic_scanner_loop(struct KNO_CHOICE_SCANNER *scanners,
-                               int n_scanners,
-                               lispval *vals)
+			       int n_scanners,
+			       lispval *vals)
 {
   lispval *write = vals, last = KNO_NEVERSEEN;
   while (n_scanners>1) {
@@ -729,9 +729,9 @@ lispval kno_merge_choices(struct KNO_CHOICE **choices,int n_choices)
   write = (lispval *)KNO_XCHOICE_DATA(new_choice);
   if (atomicp)
     qsort(scanners,n_scanners,sizeof(struct KNO_CHOICE_SCANNER),
-          compare_scanners_atomic);
+	  compare_scanners_atomic);
   else qsort(scanners,n_scanners,sizeof(struct KNO_CHOICE_SCANNER),
-             compare_scanners);
+	     compare_scanners);
   if (atomicp)
     new_size = atomic_scanner_loop(scanners,n_scanners,write);
   else new_size = scanner_loop(scanners,n_scanners,write);
@@ -739,8 +739,8 @@ lispval kno_merge_choices(struct KNO_CHOICE **choices,int n_choices)
   if (atomicp) flags = flags|KNO_CHOICE_ISATOMIC;
   else flags = flags|KNO_CHOICE_ISCONSES;
   return kno_init_choice(new_choice,new_size,
-                         KNO_XCHOICE_DATA(new_choice),
-                         (flags|KNO_CHOICE_REALLOC));
+			 KNO_XCHOICE_DATA(new_choice),
+			 (flags|KNO_CHOICE_REALLOC));
 }
 
 static
@@ -758,31 +758,31 @@ lispval prechoice_append(struct KNO_PRECHOICE *ch,int freeing_prechoice)
     lispval v = *scan;
     if (write>=write_limit) {
       u8_log(LOG_WARN,"prechoice_inconsistency",
-             "total size is more than the recorded %d",ch->prechoice_size);
+	     "total size is more than the recorded %d",ch->prechoice_size);
       abort();}
     else if (CHOICEP(v)) {
       struct KNO_CHOICE *each = (struct KNO_CHOICE *)v;
       int freed = ((freeing_prechoice) && (KNO_CONS_REFCOUNT(each)==1));
       if (write+KNO_XCHOICE_SIZE(each)>write_limit) {
-        u8_log(LOG_WARN,"prechoice_inconsistency",
-               "total size is more than the recorded %d",ch->prechoice_size);
-        abort();}
+	u8_log(LOG_WARN,"prechoice_inconsistency",
+	       "total size is more than the recorded %d",ch->prechoice_size);
+	abort();}
       else if (KNO_XCHOICE_ATOMICP(each)) {
-        memcpy(write,KNO_XCHOICE_DATA(each),
-               LISPVEC_BYTELEN(KNO_XCHOICE_SIZE(each)));
-        write = write+KNO_XCHOICE_SIZE(each);}
+	memcpy(write,KNO_XCHOICE_DATA(each),
+	       LISPVEC_BYTELEN(KNO_XCHOICE_SIZE(each)));
+	write = write+KNO_XCHOICE_SIZE(each);}
       else if (freed) {
-        memcpy(write,KNO_XCHOICE_DATA(each),
-               LISPVEC_BYTELEN(KNO_XCHOICE_SIZE(each)));
-        write = write+KNO_XCHOICE_SIZE(each);}
+	memcpy(write,KNO_XCHOICE_DATA(each),
+	       LISPVEC_BYTELEN(KNO_XCHOICE_SIZE(each)));
+	write = write+KNO_XCHOICE_SIZE(each);}
       else {
-        const lispval *vscan = KNO_XCHOICE_DATA(each),
-          *vlimit = vscan+KNO_XCHOICE_SIZE(each);
-        while (vscan < vlimit) {
-          lispval ev = *vscan++; *write++=kno_incref(ev);}}
+	const lispval *vscan = KNO_XCHOICE_DATA(each),
+	  *vlimit = vscan+KNO_XCHOICE_SIZE(each);
+	while (vscan < vlimit) {
+	  lispval ev = *vscan++; *write++=kno_incref(ev);}}
       if (freed) {
-        kno_free_choice(each);
-        *scan = VOID;}}
+	kno_free_choice(each);
+	*scan = VOID;}}
     else if (freeing_prechoice) {
       *write++=v; *scan = VOID;}
     else if (ATOMICP(v)) *write++=v;
@@ -790,9 +790,9 @@ lispval prechoice_append(struct KNO_PRECHOICE *ch,int freeing_prechoice)
     scan++;}
   if ((write-base)>1)
     return kno_init_choice(result,write-base,NULL,
-                           (KNO_CHOICE_DOSORT|
-                            ((ch->prechoice_atomic)?(KNO_CHOICE_ISATOMIC):
-                             (KNO_CHOICE_ISCONSES))));
+			   (KNO_CHOICE_DOSORT|
+			    ((ch->prechoice_atomic)?(KNO_CHOICE_ISATOMIC):
+			     (KNO_CHOICE_ISCONSES))));
   else {
     lispval v = base[0];
     u8_free(result);
@@ -894,22 +894,23 @@ lispval kno_intersect_choices(struct KNO_CHOICE **choices,int n_choices)
   /* Sort the choices by size, iterate over the smallest and check
      the others in order. */
   qsort(choices,n_choices,sizeof(struct KNO_CHOICE *),
-        compare_choicep_size);
+	compare_choicep_size);
   max_results = KNO_XCHOICE_SIZE(choices[0]);
   write = results = u8_big_alloc_n(max_results,lispval);
   {
     const lispval *scan = KNO_XCHOICE_DATA(choices[0]);
     const lispval *limit = scan+max_results;
     while (scan<limit) {
-      lispval item = *scan++; int i = 1; while (i < n_choices)
-                                           if (choice_containsp(item,choices[i])) i++;
-                                           else break;
+      lispval item = *scan++; int i = 1;
+      while (i < n_choices)
+	if (choice_containsp(item,choices[i])) i++;
+	else break;
       if (i == n_choices) {
-        if (CONSP(item)) {
-          atomicp = 0;
-          kno_incref(item);
-          *write++=item;}
-        else *write++=item;}}}
+	if (CONSP(item)) {
+	  atomicp = 0;
+	  kno_incref(item);
+	  *write++=item;}
+	else *write++=item;}}}
   if (write == results)
     v=EMPTY;
   else if (write == (results+1))
@@ -937,47 +938,47 @@ lispval kno_intersection(const lispval *v,unsigned int n)
   else {
     lispval result = VOID;
     /* The simplest case is where one or more of the inputs
-       is a singleton.  If more than one is a singleton and they
+       is a singleton.	If more than one is a singleton and they
        are different, we just return the empty set.  If they're the same,
        we'll just do membership tests on that one item.
 
        To resolve this, we scan all the items being intersected,
        using result to store the singleton value, with VOID
        indicating we haven't stored anything there. */
-    int i = 0, prechoices = 0; while (i < n)
-                                 if (EMPTYP(v[i]))
-                                   /* If you find any empty, the intersection is empty. */
-                                   return EMPTY;
-                                 else if (CHOICEP(v[i])) i++; /* Pass any choices */
-                                 else if (PRECHOICEP(v[i])) {
-                                   /* Count the prechoices, because you'll have to convert them. */
-                                   i++; prechoices++;}
-    /* After this point, we know we have a singleton value. */
-                                 else if (VOIDP(result))
-                                   /* This must be our first singleton. */
-                                   result = v[i++];
-                                 else if (LISP_EQUAL(result,v[i]))
-                                   /* This is a consistent singleton */
-                                   i++;
-    /* If it's not a consistent singleton, we can just return the
-       empty choice. */
-                                 else return EMPTY;
+    int i = 0, prechoices = 0; while (i < n) {
+      if (EMPTYP(v[i]))
+	/* If you find any empty, the intersection is empty. */
+	return EMPTY;
+      else if (CHOICEP(v[i])) i++; /* Pass any choices */
+      else if (PRECHOICEP(v[i])) {
+	/* Count the prechoices, because you'll have to convert them. */
+	i++; prechoices++;}
+      /* After this point, we know we have a singleton value. */
+      else if (VOIDP(result))
+	/* This must be our first singleton. */
+	result = v[i++];
+      else if (LISP_EQUAL(result,v[i]))
+	/* This is a consistent singleton */
+	i++;
+      /* If it's not a consistent singleton, we can just return the
+	 empty choice. */
+      else return EMPTY;}
     if (!(VOIDP(result))) {
       /* This is the case where we found a singleton. */
-      int i = 0; while (i < n)
-                   if (CHOICEP(v[i]))
-                     if (kno_choice_containsp(result,v[i])) i++;
-                     else return EMPTY;
-                   else if (PRECHOICEP(v[i])) {
-                     /* Arguably, it might not make sense to do this conversion
-                        right now. */
-                     lispval sc = kno_make_simple_choice(v[i]);
-                     if (kno_choice_containsp(result,sc)) {
-                       kno_decref(sc); i++;}
-                     else {
-                       kno_decref(sc);
-                       return EMPTY;}}
-                   else i++;
+      int i = 0; while (i < n) {
+	if (CHOICEP(v[i]))
+	  if (kno_choice_containsp(result,v[i])) i++;
+	  else return EMPTY;
+	else if (PRECHOICEP(v[i])) {
+	  /* Arguably, it might not make sense to do this conversion
+	     right now. */
+	  lispval sc = kno_make_simple_choice(v[i]);
+	  if (kno_choice_containsp(result,sc)) {
+	    kno_decref(sc); i++;}
+	  else {
+	    kno_decref(sc);
+	    return EMPTY;}}
+	else i++;}
       return kno_incref(result);}
     /* At this point, all we have is choices and prechoices, so we need to
        make a vector of the choices on which to call kno_intersect_choices.
@@ -990,43 +991,44 @@ lispval kno_intersection(const lispval *v,unsigned int n)
       lispval result = VOID; int i, n_choices = 0, n_conversions = 0;
       /* Try to use a stack vector if possible. */
       if (n>16) {
-        choices = u8_alloc_n(n,struct KNO_CHOICE *);
-        conversions = u8_alloc_n(n,lispval);}
+	choices = u8_alloc_n(n,struct KNO_CHOICE *);
+	conversions = u8_alloc_n(n,lispval);}
       else {choices=_choices; conversions=_conversions;}
       i = 0; while (i < n)
-               /* We go down doing conversions.  Note that we do the same thing
-                  as above with handling singletons because the PRECHOICEs might
-                  resolve to singletons. */
-               if (CHOICEP(v[i])) {
-                 choices[n_choices++]=(struct KNO_CHOICE *)v[i++];}
-               else if (PRECHOICEP(v[i])) {
-                 lispval nc = kno_make_simple_choice(v[i++]);
-                 if (CHOICEP(nc)) {
-                   choices[n_choices++]=(struct KNO_CHOICE *)nc;
-                   conversions[n_conversions++]=nc;}
-                 /* These are all in case a PRECHOICE turns out to be
-                    empty or a singleton */
-                 else if (EMPTYP(nc)) break;
-                 else if (VOIDP(result)) result = nc;
-                 else if (LISP_EQUAL(result,nc)) i++;
-                 else {
-                   /* We record it because we converted it. */
-                   if (CONSP(nc)) conversions[n_conversions++]=nc;
-                   result = EMPTY; break;}}
-               else i++;
+	       /* We go down doing conversions.	 Note that we do the same thing
+		  as above with handling singletons because the PRECHOICEs might
+		  resolve to singletons. */
+	       if (CHOICEP(v[i])) {
+		 choices[n_choices++]=(struct KNO_CHOICE *)v[i++];}
+	       else if (PRECHOICEP(v[i])) {
+		 lispval nc = kno_make_simple_choice(v[i++]);
+		 if (CHOICEP(nc)) {
+		   choices[n_choices++]=(struct KNO_CHOICE *)nc;
+		   conversions[n_conversions++]=nc;}
+		 /* These are all in case a PRECHOICE turns out to be
+		    empty or a singleton */
+		 else if (EMPTYP(nc)) break;
+		 else if (VOIDP(result)) result = nc;
+		 else if (LISP_EQUAL(result,nc)) i++;
+		 else {
+		   /* We record it because we converted it. */
+		   if (CONSP(nc))
+		     conversions[n_conversions++]=nc;
+		   result = EMPTY; break;}}
+	       else i++;
       if (VOIDP(result))
-        /* The normal case, just do the intersection */
-        result = kno_intersect_choices(choices,n_choices);
+	/* The normal case, just do the intersection */
+	result = kno_intersect_choices(choices,n_choices);
       /* One of the prechoices turned out to be empty */
       else if (EMPTYP(result)) {}
       else {
-        /* One of the prechoices turned out to be a singleton */
-        int k = 0; while (k < n_choices)
-                     if (choice_containsp(result,choices[k])) k++;
-                     else {result = EMPTY; break;}}
+	/* One of the prechoices turned out to be a singleton */
+	int k = 0; while (k < n_choices)
+		     if (choice_containsp(result,choices[k])) k++;
+		     else {result = EMPTY; break;}}
       /* Now, clean up your conversions. */
       i = 0; while (i < n_conversions) {
-        kno_decref(conversions[i]); i++;}
+	kno_decref(conversions[i]); i++;}
       if (n>16) {u8_free(choices); u8_free(conversions);}
       return result;}
     else if (n < 1024) { /* Random value */
@@ -1075,44 +1077,44 @@ static lispval compute_choice_difference
   if ((watomicp) && (patomicp)) {
     while ( (wscan<wlim) && (pscan<plim) ) {
       if (*wscan == *pscan) {
-        wscan++;
-        pscan++;
-        continue;}
+	wscan++;
+	pscan++;
+	continue;}
       else if (*wscan < *pscan) {
-        *write = *wscan;
-        write++;
-        wscan++;
-        continue;}
+	*write = *wscan;
+	write++;
+	wscan++;
+	continue;}
       else pscan++;
       if (pscan >= plim)
-        break;
+	break;
       else if (*wscan <= *pscan)
-        continue;
+	continue;
       else {
-        /* We are now looking for the next element of 'part' which
-           would be at or after the next element of whole. */
-        lispval nextval = *wscan;
-        const lispval *bottom = pscan, *top = plim-1;
-        size_t window = top-bottom;
-        const lispval *middle = bottom + (window/2);
-        while (top > bottom) {
-          lispval midval = *middle;
-          if (nextval == midval)
-            break;
-          else if (nextval < midval)
-            top = middle-1;
-          else bottom = middle+1;
-          window = top - bottom;
-          middle = bottom + (window/2);}
-        if (middle>pscan) pscan=middle;}}}
+	/* We are now looking for the next element of 'part' which
+	   would be at or after the next element of whole. */
+	lispval nextval = *wscan;
+	const lispval *bottom = pscan, *top = plim-1;
+	size_t window = top-bottom;
+	const lispval *middle = bottom + (window/2);
+	while (top > bottom) {
+	  lispval midval = *middle;
+	  if (nextval == midval)
+	    break;
+	  else if (nextval < midval)
+	    top = middle-1;
+	  else bottom = middle+1;
+	  window = top - bottom;
+	  middle = bottom + (window/2);}
+	if (middle>pscan) pscan=middle;}}}
   else while ( (wscan<wlim) && (pscan<plim) ) {
       if (LISP_EQUAL(*wscan,*pscan)) {
-        wscan++;
-        pscan++;}
+	wscan++;
+	pscan++;}
       else if (__kno_cons_compare(*wscan,*pscan)<0) {
-        *write = kno_incref(*wscan);
-        write++;
-        wscan++;}
+	*write = kno_incref(*wscan);
+	write++;
+	wscan++;}
       else pscan++;}
   /* Now we just copy the remainder, since *part* has run out */
   if (watomicp) {
@@ -1123,7 +1125,7 @@ static lispval compute_choice_difference
       write++; wscan++;}
   if (write-newv>1)
     return kno_init_choice(result,write-newv,NULL,
-                           ((watomicp)?(KNO_CHOICE_ISATOMIC):(0)));
+			   ((watomicp)?(KNO_CHOICE_ISATOMIC):(0)));
   else if (write == newv) {
     kno_free_choice(result);
     return EMPTY;}
@@ -1153,34 +1155,34 @@ lispval kno_difference(lispval value,lispval remove)
   else if (CHOICEP(value))
     if (!(CHOICEP(remove)))
       if (kno_choice_containsp(remove,value)) {
-        struct KNO_CHOICE *vchoice=
-          kno_consptr(struct KNO_CHOICE *,value,kno_choice_type);
-        int size = KNO_XCHOICE_SIZE(vchoice);
-        int atomicp = KNO_XCHOICE_ATOMICP(vchoice);
-        if (size==1)
-          return EMPTY;
-        else if (size==2)
-          if (LISP_EQUAL(remove,(KNO_XCHOICE_DATA(vchoice))[0]))
-            return kno_incref((KNO_XCHOICE_DATA(vchoice))[1]);
-          else return kno_incref((KNO_XCHOICE_DATA(vchoice))[0]);
-        else {
-          struct KNO_CHOICE *new_choice = kno_alloc_choice(size-1);
-          lispval *newv = (lispval *)KNO_XCHOICE_DATA(new_choice);
-          const lispval *read = KNO_XCHOICE_DATA(vchoice), *lim = read+size;
-          lispval *write = newv;
-          int flags = ((atomicp)?(KNO_CHOICE_ISATOMIC):(0))|KNO_CHOICE_REALLOC;
-          while (read < lim)
-            if (LISP_EQUAL(*read,remove))
-              read++;
-            else {
-              *write = kno_incref(*read);
-              write++;
-              read++;}
-          return kno_init_choice(new_choice,size-1,newv,flags);}}
+	struct KNO_CHOICE *vchoice=
+	  kno_consptr(struct KNO_CHOICE *,value,kno_choice_type);
+	int size = KNO_XCHOICE_SIZE(vchoice);
+	int atomicp = KNO_XCHOICE_ATOMICP(vchoice);
+	if (size==1)
+	  return EMPTY;
+	else if (size==2)
+	  if (LISP_EQUAL(remove,(KNO_XCHOICE_DATA(vchoice))[0]))
+	    return kno_incref((KNO_XCHOICE_DATA(vchoice))[1]);
+	  else return kno_incref((KNO_XCHOICE_DATA(vchoice))[0]);
+	else {
+	  struct KNO_CHOICE *new_choice = kno_alloc_choice(size-1);
+	  lispval *newv = (lispval *)KNO_XCHOICE_DATA(new_choice);
+	  const lispval *read = KNO_XCHOICE_DATA(vchoice), *lim = read+size;
+	  lispval *write = newv;
+	  int flags = ((atomicp)?(KNO_CHOICE_ISATOMIC):(0))|KNO_CHOICE_REALLOC;
+	  while (read < lim)
+	    if (LISP_EQUAL(*read,remove))
+	      read++;
+	    else {
+	      *write = kno_incref(*read);
+	      write++;
+	      read++;}
+	  return kno_init_choice(new_choice,size-1,newv,flags);}}
       else return kno_incref(value);
     else return compute_choice_difference
-           (kno_consptr(struct KNO_CHOICE *,value,kno_choice_type),
-            kno_consptr(struct KNO_CHOICE *,remove,kno_choice_type));
+	   (kno_consptr(struct KNO_CHOICE *,value,kno_choice_type),
+	    kno_consptr(struct KNO_CHOICE *,remove,kno_choice_type));
   else if (CHOICEP(remove))
     if (kno_choice_containsp(value,remove))
       return EMPTY;
@@ -1213,16 +1215,16 @@ int kno_overlapp(lispval xarg,lispval yarg)
     else y = yarg;
     if (CHOICEP(x))
       if (CHOICEP(y))
-        if (KNO_CHOICE_SIZE(x)>KNO_CHOICE_SIZE(y)) {
-          DO_CHOICES(elt,y)
-            if (choice_containsp(elt,(kno_choice)x)) {
-              retval = 1;
-              break;}}
-        else {
-          DO_CHOICES(elt,x)
-            if (choice_containsp(elt,(kno_choice)y)) {
-              retval = 1;
-              break;}}
+	if (KNO_CHOICE_SIZE(x)>KNO_CHOICE_SIZE(y)) {
+	  DO_CHOICES(elt,y)
+	    if (choice_containsp(elt,(kno_choice)x)) {
+	      retval = 1;
+	      break;}}
+	else {
+	  DO_CHOICES(elt,x)
+	    if (choice_containsp(elt,(kno_choice)y)) {
+	      retval = 1;
+	      break;}}
       else retval = choice_containsp(y,(kno_choice)x);
     else if (CHOICEP(y))
       retval = choice_containsp(x,(kno_choice)y);
@@ -1255,15 +1257,15 @@ int kno_containsp(lispval xarg,lispval yarg)
     else y = yarg;
     if (CHOICEP(x))
       if (CHOICEP(y)) {
-        int contained = 1;
-        DO_CHOICES(elt,x)
-          if (choice_containsp(elt,(kno_choice)y)) {}
-          else {
-            contained = 0;
-            KNO_STOP_DO_CHOICES;
-            break;}
-        if (contained)
-          retval = 1;}
+	int contained = 1;
+	DO_CHOICES(elt,x)
+	  if (choice_containsp(elt,(kno_choice)y)) {}
+	  else {
+	    contained = 0;
+	    KNO_STOP_DO_CHOICES;
+	    break;}
+	if (contained)
+	  retval = 1;}
       else retval = 0;
     else if (CHOICEP(y))
       retval = choice_containsp(x,(kno_choice)y);

@@ -40,10 +40,13 @@ KNO_FASTOP kno_lexenv make_dynamic_env(int n,kno_lexenv parent)
   lispval schemap = kno_make_schemap(NULL,n,KNO_SCHEMAP_PRIVATE,vars,vals);
   while (i<n) {vars[i]=VOID; vals[i]=VOID; i++;}
   KNO_INIT_FRESH_CONS(e,kno_lexenv_type);
-  e->env_copy = e;
+  e->env_copy     = e;
   e->env_bindings = schemap;
-  e->env_exports = VOID;
-  e->env_parent = kno_copy_env(parent);
+  e->env_exports  = VOID;
+  e->env_parent   = kno_copy_env(parent);
+  e->env_vals     = NULL;
+  e->env_pvals    = NULL;
+  e->env_flags    = 0;
   return e;
 }
 

@@ -55,11 +55,14 @@ kno_lexenv kno_dynamic_lexenv(kno_lexenv env)
     else  {
       struct KNO_LEXENV *newenv = u8_alloc(struct KNO_LEXENV);
       KNO_INIT_FRESH_CONS(newenv,kno_lexenv_type);
-      newenv->env_exports = kno_incref(env->env_exports);
-      newenv->env_parent = parent;
+      newenv->env_exports  = kno_incref(env->env_exports);
+      newenv->env_parent   = parent;
       newenv->env_bindings = bindings;
-      newenv->env_copy = newenv;
-      env->env_copy = newenv;
+      newenv->env_copy     = newenv;
+      env->env_copy        = newenv;
+      newenv->env_vals     = NULL;
+      newenv->env_pvals    = NULL;
+      newenv->env_flags    = 0;
       KNO_UNLOCK_PTR((void *)env);
       return newenv;}}
 }
@@ -93,7 +96,8 @@ KNO_EXPORT kno_lexenv kno_copy_env(kno_lexenv env)
 static void recycle_lexenv(struct KNO_RAW_CONS *envp)
 {
   struct KNO_LEXENV *env = (struct KNO_LEXENV *)envp;
-  kno_decref(env->env_bindings); kno_decref(env->env_exports);
+  kno_decref(env->env_bindings);
+  kno_decref(env->env_exports);
   if (env->env_parent) kno_decref((lispval)(env->env_parent));
   if (!(KNO_STATIC_CONSP(envp))) {
     memset(env,0,sizeof(struct KNO_LEXENV));

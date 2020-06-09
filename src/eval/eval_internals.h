@@ -234,8 +234,11 @@ KNO_FASTOP kno_lexenv init_static_env
   // u8_init_rwlock(&(bindings->table_rwlock));
   envstruct->env_bindings = LISP_CONS((bindings));
   envstruct->env_exports = KNO_VOID;
-  envstruct->env_parent = parent;
-  envstruct->env_copy = NULL;
+  envstruct->env_parent  = parent;
+  envstruct->env_vals    = NULL;
+  envstruct->env_pvals   = NULL;
+  envstruct->env_copy    = NULL;
+  envstruct->env_flags   = 0;
   return envstruct;
 }
 
