@@ -19,11 +19,13 @@ typedef struct KNO_LEXENV {
   KNO_CONS_HEADER;
   lispval env_bindings;
   lispval env_exports;
-  lispval *env_vals, *env_pvals;
+  lispval *env_vals;
   struct KNO_LEXENV *env_parent;
   struct KNO_LEXENV *env_copy;
-  unsigned int env_flags;} KNO_LEXENV;
+  unsigned int env_bits;} KNO_LEXENV;
 typedef struct KNO_LEXENV *kno_lexenv;
+
+#define KNO_LEXENV_NVALS_MASK 0xFF
 
 KNO_EXPORT kno_lexenv kno_copy_env(kno_lexenv env);
 KNO_EXPORT void _kno_free_lexenv(struct KNO_LEXENV *env);
@@ -48,7 +50,7 @@ void kno_free_lexenv(struct KNO_LEXENV *env)
   */
   if (env->env_copy)
     if (env == env->env_copy)
-      kno_recycle_lexenv(env->env_copy);
+      kno_recycle_lexenv(env);
     else {
       struct KNO_SCHEMAP *sm = KNO_XSCHEMAP(env->env_bindings);
       int i = 0, n = KNO_XSCHEMAP_SIZE(sm);
