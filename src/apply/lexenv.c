@@ -60,10 +60,16 @@ kno_lexenv kno_dynamic_lexenv(kno_lexenv env)
       newenv->env_bindings = bindings;
       newenv->env_copy     = newenv;
       env->env_copy        = newenv;
-      newenv->env_vals     = NULL;
-      newenv->env_pvals    = NULL;
-      newenv->env_flags    = 0;
-      KNO_UNLOCK_PTR((void *)env);
+      if (KNO_SCHEMAPP(bindings)) {
+	struct KNO_SCHEMAP *smap = (kno_schemap) bindings;
+	int vlen = smap->schema_length;
+	if (vlen < 128) {
+	  newenv->env_vals = smap->table_values;
+	  newenv->env_bits = vlen | KNO_LEXENV_USE_VALS;}
+	else {
+	  newenv->env_vals     = NULL;
+	  newenv->env_bits    = 0;}
+	KNO_UNLOCK_PTR((void *)env);}
       return newenv;}}
 }
 

@@ -34,16 +34,23 @@ INLINE_DEF lispval eval_lexref(lispval lexref,kno_lexenv env_arg)
     up--;}
   if (KNO_EXPECT_TRUE(env != NULL)) {
     if (PRED_FALSE((env->env_copy!=NULL))) env = env->env_copy;
-    lispval bindings = env->env_bindings;
-    if (KNO_EXPECT_TRUE(KNO_SCHEMAPP(bindings))) {
-      struct KNO_SCHEMAP *s = (struct KNO_SCHEMAP *)bindings;
-      if ( across < s->schema_length) {
-	lispval v = s->table_values[across];
-	if (KNO_CONSP(v)) {
-	  if (PRED_FALSE((KNO_CONS_TYPE(((kno_cons)v))) == kno_prechoice_type))
-	    return _kno_make_simple_choice(v);
-	  else return kno_incref(v);}
-	else return v;}}}
+    int vals_len = (env->env_vals) ? (env->env_bits & (0xFF)) : (-1);
+    if (vals_len > 0) {
+      if (across < vals_len) {
+	lispval v = env->env_vals[across];
+	if (KNO_CONSP(v)) return kno_incref(v);
+	else return v;}}
+    else {
+      lispval bindings = env->env_bindings;
+      if (KNO_EXPECT_TRUE(KNO_SCHEMAPP(bindings))) {
+	struct KNO_SCHEMAP *s = (struct KNO_SCHEMAP *)bindings;
+	if ( across < s->schema_length) {
+	  lispval v = s->table_values[across];
+	  if (KNO_CONSP(v)) {
+	    if (PRED_FALSE((KNO_CONS_TYPE(((kno_cons)v))) == kno_prechoice_type))
+	      return _kno_make_simple_choice(v);
+	    else return kno_incref(v);}
+	  else return v;}}}}
   lispval env_ptr = (lispval) env_arg;
   u8_byte errbuf[64];
   return kno_err("Bad lexical reference","kno_lexref",
@@ -236,9 +243,8 @@ KNO_FASTOP kno_lexenv init_static_env
   envstruct->env_exports = KNO_VOID;
   envstruct->env_parent  = parent;
   envstruct->env_vals    = NULL;
-  envstruct->env_pvals   = NULL;
   envstruct->env_copy    = NULL;
-  envstruct->env_flags   = 0;
+  envstruct->env_bits   = 0;
   return envstruct;
 }
 
@@ -259,6 +265,7 @@ KNO_FASTOP kno_lexenv init_static_env
 		    &_ ## name,				    \
 		    name ## _vars,			    \
 		    name ## _vals);			    \
+  _ ## name.env_vals = name ## _vals;			    \
   KNO_STACK_SET((stack),KNO_STACK_OWNS_ENV)
 
 #define INIT_STACK_SCHEMA(stack,name,parent,n,schema)	    \
@@ -276,6 +283,7 @@ KNO_FASTOP kno_lexenv init_static_env
 		    &_ ## name,				    \
 		    schema,				    \
 		    name ## _vals);			    \
+  _ ## name.env_vals = name ## _vals;			    \
   KNO_STACK_SET((stack),KNO_STACK_OWNS_ENV)
 
 #define ENV_STACK_FLAGS (KNO_STACK_OWNS_ENV|KNO_STACK_FREE_ENV)
@@ -302,6 +310,7 @@ KNO_FASTOP kno_lexenv init_static_env
 		    &_ ## name,						\
 		    name ## _vars,					\
 		    name ## _vals);					\
+  _ ## name.env_vals = name ## _vals;					\
   KNO_PUSH_STACK(name ## _stack)
 
 

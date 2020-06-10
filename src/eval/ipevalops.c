@@ -44,9 +44,11 @@ KNO_FASTOP kno_lexenv make_dynamic_env(int n,kno_lexenv parent)
   e->env_bindings = schemap;
   e->env_exports  = VOID;
   e->env_parent   = kno_copy_env(parent);
-  e->env_vals     = NULL;
-  e->env_pvals    = NULL;
-  e->env_flags    = 0;
+  if (KNO_SCHEMAPP(bindings)) {
+    struct KNO_SCHEMAP *smap = (kno_schemap) bindings;
+    e->env_vals = smap->table_values;}
+  else e->env_vals     = NULL;
+  e->env_bits    = 0;
   return e;
 }
 

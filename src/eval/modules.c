@@ -54,9 +54,12 @@ KNO_EXPORT kno_lexenv kno_make_env(lispval bindings,kno_lexenv parent)
     KNO_INIT_FRESH_CONS(e,kno_lexenv_type);
     e->env_bindings = bindings; e->env_exports = VOID;
     e->env_parent = kno_copy_env(parent);
+    if (KNO_SCHEMAPP(bindings)) {
+      struct KNO_SCHEMAP *smap = (kno_schemap) bindings;
+      e->env_vals = smap->table_values;}
+    else e->env_vals     = NULL;
     e->env_vals = NULL;
-    e->env_pvals = NULL;
-    e->env_flags = 0;
+    e->env_bits = 0;
     e->env_copy = e;
     return e;}
 }
@@ -84,8 +87,7 @@ kno_lexenv kno_make_export_env(lispval exports,kno_lexenv parent)
     e->env_parent = kno_copy_env(parent);
     e->env_copy = e;
     e->env_vals = NULL;
-    e->env_pvals = NULL;
-    e->env_flags = 0;
+    e->env_bits = 0;
     return e;}
 }
 
