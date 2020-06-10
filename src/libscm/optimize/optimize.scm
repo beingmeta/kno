@@ -114,6 +114,12 @@
 (define (optimizable? arg)
   (and (not (fcnid? arg)) (compound-procedure? arg)))
 
+(define (needs-eval? x)
+  (cond ((fail? x) #f)
+	((ambiguous? x) (exists needs-eval? x))
+	((or (symbol? x) (pair? x) (schemap? x)) #t)
+	(else #f)))
+
 ;;; What we export
 
 (module-export! '{optimize! optimized optimized? use+
@@ -432,8 +438,10 @@
   (logdebug |Optimize| expr " given " bound)
   ;;(%watchptr optimize-expr)
   (cond ((and (ambiguous? expr) (use-opcodes? opts))
-	 `(#OP_UNION ,@(forseq (each (choice->list expr))
-			 (optimize each env bound opts))))
+	 (if (needs-eval? (qc expr))
+	     `(#OP_UNION ,@(forseq (each (choice->list expr))
+			     (optimize each env bound opts)))
+	     `(#OP_QUOTE ,expr)))
 	((ambiguous? expr)
 	 (for-choices (each expr) 
 	   (optimize each env bound opts)))
