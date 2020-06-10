@@ -1081,8 +1081,6 @@ lispval eval_apply(lispval fn,lispval exprs,
     else NO_ELSE;
     kno_stackvec_push(args,arg);}
 
-  /* KNO_STACK_SET_OP(stack,fn); */
-
   KNO_STACK_SET_TAIL(stack,tail);
 
   lispval *argbuf = KNO_STACKVEC_ELTS(args);
@@ -1159,6 +1157,7 @@ static lispval reduce_loop(kno_stack loop_stack,int tail)
     loop_stack->eval_context  = op;
   kno_lexenv env = loop_stack->eval_env;
   while (result == KNO_TAIL) {
+    KNO_STACK_SET_TAIL(loop_stack,tail);
     if (op_type == kno_lambda_type) {
       loop_stack->stack_op=KNO_VOID;
       result = lambda_call
