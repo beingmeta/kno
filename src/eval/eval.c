@@ -823,6 +823,7 @@ lispval lambda_call(kno_stack stack,
   lambda_stack->eval_env = &eval_env;
   KNO_STACK_SET(lambda_stack,KNO_STACK_OWNS_ENV);
 
+  lambda_stack->eval_context = proc->lambda_source;
   lispval scan = proc->lambda_start, result = KNO_VOID;
  eval_body:
   while (KNO_PAIRP(scan)) {

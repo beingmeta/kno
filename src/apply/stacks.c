@@ -67,7 +67,7 @@ struct KNO_STACK *kno_stackptr=NULL;
 int kno_debug_stacks = 0;
 #endif
 
-static lispval stack_entry_symbol, stack_target_symbol, opaque_symbol,
+static lispval stack_entry_symbol, eval_target_symbol, opaque_symbol,
   pbound_symbol, pargs_symbol;
 static lispval null_sym, unbound_sym, void_sym, default_sym, nofile_symbol;
 
@@ -202,21 +202,36 @@ KNO_EXPORT  void _KNO_STACK_SET_OP(kno_stack s,lispval new,int free)
 
 #define STACK_CREATE_OPTS KNO_COMPOUND_USEREF
 
+static lispval annotate_source(lispval context,lispval point);
+
 static lispval stack2lisp(struct KNO_STACK *stack,struct KNO_STACK *inner)
 {
   lispval depth	  = KNO_INT(stack->stack_depth);
+  lispval origin = (stack->stack_origin) ?
+    (knostring(stack->stack_origin)) :
+    (KNO_FALSE);
   lispval label	  = (stack->stack_label) ?
     (knostring(stack->stack_label)) :
     (KNO_FALSE);
   lispval file	  = (stack->stack_file) ?
     (knostring(stack->stack_file)) :
     (KNO_FALSE);
-  lispval op	  = kno_incref(stack->stack_op);
-  kno_lexenv env  = stack->eval_env;
-  lispval source  = stack->eval_source;
-  int is_apply = (!(KNO_PAIRP(op)));
-  int show_source =  (is_apply) ? (0) : (KNO_VOIDP(source)) ? (0) :
-    (!(op == source));
+  lispval op	  = (KNO_VOIDP(stack->eval_source)) ? (KNO_FALSE) :
+    (kno_incref(stack->stack_op));
+  lispval source  = (KNO_VOIDP(stack->eval_source)) ? (kno_incref(op)) :
+    (kno_incref(stack->eval_source));
+  lispval context = ( (KNO_VOIDP(stack->eval_context)) ||
+		      (stack->eval_context == stack->eval_source) ) ?
+    (KNO_FALSE) : (annotate_source(stack->eval_context,source));
+  lispval fn = (KNO_APPLICABLEP(op)) ? (kno_incref(op)) : (KNO_FALSE);
+
+  lispval args = (((STACK_ARGS(stack)) && (STACK_LENGTH(stack))) ?
+		  (copy_args(STACK_LENGTH(stack),STACK_ARGS(stack))) :
+		  (KNO_EMPTY_LIST));
+  lispval env =  (( (stack->eval_env) &&
+		    (KNO_STACK_BITP(stack,KNO_STACK_OWNS_ENV) ) ) ?
+		  (kno_deep_copy(stack->eval_env->env_bindings)) :
+		  (KNO_FALSE));
 
   unsigned int icrumb = stack->stack_crumb;
   if (icrumb == 0) {
@@ -225,29 +240,12 @@ static lispval stack2lisp(struct KNO_STACK *stack,struct KNO_STACK *inner)
     stack->stack_crumb=icrumb;}
 
   if (op == KNO_VOID) op = KNO_FALSE;
+  if (source == KNO_VOID) source = KNO_FALSE;
 
-  if (is_apply)
-    return kno_init_compound
-      (NULL,stack_entry_symbol,STACK_CREATE_OPTS,
-       5,depth,label,file,op,
-       (((STACK_ARGS(stack)) && (STACK_LENGTH(stack))) ?
-	(copy_args(STACK_LENGTH(stack),STACK_ARGS(stack))) :
-	(KNO_EMPTY_LIST)),
-       KNO_INT(icrumb));
-  else if (show_source)
-    return kno_init_compound
-      (NULL,stack_entry_symbol,STACK_CREATE_OPTS,
-       6,depth,label,file,kno_incref(source),
-       ((env) ? (kno_deep_copy(env->env_bindings)) :
-	((STACK_ARGS(stack)) && (STACK_LENGTH(stack))) ?
-	(copy_args(STACK_LENGTH(stack),STACK_ARGS(stack))) :
-	(KNO_EMPTY_LIST)),
-       op,KNO_INT(icrumb));
-    else return kno_init_compound
-	   (NULL,stack_entry_symbol,STACK_CREATE_OPTS,
-	    5,depth,label,file,op,
-	    ((env) ? (kno_deep_copy(env->env_bindings)) : (KNO_FALSE)),
-	    KNO_INT(icrumb));
+  return kno_init_compound
+    (NULL,stack_entry_symbol,STACK_CREATE_OPTS,
+     11,depth,label,origin,file,KNO_INT(icrumb),
+     fn,args,env,source,context,op);
 }
 
 static lispval copy_args(int width,kno_argvec args)
@@ -305,6 +303,39 @@ void kno_sum_backtrace(u8_output out,lispval stacktrace)
 	  u8_putc(out,')');}
 	n++;}
       i++;}}
+}
+
+/* Annotating expressions */
+
+static lispval annotate_source(lispval context,lispval point)
+{
+  if (context == point)
+    return eval_target_symbol;
+  else if (KNO_CONSP(context)) {
+    kno_lisp_type ctype = KNO_CONS_TYPEOF(context);
+    switch (ctype) {
+    case kno_pair_type: {
+      lispval head = KNO_VOID, tail = KNO_VOID;
+      lispval scan = context;
+      while (KNO_PAIRP(scan)) {
+	lispval car = KNO_CAR(scan);
+	lispval annotated_car = annotate_source(car,point);
+	lispval consed = kno_init_pair(NULL,annotated_car,KNO_EMPTY_LIST);
+	if (KNO_VOIDP(tail)) {
+	  head = tail = consed;}
+	else {
+	  struct KNO_PAIR *pair = (kno_pair) tail;
+	  pair->cdr = consed;
+	  tail = consed;}
+	scan = KNO_CDR(scan);}
+      if (KNO_CONSP(scan)) {
+	lispval annotated_cdr = annotate_source(scan,point);
+	struct KNO_PAIR *pair = (kno_pair) tail;
+	pair->cdr = annotated_cdr;}
+      return head;}
+    default:
+      return kno_incref(context);}}
+  else return context;
 }
 
 /* Checking the C stack depth */
@@ -463,9 +494,11 @@ void kno_init_stacks_c()
   kno_stackptr=NULL;
 #endif
 
-  opaque_symbol = kno_intern("%opaque");
   stack_entry_symbol = kno_intern("_stack");
-  stack_target_symbol = kno_intern("$<<*eval*>>$");
+
+
+  opaque_symbol = kno_intern("%opaque");
+  eval_target_symbol = kno_intern("$<<*eval*>>$");
   pbound_symbol = kno_intern("%bound");
   pargs_symbol = kno_intern("%args");
 
