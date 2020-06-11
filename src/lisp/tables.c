@@ -1279,6 +1279,9 @@ KNO_EXPORT int kno_schemap_store
   slotno=__kno_get_slotno(key,sm->table_schema,size,
 			  (KNO_XTABLE_BITP(sm,KNO_SCHEMAP_SORTED)));
   if (slotno>=0) {
+    if (KNO_XTABLE_BITP(sm,KNO_SCHEMAP_STACK_VALUES)) {
+      kno_incref_vec(sm->table_values,size);
+      KNO_XTABLE_SET_BIT(sm,KNO_SCHEMAP_STACK_VALUES,0);}
     kno_decref(sm->table_values[slotno]);
     sm->table_values[slotno]=kno_incref(value);
     KNO_XTABLE_SET_MODIFIED(sm,1);
@@ -1315,6 +1318,9 @@ KNO_EXPORT int kno_schemap_add
 			  (KNO_XTABLE_BITP(sm,KNO_SCHEMAP_SORTED)));
   if (slotno>=0) {
     kno_incref(value);
+    if (KNO_XTABLE_BITP(sm,KNO_SCHEMAP_STACK_VALUES)) {
+      kno_incref_vec(sm->table_values,size);
+      KNO_XTABLE_SET_BIT(sm,KNO_SCHEMAP_STACK_VALUES,0);}
     CHOICE_ADD(sm->table_values[slotno],value);
     KNO_XTABLE_SET_MODIFIED(sm,1);
     if (unlock) kno_unlock_table(sm);
@@ -1349,6 +1355,9 @@ KNO_EXPORT int kno_schemap_drop
   slotno=__kno_get_slotno(key,sm->table_schema,size,
 			  (KNO_XTABLE_BITP(sm,KNO_SCHEMAP_SORTED)));
   if (slotno>=0) {
+    if (KNO_XTABLE_BITP(sm,KNO_SCHEMAP_STACK_VALUES)) {
+      kno_incref_vec(sm->table_values,size);
+      KNO_XTABLE_SET_BIT(sm,KNO_SCHEMAP_STACK_VALUES,0);}
     lispval oldval=sm->table_values[slotno];
     lispval newval=((VOIDP(value)) ? (EMPTY) :
                     (kno_difference(oldval,value)));
@@ -1483,11 +1492,13 @@ static void recycle_schemap(struct KNO_RAW_CONS *c)
     kno_decref(template);
     sm->schemap_template=KNO_VOID;}
   int schemap_size=KNO_XSCHEMAP_SIZE(sm);
-  if (sm->table_values) {
+  int stack_vals = (KNO_XTABLE_BITP(sm,KNO_SCHEMAP_STACK_VALUES));
+  if ( (sm->table_values) && (stack_vals == 0) ) {
     lispval *scan=sm->table_values;
     lispval *limit=sm->table_values+schemap_size;
     while (scan < limit) {kno_decref(*scan); scan++;}}
-  u8_free(sm->table_values);
+  if (! (KNO_XTABLE_BITP(sm,KNO_SCHEMAP_STATIC_VALUES)) )
+    u8_free(sm->table_values);
   if ((sm->table_schema) && (KNO_XTABLE_BITP(sm,KNO_SCHEMAP_PRIVATE)))
     u8_free(sm->table_schema);
   if (unlock) kno_unlock_table(sm);
