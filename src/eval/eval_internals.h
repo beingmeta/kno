@@ -34,31 +34,31 @@ INLINE_DEF lispval eval_lexref(lispval lexref,kno_lexenv env_arg)
     up--;}
   if (KNO_EXPECT_TRUE(env != NULL)) {
     if (PRED_FALSE((env->env_copy!=NULL))) env = env->env_copy;
-    int vals_len = (env->env_vals) ? (env->env_bits & (0xFF)) : (-1);
-    if (vals_len > 0) {
-      if (across < vals_len) {
-	lispval v = env->env_vals[across];
-	if (KNO_CONSP(v)) {
-	  if (PRED_FALSE((KNO_CONS_TYPE(((kno_cons)v))) == kno_prechoice_type))
-	    return _kno_make_simple_choice(v);
-	  else return kno_incref(v);}
-	else return v;}}
+    lispval v;
+    if (env->env_vals) {
+      int vals_len = env->env_bits & (0xFF);
+      if (across < vals_len)
+	v = env->env_vals[across];
+      else v = KNO_ERROR;}
     else {
       lispval bindings = env->env_bindings;
       if (KNO_EXPECT_TRUE(KNO_SCHEMAPP(bindings))) {
 	struct KNO_SCHEMAP *s = (struct KNO_SCHEMAP *)bindings;
 	if ( across < s->schema_length) {
-	  lispval v = s->table_values[across];
-	  if (KNO_CONSP(v)) {
-	    if (PRED_FALSE((KNO_CONS_TYPE(((kno_cons)v))) == kno_prechoice_type))
-	      return _kno_make_simple_choice(v);
-	    else return kno_incref(v);}
-	  else return v;}}}}
-  lispval env_ptr = (lispval) env_arg;
-  u8_byte errbuf[64];
-  return kno_err("Bad lexical reference","kno_lexref",
-                 u8_bprintf(errbuf,"up=%d,across=%d",up, across),
-                 ((KNO_STATICP(env_ptr)) ? KNO_FALSE : (env_ptr)));
+	  v = s->table_values[across];}
+	else v = KNO_ERROR;}
+      else v = KNO_ERROR;}
+    if (KNO_ABORTED(v)) {
+      lispval env_ptr = (lispval) env_arg;
+      u8_byte errbuf[64];
+      return kno_err("Bad lexical reference","kno_lexref",
+		     u8_bprintf(errbuf,"up=%d,across=%d",up, across),
+		     ((KNO_STATICP(env_ptr)) ? KNO_FALSE : (env_ptr)));}
+    else if (KNO_CONSP(v)) {
+      if (PRED_FALSE((KNO_CONS_TYPE(((kno_cons)v))) == kno_prechoice_type))
+	return _kno_make_simple_choice(v);
+      else return kno_incref(v);}
+    else return v;}
 }
 INLINE_DEF lispval symeval(lispval symbol,kno_lexenv env)
 {
