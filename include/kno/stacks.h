@@ -175,6 +175,8 @@ typedef struct KNO_STACK {
   // stack_file a string indicating the source file/location of whatever
   //  code is running in this stack frame
   u8_string stack_file;
+  // stack_origin a string describing the original label for this stack
+  u8_string stack_origin;
   // stack_label a string naming his stack for visualization and debugging
   u8_string stack_label;
 } KNO_STACK;
@@ -275,14 +277,18 @@ KNO_EXPORT __thread struct KNO_STACK *kno_stackptr;
 #define KNO_SETUP_STACK(stack,label)			\
   (stack)->stack_size	     = sizeof(*(stack));		\
   (stack)->stack_label	     = label;				\
+  (stack)->stack_origin	     = label;				\
   (stack)->stack_bits	     = 0x00;				\
   (stack)->stack_op	     = KNO_VOID;			\
   (stack)->eval_source	     = KNO_VOID;			\
   (stack)->eval_context      = KNO_VOID
 
-#define KNO_STACK_SET_CALLER(stack,caller)		\
+#define KNO_STACK_SET_CALLER(stack,caller)			\
   (stack)->stack_caller = caller;				\
   if (caller) {							\
+    if ( ( ((stack)->stack_origin) == NULL) &&			\
+	 ( (caller->stack_label) != NULL) ) {			\
+      (stack)->stack_origin = (caller->stack_label);}		\
     (stack)->stack_depth	= (caller)->stack_depth+1;	\
     (stack)->stack_flags	= caller->stack_flags;}
 

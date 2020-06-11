@@ -128,10 +128,20 @@ static void _concise_stack_frame(struct KNO_STACK *stack)
   lispval op = stack->stack_op;
   kno_stackvec args = &(stack->stack_args);
   kno_stackvec refs = &(stack->stack_refs);
-  if (stack->stack_label)
+  if ( (stack->stack_label) && (stack->stack_label) &&
+       ( (stack->stack_origin) != (stack->stack_label) ) )
+    fprintf(stderr,"(%d) 0x%llx %s:%s %d/%d%s args, %d/%d%s refs",
+	    stack->stack_depth,KNO_LONGVAL(stack),
+	    stack->stack_origin,stack->stack_label,
+	    args->count,KNO_STACKVEC_LEN(args),
+	    (KNO_STACKVEC_ONHEAP(args)) ? ("(heap)") : (""),
+	    refs->count,KNO_STACKVEC_LEN(refs),
+	    (KNO_STACKVEC_ONHEAP(args)) ? ("(heap)") : (""));
+  else if ( (stack->stack_label) || (stack->stack_origin) )
     fprintf(stderr,"(%d) 0x%llx %s %d/%d%s args, %d/%d%s refs",
 	    stack->stack_depth,KNO_LONGVAL(stack),
-	    stack->stack_label,
+	    ( (stack->stack_label) ?
+	      (stack->stack_label) : (stack->stack_origin) ),
 	    args->count,KNO_STACKVEC_LEN(args),
 	    (KNO_STACKVEC_ONHEAP(args)) ? ("(heap)") : (""),
 	    refs->count,KNO_STACKVEC_LEN(refs),

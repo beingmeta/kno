@@ -168,9 +168,9 @@ KNO_FASTOP int setup_call_stack(kno_stack stack,
 
   if ( (KNO_FUNCTION_TYPEP(ftype)) || (kno_isfunctionp[ftype]) ) {
     kno_function f = (kno_function) fn;
+    u8_string label = stack->stack_label;
     int min_arity = f->fcn_min_arity;
     int max_arity = f->fcn_arity;
-    u8_string label = stack->stack_label;
     if (fcnp) *fcnp = f;
     stack->stack_label = label = f->fcn_name;
     if ( (min_arity > 0) && (n < min_arity) )

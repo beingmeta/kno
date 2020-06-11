@@ -106,7 +106,7 @@ static int check_line_length(u8_output out,int last_off,int max_len)
     if ((end+5)>(out->u8_outlim)) {
       /* Grow the stream if needed */
       if (u8_grow_stream((u8_stream)out,U8_BUF_MIN_GROW)<=0)
-        return -1;
+	return -1;
       start = out->u8_outbuf; end = out->u8_write;
       scanner = start+scan_off;}
     /* Use memmove because it's overlapping */
@@ -134,7 +134,7 @@ static lispval watchcall(lispval expr,kno_lexenv env,
       label = u8_strdup(CSTRING(head));
       arglabel = u8_mkstring("%s/ARG",CSTRING(head));
       if ((expr_len>3)||(KNO_APPLICABLEP(kno_get_arg(expr,2)))) {
-        watch = kno_get_body(expr,2);}
+	watch = kno_get_body(expr,2);}
       else watch = kno_get_arg(expr,2);}}
   else if ((expr_len==2)&&(PAIRP(head)))
     watch = head;
@@ -172,13 +172,13 @@ static lispval watchcall(lispval expr,kno_lexenv env,
     DO_CHOICES(fn,rail[0]) {
       lispval r = kno_apply(fn,n_args-1,rail+1);
       if (KNO_ABORTED(r)) {
-        u8_string errstring = kno_errstring(NULL);
-        i--; while (i>=0) {kno_decref(rail[i]); i--;}
-        u8_free(rail);
-        kno_decref(result);
-        if (label!=dflt_label) {u8_free(label); u8_free(arglabel);}
-        u8_free(out.u8_outbuf); u8_free(errstring);
-        return r;}
+	u8_string errstring = kno_errstring(NULL);
+	i--; while (i>=0) {kno_decref(rail[i]); i--;}
+	u8_free(rail);
+	kno_decref(result);
+	if (label!=dflt_label) {u8_free(label); u8_free(arglabel);}
+	u8_free(out.u8_outbuf); u8_free(errstring);
+	return r;}
       else {CHOICE_ADD(result,r);}}}
   else result = kno_apply(rail[0],n_args-1,rail+1);
   if (KNO_ABORTED(result)) {
@@ -237,8 +237,8 @@ static void log_ptr(lispval val,lispval label_arg,lispval expr)
     u8_log(U8_LOG_MSG,"Pointer/Immediate",
 	   "%s%s%s0x%llx [ T0x%llx(%s) data=%llu ] %q <= %q",
 	   U8OPTSTR("",label,": "),
-           (KNO_LONGVAL(val)),
-           itype,type_name,data,
+	   (KNO_LONGVAL(val)),
+	   itype,type_name,data,
 	   val,expr);}
   else if (FIXNUMP(val))
     u8_log(U8_LOG_MSG,"Pointer/Fixnum",
@@ -252,16 +252,16 @@ static void log_ptr(lispval val,lispval label_arg,lispval expr)
 	   "%s%s%s0x%llx [ base=%llx off=%llx ] %q <= %q",
 	   U8OPTSTR("",label,": "),
 	   (KNO_LONGVAL(val)),
-           (KNO_OID_BASE_ID(val)),(KNO_OID_BASE_OFFSET(val)),
-           KNO_OID_HI(addr),KNO_OID_LO(addr),
+	   (KNO_OID_BASE_ID(val)),(KNO_OID_BASE_OFFSET(val)),
+	   KNO_OID_HI(addr),KNO_OID_LO(addr),
 	   val,expr);}
   else if (KNO_STATICP(val)) {
     kno_lisp_type ptype = KNO_CONS_TYPE((kno_cons)val);
     u8_string type_name = kno_lisp_typename(ptype);
     u8_log(U8_LOG_MSG,"Pointer/Static",
 	   "%s%s%s0x%llx [ T0x%llx(%s) ] %q <= %q",
-           U8OPTSTR("",label,": "),
-           (KNO_LONGVAL(val)),
+	   U8OPTSTR("",label,": "),
+	   (KNO_LONGVAL(val)),
 	   ptype,type_name,
 	   val,expr);}
   else if (CONSP(val)) {
@@ -270,7 +270,7 @@ static void log_ptr(lispval val,lispval label_arg,lispval expr)
     u8_string type_name = kno_lisp_typename(ptype);
     unsigned int refcount = KNO_CONS_REFCOUNT(c);
     u8_log(U8_LOG_MSG,"Pointer/Consed",
-           "%s%s%s0x%llx [ T0x%llx(%s) refs=%d ] %q <= %q",
+	   "%s%s%s0x%llx [ T0x%llx(%s) refs=%d ] %q <= %q",
 	   U8OPTSTR("",label,": "),
 	   (KNO_LONGVAL(val)),
 	   ptype,type_name,refcount,
@@ -321,7 +321,7 @@ static lispval watchcons_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 		 U8IF(label," "),U8S(label),
 		 value,val_expr);
 	else u8_log(U8_LOGWARN,"%WATCHCONS",
-		    "%s%d (%d => %d)%s%s %q\n    %q",
+		    "%s%d (%d => %d)%s%s %q\n	 %q",
 		    (after>refcount)?("+"):(""),
 		    (after-refcount),
 		    refcount-1,after-1,
@@ -337,10 +337,10 @@ static lispval watchcons_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 }
 
 DEFPRIM2("%watchptrval",watchptr_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDOP,
-         "`(%watchptrval *ptrval* [*arg1*])` Describes the Kno pointer "
+	 "`(%watchptrval *ptrval* [*arg1*])` Describes the Kno pointer "
 	 "characteristics of *ptrval*, using a label string dervied "
 	 "from *label* if provided",
-         kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval watchptr_prim(lispval val,lispval label_arg)
 {
   log_ptr(val,label_arg,KNO_VOID);
@@ -389,57 +389,57 @@ static lispval watch_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
        label=<value> */
     while (PAIRP(scan)) {
       /* A watched expr can be just a symbol or pair, which is output as:
-         <expr>=<value>
-         or a series of "<label>" <expr>, which is output as:
-         label=<value> */
+	 <expr>=<value>
+	 or a series of "<label>" <expr>, which is output as:
+	 label=<value> */
       lispval towatch = KNO_CAR(scan), wval = VOID;
       if ((STRINGP(towatch)) && (KNO_STRLEN(towatch) > 32)) {
-        u8_printf(&out," %s ",KNO_CSTRING(towatch));
-        scan = KNO_CDR(scan);}
+	u8_printf(&out," %s ",KNO_CSTRING(towatch));
+	scan = KNO_CDR(scan);}
       else if ((STRINGP(towatch)) && (PAIRP(KNO_CDR(scan)))) {
-        lispval label = towatch; u8_string lbl = CSTRING(label);
-        towatch = KNO_CAR(KNO_CDR(scan)); scan = KNO_CDR(KNO_CDR(scan));
-        wval = ((SYMBOLP(towatch))?(kno_symeval(towatch,env)):
+	lispval label = towatch; u8_string lbl = CSTRING(label);
+	towatch = KNO_CAR(KNO_CDR(scan)); scan = KNO_CDR(KNO_CDR(scan));
+	wval = ((SYMBOLP(towatch))?(kno_symeval(towatch,env)):
 		(kno_eval(towatch,env,stack,0)));
-        if (KNO_ABORTED(wval)) {
-          u8_exception ex = u8_erreify();
-          wval = kno_wrap_exception(ex);}
-        if (lbl[0]=='\n') {
-          if (KNO_EMPTYP(wval)) {
-            if (oneout) u8_puts(&out," // "); else oneout = 1;
-            u8_printf(&out," %s={}",lbl+1);}
-          else {
-            if (off > 2) {
-              u8_printf(&out,"\n ");
-              off=1;}
-            if (oneout) u8_puts(&out," // "); else oneout = 1;
-            if ( (KNO_PAIRP(wval)) || (KNO_VECTORP(wval)) || (KNO_CHOICEP(wval)) ||
-                 (KNO_SLOTMAPP(wval)) || (KNO_SCHEMAPP(wval)) ) {
-              kno_list_object(&out,wval,lbl+1,NULL,"  ",NULL,100,0);
-              if (PAIRP(scan)) {
-                u8_puts(&out,"\n ");}}
-            else {
-              u8_printf(&out,"%s=%q",lbl+1,wval);
-              if (PAIRP(scan)) {
-                u8_puts(&out,"\n ");}}}}
-        else {
-          if (oneout) u8_puts(&out," // "); else oneout = 1;
-          u8_printf(&out,"%s=%q",CSTRING(label),wval);}
-        kno_decref(wval); wval = VOID;}
+	if (KNO_ABORTED(wval)) {
+	  u8_exception ex = u8_erreify();
+	  wval = kno_wrap_exception(ex);}
+	if (lbl[0]=='\n') {
+	  if (KNO_EMPTYP(wval)) {
+	    if (oneout) u8_puts(&out," // "); else oneout = 1;
+	    u8_printf(&out," %s={}",lbl+1);}
+	  else {
+	    if (off > 2) {
+	      u8_printf(&out,"\n ");
+	      off=1;}
+	    if (oneout) u8_puts(&out," // "); else oneout = 1;
+	    if ( (KNO_PAIRP(wval)) || (KNO_VECTORP(wval)) || (KNO_CHOICEP(wval)) ||
+		 (KNO_SLOTMAPP(wval)) || (KNO_SCHEMAPP(wval)) ) {
+	      kno_list_object(&out,wval,lbl+1,NULL,"  ",NULL,100,0);
+	      if (PAIRP(scan)) {
+		u8_puts(&out,"\n ");}}
+	    else {
+	      u8_printf(&out,"%s=%q",lbl+1,wval);
+	      if (PAIRP(scan)) {
+		u8_puts(&out,"\n ");}}}}
+	else {
+	  if (oneout) u8_puts(&out," // "); else oneout = 1;
+	  u8_printf(&out,"%s=%q",CSTRING(label),wval);}
+	kno_decref(wval); wval = VOID;}
       else {
-        wval = ((SYMBOLP(towatch))?(kno_symeval(towatch,env)):
+	wval = ((SYMBOLP(towatch))?(kno_symeval(towatch,env)):
 		(kno_eval(towatch,env,stack,0)));
-        if (KNO_ABORTED(wval)) {
-          u8_exception ex = u8_erreify();
-          wval = kno_wrap_exception(ex);}
-        scan = KNO_CDR(scan);
-        if (oneout)
-          u8_printf(&out," // %q=%q",towatch,wval);
-        else {
-          u8_printf(&out,"%q=%q",towatch,wval);
-          oneout = 1;}
-        kno_decref(wval);
-        wval = VOID;}
+	if (KNO_ABORTED(wval)) {
+	  u8_exception ex = u8_erreify();
+	  wval = kno_wrap_exception(ex);}
+	scan = KNO_CDR(scan);
+	if (oneout)
+	  u8_printf(&out," // %q=%q",towatch,wval);
+	else {
+	  u8_printf(&out,"%q=%q",towatch,wval);
+	  oneout = 1;}
+	kno_decref(wval);
+	wval = VOID;}
       off = check_line_length(&out,off,80);}
     u8_logger(U8_LOG_MSG,label,out.u8_outbuf);
     u8_free(out.u8_outbuf);}
@@ -463,7 +463,7 @@ static lispval watch_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
     else if (remainder(howlong,0.0000001)>=0.001)
       u8_log(U8_LOG_MSG,label,"<%.3fus> %q => %q",howlong*1000000,toeval,value);
     else u8_log(U8_LOG_MSG,label,"<%.1fus> %q => %q",howlong*1000000,
-                toeval,value);
+		toeval,value);
     return value;}
 }
 
@@ -479,8 +479,8 @@ static lispval watched_cond_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     label = KNO_CSTRING(label);
     clauses = KNO_CDR(clauses);}
   else if ( (KNO_PAIRP(KNO_CAR(clauses))) &&
-            (KNO_PAIRP(KNO_CDR(KNO_CAR(clauses)))) &&
-            (KNO_EQ(KNO_CAR(KNO_CAR(clauses)),unquote_symbol))) {
+	    (KNO_PAIRP(KNO_CDR(KNO_CAR(clauses)))) &&
+	    (KNO_EQ(KNO_CAR(KNO_CAR(clauses)),unquote_symbol))) {
     lispval label_expr = KNO_CADR(KNO_CAR(clauses));
     clauses = KNO_CDR(clauses);
     label_arg = kno_eval(label_expr,env,_stack,0);
@@ -488,8 +488,8 @@ static lispval watched_cond_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       u8_exception ex = u8_erreify();
       u8_string errstring = kno_errstring(ex);
       u8_log(LOG_ERR,"BadWatchLabel",
-             "Watch label '%q' returned an error (%s)",
-             label_expr,errstring);
+	     "Watch label '%q' returned an error (%s)",
+	     label_expr,errstring);
       u8_free(errstring);
       u8_free_exception(ex,0);
       label_arg = KNO_VOID;}
@@ -499,8 +499,8 @@ static lispval watched_cond_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       strcpy(tmplabel,KNO_CSTRING(label_arg));
       label = tmplabel;}
     else u8_log(LOG_ERR,"BadWatchLabel",
-                "Watch label '%q' value %q wasn't a string",
-                label_expr,label_arg);
+		"Watch label '%q' value %q wasn't a string",
+		label_expr,label_arg);
     kno_decref(label_arg);}
   KNO_DOLIST(clause,KNO_CDR(expr)) {
     lispval test_val;
@@ -517,33 +517,33 @@ static lispval watched_cond_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     else if (FALSEP(test_val)) {}
     else {
       u8_log(U8_LOG_MSG,label,"COND => %q => %Q",
-             KNO_CAR(clause),KNO_CDR(clause));
+	     KNO_CAR(clause),KNO_CDR(clause));
       lispval applyp =
-        ((PAIRP(KNO_CDR(clause))) &&
-         (KNO_EQ(KNO_CAR(KNO_CDR(clause)),apply_marker)));
+	((PAIRP(KNO_CDR(clause))) &&
+	 (KNO_EQ(KNO_CAR(KNO_CDR(clause)),apply_marker)));
       if (applyp) {
-        if (PAIRP(KNO_CDR(KNO_CDR(clause)))) {
-          lispval fnexpr = KNO_CAR(KNO_CDR(KNO_CDR(clause)));
+	if (PAIRP(KNO_CDR(KNO_CDR(clause)))) {
+	  lispval fnexpr = KNO_CAR(KNO_CDR(KNO_CDR(clause)));
 	  lispval fn = kno_eval(fnexpr,env,_stack,0);
-          if (KNO_ABORTED(fn)) {
-            kno_decref(test_val);
-            return fn;}
-          else if (KNO_APPLICABLEP(fn)) {
-            lispval retval = kno_apply(fn,1,&test_val);
-            kno_decref(test_val); kno_decref(fn);
-            return retval;}
-          else {
-            kno_decref(test_val);
-            return kno_type_error("function","watched_cond_evalfn",fn);}}
-        else return kno_err
-               (kno_SyntaxError,"watched_cond_evalfn","apply syntax",expr);}
+	  if (KNO_ABORTED(fn)) {
+	    kno_decref(test_val);
+	    return fn;}
+	  else if (KNO_APPLICABLEP(fn)) {
+	    lispval retval = kno_apply(fn,1,&test_val);
+	    kno_decref(test_val); kno_decref(fn);
+	    return retval;}
+	  else {
+	    kno_decref(test_val);
+	    return kno_type_error("function","watched_cond_evalfn",fn);}}
+	else return kno_err
+	       (kno_SyntaxError,"watched_cond_evalfn","apply syntax",expr);}
       else {
-        kno_decref(test_val);
+	kno_decref(test_val);
 	lispval value =
 	  kno_eval_body(KNO_CDR(clause),env,_stack,"COND","==>",0);
-        u8_log(U8_LOG_MSG,label,"COND => %q => %q",
-               KNO_CAR(clause),value);
-        return value;}}}
+	u8_log(U8_LOG_MSG,label,"COND => %q => %q",
+	       KNO_CAR(clause),value);
+	return value;}}}
   return VOID;
 }
 
@@ -560,8 +560,8 @@ static lispval watched_try_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     label = KNO_CSTRING(label);
     clauses = KNO_CDR(clauses);}
   else if ( (KNO_PAIRP(KNO_CAR(clauses))) &&
-            (KNO_PAIRP(KNO_CDR(KNO_CAR(clauses)))) &&
-            (KNO_EQ(KNO_CAR(KNO_CAR(clauses)),unquote_symbol))) {
+	    (KNO_PAIRP(KNO_CDR(KNO_CAR(clauses)))) &&
+	    (KNO_EQ(KNO_CAR(KNO_CAR(clauses)),unquote_symbol))) {
     lispval label_expr = KNO_CADR(KNO_CAR(clauses));
     clauses = KNO_CDR(clauses);
     label_arg = kno_eval(label_expr,env,_stack,0);
@@ -569,8 +569,8 @@ static lispval watched_try_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       u8_exception ex = u8_erreify();
       u8_string errstring = kno_errstring(ex);
       u8_log(LOG_ERR,"BadWatchLabel",
-             "Watch label '%q' returned an error (%s)",
-             label_expr,errstring);
+	     "Watch label '%q' returned an error (%s)",
+	     label_expr,errstring);
       u8_free(errstring);
       u8_free_exception(ex,0);
       label_arg = KNO_VOID;}
@@ -580,8 +580,8 @@ static lispval watched_try_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       strcpy(tmplabel,KNO_CSTRING(label_arg));
       label = tmplabel;}
     else u8_log(LOG_ERR,"BadWatchLabel",
-                "Watch label '%q' value %q wasn't a string",
-                label_expr,label_arg);
+		"Watch label '%q' value %q wasn't a string",
+		label_expr,label_arg);
     kno_decref(label_arg);}
   lispval value = EMPTY;
   KNO_DOLIST(clause,clauses) {
@@ -658,7 +658,7 @@ static lispval dbgeval_evalfn(lispval dbg_expr,kno_lexenv env,kno_stack stack)
   lispval arg;
  examine_expr:
   if (VOIDP(msg_expr))
-    u8_message("Debug eval 0x%llx <==\n    %Q",
+    u8_message("Debug eval 0x%llx <==\n	   %Q",
 	       ((unsigned long long)&arg),expr);
   else {
     lispval msg=kno_eval(msg_expr,env,stack,0);
@@ -666,7 +666,7 @@ static lispval dbgeval_evalfn(lispval dbg_expr,kno_lexenv env,kno_stack stack)
     if (KNO_VOIDP(msg))
       u8_message("Debug eval 0x%llx <==\n    %Q",
 		 ((unsigned long long)&arg),expr);
-    else u8_message("Debug eval 0x%llx %q <=\n    %Q",
+    else u8_message("Debug eval 0x%llx %q <=\n	  %Q",
 		    ((unsigned long long)&arg),msg,expr);
     kno_decref(msg);}
   arg = kno_eval(expr,env,stack,0);
@@ -693,16 +693,16 @@ KNO_EXPORT int kno_dump_bug(lispval ex,u8_string into)
     u8_now(&now);
     u8_string filename = ( pid == tid ) ?
       (u8_mkstring("%s-p%lld-%4d-%02d-%02dT%02d:%02d:%02f.err",
-                   appid,pid,
-                   now.u8_year,now.u8_mon+1,now.u8_mday,
-                   now.u8_hour,now.u8_min,
-                   (1.0*now.u8_sec)+(now.u8_nsecs/1000000000.0))) :
+		   appid,pid,
+		   now.u8_year,now.u8_mon+1,now.u8_mday,
+		   now.u8_hour,now.u8_min,
+		   (1.0*now.u8_sec)+(now.u8_nsecs/1000000000.0))) :
       (u8_mkstring("%s-p%lld-%4d-%02d-%02dT%02d:%02d:%02f-t%lld.err",
-                   appid,pid,
-                   now.u8_year,now.u8_mon+1,now.u8_mday,
-                   now.u8_hour,now.u8_min,
-                   (1.0*now.u8_sec)+(now.u8_nsecs/1000000000.0),
-                   pid,tid));
+		   appid,pid,
+		   now.u8_year,now.u8_mon+1,now.u8_mday,
+		   now.u8_hour,now.u8_min,
+		   (1.0*now.u8_sec)+(now.u8_nsecs/1000000000.0),
+		   pid,tid));
     bugpath = u8_mkpath(bugdir,filename);
     u8_free(bugdir);
     u8_free(filename);}
@@ -711,15 +711,15 @@ KNO_EXPORT int kno_dump_bug(lispval ex,u8_string into)
   int rv = kno_write_dtype_to_file(ex,bugpath);
   if (rv<0)
     u8_log(LOG_CRIT,"RecordBug",
-           "Couldn't write exception object to %s",bugpath);
+	   "Couldn't write exception object to %s",bugpath);
   else if (exo->ex_details)
     u8_log(LOG_WARN,"RecordBug",
-           "Wrote exception %m <%s> (%s) to %s",
-           exo->ex_condition,exo->ex_caller,exo->ex_details,
-           bugpath);
+	   "Wrote exception %m <%s> (%s) to %s",
+	   exo->ex_condition,exo->ex_caller,exo->ex_details,
+	   bugpath);
   else u8_log(LOG_WARN,"RecordBug",
-              "Wrote exception %m <%s> to %s",
-              exo->ex_condition,exo->ex_caller,bugpath);
+	      "Wrote exception %m <%s> to %s",
+	      exo->ex_condition,exo->ex_caller,bugpath);
   u8_free(bugpath);
   return rv;
 }
@@ -732,13 +732,13 @@ KNO_EXPORT int kno_record_bug(lispval ex)
 }
 
 DEFPRIM2("dump-bug",dumpbug_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-         "(DUMP-BUG *err* [*to*]) "
-         "writes a DType representation of *err* to either "
-         "*to* or the configured BUGDIR. If *err* is #t, "
-         "returns a packet of the representation. Without "
-         "*to* or if *to* is #f or #default, writes the "
-         "exception into either './errors/' or './'",
-         kno_exception_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 "(DUMP-BUG *err* [*to*]) "
+	 "writes a DType representation of *err* to either "
+	 "*to* or the configured BUGDIR. If *err* is #t, "
+	 "returns a packet of the representation. Without "
+	 "*to* or if *to* is #f or #default, writes the "
+	 "exception into either './errors/' or './'",
+	 kno_exception_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval dumpbug_prim(lispval ex,lispval where)
 {
   if (KNO_TRUEP(where)) {
@@ -757,9 +757,9 @@ static lispval dumpbug_prim(lispval ex,lispval where)
       u8_string cwd = u8_getcwd();
       u8_string errpath = u8_mkpath(cwd,"_bugjar");
       if ( (u8_directoryp(errpath)) && (u8_file_writablep(errpath)) )
-        bugdir = errpath;
+	bugdir = errpath;
       else if ( (u8_directoryp(cwd)) && (u8_file_writablep(cwd)) )
-        bugdir = cwd;
+	bugdir = cwd;
       else bugdir = u8_strdup("/tmp/");
       if (bugdir != errpath) u8_free(errpath);
       if (bugdir != cwd) u8_free(cwd);}
@@ -774,7 +774,7 @@ static lispval dumpbug_prim(lispval ex,lispval where)
     int rv = kno_dump_bug(ex,KNO_CSTRING(where));
     if (rv<0) {
       kno_seterr("RECORD-BUG failed","record_bug",
-                 KNO_CSTRING(where),ex);
+		 KNO_CSTRING(where),ex);
       return KNO_ERROR;}
     else return KNO_TRUE;}
   else return kno_type_error("filename","record_bug",where);
@@ -788,20 +788,20 @@ static int config_bugdir(lispval var,lispval val,void *state)
     kno_bugdir = NULL;
     return 0;}
   else if ( ( kno_dump_exception == NULL ) ||
-            ( kno_dump_exception == kno_record_bug ) ) {
+	    ( kno_dump_exception == kno_record_bug ) ) {
     if (KNO_STRINGP(val)) {
       u8_string old = kno_bugdir;
       u8_string new = KNO_CSTRING(val);
       if (u8_directoryp(new)) {}
       else if (u8_file_existsp(new)) {
-        kno_seterr("not a directory","config_bugdir",u8_strdup(new),VOID);
-        return -1;}
+	kno_seterr("not a directory","config_bugdir",u8_strdup(new),VOID);
+	return -1;}
       else {
-        int rv = u8_mkdirs(new,0664);
-        if (rv<0) {
-          u8_graberrno("config_bugdir/mkdir",u8_strdup(new));
-          u8_seterr(_("missing directory"),"config_bugdir",u8_strdup(new));
-          return -1;}}
+	int rv = u8_mkdirs(new,0664);
+	if (rv<0) {
+	  u8_graberrno("config_bugdir/mkdir",u8_strdup(new));
+	  u8_seterr(_("missing directory"),"config_bugdir",u8_strdup(new));
+	  return -1;}}
       kno_bugdir = u8_strdup(new);
       if (old) u8_free(old);
       kno_dump_exception = kno_record_bug;
@@ -847,8 +847,8 @@ static lispval gprofile_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     KNO_DOLIST(ex,body) {
       kno_decref(value); value = kno_eval(ex,env,_stack,0);
       if (KNO_ABORTED(value)) {
-        ProfilerStop();
-        return value;}
+	ProfilerStop();
+	return value;}
       else {}}
     ProfilerStop();
     u8_free(filename);
@@ -905,10 +905,10 @@ static int mtracing=0;
 #endif
 
 DEFPRIM1("mtrace",mtrace_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
-         "Activates libc heap tracing via MALLOC_TRACE and "
-         "returns true if it worked. Optional argument is a "
-         "filename to set as heap log.",
-         kno_any_type,KNO_VOID);
+	 "Activates libc heap tracing via MALLOC_TRACE and "
+	 "returns true if it worked. Optional argument is a "
+	 "filename to set as heap log.",
+	 kno_any_type,KNO_VOID);
 static lispval mtrace_prim(lispval arg)
 {
   /* TODO: Check whether we're running under libc malloc (so mtrace
@@ -921,7 +921,7 @@ static lispval mtrace_prim(lispval arg)
     mtracing=1;
     return KNO_TRUE;}
   else if ((STRINGP(arg)) &&
-           (u8_file_writablep(CSTRING(arg)))) {
+	   (u8_file_writablep(CSTRING(arg)))) {
     setenv("MALLOC_TRACE",CSTRING(arg),1);
     mtrace();
     mtracing=1;
@@ -933,8 +933,8 @@ static lispval mtrace_prim(lispval arg)
 }
 
 DEFPRIM("muntrace",muntrace_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-        "Deactivates libc heap tracing, returns true if it "
-        "did anything");
+	"Deactivates libc heap tracing, returns true if it "
+	"did anything");
 static lispval muntrace_prim()
 {
 #if HAVE_MTRACE
@@ -969,7 +969,7 @@ static lispval with_log_context_evalfn(lispval expr,kno_lexenv env,kno_stack _st
       lispval outer_lisp_context = kno_thread_get(logcxt_symbol);
       u8_string outer_context = u8_log_context;
       u8_string local_context = (KNO_SYMBOLP(label)) ? (KNO_SYMBOL_NAME(label)) :
-        (KNO_STRINGP(label)) ? (KNO_CSTRING(label)) : (NULL);
+	(KNO_STRINGP(label)) ? (KNO_CSTRING(label)) : (NULL);
       kno_thread_set(logcxt_symbol,label);
       u8_set_log_context(local_context);
       lispval result=kno_eval_body(kno_get_body(expr,2),env,_stack,
@@ -981,11 +981,11 @@ static lispval with_log_context_evalfn(lispval expr,kno_lexenv env,kno_stack _st
 }
 
 DEFPRIM1("set-log-context!",set_log_context_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-         "`(SET-LOG-CONTEXT! *label*)` only makes sense in the dynamic "
+	 "`(SET-LOG-CONTEXT! *label*)` only makes sense in the dynamic "
 	 "thread-specific scope of a `WITH-LOG-CONTEXT` expression and "
 	 "it changes the displayed log context to the string or symbol "
 	 "*label*.",
-         kno_any_type,KNO_VOID);
+	 kno_any_type,KNO_VOID);
 static lispval set_log_context_prim(lispval label)
 {
   u8_string local_context = (KNO_SYMBOLP(label)) ? (KNO_SYMBOL_NAME(label)) :
@@ -1075,31 +1075,31 @@ static DONT_OPTIMIZE lispval eval7(lispval expr,kno_lexenv env,kno_stack s)
 }
 
 DEFPRIM9("list9",list9,KNO_MAX_ARGS(9)|KNO_MIN_ARGS(0),
-         "Returns a nine-element list (for testing the knox engine)",
-         kno_any_type,KNO_FALSE,kno_any_type,KNO_FALSE,
-         kno_any_type,KNO_FALSE,kno_any_type,KNO_FALSE,
-         kno_any_type,KNO_FALSE,kno_any_type,KNO_FALSE,
-         kno_any_type,KNO_FALSE,kno_any_type,KNO_FALSE,
-         kno_any_type,KNO_FALSE);
+	 "Returns a nine-element list (for testing the knox engine)",
+	 kno_any_type,KNO_FALSE,kno_any_type,KNO_FALSE,
+	 kno_any_type,KNO_FALSE,kno_any_type,KNO_FALSE,
+	 kno_any_type,KNO_FALSE,kno_any_type,KNO_FALSE,
+	 kno_any_type,KNO_FALSE,kno_any_type,KNO_FALSE,
+	 kno_any_type,KNO_FALSE);
 static lispval list9(lispval arg1,lispval arg2,
-                     lispval arg3,lispval arg4,
-                     lispval arg5,lispval arg6,
-                     lispval arg7,lispval arg8,
-                     lispval arg9)
+		     lispval arg3,lispval arg4,
+		     lispval arg5,lispval arg6,
+		     lispval arg7,lispval arg8,
+		     lispval arg9)
 {
   return kno_make_list(9,kno_incref(arg1),kno_incref(arg2),
-                       kno_incref(arg3),kno_incref(arg4),
-                       kno_incref(arg5),kno_incref(arg6),
-                       kno_incref(arg7),kno_incref(arg8),
-                       kno_incref(arg9));
+		       kno_incref(arg3),kno_incref(arg4),
+		       kno_incref(arg5),kno_incref(arg6),
+		       kno_incref(arg7),kno_incref(arg8),
+		       kno_incref(arg9));
 }
 
 DEFPRIM4("_plus4",plus4,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(1),
-         "Add up to four numbers (for testing the knox engine)",
-         kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-         kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0));
+	 "Add up to four numbers (for testing the knox engine)",
+	 kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
+	 kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0));
 static lispval plus4(lispval arg1,lispval arg2,
-                     lispval arg3,lispval arg4)
+		     lispval arg3,lispval arg4)
 {
   int sum = KNO_FIX2INT(arg1) + KNO_FIX2INT(arg2) + KNO_FIX2INT(arg3) +
     KNO_FIX2INT(arg4);
@@ -1107,13 +1107,13 @@ static lispval plus4(lispval arg1,lispval arg2,
 }
 
 DEFPRIM5("_plus5",plus5,KNO_MAX_ARGS(5)|KNO_MIN_ARGS(1),
-         "Add up to five numbers (for testing the knox engine)",
-         kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-         kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-         kno_any_type,KNO_CPP_INT(0));
+	 "Add up to five numbers (for testing the knox engine)",
+	 kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
+	 kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
+	 kno_any_type,KNO_CPP_INT(0));
 static lispval plus5(lispval arg1,lispval arg2,
-                     lispval arg3,lispval arg4,
-                     lispval arg5)
+		     lispval arg3,lispval arg4,
+		     lispval arg5)
 {
   int sum = KNO_FIX2INT(arg1) + KNO_FIX2INT(arg2) + KNO_FIX2INT(arg3) +
     KNO_FIX2INT(arg4) + KNO_FIX2INT(arg5);
@@ -1121,13 +1121,13 @@ static lispval plus5(lispval arg1,lispval arg2,
 }
 
 DEFPRIM6("_plus6",plus6,KNO_MAX_ARGS(6)|KNO_MIN_ARGS(2),
-         "Add up to six numbers (for testing the knox engine)",
-         kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-         kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-         kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0));
+	 "Add up to six numbers (for testing the knox engine)",
+	 kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
+	 kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
+	 kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0));
 static lispval plus6(lispval arg1,lispval arg2,
-                     lispval arg3,lispval arg4,
-                     lispval arg5,lispval arg6)
+		     lispval arg3,lispval arg4,
+		     lispval arg5,lispval arg6)
 {
   int sum = KNO_FIX2INT(arg1) + KNO_FIX2INT(arg2) + KNO_FIX2INT(arg3) +
     KNO_FIX2INT(arg4) + KNO_FIX2INT(arg5) + KNO_FIX2INT(arg6);
@@ -1135,15 +1135,15 @@ static lispval plus6(lispval arg1,lispval arg2,
 }
 
 DEFPRIM7("_plus7",plus7,KNO_MAX_ARGS(7)|KNO_MIN_ARGS(3),
-         "Add up to seven numbers (for testing the knox engine)",
-         kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-         kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-         kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-         kno_any_type,KNO_CPP_INT(0));
+	 "Add up to seven numbers (for testing the knox engine)",
+	 kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
+	 kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
+	 kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
+	 kno_any_type,KNO_CPP_INT(0));
 static lispval plus7(lispval arg1,lispval arg2,
-                     lispval arg3,lispval arg4,
-                     lispval arg5,lispval arg6,
-                     lispval arg7)
+		     lispval arg3,lispval arg4,
+		     lispval arg5,lispval arg6,
+		     lispval arg7)
 {
   int sum = KNO_FIX2INT(arg1) + KNO_FIX2INT(arg2) + KNO_FIX2INT(arg3) +
     KNO_FIX2INT(arg4) + KNO_FIX2INT(arg5) + KNO_FIX2INT(arg6) +
@@ -1152,16 +1152,16 @@ static lispval plus7(lispval arg1,lispval arg2,
 }
 
 DEFPRIM8("_plus8",plus8,KNO_MAX_ARGS(8)|KNO_MIN_ARGS(3),
-         "Add up to eight numbers (for testing the knox engine)",
-         kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-         kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-         kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-         kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0));
+	 "Add up to eight numbers (for testing the knox engine)",
+	 kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
+	 kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
+	 kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
+	 kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0));
 static lispval plus8(lispval arg1,lispval arg2,
-                     lispval arg3,lispval arg4,
-                     lispval arg5,lispval arg6,
-                     lispval arg7,
-                     lispval arg8)
+		     lispval arg3,lispval arg4,
+		     lispval arg5,lispval arg6,
+		     lispval arg7,
+		     lispval arg8)
 {
   int sum = KNO_FIX2INT(arg1) + KNO_FIX2INT(arg2) + KNO_FIX2INT(arg3) +
     KNO_FIX2INT(arg4) + KNO_FIX2INT(arg5) + KNO_FIX2INT(arg6) +
@@ -1170,18 +1170,18 @@ static lispval plus8(lispval arg1,lispval arg2,
 }
 
 DEFPRIM9("_plus9",plus9,KNO_MAX_ARGS(9)|KNO_MIN_ARGS(3),
-         "Add numberss (for testing the knox engine)",
-         kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-         kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-         kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-         kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-         kno_any_type,KNO_CPP_INT(0));
+	 "Add numberss (for testing the knox engine)",
+	 kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
+	 kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
+	 kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
+	 kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
+	 kno_any_type,KNO_CPP_INT(0));
 static lispval plus9(lispval arg1,lispval arg2,
-                     lispval arg3,lispval arg4,
-                     lispval arg5,lispval arg6,
-                     lispval arg7,
-                     lispval arg8,
-                     lispval arg9)
+		     lispval arg3,lispval arg4,
+		     lispval arg5,lispval arg6,
+		     lispval arg7,
+		     lispval arg8,
+		     lispval arg9)
 {
   int sum = KNO_FIX2INT(arg1) + KNO_FIX2INT(arg2) + KNO_FIX2INT(arg3) +
     KNO_FIX2INT(arg4) + KNO_FIX2INT(arg5) + KNO_FIX2INT(arg6) +
@@ -1190,19 +1190,19 @@ static lispval plus9(lispval arg1,lispval arg2,
 }
 
 DEFPRIM10("_plus10",plus10,KNO_MAX_ARGS(10)|KNO_MIN_ARGS(3),
-          "Add numberss (for testing the knox engine)",
-          kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-          kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-          kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-          kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-          kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0));
+	  "Add numberss (for testing the knox engine)",
+	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
+	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
+	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
+	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
+	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0));
 static lispval plus10(lispval arg1,lispval arg2,
-                      lispval arg3,lispval arg4,
-                      lispval arg5,lispval arg6,
-                      lispval arg7,
-                      lispval arg8,
-                      lispval arg9,
-                      lispval arg10)
+		      lispval arg3,lispval arg4,
+		      lispval arg5,lispval arg6,
+		      lispval arg7,
+		      lispval arg8,
+		      lispval arg9,
+		      lispval arg10)
 {
   int sum = KNO_FIX2INT(arg1) + KNO_FIX2INT(arg2) + KNO_FIX2INT(arg3) +
     KNO_FIX2INT(arg4) + KNO_FIX2INT(arg5) + KNO_FIX2INT(arg6) +
@@ -1212,21 +1212,21 @@ static lispval plus10(lispval arg1,lispval arg2,
 }
 
 DEFPRIM11("_plus11",plus11,KNO_MAX_ARGS(11)|KNO_MIN_ARGS(3),
-          "Add numberss (for testing the knox engine)",
-          kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-          kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-          kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-          kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-          kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-          kno_any_type,KNO_CPP_INT(0));
+	  "Add numberss (for testing the knox engine)",
+	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
+	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
+	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
+	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
+	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
+	  kno_any_type,KNO_CPP_INT(0));
 static lispval plus11(lispval arg1,lispval arg2,
-                      lispval arg3,lispval arg4,
-                      lispval arg5,lispval arg6,
-                      lispval arg7,
-                      lispval arg8,
-                      lispval arg9,
-                      lispval arg10,
-                      lispval arg11)
+		      lispval arg3,lispval arg4,
+		      lispval arg5,lispval arg6,
+		      lispval arg7,
+		      lispval arg8,
+		      lispval arg9,
+		      lispval arg10,
+		      lispval arg11)
 {
   int sum = KNO_FIX2INT(arg1) + KNO_FIX2INT(arg2) + KNO_FIX2INT(arg3) +
     KNO_FIX2INT(arg4) + KNO_FIX2INT(arg5) + KNO_FIX2INT(arg6) +
@@ -1236,22 +1236,22 @@ static lispval plus11(lispval arg1,lispval arg2,
 }
 
 DEFPRIM12("_plus12",plus12,KNO_MAX_ARGS(12)|KNO_MIN_ARGS(3),
-          "Add numberss (for testing the knox engine)",
-          kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-          kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-          kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-          kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-          kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-          kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0));
+	  "Add numberss (for testing the knox engine)",
+	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
+	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
+	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
+	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
+	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
+	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0));
 static lispval plus12(lispval arg1,lispval arg2,
-                      lispval arg3,lispval arg4,
-                      lispval arg5,lispval arg6,
-                      lispval arg7,
-                      lispval arg8,
-                      lispval arg9,
-                      lispval arg10,
-                      lispval arg11,
-                      lispval arg12)
+		      lispval arg3,lispval arg4,
+		      lispval arg5,lispval arg6,
+		      lispval arg7,
+		      lispval arg8,
+		      lispval arg9,
+		      lispval arg10,
+		      lispval arg11,
+		      lispval arg12)
 {
   int sum = KNO_FIX2INT(arg1) + KNO_FIX2INT(arg2) + KNO_FIX2INT(arg3) +
     KNO_FIX2INT(arg4) + KNO_FIX2INT(arg5) + KNO_FIX2INT(arg6) +
@@ -1261,24 +1261,24 @@ static lispval plus12(lispval arg1,lispval arg2,
 }
 
 DEFPRIM13("_plus13",plus13,KNO_MAX_ARGS(13)|KNO_MIN_ARGS(3),
-          "Add numberss (for testing the knox engine)",
-          kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-          kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-          kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-          kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-          kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-          kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-          kno_any_type,KNO_CPP_INT(0));
+	  "Add numberss (for testing the knox engine)",
+	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
+	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
+	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
+	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
+	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
+	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
+	  kno_any_type,KNO_CPP_INT(0));
 static lispval plus13(lispval arg1,lispval arg2,
-                      lispval arg3,lispval arg4,
-                      lispval arg5,lispval arg6,
-                      lispval arg7,
-                      lispval arg8,
-                      lispval arg9,
-                      lispval arg10,
-                      lispval arg11,
-                      lispval arg12,
-                      lispval arg13)
+		      lispval arg3,lispval arg4,
+		      lispval arg5,lispval arg6,
+		      lispval arg7,
+		      lispval arg8,
+		      lispval arg9,
+		      lispval arg10,
+		      lispval arg11,
+		      lispval arg12,
+		      lispval arg13)
 {
   int sum = KNO_FIX2INT(arg1) + KNO_FIX2INT(arg2) + KNO_FIX2INT(arg3) +
     KNO_FIX2INT(arg4) + KNO_FIX2INT(arg5) + KNO_FIX2INT(arg6) +
@@ -1289,25 +1289,25 @@ static lispval plus13(lispval arg1,lispval arg2,
 }
 
 DEFPRIM14("_plus14",plus14,KNO_MAX_ARGS(14)|KNO_MIN_ARGS(3),
-          "Add numbers (for testing the knox engine)",
-          kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-          kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-          kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-          kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-          kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-          kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-          kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0));
+	  "Add numbers (for testing the knox engine)",
+	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
+	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
+	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
+	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
+	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
+	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
+	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0));
 static lispval plus14(lispval arg1,lispval arg2,
-                      lispval arg3,lispval arg4,
-                      lispval arg5,lispval arg6,
-                      lispval arg7,
-                      lispval arg8,
-                      lispval arg9,
-                      lispval arg10,
-                      lispval arg11,
-                      lispval arg12,
-                      lispval arg13,
-                      lispval arg14)
+		      lispval arg3,lispval arg4,
+		      lispval arg5,lispval arg6,
+		      lispval arg7,
+		      lispval arg8,
+		      lispval arg9,
+		      lispval arg10,
+		      lispval arg11,
+		      lispval arg12,
+		      lispval arg13,
+		      lispval arg14)
 {
   int sum = KNO_FIX2INT(arg1) + KNO_FIX2INT(arg2) + KNO_FIX2INT(arg3) +
     KNO_FIX2INT(arg4) + KNO_FIX2INT(arg5) + KNO_FIX2INT(arg6) +
@@ -1318,27 +1318,27 @@ static lispval plus14(lispval arg1,lispval arg2,
 }
 
 DEFPRIM15("_plus15",plus15,KNO_MAX_ARGS(15)|KNO_MIN_ARGS(3),
-          "Add numbers (for testing the knox engine)",
-          kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-          kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-          kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-          kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-          kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-          kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-          kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-          kno_any_type,KNO_CPP_INT(0));
+	  "Add numbers (for testing the knox engine)",
+	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
+	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
+	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
+	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
+	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
+	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
+	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
+	  kno_any_type,KNO_CPP_INT(0));
 static lispval plus15(lispval arg1,lispval arg2,
-                      lispval arg3,lispval arg4,
-                      lispval arg5,lispval arg6,
-                      lispval arg7,
-                      lispval arg8,
-                      lispval arg9,
-                      lispval arg10,
-                      lispval arg11,
-                      lispval arg12,
-                      lispval arg13,
-                      lispval arg14,
-                      lispval arg15)
+		      lispval arg3,lispval arg4,
+		      lispval arg5,lispval arg6,
+		      lispval arg7,
+		      lispval arg8,
+		      lispval arg9,
+		      lispval arg10,
+		      lispval arg11,
+		      lispval arg12,
+		      lispval arg13,
+		      lispval arg14,
+		      lispval arg15)
 {
   int sum = KNO_FIX2INT(arg1) + KNO_FIX2INT(arg2) + KNO_FIX2INT(arg3) +
     KNO_FIX2INT(arg4) + KNO_FIX2INT(arg5) + KNO_FIX2INT(arg6) +
@@ -1384,7 +1384,7 @@ KNO_EXPORT void kno_init_eval_debug_c()
   KNO_LINK_EVALFN(kno_scheme_module,watched_cond_evalfn);
   KNO_LINK_EVALFN(kno_scheme_module,watched_try_evalfn);
 
-  /* This up to six pushes log context  ` reports*/
+  /* This up to six pushes log context	` reports*/
   KNO_LINK_EVALFN(kno_scheme_module,with_log_context_evalfn);
 #if USING_GOOGLE_PROFILER
   KNO_LINK_EVALFN(kno_scheme_module,gprofile_evalfn);

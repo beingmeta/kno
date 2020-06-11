@@ -763,18 +763,18 @@ static lispval stack_entry_depth(lispval stackobj)
   return kno_compound_ref(stackobj,stack_entry_symbol,0,KNO_FALSE);
 }
 
-DEFPRIM1("stack-type",stack_entry_type,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "Returns the type of a stack entry",
-	 kno_compound_type,KNO_VOID);
-static lispval stack_entry_type(lispval stackobj)
-{
-  return kno_compound_ref(stackobj,stack_entry_symbol,1,KNO_FALSE);
-}
-
 DEFPRIM1("stack-label",stack_entry_label,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns the label of a stack entry",
 	 kno_compound_type,KNO_VOID);
 static lispval stack_entry_label(lispval stackobj)
+{
+  return kno_compound_ref(stackobj,stack_entry_symbol,1,KNO_FALSE);
+}
+
+DEFPRIM1("stack-origin",stack_entry_origin,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "Returns the origin label of a stack entry",
+	 kno_compound_type,KNO_VOID);
+static lispval stack_entry_origin(lispval stackobj)
 {
   return kno_compound_ref(stackobj,stack_entry_symbol,2,KNO_FALSE);
 }
@@ -787,12 +787,20 @@ static lispval stack_entry_filename(lispval stackobj)
   return kno_compound_ref(stackobj,stack_entry_symbol,3,KNO_FALSE);
 }
 
-DEFPRIM1("stack-op",stack_entry_op,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "Returns the op of a stack entry",
+DEFPRIM1("stack-crumb",stack_entry_crumb,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "Returns the 'crumb' (a unique integer) for the stack entry",
 	 kno_compound_type,KNO_VOID);
-static lispval stack_entry_op(lispval stackobj)
+static lispval stack_entry_crumb(lispval stackobj)
 {
   return kno_compound_ref(stackobj,stack_entry_symbol,4,KNO_FALSE);
+}
+
+DEFPRIM1("stack-function",stack_entry_function,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "Returns the function of a stack entry if it is a application",
+	 kno_compound_type,KNO_VOID);
+static lispval stack_entry_function(lispval stackobj)
+{
+  return kno_compound_ref(stackobj,stack_entry_symbol,5,KNO_FALSE);
 }
 
 DEFPRIM1("stack-args",stack_entry_args,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
@@ -803,37 +811,36 @@ static lispval stack_entry_args(lispval stackobj)
   return kno_compound_ref(stackobj,stack_entry_symbol,6,KNO_FALSE);
 }
 
-DEFPRIM1("stack-crumb",stack_entry_crumb,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "Returns a probably unique integer identifier for "
-	 "the stack frame",
-	 kno_compound_type,KNO_VOID);
-static lispval stack_entry_crumb(lispval stackobj)
-{
-  return kno_compound_ref(stackobj,stack_entry_symbol,5,KNO_FALSE);
-}
-
-DEFPRIM1("stack-source",stack_entry_source,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "Returns the source of a stack entry",
-	 kno_compound_type,KNO_VOID);
-static lispval stack_entry_source(lispval stackobj)
-{
-  return kno_compound_ref(stackobj,stack_entry_symbol,7,KNO_FALSE);
-}
-
 DEFPRIM1("stack-env",stack_entry_env,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns the env of a stack entry",
 	 kno_compound_type,KNO_VOID);
 static lispval stack_entry_env(lispval stackobj)
 {
+  return kno_compound_ref(stackobj,stack_entry_symbol,7,KNO_FALSE);
+}
+
+DEFPRIM1("stack-source",stack_entry_source,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "Returns the source of the stack entry's execution point",
+	 kno_compound_type,KNO_VOID);
+static lispval stack_entry_source(lispval stackobj)
+{
   return kno_compound_ref(stackobj,stack_entry_symbol,8,KNO_FALSE);
 }
 
-DEFPRIM1("stack-status",stack_entry_status,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "Returns the status of a stack entry",
+DEFPRIM1("stack-context",stack_entry_context,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "Returns the annotated context of the stack's frame",
 	 kno_compound_type,KNO_VOID);
-static lispval stack_entry_status(lispval stackobj)
+static lispval stack_entry_context(lispval stackobj)
 {
   return kno_compound_ref(stackobj,stack_entry_symbol,9,KNO_FALSE);
+}
+
+DEFPRIM1("stack-op",stack_entry_op,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "Returns the op of a stack entry",
+	 kno_compound_type,KNO_VOID);
+static lispval stack_entry_op(lispval stackobj)
+{
+  return kno_compound_ref(stackobj,stack_entry_symbol,10,KNO_FALSE);
 }
 
 static u8_string static_string(lispval x,int err)
@@ -951,16 +958,16 @@ static void link_local_cprims()
   lispval scheme_module = kno_scheme_module;
 
   KNO_LINK_PRIM("make-exception",make_exception,10,scheme_module);
-  KNO_LINK_PRIM("stack-status",stack_entry_status,1,scheme_module);
+  KNO_LINK_PRIM("stack-depth",stack_entry_depth,1,scheme_module);
+  KNO_LINK_PRIM("stack-origin",stack_entry_origin,1,scheme_module);
+  KNO_LINK_PRIM("stack-label",stack_entry_label,1,scheme_module);
+  KNO_LINK_PRIM("stack-filename",stack_entry_filename,1,scheme_module);
+  KNO_LINK_PRIM("stack-crumb",stack_entry_crumb,1,scheme_module);
+  KNO_LINK_PRIM("stack-function",stack_entry_function,1,scheme_module);
+  KNO_LINK_PRIM("stack-args",stack_entry_args,1,scheme_module);
   KNO_LINK_PRIM("stack-env",stack_entry_env,1,scheme_module);
   KNO_LINK_PRIM("stack-source",stack_entry_source,1,scheme_module);
-  KNO_LINK_PRIM("stack-args",stack_entry_args,1,scheme_module);
-  KNO_LINK_PRIM("stack-crumb",stack_entry_crumb,1,scheme_module);
-  KNO_LINK_PRIM("stack-filename",stack_entry_filename,1,scheme_module);
   KNO_LINK_PRIM("stack-op",stack_entry_op,1,scheme_module);
-  KNO_LINK_PRIM("stack-label",stack_entry_label,1,scheme_module);
-  KNO_LINK_PRIM("stack-type",stack_entry_type,1,scheme_module);
-  KNO_LINK_PRIM("stack-depth",stack_entry_depth,1,scheme_module);
   KNO_LINK_PRIM("reraise",reraise_prim,1,scheme_module);
   KNO_LINK_PRIM("test-u8raise",test_u8raise_prim,1,scheme_module);
   KNO_LINK_PRIM("exception-summary",exception_summary,2,scheme_module);

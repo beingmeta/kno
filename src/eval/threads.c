@@ -660,7 +660,8 @@ static void *_kno_thread_main(void *data)
     tstruct->threadid = u8_threadid();
 
     KNO_NEW_EVAL("thread",VOID,NULL,((kno_stack )NULL));
-    _stack->stack_label=u8_bprintf(label_buf,"thread%lld",u8_threadid());
+    _stack->stack_label=_stack->stack_origin =
+      u8_bprintf(label_buf,"thread%lld",u8_threadid());
     tstruct->thread_stackptr=_stack;
 
     /* Run any thread init functions */

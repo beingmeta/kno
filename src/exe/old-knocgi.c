@@ -710,7 +710,7 @@ int main(int argc,char **argv)
   kno_handle_argv(argc,argv,arg_mask,NULL);
 
   KNO_NEW_STACK(((struct KNO_STACK *)NULL),"knocgi",NULL,VOID);
-  _stack->stack_label=u8_strdup(u8_appid());
+  _stack->stack_label=_stack->stack_origin=u8_strdup(u8_appid());
   _stack->stack_free_label=1;
 
   u8_log(LOG_DEBUG,Startup,"Updating preloads");
