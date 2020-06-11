@@ -873,9 +873,6 @@ static lispval assignop(kno_stack stack,kno_lexenv env,
         if (PRED_TRUE( across < map_len )) {
           lispval *values = map->table_values;
           lispval cur     = values[across];
-	  if (KNO_XTABLE_BITP(map,KNO_SCHEMAP_STACK_VALUES)) {
-	    kno_incref_vec(map->table_values,map_len);
-	    KNO_XTABLE_SET_BIT(map,KNO_SCHEMAP_STACK_VALUES,0);}
 	  if ( ( (combiner == KNO_TRUE) || (combiner == KNO_DEFAULT) ) &&
                ( (CURRENT_VALUEP(cur)) || (KNO_ABORTED(cur)) ) ) {
             if (KNO_ABORTED(cur))
