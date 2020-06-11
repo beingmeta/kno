@@ -205,6 +205,9 @@ KNO_EXPORT  void _KNO_STACK_SET_OP(kno_stack s,lispval new,int free)
 static lispval stack2lisp(struct KNO_STACK *stack,struct KNO_STACK *inner)
 {
   lispval depth	  = KNO_INT(stack->stack_depth);
+  lispval origin = (stack->stack_origin) ?
+    (knostring(stack->stack_origin)) :
+    (KNO_FALSE);
   lispval label	  = (stack->stack_label) ?
     (knostring(stack->stack_label)) :
     (KNO_FALSE);
@@ -212,11 +215,16 @@ static lispval stack2lisp(struct KNO_STACK *stack,struct KNO_STACK *inner)
     (knostring(stack->stack_file)) :
     (KNO_FALSE);
   lispval op	  = kno_incref(stack->stack_op);
-  kno_lexenv env  = stack->eval_env;
-  lispval source  = stack->eval_source;
-  int is_apply = (!(KNO_PAIRP(op)));
-  int show_source =  (is_apply) ? (0) : (KNO_VOIDP(source)) ? (0) :
-    (!(op == source));
+  lispval source  = kno_incref(stack->eval_source);
+  lispval fn = (KNO_APPLICABLEP(op)) ? (kno_incref(op)) : (KNO_FALSE);
+
+  lispval args = (((STACK_ARGS(stack)) && (STACK_LENGTH(stack))) ?
+		  (copy_args(STACK_LENGTH(stack),STACK_ARGS(stack))) :
+		  (KNO_EMPTY_LIST));
+  lispval env =  (( (stack->eval_env) &&
+		    (KNO_STACK_BITP(stack,KNO_STACK_OWNS_ENV) ) ) ?
+		  (kno_deep_copy(stack->eval_env->env_bindings)) :
+		  (KNO_FALSE));
 
   unsigned int icrumb = stack->stack_crumb;
   if (icrumb == 0) {
@@ -225,29 +233,12 @@ static lispval stack2lisp(struct KNO_STACK *stack,struct KNO_STACK *inner)
     stack->stack_crumb=icrumb;}
 
   if (op == KNO_VOID) op = KNO_FALSE;
+  if (source == KNO_VOID) source = KNO_FALSE;
 
-  if (is_apply)
-    return kno_init_compound
-      (NULL,stack_entry_symbol,STACK_CREATE_OPTS,
-       5,depth,label,file,op,
-       (((STACK_ARGS(stack)) && (STACK_LENGTH(stack))) ?
-	(copy_args(STACK_LENGTH(stack),STACK_ARGS(stack))) :
-	(KNO_EMPTY_LIST)),
-       KNO_INT(icrumb));
-  else if (show_source)
-    return kno_init_compound
-      (NULL,stack_entry_symbol,STACK_CREATE_OPTS,
-       6,depth,label,file,kno_incref(source),
-       ((env) ? (kno_deep_copy(env->env_bindings)) :
-	((STACK_ARGS(stack)) && (STACK_LENGTH(stack))) ?
-	(copy_args(STACK_LENGTH(stack),STACK_ARGS(stack))) :
-	(KNO_EMPTY_LIST)),
-       op,KNO_INT(icrumb));
-    else return kno_init_compound
-	   (NULL,stack_entry_symbol,STACK_CREATE_OPTS,
-	    5,depth,label,file,op,
-	    ((env) ? (kno_deep_copy(env->env_bindings)) : (KNO_FALSE)),
-	    KNO_INT(icrumb));
+  return kno_init_compound
+    (NULL,stack_entry_symbol,STACK_CREATE_OPTS,
+     10,depth,origin,label,file,KNO_INT(icrumb),
+     fn,args,env,source,op);
 }
 
 static lispval copy_args(int width,kno_argvec args)
@@ -463,8 +454,10 @@ void kno_init_stacks_c()
   kno_stackptr=NULL;
 #endif
 
-  opaque_symbol = kno_intern("%opaque");
   stack_entry_symbol = kno_intern("_stack");
+
+
+  opaque_symbol = kno_intern("%opaque");
   stack_target_symbol = kno_intern("$<<*eval*>>$");
   pbound_symbol = kno_intern("%bound");
   pargs_symbol = kno_intern("%args");
