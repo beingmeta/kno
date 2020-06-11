@@ -819,7 +819,8 @@ lispval lambda_call(kno_stack stack,
  make_env:
   init_static_env(n_vars,proc_env,
 		  &bindings,&eval_env,
-		  vars,args);
+		  vars,args,
+		  0);
   lambda_stack->eval_env = &eval_env;
   KNO_STACK_SET(lambda_stack,KNO_STACK_OWNS_ENV);
 
