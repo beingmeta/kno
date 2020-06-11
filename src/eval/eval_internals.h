@@ -231,12 +231,15 @@ static lispval eval_body_error(u8_context cxt,u8_string label,lispval body)
 KNO_FASTOP kno_lexenv init_static_env
   (int n,kno_lexenv parent,
    struct KNO_SCHEMAP *bindings,struct KNO_LEXENV *envstruct,
-   lispval *vars,lispval *vals)
+   lispval *vars,lispval *vals,
+   int zeromem)
 {
-  memset(envstruct,0,sizeof(struct KNO_LEXENV));
-  memset(bindings,0,KNO_SCHEMAP_LEN);
-  KNO_INIT_STATIC_CONS(envstruct,kno_lexenv_type);
-  KNO_INIT_STATIC_CONS(bindings,kno_schemap_type);
+  if (zeromem) {
+    KNO_INIT_STATIC_CONS(envstruct,kno_lexenv_type);
+    KNO_INIT_STATIC_CONS(bindings,kno_schemap_type);}
+  else {
+    KNO_INIT_STACK_CONS(envstruct,kno_lexenv_type);
+    KNO_INIT_STACK_CONS(bindings,kno_schemap_type);}
   bindings->table_bits = KNO_SCHEMAP_STATIC_SCHEMA | KNO_SCHEMAP_STATIC_VALUES;
   bindings->table_schema = vars;
   bindings->table_values = vals;
@@ -252,13 +255,14 @@ KNO_FASTOP kno_lexenv init_static_env
 }
 
 #define INIT_STACK_ENV(stack,name,parent,n)		    \
-  struct KNO_SCHEMAP name ## _bindings;			    \
-  struct KNO_LEXENV _ ## name, *name=&_ ## name;	    \
+  struct KNO_SCHEMAP name ## _bindings = { 0 };		    \
+  struct KNO_LEXENV _ ## name = { 0 }, *name=&_ ## name;    \
   lispval name ## _vars[n];				    \
   lispval name ## _vals[n];				    \
   kno_init_elts(name ## _vars,n,KNO_VOID);		    \
   kno_init_elts(name ## _vals,n,KNO_VOID);		    \
-  stack->stack_bits |= KNO_STACK_FREE_ENV;		    \
+  stack->stack_bits |=					    \
+    KNO_STACK_FREE_ENV | KNO_STACK_OWNS_ENV;		    \
   stack->stack_args.elts = name ## _vals;		    \
   stack->stack_args.count = n;				    \
   stack->stack_args.len = n;				    \
@@ -267,43 +271,46 @@ KNO_FASTOP kno_lexenv init_static_env
 		    &name ## _bindings,			    \
 		    &_ ## name,				    \
 		    name ## _vars,			    \
-		    name ## _vals);			    \
+		    name ## _vals,			    \
+		    0);					    \
   _ ## name.env_vals = name ## _vals;			    \
-  KNO_STACK_SET((stack),KNO_STACK_OWNS_ENV)
+
 
 #define INIT_STACK_SCHEMA(stack,name,parent,n,schema)	    \
-  struct KNO_SCHEMAP name ## _bindings;			    \
-  struct KNO_LEXENV _ ## name, *name=&_ ## name;	    \
+  struct KNO_SCHEMAP name ## _bindings = { 0 };		    \
+  struct KNO_LEXENV _ ## name = { 0 }, *name=&_ ## name;    \
   lispval name ## _vals[n];				    \
   kno_init_elts(name ## _vals,n,KNO_VOID);		    \
   stack->stack_args.elts = name ## _vals;		    \
   stack->stack_args.count = n;				    \
   stack->stack_args.len = n;				    \
-  stack->stack_bits |= KNO_STACK_FREE_ENV;		    \
+  stack->stack_bits |=					    \
+    KNO_STACK_FREE_ENV|KNO_STACK_OWNS_ENV;		    \
   stack->eval_env =					    \
     init_static_env(n,parent,				    \
 		    &name ## _bindings,			    \
 		    &_ ## name,				    \
 		    schema,				    \
-		    name ## _vals);			    \
-  _ ## name.env_vals = name ## _vals;			    \
-  KNO_STACK_SET((stack),KNO_STACK_OWNS_ENV)
+		    name ## _vals,			    \
+		    0);					    \
+  _ ## name.env_vals = name ## _vals
 
 #define ENV_STACK_FLAGS (KNO_STACK_OWNS_ENV|KNO_STACK_FREE_ENV)
 
-#define PUSH_STACK_ENV(name,parent,n,caller)		     \
-  struct KNO_STACK _ ## name ## _stack = { 0 };		     \
-  struct KNO_STACK *name ## _stack = &(_ ## name ## _stack); \
-  struct KNO_SCHEMAP name ## _bindings;			     \
-  struct KNO_LEXENV _ ## name, *name=&_ ## name;	     \
-  lispval name ## _vars[n];				     \
-  lispval name ## _vals[n];				     \
-  KNO_SETUP_STACK((name ## _stack),# name);		\
-  KNO_STACK_SET_BITS(name ## _stack,ENV_STACK_FLAGS); \
+#define PUSH_STACK_ENV(name,parent,n,caller)				\
+  struct KNO_STACK _ ## name ## _stack = { 0 };				\
+  struct KNO_STACK *name ## _stack = &(_ ## name ## _stack);		\
+  struct KNO_SCHEMAP name ## _bindings = { 0 };				\
+  struct KNO_LEXENV _ ## name = { 0 }, *name=&_ ## name;		\
+  lispval name ## _vars[n];						\
+  lispval name ## _vals[n];						\
+  KNO_SETUP_STACK((name ## _stack),# name);				\
+  KNO_STACK_SET_BITS(name ## _stack,ENV_STACK_FLAGS);			\
   KNO_STACK_SET_CALLER((name ## _stack),(caller));			\
   kno_init_elts(name ## _vars,n,KNO_VOID);				\
   kno_init_elts(name ## _vals,n,KNO_VOID);				\
-  (name ## _stack)->stack_bits |= KNO_STACK_FREE_ENV;			\
+  (name ## _stack)->stack_bits |=					\
+    KNO_STACK_FREE_ENV|KNO_STACK_OWNS_ENV;				\
   (name ## _stack)->stack_args.elts = name ## _vals;			\
   (name ## _stack)->stack_args.count = n;				\
   (name ## _stack)->stack_args.len = n;					\
@@ -312,8 +319,9 @@ KNO_FASTOP kno_lexenv init_static_env
 		    &name ## _bindings,					\
 		    &_ ## name,						\
 		    name ## _vars,					\
-		    name ## _vals);					\
-  _ ## name.env_vals = name ## _vals;					\
+		    name ## _vals,					\
+		    0);							\
+  _ ## name.env_vals = name ## _vals;\
   KNO_PUSH_STACK(name ## _stack)
 
 
