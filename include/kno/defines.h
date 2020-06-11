@@ -329,8 +329,8 @@ typedef int kno_size_t;
 #endif
 
 #if HAVE_BUILTIN_EXPECT
-#define KNO_EXPECT_TRUE(x) (__builtin_expect(x,1))
-#define KNO_EXPECT_FALSE(x) (__builtin_expect(x,0))
+#define KNO_EXPECT_TRUE(x) (__builtin_expect(!!(x),1))
+#define KNO_EXPECT_FALSE(x) (__builtin_expect(!!(x),0))
 #else
 #define KNO_EXPECT_TRUE(x) (x)
 #define KNO_EXPECT_FALSE(x) (x)
