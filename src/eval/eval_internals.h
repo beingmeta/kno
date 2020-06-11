@@ -38,7 +38,10 @@ INLINE_DEF lispval eval_lexref(lispval lexref,kno_lexenv env_arg)
     if (vals_len > 0) {
       if (across < vals_len) {
 	lispval v = env->env_vals[across];
-	if (KNO_CONSP(v)) return kno_incref(v);
+	if (KNO_CONSP(v)) {
+	  if (PRED_FALSE((KNO_CONS_TYPE(((kno_cons)v))) == kno_prechoice_type))
+	    return _kno_make_simple_choice(v);
+	  else return kno_incref(v);}
 	else return v;}}
     else {
       lispval bindings = env->env_bindings;
@@ -242,9 +245,9 @@ KNO_FASTOP kno_lexenv init_static_env
   envstruct->env_bindings = LISP_CONS((bindings));
   envstruct->env_exports = KNO_VOID;
   envstruct->env_parent  = parent;
-  envstruct->env_vals    = NULL;
   envstruct->env_copy    = NULL;
-  envstruct->env_bits   = 0;
+  envstruct->env_vals    = (n<256) ? (vals) : (NULL);
+  envstruct->env_bits    = (n<256) ? (n) : (0);
   return envstruct;
 }
 

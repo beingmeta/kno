@@ -56,10 +56,15 @@ KNO_EXPORT kno_lexenv kno_make_env(lispval bindings,kno_lexenv parent)
     e->env_parent = kno_copy_env(parent);
     if (KNO_SCHEMAPP(bindings)) {
       struct KNO_SCHEMAP *smap = (kno_schemap) bindings;
-      e->env_vals = smap->table_values;}
-    else e->env_vals     = NULL;
-    e->env_vals = NULL;
-    e->env_bits = 0;
+      if (smap->schema_length < 256) {
+	e->env_vals = smap->table_values;
+	e->env_bits = smap->schema_length;}
+      else {
+	e->env_vals     = NULL;
+	e->env_bits = 0;}}
+    else {
+      e->env_vals     = NULL;
+      e->env_bits = 0;}
     e->env_copy = e;
     return e;}
 }
