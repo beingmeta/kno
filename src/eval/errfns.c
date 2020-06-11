@@ -763,18 +763,18 @@ static lispval stack_entry_depth(lispval stackobj)
   return kno_compound_ref(stackobj,stack_entry_symbol,0,KNO_FALSE);
 }
 
-DEFPRIM1("stack-origin",stack_entry_origin,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "Returns the origin label of a stack entry",
-	 kno_compound_type,KNO_VOID);
-static lispval stack_entry_origin(lispval stackobj)
-{
-  return kno_compound_ref(stackobj,stack_entry_symbol,1,KNO_FALSE);
-}
-
 DEFPRIM1("stack-label",stack_entry_label,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns the label of a stack entry",
 	 kno_compound_type,KNO_VOID);
 static lispval stack_entry_label(lispval stackobj)
+{
+  return kno_compound_ref(stackobj,stack_entry_symbol,1,KNO_FALSE);
+}
+
+DEFPRIM1("stack-origin",stack_entry_origin,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "Returns the origin label of a stack entry",
+	 kno_compound_type,KNO_VOID);
+static lispval stack_entry_origin(lispval stackobj)
 {
   return kno_compound_ref(stackobj,stack_entry_symbol,2,KNO_FALSE);
 }
@@ -820,11 +820,19 @@ static lispval stack_entry_env(lispval stackobj)
 }
 
 DEFPRIM1("stack-source",stack_entry_source,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "Returns the source of a stack entry",
+	 "Returns the source of the stack entry's execution point",
 	 kno_compound_type,KNO_VOID);
 static lispval stack_entry_source(lispval stackobj)
 {
   return kno_compound_ref(stackobj,stack_entry_symbol,8,KNO_FALSE);
+}
+
+DEFPRIM1("stack-context",stack_entry_context,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "Returns the annotated context of the stack's frame",
+	 kno_compound_type,KNO_VOID);
+static lispval stack_entry_context(lispval stackobj)
+{
+  return kno_compound_ref(stackobj,stack_entry_symbol,9,KNO_FALSE);
 }
 
 DEFPRIM1("stack-op",stack_entry_op,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
@@ -832,7 +840,7 @@ DEFPRIM1("stack-op",stack_entry_op,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 kno_compound_type,KNO_VOID);
 static lispval stack_entry_op(lispval stackobj)
 {
-  return kno_compound_ref(stackobj,stack_entry_symbol,9,KNO_FALSE);
+  return kno_compound_ref(stackobj,stack_entry_symbol,10,KNO_FALSE);
 }
 
 static u8_string static_string(lispval x,int err)
