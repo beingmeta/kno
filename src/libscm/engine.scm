@@ -450,6 +450,11 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	 (fifo (if (number? batches)
 		   (fifo/make batches fifo-opts)
 		   (->fifo batches fifo-opts)))
+	 (name (getopt engine-opts 'name
+		       (getopt loop-opts 'name
+			       (or (fifo-name fifo)
+				   (procedure-name fcn)
+				   (stringout fifo)))))
 	 (fill (getopt opts 'fill #f))
 	 (before (getopt opts 'before #f))
 	 (after (getopt opts 'after #f))
@@ -465,6 +470,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 		       'total (tryif (vector? items) n-items)
 		       'batchsize batchsize
 		       'batchrange batchsize
+		       'name name
 		       'n-batches (tryif (vector? batches) (length batches))
 		       'nthreads rthreads
 		       'logcontext (getopt opts 'logcontext)
@@ -850,7 +856,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	(unwind-protect 
 	    (begin 
 	      (logdebug |Engine/Checkpoint| 
-		"For " fifo " loop state=\n  " (void (pprint loop-state)))
+		"For " fifo " after loop state=\n  " (void (pprint loop-state)))
 	      (when (and fifo (getopt loop-state 'checkpause #t))
 		(fifo/pause! fifo 'readwrite)
 		(set! paused #t)
@@ -925,12 +931,12 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 			    (min commit-threads (choice-size modified)))))
 	(lognotice |Checkpoint/Start|
 	  (if (test loop-state 'stopped) "Final " "Incremental ")
-	  "checkpoint of " (choice-size modified) " modified dbs "
+	  "checkpoint for " (try (get loop-state 'name) (get loop-state 'fifo))
+	  " after " (secs->string (difftime (get loop-state 'started)))
+	  " and " ($count (- (get loop-state 'items) (try (get (get loop-state 'lastcheck) 'items) 0)))
+	  " " (get loop-state 'count-term) " committing "
+	  (choice-size modified) " modified dbs "
 	  "using " (or n-threads "no") " threads "
-	  (if (fifo-name (get loop-state 'fifo))
-	      (printout "for " (fifo-name (get loop-state 'fifo)) 
-		"\n" (get loop-state 'fifo))
-	      (printout "\nfor " (get loop-state 'fifo)))
 	  (when (>= %loglevel %info%)
 	    (do-choices (db modified) (printout "\n\t" db))))
 	(cond ((not n-threads)
