@@ -472,16 +472,21 @@ KNO_EXPORT kno_stream kno_init_file_stream
     stream_flags |= KNO_STREAM_NEEDS_LOCK;
     break;
   case KNO_FILE_CREATE:
-    open_flags |= O_CREAT|O_TRUNC|O_RDWR;
+    open_flags |= O_CREAT|O_EXCL|O_RDWR;
+    stream_flags |= KNO_STREAM_NEEDS_LOCK;
+    break;
+  case KNO_FILE_INIT:
+    open_flags |= O_CREAT|O_RDWR;
+    stream_flags |= KNO_STREAM_NEEDS_LOCK;
+    break;
+  case KNO_FILE_TRUNC:
+    open_flags |= O_CREAT|O_RDWR;
     stream_flags |= KNO_STREAM_NEEDS_LOCK;
     break;
   case KNO_FILE_NOVAL: /* Never reached */
     break;}
   fd = open(localname,open_flags,0666);
   /* If we fail and we're modifying, try to open read-only */
-  if ((fd<0) && (mode == KNO_FILE_MODIFY)) {
-    U8_CLEAR_ERRNO();
-    fd = open(localname,O_RDONLY,0666);}
   if (fd>0) {
     U8_CLEAR_ERRNO();
     if (stream == NULL) {
@@ -495,9 +500,9 @@ KNO_EXPORT kno_stream kno_init_file_stream
     u8_free(localname);
     return stream;}
   else {
-    u8_graberrno("open",u8_fromlibc(localname));
-    kno_seterr3(u8_CantOpenFile,"kno_init_file_stream",fname);
+    kno_seterr3(u8_strerror(errno),"kno_init_file_stream",fname);
     u8_free(localname);
+    U8_CLEAR_ERRNO();
     return NULL;}
 }
 
