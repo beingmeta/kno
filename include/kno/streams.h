@@ -93,7 +93,9 @@ typedef enum KNO_STREAM_MODE {
   KNO_FILE_READ, /* Read only, must exist */
   KNO_FILE_MODIFY, /* Read/write, must exist */
   KNO_FILE_WRITE, /* Read/write, may exist */
-  KNO_FILE_CREATE, /* Read/write, truncated */
+  KNO_FILE_CREATE, /* Read/write, must not exist */
+  KNO_FILE_INIT, /* Read/write, created if missing */
+  KNO_FILE_TRUNC, /* Read/write, created or truncated */
   KNO_FILE_NOVAL=-1 /* Read/write, truncated */
 } kno_stream_mode;
 
