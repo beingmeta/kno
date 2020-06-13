@@ -10,8 +10,8 @@
 #endif
 
 extern int kno_storage_loglevel;
-static int knopool_loglevel = -1;
-#define U8_LOGLEVEL (kno_int_default(knopool_loglevel,(kno_storage_loglevel-1)))
+static int kpool_loglevel = -1;
+#define U8_LOGLEVEL (kno_int_default(kpool_loglevel,(kno_storage_loglevel-1)))
 
 #define KNO_INLINE_POOLS 1
 #define KNO_INLINE_BUFIO 1
@@ -26,7 +26,7 @@ static int knopool_loglevel = -1;
 #include "kno/drivers.h"
 #include "kno/xtypes.h"
 
-#include "headers/knopool.h"
+#include "headers/kpool.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8pathfns.h>
@@ -48,15 +48,15 @@ static int knopool_loglevel = -1;
 #define FETCHBUF_SIZE 16000
 #endif
 
-static int knopool_max_xrefs = XTYPE_MAX_XREFS;
+static int kpool_max_xrefs = XTYPE_MAX_XREFS;
 
 static lispval load_symbol, xrefs_symbol, compression_symbol, maxrefs_symbol;
 static lispval offmode_symbol, created_upsym, oidrefs_symbol, symrefs_symbol;
 
-static void knopool_setcache(kno_knopool p,int level);
-static int update_offdata_cache(kno_knopool kp,int level,int chunk_ref_size);
+static void kpool_setcache(kno_kpool p,int level);
+static int update_offdata_cache(kno_kpool kp,int level,int chunk_ref_size);
 
-static void use_knopool(kno_knopool kp)
+static void use_kpool(kno_kpool kp)
 {
   kno_lock_pool_struct((kno_pool)kp,0);
   if ( (kp->pool_cache_level < 0) ||
@@ -75,11 +75,11 @@ static void use_knopool(kno_knopool kp)
 	   kno_getfixopt(kp->pool_opts,"BUFSIZE",kno_driver_bufsize));
       if (level<0) {
 	level=kno_default_cache_level;
-	knopool_setcache(kp,level);}
+	kpool_setcache(kp,level);}
       kno_unlock_pool_struct((kno_pool)kp);
       kno_lock_pool_struct((kno_pool)kp,0);}}
 }
-static void knopool_finished(kno_knopool kp)
+static void kpool_finished(kno_kpool kp)
 {
   kno_unlock_pool_struct((kno_pool)kp);
 }
@@ -87,7 +87,7 @@ static void knopool_finished(kno_knopool kp)
 #define POOLFILE_LOCKEDP(op)						\
   (U8_BITP((op->pool_stream.stream_flags),KNO_STREAM_FILE_LOCKED))
 
-KNO_FASTOP int LOCK_POOLSTREAM(kno_knopool kp,u8_string caller)
+KNO_FASTOP int LOCK_POOLSTREAM(kno_kpool kp,u8_string caller)
 {
   kno_lock_stream(&(kp->pool_stream));
   if (kp->pool_stream.stream_fileno < 0) {
@@ -99,25 +99,25 @@ KNO_FASTOP int LOCK_POOLSTREAM(kno_knopool kp,u8_string caller)
 
 #define UNLOCK_POOLSTREAM(op) kno_unlock_stream(&(op->pool_stream))
 
-static void reload_knopool(struct KNO_KNOPOOL *p,int is_locked);
-static void update_filetime(struct KNO_KNOPOOL *fp);
+static void reload_kpool(struct KNO_KPOOL *p,int is_locked);
+static void update_filetime(struct KNO_KPOOL *fp);
 
-static struct KNO_POOL_HANDLER knopool_handler;
+static struct KNO_POOL_HANDLER kpool_handler;
 
-static u8_condition CorruptKnopool=_("Corrupt knopool");
-static u8_condition InvalidOffset=_("Invalid offset in KNOPOOL");
+static u8_condition CorruptKPool=_("Corrupt kpool");
+static u8_condition InvalidOffset=_("Invalid offset in KPOOL");
 
-/* KNOPOOLs are the next generation of object pool data file.  While
-   previous formats have all stored OIDs for years and years, KNOPOOLs
+/* KPOOLs are the next generation of object pool data file.  While
+   previous formats have all stored OIDs for years and years, KPOOLs
    are supposed to be the best to date and somewhat paradigmatic.
    The design focuses on performance and extensibility.	 With KNO_HASHINDEX,
    it became clear that storing offset sizes helped with performance and
    with the use of compression, it becomes even more relevant.
-   KNOPOOLs are also the first native files to support files >4GB and
+   KPOOLs are also the first native files to support files >4GB and
    use three different offset models, described below.
 */
 
-/* Layout of new KNOPOOL files
+/* Layout of new KPOOL files
    [256 bytes of header]
    [offset table]
    ...data items...
@@ -190,7 +190,7 @@ static u8_condition InvalidOffset=_("Invalid offset in KNOPOOL");
 typedef long long int ll;
 typedef unsigned long long ull;
 
-static ssize_t get_chunk_ref_size(kno_knopool p)
+static ssize_t get_chunk_ref_size(kno_kpool p)
 {
   switch (p->pool_offtype) {
   case KNO_B32: case KNO_B40:
@@ -199,7 +199,7 @@ static ssize_t get_chunk_ref_size(kno_knopool p)
   return -1;
 }
 
-static kno_size_t get_maxpos(kno_knopool p)
+static kno_size_t get_maxpos(kno_kpool p)
 {
   switch (p->pool_offtype) {
   case KNO_B32:
@@ -212,26 +212,26 @@ static kno_size_t get_maxpos(kno_knopool p)
     return -1;}
 }
 
-/* Making and opening knopools */
+/* Making and opening kpools */
 
 #define XREFS_FLAGS (XTYPE_REFS_ADD_OIDS|XTYPE_REFS_ADD_SYMS)
 
-static kno_pool open_knopool(u8_string fname,kno_storage_flags open_flags,
+static kno_pool open_kpool(u8_string fname,kno_storage_flags open_flags,
 			     lispval opts)
 {
   KNO_OID base = KNO_NULL_OID_INIT;
   unsigned int hi, lo, magicno, capacity, load;
   int xrefs_max = -1, n_xrefs;
-  unsigned int xref_flags = 0, knopool_format = 0;
+  unsigned int xref_flags = 0, kpool_format = 0;
   kno_off_t label_loc, metadata_loc, xrefs_loc, xrefs_size;
   lispval label;
-  struct KNO_KNOPOOL *pool = u8_alloc(struct KNO_KNOPOOL);
+  struct KNO_KPOOL *pool = u8_alloc(struct KNO_KPOOL);
   int read_only = U8_BITP(open_flags,KNO_STORAGE_READ_ONLY);
   if ( (read_only == 0) && (u8_file_writablep(fname)) ) {
     if (kno_check_rollback("open_hashindex",fname)<0) {
       /* If we can't apply the rollback, open the file read-only */
       u8_log(LOG_WARN,"RollbackFailed",
-	     "Opening knopool %s as read-only due to failed rollback",
+	     "Opening kpool %s as read-only due to failed rollback",
 	     fname);
       kno_clear_errors(1);
       read_only=1;}}
@@ -247,15 +247,15 @@ static kno_pool open_knopool(u8_string fname,kno_storage_flags open_flags,
 			 -1);
   struct KNO_INBUF *instream = (stream) ? (kno_readbuf(stream)) : (NULL);
   if (instream == NULL) {
-    u8_raise(kno_FileNotFound,"open_knopool",u8_strdup(fname));
+    u8_raise(kno_FileNotFound,"open_kpool",u8_strdup(fname));
     u8_free(realpath);
     u8_free(abspath);
     return NULL;}
 
   stream->stream_flags &= ~KNO_STREAM_IS_CONSED;
   magicno = kno_read_4bytes(instream);
-  if (magicno!=KNO_KNOPOOL_MAGIC_NUMBER) {
-    kno_seterr(_("Not a knopool"),"open_knopool",fname,VOID);
+  if (magicno!=KNO_KPOOL_MAGIC_NUMBER) {
+    kno_seterr(_("Not a kpool"),"open_kpool",fname,VOID);
     u8_free(realpath);
     u8_free(abspath);
     return NULL;}
@@ -264,35 +264,35 @@ static kno_pool open_knopool(u8_string fname,kno_storage_flags open_flags,
   KNO_SET_OID_HI(base,hi); KNO_SET_OID_LO(base,lo);
   pool->pool_capacity = capacity = kno_read_4bytes(instream);
   pool->pool_load = load = kno_read_4bytes(instream);
-  knopool_format = kno_read_4bytes(instream);
-  pool->knopool_format = knopool_format;
+  kpool_format = kno_read_4bytes(instream);
+  pool->kpool_format = kpool_format;
 
   if (load > capacity) {
     u8_logf(LOG_CRIT,kno_PoolOverflow,
-	    "The knopool %s specifies a load (%lld) > its capacity (%lld)",
+	    "The kpool %s specifies a load (%lld) > its capacity (%lld)",
 	    fname,load,capacity);
     pool->pool_load=load=capacity;}
 
-  if ((U8_BITP(knopool_format,KNO_KNOPOOL_READ_ONLY))&&
+  if ((U8_BITP(kpool_format,KNO_KPOOL_READ_ONLY))&&
       (!(kno_testopt(opts,KNOSYM_READONLY,KNO_FALSE)))) {
     /* If the pool is intrinsically read-only make it so. */
     open_flags |= KNO_STORAGE_READ_ONLY;}
 
   pool->pool_offtype =
-    (kno_offset_type)((knopool_format)&(KNO_KNOPOOL_OFFMODE));
+    (kno_offset_type)((kpool_format)&(KNO_KPOOL_OFFMODE));
 
   kno_compress_type cmptype =
-    (((knopool_format)&(KNO_KNOPOOL_COMPRESSION))>>3);
+    (((kpool_format)&(KNO_KPOOL_COMPRESSION))>>3);
   pool->pool_compression = kno_compression_type(opts,cmptype);
 
-  if (U8_BITP(knopool_format,KNO_KNOPOOL_ADJUNCT))
+  if (U8_BITP(kpool_format,KNO_KPOOL_ADJUNCT))
     open_flags |= KNO_POOL_ADJUNCT;
-  if (U8_BITP(knopool_format,KNO_KNOPOOL_SPARSE))
+  if (U8_BITP(kpool_format,KNO_KPOOL_SPARSE))
     open_flags |= KNO_POOL_SPARSE;
 
   lispval optval = kno_getopt(opts,oidrefs_symbol,KNO_VOID);
   if ( (KNO_VOIDP(optval)) || (KNO_DEFAULTP(optval)) ) {
-    if ( (knopool_format) & (KNO_KNOPOOL_OIDREFS) )
+    if ( (kpool_format) & (KNO_KPOOL_OIDREFS) )
       xref_flags |= XTYPE_REFS_ADD_OIDS;}
   else if (!(KNO_FALSEP(optval)))
     xref_flags |= XTYPE_REFS_ADD_OIDS;
@@ -300,14 +300,14 @@ static kno_pool open_knopool(u8_string fname,kno_storage_flags open_flags,
   kno_decref(optval);
   optval = kno_getopt(opts,symrefs_symbol,KNO_VOID);
   if ( (KNO_VOIDP(optval)) || (KNO_DEFAULTP(optval)) ) {
-    if ( (knopool_format) & (KNO_KNOPOOL_SYMREFS) )
+    if ( (kpool_format) & (KNO_KPOOL_SYMREFS) )
       xref_flags |= XTYPE_REFS_ADD_SYMS;}
   else if (!(KNO_FALSEP(optval)))
     xref_flags |= XTYPE_REFS_ADD_SYMS;
   else NO_ELSE;
   kno_decref(optval);
 
-  kno_setpos(stream,KNO_KNOPOOL_LABEL_POS);
+  kno_setpos(stream,KNO_KPOOL_LABEL_POS);
   /* Get the label location */
   label_loc = kno_read_8bytes(instream);
   /* label_size = */ kno_read_4bytes(instream);
@@ -364,8 +364,8 @@ static kno_pool open_knopool(u8_string fname,kno_storage_flags open_flags,
       metadata_modified = 1;}
     else {
       if (KNO_ABORTP(metadata))
-	kno_seterr("BadPoolMetadata","open_knopool",fname,KNO_INT(metadata_loc));
-      else kno_seterr("BadPoolMetadata","open_knopool",fname,metadata);
+	kno_seterr("BadPoolMetadata","open_kpool",fname,KNO_INT(metadata_loc));
+      else kno_seterr("BadPoolMetadata","open_kpool",fname,metadata);
       kno_close_stream(stream,0);
       u8_free(realpath);
       u8_free(abspath);
@@ -385,7 +385,7 @@ static kno_pool open_knopool(u8_string fname,kno_storage_flags open_flags,
       xrefs_max = n_xrefs;
     kno_decref(max_refs_val);}
   kno_init_pool((kno_pool)pool,base,capacity,
-		&knopool_handler,
+		&kpool_handler,
 		fname,abspath,realpath,
 		open_flags,metadata,opts);
   u8_free(realpath);
@@ -408,14 +408,14 @@ static kno_pool open_knopool(u8_string fname,kno_storage_flags open_flags,
 		"Invalid pool label for %s: %q",fname,label);
 	label = KNO_VOID;}
       else {
-	kno_seterr(kno_BadFilePoolLabel,"open_knopool","bad label value",label);
+	kno_seterr(kno_BadFilePoolLabel,"open_kpool","bad label value",label);
 	kno_decref(label);
 	kno_close_stream(stream,0);
 	u8_free(pool);
 	return NULL;}
       kno_decref(label);}
     else {
-      kno_seterr(kno_BadFilePoolLabel,"open_knopool","bad label loc",
+      kno_seterr(kno_BadFilePoolLabel,"open_kpool","bad label loc",
 		KNO_INT(label_loc));
       kno_close_stream(stream,0);
       u8_free(pool);
@@ -433,7 +433,7 @@ static kno_pool open_knopool(u8_string fname,kno_storage_flags open_flags,
       if (!( (KNO_SYMBOLP(xref)) || (KNO_OIDP(xref)) ||
 	     (KNO_EMPTYP(xref)) || (KNO_VOIDP(xref)) ||
 	     (KNO_FALSEP(xref)) )) {
-	kno_seterr(CorruptKnopool,"open_knopool/slotid_init",fname,xref);
+	kno_seterr(CorruptKPool,"open_kpool/slotid_init",fname,xref);
 	kno_close_stream(stream,0);
 	u8_free(pool);
 	return NULL;}
@@ -459,7 +459,7 @@ static kno_pool open_knopool(u8_string fname,kno_storage_flags open_flags,
   return (kno_pool)pool;
 }
 
-static void update_filetime(struct KNO_KNOPOOL *fp)
+static void update_filetime(struct KNO_KPOOL *fp)
 {
   struct stat fileinfo;
   if ((fstat(fp->pool_stream.stream_fileno,&fileinfo))<0)
@@ -467,7 +467,7 @@ static void update_filetime(struct KNO_KNOPOOL *fp)
   else fp->file_mtime = fileinfo.st_mtime;
 }
 
-static kno_pool recover_knopool(u8_string fname,kno_storage_flags open_flags,
+static kno_pool recover_kpool(u8_string fname,kno_storage_flags open_flags,
 			       lispval opts)
 {
   u8_string rollback_file=u8_string_append(fname,".rollback",NULL);
@@ -476,9 +476,9 @@ static kno_pool recover_knopool(u8_string fname,kno_storage_flags open_flags,
 	    "Applying rollback file %s to %s",rollback_file,fname);
     ssize_t rv=kno_restore_head(rollback_file,fname);
     if (rv<0) {
-      u8_graberrno("recover_knopool",rollback_file);
+      u8_graberrno("recover_kpool",rollback_file);
       return NULL;}
-    kno_pool opened = open_knopool(fname,open_flags,opts);
+    kno_pool opened = open_kpool(fname,open_flags,opts);
     if (opened) {
       u8_string rollback_applied = u8_string_append(rollback_file,".applied",NULL);
       u8_movefile(rollback_file,rollback_applied);
@@ -486,7 +486,7 @@ static kno_pool recover_knopool(u8_string fname,kno_storage_flags open_flags,
       u8_free(rollback_file);
       return opened;}
     else if (! (kno_testopt(opts,kno_intern("fixup"),KNO_VOID))) {
-      kno_seterr("RecoveryFailed","recover_knopool",fname,KNO_VOID);
+      kno_seterr("RecoveryFailed","recover_kpool",fname,KNO_VOID);
       u8_free(rollback_file);
       return NULL;}
     else {
@@ -495,7 +495,7 @@ static kno_pool recover_knopool(u8_string fname,kno_storage_flags open_flags,
       u8_logf(LOG_ERR,"RecoveryFailed",
 	      "Failed to recover %s using %s",fname,rollback_file);
       if (u8_movefile(rollback_file,rollback_failed) < 0) {
-	kno_seterr("RecoveryFailed","recover_knopool",
+	kno_seterr("RecoveryFailed","recover_kpool",
 		  u8_sprintf(details,256,"Couldn't (re)move rollback file %s",
 			     rollback_file),
 		  KNO_VOID);
@@ -507,19 +507,19 @@ static kno_pool recover_knopool(u8_string fname,kno_storage_flags open_flags,
 	u8_free(rollback_failed);}}}
   else if (! (kno_testopt(opts,kno_intern("fixup"),KNO_VOID)) ) {
     u8_seterr("NoRollbackFile",
-	      "The knopool file %s doesn't have a rollback file %s",
+	      "The kpool file %s doesn't have a rollback file %s",
 	      rollback_file);
     return NULL;}
   else {
-    u8_logf(LOG_CRIT,CorruptKnopool,
-	    "The knopool file %s doesn't have a rollback file %s",
+    u8_logf(LOG_CRIT,CorruptKPool,
+	    "The kpool file %s doesn't have a rollback file %s",
 	    fname,rollback_file);
     u8_free(rollback_file);
     rollback_file=NULL;}
   /* Try to 'force' recovery by updating the header */
   char *src = u8_tolibc(fname);
   KNO_DECL_OUTBUF(headbuf,256);
-  unsigned int magicno = KNO_KNOPOOL_MAGIC_NUMBER;
+  unsigned int magicno = KNO_KPOOL_MAGIC_NUMBER;
   int out=open(src,O_RDWR);
   kno_write_4bytes(&headbuf,magicno);
 #if HAVE_PREAD
@@ -532,19 +532,19 @@ static kno_pool recover_knopool(u8_string fname,kno_storage_flags open_flags,
   close(out);
   u8_free(src);
   if (rv>0) {
-    kno_pool opened = open_knopool(fname,open_flags,opts);
+    kno_pool opened = open_kpool(fname,open_flags,opts);
     if (opened)
       return opened;
-    u8_seterr("FailedFixup","recover_knopool",u8_strdup(fname));
+    u8_seterr("FailedFixup","recover_kpool",u8_strdup(fname));
     return NULL;}
   else return NULL;
 }
 
 /* Getting xrefs */
 
-/* Lock the underlying Knopool */
+/* Lock the underlying KPool */
 
-static int lock_knopool_file(struct KNO_KNOPOOL *kp,int struct_locked)
+static int lock_kpool_file(struct KNO_KPOOL *kp,int struct_locked)
 {
   if (KNO_POOLSTREAM_LOCKEDP(kp))
     return 1;
@@ -559,7 +559,7 @@ static int lock_knopool_file(struct KNO_KNOPOOL *kp,int struct_locked)
       /* Another thread got here first */
       if (!(struct_locked)) kno_unlock_pool_struct((kno_pool)kp);
       return 1;}
-    LOCK_POOLSTREAM(kp,"lock_knopool_file");
+    LOCK_POOLSTREAM(kp,"lock_kpool_file");
     if (kno_streamctl(s,kno_stream_lockfile,NULL)==0) {
       kno_unlock_stream(s);
       if (!(struct_locked)) kno_unlock_pool_struct((kno_pool)kp);
@@ -568,14 +568,14 @@ static int lock_knopool_file(struct KNO_KNOPOOL *kp,int struct_locked)
     fstat( s->stream_fileno, &fileinfo);
     if ( fileinfo.st_mtime > kp->pool_mtime ) reload=1;
     UNLOCK_POOLSTREAM(kp);
-    if (reload) reload_knopool(kp,KNO_ISLOCKED);
+    if (reload) reload_kpool(kp,KNO_ISLOCKED);
     if (!(struct_locked)) kno_unlock_pool_struct((kno_pool)kp);
     return 1;}
 }
 
-/* KNOPOOL operations */
+/* KPOOL operations */
 
-static int make_knopool
+static int make_kpool
 (u8_string fname,u8_string label,
  KNO_OID base,unsigned int capacity,unsigned int load,
  unsigned int flags,
@@ -587,7 +587,7 @@ static int make_knopool
   kno_off_t xrefs_pos = 0, metadata_pos = 0, label_pos = 0;
   size_t xrefs_size = 0, metadata_size = 0, label_size = 0;
   if (load>capacity) {
-    u8_seterr(kno_PoolOverflow,"make_knopool",
+    u8_seterr(kno_PoolOverflow,"make_kpool",
 	      u8_sprintf(NULL,256,
 			 "Specified load (%u) > capacity (%u) for '%s'",
 			 load,capacity,fname));
@@ -599,11 +599,11 @@ static int make_knopool
     kno_init_file_stream(&_stream,fname,KNO_FILE_CREATE,-1,
 			kno_driver_bufsize);
   kno_outbuf outstream = (stream) ? (kno_writebuf(stream)) : (NULL);
-  kno_offset_type offtype = (kno_offset_type)((flags)&(KNO_KNOPOOL_OFFMODE));
+  kno_offset_type offtype = (kno_offset_type)((flags)&(KNO_KPOOL_OFFMODE));
 
   if (outstream == NULL) return -1;
   else if ((stream->stream_flags)&KNO_STREAM_READ_ONLY) {
-    kno_seterr3(kno_CantWrite,"kno_make_knopool",fname);
+    kno_seterr3(kno_CantWrite,"kno_make_kpool",fname);
     kno_free_stream(stream);
     return -1;}
 
@@ -613,14 +613,14 @@ static int make_knopool
   kno_remove_suffix(fname,".commit");
   kno_remove_suffix(fname,".rollback");
 
-  u8_logf(LOG_INFO,"CreateKnopool",
-	  "Creating a knopool '%s' for %u OIDs based at %x/%x",
+  u8_logf(LOG_INFO,"CreateKPool",
+	  "Creating a kpool '%s' for %u OIDs based at %x/%x",
 	  fname,capacity,KNO_OID_HI(base),KNO_OID_LO(base));
 
   stream->stream_flags &= ~KNO_STREAM_IS_CONSED;
   kno_lock_stream(stream);
   kno_setpos(stream,0);
-  kno_write_4bytes(outstream,KNO_KNOPOOL_MAGIC_NUMBER);
+  kno_write_4bytes(outstream,KNO_KPOOL_MAGIC_NUMBER);
   kno_write_4bytes(outstream,KNO_OID_HI(base));
   kno_write_4bytes(outstream,KNO_OID_LO(base));
   kno_write_4bytes(outstream,capacity);
@@ -710,17 +710,17 @@ static int make_knopool
     metadata_size = kno_getpos(stream)-metadata_pos;}
 
   if (label_pos) {
-    kno_setpos(stream,KNO_KNOPOOL_LABEL_POS);
+    kno_setpos(stream,KNO_KPOOL_LABEL_POS);
     kno_write_8bytes(outstream,label_pos);
     kno_write_4bytes(outstream,label_size);}
 
   if (xrefs_pos) {
-    kno_setpos(stream,KNO_KNOPOOL_XREFS_POS);
+    kno_setpos(stream,KNO_KPOOL_XREFS_POS);
     kno_write_8bytes(outstream,xrefs_pos);
     kno_write_4bytes(outstream,xrefs_size);}
 
   if (metadata_pos) {
-    kno_setpos(stream,KNO_KNOPOOL_METADATA_POS);
+    kno_setpos(stream,KNO_KPOOL_METADATA_POS);
     kno_write_8bytes(outstream,metadata_pos);
     kno_write_4bytes(outstream,metadata_size);}
 
@@ -732,9 +732,9 @@ static int make_knopool
 
 /* Methods */
 
-static int knopool_load(kno_pool p)
+static int kpool_load(kno_pool p)
 {
-  kno_knopool kp = (kno_knopool)p;
+  kno_kpool kp = (kno_kpool)p;
   if (KNO_POOLSTREAM_LOCKEDP(kp))
     /* If we have the file locked, the stored load is good. */
     return kp->pool_load;
@@ -745,13 +745,13 @@ static int knopool_load(kno_pool p)
     int rv = fstat(kp->pool_stream.stream_fileno,&info);
     if ( (rv>=0) && ( kp->file_mtime >= info.st_mtime ) )
       return kp->pool_load;
-    reload_knopool(kp,KNO_UNLOCKED);
+    reload_kpool(kp,KNO_UNLOCKED);
     return kp->pool_load;}
   else return kp->pool_load;
 }
 
 static lispval read_oid_value_at
-(kno_knopool kp,lispval oid,kno_inbuf fetchbuf,KNO_CHUNK_REF ref)
+(kno_kpool kp,lispval oid,kno_inbuf fetchbuf,KNO_CHUNK_REF ref)
 {
   kno_stream stream=&(kp->pool_stream);
   if (ref.off == 0)
@@ -792,9 +792,9 @@ static lispval read_oid_value_at
     else return KNO_ERROR_VALUE;}
 }
 
-static int knopool_locked_load(kno_pool p)
+static int kpool_locked_load(kno_pool p)
 {
-  kno_knopool kp = (kno_knopool)p;
+  kno_kpool kp = (kno_kpool)p;
   if (KNO_POOLSTREAM_LOCKEDP(kp))
     /* If we have the file locked, the stored load is good. */
     return kp->pool_load;
@@ -803,21 +803,21 @@ static int knopool_locked_load(kno_pool p)
     int rv = fstat(kp->pool_stream.stream_fileno,&info);
     if ( (rv>=0) && ( kp->file_mtime >= info.st_mtime ) )
       return kp->pool_load;
-    reload_knopool(kp,KNO_ISLOCKED);
+    reload_kpool(kp,KNO_ISLOCKED);
     return kp->pool_load;}
   else return kp->pool_load;
 }
 
-static lispval knopool_fetch(kno_pool p,lispval oid)
+static lispval kpool_fetch(kno_pool p,lispval oid)
 {
-  kno_knopool kp = (kno_knopool)p;
+  kno_kpool kp = (kno_kpool)p;
   KNO_OID addr	 = KNO_OID_ADDR(oid);
   int offset	= KNO_OID_DIFFERENCE(addr,kp->pool_base);
-  use_knopool(kp);
+  use_kpool(kp);
   if (PRED_FALSE(offset>=kp->pool_load)) {
     /* It looks out of range, so double check by going to disk */
-    if (offset>=(knopool_locked_load(p))) {
-      knopool_finished(kp);
+    if (offset>=(kpool_locked_load(p))) {
+      kpool_finished(kp);
       if (kp->pool_flags&KNO_POOL_ADJUNCT)
 	return KNO_EMPTY_CHOICE;
       else return KNO_UNALLOCATED_OID;}}
@@ -841,26 +841,26 @@ static lispval knopool_fetch(kno_pool p,lispval oid)
       KNO_INIT_INBUF(&in,buf,FETCHBUF_SIZE,0);}
     result=read_oid_value_at(kp,oid,&in,ref);
     kno_close_inbuf(&in);}
-  knopool_finished(kp);
+  kpool_finished(kp);
   return result;
 }
 
 static int compare_offsets(const void *x1,const void *x2)
 {
-  const struct KNOPOOL_FETCH_SCHEDULE *s1 = x1, *s2 = x2;
+  const struct KPOOL_FETCH_SCHEDULE *s1 = x1, *s2 = x2;
   if (s1->location.off<s2->location.off) return -1;
   else if (s1->location.off>s2->location.off) return 1;
   else return 0;
 }
 
-static lispval *knopool_fetchn(kno_pool p,int n,lispval *oids)
+static lispval *kpool_fetchn(kno_pool p,int n,lispval *oids)
 {
   KNO_OID base = p->pool_base;
-  kno_knopool kp = (kno_knopool)p;
+  kno_kpool kp = (kno_kpool)p;
   struct KNO_STREAM *stream = &(kp->pool_stream);
   lispval *values = u8_big_alloc_n(n,lispval);
 
-  use_knopool(kp); /* Ensure that the file stream is opened */
+  use_kpool(kp); /* Ensure that the file stream is opened */
 
   unsigned int *offdata = kp->pool_offdata;
   unsigned int offdata_offlen = kp->pool_offlen;
@@ -869,14 +869,14 @@ static lispval *knopool_fetchn(kno_pool p,int n,lispval *oids)
     /* Don't bother being clever if you don't even have an offsets
        table. */
     int i = 0; while (i<n) {
-      values[i]=knopool_fetch(p,oids[i]);
+      values[i]=kpool_fetch(p,oids[i]);
       i++;}
-    knopool_finished(kp);
+    kpool_finished(kp);
     return values;}
   else {
     unsigned int unlock_stream = 0;
-    struct KNOPOOL_FETCH_SCHEDULE *schedule=
-      u8_big_alloc_n(n,struct KNOPOOL_FETCH_SCHEDULE);
+    struct KPOOL_FETCH_SCHEDULE *schedule=
+      u8_big_alloc_n(n,struct KPOOL_FETCH_SCHEDULE);
     if (kp->pool_load>kp->pool_offlen)
       update_offdata_cache(kp,kp->pool_cache_level,get_chunk_ref_size(kp));
     int i = 0;
@@ -884,7 +884,7 @@ static lispval *knopool_fetchn(kno_pool p,int n,lispval *oids)
     while (i<n) {
       lispval oid = oids[i];
       if (!(OIDP(oid))) {
-	kno_seterr(kno_NotAnOID,"knopool_fetchn",p->poolid,oid);
+	kno_seterr(kno_NotAnOID,"kpool_fetchn",p->poolid,oid);
 	break;}
       KNO_OID addr = KNO_OID_ADDR(oid);
       unsigned int off = KNO_OID_DIFFERENCE(addr,base);
@@ -893,20 +893,20 @@ static lispval *knopool_fetchn(kno_pool p,int n,lispval *oids)
 	schedule[i].location =
 	  kno_get_chunk_ref(offdata,kp->pool_offtype,off,offdata_offlen);
       else {
-	kno_seterr(kno_UnallocatedOID,"knopool_fetchn",p->poolid,oids[i]);
+	kno_seterr(kno_UnallocatedOID,"kpool_fetchn",p->poolid,oids[i]);
 	break;}
       if (schedule[i].location.off<0) {
-	kno_seterr(InvalidOffset,"knopool_fetchn",p->poolid,oids[i]);
+	kno_seterr(InvalidOffset,"kpool_fetchn",p->poolid,oids[i]);
 	break;}
       else i++;}
     if (i<n) {
       u8_big_free(schedule);
       u8_big_free(values);
-      knopool_finished(kp);
+      kpool_finished(kp);
       return NULL;}
     /* Note that we sort the fetch schedule even if we're mmapped in
        order to try to take advantage of page locality. */
-    qsort(schedule,n,sizeof(struct KNOPOOL_FETCH_SCHEDULE),compare_offsets);
+    qsort(schedule,n,sizeof(struct KPOOL_FETCH_SCHEDULE),compare_offsets);
 
     unsigned char bytes[FETCHBUF_SIZE];
     struct KNO_INBUF sbuf={0}, mbuf={0};
@@ -964,7 +964,7 @@ static lispval *knopool_fetchn(kno_pool p,int n,lispval *oids)
 	lispval value = values[schedule[j].value_at];
 	kno_decref(value);
 	j++;}
-      u8_seterr("FetchNError","knopool_fetchn/read",u8dup(kp->poolid));
+      u8_seterr("FetchNError","kpool_fetchn/read",u8dup(kp->poolid));
       if (unlock_stream)
 	kno_unlock_stream(&(kp->pool_stream));
       u8_big_free(values);
@@ -972,27 +972,27 @@ static lispval *knopool_fetchn(kno_pool p,int n,lispval *oids)
     kno_close_inbuf(&mbuf);
     kno_close_inbuf(&sbuf);
     u8_big_free(schedule);
-    knopool_finished(kp);
+    kpool_finished(kp);
     return values;}
 }
 
 /* Saving changed OIDs */
 
 static ssize_t write_offdata
-(struct KNO_KNOPOOL *kp, kno_stream stream,int n,unsigned int load,
- struct KNOPOOL_SAVEINFO *saveinfo);
-static ssize_t knopool_write_value(kno_knopool p,lispval value,
+(struct KNO_KPOOL *kp, kno_stream stream,int n,unsigned int load,
+ struct KPOOL_SAVEINFO *saveinfo);
+static ssize_t kpool_write_value(kno_kpool p,lispval value,
 				   kno_stream stream,
 				   struct KNO_OUTBUF *tmpout,
 				   unsigned char **zbuf,int *zbuf_size);
-static int update_knopool(kno_knopool kp,kno_stream stream,kno_stream head_stream,
+static int update_kpool(kno_kpool kp,kno_stream stream,kno_stream head_stream,
 			  int new_load,int n_saved,
-			  struct KNOPOOL_SAVEINFO *saveinfo,
+			  struct KPOOL_SAVEINFO *saveinfo,
 			  lispval metadata);
 
 static int file_format_overflow(kno_pool p,kno_stream stream)
 {
-  u8_seterr(kno_DataFileOverflow,"knopool_storen",u8_strdup(p->poolid));
+  u8_seterr(kno_DataFileOverflow,"kpool_storen",u8_strdup(p->poolid));
   if (kno_streamctl(stream,kno_stream_unlockfile,NULL)<0)
     u8_logf(LOG_CRIT,"UnlockFailed",
 	    "Couldn't unlock output stream (%d:%s) for %s",
@@ -1003,7 +1003,7 @@ static int file_format_overflow(kno_pool p,kno_stream stream)
   return -1;
 }
 
-static kno_stream get_commit_stream(kno_knopool kp,struct KNO_POOL_COMMITS *commit)
+static kno_stream get_commit_stream(kno_kpool kp,struct KNO_POOL_COMMITS *commit)
 {
   if (commit->commit_stream)
     return commit->commit_stream;
@@ -1017,13 +1017,13 @@ static kno_stream get_commit_stream(kno_knopool kp,struct KNO_POOL_COMMITS *comm
     if (kno_streamctl(new_stream,kno_stream_lockfile,NULL)<0) {
       kno_close_stream(new_stream,KNO_STREAM_FREEDATA);
       u8_free(new_stream);
-      kno_seterr("CantLockFile","get_commit_stream/knopool",
+      kno_seterr("CantLockFile","get_commit_stream/kpool",
 		kp->pool_source,KNO_VOID);
       return NULL;}
     commit->commit_stream = new_stream;
     return new_stream;}
   else {
-    kno_seterr("CantWriteFile","get_commit_stream/knopool",
+    kno_seterr("CantWriteFile","get_commit_stream/kpool",
 	      kp->pool_source,KNO_VOID);
     return NULL;}
 }
@@ -1035,15 +1035,15 @@ static void release_commit_stream(kno_pool p,struct KNO_POOL_COMMITS *commit)
   else commit->commit_stream=NULL;
   if (kno_streamctl(stream,kno_stream_unlockfile,NULL)<0)
     u8_logf(LOG_WARN,"CantUnLockFile",
-	    "For commit stream of knopool %s",p->poolid);
+	    "For commit stream of kpool %s",p->poolid);
   kno_close_stream(stream,KNO_STREAM_FREEDATA);
   u8_free(stream);
 }
 
-static int knopool_storen(kno_pool p,struct KNO_POOL_COMMITS *commits,
+static int kpool_storen(kno_pool p,struct KNO_POOL_COMMITS *commits,
 			  kno_stream stream,kno_stream head_stream)
 {
-  kno_knopool kp = (kno_knopool)p;
+  kno_kpool kp = (kno_kpool)p;
   int n = commits->commit_count;
   lispval *oids = commits->commit_oids;
   lispval *values = commits->commit_vals;
@@ -1052,20 +1052,20 @@ static int knopool_storen(kno_pool p,struct KNO_POOL_COMMITS *commits,
 
   u8_string fname=kp->pool_source;
   if (!(u8_file_writablep(fname))) {
-    kno_seterr("CantWriteFile","knopool_storen",fname,KNO_VOID);
+    kno_seterr("CantWriteFile","kpool_storen",fname,KNO_VOID);
     return -1;}
 
   unsigned int load = kp->pool_load;
 
-  struct KNOPOOL_SAVEINFO *saveinfo= (n>0) ?
-    (u8_big_alloc_n(n,struct KNOPOOL_SAVEINFO)) :
+  struct KPOOL_SAVEINFO *saveinfo= (n>0) ?
+    (u8_big_alloc_n(n,struct KPOOL_SAVEINFO)) :
     (NULL);
 
   int i=0;
   if (n>0) { /* There are values to save */
     int new_blocks = 0;
-    u8_logf(LOG_DEBUG,"KnopoolStore",
-	    "Storing %d oid values in knopool %s",n,p->poolid);
+    u8_logf(LOG_DEBUG,"KPoolStore",
+	    "Storing %d oid values in kpool %s",n,p->poolid);
 
     /* These are used repeatedly for rendering objects to xtypes */
     struct KNO_OUTBUF tmpout = { 0 };
@@ -1093,7 +1093,7 @@ static int knopool_storen(kno_pool p,struct KNO_POOL_COMMITS *commits,
 	u8_logf(LOG_CRIT,"BadOIDValue",
 		"The value for @%x/%x (%q) couldn't be written to %s",
 		KNO_OID_HI(addr),KNO_OID_LO(addr),value,p->poolid);}
-      else n_bytes = knopool_write_value(kp,value,stream,
+      else n_bytes = kpool_write_value(kp,value,stream,
 					 &tmpout,&zbuf,&zbuf_size);
       if (n_bytes<0) {
 	/* Should there be a way to force an error to be signalled here? */
@@ -1136,9 +1136,9 @@ static int knopool_storen(kno_pool p,struct KNO_POOL_COMMITS *commits,
 
   kno_lock_pool_struct(p,1);
 
-  if (update_knopool(kp,stream,head_stream,load,n,saveinfo,metadata)<0) {
-    u8_logf(LOG_CRIT,"KnopoolUpdateFailed",
-	    "Couldn't update knopool %s",kp->poolid);
+  if (update_kpool(kp,stream,head_stream,load,n,saveinfo,metadata)<0) {
+    u8_logf(LOG_CRIT,"KPoolUpdateFailed",
+	    "Couldn't update kpool %s",kp->poolid);
 
     /* Unlock the pool */
     kno_unlock_pool_struct(p);
@@ -1149,11 +1149,11 @@ static int knopool_storen(kno_pool p,struct KNO_POOL_COMMITS *commits,
 
   fsync(stream->stream_fileno);
 
-  kno_write_4bytes_at(head_stream,KNO_KNOPOOL_MAGIC_NUMBER,0);
+  kno_write_4bytes_at(head_stream,KNO_KPOOL_MAGIC_NUMBER,0);
   kno_flush_stream(head_stream);
 
-  u8_logf(LOG_INFO,"KnopoolStore",
-	  "Stored %d oid values in knopool %s in %f seconds",
+  u8_logf(LOG_INFO,"KPoolStore",
+	  "Stored %d oid values in kpool %s in %f seconds",
 	  n,p->poolid,u8_elapsed_time()-started);
 
   /* Unlock the pool */
@@ -1166,25 +1166,25 @@ static int knopool_storen(kno_pool p,struct KNO_POOL_COMMITS *commits,
   return n;
 }
 
-static int knopool_commit(kno_pool p,kno_commit_phase phase,
+static int kpool_commit(kno_pool p,kno_commit_phase phase,
 			  struct KNO_POOL_COMMITS *commits)
 {
-  kno_knopool kp = (kno_knopool) p;
+  kno_kpool kp = (kno_kpool) p;
   kno_stream stream = get_commit_stream(kp,commits);
-  knopool_setcache(kp,-1);
+  kpool_setcache(kp,-1);
   if (stream == NULL)
     return -1;
   u8_string fname = p->pool_source;
   int chunk_ref_size = get_chunk_ref_size(kp);
   switch (phase) {
   case kno_no_commit:
-    u8_seterr("BadCommitPhase(commit_none)","knopool_commit",
+    u8_seterr("BadCommitPhase(commit_none)","kpool_commit",
 	      u8_strdup(p->poolid));
     return -1;
   case kno_commit_start: {
     size_t cap = p->pool_capacity;
     size_t recovery_size = 256+(chunk_ref_size*cap);
-    int rv = kno_write_rollback("knopool_commit",p->poolid,fname,recovery_size);
+    int rv = kno_write_rollback("kpool_commit",p->poolid,fname,recovery_size);
     if (rv>=0) commits->commit_phase = kno_commit_write;
     return rv;}
   case kno_commit_write: {
@@ -1198,11 +1198,11 @@ static int knopool_commit(kno_pool p,kno_commit_phase phase,
 	(kno_init_file_stream(NULL,commit_file,KNO_FILE_MODIFY,-1,-1)) :
 	(NULL);
       if (head_stream == NULL) {
-	u8_seterr("CantOpenCommitFile","knopool_commit",commit_file);
+	u8_seterr("CantOpenCommitFile","kpool_commit",commit_file);
 	return -1;}
       else u8_free(commit_file);}
     else head_stream=stream;
-    int rv = knopool_storen(p,commits,stream,head_stream);
+    int rv = kpool_storen(p,commits,stream,head_stream);
     kno_flush_stream(stream);
     if (head_stream != stream) {
       size_t endpos = kno_endpos(stream);
@@ -1255,7 +1255,7 @@ static int knopool_commit(kno_pool p,kno_commit_phase phase,
 
 /* Writing OID values */
 
-static ssize_t knopool_write_value(kno_knopool p,lispval value,
+static ssize_t kpool_write_value(kno_kpool p,lispval value,
 				   kno_stream stream,
 				   struct KNO_OUTBUF *tmpout,
 				   unsigned char **zbuf,int *zbuf_size)
@@ -1305,7 +1305,7 @@ static ssize_t knopool_write_value(kno_knopool p,lispval value,
 
 /* Updating information in pool */
 
-static int write_knopool_load(kno_knopool kp,
+static int write_kpool_load(kno_kpool kp,
 			      unsigned int new_load,
 			      kno_stream stream)
 {
@@ -1323,7 +1323,7 @@ static int write_knopool_load(kno_knopool kp,
     return 0;}
 }
 
-static int bump_knopool_nblocks(kno_knopool kp,
+static int bump_kpool_nblocks(kno_kpool kp,
 				unsigned int new_blocks,
 				kno_stream stream)
 {
@@ -1338,7 +1338,7 @@ static int bump_knopool_nblocks(kno_knopool kp,
   else return -1;
 }
 
-static int set_knopool_label(kno_knopool kp,u8_string label)
+static int set_kpool_label(kno_kpool kp,u8_string label)
 {
   int rv = -1;
   u8_string source = kp->pool_source;
@@ -1368,7 +1368,7 @@ static int set_knopool_label(kno_knopool kp,u8_string label)
       kno_flush_stream(stream);}}
   else {/* Resetting label */}
   if (rv > 0) {
-    rv = kno_setpos(stream,KNO_KNOPOOL_LABEL_POS);
+    rv = kno_setpos(stream,KNO_KPOOL_LABEL_POS);
     if (rv>=0) {
       kno_outbuf out = kno_writebuf(stream);
       if (out) rv=kno_write_8bytes(out,label_pos);
@@ -1385,8 +1385,8 @@ static int set_knopool_label(kno_knopool kp,u8_string label)
 }
 
 /* These assume that the pool itself is locked */
-static int write_knopool_xrefs
-(kno_knopool kp,kno_stream stream,kno_stream head_stream)
+static int write_kpool_xrefs
+(kno_kpool kp,kno_stream stream,kno_stream head_stream)
 {
   if ( (kp->pool_xrefs.xt_refs_flags) & (XTYPE_REFS_CHANGED) ) {
     lispval *xrefs = kp->pool_xrefs.xt_refs;
@@ -1407,7 +1407,7 @@ static int write_knopool_xrefs
 
 /* These assume that the pool itself is locked */
 
-static int write_knopool_metadata(kno_knopool kp,lispval metadata,
+static int write_kpool_metadata(kno_kpool kp,lispval metadata,
 				  kno_stream stream,kno_stream head_stream)
 {
   if (KNO_TABLEP(metadata)) {
@@ -1420,65 +1420,65 @@ static int write_knopool_metadata(kno_knopool kp,lispval metadata,
       u8_exception ex = u8_current_exception;
       u8_condition cond = (ex) ? (ex->u8x_cond) :
 	((u8_condition)"Unknown XType error");
-      u8_logf(LOG_CRIT,cond,"Couldnt'save metadata for knopool %s: %q",
+      u8_logf(LOG_CRIT,cond,"Couldnt'save metadata for kpool %s: %q",
 	      kp->poolid,metadata);
       return rv;}
     else end_pos=kno_endpos(stream);
     kno_flush_stream(stream);
-    kno_write_8bytes_at(head_stream,start_pos,KNO_KNOPOOL_METADATA_POS);
-    kno_write_4bytes_at(head_stream,end_pos-start_pos,KNO_KNOPOOL_METADATA_POS+8);
+    kno_write_8bytes_at(head_stream,start_pos,KNO_KPOOL_METADATA_POS);
+    kno_write_4bytes_at(head_stream,end_pos-start_pos,KNO_KPOOL_METADATA_POS+8);
     kno_set_modified(metadata,0);
     return 1;}
   else return 0;
 }
 
-static int update_knopool(kno_knopool kp,kno_stream stream,kno_stream head_stream,
+static int update_kpool(kno_kpool kp,kno_stream stream,kno_stream head_stream,
 			  int new_load,int n_saved,
-			  struct KNOPOOL_SAVEINFO *saveinfo,
+			  struct KPOOL_SAVEINFO *saveinfo,
 			  lispval metadata)
 {
-  int rv=write_knopool_xrefs(kp,stream,head_stream);
+  int rv=write_kpool_xrefs(kp,stream,head_stream);
   if (saveinfo) {
     if (rv>=0) rv=write_offdata(kp,head_stream,n_saved,new_load,saveinfo);
-    if (rv>=0) rv=bump_knopool_nblocks(kp,n_saved,head_stream);}
+    if (rv>=0) rv=bump_kpool_nblocks(kp,n_saved,head_stream);}
   if ( (rv>=0) && (KNO_SLOTMAPP(metadata)) )
-    rv=write_knopool_metadata(kp,metadata,stream,head_stream);
+    rv=write_kpool_metadata(kp,metadata,stream,head_stream);
   kno_flush_stream(stream);
   fsync(stream->stream_fileno);
   size_t end_pos = kno_endpos(stream);
   kno_write_8bytes_at(head_stream,end_pos,256-8);
-  if (rv>=0) rv=write_knopool_load(kp,new_load,head_stream);
+  if (rv>=0) rv=write_kpool_load(kp,new_load,head_stream);
   return rv;
 }
 
 /* Three different ways to write offdata */
 
 static ssize_t mmap_write_offdata
-(struct KNO_KNOPOOL *kp,kno_stream stream,int n,
- struct KNOPOOL_SAVEINFO *saveinfo,
+(struct KNO_KPOOL *kp,kno_stream stream,int n,
+ struct KPOOL_SAVEINFO *saveinfo,
  unsigned int min_off,
  unsigned int max_off);
 static ssize_t cache_write_offdata
-(struct KNO_KNOPOOL *kp,kno_stream stream, int n,
- struct KNOPOOL_SAVEINFO *saveinfo,
+(struct KNO_KPOOL *kp,kno_stream stream, int n,
+ struct KPOOL_SAVEINFO *saveinfo,
  unsigned int *cur_offdata,
  unsigned int min_off,
  unsigned int max_off);
 static ssize_t direct_write_offdata
-(struct KNO_KNOPOOL *kp,kno_stream stream,int n,
- struct KNOPOOL_SAVEINFO *saveinfo);
+(struct KNO_KPOOL *kp,kno_stream stream,int n,
+ struct KPOOL_SAVEINFO *saveinfo);
 
 static ssize_t write_offdata
-(struct KNO_KNOPOOL *kp,kno_stream stream,int n,unsigned int load,
- struct KNOPOOL_SAVEINFO *saveinfo)
+(struct KNO_KPOOL *kp,kno_stream stream,int n,unsigned int load,
+ struct KPOOL_SAVEINFO *saveinfo)
 {
   unsigned int min_off=load,  max_off=0, i=0;
   kno_offset_type offtype = kp->pool_offtype;
   if (!((offtype == KNO_B32)||(offtype = KNO_B40)||(offtype = KNO_B64))) {
-    u8_logf(LOG_WARN,CorruptKnopool,
+    u8_logf(LOG_WARN,CorruptKPool,
 	    "Bad offset type code (%d) for %s",
 	    (int)offtype,kp->poolid);
-    u8_seterr(CorruptKnopool,"knopool:write_offdata:bad_offtype",
+    u8_seterr(CorruptKPool,"kpool:write_offdata:bad_offtype",
 	      u8_strdup(kp->poolid));
     u8_big_free(saveinfo);
     return -1;}
@@ -1504,13 +1504,13 @@ static ssize_t write_offdata
 }
 
 static ssize_t mmap_write_offdata
-(struct KNO_KNOPOOL *kp,kno_stream stream,
- int n, struct KNOPOOL_SAVEINFO *saveinfo,
+(struct KNO_KPOOL *kp,kno_stream stream,
+ int n, struct KPOOL_SAVEINFO *saveinfo,
  unsigned int min_off,unsigned int max_off)
 {
   int chunk_ref_size = get_chunk_ref_size(kp);
   int retval = -1;
-  u8_logf(LOG_DEBUG,"knopool:write_offdata",
+  u8_logf(LOG_DEBUG,"kpool:write_offdata",
 	  "Finalizing %d oid values for %s",n,kp->poolid);
 
   unsigned int *offdata = NULL;
@@ -1521,9 +1521,9 @@ static ssize_t mmap_write_offdata
 	 stream->stream_fileno,0);
   if ( (memblock==NULL) || (memblock == MAP_FAILED) ) {
     u8_logf(LOG_CRIT,u8_strerror(errno),
-	    "Failed MMAP of %lld bytes of offdata for knopool %s",
+	    "Failed MMAP of %lld bytes of offdata for kpool %s",
 	    256+(byte_length),kp->poolid);
-    u8_graberrno("knopool_write_offdata",u8_strdup(kp->poolid));
+    u8_graberrno("kpool_write_offdata",u8_strdup(kp->poolid));
     return -1;}
   else offdata = memblock+64;
   switch (kp->pool_offtype) {
@@ -1557,20 +1557,20 @@ static ssize_t mmap_write_offdata
   retval = msync(offdata-64,256+byte_length,MS_SYNC|MS_INVALIDATE);
   if (retval<0) {
     u8_logf(LOG_WARN,u8_strerror(errno),
-	    "knopool:write_offdata:msync %s",kp->poolid);
-    u8_graberrno("knopool_write_offdata:msync",u8_strdup(kp->poolid));}
+	    "kpool:write_offdata:msync %s",kp->poolid);
+    u8_graberrno("kpool_write_offdata:msync",u8_strdup(kp->poolid));}
   retval = munmap(offdata-64,256+byte_length);
   if (retval<0) {
     u8_logf(LOG_WARN,u8_strerror(errno),
-	    "knopool/knopool_write_offdata:munmap %s",kp->poolid);
-    u8_graberrno("knopool_write_offdata:munmap",u8_strdup(kp->poolid));
+	    "kpool/kpool_write_offdata:munmap %s",kp->poolid);
+    u8_graberrno("kpool_write_offdata:munmap",u8_strdup(kp->poolid));
     return -1;}
   return n;
 }
 
 static ssize_t cache_write_offdata
-(struct KNO_KNOPOOL *kp,kno_stream stream,
- int n, struct KNOPOOL_SAVEINFO *saveinfo,
+(struct KNO_KPOOL *kp,kno_stream stream,
+ int n, struct KPOOL_SAVEINFO *saveinfo,
  unsigned int *cur_offdata,
  unsigned int min_off,unsigned int max_off)
 {
@@ -1579,7 +1579,7 @@ static ssize_t cache_write_offdata
   size_t offdata_modified_start = chunk_ref_size*min_off;
   unsigned int *offdata =u8_zmalloc(offdata_modified_length);
   if (offdata == NULL) {
-    u8_graberrno("knopool:write_offdata:malloc",u8_strdup(kp->poolid));
+    u8_graberrno("kpool:write_offdata:malloc",u8_strdup(kp->poolid));
     return -1;}
   memcpy(offdata,cur_offdata+offdata_modified_start,offdata_modified_length);
   switch (kp->pool_offtype) {
@@ -1616,8 +1616,8 @@ static ssize_t cache_write_offdata
   return n;
 }
 
-static ssize_t direct_write_offdata(struct KNO_KNOPOOL *kp,kno_stream stream,
-				    int n, struct KNOPOOL_SAVEINFO *saveinfo)
+static ssize_t direct_write_offdata(struct KNO_KPOOL *kp,kno_stream stream,
+				    int n, struct KPOOL_SAVEINFO *saveinfo)
 {
   kno_outbuf outstream = kno_writebuf(stream);
   switch (kp->pool_offtype) {
@@ -1655,18 +1655,18 @@ static ssize_t direct_write_offdata(struct KNO_KNOPOOL *kp,kno_stream stream,
 
 /* Allocating OIDs */
 
-static lispval knopool_alloc(kno_pool p,int n)
+static lispval kpool_alloc(kno_pool p,int n)
 {
-  kno_knopool kp = (kno_knopool)p;
+  kno_kpool kp = (kno_kpool)p;
   lispval results = EMPTY; int i = 0;
   KNO_OID base=kp->pool_base;
   unsigned int start;
   kno_lock_pool_struct(p,1);
   if (!(POOLFILE_LOCKEDP(kp)))
-    lock_knopool_file(kp,KNO_ISLOCKED);
+    lock_kpool_file(kp,KNO_ISLOCKED);
   if ( (kp->pool_load+n) > (kp->pool_capacity) ) {
     kno_unlock_pool_struct(p);
-    return kno_err(kno_ExhaustedPool,"knopool_alloc",
+    return kno_err(kno_ExhaustedPool,"kpool_alloc",
 		  p->poolid,VOID);}
   start=kp->pool_load; kp->pool_load+=n;
   kno_unlock_pool_struct(p);
@@ -1680,16 +1680,16 @@ static lispval knopool_alloc(kno_pool p,int n)
 
 /* Locking and unlocking */
 
-static int knopool_lock(kno_pool p,lispval oids)
+static int kpool_lock(kno_pool p,lispval oids)
 {
-  struct KNO_KNOPOOL *fp = (struct KNO_KNOPOOL *)p;
-  int retval = lock_knopool_file(fp,1);
+  struct KNO_KPOOL *fp = (struct KNO_KPOOL *)p;
+  int retval = lock_kpool_file(fp,1);
   return retval;
 }
 
-static int knopool_unlock(kno_pool p,lispval oids)
+static int kpool_unlock(kno_pool p,lispval oids)
 {
-  struct KNO_KNOPOOL *fp = (struct KNO_KNOPOOL *)p;
+  struct KNO_KPOOL *fp = (struct KNO_KPOOL *)p;
   if (fp->pool_changes.table_n_keys == 0)
     /* This unlocks the underlying file, not the stream itself */
     kno_streamctl(&(fp->pool_stream),kno_stream_unlockfile,NULL);
@@ -1699,7 +1699,7 @@ static int knopool_unlock(kno_pool p,lispval oids)
 /* Setting the cache level */
 
 #if KNO_USE_MMAP
-static int update_offdata_cache(kno_knopool kp,int level,int chunk_ref_size)
+static int update_offdata_cache(kno_kpool kp,int level,int chunk_ref_size)
 {
   unsigned int *offdata = kp->pool_offdata;
 
@@ -1716,16 +1716,16 @@ static int update_offdata_cache(kno_knopool kp,int level,int chunk_ref_size)
     retval = munmap(offdata-64,header_size);
     if (retval<0) {
       u8_logf(LOG_WARN,u8_strerror(errno),
-	      "knopool_setcache:munmap %s",kp->poolid);
+	      "kpool_setcache:munmap %s",kp->poolid);
       U8_CLEAR_ERRNO();
       return 0;}
     else return 1;}
 
   if (level < 2 ) return 1;
 
-  if ( (LOCK_POOLSTREAM(kp,"knopool_setcache")) < 0) {
+  if ( (LOCK_POOLSTREAM(kp,"kpool_setcache")) < 0) {
     u8_logf(LOG_WARN,"PoolStreamClosed",
-	    "During knopool_setcache for %s",kp->poolid);
+	    "During kpool_setcache for %s",kp->poolid);
     UNLOCK_POOLSTREAM(kp);
     return -1;}
 
@@ -1742,7 +1742,7 @@ static int update_offdata_cache(kno_knopool kp,int level,int chunk_ref_size)
 	   kp->pool_stream.stream_fileno,0);
     if ((newmmap == NULL) || (newmmap == MAP_FAILED)) {
       u8_logf(LOG_WARN,u8_strerror(errno),
-	      "knopool_setcache:mmap %s",kp->poolid);
+	      "kpool_setcache:mmap %s",kp->poolid);
       U8_CLEAR_ERRNO();
       UNLOCK_POOLSTREAM(kp);
       return 0;}
@@ -1753,7 +1753,7 @@ static int update_offdata_cache(kno_knopool kp,int level,int chunk_ref_size)
   return 1;
 }
 #else
-static int update_offdata_cache(kno_knopool kp,int level,int chunk_ref_size)
+static int update_offdata_cache(kno_kpool kp,int level,int chunk_ref_size)
 {
   unsigned int *offdata=kp->pool_offdata;
   if ( (level < 2) && (offdata) ) {
@@ -1783,12 +1783,12 @@ static int update_offdata_cache(kno_knopool kp,int level,int chunk_ref_size)
 }
 #endif
 
-static void knopool_setcache(kno_knopool p,int level)
+static void kpool_setcache(kno_kpool p,int level)
 {
-  kno_knopool kp = (kno_knopool)p;
+  kno_kpool kp = (kno_kpool)p;
   int chunk_ref_size = get_chunk_ref_size(kp);
   if (chunk_ref_size<0) {
-    u8_logf(LOG_WARN,CorruptKnopool,
+    u8_logf(LOG_WARN,CorruptKPool,
 	    "Pool structure invalid: %s",p->poolid);
     return;}
   kno_stream stream = &(kp->pool_stream);
@@ -1822,13 +1822,13 @@ static void knopool_setcache(kno_knopool p,int level)
  * 1: for writing, open up to the capcity of the pool
  * -1: for reading, but sync before remapping
  */
-static void reload_knopool(kno_knopool kp,int is_locked)
+static void reload_kpool(kno_kpool kp,int is_locked)
 {
-  if (!(is_locked)) use_knopool(kp);
+  if (!(is_locked)) use_kpool(kp);
   int err=0;
   kno_stream stream = &(kp->pool_stream);
   time_t mtime = (time_t) kno_read_8bytes_at(stream,0x12,KNO_ISLOCKED,&err);
-  if (!(is_locked)) knopool_finished(kp);
+  if (!(is_locked)) kpool_finished(kp);
   if ((err==0) && (mtime == kp->pool_mtime))
     return;
   else if (!(is_locked))
@@ -1840,7 +1840,7 @@ static void reload_knopool(kno_knopool kp,int is_locked)
     kp->pool_load=new_load;
     kno_reset_hashtable(&(kp->pool_cache),-1,1);
     kno_reset_hashtable(&(kp->pool_changes),32,1);
-    if (!(is_locked)) knopool_finished(kp);
+    if (!(is_locked)) kpool_finished(kp);
     return;}
   /* Make it NULL while we're messing with it */
   else kp->pool_offdata=NULL;
@@ -1868,9 +1868,9 @@ static void reload_knopool(kno_knopool kp,int is_locked)
 	  kp->poolid,u8_elapsed_time()-start);
 }
 
-static void knopool_close(kno_pool p)
+static void kpool_close(kno_pool p)
 {
-  kno_knopool kp = (kno_knopool)p;
+  kno_kpool kp = (kno_kpool)p;
   kno_lock_pool_struct(p,1);
   /* Close the stream */
   kno_close_stream(&(kp->pool_stream),0);
@@ -1887,7 +1887,7 @@ static void knopool_close(kno_pool p)
     int retval = munmap(offdata-64,offdata_length);
     if (retval<0) {
       u8_logf(LOG_WARN,u8_strerror(errno),
-	      "knopool_close:munmap offsets %s",kp->poolid);
+	      "kpool_close:munmap offsets %s",kp->poolid);
       errno = 0;}
 #else
     u8_free(kp->pool_offdata);
@@ -1896,9 +1896,9 @@ static void knopool_close(kno_pool p)
   kno_unlock_pool_struct(p);
 }
 
-static void knopool_setbuf(kno_pool p,ssize_t bufsize)
+static void kpool_setbuf(kno_pool p,ssize_t bufsize)
 {
-  kno_knopool kp = (kno_knopool)p;
+  kno_kpool kp = (kno_kpool)p;
   if ( (kp->pool_stream.stream_flags) & (KNO_STREAM_MMAPPED) )
     return;
   kno_lock_pool_struct(p,1);
@@ -1906,14 +1906,14 @@ static void knopool_setbuf(kno_pool p,ssize_t bufsize)
   kno_unlock_pool_struct(p);
 }
 
-static int knopool_set_compression(kno_knopool kp,kno_compress_type cmptype)
+static int kpool_set_compression(kno_kpool kp,kno_compress_type cmptype)
 {
   struct KNO_STREAM _stream, *stream = kno_init_file_stream(&_stream,kp->pool_source,KNO_FILE_MODIFY,-1,-1);
   if (stream == NULL) return -1;
-  unsigned int format = kno_read_4bytes_at(stream,KNO_KNOPOOL_FORMAT_POS,KNO_STREAM_ISLOCKED);
-  format = format & (~(KNO_KNOPOOL_COMPRESSION));
+  unsigned int format = kno_read_4bytes_at(stream,KNO_KPOOL_FORMAT_POS,KNO_STREAM_ISLOCKED);
+  format = format & (~(KNO_KPOOL_COMPRESSION));
   format = format | (cmptype<<3);
-  ssize_t v = kno_write_4bytes_at(stream,format,KNO_KNOPOOL_FORMAT_POS);
+  ssize_t v = kno_write_4bytes_at(stream,format,KNO_KPOOL_FORMAT_POS);
   if (v>=0) {
     kno_lock_pool_struct((kno_pool)kp,1);
     kp->pool_compression = cmptype;
@@ -1923,15 +1923,15 @@ static int knopool_set_compression(kno_knopool kp,kno_compress_type cmptype)
   else return KNO_INT(cmptype);
 }
 
-static int knopool_set_read_only(kno_knopool kp,int read_only)
+static int kpool_set_read_only(kno_kpool kp,int read_only)
 {
   struct KNO_STREAM _stream, *stream = kno_init_file_stream(&_stream,kp->pool_source,KNO_FILE_MODIFY,-1,-1);
   if (stream == NULL) return -1;
-  unsigned int format = kno_read_4bytes_at(stream,KNO_KNOPOOL_FORMAT_POS,KNO_STREAM_ISLOCKED);
+  unsigned int format = kno_read_4bytes_at(stream,KNO_KPOOL_FORMAT_POS,KNO_STREAM_ISLOCKED);
   if (read_only)
-    format = format | (KNO_KNOPOOL_READ_ONLY);
-  else format = format & (~(KNO_KNOPOOL_READ_ONLY));
-  ssize_t v = kno_write_4bytes_at(stream,format,KNO_KNOPOOL_FORMAT_POS);
+    format = format | (KNO_KPOOL_READ_ONLY);
+  else format = format & (~(KNO_KPOOL_READ_ONLY));
+  ssize_t v = kno_write_4bytes_at(stream,format,KNO_KPOOL_FORMAT_POS);
   if (v>=0) {
     kno_lock_pool_struct((kno_pool)kp,1);
     if (read_only)
@@ -1942,7 +1942,7 @@ static int knopool_set_read_only(kno_knopool kp,int read_only)
   return v;
 }
 
-static lispval knopool_getoids(kno_knopool kp)
+static lispval kpool_getoids(kno_kpool kp)
 {
   if (kp->pool_cache_level<0) {
     kno_pool_setcache((kno_pool)kp,kno_default_cache_level);}
@@ -1970,17 +1970,17 @@ static lispval knopool_getoids(kno_knopool kp)
   return results;
 }
 
-/* Knopool ops */
+/* KPool ops */
 
 static lispval metadata_readonly_props = KNO_VOID;
 
-static lispval knopool_ctl(kno_pool p,lispval op,int n,kno_argvec args)
+static lispval kpool_ctl(kno_pool p,lispval op,int n,kno_argvec args)
 {
-  struct KNO_KNOPOOL *kp = (struct KNO_KNOPOOL *)p;
+  struct KNO_KPOOL *kp = (struct KNO_KPOOL *)p;
   if ((n>0)&&(args == NULL))
-    return kno_err("BadPoolOpCall","knopool_op",kp->poolid,VOID);
+    return kno_err("BadPoolOpCall","kpool_op",kp->poolid,VOID);
   else if (n<0)
-    return kno_err("BadPoolOpCall","knopool_op",kp->poolid,VOID);
+    return kno_err("BadPoolOpCall","kpool_op",kp->poolid,VOID);
   else if (op == kno_cachelevel_op) {
     if (n==0)
       return KNO_INT(kp->pool_cache_level);
@@ -1989,21 +1989,21 @@ static lispval knopool_ctl(kno_pool p,lispval op,int n,kno_argvec args)
       if ((FIXNUMP(arg))&&(FIX2INT(arg)>=0)&&
 	  (FIX2INT(arg)<0x100)) {
 	kno_lock_pool_struct(p,1);
-	knopool_setcache(kp,FIX2INT(arg));
+	kpool_setcache(kp,FIX2INT(arg));
 	kno_unlock_pool_struct(p);
 	return KNO_INT(kp->pool_cache_level);}
       else return kno_type_error
-	     (_("cachelevel"),"knopool_op/cachelevel",arg);}}
+	     (_("cachelevel"),"kpool_op/cachelevel",arg);}}
   else if (op == kno_reload_op) {
-    reload_knopool(kp,KNO_UNLOCKED);
+    reload_kpool(kp,KNO_UNLOCKED);
     return KNO_TRUE;}
   else if (op == kno_bufsize_op) {
     if (n==0)
       return KNO_INT(kp->pool_stream.buf.raw.buflen);
     else if (FIXNUMP(args[0])) {
-      knopool_setbuf(p,FIX2INT(args[0]));
+      kpool_setbuf(p,FIX2INT(args[0]));
       return KNO_INT(kp->pool_stream.buf.raw.buflen);}
-    else return kno_type_error("buffer size","knopool_op/bufsize",args[0]);}
+    else return kno_type_error("buffer size","kpool_op/bufsize",args[0]);}
   else if (op == xrefs_symbol) {
     if (kp->pool_xrefs.xt_n_refs)
       return kno_make_vector(kp->pool_xrefs.xt_n_refs,kp->pool_xrefs.xt_refs);
@@ -2015,27 +2015,27 @@ static lispval knopool_ctl(kno_pool p,lispval op,int n,kno_argvec args)
       else return kno_mkstring(p->pool_label);}
     else if ( (n==1) && ( (KNO_STRINGP(args[0])) || (KNO_FALSEP(args[0]))) ) {
       if ( (p->pool_flags)&(KNO_STORAGE_READ_ONLY) )
-	return kno_err(kno_ReadOnlyPool,"knopool_ctl/label",p->poolid,args[0]);
+	return kno_err(kno_ReadOnlyPool,"kpool_ctl/label",p->poolid,args[0]);
       else {
-	int rv = (KNO_STRINGP(args[0])) ? (set_knopool_label(kp,KNO_CSTRING(args[0]))) :
-	  (set_knopool_label(kp,NULL));
+	int rv = (KNO_STRINGP(args[0])) ? (set_kpool_label(kp,KNO_CSTRING(args[0]))) :
+	  (set_kpool_label(kp,NULL));
 	if (rv<0)
 	  return KNO_ERROR_VALUE;
 	else return KNO_INT(rv);}}
-    else return kno_err("BadArg","knopool_ctl/label",p->poolid,args[0]);}
+    else return kno_err("BadArg","kpool_ctl/label",p->poolid,args[0]);}
   else if (op == kno_capacity_op)
     return KNO_INT(kp->pool_capacity);
   else if ( (op == kno_metadata_op) && (n == 0) ) {
     lispval base=kno_pool_base_metadata(p);
     kno_store(base,load_symbol,KNO_INT(kp->pool_load));
     kno_store(base,xrefs_symbol,KNO_INT(kp->pool_xrefs.xt_n_refs));
-    if ( kp->knopool_format & KNO_KNOPOOL_READ_ONLY )
+    if ( kp->kpool_format & KNO_KPOOL_READ_ONLY )
       kno_store(base,KNOSYM_READONLY,KNO_TRUE);
-    if ( kp->knopool_format & KNO_KNOPOOL_READ_ONLY )
+    if ( kp->kpool_format & KNO_KPOOL_READ_ONLY )
       kno_add(base,KNOSYM_FORMAT,KNOSYM_READONLY);
-    if ( kp->knopool_format & KNO_KNOPOOL_ADJUNCT )
+    if ( kp->kpool_format & KNO_KPOOL_ADJUNCT )
       kno_add(base,KNOSYM_FORMAT,KNOSYM_ADJUNCT);
-    if ( kp->knopool_format & KNO_KNOPOOL_SPARSE )
+    if ( kp->kpool_format & KNO_KPOOL_SPARSE )
       kno_add(base,KNOSYM_FORMAT,kno_intern("sparse"));
     if ( kp->pool_offtype == KNO_B32) {
       kno_store(base,offmode_symbol,kno_intern("b32"));
@@ -2050,7 +2050,7 @@ static lispval knopool_ctl(kno_pool p,lispval op,int n,kno_argvec args)
 
     lispval cname = kno_compression_name(kp->pool_compression);
     if (KNO_ABORTP(cname)) {
-      u8_log(LOG_WARN,"BadCompressionType","for knopool %s, code=0x%x",
+      u8_log(LOG_WARN,"BadCompressionType","for kpool %s, code=0x%x",
 	     kp->poolid,((unsigned int)(kp->pool_compression)));
       u8_pop_exception();}
     else kno_store(base,compression_symbol,cname);
@@ -2077,8 +2077,8 @@ static lispval knopool_ctl(kno_pool p,lispval op,int n,kno_argvec args)
 	    ( ( op == kno_metadata_op ) && (n == 2) &&
 	      ( args[0] == KNOSYM_READONLY ) ) ) {
     lispval arg = ( op == KNOSYM_READONLY ) ? (args[0]) : (args[1]);
-    int rv = (KNO_FALSEP(arg)) ? (knopool_set_read_only(kp,0)) :
-      (knopool_set_read_only(kp,1));
+    int rv = (KNO_FALSEP(arg)) ? (kpool_set_read_only(kp,0)) :
+      (kpool_set_read_only(kp,1));
     if (rv<0)
       return KNO_ERROR;
     else return kno_incref(arg);}
@@ -2086,7 +2086,7 @@ static lispval knopool_ctl(kno_pool p,lispval op,int n,kno_argvec args)
 	    ( ( op == kno_metadata_op ) && (n == 2) &&
 	      ( args[0] == compression_symbol ) ) ) {
     lispval arg = (op == compression_symbol) ? (args[0]) : (args[1]);
-    int rv = knopool_set_compression
+    int rv = kpool_set_compression
       (kp,kno_compression_type(arg,KNO_NOCOMPRESS));
     if (rv<0) return KNO_ERROR;
     else return KNO_TRUE;}
@@ -2101,16 +2101,16 @@ static lispval knopool_ctl(kno_pool p,lispval op,int n,kno_argvec args)
 	       kno_intern("load_changed"),record);
       kp->pool_load = KNO_FIX2INT(loadval);
       return record;}
-    else return kno_type_error("pool load","knopool_ctl",args[0]);}
+    else return kno_type_error("pool load","kpool_ctl",args[0]);}
   else if (op == kno_keys_op) {
-    lispval keys = knopool_getoids(kp);
+    lispval keys = kpool_getoids(kp);
     return kno_simplify_choice(keys);}
   else return kno_default_poolctl(p,op,n,args);
 }
 
-/* Creating knopool */
+/* Creating kpool */
 
-static unsigned int get_knopool_format(kno_storage_flags sflags,lispval opts)
+static unsigned int get_kpool_format(kno_storage_flags sflags,lispval opts)
 {
   unsigned int flags = 0;
   lispval offtype = kno_intern("offtype");
@@ -2131,27 +2131,27 @@ static unsigned int get_knopool_format(kno_storage_flags sflags,lispval opts)
   flags |= ((kno_compression_type(opts,KNO_NOCOMPRESS))<<3);
 
   if ( (kno_testopt(opts,KNOSYM_READONLY,VOID)) )
-    flags |= KNO_KNOPOOL_READ_ONLY;
+    flags |= KNO_KPOOL_READ_ONLY;
 
   if (! ( (kno_testopt(opts,oidrefs_symbol,KNO_FALSE)) ) )
-    flags |= KNO_KNOPOOL_OIDREFS;
+    flags |= KNO_KPOOL_OIDREFS;
   if (! ( (kno_testopt(opts,symrefs_symbol,KNO_FALSE)) ) )
-    flags |= KNO_KNOPOOL_SYMREFS;
+    flags |= KNO_KPOOL_SYMREFS;
 
   if ( (kno_testopt(opts,KNOSYM_ISADJUNCT,VOID)) ||
        (kno_testopt(opts,KNOSYM_FLAGS,KNOSYM_ISADJUNCT)) ||
        (kno_testopt(opts,KNOSYM_FORMAT,KNOSYM_ISADJUNCT)) ||
        (kno_testopt(opts,KNOSYM_FORMAT,KNOSYM_ADJUNCT)) )
-    flags |= KNO_KNOPOOL_ADJUNCT;
+    flags |= KNO_KPOOL_ADJUNCT;
 
   if ( ( (sflags) & (KNO_POOL_SPARSE) ) ||
        (kno_testopt(opts,kno_intern("sparse"),VOID)) )
-    flags |= KNO_KNOPOOL_SPARSE;
+    flags |= KNO_KPOOL_SPARSE;
 
   return flags;
 }
 
-static kno_pool knopool_create(u8_string spec,void *type_data,
+static kno_pool kpool_create(u8_string spec,void *type_data,
 			       kno_storage_flags storage_flags,
 			       lispval opts)
 {
@@ -2166,41 +2166,41 @@ static kno_pool knopool_create(u8_string spec,void *type_data,
   lispval generation_opt = kno_getopt(opts,kno_intern("generation"),KNO_VOID);
   time_t now=time(NULL), ctime, mtime;
   long long generation=1;
-  unsigned int flags = get_knopool_format(storage_flags,opts);
+  unsigned int flags = get_kpool_format(storage_flags,opts);
   unsigned int capacity, load;
   int rv = 0;
   if (u8_file_existsp(spec)) {
-    kno_seterr(_("FileAlreadyExists"),"knopool_create",spec,VOID);
+    kno_seterr(_("FileAlreadyExists"),"kpool_create",spec,VOID);
     return NULL;}
   else if (!(OIDP(base_oid))) {
-    kno_seterr("Not a base oid","knopool_create",spec,base_oid);
+    kno_seterr("Not a base oid","kpool_create",spec,base_oid);
     rv = -1;}
   else if (KNO_ISINT(capacity_arg)) {
     int capval = kno_getint(capacity_arg);
     if (capval<=0) {
-      kno_seterr("Not a valid capacity","knopool_create",
+      kno_seterr("Not a valid capacity","kpool_create",
 		spec,capacity_arg);
       rv = -1;}
     else capacity = capval;}
   else {
-    kno_seterr("Not a valid capacity","knopool_create",
+    kno_seterr("Not a valid capacity","kpool_create",
 	      spec,capacity_arg);
     rv = -1;}
   if (rv<0) {}
   else if (KNO_ISINT(load_arg)) {
     int loadval = kno_getint(load_arg);
     if (loadval<0) {
-      kno_seterr("Not a valid load","knopool_create",spec,load_arg);
+      kno_seterr("Not a valid load","kpool_create",spec,load_arg);
       rv = -1;}
     else if (loadval > capacity) {
-      kno_seterr(kno_PoolOverflow,"knopool_create",spec,load_arg);
+      kno_seterr(kno_PoolOverflow,"kpool_create",spec,load_arg);
       rv = -1;}
     else load = loadval;}
   else if ( (FALSEP(load_arg)) || (EMPTYP(load_arg)) ||
 	    (VOIDP(load_arg)) || (load_arg == KNO_DEFAULT_VALUE))
     load=0;
   else {
-    kno_seterr("Not a valid load","knopool_create",spec,load_arg);
+    kno_seterr("Not a valid load","kpool_create",spec,load_arg);
     rv = -1;}
 
   if (KNO_FIXNUMP(ctime_opt))
@@ -2245,7 +2245,7 @@ static kno_pool knopool_create(u8_string spec,void *type_data,
   else if (KNO_FIXNUMP(xrefs_max))
     use_xrefs_max = KNO_FIX2INT(xrefs_max);
   else if (KNO_TRUEP(xrefs_max))
-    use_xrefs_max = knopool_max_xrefs;
+    use_xrefs_max = kpool_max_xrefs;
   else {
     u8_log(LOGWARN,"BadMaxRefs",
 	   "The specified value %q isn't valid as a maxrefs value.",
@@ -2263,12 +2263,12 @@ static kno_pool knopool_create(u8_string spec,void *type_data,
   kno_store(metadata,make_opts,opts);
 
   if (!(kno_testopt(opts,oidrefs_symbol,KNO_FALSE)))
-    flags |= KNO_KNOPOOL_OIDREFS;
+    flags |= KNO_KPOOL_OIDREFS;
   if (!(kno_testopt(opts,symrefs_symbol,KNO_FALSE)))
-    flags |= KNO_KNOPOOL_SYMREFS;
+    flags |= KNO_KPOOL_SYMREFS;
 
   if (rv<0) return NULL;
-  else rv = make_knopool(spec,
+  else rv = make_kpool(spec,
 			 ((STRINGP(label)) ? (CSTRING(label)) : (spec)),
 			 KNO_OID_ADDR(base_oid),capacity,load,flags,
 			 metadata,xrefs,
@@ -2292,41 +2292,47 @@ static kno_pool knopool_create(u8_string spec,void *type_data,
 
 /* Initializing the driver module */
 
-static struct KNO_POOL_HANDLER knopool_handler={
-  "knopool", 1, sizeof(struct KNO_KNOPOOL), 12,
-  knopool_close, /* close */
-  knopool_alloc, /* alloc */
-  knopool_fetch, /* fetch */
-  knopool_fetchn, /* fetchn */
-  knopool_load, /* getload */
-  knopool_lock, /* lock */
-  knopool_unlock, /* release */
-  knopool_commit, /* commit */
+static struct KNO_POOL_HANDLER kpool_handler={
+  "kpool", 1, sizeof(struct KNO_KPOOL), 12,
+  kpool_close, /* close */
+  kpool_alloc, /* alloc */
+  kpool_fetch, /* fetch */
+  kpool_fetchn, /* fetchn */
+  kpool_load, /* getload */
+  kpool_lock, /* lock */
+  kpool_unlock, /* release */
+  kpool_commit, /* commit */
   NULL, /* swapout */
-  knopool_create, /* create */
+  kpool_create, /* create */
   NULL,	 /* walk */
   NULL,	 /* recycle */
-  knopool_ctl  /* poolctl */
+  kpool_ctl  /* poolctl */
 };
 
 
-KNO_EXPORT void kno_init_knopool_c()
+KNO_EXPORT void kno_init_kpool_c()
 {
   u8_register_source_file(_FILEINFO);
 
   kno_register_pool_type
-    ("knopool",
-     &knopool_handler,
-     open_knopool,
+    ("kpool",
+     &kpool_handler,
+     open_kpool,
      kno_match_pool_file,
-     (void*)U8_INT2PTR(KNO_KNOPOOL_MAGIC_NUMBER));
+     (void*)U8_INT2PTR(KNO_KPOOL_MAGIC_NUMBER));
+  kno_register_pool_type
+    ("knopool",
+     &kpool_handler,
+     open_kpool,
+     kno_match_pool_file,
+     (void*)U8_INT2PTR(KNO_KPOOL_MAGIC_NUMBER));
 
   kno_register_pool_type
-    ("corrupted knopool",
-     &knopool_handler,
-     recover_knopool,
+    ("corrupted kpool",
+     &kpool_handler,
+     recover_kpool,
      kno_match_pool_file,
-     (void*)U8_INT2PTR(KNO_KNOPOOL_TO_RECOVER));
+     (void*)U8_INT2PTR(KNO_KPOOL_TO_RECOVER));
 
   load_symbol=kno_intern("load");
   xrefs_symbol=kno_intern("xrefs");
@@ -2337,15 +2343,15 @@ KNO_EXPORT void kno_init_knopool_c()
   oidrefs_symbol=kno_intern("oidrefs");
   symrefs_symbol=kno_intern("symrefs");
 
-  kno_register_config("KNOPOOL:LOGLEVEL",
-		     "The default loglevel for knopools",
+  kno_register_config("KPOOL:LOGLEVEL",
+		     "The default loglevel for kpools",
 		     kno_intconfig_get,kno_loglevelconfig_set,
-		     &knopool_loglevel);
-  kno_register_config("KNOPOOL:MAXREFS",
-		     "The default loglevel for knopools",
+		     &kpool_loglevel);
+  kno_register_config("KPOOL:MAXREFS",
+		     "The default loglevel for kpools",
 		     kno_sizeconfig_get,kno_sizeconfig_set,
-		     &knopool_max_xrefs);
+		     &kpool_max_xrefs);
 
-  kno_set_default_pool_type("knopool");
+  kno_set_default_pool_type("kpool");
 }
 

@@ -158,10 +158,10 @@ SRC_HEADERS=src/lisp/biginternals.h 		\
 	src/drivers/headers/fileindex.h 	\
 	src/drivers/headers/memindex.h	 	\
 	src/drivers/headers/bigpool.h	 	\
-	src/drivers/headers/knopool.h	 	\
+	src/drivers/headers/kpool.h	 	\
 	src/drivers/headers/oidpool.h	 	\
 	src/drivers/headers/hashindex.h		\
-	src/drivers/headers/knoindex.h		\
+	src/drivers/headers/kindex.h		\
 	src/drivers/headers/netindex.h		\
 	src/drivers/headers/netpool.h
 
@@ -218,10 +218,10 @@ DRIVER_OBJS=\
 	src/drivers/netpool.o src/drivers/netindex.o	\
 	src/drivers/filepool.o src/drivers/oidpool.o	\
 	src/drivers/bigpool.o				\
-	src/drivers/knopool.o				\
+	src/drivers/kpool.o				\
 	src/drivers/fileindex.o src/drivers/hashindex.o	\
 	src/drivers/memindex.o   			\
-	src/drivers/knoindex.o
+	src/drivers/kindex.o
 
 CORE_SCHEME_OBJS=\
 	src/eval/eval.o\
@@ -358,8 +358,8 @@ KNO_SOURCES=\
 	src/storage/ipeval.c 	       						\
 	src/drivers/builtin_drivers.c  						\
 	src/drivers/filepool.c src/drivers/oidpool.c 				\
-	src/drivers/bigpool.c src/drivers/knopool.c				\
-	src/drivers/fileindex.c src/drivers/hashindex.c src/drivers/knoindex.c  \
+	src/drivers/bigpool.c src/drivers/kpool.c				\
+	src/drivers/fileindex.c src/drivers/hashindex.c src/drivers/kindex.c  \
 	src/storage/extindex.c src/storage/tempindex.c				\
 	src/storage/mempool.c src/storage/extpool.c				\
 	src/drivers/netpool.c src/drivers/netindex.c 				\
@@ -2052,7 +2052,7 @@ src/drivers/filepool.o: src/drivers/headers/filepool.h
 src/drivers/fileindex.o: src/drivers/headers/fileindex.h
 src/drivers/oidpool.o: src/drivers/headers/oidpool.h src/drivers/headers/zcompress.h
 src/drivers/bigpool.o: src/drivers/headers/bigpool.h src/drivers/headers/zcompress.h
-src/drivers/knopool.o: src/drivers/headers/knopool.h src/drivers/headers/zcompress.h
+src/drivers/kpool.o: src/drivers/headers/kpool.h src/drivers/headers/zcompress.h
 src/drivers/hashindex.o: src/drivers/headers/hashindex.h  src/drivers/headers/zcompress.h
-src/drivers/knoindex.o: src/drivers/headers/knoindex.h  src/drivers/headers/zcompress.h
+src/drivers/kindex.o: src/drivers/headers/kindex.h  src/drivers/headers/zcompress.h
 src/drivers/memindex.o: src/drivers/headers/memindex.h

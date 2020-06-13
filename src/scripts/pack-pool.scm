@@ -40,14 +40,14 @@
 	    (irritant s |NotStringOrSymbol|)))))
 
 (define compression-type-map
-  #[bigpool snappy oidpool zlib knopool zstd9 filepool #f])
+  #[bigpool snappy oidpool zlib kpool zstd9 filepool #f])
 
 (define (make-new-pool filename old 
-		       (type (symbolize (config 'pooltype 'knopool)))
+		       (type (symbolize (config 'pooltype 'kpool)))
 		       (adjslot (CONFIG 'ADJSLOT (CONFIG 'ADJUNCTSLOT #f))))
   (let ((metadata (or (poolctl old '%metadata) #[]))
-	(xrefs (and (eq? type 'knopool) (compute-xrefs old))))
-    (when (eq? type 'knopool)
+	(xrefs (and (eq? type 'kpool) (compute-xrefs old))))
+    (when (eq? type 'kpool)
       (if xrefs
 	  (lognotice |XRefs| "Identified " (length xrefs) " xrefs")
 	  (lognotice |XRefs| "Disabled"))

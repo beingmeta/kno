@@ -1,21 +1,21 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
 ;;; Copyright (C) 2005-2020 beingmeta, inc.  All rights reserved.
 
-(in-module 'knodb/knoindexes)
+(in-module 'knodb/kindexes)
 
 (use-module '{reflection logger logctl stringfmts mttools fifo engine})
 
-(module-export! '{knoindex/mapkeys
-		  knoindex/counts
-		  knoindex/repack!
-		  knoindex/copy-keys!
-		  knoindex/repack-keys
-		  knoindex/repack-buckets
-		  knoindex/repack-mapkeys})
+(module-export! '{kindex/mapkeys
+		  kindex/counts
+		  kindex/repack!
+		  kindex/copy-keys!
+		  kindex/repack-keys
+		  kindex/repack-buckets
+		  kindex/repack-mapkeys})
 
 (define %loglevel %info%)
 
-;;; Mapping over buckets in a knoindex
+;;; Mapping over buckets in a kindex
 
 (define (get-spans n-buckets span-width)
   (let ((n-spans (1+ (quotient n-buckets span-width)))
@@ -28,7 +28,7 @@
 	  (set+! spans (cons bottom top)))))
     spans))
 
-(define (knoindex/mapkeys mapfn index (opts #f))
+(define (kindex/mapkeys mapfn index (opts #f))
   (let* ((n-buckets (indexctl index 'hash))
 	 (n-keys (indexctl index 'metadata 'keys))
 	 (span-width (config 'WIDTH 500000))
@@ -64,11 +64,11 @@
     (store! batch-state 'keys (choice-size keys))
     (store! batch-state 'rare rare-count)))
 
-(define (knoindex/counts index (counts) (indexes) (rare))
+(define (kindex/counts index (counts) (indexes) (rare))
   (default! counts (make-hashtable (indexctl index 'metadata 'keys)))
   (default! indexes (make-hashtable (indexctl index 'metadata 'keys)))
   (default! rare (make-hashtable (indexctl index 'metadata 'keys)))
-  (knoindex/mapkeys key-counter index
+  (kindex/mapkeys key-counter index
 		    `#[batchsize 1
 		       loop #[index ,index counts ,counts indexes ,indexes rare ,rare]
 		       count-term "spans"
@@ -77,9 +77,9 @@
 		       logfreq 45])
   `#[counts ,counts indexes ,indexes rare ,rare])
 
-;;; Repacking an index using knoindex/mapkeys
+;;; Repacking an index using kindex/mapkeys
 
-(defambda (knoindex-copier buckets batch-state loop-state task-state)
+(defambda (kindex-copier buckets batch-state loop-state task-state)
   (let* ((mincount (get loop-state 'mincount))
 	 (maxcount (get loop-state 'maxcount))
 	 (unique (try (get loop-state 'unique) #f))
@@ -150,7 +150,7 @@
     (table-increment! batch-state 'uniquekeys unique-count)
     (table-increment! batch-state 'values value-count)))
 
-(define (knoindex/copy-keys! index output opts (rare))
+(define (kindex/copy-keys! index output opts (rare))
   (let* ((started (elapsed-time))
 	 (span (getopt opts 'span 1000))
 	 (buckets (if span
@@ -163,7 +163,7 @@
       (if span " bucket spans" " buckets")
       " from " (write (index-source index))
       " to " (write (index-source output)))
-    (engine/run knoindex-copier buckets  
+    (engine/run kindex-copier buckets  
       `#[loop #[input ,index output ,output
 		rare ,(getopt opts 'rare)
 		unique ,(getopt opts 'unique)
