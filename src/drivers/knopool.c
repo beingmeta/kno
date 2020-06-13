@@ -239,8 +239,7 @@ static kno_pool open_knopool(u8_string fname,kno_storage_flags open_flags,
   u8_string realpath = u8_realpath(fname,NULL);
   u8_string abspath = u8_abspath(fname,NULL);
   int stream_flags =
-    KNO_STREAM_CAN_SEEK | KNO_STREAM_NEEDS_LOCK | KNO_STREAM_READ_ONLY |
-    (( (open_flags) & (KNO_STORAGE_LOUDSYMS) ) ? (KNO_STREAM_LOUDSYMS) : (0));
+    KNO_STREAM_CAN_SEEK | KNO_STREAM_NEEDS_LOCK | KNO_STREAM_READ_ONLY;
 
   struct KNO_STREAM *stream=
     kno_init_file_stream(&(pool->pool_stream),fname,
@@ -350,9 +349,6 @@ static kno_pool open_knopool(u8_string fname,kno_storage_flags open_flags,
 	u8_log(LOGWARN,"LegacySymbols",
 	       "Opening %s with legacy FramerD symbols, re-reading metadata",
 	       fname);
-	open_flags |= KNO_STORAGE_LOUDSYMS;
-	stream->stream_flags |= KNO_STREAM_LOUDSYMS;
-	stream->buf.raw.buf_flags |= KNO_FIX_DTSYMS;
 	if (kno_setpos(stream,metadata_loc)>0) {
 	  kno_inbuf in = kno_readbuf(stream);
 	  lispval new_metadata = kno_read_xtype(in,NULL);

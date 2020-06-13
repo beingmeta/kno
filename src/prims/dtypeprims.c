@@ -34,8 +34,6 @@
 #define KNO_DTWRITE_SIZE 10000
 #endif
 
-static lispval fixsyms_symbol;
-
 DEFPRIM3("read-dtype",read_dtype,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
 	 "(READ-DTYPE *stream* [*off*] [*len*]) "
 	 "reads the dtype representation store at *off* in "
@@ -292,8 +290,6 @@ static ssize_t write_dtypes(lispval dtypes,struct KNO_STREAM *out)
   struct KNO_OUTBUF tmp = { 0 };
   unsigned char tmpbuf[1000];
   KNO_INIT_BYTE_OUTBUF(&tmp,tmpbuf,1000);
-  if ( (out->stream_flags) & KNO_STREAM_LOUDSYMS )
-    tmp.buf_flags |= KNO_FIX_DTSYMS;
   if (CHOICEP(dtypes)) {
     /* This writes out the objects sequentially, writing into memory
        first and then to disk, to reduce the danger of malformed
@@ -514,7 +510,6 @@ KNO_EXPORT void kno_init_dtypeprims_c()
   dtypeprims_module =
     kno_new_cmodule("dtypeprims",(KNO_MODULE_DEFAULT),kno_init_dtypeprims_c);
   u8_register_source_file(_FILEINFO);
-  fixsyms_symbol = kno_intern("LOUDSYMS");
 
   link_local_cprims();
 

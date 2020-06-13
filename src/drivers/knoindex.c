@@ -296,8 +296,7 @@ static kno_index open_knoindex(u8_string fname,kno_storage_flags open_flags,
                  open_flags,KNO_VOID,opts);
 
   int stream_flags =
-    KNO_STREAM_CAN_SEEK | KNO_STREAM_NEEDS_LOCK | KNO_STREAM_READ_ONLY  |
-    (( (open_flags) & (KNO_STORAGE_LOUDSYMS) ) ? (KNO_STREAM_LOUDSYMS) : (0));
+    KNO_STREAM_CAN_SEEK | KNO_STREAM_NEEDS_LOCK | KNO_STREAM_READ_ONLY;
   kno_stream stream=
     kno_init_file_stream(&(index->index_stream),abspath,mode,stream_flags,-1);
   u8_free(abspath); u8_free(realpath);
@@ -351,11 +350,7 @@ static kno_index open_knoindex(u8_string fname,kno_storage_flags open_flags,
     kno_free_stream(stream);
     u8_free(index);
     return NULL;}
-  else {
-    if ( (index->index_flags) & (KNO_STORAGE_LOUDSYMS) )
-      open_flags |= KNO_STORAGE_LOUDSYMS;
-    if ( (stream->stream_flags) & (KNO_STREAM_LOUDSYMS) )
-      stream_flags |= KNO_STREAM_LOUDSYMS;}
+  else NO_ELSE;
 
   u8_init_mutex(&(index->index_lock));
 
@@ -423,8 +418,6 @@ static int load_header(struct KNO_KNOINDEX *index,struct KNO_STREAM *stream)
       u8_log(LOGWARN,"LegacySymbols",
              "Opening %s with legacy FramerD symbols, re-reading metadata",
              fname);
-      index->index_flags |= KNO_STORAGE_LOUDSYMS;
-      stream->stream_flags |= KNO_STREAM_LOUDSYMS;
       if (kno_setpos(stream,metadata_loc)>0) {
         kno_inbuf in = kno_readbuf(stream);
 	lispval new_metadata = read_raw(in);

@@ -35,8 +35,6 @@
 #define KNO_DTWRITE_SIZE 10000
 #endif
 
-static lispval fixsyms_symbol;
-
 DEFPRIM3("write-bytes",write_bytes,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
 	 "(WRITE-BYTES *obj* *stream* [*pos*]) "
 	 "writes the bytes in *obj* to *stream* at *pos*. "
@@ -369,8 +367,6 @@ static lispval open_byte_output_file(lispval fname,lispval opts)
     (u8_file_existsp(filename)) ?
     (kno_open_file(filename,KNO_FILE_MODIFY)) :
     (kno_open_file(filename,KNO_FILE_CREATE));
-  if ( (KNO_CONSP(opts)) && (kno_testopt(opts,fixsyms_symbol,VOID)) ) {
-    dts->stream_flags |= KNO_STREAM_LOUDSYMS;}
   if (dts) {
     U8_CLEAR_ERRNO();
     return LISP_CONS(dts);}
@@ -392,8 +388,6 @@ static lispval open_byte_input_file(lispval fname,lispval opts)
   else {
     struct KNO_STREAM *stream = kno_open_file(filename,KNO_STREAM_READ_ONLY);
     if (stream) {
-      if ( (KNO_CONSP(opts)) && (kno_testopt(opts,fixsyms_symbol,VOID)) ) {
-	stream->stream_flags |= KNO_STREAM_LOUDSYMS;}
       U8_CLEAR_ERRNO();
       return (lispval) stream;}
     else return KNO_ERROR_VALUE;}
@@ -553,7 +547,6 @@ KNO_EXPORT void kno_init_streamprims_c()
   streamprims_module =
     kno_new_cmodule("streamprims",(KNO_MODULE_DEFAULT),kno_init_streamprims_c);
   u8_register_source_file(_FILEINFO);
-  fixsyms_symbol = kno_intern("LOUDSYMS");
 
   link_local_cprims();
 
