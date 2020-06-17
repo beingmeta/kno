@@ -719,6 +719,9 @@ static lispval indentout_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       u8_putn(curout,start,(scan-start)+1);
       start = scan+1;
       scan = strchr(start,'\n');}
+    if ( (start) && (*start) ) {
+      u8_putn(curout,indent_string,indent_len);
+      u8_puts(curout,start);}
     u8_flush(curout);
     u8_close_output(&out);
     kno_decref(indent_val);
