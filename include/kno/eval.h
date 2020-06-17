@@ -181,6 +181,8 @@ typedef struct KNO_EVALFN_INFO *kno_evalfn_info;
   kno_new_evalfn(module,cname ## _info.pname,# cname,cname ## _info.filename, \
 		 cname ## _info.docstring,cname ## _info.flags,cname);
 
+#define KNO_EVALFNP(x) (KNO_TYPEP((x),kno_evalfn_type))
+
 /* Macros */
 
 typedef struct KNO_MACRO {

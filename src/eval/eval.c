@@ -365,9 +365,10 @@ KNO_EXPORT int kno_assign_value(lispval symbol,lispval value,kno_lexenv env)
 KNO_EXPORT lispval kno_fcn_ref(lispval sym,kno_lexenv env,lispval val)
 {
   if (env) {
-    if (! ( (KNO_CONSP(val)) && 
-	    ( (KNO_FUNCTIONP(val)) || 
+    if (! ( (KNO_CONSP(val)) &&
+	    ( (KNO_FUNCTIONP(val)) ||
 	      (KNO_APPLICABLEP(val)) ||
+	      (KNO_EVALFNP(val)) ||
 	      (KNO_MACROP(val)) )) ) {
       u8_log(LOGWARN,"BadAliasValue","The value of '%q cannot be aliased: %q",
 	     sym,val);
@@ -420,6 +421,7 @@ static lispval fcnalias_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
   else if ( (KNO_CONSP(val)) && 
 	    ( (KNO_FUNCTIONP(val)) || 
 	      (KNO_APPLICABLEP(val)) ||
+	      (KNO_EVALFNP(val)) ||
 	      (KNO_MACROP(val)) ) ) {
     lispval fcnid = kno_fcn_ref(sym,use_env,val);
     kno_decref(val);
