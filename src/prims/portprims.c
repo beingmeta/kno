@@ -672,6 +672,59 @@ static lispval stringout_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   return result;
 }
 
+static lispval indentout_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+{
+  lispval indent_expr = kno_get_arg(expr,1);
+  if (KNO_VOIDP(indent_expr))
+    return kno_err(kno_SyntaxError,"indentout_evalfn",NULL,expr);
+  lispval indent_val = kno_eval(indent_expr,env,_stack,0);
+  u8_string indent_string = NULL; int indent_len = 4;
+  if (ABORTED(indent_val))
+    return indent_val;
+  else if (STRINGP(indent_val)) {
+    if (KNO_STRLEN(indent_val)==0) {
+      kno_decref(indent_val);
+      return kno_printout(kno_get_body(expr,2),env);}
+    else indent_string = KNO_CSTRING(indent_val);}
+  else if ( (KNO_FIXNUMP(indent_val)) && ((KNO_FIX2INT(indent_val)) >= 0) ) {
+    indent_len = KNO_FIX2INT(indent_val);
+    if (indent_len == 0) return kno_printout(kno_get_body(expr,2),env);}
+  else if (KNO_FALSEP(indent_val))
+    return kno_printout(kno_get_body(expr,2),env);
+  else {
+    u8_byte buf[100];
+    lispval err = kno_err("InvalidIndent","indentout_evalfn",
+			  u8_bprintf(buf,"%q",indent_expr),
+			  indent_val);
+    kno_decref(indent_val);
+    return err;}
+  u8_byte indent_buf[indent_len+1];
+  if (indent_string == NULL) {
+    int i = 0; while (i<indent_len) indent_buf[i++]=' ';
+    indent_buf[i]='\0';
+    indent_string=indent_buf;}
+  else indent_len = KNO_STRLEN(indent_val);
+  struct U8_OUTPUT out;
+  U8_INIT_OUTPUT(&out,1000);
+  lispval result = kno_printout_to(&out,kno_get_body(expr,2),env);
+  if (KNO_ABORTED(result)) {
+    u8_close_output(&out);
+    kno_decref(indent_val);
+    return result;}
+  else {
+    U8_OUTPUT *curout = u8_current_output;
+    u8_string start = out.u8_outbuf, scan = strchr(start,'\n');
+    while (scan) {
+      u8_putn(curout,indent_string,indent_len);
+      u8_putn(curout,start,(scan-start)+1);
+      start = scan+1;
+      scan = strchr(start,'\n');}
+    u8_flush(curout);
+    u8_close_output(&out);
+    kno_decref(indent_val);
+    return KNO_VOID;}
+}
+
 /* Functions to be used in printout bodies */
 
 DEFPRIM2("$histstring",histstring_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
@@ -1526,6 +1579,12 @@ KNO_EXPORT void kno_init_portprims_c()
 		  stringout_evalfn,KNO_EVALFN_NOTAIL,
 		  "`(STRINGOUT ...*args*)` generates output from "
 		  "*args* and returns the output as a string.");
+  kno_def_xevalfn(kno_io_module,"INDENTOUT",
+		  indentout_evalfn,KNO_EVALFN_NOTAIL,
+		  "`(INDENTOUT *indent* ... *args*)` generates output from "
+		  "*args*, preceding each line of output with either *indent* "
+		  "(if it's a string) or *indent* spaces (if it's a positive "
+		  "integer");
 }
 
 static void link_local_cprims()
