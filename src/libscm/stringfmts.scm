@@ -3,6 +3,8 @@
 
 (in-module 'stringfmts)
 
+(use-module '{defmacro})
+
 ;;; Generation of strings from various other kinds of values
 
 (module-export!
@@ -19,6 +21,10 @@
    $bytes $bytestring
    $bytes/sec
    $rate})
+
+(module-export!
+ '{$lines $lines/indent
+   $indented $table})
 
 ;; Percentages
 
@@ -287,3 +293,26 @@
 	    (printout (inexact->string total 1) "s")
 	    (printout secs "s")))))
 
+;;; Mutli-line output
+
+(define (field->string field)
+  (escape-string (stringout (write field))))
+
+(define ($lines . lines)
+  (dolist (line lines) (lineout line)))
+(define ($lines/indent indent . lines)
+  (indentout indent (dolist (line lines) (lineout line))))
+(define $indented (fcn/alias indentout))
+(defambda ($table obj (fields) (opts #f))
+  (default! fields (getkeys obj))
+  (when (ambiguous? fields) (set! fields (sorted fields)))
+  (let* ((names (map field->string fields))
+	 (maxwidth (max (length (elts names))))
+	 (indent-string (make-string maxwidth #\Space)))
+    (doseq (name names i)
+      (let ((values (get obj (elts fields i))))
+	(do-choices (v values j)
+	  (lineout 
+	    (if (= j 0)
+		(printout name (dotimes (i (- maxwidth (length name))) (display " ")) v)
+		(printout indent-string v))))))))

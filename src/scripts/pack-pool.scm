@@ -284,11 +284,16 @@
       (commit new))))
 
 (define (usage)
-  (lineout "Usage: pack-pool <from> [to]")
-  (lineout "    Repacks the file pool stored in <from>.  The new file ")
-  (lineout "    pool is either replace <from> or is written into [to].")
-  (lineout "    [to] if specified must not exist unless OVERWRITE=yes.")
-  (lineout "    POOLTYPE=bigpool|oidpool|filepool"))
+  (lineout "Usage: pack-pool <from> [to]\n"
+    ($indented 4
+	       "Repacks the file pool stored in <from> either in place or into [to]."
+	       "Common options include (first value is default) : \n"
+	       ($indented 4
+			  "POOLTYPE=keep|knopool|bigpool|filepool\n"
+			  "COMPRESSION=none|zlib9|snappy|zstd9\n"
+			  "CODESLOTS=yes|no\n"
+			  "OVERWRITE=no|yes\n")
+	       "If specified, [to] must not exist unless OVERWRITE=yes")))
 
 (optimize! '{knodb/countrefs})
 (optimize!)
