@@ -34,7 +34,7 @@
 #define KNO_DTWRITE_SIZE 10000
 #endif
 
-static lispval fixsyms_symbol, refs_symbol, append_symbol, embed_symbol;
+static lispval refs_symbol, append_symbol, embed_symbol;
 
 DEFPRIM3("write-xtype",write_xtype_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
 	 "(WRITE-XTYPE *obj* *stream* [*opts*]) "
@@ -303,7 +303,6 @@ KNO_EXPORT void kno_init_xtypeprims_c()
   xtypeprims_module =
     kno_new_cmodule("xtypeprims",(KNO_MODULE_DEFAULT),kno_init_xtypeprims_c);
   u8_register_source_file(_FILEINFO);
-  fixsyms_symbol = kno_intern("LOUDSYMS");
   refs_symbol = kno_intern("XREFS");
   append_symbol = kno_intern("append");
   embed_symbol = kno_intern("embed");

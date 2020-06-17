@@ -61,7 +61,7 @@ typedef int kno_storage_flags;
 #define KNO_STORAGE_PHASED                  0x100
 #define KNO_STORAGE_REPAIR                  0x200
 #define KNO_STORAGE_VIRTUAL                 0x400
-#define KNO_STORAGE_LOUDSYMS                 0x800
+#define KNO_STORAGE_PRECHOICES              0x800
 
 #define KNO_STORAGE_MAX_INIT_BITS           0x1000
 #define KNO_STORAGE_MAX_STATE_BITS          0x10000

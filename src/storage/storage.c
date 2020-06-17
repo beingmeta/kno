@@ -106,8 +106,6 @@ kno_get_dbflags(lispval opts,kno_storage_flags init_flags)
       flags |= KNO_STORAGE_VIRTUAL;
     if (testopt(opts,repair_symbol,0))
       flags |= KNO_STORAGE_REPAIR;
-    if (testopt(opts,fixsyms_symbol,0))
-      flags |= KNO_STORAGE_LOUDSYMS;
     if ( (is_index) && (testopt(opts,background_symbol,0)) )
       flags |= KNO_INDEX_IN_BACKGROUND;
     if ( (!(is_index)) &&
@@ -743,12 +741,6 @@ KNO_EXPORT int kno_init_storage()
      config_onsave_get,
      config_onsave_set,
      NULL);
-  kno_register_config
-    ("STORAGE:LOUDSYMS",_("Whether to convert legacy uppercase to lowercase"),
-     kno_boolconfig_get,
-     kno_boolconfig_set,
-     &kno_norm_syms);
-
 
   return knostorage_initialized;
 }
