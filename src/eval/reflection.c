@@ -768,25 +768,6 @@ static lispval macroexpand(lispval expander,lispval expr)
   else return kno_incref(expr);
 }
 
-/* Apropos */
-
-DEFPRIM1("apropos",apropos_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(APROPOS *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
-static lispval apropos_prim(lispval arg)
-{
-  u8_string seeking; lispval all, results = EMPTY;
-  if (SYMBOLP(arg)) seeking = SYM_NAME(arg);
-  else if (STRINGP(arg)) seeking = CSTRING(arg);
-  else return kno_type_error(_("string or symbol"),"apropos",arg);
-  all = kno_all_symbols();
-  {DO_CHOICES(sym,all) {
-      u8_string name = SYM_NAME(sym);
-      if (strstr(name,seeking)) {CHOICE_ADD(results,sym);}}}
-  kno_decref(all);
-  return results;
-}
-
 /* Module bindings */
 
 DEFPRIM1("module-bindings",module_bindings,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
@@ -1519,7 +1500,6 @@ static void link_local_cprims()
   KNO_LINK_PRIM("module-table",module_table,1,reflection_module);
   KNO_LINK_PRIM("module-source",module_getsource,1,reflection_module);
   KNO_LINK_PRIM("module-bindings",module_bindings,1,reflection_module);
-  KNO_LINK_PRIM("apropos",apropos_prim,1,reflection_module);
   KNO_LINK_PRIM("macroexpand",macroexpand,2,reflection_module);
   KNO_LINK_PRIM("fcnid/set!",fcnid_setprim,2,reflection_module);
   KNO_LINK_PRIM("fcnid/register",fcnid_registerprim,1,reflection_module);

@@ -815,6 +815,41 @@ static lispval get_documentation(lispval x)
   else return KNO_FALSE;
 }
 
+/* Apropos */
+
+/* Apropos */
+
+DEFPRIM1("apropos",apropos_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "`(APROPOS *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
+static lispval apropos_prim(lispval arg)
+{
+  u8_string seeking; lispval all, results = EMPTY;
+  regex_t *regex = NULL; u8_mutex *lock = NULL;
+  if (SYMBOLP(arg)) seeking = SYM_NAME(arg);
+  else if (STRINGP(arg)) seeking = CSTRING(arg);
+  else if (KNO_REGEXP(arg)) {
+    struct KNO_REGEX *krx = (kno_regex) arg;
+    regex = &(krx->rxcompiled);
+    lock  = &(krx->rx_lock);
+    u8_lock_mutex(lock);}
+  else return kno_type_error(_("string or symbol"),"apropos",arg);
+  all = kno_all_symbols();
+  {DO_CHOICES(sym,all) {
+      u8_string name = SYM_NAME(sym);
+      if (regex) {
+	int rv = regexec(regex,name,0,NULL,0);
+	if (rv == REG_NOMATCH) {}
+	else if (rv) {}
+	else {CHOICE_ADD(results,sym);}}
+      else if (strcasestr(name,seeking)) {
+	CHOICE_ADD(results,sym);}
+      else NO_ELSE;}}
+  kno_decref(all);
+  if (lock) u8_unlock_mutex(lock);
+  return results;
+}
+
 /* The init function */
 
 KNO_EXPORT void kno_init_evalops_c()
@@ -848,6 +883,7 @@ static void link_local_cprims()
   KNO_LINK_PRIM("get-arg",get_arg_prim,3,kno_scheme_module);
 
   KNO_LINK_PRIM("documentation",get_documentation,1,kno_scheme_module);
+  KNO_LINK_PRIM("apropos",apropos_prim,1,kno_scheme_module);
 
   KNO_LINK_PRIM("environment?",environmentp_prim,1,kno_scheme_module);
   KNO_LINK_PRIM("%lexref",lexref_prim,2,kno_scheme_module);
