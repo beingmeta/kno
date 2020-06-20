@@ -687,14 +687,19 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
       ", " ($showrate rate) " per second."
       (if (testopt loop-state 'logcounters)
 	  (doseq (counter (getopt loop-state 'logcounters) i)
-	    (when (test loop-state counter)
-	      (let* ((count (get loop-state counter))
-		     (rate (/~ count elapsed)))
-		(printout (if (zero? (remainder i 4)) "\n   " ", ")
-		  ($num count) " " (downcase counter)
-		  (when (overlaps? counter logrates)
-		    (printout " (" ($showrate rate) " " 
-		      (downcase counter) "/sec)"))))))
+	    (let ((slotid (if (symbol? counter) counter
+			      (if (pair? counter) (car counter)
+				  (fail)))))
+	      (when (test loop-state slotid)
+		(let* ((count (get loop-state counter))
+		       (rate (/~ count elapsed))
+		       (count-term (if (symbol? counter) (downcase counter) 
+				       (if (pair? counter) (cdr counter)
+					   (stringout counter)))))
+		  (printout (if (zero? (remainder i 4)) "\n   " ", ")
+		    ($num count) " " count-term
+		    (when (overlaps? counter logrates)
+		      (printout " (" ($showrate rate) " " count-term "/sec)")))))))
 	  (do-choices (counter (difference (get loop-state 'counters) 'items) i)
 	    (when (test loop-state counter)
 	      (let* ((count (get loop-state counter))
