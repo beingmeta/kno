@@ -13,6 +13,8 @@ lispval lambda_call(kno_stack stack,
 		    int n,kno_argvec args,
 		    int tail);
 
+lispval _lexref_error(lispval ref,int up,kno_lexenv env,kno_lexenv root);
+
 INLINE_DEF lispval fastget(lispval table,lispval key)
 {
   kno_lisp_type argtype = KNO_TYPEOF(table);
@@ -25,6 +27,7 @@ INLINE_DEF lispval fastget(lispval table,lispval key)
 }
 INLINE_DEF lispval eval_lexref(lispval lexref,kno_lexenv env_arg)
 {
+  lispval v;
   int code = KNO_GET_IMMEDIATE(lexref,kno_lexref_type);
   int up = code/32, across = code%32;
   kno_lexenv env = env_arg;
@@ -33,8 +36,7 @@ INLINE_DEF lispval eval_lexref(lispval lexref,kno_lexenv env_arg)
     env = env->env_parent;
     up--;}
   if (KNO_EXPECT_TRUE(env != NULL)) {
-    if (PRED_FALSE((env->env_copy!=NULL))) env = env->env_copy;
-    lispval v;
+    if (PRED_FALSE((env->env_copy != NULL))) env = env->env_copy;
     if (env->env_vals) {
       int vals_len = env->env_bits & (0xFF);
       if (across < vals_len)
@@ -47,18 +49,15 @@ INLINE_DEF lispval eval_lexref(lispval lexref,kno_lexenv env_arg)
 	if ( across < s->schema_length) {
 	  v = s->table_values[across];}
 	else v = KNO_ERROR;}
-      else v = KNO_ERROR;}
-    if (KNO_ABORTED(v)) {
-      lispval env_ptr = (lispval) env_arg;
-      u8_byte errbuf[64];
-      return kno_err("Bad lexical reference","kno_lexref",
-		     u8_bprintf(errbuf,"up=%d,across=%d",up, across),
-		     ((KNO_STATICP(env_ptr)) ? KNO_FALSE : (env_ptr)));}
-    else if (KNO_CONSP(v)) {
-      if (PRED_FALSE((KNO_CONS_TYPE(((kno_cons)v))) == kno_prechoice_type))
-	return _kno_make_simple_choice(v);
-      else return kno_incref(v);}
-    else return v;}
+      else v = KNO_ERROR;}}
+  else v = KNO_ERROR;
+  if (KNO_ABORTED(v))
+    return _lexref_error(lexref,up,env,env_arg);
+  else if (KNO_CONSP(v)) {
+    if (PRED_FALSE((KNO_CONS_TYPE(((kno_cons)v))) == kno_prechoice_type))
+      return _kno_make_simple_choice(v);
+    else return kno_incref(v);}
+  else return v;
 }
 INLINE_DEF lispval symeval(lispval symbol,kno_lexenv env)
 {

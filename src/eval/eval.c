@@ -1228,6 +1228,26 @@ static ssize_t write_lexref_dtype(struct KNO_OUTBUF *out,lispval x)
   return n_bytes;
 }
 
+lispval _lexref_error(lispval ref,int up,kno_lexenv env,kno_lexenv root)
+{
+  lispval root_ptr = (lispval) root;
+  lispval env_ptr = (lispval) env;
+  u8_byte errbuf[64];
+  int code = KNO_GET_IMMEDIATE(ref,kno_lexref_type);
+  int init_up = code/32, across=code%32;
+  if (env == NULL)
+    return kno_err("Bad lexical reference","kno_lexref",
+		   u8_bprintf(errbuf,"up=%d(%d),across=%d",
+			      init_up,up,across),
+		   ((KNO_STATICP(root_ptr)) ? KNO_FALSE : (root_ptr)));
+  else return kno_err("Bad lexical reference","kno_lexref",
+		      u8_bprintf(errbuf,"up=%d,across=%d",
+				 init_up,across),
+		      ((!(KNO_STATICP(env_ptr))) ? (env_ptr) :
+		       (!(KNO_STATICP(root_ptr))) ? (root_ptr) :
+		       (KNO_FALSE)));
+}
+
 static int unparse_coderef(u8_output out,lispval coderef)
 {
   long long off = KNO_GET_IMMEDIATE(coderef,kno_coderef_type);
