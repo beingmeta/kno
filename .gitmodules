@@ -1,7 +1,7 @@
 [submodule "tests"]
 	path = tests
 	url = git@github.com:beingmeta/kno-tests.git
-	branch = ken_trunk
+	branch = ken_dev
 [submodule "src/stdlib"]
 	path = src/stdlib
 	url = git@github.com:beingmeta/stdlib.git
