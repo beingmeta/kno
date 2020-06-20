@@ -54,12 +54,6 @@
 (define-init aliasprims-default #t)
 (varconfig! optimize:aliasfns aliasfns-default)
 
-(define-init staticfns-default #f)
-(varconfig! optimize:staticfns staticfns-default)
-
-(define-init staticprims-default #t)
-(varconfig! optimize:staticprims staticprims-default)
-
 (define-init persist-default #f)
 (varconfig! optimize:persist persist-default)
 
@@ -191,14 +185,14 @@
 	      (getopt opts 'aliasfns aliasfns-default)
 	      (use-fcnrefs? opts))
 	 (get-fcnid sym from value))
-	((not (symbol? sym)) (fcnval value opts))
+	((not (symbol? sym)) value)
 	((or (%test env '%constants sym)
 	     (and from (%test from '%constants sym))
 	     (if (or (special-form? value) (primitive? value))
 		 (or (getopt opts 'aliasprims aliasprims-default)
 		     (getopt opts 'aliasfns aliasfns-default))
 		 (getopt opts 'aliasfns aliasfns-default)))
-	 (fcnval value opts))
+	 value)
 	((or (not from) (not (test from sym value))) sym)
 	((or (not (use-fcnrefs? opts))
 	     (test env '%volatile sym)
@@ -210,16 +204,6 @@
 	   ,(or from env) ,sym))
 	((and (test from '%fcnids) (fail? (get from '%fcnids))) sym)
 	(else (get-fcnid sym from value))))
-
-(define (fcnval value opts)
-  (cond ((and (or (special-form? value) (primitive? value))
-	      (or (getopt opts 'staticprims staticprims-default)
-		  (getopt opts 'staticfns staticfns-default)))
-	 (static-ref value))
-	((and (applicable? value)
-	      (getopt opts 'staticfns staticfns-default))
-	 (static-ref value))
-	(else value)))
 
 ;;; FCNIDs
 
