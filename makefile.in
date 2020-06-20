@@ -1116,6 +1116,10 @@ lib/kno/gperftools.o: src/cmodules/gperftools.c
 lib/kno/gperftools.so: src/cmodules/gperftools.o
 lib/kno/gperftools.dylib: src/cmodules/gperftools.o ${CMODULE_DEPENDS}
 
+lib/kno/knosockets.so lib/kno/knosockets.dylib :
+lib/kno/knosockets.so: src/cmodules/knosockets.o
+lib/kno/knosockets.dylib: src/cmodules/knosockets.o ${CMODULE_DEPENDS}
+
 # Parseltongue (default: v3)
 src/python/parseltongue.o: src/python/parseltongue.c
 	$(CC) @PYTHON3_CFLAGS@ $(CFLAGS) -o $@ -c $< ${MODLIBS}
