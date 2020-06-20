@@ -827,10 +827,11 @@ static lispval stack_entry_source(lispval stackobj)
   return kno_compound_ref(stackobj,stack_entry_symbol,8,KNO_FALSE);
 }
 
-DEFPRIM1("stack-context",stack_entry_context,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("stack-annotated-source",stack_entry_annotated_source,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns the annotated context of the stack's frame",
 	 kno_compound_type,KNO_VOID);
-static lispval stack_entry_context(lispval stackobj)
+static lispval stack_entry_annotated_source(lispval stackobj)
 {
   return kno_compound_ref(stackobj,stack_entry_symbol,9,KNO_FALSE);
 }
@@ -967,6 +968,8 @@ static void link_local_cprims()
   KNO_LINK_PRIM("stack-args",stack_entry_args,1,scheme_module);
   KNO_LINK_PRIM("stack-env",stack_entry_env,1,scheme_module);
   KNO_LINK_PRIM("stack-source",stack_entry_source,1,scheme_module);
+  KNO_LINK_PRIM("stack-annotated-source",stack_entry_annotated_source,1,
+		scheme_module);
   KNO_LINK_PRIM("stack-op",stack_entry_op,1,scheme_module);
   KNO_LINK_PRIM("reraise",reraise_prim,1,scheme_module);
   KNO_LINK_PRIM("test-u8raise",test_u8raise_prim,1,scheme_module);
