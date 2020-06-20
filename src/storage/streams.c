@@ -548,6 +548,14 @@ KNO_EXPORT kno_stream kno_reopen_file_stream
     open_flags |= O_RDWR|O_CREAT;
     needs_lock=1;
     break;
+  case KNO_FILE_INIT:
+    open_flags |= O_RDWR|O_EXCL|O_CREAT;
+    needs_lock=1;
+    break;
+  case KNO_FILE_TRUNC:
+    open_flags |= O_RDWR|O_TRUNC|O_CREAT;
+    needs_lock=1;
+    break;
   case KNO_FILE_CREATE:
     open_flags |= O_CREAT|O_TRUNC|O_RDWR;
     needs_lock=1;
