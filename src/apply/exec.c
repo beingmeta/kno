@@ -64,8 +64,11 @@ KNO_EXPORT lispval kno_exec(lispval expr,lispval handlers,kno_stack stack)
   else {
     handler = kno_get(handlers,head,KNO_VOID);
     free_handler = 1;}
-  if (!(KNO_APPLICABLEP(handler)))
-    return kno_err(kno_NotAFunction,"kno_exec",NULL,handler);
+  if (!(KNO_APPLICABLEP(handler))) {
+    lispval err = kno_err(kno_NotAFunction,"kno_exec",NULL,handler);
+    if (free_handler) kno_decref(handler);
+    return err;}
+
   lispval vals[n];
   lispval to_free[n];
   int free_n = 0;
@@ -91,6 +94,7 @@ KNO_EXPORT lispval kno_exec(lispval expr,lispval handlers,kno_stack stack)
   int i=0;
  done:
   while (i<free_n) { kno_decref(to_free[i]); i++;}
+  if (free_handler) kno_decref(handler);
   return result;
 }
 
