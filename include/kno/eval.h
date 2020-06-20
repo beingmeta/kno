@@ -315,6 +315,8 @@ KNO_EXPORT lispval kno_lexref(lispval lexref,kno_lexenv env);
 KNO_EXPORT lispval kno_eval_symbol(lispval sym,kno_lexenv env);
 KNO_EXPORT lispval kno_lexref(lispval lexref,kno_lexenv env);
 
+KNO_EXPORT lispval kno_fcn_ref(lispval sym,lispval from,lispval val);
+
 #define kno_simplify_value(v) \
   ( (KNO_PRECHOICEP(v)) ? (kno_simplify_choice(v)) : (v) )
 

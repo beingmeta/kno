@@ -273,6 +273,22 @@ static ssize_t lexenv_dtype(struct KNO_OUTBUF *out,lispval x)
   return n_bytes;
 }
 
+/* Finding bindings */
+
+KNO_EXPORT kno_lexenv kno_find_binding(kno_lexenv env,lispval symbol,int any)
+{
+  kno_lexenv scan = (env->env_copy) ? (env->env_copy) : (env);
+  while (scan) {
+    if ( (any) ? (kno_test(scan->env_bindings,symbol,VOID)) :
+	 (KNO_TABLEP(scan->env_exports)) ?
+	 (kno_test(scan->env_exports,symbol,VOID)) : (0) )
+      return scan;
+    scan = scan->env_parent;
+    if ((scan) && (scan->env_copy))
+      scan = scan->env_copy;}
+  return NULL;
+}
+
 KNO_EXPORT void kno_init_lexenv_c()
 {
   kno_unparsers[kno_lexenv_type]=unparse_lexenv;

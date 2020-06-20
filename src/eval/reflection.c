@@ -812,11 +812,10 @@ static lispval module_getsource(lispval arg)
     return KNO_FALSE;}
 }
 
-DEFPRIM1("module-table",module_table,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "Returns the table used for getting symbols from "
-	 "this module",
+DEFPRIM1("module-exports-table",module_exports_table,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "Returns the exports table for this module",
 	 kno_any_type,KNO_VOID);
-static lispval module_table(lispval arg)
+static lispval module_exports_table(lispval arg)
 {
   if (KNO_LEXENVP(arg)) {
     kno_lexenv envptr = kno_consptr(kno_lexenv,arg,kno_lexenv_type);
@@ -1497,7 +1496,7 @@ static void link_local_cprims()
   KNO_LINK_PRIM("module-exports",module_exports,1,reflection_module);
   KNO_LINK_PRIM("module?",modulep,1,reflection_module);
   KNO_LINK_PRIM("module-environment",module_environment,1,reflection_module);
-  KNO_LINK_PRIM("module-table",module_table,1,reflection_module);
+  KNO_LINK_PRIM("module-exports-table",module_exports_table,1,reflection_module);
   KNO_LINK_PRIM("module-source",module_getsource,1,reflection_module);
   KNO_LINK_PRIM("module-bindings",module_bindings,1,reflection_module);
   KNO_LINK_PRIM("macroexpand",macroexpand,2,reflection_module);
