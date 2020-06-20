@@ -221,10 +221,11 @@ KNO_EXPORT lispval kno_cons_cprimN
 
 /* Adding primitives */
 
-#define KNO_XCALL   0x10000
-#define KNO_NDOP    0x20000
-#define KNO_LEXPR   0x40000
-#define KNO_VARARGS KNO_LEXPR
+#define KNO_XCALL    0x10000
+#define KNO_NDOP     0x20000
+#define KNO_CHOICEOP KNO_NDOP
+#define KNO_LEXPR    0x40000
+#define KNO_VARARGS  KNO_LEXPR
 
 /* Useful macros */
 
