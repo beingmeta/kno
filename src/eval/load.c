@@ -253,10 +253,11 @@ static lispval load_into_env_prim(lispval source,lispval envarg,
   return (lispval) env;
 }
 
-DEFPRIM3("env/load",env_load_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+DEFPRIM3("env/load",env_load_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
 	 "`(ENV/LOAD *env* [*filename*])` Updates *env* by loading "
 	 "(if needed) the latest version of *filename*. If *filename* "
-	 "is not provided, all files loaded with `env/load` are updated.",
+	 "is not provided, all files previously loaded with `env/load` "
+	 "are updated.",
 	 kno_lexenv_type,KNO_VOID,kno_string_type,KNO_VOID,
 	 kno_any_type,KNO_VOID);
 static lispval env_load_prim(lispval envarg,lispval source,lispval onload)

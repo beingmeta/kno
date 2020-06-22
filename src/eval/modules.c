@@ -646,7 +646,7 @@ static lispval get_source(lispval arg)
     if (f->fcn_filename)
       return kno_make_string(NULL,-1,f->fcn_filename);
     else return KNO_FALSE;}
-  else return kno_type_error(_("module"),"module_bindings",arg);
+  else return kno_type_error(_("module"),"module_binds_prim",arg);
   if (KNO_VOIDP(ids))
     return KNO_FALSE;
   else {

@@ -9,7 +9,7 @@
 (module-export! '{profile-module! module-getprocs module-getcalls})
 
 (define (module-getprocs module)
-  (for-choices (sym (module-bindings (get-module module)))
+  (for-choices (sym (module-binds (get-module module)))
     (pick (importvar module sym) applicable?)))
 
 (define sortfns

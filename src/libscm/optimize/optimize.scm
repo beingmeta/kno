@@ -232,19 +232,19 @@
 	       fcnid)))))
 
 (define (probe-fcnid symbol env (internal))
-  (default! internal (module-environment env))
+  (default! internal (module-bindings env))
   (if internal
       (try (get (get internal '%fcnids) symbol)
 	   (get (get-fcnids internal) symbol))
       (get fcnids (cons env symbol))))
 
 (define (get-fcnid symbol env value (internal) (update #f))
-  (default! internal (module-environment env))
+  (default! internal (module-bindings env))
   (get-fcnid-internal symbol env value internal update))
 (define (get-fcnid-internal symbol env value internal update)
   (if (cons? value)
       (begin
-	(default! internal (module-environment env))
+	(default! internal (module-bindings env))
 	(let* ((known (probe-fcnid symbol env internal))
 	       (fcnid (try known (new-fcnid symbol env value internal))))
 	  (when (and update (exists? known)
@@ -254,7 +254,7 @@
 	  fcnid))
       value))
 (define (update-fcnid! symbol env value (internal))
-  (default! internal (module-environment env))
+  (default! internal (module-bindings env))
   (get-fcnid symbol env value internal #t))
 
 (define (force-fcnid value)
@@ -782,7 +782,7 @@
 	    (try (cons (get module '%optimize_options) opts)
 		 opts)
 	    (try (get module '%optimize_options) #f)))
-  (let ((bindings (and module (module-bindings module)))
+  (let ((bindings (and module (module-binds module)))
 	(usefcnrefs (use-fcnrefs? opts))
 	(count 0))
     (when bindings
@@ -821,7 +821,7 @@
   (loginfo "Deoptimizing module " module)
   (when (symbol? module)
     (set! module (optimize-get-module module)))
-  (let ((bindings (module-bindings module))
+  (let ((bindings (module-binds module))
 	(count 0))
     (do-choices (var bindings)
       (loginfo "Deoptimizing module binding " var)
