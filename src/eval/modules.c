@@ -806,8 +806,8 @@ static lispval import_var_prim(lispval mod_arg,lispval symbol,lispval dflt)
   return get_binding_helper(mod_arg,symbol,dflt,0,1,1,"import_var_prim");
 }
 
-DEFPRIM2("add-module!",add_module_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "(add-module! *env* *module*) arranges for *env* to use"
+DEFPRIM2("env/use-module",add_module_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	 "(env/use-module *env* *module*) arranges for *env* to use"
 	 "the module *module*",
 	 kno_lexenv_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval add_module_prim(lispval env_arg,lispval mod_arg)
@@ -819,9 +819,9 @@ static lispval add_module_prim(lispval env_arg,lispval mod_arg)
   return result;
 }
 
-DEFPRIM3("make-env",make_env_prim,
+DEFPRIM3("env/make",make_env_prim,
 	 KNO_MIN_ARGS(0)|KNO_MAX_ARGS(3)|KNO_CHOICEOP,
-	 "(make-env [*usemods*] [*bindings*] [*exports*]) creates "
+	 "(env/make [*usemods*] [*bindings*] [*exports*]) creates "
 	 "a new environment which uses *usemods*. If *bindings* "
 	 "is provided, a copy of it is used as the bindings for the "
 	 "environment. If *exports* is a hashtable, a copy is used as the "
@@ -946,8 +946,8 @@ KNO_EXPORT void kno_init_modules_c()
 static void link_local_cprims()
 {
   KNO_LINK_PRIM("importvar",import_var_prim,3,kno_sys_module);
-  KNO_LINK_PRIM("make-env",make_env_prim,3,kno_sys_module);
-  KNO_LINK_PRIM("add-module!",add_module_prim,2,kno_sys_module);
+  KNO_LINK_PRIM("env/make",make_env_prim,3,kno_sys_module);
+  KNO_LINK_PRIM("env/use-module",add_module_prim,2,kno_sys_module);
   KNO_LINK_PRIM("%get-binding",get_internal_binding_prim,3,kno_sys_module);
   KNO_LINK_PRIM("get-binding",get_binding_prim,3,kno_sys_module);
   KNO_LINK_PRIM("get-source",get_source_prim,1,kno_sys_module);
