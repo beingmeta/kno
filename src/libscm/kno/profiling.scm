@@ -15,7 +15,7 @@
 (varconfig! profile:root profile-root)
 
 (define (module-getprocs module)
-  (for-choices (sym (module-bindings (get-module module)))
+  (for-choices (sym (module-binds (get-module module)))
     (pick (importvar module sym) applicable?)))
 
 (define profilefns

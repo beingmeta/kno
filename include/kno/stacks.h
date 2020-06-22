@@ -186,6 +186,7 @@ typedef struct KNO_STACK *kno_stack;
 
 #define KNO_STACK_LIVE	         0x0001
 #define KNO_STACK_OWNS_ENV	 0x0002
+#define KNO_STACK_LAMBDA_CALL	 0x0004
 
 /* Reserved for the evaluator */
 #define KNO_STACK_REDUCE_LOOP	 0x0100

@@ -241,6 +241,7 @@ KNO_EXPORT void kno_add_module_loader(int (*loader)(lispval,void *),void *);
 typedef struct KNO_LAMBDA {
   KNO_FUNCTION_FIELDS;
   unsigned short lambda_n_vars;
+  unsigned char lambda_n_locals;
   unsigned char lambda_synchronized;
   lispval *lambda_vars, *lambda_inits;
   lispval lambda_arglist, lambda_body, lambda_source;

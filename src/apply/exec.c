@@ -45,9 +45,41 @@
 
 #include <stdarg.h>
 
+static u8_string namestring(lispval handler,u8_byte buf[128])
+{
+  if (KNO_SYMBOLP(handler))
+    return KNO_SYMBOL_NAME(handler);
+  else if (KNO_STRINGP(handler))
+    return KNO_CSTRING(handler);
+  else if (KNO_CONSTANTP(handler))
+    return kno_constant_name(handler);
+  else return u8_bprintf(buf,"%q",handler);
+}
+
+static lispval lookup(lispval name,lispval env)
+{
+  lispval scan = env, handler = KNO_VOID;
+  while (PAIRP(scan)) {
+    lispval car = KNO_CAR(scan);
+    handler = (KNO_HASHTABLEP(car)) ?
+      (kno_hashtable_get((kno_hashtable)car,name,KNO_VOID)) :
+      (KNO_TABLEP(car)) ? (kno_get(car,name,KNO_VOID)) :
+      (KNO_VOID);
+    if (KNO_VOIDP(car))
+      scan = KNO_CDR(scan);
+    else return handler;}
+  if ( (KNO_NILP(scan)) || (KNO_FALSEP(scan)) )
+    return name;
+  else if (KNO_HASHTABLEP(scan))
+    return kno_hashtable_get((kno_hashtable)scan,name,name);
+  else if (KNO_TABLEP(scan))
+    return kno_get(scan,name,name);
+  else return name;
+}
+
 /* Initializations */
 
-KNO_EXPORT lispval kno_exec(lispval expr,lispval handlers,kno_stack stack)
+KNO_EXPORT lispval kno_exec(lispval expr,lispval env,kno_stack stack)
 {
   lispval result = KNO_VOID;
   lispval head = (KNO_PAIRP(expr)) ? (KNO_CAR(expr)) :
@@ -59,13 +91,21 @@ KNO_EXPORT lispval kno_exec(lispval expr,lispval handlers,kno_stack stack)
     (KNO_PAIRP(expr)) ? (kno_list_length(expr)) :
     (KNO_COMPOUNDP(expr)) ? (KNO_COMPOUND_LENGTH(expr)) : (-1);
   if (n<0) return kno_err(kno_SyntaxError,"kno_exec",NULL,expr);
-  if (KNO_APPLICABLEP(head))
-    handler=head;
-  else {
-    handler = kno_get(handlers,head,KNO_VOID);
+  if (head == KNOSYM_QUOTE) {
+    if (n>1) {
+      if (KNO_PAIRP(expr))
+	return (KNO_CADR(expr));
+      else return KNO_COMPOUND_REF(expr,0);}
+    else return kno_err(kno_SyntaxError,"kno_exec","quote",expr);}
+  else if ( (KNO_SYMBOLP(head)) || (KNO_CONSTANTP(head)) ){
+    handler = lookup(head,env);
     free_handler = 1;}
+  else handler=head;
   if (!(KNO_APPLICABLEP(handler))) {
-    lispval err = kno_err(kno_NotAFunction,"kno_exec",NULL,handler);
+    u8_byte buf[128];
+    lispval err = kno_err(kno_NotAFunction,"kno_exec",
+			  namestring(head,buf),
+			  handler);
     if (free_handler) kno_decref(handler);
     return err;}
 
@@ -75,22 +115,34 @@ KNO_EXPORT lispval kno_exec(lispval expr,lispval handlers,kno_stack stack)
   if (KNO_COMPOUNDP(expr)) {
     lispval *args = KNO_COMPOUND_ELTS(expr);
     int i=0; while (i<n) {
-      lispval arg = args[i];
-      if ( (KNO_CONSP(arg)) && ( (KNO_PAIRP(arg)) || (KNO_COMPOUNDP(arg)) ) ) {
-	lispval argval = kno_exec(arg,handlers,stack);
+      lispval arg = args[i], argval = arg;
+      if ( (KNO_SYMBOLP(head)) || (KNO_CONSTANTP(head)) )
+	argval = lookup(head,env);
+      else if ( (KNO_CONSP(arg)) &&
+		( (KNO_PAIRP(arg)) || (KNO_COMPOUNDP(arg)) ) ) {
+	argval = kno_exec(arg,env,stack);
 	if (KNO_ABORTED(argval)) {result=argval; goto done;}
-	vals[i++] = argval; to_free[free_n++]=argval;}
-      else vals[i++]=arg;}}
+	vals[i++] = argval;
+	if (KNO_CONSP(argval)) to_free[free_n++]=argval;}
+      else vals[i++]=argval;}}
   else {
     int i = 0;
     lispval arglist = KNO_CDR(expr); n--;
     KNO_DOLIST(arg,arglist) {
-      if ( (KNO_CONSP(arg)) && ( (KNO_PAIRP(arg)) || (KNO_COMPOUNDP(arg)) ) ) {
-	lispval argval = kno_exec(arg,handlers,stack);
-	if (KNO_ABORTED(argval)) {result=argval; goto done;}
-	vals[i++] = argval; to_free[free_n++]=argval;}
-      else vals[i++]=arg;}}
-  result = kno_apply(handler,n,vals);
+      lispval argval = arg;
+      if ( (KNO_SYMBOLP(head)) || (KNO_CONSTANTP(head)) )
+	argval = lookup(head,env);
+      else if ( (KNO_CONSP(arg)) &&
+		( (KNO_PAIRP(arg)) || (KNO_COMPOUNDP(arg)) ) ) {
+	argval = kno_exec(arg,env,stack);
+	if (KNO_ABORTED(argval)) {
+	  result=argval; goto done;}}
+      else {
+	vals[i++]=argval;
+	continue;}
+      vals[i++]=argval;
+      if (KNO_CONSP(argval)) to_free[free_n++]=argval;}
+    result = kno_apply(handler,n,vals);}
   int i=0;
  done:
   while (i<free_n) { kno_decref(to_free[i]); i++;}
