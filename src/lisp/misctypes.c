@@ -41,6 +41,14 @@ KNO_EXPORT lispval kno_fresh_uuid(struct KNO_UUID *ptr)
   return LISP_CONS(ptr);
 }
 
+KNO_EXPORT lispval kno_make_uuid(struct KNO_UUID *ptr,u8_uuid uuid)
+{
+  if (ptr == NULL) ptr = u8_alloc(struct KNO_UUID);
+  KNO_INIT_CONS(ptr,kno_uuid_type);
+  memcpy(ptr->uuid16,uuid,16);
+  return LISP_CONS(ptr);
+}
+
 static lispval copy_uuid(lispval x,int deep)
 {
   struct KNO_UUID *uuid = kno_consptr(struct KNO_UUID *,x,kno_uuid_type);

@@ -15,7 +15,7 @@
 #include "kno/knosource.h"
 #include "kno/lisp.h"
 #include "kno/storage.h"
-#include "kno/remote.h"
+#include "kno/services.h"
 #include "kno/drivers.h"
 
 #include "headers/netindex.h"
@@ -34,18 +34,19 @@ static lispval iserver_add, iserver_drop, iserver_addn, iserver_changes, iserver
 static lispval ixserver_writable, ixserver_fetchkeys, ixserver_fetch, ixserver_fetchsize, ixserver_fetchn;
 static lispval ixserver_changes, ixserver_add, ixserver_drop, ixserver_addn, ixserver_reset;
 
-static lispval set_symbol, drop_symbol;
+static lispval set_symbol, drop_symbol, supportedp_symbol = KNO_NULL;
 
 u8_condition kno_NoServerMethod=_("Server doesn't support method");
 
 static int server_supportsp(struct KNO_NETWORK_INDEX *ni,lispval operation)
 {
-  lispval request=
-    kno_conspair(boundp,kno_conspair(operation,NIL));
-  lispval response = kno_neteval(ni->index_server,request);
-  kno_decref(request);
-  if ((FALSEP(response)) || (KNO_ABORTP(response))) return 0;
-  else {kno_decref(response); return 1;}
+  lispval response =
+    kno_service_call(ni->index_server,KNOSYM(supportedp),1,operation);
+  if ((FALSEP(response)) || (KNO_ABORTP(response)))
+    return 0;
+  else {
+    kno_decref(response);
+    return 1;}
 }
 
 KNO_EXPORT kno_index kno_open_network_index(u8_string spec,
@@ -59,7 +60,9 @@ KNO_EXPORT kno_index kno_open_network_index(u8_string spec,
   if ((slash=strchr(host_spec,'/'))) {
     *slash = '\0';
     xname=slash+1;}
-  kno_evalserver server = (kno_evalserver) kno_open_evalserver(host_spec,opts);
+  lispval spec_obj = knostring(host_spec);
+  kno_service server = (kno_service) kno_open_service(spec_obj,opts);
+  kno_decref(spec_obj);
   if (server == NULL) return NULL;
   struct KNO_NETWORK_INDEX *ix = u8_zalloc(struct KNO_NETWORK_INDEX);
   kno_init_index((kno_index)ix,&netindex_handler,
@@ -67,7 +70,7 @@ KNO_EXPORT kno_index kno_open_network_index(u8_string spec,
 		 flags,KNO_VOID,opts);
   ix->index_server = server;
   ix->xname = (xname) ? (kno_getsym(xname)) : (KNO_VOID);
-  writable_response = kno_remote_call(ix->index_server,1,iserver_writable);
+  writable_response = kno_service_call(ix->index_server,iserver_writable,0,NULL);
   if ((KNO_ABORTP(writable_response))||
       (!(FALSEP(writable_response))))
     U8_SETBITS(ix->index_flags,(KNO_STORAGE_READ_ONLY));
@@ -90,9 +93,9 @@ static lispval netindex_fetch(kno_index ix,lispval key)
 {
   struct KNO_NETWORK_INDEX *nix = (struct KNO_NETWORK_INDEX *)ix;
   if (VOIDP(nix->xname))
-    return kno_remote_call(nix->index_server,2,iserver_fetch,key);
-  else return kno_remote_call_x(nix->index_server,3,3,
-			   ixserver_fetch,nix->xname,key);
+    return kno_service_call(nix->index_server,iserver_fetch,1,key);
+  else return kno_service_call
+	 (nix->index_server,ixserver_fetch,2,nix->xname,key);
 }
 
 static int netindex_fetchsize(kno_index ix,lispval key)
@@ -100,9 +103,9 @@ static int netindex_fetchsize(kno_index ix,lispval key)
   struct KNO_NETWORK_INDEX *nix = (struct KNO_NETWORK_INDEX *)ix;
   lispval result;
   if (VOIDP(nix->xname))
-    result = kno_remote_call(nix->index_server,2,iserver_fetchsize,key);
-  else result = kno_remote_call_x(nix->index_server,3,3,
-			     ixserver_fetchsize,nix->xname,key);
+    result = kno_service_call(nix->index_server,iserver_fetchsize,1,key);
+  else result = kno_service_call
+	 (nix->index_server,ixserver_fetchsize,2,nix->xname,key);
   if (KNO_ABORTP(result))
     return -1;
   else return kno_getint(result);
@@ -114,9 +117,9 @@ static lispval *netindex_fetchn(kno_index ix,int n,const lispval *keys)
   lispval vector, result;
   vector = kno_wrap_vector(n,(lispval *)keys);
   if (VOIDP(nix->xname))
-    result = kno_remote_call(nix->index_server,2,iserver_fetchn,vector);
-  else result = kno_remote_call_x(nix->index_server,3,3,
-			     ixserver_fetchn,nix->xname,vector);
+    result = kno_service_call(nix->index_server,iserver_fetchn,1,vector);
+  else result = kno_service_call
+	 (nix->index_server,ixserver_fetchn,2,nix->xname,vector);
   if (KNO_ABORTP(result)) return NULL;
   else if (VECTORP(result)) {
     lispval *results = u8_alloc_n(n,lispval);
@@ -133,8 +136,9 @@ static lispval *netindex_fetchkeys(kno_index ix,int *n)
   struct KNO_NETWORK_INDEX *nix = (struct KNO_NETWORK_INDEX *)ix;
   lispval result;
   if (VOIDP(nix->xname))
-    result = kno_remote_call(nix->index_server,1,iserver_fetchkeys);
-  else result = kno_remote_call(nix->index_server,3,2,ixserver_fetchkeys,nix->xname);
+    result = kno_service_call(nix->index_server,1,iserver_fetchkeys);
+  else result = kno_service_call
+	 (nix->index_server,ixserver_fetchkeys,1,nix->xname);
   if (KNO_ABORTP(result)) {
     *n = -1;
     kno_interr(result);
@@ -169,9 +173,9 @@ static int netindex_save(struct KNO_INDEX *ix,
 	lispval key = stores[i].kv_key;
 	lispval val = stores[i].kv_val;
 	if (VOIDP(xname))
-	  result = kno_remote_call(nix->index_server,3,iserver_reset,key,val);
-	else result = kno_remote_call_nrx(nix->index_server,3,4,
-				     ixserver_reset,xname,key,val);
+	  result = kno_service_call(nix->index_server,iserver_reset,2,key,val);
+	else result = kno_service_call
+	       (nix->index_server,ixserver_reset,3,xname,key,val);
 	if (KNO_ABORTP(result)) {
 	  kno_clear_errors(1);}
 	else n_transactions++;
@@ -184,8 +188,9 @@ static int netindex_save(struct KNO_INDEX *ix,
 	lispval key = drops[i].kv_key;
 	lispval val = drops[i].kv_val;
 	if (VOIDP(xname))
-	  result = kno_remote_call(nix->index_server,3,iserver_drop,key,val);
-	else result = kno_remote_call_x(nix->index_server,3,4,ixserver_drop,xname,key,val);
+	  result = kno_service_call(nix->index_server,iserver_drop,2,key,val);
+	else result = kno_service_call
+	       (nix->index_server,ixserver_drop,3,xname,key,val);
 	if (KNO_ABORTP(result)) {
 	  kno_clear_errors(1);}
 	else n_transactions++;
@@ -200,8 +205,9 @@ static int netindex_save(struct KNO_INDEX *ix,
 	KNO_VECTOR_SET(vector,i*2+1,val); kno_incref(val);
 	i=i+2;}
       if (VOIDP(xname))
-	result = kno_remote_call_nr(nix->index_server,2,iserver_addn,vector);
-      else result = kno_remote_call_nrx(nix->index_server,3,3,ixserver_addn,xname,vector);
+	result = kno_service_call(nix->index_server,iserver_addn,1,vector);
+      else result = kno_service_call
+	     (nix->index_server,ixserver_addn,2,xname,vector);
       if (KNO_ABORTP(result)) {
 	kno_clear_errors(1);}
       n_transactions++;}
@@ -210,8 +216,9 @@ static int netindex_save(struct KNO_INDEX *ix,
 	lispval result = VOID;
 	lispval key = adds[i].kv_key, val = adds[i].kv_val;
 	if (VOIDP(xname))
-	  result = kno_remote_call_nr(nix->index_server,3,iserver_add,key,val);
-	else result = kno_remote_call_nr(nix->index_server,4,iserver_add,xname,key,val);
+	  result = kno_service_call(nix->index_server,iserver_add,2,key,val);
+	else result = kno_service_call
+	       (nix->index_server,iserver_add,3,xname,key,val);
 	if (KNO_ABORTP(result))
 	  kno_clear_errors(1);
 	else n_transactions++;

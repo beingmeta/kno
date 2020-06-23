@@ -34,9 +34,7 @@ u8_condition kno_NoStorageMetadata=_("No storage metadata for resource"),
   kno_NoBackground=_("No default background indexes"),
   kno_UnallocatedOID=_("Reference to unallocated OID"),
   kno_HomelessOID=_("Reference to homeless OID");
-u8_condition kno_ConnectionFailed=_("Connection to server failed");
 u8_condition kno_Commitment=_("COMMIT");
-u8_condition kno_ServerReconnect=_("Resetting server connection");
 static u8_condition SwapCheck=_("SwapCheck");
 u8_condition kno_BadMetaData=_("Error getting metadata");
 
@@ -620,17 +618,15 @@ KNO_EXPORT void kno_init_threadcache_c(void);
 KNO_EXPORT void kno_init_pools_c(void);
 KNO_EXPORT void kno_init_compress_c(void);
 KNO_EXPORT void kno_init_indexes_c(void);
-KNO_EXPORT void kno_init_xtcall_c(void);
-KNO_EXPORT void kno_init_dtcall_c(void);
 KNO_EXPORT void kno_init_oidobj_c(void);
-KNO_EXPORT void kno_init_netproc_c(void);
 KNO_EXPORT void kno_init_frames_c(void);
 KNO_EXPORT void kno_init_cachecall_c(void);
 KNO_EXPORT void kno_init_ipeval_c(void);
 KNO_EXPORT void kno_init_methods_c(void);
 KNO_EXPORT int kno_init_drivers_c(void);
-KNO_EXPORT void kno_init_evalserver_c(void);
 KNO_EXPORT void kno_init_bloom_c(void);
+
+KNO_EXPORT void kno_init_dbserv(void);
 
 KNO_EXPORT int kno_init_storage()
 {
@@ -652,13 +648,11 @@ KNO_EXPORT int kno_init_storage()
   kno_init_indexes_c();
   kno_init_frames_c();
   kno_init_drivers_c();
-  /* kno_init_xtcall_c(); */
-  kno_init_evalserver_c();
-  kno_init_netproc_c();
 #if KNO_IPEVAL_ENABLED
   kno_init_ipeval_c();
 #endif
   kno_init_methods_c();
+  kno_init_dbserv();
 
   id_symbol = kno_intern("%id");
   flags_symbol = kno_intern("flags");

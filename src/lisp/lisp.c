@@ -322,8 +322,8 @@ static void init_type_names()
   kno_type_docs[kno_ffi_type]=_("ffi");
   kno_type_names[kno_lambda_type]=_("lambda");
   kno_type_docs[kno_lambda_type]=_("lambda");
-  kno_type_names[kno_rpc_type]=_("rpcproc");
-  kno_type_docs[kno_rpc_type]=_("rpcproc");
+  kno_type_names[kno_rpc_type]=_("netproc");
+  kno_type_docs[kno_rpc_type]=_("netproc");
 
   kno_type_names[kno_lexenv_type]=_("lexenv");
   kno_type_docs[kno_lexenv_type]=_("lexenv");
@@ -333,8 +333,6 @@ static void init_type_names()
   kno_type_docs[kno_macro_type]=_("macro");
   kno_type_names[kno_stackframe_type]=_("stackframe");
   kno_type_docs[kno_stackframe_type]=_("stackframe");
-  kno_type_names[kno_tailcall_type]=_("tailcall");
-  kno_type_docs[kno_tailcall_type]=_("tailcall");
   kno_type_names[kno_exception_type]=_("exception");
   kno_type_docs[kno_exception_type]=_("exception");
   kno_type_names[kno_promise_type]=_("promise");
@@ -374,8 +372,8 @@ static void init_type_names()
   kno_type_names[kno_sqlproc_type]=_("sqldbproc");
   kno_type_docs[kno_sqlproc_type]=_("sqldbproc");
 
-  kno_type_names[kno_evalserver_type]=_("dtserver");
-  kno_type_docs[kno_evalserver_type]=_("dtserver");
+  kno_type_names[kno_service_type]=_("service");
+  kno_type_docs[kno_service_type]=_("service");
   kno_type_names[kno_bloom_filter_type]=_("bloom_filter");
   kno_type_docs[kno_bloom_filter_type]=_("bloom_filter");
 }
@@ -483,8 +481,8 @@ KNO_EXPORT int kno_init_lisp_types()
   kno_init_parse_c();
   kno_init_tables_c();
   kno_init_symbols_c();
-  kno_init_support_c();
   kno_init_xtypes_c();
+  kno_init_support_c();
   kno_init_dtread_c();
   kno_init_dtwrite_c();
   kno_init_numbers_c();

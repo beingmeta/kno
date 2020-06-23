@@ -73,11 +73,10 @@
 	    (getopt defspec 'predicate (string->symbol (stringout name "?")))))
       `(begin (bind-default! %rewrite {})
 	 (defambda (,cons-method-name ,@fields)
-	   (,make-xcompound ,tag-expr ,ismutable ,isopaque
+	   (,make-xcompound ,tag-expr ,ismutable ,isopaque ,istable
 			    ,(cond ((not isseq) #f)
-				   ((eq? isseq 'tail) (length file-names))
-				   (else #t)) 
-			    ,istable
+				   ((eq? isseq 'tail) (length field-names))
+				   (else #t))
 			    ,@field-names))
 	 (define (,predicate-method-name ,name)
 	   (,compound-type? ,name ,tag-expr))

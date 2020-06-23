@@ -339,6 +339,7 @@ KNO_EXPORT lispval kno_dcall(struct KNO_STACK *stack,lispval,int n,kno_argvec rg
 #define kno_dapply(fn,n_args,argv) (kno_dcall(kno_stackptr,fn,n_args,argv))
 
 KNO_EXPORT lispval kno_exec(lispval expr,lispval handlers,kno_stack stack);
+KNO_EXPORT lispval kno_exec_extend(lispval add,lispval path);
 
 KNO_EXPORT int _KNO_APPLICABLEP(lispval x);
 KNO_EXPORT int _KNO_APPLICABLE_TYPEP(int typecode);

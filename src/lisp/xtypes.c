@@ -184,7 +184,8 @@ KNO_EXPORT ssize_t _kno_xtype_ref(lispval x,xtype_refs refs,int add)
 
 KNO_EXPORT void kno_recycle_xrefs(xtype_refs refs)
 {
-  if ( ( (refs->xt_refs_flags) & (XTYPE_REFS_EXT_ELTS) ) == 0) {
+  if ( (refs->xt_lookup != NULL) &&
+       ( ( (refs->xt_refs_flags) & (XTYPE_REFS_EXT_ELTS) ) == 0) ) {
     kno_recycle_hashtable(refs->xt_lookup);
     u8_free(refs->xt_lookup);}
   if ( ( (refs->xt_refs_flags) & (XTYPE_REFS_EXT_ELTS) ) == 0) {
@@ -560,6 +561,7 @@ static lispval read_xtype(kno_inbuf in,xtype_refs refs)
       if (KNO_BIGINTP(result))
 	return result;
       else return KNO_ERROR;}
+
     case xt_choice: {
       ssize_t n_elts = xt_read_varint(in);
       struct KNO_CHOICE *ch = kno_alloc_choice(n_elts);
@@ -622,7 +624,42 @@ static lispval read_xtype(kno_inbuf in,xtype_refs refs)
 	  i--;}
 	return map;}
       else return map;}
-
+    case xt_compound: {
+      ssize_t n_elts = xt_read_varint(in);
+      if (n_elts < 4) return kno_err2("CorruptXTypeCompound","read_xtype");
+      lispval tag = read_xtype(in,refs);
+      lispval head_len = read_xtype(in,refs);
+      lispval schema = read_xtype(in,refs);
+      lispval table = read_xtype(in,refs);
+      int sequencep = (KNO_FIXNUMP(head_len));
+      int tablep = (KNO_TABLEP(table));
+      int seqoff = (sequencep) ? (KNO_FIX2INT(head_len)) : (-1);
+      int compound_flags =
+	((sequencep) ?
+	 ( (KNO_COMPOUND_SEQUENCE) | (seqoff<<8) ) :
+	 (0) );
+      kno_decref(schema); /* This is for future expansion */
+      int n = n_elts-4;
+      if (tablep) n++;
+      lispval result =
+	kno_init_compound_from_elts(NULL,tag,compound_flags,n,NULL);
+      if (KNO_ABORTED(result)) {
+	return KNO_ERROR;}
+      struct KNO_COMPOUND *cvec = (kno_compound) result;
+      if (tablep) {
+	cvec->compound_istable=1;
+	if (sequencep) cvec->compound_seqoff++;}
+      lispval *write = KNO_COMPOUND_ELTS(result);
+      lispval *limit = write+n;
+      if (tablep) *write++=table;
+      while (write<limit) {
+	lispval elt = read_xtype(in,refs);
+	if (ABORTED(elt)) {
+	  kno_decref(result);
+	  result=elt;
+	  break;}
+	else *write++=elt;}
+      return result;}
     case xt_tagged: {
       lispval tag = read_xtype(in,refs);
       if (ABORTED(tag)) return tag;
@@ -945,28 +982,35 @@ static ssize_t write_compound(kno_outbuf out,
 			      struct KNO_COMPOUND *cvec,
 			      xtype_refs refs)
 {
-  ssize_t tag_len = -1, content_len = -1;
+  ssize_t bytes = 0;
   int n_elts = cvec->compound_length;
-  kno_write_byte(out,xt_tagged);
-  tag_len = write_xtype(out,cvec->typetag,refs);
-  if (tag_len<0) return tag_len;
-  if (n_elts == 1) {
-    content_len = write_xtype(out,cvec->compound_0,refs);
-    if (content_len > 0)
-      return 1+tag_len+content_len;
-    else return content_len;}
-  kno_write_byte(out,xt_vector);
-  ssize_t rv = kno_write_varint(out,n_elts);
-  if (rv<0) return rv;
-  content_len = 1+rv;
-  lispval *elts = &(cvec->compound_0);
-  int i = 0; while (i<n_elts) {
-    lispval elt = elts[i];
-    ssize_t xt_len = write_xtype(out,elt,refs);
-    if (xt_len<0) return xt_len;
-    content_len += xt_len;
-    i++;}
-  return 1+tag_len+content_len;
+  lispval *elts = &(cvec->compound_0), *limit = elts + n_elts;
+  int tablep = (cvec->compound_istable);
+  int write_elts = n_elts + 4 - tablep;
+  ssize_t rv = kno_write_byte(out,xt_compound);
+  if (rv<0) return rv; else bytes += rv;
+  rv = kno_write_varint(out,write_elts);
+  if (rv<0) return rv; else bytes += rv;
+  rv = write_xtype(out,cvec->typetag,refs);
+  if (rv<0) return rv; else bytes += rv;
+  if (cvec->compound_seqoff>=0) {
+    rv=kno_write_byte(out,xt_posint);
+    if (rv==1) {
+      bytes++; rv = kno_write_varint(out,cvec->compound_seqoff);}
+    else return -1;}
+  else rv = write_xtype(out,KNO_FALSE,NULL);
+  if (rv<0) return rv; else bytes += rv;
+  /* This is a space for compounds which have attached schema */
+  rv = write_xtype(out,KNO_FALSE,NULL);
+  if (rv<0) return rv; else bytes += rv;
+  if (cvec->compound_istable)
+    rv = write_xtype(out,*elts++,refs);
+  else rv = write_xtype(out,KNO_FALSE,NULL);
+  if (rv<0) return rv; else bytes += rv;
+  while (elts<limit) {
+    rv = write_xtype(out,*elts++,refs);
+    if (rv<0) return rv; else bytes +=rv;}
+  return bytes;
 }
 
 static ssize_t write_opaque(kno_outbuf out, lispval x,xtype_refs refs)
