@@ -6973,8 +6973,8 @@ esac
 
 # Now that we have shared_suffix defined, set some things up
 
-CMODULES="lib/kno/testcapi.${shared_suffix} ${CMODULES}"
-INSTALL_CMODULES="install-testcapi ${INSTALL_CMODULES}"
+CMODULES="lib/kno/testcapi.${shared_suffix} lib/kno/knosocks.${shared_suffix} ${CMODULES}"
+INSTALL_CMODULES="install-testcapi install-knosocks ${INSTALL_CMODULES}"
 
 as_CACHEVAR=`$as_echo "ax_cv_check_ldflags__"-static-libgcc"" | $as_tr_sh`
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether the linker accepts \"-static-libgcc\"" >&5

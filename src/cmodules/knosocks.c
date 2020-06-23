@@ -53,6 +53,8 @@ static int default_server_loglevel;
 #define KNO_BACKTRACE_WIDTH 120
 #endif
 
+KNO_EXPORT int kno_init_knosocks(void) KNO_LIBINIT_FN;
+
 KNO_EXPORT int kno_update_file_modules(int force);
 
 static int knod_loglevel = LOG_NOTIFY;
@@ -123,35 +125,30 @@ static int default_backtrace_width = KNO_BACKTRACE_WIDTH;
 
 static int no_storage_api = 0;
 
-static int run_server(u8_string server_spec);
-
 /* Types */
 
 static struct KNO_LEXENV default_server_env;
 
-typedef struct KNO_SERVER {
+typedef struct KNOSOCKS_SERVER {
   U8_SERVER_FIELDS;
-  struct KNO_LEXENV server_env;
-  struct KNO_HASHTABLE server_bindings;
-  struct KNO_HASHTABLE server_commands;
-  lispval server_opts;
+  lispval server_env, server_opts;
   u8_string server_prefix;
   unsigned char logeval, logtrans, logerrs, logstack;
   unsigned char async, reload, storage, stealsockets;
   unsigned char loglevel;
   int shutdown_grace;
   u8_mutex server_lock;
-  lispval server_fn;} KNO_SERVER;
-typedef struct KNO_SERVER *kno_server;
+  lispval server_fn;} KNOSOCKS_SERVER;
+typedef struct KNOSOCKS_SERVER *knosocks_server;
 
 /* This represents a live client connection and its environment. */
-typedef struct KNO_CLIENT {
+typedef struct KNOSOCKS_CLIENT {
   U8_CLIENT_FIELDS;
-  struct KNO_SERVER *clientserver;
-  struct KNO_STREAM clientstream;
-  time_t lastlive; double elapsed;
-  kno_lexenv env;} KNO_CLIENT;
-typedef struct KNO_CLIENT *kno_client;
+  struct KNOSOCKS_SERVER *client_server;
+  struct KNO_STREAM client_stream;
+  lispval client_data;
+  time_t lastlive; double elapsed;} KNOSOCKS_CLIENT;
+typedef struct KNOSOCKS_CLIENT *knosocks_client;
 
 /* Managing your dependent (for restarting servers) */
 
@@ -168,77 +165,6 @@ static void sigactions_init()
   sigaction_shutdown.sa_flags = SA_SIGINFO;
 }
 
-/* Checking for (good) injections */
-
-static int check_for_injection()
-{
-  if (working_env == NULL) return 0;
-  else if (inject_file == NULL) return 0;
-  else if (u8_file_existsp(inject_file)) {
-    u8_string temp_file = u8_string_append(inject_file,".loading",NULL);
-    int rv = u8_movefile(inject_file,temp_file);
-    if (rv<0) {
-      u8_log(LOG_WARN,"Knod/InjectionIgnored",
-             "Can't stage injection file %s to %s",
-             inject_file,temp_file);
-      kno_clear_errors(1);
-      u8_free(temp_file);
-      return 0;}
-    else {
-      u8_string content = u8_filestring(temp_file,NULL);
-      if (content == NULL)  {
-        u8_log(LOG_WARN,"Knod/InjectionCantRead",
-               "Can't read %s",temp_file);
-        kno_clear_errors(1);
-        u8_free(temp_file);
-        return -1;}
-      else {
-        lispval result;
-        u8_log(LOG_WARN,"Knod/InjectLoad",
-               "From %s\n\"%s\"",temp_file,content);
-        result = kno_load_source(temp_file,working_env,NULL);
-        if (KNO_ABORTP(result)) {
-          u8_exception ex = u8_current_exception;
-          if (!(ex)) {
-            u8_log(LOG_CRIT,"Knod/InjectError",
-                   "Unknown error processing injection from %s: \"%s\"",
-                   inject_file,content);}
-          else if ((ex->u8x_context!=NULL)&&
-                   (ex->u8x_details!=NULL))
-            u8_log(LOG_CRIT,"Knod/InjectionError",
-                   "Error %s (%s) processing injection %s: %s\n\"%s\"",
-                   ex->u8x_cond,ex->u8x_context,inject_file,
-                   ex->u8x_details,content);
-          else if (ex->u8x_context!=NULL)
-            u8_log(LOG_CRIT,"Knod/InjectionError",
-                   "Error %s (%s) processing injection %s\n\"%s\"",
-                   ex->u8x_cond,ex->u8x_context,inject_file,content);
-          else u8_log(LOG_CRIT,"Knod/InjectionError",
-                      "Error %s processing injection %s\n\"%s\"",
-                      ex->u8x_cond,inject_file,content);
-          kno_clear_errors(1);
-          return -1;}
-        else {
-          u8_log(LOG_WARN,"Knod/InjectionDone",
-                 "Finished from %s",inject_file);}
-        rv = u8_removefile(temp_file);
-        if (rv<0) {
-          u8_log(LOG_CRIT,"Knod/InjectionCleanup",
-                 "Error removing %s",temp_file);
-          kno_clear_errors(1);}
-        kno_decref(result);
-        u8_free(content);
-        u8_free(temp_file);
-        return 1;}}}
-  else return 0;
-}
-
-static int server_loopfn(struct U8_SERVER *server)
-{
-  check_for_injection();
-  return 1;
-}
-
 /* Configuration
    This uses the CONFIG facility to setup the server.  Some
    config options just set static variables which control the server,
@@ -253,9 +179,9 @@ static int server_loopfn(struct U8_SERVER *server)
 
 /* Initializing the server */
 
-typedef int (*server_initfn)(kno_server s,lispval val);
+typedef int (*server_initfn)(knosocks_server s,lispval val);
 
-static int run_server_inits(kno_server s,
+static int run_server_inits(knosocks_server s,
 			    server_initfn fn,
 			    u8_string init_type,
 			    lispval inits,
@@ -303,7 +229,7 @@ static int run_server_inits(kno_server s,
   return -(result+1);
 }
 
-static int server_init_opt(kno_server s,
+static int server_init_opt(knosocks_server s,
 			   server_initfn fn,
 			   lispval opts,
 			   u8_string optname)
@@ -315,46 +241,7 @@ static int server_init_opt(kno_server s,
   return rv;
 }
 
-static int server_usemod(kno_server srv,lispval mod)
-{
-  lispval modref = KNO_VOID;
-  if (KNO_SYMBOLP(mod))
-    modref = kno_find_module(mod,1);
-  else if (KNO_STRINGP(mod))
-    modref = kno_find_module(mod,1);
-  else {
-    kno_seterr("BadModule","server_usemod",srv->serverid,mod);
-    return -1;}
-  if (KNO_ABORTED(modref)) return -1;
-  else if  ((HASHTABLEP(modref)) || (SLOTMAPP(modref)) || (SCHEMAPP(modref))) {
-    if (!(kno_test(modref,KNOSYM_MODULEID,KNO_VOID))) {
-      kno_seterr("BadModule","server_usemod",srv->serverid,mod);
-      return -1;}}
-  else if (KNO_LEXENVP(modref)) {
-    struct KNO_LEXENV *env = (kno_lexenv) modref;
-    if (!(kno_test(env->env_bindings,KNOSYM_MODULEID,KNO_VOID))) {
-      kno_seterr("BadModule","server_usemod",srv->serverid,mod);
-      return -1;}}
-  else {
-    kno_seterr("BadModule","server_usemod",srv->serverid,mod);
-    return -1;}
-  lispval result = kno_use_module(&(srv->server_env),modref);
-  if (KNO_ABORTED(result)) return -1;
-  else return 1;
-}
-
-static int server_loadfile(kno_server srv,lispval filename)
-{
-  if (!(KNO_STRINGP(filename))) {
-    kno_seterr("NotAFile","server_loadfile",srv->serverid,filename);
-    return -1;}
-  int loaded = kno_load_source(KNO_CSTRING(filename),(&(srv->server_env)),NULL);
-  if (loaded<0)
-    return -1;
-  else return 1;
-}
-
-static int server_listen(kno_server srv,lispval spec)
+static int server_listen(knosocks_server srv,lispval spec)
 {
   if (KNO_FIXNUMP(spec)) {
     if (KNO_UINTP(spec))
@@ -363,49 +250,41 @@ static int server_listen(kno_server srv,lispval spec)
   else if (KNO_STRINGP(spec)) {
     u8_string port = KNO_CSTRING(spec);
     if (u8_file_existsp(port)) {
-      if (!(u8_socketp(port))) {
-	kno_seterr("NotASocket","server_listen",srv->serverid,spec);}
+      if (!(u8_socketp(port)))
+	kno_seterr("NotASocket","server_listen",srv->serverid,spec);
       else if (srv->stealsockets) {
 	int rv = u8_removefile(port);
 	if (rv<0)
-	  return kno_err("CantStealSocket","server_listen",srv->serverid,spec);
+	  kno_seterr("CantStealSocket","server_listen",srv->serverid,spec);
 	else return u8_add_server((u8_server)srv,port,0);}
-      else return kno_err("SocketExists","server_listen",srv->serverid,spec);}
+      else kno_seterr("SocketExists","server_listen",srv->serverid,spec);}
     else return u8_add_server((u8_server)srv,port,0);}
-  else return kno_err("BadListener","server_listen",srv->serverid,spec);
-}
-
-static int init_server_env(kno_server srv,lispval opts)
-{
-  int result = 0, rv = 0;
-  rv = server_init_opt(srv,server_usemod,opts,"modules");
-  if (rv<0) return rv;
-  result += rv;
-  rv = server_init_opt(srv,server_loadfile,opts,"files");
-  if (rv<0) return -(result+(-rv));
-  else return result+rv;
+  else kno_seterr("BadListener","server_listen",srv->serverid,spec);
+  return -1;
 }
 
 /* Core functions */
 
-struct KNO_SERVER *start_server(struct KNO_SERVER *server)
+struct KNOSOCKS_SERVER *start_server(struct KNOSOCKS_SERVER *server)
 {
   int rv = server_init_opt(server,server_listen,server->server_opts,"listen");
+  if (rv<0) return NULL;
   u8_server_loop((u8_server)server);
+  return server;
 }
 
 /* This creates the client structure when called by the server loop. */
 static u8_client simply_accept(u8_server srv,u8_socket sock,
-                               struct sockaddr *addr,size_t len)
+			       struct sockaddr *addr,size_t len)
 {
-  kno_client client = (kno_client)
-    u8_client_init(NULL,sizeof(KNO_CLIENT),addr,len,sock,srv);
-  kno_init_stream(&(client->clientstream),
-                  client->idstring,sock,KNO_STREAM_SOCKET,
-                  KNO_NETWORK_BUFSIZE);
+  knosocks_client client = (knosocks_client)
+    u8_client_init(NULL,sizeof(KNOSOCKS_CLIENT),addr,len,sock,srv);
+  kno_init_stream(&(client->client_stream),
+		  client->idstring,sock,KNO_STREAM_SOCKET,
+		  KNO_NETWORK_BUFSIZE);
   /* To help debugging, move the client->idstring (libu8)
      into the stream's id (knostorage). */
-  client->env = kno_make_env(kno_make_hashtable(NULL,16),server_env);
+  client->client_data = kno_make_slotmap(7,0,NULL);
   client->elapsed = 0; client->lastlive = ((time_t)(-1));
   u8_set_nodelay(sock,1);
   return (u8_client) client;
@@ -417,9 +296,9 @@ static u8_client simply_accept(u8_server srv,u8_socket sock,
 static int execserver(u8_client ucl)
 {
   lispval expr;
-  kno_client client = (kno_client)ucl;
-  kno_server server = client->clientserver;
-  kno_stream stream = &(client->clientstream);
+  knosocks_client client = (knosocks_client)ucl;
+  knosocks_server server = client->client_server;
+  kno_stream stream = &(client->client_stream);
   kno_inbuf inbuf = kno_readbuf(stream);
   int async = ((server->async)&&((client->server->flags)&U8_SERVER_ASYNC));
 
@@ -451,16 +330,16 @@ static int execserver(u8_client ucl)
       int U8_MAYBE_UNUSED dtcode = kno_read_byte(inbuf);
       int nbytes = kno_read_4bytes(inbuf);
       if (kno_has_bytes(inbuf,nbytes))
-        expr = kno_read_dtype(inbuf);
+	expr = kno_read_dtype(inbuf);
       else {
-        struct KNO_RAWBUF *rawbuf = kno_streambuf(stream);
-        /* Allocate enough space */
-        kno_grow_inbuf(inbuf,nbytes);
-        /* Set up the client for async input */
-        if (u8_client_read(ucl,rawbuf->buffer,nbytes,
-                           rawbuf->buflim-rawbuf->buffer))
-          expr = kno_read_dtype(inbuf);
-        else return 1;}}
+	struct KNO_RAWBUF *rawbuf = kno_streambuf(stream);
+	/* Allocate enough space */
+	kno_grow_inbuf(inbuf,nbytes);
+	/* Set up the client for async input */
+	if (u8_client_read(ucl,rawbuf->buffer,nbytes,
+			   rawbuf->buflim-rawbuf->buffer))
+	  expr = kno_read_dtype(inbuf);
+	else return 1;}}
     else expr = kno_read_dtype(inbuf);}
   else expr = kno_read_dtype(inbuf);
   kno_reset_threadvars();
@@ -469,8 +348,8 @@ static int execserver(u8_client ucl)
     return 0;}
   else if (KNO_ABORTP(expr)) {
     u8_log(LOG_ERR,BadRequest,
-           "%s[%d]: Received bad request %q",
-           client->idstring,client->n_trans,expr);
+	   "%s[%d]: Received bad request %q",
+	   client->idstring,client->n_trans,expr);
     kno_clear_errors(1);
     u8_client_close(ucl);
     return -1;}
@@ -478,57 +357,57 @@ static int execserver(u8_client ucl)
     kno_outbuf outbuf = kno_writebuf(stream);
     lispval value;
     int tracethis = ((server->logtrans) &&
-                     ((client->n_trans==1) ||
+		     ((client->n_trans==1) ||
 		      (((client->n_trans)%(server->logtrans))==0)));
     int trans_id = client->n_trans, sock = client->socket;
     double xstart = (u8_elapsed_time()), elapsed = -1.0;
     if (knod_loglevel >= LOG_DEBUG)
       u8_log(-LOG_DEBUG,Incoming,"%s[%d/%d]: > %q",
-             client->idstring,sock,trans_id,expr);
+	     client->idstring,sock,trans_id,expr);
     else if (knod_loglevel >= LOG_INFO)
       u8_log(-LOG_INFO,Incoming,
-             "%s[%d/%d]: Received request for execution",
-             client->idstring,sock,trans_id);
-    value = kno_eval_arg(expr,client->env);
+	     "%s[%d/%d]: Received request for execution",
+	     client->idstring,sock,trans_id);
+    value = kno_exec(expr,client->client_server->server_env,NULL);
     elapsed = u8_elapsed_time()-xstart;
     if (KNO_ABORTP(value)) {
       u8_exception ex = u8_erreify();
       while (ex) {
-        struct KNO_EXCEPTION *exo = kno_exception_object(ex);
-        lispval irritant = (exo) ? (exo->ex_irritant) : (KNO_VOID);
-        if ( (knod_loglevel >= LOG_ERR) || (tracethis) ) {
-          if ((ex->u8x_details) && (!(KNO_VOIDP(irritant))))
-            u8_logf(LOG_ERR,Outgoing,
-                    "%s[%d/%d]: %m@%s (%s) %q returned in %fs",
-                    client->idstring,sock,trans_id,
-                    ex->u8x_cond,ex->u8x_context,
-                    ex->u8x_details,irritant,
-                    elapsed);
-          else if (ex->u8x_details)
-            u8_logf(LOG_ERR,Outgoing,
-                    "%s[%d/%d]: %m@%s (%s) returned in %fs",
-                    client->idstring,sock,trans_id,
-                    ex->u8x_cond,ex->u8x_context,ex->u8x_details,elapsed);
-          else if (!(KNO_VOIDP(irritant)))
-            u8_logf(LOG_ERR,Outgoing,
-                    "%s[%d/%d]: %m@%s -- %q returned in %fs",
-                    client->idstring,sock,trans_id,
-                    ex->u8x_cond,ex->u8x_context,irritant,elapsed);
-          else u8_logf(LOG_ERR,Outgoing,
-                       "%s[%d/%d]: %m@%s -- %q returned in %fs",
-                       client->idstring,sock,trans_id,
-                       ex->u8x_cond,ex->u8x_context,elapsed);
-          if ( (exo) && (kno_dump_exception) )
-            kno_dump_exception((lispval)exo);}
-        ex = ex->u8x_prev;}
+	struct KNO_EXCEPTION *exo = kno_exception_object(ex);
+	lispval irritant = (exo) ? (exo->ex_irritant) : (KNO_VOID);
+	if ( (knod_loglevel >= LOG_ERR) || (tracethis) ) {
+	  if ((ex->u8x_details) && (!(KNO_VOIDP(irritant))))
+	    u8_logf(LOG_ERR,Outgoing,
+		    "%s[%d/%d]: %m@%s (%s) %q returned in %fs",
+		    client->idstring,sock,trans_id,
+		    ex->u8x_cond,ex->u8x_context,
+		    ex->u8x_details,irritant,
+		    elapsed);
+	  else if (ex->u8x_details)
+	    u8_logf(LOG_ERR,Outgoing,
+		    "%s[%d/%d]: %m@%s (%s) returned in %fs",
+		    client->idstring,sock,trans_id,
+		    ex->u8x_cond,ex->u8x_context,ex->u8x_details,elapsed);
+	  else if (!(KNO_VOIDP(irritant)))
+	    u8_logf(LOG_ERR,Outgoing,
+		    "%s[%d/%d]: %m@%s -- %q returned in %fs",
+		    client->idstring,sock,trans_id,
+		    ex->u8x_cond,ex->u8x_context,irritant,elapsed);
+	  else u8_logf(LOG_ERR,Outgoing,
+		       "%s[%d/%d]: %m@%s -- %q returned in %fs",
+		       client->idstring,sock,trans_id,
+		       ex->u8x_cond,ex->u8x_context,elapsed);
+	  if ( (exo) && (kno_dump_exception) )
+	    kno_dump_exception((lispval)exo);}
+	ex = ex->u8x_prev;}
       u8_free_exception(ex,1);}
     else if (knod_loglevel >= LOG_DEBUG)
       u8_log(-LOG_DEBUG,Outgoing,
-             "%s[%d/%d]: < %q in %f",
-             client->idstring,sock,trans_id,value,elapsed);
+	     "%s[%d/%d]: < %q in %f",
+	     client->idstring,sock,trans_id,value,elapsed);
     else if ( (knod_loglevel >= LOG_INFO) || (tracethis) )
       u8_log(-LOG_INFO,Outgoing,"%s[%d/%d]: Request executed in %fs",
-             client->idstring,sock,trans_id,elapsed);
+	     client->idstring,sock,trans_id,elapsed);
     client->elapsed = client->elapsed+elapsed;
     /* Currently, kno_write_dtype writes the whole thing at once,
        so we just use that. */
@@ -565,7 +444,7 @@ static int execserver(u8_client ucl)
     time(&(client->lastlive));
     if (tracethis)
       u8_log(LOG_INFO,Outgoing,"%s[%d/%d]: Response sent after %fs",
-             client->idstring,sock,trans_id,u8_elapsed_time()-xstart);
+	     client->idstring,sock,trans_id,u8_elapsed_time()-xstart);
     kno_decref(expr);
     kno_decref(value);
     kno_swapcheck();
@@ -574,9 +453,9 @@ static int execserver(u8_client ucl)
 
 static int close_knoclient(u8_client ucl)
 {
-  kno_client client = (kno_client)ucl;
-  kno_close_stream(&(client->clientstream),0);
-  kno_decref((lispval)((kno_client)ucl)->env);
+  knosocks_client client = (knosocks_client)ucl;
+  kno_close_stream(&(client->client_stream),0);
+  kno_decref(client->client_data);
   ucl->socket = -1;
   return 1;
 }
@@ -596,25 +475,25 @@ static void run_shutdown_procs()
       u8_log(LOG_WARN,ServerShutdown,"Calling shutdown procedure %q",proc);
       value = kno_apply(proc,1,&shutval);
       if (KNO_ABORTP(value)) {
-        u8_log(LOG_CRIT,ServerShutdown,
-               "Error from shutdown procedure %q",proc);
-        kno_clear_errors(1);}
+	u8_log(LOG_CRIT,ServerShutdown,
+	       "Error from shutdown procedure %q",proc);
+	kno_clear_errors(1);}
       else if (KNO_CONSP(value)) {
-        U8_FIXED_OUTPUT(val,1000);
-        kno_unparse(valout,value);
-        u8_log(LOG_WARN,ServerShutdown,
-               "Finished shutdown procedure %q => %s",
-               proc,val.u8_outbuf);}
+	U8_FIXED_OUTPUT(val,1000);
+	kno_unparse(valout,value);
+	u8_log(LOG_WARN,ServerShutdown,
+	       "Finished shutdown procedure %q => %s",
+	       proc,val.u8_outbuf);}
       else u8_log(LOG_WARN,ServerShutdown,
-                  "Finished shutdown procedure %q => %q",proc,value);
+		  "Finished shutdown procedure %q => %q",proc,value);
       kno_decref(value);}
     else u8_log(LOG_WARN,"BadShutdownProc",
-                "The value %q isn't applicable",proc);}
+		"The value %q isn't applicable",proc);}
   kno_decref(procs);
 }
 #endif
 
-static void shutdown_server(kno_server srv,u8_string why)
+static void shutdown_server(knosocks_server srv,u8_string why)
 {
   u8_log(LOGWARN,"ServerShutdown",
 	 "Shutting down %s because %s",
@@ -622,7 +501,7 @@ static void shutdown_server(kno_server srv,u8_string why)
   u8_server_shutdown((u8_server)srv,srv->shutdown_grace);
 }
 
-static lispval knod_shutdown_prim(kno_server srv,lispval why)
+static lispval shutdown_prim(knosocks_server srv,lispval why)
 {
   if (shutdown_reason)
     return KNO_FALSE;
@@ -639,8 +518,8 @@ static void shutdown_onsignal(int sig,siginfo_t *info,void *data)
 {
   if (server_shutdown) {
     u8_log(LOG_CRIT,"shutdown_server_onsignal",
-           "Already shutdown but received signal %d",
-           sig);
+	   "Already shutdown but received signal %d",
+	   sig);
     return;}
   else server_shutdown=1;
 #ifdef SIGHUP
@@ -675,7 +554,7 @@ static lispval get_uptime()
   return kno_init_flonum(NULL,u8_xtime_diff(&now,&boot_time));
 }
 
-static lispval get_server_status(kno_server srv)
+static lispval get_server_status(knosocks_server srv)
 {
   lispval result = kno_init_slotmap(NULL,0,NULL);
   struct U8_SERVER_STATS stats, livestats, curstats;
@@ -698,118 +577,118 @@ static lispval get_server_status(kno_server srv)
 
   if (stats.tcount>0) {
     kno_store(result,kno_intern("transavg"),
-              kno_make_flonum(((double)stats.tsum)/
-                              (((double)stats.tcount))));
+	      kno_make_flonum(((double)stats.tsum)/
+			      (((double)stats.tcount))));
     kno_store(result,kno_intern("transmax"),KNO_INT(stats.tmax));
     kno_store(result,kno_intern("transcount"),KNO_INT(stats.tcount));}
 
   if (stats.qcount>0) {
     kno_store(result,kno_intern("queueavg"),
-              kno_make_flonum(((double)stats.qsum)/
-                              (((double)stats.qcount))));
+	      kno_make_flonum(((double)stats.qsum)/
+			      (((double)stats.qcount))));
     kno_store(result,kno_intern("queuemax"),KNO_INT(stats.qmax));
     kno_store(result,kno_intern("queuecount"),KNO_INT(stats.qcount));}
 
   if (stats.rcount>0) {
     kno_store(result,kno_intern("readavg"),
-              kno_make_flonum(((double)stats.rsum)/
-                              (((double)stats.rcount))));
+	      kno_make_flonum(((double)stats.rsum)/
+			      (((double)stats.rcount))));
     kno_store(result,kno_intern("readmax"),KNO_INT(stats.rmax));
     kno_store(result,kno_intern("readcount"),KNO_INT(stats.rcount));}
 
   if (stats.wcount>0) {
     kno_store(result,kno_intern("writeavg"),
-              kno_make_flonum(((double)stats.wsum)/
-                              (((double)stats.wcount))));
+	      kno_make_flonum(((double)stats.wsum)/
+			      (((double)stats.wcount))));
     kno_store(result,kno_intern("writemax"),KNO_INT(stats.wmax));
     kno_store(result,kno_intern("writecount"),KNO_INT(stats.wcount));}
 
   if (stats.xcount>0) {
     kno_store(result,kno_intern("execavg"),
-              kno_make_flonum(((double)stats.xsum)/
-                              (((double)stats.xcount))));
+	      kno_make_flonum(((double)stats.xsum)/
+			      (((double)stats.xcount))));
     kno_store(result,kno_intern("execmax"),KNO_INT(stats.xmax));
     kno_store(result,kno_intern("execcount"),KNO_INT(stats.xcount));}
 
   if (livestats.tcount>0) {
     kno_store(result,kno_intern("live/transavg"),
-              kno_make_flonum(((double)livestats.tsum)/
-                              (((double)livestats.tcount))));
+	      kno_make_flonum(((double)livestats.tsum)/
+			      (((double)livestats.tcount))));
     kno_store(result,kno_intern("live/transmax"),KNO_INT(livestats.tmax));
     kno_store(result,kno_intern("live/transcount"),
-              KNO_INT(livestats.tcount));}
+	      KNO_INT(livestats.tcount));}
 
   if (livestats.qcount>0) {
     kno_store(result,kno_intern("live/queueavg"),
-              kno_make_flonum(((double)livestats.qsum)/
-                              (((double)livestats.qcount))));
+	      kno_make_flonum(((double)livestats.qsum)/
+			      (((double)livestats.qcount))));
     kno_store(result,kno_intern("live/queuemax"),KNO_INT(livestats.qmax));
     kno_store(result,kno_intern("live/queuecount"),
-              KNO_INT(livestats.qcount));}
+	      KNO_INT(livestats.qcount));}
 
   if (livestats.rcount>0) {
     kno_store(result,kno_intern("live/readavg"),
-              kno_make_flonum(((double)livestats.rsum)/
-                              (((double)livestats.rcount))));
+	      kno_make_flonum(((double)livestats.rsum)/
+			      (((double)livestats.rcount))));
     kno_store(result,kno_intern("live/readmax"),KNO_INT(livestats.rmax));
     kno_store(result,kno_intern("live/readcount"),
-              KNO_INT(livestats.rcount));}
+	      KNO_INT(livestats.rcount));}
 
   if (livestats.wcount>0) {
     kno_store(result,kno_intern("live/writeavg"),
-              kno_make_flonum(((double)livestats.wsum)/
-                              (((double)livestats.wcount))));
+	      kno_make_flonum(((double)livestats.wsum)/
+			      (((double)livestats.wcount))));
     kno_store(result,kno_intern("live/writemax"),KNO_INT(livestats.wmax));
     kno_store(result,kno_intern("live/writecount"),
-              KNO_INT(livestats.wcount));}
+	      KNO_INT(livestats.wcount));}
 
   if (livestats.xcount>0) {
     kno_store(result,kno_intern("live/execavg"),
-              kno_make_flonum(((double)livestats.xsum)/
-                              (((double)livestats.xcount))));
+	      kno_make_flonum(((double)livestats.xsum)/
+			      (((double)livestats.xcount))));
     kno_store(result,kno_intern("live/execmax"),KNO_INT(livestats.xmax));
     kno_store(result,kno_intern("live/execcount"),
-              KNO_INT(livestats.xcount));}
+	      KNO_INT(livestats.xcount));}
 
   if (curstats.tcount>0) {
     kno_store(result,kno_intern("cur/transavg"),
-              kno_make_flonum(((double)curstats.tsum)/
-                              (((double)curstats.tcount))));
+	      kno_make_flonum(((double)curstats.tsum)/
+			      (((double)curstats.tcount))));
     kno_store(result,kno_intern("cur/transmax"),KNO_INT(curstats.tmax));
     kno_store(result,kno_intern("cur/transcount"),
-              KNO_INT(curstats.tcount));}
+	      KNO_INT(curstats.tcount));}
 
   if (curstats.qcount>0) {
     kno_store(result,kno_intern("cur/queueavg"),
-              kno_make_flonum(((double)curstats.qsum)/
-                              (((double)curstats.qcount))));
+	      kno_make_flonum(((double)curstats.qsum)/
+			      (((double)curstats.qcount))));
     kno_store(result,kno_intern("cur/queuemax"),KNO_INT(curstats.qmax));
     kno_store(result,kno_intern("cur/queuecount"),
-              KNO_INT(curstats.qcount));}
+	      KNO_INT(curstats.qcount));}
 
   if (curstats.rcount>0) {
     kno_store(result,kno_intern("cur/readavg"),
-              kno_make_flonum(((double)curstats.rsum)/
-                              (((double)curstats.rcount))));
+	      kno_make_flonum(((double)curstats.rsum)/
+			      (((double)curstats.rcount))));
     kno_store(result,kno_intern("cur/readmax"),KNO_INT(curstats.rmax));
     kno_store(result,kno_intern("cur/readcount"),
-              KNO_INT(curstats.rcount));}
+	      KNO_INT(curstats.rcount));}
 
   if (curstats.wcount>0) {
     kno_store(result,kno_intern("cur/writeavg"),
-              kno_make_flonum(((double)curstats.wsum)/
-                              (((double)curstats.wcount))));
+	      kno_make_flonum(((double)curstats.wsum)/
+			      (((double)curstats.wcount))));
     kno_store(result,kno_intern("cur/writemax"),KNO_INT(curstats.wmax));
     kno_store(result,kno_intern("cur/writecount"),
-              KNO_INT(curstats.wcount));}
+	      KNO_INT(curstats.wcount));}
 
   if (curstats.xcount>0) {
     kno_store(result,kno_intern("cur/execavg"),
-              kno_make_flonum(((double)curstats.xsum)/
-                              (((double)curstats.xcount))));
+	      kno_make_flonum(((double)curstats.xsum)/
+			      (((double)curstats.xcount))));
     kno_store(result,kno_intern("cur/execmax"),KNO_INT(curstats.xmax));
     kno_store(result,kno_intern("cur/execcount"),
-              KNO_INT(curstats.xcount));}
+	      KNO_INT(curstats.xcount));}
 
   return result;
 }
@@ -862,14 +741,14 @@ static int config_set_server_flag(lispval var,lispval val,void *data)
     int bool = kno_boolstring(CSTRING(val),-1);
     if (bool<0) {
       int guess = (((s[0]=='y')||(s[0]=='Y'))?(1):
-                   ((s[0]=='N')||(s[0]=='n'))?(0):
-                   (-1));
+		   ((s[0]=='N')||(s[0]=='n'))?(0):
+		   (-1));
       if (guess<0) {
-        u8_log(LOG_WARN,ServerConfig,"Unknown boolean setting %s for %q",s,var);
-        return kno_reterr(kno_TypeError,"setserverflag","boolean value",val);}
+	u8_log(LOG_WARN,ServerConfig,"Unknown boolean setting %s for %q",s,var);
+	return kno_reterr(kno_TypeError,"setserverflag","boolean value",val);}
       else u8_log(LOG_WARN,ServerConfig,
-                  "Unfamiliar boolean setting %s for %q, assuming %s",
-                  s,var,((guess)?("true"):("false")));
+		  "Unfamiliar boolean setting %s for %q, assuming %s",
+		  s,var,((guess)?("true"):("false")));
       if (!(guess<0)) bool = guess;}
     if (bool) default_server_flags = flags|mask;
     else default_server_flags = flags&(~(mask));}
@@ -879,14 +758,14 @@ static int config_set_server_flag(lispval var,lispval val,void *data)
 
 /* Initializing serverse */
 
-struct KNO_SERVER *init_server(struct KNO_SERVER *server,
-			       u8_string server_prefix,
-			       kno_lexenv base_env,
-			       lispval opts)
+struct KNOSOCKS_SERVER *init_server(struct KNOSOCKS_SERVER *server,
+				    u8_string server_prefix,
+				    kno_lexenv base_env,
+				    lispval opts)
 {
   if (server == NULL)
-    server = u8_alloc(struct KNO_SERVER);
-  server = (kno_server) u8_init_server
+    server = u8_alloc(struct KNOSOCKS_SERVER);
+  server = (knosocks_server) u8_init_server
     ((u8_server)server,
      simply_accept, /* acceptfn */
      execserver, /* handlefn */
@@ -906,26 +785,14 @@ struct KNO_SERVER *init_server(struct KNO_SERVER *server,
      kno_getfixopt(opts,"server_flags",default_server_flags),
      U8_SERVER_END_INIT);
   u8_init_mutex(&(server->server_lock));
-  kno_make_hashtable(&(server->server_bindings),200);
-  kno_make_hashtable(&(server->server_commands),50);
-  kno_lexenv env = &(server->server_env);
-  KNO_INIT_STATIC_CONS(env,kno_lexenv_type);
-  env->env_bindings = ((lispval)(&(server->server_bindings)));
-  env->env_exports  = ((lispval)(&(server->server_commands)));
-  env->env_parent   = (base_env) ? (base_env) : (kno_app_env);
   server->server_opts = kno_incref(opts);
-  int init_result = init_server_env(server,opts);
-  server->xserverfn = server_loopfn;
-  if (init_result<0) return NULL;
+  // server->xserverfn = server_loopfn;
   if (kno_testopt(opts,KNOSYM(serverfn),KNO_VOID))
     server->server_fn = kno_getopt(opts,KNOSYM(serverfn),KNO_VOID);
   return server;
 }
 
 KNO_EXPORT int kno_init_dbserv(void);
-static void init_configs(void);
-static kno_lexenv init_core_env(void);
-static int run_server(u8_string source_file);
 
 static void init_configs()
 {
@@ -1019,71 +886,44 @@ static void init_configs()
 
 static void link_local_cprims()
 {
-}
-
-static kno_lexenv init_core_env()
-{
-  /* This is a safe environment (e.g. a sandbox without file/io etc). */
-  kno_lexenv core_env = kno_working_lexenv();
-  lispval core_module = (lispval) core_env;
-  kno_init_dbserv();
-  kno_register_module("dbserv",kno_incref(kno_dbserv_module),0);
-  kno_finish_module(kno_dbserv_module);
-
+#if 0
   kno_idefn(core_module,
 	    kno_make_cprim0("BOOT-TIME",get_boot_time,0,
 			    "Returns the time this daemon was started"));
   kno_idefn(core_module,
 	    kno_make_cprim0("UPTIME",get_uptime,0,
 			    "Returns how long this daemon has been running"));
-#if 0
   kno_idefn(core_module,
 	    kno_make_cprim0
 	    ("ASYNCOK?",asyncok,0,
 	     "Returns true if the daemon can use async I/O processing"));
-#endif
   kno_idefn(core_module,
 	    kno_make_cprim0("SERVER-STATUS",get_server_status,0,
 			    "Returns the status of the server"));
+#endif
+}
+
+/* Initialization */
+
+static long long int knosocks_init = 0;
+
+static lispval knosocks_module;
+
+KNO_EXPORT int kno_init_knosocks()
+{
+  if (knosocks_init) return 0;
+  knosocks_module = kno_new_cmodule("knosocks",0,kno_init_knosocks);
+
+  init_configs();
+
   link_local_cprims();
 
-  return core_env;
+  knosocks_init = u8_millitime();
+
+  kno_finish_module(knosocks_module);
+
+  u8_register_source_file(_FILEINFO);
+
+  return 1;
 }
 
-#if 0
-static int run_server(u8_string server_spec)
-{
-  init_server();
-  /* Prepare for the end */
-#if 0
-  atexit(shutdown_dtypeserver_onexit);
-#ifdef SIGTERM
-  sigaction(SIGTERM,&sigaction_shutdown,NULL);
-#endif
-#ifdef SIGQUIT
-  sigaction(SIGQUIT,&sigaction_shutdown,NULL);
-#endif
-#endif
-  if (n_ports<=0) {
-    u8_log(LOG_WARN,NoServers,"No servers configured, exiting...");
-    exit(-1);
-    return -1;}
-  write_state_files();
-  u8_message("beingmeta Kno, (C) beingmeta 2004-2020, all rights reserved");
-  u8_log(LOG_NOTICE,ServerStartup,
-         "Kno (%s) knod %s running, %d/%d pools/indexes, %d ports",
-         KNO_REVISION,server_spec,kno_n_pools,
-         kno_n_primary_indexes+kno_n_secondary_indexes,n_ports);
-  u8_log(LOG_NOTICE,ServerStartup,"Serving on %d sockets",n_ports);
-  normal_exit = 1;
-  u8_log(LOG_CRIT,ServerShutdown,
-         "Shutting down server for %s",
-         shutdown_reason);
-  run_shutdown_procs();
-  u8_log(LOG_NOTICE,ServerShutdown,"Exited server loop");
-  u8_threadexit();
-  kno_doexit(KNO_FALSE);
-  return 0;
-}
-
-#endif
