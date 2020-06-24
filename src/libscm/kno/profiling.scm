@@ -45,7 +45,8 @@
     (lognotice |Profile| "Profiling " ($count (|| procs) "procedure") " in " module)
     (|| procs)))
 
-(defambda (profile/report (root profile-root) (profilefn profile/time) . morefns)
+(defambda (profile/report (root profile-root) (fcns (config 'profiled))
+			  (profilefn profile/time) . morefns)
   (when (and (symbol? profilefn) (test profilefns profilefn))
     (set! profilefn (get profilefns profilefn)))
   (when (and root (not (profile/getcalls root)))
@@ -53,8 +54,7 @@
       "The " (if (eq? root profile-root) "default ") "root " root
       " was not profiled! Ignoring it.")
     (set! root #f))
-  (let* ((fcns (config 'profiled))
-	 (ranks (make-hashtable))
+  (let* ((ranks (make-hashtable))
 	 (rootinfo (and root (profile/getcalls root)))
 	 (rootval (and rootinfo (profilefn rootinfo)))
 	 (rootvals and (pair? morefns) #[]))
