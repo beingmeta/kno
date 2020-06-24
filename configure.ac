@@ -626,8 +626,8 @@ esac
 
 # Now that we have shared_suffix defined, set some things up
 
-CMODULES="lib/kno/testcapi.${shared_suffix} ${CMODULES}"
-INSTALL_CMODULES="install-testcapi ${INSTALL_CMODULES}"
+CMODULES="lib/kno/testcapi.${shared_suffix} lib/kno/knosocks.${shared_suffix} ${CMODULES}"
+INSTALL_CMODULES="install-testcapi install-knosocks ${INSTALL_CMODULES}"
 
 AX_CHECK_LINK_FLAG("-static-libgcc",static_libgcc="yes")
 

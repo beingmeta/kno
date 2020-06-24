@@ -63,7 +63,7 @@
 u8_condition MissingModule=_("Loading failed to resolve module");
 u8_condition kno_ReloadError=_("Module reload error");
 
-static u8_string libscm_path;
+static lispval libscm_path = KNO_FALSE;
 
 static lispval loadpath = NIL;
 
@@ -99,50 +99,39 @@ void kno_add_module_loader(int (*loader)(lispval,void *),void *data)
 
 /* Module finding */
 
-static u8_string check_module_source(u8_string name,u8_string search_path)
+static u8_string check_module_source(u8_string name,lispval path)
 {
   unsigned char buf[1000];
-  u8_string init_sep = (u8_has_suffix(search_path,"/",0))
-    ? (U8S(""))
-    : (U8S("/"));
-  if (u8_file_existsp
-      (u8_bprintf(buf,"%s%s%s/module.scm",search_path,init_sep,name)))
-    return u8_mkstring("%s%s%s/module.scm",search_path,init_sep,name);
-  else if (u8_file_existsp(u8_bprintf(buf,"%s%s%s.scm",
-				      search_path,init_sep,name)))
-    return u8_mkstring("%s%s%s.scm",search_path,init_sep,name);
-  else return NULL;
-}
-#if 0
-static u8_string check_module_source(u8_string name,u8_string search_path)
-{
-  if (strchr(search_path,'%'))
-    return u8_find_file(name,search_path,loadablep);
-  else if (find_path_sep(search_path)) {
-    u8_string start = search_path;
-    while (start) {
-      u8_string end = find_path_sep(start);
-      size_t len = (end) ? (end-start) : (strlen(start));
-      unsigned char buf[len+1];
-      strncpy(buf,start,len); buf[len]='\0';
-      u8_string probe = check_module_source(name,buf);
-      if (probe) return probe;
-      if (end) start = end+1; else start =NULL;}
-    return NULL;}
-  else {
-    unsigned char buf[1000];
+  if (STRINGP(path)) {
+    u8_string search_path = KNO_CSTRING(path);
+    u8_string eqpos = strchr(search_path,'=');
+    if (eqpos) {
+      int name_len = strlen(name);
+      int prefix_len = eqpos - search_path;
+      u8_byte prefix[prefix_len+1];
+      strncpy(prefix,search_path,prefix_len);
+      prefix[prefix_len] = '\0';
+      if ( (name_len >= prefix_len) &&
+	   (u8_has_prefix(name,prefix,0)) )  {
+	if (name_len == prefix_len)
+	  name = name+prefix_len;
+	else name = name+prefix_len+1;
+	search_path = search_path+prefix_len+1;}}
     u8_string init_sep = (u8_has_suffix(search_path,"/",0))
       ? (U8S(""))
       : (U8S("/"));
-    if (u8_file_existsp
-	(u8_bprintf(buf,"%s%s%s/module.scm",search_path,init_sep,name)))
+    u8_string probe_file =
+      u8_bprintf(buf,"%s%s%s/module.scm",search_path,init_sep,name);
+    if (u8_file_existsp(probe_file))
       return u8_mkstring("%s%s%s/module.scm",search_path,init_sep,name);
+    else if (*name == '\0')
+      return NULL;
     else if (u8_file_existsp(u8_bprintf(buf,"%s%s%s.scm",
 					search_path,init_sep,name)))
       return u8_mkstring("%s%s%s.scm",search_path,init_sep,name);
     else return NULL;}
+  else return NULL;
 }
-#endif
 
 static int load_source_module(lispval spec,void *ignored)
 {
@@ -186,7 +175,7 @@ static u8_string get_module_source(lispval spec)
       return module_source;}
     KNO_DOLIST(elt,loadpath) {
       if (STRINGP(elt)) {
-	module_source = check_module_source(name,CSTRING(elt));
+	module_source = check_module_source(name,elt);
 	if (module_source) {
 	  u8_free(name);
 	  return module_source;}}}
@@ -530,8 +519,23 @@ static int liveload_add(lispval var,lispval val,void *ignored)
 
 #endif
 
-/* loadpath config set */
+/* libscm config set */
 
+static int libscm_config_set(lispval var,lispval vals,void *d)
+{
+  if (KNO_STRINGP(vals)) {
+    if (u8_directoryp(KNO_CSTRING(vals))) {
+      lispval *lptr = (lispval *) d;
+      lispval cur = *lptr;
+      kno_incref(vals);
+      *lptr = vals;
+      kno_decref(cur);
+      return 1;}}
+  kno_seterr("BadLIBSCM","libscm_config_set",NULL,vals);
+  return -1;
+}
+
+/* loadpath config set */
 
 static int loadpath_config_set(lispval var,lispval vals,void *d)
 {
@@ -800,13 +804,22 @@ KNO_EXPORT void kno_init_loadmods_c()
     loadpath_config_set(kno_intern("loadpath"),v,&loadpath);
     kno_decref(v);}
 
-  {u8_string dir=u8_getenv("KNO_LIBSCM_DIR");
+  {u8_string dir=u8_getenv("KNO_LIBSCM_DIR"), use_path = NULL;
     if (dir==NULL) dir = u8_strdup(KNO_LIBSCM_DIR);
     if (u8_has_suffix(dir,"/",0))
-      libscm_path=dir;
+      use_path=dir;
     else {
-      libscm_path=u8_string_append(dir,"/",NULL);
-      u8_free(dir);}}
+      use_path=u8_string_append(dir,"/",NULL);
+      u8_free(dir);}
+    lispval old_path = libscm_path;
+    lispval new_path = knostring(use_path);
+    if (KNO_ABORTED(new_path)) {
+      u8_log(LOG_ERR,"PathError",
+	     "Couldn't allocate new path %s",use_path);}
+    else {
+      libscm_path = new_path;
+      kno_decref(old_path);}
+    u8_free(use_path);}
 
   kno_register_config
     ("UPDATEMODULES","Modules to update automatically on UPDATEMODULES",
@@ -816,7 +829,7 @@ KNO_EXPORT void kno_init_loadmods_c()
      loadpath_config_get,loadpath_config_set,&loadpath);
   kno_register_config
     ("LIBSCM","The location for bundled modules (prioritized before loadpath)",
-     kno_sconfig_get,kno_sconfig_set,&libscm_path);
+     kno_lconfig_get,libscm_config_set,&libscm_path);
 
 #if 0
   kno_register_config
