@@ -1116,10 +1116,6 @@ lib/kno/gperftools.o: src/cmodules/gperftools.c
 lib/kno/gperftools.so: src/cmodules/gperftools.o
 lib/kno/gperftools.dylib: src/cmodules/gperftools.o ${CMODULE_DEPENDS}
 
-lib/kno/knosocks.so lib/kno/knosocks.dylib :
-lib/kno/knosocks.so: src/cmodules/knosocks.o
-lib/kno/knosocks.dylib: src/cmodules/knosocks.o ${CMODULE_DEPENDS}
-
 # Parseltongue (default: v3)
 src/python/parseltongue.o: src/python/parseltongue.c
 	$(CC) @PYTHON3_CFLAGS@ $(CFLAGS) -o $@ -c $< ${MODLIBS}
@@ -1474,12 +1470,11 @@ install-fastcgi: $(BININSTALLDIR)/knocgi@suffix@
 $(BININSTALLDIR)/knocgi@suffix@:
 	@$(SYSINSTALL) -p @install_exe_opts@ knocgi@suffix@ $(BININSTALLDIR)
 
-install-cmodules: @INSTALL_CMODULES@ install-knosocks
+install-cmodules: @INSTALL_CMODULES@
 
 install-testcapi: ${CMODULES}/testcapi.@shared_suffix@ ${CMODULES}/testcapi.@vshared_suffix@
 install-crypto: ${CMODULES}/crypto.@shared_suffix@ ${CMODULES}/crypto.@vshared_suffix@
 install-sqlite: ${CMODULES}/sqlite.@shared_suffix@ ${CMODULES}/sqlite.@vshared_suffix@
-install-knosocks: ${CMODULES}/knosocks.@shared_suffix@ ${CMODULES}/knosocks.@vshared_suffix@
 install-libarchive: ${CMODULES}/libarchive.@shared_suffix@ ${CMODULES}/libarchive.@vshared_suffix@
 install-zlib: ${CMODULES}/zlib.@shared_suffix@ ${CMODULES}/zlib.@vshared_suffix@
 install-gperftools: ${CMODULES}/gperftools.@shared_suffix@ ${CMODULES}/gperftools.@vshared_suffix@
