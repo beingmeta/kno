@@ -742,6 +742,7 @@ lispval lambda_call(kno_stack stack,
   u8_string label = (proc->fcn_name) ? (proc->fcn_name) : (U8S("lambda"));
   u8_string filename = (proc->fcn_filename) ? (proc->fcn_filename) : (NULL);
   KNO_START_EVAL(lambda_stack,label,(lispval)proc,NULL,stack);
+  lambda_stack->stack_bits |= KNO_STACK_LAMBDA_CALL;
  stackpush:
   lambda_stack->stack_file = filename;
   lispval args[n_vars];
@@ -754,12 +755,15 @@ lispval lambda_call(kno_stack stack,
 
   int tailable = ( (!(synchronized)) && (profile == NULL) );
 
-  int i = 0, max_positional = (arity < 0) ? (n_vars-1) : (arity);
+  int max_positional = (arity<0) ?
+    (n_vars - 1 - proc->lambda_n_locals) :
+    (arity);
   int last_positional = (arity < 0) ?
     ((n_given < max_positional) ? (n_given) : (max_positional)) :
     (n_given);
 
   lispval *inits = proc->lambda_inits;
+  int i = 0;
 
   /* Handle positional arguments */
   while (i<last_positional) {
