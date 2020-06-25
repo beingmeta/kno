@@ -199,33 +199,32 @@ typedef enum KNO_LISP_TYPE {
   kno_evalfn_type = KNO_CONS_TYPECODE(25),
   kno_macro_type = KNO_CONS_TYPECODE(26),
   kno_stackframe_type = KNO_CONS_TYPECODE(27),
-  kno_tailcall_type = KNO_CONS_TYPECODE(28),
-  kno_exception_type = KNO_CONS_TYPECODE(29),
-  kno_promise_type = KNO_CONS_TYPECODE(30),
-  kno_thread_type = KNO_CONS_TYPECODE(31),
-  kno_synchronizer_type = KNO_CONS_TYPECODE(32),
-  kno_consblock_type = KNO_CONS_TYPECODE(33),
+  kno_exception_type = KNO_CONS_TYPECODE(28),
+  kno_promise_type = KNO_CONS_TYPECODE(29),
+  kno_thread_type = KNO_CONS_TYPECODE(30),
+  kno_synchronizer_type = KNO_CONS_TYPECODE(31),
+  kno_consblock_type = KNO_CONS_TYPECODE(32),
 
-  kno_complex_type = KNO_CONS_TYPECODE(34),
-  kno_rational_type = KNO_CONS_TYPECODE(35),
-  kno_flonum_type = KNO_CONS_TYPECODE(36),
+  kno_complex_type = KNO_CONS_TYPECODE(33),
+  kno_rational_type = KNO_CONS_TYPECODE(34),
+  kno_flonum_type = KNO_CONS_TYPECODE(35),
 
-  kno_timestamp_type = KNO_CONS_TYPECODE(37),
-  kno_uuid_type = KNO_CONS_TYPECODE(38),
+  kno_timestamp_type = KNO_CONS_TYPECODE(36),
+  kno_uuid_type = KNO_CONS_TYPECODE(37),
 
   /* Other types, not strictly core, but defined here so they'll be
      constant for the compiler */
-  kno_mystery_type = KNO_CONS_TYPECODE(39),
+  kno_mystery_type = KNO_CONS_TYPECODE(38),
 
-  kno_ioport_type = KNO_CONS_TYPECODE(40),
-  kno_stream_type = KNO_CONS_TYPECODE(41),
-  kno_regex_type = KNO_CONS_TYPECODE(42),
+  kno_ioport_type = KNO_CONS_TYPECODE(39),
+  kno_stream_type = KNO_CONS_TYPECODE(40),
+  kno_regex_type = KNO_CONS_TYPECODE(41),
 
-  kno_evalserver_type = KNO_CONS_TYPECODE(43),
-  kno_bloom_filter_type = KNO_CONS_TYPECODE(44),
+  kno_service_type = KNO_CONS_TYPECODE(42),
+  kno_bloom_filter_type = KNO_CONS_TYPECODE(43),
 
-  kno_sqldb_type = KNO_CONS_TYPECODE(45),
-  kno_sqlproc_type = KNO_CONS_TYPECODE(46),
+  kno_sqldb_type = KNO_CONS_TYPECODE(44),
+  kno_sqlproc_type = KNO_CONS_TYPECODE(45),
 
   /* Extended types */
 
@@ -236,7 +235,7 @@ typedef enum KNO_LISP_TYPE {
 
   } kno_lisp_type;
 
-#define KNO_BUILTIN_CONS_TYPES 47
+#define KNO_BUILTIN_CONS_TYPES 46
 /* not really, but it gives us breathing room and they're not
    clamoring for space :) */
 #define KNO_BUILTIN_IMMEDIATE_TYPES 12
@@ -839,7 +838,8 @@ KNO_EXPORT lispval kno_all_symbols(void);
 
 KNO_EXPORT int kno_flipcase_fix;
 
-KNO_EXPORT lispval KNOSYM_ADD, KNOSYM_ADJUNCT, KNOSYM_ALL, KNOSYM_ALWAYS;
+KNO_EXPORT
+lispval KNOSYM_ADD, KNOSYM_ADJUNCT, KNOSYM_ALL, KNOSYM_ALWAYS, KNOSYM_ARG;
 KNO_EXPORT lispval KNOSYM_BLOCKSIZE, KNOSYM_BUFSIZE;
 KNO_EXPORT lispval KNOSYM_CACHELEVEL, KNOSYM_CACHESIZE;
 KNO_EXPORT lispval KNOSYM_CONS, KNOSYM_CONTENT, KNOSYM_CREATE;
@@ -847,7 +847,8 @@ KNO_EXPORT lispval KNOSYM_DEFAULT, KNOSYM_DOT, KNOSYM_DROP, KNOSYM_DTYPE;
 KNO_EXPORT lispval KNOSYM_ENCODING, KNOSYM_EQUALS, KNOSYM_ERROR;
 KNO_EXPORT lispval KNOSYM_FILE, KNOSYM_FILENAME;
 KNO_EXPORT lispval KNOSYM_FLAGS, KNOSYM_FORMAT, KNOSYM_FRONT;
-KNO_EXPORT lispval KNOSYM_HISTORY_THREADVAL, KNOSYM_INDEX, KNOSYM_INPUT;
+KNO_EXPORT lispval KNOSYM_HISTORY_THREADVAL;
+KNO_EXPORT lispval KNOSYM_ID, KNOSYM_INDEX, KNOSYM_INPUT;
 KNO_EXPORT lispval KNOSYM_ISADJUNCT, KNOSYM_KEYSLOT;
 KNO_EXPORT lispval KNOSYM_LABEL, KNOSYM_LAZY, KNOSYM_LENGTH, KNOSYM_LOGLEVEL;
 KNO_EXPORT lispval KNOSYM_MAIN, KNOSYM_MERGE, KNOSYM_METADATA;

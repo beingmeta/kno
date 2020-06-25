@@ -899,6 +899,24 @@ static lispval fcn_getalias_prim(lispval sym,lispval env_arg)
   return result;
 }
 
+/* Access to kno_exec, the database layer interpreter */
+
+DEFPRIM2("kno/exec",kno_exec_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	 "`(kno/exec *expr* *envopts*)` calls the query interpreter "
+	 "on *expr* with handlers from *envopts*",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+static lispval kno_exec_prim(lispval expr,lispval env)
+{
+  struct KNO_STACK exec_stack = { 0 };
+  KNO_SETUP_STACK(&exec_stack,"kno/exec");
+  KNO_STACK_SET_CALLER(&exec_stack,kno_stackptr);
+  exec_stack.stack_op = expr;
+  KNO_PUSH_STACK(&exec_stack);
+  lispval val = kno_exec(expr,env,&exec_stack);
+  KNO_POP_STACK(&exec_stack);
+  return val;
+}
+
 /* The init function */
 
 KNO_EXPORT void kno_init_evalops_c()
@@ -921,6 +939,8 @@ KNO_EXPORT void kno_init_evalops_c()
 
 static void link_local_cprims()
 {
+  KNO_LINK_PRIM("kno/exec",kno_exec_prim,2,kno_scheme_module);
+
   KNO_LINK_PRIM("call/cc",callcc,1,kno_scheme_module);
   KNO_LINK_ALIAS("call-with-current-continuation",callcc,kno_scheme_module);
 

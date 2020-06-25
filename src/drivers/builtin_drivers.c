@@ -53,15 +53,18 @@ int kno_init_kpool_c(void);
 
 int dbs_initialized = 0;
 
+extern int kno_init_knosocks_c(void);
+
 KNO_EXPORT int kno_init_drivers()
 {
   if (dbs_initialized) return dbs_initialized;
   dbs_initialized = 307*kno_init_storage();
 
   kno_init_builtindbs_c();
+  kno_init_knosocks_c();
 
   kno_init_file_pool_c();
-  kno_init_oidpool_c();
+  // kno_init_oidpool_c();
   kno_init_bigpool_c();
   kno_init_netpool_c();
   kno_init_kpool_c();

@@ -1187,8 +1187,6 @@ static kno_lexenv init_core_env()
   kno_lexenv core_env = kno_working_lexenv();
   lispval core_module = (lispval) core_env;
   kno_init_dbserv();
-  kno_register_module("dbserv",kno_incref(kno_dbserv_module),0);
-  kno_finish_module(kno_dbserv_module);
 
   /* We add some special functions */
   kno_def_evalfn(core_module,"bound?",boundp_evalfn,

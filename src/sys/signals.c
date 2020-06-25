@@ -37,8 +37,10 @@
 
 struct sigaction sigaction_raise, sigaction_abort;
 struct sigaction sigaction_exit, sigaction_default;
+struct sigaction sigaction_stack, sigaction_status;
 struct sigaction sigaction_ignore;
 static sigset_t sigcatch_set, sigexit_set, sigdefault_set, sigabort_set;
+static sigset_t sigstack_set, sigstatus_set;
 
 static sigset_t default_sigmask;
 sigset_t *kno_default_sigmask = &default_sigmask;
@@ -48,6 +50,8 @@ struct sigaction *kno_sigaction_abort = &sigaction_abort;
 struct sigaction *kno_sigaction_exit = &sigaction_exit;
 struct sigaction *kno_sigaction_default = &sigaction_default;
 struct sigaction *kno_sigaction_ignore = &sigaction_ignore;
+struct sigaction *kno_sigaction_stack = &sigaction_stack;
+struct sigaction *kno_sigaction_status = &sigaction_status;
 
 int kno_thread_sigint = -1;
 
@@ -162,11 +166,15 @@ void kno_init_signals_c()
   memset(&sigaction_abort,0,sizeof(struct sigaction));
   memset(&sigaction_exit,0,sizeof(struct sigaction));
   memset(&sigaction_default,0,sizeof(struct sigaction));
+  memset(&sigaction_stack,0,sizeof(struct sigaction));
+  memset(&sigaction_status,0,sizeof(struct sigaction));
 
   sigemptyset(&sigcatch_set);
   sigemptyset(&sigexit_set);
   sigemptyset(&sigabort_set);
   sigemptyset(&sigdefault_set);
+  sigemptyset(&sigstack_set);
+  sigemptyset(&sigstatus_set);
 
   /* Setup sigaction for converting signals to u8_raise (longjmp or exit) */
   sigaction_raise.sa_sigaction = siginfo_raise;
@@ -191,6 +199,14 @@ void kno_init_signals_c()
   sigaction_abort.sa_flags = SA_SIGINFO;
   sigemptyset(&(sigaction_abort.sa_mask));
 
+  /* Setup sigaction for stack action */
+  sigaction_stack.sa_handler = SIG_IGN;
+  sigemptyset(&(sigaction_stack.sa_mask));
+
+  /* Setup sigaction for stack action */
+  sigaction_status.sa_handler = SIG_IGN;
+  sigemptyset(&(sigaction_status.sa_mask));
+
   /* Default exit actions */
 
   sigaddset(&(sigaction_abort.sa_mask),SIGSEGV);
@@ -208,8 +224,8 @@ void kno_init_signals_c()
   sigaddset(&(sigaction_abort.sa_mask),SIGQUIT);
   sigaction(SIGQUIT,&(sigaction_abort),NULL);
 
-  sigaddset(&(sigaction_abort.sa_mask),SIGINT);
-  sigaction(SIGINT,&(sigaction_abort),NULL);
+  sigaddset(&(sigaction_raise.sa_mask),SIGINT);
+  sigaction(SIGINT,&(sigaction_raise),NULL);
 
 #ifdef SIGBUS
   sigaddset(&(sigaction_abort.sa_mask),SIGBUS);
@@ -242,6 +258,14 @@ void kno_init_signals_c()
     ("SIGEXIT",_("Signals to trigger exits"),
      sigconfig_getfn,sigconfig_exit_setfn,
      &sigexit_set);
+  kno_register_config
+    ("SIGSTACK",_("Signals to trigger stack info"),
+     sigconfig_getfn,sigconfig_exit_setfn,
+     &sigstack_set);
+  kno_register_config
+    ("SIGSTATUS",_("Signals to trigger status reports"),
+     sigconfig_getfn,sigconfig_exit_setfn,
+     &sigstatus_set);
   kno_register_config
     ("SIGABORT",_("Signals to trigger exits"),
      sigconfig_getfn,sigconfig_abort_setfn,

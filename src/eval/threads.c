@@ -1668,8 +1668,7 @@ static lispval set_cstack_limit_prim(lispval arg)
 static void thread_sigint(int signum,siginfo_t *info,void *stuff)
 {
   lispval cur = kno_current_thread;
-  if ( (cur == KNO_NULL) || (!(KNO_CONSP(cur))) ||
-       (! (KNO_TYPEP(cur,kno_thread_type)) ) ) {
+  if ( (cur) && (KNO_CONSP(cur)) && (KNO_TYPEP(cur,kno_thread_type)) ) {
     kno_thread thread = (kno_thread) cur;
     u8_condition interrupt = thread->interrupt;
     thread->interrupt = NULL;
@@ -1678,34 +1677,6 @@ static void thread_sigint(int signum,siginfo_t *info,void *stuff)
     else u8_raise(kno_ThreadInterrupted,"thread_sigint",NULL);}
   else u8_raise(kno_ThreadInterrupted,"thread_sigint",NULL);
 }
-
-#if 0
-static void thread_siginfo(int signum,siginfo_t *info,void *stuff)
-{
-  /* What should this do? */
-  lispval cur_thread = kno_current_thread;
-  u8_string log_context = u8_log_context;
-  kno_stack stackptr = kno_stackptr;
-  int emissions = 0;
-  if (TYPEP(cur_thread,kno_thread_type)) {
-    u8_log(-LOGNOTICE,"Thread","%q",cur_thread);
-    emissions++;}
-  if (stackptr) {
-    u8_log(-LOGNOTICE,"ThreadStack",
-	   "(%d) %s.%s.%s\n%q",
-	   stackptr->stack_depth,
-	   stackptr->stack_type,
-	   stackptr->stack_label,
-	   stackptr->stack_file,
-	   stackptr->stack_op);
-    emissions++;}
-  if (log_context) {
-    u8_log(-LOGNOTICE,"LogContext","%s",log_context);
-    emissions++;}
-  if (! (emissions) )
-    u8_log(-LOGNOTICE,"ThreadInfo","None available");
-}
-#endif
 
 static void init_signal_handling()
 {

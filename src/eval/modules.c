@@ -37,6 +37,8 @@ lispval kno_io_module = KNO_VOID;
 lispval kno_db_module = KNO_VOID;
 lispval kno_sys_module = KNO_VOID;
 
+KNO_EXPORT lispval kno_dbserv_module;
+
 void clear_module_load_lock(lispval spec);
 
 #define ALL_BINDINGS 0
@@ -912,6 +914,10 @@ void kno_init_module_tables()
   if (KNO_VOIDP(kno_db_module)) {
     kno_db_module = kno_make_hashtable(NULL,71);}
   kno_register_module("db",kno_db_module,(KNO_MODULE_DEFAULT));
+
+  /* This is the module where the data-access API lives */
+  kno_register_module("dbserv",kno_incref(kno_dbserv_module),0);
+  kno_finish_module(kno_dbserv_module);
 }
 
 /* Initialization */

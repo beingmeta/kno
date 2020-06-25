@@ -389,7 +389,7 @@ typedef struct KNO_DTSERVER {
   KNO_CONS_HEADER;
   u8_string dtserverid, dtserver_addr;
   /*
-  enum { dtype_protocol=0, xtype_protocol=1 } evalserver_protocol 
+  enum { dtype_protocol=0, xtype_protocol=1 } service_protocol 
   struct XTYPE_REFS refs;
   */
   struct U8_CONNPOOL *connpool;} KNO_DTSERVER;

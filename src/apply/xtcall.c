@@ -149,4 +149,3 @@ KNO_EXPORT void kno_init_xtcall_c()
                      kno_boolconfig_get,kno_boolconfig_set,&default_async);
   u8_register_source_file(_FILEINFO);
 }
-

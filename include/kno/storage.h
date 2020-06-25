@@ -18,16 +18,14 @@
 #include "streams.h"
 
 KNO_EXPORT u8_condition kno_AmbiguousObjectName,
-  kno_UnknownObjectName, kno_BadServerResponse, kno_NoBackground;
+  kno_UnknownObjectName, kno_NoBackground;
 KNO_EXPORT u8_condition kno_NoStorageMetadata;
-KNO_EXPORT u8_condition kno_ServerReconnect;
 KNO_EXPORT u8_condition kno_Commitment;
 KNO_EXPORT u8_condition kno_BadMetaData;
-KNO_EXPORT u8_condition kno_ConnectionFailed;
+KNO_EXPORT u8_condition kno_ServerReconnect;
 
 KNO_EXPORT int kno_init_drivers(void) KNO_LIBINIT_FN;
 KNO_EXPORT int kno_init_storage(void) KNO_LIBINIT_FN;
-KNO_EXPORT int kno_init_dbserv(void) KNO_LIBINIT_FN;
 
 KNO_EXPORT int kno_default_cache_level;
 KNO_EXPORT int kno_oid_display_level;
