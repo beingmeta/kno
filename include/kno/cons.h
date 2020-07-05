@@ -662,6 +662,7 @@ KNO_EXPORT lispval kno_cons_uuid
 (struct KNO_UUID *ptr,
  struct U8_XTIME *xtime,long long nodeid,short clockid);
 KNO_EXPORT lispval kno_fresh_uuid(struct KNO_UUID *ptr);
+KNO_EXPORT lispval kno_make_uuid(struct KNO_UUID *ptr,u8_uuid uuid);
 
 /* BIG INTs */
 

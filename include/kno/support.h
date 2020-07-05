@@ -206,6 +206,8 @@ KNO_EXPORT struct sigaction *kno_sigaction_exit;
 KNO_EXPORT struct sigaction *kno_sigaction_abort;
 KNO_EXPORT struct sigaction *kno_sigaction_default;
 KNO_EXPORT struct sigaction *kno_sigaction_ignore;
+KNO_EXPORT struct sigaction *kno_sigaction_status;
+KNO_EXPORT struct sigaction *kno_sigaction_stack;
 
 KNO_EXPORT sigset_t *kno_default_sigmask;
 

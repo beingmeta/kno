@@ -125,7 +125,8 @@ KNO_EXPORT void kno_reset_threadvars()
     kno_reset_hashtable((kno_hashtable)table,-1,0);
   else {
     lispval init_table = kno_empty_slotmap();
-    kno_init_threadtable(init_table);}
+    kno_init_threadtable(init_table);
+    kno_decref(init_table);}
 }
 
 
@@ -273,7 +274,7 @@ KNO_EXPORT void kno_use_reqinfo(lispval newinfo)
       (VOIDP(newinfo))||
       (EMPTYP(newinfo))) {
     kno_decref(curinfo);
-    set_reqinfo(newinfo);
+    set_reqinfo(KNO_FALSE);
     return;}
   else if (KNO_TRUEP(newinfo)) {
     kno_slotmap sm; newinfo = kno_empty_slotmap();
@@ -343,9 +344,8 @@ KNO_EXPORT lispval kno_push_reqinfo(lispval newinfo)
 static u8_tld_key reqlog_key;
 KNO_EXPORT struct U8_OUTPUT *kno_try_reqlog()
 {
-  struct U8_OUTPUT *table = (struct U8_OUTPUT *)u8_tld_get(reqlog_key);
-  if (table) return table;
-  else return NULL;
+  struct U8_OUTPUT *output = (struct U8_OUTPUT *)u8_tld_get(reqlog_key);
+  return output;
 }
 KNO_EXPORT struct U8_OUTPUT *kno_get_reqlog()
 {

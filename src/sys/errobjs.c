@@ -11,6 +11,7 @@
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
+#include "kno/xtypes.h"
 #include "kno/numbers.h"
 #include "kno/apply.h"
 
@@ -35,7 +36,7 @@
 
 static int max_irritant_len=256;
 
-static lispval stack_entry_symbol, exception_stack_symbol;
+static lispval stack_entry_symbol, exception_stack_symbol, exception_symbol;
 
 int kno_log_stack_max = 500;
 int kno_sum_stack_max = 200;
@@ -621,7 +622,7 @@ static ssize_t write_exception_dtype(struct KNO_OUTBUF *out,lispval x)
   return 1+base_len;
 }
 
-KNO_EXPORT lispval kno_restore_exception_dtype(lispval content)
+KNO_EXPORT lispval kno_unpack_exception_vector(lispval content)
 {
   /* Return an exception object if possible (content as expected)
      and a compound if there are any big surprises */
@@ -726,11 +727,70 @@ KNO_EXPORT lispval kno_restore_exception_dtype(lispval content)
        -1,-1,-1);}
   else return kno_init_exception
          (NULL,kno_DTypeError,
-          "kno_restore_exception_dtype",NULL,content,
+          "kno_unpack_exception_vector",NULL,content,
           KNO_VOID,KNO_VOID,NULL,
           u8_elapsed_time(),
           u8_elapsed_base(),
           u8_threadid());
+}
+
+static lispval restore_exception(lispval tag,lispval vec,kno_typeinfo info)
+{
+  return kno_unpack_exception_vector(vec);
+}
+
+static ssize_t write_exception_xtype
+(struct KNO_OUTBUF *out,lispval x,xtype_refs refs)
+{
+  struct KNO_EXCEPTION *xo = (struct KNO_EXCEPTION *)x;
+  u8_condition condition = xo->ex_condition;
+  u8_context caller = xo->ex_caller;
+  u8_string details = xo->ex_details;
+  lispval irritant = xo->ex_irritant;
+  lispval backtrace = xo->ex_stack;
+  lispval context = xo->ex_context;
+  u8_string session = (xo->ex_session) ? (xo->ex_session) : (u8_sessionid());
+  time_t timebase = xo->ex_timebase;
+  double moment = xo->ex_moment;
+  lispval vector = kno_empty_vector(9);
+  KNO_VECTOR_SET(vector,0,kno_intern(condition));
+  if (caller) {
+    KNO_VECTOR_SET(vector,1,kno_intern(caller));}
+  else {KNO_VECTOR_SET(vector,1,KNO_FALSE);}
+  if (details) {
+    KNO_VECTOR_SET(vector,2,kno_mkstring(details));}
+  else {KNO_VECTOR_SET(vector,2,KNO_FALSE);}
+  KNO_VECTOR_SET(vector,3,kno_incref(irritant));
+  if (!(VOIDP(backtrace)))
+    KNO_VECTOR_SET(vector,4,kno_incref(backtrace));
+  else KNO_VECTOR_SET(vector,4,KNO_FALSE);
+  KNO_VECTOR_SET(vector,5,kno_make_string(NULL,-1,session));
+  KNO_VECTOR_SET(vector,6,kno_time2timestamp(timebase));
+  KNO_VECTOR_SET(vector,7,kno_make_flonum(moment));
+  if (!(VOIDP(context)))
+    KNO_VECTOR_SET(vector,8,kno_incref(context));
+  else KNO_VECTOR_SET(vector,8,KNO_FALSE);
+
+  struct KNO_OUTBUF tmpbuf;
+  unsigned char bytes[8000];
+  KNO_INIT_OUTBUF(&tmpbuf,bytes,16000,
+		  KNO_IS_WRITING|KNO_BUFFER_NO_FLUSH|KNO_STATIC_BUFFER|
+		  KNO_WRITE_OPAQUE);
+  ssize_t xtype_len = 0;
+  ssize_t rv = kno_write_byte(&tmpbuf,xt_tagged);
+  if (rv<0) return rv; else xtype_len += rv;
+  rv = kno_write_xtype(&tmpbuf,exception_symbol,refs);
+  if (rv<0) return rv; else xtype_len += rv;
+  rv = kno_write_xtype(&tmpbuf,vector,refs);
+  if (rv<0) return rv; else xtype_len += rv;
+  kno_decref(vector);
+  if (xtype_len != (tmpbuf.bufwrite-tmpbuf.buffer) ) {
+    u8_log(LOGERR,"InconsistentXTypeSize","%d(rv) != %d(bytes) for %q",
+	   xtype_len,tmpbuf.bufwrite-tmpbuf.buffer);
+    xtype_len = tmpbuf.bufwrite-tmpbuf.buffer;}
+  kno_write_bytes(out,tmpbuf.buffer,xtype_len);
+  kno_close_outbuf(&tmpbuf);
+  return xtype_len;
 }
 
 static lispval copy_exception(lispval x,int deep)
@@ -781,7 +841,7 @@ KNO_EXPORT void kno_undeclared_error
     kno_seterr("UndeclaredError",context,details,irritant);
 }
 
-void kno_init_err_c()
+void kno_init_errobjs_c()
 {
   u8_register_source_file(_FILEINFO);
 
@@ -793,6 +853,12 @@ void kno_init_err_c()
   if (kno_unparsers[kno_exception_type]==NULL)
     kno_unparsers[kno_exception_type]=unparse_exception;
 
+  kno_xtype_writers[kno_exception_type] = write_exception_xtype;
+
+  exception_symbol=kno_intern("%%exception");
   stack_entry_symbol=kno_intern("%%stack");
   exception_stack_symbol = kno_intern("exception-stack");
+
+  kno_typeinfo ex_typeinfo = kno_use_typeinfo(exception_symbol);
+  ex_typeinfo->type_restorefn=restore_exception;
 }

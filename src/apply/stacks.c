@@ -450,6 +450,58 @@ KNO_EXPORT int kno_stackcheck()
   return stackcheck();
 }
 
+/* Add showstack signals */
+
+static void showstatus_handler(int signum,siginfo_t *info,void *stuff)
+{
+  /* What should this do? */
+  lispval cur_thread = kno_current_thread;
+  u8_string log_context = u8_log_context;
+  kno_stack stackptr = kno_stackptr;
+  int emissions = 0;
+  if (TYPEP(cur_thread,kno_thread_type)) {
+    u8_log(-LOGNOTICE,"Thread","%q",cur_thread);
+    emissions++;}
+  if (stackptr) {
+    u8_log(-LOGNOTICE,"ThreadStack",
+	   "(%d) %s.%s %q",
+	   stackptr->stack_depth,
+	   stackptr->stack_label,
+	   stackptr->stack_file,
+	   stackptr->stack_op);
+    emissions++;}
+  if (log_context) {
+    u8_log(-LOGNOTICE,"LogContext","%s",log_context);
+    emissions++;}
+  if (! (emissions) )
+    u8_log(-LOGNOTICE,"ThreadInfo","None available");
+}
+
+static void showstack_handler(int signum,siginfo_t *info,void *stuff)
+{
+  /* This should do more */
+  lispval cur_thread = kno_current_thread;
+  u8_string log_context = u8_log_context;
+  kno_stack stackptr = kno_stackptr;
+  int emissions = 0;
+  if (TYPEP(cur_thread,kno_thread_type)) {
+    u8_log(-LOGNOTICE,"Thread","%q",cur_thread);
+    emissions++;}
+  if (stackptr) {
+    u8_log(-LOGNOTICE,"ThreadStack",
+	   "(%d) %s.%s %q",
+	   stackptr->stack_depth,
+	   stackptr->stack_label,
+	   stackptr->stack_file,
+	   stackptr->stack_op);
+    emissions++;}
+  if (log_context) {
+    u8_log(-LOGNOTICE,"LogContext","%s",log_context);
+    emissions++;}
+  if (! (emissions) )
+    u8_log(-LOGNOTICE,"ThreadInfo","None available");
+}
+
 /* Initialize C stack limits */
 
 KNO_EXPORT ssize_t kno_init_cstack()
@@ -507,6 +559,14 @@ void kno_init_stacks_c()
   void_sym = kno_intern("#void");
   default_sym = kno_intern("#default");
   nofile_symbol = kno_intern("nofile");
+
+  /* Setup sigaction for status action */
+  kno_sigaction_status->sa_sigaction = showstatus_handler;
+  kno_sigaction_status->sa_flags = SA_SIGINFO;
+
+  /* Setup sigaction for status action */
+  kno_sigaction_stack->sa_sigaction = showstack_handler;
+  kno_sigaction_stack->sa_flags = SA_SIGINFO;
 
   kno_register_config
     ("STACKLIMIT",

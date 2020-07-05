@@ -20,7 +20,7 @@ lispval *kno_symbol_names;
 int kno_n_symbols = 0, kno_max_symbols = 0, kno_initial_symbols = 4096;
 struct KNO_SYMBOL_TABLE kno_symbol_table;
 
-lispval KNOSYM_ADD, KNOSYM_ADJUNCT, KNOSYM_ALL, KNOSYM_ALWAYS;
+lispval KNOSYM_ADD, KNOSYM_ADJUNCT, KNOSYM_ALL, KNOSYM_ALWAYS, KNOSYM_ARG;
 lispval KNOSYM_BLOCKSIZE, KNOSYM_BUFSIZE;
 lispval KNOSYM_CACHELEVEL, KNOSYM_CACHESIZE;
 lispval KNOSYM_CONS, KNOSYM_CONTENT, KNOSYM_CREATE;
@@ -28,7 +28,8 @@ lispval KNOSYM_DEFAULT, KNOSYM_DOT, KNOSYM_DROP, KNOSYM_DTYPE;
 lispval KNOSYM_ENCODING, KNOSYM_EQUALS, KNOSYM_ERROR;
 lispval KNOSYM_FILE, KNOSYM_FILENAME;
 lispval KNOSYM_FLAGS, KNOSYM_FORMAT, KNOSYM_FRONT, KNOSYM_HISTORY_THREADVAL;
-lispval KNOSYM_INDEX, KNOSYM_INPUT, KNOSYM_ISADJUNCT, KNOSYM_KEYSLOT;
+lispval KNOSYM_ID, KNOSYM_INDEX, KNOSYM_INPUT, KNOSYM_ISADJUNCT;
+lispval KNOSYM_KEYSLOT;
 lispval KNOSYM_LABEL, KNOSYM_LAZY, KNOSYM_LENGTH, KNOSYM_LOGLEVEL;
 lispval KNOSYM_MAIN, KNOSYM_MERGE, KNOSYM_METADATA;
 lispval KNOSYM_MINUS, KNOSYM_MODULE, KNOSYM_MODULEID;
@@ -99,6 +100,7 @@ static void init_builtin_symbols()
   KNOSYM_ADJUNCT = kno_intern("adjunct");
   KNOSYM_ALL = kno_intern("all");
   KNOSYM_ALWAYS = kno_intern("always");
+  KNOSYM_ARG = kno_intern("arg");
   KNOSYM_BLOCKSIZE = kno_intern("blocksize");
   KNOSYM_BUFSIZE = kno_intern("bufsize");
   KNOSYM_CACHELEVEL = kno_intern("cachelevel");
@@ -120,6 +122,7 @@ static void init_builtin_symbols()
   KNOSYM_FORMAT = kno_intern("format");
   KNOSYM_FRONT = kno_intern("front");
   KNOSYM_HISTORY_THREADVAL = kno_intern("%history");
+  KNOSYM_ID = kno_intern("id");
   KNOSYM_INDEX = kno_intern("index");
   KNOSYM_INPUT = kno_intern("input");
   KNOSYM_ISADJUNCT = kno_intern("isadjunct");
@@ -241,7 +244,8 @@ lispval kno_make_symbol(u8_string bytes,int len)
         const unsigned char *pname=(entries[probe])->sym_pname.str_bytes;
         if (PRED_TRUE(strncmp(bytes,pname,len) == 0))
           break;}
-      probe++; if (probe>=size) probe = 0;}
+      probe++;
+      if (probe>=size) probe = 0;}
     if (entries[probe]) {
       int id = entries[probe]->symid;
       u8_rw_unlock(&kno_symbol_lock);
@@ -254,10 +258,11 @@ lispval kno_make_symbol(u8_string bytes,int len)
       else {
         int id = kno_n_symbols++;
         u8_string pname = u8_strdup(bytes);
-        entries[probe]=u8_alloc(struct KNO_SYMBOL_ENTRY);
-        entries[probe]->symid = id;
-        kno_init_string(&(entries[probe]->sym_pname),len,pname);
-        kno_symbol_names[id]=LISP_CONS(&(entries[probe]->sym_pname));
+	struct KNO_SYMBOL_ENTRY *entry = u8_alloc(struct KNO_SYMBOL_ENTRY);
+        entry->symid = id;
+        kno_init_string(&(entry->sym_pname),len,pname);
+        kno_symbol_names[id]=LISP_CONS(&(entry->sym_pname));
+	entries[probe]=entry;
         u8_rw_unlock(&kno_symbol_lock);
         return KNO_ID2SYMBOL(id);}}}
 }

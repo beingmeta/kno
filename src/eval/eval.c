@@ -2017,6 +2017,7 @@ KNO_EXPORT void kno_init_streamprims_c(void);
 KNO_EXPORT void kno_init_dtypeprims_c(void);
 KNO_EXPORT void kno_init_xtypeprims_c(void);
 KNO_EXPORT void kno_init_timeprims_c(void);
+KNO_EXPORT void kno_init_knosockd_c(void);
 KNO_EXPORT void kno_init_sysprims_c(void);
 KNO_EXPORT void kno_init_arith_c(void);
 KNO_EXPORT void kno_init_reflection_c(void);
@@ -2033,7 +2034,7 @@ KNO_EXPORT void kno_init_eval_getopt_c(void);
 KNO_EXPORT void kno_init_eval_debug_c(void);
 KNO_EXPORT void kno_init_eval_testops_c(void);
 KNO_EXPORT void kno_init_configops_c(void);
-KNO_EXPORT void kno_init_neteval_c(void);
+KNO_EXPORT void kno_init_srvcall_c(void);
 
 static void init_eval_core()
 {
@@ -2044,7 +2045,7 @@ static void init_eval_core()
   kno_init_eval_debug_c();
   kno_init_eval_testops_c();
   kno_init_evalops_c();
-  kno_init_neteval_c();
+  kno_init_srvcall_c();
   kno_init_tableprims_c();
   kno_init_loadmods_c();
   kno_init_modules_c();
@@ -2085,6 +2086,7 @@ static void init_eval_core()
   kno_init_timeprims_c();
   kno_init_sysprims_c();
   kno_init_sqldbprims_c();
+  kno_init_knosockd_c();
 
   u8_threadcheck();
 

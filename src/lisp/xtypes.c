@@ -184,7 +184,8 @@ KNO_EXPORT ssize_t _kno_xtype_ref(lispval x,xtype_refs refs,int add)
 
 KNO_EXPORT void kno_recycle_xrefs(xtype_refs refs)
 {
-  if ( ( (refs->xt_refs_flags) & (XTYPE_REFS_EXT_ELTS) ) == 0) {
+  if ( (refs->xt_lookup != NULL) &&
+       ( ( (refs->xt_refs_flags) & (XTYPE_REFS_EXT_ELTS) ) == 0) ) {
     kno_recycle_hashtable(refs->xt_lookup);
     u8_free(refs->xt_lookup);}
   if ( ( (refs->xt_refs_flags) & (XTYPE_REFS_EXT_ELTS) ) == 0) {

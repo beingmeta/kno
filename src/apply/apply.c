@@ -203,6 +203,7 @@ static lispval profiled_dcall
     struct KNO_STACK stack = { 0 };
     KNO_SETUP_STACK((&stack),NULL);
     int setup = setup_call_stack(&stack,fn,n,argvec,&f);
+    if ( (f) && (f->fcn_name) ) fname = f->fcn_name;
     if (setup < 0) return KNO_ERROR;
     if (f) profile = f->fcn_profile;
     if ( (profile) && (profile->prof_disabled) ) profile=NULL;
@@ -590,6 +591,8 @@ void kno_init_stacks_c(void);
 void kno_init_lexenv_c(void);
 void kno_init_ffi_c(void);
 void kno_init_exec_c(void);
+void kno_init_services_c(void);
+void kno_init_netprocs_c(void);
 
 /* PROFILED functions config */
 
@@ -797,8 +800,6 @@ KNO_EXPORT void kno_profile_start(struct rusage *before,struct timespec *start)
 #endif
 }
 
-
-
 /* Initializations */
 
 KNO_EXPORT void kno_init_apply_c()
@@ -829,5 +830,6 @@ KNO_EXPORT void kno_init_apply_c()
   kno_init_stacks_c();
   kno_init_lexenv_c();
   kno_init_exec_c();
+  kno_init_services_c();
 }
 
