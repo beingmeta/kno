@@ -639,7 +639,8 @@ static lispval read_xtype(kno_inbuf in,xtype_refs refs)
 	 ( (KNO_COMPOUND_SEQUENCE) | (seqoff<<8) ) :
 	 (0) );
       kno_decref(schema); /* This is for future expansion */
-      int n = (n_elts-4) + ((tablep)?(1):(0));
+      int n = n_elts-4;
+      if (tablep) n++;
       lispval result =
 	kno_init_compound_from_elts(NULL,tag,compound_flags,n,NULL);
       if (KNO_ABORTED(result)) {
@@ -649,7 +650,8 @@ static lispval read_xtype(kno_inbuf in,xtype_refs refs)
 	cvec->compound_istable=1;
 	if (sequencep) cvec->compound_seqoff++;}
       lispval *write = KNO_COMPOUND_ELTS(result);
-      lispval *limit = write+(n_elts-4);
+      lispval *limit = write+n;
+      if (tablep) *write++=table;
       while (write<limit) {
 	lispval elt = read_xtype(in,refs);
 	if (ABORTED(elt)) {
@@ -983,9 +985,11 @@ static ssize_t write_compound(kno_outbuf out,
   ssize_t bytes = 0;
   int n_elts = cvec->compound_length;
   lispval *elts = &(cvec->compound_0), *limit = elts + n_elts;
+  int tablep = (cvec->compound_istable);
+  int write_elts = n_elts + 4 - tablep;
   ssize_t rv = kno_write_byte(out,xt_compound);
   if (rv<0) return rv; else bytes += rv;
-  rv = kno_write_varint(out,n_elts+4);
+  rv = kno_write_varint(out,write_elts);
   if (rv<0) return rv; else bytes += rv;
   rv = write_xtype(out,cvec->typetag,refs);
   if (rv<0) return rv; else bytes += rv;
