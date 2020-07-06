@@ -134,9 +134,11 @@ KNO_FASTOP unsigned int hash_lisp1(lispval x)
       struct KNO_QCHOICE *qc = KNO_XQCHOICE(x);
       return hash_lisp1(qc->qchoiceval);}
     case kno_flonum_type: {
+      double dval = KNO_FLONUM(x);
+      float fval = (float) dval;
       unsigned int as_int;
       float *f = (float *)(&as_int);
-      *f = KNO_FLONUM(x);
+      *f = fval;
       return (as_int)%(MAGIC_MODULUS);}
     case kno_vector_type: {
       int size = VEC_LEN(x); unsigned int i = 0, sum = 0;
