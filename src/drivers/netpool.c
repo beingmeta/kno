@@ -39,17 +39,6 @@ static lispval client_id = VOID;
 static void init_client_id(void);
 static u8_mutex client_id_lock;
 
-static int server_supportsp(struct KNO_NETWORK_POOL *np,lispval operation)
-{
-  lispval response =
-    kno_service_call(np->pool_server,KNOSYM(supportedp),1,operation);
-  if ((FALSEP(response)) || (KNO_ABORTP(response)))
-    return 0;
-  else {
-    kno_decref(response);
-    return 1;}
-}
-
 static void init_network_pool
 (struct KNO_NETWORK_POOL *p,lispval netinfo,
  u8_string spec,u8_string source,kno_storage_flags flags,
@@ -74,31 +63,6 @@ static void init_network_pool
   else p->pool_label = NULL;
   /* Register the pool */
   kno_register_pool((kno_pool)p);
-}
-
-static lispval get_pool_data(u8_string spec,u8_string *xid)
-{
-  lispval request, result;
-  u8_socket c = u8_connect_x(spec,xid);
-  struct KNO_STREAM _stream, *stream=
-    kno_init_stream(&_stream,spec,c,
-                   KNO_STREAM_DOSYNC|KNO_STREAM_SOCKET,
-                   KNO_NETWORK_BUFSIZE);
-  struct KNO_OUTBUF *outstream = (stream) ? (kno_writebuf(stream)) :(NULL);
-  if (stream == NULL)
-    return KNO_ERROR;
-  if (VOIDP(client_id)) init_client_id();
-  request = kno_make_list(2,pool_data_symbol,kno_incref(client_id));
-  /* u8_logf(LOG_WARN,"GETPOOLDATA","Making request (on #%d) for %q",c,request); */
-  if (kno_write_dtype(outstream,request)<0) {
-    kno_free_stream(stream);
-    kno_decref(request);
-    return KNO_ERROR;}
-  kno_decref(request);
-  result = kno_read_dtype(kno_readbuf(stream));
-  /* u8_logf(LOG_WARN,"GETPOOLDATA","Got result (on #%d)",c,request); */
-  kno_close_stream(stream,KNO_STREAM_FREEDATA);
-  return result;
 }
 
 KNO_EXPORT kno_pool kno_open_network_pool(u8_string spec,

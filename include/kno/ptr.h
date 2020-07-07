@@ -325,7 +325,6 @@ KNO_FASTOP U8_MAYBE_UNUSED kno_raw_cons KNO_RAW_CONS(lispval x){ return (kno_raw
 #define KNO_CONS_TYPE_MASK (0x7f)
 /* These are for cases where a set of basic types are all arranged to
    have the same high bytes, making it easy to test for them. */
-#define KNO_XCONS_TYPE_MASK (0x7e)
 #define KNO_XXCONS_TYPE_MASK (0x7c)
 
 #if 0
@@ -353,12 +352,6 @@ KNO_FASTOP U8_MAYBE_UNUSED int _KNO_ISDTYPE(lispval x){ return 1;}
 #define KNO_CONSPTR_TYPE(x) (KNO_CONS_TYPE((kno_cons)x))
 #define KNO_CONS_TYPEOF(x) KNO_CONS_TYPE((kno_cons)x)
 
-#define KNO_XCONS_TYPE(x) \
-  (( (((kno_cons)(x))->conshead) & (KNO_XCONS_TYPE_MASK) )+(KNO_CONS_TYPE_OFF))
-#define KNO_XCONS_TYPEOF(x) (KNO_XCONS_TYPE((kno_cons)(x)))
-#define KNO_XCONS_TYPEP(x,type) \
-  ( (KNO_CONSP(x)) && ( (KNO_XXCONS_TYPE((kno_cons)(x))) == ((type)&0xFe) ) )
-
 #define KNO_XXCONS_TYPE(x) \
   (( (((kno_cons)(x))->conshead) & (KNO_XXCONS_TYPE_MASK) )+(KNO_CONS_TYPE_OFF))
 #define KNO_XXCONS_TYPEOF(x) (KNO_XXCONS_TYPE((kno_cons)(x)))
@@ -373,13 +366,6 @@ KNO_FASTOP U8_MAYBE_UNUSED int _KNO_ISDTYPE(lispval x){ return 1;}
    ((((KNO_CHECK_PTR(x)) ?                                              \
       (kno_raise(kno_TypeError,kno_type_names[typecode],NULL,x)) :      \
       (_kno_bad_pointer(x,kno_type_names[typecode])))),                 \
-    ((cast)NULL)))
-#define kno_xconsptr(cast,x,typecode)                                   \
-  ((KNO_EXPECT_TRUE(KNO_TYPEP(x,typecode))) ?                           \
-   ((cast)((kno_cons)(x))) :                                            \
-   (((KNO_CHECK_PTR(x))?                                                \
-     (kno_seterr(kno_TypeError,kno_type_names[typecode],NULL,x)):       \
-     (kno_seterr(kno_BadPtr,kno_type_names[typecode],NULL,x))),         \
     ((cast)NULL)))
 
 #define KNO_NULL ((lispval)(NULL))

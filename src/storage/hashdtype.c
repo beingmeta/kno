@@ -113,7 +113,7 @@ KNO_FASTOP unsigned int hash_lisp1(lispval x)
 #endif
       }
   else if (CONSP(x)) {
-    kno_lisp_type constype = KNO_XCONS_TYPE(x);
+    kno_lisp_type constype = KNO_CONS_TYPE((kno_cons)x);
     switch (constype) {
     case kno_string_type: {
       const u8_byte *scan = CSTRING(x), *lim = scan+STRLEN(x);
@@ -134,11 +134,9 @@ KNO_FASTOP unsigned int hash_lisp1(lispval x)
       struct KNO_QCHOICE *qc = KNO_XQCHOICE(x);
       return hash_lisp1(qc->qchoiceval);}
     case kno_flonum_type: {
-      double dval = KNO_FLONUM(x);
-      float fval = (float) dval;
-      unsigned int as_int;
-      float *f = (float *)(&as_int);
-      *f = fval;
+      unsigned long as_int;
+      double *f = (double *)(&as_int);
+      *f = KNO_FLONUM(x);
       return (as_int)%(MAGIC_MODULUS);}
     case kno_vector_type: {
       int size = VEC_LEN(x); unsigned int i = 0, sum = 0;
@@ -287,7 +285,7 @@ KNO_FASTOP unsigned int hash_lisp2(lispval x)
 #endif
   }
   else if (CONSP(x)) {
-    int ctype = KNO_XCONS_TYPE(x);
+    int ctype = KNO_CONS_TYPE((kno_cons)x);
     switch (ctype) {
     case kno_string_type:
       return hash_string_lisp2(x);
@@ -429,7 +427,7 @@ KNO_FASTOP unsigned int hash_lisp3(lispval x)
 #endif
   }
   else if (CONSP(x)) { /*  if (CONSP(x)) */
-    int ctype = KNO_XCONS_TYPE(x);
+    int ctype = KNO_CONS_TYPE((kno_cons)x);
     switch (ctype) {
     case kno_string_type:
       return hash_string_lisp2(x);
