@@ -755,7 +755,7 @@ static lispval removeif_prim(lispval test,lispval sequence)
   else return kno_removeif(test,sequence,0);
 }
 
-DEFPRIM2("remove-if-not",removeifnot_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDOP,
+DEFPRIM2("remove-if-not",removeifnot_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	 "`(REMOVE-IF-NOT *arg0* *arg1*)` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval removeifnot_prim(lispval test,lispval sequence)
@@ -1557,7 +1557,7 @@ static lispval seq2vector(lispval seq)
   else return kno_type_error(_("sequence"),"seq2vector",seq);
 }
 
-DEFPRIM("1vector",onevector_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(0)|KNO_NDOP,
+DEFPRIM("1vector",onevector_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(0)|KNO_NDCALL,
 	"`(1VECTOR *args...*)` **undocumented**");
 static lispval onevector_prim(int n,kno_argvec args)
 {

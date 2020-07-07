@@ -295,7 +295,7 @@ static lispval get_arg_prim(lispval expr,lispval elt,lispval dflt)
 
 /* APPLY */
 
-DEFPRIM("apply",apply_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDOP,
+DEFPRIM("apply",apply_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	"`(APPLY *arg0* *args...*)` **undocumented**");
 static lispval apply_lexpr(int n,kno_argvec args)
 {
@@ -603,7 +603,7 @@ static lispval type_handlers_prim(lispval arg,lispval method)
 
 static lispval opaque_symbol, mutable_symbol, sequence_symbol;
 
-DEFPRIM3("type-set!",type_set_prim,KNO_MIN_ARGS(3)|KNO_NDOP,
+DEFPRIM3("type-set!",type_set_prim,KNO_MIN_ARGS(3)|KNO_NDCALL,
 	 "`(type-set! *tag* *field* *value*)` stores *value* "
 	 "in *field* of the properties associated with the type tag *tag*.",
 	 kno_any_type,KNO_VOID,kno_symbol_type,KNO_VOID,kno_any_type,KNO_VOID);
@@ -681,7 +681,7 @@ static lispval ffi_foundp_prim(lispval name,lispval modname)
 
 /* Choice operations */
 
-DEFPRIM1("%fixchoice",fixchoice_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDOP,
+DEFPRIM1("%fixchoice",fixchoice_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	 "`(%FIXCHOICE *arg0*)` **undocumented**",
 	 kno_any_type,KNO_VOID);
 static lispval fixchoice_prim(lispval arg)
@@ -691,7 +691,7 @@ static lispval fixchoice_prim(lispval arg)
   else return kno_incref(arg);
 }
 
-DEFPRIM2("%choiceref",choiceref_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDOP,
+DEFPRIM2("%choiceref",choiceref_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	 "`(%CHOICEREF *arg0* *arg1*)` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval choiceref_prim(lispval arg,lispval off)

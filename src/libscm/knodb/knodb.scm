@@ -141,9 +141,9 @@
 	   (let* ((rootdir (dirname (pool-source pool)))
 		  (indexes (index/ref (poolctl pool 'metadata 'indexes)
 				      (opt+ 'rootdir rootdir opts))))
-	     (poolctl pool 'props 'indexes (try indexes #f))
 	     (do-choices (partition (poolctl pool 'partitions))
 	       (set+! indexes (get-indexes-for-pool partition opts)))
+	     (poolctl pool 'props 'indexes (try indexes #f))
 	     indexes))
       (fail)))
 

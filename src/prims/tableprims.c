@@ -1042,7 +1042,7 @@ static lispval reset_hashset(lispval hs)
   else return KNO_FALSE;
 }
 
-DEFPRIM("CHOICE->HASHSET",choices2hashset,KNO_N_ARGS|MIN_ARGS(0)|NDOP,
+DEFPRIM("CHOICE->HASHSET",choices2hashset,KNO_VAR_ARGS|MIN_ARGS(0)|NDOP,
         "`(CHOICE->HASHSET choices...)` returns a hashset combining "
         "mutiple choices.")
 static lispval choices2hashset(int n,kno_argvec args)

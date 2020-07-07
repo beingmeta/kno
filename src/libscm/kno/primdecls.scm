@@ -76,7 +76,7 @@
 (define (get-cprim-flags f kno-prefix)
   (let ((flags '()))
     (when (non-deterministic? f)
-      (set! flags (cons "KNO_NDOP" flags)))
+      (set! flags (cons "KNO_NDCALL" flags)))
     (set! flags
       (cons (glom kno-prefix "MIN_ARGS(" (procedure-min-arity f) ")") flags))
     (set! flags

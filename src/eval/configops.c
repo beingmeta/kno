@@ -61,7 +61,7 @@ static u8_string get_config_path(u8_string spec)
 
 /* Core functions */
 
-DEFPRIM3("config",config_get,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1)|KNO_NDOP,
+DEFPRIM3("config",config_get,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	 "`(CONFIG *name* [*default*=#f] [*valfn*])`\n"
 	 "Gets the configuration setting named *name*, "
 	 "returning *default* if it isn't defined. *valfn*, "

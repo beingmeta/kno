@@ -139,9 +139,9 @@ static struct KNO_CPRIM *make_cprim(u8_string name,
 {
   int arity = ( (flags&0x80) ? (-1) : ( flags & (0x7f) ) );
   int min_arity = (flags&0x8000) ? ( (flags>>8) & 0x7f) : (arity);
-  int non_deterministic = flags & KNO_NDOP;
+  int non_deterministic = flags & KNO_NDCALL;
   int extended_call = flags & KNO_XCALL;
-  int varargs = ( (arity < 0) || (flags & KNO_LEXPR) );
+  int varargs = ( (arity < 0) || (flags & KNO_VAR_ARGS) );
   /* We allocate the type/default info together with the function to
      reduce cache/page misses. We might need to worry about how we're
      figuring out these pointers for non-word-aligned architectures, but

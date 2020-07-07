@@ -567,7 +567,7 @@ static int add_query_param(u8_output out,lispval name,lispval value,int nocolon)
 
 /* URI encoding */
 
-DEFPRIM3("uriencode",uriencode_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1)|KNO_NDOP,
+DEFPRIM3("uriencode",uriencode_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1)|KNO_NDCALL,
          "(uriencode *val* [*chars*] [*upper*]) "
          "encodes a value for use as a URI component (e.g. "
          "translating space into '%20'.) If *val* is a "
@@ -734,7 +734,7 @@ static lispval scripturl_core(u8_string baseuri,lispval params,
   else return kno_stream2string(&out);
 }
 
-DEFPRIM("scripturl",scripturl,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDOP,
+DEFPRIM("scripturl",scripturl,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
         "`(SCRIPTURL *arg0* *args...*)` **undocumented**");
 static lispval scripturl(int n,kno_argvec args)
 {
@@ -754,7 +754,7 @@ static lispval scripturl(int n,kno_argvec args)
   else return scripturl_core(CSTRING(args[0]),VOID,n-1,args+1,1,0);
 }
 
-DEFPRIM("knoscripturl",knoscripturl,KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDOP,
+DEFPRIM("knoscripturl",knoscripturl,KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
         "`(KNOSCRIPTURL *arg0* *arg1* *args...*)` **undocumented**");
 static lispval knoscripturl(int n,kno_argvec args)
 {
@@ -774,7 +774,7 @@ static lispval knoscripturl(int n,kno_argvec args)
   else return scripturl_core(CSTRING(args[0]),VOID,n-1,args+1,0,0);
 }
 
-DEFPRIM("scripturl+",scripturlplus,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDOP,
+DEFPRIM("scripturl+",scripturlplus,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
         "`(SCRIPTURL+ *arg0* *args...*)` **undocumented**");
 static lispval scripturlplus(int n,kno_argvec args)
 {
@@ -794,7 +794,7 @@ static lispval scripturlplus(int n,kno_argvec args)
   else return scripturl_core(CSTRING(args[0]),args[1],n-2,args+2,1,0);
 }
 
-DEFPRIM("knoscripturl+",knoscripturlplus,KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDOP,
+DEFPRIM("knoscripturl+",knoscripturlplus,KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
         "`(KNOSCRIPTURL+ *arg0* *arg1* *args...*)` **undocumented**");
 static lispval knoscripturlplus(int n,kno_argvec args)
 {

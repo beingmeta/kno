@@ -952,7 +952,7 @@ static off_t find_substring(u8_string string,lispval strings,
 static ssize_t get_more_data(u8_input in,ssize_t lim);
 static lispval record_reader(lispval port,lispval ends,lispval limit_arg);
 
-DEFPRIM3("read-record",read_record_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1)|KNO_NDOP,
+DEFPRIM3("read-record",read_record_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	 "`(READ-RECORD *ports* [*separator*] [*limit*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
 	 kno_any_type,KNO_VOID);
@@ -1069,7 +1069,7 @@ static lispval maxkeys_symbol, listmax_symbol, vecmax_symbol, choicemax_symbol;
 
 #define PPRINT_MARGINBUF_SIZE 256
 
-DEFPRIM("pprint",lisp_pprint,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDOP,
+DEFPRIM("pprint",lisp_pprint,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	"(pprint *object* *port* *width* *margin*)\n"
 	"Generates a formatted representation of *object* "
 	"on *port* () with a width of *width* columns with "
@@ -1232,7 +1232,7 @@ static int get_fixopt(lispval opts,lispval optname,long long *intval)
 
 static lispval label_symbol, width_symbol, depth_symbol, output_symbol;
 
-DEFPRIM3("listdata",lisp_listdata,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1)|KNO_NDOP,
+DEFPRIM3("listdata",lisp_listdata,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	 "`(LISTDATA *object* [*opts*] [*port*])` "
 	 "output a formatted textual representation of "
 	 "*object* to *port*, controlled by *opts*.",

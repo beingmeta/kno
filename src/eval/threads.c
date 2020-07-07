@@ -1240,7 +1240,7 @@ static int join_thread(struct KNO_THREAD *tstruct,
   return rv;
 }
 
-DEFPRIM2("thread/join",threadjoin_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDOP,
+DEFPRIM2("thread/join",threadjoin_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	 "(THREAD/JOIN *threads* [*opts*]) "
 	 "waits for *threads* to finish. If *opts* is "
 	 "provided, it specifies a timeout. This returns "
@@ -1274,7 +1274,7 @@ static lispval threadjoin_prim(lispval threads,lispval U8_MAYBE_UNUSED opts)
   return finished;
 }
 
-DEFPRIM2("thread/wait",threadwait_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDOP,
+DEFPRIM2("thread/wait",threadwait_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	 "(THREAD/WAIT *threads* [*opts*]) "
 	 "waits for all of *threads* to return. If provided "
 	 "*opts* specifies a timeout, and unfinished "
@@ -1307,7 +1307,7 @@ static lispval threadwait_prim(lispval threads,lispval U8_MAYBE_UNUSED opts)
   return unfinished;
 }
 
-DEFPRIM2("thread/finish",threadfinish_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDOP,
+DEFPRIM2("thread/finish",threadfinish_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	 "(THREAD/FINISH *args* [*opts*]) "
 	 "waits for all of threads in *args* to return, "
 	 "returning the non-VOID thread results together "
@@ -1360,7 +1360,7 @@ static lispval threadfinish_prim(lispval args,lispval opts)
   return results;
 }
 
-DEFPRIM2("thread/wait!",threadwaitbang_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDOP,
+DEFPRIM2("thread/wait!",threadwaitbang_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	 "(THREAD/WAIT! *threads*) "
 	 "waits for all of *threads* to return, and returns "
 	 "VOID. *opts is currently ignored.",

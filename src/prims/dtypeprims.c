@@ -182,7 +182,7 @@ static lispval zwrite_dtypes(lispval object,lispval stream)
 
 static lispval lisp2zipfile(lispval object,lispval filename,lispval bufsiz);
 
-DEFPRIM3("dtype->file",lisp2file,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDOP,
+DEFPRIM3("dtype->file",lisp2file,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	 "`(DTYPE->FILE *arg0* *arg1* [*arg2*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
 	 kno_any_type,KNO_VOID);
@@ -235,7 +235,7 @@ static lispval lisp2file(lispval object,lispval filename,lispval bufsiz)
   else return kno_type_error(_("string"),"lisp2file",filename);
 }
 
-DEFPRIM3("dtype->zfile",lisp2zipfile,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDOP,
+DEFPRIM3("dtype->zfile",lisp2zipfile,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	 "`(DTYPE->ZFILE *arg0* *arg1* [*arg2*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
 	 kno_any_type,KNO_VOID);
@@ -335,7 +335,7 @@ static ssize_t write_dtypes(lispval dtypes,struct KNO_STREAM *out)
 
 static lispval add_lisp2zipfile(lispval object,lispval filename);
 
-DEFPRIM2("dtypes->file+",add_dtypes2file,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDOP,
+DEFPRIM2("dtypes->file+",add_dtypes2file,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	 "`(DTYPES->FILE+ *arg0* *arg1*)` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval add_dtypes2file(lispval object,lispval filename)
@@ -367,7 +367,7 @@ static lispval add_dtypes2file(lispval object,lispval filename)
   else return kno_type_error(_("string"),"add_dtypes2file",filename);
 }
 
-DEFPRIM2("dtype->zfile+",add_lisp2zipfile,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDOP,
+DEFPRIM2("dtype->zfile+",add_lisp2zipfile,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	 "`(DTYPE->ZFILE+ *arg0* *arg1*)` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval add_lisp2zipfile(lispval object,lispval filename)

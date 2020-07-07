@@ -550,7 +550,7 @@ static lispval kno_run(u8_string source_file,struct U8_OUTPUT *out,
       return result;}}
 }
 
-DEFPRIM("kno/run-file",kno_run_file,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDOP,
+DEFPRIM("kno/run-file",kno_run_file,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	"Loads a file and applies its (main) procedure to "
 	"the arguments");
 static lispval kno_run_file(int n,kno_argvec args)
@@ -561,7 +561,7 @@ static lispval kno_run_file(int n,kno_argvec args)
   else return kno_type_error("filename","kno_run_file",args[0]);
 }
 
-DEFPRIM("kno/run->string",kno_run_file_2string,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDOP,
+DEFPRIM("kno/run->string",kno_run_file_2string,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	"Loads a KNO file and applies its (main) procedure "
 	"to the arguments, returns the output as a string");
 static lispval kno_run_file_2string(int n,kno_argvec args)

@@ -219,13 +219,20 @@ KNO_EXPORT lispval kno_cons_cprimN
 		  _FILEINFO " L#" STRINGIFY(__LINE__),	\
 		  doc,flags,fn)
 
-/* Adding primitives */
+/* FLags for primitive definitions */
+
+/* [][priminfo][min][max] */
+
+#define KNO_OPT_ARGS  0x08000
+#define KNO_VAR_ARGS  0x00080
+#define KNO_MAX_ARGS(n) ( (n < 0) ? (0x80) : ((n)&(0x7F)) )
+#define KNO_MIN_ARGS(n) ( (n < 0) ? (0x00) : ( (0x8000) | (((n)&(0x7F))<<8) ) )
 
 #define KNO_XCALL    0x10000
-#define KNO_NDOP     0x20000
-#define KNO_CHOICEOP KNO_NDOP
-#define KNO_LEXPR    0x40000
-#define KNO_VARARGS  KNO_LEXPR
+#define KNO_NDCALL   0x20000
+#define KNO_NDOP     KNO_NDCALL
+#define KNO_CHOICEOP KNO_NDCALL
+
 
 /* Useful macros */
 
