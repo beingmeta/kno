@@ -161,10 +161,11 @@ KNO_FASTOP lispval union_reduce(lispval state,lispval step,int *done)
 {
   if (VOIDP(state)) return step;
   else if (EMPTYP(step)) return state;
+  else if (step == state) return state;
   else {
-    if (!(KNO_PRECHOICEP(state))) kno_incref(state);
-    KNO_ADD_TO_CHOICE(state,step);
+    // if (!(KNO_PRECHOICEP(state))) kno_incref(state);
     kno_incref(step);
+    KNO_ADD_TO_CHOICE(state,step);
     return state;}
 }
 
