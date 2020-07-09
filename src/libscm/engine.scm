@@ -441,165 +441,166 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	 ;; How many threads to actually create
 	 (rthreads (if (and nthreads (> nthreads (length batches)))
 		       (length batches)
-		       nthreads))
-	 (fifo-opts 
-	  (frame-create #f
-	    'name (getopt opts 'name (or (procedure-name fcn) {}))
-	    'fillfn (getopt opts 'fillfifo fifo/exhausted!)
-	    'size (getopt opts 'fillmax {})))
-	 (fifo (if (number? batches)
-		   (fifo/make batches fifo-opts)
-		   (->fifo batches fifo-opts)))
-	 (name (getopt engine-opts 'name
-		       (getopt loop-opts 'name
-			       (or (fifo-name fifo)
-				   (procedure-name fcn)
-				   (stringout fifo)))))
-	 (fill (getopt opts 'fill #f))
-	 (before (getopt opts 'before #f))
-	 (after (getopt opts 'after #f))
-	 (stop (getopt opts 'stopfn #f))
-	 (state (getopt opts 'state (init-state opts)))
-	 (logfns (getopt opts 'logfns {}))
-	 (counters {(getopt state 'counters {}) (getopt opts 'counters {})})
-	 (count-term (getopt opts 'count-term "items"))
-	 (loop-state (frame-create #f
-		       'fifo fifo
-		       'counters counters
-		       'started (getopt opts 'started (elapsed-time))
-		       'total (tryif (vector? items) n-items)
-		       'batchsize batchsize
-		       'batchrange batchsize
-		       'name name
-		       'n-batches (tryif (vector? batches) (length batches))
-		       'nthreads rthreads
-		       'logcontext (getopt opts 'logcontext)
-		       '%loglevel (getopt opts 'loglevel {})
-		       'logfreq (getopt opts 'logfreq log-frequency)
-		       'checkfreq (getopt opts 'checkfreq check-frequency)
-		       'checkspace (getopt opts 'checkspace check-spacing)
-		       'checktests (getopt opts 'checktests {})
-		       'checkpoint (getopt opts 'checkpoint {})
-		       'checkpause (getopt opts 'checkpause {})
-		       'checksync (getopt opts 'checksync {})
-		       'monitors (getopt opts 'monitors {})
-		       'onerror (getopt opts 'onerror 'stopall)
-		       'logfns logfns
-		       'logcounters (getopt opts 'logcounters {})
-		       'logrates (getopt opts 'logrates {})
-		       'init (deep-copy state)
-		       'state (deep-copy state)
-		       'count-term count-term
-		       'nthreads nthreads
-		       'filling #f
-		       'opts opts
-		       'cycles 1))
-	 (%loglevel (getopt opts 'loglevel %loglevel))
-	 (count 0))
+		       nthreads)))
+    (when (> n-items 0)
+      (let* ((fifo-opts 
+	      (frame-create #f
+		'name (getopt opts 'name (or (procedure-name fcn) {}))
+		'fillfn (getopt opts 'fillfifo fifo/exhausted!)
+		'size (getopt opts 'fillmax {})))
+	     (fifo (if (number? batches)
+		       (fifo/make batches fifo-opts)
+		       (->fifo batches fifo-opts)))
+	     (name (getopt engine-opts 'name
+			   (getopt loop-opts 'name
+				   (or (fifo-name fifo)
+				       (procedure-name fcn)
+				       (stringout fifo)))))
+	     (fill (getopt opts 'fill #f))
+	     (before (getopt opts 'before #f))
+	     (after (getopt opts 'after #f))
+	     (stop (getopt opts 'stopfn #f))
+	     (state (getopt opts 'state (init-state opts)))
+	     (logfns (getopt opts 'logfns {}))
+	     (counters {(getopt state 'counters {}) (getopt opts 'counters {})})
+	     (count-term (getopt opts 'count-term "items"))
+	     (loop-state (frame-create #f
+			   'fifo fifo
+			   'counters counters
+			   'started (getopt opts 'started (elapsed-time))
+			   'total (tryif (vector? items) n-items)
+			   'batchsize batchsize
+			   'batchrange batchsize
+			   'name name
+			   'n-batches (tryif (vector? batches) (length batches))
+			   'nthreads rthreads
+			   'logcontext (getopt opts 'logcontext)
+			   '%loglevel (getopt opts 'loglevel {})
+			   'logfreq (getopt opts 'logfreq log-frequency)
+			   'checkfreq (getopt opts 'checkfreq check-frequency)
+			   'checkspace (getopt opts 'checkspace check-spacing)
+			   'checktests (getopt opts 'checktests {})
+			   'checkpoint (getopt opts 'checkpoint {})
+			   'checkpause (getopt opts 'checkpause {})
+			   'checksync (getopt opts 'checksync {})
+			   'monitors (getopt opts 'monitors {})
+			   'onerror (getopt opts 'onerror 'stopall)
+			   'logfns logfns
+			   'logcounters (getopt opts 'logcounters {})
+			   'logrates (getopt opts 'logrates {})
+			   'init (deep-copy state)
+			   'state (deep-copy state)
+			   'count-term count-term
+			   'nthreads nthreads
+			   'filling #f
+			   'opts opts
+			   'cycles 1))
+	     (%loglevel (getopt opts 'loglevel %loglevel))
+	     (count 0))
 
-    (when (table? loop-opts)
-      (do-choices (key (getkeys loop-opts))
-	(unless (test loop-opts key)
-	  (add! loop-state key (get loop-opts key)))))
-      
-    (when (table? loop-opts)
-      (do-choices (key (getkeys loop-opts))
-	(unless (test loop-state key)
-	  (add! loop-state key (get loop-opts key)))))
-  
+	(when (table? loop-opts)
+	  (do-choices (key (getkeys loop-opts))
+	    (unless (test loop-opts key)
+	      (add! loop-state key (get loop-opts key)))))
+	
+	(when (table? loop-opts)
+	  (do-choices (key (getkeys loop-opts))
+	    (unless (test loop-state key)
+	      (add! loop-state key (get loop-opts key)))))
+	
     ;;; Check arguments
-    (do-choices fcn
-      (unless (and (applicable? fcn) (overlaps? (procedure-arity fcn) {1 2 4}))
-	(irritant fcn |ENGINE/InvalidLoopFn| engine/run)))
-    (when (and (exists? before) before)
-      (do-choices before
-	(when before
-	  (unless (and (applicable? before) (= (procedure-arity before) 4))
-	    (irritant before |ENGINE/InvalidBeforeFn| engine/run)))))
-    (when (and (exists? after) after)
-      (do-choices after
-	(unless (and (applicable? after) (= (procedure-arity after) 4))
-	  (irritant after |ENGINE/InvalidAfterFn| engine/run))))
-    (when (and (exists? fill) fill)
-      (do-choices fill
-	(unless (applicable? fill)
-	  (irritant after |ENGINE/InvalidFillFn| engine/run))))
+	(do-choices fcn
+	  (unless (and (applicable? fcn) (overlaps? (procedure-arity fcn) {1 2 4}))
+	    (irritant fcn |ENGINE/InvalidLoopFn| engine/run)))
+	(when (and (exists? before) before)
+	  (do-choices before
+	    (when before
+	      (unless (and (applicable? before) (= (procedure-arity before) 4))
+		(irritant before |ENGINE/InvalidBeforeFn| engine/run)))))
+	(when (and (exists? after) after)
+	  (do-choices after
+	    (unless (and (applicable? after) (= (procedure-arity after) 4))
+	      (irritant after |ENGINE/InvalidAfterFn| engine/run))))
+	(when (and (exists? fill) fill)
+	  (do-choices fill
+	    (unless (applicable? fill)
+	      (irritant after |ENGINE/InvalidFillFn| engine/run))))
 
-    (when (and (exists? logfns) logfns)
-      (do-choices (logfn (difference logfns #t))
-	(unless (and (applicable? logfn) 
-		     (overlaps? (procedure-arity logfn) {1 3 6}))
-	  (irritant logfn |ENGINE/InvalidLogfn| engine/run))))
+	(when (and (exists? logfns) logfns)
+	  (do-choices (logfn (difference logfns #t))
+	    (unless (and (applicable? logfn) 
+			 (overlaps? (procedure-arity logfn) {1 3 6}))
+	      (irritant logfn |ENGINE/InvalidLogfn| engine/run))))
 
-    (if (vector? batches)
-	(lognotice |Engine| 
-	  "Processing " ($count n-items) " " count-term " "
-	  (when (and batchsize (> batchsize 1))
-	    (printout "in " ($count (length batches)) " batches "
-	      "of up to " batchsize " " count-term " "))
-	  "using " (or rthreads "no") " threads with "
-	  (if (procedure-name fcn)
-	      (printout (procedure-name fcn)
-		(if (procedure-filename fcn)
-		    (printout ":" (procedure-filename fcn))))
-	      fcn)))
+	(if (vector? batches)
+	    (lognotice |Engine| 
+	      "Processing " ($count n-items) " " count-term " "
+	      (when (and batchsize (> batchsize 1))
+		(printout "in " ($count (length batches)) " batches "
+		  "of up to " batchsize " " count-term " "))
+	      "using " (or rthreads "no") " threads with "
+	      (if (procedure-name fcn)
+		  (printout (procedure-name fcn)
+		    (if (procedure-filename fcn)
+			(printout ":" (procedure-filename fcn))))
+		  fcn)))
 
-    (if (and rthreads (> rthreads 1))
-	(let ((threads {}))
-	  (dotimes (i rthreads)
-	    (set+! threads 
-	      (thread/call engine-threadfn 
-		  fcn fifo opts 
-		  loop-state state 
-		  (qc before) (qc after) (qc fill)
-		  (getopt opts 'monitors)
-		  stop))
-	    (when spacing (sleep spacing)))
-	  (loginfo |Engine/Threads| fifo fcn
-		   (do-choices (thread threads)
-		     (lineout "  " (thread-id thread) "\t" thread)))
-	  (thread/wait threads))
-	(engine-threadfn 
-	 fcn fifo opts 
-	 loop-state state 
-	 (qc before) (qc after) (qc fill)
-	 (getopt opts 'monitors)
-	 stop))
-    
-    (let* ((elapsed (elapsed-time (get loop-state 'started)))
-	   (rate (/ n-items elapsed)))
-      (lognotice |Engine| 
-	"Finished " ($count n-items) " " count-term " "
-	(when (and batchsize (> batchsize 1))
-	  (printout "across " ($count (length batches)) " batches "))
-	"in " (secs->string elapsed #t) " "
-	"averaging " ($showrate rate) " " count-term "/sec"))
+	(if (and rthreads (> rthreads 1))
+	    (let ((threads {}))
+	      (dotimes (i rthreads)
+		(set+! threads 
+		  (thread/call engine-threadfn 
+		      fcn fifo opts 
+		      loop-state state 
+		      (qc before) (qc after) (qc fill)
+		      (getopt opts 'monitors)
+		      stop))
+		(when spacing (sleep spacing)))
+	      (loginfo |Engine/Threads| fifo fcn
+		       (do-choices (thread threads)
+			 (lineout "  " (thread-id thread) "\t" thread)))
+	      (thread/wait threads))
+	    (engine-threadfn 
+	     fcn fifo opts 
+	     loop-state state 
+	     (qc before) (qc after) (qc fill)
+	     (getopt opts 'monitors)
+	     stop))
+	
+	(let* ((elapsed (elapsed-time (get loop-state 'started)))
+	       (rate (/ n-items elapsed)))
+	  (lognotice |Engine| 
+	    "Finished " ($count n-items) " " count-term " "
+	    (when (and batchsize (> batchsize 1))
+	      (printout "across " ($count (length batches)) " batches "))
+	    "in " (secs->string elapsed #t) " "
+	    "averaging " ($showrate rate) " " count-term "/sec"))
 
-    (unless (test loop-state 'stopped)
-      (store! loop-state 'stopped (timestamp))
-      (store! loop-state 'stopval 'final))
+	(unless (test loop-state 'stopped)
+	  (store! loop-state 'stopped (timestamp))
+	  (store! loop-state 'stopval 'final))
 
-    (if (getopt opts 'finalcheck #t)
-	(begin
-	  (when (checkpointing? loop-state)
-	    (engine/checkpoint loop-state fifo #t))
-	  (when (getopt opts 'finalcommit #f) (commit)))
-	(begin
-	  (lognotice |Engine| "Skipping final checkpoint for ENGINE/RUN")
-	  (do-choices (counter counters)
-	    (store! state counter 
-		    (+ (try (get state counter) 0)
-		       (try (get loop-state counter) 0))))
-	  (engine-logger (qc) 0 (elapsed-time (get loop-state 'started))
-			 #[] loop-state state)))
+	(if (getopt opts 'finalcheck #t)
+	    (begin
+	      (when (checkpointing? loop-state)
+		(engine/checkpoint loop-state fifo #t))
+	      (when (getopt opts 'finalcommit #f) (commit)))
+	    (begin
+	      (lognotice |Engine| "Skipping final checkpoint for ENGINE/RUN")
+	      (do-choices (counter counters)
+		(store! state counter 
+		  (+ (try (get state counter) 0)
+		     (try (get loop-state counter) 0))))
+	      (engine-logger (qc) 0 (elapsed-time (get loop-state 'started))
+			     #[] loop-state state)))
 
-    (when (and (exists? (get loop-state 'errors))
-	       (overlaps? (get loop-state 'onerror) 'signal))
-      (irritant (get loop-state 'errors)
-	  |EngineErrors| engine/run
-	  (stringout ($num (choice-size (get loop-state 'errors)))
-	    " errors occurred running " fifo)))
-    loop-state))
+	(when (and (exists? (get loop-state 'errors))
+		   (overlaps? (get loop-state 'onerror) 'signal))
+	  (irritant (get loop-state 'errors)
+	      |EngineErrors| engine/run
+	      (stringout ($num (choice-size (get loop-state 'errors)))
+		" errors occurred running " fifo)))
+	loop-state))))
 
 (define (init-state opts)
   (let* ((state (or (and (getopt opts 'statefile)
