@@ -247,6 +247,9 @@ KNO_EXPORT lispval kno_tcachecall(lispval fcn,int n,kno_argvec args);
 #ifndef KNO_THREAD_OIDCACHE_SIZE
 #define KNO_THREAD_OIDCACHE_SIZE 128
 #endif
+#ifndef KNO_THREAD_ADJCACHE_SIZE
+#define KNO_THREAD_ADJCACHE_SIZE KNO_THREAD_OIDCACHE_SIZE
+#endif
 #ifndef KNO_THREAD_BGCACHE_SIZE
 #define KNO_THREAD_BGCACHE_SIZE 128
 #endif
@@ -257,6 +260,7 @@ KNO_EXPORT lispval kno_tcachecall(lispval fcn,int n,kno_argvec args);
 typedef struct KNO_THREAD_CACHE {
   int threadcache_inuse; u8_string threadcache_id;
   struct KNO_HASHTABLE oids;
+  struct KNO_HASHTABLE adjuncts;
   struct KNO_HASHTABLE indexes;
   struct KNO_HASHTABLE bground;
   struct KNO_HASHTABLE calls;
@@ -277,8 +281,12 @@ KNO_EXPORT int kno_free_thread_cache(struct KNO_THREAD_CACHE *tc);
 KNO_EXPORT int kno_pop_threadcache(struct KNO_THREAD_CACHE *tc);
 
 KNO_EXPORT kno_thread_cache kno_new_thread_cache(void);
-KNO_EXPORT kno_thread_cache
-  kno_cons_thread_cache(int ccsize,int ocsize,int bcsize,int kcsize);
+KNO_EXPORT kno_thread_cache kno_cons_thread_cache
+(int call_cache_size,
+ int oid_cache_size,
+ int adjunct_cache_size,
+ int background_cache_size,
+ int kcsize);
 
 KNO_EXPORT kno_thread_cache kno_push_threadcache(kno_thread_cache);
 KNO_EXPORT kno_thread_cache kno_set_threadcache(kno_thread_cache);
