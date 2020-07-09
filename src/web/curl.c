@@ -1291,7 +1291,7 @@ static lispval responsestatusprim(lispval response)
     return kno_type_error("HTTP response","responsestatusprim",response);}
   else return status;
 }
-DEFPRIM3("response/status?",testresponseprim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDOP,
+DEFPRIM3("response/status?",testresponseprim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	 "`(RESPONSE/STATUS? *arg0* *arg1* [*arg2*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
 	 kno_any_type,KNO_VOID);

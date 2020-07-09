@@ -60,11 +60,17 @@ kno_lexenv kno_dynamic_lexenv(kno_lexenv env)
       newenv->env_bindings = bindings;
       newenv->env_copy     = newenv;
       env->env_copy        = newenv;
-      newenv->env_vals     = NULL;
-      newenv->env_pvals    = NULL;
-      newenv->env_flags    = 0;
-      KNO_UNLOCK_PTR((void *)env);
-      return newenv;}}
+      if (KNO_SCHEMAPP(bindings)) {
+	struct KNO_SCHEMAP *smap = (kno_schemap) bindings;
+	int vlen = smap->schema_length;
+	if (vlen < 256) {
+	  newenv->env_vals = smap->table_values;
+	  newenv->env_bits = vlen;}
+	else {
+	  newenv->env_vals     = NULL;
+	  newenv->env_bits    = 0;}
+	KNO_UNLOCK_PTR((void *)env);}
+	return newenv;}}
 }
 
 static kno_lexenv copy_lexenv(kno_lexenv env)
@@ -183,6 +189,8 @@ KNO_EXPORT void kno_destroy_lexenv(kno_lexenv env)
 {
   lispval bindings = env->env_bindings;
   env->env_bindings = KNO_EMPTY;
+  env->env_vals = NULL;
+  env->env_bits &= (~(KNO_LEXENV_NVALS_MASK));
   kno_decref(bindings);
 }
 
@@ -263,6 +271,22 @@ static ssize_t lexenv_dtype(struct KNO_OUTBUF *out,lispval x)
   kno_write_bytes(out,tmp.buffer,n_bytes);
   kno_close_outbuf(&tmp);
   return n_bytes;
+}
+
+/* Finding bindings */
+
+KNO_EXPORT kno_lexenv kno_find_binding(kno_lexenv env,lispval symbol,int any)
+{
+  kno_lexenv scan = (env->env_copy) ? (env->env_copy) : (env);
+  while (scan) {
+    if ( (any) ? (kno_test(scan->env_bindings,symbol,VOID)) :
+	 (KNO_TABLEP(scan->env_exports)) ?
+	 (kno_test(scan->env_exports,symbol,VOID)) : (0) )
+      return scan;
+    scan = scan->env_parent;
+    if ((scan) && (scan->env_copy))
+      scan = scan->env_copy;}
+  return NULL;
 }
 
 KNO_EXPORT void kno_init_lexenv_c()

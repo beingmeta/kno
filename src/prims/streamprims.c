@@ -35,8 +35,6 @@
 #define KNO_DTWRITE_SIZE 10000
 #endif
 
-static lispval fixsyms_symbol;
-
 DEFPRIM3("write-bytes",write_bytes,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
 	 "(WRITE-BYTES *obj* *stream* [*pos*]) "
 	 "writes the bytes in *obj* to *stream* at *pos*. "
@@ -369,8 +367,6 @@ static lispval open_byte_output_file(lispval fname,lispval opts)
     (u8_file_existsp(filename)) ?
     (kno_open_file(filename,KNO_FILE_MODIFY)) :
     (kno_open_file(filename,KNO_FILE_CREATE));
-  if ( (KNO_CONSP(opts)) && (kno_testopt(opts,fixsyms_symbol,VOID)) ) {
-    dts->stream_flags |= KNO_STREAM_LOUDSYMS;}
   if (dts) {
     U8_CLEAR_ERRNO();
     return LISP_CONS(dts);}
@@ -392,17 +388,15 @@ static lispval open_byte_input_file(lispval fname,lispval opts)
   else {
     struct KNO_STREAM *stream = kno_open_file(filename,KNO_STREAM_READ_ONLY);
     if (stream) {
-      if ( (KNO_CONSP(opts)) && (kno_testopt(opts,fixsyms_symbol,VOID)) ) {
-	stream->stream_flags |= KNO_STREAM_LOUDSYMS;}
       U8_CLEAR_ERRNO();
       return (lispval) stream;}
     else return KNO_ERROR_VALUE;}
 }
 
-DEFPRIM1("extend-byte-file",extend_byte_file,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(EXTEND-BYTE-FILE *filename*)` **undocumented**",
+DEFPRIM1("extend-byte-output",extend_byte_output,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "`(EXTEND-BYTE-OUTPUT *filename*)` **undocumented**",
 	 kno_string_type,KNO_VOID);
-static lispval extend_byte_file(lispval fname)
+static lispval extend_byte_output(lispval fname)
 {
   u8_string filename = CSTRING(fname);
   struct KNO_STREAM *stream = NULL;
@@ -412,6 +406,7 @@ static lispval extend_byte_file(lispval fname)
   if (stream == NULL)
     return KNO_ERROR_VALUE;
   else {
+    kno_endpos(stream);
     U8_CLEAR_ERRNO();
     return (lispval) stream;}
 }
@@ -553,7 +548,6 @@ KNO_EXPORT void kno_init_streamprims_c()
   streamprims_module =
     kno_new_cmodule("streamprims",(KNO_MODULE_DEFAULT),kno_init_streamprims_c);
   u8_register_source_file(_FILEINFO);
-  fixsyms_symbol = kno_intern("LOUDSYMS");
 
   link_local_cprims();
 
@@ -572,13 +566,9 @@ static void link_local_cprims()
   KNO_LINK_ALIAS("dtype-input?",byte_inputp,streamprims_module);
   KNO_LINK_PRIM("byte-stream?",streamp,1,streamprims_module);
   KNO_LINK_ALIAS("dtype-stream?",streamp,streamprims_module);
-  KNO_LINK_PRIM("extend-byte-file",extend_byte_file,1,streamprims_module);
-  KNO_LINK_ALIAS("extend-dtype-file",extend_byte_file,streamprims_module);
+  KNO_LINK_PRIM("extend-byte-output",extend_byte_output,1,streamprims_module);
   KNO_LINK_PRIM("open-byte-input",open_byte_input_file,2,streamprims_module);
   KNO_LINK_PRIM("open-byte-output",open_byte_output_file,2,streamprims_module);
-  KNO_LINK_ALIAS("open-dtype-input",open_byte_input_file,streamprims_module);
-  KNO_LINK_ALIAS("open-dtype-output",open_byte_output_file,streamprims_module);
-  KNO_LINK_ALIAS("open-dtype-file",open_byte_input_file,streamprims_module);
   KNO_LINK_PRIM("zwrite-int",zwrite_int,2,kno_scheme_module);
   KNO_LINK_PRIM("zread-int",zread_int,1,kno_scheme_module);
   KNO_LINK_PRIM("write-8bytes",write_8bytes,3,kno_scheme_module);
@@ -592,5 +582,11 @@ static void link_local_cprims()
 
   KNO_LINK_ALIAS("read-int",read_4bytes,scheme_module);
   KNO_LINK_ALIAS("write-int",write_4bytes,scheme_module);
+  KNO_LINK_ALIAS("extend-byte-file",extend_byte_output,scheme_module);
+
+  KNO_LINK_ALIAS("extend-dtype-file",extend_byte_output,streamprims_module);
+  KNO_LINK_ALIAS("open-dtype-input",open_byte_input_file,streamprims_module);
+  KNO_LINK_ALIAS("open-dtype-output",open_byte_output_file,streamprims_module);
+  KNO_LINK_ALIAS("open-dtype-file",open_byte_input_file,streamprims_module);
 
 }

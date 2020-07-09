@@ -40,7 +40,7 @@ KNO_FASTOP lispval copy_elt(lispval elt,int flags)
       case kno_uuid_type: case kno_mystery_type:
       case kno_rawptr_type: case kno_regex_type:
       case kno_ioport_type: case kno_stream_type:
-      case kno_evalserver_type: case kno_bloom_filter_type:
+      case kno_service_type: case kno_bloom_filter_type:
         if ( (flags) & (KNO_COPY_TERMINALS) )
           return kno_copier(elt,flags);
         else return kno_incref(elt);

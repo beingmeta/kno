@@ -63,6 +63,7 @@ typedef enum XT_TYPE_CODE {
   xt_choice	  = XT_VECTOR(0x00),
   xt_vector	  = XT_VECTOR(0x01),
   xt_table	  = XT_VECTOR(0x02),
+  xt_compound	  = XT_VECTOR(0x03),
 
   xt_absref	  = XT_XREF(0x00),
   xt_offref	  = XT_XREF(0x01),

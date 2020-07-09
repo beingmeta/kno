@@ -295,7 +295,7 @@ static lispval get_arg_prim(lispval expr,lispval elt,lispval dflt)
 
 /* APPLY */
 
-DEFPRIM("apply",apply_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDOP,
+DEFPRIM("apply",apply_lexpr,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	"`(APPLY *arg0* *args...*)` **undocumented**");
 static lispval apply_lexpr(int n,kno_argvec args)
 {
@@ -603,7 +603,7 @@ static lispval type_handlers_prim(lispval arg,lispval method)
 
 static lispval opaque_symbol, mutable_symbol, sequence_symbol;
 
-DEFPRIM3("type-set!",type_set_prim,KNO_MIN_ARGS(3)|KNO_NDOP,
+DEFPRIM3("type-set!",type_set_prim,KNO_MIN_ARGS(3)|KNO_NDCALL,
 	 "`(type-set! *tag* *field* *value*)` stores *value* "
 	 "in *field* of the properties associated with the type tag *tag*.",
 	 kno_any_type,KNO_VOID,kno_symbol_type,KNO_VOID,kno_any_type,KNO_VOID);
@@ -681,7 +681,7 @@ static lispval ffi_foundp_prim(lispval name,lispval modname)
 
 /* Choice operations */
 
-DEFPRIM1("%fixchoice",fixchoice_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDOP,
+DEFPRIM1("%fixchoice",fixchoice_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	 "`(%FIXCHOICE *arg0*)` **undocumented**",
 	 kno_any_type,KNO_VOID);
 static lispval fixchoice_prim(lispval arg)
@@ -691,7 +691,7 @@ static lispval fixchoice_prim(lispval arg)
   else return kno_incref(arg);
 }
 
-DEFPRIM2("%choiceref",choiceref_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDOP,
+DEFPRIM2("%choiceref",choiceref_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	 "`(%CHOICEREF *arg0* *arg1*)` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval choiceref_prim(lispval arg,lispval off)
@@ -815,6 +815,108 @@ static lispval get_documentation(lispval x)
   else return KNO_FALSE;
 }
 
+/* Apropos */
+
+/* Apropos */
+
+DEFPRIM1("apropos",apropos_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "`(APROPOS *arg0*)` **undocumented**",
+	 kno_any_type,KNO_VOID);
+static lispval apropos_prim(lispval arg)
+{
+  u8_string seeking; lispval all, results = EMPTY;
+  regex_t *regex = NULL; u8_mutex *lock = NULL;
+  if (SYMBOLP(arg)) seeking = SYM_NAME(arg);
+  else if (STRINGP(arg)) seeking = CSTRING(arg);
+  else if (KNO_REGEXP(arg)) {
+    struct KNO_REGEX *krx = (kno_regex) arg;
+    regex = &(krx->rxcompiled);
+    lock  = &(krx->rx_lock);
+    u8_lock_mutex(lock);}
+  else return kno_type_error(_("string or symbol"),"apropos",arg);
+  all = kno_all_symbols();
+  {DO_CHOICES(sym,all) {
+      u8_string name = SYM_NAME(sym);
+      if (regex) {
+	int rv = regexec(regex,name,0,NULL,0);
+	if (rv == REG_NOMATCH) {}
+	else if (rv) {}
+	else {CHOICE_ADD(results,sym);}}
+      else if (strcasestr(name,seeking)) {
+	CHOICE_ADD(results,sym);}
+      else NO_ELSE;}}
+  kno_decref(all);
+  if (lock) u8_unlock_mutex(lock);
+  return results;
+}
+
+/* Environment functions */
+
+DEFPRIM2("fcn/getalias",fcn_getalias_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	 "`(FCN/ALIAS *sym* *module*)` tries to return a function alias for "
+	 "*sym* in *module*",
+	 kno_symbol_type,KNO_VOID,kno_any_type,KNO_VOID);
+static lispval fcn_getalias_prim(lispval sym,lispval env_arg)
+{
+  lispval use_env = KNO_VOID, result = KNO_VOID;
+  if ( (KNO_SYMBOLP(env_arg)) || (KNO_STRINGP(env_arg)) )
+    use_env = kno_find_module(env_arg,1);
+  else if (KNO_LEXENVP(env_arg))
+    use_env = env_arg;
+  else if ( (KNO_HASHTABLEP(env_arg)) &&
+	    (kno_test(env_arg,KNOSYM_MODULEID,KNO_VOID)) )
+    use_env = env_arg;
+  else return kno_err("NotAModule","fcn_getalias_prim",
+		      KNO_SYMBOL_NAME(sym),
+		      env_arg);
+  if (KNO_ABORTED(use_env))
+    return use_env;
+  else if (KNO_VOIDP(use_env))
+    result = kno_err("BadEnvArg","fcnalias_prim",
+		     KNO_SYMBOL_NAME(sym),
+		     env_arg);
+  else NO_ELSE;
+  if (KNO_VOIDP(result)) {
+    lispval val = (KNO_LEXENVP(use_env)) ?
+      (kno_symeval(sym,(kno_lexenv)env_arg)) :
+      (KNO_TABLEP(use_env)) ?
+      (kno_get(use_env,sym,KNO_VOID)) :
+      (KNO_VOID);
+    if (KNO_ABORTED(val))
+      result = val;
+    else if (KNO_VOIDP(val))
+      result = kno_err("Unbound","fcnalias_prim",
+		       KNO_SYMBOL_NAME(sym),
+		       use_env);
+    else if ( (KNO_CONSP(val)) &&
+	      ( (KNO_FUNCTIONP(val)) ||
+		(KNO_APPLICABLEP(val)) ||
+		(KNO_EVALFNP(val)) ||
+		(KNO_MACROP(val)) ))
+      result = kno_fcn_ref(sym,use_env,val);
+    else result = kno_incref(val);}
+  if ( use_env != env_arg) kno_decref(use_env);
+  return result;
+}
+
+/* Access to kno_exec, the database layer interpreter */
+
+DEFPRIM2("kno/exec",kno_exec_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	 "`(kno/exec *expr* *envopts*)` calls the query interpreter "
+	 "on *expr* with handlers from *envopts*",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+static lispval kno_exec_prim(lispval expr,lispval env)
+{
+  struct KNO_STACK exec_stack = { 0 };
+  KNO_SETUP_STACK(&exec_stack,"kno/exec");
+  KNO_STACK_SET_CALLER(&exec_stack,kno_stackptr);
+  exec_stack.stack_op = expr;
+  KNO_PUSH_STACK(&exec_stack);
+  lispval val = kno_exec(expr,env,&exec_stack);
+  KNO_POP_STACK(&exec_stack);
+  return val;
+}
+
 /* The init function */
 
 KNO_EXPORT void kno_init_evalops_c()
@@ -837,6 +939,8 @@ KNO_EXPORT void kno_init_evalops_c()
 
 static void link_local_cprims()
 {
+  KNO_LINK_PRIM("kno/exec",kno_exec_prim,2,kno_scheme_module);
+
   KNO_LINK_PRIM("call/cc",callcc,1,kno_scheme_module);
   KNO_LINK_ALIAS("call-with-current-continuation",callcc,kno_scheme_module);
 
@@ -847,7 +951,10 @@ static void link_local_cprims()
   KNO_LINK_PRIM("%choiceref",choiceref_prim,2,kno_scheme_module);
   KNO_LINK_PRIM("get-arg",get_arg_prim,3,kno_scheme_module);
 
+  KNO_LINK_PRIM("fcn/getalias",fcn_getalias_prim,2,kno_scheme_module);
+
   KNO_LINK_PRIM("documentation",get_documentation,1,kno_scheme_module);
+  KNO_LINK_PRIM("apropos",apropos_prim,1,kno_scheme_module);
 
   KNO_LINK_PRIM("environment?",environmentp_prim,1,kno_scheme_module);
   KNO_LINK_PRIM("%lexref",lexref_prim,2,kno_scheme_module);

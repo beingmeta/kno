@@ -78,7 +78,8 @@ static lispval index_slotids(lispval index_arg)
   else return kno_index_ctl(ix,kno_slotids_op,0,NULL);
 }
 
-DEFPRIM("indexctl",indexctl_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+DEFPRIM("indexctl",indexctl_prim,
+	KNO_NDCALL|KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(INDEXCTL *arg0* *arg1* *args...*)` **undocumented**");
 static lispval indexctl_prim(int n,kno_argvec args)
 {
@@ -104,7 +105,8 @@ static lispval indexctl_prim(int n,kno_argvec args)
   else return kno_index_ctl(ix,args[1],n-2,args+2);
 }
 
-DEFPRIM("indexctl/default",indexctl_default_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+DEFPRIM("indexctl/default",indexctl_default_prim,
+	KNO_NDCALL|KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(INDEXCTL/DEFAULT *arg0* *arg1* *args...*)` **undocumented**");
 static lispval indexctl_default_prim(int n,kno_argvec args)
 {
@@ -116,7 +118,8 @@ static lispval indexctl_default_prim(int n,kno_argvec args)
   else return kno_default_indexctl(ix,args[1],n-2,args+2);
 }
 
-DEFPRIM("poolctl",poolctl_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+DEFPRIM("poolctl",poolctl_prim,
+	KNO_NDCALL|KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(POOLCTL *arg0* *arg1* *args...*)` **undocumented**");
 static lispval poolctl_prim(int n,kno_argvec args)
 {
@@ -142,7 +145,8 @@ static lispval poolctl_prim(int n,kno_argvec args)
   else return kno_pool_ctl(p,args[1],n-2,args+2);
 }
 
-DEFPRIM("poolctl/default",poolctl_default_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+DEFPRIM("poolctl/default",poolctl_default_prim,
+	KNO_NDCALL|KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"`(POOLCTL/DEFAULT *arg0* *arg1* *args...*)` **undocumented**");
 static lispval poolctl_default_prim(int n,kno_argvec args)
 {
@@ -156,7 +160,8 @@ static lispval poolctl_default_prim(int n,kno_argvec args)
 
 /* DBCTL */
 
-DEFPRIM("dbctl",dbctl_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDOP,
+DEFPRIM("dbctl",dbctl_prim,
+	KNO_NDCALL|KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	"(DBCTL *dbref* *op* ... *args*) "
 	"performs an operation *op* on the pool or index "
 	"*dbref* with *args*. *op* is a symbol and *dbref* "

@@ -538,7 +538,7 @@ static lispval string_stdstring(lispval string)
 
 DEFPRIM1("stdobj",stdobj,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "`(STDOBJ *arg*)` "
-	 "if *arg* is a string, this normalizes its "
+	 "if *arg* is a string, this normalizes it for "
 	 "whitespace and capitalization, otherwise *arg* is "
 	 "simply returned.",
 	 kno_any_type,KNO_VOID);
@@ -603,6 +603,35 @@ static lispval string_startword(lispval string)
     else {
       last = scan; c = u8_sgetc(&scan);}}
   return kno_incref(string);
+}
+
+DEFPRIM2("indent-text",indent_text_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	 "`(INDENT_TEXT *text* [*indent*])` returns a copy "
+	 "of *text* indented by *indent* (either a string or "
+	 "a positive fixnum.",
+	 kno_string_type,KNO_VOID,
+	 kno_any_type,KNO_VOID);
+static lispval indent_text_prim(lispval text,lispval indent_arg)
+{
+  u8_string indent =
+    (KNO_STRINGP(indent_arg)) ? (KNO_CSTRING(indent_arg)) : (NULL);
+  int indent_len =
+    (KNO_FIXNUMP(indent_arg)) ? (KNO_FIX2INT(indent_arg)) : (-1);
+  if (indent) {}
+  else if (indent_len<0)
+    return kno_err("InvalidIndent","indent_text",NULL,indent_arg);
+  else if (indent_len==0)
+    return kno_incref(text);
+  else NO_ELSE;
+  int buflen = (indent_len>0) ? (indent_len++) : (1);
+  u8_byte indentbuf[buflen];
+  if (indent == NULL) {
+    int i = 0; while (i<indent_len) {
+      indentbuf[i++]=' ';}
+    indentbuf[i]='\0';
+    indent=indentbuf;}
+  u8_string indented = u8_indent_text(KNO_CSTRING(text),indent);
+  return kno_init_string(NULL,-1,indented);
 }
 
 DEFPRIM("symbolize",symbolize_cprim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
@@ -1100,7 +1129,7 @@ static int has_suffix_test(lispval string,lispval suffix)
       return 1;
     else return 0;}
 }
-DEFPRIM2("has-suffix",has_suffix,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDOP,
+DEFPRIM2("has-suffix",has_suffix,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	 "`(HAS-SUFFIX *string* *suffixes*)` "
 	 "returns true if *string* starts with any of "
 	 "*suffixes* (also strings).",
@@ -1152,7 +1181,7 @@ DEFPRIM2("is-suffix",is_suffix,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 static lispval is_suffix(lispval suffix,lispval string) {
   return has_suffix(string,suffix); }
 
-DEFPRIM2("strip-suffix",strip_suffix,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDOP,
+DEFPRIM2("strip-suffix",strip_suffix,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	 "`(STRIP-SUFFIX *string* *suffixes*)` "
 	 "removes the longest of *suffixes* from the end of "
 	 "*string*, if any.",
@@ -1207,7 +1236,7 @@ static int has_prefix_test(lispval string,lispval prefix)
     else return 0;}
 }
 
-DEFPRIM2("has-prefix",has_prefix,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDOP,
+DEFPRIM2("has-prefix",has_prefix,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	 "`(HAS-PREFIX *string* *prefixes*)` "
 	 "returns true if *string* starts with any of "
 	 "*prefixes* (also strings).",
@@ -1258,7 +1287,7 @@ DEFPRIM2("is-prefix",is_prefix,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 static lispval is_prefix(lispval prefix,lispval string) {
   return has_prefix(string,prefix); }
 
-DEFPRIM2("strip-prefix",strip_prefix,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDOP,
+DEFPRIM2("strip-prefix",strip_prefix,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	 "`(STRIP-PREFIX *string* *suffixes*)` "
 	 "removes the longest of *suffixes* from the "
 	 "beginning of *string*, if any.",
@@ -1359,7 +1388,7 @@ static lispval yesp_prim(lispval arg,lispval dflt,lispval yes,lispval no)
 
 /* STRSEARCH */
 
-DEFPRIM3("strmatch?",strmatchp_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDOP,
+DEFPRIM3("strmatch?",strmatchp_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	 "`(STRMATCH? *string* *patterns* *pos*)` "
 	 "return true if any of *patterns* (a choice of "
 	 "strings or regexes) matches the substring of "
@@ -1775,8 +1804,8 @@ static void link_local_cprims()
 {
   KNO_LINK_VARARGS("glom",glom_lexpr,kno_scheme_module);
   KNO_LINK_PRIM("trim-spaces",trim_spaces,1,kno_scheme_module);
-  KNO_LINK_VARARGS("string-subst*",string_subst_star,kno_scheme_module);
   KNO_LINK_PRIM("string-subst",string_subst_prim,3,kno_scheme_module);
+  KNO_LINK_VARARGS("string-subst*",string_subst_star,kno_scheme_module);
   KNO_LINK_PRIM("packet->string",packet2string,2,kno_scheme_module);
   KNO_LINK_PRIM("->secret",x2secret_prim,1,kno_scheme_module);
   KNO_LINK_PRIM("string->packet",string2packet,3,kno_scheme_module);
@@ -1789,6 +1818,7 @@ static void link_local_cprims()
   KNO_LINK_PRIM("is-suffix",is_suffix,2,kno_scheme_module);
   KNO_LINK_PRIM("has-suffix",has_suffix,2,kno_scheme_module);
   KNO_LINK_PRIM("make-string",makestring_prim,2,kno_scheme_module);
+  KNO_LINK_PRIM("indent-text",indent_text_prim,2,kno_scheme_module);
   KNO_LINK_VARARGS("string",string_prim,kno_scheme_module);
   KNO_LINK_VARARGS("string-append",string_append_prim,kno_scheme_module);
   KNO_LINK_VARARGS("char-ci>?",char_ci_gt,kno_scheme_module);

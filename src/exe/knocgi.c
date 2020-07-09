@@ -1110,7 +1110,7 @@ static int webservefn(u8_client ucl)
     kno_lexenv base = kno_consptr(kno_lexenv,KNO_CDR(proc),kno_lexenv_type);
     kno_lexenv runenv = kno_make_env(kno_incref(cgidata),base);
     base_env = base;
-    if (base) kno_load_latest(NULL,base,NULL);
+    if (base) kno_load_updates(base);
     threadcache = checkthreadcache(base);
     if ((forcelog)||(traceweb>1))
       u8_log(LOG_NOTICE,"START",
@@ -2081,10 +2081,6 @@ int main(int argc,char **argv)
   KNO_INIT_SCHEME_BUILTINS();
   kno_init_dbserv();
 #endif
-
-  /* This is the module where the data-access API lives */
-  kno_register_module("dbserv",kno_incref(kno_dbserv_module),0);
-  kno_finish_module(kno_dbserv_module);
 
   kno_init_webtools();
   kno_init_drivers();

@@ -12,16 +12,18 @@
 #endif
 
 #include <libu8/u8netfns.h>
-#include <kno/evalserver.h>
+#include <kno/services.h>
 
 typedef struct KNO_NETPROC {
   KNO_FUNCTION_FIELDS;
-  lispval netprocname;
-  struct KNO_EVALSERVER *evalserver;} KNO_NETPROC;
+  lispval netproc_name;
+  lispval netproc_opts;
+  struct KNO_SERVICE *service;} KNO_NETPROC;
 typedef struct KNO_NETPROC *kno_netproc;
 
-KNO_EXPORT lispval kno_make_netproc(kno_evalserver server,u8_string name,
-				    int ndcall,int arity,int min_arity);
+KNO_EXPORT lispval kno_make_netproc(kno_service server,u8_string name,
+				    int ndcall,int arity,int min_arity,
+				    lispval opts);
 
 #endif
 

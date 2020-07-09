@@ -219,12 +219,20 @@ KNO_EXPORT lispval kno_cons_cprimN
 		  _FILEINFO " L#" STRINGIFY(__LINE__),	\
 		  doc,flags,fn)
 
-/* Adding primitives */
+/* FLags for primitive definitions */
 
-#define KNO_XCALL   0x10000
-#define KNO_NDOP    0x20000
-#define KNO_LEXPR   0x40000
-#define KNO_VARARGS KNO_LEXPR
+/* [][priminfo][min][max] */
+
+#define KNO_OPT_ARGS  0x08000
+#define KNO_VAR_ARGS  0x00080
+#define KNO_MAX_ARGS(n) ( (n < 0) ? (0x80) : ((n)&(0x7F)) )
+#define KNO_MIN_ARGS(n) ( (n < 0) ? (0x00) : ( (0x8000) | (((n)&(0x7F))<<8) ) )
+
+#define KNO_XCALL    0x10000
+#define KNO_NDCALL   0x20000
+#define KNO_NDOP     KNO_NDCALL
+#define KNO_CHOICEOP KNO_NDCALL
+
 
 /* Useful macros */
 
@@ -336,6 +344,9 @@ KNO_EXPORT lispval kno_dcall(struct KNO_STACK *stack,lispval,int n,kno_argvec rg
 
 #define kno_apply(fn,n_args,argv) (kno_call(kno_stackptr,fn,n_args,argv))
 #define kno_dapply(fn,n_args,argv) (kno_dcall(kno_stackptr,fn,n_args,argv))
+
+KNO_EXPORT lispval kno_exec(lispval expr,lispval handlers,kno_stack stack);
+KNO_EXPORT lispval kno_exec_extend(lispval add,lispval path);
 
 KNO_EXPORT int _KNO_APPLICABLEP(lispval x);
 KNO_EXPORT int _KNO_APPLICABLE_TYPEP(int typecode);

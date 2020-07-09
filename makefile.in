@@ -158,10 +158,10 @@ SRC_HEADERS=src/lisp/biginternals.h 		\
 	src/drivers/headers/fileindex.h 	\
 	src/drivers/headers/memindex.h	 	\
 	src/drivers/headers/bigpool.h	 	\
-	src/drivers/headers/knopool.h	 	\
+	src/drivers/headers/kpool.h	 	\
 	src/drivers/headers/oidpool.h	 	\
 	src/drivers/headers/hashindex.h		\
-	src/drivers/headers/knoindex.h		\
+	src/drivers/headers/kindex.h		\
 	src/drivers/headers/netindex.h		\
 	src/drivers/headers/netpool.h
 
@@ -190,7 +190,9 @@ SYS_OBJS=						\
 APPLY_OBJS=\
 	src/apply/apply.o src/apply/stacks.o 			\
 	src/apply/ffi.o src/apply/cprims.o			\
-	src/apply/lexenv.o src/apply/exec.o
+	src/apply/lexenv.o src/apply/exec.o			\
+	src/apply/services.o
+#	src/apply/remote.o src/apply/xtcall.o
 
 REVISION_H   =include/kno/revision.h
 CONFIG_H     =include/kno/config.h
@@ -207,21 +209,18 @@ STORAGE_OBJS=\
 	src/storage/extindex.o src/storage/extpool.o		\
 	src/storage/procpool.o src/storage/procindex.o		\
 	src/storage/mempool.o src/storage/tempindex.o		\
-	src/storage/netproc.o src/storage/evalserver.o		\
-	src/storage/remote.o src/storage/xtcall.o		\
 	src/storage/frames.o src/storage/slotindexes.o 		\
 	src/storage/drivers.o src/storage/dbserv.o		\
 	@ipevalo@ 
 
 DRIVER_OBJS=\
-	src/drivers/builtin_drivers.o			\
-	src/drivers/netpool.o src/drivers/netindex.o	\
-	src/drivers/filepool.o src/drivers/oidpool.o	\
-	src/drivers/bigpool.o				\
-	src/drivers/knopool.o				\
-	src/drivers/fileindex.o src/drivers/hashindex.o	\
-	src/drivers/memindex.o   			\
-	src/drivers/knoindex.o
+	src/drivers/builtin_drivers.o src/drivers/knosocks.o 	\
+	src/drivers/kpool.o src/drivers/kindex.o		\
+	src/drivers/netpool.o src/drivers/netindex.o		\
+	src/drivers/filepool.o src/drivers/bigpool.o		\
+	src/drivers/fileindex.o src/drivers/hashindex.o		\
+	src/drivers/memindex.o
+
 
 CORE_SCHEME_OBJS=\
 	src/eval/eval.o\
@@ -251,11 +250,12 @@ SCHEME_OBJS=\
 	src/eval/evalops.o \
 	src/eval/coreops.o \
 	src/eval/configops.o \
-	src/eval/neteval.o \
+	src/eval/srvcall.o \
 	src/eval/arith.o \
 	src/eval/regex.o \
 	src/eval/promises.o \
 	src/eval/requests.o \
+	src/eval/knosockd.o \
 	src/prims/dbprims.o \
 	src/prims/tableprims.o \
 	src/prims/seqprims.o \
@@ -317,10 +317,13 @@ SHELL_SCRIPTS=etc/knosetconfig etc/knogetconfig etc/knoconfig \
 	etc/knocleanup etc/knojob \
 	etc/knobuild
 SCHEME_SCRIPTS=exe/scripts/pack-pool exe/scripts/pack-index \
-	       exe/scripts/merge-indexes exe/scripts/knopkg
+	       exe/scripts/merge-indexes exe/scripts/knopkg \
+	       exe/scripts/knocall exe/scripts/knoserver
 
-CONFDIRS=$(DESTDIR)@config_dir@ $(DESTDIR)@config_dir@/config $(DESTDIR)@share_dir@ \
-	$(DESTDIR)@stdlib_module_dir@ $(DESTDIR)@local_module_dir@
+CONFDIRS=$(DESTDIR)@config_dir@ $(DESTDIR)@config_dir@/config \
+	 $(DESTDIR)@share_dir@ \
+	 $(DESTDIR)@stdlib_module_dir@ \
+	 $(DESTDIR)@local_module_dir@
 
 CLEANDIRS=include/kno src/drivers/headers 		\
 	src/lisp src/apply src/sys 			\
@@ -354,12 +357,11 @@ KNO_SOURCES=\
 	src/storage/oidstore.c  src/storage/frames.c src/storage/slotindexes.c  \
 	src/storage/aggregates.c src/storage/cachecall.c src/storage/methods.c	\
 	src/storage/alcor.c src/storage/compress.c src/storage/threadcache.c  	\
-	src/storage/bloom.c src/storage/dtproc.c src/storage/dtcall.c      	\
-	src/storage/ipeval.c 	       						\
+	src/storage/bloom.c src/storage/ipeval.c				\
 	src/drivers/builtin_drivers.c  						\
 	src/drivers/filepool.c src/drivers/oidpool.c 				\
-	src/drivers/bigpool.c src/drivers/knopool.c				\
-	src/drivers/fileindex.c src/drivers/hashindex.c src/drivers/knoindex.c  \
+	src/drivers/bigpool.c src/drivers/kpool.c				\
+	src/drivers/fileindex.c src/drivers/hashindex.c src/drivers/kindex.c  	\
 	src/storage/extindex.c src/storage/tempindex.c				\
 	src/storage/mempool.c src/storage/extpool.c				\
 	src/drivers/netpool.c src/drivers/netindex.c 				\
@@ -652,7 +654,7 @@ dbginstall:
 	@$(MSG) CC $@ $<
 
 exe/scripts/%: src/scripts/%.scm
-	@$(ECHO) "#!"@prefix@/bin/knox | cat - $< > $@
+	@$(ECHO) "#!"@prefix@/bin/knox" QUIET=yes" | cat - $< > $@
 	@chmod a+x $@
 	@$(MSG) MAKESCRIPT $@ $<
 
@@ -2052,7 +2054,7 @@ src/drivers/filepool.o: src/drivers/headers/filepool.h
 src/drivers/fileindex.o: src/drivers/headers/fileindex.h
 src/drivers/oidpool.o: src/drivers/headers/oidpool.h src/drivers/headers/zcompress.h
 src/drivers/bigpool.o: src/drivers/headers/bigpool.h src/drivers/headers/zcompress.h
-src/drivers/knopool.o: src/drivers/headers/knopool.h src/drivers/headers/zcompress.h
+src/drivers/kpool.o: src/drivers/headers/kpool.h src/drivers/headers/zcompress.h
 src/drivers/hashindex.o: src/drivers/headers/hashindex.h  src/drivers/headers/zcompress.h
-src/drivers/knoindex.o: src/drivers/headers/knoindex.h  src/drivers/headers/zcompress.h
+src/drivers/kindex.o: src/drivers/headers/kindex.h  src/drivers/headers/zcompress.h
 src/drivers/memindex.o: src/drivers/headers/memindex.h

@@ -10,8 +10,8 @@
 (module-export! '{knodb/ref knodb/make knodb/commit! knodb/save! 
 		  knodb/partitions knodb/pool knodb/wrap-index
 		  knodb/mods knodb/modified?
-		  pool/ref index/ref
-		  pool/copy})
+		  pool/ref index/ref pool/copy
+		  pool/getindex pool/getindexes})
 
 (module-export! '{knodb:pool knodb:index})
 
@@ -141,11 +141,28 @@
 	   (let* ((rootdir (dirname (pool-source pool)))
 		  (indexes (index/ref (poolctl pool 'metadata 'indexes)
 				      (opt+ 'rootdir rootdir opts))))
-	     (poolctl pool 'props 'indexes (try indexes #f))
 	     (do-choices (partition (poolctl pool 'partitions))
 	       (set+! indexes (get-indexes-for-pool partition opts)))
+	     (poolctl pool 'props 'indexes (try indexes #f))
 	     indexes))
       (fail)))
+
+(define (get-index-for-pool pool (opts #f))
+  (or (try (poolctl pool 'props 'index)
+	   (let* ((indexes (get-indexes-for-pool pool opts))
+		  (index (make-aggregate-index indexes opts)))
+	     (poolctl pool 'props 'index index)
+	     index))
+      (fail)))
+
+(define (pool/getindex pool (opts #f))
+  (try (poolctl pool 'props 'index)
+       (get-index-for-pool opts)))
+
+(define (pool/getindexes pool (opts #f))
+  (try (poolctl pool 'props 'indexes)
+       (get-indexes-for-pool opts)
+       (pool/getindex pool opts)))
 
 (define (knodb/wrap-index index (opts #f)) index)
 

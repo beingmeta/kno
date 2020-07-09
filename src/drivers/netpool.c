@@ -19,7 +19,7 @@
 #include "kno/pools.h"
 #include "kno/indexes.h"
 #include "kno/drivers.h"
-#include "kno/remote.h"
+#include "kno/services.h"
 
 #include "headers/netpool.h"
 
@@ -38,16 +38,6 @@ static lispval boundp, bulk_commit_symbol;
 static lispval client_id = VOID;
 static void init_client_id(void);
 static u8_mutex client_id_lock;
-
-static int server_supportsp(struct KNO_NETWORK_POOL *np,lispval operation)
-{
-  lispval request=
-    kno_conspair(boundp,kno_conspair(operation,NIL));
-  lispval response = kno_neteval(np->pool_server,request);
-  kno_decref(request);
-  if (FALSEP(response)) return 0;
-  else {kno_decref(response); return 1;}
-}
 
 static void init_network_pool
 (struct KNO_NETWORK_POOL *p,lispval netinfo,
@@ -75,57 +65,27 @@ static void init_network_pool
   kno_register_pool((kno_pool)p);
 }
 
-static lispval get_pool_data(u8_string spec,u8_string *xid)
-{
-  lispval request, result;
-  u8_socket c = u8_connect_x(spec,xid);
-  struct KNO_STREAM _stream, *stream=
-    kno_init_stream(&_stream,spec,c,
-                   KNO_STREAM_DOSYNC|KNO_STREAM_SOCKET,
-                   KNO_NETWORK_BUFSIZE);
-  struct KNO_OUTBUF *outstream = (stream) ? (kno_writebuf(stream)) :(NULL);
-  if (stream == NULL)
-    return KNO_ERROR;
-  if (VOIDP(client_id)) init_client_id();
-  request = kno_make_list(2,pool_data_symbol,kno_incref(client_id));
-  /* u8_logf(LOG_WARN,"GETPOOLDATA","Making request (on #%d) for %q",c,request); */
-  if (kno_write_dtype(outstream,request)<0) {
-    kno_free_stream(stream);
-    kno_decref(request);
-    return KNO_ERROR;}
-  kno_decref(request);
-  result = kno_read_dtype(kno_readbuf(stream));
-  /* u8_logf(LOG_WARN,"GETPOOLDATA","Got result (on #%d)",c,request); */
-  kno_close_stream(stream,KNO_STREAM_FREEDATA);
-  return result;
-}
-
 KNO_EXPORT kno_pool kno_open_network_pool(u8_string spec,
-                                       kno_storage_flags flags,
-                                       lispval opts)
+					  kno_storage_flags flags,
+					  lispval opts)
 {
   struct KNO_NETWORK_POOL *np = u8_alloc(struct KNO_NETWORK_POOL);
-  u8_string xid = NULL;
-  lispval pooldata = get_pool_data(spec,&xid);
-  u8_string cid = u8_canonical_addr(spec);
-  if (KNO_ABORTP(pooldata)) {
-    u8_free(np); u8_free(cid);
-    return NULL;}
+  u8_string xid = NULL, cid = u8_canonical_addr(spec);
+  lispval spec_obj = knostring(spec);
   if (VOIDP(client_id)) init_client_id();
-  np->poolid = cid; np->pool_source = xid;
-  np->pool_server = kno_open_evalserver(spec,opts);
-  if (((np)->pool_server) == NULL) {
-    u8_free(np); u8_free(cid);
-    kno_decref(pooldata);
-    return NULL;}
-  else {
-    kno_decref(pooldata);
-    pooldata = kno_remote_call(np->pool_server,2,pool_data_symbol,client_id);}
+  kno_service s = kno_open_service(spec_obj,opts);
+  lispval pooldata = (s) ?
+    (kno_service_call(s,pool_data_symbol,1,client_id)) :
+    (KNO_ERROR);
   if (KNO_ABORTP(pooldata)) {
-    u8_free(np); u8_free(cid); u8_free(xid);
+    u8_free(np); u8_free(cid);
     return NULL;}
+  np->poolid = cid;
+  np->pool_source = xid;
+  np->pool_server = s;
+  kno_decref(spec_obj);
   /* The server actually serves multiple pools */
-  else if ((CHOICEP(pooldata)) || (VECTORP(pooldata))) {
+  if ((CHOICEP(pooldata)) || (VECTORP(pooldata))) {
     const lispval *scan, *limit; int n_pools = 0;
     if (CHOICEP(pooldata)) {
       scan = KNO_CHOICE_DATA(pooldata);
@@ -142,8 +102,7 @@ KNO_EXPORT kno_pool kno_open_network_pool(u8_string spec,
       p->pool_server = np->pool_server;
       n_pools++;}}
   else init_network_pool(np,pooldata,spec,cid,flags,opts);
-  u8_free(cid);
-  np->bulk_commitp = server_supportsp(np,bulk_commit_symbol);
+  // np->bulk_commitp = server_supportsp(np,bulk_commit_symbol);
   kno_decref(pooldata);
   return (kno_pool)np;
 }
@@ -152,7 +111,7 @@ static int network_pool_load(kno_pool p)
 {
   struct KNO_NETWORK_POOL *np = (struct KNO_NETWORK_POOL *)p;
   lispval value;
-  value = kno_remote_call(np->pool_server,2,get_load_symbol,kno_make_oid(p->pool_base));
+  value = kno_service_call(np->pool_server,2,get_load_symbol,kno_make_oid(p->pool_base));
   if (KNO_UINTP(value)) return FIX2INT(value);
   else if (KNO_ABORTP(value))
     return kno_interr(value);
@@ -165,7 +124,7 @@ static lispval network_pool_fetch(kno_pool p,lispval oid)
 {
   struct KNO_NETWORK_POOL *np = (struct KNO_NETWORK_POOL *)p;
   lispval value;
-  value = kno_remote_call(np->pool_server,2,oid_value_symbol,oid);
+  value = kno_service_call(np->pool_server,oid_value_symbol,1,oid);
   return value;
 }
 
@@ -173,7 +132,7 @@ static lispval *network_pool_fetchn(kno_pool p,int n,lispval *oids)
 {
   struct KNO_NETWORK_POOL *np = (struct KNO_NETWORK_POOL *)p;
   lispval oidvec = kno_make_vector(n,oids);
-  lispval value = kno_remote_call(np->pool_server,2,fetch_oids_symbol,oidvec);
+  lispval value = kno_service_call(np->pool_server,fetch_oids_symbol,1,oidvec);
   kno_decref(oidvec);
   if (VECTORP(value)) {
     lispval *values = u8_alloc_n(n,lispval);
@@ -189,7 +148,7 @@ static int network_pool_lock(kno_pool p,lispval oid)
 {
   struct KNO_NETWORK_POOL *np = (struct KNO_NETWORK_POOL *)p;
   lispval value;
-  value = kno_remote_call(np->pool_server,3,lock_oid_symbol,oid,client_id);
+  value = kno_service_call(np->pool_server,lock_oid_symbol,2,oid,client_id);
   if (VOIDP(value)) return 0;
   else if (KNO_ABORTP(value))
     return kno_interr(value);
@@ -203,7 +162,7 @@ static int network_pool_unlock(kno_pool p,lispval oids)
 {
   struct KNO_NETWORK_POOL *np = (struct KNO_NETWORK_POOL *)p;
   lispval result;
-  result = kno_remote_call(np->pool_server,3,clear_oid_lock_symbol,oids,client_id);
+  result = kno_service_call(np->pool_server,clear_oid_lock_symbol,2,oids,client_id);
   if (KNO_ABORTP(result)) {
     kno_decref(result); return 0;}
   else {kno_decref(result); return 1;}
@@ -220,7 +179,8 @@ static int network_pool_storen(kno_pool p,int n,lispval *oids,lispval *values)
       storevec[i*2+1]=values[i];
       i++;}
     vec = kno_wrap_vector(n*2,storevec);
-    result = kno_remote_call(np->pool_server,3,bulk_commit_symbol,client_id,vec);
+    result = kno_service_call(np->pool_server,bulk_commit_symbol,
+			     2,client_id,vec);
     /* Don't decref the individual elements because you didn't incref them. */
     u8_free((struct KNO_CONS *)vec); u8_free(storevec);
     kno_decref(result);
@@ -228,8 +188,10 @@ static int network_pool_storen(kno_pool p,int n,lispval *oids,lispval *values)
   else {
     int i = 0;
     while (i < n) {
-      lispval result = kno_remote_call(np->pool_server,4,unlock_oid_symbol,oids[i],client_id,values[i]);
-      kno_decref(result); i++;}
+      lispval result = kno_service_call(np->pool_server,unlock_oid_symbol,
+				       3,oids[i],client_id,values[i]);
+      kno_decref(result);
+      i++;}
     return 1;}
 }
 
@@ -255,11 +217,10 @@ static void network_pool_close(kno_pool p)
 
 static lispval network_pool_alloc(kno_pool p,int n)
 {
-  lispval results = EMPTY, request; int i = 0;
+  lispval results = EMPTY; int i = 0;
   struct KNO_NETWORK_POOL *np = (struct KNO_NETWORK_POOL *)p;
-  request = kno_conspair(new_oid_symbol,NIL);
   while (i < n) {
-    lispval result = kno_neteval(np->pool_server,request);
+    lispval result = kno_service_call(np->pool_server,new_oid_symbol,0,NULL);
     CHOICE_ADD(results,result);
     i++;}
   return results;

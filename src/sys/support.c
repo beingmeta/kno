@@ -153,7 +153,7 @@ KNO_EXPORT lispval kno_read_sensors(lispval into)
 /* Initialization */
 
 void kno_init_config_c(void);
-void kno_init_err_c(void);
+void kno_init_errobjs_c(void);
 void kno_init_logging_c(void);
 void kno_init_startup_c(void);
 void kno_init_getopt_c(void);
@@ -168,9 +168,11 @@ KNO_EXPORT void kno_init_support_c()
 
   u8_register_textdomain("kno");
 
+  kno_init_lisp_types();
+
   kno_init_sourcebase_c();
   kno_init_config_c();
-  kno_init_err_c();
+  kno_init_errobjs_c();
   kno_init_logging_c();
   kno_init_startup_c();
   kno_init_getopt_c();

@@ -181,6 +181,8 @@ typedef struct KNO_EVALFN_INFO *kno_evalfn_info;
   kno_new_evalfn(module,cname ## _info.pname,# cname,cname ## _info.filename, \
 		 cname ## _info.docstring,cname ## _info.flags,cname);
 
+#define KNO_EVALFNP(x) (KNO_TYPEP((x),kno_evalfn_type))
+
 /* Macros */
 
 typedef struct KNO_MACRO {
@@ -239,6 +241,7 @@ KNO_EXPORT void kno_add_module_loader(int (*loader)(lispval,void *),void *);
 typedef struct KNO_LAMBDA {
   KNO_FUNCTION_FIELDS;
   unsigned short lambda_n_vars;
+  unsigned char lambda_n_locals;
   unsigned char lambda_synchronized;
   lispval *lambda_vars, *lambda_inits;
   lispval lambda_arglist, lambda_body, lambda_source;
@@ -313,6 +316,8 @@ KNO_EXPORT lispval kno_lexref(lispval lexref,kno_lexenv env);
 KNO_EXPORT lispval kno_eval_symbol(lispval sym,kno_lexenv env);
 KNO_EXPORT lispval kno_lexref(lispval lexref,kno_lexenv env);
 
+KNO_EXPORT lispval kno_fcn_ref(lispval sym,lispval from,lispval val);
+
 #define kno_simplify_value(v) \
   ( (KNO_PRECHOICEP(v)) ? (kno_simplify_choice(v)) : (v) )
 
@@ -384,7 +389,7 @@ typedef struct KNO_DTSERVER {
   KNO_CONS_HEADER;
   u8_string dtserverid, dtserver_addr;
   /*
-  enum { dtype_protocol=0, xtype_protocol=1 } evalserver_protocol 
+  enum { dtype_protocol=0, xtype_protocol=1 } service_protocol 
   struct XTYPE_REFS refs;
   */
   struct U8_CONNPOOL *connpool;} KNO_DTSERVER;

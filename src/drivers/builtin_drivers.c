@@ -43,15 +43,17 @@ int kno_init_netindex_c(void);
 int kno_init_fileindex_c(void);
 int kno_init_hashindex_c(void);
 int kno_init_memindex_c(void);
-int kno_init_knoindex_c(void);
+int kno_init_kindex_c(void);
 
 int kno_init_netpool_c(void);
 int kno_init_file_pool_c(void);
 int kno_init_oidpool_c(void);
 int kno_init_bigpool_c(void);
-int kno_init_knopool_c(void);
+int kno_init_kpool_c(void);
 
 int dbs_initialized = 0;
+
+extern int kno_init_knosocks_c(void);
 
 KNO_EXPORT int kno_init_drivers()
 {
@@ -59,16 +61,17 @@ KNO_EXPORT int kno_init_drivers()
   dbs_initialized = 307*kno_init_storage();
 
   kno_init_builtindbs_c();
+  kno_init_knosocks_c();
 
   kno_init_file_pool_c();
-  kno_init_oidpool_c();
+  // kno_init_oidpool_c();
   kno_init_bigpool_c();
   kno_init_netpool_c();
-  kno_init_knopool_c();
+  kno_init_kpool_c();
 
   kno_init_fileindex_c();
   kno_init_hashindex_c();
-  kno_init_knoindex_c();
+  kno_init_kindex_c();
 
   kno_init_netindex_c();
   kno_init_memindex_c();

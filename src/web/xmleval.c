@@ -881,7 +881,7 @@ static KNO_XML *handle_knoml_pi
       if ((strncmp(attribs[i],"load=",5))==0) {
         u8_string arg = get_pi_string(attribs[i]+5);
         u8_string filename = kno_get_component(arg);
-        if (kno_load_latest(filename,env,NULL)<0) {
+	if (kno_load_latest(filename,env,1,KNO_VOID)<0) {
           u8_free(arg); u8_free(filename);
           return NULL;}
         else xml_env = get_xml_env(xml);
@@ -948,7 +948,7 @@ static KNO_XML *handle_knoml_pi
         u8_string arg = get_pi_string(attribs[i]+12);
         u8_string filename = kno_get_component(arg);
         kno_lexenv env = (kno_lexenv)(xml->xml_data);
-        if (kno_load_latest(filename,env,NULL)<0) {
+	if (kno_load_latest(filename,env,1,KNO_VOID)<0) {
           u8_free(arg); u8_free(filename);
           return NULL;}
         u8_free(arg); u8_free(filename);

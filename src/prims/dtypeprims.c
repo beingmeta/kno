@@ -34,8 +34,6 @@
 #define KNO_DTWRITE_SIZE 10000
 #endif
 
-static lispval fixsyms_symbol;
-
 DEFPRIM3("read-dtype",read_dtype,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
 	 "(READ-DTYPE *stream* [*off*] [*len*]) "
 	 "reads the dtype representation store at *off* in "
@@ -184,7 +182,7 @@ static lispval zwrite_dtypes(lispval object,lispval stream)
 
 static lispval lisp2zipfile(lispval object,lispval filename,lispval bufsiz);
 
-DEFPRIM3("dtype->file",lisp2file,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDOP,
+DEFPRIM3("dtype->file",lisp2file,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	 "`(DTYPE->FILE *arg0* *arg1* [*arg2*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
 	 kno_any_type,KNO_VOID);
@@ -237,7 +235,7 @@ static lispval lisp2file(lispval object,lispval filename,lispval bufsiz)
   else return kno_type_error(_("string"),"lisp2file",filename);
 }
 
-DEFPRIM3("dtype->zfile",lisp2zipfile,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDOP,
+DEFPRIM3("dtype->zfile",lisp2zipfile,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	 "`(DTYPE->ZFILE *arg0* *arg1* [*arg2*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
 	 kno_any_type,KNO_VOID);
@@ -292,8 +290,6 @@ static ssize_t write_dtypes(lispval dtypes,struct KNO_STREAM *out)
   struct KNO_OUTBUF tmp = { 0 };
   unsigned char tmpbuf[1000];
   KNO_INIT_BYTE_OUTBUF(&tmp,tmpbuf,1000);
-  if ( (out->stream_flags) & KNO_STREAM_LOUDSYMS )
-    tmp.buf_flags |= KNO_FIX_DTSYMS;
   if (CHOICEP(dtypes)) {
     /* This writes out the objects sequentially, writing into memory
        first and then to disk, to reduce the danger of malformed
@@ -339,7 +335,7 @@ static ssize_t write_dtypes(lispval dtypes,struct KNO_STREAM *out)
 
 static lispval add_lisp2zipfile(lispval object,lispval filename);
 
-DEFPRIM2("dtypes->file+",add_dtypes2file,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDOP,
+DEFPRIM2("dtypes->file+",add_dtypes2file,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	 "`(DTYPES->FILE+ *arg0* *arg1*)` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval add_dtypes2file(lispval object,lispval filename)
@@ -371,7 +367,7 @@ static lispval add_dtypes2file(lispval object,lispval filename)
   else return kno_type_error(_("string"),"add_dtypes2file",filename);
 }
 
-DEFPRIM2("dtype->zfile+",add_lisp2zipfile,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDOP,
+DEFPRIM2("dtype->zfile+",add_lisp2zipfile,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	 "`(DTYPE->ZFILE+ *arg0* *arg1*)` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval add_lisp2zipfile(lispval object,lispval filename)
@@ -514,7 +510,6 @@ KNO_EXPORT void kno_init_dtypeprims_c()
   dtypeprims_module =
     kno_new_cmodule("dtypeprims",(KNO_MODULE_DEFAULT),kno_init_dtypeprims_c);
   u8_register_source_file(_FILEINFO);
-  fixsyms_symbol = kno_intern("LOUDSYMS");
 
   link_local_cprims();
 

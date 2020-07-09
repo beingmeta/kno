@@ -46,6 +46,7 @@ KNO_EXPORT int kno_free_thread_cache(struct KNO_THREAD_CACHE *tc)
   /* These may do customized things for some of the tables. */
   kno_recycle_hashtable(&(tc->calls));
   kno_recycle_hashtable(&(tc->oids));
+  kno_recycle_hashtable(&(tc->adjuncts));
   kno_recycle_hashtable(&(tc->indexes));
   kno_recycle_hashtable(&(tc->bground));
   tc->threadcache_inuse = 0;
@@ -73,19 +74,26 @@ KNO_EXPORT int kno_pop_threadcache(struct KNO_THREAD_CACHE *tc)
 }
 
 KNO_EXPORT kno_thread_cache kno_cons_thread_cache
-(int ccsize,int ocsize,int bcsize,int kcsize)
+(int call_cache_size,
+ int oid_cache_size,
+ int adjunct_cache_size,
+ int background_cache_size,
+ int kcsize)
 {
   struct KNO_THREAD_CACHE *tc = u8_alloc(struct KNO_THREAD_CACHE);
   tc->threadcache_inuse = 0; tc->threadcache_id = NULL;
 
   KNO_INIT_STATIC_CONS(&(tc->calls),kno_hashtable_type);
-  kno_make_hashtable(&(tc->calls),ccsize);
+  kno_make_hashtable(&(tc->calls),call_cache_size);
 
   KNO_INIT_STATIC_CONS(&(tc->oids),kno_hashtable_type);
-  kno_make_hashtable(&(tc->oids),ocsize);
+  kno_make_hashtable(&(tc->oids),oid_cache_size);
+
+  KNO_INIT_STATIC_CONS(&(tc->adjuncts),kno_hashtable_type);
+  kno_make_hashtable(&(tc->adjuncts),adjunct_cache_size);
 
   KNO_INIT_STATIC_CONS(&(tc->bground),kno_hashtable_type);
-  kno_make_hashtable(&(tc->bground),bcsize);
+  kno_make_hashtable(&(tc->bground),background_cache_size);
 
   KNO_INIT_STATIC_CONS(&(tc->indexes),kno_hashtable_type);
   kno_make_hashtable(&(tc->indexes),kcsize);
@@ -97,8 +105,11 @@ KNO_EXPORT kno_thread_cache kno_cons_thread_cache
 KNO_EXPORT kno_thread_cache kno_new_thread_cache()
 {
   return kno_cons_thread_cache
-    (KNO_THREAD_CALLCACHE_SIZE,KNO_THREAD_OIDCACHE_SIZE,
-     KNO_THREAD_BGCACHE_SIZE,KNO_THREAD_KEYCACHE_SIZE);
+    (KNO_THREAD_CALLCACHE_SIZE,
+     KNO_THREAD_OIDCACHE_SIZE,
+     KNO_THREAD_ADJCACHE_SIZE,
+     KNO_THREAD_BGCACHE_SIZE,
+     KNO_THREAD_KEYCACHE_SIZE);
 }
 
 KNO_EXPORT kno_thread_cache kno_push_threadcache(struct KNO_THREAD_CACHE *tc)

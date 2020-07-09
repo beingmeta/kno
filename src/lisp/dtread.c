@@ -28,7 +28,7 @@
 #define KNO_DEBUG_DTYPEIO 0
 #endif
 
-KNO_EXPORT lispval kno_restore_exception_dtype(lispval content);
+KNO_EXPORT lispval kno_unpack_exception_vector(lispval content);
 
 static u8_mutex dtype_unpacker_lock;
 
@@ -202,7 +202,7 @@ KNO_EXPORT lispval kno_read_dtype(struct KNO_INBUF *in)
       lispval content = kno_read_dtype(in);
       if (KNO_ABORTP(content))
         return content;
-      else return kno_restore_exception_dtype(content);}
+      else return kno_unpack_exception_vector(content);}
     case dt_pair: {
       lispval head = NIL, *tail = &head;
       while (1) {

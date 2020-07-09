@@ -193,7 +193,7 @@ static lispval unpack_compound(lispval x,lispval tag)
 }
 
 DEFPRIM4("compound-set!",compound_set,
-	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(3)|KNO_NDOP,
+	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(3)|KNO_NDCALL,
          "`(COMPOUND-SET! *arg0* *arg1* *arg2* [*arg3*])` **undocumented**",
          kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
          kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
@@ -288,7 +288,7 @@ static lispval apply_modifier(lispval modifier,lispval old_value,lispval value)
 
 DEFPRIM5
 ("compound-modify!",compound_modify,
- KNO_MAX_ARGS(5)|KNO_MIN_ARGS(4)|KNO_NDOP,
+ KNO_MAX_ARGS(5)|KNO_MIN_ARGS(4)|KNO_NDCALL,
  "`(compound-modify! *compound* *tag* *eltno* *modfn* *modval*)` "
  "Modifies a field of *compound* atomically, replacing it with "
  "(*modfn* *curval* *modval*) while holding any locks on the compound.",
@@ -352,8 +352,9 @@ static lispval compound_modify(lispval x,lispval tag,lispval offset,
   }
 }
 
-DEFPRIM("make-compound",make_compound,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDOP,
-        "`(make-compound *tag* *elts...*)` **undocumented**");
+DEFPRIM("make-compound",make_compound,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
+        "`(make-compound *tag* *elts...*)` creates a simple compound object "
+	"with type *tag* and elements *elts*");
 static lispval make_compound(int n,kno_argvec args)
 {
   struct KNO_COMPOUND *compound=
@@ -372,43 +373,56 @@ static lispval make_compound(int n,kno_argvec args)
   return LISP_CONS(compound);
 }
 
-DEFPRIM("make-xcompound",make_xcompound,KNO_VAR_ARGS|KNO_MIN_ARGS(5)|KNO_NDOP,
-	"`(make-xcompound *tag* *ismutable* *isopaque* *seqoff* *istable* *elts...*)` **undocumented**");
+DEFPRIM("make-xcompound",make_xcompound,KNO_VAR_ARGS|KNO_MIN_ARGS(5)|KNO_NDCALL,
+	"`(make-xcompound *tag* *ismutable* *isopaque* *annotate* *seqoff* *elts...*) "
+	"creates a (possibly) complex compound "
+	"object with type *tag*. If *annotate* is a table, it is used as "
+	"the annotations for the compound; if it is #t, an empty slotmap "
+	"is created. If *seqoff* is not false, the new compound will "
+	"also support the sequence protocol, with the sequence elements "
+	"starting at *seqoff* (if its a positive fixnum).")
 static lispval make_xcompound(int n,kno_argvec args)
 {
-  int seqoff = -1;
-  int tablep = (!(KNO_FALSEP(args[3])));
-  if (KNO_FALSEP(args[4]))
-    seqoff = -1;
-  else if (KNO_TRUEP(args[4]))
-    seqoff = tablep;
-  else if ( (KNO_FIXNUMP(args[4])) && (KNO_FIX2INT(args[4])>=0) &&
-	    (KNO_FIX2INT(args[4]) < 128 ))
-    seqoff = KNO_FIX2INT(args[4]);
+  lispval typetag = kno_incref(args[0]);
+  int is_mutable  = (!(KNO_FALSEP(args[1])));
+  int is_opaque   =  (!(KNO_FALSEP(args[2])));
+  lispval arg3    = args[3], arg4=args[4];
+  lispval annotations = (KNO_TABLEP(arg3)) ? (kno_incref(arg3)) :
+    (!(KNO_FALSEP(arg3))) ? (kno_make_slotmap(3,0,NULL)) :
+    (KNO_FALSE);
+  int tablep      = (!(KNO_FALSEP(annotations))), seqoff = -1;
+  if (KNO_FALSEP(arg4)) seqoff=-1;
+  else if (KNO_TRUEP(arg4)) seqoff=0;
+  else if ( (KNO_FIXNUMP(arg4)) && (KNO_FIX2INT(arg4)>=0) &&
+	    (KNO_FIX2INT(arg4) < 128 ))
+    seqoff = KNO_FIX2INT(arg4);
   else {
     u8_byte buf[128];
     return kno_err("InvalidCompoundSequenceOffset","make_xcompound",
 		   u8_bprintf(buf,"%q",args[0]),
-		   args[4]);}
+		   arg4);}
+  int data_i = 5, data_len = n-5;
+  int compound_len = data_len + tablep;
   struct KNO_COMPOUND *compound=
-    u8_zmalloc(sizeof(struct KNO_COMPOUND)+((n-6)*LISPVAL_LEN));
-  int i = 5; lispval *write = (&(compound->compound_0));
+    /* KNO_COMPOUND contains the first element */
+    u8_zmalloc(sizeof(struct KNO_COMPOUND)+((compound_len-1)*LISPVAL_LEN));
+  lispval *write = (&(compound->compound_0));
   KNO_INIT_CONS(compound,kno_compound_type);
-  compound->typetag = kno_incref(args[0]);
-  compound->compound_length = n-5;
-  compound->compound_ismutable = (!(KNO_FALSEP(args[1])));
-  compound->compound_isopaque = (!(KNO_FALSEP(args[2])));
-  compound->compound_istable = tablep;
-  compound->compound_seqoff = seqoff;
-  while (i<n) {
-    kno_incref(args[i]);
-    *write++=args[i];
-    i++;}
+  compound->compound_length    = compound_len;
+  compound->typetag            = typetag;
+  compound->compound_ismutable = is_mutable;
+  compound->compound_isopaque  = is_opaque;
+  compound->compound_istable   = tablep;
+  compound->compound_seqoff    = seqoff;
+  if (tablep) *write++ = annotations;
+  while (data_i<n) {
+    lispval arg = args[data_i++]; kno_incref(arg);
+    *write++=arg;}
   return LISP_CONS(compound);
 }
 
 DEFPRIM6("sequence->compound",seq2compound,KNO_MAX_ARGS(6)|KNO_MIN_ARGS(2),
-	 "`(SEQUENCE->COMPOUND *seq* *tag* *mutable* *opaque* *seqoff* *tabular*)` "
+	 "`(SEQUENCE->COMPOUND *seq* *tag* *mutable* *opaque* *seqoff* *annotated*)` "
 	 "creates a compound object out of *seq*, tagged "
 	 "with *tag*. The first *reserve* elements of *seq* will be "
 	 "part of the compound but not part of the sequence; if *seqoff* "
@@ -419,9 +433,9 @@ DEFPRIM6("sequence->compound",seq2compound,KNO_MAX_ARGS(6)|KNO_MIN_ARGS(2),
 	 kno_any_type,KNO_TRUE,kno_any_type,KNO_FALSE);
 static lispval seq2compound(lispval seq,lispval tag,
                             lispval mutable,lispval opaque,
-                            lispval offset,lispval tabular)
+                            lispval offset,lispval annotated)
 {
-  int len, seqoff = -1, istable = (!(KNO_FALSEP(tabular)));
+  int len, seqoff = -1, istable = (!(KNO_FALSEP(annotated)));
   lispval *read;
   if (KNO_VECTORP(seq)) {
     len = VEC_LEN(seq);
@@ -429,8 +443,7 @@ static lispval seq2compound(lispval seq,lispval tag,
   else read = kno_seq_elts(seq,&len);
   if ( (read == NULL) && (len < 0) )
     return KNO_ERROR_VALUE;
-  if ( (KNO_VOIDP(offset)) || (KNO_DEFAULTP(offset)) ||
-       (KNO_TRUEP(offset)) )
+  if ( (KNO_VOIDP(offset)) || (KNO_DEFAULTP(offset)) || (KNO_TRUEP(offset)) )
     seqoff = 0;
   else if (KNO_FIXNUMP(offset)) {
     long long off = KNO_FIX2INT(offset);
@@ -440,13 +453,18 @@ static lispval seq2compound(lispval seq,lispval tag,
 			NULL,offset);}
   else if (KNO_FALSEP(offset)) {}
   else return kno_err("BadCompoundVectorOffset","vector2compound",NULL,offset);
+  lispval annotations = (KNO_TABLEP(annotated)) ? (kno_incref(annotated)) :
+    (KNO_TRUEP(annotated)) ? (kno_make_slotmap(3,0,NULL)) :
+    (KNO_VOID);
+  int tablep = (!(KNO_VOIDP(annotations)));
+  ssize_t compound_len = len + tablep;
   struct KNO_COMPOUND *compound =
-    u8_zmalloc(sizeof(struct KNO_COMPOUND)+((len)*LISPVAL_LEN));
+    u8_zmalloc(sizeof(struct KNO_COMPOUND)+((compound_len-1)*LISPVAL_LEN));
   KNO_INIT_CONS(compound,kno_compound_type);
   compound->typetag = kno_incref(tag);
-  compound->compound_length = len;
+  compound->compound_length = compound_len;
   compound->compound_seqoff = seqoff;
-  compound->compound_istable = istable;
+  compound->compound_istable = tablep;
   if ( (len==0) || (FALSEP(mutable)) )
     compound->compound_ismutable = 0;
   else {
@@ -454,7 +472,8 @@ static lispval seq2compound(lispval seq,lispval tag,
     u8_init_rwlock(&(compound->compound_rwlock));}
   compound->compound_isopaque = (!(FALSEP(opaque)));
   lispval *write = &(compound->compound_0);
-  int i = 0, n = len; while (i<n) {
+  if (istable) *write++=annotations;
+  int i = 0; while (i<len) {
     lispval elt = read[i++];
     kno_incref(elt);
     *write++=elt;}
@@ -467,7 +486,7 @@ static lispval seq2compound(lispval seq,lispval tag,
 }
 
 DEFPRIM("make-opaque-compound",make_opaque_compound,
-	KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDOP,
+	KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
         "`(MAKE-OPAQUE-COMPOUND *arg0* *args...*)` **undocumented**");
 static lispval make_opaque_compound(int n,kno_argvec args)
 {
@@ -488,7 +507,7 @@ static lispval make_opaque_compound(int n,kno_argvec args)
 }
 
 DEFPRIM("make-mutable-compound",make_mutable_compound,
-	KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDOP,
+	KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
         "`(MAKE-MUTABLE-COMPOUND *arg0* *args...*)` **undocumented**");
 static lispval make_mutable_compound(int n,kno_argvec args)
 {
@@ -509,7 +528,7 @@ static lispval make_mutable_compound(int n,kno_argvec args)
 }
 
 DEFPRIM("make-opaque-mutable-compound",make_opaque_mutable_compound,
-	KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDOP,
+	KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
         "`(MAKE-OPAQUE-MUTABLE-COMPOUND *arg0* *args...*)` **undocumented**");
 static lispval make_opaque_mutable_compound(int n,kno_argvec args)
 {

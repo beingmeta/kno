@@ -37,7 +37,16 @@ lispval kno_io_module = KNO_VOID;
 lispval kno_db_module = KNO_VOID;
 lispval kno_sys_module = KNO_VOID;
 
+KNO_EXPORT lispval kno_dbserv_module;
+
 void clear_module_load_lock(lispval spec);
+
+#define ALL_BINDINGS 0
+#define EXPORTS_ONLY 1
+#define DONT_SYMEVAL 0
+#define USE_SYMEVAL 1
+#define NO_FCN_ALIAS  0
+#define USE_FCN_ALIAS 1
 
 /* Module system */
 
@@ -54,9 +63,17 @@ KNO_EXPORT kno_lexenv kno_make_env(lispval bindings,kno_lexenv parent)
     KNO_INIT_FRESH_CONS(e,kno_lexenv_type);
     e->env_bindings = bindings; e->env_exports = VOID;
     e->env_parent = kno_copy_env(parent);
-    e->env_vals = NULL;
-    e->env_pvals = NULL;
-    e->env_flags = 0;
+    if (KNO_SCHEMAPP(bindings)) {
+      struct KNO_SCHEMAP *smap = (kno_schemap) bindings;
+      if (smap->schema_length < 256) {
+	e->env_vals = smap->table_values;
+	e->env_bits = smap->schema_length;}
+      else {
+	e->env_vals     = NULL;
+	e->env_bits = 0;}}
+    else {
+      e->env_vals     = NULL;
+      e->env_bits = 0;}
     e->env_copy = e;
     return e;}
 }
@@ -84,8 +101,7 @@ kno_lexenv kno_make_export_env(lispval exports,kno_lexenv parent)
     e->env_parent = kno_copy_env(parent);
     e->env_copy = e;
     e->env_vals = NULL;
-    e->env_pvals = NULL;
-    e->env_flags = 0;
+    e->env_bits = 0;
     return e;}
 }
 
@@ -632,7 +648,7 @@ static lispval get_source(lispval arg)
     if (f->fcn_filename)
       return kno_make_string(NULL,-1,f->fcn_filename);
     else return KNO_FALSE;}
-  else return kno_type_error(_("module"),"module_bindings",arg);
+  else return kno_type_error(_("module"),"module_binds_prim",arg);
   if (KNO_VOIDP(ids))
     return KNO_FALSE;
   else {
@@ -685,7 +701,7 @@ static int config_use_module(lispval var,lispval val,void *data)
 
 static lispval
 get_binding_helper(lispval modarg,lispval symbol,lispval dflt,
-                   int export_only,int symeval,
+		   int export_only,int symeval,int alias,
                    u8_context caller)
 {
   lispval module = (KNO_HASHTABLEP(modarg)) ? (modarg) :
@@ -706,6 +722,12 @@ get_binding_helper(lispval modarg,lispval symbol,lispval dflt,
 	if (module == modarg) kno_decref(module);
 	return retval;}
       else return kno_incref(dflt);}
+    else if ( (alias) &&
+	      ( (KNO_FUNCTIONP(value)) ||
+		(KNO_APPLICABLEP(value)) ||
+		(KNO_EVALFNP(value)) ||
+		(KNO_MACROP(value)) ) )
+      return kno_fcn_ref(symbol,module,value);
     else return value;}
   else if (KNO_LEXENVP(module)) {
     kno_lexenv env = (kno_lexenv) module;
@@ -754,7 +776,7 @@ DEFPRIM3("get-binding",get_binding_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
 static lispval get_binding_prim
 (lispval mod_arg,lispval symbol,lispval dflt)
 {
-  return get_binding_helper(mod_arg,symbol,dflt,1,0,"get_binding_prim");
+  return get_binding_helper(mod_arg,symbol,dflt,1,0,0,"get_binding_prim");
 }
 
 DEFPRIM3("%get-binding",get_internal_binding_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
@@ -770,6 +792,7 @@ static lispval get_internal_binding_prim
   return get_binding_helper(mod_arg,symbol,dflt,
                             0,
                             0,
+			    0,
                             "get_internal_binding_prim");
 }
 
@@ -782,7 +805,80 @@ DEFPRIM3("importvar",import_var_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
          kno_any_type,KNO_VOID);
 static lispval import_var_prim(lispval mod_arg,lispval symbol,lispval dflt)
 {
-  return get_binding_helper(mod_arg,symbol,dflt,0,1,"import_var_prim");
+  return get_binding_helper(mod_arg,symbol,dflt,0,1,1,"import_var_prim");
+}
+
+DEFPRIM2("env/use-module",add_module_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	 "(env/use-module *env* *module*) arranges for *env* to use"
+	 "the module *module*",
+	 kno_lexenv_type,KNO_VOID,kno_any_type,KNO_VOID);
+static lispval add_module_prim(lispval env_arg,lispval mod_arg)
+{
+  lispval mod = ( (KNO_SYMBOLP(mod_arg)) || (KNO_STRINGP(mod_arg)) ) ?
+    (kno_find_module(mod_arg,1)) : (kno_incref(mod_arg));
+  lispval result = kno_use_module((kno_lexenv)env_arg,mod);
+  kno_decref(mod);
+  return result;
+}
+
+DEFPRIM3("env/make",make_env_prim,
+	 KNO_MIN_ARGS(0)|KNO_MAX_ARGS(3)|KNO_CHOICEOP,
+	 "(env/make [*usemods*] [*bindings*] [*exports*]) creates "
+	 "a new environment which uses *usemods*. If *bindings* "
+	 "is provided, a copy of it is used as the bindings for the "
+	 "environment. If *exports* is a hashtable, a copy is used as the "
+	 "exports of the environment; if *exports* is #t (the default) "
+	 "an empty hashtable is used as the exports.",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
+	 kno_any_type,KNO_VOID);
+static lispval make_env_prim(lispval use_mods,
+			     lispval bindings_arg,
+			     lispval exports_arg)
+{
+  lispval bindings = KNO_VOID, exports = KNO_VOID;
+  kno_lexenv parent = NULL;
+  int add_exports = 0, import_mods = 0;
+  if (kno_scheme_initialized==0) kno_init_scheme();
+  if ( (KNO_VOIDP(use_mods)) || (KNO_DEFAULTP(use_mods)) ||
+       (KNO_FALSEP(use_mods)) )
+    parent = default_env;
+  else import_mods = 1;
+  if ( (KNO_VOIDP(bindings_arg)) ||
+       (KNO_DEFAULTP(bindings_arg)) ||
+       (KNO_FALSEP(bindings_arg)) )
+    bindings = kno_make_hashtable(NULL,17);
+  else if (KNO_TABLEP(bindings_arg))
+    bindings = kno_deep_copy(bindings_arg);
+  else return kno_err("InvalidBindings","make_env_prim",NULL,bindings_arg);
+  if (KNO_HASHTABLEP(exports_arg))
+    exports = kno_deep_copy(exports_arg);
+  else if (KNO_FALSEP(exports_arg))
+    exports = KNO_VOID;
+  else {
+    if (KNO_SYMBOLP(exports_arg))
+      add_exports = 1;
+    else if (KNO_CHOICEP(exports_arg)) {
+      DO_CHOICES(export,exports_arg) {
+	if (!(KNO_SYMBOLP(export))) {
+	  kno_decref(bindings);
+	  return kno_err("Not a symbol","make_env_prim",NULL,export);}}
+      add_exports = 1;}
+    exports = kno_make_hashtable(NULL,17);}
+  kno_lexenv env = kno_make_env(bindings,parent);
+  env->env_exports = exports;
+  if (import_mods) {
+    KNO_DO_CHOICES(mod,use_mods) {
+      lispval v = kno_use_module(env,mod);
+      if (KNO_ABORTED(v)) {
+	kno_free_lexenv(env);
+	return v;}}}
+  if (add_exports) {
+    KNO_DO_CHOICES(export,exports_arg) {
+      lispval env_bindings = env->env_bindings;
+      lispval val = kno_get(env_bindings,export,VOID);
+      kno_store(exports,export,val);
+      kno_decref(val);}}
+  return (lispval) env;
 }
 
 static volatile int module_tables_initialized = 0;
@@ -818,6 +914,10 @@ void kno_init_module_tables()
   if (KNO_VOIDP(kno_db_module)) {
     kno_db_module = kno_make_hashtable(NULL,71);}
   kno_register_module("db",kno_db_module,(KNO_MODULE_DEFAULT));
+
+  /* This is the module where the data-access API lives */
+  kno_register_module("dbserv",kno_incref(kno_dbserv_module),0);
+  kno_finish_module(kno_dbserv_module);
 }
 
 /* Initialization */
@@ -852,6 +952,8 @@ KNO_EXPORT void kno_init_modules_c()
 static void link_local_cprims()
 {
   KNO_LINK_PRIM("importvar",import_var_prim,3,kno_sys_module);
+  KNO_LINK_PRIM("env/make",make_env_prim,3,kno_sys_module);
+  KNO_LINK_PRIM("env/use-module",add_module_prim,2,kno_sys_module);
   KNO_LINK_PRIM("%get-binding",get_internal_binding_prim,3,kno_sys_module);
   KNO_LINK_PRIM("get-binding",get_binding_prim,3,kno_sys_module);
   KNO_LINK_PRIM("get-source",get_source_prim,1,kno_sys_module);

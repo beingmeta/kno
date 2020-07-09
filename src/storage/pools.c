@@ -928,7 +928,8 @@ KNO_EXPORT int kno_pool_unlock(kno_pool p,lispval oids,
     kno_reset_hashtable(changes,-1,1);
     return n;}
   else {
-    int n_unlocked = 0, n_committed = (flags>0) ? (kno_commit_pool(p,oids)) : (0);
+    int n_unlocked = 0;
+    int n_committed = (flags>0) ? (kno_commit_pool(p,oids)) : (0);
     lispval to_unlock = EMPTY;
     lispval locked_oids = kno_hashtable_keys(changes);
     if (n_committed<0) {}
@@ -1904,7 +1905,11 @@ static int commit_each_pool(kno_pool p,void *data)
 	      "Error when committing pool %s",p->poolid);
       return 0;}
     else return -1;
-  else return 0;
+  else if  (retval) {}
+  else if (KNO_TABLE_MODIFIEDP(&(p->pool_metadata)))
+    kno_commit_pool(p,KNO_EMPTY_CHOICE);
+  else NO_ELSE;
+  return 0;
 }
 
 KNO_EXPORT int kno_commit_pools()

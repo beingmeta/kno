@@ -1240,7 +1240,7 @@ static int join_thread(struct KNO_THREAD *tstruct,
   return rv;
 }
 
-DEFPRIM2("thread/join",threadjoin_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDOP,
+DEFPRIM2("thread/join",threadjoin_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	 "(THREAD/JOIN *threads* [*opts*]) "
 	 "waits for *threads* to finish. If *opts* is "
 	 "provided, it specifies a timeout. This returns "
@@ -1274,7 +1274,7 @@ static lispval threadjoin_prim(lispval threads,lispval U8_MAYBE_UNUSED opts)
   return finished;
 }
 
-DEFPRIM2("thread/wait",threadwait_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDOP,
+DEFPRIM2("thread/wait",threadwait_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	 "(THREAD/WAIT *threads* [*opts*]) "
 	 "waits for all of *threads* to return. If provided "
 	 "*opts* specifies a timeout, and unfinished "
@@ -1307,7 +1307,7 @@ static lispval threadwait_prim(lispval threads,lispval U8_MAYBE_UNUSED opts)
   return unfinished;
 }
 
-DEFPRIM2("thread/finish",threadfinish_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDOP,
+DEFPRIM2("thread/finish",threadfinish_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	 "(THREAD/FINISH *args* [*opts*]) "
 	 "waits for all of threads in *args* to return, "
 	 "returning the non-VOID thread results together "
@@ -1360,7 +1360,7 @@ static lispval threadfinish_prim(lispval args,lispval opts)
   return results;
 }
 
-DEFPRIM2("thread/wait!",threadwaitbang_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDOP,
+DEFPRIM2("thread/wait!",threadwaitbang_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	 "(THREAD/WAIT! *threads*) "
 	 "waits for all of *threads* to return, and returns "
 	 "VOID. *opts is currently ignored.",
@@ -1668,8 +1668,7 @@ static lispval set_cstack_limit_prim(lispval arg)
 static void thread_sigint(int signum,siginfo_t *info,void *stuff)
 {
   lispval cur = kno_current_thread;
-  if ( (cur == KNO_NULL) || (!(KNO_CONSP(cur))) ||
-       (! (KNO_TYPEP(cur,kno_thread_type)) ) ) {
+  if ( (cur) && (KNO_CONSP(cur)) && (KNO_TYPEP(cur,kno_thread_type)) ) {
     kno_thread thread = (kno_thread) cur;
     u8_condition interrupt = thread->interrupt;
     thread->interrupt = NULL;
@@ -1678,34 +1677,6 @@ static void thread_sigint(int signum,siginfo_t *info,void *stuff)
     else u8_raise(kno_ThreadInterrupted,"thread_sigint",NULL);}
   else u8_raise(kno_ThreadInterrupted,"thread_sigint",NULL);
 }
-
-#if 0
-static void thread_siginfo(int signum,siginfo_t *info,void *stuff)
-{
-  /* What should this do? */
-  lispval cur_thread = kno_current_thread;
-  u8_string log_context = u8_log_context;
-  kno_stack stackptr = kno_stackptr;
-  int emissions = 0;
-  if (TYPEP(cur_thread,kno_thread_type)) {
-    u8_log(-LOGNOTICE,"Thread","%q",cur_thread);
-    emissions++;}
-  if (stackptr) {
-    u8_log(-LOGNOTICE,"ThreadStack",
-	   "(%d) %s.%s.%s\n%q",
-	   stackptr->stack_depth,
-	   stackptr->stack_type,
-	   stackptr->stack_label,
-	   stackptr->stack_file,
-	   stackptr->stack_op);
-    emissions++;}
-  if (log_context) {
-    u8_log(-LOGNOTICE,"LogContext","%s",log_context);
-    emissions++;}
-  if (! (emissions) )
-    u8_log(-LOGNOTICE,"ThreadInfo","None available");
-}
-#endif
 
 static void init_signal_handling()
 {

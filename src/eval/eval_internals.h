@@ -13,6 +13,8 @@ lispval lambda_call(kno_stack stack,
 		    int n,kno_argvec args,
 		    int tail);
 
+lispval _lexref_error(lispval ref,int up,kno_lexenv env,kno_lexenv root);
+
 INLINE_DEF lispval fastget(lispval table,lispval key)
 {
   kno_lisp_type argtype = KNO_TYPEOF(table);
@@ -25,6 +27,7 @@ INLINE_DEF lispval fastget(lispval table,lispval key)
 }
 INLINE_DEF lispval eval_lexref(lispval lexref,kno_lexenv env_arg)
 {
+  lispval v;
   int code = KNO_GET_IMMEDIATE(lexref,kno_lexref_type);
   int up = code/32, across = code%32;
   kno_lexenv env = env_arg;
@@ -33,22 +36,28 @@ INLINE_DEF lispval eval_lexref(lispval lexref,kno_lexenv env_arg)
     env = env->env_parent;
     up--;}
   if (KNO_EXPECT_TRUE(env != NULL)) {
-    if (PRED_FALSE((env->env_copy!=NULL))) env = env->env_copy;
-    lispval bindings = env->env_bindings;
-    if (KNO_EXPECT_TRUE(KNO_SCHEMAPP(bindings))) {
-      struct KNO_SCHEMAP *s = (struct KNO_SCHEMAP *)bindings;
-      if ( across < s->schema_length) {
-	lispval v = s->table_values[across];
-	if (KNO_CONSP(v)) {
-	  if (PRED_FALSE((KNO_CONS_TYPE(((kno_cons)v))) == kno_prechoice_type))
-	    return _kno_make_simple_choice(v);
-	  else return kno_incref(v);}
-	else return v;}}}
-  lispval env_ptr = (lispval) env_arg;
-  u8_byte errbuf[64];
-  return kno_err("Bad lexical reference","kno_lexref",
-                 u8_bprintf(errbuf,"up=%d,across=%d",up, across),
-                 ((KNO_STATICP(env_ptr)) ? KNO_FALSE : (env_ptr)));
+    if (PRED_FALSE((env->env_copy != NULL))) env = env->env_copy;
+    if (env->env_vals) {
+      int vals_len = env->env_bits & (0xFF);
+      if (across < vals_len)
+	v = env->env_vals[across];
+      else v = KNO_ERROR;}
+    else {
+      lispval bindings = env->env_bindings;
+      if (KNO_EXPECT_TRUE(KNO_SCHEMAPP(bindings))) {
+	struct KNO_SCHEMAP *s = (struct KNO_SCHEMAP *)bindings;
+	if ( across < s->schema_length) {
+	  v = s->table_values[across];}
+	else v = KNO_ERROR;}
+      else v = KNO_ERROR;}}
+  else v = KNO_ERROR;
+  if (KNO_ABORTED(v))
+    return _lexref_error(lexref,up,env,env_arg);
+  else if (KNO_CONSP(v)) {
+    if (PRED_FALSE((KNO_CONS_TYPE(((kno_cons)v))) == kno_prechoice_type))
+      return _kno_make_simple_choice(v);
+    else return kno_incref(v);}
+  else return v;
 }
 INLINE_DEF lispval symeval(lispval symbol,kno_lexenv env)
 {
@@ -238,10 +247,9 @@ KNO_FASTOP kno_lexenv init_static_env
   envstruct->env_bindings = LISP_CONS((bindings));
   envstruct->env_exports = KNO_VOID;
   envstruct->env_parent  = parent;
-  envstruct->env_vals    = NULL;
-  envstruct->env_pvals   = NULL;
   envstruct->env_copy    = NULL;
-  envstruct->env_flags   = 0;
+  envstruct->env_vals    = (n<256) ? (vals) : (NULL);
+  envstruct->env_bits    = (n<256) ? (n) : (0);
   return envstruct;
 }
 
@@ -263,7 +271,9 @@ KNO_FASTOP kno_lexenv init_static_env
 		    &_ ## name,				    \
 		    name ## _vars,			    \
 		    name ## _vals,			    \
-		    0)
+		    0);					    \
+  _ ## name.env_vals = name ## _vals;			    \
+
 
 #define INIT_STACK_SCHEMA(stack,name,parent,n,schema)	    \
   struct KNO_SCHEMAP name ## _bindings = { 0 };		    \
@@ -281,7 +291,8 @@ KNO_FASTOP kno_lexenv init_static_env
 		    &_ ## name,				    \
 		    schema,				    \
 		    name ## _vals,			    \
-		    0)
+		    0);					    \
+  _ ## name.env_vals = name ## _vals
 
 #define ENV_STACK_FLAGS (KNO_STACK_OWNS_ENV|KNO_STACK_FREE_ENV)
 
@@ -309,6 +320,7 @@ KNO_FASTOP kno_lexenv init_static_env
 		    name ## _vars,					\
 		    name ## _vals,					\
 		    0);							\
+  _ ## name.env_vals = name ## _vals;\
   KNO_PUSH_STACK(name ## _stack)
 
 

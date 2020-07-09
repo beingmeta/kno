@@ -185,6 +185,8 @@ KNO_EXPORT lispval kno_getopt(lispval opts,lispval key,lispval dflt);
 KNO_EXPORT int kno_testopt(lispval opts,lispval key,lispval val);
 KNO_EXPORT long long kno_getfixopt(lispval opts,u8_string name,long long dflt);
 
+#define kno_hasopt(opts,key) (kno_testopt((opts),(key),(KNO_VOID)))
+
 /* Resources sensors */
 
 typedef lispval (*kno_resource_sensor)(void);
@@ -204,6 +206,8 @@ KNO_EXPORT struct sigaction *kno_sigaction_exit;
 KNO_EXPORT struct sigaction *kno_sigaction_abort;
 KNO_EXPORT struct sigaction *kno_sigaction_default;
 KNO_EXPORT struct sigaction *kno_sigaction_ignore;
+KNO_EXPORT struct sigaction *kno_sigaction_status;
+KNO_EXPORT struct sigaction *kno_sigaction_stack;
 
 KNO_EXPORT sigset_t *kno_default_sigmask;
 

@@ -418,7 +418,6 @@ KNO_EXPORT struct KNO_STREAM *kno_init_stream(kno_stream stream,
   int buf_flags = ( KNO_HEAP_BUFFER | KNO_IN_STREAM );
   unsigned char *buf = u8_malloc(bufsiz);
   if (flags & KNO_STREAM_DTYPEV2) buf_flags |= KNO_USE_DTYPEV2;
-  if (flags & KNO_STREAM_LOUDSYMS) buf_flags |= KNO_FIX_DTSYMS;
   /* If you can't get a whole buffer, try smaller */
   while ((bufsiz>=1024) && (buf == NULL)) {
     u8_logf(LOG_WARN,"BigBuffer",
@@ -547,6 +546,14 @@ KNO_EXPORT kno_stream kno_reopen_file_stream
     break;
   case KNO_FILE_WRITE:
     open_flags |= O_RDWR|O_CREAT;
+    needs_lock=1;
+    break;
+  case KNO_FILE_INIT:
+    open_flags |= O_RDWR|O_EXCL|O_CREAT;
+    needs_lock=1;
+    break;
+  case KNO_FILE_TRUNC:
+    open_flags |= O_RDWR|O_TRUNC|O_CREAT;
     needs_lock=1;
     break;
   case KNO_FILE_CREATE:
@@ -1090,8 +1097,6 @@ KNO_EXPORT kno_inbuf kno_open_block(kno_stream s,kno_inbuf in,
   if ((offset<0) || (len<0) ) {
     u8_seterr("InvalidOffsets","kno_open_block",s->streamid);
     return NULL;}
-  if ( (s->stream_flags) & KNO_STREAM_LOUDSYMS )
-    in->buf_flags |= KNO_FIX_DTSYMS;
   if ((s->stream_flags) & (KNO_STREAM_MMAPPED)) {
     /* If the stream (whole file) is mmapped, just reference a slice
        of the mapped file. */
@@ -1384,8 +1389,6 @@ kno_fetch_chunk_ref(struct KNO_STREAM *stream,
   unsigned char buf[16];
   memset(&_in,0,sizeof(_in));
   KNO_INIT_BYTE_INPUT(&_in,buf,chunk_size);
-  if ( (stream->stream_flags) & (KNO_STREAM_LOUDSYMS) )
-    _in.buf_flags |= KNO_FIX_DTSYMS;
   if (kno_read_block(stream,buf,chunk_size,base+ref_off,1)!=chunk_size) {
     u8_logf(LOG_CRIT,"BlockReadFailed",
             "Reading %d-byte block from stream %s failed",
