@@ -148,8 +148,7 @@
       (if (null? arglist)
 	  '()
 	  (list arglist))))
-
-(define (get-lexref sym bindlist (env #f) (base 0))
+(define (get-lexref sym bindlist (base 0))
   (if (null? bindlist) #f
       (if (pair? (car bindlist))
 	  (let ((pos (position sym (car bindlist))))
@@ -1165,9 +1164,7 @@
 	 (limit-ref (get-lexref '|dotimes_limit| newbound))
 	 (body (cddr expr)))
     `(#OP_BIND #(,varname |dotimes_limit|) 
-	       #(0 ,(optimize limit-expr env
-			      (cons '(#f #f) bound)
-			      opts))
+	       #(0 ,(optimize limit-expr env bound opts))
 	       (#OP_UNTIL
 		(#OP_GTE ,iter-ref ,limit-ref)
 		,@(forseq (clause body) (optimize clause env newbound opts))
