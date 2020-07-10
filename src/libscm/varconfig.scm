@@ -9,7 +9,7 @@
 
 (in-module 'varconfig)
 
-(use-module '{logger reflection texttools})
+(use-module '{logger reflection texttools defmacro})
 
 (module-export! '{varconfigfn varconfig! optconfigfn optconfig!})
 (module-export! '{config:boolean config:boolean/not
@@ -19,6 +19,8 @@
 		  config:boolset config:fnset
 		  config:replace config:push
 		  config:dirname config:dirname:opt})
+
+(module-export! 'propconfig!)
 
 (define varconfigfn
   (macro expr
@@ -305,3 +307,16 @@
 	  (list new)
 	  (list new old))))
 
+;;; Prop config
+
+(define (add-quote expr)
+  (if (and (pair? expr) (eq? (car expr) 'quote))
+      expr
+      (list 'quote expr)))
+
+(defmacro (propconfig! cfgname object propname)
+  `(config-def! ,(add-quote cfgname)
+     (lambda (var (val))
+       (if (not (bound? val))
+	   (get ,object ',propname)
+	   (store! ,object ,(add-quote propname) val)))))
