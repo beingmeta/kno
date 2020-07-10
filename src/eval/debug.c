@@ -249,11 +249,13 @@ static void log_ptr(lispval val,lispval label_arg,lispval expr)
   else if (OIDP(val)) {
     KNO_OID addr = KNO_OID_ADDR(val);
     u8_log(U8_LOG_MSG,"Pointer/OID",
-	   "%s%s%s0x%llx [ base=%llx off=%llx ] %q <= %q",
+	   "%s%s%s0x%llx [ [%llx]+%llx ] @%llx/%llx %q <= %q",
 	   U8OPTSTR("",label,": "),
 	   (KNO_LONGVAL(val)),
-	   (KNO_OID_BASE_ID(val)),(KNO_OID_BASE_OFFSET(val)),
-	   KNO_OID_HI(addr),KNO_OID_LO(addr),
+	   (unsigned long long)(KNO_OID_BASE_ID(val)),
+	   (unsigned long long)(KNO_OID_BASE_OFFSET(val)),
+	   (unsigned long long)(KNO_OID_HI(addr)),
+	   (unsigned long long)(KNO_OID_LO(addr)),
 	   val,expr);}
   else if (KNO_STATICP(val)) {
     kno_lisp_type ptype = KNO_CONS_TYPE((kno_cons)val);

@@ -3,9 +3,9 @@
 
 (in-module 'defmacro)
 
-(use-module '{varconfig logger})
-
 (module-export! 'defmacro)
+
+(define optsym '|OPT|)
 
 (define (match-expr pattern expr table)
   (cond ((ambiguous? pattern) table)
@@ -16,10 +16,38 @@
 		 (and (test table pattern expr) table)
 		 (begin (store! table pattern expr) table))))
 	((equal? pattern expr) table)
+	((and (pair? pattern) (eq? (car pattern) optsym))
+	 (let ((name (get-arg pattern 1 #f)))
+	   (if (test table name)
+	       (and (test table name expr) table)
+	       (begin (store! table name expr) table))))
+	((and (null? expr) (pair? pattern))
+	 (bind-opts pattern table))
 	((pair? pattern)
 	 (and (match-expr (car pattern) (car expr) table)
 	      (match-expr (cdr pattern) (cdr expr) table)))
 	(else #f)))
+
+(define (bind-opts pattern table (scan) (matched #[]))
+  (set! scan pattern)
+  (while (and matched (pair? scan))
+    (let ((elt (car scan)))
+      (if (and (pair? elt) (eq? (car elt) optsym))
+	  (let ((name (get-arg elt 1 #f))
+		(dflt (get-arg elt 2 #f)))
+	    (if (test table name)
+		(unless (test table name dflt) (set! matched #f))
+		(store! matched name dflt)))
+	  (set! matched #f))
+      (set! scan (cdr scan))))
+  (and matched
+       (let ((matched-syms (getkeys matched)))
+	 (when (symbol? scan)
+	   (store! table scan '()))
+	 (do-choices (key matched-syms)
+	   (store! table key (get matched key)))
+	 table)))
+  
 
 (define (get-matches pattern expr)
   (let ((matches {})

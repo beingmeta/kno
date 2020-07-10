@@ -148,7 +148,6 @@
       (if (null? arglist)
 	  '()
 	  (list arglist))))
-
 (define (get-lexref sym bindlist (base 0))
   (if (null? bindlist) #f
       (if (pair? (car bindlist))
@@ -175,13 +174,13 @@
   (default! from (and (symbol? sym) (wherefrom sym env)))
   (cond ((not (or (applicable? value) (special-form? value))) sym)
 	((not (cons? value)) sym)
-	((and sym from
+	((and sym from (module? from)
 	      (or (special-form? value) (primitive? value))
 	      (or (getopt opts 'aliasprims aliasprims-default)
 		  (getopt opts 'aliasfns aliasfns-default))
 	      (use-fcnrefs? opts))
 	 (get-fcnid sym from value))
-	((and sym from (applicable? value)
+	((and sym from (module? from) (applicable? value)
 	      (getopt opts 'aliasfns aliasfns-default)
 	      (use-fcnrefs? opts))
 	 (get-fcnid sym from value))
@@ -203,7 +202,8 @@
 		 %modref)
 	   ,(or from env) ,sym))
 	((and (test from '%fcnids) (fail? (get from '%fcnids))) sym)
-	(else (get-fcnid sym from value))))
+	((module? from) (get-fcnid sym from value))
+	(else sym)))
 
 ;;; FCNIDs
 
@@ -1164,9 +1164,7 @@
 	 (limit-ref (get-lexref '|dotimes_limit| newbound))
 	 (body (cddr expr)))
     `(#OP_BIND #(,varname |dotimes_limit|) 
-	       #(0 ,(optimize limit-expr env
-			      (cons '(#f #f) bound)
-			      opts))
+	       #(0 ,(optimize limit-expr env bound opts))
 	       (#OP_UNTIL
 		(#OP_GTE ,iter-ref ,limit-ref)
 		,@(forseq (clause body) (optimize clause env newbound opts))

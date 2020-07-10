@@ -9,7 +9,7 @@
 
 (in-module 'varconfig)
 
-(use-module '{logger reflection texttools})
+(use-module '{logger reflection texttools defmacro})
 
 (module-export! '{varconfigfn varconfig! optconfigfn optconfig!})
 (module-export! '{config:boolean config:boolean/not
@@ -19,6 +19,24 @@
 		  config:boolset config:fnset
 		  config:replace config:push
 		  config:dirname config:dirname:opt})
+
+(module-export! 'propconfig!)
+
+(defambda (config-combine valfn mergefn val (cur))
+  (if (or (not mergefn) (not (bound? cur)))
+      (if (applicable? valfn)
+	  (valfn val)
+	  (if (and valfn (string? val)) 
+	      (string->lisp val)
+	      val))
+      (let ((v (if (applicable? valfn)
+		   (valfn val)
+		   (if (and valfn (string? val))
+		       (string->lisp val)
+		       val))))
+	(mergefn v cur))))
+(define config-combine-alias (fcn/alias config-combine))
+
 
 (define varconfigfn
   (macro expr
@@ -304,4 +322,24 @@
       (if (null? old)
 	  (list new)
 	  (list new old))))
+
+;;; Prop config
+
+(define (add-quote expr)
+  (if (and (pair? expr) (eq? (car expr) 'quote))
+      expr
+      (list 'quote expr)))
+
+(defmacro (propconfig! cfgname object propname (|OPT| valfn) (|OPT| mergefn))
+  `(config-def! ,(add-quote cfgname)
+     (lambda (var (val))
+       (if (not (bound? val))
+	   (get ,object ,(add-quote propname))
+	   (store! ,object ,(add-quote propname)
+	     ,(if (or valfn mergefn)
+		  `(if (test ,object  ,(add-quote propname))
+		       (,config-combine-alias ,valfn ,mergefn
+			val (,get ,object ,(add-quote propname)))
+		       (,config-combine-alias ,valfn ,mergefn val))
+		  'val))))))
 

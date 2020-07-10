@@ -99,7 +99,7 @@
     (do-choices (index indexes)
       (let* ((filesize (index-file-size index))
 	     (keycount (indexctl index 'keycount))
-	     (buckets (indexctl index 'buckets))
+	     (buckets (indexctl index 'capacity))
 	     (maxsize (opt-max index 'maxsize maxsize))
 	     (maxkeys (opt-max index 'maxkeys maxkeys))
 	     (maxload (or (opt-max index 'maxload maxload) 1.0))
