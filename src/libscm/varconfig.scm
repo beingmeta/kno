@@ -22,6 +22,20 @@
 
 (module-export! 'propconfig!)
 
+(defambda (config-combine valfn mergefn val (cur))
+  (if (or (not mergefn) (not (bound? cur)))
+      (if (applicable? valfn)
+	  (valfn val)
+	  (if (and valfn (string? val)) 
+	      (string->lisp val)
+	      val))
+      (let ((v (if (applicable? valfn)
+		   (valfn val)
+		   (if (and valfn (string? val))
+		       (string->lisp val)
+		       val))))
+	(mergefn v cur))))
+
 (define varconfigfn
   (macro expr
     (let ((varname (cadr expr))
@@ -314,9 +328,16 @@
       expr
       (list 'quote expr)))
 
-(defmacro (propconfig! cfgname object propname)
+(defmacro (propconfig! cfgname object propname (|OPT| valfn) (|OPT| mergefn))
   `(config-def! ,(add-quote cfgname)
      (lambda (var (val))
        (if (not (bound? val))
-	   (get ,object ',propname)
-	   (store! ,object ,(add-quote propname) val)))))
+	   (get ,object ,(add-quote propname))
+	   (store! ,object ,(add-quote propname)
+	     ,(if (or valfn mergefn)
+		  `(if (test ,object  ,(add-quote propname))
+		       (,(fcn/alias config-combine) ,valfn ,mergefn
+			val (,get ,object ,(add-quote propname)))
+		       (,(fcn/alias config-combine) ,valfn ,mergefn val))
+		  'val))))))
+
