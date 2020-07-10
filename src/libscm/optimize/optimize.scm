@@ -149,7 +149,7 @@
 	  '()
 	  (list arglist))))
 
-(define (get-lexref sym bindlist (base 0))
+(define (get-lexref sym bindlist (env #f) (base 0))
   (if (null? bindlist) #f
       (if (pair? (car bindlist))
 	  (let ((pos (position sym (car bindlist))))
@@ -175,13 +175,13 @@
   (default! from (and (symbol? sym) (wherefrom sym env)))
   (cond ((not (or (applicable? value) (special-form? value))) sym)
 	((not (cons? value)) sym)
-	((and sym from
+	((and sym from (module? from)
 	      (or (special-form? value) (primitive? value))
 	      (or (getopt opts 'aliasprims aliasprims-default)
 		  (getopt opts 'aliasfns aliasfns-default))
 	      (use-fcnrefs? opts))
 	 (get-fcnid sym from value))
-	((and sym from (applicable? value)
+	((and sym from (module? from) (applicable? value)
 	      (getopt opts 'aliasfns aliasfns-default)
 	      (use-fcnrefs? opts))
 	 (get-fcnid sym from value))
@@ -203,7 +203,8 @@
 		 %modref)
 	   ,(or from env) ,sym))
 	((and (test from '%fcnids) (fail? (get from '%fcnids))) sym)
-	(else (get-fcnid sym from value))))
+	((module? from) (get-fcnid sym from value))
+	(else sym)))
 
 ;;; FCNIDs
 
