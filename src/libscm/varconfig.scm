@@ -35,6 +35,8 @@
 		       (string->lisp val)
 		       val))))
 	(mergefn v cur))))
+(define config-combine-alias (fcn/alias config-combine))
+
 
 (define varconfigfn
   (macro expr
@@ -336,8 +338,8 @@
 	   (store! ,object ,(add-quote propname)
 	     ,(if (or valfn mergefn)
 		  `(if (test ,object  ,(add-quote propname))
-		       (,(fcn/alias config-combine) ,valfn ,mergefn
+		       (,config-combine-alias ,valfn ,mergefn
 			val (,get ,object ,(add-quote propname)))
-		       (,(fcn/alias config-combine) ,valfn ,mergefn val))
+		       (,config-combine-alias ,valfn ,mergefn val))
 		  'val))))))
 
