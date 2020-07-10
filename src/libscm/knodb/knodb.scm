@@ -139,8 +139,13 @@
 (define (get-indexes-for-pool pool (opts #f))
   (or (try (poolctl pool 'props 'indexes)
 	   (let* ((rootdir (dirname (pool-source pool)))
-		  (indexes (index/ref (poolctl pool 'metadata 'indexes)
-				      (opt+ 'rootdir rootdir opts))))
+		  (indexrefs (poolctl pool 'metadata 'indexes))
+		  (indexes (pick (for-choices (ref indexrefs)
+				   (onerror (index/ref ref (opt+ 'rootdir rootdir opts))
+				       (lambda (ex)
+					 (logwarn |IndexRefError| (write ref)) #f)))
+
+			     index?)))
 	     (do-choices (partition (poolctl pool 'partitions))
 	       (set+! indexes (get-indexes-for-pool partition opts)))
 	     (poolctl pool 'props 'indexes (try indexes #f))
@@ -157,11 +162,11 @@
 
 (define (pool/getindex pool (opts #f))
   (try (poolctl pool 'props 'index)
-       (get-index-for-pool opts)))
+       (get-index-for-pool pool opts)))
 
 (define (pool/getindexes pool (opts #f))
   (try (poolctl pool 'props 'indexes)
-       (get-indexes-for-pool opts)
+       (get-indexes-for-pool pool opts)
        (pool/getindex pool opts)))
 
 (define (knodb/wrap-index index (opts #f)) index)
@@ -403,6 +408,6 @@
 	((hashtable? ref) ref)
 	((string? ref) (index/ref (opt-suffix ref ".index")))
 	((and (opts? ref) (testopt ref '{source index}))
-	 (pool/ref (getopt ref 'index (opt-suffix (getopt ref 'source) ".index"))
-		   ref))
+	 (index/ref (getopt ref 'index (opt-suffix (getopt ref 'source) ".index"))
+		    ref))
 	(else (irritant ref |InvalidIndexRef|))))
