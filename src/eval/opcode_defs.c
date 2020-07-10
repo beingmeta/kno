@@ -965,7 +965,8 @@ static lispval bindop(lispval op,
   lispval *values=bound_bindings.table_values;
   lispval scan_inits = inits;
   kno_lexenv env_copy=NULL;
-  while (i<n) {
+  while (i<n) values[i++]=KNO_UNBOUND;
+  i=0; while (i<n) {
     lispval val_expr = pop_arg(scan_inits);
     lispval val = kno_eval(val_expr,bound,bind_stack,0);
     if (KNO_ABORTED(val)) {
@@ -995,7 +996,8 @@ static lispval vector_bindop(lispval op,
   lispval *values=bound_bindings.table_values;
   lispval *exprs=VEC_DATA(inits);
   kno_lexenv env_copy=NULL;
-  while (i<n) {
+  while (i<n) values[i++]=KNO_UNBOUND;
+  i=0;  while (i<n) {
     lispval val_expr=exprs[i];
     lispval val=kno_eval(val_expr,bound,bind_stack,0);
     if (KNO_ABORTED(val)) {
