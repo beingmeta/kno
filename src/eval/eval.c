@@ -1130,8 +1130,6 @@ lispval eval_apply(lispval fn,lispval exprs,
     else NO_ELSE;
     kno_stackvec_push(args,arg);}
 
-  KNO_STACK_SET_TAIL(stack,tail);
-
   lispval *argbuf = KNO_STACKVEC_ELTS(args);
   int n_args = KNO_STACKVEC_COUNT(args);
   int ndcall = (nd_args) && (iter) && (n_args>0);
