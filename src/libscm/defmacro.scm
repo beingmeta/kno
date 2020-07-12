@@ -3,8 +3,6 @@
 
 (in-module 'defmacro)
 
-(use-module '{varconfig logger})
-
 (module-export! 'defmacro)
 
 (define optsym '|OPT|)
