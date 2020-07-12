@@ -3102,14 +3102,12 @@ static lispval get_hashbuckets(struct KNO_KINDEX *kx)
 {
   lispval buckets = KNO_EMPTY;
   kno_stream s = &(kx->index_stream);
-  unsigned int *offdata = kx->index_offdata;
   kno_offset_type offtype = kx->index_offtype;
   int i = 0, n_buckets = (kx->index_n_buckets);
   init_cache_level((kno_index)kx);
-  kno_lock_stream(s);
+  unsigned int *offdata = kx->index_offdata;
   if (offdata) {
     /* If we have chunk offsets in memory, we just read them off. */
-    kno_unlock_stream(s);
     while (i<n_buckets) {
       KNO_CHUNK_REF ref =
         kno_get_chunk_ref(offdata,offtype,i,kx->index_n_buckets);
@@ -3118,6 +3116,7 @@ static lispval get_hashbuckets(struct KNO_KINDEX *kx)
         KNO_ADD_TO_CHOICE(buckets,fixnum);}
       i++;}}
   else {
+    kno_lock_stream(s);
     /* If we don't have chunk offsets in memory, we keep the stream
        locked while we get them. */
     while (i<n_buckets) {
