@@ -321,22 +321,32 @@ void kno_output_exception(u8_output out,u8_exception ex)
     u8_puts(out," (");
     u8_puts(out,ex->u8x_details);
     u8_puts(out,")");}
-  if (ex->u8x_free_xdata == kno_decref_u8x_xdata) {
+  if ( (ex->u8x_free_xdata == kno_decref_u8x_xdata) ||
+       (ex->u8x_free_xdata == kno_decref_embedded_exception) ) {
     lispval irritant=kno_get_irritant(ex);
     if (VOIDP(irritant)) {}
     else if ( (PAIRP(irritant)) ||
-              (VECTORP(irritant)) ||
+	      (VECTORP(irritant)) ||
               (SLOTMAPP(irritant)) ||
-              (SCHEMAPP(irritant)) ) {
-      u8_puts(out," irritant:\n    ");
-      kno_pprint(out,irritant,"    ",0,4,120);}
-    else if ( (STRINGP(irritant)) &&
-              (STRLEN(irritant)>40) ) {
-      u8_puts(out," irritant (string):\n    ");
-      kno_unparse(out,irritant);}
+	      (SCHEMAPP(irritant)) ||
+	      ( (STRINGP(irritant)) &&
+		(STRLEN(irritant)>40) ) ) {
+      u8_puts(out," irritant:\n");
+      kno_list_object(out,irritant,"irritant",NULL,
+		      "    ",NULL,120,0);}
     else {
       u8_puts(out," irritant=");
-      kno_unparse(out,irritant);}}
+      kno_unparse(out,irritant);}
+    if (ex->u8x_free_xdata == kno_decref_embedded_exception) {
+      struct KNO_EXCEPTION *exo = kno_exception_object(ex);
+      lispval stack = exo->ex_stack;
+      lispval context = exo->ex_context;
+      if (KNO_CONSP(context)) {
+	u8_puts(out,"\n");
+	kno_list_object(out,context,"context",NULL,"  ",NULL,120,0);}
+      if (KNO_CONSP(stack)) {
+	u8_puts(out,"\n");
+	kno_output_backtrace(out,stack,500);}}}
   u8_putc(out,'\n');
 }
 
@@ -370,10 +380,6 @@ void kno_output_errstack(u8_output out,u8_exception ex)
   while (scan) {
     kno_output_exception(out,scan);
     scan=scan->u8x_prev;}
-  if (ex) {
-    lispval stack = KNO_U8X_STACK(ex);
-    if (!(KNO_VOIDP(stack)))
-      kno_compact_backtrace(out,stack,kno_sum_stack_max);}
 }
 
 KNO_EXPORT
@@ -413,7 +419,7 @@ static void compact_stack_entry(u8_output out,lispval entry)
       (KNO_CSTRING(elts[3])) : (NULL);
     if (type == NULL) type = "?";
     if (label == NULL) label = "*";
-    u8_printf(out,"%lld:%s:%s",depth,type,label);}
+    u8_printf(out,"#%lld:%s:%s ",depth,type,label);}
   else {}
 }
 
