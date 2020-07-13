@@ -390,24 +390,23 @@ int do_main(int argc,char **argv,
 		       main_proc);}}
   if (source_file) source_file = NULL;
   if (KNO_TROUBLEP(result)) {
-    U8_OUTPUT out; U8_INIT_OUTPUT(&out,2000);
-    int old_maxelts = kno_unparse_maxelts, old_maxchars = kno_unparse_maxchars;
     u8_exception e = u8_erreify();
-
-    if (e) {
+    if (e == NULL) {
+      fputs("\nNull error object!\n",stderr);
+      retval = -1;}
+    else {
+      // lispval handler = kno_symeval(kno_intern("onerror");
+      // if (KNO_APPLICABLEP(handler)) {} else NO_ELSE;
+      U8_OUTPUT out; U8_INIT_OUTPUT(&out,10000);
       kno_unparse_maxchars = debug_maxchars;
       kno_unparse_maxelts = debug_maxelts;
       kno_output_errstack(&out,e);
-      kno_unparse_maxelts = old_maxelts;
-      kno_unparse_maxchars = old_maxchars;}
-    else u8_puts(&out,"Null error object!");
-    fputs(out.u8_outbuf,stderr);
-    fputc('\n',stderr);
-
-    /* Write out the exception object somehow */
-    u8_close_output(&out);
-    u8_free_exception(e,1);
-    retval = -1;}
+      fputs(out.u8_outbuf,stderr);
+      fputc('\n',stderr);
+      /* Write out the exception object somehow */
+      u8_close_output(&out);
+      u8_free_exception(e,1);
+      retval = -1;}}
 
   if ( ! kno_fast_exit ) {
     kno_decref(result);

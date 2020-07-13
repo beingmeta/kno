@@ -546,7 +546,7 @@ void kno_init_stacks_c()
   kno_stackptr=NULL;
 #endif
 
-  stack_entry_symbol = kno_intern("_stack");
+  stack_entry_symbol = kno_intern("%%stack");
 
 
   opaque_symbol = kno_intern("%opaque");
