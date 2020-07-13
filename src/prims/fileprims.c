@@ -312,6 +312,8 @@ static lispval simple_fileout_evalfn(lispval expr,kno_lexenv env,kno_stack _stac
       else {
 	u8_set_default_output(oldf);
 	kno_decref(filename_val);
+	if (doclose) u8_close_output(f);
+	else u8_flush(f);
 	return value;}}}
   u8_set_default_output(oldf);
   if (doclose) u8_close_output(f);
