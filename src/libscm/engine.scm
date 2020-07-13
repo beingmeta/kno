@@ -442,7 +442,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	 (rthreads (if (and nthreads (> nthreads (length batches)))
 		       (length batches)
 		       nthreads)))
-    (when (> n-items 0)
+    (tryif (> n-items 0)
       (let* ((fifo-opts 
 	      (frame-create #f
 		'name (getopt opts 'name (or (procedure-name fcn) {}))
