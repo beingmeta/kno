@@ -157,30 +157,31 @@
 		      (get-spans (indexctl index 'hash) span)
 		      (indexctl index 'buckets)))
 	 (rare (getopt opts 'rare {}))
-	 (unique (getopt opts 'unique {})))
+	 (unique (getopt opts 'unique {}))
+	 (engine-opts
+	  `#[loop #[input ,index output ,output
+		    rare ,(getopt opts 'rare)
+		    unique ,(getopt opts 'unique)
+		    maxcount ,(getopt opts 'maxcount)
+		    mincount ,(getopt opts 'mincount)]
+	     logcontext ,(stringout "Copying " (index-source index))
+	     count-term ,(if span "buckets" "bucket spans")
+	     onerror {stopall signal}
+	     counters {keys rarekeys uniquekeys values}
+	     logrates {keys rarekeys uniquekeys values}
+	     batchsize ,(if span 1 (getopt opts 'batchsize (config 'BATCHSIZE 100)))
+	     batchrange ,(if span 1 (getopt opts 'batchrange (config 'BATCHRANGE 8)))
+	     nthreads ,(getopt opts 'nthreads (config 'NTHREADS (rusage 'ncpus)))
+	     checktests ,(engine/interval (getopt opts 'savefreq (config 'savefreq 60)))
+	     checkpoint {,(or output {}) ,(or unique {}) ,(or rare {})}
+	     logfreq ,(getopt opts 'logfreq (config 'LOGFREQ 30))
+	     checkfreq ,(getopt opts 'checkfreq (config 'checkfreq 15))
+	     logchecks #t
+	     started ,started]))
     (lognotice |Copying|
       ($num (choice-size buckets)) 
       (if span " bucket spans" " buckets")
       " from " (write (index-source index))
       " to " (write (index-source output)))
-    (engine/run hashindex-copier buckets  
-		`#[loop #[input ,index output ,output
-			  rare ,(getopt opts 'rare)
-			  unique ,(getopt opts 'unique)
-			  maxcount ,(getopt opts 'maxcount)
-			  mincount ,(getopt opts 'mincount)]
-		   logcontext ,(stringout "Copying " (index-source index))
-		   count-term ,(if span "buckets" "bucket spans")
-		   onerror {stopall signal}
-		   counters {keys rarekeys uniquekeys values}
-		   logrates {keys rarekeys uniquekeys values}
-		   batchsize ,(if span 1 (getopt opts 'batchsize (config 'BATCHSIZE 100)))
-		   batchrange ,(if span 1 (getopt opts 'batchrange (config 'BATCHRANGE 8)))
-		   nthreads ,(getopt opts 'nthreads (config 'NTHREADS (rusage 'ncpus)))
-		   checktests ,(engine/interval (getopt opts 'savefreq (config 'savefreq 60)))
-		   checkpoint {,output ,(or unique {}) ,(or rare {})}
-		   logfreq ,(getopt opts 'logfreq (config 'LOGFREQ 30))
-		   checkfreq ,(getopt opts 'checkfreq (config 'checkfreq 15))
-		   logchecks #t
-		   started ,started])))
+    (engine/run hashindex-copier buckets  engine-opts)))
 

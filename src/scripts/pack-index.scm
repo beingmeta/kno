@@ -17,6 +17,8 @@
 	  (string->symbol (downcase arg)))))
 
 (define (overwriting file)
+  (when (file-exists? (glom file ".part"))
+    (remove-file (glom file ".part")))
   (when (file-exists? file)
     (cond ((config 'unsafe)
 	   (remove-file! file)
@@ -69,6 +71,8 @@
 	"The output file " (write out) " already exists.\n  "
 	"Specify OVERWRITE=yes to remove.")
       (exit))
+    (when (and overwrite (file-exists? (glom out ".part")))
+      (remove-file (glom out ".part")))
     (when (and overwrite (getopt opts 'unique)
 	       (file-exists? (getopt opts 'unique)))
       (overwriting (getopt opts 'unique)))
