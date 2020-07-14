@@ -398,7 +398,8 @@ lispval kno_init_prechoice(struct KNO_PRECHOICE *ch,int lim,int uselock)
   ch->prechoice_choicedata = kno_alloc_choice(lim);
   ch->prechoice_write = ch->prechoice_data =
     (lispval *)KNO_XCHOICE_DATA(ch->prechoice_choicedata);
-  ch->prechoice_limit = ch->prechoice_data+lim; ch->prechoice_size = 0;
+  ch->prechoice_limit = ch->prechoice_data+lim;
+  ch->prechoice_size = 0;
   ch->prechoice_nested = 0;
   ch->prechoice_muddled = 0;
   ch->prechoice_atomic = 1;
@@ -462,7 +463,8 @@ static lispval normalize_choice(lispval x,int free_prechoice)
   /* Double check that it's really okay to free it. */
   if (free_prechoice) {
     if (KNO_CONS_REFCOUNT(ch)>1) {
-      free_prechoice = 0; kno_decref(x);}}
+      free_prechoice = 0;
+      kno_decref(x);}}
   if (ch->prechoice_uselock) lock_prechoice(ch);
   /* If you have a normalized value, use it. */
   if (!(VOIDP(ch->prechoice_normalized))) {

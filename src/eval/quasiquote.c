@@ -288,7 +288,6 @@ static lispval quasiquote_slotmap(lispval obj,
       slotid = kno_quasiquote(slotid,env,stack,level);
       free_slotid = 1;}
     if ((EMPTYP(slotid))||(VOIDP(slotid))) {
-      if (free_slotid) kno_decref(slotid);
       i++;
       continue;}
     if ((PAIRP(value))||
@@ -304,7 +303,8 @@ static lispval quasiquote_slotmap(lispval obj,
       i++;}
     else {
       kno_slotmap_store(new_slotmap,slotid,value);
-      i++;}}
+      i++;}
+    if (free_slotid) kno_decref(slotid);}
   return result;
 }
 
@@ -315,9 +315,20 @@ static lispval quasiquote_choice(lispval obj,kno_lexenv env,
   DO_CHOICES(elt,obj) {
     lispval transformed = kno_quasiquote(elt,env,stack,level);
     if (KNO_ABORTED(transformed)) {
-      KNO_STOP_DO_CHOICES; kno_decref(result);
+      KNO_STOP_DO_CHOICES;
+      kno_decref(result);
       return transformed;}
     CHOICE_ADD(result,transformed);}
+#if 0
+  if (KNO_PRECHOICEP(result)) {
+    struct KNO_PRECHOICE *pc = (kno_prechoice) result;
+    u8_log(LOGWARN,"QC","Prechoice 0x%llx, choicedata=0x%llx",
+	   result,pc->prechoice_choicedata);
+    lispval norm = kno_simplify_choice(result);
+    u8_log(LOGWARN,"QC","Choice 0x%llx=%q",norm,norm);
+    return norm;}
+  else return kno_simplify_choice(result);
+#endif
   return kno_simplify_choice(result);
 }
 
