@@ -7,6 +7,7 @@
 
 (module-export! '{kindex/mapkeys
 		  kindex/counts
+		  kindex/histogram
 		  kindex/repack!
 		  kindex/copy-keys!
 		  kindex/repack-keys
@@ -31,7 +32,7 @@
 (define (kindex/mapkeys mapfn index (opts #f))
   (let* ((n-buckets (indexctl index 'hash))
 	 (n-keys (indexctl index 'metadata 'keys))
-	 (span-width (config 'WIDTH 500000))
+	 (span-width (config 'WIDTH 10000))
 	 (spans (get-spans n-buckets span-width))
 	 (loop-init (getopt opts 'loop #[])))
     (let ((loopfn (lambda (span batch-state loop-state task-state)
@@ -40,6 +41,15 @@
 	  (opts (cons `#[loop ,loop-init] opts)))
       (store! loop-init 'index index)
       (engine/run loopfn spans opts))))
+
+(define (update-histogram info batch-state loop-state task-state)
+  (let ((histogram (get loop-state 'histogram)))
+    (do-choices (keyinfo info)
+      (hashtable-increment! histogram (get keyinfo 'key) (get keyinfo 'count)))))
+
+(define (kindex/histogram index (opts #f) (table (make-hashtable)))
+  (kindex/mapkeys update-histogram index `#[loop #[histogram ,table]])
+  table)
 
 ;;; Getting index-sizes by iterating over buckets
 
@@ -62,7 +72,7 @@
       (hashtable-increment! counts (get batch-counts count) count))
     (add! indexes record-keys (get loop-state 'index))
     (store! batch-state 'keys (choice-size keys))
-    (store! batch-state 'rare rare-count)))
+    (store! batch-state 'rarekeys rare-count)))
 
 (define (kindex/counts index (counts) (indexes) (rare))
   (default! counts (make-hashtable (indexctl index 'metadata 'keys)))
@@ -72,7 +82,7 @@
 		    `#[batchsize 1
 		       loop #[index ,index counts ,counts indexes ,indexes rare ,rare]
 		       count-term "spans"
-		       counters {keys rare}
+		       counters {keys rarekeys}
 		       logfns ,engine/log
 		       logfreq 45])
   `#[counts ,counts indexes ,indexes rare ,rare])
