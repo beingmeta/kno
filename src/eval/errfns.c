@@ -938,7 +938,7 @@ KNO_EXPORT void kno_init_errfns_c()
   kno_def_evalfn(kno_scheme_module,"NEWERR",irritant_evalfn,
 		 "*undocumented*");
 
-  stack_entry_symbol = kno_intern("_stack");
+  stack_entry_symbol = kno_intern("%%stack");
   condition_symbol = kno_intern("condition");
   caller_symbol = kno_intern("caller");
   timebase_symbol = kno_intern("timebase");
