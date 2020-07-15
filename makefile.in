@@ -317,8 +317,9 @@ SHELL_SCRIPTS=etc/knosetconfig etc/knogetconfig etc/knoconfig \
 	etc/knocleanup etc/knojob \
 	etc/knobuild
 SCHEME_SCRIPTS=exe/scripts/pack-pool exe/scripts/pack-index \
-	       exe/scripts/merge-indexes exe/scripts/knopkg \
-	       exe/scripts/knocall exe/scripts/knoserver
+	       exe/scripts/split-index exe/scripts/merge-indexes \
+	       exe/scripts/knocall exe/scripts/knoserver \
+	       exe/scripts/knopkg
 
 CONFDIRS=$(DESTDIR)@config_dir@ $(DESTDIR)@config_dir@/config \
 	 $(DESTDIR)@share_dir@ \

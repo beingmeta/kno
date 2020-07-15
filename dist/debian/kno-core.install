@@ -10,6 +10,7 @@ usr/bin/knod
 usr/bin/knotask
 usr/bin/knocgi
 usr/bin/pack-index
+usr/bin/split-index
 usr/bin/pack-pool
 usr/bin/merge-indexes
 usr/bin/knogetconfig
