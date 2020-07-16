@@ -968,10 +968,20 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	  " in " (secs->string (elapsed-time started))
 	  " using " (or n-threads "no") " threads: "
 	  (do-choices (db (getkeys timings))
-	    (let ((time (get timings db)))
+	    (let* ((info (get timings db))
+		   (time (if (pair? info) (cdr info) info))
+		   (changes (and (pair? info) (car info))))
 	      (if (>= time 0)
-		  (printout "\n\t" ($num time 1) "s \t" db)
-		  (printout "\n\tFAILED after " ($num time 1) "s:\t" db)))))))))
+		  (printout "\n\t" ($num time 1) "s"
+		    (if changes (printout "\t "  ($count changes "change")))
+		    "\t " (knodb/id db) "\t " db)
+		  (printout "\n\t" ($num time 1) "s\t "
+		    (if changes ($count changes "change"))
+		    "\t " (knodb/id db) "\t " db)
+		  (printout "\n\tFAILED after " ($num time 1) "s:\t "
+		    "\t " (knodb/id db) 
+		    (if changes (printout "\t with " ($count changes "change")))
+		    "\t " db)))))))))
 
 (defambda (engine-swapout loop-state)
   (let ((started (elapsed-time))
@@ -994,7 +1004,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 		  "from " ($count (choice-size dbs) " databases ")
 		  "for " (get loop-state 'fifo))))))
 
-(define (inner-commit arg timings start)
+(define (inner-commit arg timings start (work #f))
   (cond ((registry? arg) (registry/save! arg))
 	((pool? arg) (commit arg))
 	((index? arg) (commit arg))
@@ -1002,7 +1012,8 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	((and (pair? arg) (applicable? (car arg)))
 	 (apply (car arg) (cdr arg)))
 	(else (logwarn |Engine/CantSave| "No method for saving " arg) #f))
-  (store! timings arg (elapsed-time start))
+  (store! timings arg 
+    (if work (cons work (elapsed-time start)) (elapsed-time start)))
   arg)
 
 (define (commit-db arg opts timings (start (elapsed-time)))
