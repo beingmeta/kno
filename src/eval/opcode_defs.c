@@ -58,15 +58,9 @@ KNO_FASTOP lispval reduce_op(kno_stack stack,
       return arg;}
     else NO_ELSE;
     lispval reduced = fn(state,arg,&done);
-    if (KNO_ABORTED(reduced)) {
-      kno_decref(state);
-      kno_decref(arg);
-      return reduced;}
-    if ( (KNO_EMPTYP(reduced)) &&
-	 (!(KNO_VOIDP(prune))) ) {
-      kno_decref(state);
-      state = prune;
-      break;}
+    if (KNO_ABORTED(reduced)) return reduced;
+    if ( (KNO_EMPTYP(reduced)) && (!(KNO_VOIDP(prune))) )
+      return kno_incref(prune);
     else state = reduced;}
   return kno_simplify_choice(state);
 }
@@ -1213,7 +1207,7 @@ static lispval handle_special_opcode(lispval opcode,lispval args,lispval expr,
   }
 }
 
-/* Experimenting */
+/* Numeric reduction ops */
 
 typedef int (reducer)(lispval *result,lispval cur,lispval arg);
 
@@ -1243,13 +1237,28 @@ static int plus_reduce(lispval *result,lispval sum,lispval add)
     return reduce_not_a_number(result,"plus",add);
   if (KNO_ZEROP(add)) return 0;
   kno_lisp_type sumtype = KNO_TYPEOF(sum);
-  // kno_lisp_type argtype = KNO_TYPEOF(add);
-  switch (sumtype) {
-  default: {
-    lispval r = kno_plus(sum,add);
-    if (KNO_CONSP(sum)) kno_decref(sum);
-    *result = r;
-    return 0;}}
+  kno_lisp_type argtype = KNO_TYPEOF(add);
+  if (sumtype == argtype) switch (sumtype) {
+    kno_fixnum_type: {
+	long long sum_int = KNO_FIX2INT(sum);
+	long long add_int = KNO_FIX2INT(add);
+	long long result_int = sum_int+add_int;
+	*result = KNO_INT(result_int);
+	return 0;}
+    kno_flonum_type: {
+	double sum_float = KNO_FLONUM(sum);
+	long long add_float = KNO_FLONUM(add);
+	long long result_float = sum_float+add_float;
+	lispval r = kno_make_flonum(result_float);
+	kno_decref(sum);
+	*result = r;
+	return 0;}
+    default: {/* fall though */}
+    }
+  lispval r = kno_plus(sum,add);
+  if (KNO_CONSP(sum)) kno_decref(sum);
+  *result = r;
+  return 0;
 }
 
 static lispval plus_handler(int n,kno_argvec args)
@@ -1263,35 +1272,75 @@ static int minus_reduce(lispval *result,lispval sum,lispval sub)
     return reduce_not_a_number(result,"minus",sub);
   if (KNO_ZEROP(sub)) return 0;
   kno_lisp_type sumtype = KNO_TYPEOF(sum);
-  // kno_lisp_type argtype = KNO_TYPEOF(sub);
-  switch (sumtype) {
-  default: {
-    lispval r = kno_subtract(sum,sub);
-    if (KNO_CONSP(sum)) kno_decref(sum);
-    *result = r;
-    return 0;}}
+  kno_lisp_type argtype = KNO_TYPEOF(sub);
+  if (sumtype == argtype) switch (sumtype) {
+    kno_fixnum_type: {
+	long long sum_int = KNO_FIX2INT(sum);
+	long long sub_int = KNO_FIX2INT(sub);
+	long long result_int = sum_int-sub_int;
+	*result = KNO_INT(result_int);
+	return 0;}
+    kno_flonum_type: {
+	double sum_float = KNO_FLONUM(sum);
+	long long sub_float = KNO_FLONUM(sub);
+	long long result_float = sum_float-sub_float;
+	lispval r = kno_make_flonum(result_float);
+	kno_decref(sum);
+	*result = r;
+	return 0;}
+    default: {/* fall though */}
+    }
+  lispval r = kno_subtract(sum,sub);
+  if (KNO_CONSP(sum)) kno_decref(sum);
+  *result = r;
+  return 0;
 }
 
 static lispval minus_handler(int n,kno_argvec args)
 {
-  if (n == 1)
-    return kno_subtract(KNO_FIXNUM_ZERO,args[0]);
+  if (n == 1) {
+    lispval arg = args[0];
+    if (KNO_FIXNUMP(arg)) {
+      long long intval = 0 - KNO_FIX2INT(arg);
+      return KNO_INT(intval);}
+    else if (KNO_FLONUMP(arg)) {
+      double dval = 0 - KNO_FLONUM(arg);
+      return kno_make_flonum(dval);}
+    return kno_subtract(KNO_FIXNUM_ZERO,arg);}
   else return do_reduce(minus_reduce,args[0],n-1,args+1);
 }
 
-static int times_reduce(lispval *result,lispval sum,lispval add)
+static int times_reduce(lispval *result,lispval prod,lispval mult)
 {
-  if (NOT_A_NUMBERP(add))
-    return reduce_not_a_number(result,"times",add);
-  if (add == KNO_INT(1)) return 0;
-  kno_lisp_type sumtype = KNO_TYPEOF(sum);
-  // kno_lisp_type argtype = KNO_TYPEOF(add);
-  switch (sumtype) {
-  default: {
-    lispval r = kno_multiply(sum,add);
-    if (KNO_CONSP(sum)) kno_decref(sum);
-    *result = r;
-    return 0;}}
+  if (NOT_A_NUMBERP(mult))
+    return reduce_not_a_number(result,"times",mult);
+  else if (mult == KNO_INT(1)) return 0;
+  else if (mult == KNO_INT(0)) {
+    *result = mult;
+    return 1;}
+  kno_lisp_type prodtype = KNO_TYPEOF(prod);
+  kno_lisp_type argtype = KNO_TYPEOF(mult);
+  if (prodtype == argtype) switch (prodtype) {
+    kno_fixnum_type: {
+	long long ix = FIX2INT(prod), iy = FIX2INT(mult);
+	long long q = ((iy>0)?(KNO_MAX_FIXNUM/iy):(KNO_MIN_FIXNUM/iy));
+	if (!((ix>0)?(ix>q):((-ix)>q))) {
+	  long long result = ix*iy;
+	  return KNO_INT(result);}
+	break;}
+    kno_flonum_type: {
+	double prod_float = KNO_FLONUM(prod);
+	long long mult_float = KNO_FLONUM(mult);
+	long long result_float = prod_float*mult_float;
+	lispval r = kno_make_flonum(result_float);
+	kno_decref(prod);
+	return r;}
+    default: {/* fall though */}
+    }
+  lispval r = kno_multiply(prod,mult);
+  kno_decref(prod);
+  *result = r;
+  return 0;
 }
 
 static lispval times_handler(int n,kno_argvec args)
