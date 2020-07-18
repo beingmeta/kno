@@ -32,7 +32,12 @@ install: extmods
 alpine: extmods
 	domake ${EXTMODS} alpine
 debfresh: extmods
+	domake ${EXTMODS} fresh
 	domake ${EXTMODS} debfresh
+
+debclean:
+	rm -f *.deb *.ddeb *.changes *.buildinfo
+
 
 .PHONY: extmods build fresh clean install alpine debfresh testbuild
 
