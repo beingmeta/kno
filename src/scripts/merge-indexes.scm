@@ -35,8 +35,10 @@
 (define (temp-index file)
   (open-index file #[register #f cachelevel 1]))
 
-(define (make-opts in)
-  (let ((sum 0) (keyslots {}))
+(define (make-opts outfile in)
+  (let* ((out (and (file-exists? outfile) (temp-index outfile)))
+	 (sum (if out (indexctl out 'metadata 'keys) 0)) 
+	 (keyslots (if out (indexctl out 'keyslot) {})))
     (dolist (in in)
       (let* ((index (temp-index in))
 	     (n-keys (indexctl index 'metadata 'keys))
@@ -47,7 +49,7 @@
        size ,sum]))
 
 (define (main out . in)
-  (let* ((combined (make-opts in))
+  (let* ((combined (make-opts out in))
 	 (newsize (config 'NEWSIZE (getopt combined 'size)))
 	 (keyslot (config 'KEYSLOT (getopt combined 'keyslot)))
 	 (archive (config 'archive))
@@ -94,6 +96,6 @@
 	    "Archived " (write indexfile) " to " (write archive-file)))))))
 
 (when (config 'optimize #t)
-  (optimize! '{ezrecords fifo engine})
+  (optimize! '{logger ezrecords fifo engine})
   (optimize! '{knodb/indexes knodb/hashindexes knodb/kindexes})
   (optimize!))
