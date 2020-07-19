@@ -1768,17 +1768,20 @@ staging/alpine/kno-@KNO_VERSION@.tar: staging/alpine
 	cd staging/alpine; rm -rf kno kno.tar stdlib.tar brico.tar
 
 
-dist/alpine.done: dist/alpine/APKBUILD include/kno/revision.h makefile \
+dist/alpine.setup: dist/alpine/APKBUILD include/kno/revision.h makefile \
 	staging/alpine/kno-@KNO_VERSION@.tar staging/alpine/APKBUILD
-	if test ! -d ${APK_ARCH_DIR}; then \
-	  mkdir -p ${APK_ARCH_DIR}; fi;
-	cd staging/alpine; \
-		abuild -P ${APKREPO} clean cleancache cleanpkg && \
-		abuild checksum && \
-		abuild -P ${APKREPO} && \
-		touch ../../$@
+	if test ! -d ${APK_ARCH_DIR}; then mkdir -p ${APK_ARCH_DIR}; fi; && \
+	(cd staging/alpine; abuild -P ${APKREPO} clean cleancache cleanpkg && abuild checksum ) && \
+	touch $@
+
+dist/alpine.done: dist/alpine.setup
+	( cd staging/alpine; abuild -P ${APKREPO} ) && touch $@
+
+dist/alpine.installed: dist/alpine.setup
+	( cd staging/alpine; abuild -i -P ${APKREPO} ) && touch $@ && touch dist/alpine.done
 
 alpine: dist/alpine.done
+install-alpine: dist/alpine.installed
 
 .PHONY: alpine
 
