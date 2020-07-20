@@ -1,3 +1,9 @@
+kno (2007.1.2-10) unstable; urgency=medium
+
+  * New versioning system
+
+ -- Ken Haase <kh@beingmeta.com>  Mon, 20 Jul 2020 13:57:14 -0400
+
 kno (2007.1.1-8) stable; urgency=medium
 
   * Bump to 2007, check the git changelogs

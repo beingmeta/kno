@@ -741,7 +741,6 @@ SUDO
 INSTALLI18N
 I18N
 CLEAN
-GITDESCRIBE
 MKSTATIC
 PROFILING
 VERSION
@@ -3010,11 +3009,11 @@ EXELIBS=
 BINPATH=${PATH}
 RPATHFLAGS="-Wl,'-rpath \$(RPATH)'"
 SHARED_LIB_TARGET=shared-libs
-KNO_MAJOR=2007
-KNO_MINOR=1
-KNO_RELEASE=`cat etc/release`
-KNO_PATCHLEVEL=`./etc/patchlevel`
-KNO_VERSION=${KNO_MAJOR}.${KNO_MINOR}.${KNO_RELEASE}
+KNO_VERSION=$(cat ./version)
+KNO_MAJOR=$(cat ./version | cut -d'.' -f1)
+KNO_MINOR=$(cat ./version | cut -d'.' -f2)
+KNO_RELEASE=$(cat ./version | cut -d'.' -f2)
+KNO_PATCHLEVEL=$(u8_gitpatchcount ./version)
 VERSION=$KNO_VERSION
 RPMVERSION=${KNO_RELEASE}
 DEBVERSION=${KNO_RELEASE}
@@ -3055,7 +3054,6 @@ APTLY_FLAGS=
 PKGCONFIG_DIR=
 GPG=`which gpg2 || which gpg || gpg`
 GPGID=${GPGID:-FE1BC737F9F323D732AA26330620266BE5AFF294}
-GITDESCRIBE=""
 GITBRANCH=""
 TAGS_TARGET="TAGS SCHEMETAGS"
 LIBSCM="\${REVISION}"
@@ -3178,7 +3176,6 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/kno/knosource.h include/kno/config.h"
-
 
 
 
@@ -4381,11 +4378,6 @@ fi
 done
 test -n "$git" || git=""na""
 
-if test $git = "na"; then
-   GITDESCRIBE="false"
-else
-   GITDESCRIBE="$git describe"
-fi
 
 for ac_prog in pkg-config /opt/local/bin/pkg-config  /opt/bin/pkg-config /usr/local/bin/pkg-config
 do

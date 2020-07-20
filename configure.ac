@@ -87,11 +87,11 @@ EXELIBS=
 BINPATH=${PATH}
 RPATHFLAGS="-Wl,'-rpath \$(RPATH)'"
 SHARED_LIB_TARGET=shared-libs
-KNO_MAJOR=2007
-KNO_MINOR=1
-KNO_RELEASE=`cat etc/release`
-KNO_PATCHLEVEL=`./etc/patchlevel`
-KNO_VERSION=${KNO_MAJOR}.${KNO_MINOR}.${KNO_RELEASE}
+KNO_VERSION=$(cat ./version)
+KNO_MAJOR=$(cat ./version | cut -d'.' -f1)
+KNO_MINOR=$(cat ./version | cut -d'.' -f2)
+KNO_RELEASE=$(cat ./version | cut -d'.' -f2)
+KNO_PATCHLEVEL=$(u8_gitpatchcount ./version)
 VERSION=$KNO_VERSION
 RPMVERSION=${KNO_RELEASE}
 DEBVERSION=${KNO_RELEASE}
@@ -132,7 +132,6 @@ APTLY_FLAGS=
 PKGCONFIG_DIR=
 GPG=`which gpg2 || which gpg || gpg`
 GPGID=${GPGID:-FE1BC737F9F323D732AA26330620266BE5AFF294}
-GITDESCRIBE=""
 GITBRANCH=""
 TAGS_TARGET="TAGS SCHEMETAGS"
 LIBSCM="\${REVISION}"
@@ -342,7 +341,6 @@ AC_SUBST(STATICEXE)
 AC_SUBST(VERSION)
 AC_SUBST(PROFILING)
 AC_SUBST(MKSTATIC)
-AC_SUBST(GITDESCRIBE)
 AC_SUBST(CLEAN)
 AC_SUBST(I18N)
 AC_SUBST(INSTALLI18N)
@@ -443,11 +441,6 @@ if test $etags = "na"; then
 fi
 
 AC_CHECK_PROGS(git,"git","na")
-if test $git = "na"; then
-   GITDESCRIBE="false"
-else
-   GITDESCRIBE="$git describe"
-fi
 
 AC_CHECK_PROGS(pkg_config,pkg-config /opt/local/bin/pkg-config  /opt/bin/pkg-config /usr/local/bin/pkg-config ,"na")
 
