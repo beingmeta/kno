@@ -1248,7 +1248,7 @@ debupdate:
 
 # Making a source tarball
 
-dist/kno.tar.gz: include/kno/revision.h makefile $(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
+dist/source.tar.gz: include/kno/revision.h makefile $(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
 	@git archive --prefix=kno_@KNO_VERSION@/ -o staging/kno_@KNO_VERSION@.tar HEAD;
 	cd tests; git archive --prefix=kno_@KNO_VERSION@/tests/ \
 	                -o ../staging/kno_tests-@KNO_VERSION@.tar HEAD;
