@@ -1246,6 +1246,24 @@ debupdate:
 	  echo "Debian build of Kno is up to date"; 		\
 	else make debfresh; fi;
 
+# Making a source tarball
+
+dist/kno.tar.gz: include/kno/revision.h makefile $(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
+	@git archive --prefix=kno_@KNO_VERSION@/ -o staging/kno_@KNO_VERSION@.tar HEAD;
+	cd tests; git archive --prefix=kno_@KNO_VERSION@/tests/ \
+	                -o ../staging/kno_tests-@KNO_VERSION@.tar HEAD;
+	cd src/stdlib; git archive --prefix=kno_@KNO_VERSION@/src/stdlib/ \
+	                -o ../../staging/kno_stdlib-@KNO_VERSION@.tar HEAD;
+	cd src/brico; git archive --prefix=kno_@KNO_VERSION@/src/brico/ \
+	                -o ../../staging/kno_brico-@KNO_VERSION@.tar HEAD;
+	cd staging; tar -xf kno_@KNO_VERSION@.tar; rm kno_@KNO_VERSION@.tar;
+	cd staging; tar -xf kno_tests-@KNO_VERSION@.tar; rm kno_tests-@KNO_VERSION@.tar;
+	cd staging; tar -xf kno_stdlib-@KNO_VERSION@.tar; rm kno_stdlib-@KNO_VERSION@.tar;
+	cd staging; tar -xf kno_brico-@KNO_VERSION@.tar; rm kno_brico-@KNO_VERSION@.tar;
+	cp include/kno/revision.h staging/kno_@KNO_VERSION@/etc/revision.h;
+	cp include/kno/revision.h staging/kno_@KNO_VERSION@/include/kno/revision.h;
+	cd staging; tar -czf ../$@ kno-@KNO_VERSION@/
+
 # Creating staging areas from GIT
 
 staging/kno_@KNO_VERSION@: include/kno/revision.h \
