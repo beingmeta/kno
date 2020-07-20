@@ -1,3 +1,9 @@
+kno (2007.1.1-8) stable; urgency=medium
+
+  * Bump to 2007, check the git changelogs
+
+ -- Ken Haase <kh@beingmeta.com>  Fri, 17 Jul 2020 17:12:00 -0400
+
 kno (2006.1.1-7) unstable; urgency=medium
 
   * Bump to 2006

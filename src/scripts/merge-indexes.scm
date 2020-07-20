@@ -35,8 +35,10 @@
 (define (temp-index file)
   (open-index file #[register #f cachelevel 1]))
 
-(define (make-opts in)
-  (let ((sum 0) (keyslots {}))
+(define (make-opts outfile in)
+  (let* ((out (and (file-exists? outfile) (temp-index outfile)))
+	 (sum (if out (indexctl out 'metadata 'keys) 0)) 
+	 (keyslots (if out (indexctl out 'keyslot) {})))
     (dolist (in in)
       (let* ((index (temp-index in))
 	     (n-keys (indexctl index 'metadata 'keys))
@@ -47,16 +49,19 @@
        size ,sum]))
 
 (define (main out . in)
-  (let* ((combined (make-opts in))
+  (let* ((combined (make-opts out in))
 	 (newsize (config 'NEWSIZE (getopt combined 'size)))
 	 (keyslot (config 'KEYSLOT (getopt combined 'keyslot)))
+	 (archive (config 'archive))
+	 (rarefile (or (config 'rarefile) {}))
 	 (opts (frame-create #f
 		 'newsize newsize
 		 'keyslot (tryif keyslot (->slotid keyslot))
-		 'mincount (or (config 'mincount) {})
+		 'mincount (or (config 'mincount (config 'rarethresh))
+			       (if rarefile 7 {}))
 		 'maxcount (or (config 'maxcount) {})
-		 'rarefile (or (config 'rare) {})
-		 'uniquefile (or (config 'unique) {})
+		 'rarefile rarefile
+		 'uniquefile (or (config 'uniquefile) {})
 		 'repair (config 'repair #f)
 		 'overwrite #f))
 	 (n (length in)))
@@ -64,16 +69,33 @@
       (onerror
 	  (move-file! out (glom out ".bak"))
 	  (lambda (ex)
-		 (logwarn |FileExists|
-		   "Couldn't back up " out " to " (glom out ".bak"))
-		 (exit)))
-	   (logwarn |FileExists|
-	     "Moved existing file " out " " "to " (glom out ".bak")))
+	    (logwarn |BackupFailed|
+	      "Couldn't back up " out " to " (glom out ".bak"))
+	    (reraise ex)))
+      (logwarn |FileExists|
+	"Moved existing file " out " " "to " (glom out ".bak")))
     (doseq (indexfile in i)
       (config! 'appid (stringout "merge(" (basename indexfile) ")[" i "/" n))
-      (index/merge! indexfile out opts))))
+      (index/merge! indexfile out opts)
+      (let ((archive-file 
+	     (cond ((not archive) #f)
+		   ((and (string? archive) (file-directory? archive))
+		    (mkpath archive (basename indexfile)))
+		   ((and (string? archive) (has-prefix archive "."))
+		    (glom indexfile archive))
+		   ((empty-string? archive))
+		   ((string? archive) (glom indexfile "." archive))
+		   (else (glom indexfile ".bak")))))
+	(when archive-file
+	  (onerror (move-file! indexfile archive-file)
+	      (lambda (ex)
+		(logerr |ArchiveFailed|
+		  "Couldn't archive " (write indexfile) " to " (write archive-file))
+		(reraise ex)))
+	  (logwarn |Archived|
+	    "Archived " (write indexfile) " to " (write archive-file)))))))
 
 (when (config 'optimize #t)
-  (optimize! '{knodb/indexes knodb/hashindexes
-	       ezrecords fifo engine})
+  (optimize! '{logger ezrecords fifo engine})
+  (optimize! '{knodb/indexes knodb/hashindexes knodb/kindexes})
   (optimize!))

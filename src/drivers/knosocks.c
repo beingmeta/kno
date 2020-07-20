@@ -9,7 +9,7 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define U8_LOGLEVEL (u8_loglevels(local_loglevel,knosocks_loglevel))
+#define U8_LOGLEVEL (u8_merge_loglevels(local_loglevel,knosocks_loglevel))
 static int knosocks_loglevel = 5;
 static int local_loglevel = -1;
 

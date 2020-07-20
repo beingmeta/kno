@@ -3,7 +3,9 @@
 
 (in-module 'knodb/indexes)
 
-(use-module '{fifo engine stringfmts knodb/hashindexes logger varconfig})
+(use-module '{fifo engine stringfmts
+	      knodb/hashindexes knodb/kindexes
+	      logger varconfig})
 
 (define-init %loglevel %notice%)
 
@@ -23,9 +25,11 @@
 		    (if (string? from)
 			(open-index from (get-read-opts opts))
 			(irritant from |NotIndex| index/copy!)))))
-	(if (equal? (indexctl in 'metadata 'type) "hashindex")
-	    (hashindex/copy-keys! in out opts)
-	    (index/copy-keys! in out opts))))))
+	(cond ((equal? (indexctl in 'metadata 'type) "kindex")
+	       (hashindex/copy-keys! in out opts))
+	      ((equal? (indexctl in 'metadata 'type) "hashindex")
+	       (kindex/copy-keys! in out opts))
+	      (else (index/copy-keys! in out opts)))))))
 
 (define (index/pack! from (to #f) (opts #f))
   (let* ((in (if (index? from) from
@@ -47,6 +51,7 @@
 	 (copy-opts `(#[rare ,rare unique ,unique] . ,opts))
 	 (copier (cond ((testopt opts 'copier 'generic) index/copy-keys!)
 		       ((getopt opts 'copier) (getopt opts 'copier))
+		       ((equal? (indexctl in 'metadata 'type) "kindex") kindex/copy-keys!)
 		       ((equal? (indexctl in 'metadata 'type) "hashindex")
 			hashindex/copy-keys!)
 		       (else index/copy-keys!)))
@@ -80,6 +85,7 @@
 	    (lognotice |MergeIndexes| "Merging " (index-source in))
 	    (let ((copier (cond ((testopt opts 'copier 'generic) index/copy-keys!)
 				((getopt opts 'copier) (getopt opts 'copier))
+				((equal? (indexctl in 'metadata 'type) "kindex") kindex/copy-keys!)
 				((equal? (indexctl in 'metadata 'type) "hashindex")
 				 hashindex/copy-keys!)
 				(else index/copy-keys!))))

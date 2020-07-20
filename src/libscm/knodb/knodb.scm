@@ -9,6 +9,7 @@
 
 (module-export! '{knodb/ref knodb/make knodb/commit! knodb/save! 
 		  knodb/partitions knodb/pool knodb/wrap-index
+		  knodb/id knodb/source
 		  knodb/mods knodb/modified?
 		  pool/ref index/ref pool/copy
 		  pool/getindex pool/getindexes})
@@ -61,6 +62,20 @@
       (store! addopts 'metadata (or (deep-copy (getopt opts 'metadata)) #[]))
       (store! (getopt addopts 'metadata) 'adjuncts (getopt opts 'adjuncts)))
     (cons addopts opts)))
+
+;;;; Simple wrappers
+
+(define (knodb/id arg (err #f))
+  (cond ((pool? arg) (pool-id arg))
+	((index? arg) (index-id arg))
+	(err (irritant db |BadKnoDB|))
+	(else (stringout arg))))
+
+(define (knodb/source arg (err #f))
+  (cond ((pool? arg) (pool-source arg))
+	((index? arg) (index-source arg))
+	(err (irritant db |BadKnoDB|))
+	(else #f)))
 
 ;;;; knodb/ref
 

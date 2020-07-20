@@ -586,31 +586,31 @@ static lispval nullp(lispval x)
   else return KNO_FALSE;
 }
 
-DEFPRIM2("cons",cons,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+DEFPRIM2("cons",cons_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 "`(CONS *arg0* *arg1*)` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
-static lispval cons(lispval x,lispval y)
+static lispval cons_prim(lispval x,lispval y)
 {
   return kno_make_pair(x,y);
 }
-DEFPRIM1("car",car,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("car",car_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "`(CAR *arg0*)` **undocumented**",
 	 kno_pair_type,KNO_VOID);
-static lispval car(lispval x)
+static lispval car_prim(lispval x)
 {
   return kno_incref(KNO_CAR(x));
 }
-DEFPRIM1("cdr",cdr,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("cdr",cdr_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "`(CDR *arg0*)` **undocumented**",
 	 kno_pair_type,KNO_VOID);
-static lispval cdr(lispval x)
+static lispval cdr_prim(lispval x)
 {
   return kno_incref(KNO_CDR(x));
 }
-DEFPRIM2("push",push,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+DEFPRIM2("push",push_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "`(push *head* [*tail*])` **undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
-static lispval push(lispval x,lispval y)
+static lispval push_prim(lispval x,lispval y)
 {
   if ( (KNO_VOIDP(y)) || (KNO_NILP(y) ) || (KNO_DEFAULTP(y) ) )
     return kno_init_pair(NULL,kno_incref(x),KNO_EMPTY_LIST);
@@ -618,6 +618,21 @@ static lispval push(lispval x,lispval y)
     return kno_init_pair(NULL,kno_incref(x),kno_incref(y));
   else return kno_init_pair
 	 (NULL,kno_incref(x),kno_init_pair(NULL,kno_incref(y),KNO_EMPTY_LIST));
+}
+DEFPRIM2("qcons",qcons_prim,
+	 KNO_NDCALL|KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	 "`(QCONS *car* *cdr*)`unless *car* or *cdr*"
+	 "are empty (fail), returns a single cons pointing to both "
+	 "arguments, which may be choices (and stay that way). "
+	 "This would be equivalent to `(cons (qc car) (qc cdr))`.",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+static lispval qcons_prim(lispval car,lispval cdr)
+{
+  if ( (KNO_EMPTYP(car)) || (KNO_EMPTYP(cdr)) )
+    return KNO_EMPTY;
+  else {
+    kno_incref(car); kno_incref(cdr);
+    return kno_init_pair(NULL,car,cdr);}
 }
 
 DEFPRIM("allsymbols",lisp_all_symbols,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
@@ -971,10 +986,11 @@ static void link_local_cprims()
   KNO_LINK_ALIAS("char?",characterp,scheme_module);
   KNO_LINK_ALIAS("error?",exceptionp,scheme_module);
 
-  KNO_LINK_PRIM("cons",cons,2,kno_scheme_module);
-  KNO_LINK_PRIM("cdr",cdr,1,kno_scheme_module);
-  KNO_LINK_PRIM("car",car,1,kno_scheme_module);
-  KNO_LINK_PRIM("push",push,2,kno_scheme_module);
+  KNO_LINK_PRIM("cons",cons_prim,2,kno_scheme_module);
+  KNO_LINK_PRIM("cdr",cdr_prim,1,kno_scheme_module);
+  KNO_LINK_PRIM("car",car_prim,1,kno_scheme_module);
+  KNO_LINK_PRIM("push",push_prim,2,kno_scheme_module);
+  KNO_LINK_PRIM("qcons",qcons_prim,2,kno_scheme_module);
   KNO_LINK_PRIM("empty-list?",nullp,1,kno_scheme_module);
   KNO_LINK_ALIAS("null?",nullp,kno_scheme_module);
   KNO_LINK_ALIAS("nil?",nullp,kno_scheme_module);
