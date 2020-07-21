@@ -31,7 +31,7 @@
 (define (hashindex/mapkeys mapfn index (opts #f))
   (let* ((n-buckets (indexctl index 'hash))
 	 (n-keys (indexctl index 'metadata 'keys))
-	 (span-width (config 'WIDTH 500000))
+	 (span-width (getopt opts 'spanwidth (config 'SPANWIDTH 100000)))
 	 (spans (get-spans n-buckets span-width))
 	 (loop-init (getopt opts 'loop #[])))
     (let ((loopfn (lambda (span batch-state loop-state task-state)
