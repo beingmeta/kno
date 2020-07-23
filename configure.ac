@@ -87,11 +87,11 @@ EXELIBS=
 BINPATH=${PATH}
 RPATHFLAGS="-Wl,'-rpath \$(RPATH)'"
 SHARED_LIB_TARGET=shared-libs
-KNO_VERSION=$(cat ./version)
-KNO_MAJOR=$(cat ./version | cut -d'.' -f1)
-KNO_MINOR=$(cat ./version | cut -d'.' -f2)
-KNO_RELEASE=$(cat ./version | cut -d'.' -f2)
-KNO_PATCHLEVEL=$(u8_gitpatchcount ./version)
+KNO_VERSION=$(cat ./etc/base_version)
+KNO_MAJOR=$(cat ./etc/base_version | cut -d'.' -f1)
+KNO_MINOR=$(cat ./etc/base_version | cut -d'.' -f2)
+KNO_RELEASE=$(cat ./etc/base_version | cut -d'.' -f2)
+KNO_PATCHLEVEL=
 VERSION=$KNO_VERSION
 RPMVERSION=${KNO_RELEASE}
 DEBVERSION=${KNO_RELEASE}
@@ -122,7 +122,7 @@ EXTMODS="hyphenate imagetools leveldb mod_knocgi mongodb mysql nng odbc rocksdb 
 CMODULES=""
 INSTALL_CMODULES=""
 TEST_CMODULES=""
-DATAFILES="etc/version"
+DATAFILES="etc/base_version"
 SUDO=""
 DOINSTALL=
 RPMDIR=${RPMDIR:-dist}
@@ -491,6 +491,16 @@ AC_DEFINE_UNQUOTED(KNO_RELEASE_VERSION,$KNO_RELEASE)
 
 AC_ARG_WITH(suffix,--with-suffix string,,with_suffix="")
 suffix=$with_suffix
+
+if test ! -z "${KNO_PATCHLEVEL}"; then
+   echo "Preset patchlevel ${KNO_PATCHLEVEL}";
+elif test -d .git; then
+   KNO_PATCHLEVEL=$(u8_gitpatchcount ./etc/base_version);
+elif test -f VERSION; then
+   KNO_PATCHLEVEL=$(cat VERSION | cut -d'-' -f2);
+else KNO_PATCHLEVEL=unknown;
+fi;
+   
 
 if test -f .ipeval; then
   enable_ipeval_default="yes;
