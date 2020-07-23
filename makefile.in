@@ -1249,7 +1249,7 @@ debupdate:
 
 # Creating a source tree for packaging
 
-staging/kno: VERSION makefile $(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
+staging/kno: VERSION $(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
 	git archive -o staging/kno.tar HEAD
 	cd tests; git archive -o ../staging/tests.tar HEAD;
 	cd src/stdlib; git archive -o ../../staging/stdlib.tar HEAD;
@@ -1278,10 +1278,13 @@ staging/kno_@KNO_VERSION@: staging/kno
 			< dist/debian/changelog \
 			> staging/kno/debian/changelog;
 	cd staging; mv kno kno_@KNO_VERSION@;
+staging/kno_@KNO_VERSION@.tar.gz: staging/kno_@KNO_VERSION@
+	cd staging; tar -czf $@ kno_@KNO_VERSION@
 
 # Rules for Debian building
 
-dist/debs.built: staging/kno_@KNO_VERSION@
+dist/debs.built: VERSION $(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
+	make staging/kno_@KNO_VERSION@ && 		\
 	(cd staging/kno_@KNO_VERSION@; 			\
 	 dpkg-buildpackage -sa -us -uc -b) && 		\
 	 mv staging/*_@KNO_VERSION@-* dist &&	\
