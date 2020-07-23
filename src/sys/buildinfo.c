@@ -548,7 +548,6 @@ KNO_EXPORT void kno_init_build_info()
   config_string(KNO_BRANCH);
 #endif
 
-
 #ifdef KNO_ENABLE_LOCKFREE
   config_bool(KNO_ENABLE_LOCKFREE);
 #endif
