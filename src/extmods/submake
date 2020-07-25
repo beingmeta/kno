@@ -23,6 +23,6 @@ if [ -z "$DIRS" ]; then
 fi;
 for dir in ${DIRS}; do
     if [ ! -f ${dir}.skip ]; then
-	make -C ${dir} KNOCONFIG=../knoconfig COPY_CMODS=../../../lib/kno ${ARGS};
+	make -C ${dir} KNOCONFIG=../knoconfig ${ARGS};
     fi;
 done

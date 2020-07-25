@@ -167,8 +167,8 @@
 
 (define (get-namestring gpath)
   (if (string? gpath) gpath
-      (if (s3loc? gpath) (s3loc-path gpath)
-	  (if (pair? gpath) (cdr gpath)
+       (if (s3loc? gpath) (s3loc-path gpath)
+	   (if (pair? gpath) (cdr gpath)
 	      ""))))
 
 (defambda (gp/save! dest content (ctype #f) (charset #f) (opts #f) (encoding #f))
@@ -461,7 +461,7 @@
   (unless encoding 
     (set! encoding (getopt opts 'content-encoding (path->encoding (get-namestring ref)))))
   (loginfo |GP/FETCH| ref " expecting " ctype " given " (pprint opts))
-  (cond ((s3loc? ref) (s3/get ref))
+  (cond ((s3loc? ref) (s3/content ref))
 	((and (pair? ref) (zipfile? (car ref)) (string? (cdr ref)))
 	 (zip/get (car ref) (root-path (cdr ref))
 		  (or (not ctype) (not (has-prefix ctype "text")))))
