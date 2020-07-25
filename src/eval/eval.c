@@ -1102,6 +1102,7 @@ lispval eval_apply(lispval fn,lispval exprs,
   int prune = (!((call_bits)&(KNO_CALL_XPRUNE)));
   int iter  = (!((call_bits)&(KNO_CALL_XITER)));
 
+  KNO_STACK_SET_TAIL(stack,0);
   while (PAIRP(exprs)) {
     lispval arg_expr = pop_arg(exprs);
     lispval arg = eval_arg(arg_expr,env,stack);
@@ -1129,6 +1130,8 @@ lispval eval_apply(lispval fn,lispval exprs,
 	kno_stackvec_push(refs,arg);}
     else NO_ELSE;
     kno_stackvec_push(args,arg);}
+
+  KNO_STACK_SET_TAIL(stack,tail);
 
   lispval *argbuf = KNO_STACKVEC_ELTS(args);
   int n_args = KNO_STACKVEC_COUNT(args);

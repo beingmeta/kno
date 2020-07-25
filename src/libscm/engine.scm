@@ -582,7 +582,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 
 	(if (getopt opts 'finalcheck #t)
 	    (begin
-	      (when (checkpointing? loop-state)
+	      (when (checkpointng? loop-state)
 		(engine/checkpoint loop-state fifo #t))
 	      (when (getopt opts 'finalcommit #f) (commit)))
 	    (begin
@@ -709,25 +709,26 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 		  ($num count) " " (downcase counter)
 		  (when (overlaps? counter logrates)
 		    (printout " (" ($showrate rate) " "
-		      (downcase counter) "/sec)")))))))
-      (cond (loopmax
-	     (let* ((togo (- loopmax count))
-		    (timeleft (/~ togo rate))
-		    (finished (timestamp+ (timestamp) timeleft))
-		    (timetotal (/~ loopmax rate)))
-	       (printout "\nAt " ($showrate rate) " " count-term "/sec, "
-		 "the loop's " ($num loopmax) " " count-term
-		 " should be finished in " "~" (secs->string timeleft 1)
-		 " (~" (get finished 'timestring) 
-		 (if (not (equal? (get (timestamp) 'datestring)
-				  (get finished 'datestring))) " ")
-		 (cond ((equal? (get (timestamp) 'datestring)
-				(get finished 'datestring)))
-		       ((< (difftime finished) (* 24 3600)) "tomorrow")
-		       ((< (difftime finished) (* 24 4 3600))
-			(get finished 'weekday-long))
-		       (else (get finished 'rfc822date)))
-		 ") totalling " (secs->string timetotal 1))))))))
+		      (downcase counter) "/sec)"))))))))
+    (when loopmax
+      (let* ((togo (- loopmax count))
+	     (timeleft (/~ togo rate))
+	     (finished (timestamp+ (timestamp) timeleft))
+	     (timetotal (/~ loopmax rate)))
+	(lognotice |Engine/Projection|
+	  "At " ($showrate rate) " " count-term "/sec, "
+	  "the loop's " ($num loopmax) " " count-term
+	  " should be finished in " "~" (secs->string timeleft 1)
+	  " (~" (get finished 'timestring) 
+	  (if (not (equal? (get (timestamp) 'datestring)
+			   (get finished 'datestring))) " ")
+	  (cond ((equal? (get (timestamp) 'datestring)
+			 (get finished 'datestring)))
+		((< (difftime finished) (* 24 3600)) "tomorrow")
+		((< (difftime finished) (* 24 4 3600))
+		 (get finished 'weekday-long))
+		(else (get finished 'rfc822date)))
+	  ") totalling " (secs->string timetotal 1))))))
 
 (define (engine/showrates loop-state)
   (let ((elapsed (elapsed-time (get loop-state 'started)))
@@ -856,6 +857,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
   (let ((%loglevel (getopt loop-state '%loglevel %loglevel))
 	(state (and (test loop-state 'state) (get loop-state 'state)))
 	(started (elapsed-time))
+	(runtime #f)
 	(success #f)
 	(paused #f))
     (if (or force (check/start! loop-state))
@@ -880,7 +882,11 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 		(engine-logger (qc) 0 (elapsed-time (get loop-state 'started)) 
 			       #[] loop-state (get loop-state 'state)))
 
-	      (store! loop-state 'lastcheck (get-check-state loop-state))
+	      (let ((check-state (get-check-state loop-state))
+		    (last-secs (try (get loop-state 'checkdone)
+				    (get loop-state 'started))))
+		(set! runtime (elapsed-time last-secs))
+		(store! loop-state 'lastcheck check-state))
 
 	      (engine-commit loop-state (get loop-state 'checkpoint))
 
@@ -897,7 +903,10 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	    (store! loop-state 'checkdone (elapsed-time))
 	    (if success
 		(lognotice |Engine/Checkpoint| 
-		  "Saved task state in " (secs->string (elapsed-time started)) " for " fifo)
+		  "Saved task state in " (secs->string (elapsed-time started))
+		  " for " 
+		  (when runtime (printout (secs->string runtime) " of processing on "))
+		  fifo)
 		(logwarn |Checkpoint/Failed| 
 		  "After " (secs->string (elapsed-time started)) " for " fifo))
 	    (when fifo (fifo/pause! fifo #f))
