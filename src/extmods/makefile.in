@@ -47,8 +47,13 @@ STDMODS=hyphenate leveldb mongodb mysql nng odbc sundown tidy zeromq ziptools
 
 symlinks:
 	for dir in ${STDMODS}; do make ${dir}/.git; done;
-	cd ../../lib/kno; for dir in ${STDMODS}; do \
-	  ln -sf ../../src/extmods/${modname}/${modname}.${shared_suffix} ${modname}.${shared_suffix}; \
+	cd ../../lib/kno; 											\
+	  for modname in ${STDMODS}; do 									\
+	    ln -sf ../../src/extmods/$${modname}/$${modname}.${shared_suffix} $${modname}.${shared_suffix};	\
+	  done; 												\
+	  for modname in qrcode exif imagick; do 								\
+	    ln -sf ../../src/extmods/imagetools/$${modname}.${shared_suffix} $${modname}.${shared_suffix}; 	\
+	  done;
 
 debclean:
 	rm -f *.deb *.ddeb *.changes *.buildinfo
@@ -56,18 +61,19 @@ debclean:
 
 .PHONY: extmods build fresh clean install alpine debfresh testbuild
 
-hyphenate leveldb mongodb mysql nng odbc sundown tidy zeromq ziptools:
+hyphenate leveldb mongodb mysql nng odbc sundown tidy zeromq ziptools rocksdb:
 	make $@/.git
 
 mod_knocgi mod_knocgi/.git:
 	git clone git@github.com:beingmeta/mod_knocgi.git mod_knocgi
 
-imagetools imagetools/.git:
-	@git clone git@github.com:beingmeta/kno-$(@D).git $(@D)
-	@cd $(@D); git checkout ${BRANCH};
-	@if test -d ../../lib/kno; then \
+imagetools: imagetools/.git
+imagetools/.git:
+	git clone git@github.com:beingmeta/kno-$(@D).git $(@D)
+	cd $(@D); git checkout ${BRANCH};
+	if test -d ../../lib/kno; then \
 	   cd  ../../lib/kno; \
 	   for modname in qrcode exif imagick; do \
-	     ln -sf ../../src/extmods/imagetools/${modname}.${shared_suffix} ${modname}.${shared_suffix}; \
+	     ln -sf ../../src/extmods/imagetools/$${modname}.${shared_suffix} $${modname}.${shared_suffix}; \
 	   done; \
 	 fi;
