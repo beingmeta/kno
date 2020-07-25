@@ -19,8 +19,7 @@ RPATH             = @rpath@
 RPATHFLAGS        = @RPATHFLAGS@
 LDFLAGS           = -L./ -L./lib @LDFLAGS@ @PTHREAD_LIBS@ @GCOV_LDFLAGS@ \
 		    $(XLDFLAGS)
-KNOVERSION       := $(shell cat ./version)
-PATCHLEVEL       := $(shell u8_gitpatchcount ./version)
+KNOVERSION       := $(shell cat ./etc/base_version)
 DYLIB_FLAGS       = -compatibility_version @KNO_MAJOR@.@KNO_MINOR@ -current_version ${KNOVERSION}
 EXEFLAGS          = @EXEFLAGS@
 EXELIBS           = @EXELIBS@
@@ -91,10 +90,8 @@ RPMGPG		  = %__gpg gpg --force-v3-sigs --digest-algo=sha1 -u \"%{_gpg_name}\" --
 BUILDMODE       ::= $(cat .buildmode 2> /dev/null || echo none)
 LINKEDWITH      ::= $(cat .malloc 2> /dev/null || echo standard libraries)
 APKREPO	        ::= $(shell ./etc/getbuildopt APKREPO /srv/repo/kno/apk)
-DEBNAME		::= kno_${KNOVERSION}-${PATCHLEVEL}
 APTVERSION	::= $(shell u8_aptversion kno)
 GITBRANCH	::= $(shell u8_gitbranch)
-DPKGNAME	::= kno-@KNO_MAJOR@.@KNO_MINOR@.@KNO_RELEASE@-${PATCHLEVEL}
 ARCH            ::= $(shell ./etc/getbuildopt BUILD_ARCH || uname -m || echo x86_64)
 APK_ARCH_DIR	::= ${APKREPO}/staging/${ARCH}
 
@@ -553,7 +550,13 @@ distribution:
 	@echo Building DISTRIBUTION configuration
 	@+make -s exe cmodules etc scripts @TAGS@
 
-
+VERSION: etc/base_version ${KNO_SOURCES} ${KNO_HEADERS}
+	if test -d .git; then 			\
+	  u8_gitversion etc/base_version > $@;	\
+	elif test -f VERSION; then		\
+	  touch VERSION; 			\
+	else cp etc/base_version VERSION; 	\
+	fi;
 
 all: testbin debug-exe exe cmodules etc i18n @TAGS@
 packaged: exe cmodules etc i18n
@@ -605,7 +608,7 @@ makefile: makefile.in config.status
 	if test -x ./config.status; then ./config.status; fi
 ./config.status: configure
 	if test -x ./config.status; then ./config.status --recheck; fi
-configure: configure.ac version
+configure: configure.ac VERSION
 	@if test -f .staticautoconf; then \
 	    echo "WARNING: configure may be out of date"; \
 	else echo "REBUILDING configure"; autoconf; fi
@@ -1244,54 +1247,81 @@ debupdate:
 	  echo "Debian build of Kno is up to date"; 		\
 	else make debfresh; fi;
 
-# Making a source tarball
+# Creating a source tree for packaging
 
-dist/source.tar.gz: include/kno/revision.h makefile $(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
-	@git archive --prefix=kno_@KNO_VERSION@/ -o staging/kno_@KNO_VERSION@.tar HEAD;
-	cd tests; git archive --prefix=kno_@KNO_VERSION@/tests/ \
-	                -o ../staging/kno_tests-@KNO_VERSION@.tar HEAD;
-	cd src/stdlib; git archive --prefix=kno_@KNO_VERSION@/src/stdlib/ \
-	                -o ../../staging/kno_stdlib-@KNO_VERSION@.tar HEAD;
-	cd src/brico; git archive --prefix=kno_@KNO_VERSION@/src/brico/ \
-	                -o ../../staging/kno_brico-@KNO_VERSION@.tar HEAD;
-	cd staging; tar -xf kno_@KNO_VERSION@.tar; rm kno_@KNO_VERSION@.tar;
-	cd staging; tar -xf kno_tests-@KNO_VERSION@.tar; rm kno_tests-@KNO_VERSION@.tar;
-	cd staging; tar -xf kno_stdlib-@KNO_VERSION@.tar; rm kno_stdlib-@KNO_VERSION@.tar;
-	cd staging; tar -xf kno_brico-@KNO_VERSION@.tar; rm kno_brico-@KNO_VERSION@.tar;
-	cp include/kno/revision.h staging/kno_@KNO_VERSION@/etc/revision.h;
-	cp include/kno/revision.h staging/kno_@KNO_VERSION@/include/kno/revision.h;
-	cd staging; tar -czf ../$@ kno-@KNO_VERSION@/
+staging/kno: VERSION $(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
+	git archive -o staging/kno.tar HEAD
+	cd tests; git archive -o ../staging/tests.tar HEAD;
+	cd src/stdlib; git archive -o ../../staging/stdlib.tar HEAD;
+	cd src/brico; git archive -o ../../staging/brico.tar HEAD;
+	if [ ! -d staging/kno ]; then mkdir staging/kno; fi;
+	cd staging/kno; tar xf ../kno.tar;
+	cd staging/kno/tests; tar xf ../../tests.tar;
+	cd staging/kno/src/stdlib; tar xf ../../../stdlib.tar;
+	cd staging/kno/src/brico; tar xf ../../../brico.tar;
+	cp VERSION staging/kno;
+	cd staging; rm -f kno.tar tests.tar stdlib.tar brico.tar
+
+dist/kno.tar: staging/kno
+	cd staging; tar -cf ../dist/kno.tar kno;
+	cd dist; ln -s kno.tar source.tar
+	rm -rf staging/kno;
+dist/source.tar: dist/kno.tar
+	cd dist; ln -s kno.tar source.tar
 
 # Creating staging areas from GIT
 
-staging/kno_@KNO_VERSION@: include/kno/revision.h \
-	$(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
-	@git archive --prefix=kno_@KNO_VERSION@/ \
-	            -o staging/kno_@KNO_VERSION@.tar HEAD;
-	cd tests; git archive --prefix=kno_@KNO_VERSION@/tests/ \
-	                -o ../staging/kno_tests-@KNO_VERSION@.tar HEAD;
-	cd src/stdlib; git archive --prefix=kno_@KNO_VERSION@/src/stdlib/ \
-	                -o ../../staging/kno_stdlib-@KNO_VERSION@.tar HEAD;
-	cd src/brico; git archive --prefix=kno_@KNO_VERSION@/src/brico/ \
-	                -o ../../staging/kno_brico-@KNO_VERSION@.tar HEAD;
-	cd staging; tar -xf kno_@KNO_VERSION@.tar; rm kno_@KNO_VERSION@.tar;
-	cd staging; tar -xf kno_tests-@KNO_VERSION@.tar; rm kno_tests-@KNO_VERSION@.tar;
-	cd staging; tar -xf kno_stdlib-@KNO_VERSION@.tar; rm kno_stdlib-@KNO_VERSION@.tar;
-	cd staging; tar -xf kno_brico-@KNO_VERSION@.tar; rm kno_brico-@KNO_VERSION@.tar;
-	cp include/kno/revision.h staging/kno_@KNO_VERSION@/etc/revision.h;
-	cd staging; tar -czf $(DEBNAME).orig.tar.gz kno_@KNO_VERSION@;
-	mv staging/kno_@KNO_VERSION@/dist/debian staging/kno_@KNO_VERSION@/debian;
+staging/kno_@KNO_VERSION@: staging/kno
+	cd staging; mv kno/dist/debian kno/debian;
 	u8_debchangelog kno ${CODENAME} \
 		${REL_BRANCH} ${KNOVERSION} ${REL_STATUS} ${REL_PRIORITY} \
 			< dist/debian/changelog \
-			> staging/kno_@KNO_VERSION@/debian/changelog;
-staging/kno_@KNO_VERSION@.orig.tar.gz: \
-	$(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
-	make -s staging/kno_@KNO_VERSION@
+			> staging/kno/debian/changelog;
+	cd staging; mv kno kno_@KNO_VERSION@;
+staging/kno_@KNO_VERSION@.tar.gz: staging/kno_@KNO_VERSION@
+	cd staging; tar -czf $@ kno_@KNO_VERSION@
+
+# Rules for Debian building
+
+dist/debs.built: VERSION $(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
+	make staging/kno_@KNO_VERSION@ && 		\
+	(cd staging/kno_@KNO_VERSION@; 			\
+	 dpkg-buildpackage -sa -us -uc -b) && 		\
+	 mv staging/*_@KNO_VERSION@-* dist &&	\
+	 touch dist/debs.built;
+# cp staging/kno_@KNO_VERSION@*.tar.?z dist &&	\
+
+dist/debsource.built: staging/kno_@KNO_VERSION@
+	(cd staging/kno_@KNO_VERSION@; 			\
+	 dpkg-buildpackage -sa -us -uc -F) && 		\
+	 cp staging/kno_@KNO_VERSION@*.tar.?z dist &&	\
+	 mv staging/*_@KNO_VERSION@*.* dist &&		\
+	touch dist/debs.built dist/debsource.built;
+
+dist/debs.signed: dist/debs.built
+	@(if test "x${GPGID}" = "xnone" || test "x${GPGID}" = "x"; then	\
+	    echo "Skipping GPG signing of debian packages";  	\
+	  else debsign -p${GPG} --re-sign -k${GPGID} dist/kno_@KNO_VERSION@*.changes; fi) && \
+	 touch dist/debs.signed;
+dist/debsource.signed: dist/debsource.built
+	@(if test "x${GPGID}" = "xnone" || test "x${GPGID}" = "x"; then	\
+	    echo "Skipping GPG signing of debian packages";  	\
+	  else debsign -p${GPG} --re-sign -k${GPGID} dist/kno_@KNO_VERSION@*.changes; fi) && \
+	 touch dist/debs.signed dist/debsource.signed;
+
+dist/debs.done: @DEB_BUILD_TARGET@
+	touch dist/debs.done
+dist/debsource.done: dist/debsource.signed
+	touch dist/debsource.done dist/debs.done
+
+install-debian install-debs debinstall installdebs: dist/debs.done
+	@cd dist; ${SUDO} dpkg -i kno*@KNO_VERSION@*.deb elpa-knoc*@KNO_VERSION@*.deb
+
+# RPM targets (probably broken)
+
+staging/kno_@KNO_VERSION@.orig.tar.gz: staging/kno_@KNO_VERSION@
 	tar -czf staging/$(DEBNAME).orig.tar.gz -C staging kno_@KNO_VERSION@
 	cd staging; ln -s ${DEBNAME}.orig.tar.gz kno_@KNO_VERSION@.orig.tar.gz
-
-# RPM rules
 
 dist/rpms.ready: staging/kno-@KNO_VERSION@ \
 	staging/kno-@KNO_VERSION@.tar.gz
@@ -1328,40 +1358,6 @@ dist/rpms.zip: dist/rpms.done
 	@zip dist/rpms.zip \
 		$(RPMDIR)/kno*-@KNO_VERSION@-*.src.rpm \
 		$(RPMDIR)/*/kno-*-@KNO_VERSION@-*.rpm
-
-# Rules for Debian building
-
-dist/debs.built: staging/kno_@KNO_VERSION@
-	(cd staging/kno_@KNO_VERSION@; 			\
-	 dpkg-buildpackage -sa -us -uc -b) && 		\
-	 cp staging/kno_@KNO_VERSION@*.tar.?z dist &&	\
-	 mv staging/*_@KNO_VERSION@-* dist &&	\
-	touch dist/debs.built;
-dist/debsource.built: staging/kno_@KNO_VERSION@
-	(cd staging/kno_@KNO_VERSION@; 			\
-	 dpkg-buildpackage -sa -us -uc -F) && 		\
-	 cp staging/kno_@KNO_VERSION@*.tar.?z dist &&	\
-	 mv staging/*_@KNO_VERSION@*.* dist &&		\
-	touch dist/debs.built dist/debsource.built;
-
-dist/debs.signed: dist/debs.built
-	@(if test "x${GPGID}" = "xnone" || test "x${GPGID}" = "x"; then	\
-	    echo "Skipping GPG signing of debian packages";  	\
-	  else debsign -p${GPG} --re-sign -k${GPGID} dist/kno_@KNO_VERSION@*.changes; fi) && \
-	 touch dist/debs.signed;
-dist/debsource.signed: dist/debsource.built
-	@(if test "x${GPGID}" = "xnone" || test "x${GPGID}" = "x"; then	\
-	    echo "Skipping GPG signing of debian packages";  	\
-	  else debsign -p${GPG} --re-sign -k${GPGID} dist/kno_@KNO_VERSION@*.changes; fi) && \
-	 touch dist/debs.signed dist/debsource.signed;
-
-dist/debs.done: @DEB_BUILD_TARGET@
-	touch dist/debs.done
-dist/debsource.done: dist/debsource.signed
-	touch dist/debsource.done dist/debs.done
-
-install-debian install-debs debinstall installdebs: dist/debs.done
-	@cd dist; ${SUDO} dpkg -i kno*@KNO_VERSION@*.deb elpa-knoc*@KNO_VERSION@*.deb
 
 # Installation targets
 
@@ -1774,8 +1770,6 @@ staging/alpine/kno-@KNO_VERSION@.tar: staging/alpine
 	cd staging/alpine/kno; tar -xf ../tests.tar;
 	cd staging/alpine/kno/src; tar -xf ../../stdlib.tar;
 	cd staging/alpine/kno/src; tar -xf ../../brico.tar;
-	echo "#define KNO_REVISION \"${KNO_VERSION}-${PATCHLEVEL}\"" 	\
-		> staging/alpine/kno/etc/revision.h;             \
 	cd staging/alpine; tar -cf kno-@KNO_VERSION@.tar kno;
 	cd staging/alpine; rm -rf kno kno.tar stdlib.tar brico.tar
 
@@ -2017,28 +2011,26 @@ submodules update-submodules update-git update-modules:
 
 # Tracking revision information
 
-include/kno/revision.h: $(KNO_SOURCES) $(KNO_HEADERS) makefile
-	@if test -f etc/revision.h; then				\
-	    cp etc/revision.h etc/use_revision.h; 			\
-	 else 								\
-	  echo "#define KNO_REVISION \"${KNOVERSION}-${PATCHLEVEL}\""	\
-		> etc/use_revision.h; 					\
-	  echo "#define KNO_PATCH_LEVEL ${PATCHLEVEL}" 			\
-		>> etc/use_revision.h; 					\
-	  echo "#define KNO_BRANCH \"${GITBRANCH}\"" 			\
-		>> etc/use_revision.h; 					\
-	 fi;
-	@if test ! -f $@; then 						\
-	  mv etc/use_revision.h $@; 					\
-	elif diff etc/use_revision.h $@>/dev/null; then			\
-	  rm etc/use_revision.h; 					\
-	else 								\
-	  echo "Revision changed"; 			\
-	  mv $@ etc/old_revision.h; 					\
-	  mv etc/use_revision.h $@;					\
-	fi;
-### Depending on the .buildmode
+etc/use_revision.h: VERSION
+	@FULL_VERSION=$(shell cat VERSION); \
+	 echo "#define KNO_REVISION \"${FULL_VERSION}\"" >> $@
+
+include/kno/revision.h: VERSION etc/use_revision.h
+	@if test ! -f $@; then					\
+	  mv etc/use_revision.h $@;				\
+	elif diff etc/use_revision.h $@ >/dev/null; then	\
+	  rm etc/use_revision.h;				\
+	else							\
+	  echo "# (libu8)" "Revision changed";			\
+	  mv $@ etc/old_revision.h;				\
+	  mv etc/use_revision.h $@;				\
+	fi
+
+### Executables #including src/exe/main.c
 $(EXECUTABLES) $(STATIC_EXECUTABLES) $(DEBUG_EXECUTABLES): $(REVISION_H) src/exe/main.c
+
+### Depending on the .buildmode
+
 $(LISP_OBJS): $(LISP_HEADERS) $(REVISION_H) .buildmode 
 $(SYS_OBJS): $(LISP_HEADERS) $(REVISION_H) .buildmode 
 $(APPLY_OBJS): $(LISP_HEADERS) $(APPLY_HEADERS) $(REVISION_H) .buildmode 
@@ -2057,9 +2049,14 @@ $(WEB_OBJS) $(TEXT_OBJS): .buildmode
 $(PYTHON_OBJS) $(TEXT_OBJS): $(LISP_HEADERS) $(APPLY_HEADERS) $(SCHEME_HEADERS) $(REVISION_H) .buildmode
 $(CMODULE_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
 	$(APPLY_HEADERS) $(SCHEME_HEADERS) $(REVISION_H) .buildmode
+
+### Other dependencies
+
 src/eval/choiceops.o src/prims/seqprims.o: include/kno/sorting.h
 src/prims/procprims.o: include/kno/procprims.h
-# Driver dependencies
+
+### Driver dependencies
+
 src/drivers/filepool.o: src/drivers/headers/filepool.h
 src/drivers/fileindex.o: src/drivers/headers/fileindex.h
 src/drivers/oidpool.o: src/drivers/headers/oidpool.h src/drivers/headers/zcompress.h
