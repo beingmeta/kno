@@ -2011,9 +2011,11 @@ submodules update-submodules update-git update-modules:
 
 # Tracking revision information
 
-etc/use_revision.h: VERSION
-	@FULL_VERSION=$(shell cat VERSION); \
-	 echo "#define KNO_REVISION \"${FULL_VERSION}\"" >> $@
+etc/use_revision.h:
+	@REVISION=$$(u8_gitversion etc/base_version); 			\
+	 FULL_REVISION=$$(u8_gitversion etc/base_version full);		\
+	 echo "#define KNO_REVISION \"kno-$$REVISION\"" > $@; 		\
+	 echo "#define KNO_FULL_REVISION \"kno-$$FULL_REVISION\"" >> $@;
 
 include/kno/revision.h: VERSION etc/use_revision.h
 	@if test ! -f $@; then					\
