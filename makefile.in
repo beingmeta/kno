@@ -1289,7 +1289,7 @@ dist/source.tar: dist/kno.tar
 staging/kno_@KNO_VERSION@: REVISION FULL_REVISION staging/kno
 	cd staging; mv kno/dist/debian kno/debian;
 	u8_debchangelog kno ${CODENAME} \
-		${REL_BRANCH} $(shell cat ./VERSION) ${REL_STATUS} ${REL_PRIORITY} \
+		${REL_BRANCH} $(shell cat ./REVISION) ${REL_STATUS} ${REL_PRIORITY} \
 			< dist/debian/changelog \
 			> staging/kno/debian/changelog;
 	cd staging; mv kno kno_@KNO_VERSION@;
