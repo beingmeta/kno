@@ -1271,10 +1271,10 @@ dist/source.tar: dist/kno.tar
 
 # Creating staging areas from GIT
 
-staging/kno_@KNO_VERSION@: staging/kno
+staging/kno_@KNO_VERSION@: VERSION staging/kno
 	cd staging; mv kno/dist/debian kno/debian;
 	u8_debchangelog kno ${CODENAME} \
-		${REL_BRANCH} ${KNOVERSION} ${REL_STATUS} ${REL_PRIORITY} \
+		${REL_BRANCH} $(shell cat ./VERSION) ${REL_STATUS} ${REL_PRIORITY} \
 			< dist/debian/changelog \
 			> staging/kno/debian/changelog;
 	cd staging; mv kno kno_@KNO_VERSION@;
