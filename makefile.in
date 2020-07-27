@@ -602,6 +602,29 @@ knodb:
 	make knostorage
 	make knodrivers
 
+# Versioning
+
+REVISION:
+	if test -d .git; then 				\
+	  u8_gitversion etc/base_version > $@;	\
+	elif test -f $@; then 				\
+	  touch REVISION;				\
+	else cp etc/base_version $@; 			\
+	fi;
+FULL_REVISION:
+	if test -d .git; then				\
+	  u8_gitversion etc/base_version full > $@;	\
+	elif test -f $@; then				\
+	  touch REVISION;				\
+	else cp etc/base_version $@;			\
+	fi;
+
+include/kno/revision.h: REVISION FULL_REVISION
+	@REVISION=$$(cat REVISION);					\
+	 FULL_REVISION=$$(cat FULL_REVISION);				\
+	 echo "#define KNO_REVISION \"kno-$$REVISION\"" > $@; 		\
+	 echo "#define KNO_FULL_REVISION \"kno-$$FULL_REVISION\"" >> $@;
+
 # configure/autoconf stuff
 
 makefile: makefile.in config.status
@@ -1249,7 +1272,7 @@ debupdate:
 
 # Creating a source tree for packaging
 
-staging/kno: VERSION $(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
+staging/kno: REVISION FULL_REVISION $(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
 	git archive -o staging/kno.tar HEAD
 	cd tests; git archive -o ../staging/tests.tar HEAD;
 	cd src/stdlib; git archive -o ../../staging/stdlib.tar HEAD;
@@ -1259,7 +1282,7 @@ staging/kno: VERSION $(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
 	cd staging/kno/tests; tar xf ../../tests.tar;
 	cd staging/kno/src/stdlib; tar xf ../../../stdlib.tar;
 	cd staging/kno/src/brico; tar xf ../../../brico.tar;
-	cp VERSION staging/kno;
+	cp REVISION FULL_REVISION staging/kno;
 	cd staging; rm -f kno.tar tests.tar stdlib.tar brico.tar
 
 dist/kno.tar: staging/kno
@@ -1271,7 +1294,7 @@ dist/source.tar: dist/kno.tar
 
 # Creating staging areas from GIT
 
-staging/kno_@KNO_VERSION@: VERSION staging/kno
+staging/kno_@KNO_VERSION@: REVISION FULL_REVISION staging/kno
 	cd staging; mv kno/dist/debian kno/debian;
 	u8_debchangelog kno ${CODENAME} \
 		${REL_BRANCH} $(shell cat ./VERSION) ${REL_STATUS} ${REL_PRIORITY} \
@@ -1283,7 +1306,7 @@ staging/kno_@KNO_VERSION@.tar.gz: staging/kno_@KNO_VERSION@
 
 # Rules for Debian building
 
-dist/debs.built: VERSION $(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
+dist/debs.built: REVISION FULL_REVISION $(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
 	make staging/kno_@KNO_VERSION@ && 		\
 	(cd staging/kno_@KNO_VERSION@; 			\
 	 dpkg-buildpackage -sa -us -uc -b) && 		\
@@ -2008,25 +2031,6 @@ submodules update-submodules update-git update-modules:
 	fi;
 
 .PHONY: mod_knocgi update-mod_knocgi install-mod_knocgi update-modules
-
-# Tracking revision information
-
-etc/use_revision.h:
-	@REVISION=$$(u8_gitversion etc/base_version); 			\
-	 FULL_REVISION=$$(u8_gitversion etc/base_version full);		\
-	 echo "#define KNO_REVISION \"kno-$$REVISION\"" > $@; 		\
-	 echo "#define KNO_FULL_REVISION \"kno-$$FULL_REVISION\"" >> $@;
-
-include/kno/revision.h: VERSION etc/use_revision.h
-	@if test ! -f $@; then					\
-	  mv etc/use_revision.h $@;				\
-	elif diff etc/use_revision.h $@ >/dev/null; then	\
-	  rm etc/use_revision.h;				\
-	else							\
-	  echo "# (libu8)" "Revision changed";			\
-	  mv $@ etc/old_revision.h;				\
-	  mv etc/use_revision.h $@;				\
-	fi
 
 ### Executables #including src/exe/main.c
 $(EXECUTABLES) $(STATIC_EXECUTABLES) $(DEBUG_EXECUTABLES): $(REVISION_H) src/exe/main.c
