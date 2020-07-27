@@ -4,25 +4,32 @@ usr/share/kno/modules/stdlib/aws
 usr/share/kno/modules/stdlib/aws/templates
 usr/share/kno/modules/stdlib/batch
 usr/share/kno/modules/stdlib/bench
+usr/share/kno/modules/stdlib/booktools
+usr/share/kno/modules/stdlib/compat
 usr/share/kno/modules/stdlib/domutils
 usr/share/kno/modules/stdlib/dropbox
 usr/share/kno/modules/stdlib/facebook
-usr/share/kno/modules/stdlib/knoml
 usr/share/kno/modules/stdlib/google
+usr/share/kno/modules/stdlib/jwt
 usr/share/kno/modules/stdlib/knodules
 usr/share/kno/modules/stdlib/knodules/data
-usr/share/kno/modules/stdlib/jwt
+usr/share/kno/modules/stdlib/knoml
 usr/share/kno/modules/stdlib/misc
-usr/share/kno/modules/stdlib/mongodb
+usr/share/kno/modules/stdlib/morph
+usr/share/kno/modules/stdlib/morph/data
 usr/share/kno/modules/stdlib/paypal
+usr/share/kno/modules/stdlib/reddit
 usr/share/kno/modules/stdlib/tests
 usr/share/kno/modules/stdlib/textindex
 usr/share/kno/modules/stdlib/textindex/data
-usr/share/kno/modules/stdlib/twitter
+usr/share/kno/modules/stdlib/texttools/data
 usr/share/kno/modules/stdlib/twilio
+usr/share/kno/modules/stdlib/twitter
+usr/share/kno/modules/stdlib/webapi
 usr/share/kno/modules/stdlib/xhtml
 usr/share/kno/modules/stdlib/brico/
 usr/share/kno/modules/stdlib/brico/build
 usr/share/kno/modules/stdlib/brico/data
+usr/share/kno/modules/stdlib/brico/scripts
 
 

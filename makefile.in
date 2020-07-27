@@ -481,7 +481,7 @@ SCHEME_MODULES=src/stdlib/*.scm \
 	src/stdlib/misc/*.scm src/stdlib/tests/*.scm \
 	src/stdlib/domutils/*.scm src/stdlib/knodules/*.scm \
 	src/stdlib/textindex/*.scm src/stdlib/jwt/*.scm \
-	src/stdlib/bench/*.scm \
+	src/stdlib/bench/*.scm src/stdlib/booktools/*.scm \
 	src/brico/*.scm	src/brico/build/index/*.scm \
 	src/brico/build/*.scm
 
@@ -1544,25 +1544,22 @@ $(DESTDIR)@unpackage_dir@:
 
 upstartdirs: $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets
 
-STDLIB_MODULE_DIRS=\
-	stdlib/xhtml stdlib/domutils \
-	stdlib/textindex stdlib/morph \
-	stdlib/misc stdlib/tests \
-	stdlib/knodules stdlib/knoml \
-	stdlib/jwt stdlib/aws \
-	stdlib/facebook stdlib/paypal \
-	stdlib/twitter stdlib/twilio \
-	stdlib/dropbox stdlib/google \
-	stdlib/bench \
-	brico brico/build \
-	brico/build/index brico/build/scripts
+STDLIB_MODULE_DIRS=							\
+	stdlib/aws stdlib/aws/templates 				\
+	stdlib/batch stdlib/bench stdlib/booktools			\
+	stdlib/compat stdlib/domutils stdlib/dropbox 			\
+	stdlib/facebook stdlib/google stdlib/jwt 			\
+	stdlib/knodules stdlib/knodules/data stdlib/knoml 		\
+	stdlib/misc stdlib/morph stdlib/morph/data 			\
+	stdlib/paypal stdlib/reddit stdlib/tests 			\
+	stdlib/textindex stdlib/textindex/data stdlib/texttools		\
+	stdlib/twilio stdlib/twitter stdlib/webapi
 
 STDLIB_MODULE_DATA=\
 	stdlib/textindex/data \
 	stdlib/knodules/data \
 	stdlib/aws/templates \
-	stdlib/morph/data \
-	brico/data
+	stdlib/morph/data
 
 install-stdlib: install-stdlib-source install-stdlib-data
 
