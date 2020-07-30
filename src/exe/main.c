@@ -128,26 +128,31 @@ static void _concise_stack_frame(struct KNO_STACK *stack)
   lispval op = stack->stack_op;
   kno_stackvec args = &(stack->stack_args);
   kno_stackvec refs = &(stack->stack_refs);
-  if ( (stack->stack_label) && (stack->stack_label) &&
+  u8_string file = stack->stack_file;
+  if ( (stack->stack_label) && (stack->stack_origin) &&
        ( (stack->stack_origin) != (stack->stack_label) ) )
-    fprintf(stderr,"(%d) 0x%llx %s:%s %d/%d%s args, %d/%d%s refs",
+    fprintf(stderr,"(%d) 0x%llx %s:%s%s%s%s %d/%d%s args, %d/%d%s refs",
 	    stack->stack_depth,KNO_LONGVAL(stack),
 	    stack->stack_origin,stack->stack_label,
+	    U8OPTSTR("(",file,")"),
 	    args->count,KNO_STACKVEC_LEN(args),
 	    (KNO_STACKVEC_ONHEAP(args)) ? ("(heap)") : (""),
 	    refs->count,KNO_STACKVEC_LEN(refs),
 	    (KNO_STACKVEC_ONHEAP(args)) ? ("(heap)") : (""));
   else if ( (stack->stack_label) || (stack->stack_origin) )
-    fprintf(stderr,"(%d) 0x%llx %s %d/%d%s args, %d/%d%s refs",
+    fprintf(stderr,"(%d) 0x%llx %s%s%s%s %d/%d%s args, %d/%d%s refs",
 	    stack->stack_depth,KNO_LONGVAL(stack),
 	    ( (stack->stack_label) ?
-	      (stack->stack_label) : (stack->stack_origin) ),
+	      (stack->stack_label) :
+	      (stack->stack_origin) ),
+	    U8OPTSTR("(",file,")"),
 	    args->count,KNO_STACKVEC_LEN(args),
 	    (KNO_STACKVEC_ONHEAP(args)) ? ("(heap)") : (""),
 	    refs->count,KNO_STACKVEC_LEN(refs),
 	    (KNO_STACKVEC_ONHEAP(args)) ? ("(heap)") : (""));
-  else fprintf(stderr,"(%d) 0x%llx %d/%d args, %d/%d refs",
+  else fprintf(stderr,"(%d) 0x%llx %s%s%s %d/%d args, %d/%d refs",
 	       stack->stack_depth,KNO_LONGVAL(stack),
+	       U8OPTSTR("(",file,")"),
 	       args->count,args->len,
 	       refs->count,refs->len);
   unsigned int bits = stack->stack_bits;
