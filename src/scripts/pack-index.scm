@@ -78,7 +78,8 @@
     (when (and overwrite (getopt opts 'rarefile))
       (overwriting (getopt opts 'rarefile)))
     (config! 'appid (glom "pack(" (basename in) ")"))
-    (index/pack! in out opts)))
+    (unless (index/pack! in out opts)
+      (error "Pack index failed"))))
 
 (when (config 'optimize #t)
   (optimize! '{knodb/indexes knodb/hashindexes ezrecords fifo engine})
