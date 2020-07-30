@@ -242,7 +242,7 @@ static void log_ptr(lispval val,lispval label_arg,lispval expr)
 	   val,expr);}
   else if (FIXNUMP(val))
     u8_log(U8_LOG_MSG,"Pointer/Fixnum",
-	   "%s%s%sFixnum","0x%llx == %q = %q",
+	   "%s%s%sFixnum 0x%llx == %q = %q",
 	   U8OPTSTR("",label,": "),
 	   (KNO_LONGVAL(val)),
 	   val,expr);

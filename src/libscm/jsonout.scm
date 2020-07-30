@@ -113,7 +113,7 @@
     "]"))
 
 (define (getkv table (slotid) (assocs))
-  (for-choices (assoc (%wc getassocs table))
+  (for-choices (assoc (getassocs table))
     (set! slotid (car assoc))
     (cons (if (symbol? slotid) (downcase slotid)
 	      (if (string? slotid) slotid (unparse-arg slotid)))
@@ -123,7 +123,7 @@
   (default! vecslots (getopt opts 'vecslots {}))
   (printout "{"
     (if (getopt opts 'keysort)
-	(doseq (assoc (sorted (%wc getkv table) (get opts 'keysort)) i)
+	(doseq (assoc (sorted (getkv table) (get opts 'keysort)) i)
 	  (if (> i 0) (printout ", "))
 	  (jsonfield (car assoc) (qc (cdr assoc))
 		     valuefn #f context
