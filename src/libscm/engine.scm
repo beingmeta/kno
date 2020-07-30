@@ -582,7 +582,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 
 	(if (getopt opts 'finalcheck #t)
 	    (begin
-	      (when (checkpointng? loop-state)
+	      (when (checkpointing? loop-state)
 		(engine/checkpoint loop-state fifo #t))
 	      (when (getopt opts 'finalcommit #f) (commit)))
 	    (begin
