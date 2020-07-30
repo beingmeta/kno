@@ -60,7 +60,8 @@
     (when ok
       (index/install! out outfile)
       (when rare (index/install! rare rarefile))
-      (when unique (index/install! unique uniquefile)))))
+      (when unique (index/install! unique uniquefile)))
+    ok))
 
 (defambda (index/merge! from outfile (opts #f))
   (let* ((rarefile (getopt opts 'rarefile))
@@ -105,7 +106,8 @@
       ;; Handle copying of any files in temporary locations
       (index/install! out outfile)
       (when rare (index/install! rare rarefile))
-      (when unique (index/install! unique uniquefile)))))
+      (when unique (index/install! unique uniquefile)))
+    ok))
 
 (define (index/install! index file)
   (close-index index)

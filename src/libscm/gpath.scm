@@ -484,7 +484,7 @@
 	     (get (gp/fetch ref) 'content)))
 	((and (string? ref) (has-prefix ref "data:"))
 	 (get (datauri/fetch+ ref) 'content))
-	((and (string? ref) (has-prefix ref "s3:")) (s3/get (->s3loc ref)))
+	((and (string? ref) (has-prefix ref "s3:")) (s3/content (->s3loc ref)))
 	((and (string? ref) (string-starts-with? ref #((isalnum+) ":")))
 	 (irritant ref |Bad gpath scheme|))
 	((and (string? ref) (not (file-exists? (abspath ref)))) #f)
