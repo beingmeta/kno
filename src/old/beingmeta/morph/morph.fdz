@@ -1,9 +1,0 @@
-;;; -*- text-encoding: latin1 -*-
-
-(when (file-exists? (get-component "use-localhost"))
-  (use-localhost!))
-
-(use-module 'morph)
-
-(module-export! '{morph get-root get-roots guess-language})
-(module-export! '{noun-root verb-root adjective-root adverb-root})
