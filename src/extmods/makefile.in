@@ -58,7 +58,6 @@ symlinks:
 debclean:
 	rm -f *.deb *.ddeb *.changes *.buildinfo
 
-
 .PHONY: extmods build fresh clean install alpine debfresh testbuild
 
 hyphenate leveldb mongodb mysql nng odbc sundown tidy zeromq ziptools rocksdb:
