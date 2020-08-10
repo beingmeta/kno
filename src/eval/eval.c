@@ -1059,10 +1059,17 @@ lispval eval_expr(lispval head,lispval expr,
       goto got_result;}
     case kno_macro_type: {
       struct KNO_MACRO *handler = (kno_macro) op;
+      u8_string old_file = stack->stack_file;
+      u8_string old_label = stack->stack_label;
+      lispval source = stack->eval_source, context = stack->eval_context;
       stack->stack_label = handler->macro_name;
       stack->stack_file  = handler->macro_filename;
       KNO_STACK_SET_TAIL(stack,tail);
       result = macro_eval(handler,expr,env,stack);
+      stack->stack_file=old_file;
+      stack->stack_label=old_label;
+      stack->eval_source=source;
+      stack->eval_context=context;
       goto got_result;}
     default:
       if (!(KNO_APPLICABLE_TYPEP(optype)))
@@ -1102,6 +1109,7 @@ lispval eval_apply(lispval fn,lispval exprs,
   int prune = (!((call_bits)&(KNO_CALL_XPRUNE)));
   int iter  = (!((call_bits)&(KNO_CALL_XITER)));
 
+  KNO_STACK_SET_TAIL(stack,0);
   while (PAIRP(exprs)) {
     lispval arg_expr = pop_arg(exprs);
     lispval arg = eval_arg(arg_expr,env,stack);
@@ -1129,6 +1137,8 @@ lispval eval_apply(lispval fn,lispval exprs,
 	kno_stackvec_push(refs,arg);}
     else NO_ELSE;
     kno_stackvec_push(args,arg);}
+
+  KNO_STACK_SET_TAIL(stack,tail);
 
   lispval *argbuf = KNO_STACKVEC_ELTS(args);
   int n_args = KNO_STACKVEC_COUNT(args);
@@ -1198,10 +1208,10 @@ static lispval reduce_loop(kno_stack loop_stack,int tail)
   kno_lisp_type op_type = KNO_TYPEOF(op);
   KNO_STACK_SET_BITS(loop_stack,KNO_STACK_REDUCE_LOOP);
   KNO_STACK_SET_TAIL(loop_stack,tail);
-  if (op_type == kno_pair_type)
+  if (op_type == kno_pair_type) {
     loop_stack->eval_source  = op;
-  if (KNO_VOIDP(loop_stack->eval_context))
-    loop_stack->eval_context  = op;
+    if (KNO_VOIDP(loop_stack->eval_context))
+      loop_stack->eval_context  = op;}
   kno_lexenv env = loop_stack->eval_env;
   while (result == KNO_TAIL) {
     KNO_STACK_SET_TAIL(loop_stack,tail);

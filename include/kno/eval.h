@@ -77,8 +77,11 @@ KNO_EXPORT lispval kno_bad_arg(lispval arg,u8_context cxt,lispval source_expr);
 
 #define KNO_SETUP_EVAL(name,label,expr,env,caller)		\
   struct KNO_STACK _ ## name = { 0 }, *name = &_ ## name;	\
-  KNO_SETUP_STACK(&_ ## name,label);		\
+  KNO_SETUP_STACK(&_ ## name,label);				\
   KNO_STACK_SET_CALLER(&_ ## name,((kno_stack)caller));		\
+  if (caller) {							\
+    _ ## name.eval_context = caller->eval_context;		\
+    _ ## name.stack_file = caller->stack_file;}			\
   _ ## name.stack_op = expr;					\
   _ ## name.eval_env = env
 

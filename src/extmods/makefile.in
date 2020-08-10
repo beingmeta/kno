@@ -1,5 +1,13 @@
 EXTMODS=@EXTMODS@
+shared_suffix=@shared_suffix@
 BRANCH=trunk
+
+%/.git:
+	@git clone git@github.com:beingmeta/kno-$(@D).git $(@D)
+	@cd $(@D); git checkout ${BRANCH};
+	@if test -d ../../lib/kno; then \
+	   cd  ../../lib/kno; \
+	   ln -sf ../../src/extmods/$(@D)/$(@D).${shared_suffix} $(@D).${shared_suffix}; fi;
 
 default: extmods
 
@@ -35,36 +43,37 @@ debfresh: extmods
 	domake ${EXTMODS} fresh
 	domake ${EXTMODS} debfresh
 
+STDMODS=hyphenate leveldb mongodb mysql nng odbc sundown tidy zeromq ziptools
+
+symlinks:
+	for dir in ${STDMODS}; do make ${dir}/.git; done;
+	cd ../../lib/kno; 											\
+	  for modname in ${STDMODS}; do 									\
+	    ln -sf ../../src/extmods/$${modname}/$${modname}.${shared_suffix} $${modname}.${shared_suffix};	\
+	  done; 												\
+	  for modname in qrcode exif imagick; do 								\
+	    ln -sf ../../src/extmods/imagetools/$${modname}.${shared_suffix} $${modname}.${shared_suffix}; 	\
+	  done;
+
 debclean:
 	rm -f *.deb *.ddeb *.changes *.buildinfo
 
 
 .PHONY: extmods build fresh clean install alpine debfresh testbuild
 
-hyphenate hyphenate/.git:
-	git clone git@github.com:beingmeta/kno-hyphenate.git hyphenate
-imagetools imagetools/.git:
-	git clone git@github.com:beingmeta/kno-imagetools.git imagetools
-leveldb leveldb/.git:
-	git clone git@github.com:beingmeta/kno-leveldb.git leveldb
+hyphenate leveldb mongodb mysql nng odbc sundown tidy zeromq ziptools rocksdb:
+	make $@/.git
+
 mod_knocgi mod_knocgi/.git:
 	git clone git@github.com:beingmeta/mod_knocgi.git mod_knocgi
-mongodb mongodb/.git:
-	git clone git@github.com:beingmeta/kno-mongodb.git mongodb
-mysql mysql/.git:
-	git clone git@github.com:beingmeta/kno-mysql.git mysql
-nng nng/.git:
-	git clone git@github.com:beingmeta/kno-nng.git nng
-odbc odbc/.git:
-	git clone git@github.com:beingmeta/kno-odbc.git odbc
-rocksdb rocksdb/.git:
-	git clone git@github.com:beingmeta/kno-rocksdb.git rocksdb
-sundown sundown/.git:
-	git clone git@github.com:beingmeta/kno-sundown.git sundown
-tidy tidy/.git:
-	git clone git@github.com:beingmeta/kno-tidy.git tidy
-zeromq zeromq/.git:
-	git clone git@github.com:beingmeta/kno-zeromq.git zeromq
-ziptools ziptools/.git:
-	git clone git@github.com:beingmeta/kno-ziptools.git ziptools
 
+imagetools: imagetools/.git
+imagetools/.git:
+	git clone git@github.com:beingmeta/kno-$(@D).git $(@D)
+	cd $(@D); git checkout ${BRANCH};
+	if test -d ../../lib/kno; then \
+	   cd  ../../lib/kno; \
+	   for modname in qrcode exif imagick; do \
+	     ln -sf ../../src/extmods/imagetools/$${modname}.${shared_suffix} $${modname}.${shared_suffix}; \
+	   done; \
+	 fi;

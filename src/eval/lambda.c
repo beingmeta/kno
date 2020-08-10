@@ -104,8 +104,7 @@ KNO_EXPORT int kno_set_lambda_schema(struct KNO_LAMBDA *s,lispval args)
 	     ( (KNO_CDR(arg) == KNO_EMPTY_LIST) ||
                (KNO_PAIRP(KNO_CDR(arg))) ) ) {
           if (min_arity < 0) min_arity = i;
-	  if (KNO_PAIRP(KNO_CDR(arg)))
-	    has_inits = 1;}
+	  has_inits = 1;}
         else {
           kno_seterr(kno_SyntaxError,"lambda",s->fcn_name,args);
           return -1;}}
