@@ -121,9 +121,11 @@ static u8_string check_module_source(u8_string name,lispval path)
       ? (U8S(""))
       : (U8S("/"));
     u8_string probe_file =
-      u8_bprintf(buf,"%s%s%s/module.scm",search_path,init_sep,name);
+      u8_bprintf(buf,"%s%s%s%smodule.scm",
+		 search_path,init_sep,
+		 name,((*name)?("/"):("")));
     if (u8_file_existsp(probe_file))
-      return u8_mkstring("%s%s%s/module.scm",search_path,init_sep,name);
+      return u8_strdup(probe_file);
     else if (*name == '\0')
       return NULL;
     else if (u8_file_existsp(u8_bprintf(buf,"%s%s%s.scm",
