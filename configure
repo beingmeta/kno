@@ -5905,15 +5905,22 @@ fi
 
 suffix=$with_suffix
 
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking PATCHLEVEL" >&5
+$as_echo_n "checking PATCHLEVEL... " >&6; }
 if test ! -z "${KNO_PATCHLEVEL}"; then
-   echo "Preset patchlevel ${KNO_PATCHLEVEL}";
+   { $as_echo "$as_me:${as_lineno-$LINENO}: result: ${KNO_PATCHLEVEL}" >&5
+$as_echo "${KNO_PATCHLEVEL}" >&6; };
 elif test -d .git; then
    KNO_PATCHLEVEL=$(u8_gitpatchcount ./etc/base_version);
-elif test -f VERSION; then
-   KNO_PATCHLEVEL=$(cat VERSION | cut -d'-' -f2);
-else KNO_PATCHLEVEL=unknown;
+   { $as_echo "$as_me:${as_lineno-$LINENO}: result: ${KNO_PATCHLEVEL} from u8_gitpatchcount" >&5
+$as_echo "${KNO_PATCHLEVEL} from u8_gitpatchcount" >&6; };
+else
+  if test -f VERSION; then
+     KNO_PATCHLEVEL=$(cat VERSION | cut -d'-' -f2); fi;
+  if test -z "${KNO_PATCHLEVEL}"; then KNO_PATCHLEVEL=unknown; fi
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: ${KNO_PATCHLEVEL} noinfo" >&5
+$as_echo "${KNO_PATCHLEVEL} noinfo" >&6; };
 fi;
-
 
 if test -f .ipeval; then
   enable_ipeval_default="yes;

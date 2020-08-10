@@ -494,15 +494,18 @@ AC_DEFINE_UNQUOTED(KNO_RELEASE_VERSION,$KNO_RELEASE)
 AC_ARG_WITH(suffix,--with-suffix string,,with_suffix="")
 suffix=$with_suffix
 
+AC_MSG_CHECKING(PATCHLEVEL)
 if test ! -z "${KNO_PATCHLEVEL}"; then
-   echo "Preset patchlevel ${KNO_PATCHLEVEL}";
+   AC_MSG_RESULT(${KNO_PATCHLEVEL});
 elif test -d .git; then
    KNO_PATCHLEVEL=$(u8_gitpatchcount ./etc/base_version);
-elif test -f VERSION; then
-   KNO_PATCHLEVEL=$(cat VERSION | cut -d'-' -f2);
-else KNO_PATCHLEVEL=unknown;
+   AC_MSG_RESULT(${KNO_PATCHLEVEL} from u8_gitpatchcount);
+else
+  if test -f VERSION; then
+     KNO_PATCHLEVEL=$(cat VERSION | cut -d'-' -f2); fi;
+  if test -z "${KNO_PATCHLEVEL}"; then KNO_PATCHLEVEL=unknown; fi
+  AC_MSG_RESULT(${KNO_PATCHLEVEL} noinfo);
 fi;
-   
 
 if test -f .ipeval; then
   enable_ipeval_default="yes;
