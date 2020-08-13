@@ -128,7 +128,7 @@
       "Copying OIDs" (if (pool-label old)
 			 (append " for " (pool-label old)))
       " from " (or (pool-source old) old)
-      " into " (or (pool-source new) new))
+      "\n into " (or (pool-source new) new))
   (let* ((started (elapsed-time))
 	 (newload (pool-load new))
 	 (alloids (or (poolctl old 'keys) (pool-elts old)))
@@ -151,7 +151,7 @@
       "Copying " ($num (choice-size oids)) " OIDs"
       (if (pool-label old) (append " for " (pool-label old)))
       " from " (or (pool-source old) old)
-      " into " (or (pool-source new) new)
+      "\n into " (or (pool-source new) new)
       " in " ($num (length queue)) " blocks"
       " using " (or threadcount "no") " threads")
     (let ((pop-queue
