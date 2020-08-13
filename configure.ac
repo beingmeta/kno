@@ -1867,7 +1867,7 @@ fi;
 
 AC_OUTPUT([makefile etc/version etc/makefile.include
            src/extmods/makefile DIY/makefile 
-	   tests/makefile tests/libtests/makefile
+	   tests/libtests/makefile
            etc/gdbinit
            etc/lldbinit
 	   exe/.gdbinit
