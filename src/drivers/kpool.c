@@ -2006,16 +2006,16 @@ static lispval kpool_ctl(kno_pool p,lispval op,int n,kno_argvec args)
     else return kno_type_error("buffer size","kpool_op/bufsize",args[0]);}
   else if (op == KNOSYM_XREFS) {
     struct XTYPE_REFS *refs = &(kp->pool_xrefs);
-    int n = refs->xt_n_refs;
+    int n_refs = refs->xt_n_refs;
     if (n == 0) {
-      lispval vec = kno_make_vector(n,refs->xt_refs);
-      kno_incref_vec(refs->xt_refs,n);
+      lispval vec = kno_make_vector(n_refs,refs->xt_refs);
+      kno_incref_vec(refs->xt_refs,n_refs);
       return vec;}
     else {
       int i = 0, new_refs = 0; while (i<n) {
 	ssize_t rv = kno_add_xtype_ref(args[i],refs);
 	if (rv<0) return KNO_ERROR;
-	else if (rv>=n) new_refs++;
+	else if (rv>=n_refs) new_refs++;
 	else NO_ELSE;
 	i++;}
       return KNO_INT(new_refs);}}
