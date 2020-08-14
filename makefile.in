@@ -298,19 +298,18 @@ CMODULE_OBJS=src/cmodules/sqlite.o  	\
 	     src/cmodules/libarchive.o 				\
 	     src/cmodules/testcapi.o
 
-EXECUTABLES=${EXESOURCE}/knox@suffix@ ${EXESOURCE}/knoc@suffix@ ${EXESOURCE}/knotask@suffix@  \
-	    ${EXESOURCE}/knocgi@suffix@ ${EXESOURCE}/knod@suffix@
-STATIC_EXECUTABLES=${STATICEXE}/kno@suffix@ ${STATICEXE}/knoc@suffix@ \
-	${STATICEXE}/knotask@suffix@ \
-	${STATICEXE}/knocgi@suffix@ ${STATICEXE}/knod@suffix@
+EXECUTABLES=${EXESOURCE}/knox@suffix@ ${EXESOURCE}/knoc@suffix@ ${EXESOURCE}/knocgi@suffix@ \
+	     ${EXESOURCE}/knotask@suffix@ ${EXESOURCE}/knod@suffix@
+STATIC_EXECUTABLES=${STATICEXE}/kno@suffix@ ${STATICEXE}/knoc@suffix@ ${STATICEXE}/knocgi@suffix@ \
+	${STATICEXE}/knotask@suffix@ ${STATICEXE}/knod@suffix@
 DEBUG_EXECUTABLES=dbg/knox dbg/knoc dbg/knotask dbg/knocgi dbg/knod
-SHELL_SCRIPTS=etc/knosetconfig etc/knogetconfig etc/knoconfig \
-	etc/knostart etc/knostop etc/knostartall etc/knostopall \
-	etc/kno_start_daemons etc/kno_start_servlets etc/kno_stop_jobs \
-	etc/knosignal etc/knoinject etc/knostatus etc/knolog  \
-	etc/knorestart etc/knoctl etc/knogdb etc/knodbgexec \
-	etc/knocleanup etc/knojob \
-	etc/knobuild
+SHELL_SCRIPTS=etc/knosetconfig etc/knogetconfig etc/knoconfig etc/knolaunch \
+	      etc/knostart etc/knostop etc/knostartall etc/knostopall \
+	      etc/kno_start_daemons etc/kno_start_servlets etc/kno_stop_jobs \
+	      etc/knosignal etc/knoinject etc/knostatus etc/knolog  \
+	      etc/knorestart etc/knoctl etc/knogdb etc/knodbgexec \
+	      etc/knocleanup etc/knojob \
+	      etc/knobuild
 SCHEME_SCRIPTS=exe/scripts/pack-pool exe/scripts/pack-index \
 	       exe/scripts/split-index exe/scripts/merge-indexes \
 	       exe/scripts/knocall exe/scripts/knoserver \
@@ -644,7 +643,7 @@ exe/.gdbinit: exe/.gdbinit.in ./config.status
 	./config.status
 
 etc: etc/logrotate etc/install-script etc/sysv/kno-rc.d etc/logrotate	\
-        etc/knoconfig etc/knosetconfig etc/knogetconfig			\
+        etc/knoconfig etc/knosetconfig etc/knogetconfig etc/knolaunch	\
         etc/knojob etc/knosignal                             		\
         dbg/.gdbinit exe/.gdbinit
 
