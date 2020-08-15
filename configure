@@ -5905,15 +5905,22 @@ fi
 
 suffix=$with_suffix
 
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking PATCHLEVEL" >&5
+$as_echo_n "checking PATCHLEVEL... " >&6; }
 if test ! -z "${KNO_PATCHLEVEL}"; then
-   echo "Preset patchlevel ${KNO_PATCHLEVEL}";
+   { $as_echo "$as_me:${as_lineno-$LINENO}: result: ${KNO_PATCHLEVEL}" >&5
+$as_echo "${KNO_PATCHLEVEL}" >&6; };
 elif test -d .git; then
    KNO_PATCHLEVEL=$(u8_gitpatchcount ./etc/base_version);
-elif test -f VERSION; then
-   KNO_PATCHLEVEL=$(cat VERSION | cut -d'-' -f2);
-else KNO_PATCHLEVEL=unknown;
+   { $as_echo "$as_me:${as_lineno-$LINENO}: result: ${KNO_PATCHLEVEL} from u8_gitpatchcount" >&5
+$as_echo "${KNO_PATCHLEVEL} from u8_gitpatchcount" >&6; };
+else
+  if test -f VERSION; then
+     KNO_PATCHLEVEL=$(cat VERSION | cut -d'-' -f2); fi;
+  if test -z "${KNO_PATCHLEVEL}"; then KNO_PATCHLEVEL=unknown; fi
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: ${KNO_PATCHLEVEL} noinfo" >&5
+$as_echo "${KNO_PATCHLEVEL} noinfo" >&6; };
 fi;
-
 
 if test -f .ipeval; then
   enable_ipeval_default="yes;
@@ -13222,7 +13229,7 @@ fi;
 
 ### Here's where stuff gets made
 
-ac_config_files="$ac_config_files makefile etc/version etc/makefile.include src/extmods/makefile DIY/makefile tests/makefile tests/libtests/makefile etc/gdbinit etc/lldbinit exe/.gdbinit exe/.lldbinit dbg/runenv.sh dbg/.gdbinit dbg/.lldbinit dbg/.valgrind etc/kno.pc etc/getbuildopt etc/knobuild etc/kno_start_servlets etc/kno_start_daemons etc/kno_stop_jobs etc/knostart etc/knostop etc/knostartall etc/knostopall etc/knocleanup etc/knosignal etc/knoinject etc/knostatus etc/knolog etc/knoreload etc/knorestart etc/knoctl etc/knogdb etc/knodbgexec etc/knosetconfig etc/knogetconfig etc/knoconfig tests/testenv.sh tests/xtest tests/runtest tests/memtest tests/leaktest tests/knoxtest src/scripts/knopkg.scm src/extmods/knoconfig etc/knojob etc/logrotate etc/sysv/kno-rc.d etc/sysv/ex_servlet-init.d etc/sysv/ex_daemon-init.d etc/upstart/kno.conf etc/upstart/knod.conf etc/upstart/knoservlets.conf etc/upstart/ex_knoservlet.conf etc/systemd/ex_servlet.service etc/systemd/ex_daemon.service etc/systemd/kno-daemons.service etc/systemd/kno-servlets.service etc/macos/OSXStartupItem/KNO etc/macos/KNO.plist etc/apache/knocgi.conf etc/apache/knocgi.load etc/install-script dist/alpine/APKBUILD dist/kno-4.3.spec"
+ac_config_files="$ac_config_files makefile etc/version etc/makefile.include src/extmods/makefile DIY/makefile tests/libtests/makefile etc/gdbinit etc/lldbinit exe/.gdbinit exe/.lldbinit dbg/runenv.sh dbg/.gdbinit dbg/.lldbinit dbg/.valgrind etc/kno.pc etc/getbuildopt etc/knobuild etc/knolaunch etc/kno_start_servlets etc/kno_start_daemons etc/kno_stop_jobs etc/knostart etc/knostop etc/knostartall etc/knostopall etc/knocleanup etc/knosignal etc/knoinject etc/knostatus etc/knolog etc/knoreload etc/knorestart etc/knoctl etc/knogdb etc/knodbgexec etc/knosetconfig etc/knogetconfig etc/knoconfig tests/testenv.sh tests/xtest tests/runtest tests/memtest tests/leaktest tests/knoxtest src/scripts/knopkg.scm src/extmods/knoconfig etc/knojob etc/logrotate etc/sysv/kno-rc.d etc/sysv/ex_servlet-init.d etc/sysv/ex_daemon-init.d etc/upstart/kno.conf etc/upstart/knod.conf etc/upstart/knoservlets.conf etc/upstart/ex_knoservlet.conf etc/systemd/ex_servlet.service etc/systemd/ex_daemon.service etc/systemd/kno-daemons.service etc/systemd/kno-servlets.service etc/macos/OSXStartupItem/KNO etc/macos/KNO.plist etc/apache/knocgi.conf etc/apache/knocgi.load etc/install-script dist/alpine/APKBUILD dist/kno-4.3.spec"
 
 ac_config_commands="$ac_config_commands default"
 
@@ -13928,7 +13935,6 @@ do
     "etc/makefile.include") CONFIG_FILES="$CONFIG_FILES etc/makefile.include" ;;
     "src/extmods/makefile") CONFIG_FILES="$CONFIG_FILES src/extmods/makefile" ;;
     "DIY/makefile") CONFIG_FILES="$CONFIG_FILES DIY/makefile" ;;
-    "tests/makefile") CONFIG_FILES="$CONFIG_FILES tests/makefile" ;;
     "tests/libtests/makefile") CONFIG_FILES="$CONFIG_FILES tests/libtests/makefile" ;;
     "etc/gdbinit") CONFIG_FILES="$CONFIG_FILES etc/gdbinit" ;;
     "etc/lldbinit") CONFIG_FILES="$CONFIG_FILES etc/lldbinit" ;;
@@ -13941,6 +13947,7 @@ do
     "etc/kno.pc") CONFIG_FILES="$CONFIG_FILES etc/kno.pc" ;;
     "etc/getbuildopt") CONFIG_FILES="$CONFIG_FILES etc/getbuildopt" ;;
     "etc/knobuild") CONFIG_FILES="$CONFIG_FILES etc/knobuild" ;;
+    "etc/knolaunch") CONFIG_FILES="$CONFIG_FILES etc/knolaunch" ;;
     "etc/kno_start_servlets") CONFIG_FILES="$CONFIG_FILES etc/kno_start_servlets" ;;
     "etc/kno_start_daemons") CONFIG_FILES="$CONFIG_FILES etc/kno_start_daemons" ;;
     "etc/kno_stop_jobs") CONFIG_FILES="$CONFIG_FILES etc/kno_stop_jobs" ;;

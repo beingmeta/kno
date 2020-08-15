@@ -850,11 +850,11 @@ KNO_EXPORT lispval KNOSYM_SUFFIX;
 KNO_EXPORT lispval KNOSYM_TAG, KNOSYM_TEST, KNOSYM_TEXT, KNOSYM_TYPE;
 KNO_EXPORT lispval KNOSYM_UTF8;
 KNO_EXPORT lispval KNOSYM_VERSION, KNOSYM_VOID;
-KNO_EXPORT lispval KNOSYM_XTYPE;
+KNO_EXPORT lispval KNOSYM_XREFS, KNOSYM_XTYPE;
 
 KNO_EXPORT lispval kno_timestamp_xtag,
   kno_rational_xtag, kno_complex_xtag, kno_regex_xtag,
-  kno_qchoice_xtag, kno_bigtable_xtag;
+  kno_qchoice_xtag, kno_bigtable_xtag, kno_bigset_xtag;
 KNO_EXPORT lispval kno_zlib_xtag, kno_zstd_xtag, kno_snappy_xtag;
 
 /* Function IDs */

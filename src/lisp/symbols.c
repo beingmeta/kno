@@ -43,7 +43,7 @@ lispval KNOSYM_SOURCE, KNOSYM_STAR, KNOSYM_STORE, KNOSYM_STRING, KNOSYM_SUFFIX;
 lispval KNOSYM_TAG, KNOSYM_TEST, KNOSYM_TEXT, KNOSYM_TYPE;
 lispval KNOSYM_UTF8;
 lispval KNOSYM_VERSION, KNOSYM_VOID;
-lispval KNOSYM_XTYPE;
+lispval KNOSYM_XREFS, KNOSYM_XTYPE;
 
 u8_rwlock kno_symbol_lock;
 static u8_memlist old_symbol_data = NULL;
@@ -170,6 +170,7 @@ static void init_builtin_symbols()
   KNOSYM_UTF8 = kno_intern("utf8");
   KNOSYM_VERSION = kno_intern("version");
   KNOSYM_VOID = kno_intern("void");
+  KNOSYM_XREFS = kno_intern("xrefs");
   KNOSYM_XTYPE = kno_intern("xtype");
 }
 

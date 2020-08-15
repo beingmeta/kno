@@ -46,9 +46,12 @@ static int thread_log_exit = 1;
 static lispval logexit_symbol = VOID, timeout_symbol = VOID, keepenv_symbol = VOID;
 static lispval void_symbol = VOID;
 
-static struct sigaction sigaction_term = { 0 };
 static struct sigaction sigaction_interrupt = { 0 };
-static struct sigaction sigaction_info = { 0 };
+/* These might get defined when things are clearer about thread signals */
+/*
+  static struct sigaction sigaction_term = { 0 };
+  static struct sigaction sigaction_info = { 0 };
+*/
 
 #ifndef U8_STRING_ARG
 #define U8_STRING_ARG(s) (((s) == NULL)?((u8_string)""):((u8_string)(s)))

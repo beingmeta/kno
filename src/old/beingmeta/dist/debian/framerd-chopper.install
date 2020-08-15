@@ -1,5 +1,0 @@
-usr/share/framerd/modules/builtin/chopper/*.scm
-usr/share/framerd/modules/builtin/chopper/english/*.scm
-usr/share/framerd/modules/builtin/chopper/english/*.data
-usr/share/framerd/modules/builtin/chopper/english/*.dtype
-usr/share/framerd/modules/builtin/chopper/english/*.table

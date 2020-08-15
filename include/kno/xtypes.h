@@ -75,6 +75,7 @@ typedef enum XT_TYPE_CODE {
   xt_regex        = XT_TAG(0x03),
   xt_qchoice      = XT_TAG(0x04),
   xt_bigtable     = XT_TAG(0x05),
+  xt_bigset       = XT_TAG(0x06),
 
   xt_zlib         = XT_TAG(0x08),
   xt_zstd         = XT_TAG(0x09),

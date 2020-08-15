@@ -129,6 +129,9 @@
     (cond ((unbound? val) *session*)
 	  ((not val) (set! *session* val))
 	  ((not (string? val)) (irritant val |SessionDirectoryPath|))
+	  ((or (empty-string? val) (overlaps? (downcase val) {"none" "no" "non" "nei"}))
+	   (logwarn |NoSession| val)
+	   (set! *session* #f))
 	  ((not (file-directory? val))
 	   (irritant val |SessionDirectoryPath|))
 	  ((config 'NOSESSIONS #f) 
@@ -141,7 +144,7 @@
 		(load-session val)))))
 
 
-;;;; KNOC Commands
+;;;; Default KNOC Commands
 
 (define (find-session arg (logfail #f))
   (cond ((or (not arg) (empty-string? arg)) #f)

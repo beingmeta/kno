@@ -779,7 +779,15 @@ KNO_EXPORT lispval kno_index_keys(kno_index ix)
   else return kno_err(kno_NoMethod,"kno_index_keys",NULL,kno_index2lisp(ix));
 }
 
-static int copy_value_sizes(lispval key,lispval value,void *vptr)
+static int add_to_keysize(lispval key,lispval value,void *vptr)
+{
+  struct KNO_HASHTABLE *sizes = (struct KNO_HASHTABLE *)vptr;
+  int value_size = ((VOIDP(value)) ? (0) : KNO_CHOICE_SIZE(value));
+  kno_hashtable_op(sizes,kno_table_increment,key,KNO_INT(value_size));
+  return 0;
+}
+
+static int set_keysize(lispval key,lispval value,void *vptr)
 {
   struct KNO_HASHTABLE *sizes = (struct KNO_HASHTABLE *)vptr;
   int value_size = ((VOIDP(value)) ? (0) : KNO_CHOICE_SIZE(value));
@@ -802,9 +810,11 @@ KNO_EXPORT lispval kno_index_keysizes(kno_index ix,lispval for_keys)
       filter=NULL;
     else if (!(CHOICEP(keys))) {
       lispval v = kno_index_get(ix,keys);
-      unsigned int size = KNO_CHOICE_SIZE(v);
+      if (KNO_EMPTYP(v))
+	return KNO_EMPTY;
+      unsigned int n_vals = KNO_CHOICE_SIZE(v);
       lispval result = kno_init_pair
-	( NULL, kno_incref(keys), KNO_INT(size) );
+	( NULL, kno_incref(keys), KNO_INT(n_vals) );
       if (decref_keys) kno_decref(keys);
       kno_decref(v);
       return result;}
@@ -815,42 +825,36 @@ KNO_EXPORT lispval kno_index_keysizes(kno_index ix,lispval for_keys)
     if ((n_fetched==0) && (ix->index_adds.table_n_keys==0)) {
       if (decref_keys) kno_decref(keys);
       return EMPTY;}
-    else if ((ix->index_adds.table_n_keys)==0) {
-      kno_choice result = kno_alloc_choice(n_fetched);
-      lispval *write = &(result->choice_0);
-      if (decref_keys) kno_decref(keys);
-      int i = 0; while (i<n_fetched) {
-	lispval key = fetched[i].keysize_key, pair;
-	unsigned int n_values = fetched[i].keysize_count;
-	pair = kno_conspair(kno_incref(key),KNO_INT(n_values));
-	*write++=pair;
-	i++;}
-      u8_big_free(fetched);
-      return kno_init_choice(result,n_fetched,NULL,
-			     KNO_CHOICE_DOSORT|KNO_CHOICE_REALLOC);}
     else {
-      struct KNO_HASHTABLE added_sizes;
-      kno_choice result; int i = 0, n_total; lispval *write;
-      /* Get the sizes for added keys. */
-      KNO_INIT_STATIC_CONS(&added_sizes,kno_hashtable_type);
-      kno_make_hashtable(&added_sizes,ix->index_adds.ht_n_buckets);
-      kno_for_hashtable(&(ix->index_adds),copy_value_sizes,&added_sizes,1);
-      n_total = n_fetched+ix->index_adds.table_n_keys;
-      result = kno_alloc_choice(n_total); write = &(result->choice_0);
-      while (i<n_fetched) {
-	lispval key = fetched[i].keysize_key, pair;
+      int max_keys = n_fetched+(ix->index_adds.table_n_keys)+
+	(ix->index_stores.table_n_keys);
+      lispval result = kno_make_hashtable(NULL,max_keys);
+      if (KNO_ABORTED(result)) {
+	u8_big_free(fetched);
+	return KNO_ERROR_VALUE;}
+      struct KNO_HASHTABLE *sizes = (kno_hashtable) result;
+      int i = 0; while (i<n_fetched) {
+	lispval key = fetched[i].keysize_key;
 	unsigned int n_values = fetched[i].keysize_count;
-	lispval added = kno_hashtable_get(&added_sizes,key,KNO_INT(0));
-	n_values = n_values+kno_getint(added);
-	pair = kno_conspair(kno_incref(key),KNO_INT(n_values));
-	kno_decref(added);
-	*write++=pair;
+	kno_hashtable_store(sizes,key,KNO_INT(n_values));
 	i++;}
-      kno_recycle_hashtable(&added_sizes);
-      if (decref_keys) kno_decref(keys);
-      u8_big_free(fetched);
-      return kno_init_choice(result,n_total,NULL,
-			     KNO_CHOICE_DOSORT|KNO_CHOICE_REALLOC);}}
+      struct KNO_HASHTABLE *stores = &(ix->index_stores);
+      struct KNO_HASHTABLE *adds = &(ix->index_adds);
+      if (filter) {
+	KNO_DO_CHOICES(key,keys) {
+	  lispval stored_value = kno_hashtable_get(stores,key,KNO_VOID);
+	  if (KNO_VOIDP(stored_value)) {
+	    lispval added = kno_hashtable_get(adds,key,KNO_EMPTY_CHOICE);
+	    int n_vals = KNO_CHOICE_SIZE(added);
+	    if (n_vals) kno_hashtable_op
+			  (sizes,kno_table_increment,key,KNO_INT(n_vals));}
+	  else {
+	    int n_vals = KNO_CHOICE_SIZE(stored_value);
+	    kno_hashtable_store(sizes,key,KNO_INT(n_vals));}}}
+      else {
+	kno_for_hashtable(adds,add_to_keysize,(void *)sizes,0);
+	kno_for_hashtable(stores,set_keysize,(void *)sizes,0);}
+      return result;}}
   else return kno_err(kno_NoMethod,"kno_index_keys",NULL,kno_index2lisp(ix));
 }
 

@@ -1,9 +1,0 @@
-span.concept {
-  border: none 1px;
-  padding-left: 2pt; padding-right: 2pt;
-  white-space: nowrap;}
-span.concept[resolved='yes'] {
-  border: none 1px;
-  padding-left: 2pt; padding-right: 2pt;
-  white-space: nowrap;}
-

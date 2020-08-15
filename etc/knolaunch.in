@@ -1,0 +1,160 @@
+#!/bin/sh
+
+usage() {
+    echo "knolaunch *spec* [launcher] [launch_dir] [+launchopt] [args...]";
+}
+
+ARGS=
+NAME=
+ROOT=
+LOGDIR=
+RUNDIR=
+RUN_ARGS=${RUN_ARGS}
+LAUNCHER=
+DEFAULT_LAUNCHER=
+LAUNCH=$1; shift;
+
+if [ -z "${LAUNCH}" ]; then
+   usage;
+   exit;
+elif [ ! -f "${LAUNCH}" ]; then
+    echo File ${LAUNCH} does not exist;
+    usage; 		
+    exit;
+else case ${LAUNCH} in
+	 *.scm)
+	     DEFAULT_LAUNCHER=@exec_prefix@/bin/knox@suffix@;;
+	 *.sock|*:*|*@*)
+	     DEFAULT_LAUNCHER=@exec_prefix@/bin/knocgi@suffix@;;
+	 *.knosock)
+	     DEFAULT_LAUNCHER=@exec_prefix@/bin/knoserver;;
+	 *.servlet)
+	     DEFAULT_LAUNCHER=@exec_prefix@/bin/knocgi;
+	     LAUNCH="CONFIG=\"${LAUNCH}\"";
+	     ;;
+	 knosock:*)
+	     DEFAULT_LAUNCHER=@exec_prefix@/bin/knoserver;
+	     LAUNCH=${LAUNCH:8};
+	     ;;
+	 *.server|*.srv)
+	     DEFAULT_LAUNCHER=@exec_prefix@/bin/knoserver@suffix@;
+	     LAUNCH="CONFIG=\"${LAUNCH}\"";
+	     ;;
+	 *)
+	     DEFAULT_LAUNCHER=@exec_prefix@/bin/knox@suffix@;;
+     esac
+fi;
+
+while [ $# -gt 1 ]; do
+    arg=$1; shift;
+    if [ -z "${LAUNCHER}" ] && which ${arg} > /dev/null; then
+	LAUNCHER=${arg};
+    elif [ -z ${ROOT} ] && [ -d ${arg} ]; then
+	ROOT=${arg};
+    else case ${arg} in
+	     +*)
+		 RUN_ARGS="${RUN_ARGS} ${arg}"; continue;;
+	     --root=*)
+		 if [ -z "${ROOT}" ]; then ROOT=${arg:7}; continue; fi;;
+	     ROOT=*)
+		 if [ -z "${ROOT}" ]; then ROOT=${arg:5}; continue; fi;;
+	     --name=*)
+		 if [ -z "${NAME}" ]; then NAME=${arg:7:}; continue; fi;;
+	     NAME\=*)
+		 if [ -z "${NAME}" ]; then NAME=${arg:5:}; continue; fi;;
+	     JOBID\=*)
+		 if [ -z "${NAME}" ]; then NAME=${arg:6:}; continue; fi;;
+	     --launcher=*)
+		 if [ -z "${LAUNCHER}" ]; then LAUNCHER=${arg:7:}; continue; fi;;
+	     LAUNCHER\=*)
+		 if [ -z "${LAUNCHER}" ]; then LAUNCHER=${arg:5:}; continue; fi;;
+	     RUNDIR\=*)
+		 RUNDIR=${arg:7}; continue;;
+	     LOGDIR\=*)
+		 LOGDIR=${arg:7}; continue;;
+	     WAIT\=*|FASTAIL\=*|BACKOFF\=*|MAXWAIT\=*|RESTART\=*)
+		 RUN_ARGS="${RUN_ARGS} ${arg}"; continue;;
+	     RUNUSER\=*|RUNGROUP\=*|UMASK\=*)
+		 RUN_ARGS="${RUN_ARGS} ${arg}"; continue;;
+	 esac;
+	 ARGS="${ARGS} ${arg}";
+    fi;
+done;
+	     
+if [ ! -z ${LAUNCHER} ]
+   :;
+elif [ ! -z "${USE_LAUNCHER}" ]; then
+    LAUNCHER=${USE_LAUNCHER};
+else
+    LAUNCHER=${DEFAULT_LAUNCHER};
+fi;
+
+if ! which ${LAUNCHER} > /dev/null; then
+    echo Invalid launcher "\"${LAUNCHER}\"";
+    usage;
+    exit;
+fi;
+
+if [ ! -z "${ROOT}" ]; then
+   :;
+elif [ ! -z "${LAUNCH_ROOT}" ]; then
+    ROOT=${LAUNCH_ROOT};
+elif [ -d ./launch ]; then
+    ROOT=$(pwd)/launch;
+else
+    ROOT=@localstatedir@
+fi;
+
+case ${ROOT} in
+    home)
+	ROOT=~/.kno_launch/;
+	;;
+    local|cwd|current)
+	ROOT=$(pwd)/launch
+	;;
+    *)
+	;;
+esac
+
+if [ -z ${ROOT} ] || [ ${ROOT} = none ]; then
+    echo " Using launch root $(pwd) (the current directory)";
+    RUNDIR=${pwd);
+    LOGDIR=${pwd);
+elif [ ! -f ${ROOT} ]; then
+    mkdir ${ROOT};
+    echo "Created launch dir \"${ROOT}\"";
+elif [ ! -d ${ROOT} ]; then
+    echo "knolaunch: Invalid launch root \"${ROOT}\"";
+    usage;
+    exit;
+else
+    echo " Using launch root \"${ROOT}\"";
+fi
+
+LAUNCHTYPE=$(basename ${LAUNCHER} .scm)
+LAUNCHNAME=$(basename $(basename ${LAUNCH} .cfg) .launch)
+
+if [ -z ${RUNDIR} ]; then
+    if [ ! -d ${ROOT}/run ]; then mkdir ${ROOT}/run; fi
+    if [ ! -d ${ROOT}/run/${LAUNCHTYPE} ]; then mkdir ${ROOT}/run/${LAUNCHTYPE}; fi
+    RUNDIR=${ROOT}/run/${LAUNCHTYPE};
+elif [ ! -f ${RUNDIR} ]; then
+    mkdir ${RUNDIR};
+    echo "Created run dir ${RUNDIR}";
+else
+    echo "Using run dir ${RUNDIR}";
+fi;
+
+if [ -z ${LOGDIR} ]; then
+    if [ ! -d ${ROOT}/log ]; then mkdir ${ROOT}/log; fi
+    if [ ! -d ${ROOT}/log/${LAUNCHTYPE} ]; then mkdir ${ROOT}/log/${LAUNCHTYPE}; fi
+    LOGDIR=${ROOT}/log/${LAUNCHTYPE};
+elif [ ! -f ${LOGDIR} ]; then
+    mkdir ${LOGDIR};
+    echo "Created log dir ${LOGDIR}";
+else
+    echo "Using log dir ${LOGDIR}";
+fi;
+
+echo u8run ${RUN_ARGS} ${LAUNCHER} ${LAUNCH} ${ARGS}
+exec u8run ${RUN_ARGS} ${LAUNCHER} ${LAUNCH} ${ARGS}

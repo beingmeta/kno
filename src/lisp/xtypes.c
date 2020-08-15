@@ -65,11 +65,16 @@ static lispval read_tagged(lispval tag,kno_inbuf in,xtype_refs refs);
 static lispval restore_tagged(lispval tag,lispval data,xtype_refs refs);
 static lispval restore_compressed(lispval tag,lispval data,xtype_refs refs);
 
+static lispval read_bigtable(lispval tag,kno_inbuf in,xtype_refs refs);
+static lispval read_bigset(lispval tag,kno_inbuf in,xtype_refs refs);
+
+
 static ssize_t write_opaque
 (kno_outbuf out, lispval x,xtype_refs refs);
 static ssize_t write_slotmap(kno_outbuf out,struct KNO_SLOTMAP *map,xtype_refs refs);
 static ssize_t write_schemap(kno_outbuf out,struct KNO_SCHEMAP *map,xtype_refs refs);
 static ssize_t write_hashtable(kno_outbuf out,struct KNO_HASHTABLE *hashtable,xtype_refs refs);
+static ssize_t write_hashset(kno_outbuf out,struct KNO_HASHSET *hashset,xtype_refs refs);
 
 static ssize_t write_compound(kno_outbuf out,
 			      struct KNO_COMPOUND *cvec,
@@ -298,6 +303,8 @@ static ssize_t write_xtype(kno_outbuf out,lispval x,xtype_refs refs)
 	rv=kno_write_byte(out,xt_qchoice);
       else if (x==kno_bigtable_xtag)
 	rv=kno_write_byte(out,xt_bigtable);
+      else if (x==kno_bigset_xtag)
+	rv=kno_write_byte(out,xt_bigset);
       else if (x==kno_zlib_xtag)
 	rv=kno_write_byte(out,xt_zlib);
       else if (x==kno_zstd_xtag)
@@ -358,6 +365,8 @@ static ssize_t write_xtype(kno_outbuf out,lispval x,xtype_refs refs)
     return write_schemap(out,(kno_schemap)x,refs);
   case kno_hashtable_type:
     return write_hashtable(out,(kno_hashtable)x,refs);
+  case kno_hashset_type:
+    return write_hashset(out,(kno_hashset)x,refs);
   case kno_tagged_type:
     return write_compound(out,(kno_compound)x,refs);
   case kno_qchoice_type: {
@@ -434,6 +443,7 @@ static lispval read_xtype(kno_inbuf in,xtype_refs refs)
     case xt_regex: return kno_regex_xtag;
     case xt_qchoice: return kno_qchoice_xtag;
     case xt_bigtable: return kno_bigtable_xtag;
+    case xt_bigset: return kno_bigset_xtag;
     case xt_zlib: return kno_zlib_xtag;
     case xt_zstd: return kno_zstd_xtag;
     case xt_snappy: return kno_snappy_xtag;
@@ -719,34 +729,10 @@ KNO_EXPORT lispval kno_read_xtype(kno_inbuf in,xtype_refs refs)
 
 static lispval read_tagged(lispval tag,kno_inbuf in,xtype_refs refs)
 {
-  if ( tag == kno_bigtable_xtag ) {
-    int code = kno_read_byte(in);
-    if (code != xt_table)
-      return kno_err("BadXType","read_tagged(bigtable)",NULL,KNO_VOID);
-    ssize_t n_elts = kno_read_varint(in);
-    if ( (n_elts<0) || (n_elts%2) )
-      return kno_err("BadXType","read_tagged(bigtable/n_keys)",NULL,KNO_VOID);
-    ssize_t n_keys = n_elts/2;
-    struct KNO_KEYVAL *keyvals = u8_alloc_n(n_keys,struct KNO_KEYVAL);
-    ssize_t i = 0; while (i<n_keys) {
-      lispval key = read_xtype(in,refs);
-      if (KNO_ABORTED(key)) break;
-      lispval value = read_xtype(in,refs);
-      if (KNO_ABORTED(value)) { kno_decref(key); break; }
-      keyvals[i].kv_key = key;
-      keyvals[i].kv_val = value;
-      i++;}
-    if (i == n_keys) {
-      lispval table = kno_initialize_hashtable(NULL,keyvals,n_keys);
-      u8_free(keyvals);
-      return table;}
-    else {
-      ssize_t j = 0; while (j<i) {
-	kno_decref(keyvals[j].kv_key);
-	kno_decref(keyvals[j].kv_val);
-	j++;}
-      u8_free(keyvals);
-      return KNO_ERROR_VALUE;}}
+  if ( tag == kno_bigtable_xtag )
+    return read_bigtable(tag,in,refs);
+  else if ( tag == kno_bigset_xtag )
+    return read_bigset(tag,in,refs);
   else {
     lispval data = read_xtype(in,refs);
     if (ABORTED(data)) {
@@ -756,6 +742,57 @@ static lispval read_tagged(lispval tag,kno_inbuf in,xtype_refs refs)
     kno_decref(tag);
     kno_decref(data);
     return restored;}
+}
+
+static lispval read_bigtable(lispval tag,kno_inbuf in,xtype_refs refs)
+{
+  int code = kno_read_byte(in);
+  if (code != xt_table)
+    return kno_err("BadXType","read_tagged(bigtable)",NULL,KNO_VOID);
+  ssize_t n_elts = kno_read_varint(in);
+  if ( (n_elts<0) || (n_elts%2) )
+    return kno_err("BadXType","read_tagged(bigtable/n_keys)",NULL,KNO_VOID);
+  ssize_t n_keys = n_elts/2;
+  struct KNO_KEYVAL *keyvals = u8_alloc_n(n_keys,struct KNO_KEYVAL);
+  ssize_t i = 0; while (i<n_keys) {
+    lispval key = read_xtype(in,refs);
+    if (KNO_ABORTED(key)) break;
+    lispval value = read_xtype(in,refs);
+    if (KNO_ABORTED(value)) { kno_decref(key); break; }
+    keyvals[i].kv_key = key;
+    keyvals[i].kv_val = value;
+    i++;}
+  if (i == n_keys) {
+    lispval table = kno_initialize_hashtable(NULL,keyvals,n_keys);
+    u8_free(keyvals);
+    return table;}
+  else {
+    ssize_t j = 0; while (j<i) {
+      kno_decref(keyvals[j].kv_key);
+      kno_decref(keyvals[j].kv_val);
+      j++;}
+    u8_free(keyvals);
+    return KNO_ERROR_VALUE;}
+}
+
+static lispval read_bigset(lispval tag,kno_inbuf in,xtype_refs refs)
+{
+  int code = kno_read_byte(in);
+  if (code != xt_vector)
+    return kno_err("BadXType","read_tagged(bigtable)",NULL,KNO_VOID);
+  ssize_t i = 0, n_elts = kno_read_varint(in);
+  struct KNO_HASHSET *h = u8_alloc(struct KNO_HASHSET);
+  kno_init_hashset(h,n_elts*2,KNO_MALLOCD_CONS);
+  lispval result = (lispval) h;
+  while (i<n_elts) {
+    lispval elt = read_xtype(in,refs);
+    if (KNO_ABORTED(elt)) {
+      kno_decref(result);
+      result = elt;
+      break;}
+    kno_hashset_add(h,elt);
+    kno_decref(elt);}
+  return result;
 }
 
 static int skip_bytes(kno_inbuf in,size_t n_bytes)
@@ -974,6 +1011,29 @@ static ssize_t write_hashtable(kno_outbuf out,struct KNO_HASHTABLE *hashtable,
       kno_decref(keyvals[i].kv_val);
       i++;}
     u8_free(keyvals);
+    return xtype_len;}
+  else return rv;
+}
+
+static ssize_t write_hashset(kno_outbuf out,struct KNO_HASHSET *hashtable,
+			     xtype_refs refs)
+{
+  int i = 0, n_elts = -1;
+  lispval *elts = kno_hashset_vec(hashtable,&n_elts);
+  if (PRED_FALSE(n_elts < 0)) return -1;
+  kno_output_byte(out,xt_tagged); kno_output_byte(out,xt_bigset);
+  kno_output_byte(out,xt_vector);
+  ssize_t rv = kno_write_varint(out,n_elts);
+  if (rv>0) {
+    ssize_t xtype_len = 3+rv;
+    while (i < n_elts) {
+      lispval elt = elts[i];
+      ssize_t elt_len = write_xtype(out,elt,refs);
+      if (elt_len<0) { xtype_len=-1; break; }
+      else xtype_len += elt_len;
+      i++;}
+    kno_decref_vec(elts,n_elts);
+    u8_free(elts);
     return xtype_len;}
   else return rv;
 }

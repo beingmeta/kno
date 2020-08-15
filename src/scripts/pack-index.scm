@@ -38,7 +38,7 @@
 	  (config 'NEWTYPE 
 		  (config 'TYPE 
 			  (or (indexctl old 'metadata 'type)
-			      'hashindex)))))
+			      'kindex)))))
 
 (define (no-slotids? input (slotids))
   (set! slotids (dbctl input 'slotids))
