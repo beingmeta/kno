@@ -12,6 +12,7 @@ usage() {
 	echo "\t"patchlevel "\t\t\t(Kno patchlevel)";
 	echo "\t"prefix "\t\t\t\t(Installation prefix for Kno)";
 	echo "\t"execprefix "\t\t\t(Binary (executable) Installation prefix for Kno)";
+	echo "\t"suffix "\t\t\t(suffix (if any) for executable programs and libraries)";
 	echo "\t"config "\t\t\t\t(Default config directory)";
 	echo "\t"localconfig "\t\t\t(Local config directory)";
 	echo "\t"sharedconfig "\t\t\t(Shared config directory)";
@@ -69,6 +70,8 @@ case ${option} in
 	echo "@prefix@";;
     execprefix|exec_prefix)
 	echo "@exec_prefix@";;
+    suffix|exec_suffix)
+	echo "@suffix@";;
     config)
 	echo "@config_dir@";;
     localconfig|local_config)
