@@ -83,7 +83,9 @@ DEFPRIM("indexctl",indexctl_prim,
 	"`(INDEXCTL *arg0* *arg1* *args...*)` **undocumented**");
 static lispval indexctl_prim(int n,kno_argvec args)
 {
-  if (KNO_AMBIGP(args[0])) {
+  if (KNO_EMPTYP(args[0]))
+    return KNO_EMPTY;
+  else if (KNO_AMBIGP(args[0])) {
     lispval inner[n], indexes = args[0];
     memcpy(inner,args,n*sizeof(lispval));
     lispval results = KNO_EMPTY;
@@ -110,12 +112,30 @@ DEFPRIM("indexctl/default",indexctl_default_prim,
 	"`(INDEXCTL/DEFAULT *arg0* *arg1* *args...*)` **undocumented**");
 static lispval indexctl_default_prim(int n,kno_argvec args)
 {
-  struct KNO_INDEX *ix = kno_lisp2index(args[0]);
-  if (ix == NULL)
-    return KNO_ERROR;
-  else if (!(SYMBOLP(args[1])))
+  if (!(SYMBOLP(args[1])))
     return kno_err("BadIndexOp","indexctl_prim",NULL,args[1]);
-  else return kno_default_indexctl(ix,args[1],n-2,args+2);
+  else if (KNO_EMPTYP(args[0]))
+    return KNO_EMPTY;
+  else if (KNO_AMBIGP(args[0])) {
+    lispval results = KNO_EMPTY;
+    KNO_DO_CHOICES(ixarg,args[0]) {
+      struct KNO_INDEX *ix = kno_lisp2index(ixarg);
+      if (ix == NULL) {
+	kno_decref(results);
+	return KNO_ERROR;}
+      lispval result = kno_default_indexctl(ix,args[1],n-2,args+2);
+      if (KNO_ABORTED(result)) {
+	kno_decref(results);
+	return result;}
+      KNO_ADD_TO_CHOICE(results,result);}
+    return results;}
+  else {
+    struct KNO_INDEX *ix = kno_lisp2index(args[0]);
+    if (ix == NULL)
+      return KNO_ERROR;
+    else if (!(SYMBOLP(args[1])))
+      return kno_err("BadIndexOp","indexctl_prim",NULL,args[1]);
+    else return kno_default_indexctl(ix,args[1],n-2,args+2);}
 }
 
 DEFPRIM("poolctl",poolctl_prim,
@@ -123,7 +143,9 @@ DEFPRIM("poolctl",poolctl_prim,
 	"`(POOLCTL *arg0* *arg1* *args...*)` **undocumented**");
 static lispval poolctl_prim(int n,kno_argvec args)
 {
-  if (KNO_AMBIGP(args[0])) {
+  if (KNO_EMPTYP(args[0]))
+    return KNO_EMPTY;
+  else if (KNO_AMBIGP(args[0])) {
     lispval inner[n], pools = args[0];
     memcpy(inner,args,n*sizeof(lispval));
     lispval results = KNO_EMPTY;
@@ -150,12 +172,29 @@ DEFPRIM("poolctl/default",poolctl_default_prim,
 	"`(POOLCTL/DEFAULT *arg0* *arg1* *args...*)` **undocumented**");
 static lispval poolctl_default_prim(int n,kno_argvec args)
 {
-  struct KNO_POOL *p = kno_lisp2pool(args[0]);
-  if (p == NULL)
-    return KNO_ERROR;
-  else if (!(SYMBOLP(args[1])))
-    return kno_err("BadPoolOp","poolctl_prim",NULL,args[1]);
-  else return kno_default_poolctl(p,args[1],n-2,args+2);
+  if (!(SYMBOLP(args[1])))
+    return kno_err("BadIndexOp","indexctl_prim",NULL,args[1]);
+  else if (KNO_EMPTYP(args[0]))
+    return KNO_EMPTY;
+  else if (KNO_AMBIGP(args[0])) {
+    lispval results = KNO_EMPTY;
+    KNO_DO_CHOICES(poolarg,args[0]) {
+      struct KNO_POOL *p = kno_lisp2pool(poolarg);
+      if (p == NULL)
+	return KNO_ERROR;
+      lispval result = kno_default_poolctl(p,args[1],n-2,args+2);
+      if (KNO_ABORTED(result)) {
+	kno_decref(results);
+	return result;}
+      KNO_ADD_TO_CHOICE(results,result);}
+    return results;}
+  else {
+    struct KNO_POOL *p = kno_lisp2pool(args[0]);
+    if (p == NULL)
+      return KNO_ERROR;
+    else if (!(SYMBOLP(args[1])))
+      return kno_err("BadPoolOp","poolctl_prim",NULL,args[1]);
+    else return kno_default_poolctl(p,args[1],n-2,args+2);}
 }
 
 /* DBCTL */
@@ -169,7 +208,9 @@ DEFPRIM("dbctl",dbctl_prim,
 static lispval dbctl_prim(int n,kno_argvec args)
 {
   lispval db = args[0];
-  if (KNO_AMBIGP(db)) {
+  if (KNO_EMPTYP(db))
+    return KNO_EMPTY;
+  else if (KNO_AMBIGP(db)) {
     lispval inner[n];
     memcpy(inner,args,n*sizeof(lispval));
     lispval results = KNO_EMPTY;
