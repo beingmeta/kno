@@ -207,6 +207,10 @@ KNO_FASTOP void _KNO_INIT_BYTE_OUTBUF(kno_outbuf bo,unsigned char *buf,size_t sz
   (bi)->buf_flushfn = NULL;             \
   (bi)->buf_closefn = NULL
 
+#define KNO_DECL_INBUF(v,data,len,flags)   \
+  struct KNO_INBUF v;			   \
+  KNO_INIT_INBUF(&v,data,len,flags)
+
 /* Utility functions for growing buffers */
 
 KNO_EXPORT int kno_needs_space(struct KNO_OUTBUF *b,size_t delta);
