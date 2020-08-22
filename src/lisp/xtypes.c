@@ -397,6 +397,20 @@ KNO_EXPORT ssize_t kno_write_xtype(kno_outbuf out,lispval x,xtype_refs refs)
   return write_xtype(out,x,refs);
 }
 
+KNO_EXPORT unsigned char *kno_encode_xtype(lispval x,ssize_t *sz,xtype_refs refs)
+{
+  KNO_DECL_OUTBUF(out,1000);
+  ssize_t n_bytes = write_xtype(&out,x,refs);
+  *sz = n_bytes;
+  if (n_bytes<0) {
+    kno_close_outbuf(&out);
+    return NULL;}
+  unsigned char *bytes = u8_malloc(n_bytes);
+  memcpy(bytes,out.buffer,n_bytes);
+  kno_close_outbuf(&out);
+  return bytes;
+}
+
 KNO_EXPORT ssize_t kno_embed_xtype(kno_outbuf out,lispval x,xtype_refs refs)
 {
   if (refs == NULL)
@@ -725,6 +739,12 @@ static lispval read_xtype(kno_inbuf in,xtype_refs refs)
 KNO_EXPORT lispval kno_read_xtype(kno_inbuf in,xtype_refs refs)
 {
   return read_xtype(in,refs);
+}
+
+KNO_EXPORT lispval kno_decode_xtype(unsigned char *bytes,size_t len,xtype_refs xrefs)
+{
+  KNO_DECL_INBUF(in,bytes,len,0);
+  return read_xtype(&in,xrefs);
 }
 
 static lispval read_tagged(lispval tag,kno_inbuf in,xtype_refs refs)

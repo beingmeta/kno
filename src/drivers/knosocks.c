@@ -1219,6 +1219,7 @@ static void link_local_cprims()
   KNO_LINK_PRIM("now",now_prim,0,module);
   KNO_LINK_PRIM("sessionid",sessionid_prim,0,module);
   KNO_LINK_PRIM("uptime",uptime_prim,0,module);
+  KNO_LINK_PRIM("supported?",supportedp_prim,1,module);
   KNO_LINK_PRIM("supportedp",supportedp_prim,1,module);
   KNO_LINK_PRIM("shutdown",shutdown_prim,1,module);
 }

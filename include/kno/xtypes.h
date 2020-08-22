@@ -160,6 +160,8 @@ KNO_EXPORT lispval kno_read_xtype(kno_inbuf in,xtype_refs refs);
 KNO_EXPORT ssize_t kno_embed_xtype(kno_outbuf out,lispval x,xtype_refs refs);
 KNO_EXPORT int kno_validate_xtype(kno_inbuf in,xtype_refs refs);
 
+KNO_EXPORT lispval kno_decode_xtype(unsigned char *,size_t,xtype_refs);
+KNO_EXPORT unsigned char * kno_encode_xtype(lispval x,ssize_t *sz,xtype_refs);
 
 KNO_EXPORT int kno_init_xrefs(xtype_refs refs,
 			      int n_refs,int refs_len,

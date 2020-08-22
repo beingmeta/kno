@@ -572,8 +572,8 @@ static lispval config_getrandomseed(lispval var,void *data)
 
 static int config_setrandomseed(lispval var,lispval val,void *data)
 {
-  if (((SYMBOLP(val)) && ((strcasecmp(KNO_XSYMBOL_NAME(val),"TIME"))==0)) ||
-      ((STRINGP(val)) && ((strcasecmp(CSTRING(val),"TIME"))==0))) {
+  if ((SYMBOLP(val)) ? ((strcasecmp(KNO_SYMBOL_NAME(val),"TIME"))==0) :
+      (STRINGP(val)) ? ((strcasecmp(CSTRING(val),"TIME"))==0) : (0)) {
     time_t tick = time(NULL);
     if (tick<0) {
       u8_graberrno("time",NULL);
@@ -582,6 +582,21 @@ static int config_setrandomseed(lispval var,lispval val,void *data)
       randomseed = (unsigned int)tick;
       u8_randomize(randomseed);
       return 1;}}
+  else if (KNO_TYPEP(val,kno_timestamp_type)) {
+    struct KNO_TIMESTAMP *tstamp = (kno_timestamp) val;
+    time_t tick = tstamp->u8xtimeval.u8_tick;
+    if (tick<0) {
+      u8_graberrno("time",NULL);
+      return KNO_ERR2(-1,TimeFailed,"setrandomseed");}
+    else {
+      randomseed = (unsigned int)tick;
+      u8_randomize(randomseed);
+      return 1;}}
+  else if ( (STRINGP(val)) || (PACKETP(val)) ) {
+    unsigned int hash = kno_hash_bytes(KNO_CSTRING(val),KNO_STRLEN(val));
+    randomseed=hash;
+    u8_randomize(randomseed);
+    return 1;}
   else if (FIXNUMP(val)) {
     long long intval = FIX2INT(val);
     if (intval<0) intval=-intval;
