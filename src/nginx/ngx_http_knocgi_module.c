@@ -1,12 +1,8 @@
 /* C Mode */
 
-/* mod_fdserv.c
-   Copyright (C) 2002-2012 beingmeta, inc.  All Rights Reserved
-   This is a Apache module supporting persistent FramerD servers
-
-   For Apache 2.0:
-   Compile with: apxs2 -c mod_fdserv.c
-   Install with: apxs2 -i mod_fdserv.so
+/* ngx_http_knocgi_module.c
+   Copyright (C) 2002-2020 beingmeta, inc.  All Rights Reserved
+   This is a nginx module supporting persistent FramerD servers
 
 */
 
@@ -14,8 +10,8 @@
 #define DEBUG_ALL 0
 #endif
 
-#ifndef DEBUG_FDSERV
-#define DEBUG_FDSERV DEBUG_ALL
+#ifndef DEBUG_KNOCGI
+#define DEBUG_KNOCGI DEBUG_ALL
 #endif
 
 #ifndef DEBUG_CGIDATA
@@ -37,7 +33,7 @@
 #define LOGNOTICE NGX_LOG_NOTICE
 #define LOGINFO NGX_LOG_INFO
 
-#if DEBUG_FDSERV
+#if DEBUG_KNOCGI
 #define LOGDEBUG NGX_LOG_INFO
 #else
 #define LOGDEBUG NGX_LOG_DEBUG
@@ -55,10 +51,7 @@
 #define LOG_CONFIG(p,arg)
 #endif
 
-#define APACHE20 1
-#define APACHE13 0
-
-/*#include "mod_fdserv_fileinfo.h" */
+/* #include "ngx_http_knocgi_module_fileinfo.h" */
 
 #if (SIZEOF_VOIDP==8)
 typedef unsigned long long INTPOINTER;
@@ -99,13 +92,13 @@ typedef unsigned int INTPOINTER;
 #endif
 #endif
 
-#define FDSERV_INIT_SERVLETS 32
+#define KNOCGI_INIT_SERVLETS 32
 
 #if TRACK_EXECUTION_TIMES
 #include "sys/timeb.h"
 #endif
 
-#define FDSERV_MAGIC_TYPE "application/x-httpd-fdserv"
+#define KNOCGI_MAGIC_TYPE "application/x-httpd-knocgi"
 
 #ifndef DEFAULT_ISASYNC
 #define DEFAULT_ISASYNC 1
@@ -119,17 +112,17 @@ typedef unsigned int INTPOINTER;
 #define USEDTBLOCK 0
 #endif
 
-typedef struct FDSERV_CONFIG {
+typedef struct KNOCGI_CONFIG {
   unsigned char *spec;
   ngx_http_upstream_conf_t   upstream;
   ngx_msec_t servlet_wait;
-  ngx_array_t params;} ngx_http_fdserv_config;
-typedef struct FDSERV_CONTEXT {
+  ngx_array_t params;} ngx_http_knocgi_config;
+typedef struct KNOCGI_CONTEXT {
   ngx_http_request_t        *request;
-  time_t started;} ngx_http_fdserv_ctx_t;
+  time_t started;} ngx_http_knocgi_ctx_t;
 
 
-ngx_module_t ngx_http_fdserv_module;
+ngx_module_t ngx_http_knocgi_module;
 
 /* Writing DTypes to BUFFs */
 
@@ -289,11 +282,11 @@ static char *prealloc(ngx_pool_t *p,char *ptr,int new_size,int old_size)
   return newptr;
 }
 
-static void *create_fdserv_config(ngx_conf_t *cf)
+static void *create_knocgi_config(ngx_conf_t *cf)
 {
   ngx_pool_t *p=cf->pool;
-  struct FDSERV_CONFIG *config=
-    ngx_pcalloc(p,sizeof(struct FDSERV_CONFIG));
+  struct KNOCGI_CONFIG *config=
+    ngx_pcalloc(p,sizeof(struct KNOCGI_CONFIG));
   if (config == NULL) return NGX_CONF_ERROR;
 
   config->spec=NGX_CONF_UNSET_PTR;
@@ -305,11 +298,11 @@ static void *create_fdserv_config(ngx_conf_t *cf)
 
 static int array_has_key(ngx_array_t *params,ngx_str_t key);
 
-static char *merge_fdserv_config(ngx_conf_t *conf,void *vparent,void *vchild)
+static char *merge_knocgi_config(ngx_conf_t *conf,void *vparent,void *vchild)
 {
   ngx_pool_t *p=conf->pool;
-  struct FDSERV_CONFIG *parent=vparent;
-  struct FDSERV_CONFIG *child=vchild;
+  struct KNOCGI_CONFIG *parent=vparent;
+  struct KNOCGI_CONFIG *child=vchild;
   ngx_array_t *pparams=&(parent->params), *cparams=&(child->params);
   ngx_keyval_t *scan=pparams->elts, *lim=scan+pparams->nelts;
 
@@ -341,12 +334,12 @@ static int array_has_key(ngx_array_t *params,ngx_str_t key) {
 
 /* Request handlers */
 
-static ngx_int_t fdserv_create_request(ngx_http_request_t *r)
+static ngx_int_t knocgi_create_request(ngx_http_request_t *r)
 {
   struct BUFF *cgibuff=buff_create(r->pool,2048);
   ngx_buf_t *b; ngx_chain_t *chain; int cgi_len;
-  struct FDSERV_CONFIG *config=
-    ngx_http_get_module_loc_conf(r,ngx_http_fdserv_module);
+  struct KNOCGI_CONFIG *config=
+    ngx_http_get_module_loc_conf(r,ngx_http_knocgi_module);
   if (cgibuff==NULL) return NGX_ERROR;
   if (config==NULL) return NGX_ERROR;
   /* Not handling post right now */
@@ -365,40 +358,40 @@ static ngx_int_t fdserv_create_request(ngx_http_request_t *r)
   return NGX_OK;
 }
 
-static ngx_int_t fdserv_reinit_request(ngx_http_request_t *r)
+static ngx_int_t knocgi_reinit_request(ngx_http_request_t *r)
 {
   return NGX_OK;
 }
 
-static void fdserv_abort_request(ngx_http_request_t *r)
+static void knocgi_abort_request(ngx_http_request_t *r)
 {
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "abort http fdserv request");
+                   "abort http knocgi request");
 }
 
 
-static void fdserv_finalize_request(ngx_http_request_t *r,ngx_int_t rc)
+static void knocgi_finalize_request(ngx_http_request_t *r,ngx_int_t rc)
 {
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "finalize http fdserv request");
+                   "finalize http knocgi request");
 }
 
-static ngx_int_t fdserv_process_headers(ngx_http_request_t *r)
+static ngx_int_t knocgi_process_headers(ngx_http_request_t *r)
 {
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "finalize http fdserv request");
+                   "finalize http knocgi request");
     return NGX_OK;
 }
 
-static ngx_int_t fdserv_filter_init(void *data)
+static ngx_int_t knocgi_filter_init(void *data)
 {
   return NGX_OK;
 }
 
-static ngx_int_t fdserv_filter(void *data, ssize_t bytes)
+static ngx_int_t knocgi_filter(void *data, ssize_t bytes)
 {
   /*
-    ngx_http_fdserv_ctx_t  *ctx = data;
+    ngx_http_knocgi_ctx_t  *ctx = data;
 
     u_char               *last;
     ngx_buf_t            *b;
@@ -492,34 +485,34 @@ static ngx_int_t fdserv_filter(void *data, ssize_t bytes)
 
 /* The main event handler */
 
-static ngx_int_t fdserv_handler(ngx_http_request_t *r)
+static ngx_int_t knocgi_handler(ngx_http_request_t *r)
 {
   /* time_t started=time(NULL), connected, requested, computed, responded; */
   ngx_int_t rc;
   ngx_http_upstream_t *u;
-  ngx_http_fdserv_ctx_t *ctx;
-  struct FDSERV_CONFIG *config=
-    ngx_http_get_module_loc_conf(r,ngx_http_fdserv_module);
+  ngx_http_knocgi_ctx_t *ctx;
+  struct KNOCGI_CONFIG *config=
+    ngx_http_get_module_loc_conf(r,ngx_http_knocgi_module);
   if (config==NULL)
     return NGX_HTTP_INTERNAL_SERVER_ERROR;
   if (ngx_http_upstream_create(r) != NGX_OK)
     return NGX_HTTP_INTERNAL_SERVER_ERROR;
   else u=r->upstream;
   u->conf=&(config->upstream);
-  ctx=ngx_pcalloc(r->pool,sizeof(ngx_http_fdserv_ctx_t));
+  ctx=ngx_pcalloc(r->pool,sizeof(ngx_http_knocgi_ctx_t));
   if (!(ctx)) return NGX_HTTP_INTERNAL_SERVER_ERROR;
   ctx->request=r; time(&(ctx->started));
-  ngx_http_set_ctx(r,ctx,ngx_http_fdserv_module);
+  ngx_http_set_ctx(r,ctx,ngx_http_knocgi_module);
   u->peer.log=r->connection->log;
   u->peer.log_error=NGX_ERROR_ERR;
-  u->output.tag=(ngx_buf_tag_t) &ngx_http_fdserv_module;
+  u->output.tag=(ngx_buf_tag_t) &ngx_http_knocgi_module;
 
   /* setup handlers */
-  u->create_request=fdserv_create_request;
-  u->reinit_request=fdserv_reinit_request;
-  u->process_header=fdserv_process_headers;
-  u->abort_request = fdserv_abort_request;
-  u->finalize_request = fdserv_finalize_request;
+  u->create_request=knocgi_create_request;
+  u->reinit_request=knocgi_reinit_request;
+  u->process_header=knocgi_process_headers;
+  u->abort_request = knocgi_abort_request;
+  u->finalize_request = knocgi_finalize_request;
 
   r->upstream=u;
 
@@ -540,57 +533,57 @@ static char *servlet_set(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
   if (strcmp((char *)spec,"none")==0) {
     *spec_ptr=NGX_CONF_UNSET_PTR;}
   else {
-    coreconf->handler=fdserv_handler;
+    coreconf->handler=knocgi_handler;
     *spec_ptr=spec;}
 
   return NGX_CONF_OK;
 }
 
-#define FDSERV_CONFIG_TAKE0						\
+#define KNOCGI_CONFIG_TAKE0						\
   (NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_NOARGS)
-#define FDSERV_CONFIG_TAKE1						\
+#define KNOCGI_CONFIG_TAKE1						\
   (NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1)
-#define FDSERV_CONFIG_TAKE2						\
+#define KNOCGI_CONFIG_TAKE2						\
   (NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE2)
-#define FDSERV_CONFIG_TAKE3						\
+#define KNOCGI_CONFIG_TAKE3						\
   (NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE3)
-#define FDSERV_CONFIG_UPS1			\
+#define KNOCGI_CONFIG_UPS1			\
   (NGX_HTTP_UPS_CONF,NGX_CONF_TAKE1)
 
-static ngx_command_t ngx_http_fdserv_cmds[] = {
-  {ngx_string("FDServletParam"),FDSERV_CONFIG_TAKE2,
+static ngx_command_t ngx_http_knocgi_cmds[] = {
+  {ngx_string("KnocgiletParam"),KNOCGI_CONFIG_TAKE2,
    ngx_conf_set_keyval_slot,
    NGX_HTTP_LOC_CONF_OFFSET,
-   offsetof(ngx_http_fdserv_config,params),
+   offsetof(ngx_http_knocgi_config,params),
    NULL},
-  {ngx_string("FDServlet"),FDSERV_CONFIG_TAKE1,
+  {ngx_string("Knocgilet"),KNOCGI_CONFIG_TAKE1,
    servlet_set,
    NGX_HTTP_LOC_CONF_OFFSET,
-   offsetof(ngx_http_fdserv_config,spec),
+   offsetof(ngx_http_knocgi_config,spec),
    NULL},
-  {ngx_string("FDServletWait"),FDSERV_CONFIG_TAKE1,
+  {ngx_string("KnocgiletWait"),KNOCGI_CONFIG_TAKE1,
    ngx_conf_set_msec_slot,
    NGX_HTTP_LOC_CONF_OFFSET,
-   offsetof(ngx_http_fdserv_config,servlet_wait),
+   offsetof(ngx_http_knocgi_config,servlet_wait),
    NULL},
   ngx_null_command
 };
 
-static ngx_http_module_t ngx_http_fdserver_module_ctx = {
+static ngx_http_module_t ngx_http_knocgier_module_ctx = {
   NULL,                              /* preconfiguration */
   NULL,                              /* preconfiguration */
   NULL,
   NULL,
   NULL,
   NULL,
-  create_fdserv_config,
-  merge_fdserv_config
+  create_knocgi_config,
+  merge_knocgi_config
 };
 
-ngx_module_t ngx_http_fdserv_module = {
+ngx_module_t ngx_http_knocgi_module = {
   NGX_MODULE_V1,
-  &ngx_http_fdserver_module_ctx,
-  ngx_http_fdserv_cmds,
+  &ngx_http_knocgier_module_ctx,
+  ngx_http_knocgi_cmds,
   NGX_HTTP_MODULE,
   NULL,                          /* init master */
   NULL,                          /* init module */
