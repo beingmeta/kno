@@ -196,10 +196,15 @@ static void close_consoles()
 static lispval oid_listfn(lispval item)
 {
   if (KNO_OIDP(item)) {
+    if (kno_oid_display_level<2) return KNO_VOID;
     kno_pool p = kno_oid2pool(item);
-    if (p) {
-      lispval v = kno_oid_value(item);
-      kno_decref(v);}}
+    if (p == NULL) return KNO_VOID;
+    if (kno_hashtable_probe(&(p->pool_cache),item))
+      return KNO_VOID;
+    else if (kno_oid_display_level<3) return KNO_VOID;
+    lispval v = kno_oid_value(item);
+    if (KNO_ABORTED(v)) u8_pop_exception();
+    kno_decref(v);}
   return KNO_VOID;
 }
 
