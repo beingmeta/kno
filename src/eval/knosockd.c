@@ -85,7 +85,10 @@ static lispval knosockd_listener_prim(lispval listen,
 				      lispval data)
 {
   if (KNO_TABLEP(listen)) {
-    data = env; env = opts; opts = listen; listen = KNO_FALSE;}
+    data = env;
+    env = opts;
+    opts = listen;
+    listen = KNO_FALSE;}
   if ( (KNO_VOIDP(data)) || (KNO_DEFAULTP(data)) )
     data = kno_make_slotmap(7,0,NULL);
   else kno_incref(data);

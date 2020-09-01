@@ -32,7 +32,6 @@ static kno_pool primary_pool = NULL;
 static kno_pool served_pools[KNO_DBSERV_MAX_POOLS];
 static int n_served_pools = 0;
 struct KNO_AGGREGATE_INDEX *primary_index = NULL;
-static int read_only = 0, locking = 1;
 static int dbserv_loglevel = LOG_NOTICE;
 
 u8_condition kno_PrivateOID=_("private OID");
@@ -43,490 +42,6 @@ static int served_poolp(kno_pool p)
                if (served_pools[i]==p) return 1;
                else i++;
   return 0;
-}
-
-/* Change logs */
-
-static int init_timestamp = 0;
-static int change_count = 0;
-static u8_mutex changelog_lock;
-
-struct KNO_CHANGELOG_ENTRY {
-  int moment; lispval keys;};
-
-struct KNO_CHANGELOG {
-  int point, max, full;
-  struct KNO_CHANGELOG_ENTRY *entries;};
-
-static struct KNO_CHANGELOG oid_changelog, index_changelog;
-static struct KNO_SUBINDEX_CHANGELOG {
-  kno_index ix; struct KNO_CHANGELOG *clog;} *subindex_changelogs = NULL;
-static int n_subindex_changelogs = 0;
-
-static void init_changelog(struct KNO_CHANGELOG *clog,int size)
-{
-  clog->entries = u8_alloc_n(size,struct KNO_CHANGELOG_ENTRY);
-  clog->max = size; clog->point = 0; clog->full = 0;
-}
-
-static struct KNO_CHANGELOG *get_subindex_changelog(kno_index ix,int make)
-{
-  struct KNO_CHANGELOG *clog = NULL; int i = 0;
-  u8_lock_mutex(&changelog_lock);
-  while (i < n_subindex_changelogs)
-    if (subindex_changelogs[i].ix == ix) break; else i++;
-  if (subindex_changelogs[i].ix == ix) clog = (subindex_changelogs[i].clog);
-  else if (make == 0) clog = NULL;
-  else {
-    clog = u8_alloc(struct KNO_CHANGELOG);
-    if (subindex_changelogs)
-      subindex_changelogs=
-        u8_realloc_n(subindex_changelogs,n_subindex_changelogs+1,
-                     struct KNO_SUBINDEX_CHANGELOG);
-    else subindex_changelogs = u8_alloc(struct KNO_SUBINDEX_CHANGELOG);
-    subindex_changelogs[n_subindex_changelogs].ix = ix; subindex_changelogs[n_subindex_changelogs].clog = clog;
-    init_changelog(clog,1024);
-    n_subindex_changelogs++;}
-  u8_unlock_mutex(&changelog_lock);
-  return clog;
-}
-
-static void add_to_changelog(struct KNO_CHANGELOG *clog,lispval keys)
-{
-  struct KNO_CHANGELOG_ENTRY *entries; int point;
-  u8_lock_mutex(&changelog_lock);
-  entries = clog->entries; point = clog->point;
-  if (clog->full) {
-    kno_decref(entries[point].keys);}
-  entries[point].moment = change_count++;
-  entries[point].keys = kno_incref(keys);
-  if (clog->full)
-    if (clog->point == clog->max) clog->point = 0;
-    else clog->point++;
-  else if (clog->point == clog->max) {
-    clog->point = 0; clog->full = 1;}
-  else clog->point++;
-  u8_unlock_mutex(&changelog_lock);
-}
-
-static lispval get_changes(struct KNO_CHANGELOG *clog,int cstamp,int *new_cstamp)
-{
-  lispval result;
-  u8_lock_mutex(&changelog_lock);
-  {
-    int bottom = ((clog->full) ? (clog->point) : 0);
-    int top = ((clog->full) ? ((clog->point) ? (clog->point-1) : (clog->max)) : (clog->point-1));
-    struct KNO_CHANGELOG_ENTRY *entries = clog->entries;
-    *new_cstamp = change_count;
-    if ((clog->full == 0) && (clog->point == 0)) result = EMPTY; /* Changelog is empty */
-    else if (cstamp < entries[bottom].moment) result = KNO_FALSE; /* Too far back. */
-    else if (cstamp > entries[top].moment) result = EMPTY; /* No changes. */
-    else {
-      lispval changes = EMPTY;
-      int i = top, point = clog->point; while (i >= 0)
-                                          if (cstamp <= entries[i].moment) {
-                                            lispval key = entries[i--].keys;
-                                            kno_incref(key);
-                                            CHOICE_ADD(changes,key);}
-                                          else break;
-      if (cstamp > entries[i].moment) {
-        i = clog->max; while (i >= point)
-                         if (cstamp <= entries[i].moment) {
-                           lispval key = entries[i--].keys;
-                           kno_incref(key);
-                           CHOICE_ADD(changes,key);}
-                         else break;}
-      result = changes;}}
-  u8_unlock_mutex(&changelog_lock);
-  return result;
-}
-
-static lispval get_syncstamp_prim()
-{
-  return kno_make_list(2,KNO_INT(init_timestamp),KNO_INT(change_count));
-}
-
-static lispval oid_server_changes(lispval sid,lispval xid)
-{
-  if (FIX2INT(sid) != init_timestamp)
-    return KNO_FALSE;
-  else {
-    int new_syncstamp;
-    lispval changes=
-      get_changes(&oid_changelog,FIX2INT(xid),&new_syncstamp);
-    if (FALSEP(changes))
-      return kno_make_list(1,kno_make_list(2,KNO_INT(init_timestamp),
-                                           KNO_INT(new_syncstamp)));
-    else return kno_conspair(kno_make_list(2,KNO_INT(init_timestamp),
-                                           KNO_INT(new_syncstamp)),
-                             changes);}
-}
-
-static lispval iserver_changes(lispval sid,lispval xid)
-{
-  if (FIX2INT(sid) != init_timestamp) return KNO_FALSE;
-  else {
-    int new_syncstamp;
-    lispval changes=
-      get_changes(&index_changelog,FIX2INT(xid),&new_syncstamp);
-    if (FALSEP(changes))
-      return kno_make_list(1,kno_make_list(2,KNO_INT(init_timestamp),
-                                           KNO_INT(new_syncstamp)));
-    else return kno_conspair(kno_make_list(2,KNO_INT(init_timestamp),
-                                           KNO_INT(new_syncstamp)),
-                             changes);}
-}
-
-static lispval ixserver_changes(lispval index,lispval sid,lispval xid)
-{
-  kno_index ix = kno_indexptr(index);
-  struct KNO_CHANGELOG *clog = get_subindex_changelog(ix,0);
-  if (clog == NULL) return EMPTY;
-  else if (FIX2INT(sid) != init_timestamp) return KNO_FALSE;
-  else {
-    int new_syncstamp;
-    lispval changes = get_changes(clog,FIX2INT(xid),&new_syncstamp);
-    if (FALSEP(changes))
-      return kno_make_list(1,kno_make_list(2,KNO_INT(init_timestamp),
-                                           KNO_INT(new_syncstamp)));
-    else return kno_conspair(kno_make_list(2,KNO_INT(init_timestamp),
-                                           KNO_INT(new_syncstamp)),
-                             changes);}
-}
-
-/** OID Locking **/
-
-static struct KNO_HASHTABLE server_locks, server_locks_inv;
-static unsigned int n_locks = 0;
-static KNO_STREAM *locks_file = NULL;
-static u8_string locks_filename = NULL;
-static void update_server_lock_file();
-
-u8_condition OIDNotLocked=_("The OID is not locked");
-u8_condition CantLockOID=_("Can't lock OID");
-
-static u8_mutex server_locks_lock;
-
-static int lock_oid(lispval oid,lispval id)
-{
-  lispval holder;
-  if (locking == 0) return 1;
-  u8_lock_mutex(&server_locks_lock);
-  holder = kno_hashtable_get(&server_locks,oid,EMPTY);
-  if (EMPTYP(holder)) {
-    kno_pool p = kno_oid2pool(oid);
-    if ((kno_pool_lock(p,oid)) == 0) {
-      u8_unlock_mutex(&server_locks_lock); return 0;}
-    kno_hashtable_store(&server_locks,oid,id); n_locks++;
-    kno_hashtable_add(&server_locks_inv,id,oid);
-    if (locks_file) {
-      kno_write_dtype(kno_writebuf(locks_file),oid);
-      kno_write_dtype(kno_writebuf(locks_file),id);
-      kno_flush_stream(locks_file);}
-    u8_unlock_mutex(&server_locks_lock);
-    return 1;}
-  else if (LISP_EQUAL(id,holder)) {
-    u8_unlock_mutex(&server_locks_lock); kno_decref(holder);
-    return 1;}
-  else {
-    u8_unlock_mutex(&server_locks_lock);
-    kno_decref(holder);
-    return 0;}
-}
-
-static int check_server_lock(lispval oid,lispval id)
-{
-  lispval holder = kno_hashtable_get(&server_locks,oid,EMPTY);
-  if (EMPTYP(holder)) return 0;
-  else if (LISP_EQUAL(id,holder)) {
-    kno_decref(holder); return 1;}
-  else {kno_decref(holder); return 0;}
-}
-
-static int clear_server_lock(lispval oid,lispval id)
-{
-  lispval holder;
-  if (locking == 0) return 1;
-  u8_lock_mutex(&server_locks_lock);
-  holder = kno_hashtable_get(&server_locks,oid,EMPTY);
-  if (EMPTYP(holder)) {u8_unlock_mutex(&server_locks_lock); return 0;}
-  else if (LISP_EQUAL(id,holder)) {
-    lispval all_locks = kno_hashtable_get(&server_locks_inv,id,EMPTY);
-    int lock_count = KNO_CHOICE_SIZE(all_locks);
-    kno_decref(holder);
-    kno_hashtable_store(&server_locks,oid,EMPTY);
-    if (lock_count == 0)
-      return kno_err(OIDNotLocked,"lock_oid",kno_strdata(id),oid);
-    else if (lock_count == 1)
-      kno_hashtable_store(&server_locks_inv,id,EMPTY);
-    else kno_hashtable_drop(&server_locks_inv,id,oid);
-    kno_hashtable_drop(&server_locks,oid,VOID); n_locks--;
-    if (locks_file) {
-      kno_write_dtype(kno_writebuf(locks_file),id);
-      kno_write_dtype(kno_writebuf(locks_file),oid);
-      kno_flush_stream(locks_file);}
-    u8_unlock_mutex(&server_locks_lock);
-    return 1;}
-  else {
-    kno_decref(holder);
-    u8_unlock_mutex(&server_locks_lock);
-    return 0;}
-}
-
-static void remove_all_server_locks(lispval id)
-{
-  if (locking == 0) return;
-  u8_lock_mutex(&server_locks_lock);
-  {
-    lispval locks = kno_hashtable_get(&server_locks_inv,id,EMPTY);
-    DO_CHOICES(oid,locks) {
-      kno_hashtable_drop(&server_locks,oid,VOID);}
-    kno_decref(locks);
-    kno_hashtable_store(&server_locks_inv,id,EMPTY);
-    u8_unlock_mutex(&server_locks_lock);
-  }
-}
-
-static int add_to_server_locks_file(lispval key,lispval value,void *outfilep)
-{
-  struct KNO_STREAM *out = (kno_stream )outfilep;
-  kno_write_dtype(kno_writebuf(out),key);
-  kno_write_dtype(kno_writebuf(out),value);
-  return 0;
-}
-
-static void open_server_lock_stream(u8_string file)
-{
-  if (u8_file_existsp(file)) {
-    struct KNO_STREAM *stream = kno_open_file(file,KNO_FILE_READ);
-    kno_inbuf in = kno_readbuf(stream);
-    lispval a = kno_read_dtype(in), b = kno_read_dtype(in);
-    while (!(KNO_EOFP(a))) {
-      if (OIDP(a)) lock_oid(a,b); else clear_server_lock(b,a);
-      a = kno_read_dtype(in); b = kno_read_dtype(in);}
-    kno_close_stream(stream,0);
-    u8_removefile(file);}
-  locks_file = kno_open_file(file,KNO_FILE_CREATE);
-  locks_filename = u8_strdup(file);
-  kno_for_hashtable(&server_locks,add_to_server_locks_file,(void *)locks_file,1);
-  kno_flush_stream(locks_file);
-}
-
-/* This writes out the current state of locks in memory to an external file.
-   The locks file is appended to while the server is running; this means that
-   it may contain OIDs which have been unlocked.  update_server_lock_file updates
-   the file from memory, making it only include the OIDs which are currently
-   locked.  */
-static void update_server_lock_file()
-{
-  u8_string temp_file;
-  if (locks_filename == NULL) return;
-  u8_lock_mutex(&server_locks_lock);
-  temp_file = u8_mkstring("%s.bak",locks_filename);
-  if (locks_file) kno_close_stream(locks_file,0);
-  u8_movefile(locks_filename,temp_file);
-  locks_file = kno_open_file(locks_filename,KNO_FILE_CREATE);
-  kno_for_hashtable(&server_locks,add_to_server_locks_file,(void *)locks_file,1);
-  kno_flush_stream(locks_file);
-  u8_removefile(temp_file);
-  u8_free(temp_file);
-  u8_unlock_mutex(&server_locks_lock);
-}
-
-static lispval config_get_locksfile(lispval var,void U8_MAYBE_UNUSED *data)
-{
-  if (locks_filename) return KNO_FALSE;
-  else return kno_mkstring(locks_filename);
-}
-
-static int config_set_locksfile(lispval var,lispval val,void U8_MAYBE_UNUSED *data)
-{
-  if (locks_filename)
-    if ((STRINGP(val)) && (strcmp(CSTRING(val),locks_filename)==0))
-      return 0;
-    else return kno_reterr(_("Locks file already set"),"kno_set_config",NULL,val);
-  else if (STRINGP(val)) {
-    open_server_lock_stream(CSTRING(val));
-    return 1;}
-  else return kno_reterr(kno_TypeError,"kno_set_config",u8_strdup("string"),val);
-}
-
-/** OID Access API **/
-
-static lispval lock_oid_prim(lispval oid,lispval id)
-{
-  if (!(OIDP(oid)))
-    return kno_type_error(_("oid"),"lock_oid_prim",oid);
-  if ((locking == 0) ||  (lock_oid(oid,id))) {
-    return kno_oid_value(oid);}
-  else return kno_err(CantLockOID,"lock_oid_prim",NULL,oid);
-}
-
-static lispval unlock_oid_prim(lispval oid,lispval id,lispval value)
-{
-  if (locking == 0) {
-    kno_pool p = kno_oid2pool(oid);
-    kno_set_oid_value(oid,value);
-    add_to_changelog(&oid_changelog,oid);
-    kno_pool_unlock(p,oid,commit_modified);
-    return KNO_TRUE;}
-  else {
-    kno_pool p = kno_oid2pool(oid);
-    if (check_server_lock(oid,id)) {
-      kno_set_oid_value(oid,value);
-      clear_server_lock(oid,id);
-      add_to_changelog(&oid_changelog,oid);
-      kno_pool_unlock(p,oid,commit_modified);
-      return KNO_TRUE;}
-    else return KNO_FALSE;}
-}
-
-static lispval clear_server_lock_prim(lispval oid,lispval id)
-{
-  if (locking == 0) return KNO_TRUE;
-  else if (clear_server_lock(oid,id)) {
-    return KNO_TRUE;}
-  else return KNO_FALSE;
-}
-
-static lispval break_server_lock_prim(lispval oid)
-{
-  if (locking == 0) return KNO_TRUE;
-  else {
-    lispval id = kno_hashtable_get(&server_locks,oid,EMPTY);
-    if (EMPTYP(id)) return KNO_FALSE;
-    else {
-      clear_server_lock(oid,id);
-      kno_decref(id);
-      return KNO_TRUE;}}
-}
-
-static lispval unlock_all_prim(lispval id)
-{
-  remove_all_server_locks(id);
-  update_server_lock_file();
-  return KNO_TRUE;
-}
-
-static lispval update_locks_prim()
-{
-  update_server_lock_file();
-  return VOID;
-}
-
-static lispval store_oid_proc(lispval oid,lispval value)
-{
-  kno_pool p = kno_oid2pool(oid);
-  int i = 0; while (i < n_served_pools)
-               if (served_pools[i] == p) {
-                 kno_set_oid_value(oid,value);
-                 add_to_changelog(&oid_changelog,oid);
-                 /* Commit the pool.  Journalling should now happen on a per-pool
-                    rather than a server-wide basis. */
-                 if (kno_commit_pool(p,oid)>=0) {
-                   kno_pool_unlock(p,oid,leave_modified);
-                   return KNO_TRUE;}
-                 else i++;}
-               else i++;
-  return KNO_FALSE;
-}
-
-static lispval bulk_commit_cproc(lispval id,lispval vec)
-{
-  int i = 0, l = VEC_LEN(vec);
-  lispval changed_oids = EMPTY;
-  /* First check that all the OIDs were really locked under the assigned ID. */
-  if (locking) {
-    i = 0; while (i < l) {
-      lispval oid = VEC_REF(vec,i);
-      if (!(OIDP(oid))) i = i+2;
-      else if (check_server_lock(oid,id)) i = i+2;
-      else return kno_err(OIDNotLocked,"bulk_commit_proc",NULL,oid);}}
-  /* Then set the corresponding OID value, but don't commit yet. */
-  i = 0; while (i < l) {
-    lispval oid = VEC_REF(vec,i);
-    lispval value = VEC_REF(vec,i+1);
-    if (OIDP(oid)) {
-      kno_set_oid_value(oid,value);
-      CHOICE_ADD(changed_oids,oid);}
-    i = i+2;}
-  kno_commit_oids(changed_oids);
-  kno_unlock_oids(changed_oids,leave_modified);
-  if (locking) {
-    i = 0; while (i < l) {
-      lispval oid = VEC_REF(vec,i);
-      if (OIDP(oid)) clear_server_lock(oid,id);
-      i = i+2;}}
-  add_to_changelog(&oid_changelog,changed_oids); kno_decref(changed_oids);
-  return KNO_TRUE;
-}
-
-static lispval iserver_add(lispval key,lispval values)
-{
-  kno_index_add((kno_index)primary_index,key,values);
-  add_to_changelog(&index_changelog,key);
-  return KNO_TRUE;
-}
-
-static lispval ixserver_add(lispval ixarg,lispval key,lispval values)
-{
-  kno_index ix = kno_indexptr(ixarg);
-  struct KNO_CHANGELOG *clog = get_subindex_changelog(ix,1);
-  kno_index_add(ix,key,values);
-  add_to_changelog(clog,key);
-  return KNO_TRUE;
-}
-
-static lispval iserver_bulk_add(lispval vec)
-{
-  if ((read_only) || (primary_index == NULL)) return KNO_FALSE;
-  else if (VECTORP(vec)) {
-    lispval *data = VEC_DATA(vec), keys = EMPTY;
-    int i = 0, limit = VEC_LEN(vec);
-    while (i < limit) {
-      if (VOIDP(data[i])) break;
-      else {
-        lispval key = data[i++], value = data[i++];
-        kno_index_add((kno_index)primary_index,key,value);
-        kno_incref(key); CHOICE_ADD(keys,key);}}
-    add_to_changelog(&index_changelog,keys); kno_decref(keys);
-    return KNO_TRUE;}
-  else return VOID;
-}
-
-static lispval ixserver_bulk_add(lispval ixarg,lispval vec)
-{
-  if (read_only) return KNO_FALSE;
-  else if (VECTORP(vec)) {
-    kno_index ix = kno_indexptr(ixarg);
-    struct KNO_CHANGELOG *clog = get_subindex_changelog(ix,1);
-    lispval *data = VEC_DATA(vec), keys = EMPTY;
-    int i = 0, limit = VEC_LEN(vec);
-    while (i < limit) {
-      if (VOIDP(data[i])) break;
-      else {
-        lispval key = data[i++], value = data[i++];
-        kno_index_add(ix,key,value);
-        kno_incref(key); CHOICE_ADD(keys,key);}}
-    add_to_changelog(clog,keys); kno_decref(keys);
-    return KNO_TRUE;}
-  else return VOID;
-}
-
-static lispval iserver_drop(lispval key,lispval values)
-{
-  kno_index_drop((kno_index)primary_index,key,values);
-  add_to_changelog(&index_changelog,key);
-  return KNO_TRUE;
-}
-
-static lispval ixserver_drop(lispval ixarg,lispval key,lispval values)
-{
-  kno_index ix = kno_indexptr(ixarg);
-  struct KNO_CHANGELOG *clog = get_subindex_changelog(ix,1);
-  kno_index_drop(ix,key,values);
-  add_to_changelog(clog,key);
-  return KNO_TRUE;
 }
 
 /* pool DB methods */
@@ -590,6 +105,8 @@ static lispval server_fetch_oids(lispval oidvec)
   else return kno_err(kno_AnonymousOID,"server_oid_value",NULL,elts[0]);
 }
 
+DEF_KNOSYM(base); DEF_KNOSYM(capacity); DEF_KNOSYM(label); DEF_KNOSYM(readonly);
+
 static lispval server_pool_data(lispval session_id)
 {
   int len = n_served_pools;
@@ -598,11 +115,19 @@ static lispval server_pool_data(lispval session_id)
     kno_pool p = served_pools[i];
     lispval base = kno_make_oid(p->pool_base);
     lispval capacity = KNO_INT(p->pool_capacity);
-    lispval ro = (U8_BITP(p->pool_flags,KNO_STORAGE_READ_ONLY)) ? (KNO_FALSE) : (KNO_TRUE);
-    elts[i++]=
-      ((p->pool_label) ?
-       (kno_make_list(4,base,capacity,ro,kno_mkstring(p->pool_label))) :
-       (kno_make_list(3,base,capacity,ro)));}
+    lispval adjunct = p->pool_adjunct;
+    lispval info = kno_make_slotmap(7,0,NULL);
+    kno_store(info,KNOSYM(base),base);
+    kno_store(info,KNOSYM(capacity),base);
+    if (U8_BITP(p->pool_flags,KNO_STORAGE_READ_ONLY))
+      kno_store(info,KNOSYM(readonly),KNO_TRUE);
+    if ( (KNO_OIDP(adjunct)) || (KNO_SYMBOLP(adjunct)) || (KNO_TRUEP(adjunct)) )
+      kno_store(info,KNOSYM_ADJUNCT,adjunct);
+    if (p->pool_label) {
+      lispval s = kno_mkstring(p->pool_label);
+      kno_store(info,KNOSYM(label),s);
+      kno_decref(s);}
+    elts[i++] = info;}
   return kno_wrap_vector(len,elts);
 }
 
@@ -648,10 +173,6 @@ static lispval iserver_keys(lispval key)
 static lispval iserver_sizes(lispval key)
 {
   return kno_index_sizes((kno_index)(primary_index));
-}
-static lispval iserver_writablep()
-{
-  return KNO_FALSE;
 }
 
 static lispval ixserver_get(lispval index,lispval key)
@@ -820,16 +341,6 @@ void kno_init_dbserv_c()
 
   if (dbserv_init) return; else dbserv_init = 1;
 
-  init_timestamp = (int)time(NULL);
-
-  KNO_INIT_STATIC_CONS(&server_locks,kno_hashtable_type);
-  KNO_INIT_STATIC_CONS(&server_locks_inv,kno_hashtable_type);
-  kno_init_hashtable(&server_locks,0,NULL);
-  kno_init_hashtable(&server_locks_inv,0,NULL);
-
-  u8_init_mutex(&server_locks_lock);
-  u8_init_mutex(&changelog_lock);
-
   module = kno_make_hashtable(NULL,67);
 
   kno_defn(module,kno_make_cprim1
@@ -844,31 +355,9 @@ void kno_init_dbserv_c()
   kno_defn(module,kno_make_cprim1
            ("GET-LOAD",server_get_load,MIN_ARGS(0),
             NULL));
-  kno_defn(module,kno_make_cprim0
-           ("UPDATE-LOCKS!",update_locks_prim,MIN_ARGS(0),
-            NULL));
-  kno_defn(module,kno_make_cprim2
-           ("STORE-OID!",store_oid_proc,MIN_ARGS(2),
-            NULL));
-  kno_defn(module,kno_make_cprim2
-           ("BULK-COMMIT",bulk_commit_cproc,MIN_ARGS(2),
-            NULL));
-
 
   kno_defn(module,kno_make_cprim1
            ("ISERVER-GET",iserver_get,MIN_ARGS(1),
-            NULL));
-  kno_defn(module,kno_make_cprim2
-           ("ISERVER-ADD!",iserver_add,MIN_ARGS(2),
-            NULL));
-  kno_defn(module,kno_make_cprim2
-           ("ISERVER-DROP!",iserver_drop,MIN_ARGS(2),
-            NULL));
-  kno_defn(module,kno_make_cprim1
-           ("ISERVER-BULK-ADD!",iserver_bulk_add,MIN_ARGS(1),
-            NULL));
-  kno_defn(module,kno_make_cprim1
-           ("ISERVER-BULK-GET",iserver_bulk_get,MIN_ARGS(1),
             NULL));
   kno_defn(module,kno_make_cprim1
            ("ISERVER-GET-SIZE",iserver_get_size,MIN_ARGS(1),
@@ -879,27 +368,12 @@ void kno_init_dbserv_c()
   kno_defn(module,kno_make_cprim0
            ("ISERVER-SIZES",iserver_sizes,MIN_ARGS(0),
             NULL));
-  kno_defn(module,kno_make_cprim0
-           ("ISERVER-WRITABLE?",iserver_writablep,MIN_ARGS(0),
-            NULL));
-  kno_defn(module,kno_make_cprim2
-           ("ISERVER-CHANGES",iserver_changes,MIN_ARGS(2),
-            NULL));
 
   kno_defn(module,kno_make_cprim2
            ("IXSERVER-GET",ixserver_get,MIN_ARGS(2),
             NULL));
-  kno_defn(module,kno_make_cprim3
-           ("IXSERVER-ADD!",ixserver_add,MIN_ARGS(3),
-            NULL));
-  kno_defn(module,kno_make_cprim3
-           ("IXSERVER-DROP!",ixserver_drop,MIN_ARGS(3),
-            NULL));
   kno_defn(module,kno_make_cprim2
            ("IXSERVER-BULK-GET",ixserver_bulk_get,MIN_ARGS(2),
-            NULL));
-  kno_defn(module,kno_make_cprim2
-           ("IXSERVER-BULK-ADD!",ixserver_bulk_add,MIN_ARGS(2),
             NULL));
   kno_defn(module,kno_make_cprim2
            ("IXSERVER-GET-SIZE",ixserver_get_size,MIN_ARGS(2),
@@ -909,34 +383,6 @@ void kno_init_dbserv_c()
             NULL));
   kno_defn(module,kno_make_cprim1
            ("IXSERVER-SIZES",ixserver_sizes,MIN_ARGS(1),
-            NULL));
-  kno_defn(module,kno_make_cprim1
-           ("IXSERVER-WRITABLE?",ixserver_writablep,MIN_ARGS(1),
-            NULL));
-  kno_defn(module,kno_make_cprim3
-           ("IXSERVER-CHANGES",ixserver_changes,MIN_ARGS(3),
-            NULL));
-
-  kno_defn(module,kno_make_cprim0
-           ("GET-SYNCSTAMP",get_syncstamp_prim,MIN_ARGS(0),
-            NULL));
-  kno_defn(module,kno_make_cprim2
-           ("LOCK-OID",lock_oid_prim,MIN_ARGS(2),
-            NULL));
-  kno_defn(module,kno_make_cprim3
-           ("UNLOCK-OID",unlock_oid_prim,MIN_ARGS(3),
-            NULL));
-  kno_defn(module,kno_make_cprim2
-           ("CLEAR-OID-LOCK",clear_server_lock_prim,MIN_ARGS(2),
-            NULL));
-  kno_defn(module,kno_make_cprim1
-           ("BREAK-OID-LOCK",break_server_lock_prim,MIN_ARGS(1),
-            NULL));
-  kno_defn(module,kno_make_cprim1
-           ("UNLOCK-ALL",unlock_all_prim,MIN_ARGS(1),
-            NULL));
-  kno_defn(module,kno_make_cprim2
-           ("OID-CHANGES",oid_server_changes,MIN_ARGS(2),
             NULL));
 
   kno_register_config("SERVEPOOLS","OID pools to be served",
@@ -955,10 +401,6 @@ void kno_init_dbserv_c()
                       kno_intconfig_get,
                       kno_loglevelconfig_set,
                       &dbserv_loglevel);
-  kno_register_config("LOCKSFILE","location of the persistent locks file",
-                      config_get_locksfile,
-                      config_set_locksfile,
-                      NULL);
 
   primary_index = kno_make_aggregate_index(KNO_FALSE,32,0,NULL);
 
