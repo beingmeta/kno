@@ -2049,8 +2049,11 @@ KNO_EXPORT void kno_init_pool(kno_pool p,
   KNO_INIT_STATIC_CONS(&(p->pool_metadata),kno_slotmap_type);
   if (KNO_SLOTMAPP(metadata)) {
     lispval adj = kno_get(metadata,KNOSYM_ADJUNCT,KNO_VOID);
-    if ( (KNO_OIDP(adj)) || (KNO_TRUEP(adj)) || (KNO_SYMBOLP(adj)) )
+    if ( (KNO_OIDP(adj)) || (KNO_TRUEP(adj)) || (KNO_SYMBOLP(adj)) ) {
       p->pool_flags |= KNO_POOL_ADJUNCT;
+      if ( (KNO_OIDP(adj)) || (KNO_SYMBOLP(adj)) )
+	p->pool_adjunct = adj;
+      else NO_ELSE;}
     else kno_decref(adj);
     kno_copy_slotmap((kno_slotmap)metadata,&(p->pool_metadata));}
   else {
@@ -2070,8 +2073,11 @@ KNO_EXPORT int kno_pool_set_metadata(kno_pool p,lispval metadata)
 	u8_free(sm->sm_keyvals);
       u8_destroy_rwlock(&(sm->table_rwlock));}
     lispval adj = kno_get(metadata,KNOSYM_ADJUNCT,KNO_VOID);
-    if ( (KNO_OIDP(adj)) || (KNO_TRUEP(adj)) || (KNO_SYMBOLP(adj)) )
+    if ( (KNO_OIDP(adj)) || (KNO_TRUEP(adj)) || (KNO_SYMBOLP(adj)) ) {
       p->pool_flags |= KNO_POOL_ADJUNCT;
+      if ( (KNO_OIDP(adj)) || (KNO_SYMBOLP(adj)) )
+	p->pool_adjunct = adj;
+      else NO_ELSE;}
     else kno_decref(adj);
     kno_copy_slotmap((kno_slotmap)metadata,&(p->pool_metadata));}
   else {
