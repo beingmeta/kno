@@ -1225,7 +1225,7 @@ static lispval reduce_loop(kno_stack loop_stack,int tail)
     else if (op_type == kno_pair_type)
       /* We pass a tail arg of 1 here because it's okay 
 	 to return to this loop stack */
-      result = kno_eval_expr(KNO_CAR(op),op,env,loop_stack,1);
+      result = kno_eval_expr(KNO_CAR(op),op,env,loop_stack,tail);
     else if (KNO_APPLICABLE_TYPEP(op_type))
       result = kno_call(loop_stack,op,STACK_ARGCOUNT(loop_stack),
 			STACK_ARGS(loop_stack));
