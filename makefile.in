@@ -175,19 +175,19 @@ LISP_OBJS=\
 	src/lisp/lisp.o
 
 SYS_OBJS=						\
-	src/sys/buildinfo.o src/sys/support.o	\
-	src/sys/config.o src/sys/errobjs.o	\
-	src/sys/logging.o src/sys/getopt.o	\
-	src/sys/startup.o src/sys/fluid.o 	\
-	src/sys/signals.o src/sys/posix.o 	\
-	src/sys/sourcebase.o src/sys/history.o
+	src/sys/buildinfo.o src/sys/support.o		\
+	src/sys/config.o src/sys/errobjs.o		\
+	src/sys/logging.o src/sys/getopt.o		\
+	src/sys/startup.o src/sys/fluid.o 		\
+	src/sys/signals.o src/sys/posix.o 		\
+	src/sys/sourcebase.o src/sys/pathstore.o 	\
+	src/sys/history.o
 
 APPLY_OBJS=\
 	src/apply/apply.o src/apply/stacks.o 			\
 	src/apply/ffi.o src/apply/cprims.o			\
 	src/apply/lexenv.o src/apply/exec.o			\
 	src/apply/services.o
-#	src/apply/remote.o src/apply/xtcall.o
 
 REVISION_H   =include/kno/revision.h
 CONFIG_H     =include/kno/config.h
