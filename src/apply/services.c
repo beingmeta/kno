@@ -86,8 +86,6 @@ static void recycle_service(struct KNO_RAW_CONS *c)
   if (!(KNO_STATIC_CONSP(s))) u8_free(s);
 }
 
-
-
 KNO_EXPORT int kno_service_close(struct KNO_SERVICE *s)
 {
   return s->handlers->close(s);

@@ -39,30 +39,38 @@ static lispval client_id = VOID;
 static void init_client_id(void);
 static u8_mutex client_id_lock;
 
-static void init_network_pool
+DEF_KNOSYM(base); DEF_KNOSYM(capacity);
+DEF_KNOSYM(metadata); DEF_KNOSYM(readonly);
+DEF_KNOSYM(flags); DEF_KNOSYM(label);
+
+static int init_network_pool
 (struct KNO_NETWORK_POOL *p,lispval netinfo,
  u8_string spec,u8_string source,kno_storage_flags flags,
  lispval opts)
 {
-  lispval scan = netinfo;
-  KNO_OID addr; unsigned int capacity; u8_string label;
-  addr = KNO_OID_ADDR(KNO_CAR(scan)); scan = KNO_CDR(scan);
-  capacity = kno_getint(KNO_CAR(scan)); scan = KNO_CDR(scan);
-  kno_init_pool((kno_pool)p,addr,capacity,&netpool_handler,
-               spec,source,source,
-               flags,KNO_VOID,opts);
+  lispval pool_base = kno_get(netinfo,KNOSYM(base),KNO_VOID);
+  lispval pool_cap = kno_get(netinfo,KNOSYM(capacity),KNO_VOID);
+  lispval adjunct = kno_get(netinfo,KNOSYM_ADJUNCT,KNO_VOID);
+  lispval metadata = kno_get(netinfo,KNOSYM(metadata),KNO_VOID);
+  KNO_OID base; unsigned int capacity; u8_string label = NULL;
+  if (KNO_OIDP(pool_base)) base = KNO_OID_ADDR(pool_base); else return -1;
+  if (KNO_UINTP(pool_cap)) capacity = kno_getint(pool_cap); else return -1;
+  if ( ! (KNO_VOIDP(adjunct)) ) {
+    kno_store(metadata,KNOSYM_ADJUNCT,adjunct);
+    kno_add(metadata,KNOSYM(flags),KNOSYM_ISADJUNCT);}
+  flags |= KNO_STORAGE_READ_ONLY;
+  kno_init_pool((kno_pool)p,base,capacity,&netpool_handler,
+		spec,source,source,
+		flags,metadata,opts);
   /* Network pool specific stuff */
-  if (FALSEP(KNO_CAR(scan)))
-    p->pool_flags |= KNO_STORAGE_READ_ONLY;
-  scan = KNO_CDR(scan);
-  if ((PAIRP(scan)) && (STRINGP(KNO_CAR(scan))))
-    label = CSTRING(KNO_CAR(scan));
-  else label = NULL;
-  if (label)
-    p->pool_label = u8_strdup(label);
-  else p->pool_label = NULL;
+  if (kno_testopt(netinfo,KNOSYM(label),KNO_VOID)) {
+    lispval label_opt = kno_get(netinfo,KNOSYM(label),KNO_VOID);
+    if (KNO_STRINGP(label_opt)) {
+      u8_string label = KNO_CSTRING(label_opt);
+      p->pool_label = u8_strdup(label);}
+    kno_decref(label_opt);}
   /* Register the pool */
-  kno_register_pool((kno_pool)p);
+  return kno_register_pool((kno_pool)p);
 }
 
 KNO_EXPORT kno_pool kno_open_network_pool(u8_string spec,
@@ -77,31 +85,27 @@ KNO_EXPORT kno_pool kno_open_network_pool(u8_string spec,
   lispval pooldata = (s) ?
     (kno_service_call(s,pool_data_symbol,1,client_id)) :
     (KNO_ERROR);
-  if (KNO_ABORTP(pooldata)) {
+  if (s == NULL) return NULL;
+  else if (KNO_ABORTP(pooldata)) {
     u8_free(np); u8_free(cid);
+    if (s) kno_decref((lispval)s);
     return NULL;}
+  else if (KNO_EXCEPTIONP(pooldata)) {
+    kno_seterr("BadNetworkPoolData","kno_open_network_pool",spec,pooldata);
+    if (s) kno_decref((lispval)s);
+    return NULL;}
+  else NO_ELSE;
   np->poolid = cid;
   np->pool_source = xid;
   np->pool_server = s;
   kno_decref(spec_obj);
-  /* The server actually serves multiple pools */
-  if ((CHOICEP(pooldata)) || (VECTORP(pooldata))) {
-    const lispval *scan, *limit; int n_pools = 0;
-    if (CHOICEP(pooldata)) {
-      scan = KNO_CHOICE_DATA(pooldata);
-      limit = scan+KNO_CHOICE_SIZE(pooldata);}
-    else {
-      scan = VEC_DATA(pooldata);
-      limit = scan+VEC_LEN(pooldata);}
-    while (scan<limit) {
-      struct KNO_NETWORK_POOL *p; lispval pd = *scan++;
-      if (n_pools==0) p = np;
-      else p = u8_alloc(struct KNO_NETWORK_POOL);
-      init_network_pool(p,pd,spec,cid,flags,opts);
-      p->pool_source = xid;
-      p->pool_server = np->pool_server;
-      n_pools++;}}
-  else init_network_pool(np,pooldata,spec,cid,flags,opts);
+  int rv = init_network_pool(np,pooldata,spec,cid,flags,opts);
+  if (rv<0) {
+    u8_free(np);
+    kno_decref((lispval)s);
+    kno_seterr("NetworkPoolInitFailed","kno_open_network_pool",spec,pooldata);
+    kno_decref(pooldata);
+    return NULL;}
   // np->bulk_commitp = server_supportsp(np,bulk_commit_symbol);
   kno_decref(pooldata);
   return (kno_pool)np;
@@ -144,6 +148,7 @@ static lispval *network_pool_fetchn(kno_pool p,int n,lispval *oids)
     return NULL;}
 }
 
+#if 0
 static int network_pool_lock(kno_pool p,lispval oid)
 {
   struct KNO_NETWORK_POOL *np = (struct KNO_NETWORK_POOL *)p;
@@ -194,7 +199,6 @@ static int network_pool_storen(kno_pool p,int n,lispval *oids,lispval *values)
       i++;}
     return 1;}
 }
-
 static int network_pool_commit(kno_pool p,kno_commit_phase phase,
                                struct KNO_POOL_COMMITS *commits)
 {
@@ -211,10 +215,6 @@ static int network_pool_commit(kno_pool p,kno_commit_phase phase,
   }
 }
 
-static void network_pool_close(kno_pool p)
-{
-}
-
 static lispval network_pool_alloc(kno_pool p,int n)
 {
   lispval results = EMPTY; int i = 0;
@@ -225,17 +225,22 @@ static lispval network_pool_alloc(kno_pool p,int n)
     i++;}
   return results;
 }
+#endif
+
+static void network_pool_close(kno_pool p)
+{
+}
 
 static struct KNO_POOL_HANDLER netpool_handler={
   "netpool", 1, sizeof(struct KNO_NETWORK_POOL), 12,
   network_pool_close, /* close */
-  network_pool_alloc, /* alloc */
+  NULL, /* alloc */
   network_pool_fetch, /* fetch */
   network_pool_fetchn, /* fetchn */
   network_pool_load, /* getload */
-  network_pool_lock, /* lock */
-  network_pool_unlock, /* release */
-  network_pool_commit, /* commit */
+  NULL, /* lock */
+  NULL, /* release */
+  NULL, /* commit */
   NULL, /* swapout */
   NULL, /* create */
   NULL,  /* walk */

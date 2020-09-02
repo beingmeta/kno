@@ -156,6 +156,7 @@ static lispval *netindex_fetchkeys(kno_index ix,int *n)
     return dtypes;}
 }
 
+#if 0
 static int netindex_save(struct KNO_INDEX *ix,
 			 struct KNO_CONST_KEYVAL *adds,int n_adds,
 			 struct KNO_CONST_KEYVAL *drops,int n_drops,
@@ -247,6 +248,7 @@ static int netindex_commit(kno_index ix,kno_commit_phase phase,
     return 0;}
   }
 }
+#endif
 
 static void netindex_close(kno_index ix)
 {
@@ -255,7 +257,7 @@ static void netindex_close(kno_index ix)
 static struct KNO_INDEX_HANDLER netindex_handler={
   "netindex", 1, sizeof(struct KNO_NETWORK_INDEX), 14,
   netindex_close, /* close */
-  netindex_commit, /* commit */
+  NULL, /* netindex_commit */
   netindex_fetch, /* fetch */
   netindex_fetchsize, /* fetchsize */
   NULL, /* prefetch */

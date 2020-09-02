@@ -147,27 +147,28 @@ typedef struct KNO_ADJUNCT {
   struct KNO_POOL *pool; lispval slotid; lispval table;} KNO_ADJUNCT;
 typedef struct KNO_ADJUNCT *kno_adjunct;
 
-#define KNO_POOL_FIELDS \
+#define KNO_POOL_FIELDS					 \
   KNO_CONS_HEADER;                                       \
-  int pool_serialno;                                    \
-  u8_string poolid, pool_label;                         \
-  u8_string pool_source, canonical_source;              \
-  u8_string pool_typeid;                                \
+  int pool_serialno;					 \
+  u8_string poolid, pool_label;				 \
+  u8_string pool_source, canonical_source;		 \
+  u8_string pool_typeid;				 \
   KNO_OID pool_base;                                     \
-  unsigned int pool_capacity;                           \
+  unsigned int pool_capacity;				 \
   kno_storage_flags pool_flags, modified_flags;          \
   struct KNO_POOL_HANDLER *pool_handler;                 \
-  short pool_cache_level;                               \
-  short pool_loglevel;                                  \
-  U8_RWLOCK_DECL(pool_struct_lock);                     \
-  U8_MUTEX_DECL(pool_commit_lock);                      \
+  lispval pool_adjunct;					 \
+  short pool_cache_level;				 \
+  short pool_loglevel;					 \
+  U8_RWLOCK_DECL(pool_struct_lock);			 \
+  U8_MUTEX_DECL(pool_commit_lock);			 \
   struct KNO_HASHTABLE pool_cache, pool_changes;         \
   struct KNO_SLOTMAP pool_metadata, pool_props;          \
-  int pool_n_adjuncts, pool_adjuncts_len;               \
+  int pool_n_adjuncts, pool_adjuncts_len;		 \
   struct KNO_ADJUNCT *pool_adjuncts;                     \
-  lispval pool_indexes;                                 \
-  u8_string pool_prefix;                                \
-  lispval pool_namefn;                                  \
+  lispval pool_indexes;					 \
+  u8_string pool_prefix;				 \
+  lispval pool_namefn;					 \
   lispval pool_opts
 
 typedef struct KNO_POOL {KNO_POOL_FIELDS;} KNO_POOL;
@@ -426,6 +427,7 @@ KNO_EXPORT u8_condition kno_BadAdjunct, kno_AdjunctError;
 KNO_EXPORT int kno_set_adjuncts(kno_pool p,lispval adjuncts);
 KNO_EXPORT int kno_set_adjunct(kno_pool p,lispval slotid,lispval table);
 KNO_EXPORT kno_adjunct kno_get_adjunct(kno_pool p,lispval slotid);
+KNO_EXPORT kno_adjunct kno_oid_adjunct(lispval oid,lispval slotid);
 KNO_EXPORT int kno_adjunctp(kno_pool p,lispval slotid);
 
 KNO_EXPORT lispval kno_get_adjuncts(kno_pool p);

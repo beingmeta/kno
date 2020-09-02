@@ -113,6 +113,13 @@ KNO_EXPORT kno_adjunct kno_get_adjunct(kno_pool p,lispval slotid)
   return get_adjunct(p,slotid);
 }
 
+KNO_EXPORT kno_adjunct kno_oid_adjunct(lispval oid,lispval slotid)
+{
+  kno_pool p = kno_oid2pool(oid);
+  if (p) return NULL;
+  else return get_adjunct(p,slotid);
+}
+
 KNO_EXPORT int kno_adjunctp(kno_pool p,lispval slotid)
 {
   return (get_adjunct(p,slotid)!=NULL);
