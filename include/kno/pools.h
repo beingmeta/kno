@@ -121,7 +121,7 @@
 
 KNO_EXPORT u8_condition kno_AnonymousOID, kno_UnallocatedOID, kno_HomelessOID;
 KNO_EXPORT u8_condition kno_InvalidPoolPtr, kno_PoolRangeError, kno_CantLockOID,
-  kno_PoolConflict, kno_PoolOverflow,
+  kno_PoolConflict, kno_PoolOverflow, kno_InvalidIndexPtr,
   kno_NotAPool, kno_UnknownPoolType, kno_CorrputedPool,
   kno_ReadOnlyPool, kno_ExhaustedPool, kno_PoolCommitError, kno_NoSuchPool,
   kno_NotAFilePool, kno_NoFilePools, kno_BadFilePoolLabel, kno_DataFileOverflow;
@@ -365,6 +365,8 @@ KNO_EXPORT int kno_pool_swapout(kno_pool p,lispval oids);
 KNO_EXPORT u8_string kno_pool_label(kno_pool p);
 KNO_EXPORT u8_string kno_pool_id(kno_pool p);
 
+KNO_EXPORT lispval kno_pool_value(kno_pool p,lispval oid);
+
 KNO_EXPORT kno_pool _kno_poolptr(lispval x);
 
 KNO_EXPORT int kno_pool_unlock_all(kno_pool p,kno_storage_unlock_flag flags);
@@ -406,9 +408,13 @@ KNO_FASTOP kno_pool kno_oid2pool(lispval oid)
 }
 KNO_FASTOP U8_MAYBE_UNUSED kno_pool kno_poolptr(lispval x)
 {
-  int serial = KNO_GET_IMMEDIATE(x,kno_pool_type);
-  if (serial<kno_n_pools)
-    return kno_pools_by_serialno[serial];
+  if (KNO_TYPEP(x,kno_pool_type)) {
+    int serial = KNO_GET_IMMEDIATE(x,kno_pool_type);
+    if (serial<kno_n_pools)
+      return kno_pools_by_serialno[serial];
+    else return NULL;}
+  else if (KNO_TYPEP(x,kno_consed_pool_type))
+    return (kno_pool)x;
   else return NULL;
 }
 #else

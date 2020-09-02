@@ -351,7 +351,7 @@ int do_main(int argc,char **argv,
     else {startup_time = startup_time*1000000; units="ms";}
     u8_message("Kno %s loaded in %0.3f%s, %d/%d pools/indexes",
 	       u8_appid(),startup_time,units,kno_n_pools,
-	       kno_n_primary_indexes+kno_n_secondary_indexes);}
+	       kno_n_primary_indexes);}
 
   if ( (!(KNO_ABORTP(result))) && (!(SYMBOLP(main_symbol))) ) {
     kno_decref(result);

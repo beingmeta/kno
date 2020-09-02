@@ -226,6 +226,8 @@ typedef enum KNO_LISP_TYPE {
   kno_sqldb_type = KNO_CONS_TYPECODE(44),
   kno_sqlproc_type = KNO_CONS_TYPECODE(45),
 
+  kno_pathstore_type = KNO_CONS_TYPECODE(46),
+
   /* Extended types */
 
   kno_number_type = KNO_EXTENDED_TYPECODE(1),
@@ -235,7 +237,7 @@ typedef enum KNO_LISP_TYPE {
 
   } kno_lisp_type;
 
-#define KNO_BUILTIN_CONS_TYPES 46
+#define KNO_BUILTIN_CONS_TYPES 47
 /* not really, but it gives us breathing room and they're not
    clamoring for space :) */
 #define KNO_BUILTIN_IMMEDIATE_TYPES 12

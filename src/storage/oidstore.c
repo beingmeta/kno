@@ -249,7 +249,7 @@ static kno_index l2x(lispval lix)
 {
   if (KNO_ETERNAL_INDEXP(lix)) {
     int serial = KNO_GET_IMMEDIATE(lix,kno_index_type);
-    if (serial<KNO_N_PRIMARY_INDEXES)
+    if (serial<KNO_MAX_PRIMARY_INDEXES)
       return kno_primary_indexes[serial];
     else return kno_lisp2index(lix);}
   else if (KNO_TYPEP(lix,kno_consed_index_type))

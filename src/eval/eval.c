@@ -2018,7 +2018,6 @@ KNO_EXPORT void kno_init_seqprims_c(void);
 KNO_EXPORT void kno_init_modules_c(void);
 KNO_EXPORT void kno_init_loadmods_c(void);
 KNO_EXPORT void kno_init_load_c(void);
-KNO_EXPORT void kno_init_getsource_c(void);
 KNO_EXPORT void kno_init_logprims_c(void);
 KNO_EXPORT void kno_init_portprims_c(void);
 KNO_EXPORT void kno_init_streamprims_c(void);
@@ -2061,7 +2060,6 @@ static void init_eval_core()
   kno_init_threads_c();
   kno_init_errfns_c();
   kno_init_coreops_c();
-  kno_init_getsource_c();
   kno_init_load_c();
   kno_init_conditionals_c();
   kno_init_iterators_c();

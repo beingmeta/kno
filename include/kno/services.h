@@ -82,4 +82,18 @@ typedef struct KNO_SERVICE_HANDLERS {
 
 KNO_EXPORT int kno_register_service_handler(kno_service_handler handler);
 
+/* Support for server state */
+
+KNO_EXPORT void kno_set_server_data(lispval data);
+
+#if (U8_USE_TLS)
+KNO_EXPORT u8_tld_key _kno_server_data_key;
+#define kno_server_data \
+  (((lispval)(u8_tld_get(_kno_server_data_key)))||(KNO_FALSE))
+#elif (U8_USE__THREAD)
+KNO_EXPORT __thread lispval kno_server_data;
+#else
+KNO_EXPORT lispval kno_server_data;
+#endif
+
 #endif

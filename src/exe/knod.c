@@ -1340,7 +1340,8 @@ static int run_server(u8_string server_spec)
   u8_log(LOG_NOTICE,ServerStartup,
          "Kno (%s) knod %s running, %d/%d pools/indexes, %d ports",
          KNO_REVISION,server_spec,kno_n_pools,
-         kno_n_primary_indexes+kno_n_secondary_indexes,n_ports);
+	 kno_n_primary_indexes,
+	 n_ports);
   u8_log(LOG_NOTICE,ServerStartup,"Serving on %d sockets",n_ports);
   u8_server_loop(&dtype_server);
   normal_exit = 1;

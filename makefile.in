@@ -117,7 +117,8 @@ LISP_HEADERS=\
  include/kno/knoregex.h  			\
  include/kno/bufio.h			     	\
  include/kno/xtypes.h 				\
- include/kno/dtypeio.h
+ include/kno/dtypeio.h				\
+ include/kno/getsource.h
 APPLY_HEADERS=\
  include/kno/apply.h   \
  include/kno/cprims.h   \
@@ -140,7 +141,7 @@ STORAGE_HEADERS=\
 DRIVERS_H=include/kno/drivers.h
 SCHEME_HEADERS=include/kno/eval.h include/kno/threads.h \
 	include/kno/opcodes.h include/kno/seqprims.h \
-	include/kno/procprims.h include/kno/getsource.h
+	include/kno/procprims.h
 LIB_HEADERS=include/kno/texttools.h include/kno/webtools.h
 
 # Headers which don't live in include/kno
@@ -175,19 +176,20 @@ LISP_OBJS=\
 	src/lisp/lisp.o
 
 SYS_OBJS=						\
-	src/sys/buildinfo.o src/sys/support.o	\
-	src/sys/config.o src/sys/errobjs.o	\
-	src/sys/logging.o src/sys/getopt.o	\
-	src/sys/startup.o src/sys/fluid.o 	\
-	src/sys/signals.o src/sys/posix.o 	\
-	src/sys/sourcebase.o src/sys/history.o
+	src/sys/buildinfo.o src/sys/support.o		\
+	src/sys/config.o src/sys/errobjs.o		\
+	src/sys/logging.o src/sys/getopt.o		\
+	src/sys/startup.o src/sys/fluid.o 		\
+	src/sys/signals.o src/sys/posix.o 		\
+	src/sys/sourcebase.o src/sys/pathstore.o 	\
+	src/sys/getsource.o				\
+	src/sys/history.o
 
 APPLY_OBJS=\
 	src/apply/apply.o src/apply/stacks.o 			\
 	src/apply/ffi.o src/apply/cprims.o			\
 	src/apply/lexenv.o src/apply/exec.o			\
 	src/apply/services.o
-#	src/apply/remote.o src/apply/xtcall.o
 
 REVISION_H   =include/kno/revision.h
 CONFIG_H     =include/kno/config.h
@@ -214,12 +216,11 @@ DRIVER_OBJS=\
 	src/drivers/netpool.o src/drivers/netindex.o		\
 	src/drivers/filepool.o src/drivers/bigpool.o		\
 	src/drivers/fileindex.o src/drivers/hashindex.o		\
-	src/drivers/memindex.o
-
+	src/drivers/memindex.o src/drivers/zpathstore.o 	\
+	src/drivers/zip.o
 
 CORE_SCHEME_OBJS=\
 	src/eval/eval.o\
-	src/eval/getsource.o\
 	src/eval/debug.o\
 	src/eval/options.o\
 	src/eval/testops.o\
@@ -341,7 +342,7 @@ KNO_SOURCES=\
 	src/lisp/tables.c src/lisp/compounds.c src/lisp/consblocks.c		\
         src/lisp/bufio.c src/lisp/dtread.c src/lisp/dtread.c src/lisp/xtypes.c  \
 	src/lisp/parse.c src/lisp/unparse.c src/lisp/lisp.c 			\
-	src/sys/buildinfo.c src/sys/sourcebase.c				\
+	src/sys/buildinfo.c src/sys/sourcebase.c src/sys/pathstore.c		\
 	src/sys/support.c src/sys/config.c src/sys/posix.c			\
 	src/sys/errobjs.c src/sys/logging.c src/sys/getopt.c			\
 	src/sys/startup.c src/sys/fluid.c src/sys/signals.c			\
@@ -355,7 +356,7 @@ KNO_SOURCES=\
 	src/storage/bloom.c src/storage/ipeval.c				\
 	src/drivers/builtin_drivers.c  						\
 	src/drivers/filepool.c src/drivers/oidpool.c 				\
-	src/drivers/bigpool.c src/drivers/kpool.c				\
+	src/drivers/bigpool.c src/drivers/kpool.c src/drivers/zpathstore.c	\
 	src/drivers/fileindex.c src/drivers/hashindex.c src/drivers/kindex.c  	\
 	src/storage/extindex.c src/storage/tempindex.c				\
 	src/storage/mempool.c src/storage/extpool.c				\
@@ -2061,3 +2062,5 @@ src/drivers/kpool.o: src/drivers/headers/kpool.h src/drivers/headers/zcompress.h
 src/drivers/hashindex.o: src/drivers/headers/hashindex.h  src/drivers/headers/zcompress.h
 src/drivers/kindex.o: src/drivers/headers/kindex.h  src/drivers/headers/zcompress.h
 src/drivers/memindex.o: src/drivers/headers/memindex.h
+src/drivers/zip.o: src/drivers/headers/zip.h src/drivers/headers/miniz.h
+src/drivers/zpathstore.o: src/drivers/headers/zip.h src/drivers/headers/miniz.h
