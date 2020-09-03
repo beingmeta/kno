@@ -117,7 +117,8 @@ LISP_HEADERS=\
  include/kno/knoregex.h  			\
  include/kno/bufio.h			     	\
  include/kno/xtypes.h 				\
- include/kno/dtypeio.h
+ include/kno/dtypeio.h				\
+ include/kno/getsource.h
 APPLY_HEADERS=\
  include/kno/apply.h   \
  include/kno/cprims.h   \
@@ -140,7 +141,7 @@ STORAGE_HEADERS=\
 DRIVERS_H=include/kno/drivers.h
 SCHEME_HEADERS=include/kno/eval.h include/kno/threads.h \
 	include/kno/opcodes.h include/kno/seqprims.h \
-	include/kno/procprims.h include/kno/getsource.h
+	include/kno/procprims.h
 LIB_HEADERS=include/kno/texttools.h include/kno/webtools.h
 
 # Headers which don't live in include/kno
@@ -181,6 +182,7 @@ SYS_OBJS=						\
 	src/sys/startup.o src/sys/fluid.o 		\
 	src/sys/signals.o src/sys/posix.o 		\
 	src/sys/sourcebase.o src/sys/pathstore.o 	\
+	src/sys/getsource.o				\
 	src/sys/history.o
 
 APPLY_OBJS=\
@@ -219,7 +221,6 @@ DRIVER_OBJS=\
 
 CORE_SCHEME_OBJS=\
 	src/eval/eval.o\
-	src/eval/getsource.o\
 	src/eval/debug.o\
 	src/eval/options.o\
 	src/eval/testops.o\
