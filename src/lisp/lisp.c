@@ -376,6 +376,8 @@ static void init_type_names()
   kno_type_docs[kno_service_type]=_("service");
   kno_type_names[kno_bloom_filter_type]=_("bloom_filter");
   kno_type_docs[kno_bloom_filter_type]=_("bloom_filter");
+
+  kno_type_docs[kno_pathstore_type]=_("pathstore");
 }
 
 static int lisp_types_version = 101;

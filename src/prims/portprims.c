@@ -19,6 +19,7 @@
 #include "kno/indexes.h"
 #include "kno/frames.h"
 #include "kno/streams.h"
+#include "kno/pathstore.h"
 #include "kno/dtypeio.h"
 #include "kno/xtypes.h"
 #include "kno/ports.h"
@@ -1493,6 +1494,49 @@ static lispval gzip_prim(lispval arg,lispval filename,lispval comment)
       return packet;}}
 }
 
+/* Pathstore operations */
+
+DEFPRIM1("pathstore?",pathstorep_prim,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "`(PATHSTORE? *obj*)`",
+	 -1,KNO_VOID);
+static lispval pathstorep_prim(lispval arg)
+{
+  if (KNO_TYPEP(arg,kno_pathstore_type))
+    return KNO_TRUE;
+  else return KNO_FALSE;
+}
+
+DEFPRIM2("pathstore/exists?",pathstore_existsp_prim,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	 "`(PATHSTORE/EXISTS? *pathstore* [*file*])`",
+	 kno_pathstore_type,KNO_VOID,kno_string_type,KNO_VOID);
+static lispval pathstore_existsp_prim(lispval arg,lispval path)
+{
+  int rv = knops_existsp((kno_pathstore)arg,KNO_CSTRING(path));
+  if (rv<0) return KNO_ERROR;
+  else if (rv) return KNO_TRUE;
+  else return KNO_FALSE;
+}
+
+DEFPRIM2("pathstore/info",pathstore_info_prim,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	 "`(PATHSTORE/INFO *pathstore* [*file*])`",
+	 kno_pathstore_type,KNO_VOID,kno_string_type,KNO_VOID);
+static lispval pathstore_info_prim(lispval arg,lispval path)
+{
+  return knops_pathinfo((kno_pathstore)arg,KNO_CSTRING(path));
+}
+
+DEFPRIM2("pathstore/content",pathstore_content_prim,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	 "`(PATHSTORE/CONTENT *pathstore* [*file*])`",
+	 kno_pathstore_type,KNO_VOID,kno_string_type,KNO_VOID);
+static lispval pathstore_content_prim(lispval arg,lispval path)
+{
+  return knops_content((kno_pathstore)arg,KNO_CSTRING(path));
+}
+
 /* Port type operations */
 
 /* The port type */
@@ -1632,6 +1676,11 @@ static void link_local_cprims()
   KNO_LINK_PRIM("port?",portp,1,kno_io_module);
   KNO_LINK_PRIM("input-port?",input_portp,1,kno_io_module);
   KNO_LINK_PRIM("output-port?",output_portp,1,kno_io_module);
+
+  KNO_LINK_PRIM("pathstore?",pathstorep_prim,1,kno_io_module);
+  KNO_LINK_PRIM("pathstore/exists?",pathstore_existsp_prim,2,kno_io_module);
+  KNO_LINK_PRIM("pathstore/info",pathstore_info_prim,2,kno_io_module);
+  KNO_LINK_PRIM("pathstore/content",pathstore_content_prim,2,kno_io_module);
 
   KNO_LINK_ALIAS("eof?",eofp,kno_io_module);
   KNO_LINK_ALIAS("write-char",putchar_prim,kno_io_module);

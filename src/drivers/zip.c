@@ -35,8 +35,10 @@ int symlink(const char *target, const char *linkpath); // needed on Linux
 
 #endif
 
-#include "miniz.h"
-#include "zip.h"
+#include "headers/miniz.h"
+#include "headers/zip.h"
+
+/* From miniz.h */
 
 #ifndef HAS_DEVICE
 #define HAS_DEVICE(P) 0
@@ -130,28 +132,6 @@ static char *strrpl(const char *str, size_t n, char oldchar, char newchar) {
 
   return begin;
 }
-
-struct zip_entry_t {
-  int index;
-  char *name;
-  mz_uint64 uncomp_size;
-  mz_uint64 comp_size;
-  mz_uint32 uncomp_crc32;
-  mz_uint64 offset;
-  mz_uint8 header[MZ_ZIP_LOCAL_DIR_HEADER_SIZE];
-  mz_uint64 header_offset;
-  mz_uint16 method;
-  mz_zip_writer_add_state state;
-  tdefl_compressor comp;
-  mz_uint32 external_attr;
-  time_t m_time;
-};
-
-struct zip_t {
-  mz_zip_archive archive;
-  mz_uint level;
-  struct zip_entry_t entry;
-};
 
 struct zip_t *zip_open(const char *zipname, int level, char mode) {
   struct zip_t *zip = NULL;

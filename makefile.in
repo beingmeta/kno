@@ -214,7 +214,8 @@ DRIVER_OBJS=\
 	src/drivers/netpool.o src/drivers/netindex.o		\
 	src/drivers/filepool.o src/drivers/bigpool.o		\
 	src/drivers/fileindex.o src/drivers/hashindex.o		\
-	src/drivers/memindex.o
+	src/drivers/memindex.o src/drivers/zpathstore.o 	\
+	src/drivers/zip.o
 
 
 CORE_SCHEME_OBJS=\
@@ -341,7 +342,7 @@ KNO_SOURCES=\
 	src/lisp/tables.c src/lisp/compounds.c src/lisp/consblocks.c		\
         src/lisp/bufio.c src/lisp/dtread.c src/lisp/dtread.c src/lisp/xtypes.c  \
 	src/lisp/parse.c src/lisp/unparse.c src/lisp/lisp.c 			\
-	src/sys/buildinfo.c src/sys/sourcebase.c				\
+	src/sys/buildinfo.c src/sys/sourcebase.c src/sys/pathstore.c		\
 	src/sys/support.c src/sys/config.c src/sys/posix.c			\
 	src/sys/errobjs.c src/sys/logging.c src/sys/getopt.c			\
 	src/sys/startup.c src/sys/fluid.c src/sys/signals.c			\
@@ -355,7 +356,7 @@ KNO_SOURCES=\
 	src/storage/bloom.c src/storage/ipeval.c				\
 	src/drivers/builtin_drivers.c  						\
 	src/drivers/filepool.c src/drivers/oidpool.c 				\
-	src/drivers/bigpool.c src/drivers/kpool.c				\
+	src/drivers/bigpool.c src/drivers/kpool.c src/drivers/zpathstore.c	\
 	src/drivers/fileindex.c src/drivers/hashindex.c src/drivers/kindex.c  	\
 	src/storage/extindex.c src/storage/tempindex.c				\
 	src/storage/mempool.c src/storage/extpool.c				\
