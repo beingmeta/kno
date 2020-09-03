@@ -211,7 +211,7 @@ lispval kno_netproc_xapply(struct KNO_NETPROC *np,int n,kno_argvec args,
 /* Support for servers */
 
 #if (KNO_USE_TLS)
-u8_tld_key kno_server_data_key;
+u8_tld_key _kno_server_data_key;
 #elif (U8_USE__THREAD)
 __thread lispval kno_server_data=KNO_FALSE;
 #else
@@ -221,10 +221,10 @@ lispval kno_server_data=KNO_FALSE;
 #if (KNO_USE_TLS)
 KNO_EXPORT void kno_set_server_data(lispval data)
 {
-  lispval cur = u8_tld_get(kno_server_data_key);
+  lispval cur = u8_tld_get(_kno_server_data_key);
   if (cur == data) return;
   kno_incref(data);
-  u8_tld_set(kno_server_data_key,(void *)data);
+  u8_tld_set(_kno_server_data_key,(void *)data);
   if (cur) kno_decref(cur);
 }
 #else
@@ -259,5 +259,11 @@ KNO_EXPORT void kno_init_services_c()
 
   kno_unparsers[kno_rpc_type]=unparse_netproc;
   kno_recyclers[kno_rpc_type]=recycle_netproc;
+
+#if ((KNO_THREADS_ENABLED)&&(KNO_USE_TLS))
+  u8_new_threadkey(&_kno_server_data_key,NULL);
+#endif
+
+
 }
 
