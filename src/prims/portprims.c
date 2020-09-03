@@ -1519,22 +1519,42 @@ static lispval pathstore_existsp_prim(lispval arg,lispval path)
   else return KNO_FALSE;
 }
 
-DEFPRIM2("pathstore/info",pathstore_info_prim,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "`(PATHSTORE/INFO *pathstore* [*file*])`",
-	 kno_pathstore_type,KNO_VOID,kno_string_type,KNO_VOID);
-static lispval pathstore_info_prim(lispval arg,lispval path)
+DEFPRIM3("pathstore/info",pathstore_info_prim,
+	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+	 "`(PATHSTORE/INFO *pathstore* *path* [*symlinks=#f*])`",
+	 kno_pathstore_type,KNO_VOID,kno_string_type,KNO_VOID,
+	 kno_any_type,KNO_FALSE);
+static lispval pathstore_info_prim(lispval arg,lispval path,
+				   lispval follow_arg)
 {
-  return knops_pathinfo((kno_pathstore)arg,KNO_CSTRING(path));
+  int follow = (KNO_TRUEP(follow_arg));
+  return knops_pathinfo((kno_pathstore)arg,KNO_CSTRING(path),follow);
 }
 
-DEFPRIM2("pathstore/content",pathstore_content_prim,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "`(PATHSTORE/CONTENT *pathstore* [*file*])`",
-	 kno_pathstore_type,KNO_VOID,kno_string_type,KNO_VOID);
-static lispval pathstore_content_prim(lispval arg,lispval path)
+DEFPRIM4("pathstore/content",pathstore_content_prim,
+	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
+	 "`(PATHSTORE/CONTENT *pathstore* *file* [*encoding*])`",
+	 kno_pathstore_type,KNO_VOID,
+	 kno_string_type,KNO_VOID,
+	 kno_any_type,KNO_VOID,
+	 kno_any_type,KNO_TRUE);
+static lispval pathstore_content_prim(lispval arg,lispval path,
+				      lispval enc_arg,
+				      lispval follow_arg)
 {
-  return knops_content((kno_pathstore)arg,KNO_CSTRING(path));
+  u8_string enc_name = NULL;
+  int follow = (!(KNO_FALSEP(follow_arg)));
+  if ( (KNO_VOIDP(enc_arg)) || (KNO_FALSEP(enc_arg)) || (KNO_DEFAULTP(enc_arg)) )
+    enc_name = "auto";
+  else if (KNO_STRINGP(enc_arg))
+    enc_name = KNO_CSTRING(enc_arg);
+  else if (KNO_TRUEP(enc_arg))
+    enc_name = "bytes";
+  else if (KNO_SYMBOLP(enc_arg))
+    enc_name = KNO_SYMBOL_NAME(enc_arg);
+  else return kno_err("BadEncodingArg","pathstore_content_prim",
+		      KNO_CSTRING(path),enc_arg);
+  return knops_content((kno_pathstore)arg,KNO_CSTRING(path),enc_name,follow);
 }
 
 /* Port type operations */
@@ -1679,8 +1699,8 @@ static void link_local_cprims()
 
   KNO_LINK_PRIM("pathstore?",pathstorep_prim,1,kno_io_module);
   KNO_LINK_PRIM("pathstore/exists?",pathstore_existsp_prim,2,kno_io_module);
-  KNO_LINK_PRIM("pathstore/info",pathstore_info_prim,2,kno_io_module);
-  KNO_LINK_PRIM("pathstore/content",pathstore_content_prim,2,kno_io_module);
+  KNO_LINK_PRIM("pathstore/info",pathstore_info_prim,3,kno_io_module);
+  KNO_LINK_PRIM("pathstore/content",pathstore_content_prim,4,kno_io_module);
 
   KNO_LINK_ALIAS("eof?",eofp,kno_io_module);
   KNO_LINK_ALIAS("write-char",putchar_prim,kno_io_module);

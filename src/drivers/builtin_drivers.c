@@ -51,9 +51,10 @@ int kno_init_oidpool_c(void);
 int kno_init_bigpool_c(void);
 int kno_init_kpool_c(void);
 
-int dbs_initialized = 0;
+int kno_init_knosocks_c(void);
+int kno_init_zpathstore_c(void);
 
-extern int kno_init_knosocks_c(void);
+int dbs_initialized = 0;
 
 KNO_EXPORT int kno_init_drivers()
 {
@@ -75,6 +76,8 @@ KNO_EXPORT int kno_init_drivers()
 
   kno_init_netindex_c();
   kno_init_memindex_c();
+
+  kno_init_zpathstore_c();
 
   u8_register_source_file(_FILEINFO);
 

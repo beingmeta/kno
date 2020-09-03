@@ -40,8 +40,8 @@ static void init_client_id(void);
 static u8_mutex client_id_lock;
 
 DEF_KNOSYM(base); DEF_KNOSYM(capacity);
-DEF_KNOSYM(metadata); DEF_KNOSYM(readonly);
-DEF_KNOSYM(flags); DEF_KNOSYM(label);
+DEF_KNOSYM(metadata); DEF_KNOSYM(flags);
+DEF_KNOSYM(label);
 
 static int init_network_pool
 (struct KNO_NETWORK_POOL *p,lispval netinfo,

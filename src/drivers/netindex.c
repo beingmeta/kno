@@ -32,7 +32,9 @@ static lispval iserver_writable, iserver_fetchkeys, iserver_fetch, iserver_fetch
 static lispval iserver_add, iserver_drop, iserver_addn, iserver_changes, iserver_reset;
 
 static lispval ixserver_writable, ixserver_fetchkeys, ixserver_fetch, ixserver_fetchsize, ixserver_fetchn;
+#if 0
 static lispval ixserver_changes, ixserver_add, ixserver_drop, ixserver_addn, ixserver_reset;
+#endif
 
 static lispval set_symbol, drop_symbol, supportedp_symbol = KNO_NULL;
 
@@ -293,14 +295,9 @@ KNO_EXPORT void kno_init_netindex_c()
 
   ixserver_writable = kno_intern("ixserver-writable?");
   ixserver_fetchkeys = kno_intern("ixserver-keys");
-  ixserver_changes = kno_intern("ixserver-changes");
   ixserver_fetch = kno_intern("ixserver-get");
   ixserver_fetchsize = kno_intern("ixserver-get-size");
-  ixserver_add = kno_intern("ixserver-add!");
-  ixserver_drop = kno_intern("ixserver-drop!");
   ixserver_fetchn = kno_intern("ixserver-bulk-get");
-  ixserver_addn = kno_intern("ixserver-bulk-add!");
-  iserver_reset = kno_intern("ixserver-reset!");
 
   kno_register_index_type
     ("network_index",

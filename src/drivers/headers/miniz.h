@@ -1326,6 +1326,100 @@ mz_uint tdefl_create_comp_flags_from_zip_params(int level, int window_bits,
 }
 #endif
 
+// Various ZIP archive enums. To completely avoid cross platform compiler
+// alignment and platform endian issues, miniz.c doesn't use structs for any of
+// this stuff.
+enum {
+  // ZIP archive identifiers and record sizes
+  MZ_ZIP_END_OF_CENTRAL_DIR_HEADER_SIG = 0x06054b50,
+  MZ_ZIP_CENTRAL_DIR_HEADER_SIG = 0x02014b50,
+  MZ_ZIP_LOCAL_DIR_HEADER_SIG = 0x04034b50,
+  MZ_ZIP_LOCAL_DIR_HEADER_SIZE = 30,
+  MZ_ZIP_CENTRAL_DIR_HEADER_SIZE = 46,
+  MZ_ZIP_END_OF_CENTRAL_DIR_HEADER_SIZE = 22,
+
+  /* ZIP64 archive identifier and record sizes */
+  MZ_ZIP64_END_OF_CENTRAL_DIR_HEADER_SIG = 0x06064b50,
+  MZ_ZIP64_END_OF_CENTRAL_DIR_LOCATOR_SIG = 0x07064b50,
+  MZ_ZIP64_END_OF_CENTRAL_DIR_HEADER_SIZE = 56,
+  MZ_ZIP64_END_OF_CENTRAL_DIR_LOCATOR_SIZE = 20,
+  MZ_ZIP64_EXTENDED_INFORMATION_FIELD_HEADER_ID = 0x0001,
+  MZ_ZIP_DATA_DESCRIPTOR_ID = 0x08074b50,
+  MZ_ZIP_DATA_DESCRIPTER_SIZE64 = 24,
+  MZ_ZIP_DATA_DESCRIPTER_SIZE32 = 16,
+
+  // Central directory header record offsets
+  MZ_ZIP_CDH_SIG_OFS = 0,
+  MZ_ZIP_CDH_VERSION_MADE_BY_OFS = 4,
+  MZ_ZIP_CDH_VERSION_NEEDED_OFS = 6,
+  MZ_ZIP_CDH_BIT_FLAG_OFS = 8,
+  MZ_ZIP_CDH_METHOD_OFS = 10,
+  MZ_ZIP_CDH_FILE_TIME_OFS = 12,
+  MZ_ZIP_CDH_FILE_DATE_OFS = 14,
+  MZ_ZIP_CDH_CRC32_OFS = 16,
+  MZ_ZIP_CDH_COMPRESSED_SIZE_OFS = 20,
+  MZ_ZIP_CDH_DECOMPRESSED_SIZE_OFS = 24,
+  MZ_ZIP_CDH_FILENAME_LEN_OFS = 28,
+  MZ_ZIP_CDH_EXTRA_LEN_OFS = 30,
+  MZ_ZIP_CDH_COMMENT_LEN_OFS = 32,
+  MZ_ZIP_CDH_DISK_START_OFS = 34,
+  MZ_ZIP_CDH_INTERNAL_ATTR_OFS = 36,
+  MZ_ZIP_CDH_EXTERNAL_ATTR_OFS = 38,
+  MZ_ZIP_CDH_LOCAL_HEADER_OFS = 42,
+  // Local directory header offsets
+  MZ_ZIP_LDH_SIG_OFS = 0,
+  MZ_ZIP_LDH_VERSION_NEEDED_OFS = 4,
+  MZ_ZIP_LDH_BIT_FLAG_OFS = 6,
+  MZ_ZIP_LDH_METHOD_OFS = 8,
+  MZ_ZIP_LDH_FILE_TIME_OFS = 10,
+  MZ_ZIP_LDH_FILE_DATE_OFS = 12,
+  MZ_ZIP_LDH_CRC32_OFS = 14,
+  MZ_ZIP_LDH_COMPRESSED_SIZE_OFS = 18,
+  MZ_ZIP_LDH_DECOMPRESSED_SIZE_OFS = 22,
+  MZ_ZIP_LDH_FILENAME_LEN_OFS = 26,
+  MZ_ZIP_LDH_EXTRA_LEN_OFS = 28,
+  // End of central directory offsets
+  MZ_ZIP_ECDH_SIG_OFS = 0,
+  MZ_ZIP_ECDH_NUM_THIS_DISK_OFS = 4,
+  MZ_ZIP_ECDH_NUM_DISK_CDIR_OFS = 6,
+  MZ_ZIP_ECDH_CDIR_NUM_ENTRIES_ON_DISK_OFS = 8,
+  MZ_ZIP_ECDH_CDIR_TOTAL_ENTRIES_OFS = 10,
+  MZ_ZIP_ECDH_CDIR_SIZE_OFS = 12,
+  MZ_ZIP_ECDH_CDIR_OFS_OFS = 16,
+  MZ_ZIP_ECDH_COMMENT_SIZE_OFS = 20,
+
+  /* ZIP64 End of central directory locator offsets */
+  MZ_ZIP64_ECDL_SIG_OFS = 0,                    /* 4 bytes */
+  MZ_ZIP64_ECDL_NUM_DISK_CDIR_OFS = 4,          /* 4 bytes */
+  MZ_ZIP64_ECDL_REL_OFS_TO_ZIP64_ECDR_OFS = 8,  /* 8 bytes */
+  MZ_ZIP64_ECDL_TOTAL_NUMBER_OF_DISKS_OFS = 16, /* 4 bytes */
+
+  /* ZIP64 End of central directory header offsets */
+  MZ_ZIP64_ECDH_SIG_OFS = 0,                       /* 4 bytes */
+  MZ_ZIP64_ECDH_SIZE_OF_RECORD_OFS = 4,            /* 8 bytes */
+  MZ_ZIP64_ECDH_VERSION_MADE_BY_OFS = 12,          /* 2 bytes */
+  MZ_ZIP64_ECDH_VERSION_NEEDED_OFS = 14,           /* 2 bytes */
+  MZ_ZIP64_ECDH_NUM_THIS_DISK_OFS = 16,            /* 4 bytes */
+  MZ_ZIP64_ECDH_NUM_DISK_CDIR_OFS = 20,            /* 4 bytes */
+  MZ_ZIP64_ECDH_CDIR_NUM_ENTRIES_ON_DISK_OFS = 24, /* 8 bytes */
+  MZ_ZIP64_ECDH_CDIR_TOTAL_ENTRIES_OFS = 32,       /* 8 bytes */
+  MZ_ZIP64_ECDH_CDIR_SIZE_OFS = 40,                /* 8 bytes */
+  MZ_ZIP64_ECDH_CDIR_OFS_OFS = 48,                 /* 8 bytes */
+  MZ_ZIP_VERSION_MADE_BY_DOS_FILESYSTEM_ID = 0,
+  MZ_ZIP_DOS_DIR_ATTRIBUTE_BITFLAG = 0x10,
+  MZ_ZIP_GENERAL_PURPOSE_BIT_FLAG_IS_ENCRYPTED = 1,
+  MZ_ZIP_GENERAL_PURPOSE_BIT_FLAG_COMPRESSED_PATCH_FLAG = 32,
+  MZ_ZIP_GENERAL_PURPOSE_BIT_FLAG_USES_STRONG_ENCRYPTION = 64,
+  MZ_ZIP_GENERAL_PURPOSE_BIT_FLAG_LOCAL_DIR_IS_MASKED = 8192,
+  MZ_ZIP_GENERAL_PURPOSE_BIT_FLAG_UTF8 = 1 << 11
+};
+
+typedef struct {
+  mz_zip_archive *m_pZip;
+  mz_uint64 m_cur_archive_file_ofs;
+  mz_uint64 m_comp_size;
+} mz_zip_writer_add_state;
+
 #endif // MINIZ_HEADER_INCLUDED
 
 // ------------------- End of Header: Implementation follows. (If you only want
@@ -4213,94 +4307,6 @@ static FILE *mz_freopen(const char *pPath, const char *pMode, FILE *pStream) {
 
 #define MZ_TOLOWER(c) ((((c) >= 'A') && ((c) <= 'Z')) ? ((c) - 'A' + 'a') : (c))
 
-// Various ZIP archive enums. To completely avoid cross platform compiler
-// alignment and platform endian issues, miniz.c doesn't use structs for any of
-// this stuff.
-enum {
-  // ZIP archive identifiers and record sizes
-  MZ_ZIP_END_OF_CENTRAL_DIR_HEADER_SIG = 0x06054b50,
-  MZ_ZIP_CENTRAL_DIR_HEADER_SIG = 0x02014b50,
-  MZ_ZIP_LOCAL_DIR_HEADER_SIG = 0x04034b50,
-  MZ_ZIP_LOCAL_DIR_HEADER_SIZE = 30,
-  MZ_ZIP_CENTRAL_DIR_HEADER_SIZE = 46,
-  MZ_ZIP_END_OF_CENTRAL_DIR_HEADER_SIZE = 22,
-
-  /* ZIP64 archive identifier and record sizes */
-  MZ_ZIP64_END_OF_CENTRAL_DIR_HEADER_SIG = 0x06064b50,
-  MZ_ZIP64_END_OF_CENTRAL_DIR_LOCATOR_SIG = 0x07064b50,
-  MZ_ZIP64_END_OF_CENTRAL_DIR_HEADER_SIZE = 56,
-  MZ_ZIP64_END_OF_CENTRAL_DIR_LOCATOR_SIZE = 20,
-  MZ_ZIP64_EXTENDED_INFORMATION_FIELD_HEADER_ID = 0x0001,
-  MZ_ZIP_DATA_DESCRIPTOR_ID = 0x08074b50,
-  MZ_ZIP_DATA_DESCRIPTER_SIZE64 = 24,
-  MZ_ZIP_DATA_DESCRIPTER_SIZE32 = 16,
-
-  // Central directory header record offsets
-  MZ_ZIP_CDH_SIG_OFS = 0,
-  MZ_ZIP_CDH_VERSION_MADE_BY_OFS = 4,
-  MZ_ZIP_CDH_VERSION_NEEDED_OFS = 6,
-  MZ_ZIP_CDH_BIT_FLAG_OFS = 8,
-  MZ_ZIP_CDH_METHOD_OFS = 10,
-  MZ_ZIP_CDH_FILE_TIME_OFS = 12,
-  MZ_ZIP_CDH_FILE_DATE_OFS = 14,
-  MZ_ZIP_CDH_CRC32_OFS = 16,
-  MZ_ZIP_CDH_COMPRESSED_SIZE_OFS = 20,
-  MZ_ZIP_CDH_DECOMPRESSED_SIZE_OFS = 24,
-  MZ_ZIP_CDH_FILENAME_LEN_OFS = 28,
-  MZ_ZIP_CDH_EXTRA_LEN_OFS = 30,
-  MZ_ZIP_CDH_COMMENT_LEN_OFS = 32,
-  MZ_ZIP_CDH_DISK_START_OFS = 34,
-  MZ_ZIP_CDH_INTERNAL_ATTR_OFS = 36,
-  MZ_ZIP_CDH_EXTERNAL_ATTR_OFS = 38,
-  MZ_ZIP_CDH_LOCAL_HEADER_OFS = 42,
-  // Local directory header offsets
-  MZ_ZIP_LDH_SIG_OFS = 0,
-  MZ_ZIP_LDH_VERSION_NEEDED_OFS = 4,
-  MZ_ZIP_LDH_BIT_FLAG_OFS = 6,
-  MZ_ZIP_LDH_METHOD_OFS = 8,
-  MZ_ZIP_LDH_FILE_TIME_OFS = 10,
-  MZ_ZIP_LDH_FILE_DATE_OFS = 12,
-  MZ_ZIP_LDH_CRC32_OFS = 14,
-  MZ_ZIP_LDH_COMPRESSED_SIZE_OFS = 18,
-  MZ_ZIP_LDH_DECOMPRESSED_SIZE_OFS = 22,
-  MZ_ZIP_LDH_FILENAME_LEN_OFS = 26,
-  MZ_ZIP_LDH_EXTRA_LEN_OFS = 28,
-  // End of central directory offsets
-  MZ_ZIP_ECDH_SIG_OFS = 0,
-  MZ_ZIP_ECDH_NUM_THIS_DISK_OFS = 4,
-  MZ_ZIP_ECDH_NUM_DISK_CDIR_OFS = 6,
-  MZ_ZIP_ECDH_CDIR_NUM_ENTRIES_ON_DISK_OFS = 8,
-  MZ_ZIP_ECDH_CDIR_TOTAL_ENTRIES_OFS = 10,
-  MZ_ZIP_ECDH_CDIR_SIZE_OFS = 12,
-  MZ_ZIP_ECDH_CDIR_OFS_OFS = 16,
-  MZ_ZIP_ECDH_COMMENT_SIZE_OFS = 20,
-
-  /* ZIP64 End of central directory locator offsets */
-  MZ_ZIP64_ECDL_SIG_OFS = 0,                    /* 4 bytes */
-  MZ_ZIP64_ECDL_NUM_DISK_CDIR_OFS = 4,          /* 4 bytes */
-  MZ_ZIP64_ECDL_REL_OFS_TO_ZIP64_ECDR_OFS = 8,  /* 8 bytes */
-  MZ_ZIP64_ECDL_TOTAL_NUMBER_OF_DISKS_OFS = 16, /* 4 bytes */
-
-  /* ZIP64 End of central directory header offsets */
-  MZ_ZIP64_ECDH_SIG_OFS = 0,                       /* 4 bytes */
-  MZ_ZIP64_ECDH_SIZE_OF_RECORD_OFS = 4,            /* 8 bytes */
-  MZ_ZIP64_ECDH_VERSION_MADE_BY_OFS = 12,          /* 2 bytes */
-  MZ_ZIP64_ECDH_VERSION_NEEDED_OFS = 14,           /* 2 bytes */
-  MZ_ZIP64_ECDH_NUM_THIS_DISK_OFS = 16,            /* 4 bytes */
-  MZ_ZIP64_ECDH_NUM_DISK_CDIR_OFS = 20,            /* 4 bytes */
-  MZ_ZIP64_ECDH_CDIR_NUM_ENTRIES_ON_DISK_OFS = 24, /* 8 bytes */
-  MZ_ZIP64_ECDH_CDIR_TOTAL_ENTRIES_OFS = 32,       /* 8 bytes */
-  MZ_ZIP64_ECDH_CDIR_SIZE_OFS = 40,                /* 8 bytes */
-  MZ_ZIP64_ECDH_CDIR_OFS_OFS = 48,                 /* 8 bytes */
-  MZ_ZIP_VERSION_MADE_BY_DOS_FILESYSTEM_ID = 0,
-  MZ_ZIP_DOS_DIR_ATTRIBUTE_BITFLAG = 0x10,
-  MZ_ZIP_GENERAL_PURPOSE_BIT_FLAG_IS_ENCRYPTED = 1,
-  MZ_ZIP_GENERAL_PURPOSE_BIT_FLAG_COMPRESSED_PATCH_FLAG = 32,
-  MZ_ZIP_GENERAL_PURPOSE_BIT_FLAG_USES_STRONG_ENCRYPTION = 64,
-  MZ_ZIP_GENERAL_PURPOSE_BIT_FLAG_LOCAL_DIR_IS_MASKED = 8192,
-  MZ_ZIP_GENERAL_PURPOSE_BIT_FLAG_UTF8 = 1 << 11
-};
-
 typedef struct {
   void *m_p;
   size_t m_size, m_capacity;
@@ -5952,12 +5958,6 @@ mz_bool mz_zip_writer_add_mem(mz_zip_archive *pZip, const char *pArchive_name,
   return mz_zip_writer_add_mem_ex(pZip, pArchive_name, pBuf, buf_size, NULL, 0,
                                   level_and_flags, 0, 0);
 }
-
-typedef struct {
-  mz_zip_archive *m_pZip;
-  mz_uint64 m_cur_archive_file_ofs;
-  mz_uint64 m_comp_size;
-} mz_zip_writer_add_state;
 
 static mz_bool mz_zip_writer_add_put_buf_callback(const void *pBuf, int len,
                                                   void *pUser) {

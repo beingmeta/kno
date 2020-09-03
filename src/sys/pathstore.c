@@ -38,19 +38,20 @@ KNO_EXPORT int knops_existsp(kno_pathstore ps,u8_string path)
   else return 0;
 }
 
-KNO_EXPORT lispval knops_pathinfo(kno_pathstore ps,u8_string path)
+KNO_EXPORT lispval knops_pathinfo(kno_pathstore ps,u8_string path,int follow)
 {
   u8_string relpath = get_relpath(ps,path);
   if (relpath)
-    return (ps->knops_handlers->info)(ps,relpath);
+    return (ps->knops_handlers->info)(ps,relpath,follow);
   else return KNO_FALSE;
 }
 
-KNO_EXPORT lispval knops_content(kno_pathstore ps,u8_string path,u8_string enc)
+KNO_EXPORT lispval knops_content(kno_pathstore ps,u8_string path,
+				 u8_string enc,int follow)
 {
   u8_string relpath = get_relpath(ps,path);
   if (relpath)
-    return (ps->knops_handlers->content)(ps,relpath,enc);
+    return (ps->knops_handlers->content)(ps,relpath,enc,follow);
   else return KNO_FALSE;
 }
 

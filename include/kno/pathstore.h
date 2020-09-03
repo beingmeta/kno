@@ -23,8 +23,8 @@ typedef struct KNO_PATHSTORE {
   struct KNO_PATHSTORE_HANDLERS {
     u8_string typeid; int n_handlers;
     int (*existsp)(struct KNO_PATHSTORE *,u8_string);
-    lispval (*info)(struct KNO_PATHSTORE *,u8_string);
-    lispval (*content)(struct KNO_PATHSTORE *,u8_string,u8_string);
+    lispval (*info)(struct KNO_PATHSTORE *,u8_string,int);
+    lispval (*content)(struct KNO_PATHSTORE *,u8_string,u8_string,int);
     int (*close)(struct KNO_PATHSTORE *);
     int (*open)(struct KNO_PATHSTORE *);
     void (*recycle)(struct KNO_PATHSTORE *);}
@@ -32,8 +32,8 @@ typedef struct KNO_PATHSTORE {
   void *knops_data;} *kno_pathstore;
 
 KNO_EXPORT int knops_existsp(kno_pathstore,u8_string);
-KNO_EXPORT lispval knops_pathinfo(kno_pathstore,u8_string);
-KNO_EXPORT lispval knops_content(kno_pathstore,u8_string,u8_string);
+KNO_EXPORT lispval knops_pathinfo(kno_pathstore,u8_string,int);
+KNO_EXPORT lispval knops_content(kno_pathstore,u8_string,u8_string,int);
 
 #endif /* KNO_PATHSTORE_H */
 
