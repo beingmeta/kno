@@ -157,6 +157,17 @@ static lispval make_netproc(lispval server,lispval name,
   return result;
 }
 
+/* Support for server data */
+
+DEFPRIM2("srv/getconfig",srvconfig_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "`(srv/getconfig *prop*)`",
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_FALSE)
+static lispval srvconfig_prim(lispval prop,lispval dflt)
+{
+  lispval config = kno_server_data;
+  return kno_getopt(config,prop,dflt);
+}
+
 /* Initialization */
 
 KNO_EXPORT void kno_init_srvcall_c()
@@ -180,4 +191,7 @@ static void link_local_cprims()
   KNO_LINK_VARARGS("service/xcall",service_xcall_prim,scheme_module);
 
   KNO_LINK_PRIM("netproc",make_netproc,5,kno_scheme_module);
+
+  KNO_LINK_PRIM("srv/getconfig",srvconfig_prim,2,kno_scheme_module);
+
 }

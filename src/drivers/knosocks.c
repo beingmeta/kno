@@ -86,6 +86,30 @@ DEF_KNOSYM(logtrans); DEF_KNOSYM(logeval); DEF_KNOSYM(logerrs);
 DEF_KNOSYM(logstack); DEF_KNOSYM(uselog); DEF_KNOSYM(dbserv);
 DEF_KNOSYM(password);
 
+static int getboolopt(lispval opts,lispval sym,int dflt)
+{
+  lispval v = kno_getopt(opts,sym,KNO_VOID);
+  if ( (KNO_VOIDP(v)) || (KNO_DEFAULTP(v)) ) return dflt;
+  if ( (KNO_FALSEP(v)) || ( v == (KNO_FIXNUM_ZERO) ) ) return 0;
+  kno_decref(v);
+  return 1;
+}
+
+static int getintopt(lispval opts,lispval sym,int dflt)
+{
+  lispval val = kno_getopt(opts,sym,KNO_VOID);
+  if (KNO_VOIDP(val)) return dflt;
+  else if (KNO_FIXNUMP(val))
+    return KNO_FIX2INT(val);
+  else if (KNO_TRUEP(val))
+    return 1;
+  else if (KNO_FALSEP(val))
+    return 0;
+  else {
+    kno_decref(val);
+    return dflt;}
+}
+
 /* Thread local knosocks client info */
 
 #if ((KNO_THREADS_ENABLED)&&(KNO_USE_TLS))
@@ -365,7 +389,7 @@ static u8_client simply_accept(u8_server srv,u8_socket sock,
      into the stream's id (knostorage). */
   if (ks->stateful)
     client->client_data = kno_make_slotmap(7,0,NULL);
-  else client->client_data = KNO_VOID;
+  else client->client_data = KNO_FALSE;
   client->client_server    = ks;
   client->client_started   = time(NULL);
   client->client_reqstart  = -1;
@@ -479,6 +503,7 @@ static int execserver(u8_client ucl)
       (kno_make_slotmap(7,0,NULL));
     kno_reset_threadvars();
     set_cur_client(client);
+    kno_set_server_data(server->server_opts);
     kno_use_reqinfo(reqdata);
     kno_decref(reqdata);
     kno_outbuf outbuf = kno_writebuf(stream);
@@ -572,6 +597,7 @@ static int execserver(u8_client ucl)
       kno_flush_stream(stream);}
     time(&(client->client_lastlive));
     set_cur_client(NULL);
+    kno_set_server_data(KNO_FALSE);
     kno_use_reqinfo(KNO_FALSE);
     if (tracethis)
       u8_logf(LOG_INFO,Outgoing,"%s[%d/%d]: Response sent after %fs",
@@ -589,21 +615,6 @@ static int close_knoclient(u8_client ucl)
   kno_decref(client->client_env);
   ucl->socket = -1;
   return 1;
-}
-
-static int getintopt(lispval opts,lispval sym,int dflt)
-{
-  lispval val = kno_getopt(opts,sym,KNO_VOID);
-  if (KNO_VOIDP(val)) return dflt;
-  else if (KNO_FIXNUMP(val))
-    return KNO_FIX2INT(val);
-  else if (KNO_TRUEP(val))
-    return 1;
-  else if (KNO_FALSEP(val))
-    return 0;
-  else {
-    kno_decref(val);
-    return dflt;}
 }
 
 KNO_EXPORT
@@ -663,14 +674,13 @@ struct KNOSOCKS_SERVER *new_knosocks_listener
   server->logtrans    = getintopt(opts,KNOSYM(logtrans),default_logtrans);
   server->logerrs     = getintopt(opts,KNOSYM(logerrs),default_logerrs);
   server->logstack    = getintopt(opts,KNOSYM(logstack),default_logstack);
-  server->server_opts = kno_incref(opts);
+  server->server_opts = kno_init_pair(NULL,kno_make_slotmap(7,0,NULL),kno_incref(opts));
   server->server_data = kno_incref(data);
   server->server_env  = kno_exec_extend(env,base_env);
   u8_now(&(server->server_started));
   u8_getuuid(server->server_uuid);
   server->server_wrapper = KNO_VOID;
-  server->stealsockets =
-    getintopt(opts,KNOSYM(stealsockets),default_stealsockets);
+  server->stealsockets   = getboolopt(opts,KNOSYM(stealsockets),default_stealsockets);
   lispval password = kno_getopt(opts,KNOSYM(password),KNO_VOID);
   if (KNO_STRINGP(password))
     server->server_password = u8_strdup(KNO_CSTRING(password));

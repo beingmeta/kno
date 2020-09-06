@@ -20,6 +20,7 @@ static int dbserv_loglevel;
 #include "kno/storage.h"
 #include "kno/apply.h"
 #include "kno/cprims.h"
+#include "kno/services.h"
 
 #include <libu8/u8printf.h>
 #include <libu8/u8filefns.h>
