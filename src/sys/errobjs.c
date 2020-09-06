@@ -555,6 +555,8 @@ int kno_clear_errors(int report)
 
 /* Exception objects */
 
+static u8_condition ExceptionDataError = _("ExceptionDataError");
+
 KNO_EXPORT lispval kno_init_exception
 (struct KNO_EXCEPTION *exo,
  u8_condition condition,u8_context caller,
@@ -656,12 +658,12 @@ KNO_EXPORT lispval kno_unpack_exception_vector(lispval content)
       else if (STRINGP(condval)) {
         lispval tmp = kno_probe_symbol(CSTRING(condval),STRLEN(condval));
         if (KNO_VOIDP(tmp)) {
-          u8_log(LOG_WARN,kno_DTypeError,"Bad non-symbolic condition name",
+          u8_log(LOG_WARN,ExceptionDataError,"Bad non-symbolic condition name",
                  condval);
           tmp=kno_intern(CSTRING(condval));}
         condname = SYM_NAME(tmp);}
       else {
-        u8_log(LOG_WARN,kno_DTypeError,
+        u8_log(LOG_WARN,ExceptionDataError,
                "Bad condition (not a symbol) %q in exception serialization %q",
                condval,content);
         condname="BadCondName";}}
@@ -673,7 +675,7 @@ KNO_EXPORT lispval kno_unpack_exception_vector(lispval content)
         lispval tmp =
           kno_probe_symbol(CSTRING(caller_val),STRLEN(caller_val));
         if (KNO_VOIDP(tmp)) {
-          u8_log(LOG_WARN,kno_DTypeError,"Bad non-symbolic caller",
+          u8_log(LOG_WARN,ExceptionDataError,"Bad non-symbolic caller",
                  caller_val);
           tmp=kno_intern(CSTRING(caller_val));}
         caller = SYM_NAME(tmp);}
@@ -683,7 +685,7 @@ KNO_EXPORT lispval kno_unpack_exception_vector(lispval content)
                 (KNO_VOIDP(caller_val)) )
         caller = NULL;
       else {
-        u8_log(LOG_WARN,kno_DTypeError,
+        u8_log(LOG_WARN,ExceptionDataError,
                "Bad caller (not a symbol) %q in exception serialization %q",
                caller_val,content);
         caller="BadCaller";}}
@@ -715,9 +717,9 @@ KNO_EXPORT lispval kno_unpack_exception_vector(lispval content)
       kno_incref(context);}
     return kno_init_exception(NULL,condname,caller,
                               details,irritant,
-                              stack,context,
-                              sessionid,moment,
-                              timebase,
+			      stack,context,
+			      sessionid,moment,
+			      timebase,
                               -1);}
   else if (KNO_SYMBOLP(content)) {
     return kno_init_exception
@@ -727,14 +729,14 @@ KNO_EXPORT lispval kno_unpack_exception_vector(lispval content)
        -1,-1,-1);}
   else if (KNO_STRINGP(content)) {
     return kno_init_exception
-      (NULL,"DtypeError",NULL,
+      (NULL,ExceptionDataError,NULL,
        u8_strdup(KNO_CSTRING(content)),content,
-       KNO_VOID,KNO_VOID,NULL,
+       KNO_VOID,KNO_VOID,sessionid,
        -1,-1,-1);}
   else return kno_init_exception
-         (NULL,kno_DTypeError,
+         (NULL,ExceptionDataError,
           "kno_unpack_exception_vector",NULL,content,
-          KNO_VOID,KNO_VOID,NULL,
+          KNO_VOID,KNO_VOID,sessionid,
           u8_elapsed_time(),
           u8_elapsed_base(),
           u8_threadid());
