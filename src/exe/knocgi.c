@@ -2214,8 +2214,7 @@ static int run_servlet(u8_string socket_spec)
 
   u8_log(LOG_INFO,ServletStartup,
          "KNO (%s) Servlet running, %d/%d pools/indexes",
-         KNO_REVISION,kno_n_pools,
-         kno_n_primary_indexes+kno_n_secondary_indexes);
+         KNO_REVISION,kno_n_pools,kno_n_primary_indexes);
   u8_message("beingmeta KNO, (C) beingmeta 2004-2020, all rights reserved");
   int n_servers = kno_servlet.n_servers;
 

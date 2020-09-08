@@ -90,23 +90,20 @@ int kno_index_drops_init    = KNO_INDEX_DROPS_INIT;
 int kno_index_replace_init  = KNO_INDEX_REPLACE_INIT;
 
 static u8_rwlock indexes_lock;
-kno_index kno_primary_indexes[KNO_N_PRIMARY_INDEXES];
+kno_index kno_primary_indexes[KNO_MAX_PRIMARY_INDEXES];
 int kno_n_primary_indexes = 0;
-int kno_n_secondary_indexes = 0;
-static int secondary_indexes_len = 0;
-static kno_index *secondary_indexes = NULL;
 
 static kno_index *consed_indexes = NULL;
 ssize_t n_consed_indexes = 0, consed_indexes_len=0;
-u8_mutex consed_indexes_lock;
+u8_rwlock consed_indexes_lock;
 
 static int add_consed_index(kno_index ix)
 {
-  u8_lock_mutex(&consed_indexes_lock);
+  u8_write_lock(&consed_indexes_lock);
   kno_index *scan=consed_indexes, *limit=scan+n_consed_indexes;
   while (scan<limit) {
     if ( *scan == ix ) {
-      u8_unlock_mutex(&consed_indexes_lock);
+      u8_rw_unlock(&consed_indexes_lock);
       return 0;}
     else scan++;}
   if (n_consed_indexes>=consed_indexes_len) {
@@ -117,28 +114,42 @@ static int add_consed_index(kno_index ix)
       consed_indexes_len=new_len;}
     else {
       u8_seterr(kno_MallocFailed,"add_consed_index",u8dup(ix->indexid));
-      u8_unlock_mutex(&consed_indexes_lock);
+      u8_rw_unlock(&consed_indexes_lock);
       return -1;}}
   kno_incref((lispval)ix);
   consed_indexes[n_consed_indexes++]=ix;
-  u8_unlock_mutex(&consed_indexes_lock);
+  u8_rw_unlock(&consed_indexes_lock);
   return 1;
 }
 
 static int drop_consed_index(kno_index ix)
 {
-  u8_lock_mutex(&consed_indexes_lock);
+  u8_write_lock(&consed_indexes_lock);
   kno_index *scan=consed_indexes, *limit=scan+n_consed_indexes;
   while (scan<limit) {
     if ( *scan == ix ) {
       size_t to_shift=(limit-scan)-1;
       memmove(scan,scan+1,to_shift);
       n_consed_indexes--;
-      u8_unlock_mutex(&consed_indexes_lock);
+      u8_rw_unlock(&consed_indexes_lock);
       return 1;}
     else scan++;}
-  u8_unlock_mutex(&consed_indexes_lock);
+  u8_rw_unlock(&consed_indexes_lock);
   return 0;
+}
+
+typedef int (*index_iterfn)(kno_index ix,void *state);
+
+static kno_index for_consed_indexes(index_iterfn iterfn,void *state)
+{
+  if (n_consed_indexes) {
+    u8_read_lock(&consed_indexes_lock);
+    int j = 0; while (j<n_consed_indexes) {
+      kno_index ix = consed_indexes[j++];
+      if ( (ix) && (iterfn(ix,state)) ) return ix;}
+    u8_rw_unlock(&consed_indexes_lock);
+    return NULL;}
+  return NULL;
 }
 
 static struct KNO_AGGREGATE_INDEX _background;
@@ -265,17 +276,11 @@ KNO_EXPORT void kno_register_index(kno_index ix)
     if (ix->index_serialno>=0) { /* Handle race condition */
       u8_rw_unlock(&indexes_lock);
       return;}
-    if (kno_n_primary_indexes<KNO_N_PRIMARY_INDEXES) {
+    if (kno_n_primary_indexes<KNO_MAX_PRIMARY_INDEXES) {
       ix->index_serialno = kno_n_primary_indexes;
-      kno_primary_indexes[kno_n_primary_indexes++]=ix;}
-    else {
-      if (kno_n_secondary_indexes >= secondary_indexes_len) {
-	secondary_indexes_len = secondary_indexes_len*2;
-	secondary_indexes = u8_realloc_n
-	  (secondary_indexes,secondary_indexes_len,kno_index);}
-      secondary_indexes[kno_n_secondary_indexes++]=ix;}
-    KNO_SET_REFCOUNT(ix,0);}
-  /* Make it a static cons */
+      kno_primary_indexes[kno_n_primary_indexes++]=ix;
+      /* Make it a static cons */
+      KNO_SET_REFCOUNT(ix,0);}}
   u8_rw_unlock(&indexes_lock);
   if ((ix->index_flags)&(KNO_INDEX_IN_BACKGROUND))
     kno_add_to_background(ix);
@@ -296,47 +301,24 @@ KNO_EXPORT kno_index kno_lisp2index(lispval lix)
 {
   if (KNO_ABORTP(lix))
     return NULL;
-  else if (TYPEP(lix,kno_index_type)) {
-    int serial = KNO_GET_IMMEDIATE(lix,kno_index_type);
-    if (serial<KNO_N_PRIMARY_INDEXES)
-      return kno_primary_indexes[serial];
-    else if ( (kno_n_secondary_indexes == 0) ||
-	      (serial >= (kno_n_secondary_indexes+KNO_N_PRIMARY_INDEXES)) )
-      return NULL;
-    else {
-      u8_read_lock(&indexes_lock);
-      kno_index index = secondary_indexes[serial-KNO_N_PRIMARY_INDEXES];
-      u8_rw_unlock(&indexes_lock);
-      return index;}}
-  else if (TYPEP(lix,kno_consed_index_type))
-    return (kno_index) lix;
-  else return KNO_ERR(NULL,kno_TypeError,_("not an index"),NULL,lix);
-}
-
-KNO_EXPORT kno_index _kno_ref2index(lispval indexval)
-{
-  if (KNO_ABORTP(indexval))
-    return NULL;
-  else if (TYPEP(indexval,kno_index_type)) {
-    int serial = KNO_GET_IMMEDIATE(indexval,kno_index_type);
-    if (serial<KNO_N_PRIMARY_INDEXES)
-      return kno_primary_indexes[serial];
-    else if ( (kno_n_secondary_indexes == 0) ||
-	      (serial >= (kno_n_secondary_indexes+KNO_N_PRIMARY_INDEXES)) )
-      return NULL;
-    else {
-      u8_read_lock(&indexes_lock);
-      kno_index index = secondary_indexes[serial-KNO_N_PRIMARY_INDEXES];
-      u8_rw_unlock(&indexes_lock);
-      return index;}}
-  else return NULL;
+  kno_index ix = kno_indexptr(lix);
+  if (ix) return ix;
+  else if (KNO_TYPEP(lix,kno_index_type)) {
+    char buf[64];
+    int serial = KNO_IMMEDIATE_DATA(lix);
+    kno_seterr3(kno_InvalidIndexPtr,"kno_lisp2index",
+		u8_sprintf(buf,64,"serial = 0x%x",serial));
+    return NULL;}
+  else {
+    kno_seterr(kno_InvalidIndexPtr,"kno_lisp2index",NULL,lix);
+    return NULL;}
 }
 
 /* Finding indexes by ids/sources/etc */
 
 KNO_EXPORT kno_index kno_find_index(u8_string spec)
 {
-  kno_index ix=kno_find_index_by_source(spec);
+  kno_index ix = kno_find_index_by_source(spec);
   if (ix) return ix;
   else if ((ix=kno_find_index_by_id(spec)))
     return ix;
@@ -355,18 +337,16 @@ KNO_EXPORT u8_string kno_locate_index(u8_string spec)
   else return NULL;
 }
 
-static int match_index_source(kno_index ix,u8_string source)
-{
-  return ( (kno_same_sourcep(source,ix->index_source)) ||
-	   (kno_same_sourcep(source,ix->canonical_source)) );
-}
-
 static int match_index_id(kno_index ix,u8_string id)
 {
   return ((id)&&(ix->indexid)&&
 	  (strcmp(ix->indexid,id) == 0));
 }
-
+static int compare_index_id(kno_index each,void *sourcedata)
+{
+  u8_string source = sourcedata;
+  return (match_index_id(each,source));
+}
 KNO_EXPORT kno_index kno_find_index_by_id(u8_string id)
 {
   int i = 0;
@@ -376,17 +356,18 @@ KNO_EXPORT kno_index kno_find_index_by_id(u8_string id)
 	 if (match_index_id(kno_primary_indexes[i],id))
 	   return kno_primary_indexes[i];
 	 else i++;
-  if (secondary_indexes == NULL)
-    return NULL;
-  u8_read_lock(&indexes_lock);
-  i = 0; while (i<kno_n_secondary_indexes)
-	   if (match_index_id(secondary_indexes[i],id)) {
-	     kno_index ix = secondary_indexes[i];
-	     u8_rw_unlock(&indexes_lock);
-	     return ix;}
-	   else i++;
-  u8_rw_unlock(&indexes_lock);
-  return NULL;
+  return for_consed_indexes(compare_index_id,(void *)id);
+}
+
+static int match_index_source(kno_index ix,u8_string source)
+{
+  return ( (kno_same_sourcep(source,ix->index_source)) ||
+	   (kno_same_sourcep(source,ix->canonical_source)) );
+}
+static int compare_index_source(kno_index each,void *sourcedata)
+{
+  u8_string source = sourcedata;
+  return (match_index_source(each,source));
 }
 KNO_EXPORT kno_index kno_find_index_by_source(u8_string source)
 {
@@ -397,17 +378,7 @@ KNO_EXPORT kno_index kno_find_index_by_source(u8_string source)
 	 if (match_index_source(kno_primary_indexes[i],source))
 	   return kno_primary_indexes[i];
 	 else i++;
-  if (secondary_indexes == NULL)
-    return NULL;
-  u8_read_lock(&indexes_lock);
-  i = 0; while (i<kno_n_secondary_indexes)
-	   if (match_index_source(secondary_indexes[i],source)) {
-	     kno_index ix = secondary_indexes[i];
-	     u8_rw_unlock(&indexes_lock);
-	     return ix;}
-	   else i++;
-  u8_rw_unlock(&indexes_lock);
-  return NULL;
+  return for_consed_indexes(compare_index_source,(void *)source);
 }
 
 KNO_EXPORT kno_index kno_get_index
@@ -2023,6 +1994,15 @@ static lispval index2lisp(kno_index ix)
     return v;}
 }
 
+static int add_index_to_results(kno_index ix,void *state)
+{
+  lispval *resultsp = (lispval *) state;
+  lispval each_index = (lispval) ix;
+  kno_incref(each_index);
+  KNO_ADD_TO_CHOICE((*resultsp),each_index);
+  return 0;
+}
+
 KNO_EXPORT lispval kno_get_all_indexes()
 {
   lispval results = EMPTY;
@@ -2031,23 +2011,7 @@ KNO_EXPORT lispval kno_get_all_indexes()
     CHOICE_ADD(results,lindex);
     i++;}
 
-  if (i>=kno_n_primary_indexes) {
-    u8_read_lock(&indexes_lock);
-    i = 0; while (i < kno_n_secondary_indexes) {
-      lispval lindex = index2lisp(secondary_indexes[i]);
-      CHOICE_ADD(results,lindex);
-      i++;}
-    u8_rw_unlock(&indexes_lock);}
-
-  if (n_consed_indexes) {
-    u8_lock_mutex(&consed_indexes_lock);
-    int j = 0; while (j<n_consed_indexes) {
-      kno_index ix = consed_indexes[j++];
-      if (ix) {
-	lispval lindex = index2lisp(ix);
-	CHOICE_ADD(results,lindex);}
-      else _kno_debug(results);}
-    u8_unlock_mutex(&consed_indexes_lock);}
+  for_consed_indexes(add_index_to_results,&results);
 
   return kno_simplify_choice(results);
 }
@@ -2256,6 +2220,24 @@ KNO_EXPORT lispval kno_default_indexctl(kno_index ix,lispval op,
     else if ( n == 1 )
       return kno_getopt(opts,args[0],KNO_FALSE);
     else return kno_incref(opts);}
+  else if (op == KNOSYM_ID)
+    if (ix->indexid)
+      return kno_mkstring(ix->indexid);
+    else return KNO_FALSE;
+  else if (op == kno_source_op) {
+    if (n==0) {
+      if (ix->canonical_source)
+	return kno_mkstring(ix->canonical_source);
+      else if (ix->index_source)
+	return kno_mkstring(ix->index_source);
+      else return KNO_FALSE;}
+    else if (KNO_TRUEP(args[0]))
+      if (ix->index_source)
+	return kno_mkstring(ix->index_source);
+      else return KNO_FALSE;
+    else if (ix->canonical_source)
+      return kno_mkstring(ix->canonical_source);
+    else return KNO_FALSE;}
   else if (op == kno_metadata_op) {
     lispval metadata = ((lispval)&(ix->index_metadata));
     lispval slotid = (n>0) ? (args[0]) : (KNO_VOID);
@@ -2372,19 +2354,14 @@ KNO_EXPORT lispval kno_default_indexctl(kno_index ix,lispval op,
 
 kno_lisp_type kno_consed_index_type;
 
-static int check_index(lispval x)
+static int check_primary_index(lispval x)
 {
   int serial = KNO_GET_IMMEDIATE(x,kno_index_type);
   if (serial<0) return 0;
-  if (serial<KNO_N_PRIMARY_INDEXES)
+  if (serial<KNO_MAX_PRIMARY_INDEXES)
     if (kno_primary_indexes[serial])
       return 1;
     else return 0;
-  else if (secondary_indexes) {
-    int second_off=serial-KNO_N_PRIMARY_INDEXES;
-    if ( (second_off < 0) || (second_off  > kno_n_secondary_indexes) )
-      return 0;
-    else return (secondary_indexes[second_off]!=NULL);}
   else return 0;
 }
 
@@ -2395,17 +2372,14 @@ KNO_EXPORT void kno_init_indexes_c()
   u8_register_source_file(_FILEINFO);
 
   kno_type_names[kno_index_type]=_("index");
-  kno_immediate_checkfns[kno_index_type]=check_index;
+  kno_immediate_checkfns[kno_index_type]=check_primary_index;
 
   kno_consed_index_type = kno_register_cons_type("raw index");
   kno_type_names[kno_consed_index_type]=_("raw index");
 
-  u8_init_mutex(&consed_indexes_lock);
+  u8_init_rwlock(&consed_indexes_lock);
   consed_indexes = u8_malloc(64*sizeof(kno_index));
   consed_indexes_len=64;
-
-  secondary_indexes     = u8_malloc(64*sizeof(kno_index));
-  secondary_indexes_len = 64;
 
   kno_index_hashop=kno_intern("hash");
   kno_index_slotsop=kno_intern("slotids");

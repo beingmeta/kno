@@ -28,10 +28,9 @@
 static struct KNO_INDEX_HANDLER netindex_handler;
 
 static lispval boundp, quote;
-static lispval iserver_writable, iserver_fetchkeys, iserver_fetch, iserver_fetchsize, iserver_fetchn;
-static lispval iserver_add, iserver_drop, iserver_addn, iserver_changes, iserver_reset;
+static lispval iserver_fetchkey, iserver_fetchkeys, iserver_listkeys;
+static lispval iserver_fetchsize;
 
-static lispval ixserver_writable, ixserver_fetchkeys, ixserver_fetch, ixserver_fetchsize, ixserver_fetchn;
 #if 0
 static lispval ixserver_changes, ixserver_add, ixserver_drop, ixserver_addn, ixserver_reset;
 #endif
@@ -55,7 +54,6 @@ KNO_EXPORT kno_index kno_open_network_index(u8_string spec,
 					    kno_storage_flags flags,
 					    lispval opts)
 {
-  lispval writable_response;
   int spec_len = strlen(spec);
   u8_byte host_spec[spec_len+1], *slash, *xname=NULL;
   strcpy(host_spec,spec);
@@ -72,18 +70,10 @@ KNO_EXPORT kno_index kno_open_network_index(u8_string spec,
 		 flags,KNO_VOID,opts);
   ix->index_server = server;
   ix->xname = (xname) ? (kno_getsym(xname)) : (KNO_VOID);
-  writable_response = kno_service_call(ix->index_server,iserver_writable,0,NULL);
-  if ((KNO_ABORTP(writable_response))||
-      (!(FALSEP(writable_response))))
-    U8_SETBITS(ix->index_flags,(KNO_STORAGE_READ_ONLY));
-  else U8_CLEARBITS(ix->index_flags,(KNO_STORAGE_READ_ONLY));
-  kno_decref(writable_response);
+  U8_SETBITS(ix->index_flags,(KNO_STORAGE_READ_ONLY));
 
   ix->capabilities = 0;
-  if (server_supportsp(ix,iserver_fetchn)) ix->capabilities |= KNO_ISERVER_FETCHN;
-  if (server_supportsp(ix,iserver_addn)) ix->capabilities |= KNO_ISERVER_ADDN;
-  if (server_supportsp(ix,iserver_drop)) ix->capabilities |= KNO_ISERVER_DROP;
-  if (server_supportsp(ix,iserver_reset)) ix->capabilities |= KNO_ISERVER_RESET;
+  ix->capabilities |= KNO_ISERVER_FETCHN;
 
   if ((ix)&&(!(U8_BITP(flags,KNO_STORAGE_UNREGISTERED))))
     kno_register_index((kno_index)ix);
@@ -95,9 +85,9 @@ static lispval netindex_fetch(kno_index ix,lispval key)
 {
   struct KNO_NETWORK_INDEX *nix = (struct KNO_NETWORK_INDEX *)ix;
   if (VOIDP(nix->xname))
-    return kno_service_call(nix->index_server,iserver_fetch,1,key);
+    return kno_service_call(nix->index_server,iserver_fetchkey,1,key);
   else return kno_service_call
-	 (nix->index_server,ixserver_fetch,2,nix->xname,key);
+	 (nix->index_server,iserver_fetchkey,2,key,nix->xname);
 }
 
 static int netindex_fetchsize(kno_index ix,lispval key)
@@ -107,7 +97,7 @@ static int netindex_fetchsize(kno_index ix,lispval key)
   if (VOIDP(nix->xname))
     result = kno_service_call(nix->index_server,iserver_fetchsize,1,key);
   else result = kno_service_call
-	 (nix->index_server,ixserver_fetchsize,2,nix->xname,key);
+	 (nix->index_server,iserver_fetchsize,2,key,nix->xname);
   if (KNO_ABORTP(result))
     return -1;
   else return kno_getint(result);
@@ -119,9 +109,9 @@ static lispval *netindex_fetchn(kno_index ix,int n,const lispval *keys)
   lispval vector, result;
   vector = kno_wrap_vector(n,(lispval *)keys);
   if (VOIDP(nix->xname))
-    result = kno_service_call(nix->index_server,iserver_fetchn,1,vector);
+    result = kno_service_call(nix->index_server,iserver_fetchkeys,1,vector);
   else result = kno_service_call
-	 (nix->index_server,ixserver_fetchn,2,nix->xname,vector);
+	 (nix->index_server,iserver_fetchkeys,2,vector,nix->xname);
   if (KNO_ABORTP(result)) return NULL;
   else if (VECTORP(result)) {
     lispval *results = u8_alloc_n(n,lispval);
@@ -138,9 +128,9 @@ static lispval *netindex_fetchkeys(kno_index ix,int *n)
   struct KNO_NETWORK_INDEX *nix = (struct KNO_NETWORK_INDEX *)ix;
   lispval result;
   if (VOIDP(nix->xname))
-    result = kno_service_call(nix->index_server,1,iserver_fetchkeys);
+    result = kno_service_call(nix->index_server,1,iserver_listkeys);
   else result = kno_service_call
-	 (nix->index_server,ixserver_fetchkeys,1,nix->xname);
+	 (nix->index_server,iserver_listkeys,1,nix->xname);
   if (KNO_ABORTP(result)) {
     *n = -1;
     kno_interr(result);
@@ -282,22 +272,10 @@ KNO_EXPORT void kno_init_netindex_c()
   set_symbol = kno_intern("set");
   drop_symbol = kno_intern("drop");
 
-  iserver_writable = kno_intern("iserver-writable?");
-  iserver_fetchkeys = kno_intern("iserver-keys");
-  iserver_changes = kno_intern("iserver-changes");
-  iserver_fetch = kno_intern("iserver-get");
-  iserver_fetchsize = kno_intern("iserver-get-size");
-  iserver_add = kno_intern("iserver-add!");
-  iserver_drop = kno_intern("iserver-drop!");
-  iserver_fetchn = kno_intern("iserver-bulk-get");
-  iserver_addn = kno_intern("iserver-bulk-add!");
-  iserver_reset = kno_intern("iserver-reset!");
-
-  ixserver_writable = kno_intern("ixserver-writable?");
-  ixserver_fetchkeys = kno_intern("ixserver-keys");
-  ixserver_fetch = kno_intern("ixserver-get");
-  ixserver_fetchsize = kno_intern("ixserver-get-size");
-  ixserver_fetchn = kno_intern("ixserver-bulk-get");
+  iserver_fetchkey = kno_intern("fetchkey");
+  iserver_fetchsize = kno_intern("fetchsize");
+  iserver_fetchkeys = kno_intern("fetchkeys");
+  iserver_listkeys = kno_intern("listkeys");
 
   kno_register_index_type
     ("network_index",

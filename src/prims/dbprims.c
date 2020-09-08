@@ -1137,17 +1137,59 @@ static lispval add_adjunct(lispval pool_arg,lispval slotid,lispval adjunct)
   else return kno_type_error(_("slotid"),"use_adjunct",slotid);
 }
 
-DEFPRIM1("get-adjuncts",get_adjuncts,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM1("get-adjuncts",get_adjuncts_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "`(GET_ADJUNCTS pool)"
 	 "\\nGets the adjuncts associated with the specified "
 	 "pool",
 	 kno_any_type,KNO_VOID);
-static lispval get_adjuncts(lispval pool_arg)
+static lispval get_adjuncts_prim(lispval pool_arg)
 {
   kno_pool p=kno_lisp2pool(pool_arg);
   if (p==NULL)
     return KNO_ERROR;
   else return kno_get_adjuncts(p);
+}
+
+DEFPRIM2("get-adjunct",get_adjunct_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	 "`(GET_ADJUNCT pool *slotid*)"
+	 "\\nGets the adjunct for *slotid* associated with the *pool*",
+	 kno_any_type,KNO_VOID,
+	 kno_any_type,KNO_VOID);
+static lispval get_adjunct_prim(lispval pool_arg,lispval slotid)
+{
+  kno_pool p = (KNO_OIDP(pool_arg)) ?
+    (kno_oid2pool(pool_arg)) :
+    (kno_lisp2pool(pool_arg));
+  if (p==NULL) {
+    if (OIDP(pool_arg))
+      return kno_err("UncoveredOID","get_adjunct_prim",NULL,pool_arg);
+    else return kno_err(kno_NotAPool,"get_adjunct_prim",NULL,pool_arg);}
+  else {
+    kno_adjunct adj = kno_get_adjunct(p,slotid);
+    if (adj == NULL) return KNO_FALSE;
+    else return kno_incref(adj->table);}
+}
+
+DEFPRIM2("adjunct-value",adjunct_value_prim,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	 "`(ADJUNCT-VALUE *obj* *slotid*)"
+	 "\\nGets the adjunct value for *slotid* of *obj*",
+	 kno_oid_type,KNO_VOID,
+	 kno_any_type,KNO_VOID);
+static lispval adjunct_value_prim(lispval oid,lispval slotid)
+{
+  kno_pool p = kno_oid2pool(oid);
+  if (p==NULL)
+    return kno_err("UncoveredOID","get_adjunct_prim",NULL,oid);
+  else {
+    kno_adjunct adj = kno_get_adjunct(p,slotid);
+    if (adj == NULL) return KNO_FALSE;
+    lispval table = adj->table;
+    if (KNO_POOLP(table))
+      return kno_pool_value(kno_lisp2pool(table),oid);
+    else if (KNO_INDEXP(table))
+      return kno_index_get(kno_lisp2index(table),oid);
+    else return kno_get(table,oid,KNO_EMPTY);}
 }
 
 DEFPRIM1("adjunct?",isadjunctp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
@@ -1799,7 +1841,8 @@ static lispval validoidp(lispval x,lispval pool_arg)
 
 /* Prefetching functions */
 
-DEFPRIM2("pool-prefetch!",pool_prefetch_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+DEFPRIM2("pool-prefetch!",pool_prefetch_prim,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	 "'(POOL-PREFETCH! pool oids)' prefetches OIDs from "
 	 "pool",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
@@ -1855,8 +1898,9 @@ static lispval fetchoids_prim(lispval oids)
 }
 
 DEFPRIM2("prefetch-keys!",prefetch_keys,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 "(PREFETCH-KEYS! *keys*) "
-	 "or (PREFETCH-KEYS! *index* *keys*)",
+	 "`(PREFETCH-KEYS! *index* *keys*)` or `(PREFETCH-KEYS! *keys*)`, moves "
+	 "mappings for *keys* in *index* into its cache. With one argument "
+	 "caches from the background.",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval prefetch_keys(lispval arg1,lispval arg2)
 {
@@ -1876,7 +1920,8 @@ static lispval prefetch_keys(lispval arg1,lispval arg2)
 }
 
 DEFPRIM2("index-prefetch!",index_prefetch_keys,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "(INDEX-PREFETCH! *index* *keys*) **undocumented**",
+	 "(INDEX-PREFETCH! *index* *keys*)  moves mappings "
+	 "for *keys* in *index* into its cache.",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval index_prefetch_keys(lispval ix_arg,lispval keys)
 {
@@ -4237,7 +4282,9 @@ static void link_local_cprims()
   KNO_LINK_VARARGS("commit",commit_lexpr,kno_db_module);
   KNO_LINK_VARARGS("swapout",swapout_lexpr,kno_db_module);
   KNO_LINK_PRIM("adjunct?",isadjunctp,1,kno_db_module);
-  KNO_LINK_PRIM("get-adjuncts",get_adjuncts,1,kno_db_module);
+  KNO_LINK_PRIM("get-adjuncts",get_adjuncts_prim,1,kno_db_module);
+  KNO_LINK_PRIM("get-adjunct",get_adjunct_prim,2,kno_db_module);
+  KNO_LINK_PRIM("adjunct-valuye",adjunct_value_prim,2,kno_db_module);
   KNO_LINK_PRIM("adjunct!",add_adjunct,3,kno_db_module);
   KNO_LINK_PRIM("use-adjunct",use_adjunct,3,kno_db_module);
   KNO_LINK_PRIM("extindex?",extindexp,1,kno_db_module);

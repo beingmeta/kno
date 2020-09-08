@@ -83,8 +83,8 @@ DEF_KNOSYM(serverfn); DEF_KNOSYM(listen); DEF_KNOSYM(protocol);
 DEF_KNOSYM(knosock); DEF_KNOSYM(knosocks); DEF_KNOSYM(async);
 DEF_KNOSYM(stealsockets); DEF_KNOSYM(stateful);
 DEF_KNOSYM(logtrans); DEF_KNOSYM(logeval); DEF_KNOSYM(logerrs);
-DEF_KNOSYM(logstack); DEF_KNOSYM(uselog); DEF_KNOSYM(dbserv);
-DEF_KNOSYM(password);
+DEF_KNOSYM(logstack); DEF_KNOSYM(uselog);
+DEF_KNOSYM(data); DEF_KNOSYM(password);
 
 static int getboolopt(lispval opts,lispval sym,int dflt)
 {
@@ -664,18 +664,18 @@ struct KNOSOCKS_SERVER *new_knosocks_listener
 		     copied,
 		     NULL);}}
   u8_init_mutex(&(server->server_lock));
-  lispval base_env =
-    (kno_testopt(opts,KNOSYM(dbserv),KNO_VOID)) ?
-    (kno_conspair(kno_incref(kno_dbserv_module),kno_incref(knosocks_env))) :
-    (kno_incref(knosocks_env));
+  lispval base_env    = kno_incref(knosocks_env);
   server->async       = getintopt(opts,KNOSYM(async),default_async_mode);
   server->stateful    = getintopt(opts,KNOSYM(stateful),default_stateful);
   server->logeval     = getintopt(opts,KNOSYM(logeval),default_logeval);
   server->logtrans    = getintopt(opts,KNOSYM(logtrans),default_logtrans);
   server->logerrs     = getintopt(opts,KNOSYM(logerrs),default_logerrs);
   server->logstack    = getintopt(opts,KNOSYM(logstack),default_logstack);
-  server->server_opts = kno_init_pair(NULL,kno_make_slotmap(7,0,NULL),kno_incref(opts));
   server->server_data = kno_incref(data);
+  lispval config_data = (KNO_TABLEP(data)) ? (kno_incref(data)) :
+    (kno_make_slotmap(7,0,NULL));
+  if (!(KNO_TABLEP(data))) kno_store(config_data,KNOSYM(data),data);
+  server->server_opts = kno_make_pair(config_data,opts);
   server->server_env  = kno_exec_extend(env,base_env);
   u8_now(&(server->server_started));
   u8_getuuid(server->server_uuid);

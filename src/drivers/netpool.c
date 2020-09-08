@@ -39,9 +39,12 @@ static lispval client_id = VOID;
 static void init_client_id(void);
 static u8_mutex client_id_lock;
 
+KNO_EXPORT kno_pool kno_open_network_pool
+(u8_string spec,kno_storage_flags flags,lispval opts);
+
 DEF_KNOSYM(base); DEF_KNOSYM(capacity);
 DEF_KNOSYM(metadata); DEF_KNOSYM(flags);
-DEF_KNOSYM(label);
+DEF_KNOSYM(label); DEF_KNOSYM(adjuncts);
 
 static int init_network_pool
 (struct KNO_NETWORK_POOL *p,lispval netinfo,
@@ -51,8 +54,11 @@ static int init_network_pool
   lispval pool_base = kno_get(netinfo,KNOSYM(base),KNO_VOID);
   lispval pool_cap = kno_get(netinfo,KNOSYM(capacity),KNO_VOID);
   lispval adjunct = kno_get(netinfo,KNOSYM_ADJUNCT,KNO_VOID);
+  lispval adjuncts = (KNO_VOIDP(adjunct)) ?
+    (kno_get(netinfo,KNOSYM(adjuncts),KNO_EMPTY)) :
+    (KNO_EMPTY);
   lispval metadata = kno_get(netinfo,KNOSYM(metadata),KNO_VOID);
-  KNO_OID base; unsigned int capacity; u8_string label = NULL;
+  KNO_OID base; unsigned int capacity;
   if (KNO_OIDP(pool_base)) base = KNO_OID_ADDR(pool_base); else return -1;
   if (KNO_UINTP(pool_cap)) capacity = kno_getint(pool_cap); else return -1;
   if ( ! (KNO_VOIDP(adjunct)) ) {
@@ -68,9 +74,26 @@ static int init_network_pool
     if (KNO_STRINGP(label_opt)) {
       u8_string label = KNO_CSTRING(label_opt);
       p->pool_label = u8_strdup(label);}
+    else if (KNO_SYMBOLP(label_opt)) {
+      u8_string label = KNO_SYMBOL_NAME(label_opt);
+      p->pool_label = u8_strdup(label);}
+    else NO_ELSE;
     kno_decref(label_opt);}
   /* Register the pool */
-  return kno_register_pool((kno_pool)p);
+  int rv = kno_register_pool((kno_pool)p);
+  if (rv<0) return rv;
+  if (!(KNO_EMPTYP(adjuncts))) {
+    KNO_DO_CHOICES(adjunct,adjuncts) {
+      lispval opts = kno_make_slotmap(7,0,NULL);
+      kno_store(opts,KNOSYM(base),pool_base);
+      kno_store(opts,KNOSYM(capacity),pool_cap);
+      kno_store(opts,KNOSYM_ADJUNCT,adjunct);
+      unsigned int flags =
+	KNO_STORAGE_ISPOOL | KNO_STORAGE_READ_ONLY | KNO_POOL_ADJUNCT;
+      kno_pool adj_pool = kno_open_network_pool(spec,flags,opts);
+      kno_set_adjunct((kno_pool)p,adjunct,kno_pool2lisp(adj_pool));
+      kno_decref(opts);}}
+  return rv;
 }
 
 KNO_EXPORT kno_pool kno_open_network_pool(u8_string spec,
@@ -115,7 +138,8 @@ static int network_pool_load(kno_pool p)
 {
   struct KNO_NETWORK_POOL *np = (struct KNO_NETWORK_POOL *)p;
   lispval value;
-  value = kno_service_call(np->pool_server,2,get_load_symbol,kno_make_oid(p->pool_base));
+  value = kno_service_call
+    (np->pool_server,get_load_symbol,1,kno_make_oid(p->pool_base));
   if (KNO_UINTP(value)) return FIX2INT(value);
   else if (KNO_ABORTP(value))
     return kno_interr(value);
@@ -262,15 +286,16 @@ KNO_EXPORT void kno_init_netpool_c()
   u8_init_mutex(&client_id_lock);
 
   pool_data_symbol = kno_intern("pool-data");
+  oid_value_symbol = kno_intern("fetchoid");
+  fetch_oids_symbol = kno_intern("fetchoids");
+  bulk_commit_symbol = kno_intern("bulk-commit");
+  get_load_symbol = kno_intern("getload");
+
+  boundp = kno_intern("bound?");
   new_oid_symbol = kno_intern("new-oid");
-  oid_value_symbol = kno_intern("oid-value");
   lock_oid_symbol = kno_intern("lock-oid");
   unlock_oid_symbol = kno_intern("unlock-oid");
   clear_oid_lock_symbol = kno_intern("clear-oid-lock");
-  fetch_oids_symbol = kno_intern("fetch-oids");
-  bulk_commit_symbol = kno_intern("bulk-commit");
-  get_load_symbol = kno_intern("get-load");
-  boundp = kno_intern("bound?");
 
   kno_register_pool_type
     ("network_pool",

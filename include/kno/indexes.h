@@ -40,7 +40,7 @@ KNO_EXPORT int kno_index_adds_init;
 #define KNO_INDEX_IN_BACKGROUND   (KNO_INDEX_FLAG(4))
 #define KNO_INDEX_ONESLOT         (KNO_INDEX_FLAG(5))
 
-#define KNO_N_PRIMARY_INDEXES 1024
+#define KNO_MAX_PRIMARY_INDEXES 4096
 
 #define KNO_INDEX_FIELDS \
   KNO_CONS_HEADER;                                                  \
@@ -88,8 +88,8 @@ typedef struct KNO_INDEX_COMMITS {
 
 /* Lookup tables */
 
-KNO_EXPORT kno_index kno_primary_indexes[KNO_N_PRIMARY_INDEXES];
-KNO_EXPORT int kno_n_primary_indexes, kno_n_secondary_indexes;
+KNO_EXPORT kno_index kno_primary_indexes[KNO_MAX_PRIMARY_INDEXES];
+KNO_EXPORT int kno_n_primary_indexes;
 
 typedef struct KNO_KEY_SIZE {
   lispval keysize_key;
@@ -282,44 +282,27 @@ KNO_EXPORT struct KNO_INDEX_HANDLER *kno_aggregate_index_handler;
 KNO_EXPORT struct KNO_AGGREGATE_INDEX *kno_background;
 
 KNO_EXPORT kno_index _kno_indexptr(lispval lp);
-KNO_EXPORT kno_index _kno_ref2index(lispval indexval);
 KNO_EXPORT lispval _kno_index2lisp(kno_index ix);
 KNO_EXPORT kno_index _kno_get_writable_index(kno_index ix);
 
 #if KNO_INLINE_INDEXES
-#define kno_ref2index          __kno_ref2index
 #define kno_indexptr           __kno_indexptr
 #define kno_index2lisp         __kno_index2lisp
 #define kno_get_writable_index __kno_get_writable_index
 #else
-#define kno_ref2index          _kno_ref2index
 #define kno_indexptr           _kno_indexptr
 #define kno_index2lisp         _kno_index2lisp
 #define kno_get_writable_index _kno_get_writable_index
 #endif
 
 #if KNO_INLINE_INDEXES || KNO_STORAGE_INDEX_C
-KNO_FASTOP U8_MAYBE_UNUSED kno_index __kno_ref2index(lispval x)
-{
-  if (KNO_ETERNAL_INDEXP(x)) {
-    int serial = KNO_GET_IMMEDIATE(x,kno_index_type);
-    if (serial<0) return NULL;
-    else if (serial<KNO_N_PRIMARY_INDEXES)
-      return kno_primary_indexes[serial];
-    else if (serial<(KNO_N_PRIMARY_INDEXES+kno_n_secondary_indexes))
-      return _kno_ref2index(x);
-    else return NULL;}
-  else return NULL;
-}
 KNO_FASTOP U8_MAYBE_UNUSED kno_index __kno_indexptr(lispval x)
 {
   if (KNO_IMMEDIATE_TYPEP(x,kno_index_type)) {
     int serial = KNO_GET_IMMEDIATE(x,kno_index_type);
     if (serial<0) return NULL;
-    else if (serial<KNO_N_PRIMARY_INDEXES)
+    else if (serial<KNO_MAX_PRIMARY_INDEXES)
       return kno_primary_indexes[serial];
-    else if (serial<(KNO_N_PRIMARY_INDEXES+kno_n_secondary_indexes))
-      return _kno_ref2index(x);
     else return NULL;}
   else if ( (KNO_CONSP(x)) && (KNO_TYPEP(x,kno_consed_index_type)) )
     return (kno_index)x;

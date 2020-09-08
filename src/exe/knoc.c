@@ -979,7 +979,7 @@ int main(int argc,char **argv)
     if (startup_time > time_startup)
       u8_message("Kno %s loaded in %0.3f%s, %d/%d pools/indexes",
                  u8_appid(),show_startup_time,units,kno_n_pools,
-                 kno_n_primary_indexes+kno_n_secondary_indexes);}
+                 kno_n_primary_indexes);}
 
 #if USING_EDITLINE
   if (!(getenv("INSIDE_EMACS"))) {

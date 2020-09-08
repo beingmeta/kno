@@ -159,13 +159,15 @@ static lispval make_netproc(lispval server,lispval name,
 
 /* Support for server data */
 
-DEFPRIM2("srv/getconfig",srvconfig_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFPRIM2("srv/getconfig",srvconfig_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(0),
 	 "`(srv/getconfig *prop*)`",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_FALSE)
 static lispval srvconfig_prim(lispval prop,lispval dflt)
 {
   lispval config = kno_server_data;
-  return kno_getopt(config,prop,dflt);
+  if (KNO_VOIDP(prop))
+    return kno_incref(config);
+  else return kno_getopt(config,prop,dflt);
 }
 
 /* Initialization */

@@ -34,6 +34,7 @@ u8_condition kno_PoolRangeError=_("the OID is out of the range of the pool");
 u8_condition kno_NoLocking=_("No locking available");
 u8_condition kno_ReadOnlyPool=_("pool is read-only");
 u8_condition kno_InvalidPoolPtr=_("Invalid pool PTR");
+u8_condition kno_InvalidIndexPtr=_("Invalid index PTR");
 u8_condition kno_NotAFilePool=_("not a file pool");
 u8_condition kno_NoFilePools=_("file pools are not supported");
 u8_condition kno_AnonymousOID=_("no pool covers this OID");
@@ -774,6 +775,41 @@ KNO_EXPORT int kno_pool_prefetch(kno_pool p,lispval oids)
     if (knotc) kno_hashtable_op(&(knotc->oids),kno_table_store,oids,v);
     kno_decref(v);
     return 1;}
+}
+
+KNO_EXPORT lispval kno_pool_value(kno_pool p,lispval oid)
+{
+  lispval v = VOID;
+  init_cache_level(p);
+  if (p == kno_zero_pool)
+    return kno_zero_pool_value(oid);
+  else if  (p->pool_changes.table_n_keys) {
+    lispval v = kno_hashtable_test(&(p->pool_changes),oid,KNO_VOID);
+    if (! ( (KNO_VOIDP(v)) || (v == KNO_LOCKHOLDER) ) )
+      return v;}
+  if ( (p->pool_cache_level) &&
+       (kno_hashtable_test(&(p->pool_cache),oid,KNO_VOID)) )
+    return kno_hashtable_get(&(p->pool_cache),oid,EMPTY);
+  if (p->pool_handler->fetch)
+    v = p->pool_handler->fetch(p,oid);
+  else {}
+  if (KNO_ABORTP(v)) return v;
+  else if (p->pool_cache_level == 0)
+    return v;
+  /* If it's locked, store it in the locks table */
+  else if ( (p->pool_changes.table_n_keys) &&
+	    (kno_hashtable_op(&(p->pool_changes),
+			      kno_table_replace_novoid,oid,v)) )
+    return v;
+  else if ( (p->pool_handler->lock == NULL) ||
+	    (U8_BITP(p->pool_flags,KNO_POOL_VIRTUAL)) ||
+	    (U8_BITP(p->pool_flags,KNO_POOL_NOLOCKS)) )
+    modify_readonly(v,0);
+  else modify_readonly(v,1);
+  if ( ( (p->pool_cache_level) > 0) &&
+       ( ! ( (p->pool_flags) & (KNO_STORAGE_VIRTUAL) ) ) )
+    kno_hashtable_store(&(p->pool_cache),oid,v);
+  return v;
 }
 
 /* Swapping out OIDs */
@@ -1736,19 +1772,16 @@ KNO_EXPORT lispval kno_pool2lisp(kno_pool p)
 }
 KNO_EXPORT kno_pool kno_lisp2pool(lispval lp)
 {
-  if (TYPEP(lp,kno_pool_type)) {
-    int serial = KNO_GET_IMMEDIATE(lp,kno_pool_type);
-    if (serial<kno_n_pools)
-      return kno_pools_by_serialno[serial];
-    else {
-      char buf[64];
-      kno_seterr3(kno_InvalidPoolPtr,"kno_lisp2pool",
-		  u8_sprintf(buf,64,"serial = 0x%x",serial));
-      return NULL;}}
-  else if (TYPEP(lp,kno_consed_pool_type))
-    return (kno_pool) lp;
+  kno_pool p = kno_poolptr(lp);
+  if (p) return p;
+  else if (KNO_TYPEP(lp,kno_index_type)) {
+    char buf[64];
+    int serial = KNO_IMMEDIATE_DATA(lp);
+    kno_seterr3(kno_InvalidPoolPtr,"kno_lisp2pool",
+		u8_sprintf(buf,64,"serial = 0x%x",serial));
+    return NULL;}
   else {
-    kno_seterr(kno_TypeError,_("not a pool"),NULL,lp);
+    kno_seterr(kno_InvalidPoolPtr,"kno_lisp2pool",NULL,lp);
     return NULL;}
 }
 
@@ -2502,11 +2535,29 @@ KNO_EXPORT lispval kno_default_poolctl(kno_pool p,lispval op,int n,kno_argvec ar
     return kno_err("BadPoolOpCall","kno_default_poolctl",p->poolid,VOID);
   else if (n<0)
     return kno_err("BadPoolOpCall","kno_default_poolctl",p->poolid,VOID);
+  else if (op == KNOSYM_ID)
+    if (p->poolid)
+      return kno_mkstring(p->poolid);
+    else return KNO_FALSE;
   else if (op == kno_label_op) {
     if (n==0) {
       if (!(p->pool_label))
 	return KNO_FALSE;
       else return kno_mkstring(p->pool_label);}
+    else return KNO_FALSE;}
+  else if (op == kno_source_op) {
+    if (n==0) {
+      if (p->canonical_source)
+	return kno_mkstring(p->canonical_source);
+      else if (p->pool_source)
+	return kno_mkstring(p->pool_source);
+      else return KNO_FALSE;}
+    else if (KNO_TRUEP(args[0]))
+      if (p->pool_source)
+	return kno_mkstring(p->pool_source);
+      else return KNO_FALSE;
+    else if (p->canonical_source)
+      return kno_mkstring(p->canonical_source);
     else return KNO_FALSE;}
   else if (op == KNOSYM_OPTS)  {
     lispval opts = p->pool_opts;

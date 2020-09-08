@@ -80,9 +80,8 @@ DEFPRIM4("knosockd/listener",knosockd_listener_prim,
 	 kno_any_type,KNO_FALSE,
 	 kno_any_type,KNO_FALSE,kno_any_type,KNO_VOID,
 	 kno_any_type,KNO_VOID)
-static lispval knosockd_listener_prim(lispval listen,
-				      lispval opts,lispval env,
-				      lispval data)
+static lispval knosockd_listener_prim(lispval listen,lispval opts,
+				      lispval env,lispval data)
 {
   if (KNO_TABLEP(listen)) {
     data = env;

@@ -34,7 +34,7 @@ static lispval pooltype_symbol, indextype_symbol;
 
 lispval kno_cachelevel_op, kno_bufsize_op, kno_mmap_op, kno_preload_op;
 lispval kno_metadata_op, kno_raw_metadata_op, kno_reload_op;
-lispval kno_stats_op, kno_label_op, kno_populate_op, kno_swapout_op;
+lispval kno_stats_op, kno_label_op, kno_source_op, kno_populate_op, kno_swapout_op;
 lispval kno_getmap_op, kno_xrefs_op, kno_slotids_op, kno_baseoids_op;
 lispval kno_load_op, kno_capacity_op, kno_keycount_op;
 lispval kno_keys_op, kno_keycount_op, kno_partitions_op;
@@ -1242,6 +1242,7 @@ KNO_EXPORT int kno_init_drivers_c()
   kno_reload_op=kno_intern("reload");
   kno_stats_op=kno_intern("stats");
   kno_label_op=kno_intern("label");
+  kno_source_op=kno_intern("source");
   kno_populate_op=kno_intern("populate");
   kno_getmap_op=kno_intern("getmap");
   kno_xrefs_op=kno_intern("xrefs");
