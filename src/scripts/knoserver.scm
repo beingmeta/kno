@@ -20,6 +20,14 @@
   (and (not (config 'nodbserv #f))
        (or (config 'servepools) (config 'serveindexes))))
 
+(define (get-env-syms env)
+  (cond ((pair? env)
+	 {(get-env-syms (car env))
+	  (get-env-syms (cdr env))})
+	((or (slotmap? env) (schemap? env) (hashtable? env))
+	 (pick (getkeys env) {symbol? oid?}))
+	(else (fail))))
+
 (define (main (port (config 'PORT)) . mods)
   (when (and (string? port) (file-exists? port))
     (cond ((has-suffix port {".fdz" ".scm"}) (load-file port))
@@ -32,6 +40,8 @@
 	 (server-env (append (remove #f (map get-server-mod mods))
 			     (remove #f (map get-server-mod (config 'USEMODS '())))
 			     (if dbserver (list (get-module 'knodb/dbserv)) '())))
+	 (use-xrefs (config 'xrefs #t config:boolean))
+	 (xrefs (if use-xrefs {(config 'xref {}) (get-env-syms server-env)} #f))
 	 (server-config #[]))
     (when dbserver
       (add! server-config 'pools (pool/ref serve-pools))
@@ -43,12 +53,21 @@
 	(let ((indexes (get server-config 'indexes)))
 	  (if (singleton? indexes) 
 	      (store! server-config 'index indexes)
-	      (store! server-config 'index (make-aggregate-index indexes #[register #t]))))))
+	      (store! server-config 'index (make-aggregate-index indexes #[register #t])))))
+      (lognotice |DBServer| 
+	"Configuring KNO db server"
+	(do-choices (pool (get server-config 'pools)) (printout "\n\t" pool))
+	(do-choices (pool (get server-config 'indexes)) (printout "\n\t" pool)))
+      (when use-xrefs
+	(do-choices (db (get server-config '{pools indexes}))
+	  (when (overlaps? (dbctl db 'type) '{kpool kindex})
+	    (set+! xrefs (dbctl db 'xrefs))))))
     (let ((listener
 	   (knosockd/listener {port (config 'listen {})}
 			      [initclients (config 'startclients 7)
 			       maxclients (config 'maxclients 100)
-			       nthreads (config 'nthreads 16)]
+			       nthreads (config 'nthreads 16)
+			       xrefs xrefs]
 			      (and (pair? server-env) server-env)
 			      server-config)))
       (loginfo |Server_Starting|

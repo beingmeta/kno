@@ -40,11 +40,12 @@ static void init_client_id(void);
 static u8_mutex client_id_lock;
 
 KNO_EXPORT kno_pool kno_open_network_pool
-(u8_string spec,kno_storage_flags flags,lispval opts);
+(u8_string spec,lispval dbname,kno_storage_flags flags,lispval opts);
 
 DEF_KNOSYM(base); DEF_KNOSYM(capacity);
 DEF_KNOSYM(metadata); DEF_KNOSYM(flags);
 DEF_KNOSYM(label); DEF_KNOSYM(adjuncts);
+DEF_KNOSYM(dbname);
 
 static int init_network_pool
 (struct KNO_NETWORK_POOL *p,lispval netinfo,
@@ -90,16 +91,45 @@ static int init_network_pool
       kno_store(opts,KNOSYM_ADJUNCT,adjunct);
       unsigned int flags =
 	KNO_STORAGE_ISPOOL | KNO_STORAGE_READ_ONLY | KNO_POOL_ADJUNCT;
-      kno_pool adj_pool = kno_open_network_pool(spec,flags,opts);
+      kno_pool adj_pool = kno_open_network_pool(spec,adjunct,flags,opts);
       kno_set_adjunct((kno_pool)p,adjunct,kno_pool2lisp(adj_pool));
       kno_decref(opts);}}
   return rv;
 }
 
+struct POOL_SEARCH {
+  kno_pool found; u8_string spec; lispval dbname;};
+
+static int find_netpool_iterfn(kno_pool p,void *state)
+{
+  struct POOL_SEARCH *search = (struct POOL_SEARCH *)state;
+  if (search->found) /* Shouldn't ever happen */
+    return 1;
+  else if (p->pool_handler == &netpool_handler) {
+    struct KNO_NETWORK_POOL *np = (kno_network_pool) p;
+    if ( (strcasecmp(search->spec,np->poolid)==0) &&
+	 ( (search->dbname) == (np->pool_dbname) ) ) {
+      search->found = p;
+      return 1;}
+    else return 0;}
+  else return 0;
+}
+
+static kno_pool find_network_pool(u8_string spec,lispval dbname)
+{
+  struct POOL_SEARCH state = { NULL, spec, dbname};
+  kno_for_pools(find_netpool_iterfn,(void *)&state);
+  return state.found;
+}
+
 KNO_EXPORT kno_pool kno_open_network_pool(u8_string spec,
+					  lispval dbname,
 					  kno_storage_flags flags,
 					  lispval opts)
 {
+  kno_pool existing = find_network_pool(spec,dbname);
+  if (existing) return existing;
+
   struct KNO_NETWORK_POOL *np = u8_alloc(struct KNO_NETWORK_POOL);
   u8_string xid = NULL, cid = u8_canonical_addr(spec);
   lispval spec_obj = knostring(spec);
@@ -121,6 +151,7 @@ KNO_EXPORT kno_pool kno_open_network_pool(u8_string spec,
   np->poolid = cid;
   np->pool_source = xid;
   np->pool_server = s;
+  np->pool_dbname = dbname;
   kno_decref(spec_obj);
   int rv = init_network_pool(np,pooldata,spec,cid,flags,opts);
   if (rv<0) {
@@ -151,16 +182,20 @@ static int network_pool_load(kno_pool p)
 static lispval network_pool_fetch(kno_pool p,lispval oid)
 {
   struct KNO_NETWORK_POOL *np = (struct KNO_NETWORK_POOL *)p;
-  lispval value;
-  value = kno_service_call(np->pool_server,oid_value_symbol,1,oid);
+  lispval dbname = np->pool_dbname, value;
+  value = (KNO_VOIDP(dbname)) ?
+    (kno_service_call(np->pool_server,oid_value_symbol,1,oid)) :
+    (kno_service_call(np->pool_server,oid_value_symbol,2,oid,dbname));
   return value;
 }
 
 static lispval *network_pool_fetchn(kno_pool p,int n,lispval *oids)
 {
   struct KNO_NETWORK_POOL *np = (struct KNO_NETWORK_POOL *)p;
-  lispval oidvec = kno_make_vector(n,oids);
-  lispval value = kno_service_call(np->pool_server,fetch_oids_symbol,1,oidvec);
+  lispval oidvec = kno_make_vector(n,oids), dbname = np->pool_dbname;
+  lispval value = (KNO_VOIDP(dbname)) ?
+    (kno_service_call(np->pool_server,fetch_oids_symbol,1,oidvec)) :
+    (kno_service_call(np->pool_server,fetch_oids_symbol,2,oidvec,dbname));
   kno_decref(oidvec);
   if (VECTORP(value)) {
     lispval *values = u8_alloc_n(n,lispval);
@@ -279,6 +314,29 @@ static void init_client_id()
   u8_unlock_mutex(&client_id_lock);
 }
 
+static kno_pool open_network_pool(u8_string spec,kno_storage_flags flags,
+				   lispval opts)
+{
+  lispval dbname = KNO_VOID; u8_string host_spec = spec, slash;
+  ssize_t spec_len = strlen(spec);
+  u8_byte host_buf[spec_len+1];
+  if ((slash=(strchr(spec,'/')))) {
+    strcpy(host_buf,spec);
+    if (slash[1])
+      dbname = kno_parse(slash+1);
+    else dbname=KNO_VOID;
+    host_buf[slash-spec]='\0';
+    host_spec = host_buf;}
+  else dbname = kno_getopt(opts,KNOSYM(dbname),KNO_VOID);
+  if ( (KNO_FALSEP(dbname)) || (KNO_DEFAULTP(dbname)) ) dbname = KNO_VOID;
+  if (KNO_VOIDP(dbname)) {}
+  else if (!( (OIDP(dbname)) || (SYMBOLP(dbname)) ) ) {
+    u8_log(LOGWARN,"InvalidDBName","For pool %s: %q",spec,dbname);
+    kno_decref(dbname); dbname = KNO_VOID;}
+  else NO_ELSE;
+  return kno_open_network_pool(host_spec,dbname,flags,opts);
+}
+
 KNO_EXPORT void kno_init_netpool_c()
 {
   u8_register_source_file(_FILEINFO);
@@ -300,7 +358,7 @@ KNO_EXPORT void kno_init_netpool_c()
   kno_register_pool_type
     ("network_pool",
      &netpool_handler,
-     kno_open_network_pool,
+     open_network_pool,
      kno_netspecp,
      (void*)NULL);
 

@@ -507,6 +507,9 @@ static int execserver(u8_client ucl)
     kno_use_reqinfo(reqdata);
     kno_decref(reqdata);
     kno_outbuf outbuf = kno_writebuf(stream);
+    /* Currently, kno_write_xtype writes the whole thing at once,
+       so we just use that. */
+    outbuf->bufwrite = outbuf->buffer;
     lispval value;
     int tracethis = ((server->logtrans) &&
 		     ((client->n_trans==1) ||
@@ -562,10 +565,17 @@ static int execserver(u8_client ucl)
       u8_logf(LOG_INFO,Outgoing,"%s[%d/%d]: Request executed in %fs",
 	      client->idstring,sock,trans_id,elapsed);
     client->client_livetime += elapsed;
-    /* Currently, kno_write_dtype writes the whole thing at once,
-       so we just use that. */
-    outbuf->bufwrite = outbuf->buffer;
-    if ( (kno_use_dtblock) && (!(xtyped)) ) {
+    if ( (outbuf->bufwrite) > (outbuf->buffer) ) {
+      if (async) {
+	struct KNO_RAWBUF *rawbuf = (struct KNO_RAWBUF *)inbuf;
+	size_t n_bytes = rawbuf->bufpoint-rawbuf->buffer;
+	u8_client_write(ucl,rawbuf->buffer,n_bytes,0);
+	rawbuf->bufpoint = rawbuf->buffer;
+	kno_decref(expr);
+	kno_decref(value);
+	return 1;}
+      else kno_flush_stream(stream);}
+    else if ( (kno_use_dtblock) && (!(xtyped)) ) {
       size_t start_off = outbuf->bufwrite-outbuf->buffer;
       size_t nbytes = kno_write_dtype(outbuf,value);
       if (nbytes>KNO_DTBLOCK_THRESH) {
@@ -617,6 +627,16 @@ static int close_knoclient(u8_client ucl)
   return 1;
 }
 
+static ssize_t get_xrefs_len(lispval xrefs)
+{
+  ssize_t sum = 0;
+  KNO_DO_CHOICES(xref_init,xrefs) {
+    if (KNO_VECTORP(xref_init))
+      sum += KNO_VECTOR_LENGTH(xref_init);
+    else sum++;}
+  return sum;
+}
+
 KNO_EXPORT
 struct KNOSOCKS_SERVER *new_knosocks_listener
 (u8_string serverid,lispval listen,
@@ -647,22 +667,28 @@ struct KNOSOCKS_SERVER *new_knosocks_listener
      U8_SERVER_END_INIT);
   s->serverid = u8_strdup(serverid);
   int max_xrefs = kno_getfixopt(opts,"xrefsmax",-1);
-  int init_xrefs = kno_getfixopt(opts,"xrefslen",-1);
-  if (kno_testopt(opts,KNOSYM(xrefs),KNO_VOID)) {
-    lispval xrefs = kno_testopt(opts,KNOSYM(xrefs),KNO_VOID);
-    if (KNO_VECTORP(xrefs)) {
-      int vec_len = KNO_VECTOR_LENGTH(xrefs), refs_len = vec_len;
-      lispval *vec = KNO_VECTOR_DATA(xrefs);
-      if (init_xrefs > refs_len) refs_len = init_xrefs;
-      lispval *copied = u8_alloc_n(refs_len,lispval);
-      int i = 0; while (i<vec_len) {
-	lispval elt = vec[i]; kno_incref(elt); copied[i++]=elt;}
-      while (i< refs_len) copied[i++] = KNO_VOID;
-      kno_init_xrefs(&(server->server_xrefs),
-		     vec_len,refs_len,max_xrefs,
-		     0,
-		     copied,
-		     NULL);}}
+  if ( (kno_testopt(opts,KNOSYM(xrefs),KNO_VOID)) &&
+       (!(kno_testopt(opts,KNOSYM(xrefs),KNO_FIXNUM_ZERO))) ) {
+    lispval xrefs = kno_getopt(opts,KNOSYM(xrefs),KNO_VOID);
+    ssize_t xrefs_len = get_xrefs_len(xrefs);
+    lispval *xrefs_vec = u8_alloc_n(xrefs_len,lispval);
+    int xrefs_flags = XTYPE_REFS_ADD_OIDS | XTYPE_REFS_ADD_SYMS;
+    kno_init_xrefs(&(server->server_xrefs),0,xrefs_len,max_xrefs,
+		   xrefs_flags,xrefs_vec,NULL);
+    KNO_DO_CHOICES(xref_init,xrefs) {
+      if (KNO_VECTORP(xrefs)) {
+	lispval *inits = KNO_VECTOR_ELTS(xrefs);
+	int i = 0, lim =KNO_VECTOR_LENGTH(xrefs);
+	while (i<lim) {
+	  lispval elt = inits[i++];
+	  if ( (OIDP(elt)) || (SYMBOLP(elt)) )
+	    kno_add_xtype_ref(elt,&(server->server_xrefs));}}
+      else if ( (KNO_OIDP(xref_init)) || (KNO_SYMBOLP(xref_init)) )
+	kno_add_xtype_ref(xref_init,&(server->server_xrefs));}
+    server->server_xrefs.xt_refs_flags |= XTYPE_REFS_READ_ONLY;
+    server->server_xrefs.xt_refs_max = server->server_xrefs.xt_n_refs;}
+  else kno_init_xrefs(&(server->server_xrefs),
+		      0,0,0,XTYPE_REFS_READ_ONLY,NULL,NULL);
   u8_init_mutex(&(server->server_lock));
   lispval base_env    = kno_incref(knosocks_env);
   server->async       = getintopt(opts,KNOSYM(async),default_async_mode);
@@ -1013,13 +1039,17 @@ DEFPRIM("xrefs",getxrefs_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
 static lispval getxrefs_prim()
 {
   xtype_refs refs = cur_client->client_xrefs;
+  kno_stream stream = &(cur_client->client_stream);
+  kno_outbuf out = kno_writebuf(stream);
   if (refs) {
     int len = refs->xt_n_refs;
-    lispval vec = kno_make_vector(len,refs->xt_refs);
-    if ((refs->xt_refs_flags)&(XTYPE_REFS_CONS_ELTS)) {
-      lispval *elts = KNO_VECTOR_ELTS(vec);
-      kno_incref_vec(elts,len);}
-    return vec;}
+    kno_write_byte(out,xt_vector);
+    kno_write_varint(out,len);
+    lispval *elts = refs->xt_refs;
+    int i = 0; while (i<len) {
+      lispval xref = elts[i++];
+      kno_write_xtype(out,xref,NULL);}
+    return KNO_VOID;}
   else return KNO_FALSE;
 }
 
