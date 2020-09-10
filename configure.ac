@@ -136,7 +136,7 @@ GPG=`which gpg2 || which gpg || gpg`
 GPGID=${GPGID:-FE1BC737F9F323D732AA26330620266BE5AFF294}
 GITBRANCH=""
 TAGS_TARGET="TAGS SCHEMETAGS"
-LIBSCM="\${REVISION}"
+LIBSCM="kno-${KNO_PATCHVERSION}"
 default_source_dir="\$prefix/src"
 default_config_dir="\$prefix/etc/kno"
 default_buildopts_dir="\$prefix/etc/beingmeta/opts"
@@ -1368,7 +1368,7 @@ local_module_dir=$with_local_modules
 AC_ARG_WITH(stdlib_module_dir,--with-stdlib-module-dir location,,with_stdlib_module_dir=$share_dir/modules/stdlib)
 stdlib_module_dir=$with_stdlib_module_dir
 
-LIBSCM="${share_dir}/libscm/\${REVISION}"
+LIBSCM="${share_dir}/libscm/kno-${KNO_PATCHVERSION}"
 
 AC_ARG_WITH(loadpath,--with-loadpath location)
 
