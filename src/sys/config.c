@@ -400,7 +400,7 @@ static lispval file_config_lookup(lispval symbol,void *pathdata)
   u8_string filename =
     u8_find_file(SYM_NAME(symbol),path,u8_file_readablep);
   if (filename) {
-    int n_bytes; lispval results = KNO_EMPTY;
+    ssize_t n_bytes; lispval results = KNO_EMPTY;
     unsigned char *content = u8_filedata(filename,&n_bytes);
     if (content[0]==0) {
       struct KNO_INBUF in = { 0 };

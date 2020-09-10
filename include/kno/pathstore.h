@@ -14,6 +14,8 @@
 typedef struct KNO_PATHSTORE {
   KNO_CONS_HEADER;
   u8_string knops_id;
+  u8_string knops_mountpoint;
+  ssize_t knops_mountpoint_len;
   u8_string knops_prefix;
   ssize_t knops_prefix_len;
   u8_string knops_cacheroot;
@@ -34,6 +36,11 @@ typedef struct KNO_PATHSTORE {
 KNO_EXPORT int knops_existsp(kno_pathstore,u8_string);
 KNO_EXPORT lispval knops_pathinfo(kno_pathstore,u8_string,int);
 KNO_EXPORT lispval knops_content(kno_pathstore,u8_string,u8_string,int);
+
+/* zpathstore prototypes */
+
+KNO_EXPORT lispval kno_open_zpathstore(u8_string path,lispval opts);
+KNO_EXPORT lispval kno_get_zipsource(u8_string path);
 
 #endif /* KNO_PATHSTORE_H */
 

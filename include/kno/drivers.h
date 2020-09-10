@@ -237,5 +237,10 @@ KNO_EXPORT int kno_check_rollback(u8_context caller,u8_string source);
 
 KNO_EXPORT int kno_set_file_opts(u8_string filename,lispval opts);
 
+/* zpathstore prototypes */
+
+KNO_EXPORT lispval kno_open_zpathstore(u8_string path,lispval opts);
+KNO_EXPORT lispval kno_get_zipsource(u8_string path);
+
 #endif /* #ifndef KNO_DRIVERS_H */
 

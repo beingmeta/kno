@@ -22,6 +22,7 @@
 #include "kno/eval.h"
 #include "kno/ports.h"
 #include "kno/fileprims.h"
+#include "kno/getsource.h"
 #include "kno/cprims.h"
 
 #include <libu8/u8pathfns.h>
@@ -442,6 +443,16 @@ static lispval link_file_prim(lispval from,lispval to,lispval must_exist)
 
 /* FILESTRING */
 
+static u8_string get_filestring(u8_string path,u8_string encname)
+{
+  if (u8_file_existsp(path))
+    return u8_filestring(path,encname);
+  else {
+    const unsigned char *data = kno_get_source(path,encname,NULL,NULL,NULL);
+    if (data == NULL) kno_seterr3(kno_FileNotFound,"filestring",path);
+    return data;}
+}
+
 DEFPRIM2("filestring",filestring_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "(FILESTRING *file* [*encoding*]) "
 	 "returns the contents of a text file. The "
@@ -451,20 +462,30 @@ DEFPRIM2("filestring",filestring_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 static lispval filestring_prim(lispval filename,lispval enc)
 {
   if ((VOIDP(enc))||(FALSEP(enc))) {
-    u8_string data = u8_filestring(CSTRING(filename),"UTF-8");
+    u8_string data = get_filestring(CSTRING(filename),"UTF-8");
     if (data)
       return kno_wrapstring(data);
     else return KNO_ERROR;}
   else if (KNO_TRUEP(enc)) {
-    u8_string data = u8_filestring(CSTRING(filename),"auto");
+    u8_string data = get_filestring(CSTRING(filename),"auto");
     if (data) return kno_wrapstring(data);
     else return KNO_ERROR;}
   else if (STRINGP(enc)) {
-    u8_string data = u8_filestring(CSTRING(filename),CSTRING(enc));
+    u8_string data = get_filestring(CSTRING(filename),CSTRING(enc));
     if (data)
       return kno_wrapstring(data);
     else return KNO_ERROR;}
   else return kno_err(kno_UnknownEncoding,"FILESTRING",NULL,enc);
+}
+
+static u8_string get_filedata(u8_string path,ssize_t *lenp)
+{
+  if (u8_file_existsp(path))
+    return u8_filedata(path,lenp);
+  else {
+    const unsigned char *data = kno_get_source(path,"bytes",NULL,NULL,lenp);
+    if (data == NULL) kno_seterr3(kno_FileNotFound,"filestring",path);
+    return data;}
 }
 
 DEFPRIM1("filedata",filedata_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
@@ -473,8 +494,8 @@ DEFPRIM1("filedata",filedata_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 kno_string_type,KNO_VOID);
 static lispval filedata_prim(lispval filename)
 {
-  int len = -1;
-  unsigned char *data = u8_filedata(CSTRING(filename),&len);
+  ssize_t len = -1;
+  const unsigned char *data = get_filedata(CSTRING(filename),&len);
   if (len>=0) return kno_init_packet(NULL,len,data);
   else return KNO_ERROR;
 }
@@ -486,8 +507,8 @@ DEFPRIM1("filecontent",filecontent_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 kno_string_type,KNO_VOID);
 static lispval filecontent_prim(lispval filename)
 {
-  int len = -1;
-  unsigned char *data = u8_filedata(CSTRING(filename),&len);
+  ssize_t len = -1;
+  const unsigned char *data = get_filedata(CSTRING(filename),&len);
   if (len>=0) {
     lispval result;
     if (u8_validp(data))
@@ -507,6 +528,11 @@ static lispval file_existsp(lispval arg)
 {
   if (u8_file_existsp(CSTRING(arg)))
     return KNO_TRUE;
+  else if ( (strchr(CSTRING(arg),':')) ||
+	    (strstr(CSTRING(arg),".zip/")) ) {
+    if (kno_probe_source(CSTRING(arg),NULL,NULL,NULL))
+      return KNO_TRUE;
+    else return KNO_FALSE;}
   else return KNO_FALSE;
 }
 
@@ -1037,9 +1063,19 @@ DEFPRIM1("file-modtime",file_modtime,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 kno_string_type,KNO_VOID);
 static lispval file_modtime(lispval filename)
 {
-  time_t mtime = u8_file_mtime(CSTRING(filename));
-  if (mtime<0) return KNO_ERROR;
-  else return make_timestamp(mtime);
+  if (u8_file_existsp(CSTRING(filename))) {
+    time_t mtime = u8_file_mtime(CSTRING(filename));
+    if (mtime<0) return KNO_ERROR;
+    else return make_timestamp(mtime);}
+  else if ( (strchr(CSTRING(filename),':')) ||
+	    (strstr(CSTRING(filename),".zip/")) ) {
+    time_t mtime = -1;
+    if (kno_probe_source(CSTRING(filename),NULL,&mtime,NULL))
+      return make_timestamp(mtime);}
+  else NO_ELSE;
+  return kno_err(kno_FileNotFound,"file_modtime",
+		 CSTRING(filename),
+		 filename);
 }
 
 DEFPRIM2("set-file-modtime!",set_file_modtime,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
@@ -1115,11 +1151,21 @@ DEFPRIM1("file-size",file_size,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 kno_string_type,KNO_VOID);
 static lispval file_size(lispval filename)
 {
-  ssize_t size = u8_file_size(CSTRING(filename));
-  if (size<0) return KNO_ERROR;
-  else if (size<KNO_MAX_FIXNUM)
-    return KNO_INT(size);
-  else return kno_make_bigint(size);
+  if (u8_file_existsp(KNO_CSTRING(filename))) {
+    ssize_t size = u8_file_size(CSTRING(filename));
+    if (size<0) return KNO_ERROR;
+    else if (size<KNO_MAX_FIXNUM)
+      return KNO_INT(size);
+    else return kno_make_bigint(size);}
+  else if ( (strchr(CSTRING(filename),':')) ||
+	    (strstr(CSTRING(filename),".zip/")) ) {
+    ssize_t size = -1;
+    if (kno_probe_source(CSTRING(filename),NULL,NULL,&size))
+      return KNO_INT(size);}
+  else NO_ELSE;
+  return kno_err(kno_FileNotFound,"file_modtime",
+		 CSTRING(filename),
+		 filename);
 }
 
 DEFPRIM1("file-owner",file_owner,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),

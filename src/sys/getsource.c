@@ -27,7 +27,7 @@
 static struct KNO_SOURCEFN *sourcefns = NULL;
 static u8_mutex sourcefns_lock;
 
-KNO_EXPORT u8_string kno_get_source
+KNO_EXPORT const unsigned char *kno_get_source
 (u8_string path,u8_string enc,u8_string *basepathp,time_t *timep,
  ssize_t *sizep)
 {
@@ -38,9 +38,11 @@ KNO_EXPORT u8_string kno_get_source
   while (scan) {
     u8_string basepath = NULL;
     u8_string data = scan->getsource
-      (1,lpath,enc,&basepath,timep,sizep,scan->getsource_data);
+      (1,lpath,enc,
+       ((basepathp) ? (&basepath) : (NULL)),
+       timep,sizep,scan->getsource_data);
     if (data) {
-      *basepathp = basepath;
+      if (basepathp) *basepathp = basepath;
       kno_clear_errors(0);
       return data;}
     else scan = scan->getsource_next;}
@@ -58,7 +60,7 @@ KNO_EXPORT int kno_probe_source
     u8_string basepath = NULL;
     u8_string data = scan->getsource
       (0,lpath,NULL,&basepath,timep,sizep,scan->getsource_data);
-    if (data) {
+    if (basepath) {
       if (basepathp)
 	*basepathp = basepath;
       else if (basepath)

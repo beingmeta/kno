@@ -18,15 +18,15 @@
 
 static u8_string get_relpath(kno_pathstore ps,u8_string path)
 {
-  if (ps->knops_prefix == NULL)
+  if (ps->knops_mountpoint == NULL)
     return path;
-  else if (strncmp(path,ps->knops_prefix,ps->knops_prefix_len)==0) {
-    char termchar = path[ps->knops_prefix_len];
+  else if (strncmp(path,ps->knops_mountpoint,ps->knops_mountpoint_len)==0) {
+    char termchar = path[ps->knops_mountpoint_len];
     if (termchar == '\0')
       return NULL;
     else if (termchar == '/')
-      return path + ps->knops_prefix_len + 1;
-    else return path + ps->knops_prefix_len;}
+      return path + ps->knops_mountpoint_len + 1;
+    else return path + ps->knops_mountpoint_len;}
   else return NULL;
 }
 
@@ -60,7 +60,7 @@ static void recycle_pathstore(struct KNO_RAW_CONS *c)
   kno_pathstore ps = (kno_pathstore) c;
   if (ps->knops_handlers->recycle) ps->knops_handlers->recycle(ps);
   if (ps->knops_cacheroot) u8_free(ps->knops_cacheroot);
-  if (ps->knops_prefix) u8_free(ps->knops_prefix);
+  if (ps->knops_mountpoint) u8_free(ps->knops_mountpoint);
   u8_free(ps->knops_id);
   kno_decref(ps->knops_config);
   kno_recycle_hashtable(&(ps->knops_cache));

@@ -18,6 +18,7 @@ static int stream_loglevel;
 #include "kno/knosource.h"
 #include "kno/lisp.h"
 #include "kno/streams.h"
+#include "kno/getsource.h"
 
 #include <libu8/u8pathfns.h>
 #include <libu8/u8filefns.h>
@@ -1532,40 +1533,54 @@ KNO_EXPORT long long kno_streamctl(kno_stream s,kno_streamop op,void *data)
 
 KNO_EXPORT lispval kno_read_dtype_from_file(u8_string filename)
 {
-  ssize_t filesize = u8_file_size(filename);
-  if (filesize<0) {
+  if (u8_file_existsp(filename)) {
+    ssize_t filesize = u8_file_size(filename);
+    if (filesize<0) {
+      kno_seterr(kno_FileNotFound,"kno_read_dtype_from_file",filename,VOID);
+      return KNO_ERROR;}
+    else if (filesize == 0) {
+      kno_seterr("Zero-length file","kno_read_dtype_from_file",filename,VOID);
+      return KNO_ERROR;}
+    else {
+      struct KNO_STREAM *stream = u8_alloc(struct KNO_STREAM);
+      struct KNO_STREAM *opened=
+	kno_init_file_stream(stream,filename,
+			     KNO_FILE_READ,
+			     KNO_STREAM_IS_CONSED|
+			     KNO_STREAM_READ_ONLY|
+			     ( (KNO_USE_MMAP) ? (KNO_STREAM_MMAPPED) : (0)),
+			     kno_filestream_bufsize);
+      if (opened) {
+	lispval result = VOID;
+	struct KNO_INBUF *in = kno_readbuf(opened);
+	int byte1 = kno_probe_byte(in);
+	int zip = (byte1>=0x80);
+	if (zip)
+	  result = kno_zread_dtype(in);
+	else if (byte1 == dt_ztype) {
+	  kno_read_byte(in);
+	  result = kno_zread_dtype(in);}
+	else result = kno_read_dtype(in);
+	kno_free_stream(opened);
+	if ( (ABORTED(result)) && (u8_current_exception==NULL))
+	  kno_seterr("UndeclaredError","kno_read_dtype_from_file",filename,VOID);
+	return result;}
+      else {
+	u8_free(stream);
+	return KNO_ERROR;}}}
+  else if (strstr(filename,".zip/")) {
+    ssize_t n_bytes = -1;
+    u8_string bytes = kno_get_source(filename,"bytes",NULL,NULL,&n_bytes);
+    if (bytes) {
+      struct KNO_INBUF inbuf;
+      KNO_INIT_INBUF(&inbuf,bytes,n_bytes,0);
+      lispval v = kno_read_dtype(&inbuf);
+      u8_free(bytes);
+      return v;}
+    else return KNO_ERROR;}
+  else {
     kno_seterr(kno_FileNotFound,"kno_read_dtype_from_file",filename,VOID);
     return KNO_ERROR;}
-  else if (filesize == 0) {
-    kno_seterr("Zero-length file","kno_read_dtype_from_file",filename,VOID);
-    return KNO_ERROR;}
-  else {
-    struct KNO_STREAM *stream = u8_alloc(struct KNO_STREAM);
-    struct KNO_STREAM *opened=
-      kno_init_file_stream(stream,filename,
-                           KNO_FILE_READ,
-                           KNO_STREAM_IS_CONSED|
-                           KNO_STREAM_READ_ONLY|
-                           ( (KNO_USE_MMAP) ? (KNO_STREAM_MMAPPED) : (0)),
-                           kno_filestream_bufsize);
-    if (opened) {
-      lispval result = VOID;
-      struct KNO_INBUF *in = kno_readbuf(opened);
-      int byte1 = kno_probe_byte(in);
-      int zip = (byte1>=0x80);
-      if (zip)
-        result = kno_zread_dtype(in);
-      else if (byte1 == dt_ztype) {
-        kno_read_byte(in);
-        result = kno_zread_dtype(in);}
-      else result = kno_read_dtype(in);
-      kno_free_stream(opened);
-      if ( (ABORTED(result)) && (u8_current_exception==NULL))
-	kno_seterr("UndeclaredError","kno_read_dtype_from_file",filename,VOID);
-      return result;}
-    else {
-      u8_free(stream);
-      return KNO_ERROR;}}
 }
 
 KNO_EXPORT ssize_t kno_lisp2file(lispval object, u8_string filename,

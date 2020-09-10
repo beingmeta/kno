@@ -22,6 +22,7 @@
 #include "kno/streams.h"
 #include "kno/xtypes.h"
 #include "kno/ports.h"
+#include "kno/getsource.h"
 #include "kno/cprims.h"
 
 #include <libu8/u8streamio.h>
@@ -35,6 +36,16 @@
 #endif
 
 static lispval refs_symbol, append_symbol, embed_symbol;
+
+static u8_string get_filedata(u8_string path,ssize_t *lenp)
+{
+  if (u8_file_existsp(path))
+    return u8_filedata(path,lenp);
+  else {
+    const unsigned char *data = kno_get_source(path,"bytes",NULL,NULL,lenp);
+    if (data == NULL) kno_seterr3(kno_FileNotFound,"filestring",path);
+    return data;}
+}
 
 DEFPRIM3("write-xtype",write_xtype_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
 	 "(WRITE-XTYPE *obj* *stream* [*opts*]) "
@@ -149,13 +160,25 @@ static lispval read_xtype_prim(lispval source,lispval opts)
     return object;}
 
   if (KNO_STRINGP(source)) {
-    in=kno_init_file_stream(&_in,CSTRING(source),KNO_FILE_READ,
-			   ( (KNO_USE_MMAP) ? (KNO_STREAM_MMAPPED) : (0)),
-			    ( (KNO_USE_MMAP) ? (0) : (kno_filestream_bufsize)));
-    if (in == NULL) {
-      kno_decref(refs_arg);
-      return KNO_ERROR;}
-    else close_stream=1;}
+    u8_string sourcepath = KNO_CSTRING(source);
+    if (u8_file_existsp(sourcepath)) {
+      in=kno_init_file_stream(&_in,sourcepath,KNO_FILE_READ,
+			      ( (KNO_USE_MMAP) ? (KNO_STREAM_MMAPPED) : (0)),
+			      ( (KNO_USE_MMAP) ? (0) : (kno_filestream_bufsize)));
+      if (in == NULL) {
+	kno_decref(refs_arg);
+	return KNO_ERROR;}
+      else close_stream=1;}
+    else {
+      ssize_t len = -1;
+      const unsigned char *filedata = get_filedata(sourcepath,&len);
+      if (filedata == NULL) {
+	kno_seterr3(kno_FileNotFound,"open_stream",sourcepath);
+	return KNO_ERROR;}
+      in=kno_init_stream(&_in,sourcepath,-1,KNO_FILE_READ,len);
+      memcpy(_in.buf.in.buffer,filedata,len);
+      _in.buf.in.buflim = _in.buf.in.buffer+len;
+      close_stream=1;}}
   else if (TYPEP(source,kno_stream_type))
     in = (kno_stream) source;
   else {
