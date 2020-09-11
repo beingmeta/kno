@@ -23,9 +23,9 @@ KNOVERSION       := $(shell cat ./etc/base_version)
 DYLIB_FLAGS       = -compatibility_version @KNO_MAJOR@.@KNO_MINOR@ -current_version ${KNOVERSION}
 EXEFLAGS          = @EXEFLAGS@
 EXELIBS           = @EXELIBS@
-STATIC_CFLAGS     = -I./include @CFLAGS@ @PROFILING@ @DREENTRANT@ \
+STATIC_CFLAGS     = -I./include @CFLAGS@ @PROFILING@ @DREENTRANT@ -DKNO_STATIC \
 		    $(DYNAMIC_CFLAG) -I./include $(XCFLAGS)
-TEST_CFLAGS       = -DKNO_TESTCONFIG=1 ${STATIC_CFLAGS}
+TEST_CFLAGS       = -DKNO_TESTCONFIG=1 -DKNO_DEFAULT_LIBSCM="\"@abs_top_srcdir@/src/libscm\"" ${STATIC_CFLAGS}
 STATIC_LDFLAGS    = -L./lib @LDFLAGS@ $(EFENCE) @GCOV_LDFLAGS@ \
 		    @STATICLDFLAGS@ -L./lib
 TEST_LDFLAGS      = ${STATIC_LDFLAGS} @TESTLDFLAGS@
@@ -687,6 +687,7 @@ exe/knocgi@suffix@: src/exe/knocgi.c ${CONFIG_HDRS}
 	$(CC) $(CFLAGS) $(LDFLAGS) $(EXEFLAGS)                  	\
 		-o $@ $<                                           	\
 		@xdynamic_scheme_libs@                             	\
+	        -lknotexttools \
 	        -lknowebtools \
 		-lkno@suffix@ 					\
 	        -lu8stdio $(LIBS) $(EXELIBS)

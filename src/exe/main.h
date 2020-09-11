@@ -28,3 +28,25 @@ static U8_MAYBE_UNUSED void _kno_lisp2stderr(lispval x)
 }
 
 KNO_EXPORT void _kno_finish_threads(void);
+
+#ifdef KNO_DEFAULT_LIBSCM
+static u8_string default_libscm = KNO_DEFAULT_LIBSCM;
+#else
+static u8_string default_libscm = NULL;
+#endif
+
+#if KNO_STATIC
+static void init_libraries()
+{
+  if (default_libscm) kno_default_libscm = default_libscm;
+  kno_init_lisp_types();
+  kno_init_storage();
+  kno_init_scheme();
+  kno_init_schemeio();
+}
+#else
+static void init_libraries()
+{
+  if (default_libscm) kno_default_libscm = default_libscm;
+}
+#endif

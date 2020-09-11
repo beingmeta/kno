@@ -61,6 +61,8 @@
 
 #endif
 
+u8_string kno_default_libscm = KNO_LIBSCM_DIR;
+
 u8_condition MissingModule=_("Loading failed to resolve module");
 u8_condition kno_ReloadError=_("Module reload error");
 
@@ -859,7 +861,7 @@ KNO_EXPORT void kno_init_loadmods_c()
     kno_decref(v);}
 
   {u8_string dir=u8_getenv("KNO_LIBSCM_DIR"), use_path = NULL;
-    if (dir==NULL) dir = u8_strdup(KNO_LIBSCM_DIR);
+    if (dir==NULL) dir = u8_strdup(kno_default_libscm);
     if (u8_has_suffix(dir,"/",0))
       use_path=dir;
     else if (u8_has_suffix(dir,".zip",0))
@@ -879,7 +881,8 @@ KNO_EXPORT void kno_init_loadmods_c()
 	kno_decref(old_path);}
       u8_free(use_path);}
     else u8_log(LOG_ERR,"Missing LIBSCM path",
-		"The LIBSCM source path `%s` does not exist",dir);
+		"The LIBSCM source path `%s` does not exist",use_path);
+    u8_free(use_path);
   }
 
   kno_register_config

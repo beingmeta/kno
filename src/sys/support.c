@@ -165,7 +165,7 @@ void kno_init_sourcebase_c(void);
 void kno_init_history_c(void);
 void kno_init_getsource_c(void);
 
-KNO_EXPORT void kno_init_support_c()
+KNO_EXPORT void kno_init_support()
 {
 
   u8_register_textdomain("kno");

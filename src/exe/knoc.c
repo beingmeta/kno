@@ -748,6 +748,14 @@ int main(int argc,char **argv)
   u8_output out = (u8_output)u8_open_xoutput(1,enc);
   u8_output err = (u8_output)u8_open_xoutput(2,enc);
   u8_string source_file = NULL; /* The file loaded, if any */
+
+  init_libraries();
+
+#if KNO_TESTCONFIG && KNO_STATIC
+  kno_init_texttools();
+  kno_init_webtools();
+#endif
+
   /* This is the environment the console will start in */
   kno_lexenv env = kno_working_lexenv();
 

@@ -402,7 +402,7 @@ KNO_EXPORT void kno_init_tables_c(void);
 KNO_EXPORT void kno_init_symbols_c(void);
 KNO_EXPORT void kno_init_numbers_c(void);
 KNO_EXPORT void kno_init_choices_c(void);
-KNO_EXPORT void kno_init_support_c(void);
+KNO_EXPORT void kno_init_support(void);
 KNO_EXPORT void kno_init_consblocks_c(void);
 KNO_EXPORT void kno_init_sequences_c(void);
 KNO_EXPORT void kno_init_fcnids_c(void);
@@ -484,7 +484,7 @@ KNO_EXPORT int kno_init_lisp_types()
   kno_init_tables_c();
   kno_init_symbols_c();
   kno_init_xtypes_c();
-  kno_init_support_c();
+  kno_init_support();
   kno_init_dtread_c();
   kno_init_dtwrite_c();
   kno_init_numbers_c();

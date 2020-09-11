@@ -176,7 +176,7 @@ static lispval read_xtype_prim(lispval source,lispval opts)
 	kno_seterr3(kno_FileNotFound,"open_stream",sourcepath);
 	return KNO_ERROR;}
       in=kno_init_stream(&_in,sourcepath,-1,KNO_FILE_READ,len);
-      memcpy(_in.buf.in.buffer,filedata,len);
+      memcpy(_in.buf.raw.buffer,filedata,len);
       _in.buf.in.buflim = _in.buf.in.buffer+len;
       close_stream=1;}}
   else if (TYPEP(source,kno_stream_type))

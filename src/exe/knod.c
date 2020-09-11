@@ -970,6 +970,7 @@ int main(int argc,char **argv)
     source_file = server_spec;
   else server_port = server_spec;
 
+  init_libraries();
   kno_setapp(server_spec,NULL);
   kno_boot_message();
   

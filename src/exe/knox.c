@@ -185,7 +185,12 @@ static lispval *handle_argv(int argc,char **argv,size_t *arglenp,
     *source_filep = source_file;}
   else {}
 
-  kno_init_lisp_types();
+  init_libraries();
+
+#if KNO_TESTCONFIG && KNO_STATIC
+  kno_init_texttools();
+  kno_init_webtools();
+#endif
 
   args = kno_handle_argv(argc,argv,arg_mask,arglenp);
 

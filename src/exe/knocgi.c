@@ -1967,6 +1967,11 @@ int main(int argc,char **argv)
   u8_string socket_spec = NULL;
   u8_string load_source = NULL;
 
+  init_libraries();
+
+  kno_init_texttools();
+  kno_init_webtools();
+
   KNO_INIT_STACK_ROOT();
 
   if (u8_version<0) {
@@ -2071,7 +2076,7 @@ int main(int argc,char **argv)
 #endif
 
 
-#if ((!(HAVE_CONSTRUCTOR_ATTRIBUTES)) || (KNO_TESTCONFIG))
+#if ((!(HAVE_CONSTRUCTOR_ATTRIBUTES)) || (KNO_TESTCONFIG) || (KNO_STATIC) )
   kno_init_schemeio();
   kno_init_texttools();
   /* May result in innocuous redundant calls */

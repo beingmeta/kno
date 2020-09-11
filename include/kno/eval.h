@@ -48,6 +48,8 @@ KNO_EXPORT int kno_load_scheme(void) KNO_LIBINIT0_FN;
 KNO_EXPORT int kno_init_scheme(void);
 KNO_EXPORT void kno_init_schemeio(void) KNO_LIBINIT0_FN;
 
+KNO_EXPORT u8_string kno_default_libscm;
+
 KNO_EXPORT int (*kno_dump_exception)(lispval bt);
 
 KNO_EXPORT int kno_choice_evalp(lispval x);
