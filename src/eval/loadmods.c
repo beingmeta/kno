@@ -878,8 +878,7 @@ KNO_EXPORT void kno_init_loadmods_c()
 	u8_log(LOG_ERR,"PathError","Couldn't allocate new path %s",use_path);}
       else {
 	libscm_path = new_path;
-	kno_decref(old_path);}
-      u8_free(use_path);}
+	kno_decref(old_path);}}
     else u8_log(LOG_ERR,"Missing LIBSCM path",
 		"The LIBSCM source path `%s` does not exist",use_path);
     u8_free(use_path);
