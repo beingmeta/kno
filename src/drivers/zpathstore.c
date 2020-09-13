@@ -68,6 +68,7 @@ static u8_string get_string_opt(lispval opts,lispval optname,ssize_t *sizep)
 
 DEF_KNOSYM(cacheroot); DEF_KNOSYM(cachesize);
 DEF_KNOSYM(prefix); DEF_KNOSYM(mountpoint);
+DEF_KNOSYM(cacheroot); DEF_KNOSYM(cachesize); DEF_KNOSYM(prefix);
 
 static int zpathstore_exists(struct KNO_PATHSTORE *ps,u8_string path)
 {
