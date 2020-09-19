@@ -25,24 +25,28 @@
 
 #if (SIZEOF_INT == SIZEOF_VOID_P)
 typedef unsigned int lispval;
+typedef unsigned int lisp_ptr;
 typedef unsigned int kno_lispval;
 typedef unsigned int kno_ptrbits;
 typedef unsigned int kno_wideint;
 #define SIZEOF_LISPVAL SIZEOF_LONG
 #elif (SIZEOF_LONG == SIZEOF_VOID_P)
 typedef unsigned long lispval;
+typedef unsigned long lisp_ptr;
 typedef unsigned long kno_lispval;
 typedef unsigned long kno_ptrbits;
 typedef unsigned long kno_wideint;
 #define SIZEOF_LISPVAL SIZEOF_LONG
 #elif (SIZEOF_LONG_LONG == SIZEOF_VOID_P)
 typedef unsigned long long lispval;
+typedef unsigned long long lisp_ptr;
 typedef unsigned long long kno_lispval;
 typedef unsigned long long kno_ptrbits;
 typedef unsigned long long kno_wideint;
 #define SIZEOF_LISPVAL SIZEOF_LONG_LONG
 #else
 typedef unsigned int lispval;
+typedef unsigned int lisp_ptr;
 typedef unsigned int kno_lispval;
 typedef unsigned int kno_ptrbits;
 typedef unsigned int kno_wideint;
