@@ -1047,7 +1047,7 @@ static lispval shutdown_prim(lispval op)
   if (srv == NULL) return KNO_FALSE;
   u8_string expected = (srv->server_password) ? (srv->server_password) :
     (default_password);
-  if ( (KNO_VOIDP(op)) ) {
+  if (KNO_VOIDP(op)) {
     if (expected) return knostring("Password required");}
   else if (KNO_STRINGP(op)) {
     if ( (!(expected)) || (strcmp(expected,KNO_CSTRING(op))) )
