@@ -192,7 +192,8 @@ static int block_elementp(u8_string name)
 static u8_string readbuf
 (U8_INPUT *in,u8_byte **bufp,size_t *bufsizp,size_t *sizep,char *eos)
 {
-  u8_byte *buf = *bufp; size_t bufsiz = *bufsizp; int sz = 0;
+  u8_byte *buf = *bufp; size_t bufsiz = *bufsizp;
+  ssize_t sz = 0;
   u8_string data = u8_gets_x(buf,bufsiz,in,eos,&sz);
   if (sizep) *sizep = sz;
   if ((data == NULL)&&(sz==0)) return NULL;
@@ -965,7 +966,7 @@ void *kno_walk_xml(U8_INPUT *in,
 	u8_free(reconstituted);}}
     else if (type == xmlcomment) {
       const u8_byte *remainder = NULL; u8_byte *combined;
-      int combined_len, more_data = 0;
+      ssize_t combined_len, more_data = 0;
       if (strcmp((buf+size-2),"--"))
 	/* If the markup end isn't --, we still need to find the
 	   content end (plus more content) */
@@ -986,7 +987,7 @@ void *kno_walk_xml(U8_INPUT *in,
       u8_free(combined);}
     else if (type == xmlcdata) {
       const u8_byte *remainder = NULL; u8_byte *combined;
-      int more_data = 0, combined_len;
+      ssize_t more_data = 0, combined_len;
       if (strcmp((buf+size-2),"]]"))
 	remainder = u8_gets_x(NULL,0,in,"]]>",&more_data);
       if (more_data) combined_len = size+more_data+5;

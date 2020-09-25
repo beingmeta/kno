@@ -458,6 +458,26 @@ KNO_EXPORT void kno_init_build_info()
   config_bool(HAVE_ZIP_SET_FILE_COMPRESSION);
 #endif
 
+#ifdef U8_TARGET_CPU
+    config_string(U8_TARGET_CPU);
+#endif
+#ifdef U8_TARGET_VENDOR
+    config_string(U8_TARGET_VENDOR);
+#endif
+#ifdef U8_TARGET_OS
+    config_string(U8_TARGET_OS);
+#endif
+
+#ifdef U8_HOST_CPU
+    config_string(U8_HOST_CPU);
+#endif
+#ifdef U8_HOST_VENDOR
+    config_string(U8_HOST_VENDOR);
+#endif
+#ifdef U8_HOST_OS
+    config_string(U8_HOST_OS);
+#endif
+
 #if (WORDS_BIGENDIAN)
   kno_add(build_info,kno_intern("byte_order"),
           kno_intern("little_endian"));

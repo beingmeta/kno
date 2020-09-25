@@ -425,4 +425,4 @@ end
 # Init some tracing configurations
 set env KNO_DLOAD:TRACE=yes
 # This is for OS X > Sierra
-# set startup-with-shell off
+#ifmacos@ set startup-with-shell off

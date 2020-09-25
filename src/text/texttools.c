@@ -2648,7 +2648,8 @@ DEFPRIM2("hmac-sha1",hmac_sha1_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 static lispval hmac_sha1_prim(lispval key,lispval input)
 {
   const unsigned char *data, *keydata, *digest = NULL;
-  int data_len, key_len, digest_len, free_key = 0, free_data = 0;
+  ssize_t data_len, key_len, digest_len;
+  int free_key = 0, free_data = 0;
   if (STRINGP(input)) {
     data = CSTRING(input); data_len = STRLEN(input);}
   else if (PACKETP(input)) {
@@ -2681,7 +2682,8 @@ DEFPRIM2("hmac-sha256",hmac_sha256_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 static lispval hmac_sha256_prim(lispval key,lispval input)
 {
   const unsigned char *data, *keydata, *digest = NULL;
-  int data_len, key_len, digest_len, free_key = 0, free_data = 0;
+  ssize_t data_len, key_len, digest_len;
+  int free_key = 0, free_data = 0;
   if (STRINGP(input)) {
     data = CSTRING(input); data_len = STRLEN(input);}
   else if (PACKETP(input)) {
@@ -2714,7 +2716,8 @@ DEFPRIM2("hmac-sha384",hmac_sha384_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 static lispval hmac_sha384_prim(lispval key,lispval input)
 {
   const unsigned char *data, *keydata, *digest = NULL;
-  int data_len, key_len, digest_len, free_key = 0, free_data = 0;
+  ssize_t data_len, key_len, digest_len;
+  int free_key = 0, free_data = 0;
   if (STRINGP(input)) {
     data = CSTRING(input); data_len = STRLEN(input);}
   else if (PACKETP(input)) {
@@ -2747,7 +2750,8 @@ DEFPRIM2("hmac-sha512",hmac_sha512_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 static lispval hmac_sha512_prim(lispval key,lispval input)
 {
   const unsigned char *data, *keydata, *digest = NULL;
-  int data_len, key_len, digest_len, free_key = 0, free_data = 0;
+  ssize_t data_len, key_len, digest_len;
+  int free_key = 0, free_data = 0;
   if (STRINGP(input)) {
     data = CSTRING(input); data_len = STRLEN(input);}
   else if (PACKETP(input)) {

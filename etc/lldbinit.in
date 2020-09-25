@@ -14,18 +14,13 @@ env PERFTOOLS_VERBOSE 2
 env MALLOCSTATS 2
 env HEAPPROFILE /tmp/heap.profiles/heapprof
 
-break u8_log_break
-break u8_new_exception
-break u8_utf8_warning
-break _kno_debug
-break _u8_dbg
-break u8_raise
-break TCMalloc_Printer::printf
-break __msan_warning
-break __msan_warning_noreturn
-break __asan_report_error
-break abort
-#break exit
+break set -n u8_log_break
+break set -n u8_new_exception
+break set -n u8_utf8_warning
+break set -n _kno_debug
+break set -n _u8_dbg
+break set -n u8_raise
+break set -n abort
 
 # For LIBC
 env MALLOC_CHECK_ 2
@@ -40,4 +35,6 @@ env MallocCorruptionAbort 1
 # Init some tracing configurations
 env KNO_DLOAD:TRACE yes
 # This is for OS X > Sierra
-# set startup-with-shell off
+@ifmacos@ set startup-with-shell off
+# This puts full path names in the output, which helps gud-lldb find things
+settings set frame-format frame #${frame.index}: ${frame.pc}{ ${module.file.basename}{\`${function.name}}}{ at ${line.file.fullpath}:${line.number}}\n

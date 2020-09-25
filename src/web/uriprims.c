@@ -461,12 +461,13 @@ DEFPRIM2("datauri",datauri_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 static lispval datauri_prim(lispval data,lispval ctype_arg)
 {
   u8_string ctype = ((STRINGP(ctype_arg))?(CSTRING(ctype_arg)):((u8_string)NULL));
-  u8_string base64; int data_len, uri_len;
+  u8_string base64; ssize_t data_len, uri_len;
   lispval result; struct KNO_STRING *string; u8_byte *write;
   if (STRINGP(data))
     base64 = u8_write_base64(CSTRING(data),STRLEN(data),&data_len);
   else if (PACKETP(data))
-    base64 = u8_write_base64(KNO_PACKET_DATA(data),KNO_PACKET_LENGTH(data),&data_len);
+    base64 = u8_write_base64(KNO_PACKET_DATA(data),KNO_PACKET_LENGTH(data),
+			     &data_len);
   else return kno_type_error("String or packet","datauri_prim",data);
   uri_len = 5+((ctype)?(STRLEN(ctype_arg)):(10))+
     ((STRINGP(data))?(13):(0))+8+data_len+1;
