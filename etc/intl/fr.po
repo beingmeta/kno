@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-07-25 16:25-0400\n"
+"POT-Creation-Date: 2020-09-24 22:53+0000\n"
 "PO-Revision-Date: 2005-03-05 16:06-0500\n"
 "Last-Translator: Kenneth Haase <kh@beingmeta.com>\n"
 "Language-Team: French <traduc@traduc.org>\n"
@@ -152,7 +152,7 @@ msgstr "séquence"
 #: src/lisp/sequences.c:166 src/lisp/sequences.c:261 src/lisp/sequences.c:815
 #: src/eval/opcode_defs.c:365 src/eval/opcode_defs.c:372
 #: src/eval/opcode_defs.c:564 src/eval/opcode_defs.c:568
-#: src/prims/dbprims.c:3189 src/prims/dbprims.c:3191 src/prims/seqprims.c:345
+#: src/prims/dbprims.c:3234 src/prims/dbprims.c:3236 src/prims/seqprims.c:345
 #: src/prims/seqprims.c:356 src/prims/seqprims.c:365 src/prims/seqprims.c:531
 #: src/prims/seqprims.c:566 src/prims/seqprims.c:630 src/prims/seqprims.c:655
 #: src/prims/seqprims.c:1557 src/prims/seqprims.c:1613
@@ -319,26 +319,26 @@ msgstr ""
 msgid "whether to check returned and real dtype sizes"
 msgstr ""
 
-#: src/lisp/xtypes.c:1124 src/storage/compress.c:156 src/storage/compress.c:195
-#: src/prims/portprims.c:1464 src/drivers/headers/zcompress.h:27
+#: src/lisp/xtypes.c:1204 src/storage/compress.c:156 src/storage/compress.c:195
+#: src/prims/portprims.c:1465 src/drivers/headers/zcompress.h:27
 #: src/drivers/headers/zcompress.h:65
 msgid "ZLIB ran out of memory"
 msgstr ""
 
-#: src/lisp/xtypes.c:1132 src/storage/compress.c:164
+#: src/lisp/xtypes.c:1212 src/storage/compress.c:164
 #: src/drivers/headers/zcompress.h:35
 msgid "pool value uncompress ran out of memory"
 msgstr ""
 
 # aptitude
-#: src/lisp/xtypes.c:1136 src/storage/compress.c:168
+#: src/lisp/xtypes.c:1216 src/storage/compress.c:168
 #: src/drivers/headers/zcompress.h:38
 #, fuzzy
 msgid "ZLIB uncompress data error"
 msgstr "erreur d'analyse syntaxique"
 
-#: src/lisp/xtypes.c:1138 src/storage/compress.c:170 src/storage/compress.c:208
-#: src/prims/portprims.c:1477 src/drivers/headers/zcompress.h:40
+#: src/lisp/xtypes.c:1218 src/storage/compress.c:170 src/storage/compress.c:208
+#: src/prims/portprims.c:1478 src/drivers/headers/zcompress.h:40
 #: src/drivers/headers/zcompress.h:78
 msgid "Bad ZLIB return code"
 msgstr ""
@@ -458,8 +458,8 @@ msgid "oid"
 msgstr "oid"
 
 #: src/lisp/lisp.c:247 src/lisp/lisp.c:248 src/sys/config.c:863
-#: src/eval/opcode_defs.c:373 src/eval/evalops.c:292 src/prims/dbprims.c:3120
-#: src/prims/portprims.c:981 src/eval/choiceops.c:1451
+#: src/eval/opcode_defs.c:373 src/eval/evalops.c:292 src/prims/dbprims.c:3165
+#: src/prims/portprims.c:982 src/eval/choiceops.c:1451
 #: src/eval/choiceops.c:1490 src/eval/choiceops.c:1517
 #: src/eval/choiceops.c:1554 src/eval/choiceops.c:1568
 #: src/eval/choiceops.c:1572 src/eval/choiceops.c:1573 src/prims/seqprims.c:361
@@ -494,11 +494,11 @@ msgstr "symbole"
 msgid "fcnid"
 msgstr ""
 
-#: src/lisp/lisp.c:261 src/lisp/lisp.c:262 src/eval/eval.c:1899
+#: src/lisp/lisp.c:261 src/lisp/lisp.c:262 src/eval/eval.c:1906
 msgid "lexref"
 msgstr ""
 
-#: src/lisp/lisp.c:263 src/lisp/lisp.c:264 src/eval/eval.c:1905
+#: src/lisp/lisp.c:263 src/lisp/lisp.c:264 src/eval/eval.c:1912
 msgid "opcode"
 msgstr ""
 
@@ -508,19 +508,19 @@ msgstr ""
 msgid "typeref"
 msgstr "Erreur de type"
 
-#: src/lisp/lisp.c:267 src/lisp/lisp.c:268 src/eval/eval.c:1903
+#: src/lisp/lisp.c:267 src/lisp/lisp.c:268 src/eval/eval.c:1910
 msgid "coderef"
 msgstr ""
 
-#: src/lisp/lisp.c:269 src/lisp/lisp.c:270 src/storage/pools.c:2818
-#: src/prims/dbprims.c:268 src/prims/dbprims.c:1906
+#: src/lisp/lisp.c:269 src/lisp/lisp.c:270 src/storage/pools.c:2875
+#: src/prims/dbprims.c:268 src/prims/dbprims.c:1951
 msgid "pool"
 msgstr "lot"
 
-#: src/lisp/lisp.c:271 src/lisp/lisp.c:272 src/storage/indexes.c:1139
-#: src/storage/indexes.c:2393 src/storage/slotindexes.c:229
-#: src/prims/dbprims.c:747 src/prims/dbprims.c:1874 src/prims/dbprims.c:1889
-#: src/prims/dbprims.c:1920
+#: src/lisp/lisp.c:271 src/lisp/lisp.c:272 src/storage/indexes.c:1114
+#: src/storage/indexes.c:2374 src/storage/slotindexes.c:229
+#: src/prims/dbprims.c:747 src/prims/dbprims.c:1918 src/prims/dbprims.c:1934
+#: src/prims/dbprims.c:1965
 msgid "index"
 msgstr "index"
 
@@ -531,16 +531,16 @@ msgstr ""
 # bfd
 #: src/lisp/lisp.c:276 src/lisp/lisp.c:277 src/sys/config.c:764
 #: src/sys/config.c:783 src/sys/config.c:802 src/sys/startup.c:256
-#: src/sys/startup.c:634 src/prims/dbprims.c:305 src/prims/dbprims.c:326
-#: src/prims/dbprims.c:347 src/prims/portprims.c:377 src/prims/portprims.c:847
-#: src/prims/portprims.c:987 src/prims/dtypeprims.c:235
+#: src/sys/startup.c:649 src/prims/dbprims.c:305 src/prims/dbprims.c:326
+#: src/prims/dbprims.c:347 src/prims/portprims.c:378 src/prims/portprims.c:848
+#: src/prims/portprims.c:988 src/prims/dtypeprims.c:235
 #: src/prims/dtypeprims.c:280 src/prims/dtypeprims.c:367
 #: src/prims/dtypeprims.c:399 src/prims/dtypeprims.c:419
 #: src/prims/dtypeprims.c:442 src/prims/dtypeprims.c:476
 #: src/prims/dtypeprims.c:497 src/prims/stringprims.c:478
 #: src/prims/stringprims.c:692 src/prims/stringprims.c:719
-#: src/prims/stringprims.c:1617 src/prims/fileprims.c:304
-#: src/prims/fileprims.c:674 src/web/cgiexec.c:1317 src/web/cgiexec.c:1344
+#: src/prims/stringprims.c:1617 src/prims/fileprims.c:305
+#: src/prims/fileprims.c:700 src/web/cgiexec.c:1317 src/web/cgiexec.c:1344
 #: src/web/htmlout.c:580 src/web/uriprims.c:424 src/web/mime.c:114
 #: src/web/curl.c:700 src/text/texttools.c:142 src/text/texttools.c:172
 #: src/text/texttools.c:568 src/exe/knocgi.c:263 src/exe/webcommon.h:262
@@ -675,8 +675,8 @@ msgstr ""
 msgid "promise"
 msgstr ""
 
-#: src/lisp/lisp.c:340 src/lisp/lisp.c:341 src/eval/threads.c:1253
-#: src/eval/threads.c:1291 src/eval/threads.c:1375
+#: src/lisp/lisp.c:340 src/lisp/lisp.c:341 src/eval/threads.c:1256
+#: src/eval/threads.c:1294 src/eval/threads.c:1378
 msgid "thread"
 msgstr ""
 
@@ -746,7 +746,11 @@ msgstr "Erreur de type"
 msgid "bloom_filter"
 msgstr ""
 
-#: src/lisp/lisp.c:427
+#: src/lisp/lisp.c:380
+msgid "pathstore"
+msgstr ""
+
+#: src/lisp/lisp.c:429
 msgid "RUSAGE Failed"
 msgstr ""
 
@@ -767,87 +771,87 @@ msgstr "fichier non repéré"
 msgid "File does not exist"
 msgstr "«test» opération pas supporté"
 
-#: src/sys/support.c:185
+#: src/sys/support.c:190
 #, fuzzy
 msgid "Max number of chars to show in strings"
 msgstr "trop peu de arguments à «find-frames»"
 
-#: src/sys/support.c:190
+#: src/sys/support.c:195
 msgid "Max number of elements to show in vectors/lists/choices, etc"
 msgstr ""
 
-#: src/sys/support.c:194
+#: src/sys/support.c:199
 #, fuzzy
 msgid "Max number of elements to show in numeric vectors"
 msgstr "trop peu de arguments à «find-frames»"
 
-#: src/sys/support.c:199
+#: src/sys/support.c:204
 msgid "How to dump packets to ASCII (16 = hex,64 = base64,dflt = ascii-ish)"
 msgstr ""
 
-#: src/sys/support.c:203
+#: src/sys/support.c:208
 msgid "Whether to use custom formatting for OIDs"
 msgstr ""
 
-#: src/sys/support.c:208
+#: src/sys/support.c:213
 #, fuzzy
 msgid "Maximum number of characters when pprinting strings"
 msgstr "trop peu de arguments à «find-frames»"
 
-#: src/sys/support.c:212
+#: src/sys/support.c:217
 msgid "Maximum number of bytes when pprinting packets"
 msgstr ""
 
-#: src/sys/support.c:216
+#: src/sys/support.c:221
 #, fuzzy
 msgid "Maximum number of elements when pprinting sequences or choices"
 msgstr "trop peu de arguments à «find-frames»"
 
-#: src/sys/support.c:221
+#: src/sys/support.c:226
 msgid "Maximum depth for recursive printing"
 msgstr ""
 
-#: src/sys/support.c:225
+#: src/sys/support.c:230
 #, fuzzy
 msgid "Maximum number of elements when pprinting lists"
 msgstr "trop peu de arguments à «find-frames»"
 
-#: src/sys/support.c:229
+#: src/sys/support.c:234
 #, fuzzy
 msgid "Maximum number of elements when pprinting vectors"
 msgstr "trop peu de arguments à «find-frames»"
 
-#: src/sys/support.c:233
+#: src/sys/support.c:238
 #, fuzzy
 msgid "Maximum number of elements when pprinting choices"
 msgstr "trop peu de arguments à «find-frames»"
 
-#: src/sys/support.c:237
+#: src/sys/support.c:242
 #, fuzzy
 msgid "Maximum number of keys when pprinting tables"
 msgstr "trop peu de arguments à «find-frames»"
 
-#: src/sys/support.c:242
+#: src/sys/support.c:247
 msgid "PPRINT indentation rules"
 msgstr ""
 
-#: src/sys/support.c:246
+#: src/sys/support.c:251
 msgid "value of LOCAL_MODULES"
 msgstr ""
 
-#: src/sys/support.c:248
+#: src/sys/support.c:253
 msgid "value of INSTALLED_MODULES"
 msgstr ""
 
-#: src/sys/support.c:251
+#: src/sys/support.c:256
 msgid "value of SHARED_MODULES"
 msgstr ""
 
-#: src/sys/support.c:254
+#: src/sys/support.c:259
 msgid "value of STDLIB_MODULES"
 msgstr ""
 
-#: src/sys/support.c:257
+#: src/sys/support.c:262
 msgid "value of UNPACKAGE_DIR"
 msgstr ""
 
@@ -938,7 +942,11 @@ msgstr ""
 msgid "object is not a %m"
 msgstr ""
 
-#: src/sys/errobjs.c:635
+#: src/sys/errobjs.c:558
+msgid "ExceptionDataError"
+msgstr ""
+
+#: src/sys/errobjs.c:637
 msgid "Poorly Restored Error"
 msgstr ""
 
@@ -1044,182 +1052,182 @@ msgstr ""
 msgid "RLIMIT too high"
 msgstr ""
 
-#: src/sys/startup.c:853
+#: src/sys/startup.c:868
 #, c-format
 msgid ""
 "(kno:%s:%lld) %-s@%-s:%-s (%s)\n"
 "%s %s%s"
 msgstr ""
 
-#: src/sys/startup.c:1041
+#: src/sys/startup.c:1056
 msgid "Avoid unneccessary verbiage"
 msgstr ""
 
-#: src/sys/startup.c:1043
+#: src/sys/startup.c:1058
 msgid "system process ID (read-only)"
 msgstr ""
 
-#: src/sys/startup.c:1045
+#: src/sys/startup.c:1060
 msgid "parent's process ID (read-only)"
 msgstr ""
 
-#: src/sys/startup.c:1048
+#: src/sys/startup.c:1063
 msgid "warn on bad UTF-8 sequences"
 msgstr ""
 
-#: src/sys/startup.c:1050
+#: src/sys/startup.c:1065
 msgid "fail (error) on bad UTF-8 sequences"
 msgstr ""
 
-#: src/sys/startup.c:1052
+#: src/sys/startup.c:1067
 msgid "random seed used for stochastic operations"
 msgstr ""
 
-#: src/sys/startup.c:1055
+#: src/sys/startup.c:1070
 msgid "check that strings are valid UTF-8 on creation"
 msgstr ""
 
-#: src/sys/startup.c:1058
+#: src/sys/startup.c:1073
 msgid "application ID used in messages and SESSIONID"
 msgstr ""
 
-#: src/sys/startup.c:1062
+#: src/sys/startup.c:1077
 msgid ""
 "the command line arguments as a string, with arguments numbered and "
 "separated by newlines"
 msgstr ""
 
-#: src/sys/startup.c:1066
+#: src/sys/startup.c:1081
 msgid "the command line arguments as a string"
 msgstr ""
 
-#: src/sys/startup.c:1069 src/sys/startup.c:1072 src/sys/startup.c:1081
-#: src/sys/startup.c:1087
+#: src/sys/startup.c:1084 src/sys/startup.c:1087 src/sys/startup.c:1096
+#: src/sys/startup.c:1102
 msgid "the vector of args (before parsing) to the application (no configs)"
 msgstr ""
 
-#: src/sys/startup.c:1075 src/sys/startup.c:1078
+#: src/sys/startup.c:1090 src/sys/startup.c:1093
 msgid "the vector of parsed args to the application (no configs)"
 msgstr ""
 
-#: src/sys/startup.c:1084
+#: src/sys/startup.c:1099
 msgid "config arguments passed to the application (unparsed)"
 msgstr ""
 
-#: src/sys/startup.c:1093
+#: src/sys/startup.c:1108
 msgid "Whether to display command line args on entry and exit"
 msgstr ""
 
-#: src/sys/startup.c:1098
+#: src/sys/startup.c:1113
 #, fuzzy
 msgid "unique session identifier"
 msgstr "pas une identificateur"
 
-#: src/sys/startup.c:1100 src/sys/startup.c:1102
+#: src/sys/startup.c:1115 src/sys/startup.c:1117
 msgid "whether to recycle session state on exit"
 msgstr ""
 
-#: src/sys/startup.c:1104
+#: src/sys/startup.c:1119
 msgid "Set the user ID for this process"
 msgstr ""
 
-#: src/sys/startup.c:1106
+#: src/sys/startup.c:1121
 msgid "Set the group ID for this process"
 msgstr ""
 
-#: src/sys/startup.c:1110
+#: src/sys/startup.c:1125
 msgid "Path prefix for program state files"
 msgstr ""
 
-#: src/sys/startup.c:1113 src/sys/startup.c:1115
+#: src/sys/startup.c:1128 src/sys/startup.c:1130
 msgid "Redirect standard output to file"
 msgstr ""
 
-#: src/sys/startup.c:1117
+#: src/sys/startup.c:1132
 msgid "Redirect standard input to file"
 msgstr ""
 
-#: src/sys/startup.c:1119
+#: src/sys/startup.c:1134
 msgid "Write PID to file, delete on exit"
 msgstr ""
 
-#: src/sys/startup.c:1124 src/sys/startup.c:1159
+#: src/sys/startup.c:1139 src/sys/startup.c:1174
 msgid "Max CPU execution time limit"
 msgstr ""
 
-#: src/sys/startup.c:1129 src/sys/startup.c:1165
+#: src/sys/startup.c:1144 src/sys/startup.c:1180
 msgid "Max resident set (RSS) size"
 msgstr ""
 
-#: src/sys/startup.c:1134 src/sys/startup.c:1170
+#: src/sys/startup.c:1149 src/sys/startup.c:1185
 msgid "Max core dump size"
 msgstr ""
 
-#: src/sys/startup.c:1139 src/sys/startup.c:1175
+#: src/sys/startup.c:1154 src/sys/startup.c:1190
 msgid "Max number of subprocesses"
 msgstr ""
 
-#: src/sys/startup.c:1144 src/sys/startup.c:1180
+#: src/sys/startup.c:1159 src/sys/startup.c:1195
 msgid "Max number of open file descriptors"
 msgstr ""
 
-#: src/sys/startup.c:1149 src/sys/startup.c:1185
+#: src/sys/startup.c:1164 src/sys/startup.c:1200
 msgid "Max stack depth"
 msgstr ""
 
-#: src/sys/startup.c:1193
+#: src/sys/startup.c:1208
 msgid "Root Kno logging directories"
 msgstr ""
 
-#: src/sys/startup.c:1197
+#: src/sys/startup.c:1212
 msgid "Shared config/data directory for Kno"
 msgstr ""
 
-#: src/sys/startup.c:1201
+#: src/sys/startup.c:1216
 msgid "Data directory for Kno"
 msgstr ""
 
-#: src/sys/startup.c:1204
+#: src/sys/startup.c:1219
 msgid "Registered source files"
 msgstr ""
 
-#: src/sys/startup.c:1209
+#: src/sys/startup.c:1224
 msgid "Size at which u8_big_alloc starts using MMAP"
 msgstr ""
 
-#: src/sys/startup.c:1213
+#: src/sys/startup.c:1228
 msgid "Number of buckets at which hashtables use bigalloc"
 msgstr ""
 
-#: src/sys/startup.c:1217
+#: src/sys/startup.c:1232
 msgid "Size of binary buffers to use bigalloc"
 msgstr ""
 
-#: src/sys/startup.c:1221
+#: src/sys/startup.c:1236
 msgid "Procedures to call on exit"
 msgstr ""
 
-#: src/sys/startup.c:1224
+#: src/sys/startup.c:1239
 msgid "Whether this process is exiting"
 msgstr ""
 
-#: src/sys/startup.c:1229
+#: src/sys/startup.c:1244
 msgid "Set core size limit"
 msgstr ""
 
-#: src/sys/startup.c:1232
+#: src/sys/startup.c:1247
 msgid "Set cpu time limit (in seconds)"
 msgstr ""
 
-#: src/sys/startup.c:1235
+#: src/sys/startup.c:1250
 msgid "Set resident memory limit"
 msgstr ""
 
-#: src/sys/startup.c:1238
+#: src/sys/startup.c:1253
 msgid "Set total VMEM limit"
 msgstr ""
 
-#: src/sys/startup.c:1241
+#: src/sys/startup.c:1256
 msgid "Set total heap (DATA segment) limit"
 msgstr ""
 
@@ -1382,12 +1390,12 @@ msgstr ""
 msgid "Error getting metadata"
 msgstr ""
 
-#: src/storage/storage.c:383 src/storage/pools.c:2700 src/prims/dbprims.c:1427
-#: src/prims/dbprims.c:1441 src/prims/dbprims.c:1452 src/prims/dbprims.c:1464
-#: src/prims/dbprims.c:1508 src/prims/dbprims.c:1524 src/prims/dbprims.c:1543
-#: src/prims/dbprims.c:1558 src/prims/dbprims.c:1572 src/prims/dbprims.c:1593
-#: src/prims/dbprims.c:1638 src/prims/dbprims.c:1655 src/prims/dbprims.c:3115
-#: src/prims/dbprims.c:3202
+#: src/storage/storage.c:383 src/storage/pools.c:2757 src/prims/dbprims.c:1469
+#: src/prims/dbprims.c:1483 src/prims/dbprims.c:1494 src/prims/dbprims.c:1506
+#: src/prims/dbprims.c:1550 src/prims/dbprims.c:1566 src/prims/dbprims.c:1585
+#: src/prims/dbprims.c:1600 src/prims/dbprims.c:1614 src/prims/dbprims.c:1635
+#: src/prims/dbprims.c:1680 src/prims/dbprims.c:1697 src/prims/dbprims.c:3160
+#: src/prims/dbprims.c:3247
 #, fuzzy
 msgid "pool spec"
 msgstr "lot"
@@ -1441,78 +1449,78 @@ msgstr ""
 msgid "Functions to run when saving databases"
 msgstr ""
 
-#: src/storage/streams.c:64
+#: src/storage/streams.c:65
 msgid "Read-only stream"
 msgstr ""
 
-#: src/storage/streams.c:65
+#: src/storage/streams.c:66
 msgid "Write-only stream"
 msgstr ""
 
-#: src/storage/streams.c:66
+#: src/storage/streams.c:67
 #, fuzzy
 msgid "Can't read data"
 msgstr "Ne peut lire des données"
 
-#: src/storage/streams.c:67
+#: src/storage/streams.c:68
 #, fuzzy
 msgid "Can't write data"
 msgstr "Ne peut écrire des données"
 
-#: src/storage/streams.c:68
+#: src/storage/streams.c:69
 #, fuzzy
 msgid "Bad seek argument"
 msgstr "trop peu de arguments"
 
-#: src/storage/streams.c:69
+#: src/storage/streams.c:70
 msgid "Can't seek on stream"
 msgstr ""
 
-#: src/storage/streams.c:70
+#: src/storage/streams.c:71
 msgid "lseek() failed"
 msgstr ""
 
-#: src/storage/streams.c:71
+#: src/storage/streams.c:72
 msgid "Seeking past end of file"
 msgstr ""
 
-#: src/storage/streams.c:72
+#: src/storage/streams.c:73
 msgid "Seeking before the beginning of the file"
 msgstr ""
 
-#: src/storage/streams.c:73
+#: src/storage/streams.c:74
 msgid "Call to mmap() failed"
 msgstr ""
 
-#: src/storage/streams.c:74
+#: src/storage/streams.c:75
 msgid "Call to munmap() failed"
 msgstr ""
 
-#: src/storage/streams.c:75
+#: src/storage/streams.c:76
 msgid "Can't MMAP stream buffer"
 msgstr ""
 
-#: src/storage/streams.c:240
+#: src/storage/streams.c:241
 msgid "MUNMAP failed"
 msgstr ""
 
-#: src/storage/streams.c:246
+#: src/storage/streams.c:247
 msgid "Not MMapped"
 msgstr ""
 
-#: src/storage/streams.c:638
+#: src/storage/streams.c:639
 msgid "StreamClosed"
 msgstr ""
 
-#: src/storage/streams.c:681
+#: src/storage/streams.c:682
 msgid "FreeingStaticStream"
 msgstr ""
 
-#: src/storage/streams.c:686
+#: src/storage/streams.c:687
 msgid "DanglingStreamPointers"
 msgstr ""
 
-#: src/storage/streams.c:1608
+#: src/storage/streams.c:1623
 msgid "LOGLEVEL for binary streams"
 msgstr ""
 
@@ -1638,76 +1646,71 @@ msgstr ""
 msgid "Index/Commit"
 msgstr ""
 
-#: src/storage/indexes.c:313
-#, fuzzy
-msgid "not an index"
-msgstr "pas une fichiers d'index"
-
-#: src/storage/indexes.c:1289
+#: src/storage/indexes.c:1264
 #, c-format
 msgid "Syncing %d changes to %s"
 msgstr ""
 
-#: src/storage/indexes.c:1296
+#: src/storage/indexes.c:1271
 #, c-format
 msgid "(after %fs) syncing %d changes to %s, rolling back"
 msgstr ""
 
-#: src/storage/indexes.c:1300
+#: src/storage/indexes.c:1275
 #, c-format
 msgid "Synced %d changes to %s in %f secs"
 msgstr ""
 
-#: src/storage/indexes.c:1437
+#: src/storage/indexes.c:1412
 #, c-format
 msgid "Committing %d %s (+%d-%d:=%d%s) to %s"
 msgstr ""
 
-#: src/storage/indexes.c:1452
+#: src/storage/indexes.c:1427
 #, c-format
 msgid "Wrote %d changes to %s after %f secs"
 msgstr ""
 
-#: src/storage/indexes.c:1458
+#: src/storage/indexes.c:1433
 #, c-format
 msgid "Error writing %d changes to %s after %f secs, rolling back"
 msgstr ""
 
-#: src/storage/indexes.c:1530
+#: src/storage/indexes.c:1505
 #, c-format
 msgid ""
 "for %d %supdated keys from %s after %f secstotal=%f, start=%f, setup=%f, "
 "save=%f, finalize=%f, apply=%f, cleanup=%f"
 msgstr ""
 
-#: src/storage/indexes.c:1543
+#: src/storage/indexes.c:1518
 #, c-format
 msgid ""
 "Committed %d changes%s from '%s' in %f\n"
 "total=%f, start=%f, setup=%f, save=%f, finalize=%f, apply=%f, cleanup=%f"
 msgstr ""
 
-#: src/storage/indexes.c:1693
+#: src/storage/indexes.c:1668
 #, c-format
 msgid "Saving %d changes (+%d-%d=%d%s) to %s"
 msgstr ""
 
-#: src/storage/indexes.c:1974
+#: src/storage/indexes.c:1949
 #, c-format
 msgid "#<%s %s (%s) cx=%d+%d%s #!%llx \"%s...\">"
 msgstr ""
 
-#: src/storage/indexes.c:1977
+#: src/storage/indexes.c:1952
 #, c-format
 msgid "#<%s %s (%s) cx=%d+%d%s #!%llx \"%s\">"
 msgstr ""
 
-#: src/storage/indexes.c:1979
+#: src/storage/indexes.c:1954
 #, c-format
 msgid "#<%s %s (%s) cx=%d+%d%s #!%llx>"
 msgstr ""
 
-#: src/storage/indexes.c:2397
+#: src/storage/indexes.c:2378
 #, fuzzy
 msgid "raw index"
 msgstr "index"
@@ -1738,122 +1741,123 @@ msgstr ""
 msgid "Invalid pool PTR"
 msgstr "Erreur interne: référence à lot invalide"
 
+# gcc-3.4
 #: src/storage/pools.c:37
+#, fuzzy
+msgid "Invalid index PTR"
+msgstr "Erreur interne: référence à lot invalide"
+
+#: src/storage/pools.c:38
 #, fuzzy
 msgid "not a file pool"
 msgstr "pas une fichiers d'index"
 
-#: src/storage/pools.c:38
+#: src/storage/pools.c:39
 msgid "file pools are not supported"
 msgstr "fichiers d'index pas supporté"
 
-#: src/storage/pools.c:39
+#: src/storage/pools.c:40
 msgid "no pool covers this OID"
 msgstr "Il n'y a pas une lot pour cette OID"
 
-#: src/storage/pools.c:40
+#: src/storage/pools.c:41
 #, fuzzy
 msgid "Not a pool"
 msgstr "pas une fichiers d'index"
 
-#: src/storage/pools.c:41
+#: src/storage/pools.c:42
 #, fuzzy
 msgid "No such pool"
 msgstr "clé introuvable"
 
-#: src/storage/pools.c:42
+#: src/storage/pools.c:43
 #, fuzzy
 msgid "file pool label is not a string"
 msgstr "étiquette pour la lot n'est pas une chaîne"
 
-#: src/storage/pools.c:43
+#: src/storage/pools.c:44
 msgid "pool load > capacity"
 msgstr ""
 
-#: src/storage/pools.c:44
+#: src/storage/pools.c:45
 msgid "pool has no more OIDs"
 msgstr ""
 
-#: src/storage/pools.c:45
+#: src/storage/pools.c:46
 msgid "pool overlaps 0x100000 boundary"
 msgstr ""
 
-#: src/storage/pools.c:46
+#: src/storage/pools.c:47
 msgid "can't save changes to pool"
 msgstr ""
 
-#: src/storage/pools.c:47
+#: src/storage/pools.c:48
 #, fuzzy
 msgid "internal error with unregistered pool"
 msgstr "Erreur interne avec une fichiers d'index"
 
-#: src/storage/pools.c:48
+#: src/storage/pools.c:49
 msgid "This pool can't handle this operation"
 msgstr ""
 
-#: src/storage/pools.c:49
+#: src/storage/pools.c:50
 msgid "Data file is over implementation limit"
 msgstr ""
 
 # gcc-3.4
-#: src/storage/pools.c:51
+#: src/storage/pools.c:52
 #, fuzzy
 msgid "Pool/Commit"
 msgstr "conflit entre lots"
 
-#: src/storage/pools.c:300
+#: src/storage/pools.c:301
 msgid "n_pools > MAX_POOLS"
 msgstr ""
 
 # gcc-3.4
-#: src/storage/pools.c:509
+#: src/storage/pools.c:510
 #, fuzzy
 msgid "Pool confict"
 msgstr "conflit entre lots"
 
-#: src/storage/pools.c:531 src/storage/pools.c:537
+#: src/storage/pools.c:532 src/storage/pools.c:538
 msgid "OID"
 msgstr "OID"
 
-#: src/storage/pools.c:796
+#: src/storage/pools.c:832
 #, c-format
 msgid "Swapping out %d oids in pool %s"
 msgstr ""
 
-#: src/storage/pools.c:799
+#: src/storage/pools.c:835
 #, c-format
 msgid "Swapping out ~%d oids in pool %s"
 msgstr ""
 
-#: src/storage/pools.c:801
+#: src/storage/pools.c:837
 #, c-format
 msgid "Swapping out oids in pool %s"
 msgstr ""
 
-#: src/storage/pools.c:1152
+#: src/storage/pools.c:1188
 #, c-format
 msgid "Couldn't rollback %d changes%s to %s"
 msgstr ""
 
-#: src/storage/pools.c:1614 include/kno/pools.h:402
+#: src/storage/pools.c:1650 include/kno/pools.h:405
 msgid "Corrupted pool table"
 msgstr "table de lots corrompu"
 
-#: src/storage/pools.c:1751
-#, fuzzy
-msgid "not a pool"
-msgstr "pas une fichiers d'index"
-
-#: src/storage/pools.c:2687
+#: src/storage/pools.c:2744
 msgid "Config mis-config"
 msgstr ""
 
-#: src/storage/pools.c:2823
+#: src/storage/pools.c:2880
 #, fuzzy
 msgid "raw pool"
 msgstr "pas une fichiers d'index"
 
-#: src/storage/pools.c:2879
+#: src/storage/pools.c:2936
 msgid "Default location for new OID allocation"
 msgstr ""
 
@@ -1889,7 +1893,7 @@ msgid "pool value compression ran out of memory"
 msgstr ""
 
 # aptitude
-#: src/storage/compress.c:206 src/prims/portprims.c:1475
+#: src/storage/compress.c:206 src/prims/portprims.c:1476
 #: src/drivers/headers/zcompress.h:76
 #, fuzzy
 msgid "ZLIB compress data error"
@@ -1921,7 +1925,7 @@ msgid "Stored %d oid values in oidpool %s in %f seconds"
 msgstr ""
 
 #: src/drivers/filepool.c:813 src/drivers/oidpool.c:1553
-#: src/drivers/bigpool.c:2237 src/drivers/kpool.c:2173
+#: src/drivers/bigpool.c:2237 src/drivers/kpool.c:2184
 msgid "FileAlreadyExists"
 msgstr ""
 
@@ -2044,7 +2048,7 @@ msgstr "lot"
 msgid "No OID alloc method"
 msgstr ""
 
-#: src/drivers/netindex.c:39
+#: src/drivers/netindex.c:41
 #, fuzzy
 msgid "Server doesn't support method"
 msgstr "«get» opération pas supporté"
@@ -2240,26 +2244,26 @@ msgstr ""
 msgid "ThreadExit"
 msgstr ""
 
-#: src/eval/threads.c:539 src/eval/threads.c:561 src/eval/threads.c:580
-#: src/eval/threads.c:583
+#: src/eval/threads.c:542 src/eval/threads.c:564 src/eval/threads.c:583
+#: src/eval/threads.c:586
 #, fuzzy
 msgid "valid condvar"
 msgstr "constante invalide"
 
-#: src/eval/threads.c:553 src/eval/threads.c:555 src/prims/timeprims.c:1324
+#: src/eval/threads.c:556 src/eval/threads.c:558 src/prims/timeprims.c:1324
 msgid "time interval"
 msgstr ""
 
-#: src/eval/threads.c:873 src/eval/threads.c:955 src/text/match.c:3551
+#: src/eval/threads.c:876 src/eval/threads.c:958 src/text/match.c:3551
 #: src/text/match.c:3580
 msgid "applicable"
 msgstr ""
 
-#: src/eval/threads.c:1010
+#: src/eval/threads.c:1013
 msgid "lispenv"
 msgstr ""
 
-#: src/eval/threads.c:1793
+#: src/eval/threads.c:1796
 msgid "StubbornThread"
 msgstr ""
 
@@ -2374,7 +2378,7 @@ msgstr "L'encodage est inconnu"
 msgid "namefn"
 msgstr ""
 
-#: src/prims/dbprims.c:395 src/prims/dbprims.c:2235 src/prims/dbprims.c:2250
+#: src/prims/dbprims.c:395 src/prims/dbprims.c:2280 src/prims/dbprims.c:2295
 #, fuzzy
 msgid "index spec"
 msgstr "index"
@@ -2401,28 +2405,28 @@ msgstr "index"
 msgid "slotid"
 msgstr "slotmap"
 
-#: src/prims/dbprims.c:1196 src/prims/dbprims.c:1201 src/prims/dbprims.c:1220
-#: src/prims/dbprims.c:1242
+#: src/prims/dbprims.c:1238 src/prims/dbprims.c:1243 src/prims/dbprims.c:1262
+#: src/prims/dbprims.c:1284
 #, fuzzy
 msgid "pool, index, or OIDs"
 msgstr "Il n'y a pas une lot pour cette OID"
 
-#: src/prims/dbprims.c:1269 src/prims/dbprims.c:1692 src/prims/dbprims.c:1937
-#: src/prims/dbprims.c:1956
+#: src/prims/dbprims.c:1311 src/prims/dbprims.c:1734 src/prims/dbprims.c:1982
+#: src/prims/dbprims.c:2001
 #, fuzzy
 msgid "pool or index"
 msgstr "une lot ou index"
 
-#: src/prims/dbprims.c:1473 src/prims/dbprims.c:1477 src/prims/dbprims.c:1482
-#: src/prims/dbprims.c:1487
+#: src/prims/dbprims.c:1515 src/prims/dbprims.c:1519 src/prims/dbprims.c:1524
+#: src/prims/dbprims.c:1529
 msgid "pool offset"
 msgstr ""
 
-#: src/prims/dbprims.c:2159
+#: src/prims/dbprims.c:2204
 msgid "value test"
 msgstr ""
 
-#: src/prims/dbprims.c:2194 src/prims/tableprims.c:802
+#: src/prims/dbprims.c:2239 src/prims/tableprims.c:802
 #: src/prims/tableprims.c:824 src/prims/tableprims.c:853
 #: src/prims/tableprims.c:923 src/web/htmlout.c:595 src/web/uriprims.c:204
 #: src/web/uriprims.c:206 src/web/uriprims.c:305
@@ -2430,20 +2434,20 @@ msgstr ""
 msgid "table"
 msgstr "table de hachage"
 
-#: src/prims/dbprims.c:2560
+#: src/prims/dbprims.c:2605
 msgid "test relation"
 msgstr ""
 
-#: src/prims/dbprims.c:2673
+#: src/prims/dbprims.c:2718
 msgid "test object"
 msgstr ""
 
-#: src/prims/dbprims.c:3178
+#: src/prims/dbprims.c:3223
 #, fuzzy
 msgid "wrong number of args"
 msgstr "trop peu de arguments à «find-frames»"
 
-#: src/prims/dbprims.c:3321 src/prims/dbprims.c:3344
+#: src/prims/dbprims.c:3366 src/prims/dbprims.c:3389
 msgid "offset base"
 msgstr ""
 
@@ -2459,36 +2463,36 @@ msgstr ""
 msgid "No more information"
 msgstr ""
 
-#: src/prims/portprims.c:38
+#: src/prims/portprims.c:39
 #, fuzzy
 msgid "Unknown encoding"
 msgstr "L'encodage est inconnu"
 
 # discover
-#: src/prims/portprims.c:390 src/prims/portprims.c:407
-#: src/prims/fileprims.c:1369 src/prims/fileprims.c:1397
-#: src/prims/fileprims.c:1424 src/prims/fileprims.c:1451
+#: src/prims/portprims.c:391 src/prims/portprims.c:408
+#: src/prims/fileprims.c:1415 src/prims/fileprims.c:1443
+#: src/prims/fileprims.c:1470 src/prims/fileprims.c:1497
 msgid "port"
 msgstr "port"
 
-#: src/prims/portprims.c:428 src/prims/portprims.c:448
-#: src/prims/portprims.c:471 src/prims/portprims.c:487
-#: src/prims/fileprims.c:295
+#: src/prims/portprims.c:429 src/prims/portprims.c:449
+#: src/prims/portprims.c:472 src/prims/portprims.c:488
+#: src/prims/fileprims.c:296
 msgid "output port"
 msgstr "port à la sortie"
 
-#: src/prims/portprims.c:816 src/prims/portprims.c:843
-#: src/prims/portprims.c:871 src/prims/portprims.c:945
-#: src/prims/portprims.c:977 src/text/texttools.c:2315
+#: src/prims/portprims.c:817 src/prims/portprims.c:844
+#: src/prims/portprims.c:872 src/prims/portprims.c:946
+#: src/prims/portprims.c:978 src/text/texttools.c:2315
 msgid "input port"
 msgstr "port à l'entrée"
 
-#: src/prims/portprims.c:851
+#: src/prims/portprims.c:852
 #, fuzzy
 msgid "fixum"
 msgstr "fixnum"
 
-#: src/prims/portprims.c:1472
+#: src/prims/portprims.c:1473
 msgid "OIDPOOL compress ran out of memory"
 msgstr ""
 
@@ -2542,90 +2546,90 @@ msgstr "caractère"
 msgid "text encoding"
 msgstr "L'encodage est inconnu"
 
-#: src/prims/fileprims.c:65
+#: src/prims/fileprims.c:66
 msgid "File removal failed"
 msgstr ""
 
-#: src/prims/fileprims.c:66
+#: src/prims/fileprims.c:67
 #, fuzzy
 msgid "File link failed"
 msgstr "fichier non repéré"
 
-#: src/prims/fileprims.c:67
+#: src/prims/fileprims.c:68
 #, fuzzy
 msgid "File open failed"
 msgstr "ne peut ouvrir le fichier"
 
-#: src/prims/fileprims.c:69
+#: src/prims/fileprims.c:70
 msgid "StackDump"
 msgstr ""
 
-#: src/prims/fileprims.c:70
+#: src/prims/fileprims.c:71
 msgid "Snapshot Saved"
 msgstr ""
 
-#: src/prims/fileprims.c:71
+#: src/prims/fileprims.c:72
 msgid "Snapshot Restored"
 msgstr ""
 
-#: src/prims/fileprims.c:685 src/web/uriprims.c:432
+#: src/prims/fileprims.c:711 src/web/uriprims.c:432
 msgid "string CONFIG var"
 msgstr ""
 
-#: src/prims/fileprims.c:687 src/web/uriprims.c:434
+#: src/prims/fileprims.c:713 src/web/uriprims.c:434
 msgid "string or string CONFIG var"
 msgstr ""
 
-#: src/prims/fileprims.c:896
+#: src/prims/fileprims.c:922
 msgid "Keeping temp directory"
 msgstr ""
 
-#: src/prims/fileprims.c:899
+#: src/prims/fileprims.c:925
 msgid "Deleting temp directory"
 msgstr ""
 
-#: src/prims/fileprims.c:905
+#: src/prims/fileprims.c:931
 msgid "Weird temp directory"
 msgstr ""
 
-#: src/prims/fileprims.c:1324
+#: src/prims/fileprims.c:1370
 msgid "port or stream"
 msgstr ""
 
-#: src/prims/fileprims.c:1446 src/prims/fileprims.c:1467
+#: src/prims/fileprims.c:1492 src/prims/fileprims.c:1513
 msgid "offset"
 msgstr ""
 
-#: src/prims/fileprims.c:1543
+#: src/prims/fileprims.c:1589
 msgid "SNAPSHOT"
 msgstr ""
 
-#: src/eval/loadmods.c:63
+#: src/eval/loadmods.c:66
 msgid "Loading failed to resolve module"
 msgstr ""
 
-#: src/eval/loadmods.c:64
+#: src/eval/loadmods.c:67
 msgid "Module reload error"
 msgstr ""
 
-#: src/eval/loadmods.c:407
+#: src/eval/loadmods.c:437
 #, c-format
 msgid "The file %s has never been loaded"
 msgstr ""
 
-#: src/eval/loadmods.c:466
+#: src/eval/loadmods.c:496
 msgid "Module does not exist"
 msgstr ""
 
-#: src/eval/loadmods.c:678
+#: src/eval/loadmods.c:734
 msgid "FailedModule"
 msgstr ""
 
-#: src/eval/loadmods.c:682
+#: src/eval/loadmods.c:738
 msgid "DynamicLoad"
 msgstr ""
 
-#: src/eval/loadmods.c:755
+#: src/eval/loadmods.c:811
 msgid "module name"
 msgstr ""
 
@@ -3073,99 +3077,99 @@ msgstr ""
 msgid ";; %s computed in %f seconds, %d/%d object/index loads\n"
 msgstr ""
 
-#: src/exe/knoc.c:796
+#: src/exe/knoc.c:809
 msgid "Threshold for displaying execution time"
 msgstr ""
 
-#: src/exe/knoc.c:798
+#: src/exe/knoc.c:811
 msgid "Eval prompt (within #||#s)"
 msgstr ""
 
-#: src/exe/knoc.c:802
+#: src/exe/knoc.c:815
 msgid "Max number of string characters to display in debug message"
 msgstr ""
 
-#: src/exe/knoc.c:806
+#: src/exe/knoc.c:819
 msgid "Max number of sequence/choice elements to display in debug message"
 msgstr ""
 
-#: src/exe/knoc.c:809
+#: src/exe/knoc.c:822
 msgid "Whether to minimize console output"
 msgstr ""
 
-#: src/exe/knoc.c:812
+#: src/exe/knoc.c:825
 msgid "Report startup times when longer than N seconds"
 msgstr ""
 
-#: src/exe/knoc.c:816
+#: src/exe/knoc.c:829
 msgid "Number of characters available for pretty-printing console output"
 msgstr ""
 
-#: src/exe/knoc.c:820 src/exe/knoc.c:824
+#: src/exe/knoc.c:833 src/exe/knoc.c:837
 msgid "Number of elements to initially show in displaying results"
 msgstr ""
 
-#: src/exe/knoc.c:827
+#: src/exe/knoc.c:840
 msgid "Where to create directories for saving backtraces"
 msgstr ""
 
-#: src/exe/knoc.c:830
+#: src/exe/knoc.c:843
 msgid "The base URL for referencing HTML backtraces"
 msgstr ""
 
-#: src/exe/knoc.c:833
+#: src/exe/knoc.c:846
 msgid "The command to use to open saved backtraces"
 msgstr ""
 
-#: src/exe/knoc.c:836
+#: src/exe/knoc.c:849
 msgid "Whether to dump HTML versions of backtraces"
 msgstr ""
 
-#: src/exe/knoc.c:839
+#: src/exe/knoc.c:852
 msgid "Whether to dump LISP object versions of backtraces"
 msgstr ""
 
-#: src/exe/knoc.c:842
+#: src/exe/knoc.c:855
 msgid "Whether to dump binary DTYPE versions of backtraces"
 msgstr ""
 
-#: src/exe/knoc.c:845
+#: src/exe/knoc.c:858
 msgid "Whether to plaintext versions of backtraces"
 msgstr ""
 
-#: src/exe/knoc.c:848
+#: src/exe/knoc.c:861
 msgid "Whether to always save backtraces in the history"
 msgstr ""
 
-#: src/exe/knoc.c:851
+#: src/exe/knoc.c:864
 msgid "Whether to always output backtraces to stderr"
 msgstr ""
 
-#: src/exe/knoc.c:854
+#: src/exe/knoc.c:867
 msgid "Whether load .knoc or other dot files"
 msgstr ""
 
-#: src/exe/knoc.c:857
+#: src/exe/knoc.c:870
 msgid "Where to dump console errors"
 msgstr ""
 
-#: src/exe/knoc.c:900 src/exe/knox.c:243 src/exe/knox.c:248
+#: src/exe/knoc.c:913 src/exe/knox.c:248 src/exe/knox.c:253
 msgid "File to wait to exist before starting"
 msgstr ""
 
-#: src/exe/knoc.c:992
+#: src/exe/knoc.c:1005
 msgid "Whether to use EDITLINE for the console"
 msgstr ""
 
-#: src/exe/knoc.c:996
+#: src/exe/knoc.c:1009
 msgid "Emit void marker (#|<void|#) when void is returned"
 msgstr ""
 
-#: src/exe/knoc.c:1026
+#: src/exe/knoc.c:1039
 msgid ";; Bound %q\n"
 msgstr ""
 
-#: src/exe/knoc.c:1027
+#: src/exe/knoc.c:1040
 msgid ";; Bad command result %q\n"
 msgstr ""
 
@@ -3177,29 +3181,29 @@ msgstr ""
 msgid "Too many configs to CHAIN"
 msgstr ""
 
-#: src/exe/knox.c:233
+#: src/exe/knox.c:238
 #, fuzzy
 msgid "Max number of chars in strings output in error reports"
 msgstr "trop peu de arguments à «find-frames»"
 
-#: src/exe/knox.c:238
+#: src/exe/knox.c:243
 msgid "Max number of sequence/choice elements to display in error reports"
 msgstr ""
 
-#: src/exe/knox.c:252
+#: src/exe/knox.c:257
 msgid "Read additional source from STDIN"
 msgstr ""
 
-#: src/exe/knox.c:257
+#: src/exe/knox.c:262
 msgid ""
 "Whether to take the first command line argument as a source file to load"
 msgstr ""
 
-#: src/exe/knox.c:263
+#: src/exe/knox.c:268
 msgid "The name of the (main) routine for this file"
 msgstr ""
 
-#: src/exe/knox.c:268
+#: src/exe/knox.c:273
 msgid "The name of the root file being executed for this application"
 msgstr ""
 
@@ -3223,11 +3227,11 @@ msgstr ""
 msgid "Trace web transactions over N seconds"
 msgstr ""
 
-#: src/exe/knocgi.c:1842 src/exe/knod.c:1095
+#: src/exe/knocgi.c:1842 src/exe/knod.c:1096
 msgid "Number of pending connection requests allowed"
 msgstr ""
 
-#: src/exe/knocgi.c:1844 src/exe/knod.c:1098
+#: src/exe/knocgi.c:1844 src/exe/knod.c:1099
 msgid "Max number of requests to keep queued"
 msgstr ""
 
@@ -3235,11 +3239,11 @@ msgstr ""
 msgid "Max number of concurrent connections to allow (NYI)"
 msgstr ""
 
-#: src/exe/knocgi.c:1850 src/exe/knod.c:1102
+#: src/exe/knocgi.c:1850 src/exe/knod.c:1103
 msgid "Number of clients to prepare for/grow by"
 msgstr ""
 
-#: src/exe/knocgi.c:1853 src/exe/knocgi.c:1856 src/exe/knod.c:1105
+#: src/exe/knocgi.c:1853 src/exe/knocgi.c:1856 src/exe/knod.c:1106
 msgid "Number of threads in the thread pool"
 msgstr ""
 
@@ -3255,11 +3259,11 @@ msgstr ""
 msgid "Milliseconds (roughly) between logging status information"
 msgstr ""
 
-#: src/exe/knocgi.c:1868 src/exe/knod.c:1168
+#: src/exe/knocgi.c:1868 src/exe/knod.c:1169
 msgid "How long (μs) to wait for tasks during shutdown"
 msgstr ""
 
-#: src/exe/knocgi.c:1872 src/exe/knod.c:1079
+#: src/exe/knocgi.c:1872 src/exe/knod.c:1080
 msgid "Remove existing socket files with extreme prejudice"
 msgstr ""
 
@@ -3271,7 +3275,7 @@ msgstr ""
 msgid "Ports for listening for connections"
 msgstr ""
 
-#: src/exe/knocgi.c:1883 src/exe/knod.c:1164
+#: src/exe/knocgi.c:1883 src/exe/knod.c:1165
 msgid "Whether to run in asynchronous mode"
 msgstr ""
 
@@ -3283,11 +3287,11 @@ msgstr ""
 msgid "Timeout for the poll loop (lower bound of status updates)"
 msgstr ""
 
-#: src/exe/knocgi.c:1895 src/exe/knod.c:1132
+#: src/exe/knocgi.c:1895 src/exe/knod.c:1133
 msgid "Whether to have libu8 log each connection"
 msgstr ""
 
-#: src/exe/knocgi.c:1899 src/exe/knod.c:1137
+#: src/exe/knocgi.c:1899 src/exe/knod.c:1138
 msgid "Whether to have libu8 log each transaction"
 msgstr ""
 
@@ -3299,7 +3303,7 @@ msgstr ""
 msgid "Whether to have libu8 log data transmission/receiption"
 msgstr ""
 
-#: src/exe/knocgi.c:1916 src/exe/knod.c:1149
+#: src/exe/knocgi.c:1916 src/exe/knod.c:1150
 msgid "Whether to support thread-asynchronous transactions"
 msgstr ""
 
@@ -3343,73 +3347,73 @@ msgstr ""
 msgid "Outgoing"
 msgstr ""
 
-#: src/exe/knod.c:1082
+#: src/exe/knod.c:1083
 msgid "Loglevel for knod itself"
 msgstr ""
 
-#: src/exe/knod.c:1085
+#: src/exe/knod.c:1086
 msgid "Whether to run in the foreground"
 msgstr ""
 
-#: src/exe/knod.c:1088
+#: src/exe/knod.c:1089
 msgid "Whether to enable auto-restart"
 msgstr ""
 
-#: src/exe/knod.c:1091
+#: src/exe/knod.c:1092
 msgid "Whether to wait for the servlet PID file"
 msgstr ""
 
-#: src/exe/knod.c:1108
+#: src/exe/knod.c:1109
 msgid "modules to provide in the server environment"
 msgstr ""
 
-#: src/exe/knod.c:1111
+#: src/exe/knod.c:1112
 msgid "whether to provide full scheme interpreter"
 msgstr ""
 
-#: src/exe/knod.c:1114
+#: src/exe/knod.c:1115
 msgid "Whether to log each request and response"
 msgstr ""
 
-#: src/exe/knod.c:1117
+#: src/exe/knod.c:1118
 msgid "Whether to log each transaction"
 msgstr ""
 
-#: src/exe/knod.c:1121
+#: src/exe/knod.c:1122
 msgid "Whether to log errors returned by the server to clients"
 msgstr ""
 
-#: src/exe/knod.c:1125
+#: src/exe/knod.c:1126
 msgid "Whether to include a detailed backtrace when logging errors"
 msgstr ""
 
-#: src/exe/knod.c:1128
+#: src/exe/knod.c:1129
 msgid "Line width for logged backtraces"
 msgstr ""
 
-#: src/exe/knod.c:1143
+#: src/exe/knod.c:1144
 msgid "Whether to have libu8 log all data transfers"
 msgstr ""
 
-#: src/exe/knod.c:1155
+#: src/exe/knod.c:1156
 #, fuzzy
 msgid "Max number of string characters to display in debug messages"
 msgstr "trop peu de arguments à «find-frames»"
 
-#: src/exe/knod.c:1160
+#: src/exe/knod.c:1161
 #, fuzzy
 msgid "Max number of object elements to display in debug messages"
 msgstr "trop peu de arguments à «find-frames»"
 
-#: src/exe/knod.c:1172
+#: src/exe/knod.c:1173
 msgid "Whether to automatically reload changed files"
 msgstr ""
 
-#: src/exe/knod.c:1176
+#: src/exe/knod.c:1177
 msgid "Whether to disable exported Kno DB API"
 msgstr ""
 
-#: src/exe/knod.c:1332
+#: src/exe/knod.c:1333
 msgid "port or port@host to listen on"
 msgstr ""
 
@@ -3496,6 +3500,14 @@ msgstr ""
 #: src/exe/webcommon.h:733
 msgid "WEBMAIN default procedure for handling requests"
 msgstr ""
+
+#, fuzzy
+#~ msgid "not an index"
+#~ msgstr "pas une fichiers d'index"
+
+#, fuzzy
+#~ msgid "not a pool"
+#~ msgstr "pas une fichiers d'index"
 
 #, fuzzy
 #~ msgid "Not a knopool"

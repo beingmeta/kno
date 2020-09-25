@@ -839,7 +839,7 @@ static lispval getline_prim(lispval port,lispval eos_arg,
     eof_marker = KNO_EOF;
   if (in) {
     u8_string data, eos;
-    int lim, size = 0;
+    ssize_t lim, size = 0;
     if (in == NULL)
       return kno_type_error(_("input port"),"getline_prim",port);
     if ( (VOIDP(eos_arg)) || (KNO_DEFAULTP(eos_arg)) )
@@ -1282,7 +1282,7 @@ DEFPRIM1("base64->packet",from_base64_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 static lispval from_base64_prim(lispval string)
 {
   const u8_byte *string_data = CSTRING(string);
-  unsigned int string_len = STRLEN(string), data_len;
+  ssize_t string_len = STRLEN(string), data_len;
   unsigned char *data=
     u8_read_base64(string_data,string_data+string_len,&data_len);
   if (data)
@@ -1300,7 +1300,7 @@ static lispval to_base64_prim(lispval packet,lispval nopad,
 			      lispval urisafe)
 {
   const u8_byte *packet_data = KNO_PACKET_DATA(packet);
-  unsigned int packet_len = KNO_PACKET_LENGTH(packet), ascii_len;
+  ssize_t packet_len = KNO_PACKET_LENGTH(packet), ascii_len;
   char *ascii_string =
     u8_write_base64(packet_data,packet_len,&ascii_len);
   if (ascii_string) {
@@ -1326,7 +1326,7 @@ DEFPRIM3("->base64",any_to_base64_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
 static lispval any_to_base64_prim(lispval arg,lispval nopad,
 				  lispval urisafe)
 {
-  unsigned int data_len, ascii_len;
+  ssize_t data_len, ascii_len;
   const u8_byte *data; char *ascii_string;
   if (PACKETP(arg)) {
     data = KNO_PACKET_DATA(arg);
@@ -1360,7 +1360,7 @@ DEFPRIM1("base16->packet",from_base16_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 static lispval from_base16_prim(lispval string)
 {
   const u8_byte *string_data = CSTRING(string);
-  unsigned int string_len = STRLEN(string), data_len;
+  ssize_t string_len = STRLEN(string), data_len;
   unsigned char *data = u8_read_base16(string_data,string_len,&data_len);
   if (data)
     return kno_init_packet(NULL,data_len,data);
@@ -1416,7 +1416,7 @@ static lispval gzip_prim(lispval arg,lispval filename,lispval comment)
     u8_condition error = NULL;
     const unsigned char *data=
       ((STRINGP(arg))?(CSTRING(arg)):(KNO_PACKET_DATA(arg)));
-    unsigned int data_len=
+    ssize_t data_len=
       ((STRINGP(arg))?(STRLEN(arg)):(KNO_PACKET_LENGTH(arg)));
     struct KNO_OUTBUF out = { 0 };
     int flags = 0; /* FDPP_FHCRC */
@@ -1437,13 +1437,13 @@ static lispval gzip_prim(lispval arg,lispval filename,lispval comment)
     /* No extra fields */
     if (STRINGP(filename)) {
       u8_string text = CSTRING(filename), end = text+STRLEN(filename);
-      int len;
+      ssize_t len;
       unsigned char *string=
 	u8_localize(latin1_encoding,&text,end,'\\',0,NULL,&len);
       kno_write_bytes(&out,string,len); kno_write_byte(&out,'\0');
       u8_free(string);}
     if (STRINGP(comment)) {
-      int len;
+      ssize_t len;
       u8_string text = CSTRING(comment), end = text+STRLEN(comment);
       unsigned char *string=
 	u8_localize(latin1_encoding,&text,end,'\\',0,NULL,&len);

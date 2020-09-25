@@ -131,7 +131,9 @@ lispval kno_handle_compound_mime_field(lispval fields,lispval slotid,lispval ori
 static lispval convert_data(const char *start,const char *end,
 			    lispval dataenc,int could_be_string)
 {
-  lispval result = VOID; char *data; int len;
+  lispval result = VOID;
+  ssize_t len;
+  char *data;
   /* First do any conversion you need to do. */
   if (STRINGP(dataenc))
     if (strcasecmp(CSTRING(dataenc),"quoted-printable")==0)
@@ -153,7 +155,7 @@ static lispval convert_data(const char *start,const char *end,
 static lispval convert_text(const char *start,const char *end,
 			    lispval dataenc,lispval charenc)
 {
-  int len; u8_encoding encoding;
+  ssize_t len; u8_encoding encoding;
   const u8_byte *data, *scan, *data_end;
   struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,1024);
   if (STRINGP(dataenc)) {

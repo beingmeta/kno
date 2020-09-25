@@ -1459,7 +1459,7 @@ DEFPRIM3("string->packet",string2packet,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
 	 kno_any_type,KNO_VOID);
 static lispval string2packet(lispval string,lispval encoding,lispval escape)
 {
-  char *data; int n_bytes;
+  char *data; ssize_t n_bytes;
   const u8_byte *scan, *limit;
   struct U8_TEXT_ENCODING *enc;
   if ( (VOIDP(encoding)) || (FALSEP(encoding)) ) {

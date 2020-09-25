@@ -197,7 +197,7 @@ static int read_escape(u8_input in)
       return KNO_ERR3(-1,kno_BadEscapeSequence,"parse_unicode_escape(\\x)",
                       buf);}}
   case 'u': {
-    char buf[16]; int nc = u8_probec(in), len;
+    char buf[16]; int nc = u8_probec(in); ssize_t len;
     if (nc=='{') {
       buf[0]='\\'; buf[1]='u';
       u8_gets_x(buf+2,13,in,"}",&len);}
@@ -827,7 +827,7 @@ static lispval parse_base64_packet(U8_INPUT *in)
     u8_free(data);
     return KNO_EOX;}
   else if (c=='"') {
-    int n_bytes = 0;
+    ssize_t n_bytes = 0;
     unsigned char *bytes = u8_read_base64(data,data+len,&n_bytes);
     if (bytes) {
       lispval result = kno_make_packet(NULL,n_bytes,bytes);

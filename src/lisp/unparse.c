@@ -190,7 +190,7 @@ KNO_EXPORT int kno_unparse_packet
       u8_puts(out,buf);}
     return u8_putc(out,'"');}
   else if (base==64) {
-    int n_chars = 0;
+    ssize_t n_chars = 0;
     char *b64 = u8_write_base64(bytes,len,&n_chars);
     u8_puts(out,"#@\"");
     if ((unparse_maxbytes>0) && (n_chars>=unparse_maxbytes)) {
