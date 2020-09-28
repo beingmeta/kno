@@ -848,6 +848,7 @@ mmshared_suffix
 mshared_suffix
 vshared_suffix
 shared_suffix
+ifmacos
 install_exe_opts
 install_file_opts
 install_dir_opts
@@ -2965,6 +2966,7 @@ enable_ipeval_default="no"
 install_dir_opts="-d -m 0775"
 install_file_opts="-m 0664"
 install_exe_opts="-m 0775"
+ifmacos="#"
 webuser=""
 webgroup=""
 wwwinstall=""
@@ -3178,6 +3180,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/kno/knosource.h include/kno/config.h"
+
 
 
 
@@ -6973,7 +6976,7 @@ case $host_os in
    PKG_CFLAGS="-D_DARWIN_C_SOURCE $PKG_CFLAGS"
    RPATHFLAGS=" -rpath \$(RPATH) "
    STATICLDFLAGS=" -lc++"
-   ifmacosx=""
+   ifmacos=""
    setup_target="setup-osx"
    gperftools_default="no"
    ;;

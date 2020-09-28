@@ -5,9 +5,11 @@ BRANCH=trunk
 %/.git:
 	@git clone git@github.com:beingmeta/kno-$(@D).git $(@D)
 	@cd $(@D); git checkout ${BRANCH};
-	@if test -d ../../lib/kno; then \
-	   cd  ../../lib/kno; \
-	   ln -sf ../../src/extmods/$(@D)/$(@D).${shared_suffix} $(@D).${shared_suffix}; fi;
+	@if test -d ../../lib/kno; then 				\
+	   cd  ../../lib/kno; 						\
+	   ln -sf ../../src/extmods/$(@D)/$(@D).${shared_suffix}	\
+		  $(@D).${shared_suffix}; 				\
+	fi;
 
 default: extmods
 
@@ -46,13 +48,15 @@ debfresh: extmods
 STDMODS=hyphenate leveldb mongodb mysql nng odbc sundown tidy zeromq ziptools
 
 symlinks:
-	for dir in ${STDMODS}; do make ${dir}/.git; done;
-	cd ../../lib/kno; 											\
-	  for modname in ${STDMODS}; do 									\
-	    ln -sf ../../src/extmods/$${modname}/$${modname}.${shared_suffix} $${modname}.${shared_suffix};	\
-	  done; 												\
-	  for modname in qrcode exif imagick; do 								\
-	    ln -sf ../../src/extmods/imagetools/$${modname}.${shared_suffix} $${modname}.${shared_suffix}; 	\
+	for dir in ${STDMODS}; do make $${dir}/.git; done;
+	cd ../../lib/kno;							\
+	  for modname in ${STDMODS}; do						\
+	    ln -sf ../../src/extmods/$${modname}/$${modname}.${shared_suffix}	\
+		   $${modname}.${shared_suffix};				\
+	  done; 								\
+	  for modname in qrcode exif imagick; do 				\
+	    ln -sf ../../src/extmods/imagetools/$${modname}.${shared_suffix} 	\
+		   $${modname}.${shared_suffix}; 				\
 	  done;
 
 debclean:

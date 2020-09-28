@@ -43,6 +43,7 @@ enable_ipeval_default="no"
 install_dir_opts="-d -m 0775"
 install_file_opts="-m 0664"
 install_exe_opts="-m 0775"
+ifmacos="#"
 webuser=""
 webgroup=""
 wwwinstall=""
@@ -233,6 +234,7 @@ AC_SUBST(DEFAULTMAKETARGET)
 AC_SUBST(install_dir_opts)
 AC_SUBST(install_file_opts)
 AC_SUBST(install_exe_opts)
+AC_SUBST(ifmacos)
 AC_SUBST(shared_suffix)
 AC_SUBST(vshared_suffix)
 AC_SUBST(mshared_suffix)
@@ -623,7 +625,7 @@ case $host_os in
    PKG_CFLAGS="-D_DARWIN_C_SOURCE $PKG_CFLAGS"
    RPATHFLAGS=" -rpath \$(RPATH) "
    STATICLDFLAGS=" -lc++"
-   ifmacosx=""
+   ifmacos=""
    setup_target="setup-osx"
    gperftools_default="no"
    ;;
