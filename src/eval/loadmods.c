@@ -869,9 +869,9 @@ KNO_EXPORT void kno_init_loadmods_c()
     else {
       use_path=u8_string_append(dir,"/",NULL);
       u8_free(dir);}
-    if ( (u8_has_suffix(dir,".zip",0)) ?
-	 (u8_file_existsp(dir)) :
-	 (u8_directoryp(dir)) ) {
+    if ( (u8_has_suffix(use_path,".zip",0)) ?
+	 (u8_file_existsp(use_path)) :
+	 (u8_directoryp(use_path)) ) {
       lispval old_path = libscm_path;
       lispval new_path = knostring(use_path);
       if (KNO_ABORTED(new_path)) {
