@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-09-24 22:53+0000\n"
+"POT-Creation-Date: 2020-09-30 14:47+0000\n"
 "PO-Revision-Date: 2005-03-05 16:06-0500\n"
 "Last-Translator: Kenneth Haase <kh@beingmeta.com>\n"
 "Language-Team: French <traduc@traduc.org>\n"
@@ -2870,11 +2870,11 @@ msgstr ""
 msgid "XML parsing error"
 msgstr "hors limite"
 
-#: src/web/xmlinput.c:1069 src/web/xmlinput.c:1086
+#: src/web/xmlinput.c:1070 src/web/xmlinput.c:1087
 msgid "xmlparse option"
 msgstr ""
 
-#: src/web/xmlinput.c:1107 src/web/xmlinput.c:1179 src/web/xmlinput.c:1214
+#: src/web/xmlinput.c:1108 src/web/xmlinput.c:1180 src/web/xmlinput.c:1215
 #, fuzzy
 msgid "string or port"
 msgstr "chaîne ou symbole"
@@ -2955,7 +2955,7 @@ msgstr ""
 msgid "Multipart MIME document has no separator"
 msgstr ""
 
-#: src/web/mime.c:290
+#: src/web/mime.c:292
 msgid "mime data"
 msgstr ""
 
