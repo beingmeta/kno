@@ -27,6 +27,7 @@ build() {
 		--sysconfdir=/etc \
 		--mandir=/usr/share/man \
 		--without-parseltongue \
+		--with-cstacksize=16777216 \
 		--localstatedir=/var \
 		--without-sudo
 #		--enable-stripping
