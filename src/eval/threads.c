@@ -45,6 +45,9 @@ static int thread_loglevel = LOG_NOTICE;
 static int thread_log_exit = 1;
 static lispval logexit_symbol = VOID, timeout_symbol = VOID, keepenv_symbol = VOID;
 static lispval void_symbol = VOID;
+DEF_KNOSYM(stacksize);
+
+static ssize_t thread_stacksize = -1;
 
 static struct sigaction sigaction_interrupt = { 0 };
 /* These might get defined when things are clearer about thread signals */
@@ -782,6 +785,7 @@ static void *_kno_thread_main(void *data)
 KNO_EXPORT
 kno_thread kno_thread_call(lispval *resultptr,
 			   lispval fn,int n,lispval *args,
+			   lispval opts,
 			   int flags)
 {
   struct KNO_THREAD *tstruct = u8_alloc(struct KNO_THREAD);
@@ -802,7 +806,18 @@ kno_thread kno_thread_call(lispval *resultptr,
   tstruct->interrupt = NULL;
   tstruct->finished = -1;
   tstruct->flags = flags;
+  tstruct->opts = kno_incref(opts); 
   pthread_attr_init(&(tstruct->attr));
+  lispval stacksize_opt = kno_getopt(opts,KNOSYM(stacksize),KNO_VOID);
+  ssize_t use_stacksize = (KNO_FIXNUMP(stacksize_opt)) ? (KNO_FIX2INT(stacksize_opt)) : (-1);
+  if (use_stacksize < 0) {
+    if (thread_stacksize < 0)
+      use_stacksize=KNO_DEFAULT_STACKSIZE;
+    else use_stacksize = thread_stacksize;}
+  if (use_stacksize > KNO_MIN_STACKSIZE)
+    pthread_attr_setstacksize(&(tstruct->attr),use_stacksize);
+  else pthread_attr_setstacksize(&(tstruct->attr),KNO_MIN_STACKSIZE);
+  kno_decref(stacksize_opt);
   tstruct->applydata.fn = kno_incref(fn);
   tstruct->applydata.n_args = n;
   tstruct->applydata.args = rail;
@@ -817,6 +832,7 @@ kno_thread kno_thread_call(lispval *resultptr,
 KNO_EXPORT
 kno_thread kno_thread_eval(lispval *resultptr,
 			   lispval expr,kno_lexenv env,
+			   lispval opts,
 			   int flags)
 {
   struct KNO_THREAD *tstruct = u8_alloc(struct KNO_THREAD);
@@ -835,12 +851,21 @@ kno_thread kno_thread_eval(lispval *resultptr,
   tstruct->interrupt = NULL;
   tstruct->finished = -1;
   tstruct->flags = flags|KNO_EVAL_THREAD;
+  tstruct->opts = kno_incref(opts); 
+  pthread_attr_init(&(tstruct->attr));
+  lispval stacksize_opt = kno_getopt(opts,KNOSYM(stacksize),KNO_VOID);
+  ssize_t use_stacksize = (KNO_FIXNUMP(stacksize_opt)) ? (KNO_FIX2INT(stacksize_opt)) : (-1);
+  if (use_stacksize < 0) use_stacksize = thread_stacksize;
+  if (use_stacksize > KNO_MIN_STACKSIZE)
+    pthread_attr_setstacksize(&(tstruct->attr),use_stacksize);
+  else pthread_attr_setstacksize(&(tstruct->attr),KNO_MIN_STACKSIZE);
+  kno_decref(stacksize_opt);
   tstruct->evaldata.expr = kno_incref(expr);
   tstruct->evaldata.env = kno_copy_env(env);
   /* We need to do this first, before the thread exits and recycles itself! */
   kno_incref((lispval)tstruct);
   add_thread(tstruct);
-  pthread_create(&(tstruct->tid),pthread_attr_default,
+  pthread_create(&(tstruct->tid),&(tstruct->attr),
 		 _kno_thread_main,(void *)tstruct);
   return tstruct;
 }
@@ -863,7 +888,7 @@ static lispval threadcall_prim(int n,kno_argvec args)
       kno_incref(call_arg);
       call_args[i-1]=call_arg;
       i++;}
-    thread = kno_thread_call(NULL,fn,n-1,call_args,0);
+    thread = kno_thread_call(NULL,fn,n-1,call_args,KNO_FALSE,0);
     if (thread == NULL) {
       u8_log(LOG_WARN,"ThreadLaunchFailed",
 	     "Failed to launch thread calling %q",args[0]);
@@ -945,7 +970,7 @@ static lispval threadcallx_prim(int n,kno_argvec args)
       kno_incref(call_arg);
       call_args[i-2]=call_arg;
       i++;}
-    thread = kno_thread_call(NULL,fn,n-2,call_args,flags);
+    thread = kno_thread_call(NULL,fn,n-2,call_args,opts,flags);
     if (thread == NULL) {
       u8_log(LOG_WARN,"ThreadLaunchFailed",
 	     "Failed to launch thread calling %q",args[0]);
@@ -967,7 +992,7 @@ static lispval spawn_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   int flags = threadopts(opts)|KNO_EVAL_THREAD;
   lispval results = KNO_EMPTY;
   DO_CHOICES(thread_expr,to_eval) {
-    kno_thread thread = kno_thread_eval(NULL,thread_expr,env,flags);
+    kno_thread thread = kno_thread_eval(NULL,thread_expr,env,opts,flags);
     if ( thread == NULL ) {
       u8_log(LOG_WARN,"ThreadLaunchFailed",
 	     "Error evaluating %q in its own thread, ignoring",thread_expr);}
@@ -1015,7 +1040,7 @@ static lispval threadeval_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     int flags = threadopts(opts)|KNO_EVAL_THREAD;
     lispval results = EMPTY;
     DO_CHOICES(thread_expr,to_eval) {
-      kno_thread thread = kno_thread_eval(NULL,thread_expr,use_env,flags);
+      kno_thread thread = kno_thread_eval(NULL,thread_expr,use_env,opts,flags);
       if ( thread == NULL ) {
 	u8_log(LOG_WARN,"ThreadLaunchFailed",
 	       "Error evaluating %q in its own thread, ignoring",thread_expr);}
@@ -1232,7 +1257,9 @@ static int join_thread(struct KNO_THREAD *tstruct,
     else {
       int rv = u8_condvar_timedwait
 	(&(tstruct->exit_cvar),&(tstruct->exit_lock),ts);
-      if (tstruct->finished>0)
+      if (rv)
+	return rv;
+      else if (tstruct->finished>0)
 	return 0;
       else return ETIMEDOUT;}
 #endif
@@ -1408,7 +1435,8 @@ static lispval parallel_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   scan = KNO_CDR(expr); while (PAIRP(scan)) {
     lispval thread_expr = KNO_CAR(scan);
     kno_thread thread =
-      kno_thread_eval(&results[i],thread_expr,env,KNO_EVAL_THREAD|KNO_THREAD_QUIET_EXIT);
+      kno_thread_eval(&results[i],thread_expr,env,KNO_FALSE,
+		      KNO_EVAL_THREAD|KNO_THREAD_QUIET_EXIT);
     if (thread == NULL) {
       u8_log(LOG_WARN,"ThreadLaunchFailed",
 	     "Unable to launch a thread evaluating %q",thread_expr);
@@ -1662,8 +1690,8 @@ static lispval set_cstack_limit_prim(lispval arg)
       if (result<0)
 	return KNO_ERROR;
       else return KNO_INT2LISP(result);}
-    else return kno_type_error("stacksize","set_stack_limit_prim",arg);}
-  else return kno_type_error("stacksize","set_stack_limit_prim",arg);
+    else return kno_type_error("stacksize","set_cstack_limit_prim",arg);}
+  else return kno_type_error("stacksize","set_cstack_limit_prim",arg);
 }
 
 /* Initialize signalling */
@@ -1884,6 +1912,11 @@ KNO_EXPORT void kno_init_threads_c()
 		      "Whether to log the normal exit values of threads",
 		      kno_intconfig_get,kno_intconfig_set,
 		      &thread_grace);
+
+  kno_register_config("THREAD:STACK",
+		      "Default stack size for new threads",
+		      kno_sizeconfig_get,kno_sizeconfig_set,
+		      &thread_stacksize);
 
   kno_walkers[kno_thread_type]=walk_thread_struct;
 

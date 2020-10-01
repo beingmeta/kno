@@ -162,15 +162,16 @@ static lispval applytest(int n,kno_argvec args)
 	    testid);
     if (err)
       return_value = result;
-    else return_value = KNO_FALSE;}
+    else return_value = KNO_TRUE;}
   else if ( (KNO_VOIDP(result)) && (expected == void_symbol) ) {
     u8_logf(LOG_INFO,"Tests/ExpectedVoidValue","%s",testid);
     return_value = KNO_TRUE;}
   else if (KNO_VOIDP(result)) {
     u8_logf(LOG_WARN,"Tests/UnexpectedVoidValue",
 	    "%s expected %q",testid,expected);
-    if (err) return_value = kno_err
-	       ("Tests/UnexpectedVoidValue","applytest",testid,VOID);}
+    if (err)
+      return_value = kno_err("Tests/UnexpectedVoidValue","applytest",testid,VOID);
+    else return_value = KNO_FALSE;}
   else if (KNO_VOIDP(predicate)) {
     if (test_match(expected,result)) {
       u8_logf(LOG_INFO,"Tests/Passed",
@@ -180,8 +181,9 @@ static lispval applytest(int n,kno_argvec args)
       u8_logf(LOG_WARN,"Tests/UnexpectedValue",
 	      "%s:\n  Expected:\t%q\n  Returned:\t%q\n",
 	      testid,expected,result);
-      if (err) return_value =
-		 kno_err("Tests/UnexpectedValue","applytest",testid,result);}}
+      if (err)
+	return_value = kno_err("Tests/UnexpectedValue","applytest",testid,result);
+      else return_value = KNO_FALSE;}}
   else if (KNO_VOIDP(predicate_arg)) {
     lispval pred_result = kno_apply(predicate,1,&result);
     if (KNO_ABORTP(pred_result))
@@ -205,8 +207,9 @@ static lispval applytest(int n,kno_argvec args)
       u8_logf(LOG_WARN,"Tests/PredicateFailed",
 	      "%s:\n  Predicate:\t%q\n  Result:\t%q\n  Argument:\t%q\n",
 	      testid,predicate,result,predicate_arg);
-      if (err) return_value =
-		 kno_err("Tests/PredicateFailed","applytest",testid,result);}
+      if (err)
+	return_value = kno_err("Tests/PredicateFailed","applytest",testid,result);
+      else return_value = KNO_FALSE;}
     else {
       u8_logf(LOG_INFO,"Tests/Passed",
 	      "Result %q passed %q for %s",result,predicate,testid);

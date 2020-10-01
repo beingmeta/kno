@@ -119,6 +119,12 @@
 /* Define if you have <obstack.h> */
 #undef HAVE_OBSTACK_H
 
+/* Minimum thread stack size */
+#undef KNO_MIN_STACKSIZE
+
+/* Default thread stack size */
+#undef KNO_DEFAULT_STACKSIZE
+
 /* Define if you have <signal.h> */
 #undef HAVE_SIGNAL_H
 

@@ -873,7 +873,6 @@ infodir
 docdir
 oldincludedir
 includedir
-runstatedir
 localstatedir
 sharedstatedir
 sysconfdir
@@ -921,6 +920,9 @@ with_extlib
 with_rpath
 with_pkgconfig_dir
 with_fileinfo
+with_minstack
+with_stacksize
+with_cstacksize
 with_stackcheck
 enable_cprofiling
 with_gnuprof
@@ -1036,7 +1038,6 @@ datadir='${datarootdir}'
 sysconfdir='${prefix}/etc'
 sharedstatedir='${prefix}/com'
 localstatedir='${prefix}/var'
-runstatedir='${localstatedir}/run'
 includedir='${prefix}/include'
 oldincludedir='/usr/include'
 docdir='${datarootdir}/doc/${PACKAGE}'
@@ -1289,15 +1290,6 @@ do
   | -silent | --silent | --silen | --sile | --sil)
     silent=yes ;;
 
-  -runstatedir | --runstatedir | --runstatedi | --runstated \
-  | --runstate | --runstat | --runsta | --runst | --runs \
-  | --run | --ru | --r)
-    ac_prev=runstatedir ;;
-  -runstatedir=* | --runstatedir=* | --runstatedi=* | --runstated=* \
-  | --runstate=* | --runstat=* | --runsta=* | --runst=* | --runs=* \
-  | --run=* | --ru=* | --r=*)
-    runstatedir=$ac_optarg ;;
-
   -sbindir | --sbindir | --sbindi | --sbind | --sbin | --sbi | --sb)
     ac_prev=sbindir ;;
   -sbindir=* | --sbindir=* | --sbindi=* | --sbind=* | --sbin=* \
@@ -1435,7 +1427,7 @@ fi
 for ac_var in	exec_prefix prefix bindir sbindir libexecdir datarootdir \
 		datadir sysconfdir sharedstatedir localstatedir includedir \
 		oldincludedir docdir infodir htmldir dvidir pdfdir psdir \
-		libdir localedir mandir runstatedir
+		libdir localedir mandir
 do
   eval ac_val=\$$ac_var
   # Remove trailing slashes.
@@ -1588,7 +1580,6 @@ Fine tuning of the installation directories:
   --sysconfdir=DIR        read-only single-machine data [PREFIX/etc]
   --sharedstatedir=DIR    modifiable architecture-independent data [PREFIX/com]
   --localstatedir=DIR     modifiable single-machine data [PREFIX/var]
-  --runstatedir=DIR       modifiable per-process data [LOCALSTATEDIR/run]
   --libdir=DIR            object code libraries [EPREFIX/lib]
   --includedir=DIR        C header files [PREFIX/include]
   --oldincludedir=DIR     C header files for non-gcc [/usr/include]
@@ -1667,6 +1658,9 @@ Optional Packages:
 --with-rpath dir
 --with-pkgconfig-dir pathname
 --with/out-fileinfo record fileinfo
+--with-minstack Build with minimium stack size
+--with-stacksize Build with default stack size
+--with-cstacksize Link specifying a default stacksize
 --with-stackcheck Build with native stack checking
 --with/out-gnuprof compile to generate GNU profiling information
 --with-duma Build with Detect Unintended Memory Access
@@ -7045,6 +7039,42 @@ if test "$with_fileinfo" = "yes" ; then
    definefileinfo="-D_FILEINFO=\"\\\"\`./fileinfo ./$< .\`\\\"\""
    versionsh="include/kno/versions.h"
 fi
+
+min_stacksize=4194304;
+
+# Check whether --with-minstack was given.
+if test "${with_minstack+set}" = set; then :
+  withval=$with_minstack; min_stacksize=$withval
+fi
+
+cat >>confdefs.h <<_ACEOF
+#define KNO_MIN_STACKSIZE ${min_stacksize}
+_ACEOF
+
+
+default_stacksize=16777216;
+
+# Check whether --with-stacksize was given.
+if test "${with_stacksize+set}" = set; then :
+  withval=$with_stacksize; default_stacksize=$withval
+fi
+
+cat >>confdefs.h <<_ACEOF
+#define KNO_DEFAULT_STACKSIZE ${default_stacksize}
+_ACEOF
+
+
+default_cstacksize=
+
+# Check whether --with-cstacksize was given.
+if test "${with_cstacksize+set}" = set; then :
+  withval=$with_cstacksize; default_cstacksize=$withval
+fi
+
+if test ! -z "${default_cstacksize}"; then
+   LDFLAGS="${LDFLAGS} -Wl,-z,stack-size=${default_cstacksize}";
+fi;
+
 
 
 # Check whether --with-stackcheck was given.

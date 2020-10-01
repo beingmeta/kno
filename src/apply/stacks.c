@@ -233,7 +233,7 @@ static lispval stack2lisp(struct KNO_STACK *stack,struct KNO_STACK *inner)
 		  (kno_deep_copy(stack->eval_env->env_bindings)) :
 		  (KNO_FALSE));
 
-  unsigned int icrumb = stack->stack_crumb;
+  unsigned long icrumb = stack->stack_crumb;
   if (icrumb == 0) {
     icrumb = u8_random(UINT_MAX);
     if (icrumb > KNO_MAX_FIXNUM) icrumb = icrumb%KNO_MAX_FIXNUM;
@@ -368,35 +368,18 @@ KNO_EXPORT ssize_t kno_stack_setsize(ssize_t limit)
   else {
     ssize_t maxstack = u8_stack_size;
     if (maxstack < KNO_MIN_STACKSIZE) {
-      u8_seterr(kno_InternalStackSizeError,"kno_stack_resize",NULL);
+      u8_log(LOGWARN,kno_InternalStackSizeError,
+	     "Initialized u8_stacksize too small: %lld",maxstack);
       return -1;}
     else if (limit <=  maxstack) {
       ssize_t old = kno_stack_limit;
       kno_set_stack_limit(limit);
       return old;}
     else {
-#if ( (HAVE_PTHREAD_SELF) &&			\
-      (HAVE_PTHREAD_GETATTR_NP) &&		\
-      (HAVE_PTHREAD_ATTR_SETSTACKSIZE) )
-      pthread_t self = pthread_self();
-      pthread_attr_t attr;
-      if (pthread_getattr_np(self,&attr)) {
-	u8_graberrno("kno_set_stacksize",NULL);
-	return -1;}
-      else if ((pthread_attr_setstacksize(&attr,limit))) {
-	u8_graberrno("kno_set_stacksize",NULL);
-	return -1;}
-      else {
-	ssize_t old = kno_stack_limit;
-	kno_set_stack_limit(limit-limit/8);
-	return old;}
-#else
       char *detailsbuf = u8_malloc(64);
       u8_seterr("StackLimitTooLarge","kno_stack_setsize",
 		u8_write_long_long(limit,detailsbuf,64));
-      return -1;
-#endif
-    }}
+      return -1;}}
 }
 KNO_EXPORT ssize_t kno_stack_resize(double factor)
 {

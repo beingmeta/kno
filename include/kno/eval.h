@@ -385,8 +385,8 @@ KNO_EXPORT lispval kno_force_promise(lispval promise);
 
 /* Basic thread eval/apply functions */
 
-KNO_EXPORT kno_thread kno_thread_call(lispval *,lispval,int,lispval *,int);
-KNO_EXPORT kno_thread kno_thread_eval(lispval *,lispval,kno_lexenv,int);
+KNO_EXPORT kno_thread kno_thread_call(lispval *,lispval,int,lispval *,lispval,int);
+KNO_EXPORT kno_thread kno_thread_eval(lispval *,lispval,kno_lexenv,lispval,int);
 
 /* DT servers */
 

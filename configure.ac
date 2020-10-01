@@ -651,6 +651,21 @@ if test "$with_fileinfo" = "yes" ; then
    versionsh="include/kno/versions.h"
 fi
 
+min_stacksize=4194304;
+AC_ARG_WITH(minstack,--with-minstack Build with minimium stack size,min_stacksize=$withval)
+AC_DEFINE_UNQUOTED(KNO_MIN_STACKSIZE,${min_stacksize})
+
+default_stacksize=16777216;
+AC_ARG_WITH(stacksize,--with-stacksize Build with default stack size,default_stacksize=$withval)
+AC_DEFINE_UNQUOTED(KNO_DEFAULT_STACKSIZE,${default_stacksize})
+
+default_cstacksize=
+AC_ARG_WITH(cstacksize,--with-cstacksize Link specifying a default stacksize,default_cstacksize=$withval)
+if test ! -z "${default_cstacksize}"; then
+   LDFLAGS="${LDFLAGS} -Wl,-z,stack-size=${default_cstacksize}";
+fi;
+
+
 AC_ARG_WITH(stackcheck,--with-stackcheck Build with native stack checking,with_stackcheck=$withval,with_stackcheck="yes")
 if ! test "${with_stackcheck}" = "no"; then
    AC_DEFINE_UNQUOTED(KNO_STACKCHECK,1)
