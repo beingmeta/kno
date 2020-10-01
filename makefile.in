@@ -1799,7 +1799,7 @@ ALPINE_PKGS=kno kno-dev kno-doc kno-static
 dist/alpine.done: dist/alpine.setup
 	cd staging/alpine; abuild -P ${APKREPO};
 
-dist/alpine.install:
+dist/alpine.installed:
 	cd staging/alpine; apk add --repository=${APKREPO}/staging ${ALPINE_PKGS}
 
 .PHONY: alpine
