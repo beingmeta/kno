@@ -1796,7 +1796,7 @@ dist/alpine.setup: dist/alpine/APKBUILD include/kno/revision.h makefile
 
 ALPINE_PKGS=kno kno-dev kno-doc kno-static
 
-dist/alpine.build: dist/alpine.setup
+dist/alpine.done: dist/alpine.setup
 	cd staging/alpine; abuild -P ${APKREPO};
 
 dist/alpine.install:
