@@ -1297,6 +1297,7 @@ lispval sleep_prim(lispval arg)
     if (ival<0)
       return kno_type_error(_("positive fixnum time interval"),"sleep_prim",arg);
     sleep(ival);
+    U8_CLEAR_ERRNO();
     return KNO_TRUE;}
   else if (KNO_FLONUMP(arg)) {
 #if HAVE_NANOSLEEP
@@ -1307,6 +1308,7 @@ lispval sleep_prim(lispval arg)
     req.tv_sec = floor(interval);
     req.tv_nsec = 1000000000*(interval-req.tv_sec);
     nanosleep(&req,NULL);
+    U8_CLEAR_ERRNO();
     return KNO_TRUE;
 #else
     double floval = KNO_FLONUM(arg);
@@ -1318,6 +1320,7 @@ lispval sleep_prim(lispval arg)
       u8_log(LOG_WARN,"UnsupportedSleepPrecision",
 	     "This system doesnt' have fine-grained sleep precision");
     sleep(ival);
+    U8_CLEAR_ERRNO();
     return KNO_TRUE;
 #endif
   }
