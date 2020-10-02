@@ -71,8 +71,10 @@
 	"The output file " (write out) " already exists.\n  "
 	"Specify OVERWRITE=yes to remove.")
       (exit))
-    (when (and overwrite (file-exists? (glom out ".part")))
+    (when (and overwrite out (file-exists? (glom out ".part")))
       (remove-file (glom out ".part")))
+    (when (and overwrite (not out) (file-exists? (glom in ".part")))
+      (remove-file (glom in ".part")))
     (when (and overwrite (getopt opts 'uniquefile))
       (overwriting (getopt opts 'uniquefile)))
     (when (and overwrite (getopt opts 'rarefile))
