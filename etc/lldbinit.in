@@ -21,6 +21,7 @@ break set -n _kno_debug
 break set -n _u8_dbg
 break set -n u8_raise
 break set -n abort
+break set -n dbg_evalfn
 
 # For LIBC
 env MALLOC_CHECK_ 2
