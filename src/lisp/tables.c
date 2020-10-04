@@ -91,7 +91,7 @@ KNO_EXPORT
 struct KNO_KEYVAL *_kno_keyvals_get
 (lispval kno_key,struct KNO_KEYVAL *keyvals,int size)
 {
-  return _kno_keyvals_get(kno_key,keyvals,size);
+  return kno_keyvals_get(kno_key,keyvals,size);
 }
 
 /* Temporary references */
@@ -1837,21 +1837,17 @@ static struct KNO_KEYVAL *hash_bucket_insert
     return middle;
   else {
     int mpos=(middle-keyvals), dir=(bottom>middle), ipos=mpos+dir;
-    struct KNO_KEYVAL *insert_point;
+    struct KNO_KEYVAL *keyvals, *insert_point;
     struct KNO_HASH_BUCKET *new_hashentry=
       /* We don't need to use size+1 here because KNO_HASH_BUCKET includes
          one value. */
       u8_realloc(he,(sizeof(struct KNO_HASH_BUCKET)+
                      (size)*KNO_KEYVAL_LEN));
-    memset((((unsigned char *)new_hashentry)+
-            (sizeof(struct KNO_HASH_BUCKET))+
-            ((size-1)*KNO_KEYVAL_LEN)),
-           0,KNO_KEYVAL_LEN);
+    keyvals = &(new_hashentry->kv_val0);
     *hep=new_hashentry;
     new_hashentry->bucket_len++;
-    insert_point=&(new_hashentry->kv_val0)+ipos;
-    memmove(insert_point+1,insert_point,
-            KNO_KEYVAL_LEN*(size-ipos));
+    insert_point=keyvals+ipos;
+    memmove(insert_point+1,insert_point,(sizeof(struct KNO_KEYVAL))*(size-ipos));
     if (CONSP(key)) {
       if (KNO_STATICP(key))
         insert_point->kv_key=kno_copy(key);
@@ -1954,21 +1950,17 @@ static struct KNO_KEYVAL *eq_hash_bucket_insert
     return middle;
   else {
     int mpos=(middle-keyvals), dir=(bottom>middle), ipos=mpos+dir;
-    struct KNO_KEYVAL *insert_point;
+    struct KNO_KEYVAL *keyvals, *insert_point;
     struct KNO_HASH_BUCKET *new_hashentry=
       /* We don't need to use size+1 here because KNO_HASH_BUCKET includes
          one value. */
       u8_realloc(he,(sizeof(struct KNO_HASH_BUCKET)+
                      (size)*KNO_KEYVAL_LEN));
-    memset((((unsigned char *)new_hashentry)+
-            (sizeof(struct KNO_HASH_BUCKET))+
-            ((size-1)*KNO_KEYVAL_LEN)),
-           0,KNO_KEYVAL_LEN);
+    keyvals = &(new_hashentry->kv_val0);
     *hep=new_hashentry;
     new_hashentry->bucket_len++;
-    insert_point=&(new_hashentry->kv_val0)+ipos;
-    memmove(insert_point+1,insert_point,
-            KNO_KEYVAL_LEN*(size-ipos));
+    insert_point=keyvals+ipos;
+    memmove(insert_point+1,insert_point,(sizeof(struct KNO_KEYVAL))*(size-ipos));
     if (CONSP(key)) {
       if (KNO_STATICP(key))
         insert_point->kv_key=kno_copy(key);
