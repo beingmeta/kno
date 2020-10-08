@@ -15,7 +15,6 @@ usr/share/kno/modules/stdlib/knodules/data/*
 usr/share/kno/modules/stdlib/knoml/*.scm
 usr/share/kno/modules/stdlib/misc/*.scm
 usr/share/kno/modules/stdlib/morph/*.scm
-usr/share/kno/modules/stdlib/morph/data/*.dtype
 usr/share/kno/modules/stdlib/morph/data/*.xtype
 usr/share/kno/modules/stdlib/paypal/*.scm
 usr/share/kno/modules/stdlib/reddit/*.scm
