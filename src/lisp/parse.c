@@ -446,7 +446,19 @@ static lispval default_parse_oid(u8_string start,int len)
     kno_seterr("BadOIDReference","default_parse_oid",start,VOID);
     return KNO_PARSE_ERROR;}
   strncpy(buf,start,len); buf[len]='\0';
-  if (strchr(buf,'/')) {
+  if (buf[1] == '/') {
+    if (buf[2] == '/') {
+      unsigned long long addr = 0;
+      int items = sscanf(buf,"@//%llx",&addr);
+      if (items!=1) {
+	kno_seterr("BadOIDReference","default_parse_oid",start,VOID);
+	return KNO_PARSE_ERROR;}
+      hi = ((addr>>32)&((ull)0xFFFFFFFF));
+      lo = (addr&((ull)0xFFFFFFFF));}
+    else {
+      kno_seterr("BadOIDReference","default_parse_oid(nodbs)",start,VOID);
+      return KNO_PARSE_ERROR;}}
+  else if (strchr(buf,'/')) {
     int items = sscanf(buf,"@%x/%x",&hi,&lo);
     if (items!=2) {
       kno_seterr("BadOIDReference","default_parse_oid",start,VOID);
@@ -490,13 +502,18 @@ static lispval parse_oid(U8_INPUT *in)
   else result = default_parse_oid(u8_outstring(&tmpbuf),u8_outlen(&tmpbuf));
   if (KNO_ABORTP(result))
     return result;
-  if (strchr("({\"",c)) {
+  if (strchr("({\"#[",c)) {
     /* If an object starts immediately after the OID (no whitespace)
        it is the OID's label, so we read it and discard it. */
     lispval label = kno_parser(in);
     kno_decref(label);}
   if (tmpbuf.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(tmpbuf.u8_outbuf);
   return result;
+}
+
+KNO_EXPORT lispval kno_parse_oid(u8_input in)
+{
+  return parse_oid(in);
 }
 
 /* String and packet parsing */

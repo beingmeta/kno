@@ -94,6 +94,7 @@ KNO_EXPORT int (*kno_dtype_error)(struct KNO_OUTBUF *,lispval x,u8_string detail
 KNO_EXPORT void kno_set_oid_parser(lispval (*parsefn)(u8_string start,int len));
 typedef int (*kno_hashfn)(lispval x,unsigned int (*hf)(lispval));
 KNO_EXPORT lispval kno_parse_oid_addr(u8_string string,int len);
+KNO_EXPORT lispval kno_parse_oid(u8_input in);
 KNO_EXPORT kno_hashfn kno_hashfns[];
 
 KNO_EXPORT int kno_add_constname(u8_string s,lispval value);

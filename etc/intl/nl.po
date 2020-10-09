@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-09-30 14:47+0000\n"
+"POT-Creation-Date: 2020-10-08 09:21-0400\n"
 "PO-Revision-Date: 2005-03-04 22:55-0500\n"
 "Last-Translator: Kenneth Haase <kh@beingmeta.com>\n"
 "Language-Team: Dutch <nl@li.org>\n"
@@ -261,7 +261,7 @@ msgstr ""
 msgid "binding list"
 msgstr ""
 
-#: src/lisp/tables.c:4336
+#: src/lisp/tables.c:4328
 msgid "value is not a boolean"
 msgstr ""
 
@@ -625,8 +625,8 @@ msgstr ""
 msgid "promise"
 msgstr ""
 
-#: src/lisp/lisp.c:340 src/lisp/lisp.c:341 src/eval/threads.c:1256
-#: src/eval/threads.c:1294 src/eval/threads.c:1378
+#: src/lisp/lisp.c:340 src/lisp/lisp.c:341 src/eval/threads.c:1283
+#: src/eval/threads.c:1321 src/eval/threads.c:1405
 msgid "thread"
 msgstr ""
 
@@ -1239,11 +1239,11 @@ msgstr ""
 msgid "Internal stack size didn't make any sense, punting"
 msgstr ""
 
-#: src/apply/stacks.c:573
+#: src/apply/stacks.c:556
 msgid "Size of the stack (in bytes or as a factor of the current size)"
 msgstr ""
 
-#: src/apply/stacks.c:576
+#: src/apply/stacks.c:559
 msgid "Whether to trace all stack push/pop operations"
 msgstr ""
 
@@ -2089,25 +2089,25 @@ msgstr ""
 msgid "ThreadExit"
 msgstr ""
 
-#: src/eval/threads.c:542 src/eval/threads.c:564 src/eval/threads.c:583
-#: src/eval/threads.c:586
+#: src/eval/threads.c:545 src/eval/threads.c:567 src/eval/threads.c:586
+#: src/eval/threads.c:589
 msgid "valid condvar"
 msgstr ""
 
-#: src/eval/threads.c:556 src/eval/threads.c:558 src/prims/timeprims.c:1324
+#: src/eval/threads.c:559 src/eval/threads.c:561 src/prims/timeprims.c:1327
 msgid "time interval"
 msgstr ""
 
-#: src/eval/threads.c:876 src/eval/threads.c:958 src/text/match.c:3551
+#: src/eval/threads.c:901 src/eval/threads.c:983 src/text/match.c:3551
 #: src/text/match.c:3580
 msgid "applicable"
 msgstr ""
 
-#: src/eval/threads.c:1013
+#: src/eval/threads.c:1038
 msgid "lispenv"
 msgstr ""
 
-#: src/eval/threads.c:1796
+#: src/eval/threads.c:1824
 msgid "StubbornThread"
 msgstr ""
 
@@ -2587,7 +2587,7 @@ msgstr ""
 msgid "positive fixnum time interval"
 msgstr ""
 
-#: src/prims/timeprims.c:1306 src/prims/timeprims.c:1316
+#: src/prims/timeprims.c:1307 src/prims/timeprims.c:1318
 msgid "positive time interval"
 msgstr ""
 

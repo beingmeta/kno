@@ -124,7 +124,7 @@ kno_get_dbflags(lispval opts,kno_storage_flags init_flags)
     else return init_flags;}
 }
 
-static lispval better_parse_oid(u8_string start,int len)
+static lispval dbparse_oid(u8_string start,int len)
 {
   if (start[1]=='?') {
     const u8_byte *scan = start+2;
@@ -138,10 +138,10 @@ static lispval better_parse_oid(u8_string start,int len)
       if (OIDP(item)) return item;
       else if (CHOICEP(item)) {
         kno_decref(item);
-        return kno_err(kno_AmbiguousObjectName,"better_parse_oid",NULL,name);}
+        return kno_err(kno_AmbiguousObjectName,"dbparse_oid",NULL,name);}
       else if (!((EMPTYP(item))||(FALSEP(item)))) {
         kno_decref(item);
-        return kno_type_error("oid","better_parse_oid",item);}}
+        return kno_type_error("oid","dbparse_oid",item);}}
     else {}
     if (lookupfns!=NIL) {
       KNO_DOLIST(method,lookupfns) {
@@ -153,7 +153,7 @@ static lispval better_parse_oid(u8_string start,int len)
           else if (!((EMPTYP(item))||
                      (FALSEP(item))||
                      (VOIDP(item)))) continue;
-          else return kno_type_error("oid","better_parse_oid",item);}
+          else return kno_type_error("oid","dbparse_oid",item);}
         else if (KNO_APPLICABLEP(method)) {
           lispval item = kno_apply(method,1,&name);
           if (KNO_ABORTP(item)) return item;
@@ -161,13 +161,16 @@ static lispval better_parse_oid(u8_string start,int len)
           else if ((EMPTYP(item))||
                    (FALSEP(item))||
                    (VOIDP(item))) continue;
-          else return kno_type_error("oid","better_parse_oid",item);}
-        else return kno_type_error("lookup method","better_parse_oid",method);}
-      return kno_err(kno_UnknownObjectName,"better_parse_oid",NULL,name);}
+          else return kno_type_error("oid","dbparse_oid",item);}
+        else return kno_type_error("lookup method","dbparse_oid",method);}
+      return kno_err(kno_UnknownObjectName,"dbparse_oid",NULL,name);}
     else {
-      return kno_err(kno_UnknownObjectName,"better_parse_oid",NULL,name);}}
+      return kno_err(kno_UnknownObjectName,"dbparse_oid",NULL,name);}}
+  else if ( (start[1] == '/') && (start[2] == '/') )
+    return kno_parse_oid_addr(start,len);
   else if (((strchr(start,'/')))&&
-           (((u8_string)strchr(start,'/'))<(start+len))) {
+	   (((u8_string)strchr(start,'/'))<(start+len))) {
+    /* This parses the @/prefix/xxx OID syntax */
     KNO_OID base = KNO_NULL_OID_INIT, result = KNO_NULL_OID_INIT;
     unsigned int delta;
     u8_byte prefix[64], suffix[64];
@@ -190,11 +193,53 @@ static lispval better_parse_oid(u8_string start,int len)
     strncpy(suffix,copy_start,(copy_end-copy_start));
     suffix[(copy_end-copy_start)]='\0';
     if (sscanf(suffix,"%x",&delta)<1)  {
-      kno_seterr("InvalidOIDReference","better_parse_oid",start,KNO_VOID);
+      kno_seterr("InvalidOIDReference","dbparse_oid",start,KNO_VOID);
       return KNO_PARSE_ERROR;}
     result = KNO_OID_PLUS(base,delta);
     return kno_make_oid(result);}
-  else return kno_parse_oid_addr(start,len);
+  else {
+    u8_string scan = start+1;
+    int c = u8_sgetc(&scan); int slash = 0;
+    while (c>0) {
+      if (u8_isxdigit(c)) {}
+      else if (c == '/') {
+	if (slash) break;
+	else slash=1;}
+      else break;
+      c = u8_sgetc(&scan);}
+    if (c == -1)
+      return kno_parse_oid_addr(start,len);
+    else if (kno_background == NULL) {
+      kno_seterr("MissingIDbackground","dbparse_oid",start,KNO_VOID);
+      return KNO_PARSE_ERROR;}
+    else {
+      U8_STATIC_OUTPUT(id,len*2);
+      scan = start+1; c = u8_sgetc(&scan);
+      while (c>0) {
+	int dc = u8_tolower(dc);
+	u8_putc(idout,c);
+	c = u8_sgetc(&scan);}
+      struct KNO_STRING _idstring;
+      lispval idstring = kno_init_string(&_idstring,u8_outlen(idout),id.u8_outbuf);
+      lispval oid = kno_prim_find((lispval)kno_background,id_symbol,idstring);
+      if (KNO_OIDP(oid))
+	return oid;
+      else if (KNO_EMPTYP(oid)) {
+	kno_seterr("UnknownOID","dbparse_oid",start,KNO_VOID);
+	return KNO_PARSE_ERROR;}
+      else if (KNO_AMBIGP(oid)) {
+	kno_seterr("AmbiguiousOID","dbparse_oid",start,oid);
+	kno_decref(oid);
+	return KNO_PARSE_ERROR;}
+      else {
+	kno_seterr("BadOIDReference","dbparse_oid",start,oid);
+	kno_decref(oid);
+	return KNO_PARSE_ERROR;}}}
+}
+
+KNO_EXPORT lispval kno_dbparse_oid(u8_string s)
+{
+  return dbparse_oid(s,strlen(s));
 }
 
 static lispval oid_name_slotids = NIL;
@@ -290,7 +335,7 @@ static int print_oid_name(u8_output out,lispval name,int top)
   else return kno_unparse(out,name);
 }
 
-static int better_unparse_oid(u8_output out,lispval x)
+static int db_unparse_oid(u8_output out,lispval x)
 {
   if ( (kno_oid_display_level<1) || (out->u8_streaminfo&U8_STREAM_TACITURN) ) {
     KNO_OID addr = KNO_OID_ADDR(x); char buf[128];
@@ -667,8 +712,8 @@ KNO_EXPORT int kno_init_storage()
   virtual_symbol = kno_intern("virtual");
   fixsyms_symbol = kno_intern("fixsyms");
 
-  kno_set_oid_parser(better_parse_oid);
-  kno_unparsers[kno_oid_type]=better_unparse_oid;
+  kno_set_oid_parser(dbparse_oid);
+  kno_unparsers[kno_oid_type]=db_unparse_oid;
   oid_name_slotids = kno_make_list(2,kno_intern("%id"),kno_intern("obj-name"));
 
   u8_init_mutex(&kno_swapcheck_lock);
