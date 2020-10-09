@@ -25,13 +25,13 @@
 
 #define KNO_JSON_ANYKEY    2  /* Allow compound table keys */
 #define KNO_JSON_IDKEY     4  /* Allow raw identifiers as table keys */
-#define KNO_JSON_SYMBOLIZE 8  /* Convert table keys to symbols (and vice versa) */
+#define KNO_JSON_SLOTIDS   8  /* Convert table keys to symbols (and vice versa) */
 #define KNO_JSON_COLONIZE 16  /* Use (assume) colon prefixes for LISPY objects */
 #define KNO_JSON_TICKS    32  /* Show time as unix time */
 #define KNO_JSON_TICKLETS 64  /* Show time as nanosecond-precision unix time */
 #define KNO_JSON_VERBOSE 128 /* Emit conversion warnings, etc */
 #define KNO_JSON_STRICT  256 /* Emit conversion warnings, etc */
-#define KNO_JSON_DEFAULTS (KNO_JSON_SYMBOLIZE)
+#define KNO_JSON_DEFAULTS (KNO_JSON_SLOTIDS)
 
 #define KNO_JSON_MAXFLAGS 256
 
@@ -181,30 +181,37 @@ static lispval json_intern(U8_INPUT *in,int flags)
   struct U8_OUTPUT out;
   int c = readc(in), terminator = c;
   int good_symbol = 1;
-  c = u8_getc(in);
-  U8_INIT_OUTPUT(&out,64);
+  c = u8_probec(in);
+  if (c == '@') {
+    lispval slotid = kno_parse_oid(in);
+    if (KNO_ABORTED(slotid)) {
+      u8_log(LOGWARN,"BadJSONslotid","OID parsing failed");
+      kno_clear_errors(1);}
+    else return slotid;}
+  U8_STATIC_OUTPUT(slotid,50);
   while (c>=0) {
     if (c == terminator) break;
     else if (c=='\\') {
       c = kno_read_escape(in);
-      u8_putc(&out,c); c = u8_getc(in);
+      u8_putc(slotidout,c); c = u8_getc(in);
       continue;}
-    else if ((u8_isspace(c))||(c=='/')||(c=='.')) good_symbol = 0;
-    u8_putc(&out,c);
+    else if (u8_isspace(c))
+      good_symbol = 0;
+    u8_putc(slotidout,c);
     c = u8_getc(in);}
-  if (out.u8_outbuf[0]==':') {
-    lispval result = kno_parse(out.u8_outbuf+1);
+  if (slotid.u8_outbuf[0]==':') {
+    lispval result = kno_parse(slotid.u8_outbuf+1);
     if (KNO_ABORTP(result))
       result = parse_error(&out,result,flags&KNO_JSON_VERBOSE);
-    if (out.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(out.u8_outbuf);
+    u8_close_output(slotidout);
     return result;}
   else {
-    lispval result = (((good_symbol)&&(out.u8_write-out.u8_outbuf))?
-		      (kno_parse(out.u8_outbuf)):
-		      (kno_stream_string(&out)));
+    lispval result = (((good_symbol)&&(u8_outlen(slotidout)))?
+		      (kno_parse(slotid.u8_outbuf)):
+		      (kno_stream_string(slotidout)));
     if (KNO_ABORTP(result))
-      result = parse_error(&out,result,flags&KNO_JSON_VERBOSE);
-    if (out.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(out.u8_outbuf);
+      result = parse_error(slotidout,result,flags&KNO_JSON_VERBOSE);
+    u8_close_output(slotidout);
     return result;}
 }
 
@@ -216,7 +223,7 @@ static lispval json_key(U8_INPUT *in,int flags,lispval fieldmap)
 		   "unexpected ' in strict mode",
 		   KNO_VOID);
   else if ( (c=='"') || (c=='\'') )
-    if (flags&KNO_JSON_SYMBOLIZE)
+    if (flags&KNO_JSON_SLOTIDS)
       return json_intern(in,flags);
     else if (VOIDP(fieldmap))
       return json_string(in,flags);
@@ -327,7 +334,7 @@ static lispval json_table(U8_INPUT *in,int flags,lispval fieldmap)
   return kno_err(JSON_Error,"json_table",in->u8_inbuf+good_pos,VOID);
 }
 
-static lispval symbolize_symbol, colonize_symbol, rawids_symbol;
+static lispval slotids_symbol, symbolize_symbol, colonize_symbol, rawids_symbol;
 static lispval ticks_symbol, ticklets_symbol, verbose_symbol, strict_symbol;
 
 static int get_json_flags(lispval flags_arg)
@@ -340,13 +347,14 @@ static int get_json_flags(lispval flags_arg)
       return (unsigned int) val;
     else return KNO_JSON_DEFAULTS;}
   else if (KNO_TRUEP(flags_arg))
-    return KNO_JSON_COLONIZE|KNO_JSON_SYMBOLIZE;
+    return KNO_JSON_COLONIZE|KNO_JSON_SLOTIDS;
   else if (flags_arg == KNO_DEFAULT_VALUE)
     return KNO_JSON_DEFAULTS;
   else if ((PAIRP(flags_arg))||(TABLEP(flags_arg))) {
     int flags=0;
-    if (!(kno_testopt(flags_arg,symbolize_symbol,KNO_FALSE)))
-      flags |= KNO_JSON_SYMBOLIZE;
+    if (!((kno_testopt(flags_arg,slotids_symbol,KNO_FALSE))|
+	  (kno_testopt(flags_arg,symbolize_symbol,KNO_FALSE))))
+      flags |= KNO_JSON_SLOTIDS;
     if (kno_testopt(flags_arg,colonize_symbol,VOID))
       flags |= KNO_JSON_COLONIZE;
     if (!(kno_testopt(flags_arg,rawids_symbol,VOID)))
@@ -367,8 +375,9 @@ static int get_json_flags(lispval flags_arg)
     return rv;}
   else if ( (CHOICEP(flags_arg)) || (SYMBOLP(flags_arg)) ) {
     int flags=0;
-    if (kno_overlapp(symbolize_symbol,flags_arg))
-      flags |= KNO_JSON_SYMBOLIZE;
+    if ((kno_overlapp(slotids_symbol,flags_arg)) ||
+	(kno_overlapp(symbolize_symbol,flags_arg)))
+      flags |= KNO_JSON_SLOTIDS;
     if (kno_overlapp(colonize_symbol,flags_arg))
       flags |= KNO_JSON_COLONIZE;
     if (kno_overlapp(rawids_symbol,flags_arg))
@@ -390,7 +399,7 @@ DEFPRIM3("jsonparse",jsonparseprim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
 	 "*fieldmap* has a set of string/symbol translations or associates "
 	 "field names with conversion functions. *flags* handles the "
 	 "conversion to and from symbols. Flags is an opts structure "
-	 "and SYMBOLIZE causes table keys without spaces to be converted "
+	 "and SLOTIDS causes table keys without spaces to be converted "
 	 "into symbols, while colonize applies argstring processing "
 	 "to values, parsing pairs, etc if possible and obeying :expr "
 	 "when it doesn't generate an error.",
@@ -472,7 +481,7 @@ static int json_slotval(u8_output out,lispval key,lispval value,int flags,
   else {
     lispval slotname = ((VOIDP(slotfn))?(VOID):(kno_apply(slotfn,1,&key)));
     if (VOIDP(slotname))
-      if ((SYMBOLP(key))&&(flags&KNO_JSON_SYMBOLIZE)) {
+      if ((SYMBOLP(key))&&(flags&KNO_JSON_SLOTIDS)) {
 	u8_string pname = SYM_NAME(key);
 	if (!(flags&KNO_JSON_IDKEY)) u8_putc(out,'"');
 	json_lower(out,pname);
@@ -633,6 +642,7 @@ KNO_EXPORT void kno_init_json_c()
 
   link_local_cprims();
 
+  slotids_symbol=kno_intern("slotids");
   symbolize_symbol=kno_intern("symbolize");
   colonize_symbol=kno_intern("colonize");
   rawids_symbol=kno_intern("rawids");
