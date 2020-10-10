@@ -29,7 +29,7 @@ static struct KNO_HASHTABLE method_table; lispval kno_method_table;
 /* Walk proc */
 
 static int keep_walking(struct KNO_HASHSET *seen,lispval node,lispval slotids,
-                        kno_tree_walkfn walk,void *data)
+			kno_tree_walkfn walk,void *data)
 {
   if (kno_hashset_get(seen,node))
     return 1;
@@ -39,19 +39,19 @@ static int keep_walking(struct KNO_HASHSET *seen,lispval node,lispval slotids,
       return -1;
     if ((walk == NULL) || ((retval = walk(node,data))>0)) {
       DO_CHOICES(slotid,slotids) {
-        lispval values = kno_frame_get(node,slotid);
-        if (KNO_ABORTP(values))
-          return kno_interr(values);
-        else {
-          int retval = 0;
-          DO_CHOICES(v,values)
-            if (!(OIDP(v))) {}
-            else if (kno_hashset_get(seen,v)) {}
-            else if ((retval = keep_walking(seen,v,slotids,walk,data))>0) {}
-            else {
-              kno_decref(values);
-              return retval;}
-          kno_decref(values);}}
+	lispval values = kno_frame_get(node,slotid);
+	if (KNO_ABORTP(values))
+	  return kno_interr(values);
+	else {
+	  int retval = 0;
+	  DO_CHOICES(v,values)
+	    if (!(OIDP(v))) {}
+	    else if (kno_hashset_get(seen,v)) {}
+	    else if ((retval = keep_walking(seen,v,slotids,walk,data))>0) {}
+	    else {
+	      kno_decref(values);
+	      return retval;}
+	  kno_decref(values);}}
       return 1;}
     else return retval;}
 }
@@ -65,8 +65,8 @@ kno_walk_tree(lispval roots,lispval slotids,kno_tree_walkfn walk,void *data)
   {DO_CHOICES(root,roots)
       if (!((KNO_OIDP(root)) || (KNO_SLOTMAPP(root)) || (KNO_SCHEMAPP(root) ))) {}
       else if ((retval = keep_walking(&ht,root,slotids,walk,data))<=0) {
-        kno_recycle_hashset(&ht);
-        return retval;}
+	kno_recycle_hashset(&ht);
+	return retval;}
       else NO_ELSE;}
   kno_recycle_hashset(&ht);
   return retval;
@@ -74,7 +74,7 @@ kno_walk_tree(lispval roots,lispval slotids,kno_tree_walkfn walk,void *data)
 
 KNO_EXPORT int
 kno_collect_tree(struct KNO_HASHSET *h,
-                 lispval roots,lispval slotids)
+		 lispval roots,lispval slotids)
 {
   DO_CHOICES(root,roots)
     if (keep_walking(h,root,slotids,NULL,NULL)<0)
@@ -92,18 +92,18 @@ KNO_EXPORT lispval kno_get_basis(lispval collection,lispval lattice)
   kno_init_hashset(&ht,1024,KNO_STACK_CONS);
   {DO_CHOICES(node,collection) {
       DO_CHOICES(slotid,lattice) {
-        lispval v = kno_frame_get(node,slotid);
-        if (KNO_ABORTP(v)) {
-          kno_decref(root);
-          kno_recycle_hashset(&ht);
-          return v;}
-        else {CHOICE_ADD(root,v);}}}}
+	lispval v = kno_frame_get(node,slotid);
+	if (KNO_ABORTP(v)) {
+	  kno_decref(root);
+	  kno_recycle_hashset(&ht);
+	  return v;}
+	else {CHOICE_ADD(root,v);}}}}
   kno_collect_tree(&ht,root,lattice);
   {DO_CHOICES(node,collection)
       if (kno_hashset_get(&ht,node)) {}
       else {
-        kno_incref(node);
-        CHOICE_ADD(result,node);}}
+	kno_incref(node);
+	CHOICE_ADD(result,node);}}
   kno_decref(root);
   kno_recycle_hashset(&ht);
   return result;
@@ -131,7 +131,7 @@ static int inherit_values_fn(lispval node,void *data)
   lispval values = EMPTY;
   DO_CHOICES(slotid,ivs->slotids) {
     lispval v = ((OIDP(node)) ? (kno_oid_get(node,slotid,EMPTY)) :
-                 (kno_get(node,slotid,EMPTY)));
+		 (kno_get(node,slotid,EMPTY)));
     if (KNO_ABORTP(v)) {
       kno_decref(values);
       return kno_interr(v);}
@@ -253,6 +253,9 @@ int kno_pathp(lispval root,lispval slotid,lispval to)
 
 /* Methods */
 
+DEFPRIM("kno:inherited-get",inherited_get_method,
+	KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	"`(kno:inherited-get *frame* *slotid*)` **undocumented**");
 static lispval inherited_get_method(lispval root,lispval slotid)
 {
   lispval result, through, baseslot
@@ -267,6 +270,9 @@ static lispval inherited_get_method(lispval root,lispval slotid)
   return result;
 }
 
+DEFPRIM("kno:multi-get",multi_get_method,
+	KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	"`(kno:multi-get *frame* *slotid*)` **undocumented**");
 static lispval multi_get_method(lispval root,lispval mslotid)
 {
   lispval slotids = kno_oid_get(mslotid,multi_slot,EMPTY);
@@ -275,18 +281,21 @@ static lispval multi_get_method(lispval root,lispval mslotid)
     lispval answer = EMPTY;
     DO_CHOICES(slotid,slotids)
       if (PAIRP(slotid)) {
-        lispval v = kno_oid_get(root,KNO_CAR(slotid),EMPTY);
-        CHOICE_ADD(answer,v);}
+	lispval v = kno_oid_get(root,KNO_CAR(slotid),EMPTY);
+	CHOICE_ADD(answer,v);}
       else {
-        lispval v=
-          ((slotid == mslotid)?
-           (kno_oid_get(root,slotid,EMPTY)):
-           (kno_frame_get(root,slotid)));
-        CHOICE_ADD(answer,v);}
+	lispval v=
+	  ((slotid == mslotid)?
+	   (kno_oid_get(root,slotid,EMPTY)):
+	   (kno_frame_get(root,slotid)));
+	CHOICE_ADD(answer,v);}
     kno_decref(slotids);
     return answer;}
 }
 
+DEFPRIM("kno:multi-test",multi_test_method,
+	KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+	"`(kno:multi-test *frame* *slotid* *value*)` **undocumented**");
 static lispval multi_test_method(lispval root,lispval mslotid,lispval value)
 {
   lispval slotids = kno_oid_get(mslotid,multi_slot,EMPTY);
@@ -295,16 +304,19 @@ static lispval multi_test_method(lispval root,lispval mslotid,lispval value)
     int answer = 0;
     DO_CHOICES(slotid,slotids)
       if (PAIRP(slotid)) {
-        if (kno_test(root,KNO_CAR(slotid),value)) {
-          answer = 1; break;}}
+	if (kno_test(root,KNO_CAR(slotid),value)) {
+	  answer = 1; break;}}
       else {
-        if (mslotid == slotid) {
-          if (kno_oid_test(root,slotid,value)) {answer = 1; break;}}
-        else if (kno_frame_test(root,slotid,value)) {answer = 1; break;}}
+	if (mslotid == slotid) {
+	  if (kno_oid_test(root,slotid,value)) {answer = 1; break;}}
+	else if (kno_frame_test(root,slotid,value)) {answer = 1; break;}}
     kno_decref(slotids);
     if (answer) return KNO_TRUE; else return KNO_FALSE;}
 }
 
+DEFPRIM("kno:multi-add",multi_add_method,
+	KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3),
+	"`(kno:multi-add *frame* *slotid* *value*)` **undocumented**");
 static lispval multi_add_method(lispval root,lispval slotid,lispval value)
 {
   lispval primary_slot = kno_oid_get(slotid,multi_primary_slot,EMPTY);
@@ -314,12 +326,12 @@ static lispval multi_add_method(lispval root,lispval slotid,lispval value)
     if (KNO_ABORTP(slotids)) return slotids;
     else {
       DO_CHOICES(subslotid,slotids) {
-        lispval v = kno_frame_get(root,subslotid);
-        if (KNO_ABORTP(v)) return v;
-        else if (!(EMPTYP(v)))
-          if (kno_frame_add(root,subslotid,value)<0)
-            return KNO_ERROR;
-        kno_decref(v);}
+	lispval v = kno_frame_get(root,subslotid);
+	if (KNO_ABORTP(v)) return v;
+	else if (!(EMPTYP(v)))
+	  if (kno_frame_add(root,subslotid,value)<0)
+	    return KNO_ERROR;
+	kno_decref(v);}
       kno_decref(slotids);}}
   else if (primary_slot == slotid) {
     if (kno_add(root,primary_slot,value)<0) {
@@ -332,6 +344,9 @@ static lispval multi_add_method(lispval root,lispval slotid,lispval value)
   return VOID;
 }
 
+DEFPRIM("kno:multi-drop",multi_drop_method,
+	KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3),
+	"`(kno:multi-drop *frame* *slotid* *value*)` **undocumented**");
 static lispval multi_drop_method(lispval root,lispval slotid,lispval value)
 {
   lispval slotids = kno_oid_get(slotid,multi_slot,EMPTY);
@@ -341,18 +356,18 @@ static lispval multi_drop_method(lispval root,lispval slotid,lispval value)
     if (KNO_ABORTP(primary_slot)) return primary_slot;
     else if ((SYMBOLP(primary_slot)) || (OIDP(primary_slot))) {
       if (primary_slot == slotid) {
-        if (kno_drop(root,primary_slot,value)<0) {
-          kno_decref(primary_slot);
-          return KNO_ERROR;}}
+	if (kno_drop(root,primary_slot,value)<0) {
+	  kno_decref(primary_slot);
+	  return KNO_ERROR;}}
       else if (kno_frame_drop(root,primary_slot,value)<0) {
-        kno_decref(primary_slot);
-        return KNO_ERROR;}}
+	kno_decref(primary_slot);
+	return KNO_ERROR;}}
     {DO_CHOICES(subslotid,slotids) {
-        int probe = kno_frame_test(root,subslotid,value);
-        if (probe<0) return KNO_ERROR;
-        else if (probe)
-          if (kno_frame_drop(root,subslotid,value)<0)
-            return KNO_ERROR;}}
+	int probe = kno_frame_test(root,subslotid,value);
+	if (probe<0) return KNO_ERROR;
+	else if (probe)
+	  if (kno_frame_drop(root,subslotid,value)<0)
+	    return KNO_ERROR;}}
     kno_decref(slotids);
     return VOID;}
 }
@@ -376,18 +391,21 @@ static int kleene_get_helper
     else if (probe) {}
     else {
       if (kno_hashset_mod(ht,frame,1)<0)
-        return -1;
+	return -1;
       else {
-        DO_CHOICES(slotid,slotids) {
-          lispval values = getter(frame,slotid);
-          if (KNO_ABORTP(values)) return kno_interr(values);
-          if (kleene_get_helper(ht,values,slotids)<0) {
-            kno_decref(values);
-            return -1;}
-          else kno_decref(values);}}}}
+	DO_CHOICES(slotid,slotids) {
+	  lispval values = getter(frame,slotid);
+	  if (KNO_ABORTP(values)) return kno_interr(values);
+	  if (kleene_get_helper(ht,values,slotids)<0) {
+	    kno_decref(values);
+	    return -1;}
+	  else kno_decref(values);}}}}
   return 1;
 }
 
+DEFPRIM("kno:kleene*-get",kleene_star_get_method,
+	KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	"`(kno:kleene*-get *frame* *slotid*)` **undocumented**");
 static lispval kleene_star_get_method(lispval root,lispval slotid)
 {
   lispval slotids = kno_frame_get(slotid,closure_of_slot), results;
@@ -405,6 +423,9 @@ static lispval kleene_star_get_method(lispval root,lispval slotid)
       return results;}}
 }
 
+DEFPRIM("kno:kleene+-get",kleene_plus_get_method,
+	KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	"`(kno:kleene+-get *frame* *slotid*)` **undocumented**");
 static lispval kleene_plus_get_method(lispval root,lispval slotid)
 {
   lispval slotids = kno_frame_get(slotid,closure_of_slot), results;
@@ -423,6 +444,9 @@ static lispval kleene_plus_get_method(lispval root,lispval slotid)
       return results;}}
 }
 
+DEFPRIM("kno:inherited-test",inherited_test_method,
+	KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+	"`(kno:inherited-test *frame* *slotid* *value*)` **undocumented**");
 static lispval inherited_test_method(lispval root,lispval slotid,lispval value)
 {
   lispval baseslot = kno_oid_get(slotid,slot_symbol,slotid);
@@ -441,6 +465,9 @@ static lispval inherited_test_method(lispval root,lispval slotid,lispval value)
   else return KNO_FALSE;
 }
 
+DEFPRIM("kno:inverse-getbase",inverse_getbase_method,
+	KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	"`(kno:inverse-getbase *frame* *slotid*)` **undocumented**");
 static lispval inverse_getbase_method(lispval root,lispval slotid)
 {
   lispval answer, inv_slots, others;
@@ -463,6 +490,9 @@ static lispval inverse_getbase_method(lispval root,lispval slotid)
     return answer;}
 }
 
+DEFPRIM("kno:inverse-get",inverse_get_method,
+	KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	"`(kno:inverse-get *frame* *slotid*)` **undocumented**");
 static lispval inverse_get_method(lispval root,lispval slotid)
 {
   lispval answer, inv_slots, others;
@@ -482,6 +512,9 @@ static lispval inverse_get_method(lispval root,lispval slotid)
     return answer;}
 }
 
+DEFPRIM("kno:inverse-test",inverse_test_method,
+	KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+	"`(kno:inverse-test *frame* *slotid* *value*)` **undocumented**");
 static lispval inverse_test_method(lispval root,lispval slotid,lispval value)
 {
   int direct_test = kno_oid_test(root,slotid,value);
@@ -494,14 +527,17 @@ static lispval inverse_test_method(lispval root,lispval slotid,lispval value)
     else {
       int found = 0;
       DO_CHOICES(inv_slot,inv_slots) {
-        int testval = kno_frame_test(value,inv_slot,root);
-        if (testval) {found = testval; break;}}
+	int testval = kno_frame_test(value,inv_slot,root);
+	if (testval) {found = testval; break;}}
       kno_decref(inv_slots);
       if (found<0) return KNO_ERROR;
       else if (found) return (KNO_TRUE);
       else return (KNO_FALSE);}}
 }
 
+DEFPRIM("kno:assoc-get",assoc_get_method,
+	KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	"`(kno:assoc-get *frame* *slotid*)` **undocumented**");
 static lispval assoc_get_method(lispval f,lispval slotid)
 {
   lispval answers = EMPTY, through, key;
@@ -514,33 +550,36 @@ static lispval assoc_get_method(lispval f,lispval slotid)
     DO_CHOICES(th_slot,through) {
       lispval entries = kno_frame_get(f,th_slot);
       if (KNO_ABORTP(entries)) {
-        kno_decref(answers); kno_decref(through); kno_decref(key);
-        return entries;}
+	kno_decref(answers); kno_decref(through); kno_decref(key);
+	return entries;}
       else {
-        int ambigkey = CHOICEP(key);
-        DO_CHOICES(e,entries)
-          if (PAIRP(e)) {
-            lispval car = KNO_CAR(e), cdr = KNO_CDR(e);
-            if (KNO_EQ(car,key)) {
-              kno_incref(cdr);
-              CHOICE_ADD(answers,cdr);}
-            else if ((!ambigkey) && (!(CHOICEP(car)))) {
-              if (LISP_EQUAL(car,key)) {
-                kno_incref(cdr);
-                CHOICE_ADD(answers,cdr);}}
-            else if (kno_overlapp(car,key)) {
-              kno_incref(cdr);
-              CHOICE_ADD(answers,cdr);}
-            else {}}
-          else if ( (KNO_TABLEP(e)) && (kno_test(e,key,KNO_VOID)) ) {
-            lispval v = kno_get(e,key,KNO_VOID);
-            CHOICE_ADD(answers,v);}
-          else {}}
+	int ambigkey = CHOICEP(key);
+	DO_CHOICES(e,entries)
+	  if (PAIRP(e)) {
+	    lispval car = KNO_CAR(e), cdr = KNO_CDR(e);
+	    if (KNO_EQ(car,key)) {
+	      kno_incref(cdr);
+	      CHOICE_ADD(answers,cdr);}
+	    else if ((!ambigkey) && (!(CHOICEP(car)))) {
+	      if (LISP_EQUAL(car,key)) {
+		kno_incref(cdr);
+		CHOICE_ADD(answers,cdr);}}
+	    else if (kno_overlapp(car,key)) {
+	      kno_incref(cdr);
+	      CHOICE_ADD(answers,cdr);}
+	    else {}}
+	  else if ( (KNO_TABLEP(e)) && (kno_test(e,key,KNO_VOID)) ) {
+	    lispval v = kno_get(e,key,KNO_VOID);
+	    CHOICE_ADD(answers,v);}
+	  else {}}
       kno_decref(entries);}
     kno_decref(through); kno_decref(key);
     return answers;}
 }
 
+DEFPRIM("kno:assoc-test",assoc_test_method,
+	KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+	"`(kno:assoc-test *frame* *slotid* *value*)` **undocumented**");
 static lispval assoc_test_method(lispval f,lispval slotid,lispval values)
 {
   lispval answers = EMPTY, through, key;
@@ -553,31 +592,34 @@ static lispval assoc_test_method(lispval f,lispval slotid,lispval values)
     DO_CHOICES(th_slot,through) {
       lispval entries = kno_frame_get(f,th_slot);
       if (KNO_ABORTP(entries)) {
-        kno_decref(answers); kno_decref(through); kno_decref(key);
-        return entries;}
+	kno_decref(answers); kno_decref(through); kno_decref(key);
+	return entries;}
       else {
-        int ambigkey = CHOICEP(key), ambigval = CHOICEP(values);
-        DO_CHOICES(e,entries)
-          if (PAIRP(e)) {
-            lispval car = KNO_CAR(e), cdr = KNO_CDR(e);
-            if (((ambigkey|(CHOICEP(car))) ?
-                 (kno_overlapp(car,key)) :
-                 (KNO_EQ(car,key))) &&
-                ((VOIDP(values)) ||
-                 ((ambigval|(CHOICEP(cdr))) ? (kno_overlapp(cdr,values)) :
-                  (KNO_EQUAL(cdr,values))))) {
-              kno_decref(entries); kno_decref(key); kno_decref(through);
-              KNO_STOP_DO_CHOICES;
-              return KNO_TRUE;}}
-          else if ( (KNO_TABLEP(e)) && (kno_test(e,th_slot,values)) ) {
-            KNO_STOP_DO_CHOICES;
-            return KNO_TRUE;}
-          else {}}
+	int ambigkey = CHOICEP(key), ambigval = CHOICEP(values);
+	DO_CHOICES(e,entries)
+	  if (PAIRP(e)) {
+	    lispval car = KNO_CAR(e), cdr = KNO_CDR(e);
+	    if (((ambigkey|(CHOICEP(car))) ?
+		 (kno_overlapp(car,key)) :
+		 (KNO_EQ(car,key))) &&
+		((VOIDP(values)) ||
+		 ((ambigval|(CHOICEP(cdr))) ? (kno_overlapp(cdr,values)) :
+		  (KNO_EQUAL(cdr,values))))) {
+	      kno_decref(entries); kno_decref(key); kno_decref(through);
+	      KNO_STOP_DO_CHOICES;
+	      return KNO_TRUE;}}
+	  else if ( (KNO_TABLEP(e)) && (kno_test(e,th_slot,values)) ) {
+	    KNO_STOP_DO_CHOICES;
+	    return KNO_TRUE;}
+	  else {}}
       kno_decref(entries);}
     kno_decref(through); kno_decref(key);
     return KNO_FALSE;}
 }
 
+DEFPRIM("kno:assoc-add",assoc_add_method,
+	KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+	"`(kno:assoc-add *frame* *slotid* *value*)` **undocumented**");
 static lispval assoc_add_method(lispval f,lispval slotid,lispval value)
 {
   lispval through, key;
@@ -599,6 +641,9 @@ static lispval assoc_add_method(lispval f,lispval slotid,lispval value)
     return VOID;}
 }
 
+DEFPRIM("kno:assoc-drop",assoc_drop_method,
+	KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+	"`(kno:assoc-drop *frame* *slotid* *value*)` **undocumented**");
 static lispval assoc_drop_method(lispval f,lispval slotid,lispval value)
 {
   lispval through, key;
@@ -618,6 +663,9 @@ static lispval assoc_drop_method(lispval f,lispval slotid,lispval value)
     return VOID;}
 }
 
+DEFPRIM("kno:car-get",car_get_method,
+	KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	"`(kno:car-get *frame* *slotid*)` **undocumented**");
 static lispval car_get_method(lispval f,lispval slotid)
 {
   lispval result = (EMPTY);
@@ -627,16 +675,19 @@ static lispval car_get_method(lispval f,lispval slotid)
   else {
     DO_CHOICES(value,values)
       if (PAIRP(value)) {
-        lispval car = KNO_CAR(value);
-        kno_incref(car);
-        CHOICE_ADD(result,car);}
+	lispval car = KNO_CAR(value);
+	kno_incref(car);
+	CHOICE_ADD(result,car);}
       else {
-        kno_decref(result);
-        return kno_type_error("pair","car_get_method",value);}}
+	kno_decref(result);
+	return kno_type_error("pair","car_get_method",value);}}
   kno_decref(values);
   return result;
 }
 
+DEFPRIM("kno:paired-get",paired_get_method,
+	KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	"`(kno:paired-get *frame* *slotid*)` **undocumented**");
 static lispval paired_get_method(lispval f,lispval slotid)
 {
   lispval result = (EMPTY);
@@ -645,16 +696,19 @@ static lispval paired_get_method(lispval f,lispval slotid)
   else {
     DO_CHOICES(value,values)
       if (PAIRP(value)) {
-        lispval car = KNO_CAR(value);
-        kno_incref(car);
-        CHOICE_ADD(result,car);}
+	lispval car = KNO_CAR(value);
+	kno_incref(car);
+	CHOICE_ADD(result,car);}
       else {
-        kno_incref(value);
-        CHOICE_ADD(result,value);}}
+	kno_incref(value);
+	CHOICE_ADD(result,value);}}
   kno_decref(values);
   return result;
 }
 
+DEFPRIM("kno:paired-test",paired_test_method,
+	KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+	"`(kno:paired-test *frame* *slotid* *value*)` **undocumented**");
 static lispval paired_test_method(lispval f,lispval slotid,lispval v)
 {
   int found = 0;
@@ -663,13 +717,16 @@ static lispval paired_test_method(lispval f,lispval slotid,lispval v)
   else {
     DO_CHOICES(value,values) {
       if (PAIRP(value)) {
-        if (KNO_EQUAL(KNO_CAR(value),v)) {found = 1; break;}}
+	if (KNO_EQUAL(KNO_CAR(value),v)) {found = 1; break;}}
       else if (KNO_EQUAL(value,v)) {found = 1; break;}}
     kno_decref(values);
     if (found) return KNO_TRUE;
     else return KNO_FALSE;}
 }
 
+DEFPRIM("kno:paired-drop",paired_drop_method,
+	KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+	"`(kno:paired-drop *frame* *slotid* *value*)` **undocumented**");
 static lispval paired_drop_method(lispval f,lispval slotid,lispval v)
 {
   if (PAIRP(v)) {
@@ -682,32 +739,35 @@ static lispval paired_drop_method(lispval f,lispval slotid,lispval v)
     if (KNO_ABORTP(values)) return values;
     else {
       DO_CHOICES(value,values) {
-        if (PAIRP(value)) {
-          if (KNO_EQUAL(KNO_CAR(value),v)) {found = 1; break;}}
-        else if (KNO_EQUAL(value,v)) {found = 1; break;}}
+	if (PAIRP(value)) {
+	  if (KNO_EQUAL(KNO_CAR(value),v)) {found = 1; break;}}
+	else if (KNO_EQUAL(value,v)) {found = 1; break;}}
       if (found) {
-        lispval new_values = EMPTY;
-        DO_CHOICES(value,values) {
-          if (PAIRP(value))
-            if (KNO_EQUAL(KNO_CAR(value),v)) {}
-            else {
-              kno_incref(value);
-              CHOICE_ADD(new_values,value);}
-          else if (KNO_EQUAL(value,v)) {}
-          else {
-            kno_incref(value);
-            CHOICE_ADD(new_values,value);}}
-        if (kno_store(f,slotid,new_values)<0) {
-          kno_decref(values); kno_decref(new_values);
-          return KNO_ERROR;}
-        kno_decref(values); kno_decref(new_values);
-        return VOID;}
+	lispval new_values = EMPTY;
+	DO_CHOICES(value,values) {
+	  if (PAIRP(value))
+	    if (KNO_EQUAL(KNO_CAR(value),v)) {}
+	    else {
+	      kno_incref(value);
+	      CHOICE_ADD(new_values,value);}
+	  else if (KNO_EQUAL(value,v)) {}
+	  else {
+	    kno_incref(value);
+	    CHOICE_ADD(new_values,value);}}
+	if (kno_store(f,slotid,new_values)<0) {
+	  kno_decref(values); kno_decref(new_values);
+	  return KNO_ERROR;}
+	kno_decref(values); kno_decref(new_values);
+	return VOID;}
       else {
-        kno_decref(values); return VOID;}}}
+	kno_decref(values); return VOID;}}}
 }
 
 static lispval implies_slot;
 
+DEFPRIM("kno:clear-implies!",clear_implies_effect,
+	KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3),
+	"`(kno:clear-implies! *frame* *slotid* *value*)` **undocumented**");
 static lispval clear_implies_effect(lispval f,lispval slotid,lispval v)
 {
   lispval implies = kno_get(slotid,implies_slot,EMPTY);
@@ -732,16 +792,46 @@ static void init_symbols()
   implies_slot = kno_intern("implies");
 }
 
-static lispval lisp_add(lispval f,lispval s,lispval v)
+DEFPRIM("kno:add!",lisp_add_effect,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+	"`(kno:add! *frame* *slotid* *value*)` **undocumented**");
+static lispval lisp_add_effect(lispval f,lispval s,lispval v)
 {
   if (kno_add(f,s,v)<0) return KNO_ERROR;
   else return VOID;
 }
-static lispval lisp_drop(lispval f,lispval s,lispval v)
+DEFPRIM("kno:drop!",lisp_drop_effect,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+	"`(kno:drop! *frame* *slotid* *value*)` **undocumented**");
+static lispval lisp_drop_effect(lispval f,lispval s,lispval v)
 {
   if (kno_drop(f,s,v)<0) return KNO_ERROR;
   else return VOID;
 }
+
+DEFPRIM("kno:%get",lisp_pget_method,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	"`(kno:%get *frame* *slotid*)` **undocumented**");
+static lispval lisp_pget_method(lispval f,lispval s,lispval dflt)
+{
+  if ( (KNO_VOIDP(dflt)) || (KNO_DEFAULTP(dflt)) )
+    dflt = KNO_EMPTY_CHOICE;
+  return kno_get(f,s,dflt);
+}
+
+DEFPRIM("kno:get",lisp_get_method,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	"`(kno:get *frame* *slotid*)` **undocumented**");
+static lispval lisp_get_method(lispval f,lispval s)
+{
+  return kno_frame_get(f,s);
+}
+DEFPRIM("kno:test",lisp_test_method,
+	KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	"`(kno:test *frame* *slotid* [*value*])` **undocumented**");
+static lispval lisp_test_method(lispval f,lispval s,lispval v)
+{
+  if (kno_frame_test(f,s,v))
+    return KNO_TRUE;
+  else return KNO_FALSE;
+}
+
 
 KNO_EXPORT void kno_init_methods_c()
 {
@@ -755,78 +845,78 @@ KNO_EXPORT void kno_init_methods_c()
   kno_make_hashtable(&method_table,67);
   m = kno_method_table = ((lispval)(&method_table));
 
-  kno_defn(m,kno_make_cprim2
-           ("FD:INHERITED-GET",inherited_get_method,MIN_ARGS(2),
-            NULL));
-  kno_defn(m,kno_make_cprim3
-           ("FD:INHERITED-TEST",inherited_test_method,MIN_ARGS(3),
-            NULL));
-  kno_defn(m,kno_make_cprim2("FD:MULTI-GET",multi_get_method,MIN_ARGS(2),
-                             NULL));
-  kno_defn(m,kno_make_cprim3("FD:MULTI-TEST",multi_test_method,MIN_ARGS(3),
-                             NULL));
-  kno_defn(m,kno_make_cprim3("FD:MULTI-ADD",multi_add_method,MIN_ARGS(3),
-                             NULL));
-  kno_defn(m,kno_make_cprim3("FD:MULTI-DROP",multi_drop_method,MIN_ARGS(3),
-                             NULL));
-  {
-    lispval invget =
-      kno_make_cprim2("FD:INVERSE-GET",inverse_get_method,MIN_ARGS(2),
-                      NULL);
-    lispval invgetbase =
-      kno_make_cprim2("FD:INVERSE-GETBASE",inverse_getbase_method,MIN_ARGS(2),
-                      NULL);
-    lispval invtest =
-      kno_make_cprim3("FD:INVERSE-TEST",inverse_test_method,MIN_ARGS(3),
-                      NULL);
-    kno_defn(m,invget); kno_defn(m,invtest); kno_defn(m,invgetbase);
-    kno_store(m,kno_intern("fd:inv-get"),invget);
-    kno_store(m,kno_intern("fd:inv-getbase"),invgetbase);
-    kno_store(m,kno_intern("fd:inv-test"),invtest);}
+  KNO_LINK_PRIM("kno:get",lisp_get_method,2,m);
+  KNO_LINK_PRIM("kno:test",lisp_test_method,3,m);
 
-  kno_defn(m,kno_make_cprim2
-           ("FD:ASSOC-GET",assoc_get_method,MIN_ARGS(2),
-            NULL));
-  kno_defn(m,kno_make_cprim3
-           ("FD:ASSOC-TEST",assoc_test_method,MIN_ARGS(2),
-            NULL));
-  kno_defn(m,kno_make_cprim3
-           ("FD:ASSOC-ADD",assoc_add_method,MIN_ARGS(3),
-            NULL));
-  kno_defn(m,kno_make_cprim3
-           ("FD:ASSOC-DROP",assoc_drop_method,MIN_ARGS(3),
-            NULL));
-  kno_defn(m,kno_make_cprim2
-           ("FD:CAR-GET",car_get_method,MIN_ARGS(2),
-            NULL));
-  kno_defn(m,kno_make_cprim2
-           ("FD:KLEENE-GET",kleene_plus_get_method,MIN_ARGS(2),
-            NULL));
-  kno_defn(m,kno_make_cprim2
-           ("FD:KLEENE+-GET",kleene_plus_get_method,MIN_ARGS(2),
-            NULL));
-  kno_defn(m,kno_make_cprim2
-           ("FD:KLEENE*-GET",kleene_star_get_method,MIN_ARGS(2),
-            NULL));
-  kno_defn(m,kno_make_cprim2
-           ("FD:PAIRED-GET",paired_get_method,MIN_ARGS(2),
-            NULL));
-  kno_defn(m,kno_make_cprim3
-           ("FD:PAIRED-TEST",paired_test_method,MIN_ARGS(3),
-            NULL));
-  kno_defn(m,kno_make_cprim3
-           ("FD:PAIRED-DROP",paired_drop_method,MIN_ARGS(3),
-            NULL));
-  kno_defn(m,kno_make_cprim3
-           ("FD:ADD",lisp_add,MIN_ARGS(3),
-            NULL));
-  kno_defn(m,kno_make_cprim3
-           ("FD:DROP",lisp_drop,MIN_ARGS(3),
-            NULL));
+  KNO_LINK_PRIM("kno:%get",lisp_pget_method,3,m);
+  KNO_LINK_PRIM("kno:add!",lisp_add_effect,3,m);
+  KNO_LINK_PRIM("kno:drop!",lisp_drop_effect,3,m);
 
-  kno_defn(m,kno_make_cprim3
-           ("FD:CLEAR-IMPLIES",clear_implies_effect,MIN_ARGS(3),
-            NULL));
+  KNO_LINK_PRIM("kno:inherited-get",inherited_get_method,2,m);
+  KNO_LINK_PRIM("kno:inverse-get",inverse_get_method,2,m);
+  KNO_LINK_PRIM("kno:inverse-getbase",inverse_getbase_method,2,m);
+  KNO_LINK_PRIM("kno:assoc-get",assoc_get_method,2,m);
+  KNO_LINK_PRIM("kno:multi-get",multi_get_method,2,m);
+  KNO_LINK_PRIM("kno:car-get",car_get_method,2,m);
+  KNO_LINK_PRIM("kno:paired-get",paired_get_method,2,m);
+  KNO_LINK_PRIM("kno:kleene*-get",kleene_star_get_method,2,m);
+  KNO_LINK_PRIM("kno:kleene+-get",kleene_plus_get_method,2,m);
+
+  KNO_LINK_PRIM("kno:multi-test",multi_test_method,3,m);
+  KNO_LINK_PRIM("kno:inherited-test",inherited_test_method,3,m);
+  KNO_LINK_PRIM("kno:inverse-test",inverse_test_method,3,m);
+  KNO_LINK_PRIM("kno:assoc-test",assoc_test_method,3,m);
+  KNO_LINK_PRIM("kno:paired-test",paired_test_method,3,m);
+
+  KNO_LINK_PRIM("kno:multi-add",multi_add_method,3,m);
+  KNO_LINK_PRIM("kno:multi-drop",multi_drop_method,3,m);
+
+  KNO_LINK_PRIM("kno:assoc-add",assoc_add_method,3,m);
+  KNO_LINK_PRIM("kno:assoc-drop",assoc_drop_method,3,m);
+  KNO_LINK_PRIM("kno:paired-drop",paired_drop_method,3,m);
+
+  KNO_LINK_PRIM("kno:clear-implies!",clear_implies_effect,3,m);
+
+  KNO_LINK_ALIAS("get",lisp_get_method,m);
+  KNO_LINK_ALIAS("test",lisp_test_method,m);
+  KNO_LINK_ALIAS("%get",lisp_pget_method,m);
+  KNO_LINK_ALIAS("add!",lisp_add_effect,m);
+  KNO_LINK_ALIAS("add",lisp_add_effect,m);
+  KNO_LINK_ALIAS("drop!",lisp_drop_effect,m);
+  KNO_LINK_ALIAS("drop",lisp_drop_effect,m);
+
+  KNO_LINK_ALIAS("kno:kleene-get",kleene_plus_get_method,m);
+  KNO_LINK_ALIAS("kno:inv-get",inverse_get_method,m);
+  KNO_LINK_ALIAS("kno:inv-getbase",inverse_getbase_method,m);
+  KNO_LINK_ALIAS("kno:inv-test",inverse_test_method,m);
+
+  KNO_LINK_ALIAS("fd:add!",lisp_add_effect,m);
+  KNO_LINK_ALIAS("fd:drop!",lisp_drop_effect,m);
+  KNO_LINK_ALIAS("fd:inherited-get",inherited_get_method,m);
+  KNO_LINK_ALIAS("fd:inverse-get",inverse_get_method,m);
+  KNO_LINK_ALIAS("fd:inverse-getbase",inverse_getbase_method,m);
+  KNO_LINK_ALIAS("fd:assoc-get",assoc_get_method,m);
+  KNO_LINK_ALIAS("fd:multi-get",multi_get_method,m);
+  KNO_LINK_ALIAS("fd:car-get",car_get_method,m);
+  KNO_LINK_ALIAS("fd:paired-get",paired_get_method,m);
+  KNO_LINK_ALIAS("fd:kleene*-get",kleene_star_get_method,m);
+  KNO_LINK_ALIAS("fd:kleene+-get",kleene_plus_get_method,m);
+  KNO_LINK_ALIAS("fd:multi-test",multi_test_method,m);
+  KNO_LINK_ALIAS("fd:inherited-test",inherited_test_method,m);
+  KNO_LINK_ALIAS("fd:inverse-test",inverse_test_method,m);
+  KNO_LINK_ALIAS("fd:assoc-test",assoc_test_method,m);
+  KNO_LINK_ALIAS("fd:paired-test",paired_test_method,m);
+  KNO_LINK_ALIAS("fd:multi-add",multi_add_method,m);
+  KNO_LINK_ALIAS("fd:multi-drop",multi_drop_method,m);
+  KNO_LINK_ALIAS("fd:assoc-add",assoc_add_method,m);
+  KNO_LINK_ALIAS("fd:assoc-drop",assoc_drop_method,m);
+  KNO_LINK_ALIAS("fd:paired-drop",paired_drop_method,m);
+  KNO_LINK_ALIAS("fd:clear-implies!",clear_implies_effect,m);
+
+  KNO_LINK_ALIAS("fd:kleene-get",kleene_plus_get_method,m);
+  KNO_LINK_ALIAS("fd:inv-get",inverse_get_method,m);
+  KNO_LINK_ALIAS("fd:inv-getbase",inverse_getbase_method,m);
+  KNO_LINK_ALIAS("fd:inv-test",inverse_test_method,m);
 
   link_local_cprims();
 
