@@ -489,17 +489,18 @@ static void showstack_handler(int signum,siginfo_t *info,void *stuff)
 
 KNO_EXPORT ssize_t kno_init_cstack()
 {
+  int rv = 0;
   u8_init_stack();
   if (VOIDP(kno_default_stackspec)) {
     ssize_t stacksize = u8_stack_size;
-    return kno_stack_setsize(stacksize-stacksize/8);}
+    rv = kno_stack_setsize(stacksize-stacksize/8);}
   else if (FIXNUMP(kno_default_stackspec))
-    return kno_stack_setsize((ssize_t)(FIX2INT(kno_default_stackspec)));
+    rv = kno_stack_setsize((ssize_t)(FIX2INT(kno_default_stackspec)));
   else if (KNO_FLONUMP(kno_default_stackspec))
-    return kno_stack_resize(KNO_FLONUM(kno_default_stackspec));
+    rv = kno_stack_resize(KNO_FLONUM(kno_default_stackspec));
   else if (KNO_BIGINTP(kno_default_stackspec)) {
     unsigned long long val = kno_getint(kno_default_stackspec);
-    if (val) return kno_stack_setsize((ssize_t) val);
+    if (val) rv = kno_stack_setsize((ssize_t) val);
     else {
       u8_log(LOG_CRIT,kno_BadStackSize,
 	     "The default stack value %q wasn't a valid stack size",
@@ -510,6 +511,10 @@ KNO_EXPORT ssize_t kno_init_cstack()
 	   "The default stack value %q wasn't a valid stack size",
 	   kno_default_stackspec);
     return -1;}
+  if (rv<0) {
+    kno_clear_errors(1);
+    return 0;}
+  else return rv;
 }
 
 static int init_thread_stack_limit()
