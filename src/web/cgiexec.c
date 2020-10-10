@@ -80,10 +80,10 @@ static lispval buf2lisp(char *buf,int isascii)
 
 static lispval buf2slotid(char *buf,int isascii)
 {
-  if (isascii) return kno_parse(buf);
+  if (isascii) return kno_parse_slotid(buf);
   else {
     u8_string s = u8_valid_copy(buf);
-    lispval value = kno_parse(s);
+    lispval value = kno_parse_slotid(s);
     u8_free(s);
     return value;}
 }

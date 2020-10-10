@@ -1593,6 +1593,91 @@ lispval kno_parse_arg(u8_string arg)
   return knostring(arg);
 }
 
+KNO_EXPORT
+/* kno_parse_slotid:
+   Arguments: a string
+   Returns: a lisp object
+
+   Parses a textual object representation into a lisp object, normall
+   a slotid (symbol or OID).
+*/
+lispval kno_parse_slotid(u8_string arg)
+{
+  int c = arg[0];
+  if (c==0) return KNO_EOF;
+  else if ( (arg[1] == '\0') && (strchr("@\\:'#{[",c)) )
+    return kno_mkstring(arg);
+  else NO_ELSE;
+  struct U8_INPUT instream;
+  lispval result = KNO_VOID;
+  U8_INIT_STRING_INPUT(&instream,-1,arg);
+  if (c == '@')
+    result = kno_parse_oid(&instream);
+  else if (c == '\\') {
+    /* If it starts with a \, treat all of the input as one string */
+    U8_STATIC_OUTPUT(all,120); c = u8_getc(&instream); /* Skip the \\ */
+    c=u8_getc(&instream); while (c >= 0) {
+      u8_putc(allout,c);
+      c = u8_getc(&instream);}
+    return kno_stream2string(allout);}
+  else if ( (c < 0x80) && (strchr("@{#(\"|",c)) )
+    result = kno_parser(&instream);
+  else if ( (c == ':') || (c == '\'') ) {
+    u8_getc(&instream); /* Skip the : or ' */
+    result = kno_parser(&instream);}
+  else {
+    int c = u8_getc(&instream);
+    while (c>0) {
+      if ( (u8_isspace(c)) || (u8_isctrl(c)) )
+	return kno_mkstring(arg);
+      else c = u8_getc(&instream);}
+    result = kno_getsym(arg);}
+  if (KNO_ABORTED(result)) {
+    kno_clear_errors(0);
+    return kno_mkstring(arg);}
+  else return result;
+}
+
+KNO_EXPORT
+/* kno_parse_slotid:
+   Arguments: a string
+   Returns: a lisp object
+
+   Parses a textual object representation into a lisp object, normall
+   a slotid (symbol or OID).
+*/
+lispval kno_slotid_parser(u8_input in)
+{
+  int c = u8_probec(in);
+  if (PRED_FALSE(c<0)) return KNO_EOF;
+  else if (c == '@')
+    return kno_parse_oid(in);
+  else if (c == '\\') {
+    /* If it starts with a \, treat all of the input as one string */
+    U8_STATIC_OUTPUT(all,120); c = u8_getc(in); /* Skip the \\ */
+    c=u8_getc(in); while (c >= 0) {
+      u8_putc(allout,c);
+      c = u8_getc(in);}
+    return kno_stream2string(allout);}
+  else if ( (c<0x80) && (strchr("@\\:'#{[",c)) )
+    return kno_parser(in);
+  else if ( (c == ':') || (c == '\'') ) {
+    u8_getc(in); /* Skip the : or ' */
+    return kno_parser(in);}
+  else {
+    int make_symbol = 0;
+    U8_STATIC_OUTPUT(all,120); c = u8_getc(in); /* Skip the \\ */
+    c=u8_getc(in); while (c >= 0) {
+      if ( (make_symbol) && ( (u8_isspace(c)) || (u8_isctrl(c)) ) )
+	make_symbol = 0;
+      u8_putc(allout,c);
+      c = u8_getc(in);}
+    lispval result = (make_symbol) ? (kno_getsym(all.u8_outbuf)) :
+      (kno_mkstring(all.u8_outbuf));
+    u8_close_output(allout);
+    return result;}
+}
+
 /* Initializations */
 
 KNO_EXPORT void kno_init_parse_c()

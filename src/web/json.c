@@ -176,45 +176,6 @@ static lispval json_string(U8_INPUT *in,int flags)
   else return kno_stream2string(&out);
 }
 
-static lispval json_intern(U8_INPUT *in,int flags)
-{
-  struct U8_OUTPUT out;
-  int c = readc(in), terminator = c;
-  int good_symbol = 1;
-  c = u8_probec(in);
-  if (c == '@') {
-    lispval slotid = kno_parse_oid(in);
-    if (KNO_ABORTED(slotid)) {
-      u8_log(LOGWARN,"BadJSONslotid","OID parsing failed");
-      kno_clear_errors(1);}
-    else return slotid;}
-  U8_STATIC_OUTPUT(slotid,50);
-  while (c>=0) {
-    if (c == terminator) break;
-    else if (c=='\\') {
-      c = kno_read_escape(in);
-      u8_putc(slotidout,c); c = u8_getc(in);
-      continue;}
-    else if (u8_isspace(c))
-      good_symbol = 0;
-    u8_putc(slotidout,c);
-    c = u8_getc(in);}
-  if (slotid.u8_outbuf[0]==':') {
-    lispval result = kno_parse(slotid.u8_outbuf+1);
-    if (KNO_ABORTP(result))
-      result = parse_error(&out,result,flags&KNO_JSON_VERBOSE);
-    u8_close_output(slotidout);
-    return result;}
-  else {
-    lispval result = (((good_symbol)&&(u8_outlen(slotidout)))?
-		      (kno_parse(slotid.u8_outbuf)):
-		      (kno_stream_string(slotidout)));
-    if (KNO_ABORTP(result))
-      result = parse_error(slotidout,result,flags&KNO_JSON_VERBOSE);
-    u8_close_output(slotidout);
-    return result;}
-}
-
 static lispval json_key(U8_INPUT *in,int flags,lispval fieldmap)
 {
   int c = skip_whitespace(in);
@@ -224,7 +185,7 @@ static lispval json_key(U8_INPUT *in,int flags,lispval fieldmap)
 		   KNO_VOID);
   else if ( (c=='"') || (c=='\'') )
     if (flags&KNO_JSON_SLOTIDS)
-      return json_intern(in,flags);
+      return kno_slotid_parser(in);
     else if (VOIDP(fieldmap))
       return json_string(in,flags);
     else {

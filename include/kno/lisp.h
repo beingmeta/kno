@@ -54,6 +54,8 @@ KNO_EXPORT lispval kno_parse_expr(struct U8_INPUT *);
 KNO_EXPORT lispval kno_parser(struct U8_INPUT *);
 KNO_EXPORT lispval kno_parse(u8_string string);
 KNO_EXPORT lispval kno_parse_arg(u8_string string);
+KNO_EXPORT lispval kno_parse_slotid(u8_string string);
+KNO_EXPORT lispval kno_slotid_parser(u8_input in);
 KNO_EXPORT u8_string kno_unparse_arg(lispval obj);
 KNO_EXPORT lispval kno_read_arg(u8_input s);
 KNO_EXPORT int kno_skip_whitespace(u8_input s);

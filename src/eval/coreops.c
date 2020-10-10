@@ -692,9 +692,33 @@ static lispval lisp_tolisp(lispval arg)
 }
 
 DEFPRIM1("parse-arg",lisp_parse_arg,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(PARSE-ARG *arg0*)` **undocumented**",
+	 "`(PARSE-ARG *string*)` returns a LISP object based on *string*.  "
+	 "If *string* isn't a string, it is just returned. "
+	 "If *string* can be parsed as a number or begins with a LISP "
+	 "delimiter, the LISP parser is called on the string."
+	 "If *string* starts with a colon or sinqle quote, the LISP parser "
+	 "is called on the remainder of the string. In all other cases, the "
+	 "*string* is just returned as a lisp string.",
 	 kno_any_type,KNO_VOID);
 static lispval lisp_parse_arg(lispval string)
+{
+  if (STRINGP(string))
+    return kno_parse_arg(CSTRING(string));
+  else return kno_incref(string);
+}
+
+DEFPRIM1("parse-slotid",lisp_parse_slotid,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "`(PARSE-SLOTID *string*)` returns a LISP object, typically a "
+	 "slotid (symbol or OID) based on *string*. If *string* isn't a "
+	 "string, it is just returned. "
+	 "If *string* begins with at at-sign @, it is parsed as an OID "
+	 "reference; if *string* can be parsed as a number or begins with "
+	 "a LISP delimiter, the parser is called. If *string* starts with a "
+	 "colon or sinqle quote, the parser is called on the remainder of the "
+	 "string. If the string contains whitespace, it returns a string, "
+	 "otherwise it returns a symbol.",
+	 kno_any_type,KNO_VOID);
+static lispval lisp_parse_slotid(lispval string)
 {
   if (STRINGP(string))
     return kno_parse_arg(CSTRING(string));
@@ -928,6 +952,7 @@ static void link_local_cprims()
   KNO_LINK_PRIM("getslotid",lisp_getslotid,1,scheme_module);
   KNO_LINK_PRIM("unparse-arg",lisp_unparse_arg,1,scheme_module);
   KNO_LINK_PRIM("parse-arg",lisp_parse_arg,1,scheme_module);
+  KNO_LINK_PRIM("parse-slotid",lisp_parse_slotid,1,scheme_module);
   KNO_LINK_PRIM("->lisp",lisp_tolisp,1,scheme_module);
   KNO_LINK_PRIM("lisp->string",lisp2string,1,scheme_module);
   KNO_LINK_PRIM("string->lisp",lisp_string2lisp,1,scheme_module);
