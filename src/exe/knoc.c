@@ -171,6 +171,8 @@ static u8_exception last_exception = NULL;
 static int debug_maxelts = 32, debug_maxchars = 80;
 
 static u8_mutex console_lock;
+static int console_oid_display_level = 3;
+
 
 static void close_consoles()
 {
@@ -196,12 +198,15 @@ static void close_consoles()
 static lispval oid_listfn(lispval item)
 {
   if (KNO_OIDP(item)) {
-    if (kno_oid_display_level<2) return KNO_VOID;
+    int display_level = console_oid_display_level;
+    if ( display_level < kno_oid_display_level)
+      display_level = kno_oid_display_level;
+    if (display_level<2) return KNO_VOID;
     kno_pool p = kno_oid2pool(item);
     if (p == NULL) return KNO_VOID;
     if (kno_hashtable_probe(&(p->pool_cache),item))
       return KNO_VOID;
-    else if (kno_oid_display_level<3) return KNO_VOID;
+    else if (display_level<3) return KNO_VOID;
     lispval v = kno_oid_value(item);
     if (KNO_ABORTED(v)) u8_pop_exception();
     kno_decref(v);}
@@ -810,6 +815,10 @@ int main(int argc,char **argv)
                       kno_dblconfig_get,kno_dblconfig_set,&showtime_threshold);
   kno_register_config("PROMPT",_("Eval prompt (within #||#s)"),
                       kno_sconfig_get,set_prompt,&eval_prompt);
+  kno_register_config
+    ("CONSOLE:OID:DISPLAY",_("OID display level for the KNO console app"),
+     kno_intconfig_get,kno_intconfig_set,
+     &console_oid_display_level);
   kno_register_config
     ("DBGMAXCHARS",
      _("Max number of string characters to display in debug message"),
