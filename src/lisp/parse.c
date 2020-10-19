@@ -520,7 +520,7 @@ KNO_EXPORT lispval kno_parse_oid(u8_input in)
 
 static lispval parse_string(U8_INPUT *in)
 {
-  lispval result = VOID; u8_byte buf[256];
+  u8_byte buf[256];
   struct U8_OUTPUT out; int c = u8_getc(in);
   U8_INIT_OUTPUT_X(&out,256,buf,0);
   while ((c = u8_getc(in))>=0)
@@ -533,16 +533,18 @@ static lispval parse_string(U8_INPUT *in)
         continue;}
       else u8_ungetc(in,nextc);
       c = read_escape(in);
-      if (c<0) {
-        kno_seterr("Unterminated string","parse_string",out.u8_outbuf,VOID);
-        if ((out.u8_streaminfo)&(U8_STREAM_OWNS_BUF))
-          u8_free(out.u8_outbuf);
-        return KNO_PARSE_ERROR;}
+      if (c<0) break;
       u8_putc(&out,c);}
     else u8_putc(&out,c);
-  result = kno_make_string(NULL,u8_outlen(&out),u8_outstring(&out));
-  u8_close_output(&out);
-  return result;
+  if (c!='"') {
+    kno_seterr("Unterminated string","parse_string",out.u8_outbuf,VOID);
+    if ((out.u8_streaminfo)&(U8_STREAM_OWNS_BUF))
+      u8_free(out.u8_outbuf);
+    return KNO_PARSE_ERROR;}
+  else {
+    lispval result = kno_make_string(NULL,u8_outlen(&out),u8_outstring(&out));
+    u8_close_output(&out);
+    return result;}
 }
 
 KNO_EXPORT lispval kno_decode_string(u8_input in)
