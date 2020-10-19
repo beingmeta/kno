@@ -2,7 +2,7 @@
 
 (in-module 'kno/sessions)
 
-(use-module '{logger varconfig optimize})
+(use-module '{logger varconfig stringfmts optimize})
 
 (module-export! '{*session*
 		  valid-session?
@@ -22,14 +22,30 @@
 		  optuse.command
 		  reopt.command
 		  load.command
-		  appload.command})
+		  appload.command
+		  =.command})
 
 (define %loglevel %notice%)
 
 (define-init *session* #f)
 
+(define-init verbose #f)
+(varconfig! sessions:verbose verbose config:boolean)
+(varconfig! session:verbose verbose config:boolean)
+
 (define-init loaded-configs {})
 (define-init loaded-setups {})
+
+(define (return-exception ex) ex)
+
+(define ($exception ex (with-irritant #f))
+  (printout (if (symbol? (exception-condition ex)) 
+		(symbol->string (exception-condition ex))
+		(exception-condition ex))
+    (if (exception-caller ex) (printout " [" (exception-caller ex) "]"))
+    (if (exception-details ex) (printout " (" (exception-details ex) ")"))
+    (if (and with-irritant (exception-irritant? ex))
+	(printout " " ex))))
 
 (define (load-session location)
   (lognotice |Session| "based in " (abspath location))
@@ -41,9 +57,61 @@
     (unless (overlaps? (abspath (mkpath location "setup.scm")) loaded-setups)
       (set+! loaded-setups (abspath (mkpath location "setup.scm")))
       (load->env (mkpath location "setup.scm") (%appenv))))
+  (when (file-directory? (mkpath location "inits"))
+    (let ((files (getfiles (mkpath location "inits")))
+	  (console-env (req/get 'console_env))
+	  (restored '()))
+      (doseq (file (sorted (reject (reject files has-prefix {"#" "."})
+			     has-suffix {"#" "~"})
+			   file-modtime))
+	(let* ((size (file-size file))
+	       (modtime (file-modtime file))
+	       (val (onerror (read-session-val file) return-exception))
+	       (name (basename file #t))
+	       (sym (string->symbol name)))
+	  (cond ((exception? val)
+		 (set! restored (cons [var sym error val size size time modtime file file]
+				      restored)))
+		(else (store! console-env sym val)
+		      (set! restored (cons [var sym type (typeof val) size size time modtime file file]
+					   restored))))))
+      (unless (empty-list? restored)
+	(if verbose
+	    (lineout ";; Restored " 
+	      ($count (length restored) "init") ":"
+	      (doseq (restore (reverse restored) i)
+		(if (test restore 'error)
+		    (printout "\n;;!!  "
+		      (get restore 'var) " error restoring " ($bytes (get restore 'size))
+		      " from " (get restore 'file) " (saved " (get (get restore 'time) 'rfc822))
+		    (printout "\n;;    "
+		      (get restore 'var) " (" (get restore 'type) ") "
+		      " (set " (get (get restore 'time) 'rfc822) ")"))))
+ 	    (lineout ";; Restored " 
+	      ($count (length restored) "init") ":"
+	      (doseq (restore (reverse restored) i)
+		(printout 
+		  (cond ((= i 0) " ")
+			(else ", "))
+		  (get restore 'var)
+		  (if (test restore 'error)
+		      (let ((ex (get restore 'error)))
+			(printout " (error:" ($exception ex) ")"))
+		      (printout " (" (get restore 'type) ")")))))))))
   ;;; Initialize the history
   ;;; Run the preload
   location)
+
+(define (read-session-val file)
+  (cond ((has-suffix file {".txt" ".text"})
+	 (filestring file))
+	((has-suffix file {".bytes" ".packet"})
+	 (filedata file))
+	((has-suffix file ".xtype") (read-xtype file))
+	((has-suffix file ".dtype") (file->dtype file))
+	((has-suffix file {".scm" ".lisp" ".lsp" ".lst"})
+	 (read (open-input-file file)))
+	(else (read-xtype file))))
 
 (define (set-session! location (session))
   (set! session (find-session location))
@@ -143,6 +211,32 @@
 	  (else (set! *session* val)
 		(load-session val)))))
 
+
+;;;; Session variables
+
+(define (=.command pname (val (req/get 'lastval)))
+  (if (not *session*)
+      (logwarn |NoSession| " for binding " pname)
+      (let ((env (req/get 'console_env)))
+	(unless (file-directory? (mkpath *session* "inits"))
+	  (mkdir (mkpath *session* "inits")))
+	(let ((path (mkpath (mkpath *session* "inits") pname))
+	      (problem #f))
+	  (store! env (string->symbol pname) val)
+	  (cond ((has-suffix pname {".text" ".txt" ".html" ".string"})
+		 (if (string? val)
+		     (write-file path val)
+		     (set! problem '|NotAString|)))
+		((has-suffix pname {".data" ".packet" ".bytes"})
+		 (if (packet? val)
+		     (write-file path val)
+		     (set! problem '|NotAPacket|)))
+		((has-suffix pname ".xtype") (write-xtype val path))
+		((has-suffix pname ".dtype") (dtype->file val path))
+		(else (write-xtype val path)))
+	  (if problem)
+	  (lineout ";;; Wrote " (typeof val) " to " path " for init " pname)
+	  (void)))))
 
 ;;;; Default KNOC Commands
 

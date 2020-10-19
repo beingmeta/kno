@@ -361,6 +361,7 @@ static lispval read_command(u8_input in,int iscmd,kno_lexenv env)
          (nextc == '#') || (nextc == '(') ||
          (nextc == '"') || (nextc == '\'') ||
          (nextc == '+') || (nextc == '-') ||
+	 (nextc == '{') || (nextc == '[') ||
          (u8_isdigit(nextc)) )
       arg = kno_parser(in);
     else if (nextc == ':') {
@@ -741,28 +742,69 @@ static void dotloader(u8_string file,kno_lexenv env)
   u8_free(abspath);
 }
 
+DEF_KNOSYM(reqinit); DEF_KNOSYM(console_env); DEF_KNOSYM(lastval);
+
 int main(int argc,char **argv)
 {
   int i = 1;
   /* Mask of args which we handle */
   unsigned char arg_mask[argc];  memset(arg_mask,0,argc);
   time_t boot_time = time(NULL);
-  lispval expr = VOID, result = VOID, lastval = VOID;
-  u8_encoding enc = u8_get_default_encoding();
-  u8_input in = (u8_input)u8_open_xinput(0,enc);
-  u8_output out = (u8_output)u8_open_xoutput(1,enc);
-  u8_output err = (u8_output)u8_open_xoutput(2,enc);
   u8_string source_file = NULL; /* The file loaded, if any */
 
+  /* Initialize the libu8 stdio library if it won't happen automatically. */
+#if (!(HAVE_CONSTRUCTOR_ATTRIBUTES))
+  u8_initialize();
+  u8_initialize_u8stdio();
+  u8_init_chardata_c();
+#endif
+
   init_libraries();
+
+#if ((!(HAVE_CONSTRUCTOR_ATTRIBUTES)) || (KNO_TESTCONFIG))
+  kno_init_scheme();
+#endif
+
+  /* INITIALIZING MODULES */
+  /* Normally, modules have initialization functions called when
+     dynamically loaded.  However, if we are statically linked, or we
+     don't have the "constructor attributes" use to declare init functions,
+     we need to call some initializers explicitly. */
+
+  /* Initialize builtin scheme modules.
+     These include all modules specified by (e.g.):
+     configure --enable-webtools */
+#if ((HAVE_CONSTRUCTOR_ATTRIBUTES) && (!(KNO_TESTCONFIG)))
+  KNO_INIT_SCHEME_BUILTINS();
+#else
+  /* If we're a "test" executable (KNO_TESTCONFIG), we're statically linked, so we need to
+     initialize some modules explicitly (since the shared library initializers may not be
+     invoked). */
+  kno_init_schemeio();
+  kno_init_texttools();
+  kno_init_webtools();
+#endif
 
 #if KNO_TESTCONFIG && KNO_STATIC
   kno_init_texttools();
   kno_init_webtools();
 #endif
 
+  lispval expr = VOID, result = VOID, lastval = VOID;
+  u8_encoding enc = u8_get_default_encoding();
+  u8_input in = (u8_input)u8_open_xinput(0,enc);
+  u8_output out = (u8_output)u8_open_xoutput(1,enc);
+  u8_output err = (u8_output)u8_open_xoutput(2,enc);
+
   /* This is the environment the console will start in */
+  lispval init_reqinfo = kno_make_slotmap(7,0,NULL);
   kno_lexenv env = kno_working_lexenv();
+  kno_store(init_reqinfo,KNOSYM(console_env),(lispval)env);
+  lispval reqinfo = kno_deep_copy(init_reqinfo);
+  kno_store(reqinfo,KNOSYM(reqinit),init_reqinfo);
+  kno_set_app_env(env);
+  kno_decref(init_reqinfo);
+  kno_use_reqinfo(reqinfo);
 
   if (getenv("KNO_QUIET")) quiet_console=1;
 
@@ -771,42 +813,11 @@ int main(int argc,char **argv)
     if (kno_boot_message()) {
       /* Extra stuff, if desired */}}
 
-  kno_set_app_env(env);
 
   kno_main_errno_ptr = &errno;
   KNO_INIT_CSTACK();
 
   if (getenv("KNO_SKIP_DOTLOAD")) dotload = 0;
-
-  /* INITIALIZING MODULES */
-  /* Normally, modules have initialization functions called when
-     dynamically loaded.  However, if we are statically linked, or we
-     don't have the "constructor attributes" use to declare init functions,
-     we need to call some initializers explicitly. */
-
-  /* Initialize the libu8 stdio library if it won't happen automatically. */
-#if (!(HAVE_CONSTRUCTOR_ATTRIBUTES))
-  u8_initialize_u8stdio();
-  u8_init_chardata_c();
-#endif
-
-#if ((!(HAVE_CONSTRUCTOR_ATTRIBUTES)) || (KNO_TESTCONFIG))
-  kno_init_scheme();
-#endif
-
-  /* Initialize builtin scheme modules.
-     These include all modules specified by (e.g.):
-     configure --enable-webtools */
-#if ((HAVE_CONSTRUCTOR_ATTRIBUTES) && (!(KNO_TESTCONFIG)))
-  KNO_INIT_SCHEME_BUILTINS();
-#else
-  /* If we're a "test" executable (KNO_TESTCONFIG), we're
-     statically linked, so we need to initialize some modules
-     explicitly (since the "onload" initializers may not be invoked). */
-  kno_init_schemeio();
-  kno_init_texttools();
-  kno_init_webtools();
-#endif
 
   eval_prompt = u8_strdup(EVAL_PROMPT);
 
@@ -1185,14 +1196,17 @@ int main(int argc,char **argv)
     lastval = result; result = VOID;
     if ((KNO_CHECK_PTR(lastval)) &&
         (!(KNO_ABORTP(lastval))) &&
-        (!(KNO_CONSTANTP(lastval))))
-      kno_bind_value(that_symbol,lastval,env);}
+	(!(KNO_CONSTANTP(lastval)))) {
+      kno_bind_value(that_symbol,lastval,env);
+      kno_store(reqinfo,KNOSYM(lastval),lastval);}}
+
   if (eval_server)
     kno_close_stream(eval_server,KNO_STREAM_FREEDATA);
   if ( ! kno_fast_exit ) {
     u8_free(eval_server);
     kno_decref(lastval);
     kno_decref(result);}
+  kno_decref(reqinfo);
   /* Run registered thread cleanup handlers.
      Note that since the main thread wasn't started with a function which
      calls u8_threadexit(), we do it here. */
