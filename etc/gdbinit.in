@@ -362,8 +362,13 @@ define staticweb
     set args /var/run/knoweb/static.sock
 end
 
-define sessions
+define use_session
   set environment KNO_LOADMOD kno/sessions
+  if ($argc == 0)
+     set environment KNO_INITSESSION .knoc
+  else
+     set environment KNO_INITSESSION .knoc
+  end
 end
 
 define dotload
