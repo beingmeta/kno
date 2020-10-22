@@ -5,6 +5,11 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
+/* A memindex is a file-based index primarily for writing key/value pairs. It just accumulates keys
+   and values in the designated file. Queries on the memindex load all of those keys and values,
+   which may take a while. */
+   
+
 #ifndef _FILEINFO
 #define _FILEINFO __FILE__
 #endif

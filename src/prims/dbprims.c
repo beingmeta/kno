@@ -235,18 +235,33 @@ static lispval indexp(lispval arg)
   else return KNO_FALSE;
 }
 
-DEFPRIM1("name->pool",getpool,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(NAME->POOL *arg0*)` **undocumented**",
+DEFPRIM1("getpool",getpool,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "`(getpool *arg*)` returns a pool based on *arg*. If *arg* is an "
+	 "OID, it's containing pool is returned, if it's a pool itself, "
+	 "it's returned as is, and if it's a string, it tries to resolve "
+	 "it to a pool",
 	 kno_any_type,KNO_VOID);
 static lispval getpool(lispval arg)
 {
   kno_pool p = NULL;
-  if (KNO_POOLP(arg)) return kno_incref(arg);
+  if (OIDP(arg)) p = kno_oid2pool(arg);
+  else if (KNO_POOLP(arg)) return kno_incref(arg);
   else if (STRINGP(arg))
     p = kno_name2pool(CSTRING(arg));
-  else if (OIDP(arg)) p = kno_oid2pool(arg);
+  else NO_ELSE;
   if (p) return kno_pool2lisp(p);
   else return EMPTY;
+}
+
+DEFPRIM1("oid->pool",oid2pool,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "`(oid->pool *oid*)` returns the pool containing OID or {} "
+	 "if it's not known.",
+	 kno_oid_type,KNO_VOID);
+static lispval oid2pool(lispval oid)
+{
+  kno_pool p = kno_oid2pool(oid);
+  if (p) return kno_pool2lisp(p);
+  else return KNO_EMPTY;
 }
 
 static u8_condition Unknown_PoolName=_("Unknown pool name");
@@ -899,7 +914,7 @@ static lispval extpool_lockfn(lispval pool)
 }
 
 DEFPRIM1("extpool-state",extpool_state,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(EXTPOOL-STATE *arg0*)` **undocumented**",
+	 "`(EXTPOOL-STATE *extpool*)` returns the state object of an extpool",
 	 kno_pool_type,KNO_VOID);
 static lispval extpool_state(lispval pool)
 {
@@ -913,7 +928,8 @@ static lispval extpool_state(lispval pool)
 /* Proc indexes */
 
 DEFPRIM5("make-procindex",make_procindex,KNO_MAX_ARGS(5)|KNO_MIN_ARGS(2),
-	 "Returns a pool implemented by userspace functions",
+	 "`(make-procindex *name* *opts* *state* *sourcestring* *typename*)` "
+	 "returns an index implemented by user-defined handlers",
 	 kno_string_type,KNO_VOID,kno_any_type,KNO_VOID,
 	 kno_any_type,KNO_VOID,kno_string_type,KNO_VOID,
 	 kno_string_type,KNO_VOID);
@@ -932,7 +948,8 @@ static lispval make_procindex(lispval id,
 /* External indexes */
 
 DEFPRIM6("make-extindex",make_extindex,KNO_MAX_ARGS(6)|KNO_MIN_ARGS(2),
-	 "`(MAKE-EXTINDEX *arg0* *arg1* [*arg2*] [*arg3*] [*arg4*] [*arg5*])` **undocumented**",
+	 "`(MAKE-EXTINDEX *label* *fetchfn* [*commitfn*] [*stateobj*] [*usecache*] [*opts*])` "
+	 "makes an *external* index, a simple kind of procindex.",
 	 kno_string_type,KNO_VOID,kno_any_type,KNO_VOID,
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
 	 kno_any_type,KNO_TRUE,kno_any_type,KNO_FALSE);
@@ -4330,7 +4347,8 @@ static void link_local_cprims()
   KNO_LINK_PRIM("try-pool",try_pool,2,kno_db_module);
   KNO_LINK_PRIM("set-cache-level!",set_cache_level,2,kno_db_module);
   KNO_LINK_PRIM("set-pool-namefn!",set_pool_namefn,2,kno_db_module);
-  KNO_LINK_PRIM("name->pool",getpool,1,kno_db_module);
+  KNO_LINK_PRIM("getpool",getpool,1,kno_db_module);
+  KNO_LINK_PRIM("oid->pool",oid2pool,1,kno_db_module);
   KNO_LINK_PRIM("index?",indexp,1,kno_db_module);
   KNO_LINK_PRIM("pool?",poolp,1,kno_db_module);
   KNO_LINK_PRIM("index-frame",index_frame_prim,4,kno_db_module);
@@ -4341,7 +4359,7 @@ static void link_local_cprims()
   KNO_LINK_PRIM("slotid?",slotidp,1,kno_db_module);
 
   KNO_LINK_ALIAS("??",find_frames_lexpr,kno_db_module);
-  KNO_LINK_ALIAS("getpool",getpool,kno_db_module);
+  KNO_LINK_ALIAS("name->pool",getpool,kno_db_module);
   KNO_LINK_ALIAS("load-pool",try_pool,kno_db_module);
   KNO_LINK_ALIAS("temp-index",cons_index,kno_db_module);
   KNO_LINK_ALIAS("oid+",oid_plus_prim,kno_db_module);
