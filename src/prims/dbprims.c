@@ -914,7 +914,7 @@ static lispval extpool_lockfn(lispval pool)
 }
 
 DEFPRIM1("extpool-state",extpool_state,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(EXTPOOL-STATE *arg0*)` **undocumented**",
+	 "`(EXTPOOL-STATE *extpool*)` returns the state object of an extpool",
 	 kno_pool_type,KNO_VOID);
 static lispval extpool_state(lispval pool)
 {
@@ -928,7 +928,8 @@ static lispval extpool_state(lispval pool)
 /* Proc indexes */
 
 DEFPRIM5("make-procindex",make_procindex,KNO_MAX_ARGS(5)|KNO_MIN_ARGS(2),
-	 "Returns a pool implemented by userspace functions",
+	 "`(make-procindex *name* *opts* *state* *sourcestring* *typename*)` "
+	 "returns an index implemented by user-defined handlers",
 	 kno_string_type,KNO_VOID,kno_any_type,KNO_VOID,
 	 kno_any_type,KNO_VOID,kno_string_type,KNO_VOID,
 	 kno_string_type,KNO_VOID);
@@ -947,7 +948,8 @@ static lispval make_procindex(lispval id,
 /* External indexes */
 
 DEFPRIM6("make-extindex",make_extindex,KNO_MAX_ARGS(6)|KNO_MIN_ARGS(2),
-	 "`(MAKE-EXTINDEX *arg0* *arg1* [*arg2*] [*arg3*] [*arg4*] [*arg5*])` **undocumented**",
+	 "`(MAKE-EXTINDEX *label* *fetchfn* [*commitfn*] [*stateobj*] [*usecache*] [*opts*])` "
+	 "makes an *external* index, a simple kind of procindex.",
 	 kno_string_type,KNO_VOID,kno_any_type,KNO_VOID,
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
 	 kno_any_type,KNO_TRUE,kno_any_type,KNO_FALSE);
