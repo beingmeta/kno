@@ -33,7 +33,9 @@
 	((table? object)
 	 (do-choices (key (getkeys object))
 	   (when (symbol? key) (table-increment! freqs key))
-	   (when (oid? key) (table-increment! freqs key) (table-increment! freqs (oid-base key)))
+	   (when (oid? key)
+	     (table-increment! freqs key)
+	     (table-increment! freqs (oid-base key)))
 	   (ref-counter (get object key) freqs alloids)))
 	(else)))
 
