@@ -14,6 +14,7 @@ override_dh_auto_configure:
 	dh_auto_configure -- --libdir=$(DESTDIR)/usr/lib 	\
 		--without-sudo --with-bootsystem=allboot 	\
 		--with-default-target=packaged		 	\
+		--with-malloc=jemalloc				\
 		--with-parseltongue				\
 		--with-libscm=version
 
