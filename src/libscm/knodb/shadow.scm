@@ -3,9 +3,9 @@
 
 (in-module 'knodb/shadow)
 
-(use-module '{reflection ezrecords logger logctl})
+(use-module '{reflection ezrecords logger logctl defmacro})
 
-(module-export! '{defshadow! shadow/get shadow/probe})
+(module-export! '{defshadow! shadow/get shadow/probe shadow/ref})
 
 (define %loglevel %warn%)
 
@@ -49,3 +49,7 @@
 		     (get shadows slotid))))
     (if (fail? shadow) #f
 	(test (shadow-table shadow) obj))))
+
+(defmacro (shadow/ref obj slotid)
+  `(try (get ,obj ,slotid) (,shadow/get ,obj ,slotid)))
+
