@@ -29,6 +29,10 @@
 
 #include <stdarg.h>
 
+#ifndef PARSE_CONTEXT_BUF_SIZE
+#define PARSE_CONTEXT_BUF_SIZE 32
+#endif
+
 /* TODO: Add general parse_error function which provides input context
    of some sort, where possible. */
 
@@ -1451,14 +1455,25 @@ lispval kno_parse_expr(u8_input in)
   int inchar = skip_whitespace(in);
   if (inchar<0)
     return KNO_EOF;
-  // TODO: When this returns an error, add details from in
   lispval result = kno_parser(in);
   if (KNO_ABORTED(result)) {
-    if (result == KNO_EOX) {
-      u8_exception ex = u8_current_exception;
-      if (ex == NULL)
-        kno_seterr("UnexpectedEndOfExpression","kno_parse",
-                   in->u8_inbuf,VOID);}
+    u8_exception ex = u8_current_exception;
+    u8_condition cond = ( (ex) ? (ex->u8x_cond) :
+			  (result == KNO_EOX) ? (kno_UnexpectedEOF) :
+			  (kno_ParseError) );
+    if (cond == NULL) cond=kno_ParseError;
+    u8_byte before[PARSE_CONTEXT_BUF_SIZE], after[PARSE_CONTEXT_BUF_SIZE];
+    ssize_t before_len = in->u8_read-in->u8_inbuf;
+    ssize_t after_len = in->u8_inlim-in->u8_read;
+    if (before_len>=PARSE_CONTEXT_BUF_SIZE) before_len=PARSE_CONTEXT_BUF_SIZE-1;
+    if (after_len>=PARSE_CONTEXT_BUF_SIZE) after_len=PARSE_CONTEXT_BUF_SIZE-1;
+    memcpy(before,in->u8_read-before_len,before_len); before[before_len]='\0';
+    memcpy(after,in->u8_read,after_len); after[after_len]='\0';
+    u8_string context = u8_mkstring("%s<!^!>%s",before,after);
+    if ( (ex==NULL) || (ex->u8x_details) ) {
+      kno_seterr(cond,"kno_parse_expr",context,KNO_VOID);
+      u8_free(context);}
+    else ex->u8x_details = context;
     return result;}
   else return result;
 }
