@@ -18,7 +18,10 @@
 		  config:goodstring config:symbol config:oneof
 		  config:boolset config:fnset
 		  config:replace config:push
-		  config:dirname config:dirname:opt})
+		  config:dirname config:dirname:opt
+		  config:integer config:fixnum
+		  config:positive config:negative config:nonzero
+		  config:nonpos config:nonneg})
 
 (module-export! 'propconfig!)
 
@@ -202,6 +205,57 @@
       (if (number? val) val
 	  (begin (logwarn "Odd config:number specifier " (write val))
 	    (fail)))))
+(define (config:integer val (num))
+  (if (string? val) 
+      (set! num (string->number val))
+      (set! num val))
+  (if (integer? num) num
+      (begin (logwarn "Invalid config:integer specifier " (write val))
+	(fail))))
+(define (config:fixnum val (num))
+  (if (string? val) 
+      (set! num (string->number val))
+      (set! num val))
+  (if (fixnum? num) num
+      (begin (logwarn "Invalid config:fixnum specifier " (write val))
+	(fail))))
+
+(define (config:positive val (num))
+  (if (string? val) 
+      (set! num (string->number val))
+      (set! num val))
+  (if (and (number? num) (> num 0)) num
+      (begin (logwarn "Invalid config:positive " (write val))
+	(fail))))
+(define (config:negative val (num))
+  (if (string? val) 
+      (set! num (string->number val))
+      (set! num val))
+  (if (and (number? num) (< num 0)) num
+      (begin (logwarn "Invalid config:negative specifier " (write val))
+	(fail))))
+(define (config:nonzero val (num))
+  (if (string? val) 
+      (set! num (string->number val))
+      (set! num val))
+  (if (and (integer? num) (not (= num 0))) num
+      (begin (logwarn "Invalid config:nonzero specifier " (write val))
+	(fail))))
+
+(define (config:nonneg val (num))
+  (if (string? val) 
+      (set! num (string->number val))
+      (set! num val))
+  (if (and (integer? num) (>= num 0)) num
+      (begin (logwarn "Invalid config:nonneg specifier " (write val))
+	(fail))))
+(define (config:nonpos val (num))
+  (if (string? val) 
+      (set! num (string->number val))
+      (set! num val))
+  (if (and (integer? num) (<= num 0)) num
+      (begin (logwarn "Invalid config:nonpos specifier " (write val))
+	(fail))))
 
 (define (config:loglevel val)
   (if (number? val) val
