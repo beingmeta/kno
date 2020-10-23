@@ -48,7 +48,7 @@
 	(printout " " ex))))
 
 (define (load-session location)
-  (lognotice |Session| "based in " (abspath location))
+  (lognotice |Session| "Configuration from " (abspath location))
   (when (file-exists? (mkpath location "session.cfg"))
     (unless (overlaps? (abspath (mkpath location "session.cfg")) loaded-configs)
       (set+! loaded-configs (abspath (mkpath location "session.cfg")))
@@ -211,6 +211,12 @@
 	  (else (set! *session* val)
 		(load-session val)))))
 
+(config-def! 'initsession
+  (slambda (var (val))
+    (cond ((unbound? val) *init-session*)
+	  ((and *session* (equal? val *session*)))
+	  ((file-directory? val) (config! 'session val))
+	  (else (mkdir val) (config! 'session val)))))
 
 ;;;; Session variables
 
