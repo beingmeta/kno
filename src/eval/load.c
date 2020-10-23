@@ -100,8 +100,7 @@ KNO_EXPORT lispval kno_load_stream(u8_input loadstream,kno_lexenv env,
       kno_decref(last_expr);
       last_expr = VOID;}
     else if (KNO_TROUBLEP(expr)) {
-      if (u8_current_exception == NULL)
-	kno_seterr(NULL,"kno_parse_expr",NULL,last_expr);
+      u8_log(LOGERR,"ParseError","In %s, just after %q",sourcebase,last_expr);
       kno_decref(result); /* This is the previous result */
       kno_decref(last_expr);
       last_expr = VOID;
