@@ -431,6 +431,8 @@
 	   (optimize each env bound opts)))
 	((fail? expr) expr)
 	((symbol? expr) (optimize-variable expr env bound opts))
+	((and (schemap? expr) (needs-eval? expr))
+	 (optimize-schemap expr env bound opts))
 	((not (pair? expr)) expr)
 	((or (pair? (car expr)) (ambiguous? (car expr)))
 	 ;; If we can't determine a single head for an expression,
@@ -452,6 +454,20 @@
 	     (apply append bound)))
 	 expr)
 	(else (optimize-expr expr env bound opts))))
+
+(define (eval-schemap? schemap (needs-eval #f))
+  (do-choices (key (getkeys schemap))
+    (when (needs-eval? (qc (get schemap key)))
+      (set! needs-eval #t)
+      (break)))
+  needs-eval)
+
+(define (optimize-schemap schemap env bound opts)
+  (let* ((copy (deep-copy schemap))
+	 (keys (getkeys copy)))
+    (do-choices (key keys)
+      (store! copy key (optimize (get copy key) env bound opts)))
+    copy))
 
 (define optimize-body
   (macro expr
