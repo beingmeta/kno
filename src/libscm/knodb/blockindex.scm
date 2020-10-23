@@ -3,26 +3,24 @@
 
 (in-module 'knodb/blockindex)
 
-;;; A type index is an index with a relatively small number of keys
-;;; but a large number of values, where, for example, the keys
-;;; represent types for objects (the values).
+;;; A blockindex is a hashtable which is stored in a file or other location (it uses GPATH).  When
+;;; opened, the file is read (as an xtype). It contains a simple table with 'metadata' and 'table'
+;;; slots, that are then used to populate the blockindex structure which lies behind the procindex
+;;; implementation.
 
-;;; The top level index structure of a type index index is a hashtable
-;;; which is saved and restored from disk.  This table maps keys to
-;;; value records, which identify a data file where the values for the
-;;; key are stored as a series of DType representations. The value
-;;; record contains a count of the number of values (possibly
-;;; including duplicates) and the valid size of the values file.
-
-(use-module '{ezrecords stringfmts logger varconfig texttools})
+(use-module '{ezrecords stringfmts logger varconfig gpath texttools})
 (use-module '{knodb knodb/countrefs})
 
 (define-init %loglevel %warn%)
 
-(module-export! '{blockindex/open blockindex/create})
+(module-export! '{blockindex/open blockindex/create blockindex/data})
+(module-export! '{blockindex/path blockindex/table blockindex/metadata})
 
 (define-init blockindexes (make-hashtable))
 (define-init blockindex-data (make-hashtable))
+
+(define *xrefs-thresh* 2)
+(varconfig! blockindex:xthresh *xrefs-thresh* config:positive)
 
 ;;; BLockindex record structure
 
@@ -34,35 +32,38 @@
     ">"))
 
 (defrecord (blockindex mutable opaque `(stringfn . blockindex->string))
-  path (table #f) (metadata #f))
+  path table metadata)
 
-(define (write-dump dump path)
+(define (write-dump dump path (thresh *xrefs-thresh*))
   (let ((freqs (make-hashtable)))
     (countrefs dump freqs)
-    (let ((xtype (encode-xtype dump [xrefs (rsorted (table-skim freqs 2) freqs)]]))
+    (let* ((xrefs (rsorted (table-skim freqs thresh) freqs))
+	   (xtype (encode-xtype dump [xrefs xrefs])))
       (gp/save! path xtype "application/kno+blockindex"))))
 
 (define (read-blockindex path)
   (let* ((fetched (gp/fetch path))
 	 (dump (decode-xtype fetched))
 	 (table (get dump 'table))
-	 (opts (get dump 'metadata)))
+	 (metadata (or (try (get dump 'metadata) #[]) #[])))
     (cons-blockindex path table metadata)))
 
 ;;; Opening blockindexes
 
-(defsync (open-blockindex path opts create)
+(defslambda (open-blockindex path opts create)
   (let* ((blockindex (if create
-			 (cons-blockindex path table (getopt opts 'metadata #[]))
+			 (cons-blockindex path (make-hashtable) (or (getopt opts 'metadata #[]) #[]))
 			 (read-blockindex path)))
 	 (index (make-procindex path (cons #[type blockindex] opts)
 				blockindex path "BLOCKINDEX")))
     (store! blockindex-data index blockindex)
-    (store! blockindexes filename index)
+    (store! blockindexes path index)
+    (store! blockindexes (gpath->string path) index)
     index))
 
 (define (blockindex/open path (opts #f))
-  (try (get blockindex path)
+  (try (get blockindexes path)
+       (get blockindexes (gpath->string path))
        (if (gp/exists? path)
 	   (open-blockindex path opts #f)
 	   (if (testopt opts 'create)
@@ -73,31 +74,22 @@
   (try (get blockindexes path)
        (blockindex/open path (cons [create #t] opts))))
 
-;;; Adding a key
-
-(defambda (blockindex/add! blockindex key (init-value {}))
-  (let ((existing (get (blockindex-keyinfo blockindex) key)))
-    (if (exists? existing)
-	(error |InternalBlockindexError| blockindex/add! 
-	       blockindex)
-	(let* ((filename (blockindex-filename blockindex))
-	       (filecount (blockindex-filecount blockindex))
-	       (valuepath (glom (blockindex-prefix blockindex)
-			    "." (padnum filecount 4 16)
-			    ".dtype"))
-	       (fullpath (mkpath (dirname filename) valuepath))
-	       (info (frame-create #f
-		       'key key 'count (choice-size init-value)
-		       'file valuepath)))
-	  (loginfo |InitValue|
-	    "Writing " ($num (choice-size init-value)) " values "
-	    "to " valuepath " for " key)
-	  (dtypes->file+ init-value fullpath)
-	  (store! info 'size (file-size fullpath))
-	  (store! info 'serial filecount)
-	  (store! (blockindex-keyinfo blockindex) key info)
-	  (set-blockindex-filecount! blockindex (1+ filecount))
-	  valuepath))))
+(define (blockindex/data ix) (try (get blockindex-data ix) #f))
+(define (blockindex/path arg)
+  (cond ((blockindex? arg) (blockindex-path arg))
+	((and (index? arg) (test blockindex-data arg))
+	 (blockindex-path (get blockindex-data arg)))
+	(else (irritant arg |NotBlockIndex|))))
+(define (blockindex/table arg)
+  (cond ((blockindex? arg) (blockindex-table arg))
+	((and (index? arg) (test blockindex-data arg))
+	 (blockindex-table (get blockindex-data arg)))
+	(else (irritant arg |NotBlockIndex|))))
+(define (blockindex/metadata arg)
+  (cond ((blockindex? arg) (blockindex-metadata arg))
+	((and (index? arg) (test blockindex-data arg))
+	 (blockindex-metadata (get blockindex-data arg)))
+	(else (irritant arg |NotBlockIndex|))))
 
 ;;; Handlers
 
@@ -105,7 +97,7 @@
   (get (blockindex-table blockindex) key))
 (define (blockindex-fetchn index blockindex keyvec (table))
   (set! table (blockindex-table blockindex))
-  (forseq (key kevec) (get table key)))
+  (forseq (key keyvec) (get table key)))
 
 (define (blockindex-fetchsize index blockindex key)
   (|| (get (blockindex-table blockindex) key)))
@@ -114,15 +106,14 @@
   (getkeys (blockindex-table blockindex)))
 
 (define (blockindex-commit index blockindex phase adds drops stores (metadata #f))
-  (info%watch "BLOCKINDEX-COMMIT" index phase adds drops stores)
   (if (overlaps? phase '{save write})
       (let ((table (blockindex-table blockindex)))
-	(when stores
+	(when (and stores (> (table-size stores)  0))
 	  (do-choices (key (getkeys stores)) (store! table key (get stores key))))
-	(when drops
+	(when (and drops (> (table-size drops) 0))
 	  (do-choices (key (getkeys drops)) (drop! table key (get drops key))))
-	(when adds
-	  (if drops
+	(when (and adds (> (table-size adds) 0))
+	  (if (and drops (> (table-size drops) 0))
 	      (let ((addkeys (getkeys adds)) 
 		    (dropkeys (getkeys drops)))
 		(do-choices (key (difference adds drops))
@@ -130,11 +121,11 @@
 		(do-choices (key (intersection adds drops))
 		  (add! table key (difference (get adds key) (get drops key)))))
 	      (do-choices (key (getkeys adds)) (add! table key (get adds key)))))
-	(let ((dump [opts (blockindex-opts blockindex)
-		     table table
-		     metadata metadata])
-	      (encoded (encode-xtype dump)))
-	  (gp/save! (blockindex-path blockindex) encoded))
+	(write-dump [table table
+		     metadata metadata]
+		    (blockindex-path blockindex)
+		    (try (get (blockindex-metadata blockindex) 'xthresh)
+			 *xrefs-thresh*))
 	(+ (if adds (table-size adds) 0)
 	   (if drops (table-size drops) 0)
 	   (if stores (table-size stores) 0)))
