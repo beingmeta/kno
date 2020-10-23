@@ -215,9 +215,9 @@ static lispval encode_xtype(lispval object,lispval opts)
   lispval refs_arg = kno_getxrefs(opts);
   struct XTYPE_REFS *refs = (KNO_RAW_TYPEP(refs_arg,kno_xtrefs_typetag)) ?
     (KNO_RAWPTR_VALUE(refs_arg)) : (NULL);
-  ssize_t bytes = (kno_testopt(opts,embed_symbol,KNO_VOID)) ?
-    (kno_embed_xtype(&out,object,refs)) :
-    (kno_write_xtype(&out,object,refs));
+  ssize_t bytes = (kno_testopt(opts,embed_symbol,KNO_FALSE)) ?
+    (kno_write_xtype(&out,object,refs)) :
+    (kno_embed_xtype(&out,object,refs));
   kno_decref(refs_arg);
   if (bytes<0) return KNO_ERROR;
   kno_compress_type compression = kno_compression_type(opts,KNO_NOCOMPRESS);

@@ -413,7 +413,7 @@ KNO_EXPORT unsigned char *kno_encode_xtype(lispval x,ssize_t *sz,xtype_refs refs
 
 KNO_EXPORT ssize_t kno_embed_xtype(kno_outbuf out,lispval x,xtype_refs refs)
 {
-  if (refs == NULL)
+  if ( (refs == NULL) || (refs->xt_n_refs == 0) )
     return write_xtype(out,x,refs);
   kno_write_byte(out,xt_refcoded);
   kno_write_byte(out,xt_vector);
