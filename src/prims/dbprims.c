@@ -1167,24 +1167,24 @@ static lispval get_adjuncts_prim(lispval pool_arg)
   else return kno_get_adjuncts(p);
 }
 
-DEFPRIM2("get-adjunct",get_adjunct_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+DEFPRIM2("get-adjunct",get_adjunct_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "`(GET_ADJUNCT pool *slotid*)"
 	 "\\nGets the adjunct for *slotid* associated with the *pool*",
 	 kno_any_type,KNO_VOID,
 	 kno_any_type,KNO_VOID);
 static lispval get_adjunct_prim(lispval pool_arg,lispval slotid)
 {
+  if (KNO_VOIDP(slotid)) {
+    kno_adjunct adj = kno_get_adjunct(NULL,pool_arg);
+    if (adj == NULL) return KNO_FALSE;
+    else return kno_incref(adj->table);}
   kno_pool p = (KNO_OIDP(pool_arg)) ?
     (kno_oid2pool(pool_arg)) :
     (kno_lisp2pool(pool_arg));
-  if (p==NULL) {
-    if (OIDP(pool_arg))
-      return kno_err("UncoveredOID","get_adjunct_prim",NULL,pool_arg);
-    else return kno_err(kno_NotAPool,"get_adjunct_prim",NULL,pool_arg);}
-  else {
-    kno_adjunct adj = kno_get_adjunct(p,slotid);
-    if (adj == NULL) return KNO_FALSE;
-    else return kno_incref(adj->table);}
+  if (p == NULL) return KNO_ERROR;
+  kno_adjunct adj = kno_get_adjunct(p,slotid);
+  if (adj == NULL) return KNO_FALSE;
+  else return kno_incref(adj->table);
 }
 
 DEFPRIM2("adjunct-value",adjunct_value_prim,
