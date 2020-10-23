@@ -739,9 +739,8 @@ static lispval mkdir_prim(lispval dirname,lispval mode_arg)
   mode_t mode=
     ((KNO_UINTP(mode_arg))?((mode_t)(FIX2INT(mode_arg))):((mode_t)0777));
   int retval = u8_mkdir(CSTRING(dirname),mode);
-  if (retval<0) {
-    u8_condition cond = u8_strerror(errno); errno = 0;
-    return kno_err(cond,"mkdir_prim",NULL,dirname);}
+  if (retval<0)
+    return KNO_ERROR;
   else if (retval) {
     /* Force the mode to be set if provided */
     if (KNO_UINTP(mode_arg))
