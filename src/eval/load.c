@@ -35,7 +35,7 @@ int kno_log_reloads = 1;
 
 static lispval after_symbol, traceloadeval_symbol, postload_symbol;
 
-u8_condition UnconfiguredSource="Unconfigured source";
+extern u8_condition UnconfiguredSource;
 
 static lispval loading_symbol, loadstamps_symbol;
 

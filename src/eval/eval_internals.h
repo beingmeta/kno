@@ -1,6 +1,6 @@
 #define INLINE_DEF static U8_MAYBE_UNUSED
 
-u8_condition BadExpressionHead;
+extern u8_condition BadExpressionHead;
 
 lispval eval_schemap(lispval expr,kno_lexenv env,kno_stack stack);
 lispval eval_choice(lispval expr,kno_lexenv env,kno_stack stack);

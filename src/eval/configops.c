@@ -32,7 +32,7 @@
 #include "kno/cprims.h"
 
 u8_condition LoadConfig=_("Loading config");
-u8_condition UnconfiguredSource;
+extern u8_condition UnconfiguredSource;
 
 static lispval simple_symbol = KNO_NULL;
 

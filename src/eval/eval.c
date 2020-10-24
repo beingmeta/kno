@@ -81,6 +81,7 @@ u8_condition kno_InvalidMacro=_("invalid macro transformer"),
   kno_BadArgument=_("EvalError/BadArgument/Value");
 
 u8_condition BadExpressionHead=_("BadExpressionHead");
+u8_condition UnconfiguredSource="Unconfigured source";
 
 lispval eval_expr(lispval head,lispval expr,
 		   kno_lexenv env,kno_stack stack,
