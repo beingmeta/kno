@@ -221,7 +221,7 @@ lispval kno_server_data=KNO_FALSE;
 #if (KNO_USE_TLS)
 KNO_EXPORT void kno_set_server_data(lispval data)
 {
-  lispval cur = u8_tld_get(_kno_server_data_key);
+  lispval cur = (lispval) u8_tld_get(_kno_server_data_key);
   if (cur == data) return;
   kno_incref(data);
   u8_tld_set(_kno_server_data_key,(void *)data);
