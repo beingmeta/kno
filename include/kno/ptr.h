@@ -577,7 +577,7 @@ KNO_EXPORT u8_string kno_oid2string(lispval oidval,u8_byte *buf,ssize_t len);
 /* For KNO_FIX2INT, we convert the fixnum to a long long and mask out
    the type bits; we then just divide by four to get the integer
    value. */
-#define KNO_FIX2INT(fx)  ( (_kno_sptr) ( ( ((_kno_ptrbits) fx) & (~0x3)) / 4) )
+#define KNO_FIX2INT(fx)  ( (_kno_sptr) ( ( ((_kno_sptr) fx) & (~0x3)) / 4) )
 #define KNO_INT2FIX(n)   ( (lispval)  ( ( ((_kno_ptrbits)(n)) << 2 ) | kno_fixnum_type) )
 
 #define KNO_MAX_FIXNUM ((((long long)1)<<(KNO_FIXNUM_BITS-1))-1)
