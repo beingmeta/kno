@@ -107,11 +107,11 @@ Package: kno-doc
 Architecture: any
 Description: documentation for kno
 
-Package: upstart-kno
-Architecture: any
-Depends: kno-core
-Conflicts: kno-sysv, kno-systemd
-Description: Upstart configuration for Kno
+# Package: upstart-kno
+# Architecture: any
+# Depends: kno-core
+# Conflicts: kno-sysv, kno-systemd
+# Description: Upstart configuration for Kno
 
 Package: sysv-kno
 Architecture: any

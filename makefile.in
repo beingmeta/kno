@@ -1704,7 +1704,7 @@ $(DESTDIR)/etc/logrotate.d/kno: etc/logrotate $(DESTDIR)/etc/logrotate.d
 	@$(MSG) Installing logrotate script
 	@$(SYSINSTALL) -m 0644 etc/logrotate $(DESTDIR)/etc/logrotate.d/kno
 
-setup-allboot: setup-sysv setup-upstart setup-systemd
+setup-allboot: setup-sysv setup-systemd #  setup-upstart
 
 setup-unix: @BOOTSETUP@ setup-logrotate
 setup-linux: setup-unix
