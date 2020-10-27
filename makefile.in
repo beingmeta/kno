@@ -648,12 +648,6 @@ etc: etc/logrotate etc/install-script etc/sysv/kno-rc.d etc/logrotate	\
         etc/knojob etc/knosignal                             		\
         dbg/.gdbinit exe/.gdbinit
 
-# Fileinfo gets version-related information about a file to pass in
-# with -D
-
-@abs_top_srcdir@/fileinfo: etc/fileinfo.c
-	$(CC) -o @abs_top_srcdir@/fileinfo etc/fileinfo.c
-
 # Makes everything and then sudoes the install, keeping build files
 # non-root
 
@@ -666,7 +660,7 @@ dbginstall:
 
 # Implicit make rules
 
-%.o: %.c @abs_top_srcdir@/fileinfo ${CONFIG_HDRS}
+%.o: %.c ${CONFIG_HDRS}
 	@$(CC) $(CFLAGS) @definefileinfo@ -o $@ -c $<
 	@$(MSG) CC $@ $<
 
@@ -1800,8 +1794,8 @@ dist/alpine.installed:
 
 # The mod_knocgi module
 
-src/apache2/mod_knocgi.so: src/apache2/mod_knocgi.c @abs_top_srcdir@/fileinfo
-	@$(ECHO) "#define _FILEINFO \""`@abs_top_srcdir@/fileinfo src/apache2/mod_knocgi.c .`"\"" \
+src/apache2/mod_knocgi.so: src/apache2/mod_knocgi.c
+	@$(ECHO) "#define _FILEINFO \""`u8_fileinfo src/apache2/mod_knocgi.c .`"\"" \
 		> src/apache2/mod_knocgi_fileinfo.h
 	${APXS} -DUSEDTBLOCK=@USEDTBLOCK@ -DDEBUG_KNOCGI=$(DEBUG_KNOCGI) \
 		-c src/apache2/mod_knocgi.c

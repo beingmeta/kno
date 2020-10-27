@@ -920,7 +920,6 @@ with_optdir
 with_extlib
 with_rpath
 with_pkgconfig_dir
-with_fileinfo
 with_minstack
 with_stacksize
 with_cstacksize
@@ -1669,7 +1668,6 @@ Optional Packages:
   --with-extlib[=DIR]       use additional lib dir
 --with-rpath dir
 --with-pkgconfig-dir pathname
---with/out-fileinfo record fileinfo
 --with-minstack Build with minimium stack size
 --with-stacksize Build with default stack size
 --with-cstacksize Link specifying a default stacksize
@@ -3000,8 +2998,8 @@ xstatic_exe_libs=""
 xstatic_scheme_libs=""
 xdynamic_scheme_libs=""
 scheme_builtins_init="kno_init_scheme()"
-definefileinfo=""
-versionsh=""
+definefileinfo="-D_FILEINFO=\"\\\"\`u8_fileinfo ./$< .\`\\\"\""
+versionsh="include/kno/versions.h"
 suffix=""
 rpath=""
 daemon_identity_default="daemon"
@@ -7037,19 +7035,6 @@ fi
 
 if test "${static_libgcc}" == "yes"; then
    LDFLAGS="-static-libgcc -Wl,--as-needed ${LDFLAGS}"
-fi
-
-
-# Check whether --with-fileinfo was given.
-if test "${with_fileinfo+set}" = set; then :
-  withval=$with_fileinfo;
-else
-  with_fileinfo="yes"
-fi
-
-if test "$with_fileinfo" = "yes" ; then
-   definefileinfo="-D_FILEINFO=\"\\\"\`./fileinfo ./$< .\`\\\"\""
-   versionsh="include/kno/versions.h"
 fi
 
 min_stacksize=4194304;

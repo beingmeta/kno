@@ -71,8 +71,8 @@ xstatic_exe_libs=""
 xstatic_scheme_libs=""
 xdynamic_scheme_libs=""
 scheme_builtins_init="kno_init_scheme()"
-definefileinfo=""
-versionsh=""
+definefileinfo="-D_FILEINFO=\"\\\"\`u8_fileinfo ./$< .\`\\\"\""
+versionsh="include/kno/versions.h"
 suffix=""
 rpath=""
 daemon_identity_default="daemon"
@@ -643,12 +643,6 @@ AX_CHECK_LINK_FLAG("-static-libgcc",static_libgcc="yes")
 
 if test "${static_libgcc}" == "yes"; then
    LDFLAGS="-static-libgcc -Wl,--as-needed ${LDFLAGS}"
-fi
-
-AC_ARG_WITH(fileinfo,--with/out-fileinfo record fileinfo,,with_fileinfo="yes")
-if test "$with_fileinfo" = "yes" ; then
-   definefileinfo="-D_FILEINFO=\"\\\"\`./fileinfo ./$< .\`\\\"\""
-   versionsh="include/kno/versions.h"
 fi
 
 min_stacksize=4194304;

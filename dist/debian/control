@@ -25,7 +25,7 @@ Description: Scalable knowledge base development and application platform
 Package: kno-core
 Architecture: any
 Suggests: kno-docs
-Depends: ${misc:Depends}, libu8 (>= 2.8.5), libzip5 | libzip4 | libzip2, libarchive13, libsnappy1v5, libzstd1, libssl1.1 | libssl1.0 | libssl1.0.0, libcurl4 | libcurl3, libedit2, adduser, libldns2 | libldns1, libjemalloc2 | libjemalloc1
+Depends: ${misc:Depends}, libu8 (>= 2.8.5), libzip5 | libzip4 | libzip2, libarchive13, libsnappy1v5, libzstd1, libssl1.1 | libssl1.0 | libssl1.0.0, libcurl4 | libcurl3, libedit2, adduser, libldns4 | libldns3 | libldns2 | libldns1, libjemalloc3 | libjemalloc2 | libjemalloc1
 Description: This package provides the core libraries, executables, and 
   configuration files for Kno applications
 
