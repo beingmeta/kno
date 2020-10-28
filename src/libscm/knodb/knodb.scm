@@ -8,7 +8,8 @@
 (use-module '{knodb/flexpool knodb/flexindex})
 
 (module-export! '{knodb/ref knodb/make knodb/commit! knodb/save! 
-		  knodb/partitions knodb/pool knodb/wrap-index
+		  knodb/partitions knodb/getindex
+		  knodb/pool knodb/wrap-index
 		  knodb/id knodb/source
 		  knodb/mods knodb/modified?
 		  pool/ref index/ref pool/copy
@@ -187,6 +188,12 @@
        (pool/getindex pool opts)))
 
 (define (knodb/wrap-index index (opts #f)) index)
+
+(define (knodb/getindex arg (opts-arg #f))
+  (cond ((index? arg) arg)
+	((pool? arg) (pool/getindex pool))
+	((string? arg) (index/ref arg opts-arg))
+	(else (index/ref arg))))
 
 ;;; Getting partitions
 
