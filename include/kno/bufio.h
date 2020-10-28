@@ -11,7 +11,7 @@
 #define KNO_BUFIO_H_INFO "include/kno/dtypeio.h"
 #endif
 
-u8_condition kno_IsWriteBuf, kno_IsReadBuf;
+KNO_EXPORT u8_condition kno_IsWriteBuf, kno_IsReadBuf;
 
 #ifndef KNO_DEFAULT_ZLEVEL
 #define KNO_DEFAULT_ZLEVEL 7
