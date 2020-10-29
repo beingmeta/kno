@@ -89,5 +89,7 @@ KNO_EXPORT u8_condition kno_retcode_to_exception(lispval err);
 
 KNO_EXPORT lispval kno_exception_backtrace(u8_exception ex);
 
+KNO_EXPORT lispval kno_lisp_error(u8_exception ex);
+
 #endif /* ndef KNO_ERROBJS_H */
 

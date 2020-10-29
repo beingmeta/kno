@@ -215,7 +215,7 @@ KNO_EXPORT lispval kno_index_ctl(kno_index x,lispval indexop,int n,
   struct KNO_INDEX_HANDLER *h = x->index_handler;
   if (h->indexctl)
     return h->indexctl(x,indexop,n,args);
-  else return KNO_FALSE;
+  else return kno_default_indexctl(x,indexop,n,args);
 }
 
 /* Index cache levels */

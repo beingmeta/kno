@@ -109,6 +109,31 @@ lispval kno_mkerr(u8_condition c,u8_context caller,
   return KNO_ERROR;
 }
 
+KNO_EXPORT
+lispval kno_lisp_error(u8_exception ex)
+{
+  struct KNO_EXCEPTION *exo = kno_exception_object(ex);
+  if (exo) return KNO_ERROR;
+  lispval backtrace = kno_get_backtrace(kno_stackptr);
+  lispval context = get_exception_context(ex);
+  lispval irritant = kno_exception_xdata(ex);
+  lispval exception = kno_init_exception
+    (NULL,ex->u8x_cond,ex->u8x_context,
+     u8_strdup(ex->u8x_details),
+     irritant,backtrace,context,
+     u8_sessionid(),
+     u8_elapsed_time(),
+     u8_elapsed_base(),
+     u8_threadid());
+  kno_incref(irritant);
+  ex->u8x_xdata = (void *)exception;
+  ex->u8x_free_xdata = kno_decref_embedded_exception;
+  u8_exception scan = u8_current_exception;
+  while ( (scan) && (scan != ex) ) scan = scan->u8x_prev;
+  if (scan != ex) u8_expush(ex);
+  return KNO_ERROR;
+}
+
 KNO_EXPORT void kno_restore_exception(struct KNO_EXCEPTION *exo)
 {
   kno_incref((lispval)exo);
