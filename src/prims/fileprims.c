@@ -71,6 +71,15 @@ static u8_condition StackDumpEvent=_("StackDump");
 static u8_condition SnapshotSaved=_("Snapshot Saved");
 static u8_condition SnapshotRestored=_("Snapshot Restored");
 
+static u8_condition FilePrim_Failed=_("File primitive failed");
+
+static lispval fileprim_error(u8_context caller,u8_string f)
+{
+  if (u8_current_exception)
+    return kno_lisp_error(u8_current_exception);
+  else return kno_err(FilePrim_Failed,caller,f,KNO_VOID);
+}
+
 
 /* Making ports */
 
@@ -1246,7 +1255,8 @@ static lispval getfiles_prim(lispval dirname,lispval fullpath)
   lispval results = EMPTY;
   u8_string *contents=
     u8_getfiles(CSTRING(dirname),(!(FALSEP(fullpath)))), *scan = contents;
-  if (contents == NULL) return KNO_ERROR;
+  if (contents == NULL)
+    return fileprim_error("getfiles_prim",KNO_CSTRING(dirname));
   else while (*scan) {
       lispval string = kno_wrapstring(*scan);
       CHOICE_ADD(results,string);
@@ -1263,7 +1273,8 @@ static lispval getdirs_prim(lispval dirname,lispval fullpath)
   lispval results = EMPTY;
   u8_string *contents=
     u8_getdirs(CSTRING(dirname),(!(FALSEP(fullpath)))), *scan = contents;
-  if (contents == NULL) return KNO_ERROR;
+  if (contents == NULL)
+    return fileprim_error("getdirs_prim",KNO_CSTRING(dirname));
   else while (*scan) {
       lispval string = kno_wrapstring(*scan);
       CHOICE_ADD(results,string);
