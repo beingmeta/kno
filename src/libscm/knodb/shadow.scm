@@ -37,12 +37,11 @@
 	 (if (fail? shadow) 
 	     (irritant slotid |NoShadow|
 	       "The slotid " slotid " isn't a declared shadow slot")
-	     (let ((result ((shadow-generator shadow) obj)))
+	     (begin
 	       (with-lock (shadow-lock shadow)
-		 (if (test (shadow-table shadow) obj)
-		     (set! result (get (shadow-table shadow) obj))
-		     (store! (shadow-table shadow) obj result))
-		 result))))))
+		 (unless (test (shadow-table shadow) obj)
+		   (store! (shadow-table shadow) obj ((shadow-generator shadow) obj))))
+	       (get (shadow-table shadow) obj))))))
 
 (define (shadow/probe obj slotid)
   (let ((shadow (try (get shadows (cons slotid (getpool obj)))

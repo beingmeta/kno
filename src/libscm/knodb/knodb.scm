@@ -19,6 +19,8 @@
 
 (module-export! '{knodb/commit})
 
+(module-export! '{knodb/subpath knodb/mksubpath})
+
 (define-init %loglevel %notice%)
 
 ;;; Patterns
@@ -46,12 +48,17 @@
 	 (opt-suffix source suffix))
 	(else (irritant source |MissingDirectory|))))
 
-(define (get-db-source arg (opts #f) (rootdir))
+(define (get-dbsource opts (rootdir))
   (default! rootdir (getopt opts 'rootdir))
-  (cond ((not (string? arg)) arg)
-	((textmatch network-source arg) arg)
-	((not rootdir) (abspath arg))
-	(else (mkpath rootdir arg))))
+  (if (pair? opts)
+      (try (get-dbsource (car opts) rootdir)
+	   (get-dbsource (cdr opts) rootdir))
+      (let ((source (try (get opts 'index) (get opts 'pool) (get opts 'source))))
+	(cond ((fail? source) source)
+	      ((not (string? source)) source)
+	      ((textmatch network-source source) source)
+	      ((not rootdir) (abspath source))
+	      (else (mkpath rootdir source))))))
 
 (define (make-opts opts)
   (let ((addopts (or (deep-copy (getopt opts 'make)) `#[])))
@@ -63,6 +70,17 @@
       (store! addopts 'metadata (or (deep-copy (getopt opts 'metadata)) #[]))
       (store! (getopt addopts 'metadata) 'adjuncts (getopt opts 'adjuncts)))
     (cons addopts opts)))
+
+(define (knodb/subpath prefix . namespecs)
+  (if (file-directory? prefix)
+      (mkpath prefix (apply glom namespecs))
+      (if (has-suffix prefix {"_" "-" "."})
+	  (glom prefix (apply glom namespecs))
+	  (glom prefix "_" (apply glom namespecs)))))
+(define (knodb/mksubpath prefix . namespecs)
+  (let ((subpath (apply knodb/subpath prefix namespecs)))
+    (unless (file-directory? (dirname subpath)) (mkdirs subpath))
+    subpath))
 
 ;;;; Simple wrappers
 
@@ -80,25 +98,17 @@
 
 ;;;; knodb/ref
 
-(define (knodb/ref dbsource (opts #f))
-  (when (and (table? dbsource) (not (or (pool? dbsource) (index? dbsource))))
-    (if opts (set! opts (cons opts dbsource))
-	(set! opts dbsource))
-    (set! dbsource
-      (cond ((testopt opts 'index) (get-db-source (getopt opts 'index) opts))
-	    ((testopt opts 'pool) (get-db-source (getopt opts 'pool) opts))
-	    ((testopt opts 'source) (get-db-source (getopt opts 'source) opts))
-	    (else (irritant dbsource |NoDBSource| knodb/refref)))))
-  (when (and (string? dbsource) (getopt opts 'rootdir)
-	     (not (textmatch (qc network-source) dbsource)))
-    (set! dbsource (mkpath (getopt opts 'rootdir) dbsource)))
+(define (knodb/ref spec (opts #f))
+  (cond ((pool? spec) (knodb/pool spec opts))
+	((or (index? spec) (hashtable? spec)) 
+	 (knodb/wrap-index spec opts))
+	((table? spec)
+	 (resolve-dbref (get-dbsource (cons spec opts)) (cons opts spec)))
+	(else (resolve-dbref spec opts))))
+
+(define (resolve-dbref dbsource opts)
   (info%watch "KNODB/REF" dbsource "\nOPTS" opts)
-  (cond ((pool? dbsource) (knodb/pool dbsource opts))
-	((or (index? dbsource) (hashtable? dbsource)) 
-	 (knodb/wrap-index dbsource opts))
-	((not (string? dbsource))
-	 (irritant dbsource |BadDBSource| knodb/refref))
-	((or (testopt opts '{flexindex flexpool})
+  (cond ((or (testopt opts '{flexindex flexpool})
 	     (testopt opts 'type '{flexindex flexpool}))
 	 (flex-open dbsource opts))
 	((or (file-exists? dbsource) (textmatch (qc network-source) dbsource)
@@ -145,7 +155,7 @@
 			opts)))
   (when (getopt opts 'searchable #t)
     (let ((indexes (or (try (poolctl pool 'props 'indexes) 
-			    (get-indexes-for-pool pool opts))
+			    (get-indexes-for-pool pool))
 		       (fail))))
       (when (exists? indexes)
 	(loginfo |Indexes| 
@@ -159,8 +169,11 @@
 		  (indexes (pick (for-choices (ref indexrefs)
 				   (onerror (index/ref ref (opt+ 'rootdir rootdir opts))
 				       (lambda (ex)
-					 (logwarn |IndexRefError| (write ref)) #f)))
-
+					 (logwarn |IndexRefError|
+					   (exception-summary ex) " REF=\n" (listdata ref)
+					   "\nrootdir=" (write rootdir) " OPTS=\n" (listdata opts))
+					 #f)))
+			     
 			     index?)))
 	     (do-choices (partition (poolctl pool 'partitions))
 	       (set+! indexes (get-indexes-for-pool partition opts)))
@@ -172,18 +185,21 @@
   (or (try (poolctl pool 'props 'index)
 	   (let* ((indexes (pick (get-indexes-for-pool pool opts) index?))
 		  (index (tryif (exists? indexes)
-			   (pick (make-aggregate-index indexes opts)
-			     index?))))
+			   (if (singleton? indexes) indexes
+			       (pick (make-aggregate-index indexes opts)
+				 index?)))))
 	     (poolctl pool 'props 'index index)
 	     index))
       (fail)))
 
 (define (pool/getindex pool (opts #f))
-  (try (poolctl pool 'props 'index)
+  (try (pick pool index?)
+       (poolctl pool 'props 'index)
        (get-index-for-pool pool opts)))
 
 (define (pool/getindexes pool (opts #f))
-  (try (poolctl pool 'props 'indexes)
+  (try (pick pool index?)
+       (poolctl pool 'props 'indexes)
        (get-indexes-for-pool pool opts)
        (pool/getindex pool opts)))
 
@@ -191,7 +207,7 @@
 
 (define (knodb/getindex arg (opts-arg #f))
   (cond ((index? arg) arg)
-	((pool? arg) (pool/getindex pool))
+	((pool? arg) (pool/getindex arg))
 	((string? arg) (index/ref arg opts-arg))
 	(else (index/ref arg))))
 
@@ -199,7 +215,7 @@
 
 (define (knodb/partitions arg)
   (cond ((pool? arg) (poolctl arg 'partitions))
-	((index? arg) (or (indexctl arg 'partitions) {}))
+	((index? arg) (indexctl arg 'partitions))
 	((string? arg) (knodb/partition-files arg))
 	(else (fail))))
 
@@ -255,12 +271,12 @@
 (define (pool/ref spec (opts #f))
   (knodb/ref spec 
 	     (if (testopt opts 'pooltype) opts
-		 (opt+ opts 'pooltype (getopt opts 'type 'bigpool)))))
+		 (opt+ opts 'pooltype (getopt opts 'type 'kpool)))))
 
 (define (index/ref spec (opts #f))
   (knodb/ref spec 
 	     (if (testopt opts 'indextype) opts
-		 (opt+ opts 'indextype (getopt opts 'type 'hashindex)))))
+		 (opt+ opts 'indextype (getopt opts 'type 'kindex)))))
 
 ;;; Copying OIDs between pools
 
@@ -320,7 +336,7 @@
 		   (get-modified adjuncts)
 		   (get-modified (for-choices (adjunct adjuncts) (dbctl adjunct 'partitions)))
 		   (get-modified (for-choices (partition partitions)
-				   (getvalues (dbctl partition 'adjuncts)))))))
+				   (getvalues (or (dbctl partition 'adjuncts) {})))))))
 	((index? arg)
 	 (choice (tryif (modified? arg) arg)
 		 (get-modified (indexctl arg 'partitions))))
@@ -328,11 +344,17 @@
 	((and (pair? arg) (applicable? (car arg))) arg)
 	(else {})))
 
+(define (get-all-dbs)
+  (let* ((alldbs {(config 'pools) (config 'indexes)})
+	(registries (db->registry alldbs))
+	(unregistered (reject alldbs db->registry)))
+    {unregistered registries}))
+
 ;;; Committing
 
 (define commit-threads #t)
 
-(defambda (knodb/commit! dbs (opts #f))
+(defambda (knodb/commit! (dbs (get-all-dbs)) (opts #f))
   (let ((modified (get-modified dbs))
 	(started (elapsed-time)))
     (when (exists? modified)
