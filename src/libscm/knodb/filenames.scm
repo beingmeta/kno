@@ -38,10 +38,11 @@
 		(absprefix (abspath stripped))
 		(absroot (strip-suffix absprefix stripped))
 		(suffix `#("." (isxdigit+) "." ,(or suffix {"pool" "index"}))))
-	   (strip-prefix
-	    (pick (getfiles (dirname absprefix))
-		  has-prefix absprefix
-		  string-ends-with? suffix)
-	    absroot)))
+	   (tryif (file-directory? (dirname absprefix))
+	     (strip-prefix
+	      (pick (getfiles (dirname absprefix))
+		has-prefix absprefix
+		string-ends-with? suffix)
+	      absroot))))
 	(else (irritant prefix |NotAPartitionSpec|))))
 
