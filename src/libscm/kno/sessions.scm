@@ -376,7 +376,8 @@
 	(logwarn |UseDBFailed| db)
 	(session-config! 'usedb spec *session*))))
 
-(define (commit.command spec . args)
+(define (commit.command . args)
   (knodb/commit!))
+
 
 
