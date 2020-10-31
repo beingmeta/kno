@@ -138,6 +138,10 @@ static void list_table(u8_output out,lispval table,
       u8_printf(out,"\n%s  ",indent);
       output_key(out,key,eltfn);
       u8_puts(out," \t#> {} \t;;no values");}
+    else if ( key == KNOSYM_PCTID ) {
+      u8_printf(out,"\n%s  ",indent);
+      output_key(out,key,eltfn);
+      u8_printf(out," \t#> %q}",val);}
     else {
       if ( (KNO_CHOICEP(val)) || (KNO_VECTORP(val)) ||
            ( (KNO_PAIRP(val)) &&
