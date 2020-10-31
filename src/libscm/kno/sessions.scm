@@ -2,7 +2,7 @@
 
 (in-module 'kno/sessions)
 
-(use-module '{logger varconfig stringfmts optimize})
+(use-module '{logger varconfig stringfmts knodb optimize})
 
 (module-export! '{*session*
 		  valid-session?
@@ -18,11 +18,15 @@
 		  addconfig.command
 		  addsetup.command
 		  usemods.command
+		  usemod.command
 		  optmods.command
+		  optmod.command
 		  optuse.command
 		  reopt.command
 		  load.command
 		  appload.command
+		  usedb.command
+		  commit.command
 		  =.command})
 
 (define %loglevel %notice%)
@@ -237,11 +241,19 @@
 		 (if (packet? val)
 		     (write-file path val)
 		     (set! problem '|NotAPacket|)))
+		((has-suffix pname {".lisp" ".lsp" ".scm" ".pprint"})
+		 (fileout path (pprint val)))
+		((has-suffix pname {".lispdata" ".scmdata" ".ldata"})
+		 (listdata val #f path))
+		((has-suffix pname {".expr" ".exprs" ".sexprs" ".sexpr"})
+		 (write val (open-output-file path)))
 		((has-suffix pname ".xtype") (write-xtype val path))
 		((has-suffix pname ".dtype") (dtype->file val path))
 		(else (write-xtype val path)))
-	  (if problem)
-	  (lineout ";;; Wrote " (typeof val) " to " path " for init " pname)
+	  (if problem
+	      (lineout ";;; Write failed of " (typeof val) " to " path " for " pname ": " 
+		problem)
+	      (lineout ";;; Wrote " (typeof val) " to " path " for init " pname))
 	  (void)))))
 
 ;;;; Default KNOC Commands
@@ -308,14 +320,14 @@
     (if (exists? good-mods)
 	(session-config! 'appmods good-mods *session*)
 	(logwarn |UseMods| "No modules specified"))))
-(define usemod.command usemods.command)
+(define usemod.command (fcn/alias usemods.command))
 (define (optmods.command . modules)
   "Optimize the specified modules for the current session"
   (let ((good-mods (get-good-mods (elts modules) #t)))
     (cond ((exists? good-mods) (optimize-module! good-mods)
 	   (session-setup! `((importvar 'optimize 'optimize!) ',good-mods) *session*))
 	  (else (logwarn |OptMods| "No modules specified")))))
-(define optmod.command optmods.command)
+(define optmod.command (fcn/alias optmods.command))
 (define (optuse.command . modules)
   "Use (and optimize) the specified modules for the current session"
   (let ((good-mods (get-good-mods (elts modules) #t)))
@@ -352,4 +364,20 @@
 	      (logwarn |AlreadyLoaded| "Skipping reload of " (write file)))
 	  (session-config! 'appload (session-path file)))
       (logwarn |MissingFile| "The file " (write file) " does not exist")))
+
+;;;; DB functions
+
+(define (usedb.command spec)
+  (let ((db (onerror (knodb/ref spec)
+		(lambda (ex)
+		  (stringout "Error using db '" spec "', "
+		    (exception-summary ex))))))
+    (if (string? db)
+	(logwarn |UseDBFailed| db)
+	(session-config! 'usedb spec *session*))))
+
+(define (commit.command . args)
+  (knodb/commit!))
+
+
 
