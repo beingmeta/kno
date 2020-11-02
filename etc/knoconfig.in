@@ -3,8 +3,10 @@ prefix=@prefix@
 exec_prefix=@exec_prefix@
 option=$1
 usage() {
-	echo "  knoconfig get *CONFIGVAR*"
-	echo "  knoconfig <setting>, where <setting> can be:"
+	echo "  knoconfig get *CONFIGVAR* (gets a dynamic config setting), OR"
+	echo "  knoconfig set *CONFIGVAR* *VALUE* [share|etc], OR"
+	echo "  knoconfig <setting>, (to get a builtin config setting), "
+	echo "     where <setting> can be:"
 	echo "\t"version "\t\t\t(Kno version)";
 	echo "\t"major "\t\t\t\t(Kno major version number)";
 	echo "\t"minor "\t\t\t\t(Kno minor version number)";
@@ -48,6 +50,7 @@ usage() {
 	echo "\t"codename "\t\t\t\t(the distribution codename for the installed version)";
 	echo "\t"status "\t\t\t\t(the distribution status for the installed version)";
 }
+
 if test -z ${option};
    then option="usage";
 else
@@ -90,7 +93,7 @@ case ${option} in
 	echo "-L@libdir@ -lkno -lu8";;
     deplibs)
 	echo "@LIBS@";;
-    bin)
+    bin|bindir)
 	echo "@exec_prefix@/bin";;
     libsuffix)
 	echo "@shared_suffix@";;
@@ -112,21 +115,21 @@ case ${option} in
 	echo "@knouser@";;
     admin|admingroup|admin_group)
 	echo "@admin_group@";;
-    state)
+    state|statedir)
 	echo "@localstatedir@";;
     rundir)
 	echo "@kno_rundir@";;
     logdir)
 	echo "@kno_logdir@";;
-    etc)
+    etc|confdir)
 	echo "@config_dir@";;
     servlets)
 	echo "@config_dir@/servlets/";;
     daemons)
 	echo "@config_dir@/daemons/";;
-    share)
+    share|sharedir)
 	echo "@share_dir@";;
-    data)
+    data|datadir)
 	echo "@data_dir@";;
     kno.py)
     	echo "@libdir@/kno/kno.@shared_suffix@";;
@@ -148,10 +151,33 @@ case ${option} in
     get)
 	if [ $# -gt 0 ]; then
 	  cvar=$1; shift;
-	  echo "\n(define (main) (lineout (config '${cvar})))\n" | knox QUIET=yes LOADSTDIN=yes
+	  echo "\n(define (main) (lineout (config '${cvar})))\n" | \
+	       @exec_prefix@/bin/knox QUIET=yes LOADSTDIN=yes
 	else
-	  echo "Usage: knoconfig get *confvar*" LOADSTDIN=yes
+	  echo "Usage: knoconfig get *confvar*"
 	fi;
+	;;
+    set)
+    	if [ $# -gt 1 ]; then
+	  cvar=$1; shift;
+	  cval=$1; shift;
+	  if [ -z "$1" ]; then
+	      confloc=@config_dir@/config;
+	  elif [ $1 = "etc" ] || [ $1 = "local" ]; then
+	      confloc=@local_config@/config;
+	  elif [ $1 = "shared" ]; then
+	      confloc=@shared_config@/config;
+	  elif [ $1 = "user" ]; then
+	      confloc=~/.knoconfigs;
+	  else confloc=@local_config@/config;
+	  fi;
+	  echo "${cval}" > ${confloc}/${cvar};
+	else
+	    echo "Usage: knoconfig set *confvar* *val* [local|shared|user]";
+	fi;
+	;;
+    fixdirs)
+	kno_fixdirs;
 	;;
     *)
 	echo "Unrecognized config setting $1";

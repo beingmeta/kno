@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-10-24 18:57+0000\n"
+"POT-Creation-Date: 2020-11-02 14:49+0000\n"
 "PO-Revision-Date: 2005-03-05 16:06-0500\n"
 "Last-Translator: Kenneth Haase <kh@beingmeta.com>\n"
 "Language-Team: French <traduc@traduc.org>\n"
@@ -539,8 +539,8 @@ msgstr ""
 #: src/prims/dtypeprims.c:442 src/prims/dtypeprims.c:476
 #: src/prims/dtypeprims.c:497 src/prims/stringprims.c:478
 #: src/prims/stringprims.c:692 src/prims/stringprims.c:719
-#: src/prims/stringprims.c:1617 src/prims/fileprims.c:305
-#: src/prims/fileprims.c:700 src/web/cgiexec.c:1317 src/web/cgiexec.c:1344
+#: src/prims/stringprims.c:1617 src/prims/fileprims.c:314
+#: src/prims/fileprims.c:709 src/web/cgiexec.c:1317 src/web/cgiexec.c:1344
 #: src/web/htmlout.c:580 src/web/uriprims.c:424 src/web/mime.c:114
 #: src/web/curl.c:700 src/text/texttools.c:142 src/text/texttools.c:172
 #: src/text/texttools.c:568 src/exe/knocgi.c:263 src/exe/webcommon.h:262
@@ -936,17 +936,17 @@ msgstr ""
 msgid "The default group for the ucrrent process"
 msgstr ""
 
-#: src/sys/errobjs.c:268 src/sys/errobjs.c:275 src/eval/modules.c:58
+#: src/sys/errobjs.c:293 src/sys/errobjs.c:300 src/eval/modules.c:58
 #: src/eval/modules.c:93
 #, c-format
 msgid "object is not a %m"
 msgstr ""
 
-#: src/sys/errobjs.c:558
+#: src/sys/errobjs.c:583
 msgid "ExceptionDataError"
 msgstr ""
 
-#: src/sys/errobjs.c:637
+#: src/sys/errobjs.c:662
 msgid "Poorly Restored Error"
 msgstr ""
 
@@ -2470,14 +2470,14 @@ msgstr "L'encodage est inconnu"
 
 # discover
 #: src/prims/portprims.c:391 src/prims/portprims.c:408
-#: src/prims/fileprims.c:1414 src/prims/fileprims.c:1442
-#: src/prims/fileprims.c:1469 src/prims/fileprims.c:1496
+#: src/prims/fileprims.c:1425 src/prims/fileprims.c:1453
+#: src/prims/fileprims.c:1480 src/prims/fileprims.c:1507
 msgid "port"
 msgstr "port"
 
 #: src/prims/portprims.c:429 src/prims/portprims.c:449
 #: src/prims/portprims.c:472 src/prims/portprims.c:488
-#: src/prims/fileprims.c:296
+#: src/prims/fileprims.c:305
 msgid "output port"
 msgstr "port à la sortie"
 
@@ -2572,35 +2572,40 @@ msgstr ""
 msgid "Snapshot Restored"
 msgstr ""
 
-#: src/prims/fileprims.c:711 src/web/uriprims.c:432
+#: src/prims/fileprims.c:74
+#, fuzzy
+msgid "File primitive failed"
+msgstr "ne peut ouvrir le fichier"
+
+#: src/prims/fileprims.c:720 src/web/uriprims.c:432
 msgid "string CONFIG var"
 msgstr ""
 
-#: src/prims/fileprims.c:713 src/web/uriprims.c:434
+#: src/prims/fileprims.c:722 src/web/uriprims.c:434
 msgid "string or string CONFIG var"
 msgstr ""
 
-#: src/prims/fileprims.c:921
+#: src/prims/fileprims.c:930
 msgid "Keeping temp directory"
 msgstr ""
 
-#: src/prims/fileprims.c:924
+#: src/prims/fileprims.c:933
 msgid "Deleting temp directory"
 msgstr ""
 
-#: src/prims/fileprims.c:930
+#: src/prims/fileprims.c:939
 msgid "Weird temp directory"
 msgstr ""
 
-#: src/prims/fileprims.c:1369
+#: src/prims/fileprims.c:1380
 msgid "port or stream"
 msgstr ""
 
-#: src/prims/fileprims.c:1491 src/prims/fileprims.c:1512
+#: src/prims/fileprims.c:1502 src/prims/fileprims.c:1523
 msgid "offset"
 msgstr ""
 
-#: src/prims/fileprims.c:1588
+#: src/prims/fileprims.c:1599
 msgid "SNAPSHOT"
 msgstr ""
 

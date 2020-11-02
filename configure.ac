@@ -1887,6 +1887,7 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   etc/kno.pc
 	   etc/getbuildopt
 	   etc/knobuild
+	   etc/kno_fixdirs
 	   etc/knolaunch
 	   etc/kno_start_servlets etc/kno_start_daemons etc/kno_stop_jobs
 	   etc/knostart etc/knostop etc/knostartall etc/knostopall etc/knocleanup

@@ -16,6 +16,7 @@
 		  newsession.command
 		  mysession.command
 		  addconfig.command
+		  config.command
 		  addsetup.command
 		  usemods.command
 		  usemod.command
@@ -179,13 +180,14 @@
 
 ;;;; Modifying the session programmatically
 
+;;; TODO: Add session-drop-config!
 (defambda (session-config! var val (exec #t) (session *session*))
   (unless (valid-session? session) (irritant session |InvalidSession|))
   (when exec (config! var val))
   (let ((out (extend-output-file (mkpath session "session.cfg"))))
     (printout-to out ";; Added " (gmtimestamp) " from " (config 'sessionid) "\n")
     (printout-to out 
-      (write `(,var ,val))
+      (write `(,(string->symbol (downcase var)) ,val))
       "\n")))
 
 (define (session-setup! expr (session *session*))
@@ -300,6 +302,10 @@
 
 (define (addconfig.command var val)
   (session-config! var val *session*))
+(define (config.command var (val))
+  (if (bound? val)
+      (session-config! var val *session*)
+      (config var)))
 (define (addsetup.command expr)
   (session-setup! expr *session*))
 

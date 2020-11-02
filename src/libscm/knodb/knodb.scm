@@ -3,7 +3,8 @@
 
 (in-module 'knodb)
 
-(use-module '{ezrecords stringfmts logger varconfig texttools fifo mttools reflection})
+(use-module '{texttools reflection})
+(use-module '{gpath fifo mttools ezrecords stringfmts logger varconfig})
 (use-module '{knodb/adjuncts knodb/registry knodb/filenames})
 (use-module '{knodb/flexpool knodb/flexindex})
 
@@ -30,8 +31,7 @@
 
 (define tld `(isalnum+))
 
-(define network-host
-  `#((+ #((isalnum+) ".")) ,tld))
+(define network-host `#((+ #((isalnum+) ".")) ,tld))
 
 (define network-source 
   `{#((label host,network-host) ":" (label port (isdigit+)))
@@ -58,7 +58,8 @@
 	      ((not (string? source)) source)
 	      ((textmatch network-source source) source)
 	      ((not rootdir) (abspath source))
-	      (else (mkpath rootdir source))))))
+	      ((has-prefix source {"~" "./" "../"}) (abspath source))
+	      (else (->gpath source rootdir))))))
 
 (define (make-opts opts)
   (let ((addopts (or (deep-copy (getopt opts 'make)) `#[])))
@@ -104,10 +105,12 @@
 	 (knodb/wrap-index spec opts))
 	((table? spec)
 	 (resolve-dbref (get-dbsource (cons spec opts)) (cons opts spec)))
+	((and (string? spec) (testopt opts 'rootdir))
+	  (resolve-dbref (mkpath (getopt opts 'rootdir) spec) opts))
 	(else (resolve-dbref spec opts))))
 
 (define (resolve-dbref dbsource opts)
-  (info%watch "KNODB/REF" dbsource "\nOPTS" opts)
+  (info%watch "RESOLVE-DBREF" dbsource "\nOPTS" opts)
   (cond ((or (testopt opts '{flexindex flexpool})
 	     (testopt opts 'type '{flexindex flexpool}))
 	 (flex-open dbsource opts))

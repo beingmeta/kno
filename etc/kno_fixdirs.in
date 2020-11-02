@@ -1,0 +1,20 @@
+#!/bin/sh
+mkdirs () {
+    path=$1
+    if [ ! -d ${path} ]; then
+	parent=$(dirname ${path});
+	if ! ( [ -z "${parent}" ] || [ ${parent} = "/" ] ); then
+	    mkdirs ${parent}; fi;
+	mkdir ${path};
+    fi;
+}
+for dir in @kno_rundir@ @kno_logdir@ \
+	   @servlet_rundir@ @servlet_logdir@ \
+	   @daemon_rundir@ @daemon_logdir@ \
+	   @bugjar@; do
+    mkdirs ${dir};
+    chgrp @admin_group@ ${dir};
+    chmod g+rwX ${dir};
+done;
+chown @webuser@ @servlet_rundir@ @servlet_logdir@;
+chown @knouser@ @daemon_rundir@ @daemon_logdir@;
