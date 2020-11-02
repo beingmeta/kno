@@ -491,9 +491,18 @@ KNO_EXPORT ssize_t kno_init_cstack()
 {
   int rv = 0;
   u8_init_stack();
-  if (VOIDP(kno_default_stackspec)) {
+  if (kno_stack_limit>0) {
+    /* Already initialized */}
+  else if (VOIDP(kno_default_stackspec)) {
     ssize_t stacksize = u8_stack_size;
-    rv = kno_stack_setsize(stacksize-stacksize/8);}
+    if (stacksize < KNO_MIN_STACKSIZE) {
+      u8_log(LOGWARN,"DefaultStackTooSmall",
+	     "\nThe C stack size (%lld) is smaller than recommended minimum (%lld). "
+	     "\nSome programs (including unit tests) may fail with this setting. \nTo correct, "
+	     "configure using --with-cstacksize=16777216 at build time.",
+	     stacksize,KNO_MIN_STACKSIZE);
+      kno_set_stack_limit(stacksize-stacksize/8);}
+    else rv = kno_stack_setsize(stacksize-stacksize/8);}
   else if (FIXNUMP(kno_default_stackspec))
     rv = kno_stack_setsize((ssize_t)(FIX2INT(kno_default_stackspec)));
   else if (KNO_FLONUMP(kno_default_stackspec))
