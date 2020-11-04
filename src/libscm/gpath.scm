@@ -939,7 +939,7 @@
 	      ((overlaps? scheme {"http" "https"})
 	       (let ((found #f))
 		 (dolist (handler gpath-uri-handlers)
-		   (set! found (handler v))
+		   (set! found (handler val))
 		   (when found (break)))
 		 (or found val)))
 	      ((and scheme (test gpath-scheme-handlers scheme)
