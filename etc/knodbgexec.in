@@ -1,2 +1,6 @@
 #!@SCRIPT_SHELL@
 exec gdb -se @prefix@/bin/knox -x @share_dir@/gdbinit -ex "run $*"
+
+# Local variables:
+# mode: shell-script
+# End:

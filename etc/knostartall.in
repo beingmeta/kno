@@ -2,3 +2,7 @@
 export KNO_LAUNCHER=${KNO_LAUNCHER:-knostartall} 
 kno_start_daemons @config_dir@/daemons/
 kno_start_servlets @config_dir@/servlets/
+
+# Local variables:
+# mode: shell-script
+# End:

@@ -84,3 +84,7 @@ else for name in $*; do
 	 fi;
      done;
 fi
+
+# Local variables:
+# mode: shell-script
+# End:

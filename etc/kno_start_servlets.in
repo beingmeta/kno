@@ -51,3 +51,7 @@ for sock in $(find -L ${ROOTDIR} -name "*.sock"); do servlet ${sock} $(basename 
 for conf in $(find -L ${ROOTDIR} -name "*.cfg"); do servlet ${conf} $(basename ${conf} .cfg); done
 for addr in $(find -L ${ROOTDIR} -name "*@*"); do servlet ${addr} ${addr}; done
 for addr in $(find -L ${ROOTDIR} -name "*:*"); do servlet ${addr} ${addr}; done
+
+# Local variables:
+# mode: shell-script
+# End:

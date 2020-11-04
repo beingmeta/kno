@@ -103,3 +103,7 @@ for rundir in ${RUNDIRS}; do
 	fi;
     done;
 done;
+
+# Local variables:
+# mode: shell-script
+# End:

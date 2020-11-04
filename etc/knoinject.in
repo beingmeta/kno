@@ -30,3 +30,7 @@ else
     exit;
 fi;
 cp ${INJECT_FILE} ${INJECT_INTO};
+
+# Local variables:
+# mode: shell-script
+# End:

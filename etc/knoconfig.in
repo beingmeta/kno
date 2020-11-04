@@ -185,3 +185,7 @@ case ${option} in
 	echo "Unrecognized config setting $1";
 	;;
 esac
+
+# Local variables:
+# mode: shell-script
+# End:

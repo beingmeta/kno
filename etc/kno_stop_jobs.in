@@ -39,3 +39,7 @@ for sock in $(find -L ${ROOTDIR} -name "*.sock"); do stopjob $(basename ${sock} 
 for conf in $(find -L ${ROOTDIR} -name "*.cfg"); do servlet $(basename ${conf} .cfg); done
 for addr in $(find -L ${ROOTDIR} -name "*@*"); do stopjob ${addr}; done
 for addr in $(find -L ${ROOTDIR} -name "*:*"); do stopjob ${addr}; done
+
+# Local variables:
+# mode: shell-script
+# End:
