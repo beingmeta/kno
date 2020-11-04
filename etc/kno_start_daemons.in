@@ -33,7 +33,7 @@ daemon ( ) {
     name=$2;
     echo "Starting servlet manager ${name} for ${file}";
     if (${READLINK} ${file}>/dev/null); then
-	u8run ${DAEMON} ${name} ${U8RUNFLAGS} \
+	@u8run@ ${DAEMON} ${name} ${U8RUNFLAGS} \
 	      ${KNOD} $(${READLINK} ${file}) ${LAUNCHCFG} ${DAEMONCFG} \
 	      RUNDIR=@daemon_rundir@ LOGFILE=@daemon_logdir@/${name}.log \
 	      ${XARGS};

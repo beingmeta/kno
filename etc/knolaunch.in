@@ -156,5 +156,5 @@ else
     echo "Using log dir ${LOGDIR}";
 fi;
 
-echo u8run ${RUN_ARGS} ${LAUNCHER} ${LAUNCH} ${ARGS}
-exec u8run ${RUN_ARGS} ${LAUNCHER} ${LAUNCH} ${ARGS}
+echo @u8run@ ${RUN_ARGS} ${LAUNCHER} ${LAUNCH} ${ARGS}
+exec @u8run@ ${RUN_ARGS} ${LAUNCHER} ${LAUNCH} ${ARGS}

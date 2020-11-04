@@ -204,6 +204,9 @@ test_config="TESTSIZE=64"
 memtest_config=
 leaktester_config=
 
+u8bin=
+u8run=
+
 test_size=512
 small_test_size=64
 
@@ -401,9 +404,20 @@ AC_SUBST(GPGID)
 AC_SUBST(GITBRANCH)
 AC_SUBST(PKGCONFIG_DIR)
 AC_SUBST(GPG)
+AC_SUBST(U8BIN)
 
 if test -z "${GITBRANCH}"; then
    GITBRANCH=`etc/getbranch`;
+fi;
+
+U8RUN_CMD=
+DEFAULT_U8RUN=
+DEFAULT_U8BIN=
+AC_CHECK_PROG(DEFAULT_U8RUN_CMD,u8run,,)
+if test ! -z "${DEFAULT_U8RUN}"; then
+  DEFAULT_U8BIN=$(dirname ${DEFAULT_U8RUN});
+else
+   DEFAULT_U8BIN=${prefix}/bin;
 fi;
 
 AC_PATH_PROG(binenv,env)
@@ -434,6 +448,21 @@ AC_CHECK_PROGS(GZIP,"gzip","na")
 AC_ARG_WITH(execwrapper,--with-execwrapper program to use when calling exec(),,with_execwrapper=$binenv)
 if test "$with_execwrapper" != ""; then
   AC_DEFINE_UNQUOTED(KNO_EXEC_WRAPPER,"$with_execwrapper")
+fi
+
+AC_ARG_WITH(u8bin,--with-u8bin path for libu8 programs/scripts,,with_u8bin=${DEFAULT_U8BIN})
+if test "$with_u8bin" != ""; then
+  AC_DEFINE_UNQUOTED(KNO_U8BIN,"$with_u8bin")
+  u8bin="${with_u8bin}/"
+  DEFAULT_U8RUN="$with_u8bin/u8run"
+fi
+
+AC_ARG_WITH(u8run,--with-u8run location of the u8run launcher,,with_u8bin=${DEFAULT_U8RUN})
+if test "$with_u8run" != ""; then
+  AC_DEFINE_UNQUOTED(KNO_U8RUN,"$with_u8run")
+  u8run=$with_u8run;
+else
+  u8run=${u8bin}u8run
 fi
 
 chowning=yes
@@ -1892,7 +1921,7 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   etc/kno_start_servlets etc/kno_start_daemons etc/kno_stop_jobs
 	   etc/knostart etc/knostop etc/knostartall etc/knostopall etc/knocleanup
 	   etc/knosignal etc/knoinject etc/knostatus etc/knolog 
-	   etc/knoreload etc/knorestart etc/knoctl etc/knogdb etc/knodbgexec
+	   etc/knoreload etc/knorestart etc/knoctl etc/knewctl etc/knogdb etc/knodbgexec
 	   etc/knosetconfig etc/knogetconfig etc/knoconfig
 	   tests/testenv.sh tests/xtest
 	   tests/runtest tests/memtest
@@ -1919,7 +1948,7 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   etc/install-script 
 	   dist/alpine/APKBUILD
 	   dist/kno-4.3.spec],
-	   [chmod a+x etc/kno* tests/*test etc/getbuildopt src/extmods/knoconfig])
+	   [chmod a+x etc/kn* tests/*test etc/getbuildopt src/extmods/knoconfig])
 
 if test ! -z "$gperftools"; then
    echo  "Built with malloc=$using_malloc, gperftools=${gperftools}";

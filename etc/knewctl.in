@@ -1,0 +1,248 @@
+#!@SCRIPT_SHELL@
+
+ACTIVITY=${KNOCTL_ACTIVITY}
+COMMAND=${KNOCTL_COMMAND}
+NAME=
+
+show_usage( ) {
+    echo "Usage: knoctl activity command [name] args...";
+    echo "Usage: knoctl command activity [name] args...";
+    echo "Usage: knoctl name command args... (NYI)";
+    echo "Usage: knoctl fixdirs";
+    echo "  activity=servlet|daemon";
+}
+usage_err( ) {
+    if [ $# -gt 0 ]; then echo $*; fi;
+    show_usage;
+    exit;
+}
+
+if  [ $# = 0 ]; then
+    show_usage;
+    exit;
+fi;
+while [ $# -gt 0 ]; do
+    case $1 in
+	help|usage)
+	    show_usage;
+	    exit;
+	    ;;
+	servlet|knocgi|web)
+	    if [ -z "${ACTIVITY}" ]; then
+		ACTIVITY=servlet;
+	    else
+		usage_err "Redundant activity $1 (v.s. ${ACTIVITY}";
+	    fi;
+	    ;;
+	daemon|server|knoserver)
+	    if [ -z "${ACTIVITY}" ]; then
+		ACTIVITY=daemon; shift;
+	    else
+		usage_err "Redundant activity $1 (v.s. ${ACTIVITY}";
+	    fi;
+	    ;;
+	start|stop|status|restart|disable|enable)
+	    if [ -z "${COMMAND}" ]; then
+		COMMAND=$1; shift;
+	    else
+		usage_err "Redundant command $1 (v.s. ${COMMAND}";
+	    fi;
+	    ;;
+	fixdirs)
+	    kno_fixdirs;
+	    exit;
+    esac;
+done;
+
+LAUNCHER=${KNOCTL_LAUNCHER}
+CONFDIR=${KNOCTL_CONFDIR}
+RUNDIR=${KNOCTL_RUNDIR}
+LOGDIR=${KNOCTL_LOGDIR}
+
+if [ -z "${ACTIVITY}" ]; then
+    usage_err "No activity provided";
+elif [ ${ACTIVITY} = "servlet" ]; then
+    if [ -z "${CONFDIR}" ]; then CONFDIR=@config_dir@/servlets; fi;
+    if [ -z "${RUNDIR}" ]; then RUNDIR=@kno_rundir@/servlets; fi;
+    if [ -z "${LOGDIR}" ]; then RUNDIR=@kno_logdir@/servlets; fi;
+    if [ -z "${LAUNCHER}" ]; then RUNDIR=@exe_prefix@/knocgi; fi;
+elif [ ${ACTIVITY} = "daemon" ]; then
+    if [ -z "${CONFDIR}" ]; then CONFDIR=@config_dir@/daemons; fi;
+    if [ -z "${RUNDIR}" ]; then RUNDIR=@kno_rundir@/daemons; fi;
+    if [ -z "${LOGDIR}" ]; then RUNDIR=@kno_logdir@/daemons; fi;
+    if [ -z "${LAUNCHER}" ]; then RUNDIR=@exe_prefix@/knoserver; fi;
+else
+    if [ -z "${KNOCTL_ACTIVITY}" ]; then
+	usage_err "(Internal error) Bad activity specified ${ACTIVITY}";
+    else usage_err "Bad activity specified ${ACTIVITY} (from KNOCTL_ACTIVITY)";
+    fi;
+fi;
+
+msg ( ) {
+    echo $(date +%T\(%a%d%b%Y\));
+}
+errmsg ( ) {
+    echo $(date +%T\(%a%d%b%Y\)) >2;
+}
+
+READLINK=$(which readlink);
+if [ -z "${READL	 INK}" ]; then
+    READLINE=echo;
+elif ${READLINK} -e /tmp 2>&1 > /dev/null; then 
+    READLINK="${READLINK} -e";
+fi;
+
+DEFAULT_U8RUN=@u8run@
+if [ -z "${DEFAULT_U8RUN}" ] || [ ! -x "${DEFAULT_U8RUN}" ]; then
+    DEFAULT_U8RUN=$(which u8run 2> /dev/null);
+fi;
+U8RUN=${U8RUN:-${DEFAULT_U8RUN}}
+U8RUN_FLAGS=${U8_RUNFLAGS:-${KNCTL_U8RUN_FLAGS}}
+
+find_ctl_file ( ) {
+    local name = $1;
+    if [ -f ${name} ]; then
+	echo ${name};
+    elif [ -f ${CONFDIR}/${name} ]; then
+	echo ${CONFDIR}/${name};
+    elif [ -f ${CONFDIR}/${name}.cfg ]; then
+	echo ${CONFDIR}/${name}.cfg;
+    elif [ -f ${CONFDIR}/${name}.sock ]; then
+	echo ${CONFDIR}/${name}.sock;
+    elif [ ${ACTIVITY} = "servlet" ] && [ -f ${CONFDIR}/${name}/servlet.cfg ]; then
+	echo ${CONFDIR}/${name}/servlet.cfg;
+    elif  [ ${ACTIVITY} = "daemon" ] && [ -f ${CONFDIR}/${name}/daemon.cfg ]; then
+	echo ${CONFDIR}/${name}/daemon.cfg;
+    fi;
+}
+
+start_activity ( ) {
+    local name=$1;
+    local ctl_file=$(find_ctl_file ${name});
+    ${U8RUN} +daemon ${name} ${U8RUN_FLAGS} ${LAUNCHER} ${ctl_file} \
+	     RUNDIR=${RUNDIR} LOGFILE=${LOGDIR}/${name}.log \
+	     $*;
+}	    
+check_run_file ( ) {
+    local name=$1
+    local suffix=$2
+    if [ -f ${RUNDIR}/${name}${suffix} ]; then
+	echo ${RUNDIR}/${name}${suffix};
+    else
+	echo none;
+    fi;
+}
+activity_status ( ) {
+    local name=$1;
+    local pid=$(check_run_file ${name} .pid);
+    local ppid=$(check_run_file ${name} .ppid);
+    local cmd=$(check_run_file ${name} .cmd);
+    local status=$(check_run_file ${name} .status);
+    echo "${pid} ${ppid} ${cmd} ${status}";
+}
+
+CLEAN=no
+RAWSCRIPT=knostartall
+TARGET=all
+
+if test $# -eq 0; then
+  OP=usage;
+elif test $# -eq 1; then
+  OP=$1;
+  TARGET=all;
+else
+  TARGET=$1;
+  OP=$2;
+  shift;
+  shift;
+fi;
+if test $OP = "usage"; then
+  echo "Usage: knoctl (start|stop|clean|reload|freshstart|restart)";
+  echo "Usage: knoctl [target] (restart|log|status|suspend)";
+  exit;
+elif test ${OP} = "stop"; then 
+   RAWSCRIPT=knostopall; 
+fi;
+
+cleanlogs( ) {
+  rm -f @daemon_logdir@/*;
+  rm -f @servlet_logdir@/*;
+}
+
+
+if test ${TARGET} != "all"; then
+   if test ${OP} = "restart"; then
+     exec knorestart ${TARGET} $*;
+   elif test ${OP} = "reload"; then
+     exec knoreload ${TARGET} $*;
+   elif test ${OP} = "log"; then
+     exec knolog ${TARGET} $*;
+   elif test ${OP} = "status"; then
+     exec knostatus ${TARGET} $*;
+   else ${MSG} "Unknown operation ${OP} on ${TARGET}";
+   fi;
+  exit;
+elif test ${OP} = "cleanstart"; then
+     if test -f @kno_rundir@/_started; then
+       knoctl stop;
+       sudo rm -f @kno_rundir@/_started;
+     fi
+     OP=start;
+     sudo cleanlogs;
+elif test ${OP} = "reload"; then
+     exec knoreload;
+     exit;
+elif test ${OP} = "clean"; then
+     sudo cleanlogs;
+     exec knoreload;
+elif test ${OP} = "zero"; then
+     OP=stop;
+     CLEAN=yes;
+fi;
+
+## Now, figure out what startup system is being used to run Kno
+##  e.g. systemd, upstart, sysv, or none (just kno* scripts)
+
+if ! which systemctl 2>&1 > /dev/null; then
+    ${MSG} "No systemctl";
+elif test -f /lib/systemd/system/kno.service; then
+    ${MSG} "knoctl ${OP} >>> systemctl ${OP} kno";
+    sudo systemctl ${OP} kno;
+    exit;
+elif test -f /usr/lib/systemd/system/kno.service; then
+    ${MSG} "knoctl ${OP} >>> systemctl ${OP} kno";
+    sudo systemctl ${OP} kno;
+    if test "${CLEAN}" = "yes"; then sudo cleanlogs; fi;
+    exit;
+else
+    ${MSG} "No systemd Kno configuration";
+fi;
+
+if ! which initctl 2>&1 > /dev/null; then
+    ${MSG} "No initcl";
+elif test -f /etc/init/kno.conf; then
+    ${MSG} "knoctl ${OP} >>> initctl ${OP} kno";
+    sudo initctl ${OP} kno;
+    if test "${CLEAN}" = "yes"; then
+	sudo cleanlogs; 
+    fi
+    exit;
+else
+    ${MSG} No upstart Kno configuration;
+fi;
+
+if test -f /etc/init.d/kno; then
+    ${MSG} "knoctl ${OP} >>> /etc/init.d/kno ${OP}";
+    sudo /etc/init.d/kno ${OP};
+else
+    ${MSG} ${RAWSCRIPT};
+    ${RAWSCRIPT};
+fi;
+
+if test "${CLEAN}" = "yes"; then 
+    sudo cleanlogs; 
+fi;
+
+# Local variables:
+# mode: shell-script
+# End:
