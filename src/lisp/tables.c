@@ -1552,6 +1552,22 @@ static int compare_schemaps(lispval x,lispval y,kno_compare_flags flags)
   return result;
 }
 
+KNO_EXPORT lispval kno_schemap2slotmap(lispval schemap)
+{
+  struct KNO_SCHEMAP *sm = KNO_GET_CONS(schemap,kno_schemap_type,kno_schemap);
+  if (sm==NULL) return KNO_ERROR;
+  int i = 0, n = sm->schema_length;
+  lispval result = kno_make_slotmap(n,n,NULL);
+  if (KNO_ABORTED(result)) return result;
+  lispval *schema = sm->table_schema, *values = sm->table_values;
+  struct KNO_KEYVAL *keyvals = KNO_SLOTMAP_KEYVALS(result);
+  while (i<n) {
+    keyvals[i].kv_key=kno_incref(schema[i]);
+    keyvals[i].kv_val=kno_incref(values[i]);
+    i++;}
+  return result;
+}
+
 /* Hash functions */
 
 /* This is the point at which we resize hashtables. */
