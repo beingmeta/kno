@@ -41,7 +41,7 @@ while [ $# -gt 0 ]; do
 		usage_err "Redundant activity $1 (v.s. ${ACTIVITY}";
 	    fi;
 	    ;;
-	start|stop|status|restart|disable|enable)
+	start|stop|status|restart|disable|enable|pid|ppid|status|cmd)
 	    if [ -z "${COMMAND}" ]; then
 		COMMAND=$1; shift;
 	    else
@@ -115,23 +115,137 @@ find_ctl_file ( ) {
 	echo ${CONFDIR}/${name}/daemon.cfg;
     fi;
 }
+get_run_file ( ) {
+    local name=$1
+    local suffix=$2
+    if [ -f ${RUNDIR}/${name}.${suffix} ]; then
+	echo ${RUNDIR}/${name}.${suffix};
+    else
+	echo;
+    fi;
+}
+get_run_data ( ) {
+    local run_file=$(get_run_file $*)
+    if [ -z "${run_file}" ]; then
+	echo;
+    else cat ${run_file};
+    fi;
+}
+
+checkpid ( ) {
+    if [ -z "$0" ]; then
+	retval=0;
+    elif ps -p $0 2>&1 > /dev/null; then
+	retval=1;
+    else
+	retval=0;
+    fi;}
+
+get_pid_file ( ) {
+    local name=$1
+    local suffix=${2:-pid}
+    local pid_file=${RUNDIR}/${name}.${suffix};
+    if [ ! -f ${pid_file} ]; then
+	echo -n;
+    else
+	local pid=$(cat ${pid_file});
+	if checkpid ${pid}; then
+	    echo ${pid_file};
+	else
+	    rm ${pid_file};
+	    echo -n;
+	fi;
+    fi;
+}    
+kill_pid ( ) {
+    local pid=$1
+    if checkpid ${pid}; then ${SUDO} kill ${pid}; sleep 1; fi;
+    if checkpid ${pid}; then ${SUDO} kill ${pid}; sleep 1; fi;
+    if checkpid ${pid}; then ${SUDO} kill ${pid}; sleep 1; fi;
+    if checkpid ${pid}; then ${SUDO} kill ${pid}; sleep 1; fi;
+    if checkpid ${pid}; then
+	echo "Failed to normally terminate ${ACTIVITY} ${pid}, killing it";
+	${SUDO} kill -9 ${pid};
+    fi;
+}
 
 start_activity ( ) {
     local name=$1;
     local ctl_file=$(find_ctl_file ${name});
-    ${U8RUN} +daemon ${name} ${U8RUN_FLAGS} ${LAUNCHER} ${ctl_file} \
-	     RUNDIR=${RUNDIR} LOGFILE=${LOGDIR}/${name}.log \
-	     $*;
-}	    
-check_run_file ( ) {
-    local name=$1
-    local suffix=$2
-    if [ -f ${RUNDIR}/${name}${suffix} ]; then
-	echo ${RUNDIR}/${name}${suffix};
-    else
-	echo none;
+    if [ -z "${ctl_file}" ]; then err_msg "No configured ${ACTIVITY} named ${name}"; fi;
+    local pid=$(get_run_data ${name} ppid)
+    if [ ! -z ${pid} ] && check_pid ${pid}; then
+	echo "${ACTIVITY} ${name} already running with PPID=${pid}";
+    else ${U8RUN} +daemon ${name} ${U8RUN_FLAGS} ${LAUNCHER} ${ctl_file} \
+		  RUNDIR=${RUNDIR} LOGFILE=${LOGDIR}/${name}.log \
+		  $*;
     fi;
 }
+restart_activity ( ) {
+    local name=$1;
+    local ctl_file=$(find_ctl_file ${name});
+    if [ -z "${ctl_file}" ]; then err_msg "No ${ACTIVITY} named ${name}"; fi;
+    local ppid_file=$(get_pid_file ppid)
+    local pid_file=$(get_pid_file ${name} pid)
+    local ppid;
+    local pid;
+    if [ ! -z ${ppid_file} ]; then ppid=$(cat ${ppid_file}); fi;
+    if [ ! -z ${pid_file} ]; then pid=$(cat ${pid_file}); fi;
+    if [ ! -z "${pid}" ] && [ ! -z "${ppid}" ]; then
+	kill_pid ${pid};
+	wait_for_pid_file ${pid_file} ${pid};
+    else
+    fi;
+    if [ -z ${pid} ]; then
+	echo -n;
+    elif ! checkpid ${pid}; then
+	pid=;
+	rm ${pid_file};
+    fi;
+   if [ ! -z "${ppid_file}" ] && [ ! -z "${pid_file}" ]; then
+	kill_pid ${pid};
+   elif
+
+	kill_pid=$(get_run_data ${name} pid);
+	kill_pid_file=$(get_run_file ${name} ppid);
+    fi;
+    if [ -z "${kill_pid}" ]; then
+	echo "${ACTIVITY} ${name} is not active (no PPID/PID file)";
+    else
+	echo "Terminating process ${kill_pid} for ${ACTIVITY} ${name}";
+    fi
+    ${SUDO} kill ${kill_pid}; sleep 1;
+    if [ -f ${kill_pid_file} ]; then ${SUDO} kill ${kill_pid}; sleep 2; fi;
+    if [ -f ${kill_pid_file} ]; then ${SUDO} kill ${kill_pid}; sleep 2; fi;
+    if [ -f ${kill_pid_file} ]; then ${SUDO} kill ${kill_pid}; sleep 2; fi;
+    if [ -f ${kill_pid_file} ]; then
+	echo "Failed to normally terminate ${ACTIVITY} ${name} (${kill_pid})";
+	echo "Killing process ${kill_pid} for ${ACTIVITY} ${name}";
+	${SUDO} kill ${kill_pid};
+    fi;
+}
+stop_activity ( ) {
+    local name=$1;
+    local ctl_file=$(find_ctl_file ${name});
+    if [ -z "${ctl_file}" ]; then err_msg "No ${ACTIVITY} named ${name}"; fi;
+    local kill_pid=$(get_run_data ${name} ppid)
+    local kill_pid_file=$(get_run_data ${name} ppid)
+    if [ -z "${kill_pid}" ]; then
+	echo "${ACTIVITY} ${name} is not active (no PPID/PID file)";
+    else
+	echo "Terminating process ${kill_pid} for ${ACTIVITY} ${name}";
+    fi
+    ${SUDO} kill ${kill_pid}; sleep 1;
+    if [ -f ${kill_pid_file} ]; then ${SUDO} kill ${kill_pid}; sleep 2; fi;
+    if [ -f ${kill_pid_file} ]; then ${SUDO} kill ${kill_pid}; sleep 2; fi;
+    if [ -f ${kill_pid_file} ]; then ${SUDO} kill ${kill_pid}; sleep 2; fi;
+    if [ -f ${kill_pid_file} ]; then
+	echo "Failed to normally terminate ${ACTIVITY} ${name} (${kill_pid})";
+	echo "Killing process ${kill_pid} for ${ACTIVITY} ${name}";
+	${SUDO} kill ${kill_pid};
+    fi;
+}
+
 activity_status ( ) {
     local name=$1;
     local pid=$(check_run_file ${name} .pid);
@@ -140,6 +254,30 @@ activity_status ( ) {
     local status=$(check_run_file ${name} .status);
     echo "${pid} ${ppid} ${cmd} ${status}";
 }
+
+case ${COMMAND} in 
+    pid|ppid|status)
+	echo $(get_run_data ${name} ${COMMAND});
+	;;
+    start)
+	if [ "$1" = "all" ] || [ $# = 0 ]; then
+	    for file in ${CONFDIR}/*; do
+		base_conf=$(basename ${file})
+		start_activity ${base_conf};
+	    done;
+	else
+	    for name in $*; do
+		ctl_file=$(find_ctl_file ${name})
+		if [ -z "$ctl_file" ]; then
+		    err_msg "Couldn't find control file for ${name}";
+		fi;
+	    done;
+	    for name in $*; do start_activity ${name}; done;
+	    exit;
+	fi;
+	;;
+
+esac
 
 CLEAN=no
 RAWSCRIPT=knostartall
