@@ -14,7 +14,8 @@
 		  knodb/id knodb/source
 		  knodb/mods knodb/modified?
 		  pool/ref index/ref pool/copy
-		  pool/getindex pool/getindexes})
+		  pool/getindex pool/getindexes
+		  knodb/index!})
 
 (module-export! '{knodb:pool knodb:index})
 
@@ -23,6 +24,9 @@
 (module-export! '{knodb/subpath knodb/mksubpath})
 
 (define-init %loglevel %notice%)
+
+(define-init debugging-knodb #f)
+(varconfig! knodb:debug debugging-knodb config:boolean)
 
 ;;; Patterns
 
@@ -170,12 +174,14 @@
 	   (let* ((rootdir (dirname (pool-source pool)))
 		  (indexrefs (poolctl pool 'metadata 'indexes))
 		  (indexes (pick (for-choices (ref indexrefs)
-				   (onerror (index/ref ref (opt+ 'rootdir rootdir opts))
-				       (lambda (ex)
-					 (logwarn |IndexRefError|
-					   (exception-summary ex) " REF=\n" (listdata ref)
-					   "\nrootdir=" (write rootdir) " OPTS=\n" (listdata opts))
-					 #f)))
+				   (if debugging-knodb
+				       (index/ref ref (opt+ 'rootdir rootdir opts))
+				       (onerror (index/ref ref (opt+ 'rootdir rootdir opts))
+					   (lambda (ex)
+					     (logwarn |IndexRefError|
+					       (exception-summary ex) " REF=\n" (listdata ref)
+					       "\nrootdir=" (write rootdir) " OPTS=\n" (listdata opts))
+					     #f))))
 			     
 			     index?)))
 	     (do-choices (partition (poolctl pool 'partitions))
@@ -213,6 +219,12 @@
 	((pool? arg) (pool/getindex arg))
 	((string? arg) (index/ref arg opts-arg))
 	(else (index/ref arg))))
+
+(defambda (knodb/index! frames slots (values))
+  (do-choices (pool (oid->pool frames))
+    (if (bound? values)
+	(index-frame (pool/getindex pool) (pick frames pool) slots values)
+	(index-frame (pool/getindex pool) (pick frames pool) slots))))
 
 ;;; Getting partitions
 
@@ -411,11 +423,13 @@
   arg)
 
 (define (commit-db arg opts timings (start (elapsed-time)))
-  (onerror (inner-commit arg timings start)
-      (lambda (ex)
-	(store! timings arg (- (elapsed-time start)))
-	(logwarn |CommitError| "Error committing " arg ": " ex)
-	ex)))
+  (if debugging-knodb
+      (inner-commit arg timings start)
+      (onerror (inner-commit arg timings start)
+	  (lambda (ex)
+	    (store! timings arg (- (elapsed-time start)))
+	    (logwarn |CommitError| "Error committing " arg ": " ex)
+	    ex))))
 
 (define (commit-queued fifo opts timings)
   (let ((db (fifo/pop fifo)))
