@@ -36,3 +36,7 @@ LOGDIR=${LOGDIR:-${RUNDIR}}
 LOGFILE=${LOGDIR}/${BASE}.log
 ERRFILE=${LOGDIR}/${BASE}.err
 exec @u8run@ +daemon ${BASE} PIDFILE=${PIDFILE} PPIDFILE=${PPIDFILE} ${KNOX} ${FILE} $* LOGCMD=yes STDOUT=+${LOGFILE} STDERR=+${ERRFILE} RUNDIR=${RUNDIR} PIDFILE=${PIDFILE}
+
+# Local variables:
+# mode: shell-script
+# End:

@@ -101,3 +101,7 @@ fi;
 if test "${CLEAN}" = "yes"; then 
     sudo cleanlogs; 
 fi;
+
+# Local variables:
+# mode: shell-script
+# End:

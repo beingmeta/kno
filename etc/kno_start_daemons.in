@@ -50,3 +50,7 @@ for knoz in  $(find -L ${ROOTDIR} -name "*.knoz"); do daemon ${knoz} $(basename 
 for cfg in  $(find -L ${ROOTDIR} -name "*.cfg"); do daemon ${cfg} $(basename ${cfg} .cfg); done
 for addr in $(find -L ${ROOTDIR} -name "*@*"); do daemon ${addr} ${addr}; done
 for addr in $(find -L ${ROOTDIR} -name "*:*"); do daemon ${addr} ${addr}; done
+
+# Local variables:
+# mode: shell-script
+# End:

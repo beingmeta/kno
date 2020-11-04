@@ -33,3 +33,6 @@ else
     exit 1;
 fi;
 
+# Local variables:
+# mode: shell-script
+# End:

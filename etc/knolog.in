@@ -73,3 +73,7 @@ elif test "${cmd}" = "more"; then
 else
     showusage; exit;
 fi;
+
+# Local variables:
+# mode: shell-script
+# End:

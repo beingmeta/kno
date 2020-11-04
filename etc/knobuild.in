@@ -1,4 +1,4 @@
-#!/bin/sh
+#!@SCRIPT_SHELL@
 
 usage (){
     echo "Usage: knobuild cmd args..., e.g.";
@@ -208,3 +208,7 @@ case $cmd in
 	usage;
 	exit;
 esac
+
+# Local variables:
+# mode: shell-script
+# End:

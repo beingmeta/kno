@@ -75,3 +75,7 @@ done;
 if [ ! -z ${SHOWLOG} ] && [ ${SHOWLOG} != ".none" ]; then
     exec knolog ${SHOWLOG};
 fi;
+
+# Local variables:
+# mode: shell-script
+# End:

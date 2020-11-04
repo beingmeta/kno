@@ -1,2 +1,6 @@
 #!@SCRIPT_SHELL@
 knostop @servlet_rundir@/ @daemon_rundir@/
+
+# Local variables:
+# mode: shell-script
+# End:

@@ -1,2 +1,6 @@
 #!@SCRIPT_SHELL@
 echo $2 > @local_config@/$1
+
+# Local variables:
+# mode: shell-script
+# End:
