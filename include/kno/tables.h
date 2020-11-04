@@ -547,6 +547,8 @@ static U8_MAYBE_UNUSED lispval __kno_schemap_test
 #define kno_schemap_test _kno_schemap_test
 #endif
 
+KNO_EXPORT lispval kno_schemap2slotmap(lispval schemap);
+
 /* Hashtables */
 
 #define KNO_HASH_BIGTHRESH 0x4000000

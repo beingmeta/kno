@@ -297,18 +297,7 @@ DEFPRIM1("SCHEMAP->SLOTMAP",schemap2slotmap_prim,MAX_ARGS(1),
          kno_schemap_type,KNO_VOID)
 static lispval schemap2slotmap_prim(lispval in)
 {
-  struct KNO_SCHEMAP *schemap = (kno_schemap) in;
-  lispval *schema = schemap->table_schema;
-  lispval *values = schemap->table_values;
-  int size = schemap->schema_length;
-  struct KNO_KEYVAL kv[size];
-  int i = 0; while (i < size) {
-    lispval key = schema[i]; kno_incref(key);
-    lispval val = values[i]; kno_incref(val);
-    kv[i].kv_key = key;
-    kv[i].kv_val = val;
-    i++;}
-  return kno_make_slotmap(size,size,kv);
+  return kno_schemap2slotmap(in);
 }
 
 DEFPRIM1("SLOTMAP->SCHEMAP",slotmap2schemap_prim,MAX_ARGS(1),

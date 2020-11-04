@@ -3301,7 +3301,9 @@ static kno_index hashindex_create(u8_string spec,void *typedata,
   lispval init_opts = kno_intern("initopts");
   lispval make_opts = kno_intern("makeopts");
 
-  if (KNO_TABLEP(metadata_init)) {
+  if (KNO_SCHEMAPP(metadata_init))
+    metadata = kno_schemap2slotmap(metadata_init);
+  else if (KNO_TABLEP(metadata_init)) {
     metadata = kno_deep_copy(metadata_init);}
   else metadata = kno_make_slotmap(8,0,NULL);
 
