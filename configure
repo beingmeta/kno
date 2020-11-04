@@ -690,6 +690,9 @@ MKDIR_DEFAULT
 ECHO
 SCRIPT_SHELL
 binenv
+DEFAULT_U8RUN_CMD
+u8run
+u8bin
 PKGCONFIG_DIR
 GITBRANCH
 GPGID
@@ -898,6 +901,8 @@ ac_user_opts='
 enable_option_checking
 with_statedir
 with_execwrapper
+with_u8bin
+with_u8run
 with_chowning
 with_mkdir
 with_chmod
@@ -1648,6 +1653,8 @@ Optional Packages:
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
 --with-statedir where to keep local state e.g. /var
 --with-execwrapper program to use when calling exec()
+--with-u8bin path for libu8 programs/scripts
+--with-u8run location of the u8run launcher
 --with/out-chowning
 --with-mkdir command
 --with-chmod command
@@ -3131,6 +3138,9 @@ test_config="TESTSIZE=64"
 memtest_config=
 leaktester_config=
 
+u8bin=
+u8run=
+
 test_size=512
 small_test_size=64
 
@@ -3358,8 +3368,56 @@ ac_config_headers="$ac_config_headers include/kno/knosource.h include/kno/config
 
 
 
+
+
 if test -z "${GITBRANCH}"; then
    GITBRANCH=`etc/getbranch`;
+fi;
+
+U8RUN_CMD=
+DEFAULT_U8RUN=
+DEFAULT_U8BIN=
+# Extract the first word of "u8run", so it can be a program name with args.
+set dummy u8run; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_prog_DEFAULT_U8RUN_CMD+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test -n "$DEFAULT_U8RUN_CMD"; then
+  ac_cv_prog_DEFAULT_U8RUN_CMD="$DEFAULT_U8RUN_CMD" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_prog_DEFAULT_U8RUN_CMD=""
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+fi
+fi
+DEFAULT_U8RUN_CMD=$ac_cv_prog_DEFAULT_U8RUN_CMD
+if test -n "$DEFAULT_U8RUN_CMD"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $DEFAULT_U8RUN_CMD" >&5
+$as_echo "$DEFAULT_U8RUN_CMD" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+if test ! -z "${DEFAULT_U8RUN}"; then
+  DEFAULT_U8BIN=$(dirname ${DEFAULT_U8RUN});
+else
+   DEFAULT_U8BIN=${prefix}/bin;
 fi;
 
 # Extract the first word of "env", so it can be a program name with args.
@@ -4285,6 +4343,41 @@ if test "$with_execwrapper" != ""; then
 #define KNO_EXEC_WRAPPER "$with_execwrapper"
 _ACEOF
 
+fi
+
+
+# Check whether --with-u8bin was given.
+if test "${with_u8bin+set}" = set; then :
+  withval=$with_u8bin;
+else
+  with_u8bin=${DEFAULT_U8BIN}
+fi
+
+if test "$with_u8bin" != ""; then
+  cat >>confdefs.h <<_ACEOF
+#define KNO_U8BIN "$with_u8bin"
+_ACEOF
+
+  u8bin="${with_u8bin}/"
+  DEFAULT_U8RUN="$with_u8bin/u8run"
+fi
+
+
+# Check whether --with-u8run was given.
+if test "${with_u8run+set}" = set; then :
+  withval=$with_u8run;
+else
+  with_u8bin=${DEFAULT_U8RUN}
+fi
+
+if test "$with_u8run" != ""; then
+  cat >>confdefs.h <<_ACEOF
+#define KNO_U8RUN "$with_u8run"
+_ACEOF
+
+  u8run=$with_u8run;
+else
+  u8run=${u8bin}u8run
 fi
 
 chowning=yes
@@ -8574,7 +8667,7 @@ else
     We can't simply define LARGE_OFF_T to be 9223372036854775807,
     since some C++ compilers masquerading as C compilers
     incorrectly reject 9223372036854775807.  */
-#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
+#define LARGE_OFF_T ((((off_t) 1 << 31) << 31) - 1 + (((off_t) 1 << 31) << 31))
   int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
 		       && LARGE_OFF_T % 2147483647 == 1)
 		      ? 1 : -1];
@@ -8620,7 +8713,7 @@ else
     We can't simply define LARGE_OFF_T to be 9223372036854775807,
     since some C++ compilers masquerading as C compilers
     incorrectly reject 9223372036854775807.  */
-#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
+#define LARGE_OFF_T ((((off_t) 1 << 31) << 31) - 1 + (((off_t) 1 << 31) << 31))
   int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
 		       && LARGE_OFF_T % 2147483647 == 1)
 		      ? 1 : -1];
@@ -8644,7 +8737,7 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
     We can't simply define LARGE_OFF_T to be 9223372036854775807,
     since some C++ compilers masquerading as C compilers
     incorrectly reject 9223372036854775807.  */
-#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
+#define LARGE_OFF_T ((((off_t) 1 << 31) << 31) - 1 + (((off_t) 1 << 31) << 31))
   int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
 		       && LARGE_OFF_T % 2147483647 == 1)
 		      ? 1 : -1];
@@ -8689,7 +8782,7 @@ else
     We can't simply define LARGE_OFF_T to be 9223372036854775807,
     since some C++ compilers masquerading as C compilers
     incorrectly reject 9223372036854775807.  */
-#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
+#define LARGE_OFF_T ((((off_t) 1 << 31) << 31) - 1 + (((off_t) 1 << 31) << 31))
   int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
 		       && LARGE_OFF_T % 2147483647 == 1)
 		      ? 1 : -1];
@@ -8713,7 +8806,7 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
     We can't simply define LARGE_OFF_T to be 9223372036854775807,
     since some C++ compilers masquerading as C compilers
     incorrectly reject 9223372036854775807.  */
-#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
+#define LARGE_OFF_T ((((off_t) 1 << 31) << 31) - 1 + (((off_t) 1 << 31) << 31))
   int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
 		       && LARGE_OFF_T % 2147483647 == 1)
 		      ? 1 : -1];
@@ -13259,7 +13352,7 @@ fi;
 
 ### Here's where stuff gets made
 
-ac_config_files="$ac_config_files makefile etc/version etc/makefile.include src/extmods/makefile DIY/makefile tests/libtests/makefile etc/gdbinit etc/lldbinit exe/.gdbinit exe/.lldbinit dbg/runenv.sh dbg/.gdbinit dbg/.lldbinit dbg/.valgrind etc/kno.pc etc/getbuildopt etc/knobuild etc/knodirs etc/knolaunch etc/kno_start_servlets etc/kno_start_daemons etc/kno_stop_jobs etc/knostart etc/knostop etc/knostartall etc/knostopall etc/knocleanup etc/knosignal etc/knoinject etc/knostatus etc/knolog etc/knoreload etc/knorestart etc/knoctl etc/knogdb etc/knodbgexec etc/knosetconfig etc/knogetconfig etc/knoconfig tests/testenv.sh tests/xtest tests/runtest tests/memtest tests/leaktest tests/knoxtest src/scripts/knopkg.scm src/extmods/knoconfig etc/knojob etc/logrotate etc/sysv/kno-rc.d etc/sysv/ex_servlet-init.d etc/sysv/ex_daemon-init.d etc/upstart/kno.conf etc/upstart/knod.conf etc/upstart/knoservlets.conf etc/upstart/ex_knoservlet.conf etc/systemd/ex_servlet.service etc/systemd/ex_daemon.service etc/systemd/kno-daemons.service etc/systemd/kno-servlets.service etc/macos/OSXStartupItem/KNO etc/macos/KNO.plist etc/apache/knocgi.conf etc/apache/knocgi.load etc/install-script dist/alpine/APKBUILD dist/kno-4.3.spec"
+ac_config_files="$ac_config_files makefile etc/version etc/makefile.include src/extmods/makefile DIY/makefile tests/libtests/makefile etc/gdbinit etc/lldbinit exe/.gdbinit exe/.lldbinit dbg/runenv.sh dbg/.gdbinit dbg/.lldbinit dbg/.valgrind etc/kno.pc etc/getbuildopt etc/knobuild etc/kno_fixdirs etc/knolaunch etc/kno_start_servlets etc/kno_start_daemons etc/kno_stop_jobs etc/knostart etc/knostop etc/knostartall etc/knostopall etc/knocleanup etc/knosignal etc/knoinject etc/knostatus etc/knolog etc/knoreload etc/knorestart etc/knoctl etc/knewctl etc/knogdb etc/knodbgexec etc/knosetconfig etc/knogetconfig etc/knoconfig tests/testenv.sh tests/xtest tests/runtest tests/memtest tests/leaktest tests/knoxtest src/scripts/knopkg.scm src/extmods/knoconfig etc/knojob etc/logrotate etc/sysv/kno-rc.d etc/sysv/ex_servlet-init.d etc/sysv/ex_daemon-init.d etc/upstart/kno.conf etc/upstart/knod.conf etc/upstart/knoservlets.conf etc/upstart/ex_knoservlet.conf etc/systemd/ex_servlet.service etc/systemd/ex_daemon.service etc/systemd/kno-daemons.service etc/systemd/kno-servlets.service etc/macos/OSXStartupItem/KNO etc/macos/KNO.plist etc/apache/knocgi.conf etc/apache/knocgi.load etc/install-script dist/alpine/APKBUILD dist/kno-4.3.spec"
 
 ac_config_commands="$ac_config_commands default"
 
@@ -13977,7 +14070,7 @@ do
     "etc/kno.pc") CONFIG_FILES="$CONFIG_FILES etc/kno.pc" ;;
     "etc/getbuildopt") CONFIG_FILES="$CONFIG_FILES etc/getbuildopt" ;;
     "etc/knobuild") CONFIG_FILES="$CONFIG_FILES etc/knobuild" ;;
-    "etc/knodirs") CONFIG_FILES="$CONFIG_FILES etc/knodirs" ;;
+    "etc/kno_fixdirs") CONFIG_FILES="$CONFIG_FILES etc/kno_fixdirs" ;;
     "etc/knolaunch") CONFIG_FILES="$CONFIG_FILES etc/knolaunch" ;;
     "etc/kno_start_servlets") CONFIG_FILES="$CONFIG_FILES etc/kno_start_servlets" ;;
     "etc/kno_start_daemons") CONFIG_FILES="$CONFIG_FILES etc/kno_start_daemons" ;;
@@ -13994,6 +14087,7 @@ do
     "etc/knoreload") CONFIG_FILES="$CONFIG_FILES etc/knoreload" ;;
     "etc/knorestart") CONFIG_FILES="$CONFIG_FILES etc/knorestart" ;;
     "etc/knoctl") CONFIG_FILES="$CONFIG_FILES etc/knoctl" ;;
+    "etc/knewctl") CONFIG_FILES="$CONFIG_FILES etc/knewctl" ;;
     "etc/knogdb") CONFIG_FILES="$CONFIG_FILES etc/knogdb" ;;
     "etc/knodbgexec") CONFIG_FILES="$CONFIG_FILES etc/knodbgexec" ;;
     "etc/knosetconfig") CONFIG_FILES="$CONFIG_FILES etc/knosetconfig" ;;
@@ -14583,7 +14677,7 @@ $as_echo "$as_me: executing $ac_file commands" >&6;}
 
 
   case $ac_file$ac_mode in
-    "default":C) chmod a+x etc/kno* tests/*test etc/getbuildopt src/extmods/knoconfig ;;
+    "default":C) chmod a+x etc/kn* tests/*test etc/getbuildopt src/extmods/knoconfig ;;
 
   esac
 done # for ac_tag

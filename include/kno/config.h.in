@@ -594,6 +594,12 @@
 /* What kind of sanitization (if any) is being applied */
 #undef KNO_STACKCHECK
 
+/* Where libu8 utilities live */
+#undef KNO_U8BIN
+
+/* The path to the u8run script */
+#undef KNO_U8RUN
+
 /* Whether to enable libu8's lock debugging */
 #undef U8_THREAD_DEBUG
 

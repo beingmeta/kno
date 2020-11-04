@@ -34,7 +34,7 @@ servlet ( ) {
     ${RUNCMD} touch @servlet_rundir@/${name}.nospawn;
     echo "Starting servlet manager ${name} for ${file}";
     if (${READLINK} ${file}>/dev/null); then
-	u8run ${DAEMON} ${name} ${U8RUNFLAGS} \
+	@u8run@ ${DAEMON} ${name} ${U8RUNFLAGS} \
 	      ${KNOCGI} @servlet_rundir@/${name}.sock ${LAUNCHCFG} \
 	      RUNDIR=@servlet_rundir@ LOGFILE=@servlet_logdir@/${name}.log \
 	      CONFIG=`${READLINK} ${file}` ${SERVLETCFG} ${XARGS};
