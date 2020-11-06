@@ -2,12 +2,11 @@
 
 ACTIVITY=${KNOCTL_ACTIVITY}
 COMMAND=${KNOCTL_COMMAND}
-NAME=
 
 show_usage( ) {
     echo "Usage: knoctl activity command [name] args...";
     echo "Usage: knoctl command activity [name] args...";
-    echo "Usage: knoctl name command args... (NYI)";
+#    echo "Usage: knoctl name command args... (NYI)";
     echo "Usage: knoctl fixdirs";
     echo "  activity=servlet|daemon";
 }
@@ -21,15 +20,20 @@ if  [ $# = 0 ]; then
     show_usage;
     exit;
 fi;
-while [ $# -gt 0 ]; do
-    case $1 in
+case $1 in
 	help|usage)
 	    show_usage;
 	    exit;
 	    ;;
+	fixdirs)
+	    kno_fixdirs;
+	    exit;
+esac;
+while [ $# -gt 0 ]; do
+    case $1 in
 	servlet|knocgi|web)
 	    if [ -z "${ACTIVITY}" ]; then
-		ACTIVITY=servlet;
+		ACTIVITY=servlet; shift;
 	    else
 		usage_err "Redundant activity $1 (v.s. ${ACTIVITY}";
 	    fi;
@@ -41,36 +45,37 @@ while [ $# -gt 0 ]; do
 		usage_err "Redundant activity $1 (v.s. ${ACTIVITY}";
 	    fi;
 	    ;;
-	start|stop|status|restart|disable|enable|pid|ppid|status|cmd)
+	start|stop|status|restart|disable|enable|pid|ppid|status|link|enable|disable)
 	    if [ -z "${COMMAND}" ]; then
 		COMMAND=$1; shift;
 	    else
-		usage_err "Redundant command $1 (v.s. ${COMMAND}";
+		usage_err "Redundant command $1 (vs. ${COMMAND})";
 	    fi;
 	    ;;
-	fixdirs)
-	    kno_fixdirs;
-	    exit;
+	*)
+	    break;
+	    ;;
     esac;
 done;
 
-LAUNCHER=${KNOCTL_LAUNCHER}
-CONFDIR=${KNOCTL_CONFDIR}
-RUNDIR=${KNOCTL_RUNDIR}
-LOGDIR=${KNOCTL_LOGDIR}
+export LAUNCHER=${KNOCTL_LAUNCHER}
+export CONFDIR=${KNOCTL_CONFDIR}
+export RUNDIR=${KNOCTL_RUNDIR}
+export LOGDIR=${KNOCTL_LOGDIR}
+
 
 if [ -z "${ACTIVITY}" ]; then
     usage_err "No activity provided";
 elif [ ${ACTIVITY} = "servlet" ]; then
     if [ -z "${CONFDIR}" ]; then CONFDIR=@config_dir@/servlets; fi;
     if [ -z "${RUNDIR}" ]; then RUNDIR=@kno_rundir@/servlets; fi;
-    if [ -z "${LOGDIR}" ]; then RUNDIR=@kno_logdir@/servlets; fi;
-    if [ -z "${LAUNCHER}" ]; then RUNDIR=@exe_prefix@/knocgi; fi;
+    if [ -z "${LOGDIR}" ]; then LOGDIR=@kno_logdir@/servlets; fi;
+    if [ -z "${LAUNCHER}" ]; then LAUNCHER=@prefix@/bin/knocgi; fi;
 elif [ ${ACTIVITY} = "daemon" ]; then
     if [ -z "${CONFDIR}" ]; then CONFDIR=@config_dir@/daemons; fi;
     if [ -z "${RUNDIR}" ]; then RUNDIR=@kno_rundir@/daemons; fi;
-    if [ -z "${LOGDIR}" ]; then RUNDIR=@kno_logdir@/daemons; fi;
-    if [ -z "${LAUNCHER}" ]; then RUNDIR=@exe_prefix@/knoserver; fi;
+    if [ -z "${LOGDIR}" ]; then LOGDIR=@kno_logdir@/daemons; fi;
+    if [ -z "${LAUNCHER}" ]; then LAUNCHER=@prefix@/bin/knoserver; fi;
 else
     if [ -z "${KNOCTL_ACTIVITY}" ]; then
 	usage_err "(Internal error) Bad activity specified ${ACTIVITY}";
@@ -86,11 +91,26 @@ errmsg ( ) {
 }
 
 READLINK=$(which readlink);
-if [ -z "${READL	 INK}" ]; then
-    READLINE=echo;
+if [ -z "${READLINK}" ]; then
+    READLINK=echo;
 elif ${READLINK} -e /tmp 2>&1 > /dev/null; then 
     READLINK="${READLINK} -e";
 fi;
+
+get_abspath ( ) {
+    arg=$1
+    if [ -z "$1" ]; then 
+	pwd;
+    else case $1 in
+	     /*)
+		 echo $1;
+		 ;;
+	     *)
+		 echo $(pwd)/$1;
+		 ;;
+	 esac;
+    fi;
+}
 
 DEFAULT_U8RUN=@u8run@
 if [ -z "${DEFAULT_U8RUN}" ] || [ ! -x "${DEFAULT_U8RUN}" ]; then
@@ -100,26 +120,22 @@ U8RUN=${U8RUN:-${DEFAULT_U8RUN}}
 U8RUN_FLAGS=${U8_RUNFLAGS:-${KNCTL_U8RUN_FLAGS}}
 
 find_ctl_file ( ) {
-    local name = $1;
-    if [ -f ${name} ]; then
-	echo ${name};
-    elif [ -f ${CONFDIR}/${name} ]; then
-	echo ${CONFDIR}/${name};
-    elif [ -f ${CONFDIR}/${name}.cfg ]; then
-	echo ${CONFDIR}/${name}.cfg;
-    elif [ -f ${CONFDIR}/${name}.sock ]; then
-	echo ${CONFDIR}/${name}.sock;
-    elif [ ${ACTIVITY} = "servlet" ] && [ -f ${CONFDIR}/${name}/servlet.cfg ]; then
-	echo ${CONFDIR}/${name}/servlet.cfg;
-    elif  [ ${ACTIVITY} = "daemon" ] && [ -f ${CONFDIR}/${name}/daemon.cfg ]; then
-	echo ${CONFDIR}/${name}/daemon.cfg;
+    local srvname=$1;
+    if [ -f ${srvname} ]; then
+	echo ${srvname};
+    elif [ -f ${CONFDIR}/${srvname} ]; then
+	echo ${CONFDIR}/${srvname};
+    elif [ -f ${CONFDIR}/${srvname}.cfg ]; then
+	echo ${CONFDIR}/${srvname}.cfg;
+    elif [ -f ${CONFDIR}/${srvname}.sock ]; then
+	echo ${CONFDIR}/${srvname}.sock;
     fi;
 }
 get_run_file ( ) {
-    local name=$1
+    local srvname=$1
     local suffix=$2
-    if [ -f ${RUNDIR}/${name}.${suffix} ]; then
-	echo ${RUNDIR}/${name}.${suffix};
+    if [ -f ${RUNDIR}/${srvname}.${suffix} ]; then
+	echo ${RUNDIR}/${srvname}.${suffix};
     else
 	echo;
     fi;
@@ -134,11 +150,12 @@ get_run_data ( ) {
 
 # Checks to see if a PID is live
 checkpid ( ) {
-    if [ -z "$0" ]; then
+    local arg=$1;
+    if [ -z "${arg}" ]; then
 	retval=0;
-    elif [ test -f /proc/$0 ]; then
+    elif [ -f /proc/${arg} ]; then
 	retval=1;
-    elif ps -p $0 2>&1 > /dev/null; then
+    elif ps -p ${arg} 2>&1 > /dev/null; then
 	retval=1;
     else
 	retval=0;
@@ -148,9 +165,9 @@ checkpid ( ) {
 # If it isn't, it remove the PID file
 # Returns the contents of the valid PID file
 get_pid_file ( ) {
-    local name=$1
+    local srvname=$1
     local suffix=${2:-pid}
-    local pid_file=${RUNDIR}/${name}.${suffix};
+    local pid_file=${RUNDIR}/${srvname}.${suffix};
     if [ ! -f ${pid_file} ]; then
 	echo -n;
     else
@@ -164,15 +181,15 @@ get_pid_file ( ) {
     fi;
 }    
 get_pid ( ) {
-    local name=$1
+    local srvname=$1
     local suffix=${2:-pid}
-    local pid_file=${RUNDIR}/${name}.${suffix};
+    local pid_file=${RUNDIR}/${srvname}.${suffix};
     if [ ! -f ${pid_file} ]; then
 	echo -n;
     else
 	local pid=$(cat ${pid_file});
 	if checkpid ${pid}; then
-	    cat ${pid};
+	    echo ${pid};
 	else
 	    rm -f ${pid_file};
 	    echo -n;
@@ -197,11 +214,11 @@ kill_pid ( ) {
 }
 
 activity_status ( ) {
-    local name=$1;
-    local ctl_file=$(find_ctl_file ${name});
-    if [ -z "${ctl_file}" ]; then err_msg "No configured ${ACTIVITY} named ${name}"; fi;
-    local ppid=$(get_pid ${name} ppid)
-    local pid=$(get_pid ${name} pid)
+    local srvname=$1;
+    local ctl_file=$(find_ctl_file ${srvname});
+    if [ -z "${ctl_file}" ]; then errmsg "No configured ${ACTIVITY} named ${srvname}"; fi;
+    local ppid=$(get_pid ${srvname} ppid)
+    local pid=$(get_pid ${srvname} pid)
     if [ ! -z "${ppid}" ] && [ ! -z "${pid}" ]; then echo "active";
     elif [ ! -z "${pid}" ]; then echo "orphan";
     elif [ ! -z "${ppid}" ]; then echo "childless";
@@ -210,28 +227,35 @@ activity_status ( ) {
 }    
 
 start_activity ( ) {
-    local name=$1;
-    local ctl_file=$(find_ctl_file ${name});
-    if [ -z "${ctl_file}" ]; then err_msg "No configured ${ACTIVITY} named ${name}"; fi;
-    local status=$(activity_status ${name})
+    local srvname=$1;
+    local ctl_file=$(find_ctl_file ${srvname});
+    echo "Starting ${srvname} using ${ctl_file}";
+    if [ -z "${ctl_file}" ]; then errmsg "No configured ${ACTIVITY} named ${srvname}"; fi;
+    local status=$(activity_status ${srvname})
     if [ ${status} = "active" ]; then
-	local ppid=$(get_pid ${name} pid)
-	local pid=$(get_pid ${name} pid)
-	echo "${ACTIVITY} ${name} already running with PPID=${pid}, pid=${PID}";
+	local ppid=$(get_pid ${srvname} pid)
+	local pid=$(get_pid ${srvname} pid)
+	echo "${ACTIVITY} ${srvname} already running with PPID=${pid}, pid=${PID}";
     elif [ ${status} = "inactive" ]; then
-	${U8RUN} +daemon ${name} ${U8RUN_FLAGS} ${LAUNCHER} ${ctl_file} \
-		 RUNDIR=${RUNDIR} LOGFILE=${LOGDIR}/${name}.log \
+	shift;
+	echo ${U8RUN} +daemon ${srvname} ${U8RUN_FLAGS} ${LAUNCHER} ${srvname} \
+	         CONFIG=${ctl_file} \
+		 RUNDIR=${RUNDIR} LOGFILE=${LOGDIR}/${srvname}.log \
 		 $*;
-    else echo "${ACTIVITY} ${name} in ${status} status; try restart?";
+	${U8RUN} ${srvname} ${U8RUN_FLAGS} ${LAUNCHER} ${srvname} \
+	         CONFIG=${ctl_file} \
+		 RUNDIR=${RUNDIR} LOGFILE=${LOGDIR}/${srvname}.log \
+		 $*;
+    else echo "${ACTIVITY} ${srvname} in ${status} status; try restart?";
     fi;
 }
 
 restart_activity ( ) {
-    local name=$1;
-    local ctl_file=$(find_ctl_file ${name});
-    if [ -z "${ctl_file}" ]; then err_msg "No ${ACTIVITY} named ${name}"; fi;
+    local srvname=$1;
+    local ctl_file=$(find_ctl_file ${srvname});
+    if [ -z "${ctl_file}" ]; then errmsg "No ${ACTIVITY} named ${srvname}"; fi;
     local ppid_file=$(get_pid_file ppid)
-    local pid_file=$(get_pid_file ${name} pid)
+    local pid_file=$(get_pid_file ${srvname} pid)
     local ppid;
     local pid;
     if [ ! -z ${ppid_file} ]; then ppid=$(cat ${ppid_file}); fi;
@@ -239,7 +263,6 @@ restart_activity ( ) {
     if [ ! -z "${pid}" ] && [ ! -z "${ppid}" ]; then
 	kill_pid ${pid};
 	wait_for_pid_file ${pid_file} ${pid};
-    else
     fi;
     if [ -z ${pid} ]; then
 	echo -n;
@@ -249,76 +272,78 @@ restart_activity ( ) {
     fi;
    if [ ! -z "${ppid_file}" ] && [ ! -z "${pid_file}" ]; then
 	kill_pid ${pid};
-   elif
-
-	kill_pid=$(get_run_data ${name} pid);
-	kill_pid_file=$(get_run_file ${name} ppid);
     fi;
     if [ -z "${kill_pid}" ]; then
-	echo "${ACTIVITY} ${name} is not active (no PPID/PID file)";
+	echo "${ACTIVITY} ${srvname} is not active (no PPID/PID file)";
     else
-	echo "Terminating process ${kill_pid} for ${ACTIVITY} ${name}";
+	echo "Terminating process ${kill_pid} for ${ACTIVITY} ${srvname}";
     fi
     ${SUDO} kill ${kill_pid}; sleep 1;
     if [ -f ${kill_pid_file} ]; then ${SUDO} kill ${kill_pid}; sleep 2; fi;
     if [ -f ${kill_pid_file} ]; then ${SUDO} kill ${kill_pid}; sleep 2; fi;
     if [ -f ${kill_pid_file} ]; then ${SUDO} kill ${kill_pid}; sleep 2; fi;
     if [ -f ${kill_pid_file} ]; then
-	echo "Failed to normally terminate ${ACTIVITY} ${name} (${kill_pid})";
-	echo "Killing process ${kill_pid} for ${ACTIVITY} ${name}";
+	echo "Failed to normally terminate ${ACTIVITY} ${srvname} (${kill_pid})";
+	echo "Killing process ${kill_pid} for ${ACTIVITY} ${srvname}";
 	${SUDO} kill ${kill_pid};
     fi;
 }
 
 stop_activity ( ) {
-    local name=$1;
-    local ctl_file=$(find_ctl_file ${name});
+    local srvname=$1;
+    local ctl_file=$(find_ctl_file ${srvname});
     if [ -z "${ctl_file}" ]; then
-	echo "No known control file for ${ACTIVITY} ${name}";
-	local kill_pid_file=$(get_pid_file ${name} pid)
+	echo "No known control file for ${ACTIVITY} ${srvname}";
+	local kill_pid_file=$(get_pid_file ${srvname} pid)
 	if [ -z "${kill_pid_file}" ]; then
-	    echo "No PID file for ${ACTIVITY} ${name}";
+	    echo "No PID file for ${ACTIVITY} ${srvname}";
 	else
 	    local kill_pid=$(cat ${kill_pid_file});
 	    kill_pid ${kill_pid};
 	fi;
     else
-	local kill_ppid_file=$(get_pid_file ${name} ppid)
-	local kill_pid=$(get_pid ${name} pid)
+	local kill_ppid_file=$(get_pid_file ${srvname} ppid)
+	local kill_pid=$(get_pid ${srvname} pid)
 	if [ -z "${kill_ppid_file}" ]; then
-	    echo "No PPID file for ${ACTIVITY} ${name}";
+	    echo "No PPID file for ${ACTIVITY} ${srvname}";
 	else
 	    local kill_ppid=$(cat ${kill_ppid_file});
 	    kill_pid ${kill_ppid};
 	fi;
-	local cur_pid=$(get_pid ${name} pid)
+	local cur_pid=$(get_pid ${srvname} pid)
 	if [ ${cur_pid} = ${kill_pid} ]; then
 	    if checkpid ${kill_pid}; then
-		echo "Terminating orphan process (#${kill_pid}) for ${ACTIVITY} ${name}";
+		echo "Terminating orphan process (#${kill_pid}) for ${ACTIVITY} ${srvname}";
 		kill_pid ${kill_pid};
-		cur_pid=$(get_pid ${name} pid)
+		cur_pid=$(get_pid ${srvname} pid)
 	    fi;
 	fi;
-	echo "${ACTIVITY} ${name} is not active (no PPID/PID file)";
-    else
-	echo "Terminating process ${kill_pid} for ${ACTIVITY} ${name}";
+	echo "${ACTIVITY} ${srvname} is not active (no PPID/PID file)";
     fi;
 }
 
 show_activity ( ) {
-    local name=$1;
-    local pid=$(check_run_file ${name} .pid);
-    local ppid=$(check_run_file ${name} .ppid);
-    local cmd=$(check_run_file ${name} .cmd);
-    local status=$(check_run_file ${name} .status);
-    local condition=$(activity_status ${name})
-    echo "${ACTIVITY} ${name} ${condition} ppid=${pid:-none} pid=${pid:-none} cmd=${cmd:-unknown}";
-    if [ ! -z "${status}" ]; then echo "${ACTIVITY} ${name} ${status}"; fi;
+    local srvname=$1;
+    local pid=$(get_run_data ${srvname} .pid);
+    local ppid=$(get_run_data ${srvname} .ppid);
+    local cmd=$(get_run_data ${srvname} .cmd);
+    local status=$(get_run_data ${srvname} .status);
+    local condition=$(activity_status ${srvname})
+    echo "===========================================================================================";
+    echo "${ACTIVITY} ${srvname} ${condition} ppid=${pid:-none} pid=${pid:-none} cmd=${cmd:-unknown}";
+    if [ ! -z "${status}" ]; then echo "${ACTIVITY} ${srvname} ${status}"; fi;
 }
+
+echo ACTIVITY=${ACTIVITY}
+echo COMMAND=${COMMAND}
+echo CONFDIR=${CONFDIR}
+echo RUNDIR=${RUNDIR}
+echo LOGDIR=${LOGDIR}
+echo ARG1=$1
 
 case ${COMMAND} in 
     pid|ppid|cmd)
-	echo $(get_run_data ${name} ${COMMAND});
+	echo $(get_run_data ${srvname} ${COMMAND});
 	;;
     status)
 	for spec in $*; do show_activity $d; done;
@@ -326,19 +351,27 @@ case ${COMMAND} in
     start)
 	if [ "$1" = "all" ] || [ $# = 0 ]; then
 	    for file in ${CONFDIR}/*; do
-		base_conf=$(basename ${file})
-		base_conf=$(basename ${file} .sock)
-		base_conf=$(basename ${file} .cfg)
-		start_activity ${base_conf};
+		case ${file} in
+		    *.disabled)
+			;;
+		    *)
+			if [ ! -f ${file}.disabled ]; then
+			    base_conf=$(basename ${file})
+			    base_conf=$(basename ${file} .cfg)
+			    start_activity ${base_conf};
+			fi;
+		esac;
 	    done;
 	else
 	    for name in $*; do
-		ctl_file=$(find_ctl_file ${name})
+		ctl_file=$(find_ctl_file ${srvname})
 		if [ -z "$ctl_file" ]; then
-		    err_msg "Couldn't find control file for ${name}";
+		    errmsg "Couldn't find control file for ${srvname}";
 		fi;
 	    done;
-	    for name in $*; do start_activity ${name}; done;
+	    for srvname in $*; do 
+		start_activity ${srvname};
+	    done;
 	    exit;
 	fi;
 	;;
@@ -349,7 +382,7 @@ case ${COMMAND} in
 		stop_activity ${base_name};
 	    done;
 	else
-	    for name in $*; do stop_activity ${name}; done;
+	    for name in $*; do stop_activity ${srvname}; done;
 	    exit;
 	fi;
 	;;
@@ -360,9 +393,32 @@ case ${COMMAND} in
 		restart_activity ${base_name};
 	    done;
 	else
-	    for name in $*; do restart_activity ${name}; done;
+	    for name in $*; do restart_activity ${srvname}; done;
 	    exit;
 	fi;
+	;;
+    link)
+	if [ -z "$1" ]; then
+	    usage_err "Missing argument to link";
+	elif [ -f "$1" ]; then
+	    conf_name=$(basename $1);
+	    abspath=$(get_abspath $1);
+	    echo ln -sf ${abspath} ${CONFDIR}/${conf_name};
+	    ln -sf ${abspath} ${CONFDIR}/${conf_name};
+	    if [ "$2" != "enabled" ]; then
+		touch ${CONFDIR}/${conf_name}.disabled;
+		msg "Initially disabled; knoctl enable ${ACTIVITY} ${conf_name} to enable";
+	    fi;
+	else usage_err "The file $1 does not exist";
+	fi;
+	;;
+    disable)
+	touch ${CONFDIR}/$1.disabled;
+	stop_activity $1;
+	;;
+    enable)
+	rm -f ${CONFDIR}/$1.disabled;
+	start_activity $1;
 	;;
 esac
 
