@@ -402,7 +402,6 @@ static lispval py2lisp(PyObject *o)
     else return kno_err("InvalidPythonString","py2lisp",NULL,KNO_VOID);}
 #endif
   else if (PyTuple_Check(o)) {
-    /* TODO: Should we map tuples and lists into separate types? */
     int i=0, n=PyTuple_Size(o);
     lispval *data=u8_alloc_n(n,lispval);
     while (i<n) {
@@ -413,13 +412,15 @@ static lispval py2lisp(PyObject *o)
     return kno_init_vector(NULL,n,data);}
   else if (PyList_Check(o)) {
     int i=0, n=PyList_Size(o);
-    lispval *data=u8_alloc_n(n,lispval);
+    lispval head = KNO_EMPTY_LIST, *tail=&head;
     while (i<n) {
       PyObject *pelt=PyList_GetItem(o,i);
       lispval elt=py2lisp(pelt);
-      data[i]=elt;
+      lispval pair = kno_init_pair(NULL,elt,KNO_EMPTY_LIST);
+      struct KNO_PAIR *pair_struct = (kno_pair) pair;
+      *tail=pair; tail=&(pair_struct->cdr);
       i++;}
-    return kno_init_vector(NULL,n,data);}
+    return head;}
   else if ((PyObject_TypeCheck(o,&PoolType))) {
     struct KNO_PYTHON_POOL *pp=(struct KNO_PYTHON_POOL *)o;
     return kno_pool2lisp(pp->pool);}
@@ -616,6 +617,10 @@ static PyObject *lisp2py(lispval o)
       pylisp *po=newpylisp();
       po->lval=kno_incref(o);
       return (PyObject *)po;}}
+  else if (KNO_OIDP(o)) {
+    pylisp *po=newpyoid();
+    po->lval=kno_incref(o);
+    return (PyObject *)po;}
   else if (KNO_STRINGP(o))
     return PyUnicode_DecodeUTF8
       ((char *)KNO_STRING_DATA(o),KNO_STRING_LENGTH(o),"none");
@@ -624,6 +629,46 @@ static PyObject *lisp2py(lispval o)
     PyObject *o=fdpo->pyval;
     Py_INCREF(o);
     return o;}
+  else if (KNO_FLONUMP(o)) {
+    double dval=KNO_FLONUM(o);
+    return PyFloat_FromDouble(dval);}
+  else if (KNO_CHOICEP(o)) {
+    pylisp *po=newpychoice();
+    po->lval=kno_incref(o);
+    return (PyObject *)po;}
+  else if (KNO_VECTORP(o)) {
+    int i=0, n=KNO_VECTOR_LENGTH(o);
+    lispval *data=KNO_VECTOR_DATA(o);
+    PyObject *tuple=PyTuple_New(n);
+    if (tuple==NULL)
+      return pass_error();
+    else while (i<n) {
+      PyObject *v=lisp2py(data[i]);
+      if (v==NULL) {
+	Py_DECREF(tuple);
+	return pass_error();}
+      PyTuple_SET_ITEM(tuple,i,v);
+      i++;}
+    return (PyObject *)tuple;}
+  else if (KNO_PAIRP(o)) {
+    int len = kno_list_length(o);
+    if (len>=0) {
+      PyObject *list=PyList_New(len);
+      if (list==NULL)
+	return pass_error();
+      int i = 0;
+      lispval scan = o;
+      while (PAIRP(scan)) {
+	lispval car = KNO_CAR(scan);
+	PyObject *pycar = lisp2py(car);
+	PyList_SetItem(list,i,pycar);
+	scan=KNO_CDR(scan);
+	i++;}
+      return list;}
+    else {
+      pylisp *po=newpylisp();
+      po->lval=kno_incref(o);
+      return (PyObject *)po;}}
   else if (KNO_BIGINTP(o)) {
     kno_bigint big=(kno_bigint) o;
     if (kno_small_bigintp(big)) {
@@ -645,9 +690,6 @@ static PyObject *lisp2py(lispval o)
       pylong=_PyLong_FromByteArray(bytes,n_bytes,1,1);
       if (bytes!=_bytes) u8_free(bytes);
       return pylong;}}
-  else if (KNO_FLONUMP(o)) {
-    double dval=KNO_FLONUM(o);
-    return PyFloat_FromDouble(dval);}
   else if (KNO_PRECHOICEP(o)) {
     lispval simplified = kno_make_simple_choice(o);
     if (KNO_CHOICEP(simplified)) {
@@ -658,28 +700,6 @@ static PyObject *lisp2py(lispval o)
       PyObject *po = lisp2py(simplified);
       kno_decref(simplified);
       return po;}}
-  else if (KNO_CHOICEP(o)) {
-    pylisp *po=newpychoice();
-    po->lval=kno_incref(o);
-    return (PyObject *)po;}
-  else if (KNO_OIDP(o)) {
-    pylisp *po=newpyoid();
-    po->lval=kno_incref(o);
-    return (PyObject *)po;}
-  else if (KNO_VECTORP(o)) {
-    int i=0, n=KNO_VECTOR_LENGTH(o);
-    lispval *data=KNO_VECTOR_DATA(o);
-    PyObject *tuple=PyTuple_New(n);
-    if (tuple==NULL)
-      return pass_error();
-    else while (i<n) {
-      PyObject *v=lisp2py(data[i]);
-      if (v==NULL) {
-	Py_DECREF(tuple);
-	return pass_error();}
-      PyTuple_SET_ITEM(tuple,i,v);
-      i++;}
-    return (PyObject *)tuple;}
   else if (KNO_ABORTP(o))
     return pass_error();
   else if (KNO_APPLICABLEP(o)) {
