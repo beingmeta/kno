@@ -12,7 +12,9 @@ div.exception_header span.floatright {
     float: right; 
     clear: right;}
 div.exception_header h1 { 
-    margin-top: 0px; margin-bottom: 0px; }
+    margin-top: 0px; margin-bottom: 0px; 
+    font-size: 1.5em;}
+div.exception_header h1 tt { }
 div.exception_header p { 
     margin-left: 2em;  }
 div.exception_messages {
@@ -45,7 +47,8 @@ div.exception_body div.backtrace { margin-left: -2vw; }
 div.exception_body pre { margin-top: 1px; }
 div.stack { border-top: solid black 1px; margin-bottom: 1em; }
 div.stack:first-child { border-top: none; }
-div.stack pre { display: inline; margin-bottom: 0px; }
+/* div.stack pre { display: inline; margin-bottom: 0px; } */
+div.stack pre { margin-bottom: 0px; }
 div.stack li pre { display: block; }
 div.stack span.filename { 
     font-family: monospace; font-style: italic; 
