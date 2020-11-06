@@ -246,7 +246,7 @@ KNO_EXPORT lispval kno_pool_ctl(kno_pool p,lispval poolop,int n,kno_argvec args)
   struct KNO_POOL_HANDLER *h = p->pool_handler;
   if (h->poolctl)
     return h->poolctl(p,poolop,n,args);
-  else kno_default_poolctl(p,poolop,n,args);
+  else return kno_default_poolctl(p,poolop,n,args);
 }
 
 /* Pool caching */
