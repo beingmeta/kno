@@ -14,7 +14,8 @@
 		  knodb/id knodb/source
 		  knodb/mods knodb/modified?
 		  pool/ref index/ref pool/copy
-		  pool/getindex pool/getindexes})
+		  pool/getindex pool/getindexes
+		  knodb/index!})
 
 (module-export! '{knodb:pool knodb:index})
 
@@ -218,6 +219,12 @@
 	((pool? arg) (pool/getindex arg))
 	((string? arg) (index/ref arg opts-arg))
 	(else (index/ref arg))))
+
+(defambda (knodb/index! frames slots (values))
+  (do-choices (pool (oid->pool frames))
+    (if (bound? values)
+	(index-frame (pool/getindex pool) (pick frames pool) slots values)
+	(index-frame (pool/getindex pool) (pick frames pool) slots))))
 
 ;;; Getting partitions
 
