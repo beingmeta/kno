@@ -1360,7 +1360,8 @@ static lispval lexsorted_prim(lispval choices,lispval keyfn)
 
 static ssize_t select_helper(lispval choices,lispval keyfn,
 			     size_t k,int maximize,
-			     struct KNO_SORT_ENTRY *entries)
+			     struct KNO_SORT_ENTRY *entries,
+			     int just_numkeys)
 {
 #define BETTERP(x) ((maximize)?((x)>0):((x)<0))
 #define IS_BETTER(x,y) (BETTERP(KNO_QCOMPARE((x),(y))))
@@ -1379,6 +1380,8 @@ static ssize_t select_helper(lispval choices,lispval keyfn,
 		   u8_bprintf(buf,"The keyfn %q return VOID",keyfn),
 		   elt);}
       return -1;}
+    else if ( (just_numkeys) && (!(NUMBERP(key))) ) {
+      kno_decref(key);}
     else if (k_len<k) {
       entries[k_len].sortval = elt;
       entries[k_len].sortkey = key;
@@ -1424,38 +1427,127 @@ static lispval entries2choice(struct KNO_SORT_ENTRY *entries,int n)
     return kno_simplify_choice(results);}
 }
 
-DEFPRIM3("pick-max",nmax_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "`(PICK-MAX *choices* *count* [*keyfn*])` **undocumented**",
+static lispval pick_scored(lispval choice,lispval keyfn)
+{
+  int n = KNO_CHOICE_SIZE(choice);
+  struct KNO_CHOICE *out = kno_alloc_choice(n);
+  const lispval *read  = KNO_CHOICE_DATA(choice), *limit = read+n;
+  lispval *start = (lispval *) KNO_XCHOICE_DATA(out), *write=start;
+  while (read<limit) {
+    lispval elt = *read++;
+    lispval key = _kno_apply_keyfn(elt,keyfn);
+    if (KNO_NUMBERP(key)) {
+      kno_incref(elt);
+      *write++=elt;}
+    kno_decref(key);}
+  return kno_init_choice(out,write-start,start,KNO_NO_CHOICE_FLAGS);
+}
+
+static lispval pick_max_helper(lispval choices,size_t k,
+			       lispval keyfn,
+			   int just_numkeys)
+{
+  size_t n = KNO_CHOICE_SIZE(choices);
+  if ( (k == 0) || (n==0) )
+    return KNO_EMPTY;
+  else if (n<=k) {
+    if (just_numkeys)
+      return pick_scored(choices,keyfn);
+    else return kno_incref(choices);}
+  else {
+    struct KNO_SORT_ENTRY *entries = u8_alloc_n(k,struct KNO_SORT_ENTRY);
+    ssize_t count = select_helper(choices,keyfn,k,1,entries,just_numkeys);
+    if (count < 0) {
+      u8_free(entries);
+      return KNO_ERROR;}
+    else return entries2choice(entries,count);}
+}
+
+DEFPRIM4("pick-max",pick_max_prim,
+	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	 "`(PICK-MAX *choices* *count* [*keyfn*] [*justnums*])` "
+	 "Returns the *k* largest items in *choices* where "
+	 "the _magnitude_ is determined by *keyfn*. *keyfn* can be "
+	 "any applicable object/procedure, a table, or an OID or symbol, "
+	 "which is used as a _slotid_. If *keyfn* is #f, #default, or "
+	 "not provided, it is taken as the identity. Finally, if "
+	 "the keyfn is a _vector_ it is a vector of keyfns, which "
+	 "are used to return a vector of magnitude objects for "
+	 "comparison. "
+	 "If *justnums* is true, only elements with numeric "
+	 "magnitudes are considered",
 	 kno_any_type,KNO_VOID,kno_fixnum_type,KNO_VOID,
-	 kno_any_type,KNO_VOID);
-static lispval nmax_prim(lispval choices,lispval karg,lispval keyfn)
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_FALSE);
+static lispval pick_max_prim(lispval choices,lispval karg,
+			     lispval keyfn,lispval justnums)
 {
   if ( (VOIDP(keyfn)) || (DEFAULTP(keyfn)) || (FALSEP(keyfn)) ) {}
   else if (!( (KNO_APPLICABLEP(keyfn)) || (KNO_TABLEP(keyfn)) ) )
     return kno_type_error(_("keyfn"),"nmax_prim",keyfn);
   else NO_ELSE;
-  if (KNO_UINTP(karg)) {
-    size_t k = FIX2INT(karg);
-    size_t n = KNO_CHOICE_SIZE(choices);
-    if (k == 0)
-      return KNO_EMPTY;
-    else if (n<=k)
-      return kno_incref(choices);
-    else {
-      struct KNO_SORT_ENTRY *entries = u8_alloc_n(k,struct KNO_SORT_ENTRY);
-      ssize_t count = select_helper(choices,keyfn,k,1,entries);
-      if (count < 0) {
-	u8_free(entries);
-	return KNO_ERROR;}
-      else return entries2choice(entries,count);}}
-  else return kno_type_error(_("fixnum"),"nmax_prim",karg);
+  if (KNO_UINTP(karg))
+    return pick_max_helper(choices,FIX2INT(karg),keyfn,KNO_TRUEP(justnums));
+  else return kno_type_error(_("fixnum"),"pick_max_prim",karg);
 }
 
-DEFPRIM3("max/sorted",max_sorted_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "`(MAX/SORTED *choices* *count* [*keyfn*])` **undocumented**",
+static lispval max_sorted_helper(lispval choices,size_t k,
+				 lispval keyfn,
+				 int just_numkeys)
+{
+  size_t n = KNO_CHOICE_SIZE(choices);
+  if ( (k == 0) || (n==0) )
+    return kno_make_vector(0,NULL);
+  else if (n==1) {
+    if (just_numkeys) {
+      lispval key = _kno_apply_keyfn(choices,keyfn);
+      if (!(KNO_NUMBERP(key))) {
+	kno_decref(key);
+	return kno_make_vector(0,NULL);}
+      else {
+	kno_incref(choices);
+	return kno_make_vector(1,&choices);}}
+    else {
+      kno_incref(choices);
+      return kno_make_vector(1,&choices);}}
+  else {
+    ssize_t n_entries = (n<k) ? (n) : (k);
+    struct KNO_SORT_ENTRY *entries =
+      u8_alloc_n(n_entries,struct KNO_SORT_ENTRY);
+    ssize_t count = select_helper(choices,keyfn,k,1,entries,just_numkeys);
+    if (count < 0) {
+      u8_free(entries);
+      return KNO_ERROR;}
+    lispval vec = kno_make_vector(count,NULL);
+    int i = 0; while (i<count) {
+      lispval elt = entries[i].sortval;
+      int vec_off = count-1-i;
+      kno_incref(elt);
+      kno_decref(entries[i].sortkey);
+      KNO_VECTOR_SET(vec,vec_off,elt);
+      i++;}
+    u8_free(entries);
+    return vec;}
+}
+
+
+DEFPRIM4("max/sorted",max_sorted_prim,
+	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	 "`(MAX/SORTED *choices* *count* [*keyfn*] [*justnums*])` "
+	 "Returns the *k* largest items in *choices* sorted into a vector "
+	 "where the _magnitude_ is determined by *keyfn* and the vector is "
+	 "sorted based on the same *keyfn*. The *keyfn* can be "
+	 "any applicable object/procedure, a table, or an OID or symbol, "
+	 "which is used as a _slotid_. If *keyfn* is #f, #default, or "
+	 "not provided, it is taken as the identity. Finally, if "
+	 "the keyfn is a _vector_ it is a vector of keyfns, which "
+	 "are used to return a vector of magnitude objects for "
+	 "comparison. "
+	 "If *justnums* is true, only elements with numeric "
+	 "magnitudes are considered",
 	 kno_any_type,KNO_VOID,kno_fixnum_type,KNO_VOID,
-	 kno_any_type,KNO_VOID);
-static lispval max_sorted_prim(lispval choices,lispval karg,lispval keyfn)
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_FALSE);
+static lispval max_sorted_prim(lispval choices,lispval karg,
+			       lispval keyfn,lispval justnums)
 {
   if ( (VOIDP(keyfn)) || (DEFAULTP(keyfn)) || (FALSEP(keyfn)) ) {}
   else if (!( (KNO_APPLICABLEP(keyfn)) || (KNO_TABLEP(keyfn)) ) )
@@ -1463,65 +1555,110 @@ static lispval max_sorted_prim(lispval choices,lispval karg,lispval keyfn)
   else NO_ELSE;
   if (KNO_UINTP(karg)) {
     size_t k = FIX2INT(karg);
-    size_t n = KNO_CHOICE_SIZE(choices);
-    if (n==0)
-      return kno_make_vector(0,NULL);
-    else if (n==1) {
-      kno_incref(choices);
-      return kno_make_vector(1,&choices);}
-    else {
-      ssize_t n_entries = (n<k) ? (n) : (k);
-      struct KNO_SORT_ENTRY *entries =
-	u8_alloc_n(n_entries,struct KNO_SORT_ENTRY);
-      ssize_t count = select_helper(choices,keyfn,k,1,entries);
-      if (count < 0) {
-	u8_free(entries);
-	return KNO_ERROR;}
-      lispval vec = kno_make_vector(count,NULL);
-      int i = 0; while (i<count) {
-	lispval elt = entries[i].sortval;
-	int vec_off = count-1-i;
-	kno_incref(elt);
-	kno_decref(entries[i].sortkey);
-	KNO_VECTOR_SET(vec,vec_off,elt);
-	i++;}
-      u8_free(entries);
-      return vec;}}
+    return max_sorted_helper(choices,k,keyfn,KNO_TRUEP(justnums));}
   else return kno_type_error(_("fixnum"),"nmax_prim",karg);
 }
 
-DEFPRIM3("pick-min",nmin_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "`(PICK-MIN *choices* *count* [*keyfn*])` **undocumented**",
+static lispval pick_min_helper(lispval choices,size_t k,lispval keyfn,
+			       int just_numkeys)
+{
+  size_t n = KNO_CHOICE_SIZE(choices);
+  if ( (k == 0) || (n == 0) )
+    return KNO_EMPTY;
+  else if (n<=k) {
+    if (just_numkeys)
+      return pick_scored(choices,keyfn);
+    else return kno_incref(choices);}
+  else {
+    struct KNO_SORT_ENTRY *entries = u8_alloc_n(k,struct KNO_SORT_ENTRY);
+    ssize_t count = select_helper(choices,keyfn,k,0,entries,just_numkeys);
+    if (count < 0) {
+      u8_free(entries);
+      return KNO_ERROR;}
+    else return entries2choice(entries,count);}
+}
+
+DEFPRIM4("pick-min",pick_min_prim,
+	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	 "`(PICK-MIN *choices* *count* [*keyfn*] [*justnums*])` "
+	 "Returns the *k* smallest items in *choices* where "
+	 "the _magnitude_ is determined by *keyfn*. *keyfn* can be "
+	 "any applicable object/procedure, a table, or an OID or symbol, "
+	 "which is used as a _slotid_. If *keyfn* is #f, #default, or "
+	 "not provided, it is taken as the identity. Finally, if "
+	 "the keyfn is a _vector_ it is a vector of keyfns, which "
+	 "are used to return a vector of magnitude objects for "
+	 "comparison. "
+	 "If *justnums* is true, only elements with numeric "
+	 "magnitudes are considered",
 	 kno_any_type,KNO_VOID,kno_fixnum_type,KNO_VOID,
-	 kno_any_type,KNO_VOID);
-static lispval nmin_prim(lispval choices,lispval karg,lispval keyfn)
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_FALSE);
+static lispval pick_min_prim(lispval choices,lispval karg,
+			     lispval keyfn,lispval justnums)
 {
   if ( (VOIDP(keyfn)) || (DEFAULTP(keyfn)) || (FALSEP(keyfn)) ) {}
   else if (!( (KNO_APPLICABLEP(keyfn)) || (KNO_TABLEP(keyfn)) ) )
     return kno_type_error(_("keyfn"),"nmin_prim",keyfn);
   else NO_ELSE;
-  if (KNO_UINTP(karg)) {
-    size_t k = FIX2INT(karg);
-    size_t n = KNO_CHOICE_SIZE(choices);
-    if (k == 0)
-      return KNO_EMPTY;
-    else if (n<=k)
-      return kno_incref(choices);
-    else {
-      struct KNO_SORT_ENTRY *entries = u8_alloc_n(k,struct KNO_SORT_ENTRY);
-      ssize_t count = select_helper(choices,keyfn,k,0,entries);
-      if (count < 0) {
-	u8_free(entries);
-	return KNO_ERROR;}
-      else return entries2choice(entries,count);}}
+  if (KNO_UINTP(karg))
+    return pick_min_helper(choices,FIX2INT(karg),keyfn,KNO_TRUEP(justnums));
   else return kno_type_error(_("fixnum"),"nmax_prim",karg);
 }
 
-DEFPRIM3("min/sorted",min_sorted_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "`(MIN/SORTED *choices* *count* [*keyfn*])` **undocumented**",
+static lispval min_sorted_helper(lispval choices,size_t k,lispval keyfn,
+				 int just_numkeys)
+{
+  size_t n = KNO_CHOICE_SIZE(choices);
+  if ( (k == 0) || (n == 0) )
+    return kno_make_vector(0,NULL);
+  else if (n==1) {
+    if (just_numkeys) {
+      lispval key = _kno_apply_keyfn(choices,keyfn);
+      if (!(KNO_NUMBERP(key))) {
+	kno_decref(key);
+	return kno_make_vector(0,NULL);}
+      else {
+	kno_incref(choices);
+	return kno_make_vector(1,&choices);}}
+    else {
+      kno_incref(choices);
+      return kno_make_vector(1,&choices);}}
+  else {
+    ssize_t n_entries = (n<k) ? (n) : (k);
+    struct KNO_SORT_ENTRY *entries =
+      u8_alloc_n(n_entries,struct KNO_SORT_ENTRY);
+    ssize_t count = select_helper(choices,keyfn,k,0,entries,just_numkeys);
+    if (count<0) {
+      u8_free(entries);
+      return KNO_ERROR;}
+    lispval vec = kno_make_vector(count,NULL);
+    int i = 0; while (i<count) {
+      kno_decref(entries[i].sortkey);
+      kno_incref(entries[i].sortval);
+      KNO_VECTOR_SET(vec,i,entries[i].sortval);
+      i++;}
+    u8_free(entries);
+    return vec;}
+}
+
+DEFPRIM4("min/sorted",min_sorted_prim,
+	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	 "`(MIN/SORTED *choices* *count* [*keyfn*] [*justnums*])` "
+	 "Returns the *k* smallest items in *choices* sorted into a vector "
+	 "where the _magnitude_ is determined by *keyfn* and the vector is "
+	 "sorted based on the same *keyfn*. The *keyfn* can be "
+	 "any applicable object/procedure, a table, or an OID or symbol, "
+	 "which is used as a _slotid_. If *keyfn* is #f, #default, or "
+	 "not provided, it is taken as the identity. Finally, if "
+	 "the keyfn is a _vector_ it is a vector of keyfns, which "
+	 "are used to return a vector of magnitude objects for "
+	 "comparison. "
+	 "If *justnums* is true, only elements with numeric "
+	 "magnitudes are considered",
 	 kno_any_type,KNO_VOID,kno_fixnum_type,KNO_VOID,
-	 kno_any_type,KNO_VOID);
-static lispval min_sorted_prim(lispval choices,lispval karg,lispval keyfn)
+	 kno_any_type,KNO_VOID,kno_any_type,KNO_FALSE);
+static lispval min_sorted_prim(lispval choices,lispval karg,
+			       lispval keyfn,lispval justnums)
 {
   if ( (VOIDP(keyfn)) || (DEFAULTP(keyfn)) || (FALSEP(keyfn)) ) {}
   else if (!( (KNO_APPLICABLEP(keyfn)) || (KNO_TABLEP(keyfn)) ) )
@@ -1529,29 +1666,8 @@ static lispval min_sorted_prim(lispval choices,lispval karg,lispval keyfn)
   else NO_ELSE;
   if (KNO_UINTP(karg)) {
     size_t k = FIX2INT(karg);
-    size_t n = KNO_CHOICE_SIZE(choices);
-    if (n==0)
-      return kno_make_vector(0,NULL);
-    else if (n==1) {
-      kno_incref(choices);
-      return kno_make_vector(1,&choices);}
-    else {
-      ssize_t n_entries = (n<k) ? (n) : (k);
-      struct KNO_SORT_ENTRY *entries =
-	u8_alloc_n(n_entries,struct KNO_SORT_ENTRY);
-      ssize_t count = select_helper(choices,keyfn,k,0,entries);
-      if (count<0) {
-	u8_free(entries);
-	return KNO_ERROR;}
-      lispval vec = kno_make_vector(count,NULL);
-      int i = 0; while (i<count) {
-	kno_decref(entries[i].sortkey);
-	kno_incref(entries[i].sortval);
-	KNO_VECTOR_SET(vec,i,entries[i].sortval);
-	i++;}
-      u8_free(entries);
-      return vec;}}
-  else return kno_type_error(_("fixnum"),"nmax_prim",karg);
+    return min_sorted_helper(choices,k,keyfn,KNO_TRUEP(justnums));}
+  else return kno_type_error(_("fixnum"),"min_sorted_prim",karg);
 }
 
 /* GETRANGE */
@@ -1784,10 +1900,10 @@ static void link_local_cprims()
   KNO_LINK_PRIM("pickoids",pick_oids_prim,1,scheme_module);
   KNO_LINK_PRIM("pick>",pick_gt_prim,3,scheme_module);
   KNO_LINK_PRIM("getrange",getrange_prim,2,scheme_module);
-  KNO_LINK_PRIM("min/sorted",min_sorted_prim,3,scheme_module);
-  KNO_LINK_PRIM("pick-min",nmin_prim,3,scheme_module);
-  KNO_LINK_PRIM("max/sorted",max_sorted_prim,3,scheme_module);
-  KNO_LINK_PRIM("pick-max",nmax_prim,3,scheme_module);
+  KNO_LINK_PRIM("min/sorted",min_sorted_prim,4,scheme_module);
+  KNO_LINK_PRIM("pick-min",pick_min_prim,4,scheme_module);
+  KNO_LINK_PRIM("max/sorted",max_sorted_prim,4,scheme_module);
+  KNO_LINK_PRIM("pick-max",pick_max_prim,4,scheme_module);
   KNO_LINK_PRIM("lexsorted",lexsorted_prim,2,scheme_module);
   KNO_LINK_PRIM("rsorted",rsorted_prim,3,scheme_module);
   KNO_LINK_PRIM("sorted",sorted_prim,3,scheme_module);
@@ -1838,9 +1954,9 @@ static void link_local_cprims()
   KNO_LINK_ALIAS("ω",choicesize_prim,scheme_module);
   KNO_LINK_ALIAS("| |",choicesize_prim,scheme_module);
   KNO_LINK_ALIAS("",choicesize_prim,scheme_module);
-  KNO_LINK_ALIAS("nmax",nmax_prim,scheme_module);
+  KNO_LINK_ALIAS("nmax",pick_max_prim,scheme_module);
   KNO_LINK_ALIAS("nmax->vector",max_sorted_prim,scheme_module);
-  KNO_LINK_ALIAS("nmin",nmin_prim,scheme_module);
+  KNO_LINK_ALIAS("nmin",pick_min_prim,scheme_module);
   KNO_LINK_ALIAS("nmin->vector",min_sorted_prim,scheme_module);
 
 }
