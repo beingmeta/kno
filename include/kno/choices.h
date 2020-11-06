@@ -164,6 +164,8 @@ KNO_FASTOP void kno_free_choice(struct KNO_CHOICE *ch)
 /* Incref data elements when copying */
 #define KNO_CHOICE_INCREF  64
 
+#define KNO_NO_CHOICE_FLAGS 0
+
 KNO_EXPORT lispval kno_init_choice
   (struct KNO_CHOICE *ch,int n,const lispval *data,int flags);
 KNO_FASTOP lispval kno_make_choice(int n,const lispval *data,int flags)
