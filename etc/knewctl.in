@@ -239,12 +239,12 @@ start_activity ( ) {
     elif [ ${status} = "inactive" ]; then
 	shift;
 	echo ${U8RUN} +daemon ${srvname} ${U8RUN_FLAGS} ${LAUNCHER} ${srvname} \
-	         CONFIG=${ctl_file} \
-		 RUNDIR=${RUNDIR} LOGFILE=${LOGDIR}/${srvname}.log \
+	         CONFIG=${ctl_file} RUNDIR=${RUNDIR} \
+		 LOGFILE=${LOGDIR}/${srvname}.log \
 		 $*;
-	${U8RUN} ${srvname} ${U8RUN_FLAGS} ${LAUNCHER} ${srvname} \
-	         CONFIG=${ctl_file} \
-		 RUNDIR=${RUNDIR} LOGFILE=${LOGDIR}/${srvname}.log \
+	${U8RUN} +daemon ${srvname} ${U8RUN_FLAGS} ${LAUNCHER} ${srvname} \
+	         CONFIG=${ctl_file} RUNDIR=${RUNDIR} \
+		 LOGFILE=${LOGDIR}/${srvname}.log \
 		 $*;
     else echo "${ACTIVITY} ${srvname} in ${status} status; try restart?";
     fi;
@@ -401,13 +401,12 @@ case ${COMMAND} in
 	if [ -z "$1" ]; then
 	    usage_err "Missing argument to link";
 	elif [ -f "$1" ]; then
-	    conf_name=$(basename $1);
+	    srvname=$(basename $1 .cfg);
 	    abspath=$(get_abspath $1);
-	    echo ln -sf ${abspath} ${CONFDIR}/${conf_name};
-	    ln -sf ${abspath} ${CONFDIR}/${conf_name};
+	    ln -sf ${abspath} ${CONFDIR}/${srvname};
 	    if [ "$2" != "enabled" ]; then
-		touch ${CONFDIR}/${conf_name}.disabled;
-		msg "Initially disabled; knoctl enable ${ACTIVITY} ${conf_name} to enable";
+		touch ${CONFDIR}/${srvname}.disabled;
+		msg "Initially disabled; knoctl enable ${ACTIVITY} ${srvname} to enable";
 	    fi;
 	else usage_err "The file $1 does not exist";
 	fi;
