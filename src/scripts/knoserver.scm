@@ -30,9 +30,12 @@
 
 (define (main (port (config 'PORT)) . mods)
   (when (and (string? port) (file-exists? port))
-    (cond ((has-suffix port {".fdz" ".scm"}) (load-file port))
+    (cond ((has-suffix port {".srv" ".knod" ".fdz" ".scm"}) (load-file port))
 	  ((has-suffix port {".cfg" ".conf"}) (load-config port)))
-    (set! port (config 'port (config 'listen))))
+    (let ((confport (config 'port (config 'listen))))
+      (if port
+	  (set! port confport)
+	  (set! port (strip-suffix port {".fdz" ".scm" ".srv" "cfg" ".conf" ".knod"})))))
   (cond ((fixnum? port) (set! port (glom "0.0.0.0:" port)))
 	((not (string? port)) (set! port (config 'port (config 'listen))))
 	(else))
