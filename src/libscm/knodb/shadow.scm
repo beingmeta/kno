@@ -19,9 +19,9 @@
 	       (= (procedure-arity generator) 1))
     (irritant generator |InvalidShadowGenerator|
       "Not a function of one argument"))
-  (let ((table (try (if pool
-			(car (get shadows (cons slotid pool)))
-			(car (get shadows slotid))))))
+  (let* ((shadow (try (tryif pool (get shadows (cons slotid pool)))
+		      (get shadows slotid)))
+	 (table (shadow-table shadow)))
     (when (fail? table)
       (set! table (make-hashtable))
       (if pool
