@@ -20,8 +20,8 @@
 		  config:replace config:push
 		  config:dirname config:dirname:opt
 		  config:integer config:fixnum
-		  config:positive config:negative config:nonzero
-		  config:nonpos config:nonneg})
+		  config:nonzero config:non-postive config:non-negative
+		  config:positive config:negative})
 
 (module-export! 'propconfig!)
 
@@ -242,14 +242,14 @@
       (begin (logwarn "Invalid config:nonzero specifier " (write val))
 	(fail))))
 
-(define (config:nonneg val (num))
+(define (config:non-negative val (num))
   (if (string? val) 
       (set! num (string->number val))
       (set! num val))
   (if (and (integer? num) (>= num 0)) num
       (begin (logwarn "Invalid config:nonneg specifier " (write val))
 	(fail))))
-(define (config:nonpos val (num))
+(define (config:non-positive val (num))
   (if (string? val) 
       (set! num (string->number val))
       (set! num val))
