@@ -352,13 +352,11 @@ KNO_EXPORT unsigned char *kno_uncompress
   switch (ctype) {
   case KNO_NOCOMPRESS:
     return just_copy(result_size,source,source_len);
-  case KNO_ZLIB:
-    return do_zuncompress(source,source_len,result_size,NULL);
-  case KNO_ZLIB9:
+  case KNO_ZLIB: case KNO_ZLIB9:
     return do_zuncompress(source,source_len,result_size,NULL);
   case KNO_SNAPPY:
     return do_snappy_uncompress(result_size,source,source_len);
-  case KNO_ZSTD:
+  case KNO_ZSTD: case KNO_ZSTD9: case KNO_ZSTD19:
     return do_zstd_uncompress(result_size,source,source_len,state);
   default:
     u8_seterr("BadCompressMethod","kno_compress",NULL);
