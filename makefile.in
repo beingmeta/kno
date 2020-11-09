@@ -152,7 +152,7 @@ SRC_HEADERS=src/lisp/biginternals.h 		\
 	src/drivers/headers/zcompress.h 	\
 	src/drivers/headers/filepool.h 		\
 	src/drivers/headers/fileindex.h 	\
-	src/drivers/headers/memindex.h	 	\
+	src/drivers/headers/logindex.h	 	\
 	src/drivers/headers/bigpool.h	 	\
 	src/drivers/headers/kpool.h	 	\
 	src/drivers/headers/oidpool.h	 	\
@@ -216,7 +216,7 @@ DRIVER_OBJS=\
 	src/drivers/netpool.o src/drivers/netindex.o		\
 	src/drivers/filepool.o src/drivers/bigpool.o		\
 	src/drivers/fileindex.o src/drivers/hashindex.o		\
-	src/drivers/memindex.o src/drivers/zpathstore.o 	\
+	src/drivers/logindex.o src/drivers/zpathstore.o 	\
 	src/drivers/zip.o
 
 CORE_SCHEME_OBJS=\
@@ -362,7 +362,7 @@ KNO_SOURCES=\
 	src/storage/mempool.c src/storage/extpool.c				\
 	src/drivers/netpool.c src/drivers/netindex.c 				\
 	src/storage/procpool.c src/storage/procindex.c 				\
-	src/drivers/memindex.c							\
+	src/drivers/logindex.c							\
 	src/eval/eval.c src/eval/opcode_defs.c src/eval/opcode_info.h		\
 	src/eval/options.c src/eval/appenv.c					\
 	src/eval/testops.c src/eval/debug.c					\
@@ -2050,6 +2050,6 @@ src/drivers/bigpool.o: src/drivers/headers/bigpool.h src/drivers/headers/zcompre
 src/drivers/kpool.o: src/drivers/headers/kpool.h src/drivers/headers/zcompress.h
 src/drivers/hashindex.o: src/drivers/headers/hashindex.h  src/drivers/headers/zcompress.h
 src/drivers/kindex.o: src/drivers/headers/kindex.h  src/drivers/headers/zcompress.h
-src/drivers/memindex.o: src/drivers/headers/memindex.h
+src/drivers/logindex.o: src/drivers/headers/logindex.h
 src/drivers/zip.o: src/drivers/headers/zip.h src/drivers/headers/miniz.h
 src/drivers/zpathstore.o: src/drivers/headers/zip.h src/drivers/headers/miniz.h
