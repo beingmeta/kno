@@ -17,20 +17,20 @@
    The code is either -1 (drop), 0 (store), or 1 (add).
 */
 
-#define KNO_MEMINDEX_MAGIC_NUMBER ((12<<24)|(7<<16)|(9<<8)|(24))
+#define KNO_LOGINDEX_MAGIC_NUMBER ((12<<24)|(7<<16)|(9<<8)|(24))
 
-typedef struct KNO_MEMINDEX {
+typedef struct KNO_LOGINDEX {
   KNO_INDEX_FIELDS;
-  unsigned int mix_loaded;
-  struct KNO_HASHTABLE mix_map;
-  unsigned int mix_n_commits;
-  unsigned int mix_n_keys, mix_n_entries;
-  unsigned int mix_n_slotids, mix_added_slotids;
-  unsigned int mix_slotids_length;
-  unsigned int mix_n_baseoids, mix_added_baseoids;
-  unsigned int mix_baseoids_length;
-  lispval *mix_slotids, *mix_baseoids;
-  size_t mix_valid_data;
+  unsigned int logx_loaded;
+  struct KNO_HASHTABLE logx_map;
+  unsigned int logx_n_commits;
+  unsigned int logx_n_keys, logx_n_entries;
+  unsigned int logx_n_slotids, logx_added_slotids;
+  unsigned int logx_slotids_length;
+  unsigned int logx_n_baseoids, logx_added_baseoids;
+  unsigned int logx_baseoids_length;
+  lispval *logx_slotids, *logx_baseoids;
+  size_t logx_valid_data;
   struct KNO_STREAM index_stream;} KNO_LOG_INDEX;
 typedef struct KNO_LOG_INDEX *kno_log_index;
 

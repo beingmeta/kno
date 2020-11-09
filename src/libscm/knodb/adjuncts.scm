@@ -167,7 +167,7 @@
 (define (ref-adjunct pool opts)
   (if (or (getopt opts 'index)
 	  (overlaps? (downcase (getopt opts 'type {}))
-		     {"hashindex" "fileindex" "memindex" "index"}))
+		     {"hashindex" "fileindex" "logindex" "index"}))
       (if (file-exists? (abspath (getopt opts 'index (getopt opts 'source)) 
 				 (dirname (pool-source pool))))
 	  (open-index (abspath (getopt opts 'index)) opts)

@@ -42,7 +42,7 @@ KNO_EXPORT int kno_init_builtindbs_c()
 int kno_init_netindex_c(void);
 int kno_init_fileindex_c(void);
 int kno_init_hashindex_c(void);
-int kno_init_memindex_c(void);
+int kno_init_logindex_c(void);
 int kno_init_kindex_c(void);
 
 int kno_init_netpool_c(void);
@@ -75,7 +75,7 @@ KNO_EXPORT int kno_init_drivers()
   kno_init_kindex_c();
 
   kno_init_netindex_c();
-  kno_init_memindex_c();
+  kno_init_logindex_c();
 
   kno_init_zpathstore_c();
 
