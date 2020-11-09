@@ -175,7 +175,7 @@ static lispval lisp2packet(lispval object,lispval initsize)
     return packet;}
 }
 
-/* DTYPE streams */
+/* XTYPE streams */
 
 DEFPRIM2("decode-xtype",decode_xtype,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "`(decode-xtype *packet* [*xrefs*])` "
@@ -1494,6 +1494,84 @@ static lispval gzip_prim(lispval arg,lispval filename,lispval comment)
       return packet;}}
 }
 
+DEFPRIM2("compress",compress_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	 "`(COMPRESSS *data* *method*)` "
+	 "Compresses *data* into a packet using *method*.",
+	 kno_any_type,KNO_VOID,kno_symbol_type,KNO_VOID);
+static lispval compress_prim(lispval arg,lispval method)
+{
+  if (!((STRINGP(arg)||PACKETP(arg))))
+    return kno_type_error("string or packet","x2zipfile_prim",arg);
+  kno_compress_type ctype = (KNO_VOIDP(method)) ? (KNO_ZSTD9) :
+    (kno_compression_type(method,KNO_BADTYPE));
+  if (ctype==KNO_BADTYPE)
+    return kno_err("BadCompressionType","compress_prim",
+		   KNO_SYMBOL_NAME(method),KNO_VOID);
+  else {
+    const unsigned char *data=
+      ((STRINGP(arg))?(CSTRING(arg)):(KNO_PACKET_DATA(arg)));
+    ssize_t data_len=
+      ((STRINGP(arg))?(STRLEN(arg)):(KNO_PACKET_LENGTH(arg)));
+    ssize_t compressed_len = -1;
+    unsigned char *compressed = kno_compress
+      (ctype,&compressed_len,data,data_len,NULL);
+    if (compressed) {
+      lispval vec = kno_make_packet(NULL,compressed_len,compressed);
+      u8_big_free(compressed);
+      return vec;}
+    else return KNO_ERROR;}
+}
+
+DEFPRIM3("uncompress",uncompress_prim,
+	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+	 "`(UNCOMPRESS *packet* *method* [encoding])` "
+	 "Uncompresses *data* from packet *method*. "
+	 "If *encoding* is specified, attempts to convert "
+	 "the result into a string using the designated "
+	 "encoding.",
+	 kno_packet_type,KNO_VOID,kno_symbol_type,KNO_VOID,
+	 kno_any_type,KNO_FALSE);
+static lispval uncompress_prim(lispval arg,lispval method,
+			       lispval encoding)
+{
+  kno_compress_type ctype = (KNO_VOIDP(method)) ? (KNO_ZSTD9) :
+    (kno_compression_type(method,KNO_BADTYPE));
+  if (ctype==KNO_BADTYPE)
+    return kno_err("BadCompressionType","compress_prim",
+		   KNO_SYMBOL_NAME(method),KNO_VOID);
+  else {
+    int return_packet = (FALSEP(encoding)) ||
+      (DEFAULTP(encoding)) || (VOIDP(encoding));
+    struct U8_TEXT_ENCODING *enc = (return_packet) ? (NULL) :
+      (KNO_TRUEP(encoding)) ? (u8_get_encoding("UTF-8")) :
+      (STRINGP(encoding)) ? (u8_get_encoding(CSTRING(encoding))) :
+      (SYMBOLP(encoding)) ? (u8_get_encoding(SYM_NAME(encoding))) :
+      (NULL);
+    if ((!return_packet) && (enc==NULL))
+      return kno_type_error(_("text encoding"),"uncompress",encoding);
+    const unsigned char *data = KNO_PACKET_DATA(arg);
+    ssize_t data_len = KNO_PACKET_LENGTH(arg);
+    ssize_t uncompressed_len = -1;
+    unsigned char *uncompressed = kno_uncompress
+      (ctype,&uncompressed_len,data,data_len,NULL);
+    if (uncompressed) {
+      if (enc == NULL)
+	return kno_init_packet(NULL,uncompressed_len,uncompressed);
+      struct U8_OUTPUT out;
+      const u8_byte *scan = uncompressed;
+      const u8_byte *limit = uncompressed+uncompressed_len;
+      U8_INIT_OUTPUT(&out,2*uncompressed_len);
+      if (u8_convert(enc,0,&out,&scan,limit)<0) {
+	lispval packet = kno_make_packet(NULL,uncompressed_len,uncompressed);
+	u8_free(out.u8_outbuf);
+	u8_big_free(uncompressed);
+	return packet;}
+      else {
+	u8_big_free(uncompressed);
+	return kno_stream2string(&out);}}
+    else return KNO_ERROR;}
+}
+
 /* Pathstore operations */
 
 DEFPRIM1("pathstore?",pathstorep_prim,
@@ -1696,6 +1774,9 @@ static void link_local_cprims()
   KNO_LINK_PRIM("port?",portp,1,kno_io_module);
   KNO_LINK_PRIM("input-port?",input_portp,1,kno_io_module);
   KNO_LINK_PRIM("output-port?",output_portp,1,kno_io_module);
+
+  KNO_LINK_PRIM("compress",compress_prim,2,kno_io_module);
+  KNO_LINK_PRIM("uncompress",uncompress_prim,3,kno_io_module);
 
   KNO_LINK_PRIM("pathstore?",pathstorep_prim,1,kno_io_module);
   KNO_LINK_PRIM("pathstore/exists?",pathstore_existsp_prim,2,kno_io_module);

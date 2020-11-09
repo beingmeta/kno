@@ -369,6 +369,7 @@ KNO_EXPORT u8_condition kno_InvalidOffsetType;
 typedef enum KNO_OFFSET_TYPE { KNO_B32 = 0, KNO_B40 = 1, KNO_B64 = 2 }
   kno_offset_type;
 typedef enum KNO_COMPRESS_TYPE {
+  KNO_BADTYPE = -1,
   KNO_NOCOMPRESS = 0,
   KNO_ZLIB = 1,
   KNO_ZLIB9 = 2,
