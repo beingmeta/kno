@@ -4,8 +4,11 @@
 
 (use-module '{reflection texttools stringfmts logger})
 
-(module-export! '{debug.command backtrace.command 
-		  bt.command frame.command
+(module-export! '{debug.command
+		  backtrace.command bt.command
+		  frame.command f.command
+		  env.command args.command
+		  source.command context.command
 		  getframe.command getenv.command})
 
 (define (set-debug! (arg #f))
@@ -28,21 +31,24 @@
   (if arg (set-debug! arg)
       (logwarn |NoError| "Nothing to debug")))
 
-(define (display-stackframe frame)
+(define (display-stackframe frame (label #f))
   (let ((fcn (stack-function frame))
 	(args (stack-args frame))
 	(env (stack-env frame)))
-    (lineout (stack-depth frame) " " (stack-label frame)
+    (lineout (if label (printout label " ")) 
+      "#" (stack-depth frame) " "
       (if (and (stack-origin frame)
 	       (not (equal? (stack-origin frame) (stack-label frame))))
-	  (printout "/" (stack-origin frame)))
+	  (printout (stack-origin frame) "/" (stack-label frame))
+	  (printout (stack-label frame)))
       (if (or (applicable? fcn) (special-form? fcn) (macro? fcn))
 	  (printout " " (or (procedure-name fcn) fcn)))
       (if (stack-filename frame) (printout " " (write (stack-filename frame))))
       (if args (printout " " ($count (length args) "arg")))
       (if env (printout " binding"
 		(do-choices (sym (getkeys env) i)
-		  (printout (if (> i 0) ",") " " sym)))))))
+		  (printout (if (> i 0) ",") " "
+		    (if (not (void? sym)) sym))))))))
 
 (define (getframe.command (n #f))
   (when (set-debug!)
@@ -79,7 +85,7 @@
 	    (display-stackframe frame)
 	    (unless (= (length args) 0)
 	      (doseq (arg args i)
-		(lineout "arg" i "\t" (listdata arg))))
+		(lineout "arg" i "\t" (if (void? arg) "#void" (listdata arg)))))
 	    (when env
 	      (let ((vars (getkeys env)))
 		(lineout ($count (|| vars) "binding") ":")
@@ -96,6 +102,83 @@
 			   (lineout " " key ":")
 			   (lineout "  "
 			     (indent-text (stringout (listdata val)) 2)))))))))))))
+(define f.command (fcn/alias frame.command))
+
+(define (source.command (n #f))
+  (when (set-debug!)
+    (when (and (not n) (req/test '_debug_stack_entry))
+      (set! n (stack-depth (req/get '_debug_stack_entry))))
+    (let* ((stack (req/get '_debug_stack))
+	   (depth (length stack)))
+      (if (or (>= n depth) (< n 0))
+	  (logwarn |StackRangeError|
+	    "The specified start frame " base " is outside of the stack (" depth " frames)")
+	  (let ((frame (elt stack (- depth 1 n))))
+	    (req/set! '_debug_stack_entry stack)
+	    (display-stackframe frame "Source")
+	    (if (stack-source frame)
+		(lineout (void (pprint (stack-source frame))))
+		(logwarn |NoSource| "For stack frame " n)))))))
+(define (context.command (n #f))
+  (when (set-debug!)
+    (when (and (not n) (req/test '_debug_stack_entry))
+      (set! n (stack-depth (req/get '_debug_stack_entry))))
+    (let* ((stack (req/get '_debug_stack))
+	   (depth (length stack)))
+      (if (or (>= n depth) (< n 0))
+	  (logwarn |StackRangeError|
+	    "The specified start frame " base " is outside of the stack (" depth " frames)")
+	  (let ((frame (elt stack (- depth 1 n))))
+	    (req/set! '_debug_stack_entry stack)
+	    (display-stackframe frame "Source")
+	    (if (stack-annotated-source frame)
+		(lineout (void (pprint (stack-annotated-source frame))))
+		(logwarn |NoSource| "For stack frame " n)))))))
+(define (args.command (n #f))
+  (when (set-debug!)
+    (when (and (not n) (req/test '_debug_stack_entry))
+      (set! n (stack-depth (req/get '_debug_stack_entry))))
+    (let* ((stack (req/get '_debug_stack))
+	   (depth (length stack)))
+      (if (or (>= n depth) (< n 0))
+	  (logwarn |StackRangeError|
+	    "The specified start frame " base " is outside of the stack (" depth " frames)")
+	  (let* ((frame (elt stack (- depth 1 n)))
+		 (args (stack-args frame)))
+	    (req/set! '_debug_stack_entry stack)
+	    (display-stackframe frame "Source")
+	    (unless (= (length args) 0)
+	      (doseq (arg args i)
+		(lineout "arg" i "\t" (if (void? arg) "#void" (listdata arg))))))))))
+(define (env.command (n #f))
+  (when (set-debug!)
+    (when (and (not n) (req/test '_debug_stack_entry))
+      (set! n (stack-depth (req/get '_debug_stack_entry))))
+    (let* ((stack (req/get '_debug_stack))
+	   (depth (length stack)))
+      (if (or (>= n depth) (< n 0))
+	  (logwarn |StackRangeError|
+	    "The specified start frame " base " is outside of the stack (" depth " frames)")
+	  (let* ((frame (elt stack (- depth 1 n)))
+		 (env (stack-env frame)))
+	    (req/set! '_debug_stack_entry stack)
+	    (display-stackframe frame "Source")
+	    (if env
+		(let ((vars (getkeys env)))
+		  (lineout ($count (|| vars) "binding") ":")
+		  (do-choices (key vars)
+		    (let* ((val (get env key)) (string (stringout (write val))))
+		      (cond ((and (not (multiline-string? string)) (< (length string) 45))
+			     (lineout " " key "\t" string))
+			    ((ambiguous? val)
+			     (lineout " " key ":")
+			     (do-choices (v val)
+			       (lineout "    "
+				 (indent-text (stringout (listdata v)) 4))))
+			    (else
+			     (lineout " " key ":")
+			     (lineout "  "
+			       (indent-text (stringout (listdata val)) 2)))))))))))))
 
 (define (backtrace.command (n #f) (base 0))
   (when (set-debug!)
