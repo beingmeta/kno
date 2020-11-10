@@ -15,6 +15,7 @@
 		  knodb/mods knodb/modified?
 		  pool/ref index/ref pool/copy
 		  pool/getindex pool/getindexes
+		  knodb/makedb
 		  knodb/index!})
 
 (module-export! '{knodb:pool knodb:index})
@@ -43,6 +44,7 @@
 
 ;;; Utility functions
 
+;;; This makes missing directories
 (define (checkdbpath source opts (suffix #f))
   (cond ((exists position {#\@ #\:} source) source)
 	((not (position #\/ source)) (opt-suffix source suffix))
@@ -65,12 +67,27 @@
 	      ((has-prefix source {"~" "./" "../"}) (abspath source))
 	      (else (->gpath source rootdir))))))
 
-(define (make-opts opts)
-  (let ((addopts (or (deep-copy (getopt opts 'make)) `#[])))
-    (when (and (testopt opts 'indextype) (not (testopt opts 'type)))
-      (store! addopts 'type (getopt opts 'indextype)))
-    (when (and (testopt opts 'pooltype) (not (testopt opts 'type)))
-      (store! addopts 'type (getopt opts 'pooltype)))
+(define (find-dbtype opts (assume #f) (head))
+  (default! head (and (pair? opts) (car opts)))
+  (cond ((and (eq? assume 'pool) (test head 'pooltype))
+	 (cons 'pooltype (get head 'pooltype)))
+	((and (eq? assume 'index) (test head 'indextype))
+	 (cons 'indextype (get head 'indextype)))
+	((and (not assume) (test head 'pooltype))
+	 (cons 'pooltype (get head 'pooltype)))
+	((and (not assume) (test head 'indextype))
+	 (cons 'indextype (get head 'indextype)))
+	((pair? opts)
+	 (find-dbtype (cdr opts) 
+		      (or assume (if (test head 'pool) 'pool
+				     (if (test head 'index) 'index
+					 #f)))))
+	(else {})))
+
+(define (make-opts opts (basetype #f))
+  (let ((addopts (or (deep-copy (getopt opts 'make)) `#[]))
+	(usetype (find-dbtype opts basetype)))
+    (store! addopts (car usetype) (cdr usetype))
     (when (getopt opts 'adjuncts)
       (store! addopts 'metadata (or (deep-copy (getopt opts 'metadata)) #[]))
       (store! (getopt addopts 'metadata) 'adjuncts (getopt opts 'adjuncts)))
@@ -110,7 +127,7 @@
 	((table? spec)
 	 (resolve-dbref (get-dbsource (cons spec opts)) (cons opts spec)))
 	((and (string? spec) (testopt opts 'rootdir))
-	  (resolve-dbref (mkpath (getopt opts 'rootdir) spec) opts))
+	 (resolve-dbref (mkpath (getopt opts 'rootdir) spec) opts))
 	(else (resolve-dbref spec opts))))
 
 (define (resolve-dbref dbsource opts)
@@ -118,7 +135,8 @@
   (cond ((or (testopt opts '{flexindex flexpool})
 	     (testopt opts 'type '{flexindex flexpool}))
 	 (flex-open dbsource opts))
-	((or (file-exists? dbsource) (textmatch (qc network-source) dbsource)
+	((or (file-exists? dbsource)
+	     (textmatch (qc network-source) dbsource)
 	     (exists? (knodb/partition-files dbsource "index"))
 	     (exists? (knodb/partition-files dbsource "pool")))	     
 	 (flex-open dbsource opts))
@@ -128,23 +146,29 @@
 	     #f))
 	((textmatch (qc network-source) dbsource)
 	 (irritant dbsource |CantCreateRemoteDB|))
-	((or (has-suffix dbsource ".pool")
-	     (testopt opts 'pool)
-	     (testopt opts 'pooltype)
-	     (testopt opts 'type 'pool))
+	((has-suffix dbsource ".pool")
 	 (knodb/pool (make-pool (checkdbpath dbsource opts ".pool")
-		       (make-opts opts))
+		       (make-opts opts 'pool))
 		     opts))
-	((or (has-suffix dbsource ".index")
-	     (testopt opts 'index)
-	     (testopt opts 'indextype)
-	     (testopt opts 'type 'index))
+	((has-suffix dbsource ".index")
 	 (knodb/wrap-index
 	  (make-index (checkdbpath dbsource opts ".index")
-	    (make-opts opts))
+	    (make-opts opts 'index))
 	  opts))
-	(else (irritant (cons [source dbsource] opts) 
-		  |CantDetermineDBType| knodb/ref))))
+	(else (let ((dbtype (find-dbtype opts #f)))
+		(cond ((fail? dbtype)
+		       (irritant (cons [source dbsource] opts) 
+			   |CantDetermineDBType| knodb/ref))
+		      ((eq? (car dbtype) 'pooltype)
+		       (knodb/pool (make-pool (checkdbpath dbsource opts ".pool")
+				     (make-opts opts 'pool))
+				   opts))
+		      ((eq? (car dbtype) 'indextype)
+		       (knodb/wrap-index
+			(make-index (checkdbpath dbsource opts ".index")
+			  (make-opts opts 'index))
+			opts))
+		      (else (irritant dbtype |CantDetermineDBType| knodb/ref)))))))
 
 (define (knodb/make spec (opts #f))
   (knodb/ref spec (if opts (cons #[create #t] opts) #[create #t])))
@@ -281,6 +305,19 @@
 	     (knodb/pool (use-pool (knodb/partition-files source "pool") opts) opts)))
 	(else (irritant source |UnknownDBType|))))
 
+;;; makefiledb
+
+(define-init makedb-defaults
+  [capacity #mib size #4mib pooltype 'kpool indextype 'kindex])
+
+(define (knodb/makedb base (opts #f))
+  (let ((create-opts #[create #t mkdir #t]))
+    (let* ((opts (opt+ create-opts opts makedb-defaults))
+	   (pool (pool/ref (glom base ".pool") opts))
+	   (index (index/ref (glom base ".index") opts)))
+      (dbctl pool 'metadata 'index (glom (basename base) ".index"))
+      (commit pool))))
+
 ;;; Variants
 
 (define (pool/ref spec (opts #f))
@@ -289,9 +326,8 @@
 		 (opt+ opts 'pooltype (getopt opts 'type 'kpool)))))
 
 (define (index/ref spec (opts #f))
-  (knodb/ref spec 
-	     (if (testopt opts 'indextype) opts
-		 (opt+ opts 'indextype (getopt opts 'type 'kindex)))))
+  (knodb/ref spec (if (testopt opts 'indextype) opts
+		      (opt+ opts 'indextype (getopt opts 'type 'kindex)))))
 
 ;;; Copying OIDs between pools
 
