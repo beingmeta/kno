@@ -1158,6 +1158,7 @@ int main(int argc,char **argv)
 	      u8_fprintf(stderr,";; The exception was saved in #%d\n",
 			 kno_histpush(exo));
 	    kno_assign_value(_err_symbol,exo,env);
+	    kno_req_store(_err_symbol,exo);
 	    if (console_bugdir) {
 	      if (*console_bugdir) kno_dump_bug(exo,console_bugdir);}
 	    else if (kno_dump_exception)
@@ -1166,8 +1167,7 @@ int main(int argc,char **argv)
 	    /* Note that u8_free_exception will decref exo, so we don't
 	       need to do so. */
 	    u8_free_exception(ex,1);}}
-      else fprintf(stderr,
-		   ";;; The expression generated a mysterious error!!!!\n");}
+      else fprintf(stderr,";;; The expression generated a mysterious error!!!!\n");}
     else if (stat_line)
       output_result(out,result,histref_string,console_width,showall);
     else if (VOIDP(result)) {}
