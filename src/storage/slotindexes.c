@@ -26,6 +26,7 @@
 #include <stdarg.h>
 
 static u8_condition OddFindFramesArgs=_("Odd number of args to find frames");
+static u8_condition NoWritableIndexForSlot=_("NoIndexForSlot");
 
 static lispval index2lisp(kno_index ix)
 {
@@ -499,7 +500,7 @@ int kno_index_frame(kno_index ix,lispval frames,lispval slotids,lispval values)
     if (write_index == NULL) {
       lispval irritant = kno_index2lisp(ix);
       u8_byte errbuf[256];
-      kno_seterr("NoIndexForSlot","kno_index_frame",
+      kno_seterr(NoWritableIndexForSlot,"kno_index_frame",
 		 (KNO_SYMBOLP(slotid)) ? 
 		 (KNO_SYMBOL_NAME(slotid)) :
 		 (u8_bprintf(errbuf,"%q",slotid)),
