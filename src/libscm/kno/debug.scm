@@ -90,18 +90,20 @@
 	      (let ((vars (getkeys env)))
 		(lineout ($count (|| vars) "binding") ":")
 		(do-choices (key vars)
-		  (let* ((val (get env key)) (string (stringout (write val))))
-		    (cond ((and (not (multiline-string? string)) (< (length string) 45))
-			   (lineout " " key "\t" string))
-			  ((ambiguous? val)
-			   (lineout " " key ":")
-			   (do-choices (v val)
-			     (lineout "    "
-			       (indent-text (stringout (listdata v)) 4))))
-			  (else
-			   (lineout " " key ":")
-			   (lineout "  "
-			     (indent-text (stringout (listdata val)) 2)))))))))))))
+		  (if (void? key)
+		      (lineout " uninitialized binding")
+		      (let* ((val (get env key)) (string (stringout (write val))))
+			(cond ((and (not (multiline-string? string)) (< (length string) 45))
+			       (lineout " " key "\t" string))
+			      ((ambiguous? val)
+			       (lineout " " key ":")
+			       (do-choices (v val)
+				 (lineout "    "
+				   (indent-text (stringout (listdata v)) 4))))
+			      (else
+			       (lineout " " key ":")
+			       (lineout "  "
+				 (indent-text (stringout (listdata val)) 2))))))))))))))
 (define f.command (fcn/alias frame.command))
 
 (define (source.command (n #f))
