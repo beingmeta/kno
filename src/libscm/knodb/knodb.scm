@@ -22,7 +22,7 @@
 
 (module-export! '{knodb/commit})
 
-(module-export! '{knodb/subpath knodb/mksubpath})
+(module-export! '{knodb/mkpath knodb/subpath knodb/mksubpath})
 
 (define-init %loglevel %notice%)
 
@@ -67,9 +67,33 @@
 	      ((has-prefix source {"~" "./" "../"}) (abspath source))
 	      (else (->gpath source rootdir))))))
 
+(define (knodb/source opts (rootdir))
+  (default! rootdir (getopt opts 'rootdir))
+  (if (pair? opts)
+      (try (get-dbsource (car opts) rootdir)
+	   (get-dbsource (cdr opts) rootdir))
+      (let ((source (try (tryif (string? opts) opts)
+			 (get opts 'index)
+			 (get opts 'pool)
+			 (get opts 'source))))
+	(cond ((fail? source) source)
+	      ((not (string? source)) source)
+	      ((textmatch network-source source) source)
+	      ((not rootdir) (abspath source))
+	      ((has-prefix source {"~" "./" "../"}) (abspath source))
+	      ((and (string? rootdir) (has-suffix rootdir {"_" "-"}))
+	       (->gpath (glom rootdir source)))
+	      (else (->gpath source rootdir))))))
+
 (define (find-dbtype opts (assume #f) (head))
-  (default! head (and (pair? opts) (car opts)))
-  (cond ((and (eq? assume 'pool) (test head 'pooltype))
+  "Finds the dbtype from options passed to knodb. The trick here is to handle "
+  "options which may mingle pooltypes and indextypes, and is consistent with "
+  "database specs returned by get-dbsource."
+  (default! head (if (pair? opts) (car opts) opts))
+  ;; Skip any #f options
+  (while (and (not head) (pair? opts)) (set! opts (cdr opts)))
+  (cond ((not opts) {})
+	((and (eq? assume 'pool) (test head 'pooltype))
 	 (cons 'pooltype (get head 'pooltype)))
 	((and (eq? assume 'index) (test head 'indextype))
 	 (cons 'indextype (get head 'indextype)))
@@ -92,6 +116,16 @@
       (store! addopts 'metadata (or (deep-copy (getopt opts 'metadata)) #[]))
       (store! (getopt addopts 'metadata) 'adjuncts (getopt opts 'adjuncts)))
     (cons addopts opts)))
+
+(define (knodb/mkpath rootdir source (opts #f))
+  (cond ((or (fail? source) (not source)) source)
+	((not (string? source)) source)
+	((textmatch network-source source) source)
+	((not rootdir) (abspath source))
+	((has-prefix source {"~" "./" "../"}) (abspath source))
+	((and (string? rootdir) (has-suffix rootdir {"_" "-"}))
+	 (->gpath (glom rootdir source)))
+	(else (->gpath source rootdir))))
 
 (define (knodb/subpath prefix . namespecs)
   (if (file-directory? prefix)
