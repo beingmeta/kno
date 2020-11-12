@@ -596,14 +596,17 @@ static lispval jsonstring(lispval x,lispval flags_arg,lispval slotfn,
 
 static lispval json_slotid(u8_input in)
 {
-  int c = u8_probec(in);
+  int c = u8_getc(in);
   if (PRED_FALSE(c<0)) return KNO_EOF;
   int delim = ( (c == '\'') || (c == '"') ) ? (c) : (-1);
   int make_symbol = 0;
   U8_STATIC_OUTPUT(all,120);
-  if (delim > 0) c = u8_getc(in); /* Skip the delimeter */
-  if (c == '\\') c = u8_getc(in);
+  if (delim > 0) c = u8_getc(in); /* Skip the delimiter */
+  if (c == '\\')
+    /* Handle backslash by not interpreting the next char */
+    c = u8_getc(in);
   else if ( (c<0x80) && (strchr("@\\:'#{[",c)) ) {
+    /* For these things, call the lisp parser */
     lispval oid = kno_parse_oid(in);
     if (delim<0) return oid;
     int nextc = skip_whitespace(in);
