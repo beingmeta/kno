@@ -35,6 +35,8 @@
 
 #define KNO_JSON_MAXFLAGS 256
 
+static lispval json_slotid(u8_input in);
+
 static u8_condition JSON_Error="JSON Parsing Error";
 
 static int readc(U8_INPUT *in)
@@ -185,7 +187,7 @@ static lispval json_key(U8_INPUT *in,int flags,lispval fieldmap)
 		   KNO_VOID);
   else if ( (c=='"') || (c=='\'') )
     if (flags&KNO_JSON_SLOTIDS)
-      return kno_slotid_parser(in);
+      return json_slotid(in);
     else if (VOIDP(fieldmap))
       return json_string(in,flags);
     else {
@@ -590,6 +592,40 @@ static lispval jsonstring(lispval x,lispval flags_arg,lispval slotfn,
   U8_INIT_OUTPUT(&tmpout,128);
   json_unparse(&tmpout,x,flags,slotfn,oidfn,miscfn);
   return kno_stream2string(&tmpout);
+}
+
+static lispval json_slotid(u8_input in)
+{
+  int c = u8_probec(in);
+  if (PRED_FALSE(c<0)) return KNO_EOF;
+  int delim = ( (c == '\'') || (c == '"') ) ? (c) : (-1);
+  int make_symbol = 0;
+  U8_STATIC_OUTPUT(all,120);
+  if (delim > 0) c = u8_getc(in); /* Skip the delimeter */
+  if (c == '\\') c = u8_getc(in);
+  else if ( (c<0x80) && (strchr("@\\:'#{[",c)) ) {
+    lispval oid = kno_parse_oid(in);
+    if (delim<0) return oid;
+    int nextc = skip_whitespace(in);
+    if (nextc != delim) {
+      kno_seterr("UnmatchedDelimiter","json_slotid",
+		 all.u8_outbuf,KNO_VOID);
+      u8_close_output(allout);
+      return KNO_ERROR_VALUE;}
+    else return oid;}
+  else {}
+  while (c >= 0) {
+    if (c == delim) break;
+    else if ((delim<0) && (c == ':')) break;
+    else if (c == '\\') c = u8_getc(in);
+    if ( (make_symbol) && ( (u8_isspace(c)) || (u8_isctrl(c)) ) )
+      make_symbol = 0;
+    u8_putc(allout,c);
+    c = u8_getc(in);}
+  lispval result = (make_symbol) ? (kno_getsym(all.u8_outbuf)) :
+    (kno_mkstring(all.u8_outbuf));
+  u8_close_output(allout);
+  return result;
 }
 
 /* Module initialization */
