@@ -86,24 +86,7 @@
 	    (unless (= (length args) 0)
 	      (doseq (arg args i)
 		(lineout "arg" i "\t" (if (void? arg) "#void" (listdata arg)))))
-	    (when env
-	      (let ((vars (getkeys env)))
-		(lineout ($count (|| vars) "binding") ":")
-		(do-choices (key vars)
-		  (if (void? key)
-		      (lineout " uninitialized binding")
-		      (let* ((val (get env key)) (string (stringout (write val))))
-			(cond ((and (not (multiline-string? string)) (< (length string) 45))
-			       (lineout " " key "\t" string))
-			      ((ambiguous? val)
-			       (lineout " " key ":")
-			       (do-choices (v val)
-				 (lineout "    "
-				   (indent-text (stringout (listdata v)) 4))))
-			      (else
-			       (lineout " " key ":")
-			       (lineout "  "
-				 (indent-text (stringout (listdata val)) 2))))))))))))))
+	    (when env (show-env env)))))))
 (define f.command (fcn/alias frame.command))
 
 (define (source.command (n #f))
@@ -165,22 +148,29 @@
 		 (env (stack-env frame)))
 	    (req/set! '_debug_stack_entry stack)
 	    (display-stackframe frame "Source")
-	    (if env
-		(let ((vars (getkeys env)))
-		  (lineout ($count (|| vars) "binding") ":")
-		  (do-choices (key vars)
-		    (let* ((val (get env key)) (string (stringout (write val))))
-		      (cond ((and (not (multiline-string? string)) (< (length string) 45))
-			     (lineout " " key "\t" string))
-			    ((ambiguous? val)
-			     (lineout " " key ":")
-			     (do-choices (v val)
-			       (lineout "    "
-				 (indent-text (stringout (listdata v)) 4))))
-			    (else
-			     (lineout " " key ":")
-			     (lineout "  "
-			       (indent-text (stringout (listdata val)) 2)))))))))))))
+	    (if env (show-env env)
+		(lineout " No environment in this frame")))))))
+
+(define (show-env env)
+  (let ((vars (getkeys env)))
+    (lineout ($count (|| vars) "binding") ":")
+    (do-choices (key vars)
+      (if (or (void? key) (not (test env key)) (void? (get env key)))
+	  (lineout " uninitialized binding")
+	  (let* ((val (get env key))
+		 (string (if (void? val) "#void" 
+			     (stringout (write val)))))
+	    (cond ((and (not (multiline-string? string)) (< (length string) 45))
+		   (lineout " " key "\t" string))
+		  ((ambiguous? val)
+		   (lineout " " key ":")
+		   (do-choices (v val)
+		     (lineout "    "
+		       (indent-text (stringout (listdata v)) 4))))
+		  (else
+		   (lineout " " key ":")
+		   (lineout "  "
+		     (indent-text (stringout (listdata val)) 2)))))))))
 
 (define (backtrace.command (n #f) (base 0))
   (when (set-debug!)
