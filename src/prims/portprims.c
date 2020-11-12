@@ -1508,7 +1508,6 @@ static lispval compress_prim(lispval arg,lispval method)
     return kno_err("BadCompressionType","compress_prim",
 		   KNO_SYMBOL_NAME(method),KNO_VOID);
   else {
-    u8_condition error = NULL;
     const unsigned char *data=
       ((STRINGP(arg))?(CSTRING(arg)):(KNO_PACKET_DATA(arg)));
     ssize_t data_len=
@@ -1516,8 +1515,10 @@ static lispval compress_prim(lispval arg,lispval method)
     ssize_t compressed_len = -1;
     unsigned char *compressed = kno_compress
       (ctype,&compressed_len,data,data_len,NULL);
-    if (compressed)
-      return kno_init_packet(NULL,compressed_len,compressed);
+    if (compressed) {
+      lispval vec = kno_make_packet(NULL,compressed_len,compressed);
+      u8_big_free(compressed);
+      return vec;}
     else return KNO_ERROR;}
 }
 
@@ -1548,7 +1549,6 @@ static lispval uncompress_prim(lispval arg,lispval method,
       (NULL);
     if ((!return_packet) && (enc==NULL))
       return kno_type_error(_("text encoding"),"uncompress",encoding);
-    u8_condition error = NULL;
     const unsigned char *data = KNO_PACKET_DATA(arg);
     ssize_t data_len = KNO_PACKET_LENGTH(arg);
     ssize_t uncompressed_len = -1;
@@ -1562,9 +1562,13 @@ static lispval uncompress_prim(lispval arg,lispval method,
       const u8_byte *limit = uncompressed+uncompressed_len;
       U8_INIT_OUTPUT(&out,2*uncompressed_len);
       if (u8_convert(enc,0,&out,&scan,limit)<0) {
+	lispval packet = kno_make_packet(NULL,uncompressed_len,uncompressed);
 	u8_free(out.u8_outbuf);
-	return kno_init_packet(NULL,uncompressed_len,uncompressed);}
-      else return kno_stream2string(&out);}
+	u8_big_free(uncompressed);
+	return packet;}
+      else {
+	u8_big_free(uncompressed);
+	return kno_stream2string(&out);}}
     else return KNO_ERROR;}
 }
 
