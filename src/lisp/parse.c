@@ -1660,8 +1660,7 @@ KNO_EXPORT
    Arguments: a string
    Returns: a lisp object
 
-   Parses a textual object representation into a lisp object, normall
-   a slotid (symbol or OID).
+   Parses a textual object representation into a lisp object, normally a slotid (symbol or OID).
 */
 lispval kno_slotid_parser(u8_input in)
 {
@@ -1682,9 +1681,15 @@ lispval kno_slotid_parser(u8_input in)
     u8_getc(in); /* Skip the : or ' */
     return kno_parser(in);}
   else {
-    int make_symbol = 0;
-    U8_STATIC_OUTPUT(all,120); c = u8_getc(in); /* Skip the \\ */
-    c=u8_getc(in); while (c >= 0) {
+    int make_symbol = 0, delim = ( (c == '\'') || (c == '"') ) ?
+      (c) : (-1);
+    U8_STATIC_OUTPUT(all,120);
+    if (delim > 0) c = u8_getc(in); /* Skip the delimiter */
+    c=u8_getc(in);
+    while (c >= 0) {
+      if (c == delim) break;
+      else if ((delim<0) && (c == ':')) break;
+      else if (c == '\\') c = u8_getc(in);
       if ( (make_symbol) && ( (u8_isspace(c)) || (u8_isctrl(c)) ) )
 	make_symbol = 0;
       u8_putc(allout,c);
