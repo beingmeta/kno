@@ -1684,7 +1684,7 @@ lispval kno_slotid_parser(u8_input in)
     int make_symbol = 0, delim = ( (c == '\'') || (c == '"') ) ?
       (c) : (-1);
     U8_STATIC_OUTPUT(all,120);
-    if (delim > 0) c = u8_getc(in); /* Skip the delimeter */
+    if (delim > 0) c = u8_getc(in); /* Skip the delimiter */
     c=u8_getc(in);
     while (c >= 0) {
       if (c == delim) break;
