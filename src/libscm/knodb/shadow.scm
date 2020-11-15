@@ -5,7 +5,8 @@
 
 (use-module '{reflection ezrecords logger logctl defmacro})
 
-(module-export! '{defshadow! shadow/get shadow/probe shadow/ref})
+(module-export! '{defshadow shadow/get shadow/probe shadow/ref
+		  defshadow!})
 
 (define %loglevel %warn%)
 
@@ -14,7 +15,7 @@
 (defrecord (shadow)
   slotid generator table (pool #f) (lock (make-mutex)))
 
-(define (defshadow! slotid generator (pool #f))
+(define (defshadow slotid generator (pool #f))
   (unless (and (applicable? generator)
 	       (= (procedure-arity generator) 1))
     (irritant generator |InvalidShadowGenerator|
@@ -28,7 +29,9 @@
 	  (use-adjunct table slotid pool)
 	  (use-adjunct table slotid)))
     (store! shadows (if pool (cons slotid pool) slotid) 
-      (cons-shadow slotid generator table pool))))
+      (cons-shadow slotid generator table pool))
+    table))
+(define defshadow! (fcn/alias defshadow))
 
 (define (shadow/get obj slotid)
   (try (get obj slotid)
