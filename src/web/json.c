@@ -607,15 +607,15 @@ static lispval json_slotid(u8_input in)
     c = u8_getc(in);
   else if ( (c<0x80) && (strchr("@\\:'#{[",c)) ) {
     /* For these things, call the lisp parser */
-    lispval oid = kno_parse_oid(in);
-    if (delim<0) return oid;
+    lispval val = kno_parser(in);
+    if (delim<0) return val;
     int nextc = skip_whitespace(in);
     if (nextc != delim) {
       kno_seterr("UnmatchedDelimiter","json_slotid",
 		 all.u8_outbuf,KNO_VOID);
       u8_close_output(allout);
       return KNO_ERROR_VALUE;}
-    else return oid;}
+    else return val;}
   else {}
   while (c >= 0) {
     if (c == delim) break;
