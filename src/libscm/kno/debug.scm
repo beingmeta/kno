@@ -46,9 +46,8 @@
       (if (stack-filename frame) (printout " " (write (stack-filename frame))))
       (if args (printout " " ($count (length args) "arg")))
       (if env (printout " binding"
-		(do-choices (sym (getkeys env) i)
-		  (printout (if (> i 0) ",") " "
-		    (if (not (void? sym)) sym))))))))
+		(do-choices (sym (picksyms (getkeys env)) i)
+		  (printout (if (> i 0) ",") " " sym)))))))
 
 (define (getframe.command (n #f))
   (when (set-debug!)
@@ -84,8 +83,7 @@
 	    (req/set! '_debug_stack_entry stack)
 	    (display-stackframe frame)
 	    (unless (= (length args) 0)
-	      (doseq (arg args i)
-		(lineout "arg" i "\t" (if (void? arg) "#void" (listdata arg)))))
+	      (doseq (arg args i) (lineout "arg" i "\t" (listdata arg))))
 	    (when env (show-env env)))))))
 (define f.command (fcn/alias frame.command))
 
@@ -133,8 +131,7 @@
 	    (req/set! '_debug_stack_entry stack)
 	    (display-stackframe frame "Source")
 	    (unless (= (length args) 0)
-	      (doseq (arg args i)
-		(lineout "arg" i "\t" (if (void? arg) "#void" (listdata arg))))))))))
+	      (doseq (arg args i) (lineout "arg" i "\t" (listdata arg)))))))))
 (define (env.command (n #f))
   (when (set-debug!)
     (when (and (not n) (req/test '_debug_stack_entry))
@@ -155,11 +152,9 @@
   (let ((vars (getkeys env)))
     (lineout ($count (|| vars) "binding") ":")
     (do-choices (key vars)
-      (if (or (void? key) (not (test env key)) (void? (get env key)))
-	  (lineout " uninitialized binding")
+      (if (symbol? key)
 	  (let* ((val (get env key))
-		 (string (if (void? val) "#void" 
-			     (stringout (write val)))))
+		 (string (stringout (write val))))
 	    (cond ((and (not (multiline-string? string)) (< (length string) 45))
 		   (lineout " " key "\t" string))
 		  ((ambiguous? val)
@@ -170,7 +165,8 @@
 		  (else
 		   (lineout " " key ":")
 		   (lineout "  "
-		     (indent-text (stringout (listdata val)) 2)))))))))
+		     (indent-text (stringout (listdata val)) 2)))))
+	  (lineout " uninitialized binding")))))
 
 (define (backtrace.command (n #f) (base 0))
   (when (set-debug!)

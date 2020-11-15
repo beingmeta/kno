@@ -288,7 +288,7 @@ static ssize_t write_xtype(kno_outbuf out,lispval x,xtype_refs refs)
       rv=kno_write_byte(out,xt_empty_list); break;
     case KNO_DEFAULT:
       rv=kno_write_byte(out,xt_default); break;
-    case KNO_VOID:
+    case KNO_VOID: case KNO_QVOID:
       rv=kno_write_byte(out,xt_void); break;
     default:
       if (x==kno_rational_xtag)
@@ -449,7 +449,7 @@ static lispval read_xtype(kno_inbuf in,xtype_refs refs)
     case xt_empty_choice: return KNO_EMPTY;
     case xt_empty_list: return KNO_NIL;
     case xt_default: return KNO_DEFAULT;
-    case xt_void: return KNO_VOID;
+    case xt_void: return KNO_QVOID;
 
     case xt_rational: return kno_rational_xtag;
     case xt_complex: return kno_complex_xtag;

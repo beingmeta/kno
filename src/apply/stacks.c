@@ -190,6 +190,8 @@ KNO_EXPORT  void _KNO_STACK_SET_OP(kno_stack s,lispval new,int free)
   __KNO_STACK_SET_OP(s,new,free);
 }
 
+static void fix_void_args(lispval args);
+static void fix_void_bindings(lispval bindings);
 
 /* Stacks are rendered into LISP as vectors as follows:
    1. depth  (integer, increasing with calls)
@@ -232,6 +234,9 @@ static lispval stack2lisp(struct KNO_STACK *stack,struct KNO_STACK *inner)
 		    (KNO_STACK_BITP(stack,KNO_STACK_OWNS_ENV) ) ) ?
 		  (kno_deep_copy(stack->eval_env->env_bindings)) :
 		  (KNO_FALSE));
+
+  if (KNO_VECTORP(args)) fix_void_args(args);
+  if (KNO_TABLEP(env)) fix_void_bindings(args);
 
   unsigned long icrumb = stack->stack_crumb;
   if (icrumb == 0) {
@@ -336,6 +341,42 @@ static lispval annotate_source(lispval context,lispval point)
     default:
       return kno_incref(context);}}
   else return context;
+}
+
+/* Fixing VOID values in backtrace structures */
+
+static void fix_void_args(lispval args)
+{
+  if (KNO_VECTORP(args)) {
+    int i = 0, n = KNO_VECTOR_LENGTH(args);
+    lispval *data = KNO_VECTOR_ELTS(args);
+    while (i<n) {
+      if (KNO_VOIDP(data[i])) data[i++]=KNO_QVOID;
+      else i++;}}
+}
+static void fix_void_bindings(lispval bindings)
+{
+  if (KNO_SCHEMAPP(bindings)) {
+    struct KNO_SCHEMAP *smap = (kno_schemap) bindings;
+    int i = 0, n = smap->schema_length, changed = 0;
+    lispval *schema = smap->table_schema;
+    lispval *values = smap->table_values;
+    while (i<n) {
+      lispval key = schema[i], val = values[i];
+      if (KNO_VOIDP(key)) {schema[i]=KNO_QVOID; changed=1;}
+      if (KNO_VOIDP(val)) {values[i]=KNO_QVOID; changed=1;}
+      i++;}
+    if (changed) smap->table_bits &= (~KNO_SCHEMAP_SORTED);}
+  else if (KNO_SLOTMAPP(bindings)) {
+    struct KNO_SLOTMAP *smap = (kno_slotmap) bindings;
+    int i = 0, n = smap->n_slots, changed = 0;
+    struct KNO_KEYVAL *keyvals = KNO_XSLOTMAP_KEYVALS(smap);
+    while (i<n) {
+      lispval key = keyvals[i].kv_key, val = keyvals[i].kv_val;
+      if (KNO_VOIDP(key)) {keyvals[i].kv_key=KNO_QVOID; changed=1;}
+      if (KNO_VOIDP(val)) {keyvals[i].kv_val=KNO_QVOID; changed=1;}
+      i++;}}
+  else NO_ELSE;
 }
 
 /* Checking the C stack depth */
