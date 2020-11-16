@@ -656,7 +656,7 @@ KNO_EXPORT void kno_setapp(u8_string spec,u8_string statedir)
   if (strchr(spec,'/')) {
     u8_string fullpath=
       ((spec[0]=='/')?((u8_string)(u8_strdup(spec))):(u8_abspath(spec,NULL)));
-    u8_string base = u8_basename(spec,"*");
+    u8_string base = u8_basename(spec,NULL);
     u8_identify_application(base);
     if (statedir) runbase = u8_mkpath(statedir,base);
     else {

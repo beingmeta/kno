@@ -309,8 +309,7 @@ SHELL_SCRIPTS=etc/knosetconfig etc/knogetconfig etc/knoconfig etc/knolaunch \
 	      etc/kno_start_daemons etc/kno_start_servlets etc/kno_stop_jobs \
 	      etc/knosignal etc/knoinject etc/knostatus etc/knolog  \
 	      etc/knorestart etc/knoctl etc/knogdb etc/knodbgexec \
-	      etc/knocleanup etc/knojob etc/knewctl \
-	      etc/knobuild
+	      etc/knocleanup etc/knojob etc/knobuild
 SCHEME_SCRIPTS=exe/scripts/pack-pool exe/scripts/pack-index \
 	       exe/scripts/split-index exe/scripts/merge-indexes \
 	       exe/scripts/knocall exe/scripts/knoserver \
