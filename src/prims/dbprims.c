@@ -494,6 +494,8 @@ static lispval cons_index(lispval arg,lispval opts)
   else return open_index_helper(arg,opts,0);
 }
 
+DEF_KNOSYM(pooltype);
+
 DEFPRIM2("make-pool",make_pool,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 "`(MAKE-POOL *arg0* *arg1*)` **undocumented**",
 	 kno_string_type,KNO_VOID,kno_any_type,KNO_VOID);
@@ -501,9 +503,11 @@ static lispval make_pool(lispval path,lispval opts)
 {
   if (load_db_module(opts,"make_pool")<0) return KNO_ERROR;
   kno_pool p = NULL;
-  lispval type = kno_getopt(opts,KNOSYM_TYPE,VOID);
-  kno_storage_flags flags = kno_get_dbflags(opts,KNO_STORAGE_ISPOOL);
+ lispval type = kno_getopt(opts,KNOSYM(pooltype),VOID);
+  if (KNO_VOIDP(type)) type = kno_getopt(opts,KNOSYM_TYPE,VOID);
+  if (KNO_VOIDP(type)) type = kno_getopt(opts,KNOSYM_DRIVER,VOID);
   if (KNO_VOIDP(type)) type = kno_getopt(opts,KNOSYM_MODULE,VOID);
+  kno_storage_flags flags = kno_get_dbflags(opts,KNO_STORAGE_ISPOOL);
   if (VOIDP(type))
     p = kno_make_pool(CSTRING(path),NULL,flags,opts);
   else if (SYMBOLP(type))
@@ -519,6 +523,20 @@ static lispval make_pool(lispval path,lispval opts)
   else return KNO_ERROR;
 }
 
+DEFPRIM1("pool-type?",known_pool_typep,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "`(POOL-TYPE? *stringy*)` returns #t if *stringy* (a symbol or string) "
+	 "is a valid 'pooltype argument.",
+	 kno_any_type,KNO_VOID);
+static lispval known_pool_typep(lispval stringy)
+{
+  kno_pool_typeinfo ixtype = (KNO_SYMBOLP(stringy)) ?
+    (kno_get_pool_typeinfo(KNO_SYMBOL_NAME(stringy))) :
+    (KNO_STRINGP(stringy)) ?
+    (kno_get_pool_typeinfo(KNO_CSTRING(stringy))) :
+    (NULL);
+  if (ixtype) return KNO_TRUE; else return KNO_FALSE;
+}
+
 DEFPRIM2("open-pool",open_pool,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "`(OPEN-POOL *arg0* [*arg1*])` **undocumented**",
 	 kno_string_type,KNO_VOID,kno_any_type,KNO_FALSE);
@@ -532,6 +550,8 @@ static lispval open_pool(lispval path,lispval opts)
   else return KNO_ERROR;
 }
 
+DEF_KNOSYM(indextype);
+
 DEFPRIM2("make-index",make_index,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 "`(MAKE-INDEX *arg0* *arg1*)` **undocumented**",
 	 kno_string_type,KNO_VOID,kno_any_type,KNO_VOID);
@@ -539,12 +559,14 @@ static lispval make_index(lispval path,lispval opts)
 {
   if (load_db_module(opts,"make_index")<0) return KNO_ERROR;
   kno_index ix = NULL;
-  lispval type = kno_getopt(opts,KNOSYM_TYPE,VOID);
+  lispval type = kno_getopt(opts,KNOSYM(indextype),VOID);
+  if (KNO_VOIDP(type)) type = kno_getopt(opts,KNOSYM_TYPE,VOID);
+  if (KNO_VOIDP(type)) type = kno_getopt(opts,KNOSYM_DRIVER,VOID);
+  if (KNO_VOIDP(type)) type = kno_getopt(opts,KNOSYM_MODULE,VOID);
   kno_storage_flags flags =
     (FIXNUMP(opts)) ?
     (KNO_STORAGE_ISINDEX) :
     (kno_get_dbflags(opts,KNO_STORAGE_ISINDEX)) ;
-  if (KNO_VOIDP(type)) type = kno_getopt(opts,KNOSYM_MODULE,VOID);
   if (VOIDP(type))
     ix = kno_make_index(CSTRING(path),NULL,flags,opts);
   else if (SYMBOLP(type))
@@ -558,6 +580,20 @@ static lispval make_index(lispval path,lispval opts)
   if (ix)
     return index_ref(ix);
   else return KNO_ERROR;
+}
+
+DEFPRIM1("index-type?",known_index_typep,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "`(INDEX-TYPE? *stringy*)` returns #t if *stringy* (a symbol or string) "
+	 "is a valid 'indextype argument.",
+	 kno_any_type,KNO_VOID);
+static lispval known_index_typep(lispval stringy)
+{
+  kno_index_typeinfo ixtype = (KNO_SYMBOLP(stringy)) ?
+    (kno_get_index_typeinfo(KNO_SYMBOL_NAME(stringy))) :
+    (KNO_STRINGP(stringy)) ?
+    (kno_get_index_typeinfo(KNO_CSTRING(stringy))) :
+    (NULL);
+  if (ixtype) return KNO_TRUE; else return KNO_FALSE;
 }
 
 DEFPRIM1("oid-value",oidvalue,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
@@ -4336,8 +4372,10 @@ static void link_local_cprims()
   KNO_LINK_PRIM("set-oid-value!",setoidvalue,3,kno_db_module);
   KNO_LINK_PRIM("oid-value",oidvalue,1,kno_db_module);
   KNO_LINK_PRIM("make-index",make_index,2,kno_db_module);
+  KNO_LINK_PRIM("index-type?",known_index_typep,1,kno_db_module);
   KNO_LINK_PRIM("open-pool",open_pool,2,kno_db_module);
   KNO_LINK_PRIM("make-pool",make_pool,2,kno_db_module);
+  KNO_LINK_PRIM("pool-type?",known_pool_typep,1,kno_db_module);
   KNO_LINK_PRIM("cons-index",cons_index,2,kno_db_module);
   KNO_LINK_PRIM("register-index",register_index,2,kno_db_module);
   KNO_LINK_PRIM("open-index",open_index,2,kno_db_module);

@@ -9,16 +9,16 @@
 (use-module '{knodb/flexpool knodb/flexindex})
 
 (module-export! '{knodb/ref knodb/make knodb/commit! knodb/save! 
-		  knodb/partitions knodb/getindex
+		  knodb/partitions knodb/getindexes knodb/getindex
 		  knodb/pool knodb/wrap-index
 		  knodb/id knodb/source
 		  knodb/mods knodb/modified?
 		  pool/ref index/ref pool/copy
-		  pool/getindex pool/getindexes
+		  pool/getindex pool/getindexes knodb/add-index!
 		  knodb/makedb
 		  knodb/index!})
 
-(module-export! '{knodb:pool knodb:index})
+(module-export! '{knodb:pool knodb:index knodb:indexes})
 
 (module-export! '{knodb/commit})
 
@@ -46,6 +46,8 @@
 
 ;;; This makes missing directories
 (define (checkdbpath source opts (suffix #f))
+  "If *source* looks like a path, this checks that it's intermediate "
+  "directories all exist."
   (cond ((exists position {#\@ #\:} source) source)
 	((not (position #\/ source)) (opt-suffix source suffix))
 	((file-directory? (dirname source)) source)
@@ -229,33 +231,60 @@
 
 (define (get-indexes-for-pool pool (opts #f))
   (or (try (poolctl pool 'props 'indexes)
-	   (let* ((rootdir (dirname (pool-source pool)))
-		  (indexrefs (poolctl pool 'metadata 'indexes))
-		  (indexes (pick (for-choices (ref indexrefs)
-				   (if debugging-knodb
-				       (index/ref ref (opt+ 'rootdir rootdir opts))
-				       (onerror (index/ref ref (opt+ 'rootdir rootdir opts))
-					   (lambda (ex)
-					     (logwarn |IndexRefError|
-					       (exception-summary ex) " REF=\n" (listdata ref)
-					       "\nrootdir=" (write rootdir) " OPTS=\n" (listdata opts))
-					     #f))))
-			     
-			     index?)))
+	   (let* ((indexes (sync-init-pool-indexes pool opts)))
 	     (do-choices (partition (poolctl pool 'partitions))
 	       (set+! indexes (get-indexes-for-pool partition opts)))
 	     (poolctl pool 'props 'indexes indexes)
 	     indexes))
       (fail)))
 
+(define (init-pool-indexes pool (opts #f))
+  (let* ((rootdir (dirname (pool-source pool)))
+	 (indexrefs (poolctl pool 'metadata 'indexes))
+	 (indexes (pick (for-choices (ref indexrefs)
+			  (if debugging-knodb
+			      (index/ref ref (opt+ 'rootdir rootdir opts))
+			      (onerror (index/ref ref (opt+ 'rootdir rootdir opts))
+				  (lambda (ex)
+				    (logwarn |IndexRefError|
+				      (exception-summary ex) " REF=\n" (listdata ref)
+				      "\nrootdir=" (write rootdir) " OPTS=\n" (listdata opts))
+				    #f))))
+		    
+		    index?)))
+    (do-choices (partition (poolctl pool 'partitions))
+      (set+! indexes (get-indexes-for-pool partition opts)))
+    (poolctl pool 'props 'indexes indexes)
+    indexes))
+(define-init sync-init-pool-indexes
+  (slambda (pool (opts #f)) (init-pool-indexes pool opts)))
+
+(define pool-index-opts
+  #[register #t])
+
+(defambda (some-writable? indexes (result #f))
+  (do-choices (index indexes)
+    (unless (indexctl index 'readonly)
+      (set! result #t)
+      (break)))
+  result)
+
 (define (get-index-for-pool pool (opts #f))
   (or (try (poolctl pool 'props 'index)
 	   (let* ((indexes (pick (get-indexes-for-pool pool opts) index?))
+		  (aggregate-opts
+		   (if (or (not (poolctl pool 'readonly))
+			   (some-writable? indexes))
+		       (cons #[cachelevel 0] pool-index-opts)
+		       pool-index-opts))
+		  (index-opts (if opts (cons opts aggregate-opts) aggregate-opts))
 		  (index (tryif (exists? indexes)
-			   (if (singleton? indexes) indexes
-			       (pick (make-aggregate-index indexes opts)
+			   (if (singleton? indexes)
+			       indexes
+			       (pick (make-aggregate-index indexes aggregate-opts)
 				 index?)))))
 	     (poolctl pool 'props 'index index)
+	     (poolctl pool 'props 'indexes indexes)
 	     index))
       (fail)))
 
@@ -278,11 +307,31 @@
 	((string? arg) (index/ref arg opts-arg))
 	(else (index/ref arg))))
 
+(define (knodb/getindexes arg (opts-arg #f))
+  (cond ((index? arg) arg)
+	((pool? arg) (pool/getindexes arg))
+	((string? arg) (index/ref arg opts-arg))
+	(else (index/ref arg))))
+
 (defambda (knodb/index! frames slots (values))
   (do-choices (pool (oid->pool frames))
     (if (bound? values)
 	(index-frame (pool/getindex pool) (pick frames pool) slots values)
 	(index-frame (pool/getindex pool) (pick frames pool) slots))))
+
+(defambda (knodb/add-index! pool indexes)
+  (let ((cur (poolctl pool 'props 'indexes))
+	(new {(pick indexes index?)
+	      (index/ref (reject indexes index?))})
+	(combined (poolctl pool 'props 'index)))
+    (unless (identical? cur new)
+      (poolctl pool 'props indexes {cur new})
+      (cond ((fail? combined))
+	    ((aggregate-index? combined)
+	     (add-to-aggregate-index!
+	      combined (difference new (dbctl combined 'partitions))))
+	    (else (poolctl pool 'props 'index
+			   (make-aggregate-index {combined cur new} pool-index-opts)))))))
 
 ;;; Getting partitions
 
@@ -346,11 +395,13 @@
 
 (define (knodb/makedb base (opts #f))
   (let ((create-opts #[create #t mkdir #t]))
+    (set! base (textsubst base #("." (isalnum+) (eos)) ""))
     (let* ((opts (opt+ create-opts opts makedb-defaults))
-	   (pool (pool/ref (glom base ".pool") opts))
-	   (index (index/ref (glom base ".index") opts)))
-      (dbctl pool 'metadata 'index (glom (basename base) ".index"))
-      (commit pool))))
+	   (index (index/ref (glom base ".index") opts))
+	   (pool (pool/ref (glom base ".pool") 
+			   (cons [metadata [indexes (glom (basename base) ".index")]]
+				 opts))))
+      pool)))
 
 ;;; Variants
 
@@ -519,6 +570,10 @@
 ;;;; Defaults
 
 (define (knodb:pool ref)
+  "Returns a pool based on 'ref', designed to be called when "
+  "processing configuration values. If REF is a symbol, it is "
+  "taken to be a config setting which is resolved. Otherwise, "
+  "the KNODB pool/ref handler is used."
   (when (symbol? ref)
     (if (config ref)
 	(set! ref (config ref))
@@ -532,6 +587,11 @@
 	(else (irritant ref |InvalidPoolRef|))))
 
 (define (knodb:index ref)
+  "Returns an index based on 'ref', designed to be called when "
+  "processing configuration values. If REF is a symbol, it is "
+  "taken to be a config setting which is resolved. Otherwise, "
+  "the KNODB index/ref handler is used. Note that this treats "
+  "a simple hashtable as an index."
   (when (symbol? ref)
     (if (config ref)
 	(set! ref (config ref))
@@ -543,4 +603,28 @@
 	((and (opts? ref) (testopt ref '{source index}))
 	 (index/ref (getopt ref 'index (opt-suffix (getopt ref 'source) ".index"))
 		    ref))
+	(else (irritant ref |InvalidIndexRef|))))
+
+(define (knodb:indexes ref)
+  "Returns a set of indexes based on 'ref', designed to be called when "
+  "processing configuration values. If REF is a symbol, it is "
+  "taken to be a config setting which is resolved. Otherwise, "
+  "knodb/ref is used; if it returns an index, that is returned; "
+  "if it returns a pool, it returns the index for the pool."
+  (when (symbol? ref)
+    (if (config ref)
+	(set! ref (config ref))
+	(irritant ref |UndefinedIndexConfigRef|)))
+  (cond ((index? ref) ref)
+	((pool? ref)
+	 (try (get-indexes-for-pool ref)
+	      (irritant ref |InvalidIndexRef|)))
+	((hashtable? ref) ref)
+	((or (string? ref) (opts? ref))
+	 (let* ((name (if (string? ref) ref 
+			  (getopt ref 'source (getopt ref 'index (getopt ref 'pool)))))
+		(ref-opts (and (opts? ref) ref))
+		(db (and name (knodb/ref name ref-opts))))
+	   (if (not db) (irritant ref |InvalidIndexRef|)
+	       (choice (pick db index?) (pool/getindexes (pick db pool?))))))
 	(else (irritant ref |InvalidIndexRef|))))

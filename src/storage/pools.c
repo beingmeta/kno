@@ -2045,29 +2045,15 @@ KNO_EXPORT void kno_init_pool(kno_pool p,
   p->pool_typeid = u8_strdup(h->name);
   p->pool_handler = h;
   p->pool_flags = kno_get_dbflags(opts,flags);
-  p->pool_serialno = -1; p->pool_cache_level = -1;
+  p->pool_serialno = -1;
+  p->pool_cache_level = -1;
+  p->pool_loglevel = -1;
   p->pool_adjuncts = NULL;
   p->pool_adjuncts_len = 0;
   p->pool_n_adjuncts = 0;
   p->pool_label = NULL;
   p->pool_prefix = NULL;
   p->pool_namefn = VOID;
-
-  lispval ll = kno_getopt(opts,KNOSYM_LOGLEVEL,KNO_VOID);
-  if (KNO_VOIDP(ll))
-    p->pool_loglevel = -1;
-  else if ( (KNO_FIXNUMP(ll)) && ( (KNO_FIX2INT(ll)) >= 0 ) &&
-	    ( (KNO_FIX2INT(ll)) < U8_MAX_LOGLEVEL ) )
-    p->pool_loglevel = KNO_FIX2INT(ll);
-  else {
-    u8_log(LOG_WARN,"BadLogLevel",
-	   "Invalid loglevel %q for pool %s",ll,id);
-    p->pool_loglevel = -1;}
-  kno_decref(ll);
-
-  if ( (KNO_VOIDP(opts)) || (KNO_FALSEP(opts)) )
-    p->pool_opts = KNO_FALSE;
-  else p->pool_opts = kno_incref(opts);
 
   /* Data tables */
   KNO_INIT_STATIC_CONS(&(p->pool_cache),kno_hashtable_type);
@@ -2092,6 +2078,31 @@ KNO_EXPORT void kno_init_pool(kno_pool p,
   else {
     kno_init_slotmap(&(p->pool_metadata),17,NULL);}
   KNO_XTABLE_SET_MODIFIED(&(p->pool_metadata),0);
+
+  if ( (KNO_VOIDP(opts)) || (KNO_FALSEP(opts)) )
+    p->pool_opts = KNO_FALSE;
+  else {
+    p->pool_opts = kno_incref(opts);
+
+    lispval ll = kno_getopt(opts,KNOSYM_LOGLEVEL,KNO_VOID);
+    if (KNO_VOIDP(ll)) {}
+    else if ( (KNO_FIXNUMP(ll)) && ( (KNO_FIX2INT(ll)) >= 0 ) &&
+	      ( (KNO_FIX2INT(ll)) < U8_MAX_LOGLEVEL ) )
+      p->pool_loglevel = KNO_FIX2INT(ll);
+    else {
+      u8_log(LOG_WARN,"BadLogLevel",
+	     "Invalid loglevel %q for pool %s",ll,id);
+      kno_decref(ll);}
+
+    lispval cl = kno_getopt(opts,KNOSYM_CACHELEVEL,KNO_VOID);
+    if (KNO_VOIDP(cl)) {}
+    else if ( (KNO_FIXNUMP(cl)) && ( (KNO_FIX2INT(cl)) >= 0 ) &&
+	      ( (KNO_FIX2INT(cl)) < U8_MAX_LOGLEVEL ) )
+      p->pool_cache_level = KNO_FIX2INT(cl);
+    else {
+      u8_log(LOG_WARN,"BadCacheLevel",
+	     "Invalid loglevel %q for pool %s",cl,id);
+      kno_decref(cl);}}
 
   u8_init_rwlock(&(p->pool_struct_lock));
   u8_init_mutex(&(p->pool_commit_lock));
@@ -2662,7 +2673,9 @@ KNO_EXPORT lispval kno_default_poolctl(kno_pool p,lispval op,int n,kno_argvec ar
   else if (op == kno_partitions_op)
     return KNO_EMPTY;
   else if (op == KNOSYM_CACHELEVEL)
-    return KNO_INT2FIX(1);
+    if ((p->pool_cache_level)  < 0)
+      return KNO_FALSE;
+    else return KNO_INT2FIX(p->pool_cache_level);
   else if (op == kno_raw_metadata_op)
     return kno_deep_copy((lispval) &(p->pool_metadata));
   else if (op == KNOSYM_READONLY) {

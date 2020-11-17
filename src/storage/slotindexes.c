@@ -132,14 +132,17 @@ static lispval aggregate_prim_find
     lispval features = make_features(slotids,values);
     lispval fetch_features = KNO_EMPTY;
     /* Get the features we need to fetch */
-    {DO_CHOICES(feature,features) {
+    if (ax->index_cache_level > 0) {
+      DO_CHOICES(feature,features) {
 	lispval cached = kno_hashtable_get(cache,feature,KNO_VOID);
 	if (!(KNO_VOIDP(cached))) {
 	  CHOICE_ADD(combined,cached);}
 	else {
 	  CHOICE_ADD(fetch_features,feature);
-	  kno_incref(feature);}}}
-    kno_decref(features);
+	  kno_incref(feature);}}
+      fetch_features = kno_simplify_choice(fetch_features);
+      kno_decref(features);}
+    else fetch_features=features;
     if (!(KNO_EMPTYP(fetch_features))) {
       i=0; while (i < n) {
 	kno_index ex = indexes[i++];
@@ -192,7 +195,8 @@ static lispval aggregate_prim_find
 	  kno_incref(v);
 	  CHOICE_ADD(combined,v);
 	  j++;}
-	int rv = kno_hashtable_iter(cache,kno_table_add,j,keyvec,valvec);
+	int rv = (ax->index_cache_level<1) ? (0) :
+	  (kno_hashtable_iter(cache,kno_table_add,j,keyvec,valvec));
 	kno_decref_vec(valvec,j);
 	u8_free(keyvec);
 	u8_free(valvec);
@@ -346,8 +350,9 @@ int kno_find_prefetch(kno_index ix,lispval slotids,lispval values)
 	  keyv[n_keys++]=key;}}}
     if (n_keys) {
       valuev = (ix->index_handler->fetchn)(ix,n_keys,keyv);
-      kno_hashtable_iter(&(ix->index_cache),kno_table_add_empty_noref,
-			n_keys,keyv,valuev);}
+      if (ix->index_cache_level>0)
+	kno_hashtable_iter(&(ix->index_cache),kno_table_add_empty_noref,
+			   n_keys,keyv,valuev);}
     u8_free(keyv); if (valuev) u8_free(valuev);
     return 1;}
 }
@@ -355,7 +360,8 @@ int kno_find_prefetch(kno_index ix,lispval slotids,lispval values)
 static int aggregate_prefetch
 (kno_aggregate_index ax,lispval slotids,lispval values)
 {
-  kno_hashtable cache = &(ax->index_cache);
+  kno_hashtable cache = (ax->index_cache_level<1) ? (NULL) :
+    (&(ax->index_cache));
   lispval keyslot = ax->index_keyslot;
   int one_slot = (!(KNO_AMBIGP(keyslot))) &&
     ( (KNO_OIDP(keyslot)) || (KNO_SYMBOLP(keyslot)) );
@@ -373,11 +379,13 @@ static int aggregate_prefetch
   if (one_slot) {
     ssize_t n_fetched = 0;
     lispval fetch_values = KNO_EMPTY;
-    KNO_DO_CHOICES(value,values) {
-      if (kno_hashtable_probe(cache,value) == 0) {
-	kno_incref(value);
-	KNO_ADD_TO_CHOICE(fetch_values,value);}}
-    fetch_values = kno_simplify_choice(fetch_values);
+    if (cache) {
+      KNO_DO_CHOICES(value,values) {
+	if (kno_hashtable_probe(cache,value) == 0) {
+	  kno_incref(value);
+	  KNO_ADD_TO_CHOICE(fetch_values,value);}}
+      fetch_values = kno_simplify_choice(fetch_values);}
+    else fetch_values=kno_incref(values);
     if (KNO_EMPTYP(fetch_values)) return 0;
     while (i < n) {
       kno_index ex = indexes[i++];
@@ -401,10 +409,11 @@ static int aggregate_prefetch
     ssize_t n_fetched = 0;
     lispval features = make_features(slotids,values);
     lispval fetch_features = KNO_EMPTY;
-    KNO_DO_CHOICES(feature,features) {
-      if (! (kno_hashtable_probe(cache,feature)) ) {
-	kno_incref(feature);
-	KNO_ADD_TO_CHOICE(fetch_features,feature);}}
+    if (cache) {
+      KNO_DO_CHOICES(feature,features) {
+	if (! (kno_hashtable_probe(cache,feature)) ) {
+	  kno_incref(feature);
+	  KNO_ADD_TO_CHOICE(fetch_features,feature);}}}
     while (i < n) {
       kno_index ex = indexes[i++];
       lispval ekeyslot = ex->index_keyslot;
@@ -420,7 +429,7 @@ static int aggregate_prefetch
 	{DO_CHOICES(fetch_val,fetch_values) {
 	    lispval keyval = kno_conspair(ekeyslot,fetch_val);
 	    lispval refs = kno_hashtable_get(ecache,keyval,KNO_VOID);
-	    if (! ( (KNO_VOIDP(refs)) || (KNO_EMPTYP(refs)) ) )
+	    if ( (cache) && (! ( (KNO_VOIDP(refs)) || (KNO_EMPTYP(refs)) ) ) )
 	      rv = kno_hashtable_add(cache,keyval,refs);
 	    kno_decref(refs);
 	    kno_decref(keyval);
@@ -437,7 +446,8 @@ static int aggregate_prefetch
 	  lispval v = kno_hashtable_get(ecache,feature,KNO_VOID);
 	  if (!(KNO_VOIDP(v))) {
 	    if (KNO_AMBIGP(v)) v = kno_simplify_choice(v);
-	    rv = kno_hashtable_add(cache,feature,v);
+	    if (cache)
+	      rv = kno_hashtable_add(cache,feature,v);
 	    n_fetched += KNO_CHOICE_SIZE(v);
 	    kno_decref(v);
 	    if (rv<0) {KNO_STOP_DO_CHOICES; break;}}}}}

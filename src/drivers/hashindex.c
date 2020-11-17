@@ -3298,8 +3298,6 @@ static kno_index hashindex_create(u8_string spec,void *typedata,
   lispval metadata = VOID;
   lispval created_symbol = kno_intern("created");
   lispval assembled_symbol = kno_intern("assembled");
-  lispval init_opts = kno_intern("initopts");
-  lispval make_opts = kno_intern("makeopts");
 
   if (KNO_SCHEMAPP(metadata_init))
     metadata = kno_schemap2slotmap(metadata_init);
@@ -3312,10 +3310,6 @@ static kno_index hashindex_create(u8_string spec,void *typedata,
     kno_store(metadata,created_symbol,ltime);
   kno_store(metadata,assembled_symbol,ltime);
   kno_decref(ltime); ltime = KNO_VOID;
-
-  if (!(kno_test(metadata,init_opts,KNO_VOID)))
-    kno_store(metadata,init_opts,opts);
-  kno_store(metadata,make_opts,opts);
 
   lispval keyslot = kno_getopt(opts,KNOSYM_KEYSLOT,KNO_VOID);
 
