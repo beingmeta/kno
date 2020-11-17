@@ -83,7 +83,8 @@
 	    (req/set! '_debug_stack_entry stack)
 	    (display-stackframe frame)
 	    (unless (= (length args) 0)
-	      (doseq (arg args i) (lineout "arg" i "\t" (listdata arg))))
+	      (doseq (arg args i) 
+		(lineout "arg" i "\t" (if (void? arg) #qvoid (listdata arg)))))
 	    (when env (show-env env)))))))
 (define f.command (fcn/alias frame.command))
 
@@ -131,7 +132,7 @@
 	    (req/set! '_debug_stack_entry stack)
 	    (display-stackframe frame "Source")
 	    (unless (= (length args) 0)
-	      (doseq (arg args i) (lineout "arg" i "\t" (listdata arg)))))))))
+	      (doseq (arg args i) (lineout "arg" i "\t" (if (void? arg) #qvoid (listdata arg))))))))))
 (define (env.command (n #f))
   (when (set-debug!)
     (when (and (not n) (req/test '_debug_stack_entry))
@@ -152,21 +153,23 @@
   (let ((vars (getkeys env)))
     (lineout ($count (|| vars) "binding") ":")
     (do-choices (key vars)
-      (if (symbol? key)
-	  (let* ((val (get env key))
-		 (string (stringout (write val))))
-	    (cond ((and (not (multiline-string? string)) (< (length string) 45))
-		   (lineout " " key "\t" string))
-		  ((ambiguous? val)
-		   (lineout " " key ":")
-		   (do-choices (v val)
-		     (lineout "    "
-		       (indent-text (stringout (listdata v)) 4))))
-		  (else
-		   (lineout " " key ":")
-		   (lineout "  "
-		     (indent-text (stringout (listdata val)) 2)))))
-	  (lineout " uninitialized binding")))))
+      (if (void? key)
+	  (lineout "unitialized binding")
+	  (if (symbol? key)
+	      (let* ((val (get env key))
+		     (string (if (void? val) "#qvoid" (stringout (write val)))))
+		(cond ((and (not (multiline-string? string)) (< (length string) 45))
+		       (lineout " " key "\t" string))
+		      ((ambiguous? val)
+		       (lineout " " key ":")
+		       (do-choices (v val)
+			 (lineout "    "
+			   (indent-text (stringout (listdata v)) 4))))
+		      (else
+		       (lineout " " key ":")
+		       (lineout "  "
+			 (indent-text (stringout (listdata val)) 2)))))
+	      (lineout " uninitialized binding"))))))
 
 (define (backtrace.command (n #f) (base 0))
   (when (set-debug!)
