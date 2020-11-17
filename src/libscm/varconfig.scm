@@ -18,7 +18,8 @@
 		  config:goodstring config:symbol config:oneof
 		  config:boolset config:fnset
 		  config:replace config:push
-		  config:dirname config:dirname:opt
+		  config:dirname config:dirname:opt config:dirname:make
+		  config:path config:path:exists config:path:writable
 		  config:integer config:fixnum
 		  config:nonzero config:non-postive config:non-negative
 		  config:positive config:negative})
@@ -181,11 +182,20 @@
 		       (set+! false-values val)))))
 
 (define (config-dirname val (err #f))
+  (when (and (string? val) (string-starts-with? val #((isalnum+) ":")))
+    (let* ((prefix-len (textmatcher '(greedy (isalnum+)) val))
+	   (prefix (slice val 0 prefix-len)))
+      (when (string? (config prefix))
+	(set! val (mkpath (config prefix) (slice val (1+ prefix-len)))))))
   (cond ((not (string? val))
 	 (if err
 	     (irritant val |NotAString| config:dirname)
 	     (begin (logwarn |ConfigError| "Dirname " val " is not a string.")
 	       {})))
+	((and (eq? err 'mkdirs) (not (file-exists? val)))
+	 (logwarn |CONFIG/CreatingDirectory| val)
+	 (mkdirs val)
+	 val)
 	((not (file-exists? val))
 	 (if err
 	     (irritant val |DirectoryDoesntExist| config:dirname)
@@ -198,7 +208,31 @@
 	       {})))
 	(else val)))
 (define (config:dirname:opt val) (config-dirname val #f))
+(define (config:dirname:make val) (config-dirname val 'mkdirs))
 (define (config:dirname val) (config-dirname val #t))
+
+(defambda (config-path path (opts {}))
+  (let* ((parsed (text->frame #((label prefix (isalnum+)) ":" (label path (rest))) path))
+	 (path (if (and (exists? parsed) (string? (config (get parsed 'prefix))))
+		   (mkpath (config (get parsed 'prefix)) (try (get parsed 'path) "")))))
+    (if (or (fail? opts) (not opts))
+	path
+	(begin
+	  (when (and (overlaps? opts 'exists) (not (file-exists? path)))
+	    (irritant path |PathDoesNotExist|))
+	  (when (and (overlaps? opts 'notdir) (file-directory? path))
+	    (irritant path |PathIsDirectory|))
+	  (when (overlaps? opts 'writable)
+	    (when (or (and (file-exists? path) (not (file-writable? path)))
+		      (not (file-directory? (dirname path)))
+		      (not (file-writable? (dirname path))))
+	      (irritant path |NotWritable|)))
+	  (cond ((overlaps? opts 'absolute) (abspath path))
+		((overlaps? opts 'realpath) (realpath path))
+		(else path))))))
+(define (config:path val) (config-path val #f))
+(define (config:path:exists val) (config-path val 'exists))
+(define (config:path:writable val) (config-path val 'writable))
 
 (define (config:number val)
   (if (string? val) (string->number val)
