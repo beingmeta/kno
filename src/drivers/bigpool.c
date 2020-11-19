@@ -2288,8 +2288,6 @@ static kno_pool bigpool_create(u8_string spec,void *type_data,
   lispval metadata = VOID;
   lispval created_symbol = kno_intern("created");
   lispval packed_symbol = kno_intern("packed");
-  lispval init_opts = kno_intern("initopts");
-  lispval make_opts = kno_intern("makeopts");
 
   if (KNO_SCHEMAPP(metadata_init))
     metadata = kno_schemap2slotmap(metadata_init);
@@ -2302,10 +2300,6 @@ static kno_pool bigpool_create(u8_string spec,void *type_data,
     kno_store(metadata,created_symbol,ltime);
   kno_store(metadata,packed_symbol,ltime);
   kno_decref(ltime); ltime = KNO_VOID;
-
-  if (!(kno_test(metadata,init_opts,KNO_VOID)))
-    kno_store(metadata,init_opts,opts);
-  kno_store(metadata,make_opts,opts);
 
   if (rv<0) return NULL;
   else rv = make_bigpool(spec,

@@ -465,10 +465,10 @@ KNO_EXPORT lispval kno_index_fetch(kno_index ix,lispval key)
   kno_hashtable adds = &(ix->index_adds);
   kno_hashtable drops = &(ix->index_drops);
   kno_hashtable stores = &(ix->index_stores);
-  lispval local_value = (stores->table_n_keys) ?
+  lispval stored_value = (stores->table_n_keys) ?
     (kno_hashtable_get(stores,key,VOID)) : (VOID);
-  if (!(KNO_VOIDP(local_value)))
-    result=local_value;
+  if (!(KNO_VOIDP(stored_value)))
+    result=stored_value;
   else if (ix->index_handler->fetch) {
     init_cache_level(ix);
     if ((kno_ipeval_status())&&
@@ -1835,7 +1835,10 @@ KNO_EXPORT void kno_init_index(kno_index ix,
   else {KNO_INIT_STATIC_CONS(ix,kno_consed_index_type);}
   if (U8_BITP(flags,KNO_STORAGE_READ_ONLY)) {
     U8_SETBITS(flags,KNO_STORAGE_READ_ONLY); };
-  ix->index_serialno = -1; ix->index_cache_level = -1; ix->index_flags = flags;
+  ix->index_flags = flags;
+  ix->index_serialno = -1;
+  ix->index_cache_level = -1;
+  ix->index_loglevel = -1;
   KNO_INIT_STATIC_CONS(&(ix->index_cache),kno_hashtable_type);
   KNO_INIT_STATIC_CONS(&(ix->index_adds),kno_hashtable_type);
   KNO_INIT_STATIC_CONS(&(ix->index_drops),kno_hashtable_type);
@@ -1871,19 +1874,27 @@ KNO_EXPORT void kno_init_index(kno_index ix,
 
   if ( (KNO_VOIDP(opts)) || (KNO_FALSEP(opts)) )
     ix->index_opts = KNO_FALSE;
-  else ix->index_opts = kno_incref(opts);
-
-  lispval ll = kno_getopt(opts,KNOSYM_LOGLEVEL,KNO_VOID);
-  if (KNO_VOIDP(ll))
-    ix->index_loglevel = -1;
-  else if ( (KNO_FIXNUMP(ll)) && ( (KNO_FIX2INT(ll)) >= 0 ) &&
-	    ( (KNO_FIX2INT(ll)) < U8_MAX_LOGLEVEL ) )
-    ix->index_loglevel = KNO_FIX2INT(ll);
   else {
-    u8_log(LOG_WARN,"BadLogLevel",
-	   "Invalid loglevel %q for pool %s",ll,id);
-    ix->index_loglevel = -1;}
-  kno_decref(ll);
+    ix->index_opts = kno_incref(opts);
+    lispval ll = kno_getopt(opts,KNOSYM_LOGLEVEL,KNO_VOID);
+    if (KNO_VOIDP(ll)) {}
+    else if ( (KNO_FIXNUMP(ll)) && ( (KNO_FIX2INT(ll)) >= 0 ) &&
+	      ( (KNO_FIX2INT(ll)) < U8_MAX_LOGLEVEL ) )
+      ix->index_loglevel = KNO_FIX2INT(ll);
+    else {
+      u8_log(LOG_WARN,"BadLogLevel",
+	     "Invalid loglevel %q for pool %s",ll,id);
+      kno_decref(ll);}
+
+    lispval cl = kno_getopt(opts,KNOSYM_CACHELEVEL,KNO_VOID);
+    if (KNO_VOIDP(cl)) {}
+    else if ( (KNO_FIXNUMP(cl)) && ( (KNO_FIX2INT(cl)) >= 0 ) &&
+	      ( (KNO_FIX2INT(cl)) < U8_MAX_LOGLEVEL ) )
+      ix->index_cache_level = KNO_FIX2INT(cl);
+    else {
+      u8_log(LOG_WARN,"BadLogLevel",
+	     "Invalid loglevel %q for pool %s",ll,id);
+      kno_decref(cl);}}
 
   u8_init_mutex(&(ix->index_commit_lock));
 }
@@ -2340,7 +2351,9 @@ KNO_EXPORT lispval kno_default_indexctl(kno_index ix,lispval op,
   else if (op == kno_raw_metadata_op)
     return kno_deep_copy((lispval) &(ix->index_metadata));
   else if (op == KNOSYM_CACHELEVEL)
-    return KNO_INT2FIX(1);
+    if ((ix->index_cache_level)  < 0)
+      return KNO_FALSE;
+    else return KNO_INT2FIX(ix->index_cache_level);
   else if (op == KNOSYM_TYPE)
     return kno_intern(ix->index_typeid);
   else if (op == KNOSYM_READONLY) {

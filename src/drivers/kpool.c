@@ -2235,8 +2235,6 @@ static kno_pool kpool_create(u8_string spec,void *type_data,
   lispval metadata = VOID;
   lispval created_symbol = kno_intern("created");
   lispval packed_symbol = kno_intern("packed");
-  lispval init_opts = kno_intern("initopts");
-  lispval make_opts = kno_intern("makeopts");
 
   if (KNO_SCHEMAPP(metadata_init))
     metadata = kno_schemap2slotmap(metadata_init);
@@ -2270,10 +2268,6 @@ static kno_pool kpool_create(u8_string spec,void *type_data,
   if (use_xrefs_max >= 0)
     kno_store(metadata,KNOSYM(maxrefs),KNO_INT(use_xrefs_max));
   kno_decref(xrefs_max);
-
-  if (!(kno_test(metadata,init_opts,KNO_VOID)))
-    kno_store(metadata,init_opts,opts);
-  kno_store(metadata,make_opts,opts);
 
   if (!(kno_testopt(opts,oidrefs_symbol,KNO_FALSE)))
     flags |= KNO_KPOOL_OIDREFS;

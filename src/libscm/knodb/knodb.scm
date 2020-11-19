@@ -14,7 +14,7 @@
 		  knodb/id knodb/source
 		  knodb/mods knodb/modified?
 		  pool/ref index/ref pool/copy
-		  pool/getindex pool/getindexes
+		  pool/getindex pool/getindexes knodb/add-index!
 		  knodb/makedb
 		  knodb/index!})
 
@@ -259,12 +259,29 @@
 (define-init sync-init-pool-indexes
   (slambda (pool (opts #f)) (init-pool-indexes pool opts)))
 
+(define pool-index-opts
+  #[register #t])
+
+(defambda (some-writable? indexes (result #f))
+  (do-choices (index indexes)
+    (unless (indexctl index 'readonly)
+      (set! result #t)
+      (break)))
+  result)
+
 (define (get-index-for-pool pool (opts #f))
   (or (try (poolctl pool 'props 'index)
 	   (let* ((indexes (pick (get-indexes-for-pool pool opts) index?))
+		  (aggregate-opts
+		   (if (or (not (poolctl pool 'readonly))
+			   (some-writable? indexes))
+		       (cons #[cachelevel 0] pool-index-opts)
+		       pool-index-opts))
+		  (index-opts (if opts (cons opts aggregate-opts) aggregate-opts))
 		  (index (tryif (exists? indexes)
-			   (if (singleton? indexes) indexes
-			       (pick (make-aggregate-index indexes opts)
+			   (if (singleton? indexes)
+			       indexes
+			       (pick (make-aggregate-index indexes aggregate-opts)
 				 index?)))))
 	     (poolctl pool 'props 'index index)
 	     (poolctl pool 'props 'indexes indexes)
@@ -301,6 +318,20 @@
     (if (bound? values)
 	(index-frame (pool/getindex pool) (pick frames pool) slots values)
 	(index-frame (pool/getindex pool) (pick frames pool) slots))))
+
+(defambda (knodb/add-index! pool indexes)
+  (let ((cur (poolctl pool 'props 'indexes))
+	(new {(pick indexes index?)
+	      (index/ref (reject indexes index?))})
+	(combined (poolctl pool 'props 'index)))
+    (unless (identical? cur new)
+      (poolctl pool 'props indexes {cur new})
+      (cond ((fail? combined))
+	    ((aggregate-index? combined)
+	     (add-to-aggregate-index!
+	      combined (difference new (dbctl combined 'partitions))))
+	    (else (poolctl pool 'props 'index
+			   (make-aggregate-index {combined cur new} pool-index-opts)))))))
 
 ;;; Getting partitions
 

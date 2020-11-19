@@ -199,7 +199,7 @@ KNO_EXPORT kno_aggregate_index kno_make_aggregate_index
     kno_get_dbflags(opts,KNO_STORAGE_ISINDEX|KNO_STORAGE_READ_ONLY);
   kno_init_index((kno_index)aix,&aggregate_index_handler,
                 "new-aggregate",NULL,NULL,
-                flags,opts,metadata);
+                flags,metadata,opts);
   if (n_allocd < n) n_allocd = n;
   u8_init_mutex(&(aix->index_lock));
   aix->ax_n_allocd = n_allocd;

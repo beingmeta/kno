@@ -367,7 +367,7 @@ define use_session
   if ($argc == 0)
      set environment KNO_INITSESSION .knoc
   else
-     set environment KNO_INITSESSION .knoc
+     set environment KNO_INITSESSION $1
   end
 end
 
