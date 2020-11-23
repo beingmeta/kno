@@ -133,7 +133,7 @@ case ${option} in
     data|datadir)
 	echo "@data_dir@";;
     u8run)
-	echo "@u8run@";
+	echo "@u8run@";;
     kno.py)
     	echo "@libdir@/kno/kno.@shared_suffix@";;
     branch)
