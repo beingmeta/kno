@@ -379,6 +379,9 @@ struct KNO_SERVICE_HANDLERS knosocks_handlers =
 static u8_client simply_accept(u8_server srv,u8_socket sock,
 			       struct sockaddr *addr,size_t len)
 {
+  if (sock<0) {
+    u8_seterr("BadSocket","simply_accept",u8_strdup(srv->serverid));
+    return NULL;}
   knosocks_server ks = (knosocks_server) (srv->serverdata);
   knosocks_client client = (knosocks_client)
     u8_client_init(NULL,sizeof(KNOSOCKS_CLIENT),addr,len,sock,srv);

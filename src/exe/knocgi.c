@@ -797,6 +797,9 @@ static int config_set_u8server_flag(lispval var,lispval val,void *data)
 static u8_client simply_accept(u8_server srv,u8_socket sock,
                                struct sockaddr *addr,size_t len)
 {
+  if (sock<0) {
+    u8_seterr("BadSocket","simply_accept/knocgi",u8_strdup(srv->serverid));
+    return NULL;}
   /* We could do access control here. */
   kno_webconn consed = (kno_webconn)
     u8_client_init(NULL,sizeof(KNO_WEBCONN),addr,len,sock,srv);

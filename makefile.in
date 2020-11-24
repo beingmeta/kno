@@ -713,6 +713,10 @@ etc/%: etc/%.in ./config.status
 	@echo "Configuring $@"
 	@./config.status
 
+src/%.zip: src/%
+	cd $^;	zip ../$(@F) -r *
+
+
 # docs/man/%: docs/ronn/%.ronn
 # 	ronn --roff < $< > $@
 # docs/man.html/%.html: docs/ronn/%.ronn
@@ -838,7 +842,7 @@ etc/usememory: etc/usememory.c
 
 # Library targets
 
-libs: static-libs @SHARED_LIB_TARGET@
+libs: static-libs @SHARED_LIB_TARGET@ zip
 static-libs: $(STATIC_LIBS)
 shared-libs: $(SHARED_LIBS)
 
@@ -848,6 +852,7 @@ debug-exe: $(DEBUG_EXECUTABLES) dbg/.gdbinit
 shell-scripts: $(SHELL_SCRIPTS)
 scheme-scripts: $(SCHEME_SCRIPTS)
 scripts: shell-scripts scheme-scripts
+zips: src/libscm.zip src/stdlib.zip
 
 .PHONY: static
 

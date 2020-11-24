@@ -407,6 +407,9 @@ typedef struct KNO_CLIENT *kno_client;
 static u8_client simply_accept(u8_server srv,u8_socket sock,
                                struct sockaddr *addr,size_t len)
 {
+  if (sock<0) {
+    u8_seterr("BadSocket","simply_accept/knod",u8_strdup(srv->serverid));
+    return NULL;}
   kno_client client = (kno_client)
     u8_client_init(NULL,sizeof(KNO_CLIENT),addr,len,sock,srv);
   kno_init_stream(&(client->clientstream),

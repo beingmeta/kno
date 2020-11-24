@@ -23,6 +23,7 @@
 #include "kno/dtypeio.h"
 #include "kno/ports.h"
 #include "kno/cprims.h"
+#include "kno/getsource.h"
 
 #include <libu8/u8streamio.h>
 #include <libu8/u8crypto.h>
@@ -33,6 +34,16 @@
 #ifndef KNO_DTWRITE_SIZE
 #define KNO_DTWRITE_SIZE 10000
 #endif
+
+static u8_string get_filedata(u8_string path,ssize_t *lenp)
+{
+  if (u8_file_existsp(path))
+    return u8_filedata(path,lenp);
+  else {
+    const unsigned char *data = kno_get_source(path,"bytes",NULL,NULL,lenp);
+    if (data == NULL) kno_seterr3(kno_FileNotFound,"filestring",path);
+    return data;}
+}
 
 DEFPRIM3("read-dtype",read_dtype,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
 	 "(READ-DTYPE *stream* [*off*] [*len*]) "
@@ -454,16 +465,39 @@ static lispval file2dtypes(lispval filename)
        (u8_has_suffix(CSTRING(filename),".gz",1)))) {
     return zipfile2dtypes(filename);}
   else if (STRINGP(filename)) {
-    struct KNO_STREAM _in, *in =
-      kno_init_file_stream(&_in,CSTRING(filename),KNO_FILE_READ,
-			   ( (KNO_USE_MMAP) ? (KNO_STREAM_MMAPPED) : (0)),
-			   ( (KNO_USE_MMAP) ? (0) : (kno_filestream_bufsize)));
-    lispval results = EMPTY, object = VOID;
-    if (in == NULL)
-      return KNO_ERROR;
+    if (u8_file_existsp(KNO_CSTRING(filename))) {
+      struct KNO_STREAM _in, *in =
+	kno_init_file_stream(&_in,CSTRING(filename),KNO_FILE_READ,
+			     ( (KNO_USE_MMAP) ? (KNO_STREAM_MMAPPED) : (0)),
+			     ( (KNO_USE_MMAP) ? (0) : (kno_filestream_bufsize)));
+      lispval results = EMPTY, object = VOID;
+      if (in == NULL)
+	return KNO_ERROR;
+      else {
+	kno_inbuf inbuf = kno_readbuf(in);
+	object = kno_read_dtype(inbuf);
+	while (!(KNO_EODP(object))) {
+	  if (KNO_ABORTP(object)) {
+	    kno_decref(results);
+	    kno_close_stream(in,KNO_STREAM_FREEDATA);
+	    return object;}
+	  CHOICE_ADD(results,object);
+	  object = kno_read_dtype(inbuf);}
+	kno_close_stream(in,KNO_STREAM_FREEDATA);
+	return results;}}
     else {
+      ssize_t len = -1;
+      u8_string sourcepath = KNO_CSTRING(filename);
+      const unsigned char *filedata = get_filedata(sourcepath,&len);
+      if (filedata == NULL) {
+	kno_seterr3(kno_FileNotFound,"open_stream",sourcepath);
+	return KNO_ERROR;}
+      struct KNO_STREAM _in, *in =
+	kno_init_byte_stream(&_in,sourcepath,KNO_FILE_READ,len,filedata);
+      if (in==NULL) return KNO_ERROR;
       kno_inbuf inbuf = kno_readbuf(in);
-      object = kno_read_dtype(inbuf);
+      lispval results = EMPTY;
+      lispval object = kno_read_dtype(inbuf);
       while (!(KNO_EODP(object))) {
 	if (KNO_ABORTP(object)) {
 	  kno_decref(results);
@@ -482,17 +516,40 @@ DEFPRIM1("zfile->dtypes",zipfile2dtypes,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 static lispval zipfile2dtypes(lispval filename)
 {
   if (STRINGP(filename)) {
-    struct KNO_STREAM *in = kno_open_file(CSTRING(filename),KNO_FILE_READ);
-    lispval results = EMPTY, object = VOID;
-    if (in == NULL) return KNO_ERROR;
+    if (u8_file_existsp(KNO_CSTRING(filename))) {
+      struct KNO_STREAM *in = kno_open_file(CSTRING(filename),KNO_FILE_READ);
+      lispval results = EMPTY, object = VOID;
+      if (in == NULL) return KNO_ERROR;
+      else {
+	U8_CLEAR_ERRNO();
+	kno_inbuf inbuf = kno_readbuf(in);
+	object = kno_zread_dtype(inbuf);
+	while (!(KNO_EODP(object))) {
+	  CHOICE_ADD(results,object);
+	  object = kno_zread_dtype(inbuf);}
+	kno_close_stream(in,KNO_STREAM_CLOSE_FULL);
+	return results;}}
     else {
-      U8_CLEAR_ERRNO();
+      ssize_t len = -1;
+      u8_string sourcepath = KNO_CSTRING(filename);
+      const unsigned char *filedata = get_filedata(sourcepath,&len);
+      if (filedata == NULL) {
+	kno_seterr3(kno_FileNotFound,"open_stream",sourcepath);
+	return KNO_ERROR;}
+      struct KNO_STREAM _in, *in =
+	kno_init_byte_stream(&_in,sourcepath,KNO_FILE_READ,len,filedata);
+      if (in==NULL) return KNO_ERROR;
       kno_inbuf inbuf = kno_readbuf(in);
-      object = kno_zread_dtype(inbuf);
+      lispval results = EMPTY;
+      lispval object = kno_zread_dtype(inbuf);
       while (!(KNO_EODP(object))) {
+	if (KNO_ABORTP(object)) {
+	  kno_decref(results);
+	  kno_close_stream(in,KNO_STREAM_FREEDATA);
+	  return object;}
 	CHOICE_ADD(results,object);
 	object = kno_zread_dtype(inbuf);}
-      kno_close_stream(in,KNO_STREAM_CLOSE_FULL);
+      kno_close_stream(in,KNO_STREAM_FREEDATA);
       return results;}}
   else return kno_type_error(_("string"),"zipfile2dtypes",filename);;
 }

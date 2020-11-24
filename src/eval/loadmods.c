@@ -592,7 +592,8 @@ static int loadpath_config_set(lispval var,lispval vals,void *d)
 	  u8_string next = strchr(start,':');
 	  if (next) {
 	    strncpy(buf,start,next-start);
-	    len = next-start;}
+	    len = next-start;
+	    buf[len]='\0';}
 	  else {
 	    strcpy(buf,start);
 	    len = strlen(start);}
@@ -864,8 +865,11 @@ KNO_EXPORT void kno_init_loadmods_c()
     if (dir==NULL) dir = u8_strdup(kno_default_libscm);
     if (u8_has_suffix(dir,"/",0))
       use_path=dir;
-    else if (u8_has_suffix(dir,".zip",0))
+    else if (u8_has_suffix(dir,".zip/",0))
       use_path=dir;
+    else if (u8_has_suffix(dir,".zip",0)) {
+      use_path=u8_string_append(dir,"/",NULL);
+      u8_free(dir);}
     else {
       use_path=u8_string_append(dir,"/",NULL);
       u8_free(dir);}
