@@ -60,7 +60,5 @@ rm -f tests/scheme/*.pool tests/scheme/*.index tests/scheme/*.log
 rm -f tests/scheme/*.dtype tests/scheme/_countup.*
 
 rm -f makefile config.log config.status config.cache;
-rm -f tests/types/makefile tests/storage/makefile tests/scheme/makefile;
-rm -f tests/types/.gdbinit tests/storage/.gdbinit tests/scheme/.gdbinit;
 rm -f etc/knogetconfig etc/knosetconfig etc/kno-rc.d;
 rm -f exe/.gdbinit include/kno/config.h include/kno/revision.h;

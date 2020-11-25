@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-11-02 14:49+0000\n"
+"POT-Creation-Date: 2020-11-25 16:03-0500\n"
 "PO-Revision-Date: 2005-03-04 22:55-0500\n"
 "Last-Translator: Kenneth Haase <kh@beingmeta.com>\n"
 "Language-Team: Spanish <es@li.org>\n"
@@ -140,7 +140,7 @@ msgstr ""
 #: src/lisp/sequences.c:166 src/lisp/sequences.c:261 src/lisp/sequences.c:815
 #: src/eval/opcode_defs.c:365 src/eval/opcode_defs.c:372
 #: src/eval/opcode_defs.c:564 src/eval/opcode_defs.c:568
-#: src/prims/dbprims.c:3251 src/prims/dbprims.c:3253 src/prims/seqprims.c:345
+#: src/prims/dbprims.c:3287 src/prims/dbprims.c:3289 src/prims/seqprims.c:345
 #: src/prims/seqprims.c:356 src/prims/seqprims.c:365 src/prims/seqprims.c:531
 #: src/prims/seqprims.c:566 src/prims/seqprims.c:630 src/prims/seqprims.c:655
 #: src/prims/seqprims.c:1557 src/prims/seqprims.c:1613
@@ -261,7 +261,7 @@ msgstr ""
 msgid "binding list"
 msgstr ""
 
-#: src/lisp/tables.c:4328
+#: src/lisp/tables.c:4344
 msgid "value is not a boolean"
 msgstr ""
 
@@ -426,11 +426,11 @@ msgid "oid"
 msgstr ""
 
 #: src/lisp/lisp.c:247 src/lisp/lisp.c:248 src/sys/config.c:863
-#: src/eval/opcode_defs.c:373 src/eval/evalops.c:292 src/prims/dbprims.c:3182
-#: src/prims/portprims.c:982 src/eval/choiceops.c:1451
-#: src/eval/choiceops.c:1490 src/eval/choiceops.c:1517
-#: src/eval/choiceops.c:1554 src/eval/choiceops.c:1568
-#: src/eval/choiceops.c:1572 src/eval/choiceops.c:1573 src/prims/seqprims.c:361
+#: src/eval/opcode_defs.c:373 src/eval/evalops.c:292 src/prims/dbprims.c:3218
+#: src/prims/portprims.c:982 src/eval/choiceops.c:1490
+#: src/eval/choiceops.c:1559 src/eval/choiceops.c:1605
+#: src/eval/choiceops.c:1670 src/eval/choiceops.c:1684
+#: src/eval/choiceops.c:1688 src/eval/choiceops.c:1689 src/prims/seqprims.c:361
 #: src/text/texttools.c:2318 src/text/match.c:3605 src/text/match.c:3622
 #: src/text/match.c:3651 src/text/match.c:3683 src/exe/knocgi.c:281
 #: src/exe/knocgi.c:296 src/exe/knocgi.c:314 src/exe/knocgi.c:330
@@ -474,15 +474,15 @@ msgstr ""
 msgid "coderef"
 msgstr ""
 
-#: src/lisp/lisp.c:269 src/lisp/lisp.c:270 src/storage/pools.c:2875
-#: src/prims/dbprims.c:283 src/prims/dbprims.c:1968
+#: src/lisp/lisp.c:269 src/lisp/lisp.c:270 src/storage/pools.c:2888
+#: src/prims/dbprims.c:283 src/prims/dbprims.c:2004
 msgid "pool"
 msgstr ""
 
 #: src/lisp/lisp.c:271 src/lisp/lisp.c:272 src/storage/indexes.c:1114
-#: src/storage/indexes.c:2374 src/storage/slotindexes.c:229
-#: src/prims/dbprims.c:762 src/prims/dbprims.c:1935 src/prims/dbprims.c:1951
-#: src/prims/dbprims.c:1982
+#: src/storage/indexes.c:2387 src/storage/slotindexes.c:234
+#: src/prims/dbprims.c:798 src/prims/dbprims.c:1971 src/prims/dbprims.c:1987
+#: src/prims/dbprims.c:2018
 msgid "index"
 msgstr ""
 
@@ -494,11 +494,11 @@ msgstr ""
 #: src/sys/config.c:783 src/sys/config.c:802 src/sys/startup.c:256
 #: src/sys/startup.c:649 src/prims/dbprims.c:320 src/prims/dbprims.c:341
 #: src/prims/dbprims.c:362 src/prims/portprims.c:378 src/prims/portprims.c:848
-#: src/prims/portprims.c:988 src/prims/dtypeprims.c:235
-#: src/prims/dtypeprims.c:280 src/prims/dtypeprims.c:367
-#: src/prims/dtypeprims.c:399 src/prims/dtypeprims.c:419
-#: src/prims/dtypeprims.c:442 src/prims/dtypeprims.c:476
-#: src/prims/dtypeprims.c:497 src/prims/stringprims.c:478
+#: src/prims/portprims.c:988 src/prims/dtypeprims.c:246
+#: src/prims/dtypeprims.c:291 src/prims/dtypeprims.c:378
+#: src/prims/dtypeprims.c:410 src/prims/dtypeprims.c:430
+#: src/prims/dtypeprims.c:453 src/prims/dtypeprims.c:510
+#: src/prims/dtypeprims.c:554 src/prims/stringprims.c:478
 #: src/prims/stringprims.c:692 src/prims/stringprims.c:719
 #: src/prims/stringprims.c:1617 src/prims/fileprims.c:314
 #: src/prims/fileprims.c:709 src/web/cgiexec.c:1317 src/web/cgiexec.c:1344
@@ -579,7 +579,7 @@ msgstr ""
 msgid "hashtable"
 msgstr ""
 
-#: src/lisp/lisp.c:316 src/lisp/lisp.c:317 src/prims/tableprims.c:1003
+#: src/lisp/lisp.c:316 src/lisp/lisp.c:317 src/prims/tableprims.c:992
 #: src/text/match.c:3421 src/text/match.c:3457 src/text/match.c:3483
 #: src/text/match.c:3525
 msgid "hashset"
@@ -1239,11 +1239,11 @@ msgstr ""
 msgid "Internal stack size didn't make any sense, punting"
 msgstr ""
 
-#: src/apply/stacks.c:561
+#: src/apply/stacks.c:611
 msgid "Size of the stack (in bytes or as a factor of the current size)"
 msgstr ""
 
-#: src/apply/stacks.c:564
+#: src/apply/stacks.c:614
 msgid "Whether to trace all stack push/pop operations"
 msgstr ""
 
@@ -1311,12 +1311,12 @@ msgstr ""
 msgid "Error getting metadata"
 msgstr ""
 
-#: src/storage/storage.c:428 src/storage/pools.c:2757 src/prims/dbprims.c:1486
-#: src/prims/dbprims.c:1500 src/prims/dbprims.c:1511 src/prims/dbprims.c:1523
-#: src/prims/dbprims.c:1567 src/prims/dbprims.c:1583 src/prims/dbprims.c:1602
-#: src/prims/dbprims.c:1617 src/prims/dbprims.c:1631 src/prims/dbprims.c:1652
-#: src/prims/dbprims.c:1697 src/prims/dbprims.c:1714 src/prims/dbprims.c:3177
-#: src/prims/dbprims.c:3264
+#: src/storage/storage.c:428 src/storage/pools.c:2770 src/prims/dbprims.c:1522
+#: src/prims/dbprims.c:1536 src/prims/dbprims.c:1547 src/prims/dbprims.c:1559
+#: src/prims/dbprims.c:1603 src/prims/dbprims.c:1619 src/prims/dbprims.c:1638
+#: src/prims/dbprims.c:1653 src/prims/dbprims.c:1667 src/prims/dbprims.c:1688
+#: src/prims/dbprims.c:1733 src/prims/dbprims.c:1750 src/prims/dbprims.c:3213
+#: src/prims/dbprims.c:3300
 msgid "pool spec"
 msgstr ""
 
@@ -1424,19 +1424,19 @@ msgstr ""
 msgid "Not MMapped"
 msgstr ""
 
-#: src/storage/streams.c:639
+#: src/storage/streams.c:666
 msgid "StreamClosed"
 msgstr ""
 
-#: src/storage/streams.c:682
+#: src/storage/streams.c:709
 msgid "FreeingStaticStream"
 msgstr ""
 
-#: src/storage/streams.c:687
+#: src/storage/streams.c:714
 msgid "DanglingStreamPointers"
 msgstr ""
 
-#: src/storage/streams.c:1623
+#: src/storage/streams.c:1652
 msgid "LOGLEVEL for binary streams"
 msgstr ""
 
@@ -1597,22 +1597,22 @@ msgstr ""
 msgid "Saving %d changes (+%d-%d=%d%s) to %s"
 msgstr ""
 
-#: src/storage/indexes.c:1949
+#: src/storage/indexes.c:1960
 #, c-format
 msgid "#<%s %s (%s) cx=%d+%d%s #!%llx \"%s...\">"
 msgstr ""
 
-#: src/storage/indexes.c:1952
+#: src/storage/indexes.c:1963
 #, c-format
 msgid "#<%s %s (%s) cx=%d+%d%s #!%llx \"%s\">"
 msgstr ""
 
-#: src/storage/indexes.c:1954
+#: src/storage/indexes.c:1965
 #, c-format
 msgid "#<%s %s (%s) cx=%d+%d%s #!%llx>"
 msgstr ""
 
-#: src/storage/indexes.c:2378
+#: src/storage/indexes.c:2391
 msgid "raw index"
 msgstr ""
 
@@ -1736,15 +1736,15 @@ msgstr ""
 msgid "Corrupted pool table"
 msgstr ""
 
-#: src/storage/pools.c:2744
+#: src/storage/pools.c:2757
 msgid "Config mis-config"
 msgstr ""
 
-#: src/storage/pools.c:2880
+#: src/storage/pools.c:2893
 msgid "raw pool"
 msgstr ""
 
-#: src/storage/pools.c:2936
+#: src/storage/pools.c:2949
 msgid "Default location for new OID allocation"
 msgstr ""
 
@@ -1766,6 +1766,10 @@ msgstr ""
 
 #: src/storage/slotindexes.c:28
 msgid "Odd number of args to find frames"
+msgstr ""
+
+#: src/storage/slotindexes.c:29
+msgid "NoIndexForSlot"
 msgstr ""
 
 #: src/storage/alcor.c:45
@@ -1813,8 +1817,8 @@ msgstr ""
 
 #: src/drivers/filepool.c:907 src/drivers/oidpool.c:1648
 #: src/drivers/bigpool.c:2055 src/drivers/kpool.c:1996
-#: src/drivers/fileindex.c:1199 src/drivers/hashindex.c:3814
-#: src/drivers/kindex.c:3336
+#: src/drivers/fileindex.c:1199 src/drivers/hashindex.c:3810
+#: src/drivers/kindex.c:3332
 msgid "cachelevel"
 msgstr ""
 
@@ -1891,7 +1895,7 @@ msgstr ""
 msgid "hashindex has unknown hash function"
 msgstr ""
 
-#: src/drivers/hashindex.c:3422
+#: src/drivers/hashindex.c:3418
 msgid "NotAHashIndex"
 msgstr ""
 
@@ -1903,7 +1907,7 @@ msgstr ""
 msgid "kindex has unknown hash function"
 msgstr ""
 
-#: src/drivers/kindex.c:3004
+#: src/drivers/kindex.c:3000
 msgid "NotAKIndex"
 msgstr ""
 
@@ -1931,8 +1935,8 @@ msgstr ""
 msgid "ProcIndex/OddResult"
 msgstr ""
 
-#: src/drivers/memindex.c:305
-msgid "NotMemindex"
+#: src/drivers/logindex.c:305
+msgid "NotLogindex"
 msgstr ""
 
 #: src/eval/eval.c:67
@@ -2215,69 +2219,69 @@ msgstr ""
 msgid "namefn"
 msgstr ""
 
-#: src/prims/dbprims.c:410 src/prims/dbprims.c:2297 src/prims/dbprims.c:2312
+#: src/prims/dbprims.c:410 src/prims/dbprims.c:2333 src/prims/dbprims.c:2348
 msgid "index spec"
 msgstr ""
 
-#: src/prims/dbprims.c:514 src/prims/dbprims.c:515
+#: src/prims/dbprims.c:518 src/prims/dbprims.c:519
 msgid "BadPoolType"
 msgstr ""
 
-#: src/prims/dbprims.c:555 src/prims/dbprims.c:556
+#: src/prims/dbprims.c:577 src/prims/dbprims.c:578
 msgid "BadIndexType"
 msgstr ""
 
-#: src/prims/dbprims.c:758
+#: src/prims/dbprims.c:794
 msgid "eternal (not-ephemeral) index"
 msgstr ""
 
-#: src/prims/dbprims.c:763
+#: src/prims/dbprims.c:799
 msgid "aggregate index"
 msgstr ""
 
-#: src/prims/dbprims.c:1129 src/prims/dbprims.c:1154
+#: src/prims/dbprims.c:1165 src/prims/dbprims.c:1190
 msgid "slotid"
 msgstr ""
 
-#: src/prims/dbprims.c:1255 src/prims/dbprims.c:1260 src/prims/dbprims.c:1279
-#: src/prims/dbprims.c:1301
+#: src/prims/dbprims.c:1291 src/prims/dbprims.c:1296 src/prims/dbprims.c:1315
+#: src/prims/dbprims.c:1337
 msgid "pool, index, or OIDs"
 msgstr ""
 
-#: src/prims/dbprims.c:1328 src/prims/dbprims.c:1751 src/prims/dbprims.c:1999
-#: src/prims/dbprims.c:2018
+#: src/prims/dbprims.c:1364 src/prims/dbprims.c:1787 src/prims/dbprims.c:2035
+#: src/prims/dbprims.c:2054
 msgid "pool or index"
 msgstr ""
 
-#: src/prims/dbprims.c:1532 src/prims/dbprims.c:1536 src/prims/dbprims.c:1541
-#: src/prims/dbprims.c:1546
+#: src/prims/dbprims.c:1568 src/prims/dbprims.c:1572 src/prims/dbprims.c:1577
+#: src/prims/dbprims.c:1582
 msgid "pool offset"
 msgstr ""
 
-#: src/prims/dbprims.c:2221
+#: src/prims/dbprims.c:2257
 msgid "value test"
 msgstr ""
 
-#: src/prims/dbprims.c:2256 src/prims/tableprims.c:802
-#: src/prims/tableprims.c:824 src/prims/tableprims.c:853
-#: src/prims/tableprims.c:923 src/web/htmlout.c:595 src/web/uriprims.c:204
+#: src/prims/dbprims.c:2292 src/prims/tableprims.c:791
+#: src/prims/tableprims.c:813 src/prims/tableprims.c:842
+#: src/prims/tableprims.c:912 src/web/htmlout.c:595 src/web/uriprims.c:204
 #: src/web/uriprims.c:206 src/web/uriprims.c:305
 msgid "table"
 msgstr ""
 
-#: src/prims/dbprims.c:2622
+#: src/prims/dbprims.c:2658
 msgid "test relation"
 msgstr ""
 
-#: src/prims/dbprims.c:2735
+#: src/prims/dbprims.c:2771
 msgid "test object"
 msgstr ""
 
-#: src/prims/dbprims.c:3240
+#: src/prims/dbprims.c:3276
 msgid "wrong number of args"
 msgstr ""
 
-#: src/prims/dbprims.c:3383 src/prims/dbprims.c:3406
+#: src/prims/dbprims.c:3419 src/prims/dbprims.c:3442
 msgid "offset base"
 msgstr ""
 
@@ -2323,12 +2327,17 @@ msgstr ""
 msgid "OIDPOOL compress ran out of memory"
 msgstr ""
 
+#: src/prims/portprims.c:1551 src/prims/stringprims.c:1472
+#: src/prims/stringprims.c:1533
+msgid "text encoding"
+msgstr ""
+
 #: src/prims/streamprims.c:472 src/prims/streamprims.c:479
 msgid "Out of file range"
 msgstr ""
 
-#: src/eval/choiceops.c:1435 src/eval/choiceops.c:1462
-#: src/eval/choiceops.c:1501 src/eval/choiceops.c:1528
+#: src/eval/choiceops.c:1486 src/eval/choiceops.c:1554
+#: src/eval/choiceops.c:1601 src/eval/choiceops.c:1665
 msgid "keyfn"
 msgstr ""
 
@@ -2363,10 +2372,6 @@ msgstr ""
 #: src/prims/stringprims.c:376 src/prims/stringprims.c:409
 #: src/prims/stringprims.c:430
 msgid "string or character"
-msgstr ""
-
-#: src/prims/stringprims.c:1472 src/prims/stringprims.c:1533
-msgid "text encoding"
 msgstr ""
 
 #: src/prims/fileprims.c:66
@@ -2446,15 +2451,15 @@ msgstr ""
 msgid "Module does not exist"
 msgstr ""
 
-#: src/eval/loadmods.c:734
+#: src/eval/loadmods.c:735
 msgid "FailedModule"
 msgstr ""
 
-#: src/eval/loadmods.c:738
+#: src/eval/loadmods.c:739
 msgid "DynamicLoad"
 msgstr ""
 
-#: src/eval/loadmods.c:811
+#: src/eval/loadmods.c:812
 msgid "module name"
 msgstr ""
 
@@ -3036,87 +3041,87 @@ msgstr ""
 msgid "No servers configured"
 msgstr ""
 
-#: src/exe/knocgi.c:1839
+#: src/exe/knocgi.c:1842
 msgid "Trace web transactions over N seconds"
 msgstr ""
 
-#: src/exe/knocgi.c:1842 src/exe/knod.c:1096
+#: src/exe/knocgi.c:1845 src/exe/knod.c:1099
 msgid "Number of pending connection requests allowed"
 msgstr ""
 
-#: src/exe/knocgi.c:1844 src/exe/knod.c:1099
+#: src/exe/knocgi.c:1847 src/exe/knod.c:1102
 msgid "Max number of requests to keep queued"
 msgstr ""
 
-#: src/exe/knocgi.c:1847
+#: src/exe/knocgi.c:1850
 msgid "Max number of concurrent connections to allow (NYI)"
 msgstr ""
 
-#: src/exe/knocgi.c:1850 src/exe/knod.c:1103
+#: src/exe/knocgi.c:1853 src/exe/knod.c:1106
 msgid "Number of clients to prepare for/grow by"
 msgstr ""
 
-#: src/exe/knocgi.c:1853 src/exe/knocgi.c:1856 src/exe/knod.c:1106
+#: src/exe/knocgi.c:1856 src/exe/knocgi.c:1859 src/exe/knod.c:1109
 msgid "Number of threads in the thread pool"
 msgstr ""
 
-#: src/exe/knocgi.c:1859
+#: src/exe/knocgi.c:1862
 msgid "File for recording status reports"
 msgstr ""
 
-#: src/exe/knocgi.c:1862
+#: src/exe/knocgi.c:1865
 msgid "Milliseconds (roughly) between updates to .status"
 msgstr ""
 
-#: src/exe/knocgi.c:1865
+#: src/exe/knocgi.c:1868
 msgid "Milliseconds (roughly) between logging status information"
 msgstr ""
 
-#: src/exe/knocgi.c:1868 src/exe/knod.c:1169
+#: src/exe/knocgi.c:1871 src/exe/knod.c:1172
 msgid "How long (μs) to wait for tasks during shutdown"
 msgstr ""
 
-#: src/exe/knocgi.c:1872 src/exe/knod.c:1080
+#: src/exe/knocgi.c:1875 src/exe/knod.c:1083
 msgid "Remove existing socket files with extreme prejudice"
 msgstr ""
 
-#: src/exe/knocgi.c:1876
+#: src/exe/knocgi.c:1879
 msgid "Whether to check for existing PID files"
 msgstr ""
 
-#: src/exe/knocgi.c:1880
+#: src/exe/knocgi.c:1883
 msgid "Ports for listening for connections"
 msgstr ""
 
-#: src/exe/knocgi.c:1883 src/exe/knod.c:1165
+#: src/exe/knocgi.c:1886 src/exe/knod.c:1168
 msgid "Whether to run in asynchronous mode"
 msgstr ""
 
-#: src/exe/knocgi.c:1887
+#: src/exe/knocgi.c:1890
 msgid "Whether to have libu8 log each monitored address"
 msgstr ""
 
-#: src/exe/knocgi.c:1891
+#: src/exe/knocgi.c:1894
 msgid "Timeout for the poll loop (lower bound of status updates)"
 msgstr ""
 
-#: src/exe/knocgi.c:1895 src/exe/knod.c:1133
+#: src/exe/knocgi.c:1898 src/exe/knod.c:1136
 msgid "Whether to have libu8 log each connection"
 msgstr ""
 
-#: src/exe/knocgi.c:1899 src/exe/knod.c:1138
+#: src/exe/knocgi.c:1902 src/exe/knod.c:1141
 msgid "Whether to have libu8 log each transaction"
 msgstr ""
 
-#: src/exe/knocgi.c:1903
+#: src/exe/knocgi.c:1906
 msgid "Whether to have libu8 log queue activity"
 msgstr ""
 
-#: src/exe/knocgi.c:1909
+#: src/exe/knocgi.c:1912
 msgid "Whether to have libu8 log data transmission/receiption"
 msgstr ""
 
-#: src/exe/knocgi.c:1916 src/exe/knod.c:1150
+#: src/exe/knocgi.c:1919 src/exe/knod.c:1153
 msgid "Whether to support thread-asynchronous transactions"
 msgstr ""
 
@@ -3160,71 +3165,71 @@ msgstr ""
 msgid "Outgoing"
 msgstr ""
 
-#: src/exe/knod.c:1083
+#: src/exe/knod.c:1086
 msgid "Loglevel for knod itself"
 msgstr ""
 
-#: src/exe/knod.c:1086
+#: src/exe/knod.c:1089
 msgid "Whether to run in the foreground"
 msgstr ""
 
-#: src/exe/knod.c:1089
+#: src/exe/knod.c:1092
 msgid "Whether to enable auto-restart"
 msgstr ""
 
-#: src/exe/knod.c:1092
+#: src/exe/knod.c:1095
 msgid "Whether to wait for the servlet PID file"
 msgstr ""
 
-#: src/exe/knod.c:1109
+#: src/exe/knod.c:1112
 msgid "modules to provide in the server environment"
 msgstr ""
 
-#: src/exe/knod.c:1112
+#: src/exe/knod.c:1115
 msgid "whether to provide full scheme interpreter"
 msgstr ""
 
-#: src/exe/knod.c:1115
+#: src/exe/knod.c:1118
 msgid "Whether to log each request and response"
 msgstr ""
 
-#: src/exe/knod.c:1118
+#: src/exe/knod.c:1121
 msgid "Whether to log each transaction"
 msgstr ""
 
-#: src/exe/knod.c:1122
+#: src/exe/knod.c:1125
 msgid "Whether to log errors returned by the server to clients"
 msgstr ""
 
-#: src/exe/knod.c:1126
+#: src/exe/knod.c:1129
 msgid "Whether to include a detailed backtrace when logging errors"
 msgstr ""
 
-#: src/exe/knod.c:1129
+#: src/exe/knod.c:1132
 msgid "Line width for logged backtraces"
 msgstr ""
 
-#: src/exe/knod.c:1144
+#: src/exe/knod.c:1147
 msgid "Whether to have libu8 log all data transfers"
 msgstr ""
 
-#: src/exe/knod.c:1156
+#: src/exe/knod.c:1159
 msgid "Max number of string characters to display in debug messages"
 msgstr ""
 
-#: src/exe/knod.c:1161
+#: src/exe/knod.c:1164
 msgid "Max number of object elements to display in debug messages"
 msgstr ""
 
-#: src/exe/knod.c:1173
+#: src/exe/knod.c:1176
 msgid "Whether to automatically reload changed files"
 msgstr ""
 
-#: src/exe/knod.c:1177
+#: src/exe/knod.c:1180
 msgid "Whether to disable exported Kno DB API"
 msgstr ""
 
-#: src/exe/knod.c:1333
+#: src/exe/knod.c:1336
 msgid "port or port@host to listen on"
 msgstr ""
 

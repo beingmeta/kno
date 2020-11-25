@@ -369,12 +369,12 @@ static void fix_void_bindings(lispval bindings)
     if (changed) smap->table_bits &= (~KNO_SCHEMAP_SORTED);}
   else if (KNO_SLOTMAPP(bindings)) {
     struct KNO_SLOTMAP *smap = (kno_slotmap) bindings;
-    int i = 0, n = smap->n_slots, changed = 0;
+    int i = 0, n = smap->n_slots;
     struct KNO_KEYVAL *keyvals = KNO_XSLOTMAP_KEYVALS(smap);
     while (i<n) {
       lispval key = keyvals[i].kv_key, val = keyvals[i].kv_val;
-      if (KNO_VOIDP(key)) {keyvals[i].kv_key=KNO_QVOID; changed=1;}
-      if (KNO_VOIDP(val)) {keyvals[i].kv_val=KNO_QVOID; changed=1;}
+      if (KNO_VOIDP(key)) {keyvals[i].kv_key=KNO_QVOID;}
+      if (KNO_VOIDP(val)) {keyvals[i].kv_val=KNO_QVOID;}
       i++;}}
   else NO_ELSE;
 }
