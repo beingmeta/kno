@@ -599,7 +599,7 @@ static lispval json_slotid(u8_input in)
   int c = u8_getc(in);
   if (PRED_FALSE(c<0)) return KNO_EOF;
   int delim = ( (c == '\'') || (c == '"') ) ? (c) : (-1);
-  int make_symbol = 0;
+  int make_symbol = 1;
   U8_STATIC_OUTPUT(all,120);
   if (delim > 0) c = u8_getc(in); /* Skip the delimiter */
   if (c == '\\')
