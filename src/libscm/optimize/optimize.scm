@@ -33,6 +33,9 @@
 (varconfig! optimize:level optlevel)
 (varconfig! optlevel optlevel)
 
+(define-init module-warnings (make-hashtable))
+(define-init all-warnings #f)
+
 (define-init fcnrefs-default {})
 (define-init pfcnrefs-default {})
 (define-init opcodes-default {})
@@ -114,11 +117,15 @@
 	((or (symbol? x) (pair? x) (schemap? x)) #t)
 	(else #f)))
 
+(define dont-touch-decls '{%unoptimized %volatile %nosubst})
+
 ;;; What we export
 
 (module-export! '{optimize! optimized optimized? use+
 		  optimize-procedure! optimize-module!
 		  reoptimize! optimize-bindings!
+		  optimize/list-warnings
+		  optimize/count-warnings
 		  deoptimize! 
 		  deoptimize-procedure!
 		  deoptimize-module!
@@ -174,12 +181,24 @@
   (default! from (and (symbol? sym) (wherefrom sym env)))
   (cond ((not (or (applicable? value) (special-form? value))) sym)
 	((not (cons? value)) sym)
+	((or (and from (test from dont-touch-decls sym))
+	     (testopt opts dont-touch-decls sym))
+	 sym)
 	((and sym from (module? from)
 	      (or (special-form? value) (primitive? value))
 	      (or (getopt opts 'aliasprims aliasprims-default)
-		  (getopt opts 'aliasfns aliasfns-default))
+		  (getopt opts 'aliasfns aliasfns-default)))
+	 value)
+	((and sym from (module? from)
+	      (or (special-form? value) (primitive? value))
 	      (use-fcnrefs? opts))
 	 (get-fcnid sym from value))
+	((and sym from (module? from) (applicable? value)
+	      (getopt opts 'aliasfns aliasfns-default)
+	      (or (%test env '%constants sym)
+		  (test from '%constants sym)
+		  (testopt opts '%constants sym)))
+	 value)
 	((and sym from (module? from) (applicable? value)
 	      (getopt opts 'aliasfns aliasfns-default)
 	      (use-fcnrefs? opts))
@@ -416,8 +435,6 @@
 
 ;;; The core loop
 
-(define dont-touch-decls '{%unoptimized %volatile %nosubst})
-
 (defambda (optimize expr env bound opts)
   (logdebug |Optimize| expr " given " bound)
   ;;(%watchptr optimize-expr)
@@ -446,7 +463,7 @@
 	      (not (test env '%nowarn (car expr))))
 	 ;; This is the case where the head is a symbol which we can't
 	 ;; resolve it.
-	 (codewarning (cons* '|Unbound| expr bound))
+	 (codewarning (cons* '|Unbound| (car expr) expr bound))
 	 (when optwarn
 	   (logwarn |UnboundVariable|
 	     "The symbol " (car expr) " in " expr
@@ -728,6 +745,10 @@
 	    (do-choices (warning (thread/get 'codewarnings))
 	      (printout "\n\t" warning)))
 	  (lognotice |Optimized| proc)))
+    (when (and (exists? (thread/get 'codewarnings))
+	       (or all-warnings (exists? (thread/get 'threadwarnings))))
+      (store! (try (thread/get 'threadwarnings) all-warnings)
+	  proc (thread/get 'codewarnings)))
     (thread/set! 'codewarnings #{})))
 
 (define (optimize-procedure! proc (opts #f))
@@ -789,7 +810,9 @@
 	  |GetModuleFailed| optimize-module
 	  "Couldn't load module for " spec))))
 
-(define (optimize-module! module (opts #f) (module))
+(define (optimize-module! module (opts #f) (module) 
+			  (warnings (make-hashtable))
+			  (old-warnings (thread/get 'threadwarnings)))
   (when (symbol? module)
     (set! module (optimize-get-module module)))
   (loginfo |OptimizeModule| module)
@@ -798,6 +821,7 @@
 	    (try (cons (get module '%optimize_options) opts)
 		 opts)
 	    (try (get module '%optimize_options) #f)))
+  (thread/set! 'threadwarnings warnings)
   (let ((bindings (and module (module-binds module)))
 	(usefcnrefs (use-fcnrefs? opts))
 	(count 0))
@@ -831,6 +855,10 @@
 		 (do-choices (um unused i)
 		   (printout (if (> i 0) ", ") um))))))
 	  (else))
+    (when (and module-warnings (> (table-size warnings) 0))
+      (store! warnings '%moduleid (get module '%moduleid))
+      (store! module-warnings (get module '%moduleid) warnings))
+    (thread/set! 'threadwarnings (qc old-warnings))
     count))
 
 (define (deoptimize-module! module)
@@ -1690,3 +1718,37 @@
   (add! special-form-optimizers
 	(choice fileout system)
 	optimize-block))
+
+;;;; Showing warnings
+
+(define (optimize/list-warnings (module #f))
+  (if module-warnings
+      (let ((all-warnings (if module
+			      (get module-warnings
+				   {module (get (pick module table?) '%moduleid)})
+			      (getvalues module-warnings))))
+	(do-choices (warnings all-warnings)
+	  (let ((modname (pick (get warnings '%moduleid) symbol?))
+		(modsource (pick (get warnings '%moduleid) string?)))
+	    (logerr |Optimize|
+	      "in " (or modname modsource) (when modname (printout " (" modsource ")"))
+	      (do-choices (fn (reject (getkeys warnings) symbol?))
+		(printout
+		  "\n  For " (or (procedure-name fn) fn)
+		  (if (ambiguous? (get warnings fn))
+		      (do-choices (warning (get warnings fn))
+			(printout "\n\t" (doseq (elt warning i) (printout (if (> i 0) " ") elt))))
+		      (doseq (elt (get warnings fn) i) (printout " " elt)))))))))
+      (logwarn |NoLog| "Module warnings are not being logged")))
+
+(define (optimize/count-warnings (module #f) (total 0))
+  (if module-warnings
+      (let ((all-warnings (if module
+			      (get module-warnings
+				   {module (get (pick module table?) '%moduleid)})
+			      (getvalues module-warnings))))
+	(do-choices (warnings all-warnings)
+	  (do-choices (fn (reject (getkeys warnings) symbol?))
+	    (set! total (+ total (|| (get warnings fn))))))
+	total)
+      (error |NoOptimizeLog|)))
