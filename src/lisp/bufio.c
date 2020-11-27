@@ -310,11 +310,14 @@ KNO_EXPORT int _kno_read_byte(struct KNO_INBUF *buf)
 
 KNO_EXPORT int _kno_probe_byte(struct KNO_INBUF *buf)
 {
+  u8_exception pre_ex = u8_current_exception;
   if (PRED_FALSE(KNO_ISWRITING(buf)))
     return kno_iswritebuf(buf);
   else if (kno_request_bytes(buf,1))
     return (*(buf->bufread));
-  else return -1;
+  else {
+    if (u8_current_exception != pre_ex) u8_pop_exception();
+    return -1;}
 }
 
 KNO_EXPORT int _kno_unread_byte(struct KNO_INBUF *buf,int byte)

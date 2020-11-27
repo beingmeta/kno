@@ -58,8 +58,8 @@ KNO_EXPORT int kno_probe_source
   struct KNO_SOURCEFN *scan = sourcefns;
   while (scan) {
     u8_string basepath = NULL;
-    u8_string data = scan->getsource
-      (0,lpath,NULL,&basepath,timep,sizep,scan->getsource_data);
+    /* This call (first arg = 0) probes fro the path. */
+    scan->getsource(0,lpath,NULL,&basepath,timep,sizep,scan->getsource_data);
     if (basepath) {
       if (basepathp)
 	*basepathp = basepath;

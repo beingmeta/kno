@@ -39,6 +39,7 @@ usr/share/kno/knoc.el
 usr/share/kno/makefile.include
 usr/share/kno/webinfo.knocgi
 etc/logrotate.d/kno
+usr/share/kno/libscm/kno-*.zip
 usr/share/kno/libscm/kno-*/bugjar/*.scm
 usr/share/kno/libscm/kno-*/bugjar/resources/*
 usr/share/kno/libscm/kno-*/optimize/*.scm

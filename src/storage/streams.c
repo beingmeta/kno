@@ -373,15 +373,13 @@ KNO_EXPORT kno_outbuf _kno_start_write(kno_stream s,kno_off_t pos)
 
 /* Initialization functions */
 
-KNO_EXPORT struct KNO_STREAM *kno_init_stream(kno_stream stream,
-                                              u8_string streamid,
-                                              int fileno,
-                                              int flags,
-                                              ssize_t bufsiz)
+KNO_EXPORT struct KNO_STREAM *kno_init_stream
+(kno_stream stream,u8_string streamid,int fileno,int flags,ssize_t bufsiz)
 {
   struct KNO_RAWBUF *streambuf = &stream->buf.raw;
   if (bufsiz<0) bufsiz = kno_stream_bufsize;
-  if (fileno<0) return NULL;
+  /* We need to check before this is called that the fileno is valid */
+  /* if (fileno<0) return NULL; */
   if (flags&KNO_STREAM_IS_CONSED) {
     KNO_INIT_FRESH_CONS(stream,kno_stream_type);}
   else {KNO_INIT_STATIC_CONS(stream,kno_stream_type);}
@@ -435,6 +433,35 @@ KNO_EXPORT struct KNO_STREAM *kno_init_stream(kno_stream stream,
   streambuf->buf_flags  |= buf_flags;
   streambuf->buf_data    = (void *)stream;
   streambuf->buflen      = bufsiz;
+  return stream;
+}
+
+KNO_EXPORT struct KNO_STREAM *kno_init_byte_stream
+(kno_stream stream,u8_string streamid,int flags,
+ ssize_t n_bytes,const unsigned char *bytes)
+{
+  struct KNO_RAWBUF *streambuf = &stream->buf.raw;
+  /* We need to check before this is called that the fileno is valid */
+  /* if (fileno<0) return NULL; */
+  if (flags&KNO_STREAM_IS_CONSED) {
+    KNO_INIT_FRESH_CONS(stream,kno_stream_type);}
+  else {KNO_INIT_STATIC_CONS(stream,kno_stream_type);}
+  /* Initializing the stream fields */
+  stream->stream_fileno = -1;
+  stream->streamid = u8dup(streamid);
+  stream->stream_filepos = -1;
+  stream->stream_maxpos = -1;
+  stream->stream_flags = flags;
+  stream->stream_lisprefs = KNO_EMPTY;
+  int buf_flags = ( KNO_HEAP_BUFFER | KNO_IN_STREAM );
+  if (flags & KNO_STREAM_DTYPEV2) buf_flags |= KNO_USE_DTYPEV2;
+  u8_init_mutex(&(stream->stream_lock));
+  /* Initialize the buffer fields */
+  KNO_INIT_BYTE_INPUT((struct KNO_INBUF *)streambuf,bytes,n_bytes);
+  streambuf->buflim      = streambuf->bufpoint;
+  streambuf->buf_flags  |= buf_flags;
+  streambuf->buf_data    = (void *)stream;
+  streambuf->buflen      = n_bytes;
   return stream;
 }
 
@@ -825,6 +852,8 @@ ssize_t kno_fill_stream(kno_stream stream,size_t n)
   int n_buffered, n_to_read, read_request, bytes_read = 0;
   int fileno = stream->stream_fileno;
 
+  if (fileno<0) return 0;
+
   bytes_read = (buf->bufpoint-buf->buffer);
   n_buffered = (buf->buflim-buf->bufpoint);
   memmove(buf->buffer,buf->bufpoint,n_buffered);
@@ -940,7 +969,7 @@ KNO_EXPORT int kno_set_direction(kno_stream s,kno_byteflow direction)
   if (direction == kno_byteflow_write) {
     if (KNO_STREAM_ISWRITING(s))
       return 0;
-    else if ((s->stream_flags)&KNO_STREAM_READ_ONLY) {
+    else if ((s->stream_fileno<0) || ((s->stream_flags)&KNO_STREAM_READ_ONLY) ) {
       kno_seterr(kno_ReadOnlyStream,"kno_set_direction",s->streamid,VOID);
       return -1;}
     else {

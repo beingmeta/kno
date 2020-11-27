@@ -309,8 +309,7 @@ SHELL_SCRIPTS=etc/knosetconfig etc/knogetconfig etc/knoconfig etc/knolaunch \
 	      etc/kno_start_daemons etc/kno_start_servlets etc/kno_stop_jobs \
 	      etc/knosignal etc/knoinject etc/knostatus etc/knolog  \
 	      etc/knorestart etc/knoctl etc/knogdb etc/knodbgexec \
-	      etc/knocleanup etc/knojob etc/knewctl \
-	      etc/knobuild
+	      etc/knocleanup etc/knojob etc/knobuild
 SCHEME_SCRIPTS=exe/scripts/pack-pool exe/scripts/pack-index \
 	       exe/scripts/split-index exe/scripts/merge-indexes \
 	       exe/scripts/knocall exe/scripts/knoserver \
@@ -714,6 +713,10 @@ etc/%: etc/%.in ./config.status
 	@echo "Configuring $@"
 	@./config.status
 
+src/%.zip: src/%
+	cd $^;	zip ../$(@F) -r *
+
+
 # docs/man/%: docs/ronn/%.ronn
 # 	ronn --roff < $< > $@
 # docs/man.html/%.html: docs/ronn/%.ronn
@@ -839,7 +842,7 @@ etc/usememory: etc/usememory.c
 
 # Library targets
 
-libs: static-libs @SHARED_LIB_TARGET@
+libs: static-libs @SHARED_LIB_TARGET@ zips
 static-libs: $(STATIC_LIBS)
 shared-libs: $(SHARED_LIBS)
 
@@ -849,6 +852,7 @@ debug-exe: $(DEBUG_EXECUTABLES) dbg/.gdbinit
 shell-scripts: $(SHELL_SCRIPTS)
 scheme-scripts: $(SCHEME_SCRIPTS)
 scripts: shell-scripts scheme-scripts
+zips: src/libscm.zip src/stdlib.zip
 
 .PHONY: static
 
@@ -1604,8 +1608,9 @@ install-libscm:
 	elif [ "$(realpath ${DESTDIR}${LIBSCM})" != "$(realpath ./src/libscm)" ]; then 	\
 	  make really-install-libscm; 							\
 	fi;
-really-install-libscm:
+really-install-libscm: src/libscm.zip
 	@$(SYSINSTALL) @install_dir_opts@ $(DESTDIR)${LIBSCM};
+	@$(SYSINSTALL) @install_file_opts@ src/libscm.zip $(DESTDIR)${LIBSCM}.zip;
 	@$(SYSINSTALL) @install_file_opts@ src/libscm/*.scm $(DESTDIR)${LIBSCM};
 	@for dir in ${LIBSCM_DIRS}; do 						\
 	  $(SYSINSTALL) @install_dir_opts@ $(DESTDIR)${LIBSCM}/$$dir;		\

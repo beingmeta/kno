@@ -43,6 +43,7 @@ usage() {
 	echo "\t"daemons "\t\t\t(Where Kno daemon control files are stored)";
 	echo "\t"share "\t\t\t\t(Where shared kno configuration information is stored)";
 	echo "\t"data "\t\t\t\t(Where Kno persistent application data are stored)";
+	echo "\t"u8run "\t\t\t\t(Where the u8run executable lives)";
 	echo "\t"branch "\t\t\t\t(The KNO source branch for this build)";
 	echo "\t"patchlevel "\t\t\t\t(The KNO patch level for this build)";
 	echo "\t"gitbranch "\t\t\t\t(The git branch for the current source directory (cwd))";
@@ -131,6 +132,8 @@ case ${option} in
 	echo "@share_dir@";;
     data|datadir)
 	echo "@data_dir@";;
+    u8run)
+	echo "@u8run@";;
     kno.py)
     	echo "@libdir@/kno/kno.@shared_suffix@";;
     branch)

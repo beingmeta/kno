@@ -119,7 +119,7 @@ static lispval server_pool_data(lispval session_id)
     lispval adjunct = p->pool_adjunct;
     lispval info = kno_make_slotmap(7,0,NULL);
     kno_store(info,KNOSYM(base),base);
-    kno_store(info,KNOSYM(capacity),base);
+    kno_store(info,KNOSYM(capacity),capacity);
     if (U8_BITP(p->pool_flags,KNO_STORAGE_READ_ONLY))
       kno_store(info,KNOSYM(readonly),KNO_TRUE);
     if ( (KNO_OIDP(adjunct)) || (KNO_SYMBOLP(adjunct)) || (KNO_TRUEP(adjunct)) )
@@ -237,10 +237,6 @@ static lispval ixserver_sizes(lispval index)
     kno_decref(keys);
     return results;}
   else return kno_type_error("index","ixserver_get",VOID);
-}
-static lispval ixserver_writablep(lispval index)
-{
-  return KNO_FALSE;
 }
 
 /* Configuration methods */
@@ -360,6 +356,9 @@ void kno_init_dbserv_c()
   kno_defn(module,kno_make_cprim1
            ("ISERVER-GET",iserver_get,MIN_ARGS(1),
             NULL));
+  kno_defn(module,kno_make_cprim1
+           ("ISERVER-BULK-GET",iserver_bulk_get,MIN_ARGS(1),
+	    NULL));
   kno_defn(module,kno_make_cprim1
            ("ISERVER-GET-SIZE",iserver_get_size,MIN_ARGS(1),
             NULL));

@@ -90,7 +90,26 @@ static lispval zip_entry_content(struct zip_t *zip,
     return KNO_ERROR;}
   if ( (enc == NULL) || (strcasecmp(enc,"auto")==0) ) {
     lispval result;
-    if (u8_validate(bytes,n_bytes) == n_bytes)
+    u8_byte headbuf[501];
+    ssize_t copy_len = (n_bytes>500) ? (500) : (n_bytes);
+    memcpy(headbuf,bytes,copy_len); headbuf[copy_len]='\0';
+    struct U8_TEXT_ENCODING *new_enc = u8_guess_encoding((u8_string)headbuf);
+    if (new_enc) {
+      struct U8_OUTPUT out; int retval=0;
+      const unsigned char *scan=bytes;
+      U8_INIT_STATIC_OUTPUT(out,n_bytes+n_bytes/2);
+      retval=u8_convert(new_enc,1,&out,&scan,bytes+n_bytes);
+      if (retval<0) {
+	u8_free(out.u8_outbuf);
+	lispval result = kno_make_packet(NULL,n_bytes,bytes);
+	u8_free(bytes);
+	return result;}
+      else {
+	lispval result = kno_stream_string(&out);
+	u8_free(out.u8_outbuf);
+	u8_free(bytes);
+	return result;}}
+    else if (u8_validate(bytes,n_bytes) == n_bytes)
       result = kno_make_string(NULL,n_bytes,bytes);
     else result = kno_make_packet(NULL,n_bytes,bytes);
     u8_free(bytes);

@@ -1070,13 +1070,7 @@ static lispval maxkeys_symbol, listmax_symbol, vecmax_symbol, choicemax_symbol;
 
 #define PPRINT_MARGINBUF_SIZE 256
 
-DEFPRIM("pprint",lisp_pprint,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	"(pprint *object* *port* *width* *margin*)\n"
-	"Generates a formatted representation of *object* "
-	"on *port* () with a width of *width* columns with "
-	"a left margin of *margin* which is either number "
-	"of columns or a string.");
-static lispval lisp_pprint(int n,kno_argvec args)
+static lispval pprinter(int n,kno_argvec args)
 {
   U8_OUTPUT *out=NULL;
   struct U8_OUTPUT tmpout;
@@ -1189,6 +1183,40 @@ static lispval lisp_pprint(int n,kno_argvec args)
     kno_decref(port_arg);
     return KNO_INT(col);}
 }
+
+DEFPRIM("pprint",lisp_pprint,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
+	"(pprint *object* *port* *width* *margin*)\n"
+	"Generates a formatted representation of *object*, "
+	"without a trailing newline, on *port*. If *port is #f "
+	"the representation is returned as a string, otherwise "
+	"the length of the last output line (the 'current column') "
+	"is returned. *width*, if provided, is a positive integer, "
+	"and *margin* is either a positive integer or a string "
+	"to be used as indentation.")
+static lispval lisp_pprint(int n,kno_argvec args)
+{
+  return pprinter(n,args);
+}
+
+DEFPRIM("$pprint",lisp_4pprint,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
+	"($pprint *object* *width* *margin*)\n"
+	"Generates a formatted representation of *object*, "
+	"without a trailing newline, on *port*. Returns VOID."
+	"*width*, if provided, is a positive integer, "
+	"and *margin* is either a positive integer or a string "
+	"to be used as indentation.")
+static lispval lisp_4pprint(int n,kno_argvec args)
+{
+  lispval inner_args[4];
+  inner_args[0]=args[0];
+  inner_args[1]=KNO_VOID;
+  if (n>1) inner_args[2]=args[1];
+  if (n>2) inner_args[3]=args[2];
+  lispval result = (n>1) ? (pprinter(n+1,inner_args)) : (pprinter(n,args));
+  if (KNO_ABORTED(result)) return result;
+  return KNO_VOID;
+}
+
 
 /* LIST object */
 
@@ -1742,6 +1770,7 @@ static void link_local_cprims()
   KNO_LINK_PRIM("base64->packet",from_base64_prim,1,kno_io_module);
   KNO_LINK_PRIM("listdata",lisp_listdata,3,kno_io_module);
   KNO_LINK_VARARGS("pprint",lisp_pprint,kno_io_module);
+  KNO_LINK_VARARGS("$pprint",lisp_4pprint,kno_io_module);
   KNO_LINK_PRIM("read-record",read_record_prim,3,kno_io_module);
   KNO_LINK_PRIM("read",read_prim,1,kno_io_module);
   KNO_LINK_PRIM("getline",getline_prim,4,kno_io_module);

@@ -1922,7 +1922,7 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   etc/kno_start_servlets etc/kno_start_daemons etc/kno_stop_jobs
 	   etc/knostart etc/knostop etc/knostartall etc/knostopall etc/knocleanup
 	   etc/knosignal etc/knoinject etc/knostatus etc/knolog 
-	   etc/knoreload etc/knorestart etc/knoctl etc/knewctl etc/knogdb etc/knodbgexec
+	   etc/knoreload etc/knorestart etc/knogdb etc/knodbgexec
 	   etc/knosetconfig etc/knogetconfig etc/knoconfig
 	   tests/testenv.sh tests/xtest
 	   tests/runtest tests/memtest

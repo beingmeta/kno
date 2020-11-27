@@ -111,25 +111,23 @@ typedef enum KNO_BYTEFLOW {
 KNO_EXPORT ssize_t kno_fill_stream(kno_stream df,size_t n);
 
 KNO_EXPORT
-struct KNO_STREAM *kno_init_stream(kno_stream s,
-                                 u8_string id,
-                                 int fileno,
-                                 int flags,
-                                 ssize_t bufsiz);
+struct KNO_STREAM *kno_init_stream
+(kno_stream s,u8_string id,int fileno,int flags,ssize_t bufsiz);
+
+KNO_EXPORT struct KNO_STREAM *kno_init_byte_stream
+(kno_stream stream,u8_string streamid,int flags,
+ ssize_t n_bytes,const unsigned char *bytes);
 
 KNO_EXPORT
-kno_stream kno_init_file_stream (kno_stream stream,
-                                 u8_string filename,
-                                 kno_stream_mode mode,
-                                 kno_stream_flags flags,
-                                 ssize_t bufsiz);
+kno_stream kno_init_file_stream 
+(kno_stream stream,u8_string filename,kno_stream_mode mode,
+ kno_stream_flags flags,ssize_t bufsiz);
 
 KNO_EXPORT kno_stream kno_open_file(u8_string filename,kno_stream_mode mode);
 
 KNO_EXPORT
-kno_stream kno_reopen_file_stream(kno_stream stream,
-                                kno_stream_mode mode,
-                                ssize_t bufsiz);
+kno_stream kno_reopen_file_stream
+(kno_stream stream,kno_stream_mode mode,ssize_t bufsiz);
 
 typedef enum kno_streamop {
   kno_stream_close,

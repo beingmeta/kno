@@ -40,10 +40,10 @@ static lispval supportedp_symbol = KNO_NULL, dbname_symbol = KNO_NULL;
 
 u8_condition kno_NoServerMethod=_("Server doesn't support method");
 
-static int server_supportsp(struct KNO_NETWORK_INDEX *ni,lispval operation)
+U8_MAYBE_UNUSED static int server_supportsp(kno_network_index ni,lispval op)
 {
   lispval response =
-    kno_service_call(ni->index_server,KNOSYM(supportedp),1,operation);
+    kno_service_call(ni->index_server,KNOSYM(supportedp),1,op);
   if ((FALSEP(response)) || (KNO_ABORTP(response)))
     return 0;
   else {

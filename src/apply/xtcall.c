@@ -26,6 +26,9 @@ static int default_async = KNO_DEFAULT_ASYNC;
 static lispval xteval_sock(u8_socket conn,lispval expr,xtype_refs refs)
 {
   lispval response; int retval;
+  if (conn<0) {
+    u8_seterr("BadSocket","xteval_sock",NULL);
+    return KNO_ERROR;}
   struct KNO_STREAM _stream, *stream;
   struct KNO_OUTBUF *out;
   memset(&_stream,0,sizeof(_stream));
