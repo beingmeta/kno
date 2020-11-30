@@ -1162,8 +1162,10 @@ lispval kno_parser(u8_input in)
     case ')': case ']': case '}': {
       u8_string details=u8_get_input_context(in,32,32,">!<");
       u8_getc(in); /* Consume the character */
-      return kno_err(kno_ParseError,"unexpected terminator",
-                     details,KNO_CODE2CHAR(inchar));}
+      kno_seterr(kno_ParseError,"unexpected terminator",
+		 details,KNO_CODE2CHAR(inchar));
+      u8_free(details);
+      return KNO_ERROR;}
     case '"': return parse_string(in);
     case '@': return parse_oid(in);
     case '(':
