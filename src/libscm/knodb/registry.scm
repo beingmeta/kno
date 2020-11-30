@@ -182,7 +182,7 @@
   (debug%watch "REGISTRY/GET" registry slotid value create server index)
   (if server
       (try (find-frames index slotid value)
-	   (dtcall server 'register slotid value))
+	   (service/call server 'register slotid value))
       (try (get (registry-cache registry) value)
 	   (pick (singleton (pick (find-frames index slotid value) valid-oid?))
 		 good-frame?)
