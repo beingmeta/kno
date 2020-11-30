@@ -67,7 +67,7 @@
 	       ;;  items which have been read in the past
 	       (dotimes (i (getopt state 'itemcount 0)) (readfn port)))))
       (store! state 'updated (timestamp))
-      (fileout statefile ($pprint state))
+      (with-lock (filestream-lock stream) (fileout statefile (void (pprint state))))
       stream)))
 
 (define (filestream/read stream)
@@ -104,7 +104,7 @@
       (when (filestream-filepos stream)
 	(store! state 'filepos (filestream-filepos stream)))
       (add! state 'batches batch)
-      (fileout (filestream-statefile stream) ($pprint state)))))
+      (fileout (filestream-statefile stream) (void (pprint state))))))
 
 (define (filestream/log! stream (opts #f) (%loglevel %notice%))
   (let* ((count (filestream-itemcount stream))
