@@ -5,6 +5,8 @@ usage (){
     echo "  debchangelog pkgname [distro] [status=stable] [version] < base_changelog";
     echo "  getbuildopt optname [default]";
     echo "  dosubst file [pat1 replace1]....";
+    echo "  gitbranch The git branch for the current source directory (cwd)";
+    echo "  gitpatchh The git patchlevel for the current source directory (cwd)";
     echo "  help cmd";
 }
 
@@ -202,6 +204,13 @@ case $cmd in
 	    getbuildopt_usage;
 	fi;
 	;;
+    gitbranch)
+        branch_name=$(git symbolic-ref -q HEAD 2> /dev/null);
+        branch_name=${branch_name##refs/heads/};
+        echo ${branch_name:-trunk};;
+    gitpatch)
+       git describe | sed -e "s/-g[a-zA-Z0-9]*$//" | \
+       	   sed -e "s/.*-\([0-9]*\)$/\\1/";;
     help|usage) 
 	show_help $*;;
     *)

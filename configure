@@ -694,7 +694,6 @@ DEFAULT_U8RUN_CMD
 u8run
 u8bin
 PKGCONFIG_DIR
-GITBRANCH
 GPGID
 GPG
 RPMFLAGS
@@ -755,6 +754,7 @@ DEB_BUILD_TARGET
 RPMVERSION
 KNO_PATCHLEVEL
 KNO_RELEASE
+KNO_BRANCH
 KNO_MINOR
 KNO_MAJOR
 KNO_VERSION
@@ -768,7 +768,7 @@ SHARED_LIBV
 SHARED_LIB
 SHARED_LIB_TARGET
 DREENTRANT
-TAGS
+TAGS_TARGET
 small_test_size
 test_size
 leaktest_config
@@ -876,7 +876,6 @@ infodir
 docdir
 oldincludedir
 includedir
-runstatedir
 localstatedir
 sharedstatedir
 sysconfdir
@@ -959,7 +958,6 @@ with_arch
 with_share_dir
 with_data_dir
 with_config_dir
-with_buildopts
 with_local_config
 with_shared_config
 with_unpackage_dir
@@ -1043,7 +1041,6 @@ datadir='${datarootdir}'
 sysconfdir='${prefix}/etc'
 sharedstatedir='${prefix}/com'
 localstatedir='${prefix}/var'
-runstatedir='${localstatedir}/run'
 includedir='${prefix}/include'
 oldincludedir='/usr/include'
 docdir='${datarootdir}/doc/${PACKAGE}'
@@ -1296,15 +1293,6 @@ do
   | -silent | --silent | --silen | --sile | --sil)
     silent=yes ;;
 
-  -runstatedir | --runstatedir | --runstatedi | --runstated \
-  | --runstate | --runstat | --runsta | --runst | --runs \
-  | --run | --ru | --r)
-    ac_prev=runstatedir ;;
-  -runstatedir=* | --runstatedir=* | --runstatedi=* | --runstated=* \
-  | --runstate=* | --runstat=* | --runsta=* | --runst=* | --runs=* \
-  | --run=* | --ru=* | --r=*)
-    runstatedir=$ac_optarg ;;
-
   -sbindir | --sbindir | --sbindi | --sbind | --sbin | --sbi | --sb)
     ac_prev=sbindir ;;
   -sbindir=* | --sbindir=* | --sbindi=* | --sbind=* | --sbin=* \
@@ -1442,7 +1430,7 @@ fi
 for ac_var in	exec_prefix prefix bindir sbindir libexecdir datarootdir \
 		datadir sysconfdir sharedstatedir localstatedir includedir \
 		oldincludedir docdir infodir htmldir dvidir pdfdir psdir \
-		libdir localedir mandir runstatedir
+		libdir localedir mandir
 do
   eval ac_val=\$$ac_var
   # Remove trailing slashes.
@@ -1595,7 +1583,6 @@ Fine tuning of the installation directories:
   --sysconfdir=DIR        read-only single-machine data [PREFIX/etc]
   --sharedstatedir=DIR    modifiable architecture-independent data [PREFIX/com]
   --localstatedir=DIR     modifiable single-machine data [PREFIX/var]
-  --runstatedir=DIR       modifiable per-process data [LOCALSTATEDIR/run]
   --libdir=DIR            object code libraries [EPREFIX/lib]
   --includedir=DIR        C header files [PREFIX/include]
   --oldincludedir=DIR     C header files for non-gcc [/usr/include]
@@ -1701,7 +1688,6 @@ Optional Packages:
 --with-share-dir location
 --with-data-dir location
 --with-config-dir location
---with-buildopts-dir location used by getbuildopt
 --with-local-config location
 --with-shared-config location
 --with-unpackage-dir location
@@ -3023,6 +3009,7 @@ BINPATH=${PATH}
 RPATHFLAGS="-Wl,'-rpath \$(RPATH)'"
 SHARED_LIB_TARGET=shared-libs
 KNO_PATCHVERSION=$(if test -f REVISION; then cat REVISION; elif test -d .git; then u8_gitversion etc/base_version; fi)
+KNO_BRANCH=$(u8_gitbranch)
 KNO_VERSION=$(echo ${KNO_PATCHVERSION} | cut -d'-' -f1)
 KNO_MAJOR=$(echo ${KNO_VERSION} | cut -d'.' -f1)
 KNO_MAJOR=$(echo ${KNO_VERSION} | cut -d'.' -f1)
@@ -3069,8 +3056,7 @@ APTLY_FLAGS=
 PKGCONFIG_DIR=
 GPG=`which gpg2 || which gpg || gpg`
 GPGID=${GPGID:-FE1BC737F9F323D732AA26330620266BE5AFF294}
-GITBRANCH=""
-TAGS_TARGET="TAGS SCHEMETAGS"
+TAGS_TARGET="alltags"
 LIBSCM="kno-${KNO_PATCHVERSION}"
 default_source_dir="\$prefix/src"
 default_config_dir="\$prefix/etc/kno"
@@ -3369,10 +3355,6 @@ ac_config_headers="$ac_config_headers include/kno/knosource.h include/kno/config
 
 
 
-
-if test -z "${GITBRANCH}"; then
-   GITBRANCH=`etc/getbranch`;
-fi;
 
 U8RUN_CMD=
 DEFAULT_U8RUN=
@@ -3963,7 +3945,7 @@ $as_echo "no" >&6; }
 fi
 
 
-for ac_prog in /usr/local/bin/apxs2 /usr/local/bin/apxs /usr/bin/apxs2 /usr/bin/apxs /usr/sbin/apxs2 /usr/sbin/apxs apxs2 apxs
+for ac_prog in /usr/local/bin/apxs2 /usr/local/bin/apxs /usr/bin/apxs2 /usr/bin/apxs /usr/sbin/apxs2 /usr/sbin/apxs
 do
   # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
@@ -4285,6 +4267,9 @@ $as_echo "no" >&6; }
 fi
 
 
+
+if test -z "${APXS}"; then APXS=$(which apxs2); fi;
+if test -z "${APXS}"; then APXS=$(which apxs); fi;
 
 for ac_prog in "gzip"
 do
@@ -5992,6 +5977,10 @@ _ACEOF
 
 cat >>confdefs.h <<_ACEOF
 #define KNO_RELEASE_VERSION $KNO_RELEASE
+_ACEOF
+
+cat >>confdefs.h <<_ACEOF
+#define KNO_BRANCH $KNO_BRANCH
 _ACEOF
 
 
@@ -8667,7 +8656,7 @@ else
     We can't simply define LARGE_OFF_T to be 9223372036854775807,
     since some C++ compilers masquerading as C compilers
     incorrectly reject 9223372036854775807.  */
-#define LARGE_OFF_T ((((off_t) 1 << 31) << 31) - 1 + (((off_t) 1 << 31) << 31))
+#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
   int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
 		       && LARGE_OFF_T % 2147483647 == 1)
 		      ? 1 : -1];
@@ -8713,7 +8702,7 @@ else
     We can't simply define LARGE_OFF_T to be 9223372036854775807,
     since some C++ compilers masquerading as C compilers
     incorrectly reject 9223372036854775807.  */
-#define LARGE_OFF_T ((((off_t) 1 << 31) << 31) - 1 + (((off_t) 1 << 31) << 31))
+#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
   int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
 		       && LARGE_OFF_T % 2147483647 == 1)
 		      ? 1 : -1];
@@ -8737,7 +8726,7 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
     We can't simply define LARGE_OFF_T to be 9223372036854775807,
     since some C++ compilers masquerading as C compilers
     incorrectly reject 9223372036854775807.  */
-#define LARGE_OFF_T ((((off_t) 1 << 31) << 31) - 1 + (((off_t) 1 << 31) << 31))
+#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
   int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
 		       && LARGE_OFF_T % 2147483647 == 1)
 		      ? 1 : -1];
@@ -8782,7 +8771,7 @@ else
     We can't simply define LARGE_OFF_T to be 9223372036854775807,
     since some C++ compilers masquerading as C compilers
     incorrectly reject 9223372036854775807.  */
-#define LARGE_OFF_T ((((off_t) 1 << 31) << 31) - 1 + (((off_t) 1 << 31) << 31))
+#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
   int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
 		       && LARGE_OFF_T % 2147483647 == 1)
 		      ? 1 : -1];
@@ -8806,7 +8795,7 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
     We can't simply define LARGE_OFF_T to be 9223372036854775807,
     since some C++ compilers masquerading as C compilers
     incorrectly reject 9223372036854775807.  */
-#define LARGE_OFF_T ((((off_t) 1 << 31) << 31) - 1 + (((off_t) 1 << 31) << 31))
+#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
   int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
 		       && LARGE_OFF_T % 2147483647 == 1)
 		      ? 1 : -1];
@@ -9734,10 +9723,14 @@ _ACEOF
 fi
 
 fi
+echo "enable_ffi=${enable_ffi}"
+echo "ffi.h=${ac_cv_header_ffi_h}"
+echo "ffi/ffi.h=${ac_cv_header_ffi_ffi_h}"
+echo "ffi_prep_cif=${ac_cv_lib_ffi_ffi_prep_cif}"
 if test "${enable_ffi}" != "yes"; then
    manually_disabled="ffi ${manually_disabled}"
-elif test ! "${ac_cv_header_ffi_h}" != "yes" &&
-     test ! "${ac_cv_header_ffi_ffi_h}" != "yes";  then
+elif test "${ac_cv_header_ffi_h}" != "yes" &&
+     test "${ac_cv_header_ffi_ffi_h}" != "yes";  then
    enable_ffi="no";
    auto_disabled="ffi ${auto_disabled}";
 elif test "${ac_cv_lib_ffi_ffi_prep_cif}" != "yes"; then
@@ -10158,16 +10151,6 @@ else
 fi
 
 config_dir=$with_config_dir
-
-
-# Check whether --with-buildopts was given.
-if test "${with_buildopts+set}" = set; then :
-  withval=$with_buildopts;
-else
-  with_buildopts_dir=$default_buildopts_dir
-fi
-
-buildopts_dir=$with_buildopts_dir
 
 
 # Check whether --with-local_config was given.
@@ -13352,7 +13335,7 @@ fi;
 
 ### Here's where stuff gets made
 
-ac_config_files="$ac_config_files makefile etc/version etc/makefile.include src/extmods/makefile DIY/makefile tests/libtests/makefile etc/gdbinit etc/lldbinit exe/.gdbinit exe/.lldbinit dbg/runenv.sh dbg/.gdbinit dbg/.lldbinit dbg/.valgrind etc/kno.pc etc/getbuildopt etc/knobuild etc/kno_fixdirs etc/knolaunch etc/kno_start_servlets etc/kno_start_daemons etc/kno_stop_jobs etc/knostart etc/knostop etc/knostartall etc/knostopall etc/knocleanup etc/knosignal etc/knoinject etc/knostatus etc/knolog etc/knoreload etc/knorestart etc/knogdb etc/knodbgexec etc/knosetconfig etc/knogetconfig etc/knoconfig tests/testenv.sh tests/xtest tests/runtest tests/memtest tests/leaktest tests/knoxtest src/scripts/knopkg.scm src/extmods/knoconfig etc/knojob etc/logrotate etc/sysv/kno-rc.d etc/sysv/ex_servlet-init.d etc/sysv/ex_daemon-init.d etc/upstart/kno.conf etc/upstart/knod.conf etc/upstart/knoservlets.conf etc/upstart/ex_knoservlet.conf etc/systemd/ex_servlet.service etc/systemd/ex_daemon.service etc/systemd/kno-daemons.service etc/systemd/kno-servlets.service etc/macos/OSXStartupItem/KNO etc/macos/KNO.plist etc/apache/knocgi.conf etc/apache/knocgi.load etc/install-script dist/alpine/APKBUILD dist/kno-4.3.spec"
+ac_config_files="$ac_config_files makefile etc/version etc/makefile.include src/extmods/makefile DIY/makefile tests/libtests/makefile etc/gdbinit etc/lldbinit exe/.gdbinit exe/.lldbinit dbg/runenv.sh dbg/.gdbinit dbg/.lldbinit dbg/.valgrind etc/kno.pc src/shell/knolaunch src/shell/knobuild src/shell/kno_fixdirs src/shell/kno_start_servlets src/shell/kno_start_daemons src/shell/kno_stop_jobs src/shell/knostart src/shell/knostop src/shell/knostartall src/shell/knostopall src/shell/knocleanup src/shell/knosignal src/shell/knoinject src/shell/knostatus src/shell/knolog src/shell/knoreload src/shell/knorestart src/shell/knogdb src/shell/knodbgexec src/shell/knosetconfig src/shell/knogetconfig src/shell/knoconfig src/shell/knojob tests/testenv.sh tests/xtest tests/runtest tests/memtest tests/leaktest tests/knoxtest src/scripts/knopkg.scm src/extmods/knoconfig etc/logrotate etc/sysv/kno-rc.d etc/sysv/ex_servlet-init.d etc/sysv/ex_daemon-init.d etc/upstart/kno.conf etc/upstart/knod.conf etc/upstart/knoservlets.conf etc/upstart/ex_knoservlet.conf etc/systemd/ex_servlet.service etc/systemd/ex_daemon.service etc/systemd/kno-daemons.service etc/systemd/kno-servlets.service etc/macos/OSXStartupItem/KNO etc/macos/KNO.plist etc/apache/knocgi.conf etc/apache/knocgi.load etc/install-script etc/getbuildopt dist/alpine/APKBUILD dist/kno-4.3.spec"
 
 ac_config_commands="$ac_config_commands default"
 
@@ -14068,29 +14051,29 @@ do
     "dbg/.lldbinit") CONFIG_FILES="$CONFIG_FILES dbg/.lldbinit" ;;
     "dbg/.valgrind") CONFIG_FILES="$CONFIG_FILES dbg/.valgrind" ;;
     "etc/kno.pc") CONFIG_FILES="$CONFIG_FILES etc/kno.pc" ;;
-    "etc/getbuildopt") CONFIG_FILES="$CONFIG_FILES etc/getbuildopt" ;;
-    "etc/knobuild") CONFIG_FILES="$CONFIG_FILES etc/knobuild" ;;
-    "etc/kno_fixdirs") CONFIG_FILES="$CONFIG_FILES etc/kno_fixdirs" ;;
-    "etc/knolaunch") CONFIG_FILES="$CONFIG_FILES etc/knolaunch" ;;
-    "etc/kno_start_servlets") CONFIG_FILES="$CONFIG_FILES etc/kno_start_servlets" ;;
-    "etc/kno_start_daemons") CONFIG_FILES="$CONFIG_FILES etc/kno_start_daemons" ;;
-    "etc/kno_stop_jobs") CONFIG_FILES="$CONFIG_FILES etc/kno_stop_jobs" ;;
-    "etc/knostart") CONFIG_FILES="$CONFIG_FILES etc/knostart" ;;
-    "etc/knostop") CONFIG_FILES="$CONFIG_FILES etc/knostop" ;;
-    "etc/knostartall") CONFIG_FILES="$CONFIG_FILES etc/knostartall" ;;
-    "etc/knostopall") CONFIG_FILES="$CONFIG_FILES etc/knostopall" ;;
-    "etc/knocleanup") CONFIG_FILES="$CONFIG_FILES etc/knocleanup" ;;
-    "etc/knosignal") CONFIG_FILES="$CONFIG_FILES etc/knosignal" ;;
-    "etc/knoinject") CONFIG_FILES="$CONFIG_FILES etc/knoinject" ;;
-    "etc/knostatus") CONFIG_FILES="$CONFIG_FILES etc/knostatus" ;;
-    "etc/knolog") CONFIG_FILES="$CONFIG_FILES etc/knolog" ;;
-    "etc/knoreload") CONFIG_FILES="$CONFIG_FILES etc/knoreload" ;;
-    "etc/knorestart") CONFIG_FILES="$CONFIG_FILES etc/knorestart" ;;
-    "etc/knogdb") CONFIG_FILES="$CONFIG_FILES etc/knogdb" ;;
-    "etc/knodbgexec") CONFIG_FILES="$CONFIG_FILES etc/knodbgexec" ;;
-    "etc/knosetconfig") CONFIG_FILES="$CONFIG_FILES etc/knosetconfig" ;;
-    "etc/knogetconfig") CONFIG_FILES="$CONFIG_FILES etc/knogetconfig" ;;
-    "etc/knoconfig") CONFIG_FILES="$CONFIG_FILES etc/knoconfig" ;;
+    "src/shell/knolaunch") CONFIG_FILES="$CONFIG_FILES src/shell/knolaunch" ;;
+    "src/shell/knobuild") CONFIG_FILES="$CONFIG_FILES src/shell/knobuild" ;;
+    "src/shell/kno_fixdirs") CONFIG_FILES="$CONFIG_FILES src/shell/kno_fixdirs" ;;
+    "src/shell/kno_start_servlets") CONFIG_FILES="$CONFIG_FILES src/shell/kno_start_servlets" ;;
+    "src/shell/kno_start_daemons") CONFIG_FILES="$CONFIG_FILES src/shell/kno_start_daemons" ;;
+    "src/shell/kno_stop_jobs") CONFIG_FILES="$CONFIG_FILES src/shell/kno_stop_jobs" ;;
+    "src/shell/knostart") CONFIG_FILES="$CONFIG_FILES src/shell/knostart" ;;
+    "src/shell/knostop") CONFIG_FILES="$CONFIG_FILES src/shell/knostop" ;;
+    "src/shell/knostartall") CONFIG_FILES="$CONFIG_FILES src/shell/knostartall" ;;
+    "src/shell/knostopall") CONFIG_FILES="$CONFIG_FILES src/shell/knostopall" ;;
+    "src/shell/knocleanup") CONFIG_FILES="$CONFIG_FILES src/shell/knocleanup" ;;
+    "src/shell/knosignal") CONFIG_FILES="$CONFIG_FILES src/shell/knosignal" ;;
+    "src/shell/knoinject") CONFIG_FILES="$CONFIG_FILES src/shell/knoinject" ;;
+    "src/shell/knostatus") CONFIG_FILES="$CONFIG_FILES src/shell/knostatus" ;;
+    "src/shell/knolog") CONFIG_FILES="$CONFIG_FILES src/shell/knolog" ;;
+    "src/shell/knoreload") CONFIG_FILES="$CONFIG_FILES src/shell/knoreload" ;;
+    "src/shell/knorestart") CONFIG_FILES="$CONFIG_FILES src/shell/knorestart" ;;
+    "src/shell/knogdb") CONFIG_FILES="$CONFIG_FILES src/shell/knogdb" ;;
+    "src/shell/knodbgexec") CONFIG_FILES="$CONFIG_FILES src/shell/knodbgexec" ;;
+    "src/shell/knosetconfig") CONFIG_FILES="$CONFIG_FILES src/shell/knosetconfig" ;;
+    "src/shell/knogetconfig") CONFIG_FILES="$CONFIG_FILES src/shell/knogetconfig" ;;
+    "src/shell/knoconfig") CONFIG_FILES="$CONFIG_FILES src/shell/knoconfig" ;;
+    "src/shell/knojob") CONFIG_FILES="$CONFIG_FILES src/shell/knojob" ;;
     "tests/testenv.sh") CONFIG_FILES="$CONFIG_FILES tests/testenv.sh" ;;
     "tests/xtest") CONFIG_FILES="$CONFIG_FILES tests/xtest" ;;
     "tests/runtest") CONFIG_FILES="$CONFIG_FILES tests/runtest" ;;
@@ -14099,7 +14082,6 @@ do
     "tests/knoxtest") CONFIG_FILES="$CONFIG_FILES tests/knoxtest" ;;
     "src/scripts/knopkg.scm") CONFIG_FILES="$CONFIG_FILES src/scripts/knopkg.scm" ;;
     "src/extmods/knoconfig") CONFIG_FILES="$CONFIG_FILES src/extmods/knoconfig" ;;
-    "etc/knojob") CONFIG_FILES="$CONFIG_FILES etc/knojob" ;;
     "etc/logrotate") CONFIG_FILES="$CONFIG_FILES etc/logrotate" ;;
     "etc/sysv/kno-rc.d") CONFIG_FILES="$CONFIG_FILES etc/sysv/kno-rc.d" ;;
     "etc/sysv/ex_servlet-init.d") CONFIG_FILES="$CONFIG_FILES etc/sysv/ex_servlet-init.d" ;;
@@ -14117,6 +14099,7 @@ do
     "etc/apache/knocgi.conf") CONFIG_FILES="$CONFIG_FILES etc/apache/knocgi.conf" ;;
     "etc/apache/knocgi.load") CONFIG_FILES="$CONFIG_FILES etc/apache/knocgi.load" ;;
     "etc/install-script") CONFIG_FILES="$CONFIG_FILES etc/install-script" ;;
+    "etc/getbuildopt") CONFIG_FILES="$CONFIG_FILES etc/getbuildopt" ;;
     "dist/alpine/APKBUILD") CONFIG_FILES="$CONFIG_FILES dist/alpine/APKBUILD" ;;
     "dist/kno-4.3.spec") CONFIG_FILES="$CONFIG_FILES dist/kno-4.3.spec" ;;
     "default") CONFIG_COMMANDS="$CONFIG_COMMANDS default" ;;
@@ -14675,7 +14658,7 @@ $as_echo "$as_me: executing $ac_file commands" >&6;}
 
 
   case $ac_file$ac_mode in
-    "default":C) chmod a+x etc/kn* tests/*test etc/getbuildopt src/extmods/knoconfig ;;
+    "default":C) chmod a+x etc/getbuildopt src/shell/kno* tests/*test src/extmods/knoconfig ;;
 
   esac
 done # for ac_tag

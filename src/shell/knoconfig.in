@@ -45,9 +45,7 @@ usage() {
 	echo "\t"data "\t\t\t\t(Where Kno persistent application data are stored)";
 	echo "\t"u8run "\t\t\t\t(Where the u8run executable lives)";
 	echo "\t"branch "\t\t\t\t(The KNO source branch for this build)";
-	echo "\t"patchlevel "\t\t\t\t(The KNO patch level for this build)";
-	echo "\t"gitbranch "\t\t\t\t(The git branch for the current source directory (cwd))";
-	echo "\t"gitpath "\t\t\t\t(The git patchlevel for the current source directory (cwd))";
+	echo "\t"patchlevel "\t\t\t\t(The patch level for this KNO build)";
 	echo "\t"codename "\t\t\t\t(the distribution codename for the installed version)";
 	echo "\t"status "\t\t\t\t(the distribution status for the installed version)";
 }
@@ -144,13 +142,6 @@ case ${option} in
         echo "@CODENAME@";;
     status)
         echo "@RELSTATUS@";;
-    gitbranch)
-        branch_name=$(git symbolic-ref -q HEAD 2> /dev/null);
-        branch_name=${branch_name##refs/heads/};
-        echo ${branch_name:-trunk};;
-    gitpatch)
-       git describe | sed -e "s/-g[a-zA-Z0-9]*$//" | \
-       	   sed -e "s/.*-\([0-9]*\)$/\\1/";;
     get)
 	if [ $# -gt 0 ]; then
 	  cvar=$1; shift;

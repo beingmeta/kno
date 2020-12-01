@@ -89,6 +89,7 @@ BINPATH=${PATH}
 RPATHFLAGS="-Wl,'-rpath \$(RPATH)'"
 SHARED_LIB_TARGET=shared-libs
 KNO_PATCHVERSION=$(if test -f REVISION; then cat REVISION; elif test -d .git; then u8_gitversion etc/base_version; fi)
+KNO_BRANCH=$(u8_gitbranch)
 KNO_VERSION=$(echo ${KNO_PATCHVERSION} | cut -d'-' -f1)
 KNO_MAJOR=$(echo ${KNO_VERSION} | cut -d'.' -f1)
 KNO_MAJOR=$(echo ${KNO_VERSION} | cut -d'.' -f1)
@@ -135,8 +136,7 @@ APTLY_FLAGS=
 PKGCONFIG_DIR=
 GPG=`which gpg2 || which gpg || gpg`
 GPGID=${GPGID:-FE1BC737F9F323D732AA26330620266BE5AFF294}
-GITBRANCH=""
-TAGS_TARGET="TAGS SCHEMETAGS"
+TAGS_TARGET="alltags"
 LIBSCM="kno-${KNO_PATCHVERSION}"
 default_source_dir="\$prefix/src"
 default_config_dir="\$prefix/etc/kno"
@@ -322,7 +322,7 @@ AC_SUBST(leaktest_config)
 AC_SUBST(test_size)
 AC_SUBST(small_test_size)
 
-AC_SUBST(TAGS)
+AC_SUBST(TAGS_TARGET)
 AC_SUBST(DREENTRANT)
 AC_SUBST(SHARED_LIB_TARGET)
 AC_SUBST(SHARED_LIB)
@@ -337,6 +337,7 @@ AC_SUBST(RPATHFLAGS)
 AC_SUBST(KNO_VERSION)
 AC_SUBST(KNO_MAJOR)
 AC_SUBST(KNO_MINOR)
+AC_SUBST(KNO_BRANCH)
 AC_SUBST(KNO_RELEASE)
 AC_SUBST(KNO_PATCHLEVEL)
 AC_SUBST(RPMVERSION)
@@ -401,15 +402,10 @@ AC_ARG_VAR(GPG,"GPG executable")
 AC_SUBST(RPMDIR)
 AC_SUBST(RPMFLAGS)
 AC_SUBST(GPGID)
-AC_SUBST(GITBRANCH)
 AC_SUBST(PKGCONFIG_DIR)
 AC_SUBST(GPG)
 AC_SUBST(u8bin)
 AC_SUBST(u8run)
-
-if test -z "${GITBRANCH}"; then
-   GITBRANCH=`etc/getbranch`;
-fi;
 
 U8RUN_CMD=
 DEFAULT_U8RUN=
@@ -435,7 +431,7 @@ AC_CHECK_PROG(APTLY,aptly,,/usr/bin/aptly)
 AC_PATH_PROG(VALGRIND,valgrind,none)
 AC_PATH_PROG(DUMA,duma,none)
 AC_PATH_PROG(CLANG,clang,none)
-AC_CHECK_PROGS(APXS,/usr/local/bin/apxs2 /usr/local/bin/apxs /usr/bin/apxs2 /usr/bin/apxs /usr/sbin/apxs2 /usr/sbin/apxs apxs2 apxs)
+AC_CHECK_PROGS(APXS,/usr/local/bin/apxs2 /usr/local/bin/apxs /usr/bin/apxs2 /usr/bin/apxs /usr/sbin/apxs2 /usr/sbin/apxs)
 AC_CHECK_PROG(CREATEREPO,createrepo)
 AC_CHECK_PROGS(LLVM_SYMBOLIZER,llvm-symbolizer-3.5,llvm-symbolizer-3.4)
 AC_PATH_PROG(LLVM_SYMBOLIZER_PATH,$LLVM_SYMBOLIZER)
@@ -443,6 +439,9 @@ AC_PATH_PROG(GOOGLE_PPROF,google-pprof)
 AC_PATH_PROG(XGETTEXT,xgettext)
 AC_PATH_PROG(MSGMERGE,msgmerge)
 AC_PATH_PROG(MSGFMT,msgfmt)
+
+if test -z "${APXS}"; then APXS=$(which apxs2); fi;
+if test -z "${APXS}"; then APXS=$(which apxs); fi;
 
 AC_CHECK_PROGS(GZIP,"gzip","na")
 
@@ -522,6 +521,7 @@ AC_DEFINE_UNQUOTED(KNO_VERSION,"$KNO_VERSION")
 AC_DEFINE_UNQUOTED(KNO_MAJOR_VERSION,$KNO_MAJOR)
 AC_DEFINE_UNQUOTED(KNO_MINOR_VERSION,$KNO_MINOR)
 AC_DEFINE_UNQUOTED(KNO_RELEASE_VERSION,$KNO_RELEASE)
+AC_DEFINE_UNQUOTED(KNO_BRANCH,$KNO_BRANCH)
 
 AC_ARG_WITH(suffix,--with-suffix string,,with_suffix="")
 suffix=$with_suffix
@@ -1281,10 +1281,14 @@ if test "${enable_ffi}" == "yes"; then
    AC_CHECK_HEADERS(ffi.h)
    AC_CHECK_LIB(ffi,ffi_prep_cif)
 fi
+echo "enable_ffi=${enable_ffi}"
+echo "ffi.h=${ac_cv_header_ffi_h}"
+echo "ffi/ffi.h=${ac_cv_header_ffi_ffi_h}"
+echo "ffi_prep_cif=${ac_cv_lib_ffi_ffi_prep_cif}"
 if test "${enable_ffi}" != "yes"; then
    manually_disabled="ffi ${manually_disabled}"
-elif test ! "${ac_cv_header_ffi_h}" != "yes" &&
-     test ! "${ac_cv_header_ffi_ffi_h}" != "yes";  then
+elif test "${ac_cv_header_ffi_h}" != "yes" &&
+     test "${ac_cv_header_ffi_ffi_h}" != "yes";  then
    enable_ffi="no";
    auto_disabled="ffi ${auto_disabled}";
 elif test "${ac_cv_lib_ffi_ffi_prep_cif}" != "yes"; then
@@ -1364,9 +1368,6 @@ fi
 
 AC_ARG_WITH(config_dir,--with-config-dir location,,with_config_dir=$default_config_dir)
 config_dir=$with_config_dir
-
-AC_ARG_WITH(buildopts,--with-buildopts-dir location used by getbuildopt,,with_buildopts_dir=$default_buildopts_dir)
-buildopts_dir=$with_buildopts_dir
 
 AC_ARG_WITH(local_config,--with-local-config location,,with_local_config=$config_dir/config)
 local_config=$with_local_config
@@ -1915,21 +1916,17 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   exe/.lldbinit
 	   dbg/runenv.sh dbg/.gdbinit dbg/.lldbinit dbg/.valgrind
 	   etc/kno.pc
-	   etc/getbuildopt
-	   etc/knobuild
-	   etc/kno_fixdirs
-	   etc/knolaunch
-	   etc/kno_start_servlets etc/kno_start_daemons etc/kno_stop_jobs
-	   etc/knostart etc/knostop etc/knostartall etc/knostopall etc/knocleanup
-	   etc/knosignal etc/knoinject etc/knostatus etc/knolog 
-	   etc/knoreload etc/knorestart etc/knogdb etc/knodbgexec
-	   etc/knosetconfig etc/knogetconfig etc/knoconfig
+	   src/shell/knolaunch src/shell/knobuild src/shell/kno_fixdirs
+	   src/shell/kno_start_servlets src/shell/kno_start_daemons src/shell/kno_stop_jobs
+	   src/shell/knostart src/shell/knostop src/shell/knostartall src/shell/knostopall src/shell/knocleanup
+	   src/shell/knosignal src/shell/knoinject src/shell/knostatus src/shell/knolog 
+	   src/shell/knoreload src/shell/knorestart src/shell/knogdb src/shell/knodbgexec
+	   src/shell/knosetconfig src/shell/knogetconfig src/shell/knoconfig src/shell/knojob
 	   tests/testenv.sh tests/xtest
 	   tests/runtest tests/memtest
 	   tests/leaktest tests/knoxtest
 	   src/scripts/knopkg.scm
 	   src/extmods/knoconfig
-	   etc/knojob
 	   etc/logrotate
 	   etc/sysv/kno-rc.d
 	   etc/sysv/ex_servlet-init.d
@@ -1947,9 +1944,10 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   etc/apache/knocgi.conf 
 	   etc/apache/knocgi.load
 	   etc/install-script 
+	   etc/getbuildopt
 	   dist/alpine/APKBUILD
 	   dist/kno-4.3.spec],
-	   [chmod a+x etc/kn* tests/*test etc/getbuildopt src/extmods/knoconfig])
+	   [chmod a+x etc/getbuildopt src/shell/kno* tests/*test src/extmods/knoconfig])
 
 if test ! -z "$gperftools"; then
    echo  "Built with malloc=$using_malloc, gperftools=${gperftools}";

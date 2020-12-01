@@ -304,12 +304,12 @@ EXECUTABLES=${EXESOURCE}/knox@suffix@ ${EXESOURCE}/knoc@suffix@ ${EXESOURCE}/kno
 STATIC_EXECUTABLES=${STATICEXE}/kno@suffix@ ${STATICEXE}/knoc@suffix@ ${STATICEXE}/knocgi@suffix@ \
 	${STATICEXE}/knotask@suffix@ ${STATICEXE}/knod@suffix@
 DEBUG_EXECUTABLES=dbg/knox dbg/knoc dbg/knotask dbg/knocgi dbg/knod
-SHELL_SCRIPTS=etc/knosetconfig etc/knogetconfig etc/knoconfig etc/knolaunch \
-	      etc/knostart etc/knostop etc/knostartall etc/knostopall \
-	      etc/kno_start_daemons etc/kno_start_servlets etc/kno_stop_jobs \
-	      etc/knosignal etc/knoinject etc/knostatus etc/knolog  \
-	      etc/knorestart etc/knoctl etc/knogdb etc/knodbgexec \
-	      etc/knocleanup etc/knojob etc/knobuild
+SHELL_SCRIPTS=src/shell/knosetconfig src/shell/knogetconfig src/shell/knoconfig src/shell/knolaunch \
+	      src/shell/knostart src/shell/knostop src/shell/knostartall src/shell/knostopall \
+	      src/shell/kno_start_daemons src/shell/kno_start_servlets src/shell/kno_stop_jobs \
+	      src/shell/knosignal src/shell/knoinject src/shell/knostatus src/shell/knolog  \
+	      src/shell/knorestart src/shell/knoctl src/shell/knogdb src/shell/knodbgexec \
+	      src/shell/knocleanup src/shell/knojob src/shell/knobuild
 SCHEME_SCRIPTS=exe/scripts/pack-pool exe/scripts/pack-index \
 	       exe/scripts/split-index exe/scripts/merge-indexes \
 	       exe/scripts/knocall exe/scripts/knoserver \
@@ -487,7 +487,7 @@ SCHEME_MODULES=src/stdlib/*.scm \
 # These might be neccessary on MacOS
 CMODULE_DEPENDS=lib/libkno@suffix@.@shared_suffix@
 
-ALL=testbin exe cmodules @TAGS@
+ALL=testbin exe cmodules @TAGS_TARGET@
 
 # Makefile targets
 
@@ -506,7 +506,7 @@ normal:
 	@make TAGS
 	@if test -f .malloc; then \
 	  echo With $(shell cat .malloc) malloc; fi;
-	@+make -s testbin exe cmodules etc @TAGS@
+	@+make -s testbin exe cmodules etc @TAGS_TARGET@
 
 debugging:
 	@echo Building DEBUGGING configuration
@@ -517,7 +517,7 @@ debugging:
 	          XLDFLAGS="@debugldflags@ $(XLDFLAGS)"		\
 	          XOPTFLAGS="-O0" OPTFLAGS="-O0" 		\
 		  XLIBS="@debuglibs@ $(XLIBS)" 			\
-	  testbin exe cmodules etc @TAGS@
+	  testbin exe cmodules etc @TAGS_TARGET@
 
 profiling:
 	@echo Building PROFILING configuration
@@ -528,28 +528,28 @@ profiling:
 	          XLDFLAGS="@profileldflags@ $(XLDFLAGS)"		\
 	          XOPTFLAGS="-O0" OPTFLAGS="-O0" 		\
 		  XLIBS="@debuglibs@ $(XLIBS)" 			\
-	  	testbin libs exe cmodules etc @TAGS@
+	  	testbin libs exe cmodules etc @TAGS_TARGET@
 
 optimizing:
 	@echo Building OPTIMIZING configuration
 	@if test -f .malloc; then \
 	  echo With $(shell cat .malloc) malloc; fi;
-	@+make -s XCFLAGS="-O3" testbin exe cmodules etc @TAGS@
+	@+make -s XCFLAGS="-O3" testbin exe cmodules etc @TAGS_TARGET@
 zooming:
 	@echo Building Zooming configuration
 	@if test -f .malloc; then \
 	  echo With $(shell cat .malloc) malloc; fi;
-	@+make -s XCFLAGS="-O3 -g0" testbin exe cmodules etc @TAGS@
+	@+make -s XCFLAGS="-O3 -g0" testbin exe cmodules etc @TAGS_TARGET@
 nitpicking:
 	@echo Building NITPICKING configuration
 	@if test -f .malloc; then \
 	  echo With $(shell cat .malloc) malloc; fi;
-	@+make -s XCFLAGS="-Wall -Wno-unknown-pragmas ${XCFLAGS}" testbin exe cmodules etc @TAGS@
+	@+make -s XCFLAGS="-Wall -Wno-unknown-pragmas ${XCFLAGS}" testbin exe cmodules etc @TAGS_TARGET@
 distribution:
 	@echo Building DISTRIBUTION configuration
-	@+make -s exe cmodules etc scripts @TAGS@
+	@+make -s exe cmodules etc scripts @TAGS_TARGET@
 
-all: testbin debug-exe exe cmodules etc i18n @TAGS@
+all: testbin debug-exe exe cmodules etc i18n @TAGS_TARGET@
 packaged: exe cmodules etc i18n
 
 fresh: clean
@@ -643,8 +643,6 @@ exe/.gdbinit: exe/.gdbinit.in ./config.status
 	./config.status
 
 etc: etc/logrotate etc/install-script etc/sysv/kno-rc.d etc/logrotate	\
-        etc/knoconfig etc/knosetconfig etc/knogetconfig etc/knolaunch	\
-        etc/knojob etc/knosignal                             		\
         dbg/.gdbinit exe/.gdbinit
 
 # Makes everything and then sudoes the install, keeping build files
@@ -916,7 +914,8 @@ TAGS: makefile.in configure.ac include/kno/config.h.in			\
 		src/cmodules/*.c 					\
 		src/python/*.c 						\
 		src/libscm/*.scm src/libscm/*/*.scm 			\
-		src/scripts/*.scm					\
+		src/scripts/*.scm src/shell/*.in 			\
+		src/shell/knoctl					\
 		include/kno/components/*.h				\
 		etc/*.in src/extmods/*.in 				\
 		dbg/.gdbinit.in tests/*.scm 				\
@@ -940,36 +939,21 @@ TAGS: makefile.in configure.ac include/kno/config.h.in			\
 	@etags -o TAGS -a src/cmodules/*.c;
 	@etags -o TAGS -a src/python/*.c;
 	@etags -o TAGS -a src/scripts/*.scm;
-	@etags -o TAGS -a src/extmods/*/makefile
+	@etags -o TAGS -a src/extmods/*/makefile src/extmods/*/*.c src/extmods/*/*.h 
 	@find src/libscm/ -name "*.scm" -type f | xargs etags -a -o TAGS;
-
-CTAGS: makefile.in configure.ac include/kno/config.h.in	\
-	tests/libtests/*.c tests/*.c	\
-	src/lisp/*.c src/sys/*.c src/apply/*.c src/storage/*.c 		\
-	src/eval/*.c src/prims/*.c src/web/*.c src/text/*.c 	\
-	include/kno/*.h ${SRC_HEADERS} etc/*.in 		\
-	include/kno/components/*.h				\
-	src/exe/*.c src/cmodules/*.c
-	@echo Building C TAGS file
-	@etags -o CTAGS 
-	      makefile.in configure.ac include/kno/config.h.in      	\
-	      tests/libtests/*.c src/exe/*.c src/exe/*.h		\
-	      src/lisp/*.c src/sys/*.c src/storage/*.c 			\
-	      src/eval/*.c src/prims/*.c src/web/*.c src/text/*.c	\
-	      src/cmodules/*.c src/cmodules/*.h				\
-	      include/kno/*.h etc/*.in 					\
-	      include/kno/components/*.h				\
-	      ${SRC_HEADERS}
+	@find src/stdlib/ -name "*.scm" -type f | xargs etags -a -o TAGS;
+	@find src/brico/ -name "*.scm" -type f | xargs etags -a -o TAGS;
 
 CSOURCETAGS: src/lisp/*.c src/sys/*.c src/apply/*.c	\
 	src/storage/*.c src/eval/*.c src/prims/*.c 	\
 	src/web/*.c src/text/*.c 			\
 	src/drivers/*.c src/drivers/headers/*.h		\
-	src/exe/*.c src/exe/*.h
+	src/exe/*.c src/exe/*.h 			\
+	src/cmodules/*.c src/extmods/*/*.c src/extmods/*/*.h
 	@echo Building KNO_SOURCE TAGS file
 	@etags -o $@ $^
 
-KNOSCHEMETAGS: src/eval/*.c src/prims/*.c src/web/*.c src/text/*.c
+KNOLANGTAGS: src/eval/*.c src/prims/*.c src/web/*.c src/text/*.c src/cmodules/*.c
 	@echo Building scheme-implementation TAGS file
 	@etags -o $@ $^
 
@@ -982,8 +966,11 @@ SCHEMETAGS: ${SCHEME_MODULES}
 	@find src/libscm -name "*.scm" -type f | xargs etags -o SCHEMETAGS -a
 	@find src/stdlib -name "*.scm" -type f | xargs etags -o SCHEMETAGS -a
 	@find src/scripts -name "*.scm" -type f | xargs etags -o SCHEMETAGS -a
+	@find src/brico -name "*.scm" -type f | xargs etags -o SCHEMETAGS -a
 	@find tests -name "*.scm" -type f | xargs etags -o SCHEMETAGS -a
 	@ls -l SCHEMETAGS
+
+alltags: TAGS CSOURCETAGS KNOLANGTAGS SCHEMETAGS 
 
 profile-clean:
 	@find . -name "*.gcda" -type f | xargs rm -f
