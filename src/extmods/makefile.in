@@ -45,7 +45,7 @@ debfresh: extmods
 	domake ${EXTMODS} fresh
 	domake ${EXTMODS} debfresh
 
-STDMODS=hyphenate leveldb mongodb mysql nng odbc sundown tidy zeromq ziptools
+STDMODS=hyphenate leveldb mongodb mariadb nng odbc sundown tidy zeromq ziptools
 
 symlinks:
 	for dir in ${STDMODS}; do make $${dir}/.git; done;
@@ -64,7 +64,7 @@ debclean:
 
 .PHONY: extmods build fresh clean install alpine debfresh testbuild
 
-hyphenate leveldb mongodb mysql nng odbc sundown tidy zeromq ziptools rocksdb:
+hyphenate leveldb mongodb mariadb nng odbc sundown tidy zeromq ziptools rocksdb:
 	make $@/.git
 
 mod_knocgi mod_knocgi/.git:
@@ -80,3 +80,11 @@ imagetools/.git:
 	     ln -sf ../../src/extmods/imagetools/$${modname}.${shared_suffix} $${modname}.${shared_suffix}; \
 	   done; \
 	 fi;
+mysql/.git:
+	@git clone git@github.com:beingmeta/kno-mariadb.git -b mysql $(@D)
+	@if test -d ../../lib/kno; then 				\
+	   cd  ../../lib/kno; 						\
+	   ln -sf ../../src/extmods/$(@D)/$(@D).${shared_suffix}	\
+		  $(@D).${shared_suffix}; 				\
+	fi;
+

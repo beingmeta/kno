@@ -122,7 +122,7 @@ local_module_dir=""
 default_module_path=""
 module_path=""
 source_dir=""
-EXTMODS="hyphenate imagetools leveldb mod_knocgi mongodb mysql nng odbc rocksdb sundown tidy zeromq ziptools"
+EXTMODS="hyphenate imagetools leveldb mod_knocgi mongodb mariadb nng odbc rocksdb sundown tidy zeromq ziptools"
 CMODULES=""
 INSTALL_CMODULES=""
 TEST_CMODULES=""
@@ -155,10 +155,7 @@ default_bugjar="$kno_logdir/bugjar"
 share_dir=""
 data_dir=""
 archflags=""
-with_ziptools_default="yes"
-with_mysql_default="yes"
 with_crypto_default="yes"
-with_imagick_default="yes"
 use_dtblock_default="yes"
 default_bootsystem="none"
 BOOTSETUP="none"
@@ -168,10 +165,6 @@ OPTFLAGS=
 XOPTFLAGS=
 CLANG=no
 MALLOC_FLAGS="-fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free"
-MYSQL_CFLAGS=
-MYSQL_LDFLAGS=
-IMAGICK_CFLAGS=
-IMAGICK_LDFLAGS=
 LIBZIP_CFLAGS=
 LIBZIP_LDFLAGS=
 PYTHON2_CFLAGS=
@@ -363,12 +356,8 @@ AC_SUBST(DATAFILES)
 AC_SUBST(BOOTSETUP)
 AC_SUBST(PKG_CFLAGS)
 AC_SUBST(MALLOC_FLAGS)
-AC_SUBST(MYSQL_CFLAGS)
-AC_SUBST(MYSQL_LDFLAGS)
 AC_SUBST(LIBZIP_CFLAGS)
 AC_SUBST(LIBZIP_LDFLAGS)
-AC_SUBST(IMAGICK_CFLAGS)
-AC_SUBST(IMAGICK_LDFLAGS)
 AC_SUBST(DEFAULTISASYNC)
 AC_SUBST(DEFAULT_DLOAD_PATH)
 AC_SUBST(USEDTBLOCK)
