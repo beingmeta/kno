@@ -42,8 +42,7 @@ install: extmods
 alpine: extmods
 	domake ${EXTMODS} alpine
 debfresh: extmods
-	domake ${EXTMODS} fresh
-	domake ${EXTMODS} debfresh
+	domake ${EXTMODS} GPGID=none debfresh
 
 STDMODS=hyphenate leveldb mongodb mariadb nng odbc sundown tidy zeromq ziptools
 
