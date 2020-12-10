@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-11-25 16:03-0500\n"
+"POT-Creation-Date: 2020-11-30 21:42+0000\n"
 "PO-Revision-Date: 2005-03-04 22:55-0500\n"
 "Last-Translator: Kenneth Haase <kh@beingmeta.com>\n"
 "Language-Team: Dutch <nl@li.org>\n"
@@ -298,7 +298,7 @@ msgid "whether to check returned and real dtype sizes"
 msgstr ""
 
 #: src/lisp/xtypes.c:1204 src/storage/compress.c:156 src/storage/compress.c:195
-#: src/prims/portprims.c:1465 src/drivers/headers/zcompress.h:27
+#: src/prims/portprims.c:1493 src/drivers/headers/zcompress.h:27
 #: src/drivers/headers/zcompress.h:65
 msgid "ZLIB ran out of memory"
 msgstr ""
@@ -314,7 +314,7 @@ msgid "ZLIB uncompress data error"
 msgstr ""
 
 #: src/lisp/xtypes.c:1218 src/storage/compress.c:170 src/storage/compress.c:208
-#: src/prims/portprims.c:1478 src/drivers/headers/zcompress.h:40
+#: src/prims/portprims.c:1506 src/drivers/headers/zcompress.h:40
 #: src/drivers/headers/zcompress.h:78
 msgid "Bad ZLIB return code"
 msgstr ""
@@ -1780,7 +1780,7 @@ msgstr ""
 msgid "pool value compression ran out of memory"
 msgstr ""
 
-#: src/storage/compress.c:206 src/prims/portprims.c:1476
+#: src/storage/compress.c:206 src/prims/portprims.c:1504
 #: src/drivers/headers/zcompress.h:76
 msgid "ZLIB compress data error"
 msgstr ""
@@ -2323,11 +2323,11 @@ msgstr ""
 msgid "fixum"
 msgstr ""
 
-#: src/prims/portprims.c:1473
+#: src/prims/portprims.c:1501
 msgid "OIDPOOL compress ran out of memory"
 msgstr ""
 
-#: src/prims/portprims.c:1551 src/prims/stringprims.c:1472
+#: src/prims/portprims.c:1579 src/prims/stringprims.c:1472
 #: src/prims/stringprims.c:1533
 msgid "text encoding"
 msgstr ""
