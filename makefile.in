@@ -1315,8 +1315,12 @@ dist/debs.done: @DEB_BUILD_TARGET@
 dist/debsource.done: dist/debsource.signed
 	touch dist/debsource.done dist/debs.done
 
-install-debian install-debs debinstall installdebs: dist/debs.done
-	@cd dist; ${SUDO} dpkg -i kno*@KNO_VERSION@*.deb elpa-knoc*@KNO_VERSION@*.deb
+dist/debs.installed: dist/debs.done
+	@( $(SUDO) dpkg -i dist/kno*@KNO_VERSION@*.deb dist/elpa-knoc*@KNO_VERSION@*.deb || \
+	   $(SUDO) dpkg -i dist/*.deb ) && \
+	 touch $@
+
+install-debian install-debs debinstall installdebs: dist/debs.installed
 
 # RPM targets (probably broken)
 
