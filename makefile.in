@@ -1782,6 +1782,9 @@ dist/alpine.done: dist/alpine.setup
 dist/alpine.installed:
 	cd staging/alpine; apk add --repository=${APKREPO}/staging ${ALPINE_PKGS}
 
+alpine: dist/alpine.done
+install-alpine: dist/alpine.installed
+
 .PHONY: alpine
 
 # The mod_knocgi module
