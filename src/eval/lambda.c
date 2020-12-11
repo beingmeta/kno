@@ -153,6 +153,8 @@ KNO_EXPORT int kno_set_lambda_schema(struct KNO_LAMBDA *s,lispval args)
   s->fcn_call_width = s->lambda_n_vars = n_vars;
   s->fcn_arity = arity;
   s->fcn_min_arity = min_arity;
+  s->fcn_arginfo_len = 0;
+  s->fcn_arginfo = NULL;
   if (cur_vars) u8_free(cur_vars);
   if (cur_inits) {
     kno_decref_vec(cur_inits,n_cur);

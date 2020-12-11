@@ -148,6 +148,62 @@ KNO_EXPORT int _KNO_TABLEP(lispval x)
   else return 0;
 }
 
+KNO_EXPORT int _KNO_XTYPEP(lispval x,int type)
+{
+  if (type <=  kno_opts_type) switch ((kno_lisp_type)type) {
+    case kno_number_type: return KNO_NUMBERP(x);
+    case kno_sequence_type: return KNO_SEQUENCEP(x);
+    case kno_table_type: return KNO_TABLEP(x);
+    case kno_type_type:
+      if ( (KNO_OIDP(x)) || (KNO_SYMBOLP(x)) ||
+	   (KNO_IMMEDIATE_TYPEP(x,kno_basetype_type)) ||
+	   (KNO_TYPEP(x,kno_typeinfo_type)) )
+	return 1;
+      else return 0;
+    case kno_keymap_type:
+      if (KNO_CONSP(x)) {
+	kno_lisp_type ctype = KNO_CONS_TYPEOF(x);
+	return ( (ctype && kno_table_type) == ctype );}
+      else return 0;
+    case kno_opts_type:
+      if (KNO_CONSP(x)) {
+	kno_lisp_type ctype = KNO_CONS_TYPEOF(x);
+	return ( (ctype == kno_pair_type) &&
+		 ( (ctype && kno_table_type) == ctype ) );}
+      else if ( (x == KNO_FALSE) || (x == KNO_EMPTY_LIST) || (x == KNO_EMPTY_CHOICE) )
+	return 1;
+      else return 0;
+    default:
+      if  (type < 0x04) return ( ( (x) & (0x3) ) == type);
+      else if (type < 0x84) return (KNO_IMMEDIATE_TYPEP(x,type));
+      else if (type < 0x100) return ( (x) && ((KNO_CONSPTR_TYPE(x)) == type) );
+      else return 0;}
+  else return 0;
+}
+
+KNO_EXPORT int _KNO_CHECKTYPE(lispval obj,lispval objtype)
+{
+  if (KNO_IMMEDIATEP(objtype)) {
+    if (KNO_IMMEDIATE_TYPEP(objtype,kno_symbol_type))
+      return ( ( (KNO_COMPOUNDP(obj)) && ( (KNO_COMPOUND_TAG(obj)) == objtype) ) ||
+	       ( (KNO_TYPEP(obj,kno_rawptr_type)) && ( (KNO_RAWPTR_TAG(obj)) == objtype) ) );
+    else if (KNO_IMMEDIATE_TYPEP(objtype,kno_basetype_type)) {
+      kno_lisp_type ltype = (KNO_IMMEDIATE_DATA(objtype));
+      return (KNO_TYPEP(obj,ltype));}
+    else return 0;}
+  else if (KNO_OIDP(objtype))
+    return ( ( (KNO_COMPOUNDP(obj)) && ( (KNO_COMPOUND_TAG(obj)) == objtype) ) ||
+	     ( (KNO_TYPEP(obj,kno_rawptr_type)) && ( (KNO_RAWPTR_TAG(obj)) == objtype) ) );
+  else if (KNO_TYPEP(objtype,kno_typeinfo_type)) {
+    struct KNO_TYPEINFO *info = (kno_typeinfo) objtype;
+    if (KNO_COMPOUNDP(obj))
+      return ( (KNO_COMPOUND_TAG(obj)) == info->typetag);
+    else if (KNO_TYPEP(obj,kno_rawptr_type))
+      return ( (KNO_RAWPTR_TAG(obj)) == info->typetag);
+    else return 0;}
+  else return 0;
+}
+
 KNO_EXPORT int _KNO_CHOICE_SIZE(lispval x)
 {
   if (KNO_EMPTYP(x))
@@ -378,6 +434,18 @@ static void init_type_names()
   kno_type_docs[kno_bloom_filter_type]=_("bloom_filter");
 
   kno_type_docs[kno_pathstore_type]=_("pathstore");
+ 
+  kno_type_names[kno_basetype_type]=_("basetype");
+  kno_type_docs[kno_basetype_type]=_("a representation of a primitive C type");
+
+  kno_type_names[kno_type_type]=_("type");
+  kno_type_docs[kno_type_type]=_("a type reference is a basetype, a tag (symbol or OID) or a typeinfo object");
+
+  kno_type_names[kno_keymap_type]=_("keymap");
+  kno_type_docs[kno_keymap_type]=_("a slotmap or schemap");
+
+  kno_type_names[kno_opts_type]=_("optsarg");
+  kno_type_docs[kno_opts_type]=_("an opts data structure");
 }
 
 static int lisp_types_version = 101;
@@ -500,7 +568,7 @@ KNO_EXPORT int kno_init_lisp_types()
 
   int typecode = 0; while (typecode < KNO_TYPE_MAX) {
     if (kno_type_names[typecode]) {
-      lispval typecode_value = LISPVAL_IMMEDIATE(kno_type_type,typecode);
+      lispval typecode_value = LISPVAL_IMMEDIATE(kno_basetype_type,typecode);
       u8_byte buf[100];
       u8_string hashname = u8_bprintf(buf,"%s_type",kno_type_names[typecode]);
       if (kno_add_constname(hashname,typecode_value)<0)

@@ -392,6 +392,8 @@ static lispval sqlitemakeproc
   sqlcons->fcn_call = KNO_CALL_XCALL | KNO_CALL_NOTAIL;
   sqlcons->fcn_call_width = sqlcons->fcn_arity = -1;
   sqlcons->fcn_min_arity = n_params;
+  sqlcons->fcn_arginfo_len = 0;
+  sqlcons->fcn_arginfo = NULL;
   sqlcons->fcn_handler.xcalln = sqlitecallproc;
   {
     lispval *paramtypes = u8_alloc_n(n_params,lispval);

@@ -365,7 +365,7 @@ int kno_unparse(u8_output out,lispval x)
       else {
         char buf[24]; sprintf(buf,"#!%lx",(unsigned long)x);
         return u8_puts(out,buf);}
-    else if (itype == kno_type_type) {
+    else if (itype == kno_basetype_type) {
       U8_STATIC_OUTPUT(typeref,128);
       if ( (data < KNO_TYPE_MAX) && (kno_type_names[data]) ) {
 	u8_string scan = kno_type_names[data];

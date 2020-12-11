@@ -207,6 +207,8 @@ static lispval callcc(lispval proc)
   f->fcn_call = KNO_CALL_NDCALL | KNO_CALL_XCALL;
   f->fcn_call_width = f->fcn_arity = 1;
   f->fcn_min_arity = 1;
+  f->fcn_arginfo_len = 0;
+  f->fcn_arginfo = NULL;
   f->fcn_handler.xcalln = call_continuation;
   f->fcn_typeinfo = NULL;
   f->fcn_defaults = NULL;

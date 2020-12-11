@@ -1112,29 +1112,67 @@ U8_MAYBE_UNUSED static int _kno_applicablep(lispval x)
   else return 0;
 }
 
-U8_MAYBE_UNUSED static int _kno_extended_typep(lispval x,int typecode)
+#if KNO_INLINE_XTYPEP
+KNO_INLINE int _KNO_XTYPEP(lispval x,int type)
 {
-  switch (typecode) {
-  case kno_number_type:
-    return KNO_NUMBERP(x);
-  case kno_sequence_type:
-    return KNO_SEQUENCEP(x);
-  case kno_table_type:
-    return KNO_TABLEP(x);
-  case kno_applicable_type:
-    return _kno_applicablep(x);
-  default:
-    return 0;
-  }
+  if (type <=  kno_opts_type) switch ((kno_lisp_type)type) {
+    case kno_number_type: return KNO_NUMBERP(x);
+    case kno_sequence_type: return KNO_SEQUENCEP(x);
+    case kno_table_type: return KNO_TABLEP(x);
+    case kno_type_type:
+      if ( (KNO_OIDP(x)) || (KNO_SYMBOLP(x)) ||
+	   (KNO_IMMEDIATE_TYPEP(x,kno_basetype_type)) ||
+	   (KNO_TYPEP(x,kno_typeinfo_type)) )
+	return 1;
+      else return 0;
+    case kno_keymap_type:
+      if (KNO_CONSP(x)) {
+	kno_lisp_type ctype = KNO_CONS_TYPEOF(x);
+	return ( (ctype && kno_table_type) == ctype );}
+      else return 0;
+    case kno_opts_type:
+      if (KNO_CONSP(x)) {
+	kno_lisp_type ctype = KNO_CONS_TYPEOF(x);
+	return ( (ctype == kno_pair_type) &&
+		 ( (ctype && kno_table_type) == ctype ) );}
+      else if ( (x == KNO_FALSE) || (x == KNO_EMPTY_LIST) || (x == KNO_EMPTY_CHOICE) )
+	return 1;
+      else return 0;
+    default:
+      if  (type < 0x04) return ( ( (x) & (0x3) ) == type);
+      else if (type < 0x84) return (KNO_IMMEDIATE_TYPEP(x,type));
+      else if (type < 0x100) return ( (x) && ((KNO_CONSPTR_TYPE(x)) == type) );
+      else return 0;}
+  else return 0;
 }
+#undef KNO_XTYPEP
+#define KNO_XTYPEP __KNO_XTYPEP
+#endif
 
-#define KNO_ISA(x,typecode) \
-  ( ( (typecode) > 0x100) ?						\
-    (_kno_extended_typep((x),(typecode))) :				\
-    ( (typecode) >= 0x84) ?						\
-    ( (KNO_CONSP(x)) && (KNO_CONSPTR_TYPE(x) == typecode) ) :		\
-    ( (typecode) >= 0x04) ? (KNO_IMMEDIATE_TYPEPP(x,typecode)) :	\
-    ( (typecode) >= 0x00) ? ( ( (x) & (0x3) ) == typecode) : (1) )
+KNO_EXPORT int _KNO_CHECKTYPE(lispval obj,lispval objtype);
+
+#if KNO_INLINE_CHECKTYPE
+KNO_INLINE int KNO_CHECKTYPE(lispval obj,lispval objtype)
+{
+  if (KNO_IMMEDIATEP(objtype)) {
+    if (KNO_IMMEDIATE_TYPEP(objtype,kno_symbol_type))
+      return ( ( (KNO_COMPOUNDP(obj)) && ( (KNO_COMPOUND_TAG(obj)) == objtype) ) ||
+	       ( (KNO_TYPEP(obj,kno_rawptr_type)) && ( (KNO_RAWPTR_TAG(obj)) == objtype) ) );
+    else if (KNO_IMMEDIATE_TYPEP(objtype,kno_basetype_type)) {
+      kno_lisp_type ltype = (KNO_IMMEDIATE_DATA(objtype));
+      return (KNO_TYPEP(obj,ltype));}
+    else return 0;}
+  else if (KNO_OIDP(objtype))
+    return ( ( (KNO_COMPOUNDP(obj)) && ( (KNO_COMPOUND_TAG(obj)) == objtype) ) ||
+	     ( (KNO_TYPEP(obj,kno_rawptr_type)) && ( (KNO_RAWPTR_TAG(obj)) == objtype) ) );
+  else if (KNO_TYPEP(objtype,kno_typeinfo_type))
+    return _KNO_CHECKTYPE(obj,objtype);
+  else return 0;
+}
+#else
+#define KNO_CHECKTYPE _KNO_CHECKTYPE
+#endif
+
 
 /* The zero-pool */
 

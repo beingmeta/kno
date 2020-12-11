@@ -92,26 +92,33 @@ typedef lispval (*kno_cprimn)(int n,kno_argvec);
 
 typedef lispval (*kno_xprimn)(kno_stack,kno_function,int n,kno_argvec);
 
+typedef struct KNO_ARGINFO {
+  lispval name;
+  lispval type;
+  lispval fallback;
+  unsigned int bits;} *kno_arginfo;
+
 #define KNO_FUNCTION_FIELDS						   \
-  KNO_CONS_HEADER;							   \
-  u8_string fcn_name, fcn_filename;					  \
-  u8_string fcn_doc;							  \
-  lispval fcn_moduleid;							  \
+  KNO_CONS_HEADER;							\
+  u8_string fcn_name, fcn_filename;					\
+  u8_string fcn_doc;							\
+  lispval fcn_moduleid;							\
   unsigned char fcn_call, fcn_trace, fcn_free, fcn_other;		\
-  short fcn_arity, fcn_min_arity, fcn_call_width;					\
-  lispval fcnid;							  \
-  lispval fcn_attribs;							  \
-  struct KNO_PROFILE *fcn_profile;					   \
-  union {								  \
-    kno_cprim0 call0; kno_cprim1 call1; kno_cprim2 call2;		     \
-    kno_cprim3 call3; kno_cprim4 call4; kno_cprim5 call5;		     \
-    kno_cprim6 call6; kno_cprim7 call7; kno_cprim8 call8;		     \
-    kno_cprim9 call9; kno_cprim10 call10; kno_cprim11 call11;		     \
-    kno_cprim12 call12; kno_cprim13 call13; kno_cprim14 call14;		     \
-    kno_cprim15 call15;							   \
-    kno_cprimn calln;							   \
-    kno_xprimn xcalln;							   \
-    void *fnptr;}							  \
+  short fcn_arity, fcn_min_arity, fcn_call_width, fcn_arginfo_len;	\
+  struct KNO_ARGINFO *fcn_arginfo;					\
+  lispval fcnid;							\
+  lispval fcn_attribs;							\
+  struct KNO_PROFILE *fcn_profile;					\
+  union {								\
+    kno_cprim0 call0; kno_cprim1 call1; kno_cprim2 call2;		\
+    kno_cprim3 call3; kno_cprim4 call4; kno_cprim5 call5;		\
+    kno_cprim6 call6; kno_cprim7 call7; kno_cprim8 call8;		\
+    kno_cprim9 call9; kno_cprim10 call10; kno_cprim11 call11;		\
+    kno_cprim12 call12; kno_cprim13 call13; kno_cprim14 call14;		\
+    kno_cprim15 call15;							\
+    kno_cprimn calln;							\
+    kno_xprimn xcalln;							\
+    void *fnptr;}							\
     fcn_handler
 
 #define KNO_CALL_XITER    0x01

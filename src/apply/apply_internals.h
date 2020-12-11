@@ -128,11 +128,11 @@ static int cprim_prep(kno_stack stack,
     int i = 0; while (i<n) {
       lispval arg = args[i];
       kno_lisp_type type = typeinfo[i];
-      kno_lisp_type arg_type = KNO_TYPEOF(arg);
       if (type<0) i++;
-      else if (arg_type == type) i++;
+      else if (KNO_TYPEP(arg,type)) i++;
       else {
 	u8_byte buf[128];
+	kno_lisp_type arg_type = KNO_TYPEOF(arg);
 	kno_seterr(kno_TypeError,kno_type_names[type],
 		   u8_bprintf(buf,"%s[%d](%s)",fname,i,
 			      kno_type_names[arg_type]),

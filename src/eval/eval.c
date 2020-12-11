@@ -1927,69 +1927,65 @@ static void init_localfns()
 {
   link_local_cprims();
 
-  kno_def_evalfn(kno_scheme_module,"EVAL",eval_evalfn,
+  kno_def_evalfn(kno_scheme_module,"eval",eval_evalfn,
 		 "*undocumented*");
-  kno_def_evalfn(kno_scheme_module,"BOUND?",boundp_evalfn,
-		 "`(BOUND? *sym*)` returns true if *sym* (not evaluated) "
+  kno_def_evalfn(kno_scheme_module,"bound?",boundp_evalfn,
+		 "`(bound? *sym*)` returns true if *sym* (not evaluated) "
 		 "is bound in the current environment.");
-  kno_def_evalfn(kno_scheme_module,"UNBOUND?",unboundp_evalfn,
-		 "`(UNBOUND? *sym*)` returns true if *sym* (*not evaluated*) "
+  kno_def_evalfn(kno_scheme_module,"unbound?",unboundp_evalfn,
+		 "`(unbound? *sym*)` returns true if *sym* (*not evaluated*) "
 		 "is *not* bound in the current environment.");
-  kno_def_evalfn(kno_scheme_module,"DEFINED?",definedp_evalfn,
+  kno_def_evalfn(kno_scheme_module,"defined?",definedp_evalfn,
 		 "*undocumented*");
-  kno_def_evalfn(kno_scheme_module,"VOID?",voidp_evalfn,
-		 "`(VOID? *expr*)` returns true if evaluating *expr* "
+  kno_def_evalfn(kno_scheme_module,"void?",voidp_evalfn,
+		 "`(void? *expr*)` returns true if evaluating *expr* "
 		 "returns the **VOID** value.");
-  kno_def_evalfn(kno_scheme_module,"DEFAULT?",defaultp_evalfn,
-		 "`(DEFAULT? *expr*)` returns true if evaluating *expr* "
+  kno_def_evalfn(kno_scheme_module,"default?",defaultp_evalfn,
+		 "`(default? *expr*)` returns true if evaluating *expr* "
 		 "returns the **DEFAULT** value token.");
-  kno_def_evalfn(kno_scheme_module,"CONSTANT?",constantp_evalfn,
-		 "`(CONSTANT? *expr*)` returns true if evaluating *expr* "
+  kno_def_evalfn(kno_scheme_module,"constant?",constantp_evalfn,
+		 "`(constant? *expr*)` returns true if evaluating *expr* "
 		 "returns a Scheme constant.");
-  kno_def_evalfn(kno_scheme_module,"BAD?",badp_evalfn,
-		 "`(BAD? *expr*)` returns true if evaluating *expr* "
+  kno_def_evalfn(kno_scheme_module,"bad?",badp_evalfn,
+		 "`(bad? *expr*)` returns true if evaluating *expr* "
 		 "returns an invalid pointer");
-  kno_def_evalfn(kno_scheme_module,"QUOTE",quote_evalfn,
-		 "`(QUOTE *x*)` returns the subexpression *x*, "
+  kno_def_evalfn(kno_scheme_module,"quote",quote_evalfn,
+		 "`(quote *x*)` returns the subexpression *x*, "
 		 "which is *not* evaluated.");
-  kno_def_evalfn(kno_scheme_module,"FCN/ALIAS",fcnalias_evalfn,
-		 "`(FCN/ALIAS *sym*)` returns a *fcnid* pointer aliasing the "
+  kno_def_evalfn(kno_scheme_module,"fcn/alias",fcnalias_evalfn,
+		 "`(fcn/alias *sym*)` returns a *fcnid* pointer aliasing the "
 		 "definition of *sym* in the current environment.");
-  kno_def_evalfn(kno_scheme_module,"%ENV",env_evalfn,
-		 "`(%ENV)` returns the current lexical environment.");
-  kno_def_evalfn(kno_scheme_module,"%MODREF",modref_evalfn,
-		 "`(%MODREF *modobj* *symbol*) returns the binding of "
+  kno_def_evalfn(kno_scheme_module,"%env",env_evalfn,
+		 "`(%env)` returns the current lexical environment.");
+  kno_def_evalfn(kno_scheme_module,"%modref",modref_evalfn,
+		 "`(%modref *modobj* *symbol*) returns the binding of "
 		 "*symbol* in the module *modobj*, neither of which are "
 		 "evaluated. This is intended for use in automatically "
 		 "generated/optimized code");
-  kno_def_evalfn(kno_scheme_module,"SYMBOL-BOUND?",symbol_boundp_evalfn,
-		 "`(SYMBOL-BOUND? *sym* [*env*])` returns #t "
+  kno_def_evalfn(kno_scheme_module,"symbol-bound?",symbol_boundp_evalfn,
+		 "`(symbol-bound? *sym* [*env*])` returns #t "
 		 "if *sym* is bound in *env*, which defaults to "
 		 "the current environment.");
 
-  kno_def_evalfn(kno_scheme_module,"%ENV/RESET!",env_reset_evalfn,
+  kno_def_evalfn(kno_scheme_module,"%env/reset!",env_reset_evalfn,
 		 "Resets the cached dynamic copy of the current "
 		 "environment (if any). This means that procedures "
 		 "closed in the current environment will not be "
 		 "effected by future changes");
 
-  kno_def_evalfn(kno_scheme_module,"WITHENV",withenv_evalfn,
+  kno_def_evalfn(kno_scheme_module,"withenv",withenv_evalfn,
 		 "*undocumented*");
-  kno_def_evalfn(kno_scheme_module,"WITH-BINDINGS",withbindings_evalfn,
-		 "`(WITH-BINDINGS *bindings* body...)` evaluates body using "
+  kno_def_evalfn(kno_scheme_module,"with-bindings",withbindings_evalfn,
+		 "`(with-bindings *bindings* body...)` evaluates body using "
 		 "*bindings*. If *bindings* is an environment, the body is "
 		 "evaluated in that environment; if *bindings* is a table, "
 		 "a new environment is created based on *bindings* and the "
 		 "current environment");
 
-  kno_def_evalfn(kno_scheme_module,"VOID",void_evalfn,
-		 "*undocumented*");
-  kno_def_evalfn(kno_scheme_module,"!!!NULL!!!",null_evalfn,
-		 "*undocumented*");
-  kno_def_evalfn(kno_scheme_module,"BREAK",break_evalfn,
-		 "*undocumented*");
-  kno_def_evalfn(kno_scheme_module,"DEFAULT",default_evalfn,
-		 "*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"void",void_evalfn,"*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"!!!null!!!",null_evalfn,"*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"break",break_evalfn,"*undocumented*");
+  kno_def_evalfn(kno_scheme_module,"default",default_evalfn,"*undocumented*");
 
   kno_register_config
     ("TAILCALL",
