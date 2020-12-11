@@ -149,6 +149,8 @@ KNO_EXPORT struct KNO_FFI_PROC *kno_make_ffi_proc
     proc->fcn_name = u8_strdup(name);
     proc->fcn_filename = u8dup(filename);
     proc->fcn_call_width = proc->fcn_arity = arity;
+    proc->fcn_arginfo_len = 0;
+    proc->fcn_arginfo = NULL;
     proc->fcn_min_arity = arity;
     proc->ffi_return_type = return_type;
     proc->ffi_argtypes = ffi_argtypes;

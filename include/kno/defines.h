@@ -72,6 +72,14 @@
 #define KNO_USE_DTBLOCK 0
 #endif
 
+#ifndef KNO_INLINE_XTYPEP
+#define KNO_INLINE_XTYPEP 0
+#endif
+
+#ifndef KNO_INLINE_CHECKTYPE
+#define KNO_INLINE_CHECKTYPE 0
+#endif
+
 /* Whether to enable using paths rather than symbols for module specs */
 #ifndef KNO_PATHMODS_ENABLED
 #define KNO_PATHMODS_ENABLED 0

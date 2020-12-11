@@ -153,7 +153,7 @@ typedef enum KNO_LISP_TYPE {
   kno_pool_type = KNO_IMMEDIATE_TYPECODE(8),
   kno_index_type = KNO_IMMEDIATE_TYPECODE(9),
   kno_histref_type = KNO_IMMEDIATE_TYPECODE(10),
-  kno_type_type = KNO_IMMEDIATE_TYPECODE(11),
+  kno_basetype_type = KNO_IMMEDIATE_TYPECODE(11),
 
   kno_string_type = KNO_CONS_TYPECODE(0),
   kno_packet_type = KNO_CONS_TYPECODE(1),
@@ -236,7 +236,10 @@ typedef enum KNO_LISP_TYPE {
   kno_number_type = KNO_EXTENDED_TYPECODE(1),
   kno_sequence_type = KNO_EXTENDED_TYPECODE(2),
   kno_table_type = KNO_EXTENDED_TYPECODE(3),
-  kno_applicable_type = KNO_EXTENDED_TYPECODE(4)
+  kno_applicable_type = KNO_EXTENDED_TYPECODE(4),
+  kno_keymap_type = KNO_EXTENDED_TYPECODE(5),
+  kno_type_type = KNO_EXTENDED_TYPECODE(6),
+  kno_opts_type = KNO_EXTENDED_TYPECODE(7)
 
   } kno_lisp_type;
 
@@ -363,7 +366,6 @@ KNO_FASTOP U8_MAYBE_UNUSED int _KNO_ISDTYPE(lispval x){ return 1;}
 #define KNO_XXCONS_TYPEP(x,type) \
   ( (KNO_CONSP(x)) && ( (KNO_XXCONS_TYPE((kno_cons)(x))) == ((type)&0xFc) ) )
 
-
 #define KNO_CONSPTR(cast,x) ((cast)((kno_cons)x))
 #define kno_consptr(cast,x,typecode)                                     \
   ((KNO_EXPECT_TRUE(KNO_TYPEP(x,typecode))) ?                           \
@@ -387,28 +389,38 @@ KNO_FASTOP U8_MAYBE_UNUSED int _KNO_ISDTYPE(lispval x){ return 1;}
   (((x)&((((lisp_ptr)0x7f)<<25)|(0x3)))==((((lisp_ptr)((typecode)-0x4))<<25)|0x1))
 #define KNO_IMMEDIATE_MAX (1<<24)
 
+/* TYPEOF */
+
 #define KNO_IMMEDIATE_TYPE KNO_IMMEDIATE_TYPEOF
 
 KNO_EXPORT kno_lisp_type _KNO_TYPEOF(lispval x);
+
 #if KNO_EXTREME_PROFILING
 #define KNO_TYPEOF _KNO_TYPEOF
 #else
 #define KNO_TYPEOF(x) \
   (((KNO_PTR_MANIFEST_TYPE(LISPVAL(x)))>1) ? (KNO_PTR_MANIFEST_TYPE(x)) :  \
    ((KNO_PTR_MANIFEST_TYPE(x))==1) ? (KNO_IMMEDIATE_TYPE(x)) : \
-   (x) ? (KNO_CONS_TYPE(((struct KNO_CONS *)KNO_CONS_DATA(x)))) : (-1))
+   (x) ? (KNO_CONS_TYPE(((struct KNO_CONS *)KNO_CONS_DATA(x)))) : \
+   (-1))
 #endif
 #define KNO_PRIM_TYPE(x)         (KNO_TYPEOF(x))
 
-#if KNO_EXTREME_PROFILING
+/* TYPEP */
+
 KNO_EXPORT int _KNO_TYPEP(lispval ptr,int type);
+KNO_EXPORT int _KNO_XTYPEP(lispval ptr,kno_lisp_type type);
+
+#define KNO_XTYPEP _KNO_XTYPEP
+
+#if KNO_EXTREME_PROFILING
 #define KNO_TYPEP _KNO_TYPEP
 #else
-#define KNO_TYPEP(ptr,type)                                       \
-  ((type >= 0x84) ? \
-   ( (KNO_CONSP(ptr)) && (KNO_CONSPTR_TYPE(ptr) == type) ) :		\
-   (type >= 0x04) ? (KNO_IMMEDIATE_TYPEP(ptr,type)) : \
-   ( ( (ptr) & (0x3) ) == type) )
+#define KNO_TYPEP(ptr,type)						                    \
+  (((type) < 0x04) ? ( ( (ptr) & (0x3) ) == type) :			\
+   ((type) < 0x84) ? ( (KNO_IMMEDIATEP(ptr)) && (KNO_IMMEDIATE_TYPEP(ptr,type)) ) : \
+   ((type) < 0x100) ?  ( (ptr) && (KNO_CONSP(ptr)) && ((KNO_CONSPTR_TYPE(ptr)) == type) ) : \
+   (0))
 #endif
 #define KNO_PRIM_TYPEP(x,tp)   ( KNO_TYPEP(x,tp) )
 

@@ -32,7 +32,7 @@ KNO_EXPORT lispval kno_use_typeinfo(lispval tag)
   lispval exists = kno_hashtable_get(&typeinfo,tag,KNO_VOID);
   if (KNO_VOIDP(exists)) {
     struct KNO_TYPEINFO *info = u8_alloc(struct KNO_TYPEINFO);
-    KNO_INIT_FRESH_CONS(info,kno_type_type);
+    KNO_INIT_FRESH_CONS(info,kno_typeinfo_type);
     info->typetag = tag; kno_incref(tag);
     info->type_props = kno_make_slotmap(2,0,NULL);
     info->type_handlers = kno_make_slotmap(2,0,NULL);

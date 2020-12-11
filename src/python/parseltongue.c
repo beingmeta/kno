@@ -11,6 +11,11 @@
 
 #include <Python.h>
 #include <structmember.h>
+
+#ifdef HAVE_FSTAT
+#undef HAVE_FSTAT
+#endif
+
 #include <kno/ptr.h>
 #include <kno/cons.h>
 #include <kno/storage.h>

@@ -565,6 +565,14 @@ static lispval taggedp_prim(lispval x,lispval tag)
   else return KNO_FALSE;
 }
 
+DEFPRIM2("typep",typep_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	 "`(TYPEP *obj* *type*)` **undocumented**",
+	 kno_any_type,KNO_VOID,kno_type_type,KNO_VOID);
+static lispval typep_prim(lispval x,lispval typeval)
+{
+  return (KNO_CHECKTYPE(x,typeval));
+}
+
 DEFPRIM1("intern",lisp_intern,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "`(INTERN *arg0*)` **undocumented**",
 	 kno_any_type,KNO_VOID);
@@ -959,6 +967,7 @@ static void link_local_cprims()
   KNO_LINK_PRIM("allsymbols",lisp_all_symbols,0,scheme_module);
   KNO_LINK_PRIM("intern",lisp_intern,1,scheme_module);
   KNO_LINK_PRIM("tagged?",taggedp_prim,2,scheme_module);
+  KNO_LINK_PRIM("typep",typep_prim,2,scheme_module);
   KNO_LINK_PRIM("typeof",typeof_prim,1,scheme_module);
   KNO_LINK_PRIM("false?",falsep,1,scheme_module);
   KNO_LINK_PRIM("true?",truep,1,scheme_module);
