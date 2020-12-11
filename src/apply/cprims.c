@@ -170,6 +170,8 @@ static struct KNO_CPRIM *make_cprim(u8_string name,
     ( (extended_call) ? (KNO_CALL_XCALL) : (0) );
   f->fcn_call_width = f->fcn_arity = arity;
   f->fcn_min_arity = min_arity;
+  f->fcn_arginfo_len = 0;
+  f->fcn_arginfo = NULL;
   f->fcn_typeinfo = prim_typeinfo;
   if (typeinfo) memcpy(prim_typeinfo,typeinfo,sizeof(int)*arity);
   f->fcn_defaults = prim_defaults;
