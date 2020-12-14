@@ -74,12 +74,14 @@ static lispval get_listener_id(lispval ports)
   else return kno_incref(id);
 }
 
-DEFPRIM4("knosockd/listener",knosockd_listener_prim,
+
+DEFCPRIM("knosockd/listener",knosockd_listener_prim,
 	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(1),
 	 "Creates a knosocks server",
-	 kno_any_type,KNO_FALSE,
-	 kno_any_type,KNO_FALSE,kno_any_type,KNO_VOID,
-	 kno_any_type,KNO_VOID)
+	 {"listen",kno_any_type,KNO_FALSE},
+	 {"opts",kno_any_type,KNO_FALSE},
+	 {"env",kno_any_type,KNO_VOID},
+	 {"data",kno_any_type,KNO_VOID})
 static lispval knosockd_listener_prim(lispval listen,lispval opts,
 				      lispval env,lispval data)
 {
@@ -106,10 +108,12 @@ static lispval knosockd_listener_prim(lispval listen,lispval opts,
   return wrapped;
 }
 
-DEFPRIM2("knosockd/listen",knosockd_listen_prim,
+
+DEFCPRIM("knosockd/listen",knosockd_listen_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "Creates a knosocks server",
-	 kno_rawptr_type,KNO_VOID,kno_any_type,KNO_VOID)
+	 {"srv",kno_rawptr_type,KNO_VOID},
+	 {"addrs",kno_any_type,KNO_VOID})
 static lispval knosockd_listen_prim(lispval srv,lispval addrs)
 {
   if (!(KNO_RAW_TYPEP(srv,knosockd_symbol)))
@@ -121,10 +125,11 @@ static lispval knosockd_listen_prim(lispval srv,lispval addrs)
   else return KNO_FALSE;
 }
 
-DEFPRIM1("knosockd/run",knosockd_run_prim,
+
+DEFCPRIM("knosockd/run",knosockd_run_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Starts a knosocks server",
-	 kno_rawptr_type,KNO_VOID)
+	 {"srv",kno_rawptr_type,KNO_VOID})
 static lispval knosockd_run_prim(lispval srv)
 {
   if (!(KNO_RAW_TYPEP(srv,knosockd_symbol)))
@@ -136,10 +141,12 @@ static lispval knosockd_run_prim(lispval srv)
   else return KNO_FALSE;
 }
 
-DEFPRIM2("knosockd/shutdown!",knosockd_shutdown_prim,
+
+DEFCPRIM("knosockd/shutdown!",knosockd_shutdown_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "Shuts down a knosockd server",
-	 kno_rawptr_type,KNO_VOID,kno_flonum_type,KNO_VOID)
+	 {"srv",kno_rawptr_type,KNO_VOID},
+	 {"grace_val",kno_flonum_type,KNO_VOID})
 static lispval knosockd_shutdown_prim(lispval srv,lispval grace_val)
 {
   if (!(KNO_RAW_TYPEP(srv,knosockd_symbol)))
@@ -158,10 +165,10 @@ lispval knosocks_module;
 
 static void link_cprims(lispval module)
 {
-  KNO_LINK_PRIM("knosockd/listener",knosockd_listener_prim,4,module);
-  KNO_LINK_PRIM("knosockd/listen",knosockd_listen_prim,2,module);
-  KNO_LINK_PRIM("knosockd/run",knosockd_run_prim,1,module);
-  KNO_LINK_PRIM("knosockd/shutdown!",knosockd_shutdown_prim,2,module);
+  KNO_LINK_CPRIM("knosockd/listener",knosockd_listener_prim,4,module);
+  KNO_LINK_CPRIM("knosockd/listen",knosockd_listen_prim,2,module);
+  KNO_LINK_CPRIM("knosockd/run",knosockd_run_prim,1,module);
+  KNO_LINK_CPRIM("knosockd/shutdown!",knosockd_shutdown_prim,2,module);
 }
 
 KNO_EXPORT void kno_init_knosockd_c()

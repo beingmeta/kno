@@ -214,19 +214,6 @@ KNO_EXPORT int _KNO_CHOICE_SIZE(lispval x)
   else return 1;
 }
 
-#if 0
-KNO_EXPORT long long _kno_getint64(lispval x)
-{
-  if (KNO_FIXNUMP(x))
-    return KNO_FIX2INT(x);
-  else if (KNO_BIGINTP(x))
-    return kno_bigint_to_long_long(x);
-  else {
-    kno_raise(kno_TypeError,"_KNO_GETINT",NULL,x);
-    return 0;}
-}
-#endif
-
 KNO_EXPORT lispval _kno_return_errcode(lispval x)
 {
   return x;
@@ -425,14 +412,15 @@ static void init_type_names()
 
   kno_type_names[kno_sqldb_type]=_("sqldb");
   kno_type_docs[kno_sqldb_type]=_("sqldb");
-  kno_type_names[kno_sqlproc_type]=_("sqldbproc");
-  kno_type_docs[kno_sqlproc_type]=_("sqldbproc");
+  kno_type_names[kno_sqlproc_type]=_("sqlproc");
+  kno_type_docs[kno_sqlproc_type]=_("sqlproc");
 
   kno_type_names[kno_service_type]=_("service");
   kno_type_docs[kno_service_type]=_("service");
   kno_type_names[kno_bloom_filter_type]=_("bloom_filter");
   kno_type_docs[kno_bloom_filter_type]=_("bloom_filter");
 
+  kno_type_names[kno_pathstore_type]=_("pathstore");
   kno_type_docs[kno_pathstore_type]=_("pathstore");
  
   kno_type_names[kno_basetype_type]=_("basetype");
@@ -443,6 +431,12 @@ static void init_type_names()
 
   kno_type_names[kno_keymap_type]=_("keymap");
   kno_type_docs[kno_keymap_type]=_("a slotmap or schemap");
+
+  kno_type_names[kno_table_type]=_("table");
+  kno_type_docs[kno_table_type]=_("a table object");
+
+  kno_type_names[kno_sequence_type]=_("sequence");
+  kno_type_docs[kno_sequence_type]=_("a sequence object");
 
   kno_type_names[kno_opts_type]=_("optsarg");
   kno_type_docs[kno_opts_type]=_("an opts data structure");

@@ -56,38 +56,38 @@ typedef lispval (*kno_cprim5)(lispval,lispval,lispval,lispval,lispval);
 typedef lispval (*kno_cprim6)(lispval,lispval,lispval,lispval,lispval,lispval);
 typedef lispval (*kno_cprim7)(lispval,lispval,lispval,lispval,lispval,lispval,lispval);
 typedef lispval (*kno_cprim8)(lispval,lispval,lispval,
-			     lispval,lispval,lispval,
-			     lispval,lispval);
+			      lispval,lispval,lispval,
+			      lispval,lispval);
 typedef lispval (*kno_cprim9)(lispval,lispval,lispval,
-			     lispval,lispval,lispval,
-			     lispval,lispval,lispval);
+			      lispval,lispval,lispval,
+			      lispval,lispval,lispval);
 typedef lispval (*kno_cprim10)(lispval,lispval,lispval,
-			      lispval,lispval,lispval,
-			      lispval,lispval,lispval,
-			      lispval);
+			       lispval,lispval,lispval,
+			       lispval,lispval,lispval,
+			       lispval);
 typedef lispval (*kno_cprim11)(lispval,lispval,lispval,
-			      lispval,lispval,lispval,
-			      lispval,lispval,lispval,
-			      lispval,lispval);
+			       lispval,lispval,lispval,
+			       lispval,lispval,lispval,
+			       lispval,lispval);
 typedef lispval (*kno_cprim12)(lispval,lispval,lispval,
-			      lispval,lispval,lispval,
-			      lispval,lispval,lispval,
-			      lispval,lispval,lispval);
+			       lispval,lispval,lispval,
+			       lispval,lispval,lispval,
+			       lispval,lispval,lispval);
 typedef lispval (*kno_cprim13)(lispval,lispval,lispval,
-			      lispval,lispval,lispval,
-			      lispval,lispval,lispval,
-			      lispval,lispval,lispval,
-			      lispval);
+			       lispval,lispval,lispval,
+			       lispval,lispval,lispval,
+			       lispval,lispval,lispval,
+			       lispval);
 typedef lispval (*kno_cprim14)(lispval,lispval,lispval,
-			      lispval,lispval,lispval,
-			      lispval,lispval,lispval,
-			      lispval,lispval,lispval,
-			      lispval,lispval);
+			       lispval,lispval,lispval,
+			       lispval,lispval,lispval,
+			       lispval,lispval,lispval,
+			       lispval,lispval);
 typedef lispval (*kno_cprim15)(lispval,lispval,lispval,
-			      lispval,lispval,lispval,
-			      lispval,lispval,lispval,
-			      lispval,lispval,lispval,
-			      lispval,lispval,lispval);
+			       lispval,lispval,lispval,
+			       lispval,lispval,lispval,
+			       lispval,lispval,lispval,
+			       lispval,lispval,lispval);
 typedef lispval (*kno_cprimn)(int n,kno_argvec);
 
 typedef lispval (*kno_xprimn)(kno_stack,kno_function,int n,kno_argvec);
@@ -95,7 +95,7 @@ typedef lispval (*kno_xprimn)(kno_stack,kno_function,int n,kno_argvec);
 typedef struct KNO_ARGINFO {
   lispval name;
   lispval type;
-  lispval fallback;
+  lispval default_value;
   unsigned int bits;} *kno_arginfo;
 
 #define KNO_FUNCTION_FIELDS						   \
@@ -105,7 +105,7 @@ typedef struct KNO_ARGINFO {
   lispval fcn_moduleid;							\
   unsigned char fcn_call, fcn_trace, fcn_free, fcn_other;		\
   short fcn_arity, fcn_min_arity, fcn_call_width, fcn_arginfo_len;	\
-  struct KNO_ARGINFO *fcn_arginfo;					\
+  lispval *fcn_schema;							\
   lispval fcnid;							\
   lispval fcn_attribs;							\
   struct KNO_PROFILE *fcn_profile;					\
@@ -131,6 +131,7 @@ typedef struct KNO_ARGINFO {
 #define KNO_FCN_FREE_DOC      0x01
 #define KNO_FCN_FREE_TYPEINFO 0x02
 #define KNO_FCN_FREE_DEFAULTS 0x04
+#define KNO_FCN_FREE_SCHEMA   0x08
 
 #define KNO_FCN_TRACE_PROFILE 0x01
 #define KNO_FCN_TRACE_LOGGING 0x02
@@ -145,7 +146,7 @@ typedef struct KNO_ARGINFO {
 #define KNO_FCN_BREAKP(f)   ( ((f)->fcn_trace) & (KNO_CALL_BREAK) )
 
 #define KNO_FCN_ITERP(f)   (! ( ((f)->fcn_call) & (KNO_CALL_XITER) ) )
-#define KNO_FCN_VARARGP(f)  ( ((f)->fcn_call) & (KNO_CALL_VARARGS) )
+#define KNO_FCN_VARARGP(f) ( ((f)->fcn_call) & (KNO_CALL_VARARGS) )
 #define KNO_FCN_NOTAILP(f) ( ((f)->fcn_call) & (KNO_CALL_NOTAIL) )
 #define KNO_FCN_CPRIMP(f)  ( ((f)->fcn_call) & (KNO_CALL_CPRIM) )
 #define KNO_FCN_XCALLP(f)  ( ((f)->fcn_call) & (KNO_CALL_XCALL) )
@@ -168,10 +169,6 @@ struct KNO_CPRIM {
   const lispval *fcn_defaults;};
 typedef struct KNO_CPRIM KNO_CPRIM;
 typedef struct KNO_CPRIM *kno_cprim;
-
-typedef struct KNO_CPRIM_INFO {
-  u8_string pname, cname, filename, docstring;
-  int arity, flags;} KNO_CPRIM_INFO;
 
 KNO_EXPORT u8_string kno_fcn_sig(struct KNO_FUNCTION *fcn,u8_byte namebuf[100]);
 

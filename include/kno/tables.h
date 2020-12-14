@@ -390,14 +390,6 @@ KNO_EXPORT lispval kno_blist_to_slotmap(lispval binding_list);
 typedef struct KNO_SCHEMAP {
   KNO_TABLE_HEADER;
   int schema_length;
-#if 0
-  unsigned int schemap_sorted:1;
-  unsigned int schemap_onstack:1;
-  unsigned int schemap_tagged:1;
-  unsigned int schemap_shared:1;
-  unsigned int schemap_stackvals:1;
-  unsigned int schemap_stackvec:1;
-#endif
   lispval *table_schema, *table_values;
   lispval schemap_template;} KNO_SCHEMAP;
 

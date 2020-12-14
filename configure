@@ -690,9 +690,8 @@ MKDIR_DEFAULT
 ECHO
 SCRIPT_SHELL
 binenv
-DEFAULT_U8RUN_CMD
 u8run
-u8bin
+U8BIN
 PKGCONFIG_DIR
 GPGID
 GPG
@@ -787,7 +786,6 @@ debugldflags
 debugcflags
 extra_sources
 setup_target
-definefileinfo
 versionsh
 archflags
 servlet_bugjar
@@ -2999,7 +2997,6 @@ xstatic_exe_libs=""
 xstatic_scheme_libs=""
 xdynamic_scheme_libs=""
 scheme_builtins_init="kno_init_scheme()"
-definefileinfo="-D_FILEINFO=\"\\\"\`u8_fileinfo ./$< .\`\\\"\""
 versionsh="include/kno/versions.h"
 suffix=""
 rpath=""
@@ -3014,10 +3011,13 @@ STATICLDFLAGS=
 EXEFLAGS=
 EXELIBS=
 BINPATH=${PATH}
+U8BIN=$(dirname $(which u8_gitversion) || echo ${PREFIX})
+U8BIN="${U8BIN}"
+U8RUN=${U8BIN}/u8run
 RPATHFLAGS="-Wl,'-rpath \$(RPATH)'"
 SHARED_LIB_TARGET=shared-libs
-KNO_PATCHVERSION=$(if test -f REVISION; then cat REVISION; elif test -d .git; then u8_gitversion etc/base_version; fi)
-KNO_BRANCH=$(u8_gitbranch)
+KNO_PATCHVERSION=$(if test -d .git; then ${U8BIN}/u8_gitversion etc/base_version; elif test -f REVISION; then cat REVISION; else cat etc/base_version; fi)
+KNO_BRANCH=$(${U8BIN}/u8_gitbranch)
 KNO_VERSION=$(echo ${KNO_PATCHVERSION} | cut -d'-' -f1)
 KNO_MAJOR=$(echo ${KNO_VERSION} | cut -d'.' -f1)
 KNO_MAJOR=$(echo ${KNO_VERSION} | cut -d'.' -f1)
@@ -3087,7 +3087,7 @@ with_crypto_default="yes"
 use_dtblock_default="yes"
 default_bootsystem="none"
 BOOTSETUP="none"
-CFLAGS="-DLIBU8_SOURCE -DKNO_SOURCE -fPIC -Wno-unused-label"
+CFLAGS="-DLIBU8_SOURCE -DKNO_SOURCE -fPIC -Wno-unused-label -Wno-multichar"
 PKG_CFLAGS="-fPIC"
 OPTFLAGS=
 XOPTFLAGS=
@@ -3124,9 +3124,6 @@ LEAKTEST_CMD=
 test_config="TESTSIZE=64"
 memtest_config=
 leaktester_config=
-
-u8bin=
-u8run=
 
 test_size=512
 small_test_size=64
@@ -3351,53 +3348,6 @@ ac_config_headers="$ac_config_headers include/kno/knosource.h include/kno/config
 
 
 
-
-
-U8RUN_CMD=
-DEFAULT_U8RUN=
-DEFAULT_U8BIN=
-# Extract the first word of "u8run", so it can be a program name with args.
-set dummy u8run; ac_word=$2
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if ${ac_cv_prog_DEFAULT_U8RUN_CMD+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  if test -n "$DEFAULT_U8RUN_CMD"; then
-  ac_cv_prog_DEFAULT_U8RUN_CMD="$DEFAULT_U8RUN_CMD" # Let the user override the test.
-else
-as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_prog_DEFAULT_U8RUN_CMD=""
-    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-fi
-fi
-DEFAULT_U8RUN_CMD=$ac_cv_prog_DEFAULT_U8RUN_CMD
-if test -n "$DEFAULT_U8RUN_CMD"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $DEFAULT_U8RUN_CMD" >&5
-$as_echo "$DEFAULT_U8RUN_CMD" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-
-
-if test ! -z "${DEFAULT_U8RUN}"; then
-  DEFAULT_U8BIN=$(dirname ${DEFAULT_U8RUN});
-else
-   DEFAULT_U8BIN=${prefix}/bin;
-fi;
 
 # Extract the first word of "env", so it can be a program name with args.
 set dummy env; ac_word=$2
@@ -4332,7 +4282,7 @@ fi
 if test "${with_u8bin+set}" = set; then :
   withval=$with_u8bin;
 else
-  with_u8bin=${DEFAULT_U8BIN}
+  with_u8bin=${U8BIN}
 fi
 
 if test "$with_u8bin" != ""; then
@@ -4340,8 +4290,10 @@ if test "$with_u8bin" != ""; then
 #define KNO_U8BIN "$with_u8bin"
 _ACEOF
 
-  u8bin="${with_u8bin}/"
+  U8BIN="${with_u8bin}/"
   DEFAULT_U8RUN="$with_u8bin/u8run"
+else
+  DEFAULT_U8RUN=u8run
 fi
 
 
@@ -4349,7 +4301,7 @@ fi
 if test "${with_u8run+set}" = set; then :
   withval=$with_u8run;
 else
-  with_u8bin=${DEFAULT_U8RUN}
+  with_u8run=${DEFAULT_U8RUN}
 fi
 
 if test "$with_u8run" != ""; then
@@ -5990,6 +5942,7 @@ else
 fi
 
 suffix=$with_suffix
+echo "suffix=${suffix}";
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking PATCHLEVEL" >&5
 $as_echo_n "checking PATCHLEVEL... " >&6; }
@@ -5997,9 +5950,9 @@ if test ! -z "${KNO_PATCHLEVEL}"; then
    { $as_echo "$as_me:${as_lineno-$LINENO}: result: ${KNO_PATCHLEVEL}" >&5
 $as_echo "${KNO_PATCHLEVEL}" >&6; };
 elif test -d .git; then
-   KNO_PATCHLEVEL=$(u8_gitpatchcount ./etc/base_version);
-   { $as_echo "$as_me:${as_lineno-$LINENO}: result: ${KNO_PATCHLEVEL} from u8_gitpatchcount" >&5
-$as_echo "${KNO_PATCHLEVEL} from u8_gitpatchcount" >&6; };
+   KNO_PATCHLEVEL=$(${U8BIN}/u8_gitpatchcount ./etc/base_version);
+   { $as_echo "$as_me:${as_lineno-$LINENO}: result: ${KNO_PATCHLEVEL} from ${U8BIN}/u8_gitpatchcount" >&5
+$as_echo "${KNO_PATCHLEVEL} from ${U8BIN}/u8_gitpatchcount" >&6; };
 else
   if test -f VERSION; then
      KNO_PATCHLEVEL=$(cat VERSION | cut -d'-' -f2); fi;
@@ -9720,10 +9673,6 @@ _ACEOF
 fi
 
 fi
-echo "enable_ffi=${enable_ffi}"
-echo "ffi.h=${ac_cv_header_ffi_h}"
-echo "ffi/ffi.h=${ac_cv_header_ffi_ffi_h}"
-echo "ffi_prep_cif=${ac_cv_lib_ffi_ffi_prep_cif}"
 if test "${enable_ffi}" != "yes"; then
    manually_disabled="ffi ${manually_disabled}"
 elif test "${ac_cv_header_ffi_h}" != "yes" &&

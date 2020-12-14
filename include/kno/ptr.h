@@ -5,7 +5,7 @@
    and a valuable trade secret of beingmeta, inc.
 
    This file implements the basic structures, macros, and function
-   prototypes for dealing with dtype pointers as implemented for the
+   prototypes for dealing with lisp pointers as implemented for the
    FramerC library
 */
 
@@ -15,7 +15,7 @@
    model which uses an internal pointer format designed for efficency in
    the normal cases and easy extensibility to more advanced cases.
 
-   A dtype pointer is an unsigned int the same size as a memory
+   A lisp pointer is an unsigned int the same size as a memory
    pointer.  The lower two bits of the int represent one of four
    *manifest type codes*.  These are CONS (0), IMMEDIATE (1), FIXNUM
    (2), and OID (3).  These are all referred to the "base type" of a
@@ -25,7 +25,7 @@
    references into 64-bit object address space.
 
    Fixing the CONS type at zero (0), together with structure
-   alignment on 4-byte word boundaries, enables dtype pointers to be
+   alignment on 4-byte word boundaries, enables lisp pointers to be
    direclty used as structure pointers and vice versa.  A CONS
    pointer is exactly such a memory reference.  The detailed
    implementation of CONSes is described at the head of
@@ -44,7 +44,7 @@
    negative numbers, FramerC uses the 32nd bit (the high order bit on 32
    bit architectures) as a sign bit and stores the absolute magnitude
    in the remainder of the word (down to the two bits of type code.
-   For positive numbers, converting between C ints dtype fixnums is
+   For positive numbers, converting between C ints lisp fixnums is
    simply a matter of multiply or diving by 4 and adding the type
    code (when converting to DTYPEs).  For negative numbers, it is
    trickier but not much, as in KNO_INT2LISP and KNO_LISP2INT below.
@@ -72,7 +72,7 @@
    A single unified space of type codes (kno_lisp_type) combines the four
    base type codes with the 7-bit type codes associated with CONSes and
    IMMEDIATE pointers.  In this single space, CONS types start at 0x04 and
-   IMMEDIATE types start at 0x84.  For example, dtype pairs, implemented as
+   IMMEDIATE types start at 0x84.  For example, lisp pairs, implemented as
    structures with a stored type code of 0x03, are represented in the
    unified type space by 0x07.  Symbols, which are implemented as
    CONSTANT types with a stored type value of 0x02, are represented in
@@ -84,7 +84,7 @@
    *) and kno_register_cons_type(char *).
    */
 
-/* DTYPE Types */
+/* LISP Types */
 
 #ifndef KNO_PTR_H
 #define KNO_PTR_H 1
@@ -95,13 +95,13 @@
 #include "common.h"
 #include "errors.h"
 
-#define KNO_CONS_TYPECODE(i) (0x84+i)
 #define KNO_IMMEDIATE_TYPECODE(i) (0x04+i)
-#define KNO_EXTENDED_TYPECODE(i) (0x100+i)
-#define KNO_MAX_CONS_TYPES  0x80
-#define KNO_MAX_CONS_TYPE   KNO_CONS_TYPECODE(0x80)
-#define KNO_MAX_IMMEDIATE_TYPES 0x80
-#define KNO_MAX_IMMEDIATE_TYPE KNO_IMMEDIATE_TYPECODE(0x80)
+#define KNO_CONS_TYPECODE(i)      (0x84+i)
+#define KNO_EXTENDED_TYPECODE(i)  (0x100+i)
+#define KNO_MAX_IMMEDIATE_TYPES   0x80
+#define KNO_MAX_IMMEDIATE_TYPE    KNO_IMMEDIATE_TYPECODE(0x80)
+#define KNO_MAX_CONS_TYPES	  0x80
+#define KNO_MAX_CONS_TYPE	  KNO_CONS_TYPECODE(0x80)
 
 /* 0 and 1 are reserved for OIDs and fixnums.
    CONS types start at 0x84 and go until 0x104, which
@@ -231,24 +231,34 @@ typedef enum KNO_LISP_TYPE {
 
   kno_pathstore_type = KNO_CONS_TYPECODE(46),
 
+  kno_consed_index_type = KNO_CONS_TYPECODE(47),
+  kno_consed_pool_type = KNO_CONS_TYPECODE(48),
+
+  kno_subjob_type = KNO_CONS_TYPECODE(49),
+
   /* Extended types */
 
-  kno_number_type = KNO_EXTENDED_TYPECODE(1),
-  kno_sequence_type = KNO_EXTENDED_TYPECODE(2),
-  kno_table_type = KNO_EXTENDED_TYPECODE(3),
-  kno_applicable_type = KNO_EXTENDED_TYPECODE(4),
-  kno_keymap_type = KNO_EXTENDED_TYPECODE(5),
-  kno_type_type = KNO_EXTENDED_TYPECODE(6),
-  kno_opts_type = KNO_EXTENDED_TYPECODE(7)
+  kno_number_type = KNO_EXTENDED_TYPECODE(0),
+  kno_sequence_type = KNO_EXTENDED_TYPECODE(1),
+  kno_table_type = KNO_EXTENDED_TYPECODE(2),
+  kno_applicable_type = KNO_EXTENDED_TYPECODE(3),
+  kno_keymap_type = KNO_EXTENDED_TYPECODE(4),
+  kno_type_type = KNO_EXTENDED_TYPECODE(5),
+  kno_opts_type = KNO_EXTENDED_TYPECODE(6),
+  kno_frame_type = KNO_EXTENDED_TYPECODE(7),
+  kno_slotid_type = KNO_EXTENDED_TYPECODE(8),
+  kno_xpool_type = KNO_EXTENDED_TYPECODE(9),
+  kno_xindex_type = KNO_EXTENDED_TYPECODE(10)
 
-  } kno_lisp_type;
+} kno_lisp_type;
 
-#define KNO_BUILTIN_CONS_TYPES 47
-/* not really, but it gives us breathing room and they're not
-   clamoring for space :) */
+#define KNO_BUILTIN_CONS_TYPES 50
 #define KNO_BUILTIN_IMMEDIATE_TYPES 12
+#define KNO_BUILTIN_EXTENDED_TYPES 11
+
 KNO_EXPORT unsigned int kno_next_cons_type;
 KNO_EXPORT unsigned int kno_next_immediate_type;
+KNO_EXPORT unsigned int kno_next_extended_type;
 
 typedef int (*kno_checkfn)(lispval);
 KNO_EXPORT kno_checkfn kno_immediate_checkfns[KNO_MAX_IMMEDIATE_TYPES+4];
@@ -273,9 +283,10 @@ KNO_EXPORT lispval kno_badptr_err(lispval badx,u8_context cxt,u8_string details)
 
 #define KNO_VALID_TYPECODEP(x)                                  \
   (KNO_EXPECT_TRUE((((int)x)>=0) &&                             \
-                  (((int)x)<256) &&                            \
+                  (((int)x)<0x200) &&                            \
                   (((x<0x84)&&((x)<kno_next_immediate_type)) || \
-                   ((x>=0x84)&&((x)<kno_next_cons_type)))))
+                   ((x<0x100)&&((x)<kno_next_cons_type)) || \
+		   ((x<0x200)&&((x)<kno_next_cons_type)))))
 
 /* In the type field, 0 means an integer, 1 means an oid, 2 means
    an immediate constant, and 3 means a cons. */
@@ -314,10 +325,10 @@ typedef struct KNO_REF_CONS *kno_ref_cons;
 #define KNO_REF_CONS(x) ((struct KNO_REF_CONS *)(x))
 #endif
 
-#if 0
-KNO_FASTOP U8_MAYBE_UNUSED kno_raw_cons KNO_RAW_CONS(lispval x){ return (kno_raw_cons) x;}
-#else
+#if 1
 #define KNO_RAW_CONS(x) ((kno_raw_cons)(x))
+#else
+KNO_FASTOP U8_MAYBE_UNUSED kno_raw_cons KNO_RAW_CONS(lispval x){ return (kno_raw_cons) x;}
 #endif
 
 /* The bottom 7 bits of the conshead indicates the type of the cons.  The
@@ -335,17 +346,12 @@ KNO_FASTOP U8_MAYBE_UNUSED kno_raw_cons KNO_RAW_CONS(lispval x){ return (kno_raw
    have the same high bytes, making it easy to test for them. */
 #define KNO_XXCONS_TYPE_MASK (0x7c)
 
-#if 0
-KNO_FASTOP U8_MAYBE_UNUSED kno_cons KNO_CONS_DATA(lispval x){ return (kno_cons) x;}
-KNO_FASTOP U8_MAYBE_UNUSED lispval FDTYPE(lispval x){ return x;}
-KNO_FASTOP U8_MAYBE_UNUSED lispval LISPVAL(lispval x){ return x;}
-KNO_FASTOP U8_MAYBE_UNUSED int _KNO_ISDTYPE(lispval x){ return 1;}
-#define KNO_ISDTYPE(x) (KNO_EXPECT_TRUE(_KNO_ISDTYPE(x)))
-#else
+#if 1
 #define KNO_CONS_DATA(x) ((kno_cons)(x))
-#define FDTYPE(x)       ((lispval)(x))
 #define LISPVAL(x)      ((lispval)(x))
-#define KNO_ISDTYPE(x)   (KNO_EXPECT_TRUE(1))
+#else
+KNO_FASTOP U8_MAYBE_UNUSED kno_cons KNO_CONS_DATA(lispval x){ return (kno_cons) x;}
+KNO_FASTOP U8_MAYBE_UNUSED lispval LISPVAL(lispval x){ return x;}
 #endif
 
 /* Most of the stuff for dealing with conses is in cons.h.  The
@@ -525,7 +531,7 @@ KNO_FASTOP KNO_OID KNO_MAKE_OID(unsigned int hi,unsigned int lo)
 #define KNO_N_OID_BUCKETS   (1<<(2+KNO_OID_BUCKET_WIDTH))
 
 /* An OID references has 10 bits of base index and 20 bits of offset.
-   This is encoded in a DTYPE pointer with the offset in the high 20 bits
+   This is encoded in a LISP pointer with the offset in the high 20 bits
    and the base in the lower portion. */
 
 struct KNO_OID_BUCKET {
@@ -1083,25 +1089,22 @@ KNO_EXPORT lispval _kno_debug(lispval x);
 
 KNO_EXPORT int kno_check_immediate(lispval);
 
-#define KNO_CHECK_CONS_PTR(x)                          \
- ((KNO_ISDTYPE(x))&&                                   \
-  ((KNO_FIXNUMP(x)) ? (1) :                          \
-   (KNO_OIDP(x)) ? (((x>>2)&0x3FF)<kno_n_base_oids) : \
-   (x==0) ? (0) :                                   \
-   (KNO_CONSP(x)) ?                                  \
-   (x == KNO_NULL) ? (0) :                           \
-   (((((KNO_CONS *)x)->conshead)<0xFFFFFF80) &&       \
-    (KNO_CONS_TYPE((KNO_CONS *)x)>3) &&                  \
+#define KNO_CHECK_CONS_PTR(x)				 \
+  ((KNO_FIXNUMP(x)) ? (1) :				 \
+   (KNO_OIDP(x)) ? (((x>>2)&0x3FF)<kno_n_base_oids) :	 \
+   (x==0) ? (0) :					 \
+   (KNO_CONSP(x)) ?					 \
+   (x == KNO_NULL) ? (0) :				 \
+   (((((KNO_CONS *)x)->conshead)<0xFFFFFF80) &&		 \
+    (KNO_CONS_TYPE((KNO_CONS *)x)>3) &&			 \
     (KNO_CONS_TYPE((KNO_CONS *)x)<kno_next_cons_type)) : \
-   (kno_check_immediate(x))))
+   (kno_check_immediate(x)))
 
-#define KNO_CHECK_ATOMIC_PTR(x)                     \
- ((KNO_ISDTYPE(x))&&                                  \
-  ((KNO_FIXNUMP(x)) ? (1) :                          \
-   (KNO_OIDP(x)) ? (((x>>2)&0x3FF)<kno_n_base_oids) : \
-   (x==0) ? (0) :                                   \
-   (KNO_CONSP(x)) ? ((x == KNO_NULL) ? (0) : (1)) :           \
-   (kno_check_immediate(x))))
+#define KNO_CHECK_ATOMIC_PTR(x)				      \
+  ((KNO_FIXNUMP(x)) ? (1) :				      \
+   (KNO_OIDP(x)) ? (((x>>2)&0x3FF)<kno_n_base_oids) :	      \
+   (KNO_CONSP(x)) ? ((x == KNO_NULL) ? (0) : (1)) :	      \
+   (kno_check_immediate(x)))
 
 #if KNO_FULL_CHECK_PTR
 #define KNO_CHECK_PTR(p) (KNO_EXPECT_TRUE(KNO_CHECK_CONS_PTR(p)))

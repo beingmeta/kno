@@ -240,14 +240,6 @@ static int output_result(struct U8_OUTPUT *out,lispval result,
       return 1;}}
   u8_puts(out,"#|=>| ");
   kno_list_object(out,result,NULL,histref,"      ",oid_listfn,width,detail);
-#if 0
-  if (console_width > 40) {
-    U8_FIXED_OUTPUT(oneline,3*(console_width/4));
-    kno_unparse(&oneline,result);
-    if ( ( (oneline.u8_streaminfo) & (U8_STREAM_OVERFLOW) ) ||
-         ( (strchr(oneline.u8_outbuf,'\n')) ) )
-    else u8_puts(out,oneline.u8_outbuf);}
-#endif
   u8_putc(out,'\n');
   u8_flush(out);
   return 1;
@@ -521,18 +513,6 @@ static lispval console_read(u8_input in,kno_lexenv env)
       history(edithistory,&tmp,H_ENTER,line);
       el_reset(editconsole);
       return expr;}
-#if 0
-    else if (KNO_ABORTP(expr)) {
-      history(edithistory,&tmp,H_ENTER,line);
-      el_reset(editconsole);
-      return expr;}
-    else {
-      U8_STATIC_OUTPUT(expanded,512);
-      kno_pprint(&expanded,expr,NULL,0,0,80);
-      history(edithistory,&tmp,H_ENTER,expanded.u8_outbuf);
-      u8_close_output(expandedout);
-      return expr;}
-#endif
   }
   else return stream_read(in,env);
 #endif

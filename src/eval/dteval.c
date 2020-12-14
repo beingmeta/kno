@@ -205,7 +205,7 @@ static void link_local_cprims()
   lispval scheme_module = kno_scheme_module;
 
   KNO_LINK_PRIM("open-dtserver",open_dtserver,2,scheme_module);
-  KNO_LINK_VARARGS("dtcall",dtcall,scheme_module);
+  KNO_LINK_CVARARGS("dtcall",dtcall,scheme_module);
   KNO_LINK_PRIM("dteval",dteval,2,scheme_module);
   KNO_LINK_PRIM("dtserver-address",dtserver_address,1,scheme_module);
   KNO_LINK_PRIM("dtserver-id",dtserver_id,1,scheme_module);

@@ -118,8 +118,10 @@ static u8_string get_testid(lispval fn,int n,kno_argvec args)
   return id;
 }
 
-DEFPRIM("applytest",applytest,KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	"`(APPLYTEST *arg0* *arg1* *args...*)` **undocumented**");
+DEFCPRIMN("applytest",applytest,
+	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	  "`(APPLYTEST *arg0* *arg1* *args...*)` "
+	  "**undocumented**")
 static lispval applytest(int n,kno_argvec args)
 {
   lispval expected = args[0], return_value;
@@ -392,5 +394,5 @@ KNO_EXPORT void kno_init_eval_testops_c()
 
 static void link_local_cprims()
 {
-  KNO_LINK_VARARGS("applytest",applytest,kno_scheme_module);
+  KNO_LINK_CVARARGS("applytest",applytest,kno_scheme_module);
 }

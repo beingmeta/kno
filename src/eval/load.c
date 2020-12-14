@@ -214,11 +214,15 @@ static lispval load_source_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   return result;
 }
 
-DEFPRIM3("load->env",load_into_env_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
-	 "`(LOAD->ENV *filename* *env* [*resultfn*])` Loads *filename* "
-	 "into *env*, applying *resultfn* (if provided) to the result.",
-	 kno_string_type,KNO_VOID,kno_any_type,KNO_VOID,
-	 kno_any_type,KNO_VOID);
+
+DEFCPRIM("load->env",load_into_env_prim,
+	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
+	 "`(LOAD->ENV *filename* *env* [*resultfn*])` "
+	 "Loads *filename* into *env*, applying *resultfn* "
+	 "(if provided) to the result.",
+	 {"source",kno_string_type,KNO_VOID},
+	 {"envarg",kno_any_type,KNO_VOID},
+	 {"resultfn",kno_any_type,KNO_VOID})
 static lispval load_into_env_prim(lispval source,lispval envarg,
 				  lispval resultfn)
 {
@@ -252,13 +256,17 @@ static lispval load_into_env_prim(lispval source,lispval envarg,
   return (lispval) env;
 }
 
-DEFPRIM3("env/load",env_load_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
-	 "`(ENV/LOAD *env* [*filename*])` Updates *env* by loading "
-	 "(if needed) the latest version of *filename*. If *filename* "
-	 "is not provided, all files previously loaded with `env/load` "
-	 "are updated.",
-	 kno_lexenv_type,KNO_VOID,kno_string_type,KNO_VOID,
-	 kno_any_type,KNO_VOID);
+
+DEFCPRIM("env/load",env_load_prim,
+	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
+	 "`(ENV/LOAD *env* [*filename*])` "
+	 "Updates *env* by loading (if needed) the latest "
+	 "version of *filename*. If *filename* is not "
+	 "provided, all files previously loaded with "
+	 "`env/load` are updated.",
+	 {"envarg",kno_lexenv_type,KNO_VOID},
+	 {"source",kno_string_type,KNO_VOID},
+	 {"onload",kno_any_type,KNO_VOID})
 static lispval env_load_prim(lispval envarg,lispval source,lispval onload)
 {
   kno_lexenv env = (kno_lexenv) envarg;
@@ -306,9 +314,13 @@ static lispval load_component_evalfn(lispval expr,kno_lexenv env,kno_stack _stac
   return result;
 }
 
-DEFPRIM2("get-component",lisp_get_component,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(0),
-	 "`(GET-COMPONENT [*arg0*] [*arg1*])` **undocumented**",
-	 kno_string_type,KNO_VOID,kno_string_type,KNO_VOID);
+
+DEFCPRIM("get-component",lisp_get_component,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(0),
+	 "`(GET-COMPONENT [*arg0*] [*arg1*])` "
+	 "**undocumented**",
+	 {"string",kno_string_type,KNO_VOID},
+	 {"base",kno_string_type,KNO_VOID})
 static lispval lisp_get_component(lispval string,lispval base)
 {
   if (VOIDP(string)) {
@@ -549,9 +561,11 @@ static lispval kno_run(u8_string source_file,struct U8_OUTPUT *out,
       return result;}}
 }
 
-DEFPRIM("kno/run-file",kno_run_file,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	"Loads a file and applies its (main) procedure to "
-	"the arguments");
+
+DEFCPRIMN("kno/run-file",kno_run_file,
+	  KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
+	  "Loads a file and applies its (main) procedure to "
+	  "the arguments")
 static lispval kno_run_file(int n,kno_argvec args)
 {
   if ( (KNO_STRINGP(args[0])) &&
@@ -560,9 +574,11 @@ static lispval kno_run_file(int n,kno_argvec args)
   else return kno_type_error("filename","kno_run_file",args[0]);
 }
 
-DEFPRIM("kno/run->string",kno_run_file_2string,KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	"Loads a KNO file and applies its (main) procedure "
-	"to the arguments, returns the output as a string");
+
+DEFCPRIMN("kno/run->string",kno_run_file_2string,
+	  KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
+	  "Loads a KNO file and applies its (main) procedure "
+	  "to the arguments, returns the output as a string")
 static lispval kno_run_file_2string(int n,kno_argvec args)
 {
   if ( (KNO_STRINGP(args[0])) &&
@@ -573,12 +589,6 @@ static lispval kno_run_file_2string(int n,kno_argvec args)
       if ( (out.u8_write-out.u8_outbuf) > 0) {
 	/* lispval output = kno_stream_string(&out); */
 	u8_close_output(&out);
-#if 0
-	kno_seterr("RunFailed","kno_run_file_2string",
-		   KNO_CSTRING(args[0]),
-		   output);
-	kno_decref(output);
-#endif
 	return result;}
       else {
 	u8_close_output(&out);
@@ -656,9 +666,9 @@ static void link_local_cprims()
 {
   lispval scheme_module = kno_scheme_module;
 
-  KNO_LINK_VARARGS("kno/run->string",kno_run_file_2string,scheme_module);
-  KNO_LINK_VARARGS("kno/run-file",kno_run_file,scheme_module);
-  KNO_LINK_PRIM("get-component",lisp_get_component,2,scheme_module);
-  KNO_LINK_PRIM("load->env",load_into_env_prim,3,scheme_module);
-  KNO_LINK_PRIM("env/load",env_load_prim,3,scheme_module);
+  KNO_LINK_CVARARGS("kno/run->string",kno_run_file_2string,scheme_module);
+  KNO_LINK_CVARARGS("kno/run-file",kno_run_file,scheme_module);
+  KNO_LINK_CPRIM("get-component",lisp_get_component,2,scheme_module);
+  KNO_LINK_CPRIM("load->env",load_into_env_prim,3,scheme_module);
+  KNO_LINK_CPRIM("env/load",env_load_prim,3,scheme_module);
 }

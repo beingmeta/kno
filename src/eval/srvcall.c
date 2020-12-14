@@ -34,10 +34,12 @@
 
 /* Remote evaluation */
 
-DEFPRIM1("service?",servicep,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+
+DEFCPRIM("service?",servicep,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns true if it's argument is a dtype server "
 	 "object",
-	 kno_any_type,KNO_VOID);
+	 {"arg",kno_any_type,KNO_VOID})
 static lispval servicep(lispval arg)
 {
   if (TYPEP(arg,kno_service_type))
@@ -45,31 +47,38 @@ static lispval servicep(lispval arg)
   else return KNO_FALSE;
 }
 
-DEFPRIM1("service-id",service_id,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+
+DEFCPRIM("service-id",service_id,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns the ID of a dtype server (the argument "
 	 "used to create it)",
-	 kno_service_type,KNO_VOID);
+	 {"arg",kno_service_type,KNO_VOID})
 static lispval service_id(lispval arg)
 {
   struct KNO_SERVICE *service = (struct KNO_SERVICE *) arg;
   return kno_mkstring(service->service_id);
 }
 
-DEFPRIM1("service-address",service_address,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+
+DEFCPRIM("service-address",service_address,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns the address (host/port) of a dtype server",
-	 kno_service_type,KNO_VOID);
+	 {"arg",kno_service_type,KNO_VOID})
 static lispval service_address(lispval arg)
 {
   struct KNO_SERVICE *service = (struct KNO_SERVICE *) arg;
   return kno_mkstring(service->service_addr);
 }
 
-DEFPRIM4("service/apply",service_apply_prim,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
-	 "`(SERVICE/APPLY *service* *op* [*args*] [*callopts*])` **undocumented**",
-	 kno_service_type,KNO_VOID,
-	 kno_symbol_type,KNO_VOID,
-	 kno_any_type,KNO_FALSE,
-	 kno_any_type,KNO_FALSE);
+
+DEFCPRIM("service/apply",service_apply_prim,
+	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
+	 "`(SERVICE/APPLY *service* *op* [*args*] [*callopts*])` "
+	 "**undocumented**",
+	 {"srv",kno_service_type,KNO_VOID},
+	 {"op",kno_symbol_type,KNO_VOID},
+	 {"args",kno_any_type,KNO_FALSE},
+	 {"opts",kno_any_type,KNO_FALSE})
 static lispval service_apply_prim
 (lispval srv,lispval op,lispval args,lispval opts)
 {
@@ -90,8 +99,11 @@ static lispval service_apply_prim
   else return kno_type_error(_("sequence"),"service/apply",args);
 }
 
-DEFPRIM("service/call",service_call_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
-	"`(SERVICE/CALL *service* *op* *args...*)` **undocumented**");
+
+DEFCPRIMN("service/call",service_call_prim,
+	  KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+	  "`(SERVICE/CALL *service* *op* *args...*)` "
+	  "**undocumented**")
 static lispval service_call_prim(int n,kno_argvec args)
 {
   lispval srv = args[0];
@@ -104,8 +116,11 @@ static lispval service_call_prim(int n,kno_argvec args)
   return kno_service_apply(service,op,n-2,args+2);
 }
 
-DEFPRIM("service/xcall",service_xcall_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(3),
-	"`(SERVICE/CALL *service* *opts* *op* *args...*)` **undocumented**");
+
+DEFCPRIMN("service/xcall",service_xcall_prim,
+	  KNO_VAR_ARGS|KNO_MIN_ARGS(3),
+	  "`(SERVICE/CALL *service* *opts* *op* *args...*)` "
+	  "**undocumented**")
 static lispval service_xcall_prim(int n,kno_argvec args)
 {
   lispval srv  =  args[0];
@@ -119,9 +134,13 @@ static lispval service_xcall_prim(int n,kno_argvec args)
   return kno_service_xapply(service,op,n-2,args+2,opts);
 }
 
-DEFPRIM2("open-service",open_service,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "`(OPEN-SERVICE *arg0* [*arg1*])` **undocumented**",
-	 kno_string_type,KNO_VOID,kno_any_type,KNO_VOID);
+
+DEFCPRIM("open-service",open_service,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	 "`(OPEN-SERVICE *arg0* [*arg1*])` "
+	 "**undocumented**",
+	 {"server",kno_string_type,KNO_VOID},
+	 {"opts",kno_any_type,KNO_VOID})
 static lispval open_service(lispval server,lispval opts)
 {
   struct KNO_SERVICE *s = kno_open_service(server,opts);
@@ -132,11 +151,16 @@ static lispval open_service(lispval server,lispval opts)
 
 /* Making NETPROCs */
 
-DEFPRIM5("netproc",make_netproc,KNO_MAX_ARGS(5)|KNO_MIN_ARGS(2),
-	 "`(NETPROC *arg0* *arg1* [*arg2*] [*arg3*] [*arg4*] [*opts*])` **undocumented**",
-	 kno_service_type,KNO_VOID,kno_symbol_type,KNO_VOID,
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
-	 kno_any_type,KNO_FALSE);
+
+DEFCPRIM("netproc",make_netproc,
+	 KNO_MAX_ARGS(5)|KNO_MIN_ARGS(2),
+	 "`(NETPROC *arg0* *arg1* [*arg2*] [*arg3*] [*arg4*] [*opts*])` "
+	 "**undocumented**",
+	 {"server",kno_service_type,KNO_VOID},
+	 {"name",kno_symbol_type,KNO_VOID},
+	 {"arity",kno_any_type,KNO_VOID},
+	 {"min_arity",kno_any_type,KNO_VOID},
+	 {"opts",kno_any_type,KNO_FALSE})
 static lispval make_netproc(lispval server,lispval name,
 			    lispval arity,lispval min_arity,
 			    lispval opts)
@@ -159,9 +183,12 @@ static lispval make_netproc(lispval server,lispval name,
 
 /* Support for server data */
 
-DEFPRIM2("srv/getconfig",srvconfig_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(0),
-	 "`(srv/getconfig *prop*)`",
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_FALSE)
+
+DEFCPRIM("srv/getconfig",srvconfig_prim,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(0),
+	 "`(srv/getconfig *prop*)` **undocumented**",
+	 {"prop",kno_any_type,KNO_VOID},
+	 {"dflt",kno_any_type,KNO_FALSE})
 static lispval srvconfig_prim(lispval prop,lispval dflt)
 {
   lispval config = kno_server_data;
@@ -183,17 +210,17 @@ static void link_local_cprims()
 {
   lispval scheme_module = kno_scheme_module;
 
-  KNO_LINK_PRIM("open-service",open_service,2,scheme_module);
-  KNO_LINK_PRIM("service-address",service_address,1,scheme_module);
-  KNO_LINK_PRIM("service-id",service_id,1,scheme_module);
-  KNO_LINK_PRIM("service?",servicep,1,scheme_module);
+  KNO_LINK_CPRIM("open-service",open_service,2,scheme_module);
+  KNO_LINK_CPRIM("service-address",service_address,1,scheme_module);
+  KNO_LINK_CPRIM("service-id",service_id,1,scheme_module);
+  KNO_LINK_CPRIM("service?",servicep,1,scheme_module);
 
-  KNO_LINK_PRIM("service/apply",service_apply_prim,4,scheme_module);
-  KNO_LINK_VARARGS("service/call",service_call_prim,scheme_module);
-  KNO_LINK_VARARGS("service/xcall",service_xcall_prim,scheme_module);
+  KNO_LINK_CPRIM("service/apply",service_apply_prim,4,scheme_module);
+  KNO_LINK_CVARARGS("service/call",service_call_prim,scheme_module);
+  KNO_LINK_CVARARGS("service/xcall",service_xcall_prim,scheme_module);
 
-  KNO_LINK_PRIM("netproc",make_netproc,5,kno_scheme_module);
+  KNO_LINK_CPRIM("netproc",make_netproc,5,kno_scheme_module);
 
-  KNO_LINK_PRIM("srv/getconfig",srvconfig_prim,2,kno_scheme_module);
+  KNO_LINK_CPRIM("srv/getconfig",srvconfig_prim,2,kno_scheme_module);
 
 }

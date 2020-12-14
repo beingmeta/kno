@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-11-30 21:42+0000\n"
+"POT-Creation-Date: 2020-12-15 15:43+0000\n"
 "PO-Revision-Date: 2005-03-05 16:06-0500\n"
 "Last-Translator: Kenneth Haase <kh@beingmeta.com>\n"
 "Language-Team: French <traduc@traduc.org>\n"
@@ -168,7 +168,7 @@ msgstr "séquence"
 msgid "Not a sequence"
 msgstr "séquence"
 
-#: src/lisp/sequences.c:710 src/lisp/lisp.c:255 src/lisp/lisp.c:256
+#: src/lisp/sequences.c:710 src/lisp/lisp.c:311 src/lisp/lisp.c:312
 #: src/prims/seqprims.c:1676 src/prims/seqprims.c:1685
 msgid "character"
 msgstr "caractère"
@@ -453,12 +453,12 @@ msgstr ""
 msgid "Thread interrupted"
 msgstr ""
 
-#: src/lisp/lisp.c:245 src/lisp/lisp.c:246
+#: src/lisp/lisp.c:301 src/lisp/lisp.c:302
 msgid "oid"
 msgstr "oid"
 
-#: src/lisp/lisp.c:247 src/lisp/lisp.c:248 src/sys/config.c:863
-#: src/eval/opcode_defs.c:373 src/eval/evalops.c:292 src/prims/dbprims.c:3218
+#: src/lisp/lisp.c:303 src/lisp/lisp.c:304 src/sys/config.c:863
+#: src/eval/opcode_defs.c:373 src/eval/evalops.c:294 src/prims/dbprims.c:3218
 #: src/prims/portprims.c:982 src/eval/choiceops.c:1490
 #: src/eval/choiceops.c:1559 src/eval/choiceops.c:1605
 #: src/eval/choiceops.c:1670 src/eval/choiceops.c:1684
@@ -470,66 +470,66 @@ msgid "fixnum"
 msgstr "fixnum"
 
 # gas
-#: src/lisp/lisp.c:249 src/lisp/lisp.c:250
+#: src/lisp/lisp.c:305 src/lisp/lisp.c:306
 #, fuzzy
 msgid "cons"
 msgstr "constante"
 
-#: src/lisp/lisp.c:251 src/lisp/lisp.c:252
+#: src/lisp/lisp.c:307 src/lisp/lisp.c:308
 msgid "immediate"
 msgstr ""
 
 # gas
-#: src/lisp/lisp.c:253 src/lisp/lisp.c:254
+#: src/lisp/lisp.c:309 src/lisp/lisp.c:310
 msgid "constant"
 msgstr "constante"
 
 # bfd
-#: src/lisp/lisp.c:257 src/lisp/lisp.c:258 src/eval/modules.c:400
-#: src/eval/reflection.c:959 src/eval/evalops.c:238
+#: src/lisp/lisp.c:313 src/lisp/lisp.c:314 src/eval/modules.c:400
+#: src/eval/reflection.c:959 src/eval/evalops.c:240
 msgid "symbol"
 msgstr "symbole"
 
-#: src/lisp/lisp.c:259 src/lisp/lisp.c:260
+#: src/lisp/lisp.c:315 src/lisp/lisp.c:316
 msgid "fcnid"
 msgstr ""
 
-#: src/lisp/lisp.c:261 src/lisp/lisp.c:262 src/eval/eval.c:1907
+#: src/lisp/lisp.c:317 src/lisp/lisp.c:318 src/eval/eval.c:1907
 msgid "lexref"
 msgstr ""
 
-#: src/lisp/lisp.c:263 src/lisp/lisp.c:264 src/eval/eval.c:1913
+#: src/lisp/lisp.c:319 src/lisp/lisp.c:320 src/eval/eval.c:1913
 msgid "opcode"
 msgstr ""
 
 # gnumeric
-#: src/lisp/lisp.c:265 src/lisp/lisp.c:266
+#: src/lisp/lisp.c:321 src/lisp/lisp.c:322
 #, fuzzy
 msgid "typeref"
 msgstr "Erreur de type"
 
-#: src/lisp/lisp.c:267 src/lisp/lisp.c:268 src/eval/eval.c:1911
+#: src/lisp/lisp.c:323 src/lisp/lisp.c:324 src/eval/eval.c:1911
 msgid "coderef"
 msgstr ""
 
-#: src/lisp/lisp.c:269 src/lisp/lisp.c:270 src/storage/pools.c:2888
+#: src/lisp/lisp.c:325 src/lisp/lisp.c:326 src/storage/pools.c:2888
 #: src/prims/dbprims.c:283 src/prims/dbprims.c:2004
 msgid "pool"
 msgstr "lot"
 
-#: src/lisp/lisp.c:271 src/lisp/lisp.c:272 src/storage/indexes.c:1114
+#: src/lisp/lisp.c:327 src/lisp/lisp.c:328 src/storage/indexes.c:1114
 #: src/storage/indexes.c:2387 src/storage/slotindexes.c:234
 #: src/prims/dbprims.c:798 src/prims/dbprims.c:1971 src/prims/dbprims.c:1987
 #: src/prims/dbprims.c:2018
 msgid "index"
 msgstr "index"
 
-#: src/lisp/lisp.c:273 src/lisp/lisp.c:274
+#: src/lisp/lisp.c:329 src/lisp/lisp.c:330
 msgid "histref"
 msgstr ""
 
 # bfd
-#: src/lisp/lisp.c:276 src/lisp/lisp.c:277 src/sys/config.c:764
+#: src/lisp/lisp.c:332 src/lisp/lisp.c:333 src/sys/config.c:764
 #: src/sys/config.c:783 src/sys/config.c:802 src/sys/startup.c:256
 #: src/sys/startup.c:649 src/prims/dbprims.c:320 src/prims/dbprims.c:341
 #: src/prims/dbprims.c:362 src/prims/portprims.c:378 src/prims/portprims.c:848
@@ -539,8 +539,8 @@ msgstr ""
 #: src/prims/dtypeprims.c:453 src/prims/dtypeprims.c:510
 #: src/prims/dtypeprims.c:554 src/prims/stringprims.c:478
 #: src/prims/stringprims.c:692 src/prims/stringprims.c:719
-#: src/prims/stringprims.c:1617 src/prims/fileprims.c:314
-#: src/prims/fileprims.c:709 src/web/cgiexec.c:1317 src/web/cgiexec.c:1344
+#: src/prims/stringprims.c:1617 src/prims/fileprims.c:315
+#: src/prims/fileprims.c:710 src/web/cgiexec.c:1317 src/web/cgiexec.c:1344
 #: src/web/htmlout.c:580 src/web/uriprims.c:424 src/web/mime.c:114
 #: src/web/curl.c:700 src/text/texttools.c:142 src/text/texttools.c:172
 #: src/text/texttools.c:568 src/exe/knocgi.c:263 src/exe/webcommon.h:262
@@ -549,208 +549,243 @@ msgid "string"
 msgstr "chaîne"
 
 # gnupg
-#: src/lisp/lisp.c:278 src/lisp/lisp.c:279
+#: src/lisp/lisp.c:334 src/lisp/lisp.c:335
 msgid "packet"
 msgstr "paquet"
 
-#: src/lisp/lisp.c:280 src/lisp/lisp.c:281
+#: src/lisp/lisp.c:336 src/lisp/lisp.c:337
 msgid "secret"
 msgstr ""
 
 # coreutiles
-#: src/lisp/lisp.c:282 src/lisp/lisp.c:283
+#: src/lisp/lisp.c:338 src/lisp/lisp.c:339
 msgid "bigint"
 msgstr "nombre entier grande"
 
 # coreutils
-#: src/lisp/lisp.c:284 src/lisp/lisp.c:285 src/eval/opcode_defs.c:535
+#: src/lisp/lisp.c:340 src/lisp/lisp.c:341 src/eval/opcode_defs.c:535
 #: src/eval/opcode_defs.c:537 src/eval/opcode_defs.c:550
-#: src/eval/opcode_defs.c:552 src/eval/evalops.c:293
+#: src/eval/opcode_defs.c:552 src/eval/evalops.c:295
 msgid "pair"
 msgstr "paire"
 
-#: src/lisp/lisp.c:286 src/lisp/lisp.c:287
+#: src/lisp/lisp.c:342 src/lisp/lisp.c:343
 msgid "cdrcode"
 msgstr ""
 
 # gnumeric
-#: src/lisp/lisp.c:289 src/lisp/lisp.c:290
+#: src/lisp/lisp.c:345 src/lisp/lisp.c:346
 #, fuzzy
 msgid "typeinfo"
 msgstr "Erreur de type"
 
-#: src/lisp/lisp.c:291 src/lisp/lisp.c:292
+#: src/lisp/lisp.c:347 src/lisp/lisp.c:348
 msgid "compound"
 msgstr "object composée"
 
-#: src/lisp/lisp.c:293 src/lisp/lisp.c:294
+#: src/lisp/lisp.c:349 src/lisp/lisp.c:350
 msgid "wrapper"
 msgstr "envelope"
 
-#: src/lisp/lisp.c:295 src/lisp/lisp.c:296
+#: src/lisp/lisp.c:351 src/lisp/lisp.c:352
 msgid "rawptr"
 msgstr ""
 
-#: src/lisp/lisp.c:298 src/lisp/lisp.c:299
+#: src/lisp/lisp.c:354 src/lisp/lisp.c:355
 msgid "choice"
 msgstr "choix"
 
-#: src/lisp/lisp.c:300 src/lisp/lisp.c:301
+#: src/lisp/lisp.c:356 src/lisp/lisp.c:357
 #, fuzzy
 msgid "prechoice"
 msgstr "choix"
 
-#: src/lisp/lisp.c:302 src/lisp/lisp.c:303
+#: src/lisp/lisp.c:358 src/lisp/lisp.c:359
 #, fuzzy
 msgid "qchoice"
 msgstr "choix"
 
 # vector
-#: src/lisp/lisp.c:305 src/lisp/lisp.c:306
+#: src/lisp/lisp.c:361 src/lisp/lisp.c:362
 msgid "vector"
 msgstr "vecteur"
 
 # vector
-#: src/lisp/lisp.c:307 src/lisp/lisp.c:308
+#: src/lisp/lisp.c:363 src/lisp/lisp.c:364
 #, fuzzy
 msgid "numeric_vector"
 msgstr "vecteur"
 
-#: src/lisp/lisp.c:310 src/lisp/lisp.c:311
+#: src/lisp/lisp.c:366 src/lisp/lisp.c:367
 msgid "slotmap"
 msgstr "slotmap"
 
-#: src/lisp/lisp.c:312 src/lisp/lisp.c:313
+#: src/lisp/lisp.c:368 src/lisp/lisp.c:369
 msgid "schemap"
 msgstr "schemap"
 
-#: src/lisp/lisp.c:314 src/lisp/lisp.c:315
+#: src/lisp/lisp.c:370 src/lisp/lisp.c:371
 msgid "hashtable"
 msgstr "table de hachage"
 
-#: src/lisp/lisp.c:316 src/lisp/lisp.c:317 src/prims/tableprims.c:992
+#: src/lisp/lisp.c:372 src/lisp/lisp.c:373 src/prims/tableprims.c:992
 #: src/text/match.c:3421 src/text/match.c:3457 src/text/match.c:3483
 #: src/text/match.c:3525
 #, fuzzy
 msgid "hashset"
 msgstr "table de hachage"
 
-#: src/lisp/lisp.c:319 src/lisp/lisp.c:320
+#: src/lisp/lisp.c:375 src/lisp/lisp.c:376
 msgid "cprim"
 msgstr ""
 
-#: src/lisp/lisp.c:321 src/lisp/lisp.c:322
+#: src/lisp/lisp.c:377 src/lisp/lisp.c:378
 msgid "ffi"
 msgstr ""
 
-#: src/lisp/lisp.c:323 src/lisp/lisp.c:324
+#: src/lisp/lisp.c:379 src/lisp/lisp.c:380
 msgid "lambda"
 msgstr ""
 
-#: src/lisp/lisp.c:325 src/lisp/lisp.c:326
+#: src/lisp/lisp.c:381 src/lisp/lisp.c:382
 msgid "netproc"
 msgstr ""
 
-#: src/lisp/lisp.c:328 src/lisp/lisp.c:329
+#: src/lisp/lisp.c:384 src/lisp/lisp.c:385
 msgid "lexenv"
 msgstr ""
 
-#: src/lisp/lisp.c:330 src/lisp/lisp.c:331
+#: src/lisp/lisp.c:386 src/lisp/lisp.c:387
 msgid "evalfn"
 msgstr ""
 
-#: src/lisp/lisp.c:332 src/lisp/lisp.c:333
+#: src/lisp/lisp.c:388 src/lisp/lisp.c:389
 msgid "macro"
 msgstr ""
 
-#: src/lisp/lisp.c:334 src/lisp/lisp.c:335
+#: src/lisp/lisp.c:390 src/lisp/lisp.c:391
 msgid "stackframe"
 msgstr ""
 
-#: src/lisp/lisp.c:336 src/lisp/lisp.c:337
+#: src/lisp/lisp.c:392 src/lisp/lisp.c:393
 msgid "exception"
 msgstr ""
 
-#: src/lisp/lisp.c:338 src/lisp/lisp.c:339 src/eval/promises.c:237
+#: src/lisp/lisp.c:394 src/lisp/lisp.c:395 src/eval/promises.c:237
 msgid "promise"
 msgstr ""
 
-#: src/lisp/lisp.c:340 src/lisp/lisp.c:341 src/eval/threads.c:1283
+#: src/lisp/lisp.c:396 src/lisp/lisp.c:397 src/eval/threads.c:1283
 #: src/eval/threads.c:1321 src/eval/threads.c:1405
 msgid "thread"
 msgstr ""
 
-#: src/lisp/lisp.c:342 src/lisp/lisp.c:343
+#: src/lisp/lisp.c:398 src/lisp/lisp.c:399
 msgid "synchronizer"
 msgstr ""
 
-#: src/lisp/lisp.c:345 src/lisp/lisp.c:346
+#: src/lisp/lisp.c:401 src/lisp/lisp.c:402
 msgid "complex"
 msgstr ""
 
-#: src/lisp/lisp.c:347 src/lisp/lisp.c:348
+#: src/lisp/lisp.c:403 src/lisp/lisp.c:404
 msgid "rational"
 msgstr ""
 
-#: src/lisp/lisp.c:349 src/lisp/lisp.c:350
+#: src/lisp/lisp.c:405 src/lisp/lisp.c:406
 msgid "flonum"
 msgstr "nombre en virgule flottante"
 
-#: src/lisp/lisp.c:352 src/lisp/lisp.c:353
+#: src/lisp/lisp.c:408 src/lisp/lisp.c:409
 msgid "timestamp"
 msgstr ""
 
-#: src/lisp/lisp.c:354 src/lisp/lisp.c:355
+#: src/lisp/lisp.c:410 src/lisp/lisp.c:411
 msgid "uuid"
 msgstr ""
 
-#: src/lisp/lisp.c:357 src/lisp/lisp.c:358
+#: src/lisp/lisp.c:413 src/lisp/lisp.c:414
 msgid "mystery"
 msgstr "objet mystérieux"
 
 # discover
-#: src/lisp/lisp.c:359 src/lisp/lisp.c:360
+#: src/lisp/lisp.c:415 src/lisp/lisp.c:416
 #, fuzzy
 msgid "ioport"
 msgstr "port"
 
-#: src/lisp/lisp.c:361 src/lisp/lisp.c:362
+#: src/lisp/lisp.c:417 src/lisp/lisp.c:418
 msgid "stream"
 msgstr ""
 
-#: src/lisp/lisp.c:364 src/lisp/lisp.c:365
+#: src/lisp/lisp.c:420 src/lisp/lisp.c:421
 msgid "regex"
 msgstr ""
 
 # gas
-#: src/lisp/lisp.c:367 src/lisp/lisp.c:368
+#: src/lisp/lisp.c:423 src/lisp/lisp.c:424
 #, fuzzy
 msgid "consblock"
 msgstr "constante"
 
-#: src/lisp/lisp.c:370 src/lisp/lisp.c:371
+#: src/lisp/lisp.c:426 src/lisp/lisp.c:427
 msgid "sqldb"
 msgstr ""
 
-#: src/lisp/lisp.c:372 src/lisp/lisp.c:373
+#: src/lisp/lisp.c:428 src/lisp/lisp.c:429
 msgid "sqldbproc"
 msgstr ""
 
 # gnumeric
-#: src/lisp/lisp.c:375 src/lisp/lisp.c:376
+#: src/lisp/lisp.c:431 src/lisp/lisp.c:432
 #, fuzzy
 msgid "service"
 msgstr "Erreur de type"
 
-#: src/lisp/lisp.c:377 src/lisp/lisp.c:378
+#: src/lisp/lisp.c:433 src/lisp/lisp.c:434
 msgid "bloom_filter"
 msgstr ""
 
-#: src/lisp/lisp.c:380
+#: src/lisp/lisp.c:436
 msgid "pathstore"
 msgstr ""
 
-#: src/lisp/lisp.c:429
+#: src/lisp/lisp.c:438
+msgid "basetype"
+msgstr ""
+
+#: src/lisp/lisp.c:439
+msgid "a representation of a primitive C type"
+msgstr ""
+
+# gnumeric
+#: src/lisp/lisp.c:441
+#, fuzzy
+msgid "type"
+msgstr "Erreur de type"
+
+#: src/lisp/lisp.c:442
+msgid ""
+"a type reference is a basetype, a tag (symbol or OID) or a typeinfo object"
+msgstr ""
+
+#: src/lisp/lisp.c:444
+msgid "keymap"
+msgstr ""
+
+#: src/lisp/lisp.c:445
+msgid "a slotmap or schemap"
+msgstr ""
+
+#: src/lisp/lisp.c:447
+msgid "optsarg"
+msgstr ""
+
+#: src/lisp/lisp.c:448
+msgid "an opts data structure"
+msgstr ""
+
+#: src/lisp/lisp.c:497
 msgid "RUSAGE Failed"
 msgstr ""
 
@@ -1345,7 +1380,7 @@ msgstr "pas une fonction"
 msgid "FFI type error"
 msgstr "Erreur de type"
 
-#: src/apply/ffi.c:471
+#: src/apply/ffi.c:473
 msgid "Not an foreign function interface"
 msgstr ""
 
@@ -2325,7 +2360,7 @@ msgstr ""
 msgid "procedure"
 msgstr ""
 
-#: src/eval/reflection.c:919 src/eval/reflection.c:976 src/eval/evalops.c:260
+#: src/eval/reflection.c:919 src/eval/reflection.c:976 src/eval/evalops.c:262
 msgid "environment"
 msgstr ""
 
@@ -2349,7 +2384,7 @@ msgstr ""
 msgid "opcode name"
 msgstr ""
 
-#: src/eval/evalops.c:836 src/eval/configops.c:84 src/eval/configops.c:149
+#: src/eval/evalops.c:838 src/eval/configops.c:84 src/eval/configops.c:149
 #: src/eval/configops.c:174 src/cmodules/sqlite.c:162
 msgid "string or symbol"
 msgstr "chaîne ou symbole"
@@ -2474,14 +2509,14 @@ msgstr "L'encodage est inconnu"
 
 # discover
 #: src/prims/portprims.c:391 src/prims/portprims.c:408
-#: src/prims/fileprims.c:1425 src/prims/fileprims.c:1453
-#: src/prims/fileprims.c:1480 src/prims/fileprims.c:1507
+#: src/prims/fileprims.c:1426 src/prims/fileprims.c:1454
+#: src/prims/fileprims.c:1481 src/prims/fileprims.c:1508
 msgid "port"
 msgstr "port"
 
 #: src/prims/portprims.c:429 src/prims/portprims.c:449
 #: src/prims/portprims.c:472 src/prims/portprims.c:488
-#: src/prims/fileprims.c:305
+#: src/prims/fileprims.c:306
 msgid "output port"
 msgstr "port à la sortie"
 
@@ -2582,35 +2617,35 @@ msgstr ""
 msgid "File primitive failed"
 msgstr "ne peut ouvrir le fichier"
 
-#: src/prims/fileprims.c:720 src/web/uriprims.c:432
+#: src/prims/fileprims.c:721 src/web/uriprims.c:432
 msgid "string CONFIG var"
 msgstr ""
 
-#: src/prims/fileprims.c:722 src/web/uriprims.c:434
+#: src/prims/fileprims.c:723 src/web/uriprims.c:434
 msgid "string or string CONFIG var"
 msgstr ""
 
-#: src/prims/fileprims.c:930
+#: src/prims/fileprims.c:931
 msgid "Keeping temp directory"
 msgstr ""
 
-#: src/prims/fileprims.c:933
+#: src/prims/fileprims.c:934
 msgid "Deleting temp directory"
 msgstr ""
 
-#: src/prims/fileprims.c:939
+#: src/prims/fileprims.c:940
 msgid "Weird temp directory"
 msgstr ""
 
-#: src/prims/fileprims.c:1380
+#: src/prims/fileprims.c:1381
 msgid "port or stream"
 msgstr ""
 
-#: src/prims/fileprims.c:1502 src/prims/fileprims.c:1523
+#: src/prims/fileprims.c:1503 src/prims/fileprims.c:1524
 msgid "offset"
 msgstr ""
 
-#: src/prims/fileprims.c:1599
+#: src/prims/fileprims.c:1600
 msgid "SNAPSHOT"
 msgstr ""
 

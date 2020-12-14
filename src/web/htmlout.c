@@ -157,9 +157,13 @@ void kno_xhtmlerrorpage(u8_output s,u8_exception ex)
   u8_puts(s,"</body>\n</html>\n");
 }
 
-DEFPRIM2("debugpage->html",debugpage2html_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(0),
-	 "`(DEBUGPAGE->HTML [*arg0*] [*arg1*])` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+
+DEFCPRIM("debugpage->html",debugpage2html_prim,
+ KNO_MAX_ARGS(2)|KNO_MIN_ARGS(0),
+ "`(DEBUGPAGE->HTML [*arg0*] [*arg1*])` "
+ "**undocumented**",
+	 {"exception",kno_any_type,KNO_VOID},
+	 {"where",kno_any_type,KNO_VOID})
 static lispval debugpage2html_prim(lispval exception,lispval where)
 {
   u8_exception ex=NULL;
@@ -193,9 +197,13 @@ static lispval debugpage2html_prim(lispval exception,lispval where)
   else return KNO_FALSE;
 }
 
-DEFPRIM2("backtrace->html",backtrace2html_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(0),
-	 "`(BACKTRACE->HTML [*arg0*] [*arg1*])` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+
+DEFCPRIM("backtrace->html",backtrace2html_prim,
+ KNO_MAX_ARGS(2)|KNO_MIN_ARGS(0),
+ "`(BACKTRACE->HTML [*arg0*] [*arg1*])` "
+ "**undocumented**",
+	 {"arg",kno_any_type,KNO_VOID},
+	 {"where",kno_any_type,KNO_VOID})
 static lispval backtrace2html_prim(lispval arg,lispval where)
 {
   u8_exception ex=NULL;
@@ -596,9 +604,13 @@ static lispval table2html_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   return VOID;
 }
 
-DEFPRIM2("obj->html",obj2html_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "`(OBJ->HTML *arg0* [*arg1*])` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+
+DEFCPRIM("obj->html",obj2html_prim,
+ KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+ "`(OBJ->HTML *arg0* [*arg1*])` "
+ "**undocumented**",
+	 {"obj",kno_any_type,KNO_VOID},
+	 {"tag",kno_any_type,KNO_VOID})
 static lispval obj2html_prim(lispval obj,lispval tag)
 {
   u8_string tagname = NULL, classname = NULL; u8_byte tagbuf[64];
@@ -655,9 +667,9 @@ KNO_EXPORT void kno_init_htmlout_c()
 
 static void link_local_cprims()
 {
-  KNO_LINK_PRIM("obj->html",obj2html_prim,2,xhtml_module);
-  KNO_LINK_PRIM("backtrace->html",backtrace2html_prim,2,webtools_module);
-  KNO_LINK_PRIM("debugpage->html",debugpage2html_prim,2,webtools_module);
+  KNO_LINK_CPRIM("obj->html",obj2html_prim,2,xhtml_module);
+  KNO_LINK_CPRIM("backtrace->html",backtrace2html_prim,2,webtools_module);
+  KNO_LINK_CPRIM("debugpage->html",debugpage2html_prim,2,webtools_module);
 
   kno_defalias2(xhtml_module,
 		"backtrace->html",

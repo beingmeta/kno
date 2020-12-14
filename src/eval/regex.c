@@ -27,10 +27,14 @@
 
 u8_condition kno_RegexBadOp=_("Invalid Regex operation");
 
-DEFPRIM3("regex",make_regex,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
-	 "`(REGEX *arg0* [*arg1*] [*arg2*])` **undocumented**",
-	 kno_string_type,KNO_VOID,kno_any_type,KNO_FALSE,
-	 kno_any_type,KNO_FALSE);
+
+DEFCPRIM("regex",make_regex,
+	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
+	 "`(REGEX *arg0* [*arg1*] [*arg2*])` "
+	 "**undocumented**",
+	 {"pat",kno_string_type,KNO_VOID},
+	 {"nocase",kno_any_type,KNO_FALSE},
+	 {"matchnl",kno_any_type,KNO_FALSE})
 static lispval make_regex(lispval pat,lispval nocase,lispval matchnl)
 {
   int cflags = REG_EXTENDED;
@@ -39,9 +43,12 @@ static lispval make_regex(lispval pat,lispval nocase,lispval matchnl)
   return kno_make_regex(CSTRING(pat),cflags);
 }
 
-DEFPRIM1("regex?",regexp_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(REGEX? *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
+
+DEFCPRIM("regex?",regexp_prim,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "`(REGEX? *arg0*)` "
+	 "**undocumented**",
+	 {"x",kno_any_type,KNO_VOID})
 static lispval regexp_prim(lispval x)
 {
   if (TYPEP(x,kno_regex_type))
@@ -185,50 +192,70 @@ KNO_EXPORT ssize_t kno_regex_matchlen(lispval pat,u8_string s,ssize_t len)
   return kno_regex_op(rx_matchlen,pat,s,len,0);
 }
 
-DEFPRIM3("regex/search",regex_search,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 "`(REGEX/SEARCH *arg0* *arg1* [*arg2*])` **undocumented**",
-	 kno_regex_type,KNO_VOID,kno_string_type,KNO_VOID,
-	 kno_fixnum_type,KNO_CPP_INT(0));
+
+DEFCPRIM("regex/search",regex_search,
+	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+	 "`(REGEX/SEARCH *arg0* *arg1* [*arg2*])` "
+	 "**undocumented**",
+	 {"pat",kno_regex_type,KNO_VOID},
+	 {"string",kno_string_type,KNO_VOID},
+	 {"ef",kno_fixnum_type,KNO_INT(0)})
 static lispval regex_search(lispval pat,lispval string,lispval ef)
 {
   if (KNO_UINTP(ef))
     return regex_searchop(rx_search,pat,string,FIX2INT(ef));
   else return kno_type_error("unsigned int","regex_search/flags",ef);
 }
-DEFPRIM3("regex/matchlen",regex_matchlen,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 "`(REGEX/MATCHLEN *arg0* *arg1* [*arg2*])` **undocumented**",
-	 kno_regex_type,KNO_VOID,kno_string_type,KNO_VOID,
-	 kno_fixnum_type,KNO_CPP_INT(0));
+
+DEFCPRIM("regex/matchlen",regex_matchlen,
+	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+	 "`(REGEX/MATCHLEN *arg0* *arg1* [*arg2*])` "
+	 "**undocumented**",
+	 {"pat",kno_regex_type,KNO_VOID},
+	 {"string",kno_string_type,KNO_VOID},
+	 {"ef",kno_fixnum_type,KNO_INT(0)})
 static lispval regex_matchlen(lispval pat,lispval string,lispval ef)
 {
   if (KNO_UINTP(ef))
     return regex_searchop(rx_matchlen,pat,string,FIX2INT(ef));
   else return kno_type_error("unsigned int","regex_matchlen/flags",ef);
 }
-DEFPRIM3("regex/match",regex_exactmatch,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 "`(REGEX/MATCH *arg0* *arg1* [*arg2*])` **undocumented**",
-	 kno_regex_type,KNO_VOID,kno_string_type,KNO_VOID,
-	 kno_fixnum_type,KNO_CPP_INT(0));
+
+DEFCPRIM("regex/match",regex_exactmatch,
+	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+	 "`(REGEX/MATCH *arg0* *arg1* [*arg2*])` "
+	 "**undocumented**",
+	 {"pat",kno_regex_type,KNO_VOID},
+	 {"string",kno_string_type,KNO_VOID},
+	 {"ef",kno_fixnum_type,KNO_INT(0)})
 static lispval regex_exactmatch(lispval pat,lispval string,lispval ef)
 {
   if (KNO_UINTP(ef))
     return regex_searchop(rx_exactmatch,pat,string,FIX2INT(ef));
   else return kno_type_error("unsigned int","regex_exactmatch/flags",ef);
 }
-DEFPRIM3("regex/matchstring",regex_matchstring,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 "`(REGEX/MATCHSTRING *arg0* *arg1* [*arg2*])` **undocumented**",
-	 kno_regex_type,KNO_VOID,kno_string_type,KNO_VOID,
-	 kno_fixnum_type,KNO_CPP_INT(0));
+
+DEFCPRIM("regex/matchstring",regex_matchstring,
+	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+	 "`(REGEX/MATCHSTRING *arg0* *arg1* [*arg2*])` "
+	 "**undocumented**",
+	 {"pat",kno_regex_type,KNO_VOID},
+	 {"string",kno_string_type,KNO_VOID},
+	 {"ef",kno_fixnum_type,KNO_INT(0)})
 static lispval regex_matchstring(lispval pat,lispval string,lispval ef)
 {
   if (KNO_UINTP(ef))
     return regex_searchop(rx_matchstring,pat,string,FIX2INT(ef));
   else return kno_type_error("unsigned int","regex_matchstring/flags",ef);
 }
-DEFPRIM3("regex/matchspan",regex_matchspan,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 "`(REGEX/MATCHSPAN *arg0* *arg1* [*arg2*])` **undocumented**",
-	 kno_regex_type,KNO_VOID,kno_string_type,KNO_VOID,
-	 kno_fixnum_type,KNO_CPP_INT(0));
+
+DEFCPRIM("regex/matchspan",regex_matchspan,
+	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+	 "`(REGEX/MATCHSPAN *arg0* *arg1* [*arg2*])` "
+	 "**undocumented**",
+	 {"pat",kno_regex_type,KNO_VOID},
+	 {"string",kno_string_type,KNO_VOID},
+	 {"ef",kno_fixnum_type,KNO_INT(0)})
 static lispval regex_matchspan(lispval pat,lispval string,lispval ef)
 {
   if (KNO_UINTP(ef))
@@ -260,11 +287,11 @@ KNO_EXPORT int kno_init_regex_c()
 
 static void link_local_cprims()
 {
-  KNO_LINK_PRIM("regex/matchspan",regex_matchspan,3,regex_module);
-  KNO_LINK_PRIM("regex/matchstring",regex_matchstring,3,regex_module);
-  KNO_LINK_PRIM("regex/match",regex_exactmatch,3,regex_module);
-  KNO_LINK_PRIM("regex/matchlen",regex_matchlen,3,regex_module);
-  KNO_LINK_PRIM("regex/search",regex_search,3,regex_module);
-  KNO_LINK_PRIM("regex?",regexp_prim,1,regex_module);
-  KNO_LINK_PRIM("regex",make_regex,3,regex_module);
+  KNO_LINK_CPRIM("regex/matchspan",regex_matchspan,3,regex_module);
+  KNO_LINK_CPRIM("regex/matchstring",regex_matchstring,3,regex_module);
+  KNO_LINK_CPRIM("regex/match",regex_exactmatch,3,regex_module);
+  KNO_LINK_CPRIM("regex/matchlen",regex_matchlen,3,regex_module);
+  KNO_LINK_CPRIM("regex/search",regex_search,3,regex_module);
+  KNO_LINK_CPRIM("regex?",regexp_prim,1,regex_module);
+  KNO_LINK_CPRIM("regex",make_regex,3,regex_module);
 }

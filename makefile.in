@@ -90,8 +90,8 @@ RPMGPG		  = %__gpg gpg --force-v3-sigs --digest-algo=sha1 -u \"%{_gpg_name}\" --
 BUILDMODE       := $(shell if test -f ./buildmode; then cat ./buildmode; else echo none; fi)
 LINKEDWITH      ::= $(shell cat .malloc 2> /dev/null || echo standard libraries)
 APKREPO	        ::= $(shell ./etc/getbuildopt APKREPO /srv/repo/kno/apk)
-APTVERSION	::= $(shell @u8bin@u8_gitversion etc/base_version)
-GITBRANCH	::= $(shell @u8bin@u8_gitbranch)
+APTVERSION	::= $(shell @U8BIN@u8_gitversion etc/base_version)
+GITBRANCH	::= $(shell @U8BIN@u8_gitbranch)
 ARCH            ::= $(shell ./etc/getbuildopt BUILD_ARCH || uname -m || echo x86_64)
 APK_ARCH_DIR	::= ${APKREPO}/staging/${ARCH}
 
@@ -597,14 +597,14 @@ knodb:
 
 REVISION:
 	if test -d .git; then 				\
-	  @u8bin@u8_gitversion etc/base_version > $@;	\
+	  @U8BIN@u8_gitversion etc/base_version > $@;	\
 	elif test -f $@; then 				\
 	  touch REVISION;				\
 	else cp etc/base_version $@; 			\
 	fi;
 FULL_REVISION:
 	if test -d .git; then				\
-	  @u8bin@u8_gitversion etc/base_version full > $@;	\
+	  @U8BIN@u8_gitversion etc/base_version full > $@;	\
 	elif test -f $@; then				\
 	  touch REVISION;				\
 	else cp etc/base_version $@;			\
@@ -658,7 +658,7 @@ dbginstall:
 # Implicit make rules
 
 %.o: %.c ${CONFIG_HDRS}
-	@$(CC) $(CFLAGS) @definefileinfo@ -o $@ -c $<
+	@$(CC) $(CFLAGS) -D_FILEINFO="\"$(shell u8_fileinfo ./$< .)\"" -o $@ -c $<
 	@$(MSG) CC $@ $<
 
 exe/scripts/%: src/scripts/%.scm
@@ -902,7 +902,46 @@ uninstall: uninstall-core
 NOTAGS:
 	@echo "# (kno)" No TAGS file
 
-TAGS: makefile.in configure.ac include/kno/config.h.in			\
+TAGS: makefile.in configure.ac include/kno/config.h.in		\
+		tests/libtests/*.c		  			\
+		src/exe/*.c src/exe/*.h include/kno/*.h 		\
+		src/lisp/*.c src/sys/*.c 				\
+		src/apply/*.c src/apply/*.h				\
+		src/storage/*.c src/drivers/*.c 			\
+		src/eval/*.c src/eval/*.h				\
+		src/prims/*.c     					\
+		src/text/*.c src/web/*.c 				\
+		src/cmodules/*.c 					\
+		src/python/*.c 						\
+		src/libscm/*.scm src/libscm/*/*.scm 			\
+		src/scripts/*.scm src/shell/*.in 			\
+		src/shell/knoctl					\
+		include/kno/components/*.h				\
+		etc/*.in src/extmods/*.in 				\
+		dbg/.gdbinit.in tests/*.scm 				\
+		${SRC_HEADERS}
+	@echo "# (kno)" Building TAGS file
+	@etags makefile.in configure.ac 		\
+		include/kno/config.h.in     		\
+		include/kno/knosource.h.in     		\
+	        tests/*/*.in tests/*.in dbg/*.in 	\
+		etc/*.in etc/*/*.in include/kno/*.h	\
+		src/extmods/*.in src/extmods/*/makefile	\
+		include/kno/components/*.h		\
+		${SRC_HEADERS};
+	@etags -o TAGS -a src/exe/*.c src/exe/*.h
+	@etags -o TAGS -a src/lisp/*.c src/sys/*.c src/apply/*.c  src/apply/*.h 
+	@etags -o TAGS -a src/storage/*.c
+	@etags -o TAGS -a src/drivers/*.c src/drivers/headers/*.h
+	@etags -o TAGS -a src/eval/*.c src/eval/*.h src/prims/*.c
+	@etags -o TAGS -a src/web/*.c src/text/*.c;
+	@etags -o TAGS -a tests/libtests/*.c tests/*.scm;
+	@etags -o TAGS -a src/cmodules/*.c;
+	@etags -o TAGS -a src/python/*.c;
+	@etags -o TAGS -a src/scripts/*.scm;
+	@find src/libscm/ -name "*.scm" -type f | xargs etags -a -o TAGS;
+
+ALLTAGS: makefile.in configure.ac include/kno/config.h.in		\
 		tests/libtests/*.c		  			\
 		src/exe/*.c src/exe/*.h include/kno/*.h 		\
 		src/lisp/*.c src/sys/*.c 				\
@@ -970,7 +1009,7 @@ SCHEMETAGS: ${SCHEME_MODULES}
 	@find tests -name "*.scm" -type f | xargs etags -o SCHEMETAGS -a
 	@ls -l SCHEMETAGS
 
-alltags: TAGS CSOURCETAGS KNOLANGTAGS SCHEMETAGS 
+alltags: TAGS CSOURCETAGS KNOLANGTAGS SCHEMETAGS ALLTAGS
 
 profile-clean:
 	@find . -name "*.gcda" -type f | xargs rm -f
@@ -1274,7 +1313,7 @@ dist/source.tar: dist/kno.tar
 
 staging/kno_@KNO_VERSION@: REVISION FULL_REVISION staging/kno
 	cd staging; mv kno/dist/debian kno/debian;
-	@u8bin@u8_debchangelog kno ${CODENAME} \
+	@U8BIN@u8_debchangelog kno ${CODENAME} \
 		${REL_BRANCH} $(shell cat ./REVISION) ${REL_STATUS} ${REL_PRIORITY} \
 			< dist/debian/changelog \
 			> staging/kno/debian/changelog;
@@ -1794,7 +1833,7 @@ install-alpine: dist/alpine.installed
 # The mod_knocgi module
 
 src/apache2/mod_knocgi.so: src/apache2/mod_knocgi.c
-	@$(ECHO) "#define _FILEINFO \""`@u8bin@u8_fileinfo src/apache2/mod_knocgi.c .`"\"" \
+	@$(ECHO) "#define _FILEINFO \""`@U8BIN@u8_fileinfo src/apache2/mod_knocgi.c .`"\"" \
 		> src/apache2/mod_knocgi_fileinfo.h
 	${APXS} -DUSEDTBLOCK=@USEDTBLOCK@ -DDEBUG_KNOCGI=$(DEBUG_KNOCGI) \
 		-c src/apache2/mod_knocgi.c

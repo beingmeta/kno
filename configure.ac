@@ -71,7 +71,6 @@ xstatic_exe_libs=""
 xstatic_scheme_libs=""
 xdynamic_scheme_libs=""
 scheme_builtins_init="kno_init_scheme()"
-definefileinfo="-D_FILEINFO=\"\\\"\`u8_fileinfo ./$< .\`\\\"\""
 versionsh="include/kno/versions.h"
 suffix=""
 rpath=""
@@ -86,10 +85,13 @@ STATICLDFLAGS=
 EXEFLAGS=
 EXELIBS=
 BINPATH=${PATH}
+U8BIN=$(dirname $(which u8_gitversion) || echo ${PREFIX})
+U8BIN="${U8BIN}"
+U8RUN=${U8BIN}/u8run
 RPATHFLAGS="-Wl,'-rpath \$(RPATH)'"
 SHARED_LIB_TARGET=shared-libs
-KNO_PATCHVERSION=$(if test -f REVISION; then cat REVISION; elif test -d .git; then u8_gitversion etc/base_version; fi)
-KNO_BRANCH=$(u8_gitbranch)
+KNO_PATCHVERSION=$(if test -d .git; then ${U8BIN}/u8_gitversion etc/base_version; elif test -f REVISION; then cat REVISION; else cat etc/base_version; fi)
+KNO_BRANCH=$(${U8BIN}/u8_gitbranch)
 KNO_VERSION=$(echo ${KNO_PATCHVERSION} | cut -d'-' -f1)
 KNO_MAJOR=$(echo ${KNO_VERSION} | cut -d'.' -f1)
 KNO_MAJOR=$(echo ${KNO_VERSION} | cut -d'.' -f1)
@@ -159,7 +161,7 @@ with_crypto_default="yes"
 use_dtblock_default="yes"
 default_bootsystem="none"
 BOOTSETUP="none"
-CFLAGS="-DLIBU8_SOURCE -DKNO_SOURCE -fPIC -Wno-unused-label"
+CFLAGS="-DLIBU8_SOURCE -DKNO_SOURCE -fPIC -Wno-unused-label -Wno-multichar"
 PKG_CFLAGS="-fPIC"
 OPTFLAGS=
 XOPTFLAGS=
@@ -196,9 +198,6 @@ LEAKTEST_CMD=
 test_config="TESTSIZE=64"
 memtest_config=
 leaktester_config=
-
-u8bin=
-u8run=
 
 test_size=512
 small_test_size=64
@@ -290,7 +289,6 @@ AC_SUBST(servlet_logdir)
 AC_SUBST(servlet_bugjar)
 AC_SUBST(archflags)
 AC_SUBST(versionsh)
-AC_SUBST(definefileinfo)
 AC_SUBST(setup_target)
 AC_SUBST(extra_sources)
 AC_SUBST(debugcflags)
@@ -393,18 +391,8 @@ AC_SUBST(RPMFLAGS)
 AC_SUBST(GPGID)
 AC_SUBST(PKGCONFIG_DIR)
 AC_SUBST(GPG)
-AC_SUBST(u8bin)
+AC_SUBST(U8BIN)
 AC_SUBST(u8run)
-
-U8RUN_CMD=
-DEFAULT_U8RUN=
-DEFAULT_U8BIN=
-AC_CHECK_PROG(DEFAULT_U8RUN_CMD,u8run,,)
-if test ! -z "${DEFAULT_U8RUN}"; then
-  DEFAULT_U8BIN=$(dirname ${DEFAULT_U8RUN});
-else
-   DEFAULT_U8BIN=${prefix}/bin;
-fi;
 
 AC_PATH_PROG(binenv,env)
 AC_CHECK_PROG(SCRIPT_SHELL,sh,,/bin/sh)
@@ -439,14 +427,16 @@ if test "$with_execwrapper" != ""; then
   AC_DEFINE_UNQUOTED(KNO_EXEC_WRAPPER,"$with_execwrapper")
 fi
 
-AC_ARG_WITH(u8bin,--with-u8bin path for libu8 programs/scripts,,with_u8bin=${DEFAULT_U8BIN})
+AC_ARG_WITH(u8bin,--with-u8bin path for libu8 programs/scripts,,with_u8bin=${U8BIN})
 if test "$with_u8bin" != ""; then
   AC_DEFINE_UNQUOTED(KNO_U8BIN,"$with_u8bin")
-  u8bin="${with_u8bin}/"
+  U8BIN="${with_u8bin}/"
   DEFAULT_U8RUN="$with_u8bin/u8run"
+else
+  DEFAULT_U8RUN=u8run
 fi
 
-AC_ARG_WITH(u8run,--with-u8run location of the u8run launcher,,with_u8bin=${DEFAULT_U8RUN})
+AC_ARG_WITH(u8run,--with-u8run location of the u8run launcher,,with_u8run=${DEFAULT_U8RUN})
 if test "$with_u8run" != ""; then
   AC_DEFINE_UNQUOTED(KNO_U8RUN,"$with_u8run")
   u8run=$with_u8run;
@@ -514,13 +504,14 @@ AC_DEFINE_UNQUOTED(KNO_BRANCH,$KNO_BRANCH)
 
 AC_ARG_WITH(suffix,--with-suffix string,,with_suffix="")
 suffix=$with_suffix
+echo "suffix=${suffix}";
 
 AC_MSG_CHECKING(PATCHLEVEL)
 if test ! -z "${KNO_PATCHLEVEL}"; then
    AC_MSG_RESULT(${KNO_PATCHLEVEL});
 elif test -d .git; then
-   KNO_PATCHLEVEL=$(u8_gitpatchcount ./etc/base_version);
-   AC_MSG_RESULT(${KNO_PATCHLEVEL} from u8_gitpatchcount);
+   KNO_PATCHLEVEL=$(${U8BIN}/u8_gitpatchcount ./etc/base_version);
+   AC_MSG_RESULT(${KNO_PATCHLEVEL} from ${U8BIN}/u8_gitpatchcount);
 else
   if test -f VERSION; then
      KNO_PATCHLEVEL=$(cat VERSION | cut -d'-' -f2); fi;
@@ -1270,10 +1261,6 @@ if test "${enable_ffi}" == "yes"; then
    AC_CHECK_HEADERS(ffi.h)
    AC_CHECK_LIB(ffi,ffi_prep_cif)
 fi
-echo "enable_ffi=${enable_ffi}"
-echo "ffi.h=${ac_cv_header_ffi_h}"
-echo "ffi/ffi.h=${ac_cv_header_ffi_ffi_h}"
-echo "ffi_prep_cif=${ac_cv_lib_ffi_ffi_prep_cif}"
 if test "${enable_ffi}" != "yes"; then
    manually_disabled="ffi ${manually_disabled}"
 elif test "${ac_cv_header_ffi_h}" != "yes" &&

@@ -2365,8 +2365,6 @@ KNO_EXPORT lispval kno_default_indexctl(kno_index ix,lispval op,
 
 /* Initialize */
 
-kno_lisp_type kno_consed_index_type;
-
 static int check_primary_index(lispval x)
 {
   int serial = KNO_GET_IMMEDIATE(x,kno_index_type);
@@ -2387,7 +2385,6 @@ KNO_EXPORT void kno_init_indexes_c()
   kno_type_names[kno_index_type]=_("index");
   kno_immediate_checkfns[kno_index_type]=check_primary_index;
 
-  kno_consed_index_type = kno_register_cons_type("raw index");
   kno_type_names[kno_consed_index_type]=_("raw index");
 
   u8_init_rwlock(&consed_indexes_lock);

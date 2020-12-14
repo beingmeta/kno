@@ -842,9 +842,7 @@ lispval lambda_call(kno_stack stack,
 	kno_pop_stack(lambda_stack);
 	return err;}
       else {
-#if 0
-	_lambda_stack.stack_args.count=i;
-#endif
+	/* _lambda_stack.stack_args.count=i; */
 	args[i++]=init_val;}}}
 
   /* Now accumulate a .rest arg if it's needed */

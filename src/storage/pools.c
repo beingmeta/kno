@@ -2707,8 +2707,6 @@ static lispval copy_consed_pool(lispval x,int deep)
 
 /* Initialization */
 
-kno_lisp_type kno_consed_pool_type;
-
 static int check_pool(lispval x)
 {
   int serial = KNO_GET_IMMEDIATE(x,kno_pool_type);
@@ -2887,8 +2885,6 @@ KNO_EXPORT void kno_init_pools_c()
 
   kno_type_names[kno_pool_type]=_("pool");
   kno_immediate_checkfns[kno_pool_type]=check_pool;
-
-  kno_consed_pool_type = kno_register_cons_type("raw pool");
 
   kno_type_names[kno_consed_pool_type]=_("raw pool");
 

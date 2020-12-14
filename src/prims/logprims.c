@@ -384,10 +384,13 @@ void kno_summarize_backtrace(U8_OUTPUT *out,u8_exception ex)
 
 /* Table showing primitives */
 
-DEFPRIM3("%show",lisp_show_table,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-         "Shows a table",
-         kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
-         kno_any_type,KNO_VOID);
+
+DEFCPRIM("%show",lisp_show_table,
+	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+	 "Shows a table",
+	 {"tables",kno_any_type,KNO_VOID},
+	 {"slotids",kno_any_type,KNO_VOID},
+	 {"portarg",kno_any_type,KNO_VOID})
 static lispval lisp_show_table(lispval tables,lispval slotids,lispval portarg)
 {
   U8_OUTPUT *out = get_output_port(portarg);
@@ -451,5 +454,5 @@ KNO_EXPORT void kno_init_logprims_c()
 
 
 static void link_local_cprims(){
-  KNO_LINK_PRIM("%show",lisp_show_table,3,kno_sys_module);
+  KNO_LINK_CPRIM("%show",lisp_show_table,3,kno_sys_module);
 }

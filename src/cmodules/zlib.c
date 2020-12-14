@@ -31,9 +31,13 @@ static u8_condition zlibBufferError=_("ZLIB buffer error");
 static u8_condition zlibBadErrorCode=_("ZLIB odd error code");
 static u8_condition zlibDataError=_("Bad ZLIB input data");
 
-DEFPRIM2("zlib/compress",zlib_compress_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-         "`(ZLIB/COMPRESS *arg0* [*arg1*])` **undocumented**",
-         kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+
+KNO_DEFCPRIM("zlib/compress",zlib_compress_prim,
+	     KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	     "`(ZLIB/COMPRESS *arg0* [*arg1*])` "
+	     "**undocumented**",
+	     {"input_arg",kno_any_type,KNO_VOID},
+	     {"level_arg",kno_any_type,KNO_VOID})
 static lispval zlib_compress_prim(lispval input_arg,lispval level_arg)
 {
   int level = ((KNO_UINTP(level_arg))?(KNO_FIX2INT(level_arg)):(9));
@@ -69,10 +73,14 @@ static lispval zlib_compress_prim(lispval input_arg,lispval level_arg)
     return kno_err(ex,"zip_prim",NULL,KNO_VOID);}
 }
 
-DEFPRIM3("zlib/uncompress",zlib_uncompress_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
-         "`(ZLIB/UNCOMPRESS *arg0* [*arg1*] [*arg2*])` **undocumented**",
-         kno_packet_type,KNO_VOID,kno_any_type,KNO_FALSE,
-         kno_any_type,KNO_FALSE);
+
+KNO_DEFCPRIM("zlib/uncompress",zlib_uncompress_prim,
+	     KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
+	     "`(ZLIB/UNCOMPRESS *arg0* [*arg1*] [*arg2*])` "
+	     "**undocumented**",
+	     {"input_arg",kno_packet_type,KNO_VOID},
+	     {"text",kno_any_type,KNO_FALSE},
+	     {"init_factor",kno_any_type,KNO_FALSE})
 static lispval zlib_uncompress_prim(lispval input_arg,lispval text,lispval init_factor)
 {
   int init_grow = ((KNO_UINTP(init_factor))?(KNO_FIX2INT(init_factor)):(5));
@@ -166,6 +174,6 @@ KNO_EXPORT int kno_init_zlib()
 
 static void link_local_cprims()
 {
-  KNO_LINK_PRIM("zlib/uncompress",zlib_uncompress_prim,3,zlib_module);
-  KNO_LINK_PRIM("zlib/compress",zlib_compress_prim,2,zlib_module);
+  KNO_LINK_CPRIM("zlib/uncompress",zlib_uncompress_prim,3,zlib_module);
+  KNO_LINK_CPRIM("zlib/compress",zlib_compress_prim,2,zlib_module);
 }

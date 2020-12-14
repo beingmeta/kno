@@ -31,10 +31,6 @@ static lispval boundp, quote;
 static lispval iserver_fetchkey, iserver_fetchkeys, iserver_listkeys;
 static lispval iserver_fetchsize;
 
-#if 0
-static lispval ixserver_changes, ixserver_add, ixserver_drop, ixserver_addn, ixserver_reset;
-#endif
-
 static lispval set_symbol, drop_symbol;
 static lispval supportedp_symbol = KNO_NULL, dbname_symbol = KNO_NULL;
 
@@ -172,6 +168,9 @@ static lispval *netindex_fetchkeys(kno_index ix,int *n)
 }
 
 #if 0
+static lispval ixserver_changes, ixserver_add, ixserver_drop;
+static lispval ixserver_addn, ixserver_reset;
+
 static int netindex_save(struct KNO_INDEX *ix,
 			 struct KNO_CONST_KEYVAL *adds,int n_adds,
 			 struct KNO_CONST_KEYVAL *drops,int n_drops,

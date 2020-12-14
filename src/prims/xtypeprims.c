@@ -47,7 +47,10 @@ static u8_string get_filedata(u8_string path,ssize_t *lenp)
     return data;}
 }
 
-DEFPRIM3("write-xtype",write_xtype_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+
+
+DEFCPRIM("write-xtype",write_xtype_prim,
+	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
 	 "(WRITE-XTYPE *obj* *stream* [*opts*]) "
 	 "writes a xtype representation of *obj* to "
 	 "*stream* at file position *pos* *(defaults to the "
@@ -56,9 +59,9 @@ DEFPRIM3("write-xtype",write_xtype_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
 	 "representation. It is an error if the object has "
 	 "a larger representation and the value may also be "
 	 "used for allocating temporary buffers, etc.",
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
-	 kno_any_type,KNO_FALSE);
-
+	 {"object",kno_any_type,KNO_VOID},
+	 {"dest",kno_any_type,KNO_VOID},
+	 {"opts",kno_any_type,KNO_FALSE})
 static lispval write_xtype_prim(lispval object,lispval dest,lispval opts)
 {
   lispval refs_arg = kno_getxrefs(opts);
@@ -133,14 +136,19 @@ static lispval write_xtype_prim(lispval object,lispval dest,lispval opts)
   return KNO_INT(rv);
 }
 
-DEFPRIM2("read-xtype",read_xtype_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+
+DEFCPRIM("read-xtype",read_xtype_prim,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "`(read-xtype *source* [*opts*])` "
-	 "reads xtype representations from *source*, which can be a filename "
-	 "or a binary stream. The *opts* arg can specify `xrefs` to indicate "
-	 "xrefs to use when reading, or `count` to indicate the number of "
-	 "objects to read. By default, all representations until the end of data "
-	 "are read from the source.",
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_FALSE);
+	 "reads xtype representations from *source*, which "
+	 "can be a filename or a binary stream. The *opts* "
+	 "arg can specify `xrefs` to indicate xrefs to use "
+	 "when reading, or `count` to indicate the number "
+	 "of objects to read. By default, all "
+	 "representations until the end of data are read "
+	 "from the source.",
+	 {"source",kno_any_type,KNO_VOID},
+	 {"opts",kno_any_type,KNO_FALSE})
 static lispval read_xtype_prim(lispval source,lispval opts)
 {
   lispval refs_arg = kno_getxrefs(opts);
@@ -200,7 +208,9 @@ static lispval read_xtype_prim(lispval source,lispval opts)
   return results;
 }
 
-DEFPRIM4("read-xtype-at",read_xtype_at_prim,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(1),
+
+DEFCPRIM("read-xtype-at",read_xtype_at_prim,
+	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(1),
 	 "(READ-XTYPE-AT *stream* [*opts*] [*off*] [*len*]) "
 	 "reads the xtype representation store at *off* in "
 	 "*stream*. If *off* is not provided, it reads from "
@@ -208,9 +218,10 @@ DEFPRIM4("read-xtype-at",read_xtype_at_prim,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(1),
 	 "provided, it is a maximum size of the xtype "
 	 "representation and is used to prefetch bytes from "
 	 "the file when possible.",
-	 kno_stream_type,KNO_VOID,-1,KNO_VOID,
-	 kno_fixnum_type,KNO_VOID,
-	 kno_fixnum_type,KNO_VOID);
+	 {"stream",kno_stream_type,KNO_VOID},
+	 {"opts",kno_any_type,KNO_VOID},
+	 {"pos",kno_fixnum_type,KNO_VOID},
+	 {"len",kno_fixnum_type,KNO_VOID})
 static lispval read_xtype_at_prim(lispval stream,lispval opts,
 				  lispval pos,lispval len)
 {
@@ -249,7 +260,9 @@ static lispval read_xtype_at_prim(lispval stream,lispval opts,
     return object;}
 }
 
-DEFPRIM4("write-xtype-at",write_xtype_at_prim,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
+
+DEFCPRIM("write-xtype-at",write_xtype_at_prim,
+	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
 	 "(WRITE-XTYPE-AT *object* *stream* [*off*] [*opts/refs*]) "
 	 "reads the xtype representation store at *off* in "
 	 "*stream*. If *off* is not provided, it reads from "
@@ -257,8 +270,10 @@ DEFPRIM4("write-xtype-at",write_xtype_at_prim,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
 	 "provided, it is a maximum size of the xtype "
 	 "representation and is used to prefetch bytes from "
 	 "the file when possible.",
-	 kno_any_type,KNO_VOID,kno_stream_type,KNO_VOID,
-	 kno_any_type,KNO_FALSE,kno_fixnum_type,KNO_VOID);
+	 {"object",kno_any_type,KNO_VOID},
+	 {"stream",kno_stream_type,KNO_VOID},
+	 {"pos",kno_any_type,KNO_FALSE},
+	 {"opts",kno_fixnum_type,KNO_VOID})
 static lispval write_xtype_at_prim(lispval object,lispval stream,lispval pos,
 				   lispval opts)
 {
@@ -335,8 +350,8 @@ KNO_EXPORT void kno_init_xtypeprims_c()
 
 static void link_local_cprims()
 {
-  KNO_LINK_PRIM("write-xtype",write_xtype_prim,3,kno_scheme_module);
-  KNO_LINK_PRIM("read-xtype",read_xtype_prim,2,xtypeprims_module);
-  KNO_LINK_PRIM("write-xtype-at",write_xtype_at_prim,4,kno_scheme_module);
-  KNO_LINK_PRIM("read-xtype-at",read_xtype_at_prim,4,kno_scheme_module);
+  KNO_LINK_CPRIM("write-xtype",write_xtype_prim,3,kno_scheme_module);
+  KNO_LINK_CPRIM("read-xtype",read_xtype_prim,2,xtypeprims_module);
+  KNO_LINK_CPRIM("write-xtype-at",write_xtype_at_prim,4,kno_scheme_module);
+  KNO_LINK_CPRIM("read-xtype-at",read_xtype_at_prim,4,kno_scheme_module);
 }

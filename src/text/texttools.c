@@ -151,9 +151,13 @@ static lispval dosegment(u8_string string,lispval separators)
   return result;
 }
 
-DEFPRIM2("segment",segment_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 "`(SEGMENT *arg0* [*arg1*])` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+
+DEFCPRIM("segment",segment_prim,
+ KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+ "`(SEGMENT *arg0* [*arg1*])` "
+ "**undocumented**",
+	 {"inputs",kno_any_type,KNO_VOID},
+	 {"separators",kno_any_type,KNO_VOID})
 static lispval segment_prim(lispval inputs,lispval separators)
 {
   if (EMPTYP(inputs)) return EMPTY;
@@ -172,9 +176,12 @@ static lispval segment_prim(lispval inputs,lispval separators)
   else return kno_type_error(_("string"),"dosegment",inputs);
 }
 
-DEFPRIM1("decode-entities",decode_entities_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(DECODE-ENTITIES *arg0*)` **undocumented**",
-	 kno_string_type,KNO_VOID);
+
+DEFCPRIM("decode-entities",decode_entities_prim,
+ KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(DECODE-ENTITIES *arg0*)` "
+ "**undocumented**",
+	 {"input",kno_string_type,KNO_VOID})
 static lispval decode_entities_prim(lispval input)
 {
   if (STRLEN(input)==0) return kno_incref(input);
@@ -216,10 +223,14 @@ static lispval encode_entities(lispval input,int nonascii,
     return kno_incref(input);}
 }
 
-DEFPRIM3("encode-entities",encode_entities_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
-	 "`(ENCODE-ENTITIES *arg0* [*arg1*] [*arg2*])` **undocumented**",
-	 kno_string_type,KNO_VOID,kno_any_type,KNO_VOID,
-	 kno_any_type,KNO_VOID);
+
+DEFCPRIM("encode-entities",encode_entities_prim,
+ KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
+ "`(ENCODE-ENTITIES *arg0* [*arg1*] [*arg2*])` "
+ "**undocumented**",
+	 {"input",kno_string_type,KNO_VOID},
+	 {"chars",kno_any_type,KNO_VOID},
+	 {"nonascii",kno_any_type,KNO_VOID})
 static lispval encode_entities_prim(lispval input,lispval chars,
 				    lispval nonascii)
 {
@@ -385,18 +396,26 @@ KNO_EXPORT lispval kno_words2vector(u8_string string,int keep_punct)
   return result;
 }
 
-DEFPRIM2("getwords",getwords_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "`(GETWORDS *arg0* [*arg1*])` **undocumented**",
-	 kno_string_type,KNO_VOID,kno_any_type,KNO_VOID);
+
+DEFCPRIM("getwords",getwords_prim,
+ KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+ "`(GETWORDS *arg0* [*arg1*])` "
+ "**undocumented**",
+	 {"arg",kno_string_type,KNO_VOID},
+	 {"punctflag",kno_any_type,KNO_VOID})
 static lispval getwords_prim(lispval arg,lispval punctflag)
 {
   int keep_punct = ((!(VOIDP(punctflag))) && (KNO_TRUEP(punctflag)));
   return kno_words2list(CSTRING(arg),keep_punct);
 }
 
-DEFPRIM2("words->vector",getwordsv_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "`(WORDS->VECTOR *arg0* [*arg1*])` **undocumented**",
-	 kno_string_type,KNO_VOID,kno_any_type,KNO_VOID);
+
+DEFCPRIM("words->vector",getwordsv_prim,
+ KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+ "`(WORDS->VECTOR *arg0* [*arg1*])` "
+ "**undocumented**",
+	 {"arg",kno_string_type,KNO_VOID},
+	 {"punctflag",kno_any_type,KNO_VOID})
 static lispval getwordsv_prim(lispval arg,lispval punctflag)
 {
   int keep_punct = ((!(VOIDP(punctflag))) && (KNO_TRUEP(punctflag)));
@@ -414,10 +433,14 @@ static lispval getwordsv_prim(lispval arg,lispval punctflag)
    The output of this function is useful for indexing strings
    for purposes of partial indexing.
 */
-DEFPRIM3("vector->frags",vector2frags_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
-	 "`(VECTOR->FRAGS *arg0* [*arg1*] [*arg2*])` **undocumented**",
-	 kno_vector_type,KNO_VOID,kno_any_type,KNO_CPP_INT(2),
-	 kno_any_type,KNO_TRUE);
+
+DEFCPRIM("vector->frags",vector2frags_prim,
+ KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
+ "`(VECTOR->FRAGS *arg0* [*arg1*] [*arg2*])` "
+ "**undocumented**",
+	 {"vec",kno_vector_type,KNO_VOID},
+	 {"window",kno_any_type,KNO_INT(2)},
+	 {"with_affix",kno_any_type,KNO_TRUE})
 static lispval vector2frags_prim(lispval vec,lispval window,lispval with_affix)
 {
   int i = 0, n = VEC_LEN(vec), minspan = 1, maxspan;
@@ -485,9 +508,12 @@ static lispval vector2frags_prim(lispval vec,lispval window,lispval with_affix)
   return results;
 }
 
-DEFPRIM1("list->phrase",list2phrase_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(LIST->PHRASE *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
+
+DEFCPRIM("list->phrase",list2phrase_prim,
+ KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(LIST->PHRASE *arg0*)` "
+ "**undocumented**",
+	 {"arg",kno_any_type,KNO_VOID})
 static lispval list2phrase_prim(lispval arg)
 {
   int dospace = 0; struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
@@ -504,10 +530,14 @@ static lispval list2phrase_prim(lispval arg)
 static lispval seq2phrase_ndhelper
 (u8_string base,lispval seq,int start,int end,int dospace);
 
-DEFPRIM3("seq->phrase",seq2phrase_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
-	 "`(SEQ->PHRASE *arg0* [*arg1*] [*arg2*])` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_fixnum_type,KNO_CPP_INT(0),
-	 kno_fixnum_type,KNO_VOID);
+
+DEFCPRIM("seq->phrase",seq2phrase_prim,
+ KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
+ "`(SEQ->PHRASE *arg0* [*arg1*] [*arg2*])` "
+ "**undocumented**",
+	 {"arg",kno_any_type,KNO_VOID},
+	 {"start_arg",kno_fixnum_type,KNO_INT(0)},
+	 {"end_arg",kno_fixnum_type,KNO_VOID})
 static lispval seq2phrase_prim(lispval arg,lispval start_arg,lispval end_arg)
 {
   if (PRED_FALSE(!(KNO_SEQUENCEP(arg))))
@@ -584,9 +614,12 @@ static lispval seq2phrase_ndhelper
 
 /* String predicates */
 
-DEFPRIM1("isspace%",isspace_percentage,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(ISSPACE% *arg0*)` **undocumented**",
-	 kno_string_type,KNO_VOID);
+
+DEFCPRIM("isspace%",isspace_percentage,
+ KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(ISSPACE% *arg0*)` "
+ "**undocumented**",
+	 {"string",kno_string_type,KNO_VOID})
 static lispval isspace_percentage(lispval string)
 {
   u8_string scan = CSTRING(string);
@@ -599,9 +632,12 @@ static lispval isspace_percentage(lispval string)
     return KNO_INT((space*100)/(space+non_space));}
 }
 
-DEFPRIM1("isalpha%",isalpha_percentage,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(ISALPHA% *arg0*)` **undocumented**",
-	 kno_string_type,KNO_VOID);
+
+DEFCPRIM("isalpha%",isalpha_percentage,
+ KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(ISALPHA% *arg0*)` "
+ "**undocumented**",
+	 {"string",kno_string_type,KNO_VOID})
 static lispval isalpha_percentage(lispval string)
 {
   u8_string scan = CSTRING(string);
@@ -614,9 +650,12 @@ static lispval isalpha_percentage(lispval string)
     return KNO_INT((alpha*100)/(alpha+non_alpha));}
 }
 
-DEFPRIM1("isalphalen",isalphalen,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(ISALPHALEN *arg0*)` **undocumented**",
-	 kno_string_type,KNO_VOID);
+
+DEFCPRIM("isalphalen",isalphalen,
+ KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(ISALPHALEN *arg0*)` "
+ "**undocumented**",
+	 {"string",kno_string_type,KNO_VOID})
 static lispval isalphalen(lispval string)
 {
   u8_string scan = CSTRING(string);
@@ -629,9 +668,12 @@ static lispval isalphalen(lispval string)
     return KNO_INT(alpha);}
 }
 
-DEFPRIM1("count-words",count_words,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(COUNT-WORDS *arg0*)` **undocumented**",
-	 kno_string_type,KNO_VOID);
+
+DEFCPRIM("count-words",count_words,
+ KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(COUNT-WORDS *arg0*)` "
+ "**undocumented**",
+	 {"string",kno_string_type,KNO_VOID})
 static lispval count_words(lispval string)
 {
   u8_string scan = CSTRING(string);
@@ -645,9 +687,12 @@ static lispval count_words(lispval string)
   return KNO_INT(word_count);
 }
 
-DEFPRIM1("markup%",ismarkup_percentage,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(MARKUP% *arg0*)` **undocumented**",
-	 kno_string_type,KNO_VOID);
+
+DEFCPRIM("markup%",ismarkup_percentage,
+ KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(MARKUP% *arg0*)` "
+ "**undocumented**",
+	 {"string",kno_string_type,KNO_VOID})
 static lispval ismarkup_percentage(lispval string)
 {
   u8_string scan = CSTRING(string);
@@ -676,9 +721,12 @@ static lispval ismarkup_percentage(lispval string)
 
 KNO_EXPORT u8_byte *kno_stem_english_word(const u8_byte *original);
 
-DEFPRIM1("porter-stem",stem_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(PORTER-STEM *arg0*)` **undocumented**",
-	 kno_string_type,KNO_VOID);
+
+DEFCPRIM("porter-stem",stem_prim,
+ KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(PORTER-STEM *arg0*)` "
+ "**undocumented**",
+	 {"arg",kno_string_type,KNO_VOID})
 static lispval stem_prim(lispval arg)
 {
   u8_byte *stemmed = kno_stem_english_word(CSTRING(arg));
@@ -698,9 +746,13 @@ static int all_asciip(u8_string s)
   return 1;
 }
 
-DEFPRIM2("disemvowel",disemvowel,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "`(DISEMVOWEL *arg0* [*arg1*])` **undocumented**",
-	 kno_string_type,KNO_VOID,kno_string_type,KNO_VOID);
+
+DEFCPRIM("disemvowel",disemvowel,
+ KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+ "`(DISEMVOWEL *arg0* [*arg1*])` "
+ "**undocumented**",
+	 {"string",kno_string_type,KNO_VOID},
+	 {"vowels",kno_string_type,KNO_VOID})
 static lispval disemvowel(lispval string,lispval vowels)
 {
   struct U8_OUTPUT out; struct U8_INPUT in;
@@ -729,9 +781,12 @@ static lispval disemvowel(lispval string,lispval vowels)
 
 /* Depuncting strings (removing punctuation and whitespace) */
 
-DEFPRIM1("depunct",depunct,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(DEPUNCT *arg0*)` **undocumented**",
-	 kno_string_type,KNO_VOID);
+
+DEFCPRIM("depunct",depunct,
+ KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(DEPUNCT *arg0*)` "
+ "**undocumented**",
+	 {"string",kno_string_type,KNO_VOID})
 static lispval depunct(lispval string)
 {
   struct U8_OUTPUT out; struct U8_INPUT in;
@@ -747,9 +802,13 @@ static lispval depunct(lispval string)
 
 /* Skipping markup */
 
-DEFPRIM2("strip-markup",strip_markup,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "`(STRIP-MARKUP *arg0* [*arg1*])` **undocumented**",
-	 kno_string_type,KNO_VOID,kno_any_type,KNO_VOID);
+
+DEFCPRIM("strip-markup",strip_markup,
+ KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+ "`(STRIP-MARKUP *arg0* [*arg1*])` "
+ "**undocumented**",
+	 {"string",kno_string_type,KNO_VOID},
+	 { "insert_space_arg",kno_any_type,KNO_VOID})
 static lispval strip_markup(lispval string,lispval insert_space_arg)
 {
   int c, insert_space = KNO_TRUEP(insert_space_arg);
@@ -777,10 +836,14 @@ static lispval strip_markup(lispval string,lispval insert_space_arg)
 
 /* Columnizing */
 
-DEFPRIM3("columnize",columnize_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 "`(COLUMNIZE *arg0* *arg1* [*arg2*])` **undocumented**",
-	 kno_string_type,KNO_VOID,kno_any_type,KNO_VOID,
-	 kno_any_type,KNO_FALSE);
+
+DEFCPRIM("columnize",columnize_prim,
+ KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+ "`(COLUMNIZE *arg0* *arg1* [*arg2*])` "
+ "**undocumented**",
+	 {"string",kno_string_type,KNO_VOID},
+	 {"cols",kno_any_type,KNO_VOID},
+	 {"parse",kno_any_type,KNO_FALSE})
 static lispval columnize_prim(lispval string,lispval cols,lispval parse)
 {
   u8_string scan = CSTRING(string), limit = scan+STRLEN(string);
@@ -887,10 +950,15 @@ static void convert_offsets
   *off = u8_byteoffset(CSTRING(string),offval,*lim);
 }
 
-DEFPRIM4("textmatcher",textmatcher,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
-	 "`(TEXTMATCHER *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_string_type,KNO_VOID,
-	 kno_fixnum_type,KNO_CPP_INT(0),kno_fixnum_type,KNO_VOID);
+
+DEFCPRIM("textmatcher",textmatcher,
+ KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
+ "`(TEXTMATCHER *arg0* *arg1* [*arg2*] [*arg3*])` "
+ "**undocumented**",
+	 {"pattern",kno_any_type,KNO_VOID},
+	 {"string",kno_string_type,KNO_VOID},
+	 {"offset",kno_fixnum_type,KNO_INT(0)},
+	 {"limit",kno_fixnum_type,KNO_VOID})
 static lispval textmatcher(lispval pattern,lispval string,
 			   lispval offset,lispval limit)
 {
@@ -906,10 +974,15 @@ static lispval textmatcher(lispval pattern,lispval string,
     else return return_offsets(CSTRING(string),match_result);}
 }
 
-DEFPRIM4("textmatch",textmatch,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
-	 "`(TEXTMATCH *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_string_type,KNO_VOID,
-	 kno_fixnum_type,KNO_CPP_INT(0),kno_fixnum_type,KNO_VOID);
+
+DEFCPRIM("textmatch",textmatch,
+ KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
+ "`(TEXTMATCH *arg0* *arg1* [*arg2*] [*arg3*])` "
+ "**undocumented**",
+	 {"pattern",kno_any_type,KNO_VOID},
+	 {"string",kno_string_type,KNO_VOID},
+	 {"offset",kno_fixnum_type,KNO_INT(0)},
+	 {"limit",kno_fixnum_type,KNO_VOID})
 static lispval textmatch(lispval pattern,lispval string,
 			 lispval offset,lispval limit)
 {
@@ -925,10 +998,15 @@ static lispval textmatch(lispval pattern,lispval string,
     else return KNO_FALSE;}
 }
 
-DEFPRIM4("textsearch",textsearch,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
-	 "`(TEXTSEARCH *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_string_type,KNO_VOID,
-	 kno_fixnum_type,KNO_CPP_INT(0),kno_fixnum_type,KNO_VOID);
+
+DEFCPRIM("textsearch",textsearch,
+ KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
+ "`(TEXTSEARCH *arg0* *arg1* [*arg2*] [*arg3*])` "
+ "**undocumented**",
+	 {"pattern",kno_any_type,KNO_VOID},
+	 {"string",kno_string_type,KNO_VOID},
+	 {"offset",kno_fixnum_type,KNO_INT(0)},
+	 {"limit",kno_fixnum_type,KNO_VOID})
 static lispval textsearch(lispval pattern,lispval string,
 			  lispval offset,lispval limit)
 {
@@ -944,10 +1022,15 @@ static lispval textsearch(lispval pattern,lispval string,
     else return KNO_INT(u8_charoffset(CSTRING(string),pos));}
 }
 
-DEFPRIM4("textract",textract,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
-	 "`(TEXTRACT *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_string_type,KNO_VOID,
-	 kno_fixnum_type,KNO_CPP_INT(0),kno_fixnum_type,KNO_VOID);
+
+DEFCPRIM("textract",textract,
+ KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
+ "`(TEXTRACT *arg0* *arg1* [*arg2*] [*arg3*])` "
+ "**undocumented**",
+	 {"pattern",kno_any_type,KNO_VOID},
+	 {"string",kno_string_type,KNO_VOID},
+	 {"offset",kno_fixnum_type,KNO_INT(0)},
+	 {"limit",kno_fixnum_type,KNO_VOID})
 static lispval textract(lispval pattern,lispval string,
 			lispval offset,lispval limit)
 {
@@ -1024,30 +1107,45 @@ static lispval textgather_base(lispval pattern,lispval string,
     else return results;}
 }
 
-DEFPRIM4("gather",textgather,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
-	 "`(GATHER *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_string_type,KNO_VOID,
-	 kno_fixnum_type,KNO_CPP_INT(0),kno_fixnum_type,KNO_VOID);
+
+DEFCPRIM("gather",textgather,
+ KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
+ "`(GATHER *arg0* *arg1* [*arg2*] [*arg3*])` "
+ "**undocumented**",
+	 {"pattern",kno_any_type,KNO_VOID},
+	 {"string",kno_string_type,KNO_VOID},
+	 {"offset",kno_fixnum_type,KNO_INT(0)},
+	 {"limit",kno_fixnum_type,KNO_VOID})
 static lispval textgather(lispval pattern,lispval string,
 			  lispval offset,lispval limit)
 {
   return textgather_base(pattern,string,offset,limit,0);
 }
 
-DEFPRIM4("gather*",textgather_star,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
-	 "`(GATHER* *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_string_type,KNO_VOID,
-	 kno_fixnum_type,KNO_CPP_INT(0),kno_fixnum_type,KNO_VOID);
+
+DEFCPRIM("gather*",textgather_star,
+ KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
+ "`(GATHER* *arg0* *arg1* [*arg2*] [*arg3*])` "
+ "**undocumented**",
+	 {"pattern",kno_any_type,KNO_VOID},
+	 {"string",kno_string_type,KNO_VOID},
+	 {"offset",kno_fixnum_type,KNO_INT(0)},
+	 {"limit",kno_fixnum_type,KNO_VOID})
 static lispval textgather_star(lispval pattern,lispval string,
 			       lispval offset,lispval limit)
 {
   return textgather_base(pattern,string,offset,limit,1);
 }
 
-DEFPRIM4("gather->list",textgather2list,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
-	 "`(GATHER->LIST *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_string_type,KNO_VOID,
-	 kno_fixnum_type,KNO_CPP_INT(0),kno_fixnum_type,KNO_VOID);
+
+DEFCPRIM("gather->list",textgather2list,
+ KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
+ "`(GATHER->LIST *arg0* *arg1* [*arg2*] [*arg3*])` "
+ "**undocumented**",
+	 {"pattern",kno_any_type,KNO_VOID},
+	 {"string",kno_string_type,KNO_VOID},
+	 {"offset",kno_fixnum_type,KNO_INT(0)},
+	 {"limit",kno_fixnum_type,KNO_VOID})
 static lispval textgather2list(lispval pattern,lispval string,
 			       lispval offset,lispval limit)
 {
@@ -1183,10 +1281,15 @@ static lispval rewrite_apply(lispval fcn,lispval content,lispval args)
     return kno_apply(fcn,i,argvec);}
 }
 
-DEFPRIM4("textrewrite",textrewrite,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
-	 "`(TEXTREWRITE *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_string_type,KNO_VOID,
-	 kno_fixnum_type,KNO_CPP_INT(0),kno_fixnum_type,KNO_VOID);
+
+DEFCPRIM("textrewrite",textrewrite,
+ KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
+ "`(TEXTREWRITE *arg0* *arg1* [*arg2*] [*arg3*])` "
+ "**undocumented**",
+	 {"pattern",kno_any_type,KNO_VOID},
+	 {"string",kno_string_type,KNO_VOID},
+	 {"offset",kno_fixnum_type,KNO_INT(0)},
+	 {"limit",kno_fixnum_type,KNO_VOID})
 static lispval textrewrite(lispval pattern,lispval string,
 			   lispval offset,lispval limit)
 {
@@ -1216,11 +1319,16 @@ static lispval textrewrite(lispval pattern,lispval string,
       return subst_results;}}
 }
 
-DEFPRIM5("textsubst",textsubst,KNO_MAX_ARGS(5)|KNO_MIN_ARGS(2),
-	 "`(TEXTSUBST *arg0* *arg1* [*arg2*] [*arg3*] [*arg4*])` **undocumented**",
-	 kno_string_type,KNO_VOID,kno_any_type,KNO_VOID,
-	 kno_any_type,KNO_VOID,kno_fixnum_type,KNO_CPP_INT(0),
-	 kno_fixnum_type,KNO_VOID);
+
+DEFCPRIM("textsubst",textsubst,
+ KNO_MAX_ARGS(5)|KNO_MIN_ARGS(2),
+ "`(TEXTSUBST *arg0* *arg1* [*arg2*] [*arg3*] [*arg4*])` "
+ "**undocumented**",
+	 {"string",kno_string_type,KNO_VOID},
+	 {"pattern",kno_any_type,KNO_VOID},
+	 {"replace",kno_any_type,KNO_VOID},
+	 {"offset",kno_fixnum_type,KNO_INT(0)},
+	 {"limit",kno_fixnum_type,KNO_VOID})
 static lispval textsubst(lispval string,
 			 lispval pattern,lispval replace,
 			 lispval offset,lispval limit)
@@ -1379,20 +1487,30 @@ static lispval gathersubst_base(lispval pattern,lispval string,
     else return results;}
 }
 
-DEFPRIM4("gathersubst",gathersubst,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
-	 "`(GATHERSUBST *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_string_type,KNO_VOID,
-	 kno_fixnum_type,KNO_CPP_INT(0),kno_fixnum_type,KNO_VOID);
+
+DEFCPRIM("gathersubst",gathersubst,
+ KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
+ "`(GATHERSUBST *arg0* *arg1* [*arg2*] [*arg3*])` "
+ "**undocumented**",
+	 {"pattern",kno_any_type,KNO_VOID},
+	 {"string",kno_string_type,KNO_VOID},
+	 {"offset",kno_fixnum_type,KNO_INT(0)},
+	 {"limit",kno_fixnum_type,KNO_VOID})
 static lispval gathersubst(lispval pattern,lispval string,
 			   lispval offset,lispval limit)
 {
   return gathersubst_base(pattern,string,offset,limit,0);
 }
 
-DEFPRIM4("gathersubst*",gathersubst_star,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
-	 "`(GATHERSUBST* *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_string_type,KNO_VOID,
-	 kno_fixnum_type,KNO_CPP_INT(0),kno_fixnum_type,KNO_VOID);
+
+DEFCPRIM("gathersubst*",gathersubst_star,
+ KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
+ "`(GATHERSUBST* *arg0* *arg1* [*arg2*] [*arg3*])` "
+ "**undocumented**",
+	 {"pattern",kno_any_type,KNO_VOID},
+	 {"string",kno_string_type,KNO_VOID},
+	 {"offset",kno_fixnum_type,KNO_INT(0)},
+	 {"limit",kno_fixnum_type,KNO_VOID})
 static lispval gathersubst_star(lispval pattern,lispval string,
 				lispval offset,lispval limit)
 {
@@ -1401,9 +1519,13 @@ static lispval gathersubst_star(lispval pattern,lispval string,
 
 /* Handy filtering functions */
 
-DEFPRIM2("textfilter",textfilter,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "`(TEXTFILTER *arg0* *arg1*)` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+
+DEFCPRIM("textfilter",textfilter,
+ KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+ "`(TEXTFILTER *arg0* *arg1*)` "
+ "**undocumented**",
+	 {"strings",kno_any_type,KNO_VOID},
+	 {"pattern",kno_any_type,KNO_VOID})
 static lispval textfilter(lispval strings,lispval pattern)
 {
   lispval results = EMPTY;
@@ -1436,10 +1558,15 @@ static int getnonstring(lispval choice)
   return VOID;
 }
 
-DEFPRIM4("string-matches?",string_matches,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "`(STRING-MATCHES? *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
-	 kno_fixnum_type,KNO_CPP_INT(0),kno_fixnum_type,KNO_VOID);
+
+DEFCPRIM("string-matches?",string_matches,
+ KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+ "`(STRING-MATCHES? *arg0* *arg1* [*arg2*] [*arg3*])` "
+ "**undocumented**",
+	 {"string",kno_any_type,KNO_VOID},
+	 {"pattern",kno_any_type,KNO_VOID},
+	 {"start_arg",kno_fixnum_type,KNO_INT(0)},
+	 {"end_arg",kno_fixnum_type,KNO_VOID})
 static lispval string_matches(lispval string,lispval pattern,
 			      lispval start_arg,lispval end_arg)
 {
@@ -1476,10 +1603,15 @@ static lispval string_matches(lispval string,lispval pattern,
     else return KNO_FALSE;}
 }
 
-DEFPRIM4("string-contains?",string_contains,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "`(STRING-CONTAINS? *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
-	 kno_fixnum_type,KNO_CPP_INT(0),kno_fixnum_type,KNO_VOID);
+
+DEFCPRIM("string-contains?",string_contains,
+ KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+ "`(STRING-CONTAINS? *arg0* *arg1* [*arg2*] [*arg3*])` "
+ "**undocumented**",
+	 {"string",kno_any_type,KNO_VOID},
+	 {"pattern",kno_any_type,KNO_VOID},
+	 {"start_arg",kno_fixnum_type,KNO_INT(0)},
+	 {"end_arg",kno_fixnum_type,KNO_VOID})
 static lispval string_contains(lispval string,lispval pattern,
 			       lispval start_arg,lispval end_arg)
 {
@@ -1519,10 +1651,15 @@ static lispval string_contains(lispval string,lispval pattern,
     else return KNO_TRUE;}
 }
 
-DEFPRIM4("string-starts-with?",string_starts_with,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "`(STRING-STARTS-WITH? *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
-	 kno_fixnum_type,KNO_CPP_INT(0),kno_fixnum_type,KNO_VOID);
+
+DEFCPRIM("string-starts-with?",string_starts_with,
+ KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+ "`(STRING-STARTS-WITH? *arg0* *arg1* [*arg2*] [*arg3*])` "
+ "**undocumented**",
+	 {"string",kno_any_type,KNO_VOID},
+	 {"pattern",kno_any_type,KNO_VOID},
+	 {"start_arg",kno_fixnum_type,KNO_INT(0)},
+	 {"end_arg",kno_fixnum_type,KNO_VOID})
 static lispval string_starts_with(lispval string,lispval pattern,
 				  lispval start_arg,lispval end_arg)
 {
@@ -1596,10 +1733,15 @@ static lispval string_ends_with_test(lispval string,lispval pattern,
   return 0;
 }
 
-DEFPRIM4("string-ends-with?",string_ends_with,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "`(STRING-ENDS-WITH? *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
-	 kno_fixnum_type,KNO_CPP_INT(0),kno_fixnum_type,KNO_VOID);
+
+DEFCPRIM("string-ends-with?",string_ends_with,
+ KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+ "`(STRING-ENDS-WITH? *arg0* *arg1* [*arg2*] [*arg3*])` "
+ "**undocumented**",
+	 {"string",kno_any_type,KNO_VOID},
+	 {"pattern",kno_any_type,KNO_VOID},
+	 {"start_arg",kno_fixnum_type,KNO_INT(0)},
+	 {"end_arg",kno_fixnum_type,KNO_VOID})
 static lispval string_ends_with(lispval string,lispval pattern,
 				lispval start_arg,lispval end_arg)
 {
@@ -1710,10 +1852,15 @@ static int framify(lispval f,u8_output out,lispval xtract)
   return 1;
 }
 
-DEFPRIM4("text->frame",text2frame,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
-	 "`(TEXT->FRAME *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_string_type,KNO_VOID,
-	 kno_fixnum_type,KNO_CPP_INT(0),kno_fixnum_type,KNO_VOID);
+
+DEFCPRIM("text->frame",text2frame,
+ KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
+ "`(TEXT->FRAME *arg0* *arg1* [*arg2*] [*arg3*])` "
+ "**undocumented**",
+	 {"pattern",kno_any_type,KNO_VOID},
+	 {"string",kno_string_type,KNO_VOID},
+	 {"offset",kno_fixnum_type,KNO_INT(0)},
+	 {"limit",kno_fixnum_type,KNO_VOID})
 static lispval text2frame(lispval pattern,lispval string,
 			  lispval offset,lispval limit)
 {
@@ -1740,10 +1887,15 @@ static lispval text2frame(lispval pattern,lispval string,
       return frame_results;}}
 }
 
-DEFPRIM4("text->frames",text2frames,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
-	 "`(TEXT->FRAMES *arg0* *arg1* [*arg2*] [*arg3*])` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_string_type,KNO_VOID,
-	 kno_fixnum_type,KNO_CPP_INT(0),kno_fixnum_type,KNO_VOID);
+
+DEFCPRIM("text->frames",text2frames,
+ KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
+ "`(TEXT->FRAMES *arg0* *arg1* [*arg2*] [*arg3*])` "
+ "**undocumented**",
+	 {"pattern",kno_any_type,KNO_VOID},
+	 {"string",kno_string_type,KNO_VOID},
+	 {"offset",kno_fixnum_type,KNO_INT(0)},
+	 {"limit",kno_fixnum_type,KNO_VOID})
 static lispval text2frames(lispval pattern,lispval string,
 			   lispval offset,lispval limit)
 {
@@ -1815,17 +1967,23 @@ static int interpret_keep_arg(lispval keep_arg)
   else return 0;
 }
 
-DEFPRIM5("textslice",textslice,KNO_MAX_ARGS(5)|KNO_MIN_ARGS(2),
-	 "`(TEXTSLICE *string* *sep* [*keep*] [*start*] [*limit*])`\n"
-	 "Divides *string* (between *start* and *limit*) into segments "
-	 "separated by *sep*. If keep is #f (the default), the separators "
-	 "are discarded; if *keep* is `SEP`, they are included in the list "
-	 "of segments. If *sep* is `SUFFIX` the separated string is appended "
-	 "to the end of the preceding string; if *sep* is `PREFIX`, the "
-	 "separator string is prepended to the succeeding string.",
-	 kno_string_type,KNO_VOID,kno_any_type,KNO_VOID,
-	 kno_any_type,KNO_TRUE,kno_fixnum_type,KNO_CPP_INT(0),
-	 kno_fixnum_type,KNO_VOID);
+
+DEFCPRIM("textslice",textslice,
+ KNO_MAX_ARGS(5)|KNO_MIN_ARGS(2),
+ "`(TEXTSLICE *string* *sep* [*keep*] [*start*] [*limit*])`\n"
+ "Divides *string* (between *start* and *limit*) "
+ "into segments separated by *sep*. If keep is #f "
+ "(the default), the separators are discarded; if "
+ "*keep* is `SEP`, they are included in the list of "
+ "segments. If *sep* is `SUFFIX` the separated "
+ "string is appended to the end of the preceding "
+ "string; if *sep* is `PREFIX`, the separator "
+ "string is prepended to the succeeding string.",
+	 {"string",kno_string_type,KNO_VOID},
+	 {"sep",kno_any_type,KNO_VOID},
+	 {"keep_arg",kno_any_type,KNO_TRUE},
+	 {"offset",kno_fixnum_type,KNO_INT(0)},
+	 {"limit",kno_fixnum_type,KNO_VOID})
 static lispval textslice(lispval string,lispval sep,lispval keep_arg,
 			 lispval offset,lispval limit)
 {
@@ -1916,10 +2074,14 @@ static lispval textslice(lispval string,lispval sep,lispval keep_arg,
 
 /* Word has-suffix/prefix */
 
-DEFPRIM3("has-word-suffix?",has_word_suffix,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 "`(HAS-WORD-SUFFIX? *arg0* *arg1* [*arg2*])` **undocumented**",
-	 kno_string_type,KNO_VOID,kno_string_type,KNO_VOID,
-	 kno_any_type,KNO_VOID);
+
+DEFCPRIM("has-word-suffix?",has_word_suffix,
+ KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+ "`(HAS-WORD-SUFFIX? *arg0* *arg1* [*arg2*])` "
+ "**undocumented**",
+	 {"string",kno_string_type,KNO_VOID},
+	 {"suffix",kno_string_type,KNO_VOID},
+	 {"strictarg",kno_any_type,KNO_VOID})
 static lispval has_word_suffix(lispval string,lispval suffix,lispval strictarg)
 {
   int strict = (KNO_TRUEP(strictarg));
@@ -1944,10 +2106,14 @@ static lispval has_word_suffix(lispval string,lispval suffix,lispval strictarg)
     else return KNO_FALSE;}
 }
 
-DEFPRIM3("has-word-prefix?",has_word_prefix,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 "`(HAS-WORD-PREFIX? *arg0* *arg1* [*arg2*])` **undocumented**",
-	 kno_string_type,KNO_VOID,kno_string_type,KNO_VOID,
-	 kno_any_type,KNO_VOID);
+
+DEFCPRIM("has-word-prefix?",has_word_prefix,
+ KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+ "`(HAS-WORD-PREFIX? *arg0* *arg1* [*arg2*])` "
+ "**undocumented**",
+	 {"string",kno_string_type,KNO_VOID},
+	 {"prefix",kno_string_type,KNO_VOID},
+	 {"strictarg",kno_any_type,KNO_VOID})
 static lispval has_word_prefix(lispval string,lispval prefix,lispval strictarg)
 {
   int strict = (KNO_TRUEP(strictarg));
@@ -1968,9 +2134,13 @@ static lispval has_word_prefix(lispval string,lispval prefix,lispval strictarg)
     else return KNO_FALSE;}
 }
 
-DEFPRIM2("firstword",firstword_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "`(FIRSTWORD *arg0* [*arg1*])` **undocumented**",
-	 kno_string_type,KNO_VOID,kno_any_type,KNO_TRUE);
+
+DEFCPRIM("firstword",firstword_prim,
+ KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+ "`(FIRSTWORD *arg0* [*arg1*])` "
+ "**undocumented**",
+	 {"string",kno_string_type,KNO_VOID},
+	 {"sep",kno_any_type,KNO_TRUE})
 static lispval firstword_prim(lispval string,lispval sep)
 {
   u8_string string_data = CSTRING(string);
@@ -1990,9 +2160,13 @@ static lispval firstword_prim(lispval string,lispval sep)
 }
 
 static int match_end(lispval sep,u8_string data,int off,int lim);
-DEFPRIM2("lastword",lastword_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "`(LASTWORD *arg0* [*arg1*])` **undocumented**",
-	 kno_string_type,KNO_VOID,kno_any_type,KNO_TRUE);
+
+DEFCPRIM("lastword",lastword_prim,
+ KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+ "`(LASTWORD *arg0* [*arg1*])` "
+ "**undocumented**",
+	 {"string",kno_string_type,KNO_VOID},
+	 {"sep",kno_any_type,KNO_TRUE})
 static lispval lastword_prim(lispval string,lispval sep)
 {
   u8_string string_data = CSTRING(string);
@@ -2200,10 +2374,14 @@ static int proper_listp(lispval list)
   if (list == KNO_NIL) return 1; else return 0;
 }
 
-DEFPRIM3("morphrule",morphrule,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 "`(MORPHRULE *arg0* *arg1* [*arg2*])` **undocumented**",
-	 kno_string_type,KNO_VOID,kno_any_type,KNO_VOID,
-	 kno_any_type,KNO_TRUE);
+
+DEFCPRIM("morphrule",morphrule,
+ KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+ "`(MORPHRULE *arg0* *arg1* [*arg2*])` "
+ "**undocumented**",
+	 {"string",kno_string_type,KNO_VOID},
+	 {"rules",kno_any_type,KNO_VOID},
+	 {"lexicon",kno_any_type,KNO_TRUE})
 static lispval morphrule(lispval string,lispval rules,lispval lexicon)
 {
   if (KNO_CHOICEP(string)) {
@@ -2253,9 +2431,12 @@ static lispval textclosure_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     return closure;}
 }
 
-DEFPRIM1("textclosure?",textclosurep,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(TEXTCLOSURE? *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
+
+DEFCPRIM("textclosure?",textclosurep,
+ KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(TEXTCLOSURE? *arg0*)` "
+ "**undocumented**",
+	 {"arg",kno_any_type,KNO_VOID})
 static lispval textclosurep(lispval arg)
 {
   if (TYPEP(arg,kno_txclosure_type))
@@ -2265,9 +2446,13 @@ static lispval textclosurep(lispval arg)
 
 /* ISSUFFIX/ISPREFIX */
 
-DEFPRIM2("is-prefix?",is_prefix_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "`(IS-PREFIX? *arg0* *arg1*)` **undocumented**",
-	 kno_string_type,KNO_VOID,kno_string_type,KNO_VOID);
+
+DEFCPRIM("is-prefix?",is_prefix_prim,
+ KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+ "`(IS-PREFIX? *arg0* *arg1*)` "
+ "**undocumented**",
+	 {"prefix",kno_string_type,KNO_VOID},
+	 {"string",kno_string_type,KNO_VOID})
 static lispval is_prefix_prim(lispval prefix,lispval string)
 {
   int string_len = KNO_STRING_LENGTH(string);
@@ -2281,9 +2466,13 @@ static lispval is_prefix_prim(lispval prefix,lispval string)
     else return KNO_FALSE;}
 }
 
-DEFPRIM2("is-suffix?",is_suffix_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "`(IS-SUFFIX? *arg0* *arg1*)` **undocumented**",
-	 kno_string_type,KNO_VOID,kno_string_type,KNO_VOID);
+
+DEFCPRIM("is-suffix?",is_suffix_prim,
+ KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+ "`(IS-SUFFIX? *arg0* *arg1*)` "
+ "**undocumented**",
+	 {"suffix",kno_string_type,KNO_VOID},
+	 {"string",kno_string_type,KNO_VOID})
 static lispval is_suffix_prim(lispval suffix,lispval string)
 {
   int string_len = KNO_STRING_LENGTH(string);
@@ -2303,10 +2492,14 @@ static lispval is_suffix_prim(lispval suffix,lispval string)
 
 static ssize_t get_more_data(u8_input in,size_t lim);
 
-DEFPRIM3("read-match",read_match,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 "`(READ-MATCH *port* *pattern* [*limit*])` **undocumented**",
-	 kno_ioport_type,KNO_VOID,kno_any_type,KNO_VOID,
-	 kno_any_type,KNO_VOID);
+
+DEFCPRIM("read-match",read_match,
+ KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+ "`(READ-MATCH *port* *pattern* [*limit*])` "
+ "**undocumented**",
+	 {"port",kno_ioport_type,KNO_VOID},
+	 {"pat",kno_any_type,KNO_VOID},
+	 {"limit_arg",kno_any_type,KNO_VOID})
 static lispval read_match(lispval port,lispval pat,lispval limit_arg)
 {
   ssize_t lim;
@@ -2378,11 +2571,16 @@ static ssize_t get_more_data(u8_input in,size_t lim)
 
 /* Character-based escaped segmentation */
 
-DEFPRIM5("findsep",findsep_prim,KNO_MAX_ARGS(5)|KNO_MIN_ARGS(2),
-	 "`(FINDSEP *arg0* *arg1* [*arg2*] [*arg3*] [*arg4*])` **undocumented**",
-	 kno_string_type,KNO_VOID,kno_character_type,KNO_VOID,
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
-	 kno_character_type,KNO_CODE2CHAR('\\'));
+
+DEFCPRIM("findsep",findsep_prim,
+ KNO_MAX_ARGS(5)|KNO_MIN_ARGS(2),
+ "`(FINDSEP *arg0* *arg1* [*arg2*] [*arg3*] [*arg4*])` "
+ "**undocumented**",
+	 {"string",kno_string_type,KNO_VOID},
+	 {"sep",kno_character_type,KNO_VOID},
+	 {"offset",kno_any_type,KNO_VOID},
+	 {"limit",kno_any_type,KNO_VOID},
+	 {"esc",kno_character_type,KNO_CODE2CHAR('\\')})
 static lispval findsep_prim(lispval string,lispval sep,
 			    lispval offset,lispval limit,
 			    lispval esc)
@@ -2413,11 +2611,16 @@ static lispval findsep_prim(lispval string,lispval sep,
 
 /* Various custom parsing/extraction functions */
 
-DEFPRIM5("splitsep",splitsep_prim,KNO_MAX_ARGS(5)|KNO_MIN_ARGS(2),
-	 "`(SPLITSEP *arg0* *arg1* [*arg2*] [*arg3*] [*arg4*])` **undocumented**",
-	 kno_string_type,KNO_VOID,kno_character_type,KNO_VOID,
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
-	 kno_character_type,KNO_CODE2CHAR('\\'));
+
+DEFCPRIM("splitsep",splitsep_prim,
+ KNO_MAX_ARGS(5)|KNO_MIN_ARGS(2),
+ "`(SPLITSEP *arg0* *arg1* [*arg2*] [*arg3*] [*arg4*])` "
+ "**undocumented**",
+	 {"string",kno_string_type,KNO_VOID},
+	 {"sep",kno_character_type,KNO_VOID},
+	 {"offset",kno_any_type,KNO_VOID},
+	 {"limit",kno_any_type,KNO_VOID},
+	 {"esc",kno_character_type,KNO_CODE2CHAR('\\')})
 static lispval splitsep_prim(lispval string,lispval sep,
 			     lispval offset,lispval limit,
 			     lispval esc)
@@ -2456,10 +2659,15 @@ static lispval splitsep_prim(lispval string,lispval sep,
 static char *stdlib_escapes="ntrfab\\";
 static char *stdlib_unescaped="\n\t\r\f\a\b\\";
 
-DEFPRIM4("unslashify",unslashify_prim,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(1),
-	 "`(UNSLASHIFY *arg0* [*arg1*] [*arg2*] [*arg3*])` **undocumented**",
-	 kno_string_type,KNO_VOID,kno_any_type,KNO_VOID,
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_FALSE);
+
+DEFCPRIM("unslashify",unslashify_prim,
+ KNO_MAX_ARGS(4)|KNO_MIN_ARGS(1),
+ "`(UNSLASHIFY *arg0* [*arg1*] [*arg2*] [*arg3*])` "
+ "**undocumented**",
+	 {"string",kno_string_type,KNO_VOID},
+	 {"offset",kno_any_type,KNO_VOID},
+	 {"limit_arg",kno_any_type,KNO_VOID},
+	 {"dostd",kno_any_type,KNO_FALSE})
 static lispval unslashify_prim(lispval string,lispval offset,lispval limit_arg,
 			       lispval dostd)
 {
@@ -2496,9 +2704,13 @@ static lispval unslashify_prim(lispval string,lispval offset,lispval limit_arg,
 
 /* Phonetic prims */
 
-DEFPRIM2("soundex",soundex_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "`(SOUNDEX *arg0* [*arg1*])` **undocumented**",
-	 kno_string_type,KNO_VOID,kno_any_type,KNO_FALSE);
+
+DEFCPRIM("soundex",soundex_prim,
+ KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+ "`(SOUNDEX *arg0* [*arg1*])` "
+ "**undocumented**",
+	 {"string",kno_string_type,KNO_VOID},
+	 {"packetp",kno_any_type,KNO_FALSE})
 static lispval soundex_prim(lispval string,lispval packetp)
 {
   if (FALSEP(packetp))
@@ -2506,9 +2718,13 @@ static lispval soundex_prim(lispval string,lispval packetp)
   else return kno_init_packet(NULL,4,kno_soundex(CSTRING(string)));
 }
 
-DEFPRIM2("metaphone",metaphone_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "`(METAPHONE *arg0* [*arg1*])` **undocumented**",
-	 kno_string_type,KNO_VOID,kno_any_type,KNO_FALSE);
+
+DEFCPRIM("metaphone",metaphone_prim,
+ KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+ "`(METAPHONE *arg0* [*arg1*])` "
+ "**undocumented**",
+	 {"string",kno_string_type,KNO_VOID},
+	 {"packetp",kno_any_type,KNO_FALSE})
 static lispval metaphone_prim(lispval string,lispval packetp)
 {
   if (FALSEP(packetp))
@@ -2518,9 +2734,13 @@ static lispval metaphone_prim(lispval string,lispval packetp)
     return kno_init_packet(NULL,strlen(dblm),dblm);}
 }
 
-DEFPRIM2("metaphone+",metaphone_plus_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "`(METAPHONE+ *arg0* [*arg1*])` **undocumented**",
-	 kno_string_type,KNO_VOID,kno_any_type,KNO_FALSE);
+
+DEFCPRIM("metaphone+",metaphone_plus_prim,
+ KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+ "`(METAPHONE+ *arg0* [*arg1*])` "
+ "**undocumented**",
+	 {"string",kno_string_type,KNO_VOID},
+	 {"packetp",kno_any_type,KNO_FALSE})
 static lispval metaphone_plus_prim(lispval string,lispval packetp)
 {
   if (FALSEP(packetp))
@@ -2532,9 +2752,12 @@ static lispval metaphone_plus_prim(lispval string,lispval packetp)
 
 /* Digest functions */
 
-DEFPRIM1("md5",md5_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(MD5 *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
+
+DEFCPRIM("md5",md5_prim,
+ KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(MD5 *arg0*)` "
+ "**undocumented**",
+	 {"input",kno_any_type,KNO_VOID})
 static lispval md5_prim(lispval input)
 {
   unsigned char *digest = NULL;
@@ -2554,9 +2777,12 @@ static lispval md5_prim(lispval input)
 
 }
 
-DEFPRIM1("sha1",sha1_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(SHA1 *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
+
+DEFCPRIM("sha1",sha1_prim,
+ KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(SHA1 *arg0*)` "
+ "**undocumented**",
+	 {"input",kno_any_type,KNO_VOID})
 static lispval sha1_prim(lispval input)
 {
   unsigned char *digest = NULL;
@@ -2576,9 +2802,12 @@ static lispval sha1_prim(lispval input)
 
 }
 
-DEFPRIM1("sha256",sha256_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(SHA256 *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
+
+DEFCPRIM("sha256",sha256_prim,
+ KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(SHA256 *arg0*)` "
+ "**undocumented**",
+	 {"input",kno_any_type,KNO_VOID})
 static lispval sha256_prim(lispval input)
 {
   unsigned char *digest = NULL;
@@ -2598,9 +2827,12 @@ static lispval sha256_prim(lispval input)
 
 }
 
-DEFPRIM1("sha384",sha384_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(SHA384 *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
+
+DEFCPRIM("sha384",sha384_prim,
+ KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(SHA384 *arg0*)` "
+ "**undocumented**",
+	 {"input",kno_any_type,KNO_VOID})
 static lispval sha384_prim(lispval input)
 {
   unsigned char *digest = NULL;
@@ -2620,9 +2852,12 @@ static lispval sha384_prim(lispval input)
 
 }
 
-DEFPRIM1("sha512",sha512_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(SHA512 *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
+
+DEFCPRIM("sha512",sha512_prim,
+ KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(SHA512 *arg0*)` "
+ "**undocumented**",
+	 {"input",kno_any_type,KNO_VOID})
 static lispval sha512_prim(lispval input)
 {
   unsigned char *digest = NULL;
@@ -2642,9 +2877,13 @@ static lispval sha512_prim(lispval input)
 
 }
 
-DEFPRIM2("hmac-sha1",hmac_sha1_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "`(HMAC-SHA1 *arg0* *arg1*)` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+
+DEFCPRIM("hmac-sha1",hmac_sha1_prim,
+ KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+ "`(HMAC-SHA1 *arg0* *arg1*)` "
+ "**undocumented**",
+	 {"key",kno_any_type,KNO_VOID},
+	 {"input",kno_any_type,KNO_VOID})
 static lispval hmac_sha1_prim(lispval key,lispval input)
 {
   const unsigned char *data, *keydata, *digest = NULL;
@@ -2676,9 +2915,13 @@ static lispval hmac_sha1_prim(lispval key,lispval input)
   else return kno_init_packet(NULL,digest_len,digest);
 }
 
-DEFPRIM2("hmac-sha256",hmac_sha256_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "`(HMAC-SHA256 *arg0* *arg1*)` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+
+DEFCPRIM("hmac-sha256",hmac_sha256_prim,
+ KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+ "`(HMAC-SHA256 *arg0* *arg1*)` "
+ "**undocumented**",
+	 {"key",kno_any_type,KNO_VOID},
+	 {"input",kno_any_type,KNO_VOID})
 static lispval hmac_sha256_prim(lispval key,lispval input)
 {
   const unsigned char *data, *keydata, *digest = NULL;
@@ -2710,9 +2953,13 @@ static lispval hmac_sha256_prim(lispval key,lispval input)
   else return kno_init_packet(NULL,digest_len,digest);
 }
 
-DEFPRIM2("hmac-sha384",hmac_sha384_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "`(HMAC-SHA384 *arg0* *arg1*)` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+
+DEFCPRIM("hmac-sha384",hmac_sha384_prim,
+ KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+ "`(HMAC-SHA384 *arg0* *arg1*)` "
+ "**undocumented**",
+	 {"key",kno_any_type,KNO_VOID},
+	 {"input",kno_any_type,KNO_VOID})
 static lispval hmac_sha384_prim(lispval key,lispval input)
 {
   const unsigned char *data, *keydata, *digest = NULL;
@@ -2744,9 +2991,13 @@ static lispval hmac_sha384_prim(lispval key,lispval input)
   else return kno_init_packet(NULL,digest_len,digest);
 }
 
-DEFPRIM2("hmac-sha512",hmac_sha512_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "`(HMAC-SHA512 *arg0* *arg1*)` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+
+DEFCPRIM("hmac-sha512",hmac_sha512_prim,
+ KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+ "`(HMAC-SHA512 *arg0* *arg1*)` "
+ "**undocumented**",
+	 {"key",kno_any_type,KNO_VOID},
+	 {"input",kno_any_type,KNO_VOID})
 static lispval hmac_sha512_prim(lispval key,lispval input)
 {
   const unsigned char *data, *keydata, *digest = NULL;
@@ -2780,9 +3031,13 @@ static lispval hmac_sha512_prim(lispval key,lispval input)
 
 /* Match def */
 
-DEFPRIM2("matchdef!",matchdef_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "`(MATCHDEF! *arg0* *arg1*)` **undocumented**",
-	 kno_symbol_type,KNO_VOID,kno_any_type,KNO_VOID);
+
+DEFCPRIM("matchdef!",matchdef_prim,
+ KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+ "`(MATCHDEF! *arg0* *arg1*)` "
+ "**undocumented**",
+	 {"symbol",kno_symbol_type,KNO_VOID},
+	 {"value",kno_any_type,KNO_VOID})
 static lispval matchdef_prim(lispval symbol,lispval value)
 {
   int retval = kno_matchdef(symbol,value);
@@ -2818,68 +3073,68 @@ void kno_init_texttools()
 
 static void link_local_cprims()
 {
-  KNO_LINK_PRIM("matchdef!",matchdef_prim,2,texttools_module);
-  KNO_LINK_PRIM("hmac-sha512",hmac_sha512_prim,2,texttools_module);
-  KNO_LINK_PRIM("hmac-sha384",hmac_sha384_prim,2,texttools_module);
-  KNO_LINK_PRIM("hmac-sha256",hmac_sha256_prim,2,texttools_module);
-  KNO_LINK_PRIM("hmac-sha1",hmac_sha1_prim,2,texttools_module);
-  KNO_LINK_PRIM("sha512",sha512_prim,1,texttools_module);
-  KNO_LINK_PRIM("sha384",sha384_prim,1,texttools_module);
-  KNO_LINK_PRIM("sha256",sha256_prim,1,texttools_module);
-  KNO_LINK_PRIM("sha1",sha1_prim,1,texttools_module);
-  KNO_LINK_PRIM("md5",md5_prim,1,texttools_module);
-  KNO_LINK_PRIM("metaphone+",metaphone_plus_prim,2,texttools_module);
-  KNO_LINK_PRIM("metaphone",metaphone_prim,2,texttools_module);
-  KNO_LINK_PRIM("soundex",soundex_prim,2,texttools_module);
-  KNO_LINK_PRIM("unslashify",unslashify_prim,4,texttools_module);
-  KNO_LINK_PRIM("splitsep",splitsep_prim,5,texttools_module);
-  KNO_LINK_PRIM("findsep",findsep_prim,5,texttools_module);
-  KNO_LINK_PRIM("read-match",read_match,3,texttools_module);
-  KNO_LINK_PRIM("is-suffix?",is_suffix_prim,2,texttools_module);
-  KNO_LINK_PRIM("is-prefix?",is_prefix_prim,2,texttools_module);
-  KNO_LINK_PRIM("textclosure?",textclosurep,1,texttools_module);
-  KNO_LINK_PRIM("morphrule",morphrule,3,texttools_module);
-  KNO_LINK_PRIM("lastword",lastword_prim,2,texttools_module);
-  KNO_LINK_PRIM("firstword",firstword_prim,2,texttools_module);
-  KNO_LINK_PRIM("has-word-prefix?",has_word_prefix,3,texttools_module);
-  KNO_LINK_PRIM("has-word-suffix?",has_word_suffix,3,texttools_module);
-  KNO_LINK_PRIM("textslice",textslice,5,texttools_module);
-  KNO_LINK_PRIM("text->frames",text2frames,4,texttools_module);
-  KNO_LINK_PRIM("text->frame",text2frame,4,texttools_module);
-  KNO_LINK_PRIM("string-ends-with?",string_ends_with,4,texttools_module);
-  KNO_LINK_PRIM("string-starts-with?",string_starts_with,4,texttools_module);
-  KNO_LINK_PRIM("string-contains?",string_contains,4,texttools_module);
-  KNO_LINK_PRIM("string-matches?",string_matches,4,texttools_module);
-  KNO_LINK_PRIM("textfilter",textfilter,2,texttools_module);
-  KNO_LINK_PRIM("gathersubst*",gathersubst_star,4,texttools_module);
-  KNO_LINK_PRIM("gathersubst",gathersubst,4,texttools_module);
-  KNO_LINK_PRIM("textsubst",textsubst,5,texttools_module);
-  KNO_LINK_PRIM("textrewrite",textrewrite,4,texttools_module);
-  KNO_LINK_PRIM("gather->list",textgather2list,4,texttools_module);
-  KNO_LINK_PRIM("gather*",textgather_star,4,texttools_module);
-  KNO_LINK_PRIM("gather",textgather,4,texttools_module);
-  KNO_LINK_PRIM("textract",textract,4,texttools_module);
-  KNO_LINK_PRIM("textsearch",textsearch,4,texttools_module);
-  KNO_LINK_PRIM("textmatch",textmatch,4,texttools_module);
-  KNO_LINK_PRIM("textmatcher",textmatcher,4,texttools_module);
-  KNO_LINK_PRIM("columnize",columnize_prim,3,texttools_module);
-  KNO_LINK_PRIM("strip-markup",strip_markup,2,texttools_module);
-  KNO_LINK_PRIM("depunct",depunct,1,texttools_module);
-  KNO_LINK_PRIM("disemvowel",disemvowel,2,texttools_module);
-  KNO_LINK_PRIM("porter-stem",stem_prim,1,texttools_module);
-  KNO_LINK_PRIM("markup%",ismarkup_percentage,1,texttools_module);
-  KNO_LINK_PRIM("count-words",count_words,1,texttools_module);
-  KNO_LINK_PRIM("isalphalen",isalphalen,1,texttools_module);
-  KNO_LINK_PRIM("isalpha%",isalpha_percentage,1,texttools_module);
-  KNO_LINK_PRIM("isspace%",isspace_percentage,1,texttools_module);
-  KNO_LINK_PRIM("seq->phrase",seq2phrase_prim,3,texttools_module);
-  KNO_LINK_PRIM("list->phrase",list2phrase_prim,1,texttools_module);
-  KNO_LINK_PRIM("vector->frags",vector2frags_prim,3,texttools_module);
-  KNO_LINK_PRIM("words->vector",getwordsv_prim,2,texttools_module);
-  KNO_LINK_PRIM("getwords",getwords_prim,2,texttools_module);
-  KNO_LINK_PRIM("encode-entities",encode_entities_prim,3,texttools_module);
-  KNO_LINK_PRIM("decode-entities",decode_entities_prim,1,texttools_module);
-  KNO_LINK_PRIM("segment",segment_prim,2,texttools_module);
+  KNO_LINK_CPRIM("matchdef!",matchdef_prim,2,texttools_module);
+  KNO_LINK_CPRIM("hmac-sha512",hmac_sha512_prim,2,texttools_module);
+  KNO_LINK_CPRIM("hmac-sha384",hmac_sha384_prim,2,texttools_module);
+  KNO_LINK_CPRIM("hmac-sha256",hmac_sha256_prim,2,texttools_module);
+  KNO_LINK_CPRIM("hmac-sha1",hmac_sha1_prim,2,texttools_module);
+  KNO_LINK_CPRIM("sha512",sha512_prim,1,texttools_module);
+  KNO_LINK_CPRIM("sha384",sha384_prim,1,texttools_module);
+  KNO_LINK_CPRIM("sha256",sha256_prim,1,texttools_module);
+  KNO_LINK_CPRIM("sha1",sha1_prim,1,texttools_module);
+  KNO_LINK_CPRIM("md5",md5_prim,1,texttools_module);
+  KNO_LINK_CPRIM("metaphone+",metaphone_plus_prim,2,texttools_module);
+  KNO_LINK_CPRIM("metaphone",metaphone_prim,2,texttools_module);
+  KNO_LINK_CPRIM("soundex",soundex_prim,2,texttools_module);
+  KNO_LINK_CPRIM("unslashify",unslashify_prim,4,texttools_module);
+  KNO_LINK_CPRIM("splitsep",splitsep_prim,5,texttools_module);
+  KNO_LINK_CPRIM("findsep",findsep_prim,5,texttools_module);
+  KNO_LINK_CPRIM("read-match",read_match,3,texttools_module);
+  KNO_LINK_CPRIM("is-suffix?",is_suffix_prim,2,texttools_module);
+  KNO_LINK_CPRIM("is-prefix?",is_prefix_prim,2,texttools_module);
+  KNO_LINK_CPRIM("textclosure?",textclosurep,1,texttools_module);
+  KNO_LINK_CPRIM("morphrule",morphrule,3,texttools_module);
+  KNO_LINK_CPRIM("lastword",lastword_prim,2,texttools_module);
+  KNO_LINK_CPRIM("firstword",firstword_prim,2,texttools_module);
+  KNO_LINK_CPRIM("has-word-prefix?",has_word_prefix,3,texttools_module);
+  KNO_LINK_CPRIM("has-word-suffix?",has_word_suffix,3,texttools_module);
+  KNO_LINK_CPRIM("textslice",textslice,5,texttools_module);
+  KNO_LINK_CPRIM("text->frames",text2frames,4,texttools_module);
+  KNO_LINK_CPRIM("text->frame",text2frame,4,texttools_module);
+  KNO_LINK_CPRIM("string-ends-with?",string_ends_with,4,texttools_module);
+  KNO_LINK_CPRIM("string-starts-with?",string_starts_with,4,texttools_module);
+  KNO_LINK_CPRIM("string-contains?",string_contains,4,texttools_module);
+  KNO_LINK_CPRIM("string-matches?",string_matches,4,texttools_module);
+  KNO_LINK_CPRIM("textfilter",textfilter,2,texttools_module);
+  KNO_LINK_CPRIM("gathersubst*",gathersubst_star,4,texttools_module);
+  KNO_LINK_CPRIM("gathersubst",gathersubst,4,texttools_module);
+  KNO_LINK_CPRIM("textsubst",textsubst,5,texttools_module);
+  KNO_LINK_CPRIM("textrewrite",textrewrite,4,texttools_module);
+  KNO_LINK_CPRIM("gather->list",textgather2list,4,texttools_module);
+  KNO_LINK_CPRIM("gather*",textgather_star,4,texttools_module);
+  KNO_LINK_CPRIM("gather",textgather,4,texttools_module);
+  KNO_LINK_CPRIM("textract",textract,4,texttools_module);
+  KNO_LINK_CPRIM("textsearch",textsearch,4,texttools_module);
+  KNO_LINK_CPRIM("textmatch",textmatch,4,texttools_module);
+  KNO_LINK_CPRIM("textmatcher",textmatcher,4,texttools_module);
+  KNO_LINK_CPRIM("columnize",columnize_prim,3,texttools_module);
+  KNO_LINK_CPRIM("strip-markup",strip_markup,2,texttools_module);
+  KNO_LINK_CPRIM("depunct",depunct,1,texttools_module);
+  KNO_LINK_CPRIM("disemvowel",disemvowel,2,texttools_module);
+  KNO_LINK_CPRIM("porter-stem",stem_prim,1,texttools_module);
+  KNO_LINK_CPRIM("markup%",ismarkup_percentage,1,texttools_module);
+  KNO_LINK_CPRIM("count-words",count_words,1,texttools_module);
+  KNO_LINK_CPRIM("isalphalen",isalphalen,1,texttools_module);
+  KNO_LINK_CPRIM("isalpha%",isalpha_percentage,1,texttools_module);
+  KNO_LINK_CPRIM("isspace%",isspace_percentage,1,texttools_module);
+  KNO_LINK_CPRIM("seq->phrase",seq2phrase_prim,3,texttools_module);
+  KNO_LINK_CPRIM("list->phrase",list2phrase_prim,1,texttools_module);
+  KNO_LINK_CPRIM("vector->frags",vector2frags_prim,3,texttools_module);
+  KNO_LINK_CPRIM("words->vector",getwordsv_prim,2,texttools_module);
+  KNO_LINK_CPRIM("getwords",getwords_prim,2,texttools_module);
+  KNO_LINK_CPRIM("encode-entities",encode_entities_prim,3,texttools_module);
+  KNO_LINK_CPRIM("decode-entities",decode_entities_prim,1,texttools_module);
+  KNO_LINK_CPRIM("segment",segment_prim,2,texttools_module);
 
   KNO_LINK_ALIAS("gather->seq",textgather2list,texttools_module);
 }

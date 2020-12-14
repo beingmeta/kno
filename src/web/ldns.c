@@ -81,9 +81,13 @@ static lispval rdf2lisp ( ldns_rdf *field )
   }
 }
 
-DEFPRIM2("dns/get",dns_query,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "`(DNS/GET *arg0* [*arg1*])` **undocumented**",
-	 kno_string_type,KNO_VOID,kno_symbol_type,KNO_VOID);
+
+DEFCPRIM("dns/get",dns_query,
+ KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+ "`(DNS/GET *arg0* [*arg1*])` "
+ "**undocumented**",
+	 {"domain_arg",kno_string_type,KNO_VOID},
+	 {"type_arg",kno_symbol_type,KNO_VOID})
 static lispval dns_query(lispval domain_arg,lispval type_arg)
 {
   lispval results = EMPTY;
@@ -148,5 +152,5 @@ KNO_EXPORT void kno_init_dns_c()
 
 static void link_local_cprims()
 {
-  KNO_LINK_PRIM("dns/get",dns_query,2,webtools_module);
+  KNO_LINK_CPRIM("dns/get",dns_query,2,webtools_module);
 }

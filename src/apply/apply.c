@@ -12,6 +12,7 @@
 #define KNO_INLINE_FCNIDS 1
 #define KNO_INLINE_STACKS 1
 #define KNO_INLINE_LEXENV 1
+#define KNO_INLINE_XTYPEP 1
 #define KNO_INLINE_APPLY  1
 
 #include "kno/knosource.h"

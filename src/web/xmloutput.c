@@ -154,9 +154,12 @@ KNO_EXPORT void kno_emit_xmlattrib
   return emit_xmlattrib(out,tmp,name,value,lower);
 }
 
-DEFPRIM1("xmlify",xmlify,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-         "`(XMLIFY *arg0*)` **undocumented**",
-         kno_any_type,KNO_VOID);
+
+DEFCPRIM("xmlify",xmlify,
+ KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(XMLIFY *arg0*)` "
+ "**undocumented**",
+	 {"value",kno_any_type,KNO_VOID})
 static lispval xmlify(lispval value)
 {
   if (STRINGP(value))
@@ -402,8 +405,11 @@ static lispval raw_xhtml_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   return VOID;
 }
 
-DEFPRIM("nbsp",nbsp_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-        "`(NBSP)` **undocumented**");
+
+DEFCPRIM("nbsp",nbsp_prim,
+ KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+ "`(NBSP)` "
+ "**undocumented**")
 static lispval nbsp_prim()
 {
   U8_OUTPUT *out = u8_current_output;
@@ -411,8 +417,11 @@ static lispval nbsp_prim()
   return VOID;
 }
 
-DEFPRIM("xmlempty",xmlemptyelt,KNO_VAR_ARGS|KNO_MIN_ARGS(0)|KNO_NDCALL,
-        "`(XMLEMPTY *args...*)` **undocumented**");
+
+DEFCPRIMN("xmlempty",xmlemptyelt,
+	  KNO_VAR_ARGS|KNO_MIN_ARGS(0)|KNO_NDCALL,
+	  "`(XMLEMPTY *args...*)` "
+	  "**undocumented**")
 static lispval xmlemptyelt(int n,kno_argvec args)
 {
   U8_OUTPUT *out = u8_current_output;
@@ -487,9 +496,12 @@ static lispval xmlstart_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     return VOID;}
 }
 
-DEFPRIM1("xmlend",xmlend_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-         "`(XMLEND *arg0*)` **undocumented**",
-         kno_any_type,KNO_VOID);
+
+DEFCPRIM("xmlend",xmlend_prim,
+ KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(XMLEND *arg0*)` "
+ "**undocumented**",
+	 {"head",kno_any_type,KNO_VOID})
 static lispval xmlend_prim(lispval head)
 {
   U8_OUTPUT *out = u8_current_output;
@@ -925,9 +937,12 @@ KNO_EXPORT void kno_xmloid(u8_output out,lispval arg)
   kno_decref(browseinfo);
 }
 
-DEFPRIM1("%xmloid",xmloid,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-         "`(%XMLOID *arg0*)` **undocumented**",
-         kno_any_type,KNO_VOID);
+
+DEFCPRIM("%xmloid",xmloid,
+ KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(%XMLOID *arg0*)` "
+ "**undocumented**",
+	 {"oid_arg",kno_any_type,KNO_VOID})
 static lispval xmloid(lispval oid_arg)
 {
   kno_xmloid(NULL,oid_arg);
@@ -981,10 +996,14 @@ static lispval xmleval_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   }
 }
 
-DEFPRIM3("xml->string",xml2string_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
-         "`(XML->STRING *arg0* [*arg1*] [*arg2*])` **undocumented**",
-         kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
-         kno_any_type,KNO_VOID);
+
+DEFCPRIM("xml->string",xml2string_prim,
+ KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
+ "`(XML->STRING *arg0* [*arg1*] [*arg2*])` "
+ "**undocumented**",
+	 {"xml",kno_any_type,KNO_VOID},
+	 {"env_arg",kno_any_type,KNO_VOID},
+	 {"xml_env_arg",kno_any_type,KNO_VOID})
 static lispval xml2string_prim(lispval xml,lispval env_arg,lispval xml_env_arg)
 {
   if (!((VOIDP(env_arg)) || (FALSEP(env_arg)) ||
@@ -1022,9 +1041,12 @@ static lispval xmlopen_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     else return VOID;}
 }
 
-DEFPRIM1("xmlclose",xmlclose_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-         "`(XMLCLOSE *arg0*)` **undocumented**",
-         kno_any_type,KNO_VOID);
+
+DEFCPRIM("xmlclose",xmlclose_prim,
+ KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+ "`(XMLCLOSE *arg0*)` "
+ "**undocumented**",
+	 {"arg",kno_any_type,KNO_VOID})
 static lispval xmlclose_prim(lispval arg)
 {
   if (!(TABLEP(arg)))
@@ -1327,13 +1349,13 @@ KNO_EXPORT void kno_init_xmloutput_c()
 
 static void link_local_cprims()
 {
-  KNO_LINK_PRIM("xmlclose",xmlclose_prim,1,webtools_module);
-  KNO_LINK_PRIM("xml->string",xml2string_prim,3,webtools_module);
-  KNO_LINK_PRIM("xmlend",xmlend_prim,1,webtools_module);
-  KNO_LINK_VARARGS("xmlempty",xmlemptyelt,webtools_module);
-  KNO_LINK_PRIM("xmlify",xmlify,1,webtools_module);
+  KNO_LINK_CPRIM("xmlclose",xmlclose_prim,1,webtools_module);
+  KNO_LINK_CPRIM("xml->string",xml2string_prim,3,webtools_module);
+  KNO_LINK_CPRIM("xmlend",xmlend_prim,1,webtools_module);
+  KNO_LINK_CVARARGS("xmlempty",xmlemptyelt,webtools_module);
+  KNO_LINK_CPRIM("xmlify",xmlify,1,webtools_module);
 
-  KNO_LINK_PRIM("%xmloid",xmloid,1,xhtml_module);
-  KNO_LINK_PRIM("nbsp",nbsp_prim,0,xhtml_module);
+  KNO_LINK_CPRIM("%xmloid",xmloid,1,xhtml_module);
+  KNO_LINK_CPRIM("nbsp",nbsp_prim,0,xhtml_module);
 
 }

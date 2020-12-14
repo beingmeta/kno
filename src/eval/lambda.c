@@ -34,24 +34,6 @@ int kno_record_source=1;
 
 static lispval tail_symbol, decls_symbol, flags_symbol;
 
-#if 0
-static u8_string lambda_id(struct KNO_LAMBDA *fn)
-{
-  if ((fn->fcn_name)&&(fn->fcn_filename))
-    return u8_mkstring("%s:%s",fn->fcn_name,fn->fcn_filename);
-  else if (fn->fcn_name)
-    return u8_strdup(fn->fcn_name);
-  else if (fn->fcn_filename)
-    return u8_mkstring("λ%lx:%s",
-                       ((unsigned long)
-                        ((KNO_LONGVAL(fn))&0xFFFFFFFF)),
-                       fn->fcn_filename);
-  else return u8_mkstring("λ%lx",
-                          ((unsigned long)
-                           ((KNO_LONGVAL(fn))&0xFFFFFFFF)));
-}
-#endif
-
 static int add_autodocp(u8_string s)
 {
   if (s == NULL)
@@ -131,6 +113,8 @@ KNO_EXPORT int kno_set_lambda_schema(struct KNO_LAMBDA *s,lispval args)
     lispval *inits = s->lambda_inits = (has_inits) ?
       (u8_alloc_n((n_vars),lispval)) :
       (NULL);
+    s->fcn_arginfo_len = n_vars;
+    s->fcn_schema = schema;
     i = 0; scan = args; while (PAIRP(scan)) {
       lispval arg = KNO_CAR(scan);
       if (KNO_PAIRP(arg)) {
@@ -153,8 +137,6 @@ KNO_EXPORT int kno_set_lambda_schema(struct KNO_LAMBDA *s,lispval args)
   s->fcn_call_width = s->lambda_n_vars = n_vars;
   s->fcn_arity = arity;
   s->fcn_min_arity = min_arity;
-  s->fcn_arginfo_len = 0;
-  s->fcn_arginfo = NULL;
   if (cur_vars) u8_free(cur_vars);
   if (cur_inits) {
     kno_decref_vec(cur_inits,n_cur);
@@ -820,10 +802,14 @@ static lispval xapplygetval(void *xobj,lispval var)
   else return kno_err("InternalXapplyBug","xapplygetval",NULL,fn_obj);
 }
 
-DEFPRIM3("xapply",xapply_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-         "`(XAPPLY *arg0* *arg1* [*arg2*])` **undocumented**",
-         kno_lambda_type,KNO_VOID,kno_any_type,KNO_VOID,
-         kno_any_type,KNO_VOID);
+
+DEFCPRIM("xapply",xapply_prim,
+	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+	 "`(XAPPLY *arg0* *arg1* [*arg2*])` "
+	 "**undocumented**",
+	 {"proc",kno_lambda_type,KNO_VOID},
+	 {"obj",kno_any_type,KNO_VOID},
+	 {"getfn",kno_any_type,KNO_VOID})
 static lispval xapply_prim(lispval proc,lispval obj,lispval getfn)
 {
   struct KNO_LAMBDA *lambda = kno_consptr(kno_lambda,proc,kno_lambda_type);
@@ -1044,5 +1030,5 @@ KNO_EXPORT void kno_init_lambdas_c()
 static void link_local_cprims()
 {
   lispval scheme_module = kno_scheme_module;
-  KNO_LINK_PRIM("xapply",xapply_prim,3,scheme_module);
+  KNO_LINK_CPRIM("xapply",xapply_prim,3,scheme_module);
 }
