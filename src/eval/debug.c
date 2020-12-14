@@ -51,7 +51,7 @@ static lispval unquote_symbol, else_symbol, apply_marker, logcxt_symbol;
 /* Trace functions */
 
 KNO_DEF_EVALFN("TIMEVAL",timed_eval_evalfn,
-	       "`(TIMEVAL *expr* [*env*])` evaluates *expr* in *env*, logging "
+	       "evaluates *expr* in *env*, logging "
 	       "the execution time.");
 static lispval timed_eval_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
 {
@@ -65,7 +65,7 @@ static lispval timed_eval_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
 }
 
 KNO_DEF_EVALFN("%TIMEVAL",timed_evalx_evalfn,
-	       "`(%TIMEVAL *expr* [*env*])` evaluates *expr* in *env*, "
+	       "evaluates *expr* in *env*, "
 	       "returning a vector of the result and the execution time. "
 	       "If *expr* signals an error, the description exception object "
 	       "is used as the value");
@@ -195,7 +195,7 @@ static lispval watchcall(lispval expr,kno_lexenv env,
 }
 
 KNO_DEF_EVALFN("%wc",watchcall_evalfn,
-	       "`(%WC *fn* *args...*)` applies *fn* to *args*, logging "
+	       "applies *fn* to *args*, logging "
 	       "each *arg* (and its value) as well as the final result of "
 	       "applying *fn*.");
 static lispval watchcall_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
@@ -203,7 +203,7 @@ static lispval watchcall_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   return watchcall(expr,env,_stack,0);
 }
 KNO_DEF_EVALFN("%wc+",watchcall_plus_evalfn,
-	       "`(%WC+ *fn* *args...*)` applies *fn* to *args*, logging "
+	       "applies *fn* to *args*, logging "
 	       "each *arg* (and its value) as well as the final result of "
 	       "applying *fn*. This also displays the expression for *fn* "
 	       "and the resulting function *objects* which are applied.");
@@ -258,7 +258,7 @@ static void log_ptr(lispval val,lispval label_arg,lispval expr)
 	   (unsigned long long)(KNO_OID_LO(addr)),
 	   val,expr);}
   else if (KNO_STATICP(val)) {
-    kno_lisp_type ptype = KNO_CONS_TYPE((kno_cons)val);
+    kno_lisp_type ptype = KNO_CONS_TYPEOF((kno_cons)val);
     u8_string type_name = kno_lisp_typename(ptype);
     u8_log(U8_LOG_MSG,"Pointer/Static",
 	   "%s%s%s0x%llx [ T0x%llx(%s) ] %q <= %q",
@@ -268,7 +268,7 @@ static void log_ptr(lispval val,lispval label_arg,lispval expr)
 	   val,expr);}
   else if (CONSP(val)) {
     kno_cons c = (kno_cons) val;
-    kno_lisp_type ptype = KNO_CONS_TYPE(c);
+    kno_lisp_type ptype = KNO_CONS_TYPEOF(c);
     u8_string type_name = kno_lisp_typename(ptype);
     unsigned int refcount = KNO_CONS_REFCOUNT(c);
     u8_log(U8_LOG_MSG,"Pointer/Consed",
@@ -281,7 +281,7 @@ static void log_ptr(lispval val,lispval label_arg,lispval expr)
 }
 
 KNO_DEF_EVALFN("%watchptr",watchptr_evalfn,
-	       "`(%watchptr *arg*)` evaluates *arg* and describes the "
+	       "evaluates *arg* and describes the "
 	       "resulting pointer value.");
 static lispval watchptr_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
@@ -292,7 +292,7 @@ static lispval watchptr_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 }
 
 KNO_DEF_EVALFN("%watchcons",watchcons_evalfn,
-	       "`(%watchcons *ptrval* *exprs...*)` evaluates *exprs...* "
+	       "evaluates *exprs...* "
 	       "reporting any changes to the reference count data for the "
 	       "result of evaluating *ptrval*.");
 static lispval watchcons_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
@@ -338,11 +338,13 @@ static lispval watchcons_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   return kno_eval_body(body,env,_stack,"%WATCHCONS",label,0);
 }
 
-DEFPRIM2("%watchptrval",watchptr_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 "`(%watchptrval *ptrval* [*arg1*])` Describes the Kno pointer "
-	 "characteristics of *ptrval*, using a label string dervied "
-	 "from *label* if provided",
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+DEFCPRIM("%watchptrval",watchptr_prim,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+	 "Describes the Kno pointer characteristics of "
+	 "*ptrval*, using a label string dervied from "
+	 "*label* if provided",
+	 {"val",kno_any_type,KNO_VOID},
+	 {"label_arg",kno_any_type,KNO_VOID})
 static lispval watchptr_prim(lispval val,lispval label_arg)
 {
   log_ptr(val,label_arg,KNO_VOID);
@@ -350,7 +352,6 @@ static lispval watchptr_prim(lispval val,lispval label_arg)
 }
 
 KNO_DEF_XEVALFN("%watch",watch_evalfn,KNO_EVALFN_NOTAIL,
-		"`(%WATCH [*expr*|*label*] [*expr* | *valname* *expr*]+)` "
 		"logs information from the  current environment. Unless the "
 		"first argument is a literal string, it is evaluated and "
 		"both the expression and result are logged. Any remaining "
@@ -620,7 +621,7 @@ KNO_EXPORT lispval _kno_dbg(lispval x)
 int (*kno_dump_exception)(lispval ex);
 
 KNO_DEF_EVALFN("dbg",dbg_evalfn,
-	       "`(DBG *expr* *etc*)` evaluates *expr* and returns its value. "
+	       "evaluates *expr* and returns its value. "
 	       "Unless the value of *etc* is false (#f), This logs the value "
 	       "returned, any non-void result of evaluating *etc*, "
 	       "and a description of the value's underlying KNO pointer "
@@ -646,7 +647,7 @@ static lispval dbg_evalfn(lispval dbg_expr,kno_lexenv env,kno_stack stack)
 }
 
 KNO_DEF_EVALFN("dbgeval",dbgeval_evalfn,
-	       "`(DBGEVAL *expr* *etc*)` evaluates *expr* returning its value. "
+	       "evaluates *expr* returning its value. "
 	       "Unless the value of *etc* is false (#f), This logs the value "
 	       "returned, any non-void result of evaluating *etc*, "
 	       "and a description of the value's underlying KNO pointer "
@@ -733,14 +734,16 @@ KNO_EXPORT int kno_record_bug(lispval ex)
   else return kno_dump_bug(ex,kno_bugdir);
 }
 
-DEFPRIM2("dump-bug",dumpbug_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+DEFCPRIM("dump-bug",dumpbug_prim,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "(DUMP-BUG *err* [*to*]) "
 	 "writes a DType representation of *err* to either "
 	 "*to* or the configured BUGDIR. If *err* is #t, "
 	 "returns a packet of the representation. Without "
 	 "*to* or if *to* is #f or #default, writes the "
 	 "exception into either './errors/' or './'",
-	 kno_exception_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 {"ex",kno_exception_type,KNO_VOID},
+	 {"where",kno_any_type,KNO_VOID})
 static lispval dumpbug_prim(lispval ex,lispval where)
 {
   if (KNO_TRUEP(where)) {
@@ -820,7 +823,7 @@ static int config_bugdir(lispval var,lispval val,void *state)
 
 #if USING_GOOGLE_PROFILER
 KNO_DEF_EVALFN("google/profile",google_profile_evalfn,
-	       "`(google/profile [*outfile*] *body...*)` evaluates the expressions "
+	       "evaluates the expressions "
 	       "in *body* with Google CPU profiling activated. If the second "
 	       "argument is a string, it is used as the outfile for the profiling "
 	       "information.");
@@ -869,7 +872,7 @@ static lispval gprofile_stop()
 static lispval profile_symbol;
 
 KNO_DEF_EVALFN("PROFILE",profiled_eval_evalfn,
-	       "`(PROFILE *expr* [*label*])` evaluates *expr*, returning "
+	       "evaluates *expr*, returning "
 	       "the resulting value. The time taken to evaluate *expr* is "
 	       "tracked and added the the value of *label* in the hashtable "
 	       "which is the value of ``profile`` in the current enviroment.");
@@ -906,11 +909,12 @@ static lispval profiled_eval_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
 static int mtracing=0;
 #endif
 
-DEFPRIM1("mtrace",mtrace_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
+DEFCPRIM("mtrace",mtrace_prim,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
 	 "Activates libc heap tracing via MALLOC_TRACE and "
 	 "returns true if it worked. Optional argument is a "
 	 "filename to set as heap log.",
-	 kno_any_type,KNO_VOID);
+	 {"arg",kno_any_type,KNO_VOID})
 static lispval mtrace_prim(lispval arg)
 {
   /* TODO: Check whether we're running under libc malloc (so mtrace
@@ -934,9 +938,10 @@ static lispval mtrace_prim(lispval arg)
 #endif
 }
 
-DEFPRIM("muntrace",muntrace_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	"Deactivates libc heap tracing, returns true if it "
-	"did anything");
+DEFCPRIM("muntrace",muntrace_prim,
+	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+	 "Deactivates libc heap tracing, returns true if it "
+	 "did anything")
 static lispval muntrace_prim()
 {
 #if HAVE_MTRACE
@@ -952,7 +957,6 @@ static lispval muntrace_prim()
 /* WITH-CONTEXT */
 
 KNO_DEF_EVALFN("with-log-context",with_log_context_evalfn,
-	       "`(WITH-LOG-CONTEXT *label-expr* *body...*)` "
 	       "evaluates each expression in *body* while setting the "
 	       "*log context* to the result (a string or symbol) of "
 	       "evaluating *label-expr*. This log context will be displayed "
@@ -982,12 +986,13 @@ static lispval with_log_context_evalfn(lispval expr,kno_lexenv env,kno_stack _st
       return result;}}
 }
 
-DEFPRIM1("set-log-context!",set_log_context_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(SET-LOG-CONTEXT! *label*)` only makes sense in the dynamic "
-	 "thread-specific scope of a `WITH-LOG-CONTEXT` expression and "
-	 "it changes the displayed log context to the string or symbol "
-	 "*label*.",
-	 kno_any_type,KNO_VOID);
+DEFCPRIM("set-log-context!",set_log_context_prim,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "only makes sense in the dynamic thread-specific "
+	 "scope of a `WITH-LOG-CONTEXT` expression and it "
+	 "changes the displayed log context to the string "
+	 "or symbol *label*.",
+	 {"label",kno_any_type,KNO_VOID})
 static lispval set_log_context_prim(lispval label)
 {
   u8_string local_context = (KNO_SYMBOLP(label)) ? (KNO_SYMBOL_NAME(label)) :
@@ -1007,7 +1012,7 @@ static lispval set_log_context_prim(lispval label)
 
 /* These are for wrapping around Scheme code to see in C profilers */
 KNO_DEF_EVALFN("eval1",eval1,
-	       "`(EVAL1 *expr*)` evaulates *expr* and returns the "
+	       "evaulates *expr* and returns the "
 	       "result. This is used for debugging by labelling eval "
 	       "contexts in a way which is visible in C debuggers.");
 static DONT_OPTIMIZE lispval eval1(lispval expr,kno_lexenv env,kno_stack s)
@@ -1017,7 +1022,7 @@ static DONT_OPTIMIZE lispval eval1(lispval expr,kno_lexenv env,kno_stack s)
 }
 
 KNO_DEF_EVALFN("eval2",eval2,
-	       "`(EVAL2 *expr*)` evaulates *expr* and returns the "
+	       "evaulates *expr* and returns the "
 	       "result. This is used for debugging by labelling eval "
 	       "contexts in a way which is visible in C debuggers.");
 static DONT_OPTIMIZE lispval eval2(lispval expr,kno_lexenv env,kno_stack s)
@@ -1027,7 +1032,7 @@ static DONT_OPTIMIZE lispval eval2(lispval expr,kno_lexenv env,kno_stack s)
 }
 
 KNO_DEF_EVALFN("eval3",eval3,
-	       "`(EVAL3 *expr*)` evaulates *expr* and returns the "
+	       "evaulates *expr* and returns the "
 	       "result. This is used for debugging by labelling eval "
 	       "contexts in a way which is visible in C debuggers.");
 static DONT_OPTIMIZE lispval eval3(lispval expr,kno_lexenv env,kno_stack s)
@@ -1037,7 +1042,7 @@ static DONT_OPTIMIZE lispval eval3(lispval expr,kno_lexenv env,kno_stack s)
 }
 
 KNO_DEF_EVALFN("eval4",eval4,
-	       "`(EVAL4 *expr*)` evaulates *expr* and returns the "
+	       "evaulates *expr* and returns the "
 	       "result. This is used for debugging by labelling eval "
 	       "contexts in a way which is visible in C debuggers.");
 static DONT_OPTIMIZE lispval eval4(lispval expr,kno_lexenv env,kno_stack s)
@@ -1047,7 +1052,7 @@ static DONT_OPTIMIZE lispval eval4(lispval expr,kno_lexenv env,kno_stack s)
 }
 
 KNO_DEF_EVALFN("eval5",eval5,
-	       "`(EVAL5 *expr*)` evaulates *expr* and returns the "
+	       "evaulates *expr* and returns the "
 	       "result. This is used for debugging by labelling eval "
 	       "contexts in a way which is visible in C debuggers.");
 static DONT_OPTIMIZE lispval eval5(lispval expr,kno_lexenv env,kno_stack s)
@@ -1057,7 +1062,7 @@ static DONT_OPTIMIZE lispval eval5(lispval expr,kno_lexenv env,kno_stack s)
 }
 
 KNO_DEF_EVALFN("eval6",eval6,
-	       "`(EVAL6 *expr*)` evaulates *expr* and returns the "
+	       "evaulates *expr* and returns the "
 	       "result. This is used for debugging by labelling eval "
 	       "contexts in a way which is visible in C debuggers.");
 static DONT_OPTIMIZE lispval eval6(lispval expr,kno_lexenv env,kno_stack s)
@@ -1067,7 +1072,7 @@ static DONT_OPTIMIZE lispval eval6(lispval expr,kno_lexenv env,kno_stack s)
 }
 
 KNO_DEF_EVALFN("eval7",eval7,
-	       "`(EVAL7 *expr*)` evaulates *expr* and returns the "
+	       "evaulates *expr* and returns the "
 	       "result. This is used for debugging by labelling eval "
 	       "contexts in a way which is visible in C debuggers.");
 static DONT_OPTIMIZE lispval eval7(lispval expr,kno_lexenv env,kno_stack s)
@@ -1076,13 +1081,19 @@ static DONT_OPTIMIZE lispval eval7(lispval expr,kno_lexenv env,kno_stack s)
   return result;
 }
 
-DEFPRIM9("list9",list9,KNO_MAX_ARGS(9)|KNO_MIN_ARGS(0),
-	 "Returns a nine-element list (for testing the knox engine)",
-	 kno_any_type,KNO_FALSE,kno_any_type,KNO_FALSE,
-	 kno_any_type,KNO_FALSE,kno_any_type,KNO_FALSE,
-	 kno_any_type,KNO_FALSE,kno_any_type,KNO_FALSE,
-	 kno_any_type,KNO_FALSE,kno_any_type,KNO_FALSE,
-	 kno_any_type,KNO_FALSE);
+DEFCPRIM("list9",list9,
+	 KNO_MAX_ARGS(9)|KNO_MIN_ARGS(0),
+	 "Returns a nine-element list (for testing the knox "
+	 "engine)",
+	 {"arg1",kno_any_type,KNO_FALSE},
+	 {"arg2",kno_any_type,KNO_FALSE},
+	 {"arg3",kno_any_type,KNO_FALSE},
+	 {"arg4",kno_any_type,KNO_FALSE},
+	 {"arg5",kno_any_type,KNO_FALSE},
+	 {"arg6",kno_any_type,KNO_FALSE},
+	 {"arg7",kno_any_type,KNO_FALSE},
+	 {"arg8",kno_any_type,KNO_FALSE},
+	 {"arg9",kno_any_type,KNO_FALSE})
 static lispval list9(lispval arg1,lispval arg2,
 		     lispval arg3,lispval arg4,
 		     lispval arg5,lispval arg6,
@@ -1096,10 +1107,14 @@ static lispval list9(lispval arg1,lispval arg2,
 		       kno_incref(arg9));
 }
 
-DEFPRIM4("_plus4",plus4,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(1),
-	 "Add up to four numbers (for testing the knox engine)",
-	 kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-	 kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0));
+DEFCPRIM("_plus4",plus4,
+	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(1),
+	 "Add up to four numbers (for testing the knox "
+	 "engine)",
+	 {"arg1",kno_any_type,KNO_INT(0)},
+	 {"arg2",kno_any_type,KNO_INT(0)},
+	 {"arg3",kno_any_type,KNO_INT(0)},
+	 {"arg4",kno_any_type,KNO_INT(0)})
 static lispval plus4(lispval arg1,lispval arg2,
 		     lispval arg3,lispval arg4)
 {
@@ -1108,11 +1123,15 @@ static lispval plus4(lispval arg1,lispval arg2,
   return KNO_INT(sum);
 }
 
-DEFPRIM5("_plus5",plus5,KNO_MAX_ARGS(5)|KNO_MIN_ARGS(1),
-	 "Add up to five numbers (for testing the knox engine)",
-	 kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-	 kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-	 kno_any_type,KNO_CPP_INT(0));
+DEFCPRIM("_plus5",plus5,
+	 KNO_MAX_ARGS(5)|KNO_MIN_ARGS(1),
+	 "Add up to five numbers (for testing the knox "
+	 "engine)",
+	 {"arg1",kno_any_type,KNO_INT(0)},
+	 {"arg2",kno_any_type,KNO_INT(0)},
+	 {"arg3",kno_any_type,KNO_INT(0)},
+	 {"arg4",kno_any_type,KNO_INT(0)},
+	 {"arg5",kno_any_type,KNO_INT(0)})
 static lispval plus5(lispval arg1,lispval arg2,
 		     lispval arg3,lispval arg4,
 		     lispval arg5)
@@ -1122,11 +1141,16 @@ static lispval plus5(lispval arg1,lispval arg2,
   return KNO_INT(sum);
 }
 
-DEFPRIM6("_plus6",plus6,KNO_MAX_ARGS(6)|KNO_MIN_ARGS(2),
-	 "Add up to six numbers (for testing the knox engine)",
-	 kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-	 kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-	 kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0));
+DEFCPRIM("_plus6",plus6,
+	 KNO_MAX_ARGS(6)|KNO_MIN_ARGS(2),
+	 "Add up to six numbers (for testing the knox "
+	 "engine)",
+	 {"arg1",kno_any_type,KNO_INT(0)},
+	 {"arg2",kno_any_type,KNO_INT(0)},
+	 {"arg3",kno_any_type,KNO_INT(0)},
+	 {"arg4",kno_any_type,KNO_INT(0)},
+	 {"arg5",kno_any_type,KNO_INT(0)},
+	 {"arg6",kno_any_type,KNO_INT(0)})
 static lispval plus6(lispval arg1,lispval arg2,
 		     lispval arg3,lispval arg4,
 		     lispval arg5,lispval arg6)
@@ -1136,12 +1160,17 @@ static lispval plus6(lispval arg1,lispval arg2,
   return KNO_INT(sum);
 }
 
-DEFPRIM7("_plus7",plus7,KNO_MAX_ARGS(7)|KNO_MIN_ARGS(3),
-	 "Add up to seven numbers (for testing the knox engine)",
-	 kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-	 kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-	 kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-	 kno_any_type,KNO_CPP_INT(0));
+DEFCPRIM("_plus7",plus7,
+	 KNO_MAX_ARGS(7)|KNO_MIN_ARGS(3),
+	 "Add up to seven numbers (for testing the knox "
+	 "engine)",
+	 {"arg1",kno_any_type,KNO_INT(0)},
+	 {"arg2",kno_any_type,KNO_INT(0)},
+	 {"arg3",kno_any_type,KNO_INT(0)},
+	 {"arg4",kno_any_type,KNO_INT(0)},
+	 {"arg5",kno_any_type,KNO_INT(0)},
+	 {"arg6",kno_any_type,KNO_INT(0)},
+	 {"arg7",kno_any_type,KNO_INT(0)})
 static lispval plus7(lispval arg1,lispval arg2,
 		     lispval arg3,lispval arg4,
 		     lispval arg5,lispval arg6,
@@ -1153,12 +1182,18 @@ static lispval plus7(lispval arg1,lispval arg2,
   return KNO_INT(sum);
 }
 
-DEFPRIM8("_plus8",plus8,KNO_MAX_ARGS(8)|KNO_MIN_ARGS(3),
-	 "Add up to eight numbers (for testing the knox engine)",
-	 kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-	 kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-	 kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-	 kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0));
+DEFCPRIM("_plus8",plus8,
+	 KNO_MAX_ARGS(8)|KNO_MIN_ARGS(3),
+	 "Add up to eight numbers (for testing the knox "
+	 "engine)",
+	 {"arg1",kno_any_type,KNO_INT(0)},
+	 {"arg2",kno_any_type,KNO_INT(0)},
+	 {"arg3",kno_any_type,KNO_INT(0)},
+	 {"arg4",kno_any_type,KNO_INT(0)},
+	 {"arg5",kno_any_type,KNO_INT(0)},
+	 {"arg6",kno_any_type,KNO_INT(0)},
+	 {"arg7",kno_any_type,KNO_INT(0)},
+	 {"arg8",kno_any_type,KNO_INT(0)})
 static lispval plus8(lispval arg1,lispval arg2,
 		     lispval arg3,lispval arg4,
 		     lispval arg5,lispval arg6,
@@ -1171,13 +1206,18 @@ static lispval plus8(lispval arg1,lispval arg2,
   return KNO_INT(sum);
 }
 
-DEFPRIM9("_plus9",plus9,KNO_MAX_ARGS(9)|KNO_MIN_ARGS(3),
+DEFCPRIM("_plus9",plus9,
+	 KNO_MAX_ARGS(9)|KNO_MIN_ARGS(3),
 	 "Add numberss (for testing the knox engine)",
-	 kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-	 kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-	 kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-	 kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-	 kno_any_type,KNO_CPP_INT(0));
+	 {"arg1",kno_any_type,KNO_INT(0)},
+	 {"arg2",kno_any_type,KNO_INT(0)},
+	 {"arg3",kno_any_type,KNO_INT(0)},
+	 {"arg4",kno_any_type,KNO_INT(0)},
+	 {"arg5",kno_any_type,KNO_INT(0)},
+	 {"arg6",kno_any_type,KNO_INT(0)},
+	 {"arg7",kno_any_type,KNO_INT(0)},
+	 {"arg8",kno_any_type,KNO_INT(0)},
+	 {"arg9",kno_any_type,KNO_INT(0)})
 static lispval plus9(lispval arg1,lispval arg2,
 		     lispval arg3,lispval arg4,
 		     lispval arg5,lispval arg6,
@@ -1191,13 +1231,19 @@ static lispval plus9(lispval arg1,lispval arg2,
   return KNO_INT(sum);
 }
 
-DEFPRIM10("_plus10",plus10,KNO_MAX_ARGS(10)|KNO_MIN_ARGS(3),
-	  "Add numberss (for testing the knox engine)",
-	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0));
+DEFCPRIM("_plus10",plus10,
+	 KNO_MAX_ARGS(10)|KNO_MIN_ARGS(3),
+	 "Add numberss (for testing the knox engine)",
+	 {"arg1",kno_any_type,KNO_INT(0)},
+	 {"arg2",kno_any_type,KNO_INT(0)},
+	 {"arg3",kno_any_type,KNO_INT(0)},
+	 {"arg4",kno_any_type,KNO_INT(0)},
+	 {"arg5",kno_any_type,KNO_INT(0)},
+	 {"arg6",kno_any_type,KNO_INT(0)},
+	 {"arg7",kno_any_type,KNO_INT(0)},
+	 {"arg8",kno_any_type,KNO_INT(0)},
+	 {"arg9",kno_any_type,KNO_INT(0)},
+	 {"arg10",kno_any_type,KNO_INT(0)})
 static lispval plus10(lispval arg1,lispval arg2,
 		      lispval arg3,lispval arg4,
 		      lispval arg5,lispval arg6,
@@ -1213,14 +1259,20 @@ static lispval plus10(lispval arg1,lispval arg2,
   return KNO_INT(sum);
 }
 
-DEFPRIM11("_plus11",plus11,KNO_MAX_ARGS(11)|KNO_MIN_ARGS(3),
-	  "Add numberss (for testing the knox engine)",
-	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-	  kno_any_type,KNO_CPP_INT(0));
+DEFCPRIM("_plus11",plus11,
+	 KNO_MAX_ARGS(11)|KNO_MIN_ARGS(3),
+	 "Add numberss (for testing the knox engine)",
+	 {"arg1",kno_any_type,KNO_INT(0)},
+	 {"arg2",kno_any_type,KNO_INT(0)},
+	 {"arg3",kno_any_type,KNO_INT(0)},
+	 {"arg4",kno_any_type,KNO_INT(0)},
+	 {"arg5",kno_any_type,KNO_INT(0)},
+	 {"arg6",kno_any_type,KNO_INT(0)},
+	 {"arg7",kno_any_type,KNO_INT(0)},
+	 {"arg8",kno_any_type,KNO_INT(0)},
+	 {"arg9",kno_any_type,KNO_INT(0)},
+	 {"arg10",kno_any_type,KNO_INT(0)},
+	 {"arg11",kno_any_type,KNO_INT(0)})
 static lispval plus11(lispval arg1,lispval arg2,
 		      lispval arg3,lispval arg4,
 		      lispval arg5,lispval arg6,
@@ -1237,14 +1289,21 @@ static lispval plus11(lispval arg1,lispval arg2,
   return KNO_INT(sum);
 }
 
-DEFPRIM12("_plus12",plus12,KNO_MAX_ARGS(12)|KNO_MIN_ARGS(3),
-	  "Add numberss (for testing the knox engine)",
-	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0));
+DEFCPRIM("_plus12",plus12,
+	 KNO_MAX_ARGS(12)|KNO_MIN_ARGS(3),
+	 "Add numberss (for testing the knox engine)",
+	 {"arg1",kno_any_type,KNO_INT(0)},
+	 {"arg2",kno_any_type,KNO_INT(0)},
+	 {"arg3",kno_any_type,KNO_INT(0)},
+	 {"arg4",kno_any_type,KNO_INT(0)},
+	 {"arg5",kno_any_type,KNO_INT(0)},
+	 {"arg6",kno_any_type,KNO_INT(0)},
+	 {"arg7",kno_any_type,KNO_INT(0)},
+	 {"arg8",kno_any_type,KNO_INT(0)},
+	 {"arg9",kno_any_type,KNO_INT(0)},
+	 {"arg10",kno_any_type,KNO_INT(0)},
+	 {"arg11",kno_any_type,KNO_INT(0)},
+	 {"arg12",kno_any_type,KNO_INT(0)})
 static lispval plus12(lispval arg1,lispval arg2,
 		      lispval arg3,lispval arg4,
 		      lispval arg5,lispval arg6,
@@ -1262,15 +1321,22 @@ static lispval plus12(lispval arg1,lispval arg2,
   return KNO_INT(sum);
 }
 
-DEFPRIM13("_plus13",plus13,KNO_MAX_ARGS(13)|KNO_MIN_ARGS(3),
-	  "Add numberss (for testing the knox engine)",
-	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-	  kno_any_type,KNO_CPP_INT(0));
+DEFCPRIM("_plus13",plus13,
+	 KNO_MAX_ARGS(13)|KNO_MIN_ARGS(3),
+	 "Add numberss (for testing the knox engine)",
+	 {"arg1",kno_any_type,KNO_INT(0)},
+	 {"arg2",kno_any_type,KNO_INT(0)},
+	 {"arg3",kno_any_type,KNO_INT(0)},
+	 {"arg4",kno_any_type,KNO_INT(0)},
+	 {"arg5",kno_any_type,KNO_INT(0)},
+	 {"arg6",kno_any_type,KNO_INT(0)},
+	 {"arg7",kno_any_type,KNO_INT(0)},
+	 {"arg8",kno_any_type,KNO_INT(0)},
+	 {"arg9",kno_any_type,KNO_INT(0)},
+	 {"arg10",kno_any_type,KNO_INT(0)},
+	 {"arg11",kno_any_type,KNO_INT(0)},
+	 {"arg12",kno_any_type,KNO_INT(0)},
+	 {"arg13",kno_any_type,KNO_INT(0)})
 static lispval plus13(lispval arg1,lispval arg2,
 		      lispval arg3,lispval arg4,
 		      lispval arg5,lispval arg6,
@@ -1290,15 +1356,23 @@ static lispval plus13(lispval arg1,lispval arg2,
   return KNO_INT(sum);
 }
 
-DEFPRIM14("_plus14",plus14,KNO_MAX_ARGS(14)|KNO_MIN_ARGS(3),
-	  "Add numbers (for testing the knox engine)",
-	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0));
+DEFCPRIM("_plus14",plus14,
+	 KNO_MAX_ARGS(14)|KNO_MIN_ARGS(3),
+	 "Add numbers (for testing the knox engine)",
+	 {"arg1",kno_any_type,KNO_INT(0)},
+	 {"arg2",kno_any_type,KNO_INT(0)},
+	 {"arg3",kno_any_type,KNO_INT(0)},
+	 {"arg4",kno_any_type,KNO_INT(0)},
+	 {"arg5",kno_any_type,KNO_INT(0)},
+	 {"arg6",kno_any_type,KNO_INT(0)},
+	 {"arg7",kno_any_type,KNO_INT(0)},
+	 {"arg8",kno_any_type,KNO_INT(0)},
+	 {"arg9",kno_any_type,KNO_INT(0)},
+	 {"arg10",kno_any_type,KNO_INT(0)},
+	 {"arg11",kno_any_type,KNO_INT(0)},
+	 {"arg12",kno_any_type,KNO_INT(0)},
+	 {"arg13",kno_any_type,KNO_INT(0)},
+	 {"arg14",kno_any_type,KNO_INT(0)})
 static lispval plus14(lispval arg1,lispval arg2,
 		      lispval arg3,lispval arg4,
 		      lispval arg5,lispval arg6,
@@ -1319,16 +1393,24 @@ static lispval plus14(lispval arg1,lispval arg2,
   return KNO_INT(sum);
 }
 
-DEFPRIM15("_plus15",plus15,KNO_MAX_ARGS(15)|KNO_MIN_ARGS(3),
-	  "Add numbers (for testing the knox engine)",
-	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-	  kno_any_type,KNO_CPP_INT(0),kno_any_type,KNO_CPP_INT(0),
-	  kno_any_type,KNO_CPP_INT(0));
+DEFCPRIM("_plus15",plus15,
+	 KNO_MAX_ARGS(15)|KNO_MIN_ARGS(3),
+	 "Add numbers (for testing the knox engine)",
+	 {"arg1",kno_any_type,KNO_INT(0)},
+	 {"arg2",kno_any_type,KNO_INT(0)},
+	 {"arg3",kno_any_type,KNO_INT(0)},
+	 {"arg4",kno_any_type,KNO_INT(0)},
+	 {"arg5",kno_any_type,KNO_INT(0)},
+	 {"arg6",kno_any_type,KNO_INT(0)},
+	 {"arg7",kno_any_type,KNO_INT(0)},
+	 {"arg8",kno_any_type,KNO_INT(0)},
+	 {"arg9",kno_any_type,KNO_INT(0)},
+	 {"arg10",kno_any_type,KNO_INT(0)},
+	 {"arg11",kno_any_type,KNO_INT(0)},
+	 {"arg12",kno_any_type,KNO_INT(0)},
+	 {"arg13",kno_any_type,KNO_INT(0)},
+	 {"arg14",kno_any_type,KNO_INT(0)},
+	 {"arg15",kno_any_type,KNO_INT(0)})
 static lispval plus15(lispval arg1,lispval arg2,
 		      lispval arg3,lispval arg4,
 		      lispval arg5,lispval arg6,
@@ -1406,23 +1488,23 @@ static void link_local_cprims()
 {
   lispval scheme_module = kno_scheme_module;
 
-  KNO_LINK_PRIM("_plus15",plus15,15,scheme_module);
-  KNO_LINK_PRIM("_plus14",plus14,14,scheme_module);
-  KNO_LINK_PRIM("_plus13",plus13,13,scheme_module);
-  KNO_LINK_PRIM("_plus12",plus12,12,scheme_module);
-  KNO_LINK_PRIM("_plus11",plus11,11,scheme_module);
-  KNO_LINK_PRIM("_plus10",plus10,10,scheme_module);
-  KNO_LINK_PRIM("_plus9",plus9,9,scheme_module);
-  KNO_LINK_PRIM("_plus8",plus8,8,scheme_module);
-  KNO_LINK_PRIM("_plus7",plus7,7,scheme_module);
-  KNO_LINK_PRIM("_plus6",plus6,6,scheme_module);
-  KNO_LINK_PRIM("_plus5",plus5,5,scheme_module);
-  KNO_LINK_PRIM("_plus4",plus4,4,scheme_module);
-  KNO_LINK_PRIM("list9",list9,9,scheme_module);
-  KNO_LINK_PRIM("set-log-context!",set_log_context_prim,1,scheme_module);
-  KNO_LINK_PRIM("muntrace",muntrace_prim,0,scheme_module);
-  KNO_LINK_PRIM("mtrace",mtrace_prim,1,scheme_module);
-  KNO_LINK_PRIM("%watchptrval",watchptr_prim,2,scheme_module);
+  KNO_LINK_CPRIM("_plus15",plus15,15,scheme_module);
+  KNO_LINK_CPRIM("_plus14",plus14,14,scheme_module);
+  KNO_LINK_CPRIM("_plus13",plus13,13,scheme_module);
+  KNO_LINK_CPRIM("_plus12",plus12,12,scheme_module);
+  KNO_LINK_CPRIM("_plus11",plus11,11,scheme_module);
+  KNO_LINK_CPRIM("_plus10",plus10,10,scheme_module);
+  KNO_LINK_CPRIM("_plus9",plus9,9,scheme_module);
+  KNO_LINK_CPRIM("_plus8",plus8,8,scheme_module);
+  KNO_LINK_CPRIM("_plus7",plus7,7,scheme_module);
+  KNO_LINK_CPRIM("_plus6",plus6,6,scheme_module);
+  KNO_LINK_CPRIM("_plus5",plus5,5,scheme_module);
+  KNO_LINK_CPRIM("_plus4",plus4,4,scheme_module);
+  KNO_LINK_CPRIM("list9",list9,9,scheme_module);
+  KNO_LINK_CPRIM("set-log-context!",set_log_context_prim,1,scheme_module);
+  KNO_LINK_CPRIM("muntrace",muntrace_prim,0,scheme_module);
+  KNO_LINK_CPRIM("mtrace",mtrace_prim,1,scheme_module);
+  KNO_LINK_CPRIM("%watchptrval",watchptr_prim,2,scheme_module);
   
-  KNO_LINK_PRIM("dump-bug",dumpbug_prim,2,scheme_module);
+  KNO_LINK_CPRIM("dump-bug",dumpbug_prim,2,scheme_module);
 }

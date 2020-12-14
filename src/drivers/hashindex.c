@@ -165,7 +165,7 @@ static kno_size_t get_maxpos(kno_hashindex p)
 
 static void init_cache_level(kno_index ix)
 {
-  if (PRED_FALSE(ix->index_cache_level<0)) {
+  if (RARELY(ix->index_cache_level<0)) {
     lispval opts = ix->index_opts;
     long long level=kno_getfixopt(opts,"CACHELEVEL",kno_default_cache_level);
     kno_index_setcache(ix,level);}
@@ -183,8 +183,8 @@ static lispval slotids_symbol, baseoids_symbol, buckets_symbol, nkeys_symbol;
 
 /* Utilities for DTYPE I/O */
 
-#define nobytes(in,nbytes) (PRED_FALSE(!(kno_request_bytes(in,nbytes))))
-#define havebytes(in,nbytes) (PRED_TRUE(kno_request_bytes(in,nbytes)))
+#define nobytes(in,nbytes) (RARELY(!(kno_request_bytes(in,nbytes))))
+#define havebytes(in,nbytes) (USUALLY(kno_request_bytes(in,nbytes)))
 
 #define output_byte(out,b)                              \
   if (kno_write_byte(out,b)<0) return -1; else {}
@@ -1776,105 +1776,6 @@ static struct KNO_KEY_SIZE *hashindex_fetchinfo(kno_index ix,kno_choice filter,i
   return sizes;
 }
 
-#if 0
-static
-struct KNO_KEY_SIZE *hashindex_fetchinfo(kno_index ix,kno_choice filter,int *n)
-{
-  struct KNO_HASHINDEX *hx = (struct KNO_HASHINDEX *)ix;
-  kno_stream s = &(hx->index_stream);
-  unsigned int *offdata = hx->index_offdata;
-  kno_offset_type offtype = hx->index_offtype;
-  kno_inbuf ins = kno_readbuf(s);
-  int i = 0, n_buckets = (hx->index_n_buckets), total_keys, buckets_len;
-  int n_to_fetch = 0, key_count = 0;
-  kno_lock_stream(s);
-  kno_setpos(s,16); total_keys = kno_read_4bytes(ins);
-  if (total_keys==0) {
-    kno_unlock_stream(s);
-    *n = 0;
-    return NULL;}
-  KNO_CHUNK_REF *buckets = u8_big_alloc_n(total_keys,KNO_CHUNK_REF);
-  if (buckets)
-    buckets_len=total_keys;
-  else {
-    kno_unlock_stream(s);
-    u8_seterr(kno_MallocFailed,"hashindex_fetchinfo/buckets",NULL);
-    *n = -1;
-    return NULL;}
-  struct KNO_KEY_SIZE *sizes = u8_big_alloc_n(total_keys,KNO_KEY_SIZE);
-  if (sizes == NULL) {
-    kno_unlock_stream(s);
-    if (buckets)  u8_big_free(buckets);
-    u8_seterr(kno_MallocFailed,"hashindex_fetchinfo/sizes",NULL);
-    *n = -1;
-    return NULL;}
-  /* If we don't have chunk offsets in memory, we keep the stream
-     locked while we get them. */
-  if (offdata == NULL) {
-    while (i<n_buckets) {
-      KNO_CHUNK_REF ref = kno_fetch_chunk_ref(s,256,offtype,i,1);
-      if (ref.size>0) {
-        if (n_to_fetch >= buckets_len) {
-          u8_logf(LOG_WARN,"BadKeyCount",
-                  "Bad key count in %s: %d",ix->indexid,total_keys);
-          buckets=u8_realloc_n(buckets,n_buckets,KNO_CHUNK_REF);
-          buckets_len=n_buckets;}
-        buckets[n_to_fetch++]=ref;}
-      i++;}
-    kno_unlock_stream(s);}
-  else {
-    kno_unlock_stream(s);
-    int ref_i=0; while (ref_i<n_buckets) {
-      KNO_CHUNK_REF ref = kno_get_chunk_ref
-        (offdata,offtype,ref_i,hx->index_n_buckets);
-      if (ref.size>0) {
-        if (n_to_fetch >= buckets_len) {
-          u8_logf(LOG_WARN,"BadKeyCount",
-                  "Bad key count in %s: %d",ix->indexid,total_keys);
-          /* Allocate the whole n_buckets if something goes wrong */
-          buckets = u8_big_realloc_n(buckets,n_buckets,KNO_CHUNK_REF);
-          sizes   = u8_big_realloc_n(sizes,n_buckets,KNO_KEY_SIZE);
-          buckets_len=n_buckets;}
-        buckets[n_to_fetch++]=ref;}
-      ref_i++;}}
-  qsort(buckets,n_to_fetch,sizeof(KNO_CHUNK_REF),sort_blockrefs_by_off);
-  struct KNO_INBUF keyblkstrm={0};
-  i = 0; while (i<n_to_fetch) {
-    int j = 0, n_keys;
-    if (!kno_open_block(s,&keyblkstrm,buckets[i].off,buckets[i].size,1)) {
-      kno_close_inbuf(&keyblkstrm);
-      u8_big_free(buckets);
-      *n=-1;
-      return NULL;}
-    n_keys = kno_read_varint(&keyblkstrm);
-    while (j<n_keys) {
-      /* size = */ kno_read_varint(&keyblkstrm);
-      lispval key = read_key(hx,&keyblkstrm);
-      int n_vals = kno_read_varint(&keyblkstrm);
-      if ( (filter == NULL) || (fast_choice_containsp(key,filter)) ) {
-        sizes[key_count].keysize_key = key;
-        sizes[key_count].keysize_count = n_vals;
-        key_count++;}
-      else kno_decref(key);
-      if (n_vals==0) {}
-      else if (n_vals==1) {
-        int code = kno_read_varint(&keyblkstrm);
-        if (code==0) {
-          lispval val = kno_read_dtype(&keyblkstrm);
-          kno_decref(val);}
-        else kno_read_varint(&keyblkstrm);}
-      else {
-        kno_read_varint(&keyblkstrm);
-        kno_read_varint(&keyblkstrm);}
-      j++;}
-    i++;}
-  kno_close_inbuf(&keyblkstrm);
-  u8_big_free(buckets);
-  *n=key_count;
-  return sizes;
-}
-#endif
-
 static void hashindex_getstats(struct KNO_HASHINDEX *hx,
                                int *nf,int *max,int *singles,int *n2sum)
 {
@@ -2302,7 +2203,7 @@ KNO_FASTOP kno_off_t update_keybucket
 {
   int k = i, free_keyvecs = 0;
   int _keyoffs[16], _keysizes[16], *keyoffs, *keysizes;
-  if (PRED_FALSE((j-i)>16) )  {
+  if (RARELY((j-i)>16) )  {
     keyoffs = u8_alloc_n((j-i),int);
     keysizes = u8_alloc_n((j-i),int);
     free_keyvecs = 1;}
@@ -2659,7 +2560,7 @@ static int hashindex_save(struct KNO_HASHINDEX *hx,
     struct KEYBUCKET *kb = keybuckets[bucket_i];
     int bucket = schedule[sched_i].commit_bucket;
     int j = sched_i, cur_keys = kb->kb_n_keys;
-    if (KNO_EXPECT_FALSE(bucket != kb->kb_bucketno)) {
+    if (KNO_RARELY(bucket != kb->kb_bucketno)) {
       u8_log(LOG_CRIT,"HashIndexError",
              "Bucket at sched_i=%d/%d was %d != %d (expected) in %s",
              sched_i,schedule_size,bucket,kb->kb_bucketno,hx->indexid);}
@@ -2798,7 +2699,7 @@ static int hashindex_commit(kno_index ix,kno_commit_phase phase,
         (kno_init_file_stream(NULL,commit_file,KNO_FILE_MODIFY,-1,-1)) :
         (NULL);
       if (head_stream == NULL) {
-        u8_seterr("CantOpenCommitFile","bigpool_commit",commit_file);
+        u8_seterr("CantOpenCommitFile","hashindex_commit",commit_file);
         return -1;}
       else u8_free(commit_file);}
     else head_stream=stream;

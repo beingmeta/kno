@@ -67,9 +67,10 @@ static lispval tryif_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   return value;
 }
 
-DEFPRIM1("not",not_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(NOT *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
+DEFCPRIM("not",not_prim,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "**undocumented**",
+	 {"arg",kno_any_type,KNO_VOID})
 static lispval not_prim(lispval arg)
 {
   if (FALSEP(arg)) return KNO_TRUE; else return KNO_FALSE;
@@ -246,5 +247,5 @@ KNO_EXPORT void kno_init_conditionals_c()
 static void link_local_cprims()
 {
   lispval scheme_module = kno_scheme_module;
-  KNO_LINK_PRIM("not",not_prim,1,scheme_module);
+  KNO_LINK_CPRIM("not",not_prim,1,scheme_module);
 }

@@ -872,12 +872,12 @@ static lispval assignop(kno_stack stack,kno_lexenv env,
 	scan = parent->env_copy;
       else scan = parent;
       up--;}
-    if (PRED_TRUE(scan!=NULL)) {
+    if (USUALLY(scan!=NULL)) {
       lispval bindings = scan->env_bindings;
-      if (PRED_TRUE(SCHEMAPP(bindings))) {
+      if (USUALLY(SCHEMAPP(bindings))) {
 	struct KNO_SCHEMAP *map = (struct KNO_SCHEMAP *)bindings;
 	int map_len = map->schema_length;
-	if (PRED_TRUE( across < map_len )) {
+	if (USUALLY( across < map_len )) {
 	  lispval *values = map->table_values;
 	  lispval cur	  = values[across];
 	  if (KNO_XTABLE_BITP(map,KNO_SCHEMAP_STACK_VALUES)) {
@@ -899,7 +899,7 @@ static lispval assignop(kno_stack stack,kno_lexenv env,
 	    if ( (scan->env_copy) && (scan->env_copy != scan) ) {
 	      lispval new_bindings = scan->env_copy->env_bindings;
 	      if ( (new_bindings != bindings) &&
-		   (PRED_TRUE(SCHEMAPP(bindings))) ) {
+		   (USUALLY(SCHEMAPP(bindings))) ) {
 		struct KNO_SCHEMAP *new_map =
 		  (struct KNO_SCHEMAP *) new_bindings;
 		values = new_map->table_values;
@@ -1032,7 +1032,7 @@ static void reset_env_op(kno_lexenv env)
 
 static lispval handle_table_result(int rv)
 {
-  if (PRED_FALSE(rv<0))
+  if (RARELY(rv<0))
     return KNO_ERROR;
   else if (rv)
     return KNO_TRUE;
@@ -1096,7 +1096,7 @@ static lispval handle_special_opcode(lispval opcode,lispval args,lispval expr,
   switch (opcode) {
   case KNO_QUOTE_OPCODE: {
     lispval arg = pop_arg(args);
-    if (KNO_EXPECT_FALSE(KNO_VOIDP(arg)))
+    if (KNO_RARELY(KNO_VOIDP(arg)))
       return kno_err(kno_SyntaxError,"opcode_eval",NULL,expr);
     else if (KNO_CONSP(arg))
       return kno_incref(arg);
@@ -1104,7 +1104,7 @@ static lispval handle_special_opcode(lispval opcode,lispval args,lispval expr,
   case KNO_SYMREF_OPCODE: {
     lispval refenv=pop_arg(args);
     lispval sym=pop_arg(args);
-    if (KNO_EXPECT_FALSE(!(KNO_SYMBOLP(sym))))
+    if (KNO_RARELY(!(KNO_SYMBOLP(sym))))
       return kno_err(kno_SyntaxError,"KNO_SYMREF_OPCODE/badsym",NULL,expr);
     if (HASHTABLEP(refenv))
       return kno_hashtable_get((kno_hashtable)refenv,sym,KNO_UNBOUND);
@@ -1171,7 +1171,7 @@ static lispval handle_special_opcode(lispval opcode,lispval args,lispval expr,
   case KNO_XPRED_OPCODE: {
     lispval type_arg = pop_arg(args);
     lispval obj_expr = pop_arg(args);
-    if (KNO_EXPECT_FALSE(VOIDP(obj_expr))) {
+    if (KNO_RARELY(VOIDP(obj_expr))) {
       kno_seterr(kno_SyntaxError,"KNO_XREF_OPCODE",NULL,expr);
       return KNO_ERROR_VALUE;}
     lispval obj_arg = kno_eval(obj_expr,env,_stack,0);
@@ -1221,7 +1221,7 @@ static int reduce_not_a_number(lispval *result,u8_context opname,lispval arg)
   return -1;
 }
 
-#define NOT_A_NUMBERP(x) (PRED_FALSE(!(KNO_NUMBERP(x))))
+#define NOT_A_NUMBERP(x) (RARELY(!(KNO_NUMBERP(x))))
 
 static lispval do_reduce(reducer fn,lispval start,int n,kno_argvec args)
 {
@@ -1424,7 +1424,7 @@ static lispval cmp_args(lispval op,int dir,int eq,int n,kno_argvec args)
 
 static lispval handle_numeric_opcode(lispval opcode,int n,kno_argvec args)
 {
-  if (PRED_FALSE(n<1)) return op_arity_error(opcode,n,1);
+  if (RARELY(n<1)) return op_arity_error(opcode,n,1);
   else if (NOT_A_NUMBERP(args[0]))
     return kno_err(kno_NotANumber,opcode_name(opcode),
 		   kno_type2name(KNO_TYPEOF(args[0])),

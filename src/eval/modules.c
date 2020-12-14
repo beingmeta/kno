@@ -24,7 +24,7 @@
 #define _FILEINFO __FILE__
 #endif
 
-static lispval source_symbol, loadstamp_symbol, dlsource_symbol;
+static lispval source_symbol, loadstamp_symbol, dlsource_symbol, fcnids_symbol;
 
 u8_condition kno_NotAModule=_("Argument is not a module (table)");
 u8_condition kno_NoSuchModule=_("Can't find named module");
@@ -33,7 +33,8 @@ u8_condition OpaqueModule=_("Can't switch to opaque module");
 static struct KNO_HASHTABLE module_map;
 static kno_lexenv default_env = NULL;
 lispval kno_scheme_module = KNO_VOID;
-lispval kno_io_module = KNO_VOID;
+lispval kno_textio_module = KNO_VOID;
+lispval kno_binio_module = KNO_VOID;
 lispval kno_db_module = KNO_VOID;
 lispval kno_sys_module = KNO_VOID;
 
@@ -52,7 +53,7 @@ void clear_module_load_lock(lispval spec);
 
 KNO_EXPORT kno_lexenv kno_make_env(lispval bindings,kno_lexenv parent)
 {
-  if (PRED_FALSE(!(TABLEP(bindings)) )) {
+  if (RARELY(!(TABLEP(bindings)) )) {
     u8_byte buf[100];
     kno_seterr(kno_TypeError,"kno_make_env",
                u8_sprintf(buf,100,_("object is not a %m"),"table"),
@@ -87,7 +88,7 @@ KNO_EXPORT
    is "for export only" and cannot be modified. */
 kno_lexenv kno_make_export_env(lispval exports,kno_lexenv parent)
 {
-  if (PRED_FALSE(!(HASHTABLEP(exports)) )) {
+  if (RARELY(!(HASHTABLEP(exports)) )) {
     u8_byte buf[100];
     kno_seterr(kno_TypeError,"kno_make_env",
                u8_sprintf(buf,100,_("object is not a %m"),"hashtable"),
@@ -127,6 +128,12 @@ KNO_EXPORT kno_lexenv kno_working_lexenv()
 KNO_EXPORT lispval kno_register_module_x(lispval name,lispval module,int flags)
 {
   kno_hashtable_store(&module_map,name,module);
+
+  if (KNO_HASHTABLEP(module)) {
+    lispval fcnrefs_table = kno_make_hashtable(NULL,19);
+    kno_hashtable_op((kno_hashtable)module,kno_table_default,fcnids_symbol,
+		     fcnrefs_table);
+    kno_decref(fcnrefs_table);}
 
   /* Set the module ID*/
   if (KNO_LEXENVP(module)) {
@@ -169,7 +176,12 @@ KNO_EXPORT lispval kno_new_module(char *name,int flags)
   else kno_decref(as_stored);
   if (flags&KNO_MODULE_DEFAULT) {
     default_env->env_parent = kno_make_env(module,default_env->env_parent);}
-  return module;}
+  lispval fcnrefs_table = kno_make_hashtable(NULL,19);
+  kno_hashtable_op((kno_hashtable)module,kno_table_default,fcnids_symbol,
+		   fcnrefs_table);
+  kno_decref(fcnrefs_table);
+  return module;
+}
 
 KNO_EXPORT lispval kno_new_cmodule_x(char *name,int flags,void *addr,
                                      u8_string filename)
@@ -209,6 +221,23 @@ int kno_finish_module(lispval module)
     else return kno_module_finished(module,0);
   else {
     kno_seterr(kno_NotAModule,"kno_finish_module",NULL,module);
+    return -1;}
+}
+
+KNO_EXPORT
+int kno_finish_cmodule(lispval module)
+{
+  if (TABLEP(module))
+    if (kno_test(module,loadstamp_symbol,KNO_VOID))
+      return 0;
+    else {
+      int rv = kno_module_finished(module,0);
+      if (rv<0) return rv;
+      if (KNO_HASHTABLEP(module))
+	rv = kno_hashtable_set_readonly((kno_hashtable)module,1);
+      return rv;}
+  else {
+    kno_seterr(kno_NotAModule,"kno_finish_cmodule",NULL,module);
     return -1;}
 }
 
@@ -498,18 +527,20 @@ static lispval export_alias_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   return export_alias_helper(expr,env,_stack);
 }
 
-DEFPRIM1("get-module",get_module,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-         "`(GET-MODULE *arg0*)` **undocumented**",
-         kno_any_type,KNO_VOID);
+DEFCPRIM("get-module",get_module,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "**undocumented**",
+	 {"modname",kno_any_type,KNO_VOID})
 static lispval get_module(lispval modname)
 {
   lispval module = kno_find_module(modname,0);
   return module;
 }
 
-DEFPRIM1("get-loaded-module",get_loaded_module,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-         "`(GET-LOADED-MODULE *arg0*)` **undocumented**",
-         kno_any_type,KNO_VOID);
+DEFCPRIM("get-loaded-module",get_loaded_module,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "**undocumented**",
+	 {"modname",kno_any_type,KNO_VOID})
 static lispval get_loaded_module(lispval modname)
 {
   lispval module = kno_get_module(modname);
@@ -549,9 +580,11 @@ lispval kno_use_module(kno_lexenv env,lispval module)
   return VOID;
 }
 
-DEFPRIM1("get-exports",get_exports_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-         "`(GET-EXPORTS *arg0*)` returns the exported symbols of a module or environment",
-         kno_any_type,KNO_VOID);
+DEFCPRIM("get-exports",get_exports_prim,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "returns the exported symbols of a module or "
+	 "environment",
+	 {"arg",kno_any_type,KNO_VOID})
 static lispval get_exports_prim(lispval arg)
 {
   lispval module = arg;
@@ -576,9 +609,11 @@ static lispval get_exports_prim(lispval arg)
   else return EMPTY;
 }
 
-DEFPRIM1("get-exports-table",get_exports_table_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-         "`(GET-EXPORTS-TABLE *arg0*)` returns the exports table of a module or environment.",
-         kno_any_type,KNO_VOID);
+DEFCPRIM("get-exports-table",get_exports_table_prim,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "returns the exports table of a module or "
+	 "environment.",
+	 {"arg",kno_any_type,KNO_VOID})
 static lispval get_exports_table_prim(lispval arg)
 {
   lispval module = arg;
@@ -661,13 +696,14 @@ static lispval get_source(lispval arg)
     return KNO_FALSE;}
 }
 
-DEFPRIM1("get-source",get_source_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
-         "(get-source [*obj*])\n"
-         "Gets the source file implementing *obj*, which "
-         "can be a function (or macro or evalfn), module, "
-         "or module name. With no arguments, returns the "
-         "current SOURCEBASE",
-         kno_any_type,KNO_VOID);
+DEFCPRIM("get-source",get_source_prim,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
+	 "(get-source [*obj*])\n"
+	 "Gets the source file implementing *obj*, which "
+	 "can be a function (or macro or evalfn), module, "
+	 "or module name. With no arguments, returns the "
+	 "current SOURCEBASE",
+	 {"arg",kno_any_type,KNO_VOID})
 static lispval get_source_prim(lispval arg)
 {
   return get_source(arg);
@@ -766,26 +802,30 @@ get_binding_helper(lispval modarg,lispval symbol,lispval dflt,
     return kno_incref(dflt);}
 }
 
-DEFPRIM3("get-binding",get_binding_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-         "(get-binding *module* *symbol* [*default*])\n"
-         "Gets *module*'s exported binding of *symbol*. On "
-         "failure, returns *default* if provided or errs if "
-         "none is provided.",
-         kno_any_type,KNO_VOID,kno_symbol_type,KNO_VOID,
-         kno_any_type,KNO_VOID);
+DEFCPRIM("get-binding",get_binding_prim,
+	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+	 "(get-binding *module* *symbol* [*default*])\n"
+	 "Gets *module*'s exported binding of *symbol*. On "
+	 "failure, returns *default* if provided or errs if "
+	 "none is provided.",
+	 {"mod_arg",kno_any_type,KNO_VOID},
+	 {"symbol",kno_symbol_type,KNO_VOID},
+	 {"dflt",kno_any_type,KNO_VOID})
 static lispval get_binding_prim
 (lispval mod_arg,lispval symbol,lispval dflt)
 {
   return get_binding_helper(mod_arg,symbol,dflt,1,0,0,"get_binding_prim");
 }
 
-DEFPRIM3("%get-binding",get_internal_binding_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-         "(get-binding *module* *symbol* [*default*])\n"
-         "Gets *module*'s binding of *symbol* (internal or "
-         "external). On failure returns *default* (if "
-         "provided) or errs if none is provided.",
-         kno_any_type,KNO_VOID,kno_symbol_type,KNO_VOID,
-         kno_any_type,KNO_VOID);
+DEFCPRIM("%get-binding",get_internal_binding_prim,
+	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+	 "(get-binding *module* *symbol* [*default*])\n"
+	 "Gets *module*'s binding of *symbol* (internal or "
+	 "external). On failure returns *default* (if "
+	 "provided) or errs if none is provided.",
+	 {"mod_arg",kno_any_type,KNO_VOID},
+	 {"symbol",kno_symbol_type,KNO_VOID},
+	 {"dflt",kno_any_type,KNO_VOID})
 static lispval get_internal_binding_prim
 (lispval mod_arg,lispval symbol,lispval dflt)
 {
@@ -796,22 +836,26 @@ static lispval get_internal_binding_prim
                             "get_internal_binding_prim");
 }
 
-DEFPRIM3("importvar",import_var_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-         "(importvar *module* *symbol* [*default*])\n"
-         "Gets *module*'s binding of *symbol* (internal, "
-         "external, or inherhited). On failure returns "
-         "*default*, if provided, or errors (if not).",
-         kno_any_type,KNO_VOID,kno_symbol_type,KNO_VOID,
-         kno_any_type,KNO_VOID);
+DEFCPRIM("importvar",import_var_prim,
+	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+	 "(importvar *module* *symbol* [*default*])\n"
+	 "Gets *module*'s binding of *symbol* (internal, "
+	 "external, or inherhited). On failure returns "
+	 "*default*, if provided, or errors (if not).",
+	 {"mod_arg",kno_any_type,KNO_VOID},
+	 {"symbol",kno_symbol_type,KNO_VOID},
+	 {"dflt",kno_any_type,KNO_VOID})
 static lispval import_var_prim(lispval mod_arg,lispval symbol,lispval dflt)
 {
   return get_binding_helper(mod_arg,symbol,dflt,0,1,1,"import_var_prim");
 }
 
-DEFPRIM2("env/use-module",add_module_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "(env/use-module *env* *module*) arranges for *env* to use"
-	 "the module *module*",
-	 kno_lexenv_type,KNO_VOID,kno_any_type,KNO_VOID);
+DEFCPRIM("env/use-module",add_module_prim,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	 "(env/use-module *env* *module*) "
+	 "arranges for *env* to usethe module *module*",
+	 {"env_arg",kno_lexenv_type,KNO_VOID},
+	 {"mod_arg",kno_any_type,KNO_VOID})
 static lispval add_module_prim(lispval env_arg,lispval mod_arg)
 {
   lispval mod = ( (KNO_SYMBOLP(mod_arg)) || (KNO_STRINGP(mod_arg)) ) ?
@@ -821,16 +865,18 @@ static lispval add_module_prim(lispval env_arg,lispval mod_arg)
   return result;
 }
 
-DEFPRIM3("env/make",make_env_prim,
-	 KNO_MIN_ARGS(0)|KNO_MAX_ARGS(3)|KNO_CHOICEOP,
-	 "(env/make [*usemods*] [*bindings*] [*exports*]) creates "
-	 "a new environment which uses *usemods*. If *bindings* "
-	 "is provided, a copy of it is used as the bindings for the "
-	 "environment. If *exports* is a hashtable, a copy is used as the "
-	 "exports of the environment; if *exports* is #t (the default) "
+DEFCPRIM("env/make",make_env_prim,
+	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(0)|KNO_NDCALL,
+	 "(env/make [*usemods*] [*bindings*] [*exports*]) "
+	 "creates a new environment which uses *usemods*. "
+	 "If *bindings* is provided, a copy of it is used "
+	 "as the bindings for the environment. If *exports* "
+	 "is a hashtable, a copy is used as the exports of "
+	 "the environment; if *exports* is #t (the default) "
 	 "an empty hashtable is used as the exports.",
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
-	 kno_any_type,KNO_VOID);
+	 {"use_mods",kno_any_type,KNO_VOID},
+	 {"bindings_arg",kno_any_type,KNO_VOID},
+	 {"exports_arg",kno_any_type,KNO_VOID})
 static lispval make_env_prim(lispval use_mods,
 			     lispval bindings_arg,
 			     lispval exports_arg)
@@ -888,6 +934,7 @@ void kno_init_module_tables()
   if (module_tables_initialized) return;
   else module_tables_initialized=1;
 
+  fcnids_symbol = kno_intern("%fcnids");
   loadstamp_symbol = kno_intern("%loadstamp");
   source_symbol = kno_intern("%source");
   dlsource_symbol = kno_intern("%dlsource");
@@ -903,9 +950,13 @@ void kno_init_module_tables()
     kno_scheme_module = kno_make_hashtable(NULL,71);}
   kno_register_module("scheme",kno_scheme_module,(KNO_MODULE_DEFAULT));
 
-  if (KNO_VOIDP(kno_io_module)) {
-    kno_io_module = kno_make_hashtable(NULL,71);}
-  kno_register_module("io",kno_io_module,(KNO_MODULE_DEFAULT));
+  if (KNO_VOIDP(kno_textio_module)) {
+    kno_textio_module = kno_make_hashtable(NULL,71);}
+  kno_register_module("textio",kno_textio_module,(KNO_MODULE_DEFAULT));
+
+  if (KNO_VOIDP(kno_binio_module)) {
+    kno_binio_module = kno_make_hashtable(NULL,71);}
+  kno_register_module("binio",kno_binio_module,0);
 
   if (KNO_VOIDP(kno_sys_module)) {
     kno_sys_module = kno_make_hashtable(NULL,71);}
@@ -917,7 +968,7 @@ void kno_init_module_tables()
 
   /* This is the module where the data-access API lives */
   kno_register_module("dbserv",kno_incref(kno_dbserv_module),0);
-  kno_finish_module(kno_dbserv_module);
+  kno_finish_cmodule(kno_dbserv_module);
 }
 
 /* Initialization */
@@ -951,16 +1002,16 @@ KNO_EXPORT void kno_init_modules_c()
 
 static void link_local_cprims()
 {
-  KNO_LINK_PRIM("importvar",import_var_prim,3,kno_sys_module);
-  KNO_LINK_PRIM("env/make",make_env_prim,3,kno_sys_module);
-  KNO_LINK_PRIM("env/use-module",add_module_prim,2,kno_sys_module);
-  KNO_LINK_PRIM("%get-binding",get_internal_binding_prim,3,kno_sys_module);
-  KNO_LINK_PRIM("get-binding",get_binding_prim,3,kno_sys_module);
-  KNO_LINK_PRIM("get-source",get_source_prim,1,kno_sys_module);
-  KNO_LINK_PRIM("get-exports",get_exports_prim,1,kno_sys_module);
-  KNO_LINK_PRIM("get-exports-table",get_exports_table_prim,1,kno_sys_module);
-  KNO_LINK_PRIM("get-loaded-module",get_loaded_module,1,kno_sys_module);
-  KNO_LINK_PRIM("get-module",get_module,1,kno_sys_module);
+  KNO_LINK_CPRIM("importvar",import_var_prim,3,kno_sys_module);
+  KNO_LINK_CPRIM("env/make",make_env_prim,3,kno_sys_module);
+  KNO_LINK_CPRIM("env/use-module",add_module_prim,2,kno_sys_module);
+  KNO_LINK_CPRIM("%get-binding",get_internal_binding_prim,3,kno_sys_module);
+  KNO_LINK_CPRIM("get-binding",get_binding_prim,3,kno_sys_module);
+  KNO_LINK_CPRIM("get-source",get_source_prim,1,kno_sys_module);
+  KNO_LINK_CPRIM("get-exports",get_exports_prim,1,kno_sys_module);
+  KNO_LINK_CPRIM("get-exports-table",get_exports_table_prim,1,kno_sys_module);
+  KNO_LINK_CPRIM("get-loaded-module",get_loaded_module,1,kno_sys_module);
+  KNO_LINK_CPRIM("get-module",get_module,1,kno_sys_module);
 
   KNO_LINK_ALIAS("%ls",get_exports_prim,kno_sys_module);
 }

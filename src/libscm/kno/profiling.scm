@@ -2,7 +2,7 @@
 
 (in-module 'kno/profiling)
 
-(use-module '{logger reflection stringfmts varconfig})
+(use-module '{logger kno/reflect kno/profile text/stringfmts varconfig})
 
 (define %loglevel %notice%)
 

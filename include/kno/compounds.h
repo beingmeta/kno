@@ -33,13 +33,20 @@
 #define KNO_2COMPOUND(x) ((kno_compound)(x))
 
 #define KNO_COMPOUND_VECLEN(x) \
-  ( ( (KNO_TYPEOF(x) == kno_compound_type) && ((KNO_2COMPOUND(x))->compound_seqoff>=0) ) ? \
-    (((KNO_XCOMPOUND(x))->compound_length)-((KNO_2COMPOUND(x))->compound_seqoff)) : (-1) )
-#define KNO_COMPOUND_VECELTS(x) \
-  ( ( (KNO_TYPEOF(x) == kno_compound_type) && ((KNO_2COMPOUND(x))->compound_seqoff>=0) ) ? \
-    ((&(((KNO_2COMPOUND(x))->compound_0)))+((KNO_2COMPOUND(x))->compound_seqoff)) : (NULL) )
-#define KNO_XCOMPOUND_VECREF(x,i)                                            \
-  ( (&((KNO_XCOMPOUND(x))->compound_0))[(i)+((KNO_2COMPOUND(x))->compound_seqoff)])
+  ( ( (KNO_TYPEOF(x) == kno_compound_type) &&				\
+      ((KNO_2COMPOUND(x))->compound_seqoff>=0) ) ?			\
+    (((KNO_XCOMPOUND(x))->compound_length)-				\
+     ((KNO_2COMPOUND(x))->compound_seqoff)) :				\
+    (-1) )
+#define KNO_COMPOUND_VECELTS(x)						\
+  ( ( (KNO_TYPEOF(x) == kno_compound_type) &&				\
+      ((KNO_2COMPOUND(x))->compound_seqoff>=0) ) ?			\
+    ((&(((KNO_2COMPOUND(x))->compound_0)))+				\
+     ((KNO_2COMPOUND(x))->compound_seqoff)) :				\
+    (NULL) )
+#define KNO_XCOMPOUND_VECREF(x,i)					\
+  ( (&((KNO_XCOMPOUND(x))->compound_0))\
+    [(i)+((KNO_2COMPOUND(x))->compound_seqoff)])
 
 KNO_EXPORT lispval kno_init_compound
   (struct KNO_COMPOUND *ptr,lispval tag,int flags,int n,...);

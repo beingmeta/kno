@@ -3,7 +3,7 @@
 
 (in-module 'knodb/config)
 
-(use-module '{ezrecords stringfmts logger varconfig fifo texttools})
+(use-module '{ezrecords text/stringfmts logger varconfig fifo texttools})
 (use-module '{knodb})
 
 (define %loglevel %warn%)
@@ -16,9 +16,12 @@
 	(try
 	 (tryif (and db (getopt opts 'oneshot)) db)
 	 (tryif (and db (equal? (pool-source db) val)) db)
-	 (tryif (and db (string? val)
-		     (equal? (pool-source db) val))
-	   (equal? (realpath val) (realpath (pool-source db))))
+	 (tryif (and db (string? val) 
+		     (or (equal? (pool-source db) val)
+			 (and (position #\/ (pool-source db))
+			      (file-exists? (pool-source db))
+			      (equal? (realpath val) (realpath (pool-source db))))))
+	   db)
 	 (let* ((source (if (and (table? val) (testopt val 'source))
 			    (getopt val 'source #f)
 			    val))

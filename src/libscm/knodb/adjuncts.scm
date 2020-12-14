@@ -3,9 +3,9 @@
 
 (in-module 'knodb/adjuncts)
 
-(use-module '{reflection texttools regex
+(use-module '{kno/reflect texttools regex
 	      logger logctl fifo
-	      mttools stringfmts opts})
+	     kno/mttools text/stringfmts opts})
 (use-module 'knodb)
 
 (define %loglevel %warn%)
@@ -193,8 +193,8 @@
   (when (string? spec)
     (set! spec
       (if (has-suffix spec ".pool")
-	  `#[pool ,spec type bigpool adjunct ,slotid]
-	  `#[index ,spec type hashindex adjunct ,slotid])))
+	  `#[pool ,spec type kpool adjunct ,slotid]
+	  `#[index ,spec type index adjunct ,slotid])))
   (let ((current (poolctl pool 'metadata 'adjuncts)))
     (cond ((fail? current)
 	   (set! current `#[,slotid ,spec]))
@@ -249,7 +249,7 @@
       (store! opts '{type pooltype}
 	(try (difference (get opts 'type) 'pool)
 	     (poolctl pool 'type)
-	     'bigpool))
+	     'kpool))
       (store! opts 'base (pool-base pool))
       (store! opts 'capacity (pool-capacity pool))
       (unless (pooltype? (get opts 'pooltype))

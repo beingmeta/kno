@@ -578,6 +578,26 @@ int kno_clear_errors(int report)
   return n_errs;
 }
 
+KNO_EXPORT
+int kno_pop_exceptions(u8_exception restore,int loglevel)
+{
+  u8_exception cur = u8_current_exception, scan = cur;
+  if (scan == restore) return 0;
+  else while ( (scan) && (scan != restore) ) scan=scan->u8x_prev;
+  if (!(scan)) return -1;
+  int count = 0;
+  scan = cur; while ( (scan) && (scan != restore) ) {
+    if (loglevel>=0) {
+      u8_string sum = kno_errstring(scan);
+      u8_logger(loglevel,scan->u8x_cond,sum);
+      u8_free(sum);}
+    u8_free_exception(scan,0);
+    scan=scan->u8x_prev;
+    count++;}
+  u8_set_current_exception(restore);
+  return count;
+}
+
 /* Exception objects */
 
 static u8_condition ExceptionDataError = _("ExceptionDataError");

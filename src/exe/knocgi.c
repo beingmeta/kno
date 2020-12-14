@@ -83,8 +83,8 @@ KNO_EXPORT int kno_init_dbserv(void);
 
 #include "webcommon.h"
 
-#define nobytes(in,nbytes) (PRED_FALSE(!(kno_request_bytes(in,nbytes))))
-#define havebytes(in,nbytes) (KNO_EXPECT_TRUE(kno_request_bytes(in,nbytes)))
+#define nobytes(in,nbytes) (RARELY(!(kno_request_bytes(in,nbytes))))
+#define havebytes(in,nbytes) (KNO_USUALLY(kno_request_bytes(in,nbytes)))
 
 #define HTML_UTF8_CTYPE_HEADER "Content-type: text/html; charset = utf-8\r\n\r\n"
 
@@ -2080,7 +2080,6 @@ int main(int argc,char **argv)
 
 
 #if ((!(HAVE_CONSTRUCTOR_ATTRIBUTES)) || (KNO_TESTCONFIG) || (KNO_STATIC) )
-  kno_init_schemeio();
   kno_init_texttools();
   /* May result in innocuous redundant calls */
   KNO_INIT_SCHEME_BUILTINS();

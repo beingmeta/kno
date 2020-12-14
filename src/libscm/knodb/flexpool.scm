@@ -3,7 +3,8 @@
 
 (in-module 'knodb/flexpool)
 
-(use-module '{ezrecords stringfmts logger varconfig fifo texttools})
+(use-module '{binio db/drivers texttools})
+(use-module '{ezrecords text/stringfmts logger varconfig fifo})
 (use-module '{knodb/adjuncts knodb/filenames})
 (use-module '{knodb})
 
@@ -57,8 +58,8 @@
 (define (get-partition-type opts)
   (getopt opts 'partition-type 
 	  (if (getopt opts 'partopts)
-	      (getopt (getopt opts 'partopts) 'type 'bigpool)
-	      'bigpool)))
+	      (getopt (getopt opts 'partopts) 'type 'kpool)
+	      'kpool)))
 
 ;;; Flexpool records
 
@@ -179,7 +180,7 @@
 	(cap (getopt opts 'capacity))
 	(prefix (get-partition-prefix filename opts))
 	(partsize (getopt opts 'partsize (getopt opts 'step default-partsize)))
-	(pooltype (getopt opts 'parttype (getopt opts 'pooltype 'bigpool)))
+	(pooltype (getopt opts 'parttype (getopt opts 'pooltype 'kpool)))
 	;; These adjuncts apply to the partitions of the flexpool
 	(adjuncts (getopt opts 'adjuncts {})))
     (debug%watch "MAKE-FLEXPOOL" 

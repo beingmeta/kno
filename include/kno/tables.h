@@ -95,9 +95,9 @@ KNO_EXPORT int _KNO_TABLEP(lispval x);
   ( (KNO_OIDP(x)) ? (1) :                                              \
     (KNO_CONSP(x)) ?                                                   \
     ( (KNO_XXCONS_TYPEP((x),kno_coretable_type)) ||			\
-      ( (kno_tablefns[KNO_CONSPTR_TYPE(x)] != NULL ) &&			\
-        ( (kno_tablefns[KNO_CONSPTR_TYPE(x)]->tablep == NULL ) ||       \
-          (kno_tablefns[KNO_CONSPTR_TYPE(x)]->tablep(x)) ) ) ) :        \
+      ( (kno_tablefns[KNO_CONS_TYPEOF(x)] != NULL ) &&			\
+        ( (kno_tablefns[KNO_CONS_TYPEOF(x)]->tablep == NULL ) ||       \
+          (kno_tablefns[KNO_CONS_TYPEOF(x)]->tablep(x)) ) ) ) :        \
     (KNO_IMMEDIATEP(x)) ?                                               \
     ( (kno_tablefns[KNO_IMMEDIATE_TYPE(x)] != NULL ) &&                 \
       ( (kno_tablefns[KNO_IMMEDIATE_TYPE(x)]->tablep == NULL ) ||       \
@@ -390,14 +390,6 @@ KNO_EXPORT lispval kno_blist_to_slotmap(lispval binding_list);
 typedef struct KNO_SCHEMAP {
   KNO_TABLE_HEADER;
   int schema_length;
-#if 0
-  unsigned int schemap_sorted:1;
-  unsigned int schemap_onstack:1;
-  unsigned int schemap_tagged:1;
-  unsigned int schemap_shared:1;
-  unsigned int schemap_stackvals:1;
-  unsigned int schemap_stackvec:1;
-#endif
   lispval *table_schema, *table_values;
   lispval schemap_template;} KNO_SCHEMAP;
 

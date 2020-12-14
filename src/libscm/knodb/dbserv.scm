@@ -3,7 +3,7 @@
 
 (in-module 'knodb/dbserv)
 
-(use-module '{stringfmts logger texttools varconfig})
+(use-module '{text/stringfmts logger texttools varconfig})
 
 (module-export! '{fetchoid fetchoids fetchkey fetchkeys fetchsize
 		  getload pool-data})

@@ -837,7 +837,7 @@ static lispval bigpool_fetch(kno_pool p,lispval oid)
   KNO_OID addr   = KNO_OID_ADDR(oid);
   int offset    = KNO_OID_DIFFERENCE(addr,bp->pool_base);
   use_bigpool(bp);
-  if (PRED_FALSE(offset>=bp->pool_load)) {
+  if (RARELY(offset>=bp->pool_load)) {
     /* It looks out of range, so double check by going to disk */
     if (offset>=(bigpool_locked_load(p))) {
       bigpool_finished(bp);

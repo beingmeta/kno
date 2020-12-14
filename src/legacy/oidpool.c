@@ -551,14 +551,14 @@ static lispval read_oid_value(kno_oidpool op,
 {
   int zip_code;
   zip_code = kno_read_varint(in);
-  if (PRED_FALSE(zip_code>(op->oidpool_n_schemas)))
+  if (RARELY(zip_code>(op->oidpool_n_schemas)))
     return kno_err(kno_InvalidSchemaRef,"oidpool_fetch",op->poolid,VOID);
   else if (zip_code==0)
     return kno_read_dtype(in);
   else {
     struct KNO_SCHEMA_ENTRY *se = &(op->oidpool_schemas[zip_code-1]);
     int n_vals = kno_read_varint(in), n_slotids = se->op_nslots;
-    if (PRED_TRUE(n_vals == n_slotids)) {
+    if (USUALLY(n_vals == n_slotids)) {
       lispval *values = u8_alloc_n(n_vals,lispval);
       unsigned int i = 0, *mapin = se->op_slotmapin;
       /* We reorder the values coming in to agree with the
@@ -636,7 +636,7 @@ static lispval oidpool_fetch(kno_pool p,lispval oid)
   kno_oidpool op = (kno_oidpool)p;
   KNO_OID addr = KNO_OID_ADDR(oid);
   int offset = KNO_OID_DIFFERENCE(addr,op->pool_base);
-  if (PRED_FALSE( offset >= op->pool_load )) {
+  if (RARELY( offset >= op->pool_load )) {
     /* Double check by fetching the load */
     if ( offset >= (oidpool_load(p)) ) {
       if ( (p->pool_flags) & (KNO_POOL_ADJUNCT) ) {

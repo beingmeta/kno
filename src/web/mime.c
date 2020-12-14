@@ -278,9 +278,10 @@ lispval kno_parse_mime(const char *start,const char *end)
   return slotmap;
 }
 
-DEFPRIM1("parse-mime",parse_mime_data,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(PARSE-MIME *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
+DEFCPRIM("parse-mime",parse_mime_data,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "**undocumented**",
+	 {"arg",kno_any_type,KNO_VOID})
 static lispval parse_mime_data(lispval arg)
 {
   if (PACKETP(arg))
@@ -318,5 +319,5 @@ void kno_init_mime_c()
 
 static void link_local_cprims()
 {
-  KNO_LINK_PRIM("parse-mime",parse_mime_data,1,webtools_module);
+  KNO_LINK_CPRIM("parse-mime",parse_mime_data,1,webtools_module);
 }

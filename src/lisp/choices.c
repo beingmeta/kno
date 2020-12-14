@@ -267,7 +267,7 @@ lispval kno_init_choice
 {
   int atomicp = 1, newlen = n;
   const lispval *base, *scan, *limit;
-  if (PRED_FALSE((n==0) && (flags&KNO_CHOICE_REALLOC))) {
+  if (RARELY((n==0) && (flags&KNO_CHOICE_REALLOC))) {
     if ( (data) && (flags&KNO_CHOICE_FREEDATA) ) u8_free(data);
     if (ch) kno_free_choice(ch);
     return EMPTY;}

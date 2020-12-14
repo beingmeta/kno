@@ -1,6 +1,6 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2019 beingmeta, inc.
+/* Copyright (C) 2004-2020 beingmeta, inc.
    This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -182,7 +182,7 @@ static kno_size_t get_maxpos(kno_kindex p)
 
 static void init_cache_level(kno_index ix)
 {
-  if (PRED_FALSE(ix->index_cache_level<0)) {
+  if (RARELY(ix->index_cache_level<0)) {
     lispval opts = ix->index_opts;
     long long level=kno_getfixopt(opts,"CACHELEVEL",kno_default_cache_level);
     kno_index_setcache(ix,level);}
@@ -203,8 +203,8 @@ static lispval slotids_symbol, baseoids_symbol, buckets_symbol, nkeys_symbol;
 
 /* Utilities for XTYPE I/O */
 
-#define nobytes(in,nbytes) (PRED_FALSE(!(kno_request_bytes(in,nbytes))))
-#define havebytes(in,nbytes) (PRED_TRUE(kno_request_bytes(in,nbytes)))
+#define nobytes(in,nbytes) (RARELY(!(kno_request_bytes(in,nbytes))))
+#define havebytes(in,nbytes) (USUALLY(kno_request_bytes(in,nbytes)))
 
 #define output_byte(out,b)                              \
   if (kno_write_byte(out,b)<0) return -1; else {}
@@ -1958,7 +1958,7 @@ KNO_FASTOP kno_off_t update_keybucket
 {
   int k = i, free_keyvecs = 0;
   int _keyoffs[16], _keysizes[16], *keyoffs, *keysizes;
-  if (PRED_FALSE((j-i)>16) )  {
+  if (RARELY((j-i)>16) )  {
     keyoffs = u8_alloc_n((j-i),int);
     keysizes = u8_alloc_n((j-i),int);
     free_keyvecs = 1;}
@@ -2311,7 +2311,7 @@ static int kindex_save(struct KNO_KINDEX *kx,
     struct KEYBUCKET *kb = keybuckets[bucket_i];
     int bucket = schedule[sched_i].commit_bucket;
     int j = sched_i, cur_keys = kb->kb_n_keys;
-    if (KNO_EXPECT_FALSE(bucket != kb->kb_bucketno)) {
+    if (KNO_RARELY(bucket != kb->kb_bucketno)) {
       u8_log(LOG_CRIT,"KIndexError",
              "Bucket at sched_i=%d/%d was %d != %d (expected) in %s",
              sched_i,schedule_size,bucket,kb->kb_bucketno,kx->indexid);}
@@ -2447,7 +2447,7 @@ static int kindex_commit(kno_index ix,kno_commit_phase phase,
         (kno_init_file_stream(NULL,commit_file,KNO_FILE_MODIFY,-1,-1)) :
         (NULL);
       if (head_stream == NULL) {
-        u8_seterr("CantOpenCommitFile","bigpool_commit",commit_file);
+        u8_seterr("CantOpenCommitFile","kindex_commit",commit_file);
         return -1;}
       else u8_free(commit_file);}
     else head_stream=stream;

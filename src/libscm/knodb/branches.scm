@@ -3,7 +3,7 @@
 
 (in-module 'knodb/branches)
 
-(use-module '{ezrecords stringfmts logger varconfig fifo texttools})
+(use-module '{ezrecords text/stringfmts logger varconfig fifo texttools})
 (use-module '{knodb/adjuncts knodb/filenames})
 (use-module '{knodb})
 

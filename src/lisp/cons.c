@@ -9,6 +9,8 @@
 #define _FILEINFO __FILE__
 #endif
 
+#define KNO_INLINE_TYPE_ALIASES 1
+
 #include "kno/knosource.h"
 #include "kno/lisp.h"
 #include "kno/cons.h"
@@ -62,7 +64,7 @@ lispval kno_timestamp_xtag, kno_qchoice_xtag, kno_regex_xtag,
   kno_rational_xtag, kno_complex_xtag, kno_bigtable_xtag, kno_bigset_xtag;
 lispval kno_zlib_xtag, kno_zstd_xtag, kno_snappy_xtag;
 
-const char *kno_constant_names[256]={
+const char *kno_constant_names[512]={
   "#void","#f","#t","{}","()","#default","#tailcall",
   "#eof","#eod","#eox", "#bad_dtype","#bad_parse","#oom",
   "#type_error","#range_error", "#error","#badptr","#throw",
@@ -90,7 +92,33 @@ const char *kno_constant_names[256]={
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL, /* 250 */
-  NULL,NULL,NULL,NULL,NULL};
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL};
 
 KNO_EXPORT
 lispval kno_register_constant(u8_string name)
@@ -272,7 +300,7 @@ int lispval_equal(lispval x,lispval y)
   else if ( (CHOICEP(x)) || (CHOICEP(y)) )
     return 0;
   else {
-    kno_lisp_type ctype = KNO_CONS_TYPE(KNO_CONS_DATA(x));
+    kno_lisp_type ctype = KNO_CONS_TYPEOF(KNO_CONS_DATA(x));
     if (kno_comparators[ctype])
       return (kno_comparators[ctype](x,y,1)==0);
     else return 0;}
@@ -643,6 +671,56 @@ KNO_EXPORT lispval kno_bytes2packet
   return LISP_CONS(ptr);
 }
 
+/* Type aliases */
+
+/* Forward typecode references */
+
+#ifndef KNO_MAX_TYPE_ALIASES
+#define KNO_MAX_TYPE_ALIASES 100
+#endif
+
+struct KNO_TYPE_ALIAS _kno_type_aliases[KNO_MAX_TYPE_ALIASES];
+int _kno_n_type_aliases = 0;
+
+U8_MUTEX_DECL(type_aliases_lock);
+
+KNO_EXPORT int _kno_lookup_type_alias(long int code)
+{
+  return kno_lookup_type_alias(code);
+}
+
+KNO_EXPORT int kno_add_type_alias(int type,long int code)
+{
+  if (type>=KNO_TYPE_MAX) {
+    u8_seterr("BadTypeCode","kno_add_type_alias",
+	      u8_mkstring("typecode=%d with longcode = 0x%llx",
+			  type,code));
+    return -1;}
+  u8_lock_mutex(&type_aliases_lock);
+  int typecode = kno_lookup_type_alias(code), retval = 0;
+  if (typecode > 0) {
+    if ( ((kno_lisp_type)typecode) == type)
+      retval = 0;
+    else {
+      u8_string details=
+	u8_mkstring
+	("Conflicting type definitions for longcode %ld, new (%s:%d) != (%s:%d)",
+	 code,kno_type2name(typecode),typecode,kno_type2name(type),type);
+      u8_seterr("TypeLongcodeConflict","add_forward_type_ref",details);
+      retval=-1;}}
+  else {
+    if (_kno_n_type_aliases >= KNO_MAX_TYPE_ALIASES) {
+      u8_seterr("LongTypecodeOverflow","add_forward_type_ref",NULL);
+      retval = -1;}
+    else {
+      _kno_type_aliases[_kno_n_type_aliases].longcode=code;
+      _kno_type_aliases[_kno_n_type_aliases].ptr_type=type;
+      _kno_n_type_aliases++;
+      retval=type;}}
+  u8_unlock_mutex(&type_aliases_lock);
+  return retval;
+}
+
 /* Registering new primitive types */
 
 static u8_mutex type_registry_lock;
@@ -652,7 +730,7 @@ unsigned int kno_next_cons_type=
 unsigned int kno_next_immediate_type=
   KNO_IMMEDIATE_TYPECODE(KNO_BUILTIN_IMMEDIATE_TYPES);
 
-KNO_EXPORT int kno_register_cons_type(char *name)
+KNO_EXPORT int kno_register_cons_type(char *name,long int longcode)
 {
   int typecode;
   u8_lock_mutex(&type_registry_lock);
@@ -663,17 +741,18 @@ KNO_EXPORT int kno_register_cons_type(char *name)
   kno_next_cons_type++;
   kno_type_names[typecode]=name;
   u8_byte buf[100];
-  lispval typecode_value = LISPVAL_IMMEDIATE(kno_basetype_type,typecode);
+  lispval typecode_value = LISPVAL_IMMEDIATE(kno_ctype_type,typecode);
   u8_string hashname = u8_bprintf(buf,"%s_type",name);
   if (kno_add_constname(hashname,typecode_value)<0)
     u8_log(LOGCRIT,"BadTypeName",
 	   "Couldn't register typename '%s' for typecode=%d",
 	   hashname,typecode);
+  if (longcode>0) kno_add_type_alias(typecode,longcode);
   u8_unlock_mutex(&type_registry_lock);
   return typecode;
 }
 
-KNO_EXPORT int kno_register_immediate_type(char *name,kno_checkfn fn)
+KNO_EXPORT int kno_register_immediate_type(char *name,kno_checkfn fn,long int longcode)
 {
   int typecode;
   u8_lock_mutex(&type_registry_lock);
@@ -684,7 +763,7 @@ KNO_EXPORT int kno_register_immediate_type(char *name,kno_checkfn fn)
   kno_immediate_checkfns[typecode]=fn;
   kno_next_immediate_type++;
   kno_type_names[typecode]=name;
-  lispval typecode_value = LISPVAL_IMMEDIATE(kno_basetype_type,typecode);
+  lispval typecode_value = LISPVAL_IMMEDIATE(kno_ctype_type,typecode);
   u8_byte buf[100];
   u8_string hashname = u8_bprintf(buf,"%s_type",name);
   if (kno_add_constname(hashname,typecode_value)<0)
@@ -692,7 +771,8 @@ KNO_EXPORT int kno_register_immediate_type(char *name,kno_checkfn fn)
 	   "Couldn't register typename '%s' for typecode=%d",
 	   hashname,typecode);
   u8_unlock_mutex(&type_registry_lock);
-  return typecode;
+  if (longcode>0) kno_add_type_alias(typecode,longcode);
+ return typecode;
 }
 
 /* Utility functions (for debugging) */
@@ -753,98 +833,6 @@ KNO_EXPORT lispval kno_badptr_err(lispval result,u8_context cxt,
                   details, KNO_UINT2LISP(result) );
 }
 
-/* Typeinfo */
-
-static struct KNO_HASHTABLE typeinfo;
-
-KNO_EXPORT struct KNO_TYPEINFO *kno_probe_typeinfo(lispval tag)
-{
-  lispval v = kno_hashtable_get(&typeinfo,tag,KNO_FALSE);
-  if (KNO_TYPEP(v,kno_typeinfo_type))
-    return (kno_typeinfo) v;
-  else return NULL;
-}
-
-KNO_EXPORT struct KNO_TYPEINFO *kno_use_typeinfo(lispval tag)
-{
-  lispval exists = kno_hashtable_get(&typeinfo,tag,KNO_VOID);
-  if (KNO_VOIDP(exists)) {
-    struct KNO_TYPEINFO *info = u8_alloc(struct KNO_TYPEINFO);
-    KNO_INIT_STATIC_CONS(info,kno_typeinfo_type);
-    info->typetag = tag; kno_incref(tag);
-    info->type_props = kno_make_slotmap(2,0,NULL);
-    info->type_handlers = kno_make_slotmap(2,0,NULL);
-    info->type_name = (KNO_SYMBOLP(tag)) ? (KNO_SYMBOL_NAME(tag)) :
-      (KNO_STRINGP(tag)) ? (KNO_CSTRING(tag)) : (kno_lisp2string(tag));
-    info->type_description = NULL;
-    int rv = kno_hashtable_op(&typeinfo,kno_table_init,tag,((lispval)info));
-    if (rv > 0)
-      return info;
-    else {
-      kno_decref(info->typetag);
-      kno_decref(info->type_props);
-      kno_decref(info->type_handlers);
-      u8_free(info);
-      if (rv < 0)
-	return NULL;
-      else {
-	lispval useval = kno_hashtable_get(&typeinfo,tag,KNO_FALSE);
-	if (KNO_TYPEP(useval,kno_typeinfo_type))
-	  return (kno_typeinfo) useval;
-	else return NULL;}}}
-  else return (kno_typeinfo) exists;
-}
-
-KNO_EXPORT
-int kno_set_unparsefn(lispval tag,kno_type_unparsefn fn)
-{
-  struct KNO_TYPEINFO *info = kno_use_typeinfo(tag);
-  if (info) {
-    info->type_unparsefn = fn;
-    return 1;}
-  else return 0;
-}
-
-KNO_EXPORT
-int kno_set_freefn(lispval tag,kno_type_freefn fn)
-{
-  struct KNO_TYPEINFO *info = kno_use_typeinfo(tag);
-  if (info) {
-    info->type_freefn = fn;
-    return 1;}
-  else return 0;
-}
-
-KNO_EXPORT
-int kno_set_parsefn(lispval tag,kno_type_parsefn fn)
-{
-  struct KNO_TYPEINFO *info = kno_use_typeinfo(tag);
-  if (info) {
-    info->type_parsefn = fn;
-    return 1;}
-  else return 0;
-}
-
-KNO_EXPORT
-int kno_set_dumpfn(lispval tag,kno_type_dumpfn fn)
-{
-  struct KNO_TYPEINFO *info = kno_use_typeinfo(tag);
-  if (info) {
-    info->type_dumpfn = fn;
-    return 1;}
-  else return 0;
-}
-
-KNO_EXPORT
-int kno_set_restorefn(lispval tag,kno_type_restorefn fn)
-{
-  struct KNO_TYPEINFO *info = kno_use_typeinfo(tag);
-  if (info) {
-    info->type_restorefn = fn;
-    return 1;}
-  else return 0;
-}
-
 /* Initialization */
 
 static struct KNO_FLONUM flonum_consts[8];
@@ -869,8 +857,7 @@ void kno_init_cons_c()
 
   u8_init_mutex(&constant_registry_lock);
   u8_init_mutex(&type_registry_lock);
-
-  kno_init_hashtable(&typeinfo,223,NULL);
+  u8_init_mutex(&type_aliases_lock);
 
   i = 0; while (i < KNO_TYPE_MAX) kno_type_names[i++]=NULL;
   i = 0; while (i<KNO_TYPE_MAX) kno_hashfns[i++]=NULL;

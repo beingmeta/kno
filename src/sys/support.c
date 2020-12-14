@@ -252,10 +252,6 @@ KNO_EXPORT void kno_init_support()
                       config_get_module_loc,NULL,(void *) LOCAL_MODULES);
   kno_register_config("INSTALLED_MODULES",_("value of INSTALLED_MODULES"),
                       config_get_module_loc,NULL,(void *) INSTALLED_MODULES);
-#if 0
-  kno_register_config("SHARED_MODULES",_("value of SHARED_MODULES"),
-                      config_get_module_loc,NULL,(void *) SHARED_MODULES);
-#endif
   kno_register_config("STDLIB_MODULES",_("value of STDLIB_MODULES"),
                       config_get_module_loc,NULL,(void *) STDLIB_MODULES);
 

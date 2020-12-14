@@ -279,7 +279,7 @@ KNO_EXPORT int kno_aggregate_indexp(kno_index ix);
 
 KNO_EXPORT struct KNO_INDEX_HANDLER *kno_aggregate_index_handler;
 
-KNO_EXPORT struct KNO_AGGREGATE_INDEX *kno_background;
+KNO_EXPORT struct KNO_AGGREGATE_INDEX *kno_default_background;
 
 KNO_EXPORT kno_index _kno_indexptr(lispval lp);
 KNO_EXPORT lispval _kno_index2lisp(kno_index ix);
@@ -341,13 +341,16 @@ U8_MAYBE_UNUSED static kno_index __kno_get_writable_index(kno_index ix)
 #if KNO_INLINE_INDEXES
 KNO_FASTOP lispval kno_index_get(kno_index ix,lispval key)
 {
-  lispval cached;
+  lispval cached, cache = KNO_VOID;
 #if KNO_USE_THREADCACHE
-  KNOTC *knotc = kno_threadcache; struct KNO_PAIR tempkey;
+  KNOTC *knotc = kno_threadcache;
   if (knotc) {
-    KNO_INIT_STATIC_CONS(&tempkey,kno_pair_type);
-    tempkey.car = kno_index2lisp(ix); tempkey.cdr = key;
-    cached = kno_hashtable_get(&(knotc->indexes),(lispval)&tempkey,KNO_VOID);
+    cache = kno_slotmap_get(&(knotc->indexes),kno_index2lisp(ix),KNO_VOID);
+    if (KNO_HASHTABLEP(cache)) {
+      cached = kno_hashtable_get((kno_hashtable)cache,key,KNO_VOID);}
+    else {
+      kno_decref(cache);
+      cache=KNO_FALSE;}
     if (!(KNO_VOIDP(cached))) return cached;}
 #endif
   if (ix->index_cache_level==0) cached = KNO_VOID;
@@ -357,17 +360,18 @@ KNO_FASTOP lispval kno_index_get(kno_index ix,lispval key)
   else cached = kno_hashtable_get(&(ix->index_cache),key,KNO_VOID);
   if (KNO_VOIDP(cached)) cached = kno_index_fetch(ix,key);
 #if KNO_USE_THREADCACHE
-  if (knotc) {
-    kno_hashtable_store(&(knotc->indexes),(lispval)&tempkey,cached);}
+  if (knotc) knotc_cache_index_key(knotc,kno_index2lisp(ix),key,cached);
 #endif
   return cached;
 }
 KNO_FASTOP int kno_index_add(kno_index ix_arg,lispval key,lispval value)
 {
   int rv = -1;
+#if KNO_USE_THREADCACHE
   KNOTC *knotc = (KNO_WRITETHROUGH_THREADCACHE)?(kno_threadcache):(NULL);
+#endif
   kno_index ix = kno_get_writable_index(ix_arg);
-  if (ix == NULL)
+  if (ix == NULL) /* This will handle the underlying error */
     return _kno_index_add(ix_arg,key,value);
 
   kno_hashtable adds = &(ix->index_adds);
@@ -398,18 +402,14 @@ KNO_FASTOP int kno_index_add(kno_index ix_arg,lispval key,lispval value)
       rv = kno_hashtable_op(cache,kno_table_add_if_present,key,value);
     else NO_ELSE;}
 
-  if ( (rv>=0) && (knotc) && (knotc->indexes.table_n_keys) ) {
-    KNO_DO_CHOICES(akey,key) {
-      struct KNO_PAIR tempkey;
-      KNO_INIT_STATIC_CONS(&tempkey,kno_pair_type);
-      tempkey.car = kno_index2lisp(ix); tempkey.cdr = akey;
-      if (kno_hashtable_probe(&knotc->indexes,(lispval)&tempkey)) {
-        kno_hashtable_add(&knotc->indexes,(lispval)&tempkey,value);}}}
+#if KNO_USE_THREADCACHE
+  if ( (rv>=0) && (knotc) ) {}
+#endif
 
   if ((rv >= 0) &&
       (ix->index_flags&KNO_INDEX_IN_BACKGROUND) &&
-      (kno_background->index_cache.table_n_keys)) {
-    kno_hashtable bgcache = (&(kno_background->index_cache));
+      (kno_default_background->index_cache.table_n_keys)) {
+    kno_hashtable bgcache = (&(kno_default_background->index_cache));
     if (KNO_CHOICEP(key)) {
       const lispval *keys = KNO_CHOICE_DATA(key);
       unsigned int n = KNO_CHOICE_SIZE(key);
@@ -419,8 +419,8 @@ KNO_FASTOP int kno_index_add(kno_index ix_arg,lispval key,lispval value)
 
   if (rv<0) {}
   else if ((!(KNO_VOIDP(ix->index_covers_slotids))) &&
-           (KNO_EXPECT_TRUE(KNO_PAIRP(key))) &&
-           (KNO_EXPECT_TRUE((KNO_OIDP(KNO_CAR(key))) ||
+           (KNO_USUALLY(KNO_PAIRP(key))) &&
+           (KNO_USUALLY((KNO_OIDP(KNO_CAR(key))) ||
                            (KNO_SYMBOLP(KNO_CAR(key)))))) {
     if (!(kno_contains_atomp(KNO_CAR(key),ix->index_covers_slotids))) {
       kno_decref(ix->index_covers_slotids);

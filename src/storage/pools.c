@@ -262,7 +262,7 @@ KNO_EXPORT void kno_pool_setcache(kno_pool p,int level)
 
 static void init_cache_level(kno_pool p)
 {
-  if (PRED_FALSE(p->pool_cache_level<0)) {
+  if (RARELY(p->pool_cache_level<0)) {
     lispval opts = p->pool_opts;
     long long level=kno_getfixopt(opts,"CACHELEVEL",kno_default_cache_level);
     kno_pool_setcache(p,level);}
@@ -534,7 +534,7 @@ KNO_EXPORT lispval kno_oid_value(lispval oid)
 
 KNO_EXPORT lispval kno_locked_oid_value(kno_pool p,lispval oid)
 {
-  if (PRED_FALSE(!(OIDP(oid))))
+  if (RARELY(!(OIDP(oid))))
     return kno_type_error(_("OID"),"kno_locked_oid_value",oid);
   else if ( (p->pool_handler->lock == NULL) ||
 	    (U8_BITP(p->pool_flags,KNO_POOL_VIRTUAL)) ||
@@ -2707,8 +2707,6 @@ static lispval copy_consed_pool(lispval x,int deep)
 
 /* Initialization */
 
-kno_lisp_type kno_consed_pool_type;
-
 static int check_pool(lispval x)
 {
   int serial = KNO_GET_IMMEDIATE(x,kno_pool_type);
@@ -2888,10 +2886,6 @@ KNO_EXPORT void kno_init_pools_c()
   kno_type_names[kno_pool_type]=_("pool");
   kno_immediate_checkfns[kno_pool_type]=check_pool;
 
-  kno_consed_pool_type = kno_register_cons_type("raw pool");
-
-  kno_type_names[kno_consed_pool_type]=_("raw pool");
-
   _kno_oid_info=_more_oid_info;
 
   lock_symbol = kno_intern("lock");
@@ -2934,7 +2928,7 @@ KNO_EXPORT void kno_init_pools_c()
 
   {
     struct KNO_TYPEINFO *e = kno_use_typeinfo(kno_intern("pool"));
-    e->type_parsefn = pool_parsefn;}
+    e->type_consfn = pool_parsefn;}
 
   KNO_INIT_STATIC_CONS(&poolid_table,kno_hashtable_type);
   kno_make_hashtable(&poolid_table,-1);

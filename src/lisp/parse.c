@@ -33,6 +33,8 @@
 #define PARSE_CONTEXT_BUF_SIZE 32
 #endif
 
+kno_type_consfn kno_default_consfn = NULL;
+
 /* TODO: Add general parse_error function which provides input context
    of some sort, where possible. */
 
@@ -40,7 +42,7 @@
 
 #define PARSE_ERRORP(x) ((x == KNO_EOX) || (x == KNO_PARSE_ERROR) || (x == KNO_OOM))
 #define PARSE_ABORTP(x)                                                 \
-  (KNO_EXPECT_FALSE(((KNO_TYPEP(x,kno_constant_type)) &&                \
+  (KNO_RARELY(((KNO_TYPEP(x,kno_constant_type)) &&                \
                      (KNO_GET_IMMEDIATE(x,kno_constant_type)>6) &&      \
                      (KNO_GET_IMMEDIATE(x,kno_constant_type)<16))))
 
@@ -334,7 +336,7 @@ static int copy_atom(u8_input s,u8_output a,int normcase)
 lispval kno_parse_atom(u8_string start,int len)
 {
   /* fprintf(stderr,"kno_parse_atom %d: %s\n",len,start); */
-  if (PRED_FALSE(len==0))
+  if (RARELY(len==0))
     return KNO_EOX;
   else if ((start[0]=='#')&&(start[1]=='U')) { /* It's a UUID */
     struct KNO_UUID *uuid = u8_alloc(struct KNO_UUID);
@@ -1032,7 +1034,7 @@ static lispval parse_slotmap(U8_INPUT *in)
 {
   int n_elts = -2;
   lispval *elts = parse_vec(in,']',&n_elts), result = KNO_VOID;
-  if (PRED_FALSE(n_elts<0))
+  if (RARELY(n_elts<0))
     return KNO_PARSE_ERROR;
   else if (n_elts<=7)  {
     /* If it's a short slotmap, allocate the map 'inline' with the
@@ -1047,7 +1049,7 @@ static lispval parse_schemap(U8_INPUT *in)
 {
   int n_elts = -2;
   lispval *elts = parse_vec(in,']',&n_elts), result = KNO_VOID;
-  if (PRED_FALSE(n_elts<0))
+  if (RARELY(n_elts<0))
     return KNO_PARSE_ERROR;
   else {
     result = kno_init_schemap(NULL,n_elts/2,(struct KNO_KEYVAL *)elts);
@@ -1111,21 +1113,26 @@ static lispval recreate_record(int n,lispval *v)
 {
   int i = 0;
   struct KNO_TYPEINFO *entry = kno_use_typeinfo(v[0]);
-  if ((entry) && (entry->type_parsefn)) {
-    lispval result = entry->type_parsefn(n,v,entry);
+  if ((entry) && (entry->type_consfn)) {
+    lispval result = entry->type_consfn(n,v,entry);
     if (!(VOIDP(result))) {
       while (i<n) {kno_decref(v[i]); i++;}
       if (v) u8_free(v);
       return result;}}
-  {
-    struct KNO_COMPOUND *c=
-      u8_malloc(sizeof(struct KNO_COMPOUND)+(n-1)*LISPVAL_LEN);
-    lispval *data = &(c->compound_0);
-    kno_init_compound(c,v[0],KNO_COMPOUND_SEQUENCE,0);
-    c->compound_length = n-1;
-    i = 1; while (i<n) {data[i-1]=v[i]; i++;}
-    if (v) u8_free(v);
-    return LISP_CONS(c);}
+  else if ( (entry) && (kno_default_consfn) ) {
+    lispval result = kno_default_consfn(n,v,entry);
+    if (!(VOIDP(result))) {
+      while (i<n) {kno_decref(v[i]); i++;}
+      if (v) u8_free(v);
+      return result;}}
+  struct KNO_COMPOUND *c=
+    u8_malloc(sizeof(struct KNO_COMPOUND)+(n-1)*LISPVAL_LEN);
+  lispval *data = &(c->compound_0);
+  kno_init_compound(c,v[0],KNO_COMPOUND_SEQUENCE,0);
+  c->compound_length = n-1;
+  i = 1; while (i<n) {data[i-1]=v[i]; i++;}
+  if (v) u8_free(v);
+  return LISP_CONS(c);
 }
 
 static lispval parse_record(U8_INPUT *in)
@@ -1667,7 +1674,7 @@ KNO_EXPORT
 lispval kno_slotid_parser(u8_input in)
 {
   int c = u8_probec(in);
-  if (PRED_FALSE(c<0)) return KNO_EOF;
+  if (RARELY(c<0)) return KNO_EOF;
   else if (c == '@')
     return kno_parse_oid(in);
   else if (c == '\\') {

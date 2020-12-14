@@ -1,8 +1,8 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
 
-(in-module 'condense)
+(in-module 'kno/condense)
 
-(use-module '{reflection varconfig logger})
+(use-module '{kno/reflect binio varconfig logger})
 
 (define %loglevel %debug%)
 

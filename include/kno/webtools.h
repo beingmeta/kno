@@ -200,6 +200,7 @@ KNO_EXPORT void kno_init_urifns_c(void);
 KNO_EXPORT void kno_init_exif_c(void);
 KNO_EXPORT void kno_init_curl_c(void);
 KNO_EXPORT void kno_init_json_c(void);
+KNO_EXPORT void kno_init_dns_c(void);
 
 /* Default XML/HTML info */
 

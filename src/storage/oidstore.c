@@ -317,7 +317,7 @@ static int adjunct_test(kno_adjunct adj,lispval frame,lispval value)
 KNO_EXPORT lispval kno_oid_get(lispval f,lispval slotid,lispval dflt)
 {
   kno_pool p = kno_oid2pool(f);
-  if (PRED_FALSE(p == NULL)) {
+  if (RARELY(p == NULL)) {
     kno_adjunct adj = get_adjunct(p,slotid);
     if (adj)
       return adjunct_fetch(adj,f,dflt);}
@@ -347,7 +347,7 @@ KNO_EXPORT lispval kno_oid_get(lispval f,lispval slotid,lispval dflt)
 KNO_EXPORT int kno_oid_add(lispval f,lispval slotid,lispval value)
 {
   kno_pool p = kno_oid2pool(f);
-  if (PRED_FALSE(p == NULL)) {
+  if (RARELY(p == NULL)) {
     kno_adjunct adj = get_adjunct(p,slotid);
     if (adj)
       return adjunct_add(adj,f,value);
@@ -385,7 +385,7 @@ KNO_EXPORT int kno_oid_add(lispval f,lispval slotid,lispval value)
 KNO_EXPORT int kno_oid_store(lispval f,lispval slotid,lispval value)
 {
   kno_pool p = kno_oid2pool(f);
-  if (PRED_FALSE(p == NULL)) {
+  if (RARELY(p == NULL)) {
     kno_adjunct adj = get_adjunct(p,slotid);
     if (adj)
       return adjunct_store(adj,f,value);
@@ -425,7 +425,7 @@ KNO_EXPORT int kno_oid_store(lispval f,lispval slotid,lispval value)
 KNO_EXPORT int kno_oid_delete(lispval f,lispval slotid)
 {
   kno_pool p = kno_oid2pool(f);
-  if (PRED_FALSE(p == NULL)) {
+  if (RARELY(p == NULL)) {
     kno_adjunct adj = get_adjunct(p,slotid);
     if (adj)
       return adjunct_store(adj,f,EMPTY);else {
@@ -461,7 +461,7 @@ KNO_EXPORT int kno_oid_delete(lispval f,lispval slotid)
 KNO_EXPORT int kno_oid_drop(lispval f,lispval slotid,lispval value)
 {
   kno_pool p = kno_oid2pool(f);
-  if (PRED_FALSE(p == NULL))  {
+  if (RARELY(p == NULL))  {
     kno_adjunct adj = get_adjunct(p,slotid);
     if (adj)
       return adjunct_drop(adj,f,EMPTY);
@@ -499,7 +499,7 @@ KNO_EXPORT int kno_oid_drop(lispval f,lispval slotid,lispval value)
 KNO_EXPORT int kno_oid_test(lispval f,lispval slotid,lispval value)
 {
   kno_pool p = kno_oid2pool(f);
-  if (PRED_FALSE(p == NULL))  {
+  if (RARELY(p == NULL))  {
     kno_adjunct adj = get_adjunct(p,slotid);
     if (adj) return adjunct_test(adj,f,value);
     else {
@@ -551,7 +551,7 @@ KNO_EXPORT int kno_oid_test(lispval f,lispval slotid,lispval value)
 KNO_EXPORT lispval kno_oid_keys(lispval f)
 {
   kno_pool p = kno_oid2pool(f);
-  if (PRED_FALSE(p == NULL))
+  if (RARELY(p == NULL))
     return EMPTY;
   else {
     lispval smap = kno_fetch_oid(p,f);

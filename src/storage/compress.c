@@ -289,11 +289,11 @@ static unsigned char *do_zstd_uncompress
 {
 #if HAVE_ZSTD_GETFRAMECONTENTSIZE
   size_t alloc_size = ZSTD_getFrameContentSize(source,source_len);
-  if (PRED_FALSE(alloc_size == ZSTD_CONTENTSIZE_UNKNOWN)) {
+  if (RARELY(alloc_size == ZSTD_CONTENTSIZE_UNKNOWN)) {
     u8_seterr("UnknownContentSize","do_zstd_uncompress",
 	      zstd_error(alloc_size));
     return NULL;}
-  else if (PRED_FALSE(alloc_size == ZSTD_CONTENTSIZE_ERROR)) {
+  else if (RARELY(alloc_size == ZSTD_CONTENTSIZE_ERROR)) {
     u8_seterr("ZSTD_ContentSizeError","do_zstd_uncompress",
 	      zstd_error(alloc_size));
     return NULL;}

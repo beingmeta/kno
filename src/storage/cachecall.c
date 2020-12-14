@@ -163,48 +163,6 @@ KNO_EXPORT lispval kno_cachecall_try(lispval fcn,int n,kno_argvec args)
   else return value;
 }
 
-/* Thread cache calls */
-
-#define TCACHECALL_STACK_ELTS 8
-
-KNO_EXPORT lispval kno_tcachecall(lispval fcn,int n,kno_argvec args)
-{
-  if (kno_threadcache) {
-    kno_thread_cache tc = kno_threadcache;
-    struct KNO_VECTOR vecstruct;
-    lispval elts[n+1], vec, cached;
-    /* Initialize the stack vector */
-    memset(&vecstruct,0,sizeof(vecstruct));
-    vecstruct.vec_free_elts = 0;
-    vecstruct.vec_length = n+1;
-    KNO_SET_CONS_TYPE(&vecstruct,kno_vector_type);
-    /* Allocate an elements vector if neccessary */
-    /* Initialize the elements */
-    elts[0]=fcn; memcpy(elts+1,args,LISPVEC_BYTELEN(n));
-    vecstruct.vec_elts = elts;
-    vec = LISP_CONS(&vecstruct);
-    /* Look it up in the cache. */
-    cached = kno_hashtable_get_nolock(&(tc->calls),vec,VOID);
-    if (!(VOIDP(cached))) {
-      return cached;}
-    else {
-      int state = kno_ipeval_status();
-      lispval result = kno_dapply(fcn,n,args);
-      if (KNO_ABORTP(result)) return result;
-      else if (kno_ipeval_status() == state) { /* OK to cache */
-	int i = 0, nelts = n+1;
-	lispval *vec_elts = u8_alloc_n(n+1,lispval);
-	while (i<nelts) {vec_elts[i]=kno_incref(elts[i]); i++;}
-	vec = kno_wrap_vector(nelts,vec_elts);
-	kno_hashtable_store(&(tc->calls),vec,result);
-	kno_decref(vec);
-	return result;}
-      else return result;}}
- else if (kno_cachecall_probe(fcn,n,args))
-   return kno_cachecall(fcn,n,args);
- else return kno_dapply(fcn,n,args);
-}
-
 /* Initialization stuff */
 
 KNO_EXPORT void kno_init_cachecall_c()

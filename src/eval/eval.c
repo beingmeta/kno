@@ -115,7 +115,7 @@ KNO_EXPORT lispval kno_stack_eval(lispval x,kno_lexenv env,
 
 KNO_FASTOP int commentp(lispval arg)
 {
-  return (PRED_FALSE((PAIRP(arg)) && (KNO_EQ(KNO_CAR(arg),comment_symbol))));
+  return (RARELY((PAIRP(arg)) && (KNO_EQ(KNO_CAR(arg),comment_symbol))));
 }
 
 KNO_EXPORT lispval kno_bad_arg(lispval arg,u8_context cxt,lispval source_expr)
@@ -584,19 +584,19 @@ static lispval opcode_dispatch(lispval op,int n,kno_argvec args)
   lispval opcode_class = KNO_OPCODE_CLASS(op);
   switch (opcode_class) {
   case KNO_D1_OPCODE_CLASS:
-    if (PRED_FALSE(n != 1))
+    if (RARELY(n != 1))
       return op_arity_error(op,n,1);
     else return d1_call(op,args[0]);
   case KNO_D2_OPCODE_CLASS:
-    if (PRED_FALSE(n != 2))
+    if (RARELY(n != 2))
       return op_arity_error(op,n,2);
     else return d2_call(op,args[0],args[1]);
   case KNO_ND1_OPCODE_CLASS:
-    if (PRED_FALSE(n != 1))
+    if (RARELY(n != 1))
       return op_arity_error(op,n,1);
     else return nd1_call(op,args[0]);
   case KNO_ND2_OPCODE_CLASS:
-    if (PRED_FALSE(n != 2))
+    if (RARELY(n != 2))
       return op_arity_error(op,n,2);
     else return nd2_call(op,args[0],args[1]);
   case KNO_NUMERIC_OPCODE_CLASS:
@@ -611,19 +611,19 @@ static lispval opcode_dispatch(lispval op,int n,kno_argvec args)
 static lispval opcode_dispatch(lispval op,int n,kno_argvec args)
 {
   if (KNO_D1_OPCODEP(op))
-    if (PRED_FALSE(n != 1))
+    if (RARELY(n != 1))
       return op_arity_error(op,n,1);
     else return d1_call(op,args[0]);
   else if (KNO_D2_OPCODEP(op))
-    if (PRED_FALSE(n != 2))
+    if (RARELY(n != 2))
       return op_arity_error(op,n,2);
     else return d2_call(op,args[0],args[1]);
   else if (KNO_ND1_OPCODEP(op))
-    if (PRED_FALSE(n != 1))
+    if (RARELY(n != 1))
       return op_arity_error(op,n,1);
     else return nd1_call(op,args[0]);
   else if (KNO_ND2_OPCODEP(op))
-    if (PRED_FALSE(n != 2))
+    if (RARELY(n != 2))
       return op_arity_error(op,n,2);
     else return nd2_call(op,args[0],args[1]);
   else if (KNO_NUMERIC_OPCODEP(op))
@@ -710,10 +710,10 @@ static int lambda_check_arity(struct KNO_LAMBDA *proc,int n)
   int arity = proc->fcn_arity;
   int min_arity = proc->fcn_min_arity;
   if (n < min_arity) {
-    kno_seterr(kno_TooFewArgs,proc->fcn_name,NULL,VOID);
+    kno_seterr(kno_TooFewArgs,"lambda",proc->fcn_name,VOID);
     return 0;}
   else if ( (arity>=0) && (n>arity) ) {
-    kno_seterr(kno_TooManyArgs,proc->fcn_name,NULL,VOID);
+    kno_seterr(kno_TooManyArgs,"lambda",proc->fcn_name,VOID);
     return 0;}
   else return 1;
 }
@@ -842,9 +842,7 @@ lispval lambda_call(kno_stack stack,
 	kno_pop_stack(lambda_stack);
 	return err;}
       else {
-#if 0
-	_lambda_stack.stack_args.count=i;
-#endif
+	/* _lambda_stack.stack_args.count=i; */
 	args[i++]=init_val;}}}
 
   /* Now accumulate a .rest arg if it's needed */
@@ -921,7 +919,7 @@ KNO_FASTOP kno_stack find_loop_frame(kno_stack stack)
 
 KNO_FASTOP void setup_tail_call(kno_stack loop,
 				struct KNO_LAMBDA *lambda,
-				int n,lispval *args,
+				int n,const lispval *args,
 				kno_stackvec refs)
 {
   loop->stack_op = (lispval)lambda;
@@ -982,7 +980,7 @@ static lispval get_evalop(lispval head,kno_lexenv env,
   else if (KNO_MALLOCDP(op))
     kno_stackvec_push(&(stack->stack_refs),op);
   else NO_ELSE;
-  if (PRED_FALSE(KNO_VOIDP(op)))
+  if (RARELY(KNO_VOIDP(op)))
     return bad_evalop(head,op);
   else return op;
 }
@@ -1020,7 +1018,7 @@ lispval eval_expr(lispval head,lispval expr,
     expr   = KNO_CDR(expr);
     source = KNO_CAR(expr);
     expr   = KNO_CDR(expr);
-    if (PRED_TRUE(PAIRP(expr)))
+    if (USUALLY(PAIRP(expr)))
       head = KNO_CAR(expr);
     else return fast_eval(expr,env,stack,tail);}
 
@@ -1039,12 +1037,11 @@ lispval eval_expr(lispval head,lispval expr,
     kno_lisp_type op_type = KNO_TYPEOF(op);
     if (op_type == kno_evalfn_type)
       return call_evalfn(op,expr,env,stack,tail);
-    else if (PRED_TRUE(KNO_APPLICABLEP(op)))
+    else if (USUALLY(KNO_APPLICABLEP(op)))
       return eval_apply(op,KNO_CDR(expr),env,stack,tail);
     else return kno_err(kno_BadEvalOp,"eval_expr",NULL,expr);}
   else {
     lispval op = get_evalop(head,env,stack);
-
     if (op == KNO_EMPTY) return op;
     else if (KNO_ABORTED(op)) return op;
     else NO_ELSE;
@@ -1100,8 +1097,11 @@ lispval eval_apply(lispval fn,lispval exprs,
     (kno_type2name(fntype));
 
   /* Straightforward eval/apply */
-  KNO_DECL_STACKVEC(args,argbuf_len);
   KNO_DECL_STACKVEC(refs,argbuf_len);
+  KNO_DECL_STACKVEC(args,argbuf_len);
+  struct KNO_STACKVEC saved = stack->stack_args;
+  stack->stack_args = _args;
+  args = &(stack->stack_args);
   int nd_args = (KNO_CHOICEP(fn));
   int call_bits = (f) ? (f->fcn_call) :
     (fntype == kno_opcode_type) ?
@@ -1141,7 +1141,7 @@ lispval eval_apply(lispval fn,lispval exprs,
 
   KNO_STACK_SET_TAIL(stack,tail);
 
-  lispval *argbuf = KNO_STACKVEC_ELTS(args);
+  const lispval *argbuf = KNO_STACKVEC_ELTS(args);
   int n_args = KNO_STACKVEC_COUNT(args);
   int ndcall = (nd_args) && (iter) && (n_args>0);
   if (fntype == kno_opcode_type) {
@@ -1158,10 +1158,12 @@ lispval eval_apply(lispval fn,lispval exprs,
   else if ( (fntype == kno_lambda_type) && (!(ndcall)) ) {
     struct KNO_LAMBDA *proc = (kno_lambda) fn;
   lambda:
-    if (PRED_TRUE(lambda_check_arity(proc,n_args))) {
+    if (USUALLY(lambda_check_arity(proc,n_args))) {
       kno_stack loop = (tail) ? (find_loop_frame(stack)) : (NULL);
       if (loop) {
       tail:
+	_args = stack->stack_args;
+	stack->stack_args = saved;
 	if (stack == loop) {
 	  kno_stackvec_merge(&(stack->stack_refs),refs);
 	  setup_tail_call(loop,proc,n_args,argbuf,NULL);}
@@ -1181,6 +1183,8 @@ lispval eval_apply(lispval fn,lispval exprs,
   KNO_STACK_SET_TAIL(stack,old_tail);
   /* We jump here if we haven't yet put *args* on the stack, i.e.
      there was an error while processing them. */
+  _args = stack->stack_args;
+  stack->stack_args = saved;
   kno_free_stackvec(&_args);
   kno_decref_stackvec(refs);
   kno_free_stackvec(refs);
@@ -1997,48 +2001,50 @@ static void init_localfns()
 
 }
 
-KNO_EXPORT void kno_init_errfns_c(void);
-KNO_EXPORT void kno_init_threads_c(void);
-KNO_EXPORT void kno_init_conditionals_c(void);
-KNO_EXPORT void kno_init_iterators_c(void);
-KNO_EXPORT void kno_init_choicefns_c(void);
-KNO_EXPORT void kno_init_binders_c(void);
-KNO_EXPORT void kno_init_lambdas_c(void);
-KNO_EXPORT void kno_init_macros_c(void);
-KNO_EXPORT void kno_init_compoundfns_c(void);
-KNO_EXPORT void kno_init_evalops_c(void);
-KNO_EXPORT void kno_init_coreops_c(void);
-KNO_EXPORT void kno_init_tableprims_c(void);
-KNO_EXPORT void kno_init_stringprims_c(void);
-KNO_EXPORT void kno_init_dbprims_c(void);
-KNO_EXPORT void kno_init_seqprims_c(void);
-KNO_EXPORT void kno_init_modules_c(void);
-KNO_EXPORT void kno_init_loadmods_c(void);
-KNO_EXPORT void kno_init_load_c(void);
-KNO_EXPORT void kno_init_logprims_c(void);
-KNO_EXPORT void kno_init_portprims_c(void);
-KNO_EXPORT void kno_init_streamprims_c(void);
-KNO_EXPORT void kno_init_dtypeprims_c(void);
-KNO_EXPORT void kno_init_xtypeprims_c(void);
-KNO_EXPORT void kno_init_timeprims_c(void);
-KNO_EXPORT void kno_init_knosockd_c(void);
-KNO_EXPORT void kno_init_sysprims_c(void);
-KNO_EXPORT void kno_init_arith_c(void);
-KNO_EXPORT void kno_init_reflection_c(void);
-KNO_EXPORT void kno_init_reqstate_c(void);
-KNO_EXPORT void kno_init_regex_c(void);
-KNO_EXPORT void kno_init_promises_c(void);
-KNO_EXPORT void kno_init_quasiquote_c(void);
-KNO_EXPORT void kno_init_struct_eval_c(void);
-KNO_EXPORT void kno_init_sqldbprims_c(void);
-KNO_EXPORT void kno_init_history_c(void);
-KNO_EXPORT void kno_init_eval_appenv_c(void);
-KNO_EXPORT void kno_init_eval_moduleops_c(void);
-KNO_EXPORT void kno_init_eval_getopt_c(void);
-KNO_EXPORT void kno_init_eval_debug_c(void);
-KNO_EXPORT void kno_init_eval_testops_c(void);
-KNO_EXPORT void kno_init_configops_c(void);
-KNO_EXPORT void kno_init_srvcall_c(void);
+void kno_init_errfns_c(void);
+void kno_init_threads_c(void);
+void kno_init_conditionals_c(void);
+void kno_init_iterators_c(void);
+void kno_init_choicefns_c(void);
+void kno_init_binders_c(void);
+void kno_init_lambdas_c(void);
+void kno_init_macros_c(void);
+void kno_init_typeops_c(void);
+void kno_init_evalops_c(void);
+void kno_init_coreops_c(void);
+void kno_init_tableprims_c(void);
+void kno_init_stringprims_c(void);
+void kno_init_dbprims_c(void);
+void kno_init_seqprims_c(void);
+void kno_init_modules_c(void);
+void kno_init_loadmods_c(void);
+void kno_init_load_c(void);
+void kno_init_logprims_c(void);
+void kno_init_portprims_c(void);
+void kno_init_streamprims_c(void);
+void kno_init_fileprims_c(void);
+void kno_init_driverprims_c(void);
+void kno_init_dtypeprims_c(void);
+void kno_init_xtypeprims_c(void);
+void kno_init_timeprims_c(void);
+void kno_init_knosockd_c(void);
+void kno_init_sysprims_c(void);
+void kno_init_arith_c(void);
+void kno_init_reflection_c(void);
+void kno_init_reqstate_c(void);
+void kno_init_regex_c(void);
+void kno_init_promises_c(void);
+void kno_init_quasiquote_c(void);
+void kno_init_struct_eval_c(void);
+void kno_init_sqldbprims_c(void);
+void kno_init_history_c(void);
+void kno_init_eval_appenv_c(void);
+void kno_init_eval_moduleops_c(void);
+void kno_init_eval_getopt_c(void);
+void kno_init_eval_debug_c(void);
+void kno_init_eval_testops_c(void);
+void kno_init_configops_c(void);
+void kno_init_srvcall_c(void);
 
 static void init_eval_core()
 {
@@ -2064,7 +2070,7 @@ static void init_eval_core()
   kno_init_binders_c();
   kno_init_lambdas_c();
   kno_init_macros_c();
-  kno_init_compoundfns_c();
+  kno_init_typeops_c();
   kno_init_quasiquote_c();
   kno_init_struct_eval_c();
   kno_init_reflection_c();
@@ -2080,23 +2086,27 @@ static void init_eval_core()
 
   kno_init_stringprims_c();
   kno_init_dbprims_c();
-  kno_init_seqprims_c();
-  kno_init_logprims_c();
   kno_init_portprims_c();
   kno_init_streamprims_c();
   kno_init_dtypeprims_c();
   kno_init_xtypeprims_c();
+  kno_init_seqprims_c();
+  kno_init_logprims_c();
   kno_init_timeprims_c();
   kno_init_sysprims_c();
   kno_init_sqldbprims_c();
   kno_init_knosockd_c();
 
+  kno_init_fileprims_c();
+  kno_init_driverprims_c();
+
   u8_threadcheck();
 
-  kno_finish_module(kno_scheme_module);
-  kno_finish_module(kno_db_module);
-  kno_finish_module(kno_io_module);
-  kno_finish_module(kno_sys_module);
+  kno_finish_cmodule(kno_scheme_module);
+  kno_finish_cmodule(kno_textio_module);
+  kno_finish_cmodule(kno_binio_module);
+  kno_finish_cmodule(kno_db_module);
+  kno_finish_cmodule(kno_sys_module);
 }
 
 KNO_EXPORT int kno_load_scheme()

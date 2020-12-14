@@ -2,7 +2,8 @@
 
 (in-module 'kno/sessions)
 
-(use-module '{logger varconfig stringfmts knodb optimize})
+(use-module '{logger varconfig text/stringfmts knodb optimize})
+(use-module '{binio})
 
 (module-export! '{*session*
 		  valid-session?

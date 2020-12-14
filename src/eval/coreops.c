@@ -28,11 +28,13 @@
 
 /* Standard predicates */
 
-DEFPRIM2("identical?",identicalp,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "`(IDENTICAL? *arg0* *arg1*)` is the non-deterministic version "
-	 "of EQUAL? and returns true if its arguments (which can be "
+DEFCPRIM("identical?",identicalp,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	 "is the non-deterministic version of EQUAL? and "
+	 "returns true if its arguments (which can be "
 	 "choices) have the same structure and elements.",
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 {"x",kno_any_type,KNO_VOID},
+	 {"y",kno_any_type,KNO_VOID})
 static lispval identicalp(lispval x,lispval y)
 {
   if (KNO_EQ(x,y)) return KNO_TRUE;
@@ -40,12 +42,14 @@ static lispval identicalp(lispval x,lispval y)
   else return KNO_FALSE;
 }
 
-DEFPRIM2("equal?",equalp,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "`(EQUAL? *arg0* *arg1*)` returns true if its arguments "
-	 "have the same structure and elements. If its arguments are "
-	 "choices, this compares all pairings and may return true, false, "
-	 "or both.",
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+DEFCPRIM("equal?",equalp,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	 "returns true if its arguments have the same "
+	 "structure and elements. If its arguments are "
+	 "choices, this compares all pairings and may "
+	 "return true, false, or both.",
+	 {"x",kno_any_type,KNO_VOID},
+	 {"y",kno_any_type,KNO_VOID})
 static lispval equalp(lispval x,lispval y)
 {
   if (KNO_EQ(x,y)) return KNO_TRUE;
@@ -78,9 +82,12 @@ static lispval equalp(lispval x,lispval y)
  are compared based on their integer pointer values.
 
 */
-DEFPRIM2("compare",comparefn,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "`(COMPARE *arg0* *arg1*)` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+
+DEFCPRIM("compare",comparefn,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	 "**undocumented**",
+	 {"x",kno_any_type,KNO_VOID},
+	 {"y",kno_any_type,KNO_VOID})
 static lispval comparefn(lispval x,lispval y)
 {
   int n = LISP_COMPARE(x,y,KNO_COMPARE_FULL);
@@ -107,9 +114,12 @@ static lispval comparefn(lispval x,lispval y)
  are compared based on their integer pointer values.
 
 */
-DEFPRIM2("compare/quick",quickcomparefn,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "`(COMPARE/QUICK *arg0* *arg1*)` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+
+DEFCPRIM("compare/quick",quickcomparefn,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	 "**undocumented**",
+	 {"x",kno_any_type,KNO_VOID},
+	 {"y",kno_any_type,KNO_VOID})
 static lispval quickcomparefn(lispval x,lispval y)
 {
   int n = KNO_QCOMPARE(x,y);
@@ -127,12 +137,14 @@ static lispval quickcomparefn(lispval x,lispval y)
  incrementing the reference count rather than copying the pointers.
 
 */
-DEFPRIM1("deep-copy",deepcopy,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(DEEP-COPY *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
-static lispval deepcopy(lispval x)
+
+DEFCPRIM("deep-copy",deepcopy,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "**undocumented**",
+	 {"object",kno_any_type,KNO_VOID})
+static lispval deepcopy(lispval object)
 {
-  return kno_deep_copy(x);
+  return kno_deep_copy(object);
 }
 
 /***FDDOC[2]** SCHEME STATIC-COPY
@@ -152,34 +164,30 @@ static lispval deepcopy(lispval x)
  object will not be delcared static.
 
 */
-DEFPRIM1("static-copy",staticcopy,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(STATIC-COPY *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
-static lispval staticcopy(lispval x)
+
+DEFCPRIM("static-copy",staticcopy,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "**undocumented**",
+	 {"object",kno_any_type,KNO_VOID})
+static lispval staticcopy(lispval object)
 {
-  return kno_static_copy(x);
+  return kno_static_copy(object);
 }
 
-DEFPRIM1("dontopt",dontopt,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 "`(DONTOPT *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
+DEFCPRIM("dontopt",dontopt,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+	 "**undocumented**",
+	 {"x",kno_any_type,KNO_VOID})
 static lispval dontopt(lispval x)
 {
   return kno_incref(x);
 }
 
-/***FDDOC[2]** SCHEME REFCOUNT
- * *x* an object
-
- Returns the number of references in the current application to the
- designated object. If the object isn't a CONS, it returns #f. This
- returns 0 for all *static* conses which are exempt from reference
- counting or garbage collection.
-
-*/
-DEFPRIM2("refcount",get_refcount,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 "`(REFCOUNT *arg0* [*arg1*])` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_fixnum_type,KNO_CPP_INT(0));
+DEFCPRIM("refcount",get_refcount,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+	 "Returns the reference count for *object* minus *delta* if provided",
+	 {"object",kno_any_type,KNO_VOID},
+	 {"delta",kno_fixnum_type,KNO_INT(0)})
 static lispval get_refcount(lispval x,lispval delta)
 {
   if (CONSP(x)) {
@@ -195,28 +203,22 @@ static lispval get_refcount(lispval x,lispval delta)
   else return KNO_FALSE;
 }
 
-/***FDDOC[2]** SCHEME EQ?
- * *x* an object
- * *y* an object
-
- Returns #t if x and y are the exact same object (if their pointers
- are the same).
-
- Note that because
-
-*/
-DEFPRIM2("eq?",eqp,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "`(EQ? *arg0* *arg1*)` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+DEFCPRIM("eq?",eqp,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	 "**undocumented**",
+	 {"x",kno_any_type,KNO_VOID},
+	 {"y",kno_any_type,KNO_VOID})
 static lispval eqp(lispval x,lispval y)
 {
   if (x == y) return KNO_TRUE;
   else return KNO_FALSE;
 }
 
-DEFPRIM2("eqv?",eqvp,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "`(EQV? *arg0* *arg1*)` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+DEFCPRIM("eqv?",eqvp,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	 "**undocumented**",
+	 {"x",kno_any_type,KNO_VOID},
+	 {"y",kno_any_type,KNO_VOID})
 static lispval eqvp(lispval x,lispval y)
 {
   if (x == y) return KNO_TRUE;
@@ -227,9 +229,11 @@ static lispval eqvp(lispval x,lispval y)
   else return KNO_FALSE;
 }
 
-DEFPRIM2("overlaps?",overlapsp,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "`(OVERLAPS? *arg0* *arg1*)` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+DEFCPRIM("overlaps?",overlapsp,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	 "Returns #t if *choice1* and *choice2* have any elements in common",
+	 {"choice1",kno_any_type,KNO_VOID},
+	 {"choice2",kno_any_type,KNO_VOID})
 static lispval overlapsp(lispval x,lispval y)
 {
   if (EMPTYP(x)) return KNO_FALSE;
@@ -239,9 +243,10 @@ static lispval overlapsp(lispval x,lispval y)
   else return KNO_FALSE;
 }
 
-DEFPRIM2("contains?",containsp,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "`(CONTAINS? *arg0* *arg1*)` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+DEFCPRIM("contains?",containsp,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	 "**undocumented**",
+	 {"choice",kno_any_type,KNO_VOID},
+	 {"item",kno_any_type,KNO_VOID});
 static lispval containsp(lispval x,lispval y)
 {
   if (EMPTYP(x)) return KNO_FALSE;
@@ -262,9 +267,10 @@ static int numeric_compare(const lispval x,const lispval y)
   else return kno_numcompare(x,y);
 }
 
-DEFPRIM1("zero?",lisp_zerop,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(ZERO? *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
+DEFCPRIM("zero?",lisp_zerop,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "**undocumented**",
+	 {"x",kno_any_type,KNO_VOID})
 static lispval lisp_zerop(lispval x)
 {
   if (FIXNUMP(x))
@@ -295,287 +301,42 @@ static lispval do_compare(int n,kno_argvec v,int testspec[3])
 static int ltspec[3]={1,0,0}, ltespec[3]={1,1,0}, espec[3]={0,1,0};
 static int gtespec[3]={0,1,1}, gtspec[3]={0,0,1}, nespec[3]={1,0,1};
 
-DEFPRIM("<",lt,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
-	"`(< *arg0* *arg1* *args...*)` **undocumented**");
+DEFCPRIMN("<",lt,
+	  KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+	  "**undocumented**")
 static lispval lt(int n,kno_argvec v) { return do_compare(n,v,ltspec); }
-DEFPRIM("<=",lte,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
-	"`(<= *arg0* *arg1* *args...*)` **undocumented**");
+
+DEFCPRIMN("<=",lte,
+	  KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+	  "**undocumented**")
 static lispval lte(int n,kno_argvec v) { return do_compare(n,v,ltespec); }
-DEFPRIM("=",numeqp,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
-	"`(= *arg0* *arg1* *args...*)` **undocumented**");
+
+DEFCPRIMN("=",numeqp,
+	  KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+	  "**undocumented**")
 static lispval numeqp(int n,kno_argvec v) { return do_compare(n,v,espec); }
-DEFPRIM(">=",gte,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
-	"`(>= *arg0* *arg1* *args...*)` **undocumented**");
+
+DEFCPRIMN(">=",gte,
+	  KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+	  "**undocumented**")
 static lispval gte(int n,kno_argvec v) { return do_compare(n,v,gtespec); }
-DEFPRIM(">",gt,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
-	"`(> *arg0* *arg1* *args...*)` **undocumented**");
+
+DEFCPRIMN(">",gt,
+	  KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+	  "**undocumented**")
 static lispval gt(int n,kno_argvec v) { return do_compare(n,v,gtspec); }
-DEFPRIM("!=",numneqp,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
-	"`(!= *arg0* *arg1* *args...*)` **undocumented**");
+
+DEFCPRIMN("!=",numneqp,
+	  KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+	  "**undocumented**")
 static lispval numneqp(int n,kno_argvec v) { return do_compare(n,v,nespec); }
 
 /* Type predicates */
 
-DEFPRIM1("string?",stringp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(STRING? *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
-static lispval stringp(lispval x)
-{
-  if (STRINGP(x)) return KNO_TRUE; else return KNO_FALSE;
-}
-DEFPRIM1("valid-utf8?",valid_utf8p,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(VALID-UTF8? *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
-static lispval valid_utf8p(lispval x)
-{
-  if ( (STRINGP(x)) || (KNO_TYPEP(x,kno_packet_type)) ) {
-    int rv = u8_validp(KNO_CSTRING(x));
-    if (rv)
-      return KNO_TRUE;
-    else return KNO_FALSE;}
-  else return KNO_FALSE;
-}
-DEFPRIM1("regex?",regexp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(REGEX? *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
-static lispval regexp(lispval x)
-{
-  if (KNO_REGEXP(x))
-    return KNO_TRUE;
-  else return KNO_FALSE;
-}
-
-DEFPRIM1("packet?",packetp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(PACKET? *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
-static lispval packetp(lispval x)
-{
-  if (PACKETP(x)) return KNO_TRUE; else return KNO_FALSE;
-}
-DEFPRIM1("secret?",secretp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(SECRET? *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
-static lispval secretp(lispval x)
-{
-  if (TYPEP(x,kno_secret_type))
-    return KNO_TRUE;
-  else return KNO_FALSE;
-}
-DEFPRIM1("symbol?",symbolp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(SYMBOL? *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
-static lispval symbolp(lispval x)
-{
-  if (SYMBOLP(x)) return KNO_TRUE; else return KNO_FALSE;
-}
-DEFPRIM1("pair?",pairp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(PAIR? *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
-static lispval pairp(lispval x)
-{
-  if (PAIRP(x)) return KNO_TRUE; else return KNO_FALSE;
-}
-DEFPRIM1("list?",listp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(LIST? *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
-static lispval listp(lispval x)
-{
-  if (NILP(x)) return KNO_TRUE;
-  else if (PAIRP(x)) return KNO_TRUE;
-  else return KNO_FALSE;
-}
-DEFPRIM1("proper-list?",proper_listp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(PROPER-LIST? *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
-static lispval proper_listp(lispval x)
-{
-  if (NILP(x)) return KNO_TRUE;
-  else if (PAIRP(x)) {
-    lispval scan = x;
-    while (PAIRP(scan)) scan = KNO_CDR(scan);
-    if (NILP(scan)) return KNO_TRUE;
-    else return KNO_FALSE;}
-  else return KNO_FALSE;
-}
-DEFPRIM1("vector?",vectorp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(VECTOR? *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
-static lispval vectorp(lispval x)
-{
-  if (VECTORP(x)) return KNO_TRUE; else return KNO_FALSE;
-}
-
-DEFPRIM1("number?",numberp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(NUMBER? *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
-static lispval numberp(lispval x)
-{
-  if (NUMBERP(x)) return KNO_TRUE; else return KNO_FALSE;
-}
-
-DEFPRIM1("flonum?",flonump,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(FLONUM? *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
-static lispval flonump(lispval x)
-{
-  if (KNO_FLONUMP(x))
-    return KNO_TRUE;
-  else return KNO_FALSE;
-}
-
-DEFPRIM1("nan?",isnanp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(NAN? *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
-static lispval isnanp(lispval x)
-{
-  if (KNO_FLONUMP(x)) {
-    double d = KNO_FLONUM(x);
-    if (fpclassify(d) != FP_NORMAL)
-      return KNO_TRUE;
-    else return KNO_FALSE;}
-  else if (NUMBERP(x))
-    return KNO_FALSE;
-  else return KNO_TRUE;
-}
-
-DEFPRIM1("immediate?",immediatep,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(IMMEDIATE? *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
-static lispval immediatep(lispval x)
-{
-  if (KNO_IMMEDIATEP(x)) return KNO_TRUE; else return KNO_FALSE;
-}
-
-DEFPRIM1("consed?",consp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(CONSED? *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
-static lispval consp(lispval x)
-{
-  if (CONSP(x)) return KNO_TRUE; else return KNO_FALSE;
-}
-
-DEFPRIM1("static?",staticp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(STATIC? *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
-static lispval staticp(lispval x)
-{
-  if (KNO_STATICP(x))
-    return KNO_TRUE;
-  else return KNO_FALSE;
-}
-
-DEFPRIM1("character?",characterp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(CHARACTER? *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
-static lispval characterp(lispval x)
-{
-  if (KNO_CHARACTERP(x)) return KNO_TRUE; else return KNO_FALSE;
-}
-
-DEFPRIM1("exception?",exceptionp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(EXCEPTION? *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
-static lispval exceptionp(lispval x)
-{
-  if (KNO_EXCEPTIONP(x))
-    return KNO_TRUE;
-  else return KNO_FALSE;
-}
-
-DEFPRIM1("applicable?",applicablep,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(APPLICABLE? *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
-static lispval applicablep(lispval x)
-{
-  if (KNO_APPLICABLEP(x))
-    return KNO_TRUE;
-  else return KNO_FALSE;
-}
-
-DEFPRIM1("fcnid?",fcnidp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(FCNID? *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
-static lispval fcnidp(lispval x)
-{
-  if (KNO_FCNIDP(x))
-    return KNO_TRUE;
-  else return KNO_FALSE;
-}
-
-DEFPRIM1("boolean?",booleanp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(BOOLEAN? *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
-static lispval booleanp(lispval x)
-{
-  if ((KNO_TRUEP(x)) || (FALSEP(x)))
-    return KNO_TRUE;
-  else return KNO_FALSE;
-}
-
-DEFPRIM1("true?",truep,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(TRUE? *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
-static lispval truep(lispval x)
-{
-  if (FALSEP(x))
-    return KNO_FALSE;
-  else return KNO_TRUE;
-}
-
-DEFPRIM1("false?",falsep,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(FALSE? *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
-static lispval falsep(lispval x)
-{
-  if (FALSEP(x))
-    return KNO_TRUE;
-  else return KNO_FALSE;
-}
-
-DEFPRIM1("typeof",typeof_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(TYPEOF *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
-static lispval typeof_prim(lispval x)
-{
-  kno_lisp_type t = KNO_PRIM_TYPE(x);
-  if (kno_type_names[t])
-    return kno_mkstring(kno_type_names[t]);
-  else return kno_mkstring("unknown");
-}
-
-DEFPRIM2("tagged?",taggedp_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "`(TAGGED? *arg0* [*arg1*])` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
-static lispval taggedp_prim(lispval x,lispval tag)
-{
-  kno_lisp_type typecode = KNO_PRIM_TYPE(x);
-  if (typecode == kno_compound_type)
-    if (VOIDP(tag))
-      return KNO_TRUE;
-    else if (tag == KNO_COMPOUND_TAG(x))
-      return KNO_TRUE;
-    else return KNO_FALSE;
-  else if (typecode == kno_rawptr_type) {
-    kno_rawptr raw = (kno_rawptr) x;
-    if (VOIDP(tag))
-      return KNO_TRUE;
-    else if (tag == raw->typetag)
-      return KNO_TRUE;
-    else return KNO_FALSE;}
-  else return KNO_FALSE;
-}
-
-DEFPRIM2("typep",typep_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "`(TYPEP *obj* *type*)` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_type_type,KNO_VOID);
-static lispval typep_prim(lispval x,lispval typeval)
-{
-  return (KNO_CHECKTYPE(x,typeval));
-}
-
-DEFPRIM1("intern",lisp_intern,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(INTERN *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
+DEFCPRIM("intern",lisp_intern,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "**undocumented**",
+	 {"symbol_name",kno_any_type,KNO_VOID})
 static lispval lisp_intern(lispval symbol_name)
 {
   if (STRINGP(symbol_name))
@@ -585,55 +346,57 @@ static lispval lisp_intern(lispval symbol_name)
 
 /* Pair functions */
 
-DEFPRIM1("empty-list?",nullp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(EMPTY-LIST? *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
-static lispval nullp(lispval x)
+DEFCPRIM("cons",cons_prim,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	 "Returns a CONS pair composed of *car* and *cdr*",
+	 {"car",kno_any_type,KNO_VOID},
+	 {"cdr",kno_any_type,KNO_VOID})
+static lispval cons_prim(lispval car,lispval cdr)
 {
-  if (NILP(x)) return KNO_TRUE;
-  else return KNO_FALSE;
+  return kno_make_pair(car,cdr);
 }
 
-DEFPRIM2("cons",cons_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "`(CONS *arg0* *arg1*)` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
-static lispval cons_prim(lispval x,lispval y)
+DEFCPRIM("car",car_prim,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "Returns the first, left-hand element of a pair",
+	 {"pair",kno_pair_type,KNO_VOID})
+static lispval car_prim(lispval pair)
 {
-  return kno_make_pair(x,y);
+  return kno_incref(KNO_CAR(pair));
 }
-DEFPRIM1("car",car_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(CAR *arg0*)` **undocumented**",
-	 kno_pair_type,KNO_VOID);
-static lispval car_prim(lispval x)
+
+DEFCPRIM("cdr",cdr_prim,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "Returns the second, right-hand element of a pair",
+	 {"pair",kno_pair_type,KNO_VOID})
+static lispval cdr_prim(lispval pair)
 {
-  return kno_incref(KNO_CAR(x));
+  return kno_incref(KNO_CDR(pair));
 }
-DEFPRIM1("cdr",cdr_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(CDR *arg0*)` **undocumented**",
-	 kno_pair_type,KNO_VOID);
-static lispval cdr_prim(lispval x)
+
+DEFCPRIM("push",push_prim,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	 "**undocumented**",
+	 {"item",kno_any_type,KNO_VOID},
+	 {"list",kno_any_type,KNO_VOID})
+static lispval push_prim(lispval item,lispval list)
 {
-  return kno_incref(KNO_CDR(x));
-}
-DEFPRIM2("push",push_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "`(push *head* [*tail*])` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
-static lispval push_prim(lispval x,lispval y)
-{
-  if ( (KNO_VOIDP(y)) || (KNO_NILP(y) ) || (KNO_DEFAULTP(y) ) )
-    return kno_init_pair(NULL,kno_incref(x),KNO_EMPTY_LIST);
-  else if (KNO_PAIRP(y))
-    return kno_init_pair(NULL,kno_incref(x),kno_incref(y));
+  if ( (KNO_VOIDP(list)) || (KNO_NILP(list) ) || (KNO_DEFAULTP(list) ) )
+    return kno_init_pair(NULL,kno_incref(item),KNO_EMPTY_LIST);
+  else if (KNO_PAIRP(list))
+    return kno_init_pair(NULL,kno_incref(item),kno_incref(list));
   else return kno_init_pair
-	 (NULL,kno_incref(x),kno_init_pair(NULL,kno_incref(y),KNO_EMPTY_LIST));
+	 (NULL,kno_incref(item),kno_init_pair(NULL,kno_incref(list),KNO_EMPTY_LIST));
 }
-DEFPRIM2("qcons",qcons_prim,
-	 KNO_NDCALL|KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "`(QCONS *car* *cdr*)`unless *car* or *cdr*"
-	 "are empty (fail), returns a single cons pointing to both "
-	 "arguments, which may be choices (and stay that way). "
-	 "This would be equivalent to `(cons (qc car) (qc cdr))`.",
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+
+DEFCPRIM("qcons",qcons_prim,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	 "unless *car* or *cdr*are empty (fail), returns a "
+	 "single cons pointing to both arguments, which may "
+	 "be choices (and stay that way). This would be "
+	 "equivalent to `(cons (qc car) (qc cdr))`.",
+	 {"car",kno_any_type,KNO_VOID},
+	 {"cdr",kno_any_type,KNO_VOID})
 static lispval qcons_prim(lispval car,lispval cdr)
 {
   if ( (KNO_EMPTYP(car)) || (KNO_EMPTYP(cdr)) )
@@ -643,16 +406,18 @@ static lispval qcons_prim(lispval car,lispval cdr)
     return kno_init_pair(NULL,car,cdr);}
 }
 
-DEFPRIM("allsymbols",lisp_all_symbols,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	"`(ALLSYMBOLS)` **undocumented**");
+DEFCPRIM("allsymbols",lisp_all_symbols,
+	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+	 "**undocumented**")
 static lispval lisp_all_symbols()
 {
   return kno_all_symbols();
 }
 
-DEFPRIM1("string->lisp",lisp_string2lisp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(STRING->LISP *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
+DEFCPRIM("string->lisp",lisp_string2lisp,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "**undocumented**",
+	 {"string",kno_any_type,KNO_VOID})
 static lispval lisp_string2lisp(lispval string)
 {
   if (STRINGP(string))
@@ -660,9 +425,10 @@ static lispval lisp_string2lisp(lispval string)
   else return kno_type_error("string","lisp_string2lisp",string);
 }
 
-DEFPRIM1("lisp->string",lisp2string,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(LISP->STRING *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
+DEFCPRIM("lisp->string",lisp2string,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "**undocumented**",
+	 {"x",kno_any_type,KNO_VOID})
 static lispval lisp2string(lispval x)
 {
   U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
@@ -670,7 +436,8 @@ static lispval lisp2string(lispval x)
   return kno_stream2string(&out);
 }
 
-DEFPRIM1("->lisp",lisp_tolisp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFCPRIM("->lisp",lisp_tolisp,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Converts strings to lisp objects and just returns "
 	 "other objects. Strings which start with lisp "
 	 "prefix characters are parsed as lisp objects, and "
@@ -679,7 +446,7 @@ DEFPRIM1("->lisp",lisp_tolisp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "whitespace and are < 64 bytes. When parsing "
 	 "generates an error, the string is returned as a "
 	 "string object",
-	 kno_any_type,KNO_VOID);
+	 {"arg",kno_any_type,KNO_VOID})
 static lispval lisp_tolisp(lispval arg)
 {
   if (STRINGP(arg)) {
@@ -699,15 +466,17 @@ static lispval lisp_tolisp(lispval arg)
   else return kno_incref(arg);
 }
 
-DEFPRIM1("parse-arg",lisp_parse_arg,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(PARSE-ARG *string*)` returns a LISP object based on *string*.  "
-	 "If *string* isn't a string, it is just returned. "
-	 "If *string* can be parsed as a number or begins with a LISP "
-	 "delimiter, the LISP parser is called on the string."
-	 "If *string* starts with a colon or sinqle quote, the LISP parser "
-	 "is called on the remainder of the string. In all other cases, the "
+DEFCPRIM("parse-arg",lisp_parse_arg,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "returns a LISP object based on *string*.  If "
+	 "*string* isn't a string, it is just returned. If "
+	 "*string* can be parsed as a number or begins with "
+	 "a LISP delimiter, the LISP parser is called on "
+	 "the string.If *string* starts with a colon or "
+	 "sinqle quote, the LISP parser is called on the "
+	 "remainder of the string. In all other cases, the "
 	 "*string* is just returned as a lisp string.",
-	 kno_any_type,KNO_VOID);
+	 {"string",kno_any_type,KNO_VOID})
 static lispval lisp_parse_arg(lispval string)
 {
   if (STRINGP(string))
@@ -715,17 +484,19 @@ static lispval lisp_parse_arg(lispval string)
   else return kno_incref(string);
 }
 
-DEFPRIM1("parse-slotid",lisp_parse_slotid,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(PARSE-SLOTID *string*)` returns a LISP object, typically a "
-	 "slotid (symbol or OID) based on *string*. If *string* isn't a "
-	 "string, it is just returned. "
-	 "If *string* begins with at at-sign @, it is parsed as an OID "
-	 "reference; if *string* can be parsed as a number or begins with "
-	 "a LISP delimiter, the parser is called. If *string* starts with a "
-	 "colon or sinqle quote, the parser is called on the remainder of the "
-	 "string. If the string contains whitespace, it returns a string, "
-	 "otherwise it returns a symbol.",
-	 kno_any_type,KNO_VOID);
+DEFCPRIM("parse-slotid",lisp_parse_slotid,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "returns a LISP object, typically a slotid (symbol "
+	 "or OID) based on *string*. If *string* isn't a "
+	 "string, it is just returned. If *string* begins "
+	 "with at at-sign @, it is parsed as an OID "
+	 "reference; if *string* can be parsed as a number "
+	 "or begins with a LISP delimiter, the parser is "
+	 "called. If *string* starts with a colon or sinqle "
+	 "quote, the parser is called on the remainder of "
+	 "the string. If the string contains whitespace, it "
+	 "returns a string, otherwise it returns a symbol.",
+	 {"string",kno_any_type,KNO_VOID})
 static lispval lisp_parse_slotid(lispval string)
 {
   if (STRINGP(string))
@@ -733,36 +504,40 @@ static lispval lisp_parse_slotid(lispval string)
   else return kno_incref(string);
 }
 
-DEFPRIM1("unparse-arg",lisp_unparse_arg,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(UNPARSE-ARG *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
+DEFCPRIM("unparse-arg",lisp_unparse_arg,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "**undocumented**",
+	 {"obj",kno_any_type,KNO_VOID})
 static lispval lisp_unparse_arg(lispval obj)
 {
   u8_string s = kno_unparse_arg(obj);
   return kno_wrapstring(s);
 }
 
-DEFPRIM1("symbol->string",lisp_symbol2string,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(SYMBOL->STRING *arg0*)` **undocumented**",
-	 kno_symbol_type,KNO_VOID);
+DEFCPRIM("symbol->string",lisp_symbol2string,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "Returns the string representation of a symbols print name",
+	 {"sym",kno_symbol_type,KNO_VOID})
 static lispval lisp_symbol2string(lispval sym)
 {
   return kno_mkstring(SYM_NAME(sym));
 }
 
-DEFPRIM1("string->symbol",lisp_string2symbol,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(STRING->SYMBOL *arg0*)` **undocumented**",
-	 kno_string_type,KNO_VOID);
+DEFCPRIM("string->symbol",lisp_string2symbol,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "Returns a symbol whose print name is *s*.",
+	 {"s",kno_string_type,KNO_VOID})
 static lispval lisp_string2symbol(lispval s)
 {
   return kno_intern(KNO_STRING_DATA(s));
 }
 
-DEFPRIM1("getsym",lisp_getsym,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(getsym *arg*)` if *arg* is a string, "
-	 "interns a lowercase version of it. If *arg* is "
-	 "a symbol, returns it, otherwise errors.",
-	 -1,KNO_VOID);
+DEFCPRIM("getsym",lisp_getsym,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "if *arg* is a string, interns a lowercase version "
+	 "of it. If *arg* is a symbol, returns it, "
+	 "otherwise errors.",
+	 {"s",kno_any_type,KNO_VOID})
 static lispval lisp_getsym(lispval s)
 {
   if (KNO_SYMBOLP(s))
@@ -772,11 +547,12 @@ static lispval lisp_getsym(lispval s)
   else return kno_err("NotStringOrSymbol","lisp_getsym",NULL,s);
 }
 
-DEFPRIM1("getslotid",lisp_getslotid,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(getslot *arg*)` tries to get a slotid (symbol or OID) "
-	 "from *arg*, parsing OIDs and interning lowercase strings, "
+DEFCPRIM("getslotid",lisp_getslotid,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "tries to get a slotid (symbol or OID) from *arg*, "
+	 "parsing OIDs and interning lowercase strings, "
 	 "signalling an error on failure",
-	 -1,KNO_VOID);
+	 {"s",kno_any_type,KNO_VOID})
 static lispval lisp_getslotid(lispval s)
 {
   if ( (KNO_SYMBOLP(s)) || (KNO_OIDP(s)) )
@@ -794,10 +570,11 @@ static lispval lisp_getslotid(lispval s)
 
 /* HASHPTR */
 
-DEFPRIM1("hashptr",hashptr_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+DEFCPRIM("hashptr",hashptr_prim,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	 "Returns an integer representation for its "
 	 "argument.",
-	 kno_any_type,KNO_VOID);
+	 {"x",kno_any_type,KNO_VOID})
 static lispval hashptr_prim(lispval x)
 {
   unsigned long long intval = (unsigned long long)x;
@@ -806,10 +583,11 @@ static lispval hashptr_prim(lispval x)
   else return (lispval)kno_ulong_long_to_bigint(intval);
 }
 
-DEFPRIM1("hashref",hashref_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(HASHREF *arg0*)` returns a hashpointer string "
-	 "(#!0x...) which can be read if hashpointer reading is enabled.",
-	 kno_any_type,KNO_VOID);
+DEFCPRIM("hashref",hashref_prim,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "returns a hashpointer string (#!0x...) which can "
+	 "be read if hashpointer reading is enabled.",
+	 {"x",kno_any_type,KNO_VOID})
 static lispval hashref_prim(lispval x)
 {
   unsigned long long intval = (unsigned long long)x;
@@ -819,10 +597,12 @@ static lispval hashref_prim(lispval x)
   return kno_make_string(NULL,-1,buf);
 }
 
-DEFPRIM2("ptrlock",ptrlock_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "`(PTRLOCK *ptr* [*mod*])` Returns the integer pointer "
-	 "value of *ptr* modulo *mod*.",
-	 kno_any_type,KNO_VOID,kno_fixnum_type,KNO_VOID);
+DEFCPRIM("ptrlock",ptrlock_prim,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	 "Returns the integer pointer value of *ptr* modulo "
+	 "*mod*.",
+	 {"x",kno_any_type,KNO_VOID},
+	 {"mod",kno_fixnum_type,KNO_VOID})
 static lispval ptrlock_prim(lispval x,lispval mod)
 {
   unsigned long long intval = (unsigned long long)x;
@@ -836,69 +616,6 @@ static lispval ptrlock_prim(lispval x,lispval mod)
     return KNO_INT(hashval);}
 }
 
-/* Rawptr ops */
-
-DEFPRIM2("rawptr?",rawptrp_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "`(rawptr? *obj* [*type*])` returns true if *obj* is a raw pointer "
-	 "object with a typetag of *type* (if provided).",
-	 kno_any_type,KNO_VOID,-1,KNO_VOID);
-static lispval rawptrp_prim(lispval x,lispval tag)
-{
-  if (! (KNO_TYPEP(x,kno_rawptr_type)) )
-    return KNO_FALSE;
-  if ( (KNO_VOIDP(tag)) || (KNO_DEFAULTP(tag)) )
-    return KNO_TRUE;
-  struct KNO_RAWPTR *obj = (kno_rawptr) x;
-  if (obj->typetag == tag)
-    return KNO_TRUE;
-  else return KNO_FALSE;
-}
-
-DEFPRIM1("rawptr/type",rawptr_type_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(rawptr/type *obj*)` returns the type tag for *obj* "
-	 "if it is a raw pointer object.",
-	 kno_rawptr_type,KNO_VOID);
-static lispval rawptr_type_prim(lispval x)
-{
-  struct KNO_RAWPTR *obj = (kno_rawptr) x;
-  return kno_incref(obj->typetag);
-}
-
-DEFPRIM1("rawptr/id",rawptr_id_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(rawptr/id *obj*)` returns the idstring for the raw pointer *obj* "
-	 "if it is a raw pointer object.",
-	 kno_rawptr_type,KNO_VOID);
-static lispval rawptr_id_prim(lispval x)
-{
-  struct KNO_RAWPTR *obj = (kno_rawptr) x;
-  if (obj->idstring)
-    return knostring(obj->idstring);
-  else return KNO_FALSE;
-}
-
-DEFPRIM1("rawptr/notes",rawptr_notes_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(rawptr/notes *obj*)` returns the notes object "
-	 "for the raw pointer *obj* if it is a raw pointer object.",
-	 kno_rawptr_type,KNO_VOID);
-static lispval rawptr_notes_prim(lispval x)
-{
-  struct KNO_RAWPTR *obj = (kno_rawptr) x;
-  return kno_incref(obj->raw_annotations);
-}
-
-DEFPRIM2("rawptr/id!",rawptr_setid_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "`(rawptr/id! *obj* *string*)` sets the idstring of "
-	 "the raw pointer *obj*, returning it",
-	 kno_rawptr_type,KNO_VOID,kno_string_type,KNO_VOID);
-static lispval rawptr_setid_prim(lispval x,lispval id)
-{
-  struct KNO_RAWPTR *obj = (kno_rawptr) x;
-  u8_string oldid = obj->idstring;
-  obj->idstring=u8_strdup(KNO_CSTRING(id));
-  u8_free(oldid);
-  return kno_incref(x);
-}
-
 /* GETSOURCEIDS */
 
 static void add_sourceid(u8_string s,void *vp)
@@ -908,8 +625,9 @@ static void add_sourceid(u8_string s,void *vp)
   *valp = kno_init_pair(NULL,string,*valp);
 }
 
-DEFPRIM("getsourceinfo",lisp_getsourceids,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	"`(GETSOURCEINFO)` **undocumented**");
+DEFCPRIM("getsourceinfo",lisp_getsourceids,
+	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+	 "Returns all the registered sources for this session")
 static lispval lisp_getsourceids()
 {
   lispval result = NIL;
@@ -919,8 +637,9 @@ static lispval lisp_getsourceids()
 
 /* Force some errors */
 
-DEFPRIM("segfault",force_sigsegv,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	"`(SEGFAULT)` **undocumented**");
+DEFCPRIM("segfault",force_sigsegv,
+	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+	 "Signals a segmentation fault")
 static lispval force_sigsegv()
 {
   lispval *values = NULL;
@@ -928,8 +647,9 @@ static lispval force_sigsegv()
   return values[3];
 }
 
-DEFPRIM("fperror",force_sigfpe,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	"`(FPERROR)` **undocumented**");
+DEFCPRIM("fperror",force_sigfpe,
+	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+	 "Signals a floating point error")
 static lispval force_sigfpe()
 {
   return kno_init_double(NULL,5.0/0.0);
@@ -948,90 +668,53 @@ static void link_local_cprims()
 {
   lispval scheme_module = kno_scheme_module;
 
-  KNO_LINK_PRIM("fperror",force_sigfpe,0,scheme_module);
-  KNO_LINK_PRIM("segfault",force_sigsegv,0,scheme_module);
-  KNO_LINK_PRIM("getsourceinfo",lisp_getsourceids,0,scheme_module);
-  KNO_LINK_PRIM("ptrlock",ptrlock_prim,2,scheme_module);
-  KNO_LINK_PRIM("hashref",hashref_prim,1,scheme_module);
-  KNO_LINK_PRIM("hashptr",hashptr_prim,1,scheme_module);
-  KNO_LINK_PRIM("string->symbol",lisp_string2symbol,1,scheme_module);
-  KNO_LINK_PRIM("symbol->string",lisp_symbol2string,1,scheme_module);
-  KNO_LINK_PRIM("getsym",lisp_getsym,1,scheme_module);
-  KNO_LINK_PRIM("getslotid",lisp_getslotid,1,scheme_module);
-  KNO_LINK_PRIM("unparse-arg",lisp_unparse_arg,1,scheme_module);
-  KNO_LINK_PRIM("parse-arg",lisp_parse_arg,1,scheme_module);
-  KNO_LINK_PRIM("parse-slotid",lisp_parse_slotid,1,scheme_module);
-  KNO_LINK_PRIM("->lisp",lisp_tolisp,1,scheme_module);
-  KNO_LINK_PRIM("lisp->string",lisp2string,1,scheme_module);
-  KNO_LINK_PRIM("string->lisp",lisp_string2lisp,1,scheme_module);
-  KNO_LINK_PRIM("allsymbols",lisp_all_symbols,0,scheme_module);
-  KNO_LINK_PRIM("intern",lisp_intern,1,scheme_module);
-  KNO_LINK_PRIM("tagged?",taggedp_prim,2,scheme_module);
-  KNO_LINK_PRIM("typep",typep_prim,2,scheme_module);
-  KNO_LINK_PRIM("typeof",typeof_prim,1,scheme_module);
-  KNO_LINK_PRIM("false?",falsep,1,scheme_module);
-  KNO_LINK_PRIM("true?",truep,1,scheme_module);
-  KNO_LINK_PRIM("boolean?",booleanp,1,scheme_module);
-  KNO_LINK_PRIM("fcnid?",fcnidp,1,scheme_module);
-  KNO_LINK_PRIM("applicable?",applicablep,1,scheme_module);
-  KNO_LINK_PRIM("exception?",exceptionp,1,scheme_module);
-  KNO_LINK_PRIM("character?",characterp,1,scheme_module);
-  KNO_LINK_PRIM("static?",staticp,1,scheme_module);
-  KNO_LINK_PRIM("consed?",consp,1,scheme_module);
-  KNO_LINK_PRIM("immediate?",immediatep,1,scheme_module);
-  KNO_LINK_PRIM("nan?",isnanp,1,scheme_module);
-  KNO_LINK_PRIM("flonum?",flonump,1,scheme_module);
-  KNO_LINK_PRIM("number?",numberp,1,scheme_module);
-  KNO_LINK_PRIM("vector?",vectorp,1,scheme_module);
-  KNO_LINK_PRIM("proper-list?",proper_listp,1,scheme_module);
-  KNO_LINK_PRIM("list?",listp,1,scheme_module);
-  KNO_LINK_PRIM("pair?",pairp,1,scheme_module);
-  KNO_LINK_PRIM("symbol?",symbolp,1,scheme_module);
-  KNO_LINK_PRIM("secret?",secretp,1,scheme_module);
-  KNO_LINK_PRIM("packet?",packetp,1,scheme_module);
-  KNO_LINK_PRIM("regex?",regexp,1,scheme_module);
-  KNO_LINK_PRIM("valid-utf8?",valid_utf8p,1,scheme_module);
-  KNO_LINK_PRIM("string?",stringp,1,scheme_module);
-  KNO_LINK_VARARGS("!=",numneqp,scheme_module);
-  KNO_LINK_VARARGS(">",gt,scheme_module);
-  KNO_LINK_VARARGS(">=",gte,scheme_module);
-  KNO_LINK_VARARGS("=",numeqp,scheme_module);
-  KNO_LINK_VARARGS("<=",lte,scheme_module);
-  KNO_LINK_VARARGS("<",lt,scheme_module);
-  KNO_LINK_PRIM("zero?",lisp_zerop,1,scheme_module);
-  KNO_LINK_PRIM("contains?",containsp,2,scheme_module);
-  KNO_LINK_PRIM("overlaps?",overlapsp,2,scheme_module);
-  KNO_LINK_PRIM("eqv?",eqvp,2,scheme_module);
-  KNO_LINK_PRIM("eq?",eqp,2,scheme_module);
-  KNO_LINK_PRIM("refcount",get_refcount,2,scheme_module);
-  KNO_LINK_PRIM("dontopt",dontopt,1,scheme_module);
-  KNO_LINK_PRIM("static-copy",staticcopy,1,scheme_module);
-  KNO_LINK_PRIM("deep-copy",deepcopy,1,scheme_module);
-  KNO_LINK_PRIM("compare/quick",quickcomparefn,2,scheme_module);
-  KNO_LINK_PRIM("compare",comparefn,2,scheme_module);
-  KNO_LINK_PRIM("equal?",equalp,2,scheme_module);
-  KNO_LINK_PRIM("identical?",identicalp,2,scheme_module);
+  KNO_LINK_CPRIM("fperror",force_sigfpe,0,scheme_module);
+  KNO_LINK_CPRIM("segfault",force_sigsegv,0,scheme_module);
+  KNO_LINK_CPRIM("getsourceinfo",lisp_getsourceids,0,scheme_module);
+  KNO_LINK_CPRIM("ptrlock",ptrlock_prim,2,scheme_module);
+  KNO_LINK_CPRIM("hashref",hashref_prim,1,scheme_module);
+  KNO_LINK_CPRIM("hashptr",hashptr_prim,1,scheme_module);
+  KNO_LINK_CPRIM("string->symbol",lisp_string2symbol,1,scheme_module);
+  KNO_LINK_CPRIM("symbol->string",lisp_symbol2string,1,scheme_module);
+  KNO_LINK_CPRIM("getsym",lisp_getsym,1,scheme_module);
+  KNO_LINK_CPRIM("getslotid",lisp_getslotid,1,scheme_module);
+  KNO_LINK_CPRIM("unparse-arg",lisp_unparse_arg,1,scheme_module);
+  KNO_LINK_CPRIM("parse-arg",lisp_parse_arg,1,scheme_module);
+  KNO_LINK_CPRIM("parse-slotid",lisp_parse_slotid,1,scheme_module);
+  KNO_LINK_CPRIM("->lisp",lisp_tolisp,1,scheme_module);
+  KNO_LINK_CPRIM("lisp->string",lisp2string,1,scheme_module);
+  KNO_LINK_CPRIM("string->lisp",lisp_string2lisp,1,scheme_module);
+  KNO_LINK_CPRIM("allsymbols",lisp_all_symbols,0,scheme_module);
+  KNO_LINK_CPRIM("intern",lisp_intern,1,scheme_module);
+  KNO_LINK_CVARARGS("!=",numneqp,scheme_module);
+  KNO_LINK_CVARARGS(">",gt,scheme_module);
+  KNO_LINK_CVARARGS(">=",gte,scheme_module);
+  KNO_LINK_CVARARGS("=",numeqp,scheme_module);
+  KNO_LINK_CVARARGS("<=",lte,scheme_module);
+  KNO_LINK_CVARARGS("<",lt,scheme_module);
+  KNO_LINK_CPRIM("zero?",lisp_zerop,1,scheme_module);
+  KNO_LINK_CPRIM("overlaps?",overlapsp,2,scheme_module);
+  KNO_LINK_CPRIM("contains?",containsp,2,scheme_module);
+  KNO_LINK_CPRIM("eqv?",eqvp,2,scheme_module);
+  KNO_LINK_CPRIM("eq?",eqp,2,scheme_module);
+  KNO_LINK_CPRIM("refcount",get_refcount,2,scheme_module);
+  KNO_LINK_CPRIM("dontopt",dontopt,1,scheme_module);
+  KNO_LINK_CPRIM("static-copy",staticcopy,1,scheme_module);
+  KNO_LINK_CPRIM("deep-copy",deepcopy,1,scheme_module);
+  KNO_LINK_CPRIM("compare/quick",quickcomparefn,2,scheme_module);
+  KNO_LINK_CPRIM("compare",comparefn,2,scheme_module);
+  KNO_LINK_CPRIM("equal?",equalp,2,scheme_module);
+  KNO_LINK_CPRIM("identical?",identicalp,2,scheme_module);
 
-  KNO_LINK_ALIAS("cons?",consp,scheme_module);
   KNO_LINK_ALIAS("=?",identicalp,scheme_module);
   KNO_LINK_ALIAS("*=?",overlapsp,scheme_module);
-  KNO_LINK_ALIAS("⊆?",containsp,scheme_module);
-  KNO_LINK_ALIAS("⊆",containsp,scheme_module);
-  KNO_LINK_ALIAS("char?",characterp,scheme_module);
-  KNO_LINK_ALIAS("error?",exceptionp,scheme_module);
+  KNO_LINK_ALIAS("⊆?",overlapsp,scheme_module);
+  KNO_LINK_ALIAS("⊆",overlapsp,scheme_module);
 
-  KNO_LINK_PRIM("cons",cons_prim,2,kno_scheme_module);
-  KNO_LINK_PRIM("cdr",cdr_prim,1,kno_scheme_module);
-  KNO_LINK_PRIM("car",car_prim,1,kno_scheme_module);
-  KNO_LINK_PRIM("push",push_prim,2,kno_scheme_module);
-  KNO_LINK_PRIM("qcons",qcons_prim,2,kno_scheme_module);
-  KNO_LINK_PRIM("empty-list?",nullp,1,kno_scheme_module);
-  KNO_LINK_ALIAS("null?",nullp,kno_scheme_module);
-  KNO_LINK_ALIAS("nil?",nullp,kno_scheme_module);
+  KNO_LINK_CPRIM("cons",cons_prim,2,kno_scheme_module);
+  KNO_LINK_CPRIM("cdr",cdr_prim,1,kno_scheme_module);
+  KNO_LINK_CPRIM("car",car_prim,1,kno_scheme_module);
+  KNO_LINK_CPRIM("push",push_prim,2,kno_scheme_module);
+  KNO_LINK_CPRIM("qcons",qcons_prim,2,kno_scheme_module);
 
-  KNO_LINK_PRIM("rawptr?",rawptrp_prim,2,kno_scheme_module);
-  KNO_LINK_PRIM("rawptr/type",rawptr_type_prim,1,kno_scheme_module);
-  KNO_LINK_PRIM("rawptr/id",rawptr_id_prim,1,kno_scheme_module);
-  KNO_LINK_PRIM("rawptr/notes",rawptr_notes_prim,1,kno_scheme_module);
-  KNO_LINK_PRIM("rawptr/id!",rawptr_setid_prim,2,kno_scheme_module);
 }

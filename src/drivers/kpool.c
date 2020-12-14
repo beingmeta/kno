@@ -1,6 +1,6 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2019 beingmeta, inc.
+/* Copyright (C) 2004-2020 beingmeta, inc.
    This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -814,7 +814,7 @@ static lispval kpool_fetch(kno_pool p,lispval oid)
   KNO_OID addr	 = KNO_OID_ADDR(oid);
   int offset	= KNO_OID_DIFFERENCE(addr,kp->pool_base);
   use_kpool(kp);
-  if (PRED_FALSE(offset>=kp->pool_load)) {
+  if (RARELY(offset>=kp->pool_load)) {
     /* It looks out of range, so double check by going to disk */
     if (offset>=(kpool_locked_load(p))) {
       kpool_finished(kp);

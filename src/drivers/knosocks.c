@@ -66,8 +66,8 @@ KNO_EXPORT int kno_update_file_modules(int force);
 
 lispval knosocks_base_module, knosocks_env = KNO_EMPTY_LIST;
 
-#define nobytes(in,nbytes) (PRED_FALSE(!(kno_request_bytes(in,nbytes))))
-#define havebytes(in,nbytes) (PRED_TRUE(kno_request_bytes(in,nbytes)))
+#define nobytes(in,nbytes) (RARELY(!(kno_request_bytes(in,nbytes))))
+#define havebytes(in,nbytes) (USUALLY(kno_request_bytes(in,nbytes)))
 
 static int default_async_mode = 0;
 static int default_stateful = 1;
@@ -1037,8 +1037,8 @@ KNO_EXPORT lispval knosocks_status(knosocks_server srv)
 
 /* Some primitive methods */
 
-DEFPRIM("xrefs",getxrefs_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	"(xrefs) returns the XREFS table of the client.")
+DEFCPRIM("xrefs",getxrefs_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+	 "(xrefs) returns the XREFS table of the client.")
 static lispval getxrefs_prim()
 {
   xtype_refs refs = cur_client->client_xrefs;
@@ -1056,8 +1056,8 @@ static lispval getxrefs_prim()
   else return KNO_FALSE;
 }
 
-DEFPRIM("clientid",clientid_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	"(clientid) returns the UUID for the current client")
+DEFCPRIM("clientid",clientid_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+	 "(clientid) returns the UUID for the current client")
 static lispval clientid_prim()
 {
   if (cur_client)
@@ -1065,9 +1065,10 @@ static lispval clientid_prim()
   else return KNO_FALSE;
 }
 
-DEFPRIM("supportedp",supportedp_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	"(supportedp *op*) returns true if *op* is in the current clients "
-	"environment")
+DEFCPRIM("supportedp",supportedp_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "(supportedp *op*) returns true if *op* is in the current clients "
+	 "environment",
+	 {"op",kno_symbol_type,KNO_VOID})
 static lispval supportedp_prim(lispval op)
 {
   knosocks_client cl = cur_client;
@@ -1079,9 +1080,10 @@ static lispval supportedp_prim(lispval op)
   else return KNO_FALSE;
 }
 
-DEFPRIM("shutdown",shutdown_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
-	"(shutdown [*password*]) shuts down the server if *password* "
-	"is accepted")
+DEFCPRIM("shutdown",shutdown_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
+	 "(shutdown [*password*]) shuts down the server if *password* "
+	 "is accepted",
+	 {"password",kno_any_type,KNO_VOID})
 static lispval shutdown_prim(lispval op)
 {
   knosocks_client cl = cur_client;
@@ -1101,8 +1103,8 @@ static lispval shutdown_prim(lispval op)
   else return KNO_FALSE;
 }
 
-DEFPRIM("serverid",serverid_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	"(serverid) returns the UUID for the current client")
+DEFCPRIM("serverid",serverid_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+	 "(serverid) returns the UUID for the current client")
 static lispval serverid_prim()
 {
   if (cur_client) {
@@ -1111,16 +1113,16 @@ static lispval serverid_prim()
   else return KNO_FALSE;
 }
 
-DEFPRIM("now",now_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	"(now) returns the current time")
+DEFCPRIM("now",now_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+	 "(now) returns the current time")
 static lispval now_prim()
 {
   struct U8_XTIME now; u8_now(&now);
   return kno_make_timestamp(&now);
 }
 
-DEFPRIM("uptime",uptime_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	"(uptime) returns the current time")
+DEFCPRIM("uptime",uptime_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+	 "(uptime) returns the current time")
 static lispval uptime_prim()
 {
   if (cur_client) {
@@ -1131,8 +1133,8 @@ static lispval uptime_prim()
   else return KNO_FALSE;
 }
 
-DEFPRIM("sessionid",sessionid_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	"(sessionid) returns the session (process) ID for the server")
+DEFCPRIM("sessionid",sessionid_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+	 "(sessionid) returns the session (process) ID for the server")
 static lispval sessionid_prim()
 {
   u8_string id = u8_sessionid();
@@ -1256,15 +1258,15 @@ static long long int knosocks_initialized = 0;
 static void link_local_cprims()
 {
   lispval module = knosocks_base_module;
-  KNO_LINK_PRIM("xrefs",getxrefs_prim,0,module);
-  KNO_LINK_PRIM("clientid",clientid_prim,0,module);
-  KNO_LINK_PRIM("serverid",serverid_prim,0,module);
-  KNO_LINK_PRIM("now",now_prim,0,module);
-  KNO_LINK_PRIM("sessionid",sessionid_prim,0,module);
-  KNO_LINK_PRIM("uptime",uptime_prim,0,module);
-  KNO_LINK_PRIM("supported?",supportedp_prim,1,module);
-  KNO_LINK_PRIM("supportedp",supportedp_prim,1,module);
-  KNO_LINK_PRIM("shutdown",shutdown_prim,1,module);
+  KNO_LINK_CPRIM("xrefs",getxrefs_prim,0,module);
+  KNO_LINK_CPRIM("clientid",clientid_prim,0,module);
+  KNO_LINK_CPRIM("serverid",serverid_prim,0,module);
+  KNO_LINK_CPRIM("now",now_prim,0,module);
+  KNO_LINK_CPRIM("sessionid",sessionid_prim,0,module);
+  KNO_LINK_CPRIM("uptime",uptime_prim,0,module);
+  KNO_LINK_CPRIM("supported?",supportedp_prim,1,module);
+  KNO_LINK_CPRIM("supportedp",supportedp_prim,1,module);
+  KNO_LINK_CPRIM("shutdown",shutdown_prim,1,module);
 }
 
 int kno_init_knosocks_c()

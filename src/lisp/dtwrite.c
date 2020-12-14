@@ -65,7 +65,7 @@ static ssize_t try_dtype_output(ssize_t *len,struct KNO_OUTBUF *out,lispval x)
   return dlen;
 }
 #define kno_output_dtype(len,out,x)                              \
-  if (PRED_FALSE(KNO_ISREADING(out))) return kno_isreadbuf(out); \
+  if (RARELY(KNO_ISREADING(out))) return kno_isreadbuf(out); \
   else if (try_dtype_output(&len,out,x)<0) return -1; else {}
 
 static ssize_t write_opaque(struct KNO_OUTBUF *out,lispval x)
@@ -171,7 +171,7 @@ static ssize_t output_symbol_bytes(struct KNO_OUTBUF *out,
 
 KNO_EXPORT ssize_t kno_write_dtype(struct KNO_OUTBUF *out,lispval x)
 {
-  if (PRED_FALSE(KNO_ISREADING(out)))
+  if (RARELY(KNO_ISREADING(out)))
     return kno_isreadbuf(out);
   else switch (KNO_PTR_MANIFEST_TYPE(x)) {
     case kno_oid_ptr_type: { /* output OID */
@@ -290,7 +290,7 @@ KNO_EXPORT ssize_t kno_write_dtype(struct KNO_OUTBUF *out,lispval x)
       break;}
     case kno_cons_ptr_type: {/* output cons */
       struct KNO_CONS *cons = KNO_CONS_DATA(x);
-      int ctype = KNO_CONS_TYPE(cons);
+      int ctype = KNO_CONS_TYPEOF(cons);
       switch (ctype) {
       case kno_string_type: {
         struct KNO_STRING *s = (struct KNO_STRING *) cons;
@@ -396,7 +396,7 @@ KNO_EXPORT ssize_t kno_write_dtype(struct KNO_OUTBUF *out,lispval x)
       case kno_mystery_type:
         return write_mystery(out,(struct KNO_MYSTERY_DTYPE *) cons);
       default: {
-        kno_lisp_type ctype = KNO_CONS_TYPE(cons);
+        kno_lisp_type ctype = KNO_CONS_TYPEOF(cons);
         if ((KNO_VALID_TYPECODEP(ctype)) && (kno_dtype_writers[ctype]))
           return kno_dtype_writers[ctype](out,x);
         else if ((out->buf_flags)&(KNO_WRITE_OPAQUE))

@@ -99,15 +99,16 @@ static lispval getopt_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       else return results;}}
 }
 
-DEFPRIM3("%getopt",getopt_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "`(%GETOPT *opts* *name* [*default*=#f])` "
+DEFCPRIM("%getopt",getopt_prim,
+	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	 "gets any *name* option from opts, returning "
 	 "*default* if there isn't any. This is a real "
 	 "procedure (unlike `GETOPT`) so that *default* "
 	 "will be evaluated even if the option exists and "
 	 "is returned.",
-	 kno_any_type,KNO_VOID,kno_symbol_type,KNO_VOID,
-	 kno_any_type,KNO_FALSE);
+	 {"opts",kno_any_type,KNO_VOID},
+	 {"keys",kno_symbol_type,KNO_VOID},
+	 {"dflt",kno_any_type,KNO_FALSE})
 static lispval getopt_prim(lispval opts,lispval keys,lispval dflt)
 {
   lispval results = EMPTY;
@@ -121,12 +122,14 @@ static lispval getopt_prim(lispval opts,lispval keys,lispval dflt)
     return kno_simplify_value(results);
   else return results;
 }
-DEFPRIM3("testopt",testopt_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 "`(TESTOPT *opts* *name* [*value*])` "
+
+DEFCPRIM("testopt",testopt_prim,
+	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
 	 "returns true if the option *name* is specified in "
 	 "*opts* and it includes *value* (if provided).",
-	 kno_any_type,KNO_VOID,kno_symbol_type,KNO_VOID,
-	 kno_any_type,KNO_VOID);
+	 {"opts",kno_any_type,KNO_VOID},
+	 {"key",kno_symbol_type,KNO_VOID},
+	 {"val",kno_any_type,KNO_VOID})
 static lispval testopt_prim(lispval opts,lispval key,lispval val)
 {
   if (kno_testopt(opts,key,val))
@@ -134,10 +137,10 @@ static lispval testopt_prim(lispval opts,lispval key,lispval val)
   else return KNO_FALSE;
 }
 
-DEFPRIM1("opts?",optionsp_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 "`(OPTS? *opts*)` "
+DEFCPRIM("opts?",optionsp_prim,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	 "returns true if *opts* is a valid options object.",
-	 kno_any_type,KNO_VOID);
+	 {"opts",kno_any_type,KNO_VOID})
 static lispval optionsp_prim(lispval opts)
 {
   if (optionsp(opts))
@@ -145,10 +148,11 @@ static lispval optionsp_prim(lispval opts)
   else return KNO_FALSE;
 }
 #define nulloptsp(v) ( (v == KNO_FALSE) || (v == KNO_DEFAULT) )
-DEFPRIM("opts+",opts_plus_prim,KNO_VAR_ARGS|KNO_MIN_ARGS(0)|KNO_NDCALL,
-	"`(OPTS+ *add* *opts*)` "
-	"or `(OPTS+ *optname* *value* *opts*) returns a "
-	"new options object (a pair).");
+
+DEFCPRIMN("opts+",opts_plus_prim,
+	  KNO_VAR_ARGS|KNO_MIN_ARGS(0)|KNO_NDCALL,
+	  "or `(OPTS+ *optname* *value* *opts*) returns a "
+	  "new options object (a pair).")
 static lispval opts_plus_prim(int n,kno_argvec args)
 {
   int i = 0, new_front = 0;
@@ -216,10 +220,10 @@ static void link_local_cprims()
 {
   lispval scheme_module = kno_scheme_module;
 
-  KNO_LINK_VARARGS("opts+",opts_plus_prim,scheme_module);
-  KNO_LINK_PRIM("opts?",optionsp_prim,1,scheme_module);
-  KNO_LINK_PRIM("testopt",testopt_prim,3,scheme_module);
-  KNO_LINK_PRIM("%getopt",getopt_prim,3,scheme_module);
+  KNO_LINK_CVARARGS("opts+",opts_plus_prim,scheme_module);
+  KNO_LINK_CPRIM("opts?",optionsp_prim,1,scheme_module);
+  KNO_LINK_CPRIM("testopt",testopt_prim,3,scheme_module);
+  KNO_LINK_CPRIM("%getopt",getopt_prim,3,scheme_module);
 
   KNO_LINK_ALIAS("opt+",opts_plus_prim,scheme_module);
 }

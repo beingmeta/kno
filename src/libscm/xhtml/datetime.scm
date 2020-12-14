@@ -3,9 +3,9 @@
 
 (in-module 'xhtml/datetime)
 
-(use-module '{reflection texttools})
+(use-module '{kno/reflect texttools})
 (use-module '{webtools xhtml i18n})
-(use-module 'parsetime)
+(use-module 'text/parsetime)
 
 (module-export! 'time->html)
 

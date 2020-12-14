@@ -147,10 +147,13 @@ static int open_knosqlite(struct KNO_SQLITE *knosqlptr)
     return 1;}
 }
 
-DEFPRIM3("sqlite/open",sqlite_open_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
-	 "`(SQLITE/OPEN *arg0* [*arg1*] [*arg2*])` **undocumented**",
-	 kno_string_type,KNO_VOID,kno_any_type,KNO_VOID,
-	 kno_any_type,KNO_VOID);
+
+KNO_DEFCPRIM("sqlite/open",sqlite_open_prim,
+	     KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
+	     "**undocumented**",
+	     {"filename",kno_string_type,KNO_VOID},
+	     {"colinfo",kno_any_type,KNO_VOID},
+	     {"options",kno_any_type,KNO_VOID})
 static lispval sqlite_open_prim(lispval filename,lispval colinfo,lispval options)
 {
   struct KNO_SQLITE *sqlcons; int retval;
@@ -207,9 +210,11 @@ static lispval sqlite_open_prim(lispval filename,lispval colinfo,lispval options
     return LISP_CONS(sqlcons);}
 }
 
-DEFPRIM1("sqlite/reopen",sqlite_reopen_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(SQLITE/REOPEN *arg0*)` **undocumented**",
-	 kno_sqldb_type,KNO_VOID);
+
+KNO_DEFCPRIM("sqlite/reopen",sqlite_reopen_prim,
+	     KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	     "**undocumented**",
+	     {"db",kno_sqldb_type,KNO_VOID})
 static lispval sqlite_reopen_prim(lispval db)
 {
   struct KNO_SQLDB *sqldb = kno_consptr(struct KNO_SQLDB *,db,kno_sqldb_type);
@@ -235,9 +240,11 @@ static void close_knosqlite(struct KNO_SQLITE *dbp,int lock)
   if (lock) u8_unlock_mutex(&(dbp->sqlite_lock));
 }
 
-DEFPRIM1("sqlite/close",sqlite_close_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(SQLITE/CLOSE *arg0*)` **undocumented**",
-	 kno_sqldb_type,KNO_VOID);
+
+KNO_DEFCPRIM("sqlite/close",sqlite_close_prim,
+	     KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	     "**undocumented**",
+	     {"db",kno_sqldb_type,KNO_VOID})
 static lispval sqlite_close_prim(lispval db)
 {
   struct KNO_SQLDB *sqldb = kno_consptr(struct KNO_SQLDB *,db,kno_sqldb_type);
@@ -393,7 +400,7 @@ static lispval sqlitemakeproc
   sqlcons->fcn_call_width = sqlcons->fcn_arity = -1;
   sqlcons->fcn_min_arity = n_params;
   sqlcons->fcn_arginfo_len = 0;
-  sqlcons->fcn_arginfo = NULL;
+  sqlcons->fcn_schema = NULL;
   sqlcons->fcn_handler.xcalln = sqlitecallproc;
   {
     lispval *paramtypes = u8_alloc_n(n_params,lispval);
@@ -828,7 +835,7 @@ KNO_EXPORT int kno_init_sqlite()
   vfs_symbol = kno_intern("vfs");
   execok_symbol = kno_intern("exec/ok");
 
-  kno_finish_module(sqlite_module);
+  kno_finish_cmodule(sqlite_module);
 
   u8_register_source_file(_FILEINFO);
 
@@ -837,7 +844,7 @@ KNO_EXPORT int kno_init_sqlite()
 
 static void link_local_cprims()
 {
-  KNO_LINK_PRIM("sqlite/close",sqlite_close_prim,1,sqlite_module);
-  KNO_LINK_PRIM("sqlite/reopen",sqlite_reopen_prim,1,sqlite_module);
-  KNO_LINK_PRIM("sqlite/open",sqlite_open_prim,3,sqlite_module);
+  KNO_LINK_CPRIM("sqlite/close",sqlite_close_prim,1,sqlite_module);
+  KNO_LINK_CPRIM("sqlite/reopen",sqlite_reopen_prim,1,sqlite_module);
+  KNO_LINK_CPRIM("sqlite/open",sqlite_open_prim,3,sqlite_module);
 }

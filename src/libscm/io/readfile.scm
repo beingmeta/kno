@@ -1,7 +1,9 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
 ;;; Copyright (C) 2005-2020 beingmeta, inc.  All rights reserved.
 
-(in-module 'readfile)
+(in-module 'io/readfile)
+
+(use-module '{binio})
 
 (module-export! '{readfile})
 

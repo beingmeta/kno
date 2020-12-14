@@ -1,7 +1,7 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
 ;;; Copyright (C) 2005-2020 beingmeta, inc.  All rights reserved.
 
-(in-module 'packetfns)
+(in-module 'kno/packetfns)
 
 (module-export!
  '{packet->digits digits->packet number->digits digits->number

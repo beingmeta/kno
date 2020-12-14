@@ -12,6 +12,7 @@
 #define KNO_INLINE_FCNIDS 1
 #define KNO_INLINE_STACKS 1
 #define KNO_INLINE_LEXENV 1
+#define KNO_INLINE_XTYPEP 1
 #define KNO_INLINE_APPLY  1
 
 #include "kno/knosource.h"
@@ -81,10 +82,10 @@ KNO_FASTOP lispval function_call(u8_string name,kno_function f,
 {
   if (f->fcn_filename) stack->stack_file = f->fcn_filename;
   if (f->fcn_name) stack->stack_label = f->fcn_name;
-  if (PRED_FALSE(f->fcn_handler.fnptr == NULL)) {
+  if (RARELY(f->fcn_handler.fnptr == NULL)) {
     /* There's no explicit method on this function object, so we use
        the method associated with the lisp type (if there is one) */
-    int ctype = KNO_CONS_TYPE(f);
+    int ctype = KNO_CONS_TYPEOF(f);
     if (kno_applyfns[ctype])
       return kno_applyfns[ctype]((lispval)f,n,argvec);
     lispval lf = (lispval) f;
@@ -111,7 +112,7 @@ KNO_FASTOP lispval core_call(kno_stack stack,
     if (f) result = function_call(stack->stack_label,f,n,argvec,stack);
     else {
       kno_applyfn handler = kno_applyfns[fntype];
-      if (PRED_FALSE(handler==NULL))
+      if (RARELY(handler==NULL))
 	return kno_err(kno_NotAFunction,"core_call",kno_type_name(fn),fn);
       else result = kno_applyfns[fntype](fn,width,argvec);}}
   else {
@@ -591,6 +592,7 @@ void kno_init_stacks_c(void);
 void kno_init_lexenv_c(void);
 void kno_init_ffi_c(void);
 void kno_init_exec_c(void);
+void kno_init_dispatch_c(void);
 void kno_init_services_c(void);
 void kno_init_netprocs_c(void);
 
@@ -635,7 +637,7 @@ KNO_EXPORT int _KNO_APPLICABLE_TYPEP(int typecode)
 KNO_EXPORT int _KNO_APPLICABLEP(lispval x)
 {
   if (KNO_TYPEP(x,kno_fcnid_type))
-    return (APPLICABLE_TYPEP(KNO_FCNID_TYPE(x)));
+    return (APPLICABLE_TYPEP(KNO_FCNID_TYPEOF(x)));
   else return APPLICABLE_TYPEP(KNO_PRIM_TYPE(x));
 }
 
@@ -653,7 +655,7 @@ KNO_EXPORT int _KNO_FUNCTION_TYPEP(int typecode)
 KNO_EXPORT int _KNO_FUNCTIONP(lispval x)
 {
   if (KNO_TYPEP(x,kno_fcnid_type))
-    return (FUNCTION_TYPEP(KNO_FCNID_TYPE(x)));
+    return (FUNCTION_TYPEP(KNO_FCNID_TYPEOF(x)));
   else return FUNCTION_TYPEP(KNO_PRIM_TYPE(x));
 }
 
@@ -830,6 +832,7 @@ KNO_EXPORT void kno_init_apply_c()
   kno_init_stacks_c();
   kno_init_lexenv_c();
   kno_init_exec_c();
+  kno_init_dispatch_c();
   kno_init_services_c();
 }
 

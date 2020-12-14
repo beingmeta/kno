@@ -1,7 +1,7 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
 ;;; Copyright (C) 2005-2020 beingmeta, inc.  All rights reserved.
 
-(in-module 'parsetime)
+(in-module 'text/parsetime)
 
 ;;; Simple generic time parser making heavy use of TEXTTOOLS
 ;;; pattern matching and extraction.

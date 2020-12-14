@@ -8,7 +8,7 @@ int check_args(int n,kno_argvec args)
   int needs_work = 0;
   int i = 0; while (i<n) {
     lispval arg = args[i];
-    if (! (PRED_TRUE(KNO_CHECK_PTR(arg))) )
+    if (! (USUALLY(KNO_CHECK_PTR(arg))) )
       return -(i+1);
     else if (CONSP(arg)) {
       if (KNO_PRECHOICEP(arg)) {needs_work = 1;}
@@ -90,7 +90,7 @@ int setup_call(kno_stack stack,lispval fcn,
 {
   int i = 0; while (i<n) {
     lispval arg = args[i];
-    if (PRED_FALSE ( (arg == KNO_NULL) ||
+    if (RARELY ( (arg == KNO_NULL) ||
 		     (KNO_VOIDP(arg)) ||
 		     (KNO_ABORTED(arg)) ||
 		     (!(KNO_CHECK_PTR(arg))) ) ) {
@@ -129,7 +129,7 @@ static int cprim_prep(kno_stack stack,
       lispval arg = args[i];
       kno_lisp_type type = typeinfo[i];
       if (type<0) i++;
-      else if (KNO_TYPEP(arg,type)) i++;
+      else if (KNO_XTYPEP(arg,type)) i++;
       else {
 	u8_byte buf[128];
 	kno_lisp_type arg_type = KNO_TYPEOF(arg);

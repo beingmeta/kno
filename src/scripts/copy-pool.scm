@@ -1,6 +1,6 @@
 ;;; -*- Mode: Scheme -*-
 
-(use-module '{optimize mttools varconfig stringfmts logger})
+(use-module '{optimize kno/mttools varconfig text/stringfmts logger})
 
 (define %loglevel %notice%)
 (config! 'cachelevel 2)
@@ -108,7 +108,7 @@
   (lineout "    Repacks the file pool stored in <from>.  The new file ")
   (lineout "    pool is either replace <from> or is written into [to].")
   (lineout "    [to] if specified must not exist unless OVERWRITE=yes.")
-  (lineout "    POOLTYPE=bigpool|oidpool|filepool"))
+  (lineout "    POOLTYPE=kpool|filepool"))
 
 (optimize!)
 

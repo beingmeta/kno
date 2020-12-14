@@ -606,9 +606,10 @@ static lispval httpheader(lispval expr,kno_lexenv env,kno_stack _stack)
     return VOID;}
 }
 
-DEFPRIM1("httpheader!",addhttpheader,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-         "`(HTTPHEADER! *arg0*)` **undocumented**",
-         kno_any_type,KNO_VOID);
+DEFCPRIM("httpheader!",addhttpheader,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "**undocumented**",
+	 {"header",kno_any_type,KNO_VOID})
 static lispval addhttpheader(lispval header)
 {
   kno_req_add(http_headers,header);
@@ -691,11 +692,15 @@ static int handle_cookie(U8_OUTPUT *out,lispval cgidata,lispval cookie)
   return 1;
 }
 
-DEFPRIM6("set-cookie!",setcookie,KNO_MAX_ARGS(6)|KNO_MIN_ARGS(2),
-         "`(SET-COOKIE! *arg0* *arg1* [*arg2*] [*arg3*] [*arg4*] [*arg5*])` **undocumented**",
-         kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
-         kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
-         kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+DEFCPRIM("set-cookie!",setcookie,
+	 KNO_MAX_ARGS(6)|KNO_MIN_ARGS(2),
+	 "**undocumented**",
+	 {"var",kno_any_type,KNO_VOID},
+	 {"val",kno_any_type,KNO_VOID},
+	 {"domain",kno_any_type,KNO_VOID},
+	 {"path",kno_any_type,KNO_VOID},
+	 {"expires",kno_any_type,KNO_VOID},
+	 {"secure",kno_any_type,KNO_VOID})
 static lispval setcookie
 (lispval var,lispval val,
  lispval domain,lispval path,
@@ -729,10 +734,13 @@ static lispval setcookie
     return VOID;}
 }
 
-DEFPRIM4("clear-cookie!",clearcookie,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(1),
-         "`(CLEAR-COOKIE! *arg0* [*arg1*] [*arg2*] [*arg3*])` **undocumented**",
-         kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
-         kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+DEFCPRIM("clear-cookie!",clearcookie,
+	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(1),
+	 "**undocumented**",
+	 {"var",kno_any_type,KNO_VOID},
+	 {"domain",kno_any_type,KNO_VOID},
+	 {"path",kno_any_type,KNO_VOID},
+	 {"secure",kno_any_type,KNO_VOID})
 static lispval clearcookie
 (lispval var,lispval domain,lispval path,lispval secure)
 {
@@ -756,9 +764,11 @@ static lispval clearcookie
 
 /* HTML Header functions */
 
-DEFPRIM2("stylesheet!",add_stylesheet,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-         "`(STYLESHEET! *arg0* [*arg1*])` **undocumented**",
-         kno_string_type,KNO_VOID,kno_string_type,KNO_VOID);
+DEFCPRIM("stylesheet!",add_stylesheet,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	 "**undocumented**",
+	 {"stylesheet",kno_string_type,KNO_VOID},
+	 {"type",kno_string_type,KNO_VOID})
 static lispval add_stylesheet(lispval stylesheet,lispval type)
 {
   lispval header_string = VOID;
@@ -774,9 +784,10 @@ static lispval add_stylesheet(lispval stylesheet,lispval type)
   return VOID;
 }
 
-DEFPRIM1("javascript!",add_javascript,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-         "`(JAVASCRIPT! *arg0*)` **undocumented**",
-         kno_string_type,KNO_VOID);
+DEFCPRIM("javascript!",add_javascript,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "**undocumented**",
+	 {"url",kno_string_type,KNO_VOID})
 static lispval add_javascript(lispval url)
 {
   lispval header_string = VOID;
@@ -1049,8 +1060,9 @@ int kno_output_xml_preface(U8_OUTPUT *out,lispval cgidata)
   return 1;
 }
 
-DEFPRIM("body!",set_body_attribs,KNO_VAR_ARGS|KNO_MIN_ARGS(1),
-        "`(BODY! *arg0* *args...*)` **undocumented**");
+DEFCPRIMN("body!",set_body_attribs,
+	  KNO_VAR_ARGS|KNO_MIN_ARGS(1),
+	  "**undocumented**")
 static lispval set_body_attribs(int n,kno_argvec args)
 {
   if ((n==1)&&(args[0]==KNO_FALSE)) {
@@ -1063,18 +1075,20 @@ static lispval set_body_attribs(int n,kno_argvec args)
     return VOID;}
 }
 
-DEFPRIM1("bodyclass!",add_body_class,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-         "`(BODYCLASS! *arg0*)` **undocumented**",
-         kno_string_type,KNO_VOID);
+DEFCPRIM("bodyclass!",add_body_class,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "**undocumented**",
+	 {"classname",kno_string_type,KNO_VOID})
 static lispval add_body_class(lispval classname)
 {
   kno_req_push(body_classes_slotid,classname);
   return VOID;
 }
 
-DEFPRIM1("htmlclass!",add_html_class,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-         "`(HTMLCLASS! *arg0*)` **undocumented**",
-         kno_string_type,KNO_VOID);
+DEFCPRIM("htmlclass!",add_html_class,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "**undocumented**",
+	 {"classname",kno_string_type,KNO_VOID})
 static lispval add_html_class(lispval classname)
 {
   kno_req_push(html_classes_slotid,classname);
@@ -1219,9 +1233,10 @@ KNO_EXPORT lispval kno_cgiexec(lispval proc,lispval cgidata)
 
 /* Parsing query strings */
 
-DEFPRIM1("urldata/parse",urldata_parse,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-         "`(URLDATA/PARSE *arg0*)` **undocumented**",
-         kno_string_type,KNO_VOID);
+DEFCPRIM("urldata/parse",urldata_parse,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "**undocumented**",
+	 {"qstring",kno_string_type,KNO_VOID})
 static lispval urldata_parse(lispval qstring)
 {
   lispval smap = kno_empty_slotmap();
@@ -1273,9 +1288,10 @@ lispval kno_mapurl(lispval uri)
     return EMPTY;}
 }
 
-DEFPRIM1("mapurl",mapurl,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-         "`(MAPURL *arg0*)` **undocumented**",
-         kno_string_type,KNO_VOID);
+DEFCPRIM("mapurl",mapurl,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "**undocumented**",
+	 {"uri",kno_string_type,KNO_VOID})
 static lispval mapurl(lispval uri)
 {
   lispval result = kno_mapurl(uri);
@@ -1493,16 +1509,16 @@ KNO_EXPORT void kno_init_cgiexec_c()
 
 static void link_local_cprims()
 {
-  KNO_LINK_PRIM("mapurl",mapurl,1,webtools_module);
-  KNO_LINK_PRIM("urldata/parse",urldata_parse,1,webtools_module);
-  KNO_LINK_PRIM("htmlclass!",add_html_class,1,webtools_module);
-  KNO_LINK_PRIM("bodyclass!",add_body_class,1,webtools_module);
-  KNO_LINK_VARARGS("body!",set_body_attribs,webtools_module);
-  KNO_LINK_PRIM("javascript!",add_javascript,1,xhtml_module);
-  KNO_LINK_PRIM("stylesheet!",add_stylesheet,2,xhtml_module);
-  KNO_LINK_PRIM("clear-cookie!",clearcookie,4,webtools_module);
-  KNO_LINK_PRIM("set-cookie!",setcookie,6,webtools_module);
-  KNO_LINK_PRIM("httpheader!",addhttpheader,1,webtools_module);
+  KNO_LINK_CPRIM("mapurl",mapurl,1,webtools_module);
+  KNO_LINK_CPRIM("urldata/parse",urldata_parse,1,webtools_module);
+  KNO_LINK_CPRIM("htmlclass!",add_html_class,1,webtools_module);
+  KNO_LINK_CPRIM("bodyclass!",add_body_class,1,webtools_module);
+  KNO_LINK_CVARARGS("body!",set_body_attribs,webtools_module);
+  KNO_LINK_CPRIM("javascript!",add_javascript,1,xhtml_module);
+  KNO_LINK_CPRIM("stylesheet!",add_stylesheet,2,xhtml_module);
+  KNO_LINK_CPRIM("clear-cookie!",clearcookie,4,webtools_module);
+  KNO_LINK_CPRIM("set-cookie!",setcookie,6,webtools_module);
+  KNO_LINK_CPRIM("httpheader!",addhttpheader,1,webtools_module);
 
   KNO_LINK_ALIAS("cgiparse",urldata_parse,webtools_module);
 }

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
-;;; Copyright (C) 2005-2013 beingmeta, inc.  All rights reserved.
+;;; Copyright (C) 2005-2020 beingmeta, inc.  All rights reserved.
 
 ;;; DON'T EDIT THIS FILE !!!
 ;;;
@@ -9,7 +9,7 @@
 
 (in-module 'varconfig)
 
-(use-module '{logger reflection texttools defmacro})
+(use-module '{logger kno/reflect texttools defmacro})
 
 (module-export! '{varconfigfn varconfig! optconfigfn optconfig!})
 (module-export! '{config:boolean config:boolean/not

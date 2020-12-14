@@ -3,8 +3,8 @@
 
 (in-module 'knodb)
 
-(use-module '{texttools reflection})
-(use-module '{gpath fifo mttools ezrecords stringfmts logger varconfig})
+(use-module '{texttools kno/reflect})
+(use-module '{gpath fifo kno/mttools ezrecords text/stringfmts logger varconfig})
 (use-module '{knodb/adjuncts knodb/registry knodb/filenames})
 (use-module '{knodb/flexpool knodb/flexindex})
 
@@ -222,7 +222,7 @@
 			opts)))
   (when (getopt opts 'searchable #t)
     (let ((indexes (or (try (poolctl pool 'props 'indexes) 
-			    (get-indexes-for-pool pool))
+			    (get-indexes-for-pool pool opts))
 		       (fail))))
       (when (exists? indexes)
 	(loginfo |Indexes| 

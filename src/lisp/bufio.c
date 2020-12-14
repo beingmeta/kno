@@ -75,7 +75,7 @@ KNO_EXPORT lispval kno_lisp_iswritebuf(struct KNO_INBUF *b)
 
 KNO_EXPORT int kno_reset_inbuf(struct KNO_INBUF *b)
 {
-  if (PRED_FALSE(KNO_ISWRITING(b)))
+  if (RARELY(KNO_ISWRITING(b)))
     return kno_iswritebuf(b);
   b->bufread=b->buflim=b->buffer;
   return 0;
@@ -241,7 +241,7 @@ KNO_EXPORT int _kno_grow_inbuf(struct KNO_INBUF *b,size_t delta)
 
 KNO_EXPORT int _kno_write_byte(struct KNO_OUTBUF *b,unsigned char byte)
 {
-  if (PRED_FALSE(KNO_ISREADING(b))) return kno_isreadbuf(b);
+  if (RARELY(KNO_ISREADING(b))) return kno_isreadbuf(b);
   else if (kno_needs_space(b,1)) {
     *(b->bufwrite++) = byte;
     return 1;}
@@ -250,7 +250,7 @@ KNO_EXPORT int _kno_write_byte(struct KNO_OUTBUF *b,unsigned char byte)
 
 KNO_EXPORT int _kno_write_4bytes(struct KNO_OUTBUF *b,kno_4bytes w)
 {
-  if (PRED_FALSE(KNO_ISREADING(b))) return kno_isreadbuf(b);
+  if (RARELY(KNO_ISREADING(b))) return kno_isreadbuf(b);
   else if (kno_needs_space(b,4) == 0)
     return -1;
   *(b->bufwrite++) = (((w>>24)&0xFF));
@@ -262,7 +262,7 @@ KNO_EXPORT int _kno_write_4bytes(struct KNO_OUTBUF *b,kno_4bytes w)
 
 KNO_EXPORT int _kno_write_8bytes(struct KNO_OUTBUF *b,kno_8bytes w)
 {
-  if (PRED_FALSE(KNO_ISREADING(b))) return kno_isreadbuf(b);
+  if (RARELY(KNO_ISREADING(b))) return kno_isreadbuf(b);
   else if (kno_needs_space(b,8) == 0)
     return -1;
   *(b->bufwrite++) = ((w>>56)&0xFF);
@@ -279,7 +279,7 @@ KNO_EXPORT int _kno_write_8bytes(struct KNO_OUTBUF *b,kno_8bytes w)
 KNO_EXPORT int _kno_write_bytes
 (struct KNO_OUTBUF *b,const unsigned char *data,int size)
 {
-  if (PRED_FALSE(KNO_ISREADING(b))) return kno_isreadbuf(b);
+  if (RARELY(KNO_ISREADING(b))) return kno_isreadbuf(b);
   else if (kno_needs_space(b,size) == 0) return -1;
   memcpy(b->bufwrite,data,size); b->bufwrite = b->bufwrite+size;
   return size;
@@ -287,8 +287,8 @@ KNO_EXPORT int _kno_write_bytes
 
 /* Byte input */
 
-#define nobytes(in,nbytes) (PRED_FALSE(!(kno_request_bytes(in,nbytes))))
-#define havebytes(in,nbytes) (PRED_TRUE(kno_request_bytes(in,nbytes)))
+#define nobytes(in,nbytes) (RARELY(!(kno_request_bytes(in,nbytes))))
+#define havebytes(in,nbytes) (USUALLY(kno_request_bytes(in,nbytes)))
 
 KNO_EXPORT ssize_t kno_grow_byte_input(struct KNO_INBUF *b,size_t len)
 {
@@ -301,7 +301,7 @@ KNO_EXPORT ssize_t kno_grow_byte_input(struct KNO_INBUF *b,size_t len)
 
 KNO_EXPORT int _kno_read_byte(struct KNO_INBUF *buf)
 {
-  if (PRED_FALSE(KNO_ISWRITING(buf)))
+  if (RARELY(KNO_ISWRITING(buf)))
     return kno_iswritebuf(buf);
   else if (kno_request_bytes(buf,1))
     return (*(buf->bufread++));
@@ -311,7 +311,7 @@ KNO_EXPORT int _kno_read_byte(struct KNO_INBUF *buf)
 KNO_EXPORT int _kno_probe_byte(struct KNO_INBUF *buf)
 {
   u8_exception pre_ex = u8_current_exception;
-  if (PRED_FALSE(KNO_ISWRITING(buf)))
+  if (RARELY(KNO_ISWRITING(buf)))
     return kno_iswritebuf(buf);
   else if (kno_request_bytes(buf,1))
     return (*(buf->bufread));
@@ -322,7 +322,7 @@ KNO_EXPORT int _kno_probe_byte(struct KNO_INBUF *buf)
 
 KNO_EXPORT int _kno_unread_byte(struct KNO_INBUF *buf,int byte)
 {
-  if (PRED_FALSE(KNO_ISWRITING(buf)))
+  if (RARELY(KNO_ISWRITING(buf)))
     return kno_iswritebuf(buf);
   else if (buf->bufread == buf->buffer)
     return KNO_ERR2(-1,BadUnReadByte,"_kno_unread_byte");
@@ -335,7 +335,7 @@ KNO_EXPORT int _kno_unread_byte(struct KNO_INBUF *buf,int byte)
 
 KNO_EXPORT long long _kno_read_4bytes(struct KNO_INBUF *buf)
 {
-  if (PRED_FALSE(KNO_ISWRITING(buf)))
+  if (RARELY(KNO_ISWRITING(buf)))
     return kno_iswritebuf(buf);
   else if (kno_request_bytes(buf,4)) {
     kno_4bytes value = kno_get_4bytes(buf->bufread);
@@ -346,7 +346,7 @@ KNO_EXPORT long long _kno_read_4bytes(struct KNO_INBUF *buf)
 
 KNO_EXPORT kno_8bytes _kno_read_8bytes(struct KNO_INBUF *buf)
 {
-  if (PRED_FALSE(KNO_ISWRITING(buf)))
+  if (RARELY(KNO_ISWRITING(buf)))
     return kno_iswritebuf(buf);
   else if (kno_request_bytes(buf,8)) {
     kno_8bytes value = kno_get_8bytes(buf->bufread);
@@ -358,7 +358,7 @@ KNO_EXPORT kno_8bytes _kno_read_8bytes(struct KNO_INBUF *buf)
 KNO_EXPORT int
 _kno_read_bytes(unsigned char *bytes,struct KNO_INBUF *buf,int len)
 {
-  if (PRED_FALSE(KNO_ISWRITING(buf)))
+  if (RARELY(KNO_ISWRITING(buf)))
     return kno_iswritebuf(buf);
   else if (kno_request_bytes(buf,len)) {
     memcpy(bytes,buf->bufread,len);
@@ -369,7 +369,7 @@ _kno_read_bytes(unsigned char *bytes,struct KNO_INBUF *buf,int len)
 
 KNO_EXPORT int _kno_read_varint(struct KNO_INBUF *buf)
 {
-  if (PRED_FALSE(KNO_ISWRITING(buf)))
+  if (RARELY(KNO_ISWRITING(buf)))
     return kno_iswritebuf(buf);
   else return kno_read_varint(buf);
 }

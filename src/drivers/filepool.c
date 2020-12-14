@@ -241,7 +241,7 @@ static lispval file_pool_fetch(kno_pool p,lispval oid)
   kno_stream stream = &(fp->pool_stream);
   kno_off_t data_pos;
   kno_lock_pool_struct((kno_pool)fp,0);
-  if (PRED_FALSE(offset>=fp->pool_load)) {
+  if (RARELY(offset>=fp->pool_load)) {
     kno_unlock_pool_struct((kno_pool)fp);
     if ( (p->pool_flags) & (KNO_POOL_ADJUNCT) )
       return KNO_EMPTY;
@@ -256,7 +256,7 @@ static lispval file_pool_fetch(kno_pool p,lispval oid)
       return KNO_ERROR;}
     data_pos = kno_read_4bytes(kno_readbuf(stream));}
   if (data_pos == 0) value = EMPTY;
-  else if (PRED_FALSE(data_pos<24+fp->pool_load*4)) {
+  else if (RARELY(data_pos<24+fp->pool_load*4)) {
     /* We got a data pointer into the file header.  This will
        happen in the (hopefully now non-existent) case where
        we've stored a >32 bit offset into a 32-bit sized location
@@ -310,7 +310,7 @@ static lispval *file_pool_fetchn(kno_pool p,int n,lispval *oids)
 	return NULL;}
       KNO_OID addr = KNO_OID_ADDR(oid);
       unsigned int off = KNO_OID_DIFFERENCE(addr,base), file_off;
-      if (PRED_FALSE(off>=load)) {
+      if (RARELY(off>=load)) {
         u8_big_free(result);
         u8_big_free(schedule);
         kno_unlock_pool_struct(p);
@@ -320,7 +320,7 @@ static lispval *file_pool_fetchn(kno_pool p,int n,lispval *oids)
       schedule[i].vpos = i;
       if (file_off==0)
         schedule[i].filepos = file_off;
-      else if (PRED_FALSE(file_off<min_file_pos)) {
+      else if (RARELY(file_off<min_file_pos)) {
         /* As above, we have a data pointer into the header.
            This should never happen unless a file is corrupted. */
         u8_big_free(result);
@@ -344,10 +344,10 @@ static lispval *file_pool_fetchn(kno_pool p,int n,lispval *oids)
         kno_unlock_pool_struct(p);
         return NULL;}
       file_off = kno_read_4bytes(kno_readbuf(stream));
-      if (PRED_FALSE(file_off==0))
+      if (RARELY(file_off==0))
         /* This is okay, just an allocated but unassigned OID. */
         schedule[i].filepos = file_off;
-      else if (PRED_FALSE(file_off<min_file_pos)) {
+      else if (RARELY(file_off<min_file_pos)) {
         /* As above, we have a data pointer into the header.
            This should never happen unless a file is corrupted. */
         u8_big_free(result);
@@ -403,13 +403,13 @@ static int file_pool_storen(kno_pool p,int n,lispval *oids,lispval *values)
     KNO_OID oid = KNO_OID_ADDR(oids[i]);
     unsigned int oid_off = KNO_OID_DIFFERENCE(oid,base);
     int delta = kno_write_dtype(kno_writebuf(stream),values[i]);
-    if (PRED_FALSE((!isadjunct) && (oid_off>=load))) {
+    if (RARELY((!isadjunct) && (oid_off>=load))) {
       kno_seterr(kno_UnallocatedOID,
                 "file_pool_storen",fp->poolid,
                 oids[i]);
       retcode = -1; break;}
-    else if (PRED_FALSE(delta<0)) {retcode = -1; break;}
-    else if (PRED_FALSE(((kno_off_t)(endpos+delta))>pos_limit)) {
+    else if (RARELY(delta<0)) {retcode = -1; break;}
+    else if (RARELY(((kno_off_t)(endpos+delta))>pos_limit)) {
       kno_seterr(kno_PoolFileSizeOverflow,
                 "file_pool_storen",fp->poolid,
                 oids[i]);
@@ -761,7 +761,7 @@ int kno_make_file_pool
 {
   int i, hi, lo;
   if (load>capacity) {
-    u8_seterr("LoadOverFlow","make_bigpool",
+    u8_seterr("LoadOverFlow","make_file_pool",
               u8_sprintf(NULL,256,
                          "Specified load (%u) > capacity (%u) for '%s'",
                          load,capacity,filename));

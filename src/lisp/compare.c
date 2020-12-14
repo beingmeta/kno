@@ -155,7 +155,7 @@ int lispval_compare(lispval x,lispval y,kno_compare_flags flags)
           else if (xlen<ylen) return -1;
           else return 0;}}
       default: {
-        kno_lisp_type ctype = KNO_CONS_TYPE(KNO_CONS_DATA(x));
+        kno_lisp_type ctype = KNO_CONS_TYPEOF(KNO_CONS_DATA(x));
         if (kno_comparators[ctype])
           return kno_comparators[ctype](x,y,flags);
         else if (x>y) return 1;

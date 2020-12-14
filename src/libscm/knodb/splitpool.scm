@@ -3,9 +3,9 @@
 
 (in-module 'knodb/splitpool)
 
-(use-module '{reflection texttools regex varconfig
+(use-module '{kno/reflect texttools regex varconfig
 	      logger logctl fifo
-	      mttools stringfmts opts})
+	     kno/mttools text/stringfmts opts})
 (use-module '{knodb knodb/flexpool knodb/adjuncts})
 
 (module-export! 'flexpool/split)

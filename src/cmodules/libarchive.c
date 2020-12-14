@@ -45,13 +45,15 @@ static ssize_t maxbufsize = 16*1024*1024;
 #define entry_symlink archive_entry_symlink
 #endif
 
-kno_lisp_type kno_libarchive_type;
+static lispval archive_typetag;
+
+#define KNO_ARCHIVE_TYPE 0x3c98f9d03f706c8L
+kno_lisp_type kno_archive_type;
 KNO_EXPORT int kno_init_libarchive(void) KNO_LIBINIT_FN;
 
 static long long int libarchive_initialized = 0;
 
 typedef struct KNO_ARCHIVE {
-  KNO_CONS_HEADER;
   u8_string archive_spec;
   struct archive *kno_archive;
   u8_mutex archive_lock;
@@ -67,6 +69,17 @@ typedef struct KNO_ARCHIVE_INPUT {
   u8_string archive_eltname, archive_id;
   lispval entry_info;
   struct archive *inport_archive;} *kno_archive_input;
+
+static void recycle_archive(void *c)
+{
+  kno_archive a = (kno_archive) c;
+  archive_read_close(a->kno_archive);
+  u8_destroy_mutex(&(a->archive_lock));
+  kno_decref(a->archive_source);
+  kno_decref(a->archive_opts);
+  archive_read_close(a->kno_archive);
+  u8_free(a->archive_spec);
+}
 
 static u8_string archive_errmsg(u8_byte *buf,size_t len,
 				struct KNO_ARCHIVE *archive)
@@ -110,7 +123,6 @@ static lispval new_archive(lispval spec,lispval opts)
     return KNO_ERROR_VALUE;}
   else {
     struct KNO_ARCHIVE *obj = u8_alloc(struct KNO_ARCHIVE);
-    KNO_INIT_FRESH_CONS(obj,kno_libarchive_type);
     u8_init_mutex(&(obj->archive_lock));
     obj->archive_spec   = use_spec;
     obj->kno_archive     = archive;
@@ -118,11 +130,23 @@ static lispval new_archive(lispval spec,lispval opts)
     obj->archive_opts   = opts; kno_incref(opts);
     obj->archive_cur    = KNO_FALSE;
     obj->archive_refs   = KNO_EMPTY_CHOICE;
-    return (lispval) obj;}
+    return kno_wrap_pointer(obj,
+			    sizeof(struct KNO_ARCHIVE),
+			    recycle_archive,
+			    archive_typetag,
+			    use_spec);}
 }
 
-static  int archive_seek(struct KNO_ARCHIVE *archive,lispval seek,
-			 struct archive_entry **entryp)
+struct KNO_ARCHIVE *get_archive(lispval arg)
+{
+  if (KNO_RAW_TYPEP(arg,archive_typetag)) {
+    struct KNO_RAWPTR *ptr = (kno_rawptr) arg;
+    return (kno_archive) ptr->ptrval;}
+  else return NULL;
+}
+
+static int archive_seek(struct KNO_ARCHIVE *archive,lispval seek,
+			struct archive_entry **entryp)
 {
   struct archive_entry *entry;
   u8_byte msgbuf[1000];
@@ -162,6 +186,7 @@ static  int archive_seek(struct KNO_ARCHIVE *archive,lispval seek,
   return -1;
 }
 
+#if 0
 static int unparse_archive(struct U8_OUTPUT *out,lispval x)
 {
   struct KNO_ARCHIVE *knoarchive = (struct KNO_ARCHIVE *)x;
@@ -183,16 +208,7 @@ static int unparse_archive(struct U8_OUTPUT *out,lispval x)
   u8_printf(out,"#!0x%llx>",KNO_LONGVAL(knoarchive));
   return 1;
 }
-static void recycle_archive(struct KNO_RAW_CONS *c)
-{
-  struct KNO_ARCHIVE *a = (kno_archive) c;
-  archive_read_close(a->kno_archive);
-  u8_destroy_mutex(&(a->archive_lock));
-  kno_decref(a->archive_source);
-  kno_decref(a->archive_opts);
-  archive_read_close(a->kno_archive);
-  u8_free(a->archive_spec);
-}
+#endif
 
 /* Archive input */
 
@@ -303,18 +319,20 @@ static kno_port open_archive_input(struct archive *archive,
 
 /* Top level functions */
 
-DEFPRIM3("archive/open",open_archive,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
-	 "Opens an archive file",
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_FALSE,
-	 kno_any_type,KNO_FALSE);
+KNO_DEFCPRIM("archive/open",open_archive,
+	     KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
+	     "Opens an archive file",
+	     {"spec",kno_any_type,KNO_VOID},
+	     {"path",kno_any_type,KNO_FALSE},
+	     {"opts",kno_any_type,KNO_FALSE})
 static lispval open_archive(lispval spec,lispval path,lispval opts)
 {
   if ( (KNO_STRINGP(opts)) && (KNO_TABLEP(path)) ) {
     lispval swap = path; path=opts; opts=swap;}
   if (KNO_ABORTP(path)) return path;
   if ( (KNO_STRINGP(path)) || (KNO_UINTP(path)) || (KNO_TRUEP(path)) ) {
-    lispval archive_ptr = (KNO_TYPEP(spec,kno_libarchive_type)) ?
-      (kno_incref(spec)) :
+    lispval archive_ptr =
+      (KNO_TYPEP(spec,kno_archive_type)) ? (kno_incref(spec)) :
       (new_archive(spec,opts));
     struct KNO_ARCHIVE *archive = (kno_archive) archive_ptr;
     struct archive_entry *entry;
@@ -388,12 +406,15 @@ static lispval entry_info(struct archive_entry *entry)
   return tbl;
 }
 
-DEFPRIM("archive/find",archive_find,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	"Get the next archive entry (possibly matching a "
-	"string or regex)");
+KNO_DEFCPRIM("archive/find",archive_find,
+	     KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	     "Get the next archive entry (possibly matching a "
+	     "string or regex)",
+	     {"obj",kno_any_type,KNO_VOID},
+	     {"seek",kno_any_type,KNO_FALSE})
 static lispval archive_find(lispval obj,lispval seek)
 {
-  struct KNO_ARCHIVE *archive = (struct KNO_ARCHIVE *) obj;
+  struct KNO_ARCHIVE *archive = get_archive(obj);
   struct archive_entry *entry;
   if (! ( (KNO_VOIDP(seek)) || (KNO_FALSEP(seek)) || (KNO_TRUEP(seek)) ||
 	  (KNO_STRINGP(seek)) || (KNO_TYPEP(seek,kno_regex_type)) ||
@@ -417,9 +438,10 @@ static lispval archive_find(lispval obj,lispval seek)
   else return KNO_FALSE;
 }
 
-DEFPRIM1("archive/stat",archive_stat,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "Information about an open archive stream",
-	 kno_ioport_type,KNO_VOID);
+KNO_DEFCPRIM("archive/stat",archive_stat,
+	     KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	     "Information about an open archive stream",
+	     {"port",kno_ioport_type,KNO_VOID})
 static lispval archive_stat(lispval port)
 {
   lispval info;
@@ -446,13 +468,11 @@ KNO_EXPORT int kno_init_libarchive()
 
   libarchive_module = kno_new_cmodule("libarchive",0,kno_init_libarchive);
 
-  kno_libarchive_type = kno_register_cons_type("archive");
-  kno_unparsers[kno_libarchive_type] = unparse_archive;
-  kno_recyclers[kno_libarchive_type] = recycle_archive;
+  archive_typetag = kno_intern("LIBARCHIVE");
 
   link_local_cprims();
 
-  kno_finish_module(libarchive_module);
+  kno_finish_cmodule(libarchive_module);
 
   u8_register_source_file(_FILEINFO);
 
@@ -461,10 +481,7 @@ KNO_EXPORT int kno_init_libarchive()
 
 static void link_local_cprims()
 {
-  KNO_LINK_PRIM("archive/stat",archive_stat,1,libarchive_module);
-  KNO_LINK_PRIM("archive/open",open_archive,3,libarchive_module);
-
-  KNO_LINK_TYPED("archive/find",archive_find,2,libarchive_module,
-		 kno_libarchive_type,KNO_VOID,
-		 kno_any_type,KNO_FALSE);
+  KNO_LINK_CPRIM("archive/stat",archive_stat,1,libarchive_module);
+  KNO_LINK_CPRIM("archive/open",open_archive,3,libarchive_module);
+  KNO_LINK_CPRIM("archive/find",archive_find,2,libarchive_module);
 }

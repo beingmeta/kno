@@ -90,7 +90,7 @@ struct KNO_SEQFNS *kno_seqfns[KNO_TYPE_MAX];
 KNO_EXPORT int kno_seq_length(lispval x)
 {
   ssize_t len = seq_length(x);
-  if (PRED_FALSE(len<0)) kno_seterr(kno_NotASequence,"kno_seq_length",NULL,x);
+  if (RARELY(len<0)) kno_seterr(kno_NotASequence,"kno_seq_length",NULL,x);
   return len;
 }
 
@@ -267,9 +267,9 @@ KNO_EXPORT lispval kno_slice(lispval x,int start,int end)
 KNO_EXPORT int kno_position(lispval key,lispval seq,int start,int limit)
 {
   int ctype = KNO_TYPEOF(seq), len = seq_length(seq);
-  if (PRED_FALSE(len<0))
+  if (RARELY(len<0))
     return KNO_ERR(-2,kno_NotASequence,"kno_position",NULL,seq);
-  else if (PRED_FALSE(ctype == kno_secret_type))
+  else if (RARELY(ctype == kno_secret_type))
     return KNO_ERR(-2,kno_SecretData,"kno_position",NULL,seq);
   else NO_ELSE;
   int end = (limit<0)?(len+limit+1):(limit>len)?(len):(limit);
@@ -425,7 +425,7 @@ KNO_EXPORT int kno_rposition(lispval key,lispval x,int start,int end)
 KNO_EXPORT int kno_generic_position(lispval key,lispval x,int start,int end)
 {
   int len = seq_length(x);
-  if (PRED_FALSE(len<0)) {
+  if (RARELY(len<0)) {
     kno_seterr(kno_NotASequence,"kno_generic_position",NULL,x);
     return len;}
   else if (end<0)
@@ -835,7 +835,7 @@ KNO_EXPORT lispval kno_remove(lispval item,lispval sequence)
   else if (NILP(sequence)) return sequence;
   else {
     int i = 0, j = 0, removals = 0, len = seq_length(sequence);
-    if (PRED_FALSE(len<0))
+    if (RARELY(len<0))
       return kno_err(kno_NotASequence,"kno_remove",NULL,sequence);
     kno_lisp_type result_type = KNO_TYPEOF(sequence);
     lispval *results = u8_alloc_n(len,lispval), result;

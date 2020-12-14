@@ -248,9 +248,10 @@ static lispval load_source_for_module(lispval spec,u8_string module_source)
   return (lispval)env;
 }
 
-DEFPRIM1("reload-module",reload_module,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(RELOAD-MODULE *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
+DEFCPRIM("reload-module",reload_module,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "**undocumented**",
+	 {"module",kno_any_type,KNO_VOID})
 static lispval reload_module(lispval module)
 {
   if (STRINGP(module)) {
@@ -469,9 +470,10 @@ KNO_EXPORT int kno_update_file_module(u8_string module_source,int force)
   else return 0;
 }
 
-DEFPRIM1("update-modules",update_modules_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
-	 "`(UPDATE-MODULES [*arg0*])` **undocumented**",
-	 kno_any_type,KNO_VOID);
+DEFCPRIM("update-modules",update_modules_prim,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
+	 "**undocumented**",
+	 {"flag",kno_any_type,KNO_VOID})
 static lispval update_modules_prim(lispval flag)
 {
   if (kno_update_file_modules((!FALSEP(flag)))<0)
@@ -479,9 +481,11 @@ static lispval update_modules_prim(lispval flag)
   else return VOID;
 }
 
-DEFPRIM2("update-module",update_module_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "`(UPDATE-MODULE *arg0* [*arg1*])` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_FALSE);
+DEFCPRIM("update-module",update_module_prim,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	 "**undocumented**",
+	 {"spec",kno_any_type,KNO_VOID},
+	 {"force",kno_any_type,KNO_FALSE})
 static lispval update_module_prim(lispval spec,lispval force)
 {
   if (FALSEP(force)) {
@@ -522,32 +526,6 @@ static int updatemodules_config_set(lispval var,lispval val,void *ignored)
     kno_seterr(kno_TypeError,"updatemodules_config_set",NULL,val);
     return -1;}
 }
-
-/* The LIVELOAD config */
-
-#if 0
-static lispval liveload_get(lispval var,void *ignored)
-{
-  lispval result=EMPTY;
-  struct KNO_LOAD_RECORD *scan=load_records;
-  while (scan) {
-    lispval loadarg=kno_incref(scan->loadarg);
-    CHOICE_ADD(result,loadarg);
-    scan=scan->prev_loaded;}
-  return result;
-}
-
-static int liveload_add(lispval var,lispval val,void *ignored)
-{
-  if (!(KNO_STRINGP(val)))
-    return kno_reterr
-      (kno_TypeError,"preload_config_set",u8_strdup("string"),val);
-  else if (KNO_STRLEN(val)==0)
-    return 0;
-  else return kno_load_latest(KNO_CSTRING(val),kno_app_env,NULL);
-}
-
-#endif
 
 /* libscm config set */
 
@@ -606,19 +584,25 @@ static int loadpath_config_set(lispval var,lispval vals,void *d)
 	    buf[len]='\0';
 	  else if (buf[len-1] == '/') {
 	    buf[len]='\0';
-	    if (!(u8_directoryp(buf))) {
+	    u8_string path_start = strchr(buf,'=');
+	    if (path_start) path_start++; else path_start=buf;
+	    if (!(u8_directoryp(path_start))) {
 	      u8_log(LOG_WARN,"BadLoadpath",
 		     "The path %s is not a directory",buf);
 	      skip = 1;}}
 	  else if ( (len>4) && (strcasecmp(buf+len-4,".zip")==0) ) {
 	    buf[len]='\0';
-	    if (!(u8_file_existsp(buf))) {
+	    u8_string path_start = strchr(buf,'=');
+	    if (path_start) path_start++; else path_start=buf;
+	    if (!(u8_file_existsp(path_start))) {
 	      u8_log(LOG_WARN,"BadLoadpath",
 		     "The path %s does not exist",buf);
 	      skip = 1;}}
 	  else {
 	    buf[len]='/'; len++; buf[len]='\0';
-	    if (!(u8_directoryp(buf))) {
+	    u8_string path_start = strchr(buf,'=');
+	    if (path_start) path_start++; else path_start=buf;
+	    if (!(u8_directoryp(path_start))) {
 	      u8_log(LOG_WARN,"BadLoadpath",
 		     "The path %s is not a directory",buf);
 	      skip = 1;}}
@@ -756,13 +740,14 @@ static int load_dynamic_module(lispval spec,void *data)
   else return 0;
 }
 
-DEFPRIM2("dynamic-load",dynamic_load_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "`(DYNAMIC-LOAD *modname* [*err*])` "
+DEFCPRIM("dynamic-load",dynamic_load_prim,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "loads a dynamic module into KNO. If *modname* (a "
 	 "string) is a path (includes a '/'), it is loaded "
 	 "directly. Otherwise, it looks for an dynamic "
 	 "module file in the default search path.",
-	 kno_string_type,KNO_VOID,kno_any_type,KNO_FALSE);
+	 {"arg",kno_string_type,KNO_VOID},
+	 {"err",kno_any_type,KNO_FALSE})
 static lispval dynamic_load_prim(lispval arg,lispval err)
 {
   u8_string name = KNO_STRING_DATA(arg);
@@ -903,12 +888,6 @@ KNO_EXPORT void kno_init_loadmods_c()
     ("LIBSCM","The location for bundled modules (prioritized before loadpath)",
      kno_lconfig_get,libscm_config_set,&libscm_path);
 
-#if 0
-  kno_register_config
-    ("LIVELOAD","Files to be reloaded as they change",
-     liveload_get,liveload_add,NULL);
-#endif
-
   link_local_cprims();
 
   kno_add_module_loader(load_source_module,NULL);
@@ -924,14 +903,14 @@ KNO_EXPORT void kno_init_loadmods_c()
 		      "Whether to announce the loading of dynamic modules",
 		      kno_boolconfig_get,kno_boolconfig_set,&trace_dload);
 
-  kno_finish_module(loadmods_module);
+  kno_finish_cmodule(loadmods_module);
 }
 
 
 static void link_local_cprims()
 {
-  KNO_LINK_PRIM("dynamic-load",dynamic_load_prim,2,kno_scheme_module);
-  KNO_LINK_PRIM("update-module",update_module_prim,2,loadmods_module);
-  KNO_LINK_PRIM("update-modules",update_modules_prim,1,loadmods_module);
-  KNO_LINK_PRIM("reload-module",reload_module,1,loadmods_module);
+  KNO_LINK_CPRIM("dynamic-load",dynamic_load_prim,2,kno_scheme_module);
+  KNO_LINK_CPRIM("update-module",update_module_prim,2,loadmods_module);
+  KNO_LINK_CPRIM("update-modules",update_modules_prim,1,loadmods_module);
+  KNO_LINK_CPRIM("reload-module",reload_module,1,loadmods_module);
 }

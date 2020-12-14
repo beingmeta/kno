@@ -17,6 +17,7 @@ if [ -f ./.offline ]; then
     OFFLINE=yes
 fi;
 
+LOCAL_STDLIB=${BUILD}/src/stdmods:${BUILD}/src/textmods:${BUILD}/src/webmods
 while [ $# -gt 0 ]; do
     arg=$1
     case ${arg} in
@@ -30,7 +31,7 @@ while [ $# -gt 0 ]; do
 	    doclean=1;
 	    ;;
 	dev)
-	    CONFIG_ARGS="--with-libscm=${BUILD}/src/libscm/ --with-stdlib=${BUILD}/src/stdlib ${CONFIG_ARGS}";
+	    CONFIG_ARGS="--with-libscm=${BUILD}/src/libscm/ --with-stdlib=${LOCAL_STDLIB} ${CONFIG_ARGS}";
 	    ;;
 	ipeval)
 	    CONFIG_ARGS="--with-ipeval ${CONFIG_ARGS}";
@@ -149,7 +150,9 @@ fi;
 if [ ! -z "${OFFLINE}" ]; then
     echo "Initializing GIT submodules";
     git submodule init;
-    git submodule update --remote --merge src/stdlib;
+    git submodule update --remote --merge src/stdmods;
+    git submodule update --remote --merge src/webmods;
+    git submodule update --remote --merge src/textmods;
     git submodule update --remote --merge src/brico;
     git submodule update --remote --merge tests;
 fi;

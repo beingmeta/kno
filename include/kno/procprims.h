@@ -18,8 +18,6 @@ typedef struct KNO_SUBJOB {
   lispval subjob_stdin, subjob_stdout, subjob_stderr;}
   *kno_subjob;
 
-KNO_EXPORT kno_lisp_type kno_subjob_type;
-
 KNO_EXPORT lispval kno_rlimit_codes;
 
 #endif

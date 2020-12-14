@@ -12,6 +12,8 @@
 #endif
 
 #define U8_INLINE_IO 1
+#define KNO_INLINE_OBJTYPE 1
+
 #include "kno/knosource.h"
 #include "kno/lisp.h"
 #include "kno/compounds.h"
@@ -43,6 +45,8 @@ u8_condition kno_CantUnparse=_("LISP expression unparse error");
 int kno_unparse_maxelts = 100;
 int kno_unparse_maxchars = 150;
 int kno_packet_outfmt = -1;
+
+kno_type_unparsefn kno_default_unparsefn = NULL;
 
 int (*kno_unparse_error)(U8_OUTPUT *,lispval x,u8_string details) = NULL;
 
@@ -365,7 +369,7 @@ int kno_unparse(u8_output out,lispval x)
       else {
         char buf[24]; sprintf(buf,"#!%lx",(unsigned long)x);
         return u8_puts(out,buf);}
-    else if (itype == kno_basetype_type) {
+    else if (itype == kno_ctype_type) {
       U8_STATIC_OUTPUT(typeref,128);
       if ( (data < KNO_TYPE_MAX) && (kno_type_names[data]) ) {
 	u8_string scan = kno_type_names[data];
@@ -392,7 +396,7 @@ int kno_unparse(u8_output out,lispval x)
       return u8_puts(out,"#null");
     else {/* output cons */
       struct KNO_CONS *cons = KNO_CONS_DATA(x);
-      kno_lisp_type ct = KNO_CONS_TYPE(cons);
+      kno_lisp_type ct = KNO_CONS_TYPEOF(cons);
       if ((KNO_VALID_TYPECODEP(ct)) && (kno_unparsers[ct])) {
         int uv = kno_unparsers[ct](out,x);
         if (uv<0) {
@@ -457,11 +461,16 @@ static int unparse_compound(struct U8_OUTPUT *out,lispval x)
     kno_consptr(struct KNO_COMPOUND *,x,kno_compound_type);
   lispval tag = xc->typetag;
   struct KNO_TYPEINFO *info = xc->typeinfo;
-  if (info == NULL) info = kno_taginfo(x);
+  if (info == NULL) info = kno_objtype(x);
   if ((info) && (info->type_unparsefn)) {
     int retval = info->type_unparsefn(out,x,info);
     if (retval<0) {kno_clear_errors(1);}
     else if (retval) return retval;}
+  else if ((info) && (kno_default_unparsefn)) {
+    int retval = kno_default_unparsefn(out,x,info);
+    if (retval<0) {kno_clear_errors(1);}
+    else if (retval) return retval;}
+  else NO_ELSE;
   u8_string tagstring = (KNO_SYMBOLP(tag)) ? (KNO_SYMBOL_NAME(tag)) :
     (KNO_STRINGP(tag)) ? (KNO_CSTRING(tag)) : (NULL);
   int opaque = (xc->compound_isopaque) ? (1) :
@@ -487,11 +496,16 @@ static int unparse_rawptr(struct U8_OUTPUT *out,lispval x)
   struct KNO_RAWPTR *rawptr = (struct KNO_RAWPTR *)x;
   lispval tag = rawptr->typetag;
   struct KNO_TYPEINFO *info = rawptr->typeinfo;
-  if (info == NULL) info = kno_taginfo(x);
+  if (info == NULL) info = kno_objtype(x);
   if ((info) && (info->type_unparsefn)) {
     int retval = info->type_unparsefn(out,x,info);
     if (retval<0) {kno_clear_errors(1);}
     else if (retval) return retval;}
+  else if ((info) && (kno_default_unparsefn)) {
+    int retval = kno_default_unparsefn(out,x,info);
+    if (retval<0) {kno_clear_errors(1);}
+    else if (retval) return retval;}
+  else NO_ELSE;
   u8_string typestring = (KNO_SYMBOLP(tag)) ? (KNO_SYMBOL_NAME(tag)) :
     (KNO_STRINGP(tag)) ? (KNO_CSTRING(tag)) : (info->type_name) ;
   if ( (typestring) && (rawptr->idstring) )

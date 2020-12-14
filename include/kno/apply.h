@@ -56,38 +56,38 @@ typedef lispval (*kno_cprim5)(lispval,lispval,lispval,lispval,lispval);
 typedef lispval (*kno_cprim6)(lispval,lispval,lispval,lispval,lispval,lispval);
 typedef lispval (*kno_cprim7)(lispval,lispval,lispval,lispval,lispval,lispval,lispval);
 typedef lispval (*kno_cprim8)(lispval,lispval,lispval,
-			     lispval,lispval,lispval,
-			     lispval,lispval);
+			      lispval,lispval,lispval,
+			      lispval,lispval);
 typedef lispval (*kno_cprim9)(lispval,lispval,lispval,
-			     lispval,lispval,lispval,
-			     lispval,lispval,lispval);
+			      lispval,lispval,lispval,
+			      lispval,lispval,lispval);
 typedef lispval (*kno_cprim10)(lispval,lispval,lispval,
-			      lispval,lispval,lispval,
-			      lispval,lispval,lispval,
-			      lispval);
+			       lispval,lispval,lispval,
+			       lispval,lispval,lispval,
+			       lispval);
 typedef lispval (*kno_cprim11)(lispval,lispval,lispval,
-			      lispval,lispval,lispval,
-			      lispval,lispval,lispval,
-			      lispval,lispval);
+			       lispval,lispval,lispval,
+			       lispval,lispval,lispval,
+			       lispval,lispval);
 typedef lispval (*kno_cprim12)(lispval,lispval,lispval,
-			      lispval,lispval,lispval,
-			      lispval,lispval,lispval,
-			      lispval,lispval,lispval);
+			       lispval,lispval,lispval,
+			       lispval,lispval,lispval,
+			       lispval,lispval,lispval);
 typedef lispval (*kno_cprim13)(lispval,lispval,lispval,
-			      lispval,lispval,lispval,
-			      lispval,lispval,lispval,
-			      lispval,lispval,lispval,
-			      lispval);
+			       lispval,lispval,lispval,
+			       lispval,lispval,lispval,
+			       lispval,lispval,lispval,
+			       lispval);
 typedef lispval (*kno_cprim14)(lispval,lispval,lispval,
-			      lispval,lispval,lispval,
-			      lispval,lispval,lispval,
-			      lispval,lispval,lispval,
-			      lispval,lispval);
+			       lispval,lispval,lispval,
+			       lispval,lispval,lispval,
+			       lispval,lispval,lispval,
+			       lispval,lispval);
 typedef lispval (*kno_cprim15)(lispval,lispval,lispval,
-			      lispval,lispval,lispval,
-			      lispval,lispval,lispval,
-			      lispval,lispval,lispval,
-			      lispval,lispval,lispval);
+			       lispval,lispval,lispval,
+			       lispval,lispval,lispval,
+			       lispval,lispval,lispval,
+			       lispval,lispval,lispval);
 typedef lispval (*kno_cprimn)(int n,kno_argvec);
 
 typedef lispval (*kno_xprimn)(kno_stack,kno_function,int n,kno_argvec);
@@ -95,7 +95,7 @@ typedef lispval (*kno_xprimn)(kno_stack,kno_function,int n,kno_argvec);
 typedef struct KNO_ARGINFO {
   lispval name;
   lispval type;
-  lispval fallback;
+  lispval default_value;
   unsigned int bits;} *kno_arginfo;
 
 #define KNO_FUNCTION_FIELDS						   \
@@ -105,7 +105,7 @@ typedef struct KNO_ARGINFO {
   lispval fcn_moduleid;							\
   unsigned char fcn_call, fcn_trace, fcn_free, fcn_other;		\
   short fcn_arity, fcn_min_arity, fcn_call_width, fcn_arginfo_len;	\
-  struct KNO_ARGINFO *fcn_arginfo;					\
+  lispval *fcn_schema;							\
   lispval fcnid;							\
   lispval fcn_attribs;							\
   struct KNO_PROFILE *fcn_profile;					\
@@ -131,6 +131,7 @@ typedef struct KNO_ARGINFO {
 #define KNO_FCN_FREE_DOC      0x01
 #define KNO_FCN_FREE_TYPEINFO 0x02
 #define KNO_FCN_FREE_DEFAULTS 0x04
+#define KNO_FCN_FREE_SCHEMA   0x08
 
 #define KNO_FCN_TRACE_PROFILE 0x01
 #define KNO_FCN_TRACE_LOGGING 0x02
@@ -145,11 +146,11 @@ typedef struct KNO_ARGINFO {
 #define KNO_FCN_BREAKP(f)   ( ((f)->fcn_trace) & (KNO_CALL_BREAK) )
 
 #define KNO_FCN_ITERP(f)   (! ( ((f)->fcn_call) & (KNO_CALL_XITER) ) )
-#define KNO_FCN_VARARGP(f)  ( ((f)->fcn_call) & (KNO_CALL_VARARGS) )
-#define KNO_FCN_NOTAILP(f) ( ((f)->fcn_call) & (KNO_CALL_NOTAIL) )
-#define KNO_FCN_CPRIMP(f)  ( ((f)->fcn_call) & (KNO_CALL_CPRIM) )
-#define KNO_FCN_XCALLP(f)  ( ((f)->fcn_call) & (KNO_CALL_XCALL) )
-#define KNO_FCN_PRUNEP(f)  (! ( ((f)->fcn_call) & (KNO_CALL_XPRUNE) ) )
+#define KNO_FCN_VARARGP(f) (  ((f)->fcn_call) & (KNO_CALL_VARARGS) )
+#define KNO_FCN_NOTAILP(f) (  ((f)->fcn_call) & (KNO_CALL_NOTAIL) )
+#define KNO_FCN_CPRIMP(f)  (  ((f)->fcn_call) & (KNO_CALL_CPRIM) )
+#define KNO_FCN_XCALLP(f)  (  ((f)->fcn_call) & (KNO_CALL_XCALL) )
+#define KNO_FCN_PRUNEP(f)  (! (((f)->fcn_call) & (KNO_CALL_XPRUNE) ) )
 
 #define KNO_FCN_NDCALLP(f) ( ((f)->fcn_call) & (KNO_CALL_NDCALL) )
 
@@ -161,6 +162,8 @@ struct KNO_FUNCTION {
   KNO_FUNCTION_FIELDS;
 };
 
+#define KNO_FCN_NAME(x) (((kno_function)x)->fcn_name)
+
 struct KNO_CPRIM {
   KNO_FUNCTION_FIELDS;
   u8_string cprim_name;
@@ -168,10 +171,6 @@ struct KNO_CPRIM {
   const lispval *fcn_defaults;};
 typedef struct KNO_CPRIM KNO_CPRIM;
 typedef struct KNO_CPRIM *kno_cprim;
-
-typedef struct KNO_CPRIM_INFO {
-  u8_string pname, cname, filename, docstring;
-  int arity, flags;} KNO_CPRIM_INFO;
 
 KNO_EXPORT u8_string kno_fcn_sig(struct KNO_FUNCTION *fcn,u8_byte namebuf[100]);
 
@@ -240,7 +239,6 @@ KNO_EXPORT lispval kno_cons_cprimN
 #define KNO_NDOP     KNO_NDCALL
 #define KNO_CHOICEOP KNO_NDCALL
 
-
 /* Useful macros */
 
 KNO_EXPORT int _KNO_FUNCTION_TYPEP(int typecode);
@@ -258,7 +256,7 @@ KNO_EXPORT int _KNO_APPLICABLE_TYPEP(int typecode);
     (kno_isfunctionp[typecode]) )
 #define KNO_FAST_FUNCTIONP(obj) \
   ( (KNO_CONSP(obj)) && \
-    (((KNO_CONSPTR_TYPE(obj))&0xfc) == kno_function_type) )
+    (((KNO_CONS_TYPEOF(obj))&0xfc) == kno_function_type) )
 
 #define KNO_FUNCTIONP(x)		       \
   ( (KNO_XXCONS_TYPEP(x,kno_function_type)) ||		\
@@ -346,11 +344,18 @@ KNO_EXPORT ssize_t kno_init_cstack(void);
 
 /* Apply functions */
 
-KNO_EXPORT lispval kno_call(struct KNO_STACK *stack,lispval fp,int n,kno_argvec args);
-KNO_EXPORT lispval kno_dcall(struct KNO_STACK *stack,lispval,int n,kno_argvec rgs);
+KNO_EXPORT lispval kno_call(struct KNO_STACK *,lispval fp,int n,kno_argvec);
+KNO_EXPORT lispval kno_dcall(struct KNO_STACK *,lispval,int n,kno_argvec);
 
 #define kno_apply(fn,n_args,argv) (kno_call(kno_stackptr,fn,n_args,argv))
 #define kno_dapply(fn,n_args,argv) (kno_dcall(kno_stackptr,fn,n_args,argv))
+
+#define KNO_DISPATCH_NOFAIL 0x80000000
+#define KNO_DISPATCH_NOERR  0x40000000
+KNO_EXPORT lispval kno_get_handler(lispval obj,lispval m);
+KNO_EXPORT lispval kno_dispatch(lispval obj,lispval m,
+				unsigned int flags,kno_argvec args);
+#define kno_send(obj,m,n,args) (kno_dispatch(obj,m,n,args))
 
 KNO_EXPORT lispval kno_exec(lispval expr,lispval handlers,kno_stack stack);
 KNO_EXPORT lispval kno_exec_extend(lispval add,lispval path);
@@ -368,7 +373,7 @@ KNO_EXPORT int _KNO_APPLICABLE_TYPEP(int typecode);
 
 #define KNO_APPLICABLEP(x)			 \
   ((KNO_TYPEP(x,kno_fcnid_type)) ?		  \
-   (KNO_APPLICABLE_TYPEP(KNO_FCNID_TYPE(x))) :	  \
+   (KNO_APPLICABLE_TYPEP(KNO_FCNID_TYPEOF(x))) :	  \
    (KNO_APPLICABLE_TYPEP(KNO_PRIM_TYPE(x))))
 #endif
 

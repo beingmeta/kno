@@ -3,7 +3,6 @@ usr/lib/libknowebtools.so*
 usr/lib/libknotexttools.so*
 usr/lib/kno/crypto.so*
 usr/lib/kno/libarchive.so*
-usr/lib/kno/zlib.so*
 usr/bin/knoc
 usr/bin/knox
 usr/bin/knod
@@ -40,13 +39,16 @@ usr/share/kno/makefile.include
 usr/share/kno/webinfo.knocgi
 etc/logrotate.d/kno
 usr/share/kno/libscm/kno-*.zip
+usr/share/kno/libscm/kno-*/bench/*.scm
 usr/share/kno/libscm/kno-*/bugjar/*.scm
 usr/share/kno/libscm/kno-*/bugjar/resources/*
-usr/share/kno/libscm/kno-*/optimize/*.scm
-usr/share/kno/libscm/kno-*/knodb/*.scm
+usr/share/kno/libscm/kno-*/io/*.scm
+usr/share/kno/libscm/kno-*/json/*.scm
 usr/share/kno/libscm/kno-*/kno/*.scm
+usr/share/kno/libscm/kno-*/knodb/*.scm
+usr/share/kno/libscm/kno-*/optimize/*.scm
+usr/share/kno/libscm/kno-*/text/*.scm
 usr/share/kno/libscm/kno-*/xhtml/*.scm
-usr/share/kno/libscm/kno-*/bench/*.scm
 usr/share/kno/libscm/kno-*/*.scm
 usr/share/man/man1/*.1*
 usr/share/man/man8/*.8*

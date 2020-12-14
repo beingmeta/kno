@@ -222,7 +222,7 @@ static lispval logif_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval test_expr = kno_get_arg(expr,1), value = KNO_FALSE;
   if (KNO_ABORTP(test_expr)) return test_expr;
-  else if (PRED_FALSE(STRINGP(test_expr)))
+  else if (RARELY(STRINGP(test_expr)))
     return kno_reterr(kno_SyntaxError,"logif_evalfn",
                       _("LOGIF condition expression cannot be a string"),expr);
   else value = fast_eval(test_expr,env);
@@ -269,7 +269,7 @@ static lispval logifplus_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval test_expr = kno_get_arg(expr,1), value = KNO_FALSE, loglevel_arg;
   if (KNO_ABORTP(test_expr)) return test_expr;
-  else if (PRED_FALSE(STRINGP(test_expr)))
+  else if (RARELY(STRINGP(test_expr)))
     return kno_reterr(kno_SyntaxError,"logif_evalfn",
                       _("LOGIF condition expression cannot be a string"),expr);
   else value = fast_eval(test_expr,env);
@@ -384,10 +384,12 @@ void kno_summarize_backtrace(U8_OUTPUT *out,u8_exception ex)
 
 /* Table showing primitives */
 
-DEFPRIM3("%show",lisp_show_table,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-         "Shows a table",
-         kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
-         kno_any_type,KNO_VOID);
+DEFCPRIM("%show",lisp_show_table,
+	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+	 "Shows a table",
+	 {"tables",kno_any_type,KNO_VOID},
+	 {"slotids",kno_any_type,KNO_VOID},
+	 {"portarg",kno_any_type,KNO_VOID})
 static lispval lisp_show_table(lispval tables,lispval slotids,lispval portarg)
 {
   U8_OUTPUT *out = get_output_port(portarg);
@@ -451,5 +453,5 @@ KNO_EXPORT void kno_init_logprims_c()
 
 
 static void link_local_cprims(){
-  KNO_LINK_PRIM("%show",lisp_show_table,3,kno_sys_module);
+  KNO_LINK_CPRIM("%show",lisp_show_table,3,kno_sys_module);
 }

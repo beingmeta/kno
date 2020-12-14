@@ -39,7 +39,7 @@ KNO_EXPORT lispval kno_init_compound_from_elts
   int copyref     = (refmask==KNO_COMPOUND_COPYREF);
   lispval *write, *limit;
   lispval *read = elts;
-  if (PRED_FALSE((n<0)))
+  if (RARELY((n<0)))
     return kno_type_error(_("positive byte"),"kno_init_compound_from_elts",
 			  KNO_SHORT2LISP(n));
   if ( (istable) && (n>0) && (elts) && (!(KNO_TABLEP(elts[0]))) ) {
@@ -109,7 +109,7 @@ KNO_EXPORT lispval kno_init_compound
 {
   lispval elts[n];
   va_list args; int i = 0;
-  if (PRED_FALSE((n<0)||(n>=256))) {
+  if (RARELY((n<0)||(n>=256))) {
     /* Consume the arguments on error, just in case the vararg
        implementation is a little flaky. */
     va_start(args,n);
@@ -149,8 +149,8 @@ KNO_FASTOP int compound_tablep(lispval arg)
 {
   struct KNO_COMPOUND *co = (kno_compound) arg;
   return ( (co->compound_istable) &&
-	   (PRED_TRUE(co->compound_length > 0)) &&
-	   (PRED_TRUE(KNO_TABLEP(co->compound_0))) );
+	   (USUALLY(co->compound_length > 0)) &&
+	   (USUALLY(KNO_TABLEP(co->compound_0))) );
 }
 
 static lispval compound_table_get(lispval obj,lispval key,lispval dflt)

@@ -22,8 +22,10 @@
 #include "kno/frames.h"
 #include "kno/numbers.h"
 
-DEFPRIM("TABLE?",tablep,MAX_ARGS(1),
-        "`(TABLE? *obj*)` returns #t if *obj* is a table, #f otherwise.")
+DEFCPRIM("table?",tablep,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "returns #t if *obj* is a table, #f otherwise.",
+	 {"arg",kno_any_type,KNO_VOID})
 static lispval tablep(lispval arg)
 {
   if (TABLEP(arg))
@@ -31,9 +33,11 @@ static lispval tablep(lispval arg)
   else return KNO_FALSE;
 }
 
-DEFPRIM("HASKEYS?",haskeysp,MAX_ARGS(1),
-        "`(HASKEYS? *obj*)` returns #t if *obj* is a non-empty table, "
-        "#f otherwise.")
+DEFCPRIM("haskeys?",haskeysp,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "returns #t if *obj* is a non-empty table, #f "
+	 "otherwise.",
+	 {"arg",kno_any_type,KNO_VOID})
 static lispval haskeysp(lispval arg)
 {
   if (TABLEP(arg)) {
@@ -44,8 +48,10 @@ static lispval haskeysp(lispval arg)
   else return KNO_FALSE;
 }
 
-DEFPRIM("SLOTMAP?",slotmapp,MAX_ARGS(1),
-        "`(SLOTMAP? *obj*)` returns #t if *obj* is a slotmap, #f otherwise.")
+DEFCPRIM("slotmap?",slotmapp,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "returns #t if *obj* is a slotmap, #f otherwise.",
+	 {"x",kno_any_type,KNO_VOID})
 static lispval slotmapp(lispval x)
 {
   if (SLOTMAPP(x))
@@ -53,8 +59,10 @@ static lispval slotmapp(lispval x)
   else return KNO_FALSE;
 }
 
-DEFPRIM("SCHEMAP?",schemapp,MAX_ARGS(1),
-        "`(SCHEMAP? *obj*)` returns #t if *obj* is a slotmap, #f otherwise.")
+DEFCPRIM("schemap?",schemapp,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "returns #t if *obj* is a slotmap, #f otherwise.",
+	 {"x",kno_any_type,KNO_VOID})
 static lispval schemapp(lispval x)
 {
   if (SCHEMAPP(x))
@@ -62,8 +70,10 @@ static lispval schemapp(lispval x)
   else return KNO_FALSE;
 }
 
-DEFPRIM("HASHTABLE?",hashtablep,MAX_ARGS(1),
-        "`(HASHTABLE? *obj*)` returns #t if *obj* is a slotmap, #f otherwise.")
+DEFCPRIM("hashtable?",hashtablep,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "returns #t if *obj* is a slotmap, #f otherwise.",
+	 {"x",kno_any_type,KNO_VOID})
 static lispval hashtablep(lispval x)
 {
   if (HASHTABLEP(x))
@@ -71,10 +81,11 @@ static lispval hashtablep(lispval x)
   else return KNO_FALSE;
 }
 
-DEFPRIM1("MAKE-HASHSET",make_hashset,MIN_ARGS(0),
-         "`(MAKE-HASHSET [*n_buckets*])` returns a hashset. "
-         "*n_buckets*, if provided indicates the number of buckets",
-         kno_fixnum_type,KNO_VOID)
+DEFCPRIM("make-hashset",make_hashset,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
+	 "returns a hashset. *n_buckets*, if provided "
+	 "indicates the number of buckets",
+	 {"arg",kno_fixnum_type,KNO_VOID})
 static lispval make_hashset(lispval arg)
 {
   struct KNO_HASHSET *h = u8_alloc(struct KNO_HASHSET);
@@ -87,10 +98,11 @@ static lispval make_hashset(lispval arg)
   return LISP_CONS(h);
 }
 
-DEFPRIM1("MAKE-HASHTABLE",make_hashtable,MIN_ARGS(0),
-         "`(MAKE-HASHTABLE [*n_buckets*])` returns a hashset. "
-         "*n_buckets*, if provided indicates the number of buckets",
-         kno_fixnum_type,KNO_VOID)
+DEFCPRIM("make-hashtable",make_hashtable,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
+	 "returns a hashset. *n_buckets*, if provided "
+	 "indicates the number of buckets",
+	 {"size",kno_fixnum_type,KNO_VOID})
 static lispval make_hashtable(lispval size)
 {
   if (KNO_UINTP(size))
@@ -98,10 +110,11 @@ static lispval make_hashtable(lispval size)
   else return kno_make_hashtable(NULL,0);
 }
 
-DEFPRIM1("MAKE-EQ-HASHTABLE",make_eq_hashtable,MIN_ARGS(0),
-         "`(MAKE-EQ-HASHTABLE [*n_buckets*])` returns a hashset. "
-         "*n_buckets*, if provided indicates the number of buckets",
-         kno_fixnum_type,KNO_VOID)
+DEFCPRIM("make-eq-hashtable",make_eq_hashtable,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
+	 "returns a hashset. *n_buckets*, if provided "
+	 "indicates the number of buckets",
+	 {"size",kno_fixnum_type,KNO_VOID})
 static lispval make_eq_hashtable(lispval size)
 {
   if (KNO_UINTP(size))
@@ -109,10 +122,11 @@ static lispval make_eq_hashtable(lispval size)
   else return kno_make_eq_hashtable(NULL,0);
 }
 
-DEFPRIM1("PICK-HASHTABLE-SIZE", pick_hashtable_size,MAX_ARGS(1),
-         "`(PICK-HASHTABLE-SIZE *count*)` picks a good hashtable size "
-         "for a table of *count* elements.",
-         kno_fixnum_type,KNO_VOID)
+DEFCPRIM("pick-hashtable-size",pick_hashtable_size,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "picks a good hashtable size for a table of "
+	 "*count* elements.",
+	 {"count_arg",kno_fixnum_type,KNO_VOID})
 static lispval pick_hashtable_size(lispval count_arg)
 {
   if (!(KNO_UINTP(count_arg)))
@@ -122,10 +136,11 @@ static lispval pick_hashtable_size(lispval count_arg)
   return KNO_INT(size);
 }
 
-DEFPRIM2("RESET-HASHTABLE!",reset_hashtable,MIN_ARGS(1),
-         "`(RESET-HASHTABLE! *table* [*slots*)` resets a hashtable, removing "
-         "all of its values",
-         kno_hashtable_type,KNO_VOID,kno_fixnum_type,KNO_VOID)
+DEFCPRIM("reset-hashtable!",reset_hashtable,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	 "resets a hashtable, removing all of its values",
+	 {"table",kno_hashtable_type,KNO_VOID},
+	 {"n_slots",kno_fixnum_type,KNO_VOID})
 static lispval reset_hashtable(lispval table,lispval n_slots)
 {
   if (!(KNO_UINTP(n_slots)))
@@ -134,11 +149,13 @@ static lispval reset_hashtable(lispval table,lispval n_slots)
   return VOID;
 }
 
-DEFPRIM1("STATIC-HASHTABLE",static_hashtable,MAX_ARGS(1),
-         "`(STATIC-HASHTABLE *table* )` declares all keys and values "
-         "in *table* to be static (no GC) and disables locking for the table. "
-         "This may improve performance on objects in the table",
-         kno_hashtable_type,KNO_VOID)
+DEFCPRIM("static-hashtable",static_hashtable,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "declares all keys and values in *table* to be "
+	 "static (no GC) and disables locking for the "
+	 "table. This may improve performance on objects in "
+	 "the table",
+	 {"table",kno_hashtable_type,KNO_VOID})
 static lispval static_hashtable(lispval table)
 {
   struct KNO_HASHTABLE *ht = (kno_hashtable)table;
@@ -149,10 +166,12 @@ static lispval static_hashtable(lispval table)
   return kno_incref(table);
 }
 
-DEFPRIM2("READONLY-HASHTABLE!",readonly_hashtable_prim,MAX_ARGS(2)|MIN_ARGS(1),
-	 "`(READONLY-HASHTABLE! *hashtable* [*flag*])` makes *hashtable* "
-	 "be read-only and disables locking for improved performance.",
-	 kno_hashtable_type,KNO_VOID,-1,KNO_TRUE)
+DEFCPRIM("readonly-hashtable!",readonly_hashtable_prim,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	 "makes *hashtable* be read-only and disables "
+	 "locking for improved performance.",
+	 {"table",kno_hashtable_type,KNO_VOID},
+	 {"flag",kno_any_type,KNO_TRUE})
 static lispval readonly_hashtable_prim(lispval table,lispval flag)
 {
   int rv = kno_hashtable_set_readonly((kno_hashtable)table,KNO_TRUEP(flag));
@@ -160,10 +179,11 @@ static lispval readonly_hashtable_prim(lispval table,lispval flag)
   else return kno_incref(table);
 }
 
-DEFPRIM1("UNSAFE-HASHTABLE",unsafe_hashtable,MAX_ARGS(1),
-         "`(UNSAFE-TABLE *table* )` disables locking for *table*. "
-         "This may improve performance.",
-         kno_hashtable_type,KNO_VOID)
+DEFCPRIM("unsafe-hashtable",unsafe_hashtable,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "disables locking for *table*. This may improve "
+	 "performance.",
+	 {"table",kno_hashtable_type,KNO_VOID})
 static lispval unsafe_hashtable(lispval table)
 {
   struct KNO_HASHTABLE *ht = (kno_hashtable)table;
@@ -173,10 +193,11 @@ static lispval unsafe_hashtable(lispval table)
   return kno_incref(table);
 }
 
-DEFPRIM1("RESAFE-HASHTABLE",resafe_hashtable,MAX_ARGS(1),
-         "`(RESAFE-TABLE *table* )` re-enables locking for *table* "
-         "disabled by `UNSAFE-TABLE`.",
-         kno_hashtable_type,KNO_VOID)
+DEFCPRIM("resafe-hashtable",resafe_hashtable,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "re-enables locking for *table* disabled by "
+	 "`UNSAFE-TABLE`.",
+	 {"table",kno_hashtable_type,KNO_VOID})
 static lispval resafe_hashtable(lispval table)
 {
   struct KNO_HASHTABLE *ht = (kno_hashtable)table;
@@ -186,21 +207,26 @@ static lispval resafe_hashtable(lispval table)
   return kno_incref(table);
 }
 
-DEFPRIM1("HASH-LISP",hash_lisp_prim,0,
-         "`(HASH_LISP *object* )` returns an integer hash value "
-         "for *object*.",
-         -1,KNO_VOID)
+DEFCPRIM("hash-lisp",hash_lisp_prim,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "returns an integer hash value for *object*.",
+	 {"x",kno_any_type,KNO_VOID})
 static lispval hash_lisp_prim(lispval x)
 {
   int val = kno_hash_lisp(x);
   return KNO_INT(val);
 }
 
-DEFPRIM("%GET",table_get,MAX_ARGS(3)|MIN_ARGS(2)|NDOP,
-        "`(%GET *table* *key* [*default*])` returns the value "
-        "of *key* in *table* or *default* if *table* does not contain "
-        "*key*. *default* defaults to the empty choice {}."
-        "Note that this does no inference, use GET to enable inference.")
+DEFCPRIM("%get",table_get,
+	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	 "returns the value of *key* in *table* or "
+	 "*default* if *table* does not contain *key*. "
+	 "*default* defaults to the empty choice {}.Note "
+	 "that this does no inference, use GET to enable "
+	 "inference.",
+	 {"table",kno_any_type,KNO_VOID},
+	 {"key",kno_any_type,KNO_VOID},
+	 {"dflt",kno_any_type,KNO_VOID})
 static lispval table_get(lispval table,lispval key,lispval dflt)
 {
   if (VOIDP(dflt))
@@ -208,10 +234,14 @@ static lispval table_get(lispval table,lispval key,lispval dflt)
   else return kno_get(table,key,dflt);
 }
 
-DEFPRIM("ADD!",table_add,MAX_ARGS(3)|NDOP,
-        "`(ADD! *table* *key* *value*)` adds *value* to "
-        "the associations of *key* in *table*. "
-        "Note that this does no inference, use ASSERT! to enable inference.")
+DEFCPRIM("add!",table_add,
+	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3)|KNO_NDCALL,
+	 "adds *value* to the associations of *key* in "
+	 "*table*. Note that this does no inference, use "
+	 "ASSERT! to enable inference.",
+	 {"table",kno_any_type,KNO_VOID},
+	 {"key",kno_any_type,KNO_VOID},
+	 {"val",kno_any_type,KNO_VOID})
 static lispval table_add(lispval table,lispval key,lispval val)
 {
   if (EMPTYP(table)) return VOID;
@@ -220,11 +250,16 @@ static lispval table_add(lispval table,lispval key,lispval val)
     return KNO_ERROR;
   else return VOID;
 }
-DEFPRIM("DROP!",table_drop,MAX_ARGS(3)|MIN_ARGS(2)|NDOP,
-        "`(DROP! *table* *key* [*values*])` removes *values* "
-        "from *key* of *table*. If *values* is not provided, "
-        "all values associated with *key* are removed. "
-        "Note that this does no inference, use RETRACT! to enable inference.")
+
+DEFCPRIM("drop!",table_drop,
+	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	 "removes *values* from *key* of *table*. If "
+	 "*values* is not provided, all values associated "
+	 "with *key* are removed. Note that this does no "
+	 "inference, use RETRACT! to enable inference.",
+	 {"table",kno_any_type,KNO_VOID},
+	 {"key",kno_any_type,KNO_VOID},
+	 {"val",kno_any_type,KNO_VOID})
 static lispval table_drop(lispval table,lispval key,lispval val)
 {
   if (EMPTYP(table)) return VOID;
@@ -232,11 +267,16 @@ static lispval table_drop(lispval table,lispval key,lispval val)
   else if (kno_drop(table,key,val)<0) return KNO_ERROR;
   else return VOID;
 }
-DEFPRIM("STORE!",table_store,MAX_ARGS(3)|NDOP,
-        "`(STORE! *table* *key* *value*)` stores *value* in "
-        "*table* under *key*, removing all existing values. If "
-        "*value* is a choice, the entire choice is stored under "
-        "*key*. Note that this does no inference.")
+
+DEFCPRIM("store!",table_store,
+	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3)|KNO_NDCALL,
+	 "stores *value* in *table* under *key*, removing "
+	 "all existing values. If *value* is a choice, the "
+	 "entire choice is stored under *key*. Note that "
+	 "this does no inference.",
+	 {"table",kno_any_type,KNO_VOID},
+	 {"key",kno_any_type,KNO_VOID},
+	 {"val",kno_any_type,KNO_VOID})
 static lispval table_store(lispval table,lispval key,lispval val)
 {
   if (EMPTYP(table)) return VOID;
@@ -250,12 +290,17 @@ static lispval table_store(lispval table,lispval key,lispval val)
     return KNO_ERROR;
   else return VOID;
 }
-DEFPRIM("%TEST",table_test,MAX_ARGS(3)|MIN_ARGS(2)|NDOP,
-        "`(%TEST *tables* *keys* [*values*])` returns true if "
-        "any of *values* is stored undery any of *keys* in "
-        "any of *tables*. If *values* is not provided, returns true "
-        "if any values are stored under any of *keys* in any of *tables*. "
-        "Note that this does no inference.")
+
+DEFCPRIM("%test",table_test,
+	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	 "returns true if any of *values* is stored undery "
+	 "any of *keys* in any of *tables*. If *values* is "
+	 "not provided, returns true if any values are "
+	 "stored under any of *keys* in any of *tables*. "
+	 "Note that this does no inference.",
+	 {"table",kno_any_type,KNO_VOID},
+	 {"key",kno_any_type,KNO_VOID},
+	 {"val",kno_any_type,KNO_VOID})
 static lispval table_test(lispval table,lispval key,lispval val)
 {
   if (EMPTYP(table)) return KNO_FALSE;
@@ -269,17 +314,14 @@ static lispval table_test(lispval table,lispval key,lispval val)
 }
 
 
-DEFPRIM("GETKEYS",kno_getkeys,MAX_ARGS(1),
-        "`(GETKEYS *table*)` returns all the keys in *table*.");
-DEFPRIM("GETVALUES",kno_getvalues,MAX_ARGS(1),
-        "`(GETVALUES *table*)` returns all the values associated with "
-        "all of the keys in *table*.");
-DEFPRIM("GETASSOCS",kno_getassocs,MAX_ARGS(1),
-        "`(GETASSOCS *table*)` returns (key . values) pairs for all "
-        "of the keys in *table*.");
 
-DEFPRIM("GETKEYVEC",getkeyvec_prim,MAX_ARGS(1),
-	"`(GETKEYVEC *table*)` returns a vector of all the keys in *table*.")
+
+
+
+DEFCPRIM("getkeyvec",getkeyvec_prim,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "returns a vector of all the keys in *table*.",
+	 {"table",kno_any_type,KNO_VOID})
 static lispval getkeyvec_prim(lispval table)
 {
   int len = 0;
@@ -292,17 +334,19 @@ static lispval getkeyvec_prim(lispval table)
 
 /* Converting schemaps to slotmaps */
 
-DEFPRIM1("SCHEMAP->SLOTMAP",schemap2slotmap_prim,MAX_ARGS(1),
-         "`(SCHEMAP->SLOTMAP *schemap*)` converts a schemap to a slotmap.",
-         kno_schemap_type,KNO_VOID)
+DEFCPRIM("schemap->slotmap",schemap2slotmap_prim,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "converts a schemap to a slotmap.",
+	 {"in",kno_schemap_type,KNO_VOID})
 static lispval schemap2slotmap_prim(lispval in)
 {
   return kno_schemap2slotmap(in);
 }
 
-DEFPRIM1("SLOTMAP->SCHEMAP",slotmap2schemap_prim,MAX_ARGS(1),
-         "`(SLOTMAP->SCHEMAP *slotmap*)` converts a schemap to a slotmap.",
-         kno_schemap_type,KNO_VOID)
+DEFCPRIM("slotmap->schemap",slotmap2schemap_prim,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "converts a schemap to a slotmap.",
+	 {"map",kno_schemap_type,KNO_VOID})
 static lispval slotmap2schemap_prim(lispval map)
 {
   struct KNO_SLOTMAP *slotmap = (kno_slotmap) map;
@@ -313,9 +357,10 @@ static lispval slotmap2schemap_prim(lispval map)
   return result;
 }
 
-DEFPRIM1("->SCHEMAP",table2schemap_prim,MAX_ARGS(1)|NDOP,
-         "`(->SCHEMAP *assocs*)` converts a slotmap to a schemap.",
-         -1,KNO_VOID)
+DEFCPRIM("->schemap",table2schemap_prim,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+	 "converts a slotmap to a schemap.",
+	 {"tbl",kno_any_type,KNO_VOID})
 static lispval table2schemap_prim(lispval tbl)
 {
   if (KNO_TYPEP(tbl,kno_schemap_type))
@@ -350,11 +395,13 @@ typedef lispval (*reduceop)(lispval,lispval);
 
 /* Various table operations */
 
-DEFPRIM("TABLE-INCREMENT!",
-        table_increment,MAX_ARGS(3)|MIN_ARGS(2)|NDOP,
-        "`(TABLE-INCREMENT! *table* *key* [*delta*])` "
-        "adds *delta* (default to 1) to the current value of *key* in "
-        "*table* (which defaults to 0).")
+DEFCPRIM("table-increment!",table_increment,
+	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	 "adds *delta* (default to 1) to the current value "
+	 "of *key* in *table* (which defaults to 0).",
+	 {"table",kno_any_type,KNO_VOID},
+	 {"keys",kno_any_type,KNO_VOID},
+	 {"increment",kno_any_type,KNO_VOID})
 static lispval table_increment(lispval table,lispval keys,lispval increment)
 {
   if (EMPTYP(increment)) return VOID;
@@ -398,11 +445,14 @@ static lispval table_increment(lispval table,lispval keys,lispval increment)
   else return kno_type_error("table","table_increment",table);
 }
 
-DEFPRIM("TABLE-INCREMENT-EXISTING!",
-        table_increment_existing,MAX_ARGS(3)|MIN_ARGS(2)|NDOP,
-        "`(TABLE-INCREMENT-EXISTING! *table* *key* [*delta*])` "
-        "adds *delta* (default to 1) to the current value of *key* in "
-        "*table*, doing nothing if *key* is not in *table*.")
+DEFCPRIM("table-increment-existing!",table_increment_existing,
+	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	 "adds *delta* (default to 1) to the current value "
+	 "of *key* in *table*, doing nothing if *key* is "
+	 "not in *table*.",
+	 {"table",kno_any_type,KNO_VOID},
+	 {"keys",kno_any_type,KNO_VOID},
+	 {"increment",kno_any_type,KNO_VOID})
 static lispval table_increment_existing(lispval table,lispval keys,lispval increment)
 {
   if (EMPTYP(increment)) return VOID;
@@ -445,11 +495,13 @@ static lispval table_increment_existing(lispval table,lispval keys,lispval incre
   else return kno_type_error("table","table_increment_existing",table);
 }
 
-DEFPRIM("TABLE-MULTIPLY!",
-        table_multiply,MAX_ARGS(3)|NDOP,
-        "`(TABLE-MULTIPLY! *table* *key* *factor*)` "
-        "multiplies the current value of *key* in *table* by *factor*, "
-        "defaulting the value of *key* to 1.")
+DEFCPRIM("table-multiply!",table_multiply,
+	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3)|KNO_NDCALL,
+	 "multiplies the current value of *key* in *table* "
+	 "by *factor*, defaulting the value of *key* to 1.",
+	 {"table",kno_any_type,KNO_VOID},
+	 {"keys",kno_any_type,KNO_VOID},
+	 {"factor",kno_any_type,KNO_VOID})
 static lispval table_multiply(lispval table,lispval keys,lispval factor)
 {
   if (EMPTYP(factor)) return VOID;
@@ -487,11 +539,14 @@ static lispval table_multiply(lispval table,lispval keys,lispval factor)
   else return kno_type_error("table","table_multiply",table);
 }
 
-DEFPRIM("TABLE-MULTIPLY-EXISTING!",
-        table_multiply_existing,MAX_ARGS(3)|NDOP,
-        "`(TABLE-MULTIPLY-EXISTING! *table* *key* *factor*)` "
-        "multiplies the current value of *key* in *table* by *factor*, "
-        "doing nothing if *key* is not currently defined in *table*.")
+DEFCPRIM("table-multiply-existing!",table_multiply_existing,
+	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3)|KNO_NDCALL,
+	 "multiplies the current value of *key* in *table* "
+	 "by *factor*, doing nothing if *key* is not "
+	 "currently defined in *table*.",
+	 {"table",kno_any_type,KNO_VOID},
+	 {"keys",kno_any_type,KNO_VOID},
+	 {"factor",kno_any_type,KNO_VOID})
 static lispval table_multiply_existing(lispval table,lispval keys,lispval factor)
 {
   if (EMPTYP(factor)) return VOID;
@@ -532,11 +587,14 @@ static lispval table_multiply_existing(lispval table,lispval keys,lispval factor
    Stores a value in a table if the current value is either empty or
    less than the new value. */
 
-DEFPRIM("TABLE-MAXIMIZE!",
-        table_maximize,MAX_ARGS(3)|NDOP,
-        "`(TABLE-MAXIMIZE! *table* *key* *value*)` "
-        "stores *value* under  *key* in *table* if it is larger "
-        "than the current value or if there is no current value.")
+DEFCPRIM("table-maximize!",table_maximize,
+	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3)|KNO_NDCALL,
+	 "stores *value* under  *key* in *table* if it is "
+	 "larger than the current value or if there is no "
+	 "current value.",
+	 {"table",kno_any_type,KNO_VOID},
+	 {"keys",kno_any_type,KNO_VOID},
+	 {"maxval",kno_any_type,KNO_VOID})
 static lispval table_maximize(lispval table,lispval keys,lispval maxval)
 {
   if (EMPTYP(maxval)) return VOID;
@@ -572,11 +630,14 @@ static lispval table_maximize(lispval table,lispval keys,lispval maxval)
   else return kno_type_error("table","table_maximize",table);
 }
 
-DEFPRIM("TABLE-MAXIMIZE-EXISTING!",
-        table_maximize_existing,MAX_ARGS(3)|NDOP,
-        "`(TABLE-MAXIMIZE-EXISTING! *table* *key* *value*)` "
-        "stores *value* under  *key* in *table* if it is larger "
-        "than the current value, doing nothing if *key* is not in *table*")
+DEFCPRIM("table-maximize-existing!",table_maximize_existing,
+	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3)|KNO_NDCALL,
+	 "stores *value* under  *key* in *table* if it is "
+	 "larger than the current value, doing nothing if "
+	 "*key* is not in *table*",
+	 {"table",kno_any_type,KNO_VOID},
+	 {"keys",kno_any_type,KNO_VOID},
+	 {"maxval",kno_any_type,KNO_VOID})
 static lispval table_maximize_existing(lispval table,lispval keys,lispval maxval)
 {
   if (EMPTYP(maxval)) return VOID;
@@ -615,11 +676,14 @@ static lispval table_maximize_existing(lispval table,lispval keys,lispval maxval
    Stores a value in a table if the current value is either empty or
    less than the new value. */
 
-DEFPRIM("TABLE-MINIMIZE!",
-        table_minimize,MAX_ARGS(3)|NDOP,
-        "`(TABLE-MINIMIZE! *table* *key* *value*)` "
-        "stores *value* under  *key* in *table* if it is smaller "
-        "than the current value or if there is no current value.")
+DEFCPRIM("table-minimize!",table_minimize,
+	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3)|KNO_NDCALL,
+	 "stores *value* under  *key* in *table* if it is "
+	 "smaller than the current value or if there is no "
+	 "current value.",
+	 {"table",kno_any_type,KNO_VOID},
+	 {"keys",kno_any_type,KNO_VOID},
+	 {"minval",kno_any_type,KNO_VOID})
 static lispval table_minimize(lispval table,lispval keys,lispval minval)
 {
   if (EMPTYP(minval)) return VOID;
@@ -656,11 +720,14 @@ static lispval table_minimize(lispval table,lispval keys,lispval minval)
   else return kno_type_error("table","table_minimize",table);
 }
 
-DEFPRIM("TABLE-MINIMIZE-EXISTING!",
-        table_minimize_existing,MAX_ARGS(3)|NDOP,
-        "`(TABLE-MINIMIZE-EXISTING! *table* *key* *value*)` "
-        "stores *value* under  *key* in *table* if it is smaller "
-        "than the current value, doing nothing if *key* is not in *table*")
+DEFCPRIM("table-minimize-existing!",table_minimize_existing,
+	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3)|KNO_NDCALL,
+	 "stores *value* under  *key* in *table* if it is "
+	 "smaller than the current value, doing nothing if "
+	 "*key* is not in *table*",
+	 {"table",kno_any_type,KNO_VOID},
+	 {"keys",kno_any_type,KNO_VOID},
+	 {"minval",kno_any_type,KNO_VOID})
 static lispval table_minimize_existing(lispval table,lispval keys,lispval minval)
 {
   if (EMPTYP(minval)) return VOID;
@@ -697,8 +764,10 @@ static lispval table_minimize_existing(lispval table,lispval keys,lispval minval
 
 /* Generic functions */
 
-DEFPRIM("TABLE-SIZE",table_size,MAX_ARGS(1),
-        "`(TABLE-SIZE *table*)` returns the number of keys in *table*")
+DEFCPRIM("table-size",table_size,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "returns the number of keys in *table*",
+	 {"table",kno_any_type,KNO_VOID})
 static lispval table_size(lispval table)
 {
   int size = kno_getsize(table);
@@ -706,9 +775,11 @@ static lispval table_size(lispval table)
   else return KNO_INT(size);
 }
 
-DEFPRIM("TABLE-WRITABLE?",table_writablep,MAX_ARGS(1),
-        "(TABLE-WRITABLE? *table*) returns true if *table* "
-        "can be modified")
+DEFCPRIM("table-writable?",table_writablep,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "(TABLE-WRITABLE? *table*) "
+	 "returns true if *table* can be modified",
+	 {"table",kno_any_type,KNO_VOID})
 static lispval table_writablep(lispval table)
 {
   int read_only = kno_readonlyp(table);
@@ -719,10 +790,13 @@ static lispval table_writablep(lispval table)
   else return KNO_ERROR;
 }
 
-DEFPRIM("TABLE-WRITABLE!",table_set_writable,MAX_ARGS(2)|MIN_ARGS(1),
-        "(TABLE-WRITABLE! *table* *flag*) sets the read-only status "
-        "of *table*. With no *flag*, it defaults to making the table "
-        "writable.")
+DEFCPRIM("table-writable!",table_set_writable,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	 "(TABLE-WRITABLE! *table* *flag*) "
+	 "sets the read-only status of *table*. With no "
+	 "*flag*, it defaults to making the table writable.",
+	 {"table",kno_any_type,KNO_VOID},
+	 {"flag_arg",kno_any_type,KNO_VOID})
 static lispval table_set_writable(lispval table,lispval flag_arg)
 {
   int flag = ((FALSEP(flag_arg))||(KNO_ZEROP(flag_arg)))?(1):
@@ -735,9 +809,11 @@ static lispval table_set_writable(lispval table,lispval flag_arg)
   else return KNO_ERROR;
 }
 
-DEFPRIM("TABLE-MODIFIED?",table_modifiedp,MAX_ARGS(1),
-        "`(TABLE-MODIFIED? *table*)` returns true if table has been"
-        "modified since it was created or the last call to `TABLE-MODIFIED!`")
+DEFCPRIM("table-modified?",table_modifiedp,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "returns true if table has beenmodified since it "
+	 "was created or the last call to `TABLE-MODIFIED!`",
+	 {"table",kno_any_type,KNO_VOID})
 static lispval table_modifiedp(lispval table)
 {
   int ismod = kno_modifiedp(table);
@@ -748,9 +824,12 @@ static lispval table_modifiedp(lispval table)
   else return KNO_ERROR;
 }
 
-DEFPRIM("TABLE-MODIFIED!",table_set_modified,MAX_ARGS(2)|MIN_ARGS(1),
-        "`(TABLE-MODIFIED! *table* [*flag*] )` sets or clears the modified "
-        "flag of *table*. *flag* defaults to true.")
+DEFCPRIM("table-modified!",table_set_modified,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	 "sets or clears the modified flag of *table*. "
+	 "*flag* defaults to true.",
+	 {"table",kno_any_type,KNO_VOID},
+	 {"flag_arg",kno_any_type,KNO_VOID})
 static lispval table_set_modified(lispval table,lispval flag_arg)
 {
   int flag = ((FALSEP(flag_arg))||(KNO_ZEROP(flag_arg)))?(0):
@@ -767,10 +846,13 @@ static lispval table_set_modified(lispval table,lispval flag_arg)
 
 /* Getting max values out of tables, especially hashtables. */
 
-DEFPRIM("TABLE-MAX",table_max,MAX_ARGS(2)|MIN_ARGS(1)|NDOP,
-        "`(TABLE-MAX *table* [*scope*])` returns the key(s) "
-        "in *table* with the largest numeric values. If *scope* "
-        "is provided, limit the operation to the keys in *scope*.")
+DEFCPRIM("table-max",table_max,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+	 "returns the key(s) in *table* with the largest "
+	 "numeric values. If *scope* is provided, limit the "
+	 "operation to the keys in *scope*.",
+	 {"tables",kno_any_type,KNO_VOID},
+	 {"scope",kno_any_type,KNO_VOID})
 static lispval table_max(lispval tables,lispval scope)
 {
   if (EMPTYP(scope))
@@ -792,11 +874,14 @@ static lispval table_max(lispval tables,lispval scope)
     return results;}
 }
 
-DEFPRIM("TABLE-MAXVAL",table_maxval,MAX_ARGS(2)|MIN_ARGS(1)|NDOP,
-        "`(TABLE-MAXVAL *table* [*scope*])` returns the value "
-        "in *table* with the largest numeric magnitude. If *scope* "
-        "is provided, limit the operation to the values associated "
-        "with keys in *scope*.")
+DEFCPRIM("table-maxval",table_maxval,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+	 "returns the value in *table* with the largest "
+	 "numeric magnitude. If *scope* is provided, limit "
+	 "the operation to the values associated with keys "
+	 "in *scope*.",
+	 {"tables",kno_any_type,KNO_VOID},
+	 {"scope",kno_any_type,KNO_VOID})
 static lispval table_maxval(lispval tables,lispval scope)
 {
   if (EMPTYP(scope)) return scope;
@@ -814,10 +899,15 @@ static lispval table_maxval(lispval tables,lispval scope)
     return results;}
 }
 
-DEFPRIM("TABLE-SKIM",table_skim,MAX_ARGS(3)|MIN_ARGS(2)|NDOP,
-        "`(TABLE-SKIM *table* *threshold* [*scope*])` returns the key(s) "
-        "in *table* associated with numeric values larger than *threhsold*. "
-        "If *scope* is provided, limit the operation to the keys in *scope*.")
+DEFCPRIM("table-skim",table_skim,
+	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	 "returns the key(s) in *table* associated with "
+	 "numeric values larger than *threhsold*. If "
+	 "*scope* is provided, limit the operation to the "
+	 "keys in *scope*.",
+	 {"tables",kno_any_type,KNO_VOID},
+	 {"maxval",kno_any_type,KNO_VOID},
+	 {"scope",kno_any_type,KNO_VOID})
 static lispval table_skim(lispval tables,lispval maxval,lispval scope)
 {
   if (EMPTYP(scope))
@@ -845,14 +935,19 @@ static lispval table_skim(lispval tables,lispval maxval,lispval scope)
 
 /* Table utility functions */
 
-DEFPRIM("MAP->TABLE",map2table,MAX_ARGS(3)|MIN_ARGS(2)|NDOP,
-        "`(MAP->TABLE *keys* *fcn* [*hashp*])` returns "
-        "a table store the results of applying *fn* "
-        "to *keys*. The type of table is controlled by *hashp*:"
-        "* without *hashp*, &gt; 8 keys generates a hashtable, otherwise a slotmap;\n"
-        "* if *hashp* is #t, a hashtable is always generated;\n"
-        "* if *hashp* is #f, a slotmap is always generated;\n"
-        "* if *hashp* is a fixnum, it is the threshold for using a hashtable.")
+DEFCPRIM("map->table",map2table,
+	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	 "returns a table store the results of applying "
+	 "*fn* to *keys*. The type of table is controlled "
+	 "by *hashp*:* without *hashp*, &gt; 8 keys "
+	 "generates a hashtable, otherwise a slotmap;\n* if "
+	 "*hashp* is #t, a hashtable is always generated;\n* "
+	 "if *hashp* is #f, a slotmap is always generated;\n"
+	 "* if *hashp* is a fixnum, it is the threshold for "
+	 "using a hashtable.",
+	 {"keys",kno_any_type,KNO_VOID},
+	 {"fn",kno_any_type,KNO_VOID},
+	 {"hashp",kno_any_type,KNO_VOID})
 static lispval map2table(lispval keys,lispval fn,lispval hashp)
 {
   int n_keys = KNO_CHOICE_SIZE(keys);
@@ -885,10 +980,11 @@ static lispval map2table(lispval keys,lispval fn,lispval hashp)
   return table;
 }
 
-DEFPRIM1("TABLE-MAP-SIZE",table_map_size,MAX_ARGS(1),
-         "`(TABLE-MAP-SIZE *table*)` returns the number key/value "
-         "associates in *table*.",
-         kno_table_type,KNO_VOID)
+DEFCPRIM("table-map-size",table_map_size,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "returns the number key/value associates in "
+	 "*table*.",
+	 {"table",kno_table_type,KNO_VOID})
 static lispval table_map_size(lispval table)
 {
   if (TYPEP(table,kno_hashtable_type)) {
@@ -914,8 +1010,10 @@ static lispval table_map_size(lispval table)
 
 /* Hashset operations */
 
-DEFPRIM("HASHSET?",hashsetp,MAX_ARGS(1),
-        "`(HASHSET? *obj*)` returns true if *obj* is a hashset.")
+DEFCPRIM("hashset?",hashsetp,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "returns true if *obj* is a hashset.",
+	 {"x",kno_any_type,KNO_VOID})
 static lispval hashsetp(lispval x)
 {
   if (TYPEP(x,kno_hashset_type))
@@ -923,9 +1021,12 @@ static lispval hashsetp(lispval x)
   else return KNO_FALSE;
 }
 
-DEFPRIM("HASHSET-ADD!",hashset_add,MAX_ARGS(2)|MIN_ARGS(2)|NDOP,
-        "`(HASHSET-ADD! *hashset* *keys*)` adds *keys* to *hashset*(s). "
-        "Returns the number of new values added.")
+DEFCPRIM("hashset-add!",hashset_add,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	 "adds *keys* to *hashset*(s). Returns the number "
+	 "of new values added.",
+	 {"hs",kno_any_type,KNO_VOID},
+	 {"key",kno_any_type,KNO_VOID})
 static lispval hashset_add(lispval hs,lispval key)
 {
   if (KNO_EMPTYP(hs))
@@ -951,8 +1052,11 @@ static lispval hashset_add(lispval hs,lispval key)
     else return KNO_FALSE;}
 }
 
-DEFPRIM("HASHSET+",hashset_plus,MAX_ARGS(2)|MIN_ARGS(2),
-        "`(HASHSET+ *hashset* *keys*)` adds *keys* to *hashset*")
+DEFCPRIM("hashset+",hashset_plus,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	 "adds *keys* to *hashset*",
+	 {"hs",kno_any_type,KNO_VOID},
+	 {"values",kno_any_type,KNO_VOID})
 static lispval hashset_plus(lispval hs,lispval values)
 {
   kno_hashset_add((kno_hashset)hs,values);
@@ -960,8 +1064,11 @@ static lispval hashset_plus(lispval hs,lispval values)
   return  hs;
 }
 
-DEFPRIM("HASHSET-DROP!",hashset_drop,MAX_ARGS(2)|MIN_ARGS(2),
-        "`(HASHSET-DROP! *hashset* *keys*)` removes *key* from *hashset*.")
+DEFCPRIM("hashset-drop!",hashset_drop,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	 "removes *key* from *hashset*.",
+	 {"hs",kno_any_type,KNO_VOID},
+	 {"key",kno_any_type,KNO_VOID})
 static lispval hashset_drop(lispval hs,lispval key)
 {
   int retval = kno_hashset_drop((kno_hashset)hs,key);
@@ -970,9 +1077,11 @@ static lispval hashset_drop(lispval hs,lispval key)
   else return KNO_FALSE;
 }
 
-DEFPRIM("HASHSET-GET",hashset_get,MAX_ARGS(2)|MIN_ARGS(2),
-        "`(HASHSET-GET *hashset* *key*)` returns true if "
-        "*key* is in *hashsets*")
+DEFCPRIM("hashset-get",hashset_get,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	 "returns true if *key* is in *hashsets*",
+	 {"hs",kno_any_type,KNO_VOID},
+	 {"key",kno_any_type,KNO_VOID})
 static lispval hashset_get(lispval hs,lispval key)
 {
   int retval = kno_hashset_get((kno_hashset)hs,key);
@@ -981,10 +1090,12 @@ static lispval hashset_get(lispval hs,lispval key)
   else return KNO_FALSE;
 }
 
-DEFPRIM("HASHSET-TEST",hashset_test,
-        MAX_ARGS(2)|MIN_ARGS(2)|NDOP,
-        "`(HASHSET-TEST *hashset* *keys*)` returns true if "
-        "any *keys* are in any of *hashsets*")
+DEFCPRIM("hashset-test",hashset_test,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	 "returns true if any *keys* are in any of "
+	 "*hashsets*",
+	 {"hs",kno_any_type,KNO_VOID},
+	 {"keys",kno_any_type,KNO_VOID})
 static lispval hashset_test(lispval hs,lispval keys)
 {
   DO_CHOICES(hset,hs) {
@@ -1008,10 +1119,13 @@ static lispval hashset_test(lispval hs,lispval keys)
   else return KNO_FALSE;
 }
 
-DEFPRIM("HASHSET-ELTS",hashset_elts,MAX_ARGS(2)|MIN_ARGS(1),
-        "Returns the elements of a hashset.\n"
-        "With a non-false second argument, resets "
-        "the hashset (removing all values).")
+DEFCPRIM("hashset-elts",hashset_elts,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	 "Returns the elements of a hashset.\nWith a "
+	 "non-false second argument, resets the hashset "
+	 "(removing all values).",
+	 {"hs",kno_any_type,KNO_VOID},
+	 {"clean",kno_any_type,KNO_VOID})
 static lispval hashset_elts(lispval hs,lispval clean)
 {
   if (FALSEP(clean))
@@ -1019,8 +1133,10 @@ static lispval hashset_elts(lispval hs,lispval clean)
   else return kno_hashset_elts((kno_hashset)hs,1);
 }
 
-DEFPRIM("RESET-HASHSET!",reset_hashset,MAX_ARGS(1),
-        "`(RESET_HASHSET! *hashset*)` removes all of the elements of *hashset*.")
+DEFCPRIM("reset-hashset!",reset_hashset,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "removes all of the elements of *hashset*.",
+	 {"hs",kno_any_type,KNO_VOID})
 static lispval reset_hashset(lispval hs)
 {
   int rv=kno_reset_hashset((kno_hashset)hs);
@@ -1031,9 +1147,9 @@ static lispval reset_hashset(lispval hs)
   else return KNO_FALSE;
 }
 
-DEFPRIM("CHOICE->HASHSET",choices2hashset,KNO_VAR_ARGS|MIN_ARGS(0)|NDOP,
-        "`(CHOICE->HASHSET choices...)` returns a hashset combining "
-        "mutiple choices.")
+DEFCPRIMN("choice->hashset",choices2hashset,
+	  KNO_VAR_ARGS|KNO_MIN_ARGS(0)|KNO_NDCALL,
+	  "returns a hashset combining mutiple choices.")
 static lispval choices2hashset(int n,kno_argvec args)
 {
   struct KNO_HASHSET *h = u8_alloc(struct KNO_HASHSET);
@@ -1045,22 +1161,27 @@ static lispval choices2hashset(int n,kno_argvec args)
   return LISP_CONS(h);
 }
 
-DEFPRIM2("HASHSET/INTERN",hashset_intern,MIN_ARGS(2),
-         "(HASHSET/INTERN *hashset* *key*)\n"
-         "If *key* is in *hashset*, returns the exact key (pointer) "
-         "stored in *hashset*, otherwise adds *key* to the hashset "
-         "and returns it.",
-         kno_hashset_type,KNO_VOID,-1,KNO_VOID)
+DEFCPRIM("hashset/intern",hashset_intern,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	 "(HASHSET/INTERN *hashset* *key*)\n"
+	 "If *key* is in *hashset*, returns the exact key "
+	 "(pointer) stored in *hashset*, otherwise adds "
+	 "*key* to the hashset and returns it.",
+	 {"hs",kno_hashset_type,KNO_VOID},
+	 {"key",kno_any_type,KNO_VOID})
 static lispval hashset_intern(lispval hs,lispval key)
 {
   return kno_hashset_intern((kno_hashset)hs,key,1);
 }
 
-DEFPRIM2("HASHSET/PROBE",hashset_probe,MIN_ARGS(2),
-         "(HASHSET/PROBE *hashset* *key*)\n"
-         "If *key* is in *hashset*, returns the exact key (pointer) "
-         "stored in *hashset*, otherwise returns {}",
-         kno_hashset_type,KNO_VOID,-1,KNO_VOID)
+DEFCPRIM("hashset/probe",hashset_probe,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	 "(HASHSET/PROBE *hashset* *key*)\n"
+	 "If *key* is in *hashset*, returns the exact key "
+	 "(pointer) stored in *hashset*, otherwise returns "
+	 "{}",
+	 {"hs",kno_hashset_type,KNO_VOID},
+	 {"key",kno_any_type,KNO_VOID})
 static lispval hashset_probe(lispval hs,lispval key)
 {
   return kno_hashset_intern((kno_hashset)hs,key,0);
@@ -1068,10 +1189,11 @@ static lispval hashset_probe(lispval hs,lispval key)
 
 /* Sorting slotmaps */
 
-DEFPRIM1("SORT-SLOTMAP",sort_slotmap,MAX_ARGS(1),
-         "`(SORT-SLOTMAP *slotmap*)` sorts the keys in *slotmap* "
-         "for improved performance",
-         kno_slotmap_type,KNO_VOID)
+DEFCPRIM("sort-slotmap",sort_slotmap,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "sorts the keys in *slotmap* for improved "
+	 "performance",
+	 {"slotmap",kno_slotmap_type,KNO_VOID})
 static lispval sort_slotmap(lispval slotmap)
 {
   if (kno_sort_slotmap(slotmap,1)<0)
@@ -1081,10 +1203,11 @@ static lispval sort_slotmap(lispval slotmap)
 
 /* Merging hashtables */
 
-DEFPRIM1("HASHTABLE-BUCKETS",hashtable_buckets,MAX_ARGS(1),
-         "`(HASHTABLE-BUCKETS *hashtable*)` returns the number of buckets "
-         "allocated for *hashtable*.",
-         kno_hashtable_type,KNO_VOID)
+DEFCPRIM("hashtable-buckets",hashtable_buckets,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "returns the number of buckets allocated for "
+	 "*hashtable*.",
+	 {"table",kno_hashtable_type,KNO_VOID})
 static lispval hashtable_buckets(lispval table)
 {
   kno_hashtable h = kno_consptr(kno_hashtable,table,kno_hashtable_type);
@@ -1098,10 +1221,12 @@ static int merge_kv_into_table(struct KNO_KEYVAL *kv,void *data)
   return 0;
 }
 
-DEFPRIM2("HASHTABLE/MERGE",hashtable_merge,MIN_ARGS(2),
-         "`(HASHTABLE/MERGE *dest* *src*)`\n"
-         "Merges one hashtable into another",
-         kno_hashtable_type,VOID,kno_hashtable_type,VOID)
+DEFCPRIM("hashtable/merge",hashtable_merge,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	 "\n"
+	 "Merges one hashtable into another",
+	 {"dest",kno_hashtable_type,KNO_VOID},
+	 {"src",kno_hashtable_type,KNO_VOID})
 static lispval hashtable_merge(lispval dest,lispval src)
 {
   kno_hashtable into = (kno_hashtable) dest;
@@ -1114,99 +1239,126 @@ static lispval hashtable_merge(lispval dest,lispval src)
   return kno_incref(dest);
 }
 
-DEFPRIM("PLIST->TABLE",kno_plist_to_slotmap,MAX_ARGS(1),
-        "`(PLIST->TABLE *plist*)` returns a slotmap from a plist "
-        "(property list) of the form "
-        "(key1 value1 key2 value2 ... )");
-DEFPRIM("ALIST->TABLE",kno_alist_to_slotmap,MAX_ARGS(1),
-        "`(ALIST->TABLE *list*)` returns a slotmap from an alist "
-        "(association list) of the form "
-        "((key1 . value1) (key2 . value2) ... )");
-DEFPRIM("BLIST->TABLE",kno_blist_to_slotmap,MAX_ARGS(1),
-        "`(BLIST->TABLE *list*)` returns a slotmap from a blist "
-        "(binding list) of the form "
-        "((key1  value1) (key2 value2) ... )");
+/* Declare some prims from elsewhere */
+
+DEFCPRIM("plist->table",kno_plist_to_slotmap,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "returns a slotmap from a plist (property list) of "
+	 "the form (key1 value1 key2 value2 ... )",
+	 {"plist",kno_any_type,KNO_VOID});
+
+DEFCPRIM("alist->table",kno_alist_to_slotmap,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "returns a slotmap from an alist (association "
+	 "list) of the form ((key1 . value1) (key2 . "
+	 "value2) ... )",
+	 {"alist",kno_any_type,KNO_VOID});
+
+DEFCPRIM("blist->table",kno_blist_to_slotmap,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "returns a slotmap from a blist (binding list) of "
+	 "the form ((key1  value1) (key2 value2) ... )",
+	 {"blist",kno_any_type,KNO_VOID});
+
+DEFCPRIM("getkeys",kno_getkeys,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "returns all the keys in *table*.",
+	 {"table",kno_any_type,KNO_VOID});
+
+DEFCPRIM("getvalues",kno_getvalues,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "returns all the values associated with all of the "
+	 "keys in *table*.",
+	 {"table",kno_any_type,KNO_VOID});
+
+DEFCPRIM("getassocs",kno_getassocs,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "returns (key . values) pairs for all of the keys "
+	 "in *table*.",
+	 {"table",kno_any_type,KNO_VOID});
 
 /* Initialization code */
 
 KNO_EXPORT void kno_init_tableprims_c()
 {
+
   u8_register_source_file(_FILEINFO);
 
   link_local_cprims();
+
 
 }
 
 static void link_local_cprims()
 {
-  KNO_LINK_PRIM("TABLE?",tablep,1,kno_scheme_module);
-  KNO_LINK_PRIM("HASKEYS?",haskeysp,1,kno_scheme_module);
-  KNO_LINK_PRIM("SLOTMAP?",slotmapp,1,kno_scheme_module);
-  KNO_LINK_PRIM("SCHEMAP?",schemapp,1,kno_scheme_module);
-  KNO_LINK_PRIM("HASHTABLE?",hashtablep,1,kno_scheme_module);
-  KNO_LINK_PRIM("MAKE-HASHSET",make_hashset,1,kno_scheme_module);
-  KNO_LINK_PRIM("MAKE-HASHTABLE",make_hashtable,1,kno_scheme_module);
-  KNO_LINK_PRIM("MAKE-EQ-HASHTABLE",make_eq_hashtable,1,kno_scheme_module);
-  KNO_LINK_PRIM("PICK-HASHTABLE-SIZE", pick_hashtable_size,1,kno_scheme_module);
-  KNO_LINK_PRIM("RESET-HASHTABLE!",reset_hashtable,2,kno_scheme_module);
-  KNO_LINK_PRIM("STATIC-HASHTABLE",static_hashtable,1,kno_scheme_module);
-  KNO_LINK_PRIM("UNSAFE-HASHTABLE",unsafe_hashtable,1,kno_scheme_module);
-  KNO_LINK_PRIM("READONLY-HASHTABLE!",readonly_hashtable_prim,2,kno_scheme_module);
-  KNO_LINK_PRIM("RESAFE-HASHTABLE",resafe_hashtable,1,kno_scheme_module);
-  KNO_LINK_PRIM("HASH-LISP",hash_lisp_prim,1,kno_scheme_module);
-  KNO_LINK_PRIM("%GET",table_get,3,kno_scheme_module);
-  KNO_LINK_PRIM("ADD!",table_add,3,kno_scheme_module);
-  KNO_LINK_PRIM("DROP!",table_drop,3,kno_scheme_module);
-  KNO_LINK_PRIM("STORE!",table_store,3,kno_scheme_module);
-  KNO_LINK_PRIM("%TEST",table_test,3,kno_scheme_module);
-  KNO_LINK_PRIM("SCHEMAP->SLOTMAP",schemap2slotmap_prim,1,kno_scheme_module);
-  KNO_LINK_PRIM("SLOTMAP->SCHEMAP",slotmap2schemap_prim,1,kno_scheme_module);
-  KNO_LINK_PRIM("->SCHEMAP",table2schemap_prim,1,kno_scheme_module);
-  KNO_LINK_PRIM("TABLE-INCREMENT!",table_increment,3,kno_scheme_module);
-  KNO_LINK_PRIM("TABLE-INCREMENT-EXISTING!",table_increment_existing,3,
+  KNO_LINK_CPRIM("TABLE?",tablep,1,kno_scheme_module);
+  KNO_LINK_CPRIM("HASKEYS?",haskeysp,1,kno_scheme_module);
+  KNO_LINK_CPRIM("SLOTMAP?",slotmapp,1,kno_scheme_module);
+  KNO_LINK_CPRIM("SCHEMAP?",schemapp,1,kno_scheme_module);
+  KNO_LINK_CPRIM("HASHTABLE?",hashtablep,1,kno_scheme_module);
+  KNO_LINK_CPRIM("MAKE-HASHSET",make_hashset,1,kno_scheme_module);
+  KNO_LINK_CPRIM("MAKE-HASHTABLE",make_hashtable,1,kno_scheme_module);
+  KNO_LINK_CPRIM("MAKE-EQ-HASHTABLE",make_eq_hashtable,1,kno_scheme_module);
+  KNO_LINK_CPRIM("PICK-HASHTABLE-SIZE", pick_hashtable_size,1,kno_scheme_module);
+  KNO_LINK_CPRIM("RESET-HASHTABLE!",reset_hashtable,2,kno_scheme_module);
+  KNO_LINK_CPRIM("STATIC-HASHTABLE",static_hashtable,1,kno_scheme_module);
+  KNO_LINK_CPRIM("UNSAFE-HASHTABLE",unsafe_hashtable,1,kno_scheme_module);
+  KNO_LINK_CPRIM("READONLY-HASHTABLE!",readonly_hashtable_prim,2,kno_scheme_module);
+  KNO_LINK_CPRIM("RESAFE-HASHTABLE",resafe_hashtable,1,kno_scheme_module);
+  KNO_LINK_CPRIM("HASH-LISP",hash_lisp_prim,1,kno_scheme_module);
+  KNO_LINK_CPRIM("%GET",table_get,3,kno_scheme_module);
+  KNO_LINK_CPRIM("ADD!",table_add,3,kno_scheme_module);
+  KNO_LINK_CPRIM("DROP!",table_drop,3,kno_scheme_module);
+  KNO_LINK_CPRIM("STORE!",table_store,3,kno_scheme_module);
+  KNO_LINK_CPRIM("%TEST",table_test,3,kno_scheme_module);
+  KNO_LINK_CPRIM("SCHEMAP->SLOTMAP",schemap2slotmap_prim,1,kno_scheme_module);
+  KNO_LINK_CPRIM("SLOTMAP->SCHEMAP",slotmap2schemap_prim,1,kno_scheme_module);
+  KNO_LINK_CPRIM("->SCHEMAP",table2schemap_prim,1,kno_scheme_module);
+  KNO_LINK_CPRIM("TABLE-INCREMENT!",table_increment,3,kno_scheme_module);
+  KNO_LINK_CPRIM("TABLE-INCREMENT-EXISTING!",table_increment_existing,3,
                 kno_scheme_module);
-  KNO_LINK_PRIM("TABLE-MULTIPLY!",table_multiply,3,kno_scheme_module);
-  KNO_LINK_PRIM("TABLE-MULTIPLY-EXISTING!",table_multiply_existing,3,
+  KNO_LINK_CPRIM("TABLE-MULTIPLY!",table_multiply,3,kno_scheme_module);
+  KNO_LINK_CPRIM("TABLE-MULTIPLY-EXISTING!",table_multiply_existing,3,
                 kno_scheme_module);
-  KNO_LINK_PRIM("TABLE-MAXIMIZE!",table_maximize,3,kno_scheme_module);
-  KNO_LINK_PRIM("TABLE-MAXIMIZE-EXISTING!",table_maximize_existing,3,
+  KNO_LINK_CPRIM("TABLE-MAXIMIZE!",table_maximize,3,kno_scheme_module);
+  KNO_LINK_CPRIM("TABLE-MAXIMIZE-EXISTING!",table_maximize_existing,3,
                 kno_scheme_module);
-  KNO_LINK_PRIM("TABLE-MINIMIZE!",table_minimize,3,kno_scheme_module);
-  KNO_LINK_PRIM("TABLE-MINIMIZE-EXISTING!",table_minimize_existing,3,
+  KNO_LINK_CPRIM("TABLE-MINIMIZE!",table_minimize,3,kno_scheme_module);
+  KNO_LINK_CPRIM("TABLE-MINIMIZE-EXISTING!",table_minimize_existing,3,
                 kno_scheme_module);
-  KNO_LINK_PRIM("TABLE-SIZE",table_size,1,kno_scheme_module);
-  KNO_LINK_PRIM("TABLE-WRITABLE?",table_writablep,1,kno_scheme_module);
-  KNO_LINK_PRIM("TABLE-WRITABLE!",table_set_writable,2,kno_scheme_module);
-  KNO_LINK_PRIM("TABLE-MODIFIED?",table_modifiedp,1,kno_scheme_module);
-  KNO_LINK_PRIM("TABLE-MODIFIED!",table_set_modified,2,kno_scheme_module);
-  KNO_LINK_PRIM("TABLE-MAX",table_max,2,kno_scheme_module);
-  KNO_LINK_PRIM("TABLE-MAXVAL",table_maxval,2,kno_scheme_module);
-  KNO_LINK_PRIM("TABLE-SKIM",table_skim,3,kno_scheme_module);
-  KNO_LINK_PRIM("MAP->TABLE",map2table,3,kno_scheme_module);
-  KNO_LINK_PRIM("TABLE-MAP-SIZE",table_map_size,1,kno_scheme_module);
-  KNO_LINK_PRIM("HASHSET?",hashsetp,1,kno_scheme_module);
-  KNO_LINK_PRIM("HASHSET-ADD!",hashset_add,2,kno_scheme_module);
-  KNO_LINK_PRIM("HASHSET+",hashset_plus,2,kno_scheme_module);
-  KNO_LINK_PRIM("HASHSET-DROP!",hashset_drop,2,kno_scheme_module);
-  KNO_LINK_PRIM("HASHSET-GET",hashset_get,2,kno_scheme_module);
-  KNO_LINK_PRIM("HASHSET-TEST",hashset_test,2,kno_scheme_module);
-  KNO_LINK_PRIM("HASHSET-ELTS",hashset_elts,2,kno_scheme_module);
-  KNO_LINK_PRIM("RESET-HASHSET!",reset_hashset,1,kno_scheme_module);
+  KNO_LINK_CPRIM("TABLE-SIZE",table_size,1,kno_scheme_module);
+  KNO_LINK_CPRIM("TABLE-WRITABLE?",table_writablep,1,kno_scheme_module);
+  KNO_LINK_CPRIM("TABLE-WRITABLE!",table_set_writable,2,kno_scheme_module);
+  KNO_LINK_CPRIM("TABLE-MODIFIED?",table_modifiedp,1,kno_scheme_module);
+  KNO_LINK_CPRIM("TABLE-MODIFIED!",table_set_modified,2,kno_scheme_module);
+  KNO_LINK_CPRIM("TABLE-MAX",table_max,2,kno_scheme_module);
+  KNO_LINK_CPRIM("TABLE-MAXVAL",table_maxval,2,kno_scheme_module);
+  KNO_LINK_CPRIM("TABLE-SKIM",table_skim,3,kno_scheme_module);
+  KNO_LINK_CPRIM("MAP->TABLE",map2table,3,kno_scheme_module);
+  KNO_LINK_CPRIM("TABLE-MAP-SIZE",table_map_size,1,kno_scheme_module);
+  KNO_LINK_CPRIM("HASHSET?",hashsetp,1,kno_scheme_module);
+  KNO_LINK_CPRIM("HASHSET-ADD!",hashset_add,2,kno_scheme_module);
+  KNO_LINK_CPRIM("HASHSET+",hashset_plus,2,kno_scheme_module);
+  KNO_LINK_CPRIM("HASHSET-DROP!",hashset_drop,2,kno_scheme_module);
+  KNO_LINK_CPRIM("HASHSET-GET",hashset_get,2,kno_scheme_module);
+  KNO_LINK_CPRIM("HASHSET-TEST",hashset_test,2,kno_scheme_module);
+  KNO_LINK_CPRIM("HASHSET-ELTS",hashset_elts,2,kno_scheme_module);
+  KNO_LINK_CPRIM("RESET-HASHSET!",reset_hashset,1,kno_scheme_module);
 
-  KNO_LINK_VARARGS("CHOICE->HASHSET",choices2hashset,kno_scheme_module);
-  KNO_LINK_PRIM("HASHSET/INTERN",hashset_intern,2,kno_scheme_module);
-  KNO_LINK_PRIM("HASHSET/PROBE",hashset_probe,2,kno_scheme_module);
-  KNO_LINK_PRIM("SORT-SLOTMAP",sort_slotmap,1,kno_scheme_module);
-  KNO_LINK_PRIM("HASHTABLE-BUCKETS",hashtable_buckets,1,kno_scheme_module);
-  KNO_LINK_PRIM("HASHTABLE/MERGE",hashtable_merge,2,kno_scheme_module);
+  KNO_LINK_CVARARGS("CHOICE->HASHSET",choices2hashset,kno_scheme_module);
+  KNO_LINK_CPRIM("HASHSET/INTERN",hashset_intern,2,kno_scheme_module);
+  KNO_LINK_CPRIM("HASHSET/PROBE",hashset_probe,2,kno_scheme_module);
+  KNO_LINK_CPRIM("SORT-SLOTMAP",sort_slotmap,1,kno_scheme_module);
+  KNO_LINK_CPRIM("HASHTABLE-BUCKETS",hashtable_buckets,1,kno_scheme_module);
+  KNO_LINK_CPRIM("HASHTABLE/MERGE",hashtable_merge,2,kno_scheme_module);
 
-  KNO_LINK_PRIM("PLIST->TABLE",kno_plist_to_slotmap,1,kno_scheme_module);
-  KNO_LINK_PRIM("ALIST->TABLE",kno_alist_to_slotmap,1,kno_scheme_module);
-  KNO_LINK_PRIM("BLIST->TABLE",kno_blist_to_slotmap,1,kno_scheme_module);
-  KNO_LINK_PRIM("GETKEYS",kno_getkeys,1,kno_scheme_module);
-  KNO_LINK_PRIM("GETVALUES",kno_getvalues,1,kno_scheme_module);
-  KNO_LINK_PRIM("GETASSOCS",kno_getassocs,1,kno_scheme_module);
-  KNO_LINK_PRIM("GETKEYVEC",getkeyvec_prim,1,kno_scheme_module);
+  KNO_LINK_CPRIM("PLIST->TABLE",kno_plist_to_slotmap,1,kno_scheme_module);
+  KNO_LINK_CPRIM("ALIST->TABLE",kno_alist_to_slotmap,1,kno_scheme_module);
+  KNO_LINK_CPRIM("BLIST->TABLE",kno_blist_to_slotmap,1,kno_scheme_module);
+  KNO_LINK_CPRIM("GETKEYS",kno_getkeys,1,kno_scheme_module);
+  KNO_LINK_CPRIM("GETVALUES",kno_getvalues,1,kno_scheme_module);
+  KNO_LINK_CPRIM("GETASSOCS",kno_getassocs,1,kno_scheme_module);
+  KNO_LINK_CPRIM("GETKEYVEC",getkeyvec_prim,1,kno_scheme_module);
 
   KNO_LINK_ALIAS("HASHTABLE-MAX",table_max,kno_scheme_module);
   KNO_LINK_ALIAS("HASHTABLE-MAXVAL",table_maxval,kno_scheme_module);

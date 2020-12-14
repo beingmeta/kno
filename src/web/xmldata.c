@@ -24,9 +24,11 @@
 
 static lispval name_slotid, content_slotid;
 
-DEFPRIM2("xmlattrib",xmlattrib,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "`(XMLATTRIB *arg0* *arg1*)` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+DEFCPRIM("xmlattrib",xmlattrib,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	 "**undocumented**",
+	 {"doc",kno_any_type,KNO_VOID},
+	 {"attrib_id",kno_any_type,KNO_VOID})
 static lispval xmlattrib(lispval doc,lispval attrib_id)
 {
   if (SLOTMAPP(doc))
@@ -54,9 +56,11 @@ static void xmlget_helper(lispval *result,lispval doc,lispval eltid,int cons)
   else return;
 }
 
-DEFPRIM2("xmlget",xmlget,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "`(XMLGET *arg0* *arg1*)` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+DEFCPRIM("xmlget",xmlget,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	 "**undocumented**",
+	 {"doc",kno_any_type,KNO_VOID},
+	 {"attrib_id",kno_any_type,KNO_VOID})
 static lispval xmlget(lispval doc,lispval attrib_id)
 {
   lispval results = EMPTY;
@@ -73,9 +77,11 @@ static int listlen(lispval l)
     return len;}
 }
 
-DEFPRIM2("xmlget/sorted",xmlget_sorted,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "`(XMLGET/SORTED *arg0* *arg1*)` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+DEFCPRIM("xmlget/sorted",xmlget_sorted,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	 "**undocumented**",
+	 {"doc",kno_any_type,KNO_VOID},
+	 {"attrib_id",kno_any_type,KNO_VOID})
 static lispval xmlget_sorted(lispval doc,lispval attrib_id)
 {
   lispval results = NIL;
@@ -93,9 +99,11 @@ static lispval xmlget_sorted(lispval doc,lispval attrib_id)
     return vec;}
 }
 
-DEFPRIM2("xmlget/first",xmlget_first,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "`(XMLGET/FIRST *arg0* *arg1*)` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+DEFCPRIM("xmlget/first",xmlget_first,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	 "**undocumented**",
+	 {"doc",kno_any_type,KNO_VOID},
+	 {"attrib_id",kno_any_type,KNO_VOID})
 static lispval xmlget_first(lispval doc,lispval attrib_id)
 {
   lispval results = NIL;
@@ -112,9 +120,12 @@ static lispval xmlget_first(lispval doc,lispval attrib_id)
 }
 
 /* This returns the content field as parsed. */
-DEFPRIM2("xmlconents",xmlcontents,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "`(XMLCONENTS *arg0* [*arg1*])` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+
+DEFCPRIM("xmlconents",xmlcontents,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	 "**undocumented**",
+	 {"doc",kno_any_type,KNO_VOID},
+	 {"attrib_id",kno_any_type,KNO_VOID})
 static lispval xmlcontents(lispval doc,lispval attrib_id)
 {
   if ((CHOICEP(doc)) || (PRECHOICEP(doc))) {
@@ -144,9 +155,12 @@ static lispval xmlcontents(lispval doc,lispval attrib_id)
 }
 
 /* This returns the content field as parsed. */
-DEFPRIM2("xmlempty?",xmlemptyp,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "`(XMLEMPTY? *arg0* [*arg1*])` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+
+DEFCPRIM("xmlempty?",xmlemptyp,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	 "**undocumented**",
+	 {"elt",kno_any_type,KNO_VOID},
+	 {"attribid",kno_any_type,KNO_VOID})
 static lispval xmlemptyp(lispval elt,lispval attribid)
 {
   if (VOIDP(attribid)) attribid = content_slotid;
@@ -165,9 +179,12 @@ static lispval xmlemptyp(lispval elt,lispval attribid)
 }
 
 /* This returns the content field as a string. */
-DEFPRIM2("xmlcontent",xmlcontent,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "`(XMLCONTENT *arg0* [*arg1*])` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+
+DEFCPRIM("xmlcontent",xmlcontent,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	 "**undocumented**",
+	 {"doc",kno_any_type,KNO_VOID},
+	 {"attrib_id",kno_any_type,KNO_VOID})
 static lispval xmlcontent(lispval doc,lispval attrib_id)
 {
   if ((CHOICEP(doc)) || (PRECHOICEP(doc))) {
@@ -223,11 +240,11 @@ void kno_init_xmldata_c()
 
 static void link_local_cprims()
 {
-  KNO_LINK_PRIM("xmlcontent",xmlcontent,2,webtools_module);
-  KNO_LINK_PRIM("xmlempty?",xmlemptyp,2,webtools_module);
-  KNO_LINK_PRIM("xmlconents",xmlcontents,2,webtools_module);
-  KNO_LINK_PRIM("xmlget/first",xmlget_first,2,webtools_module);
-  KNO_LINK_PRIM("xmlget/sorted",xmlget_sorted,2,webtools_module);
-  KNO_LINK_PRIM("xmlget",xmlget,2,webtools_module);
-  KNO_LINK_PRIM("xmlattrib",xmlattrib,2,webtools_module);
+  KNO_LINK_CPRIM("xmlcontent",xmlcontent,2,webtools_module);
+  KNO_LINK_CPRIM("xmlempty?",xmlemptyp,2,webtools_module);
+  KNO_LINK_CPRIM("xmlconents",xmlcontents,2,webtools_module);
+  KNO_LINK_CPRIM("xmlget/first",xmlget_first,2,webtools_module);
+  KNO_LINK_CPRIM("xmlget/sorted",xmlget_sorted,2,webtools_module);
+  KNO_LINK_CPRIM("xmlget",xmlget,2,webtools_module);
+  KNO_LINK_CPRIM("xmlattrib",xmlattrib,2,webtools_module);
 }

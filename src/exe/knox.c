@@ -302,8 +302,6 @@ int do_main(int argc,char **argv,
   KNO_INIT_SCHEME_BUILTINS();
 #endif
 
-  kno_init_schemeio();
-
   if (!(kno_be_vewy_quiet)) kno_boot_message();
   if ( (stop_file) && (u8_file_existsp(stop_file)) ) {
     u8_log(LOG_CRIT,"StopFile",
@@ -327,10 +325,10 @@ int do_main(int argc,char **argv,
 	  u8_log(LOG_NOTICE,FileWait,"[%d] Waiting for '%s' to exist",
 		 n,wait_for_file);}}}
 
-  DEFPRIM("CHAIN",chain_prim,KNO_VAR_ARGS|MIN_ARGS(0),
-	  "Resets the current process to a fresh instance of "
-	  "knox");
-  KNO_LINK_PRIM("CHAIN",chain_prim,0,(lispval)env);
+  DEFCPRIMN("CHAIN",chain_prim,KNO_VAR_ARGS|MIN_ARGS(0),
+	    "Resets the current process to a fresh instance of "
+	    "knox");
+  KNO_LINK_CPRIM("CHAIN",chain_prim,0,(lispval)env);
 
   link_local_cprims();
 

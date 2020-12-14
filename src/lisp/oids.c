@@ -210,9 +210,9 @@ KNO_EXPORT long long kno_b32_to_longlong(const char *digits)
 
 KNO_EXPORT lispval kno_zero_pool_value(lispval oid)
 {
-  if (PRED_TRUE(OIDP(oid))) {
+  if (USUALLY(OIDP(oid))) {
     KNO_OID addr = KNO_OID_ADDR(oid);
-    if (PRED_TRUE(KNO_OID_HI(addr)==0)) {
+    if (USUALLY(KNO_OID_HI(addr)==0)) {
       unsigned int off = KNO_OID_LO(addr);
       unsigned int bucket_no = off/4096;
       unsigned int bucket_off = off%4096;
@@ -226,9 +226,9 @@ KNO_EXPORT lispval kno_zero_pool_value(lispval oid)
 }
 KNO_EXPORT lispval kno_zero_pool_store(lispval oid,lispval value)
 {
-  if (PRED_TRUE(OIDP(oid))) {
+  if (USUALLY(OIDP(oid))) {
     KNO_OID addr = KNO_OID_ADDR(oid);
-    if (PRED_TRUE(KNO_OID_HI(addr)==0)) {
+    if (USUALLY(KNO_OID_HI(addr)==0)) {
       unsigned int off = KNO_OID_LO(addr);
       unsigned int bucket_no = off/4096;
       unsigned int bucket_off = off%4096;
@@ -237,7 +237,7 @@ KNO_EXPORT lispval kno_zero_pool_store(lispval oid,lispval value)
       else {
         u8_lock_mutex(&zero_pool_lock);
         lispval *bucket = kno_zero_pool_buckets[bucket_no];
-        if (PRED_FALSE(bucket == NULL)) {
+        if (RARELY(bucket == NULL)) {
           bucket = u8_alloc_n(4096,lispval);
           kno_zero_pool_buckets[bucket_no]=bucket;}
         lispval current = bucket[bucket_off];

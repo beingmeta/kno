@@ -44,11 +44,11 @@ KNO_EXPORT int kno_free_thread_cache(struct KNO_THREAD_CACHE *tc)
     else u8_logf(LOG_WARN,FreeingInUseThreadCache,
                  "Freeing in-use threadcache: %llx",ptrval);}
   /* These may do customized things for some of the tables. */
-  kno_recycle_hashtable(&(tc->calls));
   kno_recycle_hashtable(&(tc->oids));
-  kno_recycle_hashtable(&(tc->adjuncts));
-  kno_recycle_hashtable(&(tc->indexes));
-  kno_recycle_hashtable(&(tc->bground));
+  kno_recycle_hashtable(&(tc->background_cache));
+  kno_free_slotmap(&(tc->calls));
+  kno_free_slotmap(&(tc->adjuncts));
+  kno_free_slotmap(&(tc->indexes));
   tc->threadcache_inuse = 0;
   u8_free(tc);
   return 1;
@@ -73,30 +73,28 @@ KNO_EXPORT int kno_pop_threadcache(struct KNO_THREAD_CACHE *tc)
     return 1;}
 }
 
-KNO_EXPORT kno_thread_cache kno_cons_thread_cache
-(int call_cache_size,
- int oid_cache_size,
- int adjunct_cache_size,
- int background_cache_size,
- int kcsize)
+KNO_EXPORT kno_thread_cache kno_cons_thread_cache(int oids_size,int bg_size)
 {
   struct KNO_THREAD_CACHE *tc = u8_alloc(struct KNO_THREAD_CACHE);
   tc->threadcache_inuse = 0; tc->threadcache_id = NULL;
 
-  KNO_INIT_STATIC_CONS(&(tc->calls),kno_hashtable_type);
-  kno_make_hashtable(&(tc->calls),call_cache_size);
+  if (oids_size <= 0) oids_size=1000;
+  if (bg_size <= 0) bg_size=1000;
 
   KNO_INIT_STATIC_CONS(&(tc->oids),kno_hashtable_type);
-  kno_make_hashtable(&(tc->oids),oid_cache_size);
+  kno_make_hashtable(&(tc->oids),oids_size);
 
-  KNO_INIT_STATIC_CONS(&(tc->adjuncts),kno_hashtable_type);
-  kno_make_hashtable(&(tc->adjuncts),adjunct_cache_size);
+  KNO_INIT_STATIC_CONS(&(tc->background_cache),kno_hashtable_type);
+  kno_make_hashtable(&(tc->background_cache),bg_size);
 
-  KNO_INIT_STATIC_CONS(&(tc->bground),kno_hashtable_type);
-  kno_make_hashtable(&(tc->bground),background_cache_size);
+  KNO_INIT_STATIC_CONS(&(tc->calls),kno_slotmap_type);
+  kno_init_slotmap(&(tc->calls),7,NULL);
 
-  KNO_INIT_STATIC_CONS(&(tc->indexes),kno_hashtable_type);
-  kno_make_hashtable(&(tc->indexes),kcsize);
+  KNO_INIT_STATIC_CONS(&(tc->adjuncts),kno_slotmap_type);
+  kno_init_slotmap(&(tc->adjuncts),7,NULL);
+
+  KNO_INIT_STATIC_CONS(&(tc->indexes),kno_slotmap_type);
+  kno_init_slotmap(&(tc->indexes),7,NULL);
 
   tc->threadcache_prev = NULL;
   return tc;
@@ -105,11 +103,7 @@ KNO_EXPORT kno_thread_cache kno_cons_thread_cache
 KNO_EXPORT kno_thread_cache kno_new_thread_cache()
 {
   return kno_cons_thread_cache
-    (KNO_THREAD_CALLCACHE_SIZE,
-     KNO_THREAD_OIDCACHE_SIZE,
-     KNO_THREAD_ADJCACHE_SIZE,
-     KNO_THREAD_BGCACHE_SIZE,
-     KNO_THREAD_KEYCACHE_SIZE);
+    (KNO_THREAD_OIDCACHE_SIZE,KNO_THREAD_BGCACHE_SIZE);
 }
 
 KNO_EXPORT kno_thread_cache kno_push_threadcache(struct KNO_THREAD_CACHE *tc)
@@ -168,6 +162,45 @@ KNO_EXPORT kno_thread_cache kno_use_threadcache()
     kno_threadcache = tc;
 #endif
     return tc;}
+}
+
+/* Operations */
+
+KNO_EXPORT int knotc_cache_oid_value(KNOTC *cache,lispval oid,lispval val)
+{
+  if (cache == NULL) return 0;
+  return kno_hashtable_store(&(cache->oids),oid,val);
+}
+
+KNO_EXPORT int knotc_cache_adjunct_value(KNOTC *cache,lispval oid,lispval slotid,lispval val)
+{
+  if (cache == NULL) return 0;
+  lispval oidcache = kno_slotmap_get(&(cache->adjuncts),slotid,KNO_VOID);
+  if (KNO_VOIDP(oidcache)) {
+    oidcache = kno_make_hashtable(NULL,117);
+    kno_slotmap_store(&(cache->adjuncts),slotid,oidcache);
+    int rv = kno_store(oidcache,oid,val);
+    kno_decref(oidcache);
+    return rv;}
+  else return kno_store(oidcache,oid,val);
+}
+
+KNO_EXPORT int knotc_cache_index_key(KNOTC *cache,lispval ix_arg,lispval key,lispval oids)
+{
+  if (cache == NULL) return 0;
+  lispval index_cache = kno_slotmap_get(&(cache->indexes),ix_arg,KNO_VOID);
+  if (KNO_VOIDP(index_cache)) {
+    index_cache = kno_make_hashtable(NULL,117);
+    kno_slotmap_store(&(cache->indexes),ix_arg,index_cache);
+    int rv = kno_store(index_cache,key,oids);
+    kno_decref(index_cache);
+    return rv;}
+  else return kno_store(index_cache,key,oids);
+}
+
+int knotc_bgadd(KNOTC *cache,lispval key,lispval oids)
+{
+  return kno_hashtable_add(&(cache->background_cache),key,oids);
 }
 
 /* Initialization stuff */

@@ -5,7 +5,7 @@
    and a valuable trade secret of beingmeta, inc.
 
    This file implements the basic structures, macros, and function
-   prototypes for dealing with dtype pointers as implemented for the
+   prototypes for dealing with lisp pointers as implemented for the
    FramerC library
 */
 
@@ -15,7 +15,7 @@
    model which uses an internal pointer format designed for efficency in
    the normal cases and easy extensibility to more advanced cases.
 
-   A dtype pointer is an unsigned int the same size as a memory
+   A lisp pointer is an unsigned int the same size as a memory
    pointer.  The lower two bits of the int represent one of four
    *manifest type codes*.  These are CONS (0), IMMEDIATE (1), FIXNUM
    (2), and OID (3).  These are all referred to the "base type" of a
@@ -25,7 +25,7 @@
    references into 64-bit object address space.
 
    Fixing the CONS type at zero (0), together with structure
-   alignment on 4-byte word boundaries, enables dtype pointers to be
+   alignment on 4-byte word boundaries, enables lisp pointers to be
    direclty used as structure pointers and vice versa.  A CONS
    pointer is exactly such a memory reference.  The detailed
    implementation of CONSes is described at the head of
@@ -44,7 +44,7 @@
    negative numbers, FramerC uses the 32nd bit (the high order bit on 32
    bit architectures) as a sign bit and stores the absolute magnitude
    in the remainder of the word (down to the two bits of type code.
-   For positive numbers, converting between C ints dtype fixnums is
+   For positive numbers, converting between C ints lisp fixnums is
    simply a matter of multiply or diving by 4 and adding the type
    code (when converting to DTYPEs).  For negative numbers, it is
    trickier but not much, as in KNO_INT2LISP and KNO_LISP2INT below.
@@ -72,7 +72,7 @@
    A single unified space of type codes (kno_lisp_type) combines the four
    base type codes with the 7-bit type codes associated with CONSes and
    IMMEDIATE pointers.  In this single space, CONS types start at 0x04 and
-   IMMEDIATE types start at 0x84.  For example, dtype pairs, implemented as
+   IMMEDIATE types start at 0x84.  For example, lisp pairs, implemented as
    structures with a stored type code of 0x03, are represented in the
    unified type space by 0x07.  Symbols, which are implemented as
    CONSTANT types with a stored type value of 0x02, are represented in
@@ -84,7 +84,7 @@
    *) and kno_register_cons_type(char *).
    */
 
-/* DTYPE Types */
+/* LISP Types */
 
 #ifndef KNO_PTR_H
 #define KNO_PTR_H 1
@@ -95,13 +95,13 @@
 #include "common.h"
 #include "errors.h"
 
-#define KNO_CONS_TYPECODE(i) (0x84+i)
 #define KNO_IMMEDIATE_TYPECODE(i) (0x04+i)
-#define KNO_EXTENDED_TYPECODE(i) (0x100+i)
-#define KNO_MAX_CONS_TYPES  0x80
-#define KNO_MAX_CONS_TYPE   KNO_CONS_TYPECODE(0x80)
-#define KNO_MAX_IMMEDIATE_TYPES 0x80
-#define KNO_MAX_IMMEDIATE_TYPE KNO_IMMEDIATE_TYPECODE(0x80)
+#define KNO_CONS_TYPECODE(i)      (0x84+i)
+#define KNO_EXTENDED_TYPECODE(i)  (0x100+i)
+#define KNO_MAX_IMMEDIATE_TYPES   0x80
+#define KNO_MAX_IMMEDIATE_TYPE    KNO_IMMEDIATE_TYPECODE(0x80)
+#define KNO_MAX_CONS_TYPES	  0x80
+#define KNO_MAX_CONS_TYPE	  KNO_CONS_TYPECODE(0x80)
 
 /* 0 and 1 are reserved for OIDs and fixnums.
    CONS types start at 0x84 and go until 0x104, which
@@ -153,7 +153,7 @@ typedef enum KNO_LISP_TYPE {
   kno_pool_type = KNO_IMMEDIATE_TYPECODE(8),
   kno_index_type = KNO_IMMEDIATE_TYPECODE(9),
   kno_histref_type = KNO_IMMEDIATE_TYPECODE(10),
-  kno_basetype_type = KNO_IMMEDIATE_TYPECODE(11),
+  kno_ctype_type = KNO_IMMEDIATE_TYPECODE(11),
 
   kno_string_type = KNO_CONS_TYPECODE(0),
   kno_packet_type = KNO_CONS_TYPECODE(1),
@@ -175,9 +175,10 @@ typedef enum KNO_LISP_TYPE {
      allowing them to be used with KNO_XXCONS macros, though we
      leave a type gap */
   kno_compound_type = KNO_CONS_TYPECODE(12),
-  kno_wrapper_type = KNO_CONS_TYPECODE(13),
-  kno_rawptr_type = KNO_CONS_TYPECODE(14),
-  kno_xtyped_type = KNO_CONS_TYPECODE(15),
+  kno_rawptr_type = KNO_CONS_TYPECODE(13),
+
+  kno_ioport_type = KNO_CONS_TYPECODE(14),
+  kno_regex_type = KNO_CONS_TYPECODE(15),
 
   kno_coretable_type = KNO_CONS_TYPECODE(16),
   /* These types are arranged so that their top bits are the same,
@@ -206,6 +207,7 @@ typedef enum KNO_LISP_TYPE {
   kno_promise_type = KNO_CONS_TYPECODE(29),
   kno_thread_type = KNO_CONS_TYPECODE(30),
   kno_synchronizer_type = KNO_CONS_TYPECODE(31),
+
   kno_consblock_type = KNO_CONS_TYPECODE(32),
 
   kno_complex_type = KNO_CONS_TYPECODE(33),
@@ -219,42 +221,50 @@ typedef enum KNO_LISP_TYPE {
      constant for the compiler */
   kno_mystery_type = KNO_CONS_TYPECODE(38),
 
-  kno_ioport_type = KNO_CONS_TYPECODE(39),
-  kno_stream_type = KNO_CONS_TYPECODE(40),
-  kno_regex_type = KNO_CONS_TYPECODE(41),
+  kno_stream_type = KNO_CONS_TYPECODE(39),
 
-  kno_service_type = KNO_CONS_TYPECODE(42),
-  kno_bloom_filter_type = KNO_CONS_TYPECODE(43),
+  kno_service_type = KNO_CONS_TYPECODE(40),
+  kno_bloom_filter_type = KNO_CONS_TYPECODE(41),
 
-  kno_sqldb_type = KNO_CONS_TYPECODE(44),
-  kno_sqlproc_type = KNO_CONS_TYPECODE(45),
+  kno_sqldb_type = KNO_CONS_TYPECODE(42),
+  kno_sqlproc_type = KNO_CONS_TYPECODE(43),
 
-  kno_pathstore_type = KNO_CONS_TYPECODE(46),
+  kno_pathstore_type = KNO_CONS_TYPECODE(44),
+
+  kno_consed_index_type = KNO_CONS_TYPECODE(45),
+  kno_consed_pool_type = KNO_CONS_TYPECODE(46),
+
+  kno_subjob_type = KNO_CONS_TYPECODE(47),
 
   /* Extended types */
 
-  kno_number_type = KNO_EXTENDED_TYPECODE(1),
-  kno_sequence_type = KNO_EXTENDED_TYPECODE(2),
-  kno_table_type = KNO_EXTENDED_TYPECODE(3),
-  kno_applicable_type = KNO_EXTENDED_TYPECODE(4),
-  kno_keymap_type = KNO_EXTENDED_TYPECODE(5),
-  kno_type_type = KNO_EXTENDED_TYPECODE(6),
-  kno_opts_type = KNO_EXTENDED_TYPECODE(7)
+  kno_number_type = KNO_EXTENDED_TYPECODE(0),
+  kno_sequence_type = KNO_EXTENDED_TYPECODE(1),
+  kno_table_type = KNO_EXTENDED_TYPECODE(2),
+  kno_applicable_type = KNO_EXTENDED_TYPECODE(3),
+  kno_keymap_type = KNO_EXTENDED_TYPECODE(4),
+  kno_type_type = KNO_EXTENDED_TYPECODE(5),
+  kno_opts_type = KNO_EXTENDED_TYPECODE(6),
+  kno_frame_type = KNO_EXTENDED_TYPECODE(7),
+  kno_slotid_type = KNO_EXTENDED_TYPECODE(8),
+  kno_xpool_type = KNO_EXTENDED_TYPECODE(9),
+  kno_xindex_type = KNO_EXTENDED_TYPECODE(10)
 
-  } kno_lisp_type;
+} kno_lisp_type;
 
-#define KNO_BUILTIN_CONS_TYPES 47
-/* not really, but it gives us breathing room and they're not
-   clamoring for space :) */
+#define KNO_BUILTIN_CONS_TYPES 48
 #define KNO_BUILTIN_IMMEDIATE_TYPES 12
+#define KNO_BUILTIN_EXTENDED_TYPES 11
+
 KNO_EXPORT unsigned int kno_next_cons_type;
 KNO_EXPORT unsigned int kno_next_immediate_type;
+KNO_EXPORT unsigned int kno_next_extended_type;
 
 typedef int (*kno_checkfn)(lispval);
 KNO_EXPORT kno_checkfn kno_immediate_checkfns[KNO_MAX_IMMEDIATE_TYPES+4];
 
-KNO_EXPORT int kno_register_cons_type(char *name);
-KNO_EXPORT int kno_register_immediate_type(char *name,kno_checkfn fn);
+KNO_EXPORT int kno_register_cons_type(char *name,long int longcode);
+KNO_EXPORT int kno_register_immediate_type(char *name,kno_checkfn fn,long int longcode);
 
 KNO_EXPORT u8_string kno_type_names[KNO_TYPE_MAX];
 KNO_EXPORT u8_string kno_type_docs[KNO_TYPE_MAX];
@@ -268,14 +278,41 @@ KNO_EXPORT u8_string kno_type_docs[KNO_TYPE_MAX];
 
 #define kno_type_name(x) (kno_type2name(KNO_TYPEOF((x))))
 
+/* Type aliases */
+
+struct KNO_TYPE_ALIAS { long int longcode; kno_lisp_type ptr_type; }; 
+
+KNO_EXPORT int kno_add_type_alias(int type,long int code);
+KNO_EXPORT int _kno_lookup_type_alias(long int code);
+KNO_EXPORT struct KNO_TYPE_ALIAS _kno_type_aliases[];
+KNO_EXPORT int _kno_n_type_aliases;
+
+#ifndef KNO_INLINE_TYPE_ALIASES
+#define KNO_INLINE_TYPE_ALIASES 0
+#endif
+
+#if KNO_INLINE_TYPE_ALIASES
+static int kno_lookup_type_alias(long int code)
+{
+  int i = 0; while (i<_kno_n_type_aliases) {
+    if (_kno_type_aliases[i].longcode == code)
+      return _kno_type_aliases[i].ptr_type;
+    else i++;}
+  return -1;
+}
+#else
+#define kno_lookup_type_alias _kno_lookup_type_alias
+#endif
+
 KNO_EXPORT u8_condition kno_get_pointer_exception(lispval x);
 KNO_EXPORT lispval kno_badptr_err(lispval badx,u8_context cxt,u8_string details);
 
 #define KNO_VALID_TYPECODEP(x)                                  \
-  (KNO_EXPECT_TRUE((((int)x)>=0) &&                             \
-                  (((int)x)<256) &&                            \
+  (KNO_USUALLY((((int)x)>=0) &&                             \
+                  (((int)x)<0x200) &&                            \
                   (((x<0x84)&&((x)<kno_next_immediate_type)) || \
-                   ((x>=0x84)&&((x)<kno_next_cons_type)))))
+                   ((x<0x100)&&((x)<kno_next_cons_type)) || \
+		   ((x<0x200)&&((x)<kno_next_cons_type)))))
 
 /* In the type field, 0 means an integer, 1 means an oid, 2 means
    an immediate constant, and 3 means a cons. */
@@ -314,10 +351,10 @@ typedef struct KNO_REF_CONS *kno_ref_cons;
 #define KNO_REF_CONS(x) ((struct KNO_REF_CONS *)(x))
 #endif
 
-#if 0
-KNO_FASTOP U8_MAYBE_UNUSED kno_raw_cons KNO_RAW_CONS(lispval x){ return (kno_raw_cons) x;}
-#else
+#if 1
 #define KNO_RAW_CONS(x) ((kno_raw_cons)(x))
+#else
+KNO_FASTOP U8_MAYBE_UNUSED kno_raw_cons KNO_RAW_CONS(lispval x){ return (kno_raw_cons) x;}
 #endif
 
 /* The bottom 7 bits of the conshead indicates the type of the cons.  The
@@ -331,21 +368,19 @@ KNO_FASTOP U8_MAYBE_UNUSED kno_raw_cons KNO_RAW_CONS(lispval x){ return (kno_raw
 
 #define KNO_CONS_TYPE_OFF  (0x84)
 #define KNO_CONS_TYPE_MASK (0x7f)
-/* These are for cases where a set of basic types are all arranged to
+/* These are for cases where a set of two basic types are arranged to
+   have the same high bytes, making it easy to test for them. */
+#define KNO_XCONS_TYPE_MASK (0x7e)
+/* These are for cases where a set of four basic types are all arranged to
    have the same high bytes, making it easy to test for them. */
 #define KNO_XXCONS_TYPE_MASK (0x7c)
 
-#if 0
-KNO_FASTOP U8_MAYBE_UNUSED kno_cons KNO_CONS_DATA(lispval x){ return (kno_cons) x;}
-KNO_FASTOP U8_MAYBE_UNUSED lispval FDTYPE(lispval x){ return x;}
-KNO_FASTOP U8_MAYBE_UNUSED lispval LISPVAL(lispval x){ return x;}
-KNO_FASTOP U8_MAYBE_UNUSED int _KNO_ISDTYPE(lispval x){ return 1;}
-#define KNO_ISDTYPE(x) (KNO_EXPECT_TRUE(_KNO_ISDTYPE(x)))
-#else
+#if 1
 #define KNO_CONS_DATA(x) ((kno_cons)(x))
-#define FDTYPE(x)       ((lispval)(x))
 #define LISPVAL(x)      ((lispval)(x))
-#define KNO_ISDTYPE(x)   (KNO_EXPECT_TRUE(1))
+#else
+KNO_FASTOP U8_MAYBE_UNUSED kno_cons KNO_CONS_DATA(lispval x){ return (kno_cons) x;}
+KNO_FASTOP U8_MAYBE_UNUSED lispval LISPVAL(lispval x){ return x;}
 #endif
 
 /* Most of the stuff for dealing with conses is in cons.h.  The
@@ -355,20 +390,22 @@ KNO_FASTOP U8_MAYBE_UNUSED int _KNO_ISDTYPE(lispval x){ return 1;}
     gets the cons type. */
 #define LISP_CONS(ptr) ((lispval)ptr)
 
-#define KNO_CONS_TYPE(x) \
-  (( ((x)->conshead) & (KNO_CONS_TYPE_MASK) )+(KNO_CONS_TYPE_OFF))
-#define KNO_CONSPTR_TYPE(x) (KNO_CONS_TYPE((kno_cons)x))
-#define KNO_CONS_TYPEOF(x) KNO_CONS_TYPE((kno_cons)x)
+#define KNO_CONS_TYPEOF(x) \
+  (( (((kno_cons)x)->conshead) & (KNO_CONS_TYPE_MASK) )+(KNO_CONS_TYPE_OFF))
 
-#define KNO_XXCONS_TYPE(x) \
+#define KNO_XXCONS_TYPEOF(x) \
   (( (((kno_cons)(x))->conshead) & (KNO_XXCONS_TYPE_MASK) )+(KNO_CONS_TYPE_OFF))
-#define KNO_XXCONS_TYPEOF(x) (KNO_XXCONS_TYPE((kno_cons)(x)))
 #define KNO_XXCONS_TYPEP(x,type) \
-  ( (KNO_CONSP(x)) && ( (KNO_XXCONS_TYPE((kno_cons)(x))) == ((type)&0xFc) ) )
+  ( (KNO_CONSP(x)) && ( (KNO_XXCONS_TYPEOF((kno_cons)(x))) == ((type)&0xFc) ) )
+
+#define KNO_XCONS_TYPEOF(x) \
+  (( (((kno_cons)(x))->conshead) & (KNO_XCONS_TYPE_MASK) )+(KNO_CONS_TYPE_OFF))
+#define KNO_XCONS_TYPEP(x,type) \
+  ( (KNO_CONSP(x)) && ( (KNO_XCONS_TYPEOF((kno_cons)(x))) == ((type)&0xFc) ) )
 
 #define KNO_CONSPTR(cast,x) ((cast)((kno_cons)x))
 #define kno_consptr(cast,x,typecode)                                     \
-  ((KNO_EXPECT_TRUE(KNO_TYPEP(x,typecode))) ?                           \
+  ((KNO_USUALLY(KNO_TYPEP(x,typecode))) ?                           \
    ((cast)((kno_cons)(x))) :                                            \
    ((((KNO_CHECK_PTR(x)) ?                                              \
       (kno_raise(kno_TypeError,kno_type_names[typecode],NULL,x)) :      \
@@ -401,7 +438,7 @@ KNO_EXPORT kno_lisp_type _KNO_TYPEOF(lispval x);
 #define KNO_TYPEOF(x) \
   (((KNO_PTR_MANIFEST_TYPE(LISPVAL(x)))>1) ? (KNO_PTR_MANIFEST_TYPE(x)) :  \
    ((KNO_PTR_MANIFEST_TYPE(x))==1) ? (KNO_IMMEDIATE_TYPE(x)) : \
-   (x) ? (KNO_CONS_TYPE(((struct KNO_CONS *)KNO_CONS_DATA(x)))) : \
+   (x) ? (KNO_CONS_TYPEOF(((struct KNO_CONS *)KNO_CONS_DATA(x)))) : \
    (-1))
 #endif
 #define KNO_PRIM_TYPE(x)         (KNO_TYPEOF(x))
@@ -419,7 +456,7 @@ KNO_EXPORT int _KNO_XTYPEP(lispval ptr,kno_lisp_type type);
 #define KNO_TYPEP(ptr,type)						                    \
   (((type) < 0x04) ? ( ( (ptr) & (0x3) ) == type) :			\
    ((type) < 0x84) ? ( (KNO_IMMEDIATEP(ptr)) && (KNO_IMMEDIATE_TYPEP(ptr,type)) ) : \
-   ((type) < 0x100) ?  ( (ptr) && (KNO_CONSP(ptr)) && ((KNO_CONSPTR_TYPE(ptr)) == type) ) : \
+   ((type) < 0x100) ?  ( (ptr) && (KNO_CONSP(ptr)) && ((KNO_CONS_TYPEOF(ptr)) == type) ) : \
    (0))
 #endif
 #define KNO_PRIM_TYPEP(x,tp)   ( KNO_TYPEP(x,tp) )
@@ -525,7 +562,7 @@ KNO_FASTOP KNO_OID KNO_MAKE_OID(unsigned int hi,unsigned int lo)
 #define KNO_N_OID_BUCKETS   (1<<(2+KNO_OID_BUCKET_WIDTH))
 
 /* An OID references has 10 bits of base index and 20 bits of offset.
-   This is encoded in a DTYPE pointer with the offset in the high 20 bits
+   This is encoded in a LISP pointer with the offset in the high 20 bits
    and the base in the lower portion. */
 
 struct KNO_OID_BUCKET {
@@ -760,12 +797,12 @@ KNO_EXPORT int _KNO_ERRORP(lispval x);
     (KNO_GET_IMMEDIATE(x,kno_constant_type)>7) && \
     (KNO_GET_IMMEDIATE(x,kno_constant_type)<16)))
 #endif
-#define KNO_TROUBLEP(x) (KNO_EXPECT_FALSE(KNO_ERRORP(x)))
+#define KNO_TROUBLEP(x) (KNO_RARELY(KNO_ERRORP(x)))
 #define KNO_COOLP(x) (!(KNO_TROUBLEP(x)))
 
-#define KNO_BROKEP(x) (KNO_EXPECT_FALSE(KNO_BREAKP(x)))
-#define KNO_ABORTED(x) (KNO_EXPECT_FALSE(KNO_ABORTP(x)))
-#define KNO_INTERRUPTED() (KNO_EXPECT_FALSE(u8_current_exception!=(NULL)))
+#define KNO_BROKEP(x) (KNO_RARELY(KNO_BREAKP(x)))
+#define KNO_ABORTED(x) (KNO_RARELY(KNO_ABORTP(x)))
+#define KNO_INTERRUPTED() (KNO_RARELY(u8_current_exception!=(NULL)))
 
 #define KNO_CONSTANTP(x) (KNO_IMMEDIATE_TYPEP(x,kno_constant_type))
 
@@ -802,6 +839,89 @@ KNO_EXPORT int _KNO_ERRORP(lispval x);
 #define KNO_OPCODE_NUM(op) (KNO_GET_IMMEDIATE(op,kno_opcode_type))
 #define KNO_NEXT_OPCODE(op) \
   (LISPVAL_IMMEDIATE(kno_opcode_type,(1+(KNO_OPCODE_NUM(op)))))
+
+/* CTYPE types */
+
+#define KNO_CTYPE(ctype) (LISPVAL_IMMEDIATE(kno_ctype_type,((int)ctype)))
+
+#define KNO_OID_TYPE KNO_CTYPE(kno_oid_type)
+#define KNO_CONS_TYPE KNO_CTYPE(kno_cons_type)
+#define KNO_FIXNUM_TYPE KNO_CTYPE(kno_fixnum_type)
+#define KNO_IMEDIATE_TYPE KNO_CTYPE(kno_immediate_type)
+
+#define KNO_CONSTANT_TYPE KNO_CTYPE(kno_constant_type)
+#define KNO_CHARACTER_TYPE KNO_CTYPE(kno_character_type)
+#define KNO_SYMBOL_TYPE KNO_CTYPE(kno_symbol_type)
+#define KNO_FCNID_TYPE KNO_CTYPE(kno_fcnid_type)
+#define KNO_LEXREF_TYPE KNO_CTYPE(kno_lexref_type)
+#define KNO_OPCODE_TYPE KNO_CTYPE(kno_opcode_type)
+#define KNO_TYPEREF_TYPE KNO_CTYPE(kno_typeref_type)
+#define KNO_CODEREF_TYPE KNO_CTYPE(kno_coderef_type)
+#define KNO_POOL_TYPE KNO_CTYPE(kno_pool_type)
+#define KNO_INDEX_TYPE KNO_CTYPE(kno_index_type)
+#define KNO_HISTREF_TYPE KNO_CTYPE(kno_histref_type)
+#define KNO_CTYPE_TYPE KNO_CTYPE(kno_ctype_type)
+#define KNO_STRING_TYPE KNO_CTYPE(kno_string_type)
+#define KNO_PACKET_TYPE KNO_CTYPE(kno_packet_type)
+#define KNO_VECTOR_TYPE KNO_CTYPE(kno_vector_type)
+#define KNO_NUMERIC_VECTOR_TYPE KNO_CTYPE(kno_numeric_vector_type)
+#define KNO_PAIR_TYPE KNO_CTYPE(kno_pair_type)
+#define KNO_CDRCODE_TYPE KNO_CTYPE(kno_cdrcode_type)
+#define KNO_SECRET_TYPE KNO_CTYPE(kno_secret_type)
+#define KNO_BIGINT_TYPE KNO_CTYPE(kno_bigint_type)
+#define KNO_CHOICE_TYPE KNO_CTYPE(kno_choice_type)
+#define KNO_PRECHOICE_TYPE KNO_CTYPE(kno_prechoice_type)
+#define KNO_QCHOICE_TYPE KNO_CTYPE(kno_qchoice_type)
+#define KNO_TYPEINFO_TYPE KNO_CTYPE(kno_typeinfo_type)
+#define KNO_COMPOUND_TYPE KNO_CTYPE(kno_compound_type)
+#define KNO_RAWPTR_TYPE KNO_CTYPE(kno_rawptr_type)
+#define KNO_IOPORT_TYPE KNO_CTYPE(kno_ioport_type)
+#define KNO_REGEX_TYPE KNO_CTYPE(kno_regex_type)
+#define KNO_CORETABLE_TYPE KNO_CTYPE(kno_coretable_type)
+#define KNO_SLOTMAP_TYPE KNO_CTYPE(kno_slotmap_type)
+#define KNO_SCHEMAP_TYPE KNO_CTYPE(kno_schemap_type)
+#define KNO_HASHTABLE_TYPE KNO_CTYPE(kno_hashtable_type)
+#define KNO_HASHSET_TYPE KNO_CTYPE(kno_hashset_type)
+#define KNO_FUNCTION_TYPE KNO_CTYPE(kno_function_type)
+#define KNO_CPRIM_TYPE KNO_CTYPE(kno_cprim_type)
+#define KNO_LAMBDA_TYPE KNO_CTYPE(kno_lambda_type)
+#define KNO_FFI_TYPE KNO_CTYPE(kno_ffi_type)
+#define KNO_RPC_TYPE KNO_CTYPE(kno_rpc_type)
+#define KNO_LEXENV_TYPE KNO_CTYPE(kno_lexenv_type)
+#define KNO_EVALFN_TYPE KNO_CTYPE(kno_evalfn_type)
+#define KNO_MACRO_TYPE KNO_CTYPE(kno_macro_type)
+#define KNO_STACKFRAME_TYPE KNO_CTYPE(kno_stackframe_type)
+#define KNO_EXCEPTION_TYPE KNO_CTYPE(kno_exception_type)
+#define KNO_PROMISE_TYPE KNO_CTYPE(kno_promise_type)
+#define KNO_THREAD_TYPE KNO_CTYPE(kno_thread_type)
+#define KNO_SYNCHRONIZER_TYPE KNO_CTYPE(kno_synchronizer_type)
+#define KNO_CONSBLOCK_TYPE KNO_CTYPE(kno_consblock_type)
+#define KNO_COMPLEX_TYPE KNO_CTYPE(kno_complex_type)
+#define KNO_RATIONAL_TYPE KNO_CTYPE(kno_rational_type)
+#define KNO_FLONUM_TYPE KNO_CTYPE(kno_flonum_type)
+#define KNO_TIMESTAMP_TYPE KNO_CTYPE(kno_timestamp_type)
+#define KNO_UUID_TYPE KNO_CTYPE(kno_uuid_type)
+#define KNO_MYSTERY_TYPE KNO_CTYPE(kno_mystery_type)
+#define KNO_STREAM_TYPE KNO_CTYPE(kno_stream_type)
+#define KNO_SERVICE_TYPE KNO_CTYPE(kno_service_type)
+#define KNO_BLOOM_FILTER KNO_CTYPE(_type)
+#define KNO_SQLDB_TYPE KNO_CTYPE(kno_sqldb_type)
+#define KNO_SQLPROC_TYPE KNO_CTYPE(kno_sqlproc_type)
+#define KNO_PATHSTORE_TYPE KNO_CTYPE(kno_pathstore_type)
+#define KNO_CONSED_INDEX KNO_CTYPE(_type)
+#define KNO_CONSED_POOL KNO_CTYPE(_type)
+#define KNO_SUBJOB_TYPE KNO_CTYPE(kno_subjob_type)
+#define KNO_NUMBER_TYPE KNO_CTYPE(kno_number_type)
+#define KNO_SEQUENCE_TYPE KNO_CTYPE(kno_sequence_type)
+#define KNO_TABLE_TYPE KNO_CTYPE(kno_table_type)
+#define KNO_APPLICABLE_TYPE KNO_CTYPE(kno_applicable_type)
+#define KNO_KEYMAP_TYPE KNO_CTYPE(kno_keymap_type)
+#define KNO_TYPE_TYPE KNO_CTYPE(kno_type_type)
+#define KNO_OPTS_TYPE KNO_CTYPE(kno_opts_type)
+#define KNO_FRAME_TYPE KNO_CTYPE(kno_frame_type)
+#define KNO_SLOTID_TYPE KNO_CTYPE(kno_slotid_type)
+#define KNO_XPOOL_TYPE KNO_CTYPE(kno_xpool_type)
+#define KNO_XINDEX_TYPE KNO_CTYPE(kno_xindex_type)
 
 /* Symbols */
 
@@ -912,7 +1032,7 @@ static U8_MAYBE_UNUSED lispval _kno_fcnid_ref(lispval ref)
 {
   if (KNO_IMMEDIATE_TYPEP(ref,kno_fcnid_type)) {
     int serialno = KNO_GET_IMMEDIATE(ref,kno_fcnid_type);
-    if (KNO_EXPECT_FALSE(serialno>_kno_fcnid_count))
+    if (KNO_RARELY(serialno>_kno_fcnid_count))
       return kno_err(kno_InvalidFCNID,"_kno_fcnid_ref",NULL,ref);
     else return (lispval) _kno_fcnids
            [serialno/KNO_FCNID_BLOCKSIZE]
@@ -925,7 +1045,7 @@ static U8_MAYBE_UNUSED lispval _kno_fcnid_ref(lispval ref)
 #endif
 
 #define KNO_FCNID_TYPEP(x,tp)    (KNO_TYPEP(kno_fcnid_ref(x),tp))
-#define KNO_FCNID_TYPE(x)        (KNO_TYPEOF(kno_fcnid_ref(x)))
+#define KNO_FCNID_TYPEOF(x)      (KNO_TYPEOF(kno_fcnid_ref(x)))
 
 /* Numeric macros */
 
@@ -1021,59 +1141,6 @@ KNO_EXPORT int kno_walk(kno_walker walker,lispval obj,void *walkdata,
 
 KNO_EXPORT void lispval_sort(lispval *v,size_t n,kno_compare_flags flags);
 
-/* KNO_SOURCE aliases */
-
-#if KNO_SOURCE
-#define VOID       (KNO_VOID)
-#define VOIDP(x)   (KNO_VOIDP(x))
-#define DEFAULTP(x) (KNO_DEFAULTP(x))
-#define EMPTY      (KNO_EMPTY_CHOICE)
-#define EMPTYP(x)  (KNO_EMPTY_CHOICEP(x))
-#define EXISTSP(x) (! (KNO_EMPTY_CHOICEP(x)) )
-#define NIL        (KNO_EMPTY_LIST)
-#define NILP(x)    (KNO_EMPTY_LISTP(x))
-#define CONSP(x)   (KNO_CONSP(x))
-#define ATOMICP(x) (KNO_ATOMICP(x))
-#define TYPEP(o,t) (KNO_TYPEP((o),(t)))
-#define CHOICEP(x) (KNO_CHOICEP(x))
-#define FIXNUMP(x) (KNO_FIXNUMP(x))
-#define NUMBERP(x) (KNO_NUMBERP(x))
-#define TABLEP(x)  (KNO_TABLEP(x))
-#define PAIRP(x)   (KNO_PAIRP(x))
-#define VECTORP(x) (KNO_VECTORP(x))
-#define SYMBOLP(x) (KNO_SYMBOLP(x))
-#define STRINGP(x) (KNO_STRINGP(x))
-#define PACKETP(x) (KNO_PACKETP(x))
-#define FALSEP(x)  (KNO_FALSEP(x))
-#define OIDP(x)    (KNO_OIDP(x))
-#define FIX2INT(x) (KNO_FIX2INT(x))
-#define DO_CHOICES KNO_DO_CHOICES
-#define DOLIST     KNO_DOLIST
-#define CHOICE_ADD KNO_ADD_TO_CHOICE
-#define EQ         KNO_EQ
-#define ABORTP(x)  (KNO_ABORTP(x))
-#define ABORTED(x) (KNO_ABORTED(x))
-#define STRLEN(x)  (KNO_STRLEN(x))
-#define CSTRING(x) (KNO_CSTRING(x))
-#define VEC_LEN(x)  (KNO_VECTOR_LENGTH(x))
-#define VEC_DATA(x)  (KNO_VECTOR_DATA(x))
-#define VEC_REF(x,i) (KNO_VECTOR_REF((x),(i)))
-#define SYM_NAME(x) (KNO_SYMBOL_NAME(x))
-#define PRECHOICEP(x) (KNO_PRECHOICEP(x))
-#define QCHOICEP(x) (KNO_QCHOICEP(x))
-#define AMBIGP(x)   (KNO_AMBIGP(x))
-#define SLOTMAPP(x) (KNO_SLOTMAPP(x))
-#define SCHEMAPP(x) (KNO_SCHEMAPP(x))
-#define HASHTABLEP(x) (KNO_HASHTABLEP(x))
-#define PRED_FALSE(x)  (KNO_EXPECT_FALSE(x))
-#define PRED_TRUE(x)  (KNO_EXPECT_TRUE(x))
-#define SYMBOL_NAME(x) (KNO_SYMBOL_NAME(x))
-#define COMPOUND_VECTORP(x) (KNO_COMPOUND_VECTORP(x))
-#define COMPOUND_VECLEN(x)  (KNO_COMPOUND_VECLEN(x))
-#define COMPOUND_VECELTS(x)  (KNO_COMPOUND_VECELTS(x))
-#define XCOMPOUND_VEC_REF(x,i) (KNO_XCOMPOUND_VECREF((x),(i)))
-#endif
-
 /* Debugging support */
 
 KNO_EXPORT kno_lisp_type _kno_typeof(lispval x);
@@ -1083,39 +1150,36 @@ KNO_EXPORT lispval _kno_debug(lispval x);
 
 KNO_EXPORT int kno_check_immediate(lispval);
 
-#define KNO_CHECK_CONS_PTR(x)                          \
- ((KNO_ISDTYPE(x))&&                                   \
-  ((KNO_FIXNUMP(x)) ? (1) :                          \
-   (KNO_OIDP(x)) ? (((x>>2)&0x3FF)<kno_n_base_oids) : \
-   (x==0) ? (0) :                                   \
-   (KNO_CONSP(x)) ?                                  \
-   (x == KNO_NULL) ? (0) :                           \
-   (((((KNO_CONS *)x)->conshead)<0xFFFFFF80) &&       \
-    (KNO_CONS_TYPE((KNO_CONS *)x)>3) &&                  \
-    (KNO_CONS_TYPE((KNO_CONS *)x)<kno_next_cons_type)) : \
-   (kno_check_immediate(x))))
+#define KNO_CHECK_CONS_PTR(x)				 \
+  ((KNO_FIXNUMP(x)) ? (1) :				 \
+   (KNO_OIDP(x)) ? (((x>>2)&0x3FF)<kno_n_base_oids) :	 \
+   (x==0) ? (0) :					 \
+   (KNO_CONSP(x)) ?					 \
+   (x == KNO_NULL) ? (0) :				 \
+   (((((KNO_CONS *)x)->conshead)<0xFFFFFF80) &&		 \
+    (KNO_CONS_TYPEOF((KNO_CONS *)x)>3) &&			 \
+    (KNO_CONS_TYPEOF((KNO_CONS *)x)<kno_next_cons_type)) : \
+   (kno_check_immediate(x)))
 
-#define KNO_CHECK_ATOMIC_PTR(x)                     \
- ((KNO_ISDTYPE(x))&&                                  \
-  ((KNO_FIXNUMP(x)) ? (1) :                          \
-   (KNO_OIDP(x)) ? (((x>>2)&0x3FF)<kno_n_base_oids) : \
-   (x==0) ? (0) :                                   \
-   (KNO_CONSP(x)) ? ((x == KNO_NULL) ? (0) : (1)) :           \
-   (kno_check_immediate(x))))
+#define KNO_CHECK_ATOMIC_PTR(x)				      \
+  ((KNO_FIXNUMP(x)) ? (1) :				      \
+   (KNO_OIDP(x)) ? (((x>>2)&0x3FF)<kno_n_base_oids) :	      \
+   (KNO_CONSP(x)) ? ((x == KNO_NULL) ? (0) : (1)) :	      \
+   (kno_check_immediate(x)))
 
 #if KNO_FULL_CHECK_PTR
-#define KNO_CHECK_PTR(p) (KNO_EXPECT_TRUE(KNO_CHECK_CONS_PTR(p)))
+#define KNO_CHECK_PTR(p) (KNO_USUALLY(KNO_CHECK_CONS_PTR(p)))
 #else
-#define KNO_CHECK_PTR(p) (KNO_EXPECT_TRUE(KNO_CHECK_ATOMIC_PTR(p)))
+#define KNO_CHECK_PTR(p) (KNO_USUALLY(KNO_CHECK_ATOMIC_PTR(p)))
 #endif
 
 #ifdef KNO_PTR_DEBUG_LEVEL
 #if (KNO_PTR_DEBUG_LEVEL>2)
-#define KNO_DEBUG_BADPTRP(x) (KNO_EXPECT_FALSE(!(KNO_CHECK_PTR(x))))
+#define KNO_DEBUG_BADPTRP(x) (KNO_RARELY(!(KNO_CHECK_PTR(x))))
 #elif (KNO_PTR_DEBUG_LEVEL==2)
-#define KNO_DEBUG_BADPTRP(x) (KNO_EXPECT_FALSE(!(KNO_CHECK_ATOMIC_PTR(x))))
+#define KNO_DEBUG_BADPTRP(x) (KNO_RARELY(!(KNO_CHECK_ATOMIC_PTR(x))))
 #elif (KNO_PTR_DEBUG_LEVEL==1)
-#define KNO_DEBUG_BADPTRP(x) (KNO_EXPECT_FALSE((x) == KNO_NULL))
+#define KNO_DEBUG_BADPTRP(x) (KNO_RARELY((x) == KNO_NULL))
 #else
 #define KNO_DEBUG_BADPTRP(x) (0)
 #endif

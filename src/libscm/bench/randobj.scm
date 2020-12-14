@@ -1,4 +1,4 @@
-(in-module 'randobj)
+(in-module 'bench/randobj)
 
 (module-export! '{random-fixnum random-bignum 
 		  random-packet random-character

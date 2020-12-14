@@ -219,7 +219,7 @@ KNO_EXPORT lispval kno_slotids_arg(lispval arg);
 /* Functional arguments */
 
 #define KNO_ISFUNARG(fn) \
-  (KNO_EXPECT_TRUE((fn == KNO_VOID)||(fn == KNO_FALSE)||(KNO_APPLICABLEP(fn))))
+  (KNO_USUALLY((fn == KNO_VOID)||(fn == KNO_FALSE)||(KNO_APPLICABLEP(fn))))
 
 /* Matching db file names */
 

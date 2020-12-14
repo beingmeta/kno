@@ -118,8 +118,9 @@ static u8_string get_testid(lispval fn,int n,kno_argvec args)
   return id;
 }
 
-DEFPRIM("applytest",applytest,KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	"`(APPLYTEST *arg0* *arg1* *args...*)` **undocumented**");
+DEFCPRIMN("applytest",applytest,
+	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	  "**undocumented**")
 static lispval applytest(int n,kno_argvec args)
 {
   lispval expected = args[0], return_value;
@@ -354,6 +355,26 @@ static lispval errtest_evalfn(lispval expr,kno_lexenv env,kno_stack s)
       return KNO_FALSE;}}
 }
 
+DEFCPRIM("testfn1",testfn1,MAX_ARGS(1)|MIN_ARGS(1),
+	 "This function helps look at how things get compiled "
+	 "when disassembled",
+	 {"object",kno_any_type,KNO_VOID})
+static lispval testfn1(lispval object)
+{
+  /* If 'properly' compiled, the first three TYPEP calls should
+     be one-instruction comparisons the cons type with immediate
+     constant values. */
+  if (KNO_TYPEP(object,kno_string_type))
+    return KNO_INT(1);
+  else if (KNO_TYPEP(object,kno_pair_type))
+    return KNO_INT(2);
+  else if (KNO_TYPEP(object,kno_vector_type))
+    return KNO_INT(3);
+  else if (KNO_TYPEP(object,kno_symbol_type))
+    return KNO_INT(4);
+  else return KNO_INT(5);
+}
+
 /* Initialization */
 
 KNO_EXPORT void kno_init_eval_testops_c()
@@ -392,5 +413,6 @@ KNO_EXPORT void kno_init_eval_testops_c()
 
 static void link_local_cprims()
 {
-  KNO_LINK_VARARGS("applytest",applytest,kno_scheme_module);
+  KNO_LINK_CVARARGS("applytest",applytest,kno_scheme_module);
+  KNO_LINK_CPRIM("testfn1",testfn1,1,kno_scheme_module);
 }

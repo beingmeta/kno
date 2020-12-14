@@ -44,13 +44,13 @@ static lispval delay_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     return (lispval) promise;}
 }
 
-DEFPRIM1("force",force_promise_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-         "`(FORCE *promise*)` "
-         "returns the value promised by *promise*. If "
-         "*promise* is not a promise object, it is simply "
-         "returned. Promises only compute their values "
-         "once, so the result of the first call is memoized",
-         kno_any_type,KNO_VOID);
+DEFCPRIM("force",force_promise_prim,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "returns the value promised by *promise*. If "
+	 "*promise* is not a promise object, it is simply "
+	 "returned. Promises only compute their values "
+	 "once, so the result of the first call is memoized",
+	 {"promise",kno_any_type,KNO_VOID})
 static lispval force_promise_prim(lispval promise)
 {
   if (KNO_TYPEP(promise,kno_promise_type)) {
@@ -107,13 +107,14 @@ KNO_EXPORT lispval kno_force_promise(lispval promise)
   else return kno_incref(promise);
 }
 
-DEFPRIM2("promise/probe",probe_promise_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-         "`(PROMISE/PROBE *promise* *marker*)` "
-         "returns the value promised by *promise* if it has "
-         "been resolved. If *promise* has not been "
-         "resolved, *marker* is returned and if *promise* "
-         "is not a promise it is returned.",
-         kno_any_type,KNO_VOID,kno_any_type,KNO_FALSE);
+DEFCPRIM("promise/probe",probe_promise_prim,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	 "returns the value promised by *promise* if it has "
+	 "been resolved. If *promise* has not been "
+	 "resolved, *marker* is returned and if *promise* "
+	 "is not a promise it is returned.",
+	 {"promise",kno_any_type,KNO_VOID},
+	 {"marker",kno_any_type,KNO_FALSE})
 static lispval probe_promise_prim(lispval promise,lispval marker)
 {
   if (KNO_TYPEP(promise,kno_promise_type)) {
@@ -124,11 +125,11 @@ static lispval probe_promise_prim(lispval promise,lispval marker)
   else return kno_incref(promise);
 }
 
-DEFPRIM1("make-promise",make_promise_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-         "`(MAKE-PROMISE *value*)` "
-         "returns a promise which returns *value* when "
-         "FORCEd.",
-         kno_any_type,KNO_VOID);
+DEFCPRIM("make-promise",make_promise_prim,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "returns a promise which returns *value* when "
+	 "FORCEd.",
+	 {"value",kno_any_type,KNO_VOID})
 static lispval make_promise_prim(lispval value)
 {
   struct KNO_PROMISE *promise = u8_alloc(struct KNO_PROMISE);
@@ -141,11 +142,11 @@ static lispval make_promise_prim(lispval value)
   return (lispval) promise;
 }
 
-DEFPRIM1("promise/resolved?",promise_resolvedp_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-         "`(PROMISE/RESOLVED? *promise*)` "
-         "returns #t if *promise* has had its value "
-         "computed and cached (or generated an error).",
-         kno_promise_type,KNO_VOID);
+DEFCPRIM("promise/resolved?",promise_resolvedp_prim,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "returns #t if *promise* has had its value "
+	 "computed and cached (or generated an error).",
+	 {"value",kno_promise_type,KNO_VOID})
 static lispval promise_resolvedp_prim(lispval value)
 {
   struct KNO_PROMISE *promise = (kno_promise) value;
@@ -154,11 +155,11 @@ static lispval promise_resolvedp_prim(lispval value)
   else return KNO_FALSE;
 }
 
-DEFPRIM1("promise/broken?",promise_brokenp_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-         "`(PROMISE/BROKEN? *promise*)` "
-         "returns #t if *promise* generated an error when "
-         "evaluated.",
-         kno_promise_type,KNO_VOID);
+DEFCPRIM("promise/broken?",promise_brokenp_prim,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "returns #t if *promise* generated an error when "
+	 "evaluated.",
+	 {"value",kno_promise_type,KNO_VOID})
 static lispval promise_brokenp_prim(lispval value)
 {
   struct KNO_PROMISE *promise = (kno_promise) value;
@@ -168,11 +169,11 @@ static lispval promise_brokenp_prim(lispval value)
   else return KNO_FALSE;
 }
 
-DEFPRIM1("promise/satisfied?",promise_satisfiedp_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-         "`(PROMISE/SATISFIED? *promise*)` "
-         "returns #t if *promise* has been computed and "
-         "cached without error.",
-         kno_promise_type,KNO_VOID);
+DEFCPRIM("promise/satisfied?",promise_satisfiedp_prim,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "returns #t if *promise* has been computed and "
+	 "cached without error.",
+	 {"value",kno_promise_type,KNO_VOID})
 static lispval promise_satisfiedp_prim(lispval value)
 {
   struct KNO_PROMISE *promise = (kno_promise) value;
@@ -182,10 +183,10 @@ static lispval promise_satisfiedp_prim(lispval value)
   else return KNO_FALSE;
 }
 
-DEFPRIM1("promise?",promisep_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-         "`(PROMISE? *value*)` "
-         "returns true if *value* is a promise.",
-         kno_any_type,KNO_VOID);
+DEFCPRIM("promise?",promisep_prim,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "returns true if *value* is a promise.",
+	 {"value",kno_any_type,KNO_VOID})
 static lispval promisep_prim(lispval value)
 {
   if (KNO_TYPEP(value,kno_promise_type))
@@ -254,11 +255,11 @@ KNO_EXPORT int kno_init_promises_c()
 
 static void link_local_cprims()
 {
-  KNO_LINK_PRIM("promise?",promisep_prim,1,kno_scheme_module);
-  KNO_LINK_PRIM("promise/satisfied?",promise_satisfiedp_prim,1,kno_scheme_module);
-  KNO_LINK_PRIM("promise/broken?",promise_brokenp_prim,1,kno_scheme_module);
-  KNO_LINK_PRIM("promise/resolved?",promise_resolvedp_prim,1,kno_scheme_module);
-  KNO_LINK_PRIM("make-promise",make_promise_prim,1,kno_scheme_module);
-  KNO_LINK_PRIM("promise/probe",probe_promise_prim,2,kno_scheme_module);
-  KNO_LINK_PRIM("force",force_promise_prim,1,kno_scheme_module);
+  KNO_LINK_CPRIM("promise?",promisep_prim,1,kno_scheme_module);
+  KNO_LINK_CPRIM("promise/satisfied?",promise_satisfiedp_prim,1,kno_scheme_module);
+  KNO_LINK_CPRIM("promise/broken?",promise_brokenp_prim,1,kno_scheme_module);
+  KNO_LINK_CPRIM("promise/resolved?",promise_resolvedp_prim,1,kno_scheme_module);
+  KNO_LINK_CPRIM("make-promise",make_promise_prim,1,kno_scheme_module);
+  KNO_LINK_CPRIM("promise/probe",probe_promise_prim,2,kno_scheme_module);
+  KNO_LINK_CPRIM("force",force_promise_prim,1,kno_scheme_module);
 }

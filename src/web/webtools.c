@@ -37,6 +37,7 @@ KNO_EXPORT void kno_init_webtools()
     kno_init_xmldata_c();
     kno_init_xmlinput_c();
     kno_init_mime_c();
+    kno_init_dns_c();
     kno_init_email_c();
     kno_init_xmleval_c();
     kno_init_cgiexec_c();
@@ -45,8 +46,8 @@ KNO_EXPORT void kno_init_webtools()
 #if (KNO_WITH_CURL)
     kno_init_curl_c();
 #endif
-    kno_finish_module(webtools_module);
-    kno_finish_module(xhtml_module);}
+    kno_finish_cmodule(webtools_module);
+    kno_finish_cmodule(xhtml_module);}
 
   u8_threadcheck();
 

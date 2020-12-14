@@ -30,35 +30,40 @@ static lispval baseoids_symbol;
 
 /* Hashing functions */
 
-DEFPRIM1("hash-dtype1",lisphash1,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(HASH-DTYPE1 *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
+DEFCPRIM("hash-dtype1",lisphash1,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "**undocumented**",
+	 {"x",kno_any_type,KNO_VOID})
 static lispval lisphash1(lispval x)
 {
   int hash = kno_hash_lisp1(x);
   return KNO_INT(hash);
 }
-DEFPRIM1("hash-dtype2",lisphash2,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(HASH-DTYPE2 *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
+
+DEFCPRIM("hash-dtype2",lisphash2,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "**undocumented**",
+	 {"x",kno_any_type,KNO_VOID})
 static lispval lisphash2(lispval x)
 {
   int hash = kno_hash_lisp2(x);
   return KNO_INT(hash);
 }
 
-DEFPRIM1("hash-dtype3",lisphash3,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(HASH-DTYPE3 *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
+DEFCPRIM("hash-dtype3",lisphash3,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "**undocumented**",
+	 {"x",kno_any_type,KNO_VOID})
 static lispval lisphash3(lispval x)
 {
   int hash = kno_hash_lisp3(x);
   return KNO_INT(hash);
 }
 
-DEFPRIM1("hash-dtype-rep",lisphashdtype,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(HASH-DTYPE-REP *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
+DEFCPRIM("hash-dtype-rep",lisphashdtype,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "**undocumented**",
+	 {"x",kno_any_type,KNO_VOID})
 static lispval lisphashdtype(lispval x)
 {
   unsigned int hash = kno_hash_dtype_rep(x);
@@ -67,9 +72,10 @@ static lispval lisphashdtype(lispval x)
 
 /* Various OPS */
 
-DEFPRIM1("index-slotids",index_slotids,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(INDEX-SLOTIDS *arg0*)` **undocumented**",
-	 kno_any_type,KNO_VOID);
+DEFCPRIM("index-slotids",index_slotids,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "**undocumented**",
+	 {"index_arg",kno_any_type,KNO_VOID})
 static lispval index_slotids(lispval index_arg)
 {
   struct KNO_INDEX *ix = kno_lisp2index(index_arg);
@@ -78,9 +84,9 @@ static lispval index_slotids(lispval index_arg)
   else return kno_index_ctl(ix,kno_slotids_op,0,NULL);
 }
 
-DEFPRIM("indexctl",indexctl_prim,
-	KNO_NDCALL|KNO_VAR_ARGS|KNO_MIN_ARGS(2),
-	"`(INDEXCTL *arg0* *arg1* *args...*)` **undocumented**");
+DEFCPRIMN("indexctl",indexctl_prim,
+	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	  "**undocumented**")
 static lispval indexctl_prim(int n,kno_argvec args)
 {
   if (KNO_EMPTYP(args[0]))
@@ -107,9 +113,9 @@ static lispval indexctl_prim(int n,kno_argvec args)
   else return kno_index_ctl(ix,args[1],n-2,args+2);
 }
 
-DEFPRIM("indexctl/default",indexctl_default_prim,
-	KNO_NDCALL|KNO_VAR_ARGS|KNO_MIN_ARGS(2),
-	"`(INDEXCTL/DEFAULT *arg0* *arg1* *args...*)` **undocumented**");
+DEFCPRIMN("indexctl/default",indexctl_default_prim,
+	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	  "**undocumented**")
 static lispval indexctl_default_prim(int n,kno_argvec args)
 {
   if (!(SYMBOLP(args[1])))
@@ -138,9 +144,9 @@ static lispval indexctl_default_prim(int n,kno_argvec args)
     else return kno_default_indexctl(ix,args[1],n-2,args+2);}
 }
 
-DEFPRIM("poolctl",poolctl_prim,
-	KNO_NDCALL|KNO_VAR_ARGS|KNO_MIN_ARGS(2),
-	"`(POOLCTL *arg0* *arg1* *args...*)` **undocumented**");
+DEFCPRIMN("poolctl",poolctl_prim,
+	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	  "**undocumented**")
 static lispval poolctl_prim(int n,kno_argvec args)
 {
   if (KNO_EMPTYP(args[0]))
@@ -167,9 +173,9 @@ static lispval poolctl_prim(int n,kno_argvec args)
   else return kno_pool_ctl(p,args[1],n-2,args+2);
 }
 
-DEFPRIM("poolctl/default",poolctl_default_prim,
-	KNO_NDCALL|KNO_VAR_ARGS|KNO_MIN_ARGS(2),
-	"`(POOLCTL/DEFAULT *arg0* *arg1* *args...*)` **undocumented**");
+DEFCPRIMN("poolctl/default",poolctl_default_prim,
+	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	  "**undocumented**")
 static lispval poolctl_default_prim(int n,kno_argvec args)
 {
   if (!(SYMBOLP(args[1])))
@@ -199,12 +205,12 @@ static lispval poolctl_default_prim(int n,kno_argvec args)
 
 /* DBCTL */
 
-DEFPRIM("dbctl",dbctl_prim,
-	KNO_NDCALL|KNO_VAR_ARGS|KNO_MIN_ARGS(2),
-	"(DBCTL *dbref* *op* ... *args*) "
-	"performs an operation *op* on the pool or index "
-	"*dbref* with *args*. *op* is a symbol and *dbref* "
-	"must be a pool or index object.");
+DEFCPRIMN("dbctl",dbctl_prim,
+	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	  "(DBCTL *dbref* *op* ... *args*) "
+	  "performs an operation *op* on the pool or index "
+	  "*dbref* with *args*. *op* is a symbol and *dbref* "
+	  "must be a pool or index object.")
 static lispval dbctl_prim(int n,kno_argvec args)
 {
   lispval db = args[0];
@@ -242,11 +248,13 @@ static lispval dbctl_prim(int n,kno_argvec args)
 
 /* ALCOR bindings */
 
-DEFPRIM3("alcor/save!",alcor_save_prim,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3),
+DEFCPRIM("alcor/save!",alcor_save_prim,
+	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3),
 	 "(ALCOR/SAVE! src head len) "
 	 "copies the first *len* bytes of *src* into *head*",
-	 kno_string_type,KNO_VOID,kno_string_type,KNO_VOID,
-	 kno_fixnum_type,KNO_VOID);
+	 {"source",kno_string_type,KNO_VOID},
+	 {"head",kno_string_type,KNO_VOID},
+	 {"size_arg",kno_fixnum_type,KNO_VOID})
 static lispval alcor_save_prim(lispval source,lispval head,lispval size_arg)
 {
   ssize_t size = KNO_FIX2INT(size_arg);
@@ -256,12 +264,14 @@ static lispval alcor_save_prim(lispval source,lispval head,lispval size_arg)
   else return KNO_INT(rv);
 }
 
-DEFPRIM2("alcor/apply!",alcor_apply_prim,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+DEFCPRIM("alcor/apply!",alcor_apply_prim,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 "(ALCOR/APPLY! head src) "
 	 "copies *head* into the beginning of *src* (all "
 	 "but the last 8 bytes) and truncates *src* to the "
 	 "length specified in the last eight bytes of *head*",
-	 kno_string_type,KNO_VOID,kno_string_type,KNO_VOID);
+	 {"head",kno_string_type,KNO_VOID},
+	 {"source",kno_string_type,KNO_VOID})
 static lispval alcor_apply_prim(lispval head,lispval source)
 {
   ssize_t rv = kno_apply_head(KNO_CSTRING(head),KNO_CSTRING(source));
@@ -276,7 +286,7 @@ static int scheme_driverfns_initialized = 0;
 
 static lispval driverfns_module;
 
-KNO_EXPORT void kno_init_driverfns_c()
+KNO_EXPORT void kno_init_driverprims_c()
 {
   baseoids_symbol = kno_intern("%baseoids");
 
@@ -284,32 +294,30 @@ KNO_EXPORT void kno_init_driverfns_c()
   scheme_driverfns_initialized = 1;
   kno_init_scheme();
   kno_init_drivers();
-  driverfns_module = kno_new_cmodule
-    ("driverfns",(KNO_MODULE_DEFAULT),kno_init_driverfns_c);
+  driverfns_module = kno_new_cmodule("db/drivers",(0),kno_init_driverprims_c);
   u8_register_source_file(_FILEINFO);
   link_local_cprims();
 
-  kno_finish_module(driverfns_module);
+  kno_finish_cmodule(driverfns_module);
 }
-
 
 static void link_local_cprims()
 {
-  lispval db_module = kno_db_module;
+  KNO_LINK_CVARARGS("dbctl",dbctl_prim,kno_db_module);
+  KNO_LINK_CVARARGS("poolctl",poolctl_prim,kno_db_module);
+  KNO_LINK_CVARARGS("indexctl",indexctl_prim,kno_db_module);
+  KNO_LINK_CPRIM("index-slotids",index_slotids,1,kno_db_module);
 
-  KNO_LINK_PRIM("alcor/apply!",alcor_apply_prim,2,driverfns_module);
-  KNO_LINK_PRIM("alcor/save!",alcor_save_prim,3,driverfns_module);
-  KNO_LINK_VARARGS("dbctl",dbctl_prim,kno_db_module);
-  KNO_LINK_VARARGS("poolctl/default",poolctl_default_prim,kno_db_module);
-  KNO_LINK_VARARGS("poolctl",poolctl_prim,kno_db_module);
-  KNO_LINK_VARARGS("indexctl/default",indexctl_default_prim,kno_db_module);
-  KNO_LINK_VARARGS("indexctl",indexctl_prim,kno_db_module);
-  KNO_LINK_PRIM("index-slotids",index_slotids,1,kno_db_module);
-  KNO_LINK_PRIM("hash-dtype-rep",lisphashdtype,1,driverfns_module);
-  KNO_LINK_PRIM("hash-dtype3",lisphash3,1,driverfns_module);
+  KNO_LINK_CPRIM("alcor/apply!",alcor_apply_prim,2,driverfns_module);
+  KNO_LINK_CPRIM("alcor/save!",alcor_save_prim,3,driverfns_module);
+
+  KNO_LINK_CVARARGS("poolctl/default",poolctl_default_prim,driverfns_module);
+  KNO_LINK_CVARARGS("indexctl/default",indexctl_default_prim,driverfns_module);
+
+  KNO_LINK_CPRIM("hash-dtype-rep",lisphashdtype,1,driverfns_module);
+  KNO_LINK_CPRIM("hash-dtype3",lisphash3,1,driverfns_module);
   KNO_LINK_ALIAS("hash-dtype",lisphash2,driverfns_module);
-  KNO_LINK_PRIM("hash-dtype2",lisphash2,1,driverfns_module);
-  KNO_LINK_PRIM("hash-dtype1",lisphash1,1,driverfns_module);
-
-  KNO_LINK_ALIAS("hash-index-slotids",index_slotids,db_module);
+  KNO_LINK_CPRIM("hash-dtype2",lisphash2,1,driverfns_module);
+  KNO_LINK_CPRIM("hash-dtype1",lisphash1,1,driverfns_module);
+  KNO_LINK_ALIAS("hash-index-slotids",index_slotids,driverfns_module);
 }

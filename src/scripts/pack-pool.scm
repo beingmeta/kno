@@ -1,6 +1,6 @@
 ;;; -*- Mode: Scheme -*-
 
-(use-module '{optimize mttools varconfig engine stringfmts logger})
+(use-module '{optimize kno/mttools varconfig engine text/stringfmts logger})
 (use-module '{knodb/countrefs})
 
 (define %loglevel %notice%)
@@ -289,7 +289,7 @@
 	       "Repacks the file pool stored in <from> either in place or into [to]."
 	       "Common options include (first value is default) : \n"
 	       ($indented 4
-			  "POOLTYPE=keep|knopool|bigpool|filepool\n"
+			  "POOLTYPE=keep|knopool|filepool\n"
 			  "COMPRESSION=none|zlib9|snappy|zstd9\n"
 			  "CODESLOTS=yes|no\n"
 			  "OVERWRITE=no|yes\n")

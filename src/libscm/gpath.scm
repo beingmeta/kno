@@ -2,7 +2,11 @@
 ;;; Copyright (C) 2005-2020 beingmeta, inc. All rights reserved.
 
 (in-module 'gpath)
+
+(use-module '{varconfig logger webtools texttools fileio})
+
 (define %used_modules '{varconfig ezrecords})
+(define-init %loglevel %notice%)
 
 (module-export!
  '{gp/write! gp/save!
@@ -32,16 +36,16 @@
 
 (define havezip #f)
 
-(cond ((onerror (get-module 'ziptools) #f)
-       (use-module 'ziptools)
-       (set! havezip #t))
-      (else 
+(cond ((config 'noziptools #f)
+       (logwarn |NoZipTools| "From config"))
+      ((not (onerror (get-module 'ziptools) #f))
+       (logwarn |NoZipTools| "Couldn't load zip tools")
        (define (zipfile? x) #f)
-       (define (zip/add! . args) #f)))
+       (define (zip/add! . args) #f))
+      (else (use-module 'ziptools)
+	    (set! havezip #t)))
 
-(use-module '{fileio aws/s3 varconfig logger webtools 
-	      texttools mimetable ezrecords hashfs zipfs})
-(define-init %loglevel %notice%)
+(use-module '{aws/s3 net/mimetable ezrecords zipfs})
 
 (define gp/urlsubst {})
 (varconfig! gp:urlsubst gp/urlsubst #f)
@@ -105,9 +109,10 @@
 (varconfig! gpath:dirmode *default-dirmode*)
 
 (define (root-path path)
-  (if (has-prefix path "/") (slice path 1)
-      (if (has-prefix path "./") (slice path 2)
-	  path)))
+  (if (not (string? path)) path
+      (if (has-prefix path "/") (slice path 1)
+	  (if (has-prefix path "./") (slice path 2)
+	      path))))
 
 (define datauri-pat
   #("data:" (label content-type (not> ";")) ";" (label enc (not> ",")) ","
@@ -209,8 +214,6 @@
 				dest req)))))
 		((string? dest) (write-file dest content))
 		((s3loc? dest) (s3/write! dest content ctype headers))
-		((and (pair? dest) (hashfs? (car dest)))
-		 (hashfs/save! (car dest) (cdr dest) content ctype))
 		((and (pair? dest) (zipfs? (car dest)))
 		 (zipfs/save! (car dest) (cdr dest) content ctype))
 		((and (pair? dest) (hashtable? (car dest)))
@@ -274,7 +277,8 @@
        ,(fourth expr))))
 
 (define (string->root string)
-  (cond ((has-prefix string "s3:") (->s3loc string))
+  (cond ((not (string? string)) (irritant string |GPathNotString|))
+	((has-prefix string "s3:") (->s3loc string))
 	((has-prefix string "zip:")
 	 (zip/open (subseq string 4)))
 	(else (uribase string))))
@@ -367,8 +371,6 @@
 	((and (pair? path) (hashtable? (car path)) (string? (cdr path)))
 	 (stringout "hashtable:" (cdr path)
 	   "(0x" (number->string (hashptr (car path)) 16) ")"))
-	((and (pair? path) (hashfs? (car path)) (string? (cdr path)))
-	 (hashfs/string (car path) (cdr path)))
 	((and (pair? path) (zipfs? (car path)) (string? (cdr path)))
 	 (zipfs/string (car path) (cdr path)))
 	((and (compound-type? path) (test gpath-handlers (compound-tag path)))
@@ -405,11 +407,11 @@
 	((and require-subpath (not (string? path)))
 	 (error |TypeError| MAKEPATH "Relative path is not a string" path))
 	((or (s3loc? path) (zipfile? path) 
-	     (hashtable? path) (hashfs? path)
+	     (hashtable? path)
 	     (zipfs? path)
 	     (and (pair? path) (string? (cdr path))
 		  (or (s3loc? (car path)) (zipfile? (car path))
-		      (hashtable? (car path)) (hashfs? (car path))
+		      (hashtable? (car path))
 		      (zipfs? (car path)))))
 	 path)
 	((not (string? path))
@@ -422,7 +424,6 @@
 	((s3loc? root) (s3/mkpath root path))
 	((zipfile? root) (cons root path))
 	((hashtable? root) (cons root path))
-	((hashfs? root) (cons root path))
 	((zipfs? root) (cons root path))
 	((and (compound-type? root) (test gpath-handlers (compound-tag root)))
 	 (cons root path))
@@ -467,8 +468,6 @@
 		  (or (not ctype) (not (has-prefix ctype "text")))))
 	((and (pair? ref) (hashtable? (car ref)) (string? (cdr ref)))
 	 (memfile-content (get (car ref) (cdr ref))))
-	((and (pair? ref) (hashfs? (car ref)) (string? (cdr ref)))
-	 (hashfs/get (car ref) (cdr ref)))
 	((and (pair? ref) (zipfs? (car ref)) (string? (cdr ref)))
 	 (zipfs/get (car ref) (cdr ref) opts))
 	((and (pair? ref) (compound-type? (car ref))
@@ -504,7 +503,8 @@
 		   (if (equal? url newurl)
 		       (cons url (if (pair? err) err '()))
 		       (cons* newurl (list url) (if (pair? err) err '())))))
-	 (curlopts (and max-redirects `#[follow ,(if (number? max-redirects) max-redirects #t)]))
+	 (curlopts (and max-redirects
+			`#[follow ,(if (number? max-redirects) max-redirects #t)]))
 	 (response (urlget newurl curlopts))
 	 (encoding (get response 'content-encoding))
 	 (hash (md5 (get response 'content))))
@@ -531,7 +531,8 @@
 		   (if (equal? url newurl)
 		       (cons url (if (pair? err) err '()))
 		       (cons* newurl (list url) (if (pair? err) err '())))))
-	 (curlopts (and max-redirects `#[follow ,(if (number? max-redirects) max-redirects #t)]))
+	 (curlopts (and max-redirects
+			`#[follow ,(if (number? max-redirects) max-redirects #t)]))
 	 (response (urlhead newurl curlopts)))
     response))
 
@@ -592,8 +593,6 @@
 		       ,(or ctype
 			    (guess-mimetype (get-namestring ref) #f opts))
 		       md5 ,(packet->base16 (md5 mf))]))))
-	((and (pair? ref) (hashfs? (car ref)) (string? (cdr ref)))
-	 (hashfs/get+ (car ref) (cdr ref)))
 	((and (pair? ref) (zipfs? (car ref)) (string? (cdr ref)))
 	 (zipfs/get+ (car ref) (cdr ref)))
 	((and (pair? ref) (compound-type? (car ref))
@@ -681,8 +680,6 @@
 	     'etag (tryif hash hash)
 	     'hash (tryif hash hash)
 	     'md5 (tryif hash (packet->base16 hash)))))
-	((and (pair? ref) (hashfs? (car ref)) (string? (cdr ref)))
-	 (hashfs/info (car ref) (cdr ref)))
 	((and (pair? ref) (zipfs? (car ref)) (string? (cdr ref)))
 	 (zipfs/info (car ref) (cdr ref)))
 	((and (pair? ref) (compound-type? (car ref))
@@ -738,8 +735,6 @@
 	     (file-modtime (zip/filename (car ref)))))
 	((and (pair? ref) (hashtable? (car ref)))
 	 (memfile-modified (get (car ref) (cdr ref))))
-	((and (pair? ref) (hashfs? (car ref)))
-	 (get (hashfs/info (car ref) (cdr ref)) 'last-modified))
 	((and (pair? ref) (zipfs? (car ref)))
 	 (get (zipfs/info (car ref) (cdr ref)) 'last-modified))
 	((and (pair? ref) (pair? (car ref)))
@@ -787,8 +782,6 @@
 	 (zip/exists? (car ref) (cdr ref)))
 	((and (pair? ref) (hashtable? (car ref)) (string? (cdr ref)))
 	 (test (car ref) (cdr ref)))
-	((and (pair? ref) (hashfs? (car ref)) (string? (cdr ref)))
-	 (exists? (hashfs/get+ (car ref) (cdr ref))))
 	((and (pair? ref) (zipfs? (car ref)) (string? (cdr ref)))
 	 (exists? (zipfs/info (car ref) (cdr ref))))
 	((and (pair? ref) (pair? (car ref)))
@@ -819,8 +812,6 @@
 	((and (pair? ref) (hashtable? (car ref)) (string? (cdr ref)))
 	 (and (test (car ref) (cdr ref)) compute
 	      (md5 (get (car ref) (cdr ref)))))
-	((and (pair? ref) (hashfs? (car ref)) (string? (cdr ref)))
-	 (try (md5 (hashfs/get (car ref) (cdr ref))) #f))
 	((and (pair? ref) (zipfs? (car ref)) (string? (cdr ref)))
 	 (try (md5 (zipfs/get (car ref) (cdr ref))) #f))
 	((and (pair? ref) (pair? (car ref)))
@@ -863,7 +854,6 @@
   (for-choices ref
     (cond ((s3loc? ref) (filter-list (s3/list ref) matcher))
 	  ((zipfile? ref) (filter-list (zip/getfiles ref) matcher))
-	  ((hashfs? ref) (filter-list (hashfs/list ref) matcher))
 	  ((zipfs? ref) (filter-list (zipfs/list ref) matcher))
 	  ((and (pair? ref) (s3loc? (car ref)) (string? (cdr ref)))
 	   (filter-list (s3/list (s3/mkpath (car ref) (mkpath (cdr ref) "")))
@@ -872,8 +862,6 @@
 	   (filter-list (zip/getfiles (car ref)) matcher (cdr ref)))
 	  ((and (pair? ref) (hashtable? (car ref)) (string? (cdr ref)))
 	   (filter-list (getkeys (car ref)) matcher (cdr ref)))
-	  ((and (pair? ref) (hashfs? (car ref)) (string? (cdr ref)))
-	   (filter-list (hashfs/list (car ref)) matcher (cdr ref)))
 	  ((and (pair? ref) (zipfs? (car ref)) (string? (cdr ref)))
 	   (filter-list (zipfs/list (car ref)) matcher (cdr ref)))
 	  ((and (string? ref) (has-prefix ref "s3:"))
@@ -914,13 +902,13 @@
   (if (pair? val)
       (and (string? (cdr val))
 	   (or (s3loc? (car val)) (zipfile? (car val))
-	       (hashfs? (car val)) (zipfs? (car val))
+	       (zipfs? (car val))
 	       (and (compound-type? (car val))
 		    (test gpath-handlers (compound-tag (car val))))))
       (if (string? val)
 	  (and (not (position #\newline val))
 	       (has-prefix val {"http:" "https:" "ftp:" "s3:" "/" "~"}))
-	  (or (s3loc? val) (zipfile? val) (hashfs? val) (zipfs? val)
+	  (or (s3loc? val) (zipfile? val) (zipfs? val)
 	      (and (compound-type? val)
 		   (test gpath-handlers (compound-tag val)))))))
 
@@ -949,11 +937,15 @@
 	       (->gpath (mkpath (config scheme) path) root chroot))
 	      ((config scheme) (cons scheme path))
 	      (else (irritant scheme |InvalidScheme(gpath)| "For " val))))
-      (if (has-prefix val "/") 
-	  (if chroot (gp/mkpath chroot (slice val 1)) val)
-	  (if (has-prefix val {"~" "./" "../"})
-	      (abspath val)
-	      (if root (mkpath root val) (abspath val))))))
+      (if (not (string? val))
+	  val ;; (irritant val |Not a path| ->gpath)
+	  (if (has-prefix val "/") 
+	      (if chroot (gp/mkpath chroot (slice val 1)) val)
+	      (if (has-prefix val {"~" "./" "../"})
+		  (abspath val)
+		  (if (string? root)
+		      (mkpath root val)
+		      (if root (cons root val) (abspath val))))))))
 
 (store! gpath-scheme-handlers "s3" ->s3loc)
 (define (convert-s3-uri s) (try (->s3loc s) #f))

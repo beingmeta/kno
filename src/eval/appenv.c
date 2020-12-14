@@ -185,9 +185,10 @@ KNO_EXPORT void kno_set_app_env(kno_lexenv env)
 	   modules_failed,files_failed,inits_failed);}
 }
 
-DEFPRIM("%appenv",appenv_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	"Returns the base 'application environment' for "
-	"the current instance");
+DEFCPRIM("%appenv",appenv_prim,
+	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+	 "Returns the base 'application environment' for "
+	 "the current instance")
 static lispval appenv_prim()
 {
   if (kno_app_env)
@@ -394,5 +395,5 @@ KNO_EXPORT void kno_init_eval_appenv_c()
 
 static void link_local_cprims()
 {
-  KNO_LINK_PRIM("%appenv",appenv_prim,0,kno_scheme_module);
+  KNO_LINK_CPRIM("%appenv",appenv_prim,0,kno_scheme_module);
 }

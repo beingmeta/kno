@@ -82,27 +82,27 @@ KNO_EXPORT u8_condition kno_MallocFailed, kno_StringOverflow, kno_StackOverflow;
 KNO_EXPORT u8_condition kno_DoubleGC, kno_UsingFreedCons, kno_FreeingNonHeapCons;
 
 #define KNO_GET_CONS(x,typecode,cast)					\
-  ((KNO_EXPECT_TRUE(KNO_TYPEP(x,typecode))) ?				\
+  ((KNO_USUALLY(KNO_TYPEP(x,typecode))) ?				\
    ((cast)(KNO_CONS_DATA(x))) :						\
    ((cast)(kno_err(kno_TypeError,kno_type_names[typecode],NULL,x),NULL)))
 
 #define KNO_STRIP_CONS(x,typecode,typecast) ((typecast)(KNO_CONS_DATA(x)))
 
 #define KNO_CHECK_TYPE_THROW(x,typecode)		   \
-  if (KNO_EXPECT_FALSE(!((KNO_CONS_TYPE(x)) == typecode))) \
+  if (KNO_RARELY(!((KNO_CONS_TYPEOF(x)) == typecode))) \
     u8_raise(kno_TypeError,kno_type_names[typecode],NULL)
 
 #define KNO_CHECK_TYPE_RET(x,typecode)				      \
-  if (KNO_EXPECT_FALSE(!((KNO_CONS_TYPE(x)) == typecode))) {		\
+  if (KNO_RARELY(!((KNO_CONS_TYPEOF(x)) == typecode))) {		\
     kno_seterr(kno_TypeError,kno_type_names[typecode],NULL,(lispval)x); \
     return -1;}
 
 #define KNO_CHECK_TYPE_RETDTYPE(x,typecode)				\
-  if (KNO_EXPECT_FALSE(!((KNO_CONS_TYPE(x)) == typecode)))		\
+  if (KNO_RARELY(!((KNO_CONS_TYPEOF(x)) == typecode)))		\
     return kno_err(kno_TypeError,kno_type_names[typecode],NULL,(lispval)x);
 
 #define KNO_CHECK_TYPE_RETVAL(x,typecode,val)				\
-  if (KNO_EXPECT_FALSE(!((KNO_CONS_TYPE(x)) == typecode))) {		\
+  if (KNO_RARELY(!((KNO_CONS_TYPEOF(x)) == typecode))) {		\
     kno_seterr(kno_TypeError,kno_type_names[typecode],NULL,(lispval)x); \
     return val;}
 
@@ -266,7 +266,7 @@ KNO_EXPORT void kno_decref_vec(lispval *vec,size_t n);
 #if ( KNO_INLINE_REFCOUNTS && KNO_LOCKFREE_REFCOUNTS )
 KNO_INLINE_FCN lispval _kno_incref(struct KNO_REF_CONS *x)
 {
-  if (KNO_EXPECT_FALSE(x == NULL))
+  if (KNO_RARELY(x == NULL))
     return KNO_BADPTR;
   else {
     kno_consbits cb = atomic_load(&(x->conshead));
@@ -289,7 +289,7 @@ KNO_INLINE_FCN lispval _kno_incref(struct KNO_REF_CONS *x)
 
 KNO_INLINE_FCN void _kno_decref(struct KNO_REF_CONS *x)
 {
-  if (KNO_EXPECT_FALSE(x == NULL)) return;
+  if (KNO_RARELY(x == NULL)) return;
   kno_consbits cb = atomic_load(&(x->conshead));
   if (cb>=0xFFFFFF80) {
     u8_raise(kno_DoubleGC,"kno_decref",NULL);}
@@ -835,33 +835,7 @@ typedef struct KNO_CONSBLOCK {
 
 lispval kno_make_consblock(lispval obj);
 
-/* Typeinfo */
-
-typedef struct KNO_TYPEINFO *kno_typeinfo;
-typedef int (*kno_type_unparsefn)(u8_output out,lispval,kno_typeinfo);
-typedef lispval (*kno_type_parsefn)(int n,lispval *,kno_typeinfo);
-typedef int (*kno_type_freefn)(lispval,kno_typeinfo);
-typedef lispval (*kno_type_dumpfn)(lispval,kno_typeinfo);
-typedef lispval (*kno_type_restorefn)(lispval,lispval,kno_typeinfo);
-
-typedef struct KNO_TYPEINFO {
-  KNO_CONS_HEADER;
-  lispval typetag, type_props, type_handlers;
-  u8_string type_name, type_description;
-  char type_isopaque, type_ismutable, type_issequence, type_istable;
-  kno_type_parsefn type_parsefn;
-  kno_type_unparsefn type_unparsefn;
-  kno_type_freefn type_freefn;
-  kno_type_dumpfn type_dumpfn;
-  kno_type_restorefn type_restorefn;
-  struct KNO_TABLEFNS *type_tablefns;
-  struct KNO_SEQFNS *type_seqfns;} KNO_TYPEINFO;
-
-KNO_EXPORT int kno_set_unparsefn(lispval tag,kno_type_unparsefn fn);
-KNO_EXPORT int kno_set_parsefn(lispval tag,kno_type_parsefn fn);
-KNO_EXPORT int kno_set_freefn(lispval tag,kno_type_freefn fn);
-KNO_EXPORT int kno_set_dumpfn(lispval tag,kno_type_dumpfn fn);
-KNO_EXPORT int kno_set_restorefn(lispval tag,kno_type_restorefn fn);
+#include "typeinfo.h"
 
 #define KNO_TAGGED_HEAD				\
   KNO_CONS_HEADER;				\
@@ -869,15 +843,17 @@ KNO_EXPORT int kno_set_restorefn(lispval tag,kno_type_restorefn fn);
   struct KNO_TYPEINFO *typeinfo
 
 #define KNO_TAGGEDP(x)				\
-  (KNO_XXCONS_TYPEP((x),kno_tagged_type))
+  (KNO_XCONS_TYPEP((x),kno_tagged_type))
 
 typedef struct KNO_TAGGED {
   KNO_TAGGED_HEAD;} KNO_TAGGED;
 typedef struct KNO_TAGGED *kno_tagged;
 
-struct KNO_TYPEINFO *kno_probe_typeinfo(lispval tag);
-struct KNO_TYPEINFO *kno_use_typeinfo(lispval tag);
-KNO_FASTOP struct KNO_TYPEINFO *kno_taginfo(lispval obj)
+struct KNO_TYPEINFO *kno_probe_typeinfo(lispval type);
+struct KNO_TYPEINFO *kno_use_typeinfo(lispval type);
+struct KNO_TYPEINFO *_kno_objtype(lispval obj);
+#if KNO_INLINE_OBJTYPE
+KNO_FASTOP struct KNO_TYPEINFO *__kno_objtype(lispval obj)
 {
   if ( (KNO_TAGGEDP(obj)) ) {
     struct KNO_TAGGED *tagged = (kno_tagged) obj;
@@ -889,6 +865,10 @@ KNO_FASTOP struct KNO_TYPEINFO *kno_taginfo(lispval obj)
       return info;}}
   else return NULL;
 }
+#define kno_objtype __kno_objtype
+#else
+#define kno_objtype _kno_objtype
+#endif
 
 /* Compound types */
 
@@ -1096,7 +1076,7 @@ KNO_EXPORT unsigned char kno_isfunctionp[];
 U8_MAYBE_UNUSED static int _kno_applicablep(lispval x)
 {
   if (KNO_CONSP(x)) {
-    kno_lisp_type objtype = KNO_CONSPTR_TYPE(x);
+    kno_lisp_type objtype = KNO_CONS_TYPEOF(x);
     return ( (objtype == kno_cprim_type) ||
 	     (objtype == kno_lambda_type) ||
 	     (kno_applyfns[objtype] != NULL) );}
@@ -1113,35 +1093,53 @@ U8_MAYBE_UNUSED static int _kno_applicablep(lispval x)
 }
 
 #if KNO_INLINE_XTYPEP
-KNO_INLINE int _KNO_XTYPEP(lispval x,int type)
+KNO_FASTOP int __KNO_XTYPEP(lispval x,int type)
 {
-  if (type <=  kno_opts_type) switch ((kno_lisp_type)type) {
+  if (type <=  kno_xindex_type) switch ((kno_lisp_type)type) {
     case kno_number_type: return KNO_NUMBERP(x);
     case kno_sequence_type: return KNO_SEQUENCEP(x);
     case kno_table_type: return KNO_TABLEP(x);
-    case kno_type_type:
-      if ( (KNO_OIDP(x)) || (KNO_SYMBOLP(x)) ||
-	   (KNO_IMMEDIATE_TYPEP(x,kno_basetype_type)) ||
-	   (KNO_TYPEP(x,kno_typeinfo_type)) )
+    case kno_applicable_type:
+      if (KNO_XXCONS_TYPEP(x,kno_function_type))
 	return 1;
-      else return 0;
+      else return _kno_applicablep(x);
+    case kno_slotid_type:
+      return (KNO_OIDP(x)) || (KNO_SYMBOLP(x));
+    case kno_frame_type:
+      return ( KNO_OIDP(x) ) ||
+	( (KNO_CONSP(x)) &&
+	  ( ( (KNO_CONS_TYPEOF(x)) == kno_slotmap_type) ||
+	    ( (KNO_CONS_TYPEOF(x)) == kno_schemap_type) ) );
     case kno_keymap_type:
-      if (KNO_CONSP(x)) {
-	kno_lisp_type ctype = KNO_CONS_TYPEOF(x);
-	return ( (ctype && kno_table_type) == ctype );}
-      else return 0;
+      return ( (KNO_CONSP(x)) &&
+	       ( ( (KNO_CONS_TYPEOF(x)) == kno_slotmap_type) ||
+		 ( (KNO_CONS_TYPEOF(x)) == kno_schemap_type) ) );
     case kno_opts_type:
       if (KNO_CONSP(x)) {
 	kno_lisp_type ctype = KNO_CONS_TYPEOF(x);
 	return ( (ctype == kno_pair_type) &&
-		 ( (ctype && kno_table_type) == ctype ) );}
-      else if ( (x == KNO_FALSE) || (x == KNO_EMPTY_LIST) || (x == KNO_EMPTY_CHOICE) )
+		 ( (ctype & kno_table_type) == ctype ) );}
+      else if ( (x == KNO_FALSE) || (x == KNO_EMPTY_LIST) ||
+		(x == KNO_EMPTY_CHOICE) || (x == KNO_VOID) )
 	return 1;
       else return 0;
+    case kno_type_type:
+      if ( (KNO_OIDP(x)) || (KNO_SYMBOLP(x)) ||
+	   (KNO_IMMEDIATE_TYPEP(x,kno_ctype_type)) ||
+	   (KNO_TYPEP(x,kno_typeinfo_type)) )
+	return 1;
+      else return 0;
+    case kno_xpool_type:
+      return (KNO_PRIM_TYPEP(x,kno_pool_type)) ||
+	(KNO_PRIM_TYPEP(x,kno_consed_pool_type));
+    case kno_xindex_type:
+      return (KNO_PRIM_TYPEP(x,kno_index_type)) ||
+	(KNO_PRIM_TYPEP(x,kno_consed_index_type));
     default:
       if  (type < 0x04) return ( ( (x) & (0x3) ) == type);
       else if (type < 0x84) return (KNO_IMMEDIATE_TYPEP(x,type));
-      else if (type < 0x100) return ( (x) && ((KNO_CONSPTR_TYPE(x)) == type) );
+      else if (type < 0x100)
+	return ( (x) && (KNO_CONSP(x)) && ((KNO_CONS_TYPEOF(x)) == type) );
       else return 0;}
   else return 0;
 }
@@ -1158,7 +1156,7 @@ KNO_INLINE int KNO_CHECKTYPE(lispval obj,lispval objtype)
     if (KNO_IMMEDIATE_TYPEP(objtype,kno_symbol_type))
       return ( ( (KNO_COMPOUNDP(obj)) && ( (KNO_COMPOUND_TAG(obj)) == objtype) ) ||
 	       ( (KNO_TYPEP(obj,kno_rawptr_type)) && ( (KNO_RAWPTR_TAG(obj)) == objtype) ) );
-    else if (KNO_IMMEDIATE_TYPEP(objtype,kno_basetype_type)) {
+    else if (KNO_IMMEDIATE_TYPEP(objtype,kno_ctype_type)) {
       kno_lisp_type ltype = (KNO_IMMEDIATE_DATA(objtype));
       return (KNO_TYPEP(obj,ltype));}
     else return 0;}
@@ -1172,7 +1170,6 @@ KNO_INLINE int KNO_CHECKTYPE(lispval obj,lispval objtype)
 #else
 #define KNO_CHECKTYPE _KNO_CHECKTYPE
 #endif
-
 
 /* The zero-pool */
 

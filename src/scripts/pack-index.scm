@@ -3,7 +3,7 @@
 (config! 'cachelevel 2)
 (config! 'logthreadinfo #t)
 (config! 'logelapsed #t)
-(use-module '{optimize varconfig logger mttools})
+(use-module '{optimize varconfig logger kno/mttools})
 (use-module '{knodb/indexes})
 
 (onerror (use-module 'rocksdb))

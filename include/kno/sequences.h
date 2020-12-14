@@ -51,11 +51,11 @@ KNO_EXPORT int _KNO_SEQUENCEP(lispval x);
 #else
 #define KNO_SEQUENCEP(x)						\
   ( (KNO_CONSP(x)) ?							\
-    ( ( (KNO_CONSPTR_TYPE(x) >= kno_string_type) &&			\
-	(KNO_CONSPTR_TYPE(x) <= kno_pair_type) ) ||			\
-      ( (kno_seqfns[KNO_CONSPTR_TYPE(x)] != NULL ) &&			\
-	( (kno_seqfns[KNO_CONSPTR_TYPE(x)]->sequencep == NULL ) ||	\
-	  (kno_seqfns[KNO_CONSPTR_TYPE(x)]->sequencep(x)) ) ) ) :       \
+    ( ( (KNO_CONS_TYPEOF(x) >= kno_string_type) &&			\
+	(KNO_CONS_TYPEOF(x) <= kno_pair_type) ) ||			\
+      ( (kno_seqfns[KNO_CONS_TYPEOF(x)] != NULL ) &&			\
+	( (kno_seqfns[KNO_CONS_TYPEOF(x)]->sequencep == NULL ) ||	\
+	  (kno_seqfns[KNO_CONS_TYPEOF(x)]->sequencep(x)) ) ) ) :       \
     (x == KNO_EMPTY_LIST) ? (1) :					\
     (KNO_IMMEDIATEP(x)) ?						\
     ( (kno_seqfns[KNO_IMMEDIATE_TYPE(x)] != NULL ) &&			\

@@ -1,14 +1,14 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
 ;;; Copyright (C) 2005-2020 beingmeta, inc.  All rights reserved.
 
-(in-module 'mttools)
+(in-module 'kno/mttools)
 
 ;;; This provides macros for easy use of multiple threads (and cores)
 ;;; in applications.  It also provides a way to easily implement the
 ;;; prefetch/execute cycles which can improve performance on many
 ;;; database-intensive operations. 
 
-(use-module '{reflection stringfmts varconfig logger})
+(use-module '{kno/reflect text/stringfmts varconfig logger})
 
 (module-export! '{mt-apply mt/threadcount mt/nrange mt/counter
 		  do-choices-mt do-vector-mt for-choices-mt

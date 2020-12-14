@@ -3639,7 +3639,7 @@ lispval kno_string2number(u8_string string,int base)
       return kno_string2number(string+2,2);
     case 'i': case 'I': {
       lispval result = kno_string2number(string+2,base);
-      if (PRED_TRUE(NUMBERP(result))) {
+      if (USUALLY(NUMBERP(result))) {
         double dbl = todouble(result);
         lispval inexresult = kno_init_flonum(NULL,dbl);
         kno_decref(result);
@@ -3651,7 +3651,7 @@ lispval kno_string2number(u8_string string,int base)
         u8_byte *copy = u8_strdup(string+2);
         u8_byte *dot = strchr(copy,'.'), *scan = dot+1;
         *dot='\0'; num = kno_string2number(copy,10);
-        if (PRED_FALSE(!(NUMBERP(num)))) {
+        if (RARELY(!(NUMBERP(num)))) {
           u8_free(copy);
           return KNO_FALSE;}
         while (*scan)
@@ -3704,15 +3704,15 @@ lispval kno_string2number(u8_string string,int base)
       if (istart == NULL) istart = strchr(estart+1,'-');}
     if (istart == NULL) {
       imag = kno_string2number(copy,base);
-      if (PRED_FALSE(!(NUMBERP(imag)))) {
+      if (RARELY(!(NUMBERP(imag)))) {
         kno_decref(imag); u8_free(copy); return KNO_FALSE;}
       real = KNO_INT(0);}
     else {
       imag = kno_string2number(istart,base); *istart='\0';
-      if (PRED_FALSE(!(NUMBERP(imag)))) {
+      if (RARELY(!(NUMBERP(imag)))) {
         kno_decref(imag); u8_free(copy); return KNO_FALSE;}
       real = kno_string2number(copy,base);
-      if (PRED_FALSE(!(NUMBERP(real)))) {
+      if (RARELY(!(NUMBERP(real)))) {
         kno_decref(imag); kno_decref(real); u8_free(copy);
         return KNO_FALSE;}}
     u8_free(copy);

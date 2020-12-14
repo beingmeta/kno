@@ -131,9 +131,9 @@ static lispval dbparse_oid(u8_string start,int len)
     lispval name = kno_parse(scan);
     if (scan-start>len) return VOID;
     else if (KNO_ABORTP(name)) return name;
-    else if (kno_background) {
+    else if (kno_default_background) {
       lispval key = kno_conspair(id_symbol,kno_incref(name));
-      lispval item = kno_index_get((kno_index)kno_background,key);
+      lispval item = kno_index_get((kno_index)kno_default_background,key);
       kno_decref(key);
       if (OIDP(item)) return item;
       else if (CHOICEP(item)) {
@@ -147,7 +147,7 @@ static lispval dbparse_oid(u8_string start,int len)
       KNO_DOLIST(method,lookupfns) {
         if ((SYMBOLP(method))||(OIDP(method))) {
           lispval key = kno_conspair(method,kno_incref(name));
-          lispval item = kno_index_get((kno_index)kno_background,key);
+          lispval item = kno_index_get((kno_index)kno_default_background,key);
           kno_decref(key);
           if (OIDP(item)) return item;
           else if (!((EMPTYP(item))||
@@ -209,7 +209,7 @@ static lispval dbparse_oid(u8_string start,int len)
       c = u8_sgetc(&scan);}
     if (c == -1)
       return kno_parse_oid_addr(start,len);
-    else if (kno_background == NULL) {
+    else if (kno_default_background == NULL) {
       kno_seterr("MissingIDbackground","dbparse_oid",start,KNO_VOID);
       return KNO_PARSE_ERROR;}
     else {
@@ -221,7 +221,7 @@ static lispval dbparse_oid(u8_string start,int len)
 	c = u8_sgetc(&scan);}
       struct KNO_STRING _idstring;
       lispval idstring = kno_init_string(&_idstring,u8_outlen(idout),id.u8_outbuf);
-      lispval oid = kno_prim_find((lispval)kno_background,id_symbol,idstring);
+      lispval oid = kno_prim_find((lispval)kno_default_background,id_symbol,idstring);
       if (KNO_OIDP(oid))
 	return oid;
       else if (KNO_EMPTYP(oid)) {
@@ -447,16 +447,16 @@ static int config_open_index(lispval var,lispval spec,void *data)
 static lispval config_get_background(lispval var,void *data)
 {
   lispval results = EMPTY;
-  if (kno_background == NULL) return results;
+  if (kno_default_background == NULL) return results;
   else {
     int i = 0, n; kno_index *indexes;
-    u8_lock_mutex(&(kno_background->index_lock));
-    n = kno_background->ax_n_indexes;
-    indexes = kno_background->ax_indexes;
+    u8_lock_mutex(&(kno_default_background->index_lock));
+    n = kno_default_background->ax_n_indexes;
+    indexes = kno_default_background->ax_indexes;
     while (i<n) {
       lispval lix = kno_index_ref(indexes[i]); i++;
       CHOICE_ADD(results,lix);}
-    u8_unlock_mutex(&(kno_background->index_lock));
+    u8_unlock_mutex(&(kno_default_background->index_lock));
     return results;}
 }
 static int config_use_index(lispval var,lispval spec,void *data)

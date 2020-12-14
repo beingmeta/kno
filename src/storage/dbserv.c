@@ -308,7 +308,7 @@ static int serve_index(lispval var,lispval val,void *data)
   else if (STRINGP(val))
     ix = kno_get_index(CSTRING(val),0,VOID);
   else if (val == KNO_TRUE)
-    if (kno_background) ix = (kno_index)kno_background;
+    if (kno_default_background) ix = (kno_index)kno_default_background;
     else {
       u8_logf(LOG_WARN,_("No background"),
               "No current background index to serve");

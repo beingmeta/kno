@@ -1140,9 +1140,11 @@ static lispval xmlparse_core(lispval input,int flags)
   return result;
 }
 
-DEFPRIM2("xmlparse",xmlparse,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 "`(XMLPARSE *arg0* [*arg1*])` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+DEFCPRIM("xmlparse",xmlparse,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+	 "**undocumented**",
+	 {"input",kno_any_type,KNO_VOID},
+	 {"options",kno_any_type,KNO_VOID})
 static lispval xmlparse(lispval input,lispval options)
 {
   if (CHOICEP(input)) {
@@ -1159,9 +1161,11 @@ static lispval xmlparse(lispval input,lispval options)
 
 /* Parsing KNOML */
 
-DEFPRIM2("knoml/load",knoml_load,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 "`(KNOML/LOAD *arg0* [*arg1*])` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+DEFCPRIM("knoml/load",knoml_load,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+	 "**undocumented**",
+	 {"input",kno_any_type,KNO_VOID},
+	 {"sloppy",kno_any_type,KNO_VOID})
 static lispval knoml_load(lispval input,lispval sloppy)
 {
   int flags = KNO_XML_KEEP_RAW;
@@ -1192,9 +1196,11 @@ static lispval knoml_load(lispval input,lispval sloppy)
   else return KNO_ERROR;
 }
 
-DEFPRIM2("knoml/parse",knoml_read,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 "`(KNOML/PARSE *arg0* [*arg1*])` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+DEFCPRIM("knoml/parse",knoml_read,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+	 "**undocumented**",
+	 {"input",kno_any_type,KNO_VOID},
+	 {"sloppy",kno_any_type,KNO_VOID})
 static lispval knoml_read(lispval input,lispval sloppy)
 {
   int flags = KNO_XML_KEEP_RAW;
@@ -1273,7 +1279,7 @@ KNO_EXPORT void kno_init_xmlinput_c()
 
 static void link_local_cprims()
 {
-  KNO_LINK_PRIM("knoml/parse",knoml_read,2,webtools_module);
-  KNO_LINK_PRIM("knoml/load",knoml_load,2,webtools_module);
-  KNO_LINK_PRIM("xmlparse",xmlparse,2,webtools_module);
+  KNO_LINK_CPRIM("knoml/parse",knoml_read,2,webtools_module);
+  KNO_LINK_CPRIM("knoml/load",knoml_load,2,webtools_module);
+  KNO_LINK_CPRIM("xmlparse",xmlparse,2,webtools_module);
 }

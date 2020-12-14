@@ -4,7 +4,7 @@
 (config! 'logthreadinfo #t)
 (config! 'logelapsed #t)
 (config! 'thread:logexit #f)
-(use-module '{optimize varconfig logger mttools})
+(use-module '{optimize varconfig logger kno/mttools})
 (use-module '{knodb/indexes})
 
 (onerror (use-module 'rocksdb))

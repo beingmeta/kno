@@ -42,7 +42,6 @@ static void init_libraries()
   kno_init_lisp_types();
   kno_init_storage();
   kno_init_scheme();
-  kno_init_schemeio();
 }
 #else
 static void init_libraries()

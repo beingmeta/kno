@@ -44,11 +44,14 @@ static void get_mailinfo(lispval headers,u8_string *host,u8_string *domain,u8_st
   if (STRINGP(mailfrom_spec)) *from = CSTRING(mailfrom_spec);
 }
 
-DEFPRIM5("smtp",smtp_function,KNO_MAX_ARGS(5)|KNO_MIN_ARGS(3),
-	 "`(SMTP *arg0* *arg1* *arg2* [*arg3*] [*arg4*])` **undocumented**",
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
-	 kno_any_type,KNO_VOID);
+DEFCPRIM("smtp",smtp_function,
+	 KNO_MAX_ARGS(5)|KNO_MIN_ARGS(3),
+	 "**undocumented**",
+	 {"dest",kno_any_type,KNO_VOID},
+	 { "headers",kno_any_type,KNO_VOID},
+	 {"content",kno_any_type,KNO_VOID},
+	 {"ctype",kno_any_type,KNO_VOID},
+	 {"mailinfo",kno_any_type,KNO_VOID})
 static lispval smtp_function(lispval dest,lispval headers,lispval content,
 			     lispval ctype,lispval mailinfo)
 {
@@ -161,5 +164,5 @@ void kno_init_email_c()
 
 static void link_local_cprims()
 {
-  KNO_LINK_PRIM("smtp",smtp_function,5,webtools_module);
+  KNO_LINK_CPRIM("smtp",smtp_function,5,webtools_module);
 }

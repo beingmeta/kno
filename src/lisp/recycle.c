@@ -14,6 +14,8 @@
 #include "kno/cons.h"
 #include "kno/compounds.h"
 
+kno_type_freefn kno_default_freefn = NULL;
+
 /* Builtin recyclers */
 
 static void recycle_string(struct KNO_STRING *s)
@@ -204,7 +206,7 @@ KNO_EXPORT
    Recycles a cons cell */
 void kno_recycle_cons(kno_raw_cons c)
 {
-  int ctype = KNO_CONS_TYPE(c);
+  int ctype = KNO_CONS_TYPEOF(c);
   switch (ctype) {
   case kno_string_type: case kno_packet_type: case kno_secret_type:
     recycle_string((struct KNO_STRING *)c);

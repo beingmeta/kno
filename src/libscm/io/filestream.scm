@@ -1,9 +1,9 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
 ;;; Copyright (C) 2018-2020 beingmeta, inc.  All rights reserved.
 
-(in-module 'filestream)
+(in-module 'io/filestream)
 
-(use-module '{fifo varconfig ezrecords stringfmts reflection 
+(use-module '{fifo varconfig ezrecords text/stringfmts kno/reflect 
 	      libarchive bugjar bugjar/html logger})
 (use-module '{knodb knodb/registry knodb/branches})
 
