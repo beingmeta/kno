@@ -150,7 +150,7 @@ static int open_knosqlite(struct KNO_SQLITE *knosqlptr)
 
 KNO_DEFCPRIM("sqlite/open",sqlite_open_prim,
 	     KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
-	     "`(SQLITE/OPEN *arg0* [*arg1*] [*arg2*])` "
+	     ""
 	     "**undocumented**",
 	     {"filename",kno_string_type,KNO_VOID},
 	     {"colinfo",kno_any_type,KNO_VOID},
@@ -214,7 +214,7 @@ static lispval sqlite_open_prim(lispval filename,lispval colinfo,lispval options
 
 KNO_DEFCPRIM("sqlite/reopen",sqlite_reopen_prim,
 	     KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	     "`(SQLITE/REOPEN *arg0*)` "
+	     ""
 	     "**undocumented**",
 	     {"db",kno_sqldb_type,KNO_VOID})
 static lispval sqlite_reopen_prim(lispval db)
@@ -245,7 +245,7 @@ static void close_knosqlite(struct KNO_SQLITE *dbp,int lock)
 
 KNO_DEFCPRIM("sqlite/close",sqlite_close_prim,
 	     KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	     "`(SQLITE/CLOSE *arg0*)` "
+	     ""
 	     "**undocumented**",
 	     {"db",kno_sqldb_type,KNO_VOID})
 static lispval sqlite_close_prim(lispval db)

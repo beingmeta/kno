@@ -352,7 +352,7 @@ static lispval write_8bytes(lispval object,lispval stream,lispval pos)
 
 DEFCPRIM("zread-int",zread_int,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(ZREAD-INT *arg0*)` "
+	 ""
 	 "**undocumented**",
 	 {"stream",kno_stream_type,KNO_VOID})
 static lispval zread_int(lispval stream)
@@ -365,7 +365,7 @@ static lispval zread_int(lispval stream)
 
 DEFCPRIM("zwrite-int",zwrite_int,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "`(ZWRITE-INT *arg0* *arg1*)` "
+	 ""
 	 "**undocumented**",
 	 {"object",kno_any_type,KNO_VOID},
 	 {"stream",kno_stream_type,KNO_VOID})
@@ -381,7 +381,7 @@ static lispval zwrite_int(lispval object,lispval stream)
 
 DEFCPRIM("open-byte-output",open_byte_output_file,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "`(OPEN-BYTE-OUTPUT *filename* [*opts*])` "
+	 ""
 	 "**undocumented**",
 	 {"fname",kno_string_type,KNO_VOID},
 	 {"opts",kno_any_type,KNO_VOID})
@@ -403,7 +403,7 @@ static lispval open_byte_output_file(lispval fname,lispval opts)
 
 DEFCPRIM("open-byte-input",open_byte_input_file,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "`(OPEN-BYTE-INPUT *filename* [*opts*])` "
+	 ""
 	 "**undocumented**",
 	 {"fname",kno_string_type,KNO_VOID},
 	 {"opts",kno_any_type,KNO_VOID})
@@ -423,7 +423,7 @@ static lispval open_byte_input_file(lispval fname,lispval opts)
 
 DEFCPRIM("extend-byte-output",extend_byte_output,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(EXTEND-BYTE-OUTPUT *filename*)` "
+	 ""
 	 "**undocumented**",
 	 {"fname",kno_string_type,KNO_VOID})
 static lispval extend_byte_output(lispval fname)
@@ -443,7 +443,7 @@ static lispval extend_byte_output(lispval fname)
 
 DEFCPRIM("byte-stream?",streamp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(BYTE-STREAM? *arg0*)` "
+	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval streamp(lispval arg)
@@ -455,7 +455,7 @@ static lispval streamp(lispval arg)
 
 DEFCPRIM("byte-input?",byte_inputp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(BYTE-INPUT? *arg0*)` "
+	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval byte_inputp(lispval arg)
@@ -470,7 +470,7 @@ static lispval byte_inputp(lispval arg)
 
 DEFCPRIM("byte-output?",byte_outputp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(BYTE-OUTPUT? *arg0*)` "
+	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval byte_outputp(lispval arg)

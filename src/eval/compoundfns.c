@@ -27,7 +27,7 @@ static lispval difference_prim, difference_fcnid;
 
 DEFCPRIM("compound?",compoundp,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "`(COMPOUND? *obj* *tag*)` "
+	 ""
 	 "returns #f if *obj* is a compound and (when *tag* "
 	 "is provided) has the typetag *tag*.",
 	 {"x",kno_any_type,KNO_VOID},
@@ -47,7 +47,7 @@ static lispval compoundp(lispval x,lispval tag)
 
 DEFCPRIM("pick-compounds",pick_compounds,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "`(pick-compounds *arg* [*tags*])` "
+	 ""
 	 "returns *arg* if it is a compound and (when "
 	 "specified) if it's typetag is any of *tags*.",
 	 {"candidates",kno_any_type,KNO_VOID},
@@ -83,7 +83,7 @@ static lispval pick_compounds(lispval candidates,lispval tags)
 
 DEFCPRIM("compound-tag",compound_tag,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(COMPOUND-TAG *arg0*)` "
+	 ""
 	 "**undocumented**",
 	 {"x",kno_compound_type,KNO_VOID})
 static lispval compound_tag(lispval x)
@@ -93,7 +93,7 @@ static lispval compound_tag(lispval x)
 
 DEFCPRIM("compound-annotations",compound_annotations,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(COMPOUND-ANNOTATIONS *arg0*)` "
+	 ""
 	 "Returns a compound's annotations object, a table, "
 	 "which is the first element of compound's declared "
 	 "as annotated.",
@@ -110,7 +110,7 @@ static lispval compound_annotations(lispval x)
 
 DEFCPRIM("compound-length",compound_length,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(COMPOUND-LENGTH *arg0*)` "
+	 ""
 	 "**undocumented**",
 	 {"x",kno_compound_type,KNO_VOID})
 static lispval compound_length(lispval x)
@@ -121,7 +121,7 @@ static lispval compound_length(lispval x)
 
 DEFCPRIM("compound-mutable?",compound_mutablep,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(COMPOUND-MUTABLE? *arg0*)` "
+	 ""
 	 "**undocumented**",
 	 {"x",kno_compound_type,KNO_VOID})
 static lispval compound_mutablep(lispval x)
@@ -134,7 +134,7 @@ static lispval compound_mutablep(lispval x)
 
 DEFCPRIM("compound-opaque?",compound_opaquep,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(COMPOUND-OPAQUE? *arg0*)` "
+	 ""
 	 "**undocumented**",
 	 {"x",kno_compound_type,KNO_VOID})
 static lispval compound_opaquep(lispval x)
@@ -147,7 +147,7 @@ static lispval compound_opaquep(lispval x)
 
 DEFCPRIM("compound-ref",compound_ref,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 "`(COMPOUND-REF *arg0* *arg1* [*arg2*])` "
+	 ""
 	 "**undocumented**",
 	 {"x",kno_compound_type,KNO_VOID},
 	 {"offset",kno_any_type,KNO_VOID},
@@ -186,7 +186,7 @@ static lispval compound_ref(lispval x,lispval offset,lispval tag)
 
 DEFCPRIM("unpack-compound",unpack_compound,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "`(UNPACK-COMPOUND *arg0* [*arg1*])` "
+	 ""
 	 "**undocumented**",
 	 {"x",kno_compound_type,KNO_VOID},
 	 {"tag",kno_any_type,KNO_VOID})
@@ -215,7 +215,7 @@ static lispval unpack_compound(lispval x,lispval tag)
 
 DEFCPRIM("compound-set!",compound_set,
 	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(3)|KNO_NDCALL,
-	 "`(COMPOUND-SET! *arg0* *arg1* *arg2* [*arg3*])` "
+	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID},
 	 {"offset",kno_any_type,KNO_VOID},
@@ -312,7 +312,7 @@ static lispval apply_modifier(lispval modifier,lispval old_value,lispval value)
 
 DEFCPRIM("compound-modify!",compound_modify,
 	 KNO_MAX_ARGS(5)|KNO_MIN_ARGS(4)|KNO_NDCALL,
-	 "`(compound-modify! *compound* *tag* *eltno* *modfn* *modval*)` "
+	 ""
 	 "Modifies a field of *compound* atomically, "
 	 "replacing it with (*modfn* *curval* *modval*) "
 	 "while holding any locks on the compound.",
@@ -380,7 +380,7 @@ static lispval compound_modify(lispval x,lispval tag,lispval offset,
 
 DEFCPRIMN("make-compound",make_compound,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	  "`(make-compound *tag* *elts...*)` "
+	  ""
 	  "creates a simple compound object with type *tag* "
 	  "and elements *elts*")
 static lispval make_compound(int n,kno_argvec args)
@@ -403,7 +403,6 @@ static lispval make_compound(int n,kno_argvec args)
 
 DEFCPRIMN("make-xcompound",make_xcompound,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(5)|KNO_NDCALL,
-	  "`(make-xcompound *tag* *ismutable* *isopaque* *annotate* *seqoff* *elts...*) "
 	  "creates a (possibly) complex compound object with "
 	  "type *tag*. If *annotate* is a table, it is used "
 	  "as the annotations for the compound; if it is #t, "
@@ -453,7 +452,7 @@ static lispval make_xcompound(int n,kno_argvec args)
 
 DEFCPRIM("sequence->compound",seq2compound,
 	 KNO_MAX_ARGS(6)|KNO_MIN_ARGS(2),
-	 "`(SEQUENCE->COMPOUND *seq* *tag* *mutable* *opaque* *seqoff* *annotated*)` "
+	 ""
 	 "creates a compound object out of *seq*, tagged "
 	 "with *tag*. The first *reserve* elements of *seq* "
 	 "will be part of the compound but not part of the "
@@ -522,7 +521,7 @@ static lispval seq2compound(lispval seq,lispval tag,
 
 DEFCPRIMN("make-opaque-compound",make_opaque_compound,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	  "`(MAKE-OPAQUE-COMPOUND *arg0* *args...*)` "
+	  ""
 	  "**undocumented**")
 static lispval make_opaque_compound(int n,kno_argvec args)
 {
@@ -544,7 +543,7 @@ static lispval make_opaque_compound(int n,kno_argvec args)
 
 DEFCPRIMN("make-mutable-compound",make_mutable_compound,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	  "`(MAKE-MUTABLE-COMPOUND *arg0* *args...*)` "
+	  ""
 	  "**undocumented**")
 static lispval make_mutable_compound(int n,kno_argvec args)
 {
@@ -566,7 +565,7 @@ static lispval make_mutable_compound(int n,kno_argvec args)
 
 DEFCPRIMN("make-opaque-mutable-compound",make_opaque_mutable_compound,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	  "`(MAKE-OPAQUE-MUTABLE-COMPOUND *arg0* *args...*)` "
+	  ""
 	  "**undocumented**")
 static lispval make_opaque_mutable_compound(int n,kno_argvec args)
 {

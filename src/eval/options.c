@@ -101,7 +101,7 @@ static lispval getopt_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 
 DEFCPRIM("%getopt",getopt_prim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "`(%GETOPT *opts* *name* [*default*=#f])` "
+	 ""
 	 "gets any *name* option from opts, returning "
 	 "*default* if there isn't any. This is a real "
 	 "procedure (unlike `GETOPT`) so that *default* "
@@ -126,7 +126,7 @@ static lispval getopt_prim(lispval opts,lispval keys,lispval dflt)
 
 DEFCPRIM("testopt",testopt_prim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 "`(TESTOPT *opts* *name* [*value*])` "
+	 ""
 	 "returns true if the option *name* is specified in "
 	 "*opts* and it includes *value* (if provided).",
 	 {"opts",kno_any_type,KNO_VOID},
@@ -141,7 +141,7 @@ static lispval testopt_prim(lispval opts,lispval key,lispval val)
 
 DEFCPRIM("opts?",optionsp_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 "`(OPTS? *opts*)` "
+	 ""
 	 "returns true if *opts* is a valid options object.",
 	 {"opts",kno_any_type,KNO_VOID})
 static lispval optionsp_prim(lispval opts)
@@ -154,7 +154,7 @@ static lispval optionsp_prim(lispval opts)
 
 DEFCPRIMN("opts+",opts_plus_prim,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(0)|KNO_NDCALL,
-	  "`(OPTS+ *add* *opts*)` "
+	  ""
 	  "or `(OPTS+ *optname* *value* *opts*) returns a "
 	  "new options object (a pair).")
 static lispval opts_plus_prim(int n,kno_argvec args)

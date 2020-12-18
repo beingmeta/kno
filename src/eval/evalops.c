@@ -136,7 +136,7 @@ static lispval make_coderef(lispval x)
 
 DEFCPRIM("opcode?",opcodep,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(OPCODE? *arg0*)` "
+	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval opcodep(lispval x)
@@ -148,7 +148,7 @@ static lispval opcodep(lispval x)
 
 DEFCPRIM("name->opcode",name2opcode_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(NAME->OPCODE *arg0*)` "
+	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval name2opcode_prim(lispval arg)
@@ -162,7 +162,7 @@ static lispval name2opcode_prim(lispval arg)
 
 DEFCPRIM("make-opcode",make_opcode,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(MAKE-OPCODE *arg0*)` "
+	 ""
 	 "**undocumented**",
 	 {"x",kno_fixnum_type,KNO_VOID})
 static lispval make_opcode(lispval x)
@@ -208,7 +208,7 @@ static lispval call_continuation(struct KNO_STACK *stack,
 
 DEFCPRIM("call/cc",callcc,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(call/cc *fn.callback*)` "
+	 ""
 	 "applies *fn.callback* to a single argument, which "
 	 "is a *continuation* procedure. When the "
 	 "application of *fn.callback* calls *continuation* "
@@ -252,7 +252,7 @@ static lispval callcc(lispval proc)
 
 DEFCPRIM("symbol-bound-in?",symbol_boundin_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "`(SYMBOL-BOUND-IN? *arg0* *arg1*)` "
+	 ""
 	 "**undocumented**",
 	 {"symbol",kno_any_type,KNO_VOID},
 	 {"envarg",kno_any_type,KNO_VOID})
@@ -286,7 +286,7 @@ static lispval symbol_boundin_prim(lispval symbol,lispval envarg)
 
 DEFCPRIM("environment?",environmentp_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(ENVIRONMENT? *arg0*)` "
+	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval environmentp_prim(lispval arg)
@@ -300,7 +300,7 @@ static lispval environmentp_prim(lispval arg)
 
 DEFCPRIM("get-arg",get_arg_prim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 "`(GET-ARG *expression* *i* [*default*])` "
+	 ""
 	 "returns the *i*'th parameter in *expression*, or "
 	 "*default* (otherwise)",
 	 {"expr",kno_any_type,KNO_VOID},
@@ -325,7 +325,7 @@ static lispval get_arg_prim(lispval expr,lispval elt,lispval dflt)
 
 DEFCPRIMN("apply",apply_lexpr,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	  "`(APPLY *arg0* *args...*)` "
+	  ""
 	  "**undocumented**")
 static lispval apply_lexpr(int n,kno_argvec args)
 {
@@ -376,7 +376,7 @@ static lispval apply_lexpr(int n,kno_argvec args)
 
 DEFCPRIMN("cachecall",cachecall,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1),
-	  "`(CACHECALL *arg0* *args...*)` "
+	  ""
 	  "**undocumented**")
 static lispval cachecall(int n,kno_argvec args)
 {
@@ -387,7 +387,7 @@ static lispval cachecall(int n,kno_argvec args)
 
 DEFCPRIMN("cachecall/probe",cachecall_probe,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1),
-	  "`(CACHECALL/PROBE *arg0* *args...*)` "
+	  ""
 	  "**undocumented**")
 static lispval cachecall_probe(int n,kno_argvec args)
 {
@@ -398,7 +398,7 @@ static lispval cachecall_probe(int n,kno_argvec args)
 
 DEFCPRIMN("cachedcall?",cachedcallp,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1),
-	  "`(CACHEDCALL? *arg0* *args...*)` "
+	  ""
 	  "**undocumented**")
 static lispval cachedcallp(int n,kno_argvec args)
 {
@@ -413,7 +413,7 @@ static lispval cachedcallp(int n,kno_argvec args)
 
 DEFCPRIM("clear-callcache!",clear_callcache,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
-	 "`(CLEAR-CALLCACHE! [*arg0*])` "
+	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval clear_callcache(lispval arg)
@@ -424,7 +424,7 @@ static lispval clear_callcache(lispval arg)
 
 DEFCPRIMN("thread/cachecall",tcachecall,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1),
-	  "`(THREAD/CACHECALL *arg0* *args...*)` "
+	  ""
 	  "**undocumented**")
 static lispval tcachecall(int n,kno_argvec args)
 {
@@ -461,7 +461,7 @@ static lispval using_threadcache_evalfn(lispval expr,kno_lexenv env,kno_stack _s
 
 DEFCPRIM("use-threadcache",use_threadcache_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
-	 "`(USE-THREADCACHE [*arg0*])` "
+	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval use_threadcache_prim(lispval arg)
@@ -515,7 +515,7 @@ static lispval cons_method(int n,lispval *args,kno_typeinfo e)
 
 DEFCPRIM("type-set-consfn!",type_set_consfn_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "`(TYPE-SET-CONSFN! *arg0* *arg1*)` "
+	 ""
 	 "**undocumented**",
 	 {"tag",kno_any_type,KNO_VOID},
 	 {"consfn",kno_any_type,KNO_VOID})
@@ -575,7 +575,7 @@ static lispval restore_method(int n,lispval *args,kno_typeinfo e)
 
 DEFCPRIM("type-set-restorefn!",type_set_restorefn_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "`(TYPE-SET-RESTOREFN! *arg0* *arg1*)` "
+	 ""
 	 "**undocumented**",
 	 {"tag",kno_any_type,KNO_VOID},
 	 {"restorefn",kno_any_type,KNO_VOID})
@@ -598,7 +598,7 @@ static lispval type_set_restorefn_prim(lispval tag,lispval restorefn)
 
 DEFCPRIM("type-set-stringfn!",type_set_stringfn_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "`(TYPE-SET-STRINGFN! *arg0* *arg1*)` "
+	 ""
 	 "**undocumented**",
 	 {"tag",kno_any_type,KNO_VOID},
 	 {"stringfn",kno_any_type,KNO_VOID})
@@ -621,7 +621,7 @@ static lispval type_set_stringfn_prim(lispval tag,lispval stringfn)
 
 DEFCPRIM("type-props",type_props_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "`(type-props *tag* [*field*])` "
+	 ""
 	 "accesses the metadata associated with the typetag "
 	 "assigned to *compound*. If *field* is specified, "
 	 "that particular metadata field is returned. "
@@ -640,7 +640,7 @@ static lispval type_props_prim(lispval arg,lispval field)
 
 DEFCPRIM("type-handlers",type_handlers_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "`(type-handlers *tag* [*field*])` "
+	 ""
 	 "accesses the metadata associated with the typetag "
 	 "assigned to *compound*. If *field* is specified, "
 	 "that particular metadata field is returned. "
@@ -661,7 +661,7 @@ static lispval opaque_symbol, mutable_symbol, sequence_symbol;
 
 DEFCPRIM("type-set!",type_set_prim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3)|KNO_NDCALL,
-	 "`(type-set! *tag* *field* *value*)` "
+	 ""
 	 "stores *value* in *field* of the properties "
 	 "associated with the type tag *tag*.",
 	 {"arg",kno_any_type,KNO_VOID},
@@ -691,7 +691,7 @@ static lispval type_set_prim(lispval arg,lispval field,lispval value)
 #if KNO_ENABLE_FFI
 DEFCPRIMN("ffi/proc",ffi_proc,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(3),
-	  "`(FFI/PROC *arg0* *arg1* *arg2* *args...*)` "
+	  ""
 	  "**undocumented**")
 static lispval ffi_proc(int n,kno_argvec args)
 {
@@ -715,7 +715,7 @@ static lispval ffi_proc(int n,kno_argvec args)
 
 DEFCPRIM("ffi/found?",ffi_foundp_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "`(FFI/FOUND? *arg0* [*arg1*])` "
+	 ""
 	 "**undocumented**",
 	 {"name",kno_string_type,KNO_VOID},
 	 {"modname",kno_any_type,KNO_VOID})
@@ -735,7 +735,7 @@ static lispval ffi_foundp_prim(lispval name,lispval modname)
 #else
 DEFCPRIMN("ffi/proc",ffi_proc,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(3),
-	  "`(FFI/PROC *arg0* *arg1* *arg2* *args...*)` "
+	  ""
 	  "**undocumented**")
 static lispval ffi_proc(int n,lispval *args)
 {
@@ -745,7 +745,7 @@ static lispval ffi_proc(int n,lispval *args)
 }
 DEFCPRIM("ffi/found?",ffi_foundp_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "`(FFI/FOUND? *arg0* [*arg1*])` "
+	 ""
 	 "**undocumented**",
 	 {"name",kno_string_type,KNO_VOID},
 	 {"modname",kno_any_type,KNO_VOID})
@@ -759,7 +759,7 @@ static lispval ffi_foundp_prim(lispval name,lispval modname)
 
 DEFCPRIM("%fixchoice",fixchoice_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 "`(%FIXCHOICE *arg0*)` "
+	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval fixchoice_prim(lispval arg)
@@ -771,7 +771,7 @@ static lispval fixchoice_prim(lispval arg)
 
 DEFCPRIM("%choiceref",choiceref_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "`(%CHOICEREF *arg0* *arg1*)` "
+	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID},
 	 {"off",kno_any_type,KNO_VOID})
@@ -820,7 +820,7 @@ static int check_num(lispval arg,int num)
 
 DEFCPRIMN("check-version",check_version_prim,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1),
-	  "`(CHECK-VERSION *arg0* *args...*)` "
+	  ""
 	  "**undocumented**")
 static lispval check_version_prim(int n,kno_argvec args)
 {
@@ -859,7 +859,7 @@ static lispval check_version_prim(int n,kno_argvec args)
 
 DEFCPRIMN("require-version",require_version_prim,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1),
-	  "`(REQUIRE-VERSION *arg0* *args...*)` "
+	  ""
 	  "**undocumented**")
 static lispval require_version_prim(int n,kno_argvec args)
 {
@@ -889,7 +889,7 @@ static lispval require_version_prim(int n,kno_argvec args)
 
 DEFCPRIM("documentation",get_documentation,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(DOCUMENTATION *arg0*)` "
+	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval get_documentation(lispval x)
@@ -906,7 +906,7 @@ static lispval get_documentation(lispval x)
 
 DEFCPRIM("apropos",apropos_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(APROPOS *arg0*)` "
+	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval apropos_prim(lispval arg)
@@ -941,7 +941,7 @@ static lispval apropos_prim(lispval arg)
 
 DEFCPRIM("fcn/getalias",fcn_getalias_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "`(FCN/ALIAS *sym* *module*)` "
+	 ""
 	 "tries to return a function alias for *sym* in "
 	 "*module*",
 	 {"sym",kno_symbol_type,KNO_VOID},
@@ -993,7 +993,7 @@ static lispval fcn_getalias_prim(lispval sym,lispval env_arg)
 
 DEFCPRIM("kno/exec",kno_exec_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "`(kno/exec *expr* *envopts*)` "
+	 ""
 	 "calls the query interpreter on *expr* with "
 	 "handlers from *envopts*",
 	 {"expr",kno_any_type,KNO_VOID},

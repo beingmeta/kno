@@ -46,7 +46,7 @@ static void get_mailinfo(lispval headers,u8_string *host,u8_string *domain,u8_st
 
 DEFCPRIM("smtp",smtp_function,
 	 KNO_MAX_ARGS(5)|KNO_MIN_ARGS(3),
-	 "`(SMTP *arg0* *arg1* *arg2* [*arg3*] [*arg4*])` "
+	 ""
 	 "**undocumented**",
 	 {"dest",kno_any_type,KNO_VOID},
 	 { "headers",kno_any_type,KNO_VOID},

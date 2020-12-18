@@ -525,7 +525,7 @@ KNO_EXPORT void kno_init_binders_c()
 		 "*undocumented*");
 
   kno_def_evalfn(kno_scheme_module,"DEFINE-IMPORT",define_import,
-		 "`(DEFINE-IMPORT *name* *module* [*defname*])` defines "
+		 "defines "
 		 "a local binding *name* for the value of *defname * "
 		 "in *module*. If not provided, *name* is used as *defname*.");
   kno_defalias(kno_scheme_module,"DEFIMPORT","DEFINE-IMPORT");

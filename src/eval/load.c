@@ -216,7 +216,7 @@ static lispval load_source_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 
 DEFCPRIM("load->env",load_into_env_prim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
-	 "`(LOAD->ENV *filename* *env* [*resultfn*])` "
+	 ""
 	 "Loads *filename* into *env*, applying *resultfn* "
 	 "(if provided) to the result.",
 	 {"source",kno_string_type,KNO_VOID},
@@ -257,7 +257,7 @@ static lispval load_into_env_prim(lispval source,lispval envarg,
 
 DEFCPRIM("env/load",env_load_prim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
-	 "`(ENV/LOAD *env* [*filename*])` "
+	 ""
 	 "Updates *env* by loading (if needed) the latest "
 	 "version of *filename*. If *filename* is not "
 	 "provided, all files previously loaded with "
@@ -314,7 +314,7 @@ static lispval load_component_evalfn(lispval expr,kno_lexenv env,kno_stack _stac
 
 DEFCPRIM("get-component",lisp_get_component,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(0),
-	 "`(GET-COMPONENT [*arg0*] [*arg1*])` "
+	 ""
 	 "**undocumented**",
 	 {"string",kno_string_type,KNO_VOID},
 	 {"base",kno_string_type,KNO_VOID})

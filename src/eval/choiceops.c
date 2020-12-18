@@ -298,7 +298,7 @@ static lispval filterchoices_evalfn(lispval expr,kno_lexenv env,
 
 DEFCPRIM("fail",fail_prim,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	 "`(FAIL)` "
+	 ""
 	 "**undocumented**")
 static lispval fail_prim()
 {
@@ -307,7 +307,7 @@ static lispval fail_prim()
 
 DEFCPRIMN("choice",choice_prim,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(0)|KNO_NDCALL,
-	  "`(CHOICE *args...*)` "
+	  ""
 	  "**undocumented**")
 static lispval choice_prim(int n,kno_argvec args)
 {
@@ -320,7 +320,7 @@ static lispval choice_prim(int n,kno_argvec args)
 
 DEFCPRIMN("qchoice",qchoice_prim,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(0)|KNO_NDCALL,
-	  "`(QCHOICE *args...*)` "
+	  ""
 	  "**undocumented**")
 static lispval qchoice_prim(int n,kno_argvec args)
 {
@@ -336,7 +336,7 @@ static lispval qchoice_prim(int n,kno_argvec args)
 
 DEFCPRIMN("qchoicex",qchoicex_prim,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(0)|KNO_NDCALL,
-	  "`(QCHOICEX *args...*)` "
+	  ""
 	  "**undocumented**")
 static lispval qchoicex_prim(int n,kno_argvec args)
 {
@@ -396,7 +396,7 @@ static lispval ifexists_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 
 DEFCPRIM("empty?",emptyp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 "`(EMPTY? *reference*)` "
+	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval emptyp(lispval x)
@@ -406,7 +406,7 @@ static lispval emptyp(lispval x)
 
 DEFCPRIM("satisfied?",satisfiedp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 "`(SATISFIED? *result*)` "
+	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval satisfiedp(lispval x)
@@ -418,7 +418,7 @@ static lispval satisfiedp(lispval x)
 
 DEFCPRIM("exists?",existsp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 "`(EXISTS? *result*)` "
+	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval existsp(lispval x)
@@ -428,7 +428,7 @@ static lispval existsp(lispval x)
 
 DEFCPRIM("unique?",singletonp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 "`(UNIQUE? *result*)` "
+	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval singletonp(lispval x)
@@ -442,7 +442,7 @@ static lispval singletonp(lispval x)
 
 DEFCPRIM("amb?",ambiguousp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 "`(AMB? *result*)` "
+	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval ambiguousp(lispval x) /* TODO: Wasted effort around here */
@@ -456,7 +456,7 @@ static lispval ambiguousp(lispval x) /* TODO: Wasted effort around here */
 
 DEFCPRIM("singleton",singleton,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 "`(SINGLETON *result*)` "
+	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval singleton(lispval x)
@@ -469,7 +469,7 @@ static lispval singleton(lispval x)
 
 DEFCPRIM("choice-max",choice_max,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "`(CHOICE-MAX *result* *limit*)` "
+	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID},
 	 {"lim",kno_fixnum_type,KNO_VOID})
@@ -486,7 +486,7 @@ static lispval choice_max(lispval x,lispval lim)
 
 DEFCPRIM("choice-min",choice_min,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "`(CHOICE-MIN *arg0* *arg1*)` "
+	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID},
 	 {"lim",kno_fixnum_type,KNO_VOID})
@@ -503,7 +503,7 @@ static lispval choice_min(lispval x,lispval lim)
 
 DEFCPRIM("simplify",simplify,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 "`(SIMPLIFY *result*)` "
+	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval simplify(lispval x)
@@ -589,7 +589,7 @@ static lispval exists_helper(int n,kno_argvec nd_args,int skip_errs)
 
 DEFCPRIMN("exists",exists_lexpr,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	  "`(EXISTS *fn* *args...*)` "
+	  ""
 	  "**undocumented**")
 static lispval exists_lexpr(int n,kno_argvec nd_args)
 {
@@ -598,7 +598,7 @@ static lispval exists_lexpr(int n,kno_argvec nd_args)
 
 DEFCPRIMN("exists/skiperrs",exists_skiperrs,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	  "`(EXISTS/SKIPERRS *fn* *args...*)` "
+	  ""
 	  "**undocumented**")
 static lispval exists_skiperrs(int n,kno_argvec nd_args)
 {
@@ -607,7 +607,7 @@ static lispval exists_skiperrs(int n,kno_argvec nd_args)
 
 DEFCPRIMN("sometrue",sometrue_lexpr,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	  "`(SOMETRUE *fn* *args...*)` "
+	  ""
 	  "**undocumented**")
 static lispval sometrue_lexpr(int n,kno_argvec nd_args)
 {
@@ -622,7 +622,7 @@ static lispval sometrue_lexpr(int n,kno_argvec nd_args)
 
 DEFCPRIMN("sometrue/skiperrs",sometrue_skiperrs,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	  "`(SOMETRUE/SKIPERRS *fn* *args...*)` "
+	  ""
 	  "**undocumented**")
 static lispval sometrue_skiperrs(int n,kno_argvec nd_args)
 {
@@ -707,7 +707,7 @@ static lispval forall_helper(int n,kno_argvec nd_args,int skip_errs)
 
 DEFCPRIMN("forall",forall_lexpr,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	  "`(FORALL *fn* *args...*)` "
+	  ""
 	  "**undocumented**")
 static lispval forall_lexpr(int n,kno_argvec nd_args)
 {
@@ -716,7 +716,7 @@ static lispval forall_lexpr(int n,kno_argvec nd_args)
 
 DEFCPRIMN("forall/skiperrs",forall_skiperrs,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	  "`(FORALL/SKIPERRS *fn* *args...*)` "
+	  ""
 	  "**undocumented**")
 static lispval forall_skiperrs(int n,kno_argvec nd_args)
 {
@@ -727,7 +727,7 @@ static lispval forall_skiperrs(int n,kno_argvec nd_args)
 
 DEFCPRIMN("union",union_lexpr,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	  "`(UNION *choice* *more choices...*)` "
+	  ""
 	  "**undocumented**")
 static lispval union_lexpr(int n,kno_argvec args)
 {
@@ -736,7 +736,7 @@ static lispval union_lexpr(int n,kno_argvec args)
 
 DEFCPRIMN("intersection",intersection_lexpr,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	  "`(INTERSECTION *choice* *more choices...*)` "
+	  ""
 	  "**undocumented**")
 static lispval intersection_lexpr(int n,kno_argvec args)
 {
@@ -745,7 +745,7 @@ static lispval intersection_lexpr(int n,kno_argvec args)
 
 DEFCPRIMN("difference",difference_lexpr,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	  "`(DIFFERENCE *choice* *choices...*)` "
+	  ""
 	  "**undocumented**")
 static lispval difference_lexpr(int n,kno_argvec args)
 {
@@ -767,7 +767,7 @@ static lispval difference_lexpr(int n,kno_argvec args)
 
 DEFCPRIM("choice->vector",choice2vector,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 "`(CHOICE->VECTOR *choice* [*sortspec*])` "
+	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID},
 	 {"sortspec",kno_any_type,KNO_VOID})
@@ -799,7 +799,7 @@ static lispval choice2vector(lispval x,lispval sortspec)
 
 DEFCPRIM("choice->list",choice2list,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 "`(CHOICE->LIST *choice*)` "
+	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval choice2list(lispval x)
@@ -895,7 +895,7 @@ static lispval dosubsets_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 
 DEFCPRIM("choice-size",choicesize_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 "`(CHOICE-SIZE *choice*)` "
+	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval choicesize_prim(lispval x)
@@ -906,7 +906,7 @@ static lispval choicesize_prim(lispval x)
 
 DEFCPRIM("pick-one",pickone,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 "`(PICK-ONE *choice*)` "
+	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval pickone(lispval x)
@@ -926,7 +926,7 @@ static lispval pickone(lispval x)
 
 DEFCPRIM("sample-n",samplen,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 "`(SAMPLE-N *choice* [*maxcount*])` "
+	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID},
 	 {"count",kno_fixnum_type,KNO_INT(10)})
@@ -966,7 +966,7 @@ static lispval samplen(lispval x,lispval count)
 
 DEFCPRIM("pick-n",pickn,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "`(PICK-N *choice* *maxcount* [*offset*])` "
+	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID},
 	 {"count",kno_fixnum_type,KNO_VOID},
@@ -1046,7 +1046,7 @@ static int compare_lisp(lispval x,lispval y)
 
 DEFCPRIM("smallest",smallest_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 "`(SMALLEST *choices* [*magfn*])` "
+	 ""
 	 "**undocumented**",
 	 {"elts",kno_any_type,KNO_VOID},
 	 {"magnitude",kno_any_type,KNO_VOID})
@@ -1111,7 +1111,7 @@ static lispval smallest_prim(lispval elts,lispval magnitude)
 
 DEFCPRIM("largest",largest_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 "`(LARGEST *choices* [*magfn*])` "
+	 ""
 	 "**undocumented**",
 	 {"elts",kno_any_type,KNO_VOID},
 	 {"magnitude",kno_any_type,KNO_VOID})
@@ -1206,7 +1206,7 @@ static lispval inner_reduce_choice
 
 DEFCPRIM("reduce-choice",reduce_choice,
 	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "`(REDUCE-CHOICE *op* *choice* [*base*] [*key*])` "
+	 ""
 	 "**undocumented**",
 	 {"fn",kno_any_type,KNO_VOID},
 	 {"choice",kno_any_type,KNO_VOID},
@@ -1426,7 +1426,7 @@ static lispval rsorted_prim(lispval choices,lispval keyfn,
 
 DEFCPRIM("lexsorted",lexsorted_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 "`(LEXSORTED *choices* [*keyfn*])` "
+	 ""
 	 "**undocumented**",
 	 {"choices",kno_any_type,KNO_VOID},
 	 {"keyfn",kno_any_type,KNO_VOID})
@@ -1544,7 +1544,7 @@ static lispval pick_max_helper(lispval choices,size_t k,
 
 DEFCPRIM("pick-max",pick_max_prim,
 	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "`(PICK-MAX *choices* *count* [*keyfn*] [*justnums*])` "
+	 ""
 	 "Returns the *k* largest items in *choices* where "
 	 "the _magnitude_ is determined by *keyfn*. *keyfn* "
 	 "can be any applicable object/procedure, a table, "
@@ -1613,7 +1613,7 @@ static lispval max_sorted_helper(lispval choices,size_t k,
 
 DEFCPRIM("max/sorted",max_sorted_prim,
 	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "`(MAX/SORTED *choices* *count* [*keyfn*] [*justnums*])` "
+	 ""
 	 "Returns the *k* largest items in *choices* sorted "
 	 "into a vector where the _magnitude_ is determined "
 	 "by *keyfn* and the vector is sorted based on the "
@@ -1664,7 +1664,7 @@ static lispval pick_min_helper(lispval choices,size_t k,lispval keyfn,
 
 DEFCPRIM("pick-min",pick_min_prim,
 	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "`(PICK-MIN *choices* *count* [*keyfn*] [*justnums*])` "
+	 ""
 	 "Returns the *k* smallest items in *choices* where "
 	 "the _magnitude_ is determined by *keyfn*. *keyfn* "
 	 "can be any applicable object/procedure, a table, "
@@ -1729,7 +1729,7 @@ static lispval min_sorted_helper(lispval choices,size_t k,lispval keyfn,
 
 DEFCPRIM("min/sorted",min_sorted_prim,
 	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "`(MIN/SORTED *choices* *count* [*keyfn*] [*justnums*])` "
+	 ""
 	 "Returns the *k* smallest items in *choices* "
 	 "sorted into a vector where the _magnitude_ is "
 	 "determined by *keyfn* and the vector is sorted "
@@ -1763,7 +1763,7 @@ static lispval min_sorted_prim(lispval choices,lispval karg,
 
 DEFCPRIM("getrange",getrange_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "`(GETRANGE *start* [*range*])` "
+	 ""
 	 "**undocumented**",
 	 {"arg1",kno_any_type,KNO_VOID},
 	 {"endval",kno_any_type,KNO_VOID})
@@ -1787,7 +1787,7 @@ static lispval getrange_prim(lispval arg1,lispval endval)
 
 DEFCPRIM("pick>",pick_gt_prim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 "`(PICK> *arg0* [*arg1*] [*arg2*])` "
+	 ""
 	 "**undocumented**",
 	 {"items",kno_any_type,KNO_VOID},
 	 {"num",kno_any_type,KNO_INT(0)},
@@ -1901,7 +1901,7 @@ static lispval reject_hastype_prim(lispval items,lispval types)
 
 DEFCPRIM("pickoids",pick_oids_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 "`(PICKOIDS *objects*)` "
+	 ""
 	 "**undocumented**",
 	 {"items",kno_any_type,KNO_VOID})
 static lispval pick_oids_prim(lispval items)
@@ -1919,7 +1919,7 @@ static lispval pick_oids_prim(lispval items)
 
 DEFCPRIM("picksyms",pick_syms_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 "`(PICKSYMS *objects*)` "
+	 ""
 	 "**undocumented**",
 	 {"items",kno_any_type,KNO_VOID})
 static lispval pick_syms_prim(lispval items)
@@ -1937,7 +1937,7 @@ static lispval pick_syms_prim(lispval items)
 
 DEFCPRIM("pickstrings",pick_strings_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 "`(PICKSTRINGS *objects*)` "
+	 ""
 	 "**undocumented**",
 	 {"items",kno_any_type,KNO_VOID})
 static lispval pick_strings_prim(lispval items)
@@ -1957,7 +1957,7 @@ static lispval pick_strings_prim(lispval items)
 
 DEFCPRIM("pickvecs",pick_vecs_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 "`(PICKVECS *objects*)` "
+	 ""
 	 "**undocumented**",
 	 {"items",kno_any_type,KNO_VOID})
 static lispval pick_vecs_prim(lispval items)
@@ -1977,7 +1977,7 @@ static lispval pick_vecs_prim(lispval items)
 
 DEFCPRIM("pickpairs",pick_pairs_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 "`(PICKPAIRS *objects*)` "
+	 ""
 	 "**undocumented**",
 	 {"items",kno_any_type,KNO_VOID})
 static lispval pick_pairs_prim(lispval items)
@@ -1997,7 +1997,7 @@ static lispval pick_pairs_prim(lispval items)
 
 DEFCPRIM("picknums",pick_nums_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 "`(PICKNUMS *objects*)` "
+	 ""
 	 "**undocumented**",
 	 {"items",kno_any_type,KNO_VOID})
 static lispval pick_nums_prim(lispval items)
@@ -2018,7 +2018,7 @@ static lispval pick_nums_prim(lispval items)
 
 DEFCPRIM("pickmaps",pick_maps_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 "`(PICKMAPS *objects*)` "
+	 ""
 	 "**undocumented**",
 	 {"items",kno_any_type,KNO_VOID})
 static lispval pick_maps_prim(lispval items)

@@ -160,7 +160,7 @@ static lispval write_dtype(lispval object,lispval stream,
 
 DEFCPRIM("zread-dtype",zread_dtype,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(ZREAD-DTYPE *arg0*)` "
+	 ""
 	 "**undocumented**",
 	 {"stream",kno_stream_type,KNO_VOID})
 static lispval zread_dtype(lispval stream)
@@ -174,7 +174,7 @@ static lispval zread_dtype(lispval stream)
 
 DEFCPRIM("zwrite-dtype",zwrite_dtype,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "`(ZWRITE-DTYPE *arg0* *arg1*)` "
+	 ""
 	 "**undocumented**",
 	 {"object",kno_any_type,KNO_VOID},
 	 {"stream",kno_stream_type,KNO_VOID})
@@ -189,7 +189,7 @@ static lispval zwrite_dtype(lispval object,lispval stream)
 
 DEFCPRIM("zwrite-dtypes",zwrite_dtypes,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "`(ZWRITE-DTYPES *arg0* *arg1*)` "
+	 ""
 	 "**undocumented**",
 	 {"object",kno_any_type,KNO_VOID},
 	 {"stream",kno_stream_type,KNO_VOID})
@@ -206,7 +206,7 @@ static lispval zwrite_dtypes(lispval object,lispval stream)
 
 DEFCPRIM("dtype->zfile",lisp2zipfile,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "`(DTYPE->ZFILE *arg0* *arg1* [*arg2*])` "
+	 ""
 	 "**undocumented**",
 	 {"object",kno_any_type,KNO_VOID},
 	 {"filename",kno_any_type,KNO_VOID},
@@ -254,7 +254,7 @@ static lispval lisp2zipfile(lispval object,lispval filename,lispval bufsiz)
 
 DEFCPRIM("dtype->file",lisp2file,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "`(DTYPE->FILE *arg0* *arg1* [*arg2*])` "
+	 ""
 	 "**undocumented**",
 	 {"object",kno_any_type,KNO_VOID},
 	 {"filename",kno_any_type,KNO_VOID},
@@ -363,7 +363,7 @@ static ssize_t write_dtypes(lispval dtypes,struct KNO_STREAM *out)
 
 DEFCPRIM("dtype->zfile+",add_lisp2zipfile,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "`(DTYPE->ZFILE+ *arg0* *arg1*)` "
+	 ""
 	 "**undocumented**",
 	 {"object",kno_any_type,KNO_VOID},
 	 {"filename",kno_any_type,KNO_VOID})
@@ -398,7 +398,7 @@ static lispval add_lisp2zipfile(lispval object,lispval filename)
 
 DEFCPRIM("dtypes->file+",add_dtypes2file,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "`(DTYPES->FILE+ *arg0* *arg1*)` "
+	 ""
 	 "**undocumented**",
 	 {"object",kno_any_type,KNO_VOID},
 	 {"filename",kno_any_type,KNO_VOID})
@@ -433,7 +433,7 @@ static lispval add_dtypes2file(lispval object,lispval filename)
 
 DEFCPRIM("zfile->dtype",zipfile2dtype,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(ZFILE->DTYPE *arg0*)` "
+	 ""
 	 "**undocumented**",
 	 {"filename",kno_any_type,KNO_VOID})
 static lispval zipfile2dtype(lispval filename)
@@ -458,7 +458,7 @@ static lispval zipfile2dtype(lispval filename)
 
 DEFCPRIM("file->dtype",file2dtype,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(FILE->DTYPE *arg0*)` "
+	 ""
 	 "**undocumented**",
 	 {"filename",kno_any_type,KNO_VOID})
 static lispval file2dtype(lispval filename)
@@ -478,7 +478,7 @@ static lispval file2dtype(lispval filename)
 
 DEFCPRIM("zfile->dtypes",zipfile2dtypes,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(ZFILE->DTYPES *arg0*)` "
+	 ""
 	 "**undocumented**",
 	 {"filename",kno_any_type,KNO_VOID})
 static lispval zipfile2dtypes(lispval filename)
@@ -524,7 +524,7 @@ static lispval zipfile2dtypes(lispval filename)
 
 DEFCPRIM("file->dtypes",file2dtypes,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(FILE->DTYPES *arg0*)` "
+	 ""
 	 "**undocumented**",
 	 {"filename",kno_any_type,KNO_VOID})
 static lispval file2dtypes(lispval filename)

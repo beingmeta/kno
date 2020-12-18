@@ -280,7 +280,7 @@ lispval kno_parse_mime(const char *start,const char *end)
 
 DEFCPRIM("parse-mime",parse_mime_data,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(PARSE-MIME *arg0*)` "
+	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval parse_mime_data(lispval arg)

@@ -1929,7 +1929,7 @@ static lispval pyfcn(lispval modname,lispval fname)
 }
 
 KNO_DEFCPRIM("PY/LEN",pylen,MAX_ARGS(1)|MIN_ARGS(1),
-	     "`(PY/LEN *obj* *rv*) Returns the length of *obj* or #f "
+	     "eturns the length of *obj* or #f "
 	     "if *obj* doesn't have a length",
 	     {"pyobj",PYTHON_OBJECT_TYPE,KNO_VOID});
 static lispval pylen(lispval pyobj)
@@ -2258,7 +2258,7 @@ static void init_kno_module()
   link_local_cprims();
 
   kno_def_evalfn(pymodule,"PY/USE-MODULE",py_use_module_evalfn,
-		 "`(PY/USE-MODULE *modname* *spec(s)*...)` imports bindings "
+		 "imports bindings "
 		 "from a Python module to the current environment (which "
 		 "should be a Scheme module's top level environments). "
 		 "Each *spec* can be a symbol, a string, or a table. "

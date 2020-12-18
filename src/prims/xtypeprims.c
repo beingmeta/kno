@@ -137,7 +137,7 @@ static lispval write_xtype_prim(lispval object,lispval dest,lispval opts)
 
 DEFCPRIM("read-xtype",read_xtype_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "`(read-xtype *source* [*opts*])` "
+	 ""
 	 "reads xtype representations from *source*, which "
 	 "can be a filename or a binary stream. The *opts* "
 	 "arg can specify `xrefs` to indicate xrefs to use "

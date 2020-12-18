@@ -55,7 +55,7 @@ KNO_EXPORT lispval with_history_evalfn
 }
 
 DEFPRIM("histref",histref_prim,MIN_ARGS(2)|MAX_ARGS(2),
-	"`(HISTREF *ref* [*history*])` returns the history item for "
+	"returns the history item for "
 	"*ref*, using the current historical context if *history* is "
 	"not provided.");
 static lispval histref_prim(lispval ref,lispval history)
@@ -71,7 +71,7 @@ static lispval histref_prim(lispval ref,lispval history)
 }
 
 DEFPRIM("histfind",histfind_prim,MIN_ARGS(2)|MAX_ARGS(2),
-	"`(HISTFIND *val* [*history*])` returns the history reference for "
+	"returns the history reference for "
 	"*value*, using the current historical context if *history* is "
 	"not provided.");
 static lispval histfind_prim(lispval ref,lispval history)
@@ -87,7 +87,7 @@ static lispval histfind_prim(lispval ref,lispval history)
 }
 
 DEFPRIM("histadd!",histadd_prim,MIN_ARGS(1)|MAX_ARGS(3),
-	"`(HISTADD! *val* [*history*] [*ref*])` associates *val* with "
+	"associates *val* with "
 	"the history reference *ref*, creating a new reference if *ref* "
 	"is not provided. This uses the current historical context if "
 	"*history* is not provided.");
@@ -115,7 +115,7 @@ KNO_EXPORT void kno_init_replc_c()
   u8_register_source_file(_FILEINFO);
 
   kno_def_evalfn(repl_module,"with-history",with_history_evalfn,
-		 "`(with-history *info* *body...*)` creates a new history "
+		 "creates a new history "
 		 "context and evaluates *body* within that context. "
 		 "This saves any current history context.");
 

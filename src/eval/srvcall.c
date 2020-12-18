@@ -69,7 +69,7 @@ static lispval service_address(lispval arg)
 
 DEFCPRIM("service/apply",service_apply_prim,
 	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
-	 "`(SERVICE/APPLY *service* *op* [*args*] [*callopts*])` "
+	 ""
 	 "**undocumented**",
 	 {"srv",kno_service_type,KNO_VOID},
 	 {"op",kno_symbol_type,KNO_VOID},
@@ -97,7 +97,7 @@ static lispval service_apply_prim
 
 DEFCPRIMN("service/call",service_call_prim,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(2),
-	  "`(SERVICE/CALL *service* *op* *args...*)` "
+	  ""
 	  "**undocumented**")
 static lispval service_call_prim(int n,kno_argvec args)
 {
@@ -113,7 +113,7 @@ static lispval service_call_prim(int n,kno_argvec args)
 
 DEFCPRIMN("service/xcall",service_xcall_prim,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(3),
-	  "`(SERVICE/CALL *service* *opts* *op* *args...*)` "
+	  ""
 	  "**undocumented**")
 static lispval service_xcall_prim(int n,kno_argvec args)
 {
@@ -130,7 +130,7 @@ static lispval service_xcall_prim(int n,kno_argvec args)
 
 DEFCPRIM("open-service",open_service,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "`(OPEN-SERVICE *arg0* [*arg1*])` "
+	 ""
 	 "**undocumented**",
 	 {"server",kno_string_type,KNO_VOID},
 	 {"opts",kno_any_type,KNO_VOID})
@@ -146,7 +146,7 @@ static lispval open_service(lispval server,lispval opts)
 
 DEFCPRIM("netproc",make_netproc,
 	 KNO_MAX_ARGS(5)|KNO_MIN_ARGS(2),
-	 "`(NETPROC *arg0* *arg1* [*arg2*] [*arg3*] [*arg4*] [*opts*])` "
+	 ""
 	 "**undocumented**",
 	 {"server",kno_service_type,KNO_VOID},
 	 {"name",kno_symbol_type,KNO_VOID},
@@ -177,7 +177,7 @@ static lispval make_netproc(lispval server,lispval name,
 
 DEFCPRIM("srv/getconfig",srvconfig_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(0),
-	 "`(srv/getconfig *prop*)` **undocumented**",
+	 "**undocumented**",
 	 {"prop",kno_any_type,KNO_VOID},
 	 {"dflt",kno_any_type,KNO_FALSE})
 static lispval srvconfig_prim(lispval prop,lispval dflt)

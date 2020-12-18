@@ -500,7 +500,7 @@ static lispval export_alias_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 
 DEFCPRIM("get-module",get_module,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(GET-MODULE *arg0*)` "
+	 ""
 	 "**undocumented**",
 	 {"modname",kno_any_type,KNO_VOID})
 static lispval get_module(lispval modname)
@@ -511,7 +511,7 @@ static lispval get_module(lispval modname)
 
 DEFCPRIM("get-loaded-module",get_loaded_module,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(GET-LOADED-MODULE *arg0*)` "
+	 ""
 	 "**undocumented**",
 	 {"modname",kno_any_type,KNO_VOID})
 static lispval get_loaded_module(lispval modname)
@@ -555,7 +555,7 @@ lispval kno_use_module(kno_lexenv env,lispval module)
 
 DEFCPRIM("get-exports",get_exports_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(GET-EXPORTS *arg0*)` "
+	 ""
 	 "returns the exported symbols of a module or "
 	 "environment",
 	 {"arg",kno_any_type,KNO_VOID})
@@ -585,7 +585,7 @@ static lispval get_exports_prim(lispval arg)
 
 DEFCPRIM("get-exports-table",get_exports_table_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(GET-EXPORTS-TABLE *arg0*)` "
+	 ""
 	 "returns the exports table of a module or "
 	 "environment.",
 	 {"arg",kno_any_type,KNO_VOID})

@@ -108,7 +108,7 @@ static lispval dtserver_address(lispval arg)
 }
 
 DEFPRIM2("dteval",dteval,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "`(DTEVAL *arg0* *arg1*)` **undocumented**",
+	 "**undocumented**",
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
 static lispval dteval(lispval server,lispval expr)
 {
@@ -127,7 +127,7 @@ static lispval dteval(lispval server,lispval expr)
 }
 
 DEFPRIM("dtcall",dtcall,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
-	"`(DTCALL *arg0* *arg1* *args...*)` **undocumented**");
+	"**undocumented**");
 static lispval dtcall(int n,kno_argvec args)
 {
   lispval server; lispval request = NIL, result; int i = n-1;
@@ -150,7 +150,7 @@ static lispval dtcall(int n,kno_argvec args)
 }
 
 DEFPRIM2("open-dtserver",open_dtserver,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "`(OPEN-DTSERVER *arg0* [*arg1*])` **undocumented**",
+	 "**undocumented**",
 	 kno_string_type,KNO_VOID,kno_fixnum_type,KNO_VOID);
 static lispval open_dtserver(lispval server,lispval bufsiz)
 {
@@ -162,7 +162,7 @@ static lispval open_dtserver(lispval server,lispval bufsiz)
 /* Making DTPROCs */
 
 DEFPRIM7("dtproc",make_dtproc,KNO_MAX_ARGS(7)|KNO_MIN_ARGS(2),
-	 "`(DTPROC *arg0* *arg1* [*arg2*] [*arg3*] [*arg4*] [*arg5*] [*arg6*])` **undocumented**",
+	 "**undocumented**",
 	 kno_symbol_type,KNO_VOID,kno_string_type,KNO_VOID,
 	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
 	 kno_fixnum_type,KNO_CPP_INT(2),kno_fixnum_type,KNO_CPP_INT(4),

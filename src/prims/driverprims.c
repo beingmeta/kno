@@ -32,7 +32,7 @@ static lispval baseoids_symbol;
 
 DEFCPRIM("hash-dtype1",lisphash1,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(HASH-DTYPE1 *arg0*)` "
+	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval lisphash1(lispval x)
@@ -43,7 +43,7 @@ static lispval lisphash1(lispval x)
 
 DEFCPRIM("hash-dtype2",lisphash2,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(HASH-DTYPE2 *arg0*)` "
+	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval lisphash2(lispval x)
@@ -54,7 +54,7 @@ static lispval lisphash2(lispval x)
 
 DEFCPRIM("hash-dtype3",lisphash3,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(HASH-DTYPE3 *arg0*)` "
+	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval lisphash3(lispval x)
@@ -65,7 +65,7 @@ static lispval lisphash3(lispval x)
 
 DEFCPRIM("hash-dtype-rep",lisphashdtype,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(HASH-DTYPE-REP *arg0*)` "
+	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval lisphashdtype(lispval x)
@@ -78,7 +78,7 @@ static lispval lisphashdtype(lispval x)
 
 DEFCPRIM("index-slotids",index_slotids,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "`(INDEX-SLOTIDS *arg0*)` "
+	 ""
 	 "**undocumented**",
 	 {"index_arg",kno_any_type,KNO_VOID})
 static lispval index_slotids(lispval index_arg)
@@ -91,7 +91,7 @@ static lispval index_slotids(lispval index_arg)
 
 DEFCPRIMN("indexctl",indexctl_prim,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	  "`(INDEXCTL *arg0* *arg1* *args...*)` "
+	  ""
 	  "**undocumented**")
 static lispval indexctl_prim(int n,kno_argvec args)
 {
@@ -121,7 +121,7 @@ static lispval indexctl_prim(int n,kno_argvec args)
 
 DEFCPRIMN("indexctl/default",indexctl_default_prim,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	  "`(INDEXCTL/DEFAULT *arg0* *arg1* *args...*)` "
+	  ""
 	  "**undocumented**")
 static lispval indexctl_default_prim(int n,kno_argvec args)
 {
@@ -153,7 +153,7 @@ static lispval indexctl_default_prim(int n,kno_argvec args)
 
 DEFCPRIMN("poolctl",poolctl_prim,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	  "`(POOLCTL *arg0* *arg1* *args...*)` "
+	  ""
 	  "**undocumented**")
 static lispval poolctl_prim(int n,kno_argvec args)
 {
@@ -183,7 +183,7 @@ static lispval poolctl_prim(int n,kno_argvec args)
 
 DEFCPRIMN("poolctl/default",poolctl_default_prim,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	  "`(POOLCTL/DEFAULT *arg0* *arg1* *args...*)` "
+	  ""
 	  "**undocumented**")
 static lispval poolctl_default_prim(int n,kno_argvec args)
 {
