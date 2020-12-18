@@ -258,7 +258,7 @@ int bloom_check_add_dtype(struct KNO_BLOOM *bloom,lispval key,
   else {
     KNO_DECL_OUTBUF(out,1024);
     size_t dtype_len = kno_write_dtype(&out,key);
-    if ( PRED_FALSE (dtype_len<0) ) {
+    if ( RARELY (dtype_len<0) ) {
       if (err) {
         if (u8_current_exception) u8_pop_exception();
         return 0;}

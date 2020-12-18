@@ -222,7 +222,7 @@ static lispval logif_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval test_expr = kno_get_arg(expr,1), value = KNO_FALSE;
   if (KNO_ABORTP(test_expr)) return test_expr;
-  else if (PRED_FALSE(STRINGP(test_expr)))
+  else if (RARELY(STRINGP(test_expr)))
     return kno_reterr(kno_SyntaxError,"logif_evalfn",
                       _("LOGIF condition expression cannot be a string"),expr);
   else value = fast_eval(test_expr,env);
@@ -269,7 +269,7 @@ static lispval logifplus_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval test_expr = kno_get_arg(expr,1), value = KNO_FALSE, loglevel_arg;
   if (KNO_ABORTP(test_expr)) return test_expr;
-  else if (PRED_FALSE(STRINGP(test_expr)))
+  else if (RARELY(STRINGP(test_expr)))
     return kno_reterr(kno_SyntaxError,"logif_evalfn",
                       _("LOGIF condition expression cannot be a string"),expr);
   else value = fast_eval(test_expr,env);

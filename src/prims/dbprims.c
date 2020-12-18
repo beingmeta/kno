@@ -157,7 +157,7 @@ static lispval find_frames_prefetch(int n,kno_argvec args)
 {
   int i = (n%2);
   kno_index ix = ((n%2) ? (kno_indexptr(args[0])) : ((kno_index)(kno_background)));
-  if (PRED_FALSE(ix == NULL))
+  if (RARELY(ix == NULL))
     return kno_type_error("index","prefetch_slotvals",args[0]);
   else while (i<n) {
       DO_CHOICES(slotid,args[i]) {
@@ -211,7 +211,7 @@ static lispval index_frame_prim
 	hashtable_index_frame(index,frames,slotids,values);
       else {
 	kno_index ix = kno_indexptr(index);
-	if (PRED_FALSE(ix == NULL))
+	if (RARELY(ix == NULL))
 	  return kno_type_error("index","index_frame_prim",index);
 	else if (kno_index_frame(ix,frames,slotids,values)<0)
 	  return KNO_ERROR;}}
@@ -220,7 +220,7 @@ static lispval index_frame_prim
     return VOID;}
   else {
     kno_index ix = kno_indexptr(indexes);
-    if (PRED_FALSE(ix == NULL))
+    if (RARELY(ix == NULL))
       return kno_type_error("index","index_frame_prim",indexes);
     else if (kno_index_frame(ix,frames,slotids,values)<0)
       return KNO_ERROR;}
@@ -2542,7 +2542,7 @@ static lispval cacheget_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval table_arg = kno_get_arg(expr,1), key_arg = kno_get_arg(expr,2);
   lispval default_expr = kno_get_arg(expr,3);
-  if (PRED_FALSE((VOIDP(table_arg)) ||
+  if (RARELY((VOIDP(table_arg)) ||
 		 (VOIDP(key_arg)) ||
 		 (VOIDP(default_expr))))
     return kno_err(kno_SyntaxError,"cacheget_evalfn",NULL,expr);

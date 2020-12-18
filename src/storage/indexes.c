@@ -233,7 +233,7 @@ KNO_EXPORT void kno_index_setcache(kno_index ix,int level)
 
 static void init_cache_level(kno_index ix)
 {
-  if (PRED_FALSE(ix->index_cache_level<0)) {
+  if (RARELY(ix->index_cache_level<0)) {
     lispval opts = ix->index_opts;
     long long level=kno_getfixopt(opts,"CACHELEVEL",kno_default_cache_level);
     kno_index_setcache(ix,level);}

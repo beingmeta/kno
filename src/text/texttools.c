@@ -533,7 +533,7 @@ DEFCPRIM("seq->phrase",seq2phrase_prim,
 	 {"end_arg",kno_fixnum_type,KNO_VOID})
 static lispval seq2phrase_prim(lispval arg,lispval start_arg,lispval end_arg)
 {
-  if (PRED_FALSE(!(KNO_SEQUENCEP(arg))))
+  if (RARELY(!(KNO_SEQUENCEP(arg))))
     return kno_type_error("sequence","seq2phrase_prim",arg);
   else if (STRINGP(arg)) return kno_incref(arg);
   else if (!(KNO_UINTP(start_arg)))

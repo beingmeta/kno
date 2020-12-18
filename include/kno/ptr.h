@@ -1062,59 +1062,6 @@ KNO_EXPORT int kno_walk(kno_walker walker,lispval obj,void *walkdata,
 
 KNO_EXPORT void lispval_sort(lispval *v,size_t n,kno_compare_flags flags);
 
-/* KNO_SOURCE aliases */
-
-#if KNO_SOURCE
-#define VOID       (KNO_VOID)
-#define VOIDP(x)   (KNO_VOIDP(x))
-#define DEFAULTP(x) (KNO_DEFAULTP(x))
-#define EMPTY      (KNO_EMPTY_CHOICE)
-#define EMPTYP(x)  (KNO_EMPTY_CHOICEP(x))
-#define EXISTSP(x) (! (KNO_EMPTY_CHOICEP(x)) )
-#define NIL        (KNO_EMPTY_LIST)
-#define NILP(x)    (KNO_EMPTY_LISTP(x))
-#define CONSP(x)   (KNO_CONSP(x))
-#define ATOMICP(x) (KNO_ATOMICP(x))
-#define TYPEP(o,t) (KNO_TYPEP((o),(t)))
-#define CHOICEP(x) (KNO_CHOICEP(x))
-#define FIXNUMP(x) (KNO_FIXNUMP(x))
-#define NUMBERP(x) (KNO_NUMBERP(x))
-#define TABLEP(x)  (KNO_TABLEP(x))
-#define PAIRP(x)   (KNO_PAIRP(x))
-#define VECTORP(x) (KNO_VECTORP(x))
-#define SYMBOLP(x) (KNO_SYMBOLP(x))
-#define STRINGP(x) (KNO_STRINGP(x))
-#define PACKETP(x) (KNO_PACKETP(x))
-#define FALSEP(x)  (KNO_FALSEP(x))
-#define OIDP(x)    (KNO_OIDP(x))
-#define FIX2INT(x) (KNO_FIX2INT(x))
-#define DO_CHOICES KNO_DO_CHOICES
-#define DOLIST     KNO_DOLIST
-#define CHOICE_ADD KNO_ADD_TO_CHOICE
-#define EQ         KNO_EQ
-#define ABORTP(x)  (KNO_ABORTP(x))
-#define ABORTED(x) (KNO_ABORTED(x))
-#define STRLEN(x)  (KNO_STRLEN(x))
-#define CSTRING(x) (KNO_CSTRING(x))
-#define VEC_LEN(x)  (KNO_VECTOR_LENGTH(x))
-#define VEC_DATA(x)  (KNO_VECTOR_DATA(x))
-#define VEC_REF(x,i) (KNO_VECTOR_REF((x),(i)))
-#define SYM_NAME(x) (KNO_SYMBOL_NAME(x))
-#define PRECHOICEP(x) (KNO_PRECHOICEP(x))
-#define QCHOICEP(x) (KNO_QCHOICEP(x))
-#define AMBIGP(x)   (KNO_AMBIGP(x))
-#define SLOTMAPP(x) (KNO_SLOTMAPP(x))
-#define SCHEMAPP(x) (KNO_SCHEMAPP(x))
-#define HASHTABLEP(x) (KNO_HASHTABLEP(x))
-#define PRED_FALSE(x)  (KNO_EXPECT_FALSE(x))
-#define PRED_TRUE(x)  (KNO_EXPECT_TRUE(x))
-#define SYMBOL_NAME(x) (KNO_SYMBOL_NAME(x))
-#define COMPOUND_VECTORP(x) (KNO_COMPOUND_VECTORP(x))
-#define COMPOUND_VECLEN(x)  (KNO_COMPOUND_VECLEN(x))
-#define COMPOUND_VECELTS(x)  (KNO_COMPOUND_VECELTS(x))
-#define XCOMPOUND_VEC_REF(x,i) (KNO_XCOMPOUND_VECREF((x),(i)))
-#endif
-
 /* Debugging support */
 
 KNO_EXPORT kno_lisp_type _kno_typeof(lispval x);

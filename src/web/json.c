@@ -607,7 +607,7 @@ static lispval jsonstring(lispval x,lispval flags_arg,lispval slotfn,
 static lispval json_slotid(u8_input in)
 {
   int c = u8_getc(in);
-  if (PRED_FALSE(c<0)) return KNO_EOF;
+  if (RARELY(c<0)) return KNO_EOF;
   int delim = ( (c == '\'') || (c == '"') ) ? (c) : (-1);
   int make_symbol = 1;
   U8_STATIC_OUTPUT(all,120);

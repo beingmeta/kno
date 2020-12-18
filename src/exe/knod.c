@@ -65,8 +65,8 @@ static int daemonize = 0, foreground = 0, pidwait = 1;
 
 static long long state_files_written = 0;
 
-#define nobytes(in,nbytes) (PRED_FALSE(!(kno_request_bytes(in,nbytes))))
-#define havebytes(in,nbytes) (PRED_TRUE(kno_request_bytes(in,nbytes)))
+#define nobytes(in,nbytes) (RARELY(!(kno_request_bytes(in,nbytes))))
+#define havebytes(in,nbytes) (USUALLY(kno_request_bytes(in,nbytes)))
 
 static int async_mode = 1;
 static int auto_reload = 0;

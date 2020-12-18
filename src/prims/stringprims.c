@@ -1752,7 +1752,7 @@ static lispval string_subst_star(int n,kno_argvec args)
   if ((n%2)==0)
     return kno_err(kno_SyntaxError,"string_subst_star",NULL,VOID);
   else while (i<n) {
-      if (PRED_FALSE
+      if (RARELY
 	  (!((STRINGP(args[i]))||
 	     (TYPEP(args[i],kno_regex_type)))))
 	return kno_type_error(_("string"),"string_subst_star",args[i]);

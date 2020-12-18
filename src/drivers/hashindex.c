@@ -165,7 +165,7 @@ static kno_size_t get_maxpos(kno_hashindex p)
 
 static void init_cache_level(kno_index ix)
 {
-  if (PRED_FALSE(ix->index_cache_level<0)) {
+  if (RARELY(ix->index_cache_level<0)) {
     lispval opts = ix->index_opts;
     long long level=kno_getfixopt(opts,"CACHELEVEL",kno_default_cache_level);
     kno_index_setcache(ix,level);}
@@ -183,8 +183,8 @@ static lispval slotids_symbol, baseoids_symbol, buckets_symbol, nkeys_symbol;
 
 /* Utilities for DTYPE I/O */
 
-#define nobytes(in,nbytes) (PRED_FALSE(!(kno_request_bytes(in,nbytes))))
-#define havebytes(in,nbytes) (PRED_TRUE(kno_request_bytes(in,nbytes)))
+#define nobytes(in,nbytes) (RARELY(!(kno_request_bytes(in,nbytes))))
+#define havebytes(in,nbytes) (USUALLY(kno_request_bytes(in,nbytes)))
 
 #define output_byte(out,b)                              \
   if (kno_write_byte(out,b)<0) return -1; else {}
@@ -2203,7 +2203,7 @@ KNO_FASTOP kno_off_t update_keybucket
 {
   int k = i, free_keyvecs = 0;
   int _keyoffs[16], _keysizes[16], *keyoffs, *keysizes;
-  if (PRED_FALSE((j-i)>16) )  {
+  if (RARELY((j-i)>16) )  {
     keyoffs = u8_alloc_n((j-i),int);
     keysizes = u8_alloc_n((j-i),int);
     free_keyvecs = 1;}

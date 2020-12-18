@@ -333,7 +333,7 @@ DEFCPRIM("xtype/refs/encode",xtype_refs_encode,
 	 {"add",kno_any_type,KNO_FALSE})
 static lispval xtype_refs_encode(lispval refs_arg,lispval val,lispval add)
 {
-  if (PRED_FALSE(!(KNO_RAW_TYPEP(refs_arg,kno_xtrefs_typetag))))
+  if (RARELY(!(KNO_RAW_TYPEP(refs_arg,kno_xtrefs_typetag))))
     return kno_err("NotXTypeRefs","xtype_refs_encode",NULL,refs_arg);
   struct XTYPE_REFS *refs = KNO_RAWPTR_VALUE(refs_arg);
   int add_flag = (KNO_FALSEP(add)) ? (0) :
@@ -355,7 +355,7 @@ DEFCPRIM("xtype/refs/decode",xtype_refs_decode,
 	 {"off_arg",kno_fixnum_type,KNO_FALSE})
 static lispval xtype_refs_decode(lispval refs_arg,lispval off_arg)
 {
-  if (PRED_FALSE(!(KNO_RAW_TYPEP(refs_arg,kno_xtrefs_typetag))))
+  if (RARELY(!(KNO_RAW_TYPEP(refs_arg,kno_xtrefs_typetag))))
     return kno_err("NotXTypeRefs","xtype_refs_decode",NULL,refs_arg);
   struct XTYPE_REFS *refs = KNO_RAWPTR_VALUE(refs_arg);
   ssize_t off = KNO_FIX2INT(off_arg);
@@ -373,7 +373,7 @@ DEFCPRIM("xtype/refs/count",xtype_refs_count,
 	 {"refs_arg",kno_rawptr_type,KNO_VOID})
 static lispval xtype_refs_count(lispval refs_arg)
 {
-  if (PRED_FALSE(!(KNO_RAW_TYPEP(refs_arg,kno_xtrefs_typetag))))
+  if (RARELY(!(KNO_RAW_TYPEP(refs_arg,kno_xtrefs_typetag))))
     return kno_err("NotXTypeRefs","xtype_refs_count",NULL,refs_arg);
   struct XTYPE_REFS *refs = KNO_RAWPTR_VALUE(refs_arg);
   return KNO_INT(refs->xt_n_refs);

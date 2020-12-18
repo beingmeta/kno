@@ -399,7 +399,7 @@ static struct KNO_FUNCTION *lookup_method(lispval arg)
 static lispval get_slotid_methods(lispval slotid,lispval method_name)
 {
   kno_pool p = kno_oid2pool(slotid); lispval smap, result;
-  if (PRED_FALSE(p == NULL))
+  if (RARELY(p == NULL))
     return VOID;
   else smap = kno_fetch_oid(p,slotid);
   if (KNO_ABORTP(smap))

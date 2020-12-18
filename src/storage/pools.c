@@ -262,7 +262,7 @@ KNO_EXPORT void kno_pool_setcache(kno_pool p,int level)
 
 static void init_cache_level(kno_pool p)
 {
-  if (PRED_FALSE(p->pool_cache_level<0)) {
+  if (RARELY(p->pool_cache_level<0)) {
     lispval opts = p->pool_opts;
     long long level=kno_getfixopt(opts,"CACHELEVEL",kno_default_cache_level);
     kno_pool_setcache(p,level);}
@@ -534,7 +534,7 @@ KNO_EXPORT lispval kno_oid_value(lispval oid)
 
 KNO_EXPORT lispval kno_locked_oid_value(kno_pool p,lispval oid)
 {
-  if (PRED_FALSE(!(OIDP(oid))))
+  if (RARELY(!(OIDP(oid))))
     return kno_type_error(_("OID"),"kno_locked_oid_value",oid);
   else if ( (p->pool_handler->lock == NULL) ||
 	    (U8_BITP(p->pool_flags,KNO_POOL_VIRTUAL)) ||

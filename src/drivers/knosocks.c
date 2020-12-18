@@ -66,8 +66,8 @@ KNO_EXPORT int kno_update_file_modules(int force);
 
 lispval knosocks_base_module, knosocks_env = KNO_EMPTY_LIST;
 
-#define nobytes(in,nbytes) (PRED_FALSE(!(kno_request_bytes(in,nbytes))))
-#define havebytes(in,nbytes) (PRED_TRUE(kno_request_bytes(in,nbytes)))
+#define nobytes(in,nbytes) (RARELY(!(kno_request_bytes(in,nbytes))))
+#define havebytes(in,nbytes) (USUALLY(kno_request_bytes(in,nbytes)))
 
 static int default_async_mode = 0;
 static int default_stateful = 1;

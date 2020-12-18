@@ -115,7 +115,7 @@ KNO_EXPORT lispval kno_stack_eval(lispval x,kno_lexenv env,
 
 KNO_FASTOP int commentp(lispval arg)
 {
-  return (PRED_FALSE((PAIRP(arg)) && (KNO_EQ(KNO_CAR(arg),comment_symbol))));
+  return (RARELY((PAIRP(arg)) && (KNO_EQ(KNO_CAR(arg),comment_symbol))));
 }
 
 KNO_EXPORT lispval kno_bad_arg(lispval arg,u8_context cxt,lispval source_expr)
@@ -584,19 +584,19 @@ static lispval opcode_dispatch(lispval op,int n,kno_argvec args)
   lispval opcode_class = KNO_OPCODE_CLASS(op);
   switch (opcode_class) {
   case KNO_D1_OPCODE_CLASS:
-    if (PRED_FALSE(n != 1))
+    if (RARELY(n != 1))
       return op_arity_error(op,n,1);
     else return d1_call(op,args[0]);
   case KNO_D2_OPCODE_CLASS:
-    if (PRED_FALSE(n != 2))
+    if (RARELY(n != 2))
       return op_arity_error(op,n,2);
     else return d2_call(op,args[0],args[1]);
   case KNO_ND1_OPCODE_CLASS:
-    if (PRED_FALSE(n != 1))
+    if (RARELY(n != 1))
       return op_arity_error(op,n,1);
     else return nd1_call(op,args[0]);
   case KNO_ND2_OPCODE_CLASS:
-    if (PRED_FALSE(n != 2))
+    if (RARELY(n != 2))
       return op_arity_error(op,n,2);
     else return nd2_call(op,args[0],args[1]);
   case KNO_NUMERIC_OPCODE_CLASS:
@@ -611,19 +611,19 @@ static lispval opcode_dispatch(lispval op,int n,kno_argvec args)
 static lispval opcode_dispatch(lispval op,int n,kno_argvec args)
 {
   if (KNO_D1_OPCODEP(op))
-    if (PRED_FALSE(n != 1))
+    if (RARELY(n != 1))
       return op_arity_error(op,n,1);
     else return d1_call(op,args[0]);
   else if (KNO_D2_OPCODEP(op))
-    if (PRED_FALSE(n != 2))
+    if (RARELY(n != 2))
       return op_arity_error(op,n,2);
     else return d2_call(op,args[0],args[1]);
   else if (KNO_ND1_OPCODEP(op))
-    if (PRED_FALSE(n != 1))
+    if (RARELY(n != 1))
       return op_arity_error(op,n,1);
     else return nd1_call(op,args[0]);
   else if (KNO_ND2_OPCODEP(op))
-    if (PRED_FALSE(n != 2))
+    if (RARELY(n != 2))
       return op_arity_error(op,n,2);
     else return nd2_call(op,args[0],args[1]);
   else if (KNO_NUMERIC_OPCODEP(op))
@@ -980,7 +980,7 @@ static lispval get_evalop(lispval head,kno_lexenv env,
   else if (KNO_MALLOCDP(op))
     kno_stackvec_push(&(stack->stack_refs),op);
   else NO_ELSE;
-  if (PRED_FALSE(KNO_VOIDP(op)))
+  if (RARELY(KNO_VOIDP(op)))
     return bad_evalop(head,op);
   else return op;
 }
@@ -1018,7 +1018,7 @@ lispval eval_expr(lispval head,lispval expr,
     expr   = KNO_CDR(expr);
     source = KNO_CAR(expr);
     expr   = KNO_CDR(expr);
-    if (PRED_TRUE(PAIRP(expr)))
+    if (USUALLY(PAIRP(expr)))
       head = KNO_CAR(expr);
     else return fast_eval(expr,env,stack,tail);}
 
@@ -1037,7 +1037,7 @@ lispval eval_expr(lispval head,lispval expr,
     kno_lisp_type op_type = KNO_TYPEOF(op);
     if (op_type == kno_evalfn_type)
       return call_evalfn(op,expr,env,stack,tail);
-    else if (PRED_TRUE(KNO_APPLICABLEP(op)))
+    else if (USUALLY(KNO_APPLICABLEP(op)))
       return eval_apply(op,KNO_CDR(expr),env,stack,tail);
     else return kno_err(kno_BadEvalOp,"eval_expr",NULL,expr);}
   else {
@@ -1156,7 +1156,7 @@ lispval eval_apply(lispval fn,lispval exprs,
   else if ( (fntype == kno_lambda_type) && (!(ndcall)) ) {
     struct KNO_LAMBDA *proc = (kno_lambda) fn;
   lambda:
-    if (PRED_TRUE(lambda_check_arity(proc,n_args))) {
+    if (USUALLY(lambda_check_arity(proc,n_args))) {
       kno_stack loop = (tail) ? (find_loop_frame(stack)) : (NULL);
       if (loop) {
       tail:

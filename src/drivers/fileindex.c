@@ -48,7 +48,7 @@
 #endif
 
 #define BAD_VALUEP(value)                                               \
-  (PRED_FALSE((KNO_EODP(value))||(KNO_EOFP(value))||(KNO_ABORTP(value))))
+  (RARELY((KNO_EODP(value))||(KNO_EOFP(value))||(KNO_ABORTP(value))))
 
 #define SLOTSIZE (sizeof(unsigned int))
 
@@ -227,7 +227,7 @@ static lispval fileindex_fetch(kno_index ix,lispval key)
       lispval thiskey; unsigned int n_vals; kno_off_t val_start;
       n_vals = kno_read_4bytes(kno_start_read(stream,keypos+pos_offset));
       val_start = kno_read_4bytes(instream);
-      if (PRED_FALSE((n_vals==0) && (val_start)))
+      if (RARELY((n_vals==0) && (val_start)))
         u8_logf(LOG_CRIT,kno_IndexDriverError,
                 "fileindex_fetch %s",u8_strdup(ix->indexid));
       thiskey = kno_read_dtype(instream);
@@ -243,7 +243,7 @@ static lispval fileindex_fetch(kno_index ix,lispval key)
           kno_off_t next_pos = val_start;
           while (next_pos) {
             lispval v;
-            if (PRED_FALSE(i>=n_vals))
+            if (RARELY(i>=n_vals))
               u8_raise(_("inconsistent file index"),
                        "fileindex_fetch",u8_strdup(ix->indexid));
             if (next_pos>1) kno_setpos(stream,next_pos+pos_offset);

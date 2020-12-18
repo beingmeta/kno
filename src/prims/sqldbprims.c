@@ -245,7 +245,7 @@ DEFCPRIMN("sqldb/proc",sqldb_makeproc,
 	  "**undocumented**")
 static lispval sqldb_makeproc(int n,kno_argvec args)
 {
-  if (PRED_TRUE
+  if (USUALLY
       ((KNO_PRIM_TYPEP(args[0],kno_sqldb_type)) && (STRINGP(args[1])))) {
     struct KNO_SQLDB *sqldb=
       KNO_GET_CONS(args[0],kno_sqldb_type,struct KNO_SQLDB *);

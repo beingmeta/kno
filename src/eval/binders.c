@@ -40,13 +40,13 @@ static lispval assign_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     return kno_bad_arg(value,"assign_evalfn",val_expr);
   else if ((retval = (kno_assign_value(var,value,env)))) {
     kno_decref(value);
-    if (PRED_FALSE(retval<0)) {
+    if (RARELY(retval<0)) {
       /* TODO: Convert table errors to env errors */
       return KNO_ERROR;}
     else return VOID;}
   else if ((retval = (kno_bind_value(var,value,env)))) {
     kno_decref(value);
-    if (PRED_FALSE(retval<0)) {
+    if (RARELY(retval<0)) {
       /* TODO: Convert table errors to env errors */
       return KNO_ERROR;}
     else return VOID;}
@@ -165,7 +165,7 @@ static lispval let_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval bindexprs = kno_get_arg(expr,1), result = VOID;
   int n, tail = KNO_STACK_BITP(_stack,KNO_STACK_TAIL_POS);
-  if (PRED_FALSE(! ( (bindexprs == KNO_NIL) || (PAIRP(bindexprs)) ) ))
+  if (RARELY(! ( (bindexprs == KNO_NIL) || (PAIRP(bindexprs)) ) ))
     return kno_err(kno_BindSyntaxError,"LET",NULL,expr);
   else if ((n = check_bindexprs(bindexprs,&result))<0)
     return result;
@@ -194,7 +194,7 @@ static lispval letstar_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval bindexprs = kno_get_arg(expr,1), result = VOID;
   int n, tail = KNO_STACK_BITP(_stack,KNO_STACK_TAIL_POS);
-  if (PRED_FALSE(! ( (bindexprs == KNO_NIL) || (PAIRP(bindexprs)) ) ))
+  if (RARELY(! ( (bindexprs == KNO_NIL) || (PAIRP(bindexprs)) ) ))
     return kno_err(kno_BindSyntaxError,"LET*",NULL,expr);
   else if ((n = check_bindexprs(bindexprs,&result))<0)
     return result;
@@ -232,7 +232,7 @@ static lispval letrec_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval bindexprs = kno_get_arg(expr,1), result = VOID;
   int n, tail = KNO_STACK_BITP(_stack,KNO_STACK_TAIL_POS);
-  if (PRED_FALSE(! ( (bindexprs == KNO_NIL) || (PAIRP(bindexprs)) ) ))
+  if (RARELY(! ( (bindexprs == KNO_NIL) || (PAIRP(bindexprs)) ) ))
     return kno_err(kno_BindSyntaxError,"LETREC",NULL,expr);
   else if ((n = check_bindexprs(bindexprs,&result))<0)
     return result;
@@ -274,9 +274,9 @@ static lispval do_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   lispval exitexprs = kno_get_arg(expr,2);
   lispval testexpr = kno_get_arg(exitexprs,0), testval = VOID;
   lispval body = kno_get_body(expr,3);
-  if (PRED_FALSE(! ( (bindexprs == KNO_NIL) || (PAIRP(bindexprs)) ) ))
+  if (RARELY(! ( (bindexprs == KNO_NIL) || (PAIRP(bindexprs)) ) ))
     return kno_err(kno_BindSyntaxError,"DO",NULL,expr);
-  if (PRED_FALSE(! ( (body == KNO_NIL) || (PAIRP(body)) ) ))
+  if (RARELY(! ( (body == KNO_NIL) || (PAIRP(body)) ) ))
     return kno_err(kno_BindSyntaxError,"DO",NULL,expr);
   else if (!(PAIRP(exitexprs)))
     return kno_err(kno_BindSyntaxError,"DO",NULL,expr);

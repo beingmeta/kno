@@ -441,7 +441,7 @@ KNO_FASTOP void __kno_add_stack_ref(struct KNO_STACK *stack,lispval v)
 KNO_FASTOP int __kno_free_stack(struct KNO_STACK *stack)
 {
   unsigned int bits = stack->stack_bits;
-  if (!(PRED_TRUE((bits&KNO_STACK_LIVE)))) return -1;
+  if (!(USUALLY((bits&KNO_STACK_LIVE)))) return -1;
 
   /* Other cleanup */
 
@@ -462,7 +462,7 @@ KNO_FASTOP int __kno_free_stack(struct KNO_STACK *stack)
 KNO_FASTOP int __kno_reset_stack(struct KNO_STACK *stack)
 {
   unsigned int bits = stack->stack_bits;
-  if (!(PRED_TRUE((bits&KNO_STACK_LIVE)))) return -1;
+  if (!(USUALLY((bits&KNO_STACK_LIVE)))) return -1;
 
   kno_lexenv env = stack->eval_env;
   if ( (env) && ((bits)&(KNO_STACK_FREE_ENV)) ) {

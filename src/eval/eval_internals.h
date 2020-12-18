@@ -32,11 +32,11 @@ INLINE_DEF lispval eval_lexref(lispval lexref,kno_lexenv env_arg)
   int up = code/32, across = code%32;
   kno_lexenv env = env_arg;
   while ((env) && (up)) {
-    if (PRED_FALSE((env->env_copy!=NULL))) env = env->env_copy;
+    if (RARELY((env->env_copy!=NULL))) env = env->env_copy;
     env = env->env_parent;
     up--;}
   if (KNO_EXPECT_TRUE(env != NULL)) {
-    if (PRED_FALSE((env->env_copy != NULL))) env = env->env_copy;
+    if (RARELY((env->env_copy != NULL))) env = env->env_copy;
     if (env->env_vals) {
       int vals_len = env->env_bits & (0xFF);
       if (across < vals_len)
@@ -54,7 +54,7 @@ INLINE_DEF lispval eval_lexref(lispval lexref,kno_lexenv env_arg)
   if (KNO_ABORTED(v))
     return _lexref_error(lexref,up,env,env_arg);
   else if (KNO_CONSP(v)) {
-    if (PRED_FALSE((KNO_CONS_TYPE(((kno_cons)v))) == kno_prechoice_type))
+    if (RARELY((KNO_CONS_TYPE(((kno_cons)v))) == kno_prechoice_type))
       return _kno_make_simple_choice(v);
     else return kno_incref(v);}
   else return v;
@@ -337,7 +337,7 @@ KNO_FASTOP U8_MAYBE_UNUSED
 void reset_stack_env(kno_stack stack)
 {
   kno_lexenv env = stack->eval_env;
-  if (PRED_TRUE(env != NULL)) {
+  if (USUALLY(env != NULL)) {
     stack->eval_env=NULL;
     stack->stack_bits &= (~(KNO_STACK_FREE_ENV));
     if (env->env_copy) {

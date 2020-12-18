@@ -65,7 +65,7 @@ static ssize_t try_dtype_output(ssize_t *len,struct KNO_OUTBUF *out,lispval x)
   return dlen;
 }
 #define kno_output_dtype(len,out,x)                              \
-  if (PRED_FALSE(KNO_ISREADING(out))) return kno_isreadbuf(out); \
+  if (RARELY(KNO_ISREADING(out))) return kno_isreadbuf(out); \
   else if (try_dtype_output(&len,out,x)<0) return -1; else {}
 
 static ssize_t write_opaque(struct KNO_OUTBUF *out,lispval x)
@@ -171,7 +171,7 @@ static ssize_t output_symbol_bytes(struct KNO_OUTBUF *out,
 
 KNO_EXPORT ssize_t kno_write_dtype(struct KNO_OUTBUF *out,lispval x)
 {
-  if (PRED_FALSE(KNO_ISREADING(out)))
+  if (RARELY(KNO_ISREADING(out)))
     return kno_isreadbuf(out);
   else switch (KNO_PTR_MANIFEST_TYPE(x)) {
     case kno_oid_ptr_type: { /* output OID */

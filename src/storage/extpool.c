@@ -37,7 +37,7 @@ kno_pool kno_make_extpool(u8_string label,
                         lispval state,
                         lispval opts)
 {
-  if (!(PRED_TRUE(KNO_APPLICABLEP(fetchfn))))
+  if (!(USUALLY(KNO_APPLICABLEP(fetchfn))))
     return KNO_ERR(NULL,kno_TypeError,"kno_make_extpool","fetch function",fetchfn);
   else if (!(KNO_ISFUNARG(savefn)))
     return KNO_ERR(NULL,kno_TypeError,"kno_make_extpool","save function",savefn);

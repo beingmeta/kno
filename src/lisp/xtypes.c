@@ -56,8 +56,8 @@ kno_xtype_fn kno_xtype_writers[KNO_TYPE_MAX];
 
 lispval restore_bigint(ssize_t n_digits,unsigned char *bytes,int negp);
 
-#define nobytes(in,nbytes) (PRED_FALSE(!(kno_request_bytes(in,nbytes))))
-#define havebytes(in,nbytes) (PRED_TRUE(kno_request_bytes(in,nbytes)))
+#define nobytes(in,nbytes) (RARELY(!(kno_request_bytes(in,nbytes))))
+#define havebytes(in,nbytes) (USUALLY(kno_request_bytes(in,nbytes)))
 
 /* Object restoration */
 
@@ -438,9 +438,9 @@ KNO_EXPORT ssize_t kno_embed_xtype(kno_outbuf out,lispval x,xtype_refs refs)
 
 static lispval read_xtype(kno_inbuf in,xtype_refs refs)
 {
-  if (PRED_FALSE(KNO_ISWRITING(in)))
+  if (RARELY(KNO_ISWRITING(in)))
     return kno_lisp_iswritebuf(in);
-  else if (PRED_TRUE(havebytes(in,1))) {
+  else if (USUALLY(havebytes(in,1))) {
     int byte = kno_read_byte(in);
     xt_type_code xt_code = (xt_type_code) byte;
     switch (xt_code) {
@@ -470,13 +470,13 @@ static lispval read_xtype(kno_inbuf in,xtype_refs refs)
 	return kno_err("No xtype refs declared","read_xtype",NULL,VOID);
       else return kno_err("No xtype ref out of range","read_xtype",NULL,VOID);}
     case xt_offref: {
-      if (PRED_FALSE(refs==NULL))
+      if (RARELY(refs==NULL))
 	return kno_err("No xtype refs declared","read_xtype",NULL,VOID);
       ssize_t oid_off  = xt_read_varint(in);
       if (oid_off<0) return kno_err("InvalidRefOff","read_xtype",NULL,VOID);
       lispval base = KNO_VOID;
       ssize_t base_off = xt_read_varint(in);
-      if (PRED_FALSE(base_off<0))
+      if (RARELY(base_off<0))
 	return kno_err("InvalidBaseOff","read_xtype",NULL,VOID);
       else if (base_off < refs->xt_n_refs)
 	base = refs->xt_refs[base_off];
@@ -502,10 +502,10 @@ static lispval read_xtype(kno_inbuf in,xtype_refs refs)
 
     case xt_oid: {
       long long hival=kno_read_4bytes(in), loval;
-      if (PRED_FALSE(hival<0))
+      if (RARELY(hival<0))
 	return unexpected_eod();
       else loval=kno_read_4bytes(in);
-      if (PRED_FALSE(loval<0))
+      if (RARELY(loval<0))
 	return unexpected_eod();
       else {
 	KNO_OID addr = KNO_NULL_OID_INIT;
@@ -825,10 +825,10 @@ static int skip_bytes(kno_inbuf in,size_t n_bytes)
 
 static int validate_xtype(kno_inbuf in,xtype_refs refs)
 {
-  if (PRED_FALSE(KNO_ISWRITING(in))) {
+  if (RARELY(KNO_ISWRITING(in))) {
     kno_lisp_iswritebuf(in);
     return -1;}
-  else if (PRED_TRUE(havebytes(in,1))) {
+  else if (USUALLY(havebytes(in,1))) {
     int byte = kno_read_byte(in);
     xt_type_code xt_code = (xt_type_code) byte;
     switch (xt_code) {
@@ -857,7 +857,7 @@ static int validate_xtype(kno_inbuf in,xtype_refs refs)
 	kno_seterr("InvalidRefOff","read_xtype",NULL,VOID);
 	return -1;}
       ssize_t base_off = xt_read_varint(in);
-      if (PRED_FALSE(base_off<0)) {
+      if (RARELY(base_off<0)) {
 	kno_err("InvalidBaseOff","read_xtype",NULL,VOID);
 	return -1;}
       else if ( (refs == NULL) || (base_off < refs->xt_n_refs) )
@@ -1009,7 +1009,7 @@ static ssize_t write_hashtable(kno_outbuf out,struct KNO_HASHTABLE *hashtable,
 {
   int i = 0, n_keys = -1;
   struct KNO_KEYVAL *keyvals = kno_hashtable_keyvals(hashtable,&n_keys,1);
-  if (PRED_FALSE(n_keys < 0)) return -1;
+  if (RARELY(n_keys < 0)) return -1;
   int len = n_keys*2;
   kno_output_byte(out,xt_tagged); kno_output_byte(out,xt_bigtable);
   kno_output_byte(out,xt_table);
@@ -1040,7 +1040,7 @@ static ssize_t write_hashset(kno_outbuf out,struct KNO_HASHSET *hashtable,
 {
   int i = 0, n_elts = -1;
   lispval *elts = kno_hashset_vec(hashtable,&n_elts);
-  if (PRED_FALSE(n_elts < 0)) return -1;
+  if (RARELY(n_elts < 0)) return -1;
   kno_output_byte(out,xt_tagged); kno_output_byte(out,xt_bigset);
   kno_output_byte(out,xt_vector);
   ssize_t rv = kno_write_varint(out,n_elts);
@@ -1252,11 +1252,11 @@ static unsigned char *xtype_zstd_uncompress
 {
 #if HAVE_ZSTD_GETFRAMECONTENTSIZE
   size_t alloc_size = ZSTD_getFrameContentSize(source,source_len);
-  if (PRED_FALSE(alloc_size == ZSTD_CONTENTSIZE_UNKNOWN)) {
+  if (RARELY(alloc_size == ZSTD_CONTENTSIZE_UNKNOWN)) {
     u8_seterr("UnknownContentSize","xtype_zstd_uncompress",
 	      zstd_error(alloc_size));
     return NULL;}
-  else if (PRED_FALSE(alloc_size == ZSTD_CONTENTSIZE_ERROR)) {
+  else if (RARELY(alloc_size == ZSTD_CONTENTSIZE_ERROR)) {
     u8_seterr("ZSTD_ContentSizeError","xtype_zstd_uncompress",
 	      zstd_error(alloc_size));
     return NULL;}

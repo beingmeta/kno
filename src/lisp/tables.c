@@ -328,7 +328,7 @@ KNO_EXPORT int kno_slotmap_store(struct KNO_SLOTMAP *sm,lispval key,lispval valu
       (kno_keyvals_insert(key,&(sm->sm_keyvals),
                          &nslots,&allocd,SHRT_MAX,
 			 (KNO_XTABLE_BITP(sm,KNO_SLOTMAP_FREE_KEYVALS))));
-    if (PRED_FALSE(result==NULL)) {
+    if (RARELY(result==NULL)) {
       if (unlock) u8_rw_unlock(&(sm->table_rwlock));
       return slotmap_fail(sm,"kno_slotmap_store");}
     if (sm->sm_keyvals!=cur_keyvals) {
@@ -374,7 +374,7 @@ KNO_EXPORT int kno_slotmap_add(struct KNO_SLOTMAP *sm,lispval key,lispval value)
       (kno_keyvals_insert(key,&(sm->sm_keyvals),
                          &size,&space,SHRT_MAX,
                          (KNO_XTABLE_BITP(sm,KNO_SLOTMAP_FREE_KEYVALS))));
-    if (PRED_FALSE(result==NULL)) {
+    if (RARELY(result==NULL)) {
       if (unlock) u8_rw_unlock(&sm->table_rwlock);
       return slotmap_fail(sm,"kno_slotmap_add");}
     /* If this allocated a new keyvals structure, it needs to be
@@ -1717,7 +1717,7 @@ static unsigned int hash_ptr(lispval x)
 
 static unsigned int hash_cons(struct KNO_CONS *cons)
 {
-  if (PRED_FALSE(cons == NULL))
+  if (RARELY(cons == NULL))
     kno_raise(kno_NullPtr,"hash_lisp",NULL,KNO_VOID);
   kno_lisp_type lisp_type = KNO_CONS_TYPE(cons);
   switch (lisp_type) {
@@ -1798,7 +1798,7 @@ static struct KNO_KEYVAL *hashvec_get
   if (bucket_loc) *bucket_loc = &(slots[offset]);
   if (he == NULL)
     return NULL;
-  else if (PRED_TRUE(he->bucket_len == 1))
+  else if (USUALLY(he->bucket_len == 1))
     if (LISP_EQUAL(key,he->kv_val0.kv_key))
       return &(he->kv_val0);
     else return NULL;
@@ -1942,7 +1942,7 @@ static struct KNO_KEYVAL *eq_hashvec_get
   if (bucket_loc) *bucket_loc = &(slots[offset]);
   if (he == NULL)
     return NULL;
-  else if (PRED_TRUE(he->bucket_len == 1))
+  else if (USUALLY(he->bucket_len == 1))
     if (LISP_EQUAL(key,he->kv_val0.kv_key))
       return &(he->kv_val0);
     else return NULL;
@@ -2331,7 +2331,7 @@ KNO_EXPORT int kno_hashtable_store(kno_hashtable ht,lispval key,lispval value)
     result->kv_val=newv;
     kno_decref(oldv);}
   if (unlock) kno_unlock_table(ht);
-  if (PRED_FALSE(hashtable_needs_resizep(ht))) {
+  if (RARELY(hashtable_needs_resizep(ht))) {
     /* We resize when n_keys/n_buckets < loading/4;
        at this point, the new size is > loading/2 (a bigger number). */
     int new_size=kno_get_hashtable_size(hashtable_resize_target(ht));
@@ -2346,9 +2346,9 @@ static int add_to_hashtable(kno_hashtable ht,lispval key,lispval value)
     return kno_interr(value);
   else if (KNO_XTABLE_READONLYP(ht))
     return KNO_ERR(-1,kno_ReadOnlyHashtable,"kno_hashtable_add",NULL,key);
-  else if (PRED_FALSE(EMPTYP(value)))
+  else if (RARELY(EMPTYP(value)))
     return 0;
-  else if (PRED_FALSE(KNO_TROUBLEP(value)))
+  else if (RARELY(KNO_TROUBLEP(value)))
     return kno_interr(value);
   else kno_incref(value);
   KEY_CHECK(key,ht); KNO_CHECK_TYPE_RET(ht,kno_hashtable_type);
@@ -2397,7 +2397,7 @@ KNO_EXPORT int kno_hashtable_add(kno_hashtable ht,lispval key,lispval value)
     return 0;
   else if (KNO_XTABLE_READONLYP(ht))
     return KNO_ERR(-1,kno_ReadOnlyHashtable,"kno_hashtable_add",NULL,key);
-  else if (PRED_FALSE(EMPTYP(value)))
+  else if (RARELY(EMPTYP(value)))
     return 0;
   else if ((KNO_TROUBLEP(value)))
     return kno_interr(value);
@@ -2784,7 +2784,7 @@ KNO_EXPORT int kno_hashtable_op
   else NO_ELSE;
   added=do_hashtable_op(ht,op,key,value);
   if (unlock) kno_unlock_table(ht);
-  if (PRED_FALSE(hashtable_needs_resizep(ht))) {
+  if (RARELY(hashtable_needs_resizep(ht))) {
     /* We resize when n_keys/n_buckets < loading/4;
        at this point, the new size is > loading/2 (a bigger number). */
     int new_size=kno_get_hashtable_size(hashtable_resize_target(ht));
@@ -2805,7 +2805,7 @@ KNO_EXPORT int kno_hashtable_op_nolock
     return kno_interr(value);
   else NO_ELSE;
   added=do_hashtable_op(ht,op,key,value);
-  if (PRED_FALSE(hashtable_needs_resizep(ht))) {
+  if (RARELY(hashtable_needs_resizep(ht))) {
     /* We resize when n_keys/n_buckets < loading/4;
        at this point, the new size is > loading/2 (a bigger number). */
     int new_size=kno_get_hashtable_size(hashtable_resize_target(ht));
@@ -2831,7 +2831,7 @@ KNO_EXPORT int kno_hashtable_iter
     i++;}
   if (unlock) kno_unlock_table(ht);
   if ( (added) && (!(TESTOP(op))) &&
-       (PRED_FALSE(hashtable_needs_resizep(ht)))) {
+       (RARELY(hashtable_needs_resizep(ht)))) {
     /* We resize when n_keys/n_buckets < loading/4;
        at this point, the new size is > loading/2 (a bigger number). */
     int new_size=kno_get_hashtable_size(hashtable_resize_target(ht));
@@ -2859,7 +2859,7 @@ KNO_EXPORT int kno_hashtable_iter_kv
     i++;}
   if (unlock) kno_unlock_table(ht);
   if ( (added) && (!(TESTOP(op))) &&
-       (PRED_FALSE(hashtable_needs_resizep(ht)))) {
+       (RARELY(hashtable_needs_resizep(ht)))) {
     /* We resize when n_keys/n_buckets < loading/4;
        at this point, the new size is > loading/2 (a bigger number). */
     int new_size=kno_get_hashtable_size(hashtable_resize_target(ht));
@@ -2887,7 +2887,7 @@ KNO_EXPORT int kno_hashtable_iterkeys
     i++;}
   if (unlock) kno_unlock_table(ht);
   if ( (added>0) && (!(TESTOP(op))) &&
-       (PRED_FALSE(hashtable_needs_resizep(ht)))) {
+       (RARELY(hashtable_needs_resizep(ht)))) {
     /* We resize when n_keys/n_buckets < loading/4;
        at this point, the new size is > loading/2 (a bigger number). */
     int new_size=kno_get_hashtable_size(hashtable_resize_target(ht));
@@ -2914,7 +2914,7 @@ KNO_EXPORT int kno_hashtable_itervals
     i++;}
   if (unlock) kno_unlock_table(ht);
   if ( (added) && (!(TESTOP(op))) &&
-       (PRED_FALSE(hashtable_needs_resizep(ht)))) {
+       (RARELY(hashtable_needs_resizep(ht)))) {
     /* We resize when n_keys/n_buckets < loading/4;
        at this point, the new size is > loading/2 (a bigger number). */
     int new_size=kno_get_hashtable_size(hashtable_resize_target(ht));
@@ -4349,7 +4349,7 @@ static int hashset_store(lispval x,lispval key,lispval val)
 struct KNO_TABLEFNS *kno_tablefns[KNO_TYPE_MAX];
 
 #define CHECKPTR(arg,cxt)                  \
-  if (PRED_FALSE((!(KNO_CHECK_PTR(arg))))) \
+  if (RARELY((!(KNO_CHECK_PTR(arg))))) \
     _kno_bad_pointer(arg,cxt); else {}
 
 static int bad_table_call(lispval arg,kno_lisp_type type,void *handler,
@@ -4357,7 +4357,7 @@ static int bad_table_call(lispval arg,kno_lisp_type type,void *handler,
 {
   if (handler)
     return 0;
-  else if (PRED_FALSE(kno_tablefns[type]==NULL))
+  else if (RARELY(kno_tablefns[type]==NULL))
     return KNO_ERR(-1,NotATable,cxt,NULL,arg);
   else if ( (kno_tablefns[type]->tablep) &&
             ((kno_tablefns[type]->tablep)(arg)) )
@@ -4427,7 +4427,7 @@ KNO_EXPORT int kno_add(lispval arg,lispval key,lispval value)
   CHECKPTR(arg,"kno_add/table");
   CHECKPTR(key,"kno_add/key");
   CHECKPTR(value,"kno_add/value");
-  if (PRED_FALSE((EMPTYP(arg))||(EMPTYP(key))))
+  if (RARELY((EMPTYP(arg))||(EMPTYP(key))))
     return 0;
   else if (KNO_UNAMBIGP(key)) {
     if (NOT_TABLEP(arg,argtype,"kno_add"))
@@ -4475,9 +4475,9 @@ KNO_EXPORT int kno_drop(lispval arg,lispval key,lispval value)
   if ( (EMPTYP(arg)) || (EMPTYP(key)) )
     return 0;
   if (KNO_VALID_TYPECODEP(argtype))
-    if (PRED_TRUE(kno_tablefns[argtype]!=NULL))
-      if (PRED_TRUE(kno_tablefns[argtype]->drop!=NULL))
-        if (PRED_FALSE((EMPTYP(value)) ||
+    if (USUALLY(kno_tablefns[argtype]!=NULL))
+      if (USUALLY(kno_tablefns[argtype]->drop!=NULL))
+        if (RARELY((EMPTYP(value)) ||
                        (EMPTYP(key))))
           return 0;
         else if (CHOICEP(key)) {
@@ -4489,7 +4489,7 @@ KNO_EXPORT int kno_drop(lispval arg,lispval key,lispval value)
         else return (kno_tablefns[argtype]->drop)(arg,key,value);
       else if ((kno_tablefns[argtype]->store) &&
                (kno_tablefns[argtype]->get))
-        if (PRED_FALSE((EMPTYP(value))||(EMPTYP(key))))
+        if (RARELY((EMPTYP(value))||(EMPTYP(key))))
           return 0;
         else if (VOIDP(value)) {
           int retval;
@@ -4522,13 +4522,13 @@ KNO_EXPORT int kno_test(lispval arg,lispval key,lispval value)
   CHECKPTR(arg,"kno_test/table");
   CHECKPTR(key,"kno_test/key");
   CHECKPTR(value,"kno_test/value");
-  if (PRED_FALSE((EMPTYP(arg))||(EMPTYP(key))))
+  if (RARELY((EMPTYP(arg))||(EMPTYP(key))))
     return 0;
   if ((EMPTYP(arg))||(EMPTYP(key)))
     return 0;
   else if (NOT_TABLEP(arg,argtype,"kno_test"))
     return -1;
-  else if (PRED_TRUE(kno_tablefns[argtype]->test!=NULL))
+  else if (USUALLY(kno_tablefns[argtype]->test!=NULL))
     if (CHOICEP(key)) {
       int (*testfn)(lispval,lispval,lispval)=kno_tablefns[argtype]->test;
       DO_CHOICES(each,key)

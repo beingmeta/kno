@@ -93,7 +93,7 @@ static lispval exec_expr(lispval expr,lispval env,kno_stack stack)
     return lookup(arg,env);}
   else NO_ELSE;
   lispval handler = lookup(head,env);
-  if (PRED_FALSE(!(KNO_APPLICABLEP(handler)))) {
+  if (RARELY(!(KNO_APPLICABLEP(handler)))) {
     lispval err = kno_err(kno_NotAFunction,"exec_expr",fcn_label,handler);
     kno_decref(handler);
     return err;}

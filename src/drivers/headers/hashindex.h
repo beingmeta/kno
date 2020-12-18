@@ -109,8 +109,8 @@ typedef struct KNO_BASEOID_LOOKUP *kno_baseoid_lookup;
 
 /* Utilities for DTYPE I/O */
 
-#define nobytes(in,nbytes) (PRED_FALSE(!(kno_request_bytes(in,nbytes))))
-#define havebytes(in,nbytes) (PRED_TRUE(kno_request_bytes(in,nbytes)))
+#define nobytes(in,nbytes) (RARELY(!(kno_request_bytes(in,nbytes))))
+#define havebytes(in,nbytes) (USUALLY(kno_request_bytes(in,nbytes)))
 
 #define output_byte(out,b) \
   if (kno_write_byte(out,b)<0) return -1; else {}

@@ -334,7 +334,7 @@ static int copy_atom(u8_input s,u8_output a,int normcase)
 lispval kno_parse_atom(u8_string start,int len)
 {
   /* fprintf(stderr,"kno_parse_atom %d: %s\n",len,start); */
-  if (PRED_FALSE(len==0))
+  if (RARELY(len==0))
     return KNO_EOX;
   else if ((start[0]=='#')&&(start[1]=='U')) { /* It's a UUID */
     struct KNO_UUID *uuid = u8_alloc(struct KNO_UUID);
@@ -1032,7 +1032,7 @@ static lispval parse_slotmap(U8_INPUT *in)
 {
   int n_elts = -2;
   lispval *elts = parse_vec(in,']',&n_elts), result = KNO_VOID;
-  if (PRED_FALSE(n_elts<0))
+  if (RARELY(n_elts<0))
     return KNO_PARSE_ERROR;
   else if (n_elts<=7)  {
     /* If it's a short slotmap, allocate the map 'inline' with the
@@ -1047,7 +1047,7 @@ static lispval parse_schemap(U8_INPUT *in)
 {
   int n_elts = -2;
   lispval *elts = parse_vec(in,']',&n_elts), result = KNO_VOID;
-  if (PRED_FALSE(n_elts<0))
+  if (RARELY(n_elts<0))
     return KNO_PARSE_ERROR;
   else {
     result = kno_init_schemap(NULL,n_elts/2,(struct KNO_KEYVAL *)elts);
@@ -1667,7 +1667,7 @@ KNO_EXPORT
 lispval kno_slotid_parser(u8_input in)
 {
   int c = u8_probec(in);
-  if (PRED_FALSE(c<0)) return KNO_EOF;
+  if (RARELY(c<0)) return KNO_EOF;
   else if (c == '@')
     return kno_parse_oid(in);
   else if (c == '\\') {

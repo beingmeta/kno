@@ -872,12 +872,12 @@ static lispval assignop(kno_stack stack,kno_lexenv env,
 	scan = parent->env_copy;
       else scan = parent;
       up--;}
-    if (PRED_TRUE(scan!=NULL)) {
+    if (USUALLY(scan!=NULL)) {
       lispval bindings = scan->env_bindings;
-      if (PRED_TRUE(SCHEMAPP(bindings))) {
+      if (USUALLY(SCHEMAPP(bindings))) {
 	struct KNO_SCHEMAP *map = (struct KNO_SCHEMAP *)bindings;
 	int map_len = map->schema_length;
-	if (PRED_TRUE( across < map_len )) {
+	if (USUALLY( across < map_len )) {
 	  lispval *values = map->table_values;
 	  lispval cur	  = values[across];
 	  if (KNO_XTABLE_BITP(map,KNO_SCHEMAP_STACK_VALUES)) {
@@ -899,7 +899,7 @@ static lispval assignop(kno_stack stack,kno_lexenv env,
 	    if ( (scan->env_copy) && (scan->env_copy != scan) ) {
 	      lispval new_bindings = scan->env_copy->env_bindings;
 	      if ( (new_bindings != bindings) &&
-		   (PRED_TRUE(SCHEMAPP(bindings))) ) {
+		   (USUALLY(SCHEMAPP(bindings))) ) {
 		struct KNO_SCHEMAP *new_map =
 		  (struct KNO_SCHEMAP *) new_bindings;
 		values = new_map->table_values;
@@ -1032,7 +1032,7 @@ static void reset_env_op(kno_lexenv env)
 
 static lispval handle_table_result(int rv)
 {
-  if (PRED_FALSE(rv<0))
+  if (RARELY(rv<0))
     return KNO_ERROR;
   else if (rv)
     return KNO_TRUE;
@@ -1221,7 +1221,7 @@ static int reduce_not_a_number(lispval *result,u8_context opname,lispval arg)
   return -1;
 }
 
-#define NOT_A_NUMBERP(x) (PRED_FALSE(!(KNO_NUMBERP(x))))
+#define NOT_A_NUMBERP(x) (RARELY(!(KNO_NUMBERP(x))))
 
 static lispval do_reduce(reducer fn,lispval start,int n,kno_argvec args)
 {
@@ -1424,7 +1424,7 @@ static lispval cmp_args(lispval op,int dir,int eq,int n,kno_argvec args)
 
 static lispval handle_numeric_opcode(lispval opcode,int n,kno_argvec args)
 {
-  if (PRED_FALSE(n<1)) return op_arity_error(opcode,n,1);
+  if (RARELY(n<1)) return op_arity_error(opcode,n,1);
   else if (NOT_A_NUMBERP(args[0]))
     return kno_err(kno_NotANumber,opcode_name(opcode),
 		   kno_type2name(KNO_TYPEOF(args[0])),

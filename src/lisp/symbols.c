@@ -192,7 +192,7 @@ static void grow_symbol_tables()
                int probe=
                  mult_hash_bytes(entry->sym_pname.str_bytes,
                                  entry->sym_pname.str_bytelen)%new_size;
-               while (PRED_TRUE(new_entries[probe]!=NULL))
+               while (USUALLY(new_entries[probe]!=NULL))
                  if (probe >= new_size)
                    probe = 0;
                  else probe = (probe+1)%new_size;
@@ -240,11 +240,11 @@ lispval kno_make_symbol(u8_string bytes,int len)
     int size = kno_symbol_table.table_size;
     int hash = mult_hash_bytes(bytes,len);
     int probe = hash%size;
-    while (PRED_TRUE(entries[probe]!=NULL)) {
+    while (USUALLY(entries[probe]!=NULL)) {
       unsigned int bytelen=(entries[probe])->sym_pname.str_bytelen;
-      if (PRED_TRUE(len == bytelen)) {
+      if (USUALLY(len == bytelen)) {
         const unsigned char *pname=(entries[probe])->sym_pname.str_bytes;
-        if (PRED_TRUE(strncmp(bytes,pname,len) == 0))
+        if (USUALLY(strncmp(bytes,pname,len) == 0))
           break;}
       probe++;
       if (probe>=size) probe = 0;}

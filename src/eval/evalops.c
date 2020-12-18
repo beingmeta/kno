@@ -777,7 +777,7 @@ DEFCPRIM("%choiceref",choiceref_prim,
 	 {"off",kno_any_type,KNO_VOID})
 static lispval choiceref_prim(lispval arg,lispval off)
 {
-  if (PRED_TRUE(FIXNUMP(off))) {
+  if (USUALLY(FIXNUMP(off))) {
     long long i = FIX2INT(off);
     if (EMPTYP(arg)) {
       kno_seterr(kno_RangeError,"choiceref_prim","0",arg);

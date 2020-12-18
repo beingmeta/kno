@@ -8,7 +8,7 @@ int check_args(int n,kno_argvec args)
   int needs_work = 0;
   int i = 0; while (i<n) {
     lispval arg = args[i];
-    if (! (PRED_TRUE(KNO_CHECK_PTR(arg))) )
+    if (! (USUALLY(KNO_CHECK_PTR(arg))) )
       return -(i+1);
     else if (CONSP(arg)) {
       if (KNO_PRECHOICEP(arg)) {needs_work = 1;}
@@ -90,7 +90,7 @@ int setup_call(kno_stack stack,lispval fcn,
 {
   int i = 0; while (i<n) {
     lispval arg = args[i];
-    if (PRED_FALSE ( (arg == KNO_NULL) ||
+    if (RARELY ( (arg == KNO_NULL) ||
 		     (KNO_VOIDP(arg)) ||
 		     (KNO_ABORTED(arg)) ||
 		     (!(KNO_CHECK_PTR(arg))) ) ) {

@@ -102,7 +102,7 @@ static lispval dochoices_evalfn(lispval expr,kno_lexenv env,
 				kno_stack eval_stack)
 {
   lispval steps = kno_get_body(expr,2);
-  if (! (PRED_TRUE( (KNO_PAIRP(steps)) || (steps == KNO_NIL) )) )
+  if (! (USUALLY( (KNO_PAIRP(steps)) || (steps == KNO_NIL) )) )
     return kno_err(kno_SyntaxError,"dochoices_evalfn",NULL,expr);
   lispval var, count_var, choices=
     parse_control_spec(expr,&var,&count_var,env,eval_stack);
@@ -146,7 +146,7 @@ static lispval trychoices_evalfn(lispval expr,kno_lexenv env,
 				 kno_stack eval_stack)
 {
   lispval steps = kno_get_body(expr,2);
-  if (! (PRED_TRUE( (KNO_PAIRP(steps)) || (steps == KNO_NIL) )) )
+  if (! (USUALLY( (KNO_PAIRP(steps)) || (steps == KNO_NIL) )) )
     return kno_err(kno_SyntaxError,"trychoices_evalfn",NULL,expr);
   lispval var, count_var, choices=
     parse_control_spec(expr,&var,&count_var,env,eval_stack);
@@ -194,7 +194,7 @@ static lispval forchoices_evalfn(lispval expr,kno_lexenv env,
 				 kno_stack eval_stack)
 {
   lispval steps = kno_get_body(expr,2);
-  if (! (PRED_TRUE( (KNO_PAIRP(steps)) || (steps == KNO_NIL) )) )
+  if (! (USUALLY( (KNO_PAIRP(steps)) || (steps == KNO_NIL) )) )
     return kno_err(kno_SyntaxError,"forchoices_evalfn",NULL,expr);
   lispval var, count_var, choices=
     parse_control_spec(expr,&var,&count_var,env,eval_stack);
@@ -246,7 +246,7 @@ static lispval filterchoices_evalfn(lispval expr,kno_lexenv env,
 				    kno_stack eval_stack)
 {
   lispval steps = kno_get_body(expr,2);
-  if (! (PRED_TRUE( (KNO_PAIRP(steps)) || (steps == KNO_NIL) )) )
+  if (! (USUALLY( (KNO_PAIRP(steps)) || (steps == KNO_NIL) )) )
     return kno_err(kno_SyntaxError,"filterchoices_evalfn",NULL,expr);
   lispval var, count_var, choices=
     parse_control_spec(expr,&var,&count_var,env,eval_stack);
@@ -819,7 +819,7 @@ static lispval dosubsets_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval result = KNO_VOID;
   lispval body = kno_get_body(expr,2);
-  if (! (PRED_TRUE( (KNO_PAIRP(body)) || (body == KNO_NIL) )) )
+  if (! (USUALLY( (KNO_PAIRP(body)) || (body == KNO_NIL) )) )
     return kno_err(kno_SyntaxError,"forchoices_evalfn",NULL,expr);
   lispval choices, count_var, var;
   lispval control_spec = kno_get_arg(expr,1);
@@ -1071,7 +1071,7 @@ static lispval smallest_prim(lispval elts,lispval magnitude)
 	kno_decref(results);
 	return kno_type_error("keyfn","smallest_prim",ok);}}
     return results;}
-  else if (PRED_FALSE (! (KEYFNP(magnitude)) ) )
+  else if (RARELY (! (KEYFNP(magnitude)) ) )
     return kno_type_error("keyfn","smallest_prim",magnitude);
   else {
     lispval top = EMPTY, top_score = VOID;
@@ -1136,7 +1136,7 @@ static lispval largest_prim(lispval elts,lispval magnitude)
 	kno_decref(results);
 	return kno_type_error("keyfn","largest_prim",ok);}}
     return results;}
-  else if (PRED_FALSE (! (KEYFNP(magnitude)) ) )
+  else if (RARELY (! (KEYFNP(magnitude)) ) )
     return kno_type_error("keyfn","largest_prim",magnitude);
   else {
     lispval top = EMPTY, top_score = VOID;
@@ -1218,17 +1218,17 @@ static lispval reduce_choice(lispval fn,lispval choice,lispval start,
   /* Type checking up front */
   if (KNO_CHOICEP(fn)) {
     KNO_DO_CHOICES(f,fn)
-      if (! (PRED_TRUE(reduce_operatorp(f))) ) {
+      if (! (USUALLY(reduce_operatorp(f))) ) {
 	KNO_STOP_DO_CHOICES;
 	return kno_type_error("reduce operator","reduce_choice",f);}}
-  else if (! (PRED_TRUE(reduce_operatorp(fn))) )
+  else if (! (USUALLY(reduce_operatorp(fn))) )
     return kno_type_error("reduce operator","reduce_choice",fn);
   else NO_ELSE;
   if ( (VOIDP(keyfn)) || (FALSEP(keyfn)) || (DEFAULTP(keyfn)) ) {}
-  else if (PRED_TRUE(KEYFNP(keyfn))) {}
+  else if (USUALLY(KEYFNP(keyfn))) {}
   else if (KNO_CHOICEP(keyfn)) {
     KNO_DO_CHOICES(ok,keyfn)
-      if (! (PRED_TRUE(KEYFNP(ok))) ) {
+      if (! (USUALLY(KEYFNP(ok))) ) {
 	KNO_STOP_DO_CHOICES;
 	return kno_type_error("object key","reduce_choice",ok);}}
   else return kno_type_error("object key","reduce_choice",keyfn);

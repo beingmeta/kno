@@ -32,7 +32,7 @@ static lispval while_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   lispval result = VOID;
   if (VOIDP(test_expr))
     return kno_err(kno_TooFewExpressions,"WHILE",NULL,expr);
-  else if (! (PRED_TRUE( (KNO_PAIRP(body)) || (body == KNO_NIL) )) )
+  else if (! (USUALLY( (KNO_PAIRP(body)) || (body == KNO_NIL) )) )
     return kno_err(kno_SyntaxError,"WHILE",NULL,expr);
   else {
     int exited = 0;
@@ -54,7 +54,7 @@ static lispval until_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   lispval result = VOID;
   if (VOIDP(test_expr))
     return kno_err(kno_TooFewExpressions,"UNTIL",NULL,expr);
-  else if (! (PRED_TRUE( (KNO_PAIRP(body)) || (body == KNO_NIL) )) )
+  else if (! (USUALLY( (KNO_PAIRP(body)) || (body == KNO_NIL) )) )
     return kno_err(kno_SyntaxError,"UNTIL",NULL,expr);
   else {
     int exited = 0;
@@ -105,7 +105,7 @@ static lispval dotimes_evalfn(lispval expr,kno_lexenv env,
   lispval result = KNO_VOID;
   int i = 0, exited = 0, limit;
   lispval body = kno_get_body(expr,2);
-  if (! (PRED_TRUE( (KNO_PAIRP(body)) || (body == KNO_NIL) )) )
+  if (! (USUALLY( (KNO_PAIRP(body)) || (body == KNO_NIL) )) )
     return kno_err(kno_SyntaxError,"dotimes_evalfn",NULL,expr);
   lispval var, limit_val=
     parse_control_spec(expr,&var,NULL,env,eval_stack);;
@@ -142,7 +142,7 @@ static lispval doseq_evalfn(lispval expr,kno_lexenv env,
   int i = 0, lim, islist = 0;
   lispval var, count_var = VOID;
   lispval body = kno_get_body(expr,2);
-  if (! (PRED_TRUE( (KNO_PAIRP(body)) || (body == KNO_NIL) )) )
+  if (! (USUALLY( (KNO_PAIRP(body)) || (body == KNO_NIL) )) )
     return kno_err(kno_SyntaxError,"doseq_evalfn",NULL,expr);
   lispval seq = parse_control_spec(expr,&var,&count_var,env,eval_stack);
   lispval pairscan = VOID;
@@ -197,7 +197,7 @@ static lispval forseq_evalfn(lispval expr,kno_lexenv env,
 {
   size_t i = 0, lim=0; int islist=0;
   lispval body = kno_get_body(expr,2), pairscan=VOID;
-  if (! (PRED_TRUE( (KNO_PAIRP(body)) || (body == KNO_NIL) )) )
+  if (! (USUALLY( (KNO_PAIRP(body)) || (body == KNO_NIL) )) )
     return kno_err(kno_SyntaxError,"forseq_evalfn",NULL,expr);
   lispval var, count_var = VOID, *results, result=VOID;
   lispval seq = parse_control_spec(expr,&var,&count_var,env,eval_stack);
@@ -265,7 +265,7 @@ static lispval tryseq_evalfn(lispval expr,kno_lexenv env,
   lispval result = KNO_EMPTY;
   size_t i = 0, lim=0; int islist=0;
   lispval body = kno_get_body(expr,2), pairscan=VOID;
-  if (! (PRED_TRUE( (KNO_PAIRP(body)) || (body == KNO_NIL) )) )
+  if (! (USUALLY( (KNO_PAIRP(body)) || (body == KNO_NIL) )) )
     return kno_err(kno_SyntaxError,"tryseq_evalfn",NULL,expr);
   lispval var, count_var = VOID;
   lispval seq = parse_control_spec(expr,&var,&count_var,env,eval_stack);
@@ -328,7 +328,7 @@ static lispval dolist_evalfn(lispval expr,kno_lexenv env,
   int i = 0;
   lispval result = KNO_VOID;
   lispval body = kno_get_body(expr,2);
-  if (! (PRED_TRUE( (KNO_PAIRP(body)) || (body == KNO_NIL) )) )
+  if (! (USUALLY( (KNO_PAIRP(body)) || (body == KNO_NIL) )) )
     return kno_err(kno_SyntaxError,"dolist_evalfn",NULL,expr);
   lispval var, count_var = VOID;
   lispval seq = parse_control_spec(expr,&var,&count_var,env,eval_stack);
@@ -398,7 +398,7 @@ static lispval prog1_evalfn(lispval prog1_expr,kno_lexenv env,
   if (VOIDP(arg1))
     return kno_err(kno_SyntaxError,"prog1_evalfn",NULL,prog1_expr);
   lispval prog1_body = kno_get_body(prog1_expr,2);
-  if (! (PRED_TRUE( (KNO_PAIRP(prog1_body)) || (prog1_body == KNO_NIL) )) )
+  if (! (USUALLY( (KNO_PAIRP(prog1_body)) || (prog1_body == KNO_NIL) )) )
     return kno_err(kno_SyntaxError,"prog1_evalfn",NULL,prog1_expr);
   lispval result = kno_eval(arg1,env,_stack,0);
   if (KNO_ABORTED(result))

@@ -29,7 +29,7 @@ kno_index kno_make_extindex
 (u8_string name,lispval fetchfn,lispval commitfn,lispval state,
  kno_storage_flags flags,lispval opts)
 {
-  if (!(PRED_TRUE(KNO_APPLICABLEP(fetchfn))))
+  if (!(USUALLY(KNO_APPLICABLEP(fetchfn))))
     return KNO_ERR(NULL,kno_TypeError,"kno_make_extindex","fetch function",
                    kno_incref(fetchfn));
   else if (!(KNO_ISFUNARG(commitfn)))

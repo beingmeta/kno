@@ -52,7 +52,7 @@ void clear_module_load_lock(lispval spec);
 
 KNO_EXPORT kno_lexenv kno_make_env(lispval bindings,kno_lexenv parent)
 {
-  if (PRED_FALSE(!(TABLEP(bindings)) )) {
+  if (RARELY(!(TABLEP(bindings)) )) {
     u8_byte buf[100];
     kno_seterr(kno_TypeError,"kno_make_env",
                u8_sprintf(buf,100,_("object is not a %m"),"table"),
@@ -87,7 +87,7 @@ KNO_EXPORT
    is "for export only" and cannot be modified. */
 kno_lexenv kno_make_export_env(lispval exports,kno_lexenv parent)
 {
-  if (PRED_FALSE(!(HASHTABLEP(exports)) )) {
+  if (RARELY(!(HASHTABLEP(exports)) )) {
     u8_byte buf[100];
     kno_seterr(kno_TypeError,"kno_make_env",
                u8_sprintf(buf,100,_("object is not a %m"),"hashtable"),

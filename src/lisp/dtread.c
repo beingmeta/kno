@@ -116,8 +116,8 @@ KNO_EXPORT ssize_t kno_validate_dtype(struct KNO_INBUF *in)
 
 /* Byte input */
 
-#define nobytes(in,nbytes) (PRED_FALSE(!(kno_request_bytes(in,nbytes))))
-#define havebytes(in,nbytes) (PRED_TRUE(kno_request_bytes(in,nbytes)))
+#define nobytes(in,nbytes) (RARELY(!(kno_request_bytes(in,nbytes))))
+#define havebytes(in,nbytes) (USUALLY(kno_request_bytes(in,nbytes)))
 
 KNO_EXPORT lispval kno_make_mystery_packet(int,int,unsigned int,unsigned char *);
 KNO_EXPORT lispval kno_make_mystery_vector(int,int,unsigned int,lispval *);
@@ -147,7 +147,7 @@ static lispval unexpected_eod()
 
 KNO_EXPORT lispval kno_read_dtype(struct KNO_INBUF *in)
 {
-  if (PRED_FALSE(KNO_ISWRITING(in)))
+  if (RARELY(KNO_ISWRITING(in)))
     return kno_lisp_iswritebuf(in);
   else if (havebytes(in,1)) {
     int code = *(in->bufread++);
@@ -183,10 +183,10 @@ KNO_EXPORT lispval kno_read_dtype(struct KNO_INBUF *in)
       return _kno_make_double(flonum);}
     case dt_oid: {
       long long hival=kno_read_4bytes(in), loval;
-      if (PRED_FALSE(hival<0))
+      if (RARELY(hival<0))
         return unexpected_eod();
       else loval=kno_read_4bytes(in);
-      if (PRED_FALSE(loval<0))
+      if (RARELY(loval<0))
         return unexpected_eod();
       else {
         KNO_OID addr = KNO_NULL_OID_INIT;
@@ -324,13 +324,13 @@ KNO_EXPORT lispval kno_read_dtype(struct KNO_INBUF *in)
       len = kno_read_4bytes(in);
       if (len < 0)
         return kno_return_errcode(KNO_EOD);
-      else if (PRED_FALSE(len == 0))
+      else if (RARELY(len == 0))
         return kno_empty_vector(0);
       else {
         lispval why_not = KNO_EOD, result = kno_empty_vector(len);
         lispval *elts = KNO_VECTOR_ELTS(result);
         lispval *data = read_dtypes(len,in,&why_not,elts);
-        if (PRED_TRUE((data!=NULL)))
+        if (USUALLY((data!=NULL)))
           return result;
         else return KNO_ERROR;}
     case dt_tiny_choice:
