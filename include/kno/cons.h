@@ -1139,7 +1139,8 @@ KNO_FASTOP int __KNO_XTYPEP(lispval x,int type)
 	kno_lisp_type ctype = KNO_CONS_TYPEOF(x);
 	return ( (ctype == kno_pair_type) &&
 		 ( (ctype & kno_table_type) == ctype ) );}
-      else if ( (x == KNO_FALSE) || (x == KNO_EMPTY_LIST) || (x == KNO_EMPTY_CHOICE) )
+      else if ( (x == KNO_FALSE) || (x == KNO_EMPTY_LIST) ||
+		(x == KNO_EMPTY_CHOICE) || (x == KNO_VOID) )
 	return 1;
       else return 0;
     case kno_type_type:
