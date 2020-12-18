@@ -250,7 +250,6 @@ static lispval load_source_for_module(lispval spec,u8_string module_source)
 
 DEFCPRIM("reload-module",reload_module,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"module",kno_any_type,KNO_VOID})
 static lispval reload_module(lispval module)
@@ -473,7 +472,6 @@ KNO_EXPORT int kno_update_file_module(u8_string module_source,int force)
 
 DEFCPRIM("update-modules",update_modules_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
-	 ""
 	 "**undocumented**",
 	 {"flag",kno_any_type,KNO_VOID})
 static lispval update_modules_prim(lispval flag)
@@ -485,7 +483,6 @@ static lispval update_modules_prim(lispval flag)
 
 DEFCPRIM("update-module",update_module_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"spec",kno_any_type,KNO_VOID},
 	 {"force",kno_any_type,KNO_FALSE})
@@ -739,7 +736,6 @@ static int load_dynamic_module(lispval spec,void *data)
 
 DEFCPRIM("dynamic-load",dynamic_load_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "loads a dynamic module into KNO. If *modname* (a "
 	 "string) is a path (includes a '/'), it is loaded "
 	 "directly. Otherwise, it looks for an dynamic "

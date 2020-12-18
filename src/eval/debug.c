@@ -340,7 +340,6 @@ static lispval watchcons_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 
 DEFCPRIM("%watchptrval",watchptr_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 ""
 	 "Describes the Kno pointer characteristics of "
 	 "*ptrval*, using a label string dervied from "
 	 "*label* if provided",
@@ -353,7 +352,6 @@ static lispval watchptr_prim(lispval val,lispval label_arg)
 }
 
 KNO_DEF_XEVALFN("%watch",watch_evalfn,KNO_EVALFN_NOTAIL,
-		""
 		"logs information from the  current environment. Unless the "
 		"first argument is a literal string, it is evaluated and "
 		"both the expression and result are logged. Any remaining "
@@ -959,7 +957,6 @@ static lispval muntrace_prim()
 /* WITH-CONTEXT */
 
 KNO_DEF_EVALFN("with-log-context",with_log_context_evalfn,
-	       ""
 	       "evaluates each expression in *body* while setting the "
 	       "*log context* to the result (a string or symbol) of "
 	       "evaluating *label-expr*. This log context will be displayed "
@@ -991,7 +988,6 @@ static lispval with_log_context_evalfn(lispval expr,kno_lexenv env,kno_stack _st
 
 DEFCPRIM("set-log-context!",set_log_context_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "only makes sense in the dynamic thread-specific "
 	 "scope of a `WITH-LOG-CONTEXT` expression and it "
 	 "changes the displayed log context to the string "

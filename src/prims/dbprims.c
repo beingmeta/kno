@@ -37,7 +37,6 @@ static lispval background_symbol, adjunct_symbol, sparse_symbol, repair_symbol;
 
 DEFCPRIM("slotid?",slotidp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval slotidp(lispval arg)
@@ -91,7 +90,6 @@ static int load_db_module(lispval opts,u8_context context)
 
 DEFCPRIMN("find-frames",find_frames_lexpr,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	  ""
 	  "**undocumented**")
 static lispval find_frames_lexpr(int n,kno_argvec args)
 {
@@ -107,7 +105,6 @@ static lispval find_frames_lexpr(int n,kno_argvec args)
 
 DEFCPRIMN("xfind-frames",xfind_frames_lexpr,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	  ""
 	  "**undocumented**")
 static lispval xfind_frames_lexpr(int n,kno_argvec args)
 {
@@ -136,7 +133,6 @@ static lispval xfind_frames_lexpr(int n,kno_argvec args)
 
 DEFCPRIM("prefetch-slotvals!",prefetch_slotvals,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3)|KNO_NDCALL,
-	 ""
 	 "**undocumented**",
 	 {"index",kno_any_type,KNO_VOID},
 	 {"slotids",kno_any_type,KNO_VOID},
@@ -151,7 +147,6 @@ static lispval prefetch_slotvals(lispval index,lispval slotids,lispval values)
 
 DEFCPRIMN("find-frames/prefetch!",find_frames_prefetch,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	  ""
 	  "**undocumented**")
 static lispval find_frames_prefetch(int n,kno_argvec args)
 {
@@ -196,7 +191,6 @@ static void hashtable_index_frame(lispval ix,
 
 DEFCPRIM("index-frame",index_frame_prim,
 	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(3)|KNO_NDCALL,
-	 ""
 	 "**undocumented**",
 	 {"indexes",kno_any_type,KNO_VOID},
 	 {"frames",kno_any_type,KNO_VOID},
@@ -231,7 +225,6 @@ static lispval index_frame_prim
 
 DEFCPRIM("pool?",poolp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval poolp(lispval arg)
@@ -243,7 +236,6 @@ static lispval poolp(lispval arg)
 
 DEFCPRIM("index?",indexp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval indexp(lispval arg)
@@ -255,7 +247,6 @@ static lispval indexp(lispval arg)
 
 DEFCPRIM("getpool",getpool,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "returns a pool based on *arg*. If *arg* is an "
 	 "OID, it's containing pool is returned, if it's a "
 	 "pool itself, it's returned as is, and if it's a "
@@ -275,7 +266,6 @@ static lispval getpool(lispval arg)
 
 DEFCPRIM("oid->pool",oid2pool,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "returns the pool containing OID or {} if it's not "
 	 "known.",
 	 {"oid",kno_oid_type,KNO_VOID})
@@ -290,7 +280,6 @@ static u8_condition Unknown_PoolName=_("Unknown pool name");
 
 DEFCPRIM("set-pool-namefn!",set_pool_namefn,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID},
 	 {"method",kno_any_type,KNO_VOID})
@@ -314,7 +303,6 @@ static lispval set_pool_namefn(lispval arg,lispval method)
 
 DEFCPRIM("set-cache-level!",set_cache_level,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID},
 	 {"level",kno_any_type,KNO_VOID})
@@ -337,7 +325,6 @@ static lispval set_cache_level(lispval arg,lispval level)
 
 DEFCPRIM("try-pool",try_pool,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg1",kno_any_type,KNO_VOID},
 	 {"opts",kno_any_type,KNO_VOID})
@@ -360,7 +347,6 @@ static lispval try_pool(lispval arg1,lispval opts)
 
 DEFCPRIM("adjunct-pool",adjunct_pool,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg1",kno_any_type,KNO_VOID},
 	 {"opts",kno_any_type,KNO_VOID})
@@ -384,7 +370,6 @@ static lispval adjunct_pool(lispval arg1,lispval opts)
 
 DEFCPRIM("use-pool",use_pool,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg1",kno_any_type,KNO_VOID},
 	 {"opts",kno_any_type,KNO_VOID})
@@ -543,7 +528,6 @@ DEF_KNOSYM(pooltype);
 
 DEFCPRIM("make-pool",make_pool,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"path",kno_string_type,KNO_VOID},
 	 {"opts",kno_any_type,KNO_VOID})
@@ -573,7 +557,6 @@ static lispval make_pool(lispval path,lispval opts)
 
 DEFCPRIM("pool-type?",known_pool_typep,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "returns #t if *stringy* (a symbol or string) is a "
 	 "valid 'pooltype argument.",
 	 {"string",kno_any_type,KNO_VOID})
@@ -589,7 +572,6 @@ static lispval known_pool_typep(lispval stringy)
 
 DEFCPRIM("open-pool",open_pool,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"path",kno_string_type,KNO_VOID},
 	 {"opts",kno_any_type,KNO_FALSE})
@@ -607,7 +589,6 @@ DEF_KNOSYM(indextype);
 
 DEFCPRIM("make-index",make_index,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"path",kno_string_type,KNO_VOID},
 	 {"opts",kno_any_type,KNO_VOID})
@@ -640,7 +621,6 @@ static lispval make_index(lispval path,lispval opts)
 
 DEFCPRIM("index-type?",known_index_typep,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "returns #t if *stringy* (a symbol or string) is a "
 	 "valid 'indextype argument.",
 	 {"stringy",kno_any_type,KNO_VOID})
@@ -656,7 +636,6 @@ static lispval known_index_typep(lispval stringy)
 
 DEFCPRIM("oid-value",oidvalue,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_oid_type,KNO_VOID})
 static lispval oidvalue(lispval arg)
@@ -666,7 +645,6 @@ static lispval oidvalue(lispval arg)
 
 DEFCPRIM("set-oid-value!",setoidvalue,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 ""
 	 "directly sets the value of *oid* to *value*. If "
 	 "the value is a slotmap or schemap, a copy is "
 	 "stored unless *nocopy* is not false (the default).",
@@ -696,7 +674,6 @@ static lispval setoidvalue(lispval o,lispval v,lispval nocopy)
 
 DEFCPRIM("%set-oid-value!",xsetoidvalue,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 ""
 	 "directly sets the value of *oid* to *value*. If "
 	 "the value is a slotmap or schemap, a copy is "
 	 "stored unless *nocopy* is not false (the default).",
@@ -715,7 +692,6 @@ static lispval xsetoidvalue(lispval o,lispval v)
 
 DEFCPRIM("lock-oid!",lockoid,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"o",kno_oid_type,KNO_VOID},
 	 {"soft",kno_any_type,KNO_VOID})
@@ -732,7 +708,6 @@ static lispval lockoid(lispval o,lispval soft)
 
 DEFCPRIM("locked?",oidlockedp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval oidlockedp(lispval arg)
@@ -748,7 +723,6 @@ static lispval oidlockedp(lispval arg)
 
 DEFCPRIM("lock-oids!",lockoids,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 ""
 	 "**undocumented**",
 	 {"oids",kno_any_type,KNO_VOID})
 static lispval lockoids(lispval oids)
@@ -761,7 +735,6 @@ static lispval lockoids(lispval oids)
 
 DEFCPRIM("locked-oids",lockedoids,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"pool",kno_any_type,KNO_VOID})
 static lispval lockedoids(lispval pool)
@@ -772,7 +745,6 @@ static lispval lockedoids(lispval pool)
 
 DEFCPRIM("unlock-oids!",unlockoids,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(0)|KNO_NDCALL,
-	 ""
 	 "**undocumented**",
 	 {"oids",kno_any_type,KNO_VOID},
 	 {"commitp",kno_any_type,KNO_VOID})
@@ -900,7 +872,6 @@ static lispval tempindexp(lispval arg)
 
 DEFCPRIM("make-mempool",make_mempool,
 	 KNO_MAX_ARGS(6)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"label",kno_string_type,KNO_VOID},
 	 {"base",kno_oid_type,KNO_VOID},
@@ -926,7 +897,6 @@ static lispval make_mempool(lispval label,lispval base,lispval cap,
 
 DEFCPRIM("clean-mempool",clean_mempool,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"pool_arg",kno_any_type,KNO_VOID})
 static lispval clean_mempool(lispval pool_arg)
@@ -938,7 +908,6 @@ static lispval clean_mempool(lispval pool_arg)
 
 DEFCPRIM("reset-mempool",reset_mempool,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"pool_arg",kno_any_type,KNO_VOID})
 static lispval reset_mempool(lispval pool_arg)
@@ -979,7 +948,6 @@ static lispval make_procpool(lispval label,
 
 DEFCPRIM("make-extpool",make_extpool,
 	 KNO_MAX_ARGS(10)|KNO_MIN_ARGS(4),
-	 ""
 	 "**undocumented**",
 	 {"label",kno_string_type,KNO_VOID},
 	 {"base",kno_oid_type,KNO_VOID},
@@ -1007,7 +975,6 @@ static lispval make_extpool(lispval label,lispval base,lispval cap,
 
 DEFCPRIM("extpool-cache!",extpool_setcache,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3),
-	 ""
 	 "**undocumented**",
 	 {"pool",kno_pool_type,KNO_VOID},
 	 {"oid",kno_oid_type,KNO_VOID},
@@ -1022,7 +989,6 @@ static lispval extpool_setcache(lispval pool,lispval oid,lispval value)
 
 DEFCPRIM("extpool-fetchfn",extpool_fetchfn,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"pool",kno_pool_type,KNO_VOID})
 static lispval extpool_fetchfn(lispval pool)
@@ -1036,7 +1002,6 @@ static lispval extpool_fetchfn(lispval pool)
 
 DEFCPRIM("extpool-savefn",extpool_savefn,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"pool",kno_pool_type,KNO_VOID})
 static lispval extpool_savefn(lispval pool)
@@ -1050,7 +1015,6 @@ static lispval extpool_savefn(lispval pool)
 
 DEFCPRIM("extpool-lockfn",extpool_lockfn,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"pool",kno_pool_type,KNO_VOID})
 static lispval extpool_lockfn(lispval pool)
@@ -1064,7 +1028,6 @@ static lispval extpool_lockfn(lispval pool)
 
 DEFCPRIM("extpool-state",extpool_state,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "returns the state object of an extpool",
 	 {"pool",kno_pool_type,KNO_VOID})
 static lispval extpool_state(lispval pool)
@@ -1080,7 +1043,6 @@ static lispval extpool_state(lispval pool)
 
 DEFCPRIM("make-procindex",make_procindex,
 	 KNO_MAX_ARGS(5)|KNO_MIN_ARGS(2),
-	 ""
 	 "returns an index implemented by user-defined "
 	 "handlers",
 	 {"id",kno_string_type,KNO_VOID},
@@ -1104,7 +1066,6 @@ static lispval make_procindex(lispval id,
 
 DEFCPRIM("make-extindex",make_extindex,
 	 KNO_MAX_ARGS(6)|KNO_MIN_ARGS(2),
-	 ""
 	 "makes an *external* index, a simple kind of "
 	 "procindex.",
 	 {"label",kno_string_type,KNO_VOID},
@@ -1130,7 +1091,6 @@ static lispval make_extindex(lispval label,lispval fetchfn,lispval commitfn,
 
 DEFCPRIM("cons-extindex",cons_extindex,
 	 KNO_MAX_ARGS(6)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"label",kno_string_type,KNO_VOID},
 	 {"fetchfn",kno_any_type,KNO_VOID},
@@ -1155,7 +1115,6 @@ static lispval cons_extindex(lispval label,lispval fetchfn,lispval commitfn,
 
 DEFCPRIM("extindex-cacheadd!",extindex_cacheadd,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3),
-	 ""
 	 "**undocumented**",
 	 {"index",kno_any_type,KNO_VOID},
 	 {"key",kno_any_type,KNO_VOID},
@@ -1181,7 +1140,6 @@ static lispval extindex_cacheadd(lispval index,lispval key,lispval values)
 
 DEFCPRIM("extindex-decache!",extindex_decache,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"index",kno_any_type,KNO_VOID},
 	 {"key",kno_any_type,KNO_VOID})
@@ -1221,7 +1179,6 @@ static lispval extindex_decache(lispval index,lispval key)
 
 DEFCPRIM("extindex-fetchfn",extindex_fetchfn,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"index",kno_any_type,KNO_VOID})
 static lispval extindex_fetchfn(lispval index)
@@ -1235,7 +1192,6 @@ static lispval extindex_fetchfn(lispval index)
 
 DEFCPRIM("extindex-commitfn",extindex_commitfn,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"index",kno_any_type,KNO_VOID})
 static lispval extindex_commitfn(lispval index)
@@ -1249,7 +1205,6 @@ static lispval extindex_commitfn(lispval index)
 
 DEFCPRIM("extindex-state",extindex_state,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"index",kno_any_type,KNO_VOID})
 static lispval extindex_state(lispval index)
@@ -1263,7 +1218,6 @@ static lispval extindex_state(lispval index)
 
 DEFCPRIM("extindex?",extindexp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "returns #t if *arg* is an extindex, #f otherwise",
 	 {"index",kno_any_type,KNO_VOID})
 static lispval extindexp(lispval index)
@@ -1408,7 +1362,6 @@ static lispval isadjunctp(lispval pool_arg)
 
 DEFCPRIMN("swapout",swapout_lexpr,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(0)|KNO_NDCALL,
-	  ""
 	  "**undocumented**")
 static lispval swapout_lexpr(int n,kno_argvec args)
 {
@@ -1488,7 +1441,6 @@ static lispval swapout_lexpr(int n,kno_argvec args)
 
 DEFCPRIMN("commit",commit_lexpr,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(0),
-	  ""
 	  "**undocumented**")
 static lispval commit_lexpr(int n,kno_argvec args)
 {
@@ -1518,7 +1470,6 @@ static lispval commit_lexpr(int n,kno_argvec args)
 
 DEFCPRIM("commit-oids",commit_oids,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 ""
 	 "**undocumented**",
 	 {"oids",kno_any_type,KNO_VOID})
 static lispval commit_oids(lispval oids)
@@ -1531,7 +1482,6 @@ static lispval commit_oids(lispval oids)
 
 DEFCPRIM("finish-oids",finish_oids,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 ""
 	 "**undocumented**",
 	 {"oids",kno_any_type,KNO_VOID},
 	 {"pool",kno_pool_type,KNO_VOID})
@@ -1553,7 +1503,6 @@ static lispval finish_oids(lispval oids,lispval pool)
 
 DEFCPRIM("commit-pool",commit_pool,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"pool",kno_pool_type,KNO_VOID},
 	 {"opts",kno_any_type,KNO_VOID})
@@ -1571,7 +1520,6 @@ static lispval commit_pool(lispval pool,lispval opts)
 
 DEFCPRIM("commit-finished",commit_finished,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"pool",kno_pool_type,KNO_VOID})
 static lispval commit_finished(lispval pool)
@@ -1631,7 +1579,6 @@ static lispval pool_fetchn_prim(lispval pool,lispval oids)
 
 DEFCPRIM("clear-slotcache!",clear_slotcache,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval clear_slotcache(lispval arg)
@@ -1643,7 +1590,6 @@ static lispval clear_slotcache(lispval arg)
 
 DEFCPRIM("clearcaches",clearcaches,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	 ""
 	 "**undocumented**")
 static lispval clearcaches()
 {
@@ -1656,7 +1602,6 @@ static lispval clearcaches()
 
 DEFCPRIM("swapcheck",swapcheck_prim,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	 ""
 	 "**undocumented**")
 static lispval swapcheck_prim()
 {
@@ -1683,7 +1628,6 @@ static kno_pool arg2pool(lispval arg)
 
 DEFCPRIM("pool-load",pool_load,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval pool_load(lispval arg)
@@ -1699,7 +1643,6 @@ static lispval pool_load(lispval arg)
 
 DEFCPRIM("pool-capacity",pool_capacity,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval pool_capacity(lispval arg)
@@ -1712,7 +1655,6 @@ static lispval pool_capacity(lispval arg)
 
 DEFCPRIM("pool-base",pool_base,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval pool_base(lispval arg)
@@ -1725,7 +1667,6 @@ static lispval pool_base(lispval arg)
 
 DEFCPRIM("pool-elts",pool_elts,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID},
 	 {"start",kno_any_type,KNO_VOID},
@@ -1773,7 +1714,6 @@ static lispval pool_elts(lispval arg,lispval start,lispval count)
 
 DEFCPRIM("pool-label",pool_label,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID},
 	 {"use_source",kno_any_type,KNO_FALSE})
@@ -1792,7 +1732,6 @@ static lispval pool_label(lispval arg,lispval use_source)
 
 DEFCPRIM("pool-id",pool_id,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval pool_id(lispval arg)
@@ -1813,7 +1752,6 @@ static lispval pool_id(lispval arg)
 
 DEFCPRIM("pool-source",pool_source,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval pool_source(lispval arg)
@@ -1830,7 +1768,6 @@ static lispval pool_source(lispval arg)
 
 DEFCPRIM("pool-prefix",pool_prefix,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval pool_prefix(lispval arg)
@@ -1845,7 +1782,6 @@ static lispval pool_prefix(lispval arg)
 
 DEFCPRIM("set-pool-prefix!",set_pool_prefix,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID},
 	 {"prefix_arg",kno_string_type,KNO_VOID})
@@ -1870,7 +1806,6 @@ static lispval set_pool_prefix(lispval arg,lispval prefix_arg)
 
 DEFCPRIM("pool-close",pool_close_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval pool_close_prim(lispval arg)
@@ -1885,7 +1820,6 @@ static lispval pool_close_prim(lispval arg)
 
 DEFCPRIM("oid-range",oid_range,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"start",kno_oid_type,KNO_VOID},
 	 {"end",kno_fixnum_type,KNO_VOID})
@@ -1903,7 +1837,6 @@ static lispval oid_range(lispval start,lispval end)
 
 DEFCPRIM("oid-vector",oid_vector,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"start",kno_oid_type,KNO_VOID},
 	 {"end",kno_fixnum_type,KNO_VOID})
@@ -1923,7 +1856,6 @@ static lispval oid_vector(lispval start,lispval end)
 
 DEFCPRIM("random-oid",random_oid,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval random_oid(lispval arg)
@@ -1942,7 +1874,6 @@ static lispval random_oid(lispval arg)
 
 DEFCPRIM("pool-vector",pool_vec,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval pool_vec(lispval arg)
@@ -1967,7 +1898,6 @@ static lispval pool_vec(lispval arg)
 
 DEFCPRIM("cachecount",cachecount,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval cachecount(lispval arg)
@@ -1995,7 +1925,6 @@ static lispval cachecount(lispval arg)
 
 DEFCPRIM("oid-hi",oid_hi,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_oid_type,KNO_VOID})
 static lispval oid_hi(lispval x)
@@ -2006,7 +1935,6 @@ static lispval oid_hi(lispval x)
 
 DEFCPRIM("oid-lo",oid_lo,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_oid_type,KNO_VOID})
 static lispval oid_lo(lispval x)
@@ -2017,7 +1945,6 @@ static lispval oid_lo(lispval x)
 
 DEFCPRIM("oid-base",oid_base,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"oid",kno_oid_type,KNO_VOID},
 	 {"modulo",kno_fixnum_type,KNO_INT(1048576)})
@@ -2038,7 +1965,6 @@ static lispval oid_base(lispval oid,lispval modulo)
 
 DEFCPRIM("oid?",oidp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval oidp(lispval x)
@@ -2049,7 +1975,6 @@ static lispval oidp(lispval x)
 
 DEFCPRIM("oid-pool",oidpool,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_oid_type,KNO_VOID})
 static lispval oidpool(lispval x)
@@ -2061,7 +1986,6 @@ static lispval oidpool(lispval x)
 
 DEFCPRIM("in-pool?",inpoolp,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_oid_type,KNO_VOID},
 	 {"pool_arg",kno_any_type,KNO_VOID})
@@ -2084,7 +2008,6 @@ static lispval inpoolp(lispval x,lispval pool_arg)
 
 DEFCPRIM("valid-oid?",validoidp,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_oid_type,KNO_VOID},
 	 {"pool_arg",kno_any_type,KNO_VOID})
@@ -2177,7 +2100,6 @@ static lispval fetchoids_prim(lispval oids)
 
 DEFCPRIM("prefetch-keys!",prefetch_keys,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 ""
 	 "or `(PREFETCH-KEYS! *keys*)`, moves mappings for "
 	 "*keys* in *index* into its cache. With one "
 	 "argument caches from the background.",
@@ -2223,7 +2145,6 @@ static lispval index_prefetch_keys(lispval ix_arg,lispval keys)
 
 DEFCPRIM("cached-oids",cached_oids,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
-	 ""
 	 "**undocumented**",
 	 {"pool",kno_any_type,KNO_VOID})
 static lispval cached_oids(lispval pool)
@@ -2239,7 +2160,6 @@ static lispval cached_oids(lispval pool)
 
 DEFCPRIM("cached-keys",cached_keys,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
-	 ""
 	 "**undocumented**",
 	 {"index",kno_any_type,KNO_VOID})
 static lispval cached_keys(lispval index)
@@ -2295,7 +2215,6 @@ static lispval change_load(lispval db)
 
 DEFCPRIM("get",kno_fget,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 ""
 	 "**undocumented**",
 	 {"frames",kno_any_type,KNO_VOID},
 	 {"slotids",kno_any_type,KNO_VOID})
@@ -2364,7 +2283,6 @@ KNO_EXPORT lispval kno_fget(lispval frames,lispval slotids)
 
 DEFCPRIM("test",kno_ftest,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 ""
 	 "**undocumented**",
 	 {"frames",kno_any_type,KNO_VOID},
 	 {"slotids",kno_any_type,KNO_VOID},
@@ -2404,7 +2322,6 @@ KNO_EXPORT lispval kno_ftest(lispval frames,lispval slotids,lispval values)
 
 DEFCPRIM("assert!",kno_assert,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3)|KNO_NDCALL,
-	 ""
 	 "**undocumented**",
 	 {"frames",kno_any_type,KNO_VOID},
 	 {"slotids",kno_any_type,KNO_VOID},
@@ -2423,7 +2340,6 @@ KNO_EXPORT lispval kno_assert(lispval frames,lispval slotids,lispval values)
 
 DEFCPRIM("retract!",kno_retract,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 ""
 	 "**undocumented**",
 	 {"frames",kno_any_type,KNO_VOID},
 	 {"slotids",kno_any_type,KNO_VOID},
@@ -2450,7 +2366,6 @@ KNO_EXPORT lispval kno_retract(lispval frames,lispval slotids,lispval values)
 
 DEFCPRIMN("testp",testp,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(3)|KNO_NDCALL,
-	  ""
 	  "**undocumented**")
 static lispval testp(int n,kno_argvec args)
 {
@@ -2513,7 +2428,6 @@ static lispval testp(int n,kno_argvec args)
 
 DEFCPRIMN("getpath",getpath_prim,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	  ""
 	  "**undocumented**")
 static lispval getpath_prim(int n,kno_argvec args)
 {
@@ -2523,7 +2437,6 @@ static lispval getpath_prim(int n,kno_argvec args)
 
 DEFCPRIMN("getpath*",getpathstar_prim,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	  ""
 	  "**undocumented**")
 static lispval getpathstar_prim(int n,kno_argvec args)
 {
@@ -2581,7 +2494,6 @@ static kno_index arg2index(lispval arg)
 
 DEFCPRIM("index-source",index_source_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval index_source_prim(lispval arg)
@@ -2596,7 +2508,6 @@ static lispval index_source_prim(lispval arg)
 
 DEFCPRIM("index-id",index_id,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval index_id(lispval arg)
@@ -2615,7 +2526,6 @@ static lispval index_id(lispval arg)
 
 DEFCPRIM("index-get",index_get,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"ixarg",kno_any_type,KNO_VOID},
 	 {"key",kno_any_type,KNO_VOID})
@@ -2629,7 +2539,6 @@ static lispval index_get(lispval ixarg,lispval key)
 
 DEFCPRIM("index-add!",index_add,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3),
-	 ""
 	 "**undocumented**",
 	 {"ixarg",kno_any_type,KNO_VOID},
 	 {"key",kno_any_type,KNO_VOID},
@@ -2644,7 +2553,6 @@ static lispval index_add(lispval ixarg,lispval key,lispval values)
 
 DEFCPRIM("index-set!",index_set,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3),
-	 ""
 	 "**undocumented**",
 	 {"ixarg",kno_any_type,KNO_VOID},
 	 {"key",kno_any_type,KNO_VOID},
@@ -2659,7 +2567,6 @@ static lispval index_set(lispval ixarg,lispval key,lispval values)
 
 DEFCPRIM("index-decache",index_decache,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"ixarg",kno_any_type,KNO_VOID},
 	 {"key",kno_any_type,KNO_VOID},
@@ -2679,7 +2586,6 @@ static lispval index_decache(lispval ixarg,lispval key,lispval value)
 
 DEFCPRIM("bgdecache",bgdecache,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"key",kno_any_type,KNO_VOID},
 	 {"value",kno_any_type,KNO_VOID})
@@ -2698,7 +2604,6 @@ static lispval bgdecache(lispval key,lispval value)
 
 DEFCPRIM("index-keys",index_keys,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"ixarg",kno_any_type,KNO_VOID})
 static lispval index_keys(lispval ixarg)
@@ -2710,7 +2615,6 @@ static lispval index_keys(lispval ixarg)
 
 DEFCPRIM("index-sizes",index_sizes,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"ixarg",kno_any_type,KNO_VOID},
 	 {"keys_arg",kno_any_type,KNO_VOID})
@@ -2726,7 +2630,6 @@ static lispval index_sizes(lispval ixarg,lispval keys_arg)
 
 DEFCPRIM("index-keysvec",index_keysvec,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"ixarg",kno_any_type,KNO_VOID})
 static lispval index_keysvec(lispval ixarg)
@@ -2851,7 +2754,6 @@ static lispval index_fetchn_prim(lispval index,lispval keys)
 
 DEFCPRIM("suggest-hash-size",suggest_hash_size,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"size",kno_fixnum_type,KNO_VOID})
 static lispval suggest_hash_size(lispval size)
@@ -3219,7 +3121,6 @@ static lispval hashtable_filter(lispval candidates,kno_hashtable ht,int pick)
 
 DEFCPRIMN("pick",pick_lexpr,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	  ""
 	  "**undocumented**")
 static lispval pick_lexpr(int n,kno_argvec args)
 {
@@ -3238,7 +3139,6 @@ static lispval pick_lexpr(int n,kno_argvec args)
 
 DEFCPRIMN("prefer",prefer_lexpr,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	  ""
 	  "**undocumented**")
 static lispval prefer_lexpr(int n,kno_argvec args)
 {
@@ -3263,7 +3163,6 @@ static lispval prefer_lexpr(int n,kno_argvec args)
 
 DEFCPRIMN("%pick",prim_pick_lexpr,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	  ""
 	  "**undocumented**")
 static lispval prim_pick_lexpr(int n,kno_argvec args)
 {
@@ -3279,7 +3178,6 @@ static lispval prim_pick_lexpr(int n,kno_argvec args)
 
 DEFCPRIMN("%prefer",prim_prefer_lexpr,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	  ""
 	  "**undocumented**")
 static lispval prim_prefer_lexpr(int n,kno_argvec args)
 {
@@ -3347,7 +3245,6 @@ static lispval reject_helper(lispval candidates,int n,kno_argvec tests,
 
 DEFCPRIMN("reject",reject_lexpr,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	  ""
 	  "**undocumented**")
 static lispval reject_lexpr(int n,kno_argvec args)
 {
@@ -3365,7 +3262,6 @@ static lispval reject_lexpr(int n,kno_argvec args)
 
 DEFCPRIMN("avoid",avoid_lexpr,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	  ""
 	  "**undocumented**")
 static lispval avoid_lexpr(int n,kno_argvec args)
 {
@@ -3390,7 +3286,6 @@ static lispval avoid_lexpr(int n,kno_argvec args)
 
 DEFCPRIMN("%reject",prim_reject_lexpr,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	  ""
 	  "**undocumented**")
 static lispval prim_reject_lexpr(int n,kno_argvec args)
 {
@@ -3406,7 +3301,6 @@ static lispval prim_reject_lexpr(int n,kno_argvec args)
 
 DEFCPRIMN("%avoid",prim_avoid_lexpr,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	  ""
 	  "**undocumented**")
 static lispval prim_avoid_lexpr(int n,kno_argvec args)
 {
@@ -3446,7 +3340,6 @@ static lispval getroots(lispval frames)
 
 DEFCPRIM("get*",getstar,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 ""
 	 "**undocumented**",
 	 {"frames",kno_any_type,KNO_VOID},
 	 {"slotids",kno_any_type,KNO_VOID})
@@ -3467,7 +3360,6 @@ static lispval getstar(lispval frames,lispval slotids)
 
 DEFCPRIM("inherit",inherit_prim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3)|KNO_NDCALL,
-	 ""
 	 "**undocumented**",
 	 {"slotids",kno_any_type,KNO_VOID},
 	 {"frames",kno_any_type,KNO_VOID},
@@ -3486,7 +3378,6 @@ static lispval inherit_prim(lispval slotids,lispval frames,lispval through)
 
 DEFCPRIM("path?",pathp,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3)|KNO_NDCALL,
-	 ""
 	 "**undocumented**",
 	 {"frames",kno_any_type,KNO_VOID},
 	 {"slotids",kno_any_type,KNO_VOID},
@@ -3503,7 +3394,6 @@ static lispval pathp(lispval frames,lispval slotids,lispval values)
 
 DEFCPRIM("get-basis",getbasis,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 ""
 	 "**undocumented**",
 	 {"frames",kno_any_type,KNO_VOID},
 	 {"lattice",kno_any_type,KNO_VOID})
@@ -3516,7 +3406,6 @@ static lispval getbasis(lispval frames,lispval lattice)
 
 DEFCPRIM("allocate-oids",allocate_oids,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"pool",kno_any_type,KNO_VOID},
 	 {"howmany",kno_any_type,KNO_VOID})
@@ -3534,7 +3423,6 @@ static lispval allocate_oids(lispval pool,lispval howmany)
 
 DEFCPRIMN("frame-create",frame_create_lexpr,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	  ""
 	  "**undocumented**")
 static lispval frame_create_lexpr(int n,kno_argvec args)
 {
@@ -3572,7 +3460,6 @@ static lispval frame_create_lexpr(int n,kno_argvec args)
 
 DEFCPRIMN("frame-update",frame_update_lexpr,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(3)|KNO_NDCALL,
-	  ""
 	  "**undocumented**")
 static lispval frame_update_lexpr(int n,kno_argvec args)
 {
@@ -3596,7 +3483,6 @@ static lispval frame_update_lexpr(int n,kno_argvec args)
 
 DEFCPRIM("seq->frame",seq2frame_prim,
 	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(3)|KNO_NDCALL,
-	 ""
 	 "**undocumented**",
 	 {"poolspec",kno_any_type,KNO_VOID},
 	 {"values",kno_any_type,KNO_VOID},
@@ -3674,7 +3560,6 @@ static int doretract(lispval f,lispval s,lispval v)
 
 DEFCPRIMN("modify-frame",modify_frame_lexpr,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(3)|KNO_NDCALL,
-	  ""
 	  "**undocumented**")
 static lispval modify_frame_lexpr(int n,kno_argvec args)
 {
@@ -3778,7 +3663,6 @@ static lispval oid_minus_prim(lispval oidarg,lispval against)
 
 DEFCPRIM("oid-ptrdata",oid_ptrdata_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"oid",kno_oid_type,KNO_VOID})
 static lispval oid_ptrdata_prim(lispval oid)
@@ -3856,7 +3740,6 @@ static lispval make_oid_prim(lispval high,lispval low)
 
 DEFCPRIM("oid->string",oid2string_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"oid",kno_oid_type,KNO_VOID},
 	 {"name",kno_any_type,KNO_VOID})
@@ -3877,7 +3760,6 @@ static lispval oid2string_prim(lispval oid,lispval name)
 
 DEFCPRIM("oid->hex",oidhex_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"oid",kno_oid_type,KNO_VOID},
 	 {"base_arg",kno_any_type,KNO_VOID})
@@ -3938,7 +3820,6 @@ static lispval oidplus(KNO_OID base,int delta)
 
 DEFCPRIM("hex->oid",hex2oid_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID},
 	 {"base_arg",kno_any_type,KNO_VOID})
@@ -4012,7 +3893,6 @@ static lispval oidaddr_prim(lispval oid)
 
 DEFCPRIM("sumframe",sumframe_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 ""
 	 "**undocumented**",
 	 {"frames",kno_any_type,KNO_VOID},
 	 {"slotids",kno_any_type,KNO_VOID})
@@ -4092,7 +3972,6 @@ static int walkgraph(lispval fn,lispval state,lispval arcs,
 
 DEFCPRIM("forgraph",forgraph,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3)|KNO_NDCALL,
-	 ""
 	 "**undocumented**",
 	 {"fcn",kno_any_type,KNO_VOID},
 	 {"roots",kno_any_type,KNO_VOID},
@@ -4121,7 +4000,6 @@ static lispval forgraph(lispval fcn,lispval roots,lispval arcs)
 
 DEFCPRIM("mapgraph",mapgraph,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3)|KNO_NDCALL,
-	 ""
 	 "**undocumented**",
 	 {"fcn",kno_any_type,KNO_VOID},
 	 {"roots",kno_any_type,KNO_VOID},
@@ -4160,7 +4038,6 @@ static lispval mapgraph(lispval fcn,lispval roots,lispval arcs)
 
 DEFCPRIM("loaded?",dbloadedp,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg1",kno_any_type,KNO_VOID},
 	 {"arg2",kno_any_type,KNO_VOID})
@@ -4237,7 +4114,6 @@ static int oidmodifiedp(kno_pool p,lispval oid)
 
 DEFCPRIM("modified?",dbmodifiedp,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg1",kno_any_type,KNO_VOID},
 	 {"arg2",kno_any_type,KNO_VOID})
@@ -4306,7 +4182,6 @@ static lispval dbmodifiedp(lispval arg1,lispval arg2)
 
 DEFCPRIM("db/writable?",db_writablep,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"db",kno_any_type,KNO_VOID})
 static lispval db_writablep(lispval db)

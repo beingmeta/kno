@@ -89,7 +89,6 @@ static u8_input get_input_port(lispval portarg)
 
 DEFCPRIM("port?",portp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "returns #t if *object* is an i/o port.",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval portp(lispval arg)
@@ -101,7 +100,6 @@ static lispval portp(lispval arg)
 
 DEFCPRIM("input-port?",input_portp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "returns #t if *object* is an input port.",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval input_portp(lispval arg)
@@ -117,7 +115,6 @@ static lispval input_portp(lispval arg)
 
 DEFCPRIM("output-port?",output_portp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "returns #t if *object* is an output port.",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval output_portp(lispval arg)
@@ -135,7 +132,6 @@ static lispval output_portp(lispval arg)
 
 DEFCPRIM("eof-object?",eofp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "returns #t if *object* is an end of file "
 	 "indicators.",
 	 {"x",kno_any_type,KNO_VOID})
@@ -148,7 +144,6 @@ static lispval eofp (lispval x)
 
 DEFCPRIM("packet->dtype",packet2dtype,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "parses the DType representation in *packet* and "
 	 "returns the corresponding object.",
 	 {"packet",kno_packet_type,KNO_VOID})
@@ -164,7 +159,6 @@ static lispval packet2dtype(lispval packet)
 
 DEFCPRIM("dtype->packet",lisp2packet,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "returns a packet containing the DType "
 	 "representation of object. *bufsize*, if provided, "
 	 "specifies the initial size of the output buffer "
@@ -192,7 +186,6 @@ static lispval lisp2packet(lispval object,lispval initsize)
 
 DEFCPRIM("decode-xtype",decode_xtype,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "parses the XTYPE representation in *packet* and "
 	 "returns the corresponding object.",
 	 {"packet",kno_packet_type,KNO_VOID},
@@ -218,7 +211,6 @@ static lispval compress_xtype(kno_compress_type compression,
 
 DEFCPRIM("encode-xtype",encode_xtype,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "returns a packet containing the XType "
 	 "representation of object. *bufsize*, if provided, "
 	 "specifies the initial size of the output buffer "
@@ -293,7 +285,6 @@ static lispval compress_xtype(kno_compress_type compression,
 
 DEFCPRIM("xtype/refs",make_xtype_refs,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "returns a rawptr object for an xtype refs object.",
 	 {"vec",kno_vector_type,KNO_VOID},
 	 {"opts",kno_any_type,KNO_FALSE})
@@ -325,7 +316,6 @@ static lispval make_xtype_refs(lispval vec,lispval opts)
 
 DEFCPRIM("xtype/refs/encode",xtype_refs_encode,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 ""
 	 "returns the numeric reference code for *ref* in "
 	 "*xtrefs* or false otherwise.",
 	 {"refs_arg",kno_rawptr_type,KNO_VOID},
@@ -348,7 +338,6 @@ static lispval xtype_refs_encode(lispval refs_arg,lispval val,lispval add)
 
 DEFCPRIM("xtype/refs/decode",xtype_refs_decode,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 ""
 	 "returns the object associated with the numeric "
 	 "reference code *offset* in *xtrefs*.",
 	 {"refs_arg",kno_rawptr_type,KNO_VOID},
@@ -368,7 +357,6 @@ static lispval xtype_refs_decode(lispval refs_arg,lispval off_arg)
 
 DEFCPRIM("xtype/refs/count",xtype_refs_count,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "returns the number of objects encoded in *xtrefs*",
 	 {"refs_arg",kno_rawptr_type,KNO_VOID})
 static lispval xtype_refs_count(lispval refs_arg)
@@ -383,7 +371,6 @@ static lispval xtype_refs_count(lispval refs_arg)
 
 DEFCPRIM("open-output-string",open_output_string,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	 ""
 	 "returns an output string stream")
 static lispval open_output_string()
 {
@@ -394,7 +381,6 @@ static lispval open_output_string()
 
 DEFCPRIM("open-input-string",open_input_string,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "returns an input stream reading from *string*.",
 	 {"arg",kno_string_type,KNO_VOID})
 static lispval open_input_string(lispval arg)
@@ -409,7 +395,6 @@ static lispval open_input_string(lispval arg)
 
 DEFCPRIM("portid",portid_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "returns the id string (if any) for *port*.",
 	 {"port_arg",kno_any_type,KNO_VOID})
 static lispval portid_prim(lispval port_arg)
@@ -424,7 +409,6 @@ static lispval portid_prim(lispval port_arg)
 
 DEFCPRIM("portdata",portdata_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "returns the buffered data for *port*. If *port* "
 	 "is a string stream, this is the output to date to "
 	 "the port.",
@@ -445,7 +429,6 @@ static lispval portdata_prim(lispval port_arg)
 
 DEFCPRIM("write",write_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "writes a textual represenntation of *object* to "
 	 "*port*. The implementation strives to make `READ` "
 	 "be able to convert the output of `WRITE` to "
@@ -467,7 +450,6 @@ static lispval write_prim(lispval x,lispval portarg)
 
 DEFCPRIM("display",display_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "writes a textual represenntation of *object* to "
 	 "*port*. This makes no special attempts to make "
 	 "it's output parsable by `READ`\nIf *port* is #t or "
@@ -490,7 +472,6 @@ static lispval display_prim(lispval x,lispval portarg)
 
 DEFCPRIM("putchar",putchar_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "the character *char* to *port*. *char* must be "
 	 "either a character object or a positive integer "
 	 "corresponding to a Unicode code point.\nIf *port* "
@@ -516,7 +497,6 @@ static lispval putchar_prim(lispval char_arg,lispval port)
 
 DEFCPRIM("newline",newline_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
-	 ""
 	 "emits a newline to *port*. If *port* is #t or not "
 	 "provided, the current output, which is usually "
 	 "the stdout, is used. Otherwise, it must be an "
@@ -604,7 +584,6 @@ lispval kno_printout_to(U8_OUTPUT *out,lispval body,kno_lexenv env)
 
 DEFCPRIM("substringout",substringout,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
-	 ""
 	 "emits a substring of *string* to the default "
 	 "output.",
 	 {"arg",kno_string_type,KNO_VOID},
@@ -631,7 +610,6 @@ static lispval substringout(lispval arg,lispval start,lispval end)
 
 DEFCPRIM("uniscape",uniscape,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "emits a unicode escaped version of *string* to "
 	 "the default output. All non-ascii characters "
 	 "except for those in *except_string* are encoded "
@@ -781,7 +759,6 @@ static lispval indentout_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 
 DEFCPRIM("$histstring",histstring_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "declares and returns a string with a history "
 	 "reference for *object*. *label*, if provided, "
 	 "specifies a non-numeric label to use.",
@@ -805,7 +782,6 @@ static lispval histstring_prim(lispval x,lispval label)
 
 DEFCPRIM("$histref",histref_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "declares and outputs a history reference for "
 	 "*object* to the current output. *label*, if "
 	 "provided, specifies a non-numeric label to use.",
@@ -829,7 +805,6 @@ static lispval histref_prim(lispval x,lispval label)
 
 DEFCPRIM("$histval",histval_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "declares and outputs a history reference for "
 	 "*object* to the current output. *label*, if "
 	 "provided, specifies a non-numeric label to use.",
@@ -857,7 +832,6 @@ static lispval histval_prim(lispval x,lispval label)
 
 DEFCPRIM("getchar",getchar_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
-	 ""
 	 "reads a single character from *port*. If *port* "
 	 "is #t or not provided, the current default input, "
 	 "is used. Otherwise, it must be an input port.",
@@ -875,7 +849,6 @@ static lispval getchar_prim(lispval port)
 
 DEFCPRIM("getline",getline_prim,
 	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(0),
-	 ""
 	 "reads a single 'line' from *port* as a string. If "
 	 "*port* is #t or not provided, the current default "
 	 "input is used. Otherwise, it must be an input "
@@ -935,7 +908,6 @@ static lispval getline_prim(lispval port,lispval eos_arg,
 
 DEFCPRIM("unescape-string",unescape_string_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "interprets escape characters in *string* and "
 	 "returns the corresponding unescaped version. "
 	 "Escaped character includes C character escapes "
@@ -951,7 +923,6 @@ static lispval unescape_string_prim(lispval string)
 
 DEFCPRIM("escape-string",escape_string_prim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
-	 ""
 	 "generates an escaped version of *string*, "
 	 "specifically escaping control characters and the "
 	 "string delimiter (\"). If *toascii* is not false, "
@@ -976,7 +947,6 @@ static lispval escape_string_prim(lispval string,lispval ascii,lispval maxlen)
 
 DEFCPRIM("escapeout",escapeout_prim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
-	 ""
 	 "outputs an escaped version of *string* to the "
 	 "default output. This specifically escaping "
 	 "control characters and the string delimiter (\"). "
@@ -999,7 +969,6 @@ static lispval escapeout_prim(lispval string,lispval ascii,lispval maxlen)
 
 DEFCPRIM("read",read_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
-	 ""
 	 "reads an object from *port*. If *port* is #t or "
 	 "not provided, the current default input is used. "
 	 "Otherwise, it must be an input port.",
@@ -1028,7 +997,6 @@ static lispval record_reader(lispval port,lispval ends,lispval limit_arg);
 
 DEFCPRIM("read-record",read_record_prim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 ""
 	 "**undocumented**",
 	 {"ports",kno_any_type,KNO_VOID},
 	 {"ends",kno_any_type,KNO_VOID},
@@ -1342,7 +1310,6 @@ static lispval label_symbol, width_symbol, depth_symbol, output_symbol;
 
 DEFCPRIM("listdata",lisp_listdata,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 ""
 	 "output a formatted textual representation of "
 	 "*object* to *port*, controlled by *opts*.",
 	 {"object",kno_any_type,KNO_VOID},
@@ -1385,7 +1352,6 @@ static lispval lisp_listdata(lispval object,lispval opts,lispval stream)
 
 DEFCPRIM("base64->packet",from_base64_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "converts the BASE64 encoding in string into a "
 	 "data packet",
 	 {"string",kno_string_type,KNO_VOID})
@@ -1402,7 +1368,6 @@ static lispval from_base64_prim(lispval string)
 
 DEFCPRIM("packet->base64",to_base64_prim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
-	 ""
 	 "converts a packet into a string containing it's "
 	 "BASE64 representation.",
 	 {"packet",kno_packet_type,KNO_VOID},
@@ -1431,7 +1396,6 @@ static lispval to_base64_prim(lispval packet,lispval nopad,
 
 DEFCPRIM("->base64",any_to_base64_prim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
-	 ""
 	 "converts a string or packet into a string "
 	 "containing it's BASE64 representation.",
 	 {"arg",kno_any_type,KNO_VOID},
@@ -1468,7 +1432,6 @@ static lispval any_to_base64_prim(lispval arg,lispval nopad,
 
 DEFCPRIM("base16->packet",from_base16_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "converts the hex encoding in string into a data "
 	 "packet",
 	 {"string",kno_string_type,KNO_VOID})
@@ -1484,7 +1447,6 @@ static lispval from_base16_prim(lispval string)
 
 DEFCPRIM("packet->base16",to_base16_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "converts the data packet *packet* into a "
 	 "hexadecimal string.",
 	 {"packet",kno_packet_type,KNO_VOID})
@@ -1517,7 +1479,6 @@ static int string_isasciip(const unsigned char *data,int len)
 
 DEFCPRIM("gzip",gzip_prim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
-	 ""
 	 "GZIP encodes the string or packet *arg*. If "
 	 "*file* is provided the compressed data is written "
 	 "to it; otherwise, the compressed data is returned "
@@ -1614,7 +1575,6 @@ static lispval gzip_prim(lispval arg,lispval filename,lispval comment)
 
 DEFCPRIM("compress",compress_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 ""
 	 "Compresses *data* into a packet using *method*.",
 	 {"arg",kno_any_type,KNO_VOID},
 	 {"method",kno_symbol_type,KNO_VOID})
@@ -1644,7 +1604,6 @@ static lispval compress_prim(lispval arg,lispval method)
 
 DEFCPRIM("uncompress",uncompress_prim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 ""
 	 "Uncompresses *data* from packet *method*. If "
 	 "*encoding* is specified, attempts to convert the "
 	 "result into a string using the designated "

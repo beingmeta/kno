@@ -189,7 +189,6 @@ lispval kno_parse_uri(u8_string uri,lispval base)
 
 DEFCPRIM("parseuri",parseuri,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"uri",kno_string_type,KNO_VOID},
 	 {"base",kno_any_type,KNO_VOID})
@@ -200,7 +199,6 @@ static lispval parseuri(lispval uri,lispval base)
 
 DEFCPRIM("mergeuris",mergeuris,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"uri",kno_any_type,KNO_VOID},
 	 {"base",kno_any_type,KNO_VOID})
@@ -239,7 +237,6 @@ static void uri_output(u8_output out,u8_string s,int len,int upper,
 
 DEFCPRIM("unparseuri",unparseuri,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"uri",kno_any_type,KNO_VOID},
 	 {"noencode",kno_any_type,KNO_VOID})
@@ -316,7 +313,6 @@ static lispval unparseuri(lispval uri,lispval noencode)
 
 DEFCPRIM("urischeme",urischeme_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"uri_arg",kno_string_type,KNO_VOID})
 static lispval urischeme_prim(lispval uri_arg)
@@ -329,7 +325,6 @@ static lispval urischeme_prim(lispval uri_arg)
 
 DEFCPRIM("urihost",urihost_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"uri_arg",kno_string_type,KNO_VOID})
 static lispval urihost_prim(lispval uri_arg)
@@ -348,7 +343,6 @@ static lispval urihost_prim(lispval uri_arg)
 
 DEFCPRIM("urifrag",urifrag_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"uri_arg",kno_string_type,KNO_VOID})
 static lispval urifrag_prim(lispval uri_arg)
@@ -364,7 +358,6 @@ static lispval urifrag_prim(lispval uri_arg)
 
 DEFCPRIM("uriquery",uriquery_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"uri_arg",kno_string_type,KNO_VOID})
 static lispval uriquery_prim(lispval uri_arg)
@@ -380,7 +373,6 @@ static lispval uriquery_prim(lispval uri_arg)
 
 DEFCPRIM("uribase",uribase_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"uri_arg",kno_string_type,KNO_VOID})
 static lispval uribase_prim(lispval uri_arg)
@@ -401,7 +393,6 @@ static lispval uribase_prim(lispval uri_arg)
 
 DEFCPRIM("uripath",uripath_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"uri_arg",kno_string_type,KNO_VOID})
 static lispval uripath_prim(lispval uri_arg)
@@ -436,7 +427,6 @@ KNO_EXPORT void kno_uri_output(u8_output out,u8_string uri,int len,int upper,
 
 DEFCPRIM("mkuripath",mkuripath_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"dirname",kno_any_type,KNO_VOID},
 	 { "name",kno_string_type,KNO_VOID})
@@ -481,7 +471,6 @@ static lispval mkuripath_prim(lispval dirname,lispval name)
 
 DEFCPRIM("datauri",datauri_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"data",kno_any_type,KNO_VOID},
 	 {"ctype_arg",kno_string_type,KNO_VOID})
@@ -517,7 +506,6 @@ static lispval datauri_prim(lispval data,lispval ctype_arg)
 
 DEFCPRIM("oid2id",oid2id,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"oid",kno_oid_type,KNO_VOID},
 	 {"prefix",kno_any_type,KNO_VOID})
@@ -684,7 +672,6 @@ static int xdigit_weight(int c);
 
 DEFCPRIM("uridecode",uridecode_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "returns a copy of *string* with all uri-encoded "
 	 "references converted back into their normal "
 	 "equivalents",
@@ -772,7 +759,6 @@ static lispval scripturl_core(u8_string baseuri,lispval params,
 
 DEFCPRIMN("scripturl",scripturl,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	  ""
 	  "**undocumented**")
 static lispval scripturl(int n,kno_argvec args)
 {
@@ -794,7 +780,6 @@ static lispval scripturl(int n,kno_argvec args)
 
 DEFCPRIMN("knoscripturl",knoscripturl,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	  ""
 	  "**undocumented**")
 static lispval knoscripturl(int n,kno_argvec args)
 {
@@ -816,7 +801,6 @@ static lispval knoscripturl(int n,kno_argvec args)
 
 DEFCPRIMN("scripturl+",scripturlplus,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	  ""
 	  "**undocumented**")
 static lispval scripturlplus(int n,kno_argvec args)
 {
@@ -838,7 +822,6 @@ static lispval scripturlplus(int n,kno_argvec args)
 
 DEFCPRIMN("knoscripturl+",knoscripturlplus,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	  ""
 	  "**undocumented**")
 static lispval knoscripturlplus(int n,kno_argvec args)
 {

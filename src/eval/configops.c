@@ -239,7 +239,6 @@ static int reuse_lconfig(struct KNO_CONFIG_HANDLER *e);
 
 DEFCPRIM("config-def!",config_def,
 	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
-	 ""
 	 "Defines the procedure *handler* as the config "
 	 "handler for the *config_name* configuration "
 	 "setting, with *doc* if it's provided. *handler* "
@@ -339,7 +338,6 @@ KNO_EXPORT int kno_load_default_config(u8_string sourceid)
 
 DEFCPRIM("load-config",lisp_load_config,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval lisp_load_config(lispval arg)
@@ -368,7 +366,6 @@ static lispval lisp_load_config(lispval arg)
 
 DEFCPRIM("load-default-config",lisp_load_default_config,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval lisp_load_default_config(lispval arg)
@@ -397,7 +394,6 @@ static lispval lisp_load_default_config(lispval arg)
 
 DEFCPRIM("read-config",lisp_read_config,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_string_type,KNO_VOID})
 static lispval lisp_read_config(lispval arg)

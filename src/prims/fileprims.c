@@ -108,7 +108,6 @@ static u8_output get_output_port(lispval portarg)
 
 DEFCPRIM("open-output-file",open_output_file,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
-	 ""
 	 "returns an output port, writing to the beginning "
 	 "of the text file *filename* using *encoding*. If "
 	 "*escape* is specified, it can be the character & "
@@ -148,7 +147,6 @@ static lispval open_output_file(lispval fname,lispval opts,lispval escape_char)
 
 DEFCPRIM("extend-output-file",extend_output_file,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
-	 ""
 	 "returns an output port, writing to the end of the "
 	 "text file *filename* using *encoding*. If "
 	 "*escape* is specified, it can be the character & "
@@ -188,7 +186,6 @@ static lispval extend_output_file(lispval fname,lispval opts,lispval escape_char
 
 DEFCPRIM("open-input-file",open_input_file,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "returns an input port for the text file "
 	 "*filename*, translating from *encoding*. If "
 	 "*encoding* is not specified, the file is opened "
@@ -222,7 +219,6 @@ static lispval open_input_file(lispval fname,lispval opts)
 
 DEFCPRIM("write-file",writefile_prim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"filename",kno_string_type,KNO_VOID},
 	 {"object",kno_any_type,KNO_VOID},
@@ -365,7 +361,6 @@ static lispval noblock_symbol, nodelay_symbol;
 
 DEFCPRIM("open-socket",open_socket_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"spec",kno_string_type,KNO_VOID},
 	 {"opts",kno_any_type,KNO_VOID})
@@ -391,7 +386,6 @@ static lispval open_socket_prim(lispval spec,lispval opts)
 
 DEFCPRIM("remove-file!",remove_file_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_string_type,KNO_VOID},
 	 {"must_exist",kno_any_type,KNO_VOID})
@@ -413,7 +407,6 @@ static lispval remove_file_prim(lispval arg,lispval must_exist)
 
 DEFCPRIM("remove-tree!",remove_tree_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_string_type,KNO_VOID},
 	 {"must_exist",kno_any_type,KNO_VOID})
@@ -435,7 +428,6 @@ static lispval remove_tree_prim(lispval arg,lispval must_exist)
 
 DEFCPRIM("move-file!",move_file_prim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"from",kno_string_type,KNO_VOID},
 	 {"to",kno_string_type,KNO_VOID},
@@ -455,7 +447,6 @@ static lispval move_file_prim(lispval from,lispval to,lispval must_exist)
 
 DEFCPRIM("link-file!",link_file_prim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"from",kno_string_type,KNO_VOID},
 	 {"to",kno_string_type,KNO_VOID},
@@ -559,7 +550,6 @@ static lispval filecontent_prim(lispval filename)
 
 DEFCPRIM("file-exists?",file_existsp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_string_type,KNO_VOID})
 static lispval file_existsp(lispval arg)
@@ -576,7 +566,6 @@ static lispval file_existsp(lispval arg)
 
 DEFCPRIM("file-regular?",file_regularp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_string_type,KNO_VOID})
 static lispval file_regularp(lispval arg)
@@ -592,7 +581,6 @@ static lispval file_regularp(lispval arg)
 
 DEFCPRIM("file-readable?",file_readablep,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_string_type,KNO_VOID})
 static lispval file_readablep(lispval arg)
@@ -604,7 +592,6 @@ static lispval file_readablep(lispval arg)
 
 DEFCPRIM("file-writable?",file_writablep,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_string_type,KNO_VOID})
 static lispval file_writablep(lispval arg)
@@ -616,7 +603,6 @@ static lispval file_writablep(lispval arg)
 
 DEFCPRIM("file-directory?",file_directoryp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_string_type,KNO_VOID})
 static lispval file_directoryp(lispval arg)
@@ -628,7 +614,6 @@ static lispval file_directoryp(lispval arg)
 
 DEFCPRIM("file-symlink?",file_symlinkp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_string_type,KNO_VOID})
 static lispval file_symlinkp(lispval arg)
@@ -640,7 +625,6 @@ static lispval file_symlinkp(lispval arg)
 
 DEFCPRIM("file-socket?",file_socketp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_string_type,KNO_VOID})
 static lispval file_socketp(lispval arg)
@@ -652,7 +636,6 @@ static lispval file_socketp(lispval arg)
 
 DEFCPRIM("abspath",file_abspath,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_string_type,KNO_VOID},
 	 {"wd",kno_string_type,KNO_VOID})
@@ -668,7 +651,6 @@ static lispval file_abspath(lispval arg,lispval wd)
 
 DEFCPRIM("realpath",file_realpath,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_string_type,KNO_VOID},
 	 {"wd",kno_string_type,KNO_VOID})
@@ -684,7 +666,6 @@ static lispval file_realpath(lispval arg,lispval wd)
 
 DEFCPRIM("readlink",file_readlink,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_string_type,KNO_VOID},
 	 {"abs",kno_any_type,KNO_VOID},
@@ -705,7 +686,6 @@ static lispval file_readlink(lispval arg,lispval abs,lispval err)
 
 DEFCPRIM("path-basename",path_basename,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_string_type,KNO_VOID},
 	 {"suffix",kno_any_type,KNO_VOID})
@@ -720,7 +700,6 @@ static lispval path_basename(lispval arg,lispval suffix)
 
 DEFCPRIM("path-suffix",path_suffix,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_string_type,KNO_VOID},
 	 {"dflt",kno_any_type,KNO_VOID})
@@ -738,7 +717,6 @@ static lispval path_suffix(lispval arg,lispval dflt)
 
 DEFCPRIM("path-dirname",path_dirname,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_string_type,KNO_VOID})
 static lispval path_dirname(lispval arg)
@@ -748,7 +726,6 @@ static lispval path_dirname(lispval arg)
 
 DEFCPRIM("path-location",path_location,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_string_type,KNO_VOID})
 static lispval path_location(lispval arg)
@@ -761,7 +738,6 @@ static lispval path_location(lispval arg)
 
 DEFCPRIM("mkpath",mkpath_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"dirname",kno_any_type,KNO_VOID},
 	 {"name",kno_string_type,KNO_VOID})
@@ -795,7 +771,6 @@ static lispval mkpath_prim(lispval dirname,lispval name)
 
 DEFCPRIM("runfile",runfile_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"suffix",kno_string_type,KNO_VOID})
 static lispval runfile_prim(lispval suffix)
@@ -807,7 +782,6 @@ static lispval runfile_prim(lispval suffix)
 
 DEFCPRIM("mkdir",mkdir_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"dirname",kno_string_type,KNO_VOID},
 	 {"mode_arg",kno_fixnum_type,KNO_VOID})
@@ -828,7 +802,6 @@ static lispval mkdir_prim(lispval dirname,lispval mode_arg)
 
 DEFCPRIM("rmdir",rmdir_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"dirname",kno_string_type,KNO_VOID})
 static lispval rmdir_prim(lispval dirname)
@@ -843,7 +816,6 @@ static lispval rmdir_prim(lispval dirname)
 
 DEFCPRIM("mkdirs",mkdirs_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"pathname",kno_string_type,KNO_VOID},
 	 {"mode_arg",kno_fixnum_type,KNO_VOID})
@@ -967,7 +939,6 @@ KNO_EXPORT u8_string kno_tempdir(u8_string spec,int keep)
 
 DEFCPRIM("tempdir",tempdir_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(0),
-	 ""
 	 "**undocumented**",
 	 {"template_arg",kno_any_type,KNO_VOID},
 	 {"keep",kno_any_type,KNO_FALSE})
@@ -987,7 +958,6 @@ static lispval tempdir_prim(lispval template_arg,lispval keep)
 
 DEFCPRIM("tempdir/done",tempdir_done_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(0),
-	 ""
 	 "**undocumented**",
 	 {"tempdir",kno_string_type,KNO_VOID},
 	 {"force_arg",kno_any_type,KNO_FALSE})
@@ -1035,7 +1005,6 @@ static lispval tempdir_done_prim(lispval tempdir,lispval force_arg)
 
 DEFCPRIM("tempdir?",is_tempdir_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
-	 ""
 	 "**undocumented**",
 	 {"tempdir",kno_string_type,KNO_VOID})
 static lispval is_tempdir_prim(lispval tempdir)
@@ -1149,7 +1118,6 @@ static lispval make_timestamp(time_t tick)
 
 DEFCPRIM("file-modtime",file_modtime,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"filename",kno_string_type,KNO_VOID})
 static lispval file_modtime(lispval filename)
@@ -1171,7 +1139,6 @@ static lispval file_modtime(lispval filename)
 
 DEFCPRIM("set-file-modtime!",set_file_modtime,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"filename",kno_string_type,KNO_VOID},
 	 {"timestamp",kno_any_type,KNO_VOID})
@@ -1193,7 +1160,6 @@ static lispval set_file_modtime(lispval filename,lispval timestamp)
 
 DEFCPRIM("file-accesstime",file_atime,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"filename",kno_string_type,KNO_VOID})
 static lispval file_atime(lispval filename)
@@ -1205,7 +1171,6 @@ static lispval file_atime(lispval filename)
 
 DEFCPRIM("set-file-atime!",set_file_atime,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"filename",kno_string_type,KNO_VOID},
 	 {"timestamp",kno_any_type,KNO_VOID})
@@ -1227,7 +1192,6 @@ static lispval set_file_atime(lispval filename,lispval timestamp)
 
 DEFCPRIM("file-creationtime",file_ctime,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"filename",kno_string_type,KNO_VOID})
 static lispval file_ctime(lispval filename)
@@ -1239,7 +1203,6 @@ static lispval file_ctime(lispval filename)
 
 DEFCPRIM("file-mode",file_mode,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"filename",kno_string_type,KNO_VOID})
 static lispval file_mode(lispval filename)
@@ -1251,7 +1214,6 @@ static lispval file_mode(lispval filename)
 
 DEFCPRIM("file-size",file_size,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"filename",kno_string_type,KNO_VOID})
 static lispval file_size(lispval filename)
@@ -1275,7 +1237,6 @@ static lispval file_size(lispval filename)
 
 DEFCPRIM("file-owner",file_owner,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"filename",kno_string_type,KNO_VOID})
 static lispval file_owner(lispval filename)
@@ -1330,7 +1291,6 @@ static lispval set_file_access_prim(lispval filename,
 
 DEFCPRIM("getcwd",getcwd_prim,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	 ""
 	 "**undocumented**")
 static lispval getcwd_prim()
 {
@@ -1341,7 +1301,6 @@ static lispval getcwd_prim()
 
 DEFCPRIM("setcwd",setcwd_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"dirname",kno_string_type,KNO_VOID})
 static lispval setcwd_prim(lispval dirname)
@@ -1355,7 +1314,6 @@ static lispval setcwd_prim(lispval dirname)
 
 DEFCPRIM("getfiles",getfiles_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"dirname",kno_string_type,KNO_VOID},
 	 {"fullpath",kno_any_type,KNO_TRUE})
@@ -1376,7 +1334,6 @@ static lispval getfiles_prim(lispval dirname,lispval fullpath)
 
 DEFCPRIM("getdirs",getdirs_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"dirname",kno_string_type,KNO_VOID},
 	 {"fullpath",kno_any_type,KNO_TRUE})
@@ -1397,7 +1354,6 @@ static lispval getdirs_prim(lispval dirname,lispval fullpath)
 
 DEFCPRIM("getlinks",getlinks_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"dirname",kno_string_type,KNO_VOID},
 	 {"fullpath",kno_any_type,KNO_TRUE})
@@ -1418,7 +1374,6 @@ static lispval getlinks_prim(lispval dirname,lispval fullpath)
 
 DEFCPRIM("readdir",readdir_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"dirname",kno_string_type,KNO_VOID},
 	 {"fullpath",kno_any_type,KNO_TRUE})
@@ -1441,7 +1396,6 @@ static lispval readdir_prim(lispval dirname,lispval fullpath)
 
 DEFCPRIM("close",close_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
-	 ""
 	 "**undocumented**",
 	 {"portarg",kno_any_type,KNO_VOID})
 static lispval close_prim(lispval portarg)
@@ -1476,7 +1430,6 @@ static lispval close_prim(lispval portarg)
 
 DEFCPRIM("flush-output",flush_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
-	 ""
 	 "**undocumented**",
 	 {"portarg",kno_any_type,KNO_VOID})
 static lispval flush_prim(lispval portarg)
@@ -1504,7 +1457,6 @@ static lispval flush_prim(lispval portarg)
 
 DEFCPRIM("setbuf!",setbuf_prim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 ""
 	 "sets the input and output buffer sizes for a port "
 	 "or stream.",
 	 {"portarg",kno_any_type,KNO_VOID},
@@ -1535,7 +1487,6 @@ static lispval setbuf_prim(lispval portarg,lispval insize,lispval outsize)
 
 DEFCPRIM("getpos",getpos_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"portarg",kno_any_type,KNO_VOID})
 static lispval getpos_prim(lispval portarg)
@@ -1565,7 +1516,6 @@ static lispval getpos_prim(lispval portarg)
 
 DEFCPRIM("endpos",endpos_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"portarg",kno_any_type,KNO_VOID})
 static lispval endpos_prim(lispval portarg)
@@ -1595,7 +1545,6 @@ static lispval endpos_prim(lispval portarg)
 
 DEFCPRIM("file%",file_progress_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"portarg",kno_ioport_type,KNO_VOID})
 static lispval file_progress_prim(lispval portarg)
@@ -1615,7 +1564,6 @@ static lispval file_progress_prim(lispval portarg)
 
 DEFCPRIM("setpos!",setpos_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"portarg",kno_any_type,KNO_VOID},
 	 {"off_arg",kno_any_type,KNO_VOID})
@@ -1668,7 +1616,6 @@ static void statfs_set(lispval,u8_string,long long int,long long int);
 
 DEFCPRIM("fsinfo",fsinfo_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_string_type,KNO_VOID})
 static lispval fsinfo_prim(lispval arg)
@@ -1720,7 +1667,6 @@ static void statfs_set(lispval r,u8_string name,
 
 DEFCPRIM("fsinfo",fsinfo_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_string_type,KNO_VOID})
 static lispval fsinfo_prim(lispval arg)

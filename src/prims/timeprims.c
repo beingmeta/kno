@@ -97,7 +97,6 @@ static int get_precision(lispval sym)
 
 DEFCPRIM("timestamp?",timestampp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval timestampp(lispval arg)
@@ -109,7 +108,6 @@ static lispval timestampp(lispval arg)
 
 DEFCPRIM("timestamp",timestamp_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval timestamp_prim(lispval arg)
@@ -170,7 +168,6 @@ static lispval timestamp_prim(lispval arg)
 
 DEFCPRIM("gmtimestamp",gmtimestamp_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval gmtimestamp_prim(lispval arg)
@@ -319,7 +316,6 @@ static lispval timestamp_plus_helper(lispval arg1,lispval arg2,int neg)
 
 DEFCPRIM("timestamp+",timestamp_plus,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg1",kno_any_type,KNO_VOID},
 	 {"arg2",kno_any_type,KNO_VOID})
@@ -330,7 +326,6 @@ static lispval timestamp_plus(lispval arg1,lispval arg2)
 
 DEFCPRIM("timestamp-",timestamp_minus,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg1",kno_any_type,KNO_VOID},
 	 {"arg2",kno_any_type,KNO_VOID})
@@ -341,7 +336,6 @@ static lispval timestamp_minus(lispval arg1,lispval arg2)
 
 DEFCPRIM("difftime",timestamp_diff,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"timestamp1",kno_any_type,KNO_VOID},
 	 {"timestamp2",kno_any_type,KNO_VOID})
@@ -374,7 +368,6 @@ static lispval timestamp_diff(lispval timestamp1,lispval timestamp2)
 
 DEFCPRIM("time-until",time_until,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval time_until(lispval arg)
@@ -384,7 +377,6 @@ static lispval time_until(lispval arg)
 
 DEFCPRIM("time-since",time_since,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval time_since(lispval arg)
@@ -394,7 +386,6 @@ static lispval time_since(lispval arg)
 
 DEFCPRIM("time>?",timestamp_greater,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"timestamp1",kno_any_type,KNO_VOID},
 	 {"timestamp2",kno_any_type,KNO_VOID})
@@ -429,7 +420,6 @@ static lispval timestamp_greater(lispval timestamp1,lispval timestamp2)
 
 DEFCPRIM("time<?",timestamp_lesser,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"timestamp1",kno_any_type,KNO_VOID},
 	 {"timestamp2",kno_any_type,KNO_VOID})
@@ -482,7 +472,6 @@ int kno_cmp_now(lispval timestamp,double thresh)
 
 DEFCPRIM("future?",futurep,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"timestamp",kno_any_type,KNO_VOID},
 	 {"thresh_arg",kno_flonum_type,KNO_VOID})
@@ -498,7 +487,6 @@ static lispval futurep(lispval timestamp,lispval thresh_arg)
 
 DEFCPRIM("past?",pastp,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"timestamp",kno_any_type,KNO_VOID},
 	 {"thresh_arg",kno_flonum_type,KNO_VOID})
@@ -516,7 +504,6 @@ static lispval pastp(lispval timestamp,lispval thresh_arg)
 
 DEFCPRIM("elapsed-time",elapsed_time,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval elapsed_time(lispval arg)
@@ -1029,7 +1016,6 @@ static lispval timestamp_getkeys(lispval timestamp)
 
 DEFCPRIM("modtime",modtime_prim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"slotmap",kno_any_type,KNO_VOID},
 	 {"base",kno_any_type,KNO_VOID},
@@ -1071,7 +1057,6 @@ static lispval modtime_prim(lispval slotmap,lispval base,lispval togmt)
 
 DEFCPRIMN("mktime",mktime_lexpr,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(0),
-	  ""
 	  "**undocumented**")
 static lispval mktime_lexpr(int n,kno_argvec args)
 {
@@ -1099,7 +1084,6 @@ static lispval mktime_lexpr(int n,kno_argvec args)
 
 DEFCPRIM("timestring",timestring,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	 ""
 	 "**undocumented**")
 static lispval timestring()
 {
@@ -1115,7 +1099,6 @@ static lispval timestring()
 
 DEFCPRIM("time",time_prim,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	 ""
 	 "**undocumented**")
 static lispval time_prim()
 {
@@ -1128,7 +1111,6 @@ static lispval time_prim()
 
 DEFCPRIM("millitime",millitime_prim,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	 ""
 	 "**undocumented**")
 static lispval millitime_prim()
 {
@@ -1141,7 +1123,6 @@ static lispval millitime_prim()
 
 DEFCPRIM("microtime",microtime_prim,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	 ""
 	 "**undocumented**")
 static lispval microtime_prim()
 {
@@ -1168,7 +1149,6 @@ static lispval now_macro(lispval expr,kno_lexenv env,kno_stack ptr)
 
 DEFCPRIM("secs->string",secs2string,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"secs",kno_any_type,KNO_VOID},
 	 {"prec_arg",kno_any_type,KNO_INT(3)})
@@ -1300,7 +1280,6 @@ static lispval secs2string(lispval secs,lispval prec_arg)
 
 DEFCPRIM("secs->short",secs2short,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"secs",kno_any_type,KNO_VOID})
 static lispval secs2short(lispval secs)
@@ -1341,7 +1320,6 @@ static lispval secs2short(lispval secs)
 #if ((HAVE_SLEEP) || (HAVE_NANOSLEEP))
 DEFCPRIM("sleep",sleep_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
 
@@ -1424,7 +1402,6 @@ static void init_id_tables()
 
 DEFCPRIM("uuid?",uuidp_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval uuidp_prim(lispval x)
@@ -1435,7 +1412,6 @@ static lispval uuidp_prim(lispval x)
 
 DEFCPRIM("getuuid",getuuid_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(0),
-	 ""
 	 "**undocumented**",
 	 {"nodeid",kno_any_type,KNO_VOID},
 	 {"tptr",kno_any_type,KNO_VOID})
@@ -1488,7 +1464,6 @@ static lispval getuuid_prim(lispval nodeid,lispval tptr)
 
 DEFCPRIM("uuid-time",uuidtime_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"uuid_arg",kno_uuid_type,KNO_VOID})
 static lispval uuidtime_prim(lispval uuid_arg)
@@ -1505,7 +1480,6 @@ static lispval uuidtime_prim(lispval uuid_arg)
 
 DEFCPRIM("uuid-node",uuidnode_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"uuid_arg",kno_uuid_type,KNO_VOID})
 static lispval uuidnode_prim(lispval uuid_arg)
@@ -1519,7 +1493,6 @@ static lispval uuidnode_prim(lispval uuid_arg)
 
 DEFCPRIM("uuid->string",uuidstring_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"uuid_arg",kno_uuid_type,KNO_VOID})
 static lispval uuidstring_prim(lispval uuid_arg)
@@ -1530,7 +1503,6 @@ static lispval uuidstring_prim(lispval uuid_arg)
 
 DEFCPRIM("uuid->packet",uuidpacket_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"uuid_arg",kno_uuid_type,KNO_VOID})
 static lispval uuidpacket_prim(lispval uuid_arg)

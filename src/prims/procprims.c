@@ -192,7 +192,6 @@ static lispval exec_helper(u8_context caller,
 
 DEFCPRIMN("exec",exec_prim,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1),
-	  ""
 	  "replaces the current application with an "
 	  "execution of *command* (a string) to *args* (also "
 	  "strings).\n*envmap*, if provided, is a slotmap "
@@ -209,7 +208,6 @@ static lispval exec_prim(int n,kno_argvec args)
 
 DEFCPRIMN("exec/cmd",exec_cmd_prim,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1),
-	  ""
 	  "replaces the current application with an "
 	  "execution of *command* (a string) to *args* (also "
 	  "strings).\n*envmap*, if provided, is a slotmap "
@@ -227,7 +225,6 @@ static lispval exec_cmd_prim(int n,kno_argvec args)
 
 DEFCPRIMN("knox",knox_prim,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1),
-	  ""
 	  "replaces the current application with a Kno "
 	  "process reading the file *scheme_file* and "
 	  "applying the file's `MAIN` definition to the "
@@ -243,7 +240,6 @@ static lispval knox_prim(int n,kno_argvec args)
 
 DEFCPRIMN("fork",fork_prim,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1),
-	  ""
 	  "'forks' a new process executing *command* (a "
 	  "string) for *args* (also strings). It returns the "
 	  "PID of the new process.\n*envmap*, if provided, is "
@@ -266,7 +262,6 @@ static lispval fork_prim(int n,kno_argvec args)
 
 DEFCPRIMN("fork/cmd",fork_cmd_prim,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1),
-	  ""
 	  "'forks' a new process executing *command* (a "
 	  "string) with *args* (also strings). It returns "
 	  "the PID of the new process.\n*envmap*, if "
@@ -284,7 +279,6 @@ static lispval fork_cmd_prim(int n,kno_argvec args)
 
 DEFCPRIMN("knox/fork",knox_fork_prim,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1),
-	  ""
 	  "'forks' a new Kno process reading the file "
 	  "*scheme_file* and applying the file's `MAIN` "
 	  "definition to the results of parsing *args* (also "
@@ -300,7 +294,6 @@ static lispval knox_fork_prim(int n,kno_argvec args)
 
 DEFCPRIMN("fork/wait",fork_wait_prim,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1),
-	  ""
 	  "'forks' a new process executing *command* (a "
 	  "string) for *args* (also strings). It waits for "
 	  "this process to return and returns its exit "
@@ -318,7 +311,6 @@ static lispval fork_wait_prim(int n,kno_argvec args)
 
 DEFCPRIMN("fork/cmd/wait",fork_cmd_wait_prim,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1),
-	  ""
 	  "'forks' a new process executing *command* (a "
 	  "string) with *args* (also strings). It waits for "
 	  "this process to return and returns its exit "
@@ -338,7 +330,6 @@ static lispval fork_cmd_wait_prim(int n,kno_argvec args)
 
 DEFCPRIMN("knox/fork/wait",knox_fork_wait_prim,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1),
-	  ""
 	  "'forks' a new Kno process reading the file "
 	  "*scheme_file* and applying the file's `MAIN` "
 	  "definition to the results of parsing *args* (also "
@@ -391,7 +382,6 @@ static u8_string makeid(int n,kno_argvec args);
 
 DEFCPRIMN("subjob/open",subjob_open,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1),
-	  ""
 	  "'forks' a new process applying *command* to "
 	  "*args* and creates a **subjob** object for the "
 	  "process.\n*opts* control how the subjob is started "
@@ -612,7 +602,6 @@ static lispval subjob_stderr(lispval subjob)
 
 DEFCPRIM("subjob/signal",subjob_signal,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 ""
 	 "sends the number *signal* to the process "
 	 "executing *subjob*.",
 	 {"subjob",kno_any_type,KNO_VOID},
@@ -636,7 +625,6 @@ static lispval subjob_signal(lispval subjob,lispval sigval)
 
 DEFCPRIM("exit",exit_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
-	 ""
 	 "exits the current process with a return code of "
 	 "*retval* (defaults to 0)",
 	 {"arg",kno_any_type,KNO_VOID})
@@ -651,7 +639,6 @@ static lispval exit_prim(lispval arg)
 
 DEFCPRIM("exit/fast",fast_exit_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
-	 ""
 	 "exits the current process expeditiously without, "
 	 "for example, freeing memory which will just be "
 	 "returned to the OS after exit.",
@@ -684,7 +671,6 @@ static lispval ispid_prim(lispval pid_arg)
 
 DEFCPRIM("pid/kill!",pid_kill_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "sends *signal* (default is ) to *process*.",
 	 {"pid_arg",kno_any_type,KNO_VOID},
 	 {"sig_arg",kno_any_type,KNO_VOID})
@@ -708,7 +694,6 @@ lispval kno_rlimit_codes = KNO_EMPTY;
 
 DEFCPRIM("getrlimit",getrlimit_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "gets the *resource* resource limit for the "
 	 "current process. If *getmax* is true, gets the "
 	 "maximum resource limit.",
@@ -741,7 +726,6 @@ static lispval getrlimit_prim(lispval resname,lispval which)
 
 DEFCPRIM("setrlimit!",setrlimit_prim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 ""
 	 "sets the resource limit *resource* (symbol) to "
 	 "*value* for the current process. If *setmax* is "
 	 "true, sets the maximium resource value if allowed.",

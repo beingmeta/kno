@@ -1142,7 +1142,6 @@ static lispval xmlparse_core(lispval input,int flags)
 
 DEFCPRIM("xmlparse",xmlparse,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 ""
 	 "**undocumented**",
 	 {"input",kno_any_type,KNO_VOID},
 	 {"options",kno_any_type,KNO_VOID})
@@ -1164,7 +1163,6 @@ static lispval xmlparse(lispval input,lispval options)
 
 DEFCPRIM("knoml/load",knoml_load,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 ""
 	 "**undocumented**",
 	 {"input",kno_any_type,KNO_VOID},
 	 {"sloppy",kno_any_type,KNO_VOID})
@@ -1200,7 +1198,6 @@ static lispval knoml_load(lispval input,lispval sloppy)
 
 DEFCPRIM("knoml/parse",knoml_read,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 ""
 	 "**undocumented**",
 	 {"input",kno_any_type,KNO_VOID},
 	 {"sloppy",kno_any_type,KNO_VOID})

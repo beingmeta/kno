@@ -227,7 +227,6 @@ static size_t handle_header(void *ptr,size_t size,size_t n,void *data)
 
 DEFCPRIM("add-text_type!",addtexttype,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"type",kno_any_type,KNO_VOID})
 KNO_INLINE_FCN lispval addtexttype(lispval type)
@@ -490,7 +489,6 @@ static int unparse_curl_handle(u8_output out,lispval x)
 
 DEFCPRIM("curl-handle?",curlhandlep,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval curlhandlep(lispval arg)
@@ -501,7 +499,6 @@ static lispval curlhandlep(lispval arg)
 
 DEFCPRIM("curl/reset!",curlreset,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval curlreset(lispval arg)
@@ -925,7 +922,6 @@ static lispval curl_arg(lispval arg,u8_context cxt)
 
 DEFCPRIM("urlget",urlget,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"url",kno_any_type,KNO_VOID},
 	 {"curl",kno_any_type,KNO_VOID})
@@ -983,7 +979,6 @@ static lispval urlstream(lispval url,lispval handler,
 
 DEFCPRIM("urlhead",urlhead,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"url",kno_any_type,KNO_VOID},
 	 {"curl",kno_any_type,KNO_VOID})
@@ -1003,7 +998,6 @@ static lispval urlhead(lispval url,lispval curl)
 
 DEFCPRIM("urlput",urlput,
 	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"url",kno_any_type,KNO_VOID},
 	 {"content",kno_any_type,KNO_VOID},
@@ -1066,7 +1060,6 @@ static lispval urlput(lispval url,lispval content,lispval ctype,lispval curl)
 
 DEFCPRIM("urlcontent",urlcontent,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"url",kno_any_type,KNO_VOID},
 	 {"curl",kno_any_type,KNO_VOID})
@@ -1089,7 +1082,6 @@ static lispval urlcontent(lispval url,lispval curl)
 
 DEFCPRIM("urlxml",urlxml,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"url",kno_any_type,KNO_VOID},
 	 {"xmlopt",kno_any_type,KNO_VOID},
@@ -1218,7 +1210,6 @@ static lispval responsetest(lispval response,int min,int max)
 
 DEFCPRIM("response/ok?",responseokp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"response",kno_any_type,KNO_VOID})
 static lispval responseokp(lispval response)
@@ -1228,7 +1219,6 @@ static lispval responseokp(lispval response)
 
 DEFCPRIM("response/redirect?",responseredirectp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"response",kno_any_type,KNO_VOID})
 static lispval responseredirectp(lispval response)
@@ -1238,7 +1228,6 @@ static lispval responseredirectp(lispval response)
 
 DEFCPRIM("response/error?",responseanyerrorp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"response",kno_any_type,KNO_VOID})
 static lispval responseanyerrorp(lispval response)
@@ -1248,7 +1237,6 @@ static lispval responseanyerrorp(lispval response)
 
 DEFCPRIM("response/myerror?",responsemyerrorp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"response",kno_any_type,KNO_VOID})
 static lispval responsemyerrorp(lispval response)
@@ -1258,7 +1246,6 @@ static lispval responsemyerrorp(lispval response)
 
 DEFCPRIM("response/servererror?",responseservererrorp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"response",kno_any_type,KNO_VOID})
 static lispval responseservererrorp(lispval response)
@@ -1268,7 +1255,6 @@ static lispval responseservererrorp(lispval response)
 
 DEFCPRIM("response/unauthorized?",responseunauthorizedp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"response",kno_any_type,KNO_VOID})
 static lispval responseunauthorizedp(lispval response)
@@ -1278,7 +1264,6 @@ static lispval responseunauthorizedp(lispval response)
 
 DEFCPRIM("response/forbidden?",responseforbiddenp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"response",kno_any_type,KNO_VOID})
 static lispval responseforbiddenp(lispval response)
@@ -1288,7 +1273,6 @@ static lispval responseforbiddenp(lispval response)
 
 DEFCPRIM("response/timeout?",responsetimeoutp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"response",kno_any_type,KNO_VOID})
 static lispval responsetimeoutp(lispval response)
@@ -1298,7 +1282,6 @@ static lispval responsetimeoutp(lispval response)
 
 DEFCPRIM("response/badmethod?",responsebadmethodp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"response",kno_any_type,KNO_VOID})
 static lispval responsebadmethodp(lispval response)
@@ -1308,7 +1291,6 @@ static lispval responsebadmethodp(lispval response)
 
 DEFCPRIM("response/notfound?",responsenotfoundp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"response",kno_any_type,KNO_VOID})
 static lispval responsenotfoundp(lispval response)
@@ -1318,7 +1300,6 @@ static lispval responsenotfoundp(lispval response)
 
 DEFCPRIM("response/gone?",responsegonep,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"response",kno_any_type,KNO_VOID})
 static lispval responsegonep(lispval response)
@@ -1328,7 +1309,6 @@ static lispval responsegonep(lispval response)
 
 DEFCPRIM("response/status",responsestatusprim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"response",kno_any_type,KNO_VOID})
 static lispval responsestatusprim(lispval response)
@@ -1344,7 +1324,6 @@ static lispval responsestatusprim(lispval response)
 
 DEFCPRIM("response/status?",testresponseprim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 ""
 	 "**undocumented**",
 	 {"response",kno_any_type,KNO_VOID},
 	 {"arg1",kno_any_type,KNO_VOID},
@@ -1384,7 +1363,6 @@ static lispval testresponseprim(lispval response,lispval arg1,lispval arg2)
 
 DEFCPRIM("curl/setopt!",curlsetopt,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"handle",kno_any_type,KNO_VOID},
 	 {"opt",kno_any_type,KNO_VOID},
@@ -1404,7 +1382,6 @@ static lispval curlsetopt(lispval handle,lispval opt,lispval value)
 
 DEFCPRIMN("curl/open",curlopen,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(0),
-	  ""
 	  "**undocumented**")
 static lispval curlopen(int n,kno_argvec args)
 {
@@ -1447,7 +1424,6 @@ static lispval curlopen(int n,kno_argvec args)
 
 DEFCPRIMN("urlpost",urlpost,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1),
-	  ""
 	  "**undocumented**")
 static lispval urlpost(int n,kno_argvec args)
 {

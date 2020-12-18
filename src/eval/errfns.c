@@ -283,7 +283,6 @@ static lispval ignore_errors_evalfn(lispval expr,kno_lexenv env,kno_stack _stack
 
 DEFCPRIM("clear-errors!",clear_errors,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	 ""
 	 "**undocumented**")
 static lispval clear_errors()
 {

@@ -104,7 +104,6 @@ static lispval getenv_prim(lispval var)
 
 DEFCPRIM("setenv!",setenv_prim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 ""
 	 "initializes/sets the value of *envvar* in the "
 	 "environment of the current process to *value*. If "
 	 "*overwrite* is true, this will set the value even "
@@ -139,7 +138,6 @@ static lispval setenv_prim(lispval var,lispval val,lispval overwrite)
 
 DEFCPRIM("unsetenv!",unsetenv_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "unsets (clears) any value of *envvar*in the "
 	 "environment of the current process. Returns true "
 	 "if this ended up doing anything, and false "
@@ -280,7 +278,6 @@ static u8_string get_malloc_info()
 
 DEFCPRIM("rusage",rusage_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
-	 ""
 	 "returns information about the current process. "
 	 "*field*, if provided, indicates the value to "
 	 "return. Otherwise, a slotmap of possible values "

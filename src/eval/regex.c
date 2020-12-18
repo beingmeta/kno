@@ -29,7 +29,6 @@ u8_condition kno_RegexBadOp=_("Invalid Regex operation");
 
 DEFCPRIM("regex",make_regex,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"pat",kno_string_type,KNO_VOID},
 	 {"nocase",kno_any_type,KNO_FALSE},
@@ -44,7 +43,6 @@ static lispval make_regex(lispval pat,lispval nocase,lispval matchnl)
 
 DEFCPRIM("regex?",regexp_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval regexp_prim(lispval x)
@@ -192,7 +190,6 @@ KNO_EXPORT ssize_t kno_regex_matchlen(lispval pat,u8_string s,ssize_t len)
 
 DEFCPRIM("regex/search",regex_search,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"pat",kno_regex_type,KNO_VOID},
 	 {"string",kno_string_type,KNO_VOID},
@@ -206,7 +203,6 @@ static lispval regex_search(lispval pat,lispval string,lispval ef)
 
 DEFCPRIM("regex/matchlen",regex_matchlen,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"pat",kno_regex_type,KNO_VOID},
 	 {"string",kno_string_type,KNO_VOID},
@@ -220,7 +216,6 @@ static lispval regex_matchlen(lispval pat,lispval string,lispval ef)
 
 DEFCPRIM("regex/match",regex_exactmatch,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"pat",kno_regex_type,KNO_VOID},
 	 {"string",kno_string_type,KNO_VOID},
@@ -234,7 +229,6 @@ static lispval regex_exactmatch(lispval pat,lispval string,lispval ef)
 
 DEFCPRIM("regex/matchstring",regex_matchstring,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"pat",kno_regex_type,KNO_VOID},
 	 {"string",kno_string_type,KNO_VOID},
@@ -248,7 +242,6 @@ static lispval regex_matchstring(lispval pat,lispval string,lispval ef)
 
 DEFCPRIM("regex/matchspan",regex_matchspan,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"pat",kno_regex_type,KNO_VOID},
 	 {"string",kno_string_type,KNO_VOID},

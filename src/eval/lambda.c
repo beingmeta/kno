@@ -804,7 +804,6 @@ static lispval xapplygetval(void *xobj,lispval var)
 
 DEFCPRIM("xapply",xapply_prim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"proc",kno_lambda_type,KNO_VOID},
 	 {"obj",kno_any_type,KNO_VOID},

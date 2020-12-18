@@ -34,7 +34,6 @@ static u8_condition zlibDataError=_("Bad ZLIB input data");
 
 KNO_DEFCPRIM("zlib/compress",zlib_compress_prim,
 	     KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	     ""
 	     "**undocumented**",
 	     {"input_arg",kno_any_type,KNO_VOID},
 	     {"level_arg",kno_any_type,KNO_VOID})
@@ -76,7 +75,6 @@ static lispval zlib_compress_prim(lispval input_arg,lispval level_arg)
 
 KNO_DEFCPRIM("zlib/uncompress",zlib_uncompress_prim,
 	     KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
-	     ""
 	     "**undocumented**",
 	     {"input_arg",kno_packet_type,KNO_VOID},
 	     {"text",kno_any_type,KNO_FALSE},

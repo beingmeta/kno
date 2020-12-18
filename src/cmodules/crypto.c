@@ -66,7 +66,6 @@ static lispval doencrypt(lispval data,lispval key,
 
 KNO_DEFCPRIM("encrypt",encrypt_prim,
 	     KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
-	     ""
 	     "**undocumented**",
 	     {"data",kno_any_type,KNO_VOID},
 	     {"key",kno_any_type,KNO_VOID},
@@ -84,7 +83,6 @@ static lispval encrypt_prim(lispval data,lispval key,lispval cipher,lispval iv)
 
 KNO_DEFCPRIM("encrypt-dtype",encrypt_dtype_prim,
 	     KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
-	     ""
 	     "**undocumented**",
 	     {"data",kno_any_type,KNO_VOID},
 	     {"key",kno_any_type,KNO_VOID},
@@ -103,7 +101,6 @@ static lispval encrypt_dtype_prim(lispval data,lispval key,lispval cipher,lispva
 
 KNO_DEFCPRIM("decrypt",decrypt_prim,
 	     KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
-	     ""
 	     "**undocumented**",
 	     {"data",kno_any_type,KNO_VOID},
 	     {"key",kno_any_type,KNO_VOID},
@@ -137,7 +134,6 @@ static lispval decrypt_prim(lispval data,lispval key,lispval cipher,lispval iv)
 
 KNO_DEFCPRIM("decrypt->string",decrypt2string_prim,
 	     KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
-	     ""
 	     "**undocumented**",
 	     {"data",kno_any_type,KNO_VOID},
 	     {"key",kno_any_type,KNO_VOID},
@@ -170,7 +166,6 @@ static lispval decrypt2string_prim(lispval data,lispval key,lispval cipher,lispv
 
 KNO_DEFCPRIM("decrypt->dtype",decrypt2dtype_prim,
 	     KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
-	     ""
 	     "**undocumented**",
 	     {"data",kno_any_type,KNO_VOID},
 	     {"key",kno_any_type,KNO_VOID},
@@ -208,7 +203,6 @@ static lispval decrypt2dtype_prim(lispval data,lispval key,lispval cipher,lispva
 
 KNO_DEFCPRIM("random-packet",random_packet_prim,
 	     KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	     ""
 	     "**undocumented**",
 	     {"arg",kno_fixnum_type,KNO_VOID})
 KNO_EXPORT lispval random_packet_prim(lispval arg)
@@ -223,7 +217,6 @@ KNO_EXPORT lispval random_packet_prim(lispval arg)
 
 KNO_DEFCPRIM("fill-packet",fill_packet_prim,
 	     KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	     ""
 	     "**undocumented**",
 	     {"len",kno_fixnum_type,KNO_VOID},
 	     {"init",kno_any_type,KNO_VOID})

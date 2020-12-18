@@ -41,7 +41,6 @@ static lispval macrop(lispval x)
 
 DEFCPRIM("compound-procedure?",lambdap,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval lambdap(lispval x)
@@ -54,7 +53,6 @@ static lispval lambdap(lispval x)
 
 DEFCPRIM("special-form?",evalfnp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval evalfnp(lispval x)
@@ -67,7 +65,6 @@ static lispval evalfnp(lispval x)
 
 DEFCPRIM("primitive?",primitivep,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval primitivep(lispval x)
@@ -80,7 +77,6 @@ static lispval primitivep(lispval x)
 
 DEFCPRIM("procedure?",procedurep,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval procedurep(lispval x)
@@ -93,7 +89,6 @@ static lispval procedurep(lispval x)
 
 DEFCPRIM("procedure-name",procedure_name,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval procedure_name(lispval x)
@@ -136,7 +131,6 @@ static lispval procedure_args(lispval fcn)
 
 DEFCPRIM("procedure-cname",procedure_cname,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval procedure_cname(lispval x)
@@ -159,7 +153,6 @@ static lispval procedure_cname(lispval x)
 
 DEFCPRIM("procedure-fileinfo",procedure_fileinfo,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval procedure_fileinfo(lispval x)
@@ -193,7 +186,6 @@ static lispval strip_filename(u8_string s)
 
 DEFCPRIM("procedure-filename",procedure_filename,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval procedure_filename(lispval x)
@@ -219,7 +211,6 @@ static lispval procedure_filename(lispval x)
 
 DEFCPRIM("procedure-module",procedure_moduleid,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval procedure_moduleid(lispval x)
@@ -245,7 +236,6 @@ static lispval procedure_moduleid(lispval x)
 
 DEFCPRIM("procedure-symbol",procedure_symbol,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval procedure_symbol(lispval x)
@@ -271,7 +261,6 @@ static lispval procedure_symbol(lispval x)
 
 DEFCPRIM("procedure-id",procedure_id,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval procedure_id(lispval x)
@@ -292,7 +281,6 @@ static lispval procedure_id(lispval x)
 
 DEFCPRIM("procedure-documentation",procedure_documentation,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval procedure_documentation(lispval x)
@@ -306,7 +294,6 @@ static lispval procedure_documentation(lispval x)
 
 DEFCPRIM("set-procedure-documentation!",set_procedure_documentation,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID},
 	 {"doc",kno_string_type,KNO_VOID})
@@ -333,7 +320,6 @@ static lispval set_procedure_documentation(lispval x,lispval doc)
 
 DEFCPRIM("procedure-tailable?",procedure_tailablep,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "Returns true if *fcn* can be tail called, and "
 	 "false otherwise. By default, all procedures are "
 	 "tailable when called deterministically.",
@@ -352,7 +338,6 @@ static lispval procedure_tailablep(lispval x)
 
 DEFCPRIM("set-procedure-tailable!",set_procedure_tailable,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID},
 	 {"bool",kno_any_type,KNO_VOID})
@@ -371,7 +356,6 @@ static lispval set_procedure_tailable(lispval x,lispval bool)
 
 DEFCPRIM("procedure-arity",procedure_arity,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval procedure_arity(lispval x)
@@ -387,7 +371,6 @@ static lispval procedure_arity(lispval x)
 
 DEFCPRIM("non-deterministic?",non_deterministicp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval non_deterministicp(lispval x)
@@ -403,7 +386,6 @@ static lispval non_deterministicp(lispval x)
 
 DEFCPRIM("synchronized?",synchronizedp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval synchronizedp(lispval x)
@@ -421,7 +403,6 @@ static lispval synchronizedp(lispval x)
 
 DEFCPRIM("procedure-min-arity",procedure_min_arity,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval procedure_min_arity(lispval x)
@@ -436,7 +417,6 @@ static lispval procedure_min_arity(lispval x)
 
 DEFCPRIM("procedure-typeinfo",procedure_typeinfo,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "Returns a typeinfo vector for *fcn* if it has "
 	 "one, or #f. Note that this doesn't error on "
 	 "non-functions but just returns #f",
@@ -473,7 +453,6 @@ static lispval procedure_typeinfo(lispval x)
 
 DEFCPRIM("procedure-defaults",procedure_defaults,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "Returns a vector of default values for *fcn* if "
 	 "they're specified, or #f. Note that this doesn't "
 	 "error on non-functions but just returns #f",
@@ -528,7 +507,6 @@ static lispval get_proc_attribs(lispval x,int create)
 
 DEFCPRIM("reflect/attribs",get_procedure_attribs,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval get_procedure_attribs(lispval x)
@@ -543,7 +521,6 @@ static lispval get_procedure_attribs(lispval x)
 
 DEFCPRIM("reflect/set-attribs!",set_procedure_attribs,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID},
 	 {"value",kno_any_type,KNO_VOID})
@@ -576,7 +553,6 @@ static lispval reflect_get(lispval x,lispval attrib)
 
 DEFCPRIM("reflect/store!",reflect_store,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID},
 	 {"attrib",kno_any_type,KNO_VOID},
@@ -595,7 +571,6 @@ static lispval reflect_store(lispval x,lispval attrib,lispval value)
 
 DEFCPRIM("reflect/add!",reflect_add,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID},
 	 {"attrib",kno_any_type,KNO_VOID},
@@ -614,7 +589,6 @@ static lispval reflect_add(lispval x,lispval attrib,lispval value)
 
 DEFCPRIM("reflect/drop!",reflect_drop,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID},
 	 {"attrib",kno_any_type,KNO_VOID},
@@ -635,7 +609,6 @@ static lispval reflect_drop(lispval x,lispval attrib,lispval value)
 
 DEFCPRIM("lambda-args",lambda_args,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval lambda_args(lispval arg)
@@ -650,7 +623,6 @@ static lispval lambda_args(lispval arg)
 
 DEFCPRIM("set-lambda-args!",set_lambda_args,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_lambda_type,KNO_VOID},
 	 {"new_arglist",kno_any_type,KNO_VOID})
@@ -665,7 +637,6 @@ static lispval set_lambda_args(lispval arg,lispval new_arglist)
 
 DEFCPRIM("lambda-env",lambda_env,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval lambda_env(lispval arg)
@@ -679,7 +650,6 @@ static lispval lambda_env(lispval arg)
 
 DEFCPRIM("lambda-body",lambda_body,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval lambda_body(lispval arg)
@@ -693,7 +663,6 @@ static lispval lambda_body(lispval arg)
 
 DEFCPRIM("lambda-start",lambda_start,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval lambda_start(lispval arg)
@@ -710,7 +679,6 @@ static lispval lambda_start(lispval arg)
 
 DEFCPRIM("lambda-source",lambda_source,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval lambda_source(lispval arg)
@@ -725,7 +693,6 @@ static lispval lambda_source(lispval arg)
 
 DEFCPRIM("set-lambda-body!",set_lambda_body,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_lambda_type,KNO_VOID},
 	 {"new_body",kno_any_type,KNO_VOID})
@@ -789,7 +756,6 @@ static lispval optimize_lambda_args(lispval arg,lispval new_args)
 
 DEFCPRIM("set-lambda-source!",set_lambda_source,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_lambda_type,KNO_VOID},
 	 {"new_source",kno_any_type,KNO_VOID})
@@ -820,7 +786,6 @@ static lispval set_lambda_optimizer(lispval arg,lispval optimizer)
 
 DEFCPRIM("fcnid/ref",fcnid_refprim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_fcnid_type,KNO_VOID})
 static lispval fcnid_refprim(lispval arg)
@@ -832,7 +797,6 @@ static lispval fcnid_refprim(lispval arg)
 
 DEFCPRIM("fcnid/register",fcnid_registerprim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"value",kno_any_type,KNO_VOID})
 static lispval fcnid_registerprim(lispval value)
@@ -844,7 +808,6 @@ static lispval fcnid_registerprim(lispval value)
 
 DEFCPRIM("fcnid/set!",fcnid_setprim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_fcnid_type,KNO_VOID},
 	 {"value",kno_any_type,KNO_VOID})
@@ -857,7 +820,6 @@ static lispval fcnid_setprim(lispval arg,lispval value)
 
 DEFCPRIM("macroexpand",macroexpand,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"expander",kno_any_type,KNO_VOID},
 	 {"expr",kno_any_type,KNO_VOID})
@@ -959,7 +921,6 @@ static lispval module_bindings_prim(lispval arg)
 
 DEFCPRIM("module?",modulep,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval modulep(lispval arg)
@@ -1148,7 +1109,6 @@ static lispval consblock_head(lispval obj)
 
 DEFCPRIM("reflect/profile!",profile_fcn_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "Enables profiling for the function *fcn* or if "
 	 "*boolean* is false, disable profiling for *fcn*",
 	 {"fcn",kno_any_type,KNO_VOID},
@@ -1172,7 +1132,6 @@ static lispval profile_fcn_prim(lispval fcn,lispval bool)
 
 DEFCPRIM("profile/reset!",profile_reset_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "resets the profile counts for *fcn*",
 	 {"fcn",kno_any_type,KNO_VOID})
 static lispval profile_reset_prim(lispval fcn)
@@ -1198,7 +1157,6 @@ static lispval profile_reset_prim(lispval fcn)
 
 DEFCPRIM("reflect/profiled?",profiledp_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "Returns true if *arg* is being profiled, and "
 	 "false otherwise. It also returns false if the "
 	 "argument is not a function or not a function "
@@ -1268,7 +1226,6 @@ static int getprofile_info(lispval fcn,int err,
 
 DEFCPRIM("profile/getcalls",getcalls_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "Returns the profile information for *fcn*, a "
 	 "vector of *fcn*, the number of calls, the number "
 	 "of nanoseconds spent in *fcn*. If *fcn* is a "
@@ -1308,7 +1265,6 @@ static lispval getcalls_prim(lispval fcn,lispval errp)
 
 DEFCPRIM("profile/fcn",profile_getfcn,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "returns the function a profile describes",
 	 {"profile",kno_any_type,KNO_VOID})
 static lispval profile_getfcn(lispval profile)
@@ -1322,7 +1278,6 @@ static lispval profile_getfcn(lispval profile)
 
 DEFCPRIM("profile/time",profile_gettime,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "returns the number of seconds spent in the "
 	 "profiled function",
 	 {"profile",kno_any_type,KNO_VOID})
@@ -1346,7 +1301,6 @@ static lispval profile_gettime(lispval profile)
 
 DEFCPRIM("profile/utime",profile_getutime,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "returns the number of seconds of user time spent "
 	 "in the profiled function",
 	 {"profile",kno_any_type,KNO_VOID})
@@ -1370,7 +1324,6 @@ static lispval profile_getutime(lispval profile)
 
 DEFCPRIM("profile/stime",profile_getstime,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "returns the number of seconds of system time "
 	 "spent in the profiled function",
 	 {"profile",kno_any_type,KNO_VOID})
@@ -1394,7 +1347,6 @@ static lispval profile_getstime(lispval profile)
 
 DEFCPRIM("profile/waits",profile_getwaits,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "returns the number of voluntary context switches "
 	 "(usually when waiting for something) during the "
 	 "execution of the profiled function",
@@ -1419,7 +1371,6 @@ static lispval profile_getwaits(lispval profile)
 
 DEFCPRIM("profile/pauses",profile_getpauses,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "returns the number of involuntary context "
 	 "switches (often indicating contested resources) "
 	 "during the execution of the profiled function",
@@ -1444,7 +1395,6 @@ static lispval profile_getpauses(lispval profile)
 
 DEFCPRIM("profile/faults",profile_getfaults,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "returns the number of (major) page faults during "
 	 "the execution of the profiled function",
 	 {"profile",kno_any_type,KNO_VOID})
@@ -1468,7 +1418,6 @@ static lispval profile_getfaults(lispval profile)
 
 DEFCPRIM("profile/nsecs",profile_nsecs,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "returns the number of nanoseconds spent in the "
 	 "profiled function",
 	 {"profile",kno_any_type,KNO_VOID})
@@ -1493,7 +1442,6 @@ static lispval profile_nsecs(lispval profile)
 
 DEFCPRIM("profile/ncalls",profile_ncalls,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "returns the number of calls to the profiled "
 	 "function",
 	 {"profile",kno_any_type,KNO_VOID})
@@ -1518,7 +1466,6 @@ static lispval profile_ncalls(lispval profile)
 
 DEFCPRIM("profile/nitems",profile_nitems,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "returns the number of items noted as processed by "
 	 "the profiled function",
 	 {"profile",kno_any_type,KNO_VOID})
@@ -1580,7 +1527,6 @@ static lispval with_sourcebase_evalfn(lispval expr,kno_lexenv env,kno_stack stac
 
 DEFCPRIM("all-modules",get_all_modules_prim,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	 ""
 	 "Returns all loaded modules as an alist of module "
 	 "names and modules")
 static lispval get_all_modules_prim()

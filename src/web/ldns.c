@@ -83,7 +83,6 @@ static lispval rdf2lisp ( ldns_rdf *field )
 
 DEFCPRIM("dns/get",dns_query,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"domain_arg",kno_string_type,KNO_VOID},
 	 {"type_arg",kno_symbol_type,KNO_VOID})

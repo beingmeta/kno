@@ -32,7 +32,6 @@
 
 DEFCPRIM("complex?",complexp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval complexp(lispval x)
@@ -44,7 +43,6 @@ static lispval complexp(lispval x)
 
 DEFCPRIM("fixnum?",fixnump,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval fixnump(lispval x)
@@ -56,7 +54,6 @@ static lispval fixnump(lispval x)
 
 DEFCPRIM("bignum?",bignump,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval bignump(lispval x)
@@ -68,7 +65,6 @@ static lispval bignump(lispval x)
 
 DEFCPRIM("integer?",integerp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval integerp(lispval x)
@@ -80,7 +76,6 @@ static lispval integerp(lispval x)
 
 DEFCPRIM("rational?",rationalp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval rationalp(lispval x)
@@ -92,7 +87,6 @@ static lispval rationalp(lispval x)
 
 DEFCPRIM("exact?",exactp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval exactp(lispval x)
@@ -111,7 +105,6 @@ static lispval exactp(lispval x)
 
 DEFCPRIM("inexact?",inexactp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval inexactp(lispval x)
@@ -130,7 +123,6 @@ static lispval inexactp(lispval x)
 
 DEFCPRIM("odd?",oddp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval oddp(lispval x)
@@ -151,7 +143,6 @@ static lispval oddp(lispval x)
 
 DEFCPRIM("even?",evenp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval evenp(lispval x)
@@ -172,7 +163,6 @@ static lispval evenp(lispval x)
 
 DEFCPRIM("real?",realp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval realp(lispval x)
@@ -184,7 +174,6 @@ static lispval realp(lispval x)
 
 DEFCPRIM("positive?",positivep,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval positivep(lispval x)
@@ -197,7 +186,6 @@ static lispval positivep(lispval x)
 
 DEFCPRIM("negative?",negativep,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval negativep(lispval x)
@@ -214,7 +202,6 @@ static lispval negativep(lispval x)
 
 DEFCPRIMN("+",plus_lexpr,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(-1),
-	  ""
 	  "**undocumented**")
 static lispval plus_lexpr(int n,kno_argvec args)
 {
@@ -278,7 +265,6 @@ static lispval plus_lexpr(int n,kno_argvec args)
 
 DEFCPRIM("1+",plus1,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval plus1(lispval x)
@@ -296,7 +282,6 @@ static lispval plus1(lispval x)
 
 DEFCPRIM("-1+",minus1,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval minus1(lispval x)
@@ -314,7 +299,6 @@ static lispval minus1(lispval x)
 
 DEFCPRIMN("*",times_lexpr,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(-1),
-	  ""
 	  "**undocumented**")
 static lispval times_lexpr(int n,kno_argvec args)
 {
@@ -374,7 +358,6 @@ static lispval times_lexpr(int n,kno_argvec args)
 
 DEFCPRIMN("-",minus_lexpr,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(-1),
-	  ""
 	  "**undocumented**")
 static lispval minus_lexpr(int n,kno_argvec args)
 {
@@ -464,7 +447,6 @@ static double todouble(lispval x)
 
 DEFCPRIMN("/",div_lexpr,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(-1),
-	  ""
 	  "does division, normally "
 	  "((*arg*/*divisors*[0])/*divisors[1]) ... etc. If "
 	  "given a single argument, this returns 1/*arg*. "
@@ -495,7 +477,6 @@ static lispval div_lexpr(int n,kno_argvec args)
 
 DEFCPRIMN("/~",idiv_lexpr,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(-1),
-	  ""
 	  "**undocumented**")
 static lispval idiv_lexpr(int n,kno_argvec args)
 {
@@ -525,7 +506,6 @@ static lispval idiv_lexpr(int n,kno_argvec args)
 
 DEFCPRIM("remainder",remainder_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID},
 	 {"m",kno_any_type,KNO_VOID})
@@ -540,7 +520,6 @@ static lispval remainder_prim(lispval x,lispval m)
 
 DEFCPRIM("random",random_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"maxarg",kno_any_type,KNO_VOID})
 static lispval random_prim(lispval maxarg)
@@ -579,7 +558,6 @@ static lispval random_prim(lispval maxarg)
 
 DEFCPRIM("make-rational",make_rational,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"n",kno_any_type,KNO_VOID},
 	 {"d",kno_any_type,KNO_VOID})
@@ -590,7 +568,6 @@ static lispval make_rational(lispval n,lispval d)
 
 DEFCPRIM("numerator",numerator_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval numerator_prim(lispval x)
@@ -604,7 +581,6 @@ static lispval numerator_prim(lispval x)
 
 DEFCPRIM("denominator",denominator_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval denominator_prim(lispval x)
@@ -618,7 +594,6 @@ static lispval denominator_prim(lispval x)
 
 DEFCPRIM("make-complex",make_complex,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"r",kno_any_type,KNO_VOID},
 	 {"i",kno_any_type,KNO_VOID})
@@ -629,7 +604,6 @@ static lispval make_complex(lispval r,lispval i)
 
 DEFCPRIM("real-part",real_part_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval real_part_prim(lispval x)
@@ -643,7 +617,6 @@ static lispval real_part_prim(lispval x)
 
 DEFCPRIM("imag-part",imag_part_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval imag_part_prim(lispval x)
@@ -670,7 +643,6 @@ static double doublearg(lispval x,lispval *whoops)
 
 DEFCPRIM("exact->inexact",exact2inexact,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval exact2inexact(lispval x)
@@ -680,7 +652,6 @@ static lispval exact2inexact(lispval x)
 
 DEFCPRIM("inexact->exact",inexact2exact,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval inexact2exact(lispval x)
@@ -690,7 +661,6 @@ static lispval inexact2exact(lispval x)
 
 DEFCPRIM("->flonum",toflonum,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval toflonum(lispval x)
@@ -702,7 +672,6 @@ static lispval toflonum(lispval x)
 
 DEFCPRIM("->exact",toexact,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID},
 	 {"direction",kno_any_type,KNO_VOID})
@@ -832,7 +801,6 @@ DEFCPRIM("pow~",lpow,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 
 DEFCPRIM("pow",pow_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"v",kno_any_type,KNO_VOID},
 	 {"n",kno_any_type,KNO_VOID})
@@ -861,7 +829,6 @@ static lispval pow_prim(lispval v,lispval n)
 
 DEFCPRIM("nthroot",nthroot_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"v",kno_any_type,KNO_VOID},
 	 {"n",kno_any_type,KNO_VOID})
@@ -895,7 +862,6 @@ static lispval nthroot_prim(lispval v,lispval n)
 
 DEFCPRIM("nthroot~",inexact_nthroot_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"v",kno_any_type,KNO_VOID},
 	 {"n",kno_any_type,KNO_VOID})
@@ -917,7 +883,6 @@ static lispval inexact_nthroot_prim(lispval v,lispval n)
 
 DEFCPRIMN("min",min_prim,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1),
-	  ""
 	  "**undocumented**")
 static lispval min_prim(int n,kno_argvec args)
 {
@@ -945,7 +910,6 @@ static lispval min_prim(int n,kno_argvec args)
 
 DEFCPRIMN("max",max_prim,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1),
-	  ""
 	  "**undocumented**")
 static lispval max_prim(int n,kno_argvec args)
 {
@@ -973,7 +937,6 @@ static lispval max_prim(int n,kno_argvec args)
 
 DEFCPRIM("abs",abs_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval abs_prim(lispval x)
@@ -992,7 +955,6 @@ static lispval abs_prim(lispval x)
 
 DEFCPRIM("modulo",modulo_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID},
 	 {"b",kno_any_type,KNO_VOID})
@@ -1029,7 +991,6 @@ static lispval modulo_prim(lispval x,lispval b)
 
 DEFCPRIM("gcd",gcd_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID},
 	 {"y",kno_any_type,KNO_VOID})
@@ -1044,7 +1005,6 @@ static lispval gcd_prim(lispval x,lispval y)
 
 DEFCPRIM("lcm",lcm_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID},
 	 {"y",kno_any_type,KNO_VOID})
@@ -1059,7 +1019,6 @@ static lispval lcm_prim(lispval x,lispval y)
 
 DEFCPRIM("truncate",truncate_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval truncate_prim(lispval x)
@@ -1077,7 +1036,6 @@ static lispval truncate_prim(lispval x)
 
 DEFCPRIM("floor",floor_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval floor_prim(lispval x)
@@ -1099,7 +1057,6 @@ static lispval floor_prim(lispval x)
 
 DEFCPRIM("ceiling",ceiling_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval ceiling_prim(lispval x)
@@ -1121,7 +1078,6 @@ static lispval ceiling_prim(lispval x)
 
 DEFCPRIM("round",round_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval round_prim(lispval x)
@@ -1160,7 +1116,6 @@ static double doround(double x)
 
 DEFCPRIM("scalerep",scalerep_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID},
 	 {"scalearg",kno_any_type,KNO_VOID})
@@ -1195,7 +1150,6 @@ static lispval scalerep_prim(lispval x,lispval scalearg)
 
 DEFCPRIM("quotient",quotient_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID},
 	 {"y",kno_any_type,KNO_VOID})
@@ -1211,7 +1165,6 @@ static lispval quotient_prim(lispval x,lispval y)
 
 DEFCPRIM("sqrt",sqrt_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval sqrt_prim(lispval x)
@@ -1225,7 +1178,6 @@ static lispval sqrt_prim(lispval x)
 
 DEFCPRIM("ilog",ilog_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"n",kno_fixnum_type,KNO_VOID},
 	 {"base_arg",kno_fixnum_type,KNO_INT(2)})
@@ -1242,7 +1194,6 @@ static lispval ilog_prim(lispval n,lispval base_arg)
 
 DEFCPRIM("knuth-hash",knuth_hash,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval knuth_hash(lispval arg)
@@ -1261,7 +1212,6 @@ static lispval knuth_hash(lispval arg)
 
 DEFCPRIM("wang-hash32",wang_hash32,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval wang_hash32(lispval arg)
@@ -1286,7 +1236,6 @@ static lispval wang_hash32(lispval arg)
 
 DEFCPRIM("wang-hash64",wang_hash64,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval wang_hash64(lispval arg)
@@ -1314,7 +1263,6 @@ static lispval wang_hash64(lispval arg)
 
 DEFCPRIM("flip32",flip32,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval flip32(lispval arg)
@@ -1332,7 +1280,6 @@ kno_bigint kno_ulong_long_to_bigint(unsigned long long);
 
 DEFCPRIM("flip64",flip64,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval flip64(lispval arg)
@@ -1353,7 +1300,6 @@ static lispval flip64(lispval arg)
 
 DEFCPRIM("cityhash64",cityhash64,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID},
 	 {"asint",kno_any_type,KNO_FALSE})
@@ -1384,7 +1330,6 @@ static lispval cityhash64(lispval arg,lispval asint)
 
 DEFCPRIM("cityhash128",cityhash128,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval cityhash128(lispval arg)
@@ -1422,7 +1367,6 @@ static lispval cityhash128(lispval arg)
 
 DEFCPRIM("u8itoa",itoa_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID},
 	 {"base_arg",kno_fixnum_type,KNO_INT(10)})

@@ -30,7 +30,6 @@
 
 DEFCPRIM("identical?",identicalp,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 ""
 	 "is the non-deterministic version of EQUAL? and "
 	 "returns true if its arguments (which can be "
 	 "choices) have the same structure and elements.",
@@ -45,7 +44,6 @@ static lispval identicalp(lispval x,lispval y)
 
 DEFCPRIM("equal?",equalp,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 ""
 	 "returns true if its arguments have the same "
 	 "structure and elements. If its arguments are "
 	 "choices, this compares all pairings and may "
@@ -87,7 +85,6 @@ static lispval equalp(lispval x,lispval y)
 
 DEFCPRIM("compare",comparefn,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID},
 	 {"y",kno_any_type,KNO_VOID})
@@ -120,7 +117,6 @@ static lispval comparefn(lispval x,lispval y)
 
 DEFCPRIM("compare/quick",quickcomparefn,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID},
 	 {"y",kno_any_type,KNO_VOID})
@@ -144,7 +140,6 @@ static lispval quickcomparefn(lispval x,lispval y)
 
 DEFCPRIM("deep-copy",deepcopy,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"object",kno_any_type,KNO_VOID})
 static lispval deepcopy(lispval object)
@@ -172,7 +167,6 @@ static lispval deepcopy(lispval object)
 
 DEFCPRIM("static-copy",staticcopy,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"object",kno_any_type,KNO_VOID})
 static lispval staticcopy(lispval object)
@@ -182,7 +176,6 @@ static lispval staticcopy(lispval object)
 
 DEFCPRIM("dontopt",dontopt,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval dontopt(lispval x)
@@ -212,7 +205,6 @@ static lispval get_refcount(lispval x,lispval delta)
 
 DEFCPRIM("eq?",eqp,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID},
 	 {"y",kno_any_type,KNO_VOID})
@@ -224,7 +216,6 @@ static lispval eqp(lispval x,lispval y)
 
 DEFCPRIM("eqv?",eqvp,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID},
 	 {"y",kno_any_type,KNO_VOID})
@@ -278,7 +269,6 @@ static int numeric_compare(const lispval x,const lispval y)
 
 DEFCPRIM("zero?",lisp_zerop,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval lisp_zerop(lispval x)
@@ -313,37 +303,31 @@ static int gtespec[3]={0,1,1}, gtspec[3]={0,0,1}, nespec[3]={1,0,1};
 
 DEFCPRIMN("<",lt,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(2),
-	  ""
 	  "**undocumented**")
 static lispval lt(int n,kno_argvec v) { return do_compare(n,v,ltspec); }
 
 DEFCPRIMN("<=",lte,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(2),
-	  ""
 	  "**undocumented**")
 static lispval lte(int n,kno_argvec v) { return do_compare(n,v,ltespec); }
 
 DEFCPRIMN("=",numeqp,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(2),
-	  ""
 	  "**undocumented**")
 static lispval numeqp(int n,kno_argvec v) { return do_compare(n,v,espec); }
 
 DEFCPRIMN(">=",gte,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(2),
-	  ""
 	  "**undocumented**")
 static lispval gte(int n,kno_argvec v) { return do_compare(n,v,gtespec); }
 
 DEFCPRIMN(">",gt,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(2),
-	  ""
 	  "**undocumented**")
 static lispval gt(int n,kno_argvec v) { return do_compare(n,v,gtspec); }
 
 DEFCPRIMN("!=",numneqp,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(2),
-	  ""
 	  "**undocumented**")
 static lispval numneqp(int n,kno_argvec v) { return do_compare(n,v,nespec); }
 
@@ -351,7 +335,6 @@ static lispval numneqp(int n,kno_argvec v) { return do_compare(n,v,nespec); }
 
 DEFCPRIM("string?",stringp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval stringp(lispval x)
@@ -361,7 +344,6 @@ static lispval stringp(lispval x)
 
 DEFCPRIM("valid-utf8?",valid_utf8p,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval valid_utf8p(lispval x)
@@ -376,7 +358,6 @@ static lispval valid_utf8p(lispval x)
 
 DEFCPRIM("regex?",regexp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval regexp(lispval x)
@@ -388,7 +369,6 @@ static lispval regexp(lispval x)
 
 DEFCPRIM("packet?",packetp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval packetp(lispval x)
@@ -398,7 +378,6 @@ static lispval packetp(lispval x)
 
 DEFCPRIM("secret?",secretp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval secretp(lispval x)
@@ -410,7 +389,6 @@ static lispval secretp(lispval x)
 
 DEFCPRIM("symbol?",symbolp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval symbolp(lispval x)
@@ -420,7 +398,6 @@ static lispval symbolp(lispval x)
 
 DEFCPRIM("pair?",pairp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval pairp(lispval x)
@@ -430,7 +407,6 @@ static lispval pairp(lispval x)
 
 DEFCPRIM("list?",listp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval listp(lispval x)
@@ -442,7 +418,6 @@ static lispval listp(lispval x)
 
 DEFCPRIM("proper-list?",proper_listp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval proper_listp(lispval x)
@@ -458,7 +433,6 @@ static lispval proper_listp(lispval x)
 
 DEFCPRIM("vector?",vectorp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval vectorp(lispval x)
@@ -468,7 +442,6 @@ static lispval vectorp(lispval x)
 
 DEFCPRIM("number?",numberp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval numberp(lispval x)
@@ -478,7 +451,6 @@ static lispval numberp(lispval x)
 
 DEFCPRIM("flonum?",flonump,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval flonump(lispval x)
@@ -490,7 +462,6 @@ static lispval flonump(lispval x)
 
 DEFCPRIM("nan?",isnanp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval isnanp(lispval x)
@@ -507,7 +478,6 @@ static lispval isnanp(lispval x)
 
 DEFCPRIM("immediate?",immediatep,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval immediatep(lispval x)
@@ -517,7 +487,6 @@ static lispval immediatep(lispval x)
 
 DEFCPRIM("consed?",consp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval consp(lispval x)
@@ -527,7 +496,6 @@ static lispval consp(lispval x)
 
 DEFCPRIM("static?",staticp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval staticp(lispval x)
@@ -539,7 +507,6 @@ static lispval staticp(lispval x)
 
 DEFCPRIM("character?",characterp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval characterp(lispval x)
@@ -549,7 +516,6 @@ static lispval characterp(lispval x)
 
 DEFCPRIM("exception?",exceptionp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval exceptionp(lispval x)
@@ -561,7 +527,6 @@ static lispval exceptionp(lispval x)
 
 DEFCPRIM("applicable?",applicablep,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval applicablep(lispval x)
@@ -573,7 +538,6 @@ static lispval applicablep(lispval x)
 
 DEFCPRIM("fcnid?",fcnidp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval fcnidp(lispval x)
@@ -585,7 +549,6 @@ static lispval fcnidp(lispval x)
 
 DEFCPRIM("boolean?",booleanp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval booleanp(lispval x)
@@ -597,7 +560,6 @@ static lispval booleanp(lispval x)
 
 DEFCPRIM("true?",truep,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval truep(lispval x)
@@ -609,7 +571,6 @@ static lispval truep(lispval x)
 
 DEFCPRIM("false?",falsep,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval falsep(lispval x)
@@ -621,7 +582,6 @@ static lispval falsep(lispval x)
 
 DEFCPRIM("typeof",typeof_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval typeof_prim(lispval x)
@@ -634,7 +594,6 @@ static lispval typeof_prim(lispval x)
 
 DEFCPRIM("tagged?",taggedp_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID},
 	 {"tag",kno_any_type,KNO_VOID})
@@ -727,7 +686,6 @@ static lispval only_hastypep_prim(lispval items,lispval types)
 
 DEFCPRIM("intern",lisp_intern,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"symbol_name",kno_any_type,KNO_VOID})
 static lispval lisp_intern(lispval symbol_name)
@@ -741,7 +699,6 @@ static lispval lisp_intern(lispval symbol_name)
 
 DEFCPRIM("empty-list?",nullp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval nullp(lispval x)
@@ -780,7 +737,6 @@ static lispval cdr_prim(lispval pair)
 
 DEFCPRIM("push",push_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"item",kno_any_type,KNO_VOID},
 	 {"list",kno_any_type,KNO_VOID})
@@ -796,7 +752,6 @@ static lispval push_prim(lispval item,lispval list)
 
 DEFCPRIM("qcons",qcons_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 ""
 	 "unless *car* or *cdr*are empty (fail), returns a "
 	 "single cons pointing to both arguments, which may "
 	 "be choices (and stay that way). This would be "
@@ -814,7 +769,6 @@ static lispval qcons_prim(lispval car,lispval cdr)
 
 DEFCPRIM("allsymbols",lisp_all_symbols,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	 ""
 	 "**undocumented**")
 static lispval lisp_all_symbols()
 {
@@ -823,7 +777,6 @@ static lispval lisp_all_symbols()
 
 DEFCPRIM("string->lisp",lisp_string2lisp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"string",kno_any_type,KNO_VOID})
 static lispval lisp_string2lisp(lispval string)
@@ -835,7 +788,6 @@ static lispval lisp_string2lisp(lispval string)
 
 DEFCPRIM("lisp->string",lisp2string,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval lisp2string(lispval x)
@@ -877,7 +829,6 @@ static lispval lisp_tolisp(lispval arg)
 
 DEFCPRIM("parse-arg",lisp_parse_arg,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "returns a LISP object based on *string*.  If "
 	 "*string* isn't a string, it is just returned. If "
 	 "*string* can be parsed as a number or begins with "
@@ -896,7 +847,6 @@ static lispval lisp_parse_arg(lispval string)
 
 DEFCPRIM("parse-slotid",lisp_parse_slotid,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "returns a LISP object, typically a slotid (symbol "
 	 "or OID) based on *string*. If *string* isn't a "
 	 "string, it is just returned. If *string* begins "
@@ -917,7 +867,6 @@ static lispval lisp_parse_slotid(lispval string)
 
 DEFCPRIM("unparse-arg",lisp_unparse_arg,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"obj",kno_any_type,KNO_VOID})
 static lispval lisp_unparse_arg(lispval obj)
@@ -928,7 +877,6 @@ static lispval lisp_unparse_arg(lispval obj)
 
 DEFCPRIM("symbol->string",lisp_symbol2string,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"sym",kno_symbol_type,KNO_VOID})
 static lispval lisp_symbol2string(lispval sym)
@@ -938,7 +886,6 @@ static lispval lisp_symbol2string(lispval sym)
 
 DEFCPRIM("string->symbol",lisp_string2symbol,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "**undocumented**",
 	 {"s",kno_string_type,KNO_VOID})
 static lispval lisp_string2symbol(lispval s)
@@ -948,7 +895,6 @@ static lispval lisp_string2symbol(lispval s)
 
 DEFCPRIM("getsym",lisp_getsym,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "if *arg* is a string, interns a lowercase version "
 	 "of it. If *arg* is a symbol, returns it, "
 	 "otherwise errors.",
@@ -964,7 +910,6 @@ static lispval lisp_getsym(lispval s)
 
 DEFCPRIM("getslotid",lisp_getslotid,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "tries to get a slotid (symbol or OID) from *arg*, "
 	 "parsing OIDs and interning lowercase strings, "
 	 "signalling an error on failure",
@@ -1001,7 +946,6 @@ static lispval hashptr_prim(lispval x)
 
 DEFCPRIM("hashref",hashref_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "returns a hashpointer string (#!0x...) which can "
 	 "be read if hashpointer reading is enabled.",
 	 {"x",kno_any_type,KNO_VOID})
@@ -1016,7 +960,6 @@ static lispval hashref_prim(lispval x)
 
 DEFCPRIM("ptrlock",ptrlock_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "Returns the integer pointer value of *ptr* modulo "
 	 "*mod*.",
 	 {"x",kno_any_type,KNO_VOID},
@@ -1038,7 +981,6 @@ static lispval ptrlock_prim(lispval x,lispval mod)
 
 DEFCPRIM("rawptr?",rawptrp_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 ""
 	 "returns true if *obj* is a raw pointer object "
 	 "with a typetag of *type* (if provided).",
 	 {"x",kno_any_type,KNO_VOID},
@@ -1057,7 +999,6 @@ static lispval rawptrp_prim(lispval x,lispval tag)
 
 DEFCPRIM("rawptr/type",rawptr_type_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "returns the type tag for *obj* if it is a raw "
 	 "pointer object.",
 	 {"x",kno_rawptr_type,KNO_VOID})
@@ -1069,7 +1010,6 @@ static lispval rawptr_type_prim(lispval x)
 
 DEFCPRIM("rawptr/id",rawptr_id_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "returns the idstring for the raw pointer *rawptr* if "
 	 "it is a raw pointer object.",
 	 {"rawptr",kno_rawptr_type,KNO_VOID})

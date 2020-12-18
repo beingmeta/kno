@@ -119,7 +119,6 @@ static void remove_thread(struct KNO_THREAD *thread)
 
 DEFCPRIM("thread?",threadp_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "returns #t if *object is a thread.",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval threadp_prim(lispval arg)
@@ -171,7 +170,6 @@ static lispval findthread_prim(lispval threadid_arg,lispval err)
 
 DEFCPRIM("thread-id",threadid_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "returns the integer identifier for *thread*",
 	 {"thread",kno_any_type,KNO_VOID})
 static lispval threadid_prim(lispval thread)
@@ -281,7 +279,6 @@ KNO_EXPORT void recycle_synchronizer(struct KNO_RAW_CONS *c)
 
 DEFCPRIM("synchronizer?",synchronizerp_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "returns #t if *obj* is a synchronizer. "
 	 "Synchronizers currently include condvars and "
 	 "synchronized lambdas.",
@@ -300,7 +297,6 @@ static lispval synchronizerp_prim(lispval arg)
 
 DEFCPRIM("condvar?",condvarp_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "returns #t if *object* is a condition variable",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval condvarp_prim(lispval arg)
@@ -313,7 +309,6 @@ static lispval condvarp_prim(lispval arg)
 
 DEFCPRIM("mutex?",mutexp_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "returns #t if *object* is a mutex",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval mutexp_prim(lispval arg)
@@ -326,7 +321,6 @@ static lispval mutexp_prim(lispval arg)
 
 DEFCPRIM("rwlock?",rwlockp_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "returns #t if *object* is a mutex",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval rwlockp_prim(lispval arg)
@@ -425,7 +419,6 @@ static void unlock_synchronizer(struct KNO_SYNCHRONIZER *sync)
 
 DEFCPRIM("sync/lock!",sync_lock,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "Locks *synchronizer*, which can be a mutex, a "
 	 "read/write lock, a condition variable or a "
 	 "synchronized lambda.",
@@ -448,7 +441,6 @@ static lispval sync_lock(lispval lck)
 
 DEFCPRIM("sync/release!",sync_unlock,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "Releases the lock on *synchronizer*, which can be "
 	 "a mutex, a read/write lock, a condition variable "
 	 "or a synchronized lambda.",
@@ -471,7 +463,6 @@ static lispval sync_unlock(lispval lck)
 
 DEFCPRIM("sync/read/lock!",sync_read_lock,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "Locks *readwritelock* for reading. This lock can "
 	 "be released with `SYNC/RELEASE!`",
 	 {"lck",kno_any_type,KNO_VOID})
@@ -617,7 +608,6 @@ static lispval condvar_signal(lispval cvar,lispval broadcast)
 
 DEFCPRIM("condvar/lock!",condvar_lock,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "locks *condvar* (or precisely, its mutex)..",
 	 {"cvar",kno_any_type,KNO_VOID})
 static lispval condvar_lock(lispval cvar)
@@ -632,7 +622,6 @@ static lispval condvar_lock(lispval cvar)
 
 DEFCPRIM("condvar/unlock!",condvar_unlock,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "unlocks *condvar* (or precisely, its mutex)..",
 	 {"cvar",kno_any_type,KNO_VOID})
 static lispval condvar_unlock(lispval cvar)
@@ -1578,7 +1567,6 @@ static lispval sassign_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 
 DEFCPRIM("thread/get",thread_get,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "gets the fluid (thread-local) value for *sym* or "
 	 "the empty choice if there isn't one",
 	 {"var",kno_symbol_type,KNO_VOID})
@@ -1592,7 +1580,6 @@ static lispval thread_get(lispval var)
 
 DEFCPRIM("thread/reset-vars!",thread_reset_vars,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	 ""
 	 "resets all the fluid (thread-local) variables for "
 	 "the current thread.")
 static lispval thread_reset_vars()
@@ -1603,7 +1590,6 @@ static lispval thread_reset_vars()
 
 DEFCPRIM("thread/bound?",thread_boundp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 ""
 	 "returns true if *sym* is fluidly bound in the "
 	 "current thread.",
 	 {"var",kno_symbol_type,KNO_VOID})
@@ -1616,7 +1602,6 @@ static lispval thread_boundp(lispval var)
 
 DEFCPRIM("thread/set!",thread_set,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 ""
 	 "sets the fluid (thread-local) value for *sym* to "
 	 "*value and returns VOID.",
 	 {"var",kno_symbol_type,KNO_VOID},
@@ -1630,7 +1615,6 @@ static lispval thread_set(lispval var,lispval val)
 
 DEFCPRIM("thread/add!",thread_add,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 ""
 	 "inserts *values* into the fluid (thread-local) "
 	 "binding for *sym*.",
 	 {"var",kno_symbol_type,KNO_VOID},
