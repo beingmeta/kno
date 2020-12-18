@@ -101,7 +101,6 @@ static lispval reqgetvar(lispval cgidata,lispval var)
 
 /* The init function */
 
-
 DEFCPRIM("req/call",reqcall_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "`(REQ/CALL *arg0*)` "
@@ -122,7 +121,6 @@ static lispval reqcall_prim(lispval proc)
   return value;
 }
 
-
 DEFCPRIM("req/get",reqget_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	 "`(REQ/GET *arg0* [*arg1*])` "
@@ -142,7 +140,6 @@ static lispval reqget_prim(lispval vars,lispval dflt)
     return EMPTY;
   else return kno_incref(dflt);
 }
-
 
 DEFCPRIM("req/val",reqval_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
@@ -239,7 +236,6 @@ static lispval hashcolonquestion_evalfn(lispval expr,kno_lexenv env,kno_stack _s
 #endif
 
 
-
 DEFCPRIM("req/test",reqtest_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	 "`(REQ/TEST *arg0* [*arg1*])` "
@@ -261,7 +257,6 @@ static lispval reqtest_prim(lispval vars,lispval val)
   return KNO_FALSE;
 }
 
-
 DEFCPRIM("req/store!",reqstore_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	 "`(REQ/STORE! *arg0* *arg1*)` "
@@ -275,7 +270,6 @@ static lispval reqstore_prim(lispval vars,lispval value)
       kno_req_store(name,value);}}
   return VOID;
 }
-
 
 DEFCPRIM("req/add!",reqadd_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
@@ -291,7 +285,6 @@ static lispval reqadd_prim(lispval vars,lispval value)
   return VOID;
 }
 
-
 DEFCPRIM("req/drop!",reqdrop_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "`(REQ/DROP! *arg0* [*arg1*])` "
@@ -305,7 +298,6 @@ static lispval reqdrop_prim(lispval vars,lispval value)
       kno_req_drop(name,value);}}
   return VOID;
 }
-
 
 DEFCPRIM("req/push!",reqpush_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
@@ -352,7 +344,6 @@ static lispval withreq_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   return result;
 }
 
-
 DEFCPRIM("req/live?",req_livep_prim,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
 	 "`(REQ/LIVE?)` "
@@ -362,7 +353,6 @@ static lispval req_livep_prim()
   if (kno_isreqlive()) return KNO_TRUE;
   else return KNO_FALSE;
 }
-
 
 DEFCPRIM("req/getlog",reqgetlog_prim,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
@@ -377,7 +367,6 @@ KNO_EXPORT lispval reqgetlog_prim()
     if (len==0) return KNO_FALSE;
     else return kno_make_string(NULL,len,log->u8_outbuf);}
 }
-
 
 DEFCPRIM("req/loglen",reqloglen_prim,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),

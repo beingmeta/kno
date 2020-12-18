@@ -48,7 +48,6 @@ static u8_string get_filedata(u8_string path,ssize_t *lenp)
 }
 
 
-
 DEFCPRIM("write-xtype",write_xtype_prim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
 	 "(WRITE-XTYPE *obj* *stream* [*opts*]) "
@@ -136,7 +135,6 @@ static lispval write_xtype_prim(lispval object,lispval dest,lispval opts)
   return KNO_INT(rv);
 }
 
-
 DEFCPRIM("read-xtype",read_xtype_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "`(read-xtype *source* [*opts*])` "
@@ -208,7 +206,6 @@ static lispval read_xtype_prim(lispval source,lispval opts)
   return results;
 }
 
-
 DEFCPRIM("read-xtype-at",read_xtype_at_prim,
 	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(1),
 	 "(READ-XTYPE-AT *stream* [*opts*] [*off*] [*len*]) "
@@ -259,7 +256,6 @@ static lispval read_xtype_at_prim(lispval stream,lispval opts,
     kno_close_inbuf(in);
     return object;}
 }
-
 
 DEFCPRIM("write-xtype-at",write_xtype_at_prim,
 	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),

@@ -248,7 +248,6 @@ static lispval load_source_for_module(lispval spec,u8_string module_source)
   return (lispval)env;
 }
 
-
 DEFCPRIM("reload-module",reload_module,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "`(RELOAD-MODULE *arg0*)` "
@@ -472,7 +471,6 @@ KNO_EXPORT int kno_update_file_module(u8_string module_source,int force)
   else return 0;
 }
 
-
 DEFCPRIM("update-modules",update_modules_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
 	 "`(UPDATE-MODULES [*arg0*])` "
@@ -484,7 +482,6 @@ static lispval update_modules_prim(lispval flag)
     return KNO_ERROR;
   else return VOID;
 }
-
 
 DEFCPRIM("update-module",update_module_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
@@ -739,7 +736,6 @@ static int load_dynamic_module(lispval spec,void *data)
     return 0;}
   else return 0;
 }
-
 
 DEFCPRIM("dynamic-load",dynamic_load_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),

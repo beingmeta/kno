@@ -27,7 +27,6 @@
 
 u8_condition kno_RegexBadOp=_("Invalid Regex operation");
 
-
 DEFCPRIM("regex",make_regex,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
 	 "`(REGEX *arg0* [*arg1*] [*arg2*])` "
@@ -42,7 +41,6 @@ static lispval make_regex(lispval pat,lispval nocase,lispval matchnl)
   if (!(FALSEP(matchnl))) cflags = cflags|REG_NEWLINE;
   return kno_make_regex(CSTRING(pat),cflags);
 }
-
 
 DEFCPRIM("regex?",regexp_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
@@ -191,7 +189,6 @@ KNO_EXPORT ssize_t kno_regex_matchlen(lispval pat,u8_string s,ssize_t len)
   if (len<0) len = strlen(s);
   return kno_regex_op(rx_matchlen,pat,s,len,0);
 }
-
 
 DEFCPRIM("regex/search",regex_search,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),

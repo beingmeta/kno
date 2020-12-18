@@ -52,7 +52,6 @@ u8_condition kno_MissingFeature=_("OS doesn't support operation");
 
 /* Getting the current hostname */
 
-
 DEFCPRIM("gethostname",hostname_prim,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
 	 "Gets the assigned name for this computer")
@@ -60,7 +59,6 @@ static lispval hostname_prim()
 {
   return kno_wrapstring(u8_gethostname());
 }
-
 
 DEFCPRIM("hostaddrs",hostaddrs_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
@@ -90,7 +88,6 @@ static lispval hostaddrs_prim(lispval hostname)
 
 /* GETENV primitive */
 
-
 DEFCPRIM("getenv",getenv_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Gets the value of *envvar* in the environment of "
@@ -104,7 +101,6 @@ static lispval getenv_prim(lispval var)
     return KNO_FALSE;
   else return kno_wrapstring(enval);
 }
-
 
 DEFCPRIM("setenv!",setenv_prim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
@@ -140,7 +136,6 @@ static lispval setenv_prim(lispval var,lispval val,lispval overwrite)
   else if (rv) return KNO_TRUE;
   else return KNO_FALSE;
 }
-
 
 DEFCPRIM("unsetenv!",unsetenv_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
@@ -182,7 +177,6 @@ static lispval getenv_macro(lispval expr,kno_lexenv env,kno_stack ptr)
 
 /* LOAD AVERAGE */
 
-
 DEFCPRIM("getload",loadavg_prim,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
 	 "Gets the current host's load average.")
@@ -194,7 +188,6 @@ static lispval loadavg_prim()
     return kno_make_flonum(loadavg);
   else return KNO_FALSE;
 }
-
 
 DEFCPRIM("loadavg",loadavgs_prim,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
@@ -284,7 +277,6 @@ static u8_string get_malloc_info()
   return u8_strdup("none");
 #endif
 }
-
 
 DEFCPRIM("rusage",rusage_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
@@ -578,7 +570,6 @@ static int setprop(lispval result,u8_string field,char *value)
   else return 0;
 }
 
-
 DEFCPRIM("uname",uname_prim,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
 	 "Returns a slotmap describing the hosting OS.")
@@ -603,7 +594,6 @@ static lispval uname_prim()
 #endif
 }
 
-
 DEFCPRIM("getpid",getpid_prim,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
 	 "Gets the PID (process ID) for the current process")
@@ -623,7 +613,6 @@ static lispval getppid_prim()
   return KNO_INT(((unsigned long)pid));
 }
 
-
 DEFCPRIM("stacksize",stacksize_prim,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
 	 "Gets the stack size for the current thread")
@@ -635,7 +624,6 @@ static lispval stacksize_prim()
   else return KNO_INT(size);
 }
 
-
 DEFCPRIM("threadid",threadid_prim,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
 	 "Gets the numeric identifier for the current "
@@ -645,7 +633,6 @@ static lispval threadid_prim()
   long long tid = u8_threadid();
   return KNO_INT(tid);
 }
-
 
 DEFCPRIM("procstring",getprocstring_prim,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
@@ -658,7 +645,6 @@ static lispval getprocstring_prim()
   return kno_mkstring(pinfo);
 }
 
-
 DEFCPRIM("memusage",memusage_prim,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
 	 "Gets the memory usage by the current process.")
@@ -667,7 +653,6 @@ static lispval memusage_prim()
   ssize_t size = u8_memusage();
   return KNO_INT(size);
 }
-
 
 DEFCPRIM("vmemusage",vmemusage_prim,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
@@ -679,7 +664,6 @@ static lispval vmemusage_prim()
   return KNO_INT(size);
 }
 
-
 DEFCPRIM("physmem",physmem_prim,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
 	 "Gets the physical memory available on the host.")
@@ -688,7 +672,6 @@ static lispval physmem_prim()
   ssize_t size = u8_physmem();
   return KNO_INT(size);
 }
-
 
 DEFCPRIM("memload",memload_prim,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
@@ -699,7 +682,6 @@ static lispval memload_prim()
   return kno_make_flonum(load);
 }
 
-
 DEFCPRIM("vmemload",vmemload_prim,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
 	 "Gets the virtual memory load for the current "
@@ -709,7 +691,6 @@ static lispval vmemload_prim()
   double vload = u8_vmemload();
   return kno_make_flonum(vload);
 }
-
 
 DEFCPRIM("usertime",usertime_prim,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
@@ -729,7 +710,6 @@ static lispval usertime_prim()
     return kno_init_double(NULL,msecs);}
 }
 
-
 DEFCPRIM("systime",systime_prim,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
 	 "Gets the total system run time for the current "
@@ -747,7 +727,6 @@ static lispval systime_prim()
        init_rusage.ru_stime.tv_usec*1.0);
     return kno_init_double(NULL,msecs);}
 }
-
 
 DEFCPRIM("cpusage",cpusage_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),

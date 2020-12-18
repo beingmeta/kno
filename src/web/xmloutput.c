@@ -154,11 +154,10 @@ KNO_EXPORT void kno_emit_xmlattrib
   return emit_xmlattrib(out,tmp,name,value,lower);
 }
 
-
 DEFCPRIM("xmlify",xmlify,
- KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(XMLIFY *arg0*)` "
- "**undocumented**",
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "`(XMLIFY *arg0*)` "
+	 "**undocumented**",
 	 {"value",kno_any_type,KNO_VOID})
 static lispval xmlify(lispval value)
 {
@@ -405,18 +404,16 @@ static lispval raw_xhtml_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   return VOID;
 }
 
-
 DEFCPRIM("nbsp",nbsp_prim,
- KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
- "`(NBSP)` "
- "**undocumented**")
+	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+	 "`(NBSP)` "
+	 "**undocumented**")
 static lispval nbsp_prim()
 {
   U8_OUTPUT *out = u8_current_output;
   u8_puts(out,"&nbsp;");
   return VOID;
 }
-
 
 DEFCPRIMN("xmlempty",xmlemptyelt,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(0)|KNO_NDCALL,
@@ -496,11 +493,10 @@ static lispval xmlstart_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     return VOID;}
 }
 
-
 DEFCPRIM("xmlend",xmlend_prim,
- KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(XMLEND *arg0*)` "
- "**undocumented**",
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "`(XMLEND *arg0*)` "
+	 "**undocumented**",
 	 {"head",kno_any_type,KNO_VOID})
 static lispval xmlend_prim(lispval head)
 {
@@ -937,11 +933,10 @@ KNO_EXPORT void kno_xmloid(u8_output out,lispval arg)
   kno_decref(browseinfo);
 }
 
-
 DEFCPRIM("%xmloid",xmloid,
- KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(%XMLOID *arg0*)` "
- "**undocumented**",
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "`(%XMLOID *arg0*)` "
+	 "**undocumented**",
 	 {"oid_arg",kno_any_type,KNO_VOID})
 static lispval xmloid(lispval oid_arg)
 {
@@ -996,11 +991,10 @@ static lispval xmleval_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   }
 }
 
-
 DEFCPRIM("xml->string",xml2string_prim,
- KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
- "`(XML->STRING *arg0* [*arg1*] [*arg2*])` "
- "**undocumented**",
+	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
+	 "`(XML->STRING *arg0* [*arg1*] [*arg2*])` "
+	 "**undocumented**",
 	 {"xml",kno_any_type,KNO_VOID},
 	 {"env_arg",kno_any_type,KNO_VOID},
 	 {"xml_env_arg",kno_any_type,KNO_VOID})
@@ -1041,11 +1035,10 @@ static lispval xmlopen_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     else return VOID;}
 }
 
-
 DEFCPRIM("xmlclose",xmlclose_prim,
- KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(XMLCLOSE *arg0*)` "
- "**undocumented**",
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "`(XMLCLOSE *arg0*)` "
+	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval xmlclose_prim(lispval arg)
 {

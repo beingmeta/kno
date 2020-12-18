@@ -95,7 +95,6 @@ static int get_precision(lispval sym)
   else return -1;
 }
 
-
 DEFCPRIM("timestamp?",timestampp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "`(TIMESTAMP? *arg0*)` "
@@ -107,7 +106,6 @@ static lispval timestampp(lispval arg)
     return KNO_TRUE;
   else return KNO_FALSE;
 }
-
 
 DEFCPRIM("timestamp",timestamp_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
@@ -169,7 +167,6 @@ static lispval timestamp_prim(lispval arg)
     u8_free(tm);
     return kno_type_error("timestamp arg","timestamp_prim",arg);}
 }
-
 
 DEFCPRIM("gmtimestamp",gmtimestamp_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
@@ -320,7 +317,6 @@ static lispval timestamp_plus_helper(lispval arg1,lispval arg2,int neg)
   return LISP_CONS(newtm);
 }
 
-
 DEFCPRIM("timestamp+",timestamp_plus,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "`(TIMESTAMP+ *arg0* [*arg1*])` "
@@ -332,7 +328,6 @@ static lispval timestamp_plus(lispval arg1,lispval arg2)
   return timestamp_plus_helper(arg1,arg2,0);
 }
 
-
 DEFCPRIM("timestamp-",timestamp_minus,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "`(TIMESTAMP- *arg0* [*arg1*])` "
@@ -343,7 +338,6 @@ static lispval timestamp_minus(lispval arg1,lispval arg2)
 {
   return timestamp_plus_helper(arg1,arg2,1);
 }
-
 
 DEFCPRIM("difftime",timestamp_diff,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
@@ -378,7 +372,6 @@ static lispval timestamp_diff(lispval timestamp1,lispval timestamp2)
       return kno_init_double(NULL,diff);}}
 }
 
-
 DEFCPRIM("time-until",time_until,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "`(TIME-UNTIL *arg0*)` "
@@ -398,7 +391,6 @@ static lispval time_since(lispval arg)
 {
   return timestamp_diff(VOID,arg);
 }
-
 
 DEFCPRIM("time>?",timestamp_greater,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
@@ -434,7 +426,6 @@ static lispval timestamp_greater(lispval timestamp1,lispval timestamp2)
       return KNO_TRUE;
     else return KNO_FALSE;}
 }
-
 
 DEFCPRIM("time<?",timestamp_lesser,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
@@ -489,7 +480,6 @@ int kno_cmp_now(lispval timestamp,double thresh)
     else return 0;}
 }
 
-
 DEFCPRIM("future?",futurep,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "`(FUTURE? *arg0* [*arg1*])` "
@@ -505,7 +495,6 @@ static lispval futurep(lispval timestamp,lispval thresh_arg)
     return KNO_TRUE;
   else return KNO_FALSE;
 }
-
 
 DEFCPRIM("past?",pastp,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
@@ -524,7 +513,6 @@ static lispval pastp(lispval timestamp,lispval thresh_arg)
 }
 
 /* Lisp access */
-
 
 DEFCPRIM("elapsed-time",elapsed_time,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
@@ -1039,7 +1027,6 @@ static lispval timestamp_getkeys(lispval timestamp)
   return kno_incref(xtime_keys);
 }
 
-
 DEFCPRIM("modtime",modtime_prim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
 	 "`(MODTIME *arg0* [*arg1*] [*arg2*])` "
@@ -1082,7 +1069,6 @@ static lispval modtime_prim(lispval slotmap,lispval base,lispval togmt)
       return result;}}
 }
 
-
 DEFCPRIMN("mktime",mktime_lexpr,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(0),
 	  "`(MKTIME *args...*)` "
@@ -1111,7 +1097,6 @@ static lispval mktime_lexpr(int n,kno_argvec args)
 
 /* Miscellanous time utilities */
 
-
 DEFCPRIM("timestring",timestring,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
 	 "`(TIMESTRING)` "
@@ -1128,7 +1113,6 @@ static lispval timestring()
   return kno_stream2string(&out);
 }
 
-
 DEFCPRIM("time",time_prim,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
 	 "`(TIME)` "
@@ -1142,7 +1126,6 @@ static lispval time_prim()
   else return KNO_INT(now);
 }
 
-
 DEFCPRIM("millitime",millitime_prim,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
 	 "`(MILLITIME)` "
@@ -1155,7 +1138,6 @@ static lispval millitime_prim()
     return KNO_ERROR;}
   else return KNO_INT(now);
 }
-
 
 DEFCPRIM("microtime",microtime_prim,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
@@ -1183,7 +1165,6 @@ static lispval now_macro(lispval expr,kno_lexenv env,kno_stack ptr)
 }
 
 /* Counting seconds */
-
 
 DEFCPRIM("secs->string",secs2string,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
@@ -1317,7 +1298,6 @@ static lispval secs2string(lispval secs,lispval prec_arg)
   return kno_stream2string(&out);
 }
 
-
 DEFCPRIM("secs->short",secs2short,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "`(SECS->SHORT *arg0*)` "
@@ -1442,7 +1422,6 @@ static void init_id_tables()
 
 /* UUID functions */
 
-
 DEFCPRIM("uuid?",uuidp_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
 	 "`(UUID? [*arg0*])` "
@@ -1453,7 +1432,6 @@ static lispval uuidp_prim(lispval x)
   if (TYPEP(x,kno_uuid_type)) return KNO_TRUE;
   else return KNO_FALSE;
 }
-
 
 DEFCPRIM("getuuid",getuuid_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(0),
@@ -1508,7 +1486,6 @@ static lispval getuuid_prim(lispval nodeid,lispval tptr)
   return kno_cons_uuid(NULL,xt,id,-1);
 }
 
-
 DEFCPRIM("uuid-time",uuidtime_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "`(UUID-TIME *arg0*)` "
@@ -1526,7 +1503,6 @@ static lispval uuidtime_prim(lispval uuid_arg)
     return kno_type_error("time-based UUID","uuidtime_prim",uuid_arg);}
 }
 
-
 DEFCPRIM("uuid-node",uuidnode_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "`(UUID-NODE *arg0*)` "
@@ -1541,7 +1517,6 @@ static lispval uuidnode_prim(lispval uuid_arg)
   else return KNO_INT(id);
 }
 
-
 DEFCPRIM("uuid->string",uuidstring_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "`(UUID->STRING *arg0*)` "
@@ -1552,7 +1527,6 @@ static lispval uuidstring_prim(lispval uuid_arg)
   struct KNO_UUID *uuid = kno_consptr(struct KNO_UUID *,uuid_arg,kno_uuid_type);
   return kno_init_string(NULL,36,u8_uuidstring(uuid->uuid16,NULL));
 }
-
 
 DEFCPRIM("uuid->packet",uuidpacket_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),

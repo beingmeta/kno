@@ -34,7 +34,6 @@
 
 /* Remote evaluation */
 
-
 DEFCPRIM("service?",servicep,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns true if it's argument is a dtype server "
@@ -47,7 +46,6 @@ static lispval servicep(lispval arg)
   else return KNO_FALSE;
 }
 
-
 DEFCPRIM("service-id",service_id,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns the ID of a dtype server (the argument "
@@ -59,7 +57,6 @@ static lispval service_id(lispval arg)
   return kno_mkstring(service->service_id);
 }
 
-
 DEFCPRIM("service-address",service_address,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns the address (host/port) of a dtype server",
@@ -69,7 +66,6 @@ static lispval service_address(lispval arg)
   struct KNO_SERVICE *service = (struct KNO_SERVICE *) arg;
   return kno_mkstring(service->service_addr);
 }
-
 
 DEFCPRIM("service/apply",service_apply_prim,
 	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
@@ -99,7 +95,6 @@ static lispval service_apply_prim
   else return kno_type_error(_("sequence"),"service/apply",args);
 }
 
-
 DEFCPRIMN("service/call",service_call_prim,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	  "`(SERVICE/CALL *service* *op* *args...*)` "
@@ -115,7 +110,6 @@ static lispval service_call_prim(int n,kno_argvec args)
   struct KNO_SERVICE *service = (kno_service) srv;
   return kno_service_apply(service,op,n-2,args+2);
 }
-
 
 DEFCPRIMN("service/xcall",service_xcall_prim,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(3),
@@ -134,7 +128,6 @@ static lispval service_xcall_prim(int n,kno_argvec args)
   return kno_service_xapply(service,op,n-2,args+2,opts);
 }
 
-
 DEFCPRIM("open-service",open_service,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "`(OPEN-SERVICE *arg0* [*arg1*])` "
@@ -150,7 +143,6 @@ static lispval open_service(lispval server,lispval opts)
 }
 
 /* Making NETPROCs */
-
 
 DEFCPRIM("netproc",make_netproc,
 	 KNO_MAX_ARGS(5)|KNO_MIN_ARGS(2),
@@ -182,7 +174,6 @@ static lispval make_netproc(lispval server,lispval name,
 }
 
 /* Support for server data */
-
 
 DEFCPRIM("srv/getconfig",srvconfig_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(0),

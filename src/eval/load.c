@@ -214,7 +214,6 @@ static lispval load_source_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   return result;
 }
 
-
 DEFCPRIM("load->env",load_into_env_prim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
 	 "`(LOAD->ENV *filename* *env* [*resultfn*])` "
@@ -255,7 +254,6 @@ static lispval load_into_env_prim(lispval source,lispval envarg,
   kno_decref(result);
   return (lispval) env;
 }
-
 
 DEFCPRIM("env/load",env_load_prim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
@@ -313,7 +311,6 @@ static lispval load_component_evalfn(lispval expr,kno_lexenv env,kno_stack _stac
   kno_decref(encval);
   return result;
 }
-
 
 DEFCPRIM("get-component",lisp_get_component,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(0),
@@ -561,7 +558,6 @@ static lispval kno_run(u8_string source_file,struct U8_OUTPUT *out,
       return result;}}
 }
 
-
 DEFCPRIMN("kno/run-file",kno_run_file,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	  "Loads a file and applies its (main) procedure to "
@@ -573,7 +569,6 @@ static lispval kno_run_file(int n,kno_argvec args)
     return kno_run(KNO_CSTRING(args[0]),NULL,n-1,args+1);
   else return kno_type_error("filename","kno_run_file",args[0]);
 }
-
 
 DEFCPRIMN("kno/run->string",kno_run_file_2string,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,

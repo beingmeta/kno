@@ -44,7 +44,6 @@ static lispval delay_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     return (lispval) promise;}
 }
 
-
 DEFCPRIM("force",force_promise_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "`(FORCE *promise*)` "
@@ -109,7 +108,6 @@ KNO_EXPORT lispval kno_force_promise(lispval promise)
   else return kno_incref(promise);
 }
 
-
 DEFCPRIM("promise/probe",probe_promise_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "`(PROMISE/PROBE *promise* *marker*)` "
@@ -129,7 +127,6 @@ static lispval probe_promise_prim(lispval promise,lispval marker)
   else return kno_incref(promise);
 }
 
-
 DEFCPRIM("make-promise",make_promise_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "`(MAKE-PROMISE *value*)` "
@@ -148,7 +145,6 @@ static lispval make_promise_prim(lispval value)
   return (lispval) promise;
 }
 
-
 DEFCPRIM("promise/resolved?",promise_resolvedp_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "`(PROMISE/RESOLVED? *promise*)` "
@@ -162,7 +158,6 @@ static lispval promise_resolvedp_prim(lispval value)
     return KNO_TRUE;
   else return KNO_FALSE;
 }
-
 
 DEFCPRIM("promise/broken?",promise_brokenp_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
@@ -179,7 +174,6 @@ static lispval promise_brokenp_prim(lispval value)
   else return KNO_FALSE;
 }
 
-
 DEFCPRIM("promise/satisfied?",promise_satisfiedp_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "`(PROMISE/SATISFIED? *promise*)` "
@@ -194,7 +188,6 @@ static lispval promise_satisfiedp_prim(lispval value)
     return KNO_TRUE;
   else return KNO_FALSE;
 }
-
 
 DEFCPRIM("promise?",promisep_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),

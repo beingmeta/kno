@@ -498,7 +498,6 @@ static lispval export_alias_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   return export_alias_helper(expr,env,_stack);
 }
 
-
 DEFCPRIM("get-module",get_module,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "`(GET-MODULE *arg0*)` "
@@ -509,7 +508,6 @@ static lispval get_module(lispval modname)
   lispval module = kno_find_module(modname,0);
   return module;
 }
-
 
 DEFCPRIM("get-loaded-module",get_loaded_module,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
@@ -555,7 +553,6 @@ lispval kno_use_module(kno_lexenv env,lispval module)
   return VOID;
 }
 
-
 DEFCPRIM("get-exports",get_exports_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "`(GET-EXPORTS *arg0*)` "
@@ -585,7 +582,6 @@ static lispval get_exports_prim(lispval arg)
     return keys;}
   else return EMPTY;
 }
-
 
 DEFCPRIM("get-exports-table",get_exports_table_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
@@ -674,7 +670,6 @@ static lispval get_source(lispval arg)
         return id;}}
     return KNO_FALSE;}
 }
-
 
 DEFCPRIM("get-source",get_source_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
@@ -782,7 +777,6 @@ get_binding_helper(lispval modarg,lispval symbol,lispval dflt,
     return kno_incref(dflt);}
 }
 
-
 DEFCPRIM("get-binding",get_binding_prim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
 	 "(get-binding *module* *symbol* [*default*])\n"
@@ -797,7 +791,6 @@ static lispval get_binding_prim
 {
   return get_binding_helper(mod_arg,symbol,dflt,1,0,0,"get_binding_prim");
 }
-
 
 DEFCPRIM("%get-binding",get_internal_binding_prim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
@@ -818,7 +811,6 @@ static lispval get_internal_binding_prim
                             "get_internal_binding_prim");
 }
 
-
 DEFCPRIM("importvar",import_var_prim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
 	 "(importvar *module* *symbol* [*default*])\n"
@@ -832,7 +824,6 @@ static lispval import_var_prim(lispval mod_arg,lispval symbol,lispval dflt)
 {
   return get_binding_helper(mod_arg,symbol,dflt,0,1,1,"import_var_prim");
 }
-
 
 DEFCPRIM("env/use-module",add_module_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
@@ -848,7 +839,6 @@ static lispval add_module_prim(lispval env_arg,lispval mod_arg)
   kno_decref(mod);
   return result;
 }
-
 
 DEFCPRIM("env/make",make_env_prim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(0)|KNO_NDCALL,

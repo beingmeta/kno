@@ -190,7 +190,6 @@ static lispval exec_helper(u8_context caller,
       abort();}}
 }
 
-
 DEFCPRIMN("exec",exec_prim,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1),
 	  "`(EXEC *command* [*envmap*] [*args*...])` "
@@ -207,7 +206,6 @@ static lispval exec_prim(int n,kno_argvec args)
 {
   return exec_helper("exec_prim",0,n,KNO_FALSE,args);
 }
-
 
 DEFCPRIMN("exec/cmd",exec_cmd_prim,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1),
@@ -227,7 +225,6 @@ static lispval exec_cmd_prim(int n,kno_argvec args)
   return exec_helper("exec_cmd_prim",KNO_DO_LOOKUP,n,KNO_FALSE,args);
 }
 
-
 DEFCPRIMN("knox",knox_prim,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1),
 	  "`(KNOX *scheme_file* [*envmap*] [*args*...])` "
@@ -243,7 +240,6 @@ static lispval knox_prim(int n,kno_argvec args)
 {
   return exec_helper("knox_prim",KNO_IS_SCHEME,n,KNO_FALSE,args);
 }
-
 
 DEFCPRIMN("fork",fork_prim,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1),
@@ -268,7 +264,6 @@ static lispval fork_prim(int n,kno_argvec args)
   else return exec_helper("fork_prim",KNO_DO_FORK,n,KNO_FALSE,args);
 }
 
-
 DEFCPRIMN("fork/cmd",fork_cmd_prim,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1),
 	  "`(FOR/CMD *command* [*envmap*] [*args*...])` "
@@ -287,7 +282,6 @@ static lispval fork_cmd_prim(int n,kno_argvec args)
   return exec_helper("fork_cmd_prim",(KNO_DO_FORK|KNO_DO_LOOKUP),n,KNO_FALSE,args);
 }
 
-
 DEFCPRIMN("knox/fork",knox_fork_prim,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1),
 	  "`(KNOX/FORK *scheme_file* [*envmap*] [*args*...])` "
@@ -303,7 +297,6 @@ static lispval knox_fork_prim(int n,kno_argvec args)
 {
   return exec_helper("knofork_prim",(KNO_IS_SCHEME|KNO_DO_FORK),n,KNO_FALSE,args);
 }
-
 
 DEFCPRIMN("fork/wait",fork_wait_prim,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1),
@@ -322,7 +315,6 @@ static lispval fork_wait_prim(int n,kno_argvec args)
 {
   return exec_helper("fork_wait_prim",(KNO_DO_FORK|KNO_DO_WAIT),n,KNO_FALSE,args);
 }
-
 
 DEFCPRIMN("fork/cmd/wait",fork_cmd_wait_prim,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1),
@@ -343,7 +335,6 @@ static lispval fork_cmd_wait_prim(int n,kno_argvec args)
   return exec_helper("fork_cmd_wait_prim",
 		     (KNO_DO_FORK|KNO_DO_LOOKUP|KNO_DO_WAIT),n,KNO_FALSE,args);
 }
-
 
 DEFCPRIMN("knox/fork/wait",knox_fork_wait_prim,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1),
@@ -397,7 +388,6 @@ static int dodup(int from,int to,u8_string stream,u8_string id)
 }
 
 static u8_string makeid(int n,kno_argvec args);
-
 
 DEFCPRIMN("subjob/open",subjob_open,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1),
@@ -578,7 +568,6 @@ static void recycle_subjob(struct KNO_RAW_CONS *c)
   if (!(KNO_STATIC_CONSP(c))) u8_free(c);
 }
 
-
 DEFCPRIM("subjob/pid",subjob_pid,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns the numeric process ID for the subjob",
@@ -589,7 +578,6 @@ static lispval subjob_pid(lispval subjob)
   return KNO_INT(sj->subjob_pid);
 }
 
-
 DEFCPRIM("subjob/stdin",subjob_stdin,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns an output port for sending to the subjob.",
@@ -599,7 +587,6 @@ static lispval subjob_stdin(lispval subjob)
   struct KNO_SUBJOB *sj = (kno_subjob) subjob;
   return kno_incref(sj->subjob_stdin);
 }
-
 
 DEFCPRIM("subjob/stdout",subjob_stdout,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
@@ -612,7 +599,6 @@ static lispval subjob_stdout(lispval subjob)
   return kno_incref(sj->subjob_stdout);
 }
 
-
 DEFCPRIM("subjob/stderr",subjob_stderr,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns an input port for reading the error "
@@ -623,7 +609,6 @@ static lispval subjob_stderr(lispval subjob)
   struct KNO_SUBJOB *sj = (kno_subjob) subjob;
   return kno_incref(sj->subjob_stderr);
 }
-
 
 DEFCPRIM("subjob/signal",subjob_signal,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
@@ -649,7 +634,6 @@ static lispval subjob_signal(lispval subjob,lispval sigval)
 
 /* EXIT functions */
 
-
 DEFCPRIM("exit",exit_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
 	 "`(EXIT [*retval*])` "
@@ -664,7 +648,6 @@ static lispval exit_prim(lispval arg)
     return kno_err("ExitFailed","exit_prim",NULL,VOID);
   else return VOID;
 }
-
 
 DEFCPRIM("exit/fast",fast_exit_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
@@ -685,7 +668,6 @@ static lispval fast_exit_prim(lispval arg)
 
 /* PID functions */
 
-
 DEFCPRIM("pid?",ispid_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns #t if it's argument is a current and "
@@ -699,7 +681,6 @@ static lispval ispid_prim(lispval pid_arg)
     errno = 0; return KNO_FALSE;}
   else return KNO_TRUE;
 }
-
 
 DEFCPRIM("pid/kill!",pid_kill_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
@@ -724,7 +705,6 @@ static lispval pid_kill_prim(lispval pid_arg,lispval sig_arg)
 /* Generic rlimits */
 
 lispval kno_rlimit_codes = KNO_EMPTY;
-
 
 DEFCPRIM("getrlimit",getrlimit_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
@@ -758,7 +738,6 @@ static lispval getrlimit_prim(lispval resname,lispval which)
       return KNO_FALSE;
     else return KNO_INT(curlim);}
 }
-
 
 DEFCPRIM("setrlimit!",setrlimit_prim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
@@ -886,7 +865,6 @@ static int handle_procopts(lispval opts)
 }
 
 /* The nice prim */
-
 
 DEFCPRIM("nice",nice_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),

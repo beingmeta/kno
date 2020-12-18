@@ -74,7 +74,6 @@ static lispval get_listener_id(lispval ports)
   else return kno_incref(id);
 }
 
-
 DEFCPRIM("knosockd/listener",knosockd_listener_prim,
 	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(1),
 	 "Creates a knosocks server",
@@ -108,7 +107,6 @@ static lispval knosockd_listener_prim(lispval listen,lispval opts,
   return wrapped;
 }
 
-
 DEFCPRIM("knosockd/listen",knosockd_listen_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "Creates a knosocks server",
@@ -125,7 +123,6 @@ static lispval knosockd_listen_prim(lispval srv,lispval addrs)
   else return KNO_FALSE;
 }
 
-
 DEFCPRIM("knosockd/run",knosockd_run_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Starts a knosocks server",
@@ -140,7 +137,6 @@ static lispval knosockd_run_prim(lispval srv)
   else if (rv) return KNO_TRUE;
   else return KNO_FALSE;
 }
-
 
 DEFCPRIM("knosockd/shutdown!",knosockd_shutdown_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),

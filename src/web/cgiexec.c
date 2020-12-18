@@ -606,7 +606,6 @@ static lispval httpheader(lispval expr,kno_lexenv env,kno_stack _stack)
     return VOID;}
 }
 
-
 DEFCPRIM("httpheader!",addhttpheader,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "`(HTTPHEADER! *arg0*)` "
@@ -694,7 +693,6 @@ static int handle_cookie(U8_OUTPUT *out,lispval cgidata,lispval cookie)
   return 1;
 }
 
-
 DEFCPRIM("set-cookie!",setcookie,
 	 KNO_MAX_ARGS(6)|KNO_MIN_ARGS(2),
 	 "`(SET-COOKIE! *arg0* *arg1* [*arg2*] [*arg3*] [*arg4*] [*arg5*])` "
@@ -737,7 +735,6 @@ static lispval setcookie
     kno_decref(cookiedata);
     return VOID;}
 }
-
 
 DEFCPRIM("clear-cookie!",clearcookie,
 	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(1),
@@ -1068,7 +1065,6 @@ int kno_output_xml_preface(U8_OUTPUT *out,lispval cgidata)
   return 1;
 }
 
-
 DEFCPRIMN("body!",set_body_attribs,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1),
 	  "`(BODY! *arg0* *args...*)` "
@@ -1085,7 +1081,6 @@ static lispval set_body_attribs(int n,kno_argvec args)
     return VOID;}
 }
 
-
 DEFCPRIM("bodyclass!",add_body_class,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "`(BODYCLASS! *arg0*)` "
@@ -1096,7 +1091,6 @@ static lispval add_body_class(lispval classname)
   kno_req_push(body_classes_slotid,classname);
   return VOID;
 }
-
 
 DEFCPRIM("htmlclass!",add_html_class,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
@@ -1247,11 +1241,10 @@ KNO_EXPORT lispval kno_cgiexec(lispval proc,lispval cgidata)
 
 /* Parsing query strings */
 
-
 DEFCPRIM("urldata/parse",urldata_parse,
- KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(URLDATA/PARSE *arg0*)` "
- "**undocumented**",
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "`(URLDATA/PARSE *arg0*)` "
+	 "**undocumented**",
 	 {"qstring",kno_string_type,KNO_VOID})
 static lispval urldata_parse(lispval qstring)
 {
@@ -1304,11 +1297,10 @@ lispval kno_mapurl(lispval uri)
     return EMPTY;}
 }
 
-
 DEFCPRIM("mapurl",mapurl,
- KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(MAPURL *arg0*)` "
- "**undocumented**",
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "`(MAPURL *arg0*)` "
+	 "**undocumented**",
 	 {"uri",kno_string_type,KNO_VOID})
 static lispval mapurl(lispval uri)
 {

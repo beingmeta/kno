@@ -355,21 +355,20 @@ static int get_json_flags(lispval flags_arg)
   else return KNO_JSON_DEFAULTS;
 }
 
-
 DEFCPRIM("jsonparse",jsonparseprim,
- KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
- "(JSONPARSE *string* [*flags*] [*fieldmap*]) "
- "parses the JSON in *string* into a LISP object. "
- "The additional arguments control the conversion "
- "of JSON to lisp tables. *fieldmap* has a set of "
- "string/symbol translations or associates field "
- "names with conversion functions. *flags* handles "
- "the conversion to and from symbols. Flags is an "
- "opts structure and SLOTIDS causes table keys "
- "without spaces to be converted into symbols, "
- "while colonize applies argstring processing to "
- "values, parsing pairs, etc if possible and "
- "obeying :expr when it doesn't generate an error.",
+	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
+	 "(JSONPARSE *string* [*flags*] [*fieldmap*]) "
+	 "parses the JSON in *string* into a LISP object. "
+	 "The additional arguments control the conversion "
+	 "of JSON to lisp tables. *fieldmap* has a set of "
+	 "string/symbol translations or associates field "
+	 "names with conversion functions. *flags* handles "
+	 "the conversion to and from symbols. Flags is an "
+	 "opts structure and SLOTIDS causes table keys "
+	 "without spaces to be converted into symbols, "
+	 "while colonize applies argstring processing to "
+	 "values, parsing pairs, etc if possible and "
+	 "obeying :expr when it doesn't generate an error.",
 	 {"in",kno_any_type,KNO_VOID},
 	 {"flags_arg",kno_any_type,KNO_INT(8)},
 	 {"fieldmap",kno_any_type,KNO_VOID})
@@ -563,11 +562,10 @@ static void json_unparse(u8_output out,lispval x,int flags,lispval slotfn,
     u8_close_output(&tmpout);}
 }
 
-
 DEFCPRIM("jsonoutput",jsonoutput,
- KNO_MAX_ARGS(5)|KNO_MIN_ARGS(1),
- "Outputs a JSON representation to the standard "
- "output",
+	 KNO_MAX_ARGS(5)|KNO_MIN_ARGS(1),
+	 "Outputs a JSON representation to the standard "
+	 "output",
 	 {"x",kno_any_type,KNO_VOID},
 	 {"flags_arg",kno_any_type,KNO_INT(8)},
 	 {"slotfn",kno_any_type,KNO_VOID},
@@ -585,11 +583,10 @@ static lispval jsonoutput(lispval x,lispval flags_arg,
   return VOID;
 }
 
-
 DEFCPRIM("->json",jsonstring,
- KNO_MAX_ARGS(5)|KNO_MIN_ARGS(1),
- "(->JSON *obj* ...) "
- "returns a JSON string for the lisp object *obj*",
+	 KNO_MAX_ARGS(5)|KNO_MIN_ARGS(1),
+	 "(->JSON *obj* ...) "
+	 "returns a JSON string for the lisp object *obj*",
 	 {"x",kno_any_type,KNO_VOID},
 	 {"flags_arg",kno_any_type,KNO_INT(8)},
 	 {"slotfn",kno_any_type,KNO_VOID},

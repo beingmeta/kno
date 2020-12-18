@@ -187,11 +187,10 @@ lispval kno_parse_uri(u8_string uri,lispval base)
   return f;
 }
 
-
 DEFCPRIM("parseuri",parseuri,
- KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "`(PARSEURI *arg0* [*arg1*])` "
- "**undocumented**",
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	 "`(PARSEURI *arg0* [*arg1*])` "
+	 "**undocumented**",
 	 {"uri",kno_string_type,KNO_VOID},
 	 {"base",kno_any_type,KNO_VOID})
 static lispval parseuri(lispval uri,lispval base)
@@ -199,11 +198,10 @@ static lispval parseuri(lispval uri,lispval base)
   return kno_parse_uri(CSTRING(uri),base);
 }
 
-
 DEFCPRIM("mergeuris",mergeuris,
- KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
- "`(MERGEURIS *arg0* *arg1*)` "
- "**undocumented**",
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	 "`(MERGEURIS *arg0* *arg1*)` "
+	 "**undocumented**",
 	 {"uri",kno_any_type,KNO_VOID},
 	 {"base",kno_any_type,KNO_VOID})
 static lispval mergeuris(lispval uri,lispval base)
@@ -239,11 +237,10 @@ static void uri_output(u8_output out,u8_string s,int len,int upper,
 
 #define URI_ESCAPES "?#/'=<>:;&"
 
-
 DEFCPRIM("unparseuri",unparseuri,
- KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "`(UNPARSEURI *arg0* [*arg1*])` "
- "**undocumented**",
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	 "`(UNPARSEURI *arg0* [*arg1*])` "
+	 "**undocumented**",
 	 {"uri",kno_any_type,KNO_VOID},
 	 {"noencode",kno_any_type,KNO_VOID})
 static lispval unparseuri(lispval uri,lispval noencode)
@@ -317,11 +314,10 @@ static lispval unparseuri(lispval uri,lispval noencode)
   else return kno_type_error(_("table"),"unparseuri",uri);
 }
 
-
 DEFCPRIM("urischeme",urischeme_prim,
- KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(URISCHEME *arg0*)` "
- "**undocumented**",
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "`(URISCHEME *arg0*)` "
+	 "**undocumented**",
 	 {"uri_arg",kno_string_type,KNO_VOID})
 static lispval urischeme_prim(lispval uri_arg)
 {
@@ -331,11 +327,10 @@ static lispval urischeme_prim(lispval uri_arg)
   else return kno_substring(uri,scheme_end);
 }
 
-
 DEFCPRIM("urihost",urihost_prim,
- KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(URIHOST *arg0*)` "
- "**undocumented**",
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "`(URIHOST *arg0*)` "
+	 "**undocumented**",
 	 {"uri_arg",kno_string_type,KNO_VOID})
 static lispval urihost_prim(lispval uri_arg)
 {
@@ -351,11 +346,10 @@ static lispval urihost_prim(lispval uri_arg)
     else return EMPTY;}
 }
 
-
 DEFCPRIM("urifrag",urifrag_prim,
- KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(URIFRAG *arg0*)` "
- "**undocumented**",
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "`(URIFRAG *arg0*)` "
+	 "**undocumented**",
 	 {"uri_arg",kno_string_type,KNO_VOID})
 static lispval urifrag_prim(lispval uri_arg)
 {
@@ -368,11 +362,10 @@ static lispval urifrag_prim(lispval uri_arg)
   else return EMPTY;
 }
 
-
 DEFCPRIM("uriquery",uriquery_prim,
- KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(URIQUERY *arg0*)` "
- "**undocumented**",
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "`(URIQUERY *arg0*)` "
+	 "**undocumented**",
 	 {"uri_arg",kno_string_type,KNO_VOID})
 static lispval uriquery_prim(lispval uri_arg)
 {
@@ -385,11 +378,10 @@ static lispval uriquery_prim(lispval uri_arg)
   else return EMPTY;
 }
 
-
 DEFCPRIM("uribase",uribase_prim,
- KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(URIBASE *arg0*)` "
- "**undocumented**",
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "`(URIBASE *arg0*)` "
+	 "**undocumented**",
 	 {"uri_arg",kno_string_type,KNO_VOID})
 static lispval uribase_prim(lispval uri_arg)
 {
@@ -407,11 +399,10 @@ static lispval uribase_prim(lispval uri_arg)
   else return kno_incref(uri_arg);
 }
 
-
 DEFCPRIM("uripath",uripath_prim,
- KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(URIPATH *arg0*)` "
- "**undocumented**",
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "`(URIPATH *arg0*)` "
+	 "**undocumented**",
 	 {"uri_arg",kno_string_type,KNO_VOID})
 static lispval uripath_prim(lispval uri_arg)
 {
@@ -443,11 +434,10 @@ KNO_EXPORT void kno_uri_output(u8_output out,u8_string uri,int len,int upper,
 
 /* Making URI paths */
 
-
 DEFCPRIM("mkuripath",mkuripath_prim,
- KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
- "`(MKURIPATH *arg0* *arg1*)` "
- "**undocumented**",
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	 "`(MKURIPATH *arg0* *arg1*)` "
+	 "**undocumented**",
 	 {"dirname",kno_any_type,KNO_VOID},
 	 { "name",kno_string_type,KNO_VOID})
 static lispval mkuripath_prim(lispval dirname,lispval name)
@@ -489,11 +479,10 @@ static lispval mkuripath_prim(lispval dirname,lispval name)
 
 /* Making data URIs */
 
-
 DEFCPRIM("datauri",datauri_prim,
- KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "`(DATAURI *arg0* [*arg1*])` "
- "**undocumented**",
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	 "`(DATAURI *arg0* [*arg1*])` "
+	 "**undocumented**",
 	 {"data",kno_any_type,KNO_VOID},
 	 {"ctype_arg",kno_string_type,KNO_VOID})
 static lispval datauri_prim(lispval data,lispval ctype_arg)
@@ -526,11 +515,10 @@ static lispval datauri_prim(lispval data,lispval ctype_arg)
 
 /* URI encoding, etc */
 
-
 DEFCPRIM("oid2id",oid2id,
- KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "`(OID2ID *arg0* [*arg1*])` "
- "**undocumented**",
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	 "`(OID2ID *arg0* [*arg1*])` "
+	 "**undocumented**",
 	 {"oid",kno_oid_type,KNO_VOID},
 	 {"prefix",kno_any_type,KNO_VOID})
 static lispval oid2id(lispval oid,lispval prefix)
@@ -610,20 +598,19 @@ static int add_query_param(u8_output out,lispval name,lispval value,int nocolon)
 
 /* URI encoding */
 
-
 DEFCPRIM("uriencode",uriencode_prim,
- KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1)|KNO_NDCALL,
- "(uriencode *val* [*chars*] [*upper*]) "
- "encodes a value for use as a URI component (e.g. "
- "translating space into '%20'.) If *val* is a "
- "string, packet, or secret it is encoded directly, "
- "otherwise it is unparsed into a string which is "
- "then encoded. *chars*, if specified, indicates "
- "additional characters to be escaped beyond "
- "(+%=&#;) which are automatically escaped. If "
- "*upper* is not falsy, generated hex escapes are "
- "generated with uppercase letters (e.g. %A0 rather "
- "than %a0).",
+	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+	 "(uriencode *val* [*chars*] [*upper*]) "
+	 "encodes a value for use as a URI component (e.g. "
+	 "translating space into '%20'.) If *val* is a "
+	 "string, packet, or secret it is encoded directly, "
+	 "otherwise it is unparsed into a string which is "
+	 "then encoded. *chars*, if specified, indicates "
+	 "additional characters to be escaped beyond "
+	 "(+%=&#;) which are automatically escaped. If "
+	 "*upper* is not falsy, generated hex escapes are "
+	 "generated with uppercase letters (e.g. %A0 rather "
+	 "than %a0).",
 	 {"string",kno_any_type,KNO_VOID},
 	 {"escape",kno_string_type,KNO_VOID},
 	 {"uparg",kno_any_type,KNO_VOID})
@@ -654,20 +641,19 @@ static lispval uriencode_prim(lispval string,lispval escape,lispval uparg)
   else return kno_stream2string(&out);
 }
 
-
 DEFCPRIM("form->uristring",form_encode_prim,
- KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
- "(uriencode *val* [*chars*] [*upper*]) "
- "encodes a value for use as a URI component (e.g. "
- "translating space into '%20'.) If *val* is a "
- "string, packet, or secret it is encoded directly, "
- "otherwise it is unparsed into a string which is "
- "then encoded. *chars*, if specified, indicates "
- "additional characters to be escaped beyond "
- "(+%=&#;) which are automatically escaped. If "
- "*upper* is not falsy, generated hex escapes are "
- "generated with uppercase letters (e.g. %A0 rather "
- "than %a0).",
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	 "(uriencode *val* [*chars*] [*upper*]) "
+	 "encodes a value for use as a URI component (e.g. "
+	 "translating space into '%20'.) If *val* is a "
+	 "string, packet, or secret it is encoded directly, "
+	 "otherwise it is unparsed into a string which is "
+	 "then encoded. *chars*, if specified, indicates "
+	 "additional characters to be escaped beyond "
+	 "(+%=&#;) which are automatically escaped. If "
+	 "*upper* is not falsy, generated hex escapes are "
+	 "generated with uppercase letters (e.g. %A0 rather "
+	 "than %a0).",
 	 {"table",kno_any_type,KNO_VOID},
 	 {"opts",kno_any_type,KNO_VOID})
 static lispval form_encode_prim(lispval table,lispval opts)
@@ -696,13 +682,12 @@ static lispval form_encode_prim(lispval table,lispval opts)
 
 static int xdigit_weight(int c);
 
-
 DEFCPRIM("uridecode",uridecode_prim,
- KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
- "`(URIDECODE *string*)` "
- "returns a copy of *string* with all uri-encoded "
- "references converted back into their normal "
- "equivalents",
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "`(URIDECODE *string*)` "
+	 "returns a copy of *string* with all uri-encoded "
+	 "references converted back into their normal "
+	 "equivalents",
 	 {"string",kno_any_type,KNO_VOID})
 static lispval uridecode_prim(lispval string)
 {
@@ -785,7 +770,6 @@ static lispval scripturl_core(u8_string baseuri,lispval params,
   else return kno_stream2string(&out);
 }
 
-
 DEFCPRIMN("scripturl",scripturl,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	  "`(SCRIPTURL *arg0* *args...*)` "
@@ -807,7 +791,6 @@ static lispval scripturl(int n,kno_argvec args)
     return scripturl_core(NULL,VOID,n-1,args+1,1,1);
   else return scripturl_core(CSTRING(args[0]),VOID,n-1,args+1,1,0);
 }
-
 
 DEFCPRIMN("knoscripturl",knoscripturl,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
@@ -831,7 +814,6 @@ static lispval knoscripturl(int n,kno_argvec args)
   else return scripturl_core(CSTRING(args[0]),VOID,n-1,args+1,0,0);
 }
 
-
 DEFCPRIMN("scripturl+",scripturlplus,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	  "`(SCRIPTURL+ *arg0* *args...*)` "
@@ -853,7 +835,6 @@ static lispval scripturlplus(int n,kno_argvec args)
     return scripturl_core(CSTRING(args[0]),args[1],n-2,args+2,1,1);
   else return scripturl_core(CSTRING(args[0]),args[1],n-2,args+2,1,0);
 }
-
 
 DEFCPRIMN("knoscripturl+",knoscripturlplus,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,

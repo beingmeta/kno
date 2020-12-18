@@ -30,7 +30,6 @@ static lispval baseoids_symbol;
 
 /* Hashing functions */
 
-
 DEFCPRIM("hash-dtype1",lisphash1,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "`(HASH-DTYPE1 *arg0*)` "
@@ -53,7 +52,6 @@ static lispval lisphash2(lispval x)
   return KNO_INT(hash);
 }
 
-
 DEFCPRIM("hash-dtype3",lisphash3,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "`(HASH-DTYPE3 *arg0*)` "
@@ -64,7 +62,6 @@ static lispval lisphash3(lispval x)
   int hash = kno_hash_lisp3(x);
   return KNO_INT(hash);
 }
-
 
 DEFCPRIM("hash-dtype-rep",lisphashdtype,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
@@ -79,7 +76,6 @@ static lispval lisphashdtype(lispval x)
 
 /* Various OPS */
 
-
 DEFCPRIM("index-slotids",index_slotids,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "`(INDEX-SLOTIDS *arg0*)` "
@@ -92,7 +88,6 @@ static lispval index_slotids(lispval index_arg)
     return KNO_ERROR;
   else return kno_index_ctl(ix,kno_slotids_op,0,NULL);
 }
-
 
 DEFCPRIMN("indexctl",indexctl_prim,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
@@ -123,7 +118,6 @@ static lispval indexctl_prim(int n,kno_argvec args)
     return kno_err("BadIndexOp","indexctl_prim",NULL,args[1]);
   else return kno_index_ctl(ix,args[1],n-2,args+2);
 }
-
 
 DEFCPRIMN("indexctl/default",indexctl_default_prim,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
@@ -157,7 +151,6 @@ static lispval indexctl_default_prim(int n,kno_argvec args)
     else return kno_default_indexctl(ix,args[1],n-2,args+2);}
 }
 
-
 DEFCPRIMN("poolctl",poolctl_prim,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	  "`(POOLCTL *arg0* *arg1* *args...*)` "
@@ -187,7 +180,6 @@ static lispval poolctl_prim(int n,kno_argvec args)
     return kno_err("BadPoolOp","poolctl_prim",NULL,args[1]);
   else return kno_pool_ctl(p,args[1],n-2,args+2);
 }
-
 
 DEFCPRIMN("poolctl/default",poolctl_default_prim,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
@@ -221,7 +213,6 @@ static lispval poolctl_default_prim(int n,kno_argvec args)
 }
 
 /* DBCTL */
-
 
 DEFCPRIMN("dbctl",dbctl_prim,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
@@ -266,7 +257,6 @@ static lispval dbctl_prim(int n,kno_argvec args)
 
 /* ALCOR bindings */
 
-
 DEFCPRIM("alcor/save!",alcor_save_prim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3),
 	 "(ALCOR/SAVE! src head len) "
@@ -282,7 +272,6 @@ static lispval alcor_save_prim(lispval source,lispval head,lispval size_arg)
     return KNO_ERROR;
   else return KNO_INT(rv);
 }
-
 
 DEFCPRIM("alcor/apply!",alcor_apply_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),

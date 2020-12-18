@@ -67,7 +67,6 @@ static lispval tryif_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   return value;
 }
 
-
 DEFCPRIM("not",not_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "`(NOT *arg0*)` "

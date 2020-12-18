@@ -25,7 +25,6 @@ static lispval plus_prim, plus_fcnid, minus_prim, minus_fcnid, minus_prim;
 static lispval plusone_prim, plusone_fcnid, minusone_prim, minusone_fcnid;
 static lispval difference_prim, difference_fcnid;
 
-
 DEFCPRIM("compound?",compoundp,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "`(COMPOUND? *obj* *tag*)` "
@@ -82,7 +81,6 @@ static lispval pick_compounds(lispval candidates,lispval tags)
     else return kno_simplify_choice(result);}
 }
 
-
 DEFCPRIM("compound-tag",compound_tag,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "`(COMPOUND-TAG *arg0*)` "
@@ -92,7 +90,6 @@ static lispval compound_tag(lispval x)
 {
   return kno_incref(KNO_COMPOUND_TAG(x));
 }
-
 
 DEFCPRIM("compound-annotations",compound_annotations,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
@@ -111,7 +108,6 @@ static lispval compound_annotations(lispval x)
   else return KNO_EMPTY;
 }
 
-
 DEFCPRIM("compound-length",compound_length,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "`(COMPOUND-LENGTH *arg0*)` "
@@ -122,7 +118,6 @@ static lispval compound_length(lispval x)
   struct KNO_COMPOUND *compound = (struct KNO_COMPOUND *)x;
   return KNO_BYTE2LISP(compound->compound_length);
 }
-
 
 DEFCPRIM("compound-mutable?",compound_mutablep,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
@@ -137,7 +132,6 @@ static lispval compound_mutablep(lispval x)
   else return KNO_FALSE;
 }
 
-
 DEFCPRIM("compound-opaque?",compound_opaquep,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "`(COMPOUND-OPAQUE? *arg0*)` "
@@ -150,7 +144,6 @@ static lispval compound_opaquep(lispval x)
     return KNO_TRUE;
   else return KNO_FALSE;
 }
-
 
 DEFCPRIM("compound-ref",compound_ref,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
@@ -191,7 +184,6 @@ static lispval compound_ref(lispval x,lispval offset,lispval tag)
     return KNO_ERROR;}
 }
 
-
 DEFCPRIM("unpack-compound",unpack_compound,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "`(UNPACK-COMPOUND *arg0* [*arg1*])` "
@@ -220,7 +212,6 @@ static lispval unpack_compound(lispval x,lispval tag)
       u8_rw_unlock(&(compound->compound_rwlock));
     return result;}
 }
-
 
 DEFCPRIM("compound-set!",compound_set,
 	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(3)|KNO_NDCALL,
@@ -319,7 +310,6 @@ static lispval apply_modifier(lispval modifier,lispval old_value,lispval value)
 			modifier);}
 }
 
-
 DEFCPRIM("compound-modify!",compound_modify,
 	 KNO_MAX_ARGS(5)|KNO_MIN_ARGS(4)|KNO_NDCALL,
 	 "`(compound-modify! *compound* *tag* *eltno* *modfn* *modval*)` "
@@ -388,7 +378,6 @@ static lispval compound_modify(lispval x,lispval tag,lispval offset,
   }
 }
 
-
 DEFCPRIMN("make-compound",make_compound,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	  "`(make-compound *tag* *elts...*)` "
@@ -411,7 +400,6 @@ static lispval make_compound(int n,kno_argvec args)
     i++;}
   return LISP_CONS(compound);
 }
-
 
 DEFCPRIMN("make-xcompound",make_xcompound,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(5)|KNO_NDCALL,
@@ -462,7 +450,6 @@ static lispval make_xcompound(int n,kno_argvec args)
     *write++=arg;}
   return LISP_CONS(compound);
 }
-
 
 DEFCPRIM("sequence->compound",seq2compound,
 	 KNO_MAX_ARGS(6)|KNO_MIN_ARGS(2),
@@ -533,7 +520,6 @@ static lispval seq2compound(lispval seq,lispval tag,
     return LISP_CONS(compound);}
 }
 
-
 DEFCPRIMN("make-opaque-compound",make_opaque_compound,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	  "`(MAKE-OPAQUE-COMPOUND *arg0* *args...*)` "
@@ -556,7 +542,6 @@ static lispval make_opaque_compound(int n,kno_argvec args)
   return LISP_CONS(compound);
 }
 
-
 DEFCPRIMN("make-mutable-compound",make_mutable_compound,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	  "`(MAKE-MUTABLE-COMPOUND *arg0* *args...*)` "
@@ -578,7 +563,6 @@ static lispval make_mutable_compound(int n,kno_argvec args)
     i++;}
   return LISP_CONS(compound);
 }
-
 
 DEFCPRIMN("make-opaque-mutable-compound",make_opaque_mutable_compound,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
