@@ -35,7 +35,7 @@ INLINE_DEF lispval eval_lexref(lispval lexref,kno_lexenv env_arg)
     if (RARELY((env->env_copy!=NULL))) env = env->env_copy;
     env = env->env_parent;
     up--;}
-  if (KNO_EXPECT_TRUE(env != NULL)) {
+  if (KNO_USUALLY(env != NULL)) {
     if (RARELY((env->env_copy != NULL))) env = env->env_copy;
     if (env->env_vals) {
       int vals_len = env->env_bits & (0xFF);
@@ -44,7 +44,7 @@ INLINE_DEF lispval eval_lexref(lispval lexref,kno_lexenv env_arg)
       else v = KNO_ERROR;}
     else {
       lispval bindings = env->env_bindings;
-      if (KNO_EXPECT_TRUE(KNO_SCHEMAPP(bindings))) {
+      if (KNO_USUALLY(KNO_SCHEMAPP(bindings))) {
 	struct KNO_SCHEMAP *s = (struct KNO_SCHEMAP *)bindings;
 	if ( across < s->schema_length) {
 	  v = s->table_values[across];}

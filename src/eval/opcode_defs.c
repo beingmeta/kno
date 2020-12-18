@@ -1096,7 +1096,7 @@ static lispval handle_special_opcode(lispval opcode,lispval args,lispval expr,
   switch (opcode) {
   case KNO_QUOTE_OPCODE: {
     lispval arg = pop_arg(args);
-    if (KNO_EXPECT_FALSE(KNO_VOIDP(arg)))
+    if (KNO_RARELY(KNO_VOIDP(arg)))
       return kno_err(kno_SyntaxError,"opcode_eval",NULL,expr);
     else if (KNO_CONSP(arg))
       return kno_incref(arg);
@@ -1104,7 +1104,7 @@ static lispval handle_special_opcode(lispval opcode,lispval args,lispval expr,
   case KNO_SYMREF_OPCODE: {
     lispval refenv=pop_arg(args);
     lispval sym=pop_arg(args);
-    if (KNO_EXPECT_FALSE(!(KNO_SYMBOLP(sym))))
+    if (KNO_RARELY(!(KNO_SYMBOLP(sym))))
       return kno_err(kno_SyntaxError,"KNO_SYMREF_OPCODE/badsym",NULL,expr);
     if (HASHTABLEP(refenv))
       return kno_hashtable_get((kno_hashtable)refenv,sym,KNO_UNBOUND);
@@ -1171,7 +1171,7 @@ static lispval handle_special_opcode(lispval opcode,lispval args,lispval expr,
   case KNO_XPRED_OPCODE: {
     lispval type_arg = pop_arg(args);
     lispval obj_expr = pop_arg(args);
-    if (KNO_EXPECT_FALSE(VOIDP(obj_expr))) {
+    if (KNO_RARELY(VOIDP(obj_expr))) {
       kno_seterr(kno_SyntaxError,"KNO_XREF_OPCODE",NULL,expr);
       return KNO_ERROR_VALUE;}
     lispval obj_arg = kno_eval(obj_expr,env,_stack,0);

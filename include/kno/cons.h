@@ -82,27 +82,27 @@ KNO_EXPORT u8_condition kno_MallocFailed, kno_StringOverflow, kno_StackOverflow;
 KNO_EXPORT u8_condition kno_DoubleGC, kno_UsingFreedCons, kno_FreeingNonHeapCons;
 
 #define KNO_GET_CONS(x,typecode,cast)					\
-  ((KNO_EXPECT_TRUE(KNO_TYPEP(x,typecode))) ?				\
+  ((KNO_USUALLY(KNO_TYPEP(x,typecode))) ?				\
    ((cast)(KNO_CONS_DATA(x))) :						\
    ((cast)(kno_err(kno_TypeError,kno_type_names[typecode],NULL,x),NULL)))
 
 #define KNO_STRIP_CONS(x,typecode,typecast) ((typecast)(KNO_CONS_DATA(x)))
 
 #define KNO_CHECK_TYPE_THROW(x,typecode)		   \
-  if (KNO_EXPECT_FALSE(!((KNO_CONS_TYPE(x)) == typecode))) \
+  if (KNO_RARELY(!((KNO_CONS_TYPE(x)) == typecode))) \
     u8_raise(kno_TypeError,kno_type_names[typecode],NULL)
 
 #define KNO_CHECK_TYPE_RET(x,typecode)				      \
-  if (KNO_EXPECT_FALSE(!((KNO_CONS_TYPE(x)) == typecode))) {		\
+  if (KNO_RARELY(!((KNO_CONS_TYPE(x)) == typecode))) {		\
     kno_seterr(kno_TypeError,kno_type_names[typecode],NULL,(lispval)x); \
     return -1;}
 
 #define KNO_CHECK_TYPE_RETDTYPE(x,typecode)				\
-  if (KNO_EXPECT_FALSE(!((KNO_CONS_TYPE(x)) == typecode)))		\
+  if (KNO_RARELY(!((KNO_CONS_TYPE(x)) == typecode)))		\
     return kno_err(kno_TypeError,kno_type_names[typecode],NULL,(lispval)x);
 
 #define KNO_CHECK_TYPE_RETVAL(x,typecode,val)				\
-  if (KNO_EXPECT_FALSE(!((KNO_CONS_TYPE(x)) == typecode))) {		\
+  if (KNO_RARELY(!((KNO_CONS_TYPE(x)) == typecode))) {		\
     kno_seterr(kno_TypeError,kno_type_names[typecode],NULL,(lispval)x); \
     return val;}
 
@@ -266,7 +266,7 @@ KNO_EXPORT void kno_decref_vec(lispval *vec,size_t n);
 #if ( KNO_INLINE_REFCOUNTS && KNO_LOCKFREE_REFCOUNTS )
 KNO_INLINE_FCN lispval _kno_incref(struct KNO_REF_CONS *x)
 {
-  if (KNO_EXPECT_FALSE(x == NULL))
+  if (KNO_RARELY(x == NULL))
     return KNO_BADPTR;
   else {
     kno_consbits cb = atomic_load(&(x->conshead));
@@ -289,7 +289,7 @@ KNO_INLINE_FCN lispval _kno_incref(struct KNO_REF_CONS *x)
 
 KNO_INLINE_FCN void _kno_decref(struct KNO_REF_CONS *x)
 {
-  if (KNO_EXPECT_FALSE(x == NULL)) return;
+  if (KNO_RARELY(x == NULL)) return;
   kno_consbits cb = atomic_load(&(x->conshead));
   if (cb>=0xFFFFFF80) {
     u8_raise(kno_DoubleGC,"kno_decref",NULL);}

@@ -308,7 +308,7 @@ KNO_EXPORT u8_condition kno_get_pointer_exception(lispval x);
 KNO_EXPORT lispval kno_badptr_err(lispval badx,u8_context cxt,u8_string details);
 
 #define KNO_VALID_TYPECODEP(x)                                  \
-  (KNO_EXPECT_TRUE((((int)x)>=0) &&                             \
+  (KNO_USUALLY((((int)x)>=0) &&                             \
                   (((int)x)<0x200) &&                            \
                   (((x<0x84)&&((x)<kno_next_immediate_type)) || \
                    ((x<0x100)&&((x)<kno_next_cons_type)) || \
@@ -409,7 +409,7 @@ KNO_FASTOP U8_MAYBE_UNUSED lispval LISPVAL(lispval x){ return x;}
 
 #define KNO_CONSPTR(cast,x) ((cast)((kno_cons)x))
 #define kno_consptr(cast,x,typecode)                                     \
-  ((KNO_EXPECT_TRUE(KNO_TYPEP(x,typecode))) ?                           \
+  ((KNO_USUALLY(KNO_TYPEP(x,typecode))) ?                           \
    ((cast)((kno_cons)(x))) :                                            \
    ((((KNO_CHECK_PTR(x)) ?                                              \
       (kno_raise(kno_TypeError,kno_type_names[typecode],NULL,x)) :      \
@@ -801,12 +801,12 @@ KNO_EXPORT int _KNO_ERRORP(lispval x);
     (KNO_GET_IMMEDIATE(x,kno_constant_type)>7) && \
     (KNO_GET_IMMEDIATE(x,kno_constant_type)<16)))
 #endif
-#define KNO_TROUBLEP(x) (KNO_EXPECT_FALSE(KNO_ERRORP(x)))
+#define KNO_TROUBLEP(x) (KNO_RARELY(KNO_ERRORP(x)))
 #define KNO_COOLP(x) (!(KNO_TROUBLEP(x)))
 
-#define KNO_BROKEP(x) (KNO_EXPECT_FALSE(KNO_BREAKP(x)))
-#define KNO_ABORTED(x) (KNO_EXPECT_FALSE(KNO_ABORTP(x)))
-#define KNO_INTERRUPTED() (KNO_EXPECT_FALSE(u8_current_exception!=(NULL)))
+#define KNO_BROKEP(x) (KNO_RARELY(KNO_BREAKP(x)))
+#define KNO_ABORTED(x) (KNO_RARELY(KNO_ABORTP(x)))
+#define KNO_INTERRUPTED() (KNO_RARELY(u8_current_exception!=(NULL)))
 
 #define KNO_CONSTANTP(x) (KNO_IMMEDIATE_TYPEP(x,kno_constant_type))
 
@@ -953,7 +953,7 @@ static U8_MAYBE_UNUSED lispval _kno_fcnid_ref(lispval ref)
 {
   if (KNO_IMMEDIATE_TYPEP(ref,kno_fcnid_type)) {
     int serialno = KNO_GET_IMMEDIATE(ref,kno_fcnid_type);
-    if (KNO_EXPECT_FALSE(serialno>_kno_fcnid_count))
+    if (KNO_RARELY(serialno>_kno_fcnid_count))
       return kno_err(kno_InvalidFCNID,"_kno_fcnid_ref",NULL,ref);
     else return (lispval) _kno_fcnids
            [serialno/KNO_FCNID_BLOCKSIZE]
@@ -1089,18 +1089,18 @@ KNO_EXPORT int kno_check_immediate(lispval);
    (kno_check_immediate(x)))
 
 #if KNO_FULL_CHECK_PTR
-#define KNO_CHECK_PTR(p) (KNO_EXPECT_TRUE(KNO_CHECK_CONS_PTR(p)))
+#define KNO_CHECK_PTR(p) (KNO_USUALLY(KNO_CHECK_CONS_PTR(p)))
 #else
-#define KNO_CHECK_PTR(p) (KNO_EXPECT_TRUE(KNO_CHECK_ATOMIC_PTR(p)))
+#define KNO_CHECK_PTR(p) (KNO_USUALLY(KNO_CHECK_ATOMIC_PTR(p)))
 #endif
 
 #ifdef KNO_PTR_DEBUG_LEVEL
 #if (KNO_PTR_DEBUG_LEVEL>2)
-#define KNO_DEBUG_BADPTRP(x) (KNO_EXPECT_FALSE(!(KNO_CHECK_PTR(x))))
+#define KNO_DEBUG_BADPTRP(x) (KNO_RARELY(!(KNO_CHECK_PTR(x))))
 #elif (KNO_PTR_DEBUG_LEVEL==2)
-#define KNO_DEBUG_BADPTRP(x) (KNO_EXPECT_FALSE(!(KNO_CHECK_ATOMIC_PTR(x))))
+#define KNO_DEBUG_BADPTRP(x) (KNO_RARELY(!(KNO_CHECK_ATOMIC_PTR(x))))
 #elif (KNO_PTR_DEBUG_LEVEL==1)
-#define KNO_DEBUG_BADPTRP(x) (KNO_EXPECT_FALSE((x) == KNO_NULL))
+#define KNO_DEBUG_BADPTRP(x) (KNO_RARELY((x) == KNO_NULL))
 #else
 #define KNO_DEBUG_BADPTRP(x) (0)
 #endif

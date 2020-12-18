@@ -337,15 +337,15 @@ typedef int kno_size_t;
 #endif
 
 #if HAVE_BUILTIN_EXPECT
-#define KNO_EXPECT_TRUE(x) (__builtin_expect(!!(x),1))
-#define KNO_EXPECT_FALSE(x) (__builtin_expect(!!(x),0))
 #define KNO_USUALLY(x) (__builtin_expect(!!(x),1))
 #define KNO_RARELY(x) (__builtin_expect(!!(x),0))
+#define KNO_EXPECT_TRUE(x) (__builtin_expect(!!(x),1))
+#define KNO_EXPECT_FALSE(x) (__builtin_expect(!!(x),0))
 #else
-#define KNO_EXPECT_TRUE(x)  (x)
-#define KNO_EXPECT_FALSE(x) (x)
 #define KNO_USUALLY(x)      (x)
 #define KNO_RARELY(x)       (x)
+#define KNO_EXPECT_TRUE(x)  (x)
+#define KNO_EXPECT_FALSE(x) (x)
 #endif
 
 #if HAVE_BUILTIN_PREFETCH
@@ -534,15 +534,15 @@ typedef double kno_double;
 #define SLOTMAPP(x) (KNO_SLOTMAPP(x))
 #define SCHEMAPP(x) (KNO_SCHEMAPP(x))
 #define HASHTABLEP(x) (KNO_HASHTABLEP(x))
-#define PRED_FALSE(x)  (KNO_EXPECT_FALSE(x))
-#define PRED_TRUE(x)  (KNO_EXPECT_TRUE(x))
-#define SYMBOL_NAME(x) (KNO_SYMBOL_NAME(x))
-#define USUALLY(x)  (KNO_EXPECT_TRUE(x))
+#define USUALLY(x)  (KNO_USUALLY(x))
 #define RARELY(x) (KNO_RARELY(x))
+#define SYMBOL_NAME(x) (KNO_SYMBOL_NAME(x))
 #define COMPOUND_VECTORP(x) (KNO_COMPOUND_VECTORP(x))
 #define COMPOUND_VECLEN(x)  (KNO_COMPOUND_VECLEN(x))
 #define COMPOUND_VECELTS(x)  (KNO_COMPOUND_VECELTS(x))
 #define XCOMPOUND_VEC_REF(x,i) (KNO_XCOMPOUND_VECREF((x),(i)))
+#define PRED_FALSE(x)  (KNO_EXPECT_FALSE(x))
+#define PRED_TRUE(x)  (KNO_EXPECT_TRUE(x))
 #endif
 
 #endif /* KNO_DEFINES_H */

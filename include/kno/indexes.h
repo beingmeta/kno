@@ -419,8 +419,8 @@ KNO_FASTOP int kno_index_add(kno_index ix_arg,lispval key,lispval value)
 
   if (rv<0) {}
   else if ((!(KNO_VOIDP(ix->index_covers_slotids))) &&
-           (KNO_EXPECT_TRUE(KNO_PAIRP(key))) &&
-           (KNO_EXPECT_TRUE((KNO_OIDP(KNO_CAR(key))) ||
+           (KNO_USUALLY(KNO_PAIRP(key))) &&
+           (KNO_USUALLY((KNO_OIDP(KNO_CAR(key))) ||
                            (KNO_SYMBOLP(KNO_CAR(key)))))) {
     if (!(kno_contains_atomp(KNO_CAR(key),ix->index_covers_slotids))) {
       kno_decref(ix->index_covers_slotids);

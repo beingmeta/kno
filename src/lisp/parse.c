@@ -40,7 +40,7 @@
 
 #define PARSE_ERRORP(x) ((x == KNO_EOX) || (x == KNO_PARSE_ERROR) || (x == KNO_OOM))
 #define PARSE_ABORTP(x)                                                 \
-  (KNO_EXPECT_FALSE(((KNO_TYPEP(x,kno_constant_type)) &&                \
+  (KNO_RARELY(((KNO_TYPEP(x,kno_constant_type)) &&                \
                      (KNO_GET_IMMEDIATE(x,kno_constant_type)>6) &&      \
                      (KNO_GET_IMMEDIATE(x,kno_constant_type)<16))))
 

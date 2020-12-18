@@ -2485,7 +2485,7 @@ static lispval seq2intvec(lispval arg)
   else if (KNO_SEQUENCEP(arg)) {
     int n = -1;
     lispval *data = kno_seq_elts(arg,&n);
-    if (KNO_EXPECT_FALSE(n < 0)) {
+    if (KNO_RARELY(n < 0)) {
       kno_seterr("NonEnumerableSequence","seq2intvec",NULL,arg);
       return KNO_ERROR;}
     lispval result = make_int_vector(n,data);
@@ -2512,7 +2512,7 @@ static lispval seq2longvec(lispval arg)
   else if (KNO_SEQUENCEP(arg)) {
     int n = -1;
     lispval *data = kno_seq_elts(arg,&n);
-    if (KNO_EXPECT_TRUE(n < 0)) {
+    if (KNO_USUALLY(n < 0)) {
       kno_seterr("NonEnumerableSequence","seq2longvec",NULL,arg);
       return KNO_ERROR;}
     lispval result = make_long_vector(n,data);
@@ -2539,7 +2539,7 @@ static lispval seq2floatvec(lispval arg)
   else if (KNO_SEQUENCEP(arg)) {
     int n = -1;
     lispval *data = kno_seq_elts(arg,&n);
-    if (KNO_EXPECT_TRUE(n < 0)) {
+    if (KNO_USUALLY(n < 0)) {
       kno_seterr("NonEnumerableSequence","seq2floatvec",NULL,arg);
       return KNO_ERROR;}
     lispval result = make_float_vector(n,data);
@@ -2566,7 +2566,7 @@ static lispval seq2doublevec(lispval arg)
   else if (KNO_SEQUENCEP(arg)) {
     int n = -1;
     lispval *data = kno_seq_elts(arg,&n);
-    if (KNO_EXPECT_TRUE(n < 0)) {
+    if (KNO_USUALLY(n < 0)) {
       kno_seterr("NonEnumerableSequence","seq2doublevec",NULL,arg);
       return KNO_ERROR;}
     lispval result = make_double_vector(n,data);

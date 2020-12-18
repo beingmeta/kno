@@ -2560,7 +2560,7 @@ static int hashindex_save(struct KNO_HASHINDEX *hx,
     struct KEYBUCKET *kb = keybuckets[bucket_i];
     int bucket = schedule[sched_i].commit_bucket;
     int j = sched_i, cur_keys = kb->kb_n_keys;
-    if (KNO_EXPECT_FALSE(bucket != kb->kb_bucketno)) {
+    if (KNO_RARELY(bucket != kb->kb_bucketno)) {
       u8_log(LOG_CRIT,"HashIndexError",
              "Bucket at sched_i=%d/%d was %d != %d (expected) in %s",
              sched_i,schedule_size,bucket,kb->kb_bucketno,hx->indexid);}

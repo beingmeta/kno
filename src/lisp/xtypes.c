@@ -259,7 +259,7 @@ static ssize_t write_xtype(kno_outbuf out,lispval x,xtype_refs refs)
     ssize_t len = strlen(pname);
     int rv = kno_write_byte(out,xt_symbol);
     rv = kno_write_varint(out,len);
-    if (KNO_EXPECT_FALSE(rv<0))
+    if (KNO_RARELY(rv<0))
       return rv;
     return 1+rv+kno_write_bytes(out,pname,len);}
   else if (KNO_CHARACTERP(x)) {
