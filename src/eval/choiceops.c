@@ -1860,6 +1860,84 @@ static lispval pick_gt_prim(lispval items,lispval num,lispval checktype)
 }
 
 
+DEFCPRIM("pick/hastype",pick_hastype_prim,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	 "Selects elements in *items* which satisfy any of *types*",
+	 {"items",kno_any_type,KNO_VOID},
+	 {"types",kno_any_type,KNO_VOID})
+static lispval pick_hastype_prim(lispval items,lispval types)
+{
+  if (KNO_EMPTYP(items)) return KNO_EMPTY;
+  else if (KNO_EMPTYP(types)) return KNO_EMPTY;
+  else if (KNO_CHOICEP(items)) {
+    int n_elts = KNO_CHOICE_SIZE(items);
+    kno_choice newch = kno_alloc_choice(n_elts);
+    const lispval *elts = KNO_CHOICE_ELTS(items);
+    lispval *newelts = (lispval *) KNO_CHOICE_DATA(newch);
+    const lispval *read=elts, *limit=elts+n_elts;;
+    lispval *write=newelts;
+    const lispval *typevec =
+      (KNO_CHOICEP(types)) ? (KNO_CHOICE_ELTS(types)) : (&types),
+      *typevec_limit = typevec+KNO_CHOICE_SIZE(types);
+    while (read<limit) {
+      lispval item = *read++;
+      const lispval *scantype = typevec;
+      while (scantype<typevec_limit) {
+	if (KNO_CHECKTYPE(item,types)) {
+	  *write++=item; kno_incref(item);
+	  break;}
+	scantype++;}}
+    return kno_init_choice(newch,write-newelts,newelts,
+			   KNO_CHOICE_REALLOC|KNO_CHOICE_FREEDATA);}
+  else if (KNO_CHOICEP(types)) {
+    KNO_DO_CHOICES(type,types) {
+      if ( (KNO_CHECKTYPE(items,type)) )
+	return kno_incref(items);}
+    return KNO_EMPTY;}
+  else if (KNO_CHECKTYPE(items,types))
+    return kno_incref(items);
+  else return KNO_EMPTY;
+}
+
+DEFCPRIM("reject/hastype",reject_hastype_prim,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	 "Selects elements in *items* which _don't_ satisfy any of *types*",
+	 {"items",kno_any_type,KNO_VOID},
+	 {"types",kno_any_type,KNO_VOID})
+static lispval reject_hastype_prim(lispval items,lispval types)
+{
+  if (KNO_EMPTYP(items)) return KNO_EMPTY;
+  else if (KNO_EMPTYP(types)) return kno_incref(items);
+  else if (KNO_CHOICEP(items)) {
+    int n_elts = KNO_CHOICE_SIZE(items);
+    kno_choice newch = kno_alloc_choice(n_elts);
+    const lispval *elts = KNO_CHOICE_ELTS(items);
+    lispval *newelts = (lispval *) KNO_CHOICE_DATA(newch);
+    const lispval *read=elts, *limit=elts+n_elts;;
+    lispval *write=newelts;
+    const lispval *typevec =
+      (KNO_CHOICEP(types)) ? (KNO_CHOICE_ELTS(types)) : (&types),
+      *typevec_limit = typevec+KNO_CHOICE_SIZE(types);
+    while (read<limit) {
+      lispval item = *read++;
+      const lispval *scantype = typevec;
+      while (scantype<typevec_limit) {
+	if (!(KNO_CHECKTYPE(item,types))) {
+	  *write++=item; kno_incref(item);
+	  break;}
+	scantype++;}}
+    return kno_init_choice(newch,write-newelts,newelts,
+			   KNO_CHOICE_REALLOC|KNO_CHOICE_FREEDATA);}
+  else if (KNO_CHOICEP(types)) {
+    KNO_DO_CHOICES(type,types) {
+      if (! (KNO_CHECKTYPE(items,type)) )
+	return KNO_EMPTY;}
+    return kno_incref(items);}
+  else if (KNO_CHECKTYPE(items,types))
+    return KNO_EMPTY;
+  else return kno_incref(items);
+}
+
 DEFCPRIM("pickoids",pick_oids_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	 "`(PICKOIDS *objects*)` "
@@ -2092,6 +2170,9 @@ static void link_local_cprims()
   KNO_LINK_CVARARGS("qchoice",qchoice_prim,scheme_module);
   KNO_LINK_CVARARGS("choice",choice_prim,scheme_module);
   KNO_LINK_CPRIM("fail",fail_prim,0,scheme_module);
+
+  KNO_LINK_CPRIM("pick/hastype",pick_hastype_prim,2,scheme_module);
+  KNO_LINK_CPRIM("reject/hastype",reject_hastype_prim,2,scheme_module);
 
   KNO_LINK_ALIAS("qc",qchoice_prim,scheme_module);
   KNO_LINK_ALIAS("qcx",qchoicex_prim,scheme_module);

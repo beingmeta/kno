@@ -651,7 +651,6 @@ static lispval typeof_prim(lispval x)
   else return kno_mkstring("unknown");
 }
 
-
 DEFCPRIM("tagged?",taggedp_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "`(TAGGED? *arg0* [*arg1*])` "
@@ -677,18 +676,73 @@ static lispval taggedp_prim(lispval x,lispval tag)
   else return KNO_FALSE;
 }
 
-
-DEFCPRIM("typep",typep_prim,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "`(TYPEP *obj* *type*)` "
+DEFCPRIM("hastype?",hastypep_prim,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	 "**undocumented**",
-	 {"x",kno_any_type,KNO_VOID},
-	 {"typeval",kno_type_type,KNO_VOID})
-static lispval typep_prim(lispval x,lispval typeval)
+	 {"items",kno_any_type,KNO_VOID},
+	 {"types",kno_type_type,KNO_VOID})
+static lispval hastypep_prim(lispval items,lispval types)
 {
-  return (KNO_CHECKTYPE(x,typeval));
+  if (KNO_EMPTYP(types))
+    return KNO_FALSE;
+  else if (KNO_EMPTYP(items))
+    return KNO_FALSE;
+  else if (KNO_CHOICEP(items)) {
+    if (KNO_CHOICEP(types)) {
+      KNO_DO_CHOICES(item,items) {
+	KNO_DO_CHOICES(typeval,types) {
+	  if (KNO_CHECKTYPE(item,typeval))
+	    return KNO_TRUE;}}
+      return KNO_FALSE;}
+    else {
+      KNO_DO_CHOICES(item,items) {
+	if (KNO_CHECKTYPE(item,types))
+	  return KNO_TRUE;}
+      return KNO_FALSE;}}
+  else if (KNO_CHOICEP(types)) {
+    KNO_DO_CHOICES(typeval,types) {
+      if (KNO_CHECKTYPE(items,typeval))
+	return KNO_TRUE;}
+    return KNO_FALSE;}
+  else if (KNO_CHECKTYPE(items,types))
+    return KNO_TRUE;
+  else return KNO_FALSE;
 }
 
+DEFCPRIM("only-hastype?",only_hastypep_prim,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	 "**undocumented**",
+	 {"items",kno_any_type,KNO_VOID},
+	 {"types",kno_type_type,KNO_VOID})
+static lispval only_hastypep_prim(lispval items,lispval types)
+{
+  if (KNO_EMPTYP(types))
+    return KNO_FALSE;
+  else if (KNO_EMPTYP(items))
+    return KNO_FALSE;
+  else if (KNO_CHOICEP(items)) {
+    if (KNO_CHOICEP(types)) {
+      KNO_DO_CHOICES(item,items) {
+	int matched = 0;
+	KNO_DO_CHOICES(typeval,types) {
+	  if (KNO_CHECKTYPE(item,typeval)) {
+	    matched=0; KNO_STOP_DO_CHOICES; break;}}
+	if (!(matched)) return KNO_FALSE;}
+      return KNO_TRUE;}
+    else {
+      KNO_DO_CHOICES(item,items) {
+	if (!(KNO_CHECKTYPE(item,types)))
+	  return KNO_FALSE;}
+      return KNO_TRUE;}}
+  else if (KNO_CHOICEP(types)) {
+    KNO_DO_CHOICES(typeval,types) {
+      if (!(KNO_CHECKTYPE(items,typeval)))
+	return KNO_FALSE;}
+    return KNO_TRUE;}
+  else if (KNO_CHECKTYPE(items,types))
+    return KNO_TRUE;
+  else return KNO_FALSE;
+}
 
 DEFCPRIM("intern",lisp_intern,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
@@ -1162,8 +1216,9 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("allsymbols",lisp_all_symbols,0,scheme_module);
   KNO_LINK_CPRIM("intern",lisp_intern,1,scheme_module);
   KNO_LINK_CPRIM("tagged?",taggedp_prim,2,scheme_module);
-  KNO_LINK_CPRIM("typep",typep_prim,2,scheme_module);
+  KNO_LINK_CPRIM("hastype?",hastypep_prim,2,scheme_module);
   KNO_LINK_CPRIM("typeof",typeof_prim,1,scheme_module);
+  KNO_LINK_CPRIM("only-type?",only_hastypep_prim,2,scheme_module);
   KNO_LINK_CPRIM("false?",falsep,1,scheme_module);
   KNO_LINK_CPRIM("true?",truep,1,scheme_module);
   KNO_LINK_CPRIM("boolean?",booleanp,1,scheme_module);
@@ -1214,7 +1269,7 @@ static void link_local_cprims()
   KNO_LINK_ALIAS("⊆",overlapsp,scheme_module);
   KNO_LINK_ALIAS("char?",characterp,scheme_module);
   KNO_LINK_ALIAS("error?",exceptionp,scheme_module);
-
+  KNO_LINK_ALIAS("typep",hastypep_prim,scheme_module);
 
   KNO_LINK_CPRIM("cons",cons_prim,2,kno_scheme_module);
   KNO_LINK_CPRIM("cdr",cdr_prim,1,kno_scheme_module);
