@@ -64,7 +64,7 @@ lispval kno_timestamp_xtag, kno_qchoice_xtag, kno_regex_xtag,
   kno_rational_xtag, kno_complex_xtag, kno_bigtable_xtag, kno_bigset_xtag;
 lispval kno_zlib_xtag, kno_zstd_xtag, kno_snappy_xtag;
 
-const char *kno_constant_names[256]={
+const char *kno_constant_names[512]={
   "#void","#f","#t","{}","()","#default","#tailcall",
   "#eof","#eod","#eox", "#bad_dtype","#bad_parse","#oom",
   "#type_error","#range_error", "#error","#badptr","#throw",
@@ -92,7 +92,33 @@ const char *kno_constant_names[256]={
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL, /* 250 */
-  NULL,NULL,NULL,NULL,NULL};
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL};
 
 KNO_EXPORT
 lispval kno_register_constant(u8_string name)
@@ -663,8 +689,13 @@ KNO_EXPORT int _kno_lookup_type_alias(long int code)
   return kno_lookup_type_alias(code);
 }
 
-KNO_EXPORT int kno_add_type_alias(long int code,kno_lisp_type type)
+KNO_EXPORT int kno_add_type_alias(int type,long int code)
 {
+  if (type>=KNO_TYPE_MAX) {
+    u8_seterr("BadTypeCode","kno_add_type_alias",
+	      u8_mkstring("typecode=%d with longcode = 0x%llx",
+			  type,code));
+    return -1;}
   u8_lock_mutex(&type_aliases_lock);
   int typecode = kno_lookup_type_alias(code), retval = 0;
   if (typecode > 0) {

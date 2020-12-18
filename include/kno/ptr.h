@@ -282,7 +282,7 @@ KNO_EXPORT u8_string kno_type_docs[KNO_TYPE_MAX];
 
 struct KNO_TYPE_ALIAS { long int longcode; kno_lisp_type ptr_type; }; 
 
-KNO_EXPORT int kno_add_type_alias(long int code,kno_lisp_type type);
+KNO_EXPORT int kno_add_type_alias(int type,long int code);
 KNO_EXPORT int _kno_lookup_type_alias(long int code);
 KNO_EXPORT struct KNO_TYPE_ALIAS _kno_type_aliases[];
 KNO_EXPORT int _kno_n_type_aliases;
