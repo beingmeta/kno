@@ -156,7 +156,7 @@ KNO_EXPORT int _KNO_XTYPEP(lispval x,int type)
     case kno_table_type: return KNO_TABLEP(x);
     case kno_type_type:
       if ( (KNO_OIDP(x)) || (KNO_SYMBOLP(x)) ||
-	   (KNO_IMMEDIATE_TYPEP(x,kno_basetype_type)) ||
+	   (KNO_IMMEDIATE_TYPEP(x,kno_ctype_type)) ||
 	   (KNO_TYPEP(x,kno_typeinfo_type)) )
 	return 1;
       else return 0;
@@ -187,7 +187,7 @@ KNO_EXPORT int _KNO_CHECKTYPE(lispval obj,lispval objtype)
     if (KNO_IMMEDIATE_TYPEP(objtype,kno_symbol_type))
       return ( ( (KNO_COMPOUNDP(obj)) && ( (KNO_COMPOUND_TAG(obj)) == objtype) ) ||
 	       ( (KNO_TYPEP(obj,kno_rawptr_type)) && ( (KNO_RAWPTR_TAG(obj)) == objtype) ) );
-    else if (KNO_IMMEDIATE_TYPEP(objtype,kno_basetype_type)) {
+    else if (KNO_IMMEDIATE_TYPEP(objtype,kno_ctype_type)) {
       kno_lisp_type ltype = (KNO_IMMEDIATE_DATA(objtype));
       return (KNO_TYPEP(obj,ltype));}
     else return 0;}
@@ -196,10 +196,14 @@ KNO_EXPORT int _KNO_CHECKTYPE(lispval obj,lispval objtype)
 	     ( (KNO_TYPEP(obj,kno_rawptr_type)) && ( (KNO_RAWPTR_TAG(obj)) == objtype) ) );
   else if (KNO_TYPEP(objtype,kno_typeinfo_type)) {
     struct KNO_TYPEINFO *info = (kno_typeinfo) objtype;
-    if (KNO_COMPOUNDP(obj))
-      return ( (KNO_COMPOUND_TAG(obj)) == info->typetag);
+    if ( (info->type_basetype>=0) && (!(KNO_TYPEP(obj,info->type_basetype))) )
+      return 0;
+    else if (KNO_COMPOUNDP(obj))
+      return ( (KNO_COMPOUND_TAG(obj)) == info->typetag) &&
+	( (info->type_testfn == NULL) || ((info->type_testfn(obj,info))) );
     else if (KNO_TYPEP(obj,kno_rawptr_type))
-      return ( (KNO_RAWPTR_TAG(obj)) == info->typetag);
+      return ( (KNO_RAWPTR_TAG(obj)) == info->typetag) &&
+	( (info->type_testfn == NULL) || ((info->type_testfn(obj,info))) );
     else return 0;}
   else return 0;
 }
@@ -315,6 +319,8 @@ static void init_type_names()
   kno_type_docs[kno_index_type]=_("index");
   kno_type_names[kno_histref_type]=_("histref");
   kno_type_docs[kno_histref_type]=_("histref");
+  kno_type_names[kno_ctype_type]=_("basetype");
+  kno_type_docs[kno_ctype_type]=_("a representation of a primitive C type");
 
   kno_type_names[kno_string_type]=_("string");
   kno_type_docs[kno_string_type]=_("string");
@@ -333,8 +339,6 @@ static void init_type_names()
   kno_type_docs[kno_typeinfo_type]=_("typeinfo");
   kno_type_names[kno_compound_type]=_("compound");
   kno_type_docs[kno_compound_type]=_("compound");
-  kno_type_names[kno_wrapper_type]=_("wrapper");
-  kno_type_docs[kno_wrapper_type]=_("wrapper");
   kno_type_names[kno_rawptr_type]=_("rawptr");
   kno_type_docs[kno_rawptr_type]=_("rawptr");
 
@@ -398,17 +402,29 @@ static void init_type_names()
   kno_type_docs[kno_uuid_type]=_("uuid");
 
   kno_type_names[kno_mystery_type]=_("mystery");
-  kno_type_docs[kno_mystery_type]=_("mystery");
+  kno_type_docs[kno_mystery_type]=
+    _("an object whose representation could not be decoded");
   kno_type_names[kno_ioport_type]=_("ioport");
-  kno_type_docs[kno_ioport_type]=_("ioport");
+  kno_type_docs[kno_ioport_type]=_("a textual I/O port");
   kno_type_names[kno_stream_type]=_("stream");
-  kno_type_docs[kno_stream_type]=_("stream");
+  kno_type_docs[kno_stream_type]=_("a binary I/O stream");
 
   kno_type_names[kno_regex_type]=_("regex");
   kno_type_docs[kno_regex_type]=_("regex");
 
+  kno_type_names[kno_subjob_type]=_("subjog");
+  kno_type_docs[kno_subjob_type]=_("a sub-process (subjob) object");
+
   kno_type_names[kno_consblock_type]=_("consblock");
   kno_type_docs[kno_consblock_type]=_("consblock");
+
+  kno_type_names[kno_consed_pool_type]=_("raw pool");
+  kno_type_docs[kno_consed_pool_type]=
+    _("a pointer to an unregistered ('eternal') pool");
+
+  kno_type_names[kno_consed_index_type]=_("raw index");
+  kno_type_docs[kno_consed_index_type]=
+    _("a pointer to an unregistered ('eternal') index");
 
   kno_type_names[kno_sqldb_type]=_("sqldb");
   kno_type_docs[kno_sqldb_type]=_("sqldb");
@@ -417,17 +433,16 @@ static void init_type_names()
 
   kno_type_names[kno_service_type]=_("service");
   kno_type_docs[kno_service_type]=_("service");
+
   kno_type_names[kno_bloom_filter_type]=_("bloom_filter");
   kno_type_docs[kno_bloom_filter_type]=_("bloom_filter");
 
   kno_type_names[kno_pathstore_type]=_("pathstore");
   kno_type_docs[kno_pathstore_type]=_("pathstore");
  
-  kno_type_names[kno_basetype_type]=_("basetype");
-  kno_type_docs[kno_basetype_type]=_("a representation of a primitive C type");
-
   kno_type_names[kno_type_type]=_("type");
-  kno_type_docs[kno_type_type]=_("a type reference is a basetype, a tag (symbol or OID) or a typeinfo object");
+  kno_type_docs[kno_type_type]=
+    _("a type reference is a basetype, a tag (symbol or OID) or a typeinfo object");
 
   kno_type_names[kno_keymap_type]=_("keymap");
   kno_type_docs[kno_keymap_type]=_("a slotmap or schemap");
@@ -562,7 +577,7 @@ KNO_EXPORT int kno_init_lisp_types()
 
   int typecode = 0; while (typecode < KNO_TYPE_MAX) {
     if (kno_type_names[typecode]) {
-      lispval typecode_value = LISPVAL_IMMEDIATE(kno_basetype_type,typecode);
+      lispval typecode_value = LISPVAL_IMMEDIATE(kno_ctype_type,typecode);
       u8_byte buf[100];
       u8_string hashname = u8_bprintf(buf,"%s_type",kno_type_names[typecode]);
       if (kno_add_constname(hashname,typecode_value)<0)

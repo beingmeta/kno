@@ -2886,8 +2886,6 @@ KNO_EXPORT void kno_init_pools_c()
   kno_type_names[kno_pool_type]=_("pool");
   kno_immediate_checkfns[kno_pool_type]=check_pool;
 
-  kno_type_names[kno_consed_pool_type]=_("raw pool");
-
   _kno_oid_info=_more_oid_info;
 
   lock_symbol = kno_intern("lock");

@@ -840,6 +840,7 @@ lispval kno_make_consblock(lispval obj);
 typedef struct KNO_TYPEINFO *kno_typeinfo;
 typedef int (*kno_type_unparsefn)(u8_output out,lispval,kno_typeinfo);
 typedef lispval (*kno_type_parsefn)(int n,lispval *,kno_typeinfo);
+typedef int (*kno_type_testfn)(lispval,kno_typeinfo);
 typedef int (*kno_type_freefn)(lispval,kno_typeinfo);
 typedef lispval (*kno_type_dumpfn)(lispval,kno_typeinfo);
 typedef lispval (*kno_type_restorefn)(lispval,lispval,kno_typeinfo);
@@ -849,6 +850,8 @@ typedef struct KNO_TYPEINFO {
   lispval typetag, type_props, type_handlers;
   u8_string type_name, type_description;
   char type_isopaque, type_ismutable, type_issequence, type_istable;
+  kno_lisp_type type_basetype;
+  kno_type_testfn type_testfn;
   kno_type_parsefn type_parsefn;
   kno_type_unparsefn type_unparsefn;
   kno_type_freefn type_freefn;
@@ -859,6 +862,7 @@ typedef struct KNO_TYPEINFO {
 
 KNO_EXPORT int kno_set_unparsefn(lispval tag,kno_type_unparsefn fn);
 KNO_EXPORT int kno_set_parsefn(lispval tag,kno_type_parsefn fn);
+KNO_EXPORT int kno_set_testfn(lispval tag,kno_type_testfn fn);
 KNO_EXPORT int kno_set_freefn(lispval tag,kno_type_freefn fn);
 KNO_EXPORT int kno_set_dumpfn(lispval tag,kno_type_dumpfn fn);
 KNO_EXPORT int kno_set_restorefn(lispval tag,kno_type_restorefn fn);
@@ -869,7 +873,7 @@ KNO_EXPORT int kno_set_restorefn(lispval tag,kno_type_restorefn fn);
   struct KNO_TYPEINFO *typeinfo
 
 #define KNO_TAGGEDP(x)				\
-  (KNO_XXCONS_TYPEP((x),kno_tagged_type))
+  (KNO_XCONS_TYPEP((x),kno_tagged_type))
 
 typedef struct KNO_TAGGED {
   KNO_TAGGED_HEAD;} KNO_TAGGED;
@@ -1140,7 +1144,7 @@ KNO_FASTOP int __KNO_XTYPEP(lispval x,int type)
       else return 0;
     case kno_type_type:
       if ( (KNO_OIDP(x)) || (KNO_SYMBOLP(x)) ||
-	   (KNO_IMMEDIATE_TYPEP(x,kno_basetype_type)) ||
+	   (KNO_IMMEDIATE_TYPEP(x,kno_ctype_type)) ||
 	   (KNO_TYPEP(x,kno_typeinfo_type)) )
 	return 1;
       else return 0;
@@ -1170,11 +1174,14 @@ KNO_INLINE int KNO_CHECKTYPE(lispval obj,lispval objtype)
     if (KNO_IMMEDIATE_TYPEP(objtype,kno_symbol_type))
       return ( ( (KNO_COMPOUNDP(obj)) && ( (KNO_COMPOUND_TAG(obj)) == objtype) ) ||
 	       ( (KNO_TYPEP(obj,kno_rawptr_type)) && ( (KNO_RAWPTR_TAG(obj)) == objtype) ) );
-    else if (KNO_IMMEDIATE_TYPEP(objtype,kno_basetype_type)) {
+    else if (KNO_IMMEDIATE_TYPEP(objtype,kno_ctype_type)) {
       kno_lisp_type ltype = (KNO_IMMEDIATE_DATA(objtype));
       return (KNO_TYPEP(obj,ltype));}
     else return 0;}
   else if (KNO_OIDP(objtype))
+    return ( ( (KNO_COMPOUNDP(obj)) && ( (KNO_COMPOUND_TAG(obj)) == objtype) ) ||
+	     ( (KNO_TYPEP(obj,kno_rawptr_type)) && ( (KNO_RAWPTR_TAG(obj)) == objtype) ) );
+  else if (KNO_SYMBOLP(objtype))
     return ( ( (KNO_COMPOUNDP(obj)) && ( (KNO_COMPOUND_TAG(obj)) == objtype) ) ||
 	     ( (KNO_TYPEP(obj,kno_rawptr_type)) && ( (KNO_RAWPTR_TAG(obj)) == objtype) ) );
   else if (KNO_TYPEP(objtype,kno_typeinfo_type))

@@ -153,7 +153,7 @@ typedef enum KNO_LISP_TYPE {
   kno_pool_type = KNO_IMMEDIATE_TYPECODE(8),
   kno_index_type = KNO_IMMEDIATE_TYPECODE(9),
   kno_histref_type = KNO_IMMEDIATE_TYPECODE(10),
-  kno_basetype_type = KNO_IMMEDIATE_TYPECODE(11),
+  kno_ctype_type = KNO_IMMEDIATE_TYPECODE(11),
 
   kno_string_type = KNO_CONS_TYPECODE(0),
   kno_packet_type = KNO_CONS_TYPECODE(1),
@@ -175,9 +175,10 @@ typedef enum KNO_LISP_TYPE {
      allowing them to be used with KNO_XXCONS macros, though we
      leave a type gap */
   kno_compound_type = KNO_CONS_TYPECODE(12),
-  kno_wrapper_type = KNO_CONS_TYPECODE(13),
-  kno_rawptr_type = KNO_CONS_TYPECODE(14),
-  kno_xtyped_type = KNO_CONS_TYPECODE(15),
+  kno_rawptr_type = KNO_CONS_TYPECODE(13),
+
+  kno_ioport_type = KNO_CONS_TYPECODE(14),
+  kno_regex_type = KNO_CONS_TYPECODE(15),
 
   kno_coretable_type = KNO_CONS_TYPECODE(16),
   /* These types are arranged so that their top bits are the same,
@@ -206,6 +207,7 @@ typedef enum KNO_LISP_TYPE {
   kno_promise_type = KNO_CONS_TYPECODE(29),
   kno_thread_type = KNO_CONS_TYPECODE(30),
   kno_synchronizer_type = KNO_CONS_TYPECODE(31),
+
   kno_consblock_type = KNO_CONS_TYPECODE(32),
 
   kno_complex_type = KNO_CONS_TYPECODE(33),
@@ -219,22 +221,20 @@ typedef enum KNO_LISP_TYPE {
      constant for the compiler */
   kno_mystery_type = KNO_CONS_TYPECODE(38),
 
-  kno_ioport_type = KNO_CONS_TYPECODE(39),
-  kno_stream_type = KNO_CONS_TYPECODE(40),
-  kno_regex_type = KNO_CONS_TYPECODE(41),
+  kno_stream_type = KNO_CONS_TYPECODE(39),
 
-  kno_service_type = KNO_CONS_TYPECODE(42),
-  kno_bloom_filter_type = KNO_CONS_TYPECODE(43),
+  kno_service_type = KNO_CONS_TYPECODE(40),
+  kno_bloom_filter_type = KNO_CONS_TYPECODE(41),
 
-  kno_sqldb_type = KNO_CONS_TYPECODE(44),
-  kno_sqlproc_type = KNO_CONS_TYPECODE(45),
+  kno_sqldb_type = KNO_CONS_TYPECODE(42),
+  kno_sqlproc_type = KNO_CONS_TYPECODE(43),
 
-  kno_pathstore_type = KNO_CONS_TYPECODE(46),
+  kno_pathstore_type = KNO_CONS_TYPECODE(44),
 
-  kno_consed_index_type = KNO_CONS_TYPECODE(47),
-  kno_consed_pool_type = KNO_CONS_TYPECODE(48),
+  kno_consed_index_type = KNO_CONS_TYPECODE(45),
+  kno_consed_pool_type = KNO_CONS_TYPECODE(46),
 
-  kno_subjob_type = KNO_CONS_TYPECODE(49),
+  kno_subjob_type = KNO_CONS_TYPECODE(47),
 
   /* Extended types */
 
@@ -252,7 +252,7 @@ typedef enum KNO_LISP_TYPE {
 
 } kno_lisp_type;
 
-#define KNO_BUILTIN_CONS_TYPES 50
+#define KNO_BUILTIN_CONS_TYPES 48
 #define KNO_BUILTIN_IMMEDIATE_TYPES 12
 #define KNO_BUILTIN_EXTENDED_TYPES 11
 
@@ -368,7 +368,10 @@ KNO_FASTOP U8_MAYBE_UNUSED kno_raw_cons KNO_RAW_CONS(lispval x){ return (kno_raw
 
 #define KNO_CONS_TYPE_OFF  (0x84)
 #define KNO_CONS_TYPE_MASK (0x7f)
-/* These are for cases where a set of basic types are all arranged to
+/* These are for cases where a set of two basic types are arranged to
+   have the same high bytes, making it easy to test for them. */
+#define KNO_XCONS_TYPE_MASK (0x7e)
+/* These are for cases where a set of four basic types are all arranged to
    have the same high bytes, making it easy to test for them. */
 #define KNO_XXCONS_TYPE_MASK (0x7c)
 
@@ -397,6 +400,12 @@ KNO_FASTOP U8_MAYBE_UNUSED lispval LISPVAL(lispval x){ return x;}
 #define KNO_XXCONS_TYPEOF(x) (KNO_XXCONS_TYPE((kno_cons)(x)))
 #define KNO_XXCONS_TYPEP(x,type) \
   ( (KNO_CONSP(x)) && ( (KNO_XXCONS_TYPE((kno_cons)(x))) == ((type)&0xFc) ) )
+
+#define KNO_XCONS_TYPE(x) \
+  (( (((kno_cons)(x))->conshead) & (KNO_XCONS_TYPE_MASK) )+(KNO_CONS_TYPE_OFF))
+#define KNO_XCONS_TYPEOF(x) (KNO_XCONS_TYPE((kno_cons)(x)))
+#define KNO_XCONS_TYPEP(x,type) \
+  ( (KNO_CONSP(x)) && ( (KNO_XCONS_TYPE((kno_cons)(x))) == ((type)&0xFc) ) )
 
 #define KNO_CONSPTR(cast,x) ((cast)((kno_cons)x))
 #define kno_consptr(cast,x,typecode)                                     \

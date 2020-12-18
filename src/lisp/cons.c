@@ -710,7 +710,7 @@ KNO_EXPORT int kno_register_cons_type(char *name,long int longcode)
   kno_next_cons_type++;
   kno_type_names[typecode]=name;
   u8_byte buf[100];
-  lispval typecode_value = LISPVAL_IMMEDIATE(kno_basetype_type,typecode);
+  lispval typecode_value = LISPVAL_IMMEDIATE(kno_ctype_type,typecode);
   u8_string hashname = u8_bprintf(buf,"%s_type",name);
   if (kno_add_constname(hashname,typecode_value)<0)
     u8_log(LOGCRIT,"BadTypeName",
@@ -732,7 +732,7 @@ KNO_EXPORT int kno_register_immediate_type(char *name,kno_checkfn fn,long int lo
   kno_immediate_checkfns[typecode]=fn;
   kno_next_immediate_type++;
   kno_type_names[typecode]=name;
-  lispval typecode_value = LISPVAL_IMMEDIATE(kno_basetype_type,typecode);
+  lispval typecode_value = LISPVAL_IMMEDIATE(kno_ctype_type,typecode);
   u8_byte buf[100];
   u8_string hashname = u8_bprintf(buf,"%s_type",name);
   if (kno_add_constname(hashname,typecode_value)<0)
@@ -870,6 +870,16 @@ int kno_set_parsefn(lispval tag,kno_type_parsefn fn)
   struct KNO_TYPEINFO *info = kno_use_typeinfo(tag);
   if (info) {
     info->type_parsefn = fn;
+    return 1;}
+  else return 0;
+}
+
+KNO_EXPORT
+int kno_set_testfn(lispval tag,kno_type_testfn fn)
+{
+  struct KNO_TYPEINFO *info = kno_use_typeinfo(tag);
+  if (info) {
+    info->type_testfn = fn;
     return 1;}
   else return 0;
 }
