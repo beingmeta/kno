@@ -263,8 +263,8 @@ KNO_EXPORT unsigned int kno_next_extended_type;
 typedef int (*kno_checkfn)(lispval);
 KNO_EXPORT kno_checkfn kno_immediate_checkfns[KNO_MAX_IMMEDIATE_TYPES+4];
 
-KNO_EXPORT int kno_register_cons_type(char *name);
-KNO_EXPORT int kno_register_immediate_type(char *name,kno_checkfn fn);
+KNO_EXPORT int kno_register_cons_type(char *name,long int longcode);
+KNO_EXPORT int kno_register_immediate_type(char *name,kno_checkfn fn,long int longcode);
 
 KNO_EXPORT u8_string kno_type_names[KNO_TYPE_MAX];
 KNO_EXPORT u8_string kno_type_docs[KNO_TYPE_MAX];
@@ -277,6 +277,32 @@ KNO_EXPORT u8_string kno_type_docs[KNO_TYPE_MAX];
    (kno_type_names[tc]))
 
 #define kno_type_name(x) (kno_type2name(KNO_TYPEOF((x))))
+
+/* Type aliases */
+
+struct KNO_TYPE_ALIAS { long int longcode; kno_lisp_type ptr_type; }; 
+
+KNO_EXPORT int kno_add_type_alias(long int code,kno_lisp_type type);
+KNO_EXPORT int _kno_lookup_type_alias(long int code);
+KNO_EXPORT struct KNO_TYPE_ALIAS _kno_type_aliases[];
+KNO_EXPORT int _kno_n_type_aliases;
+
+#ifndef KNO_INLINE_TYPE_ALIASES
+#define KNO_INLINE_TYPE_ALIASES 0
+#endif
+
+#if KNO_INLINE_TYPE_ALIASES
+static int kno_lookup_type_alias(long int code)
+{
+  int i = 0; while (i<_kno_n_type_aliases) {
+    if (_kno_type_aliases[i].longcode == code)
+      return _kno_type_aliases[i].ptr_type;
+    else i++;}
+  return -1;
+}
+#else
+#define kno_lookup_type_alias _kno_lookup_type_alias
+#endif
 
 KNO_EXPORT u8_condition kno_get_pointer_exception(lispval x);
 KNO_EXPORT lispval kno_badptr_err(lispval badx,u8_context cxt,u8_string details);

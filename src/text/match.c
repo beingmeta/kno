@@ -222,6 +222,7 @@ u8_condition UnboundMatchSymbol=_("Unbound matcher symbol");
 u8_condition BadMatcherMethod=_("Unknown matcher symbol");
 
 kno_lisp_type kno_txclosure_type;
+#define KNO_TXCLOSURE_TYPE 0xfb7253e0c716d0L
 
 static lispval subst_symbol;
 static lispval match_env;
@@ -3916,7 +3917,7 @@ void kno_init_match_c()
 
   match_env = kno_make_hashtable(NULL,1024);
 
-  kno_txclosure_type = kno_register_cons_type("txclosure");
+  kno_txclosure_type = kno_register_cons_type("txclosure",KNO_TXCLOSURE_TYPE);
   kno_recyclers[kno_txclosure_type]=recycle_txclosure;
   kno_unparsers[kno_txclosure_type]=unparse_txclosure;
 

@@ -30,9 +30,6 @@ typedef struct KNO_CPRIM_ARGINFO {
     ((ndcall) ? (KNO_NDCALL) : (0)) |                    \
     ((xcall) ? (KNO_XCALL) : (0)) )
 
-KNO_EXPORT int kno_add_type_alias(long int code,kno_lisp_type type);
-KNO_EXPORT int kno_lookup_type_alias(long int code);
-
 /* DEFPRIM */
 
 #define KNO_DEFPRIM(pname,cname,flags,docstring)                         \

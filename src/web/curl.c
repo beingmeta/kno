@@ -152,6 +152,7 @@ static size_t process_content_data(char *data,size_t elt_size,size_t n_elts,
 }
 
 kno_lisp_type kno_curl_type;
+#define KNO_CURL_TYPE 0x11355484abed10L
 
 void handle_content_type(char *value,lispval table)
 {
@@ -1861,7 +1862,7 @@ KNO_EXPORT void kno_init_curl_c()
   lispval module = kno_new_module("WEBTOOLS",(0));
   webtools_module = module;
 
-  kno_curl_type = kno_register_cons_type("CURLHANDLE");
+  kno_curl_type = kno_register_cons_type("CURLHANDLE",KNO_CURL_TYPE);
   kno_recyclers[kno_curl_type]=recycle_curl_handle;
   kno_unparsers[kno_curl_type]=unparse_curl_handle;
 

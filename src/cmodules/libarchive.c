@@ -456,7 +456,7 @@ KNO_EXPORT int kno_init_libarchive()
 
   libarchive_module = kno_new_cmodule("libarchive",0,kno_init_libarchive);
 
-  kno_archive_type = kno_register_cons_type("archive");
+  kno_archive_type = kno_register_cons_type("archive",KNO_ARCHIVE_TYPE);
   kno_unparsers[kno_archive_type] = unparse_archive;
   kno_recyclers[kno_archive_type] = recycle_archive;
   kno_add_type_alias(KNO_ARCHIVE_TYPE,kno_archive_type);

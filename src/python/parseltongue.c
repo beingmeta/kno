@@ -2245,8 +2245,7 @@ static void init_kno_module()
 #else
   pymodule=kno_new_module("PARSELTONGUE2",0);
 #endif
-  python_object_type=kno_register_cons_type("python");
-  kno_add_type_alias(PYTHON_OBJECT_TYPE,python_object_type);
+  python_object_type=kno_register_cons_type("python",PYTHON_OBJECT_TYPE);
   default_env=kno_working_lexenv();
   kno_recyclers[python_object_type]=recycle_python_object;
   kno_unparsers[python_object_type]=unparse_python_object;

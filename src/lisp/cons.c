@@ -9,6 +9,8 @@
 #define _FILEINFO __FILE__
 #endif
 
+#define KNO_INLINE_TYPE_ALIASES 1
+
 #include "kno/knosource.h"
 #include "kno/lisp.h"
 #include "kno/cons.h"
@@ -643,6 +645,51 @@ KNO_EXPORT lispval kno_bytes2packet
   return LISP_CONS(ptr);
 }
 
+/* Type aliases */
+
+/* Forward typecode references */
+
+#ifndef KNO_MAX_TYPE_ALIASES
+#define KNO_MAX_TYPE_ALIASES 100
+#endif
+
+struct KNO_TYPE_ALIAS _kno_type_aliases[KNO_MAX_TYPE_ALIASES];
+int _kno_n_type_aliases = 0;
+
+U8_MUTEX_DECL(type_aliases_lock);
+
+KNO_EXPORT int _kno_lookup_type_alias(long int code)
+{
+  return kno_lookup_type_alias(code);
+}
+
+KNO_EXPORT int kno_add_type_alias(long int code,kno_lisp_type type)
+{
+  u8_lock_mutex(&type_aliases_lock);
+  int typecode = kno_lookup_type_alias(code), retval = 0;
+  if (typecode > 0) {
+    if ( ((kno_lisp_type)typecode) == type)
+      retval = 0;
+    else {
+      u8_string details=
+	u8_mkstring
+	("Conflicting type definitions for longcode %ld, new (%s:%d) != (%s:%d)",
+	 code,kno_type2name(typecode),typecode,kno_type2name(type),type);
+      u8_seterr("TypeLongcodeConflict","add_forward_type_ref",details);
+      retval=-1;}}
+  else {
+    if (_kno_n_type_aliases >= KNO_MAX_TYPE_ALIASES) {
+      u8_seterr("LongTypecodeOverflow","add_forward_type_ref",NULL);
+      retval = -1;}
+    else {
+      _kno_type_aliases[_kno_n_type_aliases].longcode=code;
+      _kno_type_aliases[_kno_n_type_aliases].ptr_type=type;
+      _kno_n_type_aliases++;
+      retval=type;}}
+  u8_unlock_mutex(&type_aliases_lock);
+  return retval;
+}
+
 /* Registering new primitive types */
 
 static u8_mutex type_registry_lock;
@@ -652,7 +699,7 @@ unsigned int kno_next_cons_type=
 unsigned int kno_next_immediate_type=
   KNO_IMMEDIATE_TYPECODE(KNO_BUILTIN_IMMEDIATE_TYPES);
 
-KNO_EXPORT int kno_register_cons_type(char *name)
+KNO_EXPORT int kno_register_cons_type(char *name,long int longcode)
 {
   int typecode;
   u8_lock_mutex(&type_registry_lock);
@@ -669,11 +716,12 @@ KNO_EXPORT int kno_register_cons_type(char *name)
     u8_log(LOGCRIT,"BadTypeName",
 	   "Couldn't register typename '%s' for typecode=%d",
 	   hashname,typecode);
+  if (longcode>0) kno_add_type_alias(typecode,longcode);
   u8_unlock_mutex(&type_registry_lock);
   return typecode;
 }
 
-KNO_EXPORT int kno_register_immediate_type(char *name,kno_checkfn fn)
+KNO_EXPORT int kno_register_immediate_type(char *name,kno_checkfn fn,long int longcode)
 {
   int typecode;
   u8_lock_mutex(&type_registry_lock);
@@ -692,7 +740,8 @@ KNO_EXPORT int kno_register_immediate_type(char *name,kno_checkfn fn)
 	   "Couldn't register typename '%s' for typecode=%d",
 	   hashname,typecode);
   u8_unlock_mutex(&type_registry_lock);
-  return typecode;
+  if (longcode>0) kno_add_type_alias(typecode,longcode);
+ return typecode;
 }
 
 /* Utility functions (for debugging) */
@@ -869,6 +918,7 @@ void kno_init_cons_c()
 
   u8_init_mutex(&constant_registry_lock);
   u8_init_mutex(&type_registry_lock);
+  u8_init_mutex(&type_aliases_lock);
 
   kno_init_hashtable(&typeinfo,223,NULL);
 

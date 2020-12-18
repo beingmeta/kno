@@ -144,61 +144,6 @@ static ssize_t cprim_dtype(struct KNO_OUTBUF *out,lispval x)
   return n_bytes;
 }
 
-/* Forward typecode references */
-
-#define KNO_MAX_TYPE_ALIASES 100
-static struct { long int longcode; kno_lisp_type ptr_type; } 
-  type_aliases[KNO_MAX_TYPE_ALIASES];
-static int n_type_aliases = 0;
-
-u8_mutex type_aliases_lock;
-
-static int get_type_alias(long int code)
-{
-  int i = 0; while (i<n_type_aliases) {
-    if (type_aliases[i].longcode == code)
-      return type_aliases[i].ptr_type;
-    else i++;}
-  return -1;
-}
-
-KNO_EXPORT int kno_lookup_type_alias(long int code)
-{
-  return get_type_alias(code);
-}
-
-KNO_EXPORT int kno_add_type_alias(long int code,kno_lisp_type type)
-{
-  u8_lock_mutex(&type_aliases_lock);
-  int typecode = get_type_alias(code), retval = 0;
-  if (typecode > 0) {
-    if ( ((kno_lisp_type)typecode) == type)
-      retval = 0;
-    else {
-      u8_string details=
-	u8_mkstring
-	("Conflicting type definitions for longcode %ld, new (%s:%d) != (%s:%d)",
-	 code,kno_type2name(typecode),typecode,kno_type2name(type),type);
-      u8_seterr("TypeLongcodeConflict","add_forward_type_ref",details);
-      retval=-1;}}
-  else {
-    int i = 0; while (i<n_type_aliases) {
-      if (type_aliases[i].longcode == code) {
-	retval = type_aliases[i].ptr_type;
-	break;}
-      else i++;}
-    if (n_type_aliases >= KNO_MAX_TYPE_ALIASES) {
-      u8_seterr("LongTypecodeOverflow","add_forward_type_ref",NULL);
-      retval = -1;}
-    else {
-      type_aliases[n_type_aliases].longcode=code;
-      type_aliases[n_type_aliases].ptr_type=type;
-      n_type_aliases++;
-      retval=type;}}
-  u8_unlock_mutex(&type_aliases_lock);
-  return retval;
-}
-
 /* Creating cprims */
 
 static struct KNO_CPRIM *make_cprim(u8_string name,
@@ -300,7 +245,7 @@ static struct KNO_CPRIM *make_xcprim(u8_string name,
       if (typecode < KNO_TYPE_MAX)
 	prim_typeinfo[i]=(kno_lisp_type)typecode;
       else {
-	int use_type = get_type_alias(typecode);
+	int use_type = kno_lookup_type_alias(typecode);
 	if (use_type<0)
 	  u8_raise("UndefinedTypeCode","kno_defxcprim",NULL);
 	else prim_typeinfo[i]=(kno_lisp_type)use_type;}}
