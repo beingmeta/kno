@@ -44,7 +44,7 @@ alpine: extmods
 debfresh: extmods
 	domake ${EXTMODS} GPGID=none debfresh
 
-STDMODS=hyphenate leveldb mongodb mariadb nng odbc sundown tidy zeromq ziptools
+STDMODS=hyphenate leveldb rocksdb mongodb mariadb nng odbc sundown tidy zeromq ziptools
 
 symlinks:
 	for dir in ${STDMODS}; do make $${dir}/.git; done;
