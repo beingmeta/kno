@@ -7,7 +7,7 @@
 
 (define-init standard-modules
   (choice (get (get-module 'kno/reflect) 'getmodules)
-	  'scheme 'xscheme 'fileio 'history 'logger))
+	  'scheme 'xscheme 'io/fileio 'history 'logger))
 (define-init check-module-usage #f)
 
 ;; This module optimizes an expression or procedure by replacing

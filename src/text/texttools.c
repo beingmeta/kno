@@ -1372,7 +1372,8 @@ static lispval textsubst(lispval string,
 	      return results;}
 	    else {
 	      if (dorewrite(&out,KNO_CDR(xtract))<0) {
-		u8_free(out.u8_outbuf); kno_decref(xtract);
+		u8_free(out.u8_outbuf);
+		kno_decref(xtract);
 		return KNO_ERROR;}
 	      kno_decref(xtract);}}
 	  last = end; start = kno_text_search(pattern,NULL,data,last,lim,0);}

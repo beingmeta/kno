@@ -1,9 +1,9 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
 ;;; Copyright (C) 2010-2020 beingmeta, inc. All rights reserved
 
-(in-module 'sqloids)
+(in-module 'knodb/sqloids)
 
-(use-module '{sqldb varconfig kno/reflect logger})
+(use-module '{db/sql varconfig kno/reflect logger})
 
 (define default-sqlmap #[])
 (varconfig! sqldb:sqlmap default-sqlmap)

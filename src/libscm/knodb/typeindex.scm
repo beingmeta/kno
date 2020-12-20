@@ -14,6 +14,7 @@
 ;;; record contains a count of the number of values (possibly
 ;;; including duplicates) and the valid size of the values file.
 
+(use-module '{io/byteio io/dtypeio io/xtypeio texttools})
 (use-module '{ezrecords stringfmts logger varconfig fifo texttools})
 (use-module '{knodb/adjuncts knodb/filenames})
 (use-module '{knodb})
