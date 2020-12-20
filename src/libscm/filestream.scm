@@ -3,7 +3,7 @@
 
 (in-module 'filestream)
 
-(use-module '{fifo varconfig ezrecords stringfmts reflection 
+(use-module '{fifo varconfig ezrecords stringfmts kno/reflect 
 	      libarchive bugjar bugjar/html logger})
 (use-module '{knodb knodb/registry knodb/branches})
 

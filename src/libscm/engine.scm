@@ -3,7 +3,7 @@
 
 (in-module 'engine)
 
-(use-module '{fifo varconfig kno/threads stringfmts reflection 
+(use-module '{fifo varconfig kno/threads stringfmts kno/reflect 
 	      bugjar bugjar/html logger})
 (use-module '{knodb knodb/registry knodb/branches})
 

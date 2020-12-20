@@ -3,7 +3,7 @@
 
 (in-module 'sqloids)
 
-(use-module '{sqldb varconfig reflection logger})
+(use-module '{sqldb varconfig kno/reflect logger})
 
 (define default-sqlmap #[])
 (varconfig! sqldb:sqlmap default-sqlmap)

@@ -5,7 +5,6 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-
 #define KNO_INLINE_FCNIDS    (!(KNO_AVOID_INLINE))
 
 #include "kno/knosource.h"
@@ -960,6 +959,9 @@ static lispval module_exported(lispval arg)
   else return kno_type_error(_("module"),"module_exported",arg);
 }
 
+KNO_DEF_EVALFN("%bindings",local_bindings_evalfn,
+	       "`(%bindings)` returns the current local bindings as a "
+	       "hashtable.");
 static lispval local_bindings_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   if (env->env_copy)
@@ -974,6 +976,12 @@ static lispval local_bindings_evalfn(lispval expr,kno_lexenv env,kno_stack _stac
 
 /* Finding where a symbol comes from */
 
+
+KNO_DEF_EVALFN("wherefrom",wherefrom_evalfn,
+	       "`(wherefrom *symbol* [*env*])` returns the module "
+	       "(the table itself) used by *env* (which defaults "
+	       "to the current environment) where *symbol* "
+	       "gets its value.");
 static lispval wherefrom_evalfn(lispval expr,kno_lexenv call_env,
 				kno_stack _stack)
 {
@@ -1041,11 +1049,14 @@ static lispval wherefrom_evalfn(lispval expr,kno_lexenv call_env,
 
 /* Finding all the modules used from an environment */
 
+KNO_DEF_EVALFN("getmodules",getmodules_evalfn,
+	       "`(getmodules [*env*])` returns the names of all the modules "
+	       "used by *env*, which defaults to the current environment. ")
 static lispval getmodules_evalfn(lispval expr,kno_lexenv call_env,kno_stack _stack)
 {
   lispval env_arg = kno_eval_arg(kno_get_arg(expr,1),call_env);
   lispval modules = EMPTY;
-  kno_lexenv env = call_env;
+  kno_lexenv env  = call_env;
   if (VOIDP(env_arg)) {}
   else if (TYPEP(env_arg,kno_lexenv_type))
     env = kno_consptr(kno_lexenv,env_arg,kno_lexenv_type);
@@ -1488,41 +1499,6 @@ static lispval profile_nitems(lispval profile)
   else return kno_type_error("call profile","profile_nitems",profile);
 }
 
-/* with sourcebase */
-
-static lispval with_sourcebase_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
-{
-  lispval usebase_expr = kno_get_arg(expr,1);
-  lispval body = kno_get_body(expr,2);
-  if (VOIDP(usebase_expr))
-    return kno_err(kno_SyntaxError,"with_sourcebase_evalfn",NULL,expr);
-  if (!(PAIRP(body)))
-    return kno_err(kno_SyntaxError,"with_sourcebase_evalfn",NULL,expr);
-
-  lispval usebase = kno_eval(usebase_expr,env,stack,0);
-  u8_string temp_base;
-  if (ABORTED(usebase)) return usebase;
-  else if (KNO_STRINGP(usebase))
-    temp_base = KNO_CSTRING(usebase);
-  else if (KNO_FALSEP(usebase))
-    temp_base = NULL;
-  else {
-    lispval err = kno_err("Sourcebase not string or #f","WITH-SOURCEBASE",NULL,
-			  usebase);
-    kno_decref(usebase);
-    return err;}
-
-  lispval result = VOID;
-  u8_string old_base = NULL;
-  U8_UNWIND_PROTECT("with-sourcebase",0) {
-    old_base = kno_bind_sourcebase(temp_base);
-    result = kno_eval_body(body,env,stack,"WITH-SOURCEBASE",temp_base,0);}
-  U8_ON_UNWIND {
-    kno_restore_sourcebase(old_base);
-    kno_decref(usebase);}
-  U8_END_UNWIND;
-  return result;
-}
 /* Getting all modules */
 
 DEFCPRIM("all-modules",get_all_modules_prim,
@@ -1537,11 +1513,12 @@ static lispval get_all_modules_prim()
 /* Initialization */
 
 static lispval reflection_module;
+static lispval profiling_module;
 
 KNO_EXPORT void kno_init_reflection_c()
 {
-  lispval module = reflection_module =
-    kno_new_cmodule("reflection",0,kno_init_reflection_c);
+  reflection_module = kno_new_cmodule("kno/reflect",0,kno_init_reflection_c);
+  profiling_module  = kno_new_cmodule("kno/profile",0,kno_init_reflection_c);
 
   source_symbol = kno_intern("%source");
   call_profile_symbol = kno_intern("%callprofile");
@@ -1549,36 +1526,17 @@ KNO_EXPORT void kno_init_reflection_c()
 
   link_local_cprims();
 
-  kno_def_evalfn(module,"%BINDINGS",local_bindings_evalfn,
-		 "*undocumented*");
+  KNO_LINK_EVALFN(reflection_module,local_bindings_evalfn);
+  KNO_LINK_EVALFN(reflection_module,wherefrom_evalfn);
+  KNO_LINK_EVALFN(reflection_module,getmodules_evalfn);
 
-  kno_def_evalfn(module,"WHEREFROM",wherefrom_evalfn,
-		 "*undocumented*");
-  kno_def_evalfn(module,"GETMODULES",getmodules_evalfn,
-		 "*undocumented*");
-  kno_def_evalfn(module,"WITH-SOURCEBASE",with_sourcebase_evalfn,
-		 "*undocumented*");
-
-  kno_finish_module(module);
+  kno_finish_module(reflection_module);
+  kno_finish_module(profiling_module);
 }
 
 static void link_local_cprims()
 {
   KNO_LINK_CPRIM("all-modules",get_all_modules_prim,0,reflection_module);
-  KNO_LINK_CPRIM("profile/nitems",profile_nitems,1,reflection_module);
-  KNO_LINK_CPRIM("profile/ncalls",profile_ncalls,1,reflection_module);
-  KNO_LINK_CPRIM("profile/nsecs",profile_nsecs,1,reflection_module);
-  KNO_LINK_CPRIM("profile/faults",profile_getfaults,1,reflection_module);
-  KNO_LINK_CPRIM("profile/pauses",profile_getpauses,1,reflection_module);
-  KNO_LINK_CPRIM("profile/waits",profile_getwaits,1,reflection_module);
-  KNO_LINK_CPRIM("profile/stime",profile_getstime,1,reflection_module);
-  KNO_LINK_CPRIM("profile/utime",profile_getutime,1,reflection_module);
-  KNO_LINK_CPRIM("profile/time",profile_gettime,1,reflection_module);
-  KNO_LINK_CPRIM("profile/fcn",profile_getfcn,1,reflection_module);
-  KNO_LINK_CPRIM("profile/getcalls",getcalls_prim,2,reflection_module);
-  KNO_LINK_CPRIM("reflect/profiled?",profiledp_prim,1,reflection_module);
-  KNO_LINK_CPRIM("profile/reset!",profile_reset_prim,1,reflection_module);
-  KNO_LINK_CPRIM("reflect/profile!",profile_fcn_prim,2,reflection_module);
   KNO_LINK_CPRIM("consblock-head",consblock_head,1,reflection_module);
   KNO_LINK_CPRIM("consblock-origin",consblock_original,1,reflection_module);
   KNO_LINK_CPRIM("consblock",make_consblock,1,reflection_module);
@@ -1638,4 +1596,22 @@ static void link_local_cprims()
   KNO_LINK_ALIAS("lambda-args",lambda_args,reflection_module);
   KNO_LINK_ALIAS("procedure-env",lambda_env,reflection_module);
   KNO_LINK_ALIAS("procedure-body",lambda_body,reflection_module);
+
+  KNO_LINK_CPRIM("profile/nitems",profile_nitems,1,profiling_module);
+  KNO_LINK_CPRIM("profile/ncalls",profile_ncalls,1,profiling_module);
+  KNO_LINK_CPRIM("profile/nsecs",profile_nsecs,1,profiling_module);
+  KNO_LINK_CPRIM("profile/faults",profile_getfaults,1,profiling_module);
+  KNO_LINK_CPRIM("profile/pauses",profile_getpauses,1,profiling_module);
+  KNO_LINK_CPRIM("profile/waits",profile_getwaits,1,profiling_module);
+  KNO_LINK_CPRIM("profile/stime",profile_getstime,1,profiling_module);
+  KNO_LINK_CPRIM("profile/utime",profile_getutime,1,profiling_module);
+  KNO_LINK_CPRIM("profile/time",profile_gettime,1,profiling_module);
+  KNO_LINK_CPRIM("profile/fcn",profile_getfcn,1,profiling_module);
+  KNO_LINK_CPRIM("profile/getcalls",getcalls_prim,2,profiling_module);
+  KNO_LINK_CPRIM("profile/reset!",profile_reset_prim,1,profiling_module);
+  KNO_LINK_CPRIM("profiled?",profiledp_prim,1,profiling_module);
+  KNO_LINK_CPRIM("profile!",profile_fcn_prim,2,profiling_module);
+  KNO_LINK_ALIAS("reflect/profiled?",profiledp_prim,profiling_module);
+  KNO_LINK_ALIAS("reflect/profile!",profile_fcn_prim,profiling_module);
+
 }

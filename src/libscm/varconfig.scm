@@ -9,7 +9,7 @@
 
 (in-module 'varconfig)
 
-(use-module '{logger reflection texttools defmacro})
+(use-module '{logger kno/reflect texttools defmacro})
 
 (module-export! '{varconfigfn varconfig! optconfigfn optconfig!})
 (module-export! '{config:boolean config:boolean/not

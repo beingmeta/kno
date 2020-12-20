@@ -593,6 +593,42 @@ static lispval kno_run_file_2string(int n,kno_argvec args)
   else return kno_type_error("filename","kno_run_file_2string",args[0]);
 }
 
+/* with sourcebase */
+
+static lispval with_sourcebase_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
+{
+  lispval usebase_expr = kno_get_arg(expr,1);
+  lispval body = kno_get_body(expr,2);
+  if (VOIDP(usebase_expr))
+    return kno_err(kno_SyntaxError,"with_sourcebase_evalfn",NULL,expr);
+  if (!(PAIRP(body)))
+    return kno_err(kno_SyntaxError,"with_sourcebase_evalfn",NULL,expr);
+
+  lispval usebase = kno_eval(usebase_expr,env,stack,0);
+  u8_string temp_base;
+  if (ABORTED(usebase)) return usebase;
+  else if (KNO_STRINGP(usebase))
+    temp_base = KNO_CSTRING(usebase);
+  else if (KNO_FALSEP(usebase))
+    temp_base = NULL;
+  else {
+    lispval err = kno_err("Sourcebase not string or #f","WITH-SOURCEBASE",NULL,
+			  usebase);
+    kno_decref(usebase);
+    return err;}
+
+  lispval result = VOID;
+  u8_string old_base = NULL;
+  U8_UNWIND_PROTECT("with-sourcebase",0) {
+    old_base = kno_bind_sourcebase(temp_base);
+    result = kno_eval_body(body,env,stack,"WITH-SOURCEBASE",temp_base,0);}
+  U8_ON_UNWIND {
+    kno_restore_sourcebase(old_base);
+    kno_decref(usebase);}
+  U8_END_UNWIND;
+  return result;
+}
+
 /* Initialization */
 
 KNO_EXPORT void kno_init_load_c()
@@ -633,6 +669,12 @@ KNO_EXPORT void kno_init_load_c()
   kno_def_evalfn(kno_scheme_module,"#PATH",path_macro,
 		 "#:PATH\"init/foo.scm\" or #:PATH:home.scm\n"
 		 "evaluates to an environment variable");
+
+  kno_def_evalfn(kno_scheme_module,
+		 "WITH-SOURCEBASE",with_sourcebase_evalfn,
+		 "`(with-sourcebase *path* body...)` evaluates "
+		 "*body* with the dynamic _sourcebase_ bound to "
+		 "the result of evaluating *path*");
 
   kno_register_config("LOAD:TRACE","Trace file load starts and ends",
 		      kno_boolconfig_get,kno_boolconfig_set,&trace_load);

@@ -6,7 +6,7 @@
 (in-module 'optimize)
 
 (define-init standard-modules
-  (choice (get (get-module 'reflection) 'getmodules)
+  (choice (get (get-module 'kno/reflect) 'getmodules)
 	  'scheme 'xscheme 'fileio 'history 'logger))
 (define-init check-module-usage #f)
 
@@ -16,7 +16,7 @@
 ;; anything which will change and so produce an equivalent expression
 ;; or function which just runs faster.
 
-(use-module 'reflection)
+(use-module 'kno/reflect)
 (use-module 'varconfig)
 (use-module 'logger)
 

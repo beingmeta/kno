@@ -2,7 +2,7 @@
 
 (in-module 'kno/debug)
 
-(use-module '{reflection texttools stringfmts logger})
+(use-module '{kno/reflect texttools stringfmts logger})
 
 (module-export! '{debug.command
 		  backtrace.command bt.command

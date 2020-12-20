@@ -3,7 +3,7 @@
 
 (in-module 'bench)
 
-(use-module '{optimize varconfig logger reflection})
+(use-module '{optimize varconfig logger kno/reflect})
 
 (define default-repeat 100)
 (varconfig! repeat default-repeat)
