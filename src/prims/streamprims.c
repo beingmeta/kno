@@ -577,8 +577,7 @@ KNO_EXPORT void kno_init_streamprims_c()
   scheme_streamprims_initialized = 1;
   kno_init_scheme();
   kno_init_drivers();
-  streamprims_module =
-    kno_new_cmodule("streamprims",(KNO_MODULE_DEFAULT),kno_init_streamprims_c);
+  streamprims_module = kno_new_cmodule("io/byteio",(0),kno_init_streamprims_c);
   u8_register_source_file(_FILEINFO);
 
   link_local_cprims();
@@ -588,34 +587,33 @@ KNO_EXPORT void kno_init_streamprims_c()
 
 static void link_local_cprims()
 {
-  lispval scheme_module = kno_scheme_module;
-
   KNO_LINK_CPRIM("ftruncate",ftruncate_prim,2,streamprims_module);
   KNO_LINK_CPRIM("streampos",streampos_prim,2,streamprims_module);
   KNO_LINK_CPRIM("byte-output?",byte_outputp,1,streamprims_module);
-  KNO_LINK_ALIAS("dtype-output?",byte_outputp,streamprims_module);
   KNO_LINK_CPRIM("byte-input?",byte_inputp,1,streamprims_module);
-  KNO_LINK_ALIAS("dtype-input?",byte_inputp,streamprims_module);
   KNO_LINK_CPRIM("byte-stream?",streamp,1,streamprims_module);
-  KNO_LINK_ALIAS("dtype-stream?",streamp,streamprims_module);
   KNO_LINK_CPRIM("extend-byte-output",extend_byte_output,1,streamprims_module);
   KNO_LINK_CPRIM("open-byte-input",open_byte_input_file,2,streamprims_module);
   KNO_LINK_CPRIM("open-byte-output",open_byte_output_file,2,streamprims_module);
-  KNO_LINK_CPRIM("zwrite-int",zwrite_int,2,kno_scheme_module);
-  KNO_LINK_CPRIM("zread-int",zread_int,1,kno_scheme_module);
-  KNO_LINK_CPRIM("write-8bytes",write_8bytes,3,kno_scheme_module);
-  KNO_LINK_CPRIM("write-4bytes",write_4bytes,3,kno_scheme_module);
-  KNO_LINK_CPRIM("read-bytes",read_bytes,3,kno_scheme_module);
-  KNO_LINK_CPRIM("read-varint",read_varint,2,kno_scheme_module);
-  KNO_LINK_CPRIM("read-8bytes",read_8bytes,2,kno_scheme_module);
-  KNO_LINK_CPRIM("read-4bytes",read_4bytes,2,kno_scheme_module);
-  KNO_LINK_CPRIM("read-byte",read_abyte,2,scheme_module);
-  KNO_LINK_CPRIM("write-bytes",write_bytes,3,kno_scheme_module);
+  KNO_LINK_CPRIM("zwrite-int",zwrite_int,2,streamprims_module);
+  KNO_LINK_CPRIM("zread-int",zread_int,1,streamprims_module);
 
-  KNO_LINK_ALIAS("read-int",read_4bytes,scheme_module);
-  KNO_LINK_ALIAS("write-int",write_4bytes,scheme_module);
-  KNO_LINK_ALIAS("extend-byte-file",extend_byte_output,scheme_module);
+  KNO_LINK_CPRIM("write-8bytes",write_8bytes,3,streamprims_module);
+  KNO_LINK_CPRIM("write-4bytes",write_4bytes,3,streamprims_module);
+  KNO_LINK_CPRIM("read-bytes",read_bytes,3,streamprims_module);
+  KNO_LINK_CPRIM("read-varint",read_varint,2,streamprims_module);
+  KNO_LINK_CPRIM("read-8bytes",read_8bytes,2,streamprims_module);
+  KNO_LINK_CPRIM("read-4bytes",read_4bytes,2,streamprims_module);
+  KNO_LINK_CPRIM("read-byte",read_abyte,2,streamprims_module);
+  KNO_LINK_CPRIM("write-bytes",write_bytes,3,streamprims_module);
 
+  KNO_LINK_ALIAS("read-int",read_4bytes,streamprims_module);
+  KNO_LINK_ALIAS("write-int",write_4bytes,streamprims_module);
+  KNO_LINK_ALIAS("extend-byte-file",extend_byte_output,streamprims_module);
+
+  KNO_LINK_ALIAS("dtype-stream?",streamp,streamprims_module);
+  KNO_LINK_ALIAS("dtype-input?",byte_inputp,streamprims_module);
+  KNO_LINK_ALIAS("dtype-output?",byte_outputp,streamprims_module);
   KNO_LINK_ALIAS("extend-dtype-file",extend_byte_output,streamprims_module);
   KNO_LINK_ALIAS("open-dtype-input",open_byte_input_file,streamprims_module);
   KNO_LINK_ALIAS("open-dtype-output",open_byte_output_file,streamprims_module);

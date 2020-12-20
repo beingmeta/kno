@@ -875,9 +875,14 @@ static long long get_available_memory()
 
 KNO_EXPORT void kno_init_procprims_c(void);
 
+static lispval osprims_module = KNO_VOID;
+
 KNO_EXPORT void kno_init_sysprims_c()
 {
   u8_register_source_file(_FILEINFO);
+
+  osprims_module =
+    kno_new_cmodule("sys/os",(KNO_MODULE_DEFAULT),kno_init_sysprims_c);
 
   u8_getrusage(RUSAGE_SELF,&init_rusage);
 
@@ -940,30 +945,32 @@ KNO_EXPORT void kno_init_sysprims_c()
 
   kno_init_procprims_c();
 
+  kno_finish_module(osprims_module);
+
 }
 
 static void link_local_cprims()
 {
-  KNO_LINK_CPRIM("cpusage",cpusage_prim,1,kno_sys_module);
-  KNO_LINK_CPRIM("systime",systime_prim,0,kno_sys_module);
-  KNO_LINK_CPRIM("usertime",usertime_prim,0,kno_sys_module);
-  KNO_LINK_CPRIM("vmemload",vmemload_prim,0,kno_sys_module);
-  KNO_LINK_CPRIM("memload",memload_prim,0,kno_sys_module);
-  KNO_LINK_CPRIM("physmem",physmem_prim,0,kno_sys_module);
-  KNO_LINK_CPRIM("vmemusage",vmemusage_prim,0,kno_sys_module);
-  KNO_LINK_CPRIM("memusage",memusage_prim,0,kno_sys_module);
-  KNO_LINK_CPRIM("procstring",getprocstring_prim,0,kno_sys_module);
-  KNO_LINK_CPRIM("threadid",threadid_prim,0,kno_sys_module);
-  KNO_LINK_CPRIM("stacksize",stacksize_prim,0,kno_sys_module);
-  KNO_LINK_CPRIM("getppid",getppid_prim,0,kno_sys_module);
-  KNO_LINK_CPRIM("getpid",getpid_prim,0,kno_sys_module);
-  KNO_LINK_CPRIM("uname",uname_prim,0,kno_sys_module);
-  KNO_LINK_CPRIM("rusage",rusage_prim,1,kno_sys_module);
-  KNO_LINK_CPRIM("loadavg",loadavgs_prim,0,kno_sys_module);
-  KNO_LINK_CPRIM("getload",loadavg_prim,0,kno_sys_module);
-  KNO_LINK_CPRIM("getenv",getenv_prim,1,kno_sys_module);
-  KNO_LINK_CPRIM("setenv!",setenv_prim,3,kno_sys_module);
-  KNO_LINK_CPRIM("unsetenv!",unsetenv_prim,1,kno_sys_module);
-  KNO_LINK_CPRIM("hostaddrs",hostaddrs_prim,1,kno_sys_module);
-  KNO_LINK_CPRIM("gethostname",hostname_prim,0,kno_sys_module);
+  KNO_LINK_CPRIM("cpusage",cpusage_prim,1,osprims_module);
+  KNO_LINK_CPRIM("systime",systime_prim,0,osprims_module);
+  KNO_LINK_CPRIM("usertime",usertime_prim,0,osprims_module);
+  KNO_LINK_CPRIM("vmemload",vmemload_prim,0,osprims_module);
+  KNO_LINK_CPRIM("memload",memload_prim,0,osprims_module);
+  KNO_LINK_CPRIM("physmem",physmem_prim,0,osprims_module);
+  KNO_LINK_CPRIM("vmemusage",vmemusage_prim,0,osprims_module);
+  KNO_LINK_CPRIM("memusage",memusage_prim,0,osprims_module);
+  KNO_LINK_CPRIM("procstring",getprocstring_prim,0,osprims_module);
+  KNO_LINK_CPRIM("threadid",threadid_prim,0,osprims_module);
+  KNO_LINK_CPRIM("stacksize",stacksize_prim,0,osprims_module);
+  KNO_LINK_CPRIM("getppid",getppid_prim,0,osprims_module);
+  KNO_LINK_CPRIM("getpid",getpid_prim,0,osprims_module);
+  KNO_LINK_CPRIM("uname",uname_prim,0,osprims_module);
+  KNO_LINK_CPRIM("rusage",rusage_prim,1,osprims_module);
+  KNO_LINK_CPRIM("loadavg",loadavgs_prim,0,osprims_module);
+  KNO_LINK_CPRIM("getload",loadavg_prim,0,osprims_module);
+  KNO_LINK_CPRIM("getenv",getenv_prim,1,osprims_module);
+  KNO_LINK_CPRIM("setenv!",setenv_prim,3,osprims_module);
+  KNO_LINK_CPRIM("unsetenv!",unsetenv_prim,1,osprims_module);
+  KNO_LINK_CPRIM("hostaddrs",hostaddrs_prim,1,osprims_module);
+  KNO_LINK_CPRIM("gethostname",hostname_prim,0,osprims_module);
 }

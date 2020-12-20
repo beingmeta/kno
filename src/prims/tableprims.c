@@ -1281,9 +1281,11 @@ DEFCPRIM("getassocs",kno_getassocs,
 
 KNO_EXPORT void kno_init_tableprims_c()
 {
+
   u8_register_source_file(_FILEINFO);
 
   link_local_cprims();
+
 
 }
 

@@ -1513,9 +1513,16 @@ static lispval uuidpacket_prim(lispval uuid_arg)
 
 /* Initialization */
 
+static lispval timeprims_module, uuidprims_module;
+
 KNO_EXPORT void kno_init_timeprims_c()
 {
   u8_register_source_file(_FILEINFO);
+
+  timeprims_module =
+    kno_new_cmodule("sys/time",(KNO_MODULE_DEFAULT),kno_init_timeprims_c);
+  uuidprims_module =
+    kno_new_cmodule("sys/uuid",(KNO_MODULE_DEFAULT),kno_init_timeprims_c);
 
   tzset();
 
@@ -1660,46 +1667,46 @@ KNO_EXPORT void kno_init_timeprims_c()
 
   kno_def_evalfn(kno_sys_module,"#NOW",now_macro,
 		 "#:NOW:YEAR\n evaluates to a field of the current time");
-
-#if 0 /* ((HAVE_SLEEP) || (HAVE_NANOSLEEP)) */
-  kno_idefn(kno_sys_module,kno_make_cprim1("SLEEP",sleep_prim,1));
-#endif
+  kno_finish_module(uuidprims_module);
+  kno_finish_module(timeprims_module);
 }
-
 
 static void link_local_cprims()
 {
-  KNO_LINK_CPRIM("uuid->packet",uuidpacket_prim,1,kno_sys_module);
-  KNO_LINK_CPRIM("uuid->string",uuidstring_prim,1,kno_sys_module);
-  KNO_LINK_CPRIM("uuid-node",uuidnode_prim,1,kno_sys_module);
-  KNO_LINK_CPRIM("uuid-time",uuidtime_prim,1,kno_sys_module);
-  KNO_LINK_CPRIM("getuuid",getuuid_prim,2,kno_sys_module);
-  KNO_LINK_CPRIM("uuid?",uuidp_prim,1,kno_sys_module);
-  KNO_LINK_CPRIM("sleep",sleep_prim,1,kno_sys_module);
-  KNO_LINK_CPRIM("secs->short",secs2short,1,kno_sys_module);
-  KNO_LINK_CPRIM("secs->string",secs2string,2,kno_sys_module);
-  KNO_LINK_CPRIM("microtime",microtime_prim,0,kno_sys_module);
-  KNO_LINK_CPRIM("millitime",millitime_prim,0,kno_sys_module);
-  KNO_LINK_CPRIM("time",time_prim,0,kno_sys_module);
-  KNO_LINK_CPRIM("timestring",timestring,0,kno_sys_module);
-  KNO_LINK_CVARARGS("mktime",mktime_lexpr,kno_sys_module);
-  KNO_LINK_CPRIM("modtime",modtime_prim,3,kno_sys_module);
-  KNO_LINK_CPRIM("elapsed-time",elapsed_time,1,kno_sys_module);
-  KNO_LINK_CPRIM("past?",pastp,2,kno_sys_module);
-  KNO_LINK_CPRIM("future?",futurep,2,kno_sys_module);
-  KNO_LINK_CPRIM("time<?",timestamp_lesser,2,kno_sys_module);
-  KNO_LINK_CPRIM("time>?",timestamp_greater,2,kno_sys_module);
-  KNO_LINK_CPRIM("time-since",time_since,1,kno_sys_module);
-  KNO_LINK_CPRIM("time-until",time_until,1,kno_sys_module);
-  KNO_LINK_CPRIM("difftime",timestamp_diff,2,kno_sys_module);
-  KNO_LINK_CPRIM("timestamp-",timestamp_minus,2,kno_sys_module);
-  KNO_LINK_CPRIM("timestamp+",timestamp_plus,2,kno_sys_module);
-  KNO_LINK_CPRIM("gmtimestamp",gmtimestamp_prim,1,kno_sys_module);
-  KNO_LINK_CPRIM("timestamp",timestamp_prim,1,kno_sys_module);
-  KNO_LINK_CPRIM("timestamp?",timestampp,1,kno_sys_module);
+  KNO_LINK_CPRIM("uuid->packet",uuidpacket_prim,1,uuidprims_module);
+  KNO_LINK_CPRIM("uuid->string",uuidstring_prim,1,uuidprims_module);
+  KNO_LINK_CPRIM("uuid-node",uuidnode_prim,1,uuidprims_module);
+  KNO_LINK_CPRIM("uuid-time",uuidtime_prim,1,uuidprims_module);
+  KNO_LINK_CPRIM("getuuid",getuuid_prim,2,uuidprims_module);
+  KNO_LINK_CPRIM("uuid?",uuidp_prim,1,uuidprims_module);
 
-  KNO_LINK_ALIAS("time-earlier?",timestamp_lesser,kno_sys_module);
-  KNO_LINK_ALIAS("time-later?",timestamp_greater,kno_sys_module);
-  KNO_LINK_ALIAS("time+",timestamp_plus,kno_sys_module);
-  KNO_LINK_ALIAS("time-",timestamp_minus,kno_sys_module);
+  KNO_LINK_CPRIM("sleep",sleep_prim,1,timeprims_module);
+
+  KNO_LINK_CPRIM("secs->short",secs2short,1,timeprims_module);
+  KNO_LINK_CPRIM("secs->string",secs2string,2,timeprims_module);
+  KNO_LINK_CPRIM("time",time_prim,0,timeprims_module);
+  KNO_LINK_CPRIM("timestring",timestring,0,timeprims_module);
+
+  KNO_LINK_CPRIM("microtime",microtime_prim,0,timeprims_module);
+  KNO_LINK_CPRIM("millitime",millitime_prim,0,timeprims_module);
+  KNO_LINK_CVARARGS("mktime",mktime_lexpr,timeprims_module);
+  KNO_LINK_CPRIM("modtime",modtime_prim,3,timeprims_module);
+  KNO_LINK_CPRIM("elapsed-time",elapsed_time,1,timeprims_module);
+  KNO_LINK_CPRIM("past?",pastp,2,timeprims_module);
+  KNO_LINK_CPRIM("future?",futurep,2,timeprims_module);
+  KNO_LINK_CPRIM("time<?",timestamp_lesser,2,timeprims_module);
+  KNO_LINK_CPRIM("time>?",timestamp_greater,2,timeprims_module);
+  KNO_LINK_CPRIM("time-since",time_since,1,timeprims_module);
+  KNO_LINK_CPRIM("time-until",time_until,1,timeprims_module);
+  KNO_LINK_CPRIM("difftime",timestamp_diff,2,timeprims_module);
+  KNO_LINK_CPRIM("timestamp-",timestamp_minus,2,timeprims_module);
+  KNO_LINK_CPRIM("timestamp+",timestamp_plus,2,timeprims_module);
+  KNO_LINK_CPRIM("gmtimestamp",gmtimestamp_prim,1,timeprims_module);
+  KNO_LINK_CPRIM("timestamp",timestamp_prim,1,timeprims_module);
+  KNO_LINK_CPRIM("timestamp?",timestampp,1,timeprims_module);
+
+  KNO_LINK_ALIAS("time-earlier?",timestamp_lesser,timeprims_module);
+  KNO_LINK_ALIAS("time-later?",timestamp_greater,timeprims_module);
+  KNO_LINK_ALIAS("time+",timestamp_plus,timeprims_module);
+  KNO_LINK_ALIAS("time-",timestamp_minus,timeprims_module);
 }

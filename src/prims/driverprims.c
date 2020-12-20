@@ -294,8 +294,7 @@ KNO_EXPORT void kno_init_driverfns_c()
   scheme_driverfns_initialized = 1;
   kno_init_scheme();
   kno_init_drivers();
-  driverfns_module = kno_new_cmodule
-    ("driverfns",(KNO_MODULE_DEFAULT),kno_init_driverfns_c);
+  driverfns_module = kno_new_cmodule("db/drivers",(0),kno_init_driverfns_c);
   u8_register_source_file(_FILEINFO);
   link_local_cprims();
 
@@ -305,21 +304,21 @@ KNO_EXPORT void kno_init_driverfns_c()
 
 static void link_local_cprims()
 {
-  lispval db_module = kno_db_module;
+  KNO_LINK_CVARARGS("dbctl",dbctl_prim,kno_db_module);
+  KNO_LINK_CVARARGS("poolctl",poolctl_prim,kno_db_module);
+  KNO_LINK_CVARARGS("indexctl",indexctl_prim,kno_db_module);
+  KNO_LINK_CPRIM("index-slotids",index_slotids,1,kno_db_module);
 
   KNO_LINK_CPRIM("alcor/apply!",alcor_apply_prim,2,driverfns_module);
   KNO_LINK_CPRIM("alcor/save!",alcor_save_prim,3,driverfns_module);
-  KNO_LINK_CVARARGS("dbctl",dbctl_prim,kno_db_module);
-  KNO_LINK_CVARARGS("poolctl/default",poolctl_default_prim,kno_db_module);
-  KNO_LINK_CVARARGS("poolctl",poolctl_prim,kno_db_module);
-  KNO_LINK_CVARARGS("indexctl/default",indexctl_default_prim,kno_db_module);
-  KNO_LINK_CVARARGS("indexctl",indexctl_prim,kno_db_module);
-  KNO_LINK_CPRIM("index-slotids",index_slotids,1,kno_db_module);
+
+  KNO_LINK_CVARARGS("poolctl/default",poolctl_default_prim,driverfns_module);
+  KNO_LINK_CVARARGS("indexctl/default",indexctl_default_prim,driverfns_module);
+
   KNO_LINK_CPRIM("hash-dtype-rep",lisphashdtype,1,driverfns_module);
   KNO_LINK_CPRIM("hash-dtype3",lisphash3,1,driverfns_module);
   KNO_LINK_ALIAS("hash-dtype",lisphash2,driverfns_module);
   KNO_LINK_CPRIM("hash-dtype2",lisphash2,1,driverfns_module);
   KNO_LINK_CPRIM("hash-dtype1",lisphash1,1,driverfns_module);
-
-  KNO_LINK_ALIAS("hash-index-slotids",index_slotids,db_module);
+  KNO_LINK_ALIAS("hash-index-slotids",index_slotids,driverfns_module);
 }

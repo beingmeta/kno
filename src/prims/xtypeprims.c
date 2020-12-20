@@ -331,8 +331,7 @@ KNO_EXPORT void kno_init_xtypeprims_c()
   scheme_xtypeprims_initialized = 1;
   kno_init_scheme();
   kno_init_drivers();
-  xtypeprims_module =
-    kno_new_cmodule("xtypeprims",(KNO_MODULE_DEFAULT),kno_init_xtypeprims_c);
+  xtypeprims_module = kno_new_cmodule("io/xtypeio",0,kno_init_xtypeprims_c);
   u8_register_source_file(_FILEINFO);
   refs_symbol = kno_intern("XREFS");
   append_symbol = kno_intern("append");
@@ -345,8 +344,8 @@ KNO_EXPORT void kno_init_xtypeprims_c()
 
 static void link_local_cprims()
 {
-  KNO_LINK_CPRIM("write-xtype",write_xtype_prim,3,kno_scheme_module);
+  KNO_LINK_CPRIM("write-xtype",write_xtype_prim,3,xtypeprims_module);
   KNO_LINK_CPRIM("read-xtype",read_xtype_prim,2,xtypeprims_module);
-  KNO_LINK_CPRIM("write-xtype-at",write_xtype_at_prim,4,kno_scheme_module);
-  KNO_LINK_CPRIM("read-xtype-at",read_xtype_at_prim,4,kno_scheme_module);
+  KNO_LINK_CPRIM("write-xtype-at",write_xtype_at_prim,4,xtypeprims_module);
+  KNO_LINK_CPRIM("read-xtype-at",read_xtype_at_prim,4,xtypeprims_module);
 }

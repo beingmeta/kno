@@ -578,8 +578,7 @@ KNO_EXPORT void kno_init_dtypeprims_c()
   scheme_dtypeprims_initialized = 1;
   kno_init_scheme();
   kno_init_drivers();
-  dtypeprims_module =
-    kno_new_cmodule("dtypeprims",(KNO_MODULE_DEFAULT),kno_init_dtypeprims_c);
+  dtypeprims_module = kno_new_cmodule("io/dtypeio",(0),kno_init_dtypeprims_c);
   u8_register_source_file(_FILEINFO);
 
   link_local_cprims();
@@ -601,11 +600,11 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("dtype->zfile",lisp2zipfile,3,dtypeprims_module);
   KNO_LINK_CPRIM("dtype->file",lisp2file,3,dtypeprims_module);
   KNO_LINK_CPRIM("dtype->zfile",lisp2zipfile,3,dtypeprims_module);
-  KNO_LINK_CPRIM("zwrite-dtypes",zwrite_dtypes,2,kno_scheme_module);
-  KNO_LINK_CPRIM("zwrite-dtype",zwrite_dtype,2,kno_scheme_module);
-  KNO_LINK_CPRIM("zread-dtype",zread_dtype,1,kno_scheme_module);
-  KNO_LINK_CPRIM("write-dtype",write_dtype,4,kno_scheme_module);
-  KNO_LINK_CPRIM("read-dtype",read_dtype,3,kno_scheme_module);
+  KNO_LINK_CPRIM("zwrite-dtypes",zwrite_dtypes,2,dtypeprims_module);
+  KNO_LINK_CPRIM("zwrite-dtype",zwrite_dtype,2,dtypeprims_module);
+  KNO_LINK_CPRIM("zread-dtype",zread_dtype,1,dtypeprims_module);
+  KNO_LINK_CPRIM("write-dtype",write_dtype,4,dtypeprims_module);
+  KNO_LINK_CPRIM("read-dtype",read_dtype,3,dtypeprims_module);
 
   KNO_LINK_ALIAS("dtype->file+",add_dtypes2file,dtypeprims_module);
   KNO_LINK_ALIAS("dtype->zipfile",lisp2zipfile,dtypeprims_module);

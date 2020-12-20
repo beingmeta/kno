@@ -1957,7 +1957,8 @@ KNO_EXPORT void kno_init_fileprims_c()
   if (scheme_fileio_initialized) return;
   scheme_fileio_initialized = 1;
   kno_init_scheme();
-  fileio_module = kno_new_cmodule("fileio",(KNO_MODULE_DEFAULT),kno_init_fileprims_c);
+  fileio_module = kno_new_cmodule("io/fileio",(KNO_MODULE_DEFAULT),
+				  kno_init_fileprims_c);
   u8_register_source_file(_FILEINFO);
 
   u8_init_mutex(&stackdump_lock);
