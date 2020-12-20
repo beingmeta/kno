@@ -584,19 +584,25 @@ static int loadpath_config_set(lispval var,lispval vals,void *d)
 	    buf[len]='\0';
 	  else if (buf[len-1] == '/') {
 	    buf[len]='\0';
-	    if (!(u8_directoryp(buf))) {
+	    u8_string path_start = strchr(buf,'=');
+	    if (path_start) path_start++; else path_start=buf;
+	    if (!(u8_directoryp(path_start))) {
 	      u8_log(LOG_WARN,"BadLoadpath",
 		     "The path %s is not a directory",buf);
 	      skip = 1;}}
 	  else if ( (len>4) && (strcasecmp(buf+len-4,".zip")==0) ) {
 	    buf[len]='\0';
-	    if (!(u8_file_existsp(buf))) {
+	    u8_string path_start = strchr(buf,'=');
+	    if (path_start) path_start++; else path_start=buf;
+	    if (!(u8_file_existsp(path_start))) {
 	      u8_log(LOG_WARN,"BadLoadpath",
 		     "The path %s does not exist",buf);
 	      skip = 1;}}
 	  else {
 	    buf[len]='/'; len++; buf[len]='\0';
-	    if (!(u8_directoryp(buf))) {
+	    u8_string path_start = strchr(buf,'=');
+	    if (path_start) path_start++; else path_start=buf;
+	    if (!(u8_directoryp(path_start))) {
 	      u8_log(LOG_WARN,"BadLoadpath",
 		     "The path %s is not a directory",buf);
 	      skip = 1;}}
