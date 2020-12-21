@@ -289,9 +289,13 @@ KNO_EXPORT __thread struct KNO_STACK *kno_stackptr;
   if (caller) {							\
     if ( ( ((stack)->stack_origin) == NULL) &&			\
 	 ( (caller->stack_label) != NULL) ) {			\
-      (stack)->stack_origin = (caller->stack_label);}		\
+      (stack)->stack_origin = ((caller)->stack_label);}		\
+    if (KNO_VOIDP((stack)->eval_source)) {			\
+      ((stack)->eval_source)=((caller)->eval_source);		\
+      if (KNO_VOIDP((stack)->eval_context))			\
+	((stack)->eval_context)=((caller)->eval_context);}	\
     (stack)->stack_depth	= (caller)->stack_depth+1;	\
-    (stack)->stack_flags	= caller->stack_flags;}
+    (stack)->stack_flags	= (caller)->stack_flags;}
 
 KNO_EXPORT void _kno_stack_push_error(kno_stack stack,u8_context loc);
 KNO_EXPORT void _kno_stack_pop_error(kno_stack stack,u8_context loc);
