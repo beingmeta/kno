@@ -11,6 +11,13 @@ BRANCH=trunk
 		  $(@D).${shared_suffix}; 				\
 	fi;
 
+%.branch: ${EXTMODS}
+	@rm -f *.branch;
+	@for dir in *; do if [ -d $${dir}/.git ]; then \
+	  command cd $${dir}; git checkout $*; git pull; command cd ..; \
+	 fi; done;
+	@touch $@;
+
 default: extmods
 
 extmods: ${EXTMODS}
@@ -28,6 +35,16 @@ checkout update:
 	    make "$${dir}/.git"; \
 	  fi; \
 	done
+
+commit:
+	if [ ! -z "${MSG}" ]; then \
+	  for dir in *; do if [ -d $${dir}/.git ]; then \
+	    command cd ${dir}; git commit --all -m "$${MSG}"; command cd ..; fi; \
+	  done; \
+	else echo "No MSG specified"; fi
+
+status:
+	for dir in *; do if [ -d $${dir}/.git ]; then cd $${dir}; git status; cd ..; fi; done;
 
 build: extmods
 	domake ${EXTMODS}
