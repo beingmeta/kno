@@ -642,7 +642,7 @@ static lispval indent_text_prim(lispval text,lispval indent_arg)
   else if (indent_len==0)
     return kno_incref(text);
   else NO_ELSE;
-  int buflen = (indent_len>0) ? (indent_len++) : (1);
+  int buflen = (indent_len>0) ? (indent_len+1) : (1);
   u8_byte indentbuf[buflen];
   if (indent == NULL) {
     int i = 0; while (i<indent_len) {
