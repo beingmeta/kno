@@ -222,7 +222,7 @@
 			opts)))
   (when (getopt opts 'searchable #t)
     (let ((indexes (or (try (poolctl pool 'props 'indexes) 
-			    (get-indexes-for-pool pool))
+			    (get-indexes-for-pool pool opts))
 		       (fail))))
       (when (exists? indexes)
 	(loginfo |Indexes| 
