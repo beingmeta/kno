@@ -1122,7 +1122,7 @@ static lispval pprinter(int n,kno_argvec args)
   int arg_i=0, used[7]={0};
   int indent=0, close_port=0, stringout=0, col=0, depth=0;
   lispval opts = VOID, port_arg=VOID, obj = args[0]; used[0]=1;
-  if (n>7) return kno_err(kno_TooManyArgs,"lisp_pprint",NULL,VOID);
+  if (n>7) return kno_err(kno_TooManyArgs,"lisp_pprint",NULL,args[0]);
   while (arg_i<n)
     if (used[arg_i]) arg_i++;
     else {

@@ -1415,7 +1415,7 @@ static lispval swapout_lexpr(int n,kno_argvec args)
     else return kno_type_error(_("pool, index, or OIDs"),"swapout_lexpr",arg);
     return KNO_INT(rv_sum);}
   else if (n>2)
-    return kno_err(kno_TooManyArgs,"swapout",NULL,VOID);
+    return kno_err(kno_TooManyArgs,"swapout",NULL,args[0]);
   else if (KNO_EMPTY_CHOICEP(args[1]))
     return KNO_INT(0);
   else {
@@ -1465,7 +1465,7 @@ static lispval commit_lexpr(int n,kno_argvec args)
     else return kno_type_error(_("pool or index"),"commit_lexpr",arg);
     if (retval<0) return KNO_ERROR;
     else return VOID;}
-  else return kno_err(kno_TooManyArgs,"commit",NULL,VOID);
+  else return kno_err(kno_TooManyArgs,"commit",NULL,args[0]);
 }
 
 DEFCPRIM("commit-oids",commit_oids,

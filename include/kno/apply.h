@@ -162,6 +162,8 @@ struct KNO_FUNCTION {
   KNO_FUNCTION_FIELDS;
 };
 
+#define KNO_FCN_NAME(x) (((kno_function)x)->fcn_name)
+
 struct KNO_CPRIM {
   KNO_FUNCTION_FIELDS;
   u8_string cprim_name;
@@ -236,7 +238,6 @@ KNO_EXPORT lispval kno_cons_cprimN
 #define KNO_NDCALL   0x20000
 #define KNO_NDOP     KNO_NDCALL
 #define KNO_CHOICEOP KNO_NDCALL
-
 
 /* Useful macros */
 

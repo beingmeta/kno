@@ -710,10 +710,10 @@ static int lambda_check_arity(struct KNO_LAMBDA *proc,int n)
   int arity = proc->fcn_arity;
   int min_arity = proc->fcn_min_arity;
   if (n < min_arity) {
-    kno_seterr(kno_TooFewArgs,proc->fcn_name,NULL,VOID);
+    kno_seterr(kno_TooFewArgs,"lambda",proc->fcn_name,VOID);
     return 0;}
   else if ( (arity>=0) && (n>arity) ) {
-    kno_seterr(kno_TooManyArgs,proc->fcn_name,NULL,VOID);
+    kno_seterr(kno_TooManyArgs,"lambda",proc->fcn_name,VOID);
     return 0;}
   else return 1;
 }

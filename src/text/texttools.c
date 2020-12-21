@@ -1223,13 +1223,16 @@ static lispval rewrite_apply(lispval fcn,lispval content,lispval args)
 {
   if (NILP(args))
     return kno_apply(fcn,1,&content);
-  else {
-    lispval argvec[16]; int i = 1;
-    KNO_DOLIST(arg,args) {
-      if (i>=16) return kno_err(kno_TooManyArgs,"rewrite_apply",NULL,fcn);
-      else argvec[i++]=arg;}
-    argvec[0]=content;
-    return kno_apply(fcn,i,argvec);}
+  else if (PAIRP(args)) {
+    int len = kno_list_length(args);
+    if (len>=0) {
+      lispval argvec[len+1]; int i = 1;
+      KNO_DOLIST(arg,args) {argvec[i++]=arg;}
+      argvec[0]=content;
+      return kno_apply(fcn,i,argvec);}}
+  if (KNO_FUNCTIONP(fcn))
+    return kno_seterr("Bad rewrite args","texttools/rewrite_apply",KNO_FCN_NAME(fcn),args);
+  else return kno_seterr("Bad rewrite args","texttools/rewrite_apply",kno_type_name(fcn),args);
 }
 
 DEFCPRIM("textrewrite",textrewrite,
