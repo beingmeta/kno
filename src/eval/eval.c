@@ -919,7 +919,7 @@ KNO_FASTOP kno_stack find_loop_frame(kno_stack stack)
 
 KNO_FASTOP void setup_tail_call(kno_stack loop,
 				struct KNO_LAMBDA *lambda,
-				int n,lispval *args,
+				int n,const lispval *args,
 				kno_stackvec refs)
 {
   loop->stack_op = (lispval)lambda;
@@ -1042,7 +1042,6 @@ lispval eval_expr(lispval head,lispval expr,
     else return kno_err(kno_BadEvalOp,"eval_expr",NULL,expr);}
   else {
     lispval op = get_evalop(head,env,stack);
-
     if (op == KNO_EMPTY) return op;
     else if (KNO_ABORTED(op)) return op;
     else NO_ELSE;
@@ -1098,8 +1097,11 @@ lispval eval_apply(lispval fn,lispval exprs,
     (kno_type2name(fntype));
 
   /* Straightforward eval/apply */
-  KNO_DECL_STACKVEC(args,argbuf_len);
   KNO_DECL_STACKVEC(refs,argbuf_len);
+  KNO_DECL_STACKVEC(args,argbuf_len);
+  struct KNO_STACKVEC saved = stack->stack_args;
+  stack->stack_args = _args;
+  args = &(stack->stack_args);
   int nd_args = (KNO_CHOICEP(fn));
   int call_bits = (f) ? (f->fcn_call) :
     (fntype == kno_opcode_type) ?
@@ -1139,7 +1141,7 @@ lispval eval_apply(lispval fn,lispval exprs,
 
   KNO_STACK_SET_TAIL(stack,tail);
 
-  lispval *argbuf = KNO_STACKVEC_ELTS(args);
+  const lispval *argbuf = KNO_STACKVEC_ELTS(args);
   int n_args = KNO_STACKVEC_COUNT(args);
   int ndcall = (nd_args) && (iter) && (n_args>0);
   if (fntype == kno_opcode_type) {
@@ -1160,6 +1162,8 @@ lispval eval_apply(lispval fn,lispval exprs,
       kno_stack loop = (tail) ? (find_loop_frame(stack)) : (NULL);
       if (loop) {
       tail:
+	_args = stack->stack_args;
+	stack->stack_args = saved;
 	if (stack == loop) {
 	  kno_stackvec_merge(&(stack->stack_refs),refs);
 	  setup_tail_call(loop,proc,n_args,argbuf,NULL);}
@@ -1179,6 +1183,8 @@ lispval eval_apply(lispval fn,lispval exprs,
   KNO_STACK_SET_TAIL(stack,old_tail);
   /* We jump here if we haven't yet put *args* on the stack, i.e.
      there was an error while processing them. */
+  _args = stack->stack_args;
+  stack->stack_args = saved;
   kno_free_stackvec(&_args);
   kno_decref_stackvec(refs);
   kno_free_stackvec(refs);
