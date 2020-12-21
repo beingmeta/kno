@@ -358,7 +358,7 @@ static lispval errtest_evalfn(lispval expr,kno_lexenv env,kno_stack s)
 DEFCPRIM("testfn1",testfn1,MAX_ARGS(1)|MIN_ARGS(1),
 	 "This function helps look at how things get compiled "
 	 "when disassembled",
-	 "object",kno_any_type,KNO_VOID)
+	 {"object",kno_any_type,KNO_VOID})
 static lispval testfn1(lispval object)
 {
   /* If 'properly' compiled, the first three TYPEP calls should
