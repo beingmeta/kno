@@ -80,7 +80,6 @@ MACLIBTOOL	  = $(CC) -dynamiclib -single_module -undefined dynamic_lookup \
 
 LIBSCM	 	  = @LIBSCM@
 BUILD		  = `pwd`
-DEBUG_KNOCGI      = 0
 RPMFLAGS	  = @RPMFLAGS@
 RPMDIR		  = @RPMDIR@
 GPG		  = @GPG@
@@ -1244,6 +1243,11 @@ install-i18n: $(LOCALEDIR)/fr/LC_MESSAGES/kno.mo   \
 		$(LOCALEDIR)/nl/LC_MESSAGES/kno.mo
 i18n: etc/intl/fr.gmo etc/intl/nl.gmo etc/intl/es.gmo
 
+# Extmods
+
+extmods:
+	cd src/extmods; submake; make symlinks;
+
 # Documentation
 
 docs: docs/built
@@ -1830,58 +1834,6 @@ install-alpine: dist/alpine.installed
 
 .PHONY: alpine
 
-# The mod_knocgi module
-
-src/apache2/mod_knocgi.so: src/apache2/mod_knocgi.c
-	@$(ECHO) "#define _FILEINFO \""`@U8BIN@u8_fileinfo src/apache2/mod_knocgi.c .`"\"" \
-		> src/apache2/mod_knocgi_fileinfo.h
-	${APXS} -DUSEDTBLOCK=@USEDTBLOCK@ -DDEBUG_KNOCGI=$(DEBUG_KNOCGI) \
-		-c src/apache2/mod_knocgi.c
-
-mod_knocgi: src/apache2/mod_knocgi.so
-
-# For OSX, try this
-# apxs -Wc,'-arch x86_64' -Wl,'-arch x86_64'  -a -i -c src/apache2/mod_knocgi.c
-install-mod_knocgi: src/apache2/mod_knocgi.so $(DESTDIR)@apache_modinfo@ \
-	$(DESTDIR)@apache_modules_dir@ $(DESTDIR)@servlet_logdir@
-	@cd etc/apache; $(SYSINSTALL) @install_file_opts@ knocgi.conf \
-			$(DESTDIR)@apache_modinfo@;
-	@cd etc/apache; $(SYSINSTALL) @install_file_opts@ knocgi.load \
-			$(DESTDIR)@apache_modinfo@;
-	@$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
-			-d $(DESTDIR)@rundir@/kno/servlets;
-	@cd src/apache2; if test -f mod_knocgi.so; \
-		then $(DOINSTALL) ${APXS} -i mod_knocgi.so; \
-		else $(DOINSTALL) ${APXS} -i mod_knocgi.la; \
-		fi
-	@echo Installed knocgi module with @rundir@/kno/servlets @logdir@/kno/servlets
-
-update-apache: mod_knocgi
-	make install-mod_knocgi && sudo apachectl restart
-
-$(DESTDIR)@apache_modules_dir@:
-	@$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
-		-d $(DESTDIR)@apache_modules_dir@
-$(DESTDIR)@apache_modinfo@:
-	@$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
-		-d $(DESTDIR)@apache_modinfo@
-
-update-mod_knocgi: src/apache2/mod_knocgi.so $(DESTDIR)@apache_modinfo@ \
-		$(DESTDIR)@apache_modules_dir@
-	@$(MSG) "STOPPING and STARTING Apache to INSTALL NEW mod_knocgi"
-	@$(MSG) "THIS REQUIRES sudo PRIVILEGES; you may be prompted for your password"
-	sudo apachectl stop
-	cd etc/apache; sudo ${INSTALL} @install_file_opts@ knocgi.conf knocgi.load \
-			$(DESTDIR)@apache_modinfo@;
-	$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
-			-d $(DESTDIR)@rundir@/kno/servlets;
-	$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
-			-d $(DESTDIR)@logdir@/kno/servlets;
-	cd src/apache2; if test -f mod_knocgi.so; \
-		then sudo ${APXS} -i mod_knocgi.so; \
-		else sudo ${APXS} -i mod_knocgi.la; fi
-	sleep 5; sudo apachectl start
-
 # Test targets
 
 testclean:
@@ -2047,8 +1999,7 @@ submodules update-submodules update-git update-modules:
 	  git submodule update --remote --merge src/stdlib; 	\
 	  git submodule update --remote --merge src/brico; 	\
 	fi;
-
-.PHONY: mod_knocgi update-mod_knocgi install-mod_knocgi update-modules
+.PHONY: submodules update-modules update-git update-submodules
 
 ### Executables #including src/exe/main.c
 $(EXECUTABLES) $(STATIC_EXECUTABLES) $(DEBUG_EXECUTABLES): $(REVISION_H) src/exe/main.c
