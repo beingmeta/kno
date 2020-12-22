@@ -161,7 +161,7 @@ KNO_EXPORT int kno_init_zlib()
 
   link_local_cprims();
 
-  kno_finish_module(zlib_module);
+  kno_finish_cmodule(zlib_module);
 
   u8_register_source_file(_FILEINFO);
 

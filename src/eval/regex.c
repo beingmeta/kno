@@ -268,7 +268,7 @@ KNO_EXPORT int kno_init_regex_c()
 
   link_local_cprims();
 
-  kno_finish_module(regex_module);
+  kno_finish_cmodule(regex_module);
 
   u8_register_source_file(_FILEINFO);
 

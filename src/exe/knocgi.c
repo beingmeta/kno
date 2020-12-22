@@ -2080,7 +2080,6 @@ int main(int argc,char **argv)
 
 
 #if ((!(HAVE_CONSTRUCTOR_ATTRIBUTES)) || (KNO_TESTCONFIG) || (KNO_STATIC) )
-  kno_init_schemeio();
   kno_init_texttools();
   /* May result in innocuous redundant calls */
   KNO_INIT_SCHEME_BUILTINS();

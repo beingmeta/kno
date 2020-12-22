@@ -1667,8 +1667,8 @@ KNO_EXPORT void kno_init_timeprims_c()
 
   kno_def_evalfn(kno_sys_module,"#NOW",now_macro,
 		 "#:NOW:YEAR\n evaluates to a field of the current time");
-  kno_finish_module(uuidprims_module);
-  kno_finish_module(timeprims_module);
+  kno_finish_cmodule(uuidprims_module);
+  kno_finish_cmodule(timeprims_module);
 }
 
 static void link_local_cprims()

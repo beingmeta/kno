@@ -286,7 +286,7 @@ static int scheme_driverfns_initialized = 0;
 
 static lispval driverfns_module;
 
-KNO_EXPORT void kno_init_driverfns_c()
+KNO_EXPORT void kno_init_driverprims_c()
 {
   baseoids_symbol = kno_intern("%baseoids");
 
@@ -294,13 +294,12 @@ KNO_EXPORT void kno_init_driverfns_c()
   scheme_driverfns_initialized = 1;
   kno_init_scheme();
   kno_init_drivers();
-  driverfns_module = kno_new_cmodule("db/drivers",(0),kno_init_driverfns_c);
+  driverfns_module = kno_new_cmodule("db/drivers",(0),kno_init_driverprims_c);
   u8_register_source_file(_FILEINFO);
   link_local_cprims();
 
-  kno_finish_module(driverfns_module);
+  kno_finish_cmodule(driverfns_module);
 }
-
 
 static void link_local_cprims()
 {

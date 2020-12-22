@@ -583,7 +583,7 @@ KNO_EXPORT void kno_init_dtypeprims_c()
 
   link_local_cprims();
 
-  kno_finish_module(dtypeprims_module);
+  kno_finish_cmodule(dtypeprims_module);
 }
 
 static void link_local_cprims()

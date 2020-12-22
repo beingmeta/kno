@@ -903,7 +903,7 @@ KNO_EXPORT void kno_init_loadmods_c()
 		      "Whether to announce the loading of dynamic modules",
 		      kno_boolconfig_get,kno_boolconfig_set,&trace_dload);
 
-  kno_finish_module(loadmods_module);
+  kno_finish_cmodule(loadmods_module);
 }
 
 

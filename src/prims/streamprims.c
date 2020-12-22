@@ -582,7 +582,7 @@ KNO_EXPORT void kno_init_streamprims_c()
 
   link_local_cprims();
 
-  kno_finish_module(streamprims_module);
+  kno_finish_cmodule(streamprims_module);
 }
 
 static void link_local_cprims()

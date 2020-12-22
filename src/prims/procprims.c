@@ -898,7 +898,7 @@ KNO_EXPORT void kno_init_procprims_c()
   stderr_symbol = kno_intern("stderr");
   nice_symbol = kno_intern("nice");
 
-  kno_finish_module(procprims_module);
+  kno_finish_cmodule(procprims_module);
 }
 
 static void link_local_cprims()

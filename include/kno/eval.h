@@ -46,7 +46,6 @@ KNO_EXPORT lispval _kno_comment_symbol;
 KNO_EXPORT int kno_scheme_initialized;
 KNO_EXPORT int kno_load_scheme(void) KNO_LIBINIT0_FN;
 KNO_EXPORT int kno_init_scheme(void);
-KNO_EXPORT void kno_init_schemeio(void) KNO_LIBINIT0_FN;
 
 KNO_EXPORT u8_string kno_default_libscm;
 
@@ -224,6 +223,7 @@ KNO_EXPORT lispval kno_all_modules(void);
 
 KNO_EXPORT int kno_module_finished(lispval module,int flags);
 KNO_EXPORT int kno_finish_module(lispval module);
+KNO_EXPORT int kno_finish_cmodule(lispval module);
 
 KNO_EXPORT lispval kno_find_module(lispval,int);
 KNO_EXPORT lispval kno_new_module(char *name,int flags);

@@ -835,7 +835,7 @@ KNO_EXPORT int kno_init_sqlite()
   vfs_symbol = kno_intern("vfs");
   execok_symbol = kno_intern("exec/ok");
 
-  kno_finish_module(sqlite_module);
+  kno_finish_cmodule(sqlite_module);
 
   u8_register_source_file(_FILEINFO);
 

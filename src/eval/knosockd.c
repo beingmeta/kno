@@ -178,7 +178,7 @@ KNO_EXPORT void kno_init_knosockd_c()
 
   link_cprims(knosocks_module);
 
-  kno_finish_module(knosocks_module);
+  kno_finish_cmodule(knosocks_module);
 
   u8_register_source_file(_FILEINFO);
 }

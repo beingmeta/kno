@@ -945,7 +945,7 @@ KNO_EXPORT void kno_init_sysprims_c()
 
   kno_init_procprims_c();
 
-  kno_finish_module(osprims_module);
+  kno_finish_cmodule(osprims_module);
 
 }
 

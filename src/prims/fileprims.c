@@ -1948,8 +1948,6 @@ static lispval zpathstore_prim(lispval fname,lispval opts)
 
 static int scheme_fileio_initialized = 0;
 
-KNO_EXPORT void kno_init_driverfns_c(void);
-
 static lispval fileio_module;
 
 KNO_EXPORT void kno_init_fileprims_c()
@@ -1985,8 +1983,6 @@ KNO_EXPORT void kno_init_fileprims_c()
 		  "generates output from "
 		  "*args* which is passed as a command to the default shell.");
 
-  kno_init_driverfns_c();
-
   kno_register_config
     ("TEMPROOT","Template for generating temporary directory names",
      temproot_get,temproot_set,NULL);
@@ -2019,28 +2015,20 @@ KNO_EXPORT void kno_init_fileprims_c()
     ("STACKDUMP","File to store stackdump information on errors",
      stackdump_config_get,stackdump_config_set,NULL);
 
-  kno_finish_module(fileio_module);
-}
-
-KNO_EXPORT void kno_init_schemeio()
-{
-  kno_init_fileprims_c();
-  kno_init_driverfns_c();
+  kno_finish_cmodule(fileio_module);
 }
 
 static void link_local_cprims()
 {
-  lispval scheme_module = kno_scheme_module;
-
   KNO_LINK_CPRIM("fsinfo",fsinfo_prim,1,fileio_module);
   KNO_LINK_CPRIM("fsinfo",fsinfo_prim,1,fileio_module);
-  KNO_LINK_CPRIM("setpos!",setpos_prim,2,kno_scheme_module);
-  KNO_LINK_CPRIM("file%",file_progress_prim,1,kno_scheme_module);
-  KNO_LINK_CPRIM("endpos",endpos_prim,1,kno_scheme_module);
-  KNO_LINK_CPRIM("getpos",getpos_prim,1,kno_scheme_module);
+  KNO_LINK_CPRIM("setpos!",setpos_prim,2,kno_io_module);
+  KNO_LINK_CPRIM("file%",file_progress_prim,1,kno_io_module);
+  KNO_LINK_CPRIM("endpos",endpos_prim,1,kno_io_module);
+  KNO_LINK_CPRIM("getpos",getpos_prim,1,kno_io_module);
   KNO_LINK_CPRIM("setbuf!",setbuf_prim,3,fileio_module);
-  KNO_LINK_CPRIM("flush-output",flush_prim,1,kno_scheme_module);
-  KNO_LINK_CPRIM("close",close_prim,1,kno_scheme_module);
+  KNO_LINK_CPRIM("flush-output",flush_prim,1,kno_io_module);
+  KNO_LINK_CPRIM("close",close_prim,1,kno_io_module);
   KNO_LINK_CPRIM("readdir",readdir_prim,2,fileio_module);
   KNO_LINK_CPRIM("getlinks",getlinks_prim,2,fileio_module);
   KNO_LINK_CPRIM("getdirs",getdirs_prim,2,fileio_module);
@@ -2085,7 +2073,7 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("move-file!",move_file_prim,3,fileio_module);
   KNO_LINK_CPRIM("remove-tree!",remove_tree_prim,2,fileio_module);
   KNO_LINK_CPRIM("remove-file!",remove_file_prim,2,fileio_module);
-  KNO_LINK_CPRIM("open-socket",open_socket_prim,2,kno_scheme_module);
+  KNO_LINK_CPRIM("open-socket",open_socket_prim,2,kno_io_module);
   KNO_LINK_CPRIM("write-file",writefile_prim,3,fileio_module);
   KNO_LINK_CPRIM("open-input-file",open_input_file,2,fileio_module);
   KNO_LINK_CPRIM("extend-output-file",extend_output_file,3,fileio_module);
@@ -2104,6 +2092,6 @@ static void link_local_cprims()
   KNO_LINK_ALIAS("dirname",path_dirname,fileio_module);
   KNO_LINK_ALIAS("basename",path_basename,fileio_module);
   KNO_LINK_ALIAS("statfs",fsinfo_prim,fileio_module);
-  KNO_LINK_ALIAS("setpos",setpos_prim,scheme_module);
+  KNO_LINK_ALIAS("setpos",setpos_prim,kno_io_module);
 
 }

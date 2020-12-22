@@ -1981,7 +1981,7 @@ KNO_EXPORT void kno_init_threads_c()
 
   u8_register_source_file(_FILEINFO);
 
-  kno_finish_module(threads_module);
+  kno_finish_cmodule(threads_module);
 }
 
 

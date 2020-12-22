@@ -462,7 +462,7 @@ KNO_EXPORT int kno_init_libarchive()
 
   link_local_cprims();
 
-  kno_finish_module(libarchive_module);
+  kno_finish_cmodule(libarchive_module);
 
   u8_register_source_file(_FILEINFO);
 

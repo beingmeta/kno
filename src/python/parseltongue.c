@@ -2236,7 +2236,6 @@ static void init_kno_module()
   /* If we're a "test" executable (KNO_TESTCONFIG), we're
      statically linked, so we need to initialize some modules
      explicitly (since the "onload" initializers may not be invoked). */
-  kno_init_schemeio();
   kno_init_texttools();
   kno_init_fdweb();
 #endif
@@ -2267,7 +2266,7 @@ static void init_kno_module()
 		 "symbol names. If *spec* is a table, it should map "
 		 "symbols to Python names.");
 
-  kno_finish_module(pymodule);
+  kno_finish_cmodule(pymodule);
 
   kno_register_config("PYPATH","The search path used by Python",
 		     pypath_config_get,pypath_config_set,NULL);

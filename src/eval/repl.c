@@ -124,7 +124,7 @@ KNO_EXPORT void kno_init_replc_c()
   history_symbol = kno_intern("%history");
   histref_typetag = kno_intern("%histref");
 
-  kno_finish_module(repl_module);
+  kno_finish_cmodule(repl_module);
 
 }
 

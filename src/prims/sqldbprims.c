@@ -391,7 +391,7 @@ KNO_EXPORT void kno_init_sqldbprims_c()
                       _("whether direct execution of SQL strings is allowed"),
                       kno_boolconfig_get,kno_boolconfig_set,&exec_enabled);
 
-  kno_finish_module(sqldb_module);
+  kno_finish_cmodule(sqldb_module);
 }
 
 static void link_local_cprims()

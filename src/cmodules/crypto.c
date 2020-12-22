@@ -255,7 +255,7 @@ KNO_EXPORT int kno_init_crypto()
 
   link_local_cprims();
 
-  kno_finish_module(crypto_module);
+  kno_finish_cmodule(crypto_module);
 
   u8_register_source_file(_FILEINFO);
 

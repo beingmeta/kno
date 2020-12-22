@@ -201,7 +201,7 @@ KNO_EXPORT int kno_init_gperftools()
   KNO_LINK_CPRIM(release_memory_prim,1,module);
   KNO_LINK_CPRIM(malloc_stats_prim,0,module);
 
-  kno_finish_module(module);
+  kno_finish_cmodule(module);
 
   u8_register_source_file(_FILEINFO);
 

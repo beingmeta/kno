@@ -24,7 +24,7 @@
 #define _FILEINFO __FILE__
 #endif
 
-static lispval source_symbol, loadstamp_symbol, dlsource_symbol;
+static lispval source_symbol, loadstamp_symbol, dlsource_symbol, fcnids_symbol;
 
 u8_condition kno_NotAModule=_("Argument is not a module (table)");
 u8_condition kno_NoSuchModule=_("Can't find named module");
@@ -128,6 +128,12 @@ KNO_EXPORT lispval kno_register_module_x(lispval name,lispval module,int flags)
 {
   kno_hashtable_store(&module_map,name,module);
 
+  if (KNO_HASHTABLEP(module)) {
+    lispval fcnrefs_table = kno_make_hashtable(NULL,19);
+    kno_hashtable_op((kno_hashtable)module,kno_table_default,fcnids_symbol,
+		     fcnrefs_table);
+    kno_decref(fcnrefs_table);}
+
   /* Set the module ID*/
   if (KNO_LEXENVP(module)) {
     kno_lexenv env = (kno_lexenv)module;
@@ -169,7 +175,12 @@ KNO_EXPORT lispval kno_new_module(char *name,int flags)
   else kno_decref(as_stored);
   if (flags&KNO_MODULE_DEFAULT) {
     default_env->env_parent = kno_make_env(module,default_env->env_parent);}
-  return module;}
+  lispval fcnrefs_table = kno_make_hashtable(NULL,19);
+  kno_hashtable_op((kno_hashtable)module,kno_table_default,fcnids_symbol,
+		   fcnrefs_table);
+  kno_decref(fcnrefs_table);
+  return module;
+}
 
 KNO_EXPORT lispval kno_new_cmodule_x(char *name,int flags,void *addr,
                                      u8_string filename)
@@ -209,6 +220,23 @@ int kno_finish_module(lispval module)
     else return kno_module_finished(module,0);
   else {
     kno_seterr(kno_NotAModule,"kno_finish_module",NULL,module);
+    return -1;}
+}
+
+KNO_EXPORT
+int kno_finish_cmodule(lispval module)
+{
+  if (TABLEP(module))
+    if (kno_test(module,loadstamp_symbol,KNO_VOID))
+      return 0;
+    else {
+      int rv = kno_module_finished(module,0);
+      if (rv<0) return rv;
+      if (KNO_HASHTABLEP(module))
+	rv = kno_hashtable_set_readonly((kno_hashtable)module,1);
+      return rv;}
+  else {
+    kno_seterr(kno_NotAModule,"kno_finish_cmodule",NULL,module);
     return -1;}
 }
 
@@ -905,6 +933,7 @@ void kno_init_module_tables()
   if (module_tables_initialized) return;
   else module_tables_initialized=1;
 
+  fcnids_symbol = kno_intern("%fcnids");
   loadstamp_symbol = kno_intern("%loadstamp");
   source_symbol = kno_intern("%source");
   dlsource_symbol = kno_intern("%dlsource");
@@ -934,7 +963,7 @@ void kno_init_module_tables()
 
   /* This is the module where the data-access API lives */
   kno_register_module("dbserv",kno_incref(kno_dbserv_module),0);
-  kno_finish_module(kno_dbserv_module);
+  kno_finish_cmodule(kno_dbserv_module);
 }
 
 /* Initialization */

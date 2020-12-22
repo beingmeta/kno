@@ -760,7 +760,6 @@ int main(int argc,char **argv)
   /* If we're a "test" executable (KNO_TESTCONFIG), we're statically linked, so we need to
      initialize some modules explicitly (since the shared library initializers may not be
      invoked). */
-  kno_init_schemeio();
   kno_init_texttools();
   kno_init_webtools();
 #endif

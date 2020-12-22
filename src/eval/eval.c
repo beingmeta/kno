@@ -2022,6 +2022,8 @@ KNO_EXPORT void kno_init_load_c(void);
 KNO_EXPORT void kno_init_logprims_c(void);
 KNO_EXPORT void kno_init_portprims_c(void);
 KNO_EXPORT void kno_init_streamprims_c(void);
+KNO_EXPORT void kno_init_fileprims_c(void);
+KNO_EXPORT void kno_init_driverprims_c(void);
 KNO_EXPORT void kno_init_dtypeprims_c(void);
 KNO_EXPORT void kno_init_xtypeprims_c(void);
 KNO_EXPORT void kno_init_timeprims_c(void);
@@ -2084,23 +2086,26 @@ static void init_eval_core()
 
   kno_init_stringprims_c();
   kno_init_dbprims_c();
-  kno_init_seqprims_c();
-  kno_init_logprims_c();
   kno_init_portprims_c();
   kno_init_streamprims_c();
   kno_init_dtypeprims_c();
   kno_init_xtypeprims_c();
+  kno_init_seqprims_c();
+  kno_init_logprims_c();
   kno_init_timeprims_c();
   kno_init_sysprims_c();
   kno_init_sqldbprims_c();
   kno_init_knosockd_c();
 
+  kno_init_fileprims_c();
+  kno_init_driverprims_c();
+
   u8_threadcheck();
 
-  kno_finish_module(kno_scheme_module);
-  kno_finish_module(kno_db_module);
-  kno_finish_module(kno_io_module);
-  kno_finish_module(kno_sys_module);
+  kno_finish_cmodule(kno_scheme_module);
+  kno_finish_cmodule(kno_io_module);
+  kno_finish_cmodule(kno_db_module);
+  kno_finish_cmodule(kno_sys_module);
 }
 
 KNO_EXPORT int kno_load_scheme()

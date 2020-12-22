@@ -1530,8 +1530,8 @@ KNO_EXPORT void kno_init_reflection_c()
   KNO_LINK_EVALFN(reflection_module,wherefrom_evalfn);
   KNO_LINK_EVALFN(reflection_module,getmodules_evalfn);
 
-  kno_finish_module(reflection_module);
-  kno_finish_module(profiling_module);
+  kno_finish_cmodule(reflection_module);
+  kno_finish_cmodule(profiling_module);
 }
 
 static void link_local_cprims()

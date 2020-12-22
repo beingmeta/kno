@@ -1020,7 +1020,6 @@ int main(int argc,char **argv)
   u8_use_syslog(1);
 
 #if ((!(HAVE_CONSTRUCTOR_ATTRIBUTES)) || (KNO_TESTCONFIG))
-  kno_init_schemeio();
   kno_init_texttools();
 #else
   KNO_INIT_SCHEME_BUILTINS();

@@ -131,8 +131,6 @@ static lispval dns_query(lispval domain_arg,lispval type_arg)
   return results;
 }
 
-KNO_EXPORT void kno_init_dns_c(void) KNO_LIBINIT_FN;
-
 static lispval webtools_module;
 
 KNO_EXPORT void kno_init_dns_c()

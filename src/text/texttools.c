@@ -2951,7 +2951,7 @@ void kno_init_texttools()
 
   u8_threadcheck();
 
-  kno_finish_module(texttools_module);
+  kno_finish_cmodule(texttools_module);
 }
 
 static void link_local_cprims()
