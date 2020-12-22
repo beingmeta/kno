@@ -2,7 +2,11 @@
 ;;; Copyright (C) 2005-2020 beingmeta, inc. All rights reserved.
 
 (in-module 'gpath)
+
+(use-module '{varconfig logger webtools texttools io/fileio})
+
 (define %used_modules '{varconfig ezrecords})
+(define-init %loglevel %notice%)
 
 (module-export!
  '{gp/write! gp/save!
@@ -32,16 +36,16 @@
 
 (define havezip #f)
 
-(cond ((and (config 'noziptools #f) (onerror (get-module 'ziptools) #f))
-       (use-module 'ziptools)
-       (set! havezip #t))
-      (else 
+(cond ((config 'noziptools #f)
+       (logwarn |NoZipTools| "From config"))
+      ((not (onerror (get-module 'ziptools) #f))
+       (logwarn |NoZipTools| "Couldn't load zip tools")
        (define (zipfile? x) #f)
-       (define (zip/add! . args) #f)))
+       (define (zip/add! . args) #f))
+      (else (use-module 'ziptools)
+	    (set! havezip #t)))
 
-(use-module '{io/fileio aws/s3 varconfig logger webtools 
-	      texttools mimetable ezrecords hashfs zipfs})
-(define-init %loglevel %notice%)
+(use-module '{aws/s3 mimetable ezrecords hashfs zipfs})
 
 (define gp/urlsubst {})
 (varconfig! gp:urlsubst gp/urlsubst #f)
