@@ -371,7 +371,7 @@ KNO_EXPORT void kno_init_sqldbprims_c()
   if (sqldb_initialized) return;
   sqldb_initialized = 1;
   kno_init_scheme();
-  sqldb_module = kno_new_cmodule("db/sql",(0),kno_init_sqldbprims_c);
+  sqldb_module = kno_new_cmodule("sqldb",(0),kno_init_sqldbprims_c);
   u8_register_source_file(_FILEINFO);
 
   u8_init_mutex(&sqldb_handlers_lock);
