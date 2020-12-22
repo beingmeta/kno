@@ -105,9 +105,10 @@
 (varconfig! gpath:dirmode *default-dirmode*)
 
 (define (root-path path)
-  (if (has-prefix path "/") (slice path 1)
-      (if (has-prefix path "./") (slice path 2)
-	  path)))
+  (if (not (string? path)) path
+      (if (has-prefix path "/") (slice path 1)
+	  (if (has-prefix path "./") (slice path 2)
+	      path))))
 
 (define datauri-pat
   #("data:" (label content-type (not> ";")) ";" (label enc (not> ",")) ","
@@ -274,7 +275,8 @@
        ,(fourth expr))))
 
 (define (string->root string)
-  (cond ((has-prefix string "s3:") (->s3loc string))
+  (cond ((not (string? string)) (irritant string |GPathNotString|))
+	((has-prefix string "s3:") (->s3loc string))
 	((has-prefix string "zip:")
 	 (zip/open (subseq string 4)))
 	(else (uribase string))))
@@ -949,11 +951,15 @@
 	       (->gpath (mkpath (config scheme) path) root chroot))
 	      ((config scheme) (cons scheme path))
 	      (else (irritant scheme |InvalidScheme(gpath)| "For " val))))
-      (if (has-prefix val "/") 
-	  (if chroot (gp/mkpath chroot (slice val 1)) val)
-	  (if (has-prefix val {"~" "./" "../"})
-	      (abspath val)
-	      (if root (mkpath root val) (abspath val))))))
+      (if (not (string? val))
+	  val ;; (irritant val |Not a path| ->gpath)
+	  (if (has-prefix val "/") 
+	      (if chroot (gp/mkpath chroot (slice val 1)) val)
+	      (if (has-prefix val {"~" "./" "../"})
+		  (abspath val)
+		  (if (string? root)
+		      (mkpath root val)
+		      (if root (cons root val) (abspath val))))))))
 
 (store! gpath-scheme-handlers "s3" ->s3loc)
 (define (convert-s3-uri s) (try (->s3loc s) #f))
