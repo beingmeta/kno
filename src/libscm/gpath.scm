@@ -32,7 +32,7 @@
 
 (define havezip #f)
 
-(cond ((onerror (get-module 'ziptools) #f)
+(cond ((and (config 'noziptools #f) (onerror (get-module 'ziptools) #f))
        (use-module 'ziptools)
        (set! havezip #t))
       (else 
