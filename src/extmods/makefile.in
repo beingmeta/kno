@@ -45,6 +45,8 @@ commit:
 
 status:
 	for dir in *; do if [ -d $${dir}/.git ]; then cd $${dir}; git status; cd ..; fi; done;
+diff:
+	for dir in *; do if [ -d $${dir}/.git ]; then cd $${dir}; git diff; cd ..; fi; done;
 
 build: extmods
 	domake ${EXTMODS}
