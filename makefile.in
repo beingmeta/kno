@@ -1634,7 +1634,7 @@ install-support: $(DESTDIR)@share_dir@
 	cd $(BUILD)/src/web; $(SYSINSTALL) @install_file_opts@ 	\
 		webinfo.knocgi $(DESTDIR)@share_dir@
 
-LIBSCM_DIRS=optimize bugjar bench knodb xhtml kno
+LIBSCM_DIRS=optimize bugjar bench knodb xhtml kno io sqldb
 LIBSCM_DATA_DIRS=
 install-libscm:
 	@if [ ! -d ${DESTDIR}${LIBSCM} ]; then 						\
