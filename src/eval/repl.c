@@ -54,10 +54,12 @@ KNO_EXPORT lispval with_history_evalfn
   return value;
 }
 
-DEFPRIM("histref",histref_prim,MIN_ARGS(2)|MAX_ARGS(2),
-	"returns the history item for "
-	"*ref*, using the current historical context if *history* is "
-	"not provided.");
+DEFCPRIM("histref",histref_prim,MIN_ARGS(2)|MAX_ARGS(2),
+	 "returns the history item for "
+	 "*ref*, using the current historical context if *history* is "
+	 "not provided.",
+	 {"ref",kno_any_type,KNO_VOID},
+	 {"history",kno_any_type,KNO_VOID});
 static lispval histref_prim(lispval ref,lispval history)
 {
   if ( (VOIDP(history)) || (FALSEP(history)) || (DEFAULTP(history)) )
@@ -70,10 +72,12 @@ static lispval histref_prim(lispval ref,lispval history)
   else return KNO_EMPTY;
 }
 
-DEFPRIM("histfind",histfind_prim,MIN_ARGS(2)|MAX_ARGS(2),
-	"returns the history reference for "
-	"*value*, using the current historical context if *history* is "
-	"not provided.");
+DEFCPRIM("histfind",histfind_prim,MIN_ARGS(2)|MAX_ARGS(2),
+	 "returns the history reference for "
+	 "*value*, using the current historical context if *history* is "
+	 "not provided.",
+	 {"ref",kno_any_type,KNO_VOID},
+	 {"history",kno_any_type,KNO_VOID});
 static lispval histfind_prim(lispval ref,lispval history)
 {
   if ( (VOIDP(history)) || (FALSEP(history)) || (DEFAULTP(history)) )
@@ -86,11 +90,14 @@ static lispval histfind_prim(lispval ref,lispval history)
   else return KNO_EMPTY;
 }
 
-DEFPRIM("histadd!",histadd_prim,MIN_ARGS(1)|MAX_ARGS(3),
-	"associates *val* with "
-	"the history reference *ref*, creating a new reference if *ref* "
-	"is not provided. This uses the current historical context if "
-	"*history* is not provided.");
+DEFCPRIM("histadd!",histadd_prim,MIN_ARGS(1)|MAX_ARGS(3),
+	 "associates *val* with "
+	 "the history reference *ref*, creating a new reference if *ref* "
+	 "is not provided. This uses the current historical context if "
+	 "*history* is not provided.",
+	 {"val",kno_any_type,KNO_VOID},
+	 {"history",kno_any_type,KNO_VOID},
+	 {"ref",kno_any_type,KNO_VOID});
 static lispval histadd_prim(lispval val,lispval history,lispval ref)
 {
   if ( (VOIDP(history)) || (FALSEP(history)) || (DEFAULTP(history)) )
@@ -130,7 +137,7 @@ KNO_EXPORT void kno_init_replc_c()
 
 static void link_local_cprims()
 {
-  KNO_LINK_PRIM("histref",histref_prim,2,repl_module);
-  KNO_LINK_PRIM("histfind",histfind_prim,2,repl_module);
-  KNO_LINK_PRIM("histadd!",histadd_prim,3,repl_module);
+  KNO_LINK_CPRIM("histref",histref_prim,2,repl_module);
+  KNO_LINK_CPRIM("histfind",histfind_prim,2,repl_module);
+  KNO_LINK_CPRIM("histadd!",histadd_prim,3,repl_module);
 }

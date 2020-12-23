@@ -77,10 +77,9 @@ KNO_EXPORT lispval kno_open_dtserver(u8_string server,int bufsiz)
   return LISP_CONS(dts);
 }
 
-DEFPRIM1("dtserver?",dtserverp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "Returns true if it's argument is a dtype server "
-	 "object",
-	 kno_any_type,KNO_VOID);
+DEFCPRIM("dtserver?",dtserverp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "Returns true if it's argument is a dtype server object",
+	 {"obj",kno_any_type,KNO_VOID});
 static lispval dtserverp(lispval arg)
 {
   if (TYPEP(arg,kno_service_type))
@@ -88,28 +87,29 @@ static lispval dtserverp(lispval arg)
   else return KNO_FALSE;
 }
 
-DEFPRIM1("dtserver-id",dtserver_id,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFCPRIM("dtserver-id",dtserver_id,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns the ID of a dtype server (the argument "
 	 "used to create it)",
-	 kno_service_type,KNO_VOID);
+	 {"service",kno_service_type,KNO_VOID});
 static lispval dtserver_id(lispval arg)
 {
   struct KNO_DTSERVER *dts = (struct KNO_DTSERVER *) arg;
   return kno_mkstring(dts->dtserverid);
 }
 
-DEFPRIM1("dtserver-address",dtserver_address,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFCPRIM("dtserver-address",dtserver_address,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns the address (host/port) of a dtype server",
-	 kno_service_type,KNO_VOID);
+	 {"service",kno_service_type,KNO_VOID});
 static lispval dtserver_address(lispval arg)
 {
   struct KNO_DTSERVER *dts = (struct KNO_DTSERVER *) arg;
   return kno_mkstring(dts->dtserver_addr);
 }
 
-DEFPRIM2("dteval",dteval,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+DEFCPRIM("dteval",dteval,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 "**undocumented**",
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 {"server",kno_any_type,KNO_VOID},
+	 {"expr",kno_any_type,KNO_VOID});
 static lispval dteval(lispval server,lispval expr)
 {
   if (TYPEP(server,kno_service_type))  {
@@ -126,8 +126,8 @@ static lispval dteval(lispval server,lispval expr)
   else return kno_type_error(_("server"),"dteval",server);
 }
 
-DEFPRIM("dtcall",dtcall,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
-	"**undocumented**");
+DEFCPRIMN("dtcall",dtcall,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+	  "**undocumented**");
 static lispval dtcall(int n,kno_argvec args)
 {
   lispval server; lispval request = NIL, result; int i = n-1;
@@ -149,9 +149,10 @@ static lispval dtcall(int n,kno_argvec args)
   return result;
 }
 
-DEFPRIM2("open-dtserver",open_dtserver,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+DEFCPRIM("open-dtserver",open_dtserver,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
-	 kno_string_type,KNO_VOID,kno_fixnum_type,KNO_VOID);
+	 {"server",kno_string_type,KNO_VOID},
+	 {"bufsize",kno_fixnum_type,KNO_VOID});
 static lispval open_dtserver(lispval server,lispval bufsiz)
 {
   return kno_open_dtserver(CSTRING(server),
@@ -161,12 +162,15 @@ static lispval open_dtserver(lispval server,lispval bufsiz)
 
 /* Making DTPROCs */
 
-DEFPRIM7("dtproc",make_dtproc,KNO_MAX_ARGS(7)|KNO_MIN_ARGS(2),
+DEFCPRIM("dtproc",make_dtproc,KNO_MAX_ARGS(7)|KNO_MIN_ARGS(2),
 	 "**undocumented**",
-	 kno_symbol_type,KNO_VOID,kno_string_type,KNO_VOID,
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID,
-	 kno_fixnum_type,KNO_CPP_INT(2),kno_fixnum_type,KNO_CPP_INT(4),
-	 kno_fixnum_type,KNO_CPP_INT(1));
+	 {"name",kno_symbol_type,KNO_VOID},
+	 {"server",kno_string_type,KNO_VOID},
+	 {"min_arity",kno_any_type,KNO_VOID},
+	 {"arity",kno_any_type,KNO_VOID},
+	 {"minsock",kno_fixnum_type,KNO_CPP_INT}(2),
+	 {"maxsock",kno_fixnum_type,KNO_CPP_INT}(4),
+	 {"initsock",kno_fixnum_type,KNO_CPP_INT}(1));
 static lispval make_dtproc(lispval name,lispval server,lispval min_arity,
 			   lispval arity,lispval minsock,lispval maxsock,
 			   lispval initsock)
@@ -204,12 +208,12 @@ static void link_local_cprims()
 {
   lispval scheme_module = kno_scheme_module;
 
-  KNO_LINK_PRIM("open-dtserver",open_dtserver,2,scheme_module);
+  KNO_LINK_CPRIM("open-dtserver",open_dtserver,2,scheme_module);
   KNO_LINK_CVARARGS("dtcall",dtcall,scheme_module);
-  KNO_LINK_PRIM("dteval",dteval,2,scheme_module);
-  KNO_LINK_PRIM("dtserver-address",dtserver_address,1,scheme_module);
-  KNO_LINK_PRIM("dtserver-id",dtserver_id,1,scheme_module);
-  KNO_LINK_PRIM("dtserver?",dtserverp,1,scheme_module);
+  KNO_LINK_CPRIM("dteval",dteval,2,scheme_module);
+  KNO_LINK_CPRIM("dtserver-address",dtserver_address,1,scheme_module);
+  KNO_LINK_CPRIM("dtserver-id",dtserver_id,1,scheme_module);
+  KNO_LINK_CPRIM("dtserver?",dtserverp,1,scheme_module);
 
-  KNO_LINK_PRIM("dtproc",make_dtproc,7,kno_scheme_module);
+  KNO_LINK_CPRIM("dtproc",make_dtproc,7,kno_scheme_module);
 }

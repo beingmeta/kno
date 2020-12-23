@@ -237,9 +237,10 @@ static struct TAGINFO {
   {EXIF_TAG_IMAGE_UNIQUE_ID, "ImageUniqueID",KNO_VOID},
   {0, NULL,KNO_VOID}};
 
-DEFPRIM2("exif-get",exif_get,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+DEFCPRIM("exif-get",exif_get,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
-	 kno_any_type,KNO_VOID,kno_any_type,KNO_VOID);
+	 {"data",kno_any_type,KNO_VOID},
+	 {"property",kno_any_type,KNO_VOID});
 static lispval exif_get(lispval x,lispval prop)
 {
   ExifData *exdata;
@@ -302,5 +303,5 @@ KNO_EXPORT int kno_init_exif()
 
 static void link_local_cprims()
 {
-  KNO_LINK_PRIM("exif-get",exif_get,2,exif_module);
+  KNO_LINK_CPRIM("exif-get",exif_get,2,exif_module);
 }

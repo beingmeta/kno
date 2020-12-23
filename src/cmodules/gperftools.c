@@ -54,8 +54,9 @@
 /* Google profiling tools */
 
 #if HAVE_GPERFTOOLS_HEAP_PROFILER_H
-DEFPRIM("GPERF/HEAP/PROFILE!",gperf_heap_profile,MAX_ARGS(1)|MIN_ARGS(0),
-	"Activates the gperftools heap profiler");
+DEFCPRIM("GPERF/HEAP/PROFILE!",gperf_heap_profile,MAX_ARGS(1)|MIN_ARGS(0),
+	 "Activates the gperftools heap profiler",
+	 {"arg",kno_any_type,KNO_VOID});
 static lispval gperf_heap_profile(lispval arg)
 {
   int running = IsHeapProfilerRunning();
@@ -73,9 +74,9 @@ static lispval gperf_heap_profile(lispval arg)
     return KNO_TRUE;}
 }
 
-DEFPRIM("GPERF/HEAP/PROFILING?",gperf_profiling_heap,MAX_ARGS(0)|MIN_ARGS(0),
-	"Returns true if the gperftools heap "
-	"profiler is running.");
+DEFCPRIM("GPERF/HEAP/PROFILING?",gperf_profiling_heap,MAX_ARGS(0)|MIN_ARGS(0),
+	 "Returns true if the gperftools heap "
+	 "profiler is running.");
 static lispval gperf_profiling_heap()
 {
   if (IsHeapProfilerRunning())
@@ -83,10 +84,11 @@ static lispval gperf_profiling_heap()
   else return KNO_FALSE;
 }
 
-DEFPRIM("GPERF/HEAP/DUMP!",gperf_dump_heap,MAX_ARGS(1)|MIN_ARGS(1),
-	"dumps the current heap information to"
-	"*file*, returning true. Returns false if the heap profiler is not "
-	"running.");
+DEFCPRIM("GPERF/HEAP/DUMP!",gperf_dump_heap,MAX_ARGS(1)|MIN_ARGS(1),
+	 "dumps the current heap information to"
+	 "*file*, returning true. Returns false if the heap profiler is not "
+	 "running.",
+	 {"file",kno_string_type,KNO_VOID});
 static lispval gperf_dump_heap(lispval arg)
 {
   int running = IsHeapProfilerRunning();
@@ -98,9 +100,10 @@ static lispval gperf_dump_heap(lispval arg)
 #endif
 
 #if HAVE_GPERFTOOLS_PROFILER_H
-DEFPRIM("GPERF/CPU/PROFILE!",gperf_startstop,MAX_ARGS(1)|MIN_ARGS(1),
-	"starts CPU profiling to *file*, or "
-	"stops CPU profiling if *file* is not provided.");
+DEFCPRIM("GPERF/CPU/PROFILE!",gperf_startstop,MAX_ARGS(1)|MIN_ARGS(1),
+	 "starts CPU profiling to *file*, or "
+	 "stops CPU profiling if *file* is not provided.",
+	 {"file",kno_any_type,KNO_VOID});
 static lispval gperf_startstop(lispval arg)
 {
   if (STRINGP(arg))
@@ -108,9 +111,9 @@ static lispval gperf_startstop(lispval arg)
   else ProfilerStop();
   return VOID;
 }
-DEFPRIM("GPERF/CPU/FLUSH!",gperf_flush,MAX_ARGS(1)|MIN_ARGS(1),
-	"flushes CPU profiling records to the "
-	"designated file.");
+DEFCPRIM("GPERF/CPU/FLUSH!",gperf_flush,MAX_ARGS(0)|MIN_ARGS(0),
+	 "flushes CPU profiling records to the "
+	 "designated file.");
 static lispval gperf_flush()
 {
   ProfilerFlush();
@@ -118,8 +121,8 @@ static lispval gperf_flush()
 }
 #endif
 
-DEFPRIM("GPERF/MALLOC/STATS!",malloc_stats_prim,MAX_ARGS(0)|MIN_ARGS(0),
-	"writes malloc statistics to the stdout.");
+DEFCPRIM("GPERF/MALLOC/STATS!",malloc_stats_prim,MAX_ARGS(0)|MIN_ARGS(0),
+	 "writes malloc statistics to the stdout.");
 static lispval malloc_stats_prim()
 {
 #if HAVE_MALLOC_STATS
@@ -131,9 +134,10 @@ static lispval malloc_stats_prim()
   return VOID;
 }
 
-DEFPRIM("GPERF/MALLOC/RELEASE!",release_memory_prim,MAX_ARGS(1)|MIN_ARGS(0),
-	"attemps to release memory back to the "
-	"operating system.");
+DEFCPRIM("GPERF/MALLOC/RELEASE!",release_memory_prim,MAX_ARGS(1)|MIN_ARGS(0),
+	 "attemps to release memory back to the "
+	 "operating system.",
+	 {"arg",kno_fixnum_type,KNO_VOID});
 static lispval release_memory_prim(lispval arg)
 {
 #if HAVE_GPERFTOOLS_MALLOC_EXTENSION_C_H
