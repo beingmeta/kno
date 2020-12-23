@@ -877,8 +877,8 @@ KNO_EXPORT void kno_init_procprims_c()
   if (scheme_procprims_initialized) return;
   scheme_procprims_initialized = 1;
   kno_init_scheme();
-  procprims_module =
-    kno_new_cmodule("sys/processes",(KNO_MODULE_DEFAULT),kno_init_procprims_c);
+  procprims_module = kno_new_cmodule
+    ("procprims",(KNO_MODULE_DEFAULT),kno_init_procprims_c);
   u8_register_source_file(_FILEINFO);
 
   init_rlimit_codes();

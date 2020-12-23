@@ -1787,26 +1787,26 @@ KNO_EXPORT void kno_init_portprims_c()
   init_portprims_symbols();
   link_local_cprims();
 
-  kno_def_xevalfn(kno_io_module,"PRINTOUT-TO",
+  kno_def_xevalfn(kno_textio_module,"PRINTOUT-TO",
 		  printout_to_evalfn,KNO_EVALFN_NOTAIL,
 		  "`(PRINTOUT-TO *port* ...*args*)` generates output from "
 		  "*args* which is written to *port*. "
 		  "Returns VOID");
-  kno_def_xevalfn(kno_io_module,"PRINTOUT",
+  kno_def_xevalfn(kno_textio_module,"PRINTOUT",
 		  printout_evalfn,KNO_EVALFN_NOTAIL,
 		  "`(PRINTOUT ...*args*)` generates output from "
 		  "*args* which is written to the standard output. "
 		  "Returns VOID");
-  kno_def_xevalfn(kno_io_module,"LINEOUT",
+  kno_def_xevalfn(kno_textio_module,"LINEOUT",
 		  lineout_evalfn,KNO_EVALFN_NOTAIL,
 		  "`(LINEOUT ...*args*)` generates output from "
 		  "*args* which is written to the standard output "
 		  "with a trailing newline. Returns VOID.");
-  kno_def_xevalfn(kno_io_module,"STRINGOUT",
+  kno_def_xevalfn(kno_textio_module,"STRINGOUT",
 		  stringout_evalfn,KNO_EVALFN_NOTAIL,
 		  "`(STRINGOUT ...*args*)` generates output from "
 		  "*args* and returns the output as a string.");
-  kno_def_xevalfn(kno_io_module,"INDENTOUT",
+  kno_def_xevalfn(kno_textio_module,"INDENTOUT",
 		  indentout_evalfn,KNO_EVALFN_NOTAIL,
 		  "`(INDENTOUT *indent* ... *args*)` generates output from "
 		  "*args*, preceding each line of output with either *indent* "
@@ -1816,58 +1816,58 @@ KNO_EXPORT void kno_init_portprims_c()
 
 static void link_local_cprims()
 {
-  KNO_LINK_CPRIM("gzip",gzip_prim,3,kno_io_module);
-  KNO_LINK_CPRIM("packet->base16",to_base16_prim,1,kno_io_module);
-  KNO_LINK_CPRIM("base16->packet",from_base16_prim,1,kno_io_module);
-  KNO_LINK_CPRIM("->base64",any_to_base64_prim,3,kno_io_module);
-  KNO_LINK_CPRIM("packet->base64",to_base64_prim,3,kno_io_module);
-  KNO_LINK_CPRIM("base64->packet",from_base64_prim,1,kno_io_module);
-  KNO_LINK_CPRIM("listdata",lisp_listdata,3,kno_io_module);
-  KNO_LINK_CVARARGS("pprint",lisp_pprint,kno_io_module);
-  KNO_LINK_CVARARGS("$pprint",lisp_4pprint,kno_io_module);
-  KNO_LINK_CPRIM("read-record",read_record_prim,3,kno_io_module);
-  KNO_LINK_CPRIM("read",read_prim,1,kno_io_module);
-  KNO_LINK_CPRIM("getline",getline_prim,4,kno_io_module);
-  KNO_LINK_CPRIM("getchar",getchar_prim,1,kno_io_module);
-  KNO_LINK_CPRIM("$histval",histval_prim,2,kno_io_module);
-  KNO_LINK_CPRIM("$histref",histref_prim,2,kno_io_module);
-  KNO_LINK_CPRIM("$histstring",histstring_prim,2,kno_io_module);
-  KNO_LINK_CPRIM("unescape-string",unescape_string_prim,1,kno_io_module);
-  KNO_LINK_CPRIM("uniscape",uniscape,2,kno_io_module);
-  KNO_LINK_CPRIM("escape-string",escape_string_prim,3,kno_io_module);
-  KNO_LINK_CPRIM("escapeout",escapeout_prim,3,kno_io_module);
-  KNO_LINK_CPRIM("substringout",substringout,3,kno_io_module);
-  KNO_LINK_CPRIM("newline",newline_prim,1,kno_io_module);
-  KNO_LINK_CPRIM("putchar",putchar_prim,2,kno_io_module);
-  KNO_LINK_CPRIM("display",display_prim,2,kno_io_module);
-  KNO_LINK_CPRIM("write",write_prim,2,kno_io_module);
-  KNO_LINK_CPRIM("portdata",portdata_prim,1,kno_io_module);
-  KNO_LINK_CPRIM("portid",portid_prim,1,kno_io_module);
-  KNO_LINK_CPRIM("open-input-string",open_input_string,1,kno_io_module);
-  KNO_LINK_CPRIM("open-output-string",open_output_string,0,kno_io_module);
-  KNO_LINK_CPRIM("dtype->packet",lisp2packet,2,kno_io_module);
-  KNO_LINK_CPRIM("packet->dtype",packet2dtype,1,kno_io_module);
-  KNO_LINK_CPRIM("encode-xtype",encode_xtype,2,kno_io_module);
-  KNO_LINK_CPRIM("decode-xtype",decode_xtype,2,kno_io_module);
-  KNO_LINK_CPRIM("xtype/refs",make_xtype_refs,2,kno_io_module);
-  KNO_LINK_CPRIM("xtype/refs/encode",xtype_refs_encode,3,kno_io_module);
-  KNO_LINK_CPRIM("xtype/refs/decode",xtype_refs_decode,2,kno_io_module);
-  KNO_LINK_CPRIM("xtype/refs/count",xtype_refs_count,1,kno_io_module);
-  KNO_LINK_CPRIM("eof-object?",eofp,1,kno_io_module);
-  KNO_LINK_CPRIM("port?",portp,1,kno_io_module);
-  KNO_LINK_CPRIM("input-port?",input_portp,1,kno_io_module);
-  KNO_LINK_CPRIM("output-port?",output_portp,1,kno_io_module);
+  KNO_LINK_CPRIM("gzip",gzip_prim,3,kno_textio_module);
+  KNO_LINK_CPRIM("packet->base16",to_base16_prim,1,kno_textio_module);
+  KNO_LINK_CPRIM("base16->packet",from_base16_prim,1,kno_textio_module);
+  KNO_LINK_CPRIM("->base64",any_to_base64_prim,3,kno_textio_module);
+  KNO_LINK_CPRIM("packet->base64",to_base64_prim,3,kno_textio_module);
+  KNO_LINK_CPRIM("base64->packet",from_base64_prim,1,kno_textio_module);
+  KNO_LINK_CPRIM("listdata",lisp_listdata,3,kno_textio_module);
+  KNO_LINK_CVARARGS("pprint",lisp_pprint,kno_textio_module);
+  KNO_LINK_CVARARGS("$pprint",lisp_4pprint,kno_textio_module);
+  KNO_LINK_CPRIM("read-record",read_record_prim,3,kno_textio_module);
+  KNO_LINK_CPRIM("read",read_prim,1,kno_textio_module);
+  KNO_LINK_CPRIM("getline",getline_prim,4,kno_textio_module);
+  KNO_LINK_CPRIM("getchar",getchar_prim,1,kno_textio_module);
+  KNO_LINK_CPRIM("$histval",histval_prim,2,kno_textio_module);
+  KNO_LINK_CPRIM("$histref",histref_prim,2,kno_textio_module);
+  KNO_LINK_CPRIM("$histstring",histstring_prim,2,kno_textio_module);
+  KNO_LINK_CPRIM("unescape-string",unescape_string_prim,1,kno_textio_module);
+  KNO_LINK_CPRIM("uniscape",uniscape,2,kno_textio_module);
+  KNO_LINK_CPRIM("escape-string",escape_string_prim,3,kno_textio_module);
+  KNO_LINK_CPRIM("escapeout",escapeout_prim,3,kno_textio_module);
+  KNO_LINK_CPRIM("substringout",substringout,3,kno_textio_module);
+  KNO_LINK_CPRIM("newline",newline_prim,1,kno_textio_module);
+  KNO_LINK_CPRIM("putchar",putchar_prim,2,kno_textio_module);
+  KNO_LINK_CPRIM("display",display_prim,2,kno_textio_module);
+  KNO_LINK_CPRIM("write",write_prim,2,kno_textio_module);
+  KNO_LINK_CPRIM("portdata",portdata_prim,1,kno_textio_module);
+  KNO_LINK_CPRIM("portid",portid_prim,1,kno_textio_module);
+  KNO_LINK_CPRIM("open-input-string",open_input_string,1,kno_textio_module);
+  KNO_LINK_CPRIM("open-output-string",open_output_string,0,kno_textio_module);
+  KNO_LINK_CPRIM("dtype->packet",lisp2packet,2,kno_textio_module);
+  KNO_LINK_CPRIM("packet->dtype",packet2dtype,1,kno_textio_module);
+  KNO_LINK_CPRIM("encode-xtype",encode_xtype,2,kno_textio_module);
+  KNO_LINK_CPRIM("decode-xtype",decode_xtype,2,kno_textio_module);
+  KNO_LINK_CPRIM("xtype/refs",make_xtype_refs,2,kno_textio_module);
+  KNO_LINK_CPRIM("xtype/refs/encode",xtype_refs_encode,3,kno_textio_module);
+  KNO_LINK_CPRIM("xtype/refs/decode",xtype_refs_decode,2,kno_textio_module);
+  KNO_LINK_CPRIM("xtype/refs/count",xtype_refs_count,1,kno_textio_module);
+  KNO_LINK_CPRIM("eof-object?",eofp,1,kno_textio_module);
+  KNO_LINK_CPRIM("port?",portp,1,kno_textio_module);
+  KNO_LINK_CPRIM("input-port?",input_portp,1,kno_textio_module);
+  KNO_LINK_CPRIM("output-port?",output_portp,1,kno_textio_module);
 
-  KNO_LINK_CPRIM("compress",compress_prim,2,kno_io_module);
-  KNO_LINK_CPRIM("uncompress",uncompress_prim,3,kno_io_module);
+  KNO_LINK_CPRIM("compress",compress_prim,2,kno_textio_module);
+  KNO_LINK_CPRIM("uncompress",uncompress_prim,3,kno_textio_module);
 
-  KNO_LINK_CPRIM("pathstore?",pathstorep_prim,1,kno_io_module);
-  KNO_LINK_CPRIM("pathstore/exists?",pathstore_existsp_prim,2,kno_io_module);
-  KNO_LINK_CPRIM("pathstore/info",pathstore_info_prim,3,kno_io_module);
-  KNO_LINK_CPRIM("pathstore/content",pathstore_content_prim,4,kno_io_module);
+  KNO_LINK_CPRIM("pathstore?",pathstorep_prim,1,kno_textio_module);
+  KNO_LINK_CPRIM("pathstore/exists?",pathstore_existsp_prim,2,kno_textio_module);
+  KNO_LINK_CPRIM("pathstore/info",pathstore_info_prim,3,kno_textio_module);
+  KNO_LINK_CPRIM("pathstore/content",pathstore_content_prim,4,kno_textio_module);
 
-  KNO_LINK_ALIAS("eof?",eofp,kno_io_module);
-  KNO_LINK_ALIAS("write-char",putchar_prim,kno_io_module);
-  KNO_LINK_ALIAS("decode-string",unescape_string_prim,kno_io_module);
+  KNO_LINK_ALIAS("eof?",eofp,kno_textio_module);
+  KNO_LINK_ALIAS("write-char",putchar_prim,kno_textio_module);
+  KNO_LINK_ALIAS("decode-string",unescape_string_prim,kno_textio_module);
 
 }

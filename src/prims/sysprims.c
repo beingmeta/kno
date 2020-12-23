@@ -881,8 +881,7 @@ KNO_EXPORT void kno_init_sysprims_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  osprims_module =
-    kno_new_cmodule("sys/os",(KNO_MODULE_DEFAULT),kno_init_sysprims_c);
+  osprims_module = kno_new_cmodule("sysprims",(KNO_MODULE_DEFAULT),kno_init_sysprims_c);
 
   u8_getrusage(RUSAGE_SELF,&init_rusage);
 

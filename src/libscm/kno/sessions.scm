@@ -3,7 +3,7 @@
 (in-module 'kno/sessions)
 
 (use-module '{logger varconfig stringfmts knodb optimize})
-(use-module '{io/xtypeio io/dtypeio})
+(use-module '{binio binio})
 
 (module-export! '{*session*
 		  valid-session?

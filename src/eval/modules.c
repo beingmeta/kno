@@ -33,7 +33,8 @@ u8_condition OpaqueModule=_("Can't switch to opaque module");
 static struct KNO_HASHTABLE module_map;
 static kno_lexenv default_env = NULL;
 lispval kno_scheme_module = KNO_VOID;
-lispval kno_io_module = KNO_VOID;
+lispval kno_textio_module = KNO_VOID;
+lispval kno_binio_module = KNO_VOID;
 lispval kno_db_module = KNO_VOID;
 lispval kno_sys_module = KNO_VOID;
 
@@ -949,9 +950,13 @@ void kno_init_module_tables()
     kno_scheme_module = kno_make_hashtable(NULL,71);}
   kno_register_module("scheme",kno_scheme_module,(KNO_MODULE_DEFAULT));
 
-  if (KNO_VOIDP(kno_io_module)) {
-    kno_io_module = kno_make_hashtable(NULL,71);}
-  kno_register_module("io",kno_io_module,(KNO_MODULE_DEFAULT));
+  if (KNO_VOIDP(kno_textio_module)) {
+    kno_textio_module = kno_make_hashtable(NULL,71);}
+  kno_register_module("textio",kno_textio_module,(KNO_MODULE_DEFAULT));
+
+  if (KNO_VOIDP(kno_binio_module)) {
+    kno_binio_module = kno_make_hashtable(NULL,71);}
+  kno_register_module("binio",kno_binio_module,0);
 
   if (KNO_VOIDP(kno_sys_module)) {
     kno_sys_module = kno_make_hashtable(NULL,71);}

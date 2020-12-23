@@ -2103,7 +2103,8 @@ static void init_eval_core()
   u8_threadcheck();
 
   kno_finish_cmodule(kno_scheme_module);
-  kno_finish_cmodule(kno_io_module);
+  kno_finish_cmodule(kno_textio_module);
+  kno_finish_cmodule(kno_binio_module);
   kno_finish_cmodule(kno_db_module);
   kno_finish_cmodule(kno_sys_module);
 }

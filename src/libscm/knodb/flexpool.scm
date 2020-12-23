@@ -3,7 +3,7 @@
 
 (in-module 'knodb/flexpool)
 
-(use-module '{io/dtypeio io/xtypeio db/drivers texttools})
+(use-module '{binio db/drivers texttools})
 (use-module '{ezrecords stringfmts logger varconfig fifo})
 (use-module '{knodb/adjuncts knodb/filenames})
 (use-module '{knodb})

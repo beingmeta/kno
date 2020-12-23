@@ -3,7 +3,7 @@
 
 (in-module 'xhtml/buglog)
 
-(use-module '{webtools xhtml xhtml/tableout texttools io/dtypeio})
+(use-module '{webtools xhtml xhtml/tableout texttools binio})
 (use-module '{varconfig stringfmts logger rulesets crypto getcontent ezrecords})
 (module-export! 'buglog)
 

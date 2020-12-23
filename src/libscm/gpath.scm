@@ -3,7 +3,7 @@
 
 (in-module 'gpath)
 
-(use-module '{varconfig logger webtools texttools io/fileio})
+(use-module '{varconfig logger webtools texttools fileio})
 
 (define %used_modules '{varconfig ezrecords})
 (define-init %loglevel %notice%)

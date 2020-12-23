@@ -570,46 +570,38 @@ static lispval file2dtypes(lispval filename)
 
 static int scheme_dtypeprims_initialized = 0;
 
-lispval dtypeprims_module;
-
 KNO_EXPORT void kno_init_dtypeprims_c()
 {
   if (scheme_dtypeprims_initialized) return;
   scheme_dtypeprims_initialized = 1;
-  kno_init_scheme();
-  kno_init_drivers();
-  dtypeprims_module = kno_new_cmodule("io/dtypeio",(0),kno_init_dtypeprims_c);
   u8_register_source_file(_FILEINFO);
-
   link_local_cprims();
-
-  kno_finish_cmodule(dtypeprims_module);
 }
 
 static void link_local_cprims()
 {
-  KNO_LINK_CPRIM("zfile->dtypes",zipfile2dtypes,1,dtypeprims_module);
-  KNO_LINK_CPRIM("file->dtypes",file2dtypes,1,dtypeprims_module);
-  KNO_LINK_CPRIM("zfile->dtypes",zipfile2dtypes,1,dtypeprims_module);
-  KNO_LINK_CPRIM("zfile->dtype",zipfile2dtype,1,dtypeprims_module);
-  KNO_LINK_CPRIM("file->dtype",file2dtype,1,dtypeprims_module);
-  KNO_LINK_CPRIM("zfile->dtype",zipfile2dtype,1,dtypeprims_module);
-  KNO_LINK_CPRIM("dtype->zfile+",add_lisp2zipfile,2,dtypeprims_module);
-  KNO_LINK_CPRIM("dtypes->file+",add_dtypes2file,2,dtypeprims_module);
-  KNO_LINK_CPRIM("dtype->zfile+",add_lisp2zipfile,2,dtypeprims_module);
-  KNO_LINK_CPRIM("dtype->zfile",lisp2zipfile,3,dtypeprims_module);
-  KNO_LINK_CPRIM("dtype->file",lisp2file,3,dtypeprims_module);
-  KNO_LINK_CPRIM("dtype->zfile",lisp2zipfile,3,dtypeprims_module);
-  KNO_LINK_CPRIM("zwrite-dtypes",zwrite_dtypes,2,dtypeprims_module);
-  KNO_LINK_CPRIM("zwrite-dtype",zwrite_dtype,2,dtypeprims_module);
-  KNO_LINK_CPRIM("zread-dtype",zread_dtype,1,dtypeprims_module);
-  KNO_LINK_CPRIM("write-dtype",write_dtype,4,dtypeprims_module);
-  KNO_LINK_CPRIM("read-dtype",read_dtype,3,dtypeprims_module);
+  KNO_LINK_CPRIM("zfile->dtypes",zipfile2dtypes,1,kno_binio_module);
+  KNO_LINK_CPRIM("file->dtypes",file2dtypes,1,kno_binio_module);
+  KNO_LINK_CPRIM("zfile->dtypes",zipfile2dtypes,1,kno_binio_module);
+  KNO_LINK_CPRIM("zfile->dtype",zipfile2dtype,1,kno_binio_module);
+  KNO_LINK_CPRIM("file->dtype",file2dtype,1,kno_binio_module);
+  KNO_LINK_CPRIM("zfile->dtype",zipfile2dtype,1,kno_binio_module);
+  KNO_LINK_CPRIM("dtype->zfile+",add_lisp2zipfile,2,kno_binio_module);
+  KNO_LINK_CPRIM("dtypes->file+",add_dtypes2file,2,kno_binio_module);
+  KNO_LINK_CPRIM("dtype->zfile+",add_lisp2zipfile,2,kno_binio_module);
+  KNO_LINK_CPRIM("dtype->zfile",lisp2zipfile,3,kno_binio_module);
+  KNO_LINK_CPRIM("dtype->file",lisp2file,3,kno_binio_module);
+  KNO_LINK_CPRIM("dtype->zfile",lisp2zipfile,3,kno_binio_module);
+  KNO_LINK_CPRIM("zwrite-dtypes",zwrite_dtypes,2,kno_binio_module);
+  KNO_LINK_CPRIM("zwrite-dtype",zwrite_dtype,2,kno_binio_module);
+  KNO_LINK_CPRIM("zread-dtype",zread_dtype,1,kno_binio_module);
+  KNO_LINK_CPRIM("write-dtype",write_dtype,4,kno_binio_module);
+  KNO_LINK_CPRIM("read-dtype",read_dtype,3,kno_binio_module);
 
-  KNO_LINK_ALIAS("dtype->file+",add_dtypes2file,dtypeprims_module);
-  KNO_LINK_ALIAS("dtype->zipfile",lisp2zipfile,dtypeprims_module);
-  KNO_LINK_ALIAS("dtype->zipfile+",add_lisp2zipfile,dtypeprims_module);
-  KNO_LINK_ALIAS("zipfile->dtype",zipfile2dtype,dtypeprims_module);
-  KNO_LINK_ALIAS("zipfile->dtypes",zipfile2dtypes,dtypeprims_module);
+  KNO_LINK_ALIAS("dtype->file+",add_dtypes2file,kno_binio_module);
+  KNO_LINK_ALIAS("dtype->zipfile",lisp2zipfile,kno_binio_module);
+  KNO_LINK_ALIAS("dtype->zipfile+",add_lisp2zipfile,kno_binio_module);
+  KNO_LINK_ALIAS("zipfile->dtype",zipfile2dtype,kno_binio_module);
+  KNO_LINK_ALIAS("zipfile->dtypes",zipfile2dtypes,kno_binio_module);
 
 }

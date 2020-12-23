@@ -323,29 +323,24 @@ static lispval write_xtype_at_prim(lispval object,lispval stream,lispval pos,
 
 static int scheme_xtypeprims_initialized = 0;
 
-lispval xtypeprims_module;
-
 KNO_EXPORT void kno_init_xtypeprims_c()
 {
   if (scheme_xtypeprims_initialized) return;
   scheme_xtypeprims_initialized = 1;
   kno_init_scheme();
   kno_init_drivers();
-  xtypeprims_module = kno_new_cmodule("io/xtypeio",0,kno_init_xtypeprims_c);
   u8_register_source_file(_FILEINFO);
   refs_symbol = kno_intern("XREFS");
   append_symbol = kno_intern("append");
   embed_symbol = kno_intern("embed");
 
   link_local_cprims();
-
-  kno_finish_cmodule(xtypeprims_module);
 }
 
 static void link_local_cprims()
 {
-  KNO_LINK_CPRIM("write-xtype",write_xtype_prim,3,xtypeprims_module);
-  KNO_LINK_CPRIM("read-xtype",read_xtype_prim,2,xtypeprims_module);
-  KNO_LINK_CPRIM("write-xtype-at",write_xtype_at_prim,4,xtypeprims_module);
-  KNO_LINK_CPRIM("read-xtype-at",read_xtype_at_prim,4,xtypeprims_module);
+  KNO_LINK_CPRIM("write-xtype",write_xtype_prim,3,kno_binio_module);
+  KNO_LINK_CPRIM("read-xtype",read_xtype_prim,2,kno_binio_module);
+  KNO_LINK_CPRIM("write-xtype-at",write_xtype_at_prim,4,kno_binio_module);
+  KNO_LINK_CPRIM("read-xtype-at",read_xtype_at_prim,4,kno_binio_module);
 }

@@ -37,7 +37,8 @@ KNO_EXPORT u8_condition kno_TailArgument;
 KNO_EXPORT u8_condition kno_BadArgument;
 
 KNO_EXPORT lispval kno_scheme_module;
-KNO_EXPORT lispval kno_io_module;
+KNO_EXPORT lispval kno_textio_module;
+KNO_EXPORT lispval kno_binio_module;
 KNO_EXPORT lispval kno_sys_module;
 KNO_EXPORT lispval kno_db_module;
 

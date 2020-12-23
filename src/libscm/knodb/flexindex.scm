@@ -3,7 +3,7 @@
 
 (in-module 'knodb/flexindex)
 
-(use-module '{io/dtypeio io/xtypeio texttools})
+(use-module '{binio texttools})
 (use-module '{ezrecords stringfmts logger varconfig})
 (use-module '{knodb/adjuncts knodb/filenames})
 (use-module '{knodb})

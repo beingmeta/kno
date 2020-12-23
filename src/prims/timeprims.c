@@ -1513,16 +1513,14 @@ static lispval uuidpacket_prim(lispval uuid_arg)
 
 /* Initialization */
 
-static lispval timeprims_module, uuidprims_module;
+static lispval timeprims_module;
 
 KNO_EXPORT void kno_init_timeprims_c()
 {
   u8_register_source_file(_FILEINFO);
 
   timeprims_module =
-    kno_new_cmodule("sys/time",(KNO_MODULE_DEFAULT),kno_init_timeprims_c);
-  uuidprims_module =
-    kno_new_cmodule("sys/uuid",(KNO_MODULE_DEFAULT),kno_init_timeprims_c);
+    kno_new_cmodule("timeprims",(KNO_MODULE_DEFAULT),kno_init_timeprims_c);
 
   tzset();
 
@@ -1667,18 +1665,17 @@ KNO_EXPORT void kno_init_timeprims_c()
 
   kno_def_evalfn(kno_sys_module,"#NOW",now_macro,
 		 "#:NOW:YEAR\n evaluates to a field of the current time");
-  kno_finish_cmodule(uuidprims_module);
   kno_finish_cmodule(timeprims_module);
 }
 
 static void link_local_cprims()
 {
-  KNO_LINK_CPRIM("uuid->packet",uuidpacket_prim,1,uuidprims_module);
-  KNO_LINK_CPRIM("uuid->string",uuidstring_prim,1,uuidprims_module);
-  KNO_LINK_CPRIM("uuid-node",uuidnode_prim,1,uuidprims_module);
-  KNO_LINK_CPRIM("uuid-time",uuidtime_prim,1,uuidprims_module);
-  KNO_LINK_CPRIM("getuuid",getuuid_prim,2,uuidprims_module);
-  KNO_LINK_CPRIM("uuid?",uuidp_prim,1,uuidprims_module);
+  KNO_LINK_CPRIM("uuid->packet",uuidpacket_prim,1,timeprims_module);
+  KNO_LINK_CPRIM("uuid->string",uuidstring_prim,1,timeprims_module);
+  KNO_LINK_CPRIM("uuid-node",uuidnode_prim,1,timeprims_module);
+  KNO_LINK_CPRIM("uuid-time",uuidtime_prim,1,timeprims_module);
+  KNO_LINK_CPRIM("getuuid",getuuid_prim,2,timeprims_module);
+  KNO_LINK_CPRIM("uuid?",uuidp_prim,1,timeprims_module);
 
   KNO_LINK_CPRIM("sleep",sleep_prim,1,timeprims_module);
 

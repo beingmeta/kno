@@ -569,54 +569,46 @@ static lispval ftruncate_prim(lispval arg,lispval offset)
 
 static int scheme_streamprims_initialized = 0;
 
-lispval streamprims_module;
-
 KNO_EXPORT void kno_init_streamprims_c()
 {
   if (scheme_streamprims_initialized) return;
   scheme_streamprims_initialized = 1;
-  kno_init_scheme();
-  kno_init_drivers();
-  streamprims_module = kno_new_cmodule("io/byteio",(0),kno_init_streamprims_c);
   u8_register_source_file(_FILEINFO);
-
   link_local_cprims();
-
-  kno_finish_cmodule(streamprims_module);
 }
 
 static void link_local_cprims()
 {
-  KNO_LINK_CPRIM("ftruncate",ftruncate_prim,2,streamprims_module);
-  KNO_LINK_CPRIM("streampos",streampos_prim,2,streamprims_module);
-  KNO_LINK_CPRIM("byte-output?",byte_outputp,1,streamprims_module);
-  KNO_LINK_CPRIM("byte-input?",byte_inputp,1,streamprims_module);
-  KNO_LINK_CPRIM("byte-stream?",streamp,1,streamprims_module);
-  KNO_LINK_CPRIM("extend-byte-output",extend_byte_output,1,streamprims_module);
-  KNO_LINK_CPRIM("open-byte-input",open_byte_input_file,2,streamprims_module);
-  KNO_LINK_CPRIM("open-byte-output",open_byte_output_file,2,streamprims_module);
-  KNO_LINK_CPRIM("zwrite-int",zwrite_int,2,streamprims_module);
-  KNO_LINK_CPRIM("zread-int",zread_int,1,streamprims_module);
+  KNO_LINK_CPRIM("ftruncate",ftruncate_prim,2,kno_binio_module);
+  KNO_LINK_CPRIM("streampos",streampos_prim,2,kno_binio_module);
+  KNO_LINK_CPRIM("byte-output?",byte_outputp,1,kno_binio_module);
+  KNO_LINK_CPRIM("byte-input?",byte_inputp,1,kno_binio_module);
+  KNO_LINK_CPRIM("byte-stream?",streamp,1,kno_binio_module);
+  KNO_LINK_CPRIM("extend-byte-output",extend_byte_output,1,kno_binio_module);
+  KNO_LINK_CPRIM("open-byte-input",open_byte_input_file,2,kno_binio_module);
+  KNO_LINK_CPRIM("open-byte-output",open_byte_output_file,2,kno_binio_module);
+  KNO_LINK_CPRIM("zwrite-int",zwrite_int,2,kno_binio_module);
+  KNO_LINK_CPRIM("zread-int",zread_int,1,kno_binio_module);
 
-  KNO_LINK_CPRIM("write-8bytes",write_8bytes,3,streamprims_module);
-  KNO_LINK_CPRIM("write-4bytes",write_4bytes,3,streamprims_module);
-  KNO_LINK_CPRIM("read-bytes",read_bytes,3,streamprims_module);
-  KNO_LINK_CPRIM("read-varint",read_varint,2,streamprims_module);
-  KNO_LINK_CPRIM("read-8bytes",read_8bytes,2,streamprims_module);
-  KNO_LINK_CPRIM("read-4bytes",read_4bytes,2,streamprims_module);
-  KNO_LINK_CPRIM("read-byte",read_abyte,2,streamprims_module);
-  KNO_LINK_CPRIM("write-bytes",write_bytes,3,streamprims_module);
+  KNO_LINK_CPRIM("write-8bytes",write_8bytes,3,kno_binio_module);
+  KNO_LINK_CPRIM("write-4bytes",write_4bytes,3,kno_binio_module);
+  KNO_LINK_CPRIM("read-bytes",read_bytes,3,kno_binio_module);
+  KNO_LINK_CPRIM("read-varint",read_varint,2,kno_binio_module);
+  KNO_LINK_CPRIM("read-8bytes",read_8bytes,2,kno_binio_module);
+  KNO_LINK_CPRIM("read-4bytes",read_4bytes,2,kno_binio_module);
+  KNO_LINK_CPRIM("read-byte",read_abyte,2,kno_binio_module);
+  KNO_LINK_CPRIM("write-bytes",write_bytes,3,kno_binio_module);
 
-  KNO_LINK_ALIAS("read-int",read_4bytes,streamprims_module);
-  KNO_LINK_ALIAS("write-int",write_4bytes,streamprims_module);
-  KNO_LINK_ALIAS("extend-byte-file",extend_byte_output,streamprims_module);
+  KNO_LINK_ALIAS("read-int",read_4bytes,kno_binio_module);
+  KNO_LINK_ALIAS("write-int",write_4bytes,kno_binio_module);
+  KNO_LINK_ALIAS("extend-byte-file",extend_byte_output,kno_binio_module);
 
-  KNO_LINK_ALIAS("dtype-stream?",streamp,streamprims_module);
-  KNO_LINK_ALIAS("dtype-input?",byte_inputp,streamprims_module);
-  KNO_LINK_ALIAS("dtype-output?",byte_outputp,streamprims_module);
-  KNO_LINK_ALIAS("extend-dtype-file",extend_byte_output,streamprims_module);
-  KNO_LINK_ALIAS("open-dtype-input",open_byte_input_file,streamprims_module);
-  KNO_LINK_ALIAS("open-dtype-output",open_byte_output_file,streamprims_module);
-  KNO_LINK_ALIAS("open-dtype-file",open_byte_input_file,streamprims_module);
+  KNO_LINK_ALIAS("dtype-stream?",streamp,kno_binio_module);
+  KNO_LINK_ALIAS("dtype-input?",byte_inputp,kno_binio_module);
+  KNO_LINK_ALIAS("dtype-output?",byte_outputp,kno_binio_module);
+  KNO_LINK_ALIAS("extend-dtype-file",extend_byte_output,kno_binio_module);
+  KNO_LINK_ALIAS("open-dtype-input",open_byte_input_file,kno_binio_module);
+  KNO_LINK_ALIAS("open-dtype-output",open_byte_output_file,kno_binio_module);
+  KNO_LINK_ALIAS("open-dtype-file",open_byte_input_file,kno_binio_module);
 
 }

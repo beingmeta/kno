@@ -3,7 +3,7 @@
 
 (in-module 'io/readfile)
 
-(use-module '{io/byteio io/dtypeio})
+(use-module '{binio})
 
 (module-export! '{readfile})
 
