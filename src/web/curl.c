@@ -227,7 +227,7 @@ static size_t handle_header(void *ptr,size_t size,size_t n,void *data)
 
 DEFCPRIM("add-text_type!",addtexttype,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
+	 "Declares a mime text type, which will try to do string conversion",
 	 {"type",kno_any_type,KNO_VOID})
 KNO_INLINE_FCN lispval addtexttype(lispval type)
 {
@@ -262,7 +262,7 @@ static int _curl_set(u8_string cxt,struct KNO_CURL_HANDLE *h,
   return retval;
 }
 
-static int _curl_set2dtype(u8_string cxt,struct KNO_CURL_HANDLE *h,
+static int _curl_set2lisp(u8_string cxt,struct KNO_CURL_HANDLE *h,
 			   CURLoption option,
 			   lispval f,lispval slotid)
 {
@@ -377,8 +377,8 @@ struct KNO_CURL_HANDLE *kno_open_curl_handle()
 
 #define curl_set(hl,o,v)						\
   if ( (rv >= 0) && (_curl_set("kno_open_curl_handle",hl,o,(void *)v)) ) rv=-1;
-#define curl_set2dtype(hl,o,f,s)					\
-  if ( (rv>=0) && (_curl_set2dtype("kno_open_curl_handle",hl,o,f,s)) ) rv = -1;
+#define curl_set2lisp(hl,o,f,s)					\
+  if ( (rv>=0) && (_curl_set2lisp("kno_open_curl_handle",hl,o,f,s)) ) rv = -1;
 
   KNO_INIT_CONS(h,kno_curl_type);
   h->handle = curl_easy_init();
@@ -410,28 +410,28 @@ struct KNO_CURL_HANDLE *kno_open_curl_handle()
   curl_set(h,CURLOPT_SSLVERSION,CURL_SSLVERSION_DEFAULT);
 
   if (kno_test(curl_defaults,useragent_symbol,VOID)) {
-    curl_set2dtype(h,CURLOPT_USERAGENT,curl_defaults,useragent_symbol);}
+    curl_set2lisp(h,CURLOPT_USERAGENT,curl_defaults,useragent_symbol);}
   else curl_set(h,CURLOPT_USERAGENT,default_user_agent);
   if (kno_test(curl_defaults,basicauth_symbol,VOID)) {
     curl_set(h,CURLOPT_HTTPAUTH,CURLAUTH_BASIC);
-    curl_set2dtype(h,CURLOPT_USERPWD,curl_defaults,basicauth_symbol);}
+    curl_set2lisp(h,CURLOPT_USERPWD,curl_defaults,basicauth_symbol);}
   if (kno_test(curl_defaults,bearer_symbol,VOID)) {
     lispval v = kno_get(curl_defaults,bearer_symbol,VOID);
     curl_set_bearer(h,v);
     kno_decref(v);}
   if (kno_test(curl_defaults,authinfo_symbol,VOID)) {
     curl_set(h,CURLOPT_HTTPAUTH,CURLAUTH_ANY);
-    curl_set2dtype(h,CURLOPT_USERPWD,curl_defaults,authinfo_symbol);}
+    curl_set2lisp(h,CURLOPT_USERPWD,curl_defaults,authinfo_symbol);}
   if (kno_test(curl_defaults,referer_symbol,VOID))
-    curl_set2dtype(h,CURLOPT_REFERER,curl_defaults,referer_symbol);
+    curl_set2lisp(h,CURLOPT_REFERER,curl_defaults,referer_symbol);
   if (kno_test(curl_defaults,cookie_symbol,VOID))
-    curl_set2dtype(h,CURLOPT_REFERER,curl_defaults,cookie_symbol);
+    curl_set2lisp(h,CURLOPT_REFERER,curl_defaults,cookie_symbol);
   if (kno_test(curl_defaults,cookiejar_symbol,VOID))
-    curl_set2dtype(h,CURLOPT_REFERER,curl_defaults,cookiejar_symbol);
+    curl_set2lisp(h,CURLOPT_REFERER,curl_defaults,cookiejar_symbol);
   if (kno_test(curl_defaults,maxtime_symbol,VOID))
-    curl_set2dtype(h,CURLOPT_TIMEOUT,curl_defaults,maxtime_symbol);
+    curl_set2lisp(h,CURLOPT_TIMEOUT,curl_defaults,maxtime_symbol);
   if (kno_test(curl_defaults,timeout_symbol,VOID))
-    curl_set2dtype(h,CURLOPT_CONNECTTIMEOUT,curl_defaults,timeout_symbol);
+    curl_set2lisp(h,CURLOPT_CONNECTTIMEOUT,curl_defaults,timeout_symbol);
 
   if (rv >= 0) {
     lispval http_headers = kno_get(curl_defaults,header_symbol,EMPTY);
@@ -446,7 +446,7 @@ struct KNO_CURL_HANDLE *kno_open_curl_handle()
     return NULL;}
   else return h;
 #undef curl_set
-#undef curl_set2dtype
+#undef curl_set2lisp
 }
 
 static char *getcurlerror(char *buf,int code)
@@ -489,7 +489,7 @@ static int unparse_curl_handle(u8_output out,lispval x)
 
 DEFCPRIM("curl-handle?",curlhandlep,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
+	 "Returns true if *arg* is a CURL handle",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval curlhandlep(lispval arg)
 {
@@ -499,8 +499,8 @@ static lispval curlhandlep(lispval arg)
 
 DEFCPRIM("curl/reset!",curlreset,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"arg",kno_any_type,KNO_VOID})
+	 "Resets a CURL handle",
+	 {"arg",KNO_CURL_TYPE,KNO_VOID})
 static lispval curlreset(lispval arg)
 {
   if (!(TYPEP(arg,kno_curl_type)))
@@ -922,9 +922,13 @@ static lispval curl_arg(lispval arg,u8_context cxt)
 
 DEFCPRIM("urlget",urlget,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
+	 "Fetches *url*, returning a slotmap whose `%content` "
+	 "slot contains the content and whose other slots provide "
+	 "process and content metadata. *curlopts* is either an "
+	 "existing CURL handle or a set of options used to create "
+	 "a handle.",
 	 {"url",kno_any_type,KNO_VOID},
-	 {"curl",kno_any_type,KNO_VOID})
+	 {"curlopts",kno_any_type,KNO_VOID});
 static lispval urlget(lispval url,lispval curl)
 {
   lispval result, conn = curl_arg(curl,"urlget");
@@ -940,46 +944,11 @@ static lispval urlget(lispval url,lispval curl)
   return result;
 }
 
-DEFCPRIM("urlstream",urlstream,
-	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(1),
-	 "(URLSTREAM *url* *handler* [*curl*]) "
-	 "opens the remote URL *url* and calls *handler* on "
-	 "packets of data from the stream. A second "
-	 "argument to *handler* is a slotmap which will be "
-	 "returned when the *handler* either errs or "
-	 "returns #F",
-	 {"url",kno_string_type,KNO_VOID},
-	 {"handler",kno_any_type,KNO_VOID},
-	 {"payload",kno_any_type,KNO_VOID},
-	 {"curl",kno_any_type,KNO_VOID})
-static lispval urlstream(lispval url,lispval handler,
-			 lispval payload,
-			 lispval curl)
-{
-  if (!(KNO_APPLICABLEP(handler)))
-    return kno_type_error("applicable","urlstream",handler);
-  lispval result, conn = curl_arg(curl,"urlstream");
-  if (KNO_ABORTP(conn)) return conn;
-  else if (!(TYPEP(conn,kno_curl_type)))
-    return kno_type_error("CURLCONN","urlget",conn);
-  else if (!((STRINGP(url))||(TYPEP(url,kno_secret_type)))) {
-    result = kno_type_error("string","urlget",url);}
-  else if (VOIDP(payload))
-    result = streamurl((kno_curl_handle)conn,CSTRING(url),
-		       handler,NULL,NULL,0);
-  else {
-    result = streamurl((kno_curl_handle)conn,CSTRING(url),
-		       handler,CSTRING(payload),
-		       "application/x-www-urlform-encoded",
-		       STRLEN(payload));}
-  if (conn == curl) reset_curl_handle((kno_curl_handle)conn);
-  kno_decref(conn);
-  return result;
-}
-
-DEFCPRIM("urlhead",urlhead,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
+DEFCPRIM("urlhead",urlhead,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	 "Requests metadata for *url*, returning a slotmap providing "
+	 "process and content metadata. *curlopts* is either an "
+	 "existing CURL handle or a set of options used to create "
+	 "a handle.",
 	 {"url",kno_any_type,KNO_VOID},
 	 {"curl",kno_any_type,KNO_VOID})
 static lispval urlhead(lispval url,lispval curl)
@@ -996,13 +965,16 @@ static lispval urlhead(lispval url,lispval curl)
   return result;
 }
 
-DEFCPRIM("urlput",urlput,
-	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
-	 "**undocumented**",
+DEFCPRIM("urlput",urlput,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
+	 "Delivers *content* (with mimetype *ctype*) to the endpoint *url*, "
+	 "returning the content and metadata returned from the endpoint. "
+	 "*curlopts* is either an existing CURL handle or a set of options "
+	 "used to create a handle. By default, this uses the HTTP PUT method "
+	 "but *curlopts* can specify an alternative 'method'.",
 	 {"url",kno_any_type,KNO_VOID},
 	 {"content",kno_any_type,KNO_VOID},
 	 {"ctype",kno_any_type,KNO_VOID},
-	 {"curl",kno_any_type,KNO_VOID})
+	 {"curlopts",kno_any_type,KNO_VOID});
 static lispval urlput(lispval url,lispval content,lispval ctype,lispval curl)
 {
   lispval conn;
@@ -1060,9 +1032,11 @@ static lispval urlput(lispval url,lispval content,lispval ctype,lispval curl)
 
 DEFCPRIM("urlcontent",urlcontent,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
+	 "Fetches *url*, returning the content as a string or packet "
+	 " without any metadata. *curlopts* is either an existing "
+	 "CURL handle or a set of options used to create a handle.",
 	 {"url",kno_any_type,KNO_VOID},
-	 {"curl",kno_any_type,KNO_VOID})
+	 {"curlopts",kno_any_type,KNO_VOID})
 static lispval urlcontent(lispval url,lispval curl)
 {
   lispval result, conn = curl_arg(curl,"urlcontent"), content;
@@ -1082,10 +1056,12 @@ static lispval urlcontent(lispval url,lispval curl)
 
 DEFCPRIM("urlxml",urlxml,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
+	 "Fetches *url* and parses the result as XML using "
+	 "*xmlopts*. *curlopts* is either an existing "
+	 "CURL handle or a set of options used to create a handle.",
 	 {"url",kno_any_type,KNO_VOID},
-	 {"xmlopt",kno_any_type,KNO_VOID},
-	 {"curl",kno_any_type,KNO_VOID})
+	 {"xmlopts",kno_any_type,KNO_VOID},
+	 {"curlopts",kno_any_type,KNO_VOID})
 static lispval urlxml(lispval url,lispval xmlopt,lispval curl)
 {
   INBUF data;
@@ -1192,6 +1168,42 @@ static lispval urlxml(lispval url,lispval xmlopt,lispval curl)
   return cval;
 }
 
+DEFCPRIM("urlstream",urlstream,
+	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(1),
+	 "Opens the remote URL *url* and calls *handler* on "
+	 "packets of data from the stream. A second "
+	 "argument to *handler* is a slotmap which will be "
+	 "returned when the *handler* either errs or "
+	 "returns #f",
+	 {"url",kno_string_type,KNO_VOID},
+	 {"handler",kno_any_type,KNO_VOID},
+	 {"payload",kno_any_type,KNO_VOID},
+	 {"curl",kno_any_type,KNO_VOID})
+static lispval urlstream(lispval url,lispval handler,
+			 lispval payload,
+			 lispval curl)
+{
+  if (!(KNO_APPLICABLEP(handler)))
+    return kno_type_error("applicable","urlstream",handler);
+  lispval result, conn = curl_arg(curl,"urlstream");
+  if (KNO_ABORTP(conn)) return conn;
+  else if (!(TYPEP(conn,kno_curl_type)))
+    return kno_type_error("CURLCONN","urlget",conn);
+  else if (!((STRINGP(url))||(TYPEP(url,kno_secret_type)))) {
+    result = kno_type_error("string","urlget",url);}
+  else if (VOIDP(payload))
+    result = streamurl((kno_curl_handle)conn,CSTRING(url),
+		       handler,NULL,NULL,0);
+  else {
+    result = streamurl((kno_curl_handle)conn,CSTRING(url),
+		       handler,CSTRING(payload),
+		       "application/x-www-urlform-encoded",
+		       STRLEN(payload));}
+  if (conn == curl) reset_curl_handle((kno_curl_handle)conn);
+  kno_decref(conn);
+  return result;
+}
+
 /* Req checking */
 
 static lispval responsetest(lispval response,int min,int max)
@@ -1210,7 +1222,8 @@ static lispval responsetest(lispval response,int min,int max)
 
 DEFCPRIM("response/ok?",responseokp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
+	 "Returns true if *response* has (or is) an "
+	 "HTTP OK status",
 	 {"response",kno_any_type,KNO_VOID})
 static lispval responseokp(lispval response)
 {
@@ -1219,7 +1232,8 @@ static lispval responseokp(lispval response)
 
 DEFCPRIM("response/redirect?",responseredirectp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
+	 "Returns true if *response* has (or is) an "
+	 "HTTP REDIRECT status",
 	 {"response",kno_any_type,KNO_VOID})
 static lispval responseredirectp(lispval response)
 {
@@ -1228,7 +1242,8 @@ static lispval responseredirectp(lispval response)
 
 DEFCPRIM("response/error?",responseanyerrorp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
+	 "Returns true if *response* has (or is) an "
+	 "HTTP error status",
 	 {"response",kno_any_type,KNO_VOID})
 static lispval responseanyerrorp(lispval response)
 {
@@ -1237,7 +1252,8 @@ static lispval responseanyerrorp(lispval response)
 
 DEFCPRIM("response/myerror?",responsemyerrorp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
+	 "Returns true if *response* has (or is) an "
+	 "HTTP client error status",
 	 {"response",kno_any_type,KNO_VOID})
 static lispval responsemyerrorp(lispval response)
 {
@@ -1246,7 +1262,8 @@ static lispval responsemyerrorp(lispval response)
 
 DEFCPRIM("response/servererror?",responseservererrorp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
+	 "Returns true if *response* has (or is) an "
+	 "HTTP server error status",
 	 {"response",kno_any_type,KNO_VOID})
 static lispval responseservererrorp(lispval response)
 {
@@ -1255,7 +1272,8 @@ static lispval responseservererrorp(lispval response)
 
 DEFCPRIM("response/unauthorized?",responseunauthorizedp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
+	 "Returns true if *response* has (or is) an "
+	 "HTTP unauthorized status",
 	 {"response",kno_any_type,KNO_VOID})
 static lispval responseunauthorizedp(lispval response)
 {
@@ -1264,7 +1282,8 @@ static lispval responseunauthorizedp(lispval response)
 
 DEFCPRIM("response/forbidden?",responseforbiddenp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
+	 "Returns true if *response* has (or is) an "
+	 "HTTP forbidden error status",
 	 {"response",kno_any_type,KNO_VOID})
 static lispval responseforbiddenp(lispval response)
 {
@@ -1273,7 +1292,8 @@ static lispval responseforbiddenp(lispval response)
 
 DEFCPRIM("response/timeout?",responsetimeoutp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
+	 "Returns true if *response* has (or is) an "
+	 "HTTP timeout status",
 	 {"response",kno_any_type,KNO_VOID})
 static lispval responsetimeoutp(lispval response)
 {
@@ -1282,7 +1302,8 @@ static lispval responsetimeoutp(lispval response)
 
 DEFCPRIM("response/badmethod?",responsebadmethodp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
+	 "Returns true if *response* has (or is) an "
+	 "HTTP bad method error status",
 	 {"response",kno_any_type,KNO_VOID})
 static lispval responsebadmethodp(lispval response)
 {
@@ -1291,7 +1312,8 @@ static lispval responsebadmethodp(lispval response)
 
 DEFCPRIM("response/notfound?",responsenotfoundp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
+	 "Returns true if *response* has (or is) an "
+	 "HTTP resource not found (404) status",
 	 {"response",kno_any_type,KNO_VOID})
 static lispval responsenotfoundp(lispval response)
 {
@@ -1300,7 +1322,8 @@ static lispval responsenotfoundp(lispval response)
 
 DEFCPRIM("response/gone?",responsegonep,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
+	 "Returns true if *response* has (or is) an "
+	 "HTTP resource gone (410) status",
 	 {"response",kno_any_type,KNO_VOID})
 static lispval responsegonep(lispval response)
 {
@@ -1309,7 +1332,7 @@ static lispval responsegonep(lispval response)
 
 DEFCPRIM("response/status",responsestatusprim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
+	 "Returns the error status of an HTTP result",
 	 {"response",kno_any_type,KNO_VOID})
 static lispval responsestatusprim(lispval response)
 {
@@ -1324,10 +1347,11 @@ static lispval responsestatusprim(lispval response)
 
 DEFCPRIM("response/status?",testresponseprim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "**undocumented**",
+	 "Returns true if the HTTP status of *response* is *code* or "
+	 "when *maxcode* is provided, is between *code* and *maxcode*.",
 	 {"response",kno_any_type,KNO_VOID},
-	 {"arg1",kno_any_type,KNO_VOID},
-	 {"arg2",kno_any_type,KNO_VOID})
+	 {"code",kno_any_type,KNO_VOID},
+	 {"maxcode",kno_any_type,KNO_VOID})
 static lispval testresponseprim(lispval response,lispval arg1,lispval arg2)
 {
   if (KNO_AMBIGP(response)) {
@@ -1363,9 +1387,9 @@ static lispval testresponseprim(lispval response,lispval arg1,lispval arg2)
 
 DEFCPRIM("curl/setopt!",curlsetopt,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 "**undocumented**",
-	 {"handle",kno_any_type,KNO_VOID},
-	 {"opt",kno_any_type,KNO_VOID},
+	 "Sets option *optname* of *handle* to *value*.",
+	 {"handle",KNO_CURL_TYPE,KNO_VOID},
+	 {"optname",kno_any_type,KNO_VOID},
 	 {"value",kno_any_type,KNO_VOID})
 static lispval curlsetopt(lispval handle,lispval opt,lispval value)
 {
@@ -1382,7 +1406,8 @@ static lispval curlsetopt(lispval handle,lispval opt,lispval value)
 
 DEFCPRIMN("curl/open",curlopen,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(0),
-	  "**undocumented**")
+	  "Opens a curl handle given a sequence of alternating option "
+	  "value pairs")
 static lispval curlopen(int n,kno_argvec args)
 {
   if (n==0)
@@ -1799,7 +1824,7 @@ static int curl_initialized = 0;
 
 KNO_EXPORT void kno_init_curl_c(void) KNO_LIBINIT_FN;
 
-static lispval webtools_module;
+static lispval webtools_module, curl_module;
 
 KNO_EXPORT void kno_init_curl_c()
 {
@@ -1811,8 +1836,9 @@ KNO_EXPORT void kno_init_curl_c()
     default_user_agent=u8_strdup(getenv("USERAGENT"));
   else default_user_agent=u8_strdup(default_user_agent);
 
-  lispval module = kno_new_module("WEBTOOLS",(0));
+  lispval module = kno_new_module("webtools",(0));
   webtools_module = module;
+  curl_module = kno_new_module("curl",(0));
 
   kno_curl_type = kno_register_cons_type("CURLHANDLE",KNO_CURL_TYPE);
   kno_recyclers[kno_curl_type]=recycle_curl_handle;
@@ -1890,14 +1916,20 @@ KNO_EXPORT void kno_init_curl_c()
 
   kno_register_sourcefn(url_source_fn,NULL);
 
+  kno_finish_cmodule(curl_module);
+
   u8_register_source_file(_FILEINFO);
 }
 
 static void link_local_cprims()
 {
+  KNO_LINK_CPRIM("urlget",urlget,2,webtools_module);
+  KNO_LINK_CPRIM("urlhead",urlhead,2,webtools_module);
+  KNO_LINK_CPRIM("urlput",urlput,4,webtools_module);
   KNO_LINK_CVARARGS("urlpost",urlpost,webtools_module);
-  KNO_LINK_CVARARGS("curl/open",curlopen,webtools_module);
-  KNO_LINK_CPRIM("curl/setopt!",curlsetopt,3,webtools_module);
+  KNO_LINK_CPRIM("urlxml",urlxml,3,webtools_module);
+  KNO_LINK_CPRIM("urlcontent",urlcontent,2,webtools_module);
+  KNO_LINK_CPRIM("urlstream",urlstream,4,webtools_module);
   KNO_LINK_CPRIM("response/status?",testresponseprim,3,webtools_module);
   KNO_LINK_CPRIM("response/status",responsestatusprim,1,webtools_module);
   KNO_LINK_CPRIM("response/gone?",responsegonep,1,webtools_module);
@@ -1911,18 +1943,28 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("response/error?",responseanyerrorp,1,webtools_module);
   KNO_LINK_CPRIM("response/redirect?",responseredirectp,1,webtools_module);
   KNO_LINK_CPRIM("response/ok?",responseokp,1,webtools_module);
-  KNO_LINK_CPRIM("urlxml",urlxml,3,webtools_module);
-  KNO_LINK_CPRIM("urlcontent",urlcontent,2,webtools_module);
-  KNO_LINK_CPRIM("urlput",urlput,4,webtools_module);
-  KNO_LINK_CPRIM("urlhead",urlhead,2,webtools_module);
-  KNO_LINK_CPRIM("urlstream",urlstream,4,webtools_module);
-  KNO_LINK_CPRIM("urlget",urlget,2,webtools_module);
-  KNO_LINK_CPRIM("curl/reset!",curlreset,1,webtools_module);
-  KNO_LINK_CPRIM("curl-handle?",curlhandlep,1,webtools_module);
   KNO_LINK_CPRIM("add-text_type!",addtexttype,1,webtools_module);
+  KNO_LINK_CPRIM("curl-handle?",curlhandlep,1,webtools_module);
 
-  KNO_LINK_ALIAS("curlreset!",curlreset,webtools_module);
-  KNO_LINK_ALIAS("curlsetopt!",curlsetopt,webtools_module);
-  KNO_LINK_ALIAS("curlopen",curlopen,webtools_module);
+  KNO_LINK_CPRIM("curl/reset!",curlreset,1,curl_module);
+  KNO_LINK_CPRIM("curl-handle?",curlhandlep,1,curl_module);
+
+  KNO_LINK_CVARARGS("curl/open",curlopen,curl_module);
+  KNO_LINK_CPRIM("curl/setopt!",curlsetopt,3,curl_module);
+
+  KNO_LINK_ALIAS("curlreset!",curlreset,curl_module);
+  KNO_LINK_ALIAS("curlsetopt!",curlsetopt,curl_module);
+  KNO_LINK_ALIAS("curlopen",curlopen,curl_module);
+
+  KNO_LINK_CPRIM("curlput",urlput,4,curl_module);
+  KNO_LINK_CPRIM("curlhead",urlhead,2,curl_module);
+  KNO_LINK_CPRIM("curlstream",urlstream,4,curl_module);
+  KNO_LINK_CPRIM("curlget",urlget,2,curl_module);
+
+  kno_defalias2(curl_module,"curlget",webtools_module,"urlget");
+  kno_defalias2(curl_module,"curlhead",webtools_module,"urlhead");
+  kno_defalias2(curl_module,"curlput",webtools_module,"urlput");
+  kno_defalias2(curl_module,"curlpost",webtools_module,"urlpost");
+
 }
 
