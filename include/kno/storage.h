@@ -256,11 +256,12 @@ KNO_EXPORT lispval kno_tcachecall(lispval fcn,int n,kno_argvec args);
 
 typedef struct KNO_THREAD_CACHE {
   int threadcache_inuse; u8_string threadcache_id;
+  struct KNO_INDEX *background;
   struct KNO_HASHTABLE oids;
-  struct KNO_HASHTABLE adjuncts;
-  struct KNO_HASHTABLE indexes;
-  struct KNO_HASHTABLE bground;
+  struct KNO_HASHTABLE background_cache;
   struct KNO_HASHTABLE calls;
+  struct KNO_SLOTMAP adjuncts;
+  struct KNO_SLOTMAP indexes;
   struct KNO_THREAD_CACHE *threadcache_prev;} KNO_THREAD_CACHE;
 typedef struct KNO_THREAD_CACHE *kno_thread_cache;
 typedef struct KNO_THREAD_CACHE KNOTC;

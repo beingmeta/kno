@@ -44,11 +44,11 @@ KNO_EXPORT int kno_free_thread_cache(struct KNO_THREAD_CACHE *tc)
     else u8_logf(LOG_WARN,FreeingInUseThreadCache,
                  "Freeing in-use threadcache: %llx",ptrval);}
   /* These may do customized things for some of the tables. */
-  kno_recycle_hashtable(&(tc->calls));
   kno_recycle_hashtable(&(tc->oids));
-  kno_recycle_hashtable(&(tc->adjuncts));
-  kno_recycle_hashtable(&(tc->indexes));
-  kno_recycle_hashtable(&(tc->bground));
+  kno_recycle_hashtable(&(tc->calls));
+  kno_recycle_hashtable(&(tc->background_cache));
+  kno_free_slotmap(tc->adjuncts);
+  kno_free_slotmap(tc->indexes);
   tc->threadcache_inuse = 0;
   u8_free(tc);
   return 1;
@@ -89,8 +89,8 @@ KNO_EXPORT kno_thread_cache kno_cons_thread_cache
   KNO_INIT_STATIC_CONS(&(tc->oids),kno_hashtable_type);
   kno_make_hashtable(&(tc->oids),oid_cache_size);
 
-  KNO_INIT_STATIC_CONS(&(tc->adjuncts),kno_hashtable_type);
-  kno_make_hashtable(&(tc->adjuncts),adjunct_cache_size);
+  KNO_INIT_STATIC_CONS(&(tc->background_cache),kno_hashtable_type);
+  kno_make_hashtable(&(tc->background_cache),adjunct_cache_size);
 
   KNO_INIT_STATIC_CONS(&(tc->bground),kno_hashtable_type);
   kno_make_hashtable(&(tc->bground),background_cache_size);

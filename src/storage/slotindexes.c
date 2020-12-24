@@ -717,12 +717,12 @@ KNO_EXPORT int kno_slotindex_merge(kno_index into,lispval from)
 
 KNO_EXPORT lispval kno_bg_get(lispval slotid,lispval value)
 {
-  return aggregate_prim_find(kno_background,slotid,value);
+  return aggregate_prim_find(kno_default_background,slotid,value);
 }
 
 KNO_EXPORT lispval kno_bgfinder(int n,kno_argvec slotvals)
 {
-  return kno_finder(index2lisp((kno_index)kno_background),n,slotvals);
+  return kno_finder(index2lisp((kno_index)kno_default_background),n,slotvals);
 }
 
 KNO_EXPORT lispval kno_bgfind(lispval slotid,lispval values,...)
@@ -755,7 +755,7 @@ KNO_EXPORT lispval kno_bgfind(lispval slotid,lispval values,...)
 
 KNO_EXPORT int kno_bg_prefetch(lispval keys)
 {
-  return kno_index_prefetch((kno_index)kno_background,keys);
+  return kno_index_prefetch((kno_index)kno_default_background,keys);
 }
 
 KNO_EXPORT void kno_init_slotindexes_c()
