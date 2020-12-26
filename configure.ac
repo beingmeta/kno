@@ -1754,12 +1754,6 @@ if (test "$have_zlib_h" = "yes"); then
   AC_CHECK_LIB(z,compress2,have_libz="yes",have_libz="no")
 fi
 
-if (test "$have_libz" = "yes"); then
-  CMODULES="lib/kno/zlib.$shared_suffix ${CMODULES}"
-  INSTALL_CMODULES="install-zlib ${INSTALL_CMODULES}"
-  TEST_CMODULES="${TEST_CMODULES} zlib"
-fi
-
 AC_CHECK_HEADER(zlib.h,have_zlib_h="yes",have_zlib_h="no")
 if test "${have_zlib_h}" = "yes"; then
    AC_CHECK_LIB(zlib,uncompress)

@@ -12828,12 +12828,6 @@ fi
 
 fi
 
-if (test "$have_libz" = "yes"); then
-  CMODULES="lib/kno/zlib.$shared_suffix ${CMODULES}"
-  INSTALL_CMODULES="install-zlib ${INSTALL_CMODULES}"
-  TEST_CMODULES="${TEST_CMODULES} zlib"
-fi
-
 ac_fn_c_check_header_mongrel "$LINENO" "zlib.h" "ac_cv_header_zlib_h" "$ac_includes_default"
 if test "x$ac_cv_header_zlib_h" = xyes; then :
   have_zlib_h="yes"

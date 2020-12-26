@@ -34,7 +34,8 @@ static u8_condition zlibDataError=_("Bad ZLIB input data");
 
 KNO_DEFCPRIM("zlib/compress",zlib_compress_prim,
 	     KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	     "**undocumented**",
+	     "Returns a zLib compressed version of *input_arg* with "
+	     "compression level *level*",
 	     {"input_arg",kno_any_type,KNO_VOID},
 	     {"level_arg",kno_any_type,KNO_VOID})
 static lispval zlib_compress_prim(lispval input_arg,lispval level_arg)

@@ -3,7 +3,6 @@ usr/lib/libknowebtools.so*
 usr/lib/libknotexttools.so*
 usr/lib/kno/crypto.so*
 usr/lib/kno/libarchive.so*
-usr/lib/kno/zlib.so*
 usr/bin/knoc
 usr/bin/knox
 usr/bin/knod
