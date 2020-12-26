@@ -428,7 +428,7 @@ typedef double kno_double;
 typedef double kno_double;
 #endif
 
-# For gettext
+/* For gettext */
 #define _(x) (x)
 
 #ifndef KNO_LIBSCM_DIR

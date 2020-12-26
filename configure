@@ -982,7 +982,6 @@ with_editline
 with_libu8
 with_parseltongue
 with_sudo
-with_fastcgi
 with_bootsystem
 with_systemd
 '
@@ -1714,7 +1713,6 @@ Optional Packages:
 --with/out-libu8 Use libu8 includes
 --with/out-parseltongue Build parseltongue libraries for connecting Kno and Python
 --with/out-sudo use sudo with install
---with/out-fastcgi Use fastcgi
 --with-bootsystem Setup boot method
 --with-systemd Specify systemd install directory
 
@@ -12699,78 +12697,6 @@ elif test "$with_sudo" == "no"; then
    DOINSTALL="";
 else
    DOINSTALL="$with_sudo ";
-fi
-
-### Build fastcgi executable if possible
-
-with_fastcgi="yes";
-
-# Check whether --with-fastcgi was given.
-if test "${with_fastcgi+set}" = set; then :
-  withval=$with_fastcgi; with_fastcgi=no
-else
-  $as_echo "#define WITH_FASTCGI 1" >>confdefs.h
-
-fi
-
-if test "$with_fastcgi" != "no"; then
-  for ac_header in fcgiapp.h
-do :
-  ac_fn_c_check_header_mongrel "$LINENO" "fcgiapp.h" "ac_cv_header_fcgiapp_h" "$ac_includes_default"
-if test "x$ac_cv_header_fcgiapp_h" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_FCGIAPP_H 1
-_ACEOF
-
-fi
-
-done
-
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for FCGX_Init in -lfcgi" >&5
-$as_echo_n "checking for FCGX_Init in -lfcgi... " >&6; }
-if ${ac_cv_lib_fcgi_FCGX_Init+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lfcgi  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char FCGX_Init ();
-int
-main ()
-{
-return FCGX_Init ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_fcgi_FCGX_Init=yes
-else
-  ac_cv_lib_fcgi_FCGX_Init=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_fcgi_FCGX_Init" >&5
-$as_echo "$ac_cv_lib_fcgi_FCGX_Init" >&6; }
-if test "x$ac_cv_lib_fcgi_FCGX_Init" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBFCGI 1
-_ACEOF
-
-  LIBS="-lfcgi $LIBS"
-
-fi
-
 fi
 
 ### zlib/libz compression functions
