@@ -1519,7 +1519,6 @@ install-data: \
 	$(DESTDIR)@config_dir@/boot/kno.conf 		\
 	$(DESTDIR)@config_dir@/boot/logrotate
 
-install-fastcgi: $(BININSTALLDIR)/knocgi@suffix@
 $(BININSTALLDIR)/knocgi@suffix@:
 	@$(SYSINSTALL) -p @install_exe_opts@ knocgi@suffix@ $(BININSTALLDIR)
 

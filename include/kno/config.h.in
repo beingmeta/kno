@@ -513,15 +513,6 @@
 /* Whether we're using the Google profiler library */
 #undef HAVE_GOOGLE_PROFILER_H
 
-/* Whether we're using fastcgi in fastcgiexec */
-#undef WITH_FASTCGI
-
-/* Whether we have the fastcgi header file */
-#undef HAVE_FCGIAPP_H
-
-/* Whether we have the fcgi lib */
-#undef HAVE_LIBFCGI
-
 /* Whether we have the fcgi lib */
 #undef HAVE_UCHAR
 

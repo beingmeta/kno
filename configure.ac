@@ -1738,15 +1738,6 @@ else
    DOINSTALL="$with_sudo ";
 fi
 
-### Build fastcgi executable if possible
-
-with_fastcgi="yes";
-AC_ARG_WITH(fastcgi,--with/out-fastcgi Use fastcgi,with_fastcgi=no,[AC_DEFINE(WITH_FASTCGI,1)])
-if test "$with_fastcgi" != "no"; then
-  AC_CHECK_HEADERS(fcgiapp.h)
-  AC_CHECK_LIB(fcgi,FCGX_Init)
-fi
-
 ### zlib/libz compression functions
 
 AC_CHECK_HEADER(zlib.h,have_zlib_h="yes",have_zlib_h="no")

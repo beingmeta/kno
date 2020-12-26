@@ -545,9 +545,6 @@ KNO_EXPORT void kno_init_build_info()
 #ifdef WITH_GOOGLE_PROFILER
   config_bool(WITH_GOOGLE_PROFILER);
 #endif
-#ifdef WITH_FASTCGI
-  config_bool(WITH_FASTCGI);
-#endif
 #ifdef U8_THREAD_DEBUG
   config_bool(U8_THREAD_DEBUG);
 #endif

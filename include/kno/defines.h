@@ -428,22 +428,7 @@ typedef double kno_double;
 typedef double kno_double;
 #endif
 
-/* Fastcgi configuration */
-
-#ifndef HAVE_FCGIAPP_H
-#define HAVE_FCGIAPP_H 0
-#endif
-
-#ifndef HAVE_LIBFCGI
-#define HAVE_LIBFCGI 0
-#endif
-
-#if ((WITH_FASTCGI) && (HAVE_FCGIAPP_H) && (HAVE_LIBFCGI))
-#define KNO_WITH_FASTCGI 1
-#else
-#define KNO_WITH_FASTCGI 0
-#endif
-
+# For gettext
 #define _(x) (x)
 
 #ifndef KNO_LIBSCM_DIR
