@@ -186,14 +186,16 @@ KNO_EXPORT int _KNO_CHECKTYPE(lispval obj,lispval objtype)
   if (KNO_IMMEDIATEP(objtype)) {
     if (KNO_IMMEDIATE_TYPEP(objtype,kno_symbol_type))
       return ( ( (KNO_COMPOUNDP(obj)) && ( (KNO_COMPOUND_TAG(obj)) == objtype) ) ||
-	       ( (KNO_TYPEP(obj,kno_rawptr_type)) && ( (KNO_RAWPTR_TAG(obj)) == objtype) ) );
+	       ( (KNO_TYPEP(obj,kno_rawptr_type)) && \
+		 ( (KNO_RAWPTR_TAG(obj)) == objtype) ) );
     else if (KNO_IMMEDIATE_TYPEP(objtype,kno_ctype_type)) {
       kno_lisp_type ltype = (KNO_IMMEDIATE_DATA(objtype));
       return (KNO_TYPEP(obj,ltype));}
     else return 0;}
   else if (KNO_OIDP(objtype))
     return ( ( (KNO_COMPOUNDP(obj)) && ( (KNO_COMPOUND_TAG(obj)) == objtype) ) ||
-	     ( (KNO_TYPEP(obj,kno_rawptr_type)) && ( (KNO_RAWPTR_TAG(obj)) == objtype) ) );
+	     ( (KNO_TYPEP(obj,kno_rawptr_type)) && \
+	       ( (KNO_RAWPTR_TAG(obj)) == objtype) ) );
   else if (KNO_TYPEP(objtype,kno_typeinfo_type)) {
     struct KNO_TYPEINFO *info = (kno_typeinfo) objtype;
     if ( (info->type_basetype>=0) && (!(KNO_TYPEP(obj,info->type_basetype))) )

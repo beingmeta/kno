@@ -350,8 +350,8 @@ KNO_EXPORT lispval kno_dcall(struct KNO_STACK *stack,lispval,int n,kno_argvec rg
 #define kno_apply(fn,n_args,argv) (kno_call(kno_stackptr,fn,n_args,argv))
 #define kno_dapply(fn,n_args,argv) (kno_dcall(kno_stackptr,fn,n_args,argv))
 
-KNO_EXPORT lispval kno_handle_type
-(lispval obj,lispval type,lispval m,int n,kno_argvec args);
+KNO_EXPORT lispval kno_type_handle(lispval obj,lispval type,lispval m,
+				   int n,kno_argvec args);
 KNO_EXPORT lispval kno_handle(lispval obj,lispval m,int n,kno_argvec args);
 
 KNO_EXPORT lispval kno_exec(lispval expr,lispval handlers,kno_stack stack);
