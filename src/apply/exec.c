@@ -183,6 +183,54 @@ KNO_EXPORT lispval kno_exec_extend(lispval add,lispval path)
   return extend_env(add,path);
 }
 
+/* Send */
+
+KNO_EXPORT lispval kno_handle_type(lispval obj,lispval type,lispval method,
+				   int n,kno_argvec args)
+{
+  struct KNO_TYPEINFO *typeinfo = kno_taginfo(obj);
+  if (typeinfo == NULL) {
+    kno_seterr("BadObject","kno_handle_type",
+	       (KNO_SYMBOLP(method))?(KNO_SYMBOL_NAME(method)):(NULL),
+	       method);
+    return KNO_ERROR;}
+  lispval handlers = KNO_VOID; int free_handlers = 0;
+  if (KNO_VOIDP(type))
+    handlers = typeinfo->type_handlers;
+  else {
+    handlers = kno_get(typeinfo->type_handlers,type,KNO_VOID);
+    if (!(KNO_VOIDP(handlers))) free_handlers=1;
+    else handlers = typeinfo->type_handlers;}
+  if (RARELY(KNO_VOIDP(handlers))) {
+    kno_seterr("NoHandlers","kno_handle_type",
+	       (KNO_SYMBOLP(method))?(KNO_SYMBOL_NAME(method)):(NULL),
+	       method);
+    return KNO_ERROR;}
+  lispval handler = kno_get(handlers,method,KNO_VOID);
+  if ( (KNO_VOIDP(handler)) && (KNO_VOIDP(type)) )
+    handler = kno_get(typeinfo->type_handlers,method,KNO_VOID);
+  if (KNO_VOIDP(handler)) {
+    kno_seterr("NoHandler","kno_handle_type",
+	       (KNO_SYMBOLP(method))?(KNO_SYMBOL_NAME(method)):(NULL),
+	       method);
+    return KNO_ERROR;}
+  else if (KNO_APPLICABLEP(handler)) {
+    lispval xargs[n+1]; xargs[0] = obj;
+    memcpy(xargs+1,args,n*sizeof(lispval));
+    lispval result = kno_apply(handler,n+1,xargs);
+    if (!(KNO_VOIDP(type))) kno_decref(handlers);
+    kno_decref(handler);
+    return result;}
+  else {
+    kno_seterr("BadHandler","kno_send",NULL,handler);
+    return KNO_ERROR;}
+}
+
+KNO_EXPORT lispval kno_handle(lispval obj,lispval method,int n,kno_argvec args)
+{
+  return kno_handle_type(obj,KNO_VOID,method,n,args);
+}
+
 KNO_EXPORT void kno_init_exec_c()
 {
 
