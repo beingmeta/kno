@@ -376,15 +376,15 @@ KNO_EXPORT void kno_init_aggregates_c()
   u8_register_source_file(_FILEINFO);
   partitions_symbol = kno_intern("partitions");
 
-  kno_init_index(((kno_index)kno_background),
+  kno_init_index(((kno_index)kno_default_background),
                 &aggregate_index_handler,
                 "background",NULL,NULL,
                 KNO_STORAGE_ISINDEX|KNO_STORAGE_READ_ONLY,
                 KNO_FALSE,KNO_FALSE);
-  kno_background->ax_n_allocd = 64;
-  kno_background->ax_n_indexes = 0;
-  kno_background->ax_indexes = u8_alloc_n(64,kno_index);
-  kno_background->ax_oldvecs = NULL;
-  kno_register_index(((kno_index)kno_background));
+  kno_default_background->ax_n_allocd = 64;
+  kno_default_background->ax_n_indexes = 0;
+  kno_default_background->ax_indexes = u8_alloc_n(64,kno_index);
+  kno_default_background->ax_oldvecs = NULL;
+  kno_register_index(((kno_index)kno_default_background));
 }
 

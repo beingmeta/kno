@@ -153,7 +153,7 @@ static kno_index for_consed_indexes(index_iterfn iterfn,void *state)
 }
 
 static struct KNO_AGGREGATE_INDEX _background;
-struct KNO_AGGREGATE_INDEX *kno_background = &_background;
+struct KNO_AGGREGATE_INDEX *kno_default_background = &_background;
 static u8_mutex background_lock;
 
 #if KNO_GLOBAL_IPEVAL
@@ -195,7 +195,7 @@ KNO_EXPORT void kno_init_index_delays()
 
 static void clear_bg_cache(lispval key)
 {
-  kno_hashtable bg_cache = &(kno_background->index_cache);
+  kno_hashtable bg_cache = &(kno_default_background->index_cache);
   if (bg_cache->table_n_keys == 0) {}
   else if (KNO_CHOICEP(key)) {
     const lispval *keys = KNO_CHOICE_DATA(key);
@@ -417,10 +417,10 @@ KNO_EXPORT int kno_add_to_background(kno_index ix)
     kno_incref(lix);}
   u8_lock_mutex(&background_lock);
   ix->index_flags = ix->index_flags|KNO_INDEX_IN_BACKGROUND;
-  kno_add_to_aggregate_index(kno_background,ix);
-  u8_string old_id = kno_background->indexid;
-  kno_background->indexid =
-    u8_mkstring("background+%d",kno_background->ax_n_indexes);
+  kno_add_to_aggregate_index(kno_default_background,ix);
+  u8_string old_id = kno_default_background->indexid;
+  kno_default_background->indexid =
+    u8_mkstring("background+%d",kno_default_background->ax_n_indexes);
   if (old_id) u8_free(old_id);
 
   u8_unlock_mutex(&background_lock);
@@ -836,13 +836,18 @@ KNO_EXPORT lispval kno_index_sizes(kno_index ix)
 
 KNO_EXPORT lispval _kno_index_get(kno_index ix,lispval key)
 {
-  lispval cached; struct KNO_PAIR tempkey;
-  KNOTC *knotc = kno_threadcache;
+  KNOTC *knotc = (KNO_USE_THREADCACHE) ? (kno_threadcache) : (NULL);
+  lispval cached, cache = KNO_VOID;
+#if KNO_USE_THREADCACHE
   if (knotc) {
-    KNO_INIT_STATIC_CONS(&tempkey,kno_pair_type);
-    tempkey.car = kno_index2lisp(ix); tempkey.cdr = key;
-    cached = kno_hashtable_get(&(knotc->indexes),(lispval)&tempkey,VOID);
-    if (!(VOIDP(cached))) return cached;}
+    cache = kno_slotmap_get(knotc->indexes,kno_index2lisp(ix),KNO_VOID);
+    if (KNO_HASHTABLEP(cache)) {
+      cached = kno_hashtable_get((kno_hashtable)cache,key,KNO_VOID);}
+    else {
+      kno_decref(cache);
+      cache=KNO_FALSE;}
+    if (!(KNO_VOIDP(cached))) return cached;}
+#endif
   if (ix->index_cache_level == 0) cached = VOID;
   else if ((PAIRP(key)) && (!(VOIDP(ix->index_covers_slotids))) &&
 	   (!(kno_contains_atomp(KNO_CAR(key),ix->index_covers_slotids))))
@@ -852,7 +857,12 @@ KNO_EXPORT lispval _kno_index_get(kno_index ix,lispval key)
     cached = kno_index_fetch(ix,key);
 #if KNO_USE_THREADCACHE
   if (knotc) {
-    kno_hashtable_store(&(knotc->indexes),(lispval)&tempkey,cached);}
+    if (KNO_VOIDP(cache)) {
+      cache = (lispval) kno_make_hashtable(NULL,117);
+      kno_slotmap_store(knotc->indexes,kno_index2lisp(ix),cache);}
+    if (KNO_HASHTABLEP(cache)) {
+      kno_hashtable_store((kno_hashtable)cache,key,cached);}
+    kno_decref(cache);}
 #endif
   return cached;
 }

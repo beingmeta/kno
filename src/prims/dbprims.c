@@ -151,7 +151,7 @@ DEFCPRIMN("find-frames/prefetch!",find_frames_prefetch,
 static lispval find_frames_prefetch(int n,kno_argvec args)
 {
   int i = (n%2);
-  kno_index ix = ((n%2) ? (kno_indexptr(args[0])) : ((kno_index)(kno_background)));
+  kno_index ix = ((n%2) ? (kno_indexptr(args[0])) : ((kno_index)(kno_default_background)));
   if (RARELY(ix == NULL))
     return kno_type_error("index","prefetch_slotvals",args[0]);
   else while (i<n) {
@@ -2591,7 +2591,7 @@ DEFCPRIM("bgdecache",bgdecache,
 	 {"value",kno_any_type,KNO_VOID})
 static lispval bgdecache(lispval key,lispval value)
 {
-  kno_index ix = (kno_index)kno_background;
+  kno_index ix = (kno_index)kno_default_background;
   if (ix == NULL) return KNO_ERROR;
   if (VOIDP(value))
     kno_hashtable_op(&(ix->index_cache),kno_table_replace,key,VOID);
@@ -4054,7 +4054,7 @@ static lispval dbloadedp(lispval arg1,lispval arg2)
       else if (kno_hashtable_probe(&(p->pool_cache),arg1))
 	return KNO_TRUE;
       else return KNO_FALSE;}
-    else if (kno_hashtable_probe(&(kno_background->index_cache),arg1))
+    else if (kno_hashtable_probe(&(kno_default_background->index_cache),arg1))
       return KNO_TRUE;
     else return KNO_FALSE;
   else if (INDEXP(arg2)) {
