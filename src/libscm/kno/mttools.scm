@@ -1,7 +1,7 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
 ;;; Copyright (C) 2005-2020 beingmeta, inc.  All rights reserved.
 
-(in-module 'mttools)
+(in-module 'kno/mttools)
 
 ;;; This provides macros for easy use of multiple threads (and cores)
 ;;; in applications.  It also provides a way to easily implement the

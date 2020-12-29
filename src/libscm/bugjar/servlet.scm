@@ -5,7 +5,7 @@
 
 (use-module '{webtools xhtml texttools})
 (use-module '{varconfig logger})
-(use-module '{gpath condense})
+(use-module '{gpath kno/condense})
 (use-module '{bugjar bugjar/html})
 (use-module '{aws aws/s3})
 

@@ -3,8 +3,8 @@
 
 (in-module 'bugjar)
 
-(use-module '{webtools xhtml texttools xhtml/tableout gpath condense})
-(use-module '{varconfig stringfmts getcontent mimetable logger})
+(use-module '{webtools xhtml texttools xhtml/tableout gpath kno/condense})
+(use-module '{varconfig text/stringfmts getcontent net/mimetable logger})
 (use-module 'bugjar/html)
 (define %used_modules '{varconfig})
 

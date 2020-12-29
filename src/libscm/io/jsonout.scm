@@ -1,14 +1,12 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
 ;;; Copyright (C) 2005-2020 beingmeta, inc. All rights reserved
 
-;;; DON'T EDIT THIS FILE !!!
-;;;
 ;;; The reference version of this module now in the src/libscm
 ;;; directory of the Kno/KNO source tree. Please edit the file in
 ;;; src/libscm instead or move any added functionality to an extension
 ;;; module.
 
-(in-module 'jsonout)
+(in-module 'io/jsonout)
 
 (use-module '{webtools varconfig})
 

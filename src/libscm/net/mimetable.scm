@@ -1,7 +1,7 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
 ;;; Copyright (C) 2005-2020 beingmeta, inc.  All rights reserved.
 
-(in-module 'mimetable)
+(in-module 'net/mimetable)
 
 (use-module '{texttools varconfig texttools})
 (define %used_modules 'varconfig)
