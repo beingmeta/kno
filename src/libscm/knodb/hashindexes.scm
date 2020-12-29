@@ -3,7 +3,7 @@
 
 (in-module 'knodb/hashindexes)
 
-(use-module '{kno/reflect logger logctl text/stringfmtskno/mttools fifo engine})
+(use-module '{kno/reflect logger logctl text/stringfmts kno/mttools fifo engine})
 
 (module-export! '{hashindex/mapkeys
 		  hashindex/counts

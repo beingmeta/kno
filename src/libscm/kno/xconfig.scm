@@ -1,7 +1,7 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
 ;;; Copyright (C) 2005-2018 beingmeta, inc.  All rights reserved.
 
-(in-module 'xconfig)
+(in-module 'kno/xconfig)
 
 ;;; Loading of modules from external (non-file system) sources
 

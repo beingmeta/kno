@@ -3,7 +3,7 @@
 
 (in-module 'xhtml/download)
 
-(use-module '{webtools xhtml kno/reflect mimetable varconfig})
+(use-module '{webtools xhtml kno/reflect net/mimetable varconfig})
 (define %used_modules '{varconfig})
 
 (define havezip (get-module 'ziptools))
