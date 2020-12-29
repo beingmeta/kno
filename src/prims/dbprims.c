@@ -1128,6 +1128,7 @@ static lispval extindex_cacheadd(lispval index,lispval key,lispval values)
       return KNO_ERROR;
     else {}
   else return kno_type_error("extindex","extindex_cacheadd",index);
+#if 0
   if (knotc) {
     struct KNO_PAIR tempkey;
     struct KNO_HASHTABLE *h = &(knotc->indexes);
@@ -1135,6 +1136,7 @@ static lispval extindex_cacheadd(lispval index,lispval key,lispval values)
     tempkey.car = kno_index2lisp(ix); tempkey.cdr = key;
     if (kno_hashtable_probe(h,(lispval)&tempkey)) {
       kno_hashtable_store(h,(lispval)&tempkey,VOID);}}
+#endif
   return VOID;
 }
 
@@ -1157,6 +1159,7 @@ static lispval extindex_decache(lispval index,lispval key)
       return KNO_ERROR;
     else {}
   else return kno_type_error("extindex","extindex_decache",index);
+#if 0
   if ((knotc)&&(!(VOIDP(key)))) {
     struct KNO_PAIR tempkey;
     struct KNO_HASHTABLE *h = &(knotc->indexes);
@@ -1174,6 +1177,7 @@ static lispval extindex_decache(lispval index,lispval key)
       DO_CHOICES(d,drop) kno_hashtable_drop(h,d,VOID);}
     kno_decref(drop); kno_decref(keys);}
   else {}
+#endif
   return VOID;
 }
 

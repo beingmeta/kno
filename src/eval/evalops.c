@@ -410,6 +410,7 @@ static lispval clear_callcache(lispval arg)
   return VOID;
 }
 
+#if 0
 DEFCPRIMN("thread/cachecall",tcachecall,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1),
 	  "**undocumented**")
@@ -417,6 +418,7 @@ static lispval tcachecall(int n,kno_argvec args)
 {
   return kno_tcachecall(args[0],n-1,args+1);
 }
+#endif
 
 static lispval with_threadcache_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
@@ -1043,7 +1045,9 @@ static void link_local_cprims()
 
   KNO_LINK_CPRIM("use-threadcache",use_threadcache_prim,1,kno_scheme_module);
   KNO_LINK_CPRIM("clear-callcache!",clear_callcache,1,kno_scheme_module);
+#if 0
   KNO_LINK_CVARARGS("thread/cachecall",tcachecall,kno_scheme_module);
+#endif
   KNO_LINK_CVARARGS("cachecall",cachecall,kno_scheme_module);
   KNO_LINK_CVARARGS("cachecall/probe",cachecall_probe,kno_scheme_module);
   KNO_LINK_CVARARGS("cachedcall?",cachedcallp,kno_scheme_module);

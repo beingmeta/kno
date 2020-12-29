@@ -345,7 +345,7 @@ KNO_FASTOP lispval kno_index_get(kno_index ix,lispval key)
   lispval cached, cache = KNO_VOID;
 #if KNO_USE_THREADCACHE
   if (knotc) {
-    cache = kno_slotmap_get(knotc->indexes,kno_index2lisp(ix),KNO_VOID);
+    cache = kno_slotmap_get(&(knotc->indexes),kno_index2lisp(ix),KNO_VOID);
     if (KNO_HASHTABLEP(cache)) {
       cached = kno_hashtable_get((kno_hashtable)cache,key,KNO_VOID);}
     else {
@@ -363,7 +363,7 @@ KNO_FASTOP lispval kno_index_get(kno_index ix,lispval key)
   if (knotc) {
     if (KNO_VOIDP(cache)) {
       cache = (lispval) kno_make_hashtable(NULL,117);
-      kno_slotmap_store(knotc->indexes,kno_index2lisp(ix),cache);}
+      kno_slotmap_store(&(knotc->indexes),kno_index2lisp(ix),cache);}
     if (KNO_HASHTABLEP(cache)) {
       kno_hashtable_store((kno_hashtable)cache,key,cached);}
     kno_decref(cache);}
