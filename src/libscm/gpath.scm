@@ -45,7 +45,7 @@
       (else (use-module 'ziptools)
 	    (set! havezip #t)))
 
-(use-module '{aws/s3 mimetable ezrecords hashfs zipfs})
+(use-module '{apis/aws/s3 net/mimetable ezrecords gpath/hashfs gpath/zipfs})
 
 (define gp/urlsubst {})
 (varconfig! gp:urlsubst gp/urlsubst #f)

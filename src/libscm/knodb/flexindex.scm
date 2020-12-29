@@ -4,7 +4,7 @@
 (in-module 'knodb/flexindex)
 
 (use-module '{binio texttools})
-(use-module '{ezrecords stringfmts logger varconfig})
+(use-module '{ezrecords text/stringfmts logger varconfig})
 (use-module '{knodb/adjuncts knodb/filenames})
 (use-module '{knodb})
 

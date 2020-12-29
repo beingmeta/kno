@@ -8,7 +8,7 @@
 ;;; slots, that are then used to populate the memindex structure which lies behind the procindex
 ;;; implementation.
 
-(use-module '{ezrecords stringfmts logger varconfig gpath texttools})
+(use-module '{ezrecords text/stringfmts logger varconfig gpath texttools})
 (use-module '{knodb knodb/countrefs})
 
 (define-init %loglevel %warn%)

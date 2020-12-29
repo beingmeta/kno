@@ -3,7 +3,7 @@
 
 (in-module 'knodb/kindexes)
 
-(use-module '{kno/reflect logger logctl stringfmts mttools fifo engine})
+(use-module '{kno/reflect logger logctl text/stringfmtskno/mttools fifo engine})
 
 (module-export! '{kindex/mapkeys
 		  kindex/counts

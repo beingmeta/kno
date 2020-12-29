@@ -3,7 +3,7 @@
 
 (in-module 'knodb/indexes)
 
-(use-module '{fifo engine stringfmts
+(use-module '{fifo engine text/stringfmts
 	      knodb/hashindexes knodb/kindexes
 	      logger varconfig})
 

@@ -3,7 +3,7 @@
 
 (in-module 'knodb/filenames)
 
-(use-module '{ezrecords stringfmts logger texttools})
+(use-module '{ezrecords text/stringfmts logger texttools})
 
 (module-export! '{knodb/file knodb/partition-files opt-suffix})
 

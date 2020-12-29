@@ -5,7 +5,7 @@
 
 (use-module '{kno/reflect texttools regex
 	      logger logctl fifo
-	      mttools stringfmts opts})
+	     kno/mttools text/stringfmts opts})
 (use-module 'knodb)
 
 (define %loglevel %warn%)

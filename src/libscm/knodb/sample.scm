@@ -3,7 +3,7 @@
 
 (config! 'bricosource (get-component "brico"))
 
-(use-module '{logger logctl webtools varconfig libarchive texttools stringfmts optimize})
+(use-module '{logger logctl webtools varconfig libarchive texttools text/stringfmts optimize})
 (use-module '{knodb knodb/branches knodb/typeindex})
 ;; (use-module 'brico)
 

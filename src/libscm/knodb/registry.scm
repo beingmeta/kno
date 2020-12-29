@@ -5,7 +5,7 @@
 
 ;;; Maintaining registries of objects (OIDs) with unique IDs
 
-(use-module '{ezrecords logger stringfmts varconfig knodb/flexpool})
+(use-module '{ezrecords logger text/stringfmts varconfig knodb/flexpool})
 
 (define %used_modules 'ezrecords)
 

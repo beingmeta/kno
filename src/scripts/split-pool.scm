@@ -1,7 +1,7 @@
 ;;; -*- Mode: Scheme -*-
 
 (use-module '{webtools optimize mttools varconfig 
-	      stringfmts logger fifo 
+	      text/stringfmts logger fifo 
 	      knodb knodb/flexpools})
 
 (define %loglevel %notice%)

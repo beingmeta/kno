@@ -3,7 +3,7 @@
 
 (in-module 'knodb/config)
 
-(use-module '{ezrecords stringfmts logger varconfig fifo texttools})
+(use-module '{ezrecords text/stringfmts logger varconfig fifo texttools})
 (use-module '{knodb})
 
 (define %loglevel %warn%)
