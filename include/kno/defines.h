@@ -85,8 +85,6 @@
 #define KNO_PATHMODS_ENABLED 0
 #endif
 
-#define KNO_WRITETHROUGH_THREADCACHE 1
-
 #ifndef NO_ELSE
 #define NO_ELSE {}
 #endif
@@ -288,9 +286,7 @@ typedef int kno_size_t;
 #define KNO_INLINE_REFCOUNTS (!(KNO_EXTREME_PROFILING))
 #endif
 
-#ifndef KNO_USE_THREADCACHE
-#define KNO_USE_THREADCACHE 1
-#endif
+#define KNO_USE_THREADCACHE 0
 
 #ifndef KNO_WRITETHROUGH_THREADCACHE
 #define KNO_WRITETHROUGH_THEADCACHE 0

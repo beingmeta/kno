@@ -517,7 +517,9 @@ static void cleanup_tmpchoice(struct KNO_CHOICE *reduced)
 
 KNO_EXPORT int kno_index_prefetch(kno_index ix,lispval keys)
 {
-  // KNOTC *knotc = ((KNO_USE_THREADCACHE)?(kno_threadcache):(NULL));
+#if KNO_USE_THREADCACHE
+  KNOTC *knotc = ((KNO_USE_THREADCACHE)?(kno_threadcache):(NULL));
+#endif
   struct KNO_HASHTABLE *cache = &(ix->index_cache);
   struct KNO_HASHTABLE *adds = &(ix->index_adds);
   struct KNO_HASHTABLE *drops = &(ix->index_drops);
@@ -611,7 +613,9 @@ KNO_EXPORT int kno_index_prefetch(kno_index ix,lispval keys)
 	  return kno_interr(v);}
 	if (! read_only ) v = edit_result(key,v,adds,drops);
 	kno_hashtable_op(cache,kno_table_store_noref,key,v);
-	/* if (knotc) knotc_store(ix,key,v); */
+#if KNO_USE_THREADCACHE
+	if (knotc) knotc_index_cache(knotc,ix,key,v);
+#endif
 	n_fetched++;}
       rv=n_fetched;}}
   else if (kno_ipeval_status()) {
@@ -643,7 +647,9 @@ KNO_EXPORT int kno_index_prefetch(kno_index ix,lispval keys)
     lispval val = edit_result(needed,fetched,adds,drops);
     if (!(KNO_ABORTED(val))) {
       kno_hashtable_store(cache,needed,val);
-      /* knotc_store(ix,needed,val); */
+#if KNO_USE_THREADCACHE
+      knotc_index_cache(knotc,kno_index2lisp(ix),needed,val);
+#endif
       kno_decref(val);
       rv = n_fetched+1;}
     else rv=-1;}
@@ -836,9 +842,9 @@ KNO_EXPORT lispval kno_index_sizes(kno_index ix)
 
 KNO_EXPORT lispval _kno_index_get(kno_index ix,lispval key)
 {
-  KNOTC *knotc = (KNO_USE_THREADCACHE) ? (kno_threadcache) : (NULL);
   lispval cached, cache = KNO_VOID;
 #if KNO_USE_THREADCACHE
+  KNOTC *knotc = (KNO_USE_THREADCACHE) ? (kno_threadcache) : (NULL);
   if (knotc) {
     cache = kno_slotmap_get(&(knotc->indexes),kno_index2lisp(ix),KNO_VOID);
     if (KNO_HASHTABLEP(cache)) {
@@ -856,13 +862,7 @@ KNO_EXPORT lispval _kno_index_get(kno_index ix,lispval key)
   if (VOIDP(cached))
     cached = kno_index_fetch(ix,key);
 #if KNO_USE_THREADCACHE
-  if (knotc) {
-    if (KNO_VOIDP(cache)) {
-      cache = (lispval) kno_make_hashtable(NULL,117);
-      kno_slotmap_store(&(knotc->indexes),kno_index2lisp(ix),cache);}
-    if (KNO_HASHTABLEP(cache)) {
-      kno_hashtable_store((kno_hashtable)cache,key,cached);}
-    kno_decref(cache);}
+  if (knotc) knotc_index_cache(knotc,ix,key,cached);
 #endif
   return cached;
 }
