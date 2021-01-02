@@ -138,6 +138,8 @@ KNO_EXPORT void kno_signal_doexit(int);
 
 KNO_EXPORT int kno_clear_errors(int);
 KNO_EXPORT void kno_log_exception(u8_exception ex);
+KNO_EXPORT int kno_pop_exceptions(u8_exception restore,int loglevel);
+
 
 KNO_EXPORT lispval kno_thread_get(lispval var);
 KNO_EXPORT int kno_thread_probe(lispval var);

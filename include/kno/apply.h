@@ -146,11 +146,11 @@ typedef struct KNO_ARGINFO {
 #define KNO_FCN_BREAKP(f)   ( ((f)->fcn_trace) & (KNO_CALL_BREAK) )
 
 #define KNO_FCN_ITERP(f)   (! ( ((f)->fcn_call) & (KNO_CALL_XITER) ) )
-#define KNO_FCN_VARARGP(f) ( ((f)->fcn_call) & (KNO_CALL_VARARGS) )
-#define KNO_FCN_NOTAILP(f) ( ((f)->fcn_call) & (KNO_CALL_NOTAIL) )
-#define KNO_FCN_CPRIMP(f)  ( ((f)->fcn_call) & (KNO_CALL_CPRIM) )
-#define KNO_FCN_XCALLP(f)  ( ((f)->fcn_call) & (KNO_CALL_XCALL) )
-#define KNO_FCN_PRUNEP(f)  (! ( ((f)->fcn_call) & (KNO_CALL_XPRUNE) ) )
+#define KNO_FCN_VARARGP(f) (  ((f)->fcn_call) & (KNO_CALL_VARARGS) )
+#define KNO_FCN_NOTAILP(f) (  ((f)->fcn_call) & (KNO_CALL_NOTAIL) )
+#define KNO_FCN_CPRIMP(f)  (  ((f)->fcn_call) & (KNO_CALL_CPRIM) )
+#define KNO_FCN_XCALLP(f)  (  ((f)->fcn_call) & (KNO_CALL_XCALL) )
+#define KNO_FCN_PRUNEP(f)  (! (((f)->fcn_call) & (KNO_CALL_XPRUNE) ) )
 
 #define KNO_FCN_NDCALLP(f) ( ((f)->fcn_call) & (KNO_CALL_NDCALL) )
 
@@ -256,7 +256,7 @@ KNO_EXPORT int _KNO_APPLICABLE_TYPEP(int typecode);
     (kno_isfunctionp[typecode]) )
 #define KNO_FAST_FUNCTIONP(obj) \
   ( (KNO_CONSP(obj)) && \
-    (((KNO_CONSPTR_TYPE(obj))&0xfc) == kno_function_type) )
+    (((KNO_CONS_TYPEOF(obj))&0xfc) == kno_function_type) )
 
 #define KNO_FUNCTIONP(x)		       \
   ( (KNO_XXCONS_TYPEP(x,kno_function_type)) ||		\
@@ -344,14 +344,19 @@ KNO_EXPORT ssize_t kno_init_cstack(void);
 
 /* Apply functions */
 
-KNO_EXPORT lispval kno_call(struct KNO_STACK *stack,lispval fp,int n,kno_argvec args);
-KNO_EXPORT lispval kno_dcall(struct KNO_STACK *stack,lispval,int n,kno_argvec rgs);
+KNO_EXPORT lispval kno_call(struct KNO_STACK *,lispval fp,int n,kno_argvec);
+KNO_EXPORT lispval kno_dcall(struct KNO_STACK *,lispval,int n,kno_argvec);
 
 #define kno_apply(fn,n_args,argv) (kno_call(kno_stackptr,fn,n_args,argv))
 #define kno_dapply(fn,n_args,argv) (kno_dcall(kno_stackptr,fn,n_args,argv))
 
-KNO_EXPORT lispval kno_send(lispval obj,lispval type,lispval m,
-			    int n,kno_argvec args);
+#define KNO_DISPATCH_ERR 1
+#define KNO_DISPATCH_NOERR 0
+KNO_EXPORT lispval kno_get_handler(lispval obj,lispval m,lispval interface);
+KNO_EXPORT lispval kno_dispatch(lispval obj,lispval m,lispval interface,
+				int err,int n,kno_argvec args);
+#define kno_send(obj,m,n,args) \
+  (kno_dispatch(obj,m,KNO_DISPATCH_ERR,n,args,KNO_VOID))
 
 KNO_EXPORT lispval kno_exec(lispval expr,lispval handlers,kno_stack stack);
 KNO_EXPORT lispval kno_exec_extend(lispval add,lispval path);
@@ -369,7 +374,7 @@ KNO_EXPORT int _KNO_APPLICABLE_TYPEP(int typecode);
 
 #define KNO_APPLICABLEP(x)			 \
   ((KNO_TYPEP(x,kno_fcnid_type)) ?		  \
-   (KNO_APPLICABLE_TYPEP(KNO_FCNID_TYPE(x))) :	  \
+   (KNO_APPLICABLE_TYPEP(KNO_FCNID_TYPEOF(x))) :	  \
    (KNO_APPLICABLE_TYPEP(KNO_PRIM_TYPE(x))))
 #endif
 

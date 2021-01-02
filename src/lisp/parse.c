@@ -33,6 +33,8 @@
 #define PARSE_CONTEXT_BUF_SIZE 32
 #endif
 
+kno_type_consfn kno_default_consfn = NULL;
+
 /* TODO: Add general parse_error function which provides input context
    of some sort, where possible. */
 
@@ -1111,21 +1113,26 @@ static lispval recreate_record(int n,lispval *v)
 {
   int i = 0;
   struct KNO_TYPEINFO *entry = kno_use_typeinfo(v[0]);
-  if ((entry) && (entry->type_parsefn)) {
-    lispval result = entry->type_parsefn(n,v,entry);
+  if ((entry) && (entry->type_consfn)) {
+    lispval result = entry->type_consfn(n,v,entry);
     if (!(VOIDP(result))) {
       while (i<n) {kno_decref(v[i]); i++;}
       if (v) u8_free(v);
       return result;}}
-  {
-    struct KNO_COMPOUND *c=
-      u8_malloc(sizeof(struct KNO_COMPOUND)+(n-1)*LISPVAL_LEN);
-    lispval *data = &(c->compound_0);
-    kno_init_compound(c,v[0],KNO_COMPOUND_SEQUENCE,0);
-    c->compound_length = n-1;
-    i = 1; while (i<n) {data[i-1]=v[i]; i++;}
-    if (v) u8_free(v);
-    return LISP_CONS(c);}
+  else if ( (entry) && (kno_default_consfn) ) {
+    lispval result = kno_default_consfn(n,v,entry);
+    if (!(VOIDP(result))) {
+      while (i<n) {kno_decref(v[i]); i++;}
+      if (v) u8_free(v);
+      return result;}}
+  struct KNO_COMPOUND *c=
+    u8_malloc(sizeof(struct KNO_COMPOUND)+(n-1)*LISPVAL_LEN);
+  lispval *data = &(c->compound_0);
+  kno_init_compound(c,v[0],KNO_COMPOUND_SEQUENCE,0);
+  c->compound_length = n-1;
+  i = 1; while (i<n) {data[i-1]=v[i]; i++;}
+  if (v) u8_free(v);
+  return LISP_CONS(c);
 }
 
 static lispval parse_record(U8_INPUT *in)

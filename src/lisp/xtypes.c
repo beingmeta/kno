@@ -318,7 +318,7 @@ static ssize_t write_xtype(kno_outbuf out,lispval x,xtype_refs refs)
 	return -1;}}
     return rv;}
   else NO_ELSE;
-  kno_lisp_type ctype = KNO_CONSPTR_TYPE(x);
+  kno_lisp_type ctype = KNO_CONS_TYPEOF(x);
   switch (ctype) {
   case kno_string_type: case kno_secret_type: case kno_packet_type: {
     struct KNO_STRING *s = (kno_string) x;

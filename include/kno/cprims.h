@@ -47,7 +47,7 @@ typedef struct KNO_CPRIM_ARGINFO {
   static struct KNO_CPRIM_INFO cname ## _info = {                        \
     pname, # cname, _FILEINFO " L#" STRINGIFY(__LINE__),                         \
     docstring, ((flags)&0x7f), flags, -1};					\
-  static U8_MAYBE_UNUSED struct KNO_CPRIM_ARGINFO *cname ## _arginfo[info_len]  = \
+  static U8_MAYBE_UNUSED struct KNO_CPRIM_ARGINFO cname ## _arginfo[info_len]  = \
     { __VA_ARGS__ };
 
 /* Registering the primitives */

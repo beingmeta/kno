@@ -567,7 +567,7 @@ KNO_EXPORT lispval kno_slotmap_values(struct KNO_SLOTMAP *sm)
 KNO_EXPORT lispval *kno_slotmap_keyvec_n(struct KNO_SLOTMAP *sm,int *lenp)
 {
   int unlock = 0;
-  if (!((KNO_CONS_TYPE(sm))==kno_slotmap_type)) {
+  if (!((KNO_CONS_TYPEOF(sm))==kno_slotmap_type)) {
     kno_seterr(kno_TypeError,"kno_slotmap_keyvec_n",NULL,(lispval)sm);
     *lenp = -1; return NULL;}
   if (KNO_XTABLE_USELOCKP(sm)) {
@@ -1467,7 +1467,7 @@ KNO_EXPORT lispval kno_schemap_assocs(struct KNO_SCHEMAP *sm)
 KNO_EXPORT lispval *kno_schemap_keyvec_n(struct KNO_SCHEMAP *sm,int *len)
 {
   /* int unlock = 0; ?? */
-  if (!((KNO_CONS_TYPE(sm))==kno_schemap_type)) {
+  if (!((KNO_CONS_TYPEOF(sm))==kno_schemap_type)) {
     kno_seterr(kno_TypeError,"kno_schemap_keyvec_n","schemap",(lispval)sm);
     *len = -1; return NULL;}
   int size=KNO_XSCHEMAP_SIZE(sm);
@@ -1719,7 +1719,7 @@ static unsigned int hash_cons(struct KNO_CONS *cons)
 {
   if (RARELY(cons == NULL))
     kno_raise(kno_NullPtr,"hash_lisp",NULL,KNO_VOID);
-  kno_lisp_type lisp_type = KNO_CONS_TYPE(cons);
+  kno_lisp_type lisp_type = KNO_CONS_TYPEOF(cons);
   switch (lisp_type) {
   case kno_string_type: {
     struct KNO_STRING *s = (kno_string) cons;
@@ -1738,7 +1738,7 @@ static unsigned int hash_cons(struct KNO_CONS *cons)
   case kno_compound_type: {
     struct KNO_COMPOUND *c = (kno_compound) cons;
     if (c->compound_isopaque) {
-      int ctype = KNO_CONS_TYPE(c);
+      int ctype = KNO_CONS_TYPEOF(c);
       if ( (ctype>0) && (ctype<N_TYPE_MULTIPLIERS) )
 	return hash_cons_ptr((lispval)cons,type_multipliers[ctype]);
       else return hash_cons_ptr((lispval)cons,MYSTERIOUS_MULTIPLIER);}
@@ -2984,7 +2984,7 @@ KNO_EXPORT lispval kno_hashtable_keys(struct KNO_HASHTABLE *ptr)
 
 KNO_EXPORT lispval *kno_hashtable_keyvec_n(struct KNO_HASHTABLE *ptr,int *len)
 {
-  if (!((KNO_CONS_TYPE(ptr))==kno_hashtable_type)) {
+  if (!((KNO_CONS_TYPEOF(ptr))==kno_hashtable_type)) {
     kno_seterr(kno_TypeError,"kno_hashtable_keyvec_n","hashtable",(lispval)ptr);
     *len = -1; return NULL;}
   int unlock=0;
@@ -3734,7 +3734,7 @@ KNO_EXPORT struct KNO_KEYVAL *kno_hashtable_keyvals
 (struct KNO_HASHTABLE *ht,int *sizep,int lock)
 {
   struct KNO_KEYVAL *results, *rscan; int unlock=0;
-  if ((KNO_CONS_TYPE(ht)) != kno_hashtable_type)
+  if ((KNO_CONS_TYPEOF(ht)) != kno_hashtable_type)
     return KNO_ERR(NULL,kno_TypeError,"hashtable",NULL,(lispval)ht);
   if (ht->table_n_keys == 0) {
     *sizep=0;
@@ -4025,7 +4025,7 @@ KNO_EXPORT lispval kno_hashset_elts(struct KNO_HASHSET *h,int clean)
 
 KNO_EXPORT lispval *kno_hashset_vec(struct KNO_HASHSET *h,int *len)
 {
-  if (!((KNO_CONS_TYPE(h))==kno_hashset_type)) {
+  if (!((KNO_CONS_TYPEOF(h))==kno_hashset_type)) {
     kno_seterr(kno_TypeError,"kno_hashset_vec","hashset",(lispval)h);
     *len = -1; return NULL;}
   if (h->hs_n_elts==0) {
@@ -4345,8 +4345,6 @@ static int hashset_store(lispval x,lispval key,lispval val)
 }
 
 /* Generic table functions */
-
-struct KNO_TABLEFNS *kno_tablefns[KNO_TYPE_MAX];
 
 #define CHECKPTR(arg,cxt)                  \
   if (RARELY((!(KNO_CHECK_PTR(arg))))) \
@@ -4954,8 +4952,6 @@ KNO_EXPORT lispval kno_table_skim(lispval table,lispval maxval,lispval scope)
 
 void kno_init_tables_c()
 {
-  int i=0; while (i<KNO_TYPE_MAX) kno_tablefns[i++]=NULL;
-
   u8_register_source_file(_FILEINFO);
 
   /* SLOTMAP */
@@ -4979,8 +4975,6 @@ void kno_init_tables_c()
   kno_recyclers[kno_hashset_type]   = recycle_hashset;
   kno_unparsers[kno_hashset_type]   = unparse_hashset;
   kno_copiers[kno_hashset_type]     = copy_hashset;
-
-  memset(kno_tablefns,0,sizeof(kno_tablefns));
 
   /* HASHTABLE table functions */
   kno_tablefns[kno_hashtable_type]=u8_zalloc(struct KNO_TABLEFNS);

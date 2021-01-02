@@ -30,7 +30,7 @@ KNO_FASTOP lispval copy_elt(lispval elt,int flags)
       return kno_incref(elt);
     else {
       struct KNO_CONS *cons = (kno_cons) elt;
-      kno_lisp_type cons_type = KNO_CONS_TYPE(cons);
+      kno_lisp_type cons_type = KNO_CONS_TYPEOF(cons);
       switch (cons_type) {
       case kno_packet_type: case kno_string_type:
       case kno_secret_type: case kno_bigint_type:
@@ -62,7 +62,7 @@ lispval kno_copier(lispval x,int flags)
   if (ATOMICP(x))
     return x;
   else {
-    kno_lisp_type ctype = KNO_CONS_TYPE(KNO_CONS_DATA(x));
+    kno_lisp_type ctype = KNO_CONS_TYPEOF(KNO_CONS_DATA(x));
     switch (ctype) {
     case kno_pair_type: {
       lispval result = NIL, *tail = &result, scan = x;

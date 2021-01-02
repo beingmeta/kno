@@ -95,9 +95,9 @@ KNO_EXPORT int _KNO_TABLEP(lispval x);
   ( (KNO_OIDP(x)) ? (1) :                                              \
     (KNO_CONSP(x)) ?                                                   \
     ( (KNO_XXCONS_TYPEP((x),kno_coretable_type)) ||			\
-      ( (kno_tablefns[KNO_CONSPTR_TYPE(x)] != NULL ) &&			\
-        ( (kno_tablefns[KNO_CONSPTR_TYPE(x)]->tablep == NULL ) ||       \
-          (kno_tablefns[KNO_CONSPTR_TYPE(x)]->tablep(x)) ) ) ) :        \
+      ( (kno_tablefns[KNO_CONS_TYPEOF(x)] != NULL ) &&			\
+        ( (kno_tablefns[KNO_CONS_TYPEOF(x)]->tablep == NULL ) ||       \
+          (kno_tablefns[KNO_CONS_TYPEOF(x)]->tablep(x)) ) ) ) :        \
     (KNO_IMMEDIATEP(x)) ?                                               \
     ( (kno_tablefns[KNO_IMMEDIATE_TYPE(x)] != NULL ) &&                 \
       ( (kno_tablefns[KNO_IMMEDIATE_TYPE(x)]->tablep == NULL ) ||       \

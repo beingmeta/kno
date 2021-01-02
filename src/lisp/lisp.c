@@ -11,6 +11,7 @@
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
+#include "kno/tables.h"
 #include <libu8/u8rusage.h>
 #include <libu8/u8logging.h>
 #include <libu8/u8printf.h>
@@ -39,6 +40,7 @@ KNO_EXPORT int kno_getmajorversion(){return KNO_MAJOR_VERSION;}
 
 u8_string kno_type_names[KNO_TYPE_MAX];
 u8_string kno_type_docs[KNO_TYPE_MAX];
+struct KNO_TABLEFNS *kno_tablefns[KNO_TYPE_MAX] = { NULL };
 
 int kno_lockdown = 0;
 
@@ -61,7 +63,7 @@ KNO_EXPORT kno_lisp_type _KNO_TYPEOF(lispval x)
   switch (type_field) {
   case kno_cons_type: {
     struct KNO_CONS *cons = (struct KNO_CONS *)x;
-    return KNO_CONS_TYPE(cons);}
+    return KNO_CONS_TYPEOF(cons);}
   case kno_immediate_type:
     return KNO_IMMEDIATE_TYPE(x);
   default: return type_field;
@@ -73,7 +75,7 @@ KNO_EXPORT int _KNO_TYPEP(lispval ptr,int type)
   if (type < 0x04)
     return ( ( (ptr) & (0x3) ) == type);
   else if (type >= 0x84)
-    if ( (KNO_CONSP(ptr)) && (KNO_CONSPTR_TYPE(ptr) == type) )
+    if ( (KNO_CONSP(ptr)) && (KNO_CONS_TYPEOF(ptr) == type) )
       return 1;
     else return 0;
   else if (type >= 0x04)
@@ -108,12 +110,12 @@ KNO_EXPORT int _KNO_ERRORP(lispval x)
 KNO_EXPORT int _KNO_SEQUENCEP(lispval x)
 {
   if (KNO_CONSP(x))
-    if ( (KNO_CONSPTR_TYPE(x) >= kno_string_type) &&
-         (KNO_CONSPTR_TYPE(x) <= kno_pair_type) )
+    if ( (KNO_CONS_TYPEOF(x) >= kno_string_type) &&
+         (KNO_CONS_TYPEOF(x) <= kno_pair_type) )
       return 1;
-    else if ( (kno_seqfns[KNO_CONSPTR_TYPE(x)] != NULL ) &&
-              ( (kno_seqfns[KNO_CONSPTR_TYPE(x)]->sequencep == NULL ) ||
-                (kno_seqfns[KNO_CONSPTR_TYPE(x)]->sequencep(x)) ) )
+    else if ( (kno_seqfns[KNO_CONS_TYPEOF(x)] != NULL ) &&
+              ( (kno_seqfns[KNO_CONS_TYPEOF(x)]->sequencep == NULL ) ||
+                (kno_seqfns[KNO_CONS_TYPEOF(x)]->sequencep(x)) ) )
       return 1;
     else return 0;
   else if (x == KNO_EMPTY_LIST)
@@ -131,12 +133,12 @@ KNO_EXPORT int _KNO_TABLEP(lispval x)
 {
   if (KNO_OIDP(x)) return 1;
   else if (KNO_CONSP(x)) {
-    if ( ( KNO_CONSPTR_TYPE(x) >= kno_slotmap_type) &&
-         ( KNO_CONSPTR_TYPE(x) <= kno_hashset_type) )
+    if ( ( KNO_CONS_TYPEOF(x) >= kno_slotmap_type) &&
+         ( KNO_CONS_TYPEOF(x) <= kno_hashset_type) )
       return 1;
-    else if ( (kno_tablefns[KNO_CONSPTR_TYPE(x)] != NULL ) &&
-              ( (kno_tablefns[KNO_CONSPTR_TYPE(x)]->tablep == NULL ) ||
-                (kno_tablefns[KNO_CONSPTR_TYPE(x)]->tablep(x)) ) )
+    else if ( (kno_tablefns[KNO_CONS_TYPEOF(x)] != NULL ) &&
+              ( (kno_tablefns[KNO_CONS_TYPEOF(x)]->tablep == NULL ) ||
+                (kno_tablefns[KNO_CONS_TYPEOF(x)]->tablep(x)) ) )
       return 1;
     else return 0;}
   else if (KNO_IMMEDIATEP(x)) {
@@ -176,7 +178,7 @@ KNO_EXPORT int _KNO_XTYPEP(lispval x,int type)
     default:
       if  (type < 0x04) return ( ( (x) & (0x3) ) == type);
       else if (type < 0x84) return (KNO_IMMEDIATE_TYPEP(x,type));
-      else if (type < 0x100) return ( (x) && ((KNO_CONSPTR_TYPE(x)) == type) );
+      else if (type < 0x100) return ( (x) && ((KNO_CONS_TYPEOF(x)) == type) );
       else return 0;}
   else return 0;
 }
@@ -461,33 +463,34 @@ static void init_type_names()
 
 static int lisp_types_version = 101;
 
-KNO_EXPORT void kno_init_cons_c(void);
-KNO_EXPORT void kno_init_compare_c(void);
-KNO_EXPORT void kno_init_recycle_c(void);
-KNO_EXPORT void kno_init_copy_c(void);
-KNO_EXPORT void kno_init_compare_c(void);
-KNO_EXPORT void kno_init_compounds_c(void);
-KNO_EXPORT void kno_init_misctypes_c(void);
-KNO_EXPORT void kno_init_oids_c(void);
-KNO_EXPORT void kno_init_textio_c(void);
-KNO_EXPORT void kno_init_parse_c(void);
-KNO_EXPORT void kno_init_unparse_c(void);
-KNO_EXPORT void kno_init_pprint_c(void);
-KNO_EXPORT void kno_init_ports_c(void);
-KNO_EXPORT void kno_init_xtypes_c(void);
-KNO_EXPORT void kno_init_dtread_c(void);
-KNO_EXPORT void kno_init_dtwrite_c(void);
-KNO_EXPORT void kno_init_tables_c(void);
-KNO_EXPORT void kno_init_symbols_c(void);
-KNO_EXPORT void kno_init_numbers_c(void);
-KNO_EXPORT void kno_init_choices_c(void);
-KNO_EXPORT void kno_init_support(void);
-KNO_EXPORT void kno_init_consblocks_c(void);
-KNO_EXPORT void kno_init_sequences_c(void);
-KNO_EXPORT void kno_init_fcnids_c(void);
-KNO_EXPORT void kno_init_stacks_c(void);
-KNO_EXPORT void kno_init_apply_c(void);
-KNO_EXPORT void kno_init_build_info(void);
+void kno_init_cons_c(void);
+void kno_init_typeinfo_c(void);
+void kno_init_compare_c(void);
+void kno_init_recycle_c(void);
+void kno_init_copy_c(void);
+void kno_init_compare_c(void);
+void kno_init_compounds_c(void);
+void kno_init_misctypes_c(void);
+void kno_init_oids_c(void);
+void kno_init_textio_c(void);
+void kno_init_parse_c(void);
+void kno_init_unparse_c(void);
+void kno_init_pprint_c(void);
+void kno_init_ports_c(void);
+void kno_init_xtypes_c(void);
+void kno_init_dtread_c(void);
+void kno_init_dtwrite_c(void);
+void kno_init_tables_c(void);
+void kno_init_symbols_c(void);
+void kno_init_numbers_c(void);
+void kno_init_choices_c(void);
+void kno_init_support(void);
+void kno_init_consblocks_c(void);
+void kno_init_sequences_c(void);
+void kno_init_fcnids_c(void);
+void kno_init_stacks_c(void);
+void kno_init_apply_c(void);
+void kno_init_build_info(void);
 
 static double format_secs(double secs,char **units)
 {
@@ -553,6 +556,7 @@ KNO_EXPORT int kno_init_lisp_types()
   u8_init_rwlock(&kno_symbol_lock);
   kno_init_cons_c();
   init_type_names();
+  kno_init_typeinfo_c();
   kno_init_recycle_c();
   kno_init_copy_c();
   kno_init_compare_c();

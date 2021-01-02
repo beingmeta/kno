@@ -54,7 +54,7 @@ INLINE_DEF lispval eval_lexref(lispval lexref,kno_lexenv env_arg)
   if (KNO_ABORTED(v))
     return _lexref_error(lexref,up,env,env_arg);
   else if (KNO_CONSP(v)) {
-    if (RARELY((KNO_CONS_TYPE(((kno_cons)v))) == kno_prechoice_type))
+    if (RARELY((KNO_CONS_TYPEOF(((kno_cons)v))) == kno_prechoice_type))
       return _kno_make_simple_choice(v);
     else return kno_incref(v);}
   else return v;
@@ -133,7 +133,7 @@ INLINE_DEF lispval fast_eval(lispval x,kno_lexenv env,
       return eval_fcnid(x);
     default:
       return x;}}}
-  kno_lisp_type type = KNO_CONSPTR_TYPE(x);
+  kno_lisp_type type = KNO_CONS_TYPEOF(x);
   switch (type) {
   case kno_pair_type:
     return eval_expr(KNO_CAR(x),x,env,stack,tail);

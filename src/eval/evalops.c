@@ -32,8 +32,6 @@ static u8_condition ExpiredThrow  =_("Continuation is no longer valid");
 static u8_condition DoubleThrow	  =_("Continuation used twice");
 static u8_condition LostThrow	  =_("Lost invoked continuation");
 
-static lispval consfn_symbol, stringfn_symbol;
-
 /* Lexrefs */
 
 DEFCPRIM("%lexref",lexref_prim,
@@ -464,211 +462,7 @@ static lispval use_threadcache_prim(lispval arg)
     else return KNO_FALSE;}
 }
 
-/* Type/method operations */
-
-static int stringify_method(u8_output out,lispval compound,kno_typeinfo e)
-{
-  if (e->type_handlers) {
-    lispval method = kno_get(e->type_handlers,stringfn_symbol,VOID);
-    if (VOIDP(method)) return 0;
-    else {
-      lispval result = kno_apply(method,1,&compound);
-      kno_decref(method);
-      if (STRINGP(result)) {
-	u8_putn(out,CSTRING(result),STRLEN(result));
-	kno_decref(result);
-	return 1;}
-      else {
-	kno_decref(result);
-	return 0;}}}
-  else return 0;
-}
-
-static lispval cons_method(int n,lispval *args,kno_typeinfo e)
-{
-  if (e->type_handlers) {
-    lispval method = kno_get(e->type_handlers,KNOSYM_CONS,VOID);
-    if (VOIDP(method))
-      return VOID;
-    else {
-      lispval result = kno_apply(method,n,args);
-      if (! ( (KNO_VOIDP(result)) || (KNO_EMPTYP(result)) ) ) {
-	kno_decref(method);
-	return result;}}}
-  /* This is the default cons method */
-  return kno_init_compound_from_elts(NULL,e->typetag,
-				     KNO_COMPOUND_INCREF,
-				     n,args);
-}
-
-DEFCPRIM("type-set-consfn!",type_set_consfn_prim,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "**undocumented**",
-	 {"tag",kno_any_type,KNO_VOID},
-	 {"consfn",kno_any_type,KNO_VOID})
-static lispval type_set_consfn_prim(lispval tag,lispval consfn)
-{
-  if ((SYMBOLP(tag))||(OIDP(tag)))
-    if (FALSEP(consfn)) {
-      struct KNO_TYPEINFO *e = kno_use_typeinfo(tag);
-      kno_drop(e->type_handlers,KNOSYM_CONS,VOID);
-      e->type_parsefn = NULL;
-      return VOID;}
-    else if (KNO_APPLICABLEP(consfn)) {
-      struct KNO_TYPEINFO *e = kno_use_typeinfo(tag);
-      kno_store(e->type_handlers,KNOSYM_CONS,consfn);
-      e->type_parsefn = cons_method;
-      return VOID;}
-    else return kno_type_error("applicable","set_compound_consfn_prim",tag);
-  else return kno_type_error("compound tag","set_compound_consfn_prim",tag);
-}
-
-DEF_KNOSYM(compound);
-DEF_KNOSYM(restore);
-DEF_KNOSYM(annotated);
-DEF_KNOSYM(sequence);
-DEF_KNOSYM(mutable);
-DEF_KNOSYM(opaque);
-
-static lispval restore_method(int n,lispval *args,kno_typeinfo e)
-{
-  int flags = KNO_COMPOUND_INCREF;
-  if ( (e->type_handlers) && (KNO_TABLEP(e->type_handlers)) ) {
-    lispval method = kno_get(e->type_handlers,KNOSYM(restore),VOID);
-    if (KNO_APPLICABLEP(method)) {
-      lispval result = kno_apply(method,n,args);
-      if (! ( (KNO_VOIDP(result)) || (KNO_EMPTYP(result)) ) ) {
-	kno_decref(method);
-	return result;}
-      else if (KNO_ABORTED(result)) {
-	u8_log(LOGERR,"RestoreFailed",
-	       "For %q with %d inits and cons method %q",
-	       e->typetag,n,method);
-	kno_decref(method);}}}
-  if ( (e->type_props) && (KNO_TABLEP(e->type_props)) ) {
-    lispval props = e->type_props;
-    if (kno_test(props,KNOSYM(compound),KNOSYM(opaque)))
-      flags |= KNO_COMPOUND_OPAQUE;
-    if (kno_test(props,KNOSYM(compound),KNOSYM(mutable)))
-      flags |= KNO_COMPOUND_MUTABLE;
-    if (kno_test(props,KNOSYM(compound),KNOSYM(annotated)))
-      flags |= KNO_COMPOUND_TABLE;
-    if (kno_test(props,KNOSYM(compound),KNOSYM(sequence))) {
-      flags |= KNO_COMPOUND_SEQUENCE;
-      if (flags & KNO_COMPOUND_TABLE) flags |= (1<<8);}}
-  /* This is the default restore method */
-  return kno_init_compound_from_elts(NULL,e->typetag,flags,n,args);
-}
-
-DEFCPRIM("type-set-restorefn!",type_set_restorefn_prim,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "**undocumented**",
-	 {"tag",kno_any_type,KNO_VOID},
-	 {"restorefn",kno_any_type,KNO_VOID})
-static lispval type_set_restorefn_prim(lispval tag,lispval restorefn)
-{
-  if ((SYMBOLP(tag))||(OIDP(tag)))
-    if (FALSEP(restorefn)) {
-      struct KNO_TYPEINFO *e = kno_use_typeinfo(tag);
-      kno_drop(e->type_handlers,KNOSYM(restore),VOID);
-      e->type_parsefn = NULL;
-      return VOID;}
-    else if (KNO_APPLICABLEP(restorefn)) {
-      struct KNO_TYPEINFO *e = kno_use_typeinfo(tag);
-      kno_store(e->type_handlers,KNOSYM(restore),restorefn);
-      e->type_parsefn = restore_method;
-      return VOID;}
-    else return kno_type_error("applicable","set_compound_restorefn_prim",tag);
-  else return kno_type_error("compound tag","set_compound_restorefn_prim",tag);
-}
-
-DEFCPRIM("type-set-stringfn!",type_set_stringfn_prim,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "**undocumented**",
-	 {"tag",kno_any_type,KNO_VOID},
-	 {"stringfn",kno_any_type,KNO_VOID})
-static lispval type_set_stringfn_prim(lispval tag,lispval stringfn)
-{
-  if ((SYMBOLP(tag))||(OIDP(tag)))
-    if (FALSEP(stringfn)) {
-      struct KNO_TYPEINFO *e = kno_use_typeinfo(tag);
-      kno_drop(e->type_handlers,stringfn_symbol,VOID);
-      e->type_unparsefn = NULL;
-      return VOID;}
-    else if (KNO_APPLICABLEP(stringfn)) {
-      struct KNO_TYPEINFO *e = kno_use_typeinfo(tag);
-      kno_store(e->type_handlers,stringfn_symbol,stringfn);
-      e->type_unparsefn = stringify_method;
-      return VOID;}
-    else return kno_type_error("applicable","set_type_stringfn_prim",tag);
-  else return kno_type_error("type tag","set_type_stringfn_prim",tag);
-}
-
-DEFCPRIM("type-props",type_props_prim,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "accesses the metadata associated with the typetag "
-	 "assigned to *compound*. If *field* is specified, "
-	 "that particular metadata field is returned. "
-	 "Otherwise the entire metadata object (a slotmap) "
-	 "is copied and returned.",
-	 {"arg",kno_any_type,KNO_VOID},
-	 {"field",kno_symbol_type,KNO_VOID})
-static lispval type_props_prim(lispval arg,lispval field)
-{
-  struct KNO_TYPEINFO *e =
-    (KNO_TAGGEDP(arg)) ? (kno_taginfo(arg)) : (kno_use_typeinfo(arg));;
-  if (VOIDP(field))
-    return kno_deep_copy(e->type_props);
-  else return kno_get(e->type_props,field,EMPTY);
-}
-
-DEFCPRIM("type-handlers",type_handlers_prim,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "accesses the metadata associated with the typetag "
-	 "assigned to *compound*. If *field* is specified, "
-	 "that particular metadata field is returned. "
-	 "Otherwise the entire metadata object (a slotmap) "
-	 "is copied and returned.",
-	 {"arg",kno_any_type,KNO_VOID},
-	 {"method",kno_symbol_type,KNO_VOID})
-static lispval type_handlers_prim(lispval arg,lispval method)
-{
-  struct KNO_TYPEINFO *e =
-    (KNO_TAGGEDP(arg)) ? (kno_taginfo(arg)) : (kno_use_typeinfo(arg));;
-  if (VOIDP(method))
-    return kno_deep_copy(e->type_handlers);
-  else return kno_get(e->type_handlers,method,EMPTY);
-}
-
-static lispval opaque_symbol, mutable_symbol, sequence_symbol;
-
-DEFCPRIM("type-set!",type_set_prim,
-	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3)|KNO_NDCALL,
-	 "stores *value* in *field* of the properties "
-	 "associated with the type tag *tag*.",
-	 {"arg",kno_any_type,KNO_VOID},
-	 {"field",kno_symbol_type,KNO_VOID},
-	 {"value",kno_any_type,KNO_VOID})
-static lispval type_set_prim(lispval arg,lispval field,lispval value)
-{
-  struct KNO_TYPEINFO *e =
-    (KNO_TAGGEDP(arg)) ? (kno_taginfo(arg)) : (kno_use_typeinfo(arg));;
-  int rv = kno_store(e->type_props,field,value);
-  if (rv < 0)
-    return KNO_ERROR;
-  if (field == KNOSYM(compound) ) {
-    e->type_isopaque = (kno_overlapp(value,KNOSYM(opaque)));
-    e->type_ismutable = (kno_overlapp(value,KNOSYM(mutable)));
-    e->type_istable = (kno_overlapp(value,KNOSYM(annotated)));
-    e->type_issequence = (kno_overlapp(value,KNOSYM(sequence)));}
-  if (rv)
-    return KNO_TRUE;
-  else return KNO_FALSE;
-}
-
 /* FFI */
-
-
 
 #if KNO_ENABLE_FFI
 DEFCPRIMN("ffi/proc",ffi_proc,
@@ -986,9 +780,6 @@ KNO_EXPORT void kno_init_evalops_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  consfn_symbol = kno_intern("cons");
-  stringfn_symbol = kno_intern("stringify");
-
   /* This pushes a new threadcache */
   kno_def_evalfn(kno_scheme_module,"WITH-THREADCACHE",with_threadcache_evalfn,
 		 "*undocumented*");
@@ -1056,12 +847,5 @@ static void link_local_cprims()
   KNO_LINK_CVARARGS("require-version",require_version_prim,kno_scheme_module);
   KNO_LINK_CPRIM("%buildinfo",kno_get_build_info,0,kno_scheme_module);
 
-  KNO_LINK_CPRIM("type-set-stringfn!",type_set_stringfn_prim,2,kno_scheme_module);
-  KNO_LINK_ALIAS("compound-set-stringfn!",type_set_stringfn_prim,kno_scheme_module);
-  KNO_LINK_CPRIM("type-set-consfn!",type_set_consfn_prim,2,kno_scheme_module);
-  KNO_LINK_CPRIM("type-set-restorefn!",type_set_restorefn_prim,2,kno_scheme_module);
-  KNO_LINK_CPRIM("type-set!",type_set_prim,3,kno_scheme_module);
-  KNO_LINK_CPRIM("type-props",type_props_prim,2,kno_scheme_module);
-  KNO_LINK_CPRIM("type-handlers",type_handlers_prim,2,kno_scheme_module);
 }
 

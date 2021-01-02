@@ -109,7 +109,7 @@ typedef struct KNO_NUMERIC_VECTOR *kno_numvec;
 #define KNO_NUMERIC_VECTOR_LENGTH(v) ((KNO_XNUMVEC(v))->numvec_length)
 #define KNO_NUMVEC_LENGTH(v) ((KNO_XNUMVEC(v))->numvec_length)
 
-#define KNO_NUMERIC_VECTOR_TYPE(v) ((KNO_XNUMVEC(v))->numvec_elt_type)
+#define KNO_NUMERIC_VECTOR_TYPEOF(v) ((KNO_XNUMVEC(v))->numvec_elt_type)
 #define KNO_NUMVEC_TYPE(v) ((KNO_XNUMVEC(v))->numvec_elt_type)
 #define KNO_NUMVEC_TYPEP(v,t) (((KNO_XNUMVEC(v))->numvec_elt_type) == t)
 

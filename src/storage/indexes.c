@@ -2426,7 +2426,7 @@ KNO_EXPORT void kno_init_indexes_c()
 
   {
     struct KNO_TYPEINFO *e = kno_use_typeinfo(kno_intern("index"));
-    e->type_parsefn = index_parsefn;}
+    e->type_consfn = index_parsefn;}
 
   kno_tablefns[kno_index_type]=u8_zalloc(struct KNO_TABLEFNS);
   kno_tablefns[kno_index_type]->get = table_indexget;

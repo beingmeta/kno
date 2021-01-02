@@ -89,20 +89,20 @@ KNO_EXPORT u8_condition kno_DoubleGC, kno_UsingFreedCons, kno_FreeingNonHeapCons
 #define KNO_STRIP_CONS(x,typecode,typecast) ((typecast)(KNO_CONS_DATA(x)))
 
 #define KNO_CHECK_TYPE_THROW(x,typecode)		   \
-  if (KNO_RARELY(!((KNO_CONS_TYPE(x)) == typecode))) \
+  if (KNO_RARELY(!((KNO_CONS_TYPEOF(x)) == typecode))) \
     u8_raise(kno_TypeError,kno_type_names[typecode],NULL)
 
 #define KNO_CHECK_TYPE_RET(x,typecode)				      \
-  if (KNO_RARELY(!((KNO_CONS_TYPE(x)) == typecode))) {		\
+  if (KNO_RARELY(!((KNO_CONS_TYPEOF(x)) == typecode))) {		\
     kno_seterr(kno_TypeError,kno_type_names[typecode],NULL,(lispval)x); \
     return -1;}
 
 #define KNO_CHECK_TYPE_RETDTYPE(x,typecode)				\
-  if (KNO_RARELY(!((KNO_CONS_TYPE(x)) == typecode)))		\
+  if (KNO_RARELY(!((KNO_CONS_TYPEOF(x)) == typecode)))		\
     return kno_err(kno_TypeError,kno_type_names[typecode],NULL,(lispval)x);
 
 #define KNO_CHECK_TYPE_RETVAL(x,typecode,val)				\
-  if (KNO_RARELY(!((KNO_CONS_TYPE(x)) == typecode))) {		\
+  if (KNO_RARELY(!((KNO_CONS_TYPEOF(x)) == typecode))) {		\
     kno_seterr(kno_TypeError,kno_type_names[typecode],NULL,(lispval)x); \
     return val;}
 
@@ -835,37 +835,7 @@ typedef struct KNO_CONSBLOCK {
 
 lispval kno_make_consblock(lispval obj);
 
-/* Typeinfo */
-
-typedef struct KNO_TYPEINFO *kno_typeinfo;
-typedef int (*kno_type_unparsefn)(u8_output out,lispval,kno_typeinfo);
-typedef lispval (*kno_type_parsefn)(int n,lispval *,kno_typeinfo);
-typedef int (*kno_type_testfn)(lispval,kno_typeinfo);
-typedef int (*kno_type_freefn)(lispval,kno_typeinfo);
-typedef lispval (*kno_type_dumpfn)(lispval,kno_typeinfo);
-typedef lispval (*kno_type_restorefn)(lispval,lispval,kno_typeinfo);
-
-typedef struct KNO_TYPEINFO {
-  KNO_CONS_HEADER;
-  lispval typetag, type_props, type_handlers;
-  u8_string type_name, type_description;
-  char type_isopaque, type_ismutable, type_issequence, type_istable;
-  kno_lisp_type type_basetype;
-  kno_type_testfn type_testfn;
-  kno_type_parsefn type_parsefn;
-  kno_type_unparsefn type_unparsefn;
-  kno_type_freefn type_freefn;
-  kno_type_dumpfn type_dumpfn;
-  kno_type_restorefn type_restorefn;
-  struct KNO_TABLEFNS *type_tablefns;
-  struct KNO_SEQFNS *type_seqfns;} KNO_TYPEINFO;
-
-KNO_EXPORT int kno_set_unparsefn(lispval tag,kno_type_unparsefn fn);
-KNO_EXPORT int kno_set_parsefn(lispval tag,kno_type_parsefn fn);
-KNO_EXPORT int kno_set_testfn(lispval tag,kno_type_testfn fn);
-KNO_EXPORT int kno_set_freefn(lispval tag,kno_type_freefn fn);
-KNO_EXPORT int kno_set_dumpfn(lispval tag,kno_type_dumpfn fn);
-KNO_EXPORT int kno_set_restorefn(lispval tag,kno_type_restorefn fn);
+#include "typeinfo.h"
 
 #define KNO_TAGGED_HEAD				\
   KNO_CONS_HEADER;				\
@@ -1100,7 +1070,7 @@ KNO_EXPORT unsigned char kno_isfunctionp[];
 U8_MAYBE_UNUSED static int _kno_applicablep(lispval x)
 {
   if (KNO_CONSP(x)) {
-    kno_lisp_type objtype = KNO_CONSPTR_TYPE(x);
+    kno_lisp_type objtype = KNO_CONS_TYPEOF(x);
     return ( (objtype == kno_cprim_type) ||
 	     (objtype == kno_lambda_type) ||
 	     (kno_applyfns[objtype] != NULL) );}
@@ -1128,12 +1098,12 @@ KNO_FASTOP int __KNO_XTYPEP(lispval x,int type)
     case kno_frame_type:
       return ( KNO_OIDP(x) ) ||
 	( (KNO_CONSP(x)) &&
-	  ( ( (KNO_CONSPTR_TYPE(x)) == kno_slotmap_type) ||
-	    ( (KNO_CONSPTR_TYPE(x)) == kno_schemap_type) ) );
+	  ( ( (KNO_CONS_TYPEOF(x)) == kno_slotmap_type) ||
+	    ( (KNO_CONS_TYPEOF(x)) == kno_schemap_type) ) );
     case kno_keymap_type:
       return ( (KNO_CONSP(x)) &&
-	       ( ( (KNO_CONSPTR_TYPE(x)) == kno_slotmap_type) ||
-		 ( (KNO_CONSPTR_TYPE(x)) == kno_schemap_type) ) );
+	       ( ( (KNO_CONS_TYPEOF(x)) == kno_slotmap_type) ||
+		 ( (KNO_CONS_TYPEOF(x)) == kno_schemap_type) ) );
     case kno_opts_type:
       if (KNO_CONSP(x)) {
 	kno_lisp_type ctype = KNO_CONS_TYPEOF(x);
@@ -1158,7 +1128,7 @@ KNO_FASTOP int __KNO_XTYPEP(lispval x,int type)
     default:
       if  (type < 0x04) return ( ( (x) & (0x3) ) == type);
       else if (type < 0x84) return (KNO_IMMEDIATE_TYPEP(x,type));
-      else if (type < 0x100) return ( (x) && ((KNO_CONSPTR_TYPE(x)) == type) );
+      else if (type < 0x100) return ( (x) && ((KNO_CONS_TYPEOF(x)) == type) );
       else return 0;}
   else return 0;
 }

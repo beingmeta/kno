@@ -44,6 +44,8 @@ int kno_unparse_maxelts = 100;
 int kno_unparse_maxchars = 150;
 int kno_packet_outfmt = -1;
 
+kno_type_unparsefn kno_default_unparsefn = NULL;
+
 int (*kno_unparse_error)(U8_OUTPUT *,lispval x,u8_string details) = NULL;
 
 int kno_numeric_oids = 0;
@@ -392,7 +394,7 @@ int kno_unparse(u8_output out,lispval x)
       return u8_puts(out,"#null");
     else {/* output cons */
       struct KNO_CONS *cons = KNO_CONS_DATA(x);
-      kno_lisp_type ct = KNO_CONS_TYPE(cons);
+      kno_lisp_type ct = KNO_CONS_TYPEOF(cons);
       if ((KNO_VALID_TYPECODEP(ct)) && (kno_unparsers[ct])) {
         int uv = kno_unparsers[ct](out,x);
         if (uv<0) {
@@ -462,6 +464,11 @@ static int unparse_compound(struct U8_OUTPUT *out,lispval x)
     int retval = info->type_unparsefn(out,x,info);
     if (retval<0) {kno_clear_errors(1);}
     else if (retval) return retval;}
+  else if ((info) && (kno_default_unparsefn)) {
+    int retval = kno_default_unparsefn(out,x,info);
+    if (retval<0) {kno_clear_errors(1);}
+    else if (retval) return retval;}
+  else NO_ELSE;
   u8_string tagstring = (KNO_SYMBOLP(tag)) ? (KNO_SYMBOL_NAME(tag)) :
     (KNO_STRINGP(tag)) ? (KNO_CSTRING(tag)) : (NULL);
   int opaque = (xc->compound_isopaque) ? (1) :
@@ -492,6 +499,11 @@ static int unparse_rawptr(struct U8_OUTPUT *out,lispval x)
     int retval = info->type_unparsefn(out,x,info);
     if (retval<0) {kno_clear_errors(1);}
     else if (retval) return retval;}
+  else if ((info) && (kno_default_unparsefn)) {
+    int retval = kno_default_unparsefn(out,x,info);
+    if (retval<0) {kno_clear_errors(1);}
+    else if (retval) return retval;}
+  else NO_ELSE;
   u8_string typestring = (KNO_SYMBOLP(tag)) ? (KNO_SYMBOL_NAME(tag)) :
     (KNO_STRINGP(tag)) ? (KNO_CSTRING(tag)) : (info->type_name) ;
   if ( (typestring) && (rawptr->idstring) )

@@ -109,6 +109,7 @@ LISP_HEADERS=\
  include/kno/pprint.h    			\
  include/kno/ptr.h				\
  include/kno/cons.h        			\
+ include/kno/typeinfo.h        			\
  include/kno/compounds.h			\
  include/kno/choices.h			        \
  include/kno/tables.h  			     	\
@@ -162,7 +163,7 @@ SRC_HEADERS=src/lisp/biginternals.h 		\
 
 LISP_OBJS=\
 	src/lisp/oids.o src/lisp/fcnids.o 			\
-	src/lisp/symbols.o src/lisp/cons.o 			\
+	src/lisp/symbols.o src/lisp/cons.o src/lisp/typeinfo.o	\
 	src/lisp/recycle.o src/lisp/copy.o 			\
 	src/lisp/compare.o src/lisp/walk.o			\
 	src/lisp/tables.o src/lisp/sequences.o			\
@@ -188,7 +189,7 @@ APPLY_OBJS=\
 	src/apply/apply.o src/apply/stacks.o 			\
 	src/apply/ffi.o src/apply/cprims.o			\
 	src/apply/lexenv.o src/apply/exec.o			\
-	src/apply/services.o
+	src/apply/dispatch.o src/apply/services.o
 
 REVISION_H   =include/kno/revision.h
 CONFIG_H     =include/kno/config.h
@@ -240,7 +241,7 @@ SCHEME_OBJS=\
 	src/eval/modules.o \
 	src/eval/load.o \
 	src/eval/reflection.o \
-	src/eval/compoundfns.o \
+	src/eval/typeops.o \
 	src/eval/choiceops.o \
 	src/eval/evalops.o \
 	src/eval/coreops.o \
@@ -333,7 +334,7 @@ KNO_HEADERS= \
 	$(DRIVERS_H) $(SRC_HEADERS)
 
 KNO_SOURCES=\
-	src/lisp/cons.c src/lisp/oids.c src/lisp/symbols.c           		\
+	src/lisp/cons.c src/lisp/typeinfo.c src/lisp/oids.c src/lisp/symbols.c	\
 	src/lisp/copy.c src/lisp/recycle.c src/lisp/misctypes.c       		\
         src/lisp/compare.c src/lisp/walk.c src/lisp/fcnids.c			\
 	src/lisp/choices.c src/lisp/sequences.c					\
@@ -345,7 +346,8 @@ KNO_SOURCES=\
 	src/sys/errobjs.c src/sys/logging.c src/sys/getopt.c			\
 	src/sys/startup.c src/sys/fluid.c src/sys/signals.c			\
 	src/apply/apply.c src/apply/stacks.c src/apply/lexenv.c 		\
-	src/apply/ffi.c src/apply/exec.c src/apply/apply_internals.h		\
+	src/apply/ffi.c src/apply/exec.c src/apply/dispatch.c 			\
+	src/apply/apply_internals.h						\
 	src/storage/storage.c src/storage/streams.c src/storage/hashdtype.c	\
 	src/storage/drivers.c src/storage/indexes.c src/storage/pools.c		\
 	src/storage/oidstore.c  src/storage/frames.c src/storage/slotindexes.c  \
@@ -369,7 +371,7 @@ KNO_SOURCES=\
 	src/eval/conditionals.c src/eval/iterators.c               		\
         src/eval/threads.c src/eval/quasiquote.c src/eval/struct_eval.c		\
 	src/eval/modules.c src/eval/load.c src/eval/reflection.c 		\
-	src/eval/compoundfns.c src/eval/repl.c					\
+	src/eval/typeops.c src/eval/repl.c					\
 	src/eval/evalops.c                  					\
 	src/eval/coreops.c                  					\
 	src/eval/arith.c 			              			\

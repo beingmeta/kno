@@ -2928,7 +2928,7 @@ KNO_EXPORT void kno_init_pools_c()
 
   {
     struct KNO_TYPEINFO *e = kno_use_typeinfo(kno_intern("pool"));
-    e->type_parsefn = pool_parsefn;}
+    e->type_consfn = pool_parsefn;}
 
   KNO_INIT_STATIC_CONS(&poolid_table,kno_hashtable_type);
   kno_make_hashtable(&poolid_table,-1);

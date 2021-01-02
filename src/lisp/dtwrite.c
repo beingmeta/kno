@@ -290,7 +290,7 @@ KNO_EXPORT ssize_t kno_write_dtype(struct KNO_OUTBUF *out,lispval x)
       break;}
     case kno_cons_ptr_type: {/* output cons */
       struct KNO_CONS *cons = KNO_CONS_DATA(x);
-      int ctype = KNO_CONS_TYPE(cons);
+      int ctype = KNO_CONS_TYPEOF(cons);
       switch (ctype) {
       case kno_string_type: {
         struct KNO_STRING *s = (struct KNO_STRING *) cons;
@@ -396,7 +396,7 @@ KNO_EXPORT ssize_t kno_write_dtype(struct KNO_OUTBUF *out,lispval x)
       case kno_mystery_type:
         return write_mystery(out,(struct KNO_MYSTERY_DTYPE *) cons);
       default: {
-        kno_lisp_type ctype = KNO_CONS_TYPE(cons);
+        kno_lisp_type ctype = KNO_CONS_TYPEOF(cons);
         if ((KNO_VALID_TYPECODEP(ctype)) && (kno_dtype_writers[ctype]))
           return kno_dtype_writers[ctype](out,x);
         else if ((out->buf_flags)&(KNO_WRITE_OPAQUE))

@@ -143,7 +143,7 @@ static void recycle_sqldb_core(struct KNO_SQLDB *dbp)
       struct KNO_SQLPROC *proc = procs[i];
       procs[i] = NULL;
       if (proc) {
-        if (KNO_CONS_TYPE(proc) == kno_sqlproc_type)
+        if (KNO_CONS_TYPEOF(proc) == kno_sqlproc_type)
           u8_log(LOG_CRIT,"SQLCleanup","Dangling SQL proc for %q: %q",
                  (lispval)dbp,(lispval)proc);
         else u8_log(LOG_CRIT,"SQLCleanup",

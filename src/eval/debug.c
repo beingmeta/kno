@@ -258,7 +258,7 @@ static void log_ptr(lispval val,lispval label_arg,lispval expr)
 	   (unsigned long long)(KNO_OID_LO(addr)),
 	   val,expr);}
   else if (KNO_STATICP(val)) {
-    kno_lisp_type ptype = KNO_CONS_TYPE((kno_cons)val);
+    kno_lisp_type ptype = KNO_CONS_TYPEOF((kno_cons)val);
     u8_string type_name = kno_lisp_typename(ptype);
     u8_log(U8_LOG_MSG,"Pointer/Static",
 	   "%s%s%s0x%llx [ T0x%llx(%s) ] %q <= %q",
@@ -268,7 +268,7 @@ static void log_ptr(lispval val,lispval label_arg,lispval expr)
 	   val,expr);}
   else if (CONSP(val)) {
     kno_cons c = (kno_cons) val;
-    kno_lisp_type ptype = KNO_CONS_TYPE(c);
+    kno_lisp_type ptype = KNO_CONS_TYPEOF(c);
     u8_string type_name = kno_lisp_typename(ptype);
     unsigned int refcount = KNO_CONS_REFCOUNT(c);
     u8_log(U8_LOG_MSG,"Pointer/Consed",

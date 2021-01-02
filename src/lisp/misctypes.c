@@ -467,19 +467,19 @@ void kno_init_misctypes_c()
   timestamp0_symbol = kno_intern("timestamp0");
   {
     struct KNO_TYPEINFO *e = kno_use_typeinfo(timestamp_symbol);
-    e->type_parsefn = timestamp_parsefn;
+    e->type_consfn = timestamp_parsefn;
     e->type_dumpfn = NULL;
     e->type_restorefn = timestamp_restore;}
   {
     struct KNO_TYPEINFO *e = kno_use_typeinfo(timestamp0_symbol);
-    e->type_parsefn = timestamp_parsefn;
+    e->type_consfn = timestamp_parsefn;
     e->type_dumpfn = NULL;
     e->type_restorefn = timestamp_restore;}
   kno_dtype_writers[kno_timestamp_type]=timestamp_dtype;
 
   {
     struct KNO_TYPEINFO *e = kno_use_typeinfo(kno_timestamp_xtag);
-    e->type_parsefn = NULL;
+    e->type_consfn = NULL;
     e->type_dumpfn = NULL;
     e->type_restorefn = timestamp_restore;}
   kno_xtype_writers[kno_timestamp_type]=timestamp_xtype;
@@ -489,7 +489,7 @@ void kno_init_misctypes_c()
   lispval_symbol = kno_intern("%lispval");
   {
     struct KNO_TYPEINFO *e = kno_use_typeinfo(lispval_symbol);
-    e->type_parsefn = NULL;
+    e->type_consfn = NULL;
     e->type_dumpfn = NULL;
     e->type_restorefn = lispval_restore;}
   kno_dtype_writers[kno_timestamp_type]=timestamp_dtype;
