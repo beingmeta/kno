@@ -71,15 +71,13 @@ KNO_EXPORT lispval kno_handler(lispval obj,lispval m,lispval interface)
 }
 
 KNO_EXPORT lispval kno_dispatch(lispval obj,lispval m,lispval interface,
-				int err,int n,kno_argvec args)
+				unsigned int flags,kno_argvec args)
 {
+  int n = flags&0xFFFF, no_error = (flags & 0x80000000);
+  u8_condition err = NULL;
   struct KNO_TYPEINFO *typeinfo = kno_taginfo(obj);
   if (typeinfo == NULL) {
-    if (!(err)) return KNO_EMPTY;
-    kno_seterr("BadObject","kno_type_handle",
-	       (KNO_SYMBOLP(m))?(KNO_SYMBOL_NAME(m)):(NULL),
-	       interface);
-    return KNO_ERROR;}
+    err = "BadObject"; goto onerror;}
   lispval handlers = KNO_VOID; int free_handlers = 0;
   if (KNO_VOIDP(interface))
     handlers = typeinfo->type_props;
@@ -87,28 +85,24 @@ KNO_EXPORT lispval kno_dispatch(lispval obj,lispval m,lispval interface,
     handlers = kno_get(typeinfo->type_props,interface,KNO_VOID);
     if (!(KNO_VOIDP(handlers))) free_handlers=1;
     else handlers = typeinfo->type_props;}
-  if (RARELY(KNO_VOIDP(handlers))) {
-    if (free_handlers) kno_decref(handlers);
-    if (!(err)) return KNO_EMPTY;
-    kno_seterr("NoHandlers","kno_type_handle",
-	       (KNO_SYMBOLP(m))?(KNO_SYMBOL_NAME(m)):(NULL),
-	       interface);
-    return KNO_ERROR;}
+  if (RARELY(KNO_VOIDP(handlers))) {err = "NoHandlers"; goto onerror;}
   lispval handler = kno_get(handlers,m,KNO_VOID);
   if ( (KNO_VOIDP(handler)) && (KNO_VOIDP(interface)) )
     handler = kno_get(typeinfo->type_props,m,KNO_VOID);
-  if (KNO_VOIDP(handler)) {
-    if (free_handlers) kno_decref(handlers);
-    if (!(err)) return KNO_EMPTY;
-    kno_seterr("NoHandler","kno_dispatch",
-	       (KNO_SYMBOLP(m))?(KNO_SYMBOL_NAME(m)):(NULL),
-	       interface);
-    return KNO_ERROR;}
+  if (KNO_VOIDP(handler)) {err = "NoHandler"; goto onerror;}
   else if (KNO_APPLICABLEP(handler)) {
+    int include_object =
+      ( ! ( (KNO_SYMBOLP(obj)) || (KNO_OIDP(obj)) ||
+	    (KNO_TYPEP(obj,kno_ctype_type)) ||
+	    (KNO_TYPEP(obj,kno_typeinfo_type)) ) );
+    int n_args = (include_object) ? (n+1) : (n);
     u8_exception ex = u8_current_exception;
-    lispval xargs[n+1]; xargs[0] = obj;
-    memcpy(xargs+1,args,n*sizeof(lispval));
-    lispval result = kno_apply(handler,n+1,xargs);
+    lispval xargs[n_args];
+    if (include_object) {
+      xargs[0] = obj; memcpy(xargs+1,args,n*sizeof(lispval));}
+    else {
+      memcpy(xargs,args,n*sizeof(lispval));}
+    lispval result = kno_apply(handler,n_args,xargs);
     if (free_handlers) kno_decref(handlers);
     kno_decref(handler);
     if ( (err==0) && (KNO_ABORTED(result)) ) {
@@ -122,6 +116,18 @@ KNO_EXPORT lispval kno_dispatch(lispval obj,lispval m,lispval interface,
 	       (KNO_SYMBOLP(m))?(KNO_SYMBOL_NAME(m)):(NULL),
 	       handler);
     return KNO_ERROR;}
+ onerror:
+  if (free_handlers) kno_decref(handlers);
+  if (no_error)
+    return KNO_EMPTY;
+  else {
+    u8_byte buf[200];
+    return kno_err(err,"kno_dispatch",
+		   (((KNO_SYMBOLP(interface))||(KNO_OIDP(interface))) ?
+		    (u8_bprintf(buf,"%q(%q)",m,interface)) :
+		    (KNO_SYMBOLP(m)) ? (KNO_SYMBOL_NAME(m)) :
+		    (u8_bprintf(buf,"%q",m))),
+		   obj);}
 }
 
 DEF_KNOSYM(consfn); DEF_KNOSYM(stringfn);
@@ -145,7 +151,7 @@ static lispval default_consfn(int n,lispval *args,kno_typeinfo e)
 static int default_unparsefn(u8_output out,lispval obj,kno_typeinfo info)
 {
   lispval result = kno_dispatch(obj,KNOSYM(stringfn),KNO_VOID,
-				KNO_DISPATCH_NOERR,0,NULL);
+				KNO_DISPATCH_NOERR,NULL);
   if (KNO_STRINGP(result)) {
     u8_putn(out,KNO_CSTRING(result),KNO_STRLEN(result));
     kno_decref(result);
