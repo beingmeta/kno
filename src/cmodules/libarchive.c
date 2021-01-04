@@ -410,7 +410,7 @@ KNO_DEFCPRIM("archive/find",archive_find,
 	     KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	     "Get the next archive entry (possibly matching a "
 	     "string or regex)",
-	     {"obj",KNO_ARCHIVE_TYPE,KNO_VOID},
+	     {"obj",kno_any_type,KNO_VOID},
 	     {"seek",kno_any_type,KNO_FALSE})
 static lispval archive_find(lispval obj,lispval seek)
 {
