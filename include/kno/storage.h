@@ -260,6 +260,7 @@ typedef struct KNO_THREAD_CACHE {
   struct KNO_SLOTMAP calls;
   struct KNO_SLOTMAP adjuncts;
   struct KNO_SLOTMAP indexes;
+  struct KNO_SLOTMAP index_adds;
   struct KNO_THREAD_CACHE *threadcache_prev;} KNO_THREAD_CACHE;
 typedef struct KNO_THREAD_CACHE *kno_thread_cache;
 typedef struct KNO_THREAD_CACHE KNOTC;
@@ -283,11 +284,16 @@ KNO_EXPORT kno_thread_cache kno_push_threadcache(kno_thread_cache);
 KNO_EXPORT kno_thread_cache kno_set_threadcache(kno_thread_cache);
 KNO_EXPORT kno_thread_cache kno_use_threadcache(void);
 
+KNO_EXPORT int knotc_cache_index_key(KNOTC *cache,lispval ix_arg,lispval key,lispval oids);
+
 /* Include other stuff */
 
 #include "pools.h"
 #include "indexes.h"
 #include "frames.h"
+
+KNO_EXPORT int knotc_cache_adjunct_value(KNOTC *cache,lispval oid,lispval slotid,lispval val);
+KNO_EXPORT int knotc_cache_oid_value(KNOTC *cache,lispval oid,lispval val);
 
 KNO_EXPORT lispval (*kno_get_oid_name)(kno_pool,lispval);
 

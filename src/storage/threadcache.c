@@ -166,13 +166,15 @@ KNO_EXPORT kno_thread_cache kno_use_threadcache()
 
 /* Operations */
 
-int knotc_setoid(KNOTC *cache,lispval oid,lispval val)
+KNO_EXPORT int knotc_cache_oid_value(KNOTC *cache,lispval oid,lispval val)
 {
+  if (cache == NULL) return 0;
   return kno_hashtable_store(&(cache->oids),oid,val);
 }
 
-int knotc_setadjunct(KNOTC *cache,lispval oid,lispval slotid,lispval val)
+KNO_EXPORT int knotc_cache_adjunct_value(KNOTC *cache,lispval oid,lispval slotid,lispval val)
 {
+  if (cache == NULL) return 0;
   lispval oidcache = kno_slotmap_get(&(cache->adjuncts),slotid,KNO_VOID);
   if (KNO_VOIDP(oidcache)) {
     oidcache = kno_make_hashtable(NULL,117);
@@ -183,22 +185,9 @@ int knotc_setadjunct(KNOTC *cache,lispval oid,lispval slotid,lispval val)
   else return kno_store(oidcache,oid,val);
 }
 
-int knotc_index_add(KNOTC *cache,kno_index ix,lispval key,lispval oids)
+KNO_EXPORT int knotc_cache_index_key(KNOTC *cache,lispval ix_arg,lispval key,lispval oids)
 {
-  lispval ix_arg = kno_index2lisp(ix);
-  lispval index_cache = kno_slotmap_get(&(cache->indexes),ix_arg,KNO_VOID);
-  if (KNO_VOIDP(index_cache)) {
-    index_cache = kno_make_hashtable(NULL,117);
-    kno_slotmap_store(&(cache->indexes),ix_arg,index_cache);
-    int rv = kno_add(index_cache,key,oids);
-    kno_decref(index_cache);
-    return rv;}
-  else return kno_store(index_cache,key,oids);
-}
-
-int knotc_index_cache(KNOTC *cache,kno_index ix,lispval key,lispval oids)
-{
-  lispval ix_arg = kno_index2lisp(ix);
+  if (cache == NULL) return 0;
   lispval index_cache = kno_slotmap_get(&(cache->indexes),ix_arg,KNO_VOID);
   if (KNO_VOIDP(index_cache)) {
     index_cache = kno_make_hashtable(NULL,117);

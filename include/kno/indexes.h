@@ -360,7 +360,7 @@ KNO_FASTOP lispval kno_index_get(kno_index ix,lispval key)
   else cached = kno_hashtable_get(&(ix->index_cache),key,KNO_VOID);
   if (KNO_VOIDP(cached)) cached = kno_index_fetch(ix,key);
 #if KNO_USE_THREADCACHE
-  if (knotc) knotc_index_cache(knotc,key,cached);
+  if (knotc) knotc_cache_index_key(knotc,kno_index2lisp(ix),key,cached);
 #endif
   return cached;
 }

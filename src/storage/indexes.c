@@ -614,7 +614,7 @@ KNO_EXPORT int kno_index_prefetch(kno_index ix,lispval keys)
 	if (! read_only ) v = edit_result(key,v,adds,drops);
 	kno_hashtable_op(cache,kno_table_store_noref,key,v);
 #if KNO_USE_THREADCACHE
-	if (knotc) knotc_index_cache(knotc,ix,key,v);
+	if (knotc) knotc_cache_index_key(knotc,kno_index2lisp(ix),key,v);
 #endif
 	n_fetched++;}
       rv=n_fetched;}}
@@ -648,7 +648,7 @@ KNO_EXPORT int kno_index_prefetch(kno_index ix,lispval keys)
     if (!(KNO_ABORTED(val))) {
       kno_hashtable_store(cache,needed,val);
 #if KNO_USE_THREADCACHE
-      knotc_index_cache(knotc,kno_index2lisp(ix),needed,val);
+      if (knotc) knotc_cache_index_key(knotc,kno_index2lisp(ix),needed,val);
 #endif
       kno_decref(val);
       rv = n_fetched+1;}
@@ -862,7 +862,7 @@ KNO_EXPORT lispval _kno_index_get(kno_index ix,lispval key)
   if (VOIDP(cached))
     cached = kno_index_fetch(ix,key);
 #if KNO_USE_THREADCACHE
-  if (knotc) knotc_index_cache(knotc,ix,key,cached);
+  if (knotc) knotc_cache_index_key(knotc,kno_index2lisp(ix),key,cached);
 #endif
   return cached;
 }
