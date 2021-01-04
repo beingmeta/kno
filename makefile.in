@@ -474,13 +474,13 @@ STRIPPED_LIBS=lib/stripped/libkno@suffix@.a 			\
 	lib/stripped/libknotexttools@suffix@.@mshared_suffix@
 
 SCHEME_MODULES=src/stdlib/*.scm \
-	src/stdlib/apis/aws/*.scm \
-	src/stdlib/apis/facebook/*.scm src/stdlib/apis/google/*.scm \
-	src/stdlib/apis/paypal/*.scm src/stdlib/apis/twitter/*.scm \
-	src/stdlib/apis/dropbox/*.scm src/stdlib/apis/twilio/*.scm \
+	src/stdlib/aws/*.scm src/stdlib/google/*.scm \
+	src/stdlib/apis/facebook/*.scm src/stdlib/apis/twitter/*.scm \
+	src/stdlib/apis/paypal/*.scm  src/stdlib/apis/twilio/*.scm \
+	src/stdlib/apis/dropbox/*.scm \
 	src/stdlib/misc/*.scm src/stdlib/tests/*.scm \
 	src/stdlib/domutils/*.scm src/stdlib/knodules/*.scm \
-	src/stdlib/textindex/*.scm src/stdlib/jwt/*.scm \
+	src/stdlib/textindex/*.scm src/stdlib/json/*.scm \
 	src/stdlib/bench/*.scm src/stdlib/booktools/*.scm \
 	src/brico/*.scm	src/brico/build/index/*.scm \
 	src/brico/build/*.scm
