@@ -6,7 +6,7 @@
 ;;; src/libscm instead or move any added functionality to an extension
 ;;; module.
 
-(in-module 'io/jsonout)
+(in-module 'json/export)
 
 (use-module '{webtools varconfig})
 

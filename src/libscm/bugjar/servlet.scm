@@ -7,7 +7,7 @@
 (use-module '{varconfig logger})
 (use-module '{gpath kno/condense})
 (use-module '{bugjar bugjar/html})
-(use-module '{apis/aws apis/aws/s3})
+(use-module '{aws aws/s3})
 
 (define %loglevel %notice%)
 
