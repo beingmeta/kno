@@ -480,7 +480,7 @@ SCHEME_MODULES=src/stdlib/*.scm \
 	src/stdlib/apis/dropbox/*.scm \
 	src/stdlib/misc/*.scm src/stdlib/tests/*.scm \
 	src/stdlib/domutils/*.scm src/stdlib/knodules/*.scm \
-	src/stdlib/textindex/*.scm src/stdlib/json/*.scm \
+	src/stdlib/textindex/*.scm src/stdlib/json/*.scm src/stdlib/crypto/*.scm \
 	src/stdlib/bench/*.scm src/stdlib/booktools/*.scm \
 	src/brico/*.scm	src/brico/build/index/*.scm \
 	src/brico/build/*.scm
@@ -1560,15 +1560,16 @@ $(DESTDIR)@unpackage_dir@:
 upstartdirs: $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets
 
 STDLIB_MODULE_DIRS=							\
-	stdlib/aws stdlib/aws/templates 				\
-	stdlib/batch stdlib/bench stdlib/booktools			\
-	stdlib/compat stdlib/domutils stdlib/dropbox 			\
-	stdlib/facebook stdlib/google stdlib/jwt 			\
+	stdlib/aws stdlib/aws/templates stdlib/google			\
+	stdlib/kno stdlib/batch stdlib/bench stdlib/booktools		\
+	stdlib/compat stdlib/domutils stdlib/json			\
 	stdlib/knodules stdlib/knodules/data stdlib/knoml 		\
-	stdlib/misc stdlib/morph stdlib/morph/data 			\
-	stdlib/paypal stdlib/reddit stdlib/tests 			\
-	stdlib/textindex stdlib/textindex/data stdlib/texttools		\
-	stdlib/twilio stdlib/twitter stdlib/xhtml stdlib/webapi		\
+	stdlib/misc stdlib/morph stdlib/morph/data stdlib/crypto	\
+	stdlib/tests stdlib/net stdlib/os				\
+	stdlib/textindex stdlib/textindex/data stdlib/text		\
+	stdlib/apis/twilio stdlib/apis/twitter stdlib/apis/facebook	\
+	stdlib/apis/paypal stdlib/apis/reddit stdlib/apis/dropbox 	\
+	stdlib/webapi stdlib/xhtml stdlib/imagick			\
 	brico
 
 STDLIB_MODULE_DATA=\
@@ -1580,14 +1581,14 @@ STDLIB_MODULE_DATA=\
 
 install-stdlib: install-stdlib-source install-stdlib-data
 
-src/stdlib/pem.scm:
+src/stdlib/hashfs.scm:
 	git submodule init && \
 	git submodule update --remote --merge src/stdlib;
 src/brico/brico.scm:
 	git submodule init && \
 	git submodule update --remote --merge src/brico;
 
-install-stdlib-source: $(DESTDIR)@stdlib_module_dir@ src/stdlib/pem.scm \
+install-stdlib-source: $(DESTDIR)@stdlib_module_dir@ src/stdlib/hashfs.scm \
 	         $(DESTDIR)@stdlib_module_dir@/brico src/brico/brico.scm
 	@$(ECHO) Copying standard Scheme modules to @stdlib_module_dir@
 	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/stdlib/*.scm 		\
@@ -1608,7 +1609,7 @@ install-stdlib-source: $(DESTDIR)@stdlib_module_dir@ src/stdlib/pem.scm \
 	done;
 
 install-stdlib-data: $(DESTDIR)@stdlib_module_dir@ \
-			src/stdlib/pem.scm src/brico/brico.scm
+			src/stdlib/hashfs.scm src/brico/brico.scm
 	@$(ECHO) Copying module data to @stdlib_module_dir@;
 	@for dir in $(STDLIB_MODULE_DATA); do					\
 	 src_dir="$(BUILD)/src/$${dir}";				\
@@ -1630,7 +1631,7 @@ install-support: $(DESTDIR)@share_dir@
 	cd $(BUILD)/src/web; $(SYSINSTALL) @install_file_opts@ 	\
 		webinfo.knocgi $(DESTDIR)@share_dir@
 
-LIBSCM_DIRS=optimize bugjar bench knodb xhtml kno io sqldb
+LIBSCM_DIRS=optimize bugjar bench knodb xhtml kno io sqldb json net text
 LIBSCM_DATA_DIRS=
 install-libscm:
 	@if [ ! -d ${DESTDIR}${LIBSCM} ]; then 						\

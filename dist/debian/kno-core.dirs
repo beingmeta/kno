@@ -14,11 +14,13 @@ usr/share/kno/libscm
 usr/share/kno/libscm/bench
 usr/share/kno/libscm/bugjar
 usr/share/kno/libscm/bugjar/resources
-usr/share/kno/libscm/optimize
-usr/share/kno/libscm/flexdb
-usr/share/kno/libscm/storage
-usr/share/kno/libscm/xhtml
+usr/share/kno/libscm/io
+usr/share/kno/libscm/json
 usr/share/kno/libscm/kno
+usr/share/kno/libscm/knodb
+usr/share/kno/libscm/optimize
+usr/share/kno/libscm/text
+usr/share/kno/libscm/xhtml
 usr/share/kno/packages
 etc
 etc/kno
