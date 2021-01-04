@@ -1089,10 +1089,14 @@ U8_MAYBE_UNUSED static int _kno_applicablep(lispval x)
 #if KNO_INLINE_XTYPEP
 KNO_FASTOP int __KNO_XTYPEP(lispval x,int type)
 {
-  if (type <=  kno_opts_type) switch ((kno_lisp_type)type) {
+  if (type <=  kno_xindex_type) switch ((kno_lisp_type)type) {
     case kno_number_type: return KNO_NUMBERP(x);
     case kno_sequence_type: return KNO_SEQUENCEP(x);
     case kno_table_type: return KNO_TABLEP(x);
+    case kno_applicable_type:
+      if (KNO_XXCONS_TYPEP(x,kno_function_type))
+	return 1;
+      else return _kno_applicablep(x);
     case kno_slotid_type:
       return (KNO_OIDP(x)) || (KNO_SYMBOLP(x));
     case kno_frame_type:
@@ -1119,16 +1123,17 @@ KNO_FASTOP int __KNO_XTYPEP(lispval x,int type)
 	   (KNO_TYPEP(x,kno_typeinfo_type)) )
 	return 1;
       else return 0;
-    case kno_xindex_type:
-      return (KNO_PRIM_TYPEP(x,kno_index_type)) ||
-	(KNO_PRIM_TYPEP(x,kno_consed_index_type));
     case kno_xpool_type:
       return (KNO_PRIM_TYPEP(x,kno_pool_type)) ||
 	(KNO_PRIM_TYPEP(x,kno_consed_pool_type));
+    case kno_xindex_type:
+      return (KNO_PRIM_TYPEP(x,kno_index_type)) ||
+	(KNO_PRIM_TYPEP(x,kno_consed_index_type));
     default:
       if  (type < 0x04) return ( ( (x) & (0x3) ) == type);
       else if (type < 0x84) return (KNO_IMMEDIATE_TYPEP(x,type));
-      else if (type < 0x100) return ( (x) && ((KNO_CONS_TYPEOF(x)) == type) );
+      else if (type < 0x100)
+	return ( (x) && (KNO_CONSP(x)) && ((KNO_CONS_TYPEOF(x)) == type) );
       else return 0;}
   else return 0;
 }
@@ -1162,7 +1167,6 @@ KNO_INLINE int KNO_CHECKTYPE(lispval obj,lispval objtype)
 #else
 #define KNO_CHECKTYPE _KNO_CHECKTYPE
 #endif
-
 
 /* The zero-pool */
 

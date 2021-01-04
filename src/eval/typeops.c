@@ -1079,7 +1079,7 @@ static lispval dispatch_cprim(int n,kno_argvec args)
     lispval results = KNO_EMPTY;
     KNO_DO_CHOICES(object,objects) {
       KNO_DO_CHOICES(method,methods) {
-	lispval result = kno_dispatch(object,method,KNO_VOID,n-2,args+2);
+	lispval result = kno_dispatch(object,method,n-2,args+2);
 	if (KNO_ABORTED(result)) {
 	  KNO_STOP_DO_CHOICES;
 	  kno_decref(results);
@@ -1089,32 +1089,14 @@ static lispval dispatch_cprim(int n,kno_argvec args)
   else if (KNO_CHOICEP(objects)) {
     lispval results = KNO_EMPTY;
     KNO_DO_CHOICES(object,objects) {
-      lispval result = kno_dispatch(object,methods,KNO_VOID,n-2,args+2);
+      lispval result = kno_dispatch(object,methods,n-2,args+2);
       if (KNO_ABORTED(result)) {
 	KNO_STOP_DO_CHOICES;
 	kno_decref(results);
 	return result;}
       else {KNO_ADD_TO_CHOICE(results,result);}}
     return results;}
-  return kno_dispatch(args[0],args[1],KNO_VOID,n-2,args+2);
-}
-
-KNO_DEFCPRIM("kno/implements?",implementsp_cprim,
-	     KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	     "Returns true if *object* implements *interface*",
-	     {"object",kno_any_type,KNO_VOID},
-	     {"interface",kno_slotid_type,KNO_VOID})
-static lispval implementsp_cprim(lispval object,lispval interface)
-{
-  struct KNO_TYPEINFO *typeinfo = kno_taginfo(object);
-  if (typeinfo == NULL)
-    return KNO_FALSE;
-  else {
-    lispval handlers = kno_get(typeinfo->type_props,interface,KNO_VOID);
-    if (KNO_TABLEP(handlers)) {
-      kno_decref(handlers);
-      return KNO_TRUE;}
-    else return KNO_FALSE;}
+  return kno_dispatch(args[0],args[1],n-2,args+2);
 }
 
 KNO_DEFCPRIM("kno/handles?",handlesp_cprim,
@@ -1136,65 +1118,26 @@ static lispval handlesp_cprim(lispval object,lispval message)
 }
 
 KNO_DEFCPRIM("kno/set-handler!",set_handler_cprim,
-	     KNO_MAX_ARGS(4)|KNO_MIN_ARGS(3),
+	     KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
 	     "Sets a handler",
 	     {"type",kno_type_type,KNO_VOID},
-	     {"message",kno_slotid_type,KNO_VOID},
 	     {"handler",kno_applicable_type,KNO_VOID},
-	     {"interface",kno_any_type,KNO_VOID})
-static lispval set_handler_cprim(lispval type,lispval message,lispval handler,
-				 lispval interface)
+	     {"message",kno_slotid_type,KNO_VOID})
+static lispval set_handler_cprim(lispval type,lispval message,lispval handler)
 {
-  struct KNO_TYPEINFO *typeinfo = kno_taginfo(type);
+  struct KNO_TYPEINFO *typeinfo = kno_use_typeinfo(type);
   if (typeinfo == NULL) {
     kno_seterr("BadTypeArg","set_handler_cprim",NULL,type);
     return KNO_ERROR;}
-  else {
-    int free_handlers = 0;
-    lispval handlers = KNO_VOID;
-    if ( (KNO_SYMBOLP(interface)) || (KNO_OIDP(interface)) ) {
-      handlers = kno_get(typeinfo->type_props,interface,KNO_VOID);
-      free_handlers = 1;}
-    else handlers = typeinfo->type_props;
-    int rv = kno_store(handlers,message,handler);
-    if (rv<0) return KNO_ERROR;
-    else return kno_incref(handler);}
-}
-
-KNO_DEFCPRIMNx("interface/dispatch",interface_dispatch_cprim,
-	       KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	       "Applies a type specific method *method* associated with "
-	       "*interface* to *object* with additional args.",3,
-	       {"object",kno_any_type,KNO_VOID},
-	       {"interface",kno_slotid_type,KNO_VOID},
-	       {"method",kno_slotid_type,KNO_VOID})
-static lispval interface_dispatch_cprim(int n,kno_argvec args)
-{
-  lispval objects = args[0], interfaces = args[1], methods = args[2];
-  if ( (KNO_CHOICEP(methods)) || (KNO_CHOICEP(interfaces)) ) {
-    lispval results = KNO_EMPTY;
-    KNO_DO_CHOICES(object,objects) {
-      KNO_DO_CHOICES(interface,interfaces) {
-	KNO_DO_CHOICES(method,methods) {
-	  lispval result = kno_dispatch(object,method,interface,n-3,args+3);
-	  if (KNO_ABORTED(result)) {
-	    KNO_STOP_DO_CHOICES;
-	    kno_decref(results);
-	    return result;}
-	  else {KNO_ADD_TO_CHOICE(results,result);}}}}
-    return results;}
-  else if (KNO_CHOICEP(objects)) {
-    lispval results = KNO_EMPTY;
-    KNO_DO_CHOICES(object,objects) {
-      lispval result = kno_dispatch
-	(object,methods,interfaces,n-3,args+3);
-      if (KNO_ABORTED(result)) {
-	KNO_STOP_DO_CHOICES;
-	kno_decref(results);
-	return result;}
-      else {KNO_ADD_TO_CHOICE(results,result);}}
-    return results;}
-  else return kno_dispatch(objects,methods,interfaces,n-3,args+3);
+  else if (KNO_VOIDP(message)) {
+    if (KNO_FUNCTIONP(handler)) {
+      kno_function f = (kno_function) handler;
+      if (f->fcn_name) message = kno_intern(f->fcn_name);}
+    if (KNO_VOIDP(message))
+      return kno_err("NoMessageName","set_handler_cprim",NULL,handler);}
+  int rv = kno_store(typeinfo->type_props,message,handler);
+  if (rv<0) return KNO_ERROR;
+  else return kno_incref(handler);
 }
 
 /* Vestiges from earlier type systems */
@@ -1442,12 +1385,10 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("kno/typeinfo/probe",typeinfo_probe_cprim,1,kno_scheme_module);
   KNO_LINK_ALIAS("kno/typeinfo",type_cprim,kno_scheme_module);
 
-  KNO_LINK_CPRIM("kno/implements?",implementsp_cprim,2,kno_scheme_module);
   KNO_LINK_CPRIM("kno/handles?",handlesp_cprim,2,kno_scheme_module);
-  KNO_LINK_ALIAS("implements?",implementsp_cprim,scheme_module);
   KNO_LINK_ALIAS("handles?",handlesp_cprim,scheme_module);
 
-  KNO_LINK_CPRIM("kno/set-handler!",set_handler_cprim,4,kno_scheme_module);
+  KNO_LINK_CPRIM("kno/set-handler!",set_handler_cprim,3,kno_scheme_module);
   KNO_LINK_ALIAS("kno/handler!",set_handler_cprim,scheme_module);
   KNO_LINK_ALIAS("handler!",set_handler_cprim,scheme_module);
 
@@ -1459,7 +1400,6 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("type-props",type_props_prim,2,kno_scheme_module);
 
   KNO_LINK_CVARARGS("kno/dispatch",dispatch_cprim,scheme_module);
-  KNO_LINK_CVARARGS("interface/dispatch",interface_dispatch_cprim,scheme_module);
 
   KNO_LINK_ALIAS("compound-type?",compoundp,scheme_module);
   KNO_LINK_ALIAS("vector->compound",seq2compound,scheme_module);
