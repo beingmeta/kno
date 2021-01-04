@@ -849,9 +849,11 @@ typedef struct KNO_TAGGED {
   KNO_TAGGED_HEAD;} KNO_TAGGED;
 typedef struct KNO_TAGGED *kno_tagged;
 
-struct KNO_TYPEINFO *kno_probe_typeinfo(lispval tag);
-struct KNO_TYPEINFO *kno_use_typeinfo(lispval tag);
-KNO_FASTOP struct KNO_TYPEINFO *kno_taginfo(lispval obj)
+struct KNO_TYPEINFO *kno_probe_typeinfo(lispval type);
+struct KNO_TYPEINFO *kno_use_typeinfo(lispval type);
+struct KNO_TYPEINFO *_kno_objtype(lispval obj);
+#if KNO_INLINE_OBJTYPE
+KNO_FASTOP struct KNO_TYPEINFO *__kno_objtype(lispval obj)
 {
   if ( (KNO_TAGGEDP(obj)) ) {
     struct KNO_TAGGED *tagged = (kno_tagged) obj;
@@ -863,6 +865,10 @@ KNO_FASTOP struct KNO_TYPEINFO *kno_taginfo(lispval obj)
       return info;}}
   else return NULL;
 }
+#define kno_objtype __kno_objtype
+#else
+#define kno_objtype _kno_objtype
+#endif
 
 /* Compound types */
 

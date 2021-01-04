@@ -243,8 +243,14 @@ KNO_EXPORT lispval kno_read_dtype(struct KNO_INBUF *in)
       else switch (code) {
         case dt_compound: {
           struct KNO_TYPEINFO *e = kno_use_typeinfo(car);
-          if ((e) && (e->type_restorefn)) {
+	  if ((e) && (e->type_restorefn)) {
             lispval result = e->type_restorefn(car,cdr,e);
+	    kno_decref(car);
+            kno_decref(cdr);
+            return result;}
+	  else if ((e) && (kno_default_restorefn)) {
+            lispval result = kno_default_restorefn(car,cdr,e);
+            kno_decref(car);
             kno_decref(cdr);
             return result;}
           else {

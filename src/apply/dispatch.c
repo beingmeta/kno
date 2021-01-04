@@ -11,6 +11,7 @@
 
 #define KNO_INLINE_FCNIDS 1
 #define KNO_INLINE_APPLY  1
+#define KNO_INLINE_OBJTYPE 1
 #define KNO_SOURCE 1
 
 #include "kno/knosource.h"
@@ -48,7 +49,7 @@
 
 static lispval get_handler(lispval obj,lispval m)
 {
-  struct KNO_TYPEINFO *typeinfo = kno_taginfo(obj);
+  struct KNO_TYPEINFO *typeinfo = kno_objtype(obj);
   if (typeinfo == NULL) return KNO_VOID;
   return kno_get(typeinfo->type_props,m,KNO_VOID);
 }
@@ -62,7 +63,7 @@ KNO_EXPORT lispval kno_dispatch(lispval obj,lispval m,unsigned int flags,kno_arg
 {
   int n = flags&0xFFFF, no_error = (flags & KNO_DISPATCH_NOERR);
   int no_fail = (flags & KNO_DISPATCH_NOFAIL);
-  struct KNO_TYPEINFO *typeinfo = kno_taginfo(obj);
+  struct KNO_TYPEINFO *typeinfo = kno_objtype(obj);
   lispval handler = (typeinfo) ? (kno_get(typeinfo->type_props,m,KNO_VOID)) : (KNO_VOID);
   if (KNO_VOIDP(handler)) {
     if ( (no_fail) || (no_error) ) return KNO_EMPTY;
@@ -102,6 +103,10 @@ KNO_EXPORT lispval kno_dispatch(lispval obj,lispval m,unsigned int flags,kno_arg
 }
 
 DEF_KNOSYM(consfn); DEF_KNOSYM(stringfn);
+DEF_KNOSYM(restorefn); DEF_KNOSYM(dumpfn);
+DEF_KNOSYM(compound); DEF_KNOSYM(opaque);
+DEF_KNOSYM(sequence); DEF_KNOSYM(mutable);
+DEF_KNOSYM(annotated);
 
 static lispval default_consfn(int n,lispval *args,kno_typeinfo e)
 {
@@ -131,12 +136,75 @@ static int default_unparsefn(u8_output out,lispval obj,kno_typeinfo info)
     return 0;}
 }
 
+static lispval default_restorefn(lispval type,lispval dump,kno_typeinfo e)
+{
+  int flags = KNO_COMPOUND_INCREF;
+  if ( (e->type_props) && (KNO_TABLEP(e->type_props)) ) {
+    lispval method = kno_get(e->type_props,KNOSYM(restorefn),VOID);
+    if (KNO_APPLICABLEP(method)) {
+      lispval args[2] = { type, dump };
+      lispval result = kno_apply(method,2,args);
+      if (! ( (KNO_VOIDP(result)) || (KNO_EMPTYP(result)) ) ) {
+	kno_decref(method);
+	return result;}
+      else if (KNO_ABORTED(result)) {
+	u8_log(LOGERR,"RestoreFailed",
+	       "For %q restore method %q and data %q",
+	       e->typetag,method,dump);
+	kno_decref(method);}}}
+  if ( (e->type_props) && (KNO_TABLEP(e->type_props)) ) {
+    lispval props = e->type_props;
+    if (kno_test(props,KNOSYM(compound),KNOSYM(opaque)))
+      flags |= KNO_COMPOUND_OPAQUE;
+    if (kno_test(props,KNOSYM(compound),KNOSYM(mutable)))
+      flags |= KNO_COMPOUND_MUTABLE;
+    if (kno_test(props,KNOSYM(compound),KNOSYM(annotated)))
+      flags |= KNO_COMPOUND_TABLE;
+    if (kno_test(props,KNOSYM(compound),KNOSYM(sequence))) {
+      flags |= KNO_COMPOUND_SEQUENCE;
+      if (flags & KNO_COMPOUND_TABLE) flags |= (1<<8);}}
+  /* This is the default restore method */
+  if (KNO_VECTORP(dump))
+    return kno_init_compound_from_elts(NULL,e->typetag,flags,
+				       KNO_VECTOR_LENGTH(dump),
+				       KNO_VECTOR_ELTS(dump));
+  else return kno_init_compound_from_elts(NULL,e->typetag,flags,1,&dump);
+}
+
+static lispval default_dumpfn(lispval obj,kno_typeinfo e)
+{
+  if ( (e->type_props) && (KNO_TABLEP(e->type_props)) ) {
+    lispval method = kno_get(e->type_props,KNOSYM(dumpfn),VOID);
+    if (KNO_APPLICABLEP(method)) {
+      lispval result = kno_apply(method,1,&obj);
+      if (! ( (KNO_VOIDP(result)) || (KNO_EMPTYP(result)) ) ) {
+	kno_decref(method);
+	return result;}
+      else if (KNO_ABORTED(result)) {
+	u8_log(LOGERR,"RestoreFailed",
+	       "For %q dump method %q and data %q",
+	       e->typetag,method,obj);
+	kno_decref(method);}}
+    return KNO_FALSE;}
+  else return KNO_FALSE;
+}
+
 KNO_EXPORT void kno_init_dispatch_c()
 {
   kno_default_unparsefn = default_unparsefn;
+  kno_default_restorefn = default_restorefn;
+  kno_default_dumpfn = default_dumpfn;
   kno_default_consfn = default_consfn;
 
+  KNOSYM(restorefn);
+  KNOSYM(dumpfn);
   KNOSYM(stringfn);
   KNOSYM(consfn);
+  KNOSYM(compound);
+  KNOSYM(opaque);
+  KNOSYM(sequence);
+  KNOSYM(mutable);
+  KNOSYM(annotated);
 }
+
 

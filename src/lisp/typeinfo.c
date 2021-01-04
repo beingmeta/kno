@@ -9,6 +9,8 @@
 #define _FILEINFO __FILE__
 #endif
 
+#define KNO_INLINE_OBJTYPE 1
+
 #include "kno/knosource.h"
 #include "kno/lisp.h"
 #include "kno/tables.h"
@@ -21,10 +23,16 @@
 #include <stdarg.h>
 
 static struct KNO_HASHTABLE typeinfo;
-struct KNO_TYPEINFO *kno_ctype_typeinfo[KNO_TYPE_MAX] = { NULL };
 
 kno_type_dumpfn kno_default_dumpfn = NULL;
 kno_type_restorefn kno_default_restorefn = NULL;
+
+/* Default objtype handler */
+
+KNO_EXPORT struct KNO_TYPEINFO *_kno_objtype(lispval obj)
+{
+  return kno_objtype(obj);
+}
 
 /* Typeinfo */
 
@@ -238,4 +246,3 @@ void kno_init_typeinfo_c()
 
   atexit(recycle_typeinfo_map);
 }
-

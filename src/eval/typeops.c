@@ -9,6 +9,8 @@
 #define _FILEINFO __FILE__
 #endif
 
+#define KNO_INLINE_OBJTYPE 1
+
 #include "kno/knosource.h"
 #include "kno/lisp.h"
 #include "kno/compounds.h"
@@ -1008,7 +1010,6 @@ static lispval make_opaque_mutable_compound(int n,kno_argvec args)
 
 /* Getting typeinfo */
 
-
 static lispval typeinfo_helper(lispval type,int probe)
 {
   if (KNO_TYPEP(type,kno_typeinfo_type))
@@ -1017,15 +1018,6 @@ static lispval typeinfo_helper(lispval type,int probe)
     struct KNO_TYPEINFO *info = (probe) ? (kno_probe_typeinfo(type)) :
       (kno_use_typeinfo(type));
     if (info) return (lispval) info;
-    else return KNO_FALSE;}
-  else if (KNO_TYPEP(type,kno_ctype_type)) {
-    int typecode = KNO_IMMEDIATE_DATA(type);
-    if (typecode>=KNO_TYPE_MAX) return KNO_FALSE;
-    else if (kno_ctype_typeinfo[typecode]) {
-      lispval result = (lispval) kno_ctype_typeinfo[typecode];
-      return kno_incref(result);}
-    else if (probe)
-      return KNO_FALSE;
     else return KNO_FALSE;}
   else if (KNO_TAGGEDP(type)) {
     struct KNO_TAGGED *tagged = (kno_tagged) type;
@@ -1036,15 +1028,12 @@ static lispval typeinfo_helper(lispval type,int probe)
       (kno_use_typeinfo(tag));
     if (info) return (lispval) info;
     else return KNO_FALSE;}
-  else {
-    int typecode = KNO_TYPEOF(type);
-    if (typecode>=KNO_TYPE_MAX) return KNO_FALSE;
-    else if (kno_ctype_typeinfo[typecode]) {
-      lispval result = (lispval) kno_ctype_typeinfo[typecode];
-      return kno_incref(result);}
-    else if (probe)
-      return KNO_FALSE;
+  else if (KNO_TYPEP(type,kno_ctype_type)) {
+    struct KNO_TYPEINFO *info = (probe) ? (kno_probe_typeinfo(type)) :
+      (kno_use_typeinfo(type));
+    if (info) return (lispval) info;
     else return KNO_FALSE;}
+  else return KNO_FALSE;
 }
 
 DEFCPRIM("kno/type",type_cprim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
@@ -1106,7 +1095,7 @@ KNO_DEFCPRIM("kno/handles?",handlesp_cprim,
 	     {"message",kno_slotid_type,KNO_VOID})
 static lispval handlesp_cprim(lispval object,lispval message)
 {
-  struct KNO_TYPEINFO *typeinfo = kno_taginfo(object);
+  struct KNO_TYPEINFO *typeinfo = kno_objtype(object);
   if (typeinfo == NULL)
     return KNO_FALSE;
   else {
@@ -1173,36 +1162,6 @@ DEF_KNOSYM(sequence);
 DEF_KNOSYM(mutable);
 DEF_KNOSYM(opaque);
 
-static lispval restore_method(int n,lispval *args,kno_typeinfo e)
-{
-  int flags = KNO_COMPOUND_INCREF;
-  if ( (e->type_props) && (KNO_TABLEP(e->type_props)) ) {
-    lispval method = kno_get(e->type_props,KNOSYM(restore),VOID);
-    if (KNO_APPLICABLEP(method)) {
-      lispval result = kno_apply(method,n,args);
-      if (! ( (KNO_VOIDP(result)) || (KNO_EMPTYP(result)) ) ) {
-	kno_decref(method);
-	return result;}
-      else if (KNO_ABORTED(result)) {
-	u8_log(LOGERR,"RestoreFailed",
-	       "For %q with %d inits and cons method %q",
-	       e->typetag,n,method);
-	kno_decref(method);}}}
-  if ( (e->type_props) && (KNO_TABLEP(e->type_props)) ) {
-    lispval props = e->type_props;
-    if (kno_test(props,KNOSYM(compound),KNOSYM(opaque)))
-      flags |= KNO_COMPOUND_OPAQUE;
-    if (kno_test(props,KNOSYM(compound),KNOSYM(mutable)))
-      flags |= KNO_COMPOUND_MUTABLE;
-    if (kno_test(props,KNOSYM(compound),KNOSYM(annotated)))
-      flags |= KNO_COMPOUND_TABLE;
-    if (kno_test(props,KNOSYM(compound),KNOSYM(sequence))) {
-      flags |= KNO_COMPOUND_SEQUENCE;
-      if (flags & KNO_COMPOUND_TABLE) flags |= (1<<8);}}
-  /* This is the default restore method */
-  return kno_init_compound_from_elts(NULL,e->typetag,flags,n,args);
-}
-
 DEFCPRIM("type-set-restorefn!",type_set_restorefn_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 "**undocumented**",
@@ -1255,7 +1214,7 @@ DEFCPRIM("type-props",type_props_prim,
 static lispval type_props_prim(lispval arg,lispval field)
 {
   struct KNO_TYPEINFO *e =
-    (KNO_TAGGEDP(arg)) ? (kno_taginfo(arg)) : (kno_use_typeinfo(arg));;
+    (KNO_TAGGEDP(arg)) ? (kno_objtype(arg)) : (kno_use_typeinfo(arg));;
   if (VOIDP(field))
     return kno_deep_copy(e->type_props);
   else return kno_get(e->type_props,field,EMPTY);
@@ -1273,7 +1232,7 @@ DEFCPRIM("type-set!",type_set_prim,
 static lispval type_set_prim(lispval arg,lispval field,lispval value)
 {
   struct KNO_TYPEINFO *e =
-    (KNO_TAGGEDP(arg)) ? (kno_taginfo(arg)) : (kno_use_typeinfo(arg));;
+    (KNO_TAGGEDP(arg)) ? (kno_objtype(arg)) : (kno_use_typeinfo(arg));;
   int rv = kno_store(e->type_props,field,value);
   if (rv < 0)
     return KNO_ERROR;

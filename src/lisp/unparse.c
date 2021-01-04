@@ -12,6 +12,8 @@
 #endif
 
 #define U8_INLINE_IO 1
+#define KNO_INLINE_OBJTYPE 1
+
 #include "kno/knosource.h"
 #include "kno/lisp.h"
 #include "kno/compounds.h"
@@ -459,7 +461,7 @@ static int unparse_compound(struct U8_OUTPUT *out,lispval x)
     kno_consptr(struct KNO_COMPOUND *,x,kno_compound_type);
   lispval tag = xc->typetag;
   struct KNO_TYPEINFO *info = xc->typeinfo;
-  if (info == NULL) info = kno_taginfo(x);
+  if (info == NULL) info = kno_objtype(x);
   if ((info) && (info->type_unparsefn)) {
     int retval = info->type_unparsefn(out,x,info);
     if (retval<0) {kno_clear_errors(1);}
@@ -494,7 +496,7 @@ static int unparse_rawptr(struct U8_OUTPUT *out,lispval x)
   struct KNO_RAWPTR *rawptr = (struct KNO_RAWPTR *)x;
   lispval tag = rawptr->typetag;
   struct KNO_TYPEINFO *info = rawptr->typeinfo;
-  if (info == NULL) info = kno_taginfo(x);
+  if (info == NULL) info = kno_objtype(x);
   if ((info) && (info->type_unparsefn)) {
     int retval = info->type_unparsefn(out,x,info);
     if (retval<0) {kno_clear_errors(1);}

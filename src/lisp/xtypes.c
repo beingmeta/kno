@@ -1132,6 +1132,9 @@ static lispval restore_tagged(lispval tag,lispval data,xtype_refs refs)
   if ((e) && (e->type_restorefn)) {
     lispval result = e->type_restorefn(tag,data,e);
     return result;}
+  else if ((e) && (kno_default_restorefn)) {
+    lispval result = kno_default_restorefn(tag,data,e);
+    return result;}
   else {
     int flags = KNO_COMPOUND_INCREF;
     if (e) {

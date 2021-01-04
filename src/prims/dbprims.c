@@ -1121,22 +1121,12 @@ DEFCPRIM("extindex-cacheadd!",extindex_cacheadd,
 	 {"values",kno_any_type,KNO_VOID})
 static lispval extindex_cacheadd(lispval index,lispval key,lispval values)
 {
-  KNOTC *knotc = kno_threadcache;
   kno_index ix = kno_indexptr(index);
   if ( (ix) && (ix->index_handler == &kno_extindex_handler) )
     if (kno_hashtable_add(&(ix->index_cache),key,values)<0)
       return KNO_ERROR;
     else {}
   else return kno_type_error("extindex","extindex_cacheadd",index);
-#if 0
-  if (knotc) {
-    struct KNO_PAIR tempkey;
-    struct KNO_HASHTABLE *h = &(knotc->indexes);
-    KNO_INIT_STATIC_CONS(&tempkey,kno_pair_type);
-    tempkey.car = kno_index2lisp(ix); tempkey.cdr = key;
-    if (kno_hashtable_probe(h,(lispval)&tempkey)) {
-      kno_hashtable_store(h,(lispval)&tempkey,VOID);}}
-#endif
   return VOID;
 }
 
@@ -1147,9 +1137,7 @@ DEFCPRIM("extindex-decache!",extindex_decache,
 	 {"key",kno_any_type,KNO_VOID})
 static lispval extindex_decache(lispval index,lispval key)
 {
-  KNOTC *knotc = kno_threadcache;
   kno_index ix = kno_indexptr(index);
-  lispval lix = kno_index2lisp(ix);
   if ( (ix) && (ix->index_handler == &kno_extindex_handler) )
     if (VOIDP(key))
       if (kno_reset_hashtable(&(ix->index_cache),ix->index_cache.ht_n_buckets,1)<0)
@@ -1159,25 +1147,6 @@ static lispval extindex_decache(lispval index,lispval key)
       return KNO_ERROR;
     else {}
   else return kno_type_error("extindex","extindex_decache",index);
-#if 0
-  if ((knotc)&&(!(VOIDP(key)))) {
-    struct KNO_PAIR tempkey;
-    struct KNO_HASHTABLE *h = &(knotc->indexes);
-    KNO_INIT_STATIC_CONS(&tempkey,kno_pair_type);
-    tempkey.car = kno_index2lisp(ix); tempkey.cdr = key;
-    if (kno_hashtable_probe(h,(lispval)&tempkey)) {
-      kno_hashtable_store(h,(lispval)&tempkey,VOID);}}
-  else if (knotc) {
-    struct KNO_HASHTABLE *h = &(knotc->indexes);
-    lispval keys = kno_hashtable_keys(h), drop = EMPTY;
-    DO_CHOICES(key,keys) {
-      if ((PAIRP(key))&&(KNO_CAR(key) == lix)) {
-	kno_incref(key); CHOICE_ADD(drop,key);}}
-    if (!(EMPTYP(drop))) {
-      DO_CHOICES(d,drop) kno_hashtable_drop(h,d,VOID);}
-    kno_decref(drop); kno_decref(keys);}
-  else {}
-#endif
   return VOID;
 }
 
