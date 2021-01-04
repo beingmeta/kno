@@ -46,7 +46,6 @@ KNO_EXPORT struct KNO_TYPEINFO *kno_use_typeinfo(lispval tag)
     KNO_INIT_STATIC_CONS(info,kno_typeinfo_type);
     info->typetag = tag; kno_incref(tag);
     info->type_props = kno_make_slotmap(2,0,NULL);
-    info->type_props = kno_make_slotmap(2,0,NULL);
     info->type_name = (KNO_SYMBOLP(tag)) ? (KNO_SYMBOL_NAME(tag)) :
       (KNO_STRINGP(tag)) ? (KNO_CSTRING(tag)) :
       (kno_lisp2string(tag));
@@ -67,6 +66,25 @@ KNO_EXPORT struct KNO_TYPEINFO *kno_use_typeinfo(lispval tag)
 	  return (kno_typeinfo) useval;
 	else return NULL;}}}
   else return (kno_typeinfo) exists;
+}
+
+static void recycle_typeinfo(struct KNO_RAW_CONS *c)
+{
+  struct KNO_TYPEINFO *typeinfo = (struct KNO_TYPEINFO *)c;
+  kno_decref(typeinfo->type_props); typeinfo->type_props=KNO_VOID;
+  if (typeinfo->type_tablefns) {
+    u8_free(typeinfo->type_tablefns);
+    typeinfo->type_tablefns=NULL;}
+  if (typeinfo->type_seqfns) {
+    u8_free(typeinfo->type_seqfns);
+    typeinfo->type_seqfns=NULL;}
+  if (typeinfo->type_name) {
+    u8_free(typeinfo->type_name);
+    typeinfo->type_name=NULL;}
+  if (typeinfo->type_description) {
+    u8_free(typeinfo->type_description);
+    typeinfo->type_description=NULL;}
+  u8_free(typeinfo);
 }
 
 /* Setting C handlers for a type */
@@ -185,12 +203,39 @@ static struct KNO_TABLEFNS typeinfo_tablefns =
    NULL,
    NULL};
 
+static void recycle_typeinfo_map()
+{
+  unsigned int n = typeinfo.ht_n_buckets;
+  struct KNO_HASH_BUCKET **buckets = typeinfo.ht_buckets;
+  unsigned int i = 0; while (i<n) {
+    struct KNO_HASH_BUCKET *bucket = buckets[i];
+    if (bucket) {
+      int bucket_width = bucket->bucket_len;
+      struct KNO_KEYVAL *kv = &(bucket->kv_val0);
+      int j = 0; while (j<bucket_width) {
+	lispval key = kv[j].kv_key, val = kv[j].kv_val;
+	if (KNO_STATICP(val)) {
+	  if (KNO_TYPEP(val,kno_typeinfo_type))
+	    recycle_typeinfo((struct KNO_RAW_CONS *)val);}
+	else kno_decref(val);
+	kno_decref(key);
+	j++;}
+      buckets[i]=bucket;
+      u8_free(bucket);}
+    i++;}
+  u8_free(buckets);
+  memset(&typeinfo,0,sizeof(struct KNO_HASHTABLE));
+}
+
 void kno_init_typeinfo_c()
 {
   u8_register_source_file(_FILEINFO);
 
   kno_tablefns[kno_typeinfo_type] = &typeinfo_tablefns;
+  kno_recyclers[kno_typeinfo_type]=recycle_typeinfo;
 
   kno_init_hashtable(&typeinfo,231,NULL);
+
+  atexit(recycle_typeinfo_map);
 }
 
