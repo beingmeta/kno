@@ -5,11 +5,17 @@
 [submodule "docs/wiki"]
 	path = docs/wiki
 	url = git@github.com:beingmeta/kno.wiki.git
-[submodule "src/stdlib"]
-	path = src/stdlib
+[submodule "src/stdmods"]
+	path = src/stdmods
 	url = git@github.com:beingmeta/stdlib.git
 	branch = trunk
 [submodule "src/brico"]
 	path = src/brico
 	url = git@github.com:beingmeta/brico.git
 	branch = trunk
+[submodule "src/text/	textmods"]
+	path = src/text/textmods
+	url = git@github.com:beingmeta/textlib
+[submodule "src/web/webmods"]
+	path = src/web/webmods
+	url = git@github.com:beingmeta/weblib
