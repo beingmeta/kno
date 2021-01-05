@@ -714,7 +714,10 @@ etc/%: etc/%.in ./config.status
 
 src/%.zip: src/%
 	cd $^;	zip ../$(@F) -r *
-
+src/stdlib.zip: src/stdmods src/kbmods/brico src/text/textmods src/web/webmods
+	rm -rf $@
+	TOPDIR=$(shell pwd); for dir in $^; do \
+	  command cd $${dir}; zip $${TOPDIR}/src/stdlib.zip *; command cd ${TOPDIR}; done;
 
 # docs/man/%: docs/ronn/%.ronn
 # 	ronn --roff < $< > $@

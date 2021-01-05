@@ -6,13 +6,13 @@
 	url = git@github.com:beingmeta/kno.wiki.git
 [submodule "src/stdmods"]
 	path = src/stdmods
-	url = git@github.com:beingmeta/stdlib.git
+	url = git@github.com:beingmeta/stdmods.git
 [submodule "src/brico"]
 	path = src/brico
 	url = git@github.com:beingmeta/brico.git
-[submodule "src/text/	textmods"]
+[submodule "src/text/textmods"]
 	path = src/text/textmods
-	url = git@github.com:beingmeta/textlib
+	url = git@github.com:beingmeta/textmods
 [submodule "src/web/webmods"]
 	path = src/web/webmods
-	url = git@github.com:beingmeta/weblib
+	url = git@github.com:beingmeta/webmods
