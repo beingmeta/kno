@@ -10,9 +10,9 @@
 [submodule "src/brico"]
 	path = src/brico
 	url = git@github.com:beingmeta/brico.git
-[submodule "src/text/textmods"]
-	path = src/text/textmods
+[submodule "src/textmods"]
+	path = src/textmods
 	url = git@github.com:beingmeta/textmods
-[submodule "src/web/webmods"]
-	path = src/web/webmods
+[submodule "src/webmods"]
+	path = src/webmods
 	url = git@github.com:beingmeta/webmods

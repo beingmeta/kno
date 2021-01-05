@@ -324,8 +324,9 @@ CLEANDIRS=include/kno src/drivers/headers 		\
 	src/lisp src/apply src/sys 			\
 	src/storage src/drivers				\
 	src/eval src/prims				\
-	src/text src/web src/stdlib			\
-	src/cmodules					\
+	src/text src/textmods 			\
+	src/web src/webmods 			\
+	src/cmodules src/stdmods			\
 	etc
 
 KNO_HEADERS= \
@@ -473,15 +474,15 @@ STRIPPED_LIBS=lib/stripped/libkno@suffix@.a 			\
 	lib/stripped/libknowebtools@suffix@.@mshared_suffix@	\
 	lib/stripped/libknotexttools@suffix@.@mshared_suffix@
 
-SCHEME_MODULES=src/stdlib/*.scm \
-	src/stdlib/aws/*.scm src/stdlib/google/*.scm \
-	src/stdlib/apis/facebook/*.scm src/stdlib/apis/twitter/*.scm \
-	src/stdlib/apis/paypal/*.scm  src/stdlib/apis/twilio/*.scm \
-	src/stdlib/apis/dropbox/*.scm \
-	src/stdlib/misc/*.scm src/stdlib/tests/*.scm \
-	src/stdlib/domutils/*.scm src/stdlib/knodules/*.scm \
-	src/stdlib/textindex/*.scm src/stdlib/json/*.scm src/stdlib/crypto/*.scm \
-	src/stdlib/bench/*.scm src/stdlib/booktools/*.scm \
+SCHEME_MODULES=src/stdmods/*.scm \
+	src/webmods/aws/*.scm src/webmods/google/*.scm \
+	src/webmods/apis/facebook/*.scm src/webmods/apis/twitter/*.scm \
+	src/webmods/apis/paypal/*.scm  src/webmods/apis/twilio/*.scm \
+	src/webmods/apis/dropbox/*.scm \
+	src/stdmods/misc/*.scm src/stdmods/tests/*.scm \
+	src/webmods/domutils/*.scm src/stdmods/knodules/*.scm \
+	src/textmods/textindex/*.scm src/webmods/json/*.scm src/stdmods/crypto/*.scm \
+	src/stdmods/bench/*.scm src/textmods/booktools/*.scm \
 	src/brico/*.scm	src/brico/build/index/*.scm \
 	src/brico/build/*.scm
 
@@ -714,10 +715,11 @@ etc/%: etc/%.in ./config.status
 
 src/%.zip: src/%
 	cd $^;	zip ../$(@F) -r *
-src/stdlib.zip: src/stdmods src/kbmods/brico src/text/textmods src/web/webmods
+src/stdlib.zip: src/stdmods src/textmods src/webmods
 	rm -rf $@
-	TOPDIR=$(shell pwd); for dir in $^; do \
-	  command cd $${dir}; zip $${TOPDIR}/src/stdlib.zip *; command cd ${TOPDIR}; done;
+	cd src/stdmods; zip ../stdlib.zip *
+	cd src/webmods; zip ../../stdlib.zip *
+	cd src/textmods; zip ../../stdlib.zip *
 
 # docs/man/%: docs/ronn/%.ronn
 # 	ronn --roff < $< > $@
@@ -984,7 +986,7 @@ ALLTAGS: makefile.in configure.ac include/kno/config.h.in		\
 	@etags -o TAGS -a src/scripts/*.scm;
 	@etags -o TAGS -a src/extmods/*/makefile src/extmods/*/*.c src/extmods/*/*.h 
 	@find src/libscm/ -name "*.scm" -type f | xargs etags -a -o TAGS;
-	@find src/stdlib/ -name "*.scm" -type f | xargs etags -a -o TAGS;
+	@find src/stdmods/ -name "*.scm" -type f | xargs etags -a -o TAGS;
 	@find src/brico/ -name "*.scm" -type f | xargs etags -a -o TAGS;
 
 CSOURCETAGS: src/lisp/*.c src/sys/*.c src/apply/*.c	\
@@ -1007,7 +1009,9 @@ SCHEMETAGS: ${SCHEME_MODULES}
 	@# We skip module.scm files because they are always links
 	@#  to other files (with more distinctive names)
 	@find src/libscm -name "*.scm" -type f | xargs etags -o SCHEMETAGS -a
-	@find src/stdlib -name "*.scm" -type f | xargs etags -o SCHEMETAGS -a
+	@find src/stdmods -name "*.scm" -type f | xargs etags -o SCHEMETAGS -a
+	@find src/textmods -name "*.scm" -type f | xargs etags -o SCHEMETAGS -a
+	@find src/webmods -name "*.scm" -type f | xargs etags -o SCHEMETAGS -a
 	@find src/scripts -name "*.scm" -type f | xargs etags -o SCHEMETAGS -a
 	@find src/brico -name "*.scm" -type f | xargs etags -o SCHEMETAGS -a
 	@find tests -name "*.scm" -type f | xargs etags -o SCHEMETAGS -a
@@ -1297,12 +1301,16 @@ debupdate:
 staging/kno: REVISION FULL_REVISION $(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
 	git archive -o staging/kno.tar HEAD
 	cd tests; git archive -o ../staging/tests.tar HEAD;
-	cd src/stdlib; git archive -o ../../staging/stdlib.tar HEAD;
+	cd src/stdmods; git archive -o ../../staging/stdmods.tar HEAD;
+	cd src/textmods; git archive -o ../../staging/textmods.tar HEAD;
+	cd src/webmods; git archive -o ../../staging/webmods.tar HEAD;
 	cd src/brico; git archive -o ../../staging/brico.tar HEAD;
 	if [ ! -d staging/kno ]; then mkdir staging/kno; fi;
 	cd staging/kno; tar xf ../kno.tar;
 	cd staging/kno/tests; tar xf ../../tests.tar;
-	cd staging/kno/src/stdlib; tar xf ../../../stdlib.tar;
+	cd staging/kno/src/stdmods; tar xf ../../../stdmods.tar;
+	cd staging/kno/src/webmods; tar xf ../../../webmods.tar;
+	cd staging/kno/src/textmods; tar xf ../../../textmods.tar;
 	cd staging/kno/src/brico; tar xf ../../../brico.tar;
 	cp REVISION FULL_REVISION staging/kno;
 	cd staging; rm -f kno.tar tests.tar stdlib.tar brico.tar
@@ -1553,79 +1561,54 @@ confdirs: $(DESTDIR)@stdlib_module_dir@ $(DESTDIR)@installed_module_dir@ \
 		$(SYSINSTALL) @install_file_opts@ /dev/null \
 			$(DESTDIR)@config_dir@/servers; fi
 
-$(DESTDIR)@stdlib_module_dir@ $(DESTDIR)@stdlib_module_dir@/brico \
-	 $(DESTDIR)@installed_module_dir@ \
-	 $(DESTDIR)@local_module_dir@:
+$(DESTDIR)@stdlib_module_dir@ \
+	$(DESTDIR)@stdlib_module_dir@/brico \
+	$(DESTDIR)@stdlib_module_dir@/brico/utils \
+	$(DESTDIR)@stdlib_module_dir@/brico/utils/data \
+	$(DESTDIR)@installed_module_dir@ \
+	$(DESTDIR)@local_module_dir@:
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
 $(DESTDIR)@unpackage_dir@:
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
 
 upstartdirs: $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets
 
-STDLIB_MODULE_DIRS=							\
-	stdlib/aws stdlib/aws/templates stdlib/google			\
-	stdlib/kno stdlib/batch stdlib/bench stdlib/booktools		\
-	stdlib/compat stdlib/domutils stdlib/json			\
-	stdlib/knodules stdlib/knodules/data stdlib/knoml 		\
-	stdlib/misc stdlib/morph stdlib/morph/data stdlib/crypto	\
-	stdlib/tests stdlib/net stdlib/os				\
-	stdlib/textindex stdlib/textindex/data stdlib/text		\
-	stdlib/apis/twilio stdlib/apis/twitter stdlib/apis/facebook	\
-	stdlib/apis/paypal stdlib/apis/reddit stdlib/apis/dropbox 	\
-	stdlib/webapi stdlib/xhtml stdlib/imagick			\
-	brico
-
-STDLIB_MODULE_DATA=\
-	stdlib/textindex/data \
-	stdlib/knodules/data \
-	stdlib/aws/templates \
-	stdlib/morph/data \
-	brico/data
-
-install-stdlib: install-stdlib-source install-stdlib-data
-
-src/stdlib/hashfs.scm:
+src/stdmods/hashfs.scm:
 	git submodule init && \
-	git submodule update --remote --merge src/stdlib;
+	git submodule update --remote --merge src/stdmods;
+src/webmods/hostinfo.scm:
+	git submodule init && \
+	git submodule update --remote --merge src/webmods;
+src/textmods/text/ellipsize.scm:
+	git submodule init && \
+	git submodule update --remote --merge src/textmods;
 src/brico/brico.scm:
 	git submodule init && \
 	git submodule update --remote --merge src/brico;
 
-install-stdlib-source: $(DESTDIR)@stdlib_module_dir@ src/stdlib/hashfs.scm \
-	         $(DESTDIR)@stdlib_module_dir@/brico src/brico/brico.scm
-	@$(ECHO) Copying standard Scheme modules to @stdlib_module_dir@
-	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/stdlib/*.scm 		\
-		$(DESTDIR)@stdlib_module_dir@;
-	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/brico/*.scm 		\
-		$(DESTDIR)@stdlib_module_dir@/brico;
-	@for dir in $(STDLIB_MODULE_DIRS); do					\
-	 case $${dir} in 							\
-	  stdlib/*) 								\
-	    install_dir="$(DESTDIR)@stdlib_module_dir@/../$${dir}";; 	\
-	  *) 									\
-	    install_dir="$(DESTDIR)@stdlib_module_dir@/$${dir}";; 		\
-	esac; 									\
-	echo "Installing $${dir} module at $${install_dir}";			\
-	$(SYSINSTALL) @install_dir_opts@ $${install_dir};			\
-	$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/$${dir}/*.scm		\
-	      $${install_dir};							\
-	done;
+STDLIB_SOURCE_DIRS=src/stdmods src/webmods src/textmods
 
-install-stdlib-data: $(DESTDIR)@stdlib_module_dir@ \
-			src/stdlib/hashfs.scm src/brico/brico.scm
-	@$(ECHO) Copying module data to @stdlib_module_dir@;
-	@for dir in $(STDLIB_MODULE_DATA); do					\
-	 src_dir="$(BUILD)/src/$${dir}";				\
-	 case $${dir} in 							\
-	  stdlib/*) 								\
-	    install_dir="$(DESTDIR)@stdlib_module_dir@/../$${dir}";; 	\
-	  *) 									\
-	    install_dir="$(DESTDIR)@stdlib_module_dir@/$${dir}";; 		\
-	 esac; 									\
-	 echo Installing data from $${src_dir} to $${install_dir};		\
-	 $(SYSINSTALL) @install_dir_opts@ $${install_dir};			\
-	 $(SYSINSTALL) @install_file_opts@ $${src_dir}/* $${install_dir};	\
-	done;
+install-stdlib: $(DESTDIR)@stdlib_module_dir@ \
+	src/stdmods/hashfs.scm src/webmods/hostinfo.scm \
+	src/textmods/text/ellipsize.scm
+	@$(ECHO) Copying stdmods to @stdlib_module_dir@
+	@cd src/stdmods; ${DOINSTALL} cp -rp * $(DESTDIR)@stdlib_module_dir@
+	@$(ECHO) Copying web/webmods to @stdlib_module_dir@
+	@cd src/webmods; ${DOINSTALL} cp -rp * $(DESTDIR)@stdlib_module_dir@
+	@$(ECHO) Copying text/textmods to @stdlib_module_dir@
+	@cd src/textmods; ${DOINSTALL} cp -rp * $(DESTDIR)@stdlib_module_dir@
+	@make install-brico
+	@${DOINSTALL} find $(DESTDIR)@stdlib_module_dir@ -name "*~" -exec rm '{}' \;
+	@${DOINSTALL} find $(DESTDIR)@stdlib_module_dir@ -name "#*" -exec rm '{}' \;
+	@find $(DESTDIR)@stdlib_module_dir@ -type f | xargs -L 7 chmod 0664
+
+install-brico: $(DESTDIR)@stdlib_module_dir@ $(DESTDIR)@stdlib_module_dir@/brico \
+		$(DESTDIR)@stdlib_module_dir@/brico/utils $(DESTDIR)@stdlib_module_dir@/brico/data \
+		src/brico/brico.scm
+	@cd src/kbmods/brico; ${DOINSTALL} cp -rp *.scm $(DESTDIR)@stdlib_module_dir@/brico;
+	@cd src/kbmods/brico; ${DOINSTALL} cp -p build/*.scm $(DESTDIR)@stdlib_module_dir@/brico/build;
+	@cd src/kbmods/brico; ${DOINSTALL} cp -p utils/*.scm $(DESTDIR)@stdlib_module_dir@/brico/utils;
+	@cd src/kbmods/brico; ${DOINSTALL} cp -p data/* $(DESTDIR)@stdlib_module_dir@/brico/data;
 
 install-support: $(DESTDIR)@share_dir@
 	cd $(BUILD)/etc; $(SYSINSTALL) @install_file_opts@ 	\
