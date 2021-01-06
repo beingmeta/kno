@@ -49,4 +49,6 @@ KNO_EXPORT int kno_set_freefn(lispval tag,kno_type_freefn fn);
 KNO_EXPORT int kno_set_dumpfn(lispval tag,kno_type_dumpfn fn);
 KNO_EXPORT int kno_set_restorefn(lispval tag,kno_type_restorefn fn);
 
+
+
 #endif

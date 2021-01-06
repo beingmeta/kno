@@ -22,7 +22,9 @@
 
 #include <stdarg.h>
 
+static struct KNO_TYPEINFO *ctypeinfo[KNO_TYPE_MAX] = { NULL };
 static struct KNO_HASHTABLE typeinfo;
+static u8_mutex ctypeinfo_lock;
 
 kno_type_dumpfn kno_default_dumpfn = NULL;
 kno_type_restorefn kno_default_restorefn = NULL;
@@ -36,10 +38,32 @@ KNO_EXPORT struct KNO_TYPEINFO *_kno_objtype(lispval obj)
 
 /* Typeinfo */
 
-static struct KNO_HASHTABLE typeinfo;
+static lispval getctypeinfo(lispval ctype)
+{
+  int off = KNO_IMMEDIATE_DATA(ctype);
+  if (RARELY(off >= KNO_TYPE_MAX)) return KNO_VOID;
+  struct KNO_TYPEINFO *info = ctypeinfo[off];
+  if (info) return (lispval) info; else return KNO_VOID;
+}
+
+static int setctypeinfo(lispval ctype,struct KNO_TYPEINFO *info)
+{
+  int off = KNO_IMMEDIATE_DATA(ctype);
+  if (RARELY(off >= KNO_TYPE_MAX)) return 0;
+  u8_lock_mutex(&ctypeinfo_lock);
+  struct KNO_TYPEINFO *cur = ctypeinfo[off];
+  int rv = (cur == NULL) || (cur == info);
+  if (cur == NULL) ctypeinfo[off]=info;
+  u8_unlock_mutex(&ctypeinfo_lock);
+  return rv;
+}
 
 KNO_EXPORT struct KNO_TYPEINFO *kno_probe_typeinfo(lispval tag)
 {
+  if (KNO_TYPEP(tag,kno_ctype_type)) {
+    int off = KNO_IMMEDIATE_DATA(tag);
+    if (RARELY(off >= KNO_TYPE_MAX)) return NULL;
+    else return ctypeinfo[off];}
   lispval v = kno_hashtable_get(&typeinfo,tag,KNO_FALSE);
   if (KNO_TYPEP(v,kno_typeinfo_type))
     return (kno_typeinfo) v;
@@ -48,7 +72,12 @@ KNO_EXPORT struct KNO_TYPEINFO *kno_probe_typeinfo(lispval tag)
 
 KNO_EXPORT struct KNO_TYPEINFO *kno_use_typeinfo(lispval tag)
 {
-  lispval exists = kno_hashtable_get(&typeinfo,tag,KNO_VOID);
+  lispval exists = (KNO_TYPEP(tag,kno_ctype_type)) ?
+    (getctypeinfo(tag)) :
+    (kno_hashtable_get(&typeinfo,tag,KNO_VOID));
+  if (RARELY( (KNO_TYPEP(tag,kno_ctype_type)) &&
+	      ( (KNO_IMMEDIATE_DATA(tag)) >= KNO_TYPE_MAX) ))
+    return NULL;
   if (KNO_VOIDP(exists)) {
     struct KNO_TYPEINFO *info = u8_alloc(struct KNO_TYPEINFO);
     KNO_INIT_STATIC_CONS(info,kno_typeinfo_type);
@@ -56,9 +85,12 @@ KNO_EXPORT struct KNO_TYPEINFO *kno_use_typeinfo(lispval tag)
     info->type_props = kno_make_slotmap(2,0,NULL);
     info->type_name = (KNO_SYMBOLP(tag)) ? (KNO_SYMBOL_NAME(tag)) :
       (KNO_STRINGP(tag)) ? (KNO_CSTRING(tag)) :
+      (KNO_TYPEP(tag,kno_ctype_type)) ?
+      (kno_type2name((kno_lisp_type)(KNO_IMMEDIATE_DATA(tag)))) :
       (kno_lisp2string(tag));
     info->type_description = NULL;
-    int rv = kno_hashtable_op(&typeinfo,kno_table_init,tag,((lispval)info));
+    int rv = (KNO_TYPEP(tag,kno_ctype_type)) ? (setctypeinfo(tag,info)) :
+      (kno_hashtable_op(&typeinfo,kno_table_init,tag,((lispval)info)));
     if (rv > 0)
       return info;
     else {
@@ -239,10 +271,11 @@ void kno_init_typeinfo_c()
 {
   u8_register_source_file(_FILEINFO);
 
+  u8_init_mutex(&ctypeinfo_lock);
+  kno_init_hashtable(&typeinfo,231,NULL);
+
   kno_tablefns[kno_typeinfo_type] = &typeinfo_tablefns;
   kno_recyclers[kno_typeinfo_type]=recycle_typeinfo;
-
-  kno_init_hashtable(&typeinfo,231,NULL);
 
   atexit(recycle_typeinfo_map);
 }
