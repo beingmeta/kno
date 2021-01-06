@@ -516,7 +516,7 @@ static lispval lisp_unparse_arg(lispval obj)
 
 DEFCPRIM("symbol->string",lisp_symbol2string,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
+	 "Returns the string representation of a symbols print name",
 	 {"sym",kno_symbol_type,KNO_VOID})
 static lispval lisp_symbol2string(lispval sym)
 {
@@ -525,7 +525,7 @@ static lispval lisp_symbol2string(lispval sym)
 
 DEFCPRIM("string->symbol",lisp_string2symbol,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
+	 "Returns a symbol whose print name is *s*.",
 	 {"s",kno_string_type,KNO_VOID})
 static lispval lisp_string2symbol(lispval s)
 {

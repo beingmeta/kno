@@ -997,7 +997,9 @@ static lispval record_reader(lispval port,lispval ends,lispval limit_arg);
 
 DEFCPRIM("read-record",read_record_prim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 "**undocumented**",
+	 "Reads a string from *ports* terminated by *ends* "
+	 "(which is a string or a regex). This returns #f if "
+	 "no *ends* match is found before *limit* characters.",
 	 {"ports",kno_any_type,KNO_VOID},
 	 {"ends",kno_any_type,KNO_VOID},
 	 {"limit_arg",kno_any_type,KNO_VOID})
@@ -1656,7 +1658,7 @@ static lispval uncompress_prim(lispval arg,lispval method,
 
 DEFCPRIM("pathstore?",pathstorep_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
+	 "Returns true if *arg* is a pathstore.",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval pathstorep_prim(lispval arg)
 {
@@ -1667,7 +1669,7 @@ static lispval pathstorep_prim(lispval arg)
 
 DEFCPRIM("pathstore/exists?",pathstore_existsp_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "**undocumented**",
+	 "Returns *true* if *path* exists in the pathstore *arg*.",
 	 {"arg",kno_pathstore_type,KNO_VOID},
 	 {"path",kno_string_type,KNO_VOID})
 static lispval pathstore_existsp_prim(lispval arg,lispval path)
@@ -1680,7 +1682,8 @@ static lispval pathstore_existsp_prim(lispval arg,lispval path)
 
 DEFCPRIM("pathstore/info",pathstore_info_prim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 "**undocumented**",
+	 "Returns metadata for *path* in the pathstore *arg* or "
+	 "#f i the path doesn't exist",
 	 {"arg",kno_pathstore_type,KNO_VOID},
 	 {"path",kno_string_type,KNO_VOID},
 	 {"follow_arg",kno_any_type,KNO_FALSE})
@@ -1693,7 +1696,11 @@ static lispval pathstore_info_prim(lispval arg,lispval path,
 
 DEFCPRIM("pathstore/content",pathstore_content_prim,
 	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
-	 "**undocumented**",
+	 "Returns the content/data for *path* in the pathstore. If "
+	 "*enc_arg* is defined it is a character encoding for string "
+	 "conversion or \"bytes\" to indicate that a data packet should "
+	 "be returned. If *follow_arg* is specified, this follows symlinks "
+	 "in the pathstore *arg*.",
 	 {"arg",kno_pathstore_type,KNO_VOID},
 	 {"path",kno_string_type,KNO_VOID},
 	 {"enc_arg",kno_any_type,KNO_VOID},

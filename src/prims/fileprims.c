@@ -219,7 +219,9 @@ static lispval open_input_file(lispval fname,lispval opts)
 
 DEFCPRIM("write-file",writefile_prim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 "**undocumented**",
+	 "Writes *object* to *filename*. If *object* is a packet it is "
+	 "written directly; if *object* is a string, it is converted to "
+	 "the text encoding named *enc*; any other *object* signals an error.",
 	 {"filename",kno_string_type,KNO_VOID},
 	 {"object",kno_any_type,KNO_VOID},
 	 {"enc",kno_any_type,KNO_VOID})
@@ -232,13 +234,6 @@ static lispval writefile_prim(lispval filename,lispval object,lispval enc)
   else if (PACKETP(object)) {
     bytes = KNO_PACKET_DATA(object);
     len = KNO_PACKET_LENGTH(object);}
-  else if ((FALSEP(enc)) || (VOIDP(enc))) {
-    struct KNO_OUTBUF out = { 0 };
-    KNO_INIT_BYTE_OUTPUT(&out,1024);
-    kno_write_dtype(&out,object);
-    bytes = out.buffer;
-    len = out.bufwrite-out.buffer;
-    free_bytes = 1;}
   else {
     struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,1024);
     kno_unparse(&out,object);
@@ -361,7 +356,8 @@ static lispval noblock_symbol, nodelay_symbol;
 
 DEFCPRIM("open-socket",open_socket_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
+	 "Opens a TCP socket providing text/io to the "
+	 "address specified by *spec*",
 	 {"spec",kno_string_type,KNO_VOID},
 	 {"opts",kno_any_type,KNO_VOID})
 static lispval open_socket_prim(lispval spec,lispval opts)
@@ -386,20 +382,22 @@ static lispval open_socket_prim(lispval spec,lispval opts)
 
 DEFCPRIM("remove-file!",remove_file_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"arg",kno_string_type,KNO_VOID},
+	 "Removes the file named *name*. If *must_exist* is provided "
+	 "and true, this signals an error if a file named *name* "
+	 "doesn't exist.",
+	 {"filename",kno_string_type,KNO_VOID},
 	 {"must_exist",kno_any_type,KNO_VOID})
-static lispval remove_file_prim(lispval arg,lispval must_exist)
+static lispval remove_file_prim(lispval name,lispval must_exist)
 {
-  u8_string filename = CSTRING(arg);
+  u8_string filename = CSTRING(name);
   if ((u8_file_existsp(filename))||(u8_symlinkp(filename))) {
-    if (u8_removefile(CSTRING(arg))<0) {
-      lispval err = kno_err(RemoveFailed,"remove_file_prim",filename,arg);
+    if (u8_removefile(CSTRING(name))<0) {
+      lispval err = kno_err(RemoveFailed,"remove_file_prim",filename,name);
       return err;}
     else return KNO_TRUE;}
   else if (KNO_TRUEP(must_exist)) {
     u8_string absolute = u8_abspath(filename,NULL);
-    lispval err = kno_err(kno_NoSuchFile,"remove_file_prim",absolute,arg);
+    lispval err = kno_err(kno_NoSuchFile,"remove_file_prim",absolute,name);
     u8_free(absolute);
     return err;}
   else return KNO_FALSE;
@@ -407,20 +405,22 @@ static lispval remove_file_prim(lispval arg,lispval must_exist)
 
 DEFCPRIM("remove-tree!",remove_tree_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"arg",kno_string_type,KNO_VOID},
+	 "Removes the file system tree rooted at *root*. If *must_exist* "
+	 "is provided and true, this signals an error if a file named *name* "
+	 "doesn't exist.",
+	 {"root",kno_string_type,KNO_VOID},
 	 {"must_exist",kno_any_type,KNO_VOID})
-static lispval remove_tree_prim(lispval arg,lispval must_exist)
+static lispval remove_tree_prim(lispval root,lispval must_exist)
 {
-  u8_string filename = CSTRING(arg);
+  u8_string filename = CSTRING(root);
   if (u8_directoryp(filename))
-    if (u8_rmtree(CSTRING(arg))<0) {
-      lispval err = kno_err(RemoveFailed,"remove_tree_prim",filename,arg);
+    if (u8_rmtree(CSTRING(root))<0) {
+      lispval err = kno_err(RemoveFailed,"remove_tree_prim",filename,root);
       return err;}
     else return KNO_TRUE;
   else if (KNO_TRUEP(must_exist)) {
     u8_string absolute = u8_abspath(filename,NULL);
-    lispval err = kno_err(kno_NoSuchFile,"remove_tree_prim",absolute,arg);
+    lispval err = kno_err(kno_NoSuchFile,"remove_tree_prim",absolute,root);
     u8_free(absolute);
     return err;}
   else return KNO_FALSE;
@@ -428,7 +428,7 @@ static lispval remove_tree_prim(lispval arg,lispval must_exist)
 
 DEFCPRIM("move-file!",move_file_prim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 "**undocumented**",
+	 "Moves the file *from* to a new location, *to*.",
 	 {"from",kno_string_type,KNO_VOID},
 	 {"to",kno_string_type,KNO_VOID},
 	 {"must_exist",kno_any_type,KNO_VOID})
@@ -447,7 +447,7 @@ static lispval move_file_prim(lispval from,lispval to,lispval must_exist)
 
 DEFCPRIM("link-file!",link_file_prim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 "**undocumented**",
+	 "Creates a symbolic link to *from* located at *to*",
 	 {"from",kno_string_type,KNO_VOID},
 	 {"to",kno_string_type,KNO_VOID},
 	 {"must_exist",kno_any_type,KNO_VOID})
