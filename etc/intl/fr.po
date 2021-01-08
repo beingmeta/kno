@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-01-05 15:26-0500\n"
+"POT-Creation-Date: 2021-01-08 11:57-0500\n"
 "PO-Revision-Date: 2005-03-05 16:06-0500\n"
 "Last-Translator: Kenneth Haase <kh@beingmeta.com>\n"
 "Language-Team: French <traduc@traduc.org>\n"
@@ -324,7 +324,7 @@ msgid "whether to check returned and real dtype sizes"
 msgstr ""
 
 #: src/lisp/xtypes.c:1207 src/storage/compress.c:156 src/storage/compress.c:195
-#: src/prims/portprims.c:1544 src/drivers/headers/zcompress.h:27
+#: src/prims/portprims.c:1546 src/drivers/headers/zcompress.h:27
 #: src/drivers/headers/zcompress.h:65
 msgid "ZLIB ran out of memory"
 msgstr ""
@@ -342,7 +342,7 @@ msgid "ZLIB uncompress data error"
 msgstr "erreur d'analyse syntaxique"
 
 #: src/lisp/xtypes.c:1221 src/storage/compress.c:170 src/storage/compress.c:208
-#: src/prims/portprims.c:1557 src/drivers/headers/zcompress.h:40
+#: src/prims/portprims.c:1559 src/drivers/headers/zcompress.h:40
 #: src/drivers/headers/zcompress.h:78
 msgid "Bad ZLIB return code"
 msgstr ""
@@ -463,7 +463,7 @@ msgstr "oid"
 
 #: src/lisp/lisp.c:298 src/lisp/lisp.c:299 src/sys/config.c:863
 #: src/eval/opcode_defs.c:373 src/eval/evalops.c:311 src/prims/dbprims.c:3394
-#: src/prims/portprims.c:1026 src/eval/choiceops.c:1538
+#: src/prims/portprims.c:1028 src/eval/choiceops.c:1538
 #: src/eval/choiceops.c:1609 src/eval/choiceops.c:1656
 #: src/eval/choiceops.c:1723 src/eval/choiceops.c:1739
 #: src/eval/choiceops.c:1743 src/eval/choiceops.c:1744 src/prims/seqprims.c:463
@@ -540,13 +540,13 @@ msgstr ""
 #: src/sys/config.c:783 src/sys/config.c:802 src/sys/startup.c:256
 #: src/sys/startup.c:649 src/prims/dbprims.c:338 src/prims/dbprims.c:361
 #: src/prims/dbprims.c:384 src/prims/portprims.c:393 src/prims/portprims.c:882
-#: src/prims/portprims.c:1032 src/prims/dtypeprims.c:248
+#: src/prims/portprims.c:1034 src/prims/dtypeprims.c:248
 #: src/prims/dtypeprims.c:303 src/prims/dtypeprims.c:390
 #: src/prims/dtypeprims.c:424 src/prims/dtypeprims.c:448
 #: src/prims/dtypeprims.c:467 src/prims/dtypeprims.c:512
 #: src/prims/dtypeprims.c:568 src/prims/stringprims.c:496
 #: src/prims/stringprims.c:712 src/prims/stringprims.c:739
-#: src/prims/stringprims.c:1679 src/prims/fileprims.c:318
+#: src/prims/stringprims.c:1679 src/prims/fileprims.c:313
 #: src/prims/fileprims.c:748 src/web/cgiexec.c:1333 src/web/cgiexec.c:1360
 #: src/web/htmlout.c:584 src/web/uriprims.c:438 src/web/mime.c:114
 #: src/web/curl.c:704 src/text/texttools.c:142 src/text/texttools.c:174
@@ -1969,7 +1969,7 @@ msgid "pool value compression ran out of memory"
 msgstr ""
 
 # aptitude
-#: src/storage/compress.c:206 src/prims/portprims.c:1555
+#: src/storage/compress.c:206 src/prims/portprims.c:1557
 #: src/drivers/headers/zcompress.h:76
 #, fuzzy
 msgid "ZLIB compress data error"
@@ -2000,59 +2000,14 @@ msgstr ""
 msgid "Stored %d oid values in oidpool %s in %f seconds"
 msgstr ""
 
-#: src/drivers/filepool.c:813 src/drivers/oidpool.c:1553
-#: src/drivers/bigpool.c:2237 src/drivers/kpool.c:2184
+#: src/drivers/filepool.c:813 src/drivers/kpool.c:2184
 msgid "FileAlreadyExists"
 msgstr ""
 
-#: src/drivers/filepool.c:907 src/drivers/oidpool.c:1648
-#: src/drivers/bigpool.c:2055 src/drivers/kpool.c:1996
-#: src/drivers/fileindex.c:1199 src/drivers/hashindex.c:3711
-#: src/drivers/kindex.c:3332
+#: src/drivers/filepool.c:907 src/drivers/kpool.c:1996
+#: src/drivers/fileindex.c:1199 src/drivers/kindex.c:3332
+#: src/drivers/hashindex.c:3711
 msgid "cachelevel"
-msgstr ""
-
-#: src/drivers/oidpool.c:64
-msgid "Invalid schema definition data"
-msgstr ""
-
-#: src/drivers/oidpool.c:65
-#, fuzzy
-msgid "Invalid encoded schema reference"
-msgstr "référencé constante invalide"
-
-#: src/drivers/oidpool.c:66
-msgid "Inconsistent schema reference and value data"
-msgstr ""
-
-#: src/drivers/oidpool.c:68
-msgid "Invalid offset in OIDPOOL"
-msgstr ""
-
-#: src/drivers/oidpool.c:615
-msgid "Bad compress level"
-msgstr ""
-
-#: src/drivers/oidpool.c:830
-msgid "Out of luck"
-msgstr ""
-
-#: src/drivers/bigpool.c:104
-#, fuzzy
-msgid "Corrupt bigpool"
-msgstr "table de lots corrompu"
-
-#: src/drivers/bigpool.c:105
-msgid "Invalid offset in BIGPOOL"
-msgstr ""
-
-#: src/drivers/bigpool.c:249
-#, fuzzy
-msgid "Not a bigpool"
-msgstr "pas une fichiers d'index"
-
-#: src/drivers/bigpool.c:755
-msgid "BadSlotCode"
 msgstr ""
 
 #: src/drivers/kpool.c:107
@@ -2084,21 +2039,6 @@ msgstr "pas une fichiers d'index"
 #, c-format
 msgid "Saved mappings for %d keys to %s in %f secs"
 msgstr ""
-
-#: src/drivers/hashindex.c:178
-#, fuzzy
-msgid "Corrupted hashindex file"
-msgstr "table de lots corrompu"
-
-#: src/drivers/hashindex.c:179
-#, fuzzy
-msgid "hashindex has unknown hash function"
-msgstr "pas une fonction"
-
-#: src/drivers/hashindex.c:3319
-#, fuzzy
-msgid "NotAHashIndex"
-msgstr "index"
 
 #: src/drivers/kindex.c:198
 #, fuzzy
@@ -2142,6 +2082,21 @@ msgstr "conflit entre lots"
 #: src/storage/procindex.c:23
 msgid "ProcIndex/OddResult"
 msgstr ""
+
+#: src/drivers/hashindex.c:178
+#, fuzzy
+msgid "Corrupted hashindex file"
+msgstr "table de lots corrompu"
+
+#: src/drivers/hashindex.c:179
+#, fuzzy
+msgid "hashindex has unknown hash function"
+msgstr "pas une fonction"
+
+#: src/drivers/hashindex.c:3319
+#, fuzzy
+msgid "NotAHashIndex"
+msgstr "index"
 
 #: src/drivers/logindex.c:305
 #, fuzzy
@@ -2401,7 +2356,7 @@ msgstr ""
 msgid "environment"
 msgstr ""
 
-#: src/eval/typeops.c:683 src/eval/typeops.c:790
+#: src/eval/typeops.c:723 src/eval/typeops.c:830
 msgid "Immutable record"
 msgstr ""
 
@@ -2545,13 +2500,13 @@ msgstr "port"
 
 #: src/prims/portprims.c:448 src/prims/portprims.c:470
 #: src/prims/portprims.c:495 src/prims/portprims.c:512
-#: src/prims/fileprims.c:309
+#: src/prims/fileprims.c:304
 msgid "output port"
 msgstr "port à la sortie"
 
 #: src/prims/portprims.c:847 src/prims/portprims.c:878
 #: src/prims/portprims.c:906 src/prims/portprims.c:988
-#: src/prims/portprims.c:1022 src/text/texttools.c:2423
+#: src/prims/portprims.c:1024 src/text/texttools.c:2423
 msgid "input port"
 msgstr "port à l'entrée"
 
@@ -2560,11 +2515,11 @@ msgstr "port à l'entrée"
 msgid "fixum"
 msgstr "fixnum"
 
-#: src/prims/portprims.c:1552
+#: src/prims/portprims.c:1554
 msgid "OIDPOOL compress ran out of memory"
 msgstr ""
 
-#: src/prims/portprims.c:1631 src/prims/stringprims.c:1531
+#: src/prims/portprims.c:1633 src/prims/stringprims.c:1531
 #: src/prims/stringprims.c:1594
 #, fuzzy
 msgid "text encoding"
@@ -3285,10 +3240,6 @@ msgstr ""
 msgid "The name of the root file being executed for this application"
 msgstr ""
 
-#: src/exe/knotask.c:167 src/exe/knotask.c:171
-msgid "Whether to extend existing log files or truncate them"
-msgstr ""
-
 #: src/exe/knocgi.c:75
 msgid "Servlet/STARTUP"
 msgstr ""
@@ -3305,11 +3256,11 @@ msgstr ""
 msgid "Trace web transactions over N seconds"
 msgstr ""
 
-#: src/exe/knocgi.c:1845 src/exe/knod.c:1098
+#: src/exe/knocgi.c:1845
 msgid "Number of pending connection requests allowed"
 msgstr ""
 
-#: src/exe/knocgi.c:1847 src/exe/knod.c:1101
+#: src/exe/knocgi.c:1847
 msgid "Max number of requests to keep queued"
 msgstr ""
 
@@ -3317,11 +3268,11 @@ msgstr ""
 msgid "Max number of concurrent connections to allow (NYI)"
 msgstr ""
 
-#: src/exe/knocgi.c:1853 src/exe/knod.c:1105
+#: src/exe/knocgi.c:1853
 msgid "Number of clients to prepare for/grow by"
 msgstr ""
 
-#: src/exe/knocgi.c:1856 src/exe/knocgi.c:1859 src/exe/knod.c:1108
+#: src/exe/knocgi.c:1856 src/exe/knocgi.c:1859
 msgid "Number of threads in the thread pool"
 msgstr ""
 
@@ -3337,11 +3288,11 @@ msgstr ""
 msgid "Milliseconds (roughly) between logging status information"
 msgstr ""
 
-#: src/exe/knocgi.c:1871 src/exe/knod.c:1171
+#: src/exe/knocgi.c:1871
 msgid "How long (μs) to wait for tasks during shutdown"
 msgstr ""
 
-#: src/exe/knocgi.c:1875 src/exe/knod.c:1082
+#: src/exe/knocgi.c:1875
 msgid "Remove existing socket files with extreme prejudice"
 msgstr ""
 
@@ -3353,7 +3304,7 @@ msgstr ""
 msgid "Ports for listening for connections"
 msgstr ""
 
-#: src/exe/knocgi.c:1886 src/exe/knod.c:1167
+#: src/exe/knocgi.c:1886
 msgid "Whether to run in asynchronous mode"
 msgstr ""
 
@@ -3365,11 +3316,11 @@ msgstr ""
 msgid "Timeout for the poll loop (lower bound of status updates)"
 msgstr ""
 
-#: src/exe/knocgi.c:1898 src/exe/knod.c:1135
+#: src/exe/knocgi.c:1898
 msgid "Whether to have libu8 log each connection"
 msgstr ""
 
-#: src/exe/knocgi.c:1902 src/exe/knod.c:1140
+#: src/exe/knocgi.c:1902
 msgid "Whether to have libu8 log each transaction"
 msgstr ""
 
@@ -3381,118 +3332,8 @@ msgstr ""
 msgid "Whether to have libu8 log data transmission/receiption"
 msgstr ""
 
-#: src/exe/knocgi.c:1919 src/exe/knod.c:1152
+#: src/exe/knocgi.c:1919
 msgid "Whether to support thread-asynchronous transactions"
-msgstr ""
-
-#: src/exe/knod.c:81
-msgid "Bad port spec"
-msgstr ""
-
-#: src/exe/knod.c:82
-msgid "Bad client request"
-msgstr ""
-
-#: src/exe/knod.c:83
-msgid "NoServers"
-msgstr ""
-
-#: src/exe/knod.c:84
-msgid "Startup"
-msgstr ""
-
-#: src/exe/knod.c:85
-msgid "Knod/ABORT"
-msgstr ""
-
-#: src/exe/knod.c:86
-msgid "Knod/CONFIG"
-msgstr ""
-
-#: src/exe/knod.c:87
-msgid "Knod/STARTUP"
-msgstr ""
-
-#: src/exe/knod.c:88
-msgid "Knod/SHUTDOWN"
-msgstr ""
-
-#: src/exe/knod.c:92
-msgid "Incoming"
-msgstr ""
-
-#: src/exe/knod.c:92
-msgid "Outgoing"
-msgstr ""
-
-#: src/exe/knod.c:1085
-msgid "Loglevel for knod itself"
-msgstr ""
-
-#: src/exe/knod.c:1088
-msgid "Whether to run in the foreground"
-msgstr ""
-
-#: src/exe/knod.c:1091
-msgid "Whether to enable auto-restart"
-msgstr ""
-
-#: src/exe/knod.c:1094
-msgid "Whether to wait for the servlet PID file"
-msgstr ""
-
-#: src/exe/knod.c:1111
-msgid "modules to provide in the server environment"
-msgstr ""
-
-#: src/exe/knod.c:1114
-msgid "whether to provide full scheme interpreter"
-msgstr ""
-
-#: src/exe/knod.c:1117
-msgid "Whether to log each request and response"
-msgstr ""
-
-#: src/exe/knod.c:1120
-msgid "Whether to log each transaction"
-msgstr ""
-
-#: src/exe/knod.c:1124
-msgid "Whether to log errors returned by the server to clients"
-msgstr ""
-
-#: src/exe/knod.c:1128
-msgid "Whether to include a detailed backtrace when logging errors"
-msgstr ""
-
-#: src/exe/knod.c:1131
-msgid "Line width for logged backtraces"
-msgstr ""
-
-#: src/exe/knod.c:1146
-msgid "Whether to have libu8 log all data transfers"
-msgstr ""
-
-#: src/exe/knod.c:1158
-#, fuzzy
-msgid "Max number of string characters to display in debug messages"
-msgstr "trop peu de arguments à «find-frames»"
-
-#: src/exe/knod.c:1163
-#, fuzzy
-msgid "Max number of object elements to display in debug messages"
-msgstr "trop peu de arguments à «find-frames»"
-
-#: src/exe/knod.c:1175
-msgid "Whether to automatically reload changed files"
-msgstr ""
-
-#: src/exe/knod.c:1179
-msgid "Whether to disable exported Kno DB API"
-msgstr ""
-
-#: src/exe/knod.c:1335
-msgid "port or port@host to listen on"
 msgstr ""
 
 #: src/cmodules/sqlite.c:54
@@ -3578,6 +3419,26 @@ msgstr ""
 #: src/exe/webcommon.h:733
 msgid "WEBMAIN default procedure for handling requests"
 msgstr ""
+
+#, fuzzy
+#~ msgid "Invalid encoded schema reference"
+#~ msgstr "référencé constante invalide"
+
+#, fuzzy
+#~ msgid "Corrupt bigpool"
+#~ msgstr "table de lots corrompu"
+
+#, fuzzy
+#~ msgid "Not a bigpool"
+#~ msgstr "pas une fichiers d'index"
+
+#, fuzzy
+#~ msgid "Max number of string characters to display in debug messages"
+#~ msgstr "trop peu de arguments à «find-frames»"
+
+#, fuzzy
+#~ msgid "Max number of object elements to display in debug messages"
+#~ msgstr "trop peu de arguments à «find-frames»"
 
 #~ msgid "wrapper"
 #~ msgstr "envelope"

@@ -1595,15 +1595,14 @@ install-stdlib: $(DESTDIR)@stdlib_module_dir@ \
 	@make install-brico
 	@${DOINSTALL} find $(DESTDIR)@stdlib_module_dir@ -name "*~" -exec rm '{}' \;
 	@${DOINSTALL} find $(DESTDIR)@stdlib_module_dir@ -name "#*" -exec rm '{}' \;
-	@find $(DESTDIR)@stdlib_module_dir@ -type f | xargs -L 7 chmod 0664
 
 install-brico: $(DESTDIR)@stdlib_module_dir@ $(DESTDIR)@stdlib_module_dir@/brico \
 		$(DESTDIR)@stdlib_module_dir@/brico/utils $(DESTDIR)@stdlib_module_dir@/brico/data \
 		src/brico/brico.scm
-	@cd src/kbmods/brico; ${DOINSTALL} cp -rp *.scm $(DESTDIR)@stdlib_module_dir@/brico;
-	@cd src/kbmods/brico; ${DOINSTALL} cp -p build/*.scm $(DESTDIR)@stdlib_module_dir@/brico/build;
-	@cd src/kbmods/brico; ${DOINSTALL} cp -p utils/*.scm $(DESTDIR)@stdlib_module_dir@/brico/utils;
-	@cd src/kbmods/brico; ${DOINSTALL} cp -p data/* $(DESTDIR)@stdlib_module_dir@/brico/data;
+	@cd src/brico; ${DOINSTALL} cp -rp *.scm $(DESTDIR)@stdlib_module_dir@/brico;
+	@cd src/brico; ${DOINSTALL} cp -p build/*.scm $(DESTDIR)@stdlib_module_dir@/brico/build;
+	@cd src/brico; ${DOINSTALL} cp -p utils/*.scm $(DESTDIR)@stdlib_module_dir@/brico/utils;
+	@cd src/brico; ${DOINSTALL} cp -p data/* $(DESTDIR)@stdlib_module_dir@/brico/data;
 
 install-support: $(DESTDIR)@share_dir@
 	cd $(BUILD)/etc; $(SYSINSTALL) @install_file_opts@ 	\
