@@ -1558,6 +1558,8 @@ confdirs: $(DESTDIR)@stdlib_module_dir@ $(DESTDIR)@installed_module_dir@ \
 
 $(DESTDIR)@stdlib_module_dir@ \
 	$(DESTDIR)@stdlib_module_dir@/brico \
+	$(DESTDIR)@stdlib_module_dir@/brico/data \
+	$(DESTDIR)@stdlib_module_dir@/brico/build \
 	$(DESTDIR)@stdlib_module_dir@/brico/utils \
 	$(DESTDIR)@stdlib_module_dir@/brico/utils/data \
 	$(DESTDIR)@installed_module_dir@ \
@@ -1597,7 +1599,9 @@ install-stdlib: $(DESTDIR)@stdlib_module_dir@ \
 	@${DOINSTALL} find $(DESTDIR)@stdlib_module_dir@ -name "#*" -exec rm '{}' \;
 
 install-brico: $(DESTDIR)@stdlib_module_dir@ $(DESTDIR)@stdlib_module_dir@/brico \
-		$(DESTDIR)@stdlib_module_dir@/brico/utils $(DESTDIR)@stdlib_module_dir@/brico/data \
+		$(DESTDIR)@stdlib_module_dir@/brico/data \
+		$(DESTDIR)@stdlib_module_dir@/brico/build \
+		$(DESTDIR)@stdlib_module_dir@/brico/utils \
 		src/brico/brico.scm
 	@cd src/brico; ${DOINSTALL} cp -rp *.scm $(DESTDIR)@stdlib_module_dir@/brico;
 	@cd src/brico; ${DOINSTALL} cp -p build/*.scm $(DESTDIR)@stdlib_module_dir@/brico/build;
