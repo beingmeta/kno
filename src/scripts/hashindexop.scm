@@ -1,6 +1,6 @@
 ;;; -*- Mode: Scheme -*-
 
-(use-module '{optimizekno/mttools logger text/stringfmts fifo varconfig})
+(use-module '{optimize kno/mttools logger text/stringfmts fifo varconfig})
 
 (config! 'cachelevel 2)
 (config! 'optlevel 4)

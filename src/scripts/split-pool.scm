@@ -1,6 +1,6 @@
 ;;; -*- Mode: Scheme -*-
 
-(use-module '{webtools optimize mttools varconfig 
+(use-module '{webtools optimize kno/mttools varconfig 
 	      text/stringfmts logger fifo 
 	      knodb knodb/flexpools})
 

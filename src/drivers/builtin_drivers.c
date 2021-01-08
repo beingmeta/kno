@@ -47,6 +47,7 @@ int kno_init_kindex_c(void);
 
 int kno_init_netpool_c(void);
 int kno_init_file_pool_c(void);
+int kno_init_bigpool_c(void);
 int kno_init_kpool_c(void);
 
 int kno_init_knosocks_c(void);
@@ -67,13 +68,16 @@ KNO_EXPORT int kno_init_drivers()
   kno_init_kpool_c();
 
   kno_init_fileindex_c();
-  kno_init_hashindex_c();
   kno_init_kindex_c();
 
   kno_init_netindex_c();
   kno_init_logindex_c();
 
   kno_init_zpathstore_c();
+
+  /* Deprecated */
+  kno_init_bigpool_c();
+  kno_init_hashindex_c();
 
   u8_register_source_file(_FILEINFO);
 

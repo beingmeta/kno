@@ -1,6 +1,6 @@
 ;;; -*- Mode: Scheme -*-
 
-(use-module '{optimizekno/mttools varconfig engine text/stringfmts logger})
+(use-module '{optimize kno/mttools varconfig engine text/stringfmts logger})
 (use-module '{knodb/countrefs})
 
 (define %loglevel %notice%)

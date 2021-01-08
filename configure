@@ -5940,7 +5940,6 @@ else
 fi
 
 suffix=$with_suffix
-echo "suffix=${suffix}";
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking PATCHLEVEL" >&5
 $as_echo_n "checking PATCHLEVEL... " >&6; }

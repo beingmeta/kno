@@ -504,7 +504,6 @@ AC_DEFINE_UNQUOTED(KNO_BRANCH,$KNO_BRANCH)
 
 AC_ARG_WITH(suffix,--with-suffix string,,with_suffix="")
 suffix=$with_suffix
-echo "suffix=${suffix}";
 
 AC_MSG_CHECKING(PATCHLEVEL)
 if test ! -z "${KNO_PATCHLEVEL}"; then
