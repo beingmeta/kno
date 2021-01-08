@@ -52,7 +52,7 @@ static int setctypeinfo(lispval ctype,struct KNO_TYPEINFO *info)
   if (RARELY(off >= KNO_TYPE_MAX)) return 0;
   u8_lock_mutex(&ctypeinfo_lock);
   struct KNO_TYPEINFO *cur = ctypeinfo[off];
-  int rv = (cur == NULL) || (cur == info);
+  int rv = (cur == NULL);
   if (cur == NULL) ctypeinfo[off]=info;
   u8_unlock_mutex(&ctypeinfo_lock);
   return rv;
@@ -72,12 +72,12 @@ KNO_EXPORT struct KNO_TYPEINFO *kno_probe_typeinfo(lispval tag)
 
 KNO_EXPORT struct KNO_TYPEINFO *kno_use_typeinfo(lispval tag)
 {
-  lispval exists = (KNO_TYPEP(tag,kno_ctype_type)) ?
-    (getctypeinfo(tag)) :
-    (kno_hashtable_get(&typeinfo,tag,KNO_VOID));
   if (RARELY( (KNO_TYPEP(tag,kno_ctype_type)) &&
 	      ( (KNO_IMMEDIATE_DATA(tag)) >= KNO_TYPE_MAX) ))
     return NULL;
+  lispval exists = (KNO_TYPEP(tag,kno_ctype_type)) ?
+    (getctypeinfo(tag)) :
+    (kno_hashtable_get(&typeinfo,tag,KNO_VOID));
   if (KNO_VOIDP(exists)) {
     struct KNO_TYPEINFO *info = u8_alloc(struct KNO_TYPEINFO);
     KNO_INIT_STATIC_CONS(info,kno_typeinfo_type);
@@ -96,12 +96,13 @@ KNO_EXPORT struct KNO_TYPEINFO *kno_use_typeinfo(lispval tag)
     else {
       kno_decref(info->typetag);
       kno_decref(info->type_props);
-      kno_decref(info->type_props);
       u8_free(info);
       if (rv < 0)
 	return NULL;
       else {
-	lispval useval = kno_hashtable_get(&typeinfo,tag,KNO_FALSE);
+	lispval useval = (KNO_TYPEP(tag,kno_ctype_type)) ?
+	  (getctypeinfo(tag)) :
+	  (kno_hashtable_get(&typeinfo,tag,KNO_VOID));
 	if (KNO_TYPEP(useval,kno_typeinfo_type))
 	  return (kno_typeinfo) useval;
 	else return NULL;}}}
@@ -243,7 +244,7 @@ static struct KNO_TABLEFNS typeinfo_tablefns =
    NULL,
    NULL};
 
-static void recycle_typeinfo_map()
+static void release_typeinfo()
 {
   unsigned int n = typeinfo.ht_n_buckets;
   struct KNO_HASH_BUCKET **buckets = typeinfo.ht_buckets;
@@ -265,6 +266,12 @@ static void recycle_typeinfo_map()
     i++;}
   u8_free(buckets);
   memset(&typeinfo,0,sizeof(struct KNO_HASHTABLE));
+  i=0; while (i<KNO_TYPE_MAX) {
+    struct KNO_TYPEINFO *info = ctypeinfo[i];
+    if (info) {
+      ctypeinfo[i]=NULL;
+      recycle_typeinfo((struct KNO_RAW_CONS *)info);}
+    i++;}
 }
 
 void kno_init_typeinfo_c()
@@ -277,5 +284,5 @@ void kno_init_typeinfo_c()
   kno_tablefns[kno_typeinfo_type] = &typeinfo_tablefns;
   kno_recyclers[kno_typeinfo_type]=recycle_typeinfo;
 
-  atexit(recycle_typeinfo_map);
+  atexit(release_typeinfo);
 }
