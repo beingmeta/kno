@@ -761,7 +761,7 @@ int kno_make_file_pool
 {
   int i, hi, lo;
   if (load>capacity) {
-    u8_seterr("LoadOverFlow","make_bigpool",
+    u8_seterr("LoadOverFlow","make_file_pool",
               u8_sprintf(NULL,256,
                          "Specified load (%u) > capacity (%u) for '%s'",
                          load,capacity,filename));

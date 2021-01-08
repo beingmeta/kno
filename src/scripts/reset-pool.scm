@@ -53,7 +53,7 @@
 			      'type (config 'pooltype (or (config 'type) {}))
 			      'module (or (config 'dbmodule) {})))
 		 (old (open-pool bakfile read-opts))
-		 (pooltype (config 'NEWTYPE (try (poolctl old 'metadata 'type) 'bigpool)))
+		 (pooltype (config 'NEWTYPE (try (poolctl old 'metadata 'type) 'kpool)))
 		 (base (pool-base old))
 		 (capacity (config 'NEWCAP (pool-capacity old)))
 		 (old-metadata (poolctl old 'metadata))
@@ -77,7 +77,7 @@
   (lineout "    Empties (resets) the pool stored in <from>.  The new file ")
   (lineout "    pool either replaces <from> or is written into [to].")
   (lineout "    if specified, [to] must not exist unless OVERWRITE=yes.")
-  (lineout "    POOLTYPE=bigpool|oidpool|filepool"))
+  (lineout "    POOLTYPE=kpool|filepool"))
 
 (optimize!)
 

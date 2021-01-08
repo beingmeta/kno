@@ -2447,7 +2447,7 @@ static int kindex_commit(kno_index ix,kno_commit_phase phase,
         (kno_init_file_stream(NULL,commit_file,KNO_FILE_MODIFY,-1,-1)) :
         (NULL);
       if (head_stream == NULL) {
-        u8_seterr("CantOpenCommitFile","bigpool_commit",commit_file);
+        u8_seterr("CantOpenCommitFile","kindex_commit",commit_file);
         return -1;}
       else u8_free(commit_file);}
     else head_stream=stream;

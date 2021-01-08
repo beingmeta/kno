@@ -33,7 +33,7 @@
   (knodb/make "wikidata/wikidata.flexpool"
 	       [create #t type 'flexpool
 		base @31c1/0 capacity (* 128 1024 1024)
-		partsize (* 1024 1024) partition-type 'bigpool
+		partsize (* 1024 1024) partition-type 'kpool
 		prefix "pools/"
 		adjuncts #[labels #[pool "labels"]
 			   aliases #[pool "aliases"]
@@ -43,7 +43,7 @@
 #|
 (define wikidata.pool
   (knodb/make "wikidata/wikidata.pool"
-	       [create #t type 'bigpool
+	       [create #t type 'kpool
 		base @31c1/0 capacity (* 1024 1024)
 		adjuncts #[labels #[pool "labels"]
 			   aliases #[pool "aliases"]

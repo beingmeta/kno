@@ -47,8 +47,6 @@ int kno_init_kindex_c(void);
 
 int kno_init_netpool_c(void);
 int kno_init_file_pool_c(void);
-int kno_init_oidpool_c(void);
-int kno_init_bigpool_c(void);
 int kno_init_kpool_c(void);
 
 int kno_init_knosocks_c(void);
@@ -65,8 +63,6 @@ KNO_EXPORT int kno_init_drivers()
   kno_init_knosocks_c();
 
   kno_init_file_pool_c();
-  // kno_init_oidpool_c();
-  kno_init_bigpool_c();
   kno_init_netpool_c();
   kno_init_kpool_c();
 
