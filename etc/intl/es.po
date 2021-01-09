@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-01-08 11:57-0500\n"
+"POT-Creation-Date: 2021-01-09 14:08-0500\n"
 "PO-Revision-Date: 2005-03-04 22:55-0500\n"
 "Last-Translator: Kenneth Haase <kh@beingmeta.com>\n"
 "Language-Team: Spanish <es@li.org>\n"
@@ -1878,12 +1878,13 @@ msgid "Stored %d oid values in oidpool %s in %f seconds"
 msgstr ""
 
 #: src/drivers/filepool.c:813 src/drivers/kpool.c:2184
+#: src/drivers/bigpool.c:2237
 msgid "FileAlreadyExists"
 msgstr ""
 
 #: src/drivers/filepool.c:907 src/drivers/kpool.c:1996
 #: src/drivers/fileindex.c:1199 src/drivers/kindex.c:3332
-#: src/drivers/hashindex.c:3711
+#: src/drivers/hashindex.c:3711 src/drivers/bigpool.c:2055
 msgid "cachelevel"
 msgstr ""
 
@@ -1958,6 +1959,22 @@ msgstr ""
 
 #: src/drivers/hashindex.c:3319
 msgid "NotAHashIndex"
+msgstr ""
+
+#: src/drivers/bigpool.c:104
+msgid "Corrupt bigpool"
+msgstr ""
+
+#: src/drivers/bigpool.c:105
+msgid "Invalid offset in BIGPOOL"
+msgstr ""
+
+#: src/drivers/bigpool.c:249
+msgid "Not a bigpool"
+msgstr ""
+
+#: src/drivers/bigpool.c:755
+msgid "BadSlotCode"
 msgstr ""
 
 #: src/drivers/logindex.c:305

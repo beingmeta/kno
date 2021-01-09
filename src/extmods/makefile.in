@@ -1,6 +1,6 @@
 EXTMODS=@EXTMODS@
 shared_suffix=@shared_suffix@
-BRANCH=trunk
+BRANCH=@KNO_BRANCH@
 
 %/.git:
 	@git clone git@github.com:beingmeta/kno-$(@D).git $(@D)
@@ -27,7 +27,7 @@ checkout update:
 	    echo > /dev/null; \
 	  elif test -d $${dir}/.git; then \
 	    command cd $${dir}; \
-	    git checkout trunk; \
+	    git checkout $${BRANCH}; \
 	    git pull; \
 	    command cd ..; \
 	  else \
