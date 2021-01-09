@@ -21,7 +21,3 @@
 	path = src/webmods
 	url = git@github.com:beingmeta/webmods
 	branch = main
-[submodule "src/stdlib"]
-	path = src/stdlib
-	url = git@github.com:beingmeta/stdlib.git
-	branch = main
