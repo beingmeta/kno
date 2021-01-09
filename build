@@ -31,7 +31,7 @@ while [ $# -gt 0 ]; do
 	    doclean=1;
 	    ;;
 	dev)
-	    CONFIG_ARGS="--with-libscm=${BUILD}/src/libscm/ --with-stdlib=${LOCAL_STDLIB} ${CONFIG_ARGS}";
+	    CONFIG_ARGS="--with-libscm=${BUILD}/src/libscm/ --with-stdlibs=${LOCAL_STDLIB} ${CONFIG_ARGS}";
 	    ;;
 	ipeval)
 	    CONFIG_ARGS="--with-ipeval ${CONFIG_ARGS}";
@@ -159,9 +159,6 @@ fi;
 
 ./configure ${CONFIG_ARGS}
 
-if [ -z "${OFFLINE}" ]; then
-    echo "Initializing configured GIT submodules";
-    make update-submodules;
-fi;
+git submodule update
     
 make -j ${MAKE_ARGS} $*

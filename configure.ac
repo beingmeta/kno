@@ -1399,17 +1399,25 @@ elif test ! -z "$with_libscm"; then
 fi;
 
 stdlib_search_dir=
-AC_ARG_WITH(stdlib,--with-stdlib location)
-if test -z "$with_stdlib"; then
+AC_ARG_WITH(stdlibs,--with-stdlibs location)
+if test -z "$with_stdlibs"; then
    stdlib_search_dir=$stdlib_module_dir;
-elif test ! -d "$with_stdlib"; then
-   echo "No stdlib dir $with_stdlib";
-   stdlib_search_dir=$stdlib_module_dir;
-else 
-   stdlib_search_dir=$with_stdlib;
+else
+   usepath=
+   for dir in $(echo ${with_stdlibs} | tr ':' ' '); do
+     if test ! -d "${dir}"; then
+       echo "No stdlib dir ${dir}";
+     else usepath="${usepath}${dir}/:";
+     fi;
+   done;
+   if [ -z "${usepath}" ]; then
+      stdlib_search_dir=$with_stdlib;
+   else	
+      stdlib_search_dir=$usepath;
+   fi;
 fi;
 
-stdlib_module_path=$stdlib_search_dir/
+stdlib_module_path=$stdlib_search_dir
 
 installed_module_path=$installed_module_dir/
 
