@@ -1,21 +1,27 @@
-[submodule "tests"]
-	path = tests
-	url = git@github.com:beingmeta/kno-tests.git
 [submodule "docs/wiki"]
 	path = docs/wiki
 	url = git@github.com:beingmeta/kno.wiki.git
+[submodule "tests"]
+	path = tests
+	url = git@github.com:beingmeta/kno-tests.git
+	branch = main
 [submodule "src/stdmods"]
 	path = src/stdmods
 	url = git@github.com:beingmeta/stdmods.git
+	branch = main
 [submodule "src/brico"]
 	path = src/brico
 	url = git@github.com:beingmeta/brico.git
+	branch = main
 [submodule "src/textmods"]
 	path = src/textmods
 	url = git@github.com:beingmeta/textmods
+	branch = main
 [submodule "src/webmods"]
 	path = src/webmods
 	url = git@github.com:beingmeta/webmods
+	branch = main
 [submodule "src/stdlib"]
 	path = src/stdlib
 	url = git@github.com:beingmeta/stdlib.git
+	branch = main
