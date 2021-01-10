@@ -5,8 +5,6 @@ usr/lib/kno/crypto.so*
 usr/lib/kno/libarchive.so*
 usr/bin/knoc
 usr/bin/knox
-usr/bin/knod
-usr/bin/knotask
 usr/bin/knocgi
 usr/bin/pack-index
 usr/bin/split-index
