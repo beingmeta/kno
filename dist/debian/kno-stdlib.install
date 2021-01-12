@@ -11,6 +11,7 @@ usr/share/kno/modules/stdlib/batch/*.scm
 usr/share/kno/modules/stdlib/bench/*.scm
 usr/share/kno/modules/stdlib/booktools/*.scm
 usr/share/kno/modules/stdlib/compat/*.scm
+usr/share/kno/modules/stdlib/crypto/*.scm
 usr/share/kno/modules/stdlib/domutils/*.scm
 usr/share/kno/modules/stdlib/google/*.scm
 usr/share/kno/modules/stdlib/imagick/*.scm
@@ -22,11 +23,15 @@ usr/share/kno/modules/stdlib/knoml/*.scm
 usr/share/kno/modules/stdlib/misc/*.scm
 usr/share/kno/modules/stdlib/morph/*.scm
 usr/share/kno/modules/stdlib/morph/data/*.xtype
+usr/share/kno/modules/stdlib/net/*.scm
+usr/share/kno/modules/stdlib/os/*.scm
 usr/share/kno/modules/stdlib/tests/*.scm
 usr/share/kno/modules/stdlib/text/*.scm
 usr/share/kno/modules/stdlib/textindex/*.scm
 usr/share/kno/modules/stdlib/textindex/data/*
+usr/share/kno/modules/stdlib/web/*.scm
 usr/share/kno/modules/stdlib/webapi/*.scm
 usr/share/kno/modules/stdlib/xhtml/*.scm
 usr/share/kno/modules/stdlib/brico/*.scm
+usr/share/kno/modules/stdlib/brico/build/*.scm
 usr/share/kno/modules/stdlib/brico/data/*

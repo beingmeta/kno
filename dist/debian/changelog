@@ -1,3 +1,9 @@
+kno (2101.1.1-11) stable; urgency=medium
+
+  * New KNO version with rearranged modules, expanded type system, etc
+
+ -- Ken Haase <kh@beingmeta.com>  Tue, 12 Jan 2021 16:19:18 -0500
+
 kno (2007.1.2-10) unstable; urgency=medium
 
   * New versioning system

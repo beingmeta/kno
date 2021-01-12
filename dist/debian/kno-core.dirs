@@ -18,7 +18,9 @@ usr/share/kno/libscm/io
 usr/share/kno/libscm/json
 usr/share/kno/libscm/kno
 usr/share/kno/libscm/knodb
+usr/share/kno/libscm/net
 usr/share/kno/libscm/optimize
+usr/share/kno/libscm/sqldb
 usr/share/kno/libscm/text
 usr/share/kno/libscm/xhtml
 usr/share/kno/packages

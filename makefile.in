@@ -593,14 +593,14 @@ knodb:
 
 # Versioning
 
-REVISION:
+REVISION: etc/base_version
 	if test -d .git; then 				\
 	  @U8BIN@u8_gitversion etc/base_version > $@;	\
 	elif test -f $@; then 				\
 	  touch REVISION;				\
 	else cp etc/base_version $@; 			\
 	fi;
-FULL_REVISION:
+FULL_REVISION: etc/base_version
 	if test -d .git; then				\
 	  @U8BIN@u8_gitversion etc/base_version full > $@;	\
 	elif test -f $@; then				\
