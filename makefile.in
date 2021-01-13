@@ -1363,7 +1363,7 @@ dist/debs.done: @DEB_BUILD_TARGET@
 dist/debsource.done: dist/debsource.signed
 	touch dist/debsource.done dist/debs.done
 
-dist/debs.installed:
+dist/debs.installed: dist/debs.build
 	@( $(SUDO) dpkg -i dist/kno*@KNO_VERSION@*.deb dist/elpa-knoc*@KNO_VERSION@*.deb || \
 	   $(SUDO) dpkg -i dist/*.deb ) && \
 	 touch $@

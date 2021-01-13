@@ -22,13 +22,6 @@ find . -name "*.bb" -type f -writable -exec rm '{}' \;
 find . -name "*.bbg" -type f -writable -exec rm '{}' \;
 find . -name "*.da" -type f -writable -exec rm '{}' \;
 find . -name "gmon.out" -writable -exec rm '{}' \;
-# find . -name "*.gcda" -type f -writable | xargs rm -f
-# find . -name "*.gcno" -type f -writable | xargs rm -f
-# find . -name "*.gcov" -type f -writable | xargs rm -f
-# find . -name "*.bb" -type f -writable | xargs rm -f
-# find . -name "*.bbg" -type f -writable | xargs rm -f
-# find . -name "*.da" -type f -writable | xargs rm -f
-# find . -name "gmon.out" -writable | xargs rm -f
 
 # Miscellaneous files
 find . -name "*.dSYM" -writable | xargs rm -rf;
@@ -45,7 +38,7 @@ rm -f lib/kno/*@suffix@.so* lib/kno/*.dylib;
 rm -f exe/knox@suffix@ exe/knotask@suffix@;
 rm -f exe/knosrv@suffix@ exe/knod@suffix@;
 rm -f exe/knosh@suffix@ exe/knocgi@suffix@;
-rm -f *TAGS;
+rm -f *TAGS REVISION FULL_REVISION;
 
 for file in tests/types/*.c \
 		tests/storage/*.c \
