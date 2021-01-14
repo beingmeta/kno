@@ -1404,7 +1404,7 @@ AC_ARG_WITH(loadpath,--with-loadpath location)
 AC_ARG_WITH(libscm,--with-libscm location)
 if test "$with_libscm" == "version"; then
    AC_DEFINE_UNQUOTED(KNO_LIBSCM_DIR,"$share_dir/libscm/kno-${KNO_PATCHVERSION}")
-   LIBSCM="$share_dir/libscm/kno-$KNO_VERSION";
+   LIBSCM="$share_dir/libscm/kno-${KNO_PATCHVERSION}";
 elif test "$with_libscm" == "zip"; then
    AC_DEFINE_UNQUOTED(KNO_LIBSCM_DIR,"$share_dir/libscm/kno-${KNO_PATCHVERSION}.zip")
    LIBSCM="$share_dir/libscm/kno-${KNO_PATCHVERSION}.zip";

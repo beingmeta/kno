@@ -10276,7 +10276,7 @@ if test "$with_libscm" == "version"; then
 #define KNO_LIBSCM_DIR "$share_dir/libscm/kno-${KNO_PATCHVERSION}"
 _ACEOF
 
-   LIBSCM="$share_dir/libscm/kno-$KNO_VERSION";
+   LIBSCM="$share_dir/libscm/kno-${KNO_PATCHVERSION}";
 elif test "$with_libscm" == "zip"; then
    cat >>confdefs.h <<_ACEOF
 #define KNO_LIBSCM_DIR "$share_dir/libscm/kno-${KNO_PATCHVERSION}.zip"
