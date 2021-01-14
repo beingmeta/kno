@@ -85,7 +85,7 @@ static lispval config_get_module_loc(lispval var,void *which_arg)
   case INSTALLED_MODULES:
     return kno_mkstring(KNO_INSTALLED_MODULE_DIR);
   case STDLIB_MODULES:
-    return kno_mkstring(KNO_STDLIB_MODULE_DIR);
+    return kno_mkstring(KNO_STDLIB_INSTALL_DIR);
   case UNPACKAGE_DIR:
     return kno_mkstring(KNO_UNPACKAGE_DIR);
   default:

@@ -25,7 +25,7 @@ EXEFLAGS          = @EXEFLAGS@
 EXELIBS           = @EXELIBS@
 STATIC_CFLAGS     = -I./include @CFLAGS@ @PROFILING@ @DREENTRANT@ -DKNO_STATIC \
 		    $(DYNAMIC_CFLAG) -I./include $(XCFLAGS)
-TEST_CFLAGS       = -DKNO_TESTCONFIG=1 -DKNO_DEFAULT_LIBSCM="\"@abs_top_srcdir@/src/libscm\"" ${STATIC_CFLAGS}
+DEBUG_CFLAGS      = -DKNO_TESTCONFIG=1 -DKNO_DEFAULT_LIBSCM="\"@abs_top_srcdir@/src/libscm\"" ${STATIC_CFLAGS}
 STATIC_LDFLAGS    = -L./lib @LDFLAGS@ $(EFENCE) @GCOV_LDFLAGS@ \
 		    @STATICLDFLAGS@ -L./lib
 TEST_LDFLAGS      = ${STATIC_LDFLAGS} @TESTLDFLAGS@
@@ -314,7 +314,7 @@ SCHEME_SCRIPTS=exe/scripts/pack-pool exe/scripts/pack-index \
 
 CONFDIRS=$(DESTDIR)@config_dir@ $(DESTDIR)@config_dir@/config \
 	 $(DESTDIR)@share_dir@ \
-	 $(DESTDIR)@stdlib_module_dir@ \
+	 $(DESTDIR)@stdlib_install_dir@ \
 	 $(DESTDIR)@local_module_dir@
 
 CLEANDIRS=include/kno src/drivers/headers 		\
@@ -699,7 +699,7 @@ lib/kno/%.@KNO_MAJOR@.dylib: lib/kno/%.dylib
 
 dbg/%: src/exe/%.c $(LINK_STATIC_LIBS)
 	@echo MKEXE_DEBUG $@
-	$(CC) $(TEST_CFLAGS) -o $@ $< $(LINK_STATIC_LIBS) \
+	$(CC) $(DEBUG_CFLAGS) -o $@ $< $(LINK_STATIC_LIBS) \
 	      @STATICLDFLAGS@ $(TEST_LDFLAGS) $(TEST_EXEFLAGS) 	\
 	      -lu8 -lu8stdio -lu8syslog 		\
 	      $(LIBS) $(EXELIBS)
@@ -710,12 +710,13 @@ etc/%: etc/%.in ./config.status
 	@./config.status
 
 src/%.zip: src/%
-	cd $^;	zip ../$(@F) -r *
-src/stdlib.zip: src/stdmods src/textmods src/webmods
+	cd $^;	@ZIPCMD@ ../$(@F) -r *
+src/stdlib.zip: src/stdmods src/textmods src/webmods src/brico
 	rm -rf $@
-	cd src/stdmods; zip ../stdlib.zip *
-	cd src/webmods; zip ../../stdlib.zip *
-	cd src/textmods; zip ../../stdlib.zip *
+	cd src/stdmods; @ZIPCMD@ ../stdlib.zip *
+	cd src/webmods; @ZIPCMD@ ../stdlib.zip *
+	cd src/textmods; @ZIPCMD@ ../stdlib.zip *
+	cd src; @ZIPCMD@ stdlib.zip brico
 
 # docs/man/%: docs/ronn/%.ronn
 # 	ronn --roff < $< > $@
@@ -886,7 +887,7 @@ uninstall-core:
 uninstall-all: uninstall-core
 	rm -rf $(DESTDIR)@share_dir@ $(DESTDIR)@config_dir@ \
 		$(DESTDIR)@local_config@ $(DESTDIR)@shared_config@ \
-		$(DESTDIR)@stdlib_module_dir@
+		$(DESTDIR)@stdlib_install_dir@
 uninstall: uninstall-core
 	@if (test -d $(DESTDIR)@share_dir@); then \
 	  $(MSG) $(DESTDIR)@share_dir@ "still exists"; fi
@@ -983,6 +984,8 @@ ALLTAGS: makefile.in configure.ac include/kno/config.h.in		\
 	@etags -o TAGS -a src/extmods/*/makefile src/extmods/*/*.c src/extmods/*/*.h 
 	@find src/libscm/ -name "*.scm" -type f | xargs etags -a -o TAGS;
 	@find src/stdmods/ -name "*.scm" -type f | xargs etags -a -o TAGS;
+	@find src/webmods/ -name "*.scm" -type f | xargs etags -a -o TAGS;
+	@find src/textmods/ -name "*.scm" -type f | xargs etags -a -o TAGS;
 	@find src/brico/ -name "*.scm" -type f | xargs etags -a -o TAGS;
 
 CSOURCETAGS: src/lisp/*.c src/sys/*.c src/apply/*.c	\
@@ -1546,7 +1549,7 @@ workdirs: $(DESTDIR)@kno_rundir@ $(DESTDIR)@kno_logdir@ \
 	$(DESTDIR)@servlet_rundir@ $(DESTDIR)@servlet_logdir@ \
 	$(DESTDIR)@bugjar@
 
-confdirs: $(DESTDIR)@stdlib_module_dir@ $(DESTDIR)@installed_module_dir@ \
+confdirs: $(DESTDIR)@stdlib_install_dir@ $(DESTDIR)@installed_module_dir@ \
 	  $(DESTDIR)@local_module_dir@ $(DESTDIR)@unpackage_dir@ \
 	  $(DESTDIR)@local_config@ $(DESTDIR)@shared_config@ \
 	  $(DESTDIR)@config_dir@  $(DESTDIR)@config_dir@/config_files \
@@ -1557,12 +1560,12 @@ confdirs: $(DESTDIR)@stdlib_module_dir@ $(DESTDIR)@installed_module_dir@ \
 		$(SYSINSTALL) @install_file_opts@ /dev/null \
 			$(DESTDIR)@config_dir@/servers; fi
 
-$(DESTDIR)@stdlib_module_dir@ \
-	$(DESTDIR)@stdlib_module_dir@/brico \
-	$(DESTDIR)@stdlib_module_dir@/brico/data \
-	$(DESTDIR)@stdlib_module_dir@/brico/build \
-	$(DESTDIR)@stdlib_module_dir@/brico/utils \
-	$(DESTDIR)@stdlib_module_dir@/brico/utils/data \
+$(DESTDIR)@stdlib_install_dir@ \
+	$(DESTDIR)@stdlib_install_dir@/brico \
+	$(DESTDIR)@stdlib_install_dir@/brico/data \
+	$(DESTDIR)@stdlib_install_dir@/brico/build \
+	$(DESTDIR)@stdlib_install_dir@/brico/utils \
+	$(DESTDIR)@stdlib_install_dir@/brico/utils/data \
 	$(DESTDIR)@installed_module_dir@ \
 	$(DESTDIR)@local_module_dir@:
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
@@ -1584,30 +1587,31 @@ src/brico/brico.scm:
 	git submodule init && \
 	git submodule update --remote --merge src/brico;
 
-STDLIB_SOURCE_DIRS=src/stdmods src/webmods src/textmods
+install-stdlib: install-stdlib-files
 
-install-stdlib: $(DESTDIR)@stdlib_module_dir@ \
+install-stdlib-files: $(DESTDIR)@stdlib_install_dir@ \
 	src/stdmods/hashfs.scm src/webmods/hostinfo.scm \
 	src/textmods/text/ellipsize.scm
-	@$(ECHO) Copying stdmods to @stdlib_module_dir@
-	@cd src/stdmods; ${DOINSTALL} cp -rp * $(DESTDIR)@stdlib_module_dir@
-	@$(ECHO) Copying web/webmods to @stdlib_module_dir@
-	@cd src/webmods; ${DOINSTALL} cp -rp * $(DESTDIR)@stdlib_module_dir@
-	@$(ECHO) Copying text/textmods to @stdlib_module_dir@
-	@cd src/textmods; ${DOINSTALL} cp -rp * $(DESTDIR)@stdlib_module_dir@
+	@$(ECHO) Copying stdmods to @stdlib_install_dir@
+	@cd src/stdmods; ${DOINSTALL} cp -rp * $(DESTDIR)@stdlib_install_dir@
+	@$(ECHO) Copying webmods to @stdlib_install_dir@
+	@cd src/webmods; ${DOINSTALL} cp -rp * $(DESTDIR)@stdlib_install_dir@
+	@$(ECHO) Copying textmods to @stdlib_install_dir@
+	@cd src/textmods; ${DOINSTALL} cp -rp * $(DESTDIR)@stdlib_install_dir@
 	@make install-brico
-	@${DOINSTALL} find $(DESTDIR)@stdlib_module_dir@ -name "*~" -exec rm '{}' \;
-	@${DOINSTALL} find $(DESTDIR)@stdlib_module_dir@ -name "#*" -exec rm '{}' \;
+	@${DOINSTALL} find $(DESTDIR)@stdlib_install_dir@ -name "*~" -exec rm '{}' \;
+	@${DOINSTALL} find $(DESTDIR)@stdlib_install_dir@ -name "#*" -exec rm '{}' \;
 
-install-brico: $(DESTDIR)@stdlib_module_dir@ $(DESTDIR)@stdlib_module_dir@/brico \
-		$(DESTDIR)@stdlib_module_dir@/brico/data \
-		$(DESTDIR)@stdlib_module_dir@/brico/build \
-		$(DESTDIR)@stdlib_module_dir@/brico/utils \
+install-brico: $(DESTDIR)@stdlib_install_dir@ $(DESTDIR)@stdlib_install_dir@/brico \
+		$(DESTDIR)@stdlib_install_dir@/brico/data \
+		$(DESTDIR)@stdlib_install_dir@/brico/build \
+		$(DESTDIR)@stdlib_install_dir@/brico/utils \
 		src/brico/brico.scm
-	@cd src/brico; ${DOINSTALL} cp -rp *.scm $(DESTDIR)@stdlib_module_dir@/brico;
-	@cd src/brico; ${DOINSTALL} cp -p build/*.scm $(DESTDIR)@stdlib_module_dir@/brico/build;
-	@cd src/brico; ${DOINSTALL} cp -p utils/*.scm $(DESTDIR)@stdlib_module_dir@/brico/utils;
-	@cd src/brico; ${DOINSTALL} cp -p data/* $(DESTDIR)@stdlib_module_dir@/brico/data;
+	@$(ECHO) Copying brico to @stdlib_install_dir@/brico
+	@cd src/brico; ${DOINSTALL} cp -rp *.scm $(DESTDIR)@stdlib_install_dir@/brico;
+	@cd src/brico; ${DOINSTALL} cp -p build/*.scm $(DESTDIR)@stdlib_install_dir@/brico/build;
+	@cd src/brico; ${DOINSTALL} cp -p utils/*.scm $(DESTDIR)@stdlib_install_dir@/brico/utils;
+	@cd src/brico; ${DOINSTALL} cp -p data/* $(DESTDIR)@stdlib_install_dir@/brico/data;
 
 install-support: $(DESTDIR)@share_dir@
 	cd $(BUILD)/etc; $(SYSINSTALL) @install_file_opts@ 	\
@@ -1624,17 +1628,20 @@ install-libscm:
 	elif [ "$(realpath ${DESTDIR}${LIBSCM})" != "$(realpath ./src/libscm)" ]; then 	\
 	  make really-install-libscm; 							\
 	fi;
+# When libscm is linked to libscm in the source tree ('dev' mode), we don't do anything
+#  to install it. Otherwise, we set it up, installing both the directory and the zip version.
 really-install-libscm: src/libscm.zip
-	@$(SYSINSTALL) @install_dir_opts@ $(DESTDIR)${LIBSCM};
-	@$(SYSINSTALL) @install_file_opts@ src/libscm.zip $(DESTDIR)${LIBSCM}.zip;
-	@$(SYSINSTALL) @install_file_opts@ src/libscm/*.scm $(DESTDIR)${LIBSCM};
-	@for dir in ${LIBSCM_DIRS}; do 						\
-	  $(SYSINSTALL) @install_dir_opts@ $(DESTDIR)${LIBSCM}/$$dir;		\
-	  $(SYSINSTALL) @install_file_opts@ src/libscm/$$dir/*.scm 		\
-	    $(DESTDIR)${LIBSCM}/$$dir; done;
-	$(SYSINSTALL) @install_dir_opts@ $(DESTDIR)${LIBSCM}/bugjar/resources;
-	$(SYSINSTALL) @install_file_opts@ src/libscm/bugjar/resources/*	\
-	       $(DESTDIR)${LIBSCM}/bugjar/resources;
+	@case "${LIBSCM}" in 								\
+	  *.zip) 									\
+	    $(SYSINSTALL) @install_dir_opts@ $$(dirname $(DESTDIR)${LIBSCM});		\
+	    $(SYSINSTALL) @install_file_opts@ src/libscm.zip $(DESTDIR)${LIBSCM}; 	\
+	    ;; 										\
+	  *) 										\
+	    $(SYSINSTALL) @install_dir_opts@ $(DESTDIR)${LIBSCM}; 			\
+	    $(SYSINSTALL) @install_file_opts@ src/libscm.zip $(DESTDIR)${LIBSCM}.zip; 	\
+	    cd $(DESTDIR)${LIBSCM}; @DOINSTALL@ unzip -o $(DESTDIR)${LIBSCM}.zip;			\
+	    ;; 										\
+	esac;
 
 logdirs: $(DESTDIR)@kno_logdir@ $(DESTDIR)@servlet_logdir@ $(DESTDIR)@daemon_logdir@
 

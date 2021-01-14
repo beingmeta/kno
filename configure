@@ -669,6 +669,7 @@ build
 pkg_config
 git
 etags
+ZIP
 MSGFMT
 MSGMERGE
 XGETTEXT
@@ -733,6 +734,7 @@ INSTALL_CMODULES
 CMODULES
 EXTMODS
 WWWUSER
+ZIPCMD
 DOINSTALL
 SUDO
 INSTALLI18N
@@ -821,7 +823,7 @@ config_dir
 default_module_path
 local_module_dir
 installed_module_dir
-stdlib_module_dir
+stdlib_install_dir
 unpackage_dir
 share_dir
 systemd_loc
@@ -960,7 +962,7 @@ enable_fileconfig
 enable_xprofiling
 with_installed_module_dir
 with_local_modules
-with_stdlib_module_dir
+with_stdlib_install_dir
 with_loadpath
 with_libscm
 with_stdlibs
@@ -1698,7 +1700,7 @@ Optional Packages:
 --with-unpackage-dir location
 --with-installed-module-dir location
 --with-local-modules location
---with-stdlib-module-dir location
+--with-stdlib-install-dir location
 --with-loadpath location
 --with-libscm location
 --with-stdlibs location
@@ -3042,7 +3044,7 @@ apache_log_dir=""
 apache_modinfo="/etc/apache2"
 APXSFLAGS=
 A2EN="none"
-stdlib_module_dir=""
+stdlib_install_dir=""
 installed_module_dir=""
 local_module_dir=""
 default_module_path=""
@@ -3053,6 +3055,7 @@ CMODULES=""
 INSTALL_CMODULES=""
 TEST_CMODULES=""
 DATAFILES="etc/base_version"
+ZIPCMD=""
 SUDO=""
 DOINSTALL=
 RPMDIR=${RPMDIR:-dist}
@@ -3176,6 +3179,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/kno/knosource.h include/kno/config.h"
+
 
 
 
@@ -4259,6 +4263,58 @@ fi
 done
 test -n "$GZIP" || GZIP=""na""
 
+for ac_prog in "zip"
+do
+  # Extract the first word of "$ac_prog", so it can be a program name with args.
+set dummy $ac_prog; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_prog_ZIP+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test -n "$ZIP"; then
+  ac_cv_prog_ZIP="$ZIP" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_prog_ZIP="$ac_prog"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+fi
+fi
+ZIP=$ac_cv_prog_ZIP
+if test -n "$ZIP"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ZIP" >&5
+$as_echo "$ZIP" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+  test -n "$ZIP" && break
+done
+test -n "$ZIP" || ZIP=""na""
+
+
+if test ! -z "${ZIP}"; then
+   if ${ZIP} -y temp.zip configure.ac 2>&1 > /dev/null; then
+     ZIPCMD="${ZIP} -y";
+   else ZIPCMD="${ZIP}";
+   fi;
+else
+   ZIPCMD="nozipcommand";
+fi;
 
 
 # Check whether --with-execwrapper was given.
@@ -10191,14 +10247,14 @@ fi
 local_module_dir=$with_local_modules
 
 
-# Check whether --with-stdlib_module_dir was given.
-if test "${with_stdlib_module_dir+set}" = set; then :
-  withval=$with_stdlib_module_dir;
+# Check whether --with-stdlib_install_dir was given.
+if test "${with_stdlib_install_dir+set}" = set; then :
+  withval=$with_stdlib_install_dir;
 else
-  with_stdlib_module_dir=$share_dir/modules/stdlib
+  with_stdlib_install_dir=$share_dir/modules/stdlib
 fi
 
-stdlib_module_dir=$with_stdlib_module_dir
+stdlib_install_dir=$with_stdlib_install_dir
 
 LIBSCM="${share_dir}/libscm/kno-${KNO_PATCHVERSION}"
 
@@ -10217,10 +10273,16 @@ fi
 
 if test "$with_libscm" == "version"; then
    cat >>confdefs.h <<_ACEOF
-#define KNO_LIBSCM_DIR "$share_dir/libscm/kno-$KNO_VERSION"
+#define KNO_LIBSCM_DIR "$share_dir/libscm/kno-${KNO_PATCHVERSION}"
 _ACEOF
 
    LIBSCM="$share_dir/libscm/kno-$KNO_VERSION";
+elif test "$with_libscm" == "zip"; then
+   cat >>confdefs.h <<_ACEOF
+#define KNO_LIBSCM_DIR "$share_dir/libscm/kno-${KNO_PATCHVERSION}.zip"
+_ACEOF
+
+   LIBSCM="$share_dir/libscm/kno-${KNO_PATCHVERSION}.zip";
 elif test ! -z "$with_libscm"; then
    cat >>confdefs.h <<_ACEOF
 #define KNO_LIBSCM_DIR "$with_libscm"
@@ -10237,7 +10299,7 @@ if test "${with_stdlibs+set}" = set; then :
 fi
 
 if test -z "$with_stdlibs"; then
-   stdlib_search_dir=$stdlib_module_dir;
+   stdlib_search_dir=$stdlib_install_dir;
 else
    usepath=
    for dir in $(echo ${with_stdlibs} | tr ':' ' '); do
@@ -10246,7 +10308,7 @@ else
      else usepath="${usepath}${dir}/:";
      fi;
    done;
-   if  -z "${usepath}" ; then
+   if test -z "${usepath}"; then
       stdlib_search_dir=$with_stdlib;
    else
       stdlib_search_dir=$usepath;
@@ -10284,7 +10346,7 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
 cat >>confdefs.h <<_ACEOF
-#define KNO_STDLIB_MODULE_DIR "$stdlib_module_dir"
+#define KNO_STDLIB_INSTALL_DIR "$stdlib_install_dir"
 _ACEOF
 
 cat >>confdefs.h <<_ACEOF

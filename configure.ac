@@ -118,7 +118,7 @@ apache_log_dir=""
 apache_modinfo="/etc/apache2"
 APXSFLAGS=
 A2EN="none"
-stdlib_module_dir=""
+stdlib_install_dir=""
 installed_module_dir=""
 local_module_dir=""
 default_module_path=""
@@ -129,6 +129,7 @@ CMODULES=""
 INSTALL_CMODULES=""
 TEST_CMODULES=""
 DATAFILES="etc/base_version"
+ZIPCMD=""
 SUDO=""
 DOINSTALL=
 RPMDIR=${RPMDIR:-dist}
@@ -253,7 +254,7 @@ AC_SUBST(scheme_builtins_init)
 AC_SUBST(systemd_loc)
 AC_SUBST(share_dir)
 AC_SUBST(unpackage_dir)
-AC_SUBST(stdlib_module_dir)
+AC_SUBST(stdlib_install_dir)
 AC_SUBST(installed_module_dir)
 AC_SUBST(local_module_dir)
 AC_SUBST(default_module_path)
@@ -345,6 +346,7 @@ AC_SUBST(I18N)
 AC_SUBST(INSTALLI18N)
 AC_SUBST(SUDO)
 AC_SUBST(DOINSTALL)
+AC_SUBST(ZIPCMD)
 AC_SUBST(WWWUSER)
 AC_SUBST(EXTMODS)
 AC_SUBST(CMODULES)
@@ -421,6 +423,16 @@ if test -z "${APXS}"; then APXS=$(which apxs2); fi;
 if test -z "${APXS}"; then APXS=$(which apxs); fi;
 
 AC_CHECK_PROGS(GZIP,"gzip","na")
+AC_CHECK_PROGS(ZIP,"zip","na")
+
+if test ! -z "${ZIP}"; then
+   if ${ZIP} -y temp.zip configure.ac 2>&1 > /dev/null; then
+     ZIPCMD="${ZIP} -y";
+   else ZIPCMD="${ZIP}";
+   fi;
+else
+   ZIPCMD="nozipcommand";
+fi;
 
 AC_ARG_WITH(execwrapper,--with-execwrapper program to use when calling exec(),,with_execwrapper=$binenv)
 if test "$with_execwrapper" != ""; then
@@ -1382,8 +1394,8 @@ installed_module_dir=$with_installed_module_dir
 AC_ARG_WITH(local_modules,--with-local-modules location,,with_local_modules=$share_dir/modules/local)
 local_module_dir=$with_local_modules
 
-AC_ARG_WITH(stdlib_module_dir,--with-stdlib-module-dir location,,with_stdlib_module_dir=$share_dir/modules/stdlib)
-stdlib_module_dir=$with_stdlib_module_dir
+AC_ARG_WITH(stdlib_install_dir,--with-stdlib-install-dir location,,with_stdlib_install_dir=$share_dir/modules/stdlib)
+stdlib_install_dir=$with_stdlib_install_dir
 
 LIBSCM="${share_dir}/libscm/kno-${KNO_PATCHVERSION}"
 
@@ -1391,8 +1403,11 @@ AC_ARG_WITH(loadpath,--with-loadpath location)
 
 AC_ARG_WITH(libscm,--with-libscm location)
 if test "$with_libscm" == "version"; then
-   AC_DEFINE_UNQUOTED(KNO_LIBSCM_DIR,"$share_dir/libscm/kno-$KNO_VERSION")
+   AC_DEFINE_UNQUOTED(KNO_LIBSCM_DIR,"$share_dir/libscm/kno-${KNO_PATCHVERSION}")
    LIBSCM="$share_dir/libscm/kno-$KNO_VERSION";
+elif test "$with_libscm" == "zip"; then
+   AC_DEFINE_UNQUOTED(KNO_LIBSCM_DIR,"$share_dir/libscm/kno-${KNO_PATCHVERSION}.zip")
+   LIBSCM="$share_dir/libscm/kno-${KNO_PATCHVERSION}.zip";
 elif test ! -z "$with_libscm"; then
    AC_DEFINE_UNQUOTED(KNO_LIBSCM_DIR,"$with_libscm")
    LIBSCM=$with_libscm
@@ -1401,7 +1416,7 @@ fi;
 stdlib_search_dir=
 AC_ARG_WITH(stdlibs,--with-stdlibs location)
 if test -z "$with_stdlibs"; then
-   stdlib_search_dir=$stdlib_module_dir;
+   stdlib_search_dir=$stdlib_install_dir;
 else
    usepath=
    for dir in $(echo ${with_stdlibs} | tr ':' ' '); do
@@ -1410,7 +1425,7 @@ else
      else usepath="${usepath}${dir}/:";
      fi;
    done;
-   if [ -z "${usepath}" ]; then
+   if test -z "${usepath}"; then
       stdlib_search_dir=$with_stdlib;
    else	
       stdlib_search_dir=$usepath;
@@ -1434,7 +1449,7 @@ fi;
 
 AC_DEFINE_UNQUOTED(KNO_LOCAL_MODULE_DIR,"$local_module_dir")
 AC_DEFINE_UNQUOTED(KNO_INSTALLED_MODULE_DIR,"$installed_module_dir")
-AC_DEFINE_UNQUOTED(KNO_STDLIB_MODULE_DIR,"$stdlib_module_dir")
+AC_DEFINE_UNQUOTED(KNO_STDLIB_INSTALL_DIR,"$stdlib_install_dir")
 AC_DEFINE_UNQUOTED(KNO_UNPACKAGE_DIR,"$unpackage_dir")
 
 AC_DEFINE_UNQUOTED(KNO_DEFAULT_LOADPATH,"$module_path")

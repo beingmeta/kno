@@ -533,7 +533,9 @@ static int libscm_config_set(lispval var,lispval vals,void *d)
 {
   if (KNO_STRINGP(vals)) {
     u8_string path = KNO_CSTRING(vals);
-    if ( (u8_has_suffix(path,".zip",1)) || (u8_directoryp(path)) ) {
+    if ( ( (u8_has_suffix(path,".zip",1)) &&
+	   (u8_file_existsp(path)) ) ||
+	 (u8_directoryp(path)) ) {
       lispval *lptr = (lispval *) d;
       lispval cur = *lptr, use = vals;
       if (*path != '/') {
@@ -850,11 +852,8 @@ KNO_EXPORT void kno_init_loadmods_c()
     if (dir==NULL) dir = u8_strdup(kno_default_libscm);
     if (u8_has_suffix(dir,"/",0))
       use_path=dir;
-    else if (u8_has_suffix(dir,".zip/",0))
+    else if (u8_has_suffix(dir,".zip",0))
       use_path=dir;
-    else if (u8_has_suffix(dir,".zip",0)) {
-      use_path=u8_string_append(dir,"/",NULL);
-      u8_free(dir);}
     else {
       use_path=u8_string_append(dir,"/",NULL);
       u8_free(dir);}

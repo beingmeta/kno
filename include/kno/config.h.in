@@ -612,7 +612,7 @@
 /* Default module dirs */
 #undef KNO_LOCAL_MODULE_DIR
 #undef KNO_INSTALLED_MODULE_DIR
-#undef KNO_STDLIB_MODULE_DIR
+#undef KNO_STDLIB_INSTALL_DIR
 
 /* Where packages are unpacked */
 #undef KNO_UNPACKAGE_DIR
