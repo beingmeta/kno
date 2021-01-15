@@ -1791,18 +1791,9 @@ staging/alpine:
 staging/alpine/APKBUILD: dist/alpine/APKBUILD staging/alpine
 	cp dist/alpine/APKBUILD staging/alpine
 
-staging/alpine/kno-@KNO_VERSION@.tar: staging/alpine
+staging/alpine/kno-@KNO_VERSION@.tar: dist/kno.tar
 	# Get archives of this and submodule repositories
-	git archive --prefix=kno/ -o staging/alpine/kno.tar HEAD
-	cd tests; git archive --prefix=tests/ -o ../staging/alpine/tests.tar HEAD
-	cd src/stdlib; git archive --prefix=stdlib/ -o ../../staging/alpine/stdlib.tar HEAD
-	cd src/brico; git archive --prefix=brico/ -o ../../staging/alpine/brico.tar HEAD
-	cd staging/alpine; tar -xf kno.tar;
-	cd staging/alpine/kno; tar -xf ../tests.tar;
-	cd staging/alpine/kno/src; tar -xf ../../stdlib.tar;
-	cd staging/alpine/kno/src; tar -xf ../../brico.tar;
-	cd staging/alpine; tar -cf kno-@KNO_VERSION@.tar kno;
-	cd staging/alpine; rm -rf kno kno.tar stdlib.tar brico.tar
+	cp dist/kno.tar $@
 
 dist/alpine.setup: dist/alpine/APKBUILD include/kno/revision.h makefile
 	make staging/alpine/kno-@KNO_VERSION@.tar staging/alpine/APKBUILD && \
