@@ -206,7 +206,7 @@ static int choice_containsp(lispval x,struct KNO_CHOICE *choice)
 
 KNO_EXPORT
 /* kno_choice_containsp:
-   Arguments: two dtype pointers
+   Arguments: two lisp pointers
    Returns: 1 or 0
    This returns 1 if the first argument is in the choice represented by
    the second argument.	 Note that if the second argument isn't a choice,
@@ -338,8 +338,8 @@ lispval kno_init_choice
 
 KNO_EXPORT
 /* kno_make_prechoice:
-   Arguments: two dtype pointers
-   Returns: a dtype pointer
+   Arguments: two lisp pointers
+   Returns: a lisp pointer
    Allocates and initializes an KNO_PRECHOICE to include the two arguments.
    If the elements are themselves PRECHOICEs, they are normalized into
    simple choices.
@@ -386,7 +386,7 @@ lispval kno_make_prechoice(lispval x,lispval y)
 KNO_EXPORT
 /* kno_init_prechoice:
    Arguments: a pointer to an KNO_PRECHOICE structure, a size, and a flag (int)
-   Returns: a dtype pointer
+   Returns: a lisp pointer
    Initializes an KNO_PRECHOICE with an initial vector of slots.
    If the flag argument is non-zero, the mutex on the KNO_PRECHOICE will
    be initialized and used in all operations.  If the pointer argument
@@ -412,9 +412,9 @@ lispval kno_init_prechoice(struct KNO_PRECHOICE *ch,int lim,int uselock)
 
 KNO_EXPORT
 /* _kno_add_to_choice:
-   Arguments: two dtype pointers
-   Returns: a dtype pointer
-   Combines two dtype pointers into a single lisp value.  This is used
+   Arguments: two lisp pointers
+   Returns: a lisp pointer
+   Combines two lisp pointers into a single lisp value.  This is used
    by the macro CHOICE_ADD when choice operations are not being
    inlined.
 
@@ -427,7 +427,7 @@ lispval _kno_add_to_choice(lispval current,lispval v)
 KNO_EXPORT
 /* _kno_prechoice_add:
    Arguments: a prechoice pointer and a lisp pointer
-   Returns: a dtype pointer
+   Returns: a lisp pointer
    Adds the value into the prechoice, without incref'ing it
 
 */
@@ -439,7 +439,7 @@ void _kno_prechoice_add(struct KNO_PRECHOICE *ch,lispval v)
 KNO_EXPORT
 /* _kno_contains_atomp:
    Arguments: a prechoice pointer and a lisp pointer
-   Returns: a dtype pointer
+   Returns: a lisp pointer
    Adds the value into the prechoice, without incref'ing it
 
 */
@@ -576,8 +576,8 @@ static lispval normalize_choice(lispval x,int free_prechoice)
 
 KNO_EXPORT
 /* _kno_make_simple_choice:
-   Arguments: a dtype pointer
-   Returns: a dtype pointer
+   Arguments: a lisp pointer
+   Returns: a lisp pointer
    This returns a normalized choice for an prechoice or an incref'd value
    otherwise. */
 lispval _kno_make_simple_choice(lispval x)
@@ -589,8 +589,8 @@ lispval _kno_make_simple_choice(lispval x)
 
 KNO_EXPORT
 /* _kno_simplify_choice:
-   Arguments: a dtype pointer
-   Returns: a dtype pointer
+   Arguments: a lisp pointer
+   Returns: a lisp pointer
    This returns a normalized choice for a PRECHOICE, or its argument
    otherwise. */
 lispval _kno_simplify_choice(lispval x)
@@ -705,7 +705,7 @@ static int compare_scanners_atomic(const void *x,const void *y)
 KNO_EXPORT
 /* kno_merge_choices:
    Arguments: a vector of pointers to choice structures and a length
-   Returns: a dtype pointer
+   Returns: a lisp pointer
    Combines the elements of all of the choices into a single sorted choice.
    It does this in linear time by marching along all the choices together.
 */
@@ -808,8 +808,8 @@ lispval prechoice_append(struct KNO_PRECHOICE *ch,int freeing_prechoice)
 
 KNO_EXPORT
 /* kno_init_qchoice:
-   Arguments: a pointer to a KNO_QCHOICE struct and a dtype pointer
-   Returns: a dtype pointer
+   Arguments: a pointer to a KNO_QCHOICE struct and a lisp pointer
+   Returns: a lisp pointer
    Initializes the structure with the qchoice.
 */
 lispval kno_init_qchoice(struct KNO_QCHOICE *ptr,lispval choice)
@@ -822,8 +822,8 @@ lispval kno_init_qchoice(struct KNO_QCHOICE *ptr,lispval choice)
 
 KNO_EXPORT
 /* kno_init_qchoice:
-   Arguments: a pointer to a KNO_QCHOICE struct and a dtype pointer
-   Returns: a dtype pointer
+   Arguments: a pointer to a KNO_QCHOICE struct and a lisp pointer
+   Returns: a lisp pointer
    Initializes the structure with the qchoice.
 */
 lispval kno_make_qchoice(lispval val)
@@ -928,7 +928,7 @@ KNO_EXPORT
 /* kno_intersection:
    Arguments: a pointer to a vector of lisp elements
    and the length of the vector
-   Returns: a dtype pointer
+   Returns: a lisp pointer
    Computes the intersection of a set of choices.
 */
 lispval kno_intersection(const lispval *v,unsigned int n)
@@ -1053,7 +1053,7 @@ KNO_EXPORT
 /* kno_union:
    Arguments: a pointer to a vector of lisp elements
    and the length of the vector
-   Returns: a dtype pointer
+   Returns: a lisp pointer
    Computes the union of a set of choices.
 */
 lispval kno_union(const lispval *v,unsigned int n)
@@ -1139,8 +1139,8 @@ static lispval compute_choice_difference
 
 KNO_EXPORT
 /* kno_difference:
-   Arguments: two dtype pointers
-   Returns: a dtype pointer
+   Arguments: two lisp pointers
+   Returns: a lisp pointer
    Computes the difference of two sets of choices.
 */
 lispval kno_difference(lispval value,lispval remove)
@@ -1195,8 +1195,8 @@ lispval kno_difference(lispval value,lispval remove)
 
 KNO_EXPORT
 /* kno_overlapp:
-   Arguments: two dtype pointers
-   Returns: a dtype pointer
+   Arguments: two lisp pointers
+   Returns: a lisp pointer
    Returns 1 if the two arguments have any elements in common.
    On non-choices, this is just equalp, on a non-choice and a choice,
    this is just choice_containsp, and on two choices, it's currently
@@ -1238,8 +1238,8 @@ int kno_overlapp(lispval xarg,lispval yarg)
 
 KNO_EXPORT
 /* kno_containsp:
-   Arguments: two dtype pointers
-   Returns: a dtype pointer
+   Arguments: two lisp pointers
+   Returns: a lisp pointer
    Returns 1 if the the first argument is a proper subset of the second argument.
    On non-choices, this is just equalp, on a non-choice and a choice,
    this is just choice_containsp, and on two choices, it's currently

@@ -1646,7 +1646,7 @@ KNO_EXPORT unsigned int kno_hash_bytes(u8_string string,int len)
   return mult_hash_bytes(string,len);
 }
 
-/* Hashing dtype pointers */
+/* Hashing lisp pointers */
 
 static unsigned int hash_elts(lispval *x,unsigned int n);
 static unsigned int hash_cons(struct KNO_CONS *cons);
@@ -1773,7 +1773,7 @@ KNO_EXPORT unsigned int kno_hash_lisp(lispval x)
 }
 
 /* hash_elts: (static)
-   arguments: a pointer to a vector of dtype pointers and a size
+   arguments: a pointer to a vector of lisp pointers and a size
    Returns: combines the elements' hashes into a single hash
 */
 static unsigned int hash_elts(lispval *x,unsigned int n)

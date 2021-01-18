@@ -52,8 +52,8 @@ KNO_FASTOP lispval copy_elt(lispval elt,int flags)
 
 KNO_EXPORT
 /* kno_deep_copy:
-   Arguments: a dtype pointer
-   Returns: a dtype pointer
+   Arguments: a lisp pointer
+   Returns: a lisp pointer
    This returns a copy of its argument, possibly recurring to sub objects,
    with lots of options. */
 lispval kno_copier(lispval x,int flags)
@@ -170,8 +170,8 @@ lispval *kno_copy_vec(lispval *vec,size_t n,lispval *into,int flags)
 
 KNO_EXPORT
 /* kno_copy:
-   Arguments: a dtype pointer
-   Returns: a dtype pointer
+   Arguments: a lisp pointer
+   Returns: a lisp pointer
    If the argument is a malloc'd cons, this just increfs it.
    If it is a static cons, it does a deep copy. */
 lispval kno_copy(lispval x)

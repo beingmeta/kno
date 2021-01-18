@@ -116,7 +116,7 @@ static lispval timestamp_symbol, timestamp0_symbol;
 KNO_EXPORT
 /* kno_make_timestamp:
    Arguments: a pointer to a U8_XTIME struct and a memory pool
-   Returns: a dtype pointer to a timestamp
+   Returns: a lisp pointer to a timestamp
 */
 lispval kno_make_timestamp(struct U8_XTIME *tm)
 {
@@ -132,7 +132,7 @@ lispval kno_make_timestamp(struct U8_XTIME *tm)
 KNO_EXPORT
 /* kno_time2timestamp
    Arguments: a pointer to a U8_XTIME struct and a memory pool
-   Returns: a dtype pointer to a timestamp
+   Returns: a lisp pointer to a timestamp
 */
 lispval kno_time2timestamp(time_t moment)
 {

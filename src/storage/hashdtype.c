@@ -58,7 +58,7 @@ static unsigned int hash_packet(lispval x)
 }
 
 /* hash_symbol_dtype1: (static)
-     Arguments: a dtype pointer (to a symbol)
+     Arguments: a lisp pointer (to a symbol)
      Returns: a hash value (an unsigned int)
 
   Computes an iterative hash over the characters in the symbol's name.
@@ -180,7 +180,7 @@ KNO_FASTOP unsigned int hash_lisp1(lispval x)
 }
 
 /* hash_pair_dtype1: (static)
-     Arguments: a dtype pointer (to a pair)
+     Arguments: a lisp pointer (to a pair)
      Returns: a hash value (an unsigned int)
 
      Adds the hash of the list's elements together, shifting each
@@ -254,7 +254,7 @@ KNO_FASTOP unsigned int mult_hash_bytes(const unsigned char *start,int len)
 }
 
 /* hash_string_dtype: (static)
-     Arguments: a dtype pointer (to a string)
+     Arguments: a lisp pointer (to a string)
      Returns: a hash value (an unsigned int)
 
   Computes an iterative hash over the characters in the string.
@@ -341,7 +341,7 @@ KNO_FASTOP unsigned int hash_lisp2(lispval x)
 }
 
 /* hash_symbol_lisp2: (static)
-     Arguments: a dtype pointer (to a symbol)
+     Arguments: a lisp pointer (to a symbol)
      Returns: a hash value (an unsigned int)
 
   Computes an iterative hash over the characters in the symbol's name.
@@ -376,7 +376,7 @@ unsigned int kno_hash_lisp2(lispval x)
 }
 
 /* hash_pair_lisp2: (static)
-     Arguments: a dtype pointer (to a pair)
+     Arguments: a lisp pointer (to a pair)
      Returns: a hash value (an unsigned int)
 */
 static unsigned int hash_pair_lisp2(lispval x)
@@ -396,7 +396,7 @@ static unsigned int hash_pair_lisp2(lispval x)
 KNO_FASTOP unsigned int hash_lisp3(lispval x);
 
 /* hash_pair_dtype3: (static)
-     Arguments: a dtype pointer (to a pair)
+     Arguments: a lisp pointer (to a pair)
      Returns: a hash value (an unsigned int)
 */
 static unsigned int hash_pair_dtype3(lispval x)

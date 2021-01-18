@@ -734,7 +734,7 @@ static lispval tail_symbol;
 KNO_EXPORT
 /* kno_xapply_lambda:
    Arguments: a pointer to an lambda, a void* data pointer, and a function
-   of a void* pointer and a dtype pointer
+   of a void* pointer and a lisp pointer
    Returns: the application result
    This uses an external function to get parameter values from some
    other data structure (cast as a void* pointer).  This is used, for instance,

@@ -753,7 +753,7 @@ static void file_pool_close(kno_pool p)
 KNO_EXPORT
 /* kno_make_file_pool:
    Arguments: a filename string, a magic number (usigned int), an KNO_OID,
-   a capacity, and a dtype pointer to a metadata description (a slotmap).
+   a capacity, and a lisp pointer to a metadata description (a slotmap).
    Returns: -1 on error, 1 on success. */
 int kno_make_file_pool
 (u8_string filename,unsigned int magicno,

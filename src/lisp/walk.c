@@ -64,7 +64,7 @@ KNO_FASTOP int fast_walk(kno_walker walker,lispval obj,
 
 KNO_EXPORT
 /* kno_walk:
-   Arguments: two dtype pointers
+   Arguments: two lisp pointers
    Returns: 1, 0, or -1 (an int)
    Walks the object tree, calling walker on nodes encountered. */
 int kno_walk(kno_walker walker,lispval obj,void *walkdata,

@@ -238,7 +238,7 @@ KNO_EXPORT ssize_t _kno_free_elts(lispval *elts,size_t n)
 
 KNO_EXPORT
 /* lispval_equal:
-   Arguments: two dtype pointers
+   Arguments: two lisp pointers
    Returns: 1 or 0 (an int)
    Returns 1 if the two objects are equal. */
 int lispval_equal(lispval x,lispval y)

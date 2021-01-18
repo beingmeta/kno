@@ -1235,7 +1235,7 @@ static lispval fileindex_ctl(kno_index ix,lispval op,int n,kno_argvec args)
 KNO_EXPORT
 /* kno_make_fileindex:
    Arguments: a filename string, a magic number (usigned int), an KNO_OID,
-   a capacity, and a dtype pointer to a metadata description (a slotmap).
+   a capacity, and a lisp pointer to a metadata description (a slotmap).
    Returns: -1 on error, 1 on success. */
 int kno_make_fileindex(u8_string filename,unsigned int magicno,int n_slots_arg)
 {

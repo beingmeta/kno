@@ -75,7 +75,7 @@
     pattern in the current environment).
    
    Internally, the match and extract functions also receive a (possibly VOID)
-    dtype pointer to the 'next pattern' used for easily handling wildcards 
+    lisp pointer to the 'next pattern' used for easily handling wildcards 
     and remainder arguments.  Finally, a *flags* argument controls various aspects
     of the matching process and is normally passed to operations on subpatterns.
 

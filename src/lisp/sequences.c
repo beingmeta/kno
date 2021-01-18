@@ -579,8 +579,8 @@ static int vector_search(lispval key,lispval x,int start,int end)
 
 /* kno_seq_elts:
    Arguments: a lisp sequence and a pointer to an int
-   Returns: a C vector of dtype pointers
-   This returns a vector of dtype pointers representing the elements
+   Returns: a C vector of lisp pointers
+   This returns a vector of lisp pointers representing the elements
    of the sequence.  For strings these are characters, for packets, they
    are ints. */
 lispval *kno_seq_elts(lispval seq,int *n)
@@ -691,7 +691,7 @@ lispval *kno_seq_elts(lispval seq,int *n)
 
 KNO_EXPORT
 /* kno_makeseq:
-   Arguments: a sequence type, a length, and a C vector of dtype pointers.
+   Arguments: a sequence type, a length, and a C vector of lisp pointers.
    Returns: a sequence
    Creates a sequence of the designated type out of the given elements. */
 lispval kno_makeseq(kno_lisp_type ctype,int n,kno_argvec v)

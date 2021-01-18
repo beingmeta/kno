@@ -1600,7 +1600,7 @@ KNO_EXPORT int kno_swapout_oids(lispval oids)
 
 KNO_EXPORT
 /* kno_prefetch_oids:
-   Arguments: a dtype pointer to an oid or OID choice
+   Arguments: a lisp pointer to an oid or OID choice
    Returns:
    Sorts the OIDs by pool (ignoring non-oids) and executes
    a prefetch from each pool.

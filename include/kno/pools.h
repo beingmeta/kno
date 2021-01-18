@@ -83,9 +83,9 @@
     * setbuf(kno_pool,int size) returns void
        Sets the buffer size used into file or network transactions (if any).
     * alloc(kno_pool p,int n) returns lispval
-       Returns a dtype pointer to N OIDs allocated from the pool
+       Returns a lisp pointer to N OIDs allocated from the pool
     * fetch(kno_pool p,lispval oid) returns lispval
-       Returns the value of the OID oid (a dtype pointer).
+       Returns the value of the OID oid (a lisp pointer).
        This returns an error if the OID isn't in the pool.
     * fetchn(kno_pool p,int n,lispval *oids) return (lispval *)
        Returns the values of the OIDs in the n-element array oids.  OIDs
@@ -105,8 +105,8 @@
        OIDs and values.
     * metadata(kno_pool p,lispval arg) returns lispval
        if arg is KNO_VOID, this gets the metadata associated with the pool,
-       which will be a dtype pointer to a table; otherwise, it sets the
-       metadata, which should be a dtype pointer to a table
+       which will be a lisp pointer to a table; otherwise, it sets the
+       metadata, which should be a lisp pointer to a table
     * sync(kno_pool p) returns int
        synchronizes the pool cache with the resource it gets its values from.
 */
@@ -287,7 +287,7 @@ KNO_EXPORT kno_pool kno_find_pool_by_prefix(u8_string prefix);
 KNO_EXPORT kno_pool kno_find_pool(u8_string);
 KNO_EXPORT u8_string kno_locate_pool(u8_string);
 
-/* Pools and dtype pointers */
+/* Pools and lisp pointers */
 
 KNO_EXPORT lispval kno_pool2lisp(kno_pool p);
 KNO_EXPORT kno_pool kno_lisp2pool(lispval lp);

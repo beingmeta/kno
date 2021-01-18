@@ -247,7 +247,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	(printout "\nirritant: " (lisp->string (exception-irritant ex) 120))))
     refpath))
 
-(define (engine-error-handler batch-state loop-state)
+(define (engi!ne-error-handler batch-state loop-state)
   (let* ((opts (getopt loop-state 'opts))
 	 (bugdir (getopt opts 'bugjar engine-bugjar)))
     (lambda (ex)

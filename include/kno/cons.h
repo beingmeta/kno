@@ -43,7 +43,7 @@
    (with KNO_DECREF) or use another upper-case consuming operation on it
    (such as KNO_ADD_TO_CHOICE (see <include/kno/choices.h>)).
 
-   Because the immediate type information on a dtype pointer distinguishes
+   Because the immediate type information on a lisp pointer distinguishes
    between CONSes and other types (which don't need to be reference
    counted), determining whether a value needs to be reference counted is
    very cheap.
