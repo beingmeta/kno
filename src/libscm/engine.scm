@@ -186,15 +186,15 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
     (exception-condition ex) " @" (exception-caller ex)
     (when (exception-details ex) (printout " (" (exception-details ex) ")"))
     (when handler (printout " (handling with " handler ") "))
+    (when saved (printout "\n  exception dumped to " (write saved)))
     (when (exception-irritant? ex)
-      (printout "\n" (void (pprint (exception-irritant ex)))))
-    (when saved (printout " exception dumped to " (write saved))))
+      (printout "\n" (lisp->string (exception-irritant ex) 120))))
   ;;(dump-bug ex)
   (when (exception-irritant? ex)
     (loginfo |EngineError/irritant| 
       "For " (get loop-state 'fifo) " "
       (exception-condition ex) " @" (exception-caller ex) ":\n  "
-      (void (pprint (exception-irritant ex)))))
+      (lisp->string (exception-irritant ex) 120)))
   (cond ((or (fail? handler) (overlaps? handler '{stopall stop}))
 	 (add! loop-state 'errors ex)
 	 (store! loop-state 'stopped now)
@@ -240,10 +240,11 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
     (unless (file-directory? bugdir) (mkdir bugdir))
     (fileout bugpath (exception.html ex))
     (logerr |Bugjar|
-      "Unexpected " condition " in " caller (if details (printout " (" details ")"))
+      "Unexpected " condition " in " caller 
+      (if details (printout " (" details ")"))
       "\nsaved to " refpath
       (when (error-irritant? ex)
-	(printout "\nirritant: " (listdata (error-irritant ex)))))
+	(printout "\nirritant: " (lisp->string (exception-irritant ex) 120))))
     refpath))
 
 (define (engine-error-handler batch-state loop-state)
@@ -435,8 +436,8 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	 (batchrange (getopt opts 'batchrange (config 'batchrange 3)))
 	 (batches (if (and batchsize (> batchsize 1))
 		      (batchup-vector items batchsize batchrange
-				      (and (singleton? items-arg)
-					   (vector? items-arg)))
+				      ;;(getopt engine-opts 'batchvecs)
+				      (and (singleton? items-arg) (vector? items-arg)))
 		      items))
 	 ;; How many threads to actually create
 	 (rthreads (if (and nthreads (> nthreads (length batches)))

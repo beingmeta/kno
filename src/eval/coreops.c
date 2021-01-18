@@ -85,7 +85,10 @@ static lispval equalp(lispval x,lispval y)
 
 DEFCPRIM("compare",comparefn,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "**undocumented**",
+	 "Compares the objects *x* and *y*, returning -1, 0, or 1 "
+	 "depending on their generic ordering. Note that this function "
+	 "is deterministic, so it may produce surprising results for "
+	 "choice arguments",
 	 {"x",kno_any_type,KNO_VOID},
 	 {"y",kno_any_type,KNO_VOID})
 static lispval comparefn(lispval x,lispval y)
@@ -94,30 +97,11 @@ static lispval comparefn(lispval x,lispval y)
   return KNO_INT(n);
 }
 
-/***FDDOC[2]** SCHEME COMPARE/QUICK
- * *x* an object
- * *y* an object
-
- Returns -1, 0, or 1 depending on a variant of the natural 'sort
- order' of *x* and *y*. For example, '(COMPARE 4 3)' returns 0,
- '(COMPARE 3 4)' returns -1, and '(COMPARE 4 4)' returns 0.
-
- This is often faster than 'COMPARE' by returning a consistent sort order
- with varies from the **natural** sort order in several ways:
- * sequences are compared by length first; shorter sequences always precede
- longer sequences;
- * numbers of different implementation types are compared based on their typecodes;
- * for custom types, this passes a third argument of 1 (for quick) to the
- 'kno_comparefn' found in 'kno_comparators[*typecode*]'.
-
- All other objects (especially custom types without compare methods),
- are compared based on their integer pointer values.
-
-*/
-
 DEFCPRIM("compare/quick",quickcomparefn,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "**undocumented**",
+	 "Compares the objects *x* and *y*, returning -1, 0, or 1 "
+	 "depending on pointer ordering for atomic objects and generic "
+	 "ordering for consed objects",
 	 {"x",kno_any_type,KNO_VOID},
 	 {"y",kno_any_type,KNO_VOID})
 static lispval quickcomparefn(lispval x,lispval y)
@@ -129,18 +113,16 @@ static lispval quickcomparefn(lispval x,lispval y)
 /***FDDOC[2]** SCHEME DEEP-COPY
  * *x* an object
 
- Returns a recursive copy of *x* where all consed objects (and their
- consed descendants) are reallocated if possible.
-
- Custom objects are duplicated using the 'kno_copyfn' handler in
- 'kno_copiers[*typecode*]. These methods have the option of simply
- incrementing the reference count rather than copying the pointers.
 
 */
 
 DEFCPRIM("deep-copy",deepcopy,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
+	 "Returns a recursive copy of *x* where all consed objects (and their "
+	 "consed descendants) are reallocated if possible.\n"
+	 "Custom objects are duplicated using the 'kno_copyfn' handler in "
+	 "'kno_copiers[*typecode*]. These methods have the option of simply "
+	 "incrementing the reference count rather than copying the pointers.",
 	 {"object",kno_any_type,KNO_VOID})
 static lispval deepcopy(lispval object)
 {
@@ -150,24 +132,21 @@ static lispval deepcopy(lispval object)
 /***FDDOC[2]** SCHEME STATIC-COPY
  * *x* an object
 
- Returns a recursive copy of *x* where all consed objects (and their
- consed descendants) are reallocated if possible. In addition, the
- newly consed objects are declared *static* meaning they are exempt
- from garbage collection. This will probably cause leaks but can
- sometimes improve performance.
-
- Custom objects are duplicated using the 'kno_copyfn' handler in
- 'kno_copiers[*typecode*]. These methods have the option of simply
- incrementing the reference count rather than copying the pointers.
-
- If the custom copier declines to return a new object, the existing
- object will not be delcared static.
 
 */
 
 DEFCPRIM("static-copy",staticcopy,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
+	 "Returns a recursive copy of *x* where all consed objects (and their "
+	 "consed descendants) are reallocated if possible. In addition, the "
+	 "newly consed objects are declared *static* meaning they are exempt "
+	 "from garbage collection. This will probably cause leaks but can "
+	 "sometimes improve performance.\n"
+	 "Custom objects are duplicated using the 'kno_copyfn' handler in "
+	 "'kno_copiers[*typecode*]. These methods have the option of simply "
+	 "incrementing the reference count rather than copying the pointers.\n"
+	 "If the custom copier declines to return a new object, the existing "
+	 "object will not be declared static. ",
 	 {"object",kno_any_type,KNO_VOID})
 static lispval staticcopy(lispval object)
 {
@@ -176,7 +155,7 @@ static lispval staticcopy(lispval object)
 
 DEFCPRIM("dontopt",dontopt,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 "**undocumented**",
+	 "Tells optimizers and compilers to leave this expression untouched.",
 	 {"x",kno_any_type,KNO_VOID})
 static lispval dontopt(lispval x)
 {
@@ -243,16 +222,17 @@ static lispval overlapsp(lispval x,lispval y)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("contains?",containsp,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "**undocumented**",
-	 {"choice",kno_any_type,KNO_VOID},
-	 {"item",kno_any_type,KNO_VOID});
-static lispval containsp(lispval x,lispval y)
+DEFCPRIM("contains?",containsp,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	 "Returns true if *subset* is a proper subset of *items*.",
+	 {"subset",kno_any_type,KNO_VOID},
+	 {"items",kno_any_type,KNO_VOID});
+static lispval containsp(lispval subset,lispval items)
 {
-  if (EMPTYP(x)) return KNO_FALSE;
-  else if (x == y) return KNO_TRUE;
-  else if (EMPTYP(y)) return KNO_FALSE;
-  else if (kno_containsp(x,y)) return KNO_TRUE;
+  if (EMPTYP(subset)) return KNO_TRUE;
+  else if (subset == items) return KNO_TRUE;
+  else if (EMPTYP(items)) return KNO_FALSE;
+  else if (kno_containsp(subset,items)) return KNO_TRUE;
   else return KNO_FALSE;
 }
 
@@ -408,7 +388,7 @@ static lispval qcons_prim(lispval car,lispval cdr)
 
 DEFCPRIM("allsymbols",lisp_all_symbols,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	 "**undocumented**")
+	 "Returns all interned symbols as a choice.")
 static lispval lisp_all_symbols()
 {
   return kno_all_symbols();
@@ -416,23 +396,31 @@ static lispval lisp_all_symbols()
 
 DEFCPRIM("string->lisp",lisp_string2lisp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"string",kno_any_type,KNO_VOID})
+	 "Parses a text representation (a string) into a LISP object.",
+	 {"string",kno_string_type,KNO_VOID})
 static lispval lisp_string2lisp(lispval string)
 {
-  if (STRINGP(string))
-    return kno_parse(CSTRING(string));
-  else return kno_type_error("string","lisp_string2lisp",string);
+  return kno_parse(CSTRING(string));
 }
 
 DEFCPRIM("lisp->string",lisp2string,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"x",kno_any_type,KNO_VOID})
-static lispval lisp2string(lispval x)
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	 "Returns a textual representation for *object*. The "
+	 "representation is truncated after *maxlen* bytes of "
+	 "UTF-8 representation, if *maxlen* is a positive fixnum.",
+	 {"object",kno_any_type,KNO_VOID},
+	 {"maxlen",kno_any_type,KNO_VOID})
+static lispval lisp2string(lispval object,lispval maxlen)
 {
+  if (KNO_FIXNUMP(maxlen)) {
+    long long len = KNO_FIX2INT(maxlen);
+    if (len == 0) return knostring("");
+    else if (len > 0) {
+      U8_FIXED_OUTPUT(fixed,len);
+      kno_unparse(fixedout,object);
+      return kno_stream2string(fixedout);}}
   U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
-  kno_unparse(&out,x);
+  kno_unparse(&out,object);
   return kno_stream2string(&out);
 }
 
@@ -682,7 +670,7 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("parse-arg",lisp_parse_arg,1,scheme_module);
   KNO_LINK_CPRIM("parse-slotid",lisp_parse_slotid,1,scheme_module);
   KNO_LINK_CPRIM("->lisp",lisp_tolisp,1,scheme_module);
-  KNO_LINK_CPRIM("lisp->string",lisp2string,1,scheme_module);
+  KNO_LINK_CPRIM("lisp->string",lisp2string,2,scheme_module);
   KNO_LINK_CPRIM("string->lisp",lisp_string2lisp,1,scheme_module);
   KNO_LINK_CPRIM("allsymbols",lisp_all_symbols,0,scheme_module);
   KNO_LINK_CPRIM("intern",lisp_intern,1,scheme_module);

@@ -688,6 +688,10 @@ KNO_EXPORT lispval kno_make_bigint(long long intval);
 #define KNO_FIXNUM_ONE      (KNO_SHORT2LISP(1))
 #define KNO_FIXNUM_NEGONE   (KNO_SHORT2LISP(-1))
 
+#define KNO_POSFIXP(x) ((KNO_FIXNUMP(x))&&((KNO_FIX2INT(x))>0))
+#define KNO_NEGFIXP(x) ((KNO_FIXNUMP(x))&&((KNO_FIX2INT(x))<0))
+#define KNO_WHOLEP(x) ((KNO_FIXNUMP(x))&&((KNO_FIX2INT(x))>=0))
+
 #if KNO_FIXNUM_BITS <= 30
 #define KNO_INTP(x) (KNO_FIXNUMP(x))
 #define KNO_UINTP(x) ((KNO_FIXNUMP(x))&&((KNO_FIX2INT(x))>=0))
