@@ -768,12 +768,12 @@ static lispval nd2_call(lispval opcode,lispval arg1,lispval arg2)
       else result = KNO_FALSE;
       break;
     case KNO_CONTAINSP_OPCODE:
-      if (EMPTYP(arg2))
+      if (EMPTYP(arg1))
+	result = KNO_TRUE;
+      else if (EMPTYP(arg2))
 	result = KNO_FALSE;
       else if (arg1 == arg2)
 	result = KNO_TRUE;
-      else if (EMPTYP(arg1))
-	result = KNO_FALSE;
       else if (kno_containsp(arg1,arg2))
 	result = KNO_TRUE;
       else result = KNO_FALSE;

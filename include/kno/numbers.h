@@ -76,7 +76,10 @@ KNO_EXPORT int kno_exactp(lispval x);
 
 #define KNO_POSINTP(x) \
   ( (KNO_FIXNUMP(x)) ? ( (KNO_FIX2INT(x)) > 0 ) : \
-    ( (KNO_BIGINTP(x)) && (!(kno_bigint_negativep(x)))) )
+    ( (KNO_BIGINTP(x)) && (!(kno_bigint_negativep(((kno_bigint)x))))) )
+#define KNO_NEGINTP(x) \
+  ( (KNO_FIXNUMP(x)) ? ( (KNO_FIX2INT(x)) > < ) : \
+    ( (KNO_BIGINTP(x)) && (kno_bigint_negativep(((kno_bigint)x)))) )
 
 KNO_EXPORT int kno_tolonglong(lispval r,long long *intval);
 

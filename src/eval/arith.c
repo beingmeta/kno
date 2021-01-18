@@ -74,6 +74,17 @@ static lispval integerp(lispval x)
   else return KNO_FALSE;
 }
 
+DEFCPRIM("whole?",wholep,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "Returns true if *x* is a whole number.",
+	 {"x",kno_any_type,KNO_VOID})
+static lispval wholep(lispval x)
+{
+  if (INTEGERP(x))
+    return (KNO_ZEROP(x)) || (KNO_POSINTP(x));
+  else return KNO_FALSE;
+}
+
 DEFCPRIM("rational?",rationalp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
@@ -1610,6 +1621,7 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("integer?",integerp,1,scheme_module);
   KNO_LINK_CPRIM("bignum?",bignump,1,scheme_module);
   KNO_LINK_CPRIM("fixnum?",fixnump,1,scheme_module);
+  KNO_LINK_CPRIM("whole?",wholep,1,scheme_module);
   KNO_LINK_CPRIM("complex?",complexp,1,scheme_module);
 
   KNO_LINK_CPRIM("SQRT",lsqrt,1,scheme_module);

@@ -874,7 +874,7 @@ static lispval read_values
   else if (n_values == 1) {
     lispval v = values[0];
     kno_incref(v);
-    u8_big_free(result);
+    kno_decref_ptr(result);
     return v;}
   else {
     return kno_init_choice
