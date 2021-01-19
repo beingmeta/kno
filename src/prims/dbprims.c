@@ -37,7 +37,7 @@ static lispval background_symbol, adjunct_symbol, sparse_symbol, repair_symbol;
 
 DEFCPRIM("slotid?",slotidp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
+	 "Returns true if *arg* is an OID or a symbol (a slotid)",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval slotidp(lispval arg)
 {
@@ -90,7 +90,8 @@ static int load_db_module(lispval opts,u8_context context)
 
 DEFCPRIMN("find-frames",find_frames_lexpr,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	  "**undocumented**")
+	  "`(find-frames *index* [*slots* *values*]...)` "
+	  "Searches in *index* for frames with the specified slot-values.")
 static lispval find_frames_lexpr(int n,kno_argvec args)
 {
   if (n%2)
@@ -105,7 +106,9 @@ static lispval find_frames_lexpr(int n,kno_argvec args)
 
 DEFCPRIMN("xfind-frames",xfind_frames_lexpr,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	  "**undocumented**")
+	  "`(xfind-frames *index* [*slots* *values*]...)` "
+	  "Searches in *index* for frames with the specified slot-values. "
+	  "This ignores clauses which are 'empty' and have no indexed matches.")
 static lispval xfind_frames_lexpr(int n,kno_argvec args)
 {
   int i = (n%2); while (i<n)
@@ -133,7 +136,7 @@ static lispval xfind_frames_lexpr(int n,kno_argvec args)
 
 DEFCPRIM("prefetch-slotvals!",prefetch_slotvals,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3)|KNO_NDCALL,
-	 "**undocumented**",
+	 "Prefetches all index entries where any *slotids* have any *values*.",
 	 {"index",kno_any_type,KNO_VOID},
 	 {"slotids",kno_any_type,KNO_VOID},
 	 {"values",kno_any_type,KNO_VOID})
@@ -147,7 +150,8 @@ static lispval prefetch_slotvals(lispval index,lispval slotids,lispval values)
 
 DEFCPRIMN("find-frames/prefetch!",find_frames_prefetch,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	  "**undocumented**")
+	  "`(find-frames-prefetch! *index* [*slots* *values*]...)` "
+	  "Prefeteches index entries for doing a find-frames search.")
 static lispval find_frames_prefetch(int n,kno_argvec args)
 {
   int i = (n%2);
@@ -191,7 +195,10 @@ static void hashtable_index_frame(lispval ix,
 
 DEFCPRIM("index-frame",index_frame_prim,
 	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(3)|KNO_NDCALL,
-	 "**undocumented**",
+	 "Adds index entries in *indexes* to *frames* for "
+	 "the specified slot-value pairs. If *values* is not "
+	 "provided, the current values of each slot on each *frame* "
+	 "are used.",
 	 {"indexes",kno_any_type,KNO_VOID},
 	 {"frames",kno_any_type,KNO_VOID},
 	 {"slotids",kno_any_type,KNO_VOID},
@@ -225,7 +232,7 @@ static lispval index_frame_prim
 
 DEFCPRIM("pool?",poolp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
+	 "Returns true if *arg* is a pool.",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval poolp(lispval arg)
 {
@@ -236,13 +243,57 @@ static lispval poolp(lispval arg)
 
 DEFCPRIM("index?",indexp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
+	 "Returns true if *arg* is a pool.",
 	 {"arg",kno_any_type,KNO_VOID})
 static lispval indexp(lispval arg)
 {
   if (INDEXP(arg))
     return KNO_TRUE;
   else return KNO_FALSE;
+}
+
+DEFCPRIM("source->pool",source2pool,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "returns the pool stored in *source*, if it has been "
+	 "loaded into the current session.",
+	 {"source",kno_string_type,KNO_VOID})
+static lispval source2pool(lispval source)
+{
+  kno_pool p = kno_find_pool_by_source(KNO_CSTRING(source));
+  if (p) return kno_pool2lisp(p); else return KNO_FALSE;
+}
+
+DEFCPRIM("source->index",source2index,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "returns the index stored in *source*, if it has been "
+	 "loaded into the current session.",
+	 {"source",kno_string_type,KNO_VOID})
+static lispval source2index(lispval source)
+{
+  kno_index ix = kno_find_index_by_source(KNO_CSTRING(source));
+  if (ix) return kno_index2lisp(ix); else return KNO_FALSE;
+}
+
+DEFCPRIM("name->pool",name2pool,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "returns the pool stored in *name*, if it has been "
+	 "loaded into the current session.",
+	 {"name",kno_string_type,KNO_VOID})
+static lispval name2pool(lispval name)
+{
+  kno_pool p = kno_find_pool(KNO_CSTRING(name));
+  if (p) return kno_pool2lisp(p); else return KNO_FALSE;
+}
+
+DEFCPRIM("name->index",name2index,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "returns the index stored in *name*, if it has been "
+	 "loaded into the current session.",
+	 {"name",kno_string_type,KNO_VOID})
+static lispval name2index(lispval name)
+{
+  kno_index ix = kno_find_index(KNO_CSTRING(name));
+  if (ix) return kno_index2lisp(ix); else return KNO_FALSE;
 }
 
 DEFCPRIM("getpool",getpool,
@@ -323,94 +374,97 @@ static lispval set_cache_level(lispval arg,lispval level)
   else return kno_type_error("pool or index","set_cache_level",arg);
 }
 
-DEFCPRIM("try-pool",try_pool,
+DEFCPRIM("use-pool",use_pool,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"arg1",kno_any_type,KNO_VOID},
+	 "Adds the pool maintained at *source* to the "
+	 "object background of the current session. ",
+	 {"source",kno_any_type,KNO_VOID},
 	 {"opts",kno_any_type,KNO_VOID})
-static lispval try_pool(lispval arg1,lispval opts)
+static lispval use_pool(lispval source,lispval opts)
 {
-  if (load_db_module(opts,"try_pool")<0)
+  if (load_db_module(opts,"use_pool")<0)
     return KNO_ERROR;
-  else	if ( (KNO_POOLP(arg1)) || (TYPEP(arg1,kno_consed_pool_type)) )
-    return kno_incref(arg1);
-  else if (!(STRINGP(arg1)))
-    return kno_type_error(_("string"),"load_pool",arg1);
+  else if (KNO_POOLP(source))
+    // TODO: Should check to make sure that it's in the background
+    return kno_incref(source);
+  else if (!(STRINGP(source)))
+    return kno_type_error(_("string"),"use_pool",source);
   else {
-    kno_storage_flags flags = kno_get_dbflags(opts,KNO_STORAGE_ISPOOL) |
-      KNO_STORAGE_NOERR;
-    kno_pool p = kno_get_pool(CSTRING(arg1),flags,opts);
-    if (p)
-      return kno_pool2lisp(p);
-    else return KNO_FALSE;}
+    kno_pool p = kno_get_pool(CSTRING(source),-1,opts);
+    if (p) return kno_pool2lisp(p);
+    else return kno_err(kno_NoSuchPool,"use_pool",
+			CSTRING(source),VOID);}
 }
 
 DEFCPRIM("adjunct-pool",adjunct_pool,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"arg1",kno_any_type,KNO_VOID},
+	 "Gets and returns the pool maintained at *source*. This "
+	 "does not add the pool to the object background.",
+	 {"source",kno_any_type,KNO_VOID},
 	 {"opts",kno_any_type,KNO_VOID})
-static lispval adjunct_pool(lispval arg1,lispval opts)
+static lispval adjunct_pool(lispval source,lispval opts)
 {
   if (load_db_module(opts,"adjunct_pool")<0)
     return KNO_ERROR;
-  else if ( (KNO_POOLP(arg1)) || (TYPEP(arg1,kno_consed_pool_type)) )
+  else if ( (KNO_POOLP(source)) || (TYPEP(source,kno_consed_pool_type)) )
     // TODO: Should check it's really adjunct, if that's the right thing?
-    return kno_incref(arg1);
-  else if (!(STRINGP(arg1)))
-    return kno_type_error(_("string"),"adjunct_pool",arg1);
+    return kno_incref(source);
+  else if (!(STRINGP(source)))
+    return kno_type_error(_("string"),"adjunct_pool",source);
   else {
     kno_storage_flags flags = kno_get_dbflags(opts,KNO_STORAGE_ISPOOL) |
       KNO_POOL_ADJUNCT;
-    kno_pool p = kno_get_pool(CSTRING(arg1),flags,opts);
+    kno_pool p = kno_get_pool(CSTRING(source),flags,opts);
     if (p)
       return kno_pool2lisp(p);
     else return KNO_ERROR;}
 }
 
-DEFCPRIM("use-pool",use_pool,
+DEFCPRIM("try-pool",try_pool,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"arg1",kno_any_type,KNO_VOID},
+	 "Tries to add a pool maintained at *source* to the "
+	 "object background of the current session. Returns false "
+	 "if it fails",
+	 {"source",kno_any_type,KNO_VOID},
 	 {"opts",kno_any_type,KNO_VOID})
-static lispval use_pool(lispval arg1,lispval opts)
+static lispval try_pool(lispval source,lispval opts)
 {
-  if (load_db_module(opts,"use_pool")<0)
+  if (load_db_module(opts,"try_pool")<0)
     return KNO_ERROR;
-  else if ( (KNO_POOLP(arg1)) || (TYPEP(arg1,kno_consed_pool_type)) )
-    // TODO: Should check to make sure that it's in the background
-    return kno_incref(arg1);
-  else if (!(STRINGP(arg1)))
-    return kno_type_error(_("string"),"use_pool",arg1);
+  else	if ( (KNO_POOLP(source)) || (TYPEP(source,kno_consed_pool_type)) )
+    return kno_incref(source);
+  else if (!(STRINGP(source)))
+    return kno_type_error(_("string"),"load_pool",source);
   else {
-    kno_pool p = kno_get_pool(CSTRING(arg1),-1,opts);
-    if (p) return kno_pool2lisp(p);
-    else return kno_err(kno_NoSuchPool,"use_pool",
-			CSTRING(arg1),VOID);}
+    kno_storage_flags flags = kno_get_dbflags(opts,KNO_STORAGE_ISPOOL) |
+      KNO_STORAGE_NOERR;
+    kno_pool p = kno_get_pool(CSTRING(source),flags,opts);
+    if (p)
+      return kno_pool2lisp(p);
+    else return KNO_FALSE;}
 }
 
 DEFCPRIM("use-index",use_index,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "(USE-INDEX *spec* [*opts*]) "
-	 "adds an index to the search background",
-	 {"arg",kno_any_type,KNO_VOID},
+	 "adds the index at *source* to the search background",
+	 {"source",kno_any_type,KNO_VOID},
 	 {"opts",kno_any_type,KNO_VOID})
-static lispval use_index(lispval arg,lispval opts)
+static lispval use_index(lispval source,lispval opts)
 {
   kno_index ixresult = NULL;
   if (load_db_module(opts,"use_index")<0)
     return KNO_ERROR;
-  else if (INDEXP(arg)) {
-    ixresult = kno_indexptr(arg);
+  else if (INDEXP(source)) {
+    ixresult = kno_indexptr(source);
     if (ixresult) kno_add_to_background(ixresult);
-    else return kno_type_error("index","index_frame_prim",arg);
-    return kno_incref(arg);}
-  else if (STRINGP(arg))
-    if (strchr(CSTRING(arg),';')) {
+    else return kno_type_error("index","index_frame_prim",source);
+    return kno_incref(source);}
+  else if (STRINGP(source))
+    if (strchr(CSTRING(source),';')) {
       /* We explicitly handle ; separated arguments here, so that
 	 we can return the choice of index. */
       lispval results = EMPTY;
-      u8_byte *copy = u8_strdup(CSTRING(arg));
+      u8_byte *copy = u8_strdup(CSTRING(source));
       u8_byte *start = copy, *end = strchr(start,';');
       *end='\0'; while (start) {
 	kno_index ix = kno_use_index(start,
@@ -430,14 +484,14 @@ static lispval use_index(lispval arg,lispval opts)
       u8_free(copy);
       return results;}
     else ixresult = kno_use_index
-	   (CSTRING(arg),kno_get_dbflags(opts,KNO_STORAGE_ISINDEX),opts);
-  else return kno_type_error(_("index spec"),"use_index",arg);
+	   (CSTRING(source),kno_get_dbflags(opts,KNO_STORAGE_ISINDEX),opts);
+  else return kno_type_error(_("index spec"),"use_index",source);
   if (ixresult)
     return index_ref(ixresult);
   else return KNO_ERROR;
 }
 
-static lispval open_index_helper(lispval arg,lispval opts,int registered)
+static lispval open_index_helper(lispval source,lispval opts,int registered)
 {
   kno_storage_flags flags = kno_get_dbflags(opts,KNO_STORAGE_ISINDEX);
   kno_index ix = NULL;
@@ -452,12 +506,12 @@ static lispval open_index_helper(lispval arg,lispval opts,int registered)
   else if (registered>0)
     flags &= ~KNO_STORAGE_UNREGISTERED;
   else {}
-  if (STRINGP(arg)) {
-    if (strchr(CSTRING(arg),';')) {
+  if (STRINGP(source)) {
+    if (strchr(CSTRING(source),';')) {
       /* We explicitly handle ; separated arguments here, so that
 	 we can return the choice of index. */
       lispval results = EMPTY;
-      u8_byte *copy = u8_strdup(CSTRING(arg));
+      u8_byte *copy = u8_strdup(CSTRING(source));
       u8_byte *start = copy, *end = strchr(start,';');
       *end='\0'; while (start) {
 	kno_index ix = kno_get_index(start,flags,opts);
@@ -474,12 +528,12 @@ static lispval open_index_helper(lispval arg,lispval opts,int registered)
 	else start = NULL;}
       u8_free(copy);
       return results;}
-    else return index_ref(kno_get_index(CSTRING(arg),flags,opts));}
-  else if (KNO_ETERNAL_INDEXP(arg))
-    return arg;
-  else if (KNO_CONSED_INDEXP(arg))
-    return kno_incref(arg);
-  else kno_seterr(kno_TypeError,"use_index",NULL,kno_incref(arg));
+    else return index_ref(kno_get_index(CSTRING(source),flags,opts));}
+  else if (KNO_ETERNAL_INDEXP(source))
+    return source;
+  else if (KNO_CONSED_INDEXP(source))
+    return kno_incref(source);
+  else kno_seterr(kno_TypeError,"use_index",NULL,kno_incref(source));
   if (ix)
     return index_ref(ix);
   else return KNO_ERROR;
@@ -487,15 +541,15 @@ static lispval open_index_helper(lispval arg,lispval opts,int registered)
 
 DEFCPRIM("open-index",open_index,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "(OPEN-INDEX *spec* [*opts*]) "
-	 "opens and returns an index",
-	 {"arg",kno_any_type,KNO_VOID},
+	 "opens the index at *source* and returns it, "
+	 "not adding it to the current background.",
+	 {"source",kno_any_type,KNO_VOID},
 	 {"opts",kno_any_type,KNO_VOID})
-static lispval open_index(lispval arg,lispval opts)
+static lispval open_index(lispval source,lispval opts)
 {
   if (load_db_module(opts,"open_index")<0)
     return KNO_ERROR;
-  else return open_index_helper(arg,opts,-1);
+  else return open_index_helper(source,opts,-1);
 }
 
 DEFCPRIM("register-index",register_index,
@@ -4629,8 +4683,13 @@ static void link_local_cprims()
   KNO_LINK_CVARARGS("find-frames",find_frames_lexpr,kno_db_module);
   KNO_LINK_CPRIM("slotid?",slotidp,1,kno_db_module);
 
+  KNO_LINK_CPRIM("name->pool",name2pool,1,kno_db_module);
+  KNO_LINK_CPRIM("source->pool",source2pool,1,kno_db_module);
+  KNO_LINK_CPRIM("name->index",name2index,1,kno_db_module);
+  KNO_LINK_CPRIM("source->index",source2index,1,kno_db_module);
+
+
   KNO_LINK_ALIAS("??",find_frames_lexpr,kno_db_module);
-  KNO_LINK_ALIAS("name->pool",getpool,kno_db_module);
   KNO_LINK_ALIAS("load-pool",try_pool,kno_db_module);
   KNO_LINK_ALIAS("temp-index",cons_index,kno_db_module);
   KNO_LINK_ALIAS("oid+",oid_plus_prim,kno_db_module);
