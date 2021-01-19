@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-01-09 14:08-0500\n"
+"POT-Creation-Date: 2021-01-19 17:20+0000\n"
 "PO-Revision-Date: 2005-03-05 16:06-0500\n"
 "Last-Translator: Kenneth Haase <kh@beingmeta.com>\n"
 "Language-Team: French <traduc@traduc.org>\n"
@@ -156,7 +156,7 @@ msgstr "séquence"
 #: src/lisp/sequences.c:166 src/lisp/sequences.c:261 src/lisp/sequences.c:815
 #: src/lisp/lisp.c:457 src/eval/opcode_defs.c:365 src/eval/opcode_defs.c:372
 #: src/eval/opcode_defs.c:564 src/eval/opcode_defs.c:568
-#: src/prims/dbprims.c:3468 src/prims/dbprims.c:3470 src/prims/seqprims.c:445
+#: src/prims/dbprims.c:3522 src/prims/dbprims.c:3524 src/prims/seqprims.c:445
 #: src/prims/seqprims.c:458 src/prims/seqprims.c:467 src/prims/seqprims.c:645
 #: src/prims/seqprims.c:682 src/prims/seqprims.c:755 src/prims/seqprims.c:783
 #: src/prims/seqprims.c:1750 src/prims/seqprims.c:1808
@@ -462,7 +462,7 @@ msgid "oid"
 msgstr "oid"
 
 #: src/lisp/lisp.c:298 src/lisp/lisp.c:299 src/sys/config.c:863
-#: src/eval/opcode_defs.c:373 src/eval/evalops.c:311 src/prims/dbprims.c:3394
+#: src/eval/opcode_defs.c:373 src/eval/evalops.c:311 src/prims/dbprims.c:3448
 #: src/prims/portprims.c:1028 src/eval/choiceops.c:1538
 #: src/eval/choiceops.c:1609 src/eval/choiceops.c:1656
 #: src/eval/choiceops.c:1723 src/eval/choiceops.c:1739
@@ -513,13 +513,13 @@ msgid "coderef"
 msgstr ""
 
 #: src/lisp/lisp.c:320 src/lisp/lisp.c:321 src/storage/pools.c:2886
-#: src/prims/dbprims.c:297 src/prims/dbprims.c:2131
+#: src/prims/dbprims.c:348 src/prims/dbprims.c:2185
 msgid "pool"
 msgstr "lot"
 
 #: src/lisp/lisp.c:322 src/lisp/lisp.c:323 src/storage/indexes.c:1125
-#: src/storage/slotindexes.c:234 src/prims/dbprims.c:853
-#: src/prims/dbprims.c:2094 src/prims/dbprims.c:2113 src/prims/dbprims.c:2146
+#: src/storage/slotindexes.c:234 src/prims/dbprims.c:907
+#: src/prims/dbprims.c:2148 src/prims/dbprims.c:2167 src/prims/dbprims.c:2200
 msgid "index"
 msgstr "index"
 
@@ -538,8 +538,8 @@ msgstr ""
 # bfd
 #: src/lisp/lisp.c:329 src/lisp/lisp.c:330 src/sys/config.c:764
 #: src/sys/config.c:783 src/sys/config.c:802 src/sys/startup.c:256
-#: src/sys/startup.c:649 src/prims/dbprims.c:338 src/prims/dbprims.c:361
-#: src/prims/dbprims.c:384 src/prims/portprims.c:393 src/prims/portprims.c:882
+#: src/sys/startup.c:649 src/prims/dbprims.c:391 src/prims/dbprims.c:413
+#: src/prims/dbprims.c:437 src/prims/portprims.c:393 src/prims/portprims.c:882
 #: src/prims/portprims.c:1034 src/prims/dtypeprims.c:248
 #: src/prims/dtypeprims.c:303 src/prims/dtypeprims.c:390
 #: src/prims/dtypeprims.c:424 src/prims/dtypeprims.c:448
@@ -811,7 +811,7 @@ msgstr ""
 msgid "a slotmap or schemap"
 msgstr ""
 
-#: src/lisp/lisp.c:454 src/prims/dbprims.c:2434 src/prims/tableprims.c:873
+#: src/lisp/lisp.c:454 src/prims/dbprims.c:2488 src/prims/tableprims.c:873
 #: src/prims/tableprims.c:898 src/prims/tableprims.c:932
 #: src/prims/tableprims.c:1008 src/web/htmlout.c:599 src/web/uriprims.c:208
 #: src/web/uriprims.c:210 src/web/uriprims.c:311
@@ -1472,12 +1472,12 @@ msgstr ""
 msgid "Error getting metadata"
 msgstr ""
 
-#: src/storage/storage.c:428 src/storage/pools.c:2768 src/prims/dbprims.c:1610
-#: src/prims/dbprims.c:1625 src/prims/dbprims.c:1637 src/prims/dbprims.c:1651
-#: src/prims/dbprims.c:1697 src/prims/dbprims.c:1714 src/prims/dbprims.c:1734
-#: src/prims/dbprims.c:1750 src/prims/dbprims.c:1766 src/prims/dbprims.c:1788
-#: src/prims/dbprims.c:1838 src/prims/dbprims.c:1856 src/prims/dbprims.c:3389
-#: src/prims/dbprims.c:3481
+#: src/storage/storage.c:428 src/storage/pools.c:2768 src/prims/dbprims.c:1664
+#: src/prims/dbprims.c:1679 src/prims/dbprims.c:1691 src/prims/dbprims.c:1705
+#: src/prims/dbprims.c:1751 src/prims/dbprims.c:1768 src/prims/dbprims.c:1788
+#: src/prims/dbprims.c:1804 src/prims/dbprims.c:1820 src/prims/dbprims.c:1842
+#: src/prims/dbprims.c:1892 src/prims/dbprims.c:1910 src/prims/dbprims.c:3443
+#: src/prims/dbprims.c:3535
 #, fuzzy
 msgid "pool spec"
 msgstr "lot"
@@ -2204,7 +2204,7 @@ msgid "Invalid opcode"
 msgstr "constante invalide"
 
 # gnumeric
-#: src/eval/opcode_defs.c:623 src/eval/arith.c:313
+#: src/eval/opcode_defs.c:623 src/eval/arith.c:324
 #, fuzzy
 msgid "number"
 msgstr "nombre"
@@ -2401,16 +2401,16 @@ msgstr ""
 msgid "string or symbol"
 msgstr "chaîne ou symbole"
 
-#: src/eval/arith.c:487 src/eval/arith.c:1034 src/eval/arith.c:1055
-#: src/eval/arith.c:1076 src/eval/arith.c:1108
+#: src/eval/arith.c:498 src/eval/arith.c:1045 src/eval/arith.c:1066
+#: src/eval/arith.c:1087 src/eval/arith.c:1119
 msgid "scalar"
 msgstr ""
 
-#: src/eval/arith.c:1379 src/eval/arith.c:1398
+#: src/eval/arith.c:1390 src/eval/arith.c:1409
 msgid "negative numbers can't be rendered as non-decimal"
 msgstr ""
 
-#: src/eval/arith.c:1525
+#: src/eval/arith.c:1536
 #, fuzzy
 msgid "string or number"
 msgstr "chaîne ou symbole"
@@ -2420,77 +2420,77 @@ msgstr "chaîne ou symbole"
 msgid "Invalid Regex operation"
 msgstr "caractère pas valide"
 
-#: src/prims/dbprims.c:279
+#: src/prims/dbprims.c:330
 #, fuzzy
 msgid "Unknown pool name"
 msgstr "L'encodage est inconnu"
 
-#: src/prims/dbprims.c:301
+#: src/prims/dbprims.c:352
 msgid "namefn"
 msgstr ""
 
-#: src/prims/dbprims.c:434 src/prims/dbprims.c:2476 src/prims/dbprims.c:2490
+#: src/prims/dbprims.c:488 src/prims/dbprims.c:2530 src/prims/dbprims.c:2544
 #, fuzzy
 msgid "index spec"
 msgstr "index"
 
-#: src/prims/dbprims.c:550 src/prims/dbprims.c:551
+#: src/prims/dbprims.c:604 src/prims/dbprims.c:605
 msgid "BadPoolType"
 msgstr ""
 
-#: src/prims/dbprims.c:614 src/prims/dbprims.c:615
+#: src/prims/dbprims.c:668 src/prims/dbprims.c:669
 msgid "BadIndexType"
 msgstr ""
 
-#: src/prims/dbprims.c:849
+#: src/prims/dbprims.c:903
 msgid "eternal (not-ephemeral) index"
 msgstr ""
 
-#: src/prims/dbprims.c:854
+#: src/prims/dbprims.c:908
 #, fuzzy
 msgid "aggregate index"
 msgstr "index"
 
-#: src/prims/dbprims.c:1236 src/prims/dbprims.c:1263
+#: src/prims/dbprims.c:1290 src/prims/dbprims.c:1317
 #, fuzzy
 msgid "slotid"
 msgstr "slotmap"
 
-#: src/prims/dbprims.c:1364 src/prims/dbprims.c:1369 src/prims/dbprims.c:1388
-#: src/prims/dbprims.c:1410
+#: src/prims/dbprims.c:1418 src/prims/dbprims.c:1423 src/prims/dbprims.c:1442
+#: src/prims/dbprims.c:1464
 #, fuzzy
 msgid "pool, index, or OIDs"
 msgstr "Il n'y a pas une lot pour cette OID"
 
-#: src/prims/dbprims.c:1438 src/prims/dbprims.c:1894 src/prims/dbprims.c:2164
-#: src/prims/dbprims.c:2184
+#: src/prims/dbprims.c:1492 src/prims/dbprims.c:1948 src/prims/dbprims.c:2218
+#: src/prims/dbprims.c:2238
 #, fuzzy
 msgid "pool or index"
 msgstr "une lot ou index"
 
-#: src/prims/dbprims.c:1660 src/prims/dbprims.c:1664 src/prims/dbprims.c:1669
-#: src/prims/dbprims.c:1674
+#: src/prims/dbprims.c:1714 src/prims/dbprims.c:1718 src/prims/dbprims.c:1723
+#: src/prims/dbprims.c:1728
 msgid "pool offset"
 msgstr ""
 
-#: src/prims/dbprims.c:2397
+#: src/prims/dbprims.c:2451
 msgid "value test"
 msgstr ""
 
-#: src/prims/dbprims.c:2816
+#: src/prims/dbprims.c:2870
 msgid "test relation"
 msgstr ""
 
-#: src/prims/dbprims.c:2929
+#: src/prims/dbprims.c:2983
 msgid "test object"
 msgstr ""
 
-#: src/prims/dbprims.c:3454
+#: src/prims/dbprims.c:3508
 #, fuzzy
 msgid "wrong number of args"
 msgstr "trop peu de arguments à «find-frames»"
 
-#: src/prims/dbprims.c:3605 src/prims/dbprims.c:3630
+#: src/prims/dbprims.c:3659 src/prims/dbprims.c:3684
 msgid "offset base"
 msgstr ""
 
@@ -2670,15 +2670,15 @@ msgstr ""
 msgid "Module does not exist"
 msgstr ""
 
-#: src/eval/loadmods.c:719
+#: src/eval/loadmods.c:721
 msgid "FailedModule"
 msgstr ""
 
-#: src/eval/loadmods.c:723
+#: src/eval/loadmods.c:725
 msgid "DynamicLoad"
 msgstr ""
 
-#: src/eval/loadmods.c:797
+#: src/eval/loadmods.c:799
 msgid "module name"
 msgstr ""
 

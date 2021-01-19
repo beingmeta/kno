@@ -436,8 +436,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	 (batchrange (getopt opts 'batchrange (config 'batchrange 3)))
 	 (batches (if (and batchsize (> batchsize 1))
 		      (batchup-vector items batchsize batchrange
-				      ;;(getopt engine-opts 'batchvecs)
-				      (and (singleton? items-arg) (vector? items-arg)))
+				      (getopt engine-opts 'batchvecs))
 		      items))
 	 ;; How many threads to actually create
 	 (rthreads (if (and nthreads (> nthreads (length batches)))
