@@ -399,7 +399,7 @@
     (let* ((opts (opt+ create-opts opts makedb-defaults))
 	   (index (index/ref (glom base ".index") opts))
 	   (pool (pool/ref (glom base ".pool") 
-			   (cons [metadata [indexes (glom (basename base) ".index")]]
+			   (cons [metadata `#[indexes ,(glom (basename base) ".index")]]
 				 opts))))
       pool)))
 
