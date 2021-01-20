@@ -42,12 +42,14 @@ KNO_EXPORT lispval kno_init_compound_from_elts
   if (RARELY((n<0)))
     return kno_type_error(_("positive byte"),"kno_init_compound_from_elts",
 			  KNO_SHORT2LISP(n));
-  if ( (istable) && (n>0) && (elts) && (!(KNO_TABLEP(elts[0]))) ) {
-    u8_byte buf[128];
-    return kno_err("First element of tabular compound isn't a table",
-		   "kno_init_compound_from_elts",
-		   u8_bprintf(buf,"%q",tag),
-		   (n>0) ? (elts[0]) : (KNO_DEFAULT));}
+  if ( (istable) && (!((n>0) && (KNO_TABLEP(elts[0])))) ) {
+    u8_log(LOGWARN,"BadXTypeCompound",
+	   "The first element of a tabular compound (%q) isn't a table",
+	   tag);
+    lispval corrected[n+1];
+    corrected[0]=kno_make_slotmap(4,0,NULL);
+    memcpy(corrected+1,elts,sizeof(lispval)*n);
+    return kno_init_compound_from_elts(p,tag,flags,n+1,corrected);}
   if (p == NULL) {
     if (n==0)
       p = u8_zmalloc(sizeof(struct KNO_COMPOUND));
