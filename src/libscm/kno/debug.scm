@@ -15,7 +15,7 @@
 (define-init debug-width 120)
 (varconfig! kno:debug:width debug-width)
 
-(define (set-debug! (arg #f))
+(define (set-debug! (arg (req/get '_debug #f)))
   (unless arg
     (set! arg (or (req/get '_err #f)
 		  (req/get '_debug (req/get '_err #f)))))
