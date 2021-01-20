@@ -1065,7 +1065,7 @@ static ssize_t write_compound(kno_outbuf out,
   ssize_t bytes = 0;
   int n_elts = cvec->compound_length;
   lispval *elts = &(cvec->compound_0), *limit = elts + n_elts;
-  int tablep = (cvec->compound_istable);
+  int tablep = (cvec->compound_istable != 0);
   int write_elts = n_elts + 4 - tablep;
   ssize_t rv = kno_write_byte(out,xt_compound);
   if (rv<0) return rv; else bytes += rv;
@@ -1083,7 +1083,7 @@ static ssize_t write_compound(kno_outbuf out,
   /* This is a space for compounds which have attached schema */
   rv = write_xtype(out,KNO_FALSE,NULL);
   if (rv<0) return rv; else bytes += rv;
-  if (cvec->compound_istable)
+  if (tablep)
     rv = write_xtype(out,*elts++,refs);
   else rv = write_xtype(out,KNO_FALSE,NULL);
   if (rv<0) return rv; else bytes += rv;
