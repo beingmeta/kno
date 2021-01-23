@@ -772,8 +772,11 @@ lispval lambda_call(kno_stack stack,
     if (ABORTED(arg)) return arg;
     else if (QCHOICEP(arg))
       arg=KNO_QCHOICEVAL(arg);
-    else if (KNO_BAD_ARGP(arg))
-      return kno_bad_arg(arg,"lambda_call",vars[i]);
+    else if (KNO_BAD_ARGP(arg)) {
+	lispval err = kno_bad_arg(arg,"lambda_call",vars[i]);
+	kno_decref_vec(args,i);
+	kno_pop_stack(lambda_stack);
+	return err;}
     else if ( (arg == KNO_DEFAULT_VALUE) && (inits) ) {
       lispval init_expr = inits[i];
       lispval init_val  = init_expr;
