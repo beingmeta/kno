@@ -12,7 +12,7 @@
 		  knodb/partitions knodb/getindexes knodb/getindex
 		  knodb/pool knodb/wrap-index
 		  knodb/id knodb/source
-		  knodb/mods knodb/modified?
+		  knodb/mods knodb/modified? knodb/get-modified
 		  pool/ref index/ref pool/copy
 		  pool/getindex pool/getindexes knodb/add-index!
 		  knodb/makedb
@@ -479,6 +479,7 @@
 	((and (applicable? arg) (zero? (procedure-min-arity arg))) arg)
 	((and (pair? arg) (applicable? (car arg))) arg)
 	(else {})))
+(define knodb/get-modified (fcn/alias get-modified))
 
 (define (get-all-dbs)
   (let* ((alldbs {(config 'pools) (config 'indexes)})

@@ -918,25 +918,11 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 
 ;;; Saving databases
 
-(define (get-modified arg)
-  (cond ((registry? arg) (tryif (registry/modified? arg) arg))
-	((pool? arg) 
-	 (choice (tryif (modified? arg) arg)
-		 (get-modified (poolctl arg 'partitions))
-		 (tryif (poolctl arg 'adjuncts)
-		   (get-modified (getvalues (poolctl arg 'adjuncts))))))
-	((index? arg)
-	 (choice (tryif (modified? arg) arg)
-		 (get-modified (indexctl arg 'partitions))))
-	((and (applicable? arg) (zero? (procedure-min-arity arg))) arg)
-	((and (pair? arg) (applicable? (car arg))) arg)
-	(else {})))
-
 (define commit-threads #t)
 
 (defambda (engine-commit loop-state dbs (opts))
   (default! opts (getopt loop-state 'opts))
-  (let ((modified (get-modified dbs))
+  (let ((modified (knodb/get-modified dbs))
 	(%loglevel (getopt loop-state 'loglevel %loglevel))
 	(started (elapsed-time))
 	(commit-threads (threadcount (getopt opts 'commit-threads commit-threads))))
