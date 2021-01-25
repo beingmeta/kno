@@ -5,7 +5,7 @@
 
 (use-module '{texttools kno/reflect})
 (use-module '{gpath fifo kno/mttools ezrecords text/stringfmts logger varconfig})
-(use-module '{knodb/adjuncts knodb/registry knodb/filenames})
+(use-module '{knodb/adjuncts knodb/registry knodb/filenames knodb/indexes})
 (use-module '{knodb/flexpool knodb/flexindex})
 
 (module-export! '{knodb/ref knodb/make knodb/commit! knodb/save! 
@@ -15,8 +15,10 @@
 		  knodb/mods knodb/modified? knodb/get-modified
 		  pool/ref index/ref pool/copy
 		  pool/getindex pool/getindexes knodb/add-index!
+		  knodb/open-index
 		  knodb/makedb
-		  knodb/index!})
+		  knodb/index!
+		  knodb/find})
 
 (module-export! '{knodb:pool knodb:index knodb:indexes})
 
@@ -114,9 +116,12 @@
   (let ((addopts (or (deep-copy (getopt opts 'make)) `#[]))
 	(usetype (find-dbtype opts basetype)))
     (store! addopts (car usetype) (cdr usetype))
+    (when (or (getopt opts 'adjuncts) (getopt opts 'maxload))
+      (store! addopts 'metadata (or (deep-copy (getopt opts 'metadata)) #[])))
     (when (getopt opts 'adjuncts)
-      (store! addopts 'metadata (or (deep-copy (getopt opts 'metadata)) #[]))
       (store! (getopt addopts 'metadata) 'adjuncts (getopt opts 'adjuncts)))
+    (when (getopt opts 'maxload)
+      (store! (getopt addopts 'metadata) 'maxload (getopt opts 'maxload)))
     (cons addopts opts)))
 
 (define (knodb/mkpath rootdir source (opts #f))
@@ -301,6 +306,33 @@
 
 (define (knodb/wrap-index index (opts #f)) index)
 
+(define (knodb/open-index source opts)
+  (or (source->index source)
+      (if (testopt opts 'maxload)
+	  (let* ((loaded (source->index source))
+		 (index (open-index source (cons [register #f] opts)))
+		 (repack (and (not loaded) (needs-repack? index opts))))
+	    (cond (repack
+		   (repack-index source opts index)
+		   ;; The 'right' thing would be to reopen the index,
+		   ;;  but reopening isn't currently supported, so
+		   ;;  we try to force the index to be freed and then
+		   ;;  open it again.
+		   (set! index #f)
+		   (set! index 
+		     (if (testopt opts 'background)
+			 (use-index source opts)
+			 (open-index source opts))))
+		  ((getopt opts 'register #t)
+		   (set! index #f)
+		   (set! index 
+		     (if (testopt opts 'background)
+			 (use-index source opts)
+			 (open-index source opts))))
+		  (else))
+	    (knodb/wrap-index index opts))
+	  (knodb/wrap-index (open-index source opts)))))
+
 (define (knodb/getindex arg (opts-arg #f))
   (cond ((index? arg) arg)
 	((pool? arg) (pool/getindex arg))
@@ -319,6 +351,12 @@
 	(index-frame (pool/getindex pool) (pick frames pool) slots values)
 	(index-frame (pool/getindex pool) (pick frames pool) slots))))
 
+(defambda (knodb/find index . slotvals)
+  (cond ((index? index) (apply find-frames index slotvals))
+	((pool? index) (apply find-frames (pool/getindex index) slotvals))
+	((oid? index) (apply find-frames (pool/getindex (oid->pool index)) slotvals))
+	(else (apply find-frames #f index slotvals))))
+
 (defambda (knodb/add-index! pool indexes)
   (let ((cur (poolctl pool 'props 'indexes))
 	(new {(pick indexes index?)
@@ -332,6 +370,30 @@
 	      combined (difference new (dbctl combined 'partitions))))
 	    (else (poolctl pool 'props 'index
 			   (make-aggregate-index {combined cur new} pool-index-opts)))))))
+
+;;;; Repacking
+
+(define (needs-repack? index opts (filename))
+  (default! filename (indexctl index 'filename))
+  (and filename (file-exists? filename) (file-writable? filename)
+       (let* ((n-buckets (onerror (indexctl index 'metadata 'buckets) #f))
+	      (n-keys (and n-buckets (onerror (indexctl index 'metadata 'keys) #f)))
+	      (maxload (getopt opts 'maxload (indexctl index 'metadata 'maxload)))
+	      (loadsize (and maxload n-keys
+			     (* maxload (max (getopt opts 'minkeys n-keys) n-keys))))
+	      (minsize (and (or loadsize (getopt opts 'minsize))
+			    (max (or loadsize 0) (getopt opts 'minsize 0)
+				 (getopt opts 'minkeys 0)))))
+	 (and n-buckets n-keys minsize (< n-buckets minsize)))))
+
+(define (repack-index source opts old)
+  (let* ((maxload (getopt opts 'maxload (dbctl old 'metadata 'maxload)))
+	 (pack-opts `(#[maxload ,maxload] . ,opts)))
+    (logwarn |RepackIndex| 
+      "Repacking index " (write source) " for maxload " maxload " given load=" 
+      (indexctl old 'metadata 'buckets) "/" (indexctl old 'metadata 'keys)
+      "=" (/~ (indexctl old 'metadata 'buckets) (indexctl old 'metadata 'keys)))
+    (index/pack! old #f pack-opts)))
 
 ;;; Getting partitions
 
@@ -363,9 +425,7 @@
 	     (knodb/pool (open-pool source opts) opts)
 	     (knodb/pool (use-pool source opts) opts)))
 	((has-suffix source ".index")
-	 (if (testopt opts 'background)
-	     (knodb/wrap-index (use-index source opts) opts)
-	     (knodb/wrap-index (open-index source opts) opts)))
+	 (knodb/open-index source opts))
 	((or (testopt opts 'pool)
 	     (testopt opts 'pooltype)
 	     (testopt opts 'type 'pool))
@@ -490,18 +550,18 @@
 ;;; Committing
 
 (define commit-threads #t)
+(varconfig! COMMIT:THREADS commit-threads)
 
 (defambda (knodb/commit! (dbs (get-all-dbs)) (opts #f))
   (let ((modified (get-modified dbs))
+	(%loglevel (getopt opts 'loglevel %loglevel))
+	(threads-arg (mt/threadcount (getopt opts 'threads commit-threads)))
 	(started (elapsed-time)))
     (when (exists? modified)
       (let* ((timings (make-hashtable))
 	     (fifo (fifo/make (choice->vector modified)))
-	     (spec-threads 
-	      (mt/threadcount (getopt opts 'threads commit-threads)))
-	     (n-threads (and spec-threads
-			     (min spec-threads (choice-size modified)))))
-	(lognotice |FLEX/Commit|
+	     (n-threads (and threads-arg (min threads-arg (choice-size modified)))))
+	(lognotice |Commit|
 	  "Saving " (choice-size modified) " dbs using "
 	  (or n-threads "no") " threads:"
 	  (when (log>? %notify%)
@@ -518,7 +578,7 @@
 		   (set+! threads 
 		     (thread/call commit-queued fifo opts timings)))
 		 (thread/wait! threads))))
-	(lognotice |Flex/Commit|
+	(lognotice |Commit|
 	  "Committed " (choice-size (getkeys timings)) " dbs "
 	  "in " (secs->string (elapsed-time started)) " "
 	  "using " (or n-threads "no") " threads: "

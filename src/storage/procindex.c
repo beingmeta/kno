@@ -389,10 +389,6 @@ static void recycle_procindex(kno_index ix)
   kno_decref(pix->index_methods->commitfn);
   kno_decref(pix->index_methods->closefn);
   kno_decref(pix->index_state);
-
-  if (pix->index_typeid) u8_free(pix->index_typeid);
-  if (pix->index_source) u8_free(pix->index_source);
-  if (pix->indexid) u8_free(pix->indexid);
 }
 
 /* Opening procindexs */

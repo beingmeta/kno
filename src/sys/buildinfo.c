@@ -14,7 +14,7 @@
 #include "kno/cons.h"
 
 static lispval build_info=VOID;
-static lispval _kno_features_symbol;
+static lispval _kno_features_symbol, buildmode_symbol;
 
 #define config_int(var)                                 \
   kno_store(build_info,kno_intern(# var),KNO_INT(var));
@@ -43,6 +43,7 @@ KNO_EXPORT lispval config_get_build_info(lispval var,void *data)
 KNO_EXPORT void kno_init_build_info()
 {
   _kno_features_symbol=kno_intern("features");
+  buildmode_symbol=kno_intern("buildmode");
   if (VOIDP(build_info))
     build_info=kno_make_slotmap(64,0,NULL);
 
@@ -466,6 +467,23 @@ KNO_EXPORT void kno_init_build_info()
 #endif
 #ifdef U8_TARGET_OS
     config_string(U8_TARGET_OS);
+#endif
+
+#ifdef KNO_DEBUGGING_BUILD
+    kno_add(build_info,buildmode_symbol,kno_intern("debugging"));
+    config_bool(KNO_DEBUGGING_BUILD);
+#endif
+#ifdef KNO_OPTIMIZING_BUILD
+    kno_add(build_info,buildmode_symbol,kno_intern("optimizing"));
+    config_bool(KNO_OPTIMIZING_BUILD);
+#endif
+#ifdef KNO_PROFILING_BUILD
+    kno_add(build_info,buildmode_symbol,kno_intern("profiling"));
+    config_bool(KNO_PROFILING_BUILD);
+#endif
+#ifdef KNO_DISTRIBUTION_BUILD
+    kno_add(build_info,buildmode_symbol,kno_intern("distribution"));
+    config_bool(KNO_DISTRIBUTION_BUILD);
 #endif
 
 #ifdef U8_HOST_CPU

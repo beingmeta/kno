@@ -105,7 +105,7 @@ static int drop_consed_pool(kno_pool p)
     if ( *scan == p ) {
       size_t to_shift=(limit-scan)-1;
       *scan = NULL;
-      memmove(scan,scan+1,to_shift);
+      memmove(scan,scan+1,to_shift*sizeof(kno_pool));
       n_consed_pools--;
       u8_unlock_mutex(&consed_pools_lock);
       return 1;}
@@ -293,9 +293,6 @@ KNO_EXPORT int kno_register_pool(kno_pool p)
     return 0;
   else if (bix<0)
     return bix;
-  else if (p->pool_flags&KNO_STORAGE_UNREGISTERED) {
-    add_consed_pool(p);
-    return 0;}
   else u8_lock_mutex(&pool_registry_lock);
   if (kno_n_pools >= kno_max_pools) {
     kno_seterr(_("n_pools > MAX_POOLS"),"kno_register_pool",NULL,VOID);
@@ -2036,7 +2033,13 @@ KNO_EXPORT void kno_init_pool(kno_pool p,
 			      lispval metadata,
 			      lispval opts)
 {
-  KNO_INIT_CONS(p,kno_consed_pool_type);
+  if (flags<0)
+    flags = kno_get_dbflags(opts,KNO_STORAGE_ISINDEX);
+  else {U8_SETBITS(flags,KNO_STORAGE_ISPOOL);}
+  if (U8_BITP(flags,KNO_STORAGE_UNREGISTERED)) {
+    KNO_INIT_CONS(p,kno_consed_pool_type);}
+  else {KNO_INIT_STATIC_CONS(p,kno_consed_pool_type);}
+
   p->pool_base = base;
   p->pool_capacity = capacity;
   p->pool_source = u8_strdup(source);
@@ -2103,6 +2106,8 @@ KNO_EXPORT void kno_init_pool(kno_pool p,
       u8_log(LOG_WARN,"BadCacheLevel",
 	     "Invalid loglevel %q for pool %s",cl,id);
       kno_decref(cl);}}
+
+  if (p->pool_flags&KNO_STORAGE_UNREGISTERED) add_consed_pool(p);
 
   u8_init_rwlock(&(p->pool_struct_lock));
   u8_init_mutex(&(p->pool_commit_lock));
@@ -2694,6 +2699,8 @@ KNO_EXPORT lispval kno_default_poolctl(kno_pool p,lispval op,int n,kno_argvec ar
     else return KNO_FALSE;}
   else if (op == KNOSYM_TYPE)
     return kno_intern(p->pool_typeid);
+  else if (op == KNOSYM_FILENAME)
+    return KNO_FALSE;
   else {
     u8_log(LOG_WARN,"Unhandled POOLCTL op",
 	   "Couldn't handle %q for %s",op,p->poolid);

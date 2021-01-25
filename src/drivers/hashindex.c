@@ -3101,7 +3101,7 @@ static void hashindex_close(kno_index ix)
   size_t n_buckets = hx->index_n_buckets;
   u8_logf(LOG_DEBUG,"HASHINDEX","Closing hash index %s",ix->indexid);
   kno_lock_index(hx);
-  kno_close_stream(&(hx->index_stream),0);
+  kno_close_stream(&(hx->index_stream),KNO_STREAM_FREEDATA);
   if (offdata) {
 #if KNO_USE_MMAP
     int retval=
@@ -3126,6 +3126,9 @@ static void hashindex_recycle(kno_index ix)
     hashindex_close(ix);
   kno_recycle_slotcoder(&(hx->index_slotcodes));
   kno_recycle_oidcoder(&(hx->index_oidcodes));
+  if (hx->index_stream.streamid) {
+    u8_free((hx->index_stream.streamid));
+    hx->index_stream.streamid=NULL;}
 }
 
 /* Creating a hash ksched_i handler */
@@ -3847,6 +3850,8 @@ static lispval hashindex_ctl(kno_index ix,lispval op,int n,kno_argvec args)
       i++;}
     u8_big_free(info);
     return (lispval)table;}
+  else if (op == KNOSYM_FILENAME)
+    return knostring(ix->index_source);
   else return kno_default_indexctl(ix,op,n,args);
 }
 

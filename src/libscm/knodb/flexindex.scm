@@ -33,7 +33,11 @@
 (define (get-readonly index) (indexctl index 'readonly))
 
 (define (get-flex-opts spec (opts #f) (files #f))
-  (cond ((file-exists? spec)
+  (when (and (file-exists? spec) (not (file-regular? spec)))
+    (if (has-suffix spec ".flexindex")
+	(irritant spec |InvalidFile|)
+	(set! spec (glom spec ".flexindex"))))
+  (cond ((file-regular? spec)
 	 (if opts (cons opts (read-xtype spec))
 	     (read-xtype spec)))
 	((or (testopt opts 'create) files)

@@ -1059,6 +1059,10 @@ static U8_MAYBE_UNUSED lispval _kno_fcnid_ref(lispval ref)
    (x == kno_complex_type))
 #define KNO_NUMBERP(x) (KNO_NUMBER_TYPEP(KNO_TYPEOF(x)))
 
+/* SLOTIDs */
+
+#define KNO_SLOTIDP(x) ( (KNO_OIDP(x)) || (KNO_SYMBOLP(x)) )
+
 /* Generic handlers */
 
 typedef unsigned int kno_compare_flags;

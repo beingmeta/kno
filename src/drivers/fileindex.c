@@ -1153,7 +1153,7 @@ static void fileindex_close(kno_index ix)
 {
   struct KNO_FILEINDEX *fx = (struct KNO_FILEINDEX *)ix;
   kno_lock_index(fx);
-  kno_close_stream(&(fx->index_stream),0);
+  kno_close_stream(&(fx->index_stream),KNO_STREAM_FREEDATA);
   if (fx->index_offsets) {
 #if KNO_USE_MMAP
     int retval = munmap(fx->index_offsets-2,(SLOTSIZE*fx->index_n_slots)+8);
@@ -1227,6 +1227,8 @@ static lispval fileindex_ctl(kno_index ix,lispval op,int n,kno_argvec args)
     return KNO_INT(flx->index_n_slots);
   else if (op == kno_load_op)
     return EMPTY;
+  else if (op == KNOSYM_FILENAME)
+    return knostring(ix->index_source);
   else return kno_default_indexctl(ix,op,n,args);
 }
 
@@ -1288,6 +1290,15 @@ static kno_index fileindex_create(u8_string spec,void *type_data,
   else return NULL;
 }
 
+static void fileindex_recycle(kno_index ix)
+{
+  struct KNO_FILEINDEX *kx = (struct KNO_FILEINDEX *)ix;
+  if ( (kx->index_offsets) || (kx->index_stream.stream_fileno > 0) )
+    fileindex_close(ix);
+  if (kx->index_stream.streamid) {
+    u8_free((kx->index_stream.streamid));
+    kx->index_stream.streamid=NULL;}
+}
 
 /* Initializing the driver module */
 
@@ -1304,7 +1315,7 @@ static struct KNO_INDEX_HANDLER fileindex_handler={
   NULL, /* batchadd */
   fileindex_create, /* create */
   NULL, /* walk */
-  NULL, /* recycle */
+  fileindex_recycle, /* recycle */
   fileindex_ctl  /* indexctl */
 };
 

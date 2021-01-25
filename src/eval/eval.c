@@ -2015,6 +2015,7 @@ void kno_init_macros_c(void);
 void kno_init_typeops_c(void);
 void kno_init_evalops_c(void);
 void kno_init_coreops_c(void);
+void kno_init_tableops_c(void);
 void kno_init_tableprims_c(void);
 void kno_init_stringprims_c(void);
 void kno_init_dbprims_c(void);
@@ -2066,6 +2067,7 @@ static void init_eval_core()
   kno_init_threads_c();
   kno_init_errfns_c();
   kno_init_coreops_c();
+  kno_init_tableops_c();
   kno_init_load_c();
   kno_init_conditionals_c();
   kno_init_iterators_c();

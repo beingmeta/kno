@@ -354,6 +354,8 @@ static lispval logindex_ctl(kno_index ix,lispval op,int n,kno_argvec args)
   else if (op == kno_keycount_op) {
     if (logx->logx_loaded == 0) load_logindex(logx);
     return KNO_INT(logx->logx_map.table_n_keys);}
+  else if (op == KNOSYM_FILENAME)
+    return knostring(ix->index_source);
   else return kno_default_indexctl(ix,op,n,args);
 }
 
@@ -383,6 +385,15 @@ static kno_index logindex_create(u8_string spec,void *type_data,
   else return NULL;
 }
 
+static void logindex_recycle(kno_index ix)
+{
+  struct KNO_LOGINDEX *lx = (struct KNO_LOGINDEX *)ix;
+  kno_recycle_hashtable(&(lx->logx_map));
+  if (lx->logx_slotids) u8_free(lx->logx_slotids);
+  if (lx->logx_baseoids) u8_free(lx->logx_slotids);
+  kno_close_stream(&(lx->index_stream),KNO_STREAM_FREEDATA);
+}
+
 /* Initializing the driver module */
 
 static struct KNO_INDEX_HANDLER logindex_handler={
@@ -398,7 +409,7 @@ static struct KNO_INDEX_HANDLER logindex_handler={
   NULL, /* batchadd */
   logindex_create, /* create */
   NULL, /* walk */
-  NULL, /* recycle */
+  logindex_recycle, /* recycle */
   logindex_ctl  /* indexctl */
 };
 

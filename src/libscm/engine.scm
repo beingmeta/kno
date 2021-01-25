@@ -43,7 +43,7 @@
 (varconfig! engine:checkspace check-spacing)
 
 (define engine-threadcount #t)
-(varconfig! engine:threadcount engine-threadcount)
+(varconfig! engine:threads engine-threadcount)
 
 (define-import fifo-condvar 'fifo)
 
@@ -424,7 +424,8 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
     (set! loop-opts (getopt engine-opts 'loop)))
   (let* ((opts engine-opts)
 	 (items (get-items-vec items-arg opts))
-	 (n-items (and (vector? items) (length items)))
+	 (n-items (if (fail? items) 0
+		      (if (vector? items) (length items) (|| items))))
 	 (batchsize (getopt opts 'batchsize (pick-batchsize items opts)))
 	 (threadopt (getopt opts 'nthreads
 			    (config 'engine:threads (config 'nthreads #t))))
@@ -573,7 +574,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	    "Finished " ($count n-items) " " count-term " "
 	    (when (and batchsize (> batchsize 1))
 	      (printout "across " ($count (length batches)) " batches "))
-	    "in " (secs->string elapsed #t) " "
+	    "in " (secs->string elapsed #t) "  "
 	    "averaging " ($showrate rate) " " count-term "/sec"))
 
 	(unless (test loop-state 'stopped)
@@ -918,65 +919,26 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 
 ;;; Saving databases
 
-(define commit-threads #t)
-
 (defambda (engine-commit loop-state dbs (opts))
   (default! opts (getopt loop-state 'opts))
   (let ((modified (knodb/get-modified dbs))
 	(%loglevel (getopt loop-state 'loglevel %loglevel))
-	(started (elapsed-time))
-	(commit-threads (threadcount (getopt opts 'commit-threads commit-threads))))
-    (when (exists? modified)
-      (let ((timings (make-hashtable))
-	    (n-threads (and commit-threads
-			    (min commit-threads (choice-size modified)))))
-	(lognotice |Checkpoint/Start|
-	  (if (test loop-state 'stopped) "Final " "Incremental ")
-	  "checkpoint for " (try (get loop-state 'name) (get loop-state 'fifo))
-	  " after " (secs->string (difftime (get loop-state 'started)))
-	  " and " ($count (- (get loop-state 'items) (try (get (get loop-state 'lastcheck) 'items) 0)))
-	  " " (get loop-state 'count-term) " committing "
-	  (choice-size modified) " modified dbs "
-	  "using " (or n-threads "no") " threads "
-	  (when (>= %loglevel %info%)
-	    (do-choices (db modified) (printout "\n\t" db))))
-	(cond ((not n-threads)
-	       (do-choices (db modified) (commit-db db opts timings)))
-	      ((>= n-threads (choice-size modified))
-	       (set! n-threads (choice-size modified))
-	       (let ((threads (thread/call commit-db modified opts timings)))
-		 (thread/wait! threads)))
-	      (else
-	       (let ((threads {})
-		     (commit-queue
-		      (fifo/make (choice->vector modified)
-				 `#[fillfn ,fifo/exhausted!])))
-		 (dotimes (i n-threads)
-		   (set+! threads 
-		     (thread/call commit-queued commit-queue
-		       opts timings)))
-		 (thread/wait! threads))))
-	(lognotice |Engine/Checkpoint|
-	  "Committed " (choice-size (getkeys timings)) " dbs "
-	  (if (fifo-name (get loop-state 'fifo))
-	      (printout "for " (fifo-name (get loop-state 'fifo))))
-	  " in " (secs->string (elapsed-time started))
-	  " using " (or n-threads "no") " threads: "
-	  (do-choices (db (getkeys timings))
-	    (let* ((info (get timings db))
-		   (time (if (pair? info) (cdr info) info))
-		   (changes (and (pair? info) (car info))))
-	      (if (>= time 0)
-		  (printout "\n\t" ($num time 1) "s"
-		    (if changes (printout "\t "  ($count changes "change")))
-		    "\t " (knodb/id db) "\t " db)
-		  (printout "\n\t" ($num time 1) "s\t "
-		    (if changes ($count changes "change"))
-		    "\t " (knodb/id db) "\t " db)
-		  (printout "\n\tFAILED after " ($num time 1) "s:\t "
-		    "\t " (knodb/id db) 
-		    (if changes (printout "\t with " ($count changes "change")))
-		    "\t " db)))))))))
+	(started (elapsed-time)))
+    (when (or (test loop-state 'stopped) (exists? modified))
+      (lognotice |Checkpoint/Start|
+	(if (test loop-state 'stopped) "Final " "Incremental ")
+	"checkpoint for " (try (get loop-state 'name) (get loop-state 'fifo))
+	" after " (secs->string (difftime (get loop-state 'started)))
+	" and " ($count (- (get loop-state 'items)
+			   (try (get (get loop-state 'lastcheck) 'items) 0)))
+	" " (get loop-state 'count-term) " committing "
+	(choice-size modified) " modified dbs"))
+    (knodb/commit dbs (cons [loglevel %loglevel] opts))
+    (lognotice |Engine/Checkpoint|
+      "Committed " (choice-size modified) " dbs "
+      (if (fifo-name (get loop-state 'fifo))
+	  (printout "for " (fifo-name (get loop-state 'fifo))))
+      " in " (secs->string (elapsed-time started)))))
 
 (defambda (engine-swapout loop-state)
   (let ((started (elapsed-time))

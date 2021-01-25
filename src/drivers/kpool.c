@@ -2116,6 +2116,8 @@ static lispval kpool_ctl(kno_pool p,lispval op,int n,kno_argvec args)
   else if (op == kno_keys_op) {
     lispval keys = kpool_getoids(kp);
     return kno_simplify_choice(keys);}
+  else if (op == KNOSYM_FILENAME)
+    return knostring(p->pool_source);
   else return kno_default_poolctl(p,op,n,args);
 }
 

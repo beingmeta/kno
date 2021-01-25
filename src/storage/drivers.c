@@ -467,7 +467,8 @@ kno_index kno_open_index(u8_string spec,kno_storage_flags flags,lispval opts)
 	if (old_opts != opts) {
 	  opened->index_opts=kno_incref(opts);
 	  kno_decref(old_opts);}
-        return opened;}
+	if (found) kno_incref((lispval)found);
+	return opened;}
       else ixtype = ixtype->next_type;
       CHECK_ERRNO();}
     else ixtype = ixtype->next_type;}

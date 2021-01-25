@@ -212,7 +212,6 @@ static void recycle_extindex(kno_index ix)
     kno_decref(ei->fetchfn);
     kno_decref(ei->commitfn);
     kno_decref(ei->state);}
-  u8_free(ix);
 }
 
 struct KNO_INDEX_HANDLER kno_extindex_handler={

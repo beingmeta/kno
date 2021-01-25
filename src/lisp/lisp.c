@@ -268,6 +268,29 @@ KNO_EXPORT void kno_missing_error(u8_string details)
 	      u8_strdup(details));
 }
 
+KNO_EXPORT kno_lisp_type _kno_typeof(lispval x)
+{
+  return KNO_TYPEOF(x);
+}
+
+KNO_EXPORT lispval _kno_debug(lispval x)
+{
+  return x;
+}
+
+static int log_max_refcount = 1, debug_max_refcount = 1;
+static long long refcount_max = -1;
+
+KNO_EXPORT void _kno_refcount_overflow(lispval x,long long count,u8_context op)
+{
+  if ( ( refcount_max > 0 ) && ( count < refcount_max) ) return;
+  if (log_max_refcount) {
+    kno_lisp_type constype = KNO_TYPEOF(x);
+    u8_log(LOGWARN,"MaxRefcount","On %s: count=%lld=0x%llx %llx (%s)",
+	   op,count,count,x,kno_type2name(constype));}
+  if (debug_max_refcount) _kno_debug(x);
+}
+
 /* Initialization procedures */
 
 extern void kno_init_choices_c(void);

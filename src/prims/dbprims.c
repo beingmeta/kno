@@ -35,19 +35,6 @@ static lispval pools_symbol, indexes_symbol, id_symbol, drop_symbol;
 static lispval flags_symbol, register_symbol, readonly_symbol, phased_symbol;
 static lispval background_symbol, adjunct_symbol, sparse_symbol, repair_symbol;
 
-DEFCPRIM("slotid?",slotidp,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "Returns true if *arg* is an OID or a symbol (a slotid)",
-	 {"arg",kno_any_type,KNO_VOID})
-static lispval slotidp(lispval arg)
-{
-  if ((OIDP(arg)) || (SYMBOLP(arg))) return KNO_TRUE;
-  else return KNO_FALSE;
-}
-
-#define INDEXP(x) ( (KNO_INDEXP(x)) || (TYPEP((x),kno_consed_index_type)) )
-#define POOLP(x)  ( (KNO_POOLP(x))  || (TYPEP((x),kno_consed_pool_type)) )
-
 /* These are called when the lisp version of its pool/index argument
    is being returned and needs to be incref'd if it is consed. */
 KNO_FASTOP lispval index_ref(kno_index ix)
@@ -58,7 +45,7 @@ KNO_FASTOP lispval index_ref(kno_index ix)
     return LISPVAL_IMMEDIATE(kno_index_type,ix->index_serialno);
   else {
     lispval lix = (lispval)ix;
-    kno_incref(lix);
+    /* kno_incref(lix); */
     return lix;}
 }
 
@@ -84,54 +71,6 @@ static int load_db_module(lispval opts,u8_context context)
       else {
 	kno_decref(mod);
 	return 1;}}}
-}
-
-/* Finding frames, etc. */
-
-DEFCPRIMN("find-frames",find_frames_lexpr,
-	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	  "`(find-frames *index* [*slots* *values*]...)` "
-	  "Searches in *index* for frames with the specified slot-values.")
-static lispval find_frames_lexpr(int n,kno_argvec args)
-{
-  if (n%2)
-    if (FALSEP(args[0]))
-      return kno_bgfinder(n-1,args+1);
-    else return kno_finder(args[0],n-1,args+1);
-  else return kno_bgfinder(n,args);
-}
-
-/* This is like find_frames but ignores any slot/value pairs
-   whose values are empty (and thus would rule out any results at all). */
-
-DEFCPRIMN("xfind-frames",xfind_frames_lexpr,
-	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	  "`(xfind-frames *index* [*slots* *values*]...)` "
-	  "Searches in *index* for frames with the specified slot-values. "
-	  "This ignores clauses which are 'empty' and have no indexed matches.")
-static lispval xfind_frames_lexpr(int n,kno_argvec args)
-{
-  int i = (n%2); while (i<n)
-		   if (EMPTYP(args[i+1])) {
-		     lispval *slotvals = u8_alloc_n((n),lispval), results;
-		     int j = 0; i = 1; while (i<n)
-					 if (EMPTYP(args[i+1])) i = i+2;
-					 else {
-					   slotvals[j]=args[i]; j++; i++;
-					   slotvals[j]=args[i]; j++; i++;}
-		     if (n%2)
-		       if (FALSEP(args[0]))
-			 results = kno_bgfinder(j,slotvals);
-		       else results = kno_finder(args[0],j,slotvals);
-		     else results = kno_bgfinder(j,slotvals);
-		     u8_free(slotvals);
-		     return results;}
-		   else i = i+2;
-  if (n%2)
-    if (FALSEP(args[0]))
-      return kno_bgfinder(n-1,args+1);
-    else return kno_finder(args[0],n-1,args+1);
-  else return kno_bgfinder(n,args);
 }
 
 DEFCPRIM("prefetch-slotvals!",prefetch_slotvals,
@@ -229,28 +168,6 @@ static lispval index_frame_prim
 }
 
 /* Pool and index functions */
-
-DEFCPRIM("pool?",poolp,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "Returns true if *arg* is a pool.",
-	 {"arg",kno_any_type,KNO_VOID})
-static lispval poolp(lispval arg)
-{
-  if (POOLP(arg))
-    return KNO_TRUE;
-  else return KNO_FALSE;
-}
-
-DEFCPRIM("index?",indexp,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "Returns true if *arg* is a pool.",
-	 {"arg",kno_any_type,KNO_VOID})
-static lispval indexp(lispval arg)
-{
-  if (INDEXP(arg))
-    return KNO_TRUE;
-  else return KNO_FALSE;
-}
 
 DEFCPRIM("source->pool",source2pool,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
@@ -467,9 +384,8 @@ static lispval use_index(lispval source,lispval opts)
       u8_byte *copy = u8_strdup(CSTRING(source));
       u8_byte *start = copy, *end = strchr(start,';');
       *end='\0'; while (start) {
-	kno_index ix = kno_use_index(start,
-				     kno_get_dbflags(opts,KNO_STORAGE_ISINDEX),
-				     opts);
+	kno_index ix = kno_use_index
+	  (start,kno_get_dbflags(opts,KNO_STORAGE_ISINDEX),opts);
 	if (ix) {
 	  lispval ixv = index_ref(ix);
 	  CHOICE_ADD(results,ixv);}
@@ -2236,239 +2152,6 @@ static lispval change_load(lispval db)
       ix->index_stores.table_n_keys ;
     return KNO_INT(n_pending);}
   else return kno_err(kno_TypeError,"change_load",_("pool or index"),db);
-}
-
-/* Frame get functions */
-
-DEFCPRIM("get",kno_fget,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "**undocumented**",
-	 {"frames",kno_any_type,KNO_VOID},
-	 {"slotids",kno_any_type,KNO_VOID})
-KNO_EXPORT lispval kno_fget(lispval frames,lispval slotids)
-{
-  if (!(CHOICEP(frames)))
-    if (!(CHOICEP(slotids)))
-      if (OIDP(frames))
-	return kno_frame_get(frames,slotids);
-      else return kno_get(frames,slotids,EMPTY);
-    else if (OIDP(frames)) {
-      lispval result = EMPTY;
-      DO_CHOICES(slotid,slotids) {
-	lispval value = kno_frame_get(frames,slotid);
-	if (KNO_ABORTED(value)) {
-	  kno_decref(result);
-	  return value;}
-	CHOICE_ADD(result,value);}
-      return result;}
-    else {
-      lispval result = EMPTY;
-      DO_CHOICES(slotid,slotids) {
-	lispval value = kno_get(frames,slotid,EMPTY);
-	if (KNO_ABORTED(value)) {
-	  kno_decref(result);
-	  return value;}
-	CHOICE_ADD(result,value);}
-      return result;}
-  else {
-    int all_adjuncts = 1;
-    if (CHOICEP(slotids)) {
-      DO_CHOICES(slotid,slotids) {
-	int adjunctp = 0;
-	DO_CHOICES(adjslotid,kno_adjunct_slotids) {
-	  if (KNO_EQ(slotid,adjslotid)) {adjunctp = 1; break;}}
-	if (adjunctp==0) {all_adjuncts = 0; break;}}}
-    else {
-      int adjunctp = 0;
-      DO_CHOICES(adjslotid,kno_adjunct_slotids) {
-	if (KNO_EQ(slotids,adjslotid)) {adjunctp = 1; break;}}
-      if (adjunctp==0) all_adjuncts = 0;}
-    if ((kno_prefetch) && (kno_ipeval_status()==0) &&
-	(CHOICEP(frames)) && (all_adjuncts==0))
-      kno_prefetch_oids(frames);
-    {
-      lispval results = EMPTY;
-      DO_CHOICES(frame,frames)
-	if (OIDP(frame)) {
-	  DO_CHOICES(slotid,slotids) {
-	    lispval v = kno_frame_get(frame,slotid);
-	    if (KNO_ABORTED(v)) {
-	      KNO_STOP_DO_CHOICES;
-	      kno_decref(results);
-	      return v;}
-	    else {CHOICE_ADD(results,v);}}}
-	else {
-	  DO_CHOICES(slotid,slotids) {
-	    lispval v = kno_get(frame,slotid,EMPTY);
-	    if (KNO_ABORTED(v)) {
-	      KNO_STOP_DO_CHOICES;
-	      kno_decref(results);
-	      return v;}
-	    else {CHOICE_ADD(results,v);}}}
-      return kno_simplify_choice(results);}}
-}
-
-DEFCPRIM("test",kno_ftest,
-	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "**undocumented**",
-	 {"frames",kno_any_type,KNO_VOID},
-	 {"slotids",kno_any_type,KNO_VOID},
-	 {"values",kno_any_type,KNO_VOID})
-KNO_EXPORT lispval kno_ftest(lispval frames,lispval slotids,lispval values)
-{
-  if (EMPTYP(frames))
-    return KNO_FALSE;
-  else if ((!(CHOICEP(frames))) && (!(OIDP(frames))))
-    if (CHOICEP(slotids)) {
-      int found = 0;
-      DO_CHOICES(slotid,slotids)
-	if (kno_test(frames,slotid,values)) {
-	  found = 1; KNO_STOP_DO_CHOICES; break;}
-	else {}
-      if (found) return KNO_TRUE;
-      else return KNO_FALSE;}
-    else {
-      int testval = kno_test(frames,slotids,values);
-      if (testval<0) return KNO_ERROR;
-      else if (testval) return KNO_TRUE;
-      else return KNO_FALSE;}
-  else {
-    DO_CHOICES(frame,frames) {
-      DO_CHOICES(slotid,slotids) {
-	DO_CHOICES(value,values)
-	  if (OIDP(frame)) {
-	    int result = kno_frame_test(frame,slotid,value);
-	    if (result<0) return KNO_ERROR;
-	    else if (result) return KNO_TRUE;}
-	  else {
-	    int result = kno_test(frame,slotid,value);
-	    if (result<0) return KNO_ERROR;
-	    else if (result) return KNO_TRUE;}}}
-    return KNO_FALSE;}
-}
-
-DEFCPRIM("assert!",kno_assert,
-	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3)|KNO_NDCALL,
-	 "**undocumented**",
-	 {"frames",kno_any_type,KNO_VOID},
-	 {"slotids",kno_any_type,KNO_VOID},
-	 {"values",kno_any_type,KNO_VOID})
-KNO_EXPORT lispval kno_assert(lispval frames,lispval slotids,lispval values)
-{
-  if (EMPTYP(values)) return VOID;
-  else {
-    DO_CHOICES(frame,frames) {
-      DO_CHOICES(slotid,slotids) {
-	DO_CHOICES(value,values) {
-	  if (kno_frame_add(frame,slotid,value)<0)
-	    return KNO_ERROR;}}}
-    return VOID;}
-}
-
-DEFCPRIM("retract!",kno_retract,
-	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "**undocumented**",
-	 {"frames",kno_any_type,KNO_VOID},
-	 {"slotids",kno_any_type,KNO_VOID},
-	 {"values",kno_any_type,KNO_VOID})
-KNO_EXPORT lispval kno_retract(lispval frames,lispval slotids,lispval values)
-{
-  if (EMPTYP(values)) return VOID;
-  else {
-    DO_CHOICES(frame,frames) {
-      DO_CHOICES(slotid,slotids) {
-	if (VOIDP(values)) {
-	  lispval values = kno_frame_get(frame,slotid);
-	  DO_CHOICES(value,values) {
-	    if (kno_frame_drop(frame,slotid,value)<0) {
-	      kno_decref(values);
-	      return KNO_ERROR;}}
-	  kno_decref(values);}
-	else {
-	  DO_CHOICES(value,values) {
-	    if (kno_frame_drop(frame,slotid,value)<0)
-	      return KNO_ERROR;}}}}
-    return VOID;}
-}
-
-DEFCPRIMN("testp",testp,
-	  KNO_VAR_ARGS|KNO_MIN_ARGS(3)|KNO_NDCALL,
-	  "**undocumented**")
-static lispval testp(int n,kno_argvec args)
-{
-  lispval frames = args[0], slotids = args[1], testfns = args[2];
-  if ((EMPTYP(frames)) || (EMPTYP(slotids)))
-    return KNO_FALSE;
-  else {
-    DO_CHOICES(frame,frames) {
-      DO_CHOICES(slotid,slotids) {
-	lispval values = kno_fget(frame,slotid);
-	DO_CHOICES(testfn,testfns)
-	  if (KNO_APPLICABLEP(testfn)) {
-	    lispval test_result = KNO_FALSE;
-	    lispval test_args[n-2]; test_args[0] = values;
-	    memcpy(test_args+1,args+3,(n-3)*sizeof(lispval));
-	    test_result = kno_apply(testfn,n-2,test_args);
-	    if (KNO_ABORTED(test_result)) {
-	      kno_decref(values);
-	      return test_result;}
-	    else if (KNO_TRUEP(test_result)) {
-	      kno_decref(values);
-	      kno_decref(test_result);
-	      return KNO_TRUE;}
-	    else {}}
-	  else if ((SYMBOLP(testfn)) || (OIDP(testfn))) {
-	    lispval test_result = KNO_FALSE;
-	    lispval recursive_args[n-2]; recursive_args[0] = values;
-	    memcpy(recursive_args+1,args+4,(n-3)*sizeof(lispval));
-	    test_result = testp(n-1,recursive_args);
-	    if (KNO_ABORTED(test_result)) {
-	      kno_decref(values);
-	      return test_result;}
-	    else if (KNO_TRUEP(test_result)) {
-	      kno_decref(values);
-	      return test_result;}
-	    else kno_decref(test_result);}
-	  else if (TABLEP(testfn)) {
-	    DO_CHOICES(value,values) {
-	      lispval mapsto = kno_get(testfn,value,VOID);
-	      if (KNO_ABORTED(mapsto)) {
-		kno_decref(values);
-		return mapsto;}
-	      else if (VOIDP(mapsto)) {}
-	      else if (n>3)
-		if (kno_overlapp(mapsto,args[3])) {
-		  kno_decref(mapsto);
-		  kno_decref(values);
-		  return KNO_TRUE;}
-		else {kno_decref(mapsto);}
-	      else {
-		kno_decref(mapsto);
-		kno_decref(values);
-		return KNO_TRUE;}}}
-	  else {
-	    kno_decref(values);
-	    return kno_type_error(_("value test"),"testp",testfn);}
-	kno_decref(values);}}
-    return KNO_FALSE;}
-}
-
-DEFCPRIMN("getpath",getpath_prim,
-	  KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	  "**undocumented**")
-static lispval getpath_prim(int n,kno_argvec args)
-{
-  lispval result = kno_getpath(args[0],n-1,args+1,1,0);
-  return kno_simplify_choice(result);
-}
-
-DEFCPRIMN("getpath*",getpathstar_prim,
-	  KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	  "**undocumented**")
-static lispval getpathstar_prim(int n,kno_argvec args)
-{
-  lispval result = kno_getpath(args[0],n-1,args+1,1,0);
-  return kno_simplify_choice(result);
 }
 
 /* Cache gets */
@@ -4505,6 +4188,11 @@ KNO_EXPORT void kno_init_dbprims_c()
 
 }
 
+static void import_schemefn(u8_string name)
+{
+  kno_defalias2(kno_db_module,name,kno_scheme_module,name);
+}
+
 static void link_local_cprims()
 {
   KNO_LINK_CPRIM("procindex?",procindexp,1,kno_db_module);
@@ -4572,13 +4260,6 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("index-get",index_get,2,kno_db_module);
   KNO_LINK_CPRIM("index-source",index_source_prim,1,kno_db_module);
   KNO_LINK_CPRIM("index-id",index_id,1,kno_db_module);
-  KNO_LINK_CVARARGS("getpath*",getpathstar_prim,kno_db_module);
-  KNO_LINK_CVARARGS("getpath",getpath_prim,kno_db_module);
-  KNO_LINK_CVARARGS("testp",testp,kno_db_module);
-  KNO_LINK_CPRIM("retract!",kno_retract,3,kno_db_module);
-  KNO_LINK_CPRIM("assert!",kno_assert,3,kno_db_module);
-  KNO_LINK_CPRIM("test",kno_ftest,3,kno_db_module);
-  KNO_LINK_CPRIM("get",kno_fget,2,kno_db_module);
   KNO_LINK_CPRIM("change-load",change_load,1,kno_db_module);
   KNO_LINK_CPRIM("cache-load",cache_load,1,kno_db_module);
   KNO_LINK_CPRIM("cached-keys",cached_keys,1,kno_db_module);
@@ -4674,22 +4355,15 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("set-pool-namefn!",set_pool_namefn,2,kno_db_module);
   KNO_LINK_CPRIM("getpool",getpool,1,kno_db_module);
   KNO_LINK_CPRIM("oid->pool",oid2pool,1,kno_db_module);
-  KNO_LINK_CPRIM("index?",indexp,1,kno_db_module);
-  KNO_LINK_CPRIM("pool?",poolp,1,kno_db_module);
   KNO_LINK_CPRIM("index-frame",index_frame_prim,4,kno_db_module);
   KNO_LINK_CVARARGS("find-frames/prefetch!",find_frames_prefetch,kno_db_module);
   KNO_LINK_CPRIM("prefetch-slotvals!",prefetch_slotvals,3,kno_db_module);
-  KNO_LINK_CVARARGS("xfind-frames",xfind_frames_lexpr,kno_db_module);
-  KNO_LINK_CVARARGS("find-frames",find_frames_lexpr,kno_db_module);
-  KNO_LINK_CPRIM("slotid?",slotidp,1,kno_db_module);
 
   KNO_LINK_CPRIM("name->pool",name2pool,1,kno_db_module);
   KNO_LINK_CPRIM("source->pool",source2pool,1,kno_db_module);
   KNO_LINK_CPRIM("name->index",name2index,1,kno_db_module);
   KNO_LINK_CPRIM("source->index",source2index,1,kno_db_module);
 
-
-  KNO_LINK_ALIAS("??",find_frames_lexpr,kno_db_module);
   KNO_LINK_ALIAS("load-pool",try_pool,kno_db_module);
   KNO_LINK_ALIAS("temp-index",cons_index,kno_db_module);
   KNO_LINK_ALIAS("oid+",oid_plus_prim,kno_db_module);
@@ -4705,4 +4379,27 @@ static void link_local_cprims()
   KNO_LINK_ALIAS("index-merge!",index_merge,kno_db_module);
   KNO_LINK_ALIAS("add-adjunct!",add_adjunct,kno_db_module);
 
+  import_schemefn("get");
+  import_schemefn("%get");
+  import_schemefn("add!");
+  import_schemefn("drop!");
+  import_schemefn("store!");
+  import_schemefn("%test");
+  import_schemefn("getkeys");
+  import_schemefn("getvalues");
+  import_schemefn("getassocs");
+  import_schemefn("getkeyvec");
+  import_schemefn("slotid?");
+  import_schemefn("index?");
+  import_schemefn("pool?");
+  import_schemefn("get");
+  import_schemefn("test");
+  import_schemefn("assert!");
+  import_schemefn("retract!");
+  import_schemefn("getpath*");
+  import_schemefn("getpath");
+  import_schemefn("testp");
+  import_schemefn("xfind-frames");
+  import_schemefn("find-frames");
+  import_schemefn("??");
 }

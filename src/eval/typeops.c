@@ -318,6 +318,16 @@ static lispval nullp(lispval x)
   else return KNO_FALSE;
 }
 
+DEFCPRIM("slotid?",slotidp,
+	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	 "Returns true if *arg* is an OID or a symbol (a slotid)",
+	 {"arg",kno_any_type,KNO_VOID})
+static lispval slotidp(lispval arg)
+{
+  if ((OIDP(arg)) || (SYMBOLP(arg))) return KNO_TRUE;
+  else return KNO_FALSE;
+}
+
 DEFCPRIM("typeof",typeof_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns the name of the basic C type of *x*",
@@ -1380,6 +1390,7 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("flonum?",flonump,1,scheme_module);
   KNO_LINK_CPRIM("number?",numberp,1,scheme_module);
   KNO_LINK_CPRIM("vector?",vectorp,1,scheme_module);
+  KNO_LINK_CPRIM("slotid?",slotidp,1,kno_db_module);
   KNO_LINK_CPRIM("proper-list?",proper_listp,1,scheme_module);
   KNO_LINK_CPRIM("list?",listp,1,scheme_module);
   KNO_LINK_CPRIM("pair?",pairp,1,scheme_module);

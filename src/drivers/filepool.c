@@ -933,6 +933,8 @@ static lispval file_pool_ctl(kno_pool p,lispval op,int n,kno_argvec args)
     return kno_simplify_choice(keys);}
   else if ( (op == kno_metadata_op) && (n == 0) )
     return kno_pool_base_metadata(p);
+  else if (op == KNOSYM_FILENAME)
+    return knostring(p->pool_source);
   else return kno_default_poolctl(p,op,n,args);
 }
 

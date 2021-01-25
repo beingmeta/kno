@@ -2806,7 +2806,7 @@ static void kindex_close(kno_index ix)
   size_t n_buckets = kx->index_n_buckets;
   u8_logf(LOG_DEBUG,"KINDEX","Closing hash index %s",ix->indexid);
   kno_lock_index(kx);
-  kno_close_stream(&(kx->index_stream),0);
+  kno_close_stream(&(kx->index_stream),KNO_STREAM_FREEDATA);
   if (offdata) {
 #if KNO_USE_MMAP
     int retval=
@@ -2829,6 +2829,9 @@ static void kindex_recycle(kno_index ix)
   struct KNO_KINDEX *kx = (struct KNO_KINDEX *)ix;
   if ( (kx->index_offdata) || (kx->index_stream.stream_fileno > 0) )
     kindex_close(ix);
+  if (kx->index_stream.streamid) {
+    u8_free((kx->index_stream.streamid));
+    kx->index_stream.streamid=NULL;}
   kno_recycle_xrefs(&(kx->index_xrefs));
 }
 
@@ -3459,6 +3462,8 @@ static lispval kindex_ctl(kno_index ix,lispval op,int n,kno_argvec args)
       i++;}
     u8_big_free(info);
     return (lispval)table;}
+  else if (op == KNOSYM_FILENAME)
+    return knostring(ix->index_source);
   else return kno_default_indexctl(ix,op,n,args);
 }
 

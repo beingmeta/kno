@@ -394,6 +394,8 @@ static lispval lisp_all_symbols()
   return kno_all_symbols();
 }
 
+/* 'Printed' representations */
+
 DEFCPRIM("string->lisp",lisp_string2lisp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Parses a text representation (a string) into a LISP object.",

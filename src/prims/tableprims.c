@@ -22,17 +22,6 @@
 #include "kno/frames.h"
 #include "kno/numbers.h"
 
-DEFCPRIM("table?",tablep,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "returns #t if *obj* is a table, #f otherwise.",
-	 {"arg",kno_any_type,KNO_VOID})
-static lispval tablep(lispval arg)
-{
-  if (TABLEP(arg))
-    return KNO_TRUE;
-  else return KNO_FALSE;
-}
-
 DEFCPRIM("haskeys?",haskeysp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "returns #t if *obj* is a non-empty table, #f "
@@ -215,121 +204,6 @@ static lispval hash_lisp_prim(lispval x)
 {
   int val = kno_hash_lisp(x);
   return KNO_INT(val);
-}
-
-DEFCPRIM("%get",table_get,
-	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "returns the value of *key* in *table* or "
-	 "*default* if *table* does not contain *key*. "
-	 "*default* defaults to the empty choice {}.Note "
-	 "that this does no inference, use GET to enable "
-	 "inference.",
-	 {"table",kno_any_type,KNO_VOID},
-	 {"key",kno_any_type,KNO_VOID},
-	 {"dflt",kno_any_type,KNO_VOID})
-static lispval table_get(lispval table,lispval key,lispval dflt)
-{
-  if (VOIDP(dflt))
-    return kno_get(table,key,EMPTY);
-  else return kno_get(table,key,dflt);
-}
-
-DEFCPRIM("add!",table_add,
-	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3)|KNO_NDCALL,
-	 "adds *value* to the associations of *key* in "
-	 "*table*. Note that this does no inference, use "
-	 "ASSERT! to enable inference.",
-	 {"table",kno_any_type,KNO_VOID},
-	 {"key",kno_any_type,KNO_VOID},
-	 {"val",kno_any_type,KNO_VOID})
-static lispval table_add(lispval table,lispval key,lispval val)
-{
-  if (EMPTYP(table)) return VOID;
-  else if (EMPTYP(key)) return VOID;
-  else if (kno_add(table,key,val)<0)
-    return KNO_ERROR;
-  else return VOID;
-}
-
-DEFCPRIM("drop!",table_drop,
-	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "removes *values* from *key* of *table*. If "
-	 "*values* is not provided, all values associated "
-	 "with *key* are removed. Note that this does no "
-	 "inference, use RETRACT! to enable inference.",
-	 {"table",kno_any_type,KNO_VOID},
-	 {"key",kno_any_type,KNO_VOID},
-	 {"val",kno_any_type,KNO_VOID})
-static lispval table_drop(lispval table,lispval key,lispval val)
-{
-  if (EMPTYP(table)) return VOID;
-  if (EMPTYP(key)) return VOID;
-  else if (kno_drop(table,key,val)<0) return KNO_ERROR;
-  else return VOID;
-}
-
-DEFCPRIM("store!",table_store,
-	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3)|KNO_NDCALL,
-	 "stores *value* in *table* under *key*, removing "
-	 "all existing values. If *value* is a choice, the "
-	 "entire choice is stored under *key*. Note that "
-	 "this does no inference.",
-	 {"table",kno_any_type,KNO_VOID},
-	 {"key",kno_any_type,KNO_VOID},
-	 {"val",kno_any_type,KNO_VOID})
-static lispval table_store(lispval table,lispval key,lispval val)
-{
-  if (EMPTYP(table)) return VOID;
-  else if (EMPTYP(key)) return VOID;
-  else if (QCHOICEP(val)) {
-    struct KNO_QCHOICE *qch = KNO_XQCHOICE(val);
-    if (kno_store(table,key,qch->qchoiceval)<0)
-      return KNO_ERROR;
-    else return VOID;}
-  else if (kno_store(table,key,val)<0)
-    return KNO_ERROR;
-  else return VOID;
-}
-
-DEFCPRIM("%test",table_test,
-	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "returns true if any of *values* is stored undery "
-	 "any of *keys* in any of *tables*. If *values* is "
-	 "not provided, returns true if any values are "
-	 "stored under any of *keys* in any of *tables*. "
-	 "Note that this does no inference.",
-	 {"table",kno_any_type,KNO_VOID},
-	 {"key",kno_any_type,KNO_VOID},
-	 {"val",kno_any_type,KNO_VOID})
-static lispval table_test(lispval table,lispval key,lispval val)
-{
-  if (EMPTYP(table)) return KNO_FALSE;
-  else if (EMPTYP(key)) return KNO_FALSE;
-  else if (EMPTYP(val)) return KNO_FALSE;
-  else {
-    int retval = kno_test(table,key,val);
-    if (retval<0) return KNO_ERROR;
-    else if (retval) return KNO_TRUE;
-    else return KNO_FALSE;}
-}
-
-
-
-
-
-
-DEFCPRIM("getkeyvec",getkeyvec_prim,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "returns a vector of all the keys in *table*.",
-	 {"table",kno_any_type,KNO_VOID})
-static lispval getkeyvec_prim(lispval table)
-{
-  int len = 0;
-  lispval *keyvec = kno_getkeyvec_n(table,&len);
-  if (len<0) return KNO_ERROR;
-  else if (len == 0)
-    return kno_make_vector(0,NULL);
-  else return kno_init_vector(NULL,len,keyvec);
 }
 
 /* Converting schemaps to slotmaps */
@@ -1260,23 +1134,6 @@ DEFCPRIM("blist->table",kno_blist_to_slotmap,
 	 "the form ((key1  value1) (key2 value2) ... )",
 	 {"blist",kno_any_type,KNO_VOID});
 
-DEFCPRIM("getkeys",kno_getkeys,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "returns all the keys in *table*.",
-	 {"table",kno_any_type,KNO_VOID});
-
-DEFCPRIM("getvalues",kno_getvalues,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "returns all the values associated with all of the "
-	 "keys in *table*.",
-	 {"table",kno_any_type,KNO_VOID});
-
-DEFCPRIM("getassocs",kno_getassocs,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "returns (key . values) pairs for all of the keys "
-	 "in *table*.",
-	 {"table",kno_any_type,KNO_VOID});
-
 /* Initialization code */
 
 KNO_EXPORT void kno_init_tableprims_c()
@@ -1291,7 +1148,6 @@ KNO_EXPORT void kno_init_tableprims_c()
 
 static void link_local_cprims()
 {
-  KNO_LINK_CPRIM("TABLE?",tablep,1,kno_scheme_module);
   KNO_LINK_CPRIM("HASKEYS?",haskeysp,1,kno_scheme_module);
   KNO_LINK_CPRIM("SLOTMAP?",slotmapp,1,kno_scheme_module);
   KNO_LINK_CPRIM("SCHEMAP?",schemapp,1,kno_scheme_module);
@@ -1306,11 +1162,6 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("READONLY-HASHTABLE!",readonly_hashtable_prim,2,kno_scheme_module);
   KNO_LINK_CPRIM("RESAFE-HASHTABLE",resafe_hashtable,1,kno_scheme_module);
   KNO_LINK_CPRIM("HASH-LISP",hash_lisp_prim,1,kno_scheme_module);
-  KNO_LINK_CPRIM("%GET",table_get,3,kno_scheme_module);
-  KNO_LINK_CPRIM("ADD!",table_add,3,kno_scheme_module);
-  KNO_LINK_CPRIM("DROP!",table_drop,3,kno_scheme_module);
-  KNO_LINK_CPRIM("STORE!",table_store,3,kno_scheme_module);
-  KNO_LINK_CPRIM("%TEST",table_test,3,kno_scheme_module);
   KNO_LINK_CPRIM("SCHEMAP->SLOTMAP",schemap2slotmap_prim,1,kno_scheme_module);
   KNO_LINK_CPRIM("SLOTMAP->SCHEMAP",slotmap2schemap_prim,1,kno_scheme_module);
   KNO_LINK_CPRIM("->SCHEMAP",table2schemap_prim,1,kno_scheme_module);
@@ -1355,10 +1206,6 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("PLIST->TABLE",kno_plist_to_slotmap,1,kno_scheme_module);
   KNO_LINK_CPRIM("ALIST->TABLE",kno_alist_to_slotmap,1,kno_scheme_module);
   KNO_LINK_CPRIM("BLIST->TABLE",kno_blist_to_slotmap,1,kno_scheme_module);
-  KNO_LINK_CPRIM("GETKEYS",kno_getkeys,1,kno_scheme_module);
-  KNO_LINK_CPRIM("GETVALUES",kno_getvalues,1,kno_scheme_module);
-  KNO_LINK_CPRIM("GETASSOCS",kno_getassocs,1,kno_scheme_module);
-  KNO_LINK_CPRIM("GETKEYVEC",getkeyvec_prim,1,kno_scheme_module);
 
   KNO_LINK_ALIAS("HASHTABLE-MAX",table_max,kno_scheme_module);
   KNO_LINK_ALIAS("HASHTABLE-MAXVAL",table_maxval,kno_scheme_module);

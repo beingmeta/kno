@@ -244,6 +244,7 @@ SCHEME_OBJS=\
 	src/eval/choiceops.o \
 	src/eval/evalops.o \
 	src/eval/coreops.o \
+	src/eval/tableops.o \
 	src/eval/configops.o \
 	src/eval/srvcall.o \
 	src/eval/arith.o \
@@ -371,6 +372,7 @@ KNO_SOURCES=\
 	src/eval/modules.c src/eval/load.c src/eval/reflection.c 		\
 	src/eval/typeops.c src/eval/repl.c					\
 	src/eval/evalops.c                  					\
+	src/eval/tableops.c                  					\
 	src/eval/coreops.c                  					\
 	src/eval/arith.c 			              			\
 	src/eval/regex.c 			              			\
@@ -511,7 +513,7 @@ debugging:
 	@make TAGS
 	@if test -f .malloc; then \
 	  echo With $(shell cat .malloc) malloc; fi;
-	@+make -s XCFLAGS="@debugcflags@ -O0 -Wall -Wno-unknown-pragmas $(XCFLAGS)"	\
+	@+make -s XCFLAGS="@debugcflags@ -O0 -Wall -Wno-unknown-pragmas $(XCFLAGS) -DKNO_DEBUGGING_BUILD=1"	\
 	          XLDFLAGS="@debugldflags@ $(XLDFLAGS)"		\
 	          XOPTFLAGS="-O0" OPTFLAGS="-O0" 		\
 		  XLIBS="@debuglibs@ $(XLIBS)" 			\
@@ -522,7 +524,7 @@ profiling:
 	@make TAGS
 	@if test -f .malloc; then \
 	  echo With $(shell cat .malloc) malloc; fi;
-	@+make -s XCFLAGS="@profilecflags@ -O0 -Wall -Wno-unknown-pragmas $(XCFLAGS) @profiledefines@"	\
+	@+make -s XCFLAGS="@profilecflags@ -O0 -Wall -Wno-unknown-pragmas $(XCFLAGS) -DKNO_PROFILING_BUILD=1 @profiledefines@"	\
 	          XLDFLAGS="@profileldflags@ $(XLDFLAGS)"		\
 	          XOPTFLAGS="-O0" OPTFLAGS="-O0" 		\
 		  XLIBS="@debuglibs@ $(XLIBS)" 			\
@@ -532,7 +534,7 @@ optimizing:
 	@echo Building OPTIMIZING configuration
 	@if test -f .malloc; then \
 	  echo With $(shell cat .malloc) malloc; fi;
-	@+make -s XCFLAGS="-O3" testbin exe cmodules etc @TAGS_TARGET@
+	@+make -s XCFLAGS="-O3 -DKNO_OPTIMIZING_BUILD=1" testbin exe cmodules etc @TAGS_TARGET@
 zooming:
 	@echo Building Zooming configuration
 	@if test -f .malloc; then \
@@ -545,7 +547,8 @@ nitpicking:
 	@+make -s XCFLAGS="-Wall -Wno-unknown-pragmas ${XCFLAGS}" testbin exe cmodules etc @TAGS_TARGET@
 distribution:
 	@echo Building DISTRIBUTION configuration
-	@+make -s exe cmodules etc scripts @TAGS_TARGET@
+	@+make -s XCFLAGS="$(XCFLAGS) KNO_DISTRIBUTION_BUILD=1" \
+		exe cmodules etc scripts @TAGS_TARGET@
 
 all: testbin debug-exe exe cmodules etc i18n @TAGS_TARGET@
 packaged: exe cmodules etc i18n
@@ -656,7 +659,7 @@ dbginstall:
 # Implicit make rules
 
 %.o: %.c ${CONFIG_HDRS}
-	@$(CC) $(CFLAGS) -D_FILEINFO="\"$(shell u8_fileinfo ./$< .)\"" -o $@ -c $<
+	$(CC) $(CFLAGS) -D_FILEINFO="\"$(shell u8_fileinfo ./$< .)\"" -o $@ -c $<
 	@$(MSG) CC $@ $<
 
 exe/scripts/%: src/scripts/%.scm

@@ -47,6 +47,13 @@
 #define KNO_PROFILING 0
 #endif
 
+#if ( KNO_DEBUGGING_BUILD | KNO_DEBUG_GC )
+#ifndef KNO_MAX_REFCOUNT
+#define KNO_MAX_REFCOUNT 0xFFFFFF
+#endif
+#endif
+
+
 #define KNO_DEEP_PROFILING    ( KNO_PROFILING > 1 )
 #define KNO_EXTREME_PROFILING ( KNO_PROFILING > 2 )
 
@@ -488,9 +495,14 @@ typedef double kno_double;
 #define ATOMICP(x) (KNO_ATOMICP(x))
 #define TYPEP(o,t) (KNO_TYPEP((o),(t)))
 #define CHOICEP(x) (KNO_CHOICEP(x))
+#define SINGLETONP(x) (KNO_SINGLETONP(x))
 #define FIXNUMP(x) (KNO_FIXNUMP(x))
 #define NUMBERP(x) (KNO_NUMBERP(x))
+#define APPLICABLEP(x) (KNO_APPLICABLEP(x))
+#define SLOTIDP(x) (KNO_SLOTIDP(x))
 #define TABLEP(x)  (KNO_TABLEP(x))
+#define POOLP(x)  (KNO_POOLP(x))
+#define INDEXP(x)  (KNO_INDEXP(x))
 #define PAIRP(x)   (KNO_PAIRP(x))
 #define VECTORP(x) (KNO_VECTORP(x))
 #define SYMBOLP(x) (KNO_SYMBOLP(x))
@@ -499,10 +511,6 @@ typedef double kno_double;
 #define FALSEP(x)  (KNO_FALSEP(x))
 #define OIDP(x)    (KNO_OIDP(x))
 #define FIX2INT(x) (KNO_FIX2INT(x))
-#define DO_CHOICES KNO_DO_CHOICES
-#define DOLIST     KNO_DOLIST
-#define CHOICE_ADD KNO_ADD_TO_CHOICE
-#define EQ         KNO_EQ
 #define ABORTP(x)  (KNO_ABORTP(x))
 #define ABORTED(x) (KNO_ABORTED(x))
 #define STRLEN(x)  (KNO_STRLEN(x))
@@ -526,6 +534,12 @@ typedef double kno_double;
 #define XCOMPOUND_VEC_REF(x,i) (KNO_XCOMPOUND_VECREF((x),(i)))
 #define PRED_FALSE(x)  (KNO_EXPECT_FALSE(x))
 #define PRED_TRUE(x)  (KNO_EXPECT_TRUE(x))
+#define ADD_TO_CHOICE(x,y) KNO_ADD_TO_CHOICE(x,y)
+#define CHOICE_SIZE(x) KNO_CHOICE_SIZE(x)
+#define DOLIST     KNO_DOLIST
+#define CHOICE_ADD KNO_ADD_TO_CHOICE
+#define EQ         KNO_EQ
+#define DO_CHOICES KNO_DO_CHOICES
 #endif
 
 #endif /* KNO_DEFINES_H */

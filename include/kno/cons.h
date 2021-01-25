@@ -112,10 +112,6 @@ KNO_EXPORT u8_condition kno_DoubleGC, kno_UsingFreedCons, kno_FreeingNonHeapCons
    ((typecast)(u8_raise(kno_TypeError,kno_type2name(typecode),NULL),  \
 	       NULL)))
 
-#ifndef KNO_MAX_REFCOUNT
-#define KNO_MAX_REFCOUNT 0xFFFFFF
-#endif
-
 /* External functions */
 
 KNO_EXPORT void _kno_decref_fn(lispval);
@@ -256,6 +252,8 @@ KNO_EXPORT void kno_decref_vec(lispval *vec,size_t n);
 #define KNO_STATIC_COPY 16 /* Declare all copied objects static (this leaks) */
 #define KNO_COPY_TERMINALS 32 /* Copy even terminal objects */
 
+KNO_EXPORT void _kno_refcount_overflow(lispval x,long long count,u8_context op);
+
 /* The consheader is a 32 bit value:
    The lower 7 bits are a cons typecode
    The remaining bits are a reference count, which is always >0
@@ -278,8 +276,8 @@ KNO_INLINE_FCN lispval _kno_incref(struct KNO_REF_CONS *x)
       return (lispval) x;}
 #if KNO_MAX_REFCOUNT
     else if ((cb>>7) > KNO_MAX_REFCOUNT) {
+      _kno_refcount_overflow((lispval)x,(cb>>7),"incref");
       atomic_fetch_add(&(x->conshead),0x80);
-      _kno_debug((lispval)x);
       return (lispval) x;}
 #endif
     else {
@@ -297,6 +295,10 @@ KNO_INLINE_FCN void _kno_decref(struct KNO_REF_CONS *x)
     /* Static cons */}
   else {
     kno_consbits oldcb=atomic_fetch_sub(&(x->conshead),0x80);
+#if KNO_MAX_REFCOUNT
+    if ((cb>>7) > KNO_MAX_REFCOUNT)
+      _kno_refcount_overflow((lispval)x,(cb>>7),"decref");
+#endif
     if ((oldcb>=0x80)&&(oldcb<0x100)) {
       /* If the modified consbits indicated a refcount of 1,
 	 we've reduced it to zero, so we recycle it. Otherwise,

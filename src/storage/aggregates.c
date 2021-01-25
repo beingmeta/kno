@@ -275,20 +275,20 @@ KNO_EXPORT int kno_add_to_aggregate_index(kno_aggregate_index aix,kno_index add)
 
     u8_string old_id = aix->indexid;
     aix->indexid = u8_mkstring("%s+%d",
-                               aix->ax_indexes[0]->indexid,
-                               (aix->ax_n_indexes-1));
+			       aix->ax_indexes[0]->indexid,
+			       (aix->ax_n_indexes-1));
     if (old_id) u8_free(old_id);
-
+    
     struct U8_OUTPUT sourceout;
     U8_INIT_OUTPUT(&sourceout,128);
     int j = 0; while (j < aix->ax_n_indexes) {
       kno_index each = aix->ax_indexes[j];
-      if (j>0) u8_putc(&sourceout,'\n');
       if (each->index_source)
-        u8_puts(&sourceout,each->index_source);
+	u8_puts(&sourceout,each->index_source);
       else if (each->indexid)
-        u8_puts(&sourceout,each->indexid);
+	u8_puts(&sourceout,each->indexid);
       else NO_ELSE;
+      u8_putc(&sourceout,'\n');
       j++;}
     aix->index_source=sourceout.u8_outbuf;
     if (old_source) u8_free(old_source);

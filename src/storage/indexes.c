@@ -116,7 +116,7 @@ static int add_consed_index(kno_index ix)
       u8_seterr(kno_MallocFailed,"add_consed_index",u8dup(ix->indexid));
       u8_rw_unlock(&consed_indexes_lock);
       return -1;}}
-  kno_incref((lispval)ix);
+  /* kno_incref((lispval)ix); */
   consed_indexes[n_consed_indexes++]=ix;
   u8_rw_unlock(&consed_indexes_lock);
   return 1;
@@ -129,7 +129,7 @@ static int drop_consed_index(kno_index ix)
   while (scan<limit) {
     if ( *scan == ix ) {
       size_t to_shift=(limit-scan)-1;
-      memmove(scan,scan+1,to_shift);
+      memmove(scan,scan+1,to_shift*sizeof(kno_index));
       n_consed_indexes--;
       u8_rw_unlock(&consed_indexes_lock);
       return 1;}
@@ -146,7 +146,9 @@ static kno_index for_consed_indexes(index_iterfn iterfn,void *state)
     u8_read_lock(&consed_indexes_lock);
     int j = 0; while (j<n_consed_indexes) {
       kno_index ix = consed_indexes[j++];
-      if ( (ix) && (iterfn(ix,state)) ) return ix;}
+      if ( (ix) && (iterfn(ix,state)) ) {
+	u8_rw_unlock(&consed_indexes_lock);
+	return ix;}}
     u8_rw_unlock(&consed_indexes_lock);
     return NULL;}
   return NULL;
@@ -279,6 +281,7 @@ KNO_EXPORT void kno_register_index(kno_index ix)
     if (kno_n_primary_indexes<KNO_MAX_PRIMARY_INDEXES) {
       ix->index_serialno = kno_n_primary_indexes;
       kno_primary_indexes[kno_n_primary_indexes++]=ix;
+      if (!(KNO_STATICP((lispval)ix))) drop_consed_index(ix);
       /* Make it a static cons */
       KNO_SET_REFCOUNT(ix,0);}}
   u8_rw_unlock(&indexes_lock);
@@ -1841,8 +1844,7 @@ KNO_EXPORT void kno_init_index(kno_index ix,
     flags = kno_get_dbflags(opts,KNO_STORAGE_ISINDEX);
   else {U8_SETBITS(flags,KNO_STORAGE_ISINDEX);}
   if (U8_BITP(flags,KNO_STORAGE_UNREGISTERED)) {
-    KNO_INIT_CONS(ix,kno_consed_index_type);
-    add_consed_index(ix);}
+    KNO_INIT_CONS(ix,kno_consed_index_type);}
   else {KNO_INIT_STATIC_CONS(ix,kno_consed_index_type);}
   if (U8_BITP(flags,KNO_STORAGE_READ_ONLY)) {
     U8_SETBITS(flags,KNO_STORAGE_READ_ONLY); };
@@ -1906,6 +1908,9 @@ KNO_EXPORT void kno_init_index(kno_index ix,
       u8_log(LOG_WARN,"BadLogLevel",
 	     "Invalid loglevel %q for pool %s",ll,id);
       kno_decref(cl);}}
+
+  if (U8_BITP(flags,KNO_STORAGE_UNREGISTERED))
+    add_consed_index(ix);
 
   u8_init_mutex(&(ix->index_commit_lock));
 }
@@ -2178,7 +2183,7 @@ KNO_EXPORT int kno_execute_index_delays(kno_index ix,void *data)
 KNO_EXPORT void kno_recycle_index(struct KNO_INDEX *ix)
 {
   struct KNO_INDEX_HANDLER *handler = ix->index_handler;
-  drop_consed_index(ix);
+  if (ix->index_flags&KNO_STORAGE_UNREGISTERED) drop_consed_index(ix);
   if (handler->recycle) handler->recycle(ix);
   kno_recycle_hashtable(&(ix->index_cache));
   kno_recycle_hashtable(&(ix->index_adds));
@@ -2187,6 +2192,7 @@ KNO_EXPORT void kno_recycle_index(struct KNO_INDEX *ix)
   u8_free(ix->indexid);
   if (ix->index_source) u8_free(ix->index_source);
   if (ix->index_typeid) u8_free(ix->index_typeid);
+  if (ix->canonical_source) u8_free(ix->canonical_source);
 
   kno_free_slotmap(&(ix->index_metadata));
   kno_free_slotmap(&(ix->index_props));
@@ -2371,6 +2377,8 @@ KNO_EXPORT lispval kno_default_indexctl(kno_index ix,lispval op,
     if (KNO_INDEX_READONLYP(ix))
       return KNO_TRUE;
     else return KNO_FALSE;}
+  else if (op == KNOSYM_FILENAME)
+    return KNO_FALSE;
   else return KNO_FALSE;
 }
 
