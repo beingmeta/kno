@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-01-19 17:20+0000\n"
+"POT-Creation-Date: 2021-01-28 13:13-0500\n"
 "PO-Revision-Date: 2005-03-04 22:55-0500\n"
 "Last-Translator: Kenneth Haase <kh@beingmeta.com>\n"
 "Language-Team: Spanish <es@li.org>\n"
@@ -117,7 +117,7 @@ msgstr ""
 msgid "No more valid persistent pointers"
 msgstr ""
 
-#: src/lisp/fcnids.c:146 src/lisp/lisp.c:310 src/lisp/lisp.c:311
+#: src/lisp/fcnids.c:146 src/lisp/lisp.c:333 src/lisp/lisp.c:334
 msgid "fcnid"
 msgstr ""
 
@@ -142,9 +142,9 @@ msgid "NotASequence"
 msgstr ""
 
 #: src/lisp/sequences.c:166 src/lisp/sequences.c:261 src/lisp/sequences.c:815
-#: src/lisp/lisp.c:457 src/eval/opcode_defs.c:365 src/eval/opcode_defs.c:372
+#: src/lisp/lisp.c:480 src/eval/opcode_defs.c:365 src/eval/opcode_defs.c:372
 #: src/eval/opcode_defs.c:564 src/eval/opcode_defs.c:568
-#: src/prims/dbprims.c:3522 src/prims/dbprims.c:3524 src/prims/seqprims.c:445
+#: src/prims/dbprims.c:3205 src/prims/dbprims.c:3207 src/prims/seqprims.c:445
 #: src/prims/seqprims.c:458 src/prims/seqprims.c:467 src/prims/seqprims.c:645
 #: src/prims/seqprims.c:682 src/prims/seqprims.c:755 src/prims/seqprims.c:783
 #: src/prims/seqprims.c:1750 src/prims/seqprims.c:1808
@@ -159,7 +159,7 @@ msgstr ""
 msgid "Not a sequence"
 msgstr ""
 
-#: src/lisp/sequences.c:710 src/lisp/lisp.c:306 src/lisp/lisp.c:307
+#: src/lisp/sequences.c:710 src/lisp/lisp.c:329 src/lisp/lisp.c:330
 #: src/prims/seqprims.c:1873 src/prims/seqprims.c:1882
 msgid "character"
 msgstr ""
@@ -269,7 +269,7 @@ msgstr ""
 msgid "value is not a boolean"
 msgstr ""
 
-#: src/lisp/compounds.c:43 src/lisp/compounds.c:118
+#: src/lisp/compounds.c:43 src/lisp/compounds.c:120
 msgid "positive byte"
 msgstr ""
 
@@ -425,12 +425,12 @@ msgstr ""
 msgid "Thread interrupted"
 msgstr ""
 
-#: src/lisp/lisp.c:296 src/lisp/lisp.c:297
+#: src/lisp/lisp.c:319 src/lisp/lisp.c:320
 msgid "oid"
 msgstr ""
 
-#: src/lisp/lisp.c:298 src/lisp/lisp.c:299 src/sys/config.c:863
-#: src/eval/opcode_defs.c:373 src/eval/evalops.c:311 src/prims/dbprims.c:3448
+#: src/lisp/lisp.c:321 src/lisp/lisp.c:322 src/sys/config.c:863
+#: src/eval/opcode_defs.c:373 src/eval/evalops.c:311 src/prims/dbprims.c:3131
 #: src/prims/portprims.c:1028 src/eval/choiceops.c:1538
 #: src/eval/choiceops.c:1609 src/eval/choiceops.c:1656
 #: src/eval/choiceops.c:1723 src/eval/choiceops.c:1739
@@ -441,66 +441,66 @@ msgstr ""
 msgid "fixnum"
 msgstr ""
 
-#: src/lisp/lisp.c:300 src/lisp/lisp.c:301
+#: src/lisp/lisp.c:323 src/lisp/lisp.c:324
 msgid "cons"
 msgstr ""
 
-#: src/lisp/lisp.c:302 src/lisp/lisp.c:303
+#: src/lisp/lisp.c:325 src/lisp/lisp.c:326
 msgid "immediate"
 msgstr ""
 
-#: src/lisp/lisp.c:304 src/lisp/lisp.c:305
+#: src/lisp/lisp.c:327 src/lisp/lisp.c:328
 msgid "constant"
 msgstr ""
 
-#: src/lisp/lisp.c:308 src/lisp/lisp.c:309 src/eval/modules.c:429
+#: src/lisp/lisp.c:331 src/lisp/lisp.c:332 src/eval/modules.c:429
 #: src/eval/reflection.c:1045 src/eval/evalops.c:255
 msgid "symbol"
 msgstr ""
 
-#: src/lisp/lisp.c:312 src/lisp/lisp.c:313 src/eval/eval.c:1911
+#: src/lisp/lisp.c:335 src/lisp/lisp.c:336 src/eval/eval.c:1914
 msgid "lexref"
 msgstr ""
 
-#: src/lisp/lisp.c:314 src/lisp/lisp.c:315 src/eval/eval.c:1917
+#: src/lisp/lisp.c:337 src/lisp/lisp.c:338 src/eval/eval.c:1920
 msgid "opcode"
 msgstr ""
 
-#: src/lisp/lisp.c:316 src/lisp/lisp.c:317
+#: src/lisp/lisp.c:339 src/lisp/lisp.c:340
 msgid "typeref"
 msgstr ""
 
-#: src/lisp/lisp.c:318 src/lisp/lisp.c:319 src/eval/eval.c:1915
+#: src/lisp/lisp.c:341 src/lisp/lisp.c:342 src/eval/eval.c:1918
 msgid "coderef"
 msgstr ""
 
-#: src/lisp/lisp.c:320 src/lisp/lisp.c:321 src/storage/pools.c:2886
-#: src/prims/dbprims.c:348 src/prims/dbprims.c:2185
+#: src/lisp/lisp.c:343 src/lisp/lisp.c:344 src/storage/pools.c:2893
+#: src/prims/dbprims.c:265 src/prims/dbprims.c:2101
 msgid "pool"
 msgstr ""
 
-#: src/lisp/lisp.c:322 src/lisp/lisp.c:323 src/storage/indexes.c:1125
-#: src/storage/slotindexes.c:234 src/prims/dbprims.c:907
-#: src/prims/dbprims.c:2148 src/prims/dbprims.c:2167 src/prims/dbprims.c:2200
+#: src/lisp/lisp.c:345 src/lisp/lisp.c:346 src/storage/indexes.c:1128
+#: src/storage/slotindexes.c:234 src/prims/dbprims.c:823
+#: src/prims/dbprims.c:2064 src/prims/dbprims.c:2083 src/prims/dbprims.c:2116
 msgid "index"
 msgstr ""
 
-#: src/lisp/lisp.c:324 src/lisp/lisp.c:325
+#: src/lisp/lisp.c:347 src/lisp/lisp.c:348
 msgid "histref"
 msgstr ""
 
-#: src/lisp/lisp.c:326
+#: src/lisp/lisp.c:349
 msgid "basetype"
 msgstr ""
 
-#: src/lisp/lisp.c:327
+#: src/lisp/lisp.c:350
 msgid "a representation of a primitive C type"
 msgstr ""
 
-#: src/lisp/lisp.c:329 src/lisp/lisp.c:330 src/sys/config.c:764
+#: src/lisp/lisp.c:352 src/lisp/lisp.c:353 src/sys/config.c:764
 #: src/sys/config.c:783 src/sys/config.c:802 src/sys/startup.c:256
-#: src/sys/startup.c:649 src/prims/dbprims.c:391 src/prims/dbprims.c:413
-#: src/prims/dbprims.c:437 src/prims/portprims.c:393 src/prims/portprims.c:882
+#: src/sys/startup.c:649 src/prims/dbprims.c:308 src/prims/dbprims.c:330
+#: src/prims/dbprims.c:354 src/prims/portprims.c:393 src/prims/portprims.c:882
 #: src/prims/portprims.c:1034 src/prims/dtypeprims.c:248
 #: src/prims/dtypeprims.c:303 src/prims/dtypeprims.c:390
 #: src/prims/dtypeprims.c:424 src/prims/dtypeprims.c:448
@@ -516,264 +516,264 @@ msgstr ""
 msgid "string"
 msgstr ""
 
-#: src/lisp/lisp.c:331 src/lisp/lisp.c:332
+#: src/lisp/lisp.c:354 src/lisp/lisp.c:355
 msgid "packet"
 msgstr ""
 
-#: src/lisp/lisp.c:333 src/lisp/lisp.c:334
+#: src/lisp/lisp.c:356 src/lisp/lisp.c:357
 msgid "secret"
 msgstr ""
 
-#: src/lisp/lisp.c:335 src/lisp/lisp.c:336
+#: src/lisp/lisp.c:358 src/lisp/lisp.c:359
 msgid "bigint"
 msgstr ""
 
-#: src/lisp/lisp.c:337 src/lisp/lisp.c:338 src/eval/opcode_defs.c:535
+#: src/lisp/lisp.c:360 src/lisp/lisp.c:361 src/eval/opcode_defs.c:535
 #: src/eval/opcode_defs.c:537 src/eval/opcode_defs.c:550
 #: src/eval/opcode_defs.c:552 src/eval/evalops.c:312
 msgid "pair"
 msgstr ""
 
-#: src/lisp/lisp.c:339 src/lisp/lisp.c:340
+#: src/lisp/lisp.c:362 src/lisp/lisp.c:363
 msgid "cdrcode"
 msgstr ""
 
-#: src/lisp/lisp.c:342 src/lisp/lisp.c:343
+#: src/lisp/lisp.c:365 src/lisp/lisp.c:366
 msgid "typeinfo"
 msgstr ""
 
-#: src/lisp/lisp.c:344 src/lisp/lisp.c:345
+#: src/lisp/lisp.c:367 src/lisp/lisp.c:368
 msgid "compound"
 msgstr ""
 
-#: src/lisp/lisp.c:346 src/lisp/lisp.c:347
+#: src/lisp/lisp.c:369 src/lisp/lisp.c:370
 msgid "rawptr"
 msgstr ""
 
-#: src/lisp/lisp.c:349 src/lisp/lisp.c:350
+#: src/lisp/lisp.c:372 src/lisp/lisp.c:373
 msgid "choice"
 msgstr ""
 
-#: src/lisp/lisp.c:351 src/lisp/lisp.c:352
+#: src/lisp/lisp.c:374 src/lisp/lisp.c:375
 msgid "prechoice"
 msgstr ""
 
-#: src/lisp/lisp.c:353 src/lisp/lisp.c:354
+#: src/lisp/lisp.c:376 src/lisp/lisp.c:377
 msgid "qchoice"
 msgstr ""
 
-#: src/lisp/lisp.c:356 src/lisp/lisp.c:357
+#: src/lisp/lisp.c:379 src/lisp/lisp.c:380
 msgid "vector"
 msgstr ""
 
-#: src/lisp/lisp.c:358 src/lisp/lisp.c:359
+#: src/lisp/lisp.c:381 src/lisp/lisp.c:382
 msgid "numeric_vector"
 msgstr ""
 
-#: src/lisp/lisp.c:361 src/lisp/lisp.c:362
+#: src/lisp/lisp.c:384 src/lisp/lisp.c:385
 msgid "slotmap"
 msgstr ""
 
-#: src/lisp/lisp.c:363 src/lisp/lisp.c:364
+#: src/lisp/lisp.c:386 src/lisp/lisp.c:387
 msgid "schemap"
 msgstr ""
 
-#: src/lisp/lisp.c:365 src/lisp/lisp.c:366
+#: src/lisp/lisp.c:388 src/lisp/lisp.c:389
 msgid "hashtable"
 msgstr ""
 
-#: src/lisp/lisp.c:367 src/lisp/lisp.c:368 src/prims/tableprims.c:1103
+#: src/lisp/lisp.c:390 src/lisp/lisp.c:391 src/prims/tableprims.c:977
 #: src/text/match.c:3422 src/text/match.c:3458 src/text/match.c:3484
 #: src/text/match.c:3526
 msgid "hashset"
 msgstr ""
 
-#: src/lisp/lisp.c:370 src/lisp/lisp.c:371
+#: src/lisp/lisp.c:393 src/lisp/lisp.c:394
 msgid "cprim"
 msgstr ""
 
-#: src/lisp/lisp.c:372 src/lisp/lisp.c:373
+#: src/lisp/lisp.c:395 src/lisp/lisp.c:396
 msgid "ffi"
 msgstr ""
 
-#: src/lisp/lisp.c:374 src/lisp/lisp.c:375
+#: src/lisp/lisp.c:397 src/lisp/lisp.c:398
 msgid "lambda"
 msgstr ""
 
-#: src/lisp/lisp.c:376 src/lisp/lisp.c:377
+#: src/lisp/lisp.c:399 src/lisp/lisp.c:400
 msgid "netproc"
 msgstr ""
 
-#: src/lisp/lisp.c:379 src/lisp/lisp.c:380
+#: src/lisp/lisp.c:402 src/lisp/lisp.c:403
 msgid "lexenv"
 msgstr ""
 
-#: src/lisp/lisp.c:381 src/lisp/lisp.c:382
+#: src/lisp/lisp.c:404 src/lisp/lisp.c:405
 msgid "evalfn"
 msgstr ""
 
-#: src/lisp/lisp.c:383 src/lisp/lisp.c:384
+#: src/lisp/lisp.c:406 src/lisp/lisp.c:407
 msgid "macro"
 msgstr ""
 
-#: src/lisp/lisp.c:385 src/lisp/lisp.c:386
+#: src/lisp/lisp.c:408 src/lisp/lisp.c:409
 msgid "stackframe"
 msgstr ""
 
-#: src/lisp/lisp.c:387 src/lisp/lisp.c:388
+#: src/lisp/lisp.c:410 src/lisp/lisp.c:411
 msgid "exception"
 msgstr ""
 
-#: src/lisp/lisp.c:389 src/lisp/lisp.c:390 src/eval/promises.c:238
+#: src/lisp/lisp.c:412 src/lisp/lisp.c:413 src/eval/promises.c:238
 msgid "promise"
 msgstr ""
 
-#: src/lisp/lisp.c:391 src/lisp/lisp.c:392 src/eval/threads.c:1323
+#: src/lisp/lisp.c:414 src/lisp/lisp.c:415 src/eval/threads.c:1323
 #: src/eval/threads.c:1363 src/eval/threads.c:1451
 msgid "thread"
 msgstr ""
 
-#: src/lisp/lisp.c:393 src/lisp/lisp.c:394
+#: src/lisp/lisp.c:416 src/lisp/lisp.c:417
 msgid "synchronizer"
 msgstr ""
 
-#: src/lisp/lisp.c:396 src/lisp/lisp.c:397
+#: src/lisp/lisp.c:419 src/lisp/lisp.c:420
 msgid "complex"
 msgstr ""
 
-#: src/lisp/lisp.c:398 src/lisp/lisp.c:399
+#: src/lisp/lisp.c:421 src/lisp/lisp.c:422
 msgid "rational"
 msgstr ""
 
-#: src/lisp/lisp.c:400 src/lisp/lisp.c:401
+#: src/lisp/lisp.c:423 src/lisp/lisp.c:424
 msgid "flonum"
 msgstr ""
 
-#: src/lisp/lisp.c:403 src/lisp/lisp.c:404
+#: src/lisp/lisp.c:426 src/lisp/lisp.c:427
 msgid "timestamp"
 msgstr ""
 
-#: src/lisp/lisp.c:405 src/lisp/lisp.c:406
+#: src/lisp/lisp.c:428 src/lisp/lisp.c:429
 msgid "uuid"
 msgstr ""
 
-#: src/lisp/lisp.c:408
+#: src/lisp/lisp.c:431
 msgid "mystery"
 msgstr ""
 
-#: src/lisp/lisp.c:410
+#: src/lisp/lisp.c:433
 msgid "an object whose representation could not be decoded"
 msgstr ""
 
-#: src/lisp/lisp.c:411
+#: src/lisp/lisp.c:434
 msgid "ioport"
 msgstr ""
 
-#: src/lisp/lisp.c:412
+#: src/lisp/lisp.c:435
 msgid "a textual I/O port"
 msgstr ""
 
-#: src/lisp/lisp.c:413
+#: src/lisp/lisp.c:436
 msgid "stream"
 msgstr ""
 
-#: src/lisp/lisp.c:414
+#: src/lisp/lisp.c:437
 msgid "a binary I/O stream"
 msgstr ""
 
-#: src/lisp/lisp.c:416 src/lisp/lisp.c:417
+#: src/lisp/lisp.c:439 src/lisp/lisp.c:440
 msgid "regex"
 msgstr ""
 
-#: src/lisp/lisp.c:419
+#: src/lisp/lisp.c:442
 msgid "subjog"
 msgstr ""
 
-#: src/lisp/lisp.c:420
+#: src/lisp/lisp.c:443
 msgid "a sub-process (subjob) object"
 msgstr ""
 
-#: src/lisp/lisp.c:422 src/lisp/lisp.c:423
+#: src/lisp/lisp.c:445 src/lisp/lisp.c:446
 msgid "consblock"
 msgstr ""
 
-#: src/lisp/lisp.c:425
+#: src/lisp/lisp.c:448
 msgid "raw pool"
 msgstr ""
 
-#: src/lisp/lisp.c:427
+#: src/lisp/lisp.c:450
 msgid "a pointer to an unregistered ('eternal') pool"
 msgstr ""
 
-#: src/lisp/lisp.c:429
+#: src/lisp/lisp.c:452
 msgid "raw index"
 msgstr ""
 
-#: src/lisp/lisp.c:431
+#: src/lisp/lisp.c:454
 msgid "a pointer to an unregistered ('eternal') index"
 msgstr ""
 
-#: src/lisp/lisp.c:433 src/lisp/lisp.c:434
+#: src/lisp/lisp.c:456 src/lisp/lisp.c:457
 msgid "sqldb"
 msgstr ""
 
-#: src/lisp/lisp.c:435 src/lisp/lisp.c:436
+#: src/lisp/lisp.c:458 src/lisp/lisp.c:459
 msgid "sqlproc"
 msgstr ""
 
-#: src/lisp/lisp.c:438 src/lisp/lisp.c:439
+#: src/lisp/lisp.c:461 src/lisp/lisp.c:462
 msgid "service"
 msgstr ""
 
-#: src/lisp/lisp.c:441 src/lisp/lisp.c:442
+#: src/lisp/lisp.c:464 src/lisp/lisp.c:465
 msgid "bloom_filter"
 msgstr ""
 
-#: src/lisp/lisp.c:444 src/lisp/lisp.c:445
+#: src/lisp/lisp.c:467 src/lisp/lisp.c:468
 msgid "pathstore"
 msgstr ""
 
-#: src/lisp/lisp.c:447
+#: src/lisp/lisp.c:470
 msgid "type"
 msgstr ""
 
-#: src/lisp/lisp.c:449
+#: src/lisp/lisp.c:472
 msgid ""
 "a type reference is a basetype, a tag (symbol or OID) or a typeinfo object"
 msgstr ""
 
-#: src/lisp/lisp.c:451
+#: src/lisp/lisp.c:474
 msgid "keymap"
 msgstr ""
 
-#: src/lisp/lisp.c:452
+#: src/lisp/lisp.c:475
 msgid "a slotmap or schemap"
 msgstr ""
 
-#: src/lisp/lisp.c:454 src/prims/dbprims.c:2488 src/prims/tableprims.c:873
-#: src/prims/tableprims.c:898 src/prims/tableprims.c:932
-#: src/prims/tableprims.c:1008 src/web/htmlout.c:599 src/web/uriprims.c:208
+#: src/lisp/lisp.c:477 src/prims/dbprims.c:2171 src/prims/tableprims.c:747
+#: src/prims/tableprims.c:772 src/prims/tableprims.c:806
+#: src/prims/tableprims.c:882 src/web/htmlout.c:599 src/web/uriprims.c:208
 #: src/web/uriprims.c:210 src/web/uriprims.c:311
 msgid "table"
 msgstr ""
 
-#: src/lisp/lisp.c:455
+#: src/lisp/lisp.c:478
 msgid "a table object"
 msgstr ""
 
-#: src/lisp/lisp.c:458
+#: src/lisp/lisp.c:481
 msgid "a sequence object"
 msgstr ""
 
-#: src/lisp/lisp.c:460
+#: src/lisp/lisp.c:483
 msgid "optsarg"
 msgstr ""
 
-#: src/lisp/lisp.c:461
+#: src/lisp/lisp.c:484
 msgid "an opts data structure"
 msgstr ""
 
-#: src/lisp/lisp.c:511
+#: src/lisp/lisp.c:534
 msgid "RUSAGE Failed"
 msgstr ""
 
@@ -793,75 +793,75 @@ msgstr ""
 msgid "File does not exist"
 msgstr ""
 
-#: src/sys/support.c:190
+#: src/sys/support.c:176
 msgid "Max number of chars to show in strings"
 msgstr ""
 
-#: src/sys/support.c:195
+#: src/sys/support.c:181
 msgid "Max number of elements to show in vectors/lists/choices, etc"
 msgstr ""
 
-#: src/sys/support.c:199
+#: src/sys/support.c:185
 msgid "Max number of elements to show in numeric vectors"
 msgstr ""
 
-#: src/sys/support.c:204
+#: src/sys/support.c:190
 msgid "How to dump packets to ASCII (16 = hex,64 = base64,dflt = ascii-ish)"
 msgstr ""
 
-#: src/sys/support.c:208
+#: src/sys/support.c:194
 msgid "Whether to use custom formatting for OIDs"
 msgstr ""
 
-#: src/sys/support.c:213
+#: src/sys/support.c:199
 msgid "Maximum number of characters when pprinting strings"
 msgstr ""
 
-#: src/sys/support.c:217
+#: src/sys/support.c:203
 msgid "Maximum number of bytes when pprinting packets"
 msgstr ""
 
-#: src/sys/support.c:221
+#: src/sys/support.c:207
 msgid "Maximum number of elements when pprinting sequences or choices"
 msgstr ""
 
-#: src/sys/support.c:226
+#: src/sys/support.c:212
 msgid "Maximum depth for recursive printing"
 msgstr ""
 
-#: src/sys/support.c:230
+#: src/sys/support.c:216
 msgid "Maximum number of elements when pprinting lists"
 msgstr ""
 
-#: src/sys/support.c:234
+#: src/sys/support.c:220
 msgid "Maximum number of elements when pprinting vectors"
 msgstr ""
 
-#: src/sys/support.c:238
+#: src/sys/support.c:224
 msgid "Maximum number of elements when pprinting choices"
 msgstr ""
 
-#: src/sys/support.c:242
+#: src/sys/support.c:228
 msgid "Maximum number of keys when pprinting tables"
 msgstr ""
 
-#: src/sys/support.c:247
+#: src/sys/support.c:233
 msgid "PPRINT indentation rules"
 msgstr ""
 
-#: src/sys/support.c:251
+#: src/sys/support.c:237
 msgid "value of LOCAL_MODULES"
 msgstr ""
 
-#: src/sys/support.c:253
+#: src/sys/support.c:239
 msgid "value of INSTALLED_MODULES"
 msgstr ""
 
-#: src/sys/support.c:255
+#: src/sys/support.c:241
 msgid "value of STDLIB_MODULES"
 msgstr ""
 
-#: src/sys/support.c:258
+#: src/sys/support.c:244
 msgid "value of UNPACKAGE_DIR"
 msgstr ""
 
@@ -1386,12 +1386,12 @@ msgstr ""
 msgid "Error getting metadata"
 msgstr ""
 
-#: src/storage/storage.c:428 src/storage/pools.c:2768 src/prims/dbprims.c:1664
-#: src/prims/dbprims.c:1679 src/prims/dbprims.c:1691 src/prims/dbprims.c:1705
-#: src/prims/dbprims.c:1751 src/prims/dbprims.c:1768 src/prims/dbprims.c:1788
-#: src/prims/dbprims.c:1804 src/prims/dbprims.c:1820 src/prims/dbprims.c:1842
-#: src/prims/dbprims.c:1892 src/prims/dbprims.c:1910 src/prims/dbprims.c:3443
-#: src/prims/dbprims.c:3535
+#: src/storage/storage.c:428 src/storage/pools.c:2775 src/prims/dbprims.c:1580
+#: src/prims/dbprims.c:1595 src/prims/dbprims.c:1607 src/prims/dbprims.c:1621
+#: src/prims/dbprims.c:1667 src/prims/dbprims.c:1684 src/prims/dbprims.c:1704
+#: src/prims/dbprims.c:1720 src/prims/dbprims.c:1736 src/prims/dbprims.c:1758
+#: src/prims/dbprims.c:1808 src/prims/dbprims.c:1826 src/prims/dbprims.c:3126
+#: src/prims/dbprims.c:3218
 msgid "pool spec"
 msgstr ""
 
@@ -1579,15 +1579,15 @@ msgstr ""
 msgid "NoPoolHandler"
 msgstr ""
 
-#: src/storage/drivers.c:348 src/storage/drivers.c:527
+#: src/storage/drivers.c:348 src/storage/drivers.c:528
 msgid "NoCreateHandler"
 msgstr ""
 
-#: src/storage/drivers.c:523
+#: src/storage/drivers.c:524
 msgid "UnknownIndexType"
 msgstr ""
 
-#: src/storage/drivers.c:525
+#: src/storage/drivers.c:526
 msgid "NoIndexHandler"
 msgstr ""
 
@@ -1623,66 +1623,66 @@ msgstr ""
 msgid "Index/Commit"
 msgstr ""
 
-#: src/storage/indexes.c:1275
+#: src/storage/indexes.c:1278
 #, c-format
 msgid "Syncing %d changes to %s"
 msgstr ""
 
-#: src/storage/indexes.c:1282
+#: src/storage/indexes.c:1285
 #, c-format
 msgid "(after %fs) syncing %d changes to %s, rolling back"
 msgstr ""
 
-#: src/storage/indexes.c:1286
+#: src/storage/indexes.c:1289
 #, c-format
 msgid "Synced %d changes to %s in %f secs"
 msgstr ""
 
-#: src/storage/indexes.c:1423
+#: src/storage/indexes.c:1426
 #, c-format
 msgid "Committing %d %s (+%d-%d:=%d%s) to %s"
 msgstr ""
 
-#: src/storage/indexes.c:1438
+#: src/storage/indexes.c:1441
 #, c-format
 msgid "Wrote %d changes to %s after %f secs"
 msgstr ""
 
-#: src/storage/indexes.c:1444
+#: src/storage/indexes.c:1447
 #, c-format
 msgid "Error writing %d changes to %s after %f secs, rolling back"
 msgstr ""
 
-#: src/storage/indexes.c:1516
+#: src/storage/indexes.c:1519
 #, c-format
 msgid ""
 "for %d %supdated keys from %s after %f secstotal=%f, start=%f, setup=%f, "
 "save=%f, finalize=%f, apply=%f, cleanup=%f"
 msgstr ""
 
-#: src/storage/indexes.c:1529
+#: src/storage/indexes.c:1532
 #, c-format
 msgid ""
 "Committed %d changes%s from '%s' in %f\n"
 "total=%f, start=%f, setup=%f, save=%f, finalize=%f, apply=%f, cleanup=%f"
 msgstr ""
 
-#: src/storage/indexes.c:1679
+#: src/storage/indexes.c:1682
 #, c-format
 msgid "Saving %d changes (+%d-%d=%d%s) to %s"
 msgstr ""
 
-#: src/storage/indexes.c:1971
+#: src/storage/indexes.c:1976
 #, c-format
 msgid "#<%s %s (%s) cx=%d+%d%s #!%llx \"%s...\">"
 msgstr ""
 
-#: src/storage/indexes.c:1974
+#: src/storage/indexes.c:1979
 #, c-format
 msgid "#<%s %s (%s) cx=%d+%d%s #!%llx \"%s\">"
 msgstr ""
 
-#: src/storage/indexes.c:1976
+#: src/storage/indexes.c:1981
 #, c-format
 msgid "#<%s %s (%s) cx=%d+%d%s #!%llx>"
 msgstr ""
@@ -1771,47 +1771,47 @@ msgstr ""
 msgid "Pool/Commit"
 msgstr ""
 
-#: src/storage/pools.c:301
+#: src/storage/pools.c:298
 msgid "n_pools > MAX_POOLS"
 msgstr ""
 
-#: src/storage/pools.c:510
+#: src/storage/pools.c:507
 msgid "Pool confict"
 msgstr ""
 
-#: src/storage/pools.c:532 src/storage/pools.c:538
+#: src/storage/pools.c:529 src/storage/pools.c:535
 msgid "OID"
 msgstr ""
 
-#: src/storage/pools.c:832
+#: src/storage/pools.c:829
 #, c-format
 msgid "Swapping out %d oids in pool %s"
 msgstr ""
 
-#: src/storage/pools.c:835
+#: src/storage/pools.c:832
 #, c-format
 msgid "Swapping out ~%d oids in pool %s"
 msgstr ""
 
-#: src/storage/pools.c:837
+#: src/storage/pools.c:834
 #, c-format
 msgid "Swapping out oids in pool %s"
 msgstr ""
 
-#: src/storage/pools.c:1188
+#: src/storage/pools.c:1185
 #, c-format
 msgid "Couldn't rollback %d changes%s to %s"
 msgstr ""
 
-#: src/storage/pools.c:1650 include/kno/pools.h:405
+#: src/storage/pools.c:1647 include/kno/pools.h:405
 msgid "Corrupted pool table"
 msgstr ""
 
-#: src/storage/pools.c:2755
+#: src/storage/pools.c:2762
 msgid "Config mis-config"
 msgstr ""
 
-#: src/storage/pools.c:2943
+#: src/storage/pools.c:2950
 msgid "Default location for new OID allocation"
 msgstr ""
 
@@ -1877,14 +1877,14 @@ msgstr ""
 msgid "Stored %d oid values in oidpool %s in %f seconds"
 msgstr ""
 
-#: src/drivers/filepool.c:813 src/drivers/kpool.c:2184
-#: src/drivers/bigpool.c:2237
+#: src/drivers/filepool.c:813 src/drivers/kpool.c:2186
+#: src/drivers/bigpool.c:2239
 msgid "FileAlreadyExists"
 msgstr ""
 
 #: src/drivers/filepool.c:907 src/drivers/kpool.c:1996
-#: src/drivers/fileindex.c:1199 src/drivers/kindex.c:3332
-#: src/drivers/hashindex.c:3711 src/drivers/bigpool.c:2055
+#: src/drivers/fileindex.c:1199 src/drivers/kindex.c:3335
+#: src/drivers/hashindex.c:3714 src/drivers/bigpool.c:2055
 msgid "cachelevel"
 msgstr ""
 
@@ -1921,7 +1921,7 @@ msgstr ""
 msgid "kindex has unknown hash function"
 msgstr ""
 
-#: src/drivers/kindex.c:3000
+#: src/drivers/kindex.c:3003
 msgid "NotAKIndex"
 msgstr ""
 
@@ -1957,7 +1957,7 @@ msgstr ""
 msgid "hashindex has unknown hash function"
 msgstr ""
 
-#: src/drivers/hashindex.c:3319
+#: src/drivers/hashindex.c:3322
 msgid "NotAHashIndex"
 msgstr ""
 
@@ -2211,7 +2211,7 @@ msgstr ""
 msgid "environment"
 msgstr ""
 
-#: src/eval/typeops.c:723 src/eval/typeops.c:830
+#: src/eval/typeops.c:733 src/eval/typeops.c:840
 msgid "Immutable record"
 msgstr ""
 
@@ -2236,6 +2236,10 @@ msgstr ""
 msgid "string or symbol"
 msgstr ""
 
+#: src/eval/tableops.c:424
+msgid "value test"
+msgstr ""
+
 #: src/eval/arith.c:498 src/eval/arith.c:1045 src/eval/arith.c:1066
 #: src/eval/arith.c:1087 src/eval/arith.c:1119
 msgid "scalar"
@@ -2253,70 +2257,66 @@ msgstr ""
 msgid "Invalid Regex operation"
 msgstr ""
 
-#: src/prims/dbprims.c:330
+#: src/prims/dbprims.c:247
 msgid "Unknown pool name"
 msgstr ""
 
-#: src/prims/dbprims.c:352
+#: src/prims/dbprims.c:269
 msgid "namefn"
 msgstr ""
 
-#: src/prims/dbprims.c:488 src/prims/dbprims.c:2530 src/prims/dbprims.c:2544
+#: src/prims/dbprims.c:404 src/prims/dbprims.c:2213 src/prims/dbprims.c:2227
 msgid "index spec"
 msgstr ""
 
-#: src/prims/dbprims.c:604 src/prims/dbprims.c:605
+#: src/prims/dbprims.c:520 src/prims/dbprims.c:521
 msgid "BadPoolType"
 msgstr ""
 
-#: src/prims/dbprims.c:668 src/prims/dbprims.c:669
+#: src/prims/dbprims.c:584 src/prims/dbprims.c:585
 msgid "BadIndexType"
 msgstr ""
 
-#: src/prims/dbprims.c:903
+#: src/prims/dbprims.c:819
 msgid "eternal (not-ephemeral) index"
 msgstr ""
 
-#: src/prims/dbprims.c:908
+#: src/prims/dbprims.c:824
 msgid "aggregate index"
 msgstr ""
 
-#: src/prims/dbprims.c:1290 src/prims/dbprims.c:1317
+#: src/prims/dbprims.c:1206 src/prims/dbprims.c:1233
 msgid "slotid"
 msgstr ""
 
-#: src/prims/dbprims.c:1418 src/prims/dbprims.c:1423 src/prims/dbprims.c:1442
-#: src/prims/dbprims.c:1464
+#: src/prims/dbprims.c:1334 src/prims/dbprims.c:1339 src/prims/dbprims.c:1358
+#: src/prims/dbprims.c:1380
 msgid "pool, index, or OIDs"
 msgstr ""
 
-#: src/prims/dbprims.c:1492 src/prims/dbprims.c:1948 src/prims/dbprims.c:2218
-#: src/prims/dbprims.c:2238
+#: src/prims/dbprims.c:1408 src/prims/dbprims.c:1864 src/prims/dbprims.c:2134
+#: src/prims/dbprims.c:2154
 msgid "pool or index"
 msgstr ""
 
-#: src/prims/dbprims.c:1714 src/prims/dbprims.c:1718 src/prims/dbprims.c:1723
-#: src/prims/dbprims.c:1728
+#: src/prims/dbprims.c:1630 src/prims/dbprims.c:1634 src/prims/dbprims.c:1639
+#: src/prims/dbprims.c:1644
 msgid "pool offset"
 msgstr ""
 
-#: src/prims/dbprims.c:2451
-msgid "value test"
-msgstr ""
-
-#: src/prims/dbprims.c:2870
+#: src/prims/dbprims.c:2553
 msgid "test relation"
 msgstr ""
 
-#: src/prims/dbprims.c:2983
+#: src/prims/dbprims.c:2666
 msgid "test object"
 msgstr ""
 
-#: src/prims/dbprims.c:3508
+#: src/prims/dbprims.c:3191
 msgid "wrong number of args"
 msgstr ""
 
-#: src/prims/dbprims.c:3659 src/prims/dbprims.c:3684
+#: src/prims/dbprims.c:3342 src/prims/dbprims.c:3367
 msgid "offset base"
 msgstr ""
 
