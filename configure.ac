@@ -62,7 +62,7 @@ curlconfig=""
 curl_default="no"
 dns_default="no"
 exifo=""
-doi18n="no"
+with_gettext="no"
 rpmflags=""
 rmpdir="dist"
 exif_default="no"
@@ -1559,25 +1559,30 @@ fi
 
 # Internationalization
 AC_CHECK_HEADERS(libintl.h)
-AC_CHECK_FUNCS(gettext,[doi18n="yes"])
-if test "$libc_gettext" != "yes"; then
-   AC_CHECK_LIB(intl,gettext)
+AC_CHECK_FUNCS(gettext,[have_gettext="yes"])
+if test "$have_gettext" != "yes"; then
+   AC_CHECK_LIB(intl,gettext,[have_gettext="yes"])
 fi
+
+default_with_i18n=${have_gettext}
 
 dnl Whether to build message catalogs
-AC_ARG_WITH(i18n,--with/out-i18n built and install message catalogs,,with_i18n="no")
-if test $with_i18n = "yes"; then
-  AC_CHECK_FUNCS(gettext,[doi18n="yes"])
-fi
-if test $doi18n = "yes"; then
-  I18N="i18n"
-  INSTALLI18N="install-i18n"
-fi
+AC_ARG_WITH(i18n,--with/out-i18n built and install message catalogs,,with_i18n=${default_with_i18n})
 
-if test $doi18n = "yes"; then
-  I18N="i18n"
-  INSTALLI18N="install-i18n"
-fi
+AC_MSG_CHECKING(internationalization)
+
+if test $with_i18n != "yes"; then
+   AC_MSG_RESULT(no)
+else
+   AC_MSG_RESULT(yes)
+  AC_PATH_PROG(XGETTEXT,xgettext)
+  AC_PATH_PROG(MSGMERGE,msgmerge)
+  AC_PATH_PROG(MSGFMT,msgfmt)
+  if test -z "${XGETTEXT}" && test -z "${MSGMERGE}" && test -z "${MSGFMT}"; then
+    I18N="i18n"
+    INSTALLI18N="install-i18n"
+   fi;
+fi;
 
 ### Using mmap (if available)
 
