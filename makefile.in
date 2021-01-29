@@ -1750,38 +1750,35 @@ setup-none:
 
 # Build setups
 
-staging/build-setup.debian.core:
+staging/setup.debian.core: makefile
 	sudo apt-get install -ym libcurl4-openssl-dev libssl-dev libldns-dev \
 		sqlite3 libzip-dev libzstd-dev libedit-dev \
 		libarchive-dev libsasl2-dev libsqlite3-dev \
 		dh-make devscripts dpkg-dev dh-systemd debsigs && \
 	touch $@
 
-staging/build-setup.debian.malloc: staging/build-setup.debian.core
+staging/setup.debian.malloc: staging/build-setup.debian.core makefile
 	sudo apt install -ym libgoogle-perftools-dev libjemalloc-dev && \
 	touch $@
 
-build-setup.debian: staging/build-setup.debian.core \
-	staging/build-setup.debian.text \
-	staging/build-setup.debian.db \
-	staging/build-setup.debian.malloc
+staging/setup.debian: staging/setup.debian.core staging/setup.debian.malloc makefile
 
-build-setup.redhat:
-	sudo rpm -Uvh libedit-devel
+staging/setup.redhat: makefile
+	sudo rpm -Uvh libedit-devel && \
+	touch $@
 
-staging/build-setup.alpine:
+staging/setup.alpine: makefile
 	sudo apk add alpine-sdk autoconf zlib zlib-dev \
 		     python2 python2-dev python3 python3-dev \
 		     findutils findutils-doc libffi libffi-dev sqlite sqlite-dev \
 		     snappy snappy-dev gettext gettext-dev libintl libintl-dev \
-		     zlib zlib-dev zstd zstd-dev
+		     zlib zlib-dev zstd zstd-dev && \
 	touch $@
-macports-build-setup:
+staging/setup.macports: makefile
 	sudo port install  curl curl-ca-bundle exif libexif qrencode libpng imagemagick ldns \
 		unixODBC sqlite3 snappy mongo-c-driver leveldb rocksdb \
-		libarchive libzip zlib zmq-devel hyphen python37
-
-.PHONY: debian-build-setup rpm-build-setup
+		libarchive libzip zlib zmq-devel hyphen python37 && \
+	touch $@
 
 # Alpine packaging
 
