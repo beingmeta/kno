@@ -265,7 +265,7 @@ static lispval lookup_constname(u8_string s,int lock)
   struct KNO_KEYVAL *kv=kno_sortvec_get(string,constnames,n_constnames);
   if (lock) u8_rw_unlock(&constnames_lock);
   if (kv)
-    return kv->kv_val;
+    return kno_incref(kv->kv_val);
   else return KNO_NULL;
 }
 

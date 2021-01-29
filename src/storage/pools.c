@@ -2927,7 +2927,7 @@ KNO_EXPORT void kno_init_pools_c()
   metadata_readonly_props = kno_intern("_readonly_props");
 
   memset(&kno_top_pools,0,sizeof(kno_top_pools));
-  memset(&kno_pools_by_serialno,0,sizeof(kno_top_pools));
+  memset(&kno_pools_by_serialno,0,sizeof(kno_pools_by_serialno));
 
   u8_init_mutex(&consed_pools_lock);
   consed_pools = u8_malloc(64*sizeof(kno_pool));

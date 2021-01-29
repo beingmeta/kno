@@ -62,7 +62,7 @@ curlconfig=""
 curl_default="no"
 dns_default="no"
 exifo=""
-doi18n="no"
+with_gettext="no"
 rpmflags=""
 rmpdir="dist"
 exif_default="no"
@@ -116,7 +116,6 @@ apache_modules_dir="/usr/lib/apache2/modules"
 apache_conf_dir="/etc/apache2"
 apache_log_dir=""
 apache_modinfo="/etc/apache2"
-APXSFLAGS=
 A2EN="none"
 stdlib_install_dir=""
 installed_module_dir=""
@@ -410,7 +409,6 @@ AC_CHECK_PROG(APTLY,aptly,,/usr/bin/aptly)
 AC_PATH_PROG(VALGRIND,valgrind,none)
 AC_PATH_PROG(DUMA,duma,none)
 AC_PATH_PROG(CLANG,clang,none)
-AC_CHECK_PROGS(APXS,/usr/local/bin/apxs2 /usr/local/bin/apxs /usr/bin/apxs2 /usr/bin/apxs /usr/sbin/apxs2 /usr/sbin/apxs)
 AC_CHECK_PROG(CREATEREPO,createrepo)
 AC_CHECK_PROGS(LLVM_SYMBOLIZER,llvm-symbolizer-3.5,llvm-symbolizer-3.4)
 AC_PATH_PROG(LLVM_SYMBOLIZER_PATH,$LLVM_SYMBOLIZER)
@@ -418,9 +416,6 @@ AC_PATH_PROG(GOOGLE_PPROF,google-pprof)
 AC_PATH_PROG(XGETTEXT,xgettext)
 AC_PATH_PROG(MSGMERGE,msgmerge)
 AC_PATH_PROG(MSGFMT,msgfmt)
-
-if test -z "${APXS}"; then APXS=$(which apxs2); fi;
-if test -z "${APXS}"; then APXS=$(which apxs); fi;
 
 AC_CHECK_PROGS(GZIP,"gzip","na")
 AC_CHECK_PROGS(ZIP,"zip","na")
@@ -482,8 +477,6 @@ AC_ARG_WITH(copyfile,--with-copyfile command,with_copyfile=$withval,with_copyfil
 COPYFILE=$with_copyfile
 AC_ARG_WITH(touchfile,--with-touchfile command,with_touchfile=$withval,with_touchfile=$TOUCHFILE_DEFAULT)
 TOUCHFILE=$with_touchfile
-AC_ARG_WITH(apxs,--with-apxs command,with_apxs=$withval,with_apxs=$APXS)
-APXS=$with_apxs
 
 AC_ARG_WITH(aptly,--with-aptly command,with_aptly=$withval)
 if test ! -z "${with_aptly}"; then
@@ -569,7 +562,6 @@ AC_ARG_WITH(optdir,--with-optdir Use optional header/lib,,with_optdir="/opt/loca
 if test -d $with_optdir/include; then
   CPPFLAGS="$CPPFLAGS -I$with_optdir/include"
   CFLAGS="$CFLAGS -I$with_optdir/include"
-  APXSFLAGS="$APXSFLAGS -I$with_optdir/include"
 fi
 if test -d $with_optdir/lib; then
   LDFLAGS="$LDFLAGS -L$with_optdir/lib"
@@ -641,7 +633,6 @@ case $host_os in
    vshared_suffix=${KNO_VERSION}.dylib
    mshared_suffix=${KNO_MAJOR}.dylib
    mmshared_suffix=${KNO_MAJOR}.${KNO_MINOR}.dylib
-   APXS="apxs -Wc,'-arch x86_64' -Wl,'-arch x86_64'  -a $APXSFLAGS"
    CFLAGS="-D_DARWIN_C_SOURCE $CFLAGS"
    PKG_CFLAGS="-D_DARWIN_C_SOURCE $PKG_CFLAGS"
    RPATHFLAGS=" -rpath \$(RPATH) "
@@ -1018,10 +1009,10 @@ AC_CHECK_LIB(ldns,ldns_resolver_query,dns_default="yes")
 AC_ARG_WITH(dns,--with/out-dns Use dns in web,,with_dns=$dns_default)
 if test "$with_dns" = "yes"; then
   AC_CHECK_LIB(ldns,ldns_resolver_query)
-  AC_DEFINE(KNO_WITH_DNS,1)
+  AC_DEFINE(KNO_WITH_LDNS,1)
   ldnso="src/web/ldns.o"
 else
-  AC_DEFINE(KNO_WITH_DNS,0)
+  AC_DEFINE(KNO_WITH_LDNS,0)
   missing="ldns ${missing}"
 fi
 
@@ -1240,29 +1231,6 @@ if test -z ${apache_log_dir}; then
 else
  AC_MSG_RESULT($apache_log_dir);
 fi;
-
-if test ! -z "$APXS"; then
-  apache_conf_dir=`$APXS -q SYSCONFDIR`
-  apache_modules_dir=`$APXS -q LIBEXECDIR`
-  if test -d ${apache_conf_dir}/mods-available; then
-    apache_modinfo=${apache_conf_dir}/mods-available;
-  elif test -d ${apache_conf_dir}/mods_available; then
-    apache_modinfo=${apache_conf_dir}/mods_available;
-  elif test -d ${apache_conf_dir}.d; then
-    apache_modinfo=${apache_conf_dir}.d;
-  elif test -d ${apache_conf_dir}/other; then
-    apache_modinfo=${apache_conf_dir}/other;
-  else apache_modinfo=$apache_conf_dir;
-  fi;
-else
-  echo "Warning: No apache development environment, can't build mod_knocgi"
-fi
-
-dnl Allow overrides of APXS apacheinfo and apachelib
-AC_ARG_WITH(apacheinfo,--with-apacheinfo where Apache module info lives,,with_apacheinfo=$apache_modinfo)
-AC_ARG_WITH(apachelib,--with-apachelib where Apache extensions live,,with_apachelib=$apache_modules_dir)
-apache_modinfo=$with_apacheinfo
-apache_modules_dir=$with_apachelib
 
 ### Provide the FFI interface
 
@@ -1559,25 +1527,33 @@ fi
 
 # Internationalization
 AC_CHECK_HEADERS(libintl.h)
-AC_CHECK_FUNCS(gettext,[doi18n="yes"])
-if test "$libc_gettext" != "yes"; then
-   AC_CHECK_LIB(intl,gettext)
-fi
+AC_CHECK_FUNCS(gettext,[have_gettext="yes"])
+if test "$have_gettext" != "yes"; then
+  AC_CHECK_LIB(intl,gettext,[have_gettext="yes"])
+  if test "$have_gettext" = "yes"; then
+    AC_CHECK_LIB(intl,gettext)
+  fi;
+fi;
+
+default_with_i18n=${have_gettext}
 
 dnl Whether to build message catalogs
-AC_ARG_WITH(i18n,--with/out-i18n built and install message catalogs,,with_i18n="no")
-if test $with_i18n = "yes"; then
-  AC_CHECK_FUNCS(gettext,[doi18n="yes"])
-fi
-if test $doi18n = "yes"; then
-  I18N="i18n"
-  INSTALLI18N="install-i18n"
-fi
+AC_ARG_WITH(i18n,--with/out-i18n built and install message catalogs,,with_i18n=${default_with_i18n})
 
-if test $doi18n = "yes"; then
-  I18N="i18n"
-  INSTALLI18N="install-i18n"
-fi
+AC_MSG_CHECKING(internationalization)
+
+if test $with_i18n != "yes"; then
+   AC_MSG_RESULT(no)
+else
+   AC_MSG_RESULT(yes)
+  AC_PATH_PROG(XGETTEXT,xgettext)
+  AC_PATH_PROG(MSGMERGE,msgmerge)
+  AC_PATH_PROG(MSGFMT,msgfmt)
+  if test -z "${XGETTEXT}" && test -z "${MSGMERGE}" && test -z "${MSGFMT}"; then
+    I18N="i18n"
+    INSTALLI18N="install-i18n"
+   fi;
+fi;
 
 ### Using mmap (if available)
 

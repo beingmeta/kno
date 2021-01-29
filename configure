@@ -677,7 +677,6 @@ GOOGLE_PPROF
 LLVM_SYMBOLIZER_PATH
 LLVM_SYMBOLIZER
 CREATEREPO
-APXS
 CLANG
 DUMA
 VALGRIND
@@ -872,7 +871,6 @@ infodir
 docdir
 oldincludedir
 includedir
-runstatedir
 localstatedir
 sharedstatedir
 sysconfdir
@@ -907,7 +905,6 @@ with_chgrp
 with_deletefile
 with_copyfile
 with_touchfile
-with_apxs
 with_aptly
 with_default_target
 with_suffix
@@ -948,8 +945,6 @@ with_logdir
 with_bugjar
 with_webuser
 with_webgroup
-with_apacheinfo
-with_apachelib
 enable_ffi
 with_arch
 with_share_dir
@@ -1037,7 +1032,6 @@ datadir='${datarootdir}'
 sysconfdir='${prefix}/etc'
 sharedstatedir='${prefix}/com'
 localstatedir='${prefix}/var'
-runstatedir='${localstatedir}/run'
 includedir='${prefix}/include'
 oldincludedir='/usr/include'
 docdir='${datarootdir}/doc/${PACKAGE}'
@@ -1290,15 +1284,6 @@ do
   | -silent | --silent | --silen | --sile | --sil)
     silent=yes ;;
 
-  -runstatedir | --runstatedir | --runstatedi | --runstated \
-  | --runstate | --runstat | --runsta | --runst | --runs \
-  | --run | --ru | --r)
-    ac_prev=runstatedir ;;
-  -runstatedir=* | --runstatedir=* | --runstatedi=* | --runstated=* \
-  | --runstate=* | --runstat=* | --runsta=* | --runst=* | --runs=* \
-  | --run=* | --ru=* | --r=*)
-    runstatedir=$ac_optarg ;;
-
   -sbindir | --sbindir | --sbindi | --sbind | --sbin | --sbi | --sb)
     ac_prev=sbindir ;;
   -sbindir=* | --sbindir=* | --sbindi=* | --sbind=* | --sbin=* \
@@ -1436,7 +1421,7 @@ fi
 for ac_var in	exec_prefix prefix bindir sbindir libexecdir datarootdir \
 		datadir sysconfdir sharedstatedir localstatedir includedir \
 		oldincludedir docdir infodir htmldir dvidir pdfdir psdir \
-		libdir localedir mandir runstatedir
+		libdir localedir mandir
 do
   eval ac_val=\$$ac_var
   # Remove trailing slashes.
@@ -1589,7 +1574,6 @@ Fine tuning of the installation directories:
   --sysconfdir=DIR        read-only single-machine data [PREFIX/etc]
   --sharedstatedir=DIR    modifiable architecture-independent data [PREFIX/com]
   --localstatedir=DIR     modifiable single-machine data [PREFIX/var]
-  --runstatedir=DIR       modifiable per-process data [LOCALSTATEDIR/run]
   --libdir=DIR            object code libraries [EPREFIX/lib]
   --includedir=DIR        C header files [PREFIX/include]
   --oldincludedir=DIR     C header files for non-gcc [/usr/include]
@@ -1657,7 +1641,6 @@ Optional Packages:
 --with-deletefile command
 --with-copyfile command
 --with-touchfile command
---with-apxs command
 --with-aptly command
 --with-default-target default-make-target
 --with-suffix string
@@ -1689,8 +1672,6 @@ Optional Packages:
 --with-bugjar The default location for bugjar reports
 --with-webuser The user for the webserver
 --with-webgroup The group for the webserver
---with-apacheinfo where Apache module info lives
---with-apachelib where Apache extensions live
 --with/out-arch build with particular --arch flags
 --with-share-dir location
 --with-data-dir location
@@ -2988,7 +2969,7 @@ curlconfig=""
 curl_default="no"
 dns_default="no"
 exifo=""
-doi18n="no"
+with_gettext="no"
 rpmflags=""
 rmpdir="dist"
 exif_default="no"
@@ -3042,7 +3023,6 @@ apache_modules_dir="/usr/lib/apache2/modules"
 apache_conf_dir="/etc/apache2"
 apache_log_dir=""
 apache_modinfo="/etc/apache2"
-APXSFLAGS=
 A2EN="none"
 stdlib_install_dir=""
 installed_module_dir=""
@@ -3894,48 +3874,6 @@ $as_echo "no" >&6; }
 fi
 
 
-for ac_prog in /usr/local/bin/apxs2 /usr/local/bin/apxs /usr/bin/apxs2 /usr/bin/apxs /usr/sbin/apxs2 /usr/sbin/apxs
-do
-  # Extract the first word of "$ac_prog", so it can be a program name with args.
-set dummy $ac_prog; ac_word=$2
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if ${ac_cv_prog_APXS+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  if test -n "$APXS"; then
-  ac_cv_prog_APXS="$APXS" # Let the user override the test.
-else
-as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_prog_APXS="$ac_prog"
-    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-fi
-fi
-APXS=$ac_cv_prog_APXS
-if test -n "$APXS"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $APXS" >&5
-$as_echo "$APXS" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-
-
-  test -n "$APXS" && break
-done
-
 # Extract the first word of "createrepo", so it can be a program name with args.
 set dummy createrepo; ac_word=$2
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
@@ -4216,9 +4154,6 @@ $as_echo "no" >&6; }
 fi
 
 
-
-if test -z "${APXS}"; then APXS=$(which apxs2); fi;
-if test -z "${APXS}"; then APXS=$(which apxs); fi;
 
 for ac_prog in "gzip"
 do
@@ -4576,15 +4511,6 @@ else
 fi
 
 TOUCHFILE=$with_touchfile
-
-# Check whether --with-apxs was given.
-if test "${with_apxs+set}" = set; then :
-  withval=$with_apxs; with_apxs=$withval
-else
-  with_apxs=$APXS
-fi
-
-APXS=$with_apxs
 
 
 # Check whether --with-aptly was given.
@@ -6100,7 +6026,6 @@ fi
 if test -d $with_optdir/include; then
   CPPFLAGS="$CPPFLAGS -I$with_optdir/include"
   CFLAGS="$CFLAGS -I$with_optdir/include"
-  APXSFLAGS="$APXSFLAGS -I$with_optdir/include"
 fi
 if test -d $with_optdir/lib; then
   LDFLAGS="$LDFLAGS -L$with_optdir/lib"
@@ -7060,7 +6985,6 @@ case $host_os in
    vshared_suffix=${KNO_VERSION}.dylib
    mshared_suffix=${KNO_MAJOR}.dylib
    mmshared_suffix=${KNO_MAJOR}.${KNO_MINOR}.dylib
-   APXS="apxs -Wc,'-arch x86_64' -Wl,'-arch x86_64'  -a $APXSFLAGS"
    CFLAGS="-D_DARWIN_C_SOURCE $CFLAGS"
    PKG_CFLAGS="-D_DARWIN_C_SOURCE $PKG_CFLAGS"
    RPATHFLAGS=" -rpath \$(RPATH) "
@@ -8555,11 +8479,11 @@ _ACEOF
 
 fi
 
-  $as_echo "#define KNO_WITH_DNS 1" >>confdefs.h
+  $as_echo "#define KNO_WITH_LDNS 1" >>confdefs.h
 
   ldnso="src/web/ldns.o"
 else
-  $as_echo "#define KNO_WITH_DNS 0" >>confdefs.h
+  $as_echo "#define KNO_WITH_LDNS 0" >>confdefs.h
 
   missing="ldns ${missing}"
 fi
@@ -8659,7 +8583,7 @@ else
     We can't simply define LARGE_OFF_T to be 9223372036854775807,
     since some C++ compilers masquerading as C compilers
     incorrectly reject 9223372036854775807.  */
-#define LARGE_OFF_T ((((off_t) 1 << 31) << 31) - 1 + (((off_t) 1 << 31) << 31))
+#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
   int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
 		       && LARGE_OFF_T % 2147483647 == 1)
 		      ? 1 : -1];
@@ -8705,7 +8629,7 @@ else
     We can't simply define LARGE_OFF_T to be 9223372036854775807,
     since some C++ compilers masquerading as C compilers
     incorrectly reject 9223372036854775807.  */
-#define LARGE_OFF_T ((((off_t) 1 << 31) << 31) - 1 + (((off_t) 1 << 31) << 31))
+#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
   int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
 		       && LARGE_OFF_T % 2147483647 == 1)
 		      ? 1 : -1];
@@ -8729,7 +8653,7 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
     We can't simply define LARGE_OFF_T to be 9223372036854775807,
     since some C++ compilers masquerading as C compilers
     incorrectly reject 9223372036854775807.  */
-#define LARGE_OFF_T ((((off_t) 1 << 31) << 31) - 1 + (((off_t) 1 << 31) << 31))
+#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
   int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
 		       && LARGE_OFF_T % 2147483647 == 1)
 		      ? 1 : -1];
@@ -8774,7 +8698,7 @@ else
     We can't simply define LARGE_OFF_T to be 9223372036854775807,
     since some C++ compilers masquerading as C compilers
     incorrectly reject 9223372036854775807.  */
-#define LARGE_OFF_T ((((off_t) 1 << 31) << 31) - 1 + (((off_t) 1 << 31) << 31))
+#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
   int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
 		       && LARGE_OFF_T % 2147483647 == 1)
 		      ? 1 : -1];
@@ -8798,7 +8722,7 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
     We can't simply define LARGE_OFF_T to be 9223372036854775807,
     since some C++ compilers masquerading as C compilers
     incorrectly reject 9223372036854775807.  */
-#define LARGE_OFF_T ((((off_t) 1 << 31) << 31) - 1 + (((off_t) 1 << 31) << 31))
+#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
   int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
 		       && LARGE_OFF_T % 2147483647 == 1)
 		      ? 1 : -1];
@@ -9609,42 +9533,6 @@ else
  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $apache_log_dir" >&5
 $as_echo "$apache_log_dir" >&6; };
 fi;
-
-if test ! -z "$APXS"; then
-  apache_conf_dir=`$APXS -q SYSCONFDIR`
-  apache_modules_dir=`$APXS -q LIBEXECDIR`
-  if test -d ${apache_conf_dir}/mods-available; then
-    apache_modinfo=${apache_conf_dir}/mods-available;
-  elif test -d ${apache_conf_dir}/mods_available; then
-    apache_modinfo=${apache_conf_dir}/mods_available;
-  elif test -d ${apache_conf_dir}.d; then
-    apache_modinfo=${apache_conf_dir}.d;
-  elif test -d ${apache_conf_dir}/other; then
-    apache_modinfo=${apache_conf_dir}/other;
-  else apache_modinfo=$apache_conf_dir;
-  fi;
-else
-  echo "Warning: No apache development environment, can't build mod_knocgi"
-fi
-
-
-# Check whether --with-apacheinfo was given.
-if test "${with_apacheinfo+set}" = set; then :
-  withval=$with_apacheinfo;
-else
-  with_apacheinfo=$apache_modinfo
-fi
-
-
-# Check whether --with-apachelib was given.
-if test "${with_apachelib+set}" = set; then :
-  withval=$with_apachelib;
-else
-  with_apachelib=$apache_modules_dir
-fi
-
-apache_modinfo=$with_apacheinfo
-apache_modules_dir=$with_apachelib
 
 ### Provide the FFI interface
 
@@ -11043,12 +10931,53 @@ if test "x$ac_cv_func_gettext" = xyes; then :
   cat >>confdefs.h <<_ACEOF
 #define HAVE_GETTEXT 1
 _ACEOF
- doi18n="yes"
+ have_gettext="yes"
 fi
 done
 
-if test "$libc_gettext" != "yes"; then
-   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for gettext in -lintl" >&5
+if test "$have_gettext" != "yes"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for gettext in -lintl" >&5
+$as_echo_n "checking for gettext in -lintl... " >&6; }
+if ${ac_cv_lib_intl_gettext+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lintl  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char gettext ();
+int
+main ()
+{
+return gettext ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_intl_gettext=yes
+else
+  ac_cv_lib_intl_gettext=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_intl_gettext" >&5
+$as_echo "$ac_cv_lib_intl_gettext" >&6; }
+if test "x$ac_cv_lib_intl_gettext" = xyes; then :
+  have_gettext="yes"
+fi
+
+  if test "$have_gettext" = "yes"; then
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for gettext in -lintl" >&5
 $as_echo_n "checking for gettext in -lintl... " >&6; }
 if ${ac_cv_lib_intl_gettext+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -11093,38 +11022,154 @@ _ACEOF
 
 fi
 
-fi
+  fi;
+fi;
+
+default_with_i18n=${have_gettext}
 
 
 # Check whether --with-i18n was given.
 if test "${with_i18n+set}" = set; then :
   withval=$with_i18n;
 else
-  with_i18n="no"
+  with_i18n=${default_with_i18n}
 fi
 
-if test $with_i18n = "yes"; then
-  for ac_func in gettext
-do :
-  ac_fn_c_check_func "$LINENO" "gettext" "ac_cv_func_gettext"
-if test "x$ac_cv_func_gettext" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_GETTEXT 1
-_ACEOF
- doi18n="yes"
-fi
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking internationalization" >&5
+$as_echo_n "checking internationalization... " >&6; }
+
+if test $with_i18n != "yes"; then
+   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+else
+   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+  # Extract the first word of "xgettext", so it can be a program name with args.
+set dummy xgettext; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_path_XGETTEXT+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  case $XGETTEXT in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_XGETTEXT="$XGETTEXT" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_path_XGETTEXT="$as_dir/$ac_word$ac_exec_ext"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
 done
+  done
+IFS=$as_save_IFS
 
+  ;;
+esac
 fi
-if test $doi18n = "yes"; then
-  I18N="i18n"
-  INSTALLI18N="install-i18n"
+XGETTEXT=$ac_cv_path_XGETTEXT
+if test -n "$XGETTEXT"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $XGETTEXT" >&5
+$as_echo "$XGETTEXT" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
 fi
 
-if test $doi18n = "yes"; then
-  I18N="i18n"
-  INSTALLI18N="install-i18n"
+
+  # Extract the first word of "msgmerge", so it can be a program name with args.
+set dummy msgmerge; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_path_MSGMERGE+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  case $MSGMERGE in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_MSGMERGE="$MSGMERGE" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_path_MSGMERGE="$as_dir/$ac_word$ac_exec_ext"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  ;;
+esac
 fi
+MSGMERGE=$ac_cv_path_MSGMERGE
+if test -n "$MSGMERGE"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $MSGMERGE" >&5
+$as_echo "$MSGMERGE" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+  # Extract the first word of "msgfmt", so it can be a program name with args.
+set dummy msgfmt; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_path_MSGFMT+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  case $MSGFMT in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_MSGFMT="$MSGFMT" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_path_MSGFMT="$as_dir/$ac_word$ac_exec_ext"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  ;;
+esac
+fi
+MSGFMT=$ac_cv_path_MSGFMT
+if test -n "$MSGFMT"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $MSGFMT" >&5
+$as_echo "$MSGFMT" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+  if test -z "${XGETTEXT}" && test -z "${MSGMERGE}" && test -z "${MSGFMT}"; then
+    I18N="i18n"
+    INSTALLI18N="install-i18n"
+   fi;
+fi;
 
 ### Using mmap (if available)
 

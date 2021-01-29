@@ -35,6 +35,9 @@
 /* Define to specify whether large files are to be used  */
 #undef KNO_LARGEFILES_ENABLED
 
+/* Define if linking with libldns */
+#undef KNO_WITH_LDNS
+
 /* Define to have frame operations prefetch when possible */
 #undef KNO_PREFETCHING_ENABLED
 
