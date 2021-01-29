@@ -56,6 +56,22 @@ static void init_symbols(void);
 
 KNO_EXPORT lispval kno_ffi_call(struct KNO_FUNCTION *fn,int n,lispval *args);
 
+#if (SIZEOF_LONG == 4)
+#define SIGNED_LONG (&ffi_type_sint32)
+#define UNSIGNED_LONG (&ffi_type_uint32)
+#else
+#define SIGNED_LONG (&ffi_type_sint64)
+#define UNSIGNED_LONG (&ffi_type_uint64)
+#endif
+
+#if (SIZEOF_SIZE_T == 4)
+#define SIGNED_SIZE (&ffi_type_sint32)
+#define UNSIGNED_SIZE (&ffi_type_uint32)
+#else
+#define SIGNED_SIZE (&ffi_type_sint64)
+#define UNSIGNED_SIZE (&ffi_type_uint64)
+#endif
+
 static ffi_type *get_ffi_type(lispval arg)
 {
   if (TABLEP(arg)) {
@@ -67,12 +83,16 @@ static ffi_type *get_ffi_type(lispval arg)
     else return get_ffi_type(typename);}
   else if (!(SYMBOLP(arg)))
     return KNO_ERR(NULL,"BadFFItype","get_ffi_type",NULL,arg);
-  else if ( (arg == ulong_symbol) || (arg == lisp_symbol) )
+  else if (arg == lisp_symbol)
     return &ffi_type_uint64;
-  else if ( (arg == long_symbol) || (arg == size_t_symbol) ||
+  else if (arg == ulong_symbol)
+    return (UNSIGNED_LONG);
+  else if (arg == long_symbol)
+    return (SIGNED_LONG);
+  else if ( (arg == size_t_symbol) ||
 	    (arg == packetlen_symbol) || (arg == strlen_symbol) ||
 	    (arg == loclen_symbol) )
-    return &ffi_type_sint64;
+    return (SIGNED_SIZE);
   else if (arg == uint_symbol)
     return &ffi_type_uint32;
   else if (arg == int_symbol)
@@ -447,12 +467,23 @@ KNO_EXPORT lispval kno_ffi_call(struct KNO_FUNCTION *fn,int n,lispval *args)
       unsigned char intval = 0;
       ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&intval,argptrs);
       return KNO_INT(intval);}
-    else if ((return_type == long_symbol)||(return_type == size_t_symbol)) {
+#if (SIZEOF_SIZE_T == 4)
+    else if (return_type == size_t_symbol) {
+      long intval = -1;
+      ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&intval,argptrs);
+      return KNO_INT(intval);}
+#else
+    else if (return_type == size_t_symbol) {
       long long intval = -1;
       ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&intval,argptrs);
       return KNO_INT(intval);}
+#endif
+	else if (return_type == long_symbol) {
+      long intval = -1;
+      ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&intval,argptrs);
+      return KNO_INT(intval);}
     else if (return_type == ulong_symbol) {
-      unsigned long long intval = -1;
+      unsigned long intval = -1;
       ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&intval,argptrs);
       return KNO_INT(intval);}
     else if (return_type == double_symbol) {

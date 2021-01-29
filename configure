@@ -8555,11 +8555,11 @@ _ACEOF
 
 fi
 
-  $as_echo "#define KNO_WITH_DNS 1" >>confdefs.h
+  $as_echo "#define KNO_WITH_LDNS 1" >>confdefs.h
 
   ldnso="src/web/ldns.o"
 else
-  $as_echo "#define KNO_WITH_DNS 0" >>confdefs.h
+  $as_echo "#define KNO_WITH_LDNS 0" >>confdefs.h
 
   missing="ldns ${missing}"
 fi

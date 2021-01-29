@@ -561,7 +561,7 @@ static int config_setutf8err(lispval var,lispval val,void *data)
 
 static u8_condition TimeFailed="call to time() failed";
 
-static long long randomseed = 0x327b23c6;
+static unsigned int randomseed = 1736352760;
 
 static lispval config_getrandomseed(lispval var,void *data)
 {
@@ -601,6 +601,12 @@ static int config_setrandomseed(lispval var,lispval val,void *data)
     long long intval = FIX2INT(val);
     if (intval<0) intval=-intval;
     if (intval>=UINT_MAX) intval=intval%UINT_MAX;
+    randomseed = (unsigned int)intval;
+    u8_randomize(randomseed);
+    return 1;}
+  else if ( (KNO_BIGINTP(val)) &&
+	    (kno_bigint_fits_in_word_p (((kno_bigint)val),32,0))) {
+    unsigned int intval = kno_bigint2uint((kno_bigint)val);
     randomseed = (unsigned int)intval;
     u8_randomize(randomseed);
     return 1;}

@@ -304,8 +304,8 @@ KNO_EXPORT void _kno_stack_pop_error(kno_stack stack,u8_context loc);
 #define KNO_PUSH_STACK(stack)					\
   if (kno_debug_stacks) {					\
     u8_log(LOGWARN,"StackPush","0x%llx ==> 0x%llx @ %s",	\
-	   (unsigned long long)kno_stackptr,			\
-	   (unsigned long long)stack,					\
+	   KNO_LONGVAL(kno_stackptr),					\
+	   KNO_LONGVAL(stack),						\
 	   KNO_FILEPOS);}						\
   if ((stack)->stack_caller != kno_stackptr)				\
     _kno_stack_push_error(stack,KNO_FILEPOS);			\
@@ -314,8 +314,8 @@ KNO_EXPORT void _kno_stack_pop_error(kno_stack stack,u8_context loc);
 #define KNO_POP_STACK(stack)					\
   if (kno_debug_stacks) {					\
     u8_log(LOGWARN,"StackPop","0x%llx ==> 0x%llx @ %s",		\
-	   (unsigned long long)kno_stackptr,			\
-	   (unsigned long long)stack,				\
+	   KNO_LONGVAL(kno_stackptr),				\
+	   KNO_LONGVAL(stack),					\
 	   KNO_FILEPOS);}					\
   if ((stack) != kno_stackptr)					\
     _kno_stack_pop_error(stack,KNO_FILEPOS);				\

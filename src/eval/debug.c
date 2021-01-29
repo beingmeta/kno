@@ -272,7 +272,7 @@ static void log_ptr(lispval val,lispval label_arg,lispval expr)
     u8_string type_name = kno_lisp_typename(ptype);
     unsigned int refcount = KNO_CONS_REFCOUNT(c);
     u8_log(U8_LOG_MSG,"Pointer/Consed",
-	   "%s%s%s0x%llx [ T0x%llx(%s) refs=%d ] %q <= %q",
+	   "%s%s%s0x%llx [ T0x%x(%s) refs=%d ] %q <= %q",
 	   U8OPTSTR("",label,": "),
 	   (KNO_LONGVAL(val)),
 	   ptype,type_name,refcount,
@@ -661,21 +661,17 @@ static lispval dbgeval_evalfn(lispval dbg_expr,kno_lexenv env,kno_stack stack)
   lispval arg;
  examine_expr:
   if (VOIDP(msg_expr))
-    u8_message("Debug eval 0x%llx <==\n	   %Q",
-	       ((unsigned long long)&arg),expr);
+    u8_message("Debug eval 0x%llx <==\n	   %Q",KNO_LONGVAL(&arg),expr);
   else {
     lispval msg=kno_eval(msg_expr,env,stack,0);
     if (FALSEP(msg)) return kno_eval(expr,env,stack,0);
     if (KNO_VOIDP(msg))
-      u8_message("Debug eval 0x%llx <==\n    %Q",
-		 ((unsigned long long)&arg),expr);
-    else u8_message("Debug eval 0x%llx %q <=\n	  %Q",
-		    ((unsigned long long)&arg),msg,expr);
+      u8_message("Debug eval 0x%llx <==\n    %Q",KNO_LONGVAL(&arg),expr);
+    else u8_message("Debug eval 0x%llx %q <=\n	  %Q",KNO_LONGVAL(&arg),msg,expr);
     kno_decref(msg);}
   arg = kno_eval(expr,env,stack,0);
   log_ptr(arg,KNO_VOID,arg);
-  u8_message("Debug eval 0x%llx %q ==> \n  %Q",
-	     ((unsigned long long)&arg),expr,arg);
+  u8_message("Debug eval 0x%llx %q ==> \n  %Q",KNO_LONGVAL(&arg),expr,arg);
  examine_result:
   return arg;
 }

@@ -222,7 +222,7 @@ u8_condition UnboundMatchSymbol=_("Unbound matcher symbol");
 u8_condition BadMatcherMethod=_("Unknown matcher symbol");
 
 kno_lisp_type kno_txclosure_type;
-#define KNO_TXCLOSURE_TYPE 0xfb7253e0c716d0L
+#define KNO_TXCLOSURE_TYPE 0x22fb1434L
 
 static lispval subst_symbol;
 static lispval match_env;

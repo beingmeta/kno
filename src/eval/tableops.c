@@ -533,6 +533,8 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("getassocs",kno_getassocs,1,kno_scheme_module);
   KNO_LINK_CPRIM("getkeyvec",getkeyvec_prim,1,kno_scheme_module);
 
+  KNO_LINK_CPRIM("xget",xget_prim,2,kno_scheme_module);
+
   KNO_LINK_CPRIM("slotid?",slotidp,1,kno_scheme_module);
   KNO_LINK_CPRIM("index?",indexp,1,kno_scheme_module);
   KNO_LINK_CPRIM("pool?",poolp,1,kno_scheme_module);

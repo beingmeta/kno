@@ -24,7 +24,6 @@
 
 #include <ldns/ldns.h>
 
-
 static int dns_initialized = 0;
 
 #ifndef NSBUF_SIZE

@@ -1018,10 +1018,10 @@ AC_CHECK_LIB(ldns,ldns_resolver_query,dns_default="yes")
 AC_ARG_WITH(dns,--with/out-dns Use dns in web,,with_dns=$dns_default)
 if test "$with_dns" = "yes"; then
   AC_CHECK_LIB(ldns,ldns_resolver_query)
-  AC_DEFINE(KNO_WITH_DNS,1)
+  AC_DEFINE(KNO_WITH_LDNS,1)
   ldnso="src/web/ldns.o"
 else
-  AC_DEFINE(KNO_WITH_DNS,0)
+  AC_DEFINE(KNO_WITH_LDNS,0)
   missing="ldns ${missing}"
 fi
 

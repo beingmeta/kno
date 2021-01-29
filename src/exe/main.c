@@ -223,7 +223,7 @@ KNO_EXPORT void _knodbg_show_stack_frame(void *arg)
 	i++;}}}
   else if (CONSP(stack->stack_op)) {
     u8_fprintf(stderr,"Evaluating in 0x%llx %Q\n",
-	       (unsigned long long)(stack->eval_env),
+	       KNO_LONGVAL(stack->eval_env),
 	       stack->stack_op);}
   if ( (KNO_STACK_BITP(stack,KNO_STACK_OWNS_ENV)) ) {
     if (stack->eval_env) {

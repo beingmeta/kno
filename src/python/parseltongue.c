@@ -103,7 +103,7 @@ typedef struct KNO_PYTHON_OBJECT {
   PyObject *pyval;} KNO_PYTHON_OBJECT;
 typedef struct KNO_PYTHON_OBJECT *kno_python_object;
 
-#define PYTHON_OBJECT_TYPE 0x4323ebcb327fabcL
+#define PYTHON_OBJECT_TYPE 0x27a830ULL
 static kno_lisp_type python_object_type;
 static kno_lexenv default_env;
 
