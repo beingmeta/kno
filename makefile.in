@@ -1339,6 +1339,8 @@ staging/kno_@KNO_VERSION@.tar.gz: staging/kno_@KNO_VERSION@
 # Rules for Debian building
 
 dist/debs.built: REVISION FULL_REVISION $(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
+	@if test ! -f staging/setup.debian.core; then \
+	  echo "Warning: no staging/setup.debian"; fi;
 	make staging/kno_@KNO_VERSION@ && 		\
 	(cd staging/kno_@KNO_VERSION@; 			\
 	 dpkg-buildpackage -sa -us -uc -b) && 		\
@@ -1754,14 +1756,16 @@ staging/setup.debian.core: makefile
 	sudo apt-get install -ym libcurl4-openssl-dev libssl-dev libldns-dev \
 		sqlite3 libzip-dev libzstd-dev libedit-dev \
 		libarchive-dev libsasl2-dev libsqlite3-dev \
-		dh-make devscripts dpkg-dev dh-systemd debsigs && \
+		dh-make devscripts dpkg-dev dh-systemd dh-elpa \
+		debsigs && \
 	touch $@
 
 staging/setup.debian.malloc: staging/build-setup.debian.core makefile
 	sudo apt install -ym libgoogle-perftools-dev libjemalloc-dev && \
 	touch $@
 
-staging/setup.debian: staging/setup.debian.core staging/setup.debian.malloc makefile
+staging/setup.debian: staging/setup.debian.core makefile
+	touch $@
 
 staging/setup.redhat: makefile
 	sudo rpm -Uvh libedit-devel && \
