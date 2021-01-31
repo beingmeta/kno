@@ -885,7 +885,8 @@ typedef struct KNO_WRAPPER *kno_wrapper;
   KNO_TAGGED_HEAD;				\
   int compound_length;				\
   char compound_ismutable, compound_isopaque;	\
-  char compound_seqoff, compound_istable;	\
+  char compound_istable;			\
+  signed char compound_seqoff;                  \
   u8_rwlock compound_rwlock;			\
   lispval elt0
 

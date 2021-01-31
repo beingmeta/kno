@@ -214,6 +214,7 @@ static U8_MAYBE_UNUSED unsigned char *do_zcompress
 
 /* Snappy */
 
+#if HAVE_SNAPPYC_H
 static unsigned char *do_snappy_compress
 (ssize_t *destlen,const unsigned char *source,size_t source_len)
 {
@@ -254,9 +255,24 @@ static unsigned char *do_snappy_uncompress
     u8_seterr("SnappyUncompressFailed","do_snappy_uncompress",NULL);
     return NULL;}
 }
+#else
+static unsigned char *do_snappy_compress
+(ssize_t *destlen,const unsigned char *source,size_t source_len)
+{
+  u8_seterr("NoSnappy","do_snappy_uncompress",NULL);
+  return NULL;
+}
+static unsigned char *do_snappy_uncompress
+(ssize_t *destlen,const unsigned char *source,size_t source_len)
+{
+  u8_seterr("NoSnappy","do_snappy_uncompress",NULL);
+  return NULL;
+}
+#endif
 
 /* ZSTD */
 
+#if HAVE_ZSTD_H
 #define zstd_error(code) (u8_fromlibc((char *)ZSTD_getErrorName(code)))
 
 static unsigned char *do_zstd_compress
@@ -315,6 +331,21 @@ static unsigned char *do_zstd_uncompress
     *destlen = uncompressed_size;
     return uncompressed;}
 }
+#else
+static unsigned char *do_zstd_compress
+(ssize_t *destlen,const unsigned char *source,size_t source_len,
+ int level,void *state)
+{
+  u8_seterr("NoZSTD","do_zstc_uncompress",NULL);
+  return NULL;
+}
+static unsigned char *do_zstd_uncompress
+(ssize_t *destlen,const unsigned char *source,size_t source_len,void *state)
+{
+  u8_seterr("NoZSTD","do_zstc_uncompress",NULL);
+  return NULL;
+}
+#endif
 
 /* Exported compression functions */
 

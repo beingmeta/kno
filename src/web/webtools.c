@@ -37,7 +37,9 @@ KNO_EXPORT void kno_init_webtools()
     kno_init_xmldata_c();
     kno_init_xmlinput_c();
     kno_init_mime_c();
+#if KNO_WITH_LDNS
     kno_init_dns_c();
+#endif
     kno_init_email_c();
     kno_init_xmleval_c();
     kno_init_cgiexec_c();

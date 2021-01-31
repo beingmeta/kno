@@ -152,7 +152,7 @@ static size_t process_content_data(char *data,size_t elt_size,size_t n_elts,
 }
 
 kno_lisp_type kno_curl_type;
-#define KNO_CURL_TYPE 0x11355484abed10L
+#define KNO_CURL_TYPE 0xC90ED0C
 
 void handle_content_type(char *value,lispval table)
 {

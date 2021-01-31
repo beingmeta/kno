@@ -3,7 +3,7 @@
 
 (in-module 'xhtml/include)
 
-(use-module '{getcontent xhtml/pagedate})
+(use-module '{io/getcontent xhtml/pagedate})
 (use-module '{webtools xhtml})
 (define have-sundown #f)
 (when (get-module 'sundown)
