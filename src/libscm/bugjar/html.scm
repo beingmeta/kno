@@ -3,7 +3,7 @@
 
 (in-module 'bugjar/html)
 
-(use-module '{webtools xhtml bugjar kno/condense getcontent logger})
+(use-module '{webtools xhtml bugjar kno/condense io/getcontent logger})
 
 (define-init %loglevel %notice%)
 
