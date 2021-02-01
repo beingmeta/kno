@@ -162,29 +162,41 @@ static int logindex_save(struct KNO_INDEX *ix,
   unsigned long long n_entries = kno_read_8bytes(in);
   size_t end = kno_read_8bytes(in);
   kno_outbuf out = kno_start_write(stream,end);
+  xtype_refs xrefs = &(logidx->index_xrefs);
+
+  u8_logf(LOG_NOTICE,"Logindex/Started",
+	  "Writing %lld/%lld changes to disk for %s, endpos=%lld",
+	  n_changes,n_entries,ix->indexid,end);
+
+  if (xrefs);
 
   int i=0; while (i<n_adds) {
     kno_write_byte(out,1);
-    kno_write_dtype(out,adds[i].kv_key);
-    kno_write_dtype(out,adds[i].kv_val);
+    kno_write_xtype(out,adds[i].kv_key,xrefs);
+    kno_write_xtype(out,adds[i].kv_val,xrefs);
     i++;}
 
   i=0; while (i<n_drops) {
     kno_write_byte(out,(unsigned char)-1);
-    kno_write_dtype(out,drops[i].kv_key);
-    kno_write_dtype(out,drops[i].kv_val);
+    kno_write_xtype(out,drops[i].kv_key,xrefs);
+    kno_write_xtype(out,drops[i].kv_val,xrefs);
     i++;}
 
   i=0; while (i<n_stores) {
     kno_write_byte(out,(unsigned char)0);
-    kno_write_dtype(out,stores[i].kv_key);
-    kno_write_dtype(out,stores[i].kv_val);
+    kno_write_xtype(out,stores[i].kv_key,xrefs);
+    kno_write_xtype(out,stores[i].kv_val,xrefs);
     i++;}
+
+  if ( (xrefs->xt_refs_flags) & (XTYPE_REFS_CHANGED) ) {
+     
+}
+
+
 
   end = kno_getpos(stream);
 
   kno_setpos(stream,0x08); out = kno_writebuf(stream);
-
   kno_write_8bytes(out,n_entries+n_changes);
   kno_write_8bytes(out,end);
 
@@ -237,6 +249,7 @@ static int simplify_choice(struct KNO_KEYVAL *kv,void *data)
 static ssize_t load_logindex(struct KNO_LOGINDEX *logidx)
 {
   struct KNO_STREAM *stream = &(logidx->index_stream);
+  struct KNO_XREFS *xrefs = &(logidx->index_xrefs);
   if (logidx->logx_loaded) return 0;
   else if (kno_lock_stream(stream)<0) return -1;
   else if (logidx->logx_loaded) {
@@ -246,8 +259,9 @@ static ssize_t load_logindex(struct KNO_LOGINDEX *logidx)
   long long i = 0, n_entries = kno_read_8bytes(in);
   double started = u8_elapsed_time();
   kno_hashtable logx_map = &(logidx->logx_map);
-  u8_logf(LOG_INFO,"LogindexLoad",
-          "Loading %lld entries for '%s'",n_entries,logidx->indexid);
+  u8_logf((n_entries<1000)?(LOG_INFO):(n_entries<10000)?(LOG_NOTICE):(LOG_WARN),
+	  "LogindexLoad","Loading %lld entries for '%s'",
+	  n_entries,logidx->indexid);
   logidx->logx_valid_data = kno_read_8bytes(in);
   int rv = ftruncate(stream->stream_fileno,logidx->logx_valid_data);
   if (rv<0) truncate_failed(stream->stream_fileno,stream->streamid);
@@ -259,12 +273,12 @@ static ssize_t load_logindex(struct KNO_LOGINDEX *logidx)
   in = kno_readbuf(stream);
   while (i<n_entries) {
     char op = kno_read_byte(in);
-    lispval key = kno_read_dtype(in);
-    lispval value = kno_read_dtype(in);
+    lispval key = kno_read_xtype(in,xrefs);
+    lispval value = kno_read_xtype(in,xrefs);
     kno_hashtable_op_nolock
       (logx_map,( (op<0) ? (kno_table_drop) :
-                 (op==0) ? (kno_table_store_noref):
-                 (kno_table_add_noref)),
+		  (op==0) ? (kno_table_store_noref):
+		  (kno_table_add_noref)),
        key,value);
     kno_decref(key);
     if (op<0) kno_decref(value);
@@ -281,21 +295,61 @@ static ssize_t load_logindex(struct KNO_LOGINDEX *logidx)
 
 static lispval preload_opt;
 
-static kno_index open_logindex(u8_string file,kno_storage_flags flags,
-                              lispval opts)
+static lispval read_xtype_file(u8_string file)
 {
-  struct KNO_LOGINDEX *logidx = u8_alloc(struct KNO_LOGINDEX);
+  struct KNO_STREAM _stream, *stream=
+    kno_init_file_stream(&_stream,xrefs_file,
+			 KNO_FILE_READ,-1,
+			 kno_driver_bufsize);
+  u8_inbuf in = u8_readbuf(stream);
+  lispval result = kno_read_xtype(in,NULL);
+  kno_close_stream(stream,KNO_STREAM_FREEDATA);
+  return result;
+}
+
+static kno_index open_logindex
+(u8_string file,kno_storage_flags flags,lispval opts)
+{
+  if (!(u8_directoryp(file))) {
+    kno_seterr(_("NotLogindex"),"open_logindex",file,VOID);
+    return NULL;}
   u8_string abspath = u8_abspath(file,NULL);
   u8_string realpath = u8_realpath(file,NULL);
+  u8_string data_file = u8_mkpath(abspath,"data");
+  u8_string xrefs_file = u8_mkpath(abspath,"xrefs");
+  u8_string metadata_file = u8_mkpath(abspath,"metadata");
+  lispval metadata =  (u8_file_existsp(metadata_file)) ?
+    (read_xtype_file(metadata_file)) : (KNO_VOID);
+  lispval xrefs_init = (u8_file_existsp(metadata_file)) ?
+    (read_xtype_file(metadata_file,NULL)) : (KNO_VOID);
+  if (KNO_VOIDP(metadata)) {}
+  else if (KNO_TABLEP(metadata)) {}
+  else {
+    kno_seterr("BadMetadata","open_logindex",file,metadata);
+    goto err_exit;}
+  if (KNO_VOIDP(xrefs_init)) {}
+  else if (KNO_VECTORP(xrefs_init)) {}
+  else {
+    kno_seterr("BadXRefs","open_logindex",file,metadata);
+    goto err_exit;}
+  struct KNO_LOGINDEX *logidx = u8_alloc(struct KNO_LOGINDEX);
   kno_init_index((kno_index)logidx,&logindex_handler,
-                file,abspath,realpath,
-                flags|KNO_STORAGE_NOSWAP,
-                VOID,
-                opts);
+		 file,abspath,realpath,
+		 flags|KNO_STORAGE_NOSWAP,
+		 metadata,
+		 opts);
+  if (KNO_VECTORP(xrefs_init)) {
+    int n_refs = KNO_VECTOR_LENGTH(refvec);
+    int read_only = (logidx->index_flags &  KNO_STORAGE_READONLY) ||
+      (!(u8_file_writablep(xrefs_file)));
+    int flags = XTYPE_REFS_EXT_ELTS |
+      ( (read_only) ? (XTYPE_REFS_READ_ONLY) : (0) );
+    kno_init_xrefs(&(logidx->index_xrefs),n_refs,n_refs,n_refs,flags,
+		   KNO_VECTOR_ELTS(refvec),
+		   NULL);}
+  else kno_init_xrefs(xrefs,0,0,0,flags,NULL,NULL);}
+
   struct KNO_STREAM *stream=
-    kno_init_file_stream(&(logidx->index_stream),abspath,
-                        KNO_FILE_MODIFY,-1,
-                        kno_driver_bufsize);
   lispval preload = kno_getopt(opts,preload_opt,KNO_TRUE);
   u8_free(abspath); u8_free(realpath);
   if (!(stream)) return NULL;
@@ -310,9 +364,39 @@ static kno_index open_logindex(u8_string file,kno_storage_flags flags,
     kno_inbuf in = kno_readbuf(stream);
     unsigned U8_MAYBE_UNUSED int n_keys = kno_read_4bytes(in);
     long long n_entries = kno_read_8bytes(in);
-    logidx->logx_valid_data = kno_read_8bytes(in);
+    ssize_t good_endpos = kno_read_8bytes(in);
+    ssize_t xrefs_loc = kno_read_8bytes(in);
+    ssize_t n_xrefs   = kno_read_4bytes(in);
+    ssize_t xrefs_max = kno_read_4bytes(in);
+    if ( (n_keys < 0) || (n_entries < 0) || (good_endpos < 0) ||
+	 (xrefs_loc < 0) || (n_xrefs < 0) || (xrefs_max < 0) ) {
+      kno_seterr(_("BadLogindex"),"open_logindex",file,VOID);
+      kno_close_stream(stream,0);
+      u8_free(logidx);
+      return NULL;}
+
+    /* Truncate the file if needed */
+    logidx->logx_valid_data = good_endpos;
     int rv = ftruncate(stream->stream_fileno,logidx->logx_valid_data);
     if (rv<0) truncate_failed(stream->stream_fileno,stream->streamid);
+
+    /* Init xrefs */
+    int flags = XTYPE_REFS_ADD_OIDS | XTYPE_REFS_ADD_SYMS;
+    int use_max = (xrefs_max>0) ? (xrefs_max) : (-1);
+    ssize_t alloc_len = ((n_xrefs/256)+1)*256;
+    lispval *refs = u8_alloc_n(alloc_len,sizeof(lispval));
+    if (xrefs_loc) {
+      kno_setpos(stream,xrefs_loc);
+      int i = 0; while (i<n_xrefs) {
+	lispval ref = kno_read_xtype(stream,NULL);
+	refs[i]=ref;
+	i++;}
+      while (i<alloc_len) refs[i++]=KNO_VOID;
+      kno_init_xrefs(xrefs,n_xrefs,alloc_len,use_max,flags,elts,NULL);}
+    else  {
+      int i = 0; while (i < alloc_len) refs[i++]=KNO_VOID;
+      kno_init_xrefs(xrefs,0,256,use_max,flags,refs,NULL);}
+
     kno_setpos(stream,256);
     if (n_entries<logindex_map_init)
       kno_init_hashtable(&(logidx->logx_map),logindex_map_init,NULL);
@@ -359,11 +443,20 @@ static lispval logindex_ctl(kno_index ix,lispval op,int n,kno_argvec args)
   else return kno_default_indexctl(ix,op,n,args);
 }
 
-KNO_EXPORT int kno_make_logindex(u8_string spec)
+KNO_EXPORT int kno_make_logindex(u8_string spec,lispval xrefs,lispval metadata)
 {
-  struct KNO_STREAM _stream;
-  struct KNO_STREAM *stream=
-    kno_init_file_stream(&_stream,spec,KNO_FILE_CREATE,-1,kno_driver_bufsize);
+  int rv = (u8_directoryp(spec)) ? (0) : (u8_mkdir(spec,-1));
+  if (rv<0) return rv;
+  u8_string data_file = u8_mkpath(spec,"data");
+  u8_string xrefs_file = u8_mkpath(spec,"xrefs");
+  u8_string metadata_file = u8_mkpath(spec,"metadata");
+  lispval rootdir = kno_lispstring(spec);
+  lispval created = kno_make_timestamp(NULL);
+  lispval origin = kno_lispstring(u8_sessionid());
+  struct KNO_STREAM _stream, *stream;
+
+  /* Init data */
+  stream=kno_init_file_stream(&_stream,data_file,KNO_FILE_CREATE,-1,kno_driver_bufsize);
   kno_outbuf out = kno_writebuf(stream);
   int i = 24;
   kno_write_4bytes(out,KNO_LOGINDEX_MAGIC_NUMBER);
@@ -372,17 +465,52 @@ KNO_EXPORT int kno_make_logindex(u8_string spec)
   kno_write_8bytes(out,256); /* valid_data */
   while (i<256) {kno_write_4bytes(out,0); i = i+4;}
   kno_close_stream(stream,KNO_STREAM_FREEDATA);
+
+  /* Init xrefs */
+  if (KNO_VOIDP(xrefs))
+    xrefs = kno_init_vector(NULL,0,NULL);
+  else kno_incref(xrefs);
+  stream=kno_init_file_stream
+    (&_stream,xrefs_file,KNO_FILE_CREATE,-1,kno_driver_bufsize);
+  kno_outbuf out = kno_writebuf(stream);
+  kno_write_xtype(out,xrefs,NULL);
+  kno_close_stream(stream,KNO_STREAM_FREEDATA);
+
+  /* Init metadata */
+  if (KNO_VOIDP(metadata))
+    metadata = kno_make_slotmap(8,0,NULL);
+  else metadata = kno_deep_copy(metadata);
+  kno_store(metadata,kno_intern("rootdir"),rootdir);
+  kno_store(metadata,kno_intern("created"),created);
+  kno_store(metadata,kno_intern("origin"),origin);
+  stream=kno_init_file_stream
+    (&_stream,metadata_file,KNO_FILE_CREATE,-1,kno_driver_bufsize);
+  kno_outbuf out = kno_writebuf(stream);
+  kno_write_xtype(out,metadata,NULL);
+  kno_close_stream(stream,KNO_STREAM_FREEDATA);
+
+  kno_decref(xrefs); kno_decref(metadata);
+  kno_decref(rootdir); kno_decref(created); kno_decref(origin);
+  u8_free(data_file); u8_free(xrefs_file); u8_free(metadata_file);
+
   return 1;
 }
 
 static kno_index logindex_create(u8_string spec,void *type_data,
-                                kno_storage_flags flags,
-                                lispval opts)
+				 kno_storage_flags flags,
+				 lispval opts)
 {
-  if (kno_make_logindex(spec)>=0) {
-    kno_set_file_opts(spec,opts);
-    return kno_open_index(spec,flags,VOID);}
-  else return NULL;
+  lispval xrefs = kno_getopt(opts,KNOSYM_XREFS,KNO_VOID);
+  lispval metadata = kno_getopt(opts,KNOSYM_METADATA,KNO_VOID);
+  kno_index ix = result;
+  if (kno_make_logindex(spec,xrefs,metadata)>=0) {
+    int rv = kno_set_file_opts(spec,opts);
+    if (rv<0) {
+      u8_log(LOG_ERROR,"FailedFileOpts",
+	     "Couldn't set specified options for file %s",spec);
+      ix=kno_open_index(spec,flags,VOID);}}
+  kno_decref(xrefs); kno_decref(metadata);
+  return ix;
 }
 
 static void logindex_recycle(kno_index ix)
@@ -418,10 +546,10 @@ KNO_EXPORT void kno_init_logindex_c()
   preload_opt = kno_intern("preload");
 
   kno_register_index_type("logindex",
-                         &logindex_handler,
-                         open_logindex,
-                         kno_match_index_file,
-                         (void *) U8_INT2PTR(KNO_LOGINDEX_MAGIC_NUMBER));
+			  &logindex_handler,
+			  open_logindex,
+			  kno_match_index_file,
+			  (void *) U8_INT2PTR(KNO_LOGINDEX_MAGIC_NUMBER));
 
   u8_register_source_file(_FILEINFO);
 }
