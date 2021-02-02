@@ -29,6 +29,7 @@ static lispval add_effects, drop_effects;
 
 static u8_mutex slotcache_lock;
 
+lispval get_oid_value(lispval oid,kno_pool p);
 
 /* The operations stack */
 
@@ -401,7 +402,7 @@ static lispval get_slotid_methods(lispval slotid,lispval method_name)
   kno_pool p = kno_oid2pool(slotid); lispval smap, result;
   if (RARELY(p == NULL))
     return VOID;
-  else smap = kno_fetch_oid(p,slotid);
+  else smap = get_oid_value(slotid,p);
   if (KNO_ABORTP(smap))
     return smap;
   else if (SLOTMAPP(smap))

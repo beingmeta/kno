@@ -250,6 +250,37 @@ KNO_EXPORT lispval kno_zero_pool_store(lispval oid,lispval value)
   else return kno_type_error("oid","kno_zero_pool_store",oid);
 }
 
+KNO_EXPORT lispval kno_zero_pool_init(lispval oid,lispval value)
+{
+  if (USUALLY(OIDP(oid))) {
+    KNO_OID addr = KNO_OID_ADDR(oid);
+    if (USUALLY(KNO_OID_HI(addr)==0)) {
+      unsigned int off = KNO_OID_LO(addr);
+      unsigned int bucket_no = off/4096;
+      unsigned int bucket_off = off%4096;
+      if (off>=KNO_ZERO_POOL_MAX)
+        return VOID;
+      else {
+        u8_lock_mutex(&zero_pool_lock);
+        lispval *bucket = kno_zero_pool_buckets[bucket_no];
+        if (RARELY(bucket == NULL)) {
+          bucket = u8_alloc_n(4096,lispval);
+          kno_zero_pool_buckets[bucket_no]=bucket;}
+	lispval current = bucket[bucket_off], result = KNO_VOID;
+	if ( (current) &&
+	     ( (KNO_VOIDP(current)) || (KNO_EMPTYP(current)) || 
+	       (KNO_NULLP(current)) ) ) {
+	  kno_decref(current);
+	  result=bucket[bucket_off]=kno_incref(value);}
+	else {
+	  kno_decref(value);
+	  result=kno_incref(current);}
+	u8_unlock_mutex(&zero_pool_lock);
+	return result;}}
+    else return kno_type_error("zero_pool oid","kno_zero_pool_store",oid);}
+  else return kno_type_error("oid","kno_zero_pool_store",oid);
+}
+
 lispval kno_preoids = EMPTY;
 
 static void init_oids()

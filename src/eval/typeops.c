@@ -1113,20 +1113,20 @@ static lispval typeinfo_probe_cprim(lispval type)
 
 /* Typed function dispatch */
 
-KNO_DEFCPRIMNx("kno/dispatch",dispatch_cprim,
+KNO_DEFCPRIMNx("kno/send",send_cprim,
 	       KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	       "Applies a type specific method *method* to *object* "
 	       "with additional args.",2,
 	       {"object",kno_any_type,KNO_VOID},
 	       {"method",kno_slotid_type,KNO_VOID})
-static lispval dispatch_cprim(int n,kno_argvec args)
+static lispval send_cprim(int n,kno_argvec args)
 {
   lispval objects = args[0], methods = args[1];
   if (KNO_CHOICEP(methods)) {
     lispval results = KNO_EMPTY;
     KNO_DO_CHOICES(object,objects) {
       KNO_DO_CHOICES(method,methods) {
-	lispval result = kno_dispatch(object,method,n-2,args+2);
+	lispval result = kno_dispatch(NULL,object,method,n-2,args+2);
 	if (KNO_ABORTED(result)) {
 	  KNO_STOP_DO_CHOICES;
 	  kno_decref(results);
@@ -1136,14 +1136,14 @@ static lispval dispatch_cprim(int n,kno_argvec args)
   else if (KNO_CHOICEP(objects)) {
     lispval results = KNO_EMPTY;
     KNO_DO_CHOICES(object,objects) {
-      lispval result = kno_dispatch(object,methods,n-2,args+2);
+      lispval result = kno_dispatch(NULL,object,methods,n-2,args+2);
       if (KNO_ABORTED(result)) {
 	KNO_STOP_DO_CHOICES;
 	kno_decref(results);
 	return result;}
       else {KNO_ADD_TO_CHOICE(results,result);}}
     return results;}
-  return kno_dispatch(args[0],args[1],n-2,args+2);
+  return kno_dispatch(NULL,args[0],args[1],n-2,args+2);
 }
 
 KNO_DEFCPRIM("kno/handles?",handlesp_cprim,
@@ -1446,7 +1446,8 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("type-set!",type_set_prim,3,kno_scheme_module);
   KNO_LINK_CPRIM("type-props",type_props_prim,2,kno_scheme_module);
 
-  KNO_LINK_CVARARGS("kno/dispatch",dispatch_cprim,scheme_module);
+  KNO_LINK_CVARARGS("kno/send",send_cprim,scheme_module);
+  KNO_LINK_ALIAS("kno/dispatch",send_cprim,scheme_module);
 
   KNO_LINK_ALIAS("compound-type?",compoundp,scheme_module);
   KNO_LINK_ALIAS("vector->compound",seq2compound,scheme_module);

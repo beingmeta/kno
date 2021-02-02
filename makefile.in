@@ -85,6 +85,7 @@ RPMDIR		  = @RPMDIR@
 GPG		  = @GPG@
 GPGID		  = @GPGID@
 RPMGPG		  = %__gpg gpg --force-v3-sigs --digest-algo=sha1 -u \"%{_gpg_name}\" --no-armor --no-secmem-warning -sbo %{__signature_filename} %{__plaintext_filename}
+APT_INCOMING      = dev.beingmeta.com:/srv/repo/kno/apt/incoming/@CODENAME@/
 
 BUILDMODE       := $(shell if test -f ./buildmode; then cat ./buildmode; else echo none; fi)
 LINKEDWITH      ::= $(shell cat .malloc 2> /dev/null || echo standard libraries)
@@ -1371,12 +1372,17 @@ dist/debs.done: @DEB_BUILD_TARGET@
 dist/debsource.done: dist/debsource.signed
 	touch dist/debsource.done dist/debs.done
 
-dist/debs.installed: dist/debs.built
+dist/debs.installed: dist/debs.done
 	@( $(SUDO) dpkg -i dist/kno*@KNO_VERSION@*.deb dist/elpa-knoc*@KNO_VERSION@*.deb || \
 	   $(SUDO) dpkg -i dist/*.deb ) && \
 	 touch $@
-
 install-debian install-debs debinstall installdebs: dist/debs.installed
+
+dist/debs.uploaded: dist/debs.done
+	@cd dist; grep "^ [0-9a-f]* [0-9]* [^ ]*\$$" kno_@KNO_VERSION@*.changes | cut -d' ' -f 4 - | xargs -L 1 -I_file_ scp _file_ ${APT_INCOMING} && \
+	  scp kno_@KNO_VERSION@*.changes ${APT_INCOMING} && \
+	  touch debs.uploaded
+update-apt apt-upload: dist/debs.uploaded
 
 # RPM targets (probably broken)
 

@@ -810,6 +810,15 @@
 	  |GetModuleFailed| optimize-module
 	  "Couldn't load module for " spec))))
 
+(define-init init-modinfo!
+  (defsync (init-modinfo! module)
+    (try (get module '%modinfo)
+	 (let ((info (frame-create #f
+		       'id (get module '%moduleid)
+		       'source (get module '%source))))
+	   (store! module '%modinfo info)
+	   info))))
+
 (define (optimize-module! module (opts #f) (module) 
 			  (warnings (make-hashtable))
 			  (old-warnings (thread/get 'threadwarnings)))
@@ -824,6 +833,8 @@
   (thread/set! 'threadwarnings warnings)
   (let ((bindings (and module (module-binds module)))
 	(usefcnrefs (use-fcnrefs? opts))
+	(modinfo (get module '%modinfo))
+	(optimized {})
 	(count 0))
     (when bindings
       (do-choices (var bindings)
@@ -832,9 +843,13 @@
 	    (loginfo |OptimizeModule|
 	      "Optimizing procedure " var " in " module)
 	    (set! count (1+ count))
+	    (set+! optimized var)
 	    (optimize-procedure! value opts))
 	  (when (and usefcnrefs (exists? value) (applicable? value))
 	    (update-fcnid! var module value)))))
+    (when (fail? modinfo) (set! modinfo (init-modinfo! module)))
+    (store! modinfo 'optimized optimized)
+    (store! modinfo 'fcnids (try (table-size (get module '%fcnids)) 0))
     (cond ((hashtable? module)
 	   (lognotice |OpaqueModule| 
 	     "Not optimizing opaque module " (get module '%moduleid)))
@@ -847,6 +862,9 @@
 		  (unused (difference used-modules referenced-modules
 				      standard-modules
 				      (get module '%moduleid))))
+	     (store! modinfo 'referenced-modules referenced-modules)
+	     (store! modinfo 'used-modules used-modules)
+	     (store! modinfo 'unused-modules unused)
 	     (when (and check-module-usage (exists? unused))
 	       (logwarn |UnusedModules|
 		 "Module " (try (pick (get module '%moduleid) symbol?)
@@ -855,6 +873,7 @@
 		 (do-choices (um unused i)
 		   (printout (if (> i 0) ", ") um))))))
 	  (else))
+    (when (> (table-size warnings) 0) (store! modinfo 'warnings warnings))
     (when (and module-warnings (> (table-size warnings) 0))
       (store! warnings '%moduleid (get module '%moduleid))
       (store! module-warnings (get module '%moduleid) warnings))
@@ -1308,7 +1327,7 @@
 		   (if (wherefrom var env)
 		       (cons var (wherefrom var env))
 		       var)))
-	  (optval (optimize setval  env bound opts)))
+	  (optval (optimize setval env bound opts)))
       (if (and (use-opcodes? opts) (rewrite? opts))
 	  (cond ((symbol? loc) 
 		 ;; If loc is a symbol, we couldn't resolve it to a
@@ -1318,8 +1337,14 @@
 		 (#OP_ASSIGN ,loc #f ,optval))
 		((overlaps? handler set+!)
 		 `(#OP_ASSIGN ,loc #OP_UNION ,optval))
-		((overlaps? handler default!) 
+		((and (overlaps? handler default!) (= (length expr) 3)) 
+		 ;; Don't convert default! with a `replace` arg to use
+		 ;; OP_ASSIGN
 		 `(#OP_ASSIGN ,loc #t ,optval))
+		((overlaps? handler default!) 
+		 ;; Don't convert default! with a `replace` arg to use
+		 ;; OP_ASSIGN
+		 `(,default! ,var ,optval ,@(cdddr expr)))
 		(else `(,handler ,var ,optval)))
 	  `(,handler ,var ,optval)))))
 

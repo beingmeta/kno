@@ -57,7 +57,7 @@
   (let* ((ranks (make-hashtable))
 	 (rootinfo (and root (profile/getcalls root)))
 	 (rootval (and rootinfo (profilefn rootinfo)))
-	 (rootvals and (pair? morefns) #[]))
+	 (rootvals (and rootinfo (pair? morefns) #[])))
     (when rootvals 
       (dolist (fn morefns)
 	(if (and (symbol? fn) (get profilefns fn))

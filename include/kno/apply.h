@@ -350,12 +350,20 @@ KNO_EXPORT lispval kno_dcall(struct KNO_STACK *,lispval,int n,kno_argvec);
 #define kno_apply(fn,n_args,argv) (kno_call(kno_stackptr,fn,n_args,argv))
 #define kno_dapply(fn,n_args,argv) (kno_dcall(kno_stackptr,fn,n_args,argv))
 
-#define KNO_DISPATCH_NOFAIL 0x80000000
-#define KNO_DISPATCH_NOERR  0x40000000
+typedef int kno_dispatch_flags;
+#define KNO_DISPATCH_ARG_MASK 0x0000FFFF
+#define KNO_DISPATCH_OPTIONAL 0x80000000
+#define KNO_DISPATCH_NOERR    0x40000000
+#define KNO_DISPATCH_DCALL    0x20000000
+
 KNO_EXPORT lispval kno_get_handler(lispval obj,lispval m);
-KNO_EXPORT lispval kno_dispatch(lispval obj,lispval m,
-				unsigned int flags,kno_argvec args);
-#define kno_send(obj,m,n,args) (kno_dispatch(obj,m,n,args))
+KNO_EXPORT lispval kno_dispatch(kno_stack stack,
+				lispval obj,lispval method,
+				kno_dispatch_flags flags,
+				kno_argvec args);
+
+#define kno_send_flags kno_dispatch_flags
+#define kno_send(obj,method,flags,args) (kno_dispatch(NULL,obj,method,flags,args))
 
 KNO_EXPORT lispval kno_exec(lispval expr,lispval handlers,kno_stack stack);
 KNO_EXPORT lispval kno_exec_extend(lispval add,lispval path);

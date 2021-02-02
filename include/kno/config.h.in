@@ -168,10 +168,10 @@
 /* Define if you have the flock function.  */
 #undef HAVE_FLOCK
 
-/* Define if you have the flock function.  */
+/* Define if you have the lockf function.  */
 #undef HAVE_LOCKF
 
-/* Define if you have the flock function.  */
+/* Define if you have the fcntl function */
 #undef HAVE_FCNTL
 
 /* Define if you have a sys/sysinfo.h function.  */
@@ -186,10 +186,10 @@
 /* Define if you have a sysctl function.  */
 #undef HAVE_SYSCTL
 
-/* Define if you have the flock function.  */
+/* Define if you have the pread function.  */
 #undef HAVE_PREAD
 
-/* Define if you have the flock function.  */
+/* Define if you have the mmap function.  */
 #undef HAVE_MMAP
 
 /* Define to specify whether file locking works  */

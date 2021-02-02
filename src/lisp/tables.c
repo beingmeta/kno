@@ -2339,6 +2339,110 @@ KNO_EXPORT int kno_hashtable_store(kno_hashtable ht,lispval key,lispval value)
   return added;
 }
 
+/* This stores the value if the current value is some version of empty. 
+ Empty means VOID, EMPTY, LOCKHOLDER, etc.*/
+KNO_EXPORT int kno_hashtable_init_value(kno_hashtable ht,lispval key,lispval value)
+{
+  int n_keys = 0, added = 0, unlock = 0;
+  lispval newv, oldv;
+  KEY_CHECK(key,ht); KNO_CHECK_TYPE_RET(ht,kno_hashtable_type);
+  if ((KNO_TROUBLEP(value)))
+    return kno_interr(value);
+  else if (EMPTYP(key))
+    return 0;
+  else if (KNO_TROUBLEP(key))
+    return kno_interr(key);
+  else if (KNO_XTABLE_READONLYP(ht))
+    return KNO_ERR(-1,kno_ReadOnlyHashtable,"kno_hashtable_store",NULL,key);
+  else if (KNO_XTABLE_USELOCKP(ht)) {
+    kno_write_lock_table(ht);
+    unlock = 1;}
+  else {}
+  if (ht->ht_n_buckets == 0)
+    setup_hashtable(ht,kno_init_hash_size);
+  n_keys=ht->table_n_keys;
+  int eq_cmp = (ht->table_bits)&(KNO_HASHTABLE_COMPARE_EQ);
+  struct KNO_KEYVAL *result = (eq_cmp) ?
+    (eq_hashvec_insert(key,ht->ht_buckets,ht->ht_n_buckets,&(ht->table_n_keys))) :
+    (hashvec_insert(key,ht->ht_buckets,ht->ht_n_buckets,&(ht->table_n_keys)));
+  if ( (ht->table_n_keys) > n_keys ) added=1; else added=0;
+  KNO_XTABLE_SET_MODIFIED(ht,1);
+  oldv=result->kv_val;
+  if (PRECHOICEP(value))
+    /* Copy prechoices */
+    newv=kno_make_simple_choice(value);
+  else newv=kno_incref(value);
+  if (KNO_ABORTP(newv)) {
+    if (unlock) kno_unlock_table(ht);
+    return kno_interr(newv);}
+  else if ( (added) || (KNO_EMPTYP(oldv)) || (KNO_VOIDP(oldv)) ||
+	    (KNO_DEFAULTP(oldv)) || (oldv == KNO_LOCKHOLDER) ) {
+    result->kv_val=newv;
+    added = 1;}
+  else {
+    kno_decref(newv);
+    added = 0;}
+  if (unlock) kno_unlock_table(ht);
+  if (RARELY(hashtable_needs_resizep(ht))) {
+    /* We resize when n_keys/n_buckets < loading/4;
+       at this point, the new size is > loading/2 (a bigger number). */
+    int new_size=kno_get_hashtable_size(hashtable_resize_target(ht));
+    kno_resize_hashtable(ht,new_size);}
+  return added;
+}
+
+KNO_EXPORT int kno_hashtable_replace(kno_hashtable ht,lispval key,
+				     lispval value,lispval old)
+{
+  int n_keys = 0, added = 0, unlock = 0;
+  lispval newv, oldv;
+  KEY_CHECK(key,ht); KNO_CHECK_TYPE_RET(ht,kno_hashtable_type);
+  if ((KNO_TROUBLEP(value)))
+    return kno_interr(value);
+  else if (EMPTYP(key))
+    return 0;
+  else if (KNO_TROUBLEP(key))
+    return kno_interr(key);
+  else if (KNO_XTABLE_READONLYP(ht))
+    return KNO_ERR(-1,kno_ReadOnlyHashtable,"kno_hashtable_store",NULL,key);
+  else if (KNO_XTABLE_USELOCKP(ht)) {
+    kno_write_lock_table(ht);
+    unlock = 1;}
+  else {}
+  if (ht->ht_n_buckets == 0)
+    setup_hashtable(ht,kno_init_hash_size);
+  n_keys=ht->table_n_keys;
+  int eq_cmp = (ht->table_bits)&(KNO_HASHTABLE_COMPARE_EQ);
+  struct KNO_KEYVAL *result = (eq_cmp) ?
+    (eq_hashvec_insert(key,ht->ht_buckets,ht->ht_n_buckets,&(ht->table_n_keys))) :
+    (hashvec_insert(key,ht->ht_buckets,ht->ht_n_buckets,&(ht->table_n_keys)));
+  if ( (ht->table_n_keys) > n_keys ) added=1; else added=0;
+  KNO_XTABLE_SET_MODIFIED(ht,1);
+  oldv=result->kv_val;
+  if (PRECHOICEP(value))
+    /* Copy prechoices */
+    newv=kno_make_simple_choice(value);
+  else newv=kno_incref(value);
+  if (KNO_ABORTP(newv)) {
+    if (unlock) kno_unlock_table(ht);
+    return kno_interr(newv);}
+  else if ( (oldv == old) ||
+	    ( (KNO_VOIDP(old)) && (oldv == KNO_EMPTY) ) ) {
+    result->kv_val=newv;
+    kno_decref(oldv);
+    added = 1;}
+  else {
+    kno_decref(newv);
+    added = 0;}
+  if (unlock) kno_unlock_table(ht);
+  if (RARELY(hashtable_needs_resizep(ht))) {
+    /* We resize when n_keys/n_buckets < loading/4;
+       at this point, the new size is > loading/2 (a bigger number). */
+    int new_size=kno_get_hashtable_size(hashtable_resize_target(ht));
+    kno_resize_hashtable(ht,new_size);}
+  return added;
+}
+
 static int add_to_hashtable(kno_hashtable ht,lispval key,lispval value)
 {
   int added=0, n_keys=ht->table_n_keys;
@@ -2596,7 +2700,9 @@ static int do_hashtable_op(struct KNO_HASHTABLE *ht,kno_tableop op,
        (op == kno_table_increment_if_present)))
     return 0;
   lispval curval = result->kv_val;
-  if ( (op == kno_table_init) && (!(KNO_EMPTYP(curval))) )
+  if ( (op == kno_table_init) &&
+       (! ( (KNO_EMPTYP(curval)) || (KNO_VOIDP(curval)) ||
+	    (KNO_NULLP(curval)) || (KNO_LOCKHOLDER == curval) ) ) )
     return 0;
   else switch (op) {
   case kno_table_replace_novoid:
@@ -2657,6 +2763,7 @@ static int do_hashtable_op(struct KNO_HASHTABLE *ht,kno_tableop op,
   case kno_table_default:
     if ((EMPTYP(curval)) || (VOIDP(curval))) {
       result->kv_val = kno_incref(value);}
+    else added=0;
     break;
   case kno_table_increment_if_present:
     if (VOIDP(curval)) break;
@@ -2758,8 +2865,8 @@ static int do_hashtable_op(struct KNO_HASHTABLE *ht,kno_tableop op,
                 u8_sprintf(buf,64,"0x%x",op));
     break;}
   }
-  KNO_XTABLE_SET_MODIFIED(ht,1);
-  if ( (result) && (PRECHOICEP(result->kv_val)) ) {
+  if (added) {KNO_XTABLE_SET_MODIFIED(ht,1);}
+  if ( (added) && (result) && (PRECHOICEP(result->kv_val)) ) {
     struct KNO_PRECHOICE *ch=KNO_XPRECHOICE(result->kv_val);
     if (ch->prechoice_uselock) {
       u8_destroy_mutex(&(ch->prechoice_lock));

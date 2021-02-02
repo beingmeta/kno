@@ -1158,7 +1158,7 @@ KNO_EXPORT lispval _kno_debug(lispval x);
 
 KNO_EXPORT int kno_check_immediate(lispval);
 
-#define KNO_CHECK_CONS_PTR(x)				 \
+#define KNO_CHECK_ANY_PTR(x)				 \
   ((KNO_FIXNUMP(x)) ? (1) :				 \
    (KNO_OIDP(x)) ? (((x>>2)&0x3FF)<kno_n_base_oids) :	 \
    (x==0) ? (0) :					 \
@@ -1176,7 +1176,7 @@ KNO_EXPORT int kno_check_immediate(lispval);
    (kno_check_immediate(x)))
 
 #if KNO_FULL_CHECK_PTR
-#define KNO_CHECK_PTR(p) (KNO_USUALLY(KNO_CHECK_CONS_PTR(p)))
+#define KNO_CHECK_PTR(p) (KNO_USUALLY(KNO_CHECK_ANY_PTR(p)))
 #else
 #define KNO_CHECK_PTR(p) (KNO_USUALLY(KNO_CHECK_ATOMIC_PTR(p)))
 #endif
@@ -1221,6 +1221,11 @@ KNO_EXPORT void _kno_bad_pointer(lispval,u8_context);
 
 static U8_MAYBE_UNUSED lispval _kno_check_ptr(lispval x,u8_context cxt) {
   if (KNO_DEBUG_BADPTRP(x)) _kno_bad_pointer(x,cxt);
+  return x;
+}
+
+static U8_MAYBE_UNUSED lispval _kno_check_lisp_ptr(lispval x,u8_context cxt) {
+  if (!(USUALLY(KNO_CHECK_ANY_PTR(x)))) _kno_bad_pointer(x,cxt);
   return x;
 }
 

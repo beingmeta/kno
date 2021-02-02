@@ -59,14 +59,20 @@ KNO_EXPORT lispval kno_handler(lispval obj,lispval m)
   return get_handler(obj,m);
 }
 
-KNO_EXPORT lispval kno_dispatch(lispval obj,lispval m,unsigned int flags,kno_argvec args)
+KNO_EXPORT lispval kno_dispatch(struct KNO_STACK *stack,
+				lispval obj,lispval m,
+				kno_dispatch_flags flags,
+				kno_argvec args)
 {
-  int n = flags&0xFFFF, no_error = (flags & KNO_DISPATCH_NOERR);
-  int no_fail = (flags & KNO_DISPATCH_NOFAIL);
+  int n = (flags & KNO_DISPATCH_ARG_MASK);
+  int optional = (flags & KNO_DISPATCH_OPTIONAL);
+  int no_error = (flags & KNO_DISPATCH_NOERR);
+  int dcall = (flags & KNO_DISPATCH_DCALL);
+  if (stack==NULL) stack = kno_stackptr;
   struct KNO_TYPEINFO *typeinfo = kno_objtype(obj);
   lispval handler = (typeinfo) ? (kno_get(typeinfo->type_props,m,KNO_VOID)) : (KNO_VOID);
   if (KNO_VOIDP(handler)) {
-    if ( (no_fail) || (no_error) ) return KNO_EMPTY;
+    if ( (optional) || (no_error) ) return KNO_EMPTY;
     u8_byte buf[50];
     return kno_err("NoHandler","kno_dispatch",
 		   (KNO_SYMBOLP(m)) ? (KNO_SYMBOL_NAME(m)) : (u8_bprintf(buf,"%q",m)),
@@ -83,7 +89,9 @@ KNO_EXPORT lispval kno_dispatch(lispval obj,lispval m,unsigned int flags,kno_arg
       xargs[0] = obj; memcpy(xargs+1,args,n*sizeof(lispval));}
     else {
       memcpy(xargs,args,n*sizeof(lispval));}
-    lispval result = kno_apply(handler,n_args,xargs);
+    lispval result = (dcall) ?
+      (kno_dcall(stack,handler,n_args,xargs)) :
+      (kno_call(stack,handler,n_args,xargs));
     kno_decref(handler);
     if ( (no_error) && (KNO_ABORTED(result)) ) {
       kno_pop_exceptions(ex,-1);
@@ -124,9 +132,11 @@ static lispval default_consfn(int n,lispval *args,kno_typeinfo e)
     (NULL,e->typetag,KNO_COMPOUND_INCREF,n,args);
 }
 
+static lispval stringfn_method = KNO_VOID;
+
 static int default_unparsefn(u8_output out,lispval obj,kno_typeinfo info)
 {
-  lispval result = kno_dispatch(obj,KNOSYM(stringfn),KNO_DISPATCH_NOERR,NULL);
+  lispval result = kno_send(obj,stringfn_method,KNO_DISPATCH_NOERR,NULL);
   if (KNO_STRINGP(result)) {
     u8_putn(out,KNO_CSTRING(result),KNO_STRLEN(result));
     kno_decref(result);
@@ -196,9 +206,10 @@ KNO_EXPORT void kno_init_dispatch_c()
   kno_default_dumpfn = default_dumpfn;
   kno_default_consfn = default_consfn;
 
+  stringfn_method = kno_intern("stringfn");
+
   KNOSYM(restorefn);
   KNOSYM(dumpfn);
-  KNOSYM(stringfn);
   KNOSYM(consfn);
   KNOSYM(compound);
   KNOSYM(opaque);
