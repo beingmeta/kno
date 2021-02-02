@@ -20,7 +20,10 @@
 		  knodb/zero knodb/front knodb/last knodb/info
 		  flex/zero flex/front flex/last flex/info})
 
-(module-export! '{flexpool-suffix})
+(module-export! '{flexpool-def flexpool-opts flexpool-partitions 
+		  flexpool-partsize flexpool-front
+		  flexpool-filename flexpool-prefix flexpool-base flexpool-capacity
+		  flexpool-suffix})
 
 (define-init %loglevel %notify%)
 
@@ -73,7 +76,7 @@
 (defrecord (flexpool mutable opaque 
 		     #[predicate isflexpool?] 
 		     `(stringfn . flexpool->string))
-  filename prefix base capacity 
+  filename prefix base capacity def
   (partsize default-partsize) (partopts `#[partsize default-partsize])
   (opts) (basemap (make-hashtable)) (partitions {})
   (front #f) (zero #f) (last #f)
@@ -167,7 +170,7 @@
 		    (get flexpools (mkpath (dirname (realpath filename)) prefix)))
 		  (if (and (satisfied? prefix) (satisfied? base) (satisfied? cap)
 			   (satisfied? partsize) (satisfied? partopts))
-		      (let ((pool (unique-flexpool filename prefix base cap 
+		      (let ((pool (unique-flexpool filename prefix base cap def
 						   partsize partopts
 						   opts)))
 			pool)
@@ -190,6 +193,8 @@
 	       (absprefix (mkpath (dirname (abspath filename)) prefix))
 	       (partopts (frame-create #f
 			   'capacity partsize
+			   'load (tryif (getopt opts 'prealloc #f) partsize)
+			   'prealloc (getopt opts 'prealloc {})
 			   'pooltype pooltype
 			   'metadata 
 			   (frame-create #f
@@ -202,7 +207,11 @@
 			   'init (config 'sessionid)
 			   'base base 'capacity cap 'partsize partsize
 			   'prefix prefix
-			   'load (getopt opts 'load {})
+			   'prealloc (getopt opts 'prealloc {})
+			   'load (getopt opts 'load
+					 (if (getopt opts 'prealloc)
+					     (* partsize (getopt opts 'reserve 0))
+					     {}))
 			   'partitions (getopt opts 'partitions {})
 			   'partopts partopts
 			   'metadata metadata)))
@@ -224,7 +233,7 @@
 	    "Initialized " filename " with definition:\n"
 	    (listdata flexdef))
 	  (let ((pool (unique-flexpool (abspath filename) 
-				       prefix base cap 
+				       prefix base cap flexdef
 				       partsize partopts
 				       opts))
 		(reserve (getopt opts 'reserve 1)))
@@ -252,11 +261,12 @@
 
 (define unique-flexpool
   ;; Use define-init to avoid duplicate slambdas/locks when reloading
-  (slambda (filename prefix flexbase flexcap partsize partopts (open-opts #f))
+  (slambda (filename prefix flexbase flexcap def partsize partopts (open-opts #f))
     (try (flexpool/find filename prefix)
-	 (init-flexpool filename prefix flexbase flexcap partsize partopts open-opts))))
+	 (init-flexpool filename prefix flexbase flexcap def partsize partopts open-opts))))
 
-(define (init-flexpool filename file-prefix flexbase flexcap partsize partopts 
+(define (init-flexpool filename file-prefix flexbase flexcap def
+		       partsize partopts 
 		       (open-opts #f))
   (unless (has-prefix filename "/") (set! filename (abspath filename)))
   (let* ((prefix (textsubst file-prefix pool-suffix ""))
@@ -299,7 +309,7 @@
     
     (when (not front) (set! front last))
 
-    (let* ((state (cons-flexpool filename prefix flexbase flexcap 
+    (let* ((state (cons-flexpool filename prefix flexbase flexcap def
 				 partsize partopts open-opts
 				 basemap pools
 				 front zero last))
@@ -759,11 +769,14 @@
   (error |VirtualPool| flexpool-storen
 	 "Can't store values directly in the flexpool " p))
 (define (flexpool-load pool flexpool (front))
-  (set! front (flexpool-front flexpool))
-  (if front
-      (oid-offset (oid-plus (pool-base front) (pool-load front))
-		  (pool-base pool))
-      0))
+  (if (getopt (flexpool-partopts flexpool) 'prealloc)
+      (* (flexpool-partsize flexpool) (|| (flexpool-partitions flexpool)))
+      (begin
+	(set! front (flexpool-front flexpool))
+	(if front
+	    (oid-offset (oid-plus (pool-base front) (pool-load front))
+			(pool-base pool))
+	    0))))
 
 (define (flexpool-ctl pool flexpool op . args)
   (cond ((and (eq? op 'partitions) (null? args))
