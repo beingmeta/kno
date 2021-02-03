@@ -104,6 +104,50 @@ static u8_output get_output_port(lispval portarg)
   else return NULL;
 }
 
+/* Handling file opts */
+
+DEF_KNOSYM(filemodes); DEF_KNOSYM(permissions);
+DEF_KNOSYM(lock); DEF_KNOSYM(escape);
+
+static int get_file_opts(lispval opts,
+			 int *open_flags,int *mode_flags,
+			 int *lock_flags,
+			 const char **encname)
+{
+  if ( (STRINGP(opts)) && (KNO_STRLEN(opts)<5) ) {
+    u8_string bytes = (KNO_CSTRING(opts));
+    if ( (strchr(bytes,'r')) && (strchr(bytes,'w')) )
+      *open_flags = *open_flags | O_RDWR;
+    else if (strchr(bytes,'r'))
+      *open_flags = *open_flags | O_RDONLY;
+    else if (strchr(bytes,'w'))
+      *open_flags = *open_flags | O_WRONLY;
+    else {}
+    if (strchr(bytes,'+')) *open_flags = *open_flags | O_APPEND;
+    if (strchr(bytes,'c')) *open_flags = *open_flags | O_CREAT;
+    if (strchr(bytes,'l')) *lock_flags = *lock_flags | 1;
+    return 1;}
+  else if (STRINGP(opts)) {
+    if (u8_get_encoding(CSTRING(opts))) {
+      *encname = CSTRING(opts);}
+    else u8_log(LOG_WARN,"BadEncoding","Couldn't interpret arg '%s'",
+		CSTRING(opts));
+    return 1;}
+  else if (SYMBOLP(opts)) {
+    /* Possible add some special values here, e.g. READ, WRITE, etc */
+    u8_string pname = KNO_SYMBOL_NAME(opts);
+    if (u8_get_encoding(pname)) { *encname = pname; }
+    else u8_log(LOG_WARN,"BadEncoding","Couldn't interpret arg '%s'",
+		CSTRING(opts));
+    return 1;}
+  else if (TABLEP(opts)) {
+    lispval enc = kno_getopt(opts,KNOSYM_ENCODING,KNO_VOID);
+    lispval modes = kno_getopt(opts,KNOSYM(filemodes),KNO_VOID);
+    lispval perms = kno_getopt(opts,KNOSYM(permissions),KNO_VOID);
+    return 1;}
+  else return 0;
+}
+
 /* Opening files */
 
 DEFCPRIM("open-output-file",open_output_file,
@@ -124,8 +168,13 @@ static lispval open_output_file(lispval fname,lispval opts,lispval escape_char)
   lispval encid = KNO_VOID;
   u8_encoding enc = NULL;
   int open_flags = O_EXCL|O_CREAT|O_WRONLY;
+  int lock_flags = 0;
   if (KNO_OPTIONSP(opts)) {
-    encid = kno_getopt(opts,KNOSYM_ENCODING,KNO_VOID);}
+    encid = kno_getopt(opts,KNOSYM_ENCODING,KNO_VOID);
+    if (kno_testopt(opts,KNOSYM(lock),KNO_VOID))
+      lock_flags |= 1; else NO_ELSE;
+    if (VOIDP(escape_char))
+      escape_char = kno_getopt(opts,KNOSYM(escape),KNO_VOID);}
   else if ( (KNO_SYMBOLP(opts)) || (KNO_STRINGP(opts)) )
     encid = opts;
   else NO_ELSE;
