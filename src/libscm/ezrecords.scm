@@ -71,7 +71,7 @@
 	   (cons-method-name (string->symbol (stringout "cons-" name)))
 	   (predicate-method-name 
 	    (getopt defspec 'predicate (string->symbol (stringout name "?")))))
-      `(begin (bind-default! %rewrite {})
+      `(begin (default! %rewrite {})
 	 (defambda (,cons-method-name ,@fields)
 	   (,make-xcompound ,tag-expr ,ismutable ,isopaque ,istable
 			    ,(cond ((not isseq) #f)

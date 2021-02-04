@@ -45,7 +45,7 @@
 (define engine-threadcount #t)
 (varconfig! engine:threads engine-threadcount)
 
-(define-import fifo-condvar 'fifo)
+(defimport fifo-condvar 'fifo)
 
 (define ($showrate rate)
   (if (> rate 50)
