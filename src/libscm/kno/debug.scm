@@ -7,7 +7,7 @@
 (module-export! '{debug.command
 		  backtrace.command bt.command
 		  frame.command f.command
-		  env.command args.command
+		  env.command args.command arg.command
 		  source.command context.command
 		  getframe.command getenv.command
 		  val.command})
@@ -62,7 +62,7 @@
       (if (stack-filename frame) (printout " " (write (stack-filename frame))))
       (if args (printout " " ($count (length args) "arg")))
       (if env (printout " binding"
-		(do-choices (sym (picksyms (getkeys env)) i)
+		(do-choices (sym (onerror (picksyms (getkeys env)) {}) i)
 		  (printout (if (> i 0) ",") " " sym)))))))
 
 (define (getframe.command (n #f))
@@ -149,6 +149,22 @@
 	(lineout "Variable not found '" sym "'")
 	result)))
 (define v.command (fcn/alias val.command))
+
+(define (args.command (n #f))
+  (let* ((frame (get-stack-frame n))
+	 (args (stack-args frame)))
+    (req/set! '_debug_stack_entry frame)
+    (display-stackframe frame "Source")
+    (unless (= (length args) 0)
+      (doseq (arg args i) (lineout "arg" i "\t" (if (void? arg) #qvoid (listdata arg)))))))
+
+(define (arg.command (pos #f) (n #f))
+  (let* ((frame (get-stack-frame n))
+	 (args (stack-args frame)))
+    (cond ((not (vector? args)) (lineout "No args in frame"))
+	  ((and (number? pos) (> pos 0) (< pos (length args)))
+	   (elt args pos))
+	  (else (lineout "Invalid position '" pos " given " (length args) " arguments")))))
 
 (define (show-env env (header))
   (let ((vars (getkeys env)))
