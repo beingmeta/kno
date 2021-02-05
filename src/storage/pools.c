@@ -613,6 +613,30 @@ KNO_EXPORT int kno_replace_oid_value(lispval oid,lispval value)
       return 1;}}
 }
 
+KNO_EXPORT lispval kno_init_oid_value(lispval oid,lispval value)
+{
+  kno_pool p = kno_oid2pool(oid);
+  if (p == NULL)
+    return kno_reterr(kno_AnonymousOID,"REPLACE-OID-VALUE!",NULL,oid);
+  else if (p == kno_zero_pool)
+    return kno_zero_pool_store(oid,value);
+  else {
+    if ( (p->pool_handler->lock == NULL) ||
+	 (U8_BITP(p->pool_flags,KNO_POOL_VIRTUAL)) ||
+	 (U8_BITP(p->pool_flags,KNO_POOL_NOLOCKS)) ) {
+      int ok =kno_hashtable_op(&(p->pool_cache),kno_table_default,oid,value);
+      if (ok) return value;
+      else {
+	kno_decref(value);
+	return kno_oid_value(oid);}}
+    else if (kno_hashtable_probe(&(p->pool_changes),oid)) {
+      kno_hashtable_op(&(p->pool_changes),kno_table_default,oid,value);
+      return 1;}
+    else {
+      kno_hashtable_op(&(p->pool_cache),kno_table_default,oid,value);
+      return 1;}}
+}
+
 /* Fetching OID values */
 
 KNO_EXPORT lispval kno_pool_fetch(kno_pool p,lispval oid)

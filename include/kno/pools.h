@@ -377,8 +377,9 @@ KNO_EXPORT int kno_pool_load(kno_pool p);
 KNO_EXPORT void kno_reset_pool_tables(kno_pool p,ssize_t cacheval,ssize_t locksval);
 
 KNO_EXPORT int kno_set_oid_value(lispval oid,lispval value);
-KNO_EXPORT lispval kno_locked_oid_value(kno_pool p,lispval oid);
 KNO_EXPORT int kno_replace_oid_value(lispval oid,lispval value);
+KNO_EXPORT lispval kno_init_oid_value(lispval oid,lispval value);
+KNO_EXPORT lispval kno_locked_oid_value(kno_pool p,lispval oid);
 
 KNO_EXPORT int kno_swapout_pools(void);
 KNO_EXPORT int kno_close_pools(void);
@@ -390,8 +391,8 @@ KNO_EXPORT lispval kno_cached_oids(kno_pool p);
 KNO_EXPORT lispval kno_changed_oids(kno_pool p);
 
 KNO_EXPORT int kno_commit_oids(lispval oids);
-KNO_EXPORT int kno_init_pool_commits(kno_pool p,lispval oids,
-                                   struct KNO_POOL_COMMITS *commits);
+KNO_EXPORT int kno_init_pool_commits
+(kno_pool p,lispval oids,struct KNO_POOL_COMMITS *commits);
 
 #if KNO_INLINE_POOLS
 KNO_FASTOP kno_pool kno_oid2pool(lispval oid)
