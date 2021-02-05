@@ -69,7 +69,7 @@ static lispval server_oid_value(lispval x)
   if (p == NULL)
     return kno_err(kno_AnonymousOID,"server_oid_value",NULL,x);
   else if (served_poolp(p))
-    return kno_fetch_oid(p,x);
+    return kno_get_oid_value(p,x);
   else return kno_err(kno_PrivateOID,"server_oid_value",NULL,x);
 }
 
@@ -100,7 +100,7 @@ static lispval server_fetch_oids(lispval oidvec)
       else {
         results = u8_big_alloc_n(n,lispval);
         int i = 0; while (i<n) {
-          results[i]=kno_fetch_oid(p,elts[i]); i++;}
+          results[i]=kno_get_oid_value(p,elts[i]); i++;}
         return kno_cons_vector(NULL,n,1,results);}}
     else return kno_err(kno_PrivateOID,"server_oid_value",NULL,elts[0]);
   else return kno_err(kno_AnonymousOID,"server_oid_value",NULL,elts[0]);

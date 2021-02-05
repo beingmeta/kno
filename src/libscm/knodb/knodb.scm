@@ -122,6 +122,8 @@
       (store! (getopt addopts 'metadata) 'adjuncts (getopt opts 'adjuncts)))
     (when (getopt opts 'maxload)
       (store! (getopt addopts 'metadata) 'maxload (getopt opts 'maxload)))
+    (when (getopt opts 'prealloc)
+      (store! (getopt addopts 'metadata) 'prealloc (getopt opts 'prealloc)))
     (cons addopts opts)))
 
 (define (knodb/mkpath rootdir source (opts #f))

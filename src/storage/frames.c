@@ -401,7 +401,7 @@ static lispval get_slotid_methods(lispval slotid,lispval method_name)
   kno_pool p = kno_oid2pool(slotid); lispval smap, result;
   if (RARELY(p == NULL))
     return VOID;
-  else smap = kno_fetch_oid(p,slotid);
+  else smap = kno_get_oid_value(p,slotid);
   if (KNO_ABORTP(smap))
     return smap;
   else if (SLOTMAPP(smap))

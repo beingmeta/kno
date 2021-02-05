@@ -137,6 +137,7 @@ KNO_EXPORT int kno_pool_lock_init;
 #define KNO_POOL_ADJUNCT   (KNO_POOL_FLAG(1))
 #define KNO_POOL_VIRTUAL   (KNO_POOL_FLAG(2))
 #define KNO_POOL_NOLOCKS   (KNO_POOL_FLAG(3))
+#define KNO_POOL_PREALLOC  (KNO_POOL_FLAG(4))
 
 typedef enum kno_storage_unlock_flags {
   commit_modified = 1,
@@ -310,7 +311,7 @@ KNO_EXPORT kno_pool kno_find_subpool(struct KNO_GLUEPOOL *gp,lispval oid);
 
 KNO_EXPORT kno_pool _kno_oid2pool(lispval oid);
 KNO_EXPORT lispval kno_oid_value(lispval oid);
-KNO_EXPORT lispval kno_fetch_oid(kno_pool p,lispval oid);
+KNO_EXPORT lispval kno_get_oid_value(kno_pool p,lispval oid);
 
 /* Using pools like tables */
 
@@ -377,7 +378,6 @@ KNO_EXPORT int kno_pool_load(kno_pool p);
 KNO_EXPORT void kno_reset_pool_tables(kno_pool p,ssize_t cacheval,ssize_t locksval);
 
 KNO_EXPORT int kno_set_oid_value(lispval oid,lispval value);
-KNO_EXPORT int kno_replace_oid_value(lispval oid,lispval value);
 KNO_EXPORT lispval kno_init_oid_value(lispval oid,lispval value);
 KNO_EXPORT lispval kno_locked_oid_value(kno_pool p,lispval oid);
 
