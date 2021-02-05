@@ -108,44 +108,84 @@ static u8_output get_output_port(lispval portarg)
 
 DEF_KNOSYM(filemodes); DEF_KNOSYM(permissions);
 DEF_KNOSYM(lock); DEF_KNOSYM(escape);
+DEF_KNOSYM(write); DEF_KNOSYM(read);
+DEF_KNOSYM(append); DEF_KNOSYM(create);
+DEF_KNOSYM(exclusive); DEF_KNOSYM(excl);
+
 
 static int get_file_opts(lispval opts,
-			 int *open_flags,int *mode_flags,
+			 int *open_flags,int *perm_flags,
 			 int *lock_flags,
-			 const char **encname)
+			 u8_encoding *enc,
+			 lispval *escape_char)
 {
-  if ( (STRINGP(opts)) && (KNO_STRLEN(opts)<5) ) {
-    u8_string bytes = (KNO_CSTRING(opts));
-    if ( (strchr(bytes,'r')) && (strchr(bytes,'w')) )
-      *open_flags = *open_flags | O_RDWR;
-    else if (strchr(bytes,'r'))
-      *open_flags = *open_flags | O_RDONLY;
-    else if (strchr(bytes,'w'))
-      *open_flags = *open_flags | O_WRONLY;
-    else {}
-    if (strchr(bytes,'+')) *open_flags = *open_flags | O_APPEND;
-    if (strchr(bytes,'c')) *open_flags = *open_flags | O_CREAT;
-    if (strchr(bytes,'l')) *lock_flags = *lock_flags | 1;
-    return 1;}
+  int rv = 1;
+  u8_encoding encoding = NULL;
+  if ( (STRINGP(opts)) && (encoding=u8_get_encoding(CSTRING(opts))) )
+    *enc = encoding;
   else if (STRINGP(opts)) {
-    if (u8_get_encoding(CSTRING(opts))) {
-      *encname = CSTRING(opts);}
-    else u8_log(LOG_WARN,"BadEncoding","Couldn't interpret arg '%s'",
-		CSTRING(opts));
-    return 1;}
-  else if (SYMBOLP(opts)) {
-    /* Possible add some special values here, e.g. READ, WRITE, etc */
-    u8_string pname = KNO_SYMBOL_NAME(opts);
-    if (u8_get_encoding(pname)) { *encname = pname; }
-    else u8_log(LOG_WARN,"BadEncoding","Couldn't interpret arg '%s'",
-		CSTRING(opts));
-    return 1;}
+    u8_string string = KNO_CSTRING(opts);
+    if (open_flags) {
+      if ( (strchr(string,'r')) && (strchr(string,'w')) )
+	*open_flags |= O_RDWR;
+      else if (strchr(string,'r'))
+	*open_flags |= O_RDONLY;
+      else if (strchr(string,'w'))
+	*open_flags |= O_WRONLY;
+      else {}
+      if (strchr(string,'+')) *open_flags = *open_flags | O_APPEND;
+      if (strchr(string,'c')) *open_flags = *open_flags | O_CREAT;
+      if (strchr(string,'l')) *lock_flags = *lock_flags | 1;}
+    if (strchr(string,':')) {
+      u8_string enc_name = strchr(string,':')+1;
+      encoding = u8_get_encoding(enc_name);}}
   else if (TABLEP(opts)) {
     lispval enc = kno_getopt(opts,KNOSYM_ENCODING,KNO_VOID);
     lispval modes = kno_getopt(opts,KNOSYM(filemodes),KNO_VOID);
     lispval perms = kno_getopt(opts,KNOSYM(permissions),KNO_VOID);
-    return 1;}
-  else return 0;
+    lispval lock = kno_getopt(opts,KNOSYM(lock),KNO_VOID);
+    lispval escape = kno_getopt(opts,KNOSYM(escape),KNO_VOID);
+    if (!((KNO_FALSEP(lock))||(KNO_VOIDP(lock)))) *lock_flags |= 1;
+    if (KNO_STRINGP(enc)) encoding = u8_get_encoding(KNO_CSTRING(enc));
+    else if (KNO_SYMBOLP(enc)) encoding = u8_get_encoding(KNO_SYMBOL_NAME(enc));
+    else NO_ELSE;
+    if ( (escape_char) && (KNO_VOIDP(*escape_char)) ) {
+      if (KNO_CHARACTERP(escape)) *escape_char = escape;
+      else if (KNO_STRINGP(escape)) {
+	u8_string scan = KNO_CSTRING(escape);
+	int ch = u8_sgetc(&scan);
+	if ( (ch<0) && (*scan == '\0') )
+	  *escape_char = KNO_CODE2CHAR(ch);
+	else {
+	  kno_seterr("InvalidEscapeArg","get_file_opts",NULL,escape);
+	  rv=-1;}}
+      else { kno_seterr("InvalidEscapeArg","get_file_opts",NULL,escape);
+	rv=-1;}}
+    if (open_flags) {
+      int r = kno_overlapp(modes,KNOSYM(write));
+      int w = kno_overlapp(modes,KNOSYM(read));
+      if ( (r) && (w) )
+	*open_flags |= O_RDWR;
+      else if (r)
+	*open_flags |= O_RDONLY;
+      else if (w)
+	*open_flags |= O_RDONLY;
+      else NO_ELSE;
+      if (kno_overlapp(modes,KNOSYM(append)))
+	*open_flags |= O_APPEND;
+      if (kno_overlapp(modes,KNOSYM(create)))
+	*open_flags |= O_CREAT;
+      if ( (kno_overlapp(modes,KNOSYM(exclusive))) ||
+	   (kno_overlapp(modes,KNOSYM(excl))) )
+	*open_flags |= O_EXCL;}
+    kno_decref(escape);
+    kno_decref(lock);
+    kno_decref(perms);
+    kno_decref(modes);
+    kno_decref(enc);}
+  else rv = 0;
+  if ( (encoding) && (enc) ) *enc=encoding;
+  return rv;
 }
 
 /* Opening files */
@@ -161,35 +201,21 @@ DEFCPRIM("open-output-file",open_output_file,
 	 {"fname",kno_string_type,KNO_VOID},
 	 {"opts",kno_any_type,KNO_VOID},
 	 {"escape_char",kno_character_type,KNO_VOID})
-static lispval open_output_file(lispval fname,lispval opts,lispval escape_char)
+static lispval open_output_file(lispval fname,lispval opts,lispval ec)
 {
   struct U8_XOUTPUT *f;
   u8_string filename = kno_strdata(fname);
-  lispval encid = KNO_VOID;
   u8_encoding enc = NULL;
   int open_flags = O_EXCL|O_CREAT|O_WRONLY;
+  int perm_flags = S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH;
   int lock_flags = 0;
-  if (KNO_OPTIONSP(opts)) {
-    encid = kno_getopt(opts,KNOSYM_ENCODING,KNO_VOID);
-    if (kno_testopt(opts,KNOSYM(lock),KNO_VOID))
-      lock_flags |= 1; else NO_ELSE;
-    if (VOIDP(escape_char))
-      escape_char = kno_getopt(opts,KNOSYM(escape),KNO_VOID);}
-  else if ( (KNO_SYMBOLP(opts)) || (KNO_STRINGP(opts)) )
-    encid = opts;
-  else NO_ELSE;
-  if (VOIDP(encid)) enc = NULL;
-  else if (STRINGP(encid))
-    enc = u8_get_encoding(CSTRING(encid));
-  else if (SYMBOLP(encid))
-    enc = u8_get_encoding(SYM_NAME(encid));
-  else return kno_err(kno_UnknownEncoding,"OPEN-OUTPUT-FILE",NULL,encid);
+  int rv = get_file_opts(opts,&open_flags,&perm_flags,&lock_flags,&enc,&ec);
+  if (rv<0) return KNO_ERROR;
   f = u8_open_output_file(filename,enc,open_flags,0);
-  if (encid != opts) kno_decref(encid);
   if (f == NULL)
     return kno_err("CantWriteFile","OPEN-OUTPUT-FILE",NULL,fname);
-  if (KNO_CHARACTERP(escape_char)) {
-    int escape = KNO_CHAR2CODE(escape_char);
+  if (KNO_CHARACTERP(ec)) {
+    int escape = KNO_CHAR2CODE(ec);
     f->u8_xescape = escape;}
   return make_port(NULL,(u8_output)f,u8_strdup(filename));
 }
@@ -204,31 +230,22 @@ DEFCPRIM("extend-output-file",extend_output_file,
 	 "escaped sequences.",
 	 {"fname",kno_string_type,KNO_VOID},
 	 {"opts",kno_any_type,KNO_VOID},
-	 {"escape_char",kno_character_type,KNO_VOID})
-static lispval extend_output_file(lispval fname,lispval opts,lispval escape_char)
+	 {"ec",kno_character_type,KNO_VOID})
+static lispval extend_output_file(lispval fname,lispval opts,lispval ec)
 {
   struct U8_XOUTPUT *f;
   u8_string filename = kno_strdata(fname);
-  lispval encid = KNO_VOID;
   u8_encoding enc = NULL;
   int open_flags = O_APPEND|O_CREAT|O_WRONLY;
-  if (KNO_OPTIONSP(opts)) {
-    encid = kno_getopt(opts,KNOSYM_ENCODING,KNO_VOID);}
-  else if ( (KNO_SYMBOLP(opts)) || (KNO_STRINGP(opts)) )
-    encid = opts;
-  else NO_ELSE;
-  if (VOIDP(encid))
-    enc = NULL;
-  else if (STRINGP(encid))
-    enc = u8_get_encoding(CSTRING(encid));
-  else if (SYMBOLP(encid))
-    enc = u8_get_encoding(SYM_NAME(encid));
-  else return kno_err(kno_UnknownEncoding,"EXTEND-OUTPUT-FILE",NULL,encid);
+  int perm_flags = S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH;
+  int lock_flags = 0;
+  int rv = get_file_opts(opts,&open_flags,&perm_flags,&lock_flags,&enc,&ec);
+  if (rv<0) return KNO_ERROR;
   f = u8_open_output_file(filename,enc,open_flags,0);
   if (f == NULL)
     return kno_err(u8_CantOpenFile,"EXTEND-OUTPUT-FILE",NULL,fname);
-  if (KNO_CHARACTERP(escape_char)) {
-    int escape = KNO_CHAR2CODE(escape_char);
+  if (KNO_CHARACTERP(ec)) {
+    int escape = KNO_CHAR2CODE(ec);
     f->u8_xescape = escape;}
   return make_port(NULL,(u8_output)f,u8_strdup(filename));
 }
@@ -245,21 +262,11 @@ static lispval open_input_file(lispval fname,lispval opts)
 {
   struct U8_XINPUT *f;
   u8_string filename = kno_strdata(fname);
-  lispval encid = KNO_VOID;
   u8_encoding enc = NULL;
   int open_flags = O_RDONLY;
-  if (KNO_OPTIONSP(opts)) {
-    encid = kno_getopt(opts,KNOSYM_ENCODING,KNO_VOID);}
-  else if ( (KNO_SYMBOLP(opts)) || (KNO_STRINGP(opts)) )
-    encid = opts;
-  else NO_ELSE;
-  if (VOIDP(encid))
-    enc = NULL;
-  else if (STRINGP(encid))
-    enc = u8_get_encoding(CSTRING(encid));
-  else if (SYMBOLP(encid))
-    enc = u8_get_encoding(SYM_NAME(encid));
-  else return kno_err(kno_UnknownEncoding,"OPEN-INPUT_FILE",NULL,encid);
+  int lock_flags = 0;
+  int rv = get_file_opts(opts,&open_flags,NULL,&lock_flags,&enc,NULL);
+  if (rv<0) return KNO_ERROR;
   f = u8_open_input_file(filename,enc,open_flags,0);
   if (f == NULL)
     return kno_err(u8_CantOpenFile,"OPEN-INPUT-FILE",NULL,fname);
