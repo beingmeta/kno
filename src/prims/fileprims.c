@@ -284,53 +284,62 @@ DEFCPRIM("write-file",writefile_prim,
 	 "the text encoding named *enc*; any other *object* signals an error.",
 	 {"filename",kno_string_type,KNO_VOID},
 	 {"object",kno_any_type,KNO_VOID},
-	 {"enc",kno_any_type,KNO_VOID})
-static lispval writefile_prim(lispval filename,lispval object,lispval enc)
+	 {"opts",kno_any_type,KNO_VOID})
+static lispval writefile_prim(lispval filename,lispval object,lispval opts)
 {
-  int len = 0; const unsigned char *bytes; int free_bytes = 0;
+  ssize_t len = 0;
+  const unsigned char *bytes;
+  int free_bytes = 0, raw_out = 0;
   if (STRINGP(object)) {
     bytes = CSTRING(object);
     len = STRLEN(object);}
   else if (PACKETP(object)) {
     bytes = KNO_PACKET_DATA(object);
-    len = KNO_PACKET_LENGTH(object);}
+    len = KNO_PACKET_LENGTH(object);
+    raw_out=1;}
   else {
     struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,1024);
     kno_unparse(&out,object);
     bytes = out.u8_outbuf; len = out.u8_write-out.u8_outbuf;
     free_bytes = 1;}
-  if ((FALSEP(enc)) || (VOIDP(enc))) {
-    FILE *f = u8_fopen(CSTRING(filename),"w");
-    size_t off = 0, to_write = len;
-    if (f == NULL) {
-      if (free_bytes) u8_free(bytes);
-      return kno_err(OpenFailed,"writefile_prim",NULL,filename);}
-    while (to_write>0) {
-      ssize_t n_bytes = fwrite(bytes+off,1,to_write,f);
-      if (n_bytes<0) {
-	u8_graberr(errno,"writefile_prim",u8_strdup(CSTRING(filename)));
-	return KNO_ERROR;}
-      else {
-	to_write = to_write-n_bytes;
-	off = off+n_bytes;}}
-    fclose(f);}
-  else if ((KNO_TRUEP(enc)) || (STRINGP(enc))) {
-    struct U8_TEXT_ENCODING *encoding=
-      ((STRINGP(enc)) ? (u8_get_encoding(CSTRING(enc))) :
-       (u8_get_default_encoding()));
-    if (encoding == NULL) {
-      if (free_bytes) u8_free(bytes);
-      return kno_type_error("encoding","writefile_prim",enc);}
-    else {
-      U8_XOUTPUT *out = u8_open_output_file(CSTRING(filename),encoding,-1,-1);
-      if (out == NULL) {
-	if (free_bytes) u8_free(bytes);
-	return kno_reterr(OpenFailed,"writefile_prim",NULL,filename);}
-      u8_putn((u8_output)out,bytes,len);
-      u8_close((u8_stream)out);}}
+  u8_encoding enc = NULL;
+  lispval ec = KNO_VOID;
+  int open_flags = O_CREAT|O_WRONLY;
+  int perm_flags = S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH;
+  int lock_flags = 0;
+  int rv = get_file_opts(opts,&open_flags,&perm_flags,&lock_flags,&enc,&ec);
+  if (rv<0) return KNO_ERROR;
+  if (raw_out) {
+    int fileno = open(KNO_CSTRING(filename),open_flags,perm_flags), rv;
+    if (fileno<0) {
+      u8_graberr(-1,"WRITE-FILE",u8_strdup(CSTRING(filename)));
+      return KNO_ERROR;}
+    else if (lock_flags) rv = u8_lock_fd(fileno,1);
+    else rv=0;
+    if (rv<0) {
+      u8_graberr(-1,"WRITE-FILE/lock",u8_strdup(CSTRING(filename)));
+      close(fileno);
+      return KNO_ERROR;}
+    rv = u8_writeall(fileno,bytes,len);
+    if (rv<0) {
+      u8_graberr(-1,"WRITE-FILE",u8_strdup(CSTRING(filename)));
+      close(fileno);
+      return KNO_ERROR;}
+    else rv = close(fileno);
+    if (rv<0) {
+      u8_graberr(-1,"WRITE-FILE/close",u8_strdup(CSTRING(filename)));
+      return KNO_ERROR;}}
   else {
-    if (free_bytes) u8_free(bytes);
-    return kno_type_error("encoding","writefile_prim",enc);}
+    U8_XOUTPUT *out = u8_open_output_file
+      (CSTRING(filename),enc,open_flags,perm_flags);
+    if (KNO_CHARACTERP(ec)) {
+      int escape = KNO_CHAR2CODE(ec);
+      out->u8_xescape = escape;}
+    if (out == NULL) {
+      if (free_bytes) u8_free(bytes);
+      return kno_reterr(OpenFailed,"WRITE-FILE",CSTRING(filename),KNO_VOID);}
+    u8_putn((u8_output)out,bytes,len);
+    u8_close((u8_stream)out);}
   if (free_bytes) u8_free(bytes);
   return KNO_INT(len);
 }
