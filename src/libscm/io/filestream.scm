@@ -35,7 +35,7 @@
 (define (inner-write-state-file file state)
   (let ((temp-file (glom file ".part")))
     (fileout (open-output-file temp-file "w*")
-      (void (printout state)))
+      (void (pprint state)))
     (move-file temp-file file)))
 (define-init write-state-file
   (defsync (write-state-file file state)
