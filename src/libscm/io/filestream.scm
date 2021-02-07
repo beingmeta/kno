@@ -32,6 +32,15 @@
   (difftime (filestream/batch-end batch) (filestream/batch-start batch)))
 (define (batch-count batch) (filestream/batch-itemcount batch))
 
+(define (inner-write-state-file file state)
+  (let ((temp-file (glom file ".part")))
+    (fileout (open-output-file temp-file "w*")
+      (void (pprint state)))
+    (move-file temp-file file)))
+(define-init write-state-file
+  (defsync (write-state-file file state)
+    (inner-write-state-file file state)))
+
 (define (filestream/open filename (opts #f))
   (let* ((statefile (glom filename ".state"))
 	 (archive (and (has-suffix filename {".bz" ".gz" ".bz2" ".Z" ".tar"})
@@ -67,16 +76,17 @@
 	       ;;  items which have been read in the past
 	       (dotimes (i (getopt state 'itemcount 0)) (readfn port)))))
       (store! state 'updated (timestamp))
-      (with-lock (filestream-lock stream) (fileout statefile (void (pprint state))))
+      (with-lock (filestream-lock stream) (write-state-file statefile state))
       stream)))
 
-(define (filestream/read stream)
+(define (filestream/read stream (extra #f))
   (with-lock (filestream-lock stream)
     (let* ((port (filestream-port stream))
-	   (item ((filestream-readfn stream) port)))
-      (set-filestream-itemcount! stream (1+ (filestream-itemcount stream)))
+	   (item ((filestream-readfn stream) port))
+	   (count (filestream-itemcount stream)))
+      (set-filestream-itemcount! stream (1+ count))
       (set-filestream-filepos! stream (getpos port))
-      item)))
+      (if extra (cons count item) item))))
 
 (define (filestream/state stream)
   (with-lock (filestream-lock stream)
@@ -104,7 +114,7 @@
       (when (filestream-filepos stream)
 	(store! state 'filepos (filestream-filepos stream)))
       (add! state 'batches batch)
-      (fileout (filestream-statefile stream) (void (pprint state))))))
+      (write-state-file (filestream-statefile stream) state))))
 
 (define (filestream/log! stream (opts #f) (%loglevel %notice%))
   (let* ((count (filestream-itemcount stream))

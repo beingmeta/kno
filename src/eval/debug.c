@@ -667,7 +667,8 @@ static lispval dbgeval_evalfn(lispval dbg_expr,kno_lexenv env,kno_stack stack)
     if (FALSEP(msg)) return kno_eval(expr,env,stack,0);
     if (KNO_VOIDP(msg))
       u8_message("Debug eval 0x%llx <==\n    %Q",KNO_LONGVAL(&arg),expr);
-    else u8_message("Debug eval 0x%llx %q <=\n	  %Q",KNO_LONGVAL(&arg),msg,expr);
+    else u8_message("Debug eval 0x%llx %q <=\n	  %Q",KNO_LONGVAL(&arg),
+		    msg,expr);
     kno_decref(msg);}
   arg = kno_eval(expr,env,stack,0);
   log_ptr(arg,KNO_VOID,arg);

@@ -57,7 +57,7 @@ lispval kno_commit_phases[8];
 static lispval id_symbol, flags_symbol, background_symbol,
   readonly_symbol, repair_symbol, fixsyms_symbol,
   sparse_symbol, register_symbol, virtual_symbol, phased_symbol,
-  oidcodes_symbol, slotcodes_symbol;
+  oidcodes_symbol, slotcodes_symbol, prealloc_symbol;
 
 static lispval lookupfns = KNO_NIL;
 
@@ -106,20 +106,22 @@ kno_get_dbflags(lispval opts,kno_storage_flags init_flags)
       flags |= KNO_STORAGE_REPAIR;
     if ( (is_index) && (testopt(opts,background_symbol,0)) )
       flags |= KNO_INDEX_IN_BACKGROUND;
-    if ( (!(is_index)) &&
-         ( (testopt(opts,KNOSYM_ADJUNCT,0)) ||
-           (testopt(opts,KNOSYM_ISADJUNCT,0)) ||
-           (kno_testopt(opts,KNOSYM_FORMAT,KNOSYM_ISADJUNCT)) ||
-           (kno_testopt(opts,KNOSYM_FORMAT,KNOSYM_ADJUNCT))) )
-      flags |= KNO_POOL_ADJUNCT;
-    if ( (!(is_index)) && (testopt(opts,sparse_symbol,0)) )
-      flags |= KNO_POOL_SPARSE;
+    if ( ! (is_index) ) {
+      if ( (testopt(opts,KNOSYM_ADJUNCT,0)) ||
+	   (testopt(opts,KNOSYM_ISADJUNCT,0)) ||
+	   (kno_testopt(opts,KNOSYM_FORMAT,KNOSYM_ISADJUNCT)) ||
+	   (kno_testopt(opts,KNOSYM_FORMAT,KNOSYM_ADJUNCT)))
+	flags |= KNO_POOL_ADJUNCT;
+      if (testopt(opts,sparse_symbol,0))
+	flags |= KNO_POOL_SPARSE;
+      if (testopt(opts,prealloc_symbol,0))
+	flags |= KNO_POOL_PREALLOC;}
     kno_decref(flags_val);
     return flags;}
   else {
     if (FALSEP(opts)) {
       if (init_flags&KNO_STORAGE_ISPOOL)
-        return (init_flags & (~(KNO_STORAGE_UNREGISTERED)));
+	return (init_flags & (~(KNO_STORAGE_UNREGISTERED)));
       else return (init_flags | KNO_STORAGE_UNREGISTERED);}
     else return init_flags;}
 }
@@ -708,6 +710,7 @@ KNO_EXPORT int kno_init_storage()
   register_symbol = kno_intern("register");
   phased_symbol = kno_intern("phased");
   slotcodes_symbol = kno_intern("slotcodes");
+  prealloc_symbol = kno_intern("prealloc");
   oidcodes_symbol = kno_intern("oidcodes");
   virtual_symbol = kno_intern("virtual");
   fixsyms_symbol = kno_intern("fixsyms");

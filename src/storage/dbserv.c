@@ -37,6 +37,8 @@ static int dbserv_loglevel = LOG_NOTICE;
 
 u8_condition kno_PrivateOID=_("private OID");
 
+lispval get_oid_value(lispval oid,kno_pool p);
+
 static int served_poolp(kno_pool p)
 {
   int i = 0; while (i<n_served_pools)
@@ -69,7 +71,7 @@ static lispval server_oid_value(lispval x)
   if (p == NULL)
     return kno_err(kno_AnonymousOID,"server_oid_value",NULL,x);
   else if (served_poolp(p))
-    return kno_fetch_oid(p,x);
+    return get_oid_value(x,p);
   else return kno_err(kno_PrivateOID,"server_oid_value",NULL,x);
 }
 
@@ -100,7 +102,7 @@ static lispval server_fetch_oids(lispval oidvec)
       else {
         results = u8_big_alloc_n(n,lispval);
         int i = 0; while (i<n) {
-          results[i]=kno_fetch_oid(p,elts[i]); i++;}
+	  results[i]=get_oid_value(elts[i],p); i++;}
         return kno_cons_vector(NULL,n,1,results);}}
     else return kno_err(kno_PrivateOID,"server_oid_value",NULL,elts[0]);
   else return kno_err(kno_AnonymousOID,"server_oid_value",NULL,elts[0]);

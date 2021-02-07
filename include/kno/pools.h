@@ -137,6 +137,7 @@ KNO_EXPORT int kno_pool_lock_init;
 #define KNO_POOL_ADJUNCT   (KNO_POOL_FLAG(1))
 #define KNO_POOL_VIRTUAL   (KNO_POOL_FLAG(2))
 #define KNO_POOL_NOLOCKS   (KNO_POOL_FLAG(3))
+#define KNO_POOL_PREALLOC  (KNO_POOL_FLAG(4))
 
 typedef enum kno_storage_unlock_flags {
   commit_modified = 1,
@@ -186,7 +187,7 @@ KNO_EXPORT struct KNO_POOL _kno_zero_pool;
 
 KNO_EXPORT lispval kno_zero_pool_value(lispval oid);
 KNO_EXPORT lispval kno_zero_pool_store(lispval oid,lispval);
-
+KNO_EXPORT lispval kno_zero_pool_init(lispval oid,lispval);
 
 KNO_EXPORT int kno_register_pool(kno_pool p);
 KNO_EXPORT lispval kno_all_pools(void);
@@ -310,11 +311,10 @@ KNO_EXPORT kno_pool kno_find_subpool(struct KNO_GLUEPOOL *gp,lispval oid);
 
 KNO_EXPORT kno_pool _kno_oid2pool(lispval oid);
 KNO_EXPORT lispval kno_oid_value(lispval oid);
-KNO_EXPORT lispval kno_fetch_oid(kno_pool p,lispval oid);
 
 /* Using pools like tables */
 
-KNO_EXPORT lispval kno_pool_get(kno_pool p,lispval key);
+KNO_EXPORT lispval kno_pool_getkey(kno_pool p,lispval key);
 KNO_EXPORT int kno_pool_store(kno_pool p,lispval key,lispval value);
 KNO_EXPORT lispval kno_pool_keys(lispval arg);
 
@@ -343,6 +343,7 @@ KNO_EXPORT int kno_execute_pool_delays(kno_pool p,void *data);
 
 /* OID Access */
 
+KNO_EXPORT lispval kno_pool_get(kno_pool p,lispval oid);
 KNO_EXPORT lispval kno_pool_fetch(kno_pool p,lispval oid);
 KNO_EXPORT lispval kno_pool_alloc(kno_pool p,int n);
 KNO_EXPORT int kno_pool_prefetch(kno_pool p,lispval oids);
@@ -377,8 +378,8 @@ KNO_EXPORT int kno_pool_load(kno_pool p);
 KNO_EXPORT void kno_reset_pool_tables(kno_pool p,ssize_t cacheval,ssize_t locksval);
 
 KNO_EXPORT int kno_set_oid_value(lispval oid,lispval value);
+KNO_EXPORT lispval kno_init_oid_value(lispval oid,lispval value);
 KNO_EXPORT lispval kno_locked_oid_value(kno_pool p,lispval oid);
-KNO_EXPORT int kno_replace_oid_value(lispval oid,lispval value);
 
 KNO_EXPORT int kno_swapout_pools(void);
 KNO_EXPORT int kno_close_pools(void);
@@ -390,8 +391,8 @@ KNO_EXPORT lispval kno_cached_oids(kno_pool p);
 KNO_EXPORT lispval kno_changed_oids(kno_pool p);
 
 KNO_EXPORT int kno_commit_oids(lispval oids);
-KNO_EXPORT int kno_init_pool_commits(kno_pool p,lispval oids,
-                                   struct KNO_POOL_COMMITS *commits);
+KNO_EXPORT int kno_init_pool_commits
+(kno_pool p,lispval oids,struct KNO_POOL_COMMITS *commits);
 
 #if KNO_INLINE_POOLS
 KNO_FASTOP kno_pool kno_oid2pool(lispval oid)

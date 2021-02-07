@@ -236,7 +236,7 @@ static lispval stack2lisp(struct KNO_STACK *stack,struct KNO_STACK *inner)
 		  (KNO_FALSE));
 
   if (KNO_VECTORP(args)) fix_void_args(args);
-  if (KNO_TABLEP(env)) fix_void_bindings(args);
+  if (KNO_TABLEP(env)) fix_void_bindings(env);
 
   unsigned long icrumb = stack->stack_crumb;
   if (icrumb == 0) {

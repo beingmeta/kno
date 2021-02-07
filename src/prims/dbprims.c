@@ -653,7 +653,7 @@ static lispval xsetoidvalue(lispval o,lispval v)
 {
   int retval;
   kno_incref(v);
-  retval = kno_replace_oid_value(o,v);
+  retval = kno_set_oid_value(o,v);
   kno_decref(v);
   if (retval<0)
     return KNO_ERROR;

@@ -408,5 +408,14 @@ KNO_EXPORT int kno_record_bug(lispval ex);
 
 KNO_EXPORT u8_string kno_bugdir;
 
+/* Aliases in KNO_SOURCE */
+
+#if KNO_SOURCE
+#define DEF_EVALFN  KNO_DEF_EVALFN
+#define DEF_XEVALFN KNO_DEF_EVALFN
+#define LINK_EVALFN KNO_LINK_EVALFN
+#define EVALFNP     KNO_EVALFNP
+#endif
+
 #endif /* KNO_EVAL_H */
 

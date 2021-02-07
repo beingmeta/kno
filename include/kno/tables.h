@@ -638,6 +638,8 @@ KNO_EXPORT int kno_hashtable_test
 KNO_EXPORT int kno_hashtable_store(kno_hashtable ht,lispval key,lispval value);
 KNO_EXPORT int kno_hashtable_add(kno_hashtable ht,lispval key,lispval value);
 KNO_EXPORT int kno_hashtable_drop(kno_hashtable ht,lispval key,lispval value);
+KNO_EXPORT int kno_hashtable_init_value(kno_hashtable ht,lispval k,lispval v);
+KNO_EXPORT int kno_hashtable_replace(kno_hashtable ht,lispval k,lispval o,lispval n);
 
 KNO_EXPORT int kno_hashtable_probe(kno_hashtable ht,lispval key);
 KNO_EXPORT int kno_hashtable_probe_novoid(kno_hashtable ht,lispval key);

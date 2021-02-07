@@ -496,6 +496,8 @@ typedef double kno_double;
 #define TYPEP(o,t) (KNO_TYPEP((o),(t)))
 #define CHOICEP(x) (KNO_CHOICEP(x))
 #define SINGLETONP(x) (KNO_SINGLETONP(x))
+#define IMMEDIATEP(x) (KNO_IMMEDIATEP(x))
+#define CONSP(x)      (KNO_CONSP(x))
 #define FIXNUMP(x) (KNO_FIXNUMP(x))
 #define NUMBERP(x) (KNO_NUMBERP(x))
 #define APPLICABLEP(x) (KNO_APPLICABLEP(x))
