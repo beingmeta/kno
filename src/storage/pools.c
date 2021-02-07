@@ -59,6 +59,8 @@ int kno_n_pools   = 0;
 int kno_max_pools = KNO_MAX_POOLS;
 kno_pool kno_pools_by_serialno[KNO_MAX_POOLS];
 
+lispval get_oid_value(lispval oid,kno_pool p);
+
 struct KNO_POOL *kno_top_pools[KNO_N_OID_BUCKETS];
 
 static struct KNO_HASHTABLE poolid_table;
@@ -510,14 +512,93 @@ static void pool_conflict(kno_pool upstart,kno_pool holder)
 }
 
 
+/* Callable versions of simple functions */
+
+KNO_EXPORT kno_pool _kno_oid2pool(lispval oid)
+{
+  int baseid = KNO_OID_BASE_ID(oid);
+  int baseoff = KNO_OID_BASE_OFFSET(oid);
+  struct KNO_POOL *top = kno_top_pools[baseid];
+  if (top == NULL) return NULL;
+  else if (baseoff<top->pool_capacity) return top;
+  else if (top->pool_capacity) {
+    u8_raise(_("Corrupted pool table"),"kno_oid2pool",NULL);
+    return NULL;}
+  else return kno_find_subpool((struct KNO_GLUEPOOL *)top,oid);
+}
+
+lispval get_oid_value(lispval oid,kno_pool p)
+{
+  if (RARELY(!(OIDP(oid)))) return kno_type_error("oid","get_oid_value",oid);
+  KNOTC *knotc = ((KNO_USE_THREADCACHE)?(kno_threadcache):(NULL));
+  lispval value = KNO_VOID;
+  if (knotc) {
+    value = ((knotc->oids.table_n_keys)?
+	     (kno_hashtable_get(&(knotc->oids),oid,VOID)):
+	     (VOID));
+    if (!(VOIDP(value))) return value;}
+  if (p == NULL) p = kno_oid2pool(oid);
+  if (p == NULL) return EMPTY;
+  else if (p == kno_zero_pool)
+    value = kno_zero_pool_value(oid);
+  else value = kno_pool_get(p,oid);
+  if (knotc) kno_hashtable_store(&(knotc->oids),oid,value);
+  return value;
+}
+
+int set_oid_value(lispval oid,lispval value,kno_pool p)
+{
+  if (p == NULL) p = kno_oid2pool(oid);
+  if (p == NULL) return kno_reterr(kno_AnonymousOID,"SET-OID-VALUE!",NULL,oid);
+  else if (p == kno_zero_pool)
+    return kno_zero_pool_store(oid,value);
+  else {
+    if (KNO_TABLEP(value)) {
+      modify_readonly(value,0);
+      modify_modified(value,1);}
+    if (RARELY ( (p->pool_handler->lock == NULL) ||
+		 (U8_BITP(p->pool_flags,KNO_POOL_VIRTUAL)) ||
+		 (U8_BITP(p->pool_flags,KNO_POOL_NOLOCKS)) ) ) {
+      kno_hashtable_store(&(p->pool_cache),oid,value);
+      return 1;}
+    else if (kno_lock_oid(oid)) {
+      kno_hashtable_store(&(p->pool_changes),oid,value);
+      return 1;}
+    else return kno_reterr(kno_CantLockOID,"SET-OID-VALUE!",NULL,oid);}
+}
+lispval init_oid_value(lispval oid,lispval value,kno_pool p)
+{
+  if (p == NULL) p = kno_oid2pool(oid);
+  if (p == NULL)
+    return kno_reterr(kno_AnonymousOID,"REPLACE-OID-VALUE!",NULL,oid);
+  else if (p == kno_zero_pool)
+    return kno_zero_pool_store(oid,value);
+  else {
+    if (RARELY( (p->pool_handler->lock == NULL) ||
+		(U8_BITP(p->pool_flags,KNO_POOL_VIRTUAL)) ||
+		(U8_BITP(p->pool_flags,KNO_POOL_NOLOCKS)) ) ) {
+      if (kno_hashtable_op(&(p->pool_cache),kno_table_init,oid,value))
+	return value;
+      else {
+	kno_decref(value);
+	return get_oid_value(oid,p);}}
+    else if (kno_hashtable_probe(&(p->pool_changes),oid)) {
+      if (kno_hashtable_op(&(p->pool_changes),kno_table_init,oid,value))
+	return value;
+      else {
+	kno_decref(value);
+	return get_oid_value(oid,p);}}
+    else {
+      kno_hashtable_op(&(p->pool_cache),kno_table_init,oid,value);
+      return value;}}
+}
+
 /* Basic functions on single OID values */
 
 KNO_EXPORT lispval kno_oid_value(lispval oid)
 {
-  if (EMPTYP(oid))
-    return oid;
-  else if (OIDP(oid)) {
-    lispval v = kno_get_oid_value(NULL,oid);
+  if (USUALLY(OIDP(oid))) {
+    lispval v = get_oid_value(oid,NULL);
     if (KNO_ABORTP(v))
       return v;
     else if (v==KNO_UNALLOCATED_OID) {
@@ -527,6 +608,8 @@ KNO_EXPORT lispval kno_oid_value(lispval oid)
       else kno_seterr(kno_UnallocatedOID,"kno_oid_value",(p->poolid),oid);
       return KNO_ERROR_VALUE;}
     else return v;}
+  else if (EMPTYP(oid))
+    return oid;
   else return kno_type_error(_("OID"),"kno_oid_value",oid);
 }
 
@@ -537,7 +620,7 @@ KNO_EXPORT lispval kno_locked_oid_value(kno_pool p,lispval oid)
   else if ( (p->pool_handler->lock == NULL) ||
 	    (U8_BITP(p->pool_flags,KNO_POOL_VIRTUAL)) ||
 	    (U8_BITP(p->pool_flags,KNO_POOL_NOLOCKS)) ) {
-    return kno_get_oid_value(p,oid);}
+    return get_oid_value(oid,p);}
   else if (p == kno_zero_pool)
     return kno_zero_pool_value(oid);
   else {
@@ -547,7 +630,7 @@ KNO_EXPORT lispval kno_locked_oid_value(kno_pool p,lispval oid)
       if (retval<0)
 	return KNO_ERROR;
       else if (retval) {
-	lispval v = kno_get_oid_value(p,oid);
+	lispval v = get_oid_value(oid,p);
 	if (KNO_ABORTP(v)) {
 	  kno_seterr("FetchFailed","kno_locked_oid_value",p->poolid,oid);
 	  return v;}
@@ -560,7 +643,7 @@ KNO_EXPORT lispval kno_locked_oid_value(kno_pool p,lispval oid)
       else return kno_err(kno_CantLockOID,"kno_locked_oid_value",
 			  p->pool_source,oid);}
     else if (smap == KNO_LOCKHOLDER) {
-      lispval v = kno_get_oid_value(p,oid);
+      lispval v = get_oid_value(oid,p);
       if (KNO_ABORTP(v)) {
 	kno_seterr("FetchFailed","kno_locked_oid_value",p->poolid,oid);
 	return v;}
@@ -570,81 +653,78 @@ KNO_EXPORT lispval kno_locked_oid_value(kno_pool p,lispval oid)
 
 KNO_EXPORT int kno_set_oid_value(lispval oid,lispval value)
 {
-  kno_pool p = kno_oid2pool(oid);
-  if (p == NULL)
-    return kno_reterr(kno_AnonymousOID,"SET-OID-VALUE!",NULL,oid);
-  else if (p == kno_zero_pool)
-    return kno_zero_pool_store(oid,value);
-  else {
-    if (KNO_TABLEP(value)) {
-      modify_readonly(value,0);
-      modify_modified(value,1);}
-    if ( (p->pool_handler->lock == NULL) ||
-	 (U8_BITP(p->pool_flags,KNO_POOL_VIRTUAL)) ||
-	 (U8_BITP(p->pool_flags,KNO_POOL_NOLOCKS)) ) {
-      kno_hashtable_store(&(p->pool_cache),oid,value);
-      return 1;}
-    else if (kno_lock_oid(oid)) {
-      kno_hashtable_store(&(p->pool_changes),oid,value);
-      return 1;}
-    else return kno_reterr(kno_CantLockOID,"SET-OID-VALUE!",NULL,oid);}
+  if (USUALLY(OIDP(oid))) {
+    kno_pool p = kno_oid2pool(oid);
+    if (p == NULL)
+      return kno_reterr(kno_AnonymousOID,"SET-OID-VALUE!",NULL,oid);
+    else return set_oid_value(oid,value,p);}
+  else return kno_type_error("oid","kno_set_oid_value",oid);
 }
 
 KNO_EXPORT lispval kno_init_oid_value(lispval oid,lispval value)
 {
-  kno_pool p = kno_oid2pool(oid);
-  if (p == NULL)
-    return kno_reterr(kno_AnonymousOID,"REPLACE-OID-VALUE!",NULL,oid);
-  else if (p == kno_zero_pool)
-    return kno_zero_pool_store(oid,value);
-  else {
-    if ( (p->pool_handler->lock == NULL) ||
-	 (U8_BITP(p->pool_flags,KNO_POOL_VIRTUAL)) ||
-	 (U8_BITP(p->pool_flags,KNO_POOL_NOLOCKS)) ) {
-      if (kno_hashtable_op(&(p->pool_cache),kno_table_default,oid,value))
-	return value;
-      else {
-	kno_decref(value);
-	return kno_oid_value(oid);}}
-    else if (kno_hashtable_probe(&(p->pool_changes),oid)) {
-      if (kno_hashtable_op(&(p->pool_changes),kno_table_default,oid,value))
-	return value;
-      else return kno_get_oid_value(p,oid);}
-    else {
-      kno_hashtable_op(&(p->pool_cache),kno_table_default,oid,value);
-      return 1;}}
+  if (USUALLY(OIDP(oid))) {
+    kno_pool p = kno_oid2pool(oid);
+    if (p == NULL)
+      return kno_reterr(kno_AnonymousOID,"REPLACE-OID-VALUE!",NULL,oid);
+    else return init_oid_value(oid,value,p);}
+  else return kno_type_error("oid","kno_init_oid_value",oid);
 }
 
 /* Fetching OID values */
 
+KNO_EXPORT lispval kno_pool_get(kno_pool p,lispval oid)
+{
+  if (p == NULL) p = kno_oid2pool(oid);
+  if (p == NULL) return KNO_EMPTY;
+  if (p == kno_zero_pool)
+    return kno_zero_pool_value(oid);
+  else init_cache_level(p);
+  lispval v = VOID;
+  int is_locked = 0;
+  if ( (p->pool_changes.table_n_keys) &&
+       (kno_hashtable_probe_novoid(&(p->pool_changes),oid)) ) {
+    v = kno_hashtable_get(&(p->pool_changes),oid,KNO_VOID);
+    if (KNO_VOIDP(v))
+      v = kno_hashtable_get(&(p->pool_cache),oid,KNO_VOID);
+    else if (v != KNO_LOCKHOLDER)
+      return v;
+    else is_locked=1;}
+  else if ( (p->pool_cache_level>0) && (p->pool_cache.table_n_keys > 0) ) {
+    v = kno_hashtable_get(&(p->pool_cache),oid,KNO_VOID);
+    if (!(KNO_VOIDP(v))) return v;}
+  else NO_ELSE;
+  lispval fetched = (p->pool_handler->fetch) ?
+    (p->pool_handler->fetch(p,oid)) : (KNO_VOID);
+  if (KNO_ABORTED(fetched)) return fetched;
+  else if ( (p->pool_cache_level == 0) && (is_locked==0) )
+    return fetched;
+  /* Handle caching */
+  else if (is_locked) {
+    if (kno_hashtable_test(&(p->pool_cache),oid,KNO_LOCKHOLDER))
+      kno_hashtable_store(&(p->pool_cache),oid,fetched);
+    if (KNO_TABLEP(fetched)) modify_readonly(fetched,0);
+    return fetched;}
+  else if ( ! ( (p->pool_flags) & (KNO_STORAGE_VIRTUAL) ) )
+    kno_hashtable_store(&(p->pool_cache),oid,fetched);
+  else NO_ELSE;
+  if (KNO_TABLEP(fetched)) {
+    if ( (p->pool_handler->lock == NULL) ||
+	 (U8_BITP(p->pool_flags,KNO_POOL_VIRTUAL)) ||
+	 (U8_BITP(p->pool_flags,KNO_POOL_NOLOCKS)) )
+      modify_readonly(fetched,0);
+    else modify_readonly(fetched,2);}
+  return fetched;
+}
+
 KNO_EXPORT lispval kno_pool_fetch(kno_pool p,lispval oid)
 {
-  lispval v = VOID;
   init_cache_level(p);
   if (p == kno_zero_pool)
     return kno_zero_pool_value(oid);
   else if (p->pool_handler->fetch)
-    v = p->pool_handler->fetch(p,oid);
-  else if (p->pool_cache_level)
-    v = kno_hashtable_get(&(p->pool_cache),oid,EMPTY);
-  else {}
-  if (KNO_ABORTP(v)) return v;
-  else if (p->pool_cache_level == 0)
-    return v;
-  /* If it's locked, store it in the locks table */
-  else if ( (p->pool_changes.table_n_keys) &&
-	    (kno_hashtable_op(&(p->pool_changes),
-			      kno_table_replace_novoid,oid,v)) )
-    return v;
-  else if ( (p->pool_handler->lock == NULL) ||
-	    (U8_BITP(p->pool_flags,KNO_POOL_VIRTUAL)) ||
-	    (U8_BITP(p->pool_flags,KNO_POOL_NOLOCKS)) )
-    modify_readonly(v,0);
-  else modify_readonly(v,1);
-  if ( ( (p->pool_cache_level) > 0) &&
-       ( ! ( (p->pool_flags) & (KNO_STORAGE_VIRTUAL) ) ) )
-    kno_hashtable_store(&(p->pool_cache),oid,v);
-  return v;
+    return p->pool_handler->fetch(p,oid);
+  else return KNO_EMPTY;
 }
 
 KNO_EXPORT int kno_pool_prefetch(kno_pool p,lispval oids)
@@ -672,7 +752,7 @@ KNO_EXPORT int kno_pool_prefetch(kno_pool p,lispval oids)
     else {
       int n_fetches = 0;
       DO_CHOICES(oid,oids) {
-	lispval v = kno_pool_fetch(p,oid);
+	lispval v = kno_pool_get(p,oid);
 	if (KNO_ABORTP(v)) {
 	  KNO_STOP_DO_CHOICES; return v;}
 	n_fetches++; kno_decref(v);}
@@ -1641,73 +1721,6 @@ KNO_EXPORT void kno_pool_close(kno_pool p)
     p->pool_handler->close(p);
 }
 
-/* Callable versions of simple functions */
-
-KNO_EXPORT kno_pool _kno_oid2pool(lispval oid)
-{
-  int baseid = KNO_OID_BASE_ID(oid);
-  int baseoff = KNO_OID_BASE_OFFSET(oid);
-  struct KNO_POOL *top = kno_top_pools[baseid];
-  if (top == NULL) return NULL;
-  else if (baseoff<top->pool_capacity) return top;
-  else if (top->pool_capacity) {
-    u8_raise(_("Corrupted pool table"),"kno_oid2pool",NULL);
-    return NULL;}
-  else return kno_find_subpool((struct KNO_GLUEPOOL *)top,oid);
-}
-KNO_EXPORT lispval kno_get_oid_value(kno_pool p,lispval oid)
-{
-  KNOTC *knotc = ((KNO_USE_THREADCACHE)?(kno_threadcache):(NULL));
-  lispval value = KNO_VOID;
-  if (knotc) {
-    value = ((knotc->oids.table_n_keys)?
-	     (kno_hashtable_get(&(knotc->oids),oid,VOID)):
-	     (VOID));
-    if (!(VOIDP(value))) return value;}
-  if (p == NULL) p = kno_oid2pool(oid);
-  if (p == NULL)
-    return EMPTY;
-  else if (p == kno_zero_pool)
-    return kno_zero_pool_value(oid);
-  else if ( (p->pool_cache_level) &&
-	    (p->pool_changes.table_n_keys) &&
-	    (kno_hashtable_probe_novoid(&(p->pool_changes),oid)) ) {
-    /* This is where the OID is 'locked' (has an entry in the changes
-       table */
-    value = kno_hashtable_get(&(p->pool_changes),oid,VOID);
-    if (value == KNO_LOCKHOLDER) {
-      lispval fetched = kno_pool_fetch(p,oid);
-      if (KNO_ABORTP(fetched)) {
-	kno_seterr("FetchFailed","kno_get_oid_value",p->poolid,oid);
-	return fetched;}
-      if (RARELY( (p->pool_flags) & (KNO_STORAGE_VIRTUAL) ))
-	return fetched;
-      else if (kno_hashtable_init_value(&(p->pool_changes),oid,fetched)) {
-	if (KNO_TABLEP(fetched)) modify_readonly(fetched,0);
-	return fetched;}
-      else {
-	/* The value there was changed while we were fetching */
-	value = kno_hashtable_get(&(p->pool_changes),oid,VOID);
-	kno_decref(fetched);
-	/* If the value is VOID, we fall through to getting the value from the cache. */
-	if (!(KNO_VOIDP(value))) return value;}
-      return value;}
-    else return value;}
-  if (p->pool_cache_level)
-    value = kno_hashtable_get(&(p->pool_cache),oid,VOID);
-  else value = VOID;
-  if (VOIDP(value)) {
-    if (kno_ipeval_delay(1)) {
-      CHOICE_ADD(kno_pool_delays[p->pool_serialno],oid);
-      return EMPTY;}
-    else value = kno_pool_fetch(p,oid);}
-  if (KNO_ABORTP(value)) {
-    kno_seterr("FetchFailed","kno_get_oid_value",p->poolid,oid);
-    return value;}
-  if (knotc) kno_hashtable_store(&(knotc->oids),oid,value);
-  return value;
-}
-
 KNO_EXPORT int kno_pool_storen(kno_pool p,int n,lispval *oids,lispval *values)
 {
   if (n==0)
@@ -1751,7 +1764,7 @@ KNO_EXPORT lispval kno_pool_fetchn(kno_pool p,lispval oids_arg)
 	return kno_make_hashtable(NULL,8);
       else if (n==1) {
 	lispval table=kno_make_hashtable(NULL,16);
-	lispval value = kno_get_oid_value(p,oids);
+	lispval value = get_oid_value(oids,p);
 	kno_store(table,oids,value);
 	kno_decref(value);
 	kno_decref(oids);
@@ -2339,7 +2352,7 @@ static lispval pool_get(kno_pool p,lispval key,lispval dflt)
       else if ((p->pool_flags&KNO_POOL_ADJUNCT) ?
 	       (offset<capacity) :
 	       (offset<load))
-	return kno_get_oid_value(p,key);
+	return get_oid_value(key,p);
       else return kno_incref(dflt);}}
   else return kno_incref(dflt);
 }
@@ -2352,7 +2365,7 @@ static lispval pool_tableget(lispval arg,lispval key,lispval dflt)
   else return kno_incref(dflt);
 }
 
-KNO_EXPORT lispval kno_pool_get(kno_pool p,lispval key)
+KNO_EXPORT lispval kno_pool_getkey(kno_pool p,lispval key)
 {
   return pool_get(p,key,EMPTY);
 }

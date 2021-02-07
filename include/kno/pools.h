@@ -187,7 +187,7 @@ KNO_EXPORT struct KNO_POOL _kno_zero_pool;
 
 KNO_EXPORT lispval kno_zero_pool_value(lispval oid);
 KNO_EXPORT lispval kno_zero_pool_store(lispval oid,lispval);
-
+KNO_EXPORT lispval kno_zero_pool_init(lispval oid,lispval);
 
 KNO_EXPORT int kno_register_pool(kno_pool p);
 KNO_EXPORT lispval kno_all_pools(void);
@@ -311,11 +311,10 @@ KNO_EXPORT kno_pool kno_find_subpool(struct KNO_GLUEPOOL *gp,lispval oid);
 
 KNO_EXPORT kno_pool _kno_oid2pool(lispval oid);
 KNO_EXPORT lispval kno_oid_value(lispval oid);
-KNO_EXPORT lispval kno_get_oid_value(kno_pool p,lispval oid);
 
 /* Using pools like tables */
 
-KNO_EXPORT lispval kno_pool_get(kno_pool p,lispval key);
+KNO_EXPORT lispval kno_pool_getkey(kno_pool p,lispval key);
 KNO_EXPORT int kno_pool_store(kno_pool p,lispval key,lispval value);
 KNO_EXPORT lispval kno_pool_keys(lispval arg);
 
@@ -344,6 +343,7 @@ KNO_EXPORT int kno_execute_pool_delays(kno_pool p,void *data);
 
 /* OID Access */
 
+KNO_EXPORT lispval kno_pool_get(kno_pool p,lispval oid);
 KNO_EXPORT lispval kno_pool_fetch(kno_pool p,lispval oid);
 KNO_EXPORT lispval kno_pool_alloc(kno_pool p,int n);
 KNO_EXPORT int kno_pool_prefetch(kno_pool p,lispval oids);

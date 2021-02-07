@@ -28,6 +28,9 @@ u8_condition kno_BadAdjunct=_("Bad adjunct table"),
   kno_AdjunctError=_("Pool adjunct error"),
   kno_BadOIDValue=_("Bad OID store value");
 
+lispval get_oid_value(lispval oid,kno_pool p);
+lispval init_oid_value(lispval oid,lispval v,kno_pool p);
+
 /* TODO: Fix finish/modify semantics
 
    There's a problem with using OIDs after they've been finished.
@@ -280,7 +283,7 @@ static lispval adjunct_fetch(kno_adjunct adj,lispval frame,lispval dflt)
     ((HASHTABLEP(store)) ?
      (kno_hashtable_get((kno_hashtable)store,frame,KNO_EMPTY)) :
      (KNO_INDEXP(store)) ? (kno_index_get(l2x(store),frame)) :
-     (KNO_POOLP(store)) ? (kno_pool_get(l2p(store),frame)) :
+     (KNO_POOLP(store)) ? (kno_pool_getkey(l2p(store),frame)) :
      (TYPEP(store,kno_consed_index_type)) ?
      (kno_index_get(((kno_index)store),frame)) :
      (kno_get(store,frame,VOID)));
@@ -321,10 +324,13 @@ KNO_EXPORT lispval kno_oid_get(lispval f,lispval slotid,lispval dflt)
     kno_adjunct adj = get_adjunct(p,slotid);
     if (adj)
       return adjunct_fetch(adj,f,dflt);}
+  // TODO: remove free smap?
   kno_adjunct adj = get_adjunct(p,slotid); lispval smap; int free_smap = 0;
   if (adj)
     return adjunct_fetch(adj,f,dflt);
-  else {smap = kno_get_oid_value(p,f); free_smap = 1;}
+  else {
+    smap = get_oid_value(f,p);
+    free_smap = 1;}
   if (KNO_ABORTP(smap))
     return smap;
   else if (SLOTMAPP(smap)) {
@@ -344,7 +350,7 @@ KNO_EXPORT lispval kno_oid_get(lispval f,lispval slotid,lispval dflt)
     return kno_incref(dflt);}
 }
 
-#if 0
+#if 1
 static lispval edit_oid_value(kno_pool p,lispval f)
 {
   lispval v = kno_locked_oid_value(p,f);
@@ -352,7 +358,7 @@ static lispval edit_oid_value(kno_pool p,lispval f)
   else if (IMMEDIATEP(v)) {
     if ( (KNO_EMPTYP(v)) || (KNO_VOIDP(v)) || (v == KNO_LOCKHOLDER) ) {
       v = kno_make_slotmap(3,0,NULL);
-      v = kno_init_oid_value(f,v);
+      v = init_oid_value(f,v,p);
       return v;}}
   else if (KNO_TABLEP(v))
     return v;
@@ -553,7 +559,7 @@ KNO_EXPORT int kno_oid_test(lispval f,lispval slotid,lispval value)
     lispval smap; int retval;
     kno_adjunct adj = get_adjunct(p,slotid);
     if (adj) return adjunct_test(adj,f,value);
-    else smap = kno_get_oid_value(p,f);
+    else smap = get_oid_value(f,p);
     if (KNO_ABORTP(smap))
       retval = kno_interr(smap);
     else if (SLOTMAPP(smap))
@@ -583,7 +589,7 @@ KNO_EXPORT lispval kno_oid_keys(lispval f)
   if (RARELY(p == NULL))
     return EMPTY;
   else {
-    lispval smap = kno_get_oid_value(p,f);
+    lispval smap = get_oid_value(f,p);
     if (KNO_ABORTP(smap)) return smap;
     else if (TABLEP(smap)) {
       lispval result = kno_getkeys(smap);

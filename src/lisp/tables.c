@@ -2700,7 +2700,9 @@ static int do_hashtable_op(struct KNO_HASHTABLE *ht,kno_tableop op,
        (op == kno_table_increment_if_present)))
     return 0;
   lispval curval = result->kv_val;
-  if ( (op == kno_table_init) && (!(KNO_EMPTYP(curval))) )
+  if ( (op == kno_table_init) &&
+       (! ( (KNO_EMPTYP(curval)) || (KNO_VOIDP(curval)) ||
+	    (KNO_NULLP(curval)) || (KNO_LOCKHOLDER == curval) ) ) )
     return 0;
   else switch (op) {
   case kno_table_replace_novoid:
@@ -2761,6 +2763,7 @@ static int do_hashtable_op(struct KNO_HASHTABLE *ht,kno_tableop op,
   case kno_table_default:
     if ((EMPTYP(curval)) || (VOIDP(curval))) {
       result->kv_val = kno_incref(value);}
+    else added=0;
     break;
   case kno_table_increment_if_present:
     if (VOIDP(curval)) break;
@@ -2862,8 +2865,8 @@ static int do_hashtable_op(struct KNO_HASHTABLE *ht,kno_tableop op,
                 u8_sprintf(buf,64,"0x%x",op));
     break;}
   }
-  KNO_XTABLE_SET_MODIFIED(ht,1);
-  if ( (result) && (PRECHOICEP(result->kv_val)) ) {
+  if (added) {KNO_XTABLE_SET_MODIFIED(ht,1);}
+  if ( (added) && (result) && (PRECHOICEP(result->kv_val)) ) {
     struct KNO_PRECHOICE *ch=KNO_XPRECHOICE(result->kv_val);
     if (ch->prechoice_uselock) {
       u8_destroy_mutex(&(ch->prechoice_lock));
