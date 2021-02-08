@@ -22,128 +22,285 @@
    gp/path gp/mkpath gp/subpath gp/makepath
    gpath->string gp/string gp>s gpath->location
    gp:config gpath/handler
-   gp/urlfetch gp/urlinfo
+   gp/urlfetch
    dtype->gpath gpath->dtype
    datauri/fetch+ datauri/info
    gp/copy! gp/copy*!})
 
-;;; This is a generic path facility (it grew out of the savecontent
-;;; module, which still exists for legacy and historical reasons).  A
-;;; gpath is just a CONS (for now) of a root and a relative path.
-
 (use-module '{net/mimetable ezrecords})
 
-(define gp/urlsubst {})
-(varconfig! gp:urlsubst gp/urlsubst #f)
+(define url-prefixes #/(http:|https:|ftp:)/i)
+(define simple-schema-ids #/(http:|https:|ftp:|file:|local:)/i)
 
-(defrecord memfile mimetype content modified (hash #f))
+(define-init gpath-schema-ids (make-hashtable))
+(store! gpath-schema-ids '{http https} #t)
 
-;; (defrecord gpath-handler name get (save #f)
-;;   (tostring #f) (fromstring #f) (fromuri #f) (rootpath #f) (prefixes {}))
-;; (define gpath/handler cons-gpath-handler)
+(define schema-prefix #/[a-z0-9]*/i)
 
-;; (define-init gpath-handlers (make-hashtable))
+;;; This is a generic path facility.  A gpath is either a string
+;;; or a gpath 'root' or a cons of a gpath 'root' and a string.
 
-;; (config-def! 'GPATH:HANDLERS
-;; 	     (lambda (var (val))
-;; 	       (if (bound? val)
-;; 		   (if (gpath-handler? val)
-;; 		       (store! gpath-handlers (gpath-handler-name val)
-;; 			       val)
-;; 		       (irritant val |BadGPathHandler|))
-;; 		   (get gpath-handlers (getkeys gpath-handlers)))))
+;;; Gpath roots take the following methods:
+;;;  gpath? self (opts #f) (path #f)  ==> boolean
+;;;  gpath:exists? self (opts #f) (path #f)  ==> boolean
+;;;  gpath:location? self (opts #f) (path #f) ==> boolean
+;;;  gpath:metadata self  (opts #f) (path #f) (slotid #f) ==> keymap or value (when slotid given)
+;;;  gpath:content self (opts #f) (path #f) ==> string or packet
+;;;  gpath:get self (opts #f) (path #f) ==> keymap with content slot
+;;; And may take:
+;;;  gpath:save self (content) (path #f) (opts #f) ==> keymap
 
-(define-init simple-gpath-prefixes {"http:" "https:"})
-(varconfig! gpath:prefixes:simple simple-gpath-prefixes #f choice)
+(define (gp/exists? ref (opts #f))
+  (cond ((string? ref)
+	 (cond ((string-starts-with? ref url-prefixes)
+		(let ((info (urlhead ref opts)))
+		  (and (exists? info) info
+		       (test info 'response)
+		       (<= 200 (get info 'response) 299))))
+	       ((has-prefix opts "file:///") (file-exists? (slice ref 8)))
+	       ((has-prefix? ref "data:") #t)
+	       ((string-starts-with? ref #((isalnum+) ":"))
+		(try (gp/exists? (->gpath ref opts) opts) #f))
+	       (else (file-exists? ref))))
+	((and (pair? ref) (string? (cdr ref)) (kno/handles? (car ref) 'gpath:exists?))
+	 (kno/send (car ref) 'gpath:exists? opts (cdr ref)))
+	((and (pair? ref) (string? (cdr ref)) (kno/handles? (car ref) 'gpath:get))
+	 (and (try (kno/send (car ref) 'gpath:get opts (cdr ref)) #f) #t))
+	((kno/handles? ref 'gpath:exists?) (kno/send ref 'gpath:exists? opts))
+	((kno/handles? ref 'gpath:get) 
+	 (and (try (kno/send ref 'gpath:get opts) #f) #t))
+	((testopt opts 'onerror)
+	 (let ((errval (getopt opts 'onerror)))
+	   (if (applicable? errval) (errval ref opts)
+	       errval)))
+	(else (irritant ref |BadGPath| gp/exists?))))
 
-(define-init gpath-prefixes (make-hashtable))
-(store! gpath-prefixes '{http https} #t)
+(define (gp/location? ref (opts #f))
+  (cond ((and (string? ref) (has-suffix ref "/")) #t)
+	((string? ref)
+	 (cond ((string-starts-with? ref url-prefixes)
+		(let ((info (urlhead ref opts)))
+		  (and (exists? info) info
+		       (test info 'response 404))))
+	       ((has-prefix opts "file:///") 
+		(file-directory? (slice ref 8)))
+	       ((has-prefix? ref "data:") #f)
+	       ((string-starts-with? ref #((isalnum+) ":"))
+		(try (gp/location? (->gpath ref opts) opts) #f))
+	       (else (and (file-exists? ref) (not (file-directory? ref))))))
+	((and (pair? ref) (string? (cdr ref)) (has-suffix (cdr ref) "/")) #t)
+	((and (pair? ref) (string? (cdr ref)) (kno/handles? (car ref) 'gpath:location?))
+	 (kno/send (car ref) 'gpath:local? opts (cdr ref)))
+	((kno/handles? ref 'gpath:location?) (kno/send ref 'gpath:location? opts))
+	((testopt opts 'onerror)
+	 (let ((errval (getopt opts 'onerror)))
+	   (if (applicable? errval) (errval ref opts)
+	       errval)))
+	(else (irritant ref |BadGPath| gp/location?))))
 
-(define-init *gpath-tags* {})
+(define (gp/metadata ref (opts #f) (attrib #f))
+  (cond ((string? ref)
+	 (cond ((string-starts-with? ref url-prefixes) 
+		(if attrib 
+		    (try (get (gp/urlfetch ref opts #f) attrib) #f)
+		    (gp/urlfetch ref opts #f)))
+	       ((has-prefix opts "file:///") 
+		(get-file-metadata (slice ref 8) opts attrib))
+	       ((has-prefix? ref "data:") (datauri/fetch+ ref #t))
+	       ((string-starts-with? ref #((isalnum+) ":"))
+		(gp/metadata (->gpath ref opts) opts attrib))
+	       ((file-exists? ref) (get-file-metadata ref opts attrib))
+	       (else #f)))
+	((and (pair? ref) (not (string? (cdr ref))))
+	 (irritant ref |BadGPath| gp/content))
+	((not (or (pair? ref) (not (gpath-root? ref))))
+	 (irritant ref  |BadGPath| gp/content))
+	((and (pair? ref) (kno/handles? (car ref) 'gpath:metadata))
+	 (kno/send (car ref) 'gpath:metadata opts (cdr ref) attrib))
+	((and (pair? ref) (kno/handles? (car ref) 'gpath:get))
+	 (if attrib
+	     (try (get (kno/send (car ref) 'gpath:get opts (cdr ref)) attrib) #f)
+	     (kno/send (car ref) 'gpath:get opts (cdr ref))))
+	((kno/handles? ref 'gpath:metadata) (kno/send ref 'gpath:metadata opts attrib))
+	((kno/handles? ref 'gpath:get) 
+	 (if attrib
+	     (try (get (kno/send ref 'gpath:get opts) attrib) #f)
+	     (kno/send ref 'gpath:get opts)))
+	((testopt opts 'onerror)
+	 (let ((errval (getopt opts 'onerror)))
+	   (if (applicable? errval) (errval ref opts)
+	       errval)))
+	(else (irritant ref |BadGPath| gp/metadata))))
 
-(define gpath-pattern
-  `#((label scheme (isalnum+) #t) ":" 
-     (opt (label domain #("//" (not> "/") "/")))
-     (label path (rest))))
+(define (gp/content ref (opts #f))
+  (cond ((string? ref)
+	 (cond ((string-starts-with? ref url-prefixes)
+		(get-url-content ref opts))
+	       ((has-prefix opts "file:///") (get-file-content (slice ref 8) opts))
+	       ((has-prefix? ref "data:") (get (datauri/fetch+ ref) 'content))
+	       ((string-starts-with? ref #((isalnum+) ":"))
+		(gp/content (->gpath ref opts) opts))
+	       ((file-exists? ref) (get-file-content ref opts))))
+	((and (pair? ref) (not (string? (cdr ref))))
+	 (irritant ref |BadGPath| gp/content))
+	((not (or (pair? ref) (not (gpath-root? ref))))
+	 (irritant ref  |BadGPath| gp/content))
+	((and (pair? ref) (kno/handles? (car ref) 'gpath:content))
+	 (kno/send (car ref) 'gpath:content opts (cdr ref)))
+	((and (pair? ref) (kno/handles? (car ref) 'gpath:get))
+	 (try (get (kno/send (car ref) 'gpath:get opts (cdr ref)) 'content) #f))
+	((kno/handles? ref 'gpath:content) (kno/send ref 'gpath:content opts))
+	((kno/handles? ref 'gpath:get) 
+	 (try (get (kno/send ref 'gpath:get opts) 'content) #f))
+	((testopt opts 'onerror)
+	 (let ((errval (getopt opts 'onerror)))
+	   (if (applicable? errval) (errval ref opts)
+	       errval)))
+	(else (irritant ref |BadGPath| gp/content))))
 
-(define (gpath-root? x)
-  (or (hashtable? x)
-      (and (compound? x *gpath-tags*))
-      (if (compound? x)
-	  (and (handles? x 'gpath:exists)
-	       (begin (set+! *gpath-tags* (compound-tag x))
-		 #t))
-	  (handles? x 'gpath:exists))))
-(define (gpath? x)
-  (cond ((not (string? x)) (gpath-root? x))
-	((has-prefix x {"http:" "https:" "ftp:" "data:"}) x)
-	((position #\: x)
-	 (test gpath-prefixes (string->symbol (downcase (slice x 0 (position #\: x))))))
-	(else (not (textsearch '(isspace) x)))))
+(define (gp/get ref (opts #f))
+  (cond ((string? ref)
+	 (cond ((string-starts-with? ref url-prefixes) (gp/urlfetch ref opts #t))
+	       ((has-prefix opts "file:///") (get-file-metadata (slice ref 8) opts #t))
+	       ((has-prefix? ref "data:") (datauri/fetch+ ref))
+	       ((string-starts-with? ref #((isalnum+) ":"))
+		(gp/content (->gpath ref opts) opts))
+	       ((file-exists? ref) (get-file-metadata ref opts #t))
+	       (else #f)))
+	((and (pair? ref) (string? (cdr ref)) (kno/handles? (car ref) 'gpath:get))
+	 (kno/send (car ref) 'gpath:get opts (cdr ref)))
+	((and (pair? ref) (string? (cdr ref))
+	      (or (kno/handles? (car ref) 'gpath:content)
+		  (kno/handles? (car ref) 'gpath:metadata)))
+	 (let ((metadata (if (kno/handles? (car ref) 'gpath:metadata)
+			     (deep-copy (kno/send (car ref) 'gpath:metadata opts (cdr ref)))
+			     #[]))
+	       (content (and (kno/handles? (car ref) 'gpath:content)
+			     (kno/send (car ref) 'gpath:content opts (cdr ref)))))
+	   (when (and (exists? content) content)
+	     (store! metadata 'content content)
+	     (store! metadata 'content-length (length content)))
+	   metadata))
+	((kno/handles? ref 'gpath:get) (kno/send ref 'gpath:get opts))
+	((or (kno/handles? ref 'gpath:content) (kno/handles? ref 'gpath:metadata))
+	 (let ((metadata (if (kno/handles? ref 'gpath:metadata)
+			     (deep-copy (kno/send ref 'gpath:metadata opts))
+			     #[]))
+	       (content (and (kno/handles? (car ref) 'gpath:content)
+			     (kno/send (car ref) 'gpath:content opts))))
+	   (when (and (exists? content) content)
+	     (store! metadata 'content content)
+	     (store! metadata 'content-length (length content)))
+	   metadata))
+	((testopt opts 'onerror)
+	 (let ((errval (getopt opts 'onerror)))
+	   (if (applicable? errval) (errval ref opts)
+	       errval)))
+	(else (irritant ref |BadGPath| gp/content))))
 
-(define (->gpath val (root #f) (opts #f))
-  (cond ((and (string? val) (has-prefix val {"http:" "https:" "ftp:" "data:"})) val)
-	((string? val)
-	 (let* ((parsed (text->frame gpath-pattern val))
-		(scheme (get parsed 'scheme))
-		(domain (get parsed 'domain))
-		(path (get parsed 'path))
-		(handler (get gpath-prefixes scheme)))
-	   (cond ((eq? handler #t) val)
-		 ((fail? handler) (irritant val |Bad GPath|))
-		 (else (handler val opts root)))))
-	((gpath-root? val) val)
-	((and (pair? val) (string? (cdr val)) (gpath-root? (car val))) val)
-	(else (irritant val '|NotGPath|))))
+(define (gpath->string path (opts #f))
+  (cond ((string? path) path)
+	((and (pair? path) (string? (car path))
+	      (or (empty-list? (cdr path)) (empty-string? (cdr path))))
+	 (car path))
+	((and (pair? path) (string? (car path)) (string? (cdr path))
+	      (position #\/ (cdr path)))
+	 (mkpath (car path) (cdr path)))
+	;;((and (pair? path) (pair? (car path))) (gpath->string (gp/mkpath (car path) (cdr path))))
+	((and (pair? path) (hashtable? (car path)) (string? (cdr path)))
+	 (stringout "hashtable:" (cdr path)
+	   "//0x" (number->string (hashptr (car path)) 16) "/" (cdr path)))
+	((and (pair? path) (string? (cdr path)) (gpath-root? (car path)))
+	 (kno/send (car path) 'gpath:string opts (cdr path)))
+	((gpath-root? path) (kno/send (car path) 'gpath:string opts #f))
+	(else (irritant path |BadGPath|))))
+(define gp/string gpath->string)
+(define gp>s gpath->string)
 
-(define-init urish?
-  (lambda (x)
-    (and (string? x)
-	 (string-starts-with? x #/^[a-zA-Z.]{2,32}:/))))
+;;;; Filesystem access
 
-(define (guess-mimetype name (content) (opts #f))
-  (when (and (bound? content) (table? content) (not opts))
-    (set! opts content)
-    (set! content #f))
-  (or (and opts (getopt opts 'mimetype))
-      (try (path->mimetype (gp/basename name) #f opts) #f)
-      (if (and (bound? content) content)
-	  (if (string? content) "text"
-	      (if (packet? content) "application"
-		  "application/dtype"))
-	  (config 'mime:default))))
+(define (get-file-metadata ref (opts #f) (w/content #f))
+  (let* ((ctype (getopt opts 'content-type
+			(guess-mimetype (get-namestring ref) #f opts)))
+	 (encoding (getopt opts 'content-encoding (path->encoding (get-namestring ref))))
+	 (istext (and ctype (has-prefix ctype "text") (not encoding)))
+	 (charset (and istext (getopt opts 'text-encoding (ctype->charset ctype))))
+	 (result (frame-create #f
+		     'gpath ref 'gpathstring ref
+		     'rootpath (gp/rootpath ref)
+		     'content-type (or ctype {})
+		     'charset  (or charset {})
+		     'modtime (file-modtime ref))))
+    (when w/content
+      (let* ((content (if istext 
+			  (if charset 
+			      (filestring (abspath ref) charset)
+			      (filecontent (abspath ref)))
+			  (filedata (abspath ref))))
+	     (hash (md5 content)))
+	(store! result 'content content)
+	(store! result 'hash    hash)
+	(store! result 'md5     hash)))
+    result))
+(define (get-file-content ref (opts #f) (w/content #f))
+  (let* ((ctype (getopt opts 'content-type
+			(guess-mimetype (get-namestring ref) #f opts)))
+	 (encoding (getopt opts 'content-encoding (path->encoding (get-namestring ref))))
+	 (istext (and ctype (has-prefix ctype "text") (not encoding)))
+	 (charset (and istext (getopt opts 'text-encoding (ctype->charset ctype)))))
+    (if istext 
+	(if charset 
+	    (filestring (abspath ref) charset)
+	    (filecontent (abspath ref)))
+	(filedata (abspath ref)))))
 
-(define (checkdir dirpath)
-  (unless (string-starts-with? dirpath #((isalnum+) ":"))
-    (mkdirs dirpath))
-  (when (has-prefix dirpath "file:") (mkdirs (subseq dirpath 5)))
-  dirpath)
+;;; URL access
 
-(defambda (merge-headers . args)
-  (apply append (choice->list (pickstrings (elts args)))
-	 (choice->list (pick (elts args) pair?))))
+(define gp/urlsubsts {})
+(varconfig! gp:urlsubst gp/urlsubsts #f)
 
-(define charset-pat #("charset=" (label charset (not> ";"))))
+(define (gp/urlfetch url (opts #f) (w/content #f) (onerr) (max-redirects))
+  (default! onerr (getopt opts 'errval #f))
+  (default! max-redirects (getopt opts 'max-redirects #t))
+  (let* ((newurl (textsubst url (qc (getopt opts 'urlsubsts) gp/urlsubsts)))
+	 (curlopts (opt+ opts
+		       (and max-redirects
+			    #[follow ,(if (number? max-redirects) max-redirects #t)])))
+	 (response (if w/content (urlget newurl curlopts) (urlhead newurl curlopts))))
+    (if (and (exists? response) (table? response)
+	     (test response 'response)
+	     (<= 200 (get response 'response) 299)
+	     (test response '%content))
+	(let ((encoding (get response 'content-encoding))
+	      (hash (md5 (get response 'content))))
+	  (frame-create #f
+	    'gpath url 'gpathstring url 'rootpath (uripath url)
+	    'content-type (try (get response 'content-type) (guess-content-type url))
+	    'content-length
+	    (try (get response 'content-length) (length (get response 'content)))
+	    'modtime (get response 'last-modified)
+	    'content-encoding (get response 'content-encoding)
+	    'etag (get response 'etag) 
+	    'hash hash 'md5 (packet->base16 hash)
+	    'charset (try (get info 'content-charset)
+			  (ctype->charset (get info 'content-type)))
+	    'content-encoding  (get response 'content-encoding)
+	    'content (get response '%content)))
+	(if (not onerr)
+	    (if (equal? url newurl)
+		(irritant response |FailedURL| gp/urlfetch newurl)
+		(irritant response |FailedURL| gp/urlfetch newurl "(" url ")"))
+	    (if (applicable? onerr)
+		(onerr response opts url newurl)
+		onerr)))))
+(define (get-url-content ref opts)
+  (urlcontent ref opts))
 
-(defambda (get-charset ctype (opts #f))
-  (try (tryif opts (getopt opts 'charset))
-       (tryif (and (exists? ctype) ctype)
-	 (get (text->frames charset-pat (pickstrings ctype))
-	      'charset))
-       #f))
-
-(define *default-dirmode* 0x775) ;; rwxrwxr_x
-(varconfig! gpath:dirmode *default-dirmode*)
-
-(define (root-path path)
-  (if (not (string? path)) path
-      (if (has-prefix path "/") (slice path 1)
-	  (if (has-prefix path "./") (slice path 2)
-	      path))))
+;;; Data URIs
 
 (define datauri-pat
   #("data:" (label content-type (not> ";")) ";" (label enc (not> ",")) ","
-    (label content (rest)))  )
+    (label content (rest))))
 (define (datauri/fetch+ string (justinfo #f))
   (let* ((parsed (text->frame datauri-pat string))
 	 (ctype (get parsed 'content-type))
@@ -175,154 +332,119 @@
 		 content-encoded ,(length data)
 		 content ,content])))))
 
-;;; Writing to a gpath
+;;; Path operations
 
-(defambda (gp/write! saveto name content
-	    (ctype #f) (charset #f) (opts #f) (encoding))
-  (when (urish? saveto) (set! saveto (->gpath saveto)))
-  (when (and ctype (table? ctype) (not opts))
-    (set! opts ctype) (set! ctype #f))
-  (when (and charset (table? charset) (not opts))
-    (set! opts charset) (set! charset #f))
-  (default! encoding
-    (getopt opts 'content-encoding (path->encoding name)))
-  (do-choices name
-    (let ((ctype (or ctype (guess-mimetype (get-namestring name) content opts)))
-	  (charset (or charset (get-charset ctype opts))))
-      ;; Do any charset conversion required by the CTYPE
-      (when (and charset (not encoding)
-		 (string? content)
-		 (not (overlaps? (downcase charset) {"utf8" "utf-8"})))
-	(set! content (packet->string (string->packet content) charset)))
-      (gp/save! (gp/mkpath saveto name) content ctype charset))))
-(define (datauri/info string) (datauri/fetch+ string #t))
+(define-init gpath-uri-recognizers '())
+(varconfig! gpath:recognizers gpath-uri-recognizers #f config:push)
 
-(define (get-namestring gpath)
-  (if (string? gpath) gpath
-      (if (pair? gpath) (cdr gpath)
-	  "")))
+(define gpath-pattern
+  `#((label scheme (isalnum+) #t) ":" 
+     (opt (label domain {#("//" (not> "/") "/") #("//(" (not> ")/") ")/")}))
+     (label path (rest))))
 
-(defambda (gp/save! dest content (ctype #f) (charset #f) (opts #f) (encoding #f))
-  (when (ambiguous? content) (irritant content |AmbiguousContent| gp/save!))
-  (set! dest (->gpath dest opts))
-  (when (urish? dest) (set! dest (->gpath dest)))
-  (when (and ctype (table? ctype) (not opts))
-    (set! opts ctype) (set! ctype #f))
-  (when (and charset (table? charset) (not opts))
-    (set! opts charset) (set! charset #f))
-  (unless encoding 
-    (set! encoding (getopt opts 'content-encoding (path->encoding  (get-namestring dest)))))
-  (if (exists? content)
-      (do-choices dest
-	(let ((ctype (or ctype (guess-mimetype content opts)))
-	      (charset (try (or charset (get-charset ctype opts)) #f))
-	      (headers (merge-headers (tryif encoding (glom "Content-Encoding: " encoding))
-				      (getopt opts 'headers))))
-	  (when (and (string? dest) (has-prefix dest {"http:" "https:"}))
-	    (set! dest (try (uri->gpath dest) dest)))
-	  (loginfo GP/SAVE! "Saving " (length content)
-		   (if (string? content) " characters of "
-		       (if (packet? content) " bytes of "))
-		   (if (and (exists? ctype) ctype)
-		       (printout (write ctype) " "))
-		   "content into " dest)
-	  ;; Do any charset conversion required by the CTYPE
-	  (when (and charset (string? content)
-		     (not (overlaps? (downcase charset) {"utf8" "utf-8"})))
-	    (set! content (packet->string (string->packet content) charset)))
-	  (cond ((and (string? dest) (string-starts-with? dest {"http:" "https:"}))
-		 (let ((req (urlput dest content ctype `#[METHOD PUT HEADERS ,headers])))
-		   (unless (response/ok? req)
-		     (if (response/badmethod? req)
-			 (let ((req (urlput dest content ctype `#[METHOD POST HEADERS ,headers])))
-			   (unless (response/ok? req)
-			     (error "Couldn't save to URL"  GP/SAVE!
-				    dest req)))
-			 (error "Couldn't save to URL" GP/SAVE!
-				dest req)))))
-		((string? dest) (write-file dest content))
-		((and (pair? dest) (hashtable? (car dest)))
-		 (store! (car dest) (cdr dest)
-			 (cons-memfile ctype content (timestamp)
-				       (packet->base16 (md5 content)))))
-		((and (pair? dest) (string? (car dest)) (string? (cdr dest)))
-		 (write-file (mkpath (car dest) (cdr dest)) content))
-		((and (pair? dest) (compound-type? (car dest))
-		      (test gpath-handlers (compound-tag (car dest)))
-		      (gpath-handler-save (get gpath-handlers (compound-tag (car dest)))))
-		 ((gpath-handler-save (get gpath-handlers (compound-tag (car dest))))
-		  (car dest) (cdr dest) content ctype
-		  (if charset (cons `#[charset ,charset] opts) opts)))
-		(else (error "Bad GP/SAVE call" GP/SAVE! #f dest)))
-	  (loginfo GP/SAVE! "Saved " (length content)
-		   (if (string? content) " characters of "
-		       (if (packet? content) " bytes of "))
-		   (if (and (exists? ctype) ctype)
-		       (printout (write ctype) " "))
-		   "content into " dest)))))
+(define (gpath-root? x)
+  (or (and (pair? x) (string? (cdr x)) (gpath-root? (car x)))
+      (kno/handles? x 'gpath?)
+      (kno/handles? x 'gpath:get)))
 
-(define writeout
-  (macro expr
-    `(,gp/save!
-	 ,(second expr)
-	 (,stringout ,@(cdr (cdr expr)))
-       (,guess-mimetype ,(second expr)))))
-(define gp/writeout writeout)
+(define (gpath? x)
+  (cond ((not (string? x)) (gpath-root? x))
+	((has-prefix x {"http:" "https:" "ftp:" "data:"}) x)
+	((position #\: x)
+	 (test gpath-schema-ids (string->symbol (downcase (slice x 0 (position #\: x))))))
+	(else (not (textsearch '(isspace) x)))))
 
-(define writeout/type
-  (macro expr
-    `(,gp/save!
-	 ,(second expr)
-	 (,stringout ,@(cdr (cdr (cdr expr))))
-       ,(third expr))))
+(define (file-root? x)
+  (and (string? x) 
+       (or (string-starts-with? x #/file:/i)
+	   (not (string-starts-with? x schema-prefix)))))
 
-;; For generating text files, printout style, this saves the standard
-;; output to the designated gpath
-(define gp/writeout!
-  (macro expr
-    `(,gp/write!
-	 ,(second expr) ,(third expr)
-	 (,stringout ,@(cdr (cdr (cdr expr))))
-       (,guess-mimetype ,(third expr)))))
+(define (->gpath val (root #f) (opts #f))
+  (cond ((string? val)
+	 (cond ((not (string-starts-with? val schema-prefix)) val)
+	       ((string-starts-with? val url-prefix)
+		(recognize-url val))
+	       (else (let* ((parsed (text->frame gpath-pattern val))
+			    (scheme (get parsed 'scheme))
+			    (domain (get parsed 'domain))
+			    (path (get parsed 'path))
+			    (handler (get gpath-schema-ids scheme)))
+		       (cond ((eq? handler #t) val)
+			     ((fail? handler) (irritant val |Bad GPath|))
+			     (else (handler val opts root)))))))
+	((and (pair? val) (or (string? (cdr val)) (empty-list? (cdr val)))
+	      (gpath-root? val))
+	 val)
+	((gpath-root? val) val)
+	(else (irritant val '|BadGPath|))))
 
-;; This writes out with an explicit mimetype
-(define gp/writeout+!
-  (macro expr
-    `(,gp/write!
-	 ,(second expr) ,(third expr)
-	 (,stringout ,@(cdr (cdr (cdr (cdr expr)))))
-       ,(fourth expr))))
+(define (recognize-url url)
+  (let ((found #f))
+    (dolist (handler gpath-uri-recognizers)
+      (set! found (handler url))
+      (when found (break)))
+    (or found url)))
 
-(define (string->root string)
-  (cond ((not (string? string)) (irritant string |GPathNotString|))
-	(else (uribase string))))
+;;; Other options
+
+(defambda (gp/has-suffix gpath suffixes (casematch #f))
+  (if casematch
+      (string-ends-with? (gp/basename gpath) suffixes)
+      (string-ends-with? (downcase (gp/basename gpath)) (downcase suffixes))))
+
+(defambda (gp/has-prefix gpath prefixes (casematch #f))
+  (if (pair? gpath)
+      (if casematch
+	  (has-prefix (cdr gpath) prefixes)
+	  (has-prefix (downcase (cdr gpath)) (downcase prefixes)))
+      (if (string? gpath)
+	  (if casematch
+	      (has-prefix gpath prefixes)
+	      (has-prefix (downcase gpath) (downcase prefixes)))
+	  #f)))
+
+(define (gp/localpath? gpath)
+  (and (string? gpath)
+       (or (string-starts-with? gpath #/file:/i)
+	   (not (string-starts-with gpath schema-prefix)))))
+
+(define (gp:config spec) (->gpath spec))
+
+;;; Support functions
+
+(define (guess-mimetype name (content) (opts #f))
+  (when (and (bound? content) (table? content) (not opts))
+    (set! opts content)
+    (set! content #f))
+  (or (and opts (getopt opts 'mimetype))
+      (try (path->mimetype (gp/basename name) #f opts) #f)
+      (if (and (bound? content) content)
+	  (if (string? content) "text"
+	      (if (packet? content) "application"
+		  "application/dtype"))
+	  (config 'mime:default))))
+
+;;; Path operations
 
 (define (gp/basename path)
-  (if (and (string? path) (has-prefix path simple-gpath-prefixes))
-      (basename path)
-      (begin
-	(when (urish? path) (set! path (->gpath path)))
-	(cond ((and (pair? path) (null? (cdr path)))
-	       (gp/basename (car path)))
-	      ((pair? path) (gp/basename (cdr path)))
-	      ((and (string? path) (has-prefix path "data:"))
-	       (glom "data-" (packet->base16 (md5 path))
-		 (try (ctype->suffix (get (datauri/info path) 'content-type) ".")
-		      "")))
-	      ((string? path) (basename path))
-	      (else "")))))
+  (cond ((pair? path)
+	 (if (or (empty-list? (cdr path)) (empty-string? (cdr path)))
+	     (gp/basename (car path))
+	     (gp/basename (cdr path))))
+	((not (string? path)) (irritant path |BadGPath| gp/basename))
+	((not (string-starts-with? path schema-prefix)) (basename path))
+	((string-starts-with? path simple-schema-ids) (basename path))
+	((string-starts-with path #/data:/i)
+	 (glom "data-" (packet->base16 (md5 path))
+	   (try (ctype->suffix (get (datauri/info path) 'content-type) ".")
+		"")))
+	(else (basename path))))
 
 (define (gp/rootpath path)
   (set! path (->gpath path))
-  (if (urish? path) (set! path (->gpath path)))
   (cond ((pair? path)
 	 (mkpath (gp/rootpath (car path))
 		 (strip-prefix (cdr path) "/")))
-	((and (compound-type? path) (test gpath-handlers (compound-tag path)))
-	 (if (gpath-handler-rootpath (get gpath-handlers (compound-tag path)))
-	     ((gpath-handler-rootpath (get gpath-handlers (compound-tag path)))
-	      path)
-	     ""))
 	((and (string? path) (has-prefix path "data:")) 
 	 (gp/basename path))
 	((and (string? path) (file-directory? path)) (mkpath path ""))
@@ -336,80 +458,53 @@
 	 (has-suffix (cdr path) "/"))
 	(else #f)))
 
-(define (gp/location path)
-  (set! path (->gpath path))
-  (cond ((and (pair? path) (or (null? (cdr path)) (empty-string? (cdr path))))
-	 (car path))
-	((and (pair? path) (string? (cdr path)) (has-suffix (cdr path) "/"))
-	 (gp/mkpath (car path) (slice (cdr path) 0 -1)))
-	((and (pair? path) (string? (cdr path)) (position #\/ (cdr path)))
-	 (gp/mkpath (car path) (dirname (cdr path))))
-	((pair? path) (car path))
-	((and (string? path) (has-prefix path {"/" "~"})) (dirname path))
-	((and (string? path) (has-prefix path {"ftp:" "http:" "https:"}))
-	 (if (has-suffix path "/") path (dirname path)))
-	((and (string? path) (position #\/ path))
-	 (mkpath (getcwd) (dirname path)))
-	((string? path) (mkpath (getcwd) path))
-	(else path)))
+(define (gp/location path (opts #f))
+  (cond ((and (string? path) (not (string-starts-with? path schema-prefix)))
+	 (cond ((has-prefix path {"/" "~"}) (dirname path))
+	       ((has-suffix path "/") (abspath (dirname path)))
+	       ((position #\/ path) (abspath (dirname path)))
+	       (else (abspath (dirname path)))))
+	((and (string? path) (string-starts-with? path url-prefix)) (dirname path))
+	((string? path) 
+	 (let ((gpath (->gpath path)))
+	   (if (equal? gpath path) (dirname path)
+	       (gp/location gpath))))
+	((not (pair? path))
+	 (if (gpath-root? path)
+	     (and (kno/handles? path 'gpath:location)
+		  (kno/send path 'gpath:location opts))
+	     (irritant path |BadGPath| gp/location)))
+	((or (not (string? (cdr path))) (not (gpath-root? (car path))))
+	 (irritant path |BadGPath| gp/location))
+	((position #\/ (cdr path))
+	 (cons (car path) (dirname (cdr path))))
+	((kno/handles? (car path) 'gpath:location)
+	 (kno/send (car path) 'gpath:location opts (cdr path)))
+	(else #f)))
 
 (define (gpath->location path)
   (set! path (->gpath path))
   (if (gp/location? path) path (gp/location path)))
 
-(define (gpath->string path)
-  (cond ((string? path) path)
-	((and (pair? path)
-	      (or (null? (cdr path)) (empty-string? (cdr path))))
-	 (car path))
-	((and (pair? path) (string? (car path))
-	      (string? (cdr path))
-	      (position #\/ (cdr path)))
-	 (mkpath (car path) (cdr path)))
-	((and (pair? path) (pair? (car path)))
-	 (gpath->string (gp/mkpath (car path) (cdr path))))
-	((and (pair? path) (hashtable? (car path)) (string? (cdr path)))
-	 (stringout "hashtable:" (cdr path)
-	   "(0x" (number->string (hashptr (car path)) 16) ")"))
-	((and (pair? path) (string? (cdr path))
-	      (or (compound? (car path) *gpath-tags*)
-		  (gpath-root? (car path))))
-	 (kno/dispatch (car path) 'gpath:string (cdr path)))
-	((or (compound? path *gpath-tags*) (gpath-root? path))
-	 (kno/dispatch (car path) 'gpath:string #f))
-	(else (irritant path |NotGPath|))))
-(define gp/string gpath->string)
-(define gp>s gpath->string)
-
 (define (makepath root path (mode *default-dirmode*) (require-subpath #f))
-  (unless (string? path)
-    (set! path
-	  (cond ((uuid? path) (glom "u:" (uuid->string path)))
-		((packet? path) (glom "p:" (packet->base16 path)))
-		((timestamp? path) (glom "t:" (get path 'iso)))
-		((number? path) (number->string path))
-		((gpath? path) (gp/basename path))
-		(else (irritant path |BadPathElement| gp/makepath)))))
+  (set! path 
+    (cond ((string? path) path)
+	  ((uuid? path) (glom "u:" (uuid->string path)))
+	  ((packet? path) (glom "p:" (packet->base16 path)))
+	  ((timestamp? path) (glom "t:" (get path 'iso)))
+	  ((number? path) (number->string path))
+	  ((gpath? path) (gp/basename path))
+	  (else (irritant path |BadPathElement| gp/makepath))))
   (when (and (pair? root) (null? (cdr root)))
     (set! root (cons (car root) "")))
   (if (string? root) (set! root (string->root root))
       (if (and (pair? root) (string? (car root)))
 	  (set! root (cons (string->root (car root)) (cdr root)))))
   (cond ((or (not path) (null? path)) root)
-	((and require-subpath (not (string? path)))
-	 (error |TypeError| MAKEPATH "Relative path is not a string" path))
-	((or (hashtable? path)
-	     (and (pair? path) (string? (cdr path))
-		  (hashtable? (car path))))
-	 path)
 	((not (string? path))
 	 (error |TypeError| MAKEPATH "Relative path is not a string" path))
-	((and (not require-subpath)
-	      (has-prefix path {"http:" "https:" "~"
-				"HTTP:" "HTTPS:"}))
-	 (->gpath path))
-	((and (pair? root) (has-prefix path "/")) (cons (car root) path))
-	((hashtable? root) (cons root path))
+	((string-starts-with? path schema-prefix) (->gpath path))
+	((and (pair? root) (has-prefix path "/")) (cons (car root) (slice path 1)))
 	((gpath-root? root) (cons root path))
 	((and (pair? root) (not (string? (cdr root))))
 	 (error "Bad GPATH root" MAKEPATH "not a valid GPATH root" root))
@@ -421,6 +516,7 @@
 	(else (error "Weird GPATH root" MAKEPATH
 		     (stringout root " for " path)))))
 (define gp/makepath makepath)
+
 (define (gp/path root path . more)
   (let ((result (if path (makepath (->gpath root) path) (->gpath root))))
     (if (null? more) result
@@ -429,13 +525,14 @@
 		(apply gp/path result (cdr more)))
 	    (apply gp/path result (car more) (cdr more))))))
 (define gp/mkpath gp/path)
-(define (gp/subpath root path . more)
-  (let ((result (makepath (->gpath root) path *default-dirmode* #t)))
-    (if (null? more) result
-	(if (not (car more))
-	    (if (null? (cdr more)) result
-		(apply gp/subpath result (cdr more)))
-	    (apply gp/subpath result (car more) (cdr more))))))
+
+;; (define (gp/subpath root path . more)
+;;   (let ((result (makepath (->gpath root) path *default-dirmode* #t)))
+;;     (if (null? more) result
+;; 	(if (not (car more))
+;; 	    (if (null? (cdr more)) result
+;; 		(apply gp/subpath result (cdr more)))
+;; 	    (apply gp/subpath result (car more) (cdr more))))))
 
 ;;; Fetching
 
@@ -450,7 +547,7 @@
   (cond ((and (pair? ref) (hashtable? (car ref)) (string? (cdr ref)))
 	 (memfile-content (get (car ref) (cdr ref))))
 	((and (pair? ref) (string? (cdr ref)) (gpath-root? (car ref)))
-	 (kno/dispatch (car ref) 'gpath:get (cdr ref)))
+	 (kno/send (car ref) 'gpath:get (cdr ref)))
 	((pair? ref) (irritant ref |NotGPath|))
 	((and (string? ref)
 	      (exists has-prefix ref {"http:" "https:" "ftp:"}))
@@ -726,83 +823,159 @@
   (modify-frame info 'relpath 
 		(strip-prefix (get info 'rootpath) prefix)))
 
-;;; Recognizing and parsing GPATHs
+;;; Write support functions
 
-(define (gpath? val)
-  (if (pair? val)
-      (and (string? (cdr val))
-	   (and (compound-type? (car val))
-		(test gpath-handlers (compound-tag (car val)))))
-      (if (string? val)
-	  (and (not (position #\newline val))
-	       (has-prefix val {"http:" "https:" "ftp:" "/" "~"}))
-	  (and (compound-type? val)
-	       (test gpath-handlers (compound-tag val))))))
+(define-init urish?
+  (lambda (x)
+    (and (string? x)
+	 (string-starts-with? x #/^[a-zA-Z.]{2,32}:/))))
 
-(define gpath-scheme-pattern
-  `#((label scheme (isalnum+)) ":" (label path (rest))))
+(define (checkdir dirpath)
+  (unless (string-starts-with? dirpath schema-prefix)
+    (mkdirs dirpath))
+  (when (string-starts-with? dirpath #/file:/i) (mkdirs (subseq dirpath 5)))
+  dirpath)
 
-(define-init gpath-scheme-handlers (make-hashtable))
-(define-init gpath-uri-handlers '())
+(defambda (merge-headers . args)
+  (apply append (choice->list (pickstrings (elts args)))
+	 (choice->list (pick (elts args) pair?))))
 
-(define (->gpath val (root #f) (chroot #f))
-  (if (and (string? val) (textmatch gpath-scheme-pattern val))
-      (let* ((match (text->frame gpath-scheme-pattern val))
-	     (scheme (try (get match 'scheme) #f))
-	     (path (try (get match 'path) "")))
-	(cond ((equal? scheme "ftp") val)
-	      ((overlaps? scheme {"http" "https"})
-	       (let ((found #f))
-		 (dolist (handler gpath-uri-handlers)
-		   (set! found (handler val))
-		   (when found (break)))
-		 (or found val)))
-	      ((and scheme (test gpath-scheme-handlers scheme)
-		    ((get gpath-scheme-handlers scheme) val))
-	       (->gpath ((get gpath-scheme-handlers scheme) val) root chroot))
-	      ((string? (config scheme))
-	       (->gpath (mkpath (config scheme) path) root chroot))
-	      ((config scheme) (cons scheme path))
-	      (else (irritant scheme |InvalidScheme(gpath)| "For " val))))
-      (if (not (string? val))
-	  val ;; (irritant val |Not a path| ->gpath)
-	  (if (has-prefix val "/") 
-	      (if chroot (gp/mkpath chroot (slice val 1)) val)
-	      (if (has-prefix val {"~" "./" "../"})
-		  (abspath val)
-		  (if (string? root)
-		      (mkpath root val)
-		      (if root (cons root val) (abspath val))))))))
+(define charset-pat #("charset=" (label charset (not> ";"))))
 
-(define (uri->gpath val)
-  (if (and (string? val) (has-prefix val {"http:" "https:" "ftp:"}))
-      (try (try-choices (handler (get gpath-handlers (getkeys gpath-handlers)))
-	     (tryif (gpath-handler-fromuri handler)
-	       (difference ((gpath-handler-fromuri handler) val) #f))))
-      (fail)))
+(defambda (get-charset ctype (opts #f))
+  (try (tryif opts (getopt opts 'charset))
+       (tryif (and (exists? ctype) ctype)
+	 (get (text->frames charset-pat (pickstrings ctype))
+	      'charset))
+       #f))
 
-(defambda (gp/has-suffix gpath suffixes (casematch #f))
-  (if casematch
-      (has-suffix (gp/basename gpath) suffixes)
-      (has-suffix (downcase (gp/basename gpath)) (downcase suffixes))))
+(define (root-path path)
+  (if (not (string? path)) path
+      (if (has-prefix path "/") (slice path 1)
+	  (if (has-prefix path "./") (slice path 2)
+	      path))))
 
-(defambda (gp/has-prefix gpath prefixes (casematch #f))
-  (if (pair? gpath)
-      (if casematch
-	  (has-prefix (cdr gpath) prefixes)
-	  (has-prefix (downcase (cdr gpath)) (downcase prefixes)))
-      (if (string? gpath)
-	  (if casematch
-	      (has-prefix gpath prefixes)
-	      (has-prefix (downcase gpath) (downcase prefixes)))
-	  #f)))
+(define (string->root string)
+  (cond ((not (string? string)) (irritant string |GPathNotString|))
+	(else (uribase string))))
 
-(define (gp/localpath? gpath)
-  (and (string? gpath)
-       (string? (->gpath gpath))
-       (not (has-prefix gpath {"ftp:" "http:" "https:"}))))
+;;; Writing to a gpath
 
-(define (gp:config spec) (->gpath spec))
+(defambda (gp/write! saveto name content
+	    (ctype #f) (charset #f) (opts #f) (encoding))
+  (when (urish? saveto) (set! saveto (->gpath saveto)))
+  (when (and ctype (table? ctype) (not opts))
+    (set! opts ctype) (set! ctype #f))
+  (when (and charset (table? charset) (not opts))
+    (set! opts charset) (set! charset #f))
+  (default! encoding
+    (getopt opts 'content-encoding (path->encoding name)))
+  (do-choices name
+    (let ((ctype (or ctype (guess-mimetype (get-namestring name) content opts)))
+	  (charset (or charset (get-charset ctype opts))))
+      ;; Do any charset conversion required by the CTYPE
+      (when (and charset (not encoding)
+		 (string? content)
+		 (not (overlaps? (downcase charset) {"utf8" "utf-8"})))
+	(set! content (packet->string (string->packet content) charset)))
+      (gp/save! (gp/mkpath saveto name) content ctype charset))))
+(define (datauri/info string) (datauri/fetch+ string #t))
+
+(define (get-namestring gpath)
+  (if (string? gpath) gpath
+      (if (pair? gpath) (cdr gpath)
+	  "")))
+
+(defambda (gp/save! dest content (ctype #f) (charset #f) (opts #f) (encoding #f))
+  (when (ambiguous? content) (irritant content |AmbiguousContent| gp/save!))
+  (set! dest (->gpath dest opts))
+  (when (urish? dest) (set! dest (->gpath dest)))
+  (when (and ctype (table? ctype) (not opts))
+    (set! opts ctype) (set! ctype #f))
+  (when (and charset (table? charset) (not opts))
+    (set! opts charset) (set! charset #f))
+  (unless encoding 
+    (set! encoding (getopt opts 'content-encoding (path->encoding  (get-namestring dest)))))
+  (if (exists? content)
+      (do-choices dest
+	(let ((ctype (or ctype (guess-mimetype content opts)))
+	      (charset (try (or charset (get-charset ctype opts)) #f))
+	      (headers (merge-headers (tryif encoding (glom "Content-Encoding: " encoding))
+				      (getopt opts 'headers))))
+	  (when (and (string? dest) (has-prefix dest {"http:" "https:"}))
+	    (set! dest (try (uri->gpath dest) dest)))
+	  (loginfo GP/SAVE! "Saving " (length content)
+		   (if (string? content) " characters of "
+		       (if (packet? content) " bytes of "))
+		   (if (and (exists? ctype) ctype)
+		       (printout (write ctype) " "))
+		   "content into " dest)
+	  ;; Do any charset conversion required by the CTYPE
+	  (when (and charset (string? content)
+		     (not (overlaps? (downcase charset) {"utf8" "utf-8"})))
+	    (set! content (packet->string (string->packet content) charset)))
+	  (cond ((and (string? dest) (string-starts-with? dest {"http:" "https:"}))
+		 (let ((req (urlput dest content ctype `#[METHOD PUT HEADERS ,headers])))
+		   (unless (response/ok? req)
+		     (if (response/badmethod? req)
+			 (let ((req (urlput dest content ctype `#[METHOD POST HEADERS ,headers])))
+			   (unless (response/ok? req)
+			     (error "Couldn't save to URL"  GP/SAVE!
+				    dest req)))
+			 (error "Couldn't save to URL" GP/SAVE!
+				dest req)))))
+		((string? dest) (write-file dest content))
+		((and (pair? dest) (hashtable? (car dest)))
+		 (store! (car dest) (cdr dest)
+			 (cons-memfile ctype content (timestamp)
+				       (packet->base16 (md5 content)))))
+		((and (pair? dest) (string? (car dest)) (string? (cdr dest)))
+		 (write-file (mkpath (car dest) (cdr dest)) content))
+		((and (pair? dest) (compound-type? (car dest))
+		      (test gpath-handlers (compound-tag (car dest)))
+		      (gpath-handler-save (get gpath-handlers (compound-tag (car dest)))))
+		 ((gpath-handler-save (get gpath-handlers (compound-tag (car dest))))
+		  (car dest) (cdr dest) content ctype
+		  (if charset (cons `#[charset ,charset] opts) opts)))
+		(else (error "Bad GP/SAVE call" GP/SAVE! #f dest)))
+	  (loginfo GP/SAVE! "Saved " (length content)
+		   (if (string? content) " characters of "
+		       (if (packet? content) " bytes of "))
+		   (if (and (exists? ctype) ctype)
+		       (printout (write ctype) " "))
+		   "content into " dest)))))
+
+(define writeout
+  (macro expr
+    `(,gp/save!
+	 ,(second expr)
+	 (,stringout ,@(cdr (cdr expr)))
+       (,guess-mimetype ,(second expr)))))
+(define gp/writeout writeout)
+
+(define writeout/type
+  (macro expr
+    `(,gp/save!
+	 ,(second expr)
+	 (,stringout ,@(cdr (cdr (cdr expr))))
+       ,(third expr))))
+
+;; For generating text files, printout style, this saves the standard
+;; output to the designated gpath
+(define gp/writeout!
+  (macro expr
+    `(,gp/write!
+	 ,(second expr) ,(third expr)
+	 (,stringout ,@(cdr (cdr (cdr expr))))
+       (,guess-mimetype ,(third expr)))))
+
+;; This writes out with an explicit mimetype
+(define gp/writeout+!
+  (macro expr
+    `(,gp/write!
+	 ,(second expr) ,(third expr)
+	 (,stringout ,@(cdr (cdr (cdr (cdr expr)))))
+       ,(fourth expr))))
 
 ;;;; Example configuration
 
@@ -874,47 +1047,6 @@
       "/" (if (not (has-prefix path "/")) "/" )
       path)))
 (kno/handler! 'samplegfs 'gpath:string samplegfs:string)
-
-;;; URLINFO
-
-(define (gp/urlfetch url (err #t) (max-redirects #t))
-  (let* ((newurl (textsubst url (qc gp/urlsubst)))
-	 (err (and err
-		   (if (equal? url newurl)
-		       (cons url (if (pair? err) err '()))
-		       (cons* newurl (list url) (if (pair? err) err '())))))
-	 (curlopts (and max-redirects
-			`#[follow ,(if (number? max-redirects) max-redirects #t)]))
-	 (response (urlget newurl curlopts))
-	 (encoding (get response 'content-encoding))
-	 (hash (md5 (get response 'content))))
-    (if (and (test response 'response)
-	     (<= 200 (get response 'response) 299)
-	     (test response '%content))
-	(frame-create #f
-	  'gpath url 'gpathstring url 'rootpath (uripath url)
-	  'content-type (get response 'content-type)
-	  'content-length (length (get response 'content))
-	  'last-modified (get response 'last-modified)
-	  'content-encoding (get response 'content-encoding)
-	  'etag (get response 'etag) 
-	  'hash hash 'md5 (packet->base16 hash)
-	  'content-encoding  (get response 'content-encoding)
-	  'content (get response '%content))
-	(tryif err
-	  (error URLFETCH_FAILED GP/URLFETCH
-		 url response)))))
-
-(define (gp/urlinfo url (err #t) (max-redirects #t))
-  (let* ((newurl (textsubst url (qc gp/urlsubst)))
-	 (err (and err
-		   (if (equal? url newurl)
-		       (cons url (if (pair? err) err '()))
-		       (cons* newurl (list url) (if (pair? err) err '())))))
-	 (curlopts (and max-redirects
-			`#[follow ,(if (number? max-redirects) max-redirects #t)]))
-	 (response (urlhead newurl curlopts)))
-    response))
 
 ;;;; Copying
 
