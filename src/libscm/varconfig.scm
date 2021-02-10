@@ -431,3 +431,57 @@
 		       (,config-combine-alias ,valfn ,mergefn val))
 		  'val))))))
 
+;;; Hook configs (to be finished)
+
+#|
+(define (config:initfn inits)
+  (if (and (pair? inits) (>= (length inits) 2))
+      (slambda (var (val))
+	(if (unbound? val) (cddr inits)
+	    (if (and (applicable? val) (zero? (procedure-min-arity val)))
+		(let ((fn-name (procedure-name val))
+		      (fn-module (procedure-module val))
+		      (scan (cddr inits))
+		      (name (first inits))
+		      (run? (second inits)))
+		  (unless (position val scan)
+		    (when (and fn-name fn-module))
+		    (let ((name (procedure-name))
+			  (scan (cddr inits)))
+		  )
+
+	      )
+	))
+))))
+
+(define (addfn fn list (replace #f))
+  "Returns #f if fn wasn't added to list, otherwise returns "
+  "the updated list."
+  (if (position fn list) #f
+      (let ((name (procedure-name fn))
+	    (module (procedure-module fn))
+	    (scan list)
+	    (found #f))
+	(while (and (not found) (pair? scan))
+	  (if (and (eq? name (procedure-name (car scan)))
+		   (eq? module (procedure-module (car scan))))
+	      (set! found scan)
+	      (set! scan (cdr scan))))
+	(if (and found replace)
+	    (begin (set-car! found fn) list)
+	    (and (not found) (cons fn list))))))
+
+(define (brico:onload-configfn var (val))
+  (cond ((unbound? val) brico-onload)
+	((and (applicable? val) (zero? (procedure-min-arity val)))
+	 (if brico.pool
+	     (let ((edited (addfn val brico-onload #f)))
+	       (when edited
+		 (set! brico-onload edited)
+		 (val))
+	       (if edited #t #f))
+	     (let ((edited (addfn val brico-onload #t)))
+	       (when edited (set! brico-onload edited))
+	       (if edited #t #f))))
+	(else (irritant val |NotAThunk| config-brico:onload))))
+|#

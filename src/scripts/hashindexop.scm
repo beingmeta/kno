@@ -96,12 +96,12 @@
 		(file->dtype slotids-config))
 	(let ((table (make-hashtable))
 	      (start (elapsed-time)))
-	  (loginfo |PackIndex/slotids|
+	  (loginfo |PackIndex:slotids|
 	    "Computing slotids based on " ($num (choice-size keyinfo)) " keys")
 	  (do-choices (info keyinfo)
 	    (when (pair? (get info 'key))
 	      (hashtable-increment! table (car (get info 'key)) (get info 'count))))
-	  (lognotice |PackIndex/slotids|
+	  (lognotice |PackIndex:slotids|
 	    "Found " ($num (choice-size (getkeys table)))
 	    " slotids across " ($num (choice-size keyinfo)) " keys in "
 	    (secs->string (elapsed-time start)))

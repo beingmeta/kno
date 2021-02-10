@@ -15,6 +15,7 @@
 		  knodb/mods knodb/modified? knodb/get-modified
 		  pool/ref index/ref pool/copy
 		  pool/getindex pool/getindexes knodb/add-index!
+		  knodb/readonly!
 		  knodb/open-index
 		  knodb/makedb
 		  knodb/index!
@@ -176,13 +177,14 @@
 (define (resolve-dbref dbsource opts)
   (info%watch "RESOLVE-DBREF" dbsource "\nOPTS" opts)
   (cond ((or (testopt opts '{flexindex flexpool})
-	     (testopt opts 'type '{flexindex flexpool}))
-	 (flex-open dbsource opts))
+	     (testopt opts 'type '{flexindex flexpool})
+	     (has-suffix dbsource ".flexindex"))
+	 (open-filedb dbsource opts))
 	((or (file-exists? dbsource)
 	     (textmatch (qc network-source) dbsource)
 	     (exists? (knodb/partition-files dbsource "index"))
 	     (exists? (knodb/partition-files dbsource "pool")))	     
-	 (flex-open dbsource opts))
+	 (open-filedb dbsource opts))
 	((not (or (getopt opts 'create) (getopt opts 'make)))
 	 (if (getopt opts 'err)
 	     (irritant dbsource |NoSuchDatabase| knodb/refref)
@@ -313,9 +315,9 @@
       (if (testopt opts 'maxload)
 	  (let* ((loaded (source->index source))
 		 (index (open-index source (cons [register #f] opts)))
-		 (repack (and (not loaded) (needs-repack? index opts))))
+		 (repack (and (not loaded) (get-repack-size index opts))))
 	    (cond (repack
-		   (repack-index source opts index)
+		   (index/pack! index #f `#[newsize ,repack])
 		   ;; The 'right' thing would be to reopen the index,
 		   ;;  but reopening isn't currently supported, so
 		   ;;  we try to force the index to be freed and then
@@ -375,27 +377,53 @@
 
 ;;;; Repacking
 
-(define (needs-repack? index opts (filename))
+;; (define (needs-repack? index opts (filename))
+;;   (default! filename (indexctl index 'filename))
+;;   (and filename (file-exists? filename) (file-writable? filename)
+;;        (let* ((n-buckets (onerror (indexctl index 'metadata 'buckets) #f))
+;; 	      (n-keys (and n-buckets (onerror (indexctl index 'metadata 'keys) #f)))
+;; 	      (maxload (getopt opts 'maxload (indexctl index 'metadata 'maxload)))
+;; 	      (loadsize (and maxload n-keys
+;; 			     (->exact
+;; 			      (* maxload (+ (max (getopt opts 'minkeys n-keys) n-keys)
+;; 					    (getopt opts 'addkeys 0))))))
+;; 	      (minsize (and (or loadsize (getopt opts 'minsize))
+;; 			    (max (or loadsize 0) (getopt opts 'minsize 0)
+;; 				 (getopt opts 'minkeys 0)))))
+;; 	 (and n-buckets n-keys minsize (< n-buckets minsize)))))
+
+(define (get-repack-size index opts (filename))
   (default! filename (indexctl index 'filename))
   (and filename (file-exists? filename) (file-writable? filename)
        (let* ((n-buckets (onerror (indexctl index 'metadata 'buckets) #f))
 	      (n-keys (and n-buckets (onerror (indexctl index 'metadata 'keys) #f)))
 	      (maxload (getopt opts 'maxload (indexctl index 'metadata 'maxload)))
-	      (loadsize (and maxload n-keys
-			     (* maxload (max (getopt opts 'minkeys n-keys) n-keys))))
-	      (minsize (and (or loadsize (getopt opts 'minsize))
-			    (max (or loadsize 0) (getopt opts 'minsize 0)
-				 (getopt opts 'minkeys 0)))))
-	 (and n-buckets n-keys minsize (< n-buckets minsize)))))
+	      (target-keys (+ (max (getopt opts 'minkeys 1961) n-keys) (getopt opts 'addkeys 0)))
+	      (target-load (and maxload n-keys (->exact (* target-keys maxload))))
+	      (min-buckets (and (or target-load (getopt opts 'minsize))
+				(max (or target-load 0) (getopt opts 'minsize 0)
+				     (getopt opts 'minkeys 0)))))
+	 (and n-buckets n-keys min-buckets (< n-buckets min-buckets)
+	      (begin (logwarn |RepackIndex| 
+		       "Repacking index " (write filename) " to " ($num min-buckets) " buckets (current=" ($num n-buckets) "),\n"
+		       "given keycount=" ($num n-keys) "/" ($num target-keys) " (cur/target) and maxload=" maxload)
+		min-buckets)))))
 
-(define (repack-index source opts old)
-  (let* ((maxload (getopt opts 'maxload (dbctl old 'metadata 'maxload)))
-	 (pack-opts `(#[maxload ,maxload] . ,opts)))
-    (logwarn |RepackIndex| 
-      "Repacking index " (write source) " for maxload " maxload " given load=" 
-      (indexctl old 'metadata 'buckets) "/" (indexctl old 'metadata 'keys)
-      "=" (/~ (indexctl old 'metadata 'buckets) (indexctl old 'metadata 'keys)))
-    (index/pack! old #f pack-opts)))
+;; (define (repack-index source opts old)
+;;   (let* ((n-buckets (onerror (indexctl index 'metadata 'buckets) #f))
+;; 	 (n-keys (and n-buckets (onerror (indexctl index 'metadata 'keys) #f)))
+;; 	 (maxload (getopt opts 'maxload (indexctl index 'metadata 'maxload)))
+;; 	 (loadsize (and maxload n-keys
+;; 			(->exact
+;; 			 (* maxload (+ (max (getopt opts 'minkeys n-keys) n-keys)
+;; 				       (getopt opts 'addkeys 0))))))
+;; 	 (minsize (and (or loadsize (getopt opts 'minsize))
+;; 		       (max (or loadsize 0) (getopt opts 'minsize 0)
+;; 			    (getopt opts 'minkeys 0))))
+;; 	 (maxload (getopt opts 'maxload (dbctl old 'metadata 'maxload)))
+;; 	 (pack-opts `(#[maxload ,maxload] . ,opts)))
+    
+;;     (index/pack! old #f pack-opts)))
 
 ;;; Getting partitions
 
@@ -405,10 +433,10 @@
 	((string? arg) (knodb/partition-files arg))
 	(else (fail))))
 
-;;;; FLEX-OPEN
+;;;; OPEN-FILEDB
 
-(define (flex-open source opts)
-  (debug%watch "FLEX-OPEN" source "\nOPTS" opts)
+(define (open-filedb source opts)
+  (debug%watch "OPEN-FILEDB" source "\nOPTS" opts)
   (cond ((pool? source) (knodb/pool source opts))
 	((or (index? source) (hashtable? source))
 	 (knodb/wrap-index source opts))
@@ -418,8 +446,7 @@
 	 (flexpool/ref source opts))
 	((or (has-suffix source ".flexindex")
 	     (getopt opts 'flexindex)
-	     (identical? (downcase (getopt opts 'type {})) "flexindex")
-	     (textsearch #("." (isdigit+) ".index") source))
+	     (identical? (downcase (getopt opts 'type {})) "flexindex"))
 	 (flex/open-index source opts))
 	((has-suffix source ".pool")
 	 (if (or (testopt opts 'adjunct)
@@ -629,6 +656,21 @@
       (|| {(config 'pools) (config 'indexes)})))
 
 (config-def! 'usedb usedb-config)
+
+;;;; Setting read-only for dbs and partitions
+
+(define (knodb/readonly! db flag)
+  (cond ((pool? db)
+	 (poolctl db 'readonly flag)
+	 (when (poolctl db 'adjuncts)
+	   (dbctl (getvalues (poolctl db 'adjuncts)) 'readonly flag))
+	 (when (poolctl db 'partitions)
+	   (dbctl (poolctl db 'partitions) 'readonly flag)))
+	((index? db)
+	 (indexctl db 'readonly flag)
+	 (when (indexctl db 'partitions)
+	   (dbctl (indexctl db 'partitions) 'readonly flag)))
+	(else (logwarn |NotDB| "Can't set readonly state for " db))))
 
 ;;;; Defaults
 

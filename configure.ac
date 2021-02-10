@@ -218,6 +218,14 @@ if which lsb_release 2>&1 > /dev/null; then
    CODENAME=`lsb_release -cs || echo beingmeta`
 fi
 
+if test -f .reponame; then
+   REPONAME=$(cat .reponame);
+elif test -z "${KNO_BRANCH}" || test "${KNO_BRANCH}" = "main"; then
+   REPONAME="kno";
+else
+   REPONAME="kno_${KNO_BRANCH}";
+fi;
+
 if (test "$rpath_default" = "NONE") || (test "$rpath_default" = ""); then
    rpath_default=$prefix;
 fi
@@ -372,6 +380,7 @@ AC_SUBST(MKDIR)
 AC_SUBST(CHGRP)
 AC_SUBST(APTLY)
 AC_SUBST(CODENAME)
+AC_SUBST(REPONAME)
 AC_SUBST(RELSTATUS)
 AC_SUBST(BINPATH)
 AC_SUBST(LIBSCM)
@@ -1082,6 +1091,9 @@ fi
 
 AC_ARG_WITH(codename,--with-codename for distribution,with_codename=$withval,with_codename=$CODENAME)
 CODENAME=$with_codename
+
+AC_ARG_WITH(reponame,--with-reponame for distribution,with_reponame=$withval,with_reponame=$REPONAME)
+REPONAME=$with_reponame;
 
 AC_ARG_WITH(relstatus,--with-relstatus e.g. stable or testing,with_relstatus=$withval)
 

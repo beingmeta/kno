@@ -5,7 +5,7 @@
 
 ;;; Simple FIFO queue gated by a condition variable
 
-(use-module '{ezrecords logger})
+(use-module '{ezrecords logger kno/reflect})
 (define %used_modules 'ezrecords)
 
 (module-export!
@@ -23,6 +23,7 @@
    fifo/loop
    fifo/queued
    fifo/load
+   fifo/fill!
    fifo-name
    fifo-opts})
 
@@ -82,11 +83,12 @@
   end     ;; the vector index for the last item
   opts    ;; options
   fillfn  ;; a function or (function . more-args) to call when the queue is empty
-  items   ;; a hashset of items waiting in the queue, if nodups is set
+  (items #f)   ;; a hashset of items waiting in the queue, if nodups is set
   (live? #t)  ;; Whether the FIFO is active (callers should wait)
-  (pause #f)  ;; Whether the FIFO is paused (value is #f, READ, WRITE, or READWRITE)
+  (pause #f)  ;; Whether the FIFO is paused (value is #f, READ, WRITE, READWRITE, or CLOSING)
   (waiting {}) ;; The threads waiting on the FIFO.
   (running {}) ;; The threads currently processing results from the FIFO.
+  (filling #f) ;; The thread currently filling the FIFO
   (debug #f)  ;; Whether we're debugging the FIFO
   )
 
@@ -143,9 +145,9 @@
 	  (else 
 	   (set! queue data)
 	   (set! init-items (compact-queue queue))))
-    (cons-fifo name (make-condvar) queue 0 init-items
-	       opts fillfn items
-	       live? #f {} {} debug)))
+    (cons-fifo name (make-condvar) queue 0 init-items opts
+	       fillfn items
+	       live? #f {} {} {} debug)))
 (define (make-fifo (size 64)) (fifo/make size))
 
 (defambda (->fifo items (opts #f))
@@ -330,22 +332,52 @@
   (condvar/signal cvar #t)
   (choice-size (fifo-running fifo)))
 
-(define (fifo/fill! fifo (fillfn) (condvar)) 
+(define (fill-fifo! fifo (fillfn)) 
   (set! fillfn (fifo-fillfn fifo))
-  (set! condvar (fifo-condvar fifo))
   (cond ((not fillfn))
+	((and (applicable? fillfn) (zero? (procedure-arity fillfn)))
+	 (fifo/fill! fifo fillfn))
 	((applicable? fillfn) (fillfn fifo))
 	((and (pair? fillfn) (applicable? (car fillfn)))
 	 (apply (car fillfn) fifo (cdr fillfn)))
 	(else (irritant fillfn |FIFO/InvalidFillFn|))))
 
-(define (fifo/pop fifo (maxcount 1) (condvar))
+(define (fifo/fill! fifo fillfn)
+  "Uses the procedure *fillfn* to fill *fifo*. If the result of "
+  "*fillfn* is a choice or a vector, all of its elements are "
+  "added to the fifo; otherwise, the returned value is added. "
+  "This means that if *fillfn* wants to return a vector as an item, "
+  "it needs to be wrapped in another vector. "
+  "If the *fifo*'s options specify a `fillmax` property, *fillfn* is called "
+  "repeatedly until either *fillmax* elements are generated "
+  "or the fifo stops accepting new elements."
+  (let* ((fill-max (getopt (fifo-opts fifo) 'fillmax))
+	 (filling (fillfn))
+	 (fill-count 0))
+    (until (fail? filling)
+      (if (ambiguous? filling)
+	  (fifo/push/n! fifo (choice->vector filling))
+	  (if (vector? filling)
+	      (fifo/push/n! fifo filling)
+	      (fifo/push! fifo filling)))
+      (if (and (singleton? filling) (vector? filling))
+	  (set! fill-count (+ fill-count (length filling)))
+	  (set! fill-count (+ fill-count (|| filling))))
+      (when (and fill-max (>= fill-count fill-max)) (break))
+      (when (or (not (fifo-live? fifo))
+		(overlaps? (fifo-pause fifo) '{write readwrite closing}))
+	(break))
+      (set! filling (fillfn)))
+    fill-count))
+
+(define (fifo/pop fifo (maxcount 1) (fillthresh #f) (condvar))
   "Pops some number of items (at least one) from the FIFO."
   "The *maxcount* argument specifies the number of maximum number of items "
   "to be popped."
   (if (fifo-debug fifo)
       (always%watch "FIFO/POP" fifo)
       (debug%watch "FIFO/POP" fifo))
+  (set! fillthresh (getopt (fifo-opts fifo) 'fillthresh #f))
   (set! condvar (fifo-condvar fifo))
   (if (fifo-live? fifo)
       (unwind-protect
@@ -354,11 +386,23 @@
 	    (fifo-waiting! fifo)
 	    ;; Wait if it is paused
 	    (check-paused fifo '{read readwrite})
+	    (when (if fillthresh
+		      (< (- (fifo-end fifo) (fifo-start fifo)) fillthresh)
+		      (= (fifo-end fifo) (fifo-start fifo)))
+	      (when (and (fifo-fillfn fifo) (not (fifo-filling fifo))
+			 (not (overlaps? (fifo-pause fifo) '{write readwrite closing})))
+		(set-fifo-filling! fifo (threadid))
+		(condvar/unlock! condvar)
+		(fill-fifo! fifo)
+		(condvar/lock! condvar)
+		(set-fifo-filling! fifo #f)))
 	    ;; Wait for data
 	    (while (and (fifo-live? fifo)
 			(= (fifo-start fifo) (fifo-end fifo))
 			(not (overlaps? (fifo-pause fifo) '{read readwrite})))
-	      (when (fifo-fillfn fifo) (fifo/fill! fifo))
+	      (when (and (fifo-fillfn fifo) (not (overlaps? (fifo-pause fifo) 'closing))
+			 (not (fifo-filling fifo)))
+		(fill-fifo! fifo))
 	      (when (and (fifo-live? fifo)
 			 (= (fifo-start fifo) (fifo-end fifo))
 			 (not (overlaps? (fifo-pause fifo) '{read readwrite})))
@@ -509,7 +553,7 @@
 (define (fifo/pause! fifo rdwr)
   "Pauses operations on *fifo*. *rdwr* can be READ, WRITE, or READWRITE "
   "to pause the corresponding operations. A value of #f resumes all operations."
-  (if (not (overlaps? rdwr '{#f read write readwrite}))
+  (if (not (overlaps? rdwr '{#f read write readwrite closing}))
       (irritant rdwr |FIFO/BadPauseArg|)
       (unwind-protect 
 	  (begin (condvar/lock! (fifo-condvar fifo))

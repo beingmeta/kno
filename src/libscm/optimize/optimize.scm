@@ -43,6 +43,8 @@
 (define-init lexrefs-default {})
 (define-init substs-default {})
 (define-init rewrite-default {})
+(define-init aliasfns-default {})
+(define-init aliasprims-default {})
 
 (varconfig! optimize:fcnrefs fcnrefs-default)
 (varconfig! optimize:opcodes opcodes-default)
@@ -50,12 +52,8 @@
 (varconfig! optimize:substs  substs-default)
 (varconfig! optimize:lexrefs lexrefs-default)
 (varconfig! optimize:rewrite rewrite-default)
-
-(define-init aliasfns-default #f)
 (varconfig! optimize:aliasfns aliasfns-default)
-
-(define-init aliasprims-default #t)
-(varconfig! optimize:aliasfns aliasfns-default)
+(varconfig! optimize:aliasprims aliasprims-default)
 
 (define-init persist-default #f)
 (varconfig! optimize:persist persist-default)
@@ -83,12 +81,14 @@
 
 (define use-opcodes? (optmode opcodes 2 opcodes-default))
 (define use-pfcnrefs? (optmode pfcnrefs 2 pfcnrefs-default))
+(define use-fcnrefs? (optmode fcnrefs 3 fcnrefs-default))
 (define use-bindops? (optmode bindops 4 bindops-default))
 (define use-substs? (optmode substs 2 substs-default))
 (define use-lexrefs? (optmode lexrefs 2 lexrefs-default))
 (define rewrite? (optmode 'rewrite 3 rewrite-default))
+(define aliasprims? (optmode 'aliasprims 2 aliasprims-default))
+(define aliasfns? (optmode 'aliasfns 4 aliasfns-default))
 (define keep-source? (optmode keepsource 2 keep-source-default))
-(define use-fcnrefs? (optmode fcnrefs 3 fcnrefs-default))
 
 ;;; Controls whether optimization warnings are emitted in real time
 ;;; (when encountered)
@@ -186,15 +186,14 @@
 	 sym)
 	((and sym from (module? from)
 	      (or (special-form? value) (primitive? value))
-	      (or (getopt opts 'aliasprims aliasprims-default)
-		  (getopt opts 'aliasfns aliasfns-default)))
+	      (or (aliasprims? opts) (aliasfns? opts)))
 	 value)
 	((and sym from (module? from)
 	      (or (special-form? value) (primitive? value))
 	      (use-fcnrefs? opts))
 	 (get-fcnid sym from value))
 	((and sym from (module? from) (applicable? value)
-	      (getopt opts 'aliasfns aliasfns-default)
+	      (aliasfns? opts)
 	      (or (%test env '%constants sym)
 		  (test from '%constants sym)
 		  (testopt opts '%constants sym)))
@@ -1573,23 +1572,30 @@
 ;;  because they shouldn't work anyway
 (define (optimize-attribs attribs env bound opts)
   (cond ((not (pair? attribs)) attribs)
-	((pair? (cdr attribs))
-	 `(,(if (and (pair? (car attribs))
-		     (not (overlaps? (car (car attribs)) '{quote #OP_QUOTE})))
-		`(,(car (car attribs))
-		  ,(optimize (cadr (car attribs)) env bound opts))
-		(car attribs))
-	   ,(if (and (pair? (car attribs))
-		     (not (overlaps? (car (car attribs)) '{quote #OP_QUOTE})))
-		(if (pair? (cadr attribs))
-		    `(,(car (cadr attribs))
-		      ,(optimize (cadr (cadr attribs)) env bound opts))
-		    (optimize (cadr attribs) env bound opts))
-		(optimize (cadr attribs) env bound opts))
-	   ,@(optimize-attribs (cddr attribs) env bound opts)))
 	((pair? (car attribs))
-	 `((,(car (car attribs))
-	    ,(optimize (cadr (car attribs)) env bound opts))))
+	 (forseq (attrib attribs)
+	   (cond ((not (pair? attrib)) attrib)
+		 ((and (symbol? (car attrib)) (pair? (cdr attrib)))
+		  `(,(car attrib) ,(optimize (cadr attrib) env bound opts)))
+		 (else (codewarning (cons* '|BadAttribExpression| attrib))
+		      attrib))))
+	((and (symbol? (car attribs)) (even? (length attribs)))
+	 (let ((failed #f) (alist '()) (scan attribs))
+	   (cond ((symbol? (car scan))
+		  (set! alist (cons (list (car scan) (cadr scan)) alist))
+		  (set! scan (cddr scan)))
+		 (else
+		  (codewarning (cons* '|BadAttribPList| (slice scan 0 2)))
+		  (set! scan (cddr scan))
+		  (set! failed #t)))
+	   (if failed
+	       attribs
+	       (forseq (attrib alist)
+		 (if (pair? (cdr attrib))
+		     `(,(car attrib)
+		       ,(optimize (cadr attrib) env bound opts))
+		     (begin (codewarning (cons* '|BadAttribExpression| attrib))
+		       attrib))))))
 	(else attribs)))
 
 (define (optimize-markup handler expr env bound opts)
@@ -1721,6 +1727,10 @@
 (add! special-form-optimizers
       with-log-context
       optimize-block)
+
+(add! special-form-optimizers
+    with-lock
+  optimize-block)
 
 ;;(add! special-form-optimizers doseq optimize-doseq)
 

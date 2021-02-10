@@ -208,7 +208,7 @@
 
 (define (count-xrefs pool)
   (let* ((freqs (countrefs/pool pool)))
-        (rsorted (getkeys freqs) freqs)))
+    (rsorted (getkeys freqs) freqs)))
 
 (define (main (from) (to))
   (default! to from)

@@ -707,6 +707,7 @@ ODBC_LIBS
 LIBSCM
 BINPATH
 RELSTATUS
+REPONAME
 CODENAME
 APTLY
 CHGRP
@@ -938,6 +939,7 @@ with_crypto
 enable_htmldump
 enable_prefetching
 with_codename
+with_reponame
 with_relstatus
 with_admin_group
 with_daemonid
@@ -1676,6 +1678,7 @@ Optional Packages:
 --with/out-dns Use dns in web
 --with/out-crypto Compile the crypto module
 --with-codename for distribution
+--with-reponame for distribution
 --with-relstatus e.g. stable or testing
 --with-admin-group Install files with admin group and group write permissions
 --with-daemonid The identity (user) for Kno servers to run as
@@ -3137,6 +3140,14 @@ if which lsb_release 2>&1 > /dev/null; then
    CODENAME=`lsb_release -cs || echo beingmeta`
 fi
 
+if test -f .reponame; then
+   REPONAME=$(cat .reponame);
+elif test -z "${KNO_BRANCH}" || test "${KNO_BRANCH}" = "main"; then
+   REPONAME="kno";
+else
+   REPONAME="kno_${KNO_BRANCH}";
+fi;
+
 if (test "$rpath_default" = "NONE") || (test "$rpath_default" = ""); then
    rpath_default=$prefix;
 fi
@@ -3171,6 +3182,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/kno/knosource.h include/kno/config.h"
+
 
 
 
@@ -9164,6 +9176,16 @@ else
 fi
 
 CODENAME=$with_codename
+
+
+# Check whether --with-reponame was given.
+if test "${with_reponame+set}" = set; then :
+  withval=$with_reponame; with_reponame=$withval
+else
+  with_reponame=$REPONAME
+fi
+
+REPONAME=$with_reponame;
 
 
 # Check whether --with-relstatus was given.

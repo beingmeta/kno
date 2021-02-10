@@ -52,10 +52,10 @@
 				(indexctl input 'keyslot))))
 	 (opts (frame-create #f
 		 'type newtype
-		 'newsize (or (config 'newsize) {})
-		 'keyslot keyslot
-		 'mincount (or (config 'mincount) {})
-		 'maxcount (or (config 'maxcount) {})
+		 'newsize (config 'newsize {})
+		 'keyslot (tryif keyslot keyslot)
+		 'mincount (config 'mincount {})
+		 'maxcount (config 'maxcount {})
 		 'slotids 
 		 (tryif (and newtype 
 			     (equal? (downcase newtype) "hashindex")
@@ -63,7 +63,6 @@
 		   (tryif (config 'slotcodes #t config:boolean)
 		     #(type)))
 		 'rarefile (or (config 'rare) {})
-		 'uniquefile (or (config 'unique) {})
 		 'repair (config 'repair #f)
 		 'overwrite overwrite)))
     (when (and out (file-exists? out) (not overwrite))
@@ -75,8 +74,6 @@
       (remove-file (glom out ".part")))
     (when (and overwrite (not out) (file-exists? (glom in ".part")))
       (remove-file (glom in ".part")))
-    (when (and overwrite (getopt opts 'uniquefile))
-      (overwriting (getopt opts 'uniquefile)))
     (when (and overwrite (getopt opts 'rarefile))
       (overwriting (getopt opts 'rarefile)))
     (config! 'appid (glom "pack(" (basename in) ")"))

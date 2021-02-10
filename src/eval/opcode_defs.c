@@ -255,7 +255,7 @@ KNO_FASTOP lispval or_reduce(lispval state,lispval step,int *done)
     return step;}
   else {
     kno_decref(state);
-    return KNO_FALSE;}
+    return step;}
 }
 
 static lispval or_op(lispval exprs,kno_lexenv env,kno_stack stack,int tail)

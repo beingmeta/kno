@@ -61,7 +61,6 @@
 			       (if rarefile 7 {}))
 		 'maxcount (or (config 'maxcount) {})
 		 'rarefile rarefile
-		 'uniquefile (or (config 'uniquefile) {})
 		 'repair (config 'repair #f)
 		 'overwrite #f))
 	 (n (length in)))
@@ -97,5 +96,5 @@
 
 (when (config 'optimize #t)
   (optimize! '{logger ezrecords fifo engine})
-  (optimize! '{knodb/indexes knodb/hashindexes knodb/kindexes})
+  (optimize! '{knodb/indexes knodb/hashindexes})
   (optimize!))

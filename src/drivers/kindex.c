@@ -2598,7 +2598,7 @@ static ssize_t update_xrefs(kno_kindex kx,xtype_refs refs,
       else i++;}
     xrefs_size = kno_getpos(stream)-xrefs_pos;}
   if (xrefs_size<0) {
-    u8_seterr("MetaDataWriteError","kindex/update_xrefs",
+    u8_seterr("MetaDataWriteError","kindex(update_xrefs)",
               u8_strdup(kx->index_source));
     return -1;}
   else {

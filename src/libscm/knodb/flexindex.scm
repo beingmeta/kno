@@ -14,8 +14,8 @@
 
 (define-init flex-indexes (make-hashtable))
 
-(define default-partition-size (* 3 #gib))
-(define default-partition-type 'hashindex)
+(define default-partition-size (* 3 #mib))
+(define default-partition-type 'kindex)
 (varconfig! flexindex:minsize default-partition-size config:bytes)
 (varconfig! flexindex:type default-partition-type)
 
@@ -62,7 +62,7 @@
 	(else (irritant spec |NoSuchIndex|))))
 
 (define (flex/open-index spec (opts #f))
-  (let* ((prefix (textsubst spec (qc ".flexindex" flex-suffix) ""))
+  (let* ((prefix (textsubst spec (qc ".flexindex" ".index" flex-suffix) ""))
 	 (fullpath (abspath prefix))
 	 (full-prefix (strip-suffix fullpath prefix))
 	 (directory (dirname fullpath))
@@ -76,10 +76,9 @@
 	 (metadata (getopt flex-opts 'metadata))
 	 (partition-opts
 	  `(,(frame-create #f
-	       'indextype (getopt flex-opts 'indextype 'kindex)
-	       'size (getopt flex-opts 'partsize (getopt flex-opts 'size #1mib))
 	       'keyslot (getopt flex-opts 'keyslot)
-	       'register (getopt opts 'register #t) 'background #f)
+	       'register (getopt opts 'register #t)
+	       'background #f)
 	    . ,opts)))
     (try (get flex-indexes refpath)
 	 (let* ((indexes (open-index (strip-prefix files full-prefix) partition-opts))
@@ -91,8 +90,8 @@
 		(new-partition-opts 
 		 (cons (frame-create #f 
 			 'register (getopt opts 'register #t) 'background #f
-			 'type (getopt opts 'flextype (getopt opts 'type default-partition-type))
-			 'size (getopt opts 'size default-partition-size)
+			 'type (getopt flex-opts 'partindex 'kindex)
+			 'size (getopt flex-opts 'partsize default-partition-size)
 			 'keyslot keyslot)
 		       opts)))
 	   (when (and (fail? indexes) (not (getopt opts 'create)))
@@ -137,12 +136,13 @@
 	     (maxsize (opt-max index 'maxsize maxsize))
 	     (maxkeys (opt-max index 'maxkeys maxkeys))
 	     (maxload (or (opt-max index 'maxload maxload) 1.0))
-	     (load (/~ keycount buckets)))
+	     (load (/~ (+ keycount (getopt opts 'addkeys 0))
+		       buckets)))
 	(unless (or (and maxsize (> filesize maxsize))
 		    (and maxkeys (> keycount maxkeys))
 		    (and maxload (> load maxload)))
 	  (set+! candidates index))))
-    (pick-one (largest candidates index-file-size))))
+    (pick-one (smallest candidates index-file-size))))
 
 (define (make-front fullpath serial model opts)
   (let* ((path (mkpath (dirname fullpath)
@@ -154,8 +154,9 @@
 	"Couldn't create a new flexindex partition " (write path)))
     (when index
       (logwarn |NewPartition|
-	"Created new flexindex partition " index
-	"\n\tfor flexindex at " fullpath))
+	"Created new flexindex partition " (index-source index) " with "
+	($count (dbctl index 'metadata 'buckets) "bucket") " for " fullpath
+	"\n" index))
     (tryif index index)))
 
 (define (get-make-opts path model opts)
@@ -173,8 +174,8 @@
       (logwarn |MissingIndexType|
 	"Can't determine type for new index " (write path) 
 	" from model " model 
-	", using " 'hashindex)
-      (store! make-opts 'type 'hashindex))
+	", using " 'kindex)
+      (store! make-opts 'type 'kindex))
     
     (if buckets
 	(store! make-opts 'buckets buckets)

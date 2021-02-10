@@ -16,11 +16,12 @@
 
 (module-export! '{filestream-filename filestream-itemcount})
 
-(define filestream-inbufsize (* 3 #mib))
-(varconfig! filestream:inbufsize filestream-inbufsize config:bytes)
+(define filestream-inbufsize (* 10 #mib))
+(varconfig! filestream:bufsize filestream-inbufsize config:bytes)
 
 (defrecord (filestream mutable)
-  (port) (readfn) (lock) (filename) (archive) (statefile) (state)
+  (port) (readfn) (lock) (opts) (filename) (archive)
+  (statefile) (state)
   (opened) (itemcount) (filepos) (state) 
   (startpos 0)
   ;; not yet used
@@ -60,7 +61,7 @@
 		   (open-input-file filename)))
 	 (readfn (getopt opts 'readfn getline)))
     (setbuf! port (getopt opts 'inbufsize (getopt opts 'bufsize filestream-inbufsize)))
-    (let ((stream (cons-filestream port readfn (make-mutex)
+    (let ((stream (cons-filestream port readfn (make-mutex) opts
 				   filename archive statefile state
 				   (gmtimestamp) 0 (and (not archive) (getpos port))
 				   #f
@@ -87,6 +88,14 @@
       (set-filestream-itemcount! stream (1+ count))
       (set-filestream-filepos! stream (getpos port))
       (if extra (cons count item) item))))
+
+(define (filestream/read stream (extra #f))
+  (let ((port (filestream-port stream))
+	(readfn (filestream-readfn stream)))
+    (with-lock (filestream-lock stream)
+      (prog1 (readfn port)
+	(set-filestream-itemcount! stream (1+ (filestream-itemcount stream)))
+	(set-filestream-filepos! stream (getpos port))))))
 
 (define (filestream/state stream)
   (with-lock (filestream-lock stream)

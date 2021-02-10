@@ -85,7 +85,7 @@ RPMDIR		  = @RPMDIR@
 GPG		  = @GPG@
 GPGID		  = @GPGID@
 RPMGPG		  = %__gpg gpg --force-v3-sigs --digest-algo=sha1 -u \"%{_gpg_name}\" --no-armor --no-secmem-warning -sbo %{__signature_filename} %{__plaintext_filename}
-APT_INCOMING      = dev.beingmeta.com:/srv/repo/kno/apt/incoming/@CODENAME@/
+APT_INCOMING      = dev.beingmeta.com:/srv/repo/@REPONAME@/apt/incoming/@CODENAME@/
 
 BUILDMODE       := $(shell if test -f ./buildmode; then cat ./buildmode; else echo none; fi)
 LINKEDWITH      ::= $(shell cat .malloc 2> /dev/null || echo standard libraries)
@@ -310,7 +310,7 @@ SHELL_SCRIPTS=src/shell/knosetconfig src/shell/knogetconfig src/shell/knoconfig 
 	      src/shell/knorestart src/shell/knoctl src/shell/knogdb src/shell/knodbgexec \
 	      src/shell/knocleanup src/shell/knojob src/shell/knobuild
 SCHEME_SCRIPTS=exe/scripts/pack-pool exe/scripts/pack-index \
-	       exe/scripts/split-index exe/scripts/merge-indexes \
+	       exe/scripts/split-index exe/scripts/merge-indexes exe/scripts/merge-index \
 	       exe/scripts/knocall exe/scripts/knoserver \
 	       exe/scripts/knopkg
 
@@ -967,7 +967,7 @@ ALLTAGS: makefile.in configure.ac include/kno/config.h.in		\
 		dbg/.gdbinit.in tests/*.scm 				\
 		${SRC_HEADERS}
 	@echo "# (kno)" Building TAGS file
-	@etags makefile.in configure.ac 		\
+	@etags -o ALLTAGS makefile.in configure.ac	\
 		include/kno/config.h.in     		\
 		include/kno/knosource.h.in     		\
 	        tests/*/*.in tests/*.in dbg/*.in 	\
@@ -975,36 +975,40 @@ ALLTAGS: makefile.in configure.ac include/kno/config.h.in		\
 		src/extmods/*.in src/extmods/*/makefile	\
 		include/kno/components/*.h		\
 		${SRC_HEADERS};
-	@etags -o TAGS -a src/exe/*.c src/exe/*.h
-	@etags -o TAGS -a src/lisp/*.c src/sys/*.c src/apply/*.c  src/apply/*.h 
-	@etags -o TAGS -a src/storage/*.c
-	@etags -o TAGS -a src/drivers/*.c src/drivers/headers/*.h
-	@etags -o TAGS -a src/eval/*.c src/eval/*.h src/prims/*.c
-	@etags -o TAGS -a src/web/*.c src/text/*.c;
-	@etags -o TAGS -a tests/libtests/*.c tests/*.scm;
-	@etags -o TAGS -a src/cmodules/*.c;
-	@etags -o TAGS -a src/python/*.c;
-	@etags -o TAGS -a src/scripts/*.scm;
-	@etags -o TAGS -a src/extmods/*/makefile src/extmods/*/*.c src/extmods/*/*.h 
-	@find src/libscm/ -name "*.scm" -type f | xargs etags -a -o TAGS;
-	@find src/stdmods/ -name "*.scm" -type f | xargs etags -a -o TAGS;
-	@find src/webmods/ -name "*.scm" -type f | xargs etags -a -o TAGS;
-	@find src/textmods/ -name "*.scm" -type f | xargs etags -a -o TAGS;
-	@find src/brico/ -name "*.scm" -type f | xargs etags -a -o TAGS;
+	@etags -o ALLTAGS -a src/exe/*.c src/exe/*.h
+	@etags -o ALLTAGS -a src/lisp/*.c src/sys/*.c src/apply/*.c  src/apply/*.h 
+	@etags -o ALLTAGS -a src/storage/*.c
+	@etags -o ALLTAGS -a src/drivers/*.c src/drivers/headers/*.h
+	@etags -o ALLTAGS -a src/eval/*.c src/eval/*.h src/prims/*.c
+	@etags -o ALLTAGS -a src/web/*.c src/text/*.c;
+	@etags -o ALLTAGS -a tests/libtests/*.c tests/*.scm;
+	@etags -o ALLTAGS -a src/cmodules/*.c;
+	@etags -o ALLTAGS -a src/python/*.c;
+	@etags -o ALLTAGS -a src/scripts/*.scm;
+	@etags -o ALLTAGS -a src/extmods/*/makefile src/extmods/*/*.c src/extmods/*/*.h 
+	@find src/libscm/ -name "*.scm" -type f | xargs etags -a -o ALLTAGS;
+	@find src/stdmods/ -name "*.scm" -type f | xargs etags -a -o ALLTAGS;
+	@find src/webmods/ -name "*.scm" -type f | xargs etags -a -o ALLTAGS;
+	@find src/textmods/ -name "*.scm" -type f | xargs etags -a -o ALLTAGS;
+	@find src/brico/ -name "*.scm" -type f | xargs etags -a -o ALLTAGS;
 
-CSOURCETAGS: src/lisp/*.c src/sys/*.c src/apply/*.c	\
-	src/storage/*.c src/eval/*.c src/prims/*.c 	\
-	src/web/*.c src/text/*.c 			\
-	src/drivers/*.c src/drivers/headers/*.h		\
-	src/exe/*.c src/exe/*.h 			\
-	src/cmodules/*.c src/extmods/*/*.c src/extmods/*/*.h
+CTAGS: makefile.in configure.ac include/kno/config.h.in		\
+		tests/libtests/*.c		  			\
+		src/exe/*.c src/exe/*.h include/kno/*.h 		\
+		src/lisp/*.c src/sys/*.c 				\
+		src/apply/*.c src/apply/*.h				\
+		src/storage/*.c src/drivers/*.c 			\
+		src/eval/*.c src/eval/*.h				\
+		src/prims/*.c     					\
+		src/text/*.c src/web/*.c 				\
+		src/cmodules/*.c 					\
+		src/python/*.c 						\
+		include/kno/components/*.h				\
+		src/extmods/*.in src/extmods/*/*.c src/extmods/*/*.h	\
+		dbg/.gdbinit.in						\
+		${SRC_HEADERS}
 	@echo Building KNO_SOURCE TAGS file
 	@etags -o $@ $^
-
-KNOLANGTAGS: src/eval/*.c src/prims/*.c src/web/*.c src/text/*.c src/cmodules/*.c
-	@echo Building scheme-implementation TAGS file
-	@etags -o $@ $^
-
 
 SCHEMETAGS: ${SCHEME_MODULES}
 	@echo Building SCHEMETAGS file
@@ -1020,7 +1024,7 @@ SCHEMETAGS: ${SCHEME_MODULES}
 	@find tests -name "*.scm" -type f | xargs etags -o SCHEMETAGS -a
 	@ls -l SCHEMETAGS
 
-alltags: TAGS CSOURCETAGS KNOLANGTAGS SCHEMETAGS ALLTAGS
+alltags: TAGS CTAGS SCHEMETAGS ALLTAGS
 
 profile-clean:
 	@find . -name "*.gcda" -type f | xargs rm -f
@@ -1379,9 +1383,7 @@ dist/debs.installed: dist/debs.done
 install-debian install-debs debinstall installdebs: dist/debs.installed
 
 dist/debs.uploaded: dist/debs.done
-	@cd dist; grep "^ [0-9a-f]* [0-9]* [^ ]*\$$" kno_@KNO_VERSION@*.changes | cut -d' ' -f 4 - | xargs -L 1 -I_file_ scp _file_ ${APT_INCOMING} && \
-	  scp kno_@KNO_VERSION@*.changes ${APT_INCOMING} && \
-	  touch debs.uploaded
+	@@U8BIN@u8_dupload dist/kno_@KNO_VERSION@*.changes ${APT_INCOMING} && touch debs.uploaded
 update-apt apt-upload: dist/debs.uploaded
 
 # RPM targets (probably broken)

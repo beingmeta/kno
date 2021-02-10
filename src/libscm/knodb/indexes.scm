@@ -3,15 +3,15 @@
 
 (in-module 'knodb/indexes)
 
-(use-module '{fifo engine text/stringfmts
-	      knodb/hashindexes knodb/kindexes
-	      logger varconfig})
+(use-module '{fifo engine text/stringfmts logger varconfig})
+(use-module '{knodb/hashindexes})
 
 (define-init %loglevel %notice%)
 
 (module-export! '{index/copy! index/pack! index/merge!
 		  index/copy-keys!
-		  index/install!})
+		  index/install!
+		  merge-index})
 
 ;;; Top level functions
 
@@ -25,10 +25,8 @@
 		    (if (string? from)
 			(open-index from (get-read-opts opts))
 			(irritant from |NotIndex| index/copy!)))))
-	(cond ((equal? (indexctl in 'metadata 'type) "kindex")
+	(cond ((overlaps? (indexctl in 'metadata 'type) {"kindex" "hashindex"})
 	       (hashindex/copy-keys! in out opts))
-	      ((equal? (indexctl in 'metadata 'type) "hashindex")
-	       (kindex/copy-keys! in out opts))
 	      (else (index/copy-keys! in out opts)))))))
 
 (define (index/pack! from (to #f) (opts #f))
@@ -39,7 +37,6 @@
 	 (infile (if (string? from) from (index-source in)))
 	 (outfile (or to (index-source in)))
 	 (rarefile (getopt opts 'rarefile))
-	 (uniquefile (getopt opts 'uniquefile))
 	 (inplace (and (file-exists? outfile)
 		       (equal? (realpath infile) (realpath outfile))))
 	 (out (if (and (file-exists? outfile) (not inplace)
@@ -47,25 +44,44 @@
 		  (irritant outfile |OutputAlreadyExists|)
 		  (get-new-index outfile in opts)))
 	 (rare (and rarefile (get-new-index rarefile in opts)))
-	 (unique (and uniquefile (get-new-index uniquefile in opts)))
-	 (copy-opts `(#[rare ,rare unique ,unique] . ,opts))
+	 (copy-opts `(#[rare ,rare] . ,opts))
 	 (copier (cond ((testopt opts 'copier 'generic) index/copy-keys!)
 		       ((getopt opts 'copier) (getopt opts 'copier))
-		       ((equal? (indexctl in 'metadata 'type) "kindex") kindex/copy-keys!)
-		       ((equal? (indexctl in 'metadata 'type) "hashindex")
+		       ((overlaps? (indexctl in 'metadata 'type) {"kindex" "hashindex"})
 			hashindex/copy-keys!)
 		       (else index/copy-keys!)))
 	 (ok #f))
     (onerror (begin (copier in out copy-opts) (set! ok #t)))
     (when ok
       (index/install! out outfile)
-      (when rare (index/install! rare rarefile))
-      (when unique (index/install! unique uniquefile)))
+      (when rare (index/install! rare rarefile)))
     ok))
+
+(define (merge-index in out (opts #f) (rare) (minthresh))
+  (default! rare (getopt opts 'rare))
+  (default! minthresh (getopt opts 'minthresh (and rare 1)))
+  (let* ((copy-opts `(#[rare ,rare minthresh ,minthresh] . ,opts)) (ok #f))
+    (lognotice |MergeIndexes| "Merging " (index-source in))
+    (let ((copier (cond ((testopt opts 'copier 'generic) index/copy-keys!)
+			((getopt opts 'copier) (getopt opts 'copier))
+			((overlaps? (indexctl in 'metadata 'type) {"hashindex" "kindex"})
+			 hashindex/copy-keys!)
+			(else index/copy-keys!))))
+      (copier in out copy-opts))
+    (close-index in))
+    ;; (indexctl out 'metadata 'merges
+    ;; 	      (qchoice (indexctl out 'metadata 'merges)
+    ;; 		       `#[from ,(if (string? from) from
+    ;; 				    (index-source from)from)
+    ;; 			  rare ,rarefile
+    ;; 			  timestamp ,(gmtimestamp)
+    ;; 			  session ,(config 'sessionid)
+    ;; 			  minthresh ,(getopt opts 'minthresh)
+    ;; 			  maxthresh ,(getopt opts 'minthresh)]))
+  in)
 
 (defambda (index/merge! from outfile (opts #f))
   (let* ((rarefile (getopt opts 'rarefile))
-	 (uniquefile (getopt opts 'uniquefile))
 	 (merge (open-index from opts))
 	 (out (if (file-exists? outfile)
 		  (open-index outfile opts)
@@ -74,11 +90,7 @@
 		    (if (file-exists? rarefile)
 			(open-index rarefile opts)
 			(get-new-index rarefile merge opts))))
-	 (unique (and uniquefile 
-		      (if (file-exists? uniquefile)
-			  (open-index uniquefile opts)
-			  (get-new-index uniquefile merge opts))))
-	 (copy-opts `(#[rare ,rare unique ,unique] . ,opts))
+	 (copy-opts `(#[rare ,rare] . ,opts))
 	 (ok #f))
     (onerror 
 	(begin
@@ -86,8 +98,7 @@
 	    (lognotice |MergeIndexes| "Merging " (index-source in))
 	    (let ((copier (cond ((testopt opts 'copier 'generic) index/copy-keys!)
 				((getopt opts 'copier) (getopt opts 'copier))
-				((equal? (indexctl in 'metadata 'type) "kindex") kindex/copy-keys!)
-				((equal? (indexctl in 'metadata 'type) "hashindex")
+				((overlaps? (indexctl in 'metadata 'type) {"hashindex" "kindex"})
 				 hashindex/copy-keys!)
 				(else index/copy-keys!))))
 	      (copier in out copy-opts))
@@ -97,16 +108,15 @@
 	      (qchoice (indexctl out 'metadata 'merges)
 		       `#[from ,(if (string? from) from
 				    (index-source from)from)
-			  rare ,rarefile unique ,uniquefile
+			  rare ,rarefile
 			  timestamp ,(gmtimestamp)
 			  session ,(config 'sessionid)
-			  mincount ,(getopt opts 'mincount)
-			  maxcount ,(getopt opts 'mincount)]))
+			  minthresh ,(getopt opts 'minthresh)
+			  maxthresh ,(getopt opts 'minthresh)]))
     (when ok
       ;; Handle copying of any files in temporary locations
       (index/install! out outfile)
-      (when rare (index/install! rare rarefile))
-      (when unique (index/install! unique uniquefile)))
+      (when rare (index/install! rare rarefile)))
     ok))
 
 (define (index/install! index file)
@@ -138,25 +148,20 @@
       (set! v (indexctl index 'metadata 'keys)))
     (if (and (exists? v) v) v #f)))
 
-(define (get-new-size old opts (minimum) (oldsize))
-  (default! minimum (getopt opts 'minsize (config 'MINSIZE 100)))
-  (let ((specified (or (getopt opts 'newsize #f)
-		       (config 'newsize 2.0)
-		       (->inexact (config 'maxload 2.0)))))
-    (info%watch old minimum specified "\nOPTS" opts)
-    (if (not (number? specified)) (irritant specified |BadNewIndexSize|))
-    (max
-     (if (and (exact? specified) (> specified 42))
-	 specified
-	 (let ((keycount (or (get-keycount old) default-index-size)))
-	   (->exact (ceiling (* keycount specified)))))
-     minimum)))
+(define (get-new-size old opts (oldsize))
+  (let* ((base-count (or (get-keycount old)
+			 (getopt opts 'minsize default-index-size)))
+	 (maxload (getopt opts 'maxload (config 'maxload 1.5)))
+	 (newsize (max (getopt opts 'newsize (config 'newsize 0))
+		       (* (+ base-count (getopt opts 'addkeys 0)) maxload))))
+    (info%watch old base-count maxload newsize "\nOPTS" opts)
+    (->exact newsize)))
 (define (get-new-type old opts)
   (getopt opts 'type
 	  (config 'NEWTYPE 
 		  (config 'TYPE 
 			  (or (indexctl old 'metadata 'type)
-			      'hashindex)))))
+			      'kindex)))))
 
 (define (get-new-index filename old opts)
   (if (and (file-exists? filename)
@@ -167,7 +172,7 @@
 	       "Using existing output file index " filename)
 	(open-index filename (get-write-opts opts)))
       (let* ((n-keys (indexctl old 'keycount))
-	     (size (get-new-size old opts))
+	     (size (getopt opts 'newsize (get-new-size old opts)))
 	     (type (get-new-type old opts))
 	     (new-opts (frame-create #f
 			 'type type 'size size
@@ -195,23 +200,21 @@
 ;;; Default key copier, uses fetchn
 
 (define (key-copier keys batch-state loop-state task-state)
-  (let* ((mincount (get loop-state 'mincount))
-	 (maxcount (get loop-state 'maxcount))
-	 (unique (try (get loop-state 'unique) #f))
-	 (rare   (try (get loop-state 'rare) #f))
+  (let* ((rare   (try (get loop-state 'rare) #f))
+	 (minthresh (get loop-state 'minthresh))
+	 (rarethresh (and rare (get loop-state 'rarethresh)))
+	 (maxthresh (get loop-state 'maxthresh))
 	 (input  (get loop-state 'input))
 	 (output (get loop-state 'output))
 	 (outhash (make-hashtable (choice-size keys)))
-	 (uniquehash (and unique (make-hashtable (choice-size keys))))
 	 (rarehash (and rare (make-hashtable (choice-size keys))))
 	 (stopkeys (indexctl output 'metadata 'stopkeys))
 	 (copy-count 0)
-	 (unique-count 0)
 	 (rare-count 0)
 	 (value-count 0))
     (let* ((keyvec (choice->vector (difference keys stopkeys)))
 	   (keyvals (index/fetchn input keyvec)))
-      (if (and (not mincount) (not maxcount) (not unique) (not rare))
+      (if (and (not minthresh) (not maxthresh) (not rare))
 	  (let ((i 0) (nkeys (length keyvec)))
 	    (while (< i nkeys)
 	      (add! output (elt keyvec i) (elt keyvals i))
@@ -225,38 +228,27 @@
 	      (set! nvals (choice-size vals))
 	      (set! copied #t)
 	      (cond ((= nvals 0) (set! copied #f))
-		    ((and maxcount (> nvals maxcount)) (set! copied #f))
-		    ((and (= nvals 1) uniquehash)
-		     (set! unique-count (1+ unique-count))
-		     (add! uniquehash key vals))
-		    ((and (= nvals 1) mincount)
-		     (set! unique-count (1+ unique-count))
-		     (if (< mincount 1)
-			 (add! rarehash key vals)
-			 (set! copied #f)))
-		    ((and mincount (< nvals mincount))
+		    ((and maxthresh (> nvals maxthresh)) (set! copied #f))
+		    ((and minthresh (> nvals minthresh)) (set! copied #f))
+		    ((and rarethresh (< nvals rarethresh))
 		     (set! rare-count (1+ rare-count))
 		     (if rarehash
 			 (add! rarehash key vals)
 			 (set! copied #f)))
 		    (else (add! outhash key vals)))
 	      (when copied
-		(when (= nvals 1) (set! unique-count (1+ unique-count)))
 		(set! value-count (+ value-count nvals))
 		(set! copy-count (1+ copy-count)))
 	      (set! i (1+ i))))))
     (index-merge! output outhash)
-    (when uniquehash (index-merge! unique outhash))
     (when rarehash (index-merge! rare rarehash))
     (table-increment! batch-state 'copied copy-count)
     (table-increment! batch-state 'rarekeys rare-count)
-    (table-increment! batch-state 'uniquekeys unique-count)
     (table-increment! batch-state 'values value-count)))
 
 (define (index/copy-keys! in out (opts #f))
   (let ((started (elapsed-time))
 	(rare (getopt opts 'rare {}))
-	(unique (getopt opts 'unique {}))
 	(keys (getkeys in)))
     (lognotice |Copying|
       (choice-size keys) " keys"
@@ -265,19 +257,19 @@
     (engine/run key-copier keys
 		`#[loop #[input ,in output ,out
 			  rare ,(getopt opts 'rare)
-			  unique ,(getopt opts 'unique)
-			  maxcount ,(getopt opts 'maxcount)
-			  mincount ,(getopt opts 'mincount)]
+			  maxthresh ,(getopt opts 'maxthresh)
+			  rarethresh ,(and (getopt opts 'rare) (getopt opts 'rarethresh))
+			  minthresh ,(getopt opts 'minthresh)]
 		   count-term "keys"
 		   onerror {stopall signal}
-		   counters {copied rarekeys uniquekeys values}
+		   counters {copied rarekeys values}
 		   logcontext ,(stringout "Copying " (if (index? in) (index-source in) in))
-		   logrates {copied rarekeys uniquekeys values}
+		   logrates {copied rarekeys values}
 		   batchsize ,(getopt opts 'batchsize (config 'BATCHSIZE 10000))
 		   batchrange ,(getopt opts 'batchrange (config 'BATCHRANGE 8))
 		   nthreads ,(getopt opts 'nthreads (config 'NTHREADS (rusage 'ncpus)))
 		   checktests ,(engine/interval (getopt opts 'savefreq (config 'savefreq 60)))
-		   checkpoint {,out ,unique ,rare}
+		   checkpoint {,out ,rare}
 		   logfreq ,(getopt opts 'logfreq (config 'LOGFREQ 30))
 		   checkfreq ,(getopt opts 'checkfreq (config 'checkfreq 15))
 		   logchecks #t
