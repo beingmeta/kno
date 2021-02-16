@@ -23,6 +23,7 @@
 
 KNO_EXPORT u8_condition kno_NotAFunction, kno_TooManyArgs, kno_TooFewArgs;
 KNO_EXPORT u8_condition kno_VoidArgument, kno_SyntaxError;
+KNO_EXPORT u8_condition kno_BadHandler, kno_NoHandler;
 
 KNO_EXPORT int kno_wrap_apply;
 
@@ -355,15 +356,24 @@ typedef int kno_dispatch_flags;
 #define KNO_DISPATCH_OPTIONAL 0x80000000
 #define KNO_DISPATCH_NOERR    0x40000000
 #define KNO_DISPATCH_DCALL    0x20000000
+#define KNO_DISPATCH_DECREF   0x10000000
 
 KNO_EXPORT lispval kno_get_handler(lispval obj,lispval m);
 KNO_EXPORT lispval kno_dispatch(kno_stack stack,
 				lispval obj,lispval method,
 				kno_dispatch_flags flags,
 				kno_argvec args);
+KNO_EXPORT lispval kno_dispatch_apply(struct KNO_STACK *stack,lispval handler,
+				      kno_dispatch_flags flags,
+				      int n_args,kno_argvec args);
+
+
 
 #define kno_send_flags kno_dispatch_flags
 #define kno_send(obj,method,flags,args) (kno_dispatch(NULL,obj,method,flags,args))
+
+KNO_EXPORT lispval kno_dispatch_unhandled(lispval obj,lispval message);
+KNO_EXPORT lispval kno_dispatch_bad_handler(lispval obj,lispval m,lispval h);
 
 KNO_EXPORT lispval kno_exec(lispval expr,lispval handlers,kno_stack stack);
 KNO_EXPORT lispval kno_exec_extend(lispval add,lispval path);
@@ -379,10 +389,11 @@ KNO_EXPORT int _KNO_APPLICABLE_TYPEP(int typecode);
   ( ( ((typecode) >= kno_cprim_type) && ((typecode) <= kno_rpc_type) ) || \
     ( (kno_applyfns[typecode]) != NULL) )
 
-#define KNO_APPLICABLEP(x)			 \
-  ((KNO_TYPEP(x,kno_fcnid_type)) ?		  \
+#define KNO_APPLICABLEP(x)				  \
+  ((KNO_TYPEP(x,kno_fcnid_type)) ?			  \
    (KNO_APPLICABLE_TYPEP(KNO_FCNID_TYPEOF(x))) :	  \
-   (KNO_APPLICABLE_TYPEP(KNO_PRIM_TYPE(x))))
+   (KNO_APPLICABLE_TYPEP(KNO_PRIM_TYPE(x))) )
+
 #endif
 
 KNO_EXPORT kno_function _KNO_GETFUNCTION(lispval x);

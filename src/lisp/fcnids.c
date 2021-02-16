@@ -144,7 +144,7 @@ static int unparse_fcnid(u8_output out,lispval x) {
 KNO_EXPORT void kno_init_fcnids_c()
 {
   kno_type_names[kno_fcnid_type]=_("fcnid");
-  kno_type_docs[kno_fcnid_type]=_("function identifer ID");
+  kno_type_docs[kno_fcnid_type]=_("function identifier ID");
   kno_unparsers[kno_fcnid_type]=unparse_fcnid;
   u8_init_mutex(&_kno_fcnid_lock);
   u8_register_source_file(_FILEINFO);

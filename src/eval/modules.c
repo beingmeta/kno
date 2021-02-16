@@ -24,7 +24,9 @@
 #define _FILEINFO __FILE__
 #endif
 
-static lispval source_symbol, loadstamp_symbol, dlsource_symbol, fcnids_symbol;
+static lispval source_symbol, loadstamp_symbol, dlsource_symbol;
+static lispval fcnids_symbol, modinfo_symbol;
+
 
 u8_condition kno_NotAModule=_("Argument is not a module (table)");
 u8_condition kno_NoSuchModule=_("Can't find named module");
@@ -125,6 +127,34 @@ KNO_EXPORT kno_lexenv kno_working_lexenv()
   return env;
 }
 
+static lispval init_modinfo(lispval module)
+{
+  lispval info = (KNO_HASHTABLEP(module)) ?
+    (kno_get(module,modinfo_symbol,KNO_VOID)) : (KNO_LEXENVP(module)) ?
+    (kno_get(((kno_lexenv)module)->env_bindings,modinfo_symbol,KNO_VOID)) :
+    (KNO_VOID);
+  if (KNO_VOIDP(info)) {
+    info = kno_make_slotmap(4,0,NULL);
+    if (KNO_HASHTABLEP(module)) {
+      if (!(kno_hashtable_op((kno_hashtable)module,kno_table_default,
+			     modinfo_symbol,info))) {
+	kno_decref(info);
+	info = kno_get(module,modinfo_symbol,KNO_VOID);}
+      else NO_ELSE;}
+    else if (KNO_LEXENVP(module)) {
+      kno_lexenv env = (kno_lexenv) module;
+      if (KNO_HASHTABLEP(env->env_bindings)) {
+	if (!(kno_hashtable_op
+	      ((kno_hashtable)env->env_bindings,kno_table_default,
+	       modinfo_symbol,info))) {
+	  kno_decref(info);
+	  info = kno_get(env->env_bindings,modinfo_symbol,KNO_VOID);}
+	else NO_ELSE;}
+      else kno_store(info,modinfo_symbol,info);}
+    else kno_store(info,modinfo_symbol,info);}
+  return info;
+}
+
 KNO_EXPORT lispval kno_register_module_x(lispval name,lispval module,int flags)
 {
   kno_hashtable_store(&module_map,name,module);
@@ -139,9 +169,13 @@ KNO_EXPORT lispval kno_register_module_x(lispval name,lispval module,int flags)
   if (KNO_LEXENVP(module)) {
     kno_lexenv env = (kno_lexenv)module;
     kno_add(env->env_bindings,KNOSYM_MODULEID,name);}
-  else if (HASHTABLEP(module))
-    kno_add(module,KNOSYM_MODULEID,name);
+  else if (HASHTABLEP(module)) {
+    kno_add(module,KNOSYM_MODULEID,name);}
   else {}
+
+  lispval info = init_modinfo(module);
+  kno_store(info,KNOSYM_MODULEID,name);
+  kno_decref(info);
 
   /* Add to the appropriate default environment */
   if (flags&KNO_MODULE_DEFAULT) {
@@ -267,6 +301,29 @@ int kno_module_finished(lispval module,int flags)
     return 1;}
 }
 
+KNO_EXPORT lispval kno_get_moduleid(lispval x,int err)
+{
+  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
+  if (KNO_FUNCTIONP(x)) {
+    struct KNO_FUNCTION *f = (kno_function)(x);
+    lispval id = f->fcn_moduleid;
+    if ( (KNO_NULLP(id)) || (KNO_VOIDP(id)) ) return KNO_FALSE;
+    else return kno_incref(id);}
+  else if (TYPEP(x,kno_evalfn_type)) {
+    struct KNO_EVALFN *sf = (kno_evalfn)x;
+    lispval id = sf->evalfn_moduleid;
+    if ( (KNO_NULLP(id)) || (KNO_VOIDP(id)) ) return KNO_FALSE;
+    else return kno_incref(id);}
+  else if (TYPEP(x,kno_macro_type)) {
+    struct KNO_MACRO *m = (kno_macro) x;
+    lispval id = m->macro_moduleid;
+    if ( (KNO_NULLP(id)) || (KNO_VOIDP(id)) ) return KNO_FALSE;
+    else return kno_incref(id);}
+  else if (err)
+    return kno_type_error(_("function"),"procedure_module",x);
+  else return KNO_FALSE;
+}
+
 /* Switching modules */
 
 static kno_lexenv become_module(kno_lexenv env,lispval module_name,int create)
@@ -321,12 +378,45 @@ static kno_lexenv become_module(kno_lexenv env,lispval module_name,int create)
   return env;
 }
 
+DEF_KNOSYM(version);
+
 static lispval in_module_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval module_name = kno_get_arg(expr,1);
+  kno_lexenv module_env = NULL;
   if (VOIDP(module_name))
     return kno_err(kno_TooFewExpressions,"IN-MODULE",NULL,expr);
-  else if (become_module(env,module_name,1)) return VOID;
+  else if ((module_env=become_module(env,module_name,1))) {
+    lispval extra = KNO_CDR(KNO_CDR(expr)), result = KNO_VOID;
+    if (KNO_PAIRP(extra)) {
+      lispval modinfo =
+	kno_get(module_env->env_bindings,modinfo_symbol,KNO_VOID);
+      if (KNO_NUMBERP(KNO_CAR(extra))) {
+	kno_store(modinfo,KNOSYM(version),KNO_CAR(extra));
+	extra = KNO_CDR(extra);}
+      while (KNO_PAIRP(extra)) {
+	lispval car = kno_eval(KNO_CAR(extra),env,_stack,0);
+	if (KNO_ABORTED(car)) { result=car; extra=KNO_VOID;}
+	else if (KNO_TABLEP(car)) {
+	  lispval keys = kno_getkeys(car);
+	  KNO_DO_CHOICES(key,keys) {
+	    lispval v = kno_get(car,key,KNO_VOID);
+	    if (!((KNO_VOIDP(v))||(KNO_EMPTYP(v)))) kno_add(modinfo,key,v);
+	    kno_decref(v);}
+	  kno_decref(keys);
+	  extra = KNO_CDR(extra);}
+	else if ( (KNO_SYMBOLP(car)) && (KNO_PAIRP(KNO_CDR(extra))) ) {
+	  lispval val = kno_eval(KNO_CADR(extra),env,_stack,0);
+	  if (KNO_ABORTED(val)) { result = val; extra = KNO_VOID; break; }
+	  kno_store(modinfo,car,val);
+	  kno_decref(val);
+	  extra = KNO_CDDR(extra);}
+	else {
+	  u8_log(LOGWARN,"BadModuleOptions","For in-module (%q) \n%q",
+		 module_name,expr);
+	  extra = KNO_VOID;}}
+      kno_decref(modinfo);}
+    return result;}
   else return KNO_ERROR;
 }
 
@@ -533,8 +623,9 @@ DEFCPRIM("get-module",get_module,
 	 {"modname",kno_any_type,KNO_VOID})
 static lispval get_module(lispval modname)
 {
-  lispval module = kno_find_module(modname,0);
-  return module;
+  if ( (KNO_SYMBOLP(modname)) || (KNO_STRINGP(modname)) )
+    return kno_find_module(modname,0);
+  else return kno_get_moduleid(modname,1);
 }
 
 DEFCPRIM("get-loaded-module",get_loaded_module,
@@ -938,6 +1029,7 @@ void kno_init_module_tables()
   loadstamp_symbol = kno_intern("%loadstamp");
   source_symbol = kno_intern("%source");
   dlsource_symbol = kno_intern("%dlsource");
+  modinfo_symbol = kno_intern("%modinfo");
 
   KNO_INIT_STATIC_CONS(&module_map,kno_hashtable_type);
   kno_make_hashtable(&module_map,67);

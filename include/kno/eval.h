@@ -155,11 +155,11 @@ typedef struct KNO_EVALFN *kno_evalfn;
 #define KNO_EVALFN_NOTAIL  0x01
 
 KNO_EXPORT lispval kno_make_evalfn(u8_string name,int flags,kno_eval_handler fn);
-KNO_EXPORT void kno_new_evalfn(lispval mod,u8_string name,u8_string cname,
-                               u8_string filename,
-                               u8_string doc,
-			       int flags,
-			       kno_eval_handler fn);
+KNO_EXPORT lispval kno_new_evalfn(lispval mod,u8_string name,u8_string cname,
+				  u8_string filename,
+				  u8_string doc,
+				  int flags,
+				  kno_eval_handler fn);
 
 #define kno_def_evalfn(mod,name,evalfn,doc)                             \
   kno_new_evalfn(mod,name,# evalfn,                                     \
@@ -230,6 +230,8 @@ KNO_EXPORT lispval kno_find_module(lispval,int);
 KNO_EXPORT lispval kno_new_module(char *name,int flags);
 KNO_EXPORT lispval kno_new_cmodule_x
 (char *name,int flags,void *addr,u8_string filename);
+
+KNO_EXPORT lispval kno_get_moduleid(lispval x,int err);
 
 #define kno_new_cmodule(name,flags,addr) \
   kno_new_cmodule_x(name,flags,addr,__FILE__)

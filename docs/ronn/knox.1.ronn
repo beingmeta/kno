@@ -4,17 +4,26 @@ knox(1) -- run a non-interactive Kno script
 
 ## SYNOPSIS
 
-`knox` [config=val]... <file> [config=val|arg]...
+`knox` [config=val]... <source> [config=val|arg]...
 
 ## DESCRIPTION
 
-This uses the Kno interpreter to process *file* after processing
-the designated config entries. Config entries have the form
-**setting**=*value* and may be either read by applications or execute
-*config handlers*.
+This invokes the Kno interpreter to load and run a program (indicated
+by *source*) after processing any provided config entries. Config
+entries have the form **setting**=*value* and may trigger the
+execution of procedural *config handlers*.
 
-If *file* defines a procedure called `MAIN`, it is called on LISP
-versions of the command line *args* (excluding config entries) 
+If *source* is a filename, the file is opened and expressions are read
+and evaluated; if *source* is the string '-', expressions are read and
+evaluated from the standard input. If those expressions define a
+function `main`, `main` is called on the command line *args*
+(excluding config entries).
+
+**exec modules**: if *source* starts with a colon (`:`), it refers to
+a Scheme module which will be loaded into the `knox` session using the
+normal search paths as modified by the config entries. If the loaded
+module exports a `main` procedure, that procedure is applied to the
+command line *args* (excluding config entries).
 
 Some config entries may generate useful side-effects defined by either
 the Kno core or loaded modules. Some useful built-in config

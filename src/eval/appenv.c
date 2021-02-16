@@ -202,11 +202,13 @@ static u8_string get_next(u8_string pt,u8_string seps);
 
 static lispval parse_module_spec(u8_string s)
 {
-  if (*s) {
+  if (strchr(":({",*s))
+    return kno_parse_arg(s);
+  else if (*s) {
     u8_string brk = get_next(s," ,;");
     if (brk) {
       u8_string elt = u8_slice(s,brk);
-      lispval parsed = kno_parse(elt);
+      lispval parsed = (elt[0]==':') ? (kno_parse(elt+1)) : (kno_parse(elt));
       u8_free(elt);
       if (KNO_ABORTP(parsed))
 	return parsed;
@@ -255,14 +257,23 @@ static int module_config_set(lispval var,lispval vals,void *d)
 {
   int loads = 0; DO_CHOICES(val,vals) {
     lispval modname = ((SYMBOLP(val))?(val):
-		       (STRINGP(val))?
-		       (parse_module_spec(CSTRING(val))):
+		       (STRINGP(val))?(parse_module_spec(CSTRING(val))):
+		       ( (PAIRP(val)) || (CHOICEP(val)) ) ? (kno_incref(val)) :
 		       (VOID));
     if (VOIDP(modname)) {
       kno_seterr(kno_TypeError,"module_config_set","module",val);
       return -1;}
     else if (PAIRP(modname)) {
       KNO_DOLIST(elt,modname) {
+	if ( (SYMBOLP(elt)) || (STRINGP(elt)) ) {
+	  int added = add_modname(elt);
+	  if (added>0) loads++;}
+	else {
+	  u8_log(LOG_WARN,kno_TypeError,"module_config_set",
+		 "Not a valid module name: %q",elt);}}
+      kno_decref(modname);}
+    else if (CHOICEP(modname)) {
+      KNO_DO_CHOICES(elt,modname) {
 	if ( (SYMBOLP(elt)) || (STRINGP(elt)) ) {
 	  int added = add_modname(elt);
 	  if (added>0) loads++;}

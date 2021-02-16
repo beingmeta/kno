@@ -627,9 +627,9 @@
 	   (loginfo |SpecialForm| "Optimizing " headvalue " form")
 	   (let* ((optimizer
 		   (try (get special-form-optimizers headvalue)
-			(get special-form-optimizers
-			     (procedure-name headvalue))
-			(get special-form-optimizers head)))
+			(tryif (and (procedure-name headvalue) (get-module headvalue))
+			  (get special-form-optimizers
+			       (cons (downcase (procedure-name headvalue)) (get-module headvalue))))))
 		  (transformed (try (optimizer headvalue expr env bound opts)
 				    expr))
 		  (newhead (car transformed)))
@@ -1734,20 +1734,16 @@
 
 ;;(add! special-form-optimizers doseq optimize-doseq)
 
-;; Don't optimize these because they look at the symbol that is the head
-;; of the expression to get their tag name.
-(add! special-form-optimizers {"markupblock" "ANCHOR"} optimize-markup)
-(add! special-form-optimizers {"markup*block" "markup*"} optimize-markup*)
-(add! special-form-optimizers "emptymarkup" optimize-emptymarkup)
-(add! special-form-optimizers "ANCHOR*" optimize-anchor*)
-(add! special-form-optimizers "XMLBLOCK" optimize-xmlblock)
-(add! special-form-optimizers "WITH/REQUEST" optimize-block)
-(add! special-form-optimizers "WITH/REQUEST/OUT" optimize-block)
-(add! special-form-optimizers "XMLOUT" optimize-block)
-(add! special-form-optimizers "XHTML" optimize-block)
-(add! special-form-optimizers "XMLEVAL" optimize-block)
-(add! special-form-optimizers "GETOPT" optimize-block)
-(add! special-form-optimizers "TESTOPT" optimize-block)
+(add! special-form-optimizers getopt optimize-block)
+(add! special-form-optimizers testopt optimize-block)
+
+(add! special-form-optimizers (list {"with/request" "with/request/out"} 'webtools) optimize-block)
+(add! special-form-optimizers '("markupblock" webtools) optimize-markup)
+(add! special-form-optimizers (list {"markup*block" "markup*"} 'webtools) optimize-markup*)
+(add! special-form-optimizers '("emptymarkup" webtools) optimize-emptymarkup)
+(add! special-form-optimizers '{("anchor" xhtml) ("anchor*" xhtml)} optimize-anchor*)
+(add! special-form-optimizers '("xmlblock" webtools) optimize-xmlblock)
+(add! special-form-optimizers (list {"xmlout" "xhtml" "xmleval"} 'webtools) optimize-block)
 
 (when (bound? fileout)
   (add! special-form-optimizers

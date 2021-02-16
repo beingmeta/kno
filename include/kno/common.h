@@ -99,6 +99,11 @@ KNO_EXPORT lispval kno_current_thread
 
 #define KNO_INIT_STRUCT(s,sname) memset(s,0,sizeof(sname));
 
+KNO_EXPORT int kno_always_true(lispval x);
+KNO_EXPORT int kno_always_false(lispval x);
+
+typedef int (*kno_lisp_predicate)(lispval x);
+
 /* Built in stuff */
 
 #include <stdlib.h>

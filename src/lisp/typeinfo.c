@@ -86,7 +86,7 @@ KNO_EXPORT struct KNO_TYPEINFO *kno_use_typeinfo(lispval tag)
     info->type_name = (KNO_SYMBOLP(tag)) ? (KNO_SYMBOL_NAME(tag)) :
       (KNO_STRINGP(tag)) ? (KNO_CSTRING(tag)) :
       (KNO_TYPEP(tag,kno_ctype_type)) ?
-      (kno_type2name((kno_lisp_type)(KNO_IMMEDIATE_DATA(tag)))) :
+      (u8_strdup(kno_type2name((kno_lisp_type)(KNO_IMMEDIATE_DATA(tag))))) :
       (kno_lisp2string(tag));
     info->type_description = NULL;
     int rv = (KNO_TYPEP(tag,kno_ctype_type)) ? (setctypeinfo(tag,info)) :
@@ -146,6 +146,16 @@ int kno_set_freefn(lispval tag,kno_type_freefn fn)
   struct KNO_TYPEINFO *info = kno_use_typeinfo(tag);
   if (info) {
     info->type_freefn = fn;
+    return 1;}
+  else return 0;
+}
+
+KNO_EXPORT
+int kno_set_dispatchfn(lispval tag,kno_type_dispatchfn fn)
+{
+  struct KNO_TYPEINFO *info = kno_use_typeinfo(tag);
+  if (info) {
+    info->type_dispatchfn = fn;
     return 1;}
   else return 0;
 }

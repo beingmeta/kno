@@ -77,7 +77,7 @@ static lispval load_source_for_module
 (lispval spec,u8_string module_source);
 static u8_string get_module_source(lispval spec);
 
-static lispval source_symbol;
+static lispval source_symbol, moduleinfo_symbol;
 
 static struct MODULE_LOADER {
   int (*loader)(lispval,void *); void *data;
@@ -165,9 +165,11 @@ static int load_source_module(lispval spec,void *ignored)
     else {
       lispval module_filename = kno_mkstring(module_source);
       kno_register_module_x(module_filename,load_result,0);
-      /* Store non symbolic specifiers as module identifiers */
-      if (STRINGP(spec))
-	kno_add(load_result,source_symbol,spec);
+      lispval module_info = kno_get(load_result,moduleinfo_symbol,KNO_VOID);
+      if (TABLEP(module_info))
+	kno_store(module_info,source_symbol,module_filename);
+      /* Store string module IDs as %source */
+      if (STRINGP(spec)) kno_add(load_result,source_symbol,spec);
       if (KNO_LEXENVP(load_result)) {
 	kno_lexenv lexenv = (kno_lexenv) load_result;
 	kno_add(load_result,source_symbol,module_filename);
@@ -179,6 +181,7 @@ static int load_source_module(lispval spec,void *ignored)
 	kno_register_module_x(abspath_key,load_result,0);
 	kno_decref(abspath_key);}
       kno_decref(module_filename);
+      kno_decref(module_info);
       u8_free(module_source);
       kno_decref(load_result);
       return 1;}}
@@ -839,6 +842,7 @@ KNO_EXPORT void kno_init_loadmods_c()
   u8_init_condvar(&module_wait);
 
   source_symbol = kno_intern("%source");
+  moduleinfo_symbol = kno_intern("%modinfo");
   loadstamp_symbol = kno_intern("%loadstamp");
 
   /* Setup load paths */

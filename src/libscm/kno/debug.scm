@@ -166,7 +166,7 @@
 	   (elt args pos))
 	  (else (lineout "Invalid position '" pos " given " (length args) " arguments")))))
 
-(define (show-env env (header))
+(define (show-env env (header #f))
   (let ((vars (getkeys env)))
     (when header (lineout ($count (|| vars) "binding") ":"))
     (do-choices (key vars)

@@ -1189,7 +1189,7 @@ static u8_string markup_printf_handler
 static lispval webtools_module, xhtml_module;
 
 #define markupfn(string,handler) \
-  kno_make_evalfn(string,KNO_EVALFN_NOTAIL,handler)
+  kno_new_evalfn(webtools_module,string,# handler,"",_FILEINFO,KNO_EVALFN_NOTAIL,handler)
 
 KNO_EXPORT void kno_init_xmloutput_c()
 {
@@ -1292,12 +1292,6 @@ KNO_EXPORT void kno_init_xmloutput_c()
 		 "*undocumented*");
 
   link_local_cprims();
-
-  kno_decref(markup_prim); kno_decref(markupstar_prim);
-  kno_decref(markupblock_prim); kno_decref(markupstarblock_prim);
-  kno_decref(emptymarkup_prim); kno_decref(xmlout_prim);
-  kno_decref(xmlblockn_prim); kno_decref(xmlblock_prim);
-  kno_decref(xmlelt_prim);
 
   xmloidfn_symbol = kno_intern("%xmloid");
   id_symbol = kno_intern("%id");

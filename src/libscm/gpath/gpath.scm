@@ -1,7 +1,7 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
 ;;; Copyright (C) 2005-2020 beingmeta, inc. All rights reserved.
 
-(in-module 'gpath)
+(in-module 'gpath 1.1)
 
 (use-module '{varconfig logger webtools texttools fileio})
 

@@ -20,6 +20,9 @@ typedef int (*kno_type_testfn)(lispval,kno_typeinfo);
 typedef int (*kno_type_freefn)(lispval,kno_typeinfo);
 typedef lispval (*kno_type_dumpfn)(lispval,kno_typeinfo);
 typedef lispval (*kno_type_restorefn)(lispval,lispval,kno_typeinfo);
+typedef lispval (*kno_type_dispatchfn)(lispval,lispval,int,
+				       const lispval *,
+				       kno_typeinfo);
 
 typedef struct KNO_TYPEINFO {
   KNO_CONS_HEADER;
@@ -33,6 +36,7 @@ typedef struct KNO_TYPEINFO {
   kno_type_freefn type_freefn;
   kno_type_dumpfn type_dumpfn;
   kno_type_restorefn type_restorefn;
+  kno_type_dispatchfn type_dispatchfn;
   struct KNO_TABLEFNS *type_tablefns;
   struct KNO_SEQFNS *type_seqfns;} KNO_TYPEINFO;
 
@@ -48,6 +52,7 @@ KNO_EXPORT int kno_set_testfn(lispval tag,kno_type_testfn fn);
 KNO_EXPORT int kno_set_freefn(lispval tag,kno_type_freefn fn);
 KNO_EXPORT int kno_set_dumpfn(lispval tag,kno_type_dumpfn fn);
 KNO_EXPORT int kno_set_restorefn(lispval tag,kno_type_restorefn fn);
+KNO_EXPORT int kno_set_dispatchfn(lispval tag,kno_type_dispatchfn fn);
 
 
 

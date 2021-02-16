@@ -417,6 +417,27 @@ static lispval open_byte_input_file(lispval fname,lispval opts)
     else return KNO_ERROR_VALUE;}
 }
 
+DEFCPRIM("open-packet",open_packet_prim,
+	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	 "**undocumented**",
+	 {"fname",kno_packet_type,KNO_VOID},
+	 {"opts",kno_any_type,KNO_VOID})
+static lispval open_packet_prim(lispval packet,lispval opts)
+{
+  int flags = KNO_STREAM_IS_CONSED | KNO_STREAM_READ_ONLY |
+    KNO_STREAM_CAN_SEEK;
+  u8_byte buf[100];
+  u8_string streamid =
+    u8_bprintf(buf,"packet[%d]",KNO_PACKET_LENGTH(packet));
+  struct KNO_STREAM *stream = kno_init_byte_stream
+    (u8_alloc(struct KNO_STREAM),streamid,flags,
+     KNO_PACKET_LENGTH(packet),
+     KNO_PACKET_DATA(packet));
+  if (stream)
+    return (lispval) stream;
+  else return KNO_ERROR;
+}
+
 DEFCPRIM("extend-byte-output",extend_byte_output,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
@@ -589,6 +610,8 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("open-byte-output",open_byte_output_file,2,kno_binio_module);
   KNO_LINK_CPRIM("zwrite-int",zwrite_int,2,kno_binio_module);
   KNO_LINK_CPRIM("zread-int",zread_int,1,kno_binio_module);
+
+  KNO_LINK_CPRIM("open-packet",open_packet_prim,2,kno_binio_module);
 
   KNO_LINK_CPRIM("write-8bytes",write_8bytes,3,kno_binio_module);
   KNO_LINK_CPRIM("write-4bytes",write_4bytes,3,kno_binio_module);

@@ -1346,6 +1346,9 @@ static int pool_docommit(kno_pool p,lispval oids,
 	    commits.commit_times.flush,
 	    commits.commit_times.cleanup);
 
+    if ( (use_commits) && (commits.commit_vals) )
+      kno_decref_vec(commits.commit_vals,commits.commit_count);
+
     if (free_commits) {
       if (commits.commit_oids) {
 	u8_big_free(commits.commit_oids);

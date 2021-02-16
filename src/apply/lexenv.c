@@ -289,8 +289,38 @@ KNO_EXPORT kno_lexenv kno_find_binding(kno_lexenv env,lispval symbol,int any)
   return NULL;
 }
 
+/* Lexenv dispatch function */
+
+static lispval lexenv_dispatch(lispval env,lispval message,
+			       kno_dispatch_flags flags,
+			       kno_argvec args,kno_typeinfo info)
+{
+  struct KNO_LEXENV *lexenv = (kno_lexenv) env;
+  lispval handler = KNO_VOID;
+  int n = (flags & KNO_DISPATCH_ARG_MASK);
+  if (kno_test(info->type_props,message,KNO_VOID)) {
+    handler = kno_get(info->type_props,message,KNO_VOID);
+    if (!(KNO_APPLICABLEP(handler))) { kno_decref(handler); handler=KNO_VOID;}}
+  if (!(KNO_VOIDP(handler))) {}
+  else if (KNO_VOIDP(lexenv->env_exports))
+    handler = kno_get(lexenv->env_bindings,message,KNO_VOID);
+  else handler = kno_get(lexenv->env_exports,message,KNO_VOID);
+  if (KNO_VOIDP(handler)) {
+    if ( flags & (KNO_DISPATCH_OPTIONAL|KNO_DISPATCH_NOERR) )
+      return KNO_EMPTY;
+    else return kno_dispatch_unhandled(env,message);}
+  else return kno_dispatch_apply(kno_stackptr,handler,
+				 flags|KNO_DISPATCH_DECREF,
+				 n,args);
+}
+
+/* Initializing lexenv */
+
 KNO_EXPORT void kno_init_lexenv_c()
 {
+  struct KNO_TYPEINFO *typeinfo = kno_use_typeinfo(KNO_CTYPE(kno_lexenv_type));
+  typeinfo->type_dispatchfn = lexenv_dispatch;
+
   kno_unparsers[kno_lexenv_type]=unparse_lexenv;
   kno_copiers[kno_lexenv_type]=lisp_copy_lexenv;
   kno_recyclers[kno_lexenv_type]=recycle_lexenv;

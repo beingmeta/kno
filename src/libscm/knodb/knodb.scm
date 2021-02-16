@@ -550,6 +550,8 @@
 	((and (pair? arg) (applicable? (car arg))) #t)
 	(else #f)))
 
+(define skip-indexes 'tempindex)
+
 (define (get-modified arg)
   (cond ((registry? arg) (tryif (registry/modified? arg) arg))
 	((flexpool/record arg) (get-modified (flexpool/partitions arg)))
@@ -563,7 +565,7 @@
 		   (get-modified (for-choices (partition partitions)
 				   (getvalues (or (dbctl partition 'adjuncts) {})))))))
 	((index? arg)
-	 (tryif (not (eq? (indexctl arg 'type) 'tempindex))
+	 (tryif (not (overlaps? (dbctl arg 'type) skip-indexes))
 	   (choice (tryif (modified? arg) arg)
 		   (get-modified (indexctl arg 'partitions)))))
 	((and (applicable? arg) (zero? (procedure-min-arity arg))) arg)
@@ -581,6 +583,8 @@
 
 (define commit-threads #t)
 (varconfig! COMMIT:THREADS commit-threads)
+
+(define skipdbs 'tempindex)
 
 (defambda (knodb/commit! (dbs (get-all-dbs)) (opts #f))
   (let ((modified (get-modified dbs))

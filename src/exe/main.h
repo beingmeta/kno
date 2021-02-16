@@ -35,17 +35,23 @@ static u8_string default_libscm = KNO_DEFAULT_LIBSCM;
 static u8_string default_libscm = NULL;
 #endif
 
-#if KNO_STATIC
 static void init_libraries()
 {
+#if (!(HAVE_CONSTRUCTOR_ATTRIBUTES))
+  u8_initialize_u8stdio();
+  u8_init_chardata_c();
+#endif
+
   if (default_libscm) kno_default_libscm = default_libscm;
+
+#if (KNO_STATIC) || (!(HAVE_CONSTRUCTOR_ATTRIBUTES))
   kno_init_lisp_types();
   kno_init_storage();
   kno_init_scheme();
-}
-#else
-static void init_libraries()
-{
-  if (default_libscm) kno_default_libscm = default_libscm;
-}
+#if KNO_TESTCONFIG
+  kno_init_texttools();
+  kno_init_webtools();
 #endif
+#endif
+  KNO_INIT_SCHEME_BUILTINS();
+}

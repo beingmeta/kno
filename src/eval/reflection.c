@@ -214,23 +214,7 @@ DEFCPRIM("procedure-module",procedure_moduleid,
 	 {"x",kno_any_type,KNO_VOID})
 static lispval procedure_moduleid(lispval x)
 {
-  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
-  if (KNO_FUNCTIONP(x)) {
-    struct KNO_FUNCTION *f = (kno_function)(x);
-    lispval id = f->fcn_moduleid;
-    if ( (KNO_NULLP(id)) || (KNO_VOIDP(id)) ) return KNO_FALSE;
-    else return kno_incref(id);}
-  else if (TYPEP(x,kno_evalfn_type)) {
-    struct KNO_EVALFN *sf = GETEVALFN(x);
-    lispval id = sf->evalfn_moduleid;
-    if ( (KNO_NULLP(id)) || (KNO_VOIDP(id)) ) return KNO_FALSE;
-    else return kno_incref(id);}
-  else if (TYPEP(x,kno_macro_type)) {
-    struct KNO_MACRO *m = (kno_macro) x;
-    lispval id = m->macro_moduleid;
-    if ( (KNO_NULLP(id)) || (KNO_VOIDP(id)) ) return KNO_FALSE;
-    else return kno_incref(id);}
-  else return kno_type_error(_("function"),"procedure_module",x);
+  return kno_get_moduleid(x,1);
 }
 
 DEFCPRIM("procedure-symbol",procedure_symbol,

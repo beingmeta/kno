@@ -45,6 +45,9 @@
 
 #include <stdarg.h>
 
+u8_condition kno_BadHandler = _("Bad handler value");
+u8_condition kno_NoHandler = _("No handler found");
+
 /* Send */
 
 static lispval get_handler(lispval obj,lispval m)
@@ -59,6 +62,32 @@ KNO_EXPORT lispval kno_handler(lispval obj,lispval m)
   return get_handler(obj,m);
 }
 
+KNO_EXPORT lispval dispatch_apply(struct KNO_STACK *stack,lispval handler,
+				  kno_dispatch_flags flags,
+				  int n_args,kno_argvec args)
+{
+  int dcall        = (flags & KNO_DISPATCH_DCALL);
+  int free_handler = (flags & KNO_DISPATCH_DECREF);
+  int no_error     = (flags & KNO_DISPATCH_NOERR);
+  lispval result = (dcall) ?
+    (kno_dcall(stack,handler,n_args,args)) :
+    (kno_call(stack,handler,n_args,args));
+  if (free_handler) kno_decref(handler);
+  if ( (no_error) && (KNO_ABORTED(result)) ) {
+    u8_exception ex = u8_current_exception;
+    kno_pop_exceptions(ex,-1);
+    kno_decref(handler);
+    return KNO_EMPTY;}
+  else return result;
+}
+
+KNO_EXPORT lispval kno_dispatch_apply(struct KNO_STACK *stack,lispval handler,
+				      kno_dispatch_flags flags,
+				      int n_args,kno_argvec args)
+{
+  return dispatch_apply(stack,handler,flags,n_args,args);
+}
+
 KNO_EXPORT lispval kno_dispatch(struct KNO_STACK *stack,
 				lispval obj,lispval m,
 				kno_dispatch_flags flags,
@@ -67,10 +96,12 @@ KNO_EXPORT lispval kno_dispatch(struct KNO_STACK *stack,
   int n = (flags & KNO_DISPATCH_ARG_MASK);
   int optional = (flags & KNO_DISPATCH_OPTIONAL);
   int no_error = (flags & KNO_DISPATCH_NOERR);
-  int dcall = (flags & KNO_DISPATCH_DCALL);
   if (stack==NULL) stack = kno_stackptr;
   struct KNO_TYPEINFO *typeinfo = kno_objtype(obj);
-  lispval handler = (typeinfo) ? (kno_get(typeinfo->type_props,m,KNO_VOID)) : (KNO_VOID);
+  if ( (typeinfo) && (typeinfo->type_dispatchfn) )
+    return (typeinfo->type_dispatchfn)(obj,m,flags,args,typeinfo);
+  lispval handler = (typeinfo) ? (kno_get(typeinfo->type_props,m,KNO_VOID)) :
+    (KNO_VOID);
   if (KNO_VOIDP(handler)) {
     if ( (optional) || (no_error) ) return KNO_EMPTY;
     u8_byte buf[50];
@@ -83,34 +114,26 @@ KNO_EXPORT lispval kno_dispatch(struct KNO_STACK *stack,
 	    (KNO_TYPEP(obj,kno_ctype_type)) ||
 	    (KNO_TYPEP(obj,kno_typeinfo_type)) ) );
     int n_args = (include_object) ? (n+1) : (n);
-    u8_exception ex = u8_current_exception;
     lispval xargs[n_args];
     if (include_object) {
       xargs[0] = obj; memcpy(xargs+1,args,n*sizeof(lispval));}
     else {
       memcpy(xargs,args,n*sizeof(lispval));}
-    lispval result = (dcall) ?
-      (kno_dcall(stack,handler,n_args,xargs)) :
-      (kno_call(stack,handler,n_args,xargs));
-    kno_decref(handler);
-    if ( (no_error) && (KNO_ABORTED(result)) ) {
-      kno_pop_exceptions(ex,-1);
-      kno_decref(handler);
-      return KNO_EMPTY;}
-    return result;}
+    return dispatch_apply(stack,handler,flags|KNO_DISPATCH_DECREF,n_args,xargs);}
   else if (no_error) {
     kno_decref(handler);
     return KNO_EMPTY;}
   else {
     u8_byte buf[50];
-    kno_seterr("BadHandler","kno_dispatch",
-	       (KNO_SYMBOLP(m)) ? (KNO_SYMBOL_NAME(m)) : (u8_bprintf(buf,"%q",m)),
-	       handler);
+    kno_seterr
+      ("BadHandler","kno_dispatch",
+       (KNO_SYMBOLP(m)) ? (KNO_SYMBOL_NAME(m)) : (u8_bprintf(buf,"%q",m)),
+       handler);
     kno_decref(handler);
     return KNO_ERROR;}
 }
 
-DEF_KNOSYM(consfn); DEF_KNOSYM(stringfn);
+DEF_KNOSYM(consfn);
 DEF_KNOSYM(restorefn); DEF_KNOSYM(dumpfn);
 DEF_KNOSYM(compound); DEF_KNOSYM(opaque);
 DEF_KNOSYM(sequence); DEF_KNOSYM(mutable);
@@ -199,8 +222,63 @@ static lispval default_dumpfn(lispval obj,kno_typeinfo e)
   else return KNO_FALSE;
 }
 
+/* Error handlers */
+
+KNO_EXPORT lispval kno_dispatch_unhandled(lispval obj,lispval message)
+{
+  u8_byte buf[50];
+  u8_string msgid = (KNO_SYMBOLP(message)) ? (KNO_SYMBOL_NAME(message)) :
+    (u8_bprintf(buf,"%q",message));
+  return kno_err(kno_NoHandler,"kno_dispatch",msgid,obj);
+}
+
+KNO_EXPORT lispval kno_dispatch_bad_handler(lispval obj,lispval m,lispval h)
+{
+  u8_byte buf[50];
+  u8_string msgid =
+    (KNO_SYMBOLP(m)) ? (KNO_SYMBOL_NAME(m)) : (u8_bprintf(buf,"%q",m));
+  kno_seterr(kno_BadHandler,"kno_dispatch",msgid,h);
+  kno_decref(h);
+  return KNO_ERROR;
+}
+
+/* A dispatch handler for hashtables */
+
+static lispval hashtable_dispatch(lispval table,lispval message,
+				  kno_dispatch_flags flags,
+				  kno_argvec args,kno_typeinfo info)
+{
+  struct KNO_HASHTABLE *ht = (kno_hashtable) table;
+  lispval handler = KNO_VOID;
+  int n = (flags & KNO_DISPATCH_ARG_MASK);
+  int optional = (flags & KNO_DISPATCH_OPTIONAL);
+  if (kno_test(info->type_props,message,KNO_VOID)) {
+    handler = kno_get(info->type_props,message,KNO_VOID);
+    if (!(KNO_APPLICABLEP(handler))) { kno_decref(handler); handler=KNO_VOID;}}
+  if (!(KNO_VOIDP(handler))) {}
+  else handler = kno_hashtable_get(ht,message,KNO_VOID);
+  if (KNO_VOIDP(handler)) {
+    if ( flags & (KNO_DISPATCH_OPTIONAL|KNO_DISPATCH_NOERR) )
+      return KNO_EMPTY;
+    else return kno_dispatch_unhandled(table,message);}
+  else if (KNO_APPLICABLEP(handler))
+    return kno_dispatch_apply(kno_stackptr,handler,
+			      flags|KNO_DISPATCH_DECREF,
+			      n,args);
+  else if (optional) {
+    kno_decref(handler);
+    return KNO_EMPTY;}
+  else return kno_dispatch_bad_handler(table,message,handler);
+}
+
+/* Initializations */
+
 KNO_EXPORT void kno_init_dispatch_c()
 {
+  struct KNO_TYPEINFO *hashtable_typeinfo =
+    kno_use_typeinfo(KNO_CTYPE(kno_hashtable_type));
+  hashtable_typeinfo->type_dispatchfn = hashtable_dispatch;
+
   kno_default_unparsefn = default_unparsefn;
   kno_default_restorefn = default_restorefn;
   kno_default_dumpfn = default_dumpfn;

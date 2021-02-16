@@ -38,8 +38,8 @@ KNO_EXPORT u8_string kno_getversion(){return KNO_VERSION;}
 KNO_EXPORT u8_string kno_getrevision(){return KNO_REVISION;}
 KNO_EXPORT int kno_getmajorversion(){return KNO_MAJOR_VERSION;}
 
-u8_string kno_type_names[KNO_TYPE_MAX];
-u8_string kno_type_docs[KNO_TYPE_MAX];
+u8_string kno_type_names[KNO_TYPE_MAX] = { NULL };
+u8_string kno_type_docs[KNO_TYPE_MAX] = { NULL };
 struct KNO_TABLEFNS *kno_tablefns[KNO_TYPE_MAX] = { NULL };
 
 int kno_lockdown = 0;
@@ -54,6 +54,11 @@ lispval kno_current_thread = KNO_VOID;
 
 u8_condition kno_ThreadTerminated=_("Thread terminated");
 u8_condition kno_ThreadInterrupted=_("Thread interrupted");
+
+/* Useful functions */
+
+KNO_EXPORT int kno_always_true(lispval x) { return 1; }
+KNO_EXPORT int kno_always_false(lispval x) { return 0; }
 
 /* External functional versions of common macros */
 
@@ -313,9 +318,6 @@ static void register_header_files()
 
 static void init_type_names()
 {
-  memset(kno_type_names,0,sizeof(u8_string)*KNO_TYPE_MAX);
-  memset(kno_type_docs,0,sizeof(u8_string)*KNO_TYPE_MAX);
-
   kno_type_names[kno_oid_type]=_("oid");
   kno_type_docs[kno_oid_type]=_("oid");
   kno_type_names[kno_fixnum_type]=_("fixnum");

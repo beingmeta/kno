@@ -1400,9 +1400,9 @@ KNO_EXPORT lispval kno_make_evalfn(u8_string name,int flags,
   return LISP_CONS(f);
 }
 
-KNO_EXPORT void kno_new_evalfn(lispval mod,u8_string name,u8_string cname,
-			       u8_string filename,u8_string doc,int flags,
-			       kno_eval_handler fn)
+KNO_EXPORT lispval kno_new_evalfn(lispval mod,u8_string name,u8_string cname,
+				  u8_string filename,u8_string doc,int flags,
+				  kno_eval_handler fn)
 {
   struct KNO_EVALFN *f = u8_alloc(struct KNO_EVALFN);
   KNO_INIT_CONS(f,kno_evalfn_type);
@@ -1415,6 +1415,7 @@ KNO_EXPORT void kno_new_evalfn(lispval mod,u8_string name,u8_string cname,
   kno_store(mod,kno_getsym(name),LISP_CONS(f));
   f->evalfn_moduleid = kno_get(mod,KNOSYM_MODULEID,KNO_VOID);
   kno_decref(LISP_CONS(f));
+  return (lispval) f;
 }
 
 /* The Evaluator */

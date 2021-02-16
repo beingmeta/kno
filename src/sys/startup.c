@@ -176,16 +176,17 @@ KNO_EXPORT lispval *kno_handle_argv(int argc,char **argv,
         continue;}
       else i++;
       if ((eq!=NULL) && (eq>arg) && (*(eq-1)!='\\')) {
+	if (arg!=NULL) u8_log(LOG_INFO,kno_ArgvConfig,"   %s",arg);
         int retval = (arg!=NULL) ? (kno_config_assignment(arg)) : (-1);
-        KNO_VECTOR_SET(config_args,config_i,kno_mkstring(arg));
-        config_i++;
-        if (retval<0) {
+	if (retval<0) {
           u8_log(LOG_CRIT,"FailedConfig",
                  "Couldn't handle the config argument `%s`",
                  (arg == NULL) ? ((u8_string)carg) : (arg));
           u8_clear_errors(0);}
-        else u8_log(LOG_INFO,kno_ArgvConfig,"   %s",arg);
-        u8_free(arg);
+	else {
+	  KNO_VECTOR_SET(config_args,config_i,kno_mkstring(arg));
+	  config_i++;}
+	u8_free(arg);
         continue;}
       string_arg = kno_mkstring(arg);
       /* Note that kno_parse_arg should always return at least a lisp
