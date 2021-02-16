@@ -147,7 +147,7 @@
 	   (set! init-items (compact-queue queue))))
     (cons-fifo name (make-condvar) queue 0 init-items opts
 	       fillfn items
-	       live? #f {} {} {} debug)))
+	       live? #f {} {} #f debug)))
 (define (make-fifo (size 64)) (fifo/make size))
 
 (defambda (->fifo items (opts #f))
@@ -370,7 +370,20 @@
       (set! filling (fillfn)))
     fill-count))
 
-(define (fifo/pop fifo (maxcount 1) (fillthresh #f) (condvar))
+(define (stop-waiting? fifo fillthresh fillfn)
+  (or (> (- (fifo-end fifo) (fifo-start fifo)) (or fillthresh 0))
+      (and fillfn (not (fifo-filling fifo))
+	   (begin
+	     (set-fifo-filling! fifo (threadid))
+	     (modify-fifo-waiting! fifo difference (threadid))
+	     (condvar/unlock! (fifo-condvar fifo))
+	     (fill-fifo! fifo)
+	     (set-fifo-filling! fifo #f)
+	     (condvar/lock! (fifo-condvar fifo))
+	     (or (not (fifo-live? fifo))
+		 (> (fifo-end fifo) (fifo-start fifo)))))))
+
+(define (fifo/pop fifo (maxcount 1) (fillthresh #f) (condvar) (fillfn))
   "Pops some number of items (at least one) from the FIFO."
   "The *maxcount* argument specifies the number of maximum number of items "
   "to be popped."
@@ -379,60 +392,42 @@
       (debug%watch "FIFO/POP" fifo))
   (set! fillthresh (getopt (fifo-opts fifo) 'fillthresh #f))
   (set! condvar (fifo-condvar fifo))
+  (set! fillfn (fifo-fillfn fifo))
   (if (fifo-live? fifo)
       (unwind-protect
-	  (begin (condvar/lock! condvar)
+	  (begin
+	    ;; Start critical section
+	    (condvar/lock! condvar)
 	    ;; Assert that we're waiting
 	    (fifo-waiting! fifo)
-	    ;; Wait if it is paused
-	    (check-paused fifo '{read readwrite})
-	    (when (if fillthresh
-		      (< (- (fifo-end fifo) (fifo-start fifo)) fillthresh)
-		      (= (fifo-end fifo) (fifo-start fifo)))
-	      (when (and (fifo-fillfn fifo) (not (fifo-filling fifo))
-			 (not (overlaps? (fifo-pause fifo) '{write readwrite closing})))
-		(set-fifo-filling! fifo (threadid))
-		(condvar/unlock! condvar)
-		(fill-fifo! fifo)
-		(condvar/lock! condvar)
-		(set-fifo-filling! fifo #f)))
-	    ;; Wait for data
+	    ;; Wait until there's something to do or we're all done
 	    (while (and (fifo-live? fifo)
-			(= (fifo-start fifo) (fifo-end fifo))
-			(not (overlaps? (fifo-pause fifo) '{read readwrite})))
-	      (when (and (fifo-fillfn fifo) (not (overlaps? (fifo-pause fifo) 'closing))
-			 (not (fifo-filling fifo)))
-		(fill-fifo! fifo))
-	      (when (and (fifo-live? fifo)
-			 (= (fifo-start fifo) (fifo-end fifo))
-			 (not (overlaps? (fifo-pause fifo) '{read readwrite})))
-		(condvar/wait condvar)))
-	    (fifo-running! fifo)
-	    (check-paused fifo '{read readwrite})
-	    ;; If it's still alive, do the pop
-	    ;; Wait if it is paused
-	    (if (fifo-live? fifo) 
-		(let* ((vec (fifo-queue fifo))
-		       (start (fifo-start fifo))
-		       (end (fifo-end fifo))
-		       (count (min maxcount (- end start)))
-		       (items (elts vec start (+ start count))))
-		  (if (fifo-debug fifo)
-		      (always%watch "FIFO/POP/ITEM" start end fifo items)
-		      (debug%watch "FIFO/POP/ITEM" start end fifo items))
-		  ;; Replace the item with false
-		  (dotimes (i count)
-		    (vector-set! vec (+ start i) #f))
-		  ;; Advance the start pointer
-		  (set-fifo-start! fifo (+ start count))
-		  (when (= (fifo-start fifo) (fifo-end fifo))
-		    ;; If we're empty, move the pointers back
-		    (set-fifo-start! fifo 0)
-		    (set-fifo-end! fifo 0))
-		  (when (fifo-items fifo)
-		    (hashset-drop! (fifo-items fifo) items))
-		  items)
-		(fail)))
+			(or (overlaps? (fifo-pause fifo) '{read readwrite})
+			    (not (stop-waiting? fifo fillthresh fillfn))))
+	      (condvar/wait condvar))
+	    (cond ((not (fifo-live? fifo)) (fail))
+		  (else
+		   (fifo-running! fifo)
+		   (let* ((vec (fifo-queue fifo))
+			  (start (fifo-start fifo))
+			  (end (fifo-end fifo))
+			  (count (min maxcount (- end start)))
+			  (items (elts vec start (+ start count))))
+		     (if (fifo-debug fifo)
+			 (always%watch "FIFO/POP/ITEM" start end fifo items)
+			 (debug%watch "FIFO/POP/ITEM" start end fifo items))
+		     ;; Replace the popped item with false
+		     (dotimes (i count)
+		       (vector-set! vec (+ start i) #f))
+		     ;; Advance the start pointer
+		     (set-fifo-start! fifo (+ start count))
+		     (when (= (fifo-start fifo) (fifo-end fifo))
+		       ;; If we're empty, move the pointers back to the beginning
+		       (set-fifo-start! fifo 0)
+		       (set-fifo-end! fifo 0))
+		     (when (fifo-items fifo)
+		       (hashset-drop! (fifo-items fifo) items))
+		     items))))
 	(condvar/unlock! condvar))
       (fail)))
 (define (fifo-pop fifo)
