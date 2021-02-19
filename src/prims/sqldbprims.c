@@ -221,7 +221,7 @@ static int check_exec_enabled(lispval opts)
   (lispval db,lispval query,lispval colinfo))
 */
 
-DEFCPRIM("sqldb/exec",sqldb_exec,
+DEFC_PRIM("sqldb/exec",sqldb_exec,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
 	 "**undocumented**",
 	 {"db",kno_sqldb_type,KNO_VOID},
@@ -238,7 +238,7 @@ static lispval sqldb_exec(lispval db,lispval query,lispval colinfo)
                       CSTRING(query),db);
 }
 
-DEFCPRIMN("sqldb/proc",sqldb_makeproc,
+DEFC_PRIMN("sqldb/proc",sqldb_makeproc,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	  "**undocumented**")
 static lispval sqldb_makeproc(int n,kno_argvec args)
@@ -266,7 +266,7 @@ static lispval sqldb_makeproc(int n,kno_argvec args)
   else return VOID;
 }
 
-DEFCPRIMN("sqldb/proc+",sqlproc_plus,
+DEFC_PRIMN("sqldb/proc+",sqlproc_plus,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	  "**undocumented**")
 static lispval sqlproc_plus(int n,kno_argvec args)
@@ -298,7 +298,7 @@ static lispval sqlproc_plus(int n,kno_argvec args)
 
 /* Accessors */
 
-DEFCPRIM("sqldb/proc/query",sqlproc_query,
+DEFC_PRIM("sqldb/proc/query",sqlproc_query,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "=> sqlstring",
 	 {"sqldb",kno_sqlproc_type,KNO_VOID})
@@ -309,7 +309,7 @@ static lispval sqlproc_query(lispval sqldb)
   return kno_mkstring(xdbp->sqldb_qtext);
 }
 
-DEFCPRIM("sqldb/proc/spec",sqlproc_spec,
+DEFC_PRIM("sqldb/proc/spec",sqlproc_spec,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "=> dbspecstring",
 	 {"sqldb",kno_sqlproc_type,KNO_VOID})
@@ -320,7 +320,7 @@ static lispval sqlproc_spec(lispval sqldb)
   return kno_mkstring(xdbp->sqldb_spec);
 }
 
-DEFCPRIM("sqldb/proc/db",sqlproc_db,
+DEFC_PRIM("sqldb/proc/db",sqlproc_db,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "=> dbptr",
 	 {"sqldb",kno_sqlproc_type,KNO_VOID})
@@ -331,7 +331,7 @@ static lispval sqlproc_db(lispval sqldb)
   return kno_incref(xdbp->sqldbptr);
 }
 
-DEFCPRIM("sqldb/proc/typemap",sqlproc_typemap,
+DEFC_PRIM("sqldb/proc/typemap",sqlproc_typemap,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "=> colinfo",
 	 {"sqldb",kno_sqlproc_type,KNO_VOID})
@@ -342,7 +342,7 @@ static lispval sqlproc_typemap(lispval sqldb)
   return kno_incref(xdbp->sqldb_colinfo);
 }
 
-DEFCPRIM("sqldb/proc/params",sqlproc_params,
+DEFC_PRIM("sqldb/proc/params",sqlproc_params,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "=> paraminfo",
 	 {"sqldb",kno_sqlproc_type,KNO_VOID})
@@ -401,7 +401,7 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("sqldb/proc/db",sqlproc_db,1,sqldb_module);
   KNO_LINK_CPRIM("sqldb/proc/spec",sqlproc_spec,1,sqldb_module);
   KNO_LINK_CPRIM("sqldb/proc/query",sqlproc_query,1,sqldb_module);
-  KNO_LINK_CVARARGS("sqldb/proc+",sqlproc_plus,sqldb_module);
-  KNO_LINK_CVARARGS("sqldb/proc",sqldb_makeproc,sqldb_module);
+  KNO_LINK_CPRIMN("sqldb/proc+",sqlproc_plus,sqldb_module);
+  KNO_LINK_CPRIMN("sqldb/proc",sqldb_makeproc,sqldb_module);
   KNO_LINK_CPRIM("sqldb/exec",sqldb_exec,3,sqldb_module);
 }

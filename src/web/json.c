@@ -355,7 +355,7 @@ static int get_json_flags(lispval flags_arg)
   else return KNO_JSON_DEFAULTS;
 }
 
-DEFCPRIM("jsonparse",jsonparseprim,
+DEFC_PRIM("jsonparse",jsonparseprim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
 	 "(JSONPARSE *string* [*flags*] [*fieldmap*]) "
 	 "parses the JSON in *string* into a LISP object. "
@@ -562,7 +562,7 @@ static void json_unparse(u8_output out,lispval x,int flags,lispval slotfn,
     u8_close_output(&tmpout);}
 }
 
-DEFCPRIM("jsonoutput",jsonoutput,
+DEFC_PRIM("jsonoutput",jsonoutput,
 	 KNO_MAX_ARGS(5)|KNO_MIN_ARGS(1),
 	 "Outputs a JSON representation to the standard "
 	 "output",
@@ -583,7 +583,7 @@ static lispval jsonoutput(lispval x,lispval flags_arg,
   return VOID;
 }
 
-DEFCPRIM("->json",jsonstring,
+DEFC_PRIM("->json",jsonstring,
 	 KNO_MAX_ARGS(5)|KNO_MIN_ARGS(1),
 	 "(->JSON *obj* ...) "
 	 "returns a JSON string for the lisp object *obj*",

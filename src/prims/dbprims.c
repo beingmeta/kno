@@ -73,7 +73,7 @@ static int load_db_module(lispval opts,u8_context context)
 	return 1;}}}
 }
 
-DEFCPRIM("prefetch-slotvals!",prefetch_slotvals,
+DEFC_PRIM("prefetch-slotvals!",prefetch_slotvals,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3)|KNO_NDCALL,
 	 "Prefetches all index entries where any *slotids* have any *values*.",
 	 {"index",kno_any_type,KNO_VOID},
@@ -87,7 +87,7 @@ static lispval prefetch_slotvals(lispval index,lispval slotids,lispval values)
   return VOID;
 }
 
-DEFCPRIMN("find-frames/prefetch!",find_frames_prefetch,
+DEFC_PRIMN("find-frames/prefetch!",find_frames_prefetch,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	  "`(find-frames-prefetch! *index* [*slots* *values*]...)` "
 	  "Prefeteches index entries for doing a find-frames search.")
@@ -132,7 +132,7 @@ static void hashtable_index_frame(lispval ix,
 	kno_decref(key);}}}
 }
 
-DEFCPRIM("index-frame",index_frame_prim,
+DEFC_PRIM("index-frame",index_frame_prim,
 	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(3)|KNO_NDCALL,
 	 "Adds index entries in *indexes* to *frames* for "
 	 "the specified slot-value pairs. If *values* is not "
@@ -169,7 +169,7 @@ static lispval index_frame_prim
 
 /* Pool and index functions */
 
-DEFCPRIM("source->pool",source2pool,
+DEFC_PRIM("source->pool",source2pool,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "returns the pool stored in *source*, if it has been "
 	 "loaded into the current session.",
@@ -180,7 +180,7 @@ static lispval source2pool(lispval source)
   if (p) return kno_pool2lisp(p); else return KNO_FALSE;
 }
 
-DEFCPRIM("source->index",source2index,
+DEFC_PRIM("source->index",source2index,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "returns the index stored in *source*, if it has been "
 	 "loaded into the current session.",
@@ -191,7 +191,7 @@ static lispval source2index(lispval source)
   if (ix) return kno_index2lisp(ix); else return KNO_FALSE;
 }
 
-DEFCPRIM("name->pool",name2pool,
+DEFC_PRIM("name->pool",name2pool,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "returns the pool stored in *name*, if it has been "
 	 "loaded into the current session.",
@@ -202,7 +202,7 @@ static lispval name2pool(lispval name)
   if (p) return kno_pool2lisp(p); else return KNO_FALSE;
 }
 
-DEFCPRIM("name->index",name2index,
+DEFC_PRIM("name->index",name2index,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "returns the index stored in *name*, if it has been "
 	 "loaded into the current session.",
@@ -213,7 +213,7 @@ static lispval name2index(lispval name)
   if (ix) return kno_index2lisp(ix); else return KNO_FALSE;
 }
 
-DEFCPRIM("getpool",getpool,
+DEFC_PRIM("getpool",getpool,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "returns a pool based on *arg*. If *arg* is an "
 	 "OID, it's containing pool is returned, if it's a "
@@ -232,7 +232,7 @@ static lispval getpool(lispval arg)
   else return EMPTY;
 }
 
-DEFCPRIM("oid->pool",oid2pool,
+DEFC_PRIM("oid->pool",oid2pool,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "returns the pool containing OID or {} if it's not "
 	 "known.",
@@ -246,7 +246,7 @@ static lispval oid2pool(lispval oid)
 
 static u8_condition Unknown_PoolName=_("Unknown pool name");
 
-DEFCPRIM("set-pool-namefn!",set_pool_namefn,
+DEFC_PRIM("set-pool-namefn!",set_pool_namefn,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID},
@@ -269,7 +269,7 @@ static lispval set_pool_namefn(lispval arg,lispval method)
   else return kno_type_error(_("namefn"),"set_pool_namefn",method);
 }
 
-DEFCPRIM("set-cache-level!",set_cache_level,
+DEFC_PRIM("set-cache-level!",set_cache_level,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID},
@@ -291,7 +291,7 @@ static lispval set_cache_level(lispval arg,lispval level)
   else return kno_type_error("pool or index","set_cache_level",arg);
 }
 
-DEFCPRIM("use-pool",use_pool,
+DEFC_PRIM("use-pool",use_pool,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "Adds the pool maintained at *source* to the "
 	 "object background of the current session. ",
@@ -313,7 +313,7 @@ static lispval use_pool(lispval source,lispval opts)
 			CSTRING(source),VOID);}
 }
 
-DEFCPRIM("adjunct-pool",adjunct_pool,
+DEFC_PRIM("adjunct-pool",adjunct_pool,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "Gets and returns the pool maintained at *source*. This "
 	 "does not add the pool to the object background.",
@@ -337,7 +337,7 @@ static lispval adjunct_pool(lispval source,lispval opts)
     else return KNO_ERROR;}
 }
 
-DEFCPRIM("try-pool",try_pool,
+DEFC_PRIM("try-pool",try_pool,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "Tries to add a pool maintained at *source* to the "
 	 "object background of the current session. Returns false "
@@ -361,7 +361,7 @@ static lispval try_pool(lispval source,lispval opts)
     else return KNO_FALSE;}
 }
 
-DEFCPRIM("use-index",use_index,
+DEFC_PRIM("use-index",use_index,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "adds the index at *source* to the search background",
 	 {"source",kno_any_type,KNO_VOID},
@@ -455,7 +455,7 @@ static lispval open_index_helper(lispval source,lispval opts,int registered)
   else return KNO_ERROR;
 }
 
-DEFCPRIM("open-index",open_index,
+DEFC_PRIM("open-index",open_index,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "opens the index at *source* and returns it, "
 	 "not adding it to the current background.",
@@ -468,7 +468,7 @@ static lispval open_index(lispval source,lispval opts)
   else return open_index_helper(source,opts,-1);
 }
 
-DEFCPRIM("register-index",register_index,
+DEFC_PRIM("register-index",register_index,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "(REGISTER-INDEX *spec* [*opts*]) "
 	 "opens, registers, and returns an index",
@@ -481,7 +481,7 @@ static lispval register_index(lispval arg,lispval opts)
   else return open_index_helper(arg,opts,1);
 }
 
-DEFCPRIM("cons-index",cons_index,
+DEFC_PRIM("cons-index",cons_index,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "(CONS-INDEX *spec* [*opts*]) "
 	 "opens and returns an unregistered index",
@@ -496,7 +496,7 @@ static lispval cons_index(lispval arg,lispval opts)
 
 DEF_KNOSYM(pooltype);
 
-DEFCPRIM("make-pool",make_pool,
+DEFC_PRIM("make-pool",make_pool,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 "**undocumented**",
 	 {"path",kno_string_type,KNO_VOID},
@@ -525,7 +525,7 @@ static lispval make_pool(lispval path,lispval opts)
   else return KNO_ERROR;
 }
 
-DEFCPRIM("pool-type?",known_pool_typep,
+DEFC_PRIM("pool-type?",known_pool_typep,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "returns #t if *stringy* (a symbol or string) is a "
 	 "valid 'pooltype argument.",
@@ -540,7 +540,7 @@ static lispval known_pool_typep(lispval stringy)
   if (ixtype) return KNO_TRUE; else return KNO_FALSE;
 }
 
-DEFCPRIM("open-pool",open_pool,
+DEFC_PRIM("open-pool",open_pool,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"path",kno_string_type,KNO_VOID},
@@ -557,7 +557,7 @@ static lispval open_pool(lispval path,lispval opts)
 
 DEF_KNOSYM(indextype);
 
-DEFCPRIM("make-index",make_index,
+DEFC_PRIM("make-index",make_index,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 "**undocumented**",
 	 {"path",kno_string_type,KNO_VOID},
@@ -589,7 +589,7 @@ static lispval make_index(lispval path,lispval opts)
   else return KNO_ERROR;
 }
 
-DEFCPRIM("index-type?",known_index_typep,
+DEFC_PRIM("index-type?",known_index_typep,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "returns #t if *stringy* (a symbol or string) is a "
 	 "valid 'indextype argument.",
@@ -604,7 +604,7 @@ static lispval known_index_typep(lispval stringy)
   if (ixtype) return KNO_TRUE; else return KNO_FALSE;
 }
 
-DEFCPRIM("oid-value",oidvalue,
+DEFC_PRIM("oid-value",oidvalue,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"arg",kno_oid_type,KNO_VOID})
@@ -613,7 +613,7 @@ static lispval oidvalue(lispval arg)
   return kno_oid_value(arg);
 }
 
-DEFCPRIM("set-oid-value!",setoidvalue,
+DEFC_PRIM("set-oid-value!",setoidvalue,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	 "directly sets the value of *oid* to *value*. If "
 	 "the value is a slotmap or schemap, a copy is "
@@ -642,7 +642,7 @@ static lispval setoidvalue(lispval o,lispval v,lispval nocopy)
   else return VOID;
 }
 
-DEFCPRIM("%set-oid-value!",xsetoidvalue,
+DEFC_PRIM("%set-oid-value!",xsetoidvalue,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	 "directly sets the value of *oid* to *value*. If "
 	 "the value is a slotmap or schemap, a copy is "
@@ -660,7 +660,7 @@ static lispval xsetoidvalue(lispval o,lispval v)
   else return VOID;
 }
 
-DEFCPRIM("lock-oid!",lockoid,
+DEFC_PRIM("lock-oid!",lockoid,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 "**undocumented**",
 	 {"o",kno_oid_type,KNO_VOID},
@@ -676,7 +676,7 @@ static lispval lockoid(lispval o,lispval soft)
   else return KNO_INT(retval);
 }
 
-DEFCPRIM("locked?",oidlockedp,
+DEFC_PRIM("locked?",oidlockedp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
@@ -691,7 +691,7 @@ static lispval oidlockedp(lispval arg)
     else return KNO_FALSE;}
 }
 
-DEFCPRIM("lock-oids!",lockoids,
+DEFC_PRIM("lock-oids!",lockoids,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	 "**undocumented**",
 	 {"oids",kno_any_type,KNO_VOID})
@@ -703,7 +703,7 @@ static lispval lockoids(lispval oids)
   else return KNO_INT(retval);
 }
 
-DEFCPRIM("locked-oids",lockedoids,
+DEFC_PRIM("locked-oids",lockedoids,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"pool",kno_any_type,KNO_VOID})
@@ -713,7 +713,7 @@ static lispval lockedoids(lispval pool)
   return kno_hashtable_keys(&(p->pool_changes));
 }
 
-DEFCPRIM("unlock-oids!",unlockoids,
+DEFC_PRIM("unlock-oids!",unlockoids,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(0)|KNO_NDCALL,
 	 "**undocumented**",
 	 {"oids",kno_any_type,KNO_VOID},
@@ -741,7 +741,7 @@ static lispval unlockoids(lispval oids,lispval commitp)
     else return KNO_INT(retval);}
 }
 
-DEFCPRIM("make-aggregate-index",make_aggregate_index,
+DEFC_PRIM("make-aggregate-index",make_aggregate_index,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	 "Creates an aggregate index from a collection of "
 	 "other indexes",
@@ -783,7 +783,7 @@ static lispval make_aggregate_index(lispval sources,lispval opts)
   return kno_index2lisp((kno_index)aggregate);
 }
 
-DEFCPRIM("aggregate-index?",aggregate_indexp,
+DEFC_PRIM("aggregate-index?",aggregate_indexp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "(AGGREGATE-INDEX? *arg*) "
 	 "=> true if *arg* is an aggregate index",
@@ -798,7 +798,7 @@ static lispval aggregate_indexp(lispval arg)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("extend-aggregate-index!",extend_aggregate_index,
+DEFC_PRIM("extend-aggregate-index!",extend_aggregate_index,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 "(EXTEND-AGGREGATE-INDEX! *agg* *index*) "
 	 "adds *index* to the aggregate index *agg*",
@@ -825,7 +825,7 @@ static lispval extend_aggregate_index(lispval into_arg,lispval partition_arg)
 			     into_arg);
 }
 
-DEFCPRIM("tempindex?",tempindexp,
+DEFC_PRIM("tempindex?",tempindexp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "(TEMPINDEX? *arg*) "
 	 "returns #t if *arg* is a temporary index.",
@@ -840,7 +840,7 @@ static lispval tempindexp(lispval arg)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("make-mempool",make_mempool,
+DEFC_PRIM("make-mempool",make_mempool,
 	 KNO_MAX_ARGS(6)|KNO_MIN_ARGS(2),
 	 "**undocumented**",
 	 {"label",kno_string_type,KNO_VOID},
@@ -865,7 +865,7 @@ static lispval make_mempool(lispval label,lispval base,lispval cap,
   else return kno_pool2lisp(p);
 }
 
-DEFCPRIM("clean-mempool",clean_mempool,
+DEFC_PRIM("clean-mempool",clean_mempool,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"pool_arg",kno_any_type,KNO_VOID})
@@ -876,7 +876,7 @@ static lispval clean_mempool(lispval pool_arg)
   else return KNO_INT(retval);
 }
 
-DEFCPRIM("reset-mempool",reset_mempool,
+DEFC_PRIM("reset-mempool",reset_mempool,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"pool_arg",kno_any_type,KNO_VOID})
@@ -887,7 +887,7 @@ static lispval reset_mempool(lispval pool_arg)
   else return KNO_INT(retval);
 }
 
-DEFCPRIM("make-procpool",make_procpool,
+DEFC_PRIM("make-procpool",make_procpool,
 	 KNO_MAX_ARGS(6)|KNO_MIN_ARGS(4),
 	 "Returns a pool implemented by userspace functions",
 	 {"label",kno_string_type,KNO_VOID},
@@ -916,7 +916,7 @@ static lispval make_procpool(lispval label,
   return kno_pool2lisp(p);
 }
 
-DEFCPRIM("make-extpool",make_extpool,
+DEFC_PRIM("make-extpool",make_extpool,
 	 KNO_MAX_ARGS(10)|KNO_MIN_ARGS(4),
 	 "**undocumented**",
 	 {"label",kno_string_type,KNO_VOID},
@@ -943,7 +943,7 @@ static lispval make_extpool(lispval label,lispval base,lispval cap,
   return kno_pool2lisp(p);
 }
 
-DEFCPRIM("extpool-cache!",extpool_setcache,
+DEFC_PRIM("extpool-cache!",extpool_setcache,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3),
 	 "**undocumented**",
 	 {"pool",kno_pool_type,KNO_VOID},
@@ -957,7 +957,7 @@ static lispval extpool_setcache(lispval pool,lispval oid,lispval value)
   else return VOID;
 }
 
-DEFCPRIM("extpool-fetchfn",extpool_fetchfn,
+DEFC_PRIM("extpool-fetchfn",extpool_fetchfn,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"pool",kno_pool_type,KNO_VOID})
@@ -970,7 +970,7 @@ static lispval extpool_fetchfn(lispval pool)
   else return kno_type_error("extpool","extpool_fetchfn",pool);
 }
 
-DEFCPRIM("extpool-savefn",extpool_savefn,
+DEFC_PRIM("extpool-savefn",extpool_savefn,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"pool",kno_pool_type,KNO_VOID})
@@ -983,7 +983,7 @@ static lispval extpool_savefn(lispval pool)
   else return kno_type_error("extpool","extpool_savefn",pool);
 }
 
-DEFCPRIM("extpool-lockfn",extpool_lockfn,
+DEFC_PRIM("extpool-lockfn",extpool_lockfn,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"pool",kno_pool_type,KNO_VOID})
@@ -996,7 +996,7 @@ static lispval extpool_lockfn(lispval pool)
   else return kno_type_error("extpool","extpool_lockfn",pool);
 }
 
-DEFCPRIM("extpool-state",extpool_state,
+DEFC_PRIM("extpool-state",extpool_state,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "returns the state object of an extpool",
 	 {"pool",kno_pool_type,KNO_VOID})
@@ -1011,7 +1011,7 @@ static lispval extpool_state(lispval pool)
 
 /* Proc indexes */
 
-DEFCPRIM("make-procindex",make_procindex,
+DEFC_PRIM("make-procindex",make_procindex,
 	 KNO_MAX_ARGS(5)|KNO_MIN_ARGS(2),
 	 "returns an index implemented by user-defined "
 	 "handlers",
@@ -1034,7 +1034,7 @@ static lispval make_procindex(lispval id,
 
 /* External indexes */
 
-DEFCPRIM("make-extindex",make_extindex,
+DEFC_PRIM("make-extindex",make_extindex,
 	 KNO_MAX_ARGS(6)|KNO_MIN_ARGS(2),
 	 "makes an *external* index, a simple kind of "
 	 "procindex.",
@@ -1059,7 +1059,7 @@ static lispval make_extindex(lispval label,lispval fetchfn,lispval commitfn,
   return kno_index2lisp(ix);
 }
 
-DEFCPRIM("cons-extindex",cons_extindex,
+DEFC_PRIM("cons-extindex",cons_extindex,
 	 KNO_MAX_ARGS(6)|KNO_MIN_ARGS(2),
 	 "**undocumented**",
 	 {"label",kno_string_type,KNO_VOID},
@@ -1083,7 +1083,7 @@ static lispval cons_extindex(lispval label,lispval fetchfn,lispval commitfn,
   else return (lispval)ix;
 }
 
-DEFCPRIM("extindex-cacheadd!",extindex_cacheadd,
+DEFC_PRIM("extindex-cacheadd!",extindex_cacheadd,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3),
 	 "**undocumented**",
 	 {"index",kno_any_type,KNO_VOID},
@@ -1100,7 +1100,7 @@ static lispval extindex_cacheadd(lispval index,lispval key,lispval values)
   return VOID;
 }
 
-DEFCPRIM("extindex-decache!",extindex_decache,
+DEFC_PRIM("extindex-decache!",extindex_decache,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"index",kno_any_type,KNO_VOID},
@@ -1120,7 +1120,7 @@ static lispval extindex_decache(lispval index,lispval key)
   return VOID;
 }
 
-DEFCPRIM("extindex-fetchfn",extindex_fetchfn,
+DEFC_PRIM("extindex-fetchfn",extindex_fetchfn,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"index",kno_any_type,KNO_VOID})
@@ -1133,7 +1133,7 @@ static lispval extindex_fetchfn(lispval index)
   else return kno_type_error("extindex","extindex_fetchfn",index);
 }
 
-DEFCPRIM("extindex-commitfn",extindex_commitfn,
+DEFC_PRIM("extindex-commitfn",extindex_commitfn,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"index",kno_any_type,KNO_VOID})
@@ -1146,7 +1146,7 @@ static lispval extindex_commitfn(lispval index)
   else return kno_type_error("extindex","extindex_commitfn",index);
 }
 
-DEFCPRIM("extindex-state",extindex_state,
+DEFC_PRIM("extindex-state",extindex_state,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"index",kno_any_type,KNO_VOID})
@@ -1159,7 +1159,7 @@ static lispval extindex_state(lispval index)
   else return kno_type_error("extindex","extindex_state",index);
 }
 
-DEFCPRIM("extindex?",extindexp,
+DEFC_PRIM("extindex?",extindexp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "returns #t if *arg* is an extindex, #f otherwise",
 	 {"index",kno_any_type,KNO_VOID})
@@ -1175,7 +1175,7 @@ static lispval extindexp(lispval index)
 
 static lispval padjuncts_symbol;
 
-DEFCPRIM("use-adjunct",use_adjunct,
+DEFC_PRIM("use-adjunct",use_adjunct,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
 	 "(table [slot] [pool])\n"
 	 "arranges for *table* to store values of the "
@@ -1206,7 +1206,7 @@ static lispval use_adjunct(lispval adjunct,lispval slotid,lispval pool_arg)
   else return kno_type_error(_("slotid"),"use_adjunct",slotid);
 }
 
-DEFCPRIM("adjunct!",add_adjunct,
+DEFC_PRIM("adjunct!",add_adjunct,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3),
 	 "(pool slot table)\n"
 	 "arranges for *table* to store values of the "
@@ -1233,7 +1233,7 @@ static lispval add_adjunct(lispval pool_arg,lispval slotid,lispval adjunct)
   else return kno_type_error(_("slotid"),"use_adjunct",slotid);
 }
 
-DEFCPRIM("get-adjuncts",get_adjuncts_prim,
+DEFC_PRIM("get-adjuncts",get_adjuncts_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Gets the adjuncts associated with the specified pool",
 	 {"pool_arg",kno_any_type,KNO_VOID})
@@ -1245,7 +1245,7 @@ static lispval get_adjuncts_prim(lispval pool_arg)
   else return kno_get_adjuncts(p);
 }
 
-DEFCPRIM("get-adjunct",get_adjunct_prim,
+DEFC_PRIM("get-adjunct",get_adjunct_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "Gets the adjunct for *slotid* associated with *pool*",
 	 {"pool_arg",kno_any_type,KNO_VOID},
@@ -1265,7 +1265,7 @@ static lispval get_adjunct_prim(lispval pool_arg,lispval slotid)
   else return kno_incref(adj->table);
 }
 
-DEFCPRIM("adjunct-value",adjunct_value_prim,
+DEFC_PRIM("adjunct-value",adjunct_value_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 "Gets the adjunct value for *slotid* of *obj*",
 	 {"oid",kno_oid_type,KNO_VOID},
@@ -1286,7 +1286,7 @@ static lispval adjunct_value_prim(lispval oid,lispval slotid)
     else return kno_get(table,oid,KNO_EMPTY);}
 }
 
-DEFCPRIM("adjunct?",isadjunctp,
+DEFC_PRIM("adjunct?",isadjunctp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "\n"
 	 "Returns true if *pool* is an adjunct pool",
@@ -1303,7 +1303,7 @@ static lispval isadjunctp(lispval pool_arg)
 
 /* DB control functions */
 
-DEFCPRIMN("swapout",swapout_lexpr,
+DEFC_PRIMN("swapout",swapout_lexpr,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(0)|KNO_NDCALL,
 	  "**undocumented**")
 static lispval swapout_lexpr(int n,kno_argvec args)
@@ -1382,7 +1382,7 @@ static lispval swapout_lexpr(int n,kno_argvec args)
     else return KNO_INT(rv_sum);}
 }
 
-DEFCPRIMN("commit",commit_lexpr,
+DEFC_PRIMN("commit",commit_lexpr,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(0),
 	  "**undocumented**")
 static lispval commit_lexpr(int n,kno_argvec args)
@@ -1411,7 +1411,7 @@ static lispval commit_lexpr(int n,kno_argvec args)
   else return kno_err(kno_TooManyArgs,"commit",NULL,args[0]);
 }
 
-DEFCPRIM("commit-oids",commit_oids,
+DEFC_PRIM("commit-oids",commit_oids,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	 "**undocumented**",
 	 {"oids",kno_any_type,KNO_VOID})
@@ -1423,7 +1423,7 @@ static lispval commit_oids(lispval oids)
   else return VOID;
 }
 
-DEFCPRIM("finish-oids",finish_oids,
+DEFC_PRIM("finish-oids",finish_oids,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	 "**undocumented**",
 	 {"oids",kno_any_type,KNO_VOID},
@@ -1444,7 +1444,7 @@ static lispval finish_oids(lispval oids,lispval pool)
     else return VOID;}
 }
 
-DEFCPRIM("commit-pool",commit_pool,
+DEFC_PRIM("commit-pool",commit_pool,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"pool",kno_pool_type,KNO_VOID},
@@ -1461,7 +1461,7 @@ static lispval commit_pool(lispval pool,lispval opts)
     else return VOID;}
 }
 
-DEFCPRIM("commit-finished",commit_finished,
+DEFC_PRIM("commit-finished",commit_finished,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"pool",kno_pool_type,KNO_VOID})
@@ -1477,7 +1477,7 @@ static lispval commit_finished(lispval pool)
     else return VOID;}
 }
 
-DEFCPRIM("pool/storen!",pool_storen_prim,
+DEFC_PRIM("pool/storen!",pool_storen_prim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3),
 	 "Stores values in a pool, skipping the object cache",
 	 {"pool",kno_any_type,KNO_VOID},
@@ -1505,7 +1505,7 @@ static lispval pool_storen_prim(lispval pool,lispval oids,lispval values)
   else return KNO_INT(oid_len);
 }
 
-DEFCPRIM("pool/fetchn",pool_fetchn_prim,
+DEFC_PRIM("pool/fetchn",pool_fetchn_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	 "Fetches values from a pool, skipping the object "
 	 "cache",
@@ -1520,7 +1520,7 @@ static lispval pool_fetchn_prim(lispval pool,lispval oids)
   return kno_pool_fetchn(p,oids);
 }
 
-DEFCPRIM("clear-slotcache!",clear_slotcache,
+DEFC_PRIM("clear-slotcache!",clear_slotcache,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
@@ -1531,7 +1531,7 @@ static lispval clear_slotcache(lispval arg)
   return VOID;
 }
 
-DEFCPRIM("clearcaches",clearcaches,
+DEFC_PRIM("clearcaches",clearcaches,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
 	 "**undocumented**")
 static lispval clearcaches()
@@ -1543,7 +1543,7 @@ static lispval clearcaches()
   return VOID;
 }
 
-DEFCPRIM("swapcheck",swapcheck_prim,
+DEFC_PRIM("swapcheck",swapcheck_prim,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
 	 "**undocumented**")
 static lispval swapcheck_prim()
@@ -1569,7 +1569,7 @@ static kno_pool arg2pool(lispval arg)
   else return NULL;
 }
 
-DEFCPRIM("pool-load",pool_load,
+DEFC_PRIM("pool-load",pool_load,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
@@ -1584,7 +1584,7 @@ static lispval pool_load(lispval arg)
     else return KNO_ERROR;}
 }
 
-DEFCPRIM("pool-capacity",pool_capacity,
+DEFC_PRIM("pool-capacity",pool_capacity,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
@@ -1596,7 +1596,7 @@ static lispval pool_capacity(lispval arg)
   else return KNO_INT(p->pool_capacity);
 }
 
-DEFCPRIM("pool-base",pool_base,
+DEFC_PRIM("pool-base",pool_base,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
@@ -1608,7 +1608,7 @@ static lispval pool_base(lispval arg)
   else return kno_make_oid(p->pool_base);
 }
 
-DEFCPRIM("pool-elts",pool_elts,
+DEFC_PRIM("pool-elts",pool_elts,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID},
@@ -1655,7 +1655,7 @@ static lispval pool_elts(lispval arg,lispval start,lispval count)
     return result;}
 }
 
-DEFCPRIM("pool-label",pool_label,
+DEFC_PRIM("pool-label",pool_label,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID},
@@ -1673,7 +1673,7 @@ static lispval pool_label(lispval arg,lispval use_source)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("pool-id",pool_id,
+DEFC_PRIM("pool-id",pool_id,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
@@ -1693,7 +1693,7 @@ static lispval pool_id(lispval arg)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("pool-source",pool_source,
+DEFC_PRIM("pool-source",pool_source,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
@@ -1709,7 +1709,7 @@ static lispval pool_source(lispval arg)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("pool-prefix",pool_prefix,
+DEFC_PRIM("pool-prefix",pool_prefix,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
@@ -1723,7 +1723,7 @@ static lispval pool_prefix(lispval arg)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("set-pool-prefix!",set_pool_prefix,
+DEFC_PRIM("set-pool-prefix!",set_pool_prefix,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID},
@@ -1747,7 +1747,7 @@ static lispval set_pool_prefix(lispval arg,lispval prefix_arg)
     return KNO_TRUE;}
 }
 
-DEFCPRIM("pool-close",pool_close_prim,
+DEFC_PRIM("pool-close",pool_close_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
@@ -1761,7 +1761,7 @@ static lispval pool_close_prim(lispval arg)
     return VOID;}
 }
 
-DEFCPRIM("oid-range",oid_range,
+DEFC_PRIM("oid-range",oid_range,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 "**undocumented**",
 	 {"start",kno_oid_type,KNO_VOID},
@@ -1778,7 +1778,7 @@ static lispval oid_range(lispval start,lispval end)
   return result;
 }
 
-DEFCPRIM("oid-vector",oid_vector,
+DEFC_PRIM("oid-vector",oid_vector,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 "**undocumented**",
 	 {"start",kno_oid_type,KNO_VOID},
@@ -1797,7 +1797,7 @@ static lispval oid_vector(lispval start,lispval end)
     return result;}
 }
 
-DEFCPRIM("random-oid",random_oid,
+DEFC_PRIM("random-oid",random_oid,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
@@ -1815,7 +1815,7 @@ static lispval random_oid(lispval arg)
     return KNO_ERROR;}
 }
 
-DEFCPRIM("pool-vector",pool_vec,
+DEFC_PRIM("pool-vector",pool_vec,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
@@ -1839,7 +1839,7 @@ static lispval pool_vec(lispval arg)
       return result;}}
 }
 
-DEFCPRIM("cachecount",cachecount,
+DEFC_PRIM("cachecount",cachecount,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
@@ -1866,7 +1866,7 @@ static lispval cachecount(lispval arg)
 
 /* OID functions */
 
-DEFCPRIM("oid-hi",oid_hi,
+DEFC_PRIM("oid-hi",oid_hi,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"x",kno_oid_type,KNO_VOID})
@@ -1876,7 +1876,7 @@ static lispval oid_hi(lispval x)
   return KNO_INT(KNO_OID_HI(addr));
 }
 
-DEFCPRIM("oid-lo",oid_lo,
+DEFC_PRIM("oid-lo",oid_lo,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"x",kno_oid_type,KNO_VOID})
@@ -1886,7 +1886,7 @@ static lispval oid_lo(lispval x)
   return KNO_INT(KNO_OID_LO(addr));
 }
 
-DEFCPRIM("oid-base",oid_base,
+DEFC_PRIM("oid-base",oid_base,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"oid",kno_oid_type,KNO_VOID},
@@ -1906,7 +1906,7 @@ static lispval oid_base(lispval oid,lispval modulo)
   return KNO_MAKE_OID(hi,modval*(lo/modval));
 }
 
-DEFCPRIM("oid?",oidp,
+DEFC_PRIM("oid?",oidp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
@@ -1916,7 +1916,7 @@ static lispval oidp(lispval x)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("oid-pool",oidpool,
+DEFC_PRIM("oid-pool",oidpool,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"x",kno_oid_type,KNO_VOID})
@@ -1927,7 +1927,7 @@ static lispval oidpool(lispval x)
   else return kno_pool2lisp(p);
 }
 
-DEFCPRIM("in-pool?",inpoolp,
+DEFC_PRIM("in-pool?",inpoolp,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 "**undocumented**",
 	 {"x",kno_oid_type,KNO_VOID},
@@ -1949,7 +1949,7 @@ static lispval inpoolp(lispval x,lispval pool_arg)
     else return KNO_FALSE;}
 }
 
-DEFCPRIM("valid-oid?",validoidp,
+DEFC_PRIM("valid-oid?",validoidp,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"x",kno_oid_type,KNO_VOID},
@@ -1981,7 +1981,7 @@ static lispval validoidp(lispval x,lispval pool_arg)
 
 /* Prefetching functions */
 
-DEFCPRIM("pool-prefetch!",pool_prefetch_prim,
+DEFC_PRIM("pool-prefetch!",pool_prefetch_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	 "'(POOL-PREFETCH! pool oids)' prefetches OIDs from "
 	 "pool",
@@ -2015,7 +2015,7 @@ static lispval pool_prefetch_prim(lispval pool,lispval oids)
       return (ok) ? (KNO_TRUE) : (KNO_FALSE);}}
 }
 
-DEFCPRIM("prefetch-oids!",prefetch_oids_prim,
+DEFC_PRIM("prefetch-oids!",prefetch_oids_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	 "'(PREFETCH-OIDS! oids [pool])' prefetches OIDs "
 	 "from pool",
@@ -2030,7 +2030,7 @@ static lispval prefetch_oids_prim(lispval oids,lispval parg)
   else return pool_prefetch_prim(parg,oids);
 }
 
-DEFCPRIM("fetchoids",fetchoids_prim,
+DEFC_PRIM("fetchoids",fetchoids_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	 "(FETCHOIDS *oids*) "
 	 "returns *oids* after prefetching their values.",
@@ -2041,7 +2041,7 @@ static lispval fetchoids_prim(lispval oids)
   return kno_incref(oids);
 }
 
-DEFCPRIM("prefetch-keys!",prefetch_keys,
+DEFC_PRIM("prefetch-keys!",prefetch_keys,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	 "or `(PREFETCH-KEYS! *keys*)`, moves mappings for "
 	 "*keys* in *index* into its cache. With one "
@@ -2065,7 +2065,7 @@ static lispval prefetch_keys(lispval arg1,lispval arg2)
     return VOID;}
 }
 
-DEFCPRIM("index-prefetch!",index_prefetch_keys,
+DEFC_PRIM("index-prefetch!",index_prefetch_keys,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	 "(INDEX-PREFETCH! *index* *keys*)  "
 	 "moves mappings for *keys* in *index* into its "
@@ -2086,7 +2086,7 @@ static lispval index_prefetch_keys(lispval ix_arg,lispval keys)
 
 /* Getting cached OIDs */
 
-DEFCPRIM("cached-oids",cached_oids,
+DEFC_PRIM("cached-oids",cached_oids,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
 	 "**undocumented**",
 	 {"pool",kno_any_type,KNO_VOID})
@@ -2101,7 +2101,7 @@ static lispval cached_oids(lispval pool)
     else return kno_type_error(_("pool"),"cached_oids",pool);}
 }
 
-DEFCPRIM("cached-keys",cached_keys,
+DEFC_PRIM("cached-keys",cached_keys,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
 	 "**undocumented**",
 	 {"index",kno_any_type,KNO_VOID})
@@ -2116,7 +2116,7 @@ static lispval cached_keys(lispval index)
     else return kno_type_error(_("index"),"cached_keys",index);}
 }
 
-DEFCPRIM("cache-load",cache_load,
+DEFC_PRIM("cache-load",cache_load,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "(CACHE-LOAD *pool-or-index*) "
 	 "returns the number of cached items in a database.",
@@ -2134,7 +2134,7 @@ static lispval cache_load(lispval db)
   else return kno_err(kno_TypeError,"cache_load",_("pool or index"),db);
 }
 
-DEFCPRIM("change-load",change_load,
+DEFC_PRIM("change-load",change_load,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns the number of items modified (or locked "
 	 "for modification) in a database",
@@ -2202,7 +2202,7 @@ static kno_index arg2index(lispval arg)
   else return NULL;
 }
 
-DEFCPRIM("index-source",index_source_prim,
+DEFC_PRIM("index-source",index_source_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
@@ -2216,7 +2216,7 @@ static lispval index_source_prim(lispval arg)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("index-id",index_id,
+DEFC_PRIM("index-id",index_id,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
@@ -2234,7 +2234,7 @@ static lispval index_id(lispval arg)
 
 /* Index operations */
 
-DEFCPRIM("index-get",index_get,
+DEFC_PRIM("index-get",index_get,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 "**undocumented**",
 	 {"ixarg",kno_any_type,KNO_VOID},
@@ -2247,7 +2247,7 @@ static lispval index_get(lispval ixarg,lispval key)
   else return kno_index_get(ix,key);
 }
 
-DEFCPRIM("index-add!",index_add,
+DEFC_PRIM("index-add!",index_add,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3),
 	 "**undocumented**",
 	 {"ixarg",kno_any_type,KNO_VOID},
@@ -2261,7 +2261,7 @@ static lispval index_add(lispval ixarg,lispval key,lispval values)
   return VOID;
 }
 
-DEFCPRIM("index-set!",index_set,
+DEFC_PRIM("index-set!",index_set,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3),
 	 "**undocumented**",
 	 {"ixarg",kno_any_type,KNO_VOID},
@@ -2275,7 +2275,7 @@ static lispval index_set(lispval ixarg,lispval key,lispval values)
   return VOID;
 }
 
-DEFCPRIM("index-decache",index_decache,
+DEFC_PRIM("index-decache",index_decache,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
 	 "**undocumented**",
 	 {"ixarg",kno_any_type,KNO_VOID},
@@ -2294,7 +2294,7 @@ static lispval index_decache(lispval ixarg,lispval key,lispval value)
   return VOID;
 }
 
-DEFCPRIM("bgdecache",bgdecache,
+DEFC_PRIM("bgdecache",bgdecache,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"key",kno_any_type,KNO_VOID},
@@ -2312,7 +2312,7 @@ static lispval bgdecache(lispval key,lispval value)
   return VOID;
 }
 
-DEFCPRIM("index-keys",index_keys,
+DEFC_PRIM("index-keys",index_keys,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"ixarg",kno_any_type,KNO_VOID})
@@ -2323,7 +2323,7 @@ static lispval index_keys(lispval ixarg)
   return kno_index_keys(ix);
 }
 
-DEFCPRIM("index-sizes",index_sizes,
+DEFC_PRIM("index-sizes",index_sizes,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"ixarg",kno_any_type,KNO_VOID},
@@ -2338,7 +2338,7 @@ static lispval index_sizes(lispval ixarg,lispval keys_arg)
   else return kno_index_keysizes(ix,keys_arg);
 }
 
-DEFCPRIM("index-keysvec",index_keysvec,
+DEFC_PRIM("index-keysvec",index_keysvec,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"ixarg",kno_any_type,KNO_VOID})
@@ -2353,7 +2353,7 @@ static lispval index_keysvec(lispval ixarg)
   else return kno_index_keys(ix);
 }
 
-DEFCPRIM("index/merge!",index_merge,
+DEFC_PRIM("index/merge!",index_merge,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 "Merges a hashtable into the ADDS of an index as a "
 	 "batch operation",
@@ -2377,7 +2377,7 @@ static lispval index_merge(lispval ixarg,lispval addstable)
     else return kno_type_error("tempindex|hashtable","index_merge",addstable);}
 }
 
-DEFCPRIM("slotindex/merge!",slotindex_merge,
+DEFC_PRIM("slotindex/merge!",slotindex_merge,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 "Merges a hashtable or temporary index into the "
 	 "ADDS of an index as a batch operation, trying to "
@@ -2394,7 +2394,7 @@ static lispval slotindex_merge(lispval ixarg,lispval add)
     return KNO_INT(rv);}
 }
 
-DEFCPRIM("close-index",close_index_prim,
+DEFC_PRIM("close-index",close_index_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "(INDEX-CLOSE *index*) "
 	 "closes any resources associated with *index*",
@@ -2408,7 +2408,7 @@ static lispval close_index_prim(lispval ix_arg)
   return VOID;
 }
 
-DEFCPRIM("commit-index",commit_index_prim,
+DEFC_PRIM("commit-index",commit_index_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "(INDEX-COMMIT *index*) "
 	 "saves any buffered changes to *index*",
@@ -2422,7 +2422,7 @@ static lispval commit_index_prim(lispval ix_arg)
   return VOID;
 }
 
-DEFCPRIM("index/save!",index_save_prim,
+DEFC_PRIM("index/save!",index_save_prim,
 	 KNO_MAX_ARGS(5)|KNO_MIN_ARGS(2),
 	 "(INDEX-PREFETCH! *index* *keys*) "
 	 "**undocumented**",
@@ -2446,7 +2446,7 @@ static lispval index_save_prim(lispval index,
   else return KNO_INT(rv);
 }
 
-DEFCPRIM("index/fetchn",index_fetchn_prim,
+DEFC_PRIM("index/fetchn",index_fetchn_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	 "Fetches values from an index, skipping the index "
 	 "cache",
@@ -2462,7 +2462,7 @@ static lispval index_fetchn_prim(lispval index,lispval keys)
 }
 
 
-DEFCPRIM("suggest-hash-size",suggest_hash_size,
+DEFC_PRIM("suggest-hash-size",suggest_hash_size,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"size",kno_fixnum_type,KNO_VOID})
@@ -2829,7 +2829,7 @@ static lispval hashtable_filter(lispval candidates,kno_hashtable ht,int pick)
 #define hashtable_pick(c,h) (hashtable_filter(c,(kno_hashtable)h,1))
 #define hashtable_reject(c,h) (hashtable_filter(c,(kno_hashtable)h,0))
 
-DEFCPRIMN("pick",pick_lexpr,
+DEFC_PRIMN("pick",pick_lexpr,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	  "**undocumented**")
 static lispval pick_lexpr(int n,kno_argvec args)
@@ -2847,7 +2847,7 @@ static lispval pick_lexpr(int n,kno_argvec args)
 	  "PICK requires two or 2n+1 arguments",VOID);
 }
 
-DEFCPRIMN("prefer",prefer_lexpr,
+DEFC_PRIMN("prefer",prefer_lexpr,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	  "**undocumented**")
 static lispval prefer_lexpr(int n,kno_argvec args)
@@ -2871,7 +2871,7 @@ static lispval prefer_lexpr(int n,kno_argvec args)
 		      "PICK PREFER two or 2n+1 arguments",VOID);
 }
 
-DEFCPRIMN("%pick",prim_pick_lexpr,
+DEFC_PRIMN("%pick",prim_pick_lexpr,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	  "**undocumented**")
 static lispval prim_pick_lexpr(int n,kno_argvec args)
@@ -2886,7 +2886,7 @@ static lispval prim_pick_lexpr(int n,kno_argvec args)
 		      "%PICK requires two or 2n+1 arguments",VOID);
 }
 
-DEFCPRIMN("%prefer",prim_prefer_lexpr,
+DEFC_PRIMN("%prefer",prim_prefer_lexpr,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	  "**undocumented**")
 static lispval prim_prefer_lexpr(int n,kno_argvec args)
@@ -2953,7 +2953,7 @@ static lispval reject_helper(lispval candidates,int n,kno_argvec tests,
   else return kno_incref(candidates);
 }
 
-DEFCPRIMN("reject",reject_lexpr,
+DEFC_PRIMN("reject",reject_lexpr,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	  "**undocumented**")
 static lispval reject_lexpr(int n,kno_argvec args)
@@ -2970,7 +2970,7 @@ static lispval reject_lexpr(int n,kno_argvec args)
 		      "REJECT requires two or 2n+1 arguments",VOID);
 }
 
-DEFCPRIMN("avoid",avoid_lexpr,
+DEFC_PRIMN("avoid",avoid_lexpr,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	  "**undocumented**")
 static lispval avoid_lexpr(int n,kno_argvec args)
@@ -2994,7 +2994,7 @@ static lispval avoid_lexpr(int n,kno_argvec args)
 		      "AVOID requires two or 2n+1 arguments",VOID);
 }
 
-DEFCPRIMN("%reject",prim_reject_lexpr,
+DEFC_PRIMN("%reject",prim_reject_lexpr,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	  "**undocumented**")
 static lispval prim_reject_lexpr(int n,kno_argvec args)
@@ -3009,7 +3009,7 @@ static lispval prim_reject_lexpr(int n,kno_argvec args)
 		      "%REJECT requires two or 2n+1 arguments",VOID);
 }
 
-DEFCPRIMN("%avoid",prim_avoid_lexpr,
+DEFC_PRIMN("%avoid",prim_avoid_lexpr,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	  "**undocumented**")
 static lispval prim_avoid_lexpr(int n,kno_argvec args)
@@ -3048,7 +3048,7 @@ static lispval getroots(lispval frames)
   return roots;
 }
 
-DEFCPRIM("get*",getstar,
+DEFC_PRIM("get*",getstar,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	 "**undocumented**",
 	 {"frames",kno_any_type,KNO_VOID},
@@ -3068,7 +3068,7 @@ static lispval getstar(lispval frames,lispval slotids)
   return kno_simplify_choice(results);
 }
 
-DEFCPRIM("inherit",inherit_prim,
+DEFC_PRIM("inherit",inherit_prim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3)|KNO_NDCALL,
 	 "**undocumented**",
 	 {"slotids",kno_any_type,KNO_VOID},
@@ -3086,7 +3086,7 @@ static lispval inherit_prim(lispval slotids,lispval frames,lispval through)
   return kno_simplify_choice(results);
 }
 
-DEFCPRIM("path?",pathp,
+DEFC_PRIM("path?",pathp,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3)|KNO_NDCALL,
 	 "**undocumented**",
 	 {"frames",kno_any_type,KNO_VOID},
@@ -3102,7 +3102,7 @@ static lispval pathp(lispval frames,lispval slotids,lispval values)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("get-basis",getbasis,
+DEFC_PRIM("get-basis",getbasis,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	 "**undocumented**",
 	 {"frames",kno_any_type,KNO_VOID},
@@ -3114,7 +3114,7 @@ static lispval getbasis(lispval frames,lispval lattice)
 
 /* Frame creation */
 
-DEFCPRIM("allocate-oids",allocate_oids,
+DEFC_PRIM("allocate-oids",allocate_oids,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"pool",kno_any_type,KNO_VOID},
@@ -3131,7 +3131,7 @@ static lispval allocate_oids(lispval pool,lispval howmany)
   else return kno_type_error(_("fixnum"),"allocate_oids",howmany);
 }
 
-DEFCPRIMN("frame-create",frame_create_lexpr,
+DEFC_PRIMN("frame-create",frame_create_lexpr,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	  "**undocumented**")
 static lispval frame_create_lexpr(int n,kno_argvec args)
@@ -3168,7 +3168,7 @@ static lispval frame_create_lexpr(int n,kno_argvec args)
   return result;
 }
 
-DEFCPRIMN("frame-update",frame_update_lexpr,
+DEFC_PRIMN("frame-update",frame_update_lexpr,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(3)|KNO_NDCALL,
 	  "**undocumented**")
 static lispval frame_update_lexpr(int n,kno_argvec args)
@@ -3191,7 +3191,7 @@ static lispval frame_update_lexpr(int n,kno_argvec args)
 		      _("wrong number of args"),VOID);
 }
 
-DEFCPRIM("seq->frame",seq2frame_prim,
+DEFC_PRIM("seq->frame",seq2frame_prim,
 	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(3)|KNO_NDCALL,
 	 "**undocumented**",
 	 {"poolspec",kno_any_type,KNO_VOID},
@@ -3268,7 +3268,7 @@ static int doretract(lispval f,lispval s,lispval v)
   else return kno_drop(f,s,v);
 }
 
-DEFCPRIMN("modify-frame",modify_frame_lexpr,
+DEFC_PRIMN("modify-frame",modify_frame_lexpr,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(3)|KNO_NDCALL,
 	  "**undocumented**")
 static lispval modify_frame_lexpr(int n,kno_argvec args)
@@ -3301,7 +3301,7 @@ static lispval modify_frame_lexpr(int n,kno_argvec args)
 
 /* OID operations */
 
-DEFCPRIM("oid-plus",oid_plus_prim,
+DEFC_PRIM("oid-plus",oid_plus_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "Adds an integer to an OID address and returns "
 	 "that OID",
@@ -3315,7 +3315,7 @@ static lispval oid_plus_prim(lispval oid,lispval increment)
   return kno_make_oid(next);
 }
 
-DEFCPRIM("oid-offset",oid_offset_prim,
+DEFC_PRIM("oid-offset",oid_offset_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "Returns the offset of an OID from a container and "
 	 "#f if it is not in the container. When the second "
@@ -3348,7 +3348,7 @@ static lispval oid_offset_prim(lispval oidarg,lispval against)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("oid-minus",oid_minus_prim,
+DEFC_PRIM("oid-minus",oid_minus_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "Returns the difference between two OIDs. If the "
 	 "second argument is a pool, the base of the pool "
@@ -3371,7 +3371,7 @@ static lispval oid_minus_prim(lispval oidarg,lispval against)
 
 #ifdef KNO_OID_BASE_ID
 
-DEFCPRIM("oid-ptrdata",oid_ptrdata_prim,
+DEFC_PRIM("oid-ptrdata",oid_ptrdata_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"oid",kno_oid_type,KNO_VOID})
@@ -3382,7 +3382,7 @@ static lispval oid_ptrdata_prim(lispval oid)
 }
 #endif
 
-DEFCPRIM("make-oid",make_oid_prim,
+DEFC_PRIM("make-oid",make_oid_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "(MAKE-OID *addr* [*lo*]) "
 	 "returns an OID from numeric components. If *lo* "
@@ -3448,7 +3448,7 @@ static lispval make_oid_prim(lispval high,lispval low)
     return kno_make_oid(addr);}
 }
 
-DEFCPRIM("oid->string",oid2string_prim,
+DEFC_PRIM("oid->string",oid2string_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"oid",kno_oid_type,KNO_VOID},
@@ -3468,7 +3468,7 @@ static lispval oid2string_prim(lispval oid,lispval name)
   return kno_stream2string(&out);
 }
 
-DEFCPRIM("oid->hex",oidhex_prim,
+DEFC_PRIM("oid->hex",oidhex_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"oid",kno_oid_type,KNO_VOID},
@@ -3528,7 +3528,7 @@ static lispval oidplus(KNO_OID base,int delta)
   return kno_make_oid(next);
 }
 
-DEFCPRIM("hex->oid",hex2oid_prim,
+DEFC_PRIM("hex->oid",hex2oid_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID},
@@ -3582,7 +3582,7 @@ static lispval b32oid_prim(lispval arg,lispval base_arg)
 }
 #endif
 
-DEFCPRIM("oid-addr",oidaddr_prim,
+DEFC_PRIM("oid-addr",oidaddr_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns the absolute numeric address of an OID",
 	 {"oid",kno_oid_type,KNO_VOID})
@@ -3601,7 +3601,7 @@ static lispval oidaddr_prim(lispval oid)
 
 /* sumframe function */
 
-DEFCPRIM("sumframe",sumframe_prim,
+DEFC_PRIM("sumframe",sumframe_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	 "**undocumented**",
 	 {"frames",kno_any_type,KNO_VOID},
@@ -3680,7 +3680,7 @@ static int walkgraph(lispval fn,lispval state,lispval arcs,
   else return 1;
 }
 
-DEFCPRIM("forgraph",forgraph,
+DEFC_PRIM("forgraph",forgraph,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3)|KNO_NDCALL,
 	 "**undocumented**",
 	 {"fcn",kno_any_type,KNO_VOID},
@@ -3708,7 +3708,7 @@ static lispval forgraph(lispval fcn,lispval roots,lispval arcs)
     return VOID;}
 }
 
-DEFCPRIM("mapgraph",mapgraph,
+DEFC_PRIM("mapgraph",mapgraph,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3)|KNO_NDCALL,
 	 "**undocumented**",
 	 {"fcn",kno_any_type,KNO_VOID},
@@ -3746,7 +3746,7 @@ static lispval mapgraph(lispval fcn,lispval roots,lispval arcs)
 
 /* Helpful predicates */
 
-DEFCPRIM("loaded?",dbloadedp,
+DEFC_PRIM("loaded?",dbloadedp,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"arg1",kno_any_type,KNO_VOID},
@@ -3822,7 +3822,7 @@ static int oidmodifiedp(kno_pool p,lispval oid)
   else return 0;
 }
 
-DEFCPRIM("modified?",dbmodifiedp,
+DEFC_PRIM("modified?",dbmodifiedp,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"arg1",kno_any_type,KNO_VOID},
@@ -3890,7 +3890,7 @@ static lispval dbmodifiedp(lispval arg1,lispval arg2)
   else return kno_type_error("pool/index","loadedp",arg2);
 }
 
-DEFCPRIM("db/writable?",db_writablep,
+DEFC_PRIM("db/writable?",db_writablep,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"db",kno_any_type,KNO_VOID})
@@ -3917,7 +3917,7 @@ static lispval db_writablep(lispval db)
 
 /* Bloom filters */
 
-DEFCPRIM("make-bloom-filter",make_bloom_filter,
+DEFC_PRIM("make-bloom-filter",make_bloom_filter,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "Creates a bloom filter for a a number of items "
 	 "and an error rate",
@@ -3935,7 +3935,7 @@ static lispval make_bloom_filter(lispval n_entries,lispval allowed_error)
 
 #define BLOOM_DTYPE_LEN 1000
 
-DEFCPRIM("bloom/add!",bloom_add,
+DEFC_PRIM("bloom/add!",bloom_add,
 	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	 "(BLOOM/ADD! *filter* *key* [*raw*]) "
 	 "adds a key to a bloom filter. The *raw* argument "
@@ -3965,7 +3965,7 @@ static lispval bloom_add(lispval filter,lispval value,
   else return KNO_FALSE;
 }
 
-DEFCPRIM("bloom/check",bloom_check,
+DEFC_PRIM("bloom/check",bloom_check,
 	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	 "(BLOOM/CHECK *filter* *keys* [*raw*] [*noerr*]) "
 	 "returns true if any of *keys* are probably found "
@@ -3997,7 +3997,7 @@ static lispval bloom_check(lispval filter,lispval value,
   else return KNO_FALSE;
 }
 
-DEFCPRIM("bloom/hits",bloom_hits,
+DEFC_PRIM("bloom/hits",bloom_hits,
 	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	 "(BLOOM/HITS *filter* *keys* [*raw*] [*noerr*]) "
 	 "returns the number of *keys* probably found in "
@@ -4026,7 +4026,7 @@ static lispval bloom_hits(lispval filter,lispval value,
   else return KNO_INT(rv);
 }
 
-DEFCPRIM("bloom-size",bloom_size,
+DEFC_PRIM("bloom-size",bloom_size,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns the size (in bytes) of a bloom filter ",
 	 {"filter",kno_bloom_filter_type,KNO_VOID})
@@ -4036,7 +4036,7 @@ static lispval bloom_size(lispval filter)
   return KNO_INT(bloom->entries);
 }
 
-DEFCPRIM("bloom-count",bloom_count,
+DEFC_PRIM("bloom-count",bloom_count,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns the number of objects added to a bloom "
 	 "filter",
@@ -4047,7 +4047,7 @@ static lispval bloom_count(lispval filter)
   return KNO_INT(bloom->bloom_adds);
 }
 
-DEFCPRIM("bloom-error",bloom_error,
+DEFC_PRIM("bloom-error",bloom_error,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns the error threshold (a flonum) for the "
 	 "filter",
@@ -4058,7 +4058,7 @@ static lispval bloom_error(lispval filter)
   return kno_make_double(bloom->error);
 }
 
-DEFCPRIM("bloom-data",bloom_data,
+DEFC_PRIM("bloom-data",bloom_data,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns the bytes of the filter as a packet",
 	 {"filter",kno_bloom_filter_type,KNO_VOID})
@@ -4070,7 +4070,7 @@ static lispval bloom_data(lispval filter)
 
 /* Checking pool and index typeids */
 
-DEFCPRIM("pooltype?",pool_typep,
+DEFC_PRIM("pooltype?",pool_typep,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns true if *arg* is a known pool type",
 	 {"typesym",kno_symbol_type,KNO_VOID})
@@ -4083,7 +4083,7 @@ static lispval pool_typep(lispval typesym)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("indextype?",index_typep,
+DEFC_PRIM("indextype?",index_typep,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns true if *arg* is a known index type",
 	 {"typesym",kno_symbol_type,KNO_VOID})
@@ -4098,7 +4098,7 @@ static lispval index_typep(lispval typesym)
 
 /* Registering procpools and procindexes */
 
-DEFCPRIM("defpooltype",def_procpool,
+DEFC_PRIM("defpooltype",def_procpool,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 "Registers handlers for a procpool",
 	 {"typesym",kno_any_type,KNO_VOID},
@@ -4117,7 +4117,7 @@ static lispval def_procpool(lispval typesym,lispval handlers)
   else return kno_err(kno_TypeError,"register_procpool",NULL,typesym);
 }
 
-DEFCPRIM("defindextype",def_procindex,
+DEFC_PRIM("defindextype",def_procindex,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 "Registers handlers for a procindex",
 	 {"typesym",kno_any_type,KNO_VOID},
@@ -4136,7 +4136,7 @@ static lispval def_procindex(lispval typesym,lispval handlers)
   else return kno_err(kno_TypeError,"register_procpool",NULL,typesym);
 }
 
-DEFCPRIM("procpool?",procpoolp,
+DEFC_PRIM("procpool?",procpoolp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns #t if it's argument is a procpool",
 	 {"pool",kno_any_type,KNO_VOID})
@@ -4148,7 +4148,7 @@ static lispval procpoolp(lispval pool)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("procindex?",procindexp,
+DEFC_PRIM("procindex?",procindexp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns #t if it's argument is a procindex",
 	 {"index",kno_any_type,KNO_VOID})
@@ -4225,23 +4225,23 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("oid-minus",oid_minus_prim,2,kno_db_module);
   KNO_LINK_CPRIM("oid-offset",oid_offset_prim,2,kno_db_module);
   KNO_LINK_CPRIM("oid-plus",oid_plus_prim,2,kno_db_module);
-  KNO_LINK_CVARARGS("modify-frame",modify_frame_lexpr,kno_db_module);
+  KNO_LINK_CPRIMN("modify-frame",modify_frame_lexpr,kno_db_module);
   KNO_LINK_CPRIM("seq->frame",seq2frame_prim,4,kno_db_module);
-  KNO_LINK_CVARARGS("frame-update",frame_update_lexpr,kno_db_module);
-  KNO_LINK_CVARARGS("frame-create",frame_create_lexpr,kno_db_module);
+  KNO_LINK_CPRIMN("frame-update",frame_update_lexpr,kno_db_module);
+  KNO_LINK_CPRIMN("frame-create",frame_create_lexpr,kno_db_module);
   KNO_LINK_CPRIM("allocate-oids",allocate_oids,2,kno_db_module);
   KNO_LINK_CPRIM("get-basis",getbasis,2,kno_db_module);
   KNO_LINK_CPRIM("path?",pathp,3,kno_db_module);
   KNO_LINK_CPRIM("inherit",inherit_prim,3,kno_db_module);
   KNO_LINK_CPRIM("get*",getstar,2,kno_db_module);
-  KNO_LINK_CVARARGS("%avoid",prim_avoid_lexpr,kno_db_module);
-  KNO_LINK_CVARARGS("%reject",prim_reject_lexpr,kno_db_module);
-  KNO_LINK_CVARARGS("avoid",avoid_lexpr,kno_db_module);
-  KNO_LINK_CVARARGS("reject",reject_lexpr,kno_db_module);
-  KNO_LINK_CVARARGS("%prefer",prim_prefer_lexpr,kno_db_module);
-  KNO_LINK_CVARARGS("%pick",prim_pick_lexpr,kno_db_module);
-  KNO_LINK_CVARARGS("prefer",prefer_lexpr,kno_db_module);
-  KNO_LINK_CVARARGS("pick",pick_lexpr,kno_db_module);
+  KNO_LINK_CPRIMN("%avoid",prim_avoid_lexpr,kno_db_module);
+  KNO_LINK_CPRIMN("%reject",prim_reject_lexpr,kno_db_module);
+  KNO_LINK_CPRIMN("avoid",avoid_lexpr,kno_db_module);
+  KNO_LINK_CPRIMN("reject",reject_lexpr,kno_db_module);
+  KNO_LINK_CPRIMN("%prefer",prim_prefer_lexpr,kno_db_module);
+  KNO_LINK_CPRIMN("%pick",prim_pick_lexpr,kno_db_module);
+  KNO_LINK_CPRIMN("prefer",prefer_lexpr,kno_db_module);
+  KNO_LINK_CPRIMN("pick",pick_lexpr,kno_db_module);
   KNO_LINK_CPRIM("suggest-hash-size",suggest_hash_size,1,kno_db_module);
   KNO_LINK_CPRIM("index/fetchn",index_fetchn_prim,2,kno_db_module);
   KNO_LINK_CPRIM("index/save!",index_save_prim,5,kno_db_module);
@@ -4300,8 +4300,8 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("commit-pool",commit_pool,2,kno_db_module);
   KNO_LINK_CPRIM("finish-oids",finish_oids,2,kno_db_module);
   KNO_LINK_CPRIM("commit-oids",commit_oids,1,kno_db_module);
-  KNO_LINK_CVARARGS("commit",commit_lexpr,kno_db_module);
-  KNO_LINK_CVARARGS("swapout",swapout_lexpr,kno_db_module);
+  KNO_LINK_CPRIMN("commit",commit_lexpr,kno_db_module);
+  KNO_LINK_CPRIMN("swapout",swapout_lexpr,kno_db_module);
   KNO_LINK_CPRIM("adjunct?",isadjunctp,1,kno_db_module);
   KNO_LINK_CPRIM("get-adjuncts",get_adjuncts_prim,1,kno_db_module);
   KNO_LINK_CPRIM("get-adjunct",get_adjunct_prim,2,kno_db_module);
@@ -4356,7 +4356,7 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("getpool",getpool,1,kno_db_module);
   KNO_LINK_CPRIM("oid->pool",oid2pool,1,kno_db_module);
   KNO_LINK_CPRIM("index-frame",index_frame_prim,4,kno_db_module);
-  KNO_LINK_CVARARGS("find-frames/prefetch!",find_frames_prefetch,kno_db_module);
+  KNO_LINK_CPRIMN("find-frames/prefetch!",find_frames_prefetch,kno_db_module);
   KNO_LINK_CPRIM("prefetch-slotvals!",prefetch_slotvals,3,kno_db_module);
 
   KNO_LINK_CPRIM("name->pool",name2pool,1,kno_db_module);

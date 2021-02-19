@@ -1427,7 +1427,7 @@ static struct PyMethodDef kno_methods[]=
 
 /* Table methods for Python objects */
 
-KNO_DEFCPRIM("PY/GET",pyget,MAX_ARGS(2)|MIN_ARGS(1),
+DEFC_PRIM("PY/GET",pyget,MAX_ARGS(2)|MIN_ARGS(1),
 	     "Gets a field from a python object",
 	     {"pyobj",PYTHON_OBJECT_TYPE,KNO_VOID},
 	     {"key",kno_any_type,KNO_VOID})
@@ -1452,7 +1452,7 @@ static lispval pyget(lispval pyobj,lispval key)
     return r;}
 }
 
-KNO_DEFCPRIM("PY/HAS",pyhas,MAX_ARGS(2)|MIN_ARGS(2),
+DEFC_PRIM("PY/HAS",pyhas,MAX_ARGS(2)|MIN_ARGS(2),
 	     "Returns true if a python object has a field",
 	     {"pyobj",PYTHON_OBJECT_TYPE,KNO_VOID},
 	     {"key",kno_any_type,KNO_VOID});
@@ -1539,7 +1539,7 @@ static lispval pyapply(lispval fcn,int n,kno_argvec args)
   else return kno_type_error("python procedure","pyapply",fcn);
 }
 
-KNO_DEFCPRIM("PY/EXEC",pyexec,MIN_ARGS(1)|MAX_ARGS(1),
+DEFC_PRIM("PY/EXEC",pyexec,MIN_ARGS(1)|MAX_ARGS(1),
 	     "Executes a string of Python code",
 	     {"codestring",kno_string_type,KNO_VOID});
 static lispval pyexec(lispval codestring)
@@ -1552,7 +1552,7 @@ static lispval pyexec(lispval codestring)
   return KNO_INT2LISP(result);
 }
 
-KNO_DEFCPRIM("PY/STRING",pystring,MAX_ARGS(1)|MIN_ARGS(1),
+DEFC_PRIM("PY/STRING",pystring,MAX_ARGS(1)|MIN_ARGS(1),
 	     "Returns a string containing the printed representation "
 	     "of a Python object",
 	     {"pyobj",PYTHON_OBJECT_TYPE,KNO_VOID});
@@ -1614,7 +1614,7 @@ static lispval pytable_helper(lispval obj,int symbolize,int onerr)
   else return kno_err("NotAPythonObject","pytable",NULL,obj);
 }
 
-KNO_DEFCPRIM("PY/TABLE",pytable,MAX_ARGS(1)|MIN_ARGS(1),
+DEFC_PRIM("PY/TABLE",pytable,MAX_ARGS(1)|MIN_ARGS(1),
 	     "Returns a table containing the fields and values of a Python object",
 	     {"pyobj",PYTHON_OBJECT_TYPE,KNO_VOID});
 static lispval pytable(lispval obj)
@@ -1622,7 +1622,7 @@ static lispval pytable(lispval obj)
   return pytable_helper(obj,1,0);
 }
 
-KNO_DEFCPRIM("PY/TYPE",pytype,MAX_ARGS(1)|MIN_ARGS(1),
+DEFC_PRIM("PY/TYPE",pytype,MAX_ARGS(1)|MIN_ARGS(1),
 	     "Returns the Python type object for a type",
 	     {"pyobj",PYTHON_OBJECT_TYPE,KNO_VOID});
 static lispval pytype(lispval pyobj)
@@ -1639,7 +1639,7 @@ static lispval pytype(lispval pyobj)
   else return kno_err("NotAPythonObject","pytable",NULL,pyobj);
 }
 
-KNO_DEFCPRIM("PY/TYPENAME",pytypename,MAX_ARGS(1)|MIN_ARGS(1),
+DEFC_PRIM("PY/TYPENAME",pytypename,MAX_ARGS(1)|MIN_ARGS(1),
 	     "Returns name of the Python type for an object",
 	     {"pyobj",PYTHON_OBJECT_TYPE,KNO_VOID});
 static lispval pytypename(lispval pyobj)
@@ -1657,7 +1657,7 @@ static lispval pytypename(lispval pyobj)
   else return kno_err("NotAPythonObject","pytable",NULL,pyobj);
 }
 
-KNO_DEFCPRIM("PY/IMPORT",pyimport,MIN_ARGS(1)|MAX_ARGS(1),
+DEFC_PRIM("PY/IMPORT",pyimport,MIN_ARGS(1)|MAX_ARGS(1),
 	     "Returns a python module object",
 	     {"modname",kno_any_type,KNO_VOID});
 static lispval pyimport(lispval modname)
@@ -1777,14 +1777,14 @@ static lispval py_use_module_evalfn
   return result;
 }
 
-KNO_DEFCPRIMN("PY/CALL",pycall,KNO_VAR_ARGS|MIN_ARGS(1),
+DEFC_PRIMN("PY/CALL",pycall,KNO_VAR_ARGS|MIN_ARGS(1),
 	      "Calls a python function on some arguments");
 static lispval pycall(int n,kno_argvec args)
 {
   return pyapply(args[0],n-1,args+1);
 }
 
-KNO_DEFCPRIMN("PY/HANDLE",pyhandle,KNO_VAR_ARGS|MIN_ARGS(2),
+DEFC_PRIMN("PY/HANDLE",pyhandle,KNO_VAR_ARGS|MIN_ARGS(2),
 	      "Calls the method of a Python object on some arguments");
 static lispval pyhandle(int n,kno_argvec lisp_args)
 {
@@ -1843,7 +1843,7 @@ static lispval pyhandle(int n,kno_argvec lisp_args)
     return result;}
 }
 
-KNO_DEFCPRIMN("PY/TRY",pytry,KNO_VAR_ARGS|MIN_ARGS(2),
+DEFC_PRIMN("PY/TRY",pytry,KNO_VAR_ARGS|MIN_ARGS(2),
 	      "Calls a method on a Python object, returning {} on error");
 static lispval pytry(int n,kno_argvec lisp_args)
 {
@@ -1903,7 +1903,7 @@ static lispval pytry(int n,kno_argvec lisp_args)
     return result;}
 }
 
-KNO_DEFCPRIM("PY/FCN",pyfcn,MAX_ARGS(2)|MIN_ARGS(1),
+DEFC_PRIM("PY/FCN",pyfcn,MAX_ARGS(2)|MIN_ARGS(1),
 	     "Returns a python method object",
 	     {"modname",kno_any_type,KNO_VOID},
 	     {"fname",kno_any_type,KNO_VOID});
@@ -1928,7 +1928,7 @@ static lispval pyfcn(lispval modname,lispval fname)
   else return pyerr("pymethod");
 }
 
-KNO_DEFCPRIM("PY/LEN",pylen,MAX_ARGS(1)|MIN_ARGS(1),
+DEFC_PRIM("PY/LEN",pylen,MAX_ARGS(1)|MIN_ARGS(1),
 	     "eturns the length of *obj* or #f "
 	     "if *obj* doesn't have a length",
 	     {"pyobj",PYTHON_OBJECT_TYPE,KNO_VOID});
@@ -1943,7 +1943,7 @@ static lispval pylen(lispval pyobj)
   else return KNO_INT(len);
 }
 
-KNO_DEFCPRIM("PY/DIR",pydir,MAX_ARGS(1)|MIN_ARGS(1),
+DEFC_PRIM("PY/DIR",pydir,MAX_ARGS(1)|MIN_ARGS(1),
 	     "Returns a vector of fields on a Python object "
 	     "or #f if it isn't a map/dictionary",
 	     {"pyobj",PYTHON_OBJECT_TYPE,KNO_VOID});
@@ -1961,7 +1961,7 @@ static lispval pydir(lispval pyobj)
   else return kno_err("NotAPythonObject","pydir",NULL,pyobj);
 }
 
-KNO_DEFCPRIM("PY/DIR*",pydirstar,MAX_ARGS(1)|MIN_ARGS(1),
+DEFC_PRIM("PY/DIR*",pydirstar,MAX_ARGS(1)|MIN_ARGS(1),
 	     "Returns a choice of fields on a Python object "
 	     "or {} if it isn't a map/dictionary",
 	     {"pyobj",PYTHON_OBJECT_TYPE,KNO_VOID});
@@ -1994,7 +1994,7 @@ static lispval pydirstar(lispval pyobj)
   else return KNO_EMPTY;
 }
 
-KNO_DEFCPRIM("PY/NEXT",pynext,MAX_ARGS(2)|MIN_ARGS(1),
+DEFC_PRIM("PY/NEXT",pynext,MAX_ARGS(2)|MIN_ARGS(1),
 	     "Advances an iterator",
 	     {"iterator",kno_any_type,KNO_VOID},
 	     {"termval",kno_any_type,KNO_VOID});
@@ -2312,9 +2312,9 @@ static void link_local_cprims()
 {
   KNO_LINK_CPRIM("PY/EXEC",pyexec,1,pymodule);
   KNO_LINK_CPRIM("PY/IMPORT",pyimport,1,pymodule);
-  KNO_LINK_CVARARGS("PY/CALL",pycall,pymodule);
-  KNO_LINK_CVARARGS("PY/HANDLE",pyhandle,pymodule);
-  KNO_LINK_CVARARGS("PY/TRY",pytry,pymodule);
+  KNO_LINK_CPRIMN("PY/CALL",pycall,pymodule);
+  KNO_LINK_CPRIMN("PY/HANDLE",pyhandle,pymodule);
+  KNO_LINK_CPRIMN("PY/TRY",pytry,pymodule);
 
 #if 0
   KNO_LINK_TYPED("PY/FCN",pyfcn,2,pymodule,

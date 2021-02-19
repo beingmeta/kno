@@ -173,14 +173,12 @@ typedef struct KNO_EVALFN_INFO {
   int flags;} KNO_EVALFN_INFO;
 typedef struct KNO_EVALFN_INFO *kno_evalfn_info;
 
-#define KNO_DEF_EVALFN(pname,cname,docstring) \
-  struct KNO_EVALFN_INFO cname ## _info = { \
-    pname, # cname, _FILEINFO " L#" STRINGIFY(__LINE__), \
-    docstring, 0};
-#define KNO_DEF_XEVALFN(pname,cname,flags,docstring)	\
+#define KNO_DEFC_EVALFN(pname,cname,flags,docstring)	\
   struct KNO_EVALFN_INFO cname ## _info = { \
     pname, # cname, _FILEINFO " L#" STRINGIFY(__LINE__), \
     docstring, flags};
+
+#define KNO_EVALFN_DEFAULTS (0)
 
 #define KNO_LINK_EVALFN(module,cname) \
   kno_new_evalfn(module,cname ## _info.pname,# cname,cname ## _info.filename, \
@@ -219,6 +217,8 @@ KNO_EXPORT lispval kno_register_module_x(lispval name,lispval module,int flags);
 KNO_EXPORT lispval kno_register_module(u8_string name,lispval module,int flags);
 KNO_EXPORT lispval kno_get_module(lispval name);
 KNO_EXPORT int kno_discard_module(lispval name);
+
+KNO_EXPORT int kno_load_module(u8_string modname);
 
 KNO_EXPORT lispval kno_all_modules(void);
 
@@ -413,8 +413,8 @@ KNO_EXPORT u8_string kno_bugdir;
 /* Aliases in KNO_SOURCE */
 
 #if KNO_SOURCE
-#define DEF_EVALFN  KNO_DEF_EVALFN
-#define DEF_XEVALFN KNO_DEF_EVALFN
+#define DEFC_EVALFN KNO_DEFC_EVALFN
+#define EVALFN_DEFAULTS KNO_EVALFN_DEFAULTS
 #define LINK_EVALFN KNO_LINK_EVALFN
 #define EVALFNP     KNO_EVALFNP
 #endif

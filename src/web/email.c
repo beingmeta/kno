@@ -44,7 +44,7 @@ static void get_mailinfo(lispval headers,u8_string *host,u8_string *domain,u8_st
   if (STRINGP(mailfrom_spec)) *from = CSTRING(mailfrom_spec);
 }
 
-DEFCPRIM("smtp",smtp_function,
+DEFC_PRIM("smtp",smtp_function,
 	 KNO_MAX_ARGS(5)|KNO_MIN_ARGS(3),
 	 "**undocumented**",
 	 {"dest",kno_any_type,KNO_VOID},

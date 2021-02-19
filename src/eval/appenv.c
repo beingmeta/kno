@@ -150,7 +150,7 @@ KNO_EXPORT void kno_set_app_env(kno_lexenv env)
 	  lispval used = kno_use_module(kno_app_env,module);
 	  if (KNO_ABORTP(used)) {
 	    u8_log(LOG_WARN,"AppEnv/UseModuleError",
-		   "Error using module %q",module);
+		   "Error using module %q",modname);
 	    kno_clear_errors(1);
 	    modules_failed++;}
 	  else modules_loaded++;
@@ -161,7 +161,7 @@ KNO_EXPORT void kno_set_app_env(kno_lexenv env)
     {KNO_DOLIST(file,files) {
 	lispval loadval = kno_load_source(KNO_CSTRING(file),kno_app_env,NULL);
 	if (KNO_ABORTP(loadval)) {
-	  u8_log(LOG_WARN,"AppEnv/LoadFileError","kno_set_app_end",
+	  u8_log(LOG_WARN,"AppEnv/LoadFileError",
 		 "Error loading %s into the application environment",
 		 KNO_CSTRING(file));
 	  kno_clear_errors(1);
@@ -185,7 +185,7 @@ KNO_EXPORT void kno_set_app_env(kno_lexenv env)
 	   modules_failed,files_failed,inits_failed);}
 }
 
-DEFCPRIM("%appenv",appenv_prim,
+DEFC_PRIM("%appenv",appenv_prim,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
 	 "Returns the base 'application environment' for "
 	 "the current instance")
@@ -200,6 +200,24 @@ static lispval appenv_prim()
 
 static u8_string get_next(u8_string pt,u8_string seps);
 
+static lispval parse_module_spec(u8_string s);
+
+static lispval path_module(u8_string elt)
+{
+  if (elt[0] == '/')
+    return knostring(elt);
+  else {
+    u8_string path = u8_abspath(elt,NULL);
+    if (path == NULL) return KNO_ERROR;
+    else return kno_wrapstring(path);}
+}
+
+static lispval opt_module(u8_string elt)
+{
+  lispval core_spec = parse_module_spec(elt);
+  return kno_make_list(2,KNOSYM_OPTIONAL,core_spec);
+}
+
 static lispval parse_module_spec(u8_string s)
 {
   if (strchr(":({",*s))
@@ -208,13 +226,20 @@ static lispval parse_module_spec(u8_string s)
     u8_string brk = get_next(s," ,;");
     if (brk) {
       u8_string elt = u8_slice(s,brk);
-      lispval parsed = (elt[0]==':') ? (kno_parse(elt+1)) : (kno_parse(elt));
+      lispval parsed = (elt[0]==':') ? (kno_parse(elt+1)) :
+	( (elt[0]=='/') || (elt[0]=='.') ) ? (path_module(elt)) :
+	( (elt[0]=='~') || (elt[0]=='?') ) ? (opt_module(elt+1)) :
+	(kno_parse(elt));
       u8_free(elt);
       if (KNO_ABORTP(parsed))
 	return parsed;
       else return kno_init_pair(NULL,parsed,parse_module_spec(brk+1));}
     else {
-      lispval parsed = kno_parse(s);
+      u8_string elt = s;
+      lispval parsed = (elt[0]==':') ? (kno_parse(elt+1)) :
+	( (elt[0]=='/') || (elt[0]=='.') ) ? (path_module(elt)) :
+	( (elt[0]=='~') || (elt[0]=='?') ) ? (opt_module(elt+1)) :
+	(kno_parse(elt));
       if (KNO_ABORTP(parsed)) return parsed;
       else return kno_init_pair(NULL,parsed,NIL);}}
   else return NIL;
@@ -238,8 +263,11 @@ static int add_modname(lispval modname)
     if (KNO_ABORTP(module))
       return -1;
     else if ( (KNO_VOIDP(module)) || (KNO_FALSEP(module)) ) {
-      u8_log(LOG_WARN,kno_NoSuchModule,
-	     "No module found for %q",modname);
+      kno_seterr(kno_NoSuchModule,"add_modname",
+		 (KNO_SYMBOLP(modname)) ? (KNO_SYMBOL_NAME(modname)) :
+		 (KNO_STRINGP(modname)) ? (KNO_CSTRING(modname)) :
+		 (NULL),
+		 modname);
       return -1;}
     kno_use_module(kno_app_env,module);
     module_list = kno_conspair(modname,module_list);
@@ -263,27 +291,54 @@ static int module_config_set(lispval var,lispval vals,void *d)
     if (VOIDP(modname)) {
       kno_seterr(kno_TypeError,"module_config_set","module",val);
       return -1;}
+    else if ( (PAIRP(modname)) && (KNO_EQ(KNO_CAR(modname),KNOSYM_OPTIONAL)) ) {
+      KNO_DOLIST(elt,KNO_CDR(modname)) {
+	if ( (SYMBOLP(elt)) || (STRINGP(elt)) ) {
+	  int added = add_modname(elt);
+	  if (added>0) loads++;
+	  else if (added<0) {
+	    u8_pop_exception();}}}
+      kno_decref(modname);}
     else if (PAIRP(modname)) {
       KNO_DOLIST(elt,modname) {
 	if ( (SYMBOLP(elt)) || (STRINGP(elt)) ) {
 	  int added = add_modname(elt);
-	  if (added>0) loads++;}
+	  if (added>0) loads++;
+	  else if (added<0) {
+	    kno_decref(modname);
+	    return -1;}}
+	else if ( (PAIRP(elt)) || (KNO_CAR(elt)==KNOSYM_OPTIONAL) ) {
+	  KNO_DOLIST(e,KNO_CDR(elt)) {
+	    if ( (SYMBOLP(e)) || (STRINGP(e)) ) {
+	      int added = add_modname(elt);
+	      if (added>0) loads++;
+	      else if (added<0) {
+		u8_pop_exception();}}}}
 	else {
-	  u8_log(LOG_WARN,kno_TypeError,"module_config_set",
-		 "Not a valid module name: %q",elt);}}
+	  kno_seterr(kno_TypeError,"module_config_set","module",elt);
+	  kno_decref(modname);
+	  return -1;}}
       kno_decref(modname);}
     else if (CHOICEP(modname)) {
       KNO_DO_CHOICES(elt,modname) {
 	if ( (SYMBOLP(elt)) || (STRINGP(elt)) ) {
 	  int added = add_modname(elt);
-	  if (added>0) loads++;}
+	  if (added>0) loads++;
+	  else if (added<0) {
+	    kno_decref(modname);
+	    return -1;}
+	  else NO_ELSE;}
 	else {
-	  u8_log(LOG_WARN,kno_TypeError,"module_config_set",
-		 "Not a valid module name: %q",elt);}}
+	  kno_seterr(kno_TypeError,"module_config_set","module",elt);
+	  return -1;}}
       kno_decref(modname);}
     else if ( (SYMBOLP(modname)) || (STRINGP(modname)) ) {
       int added = add_modname(modname);
-      if (added > 0) loads++;}
+      if (added > 0) loads++;
+      else if (added < 0) {
+	kno_decref(modname);
+	return -1;}
+      else NO_ELSE;}
     else {
       kno_seterr(kno_TypeError,"module_config_set","module name",val);
       kno_decref(modname);

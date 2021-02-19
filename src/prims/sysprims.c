@@ -52,7 +52,7 @@ u8_condition kno_MissingFeature=_("OS doesn't support operation");
 
 /* Getting the current hostname */
 
-DEFCPRIM("gethostname",hostname_prim,
+DEFC_PRIM("gethostname",hostname_prim,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
 	 "Gets the assigned name for this computer")
 static lispval hostname_prim()
@@ -60,7 +60,7 @@ static lispval hostname_prim()
   return kno_wrapstring(u8_gethostname());
 }
 
-DEFCPRIM("hostaddrs",hostaddrs_prim,
+DEFC_PRIM("hostaddrs",hostaddrs_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Gets the addresses associated with a hostname "
 	 "using the ldns library",
@@ -88,7 +88,7 @@ static lispval hostaddrs_prim(lispval hostname)
 
 /* GETENV primitive */
 
-DEFCPRIM("getenv",getenv_prim,
+DEFC_PRIM("getenv",getenv_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Gets the value of *envvar* in the environment of "
 	 "the current process. Returns a string or #f if "
@@ -102,7 +102,7 @@ static lispval getenv_prim(lispval var)
   else return kno_wrapstring(enval);
 }
 
-DEFCPRIM("setenv!",setenv_prim,
+DEFC_PRIM("setenv!",setenv_prim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
 	 "initializes/sets the value of *envvar* in the "
 	 "environment of the current process to *value*. If "
@@ -136,7 +136,7 @@ static lispval setenv_prim(lispval var,lispval val,lispval overwrite)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("unsetenv!",unsetenv_prim,
+DEFC_PRIM("unsetenv!",unsetenv_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "unsets (clears) any value of *envvar*in the "
 	 "environment of the current process. Returns true "
@@ -175,7 +175,7 @@ static lispval getenv_macro(lispval expr,kno_lexenv env,kno_stack ptr)
 
 /* LOAD AVERAGE */
 
-DEFCPRIM("getload",loadavg_prim,
+DEFC_PRIM("getload",loadavg_prim,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
 	 "Gets the current host's load average.")
 static lispval loadavg_prim()
@@ -187,7 +187,7 @@ static lispval loadavg_prim()
   else return KNO_FALSE;
 }
 
-DEFCPRIM("loadavg",loadavgs_prim,
+DEFC_PRIM("loadavg",loadavgs_prim,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
 	 "Gets the load averages for the current host.")
 static lispval loadavgs_prim()
@@ -276,7 +276,7 @@ static u8_string get_malloc_info()
 #endif
 }
 
-DEFCPRIM("rusage",rusage_prim,
+DEFC_PRIM("rusage",rusage_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
 	 "returns information about the current process. "
 	 "*field*, if provided, indicates the value to "
@@ -567,7 +567,7 @@ static int setprop(lispval result,u8_string field,char *value)
   else return 0;
 }
 
-DEFCPRIM("uname",uname_prim,
+DEFC_PRIM("uname",uname_prim,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
 	 "Returns a slotmap describing the hosting OS.")
 static lispval uname_prim()
@@ -591,7 +591,7 @@ static lispval uname_prim()
 #endif
 }
 
-DEFCPRIM("getpid",getpid_prim,
+DEFC_PRIM("getpid",getpid_prim,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
 	 "Gets the PID (process ID) for the current process")
 static lispval getpid_prim()
@@ -600,7 +600,7 @@ static lispval getpid_prim()
   return KNO_INT(((unsigned long)pid));
 }
 
-DEFCPRIM("getppid",getppid_prim,
+DEFC_PRIM("getppid",getppid_prim,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
 	 "Gets the PID (process ID) for the parent of the "
 	 "current process")
@@ -610,7 +610,7 @@ static lispval getppid_prim()
   return KNO_INT(((unsigned long)pid));
 }
 
-DEFCPRIM("stacksize",stacksize_prim,
+DEFC_PRIM("stacksize",stacksize_prim,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
 	 "Gets the stack size for the current thread")
 static lispval stacksize_prim()
@@ -621,7 +621,7 @@ static lispval stacksize_prim()
   else return KNO_INT(size);
 }
 
-DEFCPRIM("threadid",threadid_prim,
+DEFC_PRIM("threadid",threadid_prim,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
 	 "Gets the numeric identifier for the current "
 	 "thread.")
@@ -631,7 +631,7 @@ static lispval threadid_prim()
   return KNO_INT(tid);
 }
 
-DEFCPRIM("procstring",getprocstring_prim,
+DEFC_PRIM("procstring",getprocstring_prim,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
 	 "Gets a string identifying the current thread id "
 	 "and process id")
@@ -642,7 +642,7 @@ static lispval getprocstring_prim()
   return kno_mkstring(pinfo);
 }
 
-DEFCPRIM("memusage",memusage_prim,
+DEFC_PRIM("memusage",memusage_prim,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
 	 "Gets the memory usage by the current process.")
 static lispval memusage_prim()
@@ -651,7 +651,7 @@ static lispval memusage_prim()
   return KNO_INT(size);
 }
 
-DEFCPRIM("vmemusage",vmemusage_prim,
+DEFC_PRIM("vmemusage",vmemusage_prim,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
 	 "Gets the virtual memory usage by the current "
 	 "process.")
@@ -661,7 +661,7 @@ static lispval vmemusage_prim()
   return KNO_INT(size);
 }
 
-DEFCPRIM("physmem",physmem_prim,
+DEFC_PRIM("physmem",physmem_prim,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
 	 "Gets the physical memory available on the host.")
 static lispval physmem_prim()
@@ -670,7 +670,7 @@ static lispval physmem_prim()
   return KNO_INT(size);
 }
 
-DEFCPRIM("memload",memload_prim,
+DEFC_PRIM("memload",memload_prim,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
 	 "Gets the memory load for the current process.")
 static lispval memload_prim()
@@ -679,7 +679,7 @@ static lispval memload_prim()
   return kno_make_flonum(load);
 }
 
-DEFCPRIM("vmemload",vmemload_prim,
+DEFC_PRIM("vmemload",vmemload_prim,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
 	 "Gets the virtual memory load for the current "
 	 "process.")
@@ -689,7 +689,7 @@ static lispval vmemload_prim()
   return kno_make_flonum(vload);
 }
 
-DEFCPRIM("usertime",usertime_prim,
+DEFC_PRIM("usertime",usertime_prim,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
 	 "Gets the total user-space run time for the "
 	 "current process.")
@@ -707,7 +707,7 @@ static lispval usertime_prim()
     return kno_init_double(NULL,msecs);}
 }
 
-DEFCPRIM("systime",systime_prim,
+DEFC_PRIM("systime",systime_prim,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
 	 "Gets the total system run time for the current "
 	 "process.")
@@ -725,7 +725,7 @@ static lispval systime_prim()
     return kno_init_double(NULL,msecs);}
 }
 
-DEFCPRIM("cpusage",cpusage_prim,
+DEFC_PRIM("cpusage",cpusage_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
 	 "Provides relative CPU usage information. With no "
 	 "argument, this returns usage since the process "

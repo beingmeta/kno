@@ -278,7 +278,7 @@ lispval kno_parse_mime(const char *start,const char *end)
   return slotmap;
 }
 
-DEFCPRIM("parse-mime",parse_mime_data,
+DEFC_PRIM("parse-mime",parse_mime_data,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})

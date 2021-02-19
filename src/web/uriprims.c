@@ -187,7 +187,7 @@ lispval kno_parse_uri(u8_string uri,lispval base)
   return f;
 }
 
-DEFCPRIM("parseuri",parseuri,
+DEFC_PRIM("parseuri",parseuri,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"uri",kno_string_type,KNO_VOID},
@@ -197,7 +197,7 @@ static lispval parseuri(lispval uri,lispval base)
   return kno_parse_uri(CSTRING(uri),base);
 }
 
-DEFCPRIM("mergeuris",mergeuris,
+DEFC_PRIM("mergeuris",mergeuris,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 "**undocumented**",
 	 {"uri",kno_any_type,KNO_VOID},
@@ -235,7 +235,7 @@ static void uri_output(u8_output out,u8_string s,int len,int upper,
 
 #define URI_ESCAPES "?#/'=<>:;&"
 
-DEFCPRIM("unparseuri",unparseuri,
+DEFC_PRIM("unparseuri",unparseuri,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"uri",kno_any_type,KNO_VOID},
@@ -311,7 +311,7 @@ static lispval unparseuri(lispval uri,lispval noencode)
   else return kno_type_error(_("table"),"unparseuri",uri);
 }
 
-DEFCPRIM("urischeme",urischeme_prim,
+DEFC_PRIM("urischeme",urischeme_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"uri_arg",kno_string_type,KNO_VOID})
@@ -323,7 +323,7 @@ static lispval urischeme_prim(lispval uri_arg)
   else return kno_substring(uri,scheme_end);
 }
 
-DEFCPRIM("urihost",urihost_prim,
+DEFC_PRIM("urihost",urihost_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"uri_arg",kno_string_type,KNO_VOID})
@@ -341,7 +341,7 @@ static lispval urihost_prim(lispval uri_arg)
     else return EMPTY;}
 }
 
-DEFCPRIM("urifrag",urifrag_prim,
+DEFC_PRIM("urifrag",urifrag_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"uri_arg",kno_string_type,KNO_VOID})
@@ -356,7 +356,7 @@ static lispval urifrag_prim(lispval uri_arg)
   else return EMPTY;
 }
 
-DEFCPRIM("uriquery",uriquery_prim,
+DEFC_PRIM("uriquery",uriquery_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"uri_arg",kno_string_type,KNO_VOID})
@@ -371,7 +371,7 @@ static lispval uriquery_prim(lispval uri_arg)
   else return EMPTY;
 }
 
-DEFCPRIM("uribase",uribase_prim,
+DEFC_PRIM("uribase",uribase_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"uri_arg",kno_string_type,KNO_VOID})
@@ -391,7 +391,7 @@ static lispval uribase_prim(lispval uri_arg)
   else return kno_incref(uri_arg);
 }
 
-DEFCPRIM("uripath",uripath_prim,
+DEFC_PRIM("uripath",uripath_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"uri_arg",kno_string_type,KNO_VOID})
@@ -425,7 +425,7 @@ KNO_EXPORT void kno_uri_output(u8_output out,u8_string uri,int len,int upper,
 
 /* Making URI paths */
 
-DEFCPRIM("mkuripath",mkuripath_prim,
+DEFC_PRIM("mkuripath",mkuripath_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 "**undocumented**",
 	 {"dirname",kno_any_type,KNO_VOID},
@@ -469,7 +469,7 @@ static lispval mkuripath_prim(lispval dirname,lispval name)
 
 /* Making data URIs */
 
-DEFCPRIM("datauri",datauri_prim,
+DEFC_PRIM("datauri",datauri_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"data",kno_any_type,KNO_VOID},
@@ -504,7 +504,7 @@ static lispval datauri_prim(lispval data,lispval ctype_arg)
 
 /* URI encoding, etc */
 
-DEFCPRIM("oid2id",oid2id,
+DEFC_PRIM("oid2id",oid2id,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"oid",kno_oid_type,KNO_VOID},
@@ -586,7 +586,7 @@ static int add_query_param(u8_output out,lispval name,lispval value,int nocolon)
 
 /* URI encoding */
 
-DEFCPRIM("uriencode",uriencode_prim,
+DEFC_PRIM("uriencode",uriencode_prim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	 "(uriencode *val* [*chars*] [*upper*]) "
 	 "encodes a value for use as a URI component (e.g. "
@@ -629,7 +629,7 @@ static lispval uriencode_prim(lispval string,lispval escape,lispval uparg)
   else return kno_stream2string(&out);
 }
 
-DEFCPRIM("form->uristring",form_encode_prim,
+DEFC_PRIM("form->uristring",form_encode_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "(uriencode *val* [*chars*] [*upper*]) "
 	 "encodes a value for use as a URI component (e.g. "
@@ -670,7 +670,7 @@ static lispval form_encode_prim(lispval table,lispval opts)
 
 static int xdigit_weight(int c);
 
-DEFCPRIM("uridecode",uridecode_prim,
+DEFC_PRIM("uridecode",uridecode_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "returns a copy of *string* with all uri-encoded "
 	 "references converted back into their normal "
@@ -757,7 +757,7 @@ static lispval scripturl_core(u8_string baseuri,lispval params,
   else return kno_stream2string(&out);
 }
 
-DEFCPRIMN("scripturl",scripturl,
+DEFC_PRIMN("scripturl",scripturl,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	  "**undocumented**")
 static lispval scripturl(int n,kno_argvec args)
@@ -778,7 +778,7 @@ static lispval scripturl(int n,kno_argvec args)
   else return scripturl_core(CSTRING(args[0]),VOID,n-1,args+1,1,0);
 }
 
-DEFCPRIMN("knoscripturl",knoscripturl,
+DEFC_PRIMN("knoscripturl",knoscripturl,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	  "**undocumented**")
 static lispval knoscripturl(int n,kno_argvec args)
@@ -799,7 +799,7 @@ static lispval knoscripturl(int n,kno_argvec args)
   else return scripturl_core(CSTRING(args[0]),VOID,n-1,args+1,0,0);
 }
 
-DEFCPRIMN("scripturl+",scripturlplus,
+DEFC_PRIMN("scripturl+",scripturlplus,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	  "**undocumented**")
 static lispval scripturlplus(int n,kno_argvec args)
@@ -820,7 +820,7 @@ static lispval scripturlplus(int n,kno_argvec args)
   else return scripturl_core(CSTRING(args[0]),args[1],n-2,args+2,1,0);
 }
 
-DEFCPRIMN("knoscripturl+",knoscripturlplus,
+DEFC_PRIMN("knoscripturl+",knoscripturlplus,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	  "**undocumented**")
 static lispval knoscripturlplus(int n,kno_argvec args)
@@ -870,10 +870,10 @@ KNO_EXPORT void kno_init_urifns_c()
 
 static void link_local_cprims()
 {
-  KNO_LINK_CVARARGS("knoscripturl+",knoscripturlplus,webtools_module);
-  KNO_LINK_CVARARGS("scripturl+",scripturlplus,webtools_module);
-  KNO_LINK_CVARARGS("knoscripturl",knoscripturl,webtools_module);
-  KNO_LINK_CVARARGS("scripturl",scripturl,webtools_module);
+  KNO_LINK_CPRIMN("knoscripturl+",knoscripturlplus,webtools_module);
+  KNO_LINK_CPRIMN("scripturl+",scripturlplus,webtools_module);
+  KNO_LINK_CPRIMN("knoscripturl",knoscripturl,webtools_module);
+  KNO_LINK_CPRIMN("scripturl",scripturl,webtools_module);
   KNO_LINK_CPRIM("uridecode",uridecode_prim,1,webtools_module);
   KNO_LINK_CPRIM("form->uristring",form_encode_prim,2,webtools_module);
   KNO_LINK_CPRIM("uriencode",uriencode_prim,3,webtools_module);

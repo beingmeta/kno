@@ -44,7 +44,7 @@ static lispval delay_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     return (lispval) promise;}
 }
 
-DEFCPRIM("force",force_promise_prim,
+DEFC_PRIM("force",force_promise_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "returns the value promised by *promise*. If "
 	 "*promise* is not a promise object, it is simply "
@@ -107,7 +107,7 @@ KNO_EXPORT lispval kno_force_promise(lispval promise)
   else return kno_incref(promise);
 }
 
-DEFCPRIM("promise/probe",probe_promise_prim,
+DEFC_PRIM("promise/probe",probe_promise_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "returns the value promised by *promise* if it has "
 	 "been resolved. If *promise* has not been "
@@ -125,7 +125,7 @@ static lispval probe_promise_prim(lispval promise,lispval marker)
   else return kno_incref(promise);
 }
 
-DEFCPRIM("make-promise",make_promise_prim,
+DEFC_PRIM("make-promise",make_promise_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "returns a promise which returns *value* when "
 	 "FORCEd.",
@@ -142,7 +142,7 @@ static lispval make_promise_prim(lispval value)
   return (lispval) promise;
 }
 
-DEFCPRIM("promise/resolved?",promise_resolvedp_prim,
+DEFC_PRIM("promise/resolved?",promise_resolvedp_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "returns #t if *promise* has had its value "
 	 "computed and cached (or generated an error).",
@@ -155,7 +155,7 @@ static lispval promise_resolvedp_prim(lispval value)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("promise/broken?",promise_brokenp_prim,
+DEFC_PRIM("promise/broken?",promise_brokenp_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "returns #t if *promise* generated an error when "
 	 "evaluated.",
@@ -169,7 +169,7 @@ static lispval promise_brokenp_prim(lispval value)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("promise/satisfied?",promise_satisfiedp_prim,
+DEFC_PRIM("promise/satisfied?",promise_satisfiedp_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "returns #t if *promise* has been computed and "
 	 "cached without error.",
@@ -183,7 +183,7 @@ static lispval promise_satisfiedp_prim(lispval value)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("promise?",promisep_prim,
+DEFC_PRIM("promise?",promisep_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "returns true if *value* is a promise.",
 	 {"value",kno_any_type,KNO_VOID})

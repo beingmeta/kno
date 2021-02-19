@@ -1,11 +1,13 @@
 ;;; -*- Mode: Scheme -*-
 
-(in-module 'knodb/packindex)
+(in-module 'knodb/exec/packindex)
 
 (module-export! 'main)
 
 (use-module '{optimize varconfig logger kno/mttools})
 (use-module '{knodb/indexes})
+
+(define %loglevel (config 'loglevel %notice%))
 
 (define (->slotid arg)
   (if (not (string? arg))
@@ -66,6 +68,9 @@
 		 'rarefile (or (config 'rare) {})
 		 'repair (config 'repair #f)
 		 'overwrite overwrite)))
+    (info%watch "pack-index/main" 
+      in out input newtype keyslot overwrite
+      "\nOPTS" opts)
     (when (and out (file-exists? out) (not overwrite))
       (logwarn |FileExists|
 	"The output file " (write out) " already exists.\n  "

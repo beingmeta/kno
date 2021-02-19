@@ -154,7 +154,7 @@ KNO_EXPORT void kno_emit_xmlattrib
   return emit_xmlattrib(out,tmp,name,value,lower);
 }
 
-DEFCPRIM("xmlify",xmlify,
+DEFC_PRIM("xmlify",xmlify,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"value",kno_any_type,KNO_VOID})
@@ -403,7 +403,7 @@ static lispval raw_xhtml_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   return VOID;
 }
 
-DEFCPRIM("nbsp",nbsp_prim,
+DEFC_PRIM("nbsp",nbsp_prim,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
 	 "**undocumented**")
 static lispval nbsp_prim()
@@ -413,7 +413,7 @@ static lispval nbsp_prim()
   return VOID;
 }
 
-DEFCPRIMN("xmlempty",xmlemptyelt,
+DEFC_PRIMN("xmlempty",xmlemptyelt,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(0)|KNO_NDCALL,
 	  "**undocumented**")
 static lispval xmlemptyelt(int n,kno_argvec args)
@@ -490,7 +490,7 @@ static lispval xmlstart_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     return VOID;}
 }
 
-DEFCPRIM("xmlend",xmlend_prim,
+DEFC_PRIM("xmlend",xmlend_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"head",kno_any_type,KNO_VOID})
@@ -929,7 +929,7 @@ KNO_EXPORT void kno_xmloid(u8_output out,lispval arg)
   kno_decref(browseinfo);
 }
 
-DEFCPRIM("%xmloid",xmloid,
+DEFC_PRIM("%xmloid",xmloid,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"oid_arg",kno_any_type,KNO_VOID})
@@ -986,7 +986,7 @@ static lispval xmleval_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   }
 }
 
-DEFCPRIM("xml->string",xml2string_prim,
+DEFC_PRIM("xml->string",xml2string_prim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"xml",kno_any_type,KNO_VOID},
@@ -1029,7 +1029,7 @@ static lispval xmlopen_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     else return VOID;}
 }
 
-DEFCPRIM("xmlclose",xmlclose_prim,
+DEFC_PRIM("xmlclose",xmlclose_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
@@ -1332,7 +1332,7 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("xmlclose",xmlclose_prim,1,webtools_module);
   KNO_LINK_CPRIM("xml->string",xml2string_prim,3,webtools_module);
   KNO_LINK_CPRIM("xmlend",xmlend_prim,1,webtools_module);
-  KNO_LINK_CVARARGS("xmlempty",xmlemptyelt,webtools_module);
+  KNO_LINK_CPRIMN("xmlempty",xmlemptyelt,webtools_module);
   KNO_LINK_CPRIM("xmlify",xmlify,1,webtools_module);
 
   KNO_LINK_CPRIM("%xmloid",xmloid,1,xhtml_module);

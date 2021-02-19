@@ -225,7 +225,7 @@ static size_t handle_header(void *ptr,size_t size,size_t n,void *data)
   return byte_len;
 }
 
-DEFCPRIM("add-text_type!",addtexttype,
+DEFC_PRIM("add-text_type!",addtexttype,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Declares a mime text type, which will try to do string conversion",
 	 {"type",kno_any_type,KNO_VOID})
@@ -487,7 +487,7 @@ static int unparse_curl_handle(u8_output out,lispval x)
   return 1;
 }
 
-DEFCPRIM("curl-handle?",curlhandlep,
+DEFC_PRIM("curl-handle?",curlhandlep,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns true if *arg* is a CURL handle",
 	 {"arg",kno_any_type,KNO_VOID})
@@ -497,7 +497,7 @@ static lispval curlhandlep(lispval arg)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("curl/reset!",curlreset,
+DEFC_PRIM("curl/reset!",curlreset,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Resets a CURL handle",
 	 {"arg",KNO_CURL_TYPE,KNO_VOID})
@@ -711,7 +711,7 @@ static lispval set_curlopt
 
 /* Fix URL */
 
-static const char *digits="0123456789ABCDEF";
+static const char *digits="0123456789ABDEFC";
 
 static lispval fixurl(u8_string url)
 {
@@ -920,7 +920,7 @@ static lispval curl_arg(lispval arg,u8_context cxt)
 
 /* Primitives */
 
-DEFCPRIM("urlget",urlget,
+DEFC_PRIM("urlget",urlget,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "Fetches *url*, returning a slotmap whose `%content` "
 	 "slot contains the content and whose other slots provide "
@@ -944,7 +944,7 @@ static lispval urlget(lispval url,lispval curl)
   return result;
 }
 
-DEFCPRIM("urlhead",urlhead,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+DEFC_PRIM("urlhead",urlhead,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "Requests metadata for *url*, returning a slotmap providing "
 	 "process and content metadata. *curlopts* is either an "
 	 "existing CURL handle or a set of options used to create "
@@ -965,7 +965,7 @@ static lispval urlhead(lispval url,lispval curl)
   return result;
 }
 
-DEFCPRIM("urlput",urlput,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
+DEFC_PRIM("urlput",urlput,KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
 	 "Delivers *content* (with mimetype *ctype*) to the endpoint *url*, "
 	 "returning the content and metadata returned from the endpoint. "
 	 "*curlopts* is either an existing CURL handle or a set of options "
@@ -1030,7 +1030,7 @@ static lispval urlput(lispval url,lispval content,lispval ctype,lispval curl)
 
 /* Getting content */
 
-DEFCPRIM("urlcontent",urlcontent,
+DEFC_PRIM("urlcontent",urlcontent,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "Fetches *url*, returning the content as a string or packet "
 	 " without any metadata. *curlopts* is either an existing "
@@ -1054,7 +1054,7 @@ static lispval urlcontent(lispval url,lispval curl)
     return content;}
 }
 
-DEFCPRIM("urlxml",urlxml,
+DEFC_PRIM("urlxml",urlxml,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
 	 "Fetches *url* and parses the result as XML using "
 	 "*xmlopts*. *curlopts* is either an existing "
@@ -1168,7 +1168,7 @@ static lispval urlxml(lispval url,lispval xmlopt,lispval curl)
   return cval;
 }
 
-DEFCPRIM("urlstream",urlstream,
+DEFC_PRIM("urlstream",urlstream,
 	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(1),
 	 "Opens the remote URL *url* and calls *handler* on "
 	 "packets of data from the stream. A second "
@@ -1220,7 +1220,7 @@ static lispval responsetest(lispval response,int min,int max)
     return KNO_FALSE;}
 }
 
-DEFCPRIM("response/ok?",responseokp,
+DEFC_PRIM("response/ok?",responseokp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns true if *response* has (or is) an "
 	 "HTTP OK status",
@@ -1230,7 +1230,7 @@ static lispval responseokp(lispval response)
   return responsetest(response,200,300);
 }
 
-DEFCPRIM("response/redirect?",responseredirectp,
+DEFC_PRIM("response/redirect?",responseredirectp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns true if *response* has (or is) an "
 	 "HTTP REDIRECT status",
@@ -1240,7 +1240,7 @@ static lispval responseredirectp(lispval response)
   return responsetest(response,300,400);
 }
 
-DEFCPRIM("response/error?",responseanyerrorp,
+DEFC_PRIM("response/error?",responseanyerrorp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns true if *response* has (or is) an "
 	 "HTTP error status",
@@ -1250,7 +1250,7 @@ static lispval responseanyerrorp(lispval response)
   return responsetest(response,400,600);
 }
 
-DEFCPRIM("response/myerror?",responsemyerrorp,
+DEFC_PRIM("response/myerror?",responsemyerrorp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns true if *response* has (or is) an "
 	 "HTTP client error status",
@@ -1260,7 +1260,7 @@ static lispval responsemyerrorp(lispval response)
   return responsetest(response,400,500);
 }
 
-DEFCPRIM("response/servererror?",responseservererrorp,
+DEFC_PRIM("response/servererror?",responseservererrorp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns true if *response* has (or is) an "
 	 "HTTP server error status",
@@ -1270,7 +1270,7 @@ static lispval responseservererrorp(lispval response)
   return responsetest(response,500,600);
 }
 
-DEFCPRIM("response/unauthorized?",responseunauthorizedp,
+DEFC_PRIM("response/unauthorized?",responseunauthorizedp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns true if *response* has (or is) an "
 	 "HTTP unauthorized status",
@@ -1280,7 +1280,7 @@ static lispval responseunauthorizedp(lispval response)
   return responsetest(response,401,402);
 }
 
-DEFCPRIM("response/forbidden?",responseforbiddenp,
+DEFC_PRIM("response/forbidden?",responseforbiddenp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns true if *response* has (or is) an "
 	 "HTTP forbidden error status",
@@ -1290,7 +1290,7 @@ static lispval responseforbiddenp(lispval response)
   return responsetest(response,401,405);
 }
 
-DEFCPRIM("response/timeout?",responsetimeoutp,
+DEFC_PRIM("response/timeout?",responsetimeoutp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns true if *response* has (or is) an "
 	 "HTTP timeout status",
@@ -1300,7 +1300,7 @@ static lispval responsetimeoutp(lispval response)
   return responsetest(response,408,409);
 }
 
-DEFCPRIM("response/badmethod?",responsebadmethodp,
+DEFC_PRIM("response/badmethod?",responsebadmethodp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns true if *response* has (or is) an "
 	 "HTTP bad method error status",
@@ -1310,7 +1310,7 @@ static lispval responsebadmethodp(lispval response)
   return responsetest(response,405,406);
 }
 
-DEFCPRIM("response/notfound?",responsenotfoundp,
+DEFC_PRIM("response/notfound?",responsenotfoundp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns true if *response* has (or is) an "
 	 "HTTP resource not found (404) status",
@@ -1320,7 +1320,7 @@ static lispval responsenotfoundp(lispval response)
   return responsetest(response,404,405);
 }
 
-DEFCPRIM("response/gone?",responsegonep,
+DEFC_PRIM("response/gone?",responsegonep,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns true if *response* has (or is) an "
 	 "HTTP resource gone (410) status",
@@ -1330,7 +1330,7 @@ static lispval responsegonep(lispval response)
   return responsetest(response,410,411);
 }
 
-DEFCPRIM("response/status",responsestatusprim,
+DEFC_PRIM("response/status",responsestatusprim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns the error status of an HTTP result",
 	 {"response",kno_any_type,KNO_VOID})
@@ -1345,7 +1345,7 @@ static lispval responsestatusprim(lispval response)
   else return status;
 }
 
-DEFCPRIM("response/status?",testresponseprim,
+DEFC_PRIM("response/status?",testresponseprim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	 "Returns true if the HTTP status of *response* is *code* or "
 	 "when *maxcode* is provided, is between *code* and *maxcode*.",
@@ -1385,7 +1385,7 @@ static lispval testresponseprim(lispval response,lispval arg1,lispval arg2)
 
 /* Opening URLs with options */
 
-DEFCPRIM("curl/setopt!",curlsetopt,
+DEFC_PRIM("curl/setopt!",curlsetopt,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
 	 "Sets option *optname* of *handle* to *value*.",
 	 {"handle",KNO_CURL_TYPE,KNO_VOID},
@@ -1404,7 +1404,7 @@ static lispval curlsetopt(lispval handle,lispval opt,lispval value)
   else return kno_type_error("curl handle","curlsetopt",handle);
 }
 
-DEFCPRIMN("curl/open",curlopen,
+DEFC_PRIMN("curl/open",curlopen,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(0),
 	  "Opens a curl handle given a sequence of alternating option "
 	  "value pairs")
@@ -1447,7 +1447,7 @@ static lispval curlopen(int n,kno_argvec args)
 
 /* Posting */
 
-DEFCPRIMN("urlpost",urlpost,
+DEFC_PRIMN("urlpost",urlpost,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1),
 	  "**undocumented**")
 static lispval urlpost(int n,kno_argvec args)
@@ -1926,7 +1926,7 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("urlget",urlget,2,webtools_module);
   KNO_LINK_CPRIM("urlhead",urlhead,2,webtools_module);
   KNO_LINK_CPRIM("urlput",urlput,4,webtools_module);
-  KNO_LINK_CVARARGS("urlpost",urlpost,webtools_module);
+  KNO_LINK_CPRIMN("urlpost",urlpost,webtools_module);
   KNO_LINK_CPRIM("urlxml",urlxml,3,webtools_module);
   KNO_LINK_CPRIM("urlcontent",urlcontent,2,webtools_module);
   KNO_LINK_CPRIM("urlstream",urlstream,4,webtools_module);
@@ -1949,7 +1949,7 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("curl/reset!",curlreset,1,curl_module);
   KNO_LINK_CPRIM("curl-handle?",curlhandlep,1,curl_module);
 
-  KNO_LINK_CVARARGS("curl/open",curlopen,curl_module);
+  KNO_LINK_CPRIMN("curl/open",curlopen,curl_module);
   KNO_LINK_CPRIM("curl/setopt!",curlsetopt,3,curl_module);
 
   KNO_LINK_ALIAS("curlreset!",curlreset,curl_module);

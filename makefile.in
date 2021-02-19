@@ -909,7 +909,7 @@ uninstall: uninstall-core
 NOTAGS:
 	@echo "# (kno)" No TAGS file
 
-TAGS: makefile.in configure.ac include/kno/config.h.in		\
+TAGS: makefile configure.ac include/kno/config.h.in			\
 		tests/libtests/*.c		  			\
 		src/exe/*.c src/exe/*.h include/kno/*.h 		\
 		src/lisp/*.c src/sys/*.c 				\
@@ -928,7 +928,8 @@ TAGS: makefile.in configure.ac include/kno/config.h.in		\
 		dbg/.gdbinit.in tests/*.scm 				\
 		${SRC_HEADERS}
 	@echo "# (kno)" Building TAGS file
-	@etags makefile.in configure.ac 		\
+	@etags -o $@ 					\
+		makefile.in configure.ac		\
 		include/kno/config.h.in     		\
 		include/kno/knosource.h.in     		\
 	        tests/*/*.in tests/*.in dbg/*.in 	\
@@ -936,19 +937,24 @@ TAGS: makefile.in configure.ac include/kno/config.h.in		\
 		src/extmods/*.in src/extmods/*/makefile	\
 		include/kno/components/*.h		\
 		${SRC_HEADERS};
-	@etags -o TAGS -a src/exe/*.c src/exe/*.h
-	@etags -o TAGS -a src/lisp/*.c src/sys/*.c src/apply/*.c  src/apply/*.h 
-	@etags -o TAGS -a src/storage/*.c
-	@etags -o TAGS -a src/drivers/*.c src/drivers/headers/*.h
-	@etags -o TAGS -a src/eval/*.c src/eval/*.h src/prims/*.c
-	@etags -o TAGS -a src/web/*.c src/text/*.c;
-	@etags -o TAGS -a tests/libtests/*.c tests/*.scm;
-	@etags -o TAGS -a src/cmodules/*.c;
-	@etags -o TAGS -a src/python/*.c;
-	@etags -o TAGS -a src/scripts/*.scm;
-	@find src/libscm/ -name "*.scm" -type f | xargs etags -a -o TAGS;
+	@etags -o $@ -a src/exe/*.c src/exe/*.h
+	@etags -o $@ -a src/lisp/*.c src/sys/*.c src/apply/*.c  src/apply/*.h 
+	@etags -o $@ -a src/storage/*.c
+	@etags -o $@ -a src/drivers/*.c src/drivers/headers/*.h
+	@etags -o $@ -a src/eval/*.c src/eval/*.h src/prims/*.c
+	@etags -o $@ -a src/web/*.c src/text/*.c;
+	@etags -o $@ -a tests/libtests/*.c tests/*.scm;
+	@etags -o $@ -a src/cmodules/*.c;
+	@etags -o $@ -a src/python/*.c;
+	@etags -o $@ -a src/scripts/*.scm;
+	@etags -o $@ -a src/extmods/*/makefile src/extmods/*/*.c src/extmods/*/*.h 
+	@find src/libscm/ -name "*.scm" -type f | xargs etags -a -o $@;
+	@find src/stdmods/ -name "*.scm" -type f | xargs etags -a -o $@;
+	@find src/webmods/ -name "*.scm" -type f | xargs etags -a -o $@;
+	@find src/textmods/ -name "*.scm" -type f | xargs etags -a -o $@;
+	@find src/brico/ -name "*.scm" -type f | xargs etags -a -o $@;
 
-ALLTAGS: makefile.in configure.ac include/kno/config.h.in		\
+CORETAGS: makefile configure.ac include/kno/config.h.in			\
 		tests/libtests/*.c		  			\
 		src/exe/*.c src/exe/*.h include/kno/*.h 		\
 		src/lisp/*.c src/sys/*.c 				\
@@ -967,7 +973,7 @@ ALLTAGS: makefile.in configure.ac include/kno/config.h.in		\
 		dbg/.gdbinit.in tests/*.scm 				\
 		${SRC_HEADERS}
 	@echo "# (kno)" Building TAGS file
-	@etags -o ALLTAGS makefile.in configure.ac	\
+	@etags -o $@ makefile.in configure.ac		\
 		include/kno/config.h.in     		\
 		include/kno/knosource.h.in     		\
 	        tests/*/*.in tests/*.in dbg/*.in 	\
@@ -975,24 +981,18 @@ ALLTAGS: makefile.in configure.ac include/kno/config.h.in		\
 		src/extmods/*.in src/extmods/*/makefile	\
 		include/kno/components/*.h		\
 		${SRC_HEADERS};
-	@etags -o ALLTAGS -a src/exe/*.c src/exe/*.h
-	@etags -o ALLTAGS -a src/lisp/*.c src/sys/*.c src/apply/*.c  src/apply/*.h 
-	@etags -o ALLTAGS -a src/storage/*.c
-	@etags -o ALLTAGS -a src/drivers/*.c src/drivers/headers/*.h
-	@etags -o ALLTAGS -a src/eval/*.c src/eval/*.h src/prims/*.c
-	@etags -o ALLTAGS -a src/web/*.c src/text/*.c;
-	@etags -o ALLTAGS -a tests/libtests/*.c tests/*.scm;
-	@etags -o ALLTAGS -a src/cmodules/*.c;
-	@etags -o ALLTAGS -a src/python/*.c;
-	@etags -o ALLTAGS -a src/scripts/*.scm;
-	@etags -o ALLTAGS -a src/extmods/*/makefile src/extmods/*/*.c src/extmods/*/*.h 
-	@find src/libscm/ -name "*.scm" -type f | xargs etags -a -o ALLTAGS;
-	@find src/stdmods/ -name "*.scm" -type f | xargs etags -a -o ALLTAGS;
-	@find src/webmods/ -name "*.scm" -type f | xargs etags -a -o ALLTAGS;
-	@find src/textmods/ -name "*.scm" -type f | xargs etags -a -o ALLTAGS;
-	@find src/brico/ -name "*.scm" -type f | xargs etags -a -o ALLTAGS;
+	@etags -o $@ -a src/exe/*.c src/exe/*.h
+	@etags -o $@ -a src/lisp/*.c src/sys/*.c src/apply/*.c  src/apply/*.h 
+	@etags -o $@ -a src/storage/*.c src/drivers/*.c src/drivers/headers/*.h
+	@etags -o $@ -a src/eval/*.c src/eval/*.h src/prims/*.c
+	@etags -o $@ -a src/web/*.c src/text/*.c;
+	@etags -o $@ -a tests/libtests/*.c tests/*.scm;
+	@etags -o $@ -a src/cmodules/*.c;
+	@etags -o $@ -a src/python/*.c;
+	@etags -o $@ -a src/scripts/*.scm;
+	@find src/libscm/ -name "*.scm" -type f | xargs etags -a -o $@;
 
-CTAGS: makefile.in configure.ac include/kno/config.h.in		\
+CTAGS: makefile configure.ac include/kno/config.h.in	\
 		tests/libtests/*.c		  			\
 		src/exe/*.c src/exe/*.h include/kno/*.h 		\
 		src/lisp/*.c src/sys/*.c 				\
@@ -1008,23 +1008,41 @@ CTAGS: makefile.in configure.ac include/kno/config.h.in		\
 		dbg/.gdbinit.in						\
 		${SRC_HEADERS}
 	@echo Building KNO_SOURCE TAGS file
-	@etags -o $@ $^
+	@echo "# (kno)" Building TAGS file
+	@etags -o $@ makefile.in configure.ac 		\
+		include/kno/config.h.in     		\
+		include/kno/knosource.h.in     		\
+	        tests/*/*.in tests/*.in dbg/*.in 	\
+		etc/*.in etc/*/*.in include/kno/*.h	\
+		src/extmods/*.in src/extmods/*/makefile	\
+		include/kno/components/*.h		\
+		${SRC_HEADERS};
+	@etags -o $@ -a src/exe/*.c src/exe/*.h
+	@etags -o $@ -a src/lisp/*.c src/sys/*.c src/apply/*.c  src/apply/*.h 
+	@etags -o $@ -a src/storage/*.c src/drivers/*.c src/drivers/headers/*.h
+	@etags -o $@ -a src/eval/*.c src/eval/*.h src/prims/*.c
+	@etags -o $@ -a src/web/*.c src/text/*.c;
+	@etags -o $@ -a tests/libtests/*.c
+	@etags -o $@ -a src/cmodules/*.c;
+	@etags -o $@ -a src/python/*.c;
 
-SCHEMETAGS: ${SCHEME_MODULES}
+SCHEMETAGS: ${SCHEME_MODULES} makefile
 	@echo Building SCHEMETAGS file
 	@rm -f SCHEMETAGS
 	@# We skip module.scm files because they are always links
 	@#  to other files (with more distinctive names)
-	@find src/libscm -name "*.scm" -type f | xargs etags -o SCHEMETAGS -a
-	@find src/stdmods -name "*.scm" -type f | xargs etags -o SCHEMETAGS -a
-	@find src/textmods -name "*.scm" -type f | xargs etags -o SCHEMETAGS -a
-	@find src/webmods -name "*.scm" -type f | xargs etags -o SCHEMETAGS -a
-	@find src/scripts -name "*.scm" -type f | xargs etags -o SCHEMETAGS -a
-	@find src/brico -name "*.scm" -type f | xargs etags -o SCHEMETAGS -a
-	@find tests -name "*.scm" -type f | xargs etags -o SCHEMETAGS -a
-	@ls -l SCHEMETAGS
+	@find src/libscm -name "*.scm" -type f | xargs etags -o $@ -a
+	@find src/stdmods -name "*.scm" -type f | xargs etags -o $@ -a
+	@find src/textmods -name "*.scm" -type f | xargs etags -o $@ -a
+	@find src/webmods -name "*.scm" -type f | xargs etags -o $@ -a
+	@find src/scripts -name "*.scm" -type f | xargs etags -o $@ -a
+	@find src/brico -name "*.scm" -type f | xargs etags -o $@ -a
+	@find tests -name "*.scm" -type f | xargs etags -o $@ -a
 
-alltags: TAGS CTAGS SCHEMETAGS ALLTAGS
+alltags: TAGS CORETAGS CTAGS SCHEMETAGS
+freshtags:
+	rm -f TAGS CORETAGS CTAGS SCHEMETAGS
+	make alltags
 
 profile-clean:
 	@find . -name "*.gcda" -type f | xargs rm -f

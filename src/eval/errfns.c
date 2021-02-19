@@ -72,7 +72,7 @@ static lispval error_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     return KNO_ERROR;}
 }
 
-DEFCPRIM("%err",error_prim,
+DEFC_PRIM("%err",error_prim,
 	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	 "(%err *cond* [*caller*] [*details*] [*irritant*]) "
 	 "returns an error object with condition *cond* (a "
@@ -281,7 +281,7 @@ static lispval ignore_errors_evalfn(lispval expr,kno_lexenv env,kno_stack _stack
   else return value;
 }
 
-DEFCPRIM("clear-errors!",clear_errors,
+DEFC_PRIM("clear-errors!",clear_errors,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
 	 "**undocumented**")
 static lispval clear_errors()
@@ -293,7 +293,7 @@ static lispval clear_errors()
 
 /* Primitives on exception objects */
 
-DEFCPRIM("exception-condition",exception_condition,
+DEFC_PRIM("exception-condition",exception_condition,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns the condition name (a symbol) for an "
 	 "exception",
@@ -307,7 +307,7 @@ static lispval exception_condition(lispval x)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("exception-caller",exception_caller,
+DEFC_PRIM("exception-caller",exception_caller,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns the immediate context (caller) for an "
 	 "exception",
@@ -321,7 +321,7 @@ static lispval exception_caller(lispval x)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("exception-details",exception_details,
+DEFC_PRIM("exception-details",exception_details,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns any descriptive details (a string) for "
 	 "the exception",
@@ -335,7 +335,7 @@ static lispval exception_details(lispval x)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("exception-irritant",exception_irritant,
+DEFC_PRIM("exception-irritant",exception_irritant,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns the LISP object (if any) which 'caused' "
 	 "the exception",
@@ -349,7 +349,7 @@ static lispval exception_irritant(lispval x)
   else return kno_incref(xo->ex_irritant);
 }
 
-DEFCPRIM("exception-context",exception_context,
+DEFC_PRIM("exception-context",exception_context,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns aspects of where the error occured",
 	 {"x",kno_exception_type,KNO_VOID})
@@ -362,7 +362,7 @@ static lispval exception_context(lispval x)
   else return kno_incref(xo->ex_context);
 }
 
-DEFCPRIM("exception-irritant?",exception_has_irritant,
+DEFC_PRIM("exception-irritant?",exception_has_irritant,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "(EXCEPTION-IRRITANT? *ex*) "
 	 "Returns true if *ex* is an exception and has an "
@@ -377,7 +377,7 @@ static lispval exception_has_irritant(lispval x)
   else return KNO_TRUE;
 }
 
-DEFCPRIM("exception-moment",exception_moment,
+DEFC_PRIM("exception-moment",exception_moment,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns the time an exception was initially "
 	 "recorded",
@@ -391,7 +391,7 @@ static lispval exception_moment(lispval x)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("exception-threadno",exception_threadno,
+DEFC_PRIM("exception-threadno",exception_threadno,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns an integer ID for the thread where the "
 	 "error occurred",
@@ -405,7 +405,7 @@ static lispval exception_threadno(lispval x)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("exception-timebase",exception_timebase,
+DEFC_PRIM("exception-timebase",exception_timebase,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns the time from which exception moments are "
 	 "measured",
@@ -419,7 +419,7 @@ static lispval exception_timebase(lispval x)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("exception-sessionid",exception_sessionid,
+DEFC_PRIM("exception-sessionid",exception_sessionid,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns the sessionid when the error occurred",
 	 {"x",kno_exception_type,KNO_VOID})
@@ -432,7 +432,7 @@ static lispval exception_sessionid(lispval x)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("exception/context!",exception_add_context,
+DEFC_PRIM("exception/context!",exception_add_context,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	 "Creates an exception object",
 	 {"x",kno_exception_type,KNO_VOID},
@@ -473,7 +473,7 @@ static lispval condition_symbol, caller_symbol, timebase_symbol, moment_symbol,
   irritant_symbol, stack_symbol, env_tag, args_tag;
 
 
-DEFCPRIM("exception->slotmap",exception2slotmap,
+DEFC_PRIM("exception->slotmap",exception2slotmap,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "(EXCEPTION->SLOTMAP *ex*) "
 	 "Breaks out the elements of the exception *ex* "
@@ -551,7 +551,7 @@ static lispval exception2slotmap(lispval x,lispval with_stack_arg)
   return result;
 }
 
-DEFCPRIM("exception-stack",exception_stack,
+DEFC_PRIM("exception-stack",exception_stack,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
 	 "(EXCEPTION-STACK *ex* [*len*] [*start*]) "
 	 "returns the call stack (or a slice of it) where "
@@ -607,7 +607,7 @@ static lispval exception_stack(lispval x,lispval arg1,lispval arg2)
 	return reversed;}}}
 }
 
-DEFCPRIM("exception-summary",exception_summary,
+DEFC_PRIM("exception-summary",exception_summary,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "Returns a shortened backtrace for an exception",
 	 {"x",kno_exception_type,KNO_VOID},
@@ -751,7 +751,7 @@ static lispval unwind_protect_evalfn(lispval uwp,kno_lexenv env,kno_stack _stack
 
 /* Testing raise() which will be invoked by */
 
-DEFCPRIM("test-u8raise",test_u8raise_prim,
+DEFC_PRIM("test-u8raise",test_u8raise_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Has the kno_consptr macro signal a type error "
 	 "with u8_raise.",
@@ -766,7 +766,7 @@ static lispval test_u8raise_prim(lispval obj)
 
 /* Reraising exceptions */
 
-DEFCPRIM("reraise",reraise_prim,
+DEFC_PRIM("reraise",reraise_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Reraises the exception represented by an object",
 	 {"exo",kno_exception_type,KNO_VOID})
@@ -780,7 +780,7 @@ static lispval reraise_prim(lispval exo)
 
 /* Operations on stack objects */
 
-DEFCPRIM("stack-depth",stack_entry_depth,
+DEFC_PRIM("stack-depth",stack_entry_depth,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns the depth of a stack entry",
 	 {"stackobj",kno_compound_type,KNO_VOID})
@@ -789,7 +789,7 @@ static lispval stack_entry_depth(lispval stackobj)
   return kno_compound_ref(stackobj,stack_entry_symbol,0,KNO_FALSE);
 }
 
-DEFCPRIM("stack-label",stack_entry_label,
+DEFC_PRIM("stack-label",stack_entry_label,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns the label of a stack entry",
 	 {"stackobj",kno_compound_type,KNO_VOID})
@@ -798,7 +798,7 @@ static lispval stack_entry_label(lispval stackobj)
   return kno_compound_ref(stackobj,stack_entry_symbol,1,KNO_FALSE);
 }
 
-DEFCPRIM("stack-origin",stack_entry_origin,
+DEFC_PRIM("stack-origin",stack_entry_origin,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns the origin label of a stack entry",
 	 {"stackobj",kno_compound_type,KNO_VOID})
@@ -807,7 +807,7 @@ static lispval stack_entry_origin(lispval stackobj)
   return kno_compound_ref(stackobj,stack_entry_symbol,2,KNO_FALSE);
 }
 
-DEFCPRIM("stack-filename",stack_entry_filename,
+DEFC_PRIM("stack-filename",stack_entry_filename,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns the label of a stack entry",
 	 {"stackobj",kno_compound_type,KNO_VOID})
@@ -816,7 +816,7 @@ static lispval stack_entry_filename(lispval stackobj)
   return kno_compound_ref(stackobj,stack_entry_symbol,3,KNO_FALSE);
 }
 
-DEFCPRIM("stack-crumb",stack_entry_crumb,
+DEFC_PRIM("stack-crumb",stack_entry_crumb,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns the 'crumb' (a unique integer) for the "
 	 "stack entry",
@@ -826,7 +826,7 @@ static lispval stack_entry_crumb(lispval stackobj)
   return kno_compound_ref(stackobj,stack_entry_symbol,4,KNO_FALSE);
 }
 
-DEFCPRIM("stack-function",stack_entry_function,
+DEFC_PRIM("stack-function",stack_entry_function,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns the function of a stack entry if it is a "
 	 "application",
@@ -836,7 +836,7 @@ static lispval stack_entry_function(lispval stackobj)
   return kno_compound_ref(stackobj,stack_entry_symbol,5,KNO_FALSE);
 }
 
-DEFCPRIM("stack-args",stack_entry_args,
+DEFC_PRIM("stack-args",stack_entry_args,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns the args of a stack entry",
 	 {"stackobj",kno_compound_type,KNO_VOID})
@@ -845,7 +845,7 @@ static lispval stack_entry_args(lispval stackobj)
   return kno_compound_ref(stackobj,stack_entry_symbol,6,KNO_FALSE);
 }
 
-DEFCPRIM("stack-env",stack_entry_env,
+DEFC_PRIM("stack-env",stack_entry_env,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns the env of a stack entry",
 	 {"stackobj",kno_compound_type,KNO_VOID})
@@ -854,7 +854,7 @@ static lispval stack_entry_env(lispval stackobj)
   return kno_compound_ref(stackobj,stack_entry_symbol,7,KNO_FALSE);
 }
 
-DEFCPRIM("stack-source",stack_entry_source,
+DEFC_PRIM("stack-source",stack_entry_source,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns the source of the stack entry's execution "
 	 "point",
@@ -864,7 +864,7 @@ static lispval stack_entry_source(lispval stackobj)
   return kno_compound_ref(stackobj,stack_entry_symbol,8,KNO_FALSE);
 }
 
-DEFCPRIM("stack-annotated-source",stack_entry_annotated_source,
+DEFC_PRIM("stack-annotated-source",stack_entry_annotated_source,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns the annotated context of the stack's frame",
 	 {"stackobj",kno_compound_type,KNO_VOID})
@@ -873,7 +873,7 @@ static lispval stack_entry_annotated_source(lispval stackobj)
   return kno_compound_ref(stackobj,stack_entry_symbol,9,KNO_FALSE);
 }
 
-DEFCPRIM("stack-op",stack_entry_op,
+DEFC_PRIM("stack-op",stack_entry_op,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns the op of a stack entry",
 	 {"stackobj",kno_compound_type,KNO_VOID})
@@ -895,7 +895,7 @@ static u8_string static_string(lispval x,int err)
   else return NULL;
 }
 
-DEFCPRIM("make-exception",make_exception,
+DEFC_PRIM("make-exception",make_exception,
 	 KNO_MAX_ARGS(10)|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	 "Creates an exception object",
 	 {"cond",kno_any_type,KNO_VOID},

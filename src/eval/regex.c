@@ -27,7 +27,7 @@
 
 u8_condition kno_RegexBadOp=_("Invalid Regex operation");
 
-DEFCPRIM("regex",make_regex,
+DEFC_PRIM("regex",make_regex,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"pat",kno_string_type,KNO_VOID},
@@ -41,7 +41,7 @@ static lispval make_regex(lispval pat,lispval nocase,lispval matchnl)
   return kno_make_regex(CSTRING(pat),cflags);
 }
 
-DEFCPRIM("regex?",regexp_prim,
+DEFC_PRIM("regex?",regexp_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"x",kno_any_type,KNO_VOID})
@@ -188,7 +188,7 @@ KNO_EXPORT ssize_t kno_regex_matchlen(lispval pat,u8_string s,ssize_t len)
   return kno_regex_op(rx_matchlen,pat,s,len,0);
 }
 
-DEFCPRIM("regex/search",regex_search,
+DEFC_PRIM("regex/search",regex_search,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
 	 "**undocumented**",
 	 {"pat",kno_regex_type,KNO_VOID},
@@ -201,7 +201,7 @@ static lispval regex_search(lispval pat,lispval string,lispval ef)
   else return kno_type_error("unsigned int","regex_search/flags",ef);
 }
 
-DEFCPRIM("regex/matchlen",regex_matchlen,
+DEFC_PRIM("regex/matchlen",regex_matchlen,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
 	 "**undocumented**",
 	 {"pat",kno_regex_type,KNO_VOID},
@@ -214,7 +214,7 @@ static lispval regex_matchlen(lispval pat,lispval string,lispval ef)
   else return kno_type_error("unsigned int","regex_matchlen/flags",ef);
 }
 
-DEFCPRIM("regex/match",regex_exactmatch,
+DEFC_PRIM("regex/match",regex_exactmatch,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
 	 "**undocumented**",
 	 {"pat",kno_regex_type,KNO_VOID},
@@ -227,7 +227,7 @@ static lispval regex_exactmatch(lispval pat,lispval string,lispval ef)
   else return kno_type_error("unsigned int","regex_exactmatch/flags",ef);
 }
 
-DEFCPRIM("regex/matchstring",regex_matchstring,
+DEFC_PRIM("regex/matchstring",regex_matchstring,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
 	 "**undocumented**",
 	 {"pat",kno_regex_type,KNO_VOID},
@@ -240,7 +240,7 @@ static lispval regex_matchstring(lispval pat,lispval string,lispval ef)
   else return kno_type_error("unsigned int","regex_matchstring/flags",ef);
 }
 
-DEFCPRIM("regex/matchspan",regex_matchspan,
+DEFC_PRIM("regex/matchspan",regex_matchspan,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
 	 "**undocumented**",
 	 {"pat",kno_regex_type,KNO_VOID},

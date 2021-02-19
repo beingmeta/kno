@@ -253,7 +253,7 @@ int kno_pathp(lispval root,lispval slotid,lispval to)
 
 /* Methods */
 
-DEFCPRIM("kno:inherited-get",inherited_get_method,
+DEFC_PRIM("kno:inherited-get",inherited_get_method,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 "**undocumented**",
 	 {"frame",kno_any_type,KNO_VOID},
@@ -272,7 +272,7 @@ static lispval inherited_get_method(lispval root,lispval slotid)
   return result;
 }
 
-DEFCPRIM("kno:multi-get",multi_get_method,
+DEFC_PRIM("kno:multi-get",multi_get_method,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 "**undocumented**",
 	 {"frame",kno_any_type,KNO_VOID},
@@ -297,7 +297,7 @@ static lispval multi_get_method(lispval root,lispval mslotid)
     return answer;}
 }
 
-DEFCPRIM("kno:multi-test",multi_test_method,
+DEFC_PRIM("kno:multi-test",multi_test_method,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
 	 "**undocumented**",
 	 {"frame",kno_any_type,KNO_VOID},
@@ -321,7 +321,7 @@ static lispval multi_test_method(lispval root,lispval mslotid,lispval value)
     if (answer) return KNO_TRUE; else return KNO_FALSE;}
 }
 
-DEFCPRIM("kno:multi-add",multi_add_method,
+DEFC_PRIM("kno:multi-add",multi_add_method,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3),
 	 "**undocumented**",
 	 {"frame",kno_any_type,KNO_VOID},
@@ -354,7 +354,7 @@ static lispval multi_add_method(lispval root,lispval slotid,lispval value)
   return VOID;
 }
 
-DEFCPRIM("kno:multi-drop",multi_drop_method,
+DEFC_PRIM("kno:multi-drop",multi_drop_method,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3),
 	 "**undocumented**",
 	 {"frame",kno_any_type,KNO_VOID},
@@ -416,7 +416,7 @@ static int kleene_get_helper
   return 1;
 }
 
-DEFCPRIM("kno:kleene*-get",kleene_star_get_method,
+DEFC_PRIM("kno:kleene*-get",kleene_star_get_method,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 "**undocumented**",
 	 {"frame",kno_frame_type,KNO_VOID},
@@ -438,7 +438,7 @@ static lispval kleene_star_get_method(lispval root,lispval slotid)
       return results;}}
 }
 
-DEFCPRIM("kno:kleene+-get",kleene_plus_get_method,
+DEFC_PRIM("kno:kleene+-get",kleene_plus_get_method,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 "**undocumented**",
 	 {"frame",kno_frame_type,KNO_VOID},
@@ -461,7 +461,7 @@ static lispval kleene_plus_get_method(lispval root,lispval slotid)
       return results;}}
 }
 
-DEFCPRIM("kno:inherited-test",inherited_test_method,
+DEFC_PRIM("kno:inherited-test",inherited_test_method,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
 	 "**undocumented**",
 	 {"frame",kno_any_type,KNO_VOID},
@@ -485,7 +485,7 @@ static lispval inherited_test_method(lispval root,lispval slotid,lispval value)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("kno:inverse-getbase",inverse_getbase_method,
+DEFC_PRIM("kno:inverse-getbase",inverse_getbase_method,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 "**undocumented**",
 	 {"frame",kno_any_type,KNO_VOID},
@@ -512,7 +512,7 @@ static lispval inverse_getbase_method(lispval root,lispval slotid)
     return answer;}
 }
 
-DEFCPRIM("kno:inverse-get",inverse_get_method,
+DEFC_PRIM("kno:inverse-get",inverse_get_method,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 "**undocumented**",
 	 {"frame",kno_any_type,KNO_VOID},
@@ -536,7 +536,7 @@ static lispval inverse_get_method(lispval root,lispval slotid)
     return answer;}
 }
 
-DEFCPRIM("kno:inverse-test",inverse_test_method,
+DEFC_PRIM("kno:inverse-test",inverse_test_method,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
 	 "**undocumented**",
 	 {"frame",kno_any_type,KNO_VOID},
@@ -562,7 +562,7 @@ static lispval inverse_test_method(lispval root,lispval slotid,lispval value)
       else return (KNO_FALSE);}}
 }
 
-DEFCPRIM("kno:assoc-get",assoc_get_method,
+DEFC_PRIM("kno:assoc-get",assoc_get_method,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 "**undocumented**",
 	 {"frame",kno_any_type,KNO_VOID},
@@ -606,7 +606,7 @@ static lispval assoc_get_method(lispval f,lispval slotid)
     return answers;}
 }
 
-DEFCPRIM("kno:assoc-test",assoc_test_method,
+DEFC_PRIM("kno:assoc-test",assoc_test_method,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
 	 "**undocumented**",
 	 {"frame",kno_any_type,KNO_VOID},
@@ -649,7 +649,7 @@ static lispval assoc_test_method(lispval f,lispval slotid,lispval values)
     return KNO_FALSE;}
 }
 
-DEFCPRIM("kno:assoc-add",assoc_add_method,
+DEFC_PRIM("kno:assoc-add",assoc_add_method,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
 	 "**undocumented**",
 	 {"frame",kno_any_type,KNO_VOID},
@@ -676,7 +676,7 @@ static lispval assoc_add_method(lispval f,lispval slotid,lispval value)
     return VOID;}
 }
 
-DEFCPRIM("kno:assoc-drop",assoc_drop_method,
+DEFC_PRIM("kno:assoc-drop",assoc_drop_method,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
 	 "**undocumented**",
 	 {"frame",kno_any_type,KNO_VOID},
@@ -701,7 +701,7 @@ static lispval assoc_drop_method(lispval f,lispval slotid,lispval value)
     return VOID;}
 }
 
-DEFCPRIM("kno:car-get",car_get_method,
+DEFC_PRIM("kno:car-get",car_get_method,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 "**undocumented**",
 	 {"frame",kno_any_type,KNO_VOID},
@@ -725,7 +725,7 @@ static lispval car_get_method(lispval f,lispval slotid)
   return result;
 }
 
-DEFCPRIM("kno:paired-get",paired_get_method,
+DEFC_PRIM("kno:paired-get",paired_get_method,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 "**undocumented**",
 	 {"frame",kno_any_type,KNO_VOID},
@@ -748,7 +748,7 @@ static lispval paired_get_method(lispval f,lispval slotid)
   return result;
 }
 
-DEFCPRIM("kno:paired-test",paired_test_method,
+DEFC_PRIM("kno:paired-test",paired_test_method,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
 	 "**undocumented**",
 	 {"frame",kno_any_type,KNO_VOID},
@@ -769,7 +769,7 @@ static lispval paired_test_method(lispval f,lispval slotid,lispval v)
     else return KNO_FALSE;}
 }
 
-DEFCPRIM("kno:paired-drop",paired_drop_method,
+DEFC_PRIM("kno:paired-drop",paired_drop_method,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
 	 "**undocumented**",
 	 {"frame",kno_any_type,KNO_VOID},
@@ -813,7 +813,7 @@ static lispval paired_drop_method(lispval f,lispval slotid,lispval v)
 
 static lispval implies_slot;
 
-DEFCPRIM("kno:clear-implies!",clear_implies_effect,
+DEFC_PRIM("kno:clear-implies!",clear_implies_effect,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3),
 	 "**undocumented**",
 	 {"frame",kno_any_type,KNO_VOID},
@@ -843,7 +843,7 @@ static void init_symbols()
   implies_slot = kno_intern("implies");
 }
 
-DEFCPRIM("kno:add!",lisp_add_effect,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+DEFC_PRIM("kno:add!",lisp_add_effect,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
 	 "**undocumented**",
 	 {"frame",kno_any_type,KNO_VOID},
 	 {"slotid",kno_any_type,KNO_VOID},
@@ -853,7 +853,7 @@ static lispval lisp_add_effect(lispval f,lispval s,lispval v)
   if (kno_add(f,s,v)<0) return KNO_ERROR;
   else return VOID;
 }
-DEFCPRIM("kno:drop!",lisp_drop_effect,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+DEFC_PRIM("kno:drop!",lisp_drop_effect,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
 	 "**undocumented**",
 	 {"frame",kno_any_type,KNO_VOID},
 	 {"slotid",kno_any_type,KNO_VOID},
@@ -864,7 +864,7 @@ static lispval lisp_drop_effect(lispval f,lispval s,lispval v)
   else return VOID;
 }
 
-DEFCPRIM("kno:%get",lisp_pget_method,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+DEFC_PRIM("kno:%get",lisp_pget_method,KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
 	 "**undocumented**",
 	 {"frame",kno_any_type,KNO_VOID},
 	 {"slotid",kno_any_type,KNO_VOID},
@@ -876,7 +876,7 @@ static lispval lisp_pget_method(lispval f,lispval s,lispval dflt)
   return kno_get(f,s,dflt);
 }
 
-DEFCPRIM("kno:get",lisp_get_method,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+DEFC_PRIM("kno:get",lisp_get_method,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 "**undocumented**",
 	 {"frame",kno_any_type,KNO_VOID},
 	 {"slotid",kno_any_type,KNO_VOID});
@@ -884,7 +884,7 @@ static lispval lisp_get_method(lispval f,lispval s)
 {
   return kno_frame_get(f,s);
 }
-DEFCPRIM("kno:test",lisp_test_method,
+DEFC_PRIM("kno:test",lisp_test_method,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	 "**undocumented**",
 	 {"frame",kno_any_type,KNO_VOID},

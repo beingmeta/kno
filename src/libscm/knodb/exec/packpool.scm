@@ -1,13 +1,13 @@
 ;;; -*- Mode: Scheme -*-
 
-(in-module 'knodb/packpool)
+(in-module 'knodb/exec/packpool)
+
+(module-export! 'main)
 
 (use-module '{optimize kno/mttools varconfig engine text/stringfmts logger})
 (use-module '{knodb/countrefs})
 
-(define %loglevel %notice%)
-
-(module-export! 'main)
+(define %loglevel (config 'loglevel %notice%))
 
 (define dtypev2 #f)
 (varconfig! dtypev2 dtypev2 config:boolean)

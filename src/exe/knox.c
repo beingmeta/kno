@@ -228,7 +228,7 @@ int do_main(int argc,char **argv,
   int retval = 0, exec_module = 0;
   u8_string source_base = NULL;
 
-  DEFCPRIMN("CHAIN",chain_prim,KNO_VAR_ARGS|MIN_ARGS(0),
+  DEFC_PRIMN("CHAIN",chain_prim,KNO_VAR_ARGS|MIN_ARGS(0),
 	    "Resets the current process to a fresh instance of knox");
   KNO_LINK_CPRIM("CHAIN",chain_prim,0,(lispval)env);
 

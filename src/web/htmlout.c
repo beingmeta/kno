@@ -157,7 +157,7 @@ void kno_xhtmlerrorpage(u8_output s,u8_exception ex)
   u8_puts(s,"</body>\n</html>\n");
 }
 
-DEFCPRIM("debugpage->html",debugpage2html_prim,
+DEFC_PRIM("debugpage->html",debugpage2html_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(0),
 	 "**undocumented**",
 	 {"exception",kno_any_type,KNO_VOID},
@@ -195,7 +195,7 @@ static lispval debugpage2html_prim(lispval exception,lispval where)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("backtrace->html",backtrace2html_prim,
+DEFC_PRIM("backtrace->html",backtrace2html_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(0),
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID},
@@ -600,7 +600,7 @@ static lispval table2html_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   return VOID;
 }
 
-DEFCPRIM("obj->html",obj2html_prim,
+DEFC_PRIM("obj->html",obj2html_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"obj",kno_any_type,KNO_VOID},

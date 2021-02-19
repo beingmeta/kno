@@ -118,7 +118,7 @@ static u8_string get_testid(lispval fn,int n,kno_argvec args)
   return id;
 }
 
-DEFCPRIMN("applytest",applytest,
+DEFC_PRIMN("applytest",applytest,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	  "**undocumented**")
 static lispval applytest(int n,kno_argvec args)
@@ -355,7 +355,7 @@ static lispval errtest_evalfn(lispval expr,kno_lexenv env,kno_stack s)
       return KNO_FALSE;}}
 }
 
-DEFCPRIM("testfn1",testfn1,MAX_ARGS(1)|MIN_ARGS(1),
+DEFC_PRIM("testfn1",testfn1,MAX_ARGS(1)|MIN_ARGS(1),
 	 "This function helps look at how things get compiled "
 	 "when disassembled",
 	 {"object",kno_any_type,KNO_VOID})
@@ -413,6 +413,6 @@ KNO_EXPORT void kno_init_eval_testops_c()
 
 static void link_local_cprims()
 {
-  KNO_LINK_CVARARGS("applytest",applytest,kno_scheme_module);
+  KNO_LINK_CPRIMN("applytest",applytest,kno_scheme_module);
   KNO_LINK_CPRIM("testfn1",testfn1,1,kno_scheme_module);
 }

@@ -473,6 +473,30 @@ static int add_config_source(lispval var,lispval val,void *data)
 
 /* Lots of different ways to specify configuration */
 
+static int do_config_assignment(u8_string assignment)
+{
+  u8_byte _namebuf[64], *namebuf;
+  u8_string equals = strchr(assignment,'=');
+  if (equals == NULL) {
+    u8_log(LOG_ERR,"InvalidConfig","Couldn't handle %s",assignment);
+    return 0;}
+  int namelen = equals-assignment, retval;
+  lispval value = kno_parse_arg(equals+1);
+  if (KNO_ABORTP(value))
+    return kno_interr(value);
+  else if (KNO_PAIRP(value)) {
+    lispval interpreted = kno_interpret_value(value);
+    kno_decref(value);
+    value = interpreted;}
+  if (namelen+1>64)
+    namebuf = u8_malloc(namelen+1);
+  else namebuf=_namebuf;
+  strncpy(namebuf,assignment,namelen); namebuf[namelen]='\0';
+  retval = kno_set_config_consed(namebuf,value);
+  if (namebuf!=_namebuf) u8_free(namebuf);
+  return retval;
+}
+
 /* This takes a string of the form var = value */
 KNO_EXPORT int kno_config_assignment(u8_string assignment)
 {
@@ -498,6 +522,7 @@ KNO_EXPORT int kno_config_assignment(u8_string assignment)
 	  if (scan == NULL) break;
           continue;}
 	if (scan) *scan = '\0';
+	if ( scan == start) break;
         int rv = kno_config_assignment(start);
         if (rv<0) {
           u8_seterr("BadConfig","kno_config_assigment",u8_strdup(start));
@@ -506,28 +531,12 @@ KNO_EXPORT int kno_config_assignment(u8_string assignment)
         start=scan+1;
         count++;}
       if (*start) {
-        rv = kno_config_assignment(start);
+        rv = do_config_assignment(start);
         if (rv>=0) count++;}
       if (rv<0)
         return -(count+1);
       else return count;}
-    else {
-      u8_byte _namebuf[64], *namebuf;
-      int namelen = equals-assignment, retval;
-      lispval value = kno_parse_arg(equals+1);
-      if (KNO_ABORTP(value))
-        return kno_interr(value);
-      else if (KNO_PAIRP(value)) {
-        lispval interpreted = kno_interpret_value(value);
-        kno_decref(value);
-        value = interpreted;}
-      if (namelen+1>64)
-        namebuf = u8_malloc(namelen+1);
-      else namebuf=_namebuf;
-      strncpy(namebuf,assignment,namelen); namebuf[namelen]='\0';
-      retval = kno_set_config_consed(namebuf,value);
-      if (namebuf!=_namebuf) u8_free(namebuf);
-      return retval;}}
+    else return do_config_assignment(assignment);}
   else return -1;
 }
 

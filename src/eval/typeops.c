@@ -37,7 +37,7 @@ DEF_KNOSYM(mutable); DEF_KNOSYM(opaque);
 
 /* Direct type predicates */
 
-DEFCPRIM("regex?",regexp,
+DEFC_PRIM("regex?",regexp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns true if *x* is a regular expression object",
 	 {"x",kno_any_type,KNO_VOID})
@@ -48,7 +48,7 @@ static lispval regexp(lispval x)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("packet?",packetp,
+DEFC_PRIM("packet?",packetp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns true if *x* is a packet (a fixed length byte vector)",
 	 {"x",kno_any_type,KNO_VOID})
@@ -57,7 +57,7 @@ static lispval packetp(lispval x)
   if (PACKETP(x)) return KNO_TRUE; else return KNO_FALSE;
 }
 
-DEFCPRIM("secret?",secretp,
+DEFC_PRIM("secret?",secretp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns true if *x* is a secret value, i.e. a fixed length byte "
 	 "vector whose data is not to be displayed",
@@ -69,7 +69,7 @@ static lispval secretp(lispval x)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("symbol?",symbolp,
+DEFC_PRIM("symbol?",symbolp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns true if *x* is a symbol",
 	 {"x",kno_any_type,KNO_VOID})
@@ -78,7 +78,7 @@ static lispval symbolp(lispval x)
   if (SYMBOLP(x)) return KNO_TRUE; else return KNO_FALSE;
 }
 
-DEFCPRIM("pair?",pairp,
+DEFC_PRIM("pair?",pairp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns true if *x* is a LISP pair",
 	 {"x",kno_any_type,KNO_VOID})
@@ -87,7 +87,7 @@ static lispval pairp(lispval x)
   if (PAIRP(x)) return KNO_TRUE; else return KNO_FALSE;
 }
 
-DEFCPRIM("list?",listp,
+DEFC_PRIM("list?",listp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns true if *x* is a LISP pair or NIL ()",
 	 {"x",kno_any_type,KNO_VOID})
@@ -98,7 +98,7 @@ static lispval listp(lispval x)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("proper-list?",proper_listp,
+DEFC_PRIM("proper-list?",proper_listp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns true if *x* is a proper list, either NIL () "
 	 "or the head of a chain of pairs ending in NIL ().",
@@ -114,7 +114,7 @@ static lispval proper_listp(lispval x)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("vector?",vectorp,
+DEFC_PRIM("vector?",vectorp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns true if *x* is a LISP vector",
 	 {"x",kno_any_type,KNO_VOID})
@@ -123,7 +123,7 @@ static lispval vectorp(lispval x)
   if (VECTORP(x)) return KNO_TRUE; else return KNO_FALSE;
 }
 
-DEFCPRIM("number?",numberp,
+DEFC_PRIM("number?",numberp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns true if *x* is a number",
 	 {"x",kno_any_type,KNO_VOID})
@@ -132,7 +132,7 @@ static lispval numberp(lispval x)
   if (NUMBERP(x)) return KNO_TRUE; else return KNO_FALSE;
 }
 
-DEFCPRIM("flonum?",flonump,
+DEFC_PRIM("flonum?",flonump,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns true if *x* is a flonum (a real inexact value)",
 	 {"x",kno_any_type,KNO_VOID})
@@ -143,7 +143,7 @@ static lispval flonump(lispval x)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("nan?",isnanp,
+DEFC_PRIM("nan?",isnanp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns true if *x* is *not* a number, including invalid flonums",
 	 {"x",kno_any_type,KNO_VOID})
@@ -159,7 +159,7 @@ static lispval isnanp(lispval x)
   else return KNO_TRUE;
 }
 
-DEFCPRIM("immediate?",immediatep,
+DEFC_PRIM("immediate?",immediatep,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns true if *x* is a LISP immediate pointer. "
 	 "Immediate pointers do not reference allocated memory and exclude "
@@ -170,7 +170,7 @@ static lispval immediatep(lispval x)
   if (KNO_IMMEDIATEP(x)) return KNO_TRUE; else return KNO_FALSE;
 }
 
-DEFCPRIM("consed?",consp,
+DEFC_PRIM("consed?",consp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns true if *x* is a 'cons', a pointer to allocated memory",
 	 {"x",kno_any_type,KNO_VOID})
@@ -179,7 +179,7 @@ static lispval consp(lispval x)
   if (CONSP(x)) return KNO_TRUE; else return KNO_FALSE;
 }
 
-DEFCPRIM("static?",staticp,
+DEFC_PRIM("static?",staticp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns true if *x* is a 'static' cons, a pointer to "
 	 "allocated memory which is not subject to automatic recycling.",
@@ -191,7 +191,7 @@ static lispval staticp(lispval x)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("character?",characterp,
+DEFC_PRIM("character?",characterp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns true if *x* is a character object",
 	 {"x",kno_any_type,KNO_VOID})
@@ -200,7 +200,7 @@ static lispval characterp(lispval x)
   if (KNO_CHARACTERP(x)) return KNO_TRUE; else return KNO_FALSE;
 }
 
-DEFCPRIM("ctype?",ctypep_prim,
+DEFC_PRIM("ctype?",ctypep_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns true if *x* is a primitive CTYPE, declared by "
 	 "either KNO itself or a loaded module.",
@@ -212,7 +212,7 @@ static lispval ctypep_prim(lispval x)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("exception?",exceptionp,
+DEFC_PRIM("exception?",exceptionp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns true if *x* is an exception object describing "
 	 "an unusual condition which happened previously. Exceptions "
@@ -225,7 +225,7 @@ static lispval exceptionp(lispval x)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("applicable?",applicablep,
+DEFC_PRIM("applicable?",applicablep,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns true if *x* is applicable",
 	 {"x",kno_any_type,KNO_VOID})
@@ -236,7 +236,7 @@ static lispval applicablep(lispval x)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("fcnid?",fcnidp,
+DEFC_PRIM("fcnid?",fcnidp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns true if *x* is a function ID, an immediate value "
 	 "which refers to a function",
@@ -248,7 +248,7 @@ static lispval fcnidp(lispval x)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("boolean?",booleanp,
+DEFC_PRIM("boolean?",booleanp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns true if *x* is a truth token (#t or #f currently)",
 	 {"x",kno_any_type,KNO_VOID})
@@ -259,7 +259,7 @@ static lispval booleanp(lispval x)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("true?",truep,
+DEFC_PRIM("true?",truep,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns true if *x* is not #f or {} (the failure value)",
 	 {"x",kno_any_type,KNO_VOID})
@@ -270,7 +270,7 @@ static lispval truep(lispval x)
   else return KNO_TRUE;
 }
 
-DEFCPRIM("false?",falsep,
+DEFC_PRIM("false?",falsep,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns true if *x* is #f or {} (the failure value)",
 	 {"x",kno_any_type,KNO_VOID})
@@ -281,7 +281,7 @@ static lispval falsep(lispval x)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("string?",stringp,
+DEFC_PRIM("string?",stringp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns true if *x* is a string",
 	 {"x",kno_any_type,KNO_VOID})
@@ -290,7 +290,7 @@ static lispval stringp(lispval x)
   if (STRINGP(x)) return KNO_TRUE; else return KNO_FALSE;
 }
 
-DEFCPRIM("valid-utf8?",valid_utf8p,
+DEFC_PRIM("valid-utf8?",valid_utf8p,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns true if *x* is a valid UTF-8 string. If *x "
 	 "is a string, this should always be true though "
@@ -308,7 +308,7 @@ static lispval valid_utf8p(lispval x)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("empty-list?",nullp,
+DEFC_PRIM("empty-list?",nullp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns true if *x* is the empty list.",
 	 {"x",kno_any_type,KNO_VOID})
@@ -318,7 +318,7 @@ static lispval nullp(lispval x)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("slotid?",slotidp,
+DEFC_PRIM("slotid?",slotidp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns true if *arg* is an OID or a symbol (a slotid)",
 	 {"arg",kno_any_type,KNO_VOID})
@@ -328,7 +328,7 @@ static lispval slotidp(lispval arg)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("typeof",typeof_prim,
+DEFC_PRIM("typeof",typeof_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns the name of the basic C type of *x*",
 	 {"x",kno_any_type,KNO_VOID})
@@ -340,7 +340,7 @@ static lispval typeof_prim(lispval x)
   else return kno_mkstring("unknown");
 }
 
-DEFCPRIM("tagged?",taggedp_prim,
+DEFC_PRIM("tagged?",taggedp_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "Returns false if *x* is not a compound or "
 	 "a wrapped pointer (a raw type). If *tag* is provided, "
@@ -367,7 +367,7 @@ static lispval taggedp_prim(lispval x,lispval tag)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("hastype?",hastypep_prim,
+DEFC_PRIM("hastype?",hastypep_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	 "Returns true if any of *items* has any of *types*. "
 	 "This *will not* signal an error for non-type values in *types*.",
@@ -401,7 +401,7 @@ static lispval hastypep_prim(lispval items,lispval types)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("only-hastype?",only_hastypep_prim,
+DEFC_PRIM("only-hastype?",only_hastypep_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	 "Returns true if all of *items* have any of the types *types*. "
 	 "This *will not* signal an error for non-type values in *types*.",
@@ -439,7 +439,7 @@ static lispval only_hastypep_prim(lispval items,lispval types)
 
 /* Rawptr ops */
 
-DEFCPRIM("rawptr?",rawptrp_prim,
+DEFC_PRIM("rawptr?",rawptrp_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "returns true if *obj* is a raw pointer object "
 	 "with a typetag of *type* (if provided).",
@@ -457,7 +457,7 @@ static lispval rawptrp_prim(lispval x,lispval tag)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("rawptr/type",rawptr_type_prim,
+DEFC_PRIM("rawptr/type",rawptr_type_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "returns the type tag for *obj* if it is a raw "
 	 "pointer object.",
@@ -468,7 +468,7 @@ static lispval rawptr_type_prim(lispval x)
   return kno_incref(obj->typetag);
 }
 
-DEFCPRIM("rawptr/id",rawptr_id_prim,
+DEFC_PRIM("rawptr/id",rawptr_id_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "returns the idstring for the raw pointer *rawptr* if "
 	 "it is a raw pointer object.",
@@ -481,7 +481,7 @@ static lispval rawptr_id_prim(lispval rawptr)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("rawptr/notes",rawptr_notes_prim,
+DEFC_PRIM("rawptr/notes",rawptr_notes_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns the notes object for the raw pointer "
 	 "*rawptr* if it is a raw pointer object.",
@@ -492,7 +492,7 @@ static lispval rawptr_notes_prim(lispval rawptr)
   return kno_incref(obj->raw_annotations);
 }
 
-DEFCPRIM("rawptr/id!",rawptr_setid_prim,
+DEFC_PRIM("rawptr/id!",rawptr_setid_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 "Sets the idstring of the raw pointer *rawptr*, "
 	 "returning it",
@@ -507,7 +507,7 @@ static lispval rawptr_setid_prim(lispval rawptr,lispval id)
   return kno_incref(rawptr);
 }
 
-DEFCPRIM("compound?",compoundp,
+DEFC_PRIM("compound?",compoundp,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "returns #f if *obj* is a compound and (when *tag* "
 	 "is provided) has the typetag *tag*.",
@@ -526,7 +526,7 @@ static lispval compoundp(lispval x,lispval tag)
 
 /* TODO: This might be faster if it were non deterministic */
 
-DEFCPRIM("pick-compounds",pick_compounds,
+DEFC_PRIM("pick-compounds",pick_compounds,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "returns *arg* if it is a compound and (when "
 	 "specified) if it's typetag is any of *tags*.",
@@ -561,7 +561,7 @@ static lispval pick_compounds(lispval candidates,lispval tags)
     else return kno_simplify_choice(result);}
 }
 
-DEFCPRIM("compound-tag",compound_tag,
+DEFC_PRIM("compound-tag",compound_tag,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns the typetag of a compound object",
 	 {"x",kno_compound_type,KNO_VOID})
@@ -570,7 +570,7 @@ static lispval compound_tag(lispval x)
   return kno_incref(KNO_COMPOUND_TAG(x));
 }
 
-DEFCPRIM("compound-annotations",compound_annotations,
+DEFC_PRIM("compound-annotations",compound_annotations,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns a compound's annotations object, a table, "
 	 "which is the first element of compound's declared "
@@ -586,7 +586,7 @@ static lispval compound_annotations(lispval x)
   else return KNO_EMPTY;
 }
 
-DEFCPRIM("compound-length",compound_length,
+DEFC_PRIM("compound-length",compound_length,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns the number of elements in the compound object *x*",
 	 {"x",kno_compound_type,KNO_VOID})
@@ -596,7 +596,7 @@ static lispval compound_length(lispval x)
   return KNO_BYTE2LISP(compound->compound_length);
 }
 
-DEFCPRIM("compound-mutable?",compound_mutablep,
+DEFC_PRIM("compound-mutable?",compound_mutablep,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns true if the compound *x* is mutable, i.e. if individual "
 	 "elements in the object can be changed. Note that this enables "
@@ -610,7 +610,7 @@ static lispval compound_mutablep(lispval x)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("compound-opaque?",compound_opaquep,
+DEFC_PRIM("compound-opaque?",compound_opaquep,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "Returns true if the compound object *x* is opaque.",
 	 {"x",kno_compound_type,KNO_VOID})
@@ -622,7 +622,7 @@ static lispval compound_opaquep(lispval x)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("compound-ref",compound_ref,
+DEFC_PRIM("compound-ref",compound_ref,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
 	 "Returns the *offset* element of the compound *x*. This signals an error "
 	 "if *tag* is provided and doesn't match the tagtype of *x*",
@@ -661,7 +661,7 @@ static lispval compound_ref(lispval x,lispval offset,lispval tag)
     return KNO_ERROR;}
 }
 
-DEFCPRIM("unpack-compound",unpack_compound,
+DEFC_PRIM("unpack-compound",unpack_compound,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "Returns a pair of the typetag of *x* and "
 	 "a vector of its elements.",
@@ -690,7 +690,7 @@ static lispval unpack_compound(lispval x,lispval tag)
     return result;}
 }
 
-DEFCPRIM("compound-set!",compound_set,
+DEFC_PRIM("compound-set!",compound_set,
 	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(3)|KNO_NDCALL,
 	 "Sets the *offset* element of the compound *x* to *value*. "
 	 "This signals an error if *tag* is provided and doesn't match the "
@@ -788,7 +788,7 @@ static lispval apply_modifier(lispval modifier,lispval old_value,lispval value)
 			modifier);}
 }
 
-DEFCPRIM("compound-modify!",compound_modify,
+DEFC_PRIM("compound-modify!",compound_modify,
 	 KNO_MAX_ARGS(5)|KNO_MIN_ARGS(4)|KNO_NDCALL,
 	 "Modifies a field of *compound* atomically, "
 	 "replacing it with (*modfn* *curval* *modval*) "
@@ -855,7 +855,7 @@ static lispval compound_modify(lispval x,lispval tag,lispval offset,
   }
 }
 
-DEFCPRIMN("make-compound",make_compound,
+DEFC_PRIMN("make-compound",make_compound,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	  "creates a simple compound object with type *tag* "
 	  "and elements *elts*")
@@ -877,7 +877,7 @@ static lispval make_compound(int n,kno_argvec args)
   return LISP_CONS(compound);
 }
 
-DEFCPRIMN("make-xcompound",make_xcompound,
+DEFC_PRIMN("make-xcompound",make_xcompound,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(5)|KNO_NDCALL,
 	  "Creates a (possibly) complex compound object with "
 	  "type *tag*. If *annotate* is a table, it is used "
@@ -926,7 +926,7 @@ static lispval make_xcompound(int n,kno_argvec args)
   return LISP_CONS(compound);
 }
 
-DEFCPRIM("sequence->compound",seq2compound,
+DEFC_PRIM("sequence->compound",seq2compound,
 	 KNO_MAX_ARGS(6)|KNO_MIN_ARGS(2),
 	 "creates a compound object out of *seq*, tagged "
 	 "with *tag*. The first *reserve* elements of *seq* "
@@ -994,7 +994,7 @@ static lispval seq2compound(lispval seq,lispval tag,
     return LISP_CONS(compound);}
 }
 
-DEFCPRIMN("make-opaque-compound",make_opaque_compound,
+DEFC_PRIMN("make-opaque-compound",make_opaque_compound,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	  "`(make-opaque-compound *tag* *elts...*)` creates an opaque "
 	  "compound object with typetag *tag*. and comprised "
@@ -1017,7 +1017,7 @@ static lispval make_opaque_compound(int n,kno_argvec args)
   return LISP_CONS(compound);
 }
 
-DEFCPRIMN("make-mutable-compound",make_mutable_compound,
+DEFC_PRIMN("make-mutable-compound",make_mutable_compound,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	  "`(make-mutable-compound *tag* *elts...*)` creates a mutable "
 	  "compound object with typetag *tag*. and comprised "
@@ -1040,7 +1040,7 @@ static lispval make_mutable_compound(int n,kno_argvec args)
   return LISP_CONS(compound);
 }
 
-DEFCPRIMN("make-opaque-mutable-compound",make_opaque_mutable_compound,
+DEFC_PRIMN("make-opaque-mutable-compound",make_opaque_mutable_compound,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	  "`(make-opsque-mutable-compound *tag* *elts...*)` creates an opaque mutable "
 	  "compound object with typetag *tag*. and comprised "
@@ -1092,7 +1092,7 @@ static lispval typeinfo_helper(lispval type,int probe)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("kno/type",type_cprim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFC_PRIM("kno/type",type_cprim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "returns the typeinfo object for a type object or an object's type. "
 	 "This creates the typeinfo object if it is not currently defined.",
 	 {"obj",kno_any_type,KNO_VOID})
@@ -1101,7 +1101,7 @@ static lispval type_cprim(lispval type)
   return typeinfo_helper(type,0);
 }
 
-DEFCPRIM("kno/typeinfo/probe",typeinfo_probe_cprim,
+DEFC_PRIM("kno/typeinfo/probe",typeinfo_probe_cprim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "returns the typeinfo object for a type object or an object's type. "
 	 "This does not create typeinfo for unregistered types.",
@@ -1113,12 +1113,12 @@ static lispval typeinfo_probe_cprim(lispval type)
 
 /* Typed function dispatch */
 
-KNO_DEFCPRIMNx("kno/send",send_cprim,
-	       KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	       "Applies a type specific method *method* to *object* "
-	       "with additional args.",2,
-	       {"object",kno_any_type,KNO_VOID},
-	       {"method",kno_slotid_type,KNO_VOID})
+KNO_DEFC_PRIMNx("kno/send",send_cprim,
+		KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
+		"Applies a type specific method *method* to *object* "
+		"with additional args.",2,
+		{"object",kno_any_type,KNO_VOID},
+		{"method",kno_slotid_type,KNO_VOID})
 static lispval send_cprim(int n,kno_argvec args)
 {
   lispval objects = args[0], methods = args[1];
@@ -1146,7 +1146,7 @@ static lispval send_cprim(int n,kno_argvec args)
   return kno_dispatch(NULL,args[0],args[1],n-2,args+2);
 }
 
-KNO_DEFCPRIM("kno/handles?",handlesp_cprim,
+DEFC_PRIM("kno/handles?",handlesp_cprim,
 	     KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	     "Returns true if *object* handles *message*",
 	     {"object",kno_any_type,KNO_VOID},
@@ -1164,7 +1164,7 @@ static lispval handlesp_cprim(lispval object,lispval message)
     else return KNO_FALSE;}
 }
 
-KNO_DEFCPRIM("kno/set-handler!",set_handler_cprim,
+DEFC_PRIM("kno/set-handler!",set_handler_cprim,
 	     KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
 	     "Sets a handler",
 	     {"type",kno_type_type,KNO_VOID},
@@ -1191,7 +1191,7 @@ static lispval set_handler_cprim(lispval type,lispval message,lispval handler)
 
 /* Type/method operations */
 
-DEFCPRIM("type-set-consfn!",type_set_consfn_prim,
+DEFC_PRIM("type-set-consfn!",type_set_consfn_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 "Sets the function used to create an instance "
 	 "of types tagged *tag*. This is mainly used by "
@@ -1214,7 +1214,7 @@ static lispval type_set_consfn_prim(lispval tag,lispval consfn)
   else return kno_type_error("compound tag","set_compound_consfn_prim",tag);
 }
 
-DEFCPRIM("type-set-restorefn!",type_set_restorefn_prim,
+DEFC_PRIM("type-set-restorefn!",type_set_restorefn_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 "Sets the function for 'restoring' objects saved by a corresponding "
 	 "dumpfn",
@@ -1235,7 +1235,7 @@ static lispval type_set_restorefn_prim(lispval tag,lispval restorefn)
   else return kno_type_error("compound tag","set_compound_restorefn_prim",tag);
 }
 
-DEFCPRIM("type-set-dumpfn!",type_set_dumpfn_prim,
+DEFC_PRIM("type-set-dumpfn!",type_set_dumpfn_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 "Sets the function for 'dumping' objects of type *tag*.",
 	 {"tag",kno_any_type,KNO_VOID},
@@ -1255,7 +1255,7 @@ static lispval type_set_dumpfn_prim(lispval tag,lispval dumpfn)
   else return kno_type_error("compound tag","set_compound_dumpfn_prim",tag);
 }
 
-DEFCPRIM("type-set-stringfn!",type_set_stringfn_prim,
+DEFC_PRIM("type-set-stringfn!",type_set_stringfn_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 "Sets the function for unparsing objects of type *tag*. *stringfn* "
 	 "should return a string which is emitted as the printed representation "
@@ -1278,7 +1278,7 @@ static lispval type_set_stringfn_prim(lispval tag,lispval stringfn)
   else return kno_type_error("type tag","set_type_stringfn_prim",tag);
 }
 
-DEFCPRIM("type-props",type_props_prim,
+DEFC_PRIM("type-props",type_props_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "accesses the metadata associated with the typetag "
 	 "assigned to *compound*. If *field* is specified, "
@@ -1298,7 +1298,7 @@ static lispval type_props_prim(lispval arg,lispval field)
 
 static lispval opaque_symbol, mutable_symbol, sequence_symbol;
 
-DEFCPRIM("type-set!",type_set_prim,
+DEFC_PRIM("type-set!",type_set_prim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3)|KNO_NDCALL,
 	 "stores *value* in *field* of the properties "
 	 "associated with the type of tag *tag*.",
@@ -1411,11 +1411,11 @@ static void link_local_cprims()
 
   KNO_LINK_CPRIM("compound?",compoundp,2,scheme_module);
   KNO_LINK_CPRIM("sequence->compound",seq2compound,6,scheme_module);
-  KNO_LINK_CVARARGS("make-opaque-mutable-compound",make_opaque_mutable_compound,scheme_module);
-  KNO_LINK_CVARARGS("make-mutable-compound",make_mutable_compound,scheme_module);
-  KNO_LINK_CVARARGS("make-opaque-compound",make_opaque_compound,scheme_module);
-  KNO_LINK_CVARARGS("make-compound",make_compound,scheme_module);
-  KNO_LINK_CVARARGS("make-xcompound",make_xcompound,scheme_module);
+  KNO_LINK_CPRIMN("make-opaque-mutable-compound",make_opaque_mutable_compound,scheme_module);
+  KNO_LINK_CPRIMN("make-mutable-compound",make_mutable_compound,scheme_module);
+  KNO_LINK_CPRIMN("make-opaque-compound",make_opaque_compound,scheme_module);
+  KNO_LINK_CPRIMN("make-compound",make_compound,scheme_module);
+  KNO_LINK_CPRIMN("make-xcompound",make_xcompound,scheme_module);
   KNO_LINK_CPRIM("compound-modify!",compound_modify,5,scheme_module);
   KNO_LINK_CPRIM("compound-set!",compound_set,4,scheme_module);
   KNO_LINK_CPRIM("unpack-compound",unpack_compound,2,scheme_module);
@@ -1446,7 +1446,7 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("type-set!",type_set_prim,3,kno_scheme_module);
   KNO_LINK_CPRIM("type-props",type_props_prim,2,kno_scheme_module);
 
-  KNO_LINK_CVARARGS("kno/send",send_cprim,scheme_module);
+  KNO_LINK_CPRIMN("kno/send",send_cprim,scheme_module);
   KNO_LINK_ALIAS("kno/dispatch",send_cprim,scheme_module);
 
   KNO_LINK_ALIAS("compound-type?",compoundp,scheme_module);

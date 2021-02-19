@@ -6,6 +6,8 @@
 (use-module '{optimize varconfig logger kno/mttools})
 (use-module '{knodb/indexes})
 
+(define %loglevel (config 'loglevel))
+
 (onerror (use-module 'rocksdb))
 (onerror (use-module 'leveldb))
 
@@ -65,6 +67,9 @@
 		 'rarefile (or (config 'rare) {})
 		 'repair (config 'repair #f)
 		 'overwrite overwrite)))
+    (%watch "pack-index/main" 
+      in out input newtype keyslot overwrite
+      "\nOPTS" opts)
     (when (and out (file-exists? out) (not overwrite))
       (logwarn |FileExists|
 	"The output file " (write out) " already exists.\n  "

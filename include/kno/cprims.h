@@ -30,20 +30,20 @@ typedef struct KNO_CPRIM_ARGINFO {
     ((ndcall) ? (KNO_NDCALL) : (0)) |                    \
     ((xcall) ? (KNO_XCALL) : (0)) )
 
-#define KNO_DEFCPRIM(pname,cname,flags,docstring,...)	\
+#define KNO_DEFC_PRIM(pname,cname,flags,docstring,...)	\
   static struct KNO_CPRIM_INFO cname ## _info = {	\
    pname, # cname, _FILEINFO " L#" STRINGIFY(__LINE__), \
    docstring, ((flags)&(0x7f)), flags, -1};			\
   static U8_MAYBE_UNUSED struct KNO_CPRIM_ARGINFO		\
     cname## _arginfo[((flags)&(0x7f))] = { __VA_ARGS__ };
 
-#define KNO_DEFCPRIMN(pname,cname,flags,docstring)                         \
+#define KNO_DEFC_PRIMN(pname,cname,flags,docstring)                         \
   static struct KNO_CPRIM_INFO cname ## _info = {                        \
     pname, # cname, _FILEINFO " L#" STRINGIFY(__LINE__),                         \
     docstring, ((flags)&0x7f), flags, -1};					\
   static U8_MAYBE_UNUSED struct KNO_CPRIM_ARGINFO *cname ## _arginfo = NULL;
 
-#define KNO_DEFCPRIMNx(pname,cname,flags,docstring,info_len,...)		\
+#define KNO_DEFC_PRIMNx(pname,cname,flags,docstring,info_len,...)		\
   static struct KNO_CPRIM_INFO cname ## _info = {                        \
     pname, # cname, _FILEINFO " L#" STRINGIFY(__LINE__),                         \
     docstring, ((flags)&0x7f), flags, -1};					\
@@ -55,7 +55,9 @@ typedef struct KNO_CPRIM_ARGINFO {
 #define KNO_LINK_CPRIM(pname,cname,arity,module)                  \
   kno_defcprim ## arity(module,cname,&cname ## _info,             \
 			cname ## _arginfo)
-#define KNO_LINK_CVARARGS(pname,cname,module)				\
+/* We separate this case because we want arity mismatches to be detected
+   at compile time. */
+#define KNO_LINK_CPRIMN(pname,cname,module)				\
   kno_defcprimN(module,cname,&cname ## _info,cname ## _arginfo);
 
 #define KNO_LINK_ALIAS(alias,cname,module)               \
@@ -66,8 +68,8 @@ typedef struct KNO_CPRIM_ARGINFO {
 #define MIN_ARGS     KNO_MIN_ARGS
 #define NDOP         KNO_NDCALL
 
-#define DEFCPRIM      KNO_DEFCPRIM
-#define DEFCPRIMN     KNO_DEFCPRIMN
+#define DEFC_PRIM      KNO_DEFC_PRIM
+#define DEFC_PRIMN     KNO_DEFC_PRIMN
 #endif
 
 KNO_EXPORT void kno_defcprimN(lispval module,kno_cprimn fn,

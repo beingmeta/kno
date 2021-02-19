@@ -617,7 +617,7 @@ static lispval export_alias_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   return export_alias_helper(expr,env,_stack);
 }
 
-DEFCPRIM("get-module",get_module,
+DEFC_PRIM("get-module",get_module,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"modname",kno_any_type,KNO_VOID})
@@ -628,7 +628,7 @@ static lispval get_module(lispval modname)
   else return kno_get_moduleid(modname,1);
 }
 
-DEFCPRIM("get-loaded-module",get_loaded_module,
+DEFC_PRIM("get-loaded-module",get_loaded_module,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"modname",kno_any_type,KNO_VOID})
@@ -671,7 +671,7 @@ lispval kno_use_module(kno_lexenv env,lispval module)
   return VOID;
 }
 
-DEFCPRIM("get-exports",get_exports_prim,
+DEFC_PRIM("get-exports",get_exports_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "returns the exported symbols of a module or "
 	 "environment",
@@ -700,7 +700,7 @@ static lispval get_exports_prim(lispval arg)
   else return EMPTY;
 }
 
-DEFCPRIM("get-exports-table",get_exports_table_prim,
+DEFC_PRIM("get-exports-table",get_exports_table_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "returns the exports table of a module or "
 	 "environment.",
@@ -787,7 +787,7 @@ static lispval get_source(lispval arg)
     return KNO_FALSE;}
 }
 
-DEFCPRIM("get-source",get_source_prim,
+DEFC_PRIM("get-source",get_source_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
 	 "(get-source [*obj*])\n"
 	 "Gets the source file implementing *obj*, which "
@@ -893,7 +893,7 @@ get_binding_helper(lispval modarg,lispval symbol,lispval dflt,
     return kno_incref(dflt);}
 }
 
-DEFCPRIM("get-binding",get_binding_prim,
+DEFC_PRIM("get-binding",get_binding_prim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
 	 "(get-binding *module* *symbol* [*default*])\n"
 	 "Gets *module*'s exported binding of *symbol*. On "
@@ -908,7 +908,7 @@ static lispval get_binding_prim
   return get_binding_helper(mod_arg,symbol,dflt,1,0,0,"get_binding_prim");
 }
 
-DEFCPRIM("%get-binding",get_internal_binding_prim,
+DEFC_PRIM("%get-binding",get_internal_binding_prim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
 	 "(get-binding *module* *symbol* [*default*])\n"
 	 "Gets *module*'s binding of *symbol* (internal or "
@@ -927,7 +927,7 @@ static lispval get_internal_binding_prim
                             "get_internal_binding_prim");
 }
 
-DEFCPRIM("importvar",import_var_prim,
+DEFC_PRIM("importvar",import_var_prim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
 	 "(importvar *module* *symbol* [*default*])\n"
 	 "Gets *module*'s binding of *symbol* (internal, "
@@ -941,7 +941,7 @@ static lispval import_var_prim(lispval mod_arg,lispval symbol,lispval dflt)
   return get_binding_helper(mod_arg,symbol,dflt,0,1,1,"import_var_prim");
 }
 
-DEFCPRIM("env/use-module",add_module_prim,
+DEFC_PRIM("env/use-module",add_module_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 "(env/use-module *env* *module*) "
 	 "arranges for *env* to usethe module *module*",
@@ -956,7 +956,7 @@ static lispval add_module_prim(lispval env_arg,lispval mod_arg)
   return result;
 }
 
-DEFCPRIM("env/make",make_env_prim,
+DEFC_PRIM("env/make",make_env_prim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(0)|KNO_NDCALL,
 	 "(env/make [*usemods*] [*bindings*] [*exports*]) "
 	 "creates a new environment which uses *usemods*. "

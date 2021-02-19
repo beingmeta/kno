@@ -1037,7 +1037,7 @@ KNO_EXPORT lispval knosocks_status(knosocks_server srv)
 
 /* Some primitive methods */
 
-DEFCPRIM("xrefs",getxrefs_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+DEFC_PRIM("xrefs",getxrefs_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
 	 "(xrefs) returns the XREFS table of the client.")
 static lispval getxrefs_prim()
 {
@@ -1056,7 +1056,7 @@ static lispval getxrefs_prim()
   else return KNO_FALSE;
 }
 
-DEFCPRIM("clientid",clientid_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+DEFC_PRIM("clientid",clientid_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
 	 "(clientid) returns the UUID for the current client")
 static lispval clientid_prim()
 {
@@ -1065,7 +1065,7 @@ static lispval clientid_prim()
   else return KNO_FALSE;
 }
 
-DEFCPRIM("supportedp",supportedp_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+DEFC_PRIM("supportedp",supportedp_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "(supportedp *op*) returns true if *op* is in the current clients "
 	 "environment",
 	 {"op",kno_symbol_type,KNO_VOID})
@@ -1080,7 +1080,7 @@ static lispval supportedp_prim(lispval op)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("shutdown",shutdown_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
+DEFC_PRIM("shutdown",shutdown_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
 	 "(shutdown [*password*]) shuts down the server if *password* "
 	 "is accepted",
 	 {"password",kno_any_type,KNO_VOID})
@@ -1103,7 +1103,7 @@ static lispval shutdown_prim(lispval op)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("serverid",serverid_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+DEFC_PRIM("serverid",serverid_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
 	 "(serverid) returns the UUID for the current client")
 static lispval serverid_prim()
 {
@@ -1113,7 +1113,7 @@ static lispval serverid_prim()
   else return KNO_FALSE;
 }
 
-DEFCPRIM("now",now_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+DEFC_PRIM("now",now_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
 	 "(now) returns the current time")
 static lispval now_prim()
 {
@@ -1121,7 +1121,7 @@ static lispval now_prim()
   return kno_make_timestamp(&now);
 }
 
-DEFCPRIM("uptime",uptime_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+DEFC_PRIM("uptime",uptime_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
 	 "(uptime) returns the current time")
 static lispval uptime_prim()
 {
@@ -1133,7 +1133,7 @@ static lispval uptime_prim()
   else return KNO_FALSE;
 }
 
-DEFCPRIM("sessionid",sessionid_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+DEFC_PRIM("sessionid",sessionid_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
 	 "(sessionid) returns the session (process) ID for the server")
 static lispval sessionid_prim()
 {

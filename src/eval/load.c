@@ -214,7 +214,7 @@ static lispval load_source_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   return result;
 }
 
-DEFCPRIM("load->env",load_into_env_prim,
+DEFC_PRIM("load->env",load_into_env_prim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
 	 "Loads *filename* into *env*, applying *resultfn* "
 	 "(if provided) to the result.",
@@ -254,7 +254,7 @@ static lispval load_into_env_prim(lispval source,lispval envarg,
   return (lispval) env;
 }
 
-DEFCPRIM("env/load",env_load_prim,
+DEFC_PRIM("env/load",env_load_prim,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
 	 "Updates *env* by loading (if needed) the latest "
 	 "version of *filename*. If *filename* is not "
@@ -310,7 +310,7 @@ static lispval load_component_evalfn(lispval expr,kno_lexenv env,kno_stack _stac
   return result;
 }
 
-DEFCPRIM("get-component",lisp_get_component,
+DEFC_PRIM("get-component",lisp_get_component,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(0),
 	 "**undocumented**",
 	 {"string",kno_string_type,KNO_VOID},
@@ -555,7 +555,7 @@ static lispval kno_run(u8_string source_file,struct U8_OUTPUT *out,
       return result;}}
 }
 
-DEFCPRIMN("kno/run-file",kno_run_file,
+DEFC_PRIMN("kno/run-file",kno_run_file,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	  "Loads a file and applies its (main) procedure to "
 	  "the arguments")
@@ -567,7 +567,7 @@ static lispval kno_run_file(int n,kno_argvec args)
   else return kno_type_error("filename","kno_run_file",args[0]);
 }
 
-DEFCPRIMN("kno/run->string",kno_run_file_2string,
+DEFC_PRIMN("kno/run->string",kno_run_file_2string,
 	  KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	  "Loads a KNO file and applies its (main) procedure "
 	  "to the arguments, returns the output as a string")
@@ -700,8 +700,8 @@ static void link_local_cprims()
 {
   lispval scheme_module = kno_scheme_module;
 
-  KNO_LINK_CVARARGS("kno/run->string",kno_run_file_2string,scheme_module);
-  KNO_LINK_CVARARGS("kno/run-file",kno_run_file,scheme_module);
+  KNO_LINK_CPRIMN("kno/run->string",kno_run_file_2string,scheme_module);
+  KNO_LINK_CPRIMN("kno/run-file",kno_run_file,scheme_module);
   KNO_LINK_CPRIM("get-component",lisp_get_component,2,scheme_module);
   KNO_LINK_CPRIM("load->env",load_into_env_prim,3,scheme_module);
   KNO_LINK_CPRIM("env/load",env_load_prim,3,scheme_module);

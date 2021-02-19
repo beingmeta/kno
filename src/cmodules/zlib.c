@@ -32,7 +32,7 @@ static u8_condition zlibBadErrorCode=_("ZLIB odd error code");
 static u8_condition zlibDataError=_("Bad ZLIB input data");
 
 
-KNO_DEFCPRIM("zlib/compress",zlib_compress_prim,
+DEFC_PRIM("zlib/compress",zlib_compress_prim,
 	     KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	     "Returns a zLib compressed version of *input_arg* with "
 	     "compression level *level*",
@@ -74,7 +74,7 @@ static lispval zlib_compress_prim(lispval input_arg,lispval level_arg)
 }
 
 
-KNO_DEFCPRIM("zlib/uncompress",zlib_uncompress_prim,
+DEFC_PRIM("zlib/uncompress",zlib_uncompress_prim,
 	     KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
 	     "**undocumented**",
 	     {"input_arg",kno_packet_type,KNO_VOID},

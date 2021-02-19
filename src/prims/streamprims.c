@@ -35,7 +35,7 @@
 #define KNO_DTWRITE_SIZE 10000
 #endif
 
-DEFCPRIM("write-bytes",write_bytes,
+DEFC_PRIM("write-bytes",write_bytes,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
 	 "(WRITE-BYTES *obj* *stream* [*pos*]) "
 	 "writes the bytes in *obj* to *stream* at *pos*. "
@@ -92,7 +92,7 @@ static lispval write_bytes(lispval object,lispval stream,lispval pos)
     return KNO_INT(n_bytes);}
 }
 
-DEFCPRIM("read-byte",read_abyte,
+DEFC_PRIM("read-byte",read_abyte,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "(READ-4BYTES *stream* [*pos*]) "
 	 "reads a bigendian 4-byte integer from *stream*. "
@@ -121,7 +121,7 @@ static lispval read_abyte(lispval stream,lispval pos)
     else return KNO_INT(ival);}
 }
 
-DEFCPRIM("read-4bytes",read_4bytes,
+DEFC_PRIM("read-4bytes",read_4bytes,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "(READ-4BYTES *stream* [*pos*]) "
 	 "reads a bigendian 4-byte integer from *stream*. "
@@ -151,7 +151,7 @@ static lispval read_4bytes(lispval stream,lispval pos)
     return KNO_INT(ival);}
 }
 
-DEFCPRIM("read-8bytes",read_8bytes,
+DEFC_PRIM("read-8bytes",read_8bytes,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "(READ-8BYTES *stream* [*pos*]) "
 	 "reads a bigendian 8-byte integer from *stream*. "
@@ -174,7 +174,7 @@ static lispval read_8bytes(lispval stream,lispval pos)
   return KNO_INT(ival);
 }
 
-DEFCPRIM("read-varint",read_varint,
+DEFC_PRIM("read-varint",read_varint,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "(read-varint *stream* [*pos*]) "
 	 "reads an encoded varint, up to 8 bytes in decoded "
@@ -236,7 +236,7 @@ static lispval read_varint(lispval stream,lispval pos)
     else return KNO_INT(ival);}
 }
 
-DEFCPRIM("read-bytes",read_bytes,
+DEFC_PRIM("read-bytes",read_bytes,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
 	 "(READ-BYTES *stream* *n*] [*pos*]) "
 	 "reads *n bytes from *stream* at *pos* (or the "
@@ -296,7 +296,7 @@ static lispval read_bytes(lispval stream,lispval n,lispval pos)
   else return kno_init_packet(NULL,n_bytes,bytes);
 }
 
-DEFCPRIM("write-4bytes",write_4bytes,
+DEFC_PRIM("write-4bytes",write_4bytes,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
 	 "(WRITE-4BYTES *intval* *stream* [*pos*]) "
 	 "writes a bigendian 4-byte integer to *stream* at "
@@ -318,7 +318,7 @@ static lispval write_4bytes(lispval object,lispval stream,lispval pos)
   else return KNO_INT(n_bytes);
 }
 
-DEFCPRIM("write-8bytes",write_8bytes,
+DEFC_PRIM("write-8bytes",write_8bytes,
 	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
 	 "(WRITE-8BYTES *intval* *stream* [*pos*]) "
 	 "writes a bigendian 8-byte integer to *stream* at "
@@ -350,7 +350,7 @@ static lispval write_8bytes(lispval object,lispval stream,lispval pos)
   else return KNO_INT(n_bytes);
 }
 
-DEFCPRIM("zread-int",zread_int,
+DEFC_PRIM("zread-int",zread_int,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"stream",kno_stream_type,KNO_VOID})
@@ -362,7 +362,7 @@ static lispval zread_int(lispval stream)
   return KNO_INT(ival);
 }
 
-DEFCPRIM("zwrite-int",zwrite_int,
+DEFC_PRIM("zwrite-int",zwrite_int,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 "**undocumented**",
 	 {"object",kno_any_type,KNO_VOID},
@@ -377,7 +377,7 @@ static lispval zwrite_int(lispval object,lispval stream)
   else return KNO_INT(bytes);
 }
 
-DEFCPRIM("open-byte-output",open_byte_output_file,
+DEFC_PRIM("open-byte-output",open_byte_output_file,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"fname",kno_string_type,KNO_VOID},
@@ -398,7 +398,7 @@ static lispval open_byte_output_file(lispval fname,lispval opts)
     return KNO_ERROR;}
 }
 
-DEFCPRIM("open-byte-input",open_byte_input_file,
+DEFC_PRIM("open-byte-input",open_byte_input_file,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"fname",kno_string_type,KNO_VOID},
@@ -417,7 +417,7 @@ static lispval open_byte_input_file(lispval fname,lispval opts)
     else return KNO_ERROR_VALUE;}
 }
 
-DEFCPRIM("open-packet",open_packet_prim,
+DEFC_PRIM("open-packet",open_packet_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"fname",kno_packet_type,KNO_VOID},
@@ -438,7 +438,7 @@ static lispval open_packet_prim(lispval packet,lispval opts)
   else return KNO_ERROR;
 }
 
-DEFCPRIM("extend-byte-output",extend_byte_output,
+DEFC_PRIM("extend-byte-output",extend_byte_output,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"fname",kno_string_type,KNO_VOID})
@@ -457,7 +457,7 @@ static lispval extend_byte_output(lispval fname)
     return (lispval) stream;}
 }
 
-DEFCPRIM("byte-stream?",streamp,
+DEFC_PRIM("byte-stream?",streamp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
@@ -468,7 +468,7 @@ static lispval streamp(lispval arg)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("byte-input?",byte_inputp,
+DEFC_PRIM("byte-input?",byte_inputp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
@@ -482,7 +482,7 @@ static lispval byte_inputp(lispval arg)
   else return KNO_FALSE;
 }
 
-DEFCPRIM("byte-output?",byte_outputp,
+DEFC_PRIM("byte-output?",byte_outputp,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"arg",kno_any_type,KNO_VOID})
@@ -498,7 +498,7 @@ static lispval byte_outputp(lispval arg)
 
 /* Streampos prim */
 
-DEFCPRIM("streampos",streampos_prim,
+DEFC_PRIM("streampos",streampos_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "(STREAMPOS *stream* [*setpos*]) "
 	 "gets or sets the position of *stream*",
@@ -534,7 +534,7 @@ static lispval streampos_prim(lispval stream_arg,lispval pos)
 
 /* Truncate prim */
 
-DEFCPRIM("ftruncate",ftruncate_prim,
+DEFC_PRIM("ftruncate",ftruncate_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	 "(FTRUNCATE *nameorstream* *newsize*) "
 	 "truncates a file (name or stream) to a particular "

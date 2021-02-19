@@ -24,7 +24,7 @@ u8_condition kno_BindSyntaxError=_("Bad binding expression");
 
 /* Set operations */
 
-KNO_DEF_EVALFN("SET!",assign_evalfn,
+DEFC_EVALFN("SET!",assign_evalfn,KNO_EVALFN_DEFAULTS,
 	       "`(set! *var* *value*)` assigns the bound variable "
 	       "*var* to be the result of evaluating *value*.")
 static lispval assign_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
@@ -56,7 +56,7 @@ static lispval assign_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   else return kno_err(kno_BindError,"SET!",SYM_NAME(var),var);
 }
 
-KNO_DEF_EVALFN("SET+!",assign_plus_evalfn,
+DEFC_EVALFN("SET+!",assign_plus_evalfn,KNO_EVALFN_DEFAULTS,
 	       "`(set+! *var* *values*)` adds the result of evaluting "
 	       "*values* to the set/choice stored in *var*.")
 static lispval assign_plus_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
@@ -90,7 +90,7 @@ static int check_defaultp(lispval val,lispval replace_values)
   else return 0;
 }
 
-KNO_DEF_EVALFN("DEFAULT!",assign_default_evalfn,
+DEFC_EVALFN("DEFAULT!",assign_default_evalfn,KNO_EVALFN_DEFAULTS,
 	       "`(default! *var* *value* [*replace*])` sets the "
 	       "bound value of *var* to *value* if *var* does not "
 	       "currently have a value or if the value is in any of "
@@ -131,7 +131,7 @@ static lispval assign_default_evalfn(lispval expr,kno_lexenv env,kno_stack _stac
 
 /* Simple binders */
 
-KNO_DEF_EVALFN("let",let_evalfn,
+DEFC_EVALFN("let",let_evalfn,KNO_EVALFN_DEFAULTS,
 	       "*undocumented*")
 static lispval let_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
@@ -162,7 +162,7 @@ static lispval let_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     return result;}
 }
 
-KNO_DEF_EVALFN("let*",letstar_evalfn,
+DEFC_EVALFN("let*",letstar_evalfn,KNO_EVALFN_DEFAULTS,
 	       "*undocumented*")
 static lispval letstar_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
@@ -202,7 +202,7 @@ static lispval letstar_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 
 /* LETREC */
 
-KNO_DEF_EVALFN("letrec",letrec_evalfn,
+DEFC_EVALFN("letrec",letrec_evalfn,KNO_EVALFN_DEFAULTS,
 	       "*undocumented*")
 static lispval letrec_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
@@ -242,7 +242,7 @@ static lispval letrec_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 
 /* DO */
 
-KNO_DEF_EVALFN("do",do_evalfn,
+DEFC_EVALFN("do",do_evalfn,KNO_EVALFN_DEFAULTS,
 	       "*undocumented*")
 static lispval do_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
@@ -344,7 +344,7 @@ static lispval do_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 /* This defines an identifier in the local environment to
    the value it would have anyway by environment inheritance.
    This is helpful if it was to rexport it, for example. */
-KNO_DEF_EVALFN("define-local",define_local_evalfn,
+DEFC_EVALFN("define-local",define_local_evalfn,KNO_EVALFN_DEFAULTS,
 	       "*undocumented*")
 static lispval define_local_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
@@ -370,7 +370,7 @@ static lispval define_local_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 
 /* This defines an identifier in the local environment only if
    it is not currently defined. */
-KNO_DEF_EVALFN("define-init",define_init_evalfn,
+DEFC_EVALFN("define-init",define_init_evalfn,KNO_EVALFN_DEFAULTS,
 	       "*undocumented*")
 static lispval define_init_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
@@ -401,7 +401,7 @@ static lispval define_init_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 /* This defines an identifier in the local environment to
    the value it would have anyway by environment inheritance.
    This is helpful if it was to rexport it, for example. */
-KNO_DEF_EVALFN("def+",define_return_evalfn,
+DEFC_EVALFN("def+",define_return_evalfn,KNO_EVALFN_DEFAULTS,
 	       "*undocumented*")
 static lispval define_return_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
@@ -424,7 +424,7 @@ static lispval define_return_evalfn(lispval expr,kno_lexenv env,kno_stack _stack
 /* This defines an identifier in the local environment only if
    it is not currently defined. */
 
-KNO_DEF_EVALFN("DEFIMPORT",defimport_evalfn,
+DEFC_EVALFN("DEFIMPORT",defimport_evalfn,KNO_EVALFN_DEFAULTS,
 	       "`(DEFIMPORT *name* '*module* [*origin*]) defines "
 	       "a local binding *name* for the value of *origin* "
 	       "in the module name *module*. If *origin* is not provided, "

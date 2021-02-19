@@ -251,7 +251,7 @@ static lispval load_source_for_module(lispval spec,u8_string module_source)
   return (lispval)env;
 }
 
-DEFCPRIM("reload-module",reload_module,
+DEFC_PRIM("reload-module",reload_module,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"module",kno_any_type,KNO_VOID})
@@ -473,7 +473,7 @@ KNO_EXPORT int kno_update_file_module(u8_string module_source,int force)
   else return 0;
 }
 
-DEFCPRIM("update-modules",update_modules_prim,
+DEFC_PRIM("update-modules",update_modules_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
 	 "**undocumented**",
 	 {"flag",kno_any_type,KNO_VOID})
@@ -484,7 +484,7 @@ static lispval update_modules_prim(lispval flag)
   else return VOID;
 }
 
-DEFCPRIM("update-module",update_module_prim,
+DEFC_PRIM("update-module",update_module_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "**undocumented**",
 	 {"spec",kno_any_type,KNO_VOID},
@@ -745,7 +745,7 @@ static int load_dynamic_module(lispval spec,void *data)
   else return 0;
 }
 
-DEFCPRIM("dynamic-load",dynamic_load_prim,
+DEFC_PRIM("dynamic-load",dynamic_load_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "loads a dynamic module into KNO. If *modname* (a "
 	 "string) is a path (includes a '/'), it is loaded "
@@ -806,8 +806,8 @@ lispval kno_find_module(lispval spec,int err)
       if (retval>0) {
 	clear_module_load_lock(spec);
 	module = kno_get_module(spec);
-	if (VOIDP(module)) {
-	  return kno_err(MissingModule,"kno_find_module",modname,spec);}
+	if (VOIDP(module))
+	  return kno_err(MissingModule,"kno_find_module",modname,spec);
 	kno_finish_module(module);
 	return module;}
       else if (retval<0) {
@@ -819,6 +819,17 @@ lispval kno_find_module(lispval spec,int err)
     if (err)
       return kno_err(kno_NoSuchModule,"kno_find_module",modname,spec);
     else return KNO_FALSE;}
+}
+
+KNO_EXPORT int kno_load_module(u8_string modname)
+{
+  lispval namesym = kno_intern(modname);
+  lispval module = kno_find_module(namesym,0);
+  if (KNO_FALSEP(module))
+    return 0;
+  else {
+    kno_decref(module);
+    return 1;}
 }
 
 /* The init function */

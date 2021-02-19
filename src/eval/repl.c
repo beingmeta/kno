@@ -54,7 +54,7 @@ KNO_EXPORT lispval with_history_evalfn
   return value;
 }
 
-DEFCPRIM("histref",histref_prim,MIN_ARGS(2)|MAX_ARGS(2),
+DEFC_PRIM("histref",histref_prim,MIN_ARGS(2)|MAX_ARGS(2),
 	 "returns the history item for "
 	 "*ref*, using the current historical context if *history* is "
 	 "not provided.",
@@ -72,7 +72,7 @@ static lispval histref_prim(lispval ref,lispval history)
   else return KNO_EMPTY;
 }
 
-DEFCPRIM("histfind",histfind_prim,MIN_ARGS(2)|MAX_ARGS(2),
+DEFC_PRIM("histfind",histfind_prim,MIN_ARGS(2)|MAX_ARGS(2),
 	 "returns the history reference for "
 	 "*value*, using the current historical context if *history* is "
 	 "not provided.",
@@ -90,7 +90,7 @@ static lispval histfind_prim(lispval ref,lispval history)
   else return KNO_EMPTY;
 }
 
-DEFCPRIM("histadd!",histadd_prim,MIN_ARGS(1)|MAX_ARGS(3),
+DEFC_PRIM("histadd!",histadd_prim,MIN_ARGS(1)|MAX_ARGS(3),
 	 "associates *val* with "
 	 "the history reference *ref*, creating a new reference if *ref* "
 	 "is not provided. This uses the current historical context if "

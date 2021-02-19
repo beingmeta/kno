@@ -50,7 +50,7 @@ static lispval unquote_symbol, else_symbol, apply_marker, logcxt_symbol;
 
 /* Trace functions */
 
-KNO_DEF_EVALFN("TIMEVAL",timed_eval_evalfn,
+DEFC_EVALFN("TIMEVAL",timed_eval_evalfn,KNO_EVALFN_DEFAULTS,
 	       "evaluates *expr* in *env*, logging "
 	       "the execution time.");
 static lispval timed_eval_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
@@ -64,7 +64,7 @@ static lispval timed_eval_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
   return value;
 }
 
-KNO_DEF_EVALFN("%TIMEVAL",timed_evalx_evalfn,
+DEFC_EVALFN("%TIMEVAL",timed_evalx_evalfn,KNO_EVALFN_DEFAULTS,
 	       "evaluates *expr* in *env*, "
 	       "returning a vector of the result and the execution time. "
 	       "If *expr* signals an error, the description exception object "
@@ -194,7 +194,7 @@ static lispval watchcall(lispval expr,kno_lexenv env,
   return kno_simplify_value(result);
 }
 
-KNO_DEF_EVALFN("%wc",watchcall_evalfn,
+DEFC_EVALFN("%wc",watchcall_evalfn,KNO_EVALFN_DEFAULTS,
 	       "applies *fn* to *args*, logging "
 	       "each *arg* (and its value) as well as the final result of "
 	       "applying *fn*.");
@@ -202,7 +202,7 @@ static lispval watchcall_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   return watchcall(expr,env,_stack,0);
 }
-KNO_DEF_EVALFN("%wc+",watchcall_plus_evalfn,
+DEFC_EVALFN("%wc+",watchcall_plus_evalfn,KNO_EVALFN_DEFAULTS,
 	       "applies *fn* to *args*, logging "
 	       "each *arg* (and its value) as well as the final result of "
 	       "applying *fn*. This also displays the expression for *fn* "
@@ -280,7 +280,7 @@ static void log_ptr(lispval val,lispval label_arg,lispval expr)
   else {}
 }
 
-KNO_DEF_EVALFN("%watchptr",watchptr_evalfn,
+DEFC_EVALFN("%watchptr",watchptr_evalfn,KNO_EVALFN_DEFAULTS,
 	       "evaluates *arg* and describes the "
 	       "resulting pointer value.");
 static lispval watchptr_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
@@ -291,7 +291,7 @@ static lispval watchptr_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   return value;
 }
 
-KNO_DEF_EVALFN("%watchcons",watchcons_evalfn,
+DEFC_EVALFN("%watchcons",watchcons_evalfn,KNO_EVALFN_DEFAULTS,
 	       "evaluates *exprs...* "
 	       "reporting any changes to the reference count data for the "
 	       "result of evaluating *ptrval*.");
@@ -338,7 +338,7 @@ static lispval watchcons_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   return kno_eval_body(body,env,_stack,"%WATCHCONS",label,0);
 }
 
-DEFCPRIM("%watchptrval",watchptr_prim,
+DEFC_PRIM("%watchptrval",watchptr_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	 "Describes the Kno pointer characteristics of "
 	 "*ptrval*, using a label string dervied from "
@@ -351,7 +351,7 @@ static lispval watchptr_prim(lispval val,lispval label_arg)
   return kno_incref(val);
 }
 
-KNO_DEF_XEVALFN("%watch",watch_evalfn,KNO_EVALFN_NOTAIL,
+DEFC_EVALFN("%watch",watch_evalfn,KNO_EVALFN_NOTAIL,
 		"logs information from the  current environment. Unless the "
 		"first argument is a literal string, it is evaluated and "
 		"both the expression and result are logged. Any remaining "
@@ -470,7 +470,7 @@ static lispval watch_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
     return value;}
 }
 
-KNO_DEF_EVALFN("%watchcond",watched_cond_evalfn,
+DEFC_EVALFN("%watchcond",watched_cond_evalfn,KNO_EVALFN_DEFAULTS,
 	       "`(%WATCHCOND ((*test* *consequents...)) *more clauses...*) "
 	       "executes a `COND` form but identifies which branch was taken.");
 static lispval watched_cond_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
@@ -550,7 +550,7 @@ static lispval watched_cond_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   return VOID;
 }
 
-KNO_DEF_EVALFN("%watchtry",watched_try_evalfn,
+DEFC_EVALFN("%watchtry",watched_try_evalfn,KNO_EVALFN_DEFAULTS,
 	       "`(%WATCHTRY ((*test* *consequents...)) *more clauses...*) "
 	       "executes a `TRY` form and logs which alternate returned "
 	       "non empty.");
@@ -620,7 +620,7 @@ KNO_EXPORT lispval _kno_dbg(lispval x)
 
 int (*kno_dump_exception)(lispval ex);
 
-KNO_DEF_EVALFN("dbg",dbg_evalfn,
+DEFC_EVALFN("dbg",dbg_evalfn,KNO_EVALFN_DEFAULTS,
 	       "evaluates *expr* and returns its value. "
 	       "Unless the value of *etc* is false (#f), This logs the value "
 	       "returned, any non-void result of evaluating *etc*, "
@@ -646,7 +646,7 @@ static lispval dbg_evalfn(lispval dbg_expr,kno_lexenv env,kno_stack stack)
   return arg;
 }
 
-KNO_DEF_EVALFN("dbgeval",dbgeval_evalfn,
+DEFC_EVALFN("dbgeval",dbgeval_evalfn,KNO_EVALFN_DEFAULTS,
 	       "evaluates *expr* returning its value. "
 	       "Unless the value of *etc* is false (#f), This logs the value "
 	       "returned, any non-void result of evaluating *etc*, "
@@ -731,7 +731,7 @@ KNO_EXPORT int kno_record_bug(lispval ex)
   else return kno_dump_bug(ex,kno_bugdir);
 }
 
-DEFCPRIM("dump-bug",dumpbug_prim,
+DEFC_PRIM("dump-bug",dumpbug_prim,
 	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	 "(DUMP-BUG *err* [*to*]) "
 	 "writes a DType representation of *err* to either "
@@ -819,7 +819,7 @@ static int config_bugdir(lispval var,lispval val,void *state)
 /* Google profiler usage */
 
 #if USING_GOOGLE_PROFILER
-KNO_DEF_EVALFN("google/profile",google_profile_evalfn,
+DEFC_EVALFN("google/profile",google_profile_evalfn,KNO_EVALFN_DEFAULTS,
 	       "evaluates the expressions "
 	       "in *body* with Google CPU profiling activated. If the second "
 	       "argument is a string, it is used as the outfile for the profiling "
@@ -868,7 +868,7 @@ static lispval gprofile_stop()
 
 static lispval profile_symbol;
 
-KNO_DEF_EVALFN("PROFILE",profiled_eval_evalfn,
+DEFC_EVALFN("PROFILE",profiled_eval_evalfn,KNO_EVALFN_DEFAULTS,
 	       "evaluates *expr*, returning "
 	       "the resulting value. The time taken to evaluate *expr* is "
 	       "tracked and added the the value of *label* in the hashtable "
@@ -906,7 +906,7 @@ static lispval profiled_eval_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
 static int mtracing=0;
 #endif
 
-DEFCPRIM("mtrace",mtrace_prim,
+DEFC_PRIM("mtrace",mtrace_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
 	 "Activates libc heap tracing via MALLOC_TRACE and "
 	 "returns true if it worked. Optional argument is a "
@@ -935,7 +935,7 @@ static lispval mtrace_prim(lispval arg)
 #endif
 }
 
-DEFCPRIM("muntrace",muntrace_prim,
+DEFC_PRIM("muntrace",muntrace_prim,
 	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
 	 "Deactivates libc heap tracing, returns true if it "
 	 "did anything")
@@ -953,7 +953,7 @@ static lispval muntrace_prim()
 
 /* WITH-CONTEXT */
 
-KNO_DEF_EVALFN("with-log-context",with_log_context_evalfn,
+DEFC_EVALFN("with-log-context",with_log_context_evalfn,KNO_EVALFN_DEFAULTS,
 	       "evaluates each expression in *body* while setting the "
 	       "*log context* to the result (a string or symbol) of "
 	       "evaluating *label-expr*. This log context will be displayed "
@@ -983,7 +983,7 @@ static lispval with_log_context_evalfn(lispval expr,kno_lexenv env,kno_stack _st
       return result;}}
 }
 
-DEFCPRIM("set-log-context!",set_log_context_prim,
+DEFC_PRIM("set-log-context!",set_log_context_prim,
 	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	 "only makes sense in the dynamic thread-specific "
 	 "scope of a `WITH-LOG-CONTEXT` expression and it "
@@ -1008,7 +1008,7 @@ static lispval set_log_context_prim(lispval label)
 #endif
 
 /* These are for wrapping around Scheme code to see in C profilers */
-KNO_DEF_EVALFN("eval1",eval1,
+DEFC_EVALFN("eval1",eval1,KNO_EVALFN_DEFAULTS,
 	       "evaulates *expr* and returns the "
 	       "result. This is used for debugging by labelling eval "
 	       "contexts in a way which is visible in C debuggers.");
@@ -1018,7 +1018,7 @@ static DONT_OPTIMIZE lispval eval1(lispval expr,kno_lexenv env,kno_stack s)
   return result;
 }
 
-KNO_DEF_EVALFN("eval2",eval2,
+DEFC_EVALFN("eval2",eval2,KNO_EVALFN_DEFAULTS,
 	       "evaulates *expr* and returns the "
 	       "result. This is used for debugging by labelling eval "
 	       "contexts in a way which is visible in C debuggers.");
@@ -1028,7 +1028,7 @@ static DONT_OPTIMIZE lispval eval2(lispval expr,kno_lexenv env,kno_stack s)
   return result;
 }
 
-KNO_DEF_EVALFN("eval3",eval3,
+DEFC_EVALFN("eval3",eval3,KNO_EVALFN_DEFAULTS,
 	       "evaulates *expr* and returns the "
 	       "result. This is used for debugging by labelling eval "
 	       "contexts in a way which is visible in C debuggers.");
@@ -1038,7 +1038,7 @@ static DONT_OPTIMIZE lispval eval3(lispval expr,kno_lexenv env,kno_stack s)
   return result;
 }
 
-KNO_DEF_EVALFN("eval4",eval4,
+DEFC_EVALFN("eval4",eval4,KNO_EVALFN_DEFAULTS,
 	       "evaulates *expr* and returns the "
 	       "result. This is used for debugging by labelling eval "
 	       "contexts in a way which is visible in C debuggers.");
@@ -1048,7 +1048,7 @@ static DONT_OPTIMIZE lispval eval4(lispval expr,kno_lexenv env,kno_stack s)
   return result;
 }
 
-KNO_DEF_EVALFN("eval5",eval5,
+DEFC_EVALFN("eval5",eval5,KNO_EVALFN_DEFAULTS,
 	       "evaulates *expr* and returns the "
 	       "result. This is used for debugging by labelling eval "
 	       "contexts in a way which is visible in C debuggers.");
@@ -1058,7 +1058,7 @@ static DONT_OPTIMIZE lispval eval5(lispval expr,kno_lexenv env,kno_stack s)
   return result;
 }
 
-KNO_DEF_EVALFN("eval6",eval6,
+DEFC_EVALFN("eval6",eval6,KNO_EVALFN_DEFAULTS,
 	       "evaulates *expr* and returns the "
 	       "result. This is used for debugging by labelling eval "
 	       "contexts in a way which is visible in C debuggers.");
@@ -1068,7 +1068,7 @@ static DONT_OPTIMIZE lispval eval6(lispval expr,kno_lexenv env,kno_stack s)
   return result;
 }
 
-KNO_DEF_EVALFN("eval7",eval7,
+DEFC_EVALFN("eval7",eval7,KNO_EVALFN_DEFAULTS,
 	       "evaulates *expr* and returns the "
 	       "result. This is used for debugging by labelling eval "
 	       "contexts in a way which is visible in C debuggers.");
@@ -1078,7 +1078,7 @@ static DONT_OPTIMIZE lispval eval7(lispval expr,kno_lexenv env,kno_stack s)
   return result;
 }
 
-DEFCPRIM("list9",list9,
+DEFC_PRIM("list9",list9,
 	 KNO_MAX_ARGS(9)|KNO_MIN_ARGS(0),
 	 "Returns a nine-element list (for testing the knox "
 	 "engine)",
@@ -1104,7 +1104,7 @@ static lispval list9(lispval arg1,lispval arg2,
 		       kno_incref(arg9));
 }
 
-DEFCPRIM("_plus4",plus4,
+DEFC_PRIM("_plus4",plus4,
 	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(1),
 	 "Add up to four numbers (for testing the knox "
 	 "engine)",
@@ -1120,7 +1120,7 @@ static lispval plus4(lispval arg1,lispval arg2,
   return KNO_INT(sum);
 }
 
-DEFCPRIM("_plus5",plus5,
+DEFC_PRIM("_plus5",plus5,
 	 KNO_MAX_ARGS(5)|KNO_MIN_ARGS(1),
 	 "Add up to five numbers (for testing the knox "
 	 "engine)",
@@ -1138,7 +1138,7 @@ static lispval plus5(lispval arg1,lispval arg2,
   return KNO_INT(sum);
 }
 
-DEFCPRIM("_plus6",plus6,
+DEFC_PRIM("_plus6",plus6,
 	 KNO_MAX_ARGS(6)|KNO_MIN_ARGS(2),
 	 "Add up to six numbers (for testing the knox "
 	 "engine)",
@@ -1157,7 +1157,7 @@ static lispval plus6(lispval arg1,lispval arg2,
   return KNO_INT(sum);
 }
 
-DEFCPRIM("_plus7",plus7,
+DEFC_PRIM("_plus7",plus7,
 	 KNO_MAX_ARGS(7)|KNO_MIN_ARGS(3),
 	 "Add up to seven numbers (for testing the knox "
 	 "engine)",
@@ -1179,7 +1179,7 @@ static lispval plus7(lispval arg1,lispval arg2,
   return KNO_INT(sum);
 }
 
-DEFCPRIM("_plus8",plus8,
+DEFC_PRIM("_plus8",plus8,
 	 KNO_MAX_ARGS(8)|KNO_MIN_ARGS(3),
 	 "Add up to eight numbers (for testing the knox "
 	 "engine)",
@@ -1203,7 +1203,7 @@ static lispval plus8(lispval arg1,lispval arg2,
   return KNO_INT(sum);
 }
 
-DEFCPRIM("_plus9",plus9,
+DEFC_PRIM("_plus9",plus9,
 	 KNO_MAX_ARGS(9)|KNO_MIN_ARGS(3),
 	 "Add numberss (for testing the knox engine)",
 	 {"arg1",kno_any_type,KNO_INT(0)},
@@ -1228,7 +1228,7 @@ static lispval plus9(lispval arg1,lispval arg2,
   return KNO_INT(sum);
 }
 
-DEFCPRIM("_plus10",plus10,
+DEFC_PRIM("_plus10",plus10,
 	 KNO_MAX_ARGS(10)|KNO_MIN_ARGS(3),
 	 "Add numberss (for testing the knox engine)",
 	 {"arg1",kno_any_type,KNO_INT(0)},
@@ -1256,7 +1256,7 @@ static lispval plus10(lispval arg1,lispval arg2,
   return KNO_INT(sum);
 }
 
-DEFCPRIM("_plus11",plus11,
+DEFC_PRIM("_plus11",plus11,
 	 KNO_MAX_ARGS(11)|KNO_MIN_ARGS(3),
 	 "Add numberss (for testing the knox engine)",
 	 {"arg1",kno_any_type,KNO_INT(0)},
@@ -1286,7 +1286,7 @@ static lispval plus11(lispval arg1,lispval arg2,
   return KNO_INT(sum);
 }
 
-DEFCPRIM("_plus12",plus12,
+DEFC_PRIM("_plus12",plus12,
 	 KNO_MAX_ARGS(12)|KNO_MIN_ARGS(3),
 	 "Add numberss (for testing the knox engine)",
 	 {"arg1",kno_any_type,KNO_INT(0)},
@@ -1318,7 +1318,7 @@ static lispval plus12(lispval arg1,lispval arg2,
   return KNO_INT(sum);
 }
 
-DEFCPRIM("_plus13",plus13,
+DEFC_PRIM("_plus13",plus13,
 	 KNO_MAX_ARGS(13)|KNO_MIN_ARGS(3),
 	 "Add numberss (for testing the knox engine)",
 	 {"arg1",kno_any_type,KNO_INT(0)},
@@ -1353,7 +1353,7 @@ static lispval plus13(lispval arg1,lispval arg2,
   return KNO_INT(sum);
 }
 
-DEFCPRIM("_plus14",plus14,
+DEFC_PRIM("_plus14",plus14,
 	 KNO_MAX_ARGS(14)|KNO_MIN_ARGS(3),
 	 "Add numbers (for testing the knox engine)",
 	 {"arg1",kno_any_type,KNO_INT(0)},
@@ -1390,7 +1390,7 @@ static lispval plus14(lispval arg1,lispval arg2,
   return KNO_INT(sum);
 }
 
-DEFCPRIM("_plus15",plus15,
+DEFC_PRIM("_plus15",plus15,
 	 KNO_MAX_ARGS(15)|KNO_MIN_ARGS(3),
 	 "Add numbers (for testing the knox engine)",
 	 {"arg1",kno_any_type,KNO_INT(0)},
