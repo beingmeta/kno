@@ -311,11 +311,28 @@ static ssize_t write_xtype(kno_outbuf out,lispval x,xtype_refs refs)
 	rv=kno_write_byte(out,xt_zstd);
       else if (x==kno_snappy_xtag)
 	rv=kno_write_byte(out,xt_snappy);
-      else if (flags&XTYPE_WRITE_OPAQUE)
-	return write_opaque(out,x,refs);
       else {
-	kno_seterr("XType/BadImmediate","xt_write_dtype",NULL,x);
-	return -1;}}
+	kno_lisp_type typecode = KNO_IMMEDIATE_TYPE(x);
+	if (kno_xtype_writers[typecode])
+	  return kno_xtype_writers[typecode](out,x,refs);
+	struct KNO_TYPEINFO *typeinfo = kno_probe_typeinfo(KNO_CTYPE(typecode));
+	if ( (typeinfo) && (typeinfo->type_dumpfn) ) {
+	  lispval dumped = typeinfo->type_dumpfn(x,typeinfo);
+	  if (!(KNO_ABORTED(dumped))) {
+	    ssize_t rv = kno_write_tagged_xtype
+	      (out,typeinfo->type_usetag,dumped,refs);
+	    kno_decref(dumped);
+	    return rv;}
+	  else {
+	    u8_log(LOGWARN,"xtype/dumpfn_failed",
+		   "Couldn't render %q data for %q",
+		   typeinfo->typetag,x);
+	    kno_clear_errors(1);}}
+	if (flags&XTYPE_WRITE_OPAQUE)
+	  return write_opaque(out,x,refs);
+	else {
+	  kno_seterr("XType/BadImmediate","xt_write_dtype",NULL,x);
+	  return -1;}}}
     return rv;}
   else NO_ELSE;
   kno_lisp_type ctype = KNO_CONS_TYPEOF(x);
@@ -1057,6 +1074,20 @@ static ssize_t write_hashset(kno_outbuf out,struct KNO_HASHSET *hashtable,
     return xtype_len;}
   else return rv;
 }
+
+KNO_EXPORT ssize_t kno_write_tagged_xtype(kno_outbuf out,lispval tag,
+					  lispval data,
+					  xtype_refs refs)
+{
+  ssize_t size = 1;
+  kno_output_byte(out,xt_tagged);
+  ssize_t rv = kno_write_xtype(out,tag,refs);
+  if (rv<0) return rv; else size += rv;
+  rv = kno_write_xtype(out,data,refs);
+  if (rv<0) return rv;
+  else return size+rv;
+}
+
 
 static ssize_t write_compound(kno_outbuf out,
 			      struct KNO_COMPOUND *cvec,

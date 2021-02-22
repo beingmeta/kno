@@ -340,6 +340,29 @@ KNO_EXPORT void kno_histclear(int size)
   else kno_thread_set(history_symbol,KNO_FALSE);
 }
 
+/* Histrefs parse config */
+
+static lispval histrefs_parse_config_get(lispval name,void *ignored)
+{
+  if (kno_resolve_histref == kno_get_histref)
+    return KNO_TRUE;
+  else return KNO_FALSE;
+}
+
+static int histrefs_parse_config_set(lispval name,lispval val,void *ignored)
+{
+  if (KNO_FALSEP(val)) {
+    if  (kno_resolve_histref) {
+      kno_resolve_histref = NULL;
+      return 1;}
+    else return 0;}
+  else if (kno_resolve_histref == kno_get_histref)
+    return 0;
+  else {
+    kno_resolve_histref = kno_get_histref;
+    return 1;}
+}
+
 /* Initialization */
 
 static int history_initialized = 0;
@@ -354,8 +377,9 @@ KNO_EXPORT void kno_init_history_c()
   history_symbol = kno_intern("%history");
   histref_typetag = kno_intern("%histref");
 
-  kno_resolve_histref = kno_get_histref;
-
+  kno_register_config("HISTREFS","Whether to resolve histrefs when parsing",
+		      histrefs_parse_config_get,histrefs_parse_config_set,
+		      NULL);
 }
 
 

@@ -26,7 +26,7 @@ typedef lispval (*kno_type_dispatchfn)(lispval,lispval,int,
 
 typedef struct KNO_TYPEINFO {
   KNO_CONS_HEADER;
-  lispval typetag, type_props;
+  lispval typetag, type_props, type_usetag;
   u8_string type_name, type_description;
   char type_isopaque, type_ismutable, type_issequence, type_istable;
   kno_lisp_type type_basetype;

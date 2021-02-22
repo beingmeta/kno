@@ -197,7 +197,7 @@ KNO_EXPORT int _KNO_CHECKTYPE(lispval obj,lispval objtype)
 		 ( (KNO_RAWPTR_TAG(obj)) == objtype) ) );
     else if (KNO_IMMEDIATE_TYPEP(objtype,kno_ctype_type)) {
       kno_lisp_type ltype = (KNO_IMMEDIATE_DATA(objtype));
-      return (KNO_TYPEP(obj,ltype));}
+      return (KNO_XTYPEP(obj,ltype));}
     else return 0;}
   else if (KNO_OIDP(objtype))
     return ( ( (KNO_COMPOUNDP(obj)) && ( (KNO_COMPOUND_TAG(obj)) == objtype) ) ||
@@ -342,34 +342,39 @@ static void init_type_names()
   kno_type_docs[kno_typeref_type]=_("typeref");
   kno_type_names[kno_coderef_type]=_("coderef");
   kno_type_docs[kno_coderef_type]=_("coderef");
-  kno_type_names[kno_pool_type]=_("pool");
-  kno_type_docs[kno_pool_type]=_("pool");
-  kno_type_names[kno_index_type]=_("index");
-  kno_type_docs[kno_index_type]=_("index");
+  kno_type_names[kno_pool_type]=_("poolref");
+  kno_type_docs[kno_pool_type]=
+    _("a pool ID mapped to a static (eternal) pool");
+  kno_type_names[kno_index_type]=_("indexref");
+  kno_type_docs[kno_index_type]=
+    _("an index ID mapped to a static (eternal) index");
   kno_type_names[kno_histref_type]=_("histref");
   kno_type_docs[kno_histref_type]=_("histref");
-  kno_type_names[kno_ctype_type]=_("basetype");
-  kno_type_docs[kno_ctype_type]=_("a representation of a primitive C type");
+  kno_type_names[kno_ctype_type]=_("ctype");
+  kno_type_docs[kno_ctype_type]=
+    _("a representation of a primitive type value used by the runtime");
 
   kno_type_names[kno_string_type]=_("string");
-  kno_type_docs[kno_string_type]=_("string");
+  kno_type_docs[kno_string_type]=_("a UTF-8 encoded string");
   kno_type_names[kno_packet_type]=_("packet");
-  kno_type_docs[kno_packet_type]=_("packet");
+  kno_type_docs[kno_packet_type]=_("a byte vector");
   kno_type_names[kno_secret_type]=_("secret");
-  kno_type_docs[kno_secret_type]=_("secret");
+  kno_type_docs[kno_secret_type]=
+    _("a byte vector which doesn't easily disclose its data");
   kno_type_names[kno_bigint_type]=_("bigint");
-  kno_type_docs[kno_bigint_type]=_("bigint");
+  kno_type_docs[kno_bigint_type]=_("an unlimited-precision integer");
   kno_type_names[kno_pair_type]=_("pair");
   kno_type_docs[kno_pair_type]=_("pair");
   kno_type_names[kno_cdrcode_type]=_("cdrcode");
-  kno_type_docs[kno_cdrcode_type]=_("cdrcode");
+  kno_type_docs[kno_cdrcode_type]=
+    _("a half-cons for compact representations of linked lists");
 
   kno_type_names[kno_typeinfo_type]=_("typeinfo");
-  kno_type_docs[kno_typeinfo_type]=_("typeinfo");
+  kno_type_docs[kno_typeinfo_type]=_("a type description");
   kno_type_names[kno_compound_type]=_("compound");
   kno_type_docs[kno_compound_type]=_("compound");
   kno_type_names[kno_rawptr_type]=_("rawptr");
-  kno_type_docs[kno_rawptr_type]=_("rawptr");
+  kno_type_docs[kno_rawptr_type]=_("a 'wrapped' C pointer value");
 
   kno_type_names[kno_choice_type]=_("choice");
   kno_type_docs[kno_choice_type]=_("choice");
@@ -441,7 +446,7 @@ static void init_type_names()
   kno_type_names[kno_regex_type]=_("regex");
   kno_type_docs[kno_regex_type]=_("regex");
 
-  kno_type_names[kno_subjob_type]=_("subjog");
+  kno_type_names[kno_subjob_type]=_("subjob");
   kno_type_docs[kno_subjob_type]=_("a sub-process (subjob) object");
 
   kno_type_names[kno_consblock_type]=_("consblock");
@@ -449,11 +454,11 @@ static void init_type_names()
 
   kno_type_names[kno_consed_pool_type]=_("raw pool");
   kno_type_docs[kno_consed_pool_type]=
-    _("a pointer to an unregistered ('eternal') pool");
+    _("a pointer to an unregistered ('ephemeral') pool");
 
   kno_type_names[kno_consed_index_type]=_("raw index");
   kno_type_docs[kno_consed_index_type]=
-    _("a pointer to an unregistered ('eternal') index");
+    _("a pointer to an unregistered ('ephemeral') index");
 
   kno_type_names[kno_sqldb_type]=_("sqldb");
   kno_type_docs[kno_sqldb_type]=_("sqldb");
@@ -471,7 +476,20 @@ static void init_type_names()
  
   kno_type_names[kno_type_type]=_("type");
   kno_type_docs[kno_type_type]=
-    _("a type reference is a basetype, a tag (symbol or OID) or a typeinfo object");
+    _("a ctype, a type tag (symbol or OID) or a typeinfo object");
+
+  kno_type_names[kno_number_type]=_("number");
+  kno_type_docs[kno_number_type]=_("a number");
+
+  kno_type_names[kno_applicable_type]=_("applicable");
+  kno_type_docs[kno_applicable_type]=
+    _("an applicable object (prodcure, primitive, etc)");
+
+  kno_type_names[kno_frame_type]=_("frame");
+  kno_type_docs[kno_frame_type]=_("a `frame`, an OID or keymap");
+
+  kno_type_names[kno_slotid_type]=_("slotid");
+  kno_type_docs[kno_slotid_type]=_("a `slotid`, a symbol or an OID");
 
   kno_type_names[kno_keymap_type]=_("keymap");
   kno_type_docs[kno_keymap_type]=_("a slotmap or schemap");
@@ -484,6 +502,15 @@ static void init_type_names()
 
   kno_type_names[kno_opts_type]=_("optsarg");
   kno_type_docs[kno_opts_type]=_("an opts data structure");
+
+  kno_type_names[kno_xpool_type]=_("pool");
+  kno_type_docs[kno_xpool_type]=
+    _("a registered pool id or a consed pool object");
+
+  kno_type_names[kno_xindex_type]=_("index");
+  kno_type_docs[kno_xindex_type]=
+    _("a registered index id or a consed index object");
+
 }
 
 static int lisp_types_version = 101;
@@ -616,6 +643,13 @@ KNO_EXPORT int kno_init_lisp_types()
 	       "Couldn't register typename '%s' for typecode=%d",
 	       hashname,typecode);}
     typecode++;}
+  kno_add_constname("number",KNO_NUMBER_TYPE);
+  kno_add_constname("table",KNO_TABLE_TYPE);
+  kno_add_constname("sequence",KNO_SEQUENCE_TYPE);
+  kno_add_constname("frame",KNO_FRAME_TYPE);
+  kno_add_constname("slotid",KNO_SLOTID_TYPE);
+  kno_add_constname("pool",KNO_XPOOL_TYPE);
+  kno_add_constname("index",KNO_XINDEX_TYPE);
 
   u8_threadcheck();
 

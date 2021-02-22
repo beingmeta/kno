@@ -19,7 +19,7 @@
 
 /* UUID Types */
 
-static lispval uuid_symbol;
+static lispval uuid_tag;
 
 KNO_EXPORT lispval kno_cons_uuid
 (struct KNO_UUID *ptr,
@@ -65,7 +65,7 @@ static ssize_t uuid_dtype(struct KNO_OUTBUF *out,lispval x)
   ssize_t size = 0;
   struct KNO_UUID *uuid = kno_consptr(struct KNO_UUID *,x,kno_uuid_type);
   kno_write_byte(out,dt_compound);
-  size = size+1+kno_write_dtype(out,uuid_symbol);
+  size = size+1+kno_write_dtype(out,uuid_tag);
   kno_write_byte(out,dt_packet); kno_write_4bytes(out,16); size = size+5;
   kno_write_bytes(out,uuid->uuid16,16); size = size+16;
   return size;
@@ -108,6 +108,50 @@ static int unparse_uuid(u8_output out,lispval x)
   return 1;
 }
 
+
+/* Base types */
+
+static lispval basetype_tag;
+
+static lispval basetype_restore(lispval MU tag,lispval x,kno_typeinfo MU e)
+{
+  if (FIXNUMP(x)) {
+    int codeval = KNO_FIX2INT(x);
+    if ( (codeval >= 0) && (codeval < kno_xtype_limit ) )
+      return KNO_CTYPE(codeval);}
+  return kno_incref(x);
+}
+
+static ssize_t write_basetype_dtype(struct KNO_OUTBUF *out,lispval x)
+{
+  int ival = KNO_IMMEDIATE_DATA(x);
+  ssize_t size = 1;
+  kno_write_byte(out,dt_compound);
+  size = size+kno_write_dtype(out,basetype_tag);
+  size = size+kno_write_byte(out,dt_fixnum);
+  size = size+kno_write_4bytes(out,ival);
+  return size;
+}
+
+static ssize_t write_basetype_xtype(struct KNO_OUTBUF *out,lispval x,xtype_refs refs)
+{
+  int ival = KNO_IMMEDIATE_DATA(x);
+  kno_write_byte(out,xt_tagged);
+  ssize_t size = 1;
+  ssize_t rv = kno_write_xtype(out,basetype_tag,refs);
+  if (rv<0) return rv; else size +=rv;
+  rv = kno_write_byte(out,xt_posint);
+  if (rv<0) return rv; else size +=rv;
+  rv = kno_write_varint(out,ival);
+  if (rv<0) return rv;
+  else return size+rv;
+}
+
+static lispval basetype_dump(lispval x,kno_typeinfo ignored)
+{
+  int ival = KNO_IMMEDIATE_DATA(x);
+  return KNO_INT(ival);
+}
 
 /* Timestamps */
 
@@ -457,9 +501,9 @@ void kno_init_misctypes_c()
   kno_unparsers[kno_timestamp_type]=unparse_timestamp;
   kno_hashfns[kno_timestamp_type]=hash_timestamp;
 
-  uuid_symbol = kno_intern("uuid");
+  uuid_tag = kno_intern("uuid");
   {
-    struct KNO_TYPEINFO *e = kno_use_typeinfo(uuid_symbol);
+    struct KNO_TYPEINFO *e = kno_use_typeinfo(uuid_tag);
     e->type_dumpfn = uuid_dump;
     e->type_restorefn = uuid_restore;}
 
@@ -502,6 +546,17 @@ void kno_init_misctypes_c()
     info->type_restorefn = regex_restore;}
   kno_dtype_writers[kno_regex_type] = write_regex_dtype;
   kno_xtype_writers[kno_regex_type] = write_regex_xtype;
+
+  basetype_tag = kno_intern("%kno:basetype");
+  {struct KNO_TYPEINFO *info = kno_use_typeinfo(basetype_tag);
+    info->type_restorefn = basetype_restore;}
+  {struct KNO_TYPEINFO *info = kno_use_typeinfo(KNO_CTYPE(kno_ctype_type));
+    kno_decref(info->type_usetag);
+    info->type_usetag = basetype_tag;
+    info->type_dumpfn = basetype_dump;}
+
+  kno_dtype_writers[kno_ctype_type] = write_basetype_dtype;
+  /*  kno_xtype_writers[kno_ctype_type] = write_basetype_xtype; */
 
   u8_register_source_file(_FILEINFO);
 }

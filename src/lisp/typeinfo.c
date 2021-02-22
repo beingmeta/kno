@@ -83,8 +83,19 @@ KNO_EXPORT struct KNO_TYPEINFO *kno_use_typeinfo(lispval tag)
     KNO_INIT_STATIC_CONS(info,kno_typeinfo_type);
     info->typetag = tag; kno_incref(tag);
     info->type_props = kno_make_slotmap(2,0,NULL);
+    if ( (KNO_OIDP(tag)) || (KNO_SYMBOLP(tag)) )
+      info->type_usetag=tag;
+    else if (KNO_TYPEP(tag,kno_ctype_type)) {
+      u8_string name = kno_type2name((kno_lisp_type)(KNO_IMMEDIATE_DATA(tag)));
+      u8_byte buf[strlen(name)+17];
+      info->type_usetag=kno_intern(u8_bprintf(buf,"kno:basetype:%s",name));}
+    else {
+      U8_STATIC_OUTPUT(tagid,42);
+      kno_unparse(tagidout,tag);
+      info->type_usetag=kno_stream_string(tagidout);
+      u8_close_output(tagidout);}
     info->type_name = (KNO_SYMBOLP(tag)) ? (KNO_SYMBOL_NAME(tag)) :
-      (KNO_STRINGP(tag)) ? (KNO_CSTRING(tag)) :
+      (KNO_STRINGP(tag)) ? (u8_strdup(KNO_CSTRING(tag))) :
       (KNO_TYPEP(tag,kno_ctype_type)) ?
       (u8_strdup(kno_type2name((kno_lisp_type)(KNO_IMMEDIATE_DATA(tag))))) :
       (kno_lisp2string(tag));
@@ -125,6 +136,7 @@ static void recycle_typeinfo(struct KNO_RAW_CONS *c)
   if (typeinfo->type_description) {
     u8_free(typeinfo->type_description);
     typeinfo->type_description=NULL;}
+  kno_decref(typeinfo->type_usetag);
   u8_free(typeinfo);
 }
 

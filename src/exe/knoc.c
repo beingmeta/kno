@@ -769,6 +769,8 @@ int main(int argc,char **argv)
   kno_init_webtools();
 #endif
 
+  kno_set_config("HISTREFS",KNO_TRUE);
+
   lispval expr = VOID, result = VOID, lastval = VOID;
   u8_encoding enc = u8_get_default_encoding();
   u8_input in = (u8_input)u8_open_xinput(0,enc);

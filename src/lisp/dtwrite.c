@@ -282,10 +282,9 @@ KNO_EXPORT ssize_t kno_write_dtype(struct KNO_OUTBUF *out,lispval x)
       else if ((KNO_VALID_TYPECODEP(itype)) && (kno_dtype_writers[itype]))
         return kno_dtype_writers[itype](out,x);
       else if ((out->buf_flags)&(KNO_WRITE_OPAQUE))
-        return write_opaque(out,x);
-      else if ((kno_dtype_error) &&
-               (retval = kno_dtype_error(out,x,"no handler")))
-        return retval;
+	return write_opaque(out,x);
+      else if ((kno_dtype_error) && (retval = kno_dtype_error(out,x,"no handler")))
+	return retval;
       else return KNO_ERR(-1,kno_NoMethod,_("Can't write DTYPE"),NULL,x);
       break;}
     case kno_cons_ptr_type: {/* output cons */

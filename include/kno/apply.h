@@ -164,6 +164,17 @@ struct KNO_FUNCTION {
 };
 
 #define KNO_FCN_NAME(x) (((kno_function)x)->fcn_name)
+#define KNO_FCN_FILENAME(x) (((kno_function)x)->fcn_filename)
+#define KNO_FCN_DOCSTRING(x) (((kno_function)x)->fcn_doc)
+#define KNO_FCN_MODULE(x) (((kno_function)x)->fcn_moduleid)
+#define KNO_FCN_ARITY(x) (((kno_function)x)->fcn_arity)
+#define KNO_FCN_MIN_ARITY(x) (((kno_function)x)->fcn_min_arity)
+#define KNO_FCN_CALL_WIDTH(x) (((kno_function)x)->fcn_call_width)
+#define KNO_FCN_ARGINFO_LEN(x) (((kno_function)x)->fcn_arginfo_len)
+#define KNO_FCN_SCHEMA(x) (((kno_function)x)->fcn_schema)
+#define KNO_FCN_ATTRIBS(x) (((kno_function)x)->fcn_attribs)
+#define KNO_FCN_FCNID(x) (((kno_function)x)->fcn_schema)
+#define KNO_FCN_PROFILE(x) (((kno_function)x)->fcn_profile)
 
 struct KNO_CPRIM {
   KNO_FUNCTION_FIELDS;
@@ -395,6 +406,11 @@ KNO_EXPORT int _KNO_APPLICABLE_TYPEP(int typecode);
    (KNO_APPLICABLE_TYPEP(KNO_PRIM_TYPE(x))) )
 
 #endif
+
+#define KNO_PREDICATEP(p) \
+  ((KNO_FUNCTIONP(p)) ? \
+  ( (KNO_FCN_ARITY(p)>0) && (KNO_FCN_MIN_ARITY(p)==1) ) : \
+   (KNO_APPLICABLEP(p)))
 
 KNO_EXPORT kno_function _KNO_GETFUNCTION(lispval x);
 

@@ -801,6 +801,50 @@ static void *_kno_thread_main(void *data)
   return NULL;
 }
 
+DEF_KNOSYM(priority); DEF_KNOSYM(policy);
+DEF_KNOSYM(fifo); DEF_KNOSYM(other); DEF_KNOSYM(roundrobin);
+
+static void init_pthread_attrs(pthread_attr_t *attr,lispval opts)
+{
+  pthread_attr_init(attr);
+  /* stacksize */
+  lispval stacksize_opt = kno_getopt(opts,KNOSYM(stacksize),KNO_VOID);
+  ssize_t use_stacksize = (KNO_FIXNUMP(stacksize_opt)) ? (KNO_FIX2INT(stacksize_opt)) : (-1);
+  if (use_stacksize < 0) {
+    if (thread_stacksize < 0)
+      use_stacksize=KNO_DEFAULT_STACKSIZE;
+    else use_stacksize = thread_stacksize;}
+  if (use_stacksize > KNO_MIN_STACKSIZE)
+    pthread_attr_setstacksize(attr,use_stacksize);
+  else pthread_attr_setstacksize(attr,KNO_MIN_STACKSIZE);
+  kno_decref(stacksize_opt);
+
+  /* sched_priority */
+  lispval priority_opt = kno_getopt(opts,KNOSYM(priority),KNO_VOID);
+  if (KNO_FIXNUMP(priority_opt)) {
+    int priority = KNO_FIX2INT(priority_opt);
+    struct sched_param param = { priority };
+    pthread_attr_setschedparam(attr,&param);}
+  else u8_log(LOGWARN,"BadThreadPriorityValue","%q",priority_opt);
+  kno_decref(priority_opt);
+
+  /* policy opt */
+  lispval policy_opt = kno_getopt(opts,KNOSYM(policy),KNO_VOID);
+  if ( policy_opt == (KNOSYM(fifo)) )
+    pthread_attr_setschedpolicy(attr,SCHED_FIFO);
+  else if ( policy_opt == (KNOSYM(roundrobin)) )
+    pthread_attr_setschedpolicy(attr,SCHED_RR);
+  else if ( policy_opt == (KNOSYM(other)) )
+    pthread_attr_setschedpolicy(attr,SCHED_OTHER);
+  else u8_log(LOGWARN,"BadThreadPriorityValue","%q",policy_opt);
+  kno_decref(policy_opt);
+
+  /* inheritsched */
+  /* name */
+  /* guardsize */
+  /* scope */
+}
+
 KNO_EXPORT
 kno_thread kno_thread_call(lispval *resultptr,
 			   lispval fn,int n,lispval *args,
@@ -826,17 +870,7 @@ kno_thread kno_thread_call(lispval *resultptr,
   tstruct->finished = -1;
   tstruct->flags = flags;
   tstruct->opts = kno_incref(opts); 
-  pthread_attr_init(&(tstruct->attr));
-  lispval stacksize_opt = kno_getopt(opts,KNOSYM(stacksize),KNO_VOID);
-  ssize_t use_stacksize = (KNO_FIXNUMP(stacksize_opt)) ? (KNO_FIX2INT(stacksize_opt)) : (-1);
-  if (use_stacksize < 0) {
-    if (thread_stacksize < 0)
-      use_stacksize=KNO_DEFAULT_STACKSIZE;
-    else use_stacksize = thread_stacksize;}
-  if (use_stacksize > KNO_MIN_STACKSIZE)
-    pthread_attr_setstacksize(&(tstruct->attr),use_stacksize);
-  else pthread_attr_setstacksize(&(tstruct->attr),KNO_MIN_STACKSIZE);
-  kno_decref(stacksize_opt);
+  init_pthread_attrs(&(tstruct->attr),opts);
   tstruct->applydata.fn = kno_incref(fn);
   tstruct->applydata.n_args = n;
   tstruct->applydata.args = rail;
@@ -871,14 +905,7 @@ kno_thread kno_thread_eval(lispval *resultptr,
   tstruct->finished = -1;
   tstruct->flags = flags|KNO_EVAL_THREAD;
   tstruct->opts = kno_incref(opts); 
-  pthread_attr_init(&(tstruct->attr));
-  lispval stacksize_opt = kno_getopt(opts,KNOSYM(stacksize),KNO_VOID);
-  ssize_t use_stacksize = (KNO_FIXNUMP(stacksize_opt)) ? (KNO_FIX2INT(stacksize_opt)) : (-1);
-  if (use_stacksize < 0) use_stacksize = thread_stacksize;
-  if (use_stacksize > KNO_MIN_STACKSIZE)
-    pthread_attr_setstacksize(&(tstruct->attr),use_stacksize);
-  else pthread_attr_setstacksize(&(tstruct->attr),KNO_MIN_STACKSIZE);
-  kno_decref(stacksize_opt);
+  init_pthread_attrs(&(tstruct->attr),opts);
   tstruct->evaldata.expr = kno_incref(expr);
   tstruct->evaldata.env = kno_copy_env(env);
   /* We need to do this first, before the thread exits and recycles itself! */

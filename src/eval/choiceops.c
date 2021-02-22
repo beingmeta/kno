@@ -1171,18 +1171,47 @@ static int non_deterministicp(lispval fn)
   else return 0;
 }
 
+#define VOID_SELECTORP(x) \
+  ( (KNO_VOIDP(x)) || (KNO_EMPTYP(x)) || (KNO_FALSEP(x)) )
+
+static int check_selector(lispval selector,lispval obj)
+{
+  if (VOID_SELECTORP(selector))
+    return 1;
+  else if (KNO_TYPE_TYPEP(selector))
+    return KNO_CHECKTYPE(obj,selector);
+  else if (KNO_PREDICATEP(selector)) {
+    lispval result = kno_apply(selector,1,&obj);
+    if (KNO_ABORTED(result)) return -1;
+    else if ( (KNO_FALSEP(result)) || (KNO_EMPTYP(result)) )
+      return 0;
+    kno_decref(result);
+    return 1;}
+  else return kno_err("BadSelector","check_selector",NULL,selector);
+}
+
 static lispval inner_reduce_choice
-(lispval choice,lispval fn,lispval start,lispval keyfn);
+(lispval choice,lispval fn,lispval start,lispval keyfn,lispval selector,
+ int skiperrs);
+
+DEF_KNOSYM(start); DEF_KNOSYM(keyfn); DEF_KNOSYM(selector);
+DEF_KNOSYM(skiperrs);
 
 DEFC_PRIM("reduce-choice",reduce_choice,
-	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "**undocumented**",
-	 {"fn",kno_any_type,KNO_VOID},
-	 {"choice",kno_any_type,KNO_VOID},
-	 {"start",kno_any_type,KNO_VOID},
-	 {"keyfn",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(5)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	  "Uses *fn* to reduce the elements of *choice*. "
+	  "For each *item* in *choice*, *fn* is called on either "
+	  "the item itself or (*keyfn* *item*) and a **reduce-state** "
+	  "returning the final result. When provided, *selector* "
+	  "determines a subset of arguments to be combined using *fn*. "
+	  "*selector* is either a type reference or a predicate function.",
+	  {"fn",kno_any_type,KNO_VOID},
+	  {"choice",kno_any_type,KNO_VOID},
+	  {"start",kno_any_type,KNO_VOID},
+	  {"keyfn",kno_any_type,KNO_VOID},
+	  {"selector",kno_any_type,KNO_VOID})
 static lispval reduce_choice(lispval fn,lispval choice,lispval start,
-			     lispval keyfn)
+			     lispval keyfn,lispval selector)
 {
   /* Type checking up front */
   if (KNO_CHOICEP(fn)) {
@@ -1193,24 +1222,54 @@ static lispval reduce_choice(lispval fn,lispval choice,lispval start,
   else if (! (USUALLY(reduce_operatorp(fn))) )
     return kno_type_error("reduce operator","reduce_choice",fn);
   else NO_ELSE;
-  if ( (VOIDP(keyfn)) || (FALSEP(keyfn)) || (DEFAULTP(keyfn)) ) {}
-  else if (USUALLY(KEYFNP(keyfn))) {}
+  int skiperrs = 0;
+  int decref_start = 0, decref_keyfn = 0, decref_selector = 0;
+  if (KNO_TABLEP(start)) {
+    lispval opts = start;
+
+    if (kno_testopt(opts,KNOSYM(skiperrs),KNO_VOID)) skiperrs=1;
+
+    start = kno_getopt(opts,KNOSYM(start),KNO_VOID);
+    if (KNO_CONSP(start)) decref_start = 1;
+
+    if ( (VOIDP(keyfn)) || (FALSEP(keyfn)) || (DEFAULTP(keyfn)) ) {
+      keyfn = kno_getopt(opts,KNOSYM(keyfn),KNO_VOID);
+      if (KNO_CONSP(keyfn)) decref_keyfn = 1;}
+
+    if ( (VOIDP(selector)) || (FALSEP(selector)) || (DEFAULTP(selector)) ) {
+      selector = kno_getopt(opts,KNOSYM(selector),KNO_VOID);
+      if (KNO_CONSP(selector)) decref_selector = 1;}
+  }
+
+  if (USUALLY(KEYFNP(keyfn))) {}
   else if (KNO_CHOICEP(keyfn)) {
     KNO_DO_CHOICES(ok,keyfn)
       if (! (USUALLY(KEYFNP(ok))) ) {
 	KNO_STOP_DO_CHOICES;
 	return kno_type_error("object key","reduce_choice",ok);}}
   else return kno_type_error("object key","reduce_choice",keyfn);
-  return kno_simplify_choice(inner_reduce_choice(choice,fn,start,keyfn));
+  if (KNO_VOIDP(selector)) {}
+  else if (!( (KNO_TYPE_TYPEP(selector)) || (KNO_PREDICATEP(selector)) ))
+    return kno_type_error("object selector","reduce_choice",selector);
+  else NO_ELSE;
+
+  lispval reduced = inner_reduce_choice
+    (choice,fn,start,keyfn,selector,skiperrs);
+  if (decref_keyfn) kno_decref(keyfn);
+  if (decref_start) kno_decref(start);
+  if (decref_selector) kno_decref(selector);
+  return kno_simplify_choice(reduced);
 }
 
 static lispval inner_reduce_choice
-(lispval choice,lispval fn,lispval start,lispval keyfn)
+(lispval choice,lispval fn,lispval start,lispval keyfn,lispval selector,
+ int skiperrs)
 {
   if (KNO_CHOICEP(fn)) {
     lispval results = KNO_EMPTY;
     KNO_DO_CHOICES(f,fn) {
-      lispval reduction = inner_reduce_choice(choice,f,start,keyfn);
+      lispval reduction =
+	inner_reduce_choice(choice,f,start,keyfn,selector,skiperrs);
       if (KNO_ABORTED(reduction)) {
 	KNO_STOP_DO_CHOICES;
 	kno_decref(results);
@@ -1220,7 +1279,8 @@ static lispval inner_reduce_choice
   else if (KNO_CHOICEP(keyfn)) {
     lispval results = KNO_EMPTY;
     KNO_DO_CHOICES(ok,keyfn) {
-      lispval reduction = inner_reduce_choice(choice,fn,start,ok);
+      lispval reduction =
+	inner_reduce_choice(choice,fn,start,ok,selector,skiperrs);
       if (KNO_ABORTED(reduction)) {
 	KNO_STOP_DO_CHOICES;
 	kno_decref(results);
@@ -1233,34 +1293,60 @@ static lispval inner_reduce_choice
     DO_CHOICES(each,choice) {
       lispval items = keyfn_get(each,keyfn);
       if (KNO_ABORTED(items)) {
+	if (skiperrs) {
+	  kno_clear_errors(0);
+	  continue;}
 	KNO_STOP_DO_CHOICES;
 	kno_decref(state);
 	return items;}
+      else if (KNO_EMPTYP(items)) continue;
       else if (VOIDP(state)) {
-	state = items;
-	continue;}
+	if (VOID_SELECTORP(selector)) {
+	  state = items;
+	  continue;}
+	else if (CHOICEP(items)) {
+	  lispval init_state = KNO_EMPTY;
+	  KNO_DO_CHOICES(item,items) {
+	    if (check_selector(selector,item)) {
+	      KNO_ADD_TO_CHOICE(init_state,item);
+	      kno_incref(item);}}
+	  if (KNO_EMPTYP(init_state)) goto skip;
+	  else state = init_state;}
+	else if (check_selector(selector,items)) {
+	  state=items;
+	  continue;}
+	else goto skip;}
       else if (EMPTYP(items)) {}
       else if ( (! (nd_reducer) ) && (CHOICEP(items)) ) {
 	DO_CHOICES(item,items) {
+	  if (!(check_selector(selector,item))) continue;
 	  lispval rail[2] = {item , state}, next_state;
 	  next_state = kno_apply(fn,2,rail);
 	  if (KNO_ABORTED(next_state)) {
+	    if (skiperrs) {
+	      kno_clear_errors(0);
+	      continue;}
 	    kno_decref(state);
 	    kno_decref(items);
 	    KNO_STOP_DO_CHOICES;
 	    return next_state;}
 	  kno_decref(state);
 	  state = next_state;}}
-      else {
+      else if (check_selector(selector,items)) {
 	lispval rail[2] = {items , state}, next_state;
 	next_state = kno_apply(fn,2,rail);
 	if (KNO_ABORTED(next_state)) {
+	  if (skiperrs) {
+	    kno_clear_errors(0);
+	    goto skip;}
 	  kno_decref(state);
 	  kno_decref(items);
 	  KNO_STOP_DO_CHOICES;
 	  return next_state;}
 	kno_decref(state);
 	state = next_state;}
+      else NO_ELSE;
+    skip:
       kno_decref(items);}
     return state;}
 }
@@ -2049,7 +2135,7 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("lexsorted",lexsorted_prim,2,scheme_module);
   KNO_LINK_CPRIM("rsorted",rsorted_prim,3,scheme_module);
   KNO_LINK_CPRIM("sorted",sorted_prim,3,scheme_module);
-  KNO_LINK_CPRIM("reduce-choice",reduce_choice,4,scheme_module);
+  KNO_LINK_CPRIM("reduce-choice",reduce_choice,5,scheme_module);
   KNO_LINK_CPRIM("largest",largest_prim,2,scheme_module);
   KNO_LINK_CPRIM("smallest",smallest_prim,2,scheme_module);
   KNO_LINK_CPRIM("pick-n",pickn,3,scheme_module);

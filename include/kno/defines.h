@@ -526,6 +526,7 @@ typedef double kno_double;
 #define AMBIGP(x)   (KNO_AMBIGP(x))
 #define SLOTMAPP(x) (KNO_SLOTMAPP(x))
 #define SCHEMAPP(x) (KNO_SCHEMAPP(x))
+#define KEYMAPP(x) (KNO_KEYMAPP(x))
 #define HASHTABLEP(x) (KNO_HASHTABLEP(x))
 #define USUALLY(x)  (KNO_USUALLY(x))
 #define RARELY(x) (KNO_RARELY(x))

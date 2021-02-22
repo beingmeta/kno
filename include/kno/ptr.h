@@ -248,7 +248,8 @@ typedef enum KNO_LISP_TYPE {
   kno_frame_type = KNO_EXTENDED_TYPECODE(7),
   kno_slotid_type = KNO_EXTENDED_TYPECODE(8),
   kno_xpool_type = KNO_EXTENDED_TYPECODE(9),
-  kno_xindex_type = KNO_EXTENDED_TYPECODE(10)
+  kno_xindex_type = KNO_EXTENDED_TYPECODE(10),
+  kno_xtype_limit = KNO_EXTENDED_TYPECODE(11)
 
 } kno_lisp_type;
 
@@ -457,7 +458,7 @@ KNO_EXPORT int _KNO_XTYPEP(lispval ptr,kno_lisp_type type);
   (((type) < 0x04) ? ( ( (ptr) & (0x3) ) == type) :			\
    ((type) < 0x84) ? ( (KNO_IMMEDIATEP(ptr)) && (KNO_IMMEDIATE_TYPEP(ptr,type)) ) : \
    ((type) < 0x100) ?  ( (ptr) && (KNO_CONSP(ptr)) && ((KNO_CONS_TYPEOF(ptr)) == type) ) : \
-   (0))
+   (_KNO_XTYPEP(ptr,type)))
 #endif
 #define KNO_PRIM_TYPEP(x,tp)   ( KNO_TYPEP(x,tp) )
 

@@ -49,20 +49,29 @@ static u8_string get_filedata(u8_string path,ssize_t *lenp)
 
 
 DEFC_PRIM("write-xtype",write_xtype_prim,
-	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "(WRITE-XTYPE *obj* *stream* [*opts*]) "
-	 "writes a xtype representation of *obj* to "
-	 "*stream* at file position *pos* *(defaults to the "
-	 "current file position of the stream). *max*, if "
-	 "provided, is the maximum size of *obj*'s Xtype "
-	 "representation. It is an error if the object has "
-	 "a larger representation and the value may also be "
-	 "used for allocating temporary buffers, etc.",
-	 {"object",kno_any_type,KNO_VOID},
-	 {"dest",kno_any_type,KNO_VOID},
-	 {"opts",kno_any_type,KNO_FALSE})
+	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	  "(WRITE-XTYPE *obj* *stream* [*opts*]) "
+	  "writes a xtype representation of *obj* to "
+	  "*stream* at file position *pos* *(defaults to the "
+	  "current file position of the stream). *max*, if "
+	  "provided, is the maximum size of *obj*'s Xtype "
+	  "representation. It is an error if the object has "
+	  "a larger representation and the value may also be "
+	  "used for allocating temporary buffers, etc.",
+	  {"object",kno_any_type,KNO_VOID},
+	  {"dest",kno_any_type,KNO_VOID},
+	  {"opts",kno_any_type,KNO_FALSE})
 static lispval write_xtype_prim(lispval object,lispval dest,lispval opts)
 {
+  if (KNO_CHOICEP(dest)) {
+    lispval result = KNO_EMPTY;
+    KNO_DO_CHOICES(d,dest) {
+      lispval r = write_xtype_prim(object,d,opts);
+      if (KNO_ABORTED(r)) {
+	kno_decref(result);
+	return r;}
+      else {KNO_ADD_TO_CHOICE(result,r);}}
+    return result;}
   lispval refs_arg = kno_getxrefs(opts);
   struct XTYPE_REFS *refs = (KNO_RAW_TYPEP(refs_arg,kno_xtrefs_typetag)) ?
     ( KNO_RAWPTR_VALUE(refs_arg)) :

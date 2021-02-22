@@ -22,11 +22,11 @@
 (define iso-pattern
   '(GREEDY
     #((label year #((isdigit)  (isdigit) (isdigit) (isdigit)))
-      (opt #("-"  (label month #((isdigit) (isdigit)))
-	     (opt #( "-" (label day #((isdigit) (isdigit)))
-		     (opt #("T" (label hour #((isdigit) (isdigit)))
-			    (opt #(":" (label minute #((isdigit) (isdigit)))
-				   (opt #(":" (label secs #((isdigit) (isdigit)
+      (opt #("-"  (label month #((isdigit) (opt (isdigit))))
+	     (opt #( "-" (label day #((isdigit) (opt (isdigit))))
+		     (opt #("T" (label hour #((isdigit) (opt (isdigit))))
+			    (opt #(":" (label minute #((isdigit) (opt (isdigit))))
+				   (opt #(":" (label secs #((isdigit) (opt (isdigit))
 							    (opt #("." (isdigit+)))))))))))))))
       (label gmtoff
 	     {(opt #({"+" "-"} (isdigit) (opt (isdigit)) 

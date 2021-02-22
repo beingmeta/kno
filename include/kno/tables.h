@@ -541,6 +541,10 @@ static U8_MAYBE_UNUSED lispval __kno_schemap_test
 
 KNO_EXPORT lispval kno_schemap2slotmap(lispval schemap);
 
+/* Generic predicate for keymaps */
+
+#define KNO_KEYMAPP(x) ( KNO_XTYPEP((x),kno_keymap_type) )
+
 /* Hashtables */
 
 #define KNO_HASH_BIGTHRESH 0x4000000

@@ -1098,7 +1098,12 @@ U8_MAYBE_UNUSED static int _kno_applicablep(lispval x)
 #if KNO_INLINE_XTYPEP
 KNO_FASTOP int __KNO_XTYPEP(lispval x,int type)
 {
-  if (type <=  kno_xindex_type) switch ((kno_lisp_type)type) {
+  if  (type < 0x04) return ( ( (x) & (0x3) ) == type);
+  else if (type < 0x84) return (KNO_IMMEDIATE_TYPEP(x,type));
+  else if (type < 0x100)
+    return ( (x) && (KNO_CONSP(x)) && ((KNO_CONS_TYPEOF(x)) == type) );
+  else if ( (type >=  kno_number_type) && (type <=  kno_xindex_type) )
+    switch ((kno_lisp_type)type) {
     case kno_number_type: return KNO_NUMBERP(x);
     case kno_sequence_type: return KNO_SEQUENCEP(x);
     case kno_table_type: return KNO_TABLEP(x);
@@ -1149,6 +1154,11 @@ KNO_FASTOP int __KNO_XTYPEP(lispval x,int type)
 #undef KNO_XTYPEP
 #define KNO_XTYPEP __KNO_XTYPEP
 #endif
+
+#define KNO_TYPE_TYPEP(obj)		     \
+  ( (KNO_SYMBOLP(obj)) || (KNO_OIDP(obj)) || \
+    (KNO_TYPEP(obj,kno_ctype_type)) ||	     \
+    (KNO_TYPEP(obj,kno_typeinfo_type)) )
 
 KNO_EXPORT int _KNO_CHECKTYPE(lispval obj,lispval objtype);
 

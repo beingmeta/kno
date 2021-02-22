@@ -1377,6 +1377,8 @@ static lispval parse_atom(u8_input in,int ch1,int ch2,int normcase)
 }
 
 
+DEF_KNOSYM(histref);
+
 static lispval parse_histref(u8_input in)
 {
   struct U8_OUTPUT tmpbuf;
@@ -1390,11 +1392,11 @@ static lispval parse_histref(u8_input in)
      parsed the histref. We should really do it here, when we've
      reached the first histref element. */
   while ( (c >= 0) &&
-          ( (u8_isalnum(c)) ||
-            (c=='-') || (c=='_') ||
-            (c=='/') || (c=='+') ||
-            (c=='%') || (c=='$') ||
-            (c=='&') || (c=='!') ) ) {
+	  ( (u8_isalnum(c)) ||
+	    (c=='-') || (c=='_') ||
+	    (c=='/') || (c=='+') ||
+	    (c=='%') || (c=='$') ||
+	    (c=='&') || (c=='!') ) ) {
     u8_putc(&tmpbuf,c);
     c = u8_getc(in);}
   lispval constval = lookup_constname(tmpbuf.u8_outbuf,1);
@@ -1404,30 +1406,30 @@ static lispval parse_histref(u8_input in)
     return constval;}
   else while (c >= 0) {
       if ( (u8_isalnum(c)) ||
-           (c=='-') || (c=='_') ||
-           (c=='/') || (c=='+') ||
-           (c=='%') || (c=='$') ||
-           (c=='&') || (c=='!') ||
-           (c=='@') || (c=='?') ) {
-        u8_putc(&tmpbuf,c); }
+	   (c=='-') || (c=='_') ||
+	   (c=='/') || (c=='+') ||
+	   (c=='%') || (c=='$') ||
+	   (c=='&') || (c=='!') ||
+	   (c=='@') || (c=='?') ) {
+	u8_putc(&tmpbuf,c); }
       else if (c == '.') {
-        lispval elt = kno_parse(tmpbuf.u8_outbuf);
-        if (elt == KNO_EOX) elt = KNO_FALSE;
-        lispval new_tail = kno_init_pair(NULL,elt,KNO_EMPTY_LIST);
-        *tail = new_tail;
-        tail = &(KNO_CDR(new_tail));
-        tmpbuf.u8_write = tmpbuf.u8_outbuf;
-        tmpbuf.u8_outbuf[0] = '\0';
-        n_elts++;}
+	lispval elt = kno_parse(tmpbuf.u8_outbuf);
+	if (elt == KNO_EOX) elt = KNO_FALSE;
+	lispval new_tail = kno_init_pair(NULL,elt,KNO_EMPTY_LIST);
+	*tail = new_tail;
+	tail = &(KNO_CDR(new_tail));
+	tmpbuf.u8_write = tmpbuf.u8_outbuf;
+	tmpbuf.u8_outbuf[0] = '\0';
+	n_elts++;}
       else if (c == '=') {
-        lispval elt = kno_parse(tmpbuf.u8_outbuf);
-        lispval new_tail = kno_make_list(2,elt,KNOSYM_EQUALS);
-        lispval new_cdr = KNO_CDR(new_tail);
-        *tail = new_tail;
-        tail = &(KNO_CDR(new_cdr));
-        tmpbuf.u8_write = tmpbuf.u8_outbuf;
-        tmpbuf.u8_outbuf[0] = '\0';
-        n_elts++;}
+	lispval elt = kno_parse(tmpbuf.u8_outbuf);
+	lispval new_tail = kno_make_list(2,elt,KNOSYM_EQUALS);
+	lispval new_cdr = KNO_CDR(new_tail);
+	*tail = new_tail;
+	tail = &(KNO_CDR(new_cdr));
+	tmpbuf.u8_write = tmpbuf.u8_outbuf;
+	tmpbuf.u8_outbuf[0] = '\0';
+	n_elts++;}
       else break;
       c = u8_getc(in);}
   if (tmpbuf.u8_write>tmpbuf.u8_outbuf) {
@@ -1441,13 +1443,19 @@ static lispval parse_histref(u8_input in)
   if (c>0) u8_ungetc(in,c);
   if (kno_resolve_histref) {
     lispval resolved = kno_resolve_histref(KNO_CDR(elts));
-    if (KNO_ABORTP(resolved))
-      kno_clear_errors(1);
+    if (KNO_ABORTP(resolved)) {
+      kno_clear_errors(1);}
     else if (KNO_VOIDP(resolved)) {}
     else {
       kno_decref(elts);
       return resolved;}}
-  return elts;
+  lispval eltvec[n_elts]; int i=0;
+  KNO_DOLIST(elt,elts) eltvec[i++] = elt;
+  lispval ref = kno_init_compound_from_elts
+    (NULL,KNOSYM(histref),KNO_COMPOUND_SEQUENCE|KNO_COMPOUND_INCREF,
+     n_elts,eltvec);
+  kno_decref(elts);
+  return ref;
 }
 
 KNO_EXPORT
