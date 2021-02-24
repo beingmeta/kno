@@ -2,9 +2,9 @@
 
 (in-module 'knodb/exec/packindex)
 
-(module-export! 'main)
+(module-export! '{packindex main})
 
-(use-module '{optimize varconfig logger kno/mttools})
+(use-module '{optimize varconfig logger text/stringfmts kno/mttools})
 (use-module '{knodb/indexes})
 
 (define %loglevel (config 'loglevel %notice%))
@@ -44,10 +44,7 @@
   (set! slotids (dbctl input 'slotids))
   (or (not slotids) (and (vector? slotids) (zero? (length slotids)))))
 
-(define (main in (out #f))
-  (config-default! 'cachelevel 2)
-  (config-default! 'logthreadinfo #t)
-  (config-default! 'logelapsed #t)
+(define (do-packindex in out)
   (let* ((overwrite (config 'overwrite #f))
 	 (input (open-index in #[register #f]))
 	 (newtype (get-new-type input #f))
@@ -85,6 +82,41 @@
     (config! 'appid (glom "pack(" (basename in) ")"))
     (unless (index/pack! in out opts)
       (error "Pack index failed"))))
+
+(define (packindex (in #f) (out))
+  (default! out in)
+  (when (overlaps? out '{"inplace" "-"}) (set! out in))
+  (default-configs)
+  (if (and (string? in) (file-exists? in))
+      (do-packindex in out)
+      (usage)))
+
+(define (main (in #f) (out #f))
+  (default! out in)
+  (when (overlaps? out '{"inplace" "-"}) (set! out in))
+  (packindex in out))
+
+(define configs-done #f)
+
+(define (default-configs)
+  (unless configs-done
+    (config! 'cachelevel 2)
+    (config! 'optlevel 4)
+    (config! 'logprocinfo #t)
+    (config! 'logthreadinfo #t)
+    (config-default! 'logelapsed #t)
+    (config! 'thread:logexit #f)
+    (set! configs-done #t)))
+
+(define (usage)
+  (lineout "Usage: pack-index <from> [to]\n"
+    ($indented 4
+	       "Repacks the file index stored in <from> either in place or into [to]."
+	       "Common options include (first value is default) : \n"
+	       ($indented 4
+			  "INDEXTYPE=keep|knopool|filepool\n"
+			  "OVERWRITE=no|yes\n")
+	       "If specified, [to] must not exist unless OVERWRITE=yes")))
 
 (when (config 'optimize #t)
   (optimize! '{knodb/indexes knodb/hashindexes ezrecords fifo engine})

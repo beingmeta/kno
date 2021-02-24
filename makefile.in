@@ -312,7 +312,7 @@ SHELL_SCRIPTS=src/shell/knosetconfig src/shell/knogetconfig src/shell/knoconfig 
 SCHEME_SCRIPTS=exe/scripts/pack-pool exe/scripts/pack-index \
 	       exe/scripts/split-index exe/scripts/merge-indexes exe/scripts/merge-index \
 	       exe/scripts/knocall exe/scripts/knoserver \
-	       exe/scripts/knopkg
+	       exe/scripts/knopkg exe/scripts/knodb
 
 CONFDIRS=$(DESTDIR)@config_dir@ $(DESTDIR)@config_dir@/config \
 	 $(DESTDIR)@share_dir@ \
@@ -921,6 +921,7 @@ TAGS: makefile configure.ac include/kno/config.h.in			\
 		src/cmodules/*.c 					\
 		src/python/*.c 						\
 		src/libscm/*.scm src/libscm/*/*.scm 			\
+		src/libscm/*/*/*.scm 					\
 		src/scripts/*.scm src/shell/*.in 			\
 		src/shell/knoctl					\
 		include/kno/components/*.h				\
@@ -1651,7 +1652,7 @@ install-support: $(DESTDIR)@share_dir@
 	cd $(BUILD)/src/web; $(SYSINSTALL) @install_file_opts@ 	\
 		webinfo.knocgi $(DESTDIR)@share_dir@
 
-LIBSCM_DIRS=optimize bugjar bench knodb xhtml kno io sqldb json net text
+LIBSCM_DIRS=optimize bugjar bench knodb xhtml kno io sqldb json net text knodb/exec
 LIBSCM_DATA_DIRS=
 install-libscm:
 	@if [ ! -d ${DESTDIR}${LIBSCM} ]; then 						\
