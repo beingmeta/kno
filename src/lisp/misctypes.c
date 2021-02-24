@@ -133,20 +133,6 @@ static ssize_t write_basetype_dtype(struct KNO_OUTBUF *out,lispval x)
   return size;
 }
 
-static ssize_t write_basetype_xtype(struct KNO_OUTBUF *out,lispval x,xtype_refs refs)
-{
-  int ival = KNO_IMMEDIATE_DATA(x);
-  kno_write_byte(out,xt_tagged);
-  ssize_t size = 1;
-  ssize_t rv = kno_write_xtype(out,basetype_tag,refs);
-  if (rv<0) return rv; else size +=rv;
-  rv = kno_write_byte(out,xt_posint);
-  if (rv<0) return rv; else size +=rv;
-  rv = kno_write_varint(out,ival);
-  if (rv<0) return rv;
-  else return size+rv;
-}
-
 static lispval basetype_dump(lispval x,kno_typeinfo ignored)
 {
   int ival = KNO_IMMEDIATE_DATA(x);
