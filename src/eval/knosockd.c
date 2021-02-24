@@ -1,8 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
-   This file is part of beingmeta's Kno platform and is copyright
-   and a valuable trade secret of beingmeta, inc.
+   Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu)
 */
 
 #ifndef _FILEINFO
@@ -75,12 +74,12 @@ static lispval get_listener_id(lispval ports)
 }
 
 DEFC_PRIM("knosockd/listener",knosockd_listener_prim,
-	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(1),
-	 "Creates a knosocks server",
-	 {"listen",kno_any_type,KNO_FALSE},
-	 {"opts",kno_any_type,KNO_FALSE},
-	 {"env",kno_any_type,KNO_VOID},
-	 {"data",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(4)|KNO_MIN_ARGS(1),
+	  "Creates a knosocks server",
+	  {"listen",kno_any_type,KNO_FALSE},
+	  {"opts",kno_any_type,KNO_FALSE},
+	  {"env",kno_any_type,KNO_VOID},
+	  {"data",kno_any_type,KNO_VOID})
 static lispval knosockd_listener_prim(lispval listen,lispval opts,
 				      lispval env,lispval data)
 {
@@ -108,10 +107,10 @@ static lispval knosockd_listener_prim(lispval listen,lispval opts,
 }
 
 DEFC_PRIM("knosockd/listen",knosockd_listen_prim,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "Creates a knosocks server",
-	 {"srv",kno_rawptr_type,KNO_VOID},
-	 {"addrs",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	  "Creates a knosocks server",
+	  {"srv",kno_rawptr_type,KNO_VOID},
+	  {"addrs",kno_any_type,KNO_VOID})
 static lispval knosockd_listen_prim(lispval srv,lispval addrs)
 {
   if (!(KNO_RAW_TYPEP(srv,knosockd_symbol)))
@@ -124,9 +123,9 @@ static lispval knosockd_listen_prim(lispval srv,lispval addrs)
 }
 
 DEFC_PRIM("knosockd/run",knosockd_run_prim,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "Starts a knosocks server",
-	 {"srv",kno_rawptr_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "Starts a knosocks server",
+	  {"srv",kno_rawptr_type,KNO_VOID})
 static lispval knosockd_run_prim(lispval srv)
 {
   if (!(KNO_RAW_TYPEP(srv,knosockd_symbol)))
@@ -139,10 +138,10 @@ static lispval knosockd_run_prim(lispval srv)
 }
 
 DEFC_PRIM("knosockd/shutdown!",knosockd_shutdown_prim,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "Shuts down a knosockd server",
-	 {"srv",kno_rawptr_type,KNO_VOID},
-	 {"grace_val",kno_flonum_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	  "Shuts down a knosockd server",
+	  {"srv",kno_rawptr_type,KNO_VOID},
+	  {"grace_val",kno_flonum_type,KNO_VOID})
 static lispval knosockd_shutdown_prim(lispval srv,lispval grace_val)
 {
   if (!(KNO_RAW_TYPEP(srv,knosockd_symbol)))

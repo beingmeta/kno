@@ -1,8 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
-   This file is part of beingmeta's Kno platform and is copyright
-   and a valuable trade secret of beingmeta, inc.
+   Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu)
 */
 
 #ifndef _FILEINFO
@@ -20,14 +19,15 @@ lispval *kno_symbol_names;
 int kno_n_symbols = 0, kno_max_symbols = 0, kno_initial_symbols = 4096;
 struct KNO_SYMBOL_TABLE kno_symbol_table;
 
-lispval KNOSYM_ADD, KNOSYM_ADJUNCT, KNOSYM_ALL, KNOSYM_ALWAYS, KNOSYM_ARG;
+lispval KNOSYM_ADD, KNOSYM_ADJUNCT, KNOSYM_ALL, KNOSYM_ALWAYS, KNOSYM_ARG, KNOSYM_ATMARK;
 lispval KNOSYM_BLOCKSIZE, KNOSYM_BUFSIZE;
 lispval KNOSYM_CACHELEVEL, KNOSYM_CACHESIZE;
 lispval KNOSYM_CONS, KNOSYM_CONTENT, KNOSYM_CREATE;
 lispval KNOSYM_DEFAULT, KNOSYM_DRIVER, KNOSYM_DOT, KNOSYM_DROP, KNOSYM_DTYPE;
 lispval KNOSYM_ENCODING, KNOSYM_EQUALS, KNOSYM_ERROR;
 lispval KNOSYM_FILE, KNOSYM_FILENAME;
-lispval KNOSYM_FLAGS, KNOSYM_FORMAT, KNOSYM_FRONT, KNOSYM_HISTORY_THREADVAL;
+lispval KNOSYM_FLAGS, KNOSYM_FORMAT, KNOSYM_FRONT;
+lispval KNOSYM_HASHMARK, KNOSYM_HISTORY_THREADVAL;
 lispval KNOSYM_ID, KNOSYM_INDEX, KNOSYM_INPUT, KNOSYM_ISADJUNCT;
 lispval KNOSYM_KEYSLOT;
 lispval KNOSYM_LABEL, KNOSYM_LAZY, KNOSYM_LENGTH, KNOSYM_LOGLEVEL;
@@ -101,6 +101,7 @@ static void init_builtin_symbols()
   KNOSYM_ALL = kno_intern("all");
   KNOSYM_ALWAYS = kno_intern("always");
   KNOSYM_ARG = kno_intern("arg");
+  KNOSYM_ATMARK = kno_intern("@");
   KNOSYM_BLOCKSIZE = kno_intern("blocksize");
   KNOSYM_BUFSIZE = kno_intern("bufsize");
   KNOSYM_CACHELEVEL = kno_intern("cachelevel");
@@ -122,6 +123,7 @@ static void init_builtin_symbols()
   KNOSYM_FLAGS = kno_intern("flags");
   KNOSYM_FORMAT = kno_intern("format");
   KNOSYM_FRONT = kno_intern("front");
+  KNOSYM_HASHMARK = kno_intern("%history");
   KNOSYM_HISTORY_THREADVAL = kno_intern("%history");
   KNOSYM_ID = kno_intern("id");
   KNOSYM_INDEX = kno_intern("index");

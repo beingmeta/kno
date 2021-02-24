@@ -1,5 +1,6 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
 ;;; Copyright (C) 2005-2020 beingmeta, inc.  All rights reserved.
+;;; Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu)
 
 ;;; DON'T EDIT THIS FILE !!!
 ;;;
@@ -17,7 +18,7 @@
 		  config:number config:loglevel config:bytes config:interval
 		  config:goodstring config:symbol config:oneof
 		  config:boolset config:fnset
-		  config:replace config:push
+		  config:replace config:push config:pushnew
 		  config:dirname config:dirname:opt config:dirname:make
 		  config:path config:path:exists config:path:writable
 		  config:integer config:fixnum
@@ -405,11 +406,18 @@
 
 (defambda (config:replace new old) new)
 (defambda (config:push new old)
-  (if (not old)
-      (list new)
-      (if (null? old)
-	  (list new)
-	  (list new old))))
+  (cond ((not old) (list new))
+	((null? old) (list new))
+	((pair? old) (cons new old))
+	(else (list new old))))
+(defambda (config:pushnew new old)
+  (cond ((not old) (list new))
+	((null? old) (list new))
+	((pair? old)
+	 (if (position new old) old
+	     (cons new old)))
+	((equal? old new) old)
+	(else (list new old))))
 
 ;;; Prop config
 

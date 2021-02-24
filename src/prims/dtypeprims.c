@@ -1,8 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
-   This file is part of beingmeta's Kno platform and is copyright
-   and a valuable trade secret of beingmeta, inc.
+   Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu)
 */
 
 #ifndef _FILEINFO
@@ -46,17 +45,17 @@ static u8_string get_filedata(u8_string path,ssize_t *lenp)
 }
 
 DEFC_PRIM("read-dtype",read_dtype,
-	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
-	 "(READ-DTYPE *stream* [*off*] [*len*]) "
-	 "reads the dtype representation store at *off* in "
-	 "*stream*. If *off* is not provided, it reads from "
-	 "the current position of the stream; if *len* is "
-	 "provided, it is a maximum size of the dtype "
-	 "representation and is used to prefetch bytes from "
-	 "the file when possible.",
-	 {"stream",kno_stream_type,KNO_VOID},
-	 {"pos",kno_fixnum_type,KNO_VOID},
-	 {"len",kno_fixnum_type,KNO_VOID})
+	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
+	  "(READ-DTYPE *stream* [*off*] [*len*]) "
+	  "reads the dtype representation store at *off* in "
+	  "*stream*. If *off* is not provided, it reads from "
+	  "the current position of the stream; if *len* is "
+	  "provided, it is a maximum size of the dtype "
+	  "representation and is used to prefetch bytes from "
+	  "the file when possible.",
+	  {"stream",kno_stream_type,KNO_VOID},
+	  {"pos",kno_fixnum_type,KNO_VOID},
+	  {"len",kno_fixnum_type,KNO_VOID})
 static lispval read_dtype(lispval stream,lispval pos,lispval len)
 {
   struct KNO_STREAM *ds=
@@ -86,19 +85,19 @@ static lispval read_dtype(lispval stream,lispval pos,lispval len)
 }
 
 DEFC_PRIM("write-dtype",write_dtype,
-	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
-	 "(WRITE-DTYPE *obj* *stream* [*pos*] [*max*]) "
-	 "writes a dtype representation of *obj* to "
-	 "*stream* at file position *pos* *(defaults to the "
-	 "current file position of the stream). *max*, if "
-	 "provided, is the maximum size of *obj*'s DType "
-	 "representation. It is an error if the object has "
-	 "a larger representation and the value may also be "
-	 "used for allocating temporary buffers, etc.",
-	 {"object",kno_any_type,KNO_VOID},
-	 {"stream",kno_stream_type,KNO_VOID},
-	 {"pos",kno_fixnum_type,KNO_VOID},
-	 {"max_bytes",kno_fixnum_type,KNO_VOID})
+	  KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
+	  "(WRITE-DTYPE *obj* *stream* [*pos*] [*max*]) "
+	  "writes a dtype representation of *obj* to "
+	  "*stream* at file position *pos* *(defaults to the "
+	  "current file position of the stream). *max*, if "
+	  "provided, is the maximum size of *obj*'s DType "
+	  "representation. It is an error if the object has "
+	  "a larger representation and the value may also be "
+	  "used for allocating temporary buffers, etc.",
+	  {"object",kno_any_type,KNO_VOID},
+	  {"stream",kno_stream_type,KNO_VOID},
+	  {"pos",kno_fixnum_type,KNO_VOID},
+	  {"max_bytes",kno_fixnum_type,KNO_VOID})
 static lispval write_dtype(lispval object,lispval stream,
 			   lispval pos,lispval max_bytes)
 {
@@ -159,9 +158,9 @@ static lispval write_dtype(lispval object,lispval stream,
 }
 
 DEFC_PRIM("zread-dtype",zread_dtype,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"stream",kno_stream_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"stream",kno_stream_type,KNO_VOID})
 static lispval zread_dtype(lispval stream)
 {
   struct KNO_STREAM *ds=
@@ -172,10 +171,10 @@ static lispval zread_dtype(lispval stream)
 }
 
 DEFC_PRIM("zwrite-dtype",zwrite_dtype,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "**undocumented**",
-	 {"object",kno_any_type,KNO_VOID},
-	 {"stream",kno_stream_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	  "**undocumented**",
+	  {"object",kno_any_type,KNO_VOID},
+	  {"stream",kno_stream_type,KNO_VOID})
 static lispval zwrite_dtype(lispval object,lispval stream)
 {
   struct KNO_STREAM *ds=
@@ -186,10 +185,10 @@ static lispval zwrite_dtype(lispval object,lispval stream)
 }
 
 DEFC_PRIM("zwrite-dtypes",zwrite_dtypes,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "**undocumented**",
-	 {"object",kno_any_type,KNO_VOID},
-	 {"stream",kno_stream_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	  "**undocumented**",
+	  {"object",kno_any_type,KNO_VOID},
+	  {"stream",kno_stream_type,KNO_VOID})
 static lispval zwrite_dtypes(lispval object,lispval stream)
 {
   struct KNO_STREAM *ds=
@@ -202,11 +201,11 @@ static lispval zwrite_dtypes(lispval object,lispval stream)
 /* Reading and writing DTYPEs */
 
 DEFC_PRIM("dtype->zfile",lisp2zipfile,
-	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "**undocumented**",
-	 {"object",kno_any_type,KNO_VOID},
-	 {"filename",kno_any_type,KNO_VOID},
-	 {"bufsiz",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	  "**undocumented**",
+	  {"object",kno_any_type,KNO_VOID},
+	  {"filename",kno_any_type,KNO_VOID},
+	  {"bufsiz",kno_any_type,KNO_VOID})
 static lispval lisp2zipfile(lispval object,lispval filename,lispval bufsiz)
 {
   if (STRINGP(filename)) {
@@ -249,11 +248,11 @@ static lispval lisp2zipfile(lispval object,lispval filename,lispval bufsiz)
 }
 
 DEFC_PRIM("dtype->file",lisp2file,
-	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "**undocumented**",
-	 {"object",kno_any_type,KNO_VOID},
-	 {"filename",kno_any_type,KNO_VOID},
-	 {"bufsiz",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	  "**undocumented**",
+	  {"object",kno_any_type,KNO_VOID},
+	  {"filename",kno_any_type,KNO_VOID},
+	  {"bufsiz",kno_any_type,KNO_VOID})
 static lispval lisp2file(lispval object,lispval filename,lispval bufsiz)
 {
   if ((STRINGP(filename))&&
@@ -357,10 +356,10 @@ static ssize_t write_dtypes(lispval dtypes,struct KNO_STREAM *out)
 }
 
 DEFC_PRIM("dtype->zfile+",add_lisp2zipfile,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "**undocumented**",
-	 {"object",kno_any_type,KNO_VOID},
-	 {"filename",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	  "**undocumented**",
+	  {"object",kno_any_type,KNO_VOID},
+	  {"filename",kno_any_type,KNO_VOID})
 static lispval add_lisp2zipfile(lispval object,lispval filename)
 {
   if (STRINGP(filename)) {
@@ -391,10 +390,10 @@ static lispval add_lisp2zipfile(lispval object,lispval filename)
 }
 
 DEFC_PRIM("dtypes->file+",add_dtypes2file,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "**undocumented**",
-	 {"object",kno_any_type,KNO_VOID},
-	 {"filename",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	  "**undocumented**",
+	  {"object",kno_any_type,KNO_VOID},
+	  {"filename",kno_any_type,KNO_VOID})
 static lispval add_dtypes2file(lispval object,lispval filename)
 {
   if ((STRINGP(filename))&&
@@ -425,9 +424,9 @@ static lispval add_dtypes2file(lispval object,lispval filename)
 }
 
 DEFC_PRIM("zfile->dtype",zipfile2dtype,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"filename",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"filename",kno_any_type,KNO_VOID})
 static lispval zipfile2dtype(lispval filename)
 {
   if (STRINGP(filename)) {
@@ -449,9 +448,9 @@ static lispval zipfile2dtype(lispval filename)
 }
 
 DEFC_PRIM("file->dtype",file2dtype,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"filename",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"filename",kno_any_type,KNO_VOID})
 static lispval file2dtype(lispval filename)
 {
   if (STRINGP(filename))
@@ -468,9 +467,9 @@ static lispval file2dtype(lispval filename)
 }
 
 DEFC_PRIM("zfile->dtypes",zipfile2dtypes,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"filename",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"filename",kno_any_type,KNO_VOID})
 static lispval zipfile2dtypes(lispval filename)
 {
   if (STRINGP(filename)) {
@@ -513,9 +512,9 @@ static lispval zipfile2dtypes(lispval filename)
 }
 
 DEFC_PRIM("file->dtypes",file2dtypes,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"filename",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"filename",kno_any_type,KNO_VOID})
 static lispval file2dtypes(lispval filename)
 {
   if ((STRINGP(filename))&&
@@ -582,16 +581,12 @@ static void link_local_cprims()
 {
   KNO_LINK_CPRIM("zfile->dtypes",zipfile2dtypes,1,kno_binio_module);
   KNO_LINK_CPRIM("file->dtypes",file2dtypes,1,kno_binio_module);
-  KNO_LINK_CPRIM("zfile->dtypes",zipfile2dtypes,1,kno_binio_module);
   KNO_LINK_CPRIM("zfile->dtype",zipfile2dtype,1,kno_binio_module);
   KNO_LINK_CPRIM("file->dtype",file2dtype,1,kno_binio_module);
-  KNO_LINK_CPRIM("zfile->dtype",zipfile2dtype,1,kno_binio_module);
   KNO_LINK_CPRIM("dtype->zfile+",add_lisp2zipfile,2,kno_binio_module);
   KNO_LINK_CPRIM("dtypes->file+",add_dtypes2file,2,kno_binio_module);
-  KNO_LINK_CPRIM("dtype->zfile+",add_lisp2zipfile,2,kno_binio_module);
   KNO_LINK_CPRIM("dtype->zfile",lisp2zipfile,3,kno_binio_module);
   KNO_LINK_CPRIM("dtype->file",lisp2file,3,kno_binio_module);
-  KNO_LINK_CPRIM("dtype->zfile",lisp2zipfile,3,kno_binio_module);
   KNO_LINK_CPRIM("zwrite-dtypes",zwrite_dtypes,2,kno_binio_module);
   KNO_LINK_CPRIM("zwrite-dtype",zwrite_dtype,2,kno_binio_module);
   KNO_LINK_CPRIM("zread-dtype",zread_dtype,1,kno_binio_module);

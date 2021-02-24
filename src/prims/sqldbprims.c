@@ -1,8 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
-   This file is part of beingmeta's Kno platform and is copyright
-   and a valuable trade secret of beingmeta, inc.
+   Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu)
 */
 
 /* The external DB module provides simple access to external SQL
@@ -222,11 +221,11 @@ static int check_exec_enabled(lispval opts)
 */
 
 DEFC_PRIM("sqldb/exec",sqldb_exec,
-	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 "**undocumented**",
-	 {"db",kno_sqldb_type,KNO_VOID},
-	 {"query",kno_string_type,KNO_VOID},
-	 {"colinfo",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+	  "**undocumented**",
+	  {"db",kno_sqldb_type,KNO_VOID},
+	  {"query",kno_string_type,KNO_VOID},
+	  {"colinfo",kno_any_type,KNO_VOID})
 static lispval sqldb_exec(lispval db,lispval query,lispval colinfo)
 {
   struct KNO_SQLDB *sqldb = KNO_GET_CONS(db,kno_sqldb_type,struct KNO_SQLDB *);
@@ -239,8 +238,8 @@ static lispval sqldb_exec(lispval db,lispval query,lispval colinfo)
 }
 
 DEFC_PRIMN("sqldb/proc",sqldb_makeproc,
-	  KNO_VAR_ARGS|KNO_MIN_ARGS(2),
-	  "**undocumented**")
+	   KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+	   "**undocumented**")
 static lispval sqldb_makeproc(int n,kno_argvec args)
 {
   if (USUALLY
@@ -267,8 +266,8 @@ static lispval sqldb_makeproc(int n,kno_argvec args)
 }
 
 DEFC_PRIMN("sqldb/proc+",sqlproc_plus,
-	  KNO_VAR_ARGS|KNO_MIN_ARGS(2),
-	  "**undocumented**")
+	   KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+	   "**undocumented**")
 static lispval sqlproc_plus(int n,kno_argvec args)
 {
   lispval arg1 = args[0], result = VOID;
@@ -299,9 +298,9 @@ static lispval sqlproc_plus(int n,kno_argvec args)
 /* Accessors */
 
 DEFC_PRIM("sqldb/proc/query",sqlproc_query,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "=> sqlstring",
-	 {"sqldb",kno_sqlproc_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "=> sqlstring",
+	  {"sqldb",kno_sqlproc_type,KNO_VOID})
 static lispval sqlproc_query(lispval sqldb)
 {
   struct KNO_SQLPROC *xdbp = KNO_GET_CONS
@@ -310,9 +309,9 @@ static lispval sqlproc_query(lispval sqldb)
 }
 
 DEFC_PRIM("sqldb/proc/spec",sqlproc_spec,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "=> dbspecstring",
-	 {"sqldb",kno_sqlproc_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "=> dbspecstring",
+	  {"sqldb",kno_sqlproc_type,KNO_VOID})
 static lispval sqlproc_spec(lispval sqldb)
 {
   struct KNO_SQLPROC *xdbp = KNO_GET_CONS
@@ -321,9 +320,9 @@ static lispval sqlproc_spec(lispval sqldb)
 }
 
 DEFC_PRIM("sqldb/proc/db",sqlproc_db,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "=> dbptr",
-	 {"sqldb",kno_sqlproc_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "=> dbptr",
+	  {"sqldb",kno_sqlproc_type,KNO_VOID})
 static lispval sqlproc_db(lispval sqldb)
 {
   struct KNO_SQLPROC *xdbp = KNO_GET_CONS
@@ -332,9 +331,9 @@ static lispval sqlproc_db(lispval sqldb)
 }
 
 DEFC_PRIM("sqldb/proc/typemap",sqlproc_typemap,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "=> colinfo",
-	 {"sqldb",kno_sqlproc_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "=> colinfo",
+	  {"sqldb",kno_sqlproc_type,KNO_VOID})
 static lispval sqlproc_typemap(lispval sqldb)
 {
   struct KNO_SQLPROC *xdbp = KNO_GET_CONS
@@ -343,9 +342,9 @@ static lispval sqlproc_typemap(lispval sqldb)
 }
 
 DEFC_PRIM("sqldb/proc/params",sqlproc_params,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "=> paraminfo",
-	 {"sqldb",kno_sqlproc_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "=> paraminfo",
+	  {"sqldb",kno_sqlproc_type,KNO_VOID})
 static lispval sqlproc_params(lispval sqldb)
 {
   struct KNO_SQLPROC *xdbp = KNO_GET_CONS

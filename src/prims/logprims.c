@@ -1,8 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
-   This file is part of beingmeta's Kno platform and is copyright
-   and a valuable trade secret of beingmeta, inc.
+   Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu)
 */
 
 #ifndef _FILEINFO
@@ -52,8 +51,6 @@ static u8_output get_output_port(lispval portarg)
   else return NULL;
 }
 
-#define fast_eval(x,env) (kno_eval(x,env,_stack,0))
-
 static lispval message_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval body = kno_get_body(expr,1);
@@ -61,7 +58,7 @@ static lispval message_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   U8_OUTPUT *stream = u8_current_output;
   u8_set_default_output(out);
   while (PAIRP(body)) {
-    lispval value = fast_eval(KNO_CAR(body),env);
+    lispval value = kno_eval(KNO_CAR(body),env,_stack);
     if (printout_helper(out,value)) kno_decref(value);
     else {
       u8_set_default_output(stream);
@@ -81,7 +78,7 @@ static lispval notify_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   U8_OUTPUT *stream = u8_current_output;
   u8_set_default_output(out);
   while (PAIRP(body)) {
-    lispval value = fast_eval(KNO_CAR(body),env);
+    lispval value = kno_eval(KNO_CAR(body),env,_stack);
     if (printout_helper(out,value)) kno_decref(value);
     else {
       u8_set_default_output(stream);
@@ -101,7 +98,7 @@ static lispval status_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   U8_OUTPUT *stream = u8_current_output;
   u8_set_default_output(out);
   while (PAIRP(body)) {
-    lispval value = fast_eval(KNO_CAR(body),env);
+    lispval value = kno_eval(KNO_CAR(body),env,_stack);
     if (printout_helper(out,value)) kno_decref(value);
     else {
       u8_set_default_output(stream);
@@ -121,7 +118,7 @@ static lispval warning_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   U8_OUTPUT *stream = u8_current_output;
   u8_set_default_output(out);
   while (PAIRP(body)) {
-    lispval value = fast_eval(KNO_CAR(body),env);
+    lispval value = kno_eval(KNO_CAR(body),env,_stack);
     if (printout_helper(out,value)) kno_decref(value);
     else {
       u8_set_default_output(stream);
@@ -142,7 +139,7 @@ static int get_loglevel(lispval level_arg)
 
 static lispval log_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  lispval level_arg = kno_eval(kno_get_arg(expr,1),env,_stack,0);
+  lispval level_arg = kno_eval(kno_get_arg(expr,1),env,_stack);
   lispval body = kno_get_body(expr,2);
   int level = get_loglevel(level_arg);
   U8_OUTPUT *out = u8_open_output_string(1024);
@@ -159,7 +156,7 @@ static lispval log_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     if (KNO_SYMBOLP(cond_expr))
       condition = SYM_NAME(KNO_CAR(body));
     else if (KNO_EVALP(cond_expr)) {
-      lispval condition_name = kno_eval(cond_expr,env,_stack,0);
+      lispval condition_name = kno_eval(cond_expr,env,_stack);
       if (KNO_SYMBOLP(condition_name))
         condition = SYM_NAME(condition_name);
       else if (!(KNO_VOIDP(condition_name)))
@@ -169,7 +166,7 @@ static lispval log_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     else {}
     body = KNO_CDR(body);}
   while (PAIRP(body)) {
-    lispval value = fast_eval(KNO_CAR(body),env);
+    lispval value = kno_eval(KNO_CAR(body),env,_stack);
     if (printout_helper(out,value)) kno_decref(value);
     else {
       u8_set_default_output(stream);
@@ -195,7 +192,7 @@ static lispval logreport_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     if (KNO_SYMBOLP(cond_expr))
       condition = SYM_NAME(KNO_CAR(body));
     else if (KNO_EVALP(cond_expr)) {
-      lispval condition_name = kno_eval(cond_expr,env,_stack,0);
+      lispval condition_name = kno_eval(cond_expr,env,_stack);
       if (KNO_SYMBOLP(condition_name))
         condition = SYM_NAME(condition_name);
       else if (!(KNO_VOIDP(condition_name)))
@@ -205,7 +202,7 @@ static lispval logreport_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     else {}
     body = KNO_CDR(body);}
   while (PAIRP(body)) {
-    lispval value = fast_eval(KNO_CAR(body),env);
+    lispval value = kno_eval(KNO_CAR(body),env,_stack);
     if (printout_helper(out,value)) kno_decref(value);
     else {
       u8_set_default_output(stream);
@@ -225,7 +222,7 @@ static lispval logif_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   else if (RARELY(STRINGP(test_expr)))
     return kno_reterr(kno_SyntaxError,"logif_evalfn",
                       _("LOGIF condition expression cannot be a string"),expr);
-  else value = fast_eval(test_expr,env);
+  else value = kno_eval(test_expr,env,_stack);
   if (KNO_ABORTP(value)) return value;
   else if ( (FALSEP(value)) || (VOIDP(value)) ||
             (EMPTYP(value)) || (NILP(value)) )
@@ -240,7 +237,7 @@ static lispval logif_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       if (KNO_SYMBOLP(cond_expr))
         condition = SYM_NAME(KNO_CAR(body));
       else if (KNO_EVALP(cond_expr)) {
-	lispval condition_name = kno_eval(cond_expr,env,_stack,0);
+	lispval condition_name = kno_eval(cond_expr,env,_stack);
         if (KNO_SYMBOLP(condition_name))
           condition = SYM_NAME(condition_name);
         else if (!(KNO_VOIDP(condition_name)))
@@ -252,7 +249,7 @@ static lispval logif_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     kno_decref(value);
     u8_set_default_output(out);
     while (PAIRP(body)) {
-      lispval value = fast_eval(KNO_CAR(body),env);
+      lispval value = kno_eval(KNO_CAR(body),env,_stack);
       if (printout_helper(out,value)) kno_decref(value);
       else {
         u8_set_default_output(stream);
@@ -272,14 +269,14 @@ static lispval logifplus_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   else if (RARELY(STRINGP(test_expr)))
     return kno_reterr(kno_SyntaxError,"logif_evalfn",
                       _("LOGIF condition expression cannot be a string"),expr);
-  else value = fast_eval(test_expr,env);
+  else value = kno_eval(test_expr,env,_stack);
   if (KNO_ABORTP(value))
     return value;
   else if ((FALSEP(value)) || (VOIDP(value)) ||
            (EMPTYP(value)) || (NILP(value)))
     return VOID;
   kno_decref(value);
-  loglevel_arg = kno_eval(kno_get_arg(expr,2),env,_stack,0);
+  loglevel_arg = kno_eval(kno_get_arg(expr,2),env,_stack);
   if (KNO_ABORTP(loglevel_arg))
     return loglevel_arg;
   else if (VOIDP(loglevel_arg))
@@ -299,7 +296,7 @@ static lispval logifplus_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       if (KNO_SYMBOLP(cond_expr))
         condition = SYM_NAME(KNO_CAR(body));
       else if (KNO_EVALP(cond_expr)) {
-	lispval condition_name = kno_eval(cond_expr,env,_stack,0);
+	lispval condition_name = kno_eval(cond_expr,env,_stack);
         if (KNO_SYMBOLP(condition_name))
           condition = SYM_NAME(condition_name);
         else if (!(KNO_VOIDP(condition_name)))
@@ -310,7 +307,7 @@ static lispval logifplus_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       body = KNO_CDR(body);}
     u8_set_default_output(out);
     while (PAIRP(body)) {
-      lispval value = fast_eval(KNO_CAR(body),env);
+      lispval value = kno_eval(KNO_CAR(body),env,_stack);
       if (printout_helper(out,value)) kno_decref(value);
       else {
         u8_set_default_output(stream);
@@ -385,11 +382,11 @@ void kno_summarize_backtrace(U8_OUTPUT *out,u8_exception ex)
 /* Table showing primitives */
 
 DEFC_PRIM("%show",lisp_show_table,
-	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 "Shows a table",
-	 {"tables",kno_any_type,KNO_VOID},
-	 {"slotids",kno_any_type,KNO_VOID},
-	 {"portarg",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+	  "Shows a table",
+	  {"tables",kno_any_type,KNO_VOID},
+	  {"slotids",kno_any_type,KNO_VOID},
+	  {"portarg",kno_any_type,KNO_VOID})
 static lispval lisp_show_table(lispval tables,lispval slotids,lispval portarg)
 {
   U8_OUTPUT *out = get_output_port(portarg);

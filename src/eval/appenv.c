@@ -1,8 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
-   This file is part of beingmeta's Kno platform and is copyright
-   and a valuable trade secret of beingmeta, inc.
+   Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu)
 */
 
 #ifndef _FILEINFO
@@ -102,7 +101,7 @@ static int run_init(lispval init,kno_lexenv env,kno_stack stack)
 	    (kno_dcall(stack,init,1,(lispval *)(&env)));}
 	else v = kno_apply(init,0,NULL);}
       else if (KNO_PAIRP(init))
-	v = kno_eval(init,env,stack,0);
+	v = kno_eval(init,env,stack);
       else NO_ELSE;
       if (KNO_ABORTP(v))
 	inits_failed = kno_conspair(kno_incref(init),inits_failed);
@@ -186,9 +185,9 @@ KNO_EXPORT void kno_set_app_env(kno_lexenv env)
 }
 
 DEFC_PRIM("%appenv",appenv_prim,
-	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	 "Returns the base 'application environment' for "
-	 "the current instance")
+	  KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+	  "Returns the base 'application environment' for "
+	  "the current instance")
 static lispval appenv_prim()
 {
   if (kno_app_env)

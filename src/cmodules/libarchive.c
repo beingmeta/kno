@@ -1,8 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
-   This file is part of beingmeta's Kno platform and is copyright
-   and a valuable trade secret of beingmeta, inc.
+   Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu)
 */
 
 #ifndef _FILEINFO
@@ -320,11 +319,11 @@ static kno_port open_archive_input(struct archive *archive,
 /* Top level functions */
 
 DEFC_PRIM("archive/open",open_archive,
-	     KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
-	     "Opens an archive file",
-	     {"spec",kno_any_type,KNO_VOID},
-	     {"path",kno_any_type,KNO_FALSE},
-	     {"opts",kno_any_type,KNO_FALSE})
+	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
+	  "Opens an archive file",
+	  {"spec",kno_any_type,KNO_VOID},
+	  {"path",kno_any_type,KNO_FALSE},
+	  {"opts",kno_any_type,KNO_FALSE})
 static lispval open_archive(lispval spec,lispval path,lispval opts)
 {
   if ( (KNO_STRINGP(opts)) && (KNO_TABLEP(path)) ) {
@@ -407,11 +406,11 @@ static lispval entry_info(struct archive_entry *entry)
 }
 
 DEFC_PRIM("archive/find",archive_find,
-	     KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	     "Get the next archive entry (possibly matching a "
-	     "string or regex)",
-	     {"obj",kno_any_type,KNO_VOID},
-	     {"seek",kno_any_type,KNO_FALSE})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	  "Get the next archive entry (possibly matching a "
+	  "string or regex)",
+	  {"obj",kno_any_type,KNO_VOID},
+	  {"seek",kno_any_type,KNO_FALSE})
 static lispval archive_find(lispval obj,lispval seek)
 {
   struct KNO_ARCHIVE *archive = get_archive(obj);
@@ -439,9 +438,9 @@ static lispval archive_find(lispval obj,lispval seek)
 }
 
 DEFC_PRIM("archive/stat",archive_stat,
-	     KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	     "Information about an open archive stream",
-	     {"port",kno_ioport_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "Information about an open archive stream",
+	  {"port",kno_ioport_type,KNO_VOID})
 static lispval archive_stat(lispval port)
 {
   lispval info;

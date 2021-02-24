@@ -1,8 +1,6 @@
 /* Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright 2004-2020 beingmeta, inc.
-   This file is part of beingmeta's Kno platform and is copyright
-   and a valuable trade secret of beingmeta, inc.
 */
 
 #ifndef _FILEINFO
@@ -145,6 +143,12 @@ KNO_EXPORT lispval kno_compound_ref
     return v;}
 }
 
+static int compound_sequencep(lispval arg)
+{
+  struct KNO_COMPOUND *co = (kno_compound) arg;
+  return (co->compound_seqoff >= 0);
+}
+
 /* Table functions */
 
 KNO_FASTOP int compound_tablep(lispval arg)
@@ -251,7 +255,8 @@ static struct KNO_SEQFNS compound_seqfns = {
   kno_position,
   kno_search,
   kno_seq_elts,
-  NULL};
+  NULL, /* make */
+  compound_sequencep};
 
 static struct KNO_TABLEFNS compound_tablefns =
   {

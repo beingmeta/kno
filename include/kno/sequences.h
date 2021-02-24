@@ -1,8 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
-   This file is part of beingmeta's Kno platform and is copyright
-   and a valuable trade secret of beingmeta, inc.
+   Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu)
 */
 
 #ifndef KNO_SEQUENCES_H
@@ -53,6 +52,8 @@ KNO_EXPORT int _KNO_SEQUENCEP(lispval x);
   ( (KNO_CONSP(x)) ?							\
     ( ( (KNO_CONS_TYPEOF(x) >= kno_string_type) &&			\
 	(KNO_CONS_TYPEOF(x) <= kno_pair_type) ) ||			\
+      ( (KNO_CONS_TYPEOF(x) == kno_compound_type) &&			\
+	( (((kno_compound)x)->compound_seqoff) >= 0) ) ||		\
       ( (kno_seqfns[KNO_CONS_TYPEOF(x)] != NULL ) &&			\
 	( (kno_seqfns[KNO_CONS_TYPEOF(x)]->sequencep == NULL ) ||	\
 	  (kno_seqfns[KNO_CONS_TYPEOF(x)]->sequencep(x)) ) ) ) :       \

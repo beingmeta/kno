@@ -3,6 +3,7 @@
 /* sqlite.c
    This implements Kno bindings to sqlite3.
    Copyright (C) 2007-2020 beingmeta, inc.
+   Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu)
 */
 
 #ifndef _FILEINFO
@@ -149,11 +150,11 @@ static int open_knosqlite(struct KNO_SQLITE *knosqlptr)
 
 
 DEFC_PRIM("sqlite/open",sqlite_open_prim,
-	     KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
-	     "**undocumented**",
-	     {"filename",kno_string_type,KNO_VOID},
-	     {"colinfo",kno_any_type,KNO_VOID},
-	     {"options",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"filename",kno_string_type,KNO_VOID},
+	  {"colinfo",kno_any_type,KNO_VOID},
+	  {"options",kno_any_type,KNO_VOID})
 static lispval sqlite_open_prim(lispval filename,lispval colinfo,lispval options)
 {
   struct KNO_SQLITE *sqlcons; int retval;
@@ -212,9 +213,9 @@ static lispval sqlite_open_prim(lispval filename,lispval colinfo,lispval options
 
 
 DEFC_PRIM("sqlite/reopen",sqlite_reopen_prim,
-	     KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	     "**undocumented**",
-	     {"db",kno_sqldb_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"db",kno_sqldb_type,KNO_VOID})
 static lispval sqlite_reopen_prim(lispval db)
 {
   struct KNO_SQLDB *sqldb = kno_consptr(struct KNO_SQLDB *,db,kno_sqldb_type);
@@ -242,9 +243,9 @@ static void close_knosqlite(struct KNO_SQLITE *dbp,int lock)
 
 
 DEFC_PRIM("sqlite/close",sqlite_close_prim,
-	     KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	     "**undocumented**",
-	     {"db",kno_sqldb_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"db",kno_sqldb_type,KNO_VOID})
 static lispval sqlite_close_prim(lispval db)
 {
   struct KNO_SQLDB *sqldb = kno_consptr(struct KNO_SQLDB *,db,kno_sqldb_type);

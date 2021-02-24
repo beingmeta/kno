@@ -2,25 +2,70 @@
 
 CONFIG_ARGS=
 MAKE_ARGS=
+TEST_ARGS=
+INSTALL_ARGS=
 OFFLINE=
 SUFFIX=
 BUILD=$(pwd)
 SRC=$(dirname $(pwd))
 doclean=1;
-if test -f ./.with_parseltongue; then
-    with_parseltongue=yes;
-else
-    with_parseltongue=no;
-fi;
 
 if [ -f ./.offline ]; then
     OFFLINE=yes
 fi;
 
+usage () {
+    echo "Usage: ./build *options*";
+    echo "       standard(default) | debug | production | nitpcick | fast | optimized | faster"
+    echo "           (buildmode configuration)"
+    echo "       libc|tcmalloc|jemalloc|asan|asan_noleak|tcmalloc_debug|tcmalloc_minimal|gperftools|asan_thread"
+    echo "           (malloc library)"
+    echo "       dev | livesources";
+    echo "            (uses current directory sources as default library (libscm, etc) sources)";
+    echo "       install";
+    echo "            (installs after build)";
+    echo "       tests | memtests | leaktests | libtests | schemetests | dbtests | cmdtests"
+    echo "            (runs tests after build (but before installs)";
+    echo "       --make=X or -MX"
+    echo "           (adds X to the command line arguments to make)"
+    echo "       --config=X or -CX";
+    echo "           (adds X to the command line arguments to configure)"
+    echo "       --suffix=.X"
+    echo "           (uses .X as a suffix for directories, executables, and libraries)"
+    echo "       coverage | gcov | cprofiling | xcprofiling";
+    echo "           (C build options, xcprofiling disables even more optimizations)"
+    echo "       nopython|noparseltongue python|parseltongue (default)";
+    echo "           (controls building of the parseltongue Python bridge)"
+    echo "       offline"
+    echo "           (don't update from remote repositories)"
+}
+status () {
+    if [ -f ".buildmode" ]; then
+	val=$(cat .buildmode);
+	echo -n "buildmode=${val} ";
+    fi;
+    if [ -f ".malloc" ]; then
+	val=$(cat .malloc);
+	echo -n "malloc=${val} ";
+    fi;
+    if [ -f ".suffix" ]; then
+	val=$(cat .suffix);
+	echo -n "suffix=${val} ";
+    fi;
+    if [ -f ".offline" ]; then
+	echo -n "offline=yes ";
+    fi;
+}
+
+
 LOCAL_STDLIB=${BUILD}/src/stdmods:${BUILD}/src/textmods:${BUILD}/src/webmods
 while [ $# -gt 0 ]; do
     arg=$1
     case ${arg} in
+	help|usage)
+	    usage;
+	    exit;
+	    ;;
 	offline)
 	    OFFLINE=yes;
 	    ;;
@@ -30,14 +75,11 @@ while [ $# -gt 0 ]; do
 	noclean|keep)
 	    doclean=1;
 	    ;;
-	dev)
+	dev|livesource|livesources)
 	    CONFIG_ARGS="--with-libscm=${BUILD}/src/libscm/ --with-stdlibs=${LOCAL_STDLIB} ${CONFIG_ARGS}";
 	    ;;
 	ipeval)
 	    CONFIG_ARGS="--with-ipeval ${CONFIG_ARGS}";
-	    ;;
-	xprofile|xprofiling)
-	    CONFIG_ARGS="--enable-xprofiling ${CONFIG_ARGS}";
 	    ;;
 	coverage|gcov)
 	    CONFIG_ARGS="--enable-gcov ${CONFIG_ARGS}";
@@ -46,8 +88,11 @@ while [ $# -gt 0 ]; do
 	libc|tcmalloc|jemalloc|asan|asan_noleak|tcmalloc_debug|tcmalloc_minimal|gperftools|asan_thread)
 	    CONFIG_ARGS="--with-malloc=${arg} ${CONFIG_ARGS}"; 
 	    ;;
-	debug|production|install|nitpick|fast|install-bin|standard|usable|working|optimized|faster)
+	debug|production|nitpick|fast|standard|usable|working|optimized|faster)
 	    MAKE_ARGS="${MAKE_ARGS} ${arg}";
+	    ;;
+	install|install-bin|install-docs)
+	    INSTALL_ARGS="${INSTALL_ARGS} ${arg}";
 	    ;;
 	cprofiling)
 	    CONFIG_ARGS="--enable-cprofiling=deep"
@@ -56,10 +101,7 @@ while [ $# -gt 0 ]; do
 	    CONFIG_ARGS="--enable-cprofiling=extreme"
 	    ;;
 	tests|memtests|leaktests|libtests|schemetests|dbtests|cmdtests)
-	    MAKE_ARGS="${MAKE_ARGS} ${arg}";
-	    ;;
-	nt|next|beta|alpha)
-	    SUFFIX=".$arg";
+	    TEST_ARGS="${TEST_ARGS} ${arg}";
 	    ;;
 	python|parseltongue)
 	    with_parseltongue = yes
@@ -161,4 +203,7 @@ fi;
 
 git submodule update
     
-make -j ${MAKE_ARGS} $*
+make -j ${MAKE_ARGS} $* && 
+    if [ ! -z "${TEST_ARGS}" ]; then make -j ${TEST_ARGS}; fi &&
+    if [ ! -z "${INSTALL_ARGS}" ]; then make ${INSTALL_ARGS}; fi &&
+    echo -n "All done: "; status; echo;

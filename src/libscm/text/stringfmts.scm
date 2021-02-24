@@ -1,5 +1,6 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
 ;;; Copyright (C) 2005-2020 beingmeta, inc.  All rights reserved.
+;;; Copyright (C) 2020-2021 beingmeta, llc.
 
 (in-module 'text/stringfmts)
 
@@ -165,12 +166,12 @@
 ;; Temporal intervals
 
 (define (interval-string secs (precise #t))
-  (let* ((days (inexact->exact (/ secs (* 3600 24))))
-	 (hours (inexact->exact (/ (- secs (* days 3600 24))
-				   3600)))
+  (let* ((days (inexact->exact (floor (/ secs (* 3600 24)))))
+	 (hours (inexact->exact (floor (/ (- secs (* days 3600 24))
+					  3600))))
 	 (minutes (inexact->exact
-		   (/ (- secs (* days 3600 24) (* hours 3600))
-		      60)))
+		   (floor (/ (- secs (* days 3600 24) (* hours 3600))
+			     60))))
 	 (seconds (- secs (* days 3600 24) (* hours 3600) (* minutes 60))))
     (stringout
 	(cond ((= days 1) "one day, ")
@@ -178,8 +179,11 @@
       (cond ((= hours 1) "one hour, ")
 	    ((> hours 0) (printout hours " hours, ")))
       (cond ((= minutes 1) "one minute, ")
-	    ((> minutes 0) (printout minutes " minutes, ")))
-      (cond ((= seconds 1) "one second")
+	    ((> minutes 0)
+	     (printout minutes " minutes"
+	       (if (> seconds 0) ", "))))
+      (cond ((zero? seconds))
+	    ((= seconds 1) "one second")
 	    ((< secs 1) (printout seconds " seconds"))
 	    (precise (printout seconds " seconds"))
 	    ((> secs 1800)

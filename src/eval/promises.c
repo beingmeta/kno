@@ -1,8 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2007-2020 beingmeta, inc.
-   This file is part of beingmeta's Kno platform and is copyright
-   and a valuable trade secret of beingmeta, inc.
+   Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu)
 */
 
 #ifndef _FILEINFO
@@ -45,12 +44,12 @@ static lispval delay_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 }
 
 DEFC_PRIM("force",force_promise_prim,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "returns the value promised by *promise*. If "
-	 "*promise* is not a promise object, it is simply "
-	 "returned. Promises only compute their values "
-	 "once, so the result of the first call is memoized",
-	 {"promise",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "returns the value promised by *promise*. If "
+	  "*promise* is not a promise object, it is simply "
+	  "returned. Promises only compute their values "
+	  "once, so the result of the first call is memoized",
+	  {"promise",kno_any_type,KNO_VOID})
 static lispval force_promise_prim(lispval promise)
 {
   if (KNO_TYPEP(promise,kno_promise_type)) {
@@ -62,8 +61,7 @@ static lispval force_promise_prim(lispval promise)
       if (p->promise_value) {
         u8_unlock_mutex(&p->promise_lock);
         return kno_incref(p->promise_value);}
-      lispval result = kno_eval
-	(p->promise_expr,p->promise_env,kno_stackptr,0);
+      lispval result = kno_eval(p->promise_expr,p->promise_env,NULL);
       if (KNO_ABORTED(result)) {
         u8_exception ex = u8_current_exception;
         /* p->promise_value = kno_simple_exception(ex); */
@@ -90,8 +88,7 @@ KNO_EXPORT lispval kno_force_promise(lispval promise)
       if (p->promise_value) {
         u8_unlock_mutex(&p->promise_lock);
         return kno_incref(p->promise_value);}
-      lispval result = kno_eval
-	(p->promise_expr,p->promise_env,kno_stackptr,0);
+      lispval result = kno_eval(p->promise_expr,p->promise_env,NULL);
       if (KNO_ABORTED(result)) {
         u8_exception ex = u8_current_exception;
         /* p->promise_value = kno_simple_exception(ex); */
@@ -108,13 +105,13 @@ KNO_EXPORT lispval kno_force_promise(lispval promise)
 }
 
 DEFC_PRIM("promise/probe",probe_promise_prim,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "returns the value promised by *promise* if it has "
-	 "been resolved. If *promise* has not been "
-	 "resolved, *marker* is returned and if *promise* "
-	 "is not a promise it is returned.",
-	 {"promise",kno_any_type,KNO_VOID},
-	 {"marker",kno_any_type,KNO_FALSE})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	  "returns the value promised by *promise* if it has "
+	  "been resolved. If *promise* has not been "
+	  "resolved, *marker* is returned and if *promise* "
+	  "is not a promise it is returned.",
+	  {"promise",kno_any_type,KNO_VOID},
+	  {"marker",kno_any_type,KNO_FALSE})
 static lispval probe_promise_prim(lispval promise,lispval marker)
 {
   if (KNO_TYPEP(promise,kno_promise_type)) {
@@ -126,10 +123,10 @@ static lispval probe_promise_prim(lispval promise,lispval marker)
 }
 
 DEFC_PRIM("make-promise",make_promise_prim,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "returns a promise which returns *value* when "
-	 "FORCEd.",
-	 {"value",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "returns a promise which returns *value* when "
+	  "FORCEd.",
+	  {"value",kno_any_type,KNO_VOID})
 static lispval make_promise_prim(lispval value)
 {
   struct KNO_PROMISE *promise = u8_alloc(struct KNO_PROMISE);
@@ -143,10 +140,10 @@ static lispval make_promise_prim(lispval value)
 }
 
 DEFC_PRIM("promise/resolved?",promise_resolvedp_prim,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "returns #t if *promise* has had its value "
-	 "computed and cached (or generated an error).",
-	 {"value",kno_promise_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "returns #t if *promise* has had its value "
+	  "computed and cached (or generated an error).",
+	  {"value",kno_promise_type,KNO_VOID})
 static lispval promise_resolvedp_prim(lispval value)
 {
   struct KNO_PROMISE *promise = (kno_promise) value;
@@ -156,10 +153,10 @@ static lispval promise_resolvedp_prim(lispval value)
 }
 
 DEFC_PRIM("promise/broken?",promise_brokenp_prim,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "returns #t if *promise* generated an error when "
-	 "evaluated.",
-	 {"value",kno_promise_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "returns #t if *promise* generated an error when "
+	  "evaluated.",
+	  {"value",kno_promise_type,KNO_VOID})
 static lispval promise_brokenp_prim(lispval value)
 {
   struct KNO_PROMISE *promise = (kno_promise) value;
@@ -170,10 +167,10 @@ static lispval promise_brokenp_prim(lispval value)
 }
 
 DEFC_PRIM("promise/satisfied?",promise_satisfiedp_prim,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "returns #t if *promise* has been computed and "
-	 "cached without error.",
-	 {"value",kno_promise_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "returns #t if *promise* has been computed and "
+	  "cached without error.",
+	  {"value",kno_promise_type,KNO_VOID})
 static lispval promise_satisfiedp_prim(lispval value)
 {
   struct KNO_PROMISE *promise = (kno_promise) value;
@@ -184,9 +181,9 @@ static lispval promise_satisfiedp_prim(lispval value)
 }
 
 DEFC_PRIM("promise?",promisep_prim,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "returns true if *value* is a promise.",
-	 {"value",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "returns true if *value* is a promise.",
+	  {"value",kno_any_type,KNO_VOID})
 static lispval promisep_prim(lispval value)
 {
   if (KNO_TYPEP(value,kno_promise_type))

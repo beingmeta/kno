@@ -1,20 +1,14 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
-   This file is part of beingmeta's Kno platform and is copyright
-   and a valuable trade secret of beingmeta, inc.
+   Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu)
 */
 
 #ifndef _FILEINFO
 #define _FILEINFO __FILE__
 #endif
 
-#define KNO_INLINE_CHOICES	(!(KNO_AVOID_INLINE))
-#define KNO_INLINE_TABLES	(!(KNO_AVOID_INLINE))
-#define KNO_INLINE_FCNIDS	(!(KNO_AVOID_INLINE))
-#define KNO_INLINE_STACKS	(!(KNO_AVOID_INLINE))
-#define KNO_INLINE_LEXENV	(!(KNO_AVOID_INLINE))
-
+#define KNO_LANG_CORE		(!(KNO_AVOID_INLINE))
 #define KNO_EVAL_INTERNALS 1
 
 #define INIT_ARGBUF_LEN 7
@@ -83,7 +77,7 @@ u8_condition kno_InvalidMacro=_("invalid macro transformer"),
 u8_condition BadExpressionHead=_("BadExpressionHead");
 u8_condition UnconfiguredSource="Unconfigured source";
 
-lispval eval_expr(lispval head,lispval expr,
+lispval lisp_eval(lispval head,lispval expr,
 		   kno_lexenv env,kno_stack stack,
 		   int tail);
 
@@ -94,21 +88,31 @@ lispval eval_expr(lispval head,lispval expr,
 
 /* Top level functions */
 
-KNO_EXPORT lispval kno_eval(lispval x,kno_lexenv env,
-			    kno_stack stack,
-			    int tail)
+KNO_EXPORT lispval kno_tail_eval(lispval x,kno_lexenv env,kno_stack stack)
 {
-  return fast_eval(x,env,stack,tail);
+if (stack==NULL) stack = kno_stackptr;
+  return doeval(x,env,stack,1);
 }
 
-KNO_EXPORT lispval kno_stack_eval(lispval x,kno_lexenv env,
-				 kno_stack stack)
+KNO_EXPORT lispval kno_eval(lispval x,kno_lexenv env,kno_stack stack)
 {
-  lispval result;
-  KNO_START_EVAL(eval_stack,"pusheval",x,env,stack);
-  result = kno_eval(x,env,eval_stack,0);
-  kno_pop_stack(eval_stack);
-  return result;
+  if (stack==NULL) stack = kno_stackptr;
+  return doeval(x,env,stack,0);
+}
+
+KNO_EXPORT lispval kno_eval_arg(lispval x,kno_lexenv env,kno_stack stack)
+{
+  if (stack==NULL) stack = kno_stackptr;
+  return eval_arg(x,env,stack);
+}
+
+lispval eval_body_error(u8_context cxt,u8_string label,lispval body)
+{
+  return kno_err(kno_SyntaxError,
+		 ( (cxt) && (label) ) ? (cxt) :
+		 ((u8_string)"eval_body"),
+		 (label) ? (label) : (cxt) ? (cxt) : (NULL),
+		 body);
 }
 
 #define ND_ARGP(v) ((CHOICEP(v))||(QCHOICEP(v)))
@@ -127,6 +131,55 @@ KNO_EXPORT lispval kno_bad_arg(lispval arg,u8_context cxt,lispval source_expr)
 		 source_expr);
 }
 
+/* Eval routines */
+
+int eval_arglist(int argc,lispval exprs,lispval *into,
+		 kno_lexenv env,kno_stack stack,
+		 int prune)
+{
+  int conses = 0, choices = 0, qchoices = 0, empties = 0;
+  lispval scan = exprs, *write = into;;
+  while (PAIRP(scan)) {
+    lispval expr = KNO_CAR(scan); scan=KNO_CDR(scan);
+    lispval v = (KNO_IMMEDIATEP(expr)) ?
+      ((KNO_LEXREFP(expr)) ? (eval_lexref(expr,env)) :
+       (KNO_SYMBOLP(expr)) ? (eval_symbol(expr,env)) :
+       (expr) ) :
+      (KNO_CONSP(expr)) ?
+      ((KNO_PAIRP(expr)) ? (vm_eval(KNO_CAR(expr),expr,env,stack,0)) :
+       (KNO_SCHEMAPP(expr)) ? (eval_schemap(expr,env,stack)) :
+       (KNO_CHOICEP(expr)) ? (eval_choice(expr,env,stack)) :
+       (kno_incref(expr))) :
+      (expr);
+    if (KNO_CONSP(v)) {
+      conses=1;
+      if (KNO_CHOICEP(v)) choices=1;
+      else if (KNO_QCHOICEP(v)) qchoices=1;
+      else NO_ELSE;}
+    else if (IMMEDIATEP(v)) {
+      if (KNO_EMPTYP(v)) {
+	if (prune) {
+	  kno_decref_vec(into,write-into);
+	  return KNO_PRUNED;}
+	else empties=0;}
+      else if (v == KNO_THROW_VALUE) {
+	kno_decref_vec(into,write-into);
+	return KNO_THROWN_ARG;}
+      else if (BAD_ARGP(v)) {
+	kno_decref_vec(into,write-into);
+	if (KNO_VOIDP(v))
+	  kno_seterr(kno_VoidArgument,"eval_arglist",NULL,expr);
+	return -1;}
+      else NO_ELSE;}
+    else NO_ELSE;
+    *write++=v;}
+  return (KNO_GOOD_ARGS) |
+    ( (empties) ?  (KNO_FAILED_ARGS) : (0) ) |
+    ( (conses) ?   (KNO_CONSED_ARGS) : (0)) |
+    ( (choices) ?  (KNO_AMBIG_ARGS)  : (0)) |
+    ( (qchoices) ? (KNO_QCHOICE_ARGS) : (0));
+}
+
 /* Environment functions */
 
 static int bound_in_envp(lispval symbol,kno_lexenv env)
@@ -137,34 +190,6 @@ static int bound_in_envp(lispval symbol,kno_lexenv env)
   else if (SCHEMAPP(bindings))
     return kno_schemap_test((kno_schemap)bindings,symbol,VOID);
   else return kno_test(bindings,symbol,VOID);
-}
-
-KNO_FASTOP lispval eval_arg(lispval arg_expr,kno_lexenv env,
-			    kno_stack stack)
-{
-  kno_lisp_type arg_type = KNO_TYPEOF(arg_expr);
-  switch (arg_type) {
-  case kno_fixnum_type: case kno_oid_type:
-    return arg_expr;
-  case kno_lexref_type:
-    return eval_lexref(arg_expr,env);
-  case kno_symbol_type:
-    return eval_symbol(arg_expr,env);
-  case kno_fcnid_type:
-    return eval_fcnid(arg_expr);
-  case kno_pair_type: {
-    u8_string old_label = stack->stack_label;
-    lispval result = eval_expr(KNO_CAR(arg_expr),arg_expr,env,stack,0);
-    stack->stack_label = old_label;
-    return result;}
-  case kno_schemap_type:
-    return eval_schemap(arg_expr,env,stack);
-  case kno_choice_type:
-    return eval_choice(arg_expr,env,stack);
-  default:
-    if (KNO_CONSP(arg_expr))
-      return kno_incref(arg_expr);
-    else return arg_expr;}
 }
 
 /* Opcodes */
@@ -411,7 +436,7 @@ static lispval fcnalias_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
   lispval source_table = KNO_VOID;
   kno_lexenv source_env = NULL;
   if (!( (KNO_DEFAULTP(env_expr)) || (KNO_VOIDP(env_expr)) )) {
-    env_arg = kno_eval(env_expr,env,stack,0);
+    env_arg = kno_eval(env_expr,env,stack);
     if (KNO_LEXENVP(env_arg)) {
       kno_lexenv e = (kno_lexenv) env_arg;
       if (kno_test(e->env_bindings,sym,KNO_VOID)) {
@@ -455,7 +480,7 @@ static lispval fcnalias_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
     kno_decref(val);
     kno_decref(env_arg);
     return ref;}
-  lispval val = kno_symeval(sym,source_env);
+  lispval val = symeval(sym,source_env);
   if (KNO_ABORTED(val)) {
     kno_decref(env_arg);
     return val;}
@@ -489,15 +514,13 @@ static lispval quote_evalfn(lispval obj,kno_lexenv env,kno_stack stack)
 
 /* The evaluator itself */
 
-static lispval reduce_loop(kno_stack loop_stack,int tail);
-
 lispval eval_choice(lispval expr,kno_lexenv env,
 			   kno_stack _stack)
 {
   lispval result = EMPTY;
   KNO_PUSH_EVAL(choice_stack,NULL,expr,env);
   DO_CHOICES(each_expr,expr) {
-    lispval r = fast_eval(each_expr,env,choice_stack,0);
+    lispval r = doeval(each_expr,env,choice_stack,0);
     if (KNO_ABORTED(r)) {
       KNO_STOP_DO_CHOICES;
       kno_decref(result);
@@ -526,7 +549,7 @@ lispval eval_schemap(lispval expr,kno_lexenv env,
   KNO_PUSH_EVAL(keyval_stack,NULL,KNO_VOID,env);
   int i = 0; while (i < n) {
     lispval val_expr = vals[i];
-    lispval val = fast_eval(val_expr,env,keyval_stack,0);
+    lispval val = doeval(val_expr,env,keyval_stack,0);
     if (KNO_ABORTED(val)) {
       result = val;
       break;}
@@ -563,403 +586,40 @@ static lispval macro_eval(struct KNO_MACRO *macrofn,lispval expr,
   else NO_ELSE;
   KNO_START_EVALX(macro_stack,"macroexpansion",new_expr,env,eval_stack,7);
   kno_add_stack_ref(macro_stack,new_expr);
-  lispval result = fast_eval(new_expr,env,macro_stack,0);
+  lispval result = doeval(new_expr,env,macro_stack,0);
   kno_pop_stack(macro_stack);
   return result;
 }
 
-/* Opcode handling */
-
-static lispval op_arity_error(lispval op,int got,int expected)
-{
-  kno_seterr((got>expected) ? (kno_TooManyArgs) : (kno_TooFewArgs),
-	     "eval_apply/opcode",opcode_name(op),KNO_VOID);
-  return KNO_ERROR;
-}
-
-#include "opcode_defs.c"
-
-static lispval opcode_dispatch(lispval op,int n,kno_argvec args)
-{
-  lispval opcode_class = KNO_OPCODE_CLASS(op);
-  switch (opcode_class) {
-  case KNO_D1_OPCODE_CLASS:
-    if (RARELY(n != 1))
-      return op_arity_error(op,n,1);
-    else return d1_call(op,args[0]);
-  case KNO_D2_OPCODE_CLASS:
-    if (RARELY(n != 2))
-      return op_arity_error(op,n,2);
-    else return d2_call(op,args[0],args[1]);
-  case KNO_ND1_OPCODE_CLASS:
-    if (RARELY(n != 1))
-      return op_arity_error(op,n,1);
-    else return nd1_call(op,args[0]);
-  case KNO_ND2_OPCODE_CLASS:
-    if (RARELY(n != 2))
-      return op_arity_error(op,n,2);
-    else return nd2_call(op,args[0],args[1]);
-  case KNO_NUMERIC_OPCODE_CLASS:
-    return handle_numeric_opcode(op,n,args);
-  case KNO_TABLE_OPCODE_CLASS:
-    return handle_table_opcode(op,n,args);
-  default:
-    return kno_err(kno_BadOpcode,"opcode_dispatch",opcode_name(op),op);}
-}
-
-#if 0
-static lispval opcode_dispatch(lispval op,int n,kno_argvec args)
-{
-  if (KNO_D1_OPCODEP(op))
-    if (RARELY(n != 1))
-      return op_arity_error(op,n,1);
-    else return d1_call(op,args[0]);
-  else if (KNO_D2_OPCODEP(op))
-    if (RARELY(n != 2))
-      return op_arity_error(op,n,2);
-    else return d2_call(op,args[0],args[1]);
-  else if (KNO_ND1_OPCODEP(op))
-    if (RARELY(n != 1))
-      return op_arity_error(op,n,1);
-    else return nd1_call(op,args[0]);
-  else if (KNO_ND2_OPCODEP(op))
-    if (RARELY(n != 2))
-      return op_arity_error(op,n,2);
-    else return nd2_call(op,args[0],args[1]);
-  else if (KNO_NUMERIC_OPCODEP(op))
-    return handle_numeric_opcode(op,n,args);
-  else if (KNO_TABLE_OPCODEP(op))
-    return handle_table_opcode(op,n,args);
-  else return kno_err(kno_BadOpcode,"opcode_dispatch",opcode_name(op),op);
-}
-#endif
-
-static int opcode_choice_loop(lispval *resultp,
-			      lispval op,int i,int n,
-			      kno_argvec nd_args,
-			      lispval *d_args)
-{
-  if (n==i) {
-    lispval result = opcode_dispatch(op,n,d_args);
-    if (KNO_ABORTED(result)) goto err_exit;
-    else {KNO_ADD_TO_CHOICE(*resultp,result);}
-    return 1;}
-  lispval arg = nd_args[i];
-  if (CHOICEP(arg)) {
-    DO_CHOICES(each,arg) {
-      d_args[i] = each;
-      int rv= opcode_choice_loop(resultp,op,i+1,n,nd_args,d_args);
-      if (rv<0) goto err_exit;}
-    return 0;}
-  else {
-    d_args[i] = arg;
-    return opcode_choice_loop(resultp,op,i+1,n,nd_args,d_args);}
-  lispval r;
- err_exit:
-  r = *resultp; kno_decref(r); *resultp=KNO_ERROR;
-  return -1;
-}
-
-static lispval opcode_1choice_loop(lispval op,lispval args)
-{
-  lispval results = KNO_EMPTY;
-  KNO_DO_CHOICES(arg,args) {
-    lispval result = opcode_dispatch(op,1,&arg);
-    if (KNO_ABORTED(result)) {
-      kno_decref(results);
-      return result;}
-    else {KNO_ADD_TO_CHOICE(results,result);}}
-  return results;
-}
-
-static lispval opcode_2choice_loop(lispval op,lispval args1,lispval args2)
-{
-  lispval results = KNO_EMPTY, err = KNO_VOID;
-  if ( (KNO_CHOICEP(args1)) && (KNO_CHOICEP(args2)) ) {
-    KNO_DO_CHOICES(arg1,args1) {
-      KNO_DO_CHOICES(arg2,args2) {
-	lispval d_args[2] = {arg1,arg2};
-	lispval result = opcode_dispatch(op,2,d_args);
-	if (KNO_ABORTED(result)) { err=result; goto err_exit;}
-	else {KNO_ADD_TO_CHOICE(results,result);}}}}
-  else if (KNO_CHOICEP(args1)) {
-    KNO_DO_CHOICES(arg1,args1) {
-      lispval d_args[2] = {arg1,args2};
-      lispval result = opcode_dispatch(op,2,d_args);
-      if (KNO_ABORTED(result)) { err=result; goto err_exit;}
-      else {KNO_ADD_TO_CHOICE(results,result);}}}
- else {
-   KNO_DO_CHOICES(arg2,args2) {
-     lispval d_args[2] = {args1,arg2};
-     lispval result = opcode_dispatch(op,2,d_args);
-     if (KNO_ABORTED(result)) { err=result; goto err_exit;}
-     else {KNO_ADD_TO_CHOICE(results,result);}}}
-  return results;
- err_exit:
-  kno_decref(results);
-  return err;
-}
-
-
 /* Lambda application */
 
-static lispval reduce_loop(kno_stack loop_stack,int tail);
-
-static int lambda_check_arity(struct KNO_LAMBDA *proc,int n)
+static int check_fcn_arity(struct KNO_FUNCTION *proc,int n)
 {
   int arity = proc->fcn_arity;
   int min_arity = proc->fcn_min_arity;
   if (n < min_arity) {
-    kno_seterr(kno_TooFewArgs,"lambda",proc->fcn_name,VOID);
-    return 0;}
+    kno_seterr(kno_TooFewArgs,"call",proc->fcn_name,VOID);
+    return -1;}
   else if ( (arity>=0) && (n>arity) ) {
-    kno_seterr(kno_TooManyArgs,"lambda",proc->fcn_name,VOID);
-    return 0;}
-  else return 1;
-}
-
-static lispval get_rest_arg(kno_argvec args,int n)
-{
-  lispval result=NIL; n--;
-  while (n>=0) {
-    lispval arg=args[n];
-    kno_incref(arg);
-    result=kno_init_pair(NULL,arg,result);
-    n--;}
-  return result;
-}
-
-lispval lambda_call(kno_stack stack,
-		    struct KNO_LAMBDA *proc,
-		    int n_given,kno_argvec given,
-		    int tail)
-{
-  kno_lexenv proc_env=proc->lambda_env;
-  lispval *vars = proc->lambda_vars;
-  int synchronized = proc->lambda_synchronized;
-  int arity = proc->fcn_arity;
-  int n_vars = proc->lambda_n_vars;
-
-  u8_string label = (proc->fcn_name) ? (proc->fcn_name) : (U8S("lambda"));
-  u8_string filename = (proc->fcn_filename) ? (proc->fcn_filename) : (NULL);
-  KNO_START_EVAL(lambda_stack,label,(lispval)proc,NULL,stack);
-  lambda_stack->stack_bits |= KNO_STACK_LAMBDA_CALL;
- stackpush:
-  lambda_stack->stack_file = filename;
-  lispval args[n_vars];
-
-  kno_profile profile = proc->fcn_profile;
-  struct rusage before; struct timespec start;
-  if (profile) {
-    if (profile->prof_disabled) profile=NULL;
-    else kno_profile_start(&before,&start);}
-
-  int tailable = ( (!(synchronized)) && (profile == NULL) );
-
-  int max_positional = (arity<0) ?
-    (n_vars - 1 - proc->lambda_n_locals) :
-    (arity);
-  int last_positional = (arity < 0) ?
-    ((n_given < max_positional) ? (n_given) : (max_positional)) :
-    (n_given);
-
-  lispval *inits = proc->lambda_inits;
-  int i = 0;
-
-  /* Handle positional arguments */
-  while (i<last_positional) {
-    lispval arg = given[i];
-    if (ABORTED(arg)) return arg;
-    else if (QCHOICEP(arg))
-      arg=KNO_QCHOICEVAL(arg);
-    else if (KNO_BAD_ARGP(arg)) {
-	lispval err = kno_bad_arg(arg,"lambda_call",vars[i]);
-	kno_decref_vec(args,i);
-	kno_pop_stack(lambda_stack);
-	return err;}
-    else if ( (arg == KNO_DEFAULT_VALUE) && (inits) ) {
-      lispval init_expr = inits[i];
-      lispval init_val  = init_expr;
-      if (KNO_VOIDP(init_expr)) {}
-      else if (KNO_LEXREFP(init_expr))
-	init_val = eval_lexref(init_expr,proc_env);
-      else if (KNO_SYMBOLP(init_expr))
-	init_val = eval_symbol(init_expr,proc_env);
-      else if (KNO_CONSP(init_expr)) {
-	if (KNO_PAIRP(init_expr))
-	  init_val = eval_expr(KNO_CAR(init_expr),init_expr,proc_env,
-			       lambda_stack,0);
-	else if (KNO_SCHEMAPP(init_expr))
-	  init_val = eval_schemap(init_expr,proc_env,lambda_stack);
-	else if (KNO_CHOICEP(init_expr))
-	  init_val = eval_choice(init_expr,proc_env,lambda_stack);
-	else kno_incref(init_val);}
-      else NO_ELSE;
-      if (KNO_ABORTED(init_val)) {
-	kno_decref_vec(args,i);
-	kno_pop_stack(lambda_stack);
-	return init_val;}
-      else if (init_val == KNO_TAIL) {
-	lispval err = kno_bad_arg(init_val,"lambda_call/default",init_expr);
-	kno_decref_vec(args,i);
-	kno_pop_stack(lambda_stack);
-	return err;}
-      else if (init_val == KNO_VOID)
-	init_val = arg;
-      else NO_ELSE;
-      args[i++] = init_val;
-      continue;}
-    else NO_ELSE;
-    args[i++] = arg;
-    kno_incref(arg);}
-
-  /* If we're synchronized, lock the mutex.
-     We include argument defaults within the lock ?? */
-  if (synchronized) u8_lock_mutex(&(proc->lambda_lock));
-
-  /* Handle argument defaults */
- eval_inits:
-  if (inits) {
-    while (i<max_positional) {
-      lispval init_expr = inits[i], init_val = KNO_VOID;
-      if (KNO_CONSP(init_expr)) {
-	if ( (KNO_PAIRP(init_expr)) ||
-	     (KNO_SCHEMAPP(init_expr)) ||
-	     (KNO_CHOICEP(init_expr)) )
-	  init_val = fast_eval(init_expr,proc_env,lambda_stack,0);
-	else init_val = kno_incref(init_expr);}
-      else if (KNO_VOIDP(init_expr)) {}
-      else if (KNO_SYMBOLP(init_expr))
-	init_val = eval_symbol(init_expr,proc_env);
-      else if (KNO_LEXREFP(init_expr))
-	init_val = eval_lexref(init_expr,proc_env);
-      else init_val = init_expr;
-      if (ABORTED(init_val)) {
-	kno_decref_vec(args,i);
-	kno_pop_stack(lambda_stack);
-	return init_val;}
-      else if (VOIDP(init_val)) args[i++]=init_val;
-      else if (KNO_BAD_ARGP(init_val)) {
-	lispval err = kno_bad_arg(init_val,"lambda_call/default",init_expr);
-	kno_decref_vec(args,i);
-	kno_pop_stack(lambda_stack);
-	return err;}
-      else {
-	/* _lambda_stack.stack_args.count=i; */
-	args[i++]=init_val;}}}
-
-  /* Now accumulate a .rest arg if it's needed */
-  if (arity < 0) {
-    if (i<n_given) {
-      lispval rest_arg = get_rest_arg(given+i,n_given-i);
-      args[i] = rest_arg;}
-    else args[i] = KNO_EMPTY_LIST;
-    i++;}
-  while (i<n_vars) { args[i++] = KNO_VOID;}
-
-#if 0
-  lambda_stack->stack_args.elts = args;
-  lambda_stack->stack_args.len = n_vars;
-  lambda_stack->stack_args.count = n_vars;
-#endif
-
-  struct KNO_LEXENV  eval_env = { 0 };
-  struct KNO_SCHEMAP bindings = { 0 };
- make_env:
-  init_static_env(n_vars,proc_env,
-		  &bindings,&eval_env,
-		  vars,args,
-		  0);
-  lambda_stack->eval_env = &eval_env;
-  KNO_STACK_SET(lambda_stack,KNO_STACK_OWNS_ENV);
-
-  lambda_stack->eval_context = proc->lambda_source;
-  lispval scan = proc->lambda_start, result = KNO_VOID;
- eval_body:
-  while (KNO_PAIRP(scan)) {
-    kno_decref(result);
-    lispval body_expr = KNO_CAR(scan); scan = KNO_CDR(scan);
-    KNO_STACK_SET_OP(lambda_stack,body_expr,0);
-    int tail_arg = ( (tailable) && (KNO_EMPTY_LISTP(scan)) ) ?
-      (KNO_TAIL_EVAL) : (0);
-    if (KNO_PAIRP(body_expr))
-      result = reduce_loop(lambda_stack,tail_arg);
-    else result = fast_eval(body_expr,&eval_env,lambda_stack,tail_arg);
-
-    if (ABORTED(result)) break;}
-
-  reset_env(&eval_env);
-  int j = 0; while (j<n_vars) {
-    lispval arg = args[j++];
-    kno_decref(arg);}
-  
-  /* If we're synchronized, unlock the mutex. */
-  if (synchronized) u8_unlock_mutex(&(proc->lambda_lock));
-
-  kno_pop_stack(lambda_stack);
-
-  if (profile)
-    kno_profile_update(profile,&before,&start,1);
-
-  return result;
-}
-
-KNO_FASTOP kno_stack find_loop_frame(kno_stack stack)
-{
-  kno_stack scan = stack, loop = NULL;
-  while (scan) {
-    if (!(KNO_STACK_BITP(scan,KNO_STACK_TAIL_POS))) break;
-    if (KNO_STACK_BITP(scan,KNO_STACK_REDUCE_LOOP)) {
-      /* We disable this bit on this entry so we can throw through it
-	 if there's a 'better' loop higher up the stack.
-	 We reset the bit on the outermost loop. */
-      KNO_STACK_CLEAR_BITS(scan,KNO_STACK_REDUCE_LOOP);
-      loop=scan;}
-    scan = scan->stack_caller;}
-  if (loop) KNO_STACK_SET_BITS(loop,KNO_STACK_REDUCE_LOOP);
-  return loop;
-}
-
-KNO_FASTOP void setup_tail_call(kno_stack loop,
-				struct KNO_LAMBDA *lambda,
-				int n,const lispval *args,
-				kno_stackvec refs)
-{
-  loop->stack_op = (lispval)lambda;
-  int call_width = lambda->fcn_call_width;
-  int need_width = (n > call_width) ? (n) : (call_width);
-  int loop_width = STACK_WIDTH(loop);
-  /* Clean up any existing arguments */
-  if (loop_width < need_width) {
-    kno_stackvec_grow(&(loop->stack_args),need_width);}
-  if (refs) {
-    kno_decref_stackvec(&(loop->stack_refs));
-    kno_stackvec_merge(&(loop->stack_refs),refs);}
-  /* Copy the arguments */
-  memcpy(loop->stack_args.elts,args,n*sizeof(lispval));
-  loop->stack_args.count = n;
-}
-
-static U8_MAYBE_UNUSED lispval return_tail()
-{
-  return KNO_TAIL;
+    kno_seterr(kno_TooManyArgs,"call",proc->fcn_name,VOID);
+    return -1;}
+  else return 0;
 }
 
 static lispval bad_evalop(lispval head,lispval op)
 {
   if ( (KNO_VOIDP(op)) && (KNO_SYMBOLP(head)) )
-    return kno_err(kno_UnboundIdentifier,"eval_expr/op",
+    return kno_err(kno_UnboundIdentifier,"lisp_eval/op",
 		   KNO_SYMBOL_NAME(head),
 		   head);
   else if (KNO_VOIDP(op))
-    return kno_err(kno_BadEvalOp,"eval_expr/op",NULL,head);
-  else return kno_err(kno_BadEvalOp,"eval_expr/op",
+    return kno_err(kno_BadEvalOp,"lisp_eval/op",NULL,head);
+  else return kno_err(kno_BadEvalOp,"lisp_eval/op",
 		      (KNO_SYMBOLP(head)?(KNO_SYMBOL_NAME(head)):(NULL)),
 		      op);
 }
 
-static lispval get_evalop(lispval head,kno_lexenv env,
-			  kno_stack stack)
+lispval get_evalop(lispval head,kno_lexenv env,kno_stack stack)
 {
   lispval op = KNO_VOID;
   if (KNO_OPCODEP(head)) return head;
@@ -974,7 +634,7 @@ static lispval get_evalop(lispval head,kno_lexenv env,
 	 (KNO_APPLICABLE_TYPEP(headtype)) )
       return head;
     else if  (headtype == kno_pair_type)
-      op = eval_expr(KNO_CAR(head),head,env,stack,0);
+      op = lisp_eval(KNO_CAR(head),head,env,stack,0);
     else if (headtype == kno_choice_type)
       op = eval_choice(head,env,stack);
     else op = KNO_VOID;}
@@ -988,275 +648,156 @@ static lispval get_evalop(lispval head,kno_lexenv env,
   else return op;
 }
 
-static lispval call_evalfn(lispval evalop,lispval expr,kno_lexenv env,
+lispval call_evalfn(lispval evalop,lispval expr,kno_lexenv env,
 			   kno_stack stack,int tail)
 {
   struct KNO_EVALFN *handler = (kno_evalfn)evalop;
   /* These are evalfns which do all the evaluating themselves */
   int notail = handler->evalfn_notail;
   lispval result = KNO_VOID;
-  KNO_STACK_SET_TAIL(stack,tail);
-  KNO_START_EVAL(evalfn_stack,handler->evalfn_name,expr,env,stack);
-  if (notail) KNO_STACK_SET_TAIL(evalfn_stack,0);
-  else KNO_STACK_SET_TAIL(evalfn_stack,tail);
-  result = handler->evalfn_handler(expr,env,evalfn_stack);
-  kno_pop_stack(evalfn_stack);
+  if (notail) {KNO_STACK_SET_TAIL(stack,0);}
+  result = handler->evalfn_handler(expr,env,stack);
   return result;
+}
+
+static lispval iter_dcall(kno_stack stack,lispval fns,int n,kno_argvec argvec)
+{
+  lispval results = KNO_EMPTY;
+  ITER_CHOICES(fscan,flimit,fns);
+  while (fscan<flimit) {
+    lispval f = *fscan++;
+    lispval r = kno_dcall(stack,f,n,argvec);
+    if (KNO_ABORTED(r)) {
+      kno_decref(results);
+      return r;}
+    else {KNO_ADD_TO_CHOICE(results,r);}}
+  return results;
 }
 
 lispval eval_apply(lispval fn,lispval exprs,
 		   kno_lexenv env,kno_stack stack,
 		   int tail);
 
-/* Evaluating pair expressions */
-lispval eval_expr(lispval head,lispval expr,
-		   kno_lexenv env,kno_stack stack,
-		   int tail)
+/* Evaluating pair expressions using stack frames for each subexpression */
+lispval lisp_eval(lispval head,lispval expr,
+			kno_lexenv env,kno_stack stack,
+			int tail)
 {
-  lispval result = KNO_VOID, source = expr;
-  u8_string old_label = stack->stack_label;
+  if (KNO_OPCODEP(head))
+    return vm_eval(head,expr,env,stack,tail);
+  lispval result = KNO_VOID, source = expr, op = head;
+  KNO_START_EVAL(_stack,"pusheval",expr,env,stack);
+ entry:
+  KNO_STACK_SET_BIT(_stack,KNO_STACK_TAIL_POS,tail);
+  _stack->eval_source = source;
+  if (KNO_FCNIDP(head)) op = kno_fcnid_ref(head);
+  else op = get_evalop(head,env,_stack);
+  if (op == KNO_EMPTY) _return op;
+  else if (KNO_ABORTED(op)) _return op;
+  else NO_ELSE;
 
-  /* Extract core expression, note source */
-  while (head == KNO_SOURCEREF_OPCODE) {
-    expr   = KNO_CDR(expr);
-    source = KNO_CAR(expr);
-    expr   = KNO_CDR(expr);
-    if (USUALLY(PAIRP(expr)))
-      head = KNO_CAR(expr);
-    else return fast_eval(expr,env,stack,tail);}
-
-  KNO_STACK_SET_OP(stack,expr,0);
-  stack->eval_source = source;
-
-  if (KNO_OPCODEP(head)) {
-    lispval result;
-    if (KNO_SPECIAL_OPCODEP(head))
-      result=handle_special_opcode(head,KNO_CDR(expr),expr,env,stack,tail);
-    else result=eval_apply(head,KNO_CDR(expr),env,stack,tail);
-    stack->stack_label = old_label;
-    return result;}
-  else if (KNO_FCNIDP(head)) {
-    lispval op = kno_fcnid_ref(head);
-    kno_lisp_type op_type = KNO_TYPEOF(op);
-    if (op_type == kno_evalfn_type)
-      return call_evalfn(op,expr,env,stack,tail);
-    else if (USUALLY(KNO_APPLICABLEP(op)))
-      return eval_apply(op,KNO_CDR(expr),env,stack,tail);
-    else return kno_err(kno_BadEvalOp,"eval_expr",NULL,expr);}
-  else {
-    lispval op = get_evalop(head,env,stack);
-    if (op == KNO_EMPTY) return op;
-    else if (KNO_ABORTED(op)) return op;
-    else NO_ELSE;
-
-    kno_lisp_type optype = KNO_TYPEOF(op);
-    switch (optype) {
-    case kno_opcode_type: case kno_choice_type:
-    case kno_cprim_type: case kno_lambda_type:
-    case kno_ffi_type: case kno_rpc_type:
-      return eval_apply(op,KNO_CDR(expr),env,stack,tail);
-    case kno_evalfn_type: {
-      result = call_evalfn(op,expr,env,stack,tail);
-      goto got_result;}
-    case kno_macro_type: {
-      struct KNO_MACRO *handler = (kno_macro) op;
-      u8_string old_file = stack->stack_file;
-      u8_string old_label = stack->stack_label;
-      lispval source = stack->eval_source, context = stack->eval_context;
-      stack->stack_label = handler->macro_name;
-      stack->stack_file  = handler->macro_filename;
-      KNO_STACK_SET_TAIL(stack,tail);
-      result = macro_eval(handler,expr,env,stack);
-      stack->stack_file=old_file;
-      stack->stack_label=old_label;
-      stack->eval_source=source;
-      stack->eval_context=context;
-      goto got_result;}
-    default:
-      if (!(KNO_APPLICABLE_TYPEP(optype)))
-	return kno_err(kno_BadEvalOp,"eval_expr",NULL,op);
-      else return eval_apply(op,KNO_CDR(expr),env,stack,tail);}
-
-  got_result:
-    stack->stack_label=old_label;
-    if (KNO_PRECHOICEP(result))
-      return kno_simplify_choice(result);
-    else return result;}}
+  kno_lisp_type optype = KNO_TYPEOF(op);
+  switch (optype) {
+  case kno_choice_type: case kno_cprim_type: case kno_lambda_type:
+  case kno_ffi_type: case kno_rpc_type:
+    result = eval_apply(op,KNO_CDR(expr),env,_stack,tail);
+    goto got_result;
+  case kno_evalfn_type: {
+    result = call_evalfn(op,expr,env,_stack,tail);
+    goto got_result;}
+  case kno_macro_type: {
+    struct KNO_MACRO *handler = (kno_macro) op;
+    result = macro_eval(handler,expr,env,_stack);
+    goto got_result;}
+  default:
+    if (!(KNO_APPLICABLE_TYPEP(optype)))
+      _return kno_err(kno_BadEvalOp,"lisp_eval",NULL,op);
+    else result = eval_apply(op,KNO_CDR(expr),env,_stack,tail);}
+ got_result:
+  if (KNO_PRECHOICEP(result)) {
+    result = kno_simplify_choice(result);
+    _return result;}
+  else _return result;
+}
 
 lispval eval_apply(lispval fn,lispval exprs,
 		   kno_lexenv env,kno_stack stack,
 		   int tail)
 {
-  lispval result = KNO_VOID, old_op = stack->stack_op;
+  kno_function f = (KNO_FUNCTIONP(fn)) ? ((kno_function)fn) : (NULL);
+  int call_bits = (f) ? (f->fcn_call) : (0);
+  int width = (f) ? (f->fcn_call_width) : (INIT_ARGBUF_LEN), n_args = 0;
+  if (KNO_VECTORP(exprs))
+    n_args=KNO_VECTOR_LENGTH(exprs);
+  else if (KNO_PAIRP(exprs)) { /* count args */
+    lispval scan = exprs; while (PAIRP(scan)) {
+      n_args++; scan = KNO_CDR(scan);}}
+  else if (KNO_NILP(exprs))
+    n_args = 0;
+  else return kno_err(kno_SyntaxError,"eval_apply",stack->stack_label,VOID);
+  if (n_args>width) width = n_args;
+
+  if ((f) && (check_fcn_arity(f,n_args)<0))
+    return KNO_ERROR;
+
+  lispval result = KNO_VOID;
   kno_lisp_type fntype = KNO_TYPEOF(fn);
-  kno_function f = NULL;
-  int argbuf_len = INIT_ARGBUF_LEN;
-  u8_string old_label = stack->stack_label;
-  int old_tail = KNO_STACK_TAILP(stack);
-  if (KNO_FUNCTION_TYPEP(fntype)) f = (kno_function) fn;
+
+  lispval argbuf[width];
+  stack->stack_args = argbuf;
+  stack->stack_width = width;
+  stack->stack_argc = 0;
 
   stack->stack_label = (f) ? (f->fcn_name) :
     (fntype == kno_opcode_type) ? (opcode_name(fn)) :
     (kno_type2name(fntype));
 
   /* Straightforward eval/apply */
-  KNO_DECL_STACKVEC(refs,argbuf_len);
-  KNO_DECL_STACKVEC(args,argbuf_len);
-  struct KNO_STACKVEC saved = stack->stack_args;
-  stack->stack_args = _args;
-  args = &(stack->stack_args);
-  int nd_args = (KNO_CHOICEP(fn));
-  int call_bits = (f) ? (f->fcn_call) :
-    (fntype == kno_opcode_type) ?
-    (kno_opcode_call_info[KNO_IMMEDIATE_DATA(fn)]) :
-    (kno_type_call_info[fntype]);
   int prune = (!((call_bits)&(KNO_CALL_XPRUNE)));
-  int iter  = (!((call_bits)&(KNO_CALL_XITER)));
+  int iter_args = (!((call_bits)&(KNO_CALL_XITER)));
 
-  KNO_STACK_SET_TAIL(stack,0);
-  while (PAIRP(exprs)) {
-    lispval arg_expr = pop_arg(exprs);
-    lispval arg = eval_arg(arg_expr,env,stack);
-    stack->stack_op = old_op;
-    if (KNO_CONSTANTP(arg)) {
-      if (KNO_ABORTED(arg)) {
-	result = arg;
-	goto cleanup_args;}
-      else if (arg == KNO_TAIL) {
-	kno_seterr(kno_TailArgument,"kno_eval_expr",NULL,arg_expr);
-	result = KNO_ERROR;
-	goto cleanup_args;}
-      else if ( (KNO_EMPTYP(arg)) && (prune) ) {
-	result = arg;
-	goto cleanup_args;}}
-    else if (KNO_CONSP(arg)) {
-      if ( (nd_args == 0) && (CHOICEP(arg)) )
-	nd_args = 1;
-      else if (KNO_QCHOICEP(arg)) {
-	lispval unwrapped = KNO_QCHOICEVAL(arg);
-	kno_incref(unwrapped);
-	kno_decref(arg);
-	arg = unwrapped;}
-      if (KNO_MALLOCDP(arg))
-	kno_stackvec_push(refs,arg);}
-    else NO_ELSE;
-    kno_stackvec_push(args,arg);}
+  int arg_info = (VECTORP(exprs)) ?
+    (eval_argvec(n_args,VEC_ELTS(exprs),argbuf,env,stack,prune)) :
+    (PAIRP(exprs)) ?
+    (eval_arglist(n_args,exprs,argbuf,env,stack,prune)) :
+    1;
 
-  KNO_STACK_SET_TAIL(stack,tail);
+  if (arg_info<0) return KNO_ERROR;
+  else if (arg_info == 0) return KNO_EMPTY;
+  else if (arg_info == KNO_THROWN_ARG)
+    return KNO_THROW_VALUE;
+  else NO_ELSE;
 
-  const lispval *argbuf = KNO_STACKVEC_ELTS(args);
-  int n_args = KNO_STACKVEC_COUNT(args);
-  int ndcall = (nd_args) && (iter) && (n_args>0);
-  if (fntype == kno_opcode_type) {
-    if (!(ndcall))
-      result = opcode_dispatch(fn,n_args,argbuf);
-    else switch (n_args) {
-      case 1: result = opcode_1choice_loop(fn,argbuf[0]); break;
-      case 2: result = opcode_2choice_loop(fn,argbuf[0],argbuf[1]); break;
-      default: {
-	lispval d_args[n_args];
-	lispval combined = KNO_EMPTY;
-	opcode_choice_loop(&combined,fn,0,n_args,argbuf,d_args);
-	result = combined;}}}
-  else if ( (fntype == kno_lambda_type) && (!(ndcall)) ) {
+  int choice_args = (U8_BITP(arg_info,KNO_AMBIG_ARGS));
+  int qchoice_args = (U8_BITP(arg_info,KNO_QCHOICE_ARGS));
+  int decref_args = U8_BITP(arg_info,KNO_CONSED_ARGS);
+  int need_iter = (iter_args) && (choice_args);
+
+  if ( (!(need_iter)) && (qchoice_args)) unwrap_qchoices(n_args,argbuf);
+
+  if ( (fntype == kno_lambda_type) && (!(need_iter) ) ) {
     struct KNO_LAMBDA *proc = (kno_lambda) fn;
   lambda:
-    if (USUALLY(lambda_check_arity(proc,n_args))) {
-      kno_stack loop = (tail) ? (find_loop_frame(stack)) : (NULL);
-      if (loop) {
-      tail:
-	_args = stack->stack_args;
-	stack->stack_args = saved;
-	if (stack == loop) {
-	  kno_stackvec_merge(&(stack->stack_refs),refs);
-	  setup_tail_call(loop,proc,n_args,argbuf,NULL);}
-	else setup_tail_call(loop,proc,n_args,argbuf,refs);
-	stack->stack_label = old_label;
-	kno_free_stackvec(&_args);
-	return KNO_TAIL;}
-      else result = lambda_call(stack,proc,n_args,(kno_argvec)argbuf,tail);}
-    else result = KNO_ERROR;}
-  else if (ndcall)
-    result = kno_call(stack,fn,n_args,argbuf);
-  else if (CHOICEP(fn))
-    result = kno_call(stack,fn,n_args,argbuf);
-  else result = kno_dcall(stack,fn,n_args,argbuf);
+    KNO_STACK_RESET_ARGS(stack);
+    result = lambda_call(stack,proc,n_args,(kno_argvec)argbuf,1,tail);}
+  else {
+    KNO_STACK_SET_ARGS(stack,argbuf,width,n_args,
+		       ((decref_args) ? (KNO_STACK_DECREF_ARGS) : (0)));
+    if (need_iter)
+      result = kno_call(stack,fn,n_args,argbuf);
+    else if (RARELY(CHOICEP(fn)))
+      result = iter_dcall(stack,fn,n_args,argbuf);
+    else result = kno_dcall(stack,fn,n_args,argbuf);}
+
+  KNO_STACK_FREE_ARGS(stack);
 
  cleanup_args:
-  KNO_STACK_SET_TAIL(stack,old_tail);
-  /* We jump here if we haven't yet put *args* on the stack, i.e.
-     there was an error while processing them. */
-  _args = stack->stack_args;
-  stack->stack_args = saved;
-  kno_free_stackvec(&_args);
-  kno_decref_stackvec(refs);
-  kno_free_stackvec(refs);
-
-  stack->stack_label = old_label;
-
- if (KNO_PRECHOICEP(result))
+  if (KNO_PRECHOICEP(result))
     return kno_simplify_choice(result);
   else return result;
 }
 
-
-/* Opcode evaluation */
-
-KNO_EXPORT lispval kno_eval_arg(lispval expr,kno_lexenv env)
-{
-  return fast_eval(expr,env,kno_stackptr,0);
-}
-
-/* The eval/reduce loop */
-
-static lispval reduce_loop(kno_stack loop_stack,int tail)
-{
-  lispval result = KNO_TAIL;
-  lispval op	 = loop_stack->stack_op;
-  kno_lisp_type op_type = KNO_TYPEOF(op);
-  KNO_STACK_SET_BITS(loop_stack,KNO_STACK_REDUCE_LOOP);
-  KNO_STACK_SET_TAIL(loop_stack,tail);
-  if (op_type == kno_pair_type) {
-    loop_stack->eval_source  = op;
-    if (KNO_VOIDP(loop_stack->eval_context))
-      loop_stack->eval_context  = op;}
-  kno_lexenv env = loop_stack->eval_env;
-  while (result == KNO_TAIL) {
-    KNO_STACK_SET_TAIL(loop_stack,tail);
-    if (op_type == kno_lambda_type) {
-      loop_stack->stack_op=KNO_VOID;
-      result = lambda_call
-	(loop_stack,(kno_lambda)op,
-	 KNO_STACK_ARGCOUNT(loop_stack),
-	 (kno_argvec)KNO_STACK_ARGS(loop_stack),
-	 1);}
-    else if (op_type == kno_pair_type)
-      /* We pass a tail arg of 1 here because it's okay 
-	 to return to this loop stack */
-      result = kno_eval_expr(KNO_CAR(op),op,env,loop_stack,tail);
-    else if (KNO_APPLICABLE_TYPEP(op_type))
-      result = kno_call(loop_stack,op,STACK_ARGCOUNT(loop_stack),
-			STACK_ARGS(loop_stack));
-    else if (op_type == kno_schemap_type)
-      result = eval_schemap(op,env,loop_stack);
-    else if (op_type == kno_choice_type)
-      result = eval_choice(op,env,loop_stack);
-    else result = kno_incref(op);
-    if (result == KNO_TAIL) {
-      /* Check if we were thrown through */
-      if (KNO_STACK_BITP(loop_stack,KNO_STACK_REDUCE_LOOP)) {
-	op      = loop_stack->stack_op;
-	env     = loop_stack->eval_env;
-	op_type = KNO_TYPEOF(op);}
-      else break;}}
-  KNO_STACK_CLEAR_BITS(loop_stack,KNO_STACK_REDUCE_LOOP);
-  if (ABORTED(result)) return result;
-  else if (result == KNO_TAIL) return result;
-  else if (KNO_STACK_BITP(loop_stack,KNO_STACK_VOID_VAL)) {
-    kno_decref(result);
-    return KNO_VOID;}
-  else return result;
-}
+/* Lexrefs support */
 
 static int unparse_lexref(u8_output out,lispval lexref)
 {
@@ -1423,9 +964,9 @@ KNO_EXPORT lispval kno_new_evalfn(lispval mod,u8_string name,u8_string cname,
 static lispval eval_evalfn(lispval x,kno_lexenv env,kno_stack stack)
 {
   lispval expr_expr = kno_get_arg(x,1);
-  lispval expr = kno_eval(expr_expr,env,stack,0);
+  lispval expr = kno_eval(expr_expr,env,stack);
   if (KNO_ABORTED(expr)) return expr;
-  lispval result = kno_eval(expr,env,stack,0);
+  lispval result = kno_eval(expr,env,stack);
   kno_decref(expr);
   return result;
 }
@@ -1436,7 +977,7 @@ static lispval boundp_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   if (!(SYMBOLP(symbol)))
     return kno_err(kno_SyntaxError,"boundp_evalfn",NULL,expr);
   else {
-    lispval val = kno_symeval(symbol,env);
+    lispval val = symeval(symbol,env);
     if (KNO_ABORTED(val))
       return val;
     else if (VOIDP(val))
@@ -1454,7 +995,7 @@ static lispval unboundp_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   if (!(SYMBOLP(symbol)))
     return kno_err(kno_SyntaxError,"unboundp_evalfn",NULL,expr);
   else {
-    lispval val = kno_symeval(symbol,env);
+    lispval val = symeval(symbol,env);
     if (KNO_ABORTED(val))
       return val;
     else if (VOIDP(val))
@@ -1472,7 +1013,7 @@ static lispval definedp_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   if (!(SYMBOLP(symbol)))
     return kno_err(kno_SyntaxError,"definedp_evalfn",NULL,expr);
   else {
-    lispval val = kno_symeval(symbol,env);
+    lispval val = symeval(symbol,env);
     if (KNO_ABORTED(val))
       return val;
     if ( (VOIDP(val)) || (val == KNO_DEFAULT_VALUE) )
@@ -1501,7 +1042,7 @@ static lispval constantp_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval to_eval = kno_get_arg(expr,1);
   if (KNO_SYMBOLP(to_eval)) {
-    lispval v = kno_symeval(to_eval,env);
+    lispval v = symeval(to_eval,env);
     if	(v == KNO_NULL)
       return kno_err(kno_BadPtr,"constantp_evalfn","NULL pointer",to_eval);
     else if (KNO_ABORTED(v))
@@ -1514,7 +1055,7 @@ static lispval constantp_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       kno_decref(v);
       return KNO_FALSE;}}
   else {
-    lispval v = fast_eval(to_eval,env,_stack,0);
+    lispval v = doeval(to_eval,env,_stack,0);
     if	(v == KNO_NULL)
       return kno_err(kno_BadPtr,"constantp_evalfn","NULL pointer",to_eval);
     else if (KNO_ABORTED(v))
@@ -1530,7 +1071,7 @@ static lispval voidp_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval to_eval = kno_get_arg(expr,1);
   if (KNO_SYMBOLP(to_eval)) {
-    lispval v = kno_symeval(to_eval,env);
+    lispval v = symeval(to_eval,env);
     if (KNO_ABORTED(v)) return v;
     else if ( ( v == VOID ) || ( v == KNO_UNBOUND ) )
       return KNO_TRUE;
@@ -1540,7 +1081,7 @@ static lispval voidp_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       kno_decref(v);
       return KNO_FALSE;}}
   else {
-    lispval v = fast_eval(to_eval,env,_stack,0);
+    lispval v = doeval(to_eval,env,_stack,0);
     if (KNO_ABORTED(v)) return v;
     else if ( ( v == VOID ) || ( v == KNO_UNBOUND ) )
       return KNO_TRUE;
@@ -1553,7 +1094,7 @@ static lispval defaultp_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval to_eval = kno_get_arg(expr,1);
   if (KNO_SYMBOLP(to_eval)) {
-    lispval v = kno_symeval(to_eval,env);
+    lispval v = symeval(to_eval,env);
     if (KNO_ABORTED(v)) return v;
     else if (v == KNO_DEFAULT)
       return KNO_TRUE;
@@ -1565,7 +1106,7 @@ static lispval defaultp_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       kno_decref(v);
       return KNO_FALSE;}}
   else {
-    lispval v = fast_eval(to_eval,env,_stack,0);
+    lispval v = doeval(to_eval,env,_stack,0);
     if	(v == KNO_NULL)
       return kno_err(kno_BadPtr,"defaultp_evalfn","NULL pointer",to_eval);
     else if (KNO_ABORTED(v)) return v;
@@ -1579,7 +1120,7 @@ static lispval badp_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval to_eval = kno_get_arg(expr,1);
   if (KNO_SYMBOLP(to_eval)) {
-    lispval v = kno_symeval(to_eval,env);
+    lispval v = symeval(to_eval,env);
     if (KNO_ABORTED(v)) return v;
     else if ( ( v == VOID ) || ( v == KNO_UNBOUND ) )
       return KNO_TRUE;
@@ -1588,7 +1129,7 @@ static lispval badp_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       return KNO_TRUE;}
     else return KNO_FALSE;}
   else {
-    lispval v = kno_eval(to_eval,env,_stack,0);
+    lispval v = kno_eval(to_eval,env,_stack);
     if (KNO_ABORTED(v)) return v;
     else if ( ( v == VOID ) || ( v == KNO_UNBOUND ) )
       return KNO_TRUE;
@@ -1621,7 +1162,7 @@ static lispval symbol_boundp_evalfn(lispval expr,kno_lexenv env,
   kno_lexenv use_env = NULL;
   if (VOIDP(symbol_expr))
     return kno_err(kno_SyntaxError,"symbol_boundp_evalfn",NULL,expr);
-  else symbol = fast_eval(symbol_expr,env,stack,0);
+  else symbol = doeval(symbol_expr,env,stack,0);
   if (KNO_ABORTED(symbol))
     return symbol;
   else if (!(KNO_SYMBOLP(symbol))) {
@@ -1633,7 +1174,7 @@ static lispval symbol_boundp_evalfn(lispval expr,kno_lexenv env,
   if (VOIDP(env_expr))
     use_env = env;
   else {
-    env_value = fast_eval(env_expr,env,stack,0);
+    env_value = doeval(env_expr,env,stack,0);
     if (KNO_FALSEP(env_value))
       use_env = env;
     else if (KNO_LEXENVP(env_value))
@@ -1643,7 +1184,7 @@ static lispval symbol_boundp_evalfn(lispval expr,kno_lexenv env,
 			    NULL,env_value);
       kno_decref(env_value);
       return err;}}
-  lispval v = kno_symeval(symbol,use_env);
+  lispval v = symeval(symbol,use_env);
   if (KNO_ABORTED(v)) {
     kno_decref(env_value);
     return v;}
@@ -1673,7 +1214,7 @@ static lispval withenv(kno_stack stack,
 	  (PAIRP(KNO_CDR(varval)))&&
 	  (NILP(KNO_CDR(KNO_CDR(varval))))) {
 	lispval var = KNO_CAR(varval);
-	lispval val = kno_eval(KNO_CADR(varval),env,stack,0);
+	lispval val = kno_eval(KNO_CADR(varval),env,stack);
 	if (KNO_ABORTED(val)) return val;
 	int rv = kno_bind_value(var,val,consed_env);
 	kno_decref(val);
@@ -1707,7 +1248,7 @@ static lispval withenv(kno_stack stack,
     lispval body = kno_get_body(expr,2);
     KNO_DOLIST(elt,body) {
       kno_decref(result);
-      result = kno_eval(elt,consed_env,stack,0);
+      result = kno_eval(elt,consed_env,stack);
       if (KNO_ABORTED(result)) {
 	return result;}}
     return result;}
@@ -1731,7 +1272,7 @@ static lispval withbindings_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     return kno_err(kno_SyntaxError,"withbindings_evalfn",NULL,expr);
   lispval body = kno_get_body(expr,2);
   if ( (KNO_PAIRP(body)) || (body == KNO_EMPTY_LIST) ) {
-    env_arg = kno_eval(env_expr,env,_stack,0);
+    env_arg = kno_eval(env_expr,env,_stack);
     if (KNO_ABORTED(env_arg))
       return env_arg;
     else if (KNO_LEXENVP(env_arg))
@@ -1745,7 +1286,7 @@ static lispval withbindings_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     lispval result = KNO_VOID;
     KNO_DOLIST(sub_expr,body) {
       kno_decref(result);
-      result = kno_eval(sub_expr,use_env,_stack,0);
+      result = kno_eval(sub_expr,use_env,_stack);
       if (KNO_ABORTED(result)) break;}
     if (use_env == ((kno_lexenv)env_arg))
       kno_decref(env_arg);
@@ -1818,7 +1359,7 @@ static lispval void_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval body = KNO_CDR(expr);
   KNO_DOLIST(subex,body) {
-    lispval v = fast_eval(subex,env,_stack,0);
+    lispval v = doeval(subex,env,_stack,0);
     if (KNO_ABORTED(v))
       return v;
     else kno_decref(v);}
@@ -1835,7 +1376,7 @@ static lispval break_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval body = KNO_CDR(expr);
   KNO_DOLIST(subex,body) {
-    lispval v = fast_eval(subex,env,_stack,0);
+    lispval v = doeval(subex,env,_stack,0);
     if (KNO_BREAKP(v))
       return KNO_BREAK;
     else if (KNO_ABORTED(v))
@@ -1853,12 +1394,12 @@ static lispval default_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   else if (VOIDP(default_expr))
     return kno_err(kno_SyntaxError,"default_evalfn",NULL,kno_incref(expr));
   else {
-    lispval val = kno_symeval(symbol,env);
+    lispval val = symeval(symbol,env);
     if (KNO_ABORTED(val)) return val;
     else if (VOIDP(val))
-      return fast_eval(default_expr,env,_stack,0);
+      return doeval(default_expr,env,_stack,0);
     else if (val == KNO_UNBOUND)
-      return fast_eval(default_expr,env,_stack,0);
+      return doeval(default_expr,env,_stack,0);
     else return val;}
 }
 
@@ -1883,13 +1424,7 @@ lispval kno_eval_expr(lispval head,lispval expr,
 		      kno_lexenv env,kno_stack s,
 		      int tail)
 {
-  return eval_expr(head,expr,env,s,tail);
-}
-
-KNO_EXPORT
-lispval _kno_reduce_loop(kno_stack stack,int tail)
-{
-  return reduce_loop(stack,tail);
+  return lisp_eval(head,expr,env,s,tail);
 }
 
 /* Initialization */
@@ -2005,6 +1540,8 @@ static void init_localfns()
 
 }
 
+void init_vm_c(void);
+
 void kno_init_errfns_c(void);
 void kno_init_threads_c(void);
 void kno_init_conditionals_c(void);
@@ -2054,6 +1591,7 @@ void kno_init_srvcall_c(void);
 static void init_eval_core()
 {
   init_localfns();
+  init_vm_c();
 
   kno_init_configops_c();
   kno_init_eval_getopt_c();

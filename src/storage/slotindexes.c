@@ -1,8 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
-   This file is part of beingmeta's Kno platform and is copyright
-   and a valuable trade secret of beingmeta, inc.
+   Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu)
 */
 
 #ifndef _FILEINFO
@@ -31,7 +30,7 @@ static u8_condition NoWritableIndexForSlot=_("NoIndexForSlot");
 static lispval index2lisp(kno_index ix)
 {
   if (ix->index_serialno>=0)
-    return LISPVAL_IMMEDIATE(kno_index_type,ix->index_serialno);
+    return LISPVAL_IMMEDIATE(kno_indexref_type,ix->index_serialno);
   else {
     lispval v = (lispval) ix;
     kno_incref(v);

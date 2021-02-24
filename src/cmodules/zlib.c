@@ -1,8 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2007-2020 beingmeta, inc.
-   This file is part of beingmeta's Kno platform and is copyright
-   and a valuable trade secret of beingmeta, inc.
+   Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu)
 */
 
 #ifndef _FILEINFO
@@ -33,11 +32,11 @@ static u8_condition zlibDataError=_("Bad ZLIB input data");
 
 
 DEFC_PRIM("zlib/compress",zlib_compress_prim,
-	     KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	     "Returns a zLib compressed version of *input_arg* with "
-	     "compression level *level*",
-	     {"input_arg",kno_any_type,KNO_VOID},
-	     {"level_arg",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	  "Returns a zLib compressed version of *input_arg* with "
+	  "compression level *level*",
+	  {"input_arg",kno_any_type,KNO_VOID},
+	  {"level_arg",kno_any_type,KNO_VOID})
 static lispval zlib_compress_prim(lispval input_arg,lispval level_arg)
 {
   int level = ((KNO_UINTP(level_arg))?(KNO_FIX2INT(level_arg)):(9));
@@ -75,11 +74,11 @@ static lispval zlib_compress_prim(lispval input_arg,lispval level_arg)
 
 
 DEFC_PRIM("zlib/uncompress",zlib_uncompress_prim,
-	     KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
-	     "**undocumented**",
-	     {"input_arg",kno_packet_type,KNO_VOID},
-	     {"text",kno_any_type,KNO_FALSE},
-	     {"init_factor",kno_any_type,KNO_FALSE})
+	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"input_arg",kno_packet_type,KNO_VOID},
+	  {"text",kno_any_type,KNO_FALSE},
+	  {"init_factor",kno_any_type,KNO_FALSE})
 static lispval zlib_uncompress_prim(lispval input_arg,lispval text,lispval init_factor)
 {
   int init_grow = ((KNO_UINTP(init_factor))?(KNO_FIX2INT(init_factor)):(5));

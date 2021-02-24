@@ -1,8 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
-   This file is part of beingmeta's Kno platform and is copyright
-   and a valuable trade secret of beingmeta, inc.
+   Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu)
 */
 
 #ifndef _FILEINFO
@@ -45,13 +44,13 @@ static void get_mailinfo(lispval headers,u8_string *host,u8_string *domain,u8_st
 }
 
 DEFC_PRIM("smtp",smtp_function,
-	 KNO_MAX_ARGS(5)|KNO_MIN_ARGS(3),
-	 "**undocumented**",
-	 {"dest",kno_any_type,KNO_VOID},
-	 { "headers",kno_any_type,KNO_VOID},
-	 {"content",kno_any_type,KNO_VOID},
-	 {"ctype",kno_any_type,KNO_VOID},
-	 {"mailinfo",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(5)|KNO_MIN_ARGS(3),
+	  "**undocumented**",
+	  {"dest",kno_any_type,KNO_VOID},
+	  { "headers",kno_any_type,KNO_VOID},
+	  {"content",kno_any_type,KNO_VOID},
+	  {"ctype",kno_any_type,KNO_VOID},
+	  {"mailinfo",kno_any_type,KNO_VOID})
 static lispval smtp_function(lispval dest,lispval headers,lispval content,
 			     lispval ctype,lispval mailinfo)
 {
@@ -98,9 +97,9 @@ static lispval mailout_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   struct U8_MAILHEADER *mh;
   struct U8_OUTPUT out;
   u8_string *to_free;
-  dest = kno_eval_arg(dest_arg,env); if (KNO_ABORTP(dest)) return dest;
+  dest = kno_eval_arg(dest_arg,env,_stack); if (KNO_ABORTP(dest)) return dest;
   if (SLOTMAPP(headers_arg)) headers = kno_incref(headers_arg);
-  else headers = kno_eval_arg(headers_arg,env);
+  else headers = kno_eval_arg(headers_arg,env,_stack);
   if (KNO_ABORTP(headers)) {
     kno_decref(dest); return headers;}
   get_mailinfo(headers,&mailhost,&maildomain,&mailfrom);

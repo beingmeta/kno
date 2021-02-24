@@ -1,8 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
-   This file is part of beingmeta's Kno platform and is copyright
-   and a valuable trade secret of beingmeta, inc.
+   Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu)
 */
 
 #ifndef _FILEINFO
@@ -29,8 +28,6 @@
 #include "backtrace_js.h"
 
 #include <ctype.h>
-
-#define fast_eval(x,env) (kno_eval(x,env,_stack,0))
 
 #ifndef KNO_HTMLOUT_MAX
 #define KNO_HTMLOUT_MAX 15000000
@@ -158,10 +155,10 @@ void kno_xhtmlerrorpage(u8_output s,u8_exception ex)
 }
 
 DEFC_PRIM("debugpage->html",debugpage2html_prim,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(0),
-	 "**undocumented**",
-	 {"exception",kno_any_type,KNO_VOID},
-	 {"where",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(0),
+	  "**undocumented**",
+	  {"exception",kno_any_type,KNO_VOID},
+	  {"where",kno_any_type,KNO_VOID})
 static lispval debugpage2html_prim(lispval exception,lispval where)
 {
   u8_exception ex=NULL;
@@ -196,10 +193,10 @@ static lispval debugpage2html_prim(lispval exception,lispval where)
 }
 
 DEFC_PRIM("backtrace->html",backtrace2html_prim,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(0),
-	 "**undocumented**",
-	 {"arg",kno_any_type,KNO_VOID},
-	 {"where",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(0),
+	  "**undocumented**",
+	  {"arg",kno_any_type,KNO_VOID},
+	  {"where",kno_any_type,KNO_VOID})
 static lispval backtrace2html_prim(lispval arg,lispval where)
 {
   u8_exception ex=NULL;
@@ -570,11 +567,11 @@ static lispval table2html_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   U8_OUTPUT *out = u8_current_output;
   lispval xmloidfn = kno_symeval(xmloidfn_symbol,env);
   lispval tables, classarg, slotids;
-  tables = kno_eval_arg(kno_get_arg(expr,1),env);
+  tables = kno_eval_arg(kno_get_arg(expr,1),env,_stack);
   if (KNO_ABORTP(tables))return tables;
   else if (VOIDP(tables))
     return kno_err(kno_SyntaxError,"table2html_evalfn",NULL,expr);
-  classarg = kno_eval_arg(kno_get_arg(expr,2),env);
+  classarg = kno_eval(kno_get_arg(expr,2),env,_stack);
   if (KNO_ABORTP(classarg)) {
     kno_decref(tables); return classarg;}
   else if (STRINGP(classarg)) classname = CSTRING(classarg);
@@ -582,7 +579,7 @@ static lispval table2html_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   else {
     kno_decref(tables);
     return kno_type_error(_("string"),"table2html_evalfn",classarg);}
-  slotids = kno_eval_arg(kno_get_arg(expr,3),env);
+  slotids = kno_eval(kno_get_arg(expr,3),env,_stack);
   if (KNO_ABORTP(slotids)) {
     kno_decref(tables); kno_decref(classarg); return slotids;}
   {
@@ -601,10 +598,10 @@ static lispval table2html_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 }
 
 DEFC_PRIM("obj->html",obj2html_prim,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"obj",kno_any_type,KNO_VOID},
-	 {"tag",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"obj",kno_any_type,KNO_VOID},
+	  {"tag",kno_any_type,KNO_VOID})
 static lispval obj2html_prim(lispval obj,lispval tag)
 {
   u8_string tagname = NULL, classname = NULL; u8_byte tagbuf[64];

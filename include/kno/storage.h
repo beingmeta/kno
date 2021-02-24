@@ -1,8 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
-   This file is part of beingmeta's Kno platform and is copyright
-   and a valuable trade secret of beingmeta, inc.
+   Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu)
 */
 
 #ifndef KNO_STORAGE_H
@@ -89,12 +88,12 @@ KNO_EXPORT int kno_dbconn_reserve_default;
 KNO_EXPORT int kno_dbconn_cap_default;
 KNO_EXPORT int kno_dbconn_init_default;
 
-#define KNO_ETERNAL_INDEXP(x) (KNO_TYPEP(x,kno_index_type))
+#define KNO_ETERNAL_INDEXP(x) (KNO_TYPEP(x,kno_indexref_type))
 #define KNO_CONSED_INDEXP(x) (KNO_TYPEP(x,kno_consed_index_type))
 #define KNO_INDEXP(x) ( (KNO_ETERNAL_INDEXP(x)) || (KNO_CONSED_INDEXP(x)) )
 #define KNO_INDEX_CONSEDP(ix) ( (ix) && ( ((ix)->index_serialno) < 0) )
 
-#define KNO_ETERNAL_POOLP(x) (KNO_TYPEP(x,kno_pool_type))
+#define KNO_ETERNAL_POOLP(x) (KNO_TYPEP(x,kno_poolref_type))
 #define KNO_CONSED_POOLP(x) (KNO_TYPEP(x,kno_consed_pool_type))
 #define KNO_POOLP(x) ( (KNO_ETERNAL_POOLP(x)) || (KNO_CONSED_POOLP(x)) )
 #define KNO_POOL_CONSEDP(p) ( (p) && ( ((p)->pool_serialno) < 0 ) )

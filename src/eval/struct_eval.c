@@ -1,8 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
-   This file is part of beingmeta's Kno platform and is copyright
-   and a valuable trade secret of beingmeta, inc.
+   Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu)
 */
 
 #ifndef _FILEINFO
@@ -54,7 +53,7 @@ static lispval vector_evalfn(lispval vec,kno_lexenv env,kno_stack stackptr)
   lispval *result_elts = KNO_VECTOR_DATA(result);
   while (i < len) {
     lispval expr = eval_elts[i];
-    lispval val = kno_eval(expr,env,stackptr,0);
+    lispval val = kno_eval(expr,env,stackptr);
     if (KNO_ABORTP(val)) {
       kno_decref(result);
       return val;}
@@ -77,7 +76,7 @@ static lispval slotmap_evalfn(lispval sm,kno_lexenv env,kno_stack stackptr)
   while (read_slot < n_slots) {
     lispval slotid = old_kv[read_slot].kv_key;
     lispval eval_expr = old_kv[read_slot].kv_val;
-    lispval val = kno_eval(eval_expr,env,stackptr,0);
+    lispval val = kno_eval(eval_expr,env,stackptr);
     if (KNO_ABORTP(val)) {
       if (unlock) u8_rw_unlock(&(smap->table_rwlock));
       kno_decref(result);
@@ -113,7 +112,7 @@ static lispval struct_evalfn(lispval expr,kno_lexenv env,kno_stack stackptr)
   else if (KNO_SLOTMAPP(x))
     return slotmap_evalfn(x,env,stackptr);
   else if (KNO_PAIRP(x))
-    return kno_eval(x,env,stackptr,0);
+    return kno_eval(x,env,stackptr);
   else return x;
 }
 

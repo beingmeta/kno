@@ -1,15 +1,11 @@
 /* Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright 2004-2020 beingmeta, inc.
-   This file is part of beingmeta's Kno platform and is copyright
-   and a valuable trade secret of beingmeta, inc.
 */
 
 #ifndef _FILEINFO
 #define _FILEINFO __FILE__
 #endif
-
-#define KNO_INLINE_TYPE_ALIASES 1
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
@@ -671,54 +667,20 @@ KNO_EXPORT lispval kno_bytes2packet
   return LISP_CONS(ptr);
 }
 
-/* Type aliases */
+/* Type aliases: forward typecode references */
 
-/* Forward typecode references */
+static struct KNO_HASHTABLE type_aliases;
 
-#ifndef KNO_MAX_TYPE_ALIASES
-#define KNO_MAX_TYPE_ALIASES 100
-#endif
-
-struct KNO_TYPE_ALIAS _kno_type_aliases[KNO_MAX_TYPE_ALIASES];
-int _kno_n_type_aliases = 0;
-
-U8_MUTEX_DECL(type_aliases_lock);
-
-KNO_EXPORT int _kno_lookup_type_alias(long int code)
+KNO_EXPORT lispval kno_lookup_type_alias(int reservation)
 {
-  return kno_lookup_type_alias(code);
+  lispval res = KNO_INT2FIX(reservation);
+  return kno_hashtable_get(&type_aliases,res,KNO_VOID);
 }
 
-KNO_EXPORT int kno_add_type_alias(int type,long int code)
+KNO_EXPORT int kno_add_type_alias(int reservation,lispval type)
 {
-  if (type>=KNO_TYPE_MAX) {
-    u8_seterr("BadTypeCode","kno_add_type_alias",
-	      u8_mkstring("typecode=%d with longcode = 0x%llx",
-			  type,code));
-    return -1;}
-  u8_lock_mutex(&type_aliases_lock);
-  int typecode = kno_lookup_type_alias(code), retval = 0;
-  if (typecode > 0) {
-    if ( ((kno_lisp_type)typecode) == type)
-      retval = 0;
-    else {
-      u8_string details=
-	u8_mkstring
-	("Conflicting type definitions for longcode %ld, new (%s:%d) != (%s:%d)",
-	 code,kno_type2name(typecode),typecode,kno_type2name(type),type);
-      u8_seterr("TypeLongcodeConflict","add_forward_type_ref",details);
-      retval=-1;}}
-  else {
-    if (_kno_n_type_aliases >= KNO_MAX_TYPE_ALIASES) {
-      u8_seterr("LongTypecodeOverflow","add_forward_type_ref",NULL);
-      retval = -1;}
-    else {
-      _kno_type_aliases[_kno_n_type_aliases].longcode=code;
-      _kno_type_aliases[_kno_n_type_aliases].ptr_type=type;
-      _kno_n_type_aliases++;
-      retval=type;}}
-  u8_unlock_mutex(&type_aliases_lock);
-  return retval;
+  lispval res = KNO_INT2FIX(reservation);
+  return kno_hashtable_store(&type_aliases,res,type);
 }
 
 /* Registering new primitive types */
@@ -747,7 +709,7 @@ KNO_EXPORT int kno_register_cons_type(char *name,long int longcode)
     u8_log(LOGCRIT,"BadTypeName",
 	   "Couldn't register typename '%s' for typecode=%d",
 	   hashname,typecode);
-  if (longcode>0) kno_add_type_alias(typecode,longcode);
+  if (longcode>0) kno_add_type_alias(longcode,KNO_CTYPE(typecode));
   u8_unlock_mutex(&type_registry_lock);
   return typecode;
 }
@@ -771,7 +733,7 @@ KNO_EXPORT int kno_register_immediate_type(char *name,kno_checkfn fn,long int lo
 	   "Couldn't register typename '%s' for typecode=%d",
 	   hashname,typecode);
   u8_unlock_mutex(&type_registry_lock);
-  if (longcode>0) kno_add_type_alias(typecode,longcode);
+  if (longcode>0) kno_add_type_alias(longcode,KNO_CTYPE(typecode));
  return typecode;
 }
 
@@ -857,7 +819,6 @@ void kno_init_cons_c()
 
   u8_init_mutex(&constant_registry_lock);
   u8_init_mutex(&type_registry_lock);
-  u8_init_mutex(&type_aliases_lock);
 
   i = 0; while (i < KNO_TYPE_MAX) kno_type_names[i++]=NULL;
   i = 0; while (i<KNO_TYPE_MAX) kno_hashfns[i++]=NULL;
@@ -953,5 +914,8 @@ void kno_init_cons_c()
   kno_zlib_xtag = kno_register_constant("zlib_xtag");
   kno_zstd_xtag = kno_register_constant("zstd_xtag");
   kno_snappy_xtag = kno_register_constant("snappy_xtag");
+
+  kno_init_hashtable(&type_aliases,42,NULL);
+
 }
 

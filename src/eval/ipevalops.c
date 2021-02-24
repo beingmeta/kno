@@ -1,8 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
-   This file is part of beingmeta's Kno platform and is copyright
-   and a valuable trade secret of beingmeta, inc.
+   Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu)
 */
 
 #ifndef _FILEINFO
@@ -64,7 +63,7 @@ static int ipeval_let_step(struct IPEVAL_BINDSTRUCT *bs)
     kno_decref(bindings[i]); bindings[i++]=VOID;}
   i = 0; while (PAIRP(scan)) {
     lispval binding = KNO_CAR(scan), val_expr = KNO_CADR(binding);
-    lispval val = kno_eval_arg(val_expr,env);
+    lispval val = kno_eval(val_expr,env,NULL);
     if (KNO_ABORTED(val)) kno_interr(val);
     else bindings[i++]=val;
     scan = KNO_CDR(scan);}
@@ -80,7 +79,7 @@ static int ipeval_letstar_step(struct IPEVAL_BINDSTRUCT *bs)
     kno_decref(bindings[i]); bindings[i++]=KNO_UNBOUND;}
   i = 0; while (PAIRP(scan)) {
     lispval binding = KNO_CAR(scan), val_expr = KNO_CADR(binding);
-    lispval val = kno_eval_arg(val_expr,env);
+    lispval val = kno_eval(val_expr,env,NULL);
     if (KNO_ABORTED(val)) kno_interr(val);
     else bindings[i++]=val;
     scan = KNO_CDR(scan);}
@@ -126,7 +125,7 @@ static lispval letq_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     {lispval body = kno_get_body(expr,2);
      KNO_DOLIST(bodyexpr,body) {
       kno_decref(result);
-      result = kno_eval(bodyexpr,inner_env,_stack,0);
+      result = kno_eval(bodyexpr,inner_env,_stack);
       if (KNO_ABORTED(result))
         return result;}}
     kno_free_lexenv(inner_env);
@@ -155,7 +154,7 @@ static lispval letqstar_evalfn
     {lispval body = kno_get_body(expr,2);
      KNO_DOLIST(bodyexpr,body) {
       kno_decref(result);
-      result = kno_eval(bodyexpr,inner_env,_stack,0);
+      result = kno_eval(bodyexpr,inner_env,_stack);
       if (KNO_ABORTED(result))
         return result;}}
     if (inner_env->env_copy) kno_free_lexenv(inner_env->env_copy);
@@ -169,7 +168,7 @@ static lispval letqstar_evalfn
 #if KNO_IPEVAL_ENABLED
 static int ipeval_step(struct IPEVAL_STRUCT *s)
 {
-  lispval kno_value = kno_eval_arg(s->ipv_expr,s->ipv_env);
+  lispval kno_value = kno_eval(s->ipv_expr,s->ipv_env,NULL);
   kno_decref(s->ipv_value); s->ipv_value = kno_value;
   if (KNO_ABORTED(kno_value))
     return -1;

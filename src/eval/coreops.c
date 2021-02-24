@@ -1,8 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
-   This file is part of beingmeta's Kno platform and is copyright
-   and a valuable trade secret of beingmeta, inc.
+   Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu)
 */
 
 #ifndef _FILEINFO
@@ -29,12 +28,12 @@
 /* Standard predicates */
 
 DEFC_PRIM("identical?",identicalp,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "is the non-deterministic version of EQUAL? and "
-	 "returns true if its arguments (which can be "
-	 "choices) have the same structure and elements.",
-	 {"x",kno_any_type,KNO_VOID},
-	 {"y",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	  "is the non-deterministic version of EQUAL? and "
+	  "returns true if its arguments (which can be "
+	  "choices) have the same structure and elements.",
+	  {"x",kno_any_type,KNO_VOID},
+	  {"y",kno_any_type,KNO_VOID})
 static lispval identicalp(lispval x,lispval y)
 {
   if (KNO_EQ(x,y)) return KNO_TRUE;
@@ -43,13 +42,13 @@ static lispval identicalp(lispval x,lispval y)
 }
 
 DEFC_PRIM("equal?",equalp,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "returns true if its arguments have the same "
-	 "structure and elements. If its arguments are "
-	 "choices, this compares all pairings and may "
-	 "return true, false, or both.",
-	 {"x",kno_any_type,KNO_VOID},
-	 {"y",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	  "returns true if its arguments have the same "
+	  "structure and elements. If its arguments are "
+	  "choices, this compares all pairings and may "
+	  "return true, false, or both.",
+	  {"x",kno_any_type,KNO_VOID},
+	  {"y",kno_any_type,KNO_VOID})
 static lispval equalp(lispval x,lispval y)
 {
   if (KNO_EQ(x,y)) return KNO_TRUE;
@@ -84,13 +83,13 @@ static lispval equalp(lispval x,lispval y)
 */
 
 DEFC_PRIM("compare",comparefn,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "Compares the objects *x* and *y*, returning -1, 0, or 1 "
-	 "depending on their generic ordering. Note that this function "
-	 "is deterministic, so it may produce surprising results for "
-	 "choice arguments",
-	 {"x",kno_any_type,KNO_VOID},
-	 {"y",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	  "Compares the objects *x* and *y*, returning -1, 0, or 1 "
+	  "depending on their generic ordering. Note that this function "
+	  "is deterministic, so it may produce surprising results for "
+	  "choice arguments",
+	  {"x",kno_any_type,KNO_VOID},
+	  {"y",kno_any_type,KNO_VOID})
 static lispval comparefn(lispval x,lispval y)
 {
   int n = LISP_COMPARE(x,y,KNO_COMPARE_FULL);
@@ -98,12 +97,12 @@ static lispval comparefn(lispval x,lispval y)
 }
 
 DEFC_PRIM("compare/quick",quickcomparefn,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "Compares the objects *x* and *y*, returning -1, 0, or 1 "
-	 "depending on pointer ordering for atomic objects and generic "
-	 "ordering for consed objects",
-	 {"x",kno_any_type,KNO_VOID},
-	 {"y",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	  "Compares the objects *x* and *y*, returning -1, 0, or 1 "
+	  "depending on pointer ordering for atomic objects and generic "
+	  "ordering for consed objects",
+	  {"x",kno_any_type,KNO_VOID},
+	  {"y",kno_any_type,KNO_VOID})
 static lispval quickcomparefn(lispval x,lispval y)
 {
   int n = KNO_QCOMPARE(x,y);
@@ -117,13 +116,13 @@ static lispval quickcomparefn(lispval x,lispval y)
 */
 
 DEFC_PRIM("deep-copy",deepcopy,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "Returns a recursive copy of *x* where all consed objects (and their "
-	 "consed descendants) are reallocated if possible.\n"
-	 "Custom objects are duplicated using the 'kno_copyfn' handler in "
-	 "'kno_copiers[*typecode*]. These methods have the option of simply "
-	 "incrementing the reference count rather than copying the pointers.",
-	 {"object",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "Returns a recursive copy of *x* where all consed objects (and their "
+	  "consed descendants) are reallocated if possible.\n"
+	  "Custom objects are duplicated using the 'kno_copyfn' handler in "
+	  "'kno_copiers[*typecode*]. These methods have the option of simply "
+	  "incrementing the reference count rather than copying the pointers.",
+	  {"object",kno_any_type,KNO_VOID})
 static lispval deepcopy(lispval object)
 {
   return kno_deep_copy(object);
@@ -136,37 +135,37 @@ static lispval deepcopy(lispval object)
 */
 
 DEFC_PRIM("static-copy",staticcopy,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "Returns a recursive copy of *x* where all consed objects (and their "
-	 "consed descendants) are reallocated if possible. In addition, the "
-	 "newly consed objects are declared *static* meaning they are exempt "
-	 "from garbage collection. This will probably cause leaks but can "
-	 "sometimes improve performance.\n"
-	 "Custom objects are duplicated using the 'kno_copyfn' handler in "
-	 "'kno_copiers[*typecode*]. These methods have the option of simply "
-	 "incrementing the reference count rather than copying the pointers.\n"
-	 "If the custom copier declines to return a new object, the existing "
-	 "object will not be declared static. ",
-	 {"object",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "Returns a recursive copy of *x* where all consed objects (and their "
+	  "consed descendants) are reallocated if possible. In addition, the "
+	  "newly consed objects are declared *static* meaning they are exempt "
+	  "from garbage collection. This will probably cause leaks but can "
+	  "sometimes improve performance.\n"
+	  "Custom objects are duplicated using the 'kno_copyfn' handler in "
+	  "'kno_copiers[*typecode*]. These methods have the option of simply "
+	  "incrementing the reference count rather than copying the pointers.\n"
+	  "If the custom copier declines to return a new object, the existing "
+	  "object will not be declared static. ",
+	  {"object",kno_any_type,KNO_VOID})
 static lispval staticcopy(lispval object)
 {
   return kno_static_copy(object);
 }
 
 DEFC_PRIM("dontopt",dontopt,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 "Tells optimizers and compilers to leave this expression untouched.",
-	 {"x",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+	  "Tells optimizers and compilers to leave this expression untouched.",
+	  {"x",kno_any_type,KNO_VOID})
 static lispval dontopt(lispval x)
 {
   return kno_incref(x);
 }
 
 DEFC_PRIM("refcount",get_refcount,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 "Returns the reference count for *object* minus *delta* if provided",
-	 {"object",kno_any_type,KNO_VOID},
-	 {"delta",kno_fixnum_type,KNO_INT(0)})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+	  "Returns the reference count for *object* minus *delta* if provided",
+	  {"object",kno_any_type,KNO_VOID},
+	  {"delta",kno_fixnum_type,KNO_INT(0)})
 static lispval get_refcount(lispval x,lispval delta)
 {
   if (CONSP(x)) {
@@ -183,10 +182,10 @@ static lispval get_refcount(lispval x,lispval delta)
 }
 
 DEFC_PRIM("eq?",eqp,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "**undocumented**",
-	 {"x",kno_any_type,KNO_VOID},
-	 {"y",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	  "**undocumented**",
+	  {"x",kno_any_type,KNO_VOID},
+	  {"y",kno_any_type,KNO_VOID})
 static lispval eqp(lispval x,lispval y)
 {
   if (x == y) return KNO_TRUE;
@@ -194,10 +193,10 @@ static lispval eqp(lispval x,lispval y)
 }
 
 DEFC_PRIM("eqv?",eqvp,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "**undocumented**",
-	 {"x",kno_any_type,KNO_VOID},
-	 {"y",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	  "**undocumented**",
+	  {"x",kno_any_type,KNO_VOID},
+	  {"y",kno_any_type,KNO_VOID})
 static lispval eqvp(lispval x,lispval y)
 {
   if (x == y) return KNO_TRUE;
@@ -209,10 +208,10 @@ static lispval eqvp(lispval x,lispval y)
 }
 
 DEFC_PRIM("overlaps?",overlapsp,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "Returns #t if *choice1* and *choice2* have any elements in common",
-	 {"choice1",kno_any_type,KNO_VOID},
-	 {"choice2",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	  "Returns #t if *choice1* and *choice2* have any elements in common",
+	  {"choice1",kno_any_type,KNO_VOID},
+	  {"choice2",kno_any_type,KNO_VOID})
 static lispval overlapsp(lispval x,lispval y)
 {
   if (EMPTYP(x)) return KNO_FALSE;
@@ -223,10 +222,10 @@ static lispval overlapsp(lispval x,lispval y)
 }
 
 DEFC_PRIM("contains?",containsp,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "Returns true if *subset* is a proper subset of *items*.",
-	 {"subset",kno_any_type,KNO_VOID},
-	 {"items",kno_any_type,KNO_VOID});
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	  "Returns true if *subset* is a proper subset of *items*.",
+	  {"subset",kno_any_type,KNO_VOID},
+	  {"items",kno_any_type,KNO_VOID});
 static lispval containsp(lispval subset,lispval items)
 {
   if (EMPTYP(subset)) return KNO_TRUE;
@@ -248,9 +247,9 @@ static int numeric_compare(const lispval x,const lispval y)
 }
 
 DEFC_PRIM("zero?",lisp_zerop,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"x",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"x",kno_any_type,KNO_VOID})
 static lispval lisp_zerop(lispval x)
 {
   if (FIXNUMP(x))
@@ -282,41 +281,41 @@ static int ltspec[3]={1,0,0}, ltespec[3]={1,1,0}, espec[3]={0,1,0};
 static int gtespec[3]={0,1,1}, gtspec[3]={0,0,1}, nespec[3]={1,0,1};
 
 DEFC_PRIMN("<",lt,
-	  KNO_VAR_ARGS|KNO_MIN_ARGS(2),
-	  "**undocumented**")
+	   KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+	   "**undocumented**")
 static lispval lt(int n,kno_argvec v) { return do_compare(n,v,ltspec); }
 
 DEFC_PRIMN("<=",lte,
-	  KNO_VAR_ARGS|KNO_MIN_ARGS(2),
-	  "**undocumented**")
+	   KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+	   "**undocumented**")
 static lispval lte(int n,kno_argvec v) { return do_compare(n,v,ltespec); }
 
 DEFC_PRIMN("=",numeqp,
-	  KNO_VAR_ARGS|KNO_MIN_ARGS(2),
-	  "**undocumented**")
+	   KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+	   "**undocumented**")
 static lispval numeqp(int n,kno_argvec v) { return do_compare(n,v,espec); }
 
 DEFC_PRIMN(">=",gte,
-	  KNO_VAR_ARGS|KNO_MIN_ARGS(2),
-	  "**undocumented**")
+	   KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+	   "**undocumented**")
 static lispval gte(int n,kno_argvec v) { return do_compare(n,v,gtespec); }
 
 DEFC_PRIMN(">",gt,
-	  KNO_VAR_ARGS|KNO_MIN_ARGS(2),
-	  "**undocumented**")
+	   KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+	   "**undocumented**")
 static lispval gt(int n,kno_argvec v) { return do_compare(n,v,gtspec); }
 
 DEFC_PRIMN("!=",numneqp,
-	  KNO_VAR_ARGS|KNO_MIN_ARGS(2),
-	  "**undocumented**")
+	   KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+	   "**undocumented**")
 static lispval numneqp(int n,kno_argvec v) { return do_compare(n,v,nespec); }
 
 /* Type predicates */
 
 DEFC_PRIM("intern",lisp_intern,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"symbol_name",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"symbol_name",kno_any_type,KNO_VOID})
 static lispval lisp_intern(lispval symbol_name)
 {
   if (STRINGP(symbol_name))
@@ -327,38 +326,38 @@ static lispval lisp_intern(lispval symbol_name)
 /* Pair functions */
 
 DEFC_PRIM("cons",cons_prim,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "Returns a CONS pair composed of *car* and *cdr*",
-	 {"car",kno_any_type,KNO_VOID},
-	 {"cdr",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	  "Returns a CONS pair composed of *car* and *cdr*",
+	  {"car",kno_any_type,KNO_VOID},
+	  {"cdr",kno_any_type,KNO_VOID})
 static lispval cons_prim(lispval car,lispval cdr)
 {
   return kno_make_pair(car,cdr);
 }
 
 DEFC_PRIM("car",car_prim,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "Returns the first, left-hand element of a pair",
-	 {"pair",kno_pair_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "Returns the first, left-hand element of a pair",
+	  {"pair",kno_pair_type,KNO_VOID})
 static lispval car_prim(lispval pair)
 {
   return kno_incref(KNO_CAR(pair));
 }
 
 DEFC_PRIM("cdr",cdr_prim,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "Returns the second, right-hand element of a pair",
-	 {"pair",kno_pair_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "Returns the second, right-hand element of a pair",
+	  {"pair",kno_pair_type,KNO_VOID})
 static lispval cdr_prim(lispval pair)
 {
   return kno_incref(KNO_CDR(pair));
 }
 
 DEFC_PRIM("push",push_prim,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"item",kno_any_type,KNO_VOID},
-	 {"list",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"item",kno_any_type,KNO_VOID},
+	  {"list",kno_any_type,KNO_VOID})
 static lispval push_prim(lispval item,lispval list)
 {
   if ( (KNO_VOIDP(list)) || (KNO_NILP(list) ) || (KNO_DEFAULTP(list) ) )
@@ -370,13 +369,13 @@ static lispval push_prim(lispval item,lispval list)
 }
 
 DEFC_PRIM("qcons",qcons_prim,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "unless *car* or *cdr*are empty (fail), returns a "
-	 "single cons pointing to both arguments, which may "
-	 "be choices (and stay that way). This would be "
-	 "equivalent to `(cons (qc car) (qc cdr))`.",
-	 {"car",kno_any_type,KNO_VOID},
-	 {"cdr",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	  "unless *car* or *cdr*are empty (fail), returns a "
+	  "single cons pointing to both arguments, which may "
+	  "be choices (and stay that way). This would be "
+	  "equivalent to `(cons (qc car) (qc cdr))`.",
+	  {"car",kno_any_type,KNO_VOID},
+	  {"cdr",kno_any_type,KNO_VOID})
 static lispval qcons_prim(lispval car,lispval cdr)
 {
   if ( (KNO_EMPTYP(car)) || (KNO_EMPTYP(cdr)) )
@@ -387,8 +386,8 @@ static lispval qcons_prim(lispval car,lispval cdr)
 }
 
 DEFC_PRIM("allsymbols",lisp_all_symbols,
-	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	 "Returns all interned symbols as a choice.")
+	  KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+	  "Returns all interned symbols as a choice.")
 static lispval lisp_all_symbols()
 {
   return kno_all_symbols();
@@ -397,21 +396,21 @@ static lispval lisp_all_symbols()
 /* 'Printed' representations */
 
 DEFC_PRIM("string->lisp",lisp_string2lisp,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "Parses a text representation (a string) into a LISP object.",
-	 {"string",kno_string_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "Parses a text representation (a string) into a LISP object.",
+	  {"string",kno_string_type,KNO_VOID})
 static lispval lisp_string2lisp(lispval string)
 {
   return kno_parse(CSTRING(string));
 }
 
 DEFC_PRIM("lisp->string",lisp2string,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "Returns a textual representation for *object*. The "
-	 "representation is truncated after *maxlen* bytes of "
-	 "UTF-8 representation, if *maxlen* is a positive fixnum.",
-	 {"object",kno_any_type,KNO_VOID},
-	 {"maxlen",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	  "Returns a textual representation for *object*. The "
+	  "representation is truncated after *maxlen* bytes of "
+	  "UTF-8 representation, if *maxlen* is a positive fixnum.",
+	  {"object",kno_any_type,KNO_VOID},
+	  {"maxlen",kno_any_type,KNO_VOID})
 static lispval lisp2string(lispval object,lispval maxlen)
 {
   if (KNO_FIXNUMP(maxlen)) {
@@ -427,16 +426,16 @@ static lispval lisp2string(lispval object,lispval maxlen)
 }
 
 DEFC_PRIM("->lisp",lisp_tolisp,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "Converts strings to lisp objects and just returns "
-	 "other objects. Strings which start with lisp "
-	 "prefix characters are parsed as lisp objects, and "
-	 "strings are made into uppercase symbols when they "
-	 "either start with a single quote or contain no "
-	 "whitespace and are < 64 bytes. When parsing "
-	 "generates an error, the string is returned as a "
-	 "string object",
-	 {"arg",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "Converts strings to lisp objects and just returns "
+	  "other objects. Strings which start with lisp "
+	  "prefix characters are parsed as lisp objects, and "
+	  "strings are made into uppercase symbols when they "
+	  "either start with a single quote or contain no "
+	  "whitespace and are < 64 bytes. When parsing "
+	  "generates an error, the string is returned as a "
+	  "string object",
+	  {"arg",kno_any_type,KNO_VOID})
 static lispval lisp_tolisp(lispval arg)
 {
   if (STRINGP(arg)) {
@@ -457,16 +456,16 @@ static lispval lisp_tolisp(lispval arg)
 }
 
 DEFC_PRIM("parse-arg",lisp_parse_arg,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "returns a LISP object based on *string*.  If "
-	 "*string* isn't a string, it is just returned. If "
-	 "*string* can be parsed as a number or begins with "
-	 "a LISP delimiter, the LISP parser is called on "
-	 "the string.If *string* starts with a colon or "
-	 "sinqle quote, the LISP parser is called on the "
-	 "remainder of the string. In all other cases, the "
-	 "*string* is just returned as a lisp string.",
-	 {"string",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "returns a LISP object based on *string*.  If "
+	  "*string* isn't a string, it is just returned. If "
+	  "*string* can be parsed as a number or begins with "
+	  "a LISP delimiter, the LISP parser is called on "
+	  "the string.If *string* starts with a colon or "
+	  "sinqle quote, the LISP parser is called on the "
+	  "remainder of the string. In all other cases, the "
+	  "*string* is just returned as a lisp string.",
+	  {"string",kno_any_type,KNO_VOID})
 static lispval lisp_parse_arg(lispval string)
 {
   if (STRINGP(string))
@@ -475,18 +474,18 @@ static lispval lisp_parse_arg(lispval string)
 }
 
 DEFC_PRIM("parse-slotid",lisp_parse_slotid,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "returns a LISP object, typically a slotid (symbol "
-	 "or OID) based on *string*. If *string* isn't a "
-	 "string, it is just returned. If *string* begins "
-	 "with at at-sign @, it is parsed as an OID "
-	 "reference; if *string* can be parsed as a number "
-	 "or begins with a LISP delimiter, the parser is "
-	 "called. If *string* starts with a colon or sinqle "
-	 "quote, the parser is called on the remainder of "
-	 "the string. If the string contains whitespace, it "
-	 "returns a string, otherwise it returns a symbol.",
-	 {"string",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "returns a LISP object, typically a slotid (symbol "
+	  "or OID) based on *string*. If *string* isn't a "
+	  "string, it is just returned. If *string* begins "
+	  "with at at-sign @, it is parsed as an OID "
+	  "reference; if *string* can be parsed as a number "
+	  "or begins with a LISP delimiter, the parser is "
+	  "called. If *string* starts with a colon or sinqle "
+	  "quote, the parser is called on the remainder of "
+	  "the string. If the string contains whitespace, it "
+	  "returns a string, otherwise it returns a symbol.",
+	  {"string",kno_any_type,KNO_VOID})
 static lispval lisp_parse_slotid(lispval string)
 {
   if (STRINGP(string))
@@ -495,9 +494,9 @@ static lispval lisp_parse_slotid(lispval string)
 }
 
 DEFC_PRIM("unparse-arg",lisp_unparse_arg,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"obj",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"obj",kno_any_type,KNO_VOID})
 static lispval lisp_unparse_arg(lispval obj)
 {
   u8_string s = kno_unparse_arg(obj);
@@ -505,29 +504,29 @@ static lispval lisp_unparse_arg(lispval obj)
 }
 
 DEFC_PRIM("symbol->string",lisp_symbol2string,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "Returns the string representation of a symbols print name",
-	 {"sym",kno_symbol_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "Returns the string representation of a symbols print name",
+	  {"sym",kno_symbol_type,KNO_VOID})
 static lispval lisp_symbol2string(lispval sym)
 {
   return kno_mkstring(SYM_NAME(sym));
 }
 
 DEFC_PRIM("string->symbol",lisp_string2symbol,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "Returns a symbol whose print name is *s*.",
-	 {"s",kno_string_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "Returns a symbol whose print name is *s*.",
+	  {"s",kno_string_type,KNO_VOID})
 static lispval lisp_string2symbol(lispval s)
 {
   return kno_intern(KNO_STRING_DATA(s));
 }
 
 DEFC_PRIM("getsym",lisp_getsym,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "if *arg* is a string, interns a lowercase version "
-	 "of it. If *arg* is a symbol, returns it, "
-	 "otherwise errors.",
-	 {"s",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "if *arg* is a string, interns a lowercase version "
+	  "of it. If *arg* is a symbol, returns it, "
+	  "otherwise errors.",
+	  {"s",kno_any_type,KNO_VOID})
 static lispval lisp_getsym(lispval s)
 {
   if (KNO_SYMBOLP(s))
@@ -538,11 +537,11 @@ static lispval lisp_getsym(lispval s)
 }
 
 DEFC_PRIM("getslotid",lisp_getslotid,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "tries to get a slotid (symbol or OID) from *arg*, "
-	 "parsing OIDs and interning lowercase strings, "
-	 "signalling an error on failure",
-	 {"s",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "tries to get a slotid (symbol or OID) from *arg*, "
+	  "parsing OIDs and interning lowercase strings, "
+	  "signalling an error on failure",
+	  {"s",kno_any_type,KNO_VOID})
 static lispval lisp_getslotid(lispval s)
 {
   if ( (KNO_SYMBOLP(s)) || (KNO_OIDP(s)) )
@@ -561,10 +560,10 @@ static lispval lisp_getslotid(lispval s)
 /* HASHPTR */
 
 DEFC_PRIM("hashptr",hashptr_prim,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 "Returns an integer representation for its "
-	 "argument.",
-	 {"x",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+	  "Returns an integer representation for its "
+	  "argument.",
+	  {"x",kno_any_type,KNO_VOID})
 static lispval hashptr_prim(lispval x)
 {
   unsigned long long intval = (unsigned long long)x;
@@ -574,10 +573,10 @@ static lispval hashptr_prim(lispval x)
 }
 
 DEFC_PRIM("hashref",hashref_prim,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "returns a hashpointer string (#!0x...) which can "
-	 "be read if hashpointer reading is enabled.",
-	 {"x",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "returns a hashpointer string (#!0x...) which can "
+	  "be read if hashpointer reading is enabled.",
+	  {"x",kno_any_type,KNO_VOID})
 static lispval hashref_prim(lispval x)
 {
   unsigned long long intval = (unsigned long long)x;
@@ -588,11 +587,11 @@ static lispval hashref_prim(lispval x)
 }
 
 DEFC_PRIM("ptrlock",ptrlock_prim,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "Returns the integer pointer value of *ptr* modulo "
-	 "*mod*.",
-	 {"x",kno_any_type,KNO_VOID},
-	 {"mod",kno_fixnum_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	  "Returns the integer pointer value of *ptr* modulo "
+	  "*mod*.",
+	  {"x",kno_any_type,KNO_VOID},
+	  {"mod",kno_fixnum_type,KNO_VOID})
 static lispval ptrlock_prim(lispval x,lispval mod)
 {
   unsigned long long intval = (unsigned long long)x;
@@ -616,8 +615,8 @@ static void add_sourceid(u8_string s,void *vp)
 }
 
 DEFC_PRIM("getsourceinfo",lisp_getsourceids,
-	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	 "Returns all the registered sources for this session")
+	  KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+	  "Returns all the registered sources for this session")
 static lispval lisp_getsourceids()
 {
   lispval result = NIL;
@@ -628,8 +627,8 @@ static lispval lisp_getsourceids()
 /* Force some errors */
 
 DEFC_PRIM("segfault",force_sigsegv,
-	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	 "Signals a segmentation fault")
+	  KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+	  "Signals a segmentation fault")
 static lispval force_sigsegv()
 {
   lispval *values = NULL;
@@ -638,8 +637,8 @@ static lispval force_sigsegv()
 }
 
 DEFC_PRIM("fperror",force_sigfpe,
-	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	 "Signals a floating point error")
+	  KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+	  "Signals a floating point error")
 static lispval force_sigfpe()
 {
   return kno_init_double(NULL,5.0/0.0);

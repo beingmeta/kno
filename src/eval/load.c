@@ -1,8 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
-   This file is part of beingmeta's Kno platform and is copyright
-   and a valuable trade secret of beingmeta, inc.
+   Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu)
 */
 
 #include "kno/knosource.h"
@@ -65,7 +64,7 @@ KNO_EXPORT lispval kno_load_stream(u8_input loadstream,kno_lexenv env,
 	KNO_CHECK_ERRNO_OBJ(expr,"before evaluating");
 	start_time = u8_elapsed_time();}
       else start_time = -1.0;
-      result = kno_stack_eval(expr,env,load_stack);
+      result = kno_eval(expr,env,load_stack);
       kno_reset_stack(load_stack);
       if (KNO_ABORTP(result)) {
 	if (KNO_TROUBLEP(result)) {
@@ -182,7 +181,7 @@ static lispval load_source_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   u8_string encname;
   if (VOIDP(source_expr))
     return kno_err(kno_TooFewExpressions,"LOAD",NULL,expr);
-  else source = kno_eval_arg(source_expr,env);
+  else source = kno_eval_arg(source_expr,env,NULL);
   if (SYMBOLP(source)) {
     lispval config_val = kno_config_get(SYM_NAME(source));
     if (STRINGP(config_val)) {
@@ -197,11 +196,12 @@ static lispval load_source_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     else return kno_err(UnconfiguredSource,"load_source",
 			"this source is misconfigured",
 			config_val);}
-  if (!(STRINGP(source))) {
+  else if (KNO_ABORTED(source)) return source;
+  else if (!(STRINGP(source))) {
     lispval err = kno_type_error("filename","LOAD",source);
     kno_decref(source);
     return err;}
-  encval = kno_eval_arg(encname_expr,env);
+  encval = kno_eval(encname_expr,env,NULL);
   if (VOIDP(encval)) encname="auto";
   else if (STRINGP(encval))
     encname = CSTRING(encval);
@@ -215,12 +215,12 @@ static lispval load_source_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 }
 
 DEFC_PRIM("load->env",load_into_env_prim,
-	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
-	 "Loads *filename* into *env*, applying *resultfn* "
-	 "(if provided) to the result.",
-	 {"source",kno_string_type,KNO_VOID},
-	 {"envarg",kno_any_type,KNO_VOID},
-	 {"resultfn",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
+	  "Loads *filename* into *env*, applying *resultfn* "
+	  "(if provided) to the result.",
+	  {"source",kno_string_type,KNO_VOID},
+	  {"envarg",kno_any_type,KNO_VOID},
+	  {"resultfn",kno_any_type,KNO_VOID})
 static lispval load_into_env_prim(lispval source,lispval envarg,
 				  lispval resultfn)
 {
@@ -255,14 +255,14 @@ static lispval load_into_env_prim(lispval source,lispval envarg,
 }
 
 DEFC_PRIM("env/load",env_load_prim,
-	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
-	 "Updates *env* by loading (if needed) the latest "
-	 "version of *filename*. If *filename* is not "
-	 "provided, all files previously loaded with "
-	 "`env/load` are updated.",
-	 {"envarg",kno_lexenv_type,KNO_VOID},
-	 {"source",kno_string_type,KNO_VOID},
-	 {"onload",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
+	  "Updates *env* by loading (if needed) the latest "
+	  "version of *filename*. If *filename* is not "
+	  "provided, all files previously loaded with "
+	  "`env/load` are updated.",
+	  {"envarg",kno_lexenv_type,KNO_VOID},
+	  {"source",kno_string_type,KNO_VOID},
+	  {"onload",kno_any_type,KNO_VOID})
 static lispval env_load_prim(lispval envarg,lispval source,lispval onload)
 {
   kno_lexenv env = (kno_lexenv) envarg;
@@ -285,14 +285,13 @@ static lispval load_component_evalfn(lispval expr,kno_lexenv env,kno_stack _stac
   u8_string encname;
   if (VOIDP(source_expr))
     return kno_err(kno_TooFewExpressions,"LOAD-COMPONENT",NULL,expr);
-  else source = kno_eval_arg(source_expr,env);
-  if (KNO_ABORTP(source))
-    return source;
+  else source = kno_eval_arg(source_expr,env,NULL);
+  if (KNO_ABORTED(source)) return source;
   else if (!(STRINGP(source))) {
     lispval err = kno_type_error("filename","LOAD-COMPONENT",source);
     kno_decref(source);
     return err;}
-  encval = kno_eval_arg(encname_expr,env);
+  encval = kno_eval(encname_expr,env,NULL);
   if (VOIDP(encval)) encname="auto";
   else if (STRINGP(encval))
     encname = CSTRING(encval);
@@ -311,10 +310,10 @@ static lispval load_component_evalfn(lispval expr,kno_lexenv env,kno_stack _stac
 }
 
 DEFC_PRIM("get-component",lisp_get_component,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(0),
-	 "**undocumented**",
-	 {"string",kno_string_type,KNO_VOID},
-	 {"base",kno_string_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(0),
+	  "**undocumented**",
+	  {"string",kno_string_type,KNO_VOID},
+	  {"base",kno_string_type,KNO_VOID})
 static lispval lisp_get_component(lispval string,lispval base)
 {
   if (VOIDP(string)) {
@@ -469,16 +468,18 @@ static lispval load_latest_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   lispval path_expr = kno_get_arg(expr,1);
   if (KNO_VOIDP(path_expr))
     return kno_err(kno_SyntaxError,"load_latest_evalfn",NULL,expr);
-  lispval path = kno_eval_arg(path_expr,env);
-  if (!(STRINGP(path))) {
+  lispval path = kno_eval_arg(path_expr,env,_stack);
+  if (KNO_ABORTED(path)) return path;
+  else if (!(STRINGP(path))) {
     lispval err = kno_type_error("pathname","load_latest",path);
     kno_decref(path);
     return err;}
+  else NO_ELSE;
   lispval onload_expr = kno_get_arg(expr,2);
   if (KNO_VOIDP(onload_expr))
     retval = kno_load_latest(CSTRING(path),env,0,KNO_VOID);
   else {
-    lispval onload = kno_eval_arg(onload_expr,env);
+    lispval onload = kno_eval(onload_expr,env,_stack);
     if (KNO_ABORTED(onload)) return onload;
     retval = kno_load_latest(CSTRING(path),env,0,onload);
     kno_decref(onload);}
@@ -498,7 +499,7 @@ static lispval load_update_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   else {
     int retval = -1;
     lispval path_expr = kno_get_arg(expr,1);
-    lispval path = kno_eval_arg(path_expr,env);
+    lispval path = kno_eval(path_expr,env,_stack);
     if (!(STRINGP(path))) {
       lispval err = kno_type_error("pathname","load_latest",path);
       kno_decref(path);
@@ -507,7 +508,7 @@ static lispval load_update_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     if (KNO_VOIDP(onload_expr))
       retval = kno_load_latest(CSTRING(path),env,1,KNO_VOID);
     else {
-      lispval onload = kno_eval_arg(onload_expr,env);
+      lispval onload = kno_eval(onload_expr,env,_stack);
       if (KNO_ABORTED(onload)) return onload;
       retval = kno_load_latest(CSTRING(path),env,1,onload);
       kno_decref(onload);}
@@ -556,9 +557,9 @@ static lispval kno_run(u8_string source_file,struct U8_OUTPUT *out,
 }
 
 DEFC_PRIMN("kno/run-file",kno_run_file,
-	  KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	  "Loads a file and applies its (main) procedure to "
-	  "the arguments")
+	   KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
+	   "Loads a file and applies its (main) procedure to "
+	   "the arguments")
 static lispval kno_run_file(int n,kno_argvec args)
 {
   if ( (KNO_STRINGP(args[0])) &&
@@ -568,9 +569,9 @@ static lispval kno_run_file(int n,kno_argvec args)
 }
 
 DEFC_PRIMN("kno/run->string",kno_run_file_2string,
-	  KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	  "Loads a KNO file and applies its (main) procedure "
-	  "to the arguments, returns the output as a string")
+	   KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
+	   "Loads a KNO file and applies its (main) procedure "
+	   "to the arguments, returns the output as a string")
 static lispval kno_run_file_2string(int n,kno_argvec args)
 {
   if ( (KNO_STRINGP(args[0])) &&
@@ -604,7 +605,7 @@ static lispval with_sourcebase_evalfn(lispval expr,kno_lexenv env,kno_stack stac
   if (!(PAIRP(body)))
     return kno_err(kno_SyntaxError,"with_sourcebase_evalfn",NULL,expr);
 
-  lispval usebase = kno_eval(usebase_expr,env,stack,0);
+  lispval usebase = kno_eval(usebase_expr,env,stack);
   u8_string temp_base;
   if (ABORTED(usebase)) return usebase;
   else if (KNO_STRINGP(usebase))

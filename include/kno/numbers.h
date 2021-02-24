@@ -67,12 +67,13 @@ KNO_EXPORT lispval kno_init_double(struct KNO_FLONUM *ptr,double flonum);
 KNO_EXPORT int kno_exactp(lispval x);
 
 #define KNO_ISNAN(x) ((KNO_FLONUMP(x))&&(isnan(KNO_FLONUM(x))))
-#define KNO_ZEROP(x) ((KNO_FIXNUMP(x))?((KNO_FIX2INT(x))==0): \
-		     (KNO_FLONUMP(x))?((KNO_FLONUM(x))==0):(0))
-#define KNO_EXACTP(x)					      \
-  ((KNO_FLONUMP(x))?(0):(!(KNO_NUMBERP(x)))?(-1):		      \
-   ((KNO_FIXNUMP(x))||(KNO_BIGINTP(x)))?(1):		      \
-   (kno_exactp(x)))
+#define KNO_FIX_ZEROP(x) ((x) == (KNO_INT(0)))
+#define KNO_FIX_ONEP(x)  ((x) == (KNO_INT(1)))
+#define KNO_FIX_EQUAL(lval,intval)  ((lval) == (KNO_INT(intval)))
+
+#define KNO_ZEROP(x)				\
+  ((KNO_FIXNUMP(x))?((KNO_FIX2INT(x))==0):	\
+   (KNO_FLONUMP(x))?((KNO_FLONUM(x))==0):(0))
 
 #define KNO_POSINTP(x) \
   ( (KNO_FIXNUMP(x)) ? ( (KNO_FIX2INT(x)) > 0 ) : \

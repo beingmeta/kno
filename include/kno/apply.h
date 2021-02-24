@@ -1,8 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
-   This file is part of beingmeta's Kno platform and is copyright
-   and a valuable trade secret of beingmeta, inc.
+   Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu)
 */
 
 #ifndef KNO_APPLY_H
@@ -107,6 +106,7 @@ typedef struct KNO_ARGINFO {
   unsigned char fcn_call, fcn_trace, fcn_free, fcn_other;		\
   short fcn_arity, fcn_min_arity, fcn_call_width, fcn_arginfo_len;	\
   lispval *fcn_schema;							\
+  lispval *fcn_typeinfo;						\
   lispval fcnid;							\
   lispval fcn_attribs;							\
   struct KNO_PROFILE *fcn_profile;					\
@@ -129,10 +129,11 @@ typedef struct KNO_ARGINFO {
 #define KNO_CALL_XCALL    0x10
 #define KNO_CALL_XPRUNE   0x20
 
-#define KNO_FCN_FREE_DOC      0x01
-#define KNO_FCN_FREE_TYPEINFO 0x02
-#define KNO_FCN_FREE_DEFAULTS 0x04
-#define KNO_FCN_FREE_SCHEMA   0x08
+#define KNO_FCN_FREE_DOC        0x01
+#define KNO_FCN_FREE_TYPEINFO   0x02
+#define KNO_FCN_FREE_DEFAULTS   0x04
+#define KNO_FCN_FREE_SCHEMA     0x08
+#define KNO_FCN_DECREF_TYPEINFO 0x10
 
 #define KNO_FCN_TRACE_PROFILE 0x01
 #define KNO_FCN_TRACE_LOGGING 0x02
@@ -179,7 +180,6 @@ struct KNO_FUNCTION {
 struct KNO_CPRIM {
   KNO_FUNCTION_FIELDS;
   u8_string cprim_name;
-  int *fcn_typeinfo;
   const lispval *fcn_defaults;};
 typedef struct KNO_CPRIM KNO_CPRIM;
 typedef struct KNO_CPRIM *kno_cprim;
@@ -196,7 +196,7 @@ KNO_EXPORT struct KNO_CPRIM *kno_init_cprim
  u8_string filename,
  u8_string doc,
  int flags,
- int *typeinfo,
+ lispval *typeinfo,
  lispval *defaults);
 
 KNO_EXPORT lispval kno_cons_cprim0
@@ -250,6 +250,8 @@ KNO_EXPORT lispval kno_cons_cprimN
 #define KNO_NDCALL   0x20000
 #define KNO_NDOP     KNO_NDCALL
 #define KNO_CHOICEOP KNO_NDCALL
+
+#define KNO_ARGINFO_LEN(flags) ( ((flags)&(0xFF000000)) >> 16)
 
 /* Useful macros */
 

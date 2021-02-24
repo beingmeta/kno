@@ -1,8 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
-   This file is part of beingmeta's Kno platform and is copyright
-   and a valuable trade secret of beingmeta, inc.
+   Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu)
 */
 
 #ifndef KNO_EVAL_H
@@ -253,7 +252,7 @@ typedef struct KNO_LAMBDA {
   unsigned char lambda_synchronized;
   lispval *lambda_vars, *lambda_inits;
   lispval lambda_arglist, lambda_body, lambda_source;
-  lispval lambda_optimizer, lambda_start;
+  lispval lambda_optimizer, lambda_entry;
   struct KNO_CONSBLOCK *lambda_consblock;
   kno_lexenv lambda_env;
   U8_MUTEX_DECL(lambda_lock);}
@@ -304,17 +303,23 @@ typedef struct KNO_CONFIG_RECORD {
 #define KNO_TAIL_EVAL 0x01
 #define KNO_VOID_VAL  0x02
 
+#define KNO_PRUNED       0x00
+#define KNO_GOOD_ARGS    0x01
+#define KNO_FAILED_ARGS  0x02
+#define KNO_CONSED_ARGS  0x04
+#define KNO_AMBIG_ARGS   0x08
+#define KNO_QCHOICE_ARGS 0x10
+#define KNO_THROWN_ARG   0x20
+
 KNO_EXPORT lispval kno_eval_body(lispval body,kno_lexenv env,kno_stack stack,
 				 u8_context cxt,u8_string label,
 				 int tail);
 KNO_EXPORT lispval kno_eval_expr(lispval head,lispval expr,
 				 kno_lexenv env,kno_stack stack,
 				 int tail);
-KNO_EXPORT lispval kno_eval(lispval expr,kno_lexenv env,
-			    kno_stack stack,
-			    int tail);
-KNO_EXPORT lispval kno_eval_arg(lispval expr,kno_lexenv env);
-KNO_EXPORT lispval kno_stack_eval(lispval expr,kno_lexenv env,kno_stack stack);
+KNO_EXPORT lispval kno_eval(lispval,kno_lexenv,kno_stack);
+KNO_EXPORT lispval kno_tail_eval(lispval,kno_lexenv,kno_stack);
+KNO_EXPORT lispval kno_eval_arg(lispval,kno_lexenv,kno_stack);
 
 
 KNO_EXPORT lispval kno_get_arg(lispval expr,int i);
@@ -366,7 +371,6 @@ typedef struct KNO_CONTINUATION {
   KNO_FUNCTION_FIELDS;
   /* We have these because the cons type for a continuation
      is a cprim and we have to run through that apply loop. */
-  int *fcn_typeinfo;
   lispval *fcn_defaults;
   /* This is the one we use */
   lispval retval;} KNO_CONTINUATION;

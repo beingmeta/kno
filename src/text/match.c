@@ -1181,7 +1181,7 @@ static lispval label_extract
             else return parser_val;}
           xtract = kno_make_list(4,KNO_CAR(pat),sym,data,parser_val);}
         else if ((env) && (PAIRP(parser))) {
-          lispval parser_val = kno_eval_arg(parser,env);
+	  lispval parser_val = kno_eval(parser,env,NULL);
           if ((KNO_ABORTED(parser_val))||(VOIDP(parser_val))) {
             KNO_STOP_DO_CHOICES;
             kno_decref(answers);

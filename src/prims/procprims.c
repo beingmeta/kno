@@ -1,8 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
-   This file is part of beingmeta's Kno platform and is copyright
-   and a valuable trade secret of beingmeta, inc.
+   Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu)
 */
 
 #ifndef _FILEINFO
@@ -32,8 +31,6 @@
 #include "libu8/u8fileio.h"
 #include <libu8/u8netfns.h>
 #include <libu8/u8xfiles.h>
-
-#define fast_eval(x,env) (__kno_fast_eval(x,env,_stack,0))
 
 #include <stdlib.h>
 
@@ -191,64 +188,64 @@ static lispval exec_helper(u8_context caller,
 }
 
 DEFC_PRIMN("exec",exec_prim,
-	  KNO_VAR_ARGS|KNO_MIN_ARGS(1),
-	  "replaces the current application with an "
-	  "execution of *command* (a string) to *args* (also "
-	  "strings).\n*envmap*, if provided, is a slotmap "
-	  "specifying environment variables for execution of "
-	  "the command. Environment variables can also be "
-	  "explicitly provided in the string *command*.\nThe "
-	  "last word of *command* (after any environment "
-	  "variables) should be the path of an executable "
-	  "program file.")
+	   KNO_VAR_ARGS|KNO_MIN_ARGS(1),
+	   "replaces the current application with an "
+	   "execution of *command* (a string) to *args* (also "
+	   "strings).\n*envmap*, if provided, is a slotmap "
+	   "specifying environment variables for execution of "
+	   "the command. Environment variables can also be "
+	   "explicitly provided in the string *command*.\nThe "
+	   "last word of *command* (after any environment "
+	   "variables) should be the path of an executable "
+	   "program file.")
 static lispval exec_prim(int n,kno_argvec args)
 {
   return exec_helper("exec_prim",0,n,KNO_FALSE,args);
 }
 
 DEFC_PRIMN("exec/cmd",exec_cmd_prim,
-	  KNO_VAR_ARGS|KNO_MIN_ARGS(1),
-	  "replaces the current application with an "
-	  "execution of *command* (a string) to *args* (also "
-	  "strings).\n*envmap*, if provided, is a slotmap "
-	  "specifying environment variables for execution of "
-	  "the command. Environment variables can also be "
-	  "explicitly provided in the string *command*.\nThe "
-	  "last word of *command* (after any environment "
-	  "variables) should be either a command in the "
-	  "default search path or the path of an executable "
-	  "program file.")
+	   KNO_VAR_ARGS|KNO_MIN_ARGS(1),
+	   "replaces the current application with an "
+	   "execution of *command* (a string) to *args* (also "
+	   "strings).\n*envmap*, if provided, is a slotmap "
+	   "specifying environment variables for execution of "
+	   "the command. Environment variables can also be "
+	   "explicitly provided in the string *command*.\nThe "
+	   "last word of *command* (after any environment "
+	   "variables) should be either a command in the "
+	   "default search path or the path of an executable "
+	   "program file.")
 static lispval exec_cmd_prim(int n,kno_argvec args)
 {
   return exec_helper("exec_cmd_prim",KNO_DO_LOOKUP,n,KNO_FALSE,args);
 }
 
 DEFC_PRIMN("knox",knox_prim,
-	  KNO_VAR_ARGS|KNO_MIN_ARGS(1),
-	  "replaces the current application with a Kno "
-	  "process reading the file *scheme_file* and "
-	  "applying the file's `MAIN` definition to the "
-	  "results of parsing *args* (also strings).\n"
-	  "*envmap*, if provided, specifies CONFIG settings "
-	  "for the reading and execution of *scheme-file*. "
-	  "Environment variables can also be explicitly "
-	  "provided in the string *command*.\n")
+	   KNO_VAR_ARGS|KNO_MIN_ARGS(1),
+	   "replaces the current application with a Kno "
+	   "process reading the file *scheme_file* and "
+	   "applying the file's `MAIN` definition to the "
+	   "results of parsing *args* (also strings).\n"
+	   "*envmap*, if provided, specifies CONFIG settings "
+	   "for the reading and execution of *scheme-file*. "
+	   "Environment variables can also be explicitly "
+	   "provided in the string *command*.\n")
 static lispval knox_prim(int n,kno_argvec args)
 {
   return exec_helper("knox_prim",KNO_IS_SCHEME,n,KNO_FALSE,args);
 }
 
 DEFC_PRIMN("fork",fork_prim,
-	  KNO_VAR_ARGS|KNO_MIN_ARGS(1),
-	  "'forks' a new process executing *command* (a "
-	  "string) for *args* (also strings). It returns the "
-	  "PID of the new process.\n*envmap*, if provided, is "
-	  "a slotmap specifying environment variables for "
-	  "execution of the command. Environment variables "
-	  "can also be explicitly provided in the string "
-	  "*command*.\nThe last word of *command* (after any "
-	  "environment variables) should be the path of an "
-	  "executable program file.")
+	   KNO_VAR_ARGS|KNO_MIN_ARGS(1),
+	   "'forks' a new process executing *command* (a "
+	   "string) for *args* (also strings). It returns the "
+	   "PID of the new process.\n*envmap*, if provided, is "
+	   "a slotmap specifying environment variables for "
+	   "execution of the command. Environment variables "
+	   "can also be explicitly provided in the string "
+	   "*command*.\nThe last word of *command* (after any "
+	   "environment variables) should be the path of an "
+	   "executable program file.")
 static lispval fork_prim(int n,kno_argvec args)
 {
   if (n==0) {
@@ -261,67 +258,67 @@ static lispval fork_prim(int n,kno_argvec args)
 }
 
 DEFC_PRIMN("fork/cmd",fork_cmd_prim,
-	  KNO_VAR_ARGS|KNO_MIN_ARGS(1),
-	  "'forks' a new process executing *command* (a "
-	  "string) with *args* (also strings). It returns "
-	  "the PID of the new process.\n*envmap*, if "
-	  "provided, is a slotmap specifying environment "
-	  "variables for execution of the command. "
-	  "Environment variables can also be explicitly "
-	  "provided in the string *command*.\nThe last word "
-	  "of *command* (after any environment variables) "
-	  "should be either a command in the default search "
-	  "path or the path of an executable program file.")
+	   KNO_VAR_ARGS|KNO_MIN_ARGS(1),
+	   "'forks' a new process executing *command* (a "
+	   "string) with *args* (also strings). It returns "
+	   "the PID of the new process.\n*envmap*, if "
+	   "provided, is a slotmap specifying environment "
+	   "variables for execution of the command. "
+	   "Environment variables can also be explicitly "
+	   "provided in the string *command*.\nThe last word "
+	   "of *command* (after any environment variables) "
+	   "should be either a command in the default search "
+	   "path or the path of an executable program file.")
 static lispval fork_cmd_prim(int n,kno_argvec args)
 {
   return exec_helper("fork_cmd_prim",(KNO_DO_FORK|KNO_DO_LOOKUP),n,KNO_FALSE,args);
 }
 
 DEFC_PRIMN("knox/fork",knox_fork_prim,
-	  KNO_VAR_ARGS|KNO_MIN_ARGS(1),
-	  "'forks' a new Kno process reading the file "
-	  "*scheme_file* and applying the file's `MAIN` "
-	  "definition to the results of parsing *args* (also "
-	  "strings).  It returns the PID of the new process.\n"
-	  "*envmap*, if provided, specifies CONFIG settings "
-	  "for the reading and execution of *scheme-file*. "
-	  "Environment variables can also be explicitly "
-	  "provided in the string *command*.\n")
+	   KNO_VAR_ARGS|KNO_MIN_ARGS(1),
+	   "'forks' a new Kno process reading the file "
+	   "*scheme_file* and applying the file's `MAIN` "
+	   "definition to the results of parsing *args* (also "
+	   "strings).  It returns the PID of the new process.\n"
+	   "*envmap*, if provided, specifies CONFIG settings "
+	   "for the reading and execution of *scheme-file*. "
+	   "Environment variables can also be explicitly "
+	   "provided in the string *command*.\n")
 static lispval knox_fork_prim(int n,kno_argvec args)
 {
   return exec_helper("knofork_prim",(KNO_IS_SCHEME|KNO_DO_FORK),n,KNO_FALSE,args);
 }
 
 DEFC_PRIMN("fork/wait",fork_wait_prim,
-	  KNO_VAR_ARGS|KNO_MIN_ARGS(1),
-	  "'forks' a new process executing *command* (a "
-	  "string) for *args* (also strings). It waits for "
-	  "this process to return and returns its exit "
-	  "status.\n*envmap*, if provided, is a slotmap "
-	  "specifying environment variables for execution of "
-	  "the command. Environment variables can also be "
-	  "explicitly provided in the string *command*.\nThe "
-	  "last word of *command* (after any environment "
-	  "variables) should be the path of an executable "
-	  "program file.")
+	   KNO_VAR_ARGS|KNO_MIN_ARGS(1),
+	   "'forks' a new process executing *command* (a "
+	   "string) for *args* (also strings). It waits for "
+	   "this process to return and returns its exit "
+	   "status.\n*envmap*, if provided, is a slotmap "
+	   "specifying environment variables for execution of "
+	   "the command. Environment variables can also be "
+	   "explicitly provided in the string *command*.\nThe "
+	   "last word of *command* (after any environment "
+	   "variables) should be the path of an executable "
+	   "program file.")
 static lispval fork_wait_prim(int n,kno_argvec args)
 {
   return exec_helper("fork_wait_prim",(KNO_DO_FORK|KNO_DO_WAIT),n,KNO_FALSE,args);
 }
 
 DEFC_PRIMN("fork/cmd/wait",fork_cmd_wait_prim,
-	  KNO_VAR_ARGS|KNO_MIN_ARGS(1),
-	  "'forks' a new process executing *command* (a "
-	  "string) with *args* (also strings). It waits for "
-	  "this process to return and returns its exit "
-	  "status.\n*envmap*, if provided, is a slotmap "
-	  "specifying environment variables for execution of "
-	  "the command. Environment variables can also be "
-	  "explicitly provided in the string *command*.\nThe "
-	  "last word of *command* (after any environment "
-	  "variables) should be either a command in the "
-	  "default search path or the path of an executable "
-	  "program file.")
+	   KNO_VAR_ARGS|KNO_MIN_ARGS(1),
+	   "'forks' a new process executing *command* (a "
+	   "string) with *args* (also strings). It waits for "
+	   "this process to return and returns its exit "
+	   "status.\n*envmap*, if provided, is a slotmap "
+	   "specifying environment variables for execution of "
+	   "the command. Environment variables can also be "
+	   "explicitly provided in the string *command*.\nThe "
+	   "last word of *command* (after any environment "
+	   "variables) should be either a command in the "
+	   "default search path or the path of an executable "
+	   "program file.")
 static lispval fork_cmd_wait_prim(int n,kno_argvec args)
 {
   return exec_helper("fork_cmd_wait_prim",
@@ -329,16 +326,16 @@ static lispval fork_cmd_wait_prim(int n,kno_argvec args)
 }
 
 DEFC_PRIMN("knox/fork/wait",knox_fork_wait_prim,
-	  KNO_VAR_ARGS|KNO_MIN_ARGS(1),
-	  "'forks' a new Kno process reading the file "
-	  "*scheme_file* and applying the file's `MAIN` "
-	  "definition to the results of parsing *args* (also "
-	  "strings).  It waits for this process to return "
-	  "and returns its exit status.\n*envmap*, if "
-	  "provided, specifies CONFIG settings for the "
-	  "reading and execution of *scheme-file*. "
-	  "Environment variables can also be explicitly "
-	  "provided in the string *command*.\n")
+	   KNO_VAR_ARGS|KNO_MIN_ARGS(1),
+	   "'forks' a new Kno process reading the file "
+	   "*scheme_file* and applying the file's `MAIN` "
+	   "definition to the results of parsing *args* (also "
+	   "strings).  It waits for this process to return "
+	   "and returns its exit status.\n*envmap*, if "
+	   "provided, specifies CONFIG settings for the "
+	   "reading and execution of *scheme-file*. "
+	   "Environment variables can also be explicitly "
+	   "provided in the string *command*.\n")
 static lispval knox_fork_wait_prim(int n,kno_argvec args)
 {
   return exec_helper("knox_fork_wait_prim",
@@ -381,27 +378,27 @@ static int dodup(int from,int to,u8_string stream,u8_string id)
 static u8_string makeid(int n,kno_argvec args);
 
 DEFC_PRIMN("subjob/open",subjob_open,
-	  KNO_VAR_ARGS|KNO_MIN_ARGS(1),
-	  "'forks' a new process applying *command* to "
-	  "*args* and creates a **subjob** object for the "
-	  "process.\n*opts* control how the subjob is started "
-	  "and how its inputs and outputs are configured.\n"
-	  "Some supported options are:\n* **ID** provides a "
-	  "descriptive string;\n* **STDIN** is either a file "
-	  "to use as the *stdin* to the new process, #f to "
-	  "use the *standard input* of the current process, "
-	  "or #t to create a stream through which the "
-	  "current process can write to the new process.\n* "
-	  "**STDOUT** is either a file to use for the "
-	  "*stdout* from the new process, #f to share the "
-	  "*standard output* of the current process, or #t "
-	  "to create a stream from which the current process "
-	  "can read the standard output of the new process.\n"
-	  "* **STDERR** is either a file to use for the "
-	  "*stderr* for the new process, #f to share the "
-	  "*stderr* of the current process, or #t to create "
-	  "a stream from which the current process can read "
-	  "the error output of the new process.\n")
+	   KNO_VAR_ARGS|KNO_MIN_ARGS(1),
+	   "'forks' a new process applying *command* to "
+	   "*args* and creates a **subjob** object for the "
+	   "process.\n*opts* control how the subjob is started "
+	   "and how its inputs and outputs are configured.\n"
+	   "Some supported options are:\n* **ID** provides a "
+	   "descriptive string;\n* **STDIN** is either a file "
+	   "to use as the *stdin* to the new process, #f to "
+	   "use the *standard input* of the current process, "
+	   "or #t to create a stream through which the "
+	   "current process can write to the new process.\n* "
+	   "**STDOUT** is either a file to use for the "
+	   "*stdout* from the new process, #f to share the "
+	   "*standard output* of the current process, or #t "
+	   "to create a stream from which the current process "
+	   "can read the standard output of the new process.\n"
+	   "* **STDERR** is either a file to use for the "
+	   "*stderr* for the new process, #f to share the "
+	   "*stderr* of the current process, or #t to create "
+	   "a stream from which the current process can read "
+	   "the error output of the new process.\n")
 static lispval subjob_open(int n,kno_argvec args)
 {
   lispval opts = args[0];
@@ -559,9 +556,9 @@ static void recycle_subjob(struct KNO_RAW_CONS *c)
 }
 
 DEFC_PRIM("subjob/pid",subjob_pid,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "Returns the numeric process ID for the subjob",
-	 {"subjob",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "Returns the numeric process ID for the subjob",
+	  {"subjob",kno_any_type,KNO_VOID})
 static lispval subjob_pid(lispval subjob)
 {
   struct KNO_SUBJOB *sj = (kno_subjob) subjob;
@@ -569,9 +566,9 @@ static lispval subjob_pid(lispval subjob)
 }
 
 DEFC_PRIM("subjob/stdin",subjob_stdin,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "Returns an output port for sending to the subjob.",
-	 {"subjob",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "Returns an output port for sending to the subjob.",
+	  {"subjob",kno_any_type,KNO_VOID})
 static lispval subjob_stdin(lispval subjob)
 {
   struct KNO_SUBJOB *sj = (kno_subjob) subjob;
@@ -579,10 +576,10 @@ static lispval subjob_stdin(lispval subjob)
 }
 
 DEFC_PRIM("subjob/stdout",subjob_stdout,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "Returns an input port for reading the output of "
-	 "subjob.",
-	 {"subjob",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "Returns an input port for reading the output of "
+	  "subjob.",
+	  {"subjob",kno_any_type,KNO_VOID})
 static lispval subjob_stdout(lispval subjob)
 {
   struct KNO_SUBJOB *sj = (kno_subjob) subjob;
@@ -590,10 +587,10 @@ static lispval subjob_stdout(lispval subjob)
 }
 
 DEFC_PRIM("subjob/stderr",subjob_stderr,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "Returns an input port for reading the error "
-	 "output (stderr)  of subjob.",
-	 {"subjob",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "Returns an input port for reading the error "
+	  "output (stderr)  of subjob.",
+	  {"subjob",kno_any_type,KNO_VOID})
 static lispval subjob_stderr(lispval subjob)
 {
   struct KNO_SUBJOB *sj = (kno_subjob) subjob;
@@ -601,11 +598,11 @@ static lispval subjob_stderr(lispval subjob)
 }
 
 DEFC_PRIM("subjob/signal",subjob_signal,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "sends the number *signal* to the process "
-	 "executing *subjob*.",
-	 {"subjob",kno_any_type,KNO_VOID},
-	 {"sigval",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	  "sends the number *signal* to the process "
+	  "executing *subjob*.",
+	  {"subjob",kno_any_type,KNO_VOID},
+	  {"sigval",kno_any_type,KNO_VOID})
 static lispval subjob_signal(lispval subjob,lispval sigval)
 {
   struct KNO_SUBJOB *sj = (kno_subjob) subjob;
@@ -624,10 +621,10 @@ static lispval subjob_signal(lispval subjob,lispval sigval)
 /* EXIT functions */
 
 DEFC_PRIM("exit",exit_prim,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
-	 "exits the current process with a return code of "
-	 "*retval* (defaults to 0)",
-	 {"arg",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
+	  "exits the current process with a return code of "
+	  "*retval* (defaults to 0)",
+	  {"arg",kno_any_type,KNO_VOID})
 static lispval exit_prim(lispval arg)
 {
   pid_t main_thread = getpid();
@@ -638,11 +635,11 @@ static lispval exit_prim(lispval arg)
 }
 
 DEFC_PRIM("exit/fast",fast_exit_prim,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
-	 "exits the current process expeditiously without, "
-	 "for example, freeing memory which will just be "
-	 "returned to the OS after exit.",
-	 {"arg",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
+	  "exits the current process expeditiously without, "
+	  "for example, freeing memory which will just be "
+	  "returned to the OS after exit.",
+	  {"arg",kno_any_type,KNO_VOID})
 static lispval fast_exit_prim(lispval arg)
 {
   kno_fast_exit=1;
@@ -656,10 +653,10 @@ static lispval fast_exit_prim(lispval arg)
 /* PID functions */
 
 DEFC_PRIM("pid?",ispid_prim,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "Returns #t if it's argument is a current and "
-	 "valid process ID.",
-	 {"pid_arg",kno_fixnum_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "Returns #t if it's argument is a current and "
+	  "valid process ID.",
+	  {"pid_arg",kno_fixnum_type,KNO_VOID})
 static lispval ispid_prim(lispval pid_arg)
 {
   pid_t pid = FIX2INT(pid_arg);
@@ -670,10 +667,10 @@ static lispval ispid_prim(lispval pid_arg)
 }
 
 DEFC_PRIM("pid/kill!",pid_kill_prim,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "sends *signal* (default is ) to *process*.",
-	 {"pid_arg",kno_any_type,KNO_VOID},
-	 {"sig_arg",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	  "sends *signal* (default is ) to *process*.",
+	  {"pid_arg",kno_any_type,KNO_VOID},
+	  {"sig_arg",kno_any_type,KNO_VOID})
 static lispval pid_kill_prim(lispval pid_arg,lispval sig_arg)
 {
   pid_t pid = FIX2INT(pid_arg);
@@ -693,12 +690,12 @@ static lispval pid_kill_prim(lispval pid_arg,lispval sig_arg)
 lispval kno_rlimit_codes = KNO_EMPTY;
 
 DEFC_PRIM("getrlimit",getrlimit_prim,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "gets the *resource* resource limit for the "
-	 "current process. If *getmax* is true, gets the "
-	 "maximum resource limit.",
-	 {"resname",kno_symbol_type,KNO_VOID},
-	 {"which",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	  "gets the *resource* resource limit for the "
+	  "current process. If *getmax* is true, gets the "
+	  "maximum resource limit.",
+	  {"resname",kno_symbol_type,KNO_VOID},
+	  {"which",kno_any_type,KNO_VOID})
 static lispval getrlimit_prim(lispval resname,lispval which)
 {
   struct rlimit lim;
@@ -725,13 +722,13 @@ static lispval getrlimit_prim(lispval resname,lispval which)
 }
 
 DEFC_PRIM("setrlimit!",setrlimit_prim,
-	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 "sets the resource limit *resource* (symbol) to "
-	 "*value* for the current process. If *setmax* is "
-	 "true, sets the maximium resource value if allowed.",
-	 {"resname",kno_symbol_type,KNO_VOID},
-	 {"limit_val",kno_any_type,KNO_VOID},
-	 {"setmax_arg",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+	  "sets the resource limit *resource* (symbol) to "
+	  "*value* for the current process. If *setmax* is "
+	  "true, sets the maximium resource value if allowed.",
+	  {"resname",kno_symbol_type,KNO_VOID},
+	  {"limit_val",kno_any_type,KNO_VOID},
+	  {"setmax_arg",kno_any_type,KNO_VOID})
 static lispval setrlimit_prim(lispval resname,lispval limit_val,
 			      lispval setmax_arg)
 {
@@ -851,10 +848,10 @@ static int handle_procopts(lispval opts)
 /* The nice prim */
 
 DEFC_PRIM("nice",nice_prim,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
-	 "Returns or adjusts the priority for the current "
-	 "process",
-	 {"delta_arg",kno_fixnum_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
+	  "Returns or adjusts the priority for the current "
+	  "process",
+	  {"delta_arg",kno_fixnum_type,KNO_VOID})
 static lispval nice_prim(lispval delta_arg)
 {
   int delta = (!(KNO_FIXNUMP(delta_arg))) ? (0) : (KNO_FIX2INT(delta_arg));

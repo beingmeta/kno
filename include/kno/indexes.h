@@ -1,8 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
-   This file is part of beingmeta's Kno platform and is copyright
-   and a valuable trade secret of beingmeta, inc.
+   Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu)
 */
 
 #ifndef KNO_INDEXES_H
@@ -298,8 +297,8 @@ KNO_EXPORT kno_index _kno_get_writable_index(kno_index ix);
 #if KNO_INLINE_INDEXES || KNO_STORAGE_INDEX_C
 KNO_FASTOP U8_MAYBE_UNUSED kno_index __kno_indexptr(lispval x)
 {
-  if (KNO_IMMEDIATE_TYPEP(x,kno_index_type)) {
-    int serial = KNO_GET_IMMEDIATE(x,kno_index_type);
+  if (KNO_IMMEDIATE_TYPEP(x,kno_indexref_type)) {
+    int serial = KNO_GET_IMMEDIATE(x,kno_indexref_type);
     if (serial<0) return NULL;
     else if (serial<KNO_MAX_PRIMARY_INDEXES)
       return kno_primary_indexes[serial];
@@ -313,7 +312,7 @@ KNO_FASTOP U8_MAYBE_UNUSED lispval __kno_index2lisp(kno_index ix)
   if (ix == NULL)
     return KNO_ERROR;
   else if (ix->index_serialno>=0)
-    return LISPVAL_IMMEDIATE(kno_index_type,ix->index_serialno);
+    return LISPVAL_IMMEDIATE(kno_indexref_type,ix->index_serialno);
   else return (lispval)ix;
 }
 U8_MAYBE_UNUSED static kno_index __kno_get_writable_index(kno_index ix)

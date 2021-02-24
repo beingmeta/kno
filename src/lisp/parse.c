@@ -1,8 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
-   This file is part of beingmeta's Kno platform and is copyright
-   and a valuable trade secret of beingmeta, inc.
+   Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu)
 
    This file implements the core parser and printer (unparser) functionality.
 */
@@ -71,7 +70,7 @@ u8_condition kno_UnterminatedBlockComment=_("Unterminated block (#|..|#) comment
 
 int kno_interpret_pointers = 1;
 
-static lispval histref_symbol, comment_symbol;
+static lispval histref_symbol, comment_symbol, histref_typetag;
 static lispval quasiquote_symbol, unquote_symbol, unquotestar_symbol;
 static lispval opaque_tag, struct_eval_symbol;
 
@@ -1449,11 +1448,10 @@ static lispval parse_histref(u8_input in)
     else {
       kno_decref(elts);
       return resolved;}}
-  lispval eltvec[n_elts]; int i=0;
-  KNO_DOLIST(elt,elts) eltvec[i++] = elt;
-  lispval ref = kno_init_compound_from_elts
-    (NULL,KNOSYM(histref),KNO_COMPOUND_SEQUENCE|KNO_COMPOUND_INCREF,
-     n_elts,eltvec);
+  lispval ref = kno_init_compound
+    (NULL,histref_typetag,KNO_COMPOUND_SEQUENCE|KNO_COMPOUND_INCREF,
+     1,KNO_CDR(elts));
+  KNO_SETCDR(elts,KNO_EMPTY_LIST);
   kno_decref(elts);
   return ref;
 }

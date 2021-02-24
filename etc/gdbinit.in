@@ -274,7 +274,7 @@ break dbgeval_evalfn:examine_expr
 set $dbgex = $bpnum
 break dbgeval_evalfn:examine_result
 set $dbgexv = $bpnum
-break kno_mkerr
+break kno_mkerr:initialized
 set $dbgmkerr = $bpnum
 break u8_raise
 break __msan_warning

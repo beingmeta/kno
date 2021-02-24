@@ -1,8 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
-   This file is part of beingmeta's Kno platform and is copyright
-   and a valuable trade secret of beingmeta, inc.
+   Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu)
 */
 
 #ifndef _FILEINFO
@@ -31,9 +30,9 @@
 
 
 DEFC_PRIM("complex?",complexp,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"x",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"x",kno_any_type,KNO_VOID})
 static lispval complexp(lispval x)
 {
   if (NUMBERP(x))
@@ -42,9 +41,9 @@ static lispval complexp(lispval x)
 }
 
 DEFC_PRIM("fixnum?",fixnump,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"x",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"x",kno_any_type,KNO_VOID})
 static lispval fixnump(lispval x)
 {
   if (FIXNUMP(x))
@@ -53,9 +52,9 @@ static lispval fixnump(lispval x)
 }
 
 DEFC_PRIM("bignum?",bignump,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"x",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"x",kno_any_type,KNO_VOID})
 static lispval bignump(lispval x)
 {
   if (KNO_BIGINTP(x))
@@ -64,9 +63,9 @@ static lispval bignump(lispval x)
 }
 
 DEFC_PRIM("integer?",integerp,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"x",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"x",kno_any_type,KNO_VOID})
 static lispval integerp(lispval x)
 {
   if (INTEGERP(x))
@@ -75,9 +74,9 @@ static lispval integerp(lispval x)
 }
 
 DEFC_PRIM("whole?",wholep,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "Returns true if *x* is a whole number.",
-	 {"x",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "Returns true if *x* is a whole number.",
+	  {"x",kno_any_type,KNO_VOID})
 static lispval wholep(lispval x)
 {
   if (INTEGERP(x))
@@ -86,9 +85,9 @@ static lispval wholep(lispval x)
 }
 
 DEFC_PRIM("rational?",rationalp,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"x",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"x",kno_any_type,KNO_VOID})
 static lispval rationalp(lispval x)
 {
   if ((FIXNUMP(x)) || (KNO_BIGINTP(x)) || (KNO_RATIONALP(x)))
@@ -97,9 +96,9 @@ static lispval rationalp(lispval x)
 }
 
 DEFC_PRIM("exact?",exactp,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"x",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"x",kno_any_type,KNO_VOID})
 static lispval exactp(lispval x)
 {
   if (KNO_COMPLEXP(x)) {
@@ -115,9 +114,9 @@ static lispval exactp(lispval x)
 }
 
 DEFC_PRIM("inexact?",inexactp,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"x",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"x",kno_any_type,KNO_VOID})
 static lispval inexactp(lispval x)
 {
   if (KNO_COMPLEXP(x)) {
@@ -133,9 +132,9 @@ static lispval inexactp(lispval x)
 }
 
 DEFC_PRIM("odd?",oddp,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"x",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"x",kno_any_type,KNO_VOID})
 static lispval oddp(lispval x)
 {
   if (FIXNUMP(x)) {
@@ -153,9 +152,9 @@ static lispval oddp(lispval x)
 }
 
 DEFC_PRIM("even?",evenp,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"x",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"x",kno_any_type,KNO_VOID})
 static lispval evenp(lispval x)
 {
   if (FIXNUMP(x)) {
@@ -173,9 +172,9 @@ static lispval evenp(lispval x)
 }
 
 DEFC_PRIM("real?",realp,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"x",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"x",kno_any_type,KNO_VOID})
 static lispval realp(lispval x)
 {
   if (REALP(x))
@@ -184,9 +183,9 @@ static lispval realp(lispval x)
 }
 
 DEFC_PRIM("positive?",positivep,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"x",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"x",kno_any_type,KNO_VOID})
 static lispval positivep(lispval x)
 {
   int sgn = kno_numcompare(x,KNO_INT(0));
@@ -196,9 +195,9 @@ static lispval positivep(lispval x)
 }
 
 DEFC_PRIM("negative?",negativep,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"x",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"x",kno_any_type,KNO_VOID})
 static lispval negativep(lispval x)
 {
   int sgn = kno_numcompare(x,KNO_INT(0));
@@ -212,8 +211,8 @@ static lispval negativep(lispval x)
 /* Arithmetic */
 
 DEFC_PRIMN("+",plus_lexpr,
-	  KNO_VAR_ARGS|KNO_MIN_ARGS(-1),
-	  "**undocumented**")
+	   KNO_VAR_ARGS|KNO_MIN_ARGS(-1),
+	   "**undocumented**")
 static lispval plus_lexpr(int n,kno_argvec args)
 {
   if (n==0)
@@ -275,9 +274,9 @@ static lispval plus_lexpr(int n,kno_argvec args)
 }
 
 DEFC_PRIM("1+",plus1,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"x",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"x",kno_any_type,KNO_VOID})
 static lispval plus1(lispval x)
 {
   if (FIXNUMP(x)) {
@@ -292,9 +291,9 @@ static lispval plus1(lispval x)
 }
 
 DEFC_PRIM("-1+",minus1,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"x",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"x",kno_any_type,KNO_VOID})
 static lispval minus1(lispval x)
 {
   if (FIXNUMP(x)) {
@@ -309,8 +308,8 @@ static lispval minus1(lispval x)
 }
 
 DEFC_PRIMN("*",times_lexpr,
-	  KNO_VAR_ARGS|KNO_MIN_ARGS(-1),
-	  "**undocumented**")
+	   KNO_VAR_ARGS|KNO_MIN_ARGS(-1),
+	   "**undocumented**")
 static lispval times_lexpr(int n,kno_argvec args)
 {
   int i = 0; int floating = 0, generic = 0;
@@ -368,8 +367,8 @@ static lispval times_lexpr(int n,kno_argvec args)
 }
 
 DEFC_PRIMN("-",minus_lexpr,
-	  KNO_VAR_ARGS|KNO_MIN_ARGS(-1),
-	  "**undocumented**")
+	   KNO_VAR_ARGS|KNO_MIN_ARGS(-1),
+	   "**undocumented**")
 static lispval minus_lexpr(int n,kno_argvec args)
 {
   if (n == 1) {
@@ -457,12 +456,12 @@ static double todouble(lispval x)
 }
 
 DEFC_PRIMN("/",div_lexpr,
-	  KNO_VAR_ARGS|KNO_MIN_ARGS(-1),
-	  "does division, normally "
-	  "((*arg*/*divisors*[0])/*divisors[1]) ... etc. If "
-	  "given a single argument, this returns 1/*arg*. "
-	  "This obeys inexact contagion, so if any argument "
-	  "is inexact, the final result is inexact.")
+	   KNO_VAR_ARGS|KNO_MIN_ARGS(-1),
+	   "does division, normally "
+	   "((*arg*/*divisors*[0])/*divisors[1]) ... etc. If "
+	   "given a single argument, this returns 1/*arg*. "
+	   "This obeys inexact contagion, so if any argument "
+	   "is inexact, the final result is inexact.")
 static lispval div_lexpr(int n,kno_argvec args)
 {
   int all_double = 1, i = 0;
@@ -487,8 +486,8 @@ static lispval div_lexpr(int n,kno_argvec args)
 }
 
 DEFC_PRIMN("/~",idiv_lexpr,
-	  KNO_VAR_ARGS|KNO_MIN_ARGS(-1),
-	  "**undocumented**")
+	   KNO_VAR_ARGS|KNO_MIN_ARGS(-1),
+	   "**undocumented**")
 static lispval idiv_lexpr(int n,kno_argvec args)
 {
   int all_double = 1, i = 0;
@@ -516,10 +515,10 @@ static lispval idiv_lexpr(int n,kno_argvec args)
 }
 
 DEFC_PRIM("remainder",remainder_prim,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "**undocumented**",
-	 {"x",kno_any_type,KNO_VOID},
-	 {"m",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	  "**undocumented**",
+	  {"x",kno_any_type,KNO_VOID},
+	  {"m",kno_any_type,KNO_VOID})
 static lispval remainder_prim(lispval x,lispval m)
 {
   if ((FIXNUMP(x)) && (FIXNUMP(m))) {
@@ -530,9 +529,9 @@ static lispval remainder_prim(lispval x,lispval m)
 }
 
 DEFC_PRIM("random",random_prim,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"maxarg",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"maxarg",kno_any_type,KNO_VOID})
 static lispval random_prim(lispval maxarg)
 {
   if (KNO_INTEGERP(maxarg)) {
@@ -568,19 +567,19 @@ static lispval random_prim(lispval maxarg)
 /* Making some numbers */
 
 DEFC_PRIM("make-rational",make_rational,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "**undocumented**",
-	 {"n",kno_any_type,KNO_VOID},
-	 {"d",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	  "**undocumented**",
+	  {"n",kno_any_type,KNO_VOID},
+	  {"d",kno_any_type,KNO_VOID})
 static lispval make_rational(lispval n,lispval d)
 {
   return kno_make_rational(n,d);
 }
 
 DEFC_PRIM("numerator",numerator_prim,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"x",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"x",kno_any_type,KNO_VOID})
 static lispval numerator_prim(lispval x)
 {
   if (KNO_RATIONALP(x)) {
@@ -591,9 +590,9 @@ static lispval numerator_prim(lispval x)
 }
 
 DEFC_PRIM("denominator",denominator_prim,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"x",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"x",kno_any_type,KNO_VOID})
 static lispval denominator_prim(lispval x)
 {
   if (KNO_RATIONALP(x)) {
@@ -604,19 +603,19 @@ static lispval denominator_prim(lispval x)
 }
 
 DEFC_PRIM("make-complex",make_complex,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "**undocumented**",
-	 {"r",kno_any_type,KNO_VOID},
-	 {"i",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	  "**undocumented**",
+	  {"r",kno_any_type,KNO_VOID},
+	  {"i",kno_any_type,KNO_VOID})
 static lispval make_complex(lispval r,lispval i)
 {
   return kno_make_complex(r,i);
 }
 
 DEFC_PRIM("real-part",real_part_prim,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"x",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"x",kno_any_type,KNO_VOID})
 static lispval real_part_prim(lispval x)
 {
   if (REALP(x)) return kno_incref(x);
@@ -627,9 +626,9 @@ static lispval real_part_prim(lispval x)
 }
 
 DEFC_PRIM("imag-part",imag_part_prim,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"x",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"x",kno_any_type,KNO_VOID})
 static lispval imag_part_prim(lispval x)
 {
   if (REALP(x)) return KNO_INT(0);
@@ -653,27 +652,27 @@ static double doublearg(lispval x,lispval *whoops)
 }
 
 DEFC_PRIM("exact->inexact",exact2inexact,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"x",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"x",kno_any_type,KNO_VOID})
 static lispval exact2inexact(lispval x)
 {
   return kno_make_inexact(x);
 }
 
 DEFC_PRIM("inexact->exact",inexact2exact,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"x",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"x",kno_any_type,KNO_VOID})
 static lispval inexact2exact(lispval x)
 {
   return kno_make_exact(x);
 }
 
 DEFC_PRIM("->flonum",toflonum,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"x",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"x",kno_any_type,KNO_VOID})
 static lispval toflonum(lispval x)
 {
   if (KNO_TYPEP(x,kno_complex_type))
@@ -682,10 +681,10 @@ static lispval toflonum(lispval x)
 }
 
 DEFC_PRIM("->exact",toexact,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"x",kno_any_type,KNO_VOID},
-	 {"direction",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"x",kno_any_type,KNO_VOID},
+	  {"direction",kno_any_type,KNO_VOID})
 static lispval toexact(lispval x,lispval direction)
 {
   long long dir = -1;
@@ -765,56 +764,56 @@ arithdef2("POW",lpow,pow);
 #undef arithdef2
 
 DEFC_PRIM("cos",lcos,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"num",kno_any_type,KNO_VOID});
+	  "**undocumented**",
+	  {"num",kno_any_type,KNO_VOID});
 
 DEFC_PRIM("lsqrt",lsqrt,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"num",kno_any_type,KNO_VOID});
+	  "**undocumented**",
+	  {"num",kno_any_type,KNO_VOID});
 
 DEFC_PRIM("acos",lacos,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"num",kno_any_type,KNO_VOID});
+	  "**undocumented**",
+	  {"num",kno_any_type,KNO_VOID});
 
 DEFC_PRIM("sin",lsin,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"num",kno_any_type,KNO_VOID});
+	  "**undocumented**",
+	  {"num",kno_any_type,KNO_VOID});
 
 DEFC_PRIM("asin",lasin,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"num",kno_any_type,KNO_VOID});
+	  "**undocumented**",
+	  {"num",kno_any_type,KNO_VOID});
 
 DEFC_PRIM("atan",latan,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"num",kno_any_type,KNO_VOID});
+	  "**undocumented**",
+	  {"num",kno_any_type,KNO_VOID});
 
 DEFC_PRIM("tan",ltan,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"num",kno_any_type,KNO_VOID});
+	  "**undocumented**",
+	  {"num",kno_any_type,KNO_VOID});
 
 DEFC_PRIM("log",llog,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"num",kno_any_type,KNO_VOID});
+	  "**undocumented**",
+	  {"num",kno_any_type,KNO_VOID});
 
 DEFC_PRIM("exp",lexp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"num",kno_any_type,KNO_VOID});
+	  "**undocumented**",
+	  {"num",kno_any_type,KNO_VOID});
 
 DEFC_PRIM("atan2",latan2,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "**undocumented**",
-	 {"num1",kno_any_type,KNO_VOID},
-	 {"num2",kno_any_type,KNO_VOID});
+	  "**undocumented**",
+	  {"num1",kno_any_type,KNO_VOID},
+	  {"num2",kno_any_type,KNO_VOID});
 
 DEFC_PRIM("pow~",lpow,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "**undocumented**",
-	 {"num1",kno_any_type,KNO_VOID},
-	 {"num2",kno_any_type,KNO_VOID});
+	  "**undocumented**",
+	  {"num1",kno_any_type,KNO_VOID},
+	  {"num2",kno_any_type,KNO_VOID});
 
 DEFC_PRIM("pow",pow_prim,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "**undocumented**",
-	 {"v",kno_any_type,KNO_VOID},
-	 {"n",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	  "**undocumented**",
+	  {"v",kno_any_type,KNO_VOID},
+	  {"n",kno_any_type,KNO_VOID})
 static lispval pow_prim(lispval v,lispval n)
 {
   if ((KNO_EXACTP(v))&&
@@ -839,10 +838,10 @@ static lispval pow_prim(lispval v,lispval n)
 }
 
 DEFC_PRIM("nthroot",nthroot_prim,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "**undocumented**",
-	 {"v",kno_any_type,KNO_VOID},
-	 {"n",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	  "**undocumented**",
+	  {"v",kno_any_type,KNO_VOID},
+	  {"n",kno_any_type,KNO_VOID})
 static lispval nthroot_prim(lispval v,lispval n)
 {
   lispval err = VOID;
@@ -872,10 +871,10 @@ static lispval nthroot_prim(lispval v,lispval n)
 }
 
 DEFC_PRIM("nthroot~",inexact_nthroot_prim,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "**undocumented**",
-	 {"v",kno_any_type,KNO_VOID},
-	 {"n",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	  "**undocumented**",
+	  {"v",kno_any_type,KNO_VOID},
+	  {"n",kno_any_type,KNO_VOID})
 static lispval inexact_nthroot_prim(lispval v,lispval n)
 {
   lispval err = VOID;
@@ -893,8 +892,8 @@ static lispval inexact_nthroot_prim(lispval v,lispval n)
 
 
 DEFC_PRIMN("min",min_prim,
-	  KNO_VAR_ARGS|KNO_MIN_ARGS(1),
-	  "**undocumented**")
+	   KNO_VAR_ARGS|KNO_MIN_ARGS(1),
+	   "**undocumented**")
 static lispval min_prim(int n,kno_argvec args)
 {
   if (n==0)
@@ -920,8 +919,8 @@ static lispval min_prim(int n,kno_argvec args)
 }
 
 DEFC_PRIMN("max",max_prim,
-	  KNO_VAR_ARGS|KNO_MIN_ARGS(1),
-	  "**undocumented**")
+	   KNO_VAR_ARGS|KNO_MIN_ARGS(1),
+	   "**undocumented**")
 static lispval max_prim(int n,kno_argvec args)
 {
   if (n==0) return kno_err(kno_TooFewArgs,"max_prim",NULL,VOID);
@@ -947,9 +946,9 @@ static lispval max_prim(int n,kno_argvec args)
 }
 
 DEFC_PRIM("abs",abs_prim,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"x",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"x",kno_any_type,KNO_VOID})
 static lispval abs_prim(lispval x)
 {
   if (FIXNUMP(x)) {
@@ -965,10 +964,10 @@ static lispval abs_prim(lispval x)
 }
 
 DEFC_PRIM("modulo",modulo_prim,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "**undocumented**",
-	 {"x",kno_any_type,KNO_VOID},
-	 {"b",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	  "**undocumented**",
+	  {"x",kno_any_type,KNO_VOID},
+	  {"b",kno_any_type,KNO_VOID})
 static lispval modulo_prim(lispval x,lispval b)
 {
   if ((FIXNUMP(x)) && (FIXNUMP(b))) {
@@ -1001,10 +1000,10 @@ static lispval modulo_prim(lispval x,lispval b)
 }
 
 DEFC_PRIM("gcd",gcd_prim,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "**undocumented**",
-	 {"x",kno_any_type,KNO_VOID},
-	 {"y",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	  "**undocumented**",
+	  {"x",kno_any_type,KNO_VOID},
+	  {"y",kno_any_type,KNO_VOID})
 static lispval gcd_prim(lispval x,lispval y)
 {
   if ((INTEGERP(x)) && (INTEGERP(y)))
@@ -1015,10 +1014,10 @@ static lispval gcd_prim(lispval x,lispval y)
 }
 
 DEFC_PRIM("lcm",lcm_prim,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "**undocumented**",
-	 {"x",kno_any_type,KNO_VOID},
-	 {"y",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	  "**undocumented**",
+	  {"x",kno_any_type,KNO_VOID},
+	  {"y",kno_any_type,KNO_VOID})
 static lispval lcm_prim(lispval x,lispval y)
 {
   if ((INTEGERP(x)) && (INTEGERP(y)))
@@ -1029,9 +1028,9 @@ static lispval lcm_prim(lispval x,lispval y)
 }
 
 DEFC_PRIM("truncate",truncate_prim,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"x",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"x",kno_any_type,KNO_VOID})
 static lispval truncate_prim(lispval x)
 {
   if (INTEGERP(x)) return kno_incref(x);
@@ -1046,9 +1045,9 @@ static lispval truncate_prim(lispval x)
 }
 
 DEFC_PRIM("floor",floor_prim,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"x",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"x",kno_any_type,KNO_VOID})
 static lispval floor_prim(lispval x)
 {
   if (INTEGERP(x)) return kno_incref(x);
@@ -1067,9 +1066,9 @@ static lispval floor_prim(lispval x)
 }
 
 DEFC_PRIM("ceiling",ceiling_prim,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"x",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"x",kno_any_type,KNO_VOID})
 static lispval ceiling_prim(lispval x)
 {
   if (INTEGERP(x)) return kno_incref(x);
@@ -1088,9 +1087,9 @@ static lispval ceiling_prim(lispval x)
 }
 
 DEFC_PRIM("round",round_prim,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"x",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"x",kno_any_type,KNO_VOID})
 static lispval round_prim(lispval x)
 {
   if (INTEGERP(x)) return kno_incref(x);
@@ -1126,10 +1125,10 @@ static double doround(double x)
 }
 
 DEFC_PRIM("scalerep",scalerep_prim,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "**undocumented**",
-	 {"x",kno_any_type,KNO_VOID},
-	 {"scalearg",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	  "**undocumented**",
+	  {"x",kno_any_type,KNO_VOID},
+	  {"scalearg",kno_any_type,KNO_VOID})
 static lispval scalerep_prim(lispval x,lispval scalearg)
 {
   long long scale = kno_getint(scalearg);
@@ -1160,10 +1159,10 @@ static lispval scalerep_prim(lispval x,lispval scalearg)
 /* More simple arithmetic functions */
 
 DEFC_PRIM("quotient",quotient_prim,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "**undocumented**",
-	 {"x",kno_any_type,KNO_VOID},
-	 {"y",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	  "**undocumented**",
+	  {"x",kno_any_type,KNO_VOID},
+	  {"y",kno_any_type,KNO_VOID})
 static lispval quotient_prim(lispval x,lispval y)
 {
   if ((FIXNUMP(x)) && (FIXNUMP(y))) {
@@ -1175,9 +1174,9 @@ static lispval quotient_prim(lispval x,lispval y)
 }
 
 DEFC_PRIM("sqrt",sqrt_prim,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"x",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"x",kno_any_type,KNO_VOID})
 static lispval sqrt_prim(lispval x)
 {
   double v = todouble(x);
@@ -1188,10 +1187,10 @@ static lispval sqrt_prim(lispval x)
 /* Log and exponent functions */
 
 DEFC_PRIM("ilog",ilog_prim,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"n",kno_fixnum_type,KNO_VOID},
-	 {"base_arg",kno_fixnum_type,KNO_INT(2)})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"n",kno_fixnum_type,KNO_VOID},
+	  {"base_arg",kno_fixnum_type,KNO_INT(2)})
 static lispval ilog_prim(lispval n,lispval base_arg)
 {
   long long base = kno_getint(base_arg), limit = kno_getint(n);
@@ -1204,9 +1203,9 @@ static lispval ilog_prim(lispval n,lispval base_arg)
 /* Integer hashing etc. */
 
 DEFC_PRIM("knuth-hash",knuth_hash,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"arg",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"arg",kno_any_type,KNO_VOID})
 static lispval knuth_hash(lispval arg)
 {
   if ((FIXNUMP(arg))||(KNO_BIGINTP(arg))) {
@@ -1222,9 +1221,9 @@ static lispval knuth_hash(lispval arg)
 }
 
 DEFC_PRIM("wang-hash32",wang_hash32,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"arg",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"arg",kno_any_type,KNO_VOID})
 static lispval wang_hash32(lispval arg)
 {
   /* Adapted from Thomas Wang
@@ -1246,9 +1245,9 @@ static lispval wang_hash32(lispval arg)
 }
 
 DEFC_PRIM("wang-hash64",wang_hash64,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"arg",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"arg",kno_any_type,KNO_VOID})
 static lispval wang_hash64(lispval arg)
 {
   /* Adapted from Thomas Wang
@@ -1273,9 +1272,9 @@ static lispval wang_hash64(lispval arg)
 }
 
 DEFC_PRIM("flip32",flip32,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"arg",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"arg",kno_any_type,KNO_VOID})
 static lispval flip32(lispval arg)
 {
   if (((KNO_UINTP(arg))&&((FIX2INT(arg))>=0))||
@@ -1290,9 +1289,9 @@ static lispval flip32(lispval arg)
 kno_bigint kno_ulong_long_to_bigint(unsigned long long);
 
 DEFC_PRIM("flip64",flip64,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"arg",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"arg",kno_any_type,KNO_VOID})
 static lispval flip64(lispval arg)
 {
   if (((FIXNUMP(arg))&&((FIX2INT(arg))>=0))||
@@ -1310,10 +1309,10 @@ static lispval flip64(lispval arg)
 /* City hashing */
 
 DEFC_PRIM("cityhash64",cityhash64,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"arg",kno_any_type,KNO_VOID},
-	 {"asint",kno_any_type,KNO_FALSE})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"arg",kno_any_type,KNO_VOID},
+	  {"asint",kno_any_type,KNO_FALSE})
 static lispval cityhash64(lispval arg,lispval asint)
 {
   u8_int8 hash;
@@ -1340,9 +1339,9 @@ static lispval cityhash64(lispval arg,lispval asint)
 }
 
 DEFC_PRIM("cityhash128",cityhash128,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"arg",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"arg",kno_any_type,KNO_VOID})
 static lispval cityhash128(lispval arg)
 {
   unsigned char bytes[16];
@@ -1377,10 +1376,10 @@ static lispval cityhash128(lispval arg)
 /* ITOA */
 
 DEFC_PRIM("u8itoa",itoa_prim,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"arg",kno_any_type,KNO_VOID},
-	 {"base_arg",kno_fixnum_type,KNO_INT(10)})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"arg",kno_any_type,KNO_VOID},
+	  {"base_arg",kno_fixnum_type,KNO_INT(10)})
 static lispval itoa_prim(lispval arg,lispval base_arg)
 {
   long long base = FIX2INT(base_arg); char buf[32];
@@ -1421,12 +1420,12 @@ static lispval itoa_prim(lispval arg,lispval base_arg)
 
 
 DEFC_PRIM("inexact->string",inexact2string,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "(inexact->string *num* [*precision*])\n"
-	 "Generates a string of precision *precision* for "
-	 "*num*.",
-	 {"x",kno_any_type,KNO_VOID},
-	 {"precision",kno_fixnum_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	  "(inexact->string *num* [*precision*])\n"
+	  "Generates a string of precision *precision* for "
+	  "*num*.",
+	  {"x",kno_any_type,KNO_VOID},
+	  {"precision",kno_fixnum_type,KNO_VOID})
 static lispval inexact2string(lispval x,lispval precision)
 {
   if (KNO_FLONUMP(x))
@@ -1448,12 +1447,12 @@ static lispval inexact2string(lispval x,lispval precision)
 }
 
 DEFC_PRIM("number->string",number2string,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "(number->string *obj* [*base*=10])\n"
-	 "Converts *obj* (a number) into a string in the "
-	 "given *base*",
-	 {"x",kno_any_type,KNO_VOID},
-	 {"base",kno_fixnum_type,KNO_INT(10)})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	  "(number->string *obj* [*base*=10])\n"
+	  "Converts *obj* (a number) into a string in the "
+	  "given *base*",
+	  {"x",kno_any_type,KNO_VOID},
+	  {"base",kno_fixnum_type,KNO_INT(10)})
 static lispval number2string(lispval x,lispval base)
 {
   if (NUMBERP(x)) {
@@ -1464,11 +1463,11 @@ static lispval number2string(lispval x,lispval base)
 }
 
 DEFC_PRIM("number->locale",number2locale,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "(number->locale *obj* [*precision*])\n"
-	 "Converts *obj* into a locale-specific string",
-	 {"x",kno_any_type,KNO_VOID},
-	 {"precision",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	  "(number->locale *obj* [*precision*])\n"
+	  "Converts *obj* into a locale-specific string",
+	  {"x",kno_any_type,KNO_VOID},
+	  {"precision",kno_any_type,KNO_VOID})
 static lispval number2locale(lispval x,lispval precision)
 {
   if (KNO_FLONUMP(x))
@@ -1490,12 +1489,12 @@ static lispval number2locale(lispval x,lispval precision)
 }
 
 DEFC_PRIM("string->number",string2number,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "(string->number *string* [*base*])\n"
-	 "Converts *string* into a number, returning #f on "
-	 "failure",
-	 {"x",kno_string_type,KNO_VOID},
-	 {"base",kno_fixnum_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	  "(string->number *string* [*base*])\n"
+	  "Converts *string* into a number, returning #f on "
+	  "failure",
+	  {"x",kno_string_type,KNO_VOID},
+	  {"base",kno_fixnum_type,KNO_VOID})
 static lispval string2number(lispval x,lispval base)
 {
   int use_base = ((VOIDP(base))||(DEFAULTP(base))) ? (-1) : (kno_getint(base));
@@ -1503,10 +1502,10 @@ static lispval string2number(lispval x,lispval base)
 }
 
 DEFC_PRIM("->hex",tohex,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "Converts a number to a hex string or a hex string "
-	 "to a number",
-	 {"x",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "Converts a number to a hex string or a hex string "
+	  "to a number",
+	  {"x",kno_any_type,KNO_VOID})
 static lispval tohex(lispval x)
 {
   if (KNO_STRINGP(x))
@@ -1519,11 +1518,11 @@ static lispval tohex(lispval x)
 }
 
 DEFC_PRIM("->number",just2number,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "(->number *obj* [*base*])\n"
-	 "Converts *obj* into a number",
-	 {"x",kno_any_type,KNO_VOID},
-	 {"base",kno_fixnum_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	  "(->number *obj* [*base*])\n"
+	  "Converts *obj* into a number",
+	  {"x",kno_any_type,KNO_VOID},
+	  {"base",kno_fixnum_type,KNO_VOID})
 static lispval just2number(lispval x,lispval base)
 {
   if (NUMBERP(x)) return kno_incref(x);

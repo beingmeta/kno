@@ -1,8 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
-   This file is part of beingmeta's Kno platform and is copyright
-   and a valuable trade secret of beingmeta, inc.
+   Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu)
 */
 
 #define U8_LOGLEVEL (u8_getloglevel(testops_loglevel))
@@ -119,8 +118,8 @@ static u8_string get_testid(lispval fn,int n,kno_argvec args)
 }
 
 DEFC_PRIMN("applytest",applytest,
-	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	  "**undocumented**")
+	   KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	   "**undocumented**")
 static lispval applytest(int n,kno_argvec args)
 {
   lispval expected = args[0], return_value;
@@ -239,15 +238,15 @@ static lispval evaltest_evalfn(lispval expr,kno_lexenv env,kno_stack s)
   lispval name_expr = kno_get_arg(expr,3);
   lispval name_value = (KNO_VOIDP(name_expr)) ? (KNO_VOID) :
     (KNO_SYMBOLP(name_expr)) ? (name_expr) :
-    (kno_eval(name_expr,env,s,0));
+    (kno_eval(name_expr,env,s));
   u8_string name = name2string(name_value);
   lispval expected_expr = kno_get_arg(expr,1);
-  lispval expected  = kno_eval(expected_expr,env,s,0), result = KNO_VOID;
+  lispval expected  = kno_eval(expected_expr,env,s), result = KNO_VOID;
   if (KNO_ABORTED(expected)) {
     kno_seterr("BadExpectedValue","evaltest_evalfn",name,expected_expr);
     return expected;}
   else {
-    result = kno_eval(testexpr,env,s,0);
+    result = kno_eval(testexpr,env,s);
     if ( (KNO_ERRORP(result)) && (expected == err_symbol) ) {
       u8_exception ex = u8_erreify();
       u8_logf(LOG_INFO,"Tests/ExpectedError","%m (from %s: %s) evaluating %q",
@@ -320,7 +319,7 @@ static lispval evaltest_evalfn(lispval expr,kno_lexenv env,kno_stack s)
 static lispval errtest_evalfn(lispval expr,kno_lexenv env,kno_stack s)
 {
   lispval test_expr = kno_get_arg(expr,1);
-  lispval v = kno_eval(test_expr,env,s,0);
+  lispval v = kno_eval(test_expr,env,s);
   if (KNO_ABORTP(v)) {
     u8_exception ex = u8_erreify();
     if (ex) {
@@ -356,9 +355,9 @@ static lispval errtest_evalfn(lispval expr,kno_lexenv env,kno_stack s)
 }
 
 DEFC_PRIM("testfn1",testfn1,MAX_ARGS(1)|MIN_ARGS(1),
-	 "This function helps look at how things get compiled "
-	 "when disassembled",
-	 {"object",kno_any_type,KNO_VOID})
+	  "This function helps look at how things get compiled "
+	  "when disassembled",
+	  {"object",kno_any_type,KNO_VOID})
 static lispval testfn1(lispval object)
 {
   /* If 'properly' compiled, the first three TYPEP calls should

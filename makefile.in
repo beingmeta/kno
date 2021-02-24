@@ -219,80 +219,82 @@ DRIVER_OBJS=\
 	src/drivers/hashindex.o src/drivers/bigpool.o		\
 	src/drivers/zip.o
 
-CORE_SCHEME_OBJS=\
-	src/eval/eval.o\
-	src/eval/debug.o\
-	src/eval/options.o\
-	src/eval/testops.o\
-	src/eval/appenv.o\
-	src/eval/binders.o\
-	src/eval/lambda.o\
-	src/eval/macros.o\
-	src/eval/threads.o\
-	src/eval/quasiquote.o \
-	src/eval/struct_eval.o \
-	src/eval/errfns.o\
-	src/eval/conditionals.o\
-	src/eval/iterators.o\
+CORE_SCHEME_OBJS=		\
+	src/eval/eval.o		\
+	src/eval/vm.o		\
+	src/eval/debug.o	\
+	src/eval/options.o	\
+	src/eval/testops.o	\
+	src/eval/appenv.o	\
+	src/eval/binders.o	\
+	src/eval/lambda.o	\
+	src/eval/macros.o	\
+	src/eval/threads.o	\
+	src/eval/quasiquote.o 	\
+	src/eval/struct_eval.o 	\
+	src/eval/errfns.o	\
+	src/eval/conditionals.o	\
+	src/eval/iterators.o	\
 	src/eval/repl.o
 
 SCHEME_OBJS=\
-	$(CORE_SCHEME_OBJS) \
-	src/eval/modules.o \
-	src/eval/load.o \
-	src/eval/reflection.o \
-	src/eval/typeops.o \
-	src/eval/choiceops.o \
-	src/eval/evalops.o \
-	src/eval/coreops.o \
-	src/eval/tableops.o \
-	src/eval/configops.o \
-	src/eval/srvcall.o \
-	src/eval/arith.o \
-	src/eval/regex.o \
-	src/eval/promises.o \
-	src/eval/requests.o \
-	src/eval/knosockd.o \
-	src/prims/dbprims.o \
-	src/prims/tableprims.o \
-	src/prims/seqprims.o \
+	$(CORE_SCHEME_OBJS) 	\
+	src/eval/modules.o 	\
+	src/eval/load.o 	\
+	src/eval/reflection.o 	\
+	src/eval/typeops.o 	\
+	src/eval/choiceops.o 	\
+	src/eval/evalops.o 	\
+	src/eval/coreops.o 	\
+	src/eval/tableops.o 	\
+	src/eval/configops.o 	\
+	src/eval/srvcall.o 	\
+	src/eval/arith.o 	\
+	src/eval/regex.o 	\
+	src/eval/promises.o 	\
+	src/eval/requests.o 	\
+	src/eval/knosockd.o 	\
+	src/prims/dbprims.o 	\
+	src/prims/tableprims.o 	\
+	src/prims/seqprims.o 	\
 	src/prims/stringprims.o \
-	src/prims/portprims.o \
-	src/prims/logprims.o \
-	src/prims/streamprims.o \
-	src/prims/dtypeprims.o \
-	src/prims/xtypeprims.o \
-	src/prims/timeprims.o \
-	src/prims/sysprims.o \
-	src/prims/procprims.o \
-	@ipevalopso@ \
-	src/prims/sqldbprims.o \
-	src/prims/fileprims.o \
+	src/prims/portprims.o 	\
+	src/prims/logprims.o 	\
+	src/prims/streamprims.o	\
+	src/prims/dtypeprims.o 	\
+	src/prims/xtypeprims.o 	\
+	src/prims/timeprims.o 	\
+	src/prims/sysprims.o 	\
+	src/prims/procprims.o 	\
+	@ipevalopso@ 		\
+	src/prims/sqldbprims.o 	\
+	src/prims/fileprims.o 	\
 	src/prims/driverprims.o \
 	src/eval/loadmods.o
 
-WEB_OBJS=\
-	src/web/webtools.o \
-	src/web/xmloutput.o \
-	src/web/htmlout.o \
-	src/web/xmlinput.o \
-	src/web/xmldata.o \
-	src/web/mime.o \
-	src/web/email.o \
-	src/web/uriprims.o \
-	src/web/xmleval.o \
-	src/web/cgiexec.o \
-	src/web/json.o \
-	@ldnso@ @curlo@
+WEB_OBJS=			\
+	src/web/webtools.o 	\
+	src/web/xmloutput.o	\
+	src/web/htmlout.o 	\
+	src/web/xmlinput.o 	\
+	src/web/xmldata.o 	\
+	src/web/mime.o 		\
+	src/web/email.o 	\
+	src/web/uriprims.o 	\
+	src/web/xmleval.o 	\
+	src/web/cgiexec.o 	\
+	src/web/json.o 		\
+	@ldnso@ 		\
+	@curlo@
 
-TEXT_OBJS=\
-	src/text/texttools.o \
-	src/text/match.o \
-	src/text/porter.o \
+TEXT_OBJS=			\
+	src/text/texttools.o	\
+	src/text/match.o 	\
+	src/text/porter.o 	\
 	src/text/phonetic.o
 
-PYTHON_OBJS=\
-	src/python/parseltongue.o \
+PYTHON_OBJS=				\
+	src/python/parseltongue.o 	\
 	src/python/parseltongue2.o
 
 CMODULE_OBJS=src/cmodules/sqlite.o  	\
@@ -312,7 +314,7 @@ SHELL_SCRIPTS=src/shell/knosetconfig src/shell/knogetconfig src/shell/knoconfig 
 SCHEME_SCRIPTS=exe/scripts/pack-pool exe/scripts/pack-index \
 	       exe/scripts/split-index exe/scripts/merge-indexes exe/scripts/merge-index \
 	       exe/scripts/knocall exe/scripts/knoserver \
-	       exe/scripts/knopkg
+	       exe/scripts/knopkg exe/scripts/knodb
 
 CONFDIRS=$(DESTDIR)@config_dir@ $(DESTDIR)@config_dir@/config \
 	 $(DESTDIR)@share_dir@ \
@@ -333,7 +335,7 @@ KNO_HEADERS= \
 	$(APPLY_HEADERS) $(SCHEME_HEADERS) \
 	$(DRIVERS_H) $(SRC_HEADERS)
 
-KNO_SOURCES=\
+KNO_SOURCES=									\
 	src/lisp/cons.c src/lisp/typeinfo.c src/lisp/oids.c src/lisp/symbols.c	\
 	src/lisp/copy.c src/lisp/recycle.c src/lisp/misctypes.c       		\
         src/lisp/compare.c src/lisp/walk.c src/lisp/fcnids.c			\
@@ -363,7 +365,7 @@ KNO_SOURCES=\
 	src/storage/procpool.c src/storage/procindex.c 				\
 	src/drivers/hashindex.c src/drivers/bigpool.c				\
 	src/drivers/logindex.c							\
-	src/eval/eval.c src/eval/opcode_defs.c src/eval/opcode_info.h		\
+	src/eval/eval.c src/eval/vm.c src/eval/opcode_info.h			\
 	src/eval/options.c src/eval/appenv.c					\
 	src/eval/testops.c src/eval/debug.c					\
 	src/eval/binders.c src/eval/lambda.c 					\
@@ -921,6 +923,7 @@ TAGS: makefile configure.ac include/kno/config.h.in			\
 		src/cmodules/*.c 					\
 		src/python/*.c 						\
 		src/libscm/*.scm src/libscm/*/*.scm 			\
+		src/libscm/*/*/*.scm 					\
 		src/scripts/*.scm src/shell/*.in 			\
 		src/shell/knoctl					\
 		include/kno/components/*.h				\
@@ -1090,7 +1093,7 @@ pull:
 src/apply/apply.o: src/apply/apply_internals.h
 src/eval/binders.o src/eval/conditionals.o src/eval/iterators.o: \
 	src/eval/eval_internals.h
-src/eval/eval.o: src/eval/eval_internals.h src/eval/opcode_defs.c src/eval/opcode_info.h
+src/eval/eval.o src/eval/vm.o: src/eval/eval_internals.h src/eval/opcode_info.h
 
 # Custom rules
 
@@ -1100,7 +1103,7 @@ src/lisp/tables.o src/storage/bloom.o src/lisp/sequences.o : XCFLAGS="${XOPTFLAG
 src/lisp/numbers.o src/lisp/compare.o : XCFLAGS="${XOPTFLAGS}"
 src/storage/streams.o src/storage/pools.o src/storage/indexes.o : XCFLAGS="${XOPTFLAGS}"
 src/apply/apply.o src/apply/exec.o : XCFLAGS="${XOPTFLAGS}"
-src/eval/eval.o src/eval/choiceops.o : XCFLAGS="${XOPTFLAGS}"
+src/eval/eval.o src/eval/vm.o src/eval/choiceops.o : XCFLAGS="${XOPTFLAGS}"
 src/eval/conditionals.o src/eval/iterators.o : XCFLAGS="${XOPTFLAGS}"
 src/eval/lambda.o : XCFLAGS="${XOPTFLAGS}"
 src/text/matcher.o src/text/texttools.o : XCFLAGS="${XOPTFLAGS}"
@@ -1651,7 +1654,7 @@ install-support: $(DESTDIR)@share_dir@
 	cd $(BUILD)/src/web; $(SYSINSTALL) @install_file_opts@ 	\
 		webinfo.knocgi $(DESTDIR)@share_dir@
 
-LIBSCM_DIRS=optimize bugjar bench knodb xhtml kno io sqldb json net text
+LIBSCM_DIRS=optimize bugjar bench knodb xhtml kno io sqldb json net text knodb/exec
 LIBSCM_DATA_DIRS=
 install-libscm:
 	@if [ ! -d ${DESTDIR}${LIBSCM} ]; then 						\

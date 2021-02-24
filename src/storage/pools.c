@@ -1,8 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
-   This file is part of beingmeta's Kno platform and is copyright
-   and a valuable trade secret of beingmeta, inc.
+   Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu)
 */
 
 #ifndef _FILEINFO
@@ -1796,13 +1795,13 @@ KNO_EXPORT lispval kno_pool2lisp(kno_pool p)
     return KNO_ERROR;
   else if (p->pool_serialno<0)
     return kno_incref((lispval) p);
-  else return LISPVAL_IMMEDIATE(kno_pool_type,p->pool_serialno);
+  else return LISPVAL_IMMEDIATE(kno_poolref_type,p->pool_serialno);
 }
 KNO_EXPORT kno_pool kno_lisp2pool(lispval lp)
 {
   kno_pool p = kno_poolptr(lp);
   if (p) return p;
-  else if (KNO_TYPEP(lp,kno_index_type)) {
+  else if (KNO_TYPEP(lp,kno_indexref_type)) {
     char buf[64];
     int serial = KNO_IMMEDIATE_DATA(lp);
     kno_seterr3(kno_InvalidPoolPtr,"kno_lisp2pool",
@@ -2754,7 +2753,7 @@ static lispval copy_consed_pool(lispval x,int deep)
 
 static int check_pool(lispval x)
 {
-  int serial = KNO_GET_IMMEDIATE(x,kno_pool_type);
+  int serial = KNO_GET_IMMEDIATE(x,kno_poolref_type);
   if (serial<0) return 0;
   else if (serial<kno_n_pools) return 1;
   else return 0;
@@ -2889,7 +2888,7 @@ static struct KNO_POOL_HANDLER zero_pool_handler={
 
 static void init_zero_pool()
 {
-  KNO_INIT_STATIC_CONS(&_kno_zero_pool,kno_pool_type);
+  KNO_INIT_STATIC_CONS(&_kno_zero_pool,kno_poolref_type);
   _kno_zero_pool.pool_serialno = -1;
   _kno_zero_pool.poolid = u8_strdup("_kno_zero_pool");
   _kno_zero_pool.pool_source = u8_strdup("init_kno_zero_pool");
@@ -2928,8 +2927,8 @@ KNO_EXPORT void kno_init_pools_c()
 
   u8_register_source_file(_FILEINFO);
 
-  kno_type_names[kno_pool_type]=_("pool");
-  kno_immediate_checkfns[kno_pool_type]=check_pool;
+  kno_type_names[kno_poolref_type]=_("pool");
+  kno_immediate_checkfns[kno_poolref_type]=check_pool;
 
   _kno_oid_info=_more_oid_info;
 
@@ -2981,7 +2980,7 @@ KNO_EXPORT void kno_init_pools_c()
 #if (KNO_USE_TLS)
   u8_new_threadkey(&kno_pool_delays_key,NULL);
 #endif
-  kno_unparsers[kno_pool_type]=unparse_pool;
+  kno_unparsers[kno_poolref_type]=unparse_pool;
   kno_unparsers[kno_consed_pool_type]=unparse_consed_pool;
   kno_recyclers[kno_consed_pool_type]=recycle_consed_pool;
   kno_copiers[kno_consed_pool_type]=copy_consed_pool;
@@ -2989,10 +2988,10 @@ KNO_EXPORT void kno_init_pools_c()
 		      kno_poolconfig_get,kno_poolconfig_set,
 		      &kno_default_pool);
 
-  kno_tablefns[kno_pool_type]=u8_zalloc(struct KNO_TABLEFNS);
-  kno_tablefns[kno_pool_type]->get = (kno_table_get_fn)pool_tableget;
-  kno_tablefns[kno_pool_type]->store = (kno_table_store_fn)pool_tablestore;
-  kno_tablefns[kno_pool_type]->keys = (kno_table_keys_fn)kno_pool_keys;
+  kno_tablefns[kno_poolref_type]=u8_zalloc(struct KNO_TABLEFNS);
+  kno_tablefns[kno_poolref_type]->get = (kno_table_get_fn)pool_tableget;
+  kno_tablefns[kno_poolref_type]->store = (kno_table_store_fn)pool_tablestore;
+  kno_tablefns[kno_poolref_type]->keys = (kno_table_keys_fn)kno_pool_keys;
 
   kno_tablefns[kno_consed_pool_type]=u8_zalloc(struct KNO_TABLEFNS);
   kno_tablefns[kno_consed_pool_type]->get = (kno_table_get_fn)pool_tableget;

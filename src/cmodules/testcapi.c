@@ -1,8 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
-   This file is part of beingmeta's Kno platform and is copyright
-   and a valuable trade secret of beingmeta, inc.
+   Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu)
 */
 
 #ifndef _FILEINFO
@@ -25,9 +24,9 @@ static long long int testcapi_init = 0;
 
 
 DEFC_PRIM("regex/testcapi",regex_testcapi,
- KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
- "Run various tests of the C API for regexes which "
- "are difficult to do directly from scheme")
+	  KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+	  "Run various tests of the C API for regexes which "
+	  "are difficult to do directly from scheme")
 static lispval regex_testcapi()
 {
   lispval pattern = knostring("[0123456789]+");
@@ -55,12 +54,12 @@ static lispval regex_testcapi()
 
 
 DEFC_PRIM("regex/rawop",regex_rawop,
- KNO_MAX_ARGS(4)|KNO_MIN_ARGS(4),
- "Call kno_regex_op directory",
-	     {"code",kno_fixnum_type,KNO_VOID},
-	     {"pat",kno_regex_type,KNO_VOID},
-	     {"string",kno_string_type,KNO_VOID},
-	     {"flags",kno_fixnum_type,KNO_VOID})
+	  KNO_MAX_ARGS(4)|KNO_MIN_ARGS(4),
+	  "Call kno_regex_op directory",
+	  {"code",kno_fixnum_type,KNO_VOID},
+	  {"pat",kno_regex_type,KNO_VOID},
+	  {"string",kno_string_type,KNO_VOID},
+	  {"flags",kno_fixnum_type,KNO_VOID})
 static lispval regex_rawop(lispval code,lispval pat,lispval string,
 			   lispval flags)
 {
@@ -159,9 +158,9 @@ static U8_MAYBE_UNUSED int lexenvp(lispval x) { return (KNO_LEXENVP(x)); }
 
 
 DEFC_PRIM("modules/testcapi",modules_testcapi,
- KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
- "Run various tests of the module C API which are "
- "difficult to do directly from scheme")
+	  KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+	  "Run various tests of the module C API which are "
+	  "difficult to do directly from scheme")
 static lispval modules_testcapi()
 {
   int errors = 0;
@@ -196,9 +195,9 @@ static lispval modules_testcapi()
 
 
 DEFC_PRIM("eval/testcapi",eval_testcapi,
- KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
- "Run various tests of the module C API which are "
- "difficult to do directly from scheme")
+	  KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+	  "Run various tests of the module C API which are "
+	  "difficult to do directly from scheme")
 static lispval eval_testcapi()
 {
   int errors = 0;
@@ -213,7 +212,7 @@ static lispval eval_testcapi()
     u8_free(unparsed);
 
     lispval expr = kno_make_list(2,kno_intern("opcode-name"),invalid_opcode);
-    lispval result = kno_eval_arg(expr,env);
+    lispval result = kno_eval(expr,env,NULL);
     if (!(KNO_ABORTP(result))) {
       u8_log(LOGERR,"NoError","Expr %q returned %q",expr,result);
       errors++;}
@@ -271,10 +270,10 @@ KNO_EXPORT int kno_init_testcapi()
 }
 
 DEFC_PRIM("api/force-promise",kno_force_promise,
-	     KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	     "Run various tests of the module C API which are "
-	     "difficult to do directly from scheme",
-	     {"promise",kno_any_type,KNO_VOID});
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "Run various tests of the module C API which are "
+	  "difficult to do directly from scheme",
+	  {"promise",kno_any_type,KNO_VOID});
 
 static void link_local_cprims()
 {

@@ -1,8 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
-   This file is part of beingmeta's Kno platform and is copyright
-   and a valuable trade secret of beingmeta, inc.
+   Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu)
 */
 
 #ifndef _FILEINFO
@@ -251,7 +250,7 @@ KNO_EXPORT lispval kno_get_adjuncts(kno_pool p)
 static kno_index l2x(lispval lix)
 {
   if (KNO_ETERNAL_INDEXP(lix)) {
-    int serial = KNO_GET_IMMEDIATE(lix,kno_index_type);
+    int serial = KNO_GET_IMMEDIATE(lix,kno_indexref_type);
     if (serial<KNO_MAX_PRIMARY_INDEXES)
       return kno_primary_indexes[serial];
     else return kno_lisp2index(lix);}
@@ -263,7 +262,7 @@ static kno_index l2x(lispval lix)
 static kno_pool l2p(lispval lp)
 {
   if (KNO_ETERNAL_POOLP(lp)) {
-    int serial = KNO_GET_IMMEDIATE(lp,kno_pool_type);
+    int serial = KNO_GET_IMMEDIATE(lp,kno_poolref_type);
     if (serial<kno_n_pools)
       return kno_pools_by_serialno[serial];
     else {

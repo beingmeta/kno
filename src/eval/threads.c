@@ -1,8 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
-   This file is part of beingmeta's Kno platform and is copyright
-   and a valuable trade secret of beingmeta, inc.
+   Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu)
 */
 
 #ifndef _FILEINFO
@@ -118,9 +117,9 @@ static void remove_thread(struct KNO_THREAD *thread)
 }
 
 DEFC_PRIM("thread?",threadp_prim,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "returns #t if *object is a thread.",
-	 {"arg",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "returns #t if *object is a thread.",
+	  {"arg",kno_any_type,KNO_VOID})
 static lispval threadp_prim(lispval arg)
 {
   if (KNO_TYPEP(arg,kno_thread_type))
@@ -131,17 +130,17 @@ static lispval threadp_prim(lispval arg)
 /* Finding threads by numeric ID */
 
 DEFC_PRIM("find-thread",findthread_prim,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "(FIND-THREAD [*id*] [*err*]) "
-	 "returns the thread object for the the thread "
-	 "numbered *id* (which is the value returned by "
-	 "(threadid)). If *id* is not provided or #default, "
-	 "returns the thread object for the current thread. "
-	 "If a thread object doesn't exist, either reports "
-	 "an error if *err* is not-false orreturns #f "
-	 "otherwise.",
-	 {"threadid_arg",kno_any_type,KNO_VOID},
-	 {"err",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	  "(FIND-THREAD [*id*] [*err*]) "
+	  "returns the thread object for the the thread "
+	  "numbered *id* (which is the value returned by "
+	  "(threadid)). If *id* is not provided or #default, "
+	  "returns the thread object for the current thread. "
+	  "If a thread object doesn't exist, either reports "
+	  "an error if *err* is not-false orreturns #f "
+	  "otherwise.",
+	  {"threadid_arg",kno_any_type,KNO_VOID},
+	  {"err",kno_any_type,KNO_VOID})
 static lispval findthread_prim(lispval threadid_arg,lispval err)
 {
   long long threadid =
@@ -169,9 +168,9 @@ static lispval findthread_prim(lispval threadid_arg,lispval err)
 }
 
 DEFC_PRIM("thread-id",threadid_prim,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "returns the integer identifier for *thread*",
-	 {"thread",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "returns the integer identifier for *thread*",
+	  {"thread",kno_any_type,KNO_VOID})
 static lispval threadid_prim(lispval thread)
 {
   struct KNO_THREAD *th = (kno_thread) thread;
@@ -278,11 +277,11 @@ KNO_EXPORT void recycle_synchronizer(struct KNO_RAW_CONS *c)
 }
 
 DEFC_PRIM("synchronizer?",synchronizerp_prim,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "returns #t if *obj* is a synchronizer. "
-	 "Synchronizers currently include condvars and "
-	 "synchronized lambdas.",
-	 {"arg",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "returns #t if *obj* is a synchronizer. "
+	  "Synchronizers currently include condvars and "
+	  "synchronized lambdas.",
+	  {"arg",kno_any_type,KNO_VOID})
 static lispval synchronizerp_prim(lispval arg)
 {
   if (KNO_TYPEP(arg,kno_synchronizer_type))
@@ -296,9 +295,9 @@ static lispval synchronizerp_prim(lispval arg)
 }
 
 DEFC_PRIM("condvar?",condvarp_prim,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "returns #t if *object* is a condition variable",
-	 {"arg",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "returns #t if *object* is a condition variable",
+	  {"arg",kno_any_type,KNO_VOID})
 static lispval condvarp_prim(lispval arg)
 {
   if ( (KNO_TYPEP(arg,kno_synchronizer_type)) &&
@@ -308,9 +307,9 @@ static lispval condvarp_prim(lispval arg)
 }
 
 DEFC_PRIM("mutex?",mutexp_prim,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "returns #t if *object* is a mutex",
-	 {"arg",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "returns #t if *object* is a mutex",
+	  {"arg",kno_any_type,KNO_VOID})
 static lispval mutexp_prim(lispval arg)
 {
   if ( (KNO_TYPEP(arg,kno_synchronizer_type)) &&
@@ -320,9 +319,9 @@ static lispval mutexp_prim(lispval arg)
 }
 
 DEFC_PRIM("rwlock?",rwlockp_prim,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "returns #t if *object* is a mutex",
-	 {"arg",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "returns #t if *object* is a mutex",
+	  {"arg",kno_any_type,KNO_VOID})
 static lispval rwlockp_prim(lispval arg)
 {
   if ( (KNO_TYPEP(arg,kno_synchronizer_type)) &&
@@ -341,9 +340,9 @@ static lispval handle_errno(u8_context caller,void *tofree)
 }
 
 DEFC_PRIM("make-mutex",make_mutex,
-	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	 "(MAKE-MUTEX) "
-	 "allocates and returns a new mutex.")
+	  KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+	  "(MAKE-MUTEX) "
+	  "allocates and returns a new mutex.")
 static lispval make_mutex()
 {
   int rv = 0;
@@ -356,9 +355,9 @@ static lispval make_mutex()
 }
 
 DEFC_PRIM("make-rwlock",make_rwlock,
-	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	 "(MAKE-RWLOCK) "
-	 "allocates and returns a new read/write lock.")
+	  KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+	  "(MAKE-RWLOCK) "
+	  "allocates and returns a new read/write lock.")
 static lispval make_rwlock()
 {
   int rv = 0;
@@ -371,9 +370,9 @@ static lispval make_rwlock()
 }
 
 DEFC_PRIM("make-condvar",make_condvar,
-	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	 "(MAKE-CONDVAR) "
-	 "allocates and returns a new condvar.")
+	  KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+	  "(MAKE-CONDVAR) "
+	  "allocates and returns a new condvar.")
 static lispval make_condvar()
 {
   int rv = 0;
@@ -418,11 +417,11 @@ static void unlock_synchronizer(struct KNO_SYNCHRONIZER *sync)
    and LAMBDAs */
 
 DEFC_PRIM("sync/lock!",sync_lock,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "Locks *synchronizer*, which can be a mutex, a "
-	 "read/write lock, a condition variable or a "
-	 "synchronized lambda.",
-	 {"lck",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "Locks *synchronizer*, which can be a mutex, a "
+	  "read/write lock, a condition variable or a "
+	  "synchronized lambda.",
+	  {"lck",kno_any_type,KNO_VOID})
 static lispval sync_lock(lispval lck)
 {
   if (TYPEP(lck,kno_synchronizer_type)) {
@@ -440,11 +439,11 @@ static lispval sync_lock(lispval lck)
 }
 
 DEFC_PRIM("sync/release!",sync_unlock,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "Releases the lock on *synchronizer*, which can be "
-	 "a mutex, a read/write lock, a condition variable "
-	 "or a synchronized lambda.",
-	 {"lck",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "Releases the lock on *synchronizer*, which can be "
+	  "a mutex, a read/write lock, a condition variable "
+	  "or a synchronized lambda.",
+	  {"lck",kno_any_type,KNO_VOID})
 static lispval sync_unlock(lispval lck)
 {
   if (TYPEP(lck,kno_synchronizer_type)) {
@@ -462,10 +461,10 @@ static lispval sync_unlock(lispval lck)
 }
 
 DEFC_PRIM("sync/read/lock!",sync_read_lock,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "Locks *readwritelock* for reading. This lock can "
-	 "be released with `SYNC/RELEASE!`",
-	 {"lck",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "Locks *readwritelock* for reading. This lock can "
+	  "be released with `SYNC/RELEASE!`",
+	  {"lck",kno_any_type,KNO_VOID})
 static lispval sync_read_lock(lispval lck)
 {
   if (TYPEP(lck,kno_synchronizer_type)) {
@@ -484,7 +483,7 @@ static lispval with_lock_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   u8_mutex *mutex = NULL; u8_rwlock *rwlock = NULL;
   if (VOIDP(lock_expr))
     return kno_err(kno_SyntaxError,"with_lock_evalfn",NULL,expr);
-  else lck = kno_eval(lock_expr,env,_stack,0);
+  else lck = kno_eval(lock_expr,env,_stack);
   if (KNO_ABORTED(lck))
     return lck;
   else if (TYPEP(lck,kno_synchronizer_type)) {
@@ -514,7 +513,7 @@ static lispval with_lock_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       else u8_write_lock(rwlock);
       KNO_DOLIST(elt_expr,KNO_CDDR(expr)) {
 	kno_decref(value);
-	value = kno_eval(elt_expr,env,_stack,0);
+	value = kno_eval(elt_expr,env,_stack);
 	if (KNO_ABORTED(value)) {
 	  if (mutex)
 	    u8_unlock_mutex(mutex);
@@ -539,12 +538,12 @@ static lispval with_lock_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
    interval in seconds. */
 
 DEFC_PRIM("condvar/wait",condvar_wait,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "(CONDVAR/WAIT *condvar*) "
-	 "waits for the value associated with *condvar* to "
-	 "change.",
-	 {"cvar",kno_any_type,KNO_VOID},
-	 {"timeout",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	  "(CONDVAR/WAIT *condvar*) "
+	  "waits for the value associated with *condvar* to "
+	  "change.",
+	  {"cvar",kno_any_type,KNO_VOID},
+	  {"timeout",kno_any_type,KNO_VOID})
 static lispval condvar_wait(lispval cvar,lispval timeout)
 {
   int rv = 0;
@@ -582,15 +581,15 @@ static lispval condvar_wait(lispval cvar,lispval timeout)
 }
 
 DEFC_PRIM("condvar/signal",condvar_signal,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "(CONDVAR/SIGNAL *condvar* [*broadcast*]) "
-	 "signals that *condvar* has changed, signalling "
-	 "threads waiting on the value and causing their "
-	 "`thread-wait` calls to return. If *broadcast* is "
-	 "#t, all waiting threads are signalled. Otherwise "
-	 "only one is signalled.",
-	 {"cvar",kno_any_type,KNO_VOID},
-	 {"broadcast",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	  "(CONDVAR/SIGNAL *condvar* [*broadcast*]) "
+	  "signals that *condvar* has changed, signalling "
+	  "threads waiting on the value and causing their "
+	  "`thread-wait` calls to return. If *broadcast* is "
+	  "#t, all waiting threads are signalled. Otherwise "
+	  "only one is signalled.",
+	  {"cvar",kno_any_type,KNO_VOID},
+	  {"broadcast",kno_any_type,KNO_VOID})
 static lispval condvar_signal(lispval cvar,lispval broadcast)
 {
   if (!(SYNC_TYPEP(cvar,sync_condvar)))
@@ -607,9 +606,9 @@ static lispval condvar_signal(lispval cvar,lispval broadcast)
 }
 
 DEFC_PRIM("condvar/lock!",condvar_lock,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "locks *condvar* (or precisely, its mutex)..",
-	 {"cvar",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "locks *condvar* (or precisely, its mutex)..",
+	  {"cvar",kno_any_type,KNO_VOID})
 static lispval condvar_lock(lispval cvar)
 {
   if (!(SYNC_TYPEP(cvar,sync_condvar)))
@@ -621,9 +620,9 @@ static lispval condvar_lock(lispval cvar)
 }
 
 DEFC_PRIM("condvar/unlock!",condvar_unlock,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "unlocks *condvar* (or precisely, its mutex)..",
-	 {"cvar",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "unlocks *condvar* (or precisely, its mutex)..",
+	  {"cvar",kno_any_type,KNO_VOID})
 static lispval condvar_unlock(lispval cvar)
 {
   if (!(SYNC_TYPEP(cvar,sync_condvar)))
@@ -698,8 +697,8 @@ static void *_kno_thread_main(void *data)
     u8_init_condvar(&(tstruct->exit_cvar));
 
     if (tstruct->flags&KNO_EVAL_THREAD)
-      result = kno_eval(tstruct->evaldata.expr,tstruct->evaldata.env,
-			_stack,0);
+      result = kno_eval
+	(tstruct->evaldata.expr,tstruct->evaldata.env,_stack);
     else
       result = kno_dapply(tstruct->applydata.fn,
 			  tstruct->applydata.n_args,
@@ -821,7 +820,8 @@ static void init_pthread_attrs(pthread_attr_t *attr,lispval opts)
 
   /* sched_priority */
   lispval priority_opt = kno_getopt(opts,KNOSYM(priority),KNO_VOID);
-  if (KNO_FIXNUMP(priority_opt)) {
+  if (VOIDP(priority_opt)) {}
+  else if (FIXNUMP(priority_opt)) {
     int priority = KNO_FIX2INT(priority_opt);
     struct sched_param param = { priority };
     pthread_attr_setschedparam(attr,&param);}
@@ -830,7 +830,8 @@ static void init_pthread_attrs(pthread_attr_t *attr,lispval opts)
 
   /* policy opt */
   lispval policy_opt = kno_getopt(opts,KNOSYM(policy),KNO_VOID);
-  if ( policy_opt == (KNOSYM(fifo)) )
+  if (VOIDP(policy_opt)) {}
+  else if ( policy_opt == (KNOSYM(fifo)) )
     pthread_attr_setschedpolicy(attr,SCHED_FIFO);
   else if ( policy_opt == (KNOSYM(roundrobin)) )
     pthread_attr_setschedpolicy(attr,SCHED_RR);
@@ -919,11 +920,11 @@ kno_thread kno_thread_eval(lispval *resultptr,
 /* Scheme primitives */
 
 DEFC_PRIMN("thread/call",threadcall_prim,
-	  KNO_VAR_ARGS|KNO_MIN_ARGS(1),
-	  "(THREAD/CALL *fcn* *args*...) "
-	  "applies *fcn* in parallel to all of the "
-	  "combinations of *args* and returns one thread for "
-	  "each combination.")
+	   KNO_VAR_ARGS|KNO_MIN_ARGS(1),
+	   "(THREAD/CALL *fcn* *args*...) "
+	   "applies *fcn* in parallel to all of the "
+	   "combinations of *args* and returns one thread for "
+	   "each combination.")
 static lispval threadcall_prim(int n,kno_argvec args)
 {
   lispval fn = args[0];
@@ -949,12 +950,12 @@ static lispval threadcall_prim(int n,kno_argvec args)
 }
 
 DEFC_PRIMN("thread/apply",threadapply_prim,
-	  KNO_VAR_ARGS|KNO_MIN_ARGS(1),
-	  "(THREAD/APPLY *fcn* *args*...) "
-	  "applies *fcn* in parallel to all of the "
-	  "combinations of *args* and returns one thread for "
-	  "each combination. Choice arguments can be passed "
-	  "as one by using `QCHOICE`.")
+	   KNO_VAR_ARGS|KNO_MIN_ARGS(1),
+	   "(THREAD/APPLY *fcn* *args*...) "
+	   "applies *fcn* in parallel to all of the "
+	   "combinations of *args* and returns one thread for "
+	   "each combination. Choice arguments can be passed "
+	   "as one by using `QCHOICE`.")
 static lispval threadapply_prim(int n,kno_argvec args)
 {
   if (n == 1)
@@ -1000,12 +1001,12 @@ static int threadopts(lispval opts)
 }
 
 DEFC_PRIMN("thread/call+",threadcallx_prim,
-	  KNO_VAR_ARGS|KNO_MIN_ARGS(2),
-	  "(THREAD/CALL+ *opts* *fcn* *args*...) "
-	  "applies *fcn* in parallel to all of the "
-	  "combinations of *args* and returns one thread for "
-	  "each combination. *opts* specifies options for "
-	  "creating each thread.")
+	   KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+	   "(THREAD/CALL+ *opts* *fcn* *args*...) "
+	   "applies *fcn* in parallel to all of the "
+	   "combinations of *args* and returns one thread for "
+	   "each combination. *opts* specifies options for "
+	   "creating each thread.")
 static lispval threadcallx_prim(int n,kno_argvec args)
 {
   lispval opts = args[0];
@@ -1035,7 +1036,7 @@ static lispval threadcallx_prim(int n,kno_argvec args)
 static lispval spawn_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval to_eval = kno_get_arg(expr,1);
-  lispval opts = kno_eval(kno_get_arg(expr,2),env,_stack,0);
+  lispval opts = kno_eval(kno_get_arg(expr,2),env,_stack);
   if (KNO_ABORTED(opts)) {
     return opts;}
   int flags = threadopts(opts)|KNO_EVAL_THREAD;
@@ -1054,14 +1055,14 @@ static lispval spawn_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 
 static lispval threadeval_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  lispval to_eval = kno_eval(kno_get_arg(expr,1),env,_stack,0);
+  lispval to_eval = kno_eval(kno_get_arg(expr,1),env,_stack);
   if (KNO_ABORTED(to_eval))
     return to_eval;
-  lispval env_arg = kno_eval(kno_get_arg(expr,2),env,_stack,0);
+  lispval env_arg = kno_eval(kno_get_arg(expr,2),env,_stack);
   if (KNO_ABORTED(env_arg)) {
     kno_decref(to_eval);
     return env_arg;}
-  lispval opts_arg = kno_eval(kno_get_arg(expr,3),env,_stack,0);
+  lispval opts_arg = kno_eval(kno_get_arg(expr,3),env,_stack);
   if (KNO_ABORTED(opts_arg)) {
     kno_decref(to_eval);
     kno_decref(env_arg);
@@ -1103,11 +1104,11 @@ static lispval threadeval_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 }
 
 DEFC_PRIM("thread/cancel!",thread_cancel_prim,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "(THREAD/CANCEL! *thread*) "
-	 "attempts to cancel (terminate) *thread*.",
-	 {"thread_arg",kno_any_type,KNO_VOID},
-	 {"reason",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	  "(THREAD/CANCEL! *thread*) "
+	  "attempts to cancel (terminate) *thread*.",
+	  {"thread_arg",kno_any_type,KNO_VOID},
+	  {"reason",kno_any_type,KNO_VOID})
 static lispval thread_cancel_prim(lispval thread_arg,lispval reason)
 {
   struct KNO_THREAD *thread = (struct KNO_THREAD *)thread_arg;
@@ -1133,11 +1134,11 @@ static lispval thread_cancel_prim(lispval thread_arg,lispval reason)
 }
 
 DEFC_PRIM("thread/signal!",thread_signal_prim,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "(THREAD/SIGNAL! *thread* *signal*) "
-	 "signals *thread* with *signal*.",
-	 {"thread_arg",kno_thread_type,KNO_VOID},
-	 {"signal",kno_fixnum_type,KNO_INT(37)})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	  "(THREAD/SIGNAL! *thread* *signal*) "
+	  "signals *thread* with *signal*.",
+	  {"thread_arg",kno_thread_type,KNO_VOID},
+	  {"signal",kno_fixnum_type,KNO_INT(37)})
 static lispval thread_signal_prim(lispval thread_arg,lispval signal)
 {
   struct KNO_THREAD *thread = (struct KNO_THREAD *)thread_arg;
@@ -1154,12 +1155,12 @@ static lispval thread_signal_prim(lispval thread_arg,lispval signal)
 }
 
 DEFC_PRIM("thread/terminate!",thread_terminate_prim,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "(THREAD/TERMINATE! *thread* [*result*]) "
-	 "tells *thread* to terminate. If *result* is "
-	 "provided, the thread returns with that value.",
-	 {"thread_arg",kno_any_type,KNO_VOID},
-	 {"returnval",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	  "(THREAD/TERMINATE! *thread* [*result*]) "
+	  "tells *thread* to terminate. If *result* is "
+	  "provided, the thread returns with that value.",
+	  {"thread_arg",kno_any_type,KNO_VOID},
+	  {"returnval",kno_any_type,KNO_VOID})
 static lispval thread_terminate_prim(lispval thread_arg,lispval returnval)
 {
   struct KNO_THREAD *thread = (struct KNO_THREAD *)thread_arg;
@@ -1180,10 +1181,10 @@ static lispval thread_terminate_prim(lispval thread_arg,lispval returnval)
 }
 
 DEFC_PRIM("thread/exited?",thread_exitedp,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "(THREAD/EXITED? *thread*) "
-	 "returns true if *thread* has exited",
-	 {"thread_arg",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "(THREAD/EXITED? *thread*) "
+	  "returns true if *thread* has exited",
+	  {"thread_arg",kno_any_type,KNO_VOID})
 static lispval thread_exitedp(lispval thread_arg)
 {
   struct KNO_THREAD *thread = (struct KNO_THREAD *)thread_arg;
@@ -1193,11 +1194,11 @@ static lispval thread_exitedp(lispval thread_arg)
 }
 
 DEFC_PRIM("thread/finished?",thread_finishedp,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "(THREAD/EXITED? *thread*) "
-	 "returns true if *thread* exited normally, #F "
-	 "otherwise",
-	 {"thread_arg",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "(THREAD/EXITED? *thread*) "
+	  "returns true if *thread* exited normally, #F "
+	  "otherwise",
+	  {"thread_arg",kno_any_type,KNO_VOID})
 static lispval thread_finishedp(lispval thread_arg)
 {
   struct KNO_THREAD *thread = (struct KNO_THREAD *)thread_arg;
@@ -1208,11 +1209,11 @@ static lispval thread_finishedp(lispval thread_arg)
 }
 
 DEFC_PRIM("thread/error?",thread_errorp,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "(THREAD/ERROR? *thread*) "
-	 "returns #t if *thread* exited with an error, #f "
-	 "otherwise",
-	 {"thread_arg",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "(THREAD/ERROR? *thread*) "
+	  "returns #t if *thread* exited with an error, #f "
+	  "otherwise",
+	  {"thread_arg",kno_any_type,KNO_VOID})
 static lispval thread_errorp(lispval thread_arg)
 {
   struct KNO_THREAD *thread = (struct KNO_THREAD *)thread_arg;
@@ -1223,14 +1224,14 @@ static lispval thread_errorp(lispval thread_arg)
 }
 
 DEFC_PRIM("thread/result",thread_result,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "(THREAD/RESULT *thread*) "
-	 "returns the final result of the thread or {} if "
-	 "it hasn't finished. If the thread returned an "
-	 "error this returns the exception object for the "
-	 "error. If you want to wait for the result, use "
-	 "THREAD/FINISH.",
-	 {"thread_arg",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "(THREAD/RESULT *thread*) "
+	  "returns the final result of the thread or {} if "
+	  "it hasn't finished. If the thread returned an "
+	  "error this returns the exception object for the "
+	  "error. If you want to wait for the result, use "
+	  "THREAD/FINISH.",
+	  {"thread_arg",kno_any_type,KNO_VOID})
 static lispval thread_result(lispval thread_arg)
 {
   struct KNO_THREAD *thread = (struct KNO_THREAD *)thread_arg;
@@ -1336,13 +1337,13 @@ static int join_thread(struct KNO_THREAD *tstruct,
 }
 
 DEFC_PRIM("thread/join",threadjoin_prim,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 "(THREAD/JOIN *threads* [*opts*]) "
-	 "waits for *threads* to finish. If *opts* is "
-	 "provided, it specifies a timeout. This returns "
-	 "all of the threads which are finished.",
-	 {"threads",kno_any_type,KNO_VOID},
-	 {"opts",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+	  "(THREAD/JOIN *threads* [*opts*]) "
+	  "waits for *threads* to finish. If *opts* is "
+	  "provided, it specifies a timeout. This returns "
+	  "all of the threads which are finished.",
+	  {"threads",kno_any_type,KNO_VOID},
+	  {"opts",kno_any_type,KNO_VOID})
 static lispval threadjoin_prim(lispval threads,lispval U8_MAYBE_UNUSED opts)
 {
   {DO_CHOICES(thread,threads)
@@ -1372,13 +1373,13 @@ static lispval threadjoin_prim(lispval threads,lispval U8_MAYBE_UNUSED opts)
 }
 
 DEFC_PRIM("thread/wait",threadwait_prim,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 "(THREAD/WAIT *threads* [*opts*]) "
-	 "waits for all of *threads* to return. If provided "
-	 "*opts* specifies a timeout, and unfinished "
-	 "threads are returned.",
-	 {"threads",kno_any_type,KNO_VOID},
-	 {"opts",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+	  "(THREAD/WAIT *threads* [*opts*]) "
+	  "waits for all of *threads* to return. If provided "
+	  "*opts* specifies a timeout, and unfinished "
+	  "threads are returned.",
+	  {"threads",kno_any_type,KNO_VOID},
+	  {"opts",kno_any_type,KNO_VOID})
 static lispval threadwait_prim(lispval threads,lispval U8_MAYBE_UNUSED opts)
 {
   struct timespec until;
@@ -1407,15 +1408,15 @@ static lispval threadwait_prim(lispval threads,lispval U8_MAYBE_UNUSED opts)
 }
 
 DEFC_PRIM("thread/finish",threadfinish_prim,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 "(THREAD/FINISH *args* [*opts*]) "
-	 "waits for all of threads in *args* to return, "
-	 "returning the non-VOID thread results together "
-	 "with any non-thread *args*. If provided, *opts* "
-	 "specifies a timeout, with unfinished threads "
-	 "being returned as thread objects.",
-	 {"args",kno_any_type,KNO_VOID},
-	 {"opts",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+	  "(THREAD/FINISH *args* [*opts*]) "
+	  "waits for all of threads in *args* to return, "
+	  "returning the non-VOID thread results together "
+	  "with any non-thread *args*. If provided, *opts* "
+	  "specifies a timeout, with unfinished threads "
+	  "being returned as thread objects.",
+	  {"args",kno_any_type,KNO_VOID},
+	  {"opts",kno_any_type,KNO_VOID})
 static lispval threadfinish_prim(lispval args,lispval opts)
 {
   lispval results = EMPTY;
@@ -1462,12 +1463,12 @@ static lispval threadfinish_prim(lispval args,lispval opts)
 }
 
 DEFC_PRIM("thread/wait!",threadwaitbang_prim,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 "(THREAD/WAIT! *threads*) "
-	 "waits for all of *threads* to return, and returns "
-	 "VOID. *opts is currently ignored.",
-	 {"threads",kno_any_type,KNO_VOID},
-	 {"opts",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+	  "(THREAD/WAIT! *threads*) "
+	  "waits for all of *threads* to return, and returns "
+	  "VOID. *opts is currently ignored.",
+	  {"threads",kno_any_type,KNO_VOID},
+	  {"opts",kno_any_type,KNO_VOID})
 static lispval threadwaitbang_prim(lispval threads,lispval U8_MAYBE_UNUSED opts)
 {
   struct timespec until;
@@ -1532,9 +1533,9 @@ static lispval parallel_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 }
 
 DEFC_PRIM("thread/yield",threadyield_prim,
-	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	 "(THREAD/YIELD) "
-	 "allows other threads to run.")
+	  KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+	  "(THREAD/YIELD) "
+	  "allows other threads to run.")
 static lispval threadyield_prim()
 {
 #if _POSIX_PRIORITY_SCHEDULING
@@ -1573,7 +1574,7 @@ static lispval sassign_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   else if (VOIDP(val_expr))
     return kno_err(kno_TooFewExpressions,"SSET!",NULL,expr);
   u8_lock_mutex(&sassign_lock);
-  value = kno_eval(val_expr,env,_stack,0);
+  value = kno_eval(val_expr,env,_stack);
   if (KNO_ABORTED(value)) {
     u8_unlock_mutex(&sassign_lock);
     return value;}
@@ -1593,10 +1594,10 @@ static lispval sassign_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 /* Thread variables */
 
 DEFC_PRIM("thread/get",thread_get,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "gets the fluid (thread-local) value for *sym* or "
-	 "the empty choice if there isn't one",
-	 {"var",kno_symbol_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "gets the fluid (thread-local) value for *sym* or "
+	  "the empty choice if there isn't one",
+	  {"var",kno_symbol_type,KNO_VOID})
 static lispval thread_get(lispval var)
 {
   lispval value = kno_thread_get(var);
@@ -1606,9 +1607,9 @@ static lispval thread_get(lispval var)
 }
 
 DEFC_PRIM("thread/reset-vars!",thread_reset_vars,
-	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	 "resets all the fluid (thread-local) variables for "
-	 "the current thread.")
+	  KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+	  "resets all the fluid (thread-local) variables for "
+	  "the current thread.")
 static lispval thread_reset_vars()
 {
   kno_reset_threadvars();
@@ -1616,10 +1617,10 @@ static lispval thread_reset_vars()
 }
 
 DEFC_PRIM("thread/bound?",thread_boundp,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "returns true if *sym* is fluidly bound in the "
-	 "current thread.",
-	 {"var",kno_symbol_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "returns true if *sym* is fluidly bound in the "
+	  "current thread.",
+	  {"var",kno_symbol_type,KNO_VOID})
 static lispval thread_boundp(lispval var)
 {
   if (kno_thread_probe(var))
@@ -1628,11 +1629,11 @@ static lispval thread_boundp(lispval var)
 }
 
 DEFC_PRIM("thread/set!",thread_set,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "sets the fluid (thread-local) value for *sym* to "
-	 "*value and returns VOID.",
-	 {"var",kno_symbol_type,KNO_VOID},
-	 {"val",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	  "sets the fluid (thread-local) value for *sym* to "
+	  "*value and returns VOID.",
+	  {"var",kno_symbol_type,KNO_VOID},
+	  {"val",kno_any_type,KNO_VOID})
 static lispval thread_set(lispval var,lispval val)
 {
   if (kno_thread_set(var,val)<0)
@@ -1641,11 +1642,11 @@ static lispval thread_set(lispval var,lispval val)
 }
 
 DEFC_PRIM("thread/add!",thread_add,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "inserts *values* into the fluid (thread-local) "
-	 "binding for *sym*.",
-	 {"var",kno_symbol_type,KNO_VOID},
-	 {"val",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	  "inserts *values* into the fluid (thread-local) "
+	  "binding for *sym*.",
+	  {"var",kno_symbol_type,KNO_VOID},
+	  {"val",kno_any_type,KNO_VOID})
 static lispval thread_add(lispval var,lispval val)
 {
   if (kno_thread_add(var,val)<0)
@@ -1663,7 +1664,7 @@ static lispval thread_ref_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
   else if (VOIDP(dflt_expr))
     return kno_err(kno_SyntaxError,"thread_ref",
 		   "No generating expression",expr);
-  else sym = kno_eval(sym_arg,env,stack,0);
+  else sym = kno_eval(sym_arg,env,stack);
   if (KNO_ABORTP(sym))
     return sym;
   else if (!(SYMBOLP(sym)))
@@ -1672,7 +1673,7 @@ static lispval thread_ref_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
   if (KNO_ABORTP(val))
     return val;
   else if (VOIDP(val)) {
-    lispval useval = kno_eval(dflt_expr,env,stack,0);
+    lispval useval = kno_eval(dflt_expr,env,stack);
     if (KNO_ABORTP(useval))
       return useval;
     else if (KNO_VOIDP(useval))
@@ -1737,8 +1738,8 @@ static int walk_thread_struct(kno_walker walker,lispval x,
 /* Thread information */
 
 DEFC_PRIM("cstack-depth",cstack_depth_prim,
-	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	 "Returns the current depth of the C stack")
+	  KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+	  "Returns the current depth of the C stack")
 static lispval cstack_depth_prim()
 {
   ssize_t depth = u8_stack_depth();
@@ -1746,8 +1747,8 @@ static lispval cstack_depth_prim()
 }
 
 DEFC_PRIM("cstack-limit",cstack_limit_prim,
-	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	 "Returns the allocated limit of the C stack")
+	  KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+	  "Returns the allocated limit of the C stack")
 static lispval cstack_limit_prim()
 {
   ssize_t limit = kno_stack_limit;
@@ -1755,9 +1756,9 @@ static lispval cstack_limit_prim()
 }
 
 DEFC_PRIM("cstack-limit!",set_cstack_limit_prim,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "Returns the allocated limit of the C stack",
-	 {"arg",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "Returns the allocated limit of the C stack",
+	  {"arg",kno_any_type,KNO_VOID})
 static lispval set_cstack_limit_prim(lispval arg)
 {
   if (KNO_FLONUMP(arg)) {

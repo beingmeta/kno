@@ -1,8 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
-   This file is part of beingmeta's Kno platform and is copyright
-   and a valuable trade secret of beingmeta, inc.
+   Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu)
 */
 
 #ifndef KNO_POOLS_H
@@ -409,8 +408,8 @@ KNO_FASTOP kno_pool kno_oid2pool(lispval oid)
 }
 KNO_FASTOP U8_MAYBE_UNUSED kno_pool kno_poolptr(lispval x)
 {
-  if (KNO_TYPEP(x,kno_pool_type)) {
-    int serial = KNO_GET_IMMEDIATE(x,kno_pool_type);
+  if (KNO_TYPEP(x,kno_poolref_type)) {
+    int serial = KNO_GET_IMMEDIATE(x,kno_poolref_type);
     if (serial<kno_n_pools)
       return kno_pools_by_serialno[serial];
     else return NULL;}

@@ -1,8 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
-   This file is part of beingmeta's Kno platform and is copyright
-   and a valuable trade secret of beingmeta, inc.
+   Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu)
 */
 
 #ifndef _FILEINFO
@@ -81,10 +80,10 @@ static lispval rdf2lisp ( ldns_rdf *field )
 }
 
 DEFC_PRIM("dns/get",dns_query,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"domain_arg",kno_string_type,KNO_VOID},
-	 {"type_arg",kno_symbol_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"domain_arg",kno_string_type,KNO_VOID},
+	  {"type_arg",kno_symbol_type,KNO_VOID})
 static lispval dns_query(lispval domain_arg,lispval type_arg)
 {
   lispval results = EMPTY;

@@ -1,8 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
-   This file is part of beingmeta's Kno platform and is copyright
-   and a valuable trade secret of beingmeta, inc.
+   Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu)
 */
 
 #ifndef _FILEINFO
@@ -145,16 +144,16 @@ static lispval write_xtype_prim(lispval object,lispval dest,lispval opts)
 }
 
 DEFC_PRIM("read-xtype",read_xtype_prim,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "reads xtype representations from *source*, which "
-	 "can be a filename or a binary stream. The *opts* "
-	 "arg can specify `xrefs` to indicate xrefs to use "
-	 "when reading, or `count` to indicate the number "
-	 "of objects to read. By default, all "
-	 "representations until the end of data are read "
-	 "from the source.",
-	 {"source",kno_any_type,KNO_VOID},
-	 {"opts",kno_any_type,KNO_FALSE})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	  "reads xtype representations from *source*, which "
+	  "can be a filename or a binary stream. The *opts* "
+	  "arg can specify `xrefs` to indicate xrefs to use "
+	  "when reading, or `count` to indicate the number "
+	  "of objects to read. By default, all "
+	  "representations until the end of data are read "
+	  "from the source.",
+	  {"source",kno_any_type,KNO_VOID},
+	  {"opts",kno_any_type,KNO_FALSE})
 static lispval read_xtype_prim(lispval source,lispval opts)
 {
   lispval refs_arg = kno_getxrefs(opts);
@@ -215,18 +214,18 @@ static lispval read_xtype_prim(lispval source,lispval opts)
 }
 
 DEFC_PRIM("read-xtype-at",read_xtype_at_prim,
-	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(1),
-	 "(READ-XTYPE-AT *stream* [*opts*] [*off*] [*len*]) "
-	 "reads the xtype representation store at *off* in "
-	 "*stream*. If *off* is not provided, it reads from "
-	 "the current position of the stream; if *len* is "
-	 "provided, it is a maximum size of the xtype "
-	 "representation and is used to prefetch bytes from "
-	 "the file when possible.",
-	 {"stream",kno_stream_type,KNO_VOID},
-	 {"opts",kno_any_type,KNO_VOID},
-	 {"pos",kno_fixnum_type,KNO_VOID},
-	 {"len",kno_fixnum_type,KNO_VOID})
+	  KNO_MAX_ARGS(4)|KNO_MIN_ARGS(1),
+	  "(READ-XTYPE-AT *stream* [*opts*] [*off*] [*len*]) "
+	  "reads the xtype representation store at *off* in "
+	  "*stream*. If *off* is not provided, it reads from "
+	  "the current position of the stream; if *len* is "
+	  "provided, it is a maximum size of the xtype "
+	  "representation and is used to prefetch bytes from "
+	  "the file when possible.",
+	  {"stream",kno_stream_type,KNO_VOID},
+	  {"opts",kno_any_type,KNO_VOID},
+	  {"pos",kno_fixnum_type,KNO_VOID},
+	  {"len",kno_fixnum_type,KNO_VOID})
 static lispval read_xtype_at_prim(lispval stream,lispval opts,
 				  lispval pos,lispval len)
 {
@@ -267,17 +266,17 @@ static lispval read_xtype_at_prim(lispval stream,lispval opts,
 
 DEFC_PRIM("write-xtype-at",write_xtype_at_prim,
 	  KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "(WRITE-XTYPE-AT *object* *stream* [*off*] [*opts/refs*]) "
-	 "reads the xtype representation store at *off* in "
-	 "*stream*. If *off* is not provided, it reads from "
-	 "the current position of the stream; if *len* is "
-	 "provided, it is a maximum size of the xtype "
-	 "representation and is used to prefetch bytes from "
-	 "the file when possible.",
-	 {"object",kno_any_type,KNO_VOID},
-	 {"stream",kno_stream_type,KNO_VOID},
-	 {"pos",kno_any_type,KNO_FALSE},
-	 {"opts",kno_fixnum_type,KNO_VOID})
+	  "(WRITE-XTYPE-AT *object* *stream* [*off*] [*opts/refs*]) "
+	  "reads the xtype representation store at *off* in "
+	  "*stream*. If *off* is not provided, it reads from "
+	  "the current position of the stream; if *len* is "
+	  "provided, it is a maximum size of the xtype "
+	  "representation and is used to prefetch bytes from "
+	  "the file when possible.",
+	  {"object",kno_any_type,KNO_VOID},
+	  {"stream",kno_stream_type,KNO_VOID},
+	  {"pos",kno_any_type,KNO_FALSE},
+	  {"opts",kno_fixnum_type,KNO_VOID})
 static lispval write_xtype_at_prim(lispval object,lispval stream,lispval pos,
 				   lispval opts)
 {

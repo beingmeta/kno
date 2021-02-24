@@ -1,13 +1,14 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
-   This file is part of beingmeta's Kno platform and is copyright
-   and a valuable trade secret of beingmeta, inc.
+   Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu)
 */
 
 #ifndef _FILEINFO
 #define _FILEINFO __FILE__
 #endif
+
+#define KNO_INLINE_XTYPEP 1
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
@@ -157,35 +158,7 @@ KNO_EXPORT int _KNO_TABLEP(lispval x)
 
 KNO_EXPORT int _KNO_XTYPEP(lispval x,int type)
 {
-  if (type <=  kno_opts_type) switch ((kno_lisp_type)type) {
-    case kno_number_type: return KNO_NUMBERP(x);
-    case kno_sequence_type: return KNO_SEQUENCEP(x);
-    case kno_table_type: return KNO_TABLEP(x);
-    case kno_type_type:
-      if ( (KNO_OIDP(x)) || (KNO_SYMBOLP(x)) ||
-	   (KNO_IMMEDIATE_TYPEP(x,kno_ctype_type)) ||
-	   (KNO_TYPEP(x,kno_typeinfo_type)) )
-	return 1;
-      else return 0;
-    case kno_keymap_type:
-      if (KNO_CONSP(x)) {
-	kno_lisp_type ctype = KNO_CONS_TYPEOF(x);
-	return ( (ctype && kno_table_type) == ctype );}
-      else return 0;
-    case kno_opts_type:
-      if (KNO_CONSP(x)) {
-	kno_lisp_type ctype = KNO_CONS_TYPEOF(x);
-	return ( (ctype == kno_pair_type) &&
-		 ( (ctype && kno_table_type) == ctype ) );}
-      else if ( (x == KNO_FALSE) || (x == KNO_EMPTY_LIST) || (x == KNO_EMPTY_CHOICE) )
-	return 1;
-      else return 0;
-    default:
-      if  (type < 0x04) return ( ( (x) & (0x3) ) == type);
-      else if (type < 0x84) return (KNO_IMMEDIATE_TYPEP(x,type));
-      else if (type < 0x100) return ( (x) && ((KNO_CONS_TYPEOF(x)) == type) );
-      else return 0;}
-  else return 0;
+  return KNO_XTYPEP(x,type);
 }
 
 KNO_EXPORT int _KNO_CHECKTYPE(lispval obj,lispval objtype)
@@ -197,7 +170,7 @@ KNO_EXPORT int _KNO_CHECKTYPE(lispval obj,lispval objtype)
 		 ( (KNO_RAWPTR_TAG(obj)) == objtype) ) );
     else if (KNO_IMMEDIATE_TYPEP(objtype,kno_ctype_type)) {
       kno_lisp_type ltype = (KNO_IMMEDIATE_DATA(objtype));
-      return (KNO_XTYPEP(obj,ltype));}
+      return (KNO_TYPEP(obj,ltype));}
     else return 0;}
   else if (KNO_OIDP(objtype))
     return ( ( (KNO_COMPOUNDP(obj)) && ( (KNO_COMPOUND_TAG(obj)) == objtype) ) ||
@@ -230,6 +203,23 @@ KNO_EXPORT int _KNO_CHOICE_SIZE(lispval x)
 KNO_EXPORT lispval _kno_return_errcode(lispval x)
 {
   return x;
+}
+
+KNO_EXPORT void *_kno_lspcpy(lispval *dest,const lispval *src,int n)
+{
+  return memcpy(dest,src,sizeof(lispval)*n);
+}
+
+KNO_EXPORT void *_kno_lspset(lispval *dest,lispval val,int n)
+{
+  if (RARELY(KNO_CONSP(val))) {
+    lispval *write = dest, *limit = write+n;
+    while (write<limit) {*write++=val; kno_incref(val);}
+    return write;}
+  else {
+    lispval *write = dest, *limit = write+n;
+    while (write<limit) *write++=val;
+    return write;}
 }
 
 /* Errors */
@@ -316,201 +306,140 @@ static void register_header_files()
   u8_register_source_file(KNO_DTYPEIO_H_INFO);
 }
 
+struct typeinfo_initializer {
+  int typecode;
+  u8_string name;
+  u8_string doc; };
+struct typeinfo_initializer init_typeinfo[]=
+  {
+   { kno_cons_type,_("cons"),_("cons")},
+   { kno_immediate_type,_("immediate"),_("immediate")},
+   { kno_fixnum_type,_("fixnum"),_("fixnum")},
+   { kno_oid_type,_("oid"),_("oid")},
+   { kno_constant_type,_("constant"),_("constant")},
+   { kno_character_type,_("character"),_("character")},
+   { kno_symbol_type,_("symbol"),_("symbol")},
+   { kno_fcnid_type,_("fcnid"),_("fcnid")},
+   { kno_lexref_type,_("lexref"),_("lexref")},
+   { kno_opcode_type,_("opcode"),_("opcode")},
+   { kno_typeref_type,_("typeref"),_("typeref")},
+   { kno_coderef_type,_("coderef"),_("coderef")},
+   { kno_poolref_type,_("poolref"),
+     _("a pool ID mapped to a static (eternal) pool")},
+   { kno_indexref_type,_("indexref"),
+     _("an index ID mapped to a static (eternal) index")},
+   { kno_histref_type,_("histref"),_("histref")},
+   { kno_ctype_type,_("ctype"),
+     _("a representation of a primitive type value used by the runtime")},
+   { kno_string_type,_("string"),_("a UTF-8 encoded string")},
+   { kno_packet_type,_("packet"),_("a byte vector")},
+   { kno_vector_type,_("vector"),_("vector")},
+   { kno_numeric_vector_type,_("numeric_vector"),_("numeric_vector")},
+   { kno_pair_type,_("pair"),_("pair")},
+   { kno_cdrcode_type,_("cdrcode"),
+     _("a half-cons for compact representations of linked lists")},
+   { kno_secret_type,_("secret"),
+     _("a byte vector which doesn't easily disclose its data")},
+   { kno_bigint_type,_("bigint"),_("an unlimited-precision integer")},
+   
+   { kno_choice_type,_("choice"),_("choice")},
+   { kno_prechoice_type,_("prechoice"),_("prechoice")},
+   { kno_qchoice_type,_("qchoice"),_("qchoice")},
+   { kno_typeinfo_type,_("typeinfo"),_("a type description")},
+   { kno_compound_type,_("compound"),_("compound")},
+   { kno_rawptr_type,_("rawptr"),_("a 'wrapped' C pointer value")},
+
+   { kno_ioport_type,_("ioport"),_("a textual I/O port")},
+   { kno_regex_type,_("regex"),_("regex")},
+
+   { kno_slotmap_type,_("slotmap"),_("slotmap")},
+   { kno_schemap_type,_("schemap"),_("schemap")},
+   { kno_hashtable_type,_("hashtable"),_("hashtable")},
+   { kno_hashset_type,_("hashset"),_("hashset")},
+
+   { kno_cprim_type,_("cprim"),_("cprim")},
+   { kno_lambda_type,_("lambda"),_("lambda")},
+   { kno_ffi_type,_("ffi"),_("ffi")},
+   { kno_rpc_type,_("netproc"),_("netproc")},
+
+   { kno_lexenv_type,_("lexenv"),_("lexenv")},
+   { kno_evalfn_type,_("evalfn"),_("evalfn")},
+   { kno_macro_type,_("macro"),_("macro")},
+   { kno_stackframe_type,_("stackframe"),_("stackframe")},
+   { kno_exception_type,_("exception"),_("exception")},
+   { kno_promise_type,_("promise"),_("promise")},
+   { kno_thread_type,_("thread"),_("thread")},
+   { kno_synchronizer_type,_("synchronizer"),_("synchronizer")},
+
+   { kno_consblock_type,_("consblock"),_("consblock")},
+
+   { kno_complex_type,_("complex"),_("complex")},
+   { kno_rational_type,_("rational"),_("rational")},
+   { kno_flonum_type,_("flonum"),_("flonum")},
+
+   { kno_timestamp_type,_("timestamp"),_("timestamp")},
+   { kno_uuid_type,_("uuid"),_("uuid")},
+   
+   { kno_mystery_type,_("mystery"),
+     _("an object whose representation could not be decoded")},
+   { kno_stream_type,_("stream"),_("a binary I/O stream")},
+   
+   { kno_service_type,_("service"),_("service")},
+   
+   { kno_bloom_filter_type,_("bloom_filter"),_("bloom_filter")},
+   
+   { kno_sqldb_type,_("sqldb"),_("sqldb")},
+   { kno_sqlproc_type,_("sqlproc"),_("sqlproc")},
+   
+   { kno_pathstore_type,_("pathstore"),_("pathstore")},
+    { kno_consed_pool_type,_("raw pool"),
+      _("a pointer to an unregistered ('ephemeral') pool")},
+
+    { kno_consed_index_type,_("raw index"),
+      _("a pointer to an unregistered ('ephemeral') index")},
+   { kno_subjob_type,_("subjob"),_("a sub-process (subjob) object")},
+
+   { kno_empty_type,_("empty"),_("the empty/fail value")},
+   { kno_exists_type,_("exists"),_("the complement of the empty/fail type")},
+   { kno_true_type,_("true"),_("the type for non-false values")},
+   { kno_error_type,_("error"),_("the type for error values")},
+   { kno_void_type,_("void"),_("the type for VOID values")},
+   { kno_satisfied_type,_("satisfied"),
+     _("the type for non-false non-empty values")},
+   { kno_singleton_type,_("singleton"),
+     _("the type for non-empty non-ambiguous values")},
+
+   { kno_number_type,_("number"),_("numeric values")},
+   { kno_integer_type,_("integer"),_("integral numeric values")},
+   { kno_exact_type,_("exact"),_("exact numbers")},
+   { kno_inexact_type,_("inexact"),_("inexact numbers")},
+
+   { kno_sequence_type,_("sequence"),_("a sequence object")},
+   { kno_table_type,_("table"),_("a table object")},
+   { kno_applicable_type,_("applicable"),
+     _("an applicable object (prodcure, primitive, etc)")},
+   { kno_xfunction_type,_("function"),
+     _("applicable objects with metadata")},
+   { kno_keymap_type,_("keymap"),_("a slotmap or schemap")},
+   { kno_type_type,_("type"),
+     _("a ctype, a type tag (symbol or OID) or a typeinfo object")},
+   { kno_opts_type,_("optsarg"),_("an option set data structure")},
+   { kno_frame_type,_("frame"),_("a `frame`, an OID or keymap")},
+   { kno_slotid_type,_("slotid"),_("a `slotid`, a symbol or an OID")},
+   { kno_pool_type,_("pool"),
+     _("a registered pool id or a consed pool object")},
+   { kno_index_type,_("index"),
+     _("a registered index id or a consed index object")},
+   { -1,NULL,NULL }
+  };
+
 static void init_type_names()
 {
-  kno_type_names[kno_oid_type]=_("oid");
-  kno_type_docs[kno_oid_type]=_("oid");
-  kno_type_names[kno_fixnum_type]=_("fixnum");
-  kno_type_docs[kno_fixnum_type]=_("fixnum");
-  kno_type_names[kno_cons_type]=_("cons");
-  kno_type_docs[kno_cons_type]=_("cons");
-  kno_type_names[kno_immediate_type]=_("immediate");
-  kno_type_docs[kno_immediate_type]=_("immediate");
-  kno_type_names[kno_constant_type]=_("constant");
-  kno_type_docs[kno_constant_type]=_("constant");
-  kno_type_names[kno_character_type]=_("character");
-  kno_type_docs[kno_character_type]=_("character");
-  kno_type_names[kno_symbol_type]=_("symbol");
-  kno_type_docs[kno_symbol_type]=_("symbol");
-  kno_type_names[kno_fcnid_type]=_("fcnid");
-  kno_type_docs[kno_fcnid_type]=_("fcnid");
-  kno_type_names[kno_lexref_type]=_("lexref");
-  kno_type_docs[kno_lexref_type]=_("lexref");
-  kno_type_names[kno_opcode_type]=_("opcode");
-  kno_type_docs[kno_opcode_type]=_("opcode");
-  kno_type_names[kno_typeref_type]=_("typeref");
-  kno_type_docs[kno_typeref_type]=_("typeref");
-  kno_type_names[kno_coderef_type]=_("coderef");
-  kno_type_docs[kno_coderef_type]=_("coderef");
-  kno_type_names[kno_pool_type]=_("poolref");
-  kno_type_docs[kno_pool_type]=
-    _("a pool ID mapped to a static (eternal) pool");
-  kno_type_names[kno_index_type]=_("indexref");
-  kno_type_docs[kno_index_type]=
-    _("an index ID mapped to a static (eternal) index");
-  kno_type_names[kno_histref_type]=_("histref");
-  kno_type_docs[kno_histref_type]=_("histref");
-  kno_type_names[kno_ctype_type]=_("ctype");
-  kno_type_docs[kno_ctype_type]=
-    _("a representation of a primitive type value used by the runtime");
-
-  kno_type_names[kno_string_type]=_("string");
-  kno_type_docs[kno_string_type]=_("a UTF-8 encoded string");
-  kno_type_names[kno_packet_type]=_("packet");
-  kno_type_docs[kno_packet_type]=_("a byte vector");
-  kno_type_names[kno_secret_type]=_("secret");
-  kno_type_docs[kno_secret_type]=
-    _("a byte vector which doesn't easily disclose its data");
-  kno_type_names[kno_bigint_type]=_("bigint");
-  kno_type_docs[kno_bigint_type]=_("an unlimited-precision integer");
-  kno_type_names[kno_pair_type]=_("pair");
-  kno_type_docs[kno_pair_type]=_("pair");
-  kno_type_names[kno_cdrcode_type]=_("cdrcode");
-  kno_type_docs[kno_cdrcode_type]=
-    _("a half-cons for compact representations of linked lists");
-
-  kno_type_names[kno_typeinfo_type]=_("typeinfo");
-  kno_type_docs[kno_typeinfo_type]=_("a type description");
-  kno_type_names[kno_compound_type]=_("compound");
-  kno_type_docs[kno_compound_type]=_("compound");
-  kno_type_names[kno_rawptr_type]=_("rawptr");
-  kno_type_docs[kno_rawptr_type]=_("a 'wrapped' C pointer value");
-
-  kno_type_names[kno_choice_type]=_("choice");
-  kno_type_docs[kno_choice_type]=_("choice");
-  kno_type_names[kno_prechoice_type]=_("prechoice");
-  kno_type_docs[kno_prechoice_type]=_("prechoice");
-  kno_type_names[kno_qchoice_type]=_("qchoice");
-  kno_type_docs[kno_qchoice_type]=_("qchoice");
-
-  kno_type_names[kno_vector_type]=_("vector");
-  kno_type_docs[kno_vector_type]=_("vector");
-  kno_type_names[kno_numeric_vector_type]=_("numeric_vector");
-  kno_type_docs[kno_numeric_vector_type]=_("numeric_vector");
-
-  kno_type_names[kno_slotmap_type]=_("slotmap");
-  kno_type_docs[kno_slotmap_type]=_("slotmap");
-  kno_type_names[kno_schemap_type]=_("schemap");
-  kno_type_docs[kno_schemap_type]=_("schemap");
-  kno_type_names[kno_hashtable_type]=_("hashtable");
-  kno_type_docs[kno_hashtable_type]=_("hashtable");
-  kno_type_names[kno_hashset_type]=_("hashset");
-  kno_type_docs[kno_hashset_type]=_("hashset");
-
-  kno_type_names[kno_cprim_type]=_("cprim");
-  kno_type_docs[kno_cprim_type]=_("cprim");
-  kno_type_names[kno_ffi_type]=_("ffi");
-  kno_type_docs[kno_ffi_type]=_("ffi");
-  kno_type_names[kno_lambda_type]=_("lambda");
-  kno_type_docs[kno_lambda_type]=_("lambda");
-  kno_type_names[kno_rpc_type]=_("netproc");
-  kno_type_docs[kno_rpc_type]=_("netproc");
-
-  kno_type_names[kno_lexenv_type]=_("lexenv");
-  kno_type_docs[kno_lexenv_type]=_("lexenv");
-  kno_type_names[kno_evalfn_type]=_("evalfn");
-  kno_type_docs[kno_evalfn_type]=_("evalfn");
-  kno_type_names[kno_macro_type]=_("macro");
-  kno_type_docs[kno_macro_type]=_("macro");
-  kno_type_names[kno_stackframe_type]=_("stackframe");
-  kno_type_docs[kno_stackframe_type]=_("stackframe");
-  kno_type_names[kno_exception_type]=_("exception");
-  kno_type_docs[kno_exception_type]=_("exception");
-  kno_type_names[kno_promise_type]=_("promise");
-  kno_type_docs[kno_promise_type]=_("promise");
-  kno_type_names[kno_thread_type]=_("thread");
-  kno_type_docs[kno_thread_type]=_("thread");
-  kno_type_names[kno_synchronizer_type]=_("synchronizer");
-  kno_type_docs[kno_synchronizer_type]=_("synchronizer");
-
-  kno_type_names[kno_complex_type]=_("complex");
-  kno_type_docs[kno_complex_type]=_("complex");
-  kno_type_names[kno_rational_type]=_("rational");
-  kno_type_docs[kno_rational_type]=_("rational");
-  kno_type_names[kno_flonum_type]=_("flonum");
-  kno_type_docs[kno_flonum_type]=_("flonum");
-
-  kno_type_names[kno_timestamp_type]=_("timestamp");
-  kno_type_docs[kno_timestamp_type]=_("timestamp");
-  kno_type_names[kno_uuid_type]=_("uuid");
-  kno_type_docs[kno_uuid_type]=_("uuid");
-
-  kno_type_names[kno_mystery_type]=_("mystery");
-  kno_type_docs[kno_mystery_type]=
-    _("an object whose representation could not be decoded");
-  kno_type_names[kno_ioport_type]=_("ioport");
-  kno_type_docs[kno_ioport_type]=_("a textual I/O port");
-  kno_type_names[kno_stream_type]=_("stream");
-  kno_type_docs[kno_stream_type]=_("a binary I/O stream");
-
-  kno_type_names[kno_regex_type]=_("regex");
-  kno_type_docs[kno_regex_type]=_("regex");
-
-  kno_type_names[kno_subjob_type]=_("subjob");
-  kno_type_docs[kno_subjob_type]=_("a sub-process (subjob) object");
-
-  kno_type_names[kno_consblock_type]=_("consblock");
-  kno_type_docs[kno_consblock_type]=_("consblock");
-
-  kno_type_names[kno_consed_pool_type]=_("raw pool");
-  kno_type_docs[kno_consed_pool_type]=
-    _("a pointer to an unregistered ('ephemeral') pool");
-
-  kno_type_names[kno_consed_index_type]=_("raw index");
-  kno_type_docs[kno_consed_index_type]=
-    _("a pointer to an unregistered ('ephemeral') index");
-
-  kno_type_names[kno_sqldb_type]=_("sqldb");
-  kno_type_docs[kno_sqldb_type]=_("sqldb");
-  kno_type_names[kno_sqlproc_type]=_("sqlproc");
-  kno_type_docs[kno_sqlproc_type]=_("sqlproc");
-
-  kno_type_names[kno_service_type]=_("service");
-  kno_type_docs[kno_service_type]=_("service");
-
-  kno_type_names[kno_bloom_filter_type]=_("bloom_filter");
-  kno_type_docs[kno_bloom_filter_type]=_("bloom_filter");
-
-  kno_type_names[kno_pathstore_type]=_("pathstore");
-  kno_type_docs[kno_pathstore_type]=_("pathstore");
- 
-  kno_type_names[kno_type_type]=_("type");
-  kno_type_docs[kno_type_type]=
-    _("a ctype, a type tag (symbol or OID) or a typeinfo object");
-
-  kno_type_names[kno_number_type]=_("number");
-  kno_type_docs[kno_number_type]=_("a number");
-
-  kno_type_names[kno_applicable_type]=_("applicable");
-  kno_type_docs[kno_applicable_type]=
-    _("an applicable object (prodcure, primitive, etc)");
-
-  kno_type_names[kno_frame_type]=_("frame");
-  kno_type_docs[kno_frame_type]=_("a `frame`, an OID or keymap");
-
-  kno_type_names[kno_slotid_type]=_("slotid");
-  kno_type_docs[kno_slotid_type]=_("a `slotid`, a symbol or an OID");
-
-  kno_type_names[kno_keymap_type]=_("keymap");
-  kno_type_docs[kno_keymap_type]=_("a slotmap or schemap");
-
-  kno_type_names[kno_table_type]=_("table");
-  kno_type_docs[kno_table_type]=_("a table object");
-
-  kno_type_names[kno_sequence_type]=_("sequence");
-  kno_type_docs[kno_sequence_type]=_("a sequence object");
-
-  kno_type_names[kno_opts_type]=_("optsarg");
-  kno_type_docs[kno_opts_type]=_("an opts data structure");
-
-  kno_type_names[kno_xpool_type]=_("pool");
-  kno_type_docs[kno_xpool_type]=
-    _("a registered pool id or a consed pool object");
-
-  kno_type_names[kno_xindex_type]=_("index");
-  kno_type_docs[kno_xindex_type]=
-    _("a registered index id or a consed index object");
-
+  struct typeinfo_initializer *scan = init_typeinfo;
+  while (scan->typecode >= 0) {
+    kno_type_names[scan->typecode] = scan->name;
+    kno_type_docs[scan->typecode] = scan->doc;
+    scan++;}
 }
 
 static int lisp_types_version = 101;
@@ -648,8 +577,8 @@ KNO_EXPORT int kno_init_lisp_types()
   kno_add_constname("sequence",KNO_SEQUENCE_TYPE);
   kno_add_constname("frame",KNO_FRAME_TYPE);
   kno_add_constname("slotid",KNO_SLOTID_TYPE);
-  kno_add_constname("pool",KNO_XPOOL_TYPE);
-  kno_add_constname("index",KNO_XINDEX_TYPE);
+  kno_add_constname("pool",KNO_POOL_TYPE);
+  kno_add_constname("index",KNO_INDEX_TYPE);
 
   u8_threadcheck();
 

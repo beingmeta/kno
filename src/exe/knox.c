@@ -1,8 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
-   This file is part of beingmeta's Kno platform and is copyright
-   and a valuable trade secret of beingmeta, inc.
+   Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu)
 */
 
 #ifndef EMBEDDED_KNO
@@ -229,7 +228,7 @@ int do_main(int argc,char **argv,
   u8_string source_base = NULL;
 
   DEFC_PRIMN("CHAIN",chain_prim,KNO_VAR_ARGS|MIN_ARGS(0),
-	    "Resets the current process to a fresh instance of knox");
+	     "Resets the current process to a fresh instance of knox");
   KNO_LINK_CPRIM("CHAIN",chain_prim,0,(lispval)env);
 
   link_local_cprims();

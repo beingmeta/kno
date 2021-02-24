@@ -1,8 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
-   This file is part of beingmeta's Kno platform and is copyright
-   and a valuable trade secret of beingmeta, inc.
+   Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu)
 */
 
 #ifndef _FILEINFO
@@ -78,8 +77,8 @@ KNO_EXPORT lispval kno_open_dtserver(u8_string server,int bufsiz)
 }
 
 DEFC_PRIM("dtserver?",dtserverp,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "Returns true if it's argument is a dtype server object",
-	 {"obj",kno_any_type,KNO_VOID});
+	  "Returns true if it's argument is a dtype server object",
+	  {"obj",kno_any_type,KNO_VOID});
 static lispval dtserverp(lispval arg)
 {
   if (TYPEP(arg,kno_service_type))
@@ -88,9 +87,9 @@ static lispval dtserverp(lispval arg)
 }
 
 DEFC_PRIM("dtserver-id",dtserver_id,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "Returns the ID of a dtype server (the argument "
-	 "used to create it)",
-	 {"service",kno_service_type,KNO_VOID});
+	  "Returns the ID of a dtype server (the argument "
+	  "used to create it)",
+	  {"service",kno_service_type,KNO_VOID});
 static lispval dtserver_id(lispval arg)
 {
   struct KNO_DTSERVER *dts = (struct KNO_DTSERVER *) arg;
@@ -98,8 +97,8 @@ static lispval dtserver_id(lispval arg)
 }
 
 DEFC_PRIM("dtserver-address",dtserver_address,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "Returns the address (host/port) of a dtype server",
-	 {"service",kno_service_type,KNO_VOID});
+	  "Returns the address (host/port) of a dtype server",
+	  {"service",kno_service_type,KNO_VOID});
 static lispval dtserver_address(lispval arg)
 {
   struct KNO_DTSERVER *dts = (struct KNO_DTSERVER *) arg;
@@ -107,9 +106,9 @@ static lispval dtserver_address(lispval arg)
 }
 
 DEFC_PRIM("dteval",dteval,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "**undocumented**",
-	 {"server",kno_any_type,KNO_VOID},
-	 {"expr",kno_any_type,KNO_VOID});
+	  "**undocumented**",
+	  {"server",kno_any_type,KNO_VOID},
+	  {"expr",kno_any_type,KNO_VOID});
 static lispval dteval(lispval server,lispval expr)
 {
   if (TYPEP(server,kno_service_type))  {
@@ -127,7 +126,7 @@ static lispval dteval(lispval server,lispval expr)
 }
 
 DEFC_PRIMN("dtcall",dtcall,KNO_VAR_ARGS|KNO_MIN_ARGS(2),
-	  "**undocumented**");
+	   "**undocumented**");
 static lispval dtcall(int n,kno_argvec args)
 {
   lispval server; lispval request = NIL, result; int i = n-1;
@@ -150,9 +149,9 @@ static lispval dtcall(int n,kno_argvec args)
 }
 
 DEFC_PRIM("open-dtserver",open_dtserver,KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"server",kno_string_type,KNO_VOID},
-	 {"bufsize",kno_fixnum_type,KNO_VOID});
+	  "**undocumented**",
+	  {"server",kno_string_type,KNO_VOID},
+	  {"bufsize",kno_fixnum_type,KNO_VOID});
 static lispval open_dtserver(lispval server,lispval bufsiz)
 {
   return kno_open_dtserver(CSTRING(server),
@@ -163,14 +162,14 @@ static lispval open_dtserver(lispval server,lispval bufsiz)
 /* Making DTPROCs */
 
 DEFC_PRIM("dtproc",make_dtproc,KNO_MAX_ARGS(7)|KNO_MIN_ARGS(2),
-	 "**undocumented**",
-	 {"name",kno_symbol_type,KNO_VOID},
-	 {"server",kno_string_type,KNO_VOID},
-	 {"min_arity",kno_any_type,KNO_VOID},
-	 {"arity",kno_any_type,KNO_VOID},
-	 {"minsock",kno_fixnum_type,KNO_CPP_INT}(2),
-	 {"maxsock",kno_fixnum_type,KNO_CPP_INT}(4),
-	 {"initsock",kno_fixnum_type,KNO_CPP_INT}(1));
+	  "**undocumented**",
+	  {"name",kno_symbol_type,KNO_VOID},
+	  {"server",kno_string_type,KNO_VOID},
+	  {"min_arity",kno_any_type,KNO_VOID},
+	  {"arity",kno_any_type,KNO_VOID},
+	  {"minsock",kno_fixnum_type,KNO_CPP_INT}(2),
+	  {"maxsock",kno_fixnum_type,KNO_CPP_INT}(4),
+	  {"initsock",kno_fixnum_type,KNO_CPP_INT}(1));
 static lispval make_dtproc(lispval name,lispval server,lispval min_arity,
 			   lispval arity,lispval minsock,lispval maxsock,
 			   lispval initsock)

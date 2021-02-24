@@ -1,8 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2015-2020 beingmeta, inc.
-   This file is part of beingmeta's Kno platform and is copyright
-   and a valuable trade secret of beingmeta, inc.
+   Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu)
 */
 
 #ifndef _FILEINFO
@@ -174,6 +173,18 @@ _KNO_STACK_SET_ARGS(kno_stack stack,lispval *args,
   __KNO_STACK_SET_ARGS(stack,args,width,n,flags);
 }
 
+KNO_EXPORT void
+_KNO_STACK_FREE_ARGS(kno_stack stack)
+{
+  __KNO_STACK_FREE_ARGS(stack);
+}
+
+
+KNO_EXPORT void
+_KNO_STACK_RESET_ARGS(kno_stack stack)
+{
+  __KNO_STACK_RESET_ARGS(stack);
+}
 
 KNO_EXPORT int _kno_free_stack(struct KNO_STACK *stack)
 {

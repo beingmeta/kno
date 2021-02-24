@@ -1,8 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
-   This file is part of beingmeta's Kno platform and is copyright
-   and a valuable trade secret of beingmeta, inc.
+   Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu)
 */
 
 #ifndef _FILEINFO
@@ -339,6 +338,69 @@ KNO_EXPORT void kno_histclear(int size)
     kno_hist_init(size);}
   else kno_thread_set(history_symbol,KNO_FALSE);
 }
+
+#if 0
+/* Resolving histrefs in structures */
+
+static lispval resolve_histrefs(lispval obj,lispval history)
+{
+  if (KNO_CONSP(obj)) {
+    switch (KNO_TYPEOF(obj)) {
+    case kno_compound_type: {
+      if (KNO_COMPOUND_TAG(obj)==histref_symbol) {}
+      else if (KNO_COMPOUND_OPAQUEP(obj)) return kno_incref(obj);
+      else {
+	ssize_t n_elts = KNO_COMPOUND_LENGTH(obj), changed = 0;
+	lispval resolved[n_elts], *elts = KNO_COMPOUND_ELTS(obj);
+	ssize_t i = 0; while (i<n_elts) {
+	  lispval elt = elts[i];
+	  if (CONSP(elt)) {
+	    lispval r = resolve_histrefs(elt,history);
+	    if ( (!changed) && (elt != r) ) changed=1;
+	    resolved[i++]=r;}
+	  else resolved[i++] = elt;}
+	if (changed) {
+	  return kno_make_compound();}
+	else {
+	  kno_decref_vec(resolved,n_elts);
+	  return kno_incref(obj);}}}
+    case kno_vector_type: {
+      ssize_t n_elts = KNO_VECTOR_LENGTH(obj), changed = 0;
+      lispval resolved[n_elts], *elts = KNO_VECTOR_ELTS(obj);
+      ssize_t i = 0; while (i<n_elts) {
+	lispval elt = elts[i];
+	if (CONSP(elt)) {
+	  lispval r = resolve_histrefs(elt,history);
+	  if ( (!changed) && (elt != r) ) changed=1;
+	  resolved[i++]=r;}
+	else resolved[i++]=r;}
+      if (changed)
+	return kno_make_vector(n_elts,resolved);
+      else {
+	kno_decref_vec(resolved,n_elts);
+	return kno_incref(obj);}}
+    case kno_pair_type: {
+      lispval scan = obj; lispval head = KNO_VOID, *tail=&head;
+      int changed = 0;
+      while (KNO_PAIRP(scan)) {
+	lispval car = KNO_CAR(scan);
+	lispval newcar = (KNO_CONSP(car)) ? (resolve_histref(car,history)) :
+	  (car);
+	lispval cons = kno_init_pair(NULL,car,KNO_EMPTY_LIST);
+	*tail = cons;
+	tail = (&(((kno_pair)cons)->cdr));
+	scan = KNO_CDR(scan);}
+      if (KNO_CONSP(scan))
+	*tail = resolve_histref(scan,history);
+      else *tail = scan;
+      return head;}
+    case kno_slotmap_type: {}
+    case kno_schemap_type: {}
+    default:
+      return kno_incref(obj);}}
+  else return obj;
+}
+#endif
 
 /* Histrefs parse config */
 

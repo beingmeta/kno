@@ -1,8 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
-   This file is part of beingmeta's Kno platform and is copyright
-   and a valuable trade secret of beingmeta, inc.
+   Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu)
 */
 
 #ifndef KNO_TABLES_H
@@ -543,7 +542,7 @@ KNO_EXPORT lispval kno_schemap2slotmap(lispval schemap);
 
 /* Generic predicate for keymaps */
 
-#define KNO_KEYMAPP(x) ( KNO_XTYPEP((x),kno_keymap_type) )
+#define KNO_KEYMAPP(x) ( KNO_TYPEP((x),kno_keymap_type) )
 
 /* Hashtables */
 

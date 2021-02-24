@@ -1,8 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
-   This file is part of beingmeta's Kno platform and is copyright
-   and a valuable trade secret of beingmeta, inc.
+   Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu)
 */
 
 /* Choices in Kno
@@ -205,6 +204,7 @@ KNO_EXPORT void _kno_prechoice_add(struct KNO_PRECHOICE *ch,lispval v);
 KNO_EXPORT int _kno_contains_atomp(lispval x,lispval ch);
 KNO_EXPORT lispval kno_merge_choices(struct KNO_CHOICE **choices,int n_choices);
 KNO_EXPORT int _kno_choice_size(lispval x);
+KNO_EXPORT lispval kno_normalize_choice(lispval x,int free_prechoice);
 KNO_EXPORT lispval _kno_make_simple_choice(lispval x);
 KNO_EXPORT lispval _kno_simplify_choice(lispval x);
 
@@ -236,13 +236,13 @@ KNO_FASTOP U8_MAYBE_UNUSED int __kno_choice_size(lispval x)
 KNO_FASTOP U8_MAYBE_UNUSED lispval __kno_simplify_choice(lispval x)
 {
   if (KNO_PRECHOICEP(x))
-    return _kno_simplify_choice(x);
+    return kno_normalize_choice(x,1);
   else return x;
 }
 KNO_FASTOP U8_MAYBE_UNUSED lispval __kno_make_simple_choice(lispval x)
 {
   if (KNO_PRECHOICEP(x))
-    return _kno_make_simple_choice(x);
+    return kno_normalize_choice(x,0);
   else return kno_incref(x);
 }
 #endif
@@ -379,13 +379,14 @@ static U8_MAYBE_UNUSED int __kno_contains_atomp(lispval x,lispval ch)
 #define kno_prechoice_add __kno_prechoice_add
 #define KNO_ADD_TO_CHOICE(x,v) x=__kno_add_to_choice(x,v)
 #define kno_contains_atomp __kno_contains_atomp
+#define KNO_ADD_TO_CHOICE_INCREF(x,expr) \
+  lispval __add = expr; kno_incref(__add); x=__kno_add_to_choice(x,__add)
 #else
 #define kno_prechoice_add _kno_prechoice_add
-#define KNO_ADD_TO_CHOICE(x,v)                    \
-   if (KNO_DEBUG_BADPTRP(v))                      \
-     _kno_bad_pointer(v,(u8_context)"KNO_ADD_TO_CHOICE"); \
-   else x=_kno_add_to_choice(x,v)
+#define KNO_ADD_TO_CHOICE(x,v) x=_kno_add_to_choice(x,v)
 #define kno_contains_atomp _kno_contains_atomp
+#define KNO_ADD_TO_CHOICE_INCREF(x,expr) \
+  lispval __add = expr; kno_incref(__add); x=__kno_add_to_choice(x,__add)
 #endif
 
 #if KNO_FAST_CHOICE_CONTAINSP
@@ -441,6 +442,20 @@ kno_dochoices_helper(lispval *_valp,
   *_valp = _val;
 }
 
+#define KNO_ITER_CHOICES(scan,limit,val)	      \
+  const lispval *scan, *limit;			      \
+  if (KNO_EMPTYP(val)) limit=scan=NULL;		      \
+  else if (!(KNO_CONSP(val))) {			      \
+    scan = &val; limit = scan+1;}		      \
+  else if (KNO_CHOICEP(val)) {			      \
+    scan  = (lispval *) KNO_CHOICE_ELTS(val);	      \
+    limit = scan+KNO_CHOICE_SIZE(val);}		      \
+  else if (KNO_QCHOICEP(val)) {			      \
+    struct KNO_QCHOICE *_qc = (kno_qchoice) val;      \
+    scan  = (lispval *) &(_qc->qchoiceval);	      \
+    limit = scan+1;}				      \
+ else { scan = &val; limit = scan+1;}
+
 #if KNO_EXTREME_PROFILING
 #define KNO_DO_CHOICES(elt,valexpr) \
   lispval elt, _val=valexpr, _singlev[1]; \
@@ -485,6 +500,46 @@ KNO_EXPORT int kno_containsp(lispval,lispval);
 KNO_EXPORT lispval kno_intersect_choices(struct KNO_CHOICE **,int);
 
 KNO_EXPORT lispval *kno_natsort_choice(kno_choice ch,lispval *,ssize_t);
+
+/* DO_CHOICES2 */
+
+#define KNO_DO_CHOICES2(elt1,elt2,valexpr1,valexpr2)	\
+    lispval elt1, _val1=valexpr1, _singlev1[1];		\
+    lispval elt2, _val2=valexpr2, _singlev2[1];		\
+    const lispval *_scan1, *_limit1;			\
+    const lispval *_scan2, *_limit2;			      \
+    int _need_gc1=0, need_gc2=0;			      \
+    KNO_PTR_CHECK1(_val1,"KNO_DO_CHOICES");		      \
+    KNO_PTR_CHECK1(_val2,"KNO_DO_CHOICES");		      \
+    if (KNO_PRECHOICEP(_val1)) {			      \
+      _need_gc1=1; _val1=kno_make_simple_choice(_val1);}      \
+    if (KNO_PRECHOICEP(_val2)) {			      \
+      _need_gc2=1; _val2=kno_make_simple_choice(_val2);}      \
+    if (KNO_CHOICEP(_val1)) {						\
+      _scan1=KNO_CHOICE_DATA(_val1); _limit1=_scan1+KNO_CHOICE_SIZE(_val1);} \
+    else if (KNO_EMPTY_CHOICEP(_val1)) {				\
+      _scan1=_singlev1+1; _limit1=_scan1;}				\
+    else if (KNO_QCHOICEP(_val1)) {					\
+      _singlev1[0] = KNO_XQCHOICE(_val1)->qchoiceval;			\
+      _val1 = _singlev1[0]; kno_incref(_val1); _need_gc1 = 1;		\
+      _scan1=_singlev1; _limit1=_scan1+1;}				\
+    else {								\
+      _singlev1[0]=_val1; _scan1=_singlev1; _limit1=_scan1+1;}		\
+    if (KNO_CHOICEP(_val2)) {						\
+      _scan2=KNO_CHOICE_DATA(_val2);					\
+      _limit2=_scan2+KNO_CHOICE_SIZE(_val2);}				\
+    else if (KNO_EMPTY_CHOICEP(_val2)) {				\
+      _scan2=_singlev2+1; _limit2=_scan2;}				\
+    else if (KNO_QCHOICEP(_val2)) {					\
+      _singlev2[0] = KNO_XQCHOICE(_val2)->qchoiceval;			\
+      _val2 = _singlev2[0]; kno_incref(_val2); _need_gc2 = 1;		\
+      _scan2=_singlev2; _limit2=_scan2+1;}				\
+    else {								\
+      _singlev2[0]=_val2; _scan2=_singlev2; _limit2=_scan2+1;}		\
+    while ( (_scan1<_limit1) ? (elt1=*(_scan1++)) :			\
+	    (((_need_gc1) ? (kno_decref(_val1),0) : (0)) ||		\
+	     ((_need_gc2) ? (kno_decref(_val2),0) : (0))))		\
+      while ( (_scan1<_limit1) ? (elt1=*(_scan1++)) : (0) )
 
 #endif /* KNO_CHOICES_H */
 
