@@ -821,7 +821,8 @@ static void init_pthread_attrs(pthread_attr_t *attr,lispval opts)
 
   /* sched_priority */
   lispval priority_opt = kno_getopt(opts,KNOSYM(priority),KNO_VOID);
-  if (KNO_FIXNUMP(priority_opt)) {
+  if (VOIDP(priority_opt)) {}
+  else if (FIXNUMP(priority_opt)) {
     int priority = KNO_FIX2INT(priority_opt);
     struct sched_param param = { priority };
     pthread_attr_setschedparam(attr,&param);}
@@ -830,7 +831,8 @@ static void init_pthread_attrs(pthread_attr_t *attr,lispval opts)
 
   /* policy opt */
   lispval policy_opt = kno_getopt(opts,KNOSYM(policy),KNO_VOID);
-  if ( policy_opt == (KNOSYM(fifo)) )
+  if (VOIDP(policy_opt)) {}
+  else if ( policy_opt == (KNOSYM(fifo)) )
     pthread_attr_setschedpolicy(attr,SCHED_FIFO);
   else if ( policy_opt == (KNOSYM(roundrobin)) )
     pthread_attr_setschedpolicy(attr,SCHED_RR);
