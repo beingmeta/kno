@@ -205,6 +205,7 @@ KNO_EXPORT void _kno_prechoice_add(struct KNO_PRECHOICE *ch,lispval v);
 KNO_EXPORT int _kno_contains_atomp(lispval x,lispval ch);
 KNO_EXPORT lispval kno_merge_choices(struct KNO_CHOICE **choices,int n_choices);
 KNO_EXPORT int _kno_choice_size(lispval x);
+KNO_EXPORT lispval kno_normalize_choice(lispval x,int free_prechoice);
 KNO_EXPORT lispval _kno_make_simple_choice(lispval x);
 KNO_EXPORT lispval _kno_simplify_choice(lispval x);
 
@@ -236,13 +237,13 @@ KNO_FASTOP U8_MAYBE_UNUSED int __kno_choice_size(lispval x)
 KNO_FASTOP U8_MAYBE_UNUSED lispval __kno_simplify_choice(lispval x)
 {
   if (KNO_PRECHOICEP(x))
-    return _kno_simplify_choice(x);
+    return kno_normalize_choice(x,1);
   else return x;
 }
 KNO_FASTOP U8_MAYBE_UNUSED lispval __kno_make_simple_choice(lispval x)
 {
   if (KNO_PRECHOICEP(x))
-    return _kno_make_simple_choice(x);
+    return kno_normalize_choice(x,0);
   else return kno_incref(x);
 }
 #endif

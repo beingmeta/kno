@@ -19,8 +19,6 @@
 
 ssize_t kno_choicemerge_threshold=KNO_CHOICEMERGE_THRESHOLD;
 
-static lispval normalize_choice(lispval x,int free_prechoice);
-
 #define lock_prechoice(ach) u8_lock_mutex(&((ach)->prechoice_lock))
 #define unlock_prechoice(ach) u8_unlock_mutex(&((ach)->prechoice_lock))
 
@@ -63,7 +61,7 @@ static ssize_t write_prechoice_dtype(struct KNO_OUTBUF *s,lispval x)
 static lispval copy_prechoice(lispval x,int flags)
 {
   if (KNO_PRECHOICEP(x))
-    return normalize_choice(x,0);
+    return kno_normalize_choice(x,0);
   else return kno_copier(x,flags);
 }
 
@@ -456,8 +454,9 @@ int _kno_contains_atomp(lispval x,lispval ch)
 
 static lispval prechoice_append(struct KNO_PRECHOICE *ch,int freeing_prechoice);
 
-static lispval normalize_choice(lispval x,int free_prechoice)
+KNO_EXPORT lispval kno_normalize_choice(lispval x,int free_prechoice)
 {
+  if (!(PRECHOICEP(x))) { if (free_prechoice) return x; else return kno_incref(x); }
   struct KNO_PRECHOICE *ch=
     kno_consptr(struct KNO_PRECHOICE *,x,kno_prechoice_type);
   /* Double check that it's really okay to free it. */
@@ -583,7 +582,7 @@ KNO_EXPORT
 lispval _kno_make_simple_choice(lispval x)
 {
   if (PRECHOICEP(x))
-    return normalize_choice(x,0);
+    return kno_normalize_choice(x,0);
   else return kno_incref(x);
 }
 
@@ -595,9 +594,7 @@ KNO_EXPORT
    otherwise. */
 lispval _kno_simplify_choice(lispval x)
 {
-  if (PRECHOICEP(x))
-    return normalize_choice(x,1);
-  else return x;
+  return kno_normalize_choice(x,1);
 }
 
 KNO_EXPORT int _kno_choice_size(lispval x)
@@ -1210,10 +1207,10 @@ int kno_overlapp(lispval xarg,lispval yarg)
     int retval = 0;
     lispval x, y;
     if (PRECHOICEP(xarg))
-      x = normalize_choice(xarg,0);
+      x = kno_normalize_choice(xarg,0);
     else x = xarg;
     if (PRECHOICEP(yarg))
-      y = normalize_choice(yarg,0);
+      y = kno_normalize_choice(yarg,0);
     else y = yarg;
     if (CHOICEP(x))
       if (CHOICEP(y))
@@ -1252,10 +1249,10 @@ int kno_containsp(lispval xarg,lispval yarg)
   else {
     lispval x, y; int retval = 0;
     if (PRECHOICEP(xarg))
-      x = normalize_choice(xarg,0);
+      x = kno_normalize_choice(xarg,0);
     else x = xarg;
     if (PRECHOICEP(yarg))
-      y = normalize_choice(yarg,0);
+      y = kno_normalize_choice(yarg,0);
     else y = yarg;
     if (CHOICEP(x))
       if (CHOICEP(y)) {
