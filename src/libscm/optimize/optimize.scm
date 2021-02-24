@@ -1647,6 +1647,7 @@
     (reverse optimized)))
 
 (add! special-form-optimizers %watch optimize-watch)
+(add! special-form-optimizers %watchptr optimize-block)
 
 ;;; Declare them
 
