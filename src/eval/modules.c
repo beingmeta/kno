@@ -528,6 +528,98 @@ static lispval module_export_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
   return VOID;
 }
 
+KNO_DEFC_EVALFN("module-proxy!",module_proxy_evalfn,KNO_EVALFN_DEFAULTS,
+		"`(module-proxy! *source* *symbols*...)` exports *symbols* "
+		"from the module *source* as symbols from the current module. "
+		"If no *symbols* are specified, all the exports of the module "
+		"*source* are used.");
+static lispval module_proxy_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
+{
+  kno_hashtable exports = NULL;
+  lispval module_expr = kno_get_arg(expr,1);
+  lispval module_val = kno_eval(module_expr,env,stack,0);
+  lispval symbols = kno_get_body(expr,2);
+  lispval module =
+    (KNO_HASHTABLEP(module_val)) ? (kno_incref(module_val)) :
+    (KNO_LEXENVP(module_val)) ? (kno_incref(module_val)) :
+    (kno_find_module(module_val,1));
+  if (KNO_ABORTED(module)) {
+    kno_decref(module_val); return module;}
+  if (HASHTABLEP(env->env_exports))
+    exports = (kno_hashtable)env->env_exports;
+  else exports = kno_get_exports(env);
+  if (KNO_EMPTY_LISTP(symbols)) {
+    lispval symbols =
+      ( (KNO_LEXENVP(module)) &&
+	(KNO_HASHTABLEP(((kno_lexenv)module)->env_exports)) ) ?
+      (kno_getkeys(((kno_lexenv)module)->env_exports)) :
+      (kno_getkeys(module));
+    KNO_DO_CHOICES(symbol,symbols) {
+      lispval val = kno_get(module,symbol,VOID);
+      kno_hashtable_store(exports,symbol,val);
+      kno_decref(val);}
+    kno_decref(symbols);}
+  else {
+    DOLIST(symbol,symbols) {
+      lispval val = kno_get(module,symbol,VOID);
+      kno_hashtable_store(exports,symbol,val);
+      kno_decref(val);}}
+  return VOID;
+}
+
+KNO_DEFC_EVALFN("module-alias!",module_alias_evalfn,KNO_EVALFN_DEFAULTS,
+		"`(module-alias! *source* *symbols*...)` exports *symbols* "
+		"from the module *source* as symbols from the current module. "
+		"If no *symbols* are specified, all the exports of the module "
+		"*source* are used.");
+static lispval module_alias_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
+{
+  kno_hashtable exports = NULL;
+  lispval module_expr = kno_get_arg(expr,1);
+  lispval module_val = kno_eval(module_expr,env,stack,0);
+  lispval symbols = kno_get_body(expr,2);
+  lispval module =
+    (KNO_HASHTABLEP(module_val)) ? (kno_incref(module_val)) :
+    (KNO_LEXENVP(module_val)) ? (kno_incref(module_val)) :
+    (kno_find_module(module_val,1));
+  if (KNO_ABORTED(module)) {
+    kno_decref(module_val); return module;}
+  if (HASHTABLEP(env->env_exports))
+    exports = (kno_hashtable)env->env_exports;
+  else exports = kno_get_exports(env);
+  if (KNO_EMPTY_LISTP(symbols)) {
+    lispval symbols =
+      ( (KNO_LEXENVP(module)) &&
+	(KNO_HASHTABLEP(((kno_lexenv)module)->env_exports)) ) ?
+      (kno_getkeys(((kno_lexenv)module)->env_exports)) :
+      (kno_getkeys(module));
+    KNO_DO_CHOICES(symbol,symbols) {
+      lispval val = kno_get(module,symbol,VOID);
+      if (KNO_FCNIDP(val))
+	kno_hashtable_store(exports,symbol,val);
+      else if (KNO_APPLICABLEP(val)) {
+	lispval ref = kno_fcn_ref(symbol,module,val);
+	if (KNO_FCNIDP(ref))
+	  kno_hashtable_store(exports,symbol,ref);
+	else kno_hashtable_store(exports,symbol,val);}
+      else kno_hashtable_store(exports,symbol,val);
+      kno_decref(val);}
+    kno_decref(symbols);}
+  else {
+    DOLIST(symbol,symbols) {
+      lispval val = kno_get(module,symbol,VOID);
+      if (KNO_FCNIDP(val))
+	kno_hashtable_store(exports,symbol,val);
+      else if (KNO_APPLICABLEP(val)) {
+	lispval ref = kno_fcn_ref(symbol,module,val);
+	if (KNO_FCNIDP(ref))
+	  kno_hashtable_store(exports,symbol,val);
+	else kno_hashtable_store(exports,symbol,val);}
+      else kno_hashtable_store(exports,symbol,val);
+      kno_decref(val);}}
+  return VOID;
+}
+
 /* Using modules */
 
 static int uses_bindings(kno_lexenv env,lispval bindings)
@@ -1106,4 +1198,7 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("get-module",get_module,1,kno_sys_module);
 
   KNO_LINK_ALIAS("%ls",get_exports_prim,kno_sys_module);
+
+  KNO_LINK_EVALFN(kno_scheme_module,module_proxy_evalfn);
+  KNO_LINK_EVALFN(kno_scheme_module,module_alias_evalfn);
 }
