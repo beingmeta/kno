@@ -2,6 +2,7 @@
 
 /* phonetic.c
    Copyright (C) 2006-2020 beingmeta, inc.
+   Copyright (C) 2020-2021 beingmeta, LLC
 
    This file implements various phonetic and quasi-phonetic hashing
    algorithms for spelling correction etc.

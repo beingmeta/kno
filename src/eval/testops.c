@@ -1,6 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
+   Copyright (C) 2020-2021 beingmeta, LLC
    This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -119,8 +120,8 @@ static u8_string get_testid(lispval fn,int n,kno_argvec args)
 }
 
 DEFC_PRIMN("applytest",applytest,
-	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	  "**undocumented**")
+	   KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	   "**undocumented**")
 static lispval applytest(int n,kno_argvec args)
 {
   lispval expected = args[0], return_value;
@@ -356,9 +357,9 @@ static lispval errtest_evalfn(lispval expr,kno_lexenv env,kno_stack s)
 }
 
 DEFC_PRIM("testfn1",testfn1,MAX_ARGS(1)|MIN_ARGS(1),
-	 "This function helps look at how things get compiled "
-	 "when disassembled",
-	 {"object",kno_any_type,KNO_VOID})
+	  "This function helps look at how things get compiled "
+	  "when disassembled",
+	  {"object",kno_any_type,KNO_VOID})
 static lispval testfn1(lispval object)
 {
   /* If 'properly' compiled, the first three TYPEP calls should

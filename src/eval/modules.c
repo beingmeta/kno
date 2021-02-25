@@ -1,6 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
+   Copyright (C) 2020-2021 beingmeta, LLC
    This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -710,9 +711,9 @@ static lispval export_alias_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 }
 
 DEFC_PRIM("get-module",get_module,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"modname",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"modname",kno_any_type,KNO_VOID})
 static lispval get_module(lispval modname)
 {
   if ( (KNO_SYMBOLP(modname)) || (KNO_STRINGP(modname)) )
@@ -721,9 +722,9 @@ static lispval get_module(lispval modname)
 }
 
 DEFC_PRIM("get-loaded-module",get_loaded_module,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"modname",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"modname",kno_any_type,KNO_VOID})
 static lispval get_loaded_module(lispval modname)
 {
   lispval module = kno_get_module(modname);
@@ -764,10 +765,10 @@ lispval kno_use_module(kno_lexenv env,lispval module)
 }
 
 DEFC_PRIM("get-exports",get_exports_prim,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "returns the exported symbols of a module or "
-	 "environment",
-	 {"arg",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "returns the exported symbols of a module or "
+	  "environment",
+	  {"arg",kno_any_type,KNO_VOID})
 static lispval get_exports_prim(lispval arg)
 {
   lispval module = arg;
@@ -793,10 +794,10 @@ static lispval get_exports_prim(lispval arg)
 }
 
 DEFC_PRIM("get-exports-table",get_exports_table_prim,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "returns the exports table of a module or "
-	 "environment.",
-	 {"arg",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "returns the exports table of a module or "
+	  "environment.",
+	  {"arg",kno_any_type,KNO_VOID})
 static lispval get_exports_table_prim(lispval arg)
 {
   lispval module = arg;
@@ -880,13 +881,13 @@ static lispval get_source(lispval arg)
 }
 
 DEFC_PRIM("get-source",get_source_prim,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
-	 "(get-source [*obj*])\n"
-	 "Gets the source file implementing *obj*, which "
-	 "can be a function (or macro or evalfn), module, "
-	 "or module name. With no arguments, returns the "
-	 "current SOURCEBASE",
-	 {"arg",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
+	  "(get-source [*obj*])\n"
+	  "Gets the source file implementing *obj*, which "
+	  "can be a function (or macro or evalfn), module, "
+	  "or module name. With no arguments, returns the "
+	  "current SOURCEBASE",
+	  {"arg",kno_any_type,KNO_VOID})
 static lispval get_source_prim(lispval arg)
 {
   return get_source(arg);
@@ -986,14 +987,14 @@ get_binding_helper(lispval modarg,lispval symbol,lispval dflt,
 }
 
 DEFC_PRIM("get-binding",get_binding_prim,
-	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 "(get-binding *module* *symbol* [*default*])\n"
-	 "Gets *module*'s exported binding of *symbol*. On "
-	 "failure, returns *default* if provided or errs if "
-	 "none is provided.",
-	 {"mod_arg",kno_any_type,KNO_VOID},
-	 {"symbol",kno_symbol_type,KNO_VOID},
-	 {"dflt",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+	  "(get-binding *module* *symbol* [*default*])\n"
+	  "Gets *module*'s exported binding of *symbol*. On "
+	  "failure, returns *default* if provided or errs if "
+	  "none is provided.",
+	  {"mod_arg",kno_any_type,KNO_VOID},
+	  {"symbol",kno_symbol_type,KNO_VOID},
+	  {"dflt",kno_any_type,KNO_VOID})
 static lispval get_binding_prim
 (lispval mod_arg,lispval symbol,lispval dflt)
 {
@@ -1001,14 +1002,14 @@ static lispval get_binding_prim
 }
 
 DEFC_PRIM("%get-binding",get_internal_binding_prim,
-	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 "(get-binding *module* *symbol* [*default*])\n"
-	 "Gets *module*'s binding of *symbol* (internal or "
-	 "external). On failure returns *default* (if "
-	 "provided) or errs if none is provided.",
-	 {"mod_arg",kno_any_type,KNO_VOID},
-	 {"symbol",kno_symbol_type,KNO_VOID},
-	 {"dflt",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+	  "(get-binding *module* *symbol* [*default*])\n"
+	  "Gets *module*'s binding of *symbol* (internal or "
+	  "external). On failure returns *default* (if "
+	  "provided) or errs if none is provided.",
+	  {"mod_arg",kno_any_type,KNO_VOID},
+	  {"symbol",kno_symbol_type,KNO_VOID},
+	  {"dflt",kno_any_type,KNO_VOID})
 static lispval get_internal_binding_prim
 (lispval mod_arg,lispval symbol,lispval dflt)
 {
@@ -1020,25 +1021,25 @@ static lispval get_internal_binding_prim
 }
 
 DEFC_PRIM("importvar",import_var_prim,
-	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 "(importvar *module* *symbol* [*default*])\n"
-	 "Gets *module*'s binding of *symbol* (internal, "
-	 "external, or inherhited). On failure returns "
-	 "*default*, if provided, or errors (if not).",
-	 {"mod_arg",kno_any_type,KNO_VOID},
-	 {"symbol",kno_symbol_type,KNO_VOID},
-	 {"dflt",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+	  "(importvar *module* *symbol* [*default*])\n"
+	  "Gets *module*'s binding of *symbol* (internal, "
+	  "external, or inherhited). On failure returns "
+	  "*default*, if provided, or errors (if not).",
+	  {"mod_arg",kno_any_type,KNO_VOID},
+	  {"symbol",kno_symbol_type,KNO_VOID},
+	  {"dflt",kno_any_type,KNO_VOID})
 static lispval import_var_prim(lispval mod_arg,lispval symbol,lispval dflt)
 {
   return get_binding_helper(mod_arg,symbol,dflt,0,1,1,"import_var_prim");
 }
 
 DEFC_PRIM("env/use-module",add_module_prim,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "(env/use-module *env* *module*) "
-	 "arranges for *env* to usethe module *module*",
-	 {"env_arg",kno_lexenv_type,KNO_VOID},
-	 {"mod_arg",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	  "(env/use-module *env* *module*) "
+	  "arranges for *env* to usethe module *module*",
+	  {"env_arg",kno_lexenv_type,KNO_VOID},
+	  {"mod_arg",kno_any_type,KNO_VOID})
 static lispval add_module_prim(lispval env_arg,lispval mod_arg)
 {
   lispval mod = ( (KNO_SYMBOLP(mod_arg)) || (KNO_STRINGP(mod_arg)) ) ?
@@ -1049,17 +1050,17 @@ static lispval add_module_prim(lispval env_arg,lispval mod_arg)
 }
 
 DEFC_PRIM("env/make",make_env_prim,
-	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(0)|KNO_NDCALL,
-	 "(env/make [*usemods*] [*bindings*] [*exports*]) "
-	 "creates a new environment which uses *usemods*. "
-	 "If *bindings* is provided, a copy of it is used "
-	 "as the bindings for the environment. If *exports* "
-	 "is a hashtable, a copy is used as the exports of "
-	 "the environment; if *exports* is #t (the default) "
-	 "an empty hashtable is used as the exports.",
-	 {"use_mods",kno_any_type,KNO_VOID},
-	 {"bindings_arg",kno_any_type,KNO_VOID},
-	 {"exports_arg",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(0)|KNO_NDCALL,
+	  "(env/make [*usemods*] [*bindings*] [*exports*]) "
+	  "creates a new environment which uses *usemods*. "
+	  "If *bindings* is provided, a copy of it is used "
+	  "as the bindings for the environment. If *exports* "
+	  "is a hashtable, a copy is used as the exports of "
+	  "the environment; if *exports* is #t (the default) "
+	  "an empty hashtable is used as the exports.",
+	  {"use_mods",kno_any_type,KNO_VOID},
+	  {"bindings_arg",kno_any_type,KNO_VOID},
+	  {"exports_arg",kno_any_type,KNO_VOID})
 static lispval make_env_prim(lispval use_mods,
 			     lispval bindings_arg,
 			     lispval exports_arg)

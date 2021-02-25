@@ -1,6 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
+   Copyright (C) 2020-2021 beingmeta, LLC
    This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -803,11 +804,11 @@ static lispval xapplygetval(void *xobj,lispval var)
 }
 
 DEFC_PRIM("xapply",xapply_prim,
-	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 "**undocumented**",
-	 {"proc",kno_lambda_type,KNO_VOID},
-	 {"obj",kno_any_type,KNO_VOID},
-	 {"getfn",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+	  "**undocumented**",
+	  {"proc",kno_lambda_type,KNO_VOID},
+	  {"obj",kno_any_type,KNO_VOID},
+	  {"getfn",kno_any_type,KNO_VOID})
 static lispval xapply_prim(lispval proc,lispval obj,lispval getfn)
 {
   struct KNO_LAMBDA *lambda = kno_consptr(kno_lambda,proc,kno_lambda_type);

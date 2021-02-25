@@ -1,6 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
+   Copyright (C) 2020-2021 beingmeta, LLC
    This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -53,18 +54,18 @@ u8_condition kno_MissingFeature=_("OS doesn't support operation");
 /* Getting the current hostname */
 
 DEFC_PRIM("gethostname",hostname_prim,
-	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	 "Gets the assigned name for this computer")
+	  KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+	  "Gets the assigned name for this computer")
 static lispval hostname_prim()
 {
   return kno_wrapstring(u8_gethostname());
 }
 
 DEFC_PRIM("hostaddrs",hostaddrs_prim,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "Gets the addresses associated with a hostname "
-	 "using the ldns library",
-	 {"hostname",kno_string_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "Gets the addresses associated with a hostname "
+	  "using the ldns library",
+	  {"hostname",kno_string_type,KNO_VOID})
 static lispval hostaddrs_prim(lispval hostname)
 {
   int addr_len = -1; unsigned int type = -1;
@@ -89,11 +90,11 @@ static lispval hostaddrs_prim(lispval hostname)
 /* GETENV primitive */
 
 DEFC_PRIM("getenv",getenv_prim,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "Gets the value of *envvar* in the environment of "
-	 "the current process. Returns a string or #f if "
-	 "the environment variable is not defined.",
-	 {"var",kno_string_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "Gets the value of *envvar* in the environment of "
+	  "the current process. Returns a string or #f if "
+	  "the environment variable is not defined.",
+	  {"var",kno_string_type,KNO_VOID})
 static lispval getenv_prim(lispval var)
 {
   u8_string enval = u8_getenv(CSTRING(var));
@@ -103,14 +104,14 @@ static lispval getenv_prim(lispval var)
 }
 
 DEFC_PRIM("setenv!",setenv_prim,
-	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 "initializes/sets the value of *envvar* in the "
-	 "environment of the current process to *value*. If "
-	 "*overwrite* is true, this will set the value even "
-	 "if it is already defined.",
-	 {"var",kno_any_type,KNO_VOID},
-	 {"val",kno_any_type,KNO_VOID},
-	 {"overwrite",kno_any_type,KNO_FALSE})
+	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+	  "initializes/sets the value of *envvar* in the "
+	  "environment of the current process to *value*. If "
+	  "*overwrite* is true, this will set the value even "
+	  "if it is already defined.",
+	  {"var",kno_any_type,KNO_VOID},
+	  {"val",kno_any_type,KNO_VOID},
+	  {"overwrite",kno_any_type,KNO_FALSE})
 static lispval setenv_prim(lispval var,lispval val,lispval overwrite)
 {
   u8_string varname = NULL, valstring = NULL;
@@ -137,12 +138,12 @@ static lispval setenv_prim(lispval var,lispval val,lispval overwrite)
 }
 
 DEFC_PRIM("unsetenv!",unsetenv_prim,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "unsets (clears) any value of *envvar*in the "
-	 "environment of the current process. Returns true "
-	 "if this ended up doing anything, and false "
-	 "otherwise.",
-	 {"var",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "unsets (clears) any value of *envvar*in the "
+	  "environment of the current process. Returns true "
+	  "if this ended up doing anything, and false "
+	  "otherwise.",
+	  {"var",kno_any_type,KNO_VOID})
 static lispval unsetenv_prim(lispval var)
 {
   u8_string varname = NULL;
@@ -176,8 +177,8 @@ static lispval getenv_macro(lispval expr,kno_lexenv env,kno_stack ptr)
 /* LOAD AVERAGE */
 
 DEFC_PRIM("getload",loadavg_prim,
-	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	 "Gets the current host's load average.")
+	  KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+	  "Gets the current host's load average.")
 static lispval loadavg_prim()
 {
   double loadavg;
@@ -188,8 +189,8 @@ static lispval loadavg_prim()
 }
 
 DEFC_PRIM("loadavg",loadavgs_prim,
-	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	 "Gets the load averages for the current host.")
+	  KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+	  "Gets the load averages for the current host.")
 static lispval loadavgs_prim()
 {
   double loadavg[3]; int nsamples = getloadavg(loadavg,3);
@@ -277,12 +278,12 @@ static u8_string get_malloc_info()
 }
 
 DEFC_PRIM("rusage",rusage_prim,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
-	 "returns information about the current process. "
-	 "*field*, if provided, indicates the value to "
-	 "return. Otherwise, a slotmap of possible values "
-	 "is returned.",
-	 {"field",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
+	  "returns information about the current process. "
+	  "*field*, if provided, indicates the value to "
+	  "return. Otherwise, a slotmap of possible values "
+	  "is returned.",
+	  {"field",kno_any_type,KNO_VOID})
 static lispval rusage_prim(lispval field)
 {
   struct rusage r;
@@ -568,8 +569,8 @@ static int setprop(lispval result,u8_string field,char *value)
 }
 
 DEFC_PRIM("uname",uname_prim,
-	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	 "Returns a slotmap describing the hosting OS.")
+	  KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+	  "Returns a slotmap describing the hosting OS.")
 static lispval uname_prim()
 {
 #if ((HAVE_SYS_UTSNAME_H)&&(HAVE_UNAME))
@@ -592,8 +593,8 @@ static lispval uname_prim()
 }
 
 DEFC_PRIM("getpid",getpid_prim,
-	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	 "Gets the PID (process ID) for the current process")
+	  KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+	  "Gets the PID (process ID) for the current process")
 static lispval getpid_prim()
 {
   pid_t pid = getpid();
@@ -601,9 +602,9 @@ static lispval getpid_prim()
 }
 
 DEFC_PRIM("getppid",getppid_prim,
-	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	 "Gets the PID (process ID) for the parent of the "
-	 "current process")
+	  KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+	  "Gets the PID (process ID) for the parent of the "
+	  "current process")
 static lispval getppid_prim()
 {
   pid_t pid = getppid();
@@ -611,8 +612,8 @@ static lispval getppid_prim()
 }
 
 DEFC_PRIM("stacksize",stacksize_prim,
-	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	 "Gets the stack size for the current thread")
+	  KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+	  "Gets the stack size for the current thread")
 static lispval stacksize_prim()
 {
   ssize_t size = u8_stacksize();
@@ -622,9 +623,9 @@ static lispval stacksize_prim()
 }
 
 DEFC_PRIM("threadid",threadid_prim,
-	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	 "Gets the numeric identifier for the current "
-	 "thread.")
+	  KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+	  "Gets the numeric identifier for the current "
+	  "thread.")
 static lispval threadid_prim()
 {
   long long tid = u8_threadid();
@@ -632,9 +633,9 @@ static lispval threadid_prim()
 }
 
 DEFC_PRIM("procstring",getprocstring_prim,
-	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	 "Gets a string identifying the current thread id "
-	 "and process id")
+	  KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+	  "Gets a string identifying the current thread id "
+	  "and process id")
 static lispval getprocstring_prim()
 {
   unsigned char buf[128];
@@ -643,8 +644,8 @@ static lispval getprocstring_prim()
 }
 
 DEFC_PRIM("memusage",memusage_prim,
-	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	 "Gets the memory usage by the current process.")
+	  KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+	  "Gets the memory usage by the current process.")
 static lispval memusage_prim()
 {
   ssize_t size = u8_memusage();
@@ -652,9 +653,9 @@ static lispval memusage_prim()
 }
 
 DEFC_PRIM("vmemusage",vmemusage_prim,
-	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	 "Gets the virtual memory usage by the current "
-	 "process.")
+	  KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+	  "Gets the virtual memory usage by the current "
+	  "process.")
 static lispval vmemusage_prim()
 {
   ssize_t size = u8_vmemusage();
@@ -662,8 +663,8 @@ static lispval vmemusage_prim()
 }
 
 DEFC_PRIM("physmem",physmem_prim,
-	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	 "Gets the physical memory available on the host.")
+	  KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+	  "Gets the physical memory available on the host.")
 static lispval physmem_prim()
 {
   ssize_t size = u8_physmem();
@@ -671,8 +672,8 @@ static lispval physmem_prim()
 }
 
 DEFC_PRIM("memload",memload_prim,
-	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	 "Gets the memory load for the current process.")
+	  KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+	  "Gets the memory load for the current process.")
 static lispval memload_prim()
 {
   double load = u8_memload();
@@ -680,9 +681,9 @@ static lispval memload_prim()
 }
 
 DEFC_PRIM("vmemload",vmemload_prim,
-	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	 "Gets the virtual memory load for the current "
-	 "process.")
+	  KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+	  "Gets the virtual memory load for the current "
+	  "process.")
 static lispval vmemload_prim()
 {
   double vload = u8_vmemload();
@@ -690,9 +691,9 @@ static lispval vmemload_prim()
 }
 
 DEFC_PRIM("usertime",usertime_prim,
-	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	 "Gets the total user-space run time for the "
-	 "current process.")
+	  KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+	  "Gets the total user-space run time for the "
+	  "current process.")
 static lispval usertime_prim()
 {
   struct rusage r;
@@ -708,9 +709,9 @@ static lispval usertime_prim()
 }
 
 DEFC_PRIM("systime",systime_prim,
-	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	 "Gets the total system run time for the current "
-	 "process.")
+	  KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+	  "Gets the total system run time for the current "
+	  "process.")
 static lispval systime_prim()
 {
   struct rusage r;
@@ -726,13 +727,13 @@ static lispval systime_prim()
 }
 
 DEFC_PRIM("cpusage",cpusage_prim,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
-	 "Provides relative CPU usage information. With no "
-	 "argument, this returns usage since the process "
-	 "started, as a slotmap. The result of this call "
-	 "can be passed as an argument to a later call to "
-	 "get relative timing information",
-	 {"arg",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
+	  "Provides relative CPU usage information. With no "
+	  "argument, this returns usage since the process "
+	  "started, as a slotmap. The result of this call "
+	  "can be passed as an argument to a later call to "
+	  "get relative timing information",
+	  {"arg",kno_any_type,KNO_VOID})
 static lispval cpusage_prim(lispval arg)
 {
   if (VOIDP(arg))

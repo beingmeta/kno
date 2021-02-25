@@ -1,6 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
+   Copyright (C) 2020-2021 beingmeta, LLC
    This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -23,9 +24,9 @@
 #include "kno/numbers.h"
 
 DEFC_PRIM("table?",tablep,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "returns #t if *obj* is a table, #f otherwise.",
-	 {"arg",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "returns #t if *obj* is a table, #f otherwise.",
+	  {"arg",kno_any_type,KNO_VOID})
 static lispval tablep(lispval arg)
 {
   if (TABLEP(arg))
@@ -34,9 +35,9 @@ static lispval tablep(lispval arg)
 }
 
 DEFC_PRIM("getkeyvec",getkeyvec_prim,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "returns a vector of all the keys in *table*.",
-	 {"table",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "returns a vector of all the keys in *table*.",
+	  {"table",kno_any_type,KNO_VOID})
 static lispval getkeyvec_prim(lispval table)
 {
   int len = 0;
@@ -48,15 +49,15 @@ static lispval getkeyvec_prim(lispval table)
 }
 
 DEFC_PRIM("%get",table_get,
-	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "returns the value of *key* in *table* or "
-	 "*default* if *table* does not contain *key*. "
-	 "*default* defaults to the empty choice {}.Note "
-	 "that this does no inference, use GET to enable "
-	 "inference.",
-	 {"table",kno_any_type,KNO_VOID},
-	 {"key",kno_any_type,KNO_VOID},
-	 {"dflt",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	  "returns the value of *key* in *table* or "
+	  "*default* if *table* does not contain *key*. "
+	  "*default* defaults to the empty choice {}.Note "
+	  "that this does no inference, use GET to enable "
+	  "inference.",
+	  {"table",kno_any_type,KNO_VOID},
+	  {"key",kno_any_type,KNO_VOID},
+	  {"dflt",kno_any_type,KNO_VOID})
 static lispval table_get(lispval table,lispval key,lispval dflt)
 {
   if (VOIDP(dflt))
@@ -65,13 +66,13 @@ static lispval table_get(lispval table,lispval key,lispval dflt)
 }
 
 DEFC_PRIM("add!",table_add,
-	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3)|KNO_NDCALL,
-	 "adds *value* to the associations of *key* in "
-	 "*table*. Note that this does no inference, use "
-	 "ASSERT! to enable inference.",
-	 {"table",kno_any_type,KNO_VOID},
-	 {"key",kno_any_type,KNO_VOID},
-	 {"val",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3)|KNO_NDCALL,
+	  "adds *value* to the associations of *key* in "
+	  "*table*. Note that this does no inference, use "
+	  "ASSERT! to enable inference.",
+	  {"table",kno_any_type,KNO_VOID},
+	  {"key",kno_any_type,KNO_VOID},
+	  {"val",kno_any_type,KNO_VOID})
 static lispval table_add(lispval table,lispval key,lispval val)
 {
   if (EMPTYP(table)) return VOID;
@@ -82,14 +83,14 @@ static lispval table_add(lispval table,lispval key,lispval val)
 }
 
 DEFC_PRIM("drop!",table_drop,
-	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "removes *values* from *key* of *table*. If "
-	 "*values* is not provided, all values associated "
-	 "with *key* are removed. Note that this does no "
-	 "inference, use RETRACT! to enable inference.",
-	 {"table",kno_any_type,KNO_VOID},
-	 {"key",kno_any_type,KNO_VOID},
-	 {"val",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	  "removes *values* from *key* of *table*. If "
+	  "*values* is not provided, all values associated "
+	  "with *key* are removed. Note that this does no "
+	  "inference, use RETRACT! to enable inference.",
+	  {"table",kno_any_type,KNO_VOID},
+	  {"key",kno_any_type,KNO_VOID},
+	  {"val",kno_any_type,KNO_VOID})
 static lispval table_drop(lispval table,lispval key,lispval val)
 {
   if (EMPTYP(table)) return VOID;
@@ -99,14 +100,14 @@ static lispval table_drop(lispval table,lispval key,lispval val)
 }
 
 DEFC_PRIM("store!",table_store,
-	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3)|KNO_NDCALL,
-	 "stores *value* in *table* under *key*, removing "
-	 "all existing values. If *value* is a choice, the "
-	 "entire choice is stored under *key*. Note that "
-	 "this does no inference.",
-	 {"table",kno_any_type,KNO_VOID},
-	 {"key",kno_any_type,KNO_VOID},
-	 {"val",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3)|KNO_NDCALL,
+	  "stores *value* in *table* under *key*, removing "
+	  "all existing values. If *value* is a choice, the "
+	  "entire choice is stored under *key*. Note that "
+	  "this does no inference.",
+	  {"table",kno_any_type,KNO_VOID},
+	  {"key",kno_any_type,KNO_VOID},
+	  {"val",kno_any_type,KNO_VOID})
 static lispval table_store(lispval table,lispval key,lispval val)
 {
   if (EMPTYP(table)) return VOID;
@@ -122,15 +123,15 @@ static lispval table_store(lispval table,lispval key,lispval val)
 }
 
 DEFC_PRIM("%test",table_test,
-	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "returns true if any of *values* is stored undery "
-	 "any of *keys* in any of *tables*. If *values* is "
-	 "not provided, returns true if any values are "
-	 "stored under any of *keys* in any of *tables*. "
-	 "Note that this does no inference.",
-	 {"table",kno_any_type,KNO_VOID},
-	 {"key",kno_any_type,KNO_VOID},
-	 {"val",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	  "returns true if any of *values* is stored undery "
+	  "any of *keys* in any of *tables*. If *values* is "
+	  "not provided, returns true if any values are "
+	  "stored under any of *keys* in any of *tables*. "
+	  "Note that this does no inference.",
+	  {"table",kno_any_type,KNO_VOID},
+	  {"key",kno_any_type,KNO_VOID},
+	  {"val",kno_any_type,KNO_VOID})
 static lispval table_test(lispval table,lispval key,lispval val)
 {
   if (EMPTYP(table)) return KNO_FALSE;
@@ -146,10 +147,10 @@ static lispval table_test(lispval table,lispval key,lispval val)
 /* Even more generic get */
 
 DEFC_PRIM("xget",xget_prim,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "Parses a text representation (a string) into a LISP object.",
-	 {"obj",kno_any_type,KNO_VOID},
-	 {"attrib",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	  "Parses a text representation (a string) into a LISP object.",
+	  {"obj",kno_any_type,KNO_VOID},
+	  {"attrib",kno_any_type,KNO_VOID})
 static lispval xget_prim(lispval obj,lispval attrib)
 {
   if (CHOICEP(attrib)) {
@@ -180,9 +181,9 @@ static lispval xget_prim(lispval obj,lispval attrib)
 /* DB related table ops */
 
 DEFC_PRIM("pool?",poolp,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "Returns true if *arg* is a pool.",
-	 {"arg",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "Returns true if *arg* is a pool.",
+	  {"arg",kno_any_type,KNO_VOID})
 static lispval poolp(lispval arg)
 {
   if (POOLP(arg))
@@ -191,9 +192,9 @@ static lispval poolp(lispval arg)
 }
 
 DEFC_PRIM("index?",indexp,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "Returns true if *arg* is a pool.",
-	 {"arg",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "Returns true if *arg* is a pool.",
+	  {"arg",kno_any_type,KNO_VOID})
 static lispval indexp(lispval arg)
 {
   if (INDEXP(arg))
@@ -202,9 +203,9 @@ static lispval indexp(lispval arg)
 }
 
 DEFC_PRIM("slotid?",slotidp,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "Returns true if *arg* is an OID or a symbol (a slotid)",
-	 {"arg",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "Returns true if *arg* is an OID or a symbol (a slotid)",
+	  {"arg",kno_any_type,KNO_VOID})
 static lispval slotidp(lispval arg)
 {
   if ((OIDP(arg)) || (SYMBOLP(arg))) return KNO_TRUE;
@@ -214,10 +215,10 @@ static lispval slotidp(lispval arg)
 /* Slot access */
 
 DEFC_PRIM("get",kno_fget,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "**undocumented**",
-	 {"frames",kno_any_type,KNO_VOID},
-	 {"slotids",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	  "**undocumented**",
+	  {"frames",kno_any_type,KNO_VOID},
+	  {"slotids",kno_any_type,KNO_VOID})
 KNO_EXPORT lispval kno_fget(lispval frames,lispval slotids)
 {
   if (!(CHOICEP(frames)))
@@ -282,11 +283,11 @@ KNO_EXPORT lispval kno_fget(lispval frames,lispval slotids)
 }
 
 DEFC_PRIM("test",kno_ftest,
-	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "**undocumented**",
-	 {"frames",kno_any_type,KNO_VOID},
-	 {"slotids",kno_any_type,KNO_VOID},
-	 {"values",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	  "**undocumented**",
+	  {"frames",kno_any_type,KNO_VOID},
+	  {"slotids",kno_any_type,KNO_VOID},
+	  {"values",kno_any_type,KNO_VOID})
 KNO_EXPORT lispval kno_ftest(lispval frames,lispval slotids,lispval values)
 {
   if (EMPTYP(frames))
@@ -321,11 +322,11 @@ KNO_EXPORT lispval kno_ftest(lispval frames,lispval slotids,lispval values)
 }
 
 DEFC_PRIM("assert!",kno_assert,
-	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3)|KNO_NDCALL,
-	 "**undocumented**",
-	 {"frames",kno_any_type,KNO_VOID},
-	 {"slotids",kno_any_type,KNO_VOID},
-	 {"values",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(3)|KNO_NDCALL,
+	  "**undocumented**",
+	  {"frames",kno_any_type,KNO_VOID},
+	  {"slotids",kno_any_type,KNO_VOID},
+	  {"values",kno_any_type,KNO_VOID})
 KNO_EXPORT lispval kno_assert(lispval frames,lispval slotids,lispval values)
 {
   if (EMPTYP(values)) return VOID;
@@ -339,11 +340,11 @@ KNO_EXPORT lispval kno_assert(lispval frames,lispval slotids,lispval values)
 }
 
 DEFC_PRIM("retract!",kno_retract,
-	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "**undocumented**",
-	 {"frames",kno_any_type,KNO_VOID},
-	 {"slotids",kno_any_type,KNO_VOID},
-	 {"values",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	  "**undocumented**",
+	  {"frames",kno_any_type,KNO_VOID},
+	  {"slotids",kno_any_type,KNO_VOID},
+	  {"values",kno_any_type,KNO_VOID})
 KNO_EXPORT lispval kno_retract(lispval frames,lispval slotids,lispval values)
 {
   if (EMPTYP(values)) return VOID;
@@ -365,8 +366,8 @@ KNO_EXPORT lispval kno_retract(lispval frames,lispval slotids,lispval values)
 }
 
 DEFC_PRIMN("testp",testp,
-	  KNO_VAR_ARGS|KNO_MIN_ARGS(3)|KNO_NDCALL,
-	  "**undocumented**")
+	   KNO_VAR_ARGS|KNO_MIN_ARGS(3)|KNO_NDCALL,
+	   "**undocumented**")
 static lispval testp(int n,kno_argvec args)
 {
   lispval frames = args[0], slotids = args[1], testfns = args[2];
@@ -427,8 +428,8 @@ static lispval testp(int n,kno_argvec args)
 }
 
 DEFC_PRIMN("getpath",getpath_prim,
-	  KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	  "**undocumented**")
+	   KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
+	   "**undocumented**")
 static lispval getpath_prim(int n,kno_argvec args)
 {
   lispval result = kno_getpath(args[0],n-1,args+1,1,0);
@@ -436,8 +437,8 @@ static lispval getpath_prim(int n,kno_argvec args)
 }
 
 DEFC_PRIMN("getpath*",getpathstar_prim,
-	  KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	  "**undocumented**")
+	   KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
+	   "**undocumented**")
 static lispval getpathstar_prim(int n,kno_argvec args)
 {
   lispval result = kno_getpath(args[0],n-1,args+1,1,0);
@@ -449,9 +450,9 @@ static lispval getpathstar_prim(int n,kno_argvec args)
 /* Finding frames, etc. */
 
 DEFC_PRIMN("find-frames",find_frames_lexpr,
-	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	  "`(find-frames *index* [*slots* *values*]...)` "
-	  "Searches in *index* for frames with the specified slot-values.")
+	   KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	   "`(find-frames *index* [*slots* *values*]...)` "
+	   "Searches in *index* for frames with the specified slot-values.")
 static lispval find_frames_lexpr(int n,kno_argvec args)
 {
   if (n%2)
@@ -465,10 +466,10 @@ static lispval find_frames_lexpr(int n,kno_argvec args)
    whose values are empty (and thus would rule out any results at all). */
 
 DEFC_PRIMN("xfind-frames",xfind_frames_lexpr,
-	  KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	  "`(xfind-frames *index* [*slots* *values*]...)` "
-	  "Searches in *index* for frames with the specified slot-values. "
-	  "This ignores clauses which are 'empty' and have no indexed matches.")
+	   KNO_VAR_ARGS|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	   "`(xfind-frames *index* [*slots* *values*]...)` "
+	   "Searches in *index* for frames with the specified slot-values. "
+	   "This ignores clauses which are 'empty' and have no indexed matches.")
 static lispval xfind_frames_lexpr(int n,kno_argvec args)
 {
   int i = (n%2); while (i<n)
@@ -504,21 +505,21 @@ KNO_EXPORT void kno_init_tableops_c()
 }
 
 DEFC_PRIM("getkeys",kno_getkeys,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "returns all the keys in *table*.",
-	 {"table",kno_any_type,KNO_VOID});
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "returns all the keys in *table*.",
+	  {"table",kno_any_type,KNO_VOID});
 
 DEFC_PRIM("getvalues",kno_getvalues,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "returns all the values associated with all of the "
-	 "keys in *table*.",
-	 {"table",kno_any_type,KNO_VOID});
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "returns all the values associated with all of the "
+	  "keys in *table*.",
+	  {"table",kno_any_type,KNO_VOID});
 
 DEFC_PRIM("getassocs",kno_getassocs,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "returns (key . values) pairs for all of the keys "
-	 "in *table*.",
-	 {"table",kno_any_type,KNO_VOID});
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "returns (key . values) pairs for all of the keys "
+	  "in *table*.",
+	  {"table",kno_any_type,KNO_VOID});
 
 static void link_local_cprims()
 {

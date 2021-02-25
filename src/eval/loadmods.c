@@ -1,6 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
+   Copyright (C) 2020-2021 beingmeta, LLC
    This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -252,9 +253,9 @@ static lispval load_source_for_module(lispval spec,u8_string module_source)
 }
 
 DEFC_PRIM("reload-module",reload_module,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"module",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"module",kno_any_type,KNO_VOID})
 static lispval reload_module(lispval module)
 {
   if (STRINGP(module)) {
@@ -474,9 +475,9 @@ KNO_EXPORT int kno_update_file_module(u8_string module_source,int force)
 }
 
 DEFC_PRIM("update-modules",update_modules_prim,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
-	 "**undocumented**",
-	 {"flag",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
+	  "**undocumented**",
+	  {"flag",kno_any_type,KNO_VOID})
 static lispval update_modules_prim(lispval flag)
 {
   if (kno_update_file_modules((!FALSEP(flag)))<0)
@@ -485,10 +486,10 @@ static lispval update_modules_prim(lispval flag)
 }
 
 DEFC_PRIM("update-module",update_module_prim,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"spec",kno_any_type,KNO_VOID},
-	 {"force",kno_any_type,KNO_FALSE})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"spec",kno_any_type,KNO_VOID},
+	  {"force",kno_any_type,KNO_FALSE})
 static lispval update_module_prim(lispval spec,lispval force)
 {
   if (FALSEP(force)) {
@@ -746,13 +747,13 @@ static int load_dynamic_module(lispval spec,void *data)
 }
 
 DEFC_PRIM("dynamic-load",dynamic_load_prim,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "loads a dynamic module into KNO. If *modname* (a "
-	 "string) is a path (includes a '/'), it is loaded "
-	 "directly. Otherwise, it looks for an dynamic "
-	 "module file in the default search path.",
-	 {"arg",kno_string_type,KNO_VOID},
-	 {"err",kno_any_type,KNO_FALSE})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	  "loads a dynamic module into KNO. If *modname* (a "
+	  "string) is a path (includes a '/'), it is loaded "
+	  "directly. Otherwise, it looks for an dynamic "
+	  "module file in the default search path.",
+	  {"arg",kno_string_type,KNO_VOID},
+	  {"err",kno_any_type,KNO_FALSE})
 static lispval dynamic_load_prim(lispval arg,lispval err)
 {
   u8_string name = KNO_STRING_DATA(arg);

@@ -1,6 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
+   Copyright (C) 2020-2021 beingmeta, LLC
    This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -35,10 +36,10 @@
 /* Remote evaluation */
 
 DEFC_PRIM("service?",servicep,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "Returns true if it's argument is a dtype server "
-	 "object",
-	 {"arg",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "Returns true if it's argument is a dtype server "
+	  "object",
+	  {"arg",kno_any_type,KNO_VOID})
 static lispval servicep(lispval arg)
 {
   if (TYPEP(arg,kno_service_type))
@@ -47,10 +48,10 @@ static lispval servicep(lispval arg)
 }
 
 DEFC_PRIM("service-id",service_id,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "Returns the ID of a dtype server (the argument "
-	 "used to create it)",
-	 {"arg",kno_service_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "Returns the ID of a dtype server (the argument "
+	  "used to create it)",
+	  {"arg",kno_service_type,KNO_VOID})
 static lispval service_id(lispval arg)
 {
   struct KNO_SERVICE *service = (struct KNO_SERVICE *) arg;
@@ -58,9 +59,9 @@ static lispval service_id(lispval arg)
 }
 
 DEFC_PRIM("service-address",service_address,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "Returns the address (host/port) of a dtype server",
-	 {"arg",kno_service_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "Returns the address (host/port) of a dtype server",
+	  {"arg",kno_service_type,KNO_VOID})
 static lispval service_address(lispval arg)
 {
   struct KNO_SERVICE *service = (struct KNO_SERVICE *) arg;
@@ -68,12 +69,12 @@ static lispval service_address(lispval arg)
 }
 
 DEFC_PRIM("service/apply",service_apply_prim,
-	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
-	 "**undocumented**",
-	 {"srv",kno_service_type,KNO_VOID},
-	 {"op",kno_symbol_type,KNO_VOID},
-	 {"args",kno_any_type,KNO_FALSE},
-	 {"opts",kno_any_type,KNO_FALSE})
+	  KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
+	  "**undocumented**",
+	  {"srv",kno_service_type,KNO_VOID},
+	  {"op",kno_symbol_type,KNO_VOID},
+	  {"args",kno_any_type,KNO_FALSE},
+	  {"opts",kno_any_type,KNO_FALSE})
 static lispval service_apply_prim
 (lispval srv,lispval op,lispval args,lispval opts)
 {
@@ -95,8 +96,8 @@ static lispval service_apply_prim
 }
 
 DEFC_PRIMN("service/call",service_call_prim,
-	  KNO_VAR_ARGS|KNO_MIN_ARGS(2),
-	  "**undocumented**")
+	   KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+	   "**undocumented**")
 static lispval service_call_prim(int n,kno_argvec args)
 {
   lispval srv = args[0];
@@ -110,8 +111,8 @@ static lispval service_call_prim(int n,kno_argvec args)
 }
 
 DEFC_PRIMN("service/xcall",service_xcall_prim,
-	  KNO_VAR_ARGS|KNO_MIN_ARGS(3),
-	  "**undocumented**")
+	   KNO_VAR_ARGS|KNO_MIN_ARGS(3),
+	   "**undocumented**")
 static lispval service_xcall_prim(int n,kno_argvec args)
 {
   lispval srv  =  args[0];
@@ -126,10 +127,10 @@ static lispval service_xcall_prim(int n,kno_argvec args)
 }
 
 DEFC_PRIM("open-service",open_service,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"server",kno_string_type,KNO_VOID},
-	 {"opts",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"server",kno_string_type,KNO_VOID},
+	  {"opts",kno_any_type,KNO_VOID})
 static lispval open_service(lispval server,lispval opts)
 {
   struct KNO_SERVICE *s = kno_open_service(server,opts);
@@ -141,13 +142,13 @@ static lispval open_service(lispval server,lispval opts)
 /* Making NETPROCs */
 
 DEFC_PRIM("netproc",make_netproc,
-	 KNO_MAX_ARGS(5)|KNO_MIN_ARGS(2),
-	 "**undocumented**",
-	 {"server",kno_service_type,KNO_VOID},
-	 {"name",kno_symbol_type,KNO_VOID},
-	 {"arity",kno_any_type,KNO_VOID},
-	 {"min_arity",kno_any_type,KNO_VOID},
-	 {"opts",kno_any_type,KNO_FALSE})
+	  KNO_MAX_ARGS(5)|KNO_MIN_ARGS(2),
+	  "**undocumented**",
+	  {"server",kno_service_type,KNO_VOID},
+	  {"name",kno_symbol_type,KNO_VOID},
+	  {"arity",kno_any_type,KNO_VOID},
+	  {"min_arity",kno_any_type,KNO_VOID},
+	  {"opts",kno_any_type,KNO_FALSE})
 static lispval make_netproc(lispval server,lispval name,
 			    lispval arity,lispval min_arity,
 			    lispval opts)
@@ -171,10 +172,10 @@ static lispval make_netproc(lispval server,lispval name,
 /* Support for server data */
 
 DEFC_PRIM("srv/getconfig",srvconfig_prim,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(0),
-	 "**undocumented**",
-	 {"prop",kno_any_type,KNO_VOID},
-	 {"dflt",kno_any_type,KNO_FALSE})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(0),
+	  "**undocumented**",
+	  {"prop",kno_any_type,KNO_VOID},
+	  {"dflt",kno_any_type,KNO_FALSE})
 static lispval srvconfig_prim(lispval prop,lispval dflt)
 {
   lispval config = kno_server_data;

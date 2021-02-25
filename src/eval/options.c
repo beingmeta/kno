@@ -1,6 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
+   Copyright (C) 2020-2021 beingmeta, LLC
    This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -100,15 +101,15 @@ static lispval getopt_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 }
 
 DEFC_PRIM("%getopt",getopt_prim,
-	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	 "gets any *name* option from opts, returning "
-	 "*default* if there isn't any. This is a real "
-	 "procedure (unlike `GETOPT`) so that *default* "
-	 "will be evaluated even if the option exists and "
-	 "is returned.",
-	 {"opts",kno_any_type,KNO_VOID},
-	 {"keys",kno_symbol_type,KNO_VOID},
-	 {"dflt",kno_any_type,KNO_FALSE})
+	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
+	  "gets any *name* option from opts, returning "
+	  "*default* if there isn't any. This is a real "
+	  "procedure (unlike `GETOPT`) so that *default* "
+	  "will be evaluated even if the option exists and "
+	  "is returned.",
+	  {"opts",kno_any_type,KNO_VOID},
+	  {"keys",kno_symbol_type,KNO_VOID},
+	  {"dflt",kno_any_type,KNO_FALSE})
 static lispval getopt_prim(lispval opts,lispval keys,lispval dflt)
 {
   lispval results = EMPTY;
@@ -124,12 +125,12 @@ static lispval getopt_prim(lispval opts,lispval keys,lispval dflt)
 }
 
 DEFC_PRIM("testopt",testopt_prim,
-	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 "returns true if the option *name* is specified in "
-	 "*opts* and it includes *value* (if provided).",
-	 {"opts",kno_any_type,KNO_VOID},
-	 {"key",kno_symbol_type,KNO_VOID},
-	 {"val",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+	  "returns true if the option *name* is specified in "
+	  "*opts* and it includes *value* (if provided).",
+	  {"opts",kno_any_type,KNO_VOID},
+	  {"key",kno_symbol_type,KNO_VOID},
+	  {"val",kno_any_type,KNO_VOID})
 static lispval testopt_prim(lispval opts,lispval key,lispval val)
 {
   if (kno_testopt(opts,key,val))
@@ -138,9 +139,9 @@ static lispval testopt_prim(lispval opts,lispval key,lispval val)
 }
 
 DEFC_PRIM("opts?",optionsp_prim,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 "returns true if *opts* is a valid options object.",
-	 {"opts",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+	  "returns true if *opts* is a valid options object.",
+	  {"opts",kno_any_type,KNO_VOID})
 static lispval optionsp_prim(lispval opts)
 {
   if (optionsp(opts))
@@ -150,9 +151,9 @@ static lispval optionsp_prim(lispval opts)
 #define nulloptsp(v) ( (v == KNO_FALSE) || (v == KNO_DEFAULT) )
 
 DEFC_PRIMN("opts+",opts_plus_prim,
-	  KNO_VAR_ARGS|KNO_MIN_ARGS(0)|KNO_NDCALL,
-	  "or `(OPTS+ *optname* *value* *opts*) returns a "
-	  "new options object (a pair).")
+	   KNO_VAR_ARGS|KNO_MIN_ARGS(0)|KNO_NDCALL,
+	   "or `(OPTS+ *optname* *value* *opts*) returns a "
+	   "new options object (a pair).")
 static lispval opts_plus_prim(int n,kno_argvec args)
 {
   int i = 0, new_front = 0;

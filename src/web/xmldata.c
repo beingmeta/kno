@@ -1,6 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
+   Copyright (C) 2020-2021 beingmeta, LLC
    This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -25,10 +26,10 @@
 static lispval name_slotid, content_slotid;
 
 DEFC_PRIM("xmlattrib",xmlattrib,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "**undocumented**",
-	 {"doc",kno_any_type,KNO_VOID},
-	 {"attrib_id",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	  "**undocumented**",
+	  {"doc",kno_any_type,KNO_VOID},
+	  {"attrib_id",kno_any_type,KNO_VOID})
 static lispval xmlattrib(lispval doc,lispval attrib_id)
 {
   if (SLOTMAPP(doc))
@@ -57,10 +58,10 @@ static void xmlget_helper(lispval *result,lispval doc,lispval eltid,int cons)
 }
 
 DEFC_PRIM("xmlget",xmlget,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "**undocumented**",
-	 {"doc",kno_any_type,KNO_VOID},
-	 {"attrib_id",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	  "**undocumented**",
+	  {"doc",kno_any_type,KNO_VOID},
+	  {"attrib_id",kno_any_type,KNO_VOID})
 static lispval xmlget(lispval doc,lispval attrib_id)
 {
   lispval results = EMPTY;
@@ -78,10 +79,10 @@ static int listlen(lispval l)
 }
 
 DEFC_PRIM("xmlget/sorted",xmlget_sorted,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "**undocumented**",
-	 {"doc",kno_any_type,KNO_VOID},
-	 {"attrib_id",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	  "**undocumented**",
+	  {"doc",kno_any_type,KNO_VOID},
+	  {"attrib_id",kno_any_type,KNO_VOID})
 static lispval xmlget_sorted(lispval doc,lispval attrib_id)
 {
   lispval results = NIL;
@@ -100,10 +101,10 @@ static lispval xmlget_sorted(lispval doc,lispval attrib_id)
 }
 
 DEFC_PRIM("xmlget/first",xmlget_first,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "**undocumented**",
-	 {"doc",kno_any_type,KNO_VOID},
-	 {"attrib_id",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	  "**undocumented**",
+	  {"doc",kno_any_type,KNO_VOID},
+	  {"attrib_id",kno_any_type,KNO_VOID})
 static lispval xmlget_first(lispval doc,lispval attrib_id)
 {
   lispval results = NIL;
@@ -122,10 +123,10 @@ static lispval xmlget_first(lispval doc,lispval attrib_id)
 /* This returns the content field as parsed. */
 
 DEFC_PRIM("xmlconents",xmlcontents,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"doc",kno_any_type,KNO_VOID},
-	 {"attrib_id",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"doc",kno_any_type,KNO_VOID},
+	  {"attrib_id",kno_any_type,KNO_VOID})
 static lispval xmlcontents(lispval doc,lispval attrib_id)
 {
   if ((CHOICEP(doc)) || (PRECHOICEP(doc))) {
@@ -157,10 +158,10 @@ static lispval xmlcontents(lispval doc,lispval attrib_id)
 /* This returns the content field as parsed. */
 
 DEFC_PRIM("xmlempty?",xmlemptyp,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"elt",kno_any_type,KNO_VOID},
-	 {"attribid",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"elt",kno_any_type,KNO_VOID},
+	  {"attribid",kno_any_type,KNO_VOID})
 static lispval xmlemptyp(lispval elt,lispval attribid)
 {
   if (VOIDP(attribid)) attribid = content_slotid;
@@ -181,10 +182,10 @@ static lispval xmlemptyp(lispval elt,lispval attribid)
 /* This returns the content field as a string. */
 
 DEFC_PRIM("xmlcontent",xmlcontent,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"doc",kno_any_type,KNO_VOID},
-	 {"attrib_id",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"doc",kno_any_type,KNO_VOID},
+	  {"attrib_id",kno_any_type,KNO_VOID})
 static lispval xmlcontent(lispval doc,lispval attrib_id)
 {
   if ((CHOICEP(doc)) || (PRECHOICEP(doc))) {

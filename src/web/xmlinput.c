@@ -1,6 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
+   Copyright (C) 2020-2021 beingmeta, LLC
    This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -1141,10 +1142,10 @@ static lispval xmlparse_core(lispval input,int flags)
 }
 
 DEFC_PRIM("xmlparse",xmlparse,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 "**undocumented**",
-	 {"input",kno_any_type,KNO_VOID},
-	 {"options",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+	  "**undocumented**",
+	  {"input",kno_any_type,KNO_VOID},
+	  {"options",kno_any_type,KNO_VOID})
 static lispval xmlparse(lispval input,lispval options)
 {
   if (CHOICEP(input)) {
@@ -1162,10 +1163,10 @@ static lispval xmlparse(lispval input,lispval options)
 /* Parsing KNOML */
 
 DEFC_PRIM("knoml/load",knoml_load,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 "**undocumented**",
-	 {"input",kno_any_type,KNO_VOID},
-	 {"sloppy",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+	  "**undocumented**",
+	  {"input",kno_any_type,KNO_VOID},
+	  {"sloppy",kno_any_type,KNO_VOID})
 static lispval knoml_load(lispval input,lispval sloppy)
 {
   int flags = KNO_XML_KEEP_RAW;
@@ -1197,10 +1198,10 @@ static lispval knoml_load(lispval input,lispval sloppy)
 }
 
 DEFC_PRIM("knoml/parse",knoml_read,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 "**undocumented**",
-	 {"input",kno_any_type,KNO_VOID},
-	 {"sloppy",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+	  "**undocumented**",
+	  {"input",kno_any_type,KNO_VOID},
+	  {"sloppy",kno_any_type,KNO_VOID})
 static lispval knoml_read(lispval input,lispval sloppy)
 {
   int flags = KNO_XML_KEEP_RAW;

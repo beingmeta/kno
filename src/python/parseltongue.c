@@ -1,6 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
+   Copyright (C) 2020-2021 beingmeta, LLC
    This file is part of beingmeta's KNO platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -1428,9 +1429,9 @@ static struct PyMethodDef kno_methods[]=
 /* Table methods for Python objects */
 
 DEFC_PRIM("PY/GET",pyget,MAX_ARGS(2)|MIN_ARGS(1),
-	     "Gets a field from a python object",
-	     {"pyobj",PYTHON_OBJECT_TYPE,KNO_VOID},
-	     {"key",kno_any_type,KNO_VOID})
+	  "Gets a field from a python object",
+	  {"pyobj",PYTHON_OBJECT_TYPE,KNO_VOID},
+	  {"key",kno_any_type,KNO_VOID})
 static lispval pyget(lispval pyobj,lispval key)
 {
   PyObject *o = lisp2py(pyobj), *v;
@@ -1453,9 +1454,9 @@ static lispval pyget(lispval pyobj,lispval key)
 }
 
 DEFC_PRIM("PY/HAS",pyhas,MAX_ARGS(2)|MIN_ARGS(2),
-	     "Returns true if a python object has a field",
-	     {"pyobj",PYTHON_OBJECT_TYPE,KNO_VOID},
-	     {"key",kno_any_type,KNO_VOID});
+	  "Returns true if a python object has a field",
+	  {"pyobj",PYTHON_OBJECT_TYPE,KNO_VOID},
+	  {"key",kno_any_type,KNO_VOID});
 static lispval pyhas(lispval obj,lispval key)
 {
   PyObject *o = lisp2py(obj); int has = -1;
@@ -1540,8 +1541,8 @@ static lispval pyapply(lispval fcn,int n,kno_argvec args)
 }
 
 DEFC_PRIM("PY/EXEC",pyexec,MIN_ARGS(1)|MAX_ARGS(1),
-	     "Executes a string of Python code",
-	     {"codestring",kno_string_type,KNO_VOID});
+	  "Executes a string of Python code",
+	  {"codestring",kno_string_type,KNO_VOID});
 static lispval pyexec(lispval codestring)
 {
   int result;
@@ -1553,9 +1554,9 @@ static lispval pyexec(lispval codestring)
 }
 
 DEFC_PRIM("PY/STRING",pystring,MAX_ARGS(1)|MIN_ARGS(1),
-	     "Returns a string containing the printed representation "
-	     "of a Python object",
-	     {"pyobj",PYTHON_OBJECT_TYPE,KNO_VOID});
+	  "Returns a string containing the printed representation "
+	  "of a Python object",
+	  {"pyobj",PYTHON_OBJECT_TYPE,KNO_VOID});
 static lispval pystring(lispval pyobj)
 {
   if (KNO_PRIM_TYPEP(pyobj,python_object_type)) {
@@ -1615,16 +1616,16 @@ static lispval pytable_helper(lispval obj,int symbolize,int onerr)
 }
 
 DEFC_PRIM("PY/TABLE",pytable,MAX_ARGS(1)|MIN_ARGS(1),
-	     "Returns a table containing the fields and values of a Python object",
-	     {"pyobj",PYTHON_OBJECT_TYPE,KNO_VOID});
+	  "Returns a table containing the fields and values of a Python object",
+	  {"pyobj",PYTHON_OBJECT_TYPE,KNO_VOID});
 static lispval pytable(lispval obj)
 {
   return pytable_helper(obj,1,0);
 }
 
 DEFC_PRIM("PY/TYPE",pytype,MAX_ARGS(1)|MIN_ARGS(1),
-	     "Returns the Python type object for a type",
-	     {"pyobj",PYTHON_OBJECT_TYPE,KNO_VOID});
+	  "Returns the Python type object for a type",
+	  {"pyobj",PYTHON_OBJECT_TYPE,KNO_VOID});
 static lispval pytype(lispval pyobj)
 {
   if (KNO_PRIM_TYPEP(pyobj,python_object_type)) {
@@ -1640,8 +1641,8 @@ static lispval pytype(lispval pyobj)
 }
 
 DEFC_PRIM("PY/TYPENAME",pytypename,MAX_ARGS(1)|MIN_ARGS(1),
-	     "Returns name of the Python type for an object",
-	     {"pyobj",PYTHON_OBJECT_TYPE,KNO_VOID});
+	  "Returns name of the Python type for an object",
+	  {"pyobj",PYTHON_OBJECT_TYPE,KNO_VOID});
 static lispval pytypename(lispval pyobj)
 {
   if (KNO_PRIM_TYPEP(pyobj,python_object_type)) {
@@ -1658,8 +1659,8 @@ static lispval pytypename(lispval pyobj)
 }
 
 DEFC_PRIM("PY/IMPORT",pyimport,MIN_ARGS(1)|MAX_ARGS(1),
-	     "Returns a python module object",
-	     {"modname",kno_any_type,KNO_VOID});
+	  "Returns a python module object",
+	  {"modname",kno_any_type,KNO_VOID});
 static lispval pyimport(lispval modname)
 {
   u8_string modstring = NULL; size_t len = -1;
@@ -1778,14 +1779,14 @@ static lispval py_use_module_evalfn
 }
 
 DEFC_PRIMN("PY/CALL",pycall,KNO_VAR_ARGS|MIN_ARGS(1),
-	      "Calls a python function on some arguments");
+	   "Calls a python function on some arguments");
 static lispval pycall(int n,kno_argvec args)
 {
   return pyapply(args[0],n-1,args+1);
 }
 
 DEFC_PRIMN("PY/HANDLE",pyhandle,KNO_VAR_ARGS|MIN_ARGS(2),
-	      "Calls the method of a Python object on some arguments");
+	   "Calls the method of a Python object on some arguments");
 static lispval pyhandle(int n,kno_argvec lisp_args)
 {
   lispval obj = lisp_args[0], method = lisp_args[1];
@@ -1844,7 +1845,7 @@ static lispval pyhandle(int n,kno_argvec lisp_args)
 }
 
 DEFC_PRIMN("PY/TRY",pytry,KNO_VAR_ARGS|MIN_ARGS(2),
-	      "Calls a method on a Python object, returning {} on error");
+	   "Calls a method on a Python object, returning {} on error");
 static lispval pytry(int n,kno_argvec lisp_args)
 {
   lispval obj = lisp_args[0], method = lisp_args[1];
@@ -1904,9 +1905,9 @@ static lispval pytry(int n,kno_argvec lisp_args)
 }
 
 DEFC_PRIM("PY/FCN",pyfcn,MAX_ARGS(2)|MIN_ARGS(1),
-	     "Returns a python method object",
-	     {"modname",kno_any_type,KNO_VOID},
-	     {"fname",kno_any_type,KNO_VOID});
+	  "Returns a python method object",
+	  {"modname",kno_any_type,KNO_VOID},
+	  {"fname",kno_any_type,KNO_VOID});
 static lispval pyfcn(lispval modname,lispval fname)
 {
   PyObject *o;
@@ -1929,9 +1930,9 @@ static lispval pyfcn(lispval modname,lispval fname)
 }
 
 DEFC_PRIM("PY/LEN",pylen,MAX_ARGS(1)|MIN_ARGS(1),
-	     "eturns the length of *obj* or #f "
-	     "if *obj* doesn't have a length",
-	     {"pyobj",PYTHON_OBJECT_TYPE,KNO_VOID});
+	  "eturns the length of *obj* or #f "
+	  "if *obj* doesn't have a length",
+	  {"pyobj",PYTHON_OBJECT_TYPE,KNO_VOID});
 static lispval pylen(lispval pyobj)
 {
   struct KNO_PYTHON_OBJECT *po=(kno_python_object)pyobj;
@@ -1944,9 +1945,9 @@ static lispval pylen(lispval pyobj)
 }
 
 DEFC_PRIM("PY/DIR",pydir,MAX_ARGS(1)|MIN_ARGS(1),
-	     "Returns a vector of fields on a Python object "
-	     "or #f if it isn't a map/dictionary",
-	     {"pyobj",PYTHON_OBJECT_TYPE,KNO_VOID});
+	  "Returns a vector of fields on a Python object "
+	  "or #f if it isn't a map/dictionary",
+	  {"pyobj",PYTHON_OBJECT_TYPE,KNO_VOID});
 static lispval pydir(lispval pyobj)
 {
   if (KNO_PRIM_TYPEP(pyobj,python_object_type)) {
@@ -1962,9 +1963,9 @@ static lispval pydir(lispval pyobj)
 }
 
 DEFC_PRIM("PY/DIR*",pydirstar,MAX_ARGS(1)|MIN_ARGS(1),
-	     "Returns a choice of fields on a Python object "
-	     "or {} if it isn't a map/dictionary",
-	     {"pyobj",PYTHON_OBJECT_TYPE,KNO_VOID});
+	  "Returns a choice of fields on a Python object "
+	  "or {} if it isn't a map/dictionary",
+	  {"pyobj",PYTHON_OBJECT_TYPE,KNO_VOID});
 static lispval pydirstar(lispval pyobj)
 {
   if (KNO_PRIM_TYPEP(pyobj,python_object_type)) {
@@ -1995,9 +1996,9 @@ static lispval pydirstar(lispval pyobj)
 }
 
 DEFC_PRIM("PY/NEXT",pynext,MAX_ARGS(2)|MIN_ARGS(1),
-	     "Advances an iterator",
-	     {"iterator",kno_any_type,KNO_VOID},
-	     {"termval",kno_any_type,KNO_VOID});
+	  "Advances an iterator",
+	  {"iterator",kno_any_type,KNO_VOID},
+	  {"termval",kno_any_type,KNO_VOID});
 static lispval pynext(lispval iterator,lispval termval)
 {
   struct KNO_PYTHON_OBJECT *po=(kno_python_object)iterator;

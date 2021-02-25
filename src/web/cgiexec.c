@@ -1,6 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
+   Copyright (C) 2020-2021 beingmeta, LLC
    This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -607,9 +608,9 @@ static lispval httpheader(lispval expr,kno_lexenv env,kno_stack _stack)
 }
 
 DEFC_PRIM("httpheader!",addhttpheader,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"header",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"header",kno_any_type,KNO_VOID})
 static lispval addhttpheader(lispval header)
 {
   kno_req_add(http_headers,header);
@@ -693,14 +694,14 @@ static int handle_cookie(U8_OUTPUT *out,lispval cgidata,lispval cookie)
 }
 
 DEFC_PRIM("set-cookie!",setcookie,
-	 KNO_MAX_ARGS(6)|KNO_MIN_ARGS(2),
-	 "**undocumented**",
-	 {"var",kno_any_type,KNO_VOID},
-	 {"val",kno_any_type,KNO_VOID},
-	 {"domain",kno_any_type,KNO_VOID},
-	 {"path",kno_any_type,KNO_VOID},
-	 {"expires",kno_any_type,KNO_VOID},
-	 {"secure",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(6)|KNO_MIN_ARGS(2),
+	  "**undocumented**",
+	  {"var",kno_any_type,KNO_VOID},
+	  {"val",kno_any_type,KNO_VOID},
+	  {"domain",kno_any_type,KNO_VOID},
+	  {"path",kno_any_type,KNO_VOID},
+	  {"expires",kno_any_type,KNO_VOID},
+	  {"secure",kno_any_type,KNO_VOID})
 static lispval setcookie
 (lispval var,lispval val,
  lispval domain,lispval path,
@@ -735,12 +736,12 @@ static lispval setcookie
 }
 
 DEFC_PRIM("clear-cookie!",clearcookie,
-	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"var",kno_any_type,KNO_VOID},
-	 {"domain",kno_any_type,KNO_VOID},
-	 {"path",kno_any_type,KNO_VOID},
-	 {"secure",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(4)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"var",kno_any_type,KNO_VOID},
+	  {"domain",kno_any_type,KNO_VOID},
+	  {"path",kno_any_type,KNO_VOID},
+	  {"secure",kno_any_type,KNO_VOID})
 static lispval clearcookie
 (lispval var,lispval domain,lispval path,lispval secure)
 {
@@ -765,10 +766,10 @@ static lispval clearcookie
 /* HTML Header functions */
 
 DEFC_PRIM("stylesheet!",add_stylesheet,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"stylesheet",kno_string_type,KNO_VOID},
-	 {"type",kno_string_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"stylesheet",kno_string_type,KNO_VOID},
+	  {"type",kno_string_type,KNO_VOID})
 static lispval add_stylesheet(lispval stylesheet,lispval type)
 {
   lispval header_string = VOID;
@@ -785,9 +786,9 @@ static lispval add_stylesheet(lispval stylesheet,lispval type)
 }
 
 DEFC_PRIM("javascript!",add_javascript,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"url",kno_string_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"url",kno_string_type,KNO_VOID})
 static lispval add_javascript(lispval url)
 {
   lispval header_string = VOID;
@@ -1061,8 +1062,8 @@ int kno_output_xml_preface(U8_OUTPUT *out,lispval cgidata)
 }
 
 DEFC_PRIMN("body!",set_body_attribs,
-	  KNO_VAR_ARGS|KNO_MIN_ARGS(1),
-	  "**undocumented**")
+	   KNO_VAR_ARGS|KNO_MIN_ARGS(1),
+	   "**undocumented**")
 static lispval set_body_attribs(int n,kno_argvec args)
 {
   if ((n==1)&&(args[0]==KNO_FALSE)) {
@@ -1076,9 +1077,9 @@ static lispval set_body_attribs(int n,kno_argvec args)
 }
 
 DEFC_PRIM("bodyclass!",add_body_class,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"classname",kno_string_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"classname",kno_string_type,KNO_VOID})
 static lispval add_body_class(lispval classname)
 {
   kno_req_push(body_classes_slotid,classname);
@@ -1086,9 +1087,9 @@ static lispval add_body_class(lispval classname)
 }
 
 DEFC_PRIM("htmlclass!",add_html_class,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"classname",kno_string_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"classname",kno_string_type,KNO_VOID})
 static lispval add_html_class(lispval classname)
 {
   kno_req_push(html_classes_slotid,classname);
@@ -1234,9 +1235,9 @@ KNO_EXPORT lispval kno_cgiexec(lispval proc,lispval cgidata)
 /* Parsing query strings */
 
 DEFC_PRIM("urldata/parse",urldata_parse,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"qstring",kno_string_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"qstring",kno_string_type,KNO_VOID})
 static lispval urldata_parse(lispval qstring)
 {
   lispval smap = kno_empty_slotmap();
@@ -1289,9 +1290,9 @@ lispval kno_mapurl(lispval uri)
 }
 
 DEFC_PRIM("mapurl",mapurl,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"uri",kno_string_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"uri",kno_string_type,KNO_VOID})
 static lispval mapurl(lispval uri)
 {
   lispval result = kno_mapurl(uri);

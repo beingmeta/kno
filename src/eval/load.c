@@ -1,6 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
+   Copyright (C) 2020-2021 beingmeta, LLC
    This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -215,12 +216,12 @@ static lispval load_source_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 }
 
 DEFC_PRIM("load->env",load_into_env_prim,
-	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
-	 "Loads *filename* into *env*, applying *resultfn* "
-	 "(if provided) to the result.",
-	 {"source",kno_string_type,KNO_VOID},
-	 {"envarg",kno_any_type,KNO_VOID},
-	 {"resultfn",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
+	  "Loads *filename* into *env*, applying *resultfn* "
+	  "(if provided) to the result.",
+	  {"source",kno_string_type,KNO_VOID},
+	  {"envarg",kno_any_type,KNO_VOID},
+	  {"resultfn",kno_any_type,KNO_VOID})
 static lispval load_into_env_prim(lispval source,lispval envarg,
 				  lispval resultfn)
 {
@@ -255,14 +256,14 @@ static lispval load_into_env_prim(lispval source,lispval envarg,
 }
 
 DEFC_PRIM("env/load",env_load_prim,
-	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
-	 "Updates *env* by loading (if needed) the latest "
-	 "version of *filename*. If *filename* is not "
-	 "provided, all files previously loaded with "
-	 "`env/load` are updated.",
-	 {"envarg",kno_lexenv_type,KNO_VOID},
-	 {"source",kno_string_type,KNO_VOID},
-	 {"onload",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
+	  "Updates *env* by loading (if needed) the latest "
+	  "version of *filename*. If *filename* is not "
+	  "provided, all files previously loaded with "
+	  "`env/load` are updated.",
+	  {"envarg",kno_lexenv_type,KNO_VOID},
+	  {"source",kno_string_type,KNO_VOID},
+	  {"onload",kno_any_type,KNO_VOID})
 static lispval env_load_prim(lispval envarg,lispval source,lispval onload)
 {
   kno_lexenv env = (kno_lexenv) envarg;
@@ -311,10 +312,10 @@ static lispval load_component_evalfn(lispval expr,kno_lexenv env,kno_stack _stac
 }
 
 DEFC_PRIM("get-component",lisp_get_component,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(0),
-	 "**undocumented**",
-	 {"string",kno_string_type,KNO_VOID},
-	 {"base",kno_string_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(0),
+	  "**undocumented**",
+	  {"string",kno_string_type,KNO_VOID},
+	  {"base",kno_string_type,KNO_VOID})
 static lispval lisp_get_component(lispval string,lispval base)
 {
   if (VOIDP(string)) {
@@ -556,9 +557,9 @@ static lispval kno_run(u8_string source_file,struct U8_OUTPUT *out,
 }
 
 DEFC_PRIMN("kno/run-file",kno_run_file,
-	  KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	  "Loads a file and applies its (main) procedure to "
-	  "the arguments")
+	   KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
+	   "Loads a file and applies its (main) procedure to "
+	   "the arguments")
 static lispval kno_run_file(int n,kno_argvec args)
 {
   if ( (KNO_STRINGP(args[0])) &&
@@ -568,9 +569,9 @@ static lispval kno_run_file(int n,kno_argvec args)
 }
 
 DEFC_PRIMN("kno/run->string",kno_run_file_2string,
-	  KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	  "Loads a KNO file and applies its (main) procedure "
-	  "to the arguments, returns the output as a string")
+	   KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
+	   "Loads a KNO file and applies its (main) procedure "
+	   "to the arguments, returns the output as a string")
 static lispval kno_run_file_2string(int n,kno_argvec args)
 {
   if ( (KNO_STRINGP(args[0])) &&

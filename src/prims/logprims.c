@@ -1,6 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
+   Copyright (C) 2020-2021 beingmeta, LLC
    This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -385,11 +386,11 @@ void kno_summarize_backtrace(U8_OUTPUT *out,u8_exception ex)
 /* Table showing primitives */
 
 DEFC_PRIM("%show",lisp_show_table,
-	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 "Shows a table",
-	 {"tables",kno_any_type,KNO_VOID},
-	 {"slotids",kno_any_type,KNO_VOID},
-	 {"portarg",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+	  "Shows a table",
+	  {"tables",kno_any_type,KNO_VOID},
+	  {"slotids",kno_any_type,KNO_VOID},
+	  {"portarg",kno_any_type,KNO_VOID})
 static lispval lisp_show_table(lispval tables,lispval slotids,lispval portarg)
 {
   U8_OUTPUT *out = get_output_port(portarg);

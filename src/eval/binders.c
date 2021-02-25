@@ -1,6 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
+   Copyright (C) 2020-2021 beingmeta, LLC
    This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -25,8 +26,8 @@ u8_condition kno_BindSyntaxError=_("Bad binding expression");
 /* Set operations */
 
 DEFC_EVALFN("SET!",assign_evalfn,KNO_EVALFN_DEFAULTS,
-	       "`(set! *var* *value*)` assigns the bound variable "
-	       "*var* to be the result of evaluating *value*.")
+	    "`(set! *var* *value*)` assigns the bound variable "
+	    "*var* to be the result of evaluating *value*.")
 static lispval assign_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   int retval;
@@ -57,8 +58,8 @@ static lispval assign_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 }
 
 DEFC_EVALFN("SET+!",assign_plus_evalfn,KNO_EVALFN_DEFAULTS,
-	       "`(set+! *var* *values*)` adds the result of evaluting "
-	       "*values* to the set/choice stored in *var*.")
+	    "`(set+! *var* *values*)` adds the result of evaluting "
+	    "*values* to the set/choice stored in *var*.")
 static lispval assign_plus_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval var = kno_get_arg(expr,1), val_expr = kno_get_arg(expr,2), value;
@@ -91,13 +92,13 @@ static int check_defaultp(lispval val,lispval replace_values)
 }
 
 DEFC_EVALFN("DEFAULT!",assign_default_evalfn,KNO_EVALFN_DEFAULTS,
-	       "`(default! *var* *value* [*replace*])` sets the "
-	       "bound value of *var* to *value* if *var* does not "
-	       "currently have a value or if the value is in any of "
-	       "*replace*. *replace* is not evaluated and comparision "
-	       "is based on strict object equality. "
-	       "Note that *value* will not be evaluated when *var* "
-	       "doesn't need to be set.")
+	    "`(default! *var* *value* [*replace*])` sets the "
+	    "bound value of *var* to *value* if *var* does not "
+	    "currently have a value or if the value is in any of "
+	    "*replace*. *replace* is not evaluated and comparision "
+	    "is based on strict object equality. "
+	    "Note that *value* will not be evaluated when *var* "
+	    "doesn't need to be set.")
 static lispval assign_default_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval symbol = kno_get_arg(expr,1);
@@ -132,7 +133,7 @@ static lispval assign_default_evalfn(lispval expr,kno_lexenv env,kno_stack _stac
 /* Simple binders */
 
 DEFC_EVALFN("let",let_evalfn,KNO_EVALFN_DEFAULTS,
-	       "*undocumented*")
+	    "*undocumented*")
 static lispval let_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval bindexprs = kno_get_arg(expr,1), result = VOID;
@@ -163,7 +164,7 @@ static lispval let_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 }
 
 DEFC_EVALFN("let*",letstar_evalfn,KNO_EVALFN_DEFAULTS,
-	       "*undocumented*")
+	    "*undocumented*")
 static lispval letstar_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval bindexprs = kno_get_arg(expr,1), result = VOID;
@@ -203,7 +204,7 @@ static lispval letstar_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 /* LETREC */
 
 DEFC_EVALFN("letrec",letrec_evalfn,KNO_EVALFN_DEFAULTS,
-	       "*undocumented*")
+	    "*undocumented*")
 static lispval letrec_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval bindexprs = kno_get_arg(expr,1), result = VOID;
@@ -243,7 +244,7 @@ static lispval letrec_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 /* DO */
 
 DEFC_EVALFN("do",do_evalfn,KNO_EVALFN_DEFAULTS,
-	       "*undocumented*")
+	    "*undocumented*")
 static lispval do_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   int n = -1, tail = KNO_STACK_BITP(_stack,KNO_STACK_TAIL_POS);
@@ -345,7 +346,7 @@ static lispval do_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
    the value it would have anyway by environment inheritance.
    This is helpful if it was to rexport it, for example. */
 DEFC_EVALFN("define-local",define_local_evalfn,KNO_EVALFN_DEFAULTS,
-	       "*undocumented*")
+	    "*undocumented*")
 static lispval define_local_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval var = kno_get_arg(expr,1);
@@ -371,7 +372,7 @@ static lispval define_local_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 /* This defines an identifier in the local environment only if
    it is not currently defined. */
 DEFC_EVALFN("define-init",define_init_evalfn,KNO_EVALFN_DEFAULTS,
-	       "*undocumented*")
+	    "*undocumented*")
 static lispval define_init_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval var = kno_get_arg(expr,1);
@@ -402,7 +403,7 @@ static lispval define_init_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
    the value it would have anyway by environment inheritance.
    This is helpful if it was to rexport it, for example. */
 DEFC_EVALFN("def+",define_return_evalfn,KNO_EVALFN_DEFAULTS,
-	       "*undocumented*")
+	    "*undocumented*")
 static lispval define_return_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval var = kno_get_arg(expr,1), val_expr = kno_get_arg(expr,2);
@@ -425,10 +426,10 @@ static lispval define_return_evalfn(lispval expr,kno_lexenv env,kno_stack _stack
    it is not currently defined. */
 
 DEFC_EVALFN("DEFIMPORT",defimport_evalfn,KNO_EVALFN_DEFAULTS,
-	       "`(DEFIMPORT *name* '*module* [*origin*]) defines "
-	       "a local binding *name* for the value of *origin* "
-	       "in the module name *module*. If *origin* is not provided, "
-	       "*name* is used as *origin*.")
+	    "`(DEFIMPORT *name* '*module* [*origin*]) defines "
+	    "a local binding *name* for the value of *origin* "
+	    "in the module name *module*. If *origin* is not provided, "
+	    "*name* is used as *origin*.")
 static lispval defimport_evalfn(lispval expr,kno_lexenv env,
 				kno_stack _stack)
 {

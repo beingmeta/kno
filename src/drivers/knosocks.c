@@ -1,6 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
+   Copyright (C) 2020-2021 beingmeta, LLC
    This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -1038,7 +1039,7 @@ KNO_EXPORT lispval knosocks_status(knosocks_server srv)
 /* Some primitive methods */
 
 DEFC_PRIM("xrefs",getxrefs_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	 "(xrefs) returns the XREFS table of the client.")
+	  "(xrefs) returns the XREFS table of the client.")
 static lispval getxrefs_prim()
 {
   xtype_refs refs = cur_client->client_xrefs;
@@ -1057,7 +1058,7 @@ static lispval getxrefs_prim()
 }
 
 DEFC_PRIM("clientid",clientid_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	 "(clientid) returns the UUID for the current client")
+	  "(clientid) returns the UUID for the current client")
 static lispval clientid_prim()
 {
   if (cur_client)
@@ -1066,9 +1067,9 @@ static lispval clientid_prim()
 }
 
 DEFC_PRIM("supportedp",supportedp_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "(supportedp *op*) returns true if *op* is in the current clients "
-	 "environment",
-	 {"op",kno_symbol_type,KNO_VOID})
+	  "(supportedp *op*) returns true if *op* is in the current clients "
+	  "environment",
+	  {"op",kno_symbol_type,KNO_VOID})
 static lispval supportedp_prim(lispval op)
 {
   knosocks_client cl = cur_client;
@@ -1081,9 +1082,9 @@ static lispval supportedp_prim(lispval op)
 }
 
 DEFC_PRIM("shutdown",shutdown_prim,KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
-	 "(shutdown [*password*]) shuts down the server if *password* "
-	 "is accepted",
-	 {"password",kno_any_type,KNO_VOID})
+	  "(shutdown [*password*]) shuts down the server if *password* "
+	  "is accepted",
+	  {"password",kno_any_type,KNO_VOID})
 static lispval shutdown_prim(lispval op)
 {
   knosocks_client cl = cur_client;
@@ -1104,7 +1105,7 @@ static lispval shutdown_prim(lispval op)
 }
 
 DEFC_PRIM("serverid",serverid_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	 "(serverid) returns the UUID for the current client")
+	  "(serverid) returns the UUID for the current client")
 static lispval serverid_prim()
 {
   if (cur_client) {
@@ -1114,7 +1115,7 @@ static lispval serverid_prim()
 }
 
 DEFC_PRIM("now",now_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	 "(now) returns the current time")
+	  "(now) returns the current time")
 static lispval now_prim()
 {
   struct U8_XTIME now; u8_now(&now);
@@ -1122,7 +1123,7 @@ static lispval now_prim()
 }
 
 DEFC_PRIM("uptime",uptime_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	 "(uptime) returns the current time")
+	  "(uptime) returns the current time")
 static lispval uptime_prim()
 {
   if (cur_client) {
@@ -1134,7 +1135,7 @@ static lispval uptime_prim()
 }
 
 DEFC_PRIM("sessionid",sessionid_prim,KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	 "(sessionid) returns the session (process) ID for the server")
+	  "(sessionid) returns the session (process) ID for the server")
 static lispval sessionid_prim()
 {
   u8_string id = u8_sessionid();

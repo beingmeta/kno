@@ -3,6 +3,7 @@
     Copyright (c) 1989-1992 Massachusetts Institute of Technology
     Copyright (c) 1992-2001 Massachusetts Institute of Technology
     Copyright (c) 2001-2020 beingmeta, inc.
+    Copyright (C) 2020-2021 beingmeta, LLC
 
     This material was developed by the Scheme project at the Massachusetts
     Institute of Technology, Department of Electrical Engineering and

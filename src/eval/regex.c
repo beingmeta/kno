@@ -1,6 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2007-2020 beingmeta, inc.
+   Copyright (C) 2020-2021 beingmeta, LLC
    This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -28,11 +29,11 @@
 u8_condition kno_RegexBadOp=_("Invalid Regex operation");
 
 DEFC_PRIM("regex",make_regex,
-	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"pat",kno_string_type,KNO_VOID},
-	 {"nocase",kno_any_type,KNO_FALSE},
-	 {"matchnl",kno_any_type,KNO_FALSE})
+	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"pat",kno_string_type,KNO_VOID},
+	  {"nocase",kno_any_type,KNO_FALSE},
+	  {"matchnl",kno_any_type,KNO_FALSE})
 static lispval make_regex(lispval pat,lispval nocase,lispval matchnl)
 {
   int cflags = REG_EXTENDED;
@@ -42,9 +43,9 @@ static lispval make_regex(lispval pat,lispval nocase,lispval matchnl)
 }
 
 DEFC_PRIM("regex?",regexp_prim,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"x",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"x",kno_any_type,KNO_VOID})
 static lispval regexp_prim(lispval x)
 {
   if (TYPEP(x,kno_regex_type))
@@ -189,11 +190,11 @@ KNO_EXPORT ssize_t kno_regex_matchlen(lispval pat,u8_string s,ssize_t len)
 }
 
 DEFC_PRIM("regex/search",regex_search,
-	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 "**undocumented**",
-	 {"pat",kno_regex_type,KNO_VOID},
-	 {"string",kno_string_type,KNO_VOID},
-	 {"ef",kno_fixnum_type,KNO_INT(0)})
+	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+	  "**undocumented**",
+	  {"pat",kno_regex_type,KNO_VOID},
+	  {"string",kno_string_type,KNO_VOID},
+	  {"ef",kno_fixnum_type,KNO_INT(0)})
 static lispval regex_search(lispval pat,lispval string,lispval ef)
 {
   if (KNO_UINTP(ef))
@@ -202,11 +203,11 @@ static lispval regex_search(lispval pat,lispval string,lispval ef)
 }
 
 DEFC_PRIM("regex/matchlen",regex_matchlen,
-	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 "**undocumented**",
-	 {"pat",kno_regex_type,KNO_VOID},
-	 {"string",kno_string_type,KNO_VOID},
-	 {"ef",kno_fixnum_type,KNO_INT(0)})
+	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+	  "**undocumented**",
+	  {"pat",kno_regex_type,KNO_VOID},
+	  {"string",kno_string_type,KNO_VOID},
+	  {"ef",kno_fixnum_type,KNO_INT(0)})
 static lispval regex_matchlen(lispval pat,lispval string,lispval ef)
 {
   if (KNO_UINTP(ef))
@@ -215,11 +216,11 @@ static lispval regex_matchlen(lispval pat,lispval string,lispval ef)
 }
 
 DEFC_PRIM("regex/match",regex_exactmatch,
-	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 "**undocumented**",
-	 {"pat",kno_regex_type,KNO_VOID},
-	 {"string",kno_string_type,KNO_VOID},
-	 {"ef",kno_fixnum_type,KNO_INT(0)})
+	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+	  "**undocumented**",
+	  {"pat",kno_regex_type,KNO_VOID},
+	  {"string",kno_string_type,KNO_VOID},
+	  {"ef",kno_fixnum_type,KNO_INT(0)})
 static lispval regex_exactmatch(lispval pat,lispval string,lispval ef)
 {
   if (KNO_UINTP(ef))
@@ -228,11 +229,11 @@ static lispval regex_exactmatch(lispval pat,lispval string,lispval ef)
 }
 
 DEFC_PRIM("regex/matchstring",regex_matchstring,
-	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 "**undocumented**",
-	 {"pat",kno_regex_type,KNO_VOID},
-	 {"string",kno_string_type,KNO_VOID},
-	 {"ef",kno_fixnum_type,KNO_INT(0)})
+	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+	  "**undocumented**",
+	  {"pat",kno_regex_type,KNO_VOID},
+	  {"string",kno_string_type,KNO_VOID},
+	  {"ef",kno_fixnum_type,KNO_INT(0)})
 static lispval regex_matchstring(lispval pat,lispval string,lispval ef)
 {
   if (KNO_UINTP(ef))
@@ -241,11 +242,11 @@ static lispval regex_matchstring(lispval pat,lispval string,lispval ef)
 }
 
 DEFC_PRIM("regex/matchspan",regex_matchspan,
-	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	 "**undocumented**",
-	 {"pat",kno_regex_type,KNO_VOID},
-	 {"string",kno_string_type,KNO_VOID},
-	 {"ef",kno_fixnum_type,KNO_INT(0)})
+	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+	  "**undocumented**",
+	  {"pat",kno_regex_type,KNO_VOID},
+	  {"string",kno_string_type,KNO_VOID},
+	  {"ef",kno_fixnum_type,KNO_INT(0)})
 static lispval regex_matchspan(lispval pat,lispval string,lispval ef)
 {
   if (KNO_UINTP(ef))

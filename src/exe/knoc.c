@@ -1,6 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
+   Copyright (C) 2020-2021 beingmeta, LLC
    This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -917,9 +918,15 @@ int main(int argc,char **argv)
 
   if (dotload) {
     u8_string home_config = u8_realpath("~/.knoconfig",NULL);
+    u8_string home_configs = u8_realpath("~/.knoconfigs",NULL);
     dotloader("~/.knoconfig",NULL);
     dotloader("~/.knoc",env);
-    u8_free(home_config);}
+    if (u8_directoryp(home_configs)) {
+      lispval strval = knostring(home_configs);
+      kno_set_config("CONFIGSRC",strval);
+      kno_decref(strval);}
+    u8_free(home_config);
+    u8_free(home_configs);}
   else u8_message("Warning: .knoconfig/.knoc files are suppressed");
 
   kno_autoload_config("LOADMOD","LOADFILE","INITS");

@@ -1,6 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
+   Copyright (C) 2020-2021 beingmeta, LLC
    This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -155,9 +156,9 @@ KNO_EXPORT void kno_emit_xmlattrib
 }
 
 DEFC_PRIM("xmlify",xmlify,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"value",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"value",kno_any_type,KNO_VOID})
 static lispval xmlify(lispval value)
 {
   if (STRINGP(value))
@@ -404,8 +405,8 @@ static lispval raw_xhtml_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 }
 
 DEFC_PRIM("nbsp",nbsp_prim,
-	 KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
-	 "**undocumented**")
+	  KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+	  "**undocumented**")
 static lispval nbsp_prim()
 {
   U8_OUTPUT *out = u8_current_output;
@@ -414,8 +415,8 @@ static lispval nbsp_prim()
 }
 
 DEFC_PRIMN("xmlempty",xmlemptyelt,
-	  KNO_VAR_ARGS|KNO_MIN_ARGS(0)|KNO_NDCALL,
-	  "**undocumented**")
+	   KNO_VAR_ARGS|KNO_MIN_ARGS(0)|KNO_NDCALL,
+	   "**undocumented**")
 static lispval xmlemptyelt(int n,kno_argvec args)
 {
   U8_OUTPUT *out = u8_current_output;
@@ -491,9 +492,9 @@ static lispval xmlstart_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 }
 
 DEFC_PRIM("xmlend",xmlend_prim,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"head",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"head",kno_any_type,KNO_VOID})
 static lispval xmlend_prim(lispval head)
 {
   U8_OUTPUT *out = u8_current_output;
@@ -930,9 +931,9 @@ KNO_EXPORT void kno_xmloid(u8_output out,lispval arg)
 }
 
 DEFC_PRIM("%xmloid",xmloid,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"oid_arg",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"oid_arg",kno_any_type,KNO_VOID})
 static lispval xmloid(lispval oid_arg)
 {
   kno_xmloid(NULL,oid_arg);
@@ -987,11 +988,11 @@ static lispval xmleval_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 }
 
 DEFC_PRIM("xml->string",xml2string_prim,
-	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"xml",kno_any_type,KNO_VOID},
-	 {"env_arg",kno_any_type,KNO_VOID},
-	 {"xml_env_arg",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"xml",kno_any_type,KNO_VOID},
+	  {"env_arg",kno_any_type,KNO_VOID},
+	  {"xml_env_arg",kno_any_type,KNO_VOID})
 static lispval xml2string_prim(lispval xml,lispval env_arg,lispval xml_env_arg)
 {
   if (!((VOIDP(env_arg)) || (FALSEP(env_arg)) ||
@@ -1030,9 +1031,9 @@ static lispval xmlopen_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 }
 
 DEFC_PRIM("xmlclose",xmlclose_prim,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"arg",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"arg",kno_any_type,KNO_VOID})
 static lispval xmlclose_prim(lispval arg)
 {
   if (!(TABLEP(arg)))

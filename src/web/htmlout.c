@@ -1,6 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
+   Copyright (C) 2020-2021 beingmeta, LLC
    This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -158,10 +159,10 @@ void kno_xhtmlerrorpage(u8_output s,u8_exception ex)
 }
 
 DEFC_PRIM("debugpage->html",debugpage2html_prim,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(0),
-	 "**undocumented**",
-	 {"exception",kno_any_type,KNO_VOID},
-	 {"where",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(0),
+	  "**undocumented**",
+	  {"exception",kno_any_type,KNO_VOID},
+	  {"where",kno_any_type,KNO_VOID})
 static lispval debugpage2html_prim(lispval exception,lispval where)
 {
   u8_exception ex=NULL;
@@ -196,10 +197,10 @@ static lispval debugpage2html_prim(lispval exception,lispval where)
 }
 
 DEFC_PRIM("backtrace->html",backtrace2html_prim,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(0),
-	 "**undocumented**",
-	 {"arg",kno_any_type,KNO_VOID},
-	 {"where",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(0),
+	  "**undocumented**",
+	  {"arg",kno_any_type,KNO_VOID},
+	  {"where",kno_any_type,KNO_VOID})
 static lispval backtrace2html_prim(lispval arg,lispval where)
 {
   u8_exception ex=NULL;
@@ -601,10 +602,10 @@ static lispval table2html_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 }
 
 DEFC_PRIM("obj->html",obj2html_prim,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"obj",kno_any_type,KNO_VOID},
-	 {"tag",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"obj",kno_any_type,KNO_VOID},
+	  {"tag",kno_any_type,KNO_VOID})
 static lispval obj2html_prim(lispval obj,lispval tag)
 {
   u8_string tagname = NULL, classname = NULL; u8_byte tagbuf[64];

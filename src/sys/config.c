@@ -1,6 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
+   Copyright (C) 2020-2021 beingmeta, LLC
    This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -63,7 +64,7 @@ static lispval config_intern(u8_string start)
   U8_INIT_STATIC_OUTPUT_BUF(nameout,64,buf);
   while (*scan) {
     int c = u8_sgetc(&scan);
-    if ((c == '/')||(c==':'))
+    if ((c == '/')||(c==':')||(c=='\\'))
       u8_putc(&nameout,c);
     else if (u8_isctrl(c)) {}
     else if ( (u8_ispunct(c)) || (u8_isspace(c)) )
@@ -77,7 +78,7 @@ static lispval config_intern(u8_string start)
     u8_close((u8_stream)&nameout);
     return symbol;}
   else return kno_make_symbol
-         (nameout.u8_outbuf,nameout.u8_write-nameout.u8_outbuf);
+	 (nameout.u8_outbuf,nameout.u8_write-nameout.u8_outbuf);
 }
 
 static lispval config_get(lispval symbol)

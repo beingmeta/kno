@@ -1,6 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2007-2020 beingmeta, inc.
+   Copyright (C) 2020-2021 beingmeta, LLC
    This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -65,12 +66,12 @@ static lispval doencrypt(lispval data,lispval key,
 
 
 DEFC_PRIM("encrypt",encrypt_prim,
-	     KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
-	     "**undocumented**",
-	     {"data",kno_any_type,KNO_VOID},
-	     {"key",kno_any_type,KNO_VOID},
-	     {"cipher",kno_any_type,KNO_VOID},
-	     {"iv",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
+	  "**undocumented**",
+	  {"data",kno_any_type,KNO_VOID},
+	  {"key",kno_any_type,KNO_VOID},
+	  {"cipher",kno_any_type,KNO_VOID},
+	  {"iv",kno_any_type,KNO_VOID})
 static lispval encrypt_prim(lispval data,lispval key,lispval cipher,lispval iv)
 {
   u8_string ciphername = NULL;
@@ -82,12 +83,12 @@ static lispval encrypt_prim(lispval data,lispval key,lispval cipher,lispval iv)
 }
 
 DEFC_PRIM("encrypt-dtype",encrypt_dtype_prim,
-	     KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
-	     "**undocumented**",
-	     {"data",kno_any_type,KNO_VOID},
-	     {"key",kno_any_type,KNO_VOID},
-	     {"cipher",kno_any_type,KNO_VOID},
-	     {"iv",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
+	  "**undocumented**",
+	  {"data",kno_any_type,KNO_VOID},
+	  {"key",kno_any_type,KNO_VOID},
+	  {"cipher",kno_any_type,KNO_VOID},
+	  {"iv",kno_any_type,KNO_VOID})
 static lispval encrypt_dtype_prim(lispval data,lispval key,lispval cipher,lispval iv)
 {
   u8_string ciphername;
@@ -100,12 +101,12 @@ static lispval encrypt_dtype_prim(lispval data,lispval key,lispval cipher,lispva
 
 
 DEFC_PRIM("decrypt",decrypt_prim,
-	     KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
-	     "**undocumented**",
-	     {"data",kno_any_type,KNO_VOID},
-	     {"key",kno_any_type,KNO_VOID},
-	     {"cipher",kno_any_type,KNO_VOID},
-	     {"iv",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
+	  "**undocumented**",
+	  {"data",kno_any_type,KNO_VOID},
+	  {"key",kno_any_type,KNO_VOID},
+	  {"cipher",kno_any_type,KNO_VOID},
+	  {"iv",kno_any_type,KNO_VOID})
 static lispval decrypt_prim(lispval data,lispval key,lispval cipher,lispval iv)
 {
   const unsigned char *payload; size_t payload_len;
@@ -133,12 +134,12 @@ static lispval decrypt_prim(lispval data,lispval key,lispval cipher,lispval iv)
 
 
 DEFC_PRIM("decrypt->string",decrypt2string_prim,
-	     KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
-	     "**undocumented**",
-	     {"data",kno_any_type,KNO_VOID},
-	     {"key",kno_any_type,KNO_VOID},
-	     {"cipher",kno_any_type,KNO_VOID},
-	     {"iv",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
+	  "**undocumented**",
+	  {"data",kno_any_type,KNO_VOID},
+	  {"key",kno_any_type,KNO_VOID},
+	  {"cipher",kno_any_type,KNO_VOID},
+	  {"iv",kno_any_type,KNO_VOID})
 static lispval decrypt2string_prim(lispval data,lispval key,lispval cipher,lispval iv)
 {
   const unsigned char *payload; size_t payload_len;
@@ -165,12 +166,12 @@ static lispval decrypt2string_prim(lispval data,lispval key,lispval cipher,lispv
 
 
 DEFC_PRIM("decrypt->dtype",decrypt2dtype_prim,
-	     KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
-	     "**undocumented**",
-	     {"data",kno_any_type,KNO_VOID},
-	     {"key",kno_any_type,KNO_VOID},
-	     {"cipher",kno_any_type,KNO_VOID},
-	     {"iv",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
+	  "**undocumented**",
+	  {"data",kno_any_type,KNO_VOID},
+	  {"key",kno_any_type,KNO_VOID},
+	  {"cipher",kno_any_type,KNO_VOID},
+	  {"iv",kno_any_type,KNO_VOID})
 static lispval decrypt2dtype_prim(lispval data,lispval key,lispval cipher,lispval iv)
 {
   const unsigned char *payload; size_t payload_len;
@@ -202,9 +203,9 @@ static lispval decrypt2dtype_prim(lispval data,lispval key,lispval cipher,lispva
 
 
 DEFC_PRIM("random-packet",random_packet_prim,
-	     KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	     "**undocumented**",
-	     {"arg",kno_fixnum_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"arg",kno_fixnum_type,KNO_VOID})
 KNO_EXPORT lispval random_packet_prim(lispval arg)
 {
   if (KNO_UINTP(arg))
@@ -216,10 +217,10 @@ KNO_EXPORT lispval random_packet_prim(lispval arg)
 
 
 DEFC_PRIM("fill-packet",fill_packet_prim,
-	     KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	     "**undocumented**",
-	     {"len",kno_fixnum_type,KNO_VOID},
-	     {"init",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"len",kno_fixnum_type,KNO_VOID},
+	  {"init",kno_any_type,KNO_VOID})
 KNO_EXPORT lispval fill_packet_prim(lispval len,lispval init)
 {
   lispval result; unsigned char *bytes;

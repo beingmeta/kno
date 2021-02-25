@@ -1,6 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
+   Copyright (C) 2020-2021 beingmeta, LLC
    This file is part of beingmeta's Kno platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -62,16 +63,16 @@ static u8_string get_config_path(u8_string spec)
 /* Core functions */
 
 DEFC_PRIM("config",config_get,
-	 KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	 "\n"
-	 "Gets the configuration setting named *name*, "
-	 "returning *default* if it isn't defined. *valfn*, "
-	 "if provided is either a function to call on the "
-	 "retrieved value or #t to indicate that string "
-	 "values should be parsed as lisp",
-	 {"vars",kno_any_type,KNO_VOID},
-	 {"dflt",kno_any_type,KNO_VOID},
-	 {"valfn",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1)|KNO_NDCALL,
+	  "\n"
+	  "Gets the configuration setting named *name*, "
+	  "returning *default* if it isn't defined. *valfn*, "
+	  "if provided is either a function to call on the "
+	  "retrieved value or #t to indicate that string "
+	  "values should be parsed as lisp",
+	  {"vars",kno_any_type,KNO_VOID},
+	  {"dflt",kno_any_type,KNO_VOID},
+	  {"valfn",kno_any_type,KNO_VOID})
 static lispval config_get(lispval vars,lispval dflt,lispval valfn)
 {
   lispval result = EMPTY;
@@ -132,11 +133,11 @@ static lispval config_macro(lispval expr,kno_lexenv env,kno_stack ptr)
 }
 
 DEFC_PRIMN("config!",set_config,
-	  KNO_VAR_ARGS|KNO_MIN_ARGS(2),
-	  "\n"
-	  "Sets each configuration setting *name_i* to "
-	  "*value_i*. This invokes the config *handler* "
-	  "defined for *name_i* if there is one.")
+	   KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+	   "\n"
+	   "Sets each configuration setting *name_i* to "
+	   "*value_i*. This invokes the config *handler* "
+	   "defined for *name_i* if there is one.")
 static lispval set_config(int n,kno_argvec args)
 {
   int retval, i = 0;
@@ -156,15 +157,15 @@ static lispval set_config(int n,kno_argvec args)
 }
 
 DEFC_PRIM("config-default!",set_default_config,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	 "\n"
-	 "Sets the configuration value named *name* to "
-	 "*value* if it has not yet been specified for the "
-	 "current process. This invokes the config "
-	 "*handler* defined for *name* if it has been "
-	 "defined. ",
-	 {"var",kno_any_type,KNO_VOID},
-	 {"val",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	  "\n"
+	  "Sets the configuration value named *name* to "
+	  "*value* if it has not yet been specified for the "
+	  "current process. This invokes the config "
+	  "*handler* defined for *name* if it has been "
+	  "defined. ",
+	  {"var",kno_any_type,KNO_VOID},
+	  {"val",kno_any_type,KNO_VOID})
 static lispval set_default_config(lispval var,lispval val)
 {
   int retval; lispval use_val = val;
@@ -186,17 +187,17 @@ static lispval set_default_config(lispval var,lispval val)
 }
 
 DEFC_PRIM("find-configs",find_configs,
-	 KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	 "\n"
-	 "Finds all config settings matching *pattern* and "
-	 "returns their names (symbols). *pattern* is a "
-	 "string or regex and a setting matches *pattern* "
-	 "if a match can be found in the name of the "
-	 "setting. The second argument, if specified and "
-	 "true, returns the matches as pairs of names and "
-	 "docstrings.",
-	 {"pat",kno_any_type,KNO_VOID},
-	 {"raw",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	  "\n"
+	  "Finds all config settings matching *pattern* and "
+	  "returns their names (symbols). *pattern* is a "
+	  "string or regex and a setting matches *pattern* "
+	  "if a match can be found in the name of the "
+	  "setting. The second argument, if specified and "
+	  "true, returns the matches as pairs of names and "
+	  "docstrings.",
+	  {"pat",kno_any_type,KNO_VOID},
+	  {"raw",kno_any_type,KNO_VOID})
 static lispval find_configs(lispval pat,lispval raw)
 {
   int with_docs = ((VOIDP(raw))||(FALSEP(raw))||(KNO_DEFAULTP(raw)));
@@ -238,18 +239,18 @@ static int lconfig_set(lispval var,lispval val,void *data)
 static int reuse_lconfig(struct KNO_CONFIG_HANDLER *e);
 
 DEFC_PRIM("config-def!",config_def,
-	 KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
-	 "Defines the procedure *handler* as the config "
-	 "handler for the *config_name* configuration "
-	 "setting, with *doc* if it's provided. *handler* "
-	 "should be a function of 1 required and one "
-	 "optional argument. If the second argument is "
-	 "provided, the configuration setting is being set; "
-	 "otherwise, it is just being requested.",
-	 {"var",kno_symbol_type,KNO_VOID},
-	 {"handler",kno_any_type,KNO_VOID},
-	 {"docstring",kno_string_type,KNO_VOID},
-	 {"opts",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
+	  "Defines the procedure *handler* as the config "
+	  "handler for the *config_name* configuration "
+	  "setting, with *doc* if it's provided. *handler* "
+	  "should be a function of 1 required and one "
+	  "optional argument. If the second argument is "
+	  "provided, the configuration setting is being set; "
+	  "otherwise, it is just being requested.",
+	  {"var",kno_symbol_type,KNO_VOID},
+	  {"handler",kno_any_type,KNO_VOID},
+	  {"docstring",kno_string_type,KNO_VOID},
+	  {"opts",kno_any_type,KNO_VOID})
 static lispval config_def(lispval var,lispval handler,lispval docstring,
 			  lispval opts)
 {
@@ -337,9 +338,9 @@ KNO_EXPORT int kno_load_default_config(u8_string sourceid)
 /* From Scheme */
 
 DEFC_PRIM("load-config",lisp_load_config,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"arg",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"arg",kno_any_type,KNO_VOID})
 static lispval lisp_load_config(lispval arg)
 {
   if (STRINGP(arg)) {
@@ -365,9 +366,9 @@ static lispval lisp_load_config(lispval arg)
 }
 
 DEFC_PRIM("load-default-config",lisp_load_default_config,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"arg",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"arg",kno_any_type,KNO_VOID})
 static lispval lisp_load_default_config(lispval arg)
 {
   if (STRINGP(arg)) {
@@ -393,9 +394,9 @@ static lispval lisp_load_default_config(lispval arg)
 }
 
 DEFC_PRIM("read-config",lisp_read_config,
-	 KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	 "**undocumented**",
-	 {"arg",kno_string_type,KNO_VOID})
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"arg",kno_string_type,KNO_VOID})
 static lispval lisp_read_config(lispval arg)
 {
   struct U8_INPUT in; int retval;
