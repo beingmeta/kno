@@ -129,7 +129,7 @@ static int cprim_prep(kno_stack stack,
       lispval arg = args[i];
       kno_lisp_type type = typeinfo[i];
       if (type<0) i++;
-      else if (KNO_XTYPEP(arg,type)) i++;
+      else if (KNO_TYPEP(arg,type)) i++;
       else {
 	u8_byte buf[128];
 	kno_lisp_type arg_type = KNO_TYPEOF(arg);

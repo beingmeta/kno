@@ -1451,7 +1451,7 @@ static lispval parse_histref(u8_input in)
       kno_decref(elts);
       return resolved;}}
   lispval ref = kno_init_compound
-    (NULL,KNOSYM(histref),KNO_COMPOUND_SEQUENCE|KNO_COMPOUND_INCREF,
+    (NULL,histref_typetag,KNO_COMPOUND_SEQUENCE|KNO_COMPOUND_INCREF,
      1,KNO_CDR(elts));
   KNO_SETCDR(elts,KNO_EMPTY_LIST);
   kno_decref(elts);

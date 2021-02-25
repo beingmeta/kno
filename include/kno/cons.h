@@ -1099,19 +1099,29 @@ U8_MAYBE_UNUSED static int _kno_applicablep(lispval x)
 #if KNO_INLINE_XTYPEP
 KNO_FASTOP int __KNO_XTYPEP(lispval x,int type)
 {
-  if  (type < 0x04) return ( ( (x) & (0x3) ) == type);
-  else if (type < 0x84) return (KNO_IMMEDIATE_TYPEP(x,type));
-  else if (type < 0x100)
-    return ( (x) && (KNO_CONSP(x)) && ((KNO_CONS_TYPEOF(x)) == type) );
-  else if ( (type >=  kno_number_type) && (type <=  kno_xindex_type) )
+  if (USUALLY( (type >=  kno_empty_type) && (type <=  kno_max_xtype) ))
     switch ((kno_lisp_type)type) {
+    case kno_empty_type: return KNO_EMPTYP(x);
+    case kno_exists_type: return (!(KNO_EMPTYP(x)));
+    case kno_singleton_type: return (!(KNO_EMPTYP(x))) && (!(KNO_CHOICEP(x)));
+    case kno_true_type: return (!(KNO_FALSEP(x)));
+    case kno_error_type: return (!(KNO_ABORTP(x)));
+    case kno_void_type: return (!(KNO_VOIDP(x)));
+    case kno_satisfied_type: return ( (!(KNO_EMPTYP(x))) && (!(KNO_FALSEP(x))) );
     case kno_number_type: return KNO_NUMBERP(x);
+    case kno_integer_type: return (KNO_FIXNUMP(x)) || (KNO_BIGINTP(x));
     case kno_sequence_type: return KNO_SEQUENCEP(x);
     case kno_table_type: return KNO_TABLEP(x);
     case kno_applicable_type:
       if (KNO_XXCONS_TYPEP(x,kno_function_type))
 	return 1;
       else return _kno_applicablep(x);
+    case kno_function_type:
+      if (KNO_XXCONS_TYPEP(x,kno_function_type))
+	return 1;
+      else if (kno_isfunctionp[KNO_TYPEOF(x)])
+	return 1;
+      else return 0;
     case kno_slotid_type:
       return (KNO_OIDP(x)) || (KNO_SYMBOLP(x));
     case kno_frame_type:
@@ -1119,6 +1129,12 @@ KNO_FASTOP int __KNO_XTYPEP(lispval x,int type)
 	( (KNO_CONSP(x)) &&
 	  ( ( (KNO_CONS_TYPEOF(x)) == kno_slotmap_type) ||
 	    ( (KNO_CONS_TYPEOF(x)) == kno_schemap_type) ) );
+    case kno_type_type:
+      if ( (KNO_OIDP(x)) || (KNO_SYMBOLP(x)) ||
+	   (KNO_IMMEDIATE_TYPEP(x,kno_ctype_type)) ||
+	   (KNO_TYPEP(x,kno_typeinfo_type)) )
+	return 1;
+      else return 0;
     case kno_keymap_type:
       return ( (KNO_CONSP(x)) &&
 	       ( ( (KNO_CONS_TYPEOF(x)) == kno_slotmap_type) ||
@@ -1132,17 +1148,11 @@ KNO_FASTOP int __KNO_XTYPEP(lispval x,int type)
 		(x == KNO_EMPTY_CHOICE) || (x == KNO_VOID) )
 	return 1;
       else return 0;
-    case kno_type_type:
-      if ( (KNO_OIDP(x)) || (KNO_SYMBOLP(x)) ||
-	   (KNO_IMMEDIATE_TYPEP(x,kno_ctype_type)) ||
-	   (KNO_TYPEP(x,kno_typeinfo_type)) )
-	return 1;
-      else return 0;
-    case kno_xpool_type:
-      return (KNO_PRIM_TYPEP(x,kno_pool_type)) ||
+    case kno_pool_type:
+      return (KNO_PRIM_TYPEP(x,kno_poolref_type)) ||
 	(KNO_PRIM_TYPEP(x,kno_consed_pool_type));
-    case kno_xindex_type:
-      return (KNO_PRIM_TYPEP(x,kno_index_type)) ||
+    case kno_index_type:
+      return (KNO_PRIM_TYPEP(x,kno_indexref_type)) ||
 	(KNO_PRIM_TYPEP(x,kno_consed_index_type));
     default:
       if  (type < 0x04) return ( ( (x) & (0x3) ) == type);

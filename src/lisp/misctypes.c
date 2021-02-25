@@ -117,7 +117,7 @@ static lispval basetype_restore(lispval MU tag,lispval x,kno_typeinfo MU e)
 {
   if (FIXNUMP(x)) {
     int codeval = KNO_FIX2INT(x);
-    if ( (codeval >= 0) && (codeval < kno_xtype_limit ) )
+    if ( (codeval >= 0) && (codeval <= kno_max_xtype ) )
       return KNO_CTYPE(codeval);}
   return kno_incref(x);
 }

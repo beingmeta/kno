@@ -252,7 +252,7 @@ KNO_EXPORT lispval kno_get_adjuncts(kno_pool p)
 static kno_index l2x(lispval lix)
 {
   if (KNO_ETERNAL_INDEXP(lix)) {
-    int serial = KNO_GET_IMMEDIATE(lix,kno_index_type);
+    int serial = KNO_GET_IMMEDIATE(lix,kno_indexref_type);
     if (serial<KNO_MAX_PRIMARY_INDEXES)
       return kno_primary_indexes[serial];
     else return kno_lisp2index(lix);}
@@ -264,7 +264,7 @@ static kno_index l2x(lispval lix)
 static kno_pool l2p(lispval lp)
 {
   if (KNO_ETERNAL_POOLP(lp)) {
-    int serial = KNO_GET_IMMEDIATE(lp,kno_pool_type);
+    int serial = KNO_GET_IMMEDIATE(lp,kno_poolref_type);
     if (serial<kno_n_pools)
       return kno_pools_by_serialno[serial];
     else {

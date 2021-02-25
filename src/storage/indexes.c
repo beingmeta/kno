@@ -295,7 +295,7 @@ KNO_EXPORT lispval kno_index_ref(kno_index ix)
   if (ix == NULL)
     return KNO_ERROR;
   else if (ix->index_serialno>=0)
-    return LISPVAL_IMMEDIATE(kno_index_type,ix->index_serialno);
+    return LISPVAL_IMMEDIATE(kno_indexref_type,ix->index_serialno);
   else {
     lispval lix=(lispval)ix;
     kno_incref(lix);
@@ -307,7 +307,7 @@ KNO_EXPORT kno_index kno_lisp2index(lispval lix)
     return NULL;
   kno_index ix = kno_indexptr(lix);
   if (ix) return ix;
-  else if (KNO_TYPEP(lix,kno_index_type)) {
+  else if (KNO_TYPEP(lix,kno_indexref_type)) {
     char buf[64];
     int serial = KNO_IMMEDIATE_DATA(lix);
     kno_seterr3(kno_InvalidIndexPtr,"kno_lisp2index",
@@ -2015,7 +2015,7 @@ static lispval index_parsefn(int n,lispval *args,kno_typeinfo e)
 static lispval index2lisp(kno_index ix)
 {
   if (ix->index_serialno>=0)
-    return LISPVAL_IMMEDIATE(kno_index_type,ix->index_serialno);
+    return LISPVAL_IMMEDIATE(kno_indexref_type,ix->index_serialno);
   else {
     lispval v = (lispval) ix;
     kno_incref(v);
@@ -2387,7 +2387,7 @@ KNO_EXPORT lispval kno_default_indexctl(kno_index ix,lispval op,
 
 static int check_primary_index(lispval x)
 {
-  int serial = KNO_GET_IMMEDIATE(x,kno_index_type);
+  int serial = KNO_GET_IMMEDIATE(x,kno_indexref_type);
   if (serial<0) return 0;
   if (serial<KNO_MAX_PRIMARY_INDEXES)
     if (kno_primary_indexes[serial])
@@ -2402,7 +2402,7 @@ KNO_EXPORT void kno_init_indexes_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  kno_immediate_checkfns[kno_index_type]=check_primary_index;
+  kno_immediate_checkfns[kno_indexref_type]=check_primary_index;
 
   u8_init_rwlock(&consed_indexes_lock);
   consed_indexes = u8_malloc(64*sizeof(kno_index));
@@ -2437,14 +2437,14 @@ KNO_EXPORT void kno_init_indexes_c()
     struct KNO_TYPEINFO *e = kno_use_typeinfo(kno_intern("index"));
     e->type_consfn = index_parsefn;}
 
-  kno_tablefns[kno_index_type]=u8_zalloc(struct KNO_TABLEFNS);
-  kno_tablefns[kno_index_type]->get = table_indexget;
-  kno_tablefns[kno_index_type]->add = table_indexadd;
-  kno_tablefns[kno_index_type]->drop = table_indexdrop;
-  kno_tablefns[kno_index_type]->store = table_indexstore;
-  kno_tablefns[kno_index_type]->test = NULL;
-  kno_tablefns[kno_index_type]->keys = table_indexkeys;
-  kno_tablefns[kno_index_type]->getsize = NULL;
+  kno_tablefns[kno_indexref_type]=u8_zalloc(struct KNO_TABLEFNS);
+  kno_tablefns[kno_indexref_type]->get = table_indexget;
+  kno_tablefns[kno_indexref_type]->add = table_indexadd;
+  kno_tablefns[kno_indexref_type]->drop = table_indexdrop;
+  kno_tablefns[kno_indexref_type]->store = table_indexstore;
+  kno_tablefns[kno_indexref_type]->test = NULL;
+  kno_tablefns[kno_indexref_type]->keys = table_indexkeys;
+  kno_tablefns[kno_indexref_type]->getsize = NULL;
 
   kno_tablefns[kno_consed_index_type]=u8_zalloc(struct KNO_TABLEFNS);
   kno_tablefns[kno_consed_index_type]->get = table_indexget;
@@ -2459,7 +2459,7 @@ KNO_EXPORT void kno_init_indexes_c()
   kno_unparsers[kno_consed_index_type]=unparse_consed_index;
   kno_copiers[kno_consed_index_type]=copy_consed_index;
 
-  kno_unparsers[kno_index_type]=unparse_index;
+  kno_unparsers[kno_indexref_type]=unparse_index;
   metadata_readonly_props = kno_intern("_readonly_props");
 
   u8_init_rwlock(&indexes_lock);

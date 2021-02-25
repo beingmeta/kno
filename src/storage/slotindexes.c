@@ -32,7 +32,7 @@ static u8_condition NoWritableIndexForSlot=_("NoIndexForSlot");
 static lispval index2lisp(kno_index ix)
 {
   if (ix->index_serialno>=0)
-    return LISPVAL_IMMEDIATE(kno_index_type,ix->index_serialno);
+    return LISPVAL_IMMEDIATE(kno_indexref_type,ix->index_serialno);
   else {
     lispval v = (lispval) ix;
     kno_incref(v);

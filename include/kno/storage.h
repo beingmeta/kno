@@ -90,12 +90,12 @@ KNO_EXPORT int kno_dbconn_reserve_default;
 KNO_EXPORT int kno_dbconn_cap_default;
 KNO_EXPORT int kno_dbconn_init_default;
 
-#define KNO_ETERNAL_INDEXP(x) (KNO_TYPEP(x,kno_index_type))
+#define KNO_ETERNAL_INDEXP(x) (KNO_TYPEP(x,kno_indexref_type))
 #define KNO_CONSED_INDEXP(x) (KNO_TYPEP(x,kno_consed_index_type))
 #define KNO_INDEXP(x) ( (KNO_ETERNAL_INDEXP(x)) || (KNO_CONSED_INDEXP(x)) )
 #define KNO_INDEX_CONSEDP(ix) ( (ix) && ( ((ix)->index_serialno) < 0) )
 
-#define KNO_ETERNAL_POOLP(x) (KNO_TYPEP(x,kno_pool_type))
+#define KNO_ETERNAL_POOLP(x) (KNO_TYPEP(x,kno_poolref_type))
 #define KNO_CONSED_POOLP(x) (KNO_TYPEP(x,kno_consed_pool_type))
 #define KNO_POOLP(x) ( (KNO_ETERNAL_POOLP(x)) || (KNO_CONSED_POOLP(x)) )
 #define KNO_POOL_CONSEDP(p) ( (p) && ( ((p)->pool_serialno) < 0 ) )

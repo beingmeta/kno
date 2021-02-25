@@ -151,8 +151,8 @@ typedef enum KNO_LISP_TYPE {
   kno_opcode_type = KNO_IMMEDIATE_TYPECODE(5),
   kno_typeref_type = KNO_IMMEDIATE_TYPECODE(6),
   kno_coderef_type = KNO_IMMEDIATE_TYPECODE(7),
-  kno_pool_type = KNO_IMMEDIATE_TYPECODE(8),
-  kno_index_type = KNO_IMMEDIATE_TYPECODE(9),
+  kno_poolref_type = KNO_IMMEDIATE_TYPECODE(8),
+  kno_indexref_type = KNO_IMMEDIATE_TYPECODE(9),
   kno_histref_type = KNO_IMMEDIATE_TYPECODE(10),
   kno_ctype_type = KNO_IMMEDIATE_TYPECODE(11),
 
@@ -239,18 +239,30 @@ typedef enum KNO_LISP_TYPE {
 
   /* Extended types */
 
-  kno_number_type = KNO_EXTENDED_TYPECODE(0),
-  kno_sequence_type = KNO_EXTENDED_TYPECODE(1),
-  kno_table_type = KNO_EXTENDED_TYPECODE(2),
-  kno_applicable_type = KNO_EXTENDED_TYPECODE(3),
-  kno_keymap_type = KNO_EXTENDED_TYPECODE(4),
-  kno_type_type = KNO_EXTENDED_TYPECODE(5),
-  kno_opts_type = KNO_EXTENDED_TYPECODE(6),
-  kno_frame_type = KNO_EXTENDED_TYPECODE(7),
-  kno_slotid_type = KNO_EXTENDED_TYPECODE(8),
-  kno_xpool_type = KNO_EXTENDED_TYPECODE(9),
-  kno_xindex_type = KNO_EXTENDED_TYPECODE(10),
-  kno_xtype_limit = KNO_EXTENDED_TYPECODE(11)
+  kno_empty_type = KNO_EXTENDED_TYPECODE(0),
+  kno_exists_type = KNO_EXTENDED_TYPECODE(1),
+  kno_singleton_type = KNO_EXTENDED_TYPECODE(2),
+  kno_true_type = KNO_EXTENDED_TYPECODE(3),
+  kno_error_type = KNO_EXTENDED_TYPECODE(4),
+  kno_void_type = KNO_EXTENDED_TYPECODE(5),
+  kno_satisfied_type = KNO_EXTENDED_TYPECODE(6),
+
+  kno_number_type = KNO_EXTENDED_TYPECODE(0x10),
+  kno_integer_type = KNO_EXTENDED_TYPECODE(0x11),
+  kno_exact_type = KNO_EXTENDED_TYPECODE(0x12),
+  kno_inexact_type = KNO_EXTENDED_TYPECODE(0x13),
+  kno_sequence_type = KNO_EXTENDED_TYPECODE(0x14),
+  kno_table_type = KNO_EXTENDED_TYPECODE(0x15),
+  kno_applicable_type = KNO_EXTENDED_TYPECODE(0x16),
+  kno_xfunction_type = KNO_EXTENDED_TYPECODE(0x17),
+  kno_keymap_type = KNO_EXTENDED_TYPECODE(0x18),
+  kno_type_type = KNO_EXTENDED_TYPECODE(0x19),
+  kno_opts_type = KNO_EXTENDED_TYPECODE(0x1A),
+  kno_frame_type = KNO_EXTENDED_TYPECODE(0x1B),
+  kno_slotid_type = KNO_EXTENDED_TYPECODE(0x1C),
+  kno_pool_type = KNO_EXTENDED_TYPECODE(0x1D),
+  kno_index_type = KNO_EXTENDED_TYPECODE(0x1E),
+  kno_max_xtype = KNO_EXTENDED_TYPECODE(0x1E)
 
 } kno_lisp_type;
 
@@ -450,7 +462,7 @@ KNO_EXPORT kno_lisp_type _KNO_TYPEOF(lispval x);
 KNO_EXPORT int _KNO_TYPEP(lispval ptr,int type);
 KNO_EXPORT int _KNO_XTYPEP(lispval ptr,kno_lisp_type type);
 
-#define KNO_XTYPEP _KNO_XTYPEP
+#define KNO_XTYPEP(p,t) (_KNO_XTYPEP(p,t))
 
 #if KNO_EXTREME_PROFILING
 #define KNO_TYPEP _KNO_TYPEP
@@ -459,7 +471,7 @@ KNO_EXPORT int _KNO_XTYPEP(lispval ptr,kno_lisp_type type);
   (((type) < 0x04) ? ( ( (ptr) & (0x3) ) == type) :			\
    ((type) < 0x84) ? ( (KNO_IMMEDIATEP(ptr)) && (KNO_IMMEDIATE_TYPEP(ptr,type)) ) : \
    ((type) < 0x100) ?  ( (ptr) && (KNO_CONSP(ptr)) && ((KNO_CONS_TYPEOF(ptr)) == type) ) : \
-   (_KNO_XTYPEP(ptr,type)))
+   (KNO_XTYPEP(ptr,type)))
 #endif
 #define KNO_PRIM_TYPEP(x,tp)   ( KNO_TYPEP(x,tp) )
 
@@ -863,8 +875,8 @@ KNO_EXPORT int _KNO_ERRORP(lispval x);
 #define KNO_OPCODE_TYPE KNO_CTYPE(kno_opcode_type)
 #define KNO_TYPEREF_TYPE KNO_CTYPE(kno_typeref_type)
 #define KNO_CODEREF_TYPE KNO_CTYPE(kno_coderef_type)
-#define KNO_POOL_TYPE KNO_CTYPE(kno_pool_type)
-#define KNO_INDEX_TYPE KNO_CTYPE(kno_index_type)
+#define KNO_POOLREF_TYPE KNO_CTYPE(kno_poolref_type)
+#define KNO_INDEXREF_TYPE KNO_CTYPE(kno_indexref_type)
 #define KNO_HISTREF_TYPE KNO_CTYPE(kno_histref_type)
 #define KNO_CTYPE_TYPE KNO_CTYPE(kno_ctype_type)
 #define KNO_STRING_TYPE KNO_CTYPE(kno_string_type)
@@ -910,14 +922,22 @@ KNO_EXPORT int _KNO_ERRORP(lispval x);
 #define KNO_MYSTERY_TYPE KNO_CTYPE(kno_mystery_type)
 #define KNO_STREAM_TYPE KNO_CTYPE(kno_stream_type)
 #define KNO_SERVICE_TYPE KNO_CTYPE(kno_service_type)
-#define KNO_BLOOM_FILTER KNO_CTYPE(_type)
+#define KNO_BLOOM_FILTER KNO_CTYPE(kno_bloom_filter_type)
 #define KNO_SQLDB_TYPE KNO_CTYPE(kno_sqldb_type)
 #define KNO_SQLPROC_TYPE KNO_CTYPE(kno_sqlproc_type)
 #define KNO_PATHSTORE_TYPE KNO_CTYPE(kno_pathstore_type)
-#define KNO_CONSED_INDEX KNO_CTYPE(_type)
-#define KNO_CONSED_POOL KNO_CTYPE(_type)
+#define KNO_CONSED_INDEX KNO_CTYPE(kno_consed_index_type)
+#define KNO_CONSED_POOL KNO_CTYPE(kno_consed_pool_type)
 #define KNO_SUBJOB_TYPE KNO_CTYPE(kno_subjob_type)
+#define KNO_EMPTY_TYPE KNO_CTYPE(kno_empty_type)
+#define KNO_EXISTS_TYPE KNO_CTYPE(kno_exists_type)
+#define KNO_SINGLETON_TYPE KNO_CTYPE(kno_singleton_type)
+#define KNO_TRUE_TYPE KNO_CTYPE(kno_true_type)
+#define KNO_ERROR_TYPE KNO_CTYPE(kno_error_type)
+#define KNO_VOID_TYPE KNO_CTYPE(kno_void_type)
+#define KNO_SATISFIED_TYPE KNO_CTYPE(kno_satisfied_type)
 #define KNO_NUMBER_TYPE KNO_CTYPE(kno_number_type)
+#define KNO_INTEGER_TYPE KNO_CTYPE(kno_integer_type)
 #define KNO_SEQUENCE_TYPE KNO_CTYPE(kno_sequence_type)
 #define KNO_TABLE_TYPE KNO_CTYPE(kno_table_type)
 #define KNO_APPLICABLE_TYPE KNO_CTYPE(kno_applicable_type)
@@ -926,8 +946,8 @@ KNO_EXPORT int _KNO_ERRORP(lispval x);
 #define KNO_OPTS_TYPE KNO_CTYPE(kno_opts_type)
 #define KNO_FRAME_TYPE KNO_CTYPE(kno_frame_type)
 #define KNO_SLOTID_TYPE KNO_CTYPE(kno_slotid_type)
-#define KNO_XPOOL_TYPE KNO_CTYPE(kno_xpool_type)
-#define KNO_XINDEX_TYPE KNO_CTYPE(kno_xindex_type)
+#define KNO_POOL_TYPE KNO_CTYPE(kno_pool_type)
+#define KNO_INDEX_TYPE KNO_CTYPE(kno_index_type)
 
 /* Symbols */
 

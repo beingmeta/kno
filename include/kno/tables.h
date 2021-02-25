@@ -544,7 +544,7 @@ KNO_EXPORT lispval kno_schemap2slotmap(lispval schemap);
 
 /* Generic predicate for keymaps */
 
-#define KNO_KEYMAPP(x) ( KNO_XTYPEP((x),kno_keymap_type) )
+#define KNO_KEYMAPP(x) ( KNO_TYPEP((x),kno_keymap_type) )
 
 /* Hashtables */
 

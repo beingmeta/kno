@@ -10,6 +10,8 @@
 #define _FILEINFO __FILE__
 #endif
 
+#define KNO_INLINE_XTYPEP 1
+
 #include "kno/knosource.h"
 #include "kno/lisp.h"
 #include "kno/tables.h"
@@ -158,35 +160,7 @@ KNO_EXPORT int _KNO_TABLEP(lispval x)
 
 KNO_EXPORT int _KNO_XTYPEP(lispval x,int type)
 {
-  if (type <=  kno_opts_type) switch ((kno_lisp_type)type) {
-    case kno_number_type: return KNO_NUMBERP(x);
-    case kno_sequence_type: return KNO_SEQUENCEP(x);
-    case kno_table_type: return KNO_TABLEP(x);
-    case kno_type_type:
-      if ( (KNO_OIDP(x)) || (KNO_SYMBOLP(x)) ||
-	   (KNO_IMMEDIATE_TYPEP(x,kno_ctype_type)) ||
-	   (KNO_TYPEP(x,kno_typeinfo_type)) )
-	return 1;
-      else return 0;
-    case kno_keymap_type:
-      if (KNO_CONSP(x)) {
-	kno_lisp_type ctype = KNO_CONS_TYPEOF(x);
-	return ( (ctype && kno_table_type) == ctype );}
-      else return 0;
-    case kno_opts_type:
-      if (KNO_CONSP(x)) {
-	kno_lisp_type ctype = KNO_CONS_TYPEOF(x);
-	return ( (ctype == kno_pair_type) &&
-		 ( (ctype && kno_table_type) == ctype ) );}
-      else if ( (x == KNO_FALSE) || (x == KNO_EMPTY_LIST) || (x == KNO_EMPTY_CHOICE) )
-	return 1;
-      else return 0;
-    default:
-      if  (type < 0x04) return ( ( (x) & (0x3) ) == type);
-      else if (type < 0x84) return (KNO_IMMEDIATE_TYPEP(x,type));
-      else if (type < 0x100) return ( (x) && ((KNO_CONS_TYPEOF(x)) == type) );
-      else return 0;}
-  else return 0;
+  return KNO_XTYPEP(x,type);
 }
 
 KNO_EXPORT int _KNO_CHECKTYPE(lispval obj,lispval objtype)
@@ -198,7 +172,7 @@ KNO_EXPORT int _KNO_CHECKTYPE(lispval obj,lispval objtype)
 		 ( (KNO_RAWPTR_TAG(obj)) == objtype) ) );
     else if (KNO_IMMEDIATE_TYPEP(objtype,kno_ctype_type)) {
       kno_lisp_type ltype = (KNO_IMMEDIATE_DATA(objtype));
-      return (KNO_XTYPEP(obj,ltype));}
+      return (KNO_TYPEP(obj,ltype));}
     else return 0;}
   else if (KNO_OIDP(objtype))
     return ( ( (KNO_COMPOUNDP(obj)) && ( (KNO_COMPOUND_TAG(obj)) == objtype) ) ||
@@ -343,11 +317,11 @@ static void init_type_names()
   kno_type_docs[kno_typeref_type]=_("typeref");
   kno_type_names[kno_coderef_type]=_("coderef");
   kno_type_docs[kno_coderef_type]=_("coderef");
-  kno_type_names[kno_pool_type]=_("poolref");
-  kno_type_docs[kno_pool_type]=
+  kno_type_names[kno_poolref_type]=_("poolref");
+  kno_type_docs[kno_poolref_type]=
     _("a pool ID mapped to a static (eternal) pool");
-  kno_type_names[kno_index_type]=_("indexref");
-  kno_type_docs[kno_index_type]=
+  kno_type_names[kno_indexref_type]=_("indexref");
+  kno_type_docs[kno_indexref_type]=
     _("an index ID mapped to a static (eternal) index");
   kno_type_names[kno_histref_type]=_("histref");
   kno_type_docs[kno_histref_type]=_("histref");
@@ -504,12 +478,12 @@ static void init_type_names()
   kno_type_names[kno_opts_type]=_("optsarg");
   kno_type_docs[kno_opts_type]=_("an opts data structure");
 
-  kno_type_names[kno_xpool_type]=_("pool");
-  kno_type_docs[kno_xpool_type]=
+  kno_type_names[kno_pool_type]=_("pool");
+  kno_type_docs[kno_pool_type]=
     _("a registered pool id or a consed pool object");
 
-  kno_type_names[kno_xindex_type]=_("index");
-  kno_type_docs[kno_xindex_type]=
+  kno_type_names[kno_index_type]=_("index");
+  kno_type_docs[kno_index_type]=
     _("a registered index id or a consed index object");
 
 }
@@ -649,8 +623,8 @@ KNO_EXPORT int kno_init_lisp_types()
   kno_add_constname("sequence",KNO_SEQUENCE_TYPE);
   kno_add_constname("frame",KNO_FRAME_TYPE);
   kno_add_constname("slotid",KNO_SLOTID_TYPE);
-  kno_add_constname("pool",KNO_XPOOL_TYPE);
-  kno_add_constname("index",KNO_XINDEX_TYPE);
+  kno_add_constname("pool",KNO_POOL_TYPE);
+  kno_add_constname("index",KNO_INDEX_TYPE);
 
   u8_threadcheck();
 

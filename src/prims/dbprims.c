@@ -43,7 +43,7 @@ KNO_FASTOP lispval index_ref(kno_index ix)
   if (ix == NULL)
     return KNO_ERROR;
   else if (ix->index_serialno>=0)
-    return LISPVAL_IMMEDIATE(kno_index_type,ix->index_serialno);
+    return LISPVAL_IMMEDIATE(kno_indexref_type,ix->index_serialno);
   else {
     lispval lix = (lispval)ix;
     /* kno_incref(lix); */
@@ -1348,7 +1348,7 @@ static lispval swapout_lexpr(int n,kno_argvec args)
       return KNO_INT(rv_sum);}
     else if (OIDP(arg))
       rv_sum = kno_swapout_oid(arg);
-    else if (TYPEP(arg,kno_index_type))
+    else if (TYPEP(arg,kno_indexref_type))
       kno_index_swapout(kno_indexptr(arg),VOID);
     else if (TYPEP(arg,kno_pool_type))
       rv_sum = kno_pool_swapout(kno_lisp2pool(arg),VOID);
@@ -1364,15 +1364,15 @@ static lispval swapout_lexpr(int n,kno_argvec args)
     return KNO_INT(0);
   else {
     lispval arg, keys; int rv_sum = 0;
-    if ((TYPEP(args[0],kno_pool_type))||
-	(TYPEP(args[0],kno_index_type))||
+    if ((TYPEP(args[0],kno_poolref_type))||
+	(TYPEP(args[0],kno_indexref_type))||
 	(TYPEP(args[0],kno_consed_pool_type))||
 	(TYPEP(args[0],kno_consed_index_type))) {
       arg = args[0]; keys = args[1];}
     else {arg = args[0]; keys = args[1];}
-    if (TYPEP(arg,kno_index_type))
+    if (TYPEP(arg,kno_indexref_type))
       kno_index_swapout(kno_indexptr(arg),keys);
-    else if (TYPEP(arg,kno_pool_type))
+    else if (TYPEP(arg,kno_poolref_type))
       rv_sum = kno_pool_swapout(kno_lisp2pool(arg),keys);
     else if (TYPEP(arg,kno_consed_index_type))
       kno_index_swapout(kno_indexptr(arg),keys);
@@ -1396,9 +1396,9 @@ static lispval commit_lexpr(int n,kno_argvec args)
     return VOID;}
   else if (n == 1) {
     lispval arg = args[0]; int retval = 0;
-    if (TYPEP(arg,kno_index_type))
+    if (TYPEP(arg,kno_indexref_type))
       retval = kno_commit_index(kno_indexptr(arg));
-    else if (TYPEP(arg,kno_pool_type))
+    else if (TYPEP(arg,kno_poolref_type))
       retval = kno_commit_all_oids(kno_lisp2pool(arg));
     else if (TYPEP(arg,kno_consed_index_type))
       retval = kno_commit_index(kno_indexptr(arg));

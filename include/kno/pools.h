@@ -410,8 +410,8 @@ KNO_FASTOP kno_pool kno_oid2pool(lispval oid)
 }
 KNO_FASTOP U8_MAYBE_UNUSED kno_pool kno_poolptr(lispval x)
 {
-  if (KNO_TYPEP(x,kno_pool_type)) {
-    int serial = KNO_GET_IMMEDIATE(x,kno_pool_type);
+  if (KNO_TYPEP(x,kno_poolref_type)) {
+    int serial = KNO_GET_IMMEDIATE(x,kno_poolref_type);
     if (serial<kno_n_pools)
       return kno_pools_by_serialno[serial];
     else return NULL;}
