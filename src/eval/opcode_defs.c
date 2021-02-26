@@ -1087,6 +1087,9 @@ static lispval handle_table_opcode(lispval opcode,int n,kno_argvec args)
 
 /* Opcode dispatch */
 
+static lispval call_evalfn(lispval evalop,lispval expr,kno_lexenv env,
+			   kno_stack stack,int tail);
+
 static lispval handle_special_opcode(lispval opcode,lispval args,lispval expr,
 				     kno_lexenv env,
 				     kno_stack _stack,
@@ -1190,6 +1193,21 @@ static lispval handle_special_opcode(lispval opcode,lispval args,lispval expr,
     else {
       kno_decref(arg_val);
       return KNO_FALSE;}}
+
+  case KNO_EVALFN_OPCODE: {
+    lispval evalfn = pop_arg(args);
+    lispval expr = pop_arg(args);
+    return call_evalfn(evalfn,expr,env,_stack,tail);}
+
+  case KNO_ISA_OPCODE: {
+    lispval type = pop_arg(args);
+    lispval expr = pop_arg(args);
+    lispval obj = kno_eval(expr,env,_stack,0);
+    if (KNO_ABORTED(obj)) return obj;
+    int rv = KNO_CHECKTYPE(obj,type);
+    kno_decref(obj);
+    if (rv) return KNO_TRUE;
+    else return KNO_FALSE;}
 
   case KNO_BREAK_OPCODE:
     return KNO_BREAK;

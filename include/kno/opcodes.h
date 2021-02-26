@@ -54,6 +54,8 @@ KNO_EXPORT const int kno_opcodes_length;
 #define KNO_UNION_OPCODE	 KNO_SPECIAL_OPCODE(0x12)
 #define KNO_INTERSECT_OPCODE	 KNO_SPECIAL_OPCODE(0x13)
 #define KNO_DIFFERENCE_OPCODE	 KNO_SPECIAL_OPCODE(0x14)
+#define KNO_EVALFN_OPCODE	 KNO_SPECIAL_OPCODE(0x15)
+#define KNO_ISA_OPCODE           KNO_SPECIAL_OPCODE(0x16)
 
 
 /* Unary primitives which handle their own non-determinism. */

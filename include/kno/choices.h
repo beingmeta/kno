@@ -477,6 +477,44 @@ kno_dochoices_helper(lispval *_valp,
 #define KNO_STOP_DO_CHOICES \
    if (_need_gc) kno_decref(_val)
 
+#define KNO_DO_CHOICES2(elt1,elt2,valexpr1,valexpr2)	\
+    lispval elt1, _val1=valexpr1, _singlev1[1];		\
+    lispval elt2, _val2=valexpr2, _singlev2[1];		\
+    const lispval *_scan1, *_limit1;			\
+    const lispval *_scan2, *_limit2;			      \
+    int _need_gc1=0, need_gc2=0;			      \
+    KNO_PTR_CHECK1(_val1,"KNO_DO_CHOICES");		      \
+    KNO_PTR_CHECK1(_val2,"KNO_DO_CHOICES");		      \
+    if (KNO_PRECHOICEP(_val1)) {			      \
+      _need_gc1=1; _val1=kno_make_simple_choice(_val1);}      \
+    if (KNO_PRECHOICEP(_val2)) {			      \
+      _need_gc2=1; _val2=kno_make_simple_choice(_val2);}      \
+    if (KNO_CHOICEP(_val1)) {						\
+      _scan1=KNO_CHOICE_DATA(_val1); _limit1=_scan1+KNO_CHOICE_SIZE(_val1);} \
+    else if (KNO_EMPTY_CHOICEP(_val1)) {				\
+      _scan1=_singlev1+1; _limit1=_scan1;}				\
+    else if (KNO_QCHOICEP(_val1)) {					\
+      _singlev1[0] = KNO_XQCHOICE(_val1)->qchoiceval;			\
+      _val1 = _singlev1[0]; kno_incref(_val1); _need_gc1 = 1;		\
+      _scan1=_singlev1; _limit1=_scan1+1;}				\
+    else {								\
+      _singlev1[0]=_val1; _scan1=_singlev1; _limit1=_scan1+1;}		\
+    if (KNO_CHOICEP(_val2)) {						\
+      _scan2=KNO_CHOICE_DATA(_val2);					\
+      _limit2=_scan2+KNO_CHOICE_SIZE(_val2);}				\
+    else if (KNO_EMPTY_CHOICEP(_val2)) {				\
+      _scan2=_singlev2+1; _limit2=_scan2;}				\
+    else if (KNO_QCHOICEP(_val2)) {					\
+      _singlev2[0] = KNO_XQCHOICE(_val2)->qchoiceval;			\
+      _val2 = _singlev2[0]; kno_incref(_val2); _need_gc2 = 1;		\
+      _scan2=_singlev2; _limit2=_scan2+1;}				\
+    else {								\
+      _singlev2[0]=_val2; _scan2=_singlev2; _limit2=_scan2+1;}		\
+    while ( (_scan1<_limit1) ? (elt1=*(_scan1++)) :			\
+	    (((_need_gc1) ? (kno_decref(_val1),0) : (0)) ||		\
+	     ((_need_gc2) ? (kno_decref(_val2),0) : (0))))		\
+      while ( (_scan1<_limit1) ? (elt1=*(_scan1++)) : (0) )
+
 KNO_EXPORT lispval kno_union(const lispval *v,unsigned int n);
 KNO_EXPORT lispval kno_intersection(const lispval *v,unsigned int n);
 KNO_EXPORT lispval kno_difference(lispval whole,lispval part);
