@@ -2166,15 +2166,15 @@ static lispval cacheget_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 		 (VOIDP(default_expr))))
     return kno_err(kno_SyntaxError,"cacheget_evalfn",NULL,expr);
   else {
-    lispval table = kno_eval(table_arg,env,_stack,0), key, value;
+    lispval table = kno_eval(table_arg,env,_stack), key, value;
     if (KNO_ABORTED(table)) return table;
-    else if (TABLEP(table)) key = kno_eval(key_arg,env,_stack,0);
+    else if (TABLEP(table)) key = kno_eval(key_arg,env,_stack);
     else return kno_type_error(_("table"),"cachget_evalfn",table);
     if (KNO_ABORTED(key)) {
       kno_decref(table); return key;}
     else value = kno_get(table,key,VOID);
     if (VOIDP(value)) {
-      lispval dflt = kno_eval(default_expr,env,_stack,0);
+      lispval dflt = kno_eval(default_expr,env,_stack);
       if (KNO_ABORTED(dflt)) {
 	kno_decref(table); kno_decref(key);
 	return dflt;}
@@ -4259,7 +4259,6 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("index-set!",index_set,3,kno_db_module);
   KNO_LINK_CPRIM("index-add!",index_add,3,kno_db_module);
   KNO_LINK_CPRIM("index-get",index_get,2,kno_db_module);
-  KNO_LINK_CPRIM("index-source",index_source_prim,1,kno_db_module);
   KNO_LINK_CPRIM("index-id",index_id,1,kno_db_module);
   KNO_LINK_CPRIM("change-load",change_load,1,kno_db_module);
   KNO_LINK_CPRIM("cache-load",cache_load,1,kno_db_module);
@@ -4390,9 +4389,6 @@ static void link_local_cprims()
   import_schemefn("getvalues");
   import_schemefn("getassocs");
   import_schemefn("getkeyvec");
-  import_schemefn("slotid?");
-  import_schemefn("index?");
-  import_schemefn("pool?");
   import_schemefn("get");
   import_schemefn("test");
   import_schemefn("assert!");

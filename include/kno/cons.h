@@ -1110,6 +1110,8 @@ KNO_FASTOP int __KNO_XTYPEP(lispval x,int type)
     case kno_satisfied_type: return ( (!(KNO_EMPTYP(x))) && (!(KNO_FALSEP(x))) );
     case kno_number_type: return KNO_NUMBERP(x);
     case kno_integer_type: return (KNO_FIXNUMP(x)) || (KNO_BIGINTP(x));
+    case kno_exact_type: return KNO_EXACTP(x);
+    case kno_inexact_type: return (!(KNO_EXACTP(x)));
     case kno_sequence_type: return KNO_SEQUENCEP(x);
     case kno_table_type: return KNO_TABLEP(x);
     case kno_applicable_type:

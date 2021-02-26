@@ -65,7 +65,7 @@ static lispval getopt_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   lispval opts_arg = kno_get_arg(expr,1);
   if (KNO_VOIDP(opts_arg))
     return kno_err(kno_SyntaxError,"getopt_evalfn/arg1",NULL,expr);
-  lispval opts = kno_eval(opts_arg,env,_stack,0);
+  lispval opts = kno_eval(opts_arg,env,_stack);
   if (KNO_ABORTED(opts))
     return opts;
   else {
@@ -73,7 +73,7 @@ static lispval getopt_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     if (KNO_VOIDP(keys_arg)) {
       kno_decref(opts);
       return kno_err(kno_SyntaxError,"getopt_evalfn/arg2",NULL,expr);}
-    lispval keys = kno_eval(keys_arg,env,_stack,0);
+    lispval keys = kno_eval(keys_arg,env,_stack);
     if (KNO_ABORTED(keys)) {
       kno_decref(opts);
       return keys;}
@@ -94,7 +94,7 @@ static lispval getopt_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       else if (EMPTYP(results)) {
 	lispval dflt_expr = kno_get_arg(expr,3);
 	if (VOIDP(dflt_expr)) return KNO_FALSE;
-	else return kno_eval(dflt_expr,env,_stack,0);}
+	else return kno_eval(dflt_expr,env,_stack);}
       else if (KNO_PRECHOICEP(results))
 	return kno_simplify_value(results);
       else return results;}}

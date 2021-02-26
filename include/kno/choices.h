@@ -381,13 +381,14 @@ static U8_MAYBE_UNUSED int __kno_contains_atomp(lispval x,lispval ch)
 #define kno_prechoice_add __kno_prechoice_add
 #define KNO_ADD_TO_CHOICE(x,v) x=__kno_add_to_choice(x,v)
 #define kno_contains_atomp __kno_contains_atomp
+#define KNO_ADD_TO_CHOICE_INCREF(x,expr) \
+  lispval __add = expr; kno_incref(__add); x=__kno_add_to_choice(x,__add)
 #else
 #define kno_prechoice_add _kno_prechoice_add
-#define KNO_ADD_TO_CHOICE(x,v)                    \
-   if (KNO_DEBUG_BADPTRP(v))                      \
-     _kno_bad_pointer(v,(u8_context)"KNO_ADD_TO_CHOICE"); \
-   else x=_kno_add_to_choice(x,v)
+#define KNO_ADD_TO_CHOICE(x,v) x=_kno_add_to_choice(x,v)
 #define kno_contains_atomp _kno_contains_atomp
+#define KNO_ADD_TO_CHOICE_INCREF(x,expr) \
+  lispval __add = expr; kno_incref(__add); x=__kno_add_to_choice(x,__add)
 #endif
 
 #if KNO_FAST_CHOICE_CONTAINSP
@@ -443,6 +444,20 @@ kno_dochoices_helper(lispval *_valp,
   *_valp = _val;
 }
 
+#define KNO_ITER_CHOICES(scan,limit,val)	      \
+  const lispval *scan, *limit;			      \
+  if (KNO_EMPTYP(val)) limit=scan=NULL;		      \
+  else if (!(KNO_CONSP(val))) {			      \
+    scan = &val; limit = scan+1;}		      \
+  else if (KNO_CHOICEP(val)) {			      \
+    scan  = (lispval *) KNO_CHOICE_ELTS(val);	      \
+    limit = scan+KNO_CHOICE_SIZE(val);}		      \
+  else if (KNO_QCHOICEP(val)) {			      \
+    struct KNO_QCHOICE *_qc = (kno_qchoice) val;      \
+    scan  = (lispval *) &(_qc->qchoiceval);	      \
+    limit = scan+1;}				      \
+ else { scan = &val; limit = scan+1;}
+
 #if KNO_EXTREME_PROFILING
 #define KNO_DO_CHOICES(elt,valexpr) \
   lispval elt, _val=valexpr, _singlev[1]; \
@@ -476,6 +491,19 @@ kno_dochoices_helper(lispval *_valp,
 
 #define KNO_STOP_DO_CHOICES \
    if (_need_gc) kno_decref(_val)
+
+KNO_EXPORT lispval kno_union(const lispval *v,unsigned int n);
+KNO_EXPORT lispval kno_intersection(const lispval *v,unsigned int n);
+KNO_EXPORT lispval kno_difference(lispval whole,lispval part);
+KNO_EXPORT int kno_choice_containsp(lispval key,lispval x);
+KNO_EXPORT int kno_overlapp(lispval,lispval);
+KNO_EXPORT int kno_containsp(lispval,lispval);
+
+KNO_EXPORT lispval kno_intersect_choices(struct KNO_CHOICE **,int);
+
+KNO_EXPORT lispval *kno_natsort_choice(kno_choice ch,lispval *,ssize_t);
+
+/* DO_CHOICES2 */
 
 #define KNO_DO_CHOICES2(elt1,elt2,valexpr1,valexpr2)	\
     lispval elt1, _val1=valexpr1, _singlev1[1];		\
@@ -514,17 +542,6 @@ kno_dochoices_helper(lispval *_valp,
 	    (((_need_gc1) ? (kno_decref(_val1),0) : (0)) ||		\
 	     ((_need_gc2) ? (kno_decref(_val2),0) : (0))))		\
       while ( (_scan1<_limit1) ? (elt1=*(_scan1++)) : (0) )
-
-KNO_EXPORT lispval kno_union(const lispval *v,unsigned int n);
-KNO_EXPORT lispval kno_intersection(const lispval *v,unsigned int n);
-KNO_EXPORT lispval kno_difference(lispval whole,lispval part);
-KNO_EXPORT int kno_choice_containsp(lispval key,lispval x);
-KNO_EXPORT int kno_overlapp(lispval,lispval);
-KNO_EXPORT int kno_containsp(lispval,lispval);
-
-KNO_EXPORT lispval kno_intersect_choices(struct KNO_CHOICE **,int);
-
-KNO_EXPORT lispval *kno_natsort_choice(kno_choice ch,lispval *,ssize_t);
 
 #endif /* KNO_CHOICES_H */
 

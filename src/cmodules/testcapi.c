@@ -214,7 +214,7 @@ static lispval eval_testcapi()
     u8_free(unparsed);
 
     lispval expr = kno_make_list(2,kno_intern("opcode-name"),invalid_opcode);
-    lispval result = kno_eval_arg(expr,env);
+    lispval result = kno_eval(expr,env,NULL);
     if (!(KNO_ABORTP(result))) {
       u8_log(LOGERR,"NoError","Expr %q returned %q",expr,result);
       errors++;}

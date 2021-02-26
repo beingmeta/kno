@@ -126,39 +126,37 @@ KNO_EXPORT void _knodbg_show_env(kno_lexenv start,int limit)
 static void _concise_stack_frame(struct KNO_STACK *stack)
 {
   lispval op = stack->stack_op;
-  kno_stackvec args = &(stack->stack_args);
   kno_stackvec refs = &(stack->stack_refs);
   u8_string file = stack->stack_file;
   if ( (stack->stack_label) && (stack->stack_origin) &&
        ( (stack->stack_origin) != (stack->stack_label) ) )
-    fprintf(stderr,"(%d) 0x%llx %s:%s%s%s%s %d/%d%s args, %d/%d%s refs",
+    fprintf(stderr,"(%d) 0x%llx %s:%s%s%s%s %d/%d args, %d/%d%s refs",
 	    stack->stack_depth,KNO_LONGVAL(stack),
 	    stack->stack_origin,stack->stack_label,
 	    U8OPTSTR("(",file,")"),
-	    args->count,KNO_STACKVEC_LEN(args),
-	    (KNO_STACKVEC_ONHEAP(args)) ? ("(heap)") : (""),
+	    stack->stack_argc,stack->stack_width,
 	    refs->count,KNO_STACKVEC_LEN(refs),
-	    (KNO_STACKVEC_ONHEAP(args)) ? ("(heap)") : (""));
+	    (KNO_STACKVEC_ONHEAP(refs)) ? ("(heap)") : (""));
   else if ( (stack->stack_label) || (stack->stack_origin) )
-    fprintf(stderr,"(%d) 0x%llx %s%s%s%s %d/%d%s args, %d/%d%s refs",
+    fprintf(stderr,"(%d) 0x%llx %s%s%s%s %d/%d args, %d/%d%s refs",
 	    stack->stack_depth,KNO_LONGVAL(stack),
 	    ( (stack->stack_label) ?
 	      (stack->stack_label) :
 	      (stack->stack_origin) ),
 	    U8OPTSTR("(",file,")"),
-	    args->count,KNO_STACKVEC_LEN(args),
-	    (KNO_STACKVEC_ONHEAP(args)) ? ("(heap)") : (""),
+	    stack->stack_argc,stack->stack_width,
 	    refs->count,KNO_STACKVEC_LEN(refs),
-	    (KNO_STACKVEC_ONHEAP(args)) ? ("(heap)") : (""));
+	    (KNO_STACKVEC_ONHEAP(refs)) ? ("(heap)") : (""));
   else fprintf(stderr,"(%d) 0x%llx %s%s%s %d/%d args, %d/%d refs",
 	       stack->stack_depth,KNO_LONGVAL(stack),
 	       U8OPTSTR("(",file,")"),
-	       args->count,args->len,
+	       stack->stack_argc,stack->stack_width,
 	       refs->count,refs->len);
   unsigned int bits = stack->stack_bits;
-  if (U8_BITP(bits,KNO_STACK_REDUCE_LOOP)) fputs(" loop",stderr);
   if (U8_BITP(bits,KNO_STACK_TAIL_POS)) fputs(" tailpos",stderr);
   if (U8_BITP(bits,KNO_STACK_VOID_VAL)) fputs(" void",stderr);
+  if (U8_BITP(bits,KNO_STACK_DECREF_ARGS)) fputs(" decref",stderr);
+  if (U8_BITP(bits,KNO_STACK_FREE_ARGVEC)) fputs(" freevec",stderr);
   if ( (U8_BITP(bits,KNO_STACK_OWNS_ENV)) && (stack->eval_env) )
     fputs(" env",stderr);
   if (U8_BITP(bits,KNO_STACK_FREE_ENV)) fputs("/free",stderr);
@@ -209,12 +207,11 @@ KNO_EXPORT void _knodbg_show_stack_frame(void *arg)
   if (KNO_APPLICABLEP(stack->stack_op)) {
     u8_fprintf(stderr,"Applying %q to %d args",
 	       stack->stack_op,
-	       stack->stack_args.count);
-    if (stack->stack_args.count) {
-      kno_stackvec argvec = &(stack->stack_args);
+	       stack->stack_argc);
+    if (stack->stack_argc) {
       u8_byte buf[200];
-      kno_argvec args = argvec->elts;
-      int i=0, n = argvec->count;
+      kno_argvec args = stack->stack_args;
+      int i=0, n = stack->stack_argc;
       while (i<n) {
 	lispval arg = args[i];
 	u8_string line=u8_bprintf

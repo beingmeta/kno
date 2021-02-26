@@ -54,6 +54,8 @@ KNO_EXPORT int _KNO_SEQUENCEP(lispval x);
   ( (KNO_CONSP(x)) ?							\
     ( ( (KNO_CONS_TYPEOF(x) >= kno_string_type) &&			\
 	(KNO_CONS_TYPEOF(x) <= kno_pair_type) ) ||			\
+      ( (KNO_CONS_TYPEOF(x) == kno_compound_type) &&			\
+	( (((kno_compound)x)->compound_seqoff) >= 0) ) ||		\
       ( (kno_seqfns[KNO_CONS_TYPEOF(x)] != NULL ) &&			\
 	( (kno_seqfns[KNO_CONS_TYPEOF(x)]->sequencep == NULL ) ||	\
 	  (kno_seqfns[KNO_CONS_TYPEOF(x)]->sequencep(x)) ) ) ) :       \

@@ -583,16 +583,12 @@ static void link_local_cprims()
 {
   KNO_LINK_CPRIM("zfile->dtypes",zipfile2dtypes,1,kno_binio_module);
   KNO_LINK_CPRIM("file->dtypes",file2dtypes,1,kno_binio_module);
-  KNO_LINK_CPRIM("zfile->dtypes",zipfile2dtypes,1,kno_binio_module);
   KNO_LINK_CPRIM("zfile->dtype",zipfile2dtype,1,kno_binio_module);
   KNO_LINK_CPRIM("file->dtype",file2dtype,1,kno_binio_module);
-  KNO_LINK_CPRIM("zfile->dtype",zipfile2dtype,1,kno_binio_module);
   KNO_LINK_CPRIM("dtype->zfile+",add_lisp2zipfile,2,kno_binio_module);
   KNO_LINK_CPRIM("dtypes->file+",add_dtypes2file,2,kno_binio_module);
-  KNO_LINK_CPRIM("dtype->zfile+",add_lisp2zipfile,2,kno_binio_module);
   KNO_LINK_CPRIM("dtype->zfile",lisp2zipfile,3,kno_binio_module);
   KNO_LINK_CPRIM("dtype->file",lisp2file,3,kno_binio_module);
-  KNO_LINK_CPRIM("dtype->zfile",lisp2zipfile,3,kno_binio_module);
   KNO_LINK_CPRIM("zwrite-dtypes",zwrite_dtypes,2,kno_binio_module);
   KNO_LINK_CPRIM("zwrite-dtype",zwrite_dtype,2,kno_binio_module);
   KNO_LINK_CPRIM("zread-dtype",zread_dtype,1,kno_binio_module);

@@ -58,7 +58,7 @@ static lispval timed_eval_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
 {
   lispval toeval = kno_get_arg(expr,1);
   double start = u8_elapsed_time();
-  lispval value = kno_eval(toeval,env,stack,0);
+  lispval value = kno_eval(toeval,env,stack);
   double finish = u8_elapsed_time();
   u8_message(";; Executed %q in %f seconds, yielding\n;;\t%q",
 	     toeval,(finish-start),value);
@@ -74,7 +74,7 @@ static lispval timed_evalx_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
 {
   lispval toeval = kno_get_arg(expr,1);
   double start = u8_elapsed_time();
-  lispval value = kno_eval(toeval,env,stack,0);
+  lispval value = kno_eval(toeval,env,stack);
   double finish = u8_elapsed_time();
   if (KNO_ABORTED(value)) {
     u8_exception ex = u8_erreify();
@@ -148,7 +148,7 @@ static lispval watchcall(lispval expr,kno_lexenv env,
   out.u8_write = out.u8_outbuf;
   while (i<n_args) {
     lispval arg = kno_get_arg(watch,i);
-    lispval val = kno_eval(arg,env,_stack,0);
+    lispval val = kno_eval(arg,env,_stack);
     val = kno_simplify_value(val);
     if (KNO_ABORTED(val)) {
       u8_string errstring = kno_errstring(NULL);
@@ -287,7 +287,7 @@ DEFC_EVALFN("%watchptr",watchptr_evalfn,KNO_EVALFN_DEFAULTS,
 static lispval watchptr_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval val_expr = kno_get_arg(expr,1);
-  lispval value = kno_eval(val_expr,env,_stack,0);
+  lispval value = kno_eval(val_expr,env,_stack);
   log_ptr(value,KNO_VOID,val_expr);
   return value;
 }
@@ -303,7 +303,7 @@ static lispval watchcons_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   u8_string label = (KNO_SYMBOLP(name_spec)) ? (SYMBOL_NAME(name_spec)) :
     (KNO_STRINGP(name_spec)) ? (KNO_CSTRING(name_spec)) : (NULL);
   lispval body = (label) ? (kno_get_body(expr,3)) : (kno_get_body(expr,2));
-  lispval value = kno_eval(val_expr,env,_stack,0);
+  lispval value = kno_eval(val_expr,env,_stack);
   if (KNO_CONSP(value)) {
     int refcount = KNO_CONS_REFCOUNT((kno_cons)value);
     if (refcount == 0)
@@ -404,7 +404,7 @@ static lispval watch_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
 	lispval label = towatch; u8_string lbl = CSTRING(label);
 	towatch = KNO_CAR(KNO_CDR(scan)); scan = KNO_CDR(KNO_CDR(scan));
 	wval = ((SYMBOLP(towatch))?(kno_symeval(towatch,env)):
-		(kno_eval(towatch,env,stack,0)));
+		(kno_eval(towatch,env,stack)));
 	if (KNO_ABORTED(wval)) {
 	  u8_exception ex = u8_erreify();
 	  wval = kno_wrap_exception(ex);}
@@ -432,7 +432,7 @@ static lispval watch_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
 	kno_decref(wval); wval = VOID;}
       else {
 	wval = ((SYMBOLP(towatch))?(kno_symeval(towatch,env)):
-		(kno_eval(towatch,env,stack,0)));
+		(kno_eval(towatch,env,stack)));
 	if (KNO_ABORTED(wval)) {
 	  u8_exception ex = u8_erreify();
 	  wval = kno_wrap_exception(ex);}
@@ -449,13 +449,13 @@ static lispval watch_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
     u8_free(out.u8_outbuf);}
   start = u8_elapsed_time();
   if (SYMBOLP(toeval))
-    return kno_eval(toeval,env,stack,0);
+    return kno_eval(toeval,env,stack);
   else if (STRINGP(toeval)) {
     /* This is probably the 'side effect' form of %WATCH, so
        we don't bother 'timing' it. */
     return kno_incref(toeval);}
   else {
-    lispval value = kno_eval_arg(toeval,env);
+    lispval value = kno_eval_arg(toeval,env,stack);
     double howlong = u8_elapsed_time()-start;
     if (KNO_ABORTED(value)) {
       u8_exception ex = u8_erreify();
@@ -487,7 +487,7 @@ static lispval watched_cond_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 	    (KNO_EQ(KNO_CAR(KNO_CAR(clauses)),unquote_symbol))) {
     lispval label_expr = KNO_CADR(KNO_CAR(clauses));
     clauses = KNO_CDR(clauses);
-    label_arg = kno_eval(label_expr,env,_stack,0);
+    label_arg = kno_eval(label_expr,env,_stack);
     if (KNO_ABORTP(label_arg)) {
       u8_exception ex = u8_erreify();
       u8_string errstring = kno_errstring(ex);
@@ -516,7 +516,7 @@ static lispval watched_cond_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 	(KNO_CDR(clause),env,_stack,"%WATCHCOND","else",0);
       u8_log(U8_LOG_MSG,label,"COND ? ELSE => %Q => ",KNO_CDR(clause),value);
       return value;}
-    else test_val = kno_eval(KNO_CAR(clause),env,_stack,0);
+    else test_val = kno_eval(KNO_CAR(clause),env,_stack);
     if (KNO_ABORTED(test_val)) return test_val;
     else if (FALSEP(test_val)) {}
     else {
@@ -528,7 +528,7 @@ static lispval watched_cond_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       if (applyp) {
 	if (PAIRP(KNO_CDR(KNO_CDR(clause)))) {
 	  lispval fnexpr = KNO_CAR(KNO_CDR(KNO_CDR(clause)));
-	  lispval fn = kno_eval(fnexpr,env,_stack,0);
+	  lispval fn = kno_eval(fnexpr,env,_stack);
 	  if (KNO_ABORTED(fn)) {
 	    kno_decref(test_val);
 	    return fn;}
@@ -568,7 +568,7 @@ static lispval watched_try_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 	    (KNO_EQ(KNO_CAR(KNO_CAR(clauses)),unquote_symbol))) {
     lispval label_expr = KNO_CADR(KNO_CAR(clauses));
     clauses = KNO_CDR(clauses);
-    label_arg = kno_eval(label_expr,env,_stack,0);
+    label_arg = kno_eval(label_expr,env,_stack);
     if (KNO_ABORTP(label_arg)) {
       u8_exception ex = u8_erreify();
       u8_string errstring = kno_errstring(ex);
@@ -591,7 +591,7 @@ static lispval watched_try_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   KNO_DOLIST(clause,clauses) {
     int ipe_state = kno_ipeval_status();
     kno_decref(value);
-    value = kno_eval(clause,env,_stack,0);
+    value = kno_eval(clause,env,_stack);
     if (KNO_ABORTED(value))
       return value;
     else if (VOIDP(value)) {
@@ -633,11 +633,11 @@ static lispval dbg_evalfn(lispval dbg_expr,kno_lexenv env,kno_stack stack)
 {
   lispval expr=kno_get_arg(dbg_expr,1);
   lispval msg_expr=kno_get_arg(dbg_expr,2);
-  lispval arg=kno_eval(expr,env,stack,0);
+  lispval arg=kno_eval(expr,env,stack);
   if (VOIDP(msg_expr))
     u8_message("Debug %q <= %q",arg,expr);
   else {
-    lispval msg=kno_eval(msg_expr,env,stack,0);
+    lispval msg=kno_eval(msg_expr,env,stack);
     if (FALSEP(msg))
       return arg;
     else u8_message("Debug (%q) %q <= %q",msg,arg,expr);
@@ -664,14 +664,14 @@ static lispval dbgeval_evalfn(lispval dbg_expr,kno_lexenv env,kno_stack stack)
   if (VOIDP(msg_expr))
     u8_message("Debug eval 0x%llx <==\n	   %Q",KNO_LONGVAL(&arg),expr);
   else {
-    lispval msg=kno_eval(msg_expr,env,stack,0);
-    if (FALSEP(msg)) return kno_eval(expr,env,stack,0);
+    lispval msg=kno_eval(msg_expr,env,stack);
+    if (FALSEP(msg)) return kno_eval(expr,env,stack);
     if (KNO_VOIDP(msg))
       u8_message("Debug eval 0x%llx <==\n    %Q",KNO_LONGVAL(&arg),expr);
     else u8_message("Debug eval 0x%llx %q <=\n	  %Q",KNO_LONGVAL(&arg),
 		    msg,expr);
     kno_decref(msg);}
-  arg = kno_eval(expr,env,stack,0);
+  arg = kno_eval(expr,env,stack);
   log_ptr(arg,KNO_VOID,arg);
   u8_message("Debug eval 0x%llx %q ==> \n  %Q",KNO_LONGVAL(&arg),expr,arg);
  examine_result:
@@ -848,7 +848,7 @@ static lispval gprofile_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     lispval value = VOID;
     lispval body = kno_get_body(expr,start);
     KNO_DOLIST(ex,body) {
-      kno_decref(value); value = kno_eval(ex,env,_stack,0);
+      kno_decref(value); value = kno_eval(ex,env,_stack);
       if (KNO_ABORTED(value)) {
 	ProfilerStop();
 	return value;}
@@ -878,7 +878,7 @@ static lispval profiled_eval_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
 {
   lispval toeval = kno_get_arg(expr,1);
   double start = u8_elapsed_time();
-  lispval value = kno_eval(toeval,env,stack,0);
+  lispval value = kno_eval(toeval,env,stack);
   if (KNO_ABORTED(value)) return value;
   double finish = u8_elapsed_time();
   lispval tag = kno_get_arg(expr,2);
@@ -966,7 +966,7 @@ static lispval with_log_context_evalfn(lispval expr,kno_lexenv env,kno_stack _st
   if (KNO_VOIDP(label_expr))
     return kno_err(kno_SyntaxError,"with_context_evalfn",NULL,expr);
   else {
-    lispval label=kno_eval(label_expr,env,_stack,0);
+    lispval label=kno_eval(label_expr,env,_stack);
     if (KNO_ABORTED(label))
       return label;
     else {
@@ -1015,7 +1015,7 @@ DEFC_EVALFN("eval1",eval1,KNO_EVALFN_DEFAULTS,
 	    "contexts in a way which is visible in C debuggers.");
 static DONT_OPTIMIZE lispval eval1(lispval expr,kno_lexenv env,kno_stack s)
 {
-  lispval result = kno_eval(kno_get_arg(expr,1),env,s,0);
+  lispval result = kno_eval(kno_get_arg(expr,1),env,s);
   return result;
 }
 
@@ -1025,7 +1025,7 @@ DEFC_EVALFN("eval2",eval2,KNO_EVALFN_DEFAULTS,
 	    "contexts in a way which is visible in C debuggers.");
 static DONT_OPTIMIZE lispval eval2(lispval expr,kno_lexenv env,kno_stack s)
 {
-  lispval result = kno_eval(kno_get_arg(expr,1),env,s,0);
+  lispval result = kno_eval(kno_get_arg(expr,1),env,s);
   return result;
 }
 
@@ -1035,7 +1035,7 @@ DEFC_EVALFN("eval3",eval3,KNO_EVALFN_DEFAULTS,
 	    "contexts in a way which is visible in C debuggers.");
 static DONT_OPTIMIZE lispval eval3(lispval expr,kno_lexenv env,kno_stack s)
 {
-  lispval result = kno_eval(kno_get_arg(expr,1),env,s,0);
+  lispval result = kno_eval(kno_get_arg(expr,1),env,s);
   return result;
 }
 
@@ -1045,7 +1045,7 @@ DEFC_EVALFN("eval4",eval4,KNO_EVALFN_DEFAULTS,
 	    "contexts in a way which is visible in C debuggers.");
 static DONT_OPTIMIZE lispval eval4(lispval expr,kno_lexenv env,kno_stack s)
 {
-  lispval result = kno_eval(kno_get_arg(expr,1),env,s,0);
+  lispval result = kno_eval(kno_get_arg(expr,1),env,s);
   return result;
 }
 
@@ -1055,7 +1055,7 @@ DEFC_EVALFN("eval5",eval5,KNO_EVALFN_DEFAULTS,
 	    "contexts in a way which is visible in C debuggers.");
 static DONT_OPTIMIZE lispval eval5(lispval expr,kno_lexenv env,kno_stack s)
 {
-  lispval result = kno_eval(kno_get_arg(expr,1),env,s,0);
+  lispval result = kno_eval(kno_get_arg(expr,1),env,s);
   return result;
 }
 
@@ -1065,7 +1065,7 @@ DEFC_EVALFN("eval6",eval6,KNO_EVALFN_DEFAULTS,
 	    "contexts in a way which is visible in C debuggers.");
 static DONT_OPTIMIZE lispval eval6(lispval expr,kno_lexenv env,kno_stack s)
 {
-  lispval result = kno_eval(kno_get_arg(expr,1),env,s,0);
+  lispval result = kno_eval(kno_get_arg(expr,1),env,s);
   return result;
 }
 
@@ -1075,7 +1075,7 @@ DEFC_EVALFN("eval7",eval7,KNO_EVALFN_DEFAULTS,
 	    "contexts in a way which is visible in C debuggers.");
 static DONT_OPTIMIZE lispval eval7(lispval expr,kno_lexenv env,kno_stack s)
 {
-  lispval result = kno_eval(kno_get_arg(expr,1),env,s,0);
+  lispval result = kno_eval(kno_get_arg(expr,1),env,s);
   return result;
 }
 

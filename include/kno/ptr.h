@@ -294,29 +294,8 @@ KNO_EXPORT u8_string kno_type_docs[KNO_TYPE_MAX];
 
 /* Type aliases */
 
-struct KNO_TYPE_ALIAS { long int longcode; kno_lisp_type ptr_type; }; 
-
-KNO_EXPORT int kno_add_type_alias(int type,long int code);
-KNO_EXPORT int _kno_lookup_type_alias(long int code);
-KNO_EXPORT struct KNO_TYPE_ALIAS _kno_type_aliases[];
-KNO_EXPORT int _kno_n_type_aliases;
-
-#ifndef KNO_INLINE_TYPE_ALIASES
-#define KNO_INLINE_TYPE_ALIASES 0
-#endif
-
-#if KNO_INLINE_TYPE_ALIASES
-static int kno_lookup_type_alias(long int code)
-{
-  int i = 0; while (i<_kno_n_type_aliases) {
-    if (_kno_type_aliases[i].longcode == code)
-      return _kno_type_aliases[i].ptr_type;
-    else i++;}
-  return -1;
-}
-#else
-#define kno_lookup_type_alias _kno_lookup_type_alias
-#endif
+KNO_EXPORT int kno_add_type_alias(int reservation,lispval type);
+KNO_EXPORT lispval kno_lookup_type_alias(int reservation);
 
 KNO_EXPORT u8_condition kno_get_pointer_exception(lispval x);
 KNO_EXPORT lispval kno_badptr_err(lispval badx,u8_context cxt,u8_string details);
@@ -429,8 +408,12 @@ KNO_FASTOP U8_MAYBE_UNUSED lispval LISPVAL(lispval x){ return x;}
 #define KNO_NULL ((lispval)(NULL))
 #define KNO_NULLP(x) (((void *)x) == NULL)
 
-#define LISPVAL_IMMEDIATE(tcode,serial) \
-  ((lispval)(((((tcode)-0x04)&0x7F)<<25)|((serial)<<2)|kno_immediate_ptr_type))
+#define KNO_INT2FIX(n)   ( (lispval)  ( ( ((_kno_ptrbits)(n)) << 2 ) | kno_fixnum_type) )
+
+#define KNO_LISP_IMMEDIATE(tcode,serial) \
+  ((lispval)((((((_kno_ptrbits)tcode)-0x04)&0x7F)<<25)|(((_kno_ptrbits)serial)<<2)|kno_immediate_ptr_type))
+#define LISP_IMMEDIATE KNO_LISP_IMMEDIATE
+#define LISPVAL_IMMEDIATE KNO_LISP_IMMEDIATE
 #define KNO_GET_IMMEDIATE(x,tcode) (((LISPVAL(x))>>2)&0x7FFFFF)
 #define KNO_IMMEDIATE_TYPE_FIELD(x) (((LISPVAL(x))>>25)&0x7F)
 #define KNO_IMMEDIATE_TYPEOF(x) ((((LISPVAL(x))>>25)&0x7F)+0x4)
@@ -697,6 +680,7 @@ KNO_EXPORT lispval kno_make_bigint(long long intval);
 #define KNO_FIXNUM_MAGNITUDE(x) ((x<0)?((-(x))>>2):(x>>2))
 #define KNO_FIXNUM_NEGATIVEP(x) (x<0)
 
+#define KNO_ZERO            (KNO_SHORT2LISP(0))
 #define KNO_FIXZERO         (KNO_SHORT2LISP(0))
 #define KNO_FIXNUM_ZERO     (KNO_SHORT2LISP(0))
 #define KNO_FIXNUM_ONE      (KNO_SHORT2LISP(1))
@@ -861,6 +845,12 @@ KNO_EXPORT int _KNO_ERRORP(lispval x);
 /* CTYPE types */
 
 #define KNO_CTYPE(ctype) (LISPVAL_IMMEDIATE(kno_ctype_type,((int)ctype)))
+#define KNO_CTYPEP(x)    (KNO_TYPEP(x,kno_ctype_type))
+#define KNO_CTYPE_CODE(x) \
+  ( (KNO_VOIDP(x)) ? (kno_any_type) :		\
+    (KNO_TYPEP(x,kno_ctype_type)) ?		\
+    ((kno_lisp_type)(KNO_IMMEDIATE_DATA(x))) :	\
+    (kno_any_type) )
 
 #define KNO_OID_TYPE KNO_CTYPE(kno_oid_type)
 #define KNO_CONS_TYPE KNO_CTYPE(kno_cons_type)
@@ -987,8 +977,7 @@ KNO_EXPORT lispval kno_all_symbols(void);
 
 KNO_EXPORT int kno_flipcase_fix;
 
-KNO_EXPORT
-lispval KNOSYM_ADD, KNOSYM_ADJUNCT, KNOSYM_ALL, KNOSYM_ALWAYS, KNOSYM_ARG;
+KNO_EXPORT lispval KNOSYM_ADD, KNOSYM_ADJUNCT, KNOSYM_ALL, KNOSYM_ALWAYS, KNOSYM_ARG, KNOSYM_ATMARK;
 KNO_EXPORT lispval KNOSYM_BLOCKSIZE, KNOSYM_BUFSIZE;
 KNO_EXPORT lispval KNOSYM_CACHELEVEL, KNOSYM_CACHESIZE;
 KNO_EXPORT lispval KNOSYM_CONS, KNOSYM_CONTENT, KNOSYM_CREATE;
@@ -996,7 +985,7 @@ KNO_EXPORT lispval KNOSYM_DEFAULT, KNOSYM_DRIVER, KNOSYM_DOT, KNOSYM_DROP, KNOSY
 KNO_EXPORT lispval KNOSYM_ENCODING, KNOSYM_EQUALS, KNOSYM_ERROR;
 KNO_EXPORT lispval KNOSYM_FILE, KNOSYM_FILENAME;
 KNO_EXPORT lispval KNOSYM_FLAGS, KNOSYM_FORMAT, KNOSYM_FRONT;
-KNO_EXPORT lispval KNOSYM_HISTORY_THREADVAL;
+KNO_EXPORT lispval KNOSYM_HASHMARK, KNOSYM_HISTORY_THREADVAL;
 KNO_EXPORT lispval KNOSYM_ID, KNOSYM_INDEX, KNOSYM_INPUT;
 KNO_EXPORT lispval KNOSYM_ISADJUNCT, KNOSYM_KEYSLOT;
 KNO_EXPORT lispval KNOSYM_LABEL, KNOSYM_LAZY, KNOSYM_LENGTH, KNOSYM_LOGLEVEL;
@@ -1079,6 +1068,17 @@ static U8_MAYBE_UNUSED lispval _kno_fcnid_ref(lispval ref)
   ((x == kno_fixnum_type) || (x == kno_bigint_type) ||   \
    (x == kno_flonum_type) || (x == kno_rational_type) || \
    (x == kno_complex_type))
+#define KNO_NUMBERP(x) (KNO_NUMBER_TYPEP(KNO_TYPEOF(x)))
+
+KNO_EXPORT int kno_exactp(lispval x);
+
+#define KNO_EXACTP(x)		\
+  ((KNO_FIXNUMP(x)) ? (1) :	\
+   (KNO_FLONUMP(x)) ?(0) :	\
+   (KNO_BIGINTP(x)) ? (1) :	\
+   (!(KNO_NUMBERP(x))) ? (0) :	\
+   (kno_exactp(x)))
+
 #define KNO_NUMBERP(x) (KNO_NUMBER_TYPEP(KNO_TYPEOF(x)))
 
 /* SLOTIDs */

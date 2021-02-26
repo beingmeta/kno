@@ -54,6 +54,49 @@
 #endif
 #endif
 
+#ifndef KNO_SOURCE
+#define KNO_SOURCE 0
+#endif
+
+#ifndef KNO_LANG_CORE
+#define KNO_LANG_CORE 0
+#endif
+
+#ifndef KNO_STORAGE_CORE
+#define KNO_STORAGE_CORE 0
+#endif
+
+#ifndef KNO_CORE
+#if (KNO_LANG_CORE || KNO_STORAGE_CORE)
+#define KNO_CORE 1
+#else
+#define KNO_CORE 0
+#endif
+#endif
+
+#if KNO_CORE
+#ifndef KNO_INLINE_XTYPEP
+#define KNO_INLINE_XTYPEP 1
+#endif
+#ifndef KNO_INLINE_CHOICES
+#define KNO_INLINE_CHOICES 1
+#endif
+#ifndef KNO_INLINE_TABLES
+#define KNO_INLINE_TABLES 1
+#endif
+#endif /* KNO_CORE */
+
+#if KNO_LANG_CORE
+#ifndef KNO_INLINE_FCNIDS
+#define KNO_INLINE_FCNIDS 1
+#endif
+#ifndef KNO_INLINE_LEXENV
+#define KNO_INLINE_LEXENV 1
+#endif
+#ifndef KNO_INLINE_STACKS
+#define KNO_INLINE_STACKS 1
+#endif
+#endif /* KNO_CORE */
 
 #define KNO_DEEP_PROFILING    ( KNO_PROFILING > 1 )
 #define KNO_EXTREME_PROFILING ( KNO_PROFILING > 2 )
@@ -237,17 +280,18 @@ typedef int kno_size_t;
 #define KNO_FILEPOS  (__FILE__ ":" __KNO_TO_STRING(__LINE__))
 
 
-/* This can be configured with --with-nptrlocks.
-
-   Larger values for this are useful when you're being more
-   multi-threaded, since it avoids locking conflicts during reference
-   count updates. Smaller values will reduce resources, but possibly
-   not by much.
-
+/*
+   This can be configured with --with-nptrlocks.
 */
 #ifndef KNO_N_PTRLOCKS
 #define KNO_N_PTRLOCKS 979
 #endif
+/*
+   Larger values for this are useful when you're being more
+   multi-threaded, since it avoids locking conflicts during reference
+   count updates. Smaller values will reduce resources, but not
+   significantly.
+*/
 
 #if HAVE_PTHREAD_H
 #include <pthread.h>
@@ -500,6 +544,7 @@ typedef double kno_double;
 #define IMMEDIATEP(x) (KNO_IMMEDIATEP(x))
 #define CONSP(x)      (KNO_CONSP(x))
 #define FIXNUMP(x) (KNO_FIXNUMP(x))
+#define FLONUMP(x) (KNO_FLONUMP(x))
 #define NUMBERP(x) (KNO_NUMBERP(x))
 #define APPLICABLEP(x) (KNO_APPLICABLEP(x))
 #define SLOTIDP(x) (KNO_SLOTIDP(x))
@@ -539,11 +584,16 @@ typedef double kno_double;
 #define PRED_FALSE(x)  (KNO_EXPECT_FALSE(x))
 #define PRED_TRUE(x)  (KNO_EXPECT_TRUE(x))
 #define ADD_TO_CHOICE(x,y) KNO_ADD_TO_CHOICE(x,y)
+#define ADD_TO_CHOICE_INCREF(x,y) KNO_ADD_TO_CHOICE(x,y)
 #define CHOICE_SIZE(x) KNO_CHOICE_SIZE(x)
-#define DOLIST     KNO_DOLIST
-#define CHOICE_ADD KNO_ADD_TO_CHOICE
-#define EQ         KNO_EQ
-#define DO_CHOICES KNO_DO_CHOICES
+#define DOLIST             KNO_DOLIST
+#define CHOICE_ADD         KNO_ADD_TO_CHOICE
+#define CHOICE_ADD_INCREF  KNO_ADD_TO_CHOICE_INCREF
+#define EQ                 KNO_EQ
+#define DO_CHOICES         KNO_DO_CHOICES
+#define ITER_CHOICES       KNO_ITER_CHOICES
+#define lspcpy             kno_lspcpy
+#define lspset             kno_lspset
 #endif
 
 #endif /* KNO_DEFINES_H */

@@ -202,16 +202,6 @@ static lispval indexp(lispval arg)
   else return KNO_FALSE;
 }
 
-DEFC_PRIM("slotid?",slotidp,
-	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "Returns true if *arg* is an OID or a symbol (a slotid)",
-	  {"arg",kno_any_type,KNO_VOID})
-static lispval slotidp(lispval arg)
-{
-  if ((OIDP(arg)) || (SYMBOLP(arg))) return KNO_TRUE;
-  else return KNO_FALSE;
-}
-
 /* Slot access */
 
 DEFC_PRIM("get",kno_fget,
@@ -536,7 +526,6 @@ static void link_local_cprims()
 
   KNO_LINK_CPRIM("xget",xget_prim,2,kno_scheme_module);
 
-  KNO_LINK_CPRIM("slotid?",slotidp,1,kno_scheme_module);
   KNO_LINK_CPRIM("index?",indexp,1,kno_scheme_module);
   KNO_LINK_CPRIM("pool?",poolp,1,kno_scheme_module);
 

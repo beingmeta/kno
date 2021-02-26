@@ -425,7 +425,9 @@ DEFC_PRIM("sequence?",sequencep_prim,
 	  {"x",kno_any_type,KNO_VOID})
 static lispval sequencep_prim(lispval x)
 {
-  if (KNO_COMPOUNDP(x)) {
+  if ( (KNO_VECTORP(x)) || (KNO_STRINGP(x)) )
+    return KNO_TRUE;
+  else if (KNO_COMPOUNDP(x)) {
     struct KNO_COMPOUND *c = (kno_compound) x;
     if (c->compound_seqoff >= 0)
       return KNO_TRUE;
@@ -2672,11 +2674,6 @@ static void link_local_cprims()
   KNO_LINK_CPRIMN("map",mapseq_prim,kno_scheme_module);
   KNO_LINK_CPRIMN("for-each",foreach_prim,kno_scheme_module);
   KNO_LINK_CPRIMN("append",kno_append,kno_scheme_module);
-  KNO_LINK_CPRIMN("longvec",make_long_vector,kno_scheme_module);
-  KNO_LINK_CPRIMN("intvec",make_int_vector,kno_scheme_module);
-  KNO_LINK_CPRIMN("shortvec",make_short_vector,kno_scheme_module);
-  KNO_LINK_CPRIMN("doublevec",make_double_vector,kno_scheme_module);
-  KNO_LINK_CPRIMN("floatvec",make_float_vector,kno_scheme_module);
   KNO_LINK_ALIAS("length=>",has_length_gte_prim,scheme_module);
   KNO_LINK_ALIAS("length<=",has_length_lte_prim,scheme_module);
   KNO_LINK_ALIAS("subseq",slice_prim,scheme_module);

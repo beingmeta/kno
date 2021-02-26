@@ -1072,7 +1072,7 @@ int main(int argc,char **argv)
         kno_write_dtype(kno_writebuf(eval_server),expr);
         kno_flush_stream(eval_server);
         result = kno_read_dtype(kno_readbuf(eval_server));}
-      else result = kno_stack_eval(expr,env,_stack);}
+      else result = kno_eval(expr,env,_stack);}
     if (errno) {
       u8_log(LOG_WARN,u8_strerror(errno),"Unexpected errno after eval");
       errno = 0;}

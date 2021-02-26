@@ -327,9 +327,11 @@ KNO_EXPORT lispval kno_get_moduleid(lispval x,int err)
 
 /* Switching modules */
 
-static kno_lexenv become_module(kno_lexenv env,lispval module_name,int create)
+static kno_lexenv become_module(kno_lexenv env,kno_stack _stack,
+				lispval module_name,
+				int create)
 {
-  lispval module_spec = kno_eval_arg(module_name,env), module;
+  lispval module_spec = kno_eval_arg(module_name,env,_stack), module;
   if (ABORTP(module_spec))
     return NULL;
   else if (SYMBOLP(module_spec))
@@ -387,7 +389,7 @@ static lispval in_module_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   kno_lexenv module_env = NULL;
   if (VOIDP(module_name))
     return kno_err(kno_TooFewExpressions,"IN-MODULE",NULL,expr);
-  else if ((module_env=become_module(env,module_name,1))) {
+  else if ((module_env=become_module(env,_stack,module_name,1))) {
     lispval extra = KNO_CDR(KNO_CDR(expr)), result = KNO_VOID;
     if (KNO_PAIRP(extra)) {
       lispval modinfo =
@@ -396,7 +398,7 @@ static lispval in_module_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 	kno_store(modinfo,KNOSYM(version),KNO_CAR(extra));
 	extra = KNO_CDR(extra);}
       while (KNO_PAIRP(extra)) {
-	lispval car = kno_eval(KNO_CAR(extra),env,_stack,0);
+	lispval car = kno_eval(KNO_CAR(extra),env,_stack);
 	if (KNO_ABORTED(car)) { result=car; extra=KNO_VOID;}
 	else if (KNO_TABLEP(car)) {
 	  lispval keys = kno_getkeys(car);
@@ -407,7 +409,7 @@ static lispval in_module_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 	  kno_decref(keys);
 	  extra = KNO_CDR(extra);}
 	else if ( (KNO_SYMBOLP(car)) && (KNO_PAIRP(KNO_CDR(extra))) ) {
-	  lispval val = kno_eval(KNO_CADR(extra),env,_stack,0);
+	  lispval val = kno_eval(KNO_CADR(extra),env,_stack);
 	  if (KNO_ABORTED(val)) { result = val; extra = KNO_VOID; break; }
 	  kno_store(modinfo,car,val);
 	  kno_decref(val);
@@ -427,10 +429,10 @@ static lispval within_module_evalfn(lispval expr,kno_lexenv env,kno_stack _stack
   if (VOIDP(module_name))
     return kno_err(kno_TooFewExpressions,"WITHIN-MODULE",NULL,expr);
   kno_lexenv consed_env = kno_working_lexenv();
-  if (become_module(consed_env,module_name,0)) {
+  if (become_module(consed_env,_stack,module_name,0)) {
     lispval result = VOID, body = kno_get_body(expr,2);
     KNO_DOLIST(elt,body) {
-      kno_decref(result); result = kno_eval_arg(elt,consed_env);}
+      kno_decref(result); result = kno_eval(elt,consed_env,_stack);}
     kno_decref((lispval)consed_env);
     return result;}
   else {
@@ -467,7 +469,7 @@ static kno_lexenv make_hybrid_env(kno_lexenv base,lispval module_spec)
 
 static lispval accessing_module_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  lispval module_name = kno_eval_arg(kno_get_arg(expr,1),env);
+  lispval module_name = kno_eval_arg(kno_get_arg(expr,1),env,_stack);
   kno_lexenv hybrid;
   if (VOIDP(module_name))
     return kno_err(kno_TooFewExpressions,"WITHIN-MODULE",NULL,expr);
@@ -477,7 +479,7 @@ static lispval accessing_module_evalfn(lispval expr,kno_lexenv env,kno_stack _st
     KNO_DOLIST(elt,body) {
       if (KNO_ABORTP(result)) break;
       kno_decref(result);
-      result = kno_eval_arg(elt,hybrid);}
+      result = kno_eval(elt,hybrid,_stack);}
     kno_decref(module_name);
     kno_decref((lispval)hybrid);
     return result;}
@@ -506,13 +508,13 @@ KNO_EXPORT kno_hashtable kno_get_exports(kno_lexenv env)
   return exports;
 }
 
-static lispval module_export_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
+static lispval module_export_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   kno_hashtable exports;
   lispval symbols_spec = kno_get_arg(expr,1), symbols;
   if (VOIDP(symbols_spec))
     return kno_err(kno_TooFewExpressions,"MODULE-EXPORT!",NULL,expr);
-  symbols = kno_eval_arg(symbols_spec,env);
+  symbols = kno_eval_arg(symbols_spec,env,_stack);
   if (KNO_ABORTP(symbols)) return symbols;
   {DO_CHOICES(symbol,symbols)
       if (!(SYMBOLP(symbol))) {
@@ -538,7 +540,7 @@ static lispval module_proxy_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
 {
   kno_hashtable exports = NULL;
   lispval module_expr = kno_get_arg(expr,1);
-  lispval module_val = kno_eval(module_expr,env,stack,0);
+  lispval module_val = kno_eval(module_expr,env,stack);
   lispval symbols = kno_get_body(expr,2);
   lispval module =
     (KNO_HASHTABLEP(module_val)) ? (kno_incref(module_val)) :
@@ -577,7 +579,7 @@ static lispval module_alias_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
 {
   kno_hashtable exports = NULL;
   lispval module_expr = kno_get_arg(expr,1);
-  lispval module_val = kno_eval(module_expr,env,stack,0);
+  lispval module_val = kno_eval(module_expr,env,stack);
   lispval symbols = kno_get_body(expr,2);
   lispval module =
     (KNO_HASHTABLEP(module_val)) ? (kno_incref(module_val)) :
@@ -632,9 +634,9 @@ static int uses_bindings(kno_lexenv env,lispval bindings)
   return 0;
 }
 
-static lispval use_module_helper(lispval expr,kno_lexenv env)
+static lispval use_module_helper(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  lispval module_names = kno_eval_arg(kno_get_arg(expr,1),env);
+  lispval module_names = kno_eval_arg(kno_get_arg(expr,1),env,_stack);
   kno_lexenv modify_env = env;
   if (VOIDP(module_names))
     return kno_err(kno_TooFewExpressions,"USE-MODULE",NULL,expr);
@@ -680,7 +682,7 @@ static lispval use_module_helper(lispval expr,kno_lexenv env)
 
 static lispval use_module_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  return use_module_helper(expr,env);
+  return use_module_helper(expr,env,_stack);
 }
 
 static lispval export_alias_helper(lispval expr,kno_lexenv env,kno_stack _stack)
@@ -689,7 +691,7 @@ static lispval export_alias_helper(lispval expr,kno_lexenv env,kno_stack _stack)
   if (KNO_VOIDP(modexpr))
     return kno_err(kno_SyntaxError,"export_alias_helper",NULL,expr);
   lispval old_exports = env->env_exports;
-  lispval modname = kno_eval(modexpr,env,_stack,0);
+  lispval modname = kno_eval(modexpr,env,_stack);
   if (KNO_ABORTP(modname)) return modname;
   lispval module = kno_find_module(modname,1);
   if (KNO_ABORTP(module)) return module;

@@ -63,8 +63,7 @@ static lispval force_promise_prim(lispval promise)
       if (p->promise_value) {
         u8_unlock_mutex(&p->promise_lock);
         return kno_incref(p->promise_value);}
-      lispval result = kno_eval
-	(p->promise_expr,p->promise_env,kno_stackptr,0);
+      lispval result = kno_eval(p->promise_expr,p->promise_env,NULL);
       if (KNO_ABORTED(result)) {
         u8_exception ex = u8_current_exception;
         /* p->promise_value = kno_simple_exception(ex); */
@@ -91,8 +90,7 @@ KNO_EXPORT lispval kno_force_promise(lispval promise)
       if (p->promise_value) {
         u8_unlock_mutex(&p->promise_lock);
         return kno_incref(p->promise_value);}
-      lispval result = kno_eval
-	(p->promise_expr,p->promise_env,kno_stackptr,0);
+      lispval result = kno_eval(p->promise_expr,p->promise_env,NULL);
       if (KNO_ABORTED(result)) {
         u8_exception ex = u8_current_exception;
         /* p->promise_value = kno_simple_exception(ex); */

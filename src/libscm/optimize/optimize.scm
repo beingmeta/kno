@@ -91,6 +91,18 @@
 (define aliasfns? (optmode 'aliasfns 4 aliasfns-default))
 (define keep-source? (optmode keepsource 2 keep-source-default))
 
+(define use-consblock #f)
+(varconfig! optimize:consblock use-consblock)
+
+;;; Converts optimized bodies with a single element into just that element; e.g.
+;;;  the body ((#OP_PLUS x . y)) becomes just (#OP_PLUS x . y) which eval_body
+;;;  processes correctly
+(define simplify-bodies #f)
+(varconfig! optimize:simplify-bodies simplify-bodies)
+
+(define keep-preambles #f)
+(varconfig! optimize:preambles keep-preambles)
+
 ;;; Controls whether optimization warnings are emitted in real time
 ;;; (when encountered)
 (define-init optwarn #t)
@@ -106,7 +118,7 @@
 
 (define (annotate optimized source opts)
   (if (keep-source? opts)
-      (cons* sourceref-opcode source optimized)
+      (cons* sourceref-opcode source (qc optimized))
       optimized))
 
 (define (optimizable? arg)
@@ -117,6 +129,11 @@
 	((ambiguous? x) (exists needs-eval? x))
 	((or (symbol? x) (pair? x) (schemap? x)) #t)
 	(else #f)))
+
+(define (fcn/lookup table fn)
+  (try (get table fn)
+       (tryif (and (procedure-name fn) (get-module fn))
+	 (get table (cons (downcase (procedure-name fn)) (get-module fn))))))
 
 (define dont-touch-decls '{%unoptimized %volatile %nosubst})
 
@@ -246,7 +263,7 @@
 	     (let ((fcnid (fcnid/register value)))
 	       (if internal
 		   (store! (try (get internal '%fcnids) (get-fcnids internal))
-		     symbol fcnid)
+		       symbol fcnid)
 		   (store! fcnids (cons env symbol) fcnid))
 	       fcnid)))))
 
@@ -305,6 +322,13 @@
 ;;;   execution to make assumptions about the number of arguments.  Note that
 ;;;   this means that this file needs to be synchronized with src/scheme/eval.c
 
+(define-init opcodes1 (make-hashtable))
+(define-init opcodes2 (make-hashtable))
+(define-init opcodesn (make-hashtable))
+(define-init predicate-typemap (make-hashtable))
+(define-init numeric-opcodes (make-hashtable))
+(define-init table-opcodes (make-hashtable))
+
 (define-init opcode-map (make-hashtable))
 
 (define (get-headop value head arity env bound opts)
@@ -342,96 +366,124 @@
 (define xref-opcode   #OP_XREF)
 (define xpred-opcode   #OP_XPRED)
 (define choiceref-opcode #OP_CHOICEREF)
-(define fixchoice-opcode  #OP_FIXCHOICE)
 (define break-opcode  #OP_BREAK)
 
 (define sourceref-opcode #OP_SOURCEREF)
 
-(def-opcode AMBIGUOUS? #OP_AMBIGP 1)
-(def-opcode SINGLETON? #OP_SINGLETONP 1)
-(def-opcode EMPTY?     #OP_FAILP 1)
-(def-opcode FAIL?      #OP_FAILP 1)
-(def-opcode EXISTS?    #OP_EXISTSP 1)
-(def-opcode SINGLETON  #OP_SINGLETON 1)
-(def-opcode CAR        #OP_CAR 1)
-(def-opcode CDR        #OP_CDR 1)
-(def-opcode LENGTH     #OP_LENGTH 1)
-(def-opcode QCHOICE    #OP_QCHOICE 1)
-(def-opcode CHOICE-SIZE #OP_CHOICESIZE 1)
-(def-opcode PICKOIDS    #OP_PICKOIDS 1)
-(def-opcode PICKSTRINGS #OP_PICKSTRINGS 1)
-(def-opcode PICKNUMS    #OP_PICKNUMS 1)
-(def-opcode PICKMAPS    #OP_PICKMAPS 1)
-(def-opcode PICK-ONE    #OP_PICKONE 1)
-(def-opcode IFEXISTS    #OP_IFEXISTS 1)
-(def-opcode SOMETRUE    #OP_SOMETRUE 1)
-(def-opcode NOT         #OP_NOT 1)
-(def-opcode FALSE?      #OP_NOT 1)
+(define-init fncall-opcodes
+  #(#OP_CALL0 #OP_CALL1 #OP_CALL2 #OP_CALL3 #OP_CALL4 #OP_CALL5 #OP_CALL6 #OP_CALL7
+    #OP_CALL8 #OP_CALL9 #OP_CALL10 #OP_CALL11 #OP_CALL12 #OP_CALL13 #OP_CALL14 #OP_CALL15))
 
-(def-opcode QUOTE       #OP_QUOTE 1)
+(store! opcodes1 SINGLETON  #OP_SINGLETON)
+(store! opcodes1 CAR        #OP_CAR)
+(store! opcodes1 CDR        #OP_CDR)
+(store! opcodes1 LENGTH     #OP_LENGTH)
+(store! opcodes1 QCHOICE    #OP_QCHOICE)
+(store! opcodes1 CHOICE-SIZE #OP_CHOICESIZE)
+(store! opcodes1 PICK-ONE    #OP_PICKONE)
+(store! opcodes1 IFEXISTS    #OP_IFEXISTS)
+(store! opcodes1 SOMETRUE    #OP_SOMETRUE)
+(store! opcodes1 NOT         #OP_NOT)
+(store! opcodes1 FALSE?      #OP_NOT)
+(store! opcodes1 QUOTE       #OP_QUOTE)
 
-(def-opcode 1-         #OP_MINUS1 1)
-(def-opcode -1+        #OP_MINUS1 1)
-(def-opcode 1+         #OP_PLUS1 1)
-(def-opcode NUMBER?    #OP_NUMBERP 1)
-(def-opcode ZERO?      #OP_ZEROP 1)
-(def-opcode VECTOR?    #OP_VECTORP 1)
-(def-opcode PAIR?      #OP_PAIRP 1)
-(def-opcode NULL?      #OP_NILP 1)
-(def-opcode STRING?    #OP_STRINGP 1)
-(def-opcode OID?       #OP_OIDP 1)
-(def-opcode SYMBOL?    #OP_SYMBOLP 1)
-(def-opcode FIXNUM?    #OP_FIXNUMP 1)
-(def-opcode FLONUM?    #OP_FLONUMP 1)
-(def-opcode TABLE?     #OP_TABLEP 1)
-(def-opcode FIRST      #OP_FIRST 1)
-(def-opcode SECOND     #OP_SECOND 1)
-(def-opcode THIRD      #OP_THIRD 1)
-(def-opcode CADR       #OP_CADR 1)
-(def-opcode CDDR       #OP_CDDR 1)
-(def-opcode CADDR      #OP_CADDR 1)
-(def-opcode CDDDR      #OP_CDDDR 1)
-(def-opcode ->NUMBER   #OP_2NUMBER 1)
+(store! procedure-optimizers {1- -1+}
+  (lambda (fn expr env bound opts)
+    (tryif (= (length expr) 2)
+      (cons* #OP_MINUS (optimize (cadr expr) env bound opts) 1))))
+(store! procedure-optimizers 1+
+  (lambda (fn expr env bound opts)
+    (tryif (= (length expr) 2)
+      (cons* #OP_PLUS (optimize (cadr expr) env bound opts) 1))))
 
-(def-opcode ELTS       #OP_ELTS 1)
-(def-opcode GETKEYS    #OP_GETKEYS 1)
-(def-opcode GETVALUES  #OP_GETVALUES 1)
-(def-opcode GETASSOCS  #OP_GETASSOCS 1)
+(store! procedure-optimizers PICKOIDS
+  (lambda (fn expr env bound opts)
+    (tryif (= (length expr) 2)
+      (cons* #OP_PICK_TYPE #oid_type (optimize (cadr expr) env bound opts) 1))))
+(store! procedure-optimizers PICKNUMS
+  (lambda (fn expr env bound opts)
+    (tryif (= (length expr) 2)
+      (cons* #OP_PICK_TYPE #number_type (optimize (cadr expr) env bound opts) 1))))
+(store! procedure-optimizers PICKNUMS
+  (lambda (fn expr env bound opts)
+    (tryif (= (length expr) 2)
+      (cons* #OP_PICK_TYPE #string_type (optimize (cadr expr) env bound opts) 1))))
+(store! procedure-optimizers PICKMAPS
+  (lambda (fn expr env bound opts)
+    (tryif (= (length expr) 2)
+      (cons* #OP_PICK_TYPE #keymap_type (optimize (cadr expr) env bound opts) 1))))
 
-(def-opcode UNION        #OP_UNION)
-(def-opcode INTERSECTION #OP_INTERSECTION)
-(def-opcode DIFFERENCE   #OP_DIFFERENCE)
+(store! predicate-typemap EMPTY?     #empty_type)
+(store! predicate-typemap FAIL?      #empty_type)
+(store! predicate-typemap AMBIGUOUS? #choice_type)
+(store! predicate-typemap SINGLETON? #singleton_type)
+(store! predicate-typemap EXISTS?    #exists_type)
+(store! predicate-typemap NUMBER?    #number_type)
+(store! predicate-typemap VECTOR?    #vector_type)
+(store! predicate-typemap PAIR?      #pair_type)
+(store! predicate-typemap SEQUENCE?  #sequence_type)
+(store! predicate-typemap NULL?      (cons #OP_EQP '()))
+(store! predicate-typemap STRING?    #string_type)
+(store! predicate-typemap OID?       #oid_type)
+(store! predicate-typemap SYMBOL?    #symbol_type)
+(store! predicate-typemap FIXNUM?    #fixnum_type)
+(store! predicate-typemap FLONUM?    #flonum_type)
+(store! predicate-typemap EXACT?     #exact_type)
+(store! predicate-typemap INEXACT?   #inexact_type)
+(store! predicate-typemap POOL?      #pool_type)
+(store! predicate-typemap INDEX?     #index_type)
+(store! predicate-typemap SLOTID?    #slotid_type)
+(store! predicate-typemap TABLE?     #table_type)
+(store! predicate-typemap APPLICABLE?   #applicable_type)
 
-(def-opcode =          #OP_NUMEQ 2)
-(def-opcode >          #OP_GT 2)
-(def-opcode >=         #OP_GTE 2)
-(def-opcode <          #OP_LT 2)
-(def-opcode <=         #OP_LTE 2)
-(def-opcode +          #OP_PLUS)
-(def-opcode -          #OP_MINUS)
-(def-opcode *          #OP_MULT)
-(def-opcode /~         #OP_FLODIV)
+(store! opcodes1 FIRST #OP_FIRST)
+(store! opcodes1 SECOND #OP_SECOND)
+(store! opcodes1 THIRD #OP_THIRD)
+(store! opcodes1 CADR #OP_CADR)
+(store! opcodes1 CDDR #OP_CDDR)
+(store! opcodes1 CADDR #OP_CADDR)
+(store! opcodes1 CDDDR #OP_CDDDR)
+(store! opcodes1 ->NUMBER #OP_2NUMBER)
 
-(def-opcode IDENTICAL?   #OP_IDENTICALP 2)
-(def-opcode OVERLAPS?    #OP_OVERLAPSP 2)
-(def-opcode CONTAINS?    #OP_CONTAINSP 2)
-(def-opcode EQ?          #OP_EQP 2)
-(def-opcode EQV?         #OP_EQVP 2)
-(def-opcode EQUAL?       #OP_EQUALP 2)
-(def-opcode ELT          #OP_SEQELT 2)
+(store! opcodes1 ELTS #OP_ELTS)
+(store! opcodes1 GETKEYS #OP_GETKEYS)
+(store! opcodes1 GETVALUES #OP_GETVALUES)
+(store! opcodes1 GETASSOCS #OP_GETASSOCS)
 
-(def-opcode CONS       #OP_CONSPAIR 2)
+(store! opcodesN UNION #OP_UNION)
+(store! opcodesN INTERSECTION #OP_INTERSECTION)
+(store! opcodesN DIFFERENCE   #OP_DIFFERENCE)
+(store! opcodesN BEGIN #OP_BEGIN)
+(store! opcodesN TRY #OP_TRY)
 
-(def-opcode GET        #OP_FGET 2)
-(def-opcode TEST       #OP_FTEST 3)
-(def-opcode TEST       #OP_FTEST 2)
-(def-opcode ASSERT!    #OP_ASSERT 3)
-(def-opcode ADD!       #OP_ADD 3)
-(def-opcode DROP!      #OP_DROP 3)
-(def-opcode RETRACT!   #OP_RETRACT 3)
-(def-opcode %GET       #OP_PGET 2)
-(def-opcode %TEST      #OP_PTEST 3)
-(def-opcode %TEST      #OP_PTEST 2)
+(store! numeric-opcodes = #OP_NUMEQ)
+(store! numeric-opcodes > #OP_GT)
+(store! numeric-opcodes >= #OP_GTE)
+(store! numeric-opcodes < #OP_LT)
+(store! numeric-opcodes <= #OP_LTE)
+(store! numeric-opcodes + #OP_PLUS)
+(store! numeric-opcodes - #OP_MINUS)
+(store! numeric-opcodes * #OP_MULT)
+(store! numeric-opcodes /~ #OP_FLODIV)
+(store! numeric-opcodes /  #OP_DIVIDE)
+
+(store! opcodes2 IDENTICAL?   #OP_IDENTICALP)
+(store! opcodes2 OVERLAPS?    #OP_OVERLAPSP)
+(store! opcodes2 CONTAINS?    #OP_CONTAINSP)
+(store! opcodes2 EQ?          #OP_EQP)
+(store! opcodes2 EQV?         #OP_EQVP)
+(store! opcodes2 EQUAL?       #OP_EQUALP)
+(store! opcodes2 ELT          #OP_SEQELT)
+(store! opcodes2 CONS         #OP_CONSPAIR)
+
+(store! table-opcodes GET        #OP_GET)
+(store! table-opcodes TEST       #OP_TEST)
+(store! table-opcodes ASSERT!    #OP_ASSERT)
+(store! table-opcodes ADD!       #OP_ADD)
+(store! table-opcodes DROP!      #OP_DROP)
+(store! table-opcodes RETRACT!   #OP_RETRACT)
+(store! table-opcodes %GET       #OP_PGET)
+(store! table-opcodes %TEST      #OP_PTEST)
 
 ;;; The core loop
 
@@ -442,7 +494,7 @@
 	 (if (needs-eval? (qc expr))
 	     `(#OP_UNION ,@(forseq (each (choice->list expr))
 			     (optimize each env bound opts)))
-	     `(#OP_QUOTE ,expr)))
+	     (cons #OP_QUOTE expr)))
 	((ambiguous? expr)
 	 (for-choices (each expr) 
 	   (optimize each env bound opts)))
@@ -486,16 +538,74 @@
       (store! copy key (optimize (get copy key) env bound opts)))
     copy))
 
+(define (do-optimize-exprs exprs env bound opts)
+  (if (not (proper-list? exprs))
+      (begin (codewarning (cons '|ImproperList| exprs))
+	 (when optwarn
+	   (logwarn |ImproperList|
+	     "The arguments for the expression " context " are an improper list:\n "
+	     ($pprint exprs))))
+      (forseq (clause exprs)
+	(if (or (pair? clause) (symbol? clause) (schemap? clause))
+	    (optimize clause env bound opts)
+	    clause))))
+
+(define optimize-exprs
+  (macro expr
+    (let ((body-expr (get-arg expr 1))
+	  (env-expr (get-arg expr 2 'env))
+	  (bound-expr (get-arg expr 3 'bound))
+	  (opts-expr (get-arg expr 4 'opts)))
+      `(,do-optimize-exprs ,body-expr ,env-expr ,bound-expr ,opts-expr))))
+
+(define (do-optimize-body body env bound opts)
+  (if (not (proper-list? body))
+      (begin (codewarning (cons '|ImproperBody| body))
+	(when optwarn
+	  (logwarn |ImproperListBody|
+	    "The body is an improper list:\n "
+	    (void (pprint exprs)))))
+      (simplify-body
+       (forseq (clause (strip-preamble body))
+	 (if (or (pair? clause) (symbol? clause) (schemap? clause))
+	     (optimize clause env bound opts)
+	     clause)))))
+
+(define (simplify-body body)
+  (if (and simplify-bodies
+	   (and (pair? body) (null? (cdr body))
+		(pair? (car body)) (opcode? (caar body))))
+      (car body)
+      body))
+
+(define (strip-preamble body)
+  (if keep-preambles body
+      (if (or (empty-list? body) (empty-list? (cdr body))) body
+	  (let ((scan body) (decls #f))
+	    (when (and (pair? scan) (schemap? (car scan)))
+	      (set! decls (car scan))
+	      (set! scan (cdr scan)))
+	    (while (and (pair? scan) (pair? (cdr scan)) (string? (car scan)))
+	      (set! scan (cdr scan)))
+	    (if (and (pair? scan) (pair? (cdr scan)) (schemap? (car scan)))
+		(cdr scan)
+		scan)))))
+
 (define optimize-body
   (macro expr
     (let ((body-expr (get-arg expr 1))
 	  (env-expr (get-arg expr 2 'env))
 	  (bound-expr (get-arg expr 3 'bound))
 	  (opts-expr (get-arg expr 4 'opts)))
-      `(forseq (_subexpr ,body-expr) 
-	 (if (or (pair? _subexpr) (symbol? _subexpr))
-	     (optimize _subexpr ,env-expr ,bound-expr ,opts-expr)
-	     _subexpr)))))
+      `(,do-optimize-body ,body-expr ,env-expr ,bound-expr ,opts-expr))))
+
+(defambda (make-fncall fn args env bound opts (len))
+  (default! len (length args))
+  (if (> len 15)
+      (cons* #OP_CALLN len (qc fn)
+	     (forseq (arg args) (optimize arg env bound opts)))
+      (cons* (elt fncall-opcodes len) (qc fn)
+	     (forseq (arg args) (optimize arg env bound opts)))))
 
 (defambda (optimize-variable expr env bound opts)
   (let ((lexref (get-lexref expr bound 0))
@@ -513,7 +623,7 @@
 	    (add! env '%symrefs expr)
 	    (when (and module (table? module))
 	      (add! env '%modrefs
-		    (pick (get module '%moduleid) symbol?))))
+		(pick (get module '%moduleid) symbol?))))
 	  (cond ((not srcenv)
 		 ;; This means the symbol can't be found
 		 (unless (or (test env '%nowarn expr)
@@ -552,7 +662,7 @@
 			  (not (exists {pair? symbol? schemap?} value)))
 		     value
 		     (if use-opcodes
-			 (list quote-opcode (qc value))
+			 (cons quote-opcode (qc value))
 			 (list 'quote (qc value)))))
 		;; TODO: add 'modrefs' which resolves module.var to a
 		;; fcnref and uses that for the symbol
@@ -602,8 +712,8 @@
       (add! env '%symrefs expr)
       (when (and from (table? from))
 	(add! env '%modrefs
-	      (pick (get from '%moduleid) symbol?))))
-    (cond ((eq? head 'quote) (list #OP_QUOTE (cadr expr)))
+	  (pick (get from '%moduleid) symbol?))))
+    (cond ((eq? head 'quote) (cons #OP_QUOTE (cadr expr)))
 	  ((or (and from (test from dont-touch-decls head))
 	       (and env (test env dont-touch-decls head)))
 	   expr)
@@ -624,54 +734,37 @@
 	     "The head's value is the empty choice"
 	     expr)
 	   expr)
-	  ((exists special-form? headvalue)
+	  ((special-form? headvalue)
 	   (loginfo |SpecialForm| "Optimizing " headvalue " form")
-	   (let* ((optimizer
-		   (try (get special-form-optimizers headvalue)
-			(tryif (and (procedure-name headvalue) (get-module headvalue))
-			  (get special-form-optimizers
-			       (cons (downcase (procedure-name headvalue)) (get-module headvalue))))))
-		  (transformed (try (optimizer headvalue expr env bound opts)
-				    expr))
-		  (newhead (car transformed)))
-	     (cond ((equal? transformed expr)
-		    (cons (try (get opcode-map newhead)
-			       (tryif (use-fcnrefs? opts)
-				 (get-fcnid head #f newhead))
-			       newhead)
-			  (cdr transformed)) )
-		   ((test opcode-map newhead)
-		    (annotate (cons (get opcode-map newhead)
-				    (cdr transformed))
-			      expr opts))
-		   (else (annotate (cons (try (get opcode-map newhead)
-					      (tryif (use-fcnrefs? opts)
-						(get-fcnid head #f newhead))
-					      newhead)
-					 (cdr transformed))
-				   expr opts)))))
+	   (let ((optimizer
+		  (try (get special-form-optimizers headvalue)
+		       (tryif (and (procedure-name headvalue)
+				   (get-module headvalue))
+			 (get special-form-optimizers
+			      (cons (downcase (procedure-name headvalue))
+				    (get-module headvalue)))))))
+	     (try (optimizer headvalue expr env bound opts)
+		  (cons* #OP_EVALFN headvalue expr))))
 	  ((exists macro? headvalue)
 	   (annotate (optimize (macroexpand headvalue expr) env bound opts)
 		     expr opts))
-	  ((fail? (reject headvalue applicable?))
+	  ((and (singleton? headvalue) (applicable? headvalue))
 	   ;; If all of the head values are applicable, we optimize
 	   ;;  the call, replacing the head with shortcuts to the
 	   ;;  headvalue
-	   (check-arguments headvalue n-exprs expr)
-	   (try (tryif (singleton? (get procedure-optimizers headvalue))
-		  ((get procedure-optimizers headvalue)
-		   headvalue expr env bound opts))
-		(annotate
-		 (callcons
-		  (cond ((or (not from) (fail? headvalue)
-			     (test from '%nosubst head))
-			 head)
-			((test from '%volatile head) `(#OP_SYMREF ,from ,head))
-			(else (get-headop headvalue head n-exprs env bound opts)))
-		  (optimize-args (cdr expr) env bound opts))
-		 expr opts)))
-	  ((%lexref? headvalue)
-	   (cons headvalue (optimize-args (cdr expr) env bound opts)))
+	   (optimize-apply headvalue (cdr expr) env bound opts expr from head))
+	  ((or  (%lexref? headvalue) (pair? head)
+		(symbol? head) (ambiguous? headvalue))
+	   ;; If all of the head values are applicable, we optimize
+	   ;;  the call, replacing the head with shortcuts to the
+	   ;;  headvalue
+	   (make-fncall
+	    (cond ((%lexref? headvalue) headvalue)
+		  ((or (not from) (test from '%nosubst head)) head)
+		  ((test from '%volatile head) `(#OP_SYMREF ,module ,head))
+		  (else head))
+	    (cdr expr)
+	    env bound opts))
 	  (else
 	   (when (and optwarn from
 		      (not (test from '{%nosubst %volatile} head)))
@@ -682,17 +775,53 @@
 	       (apply append bound)))
 	   expr))))
 
-(define apply-opcodes
-  #(#OP_APPLY0 #OP_APPLY1 #OP_APPLY2 #OP_APPLY3 #OP_APPLY4))
-
-(define (callcons head tail)
-  (if (and (or (applicable? head) (fcnid? head)) use-apply-opcodes)
-      (let ((len (length tail))
-	    (args (->list tail)))
-	(if (< len (length apply-opcodes))
-	    (cons* (elt apply-opcodes len) head tail)
-	    (cons* #OP_APPLY_N head len tail)))
-      (cons head (->list tail))))
+(define (optimize-apply fn args env bound opts expr (module) (fname))
+  (default! module (procedure-module fn))
+  (default! fname (or (procedure-name fn) (car expr)))
+  (check-arguments fn (length args) expr)
+  (let* ((n-args (length args))
+	 (optimizer (fcn/lookup procedure-optimizers fn))
+	 (predicate-type (fcn/lookup predicate-typemap fn))
+	 (opcode1 (fcn/lookup opcodes1 fn))
+	 (opcode2 (fcn/lookup opcodes2 fn))
+	 (num-opcode (fcn/lookup numeric-opcodes fn))
+	 (table-opcode (fcn/lookup table-opcodes fn))
+	 (opcodeN (fcn/lookup opcodesN fn))
+	 (optimized
+	  (try (optimizer fn expr env bound opts)
+	       (tryif (and (= n-args 1) (exists? predicate-type))
+		 (cond ((and (pair? predicate-type) (opcode? (car predicate-type)))
+			(cons (car predicate-type)
+			      (cons (cdr predicate-type) 
+				    (optimize (car args) env bound opts))))
+		       ((ctype? predicate-type)
+			(cons #OP_ISA (cons predicate-type (optimize (car args) env bound opts))))
+		       (else (fail))))
+	       (tryif (and (= n-args 1) (exists? opcode1))
+		 (cons opcode1 (qc (optimize (car args) env bound opts))))
+	       (tryif (and (= n-args 2) (exists? opcode2))
+		 (cons opcode2 (cons (qc (optimize (car args) env bound opts))
+				     (qc (optimize (cadr args) env bound opts)))))
+	       (tryif (and (= n-args 2) (exists? num-opcode))
+		 (cons num-opcode
+		       (cons (qc (optimize (car args) env bound opts))
+			     (qc (optimize (cadr args) env bound opts)))))
+	       (tryif (exists? table-opcode)
+		 (cons table-opcode
+		       (forseq (expr args)
+			 (optimize expr env bound opts))))
+	       (tryif (exists? opcodeN)
+		 (cons opcodeN
+		       (forseq (expr (->vector args))
+			 (optimize expr env bound opts))))
+	       (make-fncall
+		(cond ((or (not module) (fail? fn) (test module '%nosubst fname))
+		       fname)
+		      ((test module '%volatile fname) `(#OP_SYMREF ,module ,fname))
+		      (else (get-headop fn fname n-args env bound opts)))
+		(cdr expr)
+		env bound opts))))
+    (annotate optimized expr opts)))
 
 (defambda (optimize-call expr env bound opts)
   (cond ((ambiguous? expr)
@@ -734,7 +863,14 @@
       (reflect/store! proc 'optimized (gmtimestamp))
       (reflect/store! proc 'original_args arglist)
       (reflect/store! proc 'original_body body)
-      (optimize-lambda-body! proc new-body)
+      (cond ((not (use-opcodes? opts)))
+	    ((not simplify-bodies))
+	    ((and (pair? body) (null? (cdr body)) (opcode? (caar body)))
+	     (set! body (car body)))
+	    (else))
+      (if use-consblock 
+	  (optimize-lambda-body! proc new-body)
+	  (set-lambda-entry! proc new-body))
       (when (pair? arglist)
 	(let ((optimized-args (optimize-arglist arglist env opts)))
 	  (unless (equal? arglist optimized-args)
@@ -779,7 +915,7 @@
 	   (car arglist))
        (optimize-arglist (cdr arglist) env opts))
       arglist))
-  
+
 (define (deoptimize-procedure! proc)
   (when (reflect/get proc 'optimized)
     (reflect/drop! proc 'optimized)
@@ -805,10 +941,10 @@
 	       (irritant spec
 		   |GetModuleFailed| optimize-module
 		   "Couldn't load module for " spec))
-    (lambda (ex) 
-      (irritant spec
-	  |GetModuleFailed| optimize-module
-	  "Couldn't load module for " spec))))
+      (lambda (ex) 
+	(irritant spec
+	    |GetModuleFailed| optimize-module
+	    "Couldn't load module for " spec))))
 
 (define-init init-modinfo!
   (defsync (init-modinfo! module)
@@ -826,10 +962,10 @@
     (set! module (optimize-get-module module)))
   (loginfo |OptimizeModule| module)
   (set! opts
-	(if opts
-	    (try (cons (get module '%optimize_options) opts)
-		 opts)
-	    (try (get module '%optimize_options) #f)))
+    (if opts
+	(try (cons (get module '%optimize_options) opts)
+	     opts)
+	(try (get module '%optimize_options) #f)))
   (thread/set! 'threadwarnings warnings)
   (let ((bindings (and module (module-binds module)))
 	(usefcnrefs (use-fcnrefs? opts))
@@ -928,7 +1064,8 @@
 
 (defambda (module-arg? arg)
   (or (fail? arg) (string? arg)
-      (and (pair? arg) (or (eq? (car arg) 'quote) (eq? (car arg) #op_quote)))
+      (and (pair? arg) 
+	   (or (eq? (car arg) 'quote) (eq? (car arg) #op_quote)))
       (and (ambiguous? arg) (fail? (reject arg module-arg?)))))
 
 (define (optimize*! . args)
@@ -936,14 +1073,14 @@
     (cond ((optimizable? arg) (optimize-procedure! arg))
 	  ((table? arg) (optimize-module! arg))
 	  (else (error '|TypeError| 'optimize*
-			 "Invalid optimize argument: " arg)))))
+		       "Invalid optimize argument: " arg)))))
 
 (define (deoptimize*! . args)
   (dolist (arg args)
     (cond ((optimizable? arg) (deoptimize-procedure! arg))
 	  ((table? arg) (deoptimize-module! arg))
 	  (else (error '|TypeError| 'optimize*
-			 "Invalid optimize argument: " arg)))))
+		       "Invalid optimize argument: " arg)))))
 
 (define optimize!
   (macro expr
@@ -968,25 +1105,24 @@
 (define use!
   (macro expr
     (let ((modarg (if (and (pair? (cadr expr))
-			   (or (eq? (car (cadr expr)) 'quote)
-			       (eq? (car (cadr expr)) #OP_QUOTE)))
+			   (eq? (car (cadr expr)) 'quote))
 		      (cadr expr)
-		      (list #OP_QUOTE (cadr expr))))) 
+		      (list 'quote (cadr expr))))) 
       `(begin
-	(use-module ,modarg)
-	(optimize! ,modarg)
-	(do-choices (modname ,modarg)
-	  (let ((syms (difference (%ls modname) '%moduleid))
-		(width (config 'consolewidth 80))
-		(column (+ (length (symbol->string modname)) 5)))
-	    (when (exists? syms)
-	      (lineout ";; " modname ":"
-		(do-choices (sym syms)
-		  (when (> column width)
-		    (printout "\n;;   ")
-		    (set! column 5))
-		  (printout " " sym)
-		  (set! column (+ column 1 (length (symbol->string sym)))))))))))))
+	 (use-module ,modarg)
+	 (optimize! ,modarg)
+	 (do-choices (modname ,modarg)
+	   (let ((syms (difference (%ls modname) '%moduleid))
+		 (width (config 'consolewidth 80))
+		 (column (+ (length (symbol->string modname)) 5)))
+	     (when (exists? syms)
+	       (lineout ";; " modname ":"
+		 (do-choices (sym syms)
+		   (when (> column width)
+		     (printout "\n;;   ")
+		     (set! column 5))
+		   (printout " " sym)
+		   (set! column (+ column 1 (length (symbol->string sym)))))))))))))
 
 (define (convert-modarg args)
   (if (null? args) '()
@@ -998,8 +1134,7 @@
 		  (set! result (cons spec result))))
 	    (if (symbol? (car args))
 		(set! result (cons `',(car args) result))
-		(if (and (pair? (car args)) 
-			 (or (eq? (caar args) 'quote)  (eq? (caar args) #OP_QUOTE)))
+		(if (and (pair? (car args)) (eq? (caar args) 'quote))
 		    (do-choices (spec (cadr (car args)))
 		      (if (symbol? spec)
 			  (set! result (cons `',spec result))
@@ -1025,10 +1160,9 @@
 
 (define (convert-arg arg)
   (if (symbol? arg)
-      (list #OP_QUOTE arg)
+      (cons #OP_QUOTE arg)
       (if (pair? arg)
-	  (if (and (pair? (car arg)) 
-		   (or (eq? (caar arg) 'quote)  (eq? (caar arg) #OP_QUOTE)))
+	  (if (and (pair? (car arg)) (eq? (caar arg) 'quote))
 	      (convert-arg (cadr (car arg)))
 	      arg)
 	  {})))
@@ -1062,7 +1196,7 @@
   (set! type-arg (get-arg expr 3 #f))
   (tryif (fixnum? off-arg)
     (tryif (and (pair? type-arg)
-		(overlaps? (car type-arg) {'quote quote #OP_QUOTE}))
+		(overlaps? (car type-arg) {'quote quote}))
       (if (= (length type-arg) 2)
 	  `(,xref-opcode ,off-arg ,(cadr type-arg)
 			 ,(optimize (get-arg expr 1) env bound opts))
@@ -1077,7 +1211,7 @@
 				     (type-arg))
   (set! type-arg (get-arg expr 2 #f))
   (if (and (pair? type-arg)
-	   (overlaps? (car type-arg) {'quote quote #OP_QUOTE}))
+	   (overlaps? (car type-arg) {'quote quote}))
       `(,xpred-opcode ,(cadr type-arg) ,(optimize (get-arg expr 1) env bound opts))
       (if type-arg
 	  `(,(fcnref compound? (car expr) env opts)
@@ -1104,41 +1238,48 @@
 ;;;; Special form handlers
 
 (define (optimize-block handler expr env bound opts)
-  (cons (get-headop handler (car expr) (length (cdr expr)) env bound opts)
-	(optimize-body (cdr expr))))
+  (let ((headop (get-headop handler (car expr) (length (cdr expr)) env bound opts)))
+    (cons (qc headop) (optimize-exprs (cdr expr)))))
 
 (define (optimize-quote handler expr env bound opts)
   (if (use-opcodes? opts)
-      (list #OP_QUOTE (get-arg expr 1))
+      (cons #OP_QUOTE (get-arg expr 1))
       expr))
 
 (define (optimize-begin handler expr env bound opts)
   (if (use-opcodes? opts)
-      (cons #OP_BEGIN (optimize-body (cdr expr)))
+      (cons #OP_BEGIN (optimize-exprs (strip-preamble (cdr expr))))
       (optimize-block handler expr env bound opts)))
 
 (define (optimize-if handler expr env bound opts)
   (if (use-opcodes? opts)
-      (cons #OP_BRANCH (optimize-body (cdr expr)))
+      (cons* #OP_BRANCH (optimize (cadr expr) env bound opts)
+	     (optimize (elt expr 2) env bound opts)
+	     (if (> (length expr) 3)
+		 (optimize (elt expr 3) env bound opts)
+		 '()))
       (optimize-block handler expr env bound opts)))
 
 (define (optimize-not handler expr env bound opts)
   (if (use-opcodes? opts)
-      `(#OP_NOT ,(optimize (get-arg expr 1) env bound opts))
+      (cons #OP_NOT (optimize (get-arg expr 1) env bound opts))
       (optimize-block handler expr env bound opts)))
 
 (define (optimize-when handler expr env bound opts)
   (if (and (use-opcodes? opts) (rewrite? opts))
-      `(#OP_BRANCH
-	(#OP_TRY ,(optimize (cadr expr) env bound opts) #f)
-	(#OP_BEGIN ,@(optimize-body (cddr expr))
-		   (,void-opcode)))
+      (list #OP_BRANCH
+	    (list #OP_TRY (optimize (cadr expr) env bound opts) #f)
+	    (cons #OP_BEGIN
+		  (append (optimize-exprs (strip-preamble (cddr expr)))
+			  `((,void-opcode)))))
       (optimize-block handler expr env bound opts)))
 (define (optimize-unless handler expr env bound opts)
   (if (and (use-opcodes? opts) (rewrite? opts))
-      `(#OP_BRANCH
-	(,not-opcode ,(optimize (cadr expr) env bound opts))
-	(#OP_BEGIN ,@(optimize-body (cddr expr)) (,void-opcode)))
+      (list #OP_BRANCH
+	    (cons #OP_NOT (optimize (cadr expr) env bound opts))
+	    (cons #OP_BEGIN
+		  (append (optimize-exprs (strip-preamble (cddr expr)))
+			  `((,void-opcode)))))
       (optimize-block handler expr env bound opts)))
 
 (define (optimize-until handler expr env bound opts)
@@ -1153,7 +1294,7 @@
   (if (and (use-opcodes? opts) (rewrite? opts))
       `(#OP_BEGIN
 	(,#OP_UNTIL
-	 (,not-opcode ,(optimize (cadr expr) env bound opts))
+	 ,(cons not-opcode (optimize (cadr expr) env bound opts))
 	 ,@(optimize-body (cddr expr)))
 	(,void-opcode))
       (optimize-block handler expr env bound opts)))
@@ -1170,8 +1311,8 @@
 	  ,(->vector vars)
 	  ,(forseq (valexpr vals)
 	     (optimize valexpr env outer opts))
-	  ,(forseq (bodyexpr (cddr expr))
-	     (optimize bodyexpr env inner opts))))
+	  . ,(forseq (bodyexpr (cddr expr))
+	       (optimize bodyexpr env inner opts))))
       (let* ((bindexprs (cadr expr))
 	     (new-bindexprs
 	      (forseq (x bindexprs) `(,(car x) ,(optimize (cadr x) env bound opts))))
@@ -1228,11 +1369,11 @@
 	 (body (cddr expr)))
     `(#OP_BIND #(,varname |dotimes_limit|) 
 	       #(0 ,(optimize limit-expr env bound opts))
-	       (#OP_UNTIL
-		(#OP_GTE ,iter-ref ,limit-ref)
-		,@(forseq (clause body) (optimize clause env newbound opts))
-		(#OP_RESET_ENV)
-		(#OP_ASSIGN ,iter-ref #t (#OP_PLUS1 ,iter-ref))))))
+	       . (#OP_UNTIL
+		  (#OP_GTE ,iter-ref ,limit-ref)
+		  ,@(forseq (clause body) (optimize clause env newbound opts))
+		  (#OP_RESET_ENV)
+		  (#OP_ASSIGN ,iter-ref #t #OP_PLUS ,iter-ref . 1)))))
 
 (define (optimize-doseq handler expr env bound opts)
   (let* ((bindspec (cadr expr))
@@ -1248,19 +1389,18 @@
 	 (body (cddr expr)))
     `(#OP_BIND #(,varname ,iter-var |_doseq_subject| |_doseq_limit|)
 	       (#f 0 ,(optimize val-expr env (cons '(#f #f #f #f) bound) opts) 0)
-	       ((#OP_BRANCH 
-		 (#OP_PAIRP ,seq-ref)
-		 (,doseq (,varname ,seq-ref ,iter-var)
-		   ,@body)
-		 (#OP_BEGIN
-		  (#OP_ASSIGN ,limit-ref #f (#OP_LENGTH ,seq-ref))
-		  (#OP_UNTIL
-		   (#OP_GTE ,iter-ref ,limit-ref)
-		   (#OP_ASSIGN ,elt-ref #f (#OP_SEQELT ,seq-ref ,iter-ref))
-		   ,@(forseq (clause body) (optimize clause env new-bindings  opts))
-		   (#OP_RESET_ENV)
-		   (#OP_ASSIGN ,iter-ref #f (#OP_PLUS1 ,iter-ref)))
-		  (#OP_VOID)))))))
+	       . ((#OP_BRANCH 
+		   ,(cons* #OP_ISA #pair_type seq-ref)
+		   (#OP_EVALFN ,doseq . (doseq (,varname ,seq-ref ,iter-var) ,@body))
+		   (#OP_BEGIN
+		    (#OP_ASSIGN ,limit-ref #f #OP_LENGTH . ,seq-ref)
+		    (#OP_UNTIL
+		     (#OP_GTE ,iter-ref ,limit-ref)
+		     (#OP_ASSIGN ,elt-ref #f #OP_SEQELT ,seq-ref . ,iter-ref)
+		     ,@(forseq (clause body) (optimize clause env new-bindings  opts))
+		     (#OP_RESET_ENV)
+		     (#OP_ASSIGN ,iter-ref #f #OP_PLUS 1 . ,iter-ref))
+		    (#OP_VOID)))))))
 
 (define (optimize-dosubsets handler expr env bound opts)
   (let ((bindspec (cadr expr)) 
@@ -1303,14 +1443,14 @@
 				     (slice not-vars i))
 			     bound)
 		       opts))
-	  ,(forseq (bodyexpr (cddr expr))
-	     (optimize bodyexpr env inner opts))))
+	  . ,(forseq (bodyexpr (cddr expr))
+	       (optimize bodyexpr env inner opts))))
       (let ((bindspec (cadr expr))
 	    (body (cddr expr)))
 	`(,handler
 	  ,(optimize-let*-bindings (cadr expr) env (cons '() bound) opts)
-	  ,@(let ((bound (cons (map car bindspec) bound)))
-	      (optimize-body body))))))
+	  . ,(let ((bound (cons (map car bindspec) bound)))
+	       (optimize-body body))))))
 
 #|
 (define (foo x y) (let ((x2 (* x x)) (y2 (* y y))) (+ x2 y2)))
@@ -1334,17 +1474,17 @@
 		 ;; lexical contour or enviroment
 		 `(,handler ,var ,optval))
 		((overlaps? handler set!) `
-		 (#OP_ASSIGN ,loc #f ,optval))
+		 (#OP_ASSIGN ,loc #f . ,optval))
 		((overlaps? handler set+!)
-		 `(#OP_ASSIGN ,loc #OP_UNION ,optval))
+		 `(#OP_ASSIGN ,loc #OP_UNION . ,optval))
 		((and (overlaps? handler default!) (= (length expr) 3)) 
 		 ;; Don't convert default! with a `replace` arg to use
 		 ;; OP_ASSIGN
-		 `(#OP_ASSIGN ,loc #t ,optval))
+		 `(#OP_ASSIGN ,loc #t . ,optval))
 		((overlaps? handler default!) 
 		 ;; Don't convert default! with a `replace` arg to use
 		 ;; OP_ASSIGN
-		 `(,default! ,var ,optval ,@(cdddr expr)))
+		 `(,default! ,var ,optval . ,(cdddr expr)))
 		(else `(,handler ,var ,optval)))
 	  `(,handler ,var ,optval)))))
 
@@ -1376,92 +1516,116 @@
 				  (identical? (cadr clause) '=>)))
 			   (cdr expr))))
      (convert-cond (cdr expr) env bound opts))
-   (cons handler 
-	 (forseq (clause (cdr expr) )
-	   (cond ((not (pair? clause))
-		  (codewarning (list 'BADCLAUSE expr clause))
-		  (when optwarn
-		    (logwarn |BadClause|
-		      "The clause " clause " in the CONDitional " 
-		      expr " is malformed."))
-		  clause)
-		 ((eq? (car clause) 'else)
-		  `(ELSE ,@(optimize-body (cdr clause))))
-		 ((and (pair? (cdr clause)) 
-		       (identical? (cadr clause) '=>))
-		  `(,(optimize (car clause) env bound opts)
-		    =>
-		    ,@(optimize-body (cddr clause))))
-		 (else (optimize-body clause)))))))
+   (cons* #OP_EVALFN handler 
+	  `(cond 
+	    ,@(forseq (clause (cdr expr) )
+		(cond ((not (pair? clause))
+		       (codewarning (list 'BADCLAUSE expr clause))
+		       (when optwarn
+			 (logwarn |BadClause|
+			   "The clause " clause " in the CONDitional " 
+			   expr " is malformed."))
+		       clause)
+		      ((eq? (car clause) 'else)
+		       `(ELSE ,@(optimize-body (cdr clause))))
+		      ((and (pair? (cdr clause)) 
+			    (identical? (cadr clause) '=>))
+		       `(,(optimize (car clause) env bound opts)
+			 =>
+			 ,@(optimize-body (cddr clause))))
+		      (else (optimize-body clause))))))))
 
 (define (convert-cond clauses env bound opts)
   (if (null? clauses)
       (list void-opcode)
       (let ((clause (car clauses)))
 	(cond ((not (pair? clause)) (fail))
-	      ((overlaps? (car clause) '{else default})
-	       `(#OP_BEGIN ,@(forseq (c (cdr clause))
-			       (optimize c env bound opts))))
+	      ((eq? (car clause) 'else)
+	       (cons #OP_BEGIN 
+		     (forseq (c (cdr clause))
+		       (optimize c env bound opts))))
 	      (else
-	       `(#OP_BRANCH 
-		 ,(optimize (car clause) env bound opts)
-		 ,(cond ((empty-list? (cdr clause))
-			 `(#OP_VOID))
-			((empty-list? (cdr (cdr clause)))
-			 (optimize (cadr clause) env bound opts))
-			(else 
-			 `(#OP_BEGIN 
-			   ,@(forseq (c (cdr clause))
-			       (optimize c env bound opts)))))
-		 ,(convert-cond (cdr clauses) env bound opts)))))))
+	       (cons* #OP_BRANCH 
+		      (optimize (car clause) env bound opts)
+		      (cond ((empty-list? (cdr clause))
+			     `(#OP_VOID))
+			    ((empty-list? (cdr (cdr clause)))
+			     (optimize (cadr clause) env bound opts))
+			    (else 
+			     (cons #OP_BEGIN 
+				   (forseq (c (strip-preamble (cdr clause)))
+				     (optimize c env bound opts)))))
+		      (convert-cond (cdr clauses) env bound opts)))))))
 
 (define (optimize-and handler expr env bound opts)
-  (if (use-opcodes? opts)
-      `(#OP_AND ,@(optimize-body (cdr expr)))
-      (optimize-block handler expr env bound opts)))
+  (if (= (length expr) 1) #t
+      (if (use-opcodes? opts)
+	  (cons #OP_AND (optimize-exprs (cdr expr)))
+	  (optimize-block handler expr env bound opts))))
 
 (define (optimize-or handler expr env bound opts)
-  (if (use-opcodes? opts)
-      `(#OP_OR ,@(optimize-body (cdr expr)))
-      (optimize-block handler expr env bound opts)))
+  (if (= (length expr) 1) #f
+      (if (use-opcodes? opts)
+	  (cons #OP_OR (optimize-exprs (cdr expr)))
+	  (optimize-block handler expr env bound opts))))
 
 (define (optimize-try handler expr env bound opts)
   (if (use-opcodes? opts)
-      `(#OP_TRY ,@(optimize-body (cdr expr)))
+      (cons #OP_TRY (optimize-exprs (cdr expr)))
       (optimize-block handler expr env bound opts)))
 
 (define (optimize-tryif handler expr env bound opts)
   (if (and (use-opcodes? opts) (rewrite? opts))
-      `(#OP_BRANCH 
-	,(optimize (get-arg expr 1) env bound opts)
-	(#OP_TRY ,@(optimize-body (cddr expr)))
-	{})
+      (cons* #OP_BRANCH
+	     (optimize (get-arg expr 1) env bound opts)
+	     (cons #OP_TRY (optimize-exprs (cddr expr)))
+	     {})
       (optimize-block handler expr env bound opts)))
 
 (define (optimize-evaltest handler expr env bound opts)
-  `(,evaltest ,(second expr) ,(optimize (third expr) env bound opts)))
+  (cons* #OP_EVALFN handler expr))
 
 (define (optimize-numeric handler expr env bound opts)
-  (cond ((null? (cdr expr))
-	 ;; (codewarning (cons* '|NoArguments| expr))
-	 (cond ((overlaps? handler {+ #OP_PLUS}) 0)
-	       ((overlaps? handler {* #OP_MULT}) 1)
-	       (else (codewarning (cons* '|NoArguments| expr))
-		     expr)))
-	((and (pair? (cdr expr)) (null? (cddr expr)))
-	 (cond ((overlaps? handler {>= = <= < >})
-		(codewarning (cons* '|TooFewArguments| expr))
-		expr)
-	       (else (cons handler (optimize-args (cdr expr) env bound opts)))))
-	((opcode? handler)
-	 (cons handler (optimize-args (cdr expr) env bound opts)))
-	((test opcode-map handler)
-	 (cons (get opcode-map handler)
-	       (optimize-args (cdr expr) env bound opts)))
-	(else (cons handler (optimize-args (cdr expr) env bound opts)))))
+  (cond ((fail? (fcn/lookup numeric-opcodes handler)) (fail))
+	((= (length expr) 2)
+	 (cond ((overlaps? handler {+ *})
+		(cons* #OP_CHECK_TYPE #number_type
+		       (optimize (cadr expr) env bound opts)))
+	       ((eq? handler -)
+		(cons* #OP_MINUS 0 (optimize (cadr expr) env bound opts)))
+	       ((eq? handler /)
+		(cons* #OP_DIVIDE 1 (optimize (cadr expr) env bound opts)))
+	       ((eq? handler /~)
+		(cons* #OP_FLODIV 1 (optimize (cadr expr) env bound opts)))
+	       (else (fail))))
+	((= (length expr) 3)
+	 (cond ((exists? (fcn/lookup numeric-opcodes handler))
+		(cons* (fcn/lookup numeric-opcodes handler)
+		       (optimize (cadr expr) env bound opts)
+		       (optimize (caddr expr) env bound opts)))
+	       (else (fail))))
+	((eq? handler -)
+	 (cons* #OP_MINUS (cadr expr) (optimize (cons + (cddr expr)) env bound opts)))
+	((eq? handler /)
+	 (cons* #OP_DIVIDE (cadr expr) (optimize (cons * (cddr expr)) env bound opts)))
+	((eq? handler /)
+	 (cons* #OP_FLODIV (cadr expr) (optimize (cons * (cddr expr)) env bound opts)))
+	(else (nest-numeric-op (fcn/lookup numeric-opcodes handler) (cdr expr)
+			       env bound opts))))
+
+(define (nest-numeric-op op args env bound opts)
+  (tryif (and (pair? args) (proper-list? args))
+    (if (empty-list? (cdr args))
+	(optimize (car args))
+	(if (= (length args) 2)
+	    (cons* op (optimize (car args) env bound opts)
+		   (optimize (cadr args) env bound opts))
+	    (cons* op (optimize (car args) env bound opts)
+		   (nest-numeric-op op (cdr args) env bound opts))))))
 
 (define (optimize-choice handler expr env bound opts)
-  (elts (cdr expr)))
+  (cons #OP_UNION (forseq (subexpr (cdr expr))
+		    (optimize subexpr env bound opts))))
 
 (define (optimize-case handler expr env bound opts)
   `(,handler 
@@ -1491,14 +1655,13 @@
 	  (list 'quote (optimize-quasiquote-node (cadr expr) env bound opts)))
       (optimize expr env bound opts)))
 
-
 (defambda (optimize-quasiquote-node expr env bound opts)
   (cond ((ambiguous? expr)
 	 (for-choices (elt expr)
 	   (optimize-quasiquote-node elt env bound opts)))
 	((and (pair? expr) 
 	      (or (eq? (car expr) 'unquote) (eq? (car expr) 'unquote*)))
-	 (optimize-unquote (qc expr) env bound opts))
+	 (optimize-unquote expr env bound opts))
 	((and (pair? expr) (eq? (car expr) 'quote) 
 	      (pair? (cdr expr)) (empty-list? (cddr expr)))
 	 (if (qchoice? (cadr expr)) expr
@@ -1541,17 +1704,17 @@
       (if (symbol? (caddr expr))
 	  `(,handler ,(cadr expr)
 		     ,(caddr expr)
-		     ,@(optimize-body (cdddr expr)))
-	  `(,handler ,(cadr expr) ,@(optimize-body (cddr expr))))
-      `(,handler ,@(optimize-body (cdr expr)))))
+		     ,@(optimize-exprs (cdddr expr)))
+	  `(,handler ,(cadr expr) ,@(optimize-exprs (cddr expr))))
+      `(,handler ,@(optimize-exprs (cdr expr)))))
 
 (define (optimize-logif handler expr env bound opts)
   (if (or (symbol? (caddr expr))  (number? (caddr expr)))
       `(,handler ,(optimize (cadr expr) env bound opts)
 		 ,(caddr expr)
-		 ,@(optimize-body (cdddr expr)))
+		 ,@(optimize-exprs (cdddr expr)))
       `(,handler ,(optimize (cadr expr) env bound opts)
-		 ,@(optimize-body (cddr expr)))))
+		 ,@(optimize-exprs (cddr expr)))))
 
 (define (optimize-logif+ handler expr env bound opts)
   (let ((test (second expr))
@@ -1561,11 +1724,11 @@
 	(if (symbol? condition)
 	    `(,handler ,(optimize test env bound opts)
 		       ,level ,condition
-		       ,@(optimize-body (cdr (cdddr expr))))
+		       ,@(optimize-exprs (cdr (cdddr expr))))
 	    `(,handler ,(optimize test env bound opts)
-		       ,level ,@(optimize-body (cdddr expr))))
+		       ,level ,@(optimize-exprs (cdddr expr))))
 	`(,handler ,(optimize test env bound opts)
-		   ,@(optimize-body (cddr expr))))))
+		   ,@(optimize-exprs (cddr expr))))))
 						 
 ;;; Optimizing XHTML expressions
 
@@ -1600,10 +1763,10 @@
 	(else attribs)))
 
 (define (optimize-markup handler expr env bound opts)
-  `(,(car expr) ,@(optimize-body (cdr expr))))
+  `(,(car expr) ,@(optimize-exprs (cdr expr))))
 (define (optimize-markup* handler expr env bound opts)
   `(,(car expr) ,(optimize-attribs (second expr) env bound opts)
-    ,@(optimize-body (cddr expr))))
+    ,@(optimize-exprs (cddr expr))))
 
 (define (optimize-emptymarkup fcn expr env bound opts)
   `(,(car expr) ,@(optimize-attribs (cdr expr) env bound opts)))
@@ -1611,12 +1774,12 @@
 (define (optimize-anchor* fcn expr env bound opts)
   `(,(car expr) ,(optimize (cadr expr) env bound opts)
     ,(optimize-attribs (third expr) env bound opts)
-    ,@(optimize-body (cdddr expr))))
+    ,@(optimize-exprs (cdddr expr))))
 
 (define (optimize-xmlblock fcn expr env bound opts)
   `(,(car expr) ,(cadr expr)
     ,(optimize-attribs (third expr) env bound opts)
-    ,@(optimize-body (cdddr expr))))
+    ,@(optimize-exprs (cdddr expr))))
 
 (define (optimize-watch fcn expr env bound opts)
   #|

@@ -117,5 +117,31 @@ KNO_EXPORT int kno_pprint
 (u8_output out,lispval x,u8_string prefix,
  int indent,int col,int maxcol);
 
+/* Copying LISP values */
+
+KNO_EXPORT void *_kno_lspcpy(lispval *dest,const lispval *src,int n);
+KNO_EXPORT void *_kno_lspset(lispval *dest,lispval val,int n);
+
+#if KNO_CORE
+KNO_FASTOP void *kno_lspcpy(lispval *dest,const lispval *src,int n)
+{
+  return memcpy(dest,src,sizeof(lispval)*n);
+}
+KNO_FASTOP void *kno_lspset(lispval *dest,lispval val,int n)
+{
+  if (RARELY(KNO_CONSP(val))) {
+    lispval *write = dest, *limit = write+n;
+    while (write<limit) {*write++=val; kno_incref(val);}
+    return write;}
+  else {
+    lispval *write = dest, *limit = write+n;
+    while (write<limit) *write++=val;
+    return write;}
+}
+#else
+#define kno_lspcpy _kno_lspcpy
+#define kno_lspset _kno_lspset
+#endif
+
 #endif /* ndef KNO_LISP_H */
 

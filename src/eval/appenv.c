@@ -103,7 +103,7 @@ static int run_init(lispval init,kno_lexenv env,kno_stack stack)
 	    (kno_dcall(stack,init,1,(lispval *)(&env)));}
 	else v = kno_apply(init,0,NULL);}
       else if (KNO_PAIRP(init))
-	v = kno_eval(init,env,stack,0);
+	v = kno_eval(init,env,stack);
       else NO_ELSE;
       if (KNO_ABORTP(v))
 	inits_failed = kno_conspair(kno_incref(init),inits_failed);

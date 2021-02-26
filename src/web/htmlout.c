@@ -31,8 +31,6 @@
 
 #include <ctype.h>
 
-#define fast_eval(x,env) (kno_eval(x,env,_stack,0))
-
 #ifndef KNO_HTMLOUT_MAX
 #define KNO_HTMLOUT_MAX 15000000
 #endif
@@ -571,11 +569,11 @@ static lispval table2html_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   U8_OUTPUT *out = u8_current_output;
   lispval xmloidfn = kno_symeval(xmloidfn_symbol,env);
   lispval tables, classarg, slotids;
-  tables = kno_eval_arg(kno_get_arg(expr,1),env);
+  tables = kno_eval_arg(kno_get_arg(expr,1),env,_stack);
   if (KNO_ABORTP(tables))return tables;
   else if (VOIDP(tables))
     return kno_err(kno_SyntaxError,"table2html_evalfn",NULL,expr);
-  classarg = kno_eval_arg(kno_get_arg(expr,2),env);
+  classarg = kno_eval(kno_get_arg(expr,2),env,_stack);
   if (KNO_ABORTP(classarg)) {
     kno_decref(tables); return classarg;}
   else if (STRINGP(classarg)) classname = CSTRING(classarg);
@@ -583,7 +581,7 @@ static lispval table2html_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   else {
     kno_decref(tables);
     return kno_type_error(_("string"),"table2html_evalfn",classarg);}
-  slotids = kno_eval_arg(kno_get_arg(expr,3),env);
+  slotids = kno_eval(kno_get_arg(expr,3),env,_stack);
   if (KNO_ABORTP(slotids)) {
     kno_decref(tables); kno_decref(classarg); return slotids;}
   {

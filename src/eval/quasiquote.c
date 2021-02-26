@@ -59,7 +59,7 @@ static lispval quasiquote_list(lispval obj,kno_lexenv env,
 	if ((PAIRP(KNO_CDR(obj))) &&
 	    (NILP(KNO_CDR(KNO_CDR(obj))))) {
 	  if (level==1) {
-	    lispval splice_at_end = kno_eval(KNO_CADR(obj),env,stack,0);
+	    lispval splice_at_end = kno_eval(KNO_CADR(obj),env,stack);
 	    if (KNO_ABORTED(splice_at_end)) {
 	      kno_decref(head);
 	      return splice_at_end;}
@@ -89,7 +89,7 @@ static lispval quasiquote_list(lispval obj,kno_lexenv env,
 	return kno_err(kno_SyntaxError,"malformed UNQUOTE",NULL,elt);}
       else if (KNO_EQ(KNO_CAR(elt),unquote)) {
 	if (level==1) {
-	  new_elt = kno_eval(KNO_CADR(elt),env,stack,0);
+	  new_elt = kno_eval(KNO_CADR(elt),env,stack);
 	  if (VOIDP(new_elt))
 	    new_elt = kno_err(kno_VoidArgument,"quasiquote_list",
 			     NULL,KNO_CADR(elt));}
@@ -105,7 +105,7 @@ static lispval quasiquote_list(lispval obj,kno_lexenv env,
 	  return new_elt;}}
       else if (KNO_EQ(KNO_CAR(elt),unquotestar))
 	if (level==1) {
-	  lispval insertion = kno_eval(KNO_CADR(elt),env,stack,0);
+	  lispval insertion = kno_eval(KNO_CADR(elt),env,stack);
 	  if (KNO_ABORTED(insertion)) {
 	      kno_decref(head);
 	      return insertion;}
@@ -190,7 +190,7 @@ static lispval quasiquote_vector(lispval obj,kno_lexenv env,
 	  (KNO_EQ(KNO_CAR(elt),unquotestar)) &&
 	  (PAIRP(KNO_CDR(elt)))) {
 	if (level==1) {
-	  lispval insertion = kno_eval(KNO_CADR(elt),env,stack,0);
+	  lispval insertion = kno_eval(KNO_CADR(elt),env,stack);
 	  int addlen = 0;
 	  if (KNO_ABORTED(insertion)) {
 	    kno_decref_vec(newelts,j);
@@ -343,7 +343,7 @@ lispval kno_quasiquote(lispval obj,kno_lexenv env,
       else return kno_err(kno_SyntaxError,"malformed QUASIQUOTE",NULL,obj);
     else if (KNO_EQ(KNO_CAR(obj),unquote))
       if (level==1) {
-	lispval result=kno_eval(KNO_CAR(KNO_CDR(obj)),env,stack,0);
+	lispval result=kno_eval(KNO_CAR(KNO_CDR(obj)),env,stack);
 	if (KNO_VOIDP(result))
 	  return kno_err(kno_VoidArgument,"kno_quasiquote",NULL,obj);
 	return result;}

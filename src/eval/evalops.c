@@ -186,6 +186,11 @@ static lispval opcode_name_prim(lispval opcode)
   else return kno_err("InvalidOpcode","opcode_name_prim",NULL,opcode);
 }
 
+int kno_opcode_class(lispval opcode)
+{
+  return KNO_OPCODE_CLASS(opcode);
+}
+
 /* Call/cc */
 
 static lispval call_continuation(struct KNO_STACK *stack,
@@ -317,7 +322,9 @@ static lispval get_arg_prim(lispval expr,lispval elt,lispval dflt)
 
 DEFC_PRIMN("apply",apply_lexpr,
 	   KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	   "**undocumented**")
+	   "`(apply *fns* *args...* *rest*)` applies *fns* (a choice) to "
+	   "the concatneation of *args* and the value of *rest*, "
+	   "which may be either a pair, a vector, or the empty list.")
 static lispval apply_lexpr(int n,kno_argvec args)
 {
   DO_CHOICES(fn,args[0])
@@ -326,6 +333,8 @@ static lispval apply_lexpr(int n,kno_argvec args)
       return kno_type_error("function","apply_lexpr",args[0]);}
   {
     lispval results = EMPTY;
+    /* TODO: Pre-assemble the argcount and catch non-sequences in the
+       last position. */
     DO_CHOICES(fn,args[0]) {
       DO_CHOICES(final_arg,args[n-1]) {
 	lispval result = VOID;
@@ -425,7 +434,7 @@ static lispval with_threadcache_evalfn(lispval expr,kno_lexenv env,kno_stack _st
   lispval value = VOID;
   KNO_DOLIST(each,KNO_CDR(expr)) {
     kno_decref(value);
-    value = kno_eval(each,env,_stack,0);
+    value = kno_eval(each,env,_stack);
     if (KNO_ABORTED(value)) {
       kno_pop_threadcache(tc);
       return value;}}
@@ -439,7 +448,7 @@ static lispval using_threadcache_evalfn(lispval expr,kno_lexenv env,kno_stack _s
   lispval value = VOID;
   KNO_DOLIST(each,KNO_CDR(expr)) {
     kno_decref(value);
-    value = kno_eval(each,env,_stack,0);
+    value = kno_eval(each,env,_stack);
     if (KNO_ABORTED(value)) {
       if (tc) kno_pop_threadcache(tc);
       return value;}}

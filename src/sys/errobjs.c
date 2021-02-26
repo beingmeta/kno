@@ -35,10 +35,10 @@
 #include <libu8/libu8io.h>
 #endif
 
+static lispval stack_entry_symbol, exception_stack_symbol, exception_symbol;
 static int max_irritant_len=256;
 
-static lispval stack_entry_symbol, exception_stack_symbol, exception_symbol;
-
+int kno_capture_stack=1;
 int kno_log_stack_max = 500;
 int kno_sum_stack_max = 200;
 
@@ -83,6 +83,7 @@ lispval kno_mkerr(u8_condition c,u8_context caller,
   u8_condition condition = (c) ? (c) : (ex) ? (ex->u8x_cond) :
     ((u8_condition)"Unknown (NULL) error");
   /* Don't grab contexts or backtraces for thread termination */
+ initialized:
   if (c == kno_ThreadTerminated) {
     u8_exception new_ex = u8_new_exception(condition,caller,NULL,NULL,NULL);
     if (push) *push=new_ex;
@@ -91,7 +92,8 @@ lispval kno_mkerr(u8_condition c,u8_context caller,
   struct KNO_EXCEPTION *exo = (ex) ? (kno_exception_object(ex)) : (NULL);
   lispval backtrace = ( (exo) && (KNO_CONSP(exo->ex_stack)) ) ?
     (kno_incref(exo->ex_stack)) :
-    (kno_get_backtrace(kno_stackptr));
+    (kno_capture_stack) ? (kno_get_backtrace(kno_stackptr)) :
+    (KNO_EMPTY_LIST);
   lispval context = (ex) ? (get_exception_context(ex)) : (KNO_VOID);
   lispval exception = kno_init_exception
     (NULL,condition,caller,u8_strdup(details),
@@ -115,7 +117,9 @@ lispval kno_lisp_error(u8_exception ex)
 {
   struct KNO_EXCEPTION *exo = kno_exception_object(ex);
   if (exo) return KNO_ERROR;
-  lispval backtrace = kno_get_backtrace(kno_stackptr);
+  lispval backtrace = (kno_capture_stack) ?
+    (kno_get_backtrace(kno_stackptr)) :
+    (KNO_EMPTY_LIST);
   lispval context = get_exception_context(ex);
   lispval irritant = kno_exception_xdata(ex);
   lispval exception = kno_init_exception
@@ -915,4 +919,11 @@ void kno_init_errobjs_c()
 
   kno_typeinfo ex_typeinfo = kno_use_typeinfo(exception_symbol);
   ex_typeinfo->type_restorefn=restore_exception;
+
+  kno_register_config
+    ("ERROR:STACK:CAPTURE",
+     _("Whether record backtraces when errors are signalled"),
+     kno_boolconfig_get,kno_boolconfig_set,
+     &kno_capture_stack);
+
 }

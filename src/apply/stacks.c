@@ -175,6 +175,18 @@ _KNO_STACK_SET_ARGS(kno_stack stack,lispval *args,
   __KNO_STACK_SET_ARGS(stack,args,width,n,flags);
 }
 
+KNO_EXPORT void
+_KNO_STACK_FREE_ARGS(kno_stack stack)
+{
+  __KNO_STACK_FREE_ARGS(stack);
+}
+
+
+KNO_EXPORT void
+_KNO_STACK_RESET_ARGS(kno_stack stack)
+{
+  __KNO_STACK_RESET_ARGS(stack);
+}
 
 KNO_EXPORT int _kno_free_stack(struct KNO_STACK *stack)
 {

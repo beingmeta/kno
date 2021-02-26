@@ -1,0 +1,112 @@
+Stuff to do with beingmeta's FramerD implementation
+---------------------------------------------------
+Parallel commits under commit-all
+Implement journaling for pool/index collections
+#Connection pools in libu8
+Mail API for libu8 (?)
+Add timeout APIs
+Add portmap for fdbserver
+Web-based fdmanager interface
+Move libu8 to WIN32
+Move fdb to WIN32
+SSL for fdbserver
+IPV6 for fdbserver
+# fdbserver raw timings (late July 2007)
+# Move safe modules into their directory (31 August 2007)
+Add generic rewrites to optimize
+#Add various code warnings to optimize module (31 August 2007)
+#Optimize numeric operations for N arguments
+#Improve logging structure for libu8 (~28 August 2007)
+#Make richer libu8 exceptions, move functionality from fdb (~25 August 2007)
+#Add dynamic contours to libu8 (~24 August 2007)
+#Add opcodes for first/second/etc, also pickoids (31 August 2007)
+?Make fdb use dynamic contours
+MAPROPOS (module apropos finds module for symbol, including by name)
+?? Move XML functions out of fdweb?
+#Add named s/a/lambda and letrec
+#Move RUNBASE into dtypes/support
+# Add MODIFY-FRAME, QCX (19 August 2007)
+# Add PICK-KEYS, DEFINE-LOCAL QCX (18 August 2007)
+# Add SAMBDA (16 August 2007)
+# Make iterative bodies take a symbolic spec <sym> as equivalent to (<sym> <sym>) (11 August 2007)
+# Make DEFINE- analogous for ambda and slambda (11 August 2007)
+# Add PICKOIDS and PICK> (11 August 2007)
+Make fdexec generate use a USAGE definition on arguments
+Make call bodies (CDRs) able to be vectors, for better cache coherence.
+Add support for converting expressions into "expression blocks".
+Add C-coded functional combinators, e.g. CURRYN, COMPOSE, etc.
+? Add expression rails to speed up the evaluator
+Explore using const more to improve performance in dtype streams and libu8 stream
+Add real record functions and library, along with opcodes.
+# Add opcodes for arithmetic operations, maybe get, test, pick, etc. (7 August 2007)
+? Add opcodes for TRY and TRYIF.
+#Make METAPHONE optionally preserve initial capitalization
+#Make PORTER-STEM (at least from BRICO) map across compounds (maybe do both mapped and unmapped) (9 August 2007)
+Implement WITH-SLOTS to bind variables from a frame
+#Reorganize opcodes and add opcode name tables (31 August 2007)
+#Add #| comments (3 Oct 2007)
+#Move quasiquote from eval.c into its own file (3 Oct 2007)
+#Move thread functions in eval.c into their own file (3 Oct 2007)
+#Move opcode dispatch into its own file (#included in eval.c, probably) (3 Oct 2007)
+Add accessor/control functions for thread objects
+Add ability to reuse threads with new calls/applications
+Add some kind of global thread managment functionality
+LDAP access libraries
+SQL access libraries
+Simple python bindings
+Provide a file access to mod_dav servers.
+#Add editline to fdconsole/fdsh (3 Oct 2007)
+Make hash indices be able to have implicit pools
+Add background search methods for slots
+Add generic composition for slotids
+Add #dflt to specify that arguments should use their default value 
+#Add .pid file from fdserv (7 August 2007)
+# Implement a simple queueing system (July 2007)
+# Make pick/reject use the fact that its input is already ordered (23 June 2007)
+# Made index_keys handlers return an unsorted vector rather than a choice (19 June 2007)
+# Move repack-file-index into fdb (replaced with copy-index, 5 July 2007)
+# Implement new generic pool format that includes sizes in offset table, etc (4 July 2007)
+# Speed up hashindex commit and scaling (10 July 2007)
+# Make hashindices future proof (4 July 2007)
+# Make hashindices able to be larger than 4GB (6 July 2007)
+# Implement generic script install and more scripts (6June2007)
+# Add do-vector-mt (12 June 2007)
+# Make cons compare be more inline (7 July 2007)
+# Check memory leak in mod_fdserv (6 July 2007)
+# Check MEMCHECK in fdbserver (2 July 2007)
+# Make XMLPARSE take flags as ND-ARG (14 June 2007)
+# Fix XML parsing bug (14 June 2007)
+# Fix @@ parsing bug
+# Add has_slotids to all indices to reduce cache load (16Jun2007)
+# Add hashindices test to tests/scheme/dbtest (16Jun2007)
+# Finish adding opcode handling to the evaluator. (24 June 2007)
+# Separate out nlp from texttools (12 July 2007)
+# Make when and unless not treat {} as true (23 June 2007)
+# Rename tighten to optimize. (28 June 2007)
+# Make tighten! take module names (23 June 2007)
+# Add some sample functions (23 June 2007)
+# Add some test functionality to /build/brico/makefile (5 July 2007)
+# Add DTYPE I/O flag for emitting unserializable objects (early July 2007)
+# Fix cid aliasing with compound indices (24 June 2007)
+# Fix registration of pools with invalid overlaps (24 June 2007)
+# Add AND/OR/NOT to OPCODES (28 June 2007)
+# Add IFELSE (28 June 2007)
+# Add TRACELOAD configuration variable (28 June 2007)
+# Make libu8 use mallinfo when available (30 June 2007)
+# Make SWAPCHECK use real bytes (30 June 2007)
+# Fix fencepost bug in fdexec (30 June 2007)
+# Make (load <file>) work with URI's (7 July 2007)
+# Add function prototypes for everything (2 July 2007)
+# URLGET timeouts (2 July 2007)
+# Add EXTEND-DTYPE-FILE (2 July 2007)
+# Separate out loading/accessing pools and using them as OID sources (4 July 2007)
+# Remove all the memory pool stuff (8 July 2007)
+# Make copy-index smarter as a replacement for repack-* functions (10 July 2007)
+# Finish adding slotid and zlib/bz2 compression to OIDPOOLs (6 July 2007)
+# Fix find-frames with no index (even arguments) to do a background search (7 July 2007)
+# Make modules files of the form foo/foo.scm work (7 July 2007)
+# Undo above, reorganize existing modules to avoid too many contentful module.scm (8 July 2007)
+# Add opcodes for overlaps
+# Fix fd_load_source and FD_EOX (27 July 2007)
+# Add LOADED? MODIFIED? LOCKED? (29 Junly 2007)
+# Add soundex encoding

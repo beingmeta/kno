@@ -34,8 +34,6 @@
 #include <libu8/u8netfns.h>
 #include <libu8/u8xfiles.h>
 
-#define fast_eval(x,env) (__kno_fast_eval(x,env,_stack,0))
-
 #include <stdlib.h>
 
 #if HAVE_UNISTD_H

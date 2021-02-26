@@ -12,6 +12,8 @@
 #define KNO_ERROBJS_H_INFO "include/kno/errobjs.h"
 #endif
 
+KNO_EXPORT int kno_capture_stack;
+
 /* Error handling */
 
 KNO_EXPORT struct KNO_EXCEPTION *kno_exception_object(u8_exception ex);

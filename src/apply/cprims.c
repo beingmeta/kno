@@ -152,7 +152,7 @@ static struct KNO_CPRIM *make_cprim(u8_string name,
 				    u8_string filename,
 				    u8_string doc,
 				    unsigned int flags,
-				    int *typeinfo,
+				    lispval *typeinfo,
 				    lispval *defaults)
 {
   int arity = ( (flags&0x80) ? (-1) : ( flags & (0x7f) ) );
@@ -160,24 +160,10 @@ static struct KNO_CPRIM *make_cprim(u8_string name,
   int non_deterministic = flags & KNO_NDCALL;
   int extended_call = flags & KNO_XCALL;
   int varargs = ( (arity < 0) || (flags & KNO_VAR_ARGS) );
-  /* We allocate the type/default info together with the function to
-     reduce cache/page misses. We might need to worry about how we're
-     figuring out these pointers for non-word-aligned architectures, but
-     let's not worry about that for now. */
-  size_t alloc_size = sizeof(struct KNO_CPRIM) +
-    ( (typeinfo) ? (sizeof(unsigned int)*arity) : (0) ) +
-    ( (defaults) ? (sizeof(lispval)*arity) : (0) );
-  void *block = u8_malloc(alloc_size);
-  int arginfo_len = (arity<0) ? (0) :(arity);
-  struct KNO_CPRIM *f = (struct KNO_CPRIM *) block;
-  unsigned int *prim_typeinfo = (typeinfo) ?
-    ((unsigned int *) (block+sizeof(struct KNO_CPRIM))) :
-    ((unsigned int *)NULL);
-  lispval *prim_defaults = ( (defaults) && (typeinfo) ) ?
-    ((lispval *) (block+sizeof(struct KNO_CPRIM)+(sizeof(unsigned int)*arity))) :
-    (defaults) ?
-    ((lispval *) (block+sizeof(struct KNO_CPRIM)) ) :
-    ((lispval *)NULL);
+  /* We allocate the default info together with the function to
+     reduce cache misses. */
+  struct KNO_CPRIM *f = u8_alloc(struct KNO_CPRIM);
+  int arginfo_len = KNO_ARGINFO_LEN(flags);
   KNO_INIT_FRESH_CONS(f,kno_cprim_type);
   f->fcn_name = name;
   f->fcn_filename = filename;
@@ -192,10 +178,8 @@ static struct KNO_CPRIM *make_cprim(u8_string name,
   f->fcn_min_arity = min_arity;
   f->fcn_arginfo_len = arginfo_len;
   f->fcn_schema = NULL;
-  f->fcn_typeinfo = prim_typeinfo;
-  if (typeinfo) memcpy(prim_typeinfo,typeinfo,sizeof(int)*arity);
-  f->fcn_defaults = prim_defaults;
-  if (defaults) memcpy(prim_defaults,defaults,sizeof(lispval)*arity);
+  f->fcn_typeinfo = typeinfo;
+  f->fcn_defaults = defaults;
   f->fcnid = VOID;
   f->cprim_name = cname;
   if ( (arity>=0) && (min_arity>arity)) {
@@ -219,50 +203,51 @@ static struct KNO_CPRIM *make_xcprim(u8_string name,
   int non_deterministic = flags & KNO_NDCALL;
   int extended_call = flags & KNO_XCALL;
   int varargs = ( (arity < 0) || (flags & KNO_VAR_ARGS) );
-  int use_info_len = (arity>info_len) ? (arity) : (info_len>0) ? (info_len) : (0);
   /* We allocate the type/default info together with the function to
      reduce cache/page misses. We might need to worry about how we're
      figuring out these pointers for non-word-aligned architectures, but
      let's not worry about that for now. */
-  int types_len = 0, defaults_len = 0;
-  int i = 0; while (i<info_len) {
-    if (arginfo[i].argtype != kno_any_type) types_len=use_info_len;
-    if (!(KNO_VOIDP(arginfo[i].default_value))) defaults_len=use_info_len;
-    i++;}
+  if (info_len<0) {
+    if (arity<0) info_len=0; else info_len=arity;}
   size_t alloc_size = sizeof(struct KNO_CPRIM) +
-    (sizeof(unsigned int)*types_len) +
-    (sizeof(lispval)*defaults_len);
-  lispval *schema = u8_alloc_n(use_info_len,lispval);
+    (sizeof(lispval)*info_len) +
+    (sizeof(lispval)*info_len) +
+    (sizeof(lispval)*info_len);
   void *block = u8_malloc(alloc_size);
-  struct KNO_CPRIM *f = (struct KNO_CPRIM *) block;
-  unsigned int *prim_typeinfo = (types_len) ?
-    ((unsigned int *) (block+sizeof(struct KNO_CPRIM))) : (NULL);
-  lispval *prim_defaults = (defaults_len) ?
-    ((lispval *) (block+sizeof(struct KNO_CPRIM)+(sizeof(unsigned int)*types_len))) :
+  struct KNO_CPRIM *f = (kno_cprim) block;
+  KNO_INIT_FRESH_CONS(f,kno_cprim_type);
+  lispval *typeinfo = (info_len) ?
+    ((lispval *) (block+sizeof(struct KNO_CPRIM))) : (NULL);
+  lispval *defaults = (info_len) ?
+    ((lispval *) (block+sizeof(struct KNO_CPRIM)+
+		  (info_len*sizeof(lispval)) )) :
     (NULL);
-  i=0; while (i<info_len) {
-    if (prim_typeinfo) {
-      long int typecode = arginfo[i].argtype;
-      if (typecode < KNO_TYPE_MAX)
-	prim_typeinfo[i]=(kno_lisp_type)typecode;
-      else {
-	int use_type = kno_lookup_type_alias(typecode);
-	if (use_type<0)
-	  u8_raise("UndefinedTypeCode","kno_defxcprim",NULL);
-	else prim_typeinfo[i]=(kno_lisp_type)use_type;}}
-    if (prim_defaults) prim_defaults[i]=arginfo[i].default_value;
+  lispval *schema = (info_len) ?
+    ((lispval *) (block+sizeof(struct KNO_CPRIM)+
+		  (2*(info_len*sizeof(lispval))) )) :
+    (NULL);
+  int i=0; while (i<info_len) {
+    long int typecode  = arginfo[i].argtype;
+    if (typecode < 0)
+      typeinfo[i]=KNO_VOID;
+    else if (typecode < KNO_TYPE_MAX)
+      typeinfo[i]=KNO_CTYPE(typecode);
+    else {
+      lispval use_type = kno_lookup_type_alias(typecode);
+      if (KNO_VOIDP(use_type)) {
+	u8_log(LOGWARN,"BadTypeAlias",
+	       "The type alias 0x%x, used for %s (%s), is not defined",
+	       typecode,name,cname);
+	typeinfo[i]=KNO_VOID;}
+      else  typeinfo[i]=use_type;}
+
+    defaults[i]=arginfo[i].default_value;
     if (arginfo[i].argname)
       schema[i]=kno_intern(arginfo[i].argname);
     else {
       u8_byte buf[32]; u8_sprintf(buf,32,"arg%d",i);
       schema[i]=kno_intern(buf);}
     i++;}
-  while (i<use_info_len) {
-    if (prim_typeinfo) prim_typeinfo[i]=kno_any_type;
-    if (prim_defaults) prim_defaults[i]=KNO_VOID;
-    u8_byte buf[32]; u8_sprintf(buf,32,"arg%d",i);
-    schema[i]=kno_intern(buf);}
-  KNO_INIT_FRESH_CONS(f,kno_cprim_type);
   f->fcn_name = name;
   f->fcn_filename = filename;
   f->fcn_doc = doc;
@@ -271,14 +256,13 @@ static struct KNO_CPRIM *make_xcprim(u8_string name,
     ( (varargs) ? (KNO_CALL_VARARGS) : (0) ) |
     ( (non_deterministic) ? (KNO_CALL_NDCALL) : (0) ) |
     ( (extended_call) ? (KNO_CALL_XCALL) : (0) );
-  f->fcn_call_width  = f->fcn_arity = arity;
-  f->fcn_trace = f->fcn_other = 0;
-  f->fcn_free = KNO_FCN_FREE_SCHEMA;
+  f->fcn_call_width = f->fcn_arity = arity;
+  f->fcn_trace = f->fcn_other = f->fcn_free = 0;
   f->fcn_min_arity   = min_arity;
-  f->fcn_arginfo_len = use_info_len;
+  f->fcn_arginfo_len = info_len;
   f->fcn_schema      = schema;
-  f->fcn_typeinfo    = prim_typeinfo;
-  f->fcn_defaults    = prim_defaults;
+  f->fcn_typeinfo    = typeinfo;
+  f->fcn_defaults    = defaults;
   f->fcnid = VOID;
   f->cprim_name = cname;
   if ( (arity>=0) && (min_arity>arity)) {
@@ -349,7 +333,7 @@ KNO_EXPORT struct KNO_CPRIM *kno_init_cprim
  u8_string filename,
  u8_string doc,
  int flags,
- int *typeinfo,
+ lispval *typeinfo,
  lispval *defaults)
 {
   if (arity >= 0x80) {

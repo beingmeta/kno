@@ -51,7 +51,7 @@ static long long getposfixopt(lispval opts,lispval sym,long long dflt)
 DEF_KNOSYM(addsyms);
 DEF_KNOSYM(addoids);
 
-#define printout_eval(x,env) kno_eval((x),(env),kno_stackptr,0)
+#define printout_eval(x,env) kno_eval((x),(env),kno_stackptr)
 
 /* Making ports */
 
@@ -545,7 +545,7 @@ lispval kno_printout(lispval body,kno_lexenv env)
   kno_stack _stack=kno_stackptr;
   U8_OUTPUT *out = u8_current_output;
   while (PAIRP(body)) {
-    lispval value = kno_eval(KNO_CAR(body),env,_stack,0);
+    lispval value = kno_eval(KNO_CAR(body),env,_stack);
     if (KNO_ABORTED(value)) {
       u8_flush(out);
       return value;}
@@ -564,7 +564,7 @@ lispval kno_printout_to(U8_OUTPUT *out,lispval body,kno_lexenv env)
   u8_output prev = u8_current_output;
   u8_set_default_output(out);
   while (PAIRP(body)) {
-    lispval value = kno_eval(KNO_CAR(body),env,_stack,0);
+    lispval value = kno_eval(KNO_CAR(body),env,_stack);
     if (KNO_ABORTED(value)) {
       u8_flush(out);
       u8_set_default_output(prev);
@@ -642,7 +642,7 @@ static lispval printout_to_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   lispval dest_arg = kno_get_arg(expr,1);
   if (KNO_VOIDP(dest_arg))
     return kno_err(kno_SyntaxError,"printout_to_evalfn",NULL,expr);
-  lispval dest = kno_eval(dest_arg,env,_stack,0);
+  lispval dest = kno_eval(dest_arg,env,_stack);
   if (ABORTED(dest)) return dest;
   u8_output f = NULL;
   if (KNO_PORTP(dest)) {
@@ -656,7 +656,7 @@ static lispval printout_to_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   u8_set_default_output(f);
   {lispval body = kno_get_body(expr,2);
     KNO_DOLIST(ex,body)  {
-      lispval value = kno_eval(ex,env,_stack,0);
+      lispval value = kno_eval(ex,env,_stack);
       if (ABORTED(value)) {
 	kno_decref(dest);
 	u8_set_default_output(oldf);
@@ -705,7 +705,7 @@ static lispval indentout_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   lispval indent_expr = kno_get_arg(expr,1);
   if (KNO_VOIDP(indent_expr))
     return kno_err(kno_SyntaxError,"indentout_evalfn",NULL,expr);
-  lispval indent_val = kno_eval(indent_expr,env,_stack,0);
+  lispval indent_val = kno_eval(indent_expr,env,_stack);
   u8_string indent_string = NULL; int indent_len = 4;
   if (ABORTED(indent_val))
     return indent_val;
@@ -1231,9 +1231,9 @@ static lispval pprinter(int n,kno_argvec args)
     return KNO_INT(col);}
 }
 
-DEFC_PRIMN("pprint",lisp_pprint,
+DEFC_PRIMN("pprinter",lisp_pprinter,
 	   KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	   "(pprint *object* *port* *width* *margin*)\n"
+	   "(pprinter *object* *port* *width* *margin*)\n"
 	   "Generates a formatted representation of *object*, "
 	   "without a trailing newline, on *port*. If *port "
 	   "is #f the representation is returned as a string, "
@@ -1241,10 +1241,28 @@ DEFC_PRIMN("pprint",lisp_pprint,
 	   "'current column') is returned. *width*, if "
 	   "provided, is a positive integer, and *margin* is "
 	   "either a positive integer or a string to be used "
-	   "as indentation.")
-static lispval lisp_pprint(int n,kno_argvec args)
+	   "as left-side indentation.")
+static lispval lisp_pprinter(int n,kno_argvec args)
 {
   return pprinter(n,args);
+}
+
+DEFC_PRIMN("pprint",lisp_pprint,
+	   KNO_VAR_ARGS|KNO_MIN_ARGS(1)|KNO_NDCALL,
+	   "(pprint *object* *port* *width* *margin*)\n"
+	   "Generates a formatted representation of *object*, "
+	   "without a trailing newline, on *port*. If *port "
+	   "is #f the representation is returned as a string, "
+	   "otherwise VOID is returned. *width*, if "
+	   "provided, is a positive integer, and *margin* is "
+	   "either a positive integer or a string to be used "
+	   "as left-side indentation.")
+static lispval lisp_pprint(int n,kno_argvec args)
+{
+  lispval v = pprinter(n,args);
+  if (KNO_STRINGP(v)) return v;
+  kno_decref(v);
+  return KNO_VOID;
 }
 
 DEFC_PRIMN("$pprint",lisp_4pprint,
@@ -1252,7 +1270,7 @@ DEFC_PRIMN("$pprint",lisp_4pprint,
 	   "($pprint *object* *width* *margin*)\n"
 	   "Generates a formatted representation of *object*, "
 	   "without a trailing newline, on *port*. Returns "
-	   "VOID.*width*, if provided, is a positive integer, "
+	   "VOID. *width*, if provided, is a positive integer, "
 	   "and *margin* is either a positive integer or a "
 	   "string to be used as indentation.")
 static lispval lisp_4pprint(int n,kno_argvec args)
@@ -1831,6 +1849,7 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("packet->base64",to_base64_prim,3,kno_textio_module);
   KNO_LINK_CPRIM("base64->packet",from_base64_prim,1,kno_textio_module);
   KNO_LINK_CPRIM("listdata",lisp_listdata,3,kno_textio_module);
+  KNO_LINK_CPRIMN("pprinter",lisp_pprinter,kno_textio_module);
   KNO_LINK_CPRIMN("pprint",lisp_pprint,kno_textio_module);
   KNO_LINK_CPRIMN("$pprint",lisp_4pprint,kno_textio_module);
   KNO_LINK_CPRIM("read-record",read_record_prim,3,kno_textio_module);

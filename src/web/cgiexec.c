@@ -29,8 +29,6 @@
 #include <libu8/u8stringfns.h>
 #include <libu8/u8streamio.h>
 
-#define fast_eval(x,env) (kno_eval(x,env,kno_stackptr,0))
-
 #include <ctype.h>
 
 static lispval accept_language, accept_type, accept_charset, accept_encoding;
@@ -577,7 +575,7 @@ static lispval do_xmlout(U8_OUTPUT *out,lispval body,
   U8_OUTPUT *prev = u8_current_output;
   u8_set_default_output(out);
   while (PAIRP(body)) {
-    lispval value = fast_eval(KNO_CAR(body),env);
+    lispval value = kno_eval(KNO_CAR(body),env,_stack);
     body = KNO_CDR(body);
     if (KNO_ABORTP(value)) {
       u8_set_default_output(prev);
@@ -833,7 +831,7 @@ static lispval jsout_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       if (STRINGP(x))
         u8_puts(&_out,CSTRING(x));
       else if ((SYMBOLP(x))||(PAIRP(x))) {
-	result = kno_eval(x,env,_stack,0);
+	result = kno_eval(x,env,_stack);
         if (KNO_ABORTP(result)) break;
         else if ((VOIDP(result))||(FALSEP(result))||
                  (EMPTYP(result))) {}
@@ -868,7 +866,7 @@ static lispval cssout_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       if (STRINGP(x))
         u8_puts(&_out,CSTRING(x));
       else if ((SYMBOLP(x))||(PAIRP(x))) {
-	result = kno_eval(x,env,_stack,0);
+	result = kno_eval(x,env,_stack);
         if (KNO_ABORTP(result)) break;
         else if ((VOIDP(result))||(FALSEP(result))||
                  (EMPTYP(result))) {}
@@ -1262,7 +1260,7 @@ static lispval withreqout_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
         u8_free(_out.u8_outbuf);
         return result;}
       kno_decref(result);
-      result = kno_eval(ex,env,_stack,0);}}
+      result = kno_eval(ex,env,_stack);}}
   u8_set_default_output(oldout);
   kno_output_xhtml_preface(oldout,reqinfo);
   u8_putn(oldout,_out.u8_outbuf,(_out.u8_write-_out.u8_outbuf));
