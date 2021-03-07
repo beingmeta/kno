@@ -212,6 +212,8 @@ static_libgcc="no"
 CODENAME="beingmeta"
 RELSTATUS="stable"
 
+AC_CHECK_LIB(jemalloc,malloc,default_malloc=jemalloc)
+
 gperftools_default="yes"
 
 if which lsb_release 2>&1 > /dev/null; then
@@ -589,7 +591,8 @@ AC_ARG_WITH(extlib,
 
 AC_ARG_WITH(rpath,--with-rpath dir,rpath=$withval,rpath=$rpath_default)
 
-if test "$rpath" != "none" && test "$rpath" != "/usr" && test "$rpath" != "/usr/local"; then
+if test "$rpath" != "none" && test "$rpath" != "NONE" && test ! -z "$rpath" &&
+   test "$rpath" != "/usr" && test "$rpath" != "/usr/local"; then
   EXEFLAGS=" $EXEFLAGS \$(RPATHFLAGS) "
 fi
 
@@ -1004,7 +1007,7 @@ if test $with_curl = "yes"; then
   curlconfig="\`curl-config --libs\`"
 else
   AC_DEFINE(KNO_WITH_CURL,0)
-  missing="curl ${missing}"
+  auto_disabled="curl ${auto_disabled}"
 fi
 
 ## Providing DNS functions in webtools
@@ -1022,7 +1025,7 @@ if test "$with_dns" = "yes"; then
   ldnso="src/web/ldns.o"
 else
   AC_DEFINE(KNO_WITH_LDNS,0)
-  missing="ldns ${missing}"
+  auto_disabled="ldns ${auto_disabled}"
 fi
 
 # For UUID functions
@@ -1261,7 +1264,7 @@ elif test "${ac_cv_header_ffi_h}" != "yes" &&
 elif test "${ac_cv_lib_ffi_ffi_prep_cif}" != "yes"; then
    enable_ffi="no";
    auto_disabled="ffi ${auto_disabled}";
-   missing="${missing} ffi";
+   auto_disabled="${auto_disabled} ffi";
 fi
 
 VSHARED_LOADPATH="${prefix}/lib/kno${suffix}/%.${vshared_suffix}:${prefix}/lib/%.${vshared_suffix}:${prefix}/lib/libkno%.${vshared_suffix}"
@@ -1715,17 +1718,23 @@ else
    fi;
 fi;
 
-if test ! -z "${PYTHON3_CFLAGS}"; then
-   CMODULES="lib/kno/parseltongue.$shared_suffix ${CMODULES}"
-   INSTALL_CMODULES="install-parseltongue ${INSTALL_CMODULES}"
-else
-   auto_disabled="parseltongue3 ${auto_disabled}";
-fi
-if test ! -z "${PYTHON2_CFLAGS}"; then
+if test "$with_parseltongue" != "no" &&
+   test "$with_parseltongue" != "3" && 
+   test "${ax_python2_header}" != "no" &&
+   test "${ax_python2_lib}" != "no"; then
    CMODULES="lib/kno/parseltongue2.$shared_suffix ${CMODULES}"
    INSTALL_CMODULES="install-parseltongue2 ${INSTALL_CMODULES}"
 else
    auto_disabled="parseltongue2 ${auto_disabled}";
+fi
+if test "$with_parseltongue" != "no" &&
+   test "$with_parseltongue" != "2" && 
+   test "${ax_python3_header}" != "no" &&
+   test "${ax_python3_lib}" != "no"; then
+   CMODULES="lib/kno/parseltongue.$shared_suffix ${CMODULES}"
+   INSTALL_CMODULES="install-parseltongue ${INSTALL_CMODULES}"
+else
+   auto_disabled="parseltongue(3) ${auto_disabled}";
 fi
 
 ### Control use of 'sudo' for installation
@@ -1767,8 +1776,9 @@ AC_CHECK_HEADER(snappy-c.h,have_snappyc_h="yes",have_snappyc_h="no")
 if test "${have_snappyc_h}" = "yes"; then
    AC_CHECK_LIB(snappy,snappy_compress)
    AC_DEFINE(HAVE_SNAPPYC_H,1)
+else
+   missing="snappy ${missing}";
 fi;
-LIBS="${LIBS} -lsnappy"
 
 ### ZSTD (compression wrapper)
 
@@ -1777,6 +1787,8 @@ if test "${have_zstd_h}" = "yes"; then
    AC_CHECK_LIB(zstd,ZSTD_decompress)
    AC_DEFINE(HAVE_ZSTD_H,1)
    AC_CHECK_FUNCS(ZSTD_getFrameContentSize)
+else
+   missing="zstd ${missing}";
 fi;
 
 ### archive library (manipulates various kinds of archives)
@@ -1789,7 +1801,7 @@ if test "${ac_cv_header_archive_h}" == "yes" && \
   INSTALL_CMODULES="install-libarchive ${INSTALL_CMODULES}"
   TEST_CMODULES="${TEST_CMODULES} libarchive"
 else
-  missing="libarchive ${missing}"
+  auto_disabled="libarchive ${auto_disabled}"
 fi
 
 ### SQLITE3
@@ -1817,7 +1829,7 @@ if test $have_sqlite3_h = "yes"; then
 fi
 
 if test ! "${sqlite_included}" = "yes"; then
-   missing="sqlite ${missing}";
+   auto_disabled="sqlite ${auto_disabled}";
 fi   
 
 ### Boot systems
@@ -1927,20 +1939,27 @@ else
 fi;
 echo "Patch level is ${KNO_PATCHLEVEL}";
 echo $using_malloc > ./.malloc;
-if test ! -z "$manually_disabled"; then
-   echo "+++ These components have been explicitly disabled: $manually_disabled"; fi
+if test ! -z "$missing"; then
+   echo "+++ These important features can't be built: $missing";
+   echo "+++     Without them it won't be possible to use many KNO database files";
+fi
 if test ! -z "$auto_disabled"; then
-   echo "+++ These components can't be built: $auto_disabled"; fi
+   echo "+++ These components can't be built: $auto_disabled";
+   echo "+++     Consider installing the appropriate dependencies for your platform and reconfiguring";
+fi
+if test ! -z "$manually_disabled"; then
+   echo "+++ These components have been explicitly disabled: $manually_disabled";
+fi
 if test ! -z "$force_enabled"; then
-   echo "+++ These components were enabled by force and may have issues: $force_enabled"; fi
+   echo "+++ These components were enabled by force and may have issues: $force_enabled";
+fi
 if test "$enable_ipeval" = "yes"; then
    echo "+++ You've configured Kno to use iterated partial evaluation";
    echo "+++ Use of the resulting software may be restricted by patent law. ";
    echo "+++ Contact beingmeta (licensing@beingmeta.com) for more information.";
-   echo "+++ Thanks for using Kno!";
-else
-   echo "+++ Thanks for using Kno!";
 fi
+echo "+++ Thanks for using Kno!";
+
 
 # Emacs local variables
 #  ;;;  Local variables: ***
