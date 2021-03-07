@@ -40,101 +40,113 @@ static lispval loading_symbol, loadstamps_symbol;
 
 #define LOAD_CONTEXT_SIZE 40
 
-KNO_EXPORT lispval kno_load_stream(u8_input loadstream,kno_lexenv env,
-				   u8_string sourcebase)
+static lispval load_stream_loop(u8_string sourcebase,u8_input in,
+				kno_lexenv env,kno_stack stack);
+
+KNO_EXPORT lispval kno_load_stream
+(u8_input loadstream,kno_lexenv env,u8_string sourcebase)
 {
   u8_string outer_sourcebase = kno_bind_sourcebase(sourcebase);
+  u8_string old_context = u8_log_context;
   double start = u8_elapsed_time();
   kno_stack _stack = kno_stackptr;
   lispval postload = VOID;
   u8_byte label[strlen(sourcebase)+1]; strcpy(label,sourcebase);
+  u8_byte cxt_buf[strlen(sourcebase)+50];
+  u8_string new_cxt = u8_bprintf(cxt_buf,"while loading '%s'",sourcebase);
+  u8_set_log_context(new_cxt);
   KNO_CHECK_ERRNO(loadstream,"before loading");
   KNO_PUSH_EVAL(load_stack,label,VOID,env);
-  {
-    /* This does a read/eval loop. */
-    lispval result = VOID;
-    lispval expr = VOID, last_expr = VOID;
-    double start_time;
-    kno_skip_whitespace(loadstream);
-    while (!((KNO_ABORTP(expr)) || (KNO_EOFP(expr)))) {
-      kno_decref(result);
-      if ((trace_load_eval) ||
-	  (kno_test(env->env_bindings,traceloadeval_symbol,KNO_TRUE))) {
-	u8_log(LOG_WARN,LoadEval,"From %s, evaluating %q",sourcebase,expr);
-	KNO_CHECK_ERRNO_OBJ(expr,"before evaluating");
-	start_time = u8_elapsed_time();}
-      else start_time = -1.0;
-      result = kno_eval(expr,env,load_stack);
-      kno_reset_stack(load_stack);
-      if (KNO_ABORTP(result)) {
-	if (KNO_TROUBLEP(result)) {
-	  u8_exception ex = u8_current_exception;
-	  if (ex == NULL)
-	    u8_log(LOG_ERR,"UnknownError", "Errorin %s while evaluating %q",
-		   sourcebase,expr);
-	  else if (log_load_errs)
-	    u8_log(LOG_ERR,ex->u8x_cond,
-		   "Error (%s:%s) in %s while evaluating %q",
-		   ((ex->u8x_context)?(ex->u8x_context):((u8_string)"")),
-		   ((ex->u8x_details)?(ex->u8x_details):((u8_string)"")),
-		   sourcebase,expr);}
-	kno_restore_sourcebase(outer_sourcebase);
-	kno_decref(last_expr); last_expr = VOID;
-	kno_decref(expr);
-	kno_pop_stack(load_stack);
-	return result;}
-      else if ((trace_load_eval) ||
-	       (kno_test(env->env_bindings,traceloadeval_symbol,KNO_TRUE))) {
-	if (start_time>0)
-	  u8_log(LOG_WARN,LoadEval,"Took %fs to evaluate %q",
-		 u8_elapsed_time()-start_time,expr);
-	KNO_CHECK_ERRNO_OBJ(expr,"after evaluating");}
-      else NO_ELSE;
-      kno_decref(last_expr);
-      kno_decref_stackvec(&(load_stack->stack_refs));
-      last_expr = expr;
-      kno_skip_whitespace(loadstream);
-      expr = kno_parse_expr(loadstream);}
-    if (expr == KNO_EOF) {
-      kno_decref(last_expr);
-      last_expr = VOID;}
-    else if (KNO_TROUBLEP(expr)) {
-      u8_log(LOGERR,"ParseError","In %s, just after %q",sourcebase,last_expr);
-      kno_decref(result); /* This is the previous result */
-      kno_decref(last_expr);
-      last_expr = VOID;
-      /* This is now also the result */
-      result = expr;
-      kno_incref(expr);}
-    else {}
-    /* Clear the stack status */
-    if ((trace_load) || (trace_load_eval))
-      u8_log(LOG_WARN,FileDone,"Loaded %s in %f seconds",
-	     sourcebase,u8_elapsed_time()-start);
-    postload = kno_symeval(postload_symbol,env);
-    if ((!(KNO_ABORTP(result)))&&(!(VOIDP(postload)))) {
-      if ((FALSEP(postload))||(EMPTYP(postload))) {}
-      else if (KNO_APPLICABLEP(postload)) {
-	lispval post_result = kno_apply(postload,0,NULL);
-	if (KNO_ABORTP(post_result)) {
-	  kno_clear_errors(1);}
-	kno_decref(post_result);}
-      else u8_log(LOG_WARN,"kno_load_source",
-		  "Postload method is not applicable: ",
-		  postload);}
-    kno_decref(postload);
-    kno_restore_sourcebase(outer_sourcebase);
-    if (last_expr == expr) {
-      kno_decref(last_expr);
-      last_expr = VOID;}
-    else {
+  lispval result = load_stream_loop(sourcebase,loadstream,env,load_stack);
+  KNO_CHECK_ERRNO(sourcebase,"after loading");
+  u8_set_log_context(old_context);
+  if ((trace_load) || (trace_load_eval))
+    u8_log(LOG_WARN,FileDone,"Loaded %s in %f seconds",
+	   sourcebase,u8_elapsed_time()-start);
+  kno_restore_sourcebase(outer_sourcebase);
+  kno_pop_stack(load_stack);
+  return result;
+}
+
+static lispval load_stream_loop(u8_string sourcebase,u8_input in,
+				kno_lexenv env,kno_stack load_stack)
+{
+  /* This does a read/eval loop. */
+  lispval result = VOID;
+  lispval expr = VOID, last_expr = VOID;
+  double start_time;
+  kno_skip_whitespace(in);
+  while (!((KNO_ABORTP(expr)) || (KNO_EOFP(expr)))) {
+    kno_decref(result);
+    if ((trace_load_eval) ||
+	(kno_test(env->env_bindings,traceloadeval_symbol,KNO_TRUE))) {
+      u8_log(LOG_WARN,LoadEval,"From %s, evaluating %q",sourcebase,expr);
+      KNO_CHECK_ERRNO_OBJ(expr,"before evaluating");
+      start_time = u8_elapsed_time();}
+    else start_time = -1.0;
+    result = kno_eval(expr,env,load_stack);
+    kno_reset_stack(load_stack);
+    if (KNO_ABORTP(result)) {
+      if (KNO_TROUBLEP(result)) {
+	u8_exception ex = u8_current_exception;
+	if (ex == NULL)
+	  u8_log(LOG_ERR,"UnknownError", "Error in %s while evaluating %q",
+		 sourcebase,expr);
+	else if (log_load_errs)
+	  u8_log(LOG_ERR,ex->u8x_cond,
+		 "Error (%s:%s) in %s while evaluating %q",
+		 ((ex->u8x_context)?(ex->u8x_context):((u8_string)"")),
+		 ((ex->u8x_details)?(ex->u8x_details):((u8_string)"")),
+		 sourcebase,expr);}
+      kno_decref(last_expr); last_expr = VOID;
       kno_decref(expr);
-      kno_decref(last_expr);
-      expr = VOID;
-      last_expr = VOID;}
-    KNO_CHECK_ERRNO(sourcebase,"after loading");
-    kno_pop_stack(load_stack);
-    return result;}
+      return result;}
+    else if ((trace_load_eval) ||
+	     (kno_test(env->env_bindings,traceloadeval_symbol,KNO_TRUE))) {
+      if (start_time>0)
+	u8_log(LOG_WARN,LoadEval,"Took %fs to evaluate %q",
+	       u8_elapsed_time()-start_time,expr);
+      KNO_CHECK_ERRNO_OBJ(expr,"after evaluating");}
+    else NO_ELSE;
+    kno_decref(last_expr);
+    kno_decref_stackvec(&(load_stack->stack_refs));
+    last_expr = expr;
+    kno_skip_whitespace(in);
+    expr = kno_parse_expr(in);}
+  if (expr == KNO_EOF) {
+    kno_decref(last_expr);
+    last_expr = VOID;}
+  else if (KNO_TROUBLEP(expr)) {
+    u8_log(LOGERR,"ParseError","In %s, just after %q",sourcebase,last_expr);
+    kno_decref(result); /* This is the previous result */
+    kno_decref(last_expr);
+    last_expr = VOID;
+    /* This is now also the result */
+    result = expr;
+    kno_incref(expr);}
+  else {}
+  /* Clear the stack status */
+  lispval postload = kno_symeval(postload_symbol,env);
+  if ((!(KNO_ABORTP(result)))&&(!(VOIDP(postload)))) {
+    if ((FALSEP(postload))||(EMPTYP(postload))) {}
+    else if (KNO_APPLICABLEP(postload)) {
+      lispval post_result = kno_apply(postload,0,NULL);
+      if (KNO_ABORTP(post_result)) {
+	kno_clear_errors(1);}
+      kno_decref(post_result);}
+    else u8_log(LOG_WARN,"kno_load_source",
+		"Postload method is not applicable: ",
+		postload);}
+  kno_decref(postload);
+  if (last_expr == expr) {
+    kno_decref(last_expr);
+    last_expr = VOID;}
+  else {
+    kno_decref(expr);
+    kno_decref(last_expr);
+    expr = VOID;
+    last_expr = VOID;}
+  return result;
 }
 
 KNO_EXPORT lispval kno_load_source_with_date

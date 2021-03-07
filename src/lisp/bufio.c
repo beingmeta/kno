@@ -410,6 +410,7 @@ unsigned char *kno_snappy_compress
 (unsigned char *in,size_t n_bytes,
  unsigned char *out,ssize_t *z_len)
 {
+#if HAVE_SNAPPYC_H
   unsigned char *zbuf = out;
   size_t max_outlen = snappy_max_compressed_length(n_bytes);
   ssize_t buf_len = *z_len;
@@ -427,5 +428,9 @@ unsigned char *kno_snappy_compress
     u8_seterr("SnappyFailed","kno_snappy_compress",NULL);
     if (zbuf != out ) u8_free(zbuf);
     return NULL;}
+#else
+  kno_seterr(_("NoSnappySupport"),"kno_snappy_compress",NULL,VOID);
+  return NULL;
+#endif
 }
 

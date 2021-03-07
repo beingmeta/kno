@@ -13,6 +13,10 @@ extern u8_condition BadExpressionHead;
 
 lispval eval_schemap(lispval expr,kno_lexenv env,kno_stack stack);
 lispval eval_choice(lispval expr,kno_lexenv env,kno_stack stack);
+int eval_args(int argc,lispval *into,lispval exprs,
+	      kno_lexenv env,kno_stack stack,
+	      int prune);
+
 lispval lisp_eval(lispval head,lispval expr,
 			kno_lexenv env,kno_stack stack,
 			int tail);
@@ -26,12 +30,6 @@ lispval lambda_call(kno_stack stack,
 		    int free_given,
 		    int tail);
 
-int eval_argvec(int argc,lispval *exprs,lispval *into,
-	      kno_lexenv env,kno_stack stack,
-	      int prune);
-int eval_arglist(int argc,lispval exprs,lispval *into,
-		 kno_lexenv env,kno_stack stack,
-		 int prune);
 lispval call_evalfn(lispval evalop,lispval expr,kno_lexenv env,
 		    kno_stack stack,int tail);
 
@@ -193,6 +191,8 @@ KNO_FASTOP MU lispval eval_arg(lispval x,kno_lexenv env,kno_stack stack)
   lispval v = doeval(x,env,stack,0);
   if (KNO_VOIDP(v))
     return kno_err(kno_VoidArgument,"eval_arg",NULL,x);
+  else if (KNO_PRECHOICEP(v))
+    return kno_simplify_choice(v);
   else return v;
 }
 

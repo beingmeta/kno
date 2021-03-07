@@ -194,7 +194,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
   (when (exception-irritant? ex)
     (loginfo |EngineError/irritant| 
       "For " (get loop-state 'fifo) " "
-      (exception-condition ex) " @" (exception-caller ex) ":\n  "
+      (exception-condition ex) " @" (exception-caller ex) ":\n	"
       (lisp->string (exception-irritant ex) 120)))
   (cond ((or (fail? handler) (overlaps? handler '{stopall stop}))
 	 (add! loop-state 'errors ex)
@@ -283,7 +283,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 		    (fifo-name fifo))
 	    " batch#" batchno)
 	(loginfo |GotBatch|
-	  "Processing batch of " ($num (choice-size batch)) " items")
+	  "Processing batch of " ($num (choice-size batch)) " items using " iterfn)
 	(do-choices (indexslot (getopt opts 'branchindexes))
 	  (when (test loop-state indexslot)
 	    (store! batch-state indexslot 
@@ -497,7 +497,8 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	   (count 0))
 
       (do-choices (init loop-inits)
-	(cond ((table? init)
+	(cond ((not init))
+	      ((table? init)
 	       (do-choices (key (getkeys init))
 		 (when (test loop-state key)
 		   (logwarn |LoopStateOverwrite|
@@ -750,7 +751,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	  (when (test loop-state counter)
 	    (let* ((count (get loop-state counter))
 		   (rate  (/~ count elapsed)))
-	      (printout (if (zero? (remainder i 3)) "\n   " ", ")
+	      (printout (if (zero? (remainder i 3)) "\n	  " ", ")
 		($num count) " " (downcase counter)
 		(when (overlaps? counter logrates)
 		  (printout " (" ($showrate rate) " " 
@@ -765,7 +766,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
   (let* ((usage (rusage))
 	 (load (get usage 'loadavg)))
     (printout "cpu=" ($num (get usage 'cpu%) 2) "%; "
-      "mem=" ($bytes (memusage)) ", vmem=" ($bytes (vmemusage)) ";\n    "
+      "mem=" ($bytes (memusage)) ", vmem=" ($bytes (vmemusage)) ";\n	"
       "load: " (first load) " · " (second load) " · " (third load) "; "
       "utime=" (compact-interval-string (get usage 'utime)) "; "
       "stime=" (compact-interval-string (get usage 'stime)) "; "

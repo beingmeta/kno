@@ -1260,6 +1260,7 @@ static unsigned char *xtype_zlib_uncompress
 static unsigned char *xtype_snappy_uncompress
 (ssize_t *destlen,const unsigned char *source,size_t source_len)
 {
+#if HAVE_SNAPPYC_H
   size_t uncompressed_size;
   snappy_status size_rv =
     snappy_uncompressed_length(source,source_len,&uncompressed_size);
@@ -1277,12 +1278,20 @@ static unsigned char *xtype_snappy_uncompress
   else {
     u8_seterr("SnappyUncompressFailed","xtype_snappy_uncompress",NULL);
     return NULL;}
+#else
+  kno_seterr(_("NoSnappySupport"),"xtype_snappy_uncompress",NULL,VOID);
+  return NULL;
+#endif
 }
 
+#if HAVE_ZSTD_H
 #define zstd_error(code) (u8_fromlibc((char *)ZSTD_getErrorName(code)))
+#endif
+
 static unsigned char *xtype_zstd_uncompress
 (ssize_t *destlen,const unsigned char *source,size_t source_len,void *state)
 {
+#if HAVE_ZSTD_H
 #if HAVE_ZSTD_GETFRAMECONTENTSIZE
   size_t alloc_size = ZSTD_getFrameContentSize(source,source_len);
   if (RARELY(alloc_size == ZSTD_CONTENTSIZE_UNKNOWN)) {
@@ -1310,6 +1319,10 @@ static unsigned char *xtype_zstd_uncompress
       if (new_data) uncompressed = new_data;}
     *destlen = uncompressed_size;
     return uncompressed;}
+#else
+    kno_seterr(_("NoZSTDSupport"),"xtype_zstd_uncompress",NULL,VOID);
+    return NULL;
+#endif
 }
 
 /* Getting xrefs from lisp objects */

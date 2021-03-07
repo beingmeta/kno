@@ -306,7 +306,7 @@ static int module_config_set(lispval var,lispval vals,void *d)
 	  else if (added<0) {
 	    kno_decref(modname);
 	    return -1;}}
-	else if ( (PAIRP(elt)) || (KNO_CAR(elt)==KNOSYM_OPTIONAL) ) {
+	else if ( (PAIRP(elt)) && (KNO_CAR(elt)==KNOSYM_OPTIONAL) ) {
 	  KNO_DOLIST(e,KNO_CDR(elt)) {
 	    if ( (SYMBOLP(e)) || (STRINGP(e)) ) {
 	      int added = add_modname(elt);

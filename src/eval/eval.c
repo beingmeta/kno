@@ -133,53 +133,6 @@ KNO_EXPORT lispval kno_bad_arg(lispval arg,u8_context cxt,lispval source_expr)
 
 /* Eval routines */
 
-int eval_arglist(int argc,lispval exprs,lispval *into,
-		 kno_lexenv env,kno_stack stack,
-		 int prune)
-{
-  int conses = 0, choices = 0, qchoices = 0, empties = 0;
-  lispval scan = exprs, *write = into;;
-  while (PAIRP(scan)) {
-    lispval expr = KNO_CAR(scan); scan=KNO_CDR(scan);
-    lispval v = (KNO_IMMEDIATEP(expr)) ?
-      ((KNO_LEXREFP(expr)) ? (eval_lexref(expr,env)) :
-       (KNO_SYMBOLP(expr)) ? (eval_symbol(expr,env)) :
-       (expr) ) :
-      (KNO_CONSP(expr)) ?
-      ((KNO_PAIRP(expr)) ? (vm_eval(KNO_CAR(expr),expr,env,stack,0)) :
-       (KNO_SCHEMAPP(expr)) ? (eval_schemap(expr,env,stack)) :
-       (KNO_CHOICEP(expr)) ? (eval_choice(expr,env,stack)) :
-       (kno_incref(expr))) :
-      (expr);
-    if (KNO_CONSP(v)) {
-      conses=1;
-      if (KNO_CHOICEP(v)) choices=1;
-      else if (KNO_QCHOICEP(v)) qchoices=1;
-      else NO_ELSE;}
-    else if (IMMEDIATEP(v)) {
-      if (KNO_EMPTYP(v)) {
-	if (prune) {
-	  kno_decref_vec(into,write-into);
-	  return KNO_PRUNED;}
-	else empties=0;}
-      else if (v == KNO_THROW_VALUE) {
-	kno_decref_vec(into,write-into);
-	return KNO_THROWN_ARG;}
-      else if (BAD_ARGP(v)) {
-	kno_decref_vec(into,write-into);
-	if (KNO_VOIDP(v))
-	  kno_seterr(kno_VoidArgument,"eval_arglist",NULL,expr);
-	return -1;}
-      else NO_ELSE;}
-    else NO_ELSE;
-    *write++=v;}
-  return (KNO_GOOD_ARGS) |
-    ( (empties) ?  (KNO_FAILED_ARGS) : (0) ) |
-    ( (conses) ?   (KNO_CONSED_ARGS) : (0)) |
-    ( (choices) ?  (KNO_AMBIG_ARGS)  : (0)) |
-    ( (qchoices) ? (KNO_QCHOICE_ARGS) : (0));
-}
-
 /* Environment functions */
 
 static int bound_in_envp(lispval symbol,kno_lexenv env)
@@ -727,9 +680,7 @@ lispval eval_apply(lispval fn,lispval exprs,
   kno_function f = (KNO_FUNCTIONP(fn)) ? ((kno_function)fn) : (NULL);
   int call_bits = (f) ? (f->fcn_call) : (0);
   int width = (f) ? (f->fcn_call_width) : (INIT_ARGBUF_LEN), n_args = 0;
-  if (KNO_VECTORP(exprs))
-    n_args=KNO_VECTOR_LENGTH(exprs);
-  else if (KNO_PAIRP(exprs)) { /* count args */
+  if (KNO_PAIRP(exprs)) { /* count args */
     lispval scan = exprs; while (PAIRP(scan)) {
       n_args++; scan = KNO_CDR(scan);}}
   else if (KNO_NILP(exprs))
@@ -756,10 +707,8 @@ lispval eval_apply(lispval fn,lispval exprs,
   int prune = (!((call_bits)&(KNO_CALL_XPRUNE)));
   int iter_args = (!((call_bits)&(KNO_CALL_XITER)));
 
-  int arg_info = (VECTORP(exprs)) ?
-    (eval_argvec(n_args,VEC_ELTS(exprs),argbuf,env,stack,prune)) :
-    (PAIRP(exprs)) ?
-    (eval_arglist(n_args,exprs,argbuf,env,stack,prune)) :
+  int arg_info = (PAIRP(exprs)) ?
+    (eval_args(n_args,argbuf,exprs,env,stack,prune)) :
     1;
 
   if (arg_info<0) return KNO_ERROR;
