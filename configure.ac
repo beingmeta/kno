@@ -212,6 +212,8 @@ static_libgcc="no"
 CODENAME="beingmeta"
 RELSTATUS="stable"
 
+AC_CHECK_LIB(jemalloc,malloc,default_malloc=jemalloc)
+
 gperftools_default="yes"
 
 if which lsb_release 2>&1 > /dev/null; then
@@ -589,7 +591,8 @@ AC_ARG_WITH(extlib,
 
 AC_ARG_WITH(rpath,--with-rpath dir,rpath=$withval,rpath=$rpath_default)
 
-if test "$rpath" != "none" && test "$rpath" != "/usr" && test "$rpath" != "/usr/local"; then
+if test "$rpath" != "none" && test "$rpath" != "NONE" && test ! -z "$rpath" &&
+   test "$rpath" != "/usr" && test "$rpath" != "/usr/local"; then
   EXEFLAGS=" $EXEFLAGS \$(RPATHFLAGS) "
 fi
 
