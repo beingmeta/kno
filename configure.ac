@@ -1821,7 +1821,7 @@ if test $have_sqlite3_h = "yes"; then
     INSTALL_CMODULES="install-sqlite ${INSTALL_CMODULES}";
     TEST_CMODULES="${TEST_CMODULES} sqlite"
     SQLITE3_LIBS=-lsqlite3
-    sqlite_included=no
+    sqlite_included=yes
     if test "${sqlite3v2_ok}" == "yes"; then
       AC_DEFINE(HAVE_SQLITE3_V2,1)
     fi;
