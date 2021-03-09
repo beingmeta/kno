@@ -218,6 +218,17 @@ static void link_local_cprims()
 {
 }
 
+static lispval find_exec_module(u8_string string)
+{
+  lispval modname = kno_getsym(string), result = kno_find_module(modname,0);
+  if ( (KNO_VOIDP(result)) && (!(strchr(string,'/'))) ) {
+    u8_byte buf[100];
+    u8_string newname = u8_bprintf(buf,"exec/%s",string);
+    modname = kno_getsym(newname);
+    result = kno_find_module(modname,0);}
+  return result;
+}
+
 int do_main(int argc,char **argv,
 	    u8_string exe_name,u8_string source_spec,
 	    lispval *args,size_t n_args)
@@ -331,9 +342,8 @@ int do_main(int argc,char **argv,
   if (source_spec == NULL) {}
   else if (strcmp(source_spec,"-")==0)
     result = load_stdin(env);
-  else if (source_spec[0] == ':') {
-    lispval modname = kno_getsym(source_spec+1);
-    result = kno_find_module(modname,0);
+  else if (source_spec[0] == ':') { /* Definitely a module reference */
+    result = find_exec_module(source_spec+1);
     if (KNO_VOIDP(result))
       result = kno_err("NoExecModule","do_main",source_spec,KNO_VOID);
     else exec_module=1;}
@@ -346,7 +356,11 @@ int do_main(int argc,char **argv,
       if (ex == NULL)
 	u8_seterr("LoadFailed","knox/main()",u8_strdup(source_spec));}
     kno_decref(src);}
-  else result = KNO_VOID;
+  else {
+    result = find_exec_module(source_spec);
+    if (KNO_VOIDP(result))
+      result = kno_err("NoExecModule","do_main",source_spec,KNO_VOID);
+    else exec_module=1;}
 
   if (!(kno_be_vewy_quiet)) {
     double startup_time = u8_elapsed_time()-kno_load_start;

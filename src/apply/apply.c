@@ -431,7 +431,7 @@ static lispval ndapply4(kno_stack _stack,
   ITER_CHOICES(scan1,limit1,args1);
   ITER_CHOICES(start2,limit2,args2);
   ITER_CHOICES(start3,limit3,args3);
-  ITER_CHOICES(start4,limit4,args3);
+  ITER_CHOICES(start4,limit4,args4);
   lispval args[4];
   while (scan1<limit1) {
     args[0] = *scan1++;

@@ -21,6 +21,11 @@
 (use-module 'varconfig)
 (use-module 'logger)
 
+(module-proxy! 'kno/reflect
+	       lambda-entry lambda-body  lambda-args lambda-env
+	       procedure-fileinfo procedure-filename
+	       reflect/attribs reflect/get)
+
 (define-init %loglevel %warn%)
 
 ;; OPTLEVEL interpretations
@@ -399,19 +404,19 @@
 (store! procedure-optimizers PICKOIDS
   (lambda (fn expr env bound opts)
     (tryif (= (length expr) 2)
-      (cons* #OP_PICK_TYPE #oid_type (optimize (cadr expr) env bound opts) 1))))
+      (cons* #OP_PICK_TYPE #oid_type (optimize (cadr expr) env bound opts)))))
 (store! procedure-optimizers PICKNUMS
   (lambda (fn expr env bound opts)
     (tryif (= (length expr) 2)
-      (cons* #OP_PICK_TYPE #number_type (optimize (cadr expr) env bound opts) 1))))
+      (cons* #OP_PICK_TYPE #number_type (optimize (cadr expr) env bound opts)))))
 (store! procedure-optimizers PICKNUMS
   (lambda (fn expr env bound opts)
     (tryif (= (length expr) 2)
-      (cons* #OP_PICK_TYPE #string_type (optimize (cadr expr) env bound opts) 1))))
+      (cons* #OP_PICK_TYPE #string_type (optimize (cadr expr) env bound opts)))))
 (store! procedure-optimizers PICKMAPS
   (lambda (fn expr env bound opts)
     (tryif (= (length expr) 2)
-      (cons* #OP_PICK_TYPE #keymap_type (optimize (cadr expr) env bound opts) 1))))
+      (cons* #OP_PICK_TYPE #keymap_type (optimize (cadr expr) env bound opts)))))
 
 (store! predicate-typemap EMPTY?     #empty_type)
 (store! predicate-typemap FAIL?      #empty_type)
@@ -812,7 +817,7 @@
 			 (optimize expr env bound opts))))
 	       (tryif (exists? opcodeN)
 		 (cons opcodeN
-		       (forseq (expr (->vector args))
+		       (forseq (expr args)
 			 (optimize expr env bound opts))))
 	       (make-fncall
 		(cond ((or (not module) (fail? fn) (test module '%nosubst fname))
@@ -1326,20 +1331,21 @@
 (define (optimize-doexpression handler expr env bound opts)
   (let* ((bindspec (cadr expr))
 	 (body (cddr expr))
-	 (inner (cond ((symbol? bindspec) (cons (list bindspec) bound))
-		      ((or (not (pair? bindspec)) (not (< 1 (length bindspec) 4)))
-		       (irritant expr |SyntaxError|))
-		      ((= (length bindspec) 3)
-		       (cons (list (first bindspec) (third bindspec))
-			     bound))
-		      (else (cons (list (first bindspec)) bound)))))
+	 (item-var (cond ((symbol? bindspec) bindspec)
+			 ((or (not (pair? bindspec)) (not (< 1 (length bindspec) 5))
+			      (not (symbol? (car bindspec))))
+			  (irritant bindspec |SyntaxError|))
+			 (else (car bindspec))))
+	 (val-expr (if (symbol? bindspec) bindspec
+		       (if (and (pair? bindspec) (>= (length bindspec) 2))
+			   (get-arg bindspec 1)
+			   (irritant bindspec |SyntaxExpr|))))
+	 (count-var (or (and (pair? bindspec) (get-arg bindspec 2 #f)) '|#|))
+	 (whole-var (or (and (pair? bindspec) (get-arg bindspec 3 #f)) '|@|))
+	 (inner (cons (list item-var count-var whole-var) bound)))
     `(#OP_EVALFN ,handler ,(car expr)
-		 ,(if (symbol? bindspec) 
-		      `(,bindspec ,(optimize bindspec env bound opts))
-		      `(,(car bindspec) 
-			,(optimize (cadr bindspec) env bound opts)
-			,@(cddr bindspec)))
-		 ,@(forseq (b body) (optimize b env inner opts)))))
+		 (,item-var ,(optimize val-expr env bound opts) ,count-var ,whole-var)
+		 . ,(optimize-body body env inner opts))))
 (define (optimize-do2expression handler expr env bound opts)
   (let ((bindspec (cadr expr)) 
 	(body (cddr expr)))

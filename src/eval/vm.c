@@ -73,51 +73,6 @@ static lispval call2(op2 fn,lispval x,lispval y)
   else return fn(x,y);
 }
 
-int eval_argvec(int argc,lispval *exprs,lispval *into,
-		kno_lexenv env,kno_stack stack,
-		int prune)
-{
-  int conses = 0, choices = 0, qchoices = 0, empties = 0;
-  lispval *scan = exprs, *limit = exprs+argc, *write = into;
-  while (scan<limit) {
-    lispval expr = *scan++;
-    lispval v = (KNO_IMMEDIATEP(expr)) ?
-      ((KNO_LEXREFP(expr)) ? (eval_lexref(expr,env)) :
-       (KNO_SYMBOLP(expr)) ? (eval_symbol(expr,env)) :
-       (expr) ) :
-      (KNO_CONSP(expr)) ?
-      ((KNO_PAIRP(expr)) ? (vm_eval(KNO_CAR(expr),expr,env,stack,0)) :
-       (KNO_SCHEMAPP(expr)) ? (eval_schemap(expr,env,stack)) :
-       (KNO_CHOICEP(expr)) ? (eval_choice(expr,env,stack)) :
-       (kno_incref(expr))) :
-      (expr);
-    if (KNO_CONSP(v)) {
-      conses=1;
-      if (KNO_CHOICEP(v)) choices=1;
-      else if (KNO_QCHOICEP(v)) qchoices=1;
-      else NO_ELSE;}
-    else if (IMMEDIATEP(v)) {
-      if (KNO_EMPTYP(v)) {
-	if (prune) {
-	  kno_decref_vec(into,write-into);
-	  return KNO_PRUNED;}
-	else empties=1;}
-      else if (v == KNO_THROW_VALUE) {
-	kno_decref_vec(into,write-into);
-	return KNO_THROWN_ARG;}
-      else if (BAD_ARGP(v)) {
-	kno_decref_vec(into,write-into);
-	if (KNO_VOIDP(v)) kno_seterr(kno_VoidArgument,"eval_argvec",NULL,expr);
-	return -1;}}
-    else NO_ELSE;
-    *write++=v;}
-  return (KNO_GOOD_ARGS) |
-    ( (empties) ?  (KNO_FAILED_ARGS) : (0) ) |
-    ( (conses) ?   (KNO_CONSED_ARGS) : (0)) |
-    ( (choices) ?  (KNO_AMBIG_ARGS)  : (0)) |
-    ( (qchoices) ? (KNO_QCHOICE_ARGS) : (0));
-}
-
 int eval_args(int argc,lispval *into,lispval exprs,
 	      kno_lexenv env,kno_stack stack,
 	      int prune)
@@ -125,8 +80,7 @@ int eval_args(int argc,lispval *into,lispval exprs,
   int conses = 0, choices = 0, qchoices = 0, empties = 0, n = 0;
   lispval scan = exprs, *write = into;
   while (PAIRP(scan)) {
-    lispval expr = KNO_CAR(scan);
-    scan = KNO_CDR(scan);
+    lispval expr = KNO_CAR(scan); scan = KNO_CDR(scan);
     lispval v = (KNO_CONSP(expr)) ?
       ((KNO_PAIRP(expr)) ? (vm_eval(KNO_CAR(expr),expr,env,stack,0)) :
        (KNO_SCHEMAPP(expr)) ? (eval_schemap(expr,env,stack)) :
@@ -137,6 +91,8 @@ int eval_args(int argc,lispval *into,lispval exprs,
        (KNO_SYMBOLP(expr)) ? (eval_symbol(expr,env)) :
        (expr) ):
       (expr);
+    if (KNO_PRECHOICEP(v)) {
+      v = kno_simplify_choice(v);}
     if (KNO_CONSP(v)) {
       conses=1;
       if (KNO_CHOICEP(v)) choices=1;
@@ -422,32 +378,38 @@ static lispval do_difference(lispval body,kno_lexenv env,kno_stack stack,int tai
   while (KNO_PAIRP(body)) {
     lispval expr = pop_arg(body);
     lispval arg = doeval(expr,env,stack,0);
-    if (KNO_ABORTED(arg)) {
-      kno_decref(result); return arg;}
+    if (result == arg) {
+      kno_decref(result); kno_decref(arg);
+      return  KNO_EMPTY;}
+    else if (KNO_ABORTED(arg)) {
+      kno_decref(result);
+      return arg;}
     else if (KNO_VOIDP(arg)) {
       kno_decref(result);
       return kno_err(kno_VoidArgument,"difference",NULL,expr);}
-    else if (KNO_VOIDP(result))
-      result = arg;
-    else if (KNO_EMPTYP(result)) {}
+    else if (KNO_VOIDP(result)) {
+      /* This is the initial state */
+      result = arg;}
+    else if (KNO_EMPTYP(arg)) {}
     else if (KNO_CHOICEP(result)) {
-      if ( (KNO_CHOICEP(arg)) ||
-	   (inchoicep(arg,(kno_choice)result)) ) {
+      if ( (KNO_CHOICEP(arg)) || (inchoicep(arg,(kno_choice)result)) ) {
 	lispval new_result = kno_difference(result,arg);
 	kno_decref(result); kno_decref(arg);
-	result=new_result;}
-      else {}}
+	if (KNO_EMPTYP(new_result)) return new_result;
+	else result=new_result;}
+      else NO_ELSE;}
     else if (CHOICEP(arg)) {
       if (inchoicep(result,(kno_choice)arg)) {
-	kno_decref(arg);}
-      else {
+	/* result is in choice, so we go empty */
 	kno_decref(result); kno_decref(arg);
-	return KNO_EMPTY;}}
+	return KNO_EMPTY;}
+      else NO_ELSE;}
     else if (KNO_EQUALP(result,arg)) {
-      kno_decref(arg);}
-    else {
       kno_decref(result); kno_decref(arg);
-      return KNO_EMPTY;}}
+      return KNO_EMPTY;}
+    else {
+      /* Doesn't change result, keep going */
+      kno_decref(arg);}}
   return result;
 }
 
@@ -811,7 +773,7 @@ static lispval call_op(lispval fn_arg,int n,lispval exprs,
   if ( (KNO_FUNCTIONP(fn)) ) {
     kno_function f = (kno_function) fn;
     if (f->fcn_call & KNO_CALL_NDCALL) nd_call = 1;
-    if (f->fcn_call & KNO_CALL_XPRUNE) prune_call = 1;}
+    if (f->fcn_call & KNO_CALL_XPRUNE) prune_call = 0;}
   else if (KNO_APPLICABLEP(fn)) {
     prune_call = 1; nd_call = 0;}
   else if (KNO_CHOICEP(fn)) {
@@ -1810,7 +1772,7 @@ lispval vm_eval(lispval op,lispval expr,
       else if (KNO_CONSP(arg1)) {
 	if (CHOICEP(arg1)) {
 	  result = KNO_EMPTY;
-	  ITER_CHOICES(scan,limit,arg2);
+	  ITER_CHOICES(scan,limit,arg1);
 	  while (scan<limit) {
 	    lispval arg = *scan++;
 	    lispval r = d1_call(op,arg);
@@ -1832,8 +1794,6 @@ lispval vm_eval(lispval op,lispval expr,
 	  result = arg2;
 	else if ( (KNO_EMPTYP(arg1)) || (KNO_EMPTYP(arg2)) )
 	  result = KNO_EMPTY;
-	else if ( (KNO_CONSP(arg1)) || (KNO_CONSP(arg2)) )
-	  result = d2_call(op,arg1,arg2);
 	else result = d2_call(op,arg1,arg2);}
       else result = kno_err("OpcodeError",opname(op),NULL,expr);
       break;}
