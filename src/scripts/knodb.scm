@@ -20,7 +20,7 @@
 
 (define (main (op #f) . args)
   (when (not op) (usage) (exit))
-  (let* ((modname (string->symbol (glom "knodb/exec/" op)))
+  (let* ((modname (string->symbol (glom "knodb/actions/" op)))
 	 (module (get-module modname)))
     (cond ((not module)
 	   (logerr |UnknownCommand| op ", the module " modname " doesn't exist"))

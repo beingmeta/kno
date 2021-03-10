@@ -94,27 +94,8 @@ KNO_EXPORT size_t _kno_raw_closebuf(struct KNO_RAWBUF *buf)
 
 static ssize_t grow_output_buffer(struct KNO_OUTBUF *b,size_t delta)
 {
+  if ( (b->bufwrite+delta) < b->buflim ) return 0;
   int flags = b->buf_flags;
-  if ((b->buf_flushfn) &&
-      ( (U8_BITP(flags,KNO_BUFFER_NO_GROW)) ||
-        ( (b->bufwrite > b->buffer) &&
-          (!(flags&KNO_BUFFER_NO_FLUSH)) ) ) ) {
-    ssize_t result = b->buf_flushfn(b,b->buf_data);
-    if (result<0) {
-      u8_log(LOG_WARN,"WriteFailed",
-             "Can't flush output to file");
-      return result;}
-    /* See if that fixed it */
-    else if (b->bufwrite+delta<b->buflim)
-      return b->buflen;
-    else if (((b->bufwrite-b->buffer)+delta)<b->buflen) {
-      /* You've got the space in the buffer */
-      b->buflim = b->bufwrite+delta;
-      return (b->bufwrite+delta)-b->buffer;}
-    else if (U8_BITP(flags,KNO_BUFFER_NO_GROW)) {
-      u8_log(LOG_WARN,"WriteFailed","Can't grow buffer");
-      return -1;}
-    else {/* Go ahead and grow the buffer */}}
   size_t current_size = b->bufwrite-b->buffer;
   size_t current_limit = b->buflim-b->buffer;
   size_t new_limit = current_limit;
@@ -163,6 +144,32 @@ static ssize_t grow_output_buffer(struct KNO_OUTBUF *b,size_t delta)
   b->buflim = b->buffer+new_limit;
   b->buflen = new_limit;
   return 1;
+}
+
+static ssize_t check_output_buffer(struct KNO_OUTBUF *b,size_t delta)
+{
+  int flags = b->buf_flags;
+  if ((b->buf_flushfn) &&
+      ( (U8_BITP(flags,KNO_BUFFER_NO_GROW)) ||
+        ( (b->bufwrite > b->buffer) &&
+          (!(flags&KNO_BUFFER_NO_FLUSH)) ) ) ) {
+    ssize_t result = b->buf_flushfn(b,b->buf_data);
+    if (result<0) {
+      u8_log(LOG_WARN,"WriteFailed",
+             "Can't flush output to file");
+      return result;}
+    /* See if that fixed it */
+    else if (b->bufwrite+delta<b->buflim)
+      return b->buflen;
+    else if (((b->bufwrite-b->buffer)+delta)<b->buflen) {
+      /* You've got the space in the buffer */
+      b->buflim = b->bufwrite+delta;
+      return (b->bufwrite+delta)-b->buffer;}
+    else if (U8_BITP(flags,KNO_BUFFER_NO_GROW)) {
+      u8_log(LOG_WARN,"WriteFailed","Can't grow buffer");
+      return -1;}
+    else {/* Go ahead and grow the buffer */}}
+  return grow_output_buffer(b,delta);
 }
 
 static ssize_t grow_input_buffer(struct KNO_INBUF *in,size_t need_size)
@@ -219,13 +226,13 @@ static ssize_t grow_input_buffer(struct KNO_INBUF *in,size_t need_size)
 KNO_EXPORT int kno_needs_space(struct KNO_OUTBUF *b,size_t delta)
 {
   if (b->bufwrite+delta > b->buflim)
-    return grow_output_buffer(b,delta);
+    return check_output_buffer(b,delta);
   else return 1;
 }
 KNO_EXPORT int _kno_grow_outbuf(struct KNO_OUTBUF *b,size_t delta)
 {
   if (b->bufwrite+delta > b->buflim)
-    return grow_output_buffer(b,delta);
+    return check_output_buffer(b,delta);
   else return 1;
 }
 KNO_EXPORT int _kno_grow_inbuf(struct KNO_INBUF *b,size_t delta)

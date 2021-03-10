@@ -61,6 +61,7 @@ u8_condition kno_FileIndexSizeOverflow=_("file index overflowed file size");
 
 int kno_acid_files = 1;
 size_t kno_driver_bufsize = KNO_STORAGE_DRIVER_BUFSIZE;
+size_t kno_driver_writesize = KNO_STORAGE_DRIVER_BUFSIZE;
 
 static kno_pool_typeinfo default_pool_type = NULL;
 static kno_index_typeinfo default_index_type = NULL;
@@ -119,6 +120,33 @@ int kno_same_sourcep(u8_string ref,u8_string source)
     u8_free(ref_source);
     return rv;}
   else return 0;
+}
+
+/* Getting buffer sizes from opts */
+
+DEF_KNOSYM(writesize);
+
+KNO_EXPORT
+ssize_t kno_get_bufsize(lispval opts,ssize_t fallback,int for_write)
+{
+  ssize_t result = -1;
+  lispval probe = (for_write) ? (kno_getopt(opts,KNOSYM(writesize),KNO_VOID)) :
+    (kno_getopt(opts,KNOSYM_BUFSIZE,KNO_VOID));
+  if (KNO_FIXNUMP(probe))
+    result = KNO_FIX2INT(probe);
+  else kno_decref(probe);
+  if (result>0) {}
+  else if (for_write)
+    probe = kno_getopt(opts,KNOSYM_BUFSIZE,KNO_VOID);
+  else NO_ELSE;
+  kno_decref(probe);
+  if (result>0)
+    return result;
+  else if (fallback<0)
+    if (for_write)
+      return kno_driver_writesize;
+    else return kno_driver_bufsize;
+  else return fallback;
 }
 
 /* Opening pools */
@@ -1265,9 +1293,14 @@ KNO_EXPORT int kno_init_drivers_c()
                      "Maintain acidity of individual file pools and indexes",
                      kno_boolconfig_get,kno_boolconfig_set,&kno_acid_files);
   kno_register_config("DRIVERBUFSIZE",
-                     "The size of file streams used in database files",
+                     "The buffer size for file streams used in on-disk dbs",
                      kno_sizeconfig_get,kno_sizeconfig_set,&kno_driver_bufsize);
-
+  kno_register_config("STORAGE:BUFSIZE",
+                     "The buffer size for file streams used in on-disk dbs",
+                     kno_sizeconfig_get,kno_sizeconfig_set,&kno_driver_bufsize);
+  kno_register_config("STORAGE:WRITESIZE",
+		      "The write buffer size for file streams used in on-disk dbs",
+		      kno_sizeconfig_get,kno_sizeconfig_set,&kno_driver_writesize);
 
   return drivers_c_initialized;
 }

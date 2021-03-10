@@ -1,6 +1,6 @@
 ;;; -*- Mode: Scheme -*-
 
-(in-module 'knodb/exec/packindex)
+(in-module 'knodb/actions/packindex)
 
 (module-export! '{packindex main})
 
@@ -8,6 +8,8 @@
 (use-module '{knodb/indexes})
 
 (define %loglevel (config 'loglevel %notice%))
+
+(logwarn |Loading| (get-component "packindex.scm"))
 
 (define (->slotid arg)
   (if (not (string? arg))
@@ -45,7 +47,8 @@
   (or (not slotids) (and (vector? slotids) (zero? (length slotids)))))
 
 (define (do-packindex in out)
-  (let* ((overwrite (config 'overwrite #f))
+  (let* ((overwrite (config 'overwrite #f config:boolean))
+	 (restart (config 'restart #f config:boolean))
 	 (input (open-index in #[register #f]))
 	 (newtype (get-new-type input #f))
 	 (keyslot (->slotid (or (config 'keyslot)
@@ -68,15 +71,20 @@
     (info%watch "pack-index/main" 
       in out input newtype keyslot overwrite
       "\nOPTS" opts)
-    (when (and out (file-exists? out) (not overwrite))
-      (logwarn |FileExists|
+    (when (and out (file-exists? out) (not (equal? in out))
+	       (not overwrite))
+      (logerr |FileExists|
 	"The output file " (write out) " already exists.\n  "
 	"Specify OVERWRITE=yes to remove.")
       (exit))
-    (when (and overwrite out (file-exists? (glom out ".part")))
-      (remove-file (glom out ".part")))
-    (when (and overwrite (not out) (file-exists? (glom in ".part")))
-      (remove-file (glom in ".part")))
+    (when (and out (file-exists? (glom out ".part")))
+      (cond (restart 
+	     (logwarn |Restarting| "Removing partial file " (write (glom out ".part")))
+	     (remove-file (glom out ".part")))
+	    (else (logerr |PartialFile|
+		    "The temporary output file " (write (glom out ".part")) " exists.\n  "
+		    "Specify RESTART=yes to remove.")
+		  (exit))))
     (when (and overwrite (getopt opts 'rarefile))
       (overwriting (getopt opts 'rarefile)))
     (config! 'appid (glom "pack(" (basename in) ")"))
@@ -91,7 +99,7 @@
       (do-packindex in out)
       (usage)))
 
-(define (main (in #f) (out #f))
+(define (main (in #f) (out))
   (default! out in)
   (when (overlaps? out '{"inplace" "-"}) (set! out in))
   (packindex in out))

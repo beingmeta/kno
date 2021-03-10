@@ -71,7 +71,7 @@ static void use_kpool(kno_kpool kp)
       if (kp->pool_stream.stream_fileno < 0)
 	kno_reopen_file_stream
 	  (&(kp->pool_stream),KNO_FILE_READ,
-	   kno_getfixopt(kp->pool_opts,"BUFSIZE",kno_driver_bufsize));
+	   kno_get_bufsize(kp->pool_opts,kno_driver_bufsize,0));
       if (level<0) {
 	level=kno_default_cache_level;
 	kpool_setcache(kp,level);}
@@ -216,7 +216,7 @@ static kno_size_t get_maxpos(kno_kpool p)
 #define XREFS_FLAGS (XTYPE_REFS_ADD_OIDS|XTYPE_REFS_ADD_SYMS)
 
 static kno_pool open_kpool(u8_string fname,kno_storage_flags open_flags,
-			     lispval opts)
+			   lispval opts)
 {
   KNO_OID base = KNO_NULL_OID_INIT;
   unsigned int hi, lo, magicno, capacity, load;
@@ -225,6 +225,7 @@ static kno_pool open_kpool(u8_string fname,kno_storage_flags open_flags,
   kno_off_t label_loc, metadata_loc, xrefs_loc, xrefs_size;
   lispval label;
   struct KNO_KPOOL *pool = u8_alloc(struct KNO_KPOOL);
+  ssize_t bufsize = kno_get_bufsize(opts,kno_driver_bufsize,0);
   int read_only = U8_BITP(open_flags,KNO_STORAGE_READ_ONLY);
   if ( (read_only == 0) && (u8_file_writablep(fname)) ) {
     if (kno_check_rollback("open_hashindex",fname)<0) {
@@ -243,7 +244,7 @@ static kno_pool open_kpool(u8_string fname,kno_storage_flags open_flags,
   struct KNO_STREAM *stream=
     kno_init_file_stream(&(pool->pool_stream),fname,
 			 KNO_FILE_READ,stream_flags,
-			 -1);
+			 bufsize);
   struct KNO_INBUF *instream = (stream) ? (kno_readbuf(stream)) : (NULL);
   if (instream == NULL) {
     u8_raise(kno_FileNotFound,"open_kpool",u8_strdup(fname));
@@ -1007,9 +1008,7 @@ static kno_stream get_commit_stream(kno_kpool kp,struct KNO_POOL_COMMITS *commit
   if (commit->commit_stream)
     return commit->commit_stream;
   else if (u8_file_writablep(kp->pool_source)) {
-    ssize_t buf_size =
-      kno_getfixopt(kp->pool_opts,"WRITESIZE",
-		   kno_getfixopt(kp->pool_opts,"BUFSIZE",kno_driver_bufsize));
+    ssize_t buf_size = kno_get_bufsize(kp->pool_opts,kno_driver_bufsize,1);
     struct KNO_STREAM *new_stream =
       kno_init_file_stream(NULL,kp->pool_source,KNO_FILE_MODIFY,-1,buf_size);
     /* Lock the file descriptor */
@@ -1791,13 +1790,13 @@ static void kpool_setcache(kno_kpool p,int level)
 	    "Pool structure invalid: %s",p->poolid);
     return;}
   kno_stream stream = &(kp->pool_stream);
-  size_t bufsize  = kno_stream_bufsize(stream);
-  size_t use_bufsize = kno_getfixopt(kp->pool_opts,"BUFSIZE",kno_driver_bufsize);
+  size_t cur_bufsize  = kno_stream_bufsize(stream);
+  size_t use_bufsize = kno_get_bufsize(kp->pool_opts,kno_driver_bufsize,1);
 
   if (level < 0) level = kno_default_cache_level;
 
   /* Update the bufsize */
-  if (bufsize < use_bufsize)
+  if (use_bufsize >= cur_bufsize)
     kno_setbufsize(stream,use_bufsize);
 
   if ( ( (level<2) && (kp->pool_offdata == NULL) ) ||

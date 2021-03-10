@@ -1,6 +1,6 @@
 ;;; -*- Mode: Scheme -*-
 
-(in-module 'knodb/exec/pack)
+(in-module 'knodb/actions/pack)
 
 (module-export! '{main pack})
 
@@ -42,5 +42,4 @@
 		 (usage))))
 	(else (usage))))
 
-
-
+(define main pack)

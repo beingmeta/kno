@@ -1727,6 +1727,7 @@ KNO_EXPORT void kno_init_parse_c()
   unquote_symbol = kno_intern("unquote");
   unquotestar_symbol = kno_intern("unquote*");
   histref_symbol = kno_intern("%histref");
+  histref_typetag = kno_intern("%histref");
   comment_symbol = kno_intern("comment");
   opaque_tag = kno_intern("%opaque");
   struct_eval_symbol = kno_intern("#.");

@@ -1,4 +1,4 @@
 ;;; -*- Mode: Scheme -*-
 
-(use-module 'knodb/exec/packindex)
+(use-module 'knodb/actions/packindex)
 

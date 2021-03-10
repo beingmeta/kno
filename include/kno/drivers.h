@@ -11,6 +11,9 @@
 #endif
 
 KNO_EXPORT size_t kno_driver_bufsize;
+KNO_EXPORT size_t kno_driver_writesize;
+
+KNO_EXPORT ssize_t kno_get_bufsize(lispval,ssize_t,int);
 
 KNO_EXPORT int kno_acid_files;
 

@@ -1,4 +1,4 @@
 ;;; -*- Mode: Scheme -*-
 
-(use-module 'knodb/exec/packpool)
+(use-module 'knodb/actions/packpool)
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Scheme -*-
 
-(in-module 'knodb/exec/packpool)
+(in-module 'knodb/actions/packpool)
 
 (module-export! '{main packpool})
 
@@ -266,17 +266,30 @@
 
 ;;; Exports
 
-(define (packpool (from #f) (to))
+(define (packpool (from #f) (to) (overwrite) (restart))
   (default! to from)
   (default-configs)
+  (default! overwrite (config 'overwrite #f config:boolean))
+  (default! restart (config 'restart #f config:boolean))
+  (when (and to (file-exists? to) (not (equal? from to)) (not overwrite))
+    (logerr |FileExists|
+      "The output file " (write out) " already exists.\n  "
+      "Specify OVERWRITE=yes to remove.")
+    (exit))
+  (when (and out (file-exists? (glom out ".part")))
+    (cond (restart 
+	   (logwarn |Restarting| "Removing " (write (glom out ".part")))
+	   (remove-file (glom out ".part")))
+	  (else (logerr |InProgress|
+		  "The temporary output file " (write (glom out ".part")) " exists.\n  "
+		  "Specify RESTART=yes to remove.")
+		(exit))))
   (cond ((or (not (bound? from)) (not from)) (usage))
 	((and (file-exists? to) (not (equal? from to)) (config 'COPY #f))
 	 (config! 'appid (glom "copy(" (basename from) ")"))
 	 (logwarn |Copying| "Copying OIDs to existing pool " (write to))
 	 (copy-pool from to))
-	((and (file-exists? to) 
-	      (not (equal? from to))
-	      (not (config 'OVERWRITE #f)))
+	((and (file-exists? to) (not (equal? from to)) (not overwrite))
 	 (logwarn |FileExists| "Not overwriting " (write to))
 	 (exit))
 	((not (file-exists? from))
