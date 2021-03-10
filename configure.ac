@@ -212,6 +212,8 @@ static_libgcc="no"
 CODENAME="beingmeta"
 RELSTATUS="stable"
 
+AC_CHECK_LIB(jemalloc,malloc,default_malloc=jemalloc)
+
 gperftools_default="yes"
 
 if which lsb_release 2>&1 > /dev/null; then
