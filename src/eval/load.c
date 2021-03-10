@@ -47,19 +47,22 @@ KNO_EXPORT lispval kno_load_stream
 (u8_input loadstream,kno_lexenv env,u8_string sourcebase)
 {
   u8_string outer_sourcebase = kno_bind_sourcebase(sourcebase);
-  u8_string old_context = u8_log_context;
   double start = u8_elapsed_time();
   kno_stack _stack = kno_stackptr;
   lispval postload = VOID;
   u8_byte label[strlen(sourcebase)+1]; strcpy(label,sourcebase);
   u8_byte cxt_buf[strlen(sourcebase)+50];
-  u8_string new_cxt = u8_bprintf(cxt_buf,"while loading '%s'",sourcebase);
-  u8_set_log_context(new_cxt);
+  int tracing = trace_load;
+  u8_string old_context = NULL;
+  if (tracing) {
+    old_context = u8_log_context;
+    u8_string new_cxt = u8_bprintf(cxt_buf,"while loading '%s'",sourcebase);
+    u8_set_log_context(new_cxt);}
   KNO_CHECK_ERRNO(loadstream,"before loading");
   KNO_PUSH_EVAL(load_stack,label,VOID,env);
   lispval result = load_stream_loop(sourcebase,loadstream,env,load_stack);
   KNO_CHECK_ERRNO(sourcebase,"after loading");
-  u8_set_log_context(old_context);
+  if (tracing) u8_set_log_context(old_context);
   if ((trace_load) || (trace_load_eval))
     u8_log(LOG_WARN,FileDone,"Loaded %s in %f seconds",
 	   sourcebase,u8_elapsed_time()-start);
