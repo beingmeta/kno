@@ -1,6 +1,6 @@
 ;;; -*- Mode: Scheme -*-
 
-(use-module '{varconfig text/stringfmts logger})
+(use-module '{varconfig text/stringfmts optimize logger})
 
 (define %loglevel (config 'loglevel %notice%))
 
@@ -24,7 +24,8 @@
 	 (module (get-module modname)))
     (cond ((not module)
 	   (logerr |UnknownCommand| op ", the module " modname " doesn't exist"))
-	  (else (apply (get module 'main) args)))))
+	  (else (optimize-module! (get module '%optimize))
+		(apply (get module 'main) args)))))
 
 (define (usage)
   (lineout "Usage: knodb <op> <args...>")

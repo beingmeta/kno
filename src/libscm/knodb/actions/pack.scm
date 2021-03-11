@@ -4,10 +4,16 @@
 
 (module-export! '{main pack})
 
-(use-module '{logger text/stringfmts})
-(use-module '{knodb/exec/packpool knodb/exec/packindex})
+(use-module '{logger text/stringfmts optimize})
+(use-module '{knodb/actions/packpool knodb/actions/packindex})
 
 (define %loglevel (config 'loglevel %notice%))
+
+(define (opt-module name)
+  (let ((mod (get-module name)))
+    (optimize-module! (get mod '%optimize))
+    (optimize-module! name)
+    mod))
 
 (define (usage)
   (lineout "Usage: pack <source> [target]\n"
@@ -36,9 +42,9 @@
   (when (overlaps? to {"inplace" "-"}) (set! to from))
   (cond ((and (string? from) (file-exists? from))
 	 (if (if type (pool-type? type) (has-suffix from ".pool"))
-	     ((get (get-module 'knodb/exec/packpool) 'packpool) from to)
+	     ((get (opt-module 'knodb/actions/packpool) 'packpool) from to)
 	     (if (if type (index-type? type) (has-suffix from ".index"))
-		 ((get (get-module 'knodb/exec/packindex) 'packindex) from to)
+		 ((get (opt-module 'knodb/actions/packindex) 'packindex) from to)
 		 (usage))))
 	(else (usage))))
 

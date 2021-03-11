@@ -4,10 +4,11 @@
 
 (module-export! '{main packpool})
 
-(use-module '{optimize kno/mttools varconfig engine text/stringfmts logger})
+(use-module '{kno/mttools varconfig engine text/stringfmts logger})
 (use-module '{knodb/countrefs})
 
 (define %loglevel (config 'loglevel %notice%))
+(define %optimize '{knodb/actions/packpool knodb knodb/countrefs})
 
 (define dtypev2 #f)
 (varconfig! dtypev2 dtypev2 config:boolean)
@@ -273,15 +274,15 @@
   (default! restart (config 'restart #f config:boolean))
   (when (and to (file-exists? to) (not (equal? from to)) (not overwrite))
     (logerr |FileExists|
-      "The output file " (write out) " already exists.\n  "
+      "The output file " (write to) " already exists.\n  "
       "Specify OVERWRITE=yes to remove.")
     (exit))
-  (when (and out (file-exists? (glom out ".part")))
+  (when (and to (file-exists? (glom to ".part")))
     (cond (restart 
-	   (logwarn |Restarting| "Removing " (write (glom out ".part")))
-	   (remove-file (glom out ".part")))
+	   (logwarn |Restarting| "Removing " (write (glom to ".part")))
+	   (remove-file (glom to ".part")))
 	  (else (logerr |InProgress|
-		  "The temporary output file " (write (glom out ".part")) " exists.\n  "
+		  "The temporary output file " (write (glom to ".part")) " exists.\n  "
 		  "Specify RESTART=yes to remove.")
 		(exit))))
   (cond ((or (not (bound? from)) (not from)) (usage))
@@ -322,8 +323,4 @@
 			  "CODESLOTS=yes|no\n"
 			  "OVERWRITE=no|yes\n")
 	       "If specified, [to] must not exist unless OVERWRITE=yes")))
-
-(when (config 'optimized #t)
-  (optimize! '{knodb knodb/countrefs})
-  (optimize!))
 

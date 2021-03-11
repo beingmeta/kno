@@ -1,4 +1,6 @@
 ;;; -*- Mode: Scheme -*-
 
-(use-module 'knodb/actions/packindex)
+(use-module '{optimize knodb/actions/packindex})
+
+(optimize-modules! (get (get-module 'knodb/actions/packindex) '%optimize))
 

@@ -4,10 +4,16 @@
 
 (module-export! '{packindex main})
 
-(use-module '{optimize varconfig logger text/stringfmts kno/mttools})
+(use-module '{varconfig logger text/stringfmts kno/mttools})
 (use-module '{knodb/indexes})
 
 (define %loglevel (config 'loglevel %notice%))
+(define %optimize '{knodb/actions/packindex
+		    knodb/indexes
+		    knodb/hashindexes
+		    ezrecords
+		    fifo
+		    engine})
 
 (logwarn |Loading| (get-component "packindex.scm"))
 
@@ -125,9 +131,3 @@
 			  "INDEXTYPE=keep|knopool|filepool\n"
 			  "OVERWRITE=no|yes\n")
 	       "If specified, [to] must not exist unless OVERWRITE=yes")))
-
-(when (config 'optimize #t)
-  (optimize! '{knodb/indexes knodb/hashindexes ezrecords fifo engine})
-  (optimize!))
-
-
