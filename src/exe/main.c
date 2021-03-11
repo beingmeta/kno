@@ -113,11 +113,11 @@ KNO_EXPORT void _knodbg_show_env(kno_lexenv start,int limit)
       lispval name = kno_get(bindings,KNOSYM_MODULEID,KNO_VOID);
       if (KNO_VOIDP(name)) {
         lispval keys = kno_getkeys(bindings);
-        u8_fprintf(stderr,"  env#%d %q\t\t\t(%s[%d]) 0x%llx/0x%llx\n",
+        u8_fprintf(stderr,"  env#%d %q\t\t\t(%s[%d]) %p/%p\n",
                    depth,keys,kno_type_names[btype],KNO_CHOICE_SIZE(keys),
-                   bindings,env);
+		   bindings,env);
         kno_decref(keys);}
-      else u8_fprintf(stderr,"  env#%d module %q\t\t0x%llx\n",depth,name,env);
+      else u8_fprintf(stderr,"  env#%d module %q\t\t%p\n",depth,name,env);
       kno_decref(name);
       env=env->env_parent;
       depth++;}
@@ -153,7 +153,10 @@ static void _concise_stack_frame(struct KNO_STACK *stack)
 	       stack->stack_argc,stack->stack_width,
 	       refs->count,refs->len);
   unsigned int bits = stack->stack_bits;
+  if (!(U8_BITP(bits,KNO_STACK_LIVE))) fputs(" dead",stderr);
   if (U8_BITP(bits,KNO_STACK_TAIL_POS)) fputs(" tailpos",stderr);
+  if (U8_BITP(bits,KNO_STACK_TAIL_LOOP)) fputs(" loop",stderr);
+  if (U8_BITP(bits,KNO_STACK_LAMBDA_CALL)) fputs(" lambda",stderr);
   if (U8_BITP(bits,KNO_STACK_VOID_VAL)) fputs(" void",stderr);
   if (U8_BITP(bits,KNO_STACK_DECREF_ARGS)) fputs(" decref",stderr);
   if (U8_BITP(bits,KNO_STACK_FREE_ARGVEC)) fputs(" freevec",stderr);
@@ -214,14 +217,11 @@ KNO_EXPORT void _knodbg_show_stack_frame(void *arg)
       int i=0, n = stack->stack_argc;
       while (i<n) {
 	lispval arg = args[i];
-	u8_string line=u8_bprintf
-	  (buf,"#%d 0x%llx\t%q",i,(unsigned long long)arg,arg);
+	u8_string line=u8_bprintf(buf,"#%d %p\t%q",i,arg,arg);
 	fputs(line,stderr); fputc('\n',stderr);
 	i++;}}}
   else if (CONSP(stack->stack_op)) {
-    u8_fprintf(stderr,"Evaluating in 0x%llx %Q\n",
-	       KNO_LONGVAL(stack->eval_env),
-	       stack->stack_op);}
+    u8_fprintf(stderr,"Evaluating in %p %Q\n",stack->eval_env,stack->stack_op);}
   if ( (KNO_STACK_BITP(stack,KNO_STACK_OWNS_ENV)) ) {
     if (stack->eval_env) {
       env = stack->eval_env;
@@ -235,10 +235,7 @@ KNO_EXPORT void _knodbg_show_stack_frame(void *arg)
 	  lispval key = schema[i];
 	  lispval val = values[i];
 	  u8_byte buf[256];
-	  fputs(u8_bprintf
-		(buf,"  %q\t0x%llx\t%q",
-		 key,(unsigned long long)val,val),
-		stderr);
+	  fputs(u8_bprintf(buf,"  %q\t%p\t%q",key,val,val),stderr);
 	  fputc('\n',stderr);
 	  i++;}}}}
   else NO_ELSE;
@@ -261,6 +258,20 @@ KNO_EXPORT lispval _knodbg_get_stack_var(void *arg,u8_string varname)
     if (stack->eval_env) {
       lispval sym = kno_getsym(varname);
       return kno_symeval(sym,stack->eval_env);}}
+  return KNO_NULL;
+}
+
+KNO_EXPORT lispval _knodbg_find_stack_var(void *arg,u8_string varname)
+{
+  struct KNO_STACK *stack=(kno_stack)_get_stack_frame(arg);
+  lispval sym = kno_getsym(varname);
+  while ( (stack) && (KNO_STACK_LIVEP(stack)) ) {
+    if (stack->eval_env) {
+      lispval v = kno_symeval(sym,stack->eval_env);
+      if (!(KNO_VOIDP(v))) {
+	_concise_stack_frame(stack);
+	return v;}}
+    stack = stack->stack_caller;}
   return KNO_NULL;
 }
 

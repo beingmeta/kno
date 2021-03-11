@@ -33,10 +33,10 @@ static lispval if_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   else if (FALSEP(test_result)) {
     if (VOIDP(else_expr))
       return KNO_VOID;
-    else return doeval(else_expr,env,_stack,tail_arg);}
+    else return doeval(else_expr,env,_stack,1);}
   else {
     kno_decref(test_result);
-    return doeval(consequent_expr,env,_stack,tail_arg);}
+    return doeval(consequent_expr,env,_stack,1);}
 }
 
 static lispval tryif_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)

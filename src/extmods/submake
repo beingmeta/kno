@@ -22,6 +22,12 @@ fi;
 if [ -z "$DIRS" ]; then
     DIRS=${ALLDIRS};
 fi;
+# Just in case
+make symlinks
+# Switch branches
+BRANCH=$(cat .branch || u8_gitbranch || echo main)
+for dir in ${DIRS}; do command cd ${dir}; git checkout ${BRANCH}; command cd ..; done;
+# Do all the targets on all the directories, using the current versions of knoconfig and knobuild
 for dir in ${DIRS}; do
     if [ ! -f ${dir}.skip ]; then
 	make -C ${dir} KNOCONFIG="${ROOT}/knoconfig" KNOBUILD="${ROOT}/knobuild" ${ARGS};

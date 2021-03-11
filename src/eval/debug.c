@@ -234,23 +234,17 @@ static void log_ptr(lispval val,lispval label_arg,lispval expr)
     unsigned long long data = KNO_IMMEDIATE_DATA(val);
     u8_string type_name = kno_type2name(itype);;
     u8_log(U8_LOG_MSG,"Pointer/Immediate",
-	   "%s%s%s0x%llx [ T0x%llx(%s) data=%llu ] %q <= %q",
-	   U8OPTSTR("",label,": "),
-	   (KNO_LONGVAL(val)),
-	   itype,type_name,data,
-	   val,expr);}
+	   "%s%s%s%p [ T0x%llx(%s) data=%llu ] %q <= %q",
+	   U8OPTSTR("",label,": "),val,itype,type_name,data,val,expr);}
   else if (FIXNUMP(val))
     u8_log(U8_LOG_MSG,"Pointer/Fixnum",
-	   "%s%s%sFixnum 0x%llx == %q = %q",
-	   U8OPTSTR("",label,": "),
-	   (KNO_LONGVAL(val)),
-	   val,expr);
+	   "%s%s%sFixnum %p == %q = %q",
+	   U8OPTSTR("",label,": "),val,val,expr);
   else if (OIDP(val)) {
     KNO_OID addr = KNO_OID_ADDR(val);
     u8_log(U8_LOG_MSG,"Pointer/OID",
-	   "%s%s%s0x%llx [ [%llx]+%llx ] @%llx/%llx %q <= %q",
-	   U8OPTSTR("",label,": "),
-	   (KNO_LONGVAL(val)),
+	   "%s%s%s%p [ [%llx]+%llx ] @%llx/%llx %q <= %q",
+	   U8OPTSTR("",label,": "),val,
 	   (unsigned long long)(KNO_OID_BASE_ID(val)),
 	   (unsigned long long)(KNO_OID_BASE_OFFSET(val)),
 	   (unsigned long long)(KNO_OID_HI(addr)),
@@ -260,11 +254,8 @@ static void log_ptr(lispval val,lispval label_arg,lispval expr)
     kno_lisp_type ptype = KNO_CONS_TYPEOF((kno_cons)val);
     u8_string type_name = kno_lisp_typename(ptype);
     u8_log(U8_LOG_MSG,"Pointer/Static",
-	   "%s%s%s0x%llx [ T0x%llx(%s) ] %q <= %q",
-	   U8OPTSTR("",label,": "),
-	   (KNO_LONGVAL(val)),
-	   ptype,type_name,
-	   val,expr);}
+	   "%s%s%s%p [ T0x%llx(%s) ] %q <= %q",
+	   U8OPTSTR("",label,": "),val,ptype,type_name,val,expr);}
   else if (CONSP(val)) {
     kno_cons c = (kno_cons) val;
     kno_lisp_type ptype = KNO_CONS_TYPEOF(c);
@@ -674,6 +665,52 @@ static lispval dbgeval_evalfn(lispval dbg_expr,kno_lexenv env,kno_stack stack)
   u8_message("Debug eval 0x%llx %q ==> \n  %Q",KNO_LONGVAL(&arg),expr,arg);
  examine_result:
   return arg;
+}
+
+/* Exposing environments */
+
+DEFC_EVALFN("expose-module",expose_module_evalfn,KNO_EVALFN_DEFAULTS,
+	    "`(expose-module *module* [*into*]) evaluates *module* and "
+	    "imports all of its bindings into the environment *into* which "
+	    "defaults to the current environment. If *into* is not specified, "
+	    "this returns VOID; otherwise, the result of evaluating *into* "
+	    "is returned.")
+static lispval expose_module_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+{
+  lispval module_arg = kno_get_arg(expr,1), use_bindings = KNO_VOID;
+  kno_lexenv modify_env = env;
+  if (KNO_VOIDP(module_arg))
+    return kno_err(kno_SyntaxError,"absorb_module_evalfn",
+		   NULL,expr);
+  lispval module = kno_eval_arg(module_arg,env,_stack);
+  if (KNO_SYMBOLP(module)) module = kno_find_module(module,0);
+  if (KNO_ABORTED(module)) return module;
+  if ( (KNO_LEXENVP(module)) &&
+       (KNO_HASHTABLEP(((kno_lexenv)module)->env_bindings)) &&
+       ( (((kno_lexenv)module)->env_copy) == ((kno_lexenv)module) ) )
+    use_bindings = ((kno_lexenv)module)->env_bindings;
+  else {
+    lispval err = kno_err("WeirdModuleBindings","absorb_module_evalfn",NULL,module);
+    kno_decref(module);
+    return err;}
+  lispval into_arg = kno_get_arg(expr,2);
+  if (KNO_VOIDP(into_arg)) {}
+  else {
+    lispval into = kno_eval_arg(into_arg,env,_stack);
+    if (KNO_LEXENVP(into))
+      modify_env=(kno_lexenv)into;
+    else {
+      lispval err = kno_err("NotaLexenv","expose_module_evalfn",NULL,into);
+      kno_decref(module);
+      kno_decref(into);
+      return err;}}
+  kno_lexenv old_parent = modify_env->env_parent;
+  modify_env->env_parent = kno_make_export_env(use_bindings,old_parent);
+  /* We decref this because 'env' is no longer pointing to it
+     and kno_make_export_env incref'd it again. */
+  if (old_parent) kno_decref((lispval)(old_parent));
+  if (KNO_VOIDP(into_arg)) return VOID;
+  else return (lispval) modify_env;
 }
 
 /* Recording bugs */
@@ -1464,8 +1501,11 @@ KNO_EXPORT void kno_init_eval_debug_c()
   KNO_LINK_EVALFN(kno_scheme_module,watched_cond_evalfn);
   KNO_LINK_EVALFN(kno_scheme_module,watched_try_evalfn);
 
+  KNO_LINK_EVALFN(kno_scheme_module,expose_module_evalfn);
+
   /* This up to six pushes log context	` reports*/
   KNO_LINK_EVALFN(kno_scheme_module,with_log_context_evalfn);
+
 #if USING_GOOGLE_PROFILER
   KNO_LINK_EVALFN(kno_scheme_module,gprofile_evalfn);
 #endif

@@ -105,7 +105,7 @@ int too_few_args(lispval fn,u8_string fname,int n,int min,int max)
   if (fname == NULL) {
     u8_string type_name = kno_type_names[ftype];
     if (!(type_name)) type_name="applicable";
-    fname = u8_bprintf(namebuf,"<%s>0x%llx",type_name,KNO_LONGVAL(fn));}
+    fname = u8_bprintf(namebuf,"<%s>%p",type_name,fn);}
   kno_seterr(kno_TooFewArgs,"kno_dcall",
 	     ((max>=0) ?
 	      (u8_bprintf(buf,"%s %d args < [%d-%d] expected",
@@ -124,7 +124,7 @@ int too_many_args(lispval fn,u8_string fname,int n,int min,int max)
   if (fname == NULL) {
     u8_string type_name = kno_type_names[ftype];
     if (!(type_name)) type_name="applicable";
-    fname = u8_bprintf(namebuf,"<%s>0x%llx",type_name,KNO_LONGVAL(fn));}
+    fname = u8_bprintf(namebuf,"<%s>%p",type_name,fn);}
   kno_seterr(kno_TooManyArgs,"kno_dcall",
 	     u8_bprintf(buf,"%s %d args > [%d,%d] expected",
 			fname,n,min,max),

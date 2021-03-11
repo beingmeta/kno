@@ -53,11 +53,15 @@ KNO_EXPORT int (*kno_dump_exception)(lispval bt);
 
 KNO_EXPORT int kno_choice_evalp(lispval x);
 
+#define KNO_LAMBDXP(x) \
+  ( (KNO_TYPEP(x,kno_lambda_type)) && \
+    ((((kno_lambda)(x))->lambda_env)==NULL) )
+
 #define KNO_NEED_EVALP(x) \
-  ((KNO_SYMBOLP(x)) || (KNO_LEXREFP(x)) || (KNO_PAIRP(x)))
+  ((KNO_SYMBOLP(x)) || (KNO_LEXREFP(x)) || (KNO_PAIRP(x)) || (KNO_SCHEMAPP(x)))
 #define KNO_EVALP(x) \
   ( (KNO_SYMBOLP(x)) || (KNO_LEXREFP(x)) || (KNO_PAIRP(x)) || \
-    ( (KNO_AMBIGP(x)) && (kno_choice_evalp(x)) ) )
+    (KNO_SCHEMAPP(x)) || ( (KNO_AMBIGP(x)) && (kno_choice_evalp(x)) ) )
 
 #define KNO_IMMEDIATE_EVAL(expr,env)			\
   ( (KNO_LEXREFP(expr)) ? (kno_lexref(expr,env)) :	\
@@ -252,7 +256,8 @@ typedef struct KNO_LAMBDA {
   unsigned char lambda_synchronized;
   lispval *lambda_vars, *lambda_inits;
   lispval lambda_arglist, lambda_body, lambda_source;
-  lispval lambda_optimizer, lambda_entry;
+  lispval lambda_entry;
+  struct KNO_LAMBDA *lambda_template;
   struct KNO_CONSBLOCK *lambda_consblock;
   kno_lexenv lambda_env;
   U8_MUTEX_DECL(lambda_lock);}
@@ -260,6 +265,7 @@ typedef struct KNO_LAMBDA {
 typedef struct KNO_LAMBDA *kno_lambda;
 
 KNO_EXPORT int kno_record_source;
+KNO_EXPORT int kno_tail_max;
 
 #define KNO_SET_LAMBDA_SOURCE(lambda,src)                        \
   if (kno_record_source) {                               \

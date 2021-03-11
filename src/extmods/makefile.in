@@ -4,7 +4,7 @@ BRANCH=@KNO_BRANCH@
 
 %/.git:
 	@git clone git@github.com:beingmeta/kno-$(@D).git $(@D)
-	@cd $(@D); git checkout ${BRANCH};
+	@cd $(@D); git checkout ${BRANCH} || git checkout main;
 	@if test -d ../../lib/kno; then 				\
 	   cd  ../../lib/kno; 						\
 	   ln -sf ../../src/extmods/$(@D)/$(@D).${shared_suffix}	\

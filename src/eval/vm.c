@@ -738,15 +738,15 @@ static void reset_env_op(kno_lexenv env)
 static lispval docall(lispval fn,int n,kno_argvec args,kno_stack stack,
 		      int tail,int free_args)
 {
-  if ( (KNO_TYPEP(fn,kno_cprim_type)) &&
-       ( ((kno_function)fn)->fcn_profile == NULL) ) {
+  kno_lisp_type fntype = KNO_CONS_TYPEOF(fn);
+  if (fntype == kno_cprim_type) {
     struct KNO_CPRIM *prim = (kno_cprim) fn;
     if (free_args) {
       lispval result = cprim_call(prim->fcn_name,prim,n,args,stack);
       kno_decref_vec((lispval *)args,n);
       return result;}
     else return cprim_call(prim->fcn_name,prim,n,args,stack);}
-  else if (KNO_TYPEP(fn,kno_lambda_type))
+  else if (fntype == kno_lambda_type)
     return lambda_call(stack,(kno_lambda)fn,n,args,free_args,tail);
   else if (free_args) {
     lispval result = kno_dcall(stack,fn,n,args);
@@ -761,19 +761,22 @@ static lispval call_op(lispval fn_arg,int n,lispval exprs,
 		       kno_lexenv env,kno_stack stack,int tail)
 {
   lispval fn;
-  if (KNO_FCNIDP(fn_arg)) fn = kno_fcnid_ref(fn_arg);
-  else if (KNO_LEXREFP(fn_arg)) {
+  if (KNO_LEXREFP(fn_arg)) {
     fn = eval_lexref(fn_arg,env);
     if (KNO_CONSP(fn))
       kno_stackvec_push(&(stack->stack_refs),fn);
     else if (KNO_ABORTED(fn)) return fn;
     else NO_ELSE;}
   else fn = get_evalop(fn_arg,env,stack);
-  int nd_call = 0, prune_call = 1, ambig_fn =0;
+  if (KNO_FCNIDP(fn)) fn = kno_fcnid_ref(fn);
+  int nd_call = 0, prune_call = 1, ambig_fn =0, traced = 0, profiled = 0;
+  kno_function f = NULL;
   if ( (KNO_FUNCTIONP(fn)) ) {
-    kno_function f = (kno_function) fn;
+    f = (kno_function) fn;
     if (f->fcn_call & KNO_CALL_NDCALL) nd_call = 1;
-    if (f->fcn_call & KNO_CALL_XPRUNE) prune_call = 0;}
+    if (f->fcn_call & KNO_CALL_XPRUNE) prune_call = 0;
+    if (f->fcn_profile) profiled=1;
+    if (f->fcn_trace) traced=1;}
   else if (KNO_APPLICABLEP(fn)) {
     prune_call = 1; nd_call = 0;}
   else if (KNO_CHOICEP(fn)) {
@@ -795,8 +798,17 @@ static lispval call_op(lispval fn_arg,int n,lispval exprs,
     lispval result = kno_call(stack,fn,n,args);
     kno_decref_vec(args,n);
     return result;}
+  else NO_ELSE;
   if (rv&KNO_QCHOICE_ARGS) unwrap_qchoices(n,args);
-  return docall(fn,n,args,stack,tail,(rv&KNO_CONSED_ARGS));
+  KNO_STACK_SET_TAIL(stack,tail);
+  int free_args = (rv&KNO_CONSED_ARGS);
+  if ( (f == NULL) || (traced) || (profiled) ) {
+    if (free_args) {
+      lispval result = kno_dcall(stack,fn,n,args);
+      kno_decref_vec((lispval *)args,n);
+      return result;}
+    else return kno_dcall(stack,fn,n,args);}
+  else return docall(fn,n,args,stack,tail,free_args);
 }
 
 /* Sequence opcodes */
@@ -1228,7 +1240,7 @@ static lispval domultiply(lispval x,lispval y)
     return kno_type_error("number","plus",x);
   else if (RARELY(NOT_A_NUMBERP(x)))
     return kno_type_error("number","plus",y);
-  else return call2(kno_plus,x,y);
+  else return call2(kno_multiply,x,y);
 }
 
 static lispval dofloatdiv(lispval nval,lispval dval)
@@ -1246,7 +1258,7 @@ static lispval dofloatdiv(lispval nval,lispval dval)
 static int docompare(lispval opcode,lispval arg1,lispval arg2)
 {
   if ( (KNO_FIXNUMP(arg1)) && (KNO_FIXNUMP(arg2)) ) {
-    int v1=KNO_FIX2INT(arg1), v2=KNO_FIX2INT(arg2);
+    long long v1=KNO_FIX2INT(arg1), v2=KNO_FIX2INT(arg2);
     switch (opcode) {
     case KNO_NUMEQ_OPCODE: return (v1==v2);
     case KNO_GT_OPCODE: return (v1>v2);
@@ -1257,7 +1269,7 @@ static int docompare(lispval opcode,lispval arg1,lispval arg2)
       kno_seterr("BadOpcode",opname(opcode),"docompare",KNO_VOID);
       return -1;}}
   else if ( (KNO_FLONUMP(arg1)) && (KNO_FLONUMP(arg2)) ) {
-    int v1=KNO_FLONUM(arg1), v2=KNO_FLONUM(arg2);
+    double v1=KNO_FLONUM(arg1), v2=KNO_FLONUM(arg2);
     switch (opcode) {
     case KNO_NUMEQ_OPCODE: return (v1==v2);
     case KNO_GT_OPCODE: return (v1>v2);
@@ -1530,58 +1542,8 @@ static lispval handle_special_opcode(lispval opcode,lispval args,lispval expr,
     lispval expr   = KNO_CDR(args);
     return call_evalfn(evalfn,expr,env,_stack,tail);}
 
-#if 0
-  case KNO_APPLY_OPCODE: {
-    int len = 0;
-    lispval fn = KNO_CAR(args), scan = KNO_CDR(args);
-    if (KNO_PAIRP(scan)) {
-      lispval head = KNO_VOID, *tail = &head;
-      while (KNO_PAIRP(scan)) {
-	lispval expr = pop_arg(scan);
-	lispval value = eval_arg(expr,env,_stack);
-	if (KNO_ABORTED(value)) {
-	  kno_decref(head);
-	  return value;}
-	else if ( (KNO_EMPTYP(value)) && (prune) ) {
-	  kno_decref(head);
-	  return value;}
-	else if (scan==KNO_EMPTY_LIST) {
-	  if (KNO_EMPTY_LISTP(value)) {}
-	  else if (KNO_PAIRP(value)) {
-	    len += kno_list_length(value);
-	    *tail = value;}
-	  else if (KNO_VECTORP(value)) {
-	    lispval *elts = VEC_ELTS(value), *limit = elts+VEC_LEN(value);
-	    while (elts<limit) {
-	      lispval elt = *elts;
-	      lispval next = kno_init_pair(NULL,value,KNO_EMPTY_LIST);
-	      *tail = next;
-	      struct KNO_PAIR *p = (kno_pair)next;
-	      *tail = &(p->cdr);
-	      *elts++=KNO_FALSE;}
-	    len += VEC_LEN(value);
-	    kno_decref(value);}
-	  else {
-	    lispval err = kno_type_error("sequence","apply(tail)",NULL,value);
-	    kno_decref(head);
-	    return err;}}
-	else {
-	  lispval next = kno_init_pair(NULL,value,KNO_EMPTY_LIST);
-	  *tail = next; len++;
-	  struct KNO_PAIR *p = (kno_pair)next;
-	  *tail = &(p->cdr);}}
-      lispval argvec[len], *write=argvec, *limit=scan+len;
-      scan=head; while (write<limit) {
-	lispval val = KNO_CAR(scan); pop_arg(scan);
-	*write++=val;}
-      lispval result = docall(fn,n,(kno_argvec)argvec,_stack,tail,0);
-      kno_decref(head);
-      return result;}
-    else return kno_err("OpcodeError",opname(opcode),NULL,expr);}
-#else
   case KNO_APPLY_OPCODE:
     return kno_err("OpcodeError",opname(opcode),NULL,expr);
-#endif
 
   case KNO_ISA_OPCODE: return isa_op(args,env,_stack,0);
   case KNO_ISA_ALL_OPCODE: return isa_op(args,env,_stack,1);
@@ -1729,6 +1691,7 @@ lispval vm_eval(lispval op,lispval expr,
       op = KNO_CAR(expr);
       payload = KNO_CDR(expr);}
     else return doeval(expr,env,stack,0);}
+  KNO_STACK_SET_TAIL(stack,tail);
   if (USUALLY(KNO_OPCODEP(op))) {
     int opcode_class = KNO_OPCODE_CLASS(op);
     lispval old_source = stack->eval_source;

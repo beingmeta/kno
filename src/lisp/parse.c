@@ -299,7 +299,7 @@ int kno_add_constname(u8_string s,lispval value)
     if ( (added) && (added->kv_key != string ) ) {
       if (!(KNO_EQUALP(value,added->kv_val)))
 	u8_log(LOG_WARN,"ConstantConflict",
-	       "Conflicting values for constant #%s: #!0x%llx and #!0x%llx",
+	       "Conflicting values for constant #%s: #!%p and #!%p",
 	       _buf_name,added->kv_val,value);
       kno_decref(string);}
     u8_rw_unlock(&constnames_lock);
@@ -374,8 +374,9 @@ lispval kno_parse_atom(u8_string start,int len)
   else {
     lispval result;
     /* More numbers */
-    if ((isdigit(start[0])) || (start[0]=='+') ||
-        (start[0]=='-') || (start[0]=='.')) {
+    if ((isdigit(start[0])) ||
+	( ( (start[0]=='+') || (start[0]=='-') || (start[0]=='.') ) &&
+	  (isdigit(start[1])) )) {
       result=_kno_parse_number(start,-1);
       if (!(FALSEP(result))) return result;}
     /* Otherwise, it's a symbol */

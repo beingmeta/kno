@@ -4,21 +4,19 @@
 
 (module-export! '{main packpool})
 
-(use-module '{kno/mttools varconfig engine text/stringfmts logger})
+(use-module '{kno/mttools varconfig engine text/stringfmts optimize logger})
 (use-module '{knodb/countrefs})
 
 (define %loglevel (config 'loglevel %notice%))
 (define %optimize '{knodb/actions/packpool knodb knodb/countrefs})
 
-(define dtypev2 #f)
-(varconfig! dtypev2 dtypev2 config:boolean)
 (define isadjunct #f)
 (varconfig! isadjunct isadjunct config:boolean)
 (varconfig! adjunct isadjunct config:boolean)
 
 (define (getflags)
   (choice->list
-   (choice (tryif (config 'dtypev2 #f) 'dtypev2)
+   (choice ;; (tryif (config 'dtypev2 #f) 'dtypev2)
 	   (tryif (config 'B32 #f) 'B32)
 	   (tryif (config 'B40 #f) 'B40)
 	   (tryif (config 'B64 #f) 'B64)
@@ -45,7 +43,8 @@
 (define (make-new-pool filename old 
 		       (type (symbolize (config 'pooltype 'kpool)))
 		       (adjslot (CONFIG 'ADJSLOT (CONFIG 'ADJUNCTSLOT #f))))
-  (let ((metadata (or (poolctl old '%metadata) #[]))
+  (let ((metadata (or (poolctl old 'metadata) #[]))
+	(base-metadata (or (poolctl old '%metadata) #[]))
 	(xrefs (and (eq? type 'kpool) (compute-xrefs old))))
     (when (eq? type 'kpool)
       (if xrefs
@@ -55,10 +54,10 @@
 	(if xrefs
 	    (fileout (config 'savexrefs) (doseq (xref xrefs) (lineout xref)))
 	    (when (file-exists? (config 'savexrefs)) (remove-file (config 'savexrefs))))))
-    (when adjslot (store! metadata 'adjunct adjslot))
+    (when adjslot (store! base-metadata 'adjunct adjslot))
     (when (or adjslot (CONFIG 'ISADJUNCT))
-      (add! metadata 'format 'adjunct))
-    (drop! metadata 'makeopts)
+      (add! base-metadata 'format 'adjunct))
+    (drop! base-metadata 'makeopts)
     (make-pool filename
       (modify-frame 
 	  `#[type ,type
@@ -78,7 +77,6 @@
 	      (tryif (not (config 'symrefs #t config:boolean)) #f)))
 	'maxrefs (config 'maxrefs #{})
 	'compression (get-compression metadata type)
-	'dtypev2 (tryif (or dtypev2 (test metadata 'flags 'dtypev2)) 'dtypev2)
 	'isadjunct
 	(tryif (or adjslot
 		   (config 'ISADJUNCT 
@@ -86,7 +84,7 @@
 			       (test metadata 'flags 'isadjunct))
 			   config:boolean))
 	  'adjunct)
-	'metadata metadata
+	'metadata base-metadata
 	'register #t))))
 
 (define code-slots #default)
@@ -101,6 +99,7 @@
 	 (append cur (choice->vector (difference added (elts cur)))))))
 (define (get-compression metadata type)
   (or (and (config 'compression) (symbolize (config 'compression)))
+      (and (test metadata 'compression) (get metadata 'compression))
       (and type (test compression-type-map type)
 	   (symbolize (get compression-type-map type)))))
 
@@ -308,6 +307,7 @@
 
 (define (main (from #f) (to))
   (default! to from)
+  (when (config 'optimized #t) (optimize-module! %optimize))
   (if (and from (file-exists? from))
       (packpool from to)
       (usage)))

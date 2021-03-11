@@ -199,7 +199,7 @@ KNO_FASTOP int __kno_reset_stack(struct KNO_STACK *stack);
 #define KNO_STACK_DECREF_ARGS	 0x0010
 
 /* Reserved for the evaluator */
-#define KNO_STACK_REDUCE_LOOP	 0x0100
+#define KNO_STACK_TAIL_LOOP	 0x0100
 #define KNO_STACK_TAIL_POS	 0x0200
 #define KNO_STACK_VOID_VAL	 0x0400
 #define KNO_STACK_FREE_ENV	 0x0800

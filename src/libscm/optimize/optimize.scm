@@ -493,8 +493,7 @@
 ;;; The core loop
 
 (defambda (optimize expr env bound opts)
-  (logdebug |Optimize| expr " given " bound)
-  ;;(%watchptr optimize-expr)
+  (logdetail |Optimize| expr " given " bound)
   (cond ((and (ambiguous? expr) (use-opcodes? opts))
 	 (if (needs-eval? (qc expr))
 	     `(#OP_UNION ,@(forseq (each (choice->list expr))
@@ -615,7 +614,7 @@
 (defambda (optimize-variable expr env bound opts)
   (let ((lexref (get-lexref expr bound 0))
 	(use-opcodes (use-opcodes? opts)))
-    (debug%watch "OPTIMIZE/SYMBOL" expr lexref env bound)
+    (debug%watch "optimize-variable" expr lexref env bound)
     (if lexref
 	(if (use-lexrefs? opts) lexref expr)
 	(let* ((srcenv (wherefrom expr env))
@@ -713,6 +712,8 @@
 	 (from (and (symbol? head)
 		    (not (get-lexref head bound 0))
 		    (wherefrom head env))))
+    (detail%watch "optimize-expr" expr bound headvalue env head from)
+    (debug%watch "optimize-expr" expr bound headvalue from)
     (when (and from (module? env))
       (add! env '%symrefs expr)
       (when (and from (table? from))
@@ -758,8 +759,8 @@
 	   ;;  the call, replacing the head with shortcuts to the
 	   ;;  headvalue
 	   (optimize-apply headvalue (cdr expr) env bound opts expr from head))
-	  ((or  (%lexref? headvalue) (pair? head)
-		(symbol? head) (ambiguous? headvalue))
+	  ((or (%lexref? headvalue) (pair? head)
+	       (symbol? head) (ambiguous? headvalue))
 	   ;; If all of the head values are applicable, we optimize
 	   ;;  the call, replacing the head with shortcuts to the
 	   ;;  headvalue
@@ -784,6 +785,9 @@
   (default! module (procedure-module fn))
   (default! fname (or (procedure-name fn) (car expr)))
   (check-arguments fn (length args) expr)
+  (debug%watch "optimize-apply"
+    "fn" (or (procedure-name fn) fn)
+    args bound module fname)
   (let* ((n-args (length args))
 	 (optimizer (fcn/lookup procedure-optimizers fn))
 	 (predicate-type (fcn/lookup predicate-typemap fn))
@@ -820,9 +824,13 @@
 		       (forseq (expr args)
 			 (optimize expr env bound opts))))
 	       (make-fncall
-		(cond ((or (not module) (fail? fn) (test module '%nosubst fname))
+		(cond ((or (not module) (fail? fn)
+			   (test module '%nosubst fname)
+			   (test module '%nosubst (car expr)))
 		       fname)
-		      ((test module '%volatile fname) `(#OP_SYMREF ,module ,fname))
+		      ((or (test module '%volatile fname)
+			   (test module '%volatile (car expr)))
+		       `(#OP_SYMREF ,module ,fname))
 		      (else (get-headop fn fname n-args env bound opts)))
 		(cdr expr)
 		env bound opts))))

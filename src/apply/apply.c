@@ -22,6 +22,7 @@
 #include "apply_internals.h"
 
 #include <libu8/u8printf.h>
+#include <libu8/u8logging.h>
 #include <libu8/u8contour.h>
 #include <libu8/u8strings.h>
 
@@ -45,8 +46,9 @@
 
 #include <stdarg.h>
 
-u8_string kno_ndcallstack_type = "ndapply";
-u8_string kno_callstack_type   = "apply";
+#ifndef U8_MSG_NOTICE
+#define U8_MSG_NOTICE (-(U8_LOG_NOTICE))
+#endif
 
 u8_condition kno_NotAFunction=_("calling a non function");
 u8_condition kno_TooManyArgs=_("too many arguments");
@@ -109,6 +111,53 @@ KNO_FASTOP lispval function_call(u8_string name,kno_function f,
   else return f->fcn_handler.calln(n,argvec);
 }
 
+KNO_EXPORT int kno_trace_call(kno_stack,kno_function,int,kno_argvec);
+KNO_EXPORT int kno_trace_exit(kno_stack,lispval,kno_function,int,kno_argvec);
+
+static lispval traced_function_call(u8_string name,kno_function f,
+				    int n,kno_argvec argvec,
+				    struct KNO_STACK *stack)
+{
+  int call_width = f->fcn_call_width, trace_bits = f->fcn_trace;
+  const lispval *args, _args[call_width];
+  KNO_STACK_SET_OP(stack,(lispval)f,0);
+  if (f->fcn_filename) stack->stack_file = f->fcn_filename;
+  if (f->fcn_name) stack->stack_label = f->fcn_name;
+  if (call_width > n) {
+    lispval *write = (lispval *) (args = _args);
+    lspcpy(write,argvec,n); write=write+n;
+    kno_lspset(write,KNO_VOID,call_width-n);}
+  else args = argvec;
+  if (KNO_CONS_TYPEOF(f)!=kno_lambda_type)
+    /* lambdas handle their own tracing */
+    kno_trace_call(stack,f,n,args);
+  int rv = (f->fcn_typeinfo) ?
+    (check_argtypes(f,n,args)) :
+    (check_args((lispval)f,n,args));
+  if (RARELY(rv<0)) return KNO_ERROR;
+  lispval result = KNO_VOID;
+  if (RARELY(f->fcn_handler.fnptr == NULL)) {
+    /* There's no explicit method on this function object, so we use
+       the method associated with the lisp type (if there is one) */
+    int ctype = KNO_CONS_TYPEOF(f);
+    if (kno_applyfns[ctype])
+      result=kno_applyfns[ctype]((lispval)f,n,argvec);
+    else {
+      lispval lf = (lispval) f;
+      u8_string details = (f->fcn_name) ? (f->fcn_name) : kno_type_name(lf);
+      result=kno_err("NotApplicable","apply_fcn",details,lf);}}
+  else if (KNO_FCN_CPRIMP(f))
+    result=cprim_call(name,(kno_cprim)f,n,argvec,stack);
+  else if (FCN_XCALLP(f))
+    result=f->fcn_handler.xcalln(stack,f,n,argvec);
+  else result=f->fcn_handler.calln(n,argvec);
+  if ( (trace_bits&KNO_FCN_TRACE_EXIT) &&
+       (KNO_CONS_TYPEOF(f)!=kno_lambda_type) )
+    /* lambdas handle their own tracing */
+    kno_trace_exit(stack,result,f,n,args);
+  return result;
+}
+
 KNO_FASTOP lispval core_call(kno_stack stack,
 			     lispval fn,kno_function f,
 			     int n,kno_argvec argvec)
@@ -116,6 +165,8 @@ KNO_FASTOP lispval core_call(kno_stack stack,
   lispval result = KNO_VOID;
   int width = ( (f) && (f->fcn_call_width > n) )? (f->fcn_call_width) : (n);
   kno_lisp_type fntype = KNO_PRIM_TYPE(fn);
+  if ( (f) && (f->fcn_trace) )
+    result = traced_function_call(f->fcn_name,f,n,argvec,stack);
   if ( (f) && (fntype==kno_cprim_type) )
     result = cprim_call(f->fcn_name,(kno_cprim)f,n,argvec,stack);
   else if (f)
@@ -195,7 +246,7 @@ static lispval profiled_dcall
 (struct KNO_STACK *caller,lispval fn,
  int n,kno_argvec argvec)
 {
-  u8_string fname="apply";
+  u8_string fname="dcall";
   if (caller == NULL) caller = kno_stackptr;
 
   /* Make the call */
@@ -205,11 +256,18 @@ static lispval profiled_dcall
     struct KNO_PROFILE *profile = NULL;
     struct KNO_STACK stack = { 0 };
     KNO_SETUP_STACK((&stack),NULL);
+    if (KNO_FCNIDP(fn)) fn = kno_fcnid_ref(fn);
     int setup = setup_call_stack(&stack,fn,n,argvec,&f);
-    if ( (f) && (f->fcn_name) ) fname = f->fcn_name;
     if (setup < 0) return KNO_ERROR;
+    else if ( (f) && (f->fcn_name) )
+      fname = f->fcn_name;
+    else NO_ELSE;
     if (f) profile = f->fcn_profile;
-    if ( (profile) && (profile->prof_disabled) ) profile=NULL;
+    if ( (profile) &&
+	 ( (profile->prof_disabled) ||
+	   ( KNO_CONS_TYPEOF(f) == kno_lambda_type ) ) )
+      /* lambda calls handle their own profiling too */
+      profile=NULL;
     KNO_STACK_SET_CALLER(&stack,caller);
     KNO_PUSH_STACK(&stack);
 
@@ -813,6 +871,102 @@ KNO_EXPORT void kno_profile_start(struct rusage *before,struct timespec *start)
 #else
   return;
 #endif
+}
+
+/* Tracing */
+
+u8_string get_fcn_name(kno_function f,u8_byte buf[100])
+{
+  if (f->fcn_name)
+    return f->fcn_name;
+  else {
+    u8_string typename=kno_type_name((lispval)f);
+    return u8_bprintf(buf,"%s:%p",typename,f);}
+}
+
+static int arg_column = 20;
+
+static void output_args(u8_output out,kno_function f,int n,kno_argvec args)
+{
+  lispval *schema = f->fcn_schema;
+  int i = 0; while (i<n) {
+    lispval arg = args[i];
+    int start_pos = out->u8_write-out->u8_outbuf;
+    if (schema) {
+      u8_printf(out,"\n  #%d %q  ",i,schema[i]);
+      int cur_pos = out->u8_write-out->u8_outbuf;
+      if ((cur_pos-start_pos)<20) {
+	int j = 0, lim = 20-(cur_pos-start_pos);
+	while (j<lim) {u8_putc(out,' '); j++;}}}
+    else u8_printf(out,"\n  #%d  ",i);
+    if (KNO_CONSP(arg)) {
+      u8_string type_name = kno_type_name(arg);
+      int size = (KNO_CHOICEP(arg)) ? (KNO_CHOICE_SIZE(arg)) :
+	(KNO_SEQUENCEP(arg)) ? (kno_seq_length(arg)) : (-1);
+      if (size>=0)
+	u8_printf(out,"#!%p %s size=%d\n\t%q",arg,type_name,size,arg);
+      else u8_printf(out,"#!%p %s\n\t%q",arg,type_name,arg);}
+    else u8_printf(out,"%q",arg);
+    i++;}
+}
+
+KNO_EXPORT int kno_trace_call(kno_stack s,kno_function f,int n,kno_argvec args)
+{
+  int bits = f->fcn_trace;
+  u8_byte buf[100];
+  u8_string name = get_fcn_name(f,buf);
+  if ( (bits) & (KNO_FCN_TRACE_BREAK) ) {
+  breakpoint:
+    u8_log(LOGNOTICE,"CallEntryBreak",
+	   "%s[%d] @%p",name,n,s);}
+  if ( ( (bits) & (KNO_FCN_TRACE_ENTER) ) ) {
+    if ( ( (bits) & (KNO_FCN_TRACE_ARGS) ) && (n>0) && (args) ) {
+      U8_STATIC_OUTPUT(argsout,300);
+      output_args(&argsout,f,n,args);
+      u8_log(U8_MSG_NOTICE,"CallEnter",
+	     "%s[%d] @%p:%s",name,n,s,argsout.u8_outbuf);
+      u8_close_output(&argsout);}
+    else u8_log(U8_MSG_NOTICE,"CallEnter","%s[%d] @%p",name,n,s);}
+  return 0;
+}
+KNO_EXPORT int kno_trace_exit
+(kno_stack s,lispval r,kno_function f,int n,kno_argvec args)
+{
+  int bits = f->fcn_trace;
+  u8_byte buf[100];
+  u8_string name = get_fcn_name(f,buf);
+  if ( (bits) & (KNO_FCN_TRACE_BREAK) ) {
+  breakpoint:
+    u8_log(LOGNOTICE,"CallDoneBreak",
+	   "%s[%d] @%p",name,n,s);}
+  if ( ( (bits) & (KNO_FCN_TRACE_EXIT) ) ) {
+    if (CONSP(r)) {
+      u8_string type_name = kno_type_name(r);
+      int size = (KNO_CHOICEP(r)) ? (KNO_CHOICE_SIZE(r)) :
+	(KNO_SEQUENCEP(r)) ? (kno_seq_length(r)) : (-1);
+      if (size<0)
+	u8_log(U8_MSG_NOTICE,"CallExit",
+	       "From %s[%d] @%p result %s size=%d =>\n\t %q",
+	       name,n,s,type_name,size,r);
+      else u8_log(U8_MSG_NOTICE,"CallExit",
+		  "%s[%d] @%p result %s =>\n\t %q",
+		  name,n,s,type_name,r);}
+    else if (r == KNO_TAIL)
+      u8_log(U8_MSG_NOTICE,"TailReturn","From %s[%d] @%p",name,n,s);
+    else u8_log(U8_MSG_NOTICE,"CallExit",
+		"From %s[%d] @%p, result => %q",name,n,s,r);
+    if ( ( (bits) & (KNO_FCN_TRACE_ARGS) ) &&
+	 (!( (bits) & (KNO_FCN_TRACE_ENTER) )) &&
+	 (n>0) && (args)) {
+      U8_STATIC_OUTPUT(argsout,300);
+      output_args(&argsout,f,n,args);
+      if (r == KNO_TAIL)
+	u8_log(U8_MSG_NOTICE,"TailReturn","From %s[%d] @%p:%s",
+	       name,n,s,argsout.u8_outbuf);
+      else u8_log(U8_MSG_NOTICE,"Returning","From %s[%d] @%p:%s",
+		  name,n,s,argsout.u8_outbuf);
+      u8_close_output(&argsout);}}
+  return 0;
 }
 
 /* Initializations */

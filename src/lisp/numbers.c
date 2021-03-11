@@ -3825,6 +3825,183 @@ int kno_output_number(u8_output out,lispval num,int base)
   else return 0;
 }
 
+/* New number parser */
+
+static int copy_numstring(u8_byte *target,u8_string from,u8_string to)
+{
+  /* This elides separator characters */
+  u8_string scan = from; u8_byte *write=target;
+  int saw_digit = 0, saw_sep = 0;
+  while (scan<to) {
+    int c = u8_sgetc(&scan);
+    if (c=='_') {
+      if (!(saw_digit)) return -1;
+      else saw_sep = 1;
+      saw_digit=0;}
+    else if ( (c<0x80) && (isdigit(c)) ) {
+      *write++=c;
+      saw_digit=1;
+      saw_sep=0;}
+    else if (c<0x80)
+      *write++=c;
+    else return -1;}
+  if (saw_sep) return -1;
+  else return write-target;
+}
+
+#if 0
+KNO_EXPORT
+lispval kno_new_string2number(u8_string string,int base)
+{
+  int len = strlen(string);
+  if (string[0]=='#') {
+    switch (string[1]) {
+    case 'o': case 'O':
+      return kno_string2number(string+2,8);
+    case 'x': case 'X':
+      return kno_string2number(string+2,16);
+    case 'd': case 'D':
+      return kno_string2number(string+2,10);
+    case 'b': case 'B':
+      return kno_string2number(string+2,2);
+    case 'i': case 'I': {
+      lispval result = kno_string2number(string+2,base);
+      if (USUALLY(NUMBERP(result))) {
+        double dbl = todouble(result);
+        lispval inexresult = kno_init_flonum(NULL,dbl);
+        kno_decref(result);
+        return inexresult;}
+      else return KNO_FALSE;}
+    case 'e': case 'E': {
+      if (strchr(string,'.')) {
+        lispval num, den = KNO_INT(1);
+        u8_byte *copy = u8_strdup(string+2);
+        u8_byte *dot = strchr(copy,'.'), *scan = dot+1;
+        *dot='\0'; num = kno_string2number(copy,10);
+        if (RARELY(!(NUMBERP(num)))) {
+          u8_free(copy);
+          return KNO_FALSE;}
+        while (*scan)
+          if (isdigit(*scan)) {
+            lispval numx10 = kno_multiply(num,KNO_INT(10));
+            int uchar = *scan;
+            int numweight = u8_digit_weight(uchar);
+            lispval add_digit = KNO_INT(numweight);
+            lispval nextnum = kno_plus(numx10,add_digit);
+            lispval nextden = kno_multiply(den,KNO_INT(10));
+            kno_decref(numx10); kno_decref(num); kno_decref(den);
+            num = nextnum; den = nextden;
+            scan++;}
+          else if (strchr("sSeEfFlL",*scan)) {
+            int i = 0, exponent = strtol(scan+1,NULL,10);
+            if (exponent>=0)
+              while (i<exponent) {
+                lispval nextnum = kno_multiply(num,KNO_INT(10));
+                kno_decref(num); num = nextnum; i++;}
+            else {
+              exponent = -exponent;
+              while (i<exponent) {
+                lispval nextden = kno_multiply(den,KNO_INT(10));
+                kno_decref(den); den = nextden; i++;}}
+            break;}
+          else {
+            kno_seterr3(kno_InvalidNumericLiteral,"kno_string2number",string);
+            return KNO_PARSE_ERROR;}
+        return make_rational(num,den);}
+      else return kno_string2number(string+2,base);}
+    default:
+      kno_seterr3(kno_InvalidNumericLiteral,"kno_string2number",string);
+      return KNO_PARSE_ERROR;}}
+  else if ((strchr(string,'i')) || (strchr(string,'I'))) {
+    u8_byte *copy = u8_strdup(string);
+    u8_byte *iend, *istart; lispval real, imag;
+    iend = strchr(copy,'i');
+    if (iend == NULL) iend = strchr(copy,'I');
+    if (iend[1]!='\0') {u8_free(copy); return KNO_FALSE;}
+    else *iend='\0';
+    if ((*copy == '+') || (*copy =='-')) {
+      istart = strchr(copy+1,'+');
+      if (istart == NULL) istart = strchr(copy+1,'-');}
+    else {
+      istart = strchr(copy,'+');
+      if (istart == NULL) istart = strchr(copy,'-');}
+    if ((istart) && ((istart[-1]=='e') || (istart[-1]=='E'))) {
+      u8_byte *estart = istart;
+      istart = strchr(estart+1,'+');
+      if (istart == NULL) istart = strchr(estart+1,'-');}
+    if (istart == NULL) {
+      imag = kno_string2number(copy,base);
+      if (RARELY(!(NUMBERP(imag)))) {
+        kno_decref(imag); u8_free(copy); return KNO_FALSE;}
+      real = KNO_INT(0);}
+    else {
+      imag = kno_string2number(istart,base); *istart='\0';
+      if (RARELY(!(NUMBERP(imag)))) {
+        kno_decref(imag); u8_free(copy); return KNO_FALSE;}
+      real = kno_string2number(copy,base);
+      if (RARELY(!(NUMBERP(real)))) {
+        kno_decref(imag); kno_decref(real); u8_free(copy);
+        return KNO_FALSE;}}
+    u8_free(copy);
+    return make_complex(real,imag);}
+  else if (strchr(string,'/')) {
+    u8_byte *copy = u8_strdup(string);
+    u8_byte *slash = strchr(copy,'/');
+    lispval num, denom;
+    *slash='\0';
+    num = kno_string2number(copy,base);
+    if (FALSEP(num)) {u8_free(copy); return KNO_FALSE;}
+    denom = kno_string2number(slash+1,base);
+    if (FALSEP(denom)) {
+      kno_decref(num); u8_free(copy); return KNO_FALSE;}
+    u8_free(copy);
+    return make_rational(num,denom);}
+  else if (string[0]=='\0') return KNO_FALSE;
+  else if (((string[0]=='+')|| (string[0]=='-') ||
+            (isdigit(string[0])) ||
+            ((string[0]=='.') && (isdigit(string[1])))) &&
+           (strchr(string,'.'))) {
+    double flonum; u8_byte *end = NULL;
+    flonum = strtod(string,(char **)&end);
+    U8_CLEAR_ERRNO();
+    if ((end>string) && ((end-string) == len))
+      return kno_make_flonum(flonum);
+    else return KNO_FALSE;}
+  else if (strchr(string+1,'+'))
+    return KNO_FALSE;
+  else if (strchr(string+1,'-'))
+    return KNO_FALSE;
+  else {
+    lispval result;
+    long long fixnum, nbase = 0;
+    const u8_byte *start = string, *end = NULL;
+    if (string[0]=='0') {
+      if (string[1]=='\0') return KNO_INT(0);
+      else if ((string[1]=='x') || (string[1]=='X')) {
+        start = string+2; nbase = 16;}}
+    if ((base<0) && (nbase)) base = nbase;
+    else if (base<0) base = 10;
+    errno = 0;
+    fixnum = strtoll(start,(char **)&end,base);
+    U8_CLEAR_ERRNO();
+    if (!((end>string) && ((end-string) == len)))
+      return KNO_FALSE;
+    else if ((fixnum) &&
+             ((fixnum<KNO_MAX_FIXNUM) && (fixnum>KNO_MIN_FIXNUM)))
+      return KNO_INT(fixnum);
+    else if ((fixnum==0) && (end) && (*end=='\0'))
+      return KNO_INT(0);
+    else if ((errno) && (errno != ERANGE)) return KNO_FALSE;
+    else errno = 0;
+    if (!(base)) base = 10;
+    if (*string =='-')
+      result = parse_bigint(string+1,base,1);
+    else if (*string =='+')
+      result = parse_bigint(string+1,base,0);
+    else result = parse_bigint(start,base,0);
+    return result;}
+}
+#endif
 
 /* Initialization stuff */
 

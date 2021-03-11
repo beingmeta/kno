@@ -138,8 +138,7 @@ static ssize_t mmap_read_update(struct KNO_STREAM *stream)
       int rv = munmap(oldbuf,old_size);
       if (rv!=0)
         u8_logf(LOG_WARN,kno_munmap_failed,
-                "Couldn't unmap buffer for %s (0x%llx)",
-                stream->streamid,stream);}
+		"Couldn't unmap buffer for %s (%p)",stream->streamid,stream);}
     buf->buflen   = new_size;
     buf->buffer   = newbuf;
     buf->bufpoint = newbuf+point_off;
@@ -663,9 +662,8 @@ KNO_EXPORT void kno_close_stream(kno_stream s,int flags)
            (s->buf.out.bufwrite>s->buf.out.buffer)) {
     if (s->stream_fileno<0) {
       u8_logf(LOG_CRIT,_("StreamClosed"),
-              "Stream %s (0x%llx) was closed with %d bytes still buffered",
-              U8ALT(s->streamid,"somestream"),
-              KNO_LONGVAL(s),
+              "Stream %s (%p) was closed with %d bytes still buffered",
+              U8ALT(s->streamid,"somestream"),s,
               (s->buf.out.bufwrite-s->buf.out.buffer));}
     else kno_flush_stream(s);}
   else {}
@@ -706,14 +704,12 @@ KNO_EXPORT void kno_free_stream(kno_stream s)
   lispval sptr = (lispval)s;
   if (KNO_STATIC_CONSP(cons)) {
     u8_logf(LOG_WARN,_("FreeingStaticStream"),
-            "Attempting to free the static stream %s 0x%llx",
-            U8ALT(s->streamid,"somestream"),
-            KNO_LONGVAL(s));}
+            "Attempting to free the static stream %s %p",
+            U8ALT(s->streamid,"somestream"),s);}
   else if (KNO_CONS_REFCOUNT(cons)>1) {
     u8_logf(LOG_WARN,_("DanglingStreamPointers"),
-            "Freeing a stream with dangling pointers %s 0x%llx",
-            U8ALT(s->streamid,"somestream"),
-            KNO_LONGVAL(s));
+            "Freeing a stream with dangling pointers %s %p",
+            U8ALT(s->streamid,"somestream"),s);
     kno_decref(sptr);}
   else kno_decref(sptr);
 }

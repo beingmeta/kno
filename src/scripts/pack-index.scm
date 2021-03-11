@@ -2,5 +2,5 @@
 
 (use-module '{optimize knodb/actions/packindex})
 
-(optimize-modules! (get (get-module 'knodb/actions/packindex) '%optimize))
+(when (config 'optimized #t) (optimize-module! (get (get-module 'knodb/actions/packindex) '%optimize)))
 

@@ -135,14 +135,14 @@ typedef struct KNO_ARGINFO {
 #define KNO_FCN_FREE_SCHEMA     0x08
 #define KNO_FCN_DECREF_TYPEINFO 0x10
 
-#define KNO_FCN_TRACE_PROFILE 0x01
-#define KNO_FCN_TRACE_LOGGING 0x02
-#define KNO_FCN_TRACE_TRACEFN 0x04
-#define KNO_FCN_TRACE_BREAK   0x08
+#define KNO_FCN_TRACE_ENTER     0x01
+#define KNO_FCN_TRACE_EXIT      0x02
+#define KNO_FCN_TRACE_ARGS      0x04
+#define KNO_FCN_TRACE_CUSTOM    0x08
+#define KNO_FCN_TRACE_BREAK     0x10
 
 #define KNO_CALL_NDCALL  (KNO_CALL_XITER|KNO_CALL_XPRUNE)
 
-#define KNO_FCN_PROFILEP(f) ( ((f)->fcn_trace) & (KNO_FCN_TRACE_PROFILE) )
 #define KNO_FCN_LOGGEDP(f)  ( ((f)->fcn_trace) & (KNO_CALL_LOGGING) )
 #define KNO_FCN_TRACEDP(f)  ( ((f)->fcn_trace) & (KNO_CALL_TRACEFN) )
 #define KNO_FCN_BREAKP(f)   ( ((f)->fcn_trace) & (KNO_CALL_BREAK) )
@@ -176,6 +176,7 @@ struct KNO_FUNCTION {
 #define KNO_FCN_ATTRIBS(x) (((kno_function)x)->fcn_attribs)
 #define KNO_FCN_FCNID(x) (((kno_function)x)->fcn_schema)
 #define KNO_FCN_PROFILE(x) (((kno_function)x)->fcn_profile)
+#define KNO_FCN_PROFILEP(x) ((((kno_function)x)->fcn_profile)!=NULL)
 
 struct KNO_CPRIM {
   KNO_FUNCTION_FIELDS;
@@ -380,6 +381,15 @@ KNO_EXPORT lispval kno_dispatch_apply(struct KNO_STACK *stack,lispval handler,
 				      kno_dispatch_flags flags,
 				      int n_args,kno_argvec args);
 
+typedef int (*kno_function_tracefn)
+(lispval *,kno_function,int,kno_argvec,kno_stack,lispval *);
+KNO_EXPORT kno_function_tracefn kno_call_tracefn;
+
+KNO_EXPORT int kno_trace_call(kno_stack stack,kno_function f,
+			      int n,kno_argvec argvec);
+
+KNO_EXPORT int kno_trace_exit(kno_stack stack,lispval r,kno_function f,
+				int n,kno_argvec argvec);
 
 
 #define kno_send_flags kno_dispatch_flags

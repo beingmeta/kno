@@ -137,38 +137,59 @@ KNO_EXPORT void kno_set_app_env(kno_lexenv env)
     int modules_loaded = 0, files_loaded = 0;
     int modules_failed = 0, files_failed = 0;
     int inits_run = 0, inits_failed = 0;
-    lispval modules = kno_reverse(module_list);
-    {KNO_DOLIST(modname,modules) {
-	lispval module = kno_find_module(modname,0);
-	if (KNO_ABORTP(module)) {
-	  u8_log(LOG_WARN,"AppEnv/LoadModuleError",
-		 "Error loading module %q",modname);
-	  kno_clear_errors(1);
-	  modules_failed++;}
-	else {
-	  lispval used = kno_use_module(kno_app_env,module);
-	  if (KNO_ABORTP(used)) {
-	    u8_log(LOG_WARN,"AppEnv/UseModuleError",
-		   "Error using module %q",modname);
+    if (module_list != KNO_EMPTY_LIST) {
+      lispval modules = kno_reverse(module_list);
+      {KNO_DOLIST(modname,modules) {
+	  u8_log(LOGINFO,"AppEnv/Module","Using module %q",modname);
+	  lispval module = kno_find_module(modname,0);
+	  if (KNO_ABORTP(module)) {
+	    u8_log(LOG_ERR,"AppEnv/LoadModuleError",
+		   "Error loading module %q",modname);
 	    kno_clear_errors(1);
 	    modules_failed++;}
-	  else modules_loaded++;
-	  kno_decref(module);
-	  kno_decref(used);}}}
-    kno_decref(modules); modules=KNO_VOID;
-    lispval files = kno_reverse(loadfile_list);
-    {KNO_DOLIST(file,files) {
-	lispval loadval = kno_load_source(KNO_CSTRING(file),kno_app_env,NULL);
-	if (KNO_ABORTP(loadval)) {
-	  u8_log(LOG_WARN,"AppEnv/LoadFileError",
-		 "Error loading %s into the application environment",
-		 KNO_CSTRING(file));
-	  kno_clear_errors(1);
-	  files_failed++;}
-	else files_loaded++;
-	kno_decref(loadval);}}
-    kno_decref(files);
-    files=KNO_VOID;
+	  else {
+	    lispval used = kno_use_module(kno_app_env,module);
+	    if (KNO_ABORTP(used)) {
+	      u8_log(LOG_ERR,"AppEnv/UseModuleError",
+		     "Error using module %q",modname);
+	      kno_clear_errors(1);
+	      modules_failed++;}
+	    else modules_loaded++;
+	    kno_decref(module);
+	    kno_decref(used);}}
+	if (modules_failed)
+	  u8_log(LOGWARN,"Appenv/Modules",
+		 "Used %d modules (%d failed): %q",
+		 modules_loaded,modules_failed,modules);
+	else u8_log(LOGNOTICE,"Appenv/Modules","Used %d modules: %q",
+		    modules_loaded,modules);}
+      kno_decref(modules);}
+    else u8_log(LOGDEBUG,"Appenv/Modules","No modules specified");
+    if (loadfile_list != KNO_EMPTY_LIST) {
+      lispval files = kno_reverse(loadfile_list);
+      {KNO_DOLIST(file,files) {
+	  u8_log(LOGINFO,"AppEnv/Load","Loading file %q",file);
+	  double load_start = u8_elapsed_time();
+	  lispval loadval = kno_load_source(KNO_CSTRING(file),kno_app_env,NULL);
+	  if (KNO_ABORTP(loadval)) {
+	    u8_log(LOG_ERR,"AppEnv/LoadFileError",
+		   "Error loading %s into the application environment",
+		   KNO_CSTRING(file));
+	    kno_clear_errors(1);
+	    files_failed++;}
+	  else files_loaded++;
+	  double load_end = u8_elapsed_time();
+	  u8_log(LOGWARN,"AppEnv/Load","Loaded file %q in %fs",
+		 file,load_end-load_start);
+	  kno_decref(loadval);}}
+      if (files_failed)
+	u8_log(LOGWARN,"Appenv/Load",
+	       "Loaded %d files (%d failed): %q",
+	       files_loaded,files_failed,files);
+      else u8_log(LOGNOTICE,"Appenv/Load","Loaded %d files: %q",
+		  files_loaded,files);
+      kno_decref(files);}
+    else u8_log(LOGDEBUG,"Appenv/Modules","No modules specified");
     lispval inits = init_list;
     {KNO_DOLIST(init,inits) {
 	int rv = run_init(init,env,appinit);
@@ -177,7 +198,7 @@ KNO_EXPORT void kno_set_app_env(kno_lexenv env)
 	else NO_ELSE;}}
     kno_decref(inits); inits=KNO_VOID;
     kno_pop_stack(appinit);
-    u8_log(LOG_INFO,"AppEnv",
+    u8_log(LOG_NOTICE,"AppEnv",
 	   "%d:%d:%d modules:files:inits loaded/run, "
 	   "%d:%d:%d modules:files:init failed",
 	   modules_loaded,files_loaded,inits_run,
@@ -255,19 +276,24 @@ static u8_string get_next(u8_string pt,u8_string seps)
   return closest;
 }
 
-static int add_modname(lispval modname)
+static int add_modname(lispval modname,int missing_ok)
 {
   if (kno_app_env) {
     lispval module = kno_find_module(modname,0);
     if (KNO_ABORTP(module))
       return -1;
     else if ( (KNO_VOIDP(module)) || (KNO_FALSEP(module)) ) {
-      kno_seterr(kno_NoSuchModule,"add_modname",
-		 (KNO_SYMBOLP(modname)) ? (KNO_SYMBOL_NAME(modname)) :
-		 (KNO_STRINGP(modname)) ? (KNO_CSTRING(modname)) :
-		 (NULL),
-		 modname);
-      return -1;}
+      if (missing_ok) {
+	u8_log(LOGWARN,"AppEnv/MissingModule",
+	       "Couldn't resolve the module named %q",modname);
+	return 0;}
+      else {
+	kno_seterr(kno_NoSuchModule,"add_modname",
+		   (KNO_SYMBOLP(modname)) ? (KNO_SYMBOL_NAME(modname)) :
+		   (KNO_STRINGP(modname)) ? (KNO_CSTRING(modname)) :
+		   (NULL),
+		   modname);
+	return -1;}}
     kno_use_module(kno_app_env,module);
     module_list = kno_conspair(modname,module_list);
     kno_incref(modname);
@@ -280,6 +306,11 @@ static int add_modname(lispval modname)
     return 0;}
 }
 
+static int opt_pairp(lispval x)
+{
+  return ( (PAIRP(x)) && (KNO_EQ(KNO_CAR(x),KNOSYM_OPTIONAL)) );
+}
+
 static int module_config_set(lispval var,lispval vals,void *d)
 {
   int loads = 0; DO_CHOICES(val,vals) {
@@ -290,10 +321,11 @@ static int module_config_set(lispval var,lispval vals,void *d)
     if (VOIDP(modname)) {
       kno_seterr(kno_TypeError,"module_config_set","module",val);
       return -1;}
-    else if ( (PAIRP(modname)) && (KNO_EQ(KNO_CAR(modname),KNOSYM_OPTIONAL)) ) {
+    else if (opt_pairp(modname)) {
+      /* Ignore errors */
       KNO_DOLIST(elt,KNO_CDR(modname)) {
 	if ( (SYMBOLP(elt)) || (STRINGP(elt)) ) {
-	  int added = add_modname(elt);
+	  int added = add_modname(elt,1);
 	  if (added>0) loads++;
 	  else if (added<0) {
 	    u8_pop_exception();}}}
@@ -301,18 +333,18 @@ static int module_config_set(lispval var,lispval vals,void *d)
     else if (PAIRP(modname)) {
       KNO_DOLIST(elt,modname) {
 	if ( (SYMBOLP(elt)) || (STRINGP(elt)) ) {
-	  int added = add_modname(elt);
+	  int added = add_modname(elt,0);
 	  if (added>0) loads++;
 	  else if (added<0) {
 	    kno_decref(modname);
 	    return -1;}}
-	else if ( (PAIRP(elt)) && (KNO_CAR(elt)==KNOSYM_OPTIONAL) ) {
+	else if (opt_pairp(elt)) {
 	  KNO_DOLIST(e,KNO_CDR(elt)) {
 	    if ( (SYMBOLP(e)) || (STRINGP(e)) ) {
-	      int added = add_modname(elt);
+	      int added = add_modname(elt,1);
+	      /* Ignore errors */
 	      if (added>0) loads++;
-	      else if (added<0) {
-		u8_pop_exception();}}}}
+	      else if (added<0) {u8_pop_exception();}}}}
 	else {
 	  kno_seterr(kno_TypeError,"module_config_set","module",elt);
 	  kno_decref(modname);
@@ -321,18 +353,25 @@ static int module_config_set(lispval var,lispval vals,void *d)
     else if (CHOICEP(modname)) {
       KNO_DO_CHOICES(elt,modname) {
 	if ( (SYMBOLP(elt)) || (STRINGP(elt)) ) {
-	  int added = add_modname(elt);
+	  int added = add_modname(elt,0);
 	  if (added>0) loads++;
 	  else if (added<0) {
 	    kno_decref(modname);
 	    return -1;}
 	  else NO_ELSE;}
+	else if (opt_pairp(elt)) {
+	  KNO_DOLIST(e,KNO_CDR(elt)) {
+	    if ( (SYMBOLP(e)) || (STRINGP(e)) ) {
+	      int added = add_modname(elt,1);
+	      /* Ignore errors */
+	      if (added>0) loads++;
+	      else if (added<0) {u8_pop_exception();}}}}
 	else {
 	  kno_seterr(kno_TypeError,"module_config_set","module",elt);
 	  return -1;}}
       kno_decref(modname);}
     else if ( (SYMBOLP(modname)) || (STRINGP(modname)) ) {
-      int added = add_modname(modname);
+      int added = add_modname(modname,0);
       if (added > 0) loads++;
       else if (added < 0) {
 	kno_decref(modname);

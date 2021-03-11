@@ -16,6 +16,7 @@ lispval eval_choice(lispval expr,kno_lexenv env,kno_stack stack);
 int eval_args(int argc,lispval *into,lispval exprs,
 	      kno_lexenv env,kno_stack stack,
 	      int prune);
+lispval eval_lambda(kno_lambda into,kno_lambda lambda,kno_lexenv env);
 
 lispval lisp_eval(lispval head,lispval expr,
 			kno_lexenv env,kno_stack stack,
@@ -250,10 +251,12 @@ lispval eval_body(lispval body,kno_lexenv env,kno_stack stack,
     lispval head = KNO_CAR(body);
     if (KNO_OPCODEP(head))
       return vm_eval(head,body,env,stack,tail);
+    KNO_STACK_SET_TAIL(stack,0);
     lispval scan = body; while (PAIRP(scan)) {
       lispval subex = pop_arg(scan);
-      if (KNO_EMPTY_LISTP(scan))
-	return doeval(subex,env,stack,tail);
+      if (KNO_EMPTY_LISTP(scan)) {
+	KNO_STACK_SET_TAIL(stack,tail);
+	return doeval(subex,env,stack,tail);}
       else if (PAIRP(scan)) {
 	lispval v = doeval(subex,env,stack,0);
 	if (KNO_IMMEDIATEP(v)) {

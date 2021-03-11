@@ -609,6 +609,7 @@ lispval call_evalfn(lispval evalop,lispval expr,kno_lexenv env,
   int notail = handler->evalfn_notail;
   lispval result = KNO_VOID;
   if (notail) {KNO_STACK_SET_TAIL(stack,0);}
+  else {KNO_STACK_SET_TAIL(stack,tail);}
   result = handler->evalfn_handler(expr,env,stack);
   return result;
 }
@@ -639,9 +640,10 @@ lispval lisp_eval(lispval head,lispval expr,
   if (KNO_OPCODEP(head))
     return vm_eval(head,expr,env,stack,tail);
   lispval result = KNO_VOID, source = expr, op = head;
+  KNO_STACK_SET_BIT(stack,KNO_STACK_TAIL_POS,tail);
   KNO_START_EVAL(_stack,"pusheval",expr,env,stack);
  entry:
-  KNO_STACK_SET_BIT(_stack,KNO_STACK_TAIL_POS,tail);
+  KNO_STACK_SET_BIT(stack,KNO_STACK_TAIL_POS,tail);
   _stack->eval_source = source;
   if (KNO_FCNIDP(head)) op = kno_fcnid_ref(head);
   else op = get_evalop(head,env,_stack);
@@ -699,6 +701,7 @@ lispval eval_apply(lispval fn,lispval exprs,
   stack->stack_width = width;
   stack->stack_argc = 0;
 
+  stack->stack_origin = "eval_apply";
   stack->stack_label = (f) ? (f->fcn_name) :
     (fntype == kno_opcode_type) ? (opcode_name(fn)) :
     (kno_type2name(fntype));
@@ -721,6 +724,10 @@ lispval eval_apply(lispval fn,lispval exprs,
   int qchoice_args = (U8_BITP(arg_info,KNO_QCHOICE_ARGS));
   int decref_args = U8_BITP(arg_info,KNO_CONSED_ARGS);
   int need_iter = (iter_args) && (choice_args);
+
+  if ( (need_iter) || (RARELY(CHOICEP(fn))) ) {
+    KNO_STACK_SET_TAIL(stack,0);}
+  else {KNO_STACK_SET_TAIL(stack,tail);}
 
   if ( (!(need_iter)) && (qchoice_args)) unwrap_qchoices(n_args,argbuf);
 
@@ -1074,7 +1081,7 @@ static lispval badp_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     else if ( ( v == VOID ) || ( v == KNO_UNBOUND ) )
       return KNO_TRUE;
     else if  ( (v == KNO_NULL) || (! (KNO_CHECK_PTR(v)) ) ) {
-      u8_log(LOG_WARN,kno_BadPtr,"Bad pointer value 0x%llx for %q",v,to_eval);
+      u8_log(LOG_WARN,kno_BadPtr,"Bad pointer value %p for %q",v,to_eval);
       return KNO_TRUE;}
     else return KNO_FALSE;}
   else {
@@ -1083,7 +1090,7 @@ static lispval badp_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     else if ( ( v == VOID ) || ( v == KNO_UNBOUND ) )
       return KNO_TRUE;
     else if  ( (v == KNO_NULL) || (! (KNO_CHECK_PTR(v)) ) ) {
-      u8_log(LOG_WARN,kno_BadPtr,"Bad pointer value 0x%llx for %q",v,to_eval);
+      u8_log(LOG_WARN,kno_BadPtr,"Bad pointer value %p for %q",v,to_eval);
       return KNO_TRUE;}
     else {
       kno_decref(v);

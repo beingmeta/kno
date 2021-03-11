@@ -302,9 +302,8 @@ KNO_FASTOP int kno_lock_stream(kno_stream s)
   if (s->stream_locker == tid) {
     u8_string id = s->streamid;
     u8_log(LOG_CRIT,"RecursiveStreamLock",
-           "Recursively locking stream %s%s0x%llx",
-           ((id)?(id):(U8SNUL)),((id)?((u8_string)" "):(U8SNUL)),
-           (U8_PTR2INT(s)));
+           "Recursively locking stream %s%s%p",
+           ((id)?(id):(U8SNUL)),((id)?((u8_string)" "):(U8SNUL)),s);
     u8_seterr("RecursiveStreamLock","kno_lock_stream",id);
     return -1;}
   else {
@@ -341,9 +340,9 @@ KNO_FASTOP int kno_unlock_stream(kno_stream s)
   if (tid != s->stream_locker) {
     u8_string id = s->streamid;
     u8_log(LOG_CRIT,"BadStreamUnlock",
-           "Stream %s 0x%llx is owned by T%lld, not current T%lld",
+           "Stream %s %p is owned by T%lld, not current T%lld",
            ((id)?(id):(U8SNUL)),((id)?((u8_string)" "):(U8SNUL)),
-           (U8_PTR2INT(s)),s->stream_locker,tid);
+	   s,s->stream_locker,tid);
     u8_seterr("BadStreamUnlock","kno_unlock_stream",s->streamid);
     return -1;}
   s->stream_locker = 0;

@@ -69,10 +69,8 @@ static void recycle_pathstore(struct KNO_RAW_CONS *c)
 static int unparse_pathstore(u8_output out,lispval x)
 {
   kno_pathstore ps = (kno_pathstore) x;
-  u8_printf(out,"#<PATHSTORE %s (%s) #!0x%llx>",
-	    ps->knops_id,
-	    ps->knops_handlers->typeid,
-	    (kno_ptrval)ps);
+  u8_printf(out,"#<PATHSTORE %s (%s) #!%p>",
+	    ps->knops_id,ps->knops_handlers->typeid,ps);
   return 1;
 }
 

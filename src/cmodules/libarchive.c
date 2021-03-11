@@ -106,9 +106,8 @@ static lispval new_archive(lispval spec,lispval opts)
     status = archive_read_open_memory
       (archive,((void *)KNO_PACKET_DATA(spec)),KNO_PACKET_LENGTH(spec));
     if (status == ARCHIVE_OK)
-      use_spec = u8_mkstring("%lldB@0x%llx",
-			     KNO_PACKET_LENGTH(spec),
-			     KNO_LONGVAL( KNO_PACKET_DATA (spec) ));}
+      use_spec = u8_mkstring
+	("%lldB@%p",KNO_PACKET_LENGTH(spec),KNO_PACKET_DATA(spec));}
   else {
     kno_seterr("InvalidArchiveSpec","new_archive",
 	       archive_error_string(archive),spec);

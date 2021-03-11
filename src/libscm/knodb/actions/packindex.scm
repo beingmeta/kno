@@ -4,7 +4,7 @@
 
 (module-export! '{packindex main})
 
-(use-module '{varconfig logger text/stringfmts kno/mttools})
+(use-module '{varconfig logger text/stringfmts optimize kno/mttools})
 (use-module '{knodb/indexes})
 
 (define %loglevel (config 'loglevel %notice%))
@@ -108,6 +108,7 @@
 (define (main (in #f) (out))
   (default! out in)
   (when (overlaps? out '{"inplace" "-"}) (set! out in))
+  (when (config 'optimized #t) (optimize-module! %optimize))
   (packindex in out))
 
 (define configs-done #f)

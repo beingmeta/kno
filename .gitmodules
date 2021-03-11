@@ -4,20 +4,26 @@
 [submodule "tests"]
 	path = tests
 	url = git@github.com:beingmeta/kno-tests.git
-	branch = main
+	update = merge
+	branch = edge
 [submodule "src/stdmods"]
 	path = src/stdmods
 	url = git@github.com:beingmeta/stdmods.git
-	branch = main
+	update = merge
+	branch = edge
 [submodule "src/brico"]
 	path = src/brico
 	url = git@github.com:beingmeta/brico.git
-	branch = main
+	update = merge
+	branch = edge
 [submodule "src/textmods"]
 	path = src/textmods
 	url = git@github.com:beingmeta/textmods
-	branch = main
+	update = merge
+	branch = edge
 [submodule "src/webmods"]
 	path = src/webmods
 	url = git@github.com:beingmeta/webmods
-	branch = main
+	update = merge
+	branch = edge
+

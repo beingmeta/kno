@@ -3759,9 +3759,7 @@ static lispval copy_hashtable(lispval table,int deep)
 static int unparse_hashtable(u8_output out,lispval x)
 {
   struct KNO_HASHTABLE *ht=KNO_XHASHTABLE(x);
-  u8_printf(out,"#<HASHTABLE %d/%d #!0x%llx>",
-            ht->table_n_keys,ht->ht_n_buckets,
-            (KNO_LONGVAL( x)));
+  u8_printf(out,"#<HASHTABLE %d/%d #!%p>",ht->table_n_keys,ht->ht_n_buckets,x);
   return 1;
 }
 

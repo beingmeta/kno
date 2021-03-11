@@ -89,11 +89,7 @@ KNO_EXPORT void _kno_stack_push_error(kno_stack stack,u8_context loc)
     (caller > kno_stackptr) ? ("CallerNotCurrent(push)") :
     ("OddStackError(push)");
   u8_log(LOGCRIT,cond,
-	 "Push stack 0x%llx; caller 0x%llx; stackptr 0x%llx @ %s",
-	 KNO_LONGVAL(stack),
-	 KNO_LONGVAL(caller),
-	 KNO_LONGVAL(cur),
-	 loc);
+	 "Push stack %p; caller %p; stackptr %p @ %s",stack,caller,cur,loc);
   u8_raise(cond,loc,NULL);
 }
 
@@ -109,11 +105,7 @@ KNO_EXPORT void _kno_stack_pop_error(kno_stack stack,u8_context loc)
     (stack > kno_stackptr) ? ("FrameNotCurrent(pop)") :
     ("OddStackError(pop)");
   u8_log(LOGCRIT,cond,
-	 "Pop stack 0x%llx; caller 0x%llx; stackptr 0x%llx @ %s",
-	 KNO_LONGVAL(stack),
-	 KNO_LONGVAL(caller),
-	 KNO_LONGVAL(cur),
-	 loc);
+	 "Pop stack %p; caller %p; stackptr %p @ %s",stack,caller,cur,loc);
   u8_raise(cond,loc,NULL);
 }
 

@@ -281,7 +281,7 @@ static lispval read_bytes(lispval stream,lispval n,lispval pos)
     int rv = munmap(mapbuf,map_len);
     if (rv<0) {
       u8_log(LOG_CRIT,kno_failed_unmap,
-	     "Couldn't unmap buffer for %s (0x%llx)",ds->streamid,ds);}
+	     "Couldn't unmap buffer for %s (%p)",ds->streamid,ds);}
     else {
       if (VOIDP(pos)) kno_setpos(ds,filepos+n_bytes);
       return kno_init_packet(NULL,n_bytes,bytes);}}

@@ -124,9 +124,8 @@ static void recycle_consblock(struct KNO_RAW_CONS *c)
 static int unparse_consblock(struct U8_OUTPUT *out,lispval x)
 {
   struct KNO_CONSBLOCK *cb = kno_consptr(struct KNO_CONSBLOCK *,x,kno_consblock_type);
-  u8_printf(out,"#<CONSBLOCK 0x%llx+%lld>",
-            KNO_LONGVAL((cb->consblock_conses)),
-            KNO_LONGVAL((cb->consblock_len)));
+  u8_printf(out,"#<CONSBLOCK %p+%lld>",
+	    (cb->consblock_conses),KNO_LONGVAL((cb->consblock_len)));
   return 1;
 }
 
