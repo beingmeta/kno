@@ -1246,7 +1246,7 @@ static lispval dofloatdiv(lispval nval,lispval dval)
 static int docompare(lispval opcode,lispval arg1,lispval arg2)
 {
   if ( (KNO_FIXNUMP(arg1)) && (KNO_FIXNUMP(arg2)) ) {
-    int v1=KNO_FIX2INT(arg1), v2=KNO_FIX2INT(arg2);
+    long long v1=KNO_FIX2INT(arg1), v2=KNO_FIX2INT(arg2);
     switch (opcode) {
     case KNO_NUMEQ_OPCODE: return (v1==v2);
     case KNO_GT_OPCODE: return (v1>v2);
@@ -1257,7 +1257,7 @@ static int docompare(lispval opcode,lispval arg1,lispval arg2)
       kno_seterr("BadOpcode",opname(opcode),"docompare",KNO_VOID);
       return -1;}}
   else if ( (KNO_FLONUMP(arg1)) && (KNO_FLONUMP(arg2)) ) {
-    int v1=KNO_FLONUM(arg1), v2=KNO_FLONUM(arg2);
+    double v1=KNO_FLONUM(arg1), v2=KNO_FLONUM(arg2);
     switch (opcode) {
     case KNO_NUMEQ_OPCODE: return (v1==v2);
     case KNO_GT_OPCODE: return (v1>v2);
