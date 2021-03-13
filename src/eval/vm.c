@@ -1228,7 +1228,7 @@ static lispval domultiply(lispval x,lispval y)
     return kno_type_error("number","plus",x);
   else if (RARELY(NOT_A_NUMBERP(x)))
     return kno_type_error("number","plus",y);
-  else return call2(kno_plus,x,y);
+  else return call2(kno_multiply,x,y);
 }
 
 static lispval dofloatdiv(lispval nval,lispval dval)
