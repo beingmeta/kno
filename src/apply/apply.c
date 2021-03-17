@@ -875,15 +875,6 @@ KNO_EXPORT void kno_profile_start(struct rusage *before,struct timespec *start)
 
 /* Tracing */
 
-u8_string get_fcn_name(kno_function f,u8_byte buf[100])
-{
-  if (f->fcn_name)
-    return f->fcn_name;
-  else {
-    u8_string typename=kno_type_name((lispval)f);
-    return u8_bprintf(buf,"%s:%p",typename,f);}
-}
-
 static int arg_column = 20;
 
 static void output_args(u8_output out,kno_function f,int n,kno_argvec args)
@@ -914,7 +905,8 @@ KNO_EXPORT int kno_trace_call(kno_stack s,kno_function f,int n,kno_argvec args)
 {
   int bits = f->fcn_trace;
   u8_byte buf[100];
-  u8_string name = get_fcn_name(f,buf);
+  u8_string name = (f->fcn_name) ? (f->fcn_name) :
+    (u8_bprintf(buf,"%s:%p",kno_type_name((lispval)f),f));
   if ( (bits) & (KNO_FCN_TRACE_BREAK) ) {
   breakpoint:
     u8_log(LOGNOTICE,"CallEntryBreak",
@@ -934,7 +926,8 @@ KNO_EXPORT int kno_trace_exit
 {
   int bits = f->fcn_trace;
   u8_byte buf[100];
-  u8_string name = get_fcn_name(f,buf);
+  u8_string name = (f->fcn_name) ? (f->fcn_name) :
+    (u8_bprintf(buf,"%s:%p",kno_type_name((lispval)f),f));
   if ( (bits) & (KNO_FCN_TRACE_BREAK) ) {
   breakpoint:
     u8_log(LOGNOTICE,"CallDoneBreak",
