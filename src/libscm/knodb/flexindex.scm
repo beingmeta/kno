@@ -80,9 +80,23 @@
 	       'keyslot (getopt flex-opts 'keyslot)
 	       'register (getopt opts 'register #t)
 	       'background #f)
-	    . ,opts)))
-    (try (get flex-indexes refpath)
-	 (let* ((indexes (open-index (strip-prefix files full-prefix) partition-opts))
+	    . ,opts))
+	 (aggregate-opts
+	  `(,(frame-create #f
+	       'label (getopt flex-opts 'label spec)
+	       'source (if (file-exists? spec) spec {})
+	       'canonical (if (file-exists? spec) (realpath spec) {})
+	       'keyslot (getopt flex-opts 'keyslot)
+	       'register (getopt opts 'register #t)
+	       'background #f)
+	    . ,flex-opts)))
+    (try (tryif (getopt opts 'justfront)
+	   (get flex-indexes `(FRONT ,refpath)))
+	 (get flex-indexes refpath)
+	 (let* ((indexes (if (getopt opts 'justfront)
+			     (open-index (find-front (strip-prefix files full-prefix) partition-opts)
+			       partition-opts)
+			     (open-index (strip-prefix files full-prefix) partition-opts)))
 		(keyslots {(get-keyslot indexes) (getopt partition-opts 'keyslot {})})
 		(writable (reject indexes get-readonly))
 		(keyslot (if (fail? keyslots)
@@ -105,17 +119,26 @@
 			   (make-front fullpath
 				       (if (fail? serials) 0 (1+ (largest serials)))
 				       (try (largest indexes get-serial) #f)
-				       new-partition-opts)))
+				       new-partition-opts
+				       spec)))
 		  (aggregate
 		   (if (and (singleton? (choice indexes front)) (getopt opts 'readonly))
 		       (choice indexes front include)
-		       (make-aggregate-index (choice indexes front include) flex-opts))))
+		       (make-aggregate-index (choice indexes front include) aggregate-opts))))
+	     (lognotice |Flexindex| 
+	       "Opened flexindex " spec
+	       " with " ($count (|| indexes) "partition")
+	       (if (exists? front)
+		   (printout " and \nfront " front)
+		   " and no front (readonly)"))
 	     (when keyslot (indexctl aggregate 'keyslot keyslot))
 	     (if (and (exists? front) front)
 		 (indexctl aggregate 'props 'front front)
 		 (indexctl aggregate 'readonly #t))
 	     (store! flex-indexes
-		 (glom {fullpath (realpath fullpath)} {".flexindex" ""})
+		 (if (getopt opts 'justfront)
+		     (cons 'FRONT (glom {fullpath (realpath fullpath)} {".flexindex" ""}))
+		     (glom {fullpath (realpath fullpath)} {".flexindex" ""}))
 	       aggregate)
 	     aggregate)))))
 
@@ -145,7 +168,29 @@
 	  (set+! candidates index))))
     (pick-one (smallest candidates index-file-size))))
 
-(define (make-front fullpath serial model opts)
+(defambda (find-front files opts)
+  (let ((maxsize (getopt opts 'maxsize))
+	(maxload (getopt opts 'maxload))
+	(maxkeys (getopt opts 'maxkeys))
+	(candidates {}))
+    (do-choices (file files)
+      (when (file-writable? file)
+	(let* ((index (open-index file (cons [register #f] opts)))
+	       (filesize (index-file-size index))
+	       (keycount (indexctl index 'keycount))
+	       (buckets (indexctl index 'capacity))
+	       (maxsize (opt-max index 'maxsize maxsize))
+	       (maxkeys (opt-max index 'maxkeys maxkeys))
+	       (maxload (or (opt-max index 'maxload maxload) 1.0))
+	       (load (/~ (+ keycount (getopt opts 'addkeys 0))
+			 buckets)))
+	  (unless (or (and maxsize (> filesize maxsize))
+		      (and maxkeys (> keycount maxkeys))
+		      (and maxload (> load maxload)))
+	    (set+! candidates file)))))
+    (pick-one (smallest candidates file-size))))
+
+(define (make-front fullpath serial model opts parent)
   (let* ((path (mkpath (dirname fullpath)
 		       (glom (basename fullpath) "." (padnum serial 3) ".index")))
 	 (make-opts (get-make-opts fullpath model opts))
@@ -156,7 +201,7 @@
     (when index
       (logwarn |NewPartition|
 	"Created new flexindex partition " (index-source index) " with "
-	($count (dbctl index 'metadata 'buckets) "bucket") " for " fullpath
+	($count (dbctl index 'metadata 'buckets) "bucket") " for " parent
 	"\n" index))
     (tryif index index)))
 

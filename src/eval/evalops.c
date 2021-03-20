@@ -225,7 +225,7 @@ static lispval callcc(lispval proc)
   f->fcn_call_width = f->fcn_arity = 1;
   f->fcn_min_arity = 1;
   f->fcn_arginfo_len = 0;
-  f->fcn_schema = NULL;
+  f->fcn_argnames = NULL;
   f->fcn_handler.xcalln = call_continuation;
   f->fcn_typeinfo = NULL;
   f->fcn_defaults = NULL;

@@ -44,7 +44,7 @@ struct KNO_CONFIG_HANDLER *config_handlers = NULL;
 
 static lispval configuration_table;
 static lispval path_macro, env_macro, config_macro, now_macro;
-static lispval glom_macro, source_macro;
+static lispval source_macro;
 
 static u8_mutex config_lookup_lock;
 static u8_mutex config_register_lock;
@@ -1178,7 +1178,6 @@ void kno_init_config_c()
   u8_init_mutex(&config_register_lock);
 
   path_macro = kno_intern("#path");
-  glom_macro = kno_intern("#glom");
   config_macro = kno_intern("#config");
   now_macro = kno_intern("#now");
   env_macro = kno_intern("#env");

@@ -94,6 +94,7 @@ KNO_FASTOP lispval function_call(u8_string name,kno_function f,
   int rv = (f->fcn_typeinfo) ?
     (check_argtypes(f,n,args)) :
     (check_args((lispval)f,n,args));
+  U8_PAUSEPOINT();
   if (RARELY(rv<0)) return KNO_ERROR;
   if (RARELY(f->fcn_handler.fnptr == NULL)) {
     /* There's no explicit method on this function object, so we use
@@ -134,6 +135,7 @@ static lispval traced_function_call(u8_string name,kno_function f,
   int rv = (f->fcn_typeinfo) ?
     (check_argtypes(f,n,args)) :
     (check_args((lispval)f,n,args));
+  U8_PAUSEPOINT();
   if (RARELY(rv<0)) return KNO_ERROR;
   lispval result = KNO_VOID;
   if (RARELY(f->fcn_handler.fnptr == NULL)) {
@@ -879,7 +881,7 @@ static int arg_column = 20;
 
 static void output_args(u8_output out,kno_function f,int n,kno_argvec args)
 {
-  lispval *schema = f->fcn_schema;
+  lispval *schema = f->fcn_argnames;
   int i = 0; while (i<n) {
     lispval arg = args[i];
     int start_pos = out->u8_write-out->u8_outbuf;

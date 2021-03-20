@@ -160,7 +160,7 @@ KNO_EXPORT lispval kno_make_netproc(kno_service server,u8_string name,
   f->fcn_min_arity = min_arity;
   f->fcn_call_width = f->fcn_arity = arity;
   f->fcn_arginfo_len = 0;
-  f->fcn_schema = NULL;
+  f->fcn_argnames = NULL;
   f->fcn_call |= KNO_CALL_XCALL;
   f->fcn_handler.fnptr = NULL;
   return LISP_CONS(f);

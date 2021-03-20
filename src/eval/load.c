@@ -194,6 +194,13 @@ static u8_string get_component(u8_string spec)
 
 /* Scheme primitives */
 
+DEFC_EVALFN("LOAD",load_source_evalfn,KNO_EVALFN_DEFAULTS,
+	    "`(load *path* [*opts/encoding*])` loads the Scheme source file "
+	    "at *path* into the current environment. If *opts/encoding* is a "
+	    "string or symbol, it specifies the character encoding of "
+	    "the file. Otherwise, it attempts to determine the encoding "
+	    "automatically. *path* can be any string supported by the "
+	    "KNO path facility, potentially including URLs, zip entries, etc.")
 static lispval load_source_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval source_expr = kno_get_arg(expr,1), source, result;
@@ -298,6 +305,14 @@ static lispval env_load_prim(lispval envarg,lispval source,lispval onload)
     else return KNO_INT(1);}
 }
 
+DEFC_EVALFN("load-component",load_component_evalfn,KNO_EVALFN_DEFAULTS,
+	    "`(load-component *path* [*opts/encoding*])` loads the Scheme "
+	    "source file at *path* (relative to the current source context) "
+	    "into the current environment. If *opts/encoding* is a "
+	    "string or symbol, it specifies the character encoding of "
+	    "the file. Otherwise, it attempts to determine the encoding "
+	    "automatically. *path* can be any string supported by the "
+	    "KNO path facility, potentially including URLs, zip entries, etc.")
 static lispval load_component_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval source_expr = kno_get_arg(expr,1), source, result;
@@ -331,7 +346,14 @@ static lispval load_component_evalfn(lispval expr,kno_lexenv env,kno_stack _stac
 
 DEFC_PRIM("get-component",lisp_get_component,
 	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(0),
-	  "**undocumented**",
+	  "Returns a path relative to the current source context. "
+	  "The source context is whatever file is currently being "
+	  "loaded into the session. Without any argument, this simply "
+	  "returns the source context; with one argument (a string), "
+	  "it returns another file in the same location (directory) "
+	  "as the source context. And with two arguments (rare), it "
+	  "uses the second argument to replace the current source "
+	  "context in generating the path.",
 	  {"string",kno_string_type,KNO_VOID},
 	  {"base",kno_string_type,KNO_VOID})
 static lispval lisp_get_component(lispval string,lispval base)
@@ -347,15 +369,42 @@ static lispval lisp_get_component(lispval string,lispval base)
     return kno_wrapstring(thepath);}
 }
 
-static lispval path_macro(lispval expr,kno_lexenv env,kno_stack ptr)
+DEFC_EVALFN("#source",source_hashmacro_evalfn,KNO_EVALFN_DEFAULTS,
+	    "`#:SOURCE\"*path*\"` (e.g. `#:SOURCE\"init/foo.scm\"`) "
+	    "returns a file path relative to the current source context.")
+static lispval source_hashmacro_evalfn(lispval expr,kno_lexenv env,kno_stack ptr)
 {
   lispval arg = kno_get_arg(expr,1);
-  if (KNO_STRINGP(arg)) {
+  if (KNO_VOIDP(arg))
+    return kno_err(kno_SyntaxError,"source_charmacro_evalfn",NULL,expr);
+  else if (KNO_STRINGP(arg)) {
     u8_string fullpath = (kno_sourcebase()) ?
       (kno_get_component(KNO_CSTRING(arg))) :
       (u8_abspath(KNO_CSTRING(arg),NULL));
     return kno_init_string(NULL,-1,fullpath);}
-  else return kno_err(kno_TypeError,"path_macro","string",arg);
+  else if (KNO_SYMBOLP(arg)) {
+    u8_string fullpath = (kno_sourcebase()) ?
+      (kno_get_component(KNO_SYMBOL_NAME(arg))) :
+      (u8_abspath(KNO_SYMBOL_NAME(arg),NULL));
+    return kno_init_string(NULL,-1,fullpath);}
+  else return kno_err(kno_TypeError,"source_hashmacro_evalfn","string",arg);
+}
+
+DEFC_EVALFN("#path",path_hashmacro_evalfn,KNO_EVALFN_DEFAULTS,
+	    "`#:PATH\"*path*\"` (e.g. `#:PATH\"home.cfg\"`) "
+	    "returns a file path relative to the current working directory.")
+static lispval path_hashmacro_evalfn(lispval expr,kno_lexenv env,kno_stack ptr)
+{
+  lispval arg = kno_get_arg(expr,1);
+  if (KNO_VOIDP(arg))
+    return kno_err(kno_SyntaxError,"source_charmacro_evalfn",NULL,expr);
+  else if (KNO_STRINGP(arg)) {
+    u8_string fullpath = u8_abspath(KNO_CSTRING(arg),NULL);
+    return kno_init_string(NULL,-1,fullpath);}
+  else if (KNO_SYMBOLP(arg)) {
+    u8_string fullpath = u8_abspath(KNO_SYMBOL_NAME(arg),NULL);
+    return kno_init_string(NULL,-1,fullpath);}
+  else return kno_err(kno_TypeError,"source_hashmacro_evalfn","string",arg);
 }
 
 /* Latest source functions */
@@ -482,6 +531,12 @@ int kno_load_latest(u8_string filename,kno_lexenv env,int refresh,
   return 1;
 }
 
+DEFC_EVALFN("load-latest",load_latest_evalfn,KNO_EVALFN_DEFAULTS,
+	    "`(load-latest *filename*)` loads the latest version of "
+	    "*filename* into the innermost non-static environment. "
+	    "If the loaded version is newer than *filename*, "
+	    "nothing is done. This uses the binding "
+	    "%loadstamps in the current environment.")
 static lispval load_latest_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   int retval = -1;
@@ -511,7 +566,16 @@ static lispval load_latest_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   else return KNO_FALSE;
 }
 
-static lispval load_update_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+DEFC_EVALFN("load-updates",load_updates_evalfn,KNO_EVALFN_DEFAULTS,
+	    "`(load-updates [*filename*])` loads the latest version of "
+	    "*filename* into the innermost non-static environment "
+	    "and marks it for automatic updating. "
+	    "If the loaded version is newer than *filename*, "
+	    "nothing is done. This uses the binding "
+	    "%loadstamps in the current environment. "
+	    "Without any argument, this updates any changed files "
+	    "in the load environment.")
+static lispval load_updates_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   if (NILP(KNO_CDR(expr))) {
     int loads = kno_load_updates(env);
@@ -616,6 +680,10 @@ static lispval kno_run_file_2string(int n,kno_argvec args)
 
 /* with sourcebase */
 
+DEFC_EVALFN("with-sourcebase",with_sourcebase_evalfn,KNO_EVALFN_DEFAULTS,
+	    "`(with-sourcebase *path* body...)` evaluates "
+	    "*body* with the dynamic _sourcebase_ bound to "
+	    "the result of evaluating *path*")
 static lispval with_sourcebase_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
 {
   lispval usebase_expr = kno_get_arg(expr,1);
@@ -663,39 +731,16 @@ KNO_EXPORT void kno_init_load_c()
   postload_symbol = kno_intern("%postload");
 
 
-  kno_def_evalfn(kno_scheme_module,"LOAD",load_source_evalfn,
-		 "*undocumented*");
-  kno_def_evalfn(kno_scheme_module,"LOAD-COMPONENT",load_component_evalfn,
-		 "*undocumented*");
-
   link_local_cprims();
 
-  kno_def_evalfn(kno_scheme_module,"LOAD-LATEST",load_latest_evalfn,
-		 "`(load-latest *filename*)` loads the latest version of "
-		 "*filename* into the innermost non-static environment. "
-		 "If the loaded version is newer than *filename*, "
-		 "nothing is done. This uses the binding "
-		 "%loadstamps in the current environment.");
+  KNO_LINK_EVALFN(kno_scheme_module,load_source_evalfn);
+  KNO_LINK_EVALFN(kno_scheme_module,load_component_evalfn);
+  KNO_LINK_EVALFN(kno_scheme_module,load_latest_evalfn);
+  KNO_LINK_EVALFN(kno_scheme_module,load_updates_evalfn);
+  KNO_LINK_EVALFN(kno_scheme_module,with_sourcebase_evalfn);
 
-  kno_def_evalfn(kno_scheme_module,"LOAD-UPDATES",load_update_evalfn,
-		 "`(load-updates [*filename*])` loads the latest version of "
-		 "*filename* into the innermost non-static environment "
-		 "and marks it for automatic updating. "
-		 "If the loaded version is newer than *filename*, "
-		 "nothing is done. This uses the binding "
-		 "%loadstamps in the current environment. "
-		 "Without any argument, this updates any changed files "
-		 "in the load environment.");
-
-  kno_def_evalfn(kno_scheme_module,"#PATH",path_macro,
-		 "#:PATH\"init/foo.scm\" or #:PATH:home.scm\n"
-		 "evaluates to an environment variable");
-
-  kno_def_evalfn(kno_scheme_module,
-		 "WITH-SOURCEBASE",with_sourcebase_evalfn,
-		 "`(with-sourcebase *path* body...)` evaluates "
-		 "*body* with the dynamic _sourcebase_ bound to "
-		 "the result of evaluating *path*");
+  KNO_LINK_EVALFN(kno_scheme_module,source_hashmacro_evalfn);
+  KNO_LINK_EVALFN(kno_scheme_module,path_hashmacro_evalfn);
 
   kno_register_config("LOAD:TRACE","Trace file load starts and ends",
 		      kno_boolconfig_get,kno_boolconfig_set,&trace_load);

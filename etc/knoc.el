@@ -126,7 +126,14 @@
 
 (put 'ambda 'scheme-indent-function 1)
 (put 'sambda 'scheme-indent-function 1)
+(put 'defambda 'scheme-indent-function 1)
+(put 'defslambda 'scheme-indent-function 1)
 (put 'slambda 'scheme-indent-function 1)
+(put 'nlambda 'scheme-indent-function 1)
+(put 'def 'scheme-indent-function 1)
+(put 'defn 'scheme-indent-function 1)
+(put 'defamb 'scheme-indent-function 1)
+(put 'defsync 'scheme-indent-function 1)
 
 (put 'set! 'scheme-indent-function 1)
 (put 'set+! 'scheme-indent-function 1)

@@ -281,7 +281,8 @@ KNO_EXPORT lispval kno_xapply_lambda
 KNO_EXPORT lispval kno_make_lambda(u8_string name,
                                  lispval arglist,lispval body,kno_lexenv env,
                                  int nd,int sync);
-KNO_EXPORT int kno_set_lambda_schema(struct KNO_LAMBDA *s,lispval args);
+KNO_EXPORT int kno_set_lambda_schema
+(struct KNO_LAMBDA *s,int n,lispval *args,lispval *inits,lispval *types);
 
 /* QCODE */
 
@@ -333,7 +334,7 @@ KNO_EXPORT lispval kno_get_body(lispval expr,int i);
 KNO_EXPORT lispval kno_symeval(lispval sym,kno_lexenv env);
 KNO_EXPORT lispval kno_lexref(lispval lexref,kno_lexenv env);
 KNO_EXPORT lispval kno_eval_symbol(lispval sym,kno_lexenv env);
-KNO_EXPORT lispval kno_lexref(lispval lexref,kno_lexenv env);
+KNO_EXPORT lispval kno_lexref_name(lispval lexref,kno_lexenv env);
 
 KNO_EXPORT lispval kno_fcn_ref(lispval sym,lispval from,lispval val);
 
@@ -346,6 +347,8 @@ KNO_EXPORT lispval kno_fcn_ref(lispval sym,lispval from,lispval val);
 #if KNO_SOURCE
 #define _eval_return return kno_pop_stack(_stack),
 #endif
+
+KNO_EXPORT lispval kno_debug_wait(lispval obj,lispval msg,int global);
 
 /* Bindings iteration */
 

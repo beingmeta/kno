@@ -747,10 +747,11 @@ KNO_EXPORT lispval kno_make_bigint(long long intval);
 #define KNO_LOCKHOLDER             KNO_CONSTANT(21)
 #define KNO_UNALLOCATED_OID        KNO_CONSTANT(22)
 #define KNO_QVOID                  KNO_CONSTANT(23)
+#define KNO_REQUIRED_VALUE         KNO_CONSTANT(24)
 
 #define KNO_TAIL                   KNO_TAIL_LOOP
 
-#define KNO_N_BUILTIN_CONSTANTS   24
+#define KNO_N_BUILTIN_CONSTANTS   25
 
 KNO_EXPORT const char *kno_constant_names[];
 KNO_EXPORT int kno_n_constants;

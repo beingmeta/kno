@@ -41,6 +41,10 @@
 
 (define-init module-warnings (make-hashtable))
 (define-init all-warnings #f)
+(define-init ignore-warnings #f)
+(varconfig! optimize:reckless ignore-warnings)
+(define-init just-warn #f)
+(varconfig! optimize:justwarn just-warn)
 
 (define-init fcnrefs-default {})
 (define-init pfcnrefs-default {})
@@ -123,11 +127,16 @@
 
 (define (annotate optimized source opts)
   (if (keep-source? opts)
-      (cons* sourceref-opcode source (qc optimized))
+      (if (and (pair? optimized)
+	       (eq? (car optimized) sourceref-opcode)
+	       (pair? (cdr optimized))
+	       (eq? source (cadr optimized)))
+	  optimized
+	  (cons* sourceref-opcode source (qc optimized)))
       optimized))
 
 (define (optimizable? arg)
-  (and (not (fcnid? arg)) (compound-procedure? arg)))
+  (and (not (fcnid? arg)) (lambda? arg)))
 
 (define (needs-eval? x)
   (cond ((fail? x) #f)
@@ -145,6 +154,7 @@
 ;;; What we export
 
 (module-export! '{optimize! optimized optimized? use+
+		  optimize*! optimize* optimize-locals!
 		  optimize-procedure! optimize-module!
 		  reoptimize! optimize-bindings!
 		  optimize/list-warnings
@@ -180,7 +190,7 @@
 	  (list arglist))))
 (define (get-lexref sym bindlist (base 0))
   (if (null? bindlist) #f
-      (if (pair? (car bindlist))
+      (if (or (pair? (car bindlist)) (vector? (car bindlist)))
 	  (let ((pos (position sym (car bindlist))))
 	    (if pos (%lexref base pos)
 		(get-lexref sym (cdr bindlist) (1+ base))))
@@ -512,7 +522,9 @@
 	 ;; just assume it's a function application and optimize it
 	 ;; that way. In principle, we could optimize ambiguous heads
 	 ;; like {+ -} but we won't do that for now.
-	 (optimize-call expr env bound opts))
+	 (annotate
+	  (optimize-call expr env bound opts)
+	  expr opts))
 	((and (symbol? (car expr)) 
 	      (not (symbol-bound? (car expr) env))
 	      (not (get-lexref (car expr) bound 0))
@@ -603,13 +615,15 @@
 	  (opts-expr (get-arg expr 4 'opts)))
       `(,do-optimize-body ,body-expr ,env-expr ,bound-expr ,opts-expr))))
 
-(defambda (make-fncall fn args env bound opts (len))
+(defambda (make-fncall fn args env bound opts expr (len))
   (default! len (length args))
-  (if (> len 15)
-      (cons* #OP_CALLN len (qc fn)
-	     (forseq (arg args) (optimize arg env bound opts)))
-      (cons* (elt fncall-opcodes len) (qc fn)
-	     (forseq (arg args) (optimize arg env bound opts)))))
+  (annotate
+   (if (> len 15)
+       (cons* #OP_CALLN len (qc fn)
+	      (forseq (arg args) (optimize arg env bound opts)))
+       (cons* (elt fncall-opcodes len) (qc fn)
+	      (forseq (arg args) (optimize arg env bound opts))))
+   expr opts))
 
 (defambda (optimize-variable expr env bound opts)
   (let ((lexref (get-lexref expr bound 0))
@@ -749,8 +763,10 @@
 			 (get special-form-optimizers
 			      (cons (downcase (procedure-name headvalue))
 				    (get-module headvalue)))))))
-	     (try (optimizer headvalue expr env bound opts)
-		  (cons* #OP_EVALFN headvalue expr))))
+	     (annotate
+	      (try (optimizer headvalue expr env bound opts)
+		   (cons* #OP_EVALFN headvalue expr))
+	      expr opts)))
 	  ((exists macro? headvalue)
 	   (annotate (optimize (macroexpand headvalue expr) env bound opts)
 		     expr opts))
@@ -770,7 +786,8 @@
 		  ((test from '%volatile head) `(#OP_SYMREF ,module ,head))
 		  (else head))
 	    (cdr expr)
-	    env bound opts))
+	    env bound opts
+	    expr))
 	  (else
 	   (when (and optwarn from
 		      (not (test from '{%nosubst %volatile} head)))
@@ -833,7 +850,8 @@
 		       `(#OP_SYMREF ,module ,fname))
 		      (else (get-headop fn fname n-args env bound opts)))
 		(cdr expr)
-		env bound opts))))
+		env bound opts
+		expr))))
     (annotate optimized expr opts)))
 
 (defambda (optimize-call expr env bound opts)
@@ -860,45 +878,57 @@
 	(optimize arg env bound opts))))
 
 (define (inner-optimize-procedure! proc (opts #f))
+  (local outer-warnings (thread/get 'codewarnings))
   (thread/set! 'codewarnings #{})
   (let* ((env (lambda-env proc))
-	 (arglist (lambda-args proc))
+	 ;;[delete] (arglist (lambda-args proc))
+	 (inits (lambda-inits proc))
 	 (body (lambda-body proc))
-	 (bound (list (arglist->vars arglist)))
+	 (bound (list (lambda-vars proc)))
 	 (initial (and (pair? body) (car body)))
 	 (opts (if (reflect/get proc 'optimize)
 		   (if opts
 		       (cons (reflect/get proc 'optimize) opts)
 		       (reflect/get proc 'optimize))
 		   opts))
-	 (new-body (optimize-body body env bound opts)))
+	 (reckless (getopt opts 'reckless ignore-warnings))
+	 (just-warn (getopt opts 'justwarn just-warn))
+	 (new-body (optimize-body body env bound opts))
+	 (new-inits (and inits
+			 (forseq (init inits) (optimize init env '() opts)))))
     (unless (null? body)
-      (reflect/store! proc 'optimized (gmtimestamp))
-      (reflect/store! proc 'original_args arglist)
-      (reflect/store! proc 'original_body body)
-      (cond ((not (use-opcodes? opts)))
-	    ((not simplify-bodies))
-	    ((and (pair? body) (null? (cdr body)) (opcode? (caar body)))
-	     (set! body (car body)))
-	    (else))
-      (if use-consblock 
-	  (optimize-lambda-body! proc new-body)
-	  (set-lambda-entry! proc new-body))
-      (when (pair? arglist)
-	(let ((optimized-args (optimize-arglist arglist env opts)))
-	  (unless (equal? arglist optimized-args)
-	    (set-lambda-args! proc optimized-args))))
-      (if (exists? (thread/get 'codewarnings))
-	  (logwarn |OptimizeErrors|
-	    "for " proc ": "
-	    (do-choices (warning (thread/get 'codewarnings))
-	      (printout "\n\t" warning)))
-	  (lognotice |Optimized| proc)))
+      (when (and (not just-warn)
+		 (or reckless (fail? (thread/get 'codewarnings))))
+	(reflect/store! proc 'optimized (gmtimestamp))
+	(reflect/store! proc 'original_inits inits)
+	(reflect/store! proc 'original_body body)
+	(cond ((not (use-opcodes? opts)))
+	      ((not simplify-bodies))
+	      ((and (pair? body) (null? (cdr body)) (opcode? (caar body)))
+	       (set! body (car body)))
+	      (else))
+	(if use-consblock 
+	    (optimize-lambda-body! proc new-body)
+	    (set-lambda-entry! proc new-body))
+	(when (and new-inits (not (equal? new-inits inits)))
+	  (set-lambda-inits! proc new-inits)))
+      (cond ((fail? (thread/get 'codewarnings))
+	     (lognotice |Optimized| proc))
+	    (reckless
+	     (logwarn |OptimizeErrors|
+	       "Recklessly optimizing " proc " despite warnings:"
+	       (do-choices (warning (thread/get 'codewarnings))
+		 (printout "\n\t" warning))))
+	    (else
+	     (logwarn |OptimizeErrors|
+	       "Skipped optimize " proc " because of warnings:"
+	       (do-choices (warning (thread/get 'codewarnings))
+		 (printout "\n\t" warning))))))
     (when (and (exists? (thread/get 'codewarnings))
 	       (or all-warnings (exists? (thread/get 'threadwarnings))))
       (store! (try (thread/get 'threadwarnings) all-warnings)
 	  proc (thread/get 'codewarnings)))
-    (thread/set! 'codewarnings #{})))
+    (thread/set! 'codewarnings outer-warnings)))
 
 (define (optimize-procedure! proc (opts #f))
   (thread/set! 'codewarnings #{})
@@ -935,9 +965,9 @@
     (when (reflect/get proc 'original_body)
       (reflect/drop! proc 'original_body)
       (optimize-lambda-body! proc #f))
-    (when (reflect/get proc 'original_args)
-      (set-lambda-args! proc (reflect/get proc 'original_args))
-      (reflect/drop! proc 'original_args))))
+    (when (reflect/get proc 'original_inits)
+      (set-lambda-inits! proc (reflect/get proc 'original_inits))
+      (reflect/drop! proc 'original_inits))))
 
 (define (procedure-optimized? arg)
   (reflect/get arg 'optimized))
@@ -1083,10 +1113,12 @@
 
 (define (optimize*! . args)
   (dolist (arg args)
-    (cond ((optimizable? arg) (optimize-procedure! arg))
+    (cond ((symbol? arg) (optimize-module! arg))
+	  ((optimizable? arg) (optimize-procedure! arg))
 	  ((table? arg) (optimize-module! arg))
 	  (else (error '|TypeError| 'optimize*
 		       "Invalid optimize argument: " arg)))))
+(define optimize* (fcn/alias optimize*!))
 
 (define (deoptimize*! . args)
   (dolist (arg args)
@@ -1095,6 +1127,10 @@
 	  (else (error '|TypeError| 'optimize*
 		       "Invalid optimize argument: " arg)))))
 
+(define optimize-locals!
+  (macro expr `(,optimize-bindings! (,%bindings))))
+
+;;; This will be replaced to be the regular function optimize*!
 (define optimize!
   (macro expr
     (if (null? (cdr expr))
@@ -1470,17 +1506,10 @@
 	  . ,(let ((bound (cons (map car bindspec) bound)))
 	       (optimize-body body))))))
 
-#|
-(define (foo x y) (let ((x2 (* x x)) (y2 (* y y))) (+ x2 y2)))
-(define (foo* x y)
-  (let* ((x (begin (%watch x) (* x x))) 
-	 (y (begin (%watch x y)) (* x y)))
-    (+ x y)))
-|#
-
 (define (optimize-assign handler expr env bound opts)
   (let ((var (get-arg expr 1))
-	(setval (get-arg expr 2)))
+	(setval (get-arg expr 2))
+	(name (car expr)))
     (let ((loc (or (get-lexref var bound 0) 
 		   (if (wherefrom var env)
 		       (cons var (wherefrom var env))
@@ -1491,8 +1520,19 @@
 		 ;; If loc is a symbol, we couldn't resolve it to a
 		 ;; lexical contour or enviroment
 		 `(,handler ,var ,optval))
-		((overlaps? handler set!) `
-		 (#OP_ASSIGN ,loc #f . ,optval))
+		((overlaps? handler set!)
+		 `(#OP_ASSIGN ,loc #f . ,optval))
+		((overlaps? handler local)
+		 (if (and (pair? bound)
+			  (position var (car bound)))
+		     `(#OP_ASSIGN ,loc #f . ,optval)
+		     (begin
+		       (codewarning (cons* '|NotLocal| var expr bound))
+		       (when optwarn
+			 (logwarn |NotLocal|
+			   "The variable " var " is not defined in the scope for "
+			   expr ", converting to set!"))
+		       `(#OP_EVALFN ,set! 'set! ,var ,optval))))
 		((overlaps? handler set+!)
 		 `(#OP_ASSIGN ,loc #OP_UNION . ,optval))
 		((and (overlaps? handler default!) (= (length expr) 3)) 
@@ -1502,10 +1542,45 @@
 		((overlaps? handler default!) 
 		 ;; Don't convert default! with a `replace` arg to use
 		 ;; OP_ASSIGN
-		 `(,default! ,var ,optval . ,(cdddr expr)))
-		(else `(,handler ,var ,optval)))
-	  `(,handler ,var ,optval)))))
+		 `(#OP_EVALFN ,default! ,name ,var ,optval . ,(cdddr expr)))
+		(else `(#OP_EVALFN ,handler ,name ,var ,optval)))
+	  `(#OP_EVALFN ,handler ,name ,var ,optval)))))
 
+(define (optimize-locals handler expr env bound opts)
+  (let ((converted (convert-locals (cdr expr) env bound opts)))
+    (if (proper-list? converted)
+	(cons #OP_LOCALS converted)
+	(begin (codewarning (cons* '|SyntaxError| expr bound))
+	  expr))))
+
+(define (convert-locals locals env bound opts)
+  (cond ((empty-list? locals) locals)
+	((not (pair? locals)) #f)
+	(else (let ((head (car locals)) (scan (cdr locals))
+		    (local-vars (car bound)))
+		(cond ((and (symbol? head) (pair? scan) (position head local-vars))
+		       (let ((var head) (val-expr (car scan)))
+			 (cons* (get-lexref var bound)
+				(optimize val-expr env bound opts)
+				(convert-locals (cddr locals) env bound opts))))
+		      ((and (symbol? head) (pair? scan))
+		       (codewarning (cons* '|NotLocal| head) bound)
+		       #f)
+		      ((symbol? head) #f)
+		      ((and (pair? head) (or (= (length head) 2) (= (length head) 3)))
+		       (let* ((var (get-arg head 0))
+			      (val-expr (get-arg head 1))
+			      (lexref (and (position var local-vars)
+					   (get-lexref var bound)))
+			      (type (and (= (length head) 3)
+					 (get-arg head 2))))
+			 (cond ((not lexref) (codewarning (cons* '|NotLocal| head bound)) #f)
+			       (type (cons* (list lexref (optimize val-expr env bound opts) type)
+					    (convert-locals (cdr locals) env bound opts)))
+			       (else (cons* (list lexref (optimize val-expr bound env opts))
+					    (convert-locals (cdr locals) env bound opts))))))
+		      (else #f))))))
+  
 (define (optimize-lambda handler expr env bound opts)
   `(,handler ,(cadr expr)
 	     ,@(let ((bound (cons (arglist->vars (cadr expr)) bound))
@@ -1843,6 +1918,9 @@
 (add! special-form-optimizers 
       (choice set! set+! default! define)
       optimize-assign)
+(add! special-form-optimizers 
+      (choice local locals)
+      optimize-locals)
 
 (add! special-form-optimizers
       (choice dolist dotimes doseq forseq)
@@ -1895,7 +1973,7 @@
       {"ONERROR" "UNWIND-PROTECT" "DYNAMIC-WIND"}
       optimize-block)
 (add! special-form-optimizers {"FILEOUT" "SYSTEM"} optimize-block)
-(add! special-form-optimizers {dbg dbgeval} optimize-block)
+(add! special-form-optimizers {dbg dbg/wait} optimize-block)
 
 (add! special-form-optimizers 
     ({procedure-name (lambda (x) x) 

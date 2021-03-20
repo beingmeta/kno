@@ -27,8 +27,6 @@ static lispval if_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   if ((VOIDP(test_expr)) || (VOIDP(consequent_expr)))
     return kno_err(kno_TooFewExpressions,"IF",NULL,expr);
   test_result = kno_eval(test_expr,env,_stack);
-  int tail_arg =
-    (KNO_STACK_BITP(_stack,KNO_STACK_TAIL_POS)) ? (KNO_TAIL_EVAL) : (0);
   if (KNO_ABORTED(test_result)) return test_result;
   else if (FALSEP(test_result)) {
     if (VOIDP(else_expr))

@@ -228,6 +228,16 @@ KNO_FASTOP int __kno_reset_stack(struct KNO_STACK *stack);
 #define KNO_STACK_CLEAR(stack,bit) \
   (stack)->stack_bits &= (~(bit))
 
+#define KNO_STACK_BITP(stack,bits)       ( ((stack)->stack_bits) & (bits) )
+#define KNO_STACK_BITSP(stack,bits)      \
+  ( ( ((stack)->stack_bits) & (bits) ) == bits)
+#define KNO_STACK_SET_BITS(stack,bits)   (stack)->stack_bits |= bits
+#define KNO_STACK_CLEAR_BITS(stack,bits) (stack)->stack_bits &= (~(bits))
+
+#define KNO_STACK_SET_BIT(stack,bit,bool) \
+  if (bool) KNO_STACK_SET_BITS(stack,bit); else KNO_STACK_CLEAR_BITS(stack,bit)
+
+
 /* Stack flags (inherited by default from caller) */
 
 /* Stack error flags */
@@ -257,14 +267,14 @@ KNO_FASTOP int __kno_reset_stack(struct KNO_STACK *stack);
 #define KNO_STACK_PUSH_ALL	 0x200000
 #define KNO_STACK_KEEP_MACROS	 0x400000
 
-#define KNO_STACK_BITP(stack,bits)       ( ((stack)->stack_bits) & (bits) )
-#define KNO_STACK_BITSP(stack,bits)      \
-  ( ( ((stack)->stack_bits) & (bits) ) == bits)
-#define KNO_STACK_SET_BITS(stack,bits)   (stack)->stack_bits |= bits
-#define KNO_STACK_CLEAR_BITS(stack,bits) (stack)->stack_bits &= (~(bits))
+#define KNO_STACK_FLAGP(stack,flags)       ( ((stack)->stack_flags) & (flags) )
+#define KNO_STACK_FLAGSP(stack,flags)      \
+  ( ( ((stack)->stack_flags) & (flags) ) == flags)
+#define KNO_STACK_SET_FLAGS(stack,flags)   (stack)->stack_flags |= flags
+#define KNO_STACK_CLEAR_FLAGS(stack,flags) (stack)->stack_flags &= (~(flags))
 
-#define KNO_STACK_SET_BIT(stack,bit,bool) \
-  if (bool) KNO_STACK_SET_BITS(stack,bit); else KNO_STACK_CLEAR_BITS(stack,bit)
+#define KNO_STACK_SET_FLAG(stack,flag,bool) \
+  if (bool) KNO_STACK_SET_FLAGS(stack,flag); else KNO_STACK_CLEAR_FLAGS(stack,flag)
 
 
 #if (U8_USE_TLS)
@@ -312,12 +322,13 @@ KNO_EXPORT void _kno_stack_pop_error(kno_stack stack,u8_context loc);
 #define KNO_PUSH_STACK(stack)					\
   if (kno_debug_stacks) {					\
     u8_log(LOGWARN,"StackPush","0x%llx ==> 0x%llx @ %s",	\
-	   KNO_LONGVAL(kno_stackptr),					\
-	   KNO_LONGVAL(stack),						\
-	   KNO_FILEPOS);}						\
-  if ((stack)->stack_caller != kno_stackptr)				\
+	   KNO_LONGVAL(kno_stackptr),				\
+	   KNO_LONGVAL(stack),					\
+	   KNO_FILEPOS);}					\
+  if ((stack)->stack_caller != kno_stackptr)			\
     _kno_stack_push_error(stack,KNO_FILEPOS);			\
-  KNO_STACK_SET(stack,KNO_STACK_LIVE);					\
+  KNO_STACK_SET(stack,KNO_STACK_LIVE);				\
+  U8_PAUSEPOINT();						\
   __kno_set_stackptr((stack));
 #define KNO_POP_STACK(stack)					\
   if (kno_debug_stacks) {					\
@@ -326,23 +337,26 @@ KNO_EXPORT void _kno_stack_pop_error(kno_stack stack,u8_context loc);
 	   KNO_LONGVAL(stack),					\
 	   KNO_FILEPOS);}					\
   if ((stack) != kno_stackptr)					\
-    _kno_stack_pop_error(stack,KNO_FILEPOS);				\
-  KNO_STACK_CLEAR(stack,KNO_STACK_LIVE);				\
+    _kno_stack_pop_error(stack,KNO_FILEPOS);			\
+  U8_PAUSEPOINT();						\
+  KNO_STACK_CLEAR(stack,KNO_STACK_LIVE);			\
   __kno_set_stackptr((stack)->stack_caller);
 #else
 #define KNO_PUSH_STACK(stack)						\
   if ((stack)->stack_caller != kno_stackptr)				\
-    _kno_stack_push_error((stack),KNO_FILEPOS);		\
+    _kno_stack_push_error((stack),KNO_FILEPOS);				\
+  U8_PAUSEPOINT();							\
   KNO_STACK_SET(stack,KNO_STACK_LIVE);					\
   __kno_set_stackptr(stack);
-#define KNO_POP_STACK(stack)				\
-  if (stack != kno_stackptr)				\
-    _kno_stack_pop_error(stack,KNO_FILEPOS);			\
+#define KNO_POP_STACK(stack)						\
+  if (stack != kno_stackptr)						\
+    _kno_stack_pop_error(stack,KNO_FILEPOS);				\
+  U8_PAUSEPOINT();							\
   KNO_STACK_CLEAR(stack,KNO_STACK_LIVE);				\
   __kno_set_stackptr((stack)->stack_caller);
 #endif
 
-#define KNO_STACK_SET_ENV(stack,env,freeit)		       \
+#define KNO_STACK_SET_ENV(stack,env,freeit)				\
   kno_lexenv _cur_env = stack->eval_env;				\
   int _free_cur = (KNO_STACK_BITP(stack,KNO_STACK_FREE_ENV) );		\
   if (_cur_env != env) {						\
